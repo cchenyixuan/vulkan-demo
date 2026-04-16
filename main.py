@@ -119,7 +119,7 @@ class VulkanApp:
                 self.device, self.swapchain, UINT64_MAX,
                 self.image_available_semaphores[self.current_frame], None
             )
-        except VkErrorOutOfDateKhr:
+        except (VkErrorOutOfDateKhr, VkSuboptimalKhr):
             self.recreate_swapchain()
             return
 
