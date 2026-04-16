@@ -33,11 +33,12 @@ def allocate_command_buffers(device, command_pool, count):
     return vkAllocateCommandBuffers(device, alloc_info)
 
 
-def record_command_buffer(cmd_buf, render_pass, framebuffer, extent, pipeline):
+def record_command_buffer(cmd_buf, render_pass, framebuffer, extent, pipeline,
+                          clear_color=(0.0, 0.0, 0.0, 1.0)):
     begin_info = VkCommandBufferBeginInfo()
     vkBeginCommandBuffer(cmd_buf, begin_info)
 
-    clear_value = VkClearValue(color=VkClearColorValue(float32=[0.0, 0.0, 0.0, 1.0]))
+    clear_value = VkClearValue(color=VkClearColorValue(float32=list(clear_color)))
     render_pass_info = VkRenderPassBeginInfo(
         renderPass=render_pass,
         framebuffer=framebuffer,

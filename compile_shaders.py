@@ -6,8 +6,9 @@ GLSLC = os.environ.get("VULKAN_SDK", "C:/VulkanSDK/1.4.341.1") + "/Bin/glslc.exe
 SHADER_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "shaders")
 
 SHADERS = [
-    "triangle.vert",
-    "triangle.frag",
+    "particle.vert",
+    "particle.frag",
+    "particle_update.comp",
 ]
 
 

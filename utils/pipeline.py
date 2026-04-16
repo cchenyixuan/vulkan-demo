@@ -41,47 +41,43 @@ def create_render_pass(device, image_format):
     return vkCreateRenderPass(device, render_pass_info, None)
 
 
-def create_graphics_pipeline(device, render_pass, extent):
-    vert_code = load_spirv("triangle.vert.spv")
-    frag_code = load_spirv("triangle.frag.spv")
+PARTICLE_PUSH_CONSTANT_SIZE = 48  # vec4 view + vec4 params + vec4 color
+
+
+def create_particle_graphics_pipeline(device, render_pass, descriptor_set_layout):
+    vert_code = load_spirv("particle.vert.spv")
+    frag_code = load_spirv("particle.frag.spv")
     vert_module = create_shader_module(device, vert_code)
     frag_module = create_shader_module(device, frag_code)
 
-    vert_stage = VkPipelineShaderStageCreateInfo(
-        stage=VK_SHADER_STAGE_VERTEX_BIT,
-        module=vert_module,
-        pName="main",
-    )
-    frag_stage = VkPipelineShaderStageCreateInfo(
-        stage=VK_SHADER_STAGE_FRAGMENT_BIT,
-        module=frag_module,
-        pName="main",
-    )
-    shader_stages = [vert_stage, frag_stage]
+    stages = [
+        VkPipelineShaderStageCreateInfo(
+            stage=VK_SHADER_STAGE_VERTEX_BIT, module=vert_module, pName="main",
+        ),
+        VkPipelineShaderStageCreateInfo(
+            stage=VK_SHADER_STAGE_FRAGMENT_BIT, module=frag_module, pName="main",
+        ),
+    ]
 
-    vertex_input_info = VkPipelineVertexInputStateCreateInfo(
+    vertex_input = VkPipelineVertexInputStateCreateInfo(
         vertexBindingDescriptionCount=0,
         vertexAttributeDescriptionCount=0,
     )
     input_assembly = VkPipelineInputAssemblyStateCreateInfo(
-        topology=VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+        topology=VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,
         primitiveRestartEnable=VK_FALSE,
     )
-    dynamic_states = [VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR]
     dynamic_state = VkPipelineDynamicStateCreateInfo(
-        dynamicStateCount=len(dynamic_states),
-        pDynamicStates=dynamic_states,
+        dynamicStateCount=2,
+        pDynamicStates=[VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR],
     )
-    viewport_state = VkPipelineViewportStateCreateInfo(
-        viewportCount=1,
-        scissorCount=1,
-    )
+    viewport_state = VkPipelineViewportStateCreateInfo(viewportCount=1, scissorCount=1)
     rasterizer = VkPipelineRasterizationStateCreateInfo(
         depthClampEnable=VK_FALSE,
         rasterizerDiscardEnable=VK_FALSE,
         polygonMode=VK_POLYGON_MODE_FILL,
         lineWidth=1.0,
-        cullMode=VK_CULL_MODE_BACK_BIT,
+        cullMode=VK_CULL_MODE_NONE,
         frontFace=VK_FRONT_FACE_CLOCKWISE,
         depthBiasEnable=VK_FALSE,
     )
@@ -99,16 +95,24 @@ def create_graphics_pipeline(device, render_pass, extent):
         attachmentCount=1,
         pAttachments=[color_blend_attachment],
     )
-    pipeline_layout_info = VkPipelineLayoutCreateInfo(
-        setLayoutCount=0,
-        pushConstantRangeCount=0,
+
+    push_range = VkPushConstantRange(
+        stageFlags=VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+        offset=0,
+        size=PARTICLE_PUSH_CONSTANT_SIZE,
     )
-    pipeline_layout = vkCreatePipelineLayout(device, pipeline_layout_info, None)
+    layout_info = VkPipelineLayoutCreateInfo(
+        setLayoutCount=1,
+        pSetLayouts=[descriptor_set_layout],
+        pushConstantRangeCount=1,
+        pPushConstantRanges=[push_range],
+    )
+    pipeline_layout = vkCreatePipelineLayout(device, layout_info, None)
 
     pipeline_info = VkGraphicsPipelineCreateInfo(
-        stageCount=len(shader_stages),
-        pStages=shader_stages,
-        pVertexInputState=vertex_input_info,
+        stageCount=len(stages),
+        pStages=stages,
+        pVertexInputState=vertex_input,
         pInputAssemblyState=input_assembly,
         pViewportState=viewport_state,
         pRasterizationState=rasterizer,
@@ -123,5 +127,4 @@ def create_graphics_pipeline(device, render_pass, extent):
 
     vkDestroyShaderModule(device, vert_module, None)
     vkDestroyShaderModule(device, frag_module, None)
-
     return pipeline_layout, pipelines[0]

@@ -17,9 +17,9 @@ def choose_surface_format(formats):
 
 
 def choose_present_mode(present_modes):
-    for mode in present_modes:
-        if mode == VK_PRESENT_MODE_MAILBOX_KHR:
-            return mode
+    for preferred in (VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_MAILBOX_KHR):
+        if preferred in present_modes:
+            return preferred
     return VK_PRESENT_MODE_FIFO_KHR
 
 

@@ -1,13 +1,6 @@
 from vulkan import *
 
 
-def select_physical_device(instance):
-    devices = vkEnumeratePhysicalDevices(instance)
-    if not devices:
-        raise RuntimeError("No GPU with Vulkan support found")
-    return devices[0]
-
-
 def find_queue_families(physical_device, surface, surface_support_fn):
     queue_families = vkGetPhysicalDeviceQueueFamilyProperties(physical_device)
     graphics_family = None
