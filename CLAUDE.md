@@ -2,17 +2,22 @@
 
 ## Overview
 
-Vulkan-based rendering/compute project migrating from an existing OpenGL δ-plus WCSPH codebase. Target: cross-vendor multi-GPU (NVIDIA RTX 4060 Ti + AMD RX 7900 XTX) SPH fluid simulation at scale.
+Vulkan-based rendering/compute project migrating from an existing OpenGL δ-plus WCSPH codebase. Multi-GPU SPH fluid simulation at scale.
 
-**Cross-vendor is an intentional stress test**, not a constraint.
+- **Production target**: 2× RTX 5090 on one machine (same-vendor, PCIe 5.0 x16 P2P). Primary benchmark configuration for the final paper's scaling results.
+- **Stress test (paper portability section)**: NV 4060 Ti + AMD 7900 XTX, cross-vendor single machine.
+
+Cross-vendor is an intentional robustness test, not the primary deployment constraint. Both configs share the same codepath; the transport layer is pluggable. See `docs/sph_design.md` for the full design.
 
 ## Current State
 
 **Phase 1 complete** (`main_multigpu_particles.py`): 10M particle cross-GPU migration demo. CPU-staged migration via host-visible buffers. Ping-pong particle buffers, atomic counters, `vkCmdDrawIndirect` for variable alive count. Resize-resilient (recovered from acquire/present failures without state corruption). Validated: total particle count conserved; visible asymmetric GPU load (4060Ti ~38fps vs 7900XTX ~140fps at peak).
 
-**Phase 2 (shared memory) ruled out:** Probed with `probe_external.py` / `probe_interop.py`. Cross-vendor OPAQUE_WIN32 handles rejected by both drivers (`VK_ERROR_OUT_OF_DEVICE_MEMORY` / `VK_ERROR_UNKNOWN`). D3D12 interop route is theoretically available but not pursued — accepting CPU-staged cost instead.
+**Phase 2 (shared memory)** result is hardware-pair-dependent:
+- **NV+AMD**: probed with `probe_external.py` / `probe_interop.py` — OPAQUE_WIN32 handles rejected by both drivers (`VK_ERROR_OUT_OF_DEVICE_MEMORY` / `VK_ERROR_UNKNOWN`). CPU staging is the only path for this pair. Do not re-attempt.
+- **NV+NV (2×5090)**: not yet probed. Expected to succeed (same-vendor handle import usually works on NV). Re-run `probe_interop.py` on the 2×5090 rig when available.
 
-**Next: SPH rewrite** — existing OpenGL code (10k lines, δ-plus WCSPH with persistent voxel grid neighbor search) will be rewritten fresh in Vulkan, not line-by-line ported. See memory `sph_design.md` for architecture plan.
+**Next: SPH rewrite** — existing OpenGL code (10k lines, δ-plus WCSPH with persistent voxel grid neighbor search) will be rewritten fresh in Vulkan, not line-by-line ported. Full design in **`docs/sph_design.md`**.
 
 ## Layout
 
@@ -40,7 +45,18 @@ vulkan-demo/
 
 ## Key Architectural Decisions (accumulated)
 
-- **Cross-vendor shared memory does NOT work** on this hardware pair (N 4060Ti + A 7900XTX). Migration is always CPU-staged. Do not re-attempt.
+### SPH multi-GPU (design stage, see `docs/sph_design.md`)
+
+- **Velocity Verlet integration**, not explicit Euler — the drift-before-force ordering lets end-of-step sync pre-compute everything the next step's Kernel A needs, giving **1 sync per step** instead of 2.
+- **Migration merged into ghost flow** via bit-exact Kernel A on ghost particles. No separate migration pack/kernel. Controlled by `STRICT_BIT_EXACT` spec constant (`constant_id=10`, default `true`, cost <2% on integration kernel).
+- **Single own-particle SoA buffer**, voxel-sorted with interior voxels first and boundary voxels last. Dispatch range split (`[0, K)` interior, `[K, N)` boundary) enables V2 async overlap without per-step buffer shuffling.
+- **Ghost buffer carries `{x, v, ρ, a, shift}`** (~64B/particle padded) so both GPUs can locally do Kernel A + density + force for the boundary. Bandwidth ~1.5× classical ghost but eliminates migration flow.
+- **Transport backend is pluggable**: `CpuStagingBackend` (cross-vendor, Phase 1 pattern), `P2PBackend` (same-vendor `vkCmdCopyBuffer`), `SharedMemoryBackend` (conditional on probe).
+- **Per-particle globals → specialization constants**, not per-particle storage. Audit OpenGL's `ParticleRuntimeData` — most intermediate fields can become local variables inside a single kernel.
+
+### Phase 1 (multi-GPU migration demo)
+
+- **Cross-vendor shared memory does NOT work** on N 4060Ti + A 7900XTX pair. Migration is always CPU-staged there. (NV+NV 2×5090 pair is a separate question — see `probe_interop.py` re-run TODO.)
 - **Ping-pong particle buffers** with parity swap inside `submit()` after successful queue submission (so parity doesn't flip on acquire failure).
 - **Counter reset inside `submit()`** only after acquire succeeds — prevents state corruption on resize events.
 - **`read_and_clear_outgoing()` + `append_incoming()`** pattern prevents double-routing and lost particles during acquire-failure retry paths.
@@ -49,12 +65,19 @@ vulkan-demo/
 
 ## SPH Architecture Plan (upcoming)
 
-- **Method:** δ-plus WCSPH (explicit time integration, no iterative solver) — multi-GPU-friendly.
-- **Neighbor search:** persistent uniform voxel grid (existing OpenGL approach retained; superior to per-step radix sort for WCSPH CFL regime).
-- **Shader constant injection:** via `VkSpecializationInfo` + `layout(constant_id=N) const` in SPIR-V (replaces OpenGL `#define` string injection).
-- **Multi-GPU:** static voxel assignment to GPUs (no dynamic rebalancing initially); ghost layer of voxels near split; every step re-sync ghost state.
-- **Migration transport:** reuse Phase 1 CPU-staged pattern from `main_multigpu_particles.py`.
-- **Async compute queue optimization** (interior compute overlaps with CPU routing) is deferred — will be added once SPH is functional.
+Full design: **`docs/sph_design.md`** (integration scheme, buffer layout, transport backends, invariants, performance targets, implementation phases).
+
+Summary:
+- **Method**: δ-plus WCSPH, explicit **velocity Verlet** integration (upgrade from OpenGL baseline's explicit Euler).
+- **Neighbor search**: persistent uniform voxel grid (existing OpenGL approach retained).
+- **Shader constants**: `VkSpecializationInfo` + `layout(constant_id=N) const` (replaces OpenGL `#define` injection).
+- **Multi-GPU**: 1D slab decomposition, static partition, 1-voxel-thick ghost. Voxel-sorted own buffer with interior-first layout to enable async overlap via dispatch range split.
+- **Crossing/migration**: merged into ghost flow via bit-exact Kernel A. No separate migration pipeline.
+- **Transport**: pluggable backend (CPU staging / P2P / shared memory).
+- **Sync cadence**: 1 sync per step at end of step.
+- **Async compute queue overlap**: deferred to V2.
+
+**Performance target**: 2M particles @ 350 fps on 2× RTX 5090 (V2, with async overlap and optimal backend). Baseline: 1M @ 330 fps on single 5090 (OpenGL).
 
 ## Performance Notes (OpenGL baseline, pre-migration)
 
