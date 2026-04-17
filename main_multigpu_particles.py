@@ -506,14 +506,33 @@ def main():
 
     nv_dev, nv_name = find_discrete_gpu(instance, VENDOR_NVIDIA)
     amd_dev, amd_name = find_discrete_gpu(instance, VENDOR_AMD)
-    if not nv_dev or not amd_dev:
-        raise RuntimeError("Need both NVIDIA and AMD discrete GPUs")
-    print(f"NV:  {nv_name}")
-    print(f"AMD: {amd_name}")
+    if nv_dev and amd_dev:
+        print(f"GPU-L: {nv_name}")
+        print(f"GPU-R: {amd_name}")
+        left_dev, right_dev = nv_dev, amd_dev
+        left_label, right_label = f"NV [0, 1]", f"AMD [1, 2]"
+    elif nv_dev:
+        print(f"Single GPU mode: {nv_name} (two logical devices)")
+        left_dev, right_dev = nv_dev, nv_dev
+        left_label, right_label = f"{nv_name} L [0, 1]", f"{nv_name} R [1, 2]"
+    elif amd_dev:
+        print(f"Single GPU mode: {amd_name} (two logical devices)")
+        left_dev, right_dev = amd_dev, amd_dev
+        left_label, right_label = f"{amd_name} L [0, 1]", f"{amd_name} R [1, 2]"
+    else:
+        # Fallback: pick first discrete or any GPU
+        devs = vkEnumeratePhysicalDevices(instance)
+        if not devs:
+            raise RuntimeError("No Vulkan GPU found")
+        dev = devs[0]
+        name = vkGetPhysicalDeviceProperties(dev).deviceName
+        print(f"Single GPU mode: {name} (two logical devices)")
+        left_dev, right_dev = dev, dev
+        left_label, right_label = f"{name} L [0, 1]", f"{name} R [1, 2]"
 
     win_w, win_h = 600, 600
-    nv_window = glfw.create_window(win_w, win_h, "NVIDIA [0, 1]", None, None)
-    amd_window = glfw.create_window(win_w, win_h, "AMD [1, 2]", None, None)
+    nv_window = glfw.create_window(win_w, win_h, left_label, None, None)
+    amd_window = glfw.create_window(win_w, win_h, right_label, None, None)
     glfw.set_window_pos(nv_window, 100, 200)
     glfw.set_window_pos(amd_window, 100 + win_w, 200)
 
@@ -525,13 +544,13 @@ def main():
         seed=11,
     )
     nv = ParticleRenderer(
-        instance, nv_dev, nv_window, inst_fns,
+        instance, left_dev, nv_window, inst_fns,
         x_min=0.0, x_max=1.0, y_min=0.0, y_max=1.0,
         is_left=True, base_hue=0.33,
         n_initial=N_INITIAL_NV, initial_bytes=nv_initial,
     )
     amd = ParticleRenderer(
-        instance, amd_dev, amd_window, inst_fns,
+        instance, right_dev, amd_window, inst_fns,
         x_min=1.0, x_max=2.0, y_min=0.0, y_max=1.0,
         is_left=False, base_hue=0.05,
         n_initial=0, initial_bytes=None,
