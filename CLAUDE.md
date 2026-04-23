@@ -43,11 +43,23 @@ vulkan-demo/
     └── shaders.py                 # SPIR-V loading
 ```
 
+## Code Conventions
+
+- **No abbreviations in identifiers.** Use full words in variables, buffers, struct fields, and function names. Examples:
+  - `correction_matrix` / `correction_matrix_inverse`, not `M` / `M_inv`
+  - `neighbor_particle_id`, not `pid_j`
+  - `smoothing_length`, not `h`
+  - `kernel_gradient`, not `gW`
+  - `PositionVoxelIdBuffer`, not `PosVidBuf`
+  - Loop counters: `row_index` / `slot_index`, not `i` / `k`
+- Math symbols (W, ρ, ∇, M, ξ) are **allowed in comments** explaining derivation; **never in identifiers**.
+- Verbose names acceptable even when long: `smoothing_length_power_dimension_plus_one` beats `h_dim_p1`.
+
 ## Key Architectural Decisions (accumulated)
 
 ### SPH multi-GPU (design stage, see `docs/sph_design.md`)
 
-- **Velocity Verlet integration**, not explicit Euler — the drift-before-force ordering lets end-of-step sync pre-compute everything the next step's Kernel A needs, giving **1 sync per step** instead of 2.
+- **Leapfrog integration** (half-step velocity storage), not explicit Euler. Algebraically equivalent to velocity Verlet (KDK) but collapses the two half-kicks into a single full-step kick per iteration — **5 kernels per step** instead of Verlet KDK's 6. The drift-before-force ordering still holds, letting end-of-step multi-GPU sync pre-compute everything the next step needs, giving **1 sync per step**.
 - **Migration merged into ghost flow** via bit-exact Kernel A on ghost particles. No separate migration pack/kernel. Controlled by `STRICT_BIT_EXACT` spec constant (`constant_id=10`, default `true`, cost <2% on integration kernel).
 - **Single own-particle SoA buffer**, voxel-sorted with interior voxels first and boundary voxels last. Dispatch range split (`[0, K)` interior, `[K, N)` boundary) enables V2 async overlap without per-step buffer shuffling.
 - **Ghost buffer carries `{x, v, ρ, a, shift}`** (~64B/particle padded) so both GPUs can locally do Kernel A + density + force for the boundary. Bandwidth ~1.5× classical ghost but eliminates migration flow.
@@ -68,7 +80,7 @@ vulkan-demo/
 Full design: **`docs/sph_design.md`** (integration scheme, buffer layout, transport backends, invariants, performance targets, implementation phases).
 
 Summary:
-- **Method**: δ-plus WCSPH, explicit **velocity Verlet** integration (upgrade from OpenGL baseline's explicit Euler).
+- **Method**: δ-plus WCSPH, explicit **leapfrog** integration (half-step velocity; algebraically equivalent to velocity Verlet KDK but 5 kernels/step instead of 6). Upgrade from OpenGL baseline's explicit Euler.
 - **Neighbor search**: persistent uniform voxel grid (existing OpenGL approach retained).
 - **Shader constants**: `VkSpecializationInfo` + `layout(constant_id=N) const` (replaces OpenGL `#define` injection).
 - **Multi-GPU**: 1D slab decomposition, static partition, 1-voxel-thick ghost. Voxel-sorted own buffer with interior-first layout to enable async overlap via dispatch range split.

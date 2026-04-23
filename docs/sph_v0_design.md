@@ -1,10 +1,10 @@
-# SPH V0 Design: Buffer Layout + Verlet Pipeline
+# SPH V0 Design: Buffer Layout + Leapfrog Pipeline
 
 V0 scope = single-GPU δ-plus WCSPH rewrite in Vulkan. Match or exceed OpenGL baseline (1M @ 330 fps on 5090). Lays the data-layout and pipeline-skeleton foundation that V1+ multi-GPU builds on. See `sph_design.md` for the V0–V3 arc and multi-GPU rationale.
 
 ## Scope Decisions Already Made
 
-- Integration: **velocity Verlet (KDK)**, replacing OpenGL baseline's Euler.
+- Integration: **Leapfrog** (half-step velocity, single full-step kick per iteration). Algebraically equivalent to velocity Verlet KDK but 5 kernels/step instead of 6. Replaces OpenGL baseline's Euler.
 - Neighbor search: persistent uniform voxel grid with **incremental cell list** (in/out event flow), not per-step radix sort.
 - Algorithm: δ-plus WCSPH with KCG (kernel gradient correction) and PST (particle shifting).
 - Extensions deferred: micropolar, multi-resolution, thermal. Base δ-SPH only for V0.
@@ -22,7 +22,7 @@ All buffers are `std430` SSBOs on a single descriptor set. Each particle is 132 
 | 1 | `RhoP_A` | `vec2` (ρ, P) | 8 B | ping-pong partner A |
 | 2 | `RhoP_B` | `vec2` (ρ, P) | 8 B | ping-pong partner B |
 | 3 | `VelMass` | `vec4` (vx, vy, vz, mass) | 16 B | Force read, Kick write |
-| 4 | `Acc` | `vec4` (ax, ay, az, _) | 16 B | **Persistent across step** (Verlet needs a_n) |
+| 4 | `Acc` | `vec4` (ax, ay, az, _) | 16 B | **Persistent across step** (leapfrog kick consumes a_n) |
 | 5 | `Shift` | `vec4` (sx, sy, sz, _) | 16 B | **Persistent across step** (Drift needs shift_n) |
 | 6 | `Material` | `uint` | 4 B | Branch (fluid/boundary/inlet/rotor) |
 | 7 | `CorrInv` | `vec4 × 2` (M⁻¹ symmetric, 6 components) | 32 B | Correction writes; density + force read |
@@ -83,26 +83,26 @@ layout(constant_id = 13) const uint  GRID_DIM_Z       = 128;
 layout(constant_id = 20) const uint  VOXEL_ORDER      = 0;     // 0=linear, 1=Morton, 2=tile (future)
 ```
 
-## Pipeline Stages (Verlet KDK)
+## Pipeline Stages (Leapfrog, 5 stages)
 
-Entering step `n`: `x_n, v_n, a_n, ρ_n, shift_n` all valid from previous step's end.
+Entering step `n`: `x_n, v_{n-1/2}, a_n, ρ_n, shift_n` all valid from previous step's end. Stored velocity is at half-step time.
 
 ```
-1. predict          (Kick1 + Drift, per-particle dispatch)
+1. predict          (full-step kick + drift + crossing detection, per-particle dispatch)
      reads:  PosVid, Vel, Acc, Shift
-     writes: PosVid (new x, new voxel_id), Vel (v_half), InBuf (atomic append on crossing)
-     logic:  v_half = v_n + 0.5 * a_n * dt
-             x_{n+1} = x_n + v_half * dt + shift_n
+     writes: PosVid (new x, new voxel_id), Vel (new v_half), InBuf (atomic append on crossing)
+     logic:  v_{n+1/2} = v_{n-1/2} + a_n * dt               (full-step kick)
+             x_{n+1}   = x_n + v_{n+1/2} * dt + shift_n     (drift with δ-plus shift)
              new_vid = voxel_of(x_{n+1})
              if (new_vid != old_vid) atomicAdd(InCount[new_vid], 1) then append InBuf
-             PosVid[pid].w = uintBitsToFloat(new_vid)
+             PosVid[pid].w = float(new_vid)
 
 2. update_voxel     (per-voxel dispatch, one workgroup per voxel)
      reads:  old InsideBuf, InsideCount, InBuf, InCount, PosVid (for vid match)
      writes: new InsideBuf (compacted + in_buf appended), new InsideCount, reset InCount=0
      logic:  for each slot i in [0, InsideCount[v]):
                   pid = InsideBuf[v][i]
-                  keep iff floatBitsToUint(PosVid[pid].w) == v
+                  keep iff uint(round(PosVid[pid].w)) == v
              append InBuf[v][0..InCount[v]) to tail
      MUST run before correction (correction's neighbor search uses inside_buf).
 
@@ -115,16 +115,13 @@ Entering step `n`: `x_n, v_n, a_n, ρ_n, shift_n` all valid from previous step's
      writes: RhoP_write (new ρ, new P via EOS)
 
 5. force            (per-particle, 27-neighbor loop)
-     reads:  PosVid, VelMass, RhoP_write (now canonical ρ), CorrInv, InsideCount, InsideBuf
+     reads:  PosVid, VelMass (v_{n+1/2}), RhoP_write (canonical ρ), CorrInv, InsideCount, InsideBuf
      writes: Acc (a_{n+1}), Shift (shift_{n+1} via PST)
 
-6. kick2            (per-particle, trivial)
-     reads:  Vel (holds v_half), Acc
-     writes: Vel (v_{n+1})
-     logic:  v = v_half + 0.5 * a_{n+1} * dt
-
-END: x_{n+1}, v_{n+1}, a_{n+1}, ρ_{n+1}, shift_{n+1} ready for step n+2.
+END: x_{n+1}, v_{n+1/2} (half-step, for next kick), a_{n+1}, ρ_{n+1}, shift_{n+1} ready for step n+1.
 Descriptor ping-pong: swap RhoP_A ↔ RhoP_B bindings for next step.
+
+There is NO step 6 (no post-force kick). Leapfrog absorbs Verlet KDK's second half-kick into the next step's predict: `v_{n+1/2} = v_{n-1/2} + a_n * dt` is one full-step kick that combines (kick2 of step n-1) + (kick1 of step n).
 ```
 
 ### Periodic: Defrag Pass (every N steps, N≈256)
@@ -141,20 +138,39 @@ defrag.comp:
 
 ### Bootstrap (one-time at t=0)
 
-First step has no `a_0`. Recommended: run a preliminary `correction → density → force` pass on initial positions to populate `Acc` and `Shift`, then enter the normal KDK loop. Cost: one extra kernel sequence at startup, zero impact on steady-state.
+Main loop needs `a_0` (for the first kick) and `v_{-1/2}` (stored half-step velocity, **backward** offset from initial v_0). Initial conditions from scene config give `x_0` and `v_0` (integer-step velocity).
+
+Startup sequence:
+1. Initial voxel bucketing (`update_voxel` on `x_0`)
+2. `correction` on `x_0`
+3. `density` on `x_0`  → `ρ_0`
+4. `force` on `x_0, v_0, ρ_0` → `a_0, shift_0`
+5. **Backward half-kick** (`bootstrap_half_kick.comp`): `v_{-1/2} = v_0 - 0.5 · a_0 · dt`
+
+After this one-time sequence, enter the main 5-stage loop starting from step 1 with `{x_0, v_{-1/2}, a_0, shift_0}` ready. Step 1's predict then computes:
+
+```
+v_{1/2} = v_{-1/2} + a_0 · dt = v_0 + 0.5 · a_0 · dt    (correct half-step velocity)
+x_1     = x_0 + v_{1/2} · dt + shift_0
+        = x_0 + v_0·dt + 0.5·a_0·dt² + shift_0           (Taylor 2nd order, correct)
+```
+
+The **backward** offset is critical: predict's kick uses `a_buffer = a_n` (precomputed by previous step's force), so step 1's kick consumes `a_0`. To make the kick produce `v_{1/2}`, the buffer must hold `v_{-1/2}`, not `v_{1/2}`. Forward bootstrap (`v_{1/2}`) would cause step 1 to compute `v_{3/2}` from `v_{1/2}` using stale `a_0` instead of correct `a_1`, introducing a permanent O(dt²) error in the trajectory.
+
+Cost: one extra `force` pass plus a tiny half-kick at startup, zero impact on steady-state.
 
 ## Key Differences vs OpenGL Baseline
 
 | Aspect | OpenGL (current) | Vulkan V0 |
 |---|---|---|
-| Integrator | Euler | Velocity Verlet (KDK) |
+| Integrator | Euler | Leapfrog (half-step velocity) |
 | Particle buffer | 3 types × 3 sub-buffers = 9 SSBOs | 1 unified SoA pool, SoA-split by field lifetime |
 | Per-particle memory | ~512 B (ParticleData + SubData + RuntimeData mat4) | **132 B** (4× reduction) |
 | Voxel size | 2912 ints = 11.4 KB/voxel | **~456 B/voxel** (25× reduction), no stored header |
 | Shader constants | GLSL `#define` injected at compile | `VkSpecializationInfo` |
 | Kernel dispatch | One giant compute shader + `stage` uniform branch | One `VkComputePipeline` per stage |
-| Stage count | 5 (Euler) | 6 (Verlet: predict + update_voxel + correction + density + force + kick2) |
-| update_voxel position | Step tail | After predict, before correction (Verlet requires) |
+| Stage count | 5 (Euler) | 5 (Leapfrog: predict + update_voxel + correction + density + force) |
+| update_voxel position | Step tail | After predict, before correction (leapfrog drift moved it up) |
 | Boundary dispatch | Sign-of-index sentinel (`particle_index = -particle_index`) | `Material` field branch |
 
 ## Cross-Stage Field Audit
@@ -172,7 +188,6 @@ From OpenGL `ParticleRuntimeData`, fields retained as persistent cross-stage sta
    - `predict`: workgroup size (64 vs 128), atomic contention in crossing append
    - `update_voxel`: per-voxel workgroup vs thread-per-slot, shared memory for inside_buf staging
    - `correction / density / force`: 27-neighbor loop structure, shared-memory tile-caching decision
-   - `kick2`: whether to inline into tail of `force` kernel (save a dispatch)
    - `defrag`: prefix-sum scan implementation (subgroup intrinsics vs two-pass)
 
 2. **Density ping-pong mechanics**: descriptor set swap vs push constant index. Need to pick and implement.
@@ -196,8 +211,8 @@ shaders/sph/
   correction.comp
   density.comp
   force.comp
-  kick2.comp
   defrag.comp
+  bootstrap_half_kick.comp    # tiny one-time kernel at t=0
   common.glsl        # shared: spec constants, coord_of(), neighbor iter, EOS, kernel funcs
   symmetric_mat3.glsl  # M⁻¹ pack/unpack helpers
 

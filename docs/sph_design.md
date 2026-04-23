@@ -10,37 +10,38 @@ Authoritative design for the Vulkan SPH rewrite. Complements `CLAUDE.md` at proj
 - **Stress test (paper scaling/portability)**: NV 4060 Ti + AMD 7900 XTX, cross-vendor
 - Shared codepath; transport layer pluggable for both configs
 
-## Integration: velocity Verlet
+## Integration: Leapfrog
 
-Upgrades from OpenGL baseline's explicit Euler. The Verlet ordering (drift before force) lets end-of-step sync pre-compute everything the next step's integration needs → **1 sync per step**.
+Upgrades from OpenGL baseline's explicit Euler. Leapfrog stores velocity at half-step times (`v_{n-1/2}`) so the two Verlet KDK half-kicks collapse into a single full-step kick per iteration — **5 kernels per step** instead of 6. Algebraically identical trajectory to velocity Verlet. The drift-before-force ordering still holds, letting end-of-step sync pre-compute everything the next step's integration needs → **1 sync per step**.
 
-Per-step pipeline on each GPU:
+Per-step pipeline on each GPU (entering with `x_n, v_{n-1/2}, a_n, ρ_n, shift_n`):
 
 ```
-[Kernel A: pre-force]   on own + ghost (precise under STRICT_BIT_EXACT):
-    v_half   = v_n + 0.5 * a_n * dt
-    x_{n+1}  = x_n + v_half * dt + shift_n
+[predict]               kick + drift + crossing, on own + ghost (precise under STRICT_BIT_EXACT):
+    v_{n+1/2} = v_{n-1/2} + a_n * dt               (full-step kick, consumes a_n)
+    x_{n+1}   = x_n + v_{n+1/2} * dt + shift_n     (drift with δ-plus shift)
 
 [Crossing detection]    geometric check on x_{n+1}:
     - own particle drifted into peer territory → mark for removal
     - ghost particle drifted into own territory → adopt into own boundary layer
 
-[Re-bucketing]          rebuild own voxel cell structure (incl. adopted particles)
+[update_voxel]          rebuild own voxel cell structure (incl. adopted particles)
 
-[Density]               on own, reads own + ghost x_{n+1} → ρ_{n+1}
+[correction]            on own, reads own + ghost x_{n+1} → M⁻¹, ∇ρ, ksd
 
-[Force]                 on own, reads own + ghost x, v_half, ρ → a_{n+1}, shift_{n+1}
+[density]               on own, reads own + ghost x_{n+1}, ρ_n → ρ_{n+1}, P_{n+1}
 
-[Kernel B: post-force]  on own only (precise):
-    v_{n+1}  = v_half + 0.5 * a_{n+1} * dt
+[force]                 on own, reads own + ghost x, v_{n+1/2}, ρ → a_{n+1}, shift_{n+1}
 
 [Sync]                  pack own boundary [K, N), send to peer ghost buffer
-                        content: {x_{n+1}, v_{n+1}, a_{n+1}, ρ_{n+1}, shift_{n+1}}
+                        content: {x_{n+1}, v_{n+1/2}, a_{n+1}, ρ_{n+1}, shift_{n+1}}
 ```
+
+Note: no explicit post-force kick kernel. The "second half-kick" of velocity Verlet KDK is absorbed into the next step's predict (it becomes part of the full-step kick `v_{n+1/2} = v_{n-1/2} + a_n * dt`). Stored velocity is always at half-step times.
 
 Special cases (preserved from OpenGL code):
 - **Inlet particles** (`voxel_id == 0`): skip integration
-- **Rotating particles** (`material == 10.0` in rotor region): prescribed velocity `ω × r`, skip Verlet kicks. Keep rotor region entirely within one GPU partition to avoid cross-vendor `cos`/`sin` FP divergence.
+- **Rotating particles** (rotor group, identified via `MaterialParameters.kind == MATERIAL_ROTOR`): prescribed velocity `ω × r`, skip leapfrog kick. Keep rotor region entirely within one GPU partition to avoid cross-vendor `cos`/`sin` FP divergence.
 
 ## Buffer layout
 
@@ -85,9 +86,9 @@ Separate voxel cell structure: `ghost_cell_start`, `ghost_cell_count`, `ghost_so
 When a particle's integrated position crosses the GPU partition:
 
 - **Owning GPU**: removes particle from own buffer during re-bucketing (skips it when writing new voxel slots).
-- **Peer GPU**: during Kernel A on its ghost buffer, detects that a ghost particle's new position lies in its own territory; adopts it into own boundary layer and removes it from the ghost buffer.
+- **Peer GPU**: during predict kernel on its ghost buffer, detects that a ghost particle's new position lies in its own territory; adopts it into own boundary layer and removes it from the ghost buffer.
 
-Both GPUs reach the same decision because Kernel A is bit-exact — see invariants I1/I2. No separate migration pack/send. One data flow, not two.
+Both GPUs reach the same decision because predict kernel is bit-exact — see invariants I1/I2. No separate migration pack/send. One data flow, not two.
 
 ## Bit-exact control: `STRICT_BIT_EXACT`
 
@@ -97,7 +98,7 @@ Specialization constant, default `true`:
 layout(constant_id = 10) const bool STRICT_BIT_EXACT = true;
 ```
 
-- When `true`: `precise` qualifier applied to Kernel A integration expressions. Compiler forbidden to fuse FMAs or reorder. Both GPUs produce bit-exact x_{n+1} from identical synced inputs.
+- When `true`: `precise` qualifier applied to predict kernel integration expressions. Compiler forbidden to fuse FMAs or reorder. Both GPUs produce bit-exact x_{n+1} from identical synced inputs.
 - When `false`: compiler free to optimize. Small mass drift at GPU boundary.
 
 **Cost** (estimate): integration kernel is memory-bound; `precise` adds a few ALU cycles typically absorbed by memory stalls. <2% on integration kernel, <0.1% on total step.
@@ -118,8 +119,8 @@ Content (own's boundary layer `[K, N)`):
 Typical bandwidth: 100k boundary particles × 64B = **6.4 MB per direction per step**.
 
 Timing:
-- Sync starts after Kernel B completes
-- Sync must complete before peer's next-step Kernel A on ghost
+- Sync starts after force completes (the last compute stage of a step)
+- Sync must complete before peer's next-step predict kernel on ghost
 - Interior compute on the next step does NOT depend on sync → async overlap opportunity (V2)
 
 ## Transport backends (pluggable)
@@ -143,17 +144,17 @@ All backends expose the same interface. Switching is a one-line instantiation de
 
 | # | Invariant | Enforcement |
 |---|---|---|
-| I1 | Kernel A on own particle P and ghost copy of P produces bit-exact x, v when `STRICT_BIT_EXACT=true` | `precise` qualifier + identical `{x, v, a, shift, dt}` from sync |
+| I1 | predict kernel on own particle P and ghost copy of P produces bit-exact x, v when `STRICT_BIT_EXACT=true` | `precise` qualifier + identical `{x, v, a, shift, dt}` from sync |
 | I2 | Crossing decision agrees across both GPUs | I1 + geometric check on bit-exact positions |
 | I3 | Ghost layer covers max single-step drift | 1 voxel thick; CFL × h ≤ h guaranteed by timestep choice |
-| I4 | Ghost carries all fields for next step's Kernel A + density + force | Sync packet = `{x, v, a, ρ, shift}` |
-| I5 | Boundary state complete at sync time | Sync scheduled after Kernel B |
+| I4 | Ghost carries all fields for next step's predict kernel + density + force | Sync packet = `{x, v, a, ρ, shift}` |
+| I5 | Boundary state complete at sync time | Sync scheduled after force |
 | I6 | Adopted ghost particle not double-counted | Re-bucketing excludes adopted particles from ghost's next-step cell structure |
 
 ## Async overlap (V2 optimization)
 
 Voxel-sorted layout enables dispatch range split:
-- Interior dispatch `[0, K)`: Kernel A + density + force + Kernel B. **No ghost dependency**.
+- Interior dispatch `[0, K)`: predict + correction + density + force. **No ghost dependency**.
 - Boundary dispatch `[K, N)`: same pipeline. **Depends on ghost**.
 
 Scheduling:
@@ -169,7 +170,7 @@ Step n+1      [int A][int D][int F][int B]  ←── compute queue independent 
 Hiding succeeds when `interior_compute_time ≥ sync_time`. At target scale (1M/GPU, interior ~2-3 ms, P2P sync ~0.1-0.5 ms), sync is fully hidden.
 
 **Residual non-hideable overhead** (~1 ms total):
-- Ghost Kernel A (~0.3-0.5 ms) — requires fresh ghost, can't start before sync
+- Ghost predict kernel (~0.3-0.5 ms) — requires fresh ghost, can't start before sync
 - Pack / unpack kernels (~0.1-0.3 ms)
 - Command submission / fence wait (~0.05 ms)
 
@@ -186,7 +187,7 @@ Hiding succeeds when `interior_compute_time ≥ sync_time`. At target scale (1M/
 - **Ghost layer thickness**: 1 voxel default. Widening to 2+ would enable sync decimation (sync every M steps) — not V1/V2; maybe V3+.
 - **Particle shifting**: δ-plus shift can be disabled via spec constant for V0 debugging.
 - **Ghost field compression**: float32 default; float16 positions possible later if ghost bandwidth becomes critical.
-- **Verlet variant**: kick-drift-kick (velocity Verlet) vs leapfrog with half-step velocity — algebraically equivalent, pick whichever is simpler to debug.
+- ~~**Verlet variant**: kick-drift-kick vs leapfrog~~ **Decided: leapfrog** (5 kernels/step, stored velocity at half-step).
 
 ## Performance targets
 
@@ -199,7 +200,7 @@ Hiding succeeds when `interior_compute_time ≥ sync_time`. At target scale (1M/
 
 ## Implementation phases
 
-- **V0**: single-GPU SPH. Voxel grid + Kernel A/B + density + force. Validates Verlet + SoA layout without cross-GPU complexity. Target: match or exceed OpenGL single-GPU fps.
-- **V1**: multi-GPU with `CpuStagingBackend`, no async overlap. Validates cross-GPU correctness — bit-exact Kernel A, adoption/removal, mass conservation.
+- **V0**: single-GPU SPH. Voxel grid + leapfrog predict + density + force. Validates integration scheme + SoA layout without cross-GPU complexity. Target: match or exceed OpenGL single-GPU fps.
+- **V1**: multi-GPU with `CpuStagingBackend`, no async overlap. Validates cross-GPU correctness — bit-exact predict kernel, adoption/removal, mass conservation.
 - **V2**: async overlap + `P2PBackend` (if same-vendor). Performance push toward target fps.
 - **V3**: paper experiments — all backends, weak/strong scaling runs, stress-test comparison.
