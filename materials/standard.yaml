@@ -1,0 +1,56 @@
+# ============================================================================
+# Schema version — bumped on ANY breaking change to material entry format.
+# Independent of case.yaml's schema_version; case.py validates both.
+schema_version: 1
+
+# ============================================================================
+# Standard SPH material library.
+#
+# Each top-level key is a material name. Cases reference materials by name
+# from this library via case.yaml's `geometry.particles[*].material` field.
+#
+# Required fields:
+#   kind:           fluid | boundary | inlet | rotor
+#   rest_density:   kg/m^3
+#   viscosity:      m^2/s (KINEMATIC ν, NOT dynamic μ).
+#                   force.comp's Cleary-Monaghan formula consumes ν directly:
+#                       a_visc = 2·(D+2)·ν·V_j · ... · ∇W̃
+#                   For multi-phase later, restore per-pair ν_ij = 2·ν_i·ν_j / (ν_i+ν_j+ε).
+#
+# Optional / kind-conditional:
+#   rotor_angular_velocity:  rad/s, required for kind=rotor (assumed about z in V0)
+#
+# Derived at solver init (do NOT put in this file):
+#   eos_constant   = speed_of_sound^2 · rest_density / power_parameter
+#   smoothing_length, radius, volume   (V0: shared globally from case.physics)
+#
+# V0 multi-resolution is unsupported, so radius/volume cannot vary per material
+# yet. When V0+ enables per-material spacing, add `particle_spacing` here.
+# ============================================================================
+
+water:
+  kind: fluid
+  rest_density: 1000.0
+  viscosity: 1.0e-6         # ν = μ/ρ; water at 20°C, μ = 1.0e-3 Pa·s, ρ = 1000
+
+wall:
+  kind: boundary
+  rest_density: 1000.0      # boundary mirrors fluid density for pressure continuity
+  viscosity: 0.0            # boundary doesn't dissipate; static in V0
+
+# ---- Reserved for future cases (uncomment when needed) ---------------------
+# honey:                    # μ ≈ 7 Pa·s, ρ ≈ 1400 → ν ≈ 5.0e-3
+#   kind: fluid
+#   rest_density: 1400.0
+#   viscosity: 5.0e-3
+#
+# olive_oil:                # μ ≈ 0.084 Pa·s, ρ ≈ 920 → ν ≈ 9.1e-5
+#   kind: fluid
+#   rest_density: 920.0
+#   viscosity: 9.1e-5
+#
+# stirrer:
+#   kind: rotor
+#   rest_density: 1000.0
+#   viscosity: 0.0
+#   rotor_angular_velocity: 6.2832   # 1 rev/s about z-axis

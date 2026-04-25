@@ -1,0 +1,20 @@
+# Fluid particles for dam_break_2d (water column, upper-left).
+# Vertex-as-particle: each `v` line is one fluid particle.
+# Fixture only — 4×4 grid at spacing 0.005, anchored at (0.020, 0.220).
+# A real run discretizes the dam region with a separate preprocessor.
+v 0.020 0.220 0.000
+v 0.025 0.220 0.000
+v 0.030 0.220 0.000
+v 0.035 0.220 0.000
+v 0.020 0.225 0.000
+v 0.025 0.225 0.000
+v 0.030 0.225 0.000
+v 0.035 0.225 0.000
+v 0.020 0.230 0.000
+v 0.025 0.230 0.000
+v 0.030 0.230 0.000
+v 0.035 0.230 0.000
+v 0.020 0.235 0.000
+v 0.025 0.235 0.000
+v 0.030 0.235 0.000
+v 0.035 0.235 0.000

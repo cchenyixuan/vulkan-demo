@@ -1,5 +1,5 @@
 from vulkan import *
-from utils.shaders import load_spirv, create_shader_module
+from utils.phase1.shaders import load_spirv, create_shader_module
 
 
 def create_render_pass(device, image_format):

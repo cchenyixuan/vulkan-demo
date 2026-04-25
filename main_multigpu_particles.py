@@ -16,15 +16,15 @@ import numpy as np
 from vulkan import *
 from vulkan._vulkancache import ffi
 
-from utils.instance import create_instance, create_debug_messenger, load_instance_functions, create_surface
-from utils.device import find_queue_families, create_logical_device, load_device_functions
-from utils.swapchain import create_swapchain, create_image_views
-from utils.pipeline import (
+from utils.phase1.instance import create_instance, create_debug_messenger, load_instance_functions, create_surface
+from utils.phase1.device import find_queue_families, create_logical_device, load_device_functions
+from utils.phase1.swapchain import create_swapchain, create_image_views
+from utils.phase1.pipeline import (
     create_render_pass,
     create_particle_graphics_pipeline,
     PARTICLE_PUSH_CONSTANT_SIZE,
 )
-from utils.compute_pipeline import (
+from utils.phase1.compute_pipeline import (
     create_compute_descriptor_set_layout,
     create_graphics_descriptor_set_layout,
     create_compute_pipeline,
@@ -33,9 +33,9 @@ from utils.compute_pipeline import (
     allocate_graphics_descriptor_set,
     COMPUTE_PUSH_CONSTANT_SIZE,
 )
-from utils.commands import create_command_pool, create_framebuffers, allocate_command_buffers
-from utils.sync import create_sync_objects
-from utils.particle_buffer import (
+from utils.phase1.commands import create_command_pool, create_framebuffers, allocate_command_buffers
+from utils.phase1.sync import create_sync_objects
+from utils.phase1.particle_buffer import (
     create_device_local_buffer,
     create_host_visible_buffer,
     upload_to_device_local,

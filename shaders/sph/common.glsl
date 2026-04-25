@@ -29,16 +29,17 @@
 // Specialization constants (VkSpecializationInfo)
 //
 // ID range plan:
-//   0  - 9   : global physics scalars + own grid origin
+//   0  - 9   : global physics scalars + own grid origin  (id=3 reserved)
 //   10       : multi-GPU bit-exactness toggle
 //   11 - 13  : own grid dimensions
 //   14 - 16  : correction regularization tunables
 //   17 - 19  : gravity
 //   20 - 29  : voxel layout / reserved
 //   30 - 33  : dimension + kernel coefficients
-//   34 - 49  : reserved for future kernel / simulation options
-//   50 - 52  : capacities + workgroup size
-//   53 - 79  : reserved
+//   34 - 39  : reserved for future kernel / simulation options
+//   40 - 49  : SPH numerical parameters (ε_h², PST main, PST anti, ...)
+//   50 - 53  : capacities + workgroup size + pool size
+//   54 - 79  : reserved
 //   80 - 88  : multi-GPU ghost grid parameters
 //   89 - 127 : reserved
 //
@@ -51,7 +52,7 @@
 layout(constant_id = 0) const float SMOOTHING_LENGTH   = 0.009;
 layout(constant_id = 1) const float SPEED_OF_SOUND     = 300.0;   // c0
 layout(constant_id = 2) const float DELTA_COEFFICIENT  = 0.1;     // δ-plus diffusion coefficient
-layout(constant_id = 3) const float EPSILON_SHIFT      = 0.2;     // PST coefficient
+// constant_id = 3 reserved (was EPSILON_SHIFT, a legacy unused PST placeholder)
 layout(constant_id = 4) const float POWER_PARAMETER    = 7.0;     // EOS γ
 layout(constant_id = 5) const float CFL_NUMBER         = 0.15;    // informational; dt computed on CPU
 layout(constant_id = 6) const float TIMESTEP           = 4.5e-6;  // dt = CFL · H / c0 = 0.15 · 0.009 / 300
@@ -62,7 +63,9 @@ layout(constant_id = 8) const float OWN_ORIGIN_Y = -1.758406;
 layout(constant_id = 9) const float OWN_ORIGIN_Z =  0.0;
 
 // --- Multi-GPU bit-exactness ---
-layout(constant_id = 10) const bool STRICT_BIT_EXACT = true;
+// V0 (single-GPU): default false — no precise qualifiers required.
+// V1+ (multi-GPU ghost integration): Python should override to true.
+layout(constant_id = 10) const bool STRICT_BIT_EXACT = false;
 
 // --- Own grid dimensions (in voxels) ---
 layout(constant_id = 11) const uint GRID_DIMENSION_X = 128u;
@@ -108,6 +111,11 @@ layout(constant_id = 33) const float KERNEL_GRADIENT_COEFFICIENT  = 3929751.7;  
 // 1/(r² + ε_h²) term would otherwise blow up when two particles approach each
 // other. Typical value: 0.01 · H² (Antuono et al. δ-SPH).
 layout(constant_id = 40) const float EPS_H_SQUARED = 8.1e-7;  // 0.01 · 0.009²
+
+// PST main-shift scale coefficient (Sun 2017 δ-plus empirical constant).
+// Enters as:  pst_base_factor = CFL · PST_MAIN_SHIFT_COEFFICIENT · 2·h²
+// which then premultiplies BOTH the main and anti accumulators inside the loop.
+layout(constant_id = 41) const float PST_MAIN_SHIFT_COEFFICIENT = 0.1;
 
 // PST anti-shift (cohesion) magnitude multiplier on top of the main scale.
 // Legacy value 0.005.

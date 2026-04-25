@@ -1,5 +1,5 @@
 from vulkan import *
-from utils.shaders import load_spirv, create_shader_module
+from utils.phase1.shaders import load_spirv, create_shader_module
 
 
 COMPUTE_PUSH_CONSTANT_SIZE = 24  # 5 floats + 1 uint

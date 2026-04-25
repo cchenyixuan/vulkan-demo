@@ -2,6 +2,8 @@
 
 V0 scope = single-GPU δ-plus WCSPH rewrite in Vulkan. Match or exceed OpenGL baseline (1M @ 330 fps on 5090). Lays the data-layout and pipeline-skeleton foundation that V1+ multi-GPU builds on. See `sph_design.md` for the V0–V3 arc and multi-GPU rationale.
 
+**Authoritative sources for values**: `shaders/sph/common.glsl` for spec constants + descriptor bindings, `shaders/sph/README.md` for per-kernel invariants. When this document and those files disagree, trust them — this doc describes intent and rationale.
+
 ## Scope Decisions Already Made
 
 - Integration: **Leapfrog** (half-step velocity, single full-step kick per iteration). Algebraically equivalent to velocity Verlet KDK but 5 kernels/step instead of 6. Replaces OpenGL baseline's Euler.
@@ -9,218 +11,274 @@ V0 scope = single-GPU δ-plus WCSPH rewrite in Vulkan. Match or exceed OpenGL ba
 - Algorithm: δ-plus WCSPH with KCG (kernel gradient correction) and PST (particle shifting).
 - Extensions deferred: micropolar, multi-resolution, thermal. Base δ-SPH only for V0.
 - Bit-packing rejected: separate bindings over packed high-bit fields (see `feedback_no_bitpack` in memory). Readability > marginal savings.
+- **1-based indexing throughout**: particle_id ∈ [1, POOL_SIZE], voxel_id ∈ [1, TOTAL_VOXEL_COUNT], slot entries ∈ [1, POOL_SIZE]. Slot `0` is the universal empty / dead sentinel. Particle buffers sized `POOL_SIZE + 1`, voxel buffers `TOTAL_VOXEL_COUNT + 1` in the count dimension.
 
-## Buffer Layout (Final, V0)
+## Descriptor Set Layout
 
-All buffers are `std430` SSBOs on a single descriptor set. Each particle is 132 B core + optional diagnostic.
+Four descriptor sets, organized by update frequency:
 
-### Particle SoA (unified pool — fluid, boundary, inlet, rotor share slots, differentiated by `Material`)
+- **set 0** — Own particle SoA (ping-pong subset swapped each step)
+- **set 1** — Own voxel cell structures (bound once)
+- **set 2** — Ghost particles + ghost voxel structures (V1 multi-GPU; V0-a: bound to dummy, `GHOST_DIMENSION_*=0` makes all ghost branches dead-code-eliminated)
+- **set 3** — Global status, transport, material parameters, diagnostics (bound once)
 
-| binding | Name | Type | Size/particle | Access pattern |
+Ping-pong is implemented by allocating two instances of set 0 in which bindings 1 and 2 (`density_pressure_a` / `density_pressure_b`) point to opposite physical buffers. Even-step dispatches bind the "A-then-B" instance, odd-step the "B-then-A" instance. Shader always reads binding 1 and writes binding 2; swap is invisible to the shader.
+
+## Buffer Layout (V0)
+
+### set 0: Particle SoA
+
+Unified pool — fluid, boundary, inlet, rotor share slots, differentiated by `material[pid]` indexing into `material_parameters[]` (set 3 binding 7) to get `.kind`.
+
+| binding | Buffer | Type | Size/particle | Access pattern |
 |---|---|---|---|---|
-| 0 | `PosVid` | `vec4` (x, y, z, voxel_id_as_float) | 16 B | Hot (every neighbor loop) |
-| 1 | `RhoP_A` | `vec2` (ρ, P) | 8 B | ping-pong partner A |
-| 2 | `RhoP_B` | `vec2` (ρ, P) | 8 B | ping-pong partner B |
-| 3 | `VelMass` | `vec4` (vx, vy, vz, mass) | 16 B | Force read, Kick write |
-| 4 | `Acc` | `vec4` (ax, ay, az, _) | 16 B | **Persistent across step** (leapfrog kick consumes a_n) |
-| 5 | `Shift` | `vec4` (sx, sy, sz, _) | 16 B | **Persistent across step** (Drift needs shift_n) |
-| 6 | `Material` | `uint` | 4 B | Branch (fluid/boundary/inlet/rotor) |
-| 7 | `CorrInv` | `vec4 × 2` (M⁻¹ symmetric, 6 components) | 32 B | Correction writes; density + force read |
-| 8 | `GradKsd` | `vec4` (∇ρ.xyz, kernel_sum_delta) | 16 B | Correction writes; density reads |
+| 0 | `position_voxel_id` | `vec4` (x, y, z, voxel_id_as_float) | 16 B | Hot (every neighbor loop) |
+| 1 | `density_pressure_a` | `vec2` (ρ, P) | 8 B | ping-pong partner A |
+| 2 | `density_pressure_b` | `vec2` (ρ, P) | 8 B | ping-pong partner B |
+| 3 | `velocity_mass` | `vec4` (vx, vy, vz, mass) | 16 B | Force / density read v; predict writes v; mass preserved |
+| 4 | `acceleration` | `vec4` (ax, ay, az, _) | 16 B | **Persistent** (next step's kick consumes a_n) |
+| 5 | `shift` | `vec4` (sx, sy, sz, _) | 16 B | **Persistent** (drift needs shift_n) |
+| 6 | `material` | `uint` | 4 B | group_id into `material_parameters[]` |
+| 7 | `correction_inverse` | `vec4 × 2` (symmetric M⁻¹: m00, m11, m22, m01, m02, m12) | 32 B | Correction writes; density + force read |
+| 8 | `density_gradient_kernel_sum` | `vec4` (∇ρ.xyz, kernel_sum) | 16 B | Correction writes; density + force read |
+| 9 | `extension_fields` | `vec4` (reserved: temperature, etc.) | 16 B | V0 untouched; future scalar diagnostics |
+
+Core = **132 B/particle** (binding 0–8), +16 B for `extension_fields` if used.
 
 **Layout notes:**
-- `voxel_id` stored as float-reinterpret-of-uint in `PosVid.w`. Decode: `uint vid = floatBitsToUint(PosVid[pid].w)`. Single hot load gets pos + vid.
-- `RhoP` ping-pong: density writes to the "next" buffer; descriptor binding swaps at end of step. Shader always writes `RhoP_write[self]` and reads `RhoP_read[neighbor]`.
-- `CorrInv` stores the **inverse** matrix (KCG correction, symmetric 3×3 → 6 floats). Two pad slots left blank (no cross-stage field with matching lifetime was identified).
-- `GradKsd` packs density gradient (3) + `kernel_sum_delta` (1). Same producer (correction) and consumer (density).
-- `Acc` and `Shift` kept as **separate bindings** even though both are force-kernel outputs: Kick1 only reads acc, Drift only reads shift — splitting avoids loading a field you don't need.
-- `mass` kept per-particle (user decision, future-proofing for multi-phase / inlet-size variation).
 
-### Voxel Buffers (SoA, no embedded header)
+- `voxel_id` stored as `float(vid)` in `position_voxel_id.w` (1-based, 0 = dead). Decode: `uint vid = uint(round(position_voxel_id[pid].w))`. Single hot load gets `pos + vid`. Using `round()` not `floatBitsToUint` because the small 1-based integer fits exactly in a float and `round()` is cheaper to reason about.
+- `density_pressure` ping-pong: density writes B, next step reads it as A. Descriptor swap at step end.
+- `correction_inverse` packs symmetric 3×3 M⁻¹ into 2 vec4:
+  - `[pid*2]     = (m00, m11, m22, m01)`
+  - `[pid*2 + 1] = (m02, m12, _, _)`
+- `acceleration` and `shift` kept separate — predict needs both, but correction / density / force don't need `shift`. Splitting avoids wasted loads.
+- `mass` kept per-particle (future-proofing for multi-phase / inlet-size variation).
 
-| binding | Name | Type | Size/voxel | Access |
+### set 1: Voxel Buffers (SoA, no embedded header)
+
+| binding | Buffer | Type | Size/voxel | Access |
 |---|---|---|---|---|
-| 10 | `InsideCount` | `uint` | 4 B | Hot (every neighbor query reads this) |
-| 11 | `InCount` | `uint` (atomic) | 4 B | Predict writes (atomic), update_voxel consumes+resets |
-| 12 | `InsideBuf` | `uint × 96` | 384 B | Per-voxel particle ID list. `CAP_inside = 96` |
-| 13 | `InBuf` | `uint × 16` | 64 B | Per-voxel incoming events. `CAP_in = 16` |
+| 0 | `inside_particle_count` | `uint` | 4 B | Hot (every neighbor query) |
+| 1 | `incoming_particle_count` | `uint` (atomic) | 4 B | Predict atomic-appends; update_voxel consumes + resets |
+| 2 | `inside_particle_index` | `uint × MAX_PARTICLES_PER_VOXEL` (V0: 96) | 384 B | Per-voxel particle_id list (1-based entries) |
+| 3 | `incoming_particle_index` | `uint × MAX_INCOMING_PER_VOXEL` (V0: 16) | 64 B | Per-voxel incoming-crossing events |
+
+Per-voxel total ≈ **456 B**.
 
 **Design notes:**
-- **No stored header**: `voxel_id`, x/y/z offset, and 26 neighbor IDs are all derivable from the array index. `coord_of(vid) = (vid % Dx, (vid/Dx) % Dy, vid/(Dx·Dy))`. Neighbors computed on-the-fly with bounds check.
-- **No out_buffer**: the canonical "which voxel am I in" is `particle.voxel_id`. Compaction reads each inside_buf entry's particle and keeps iff `particle.voxel_id == self`. Rejected multi-source-of-truth in favor of single canonical field.
-- **Voxel encoding**: linear z-major by default. Spec constant switch (`VOXEL_ORDER`, `constant_id=20`) reserved for future Morton / 4×4×4 tile layouts if cache miss rate demands.
-- **Irregular domain**: dense grid with dead voxels (`inside_count=0` auto-skipped). Sparse hash deferred until waste > 50%.
-- `CAP_inside = 96` chosen with 1.5× headroom over observed OpenGL peak of ~64. Overflow flag atomic counter to be added for V0 validation.
-- `CAP_in = 16` is a guess (~2× safety over CFL-limited per-step crossing rate); validate with overflow counter.
 
-### Special / Global
+- **No stored header**: `voxel_id ↔ (x, y, z)` derivable from linear index via `helpers.glsl::own_coord_of` / `own_voxel_id_of`.
+- **No separate out_buffer**: the canonical "which voxel is this particle in" is `position_voxel_id[pid].w`. `update_voxel` compacts by filtering `decode(PosVid[pid].w) == self_voxel_id`; particles that moved out or died (vid=0) naturally fail the check. Rejected multi-source-of-truth.
+- **Voxel encoding**: linear z-major (`VOXEL_ORDER=0`, constant_id=20). Future Morton / 4×4×4 tile reserved.
+- **Irregular domain**: V0 allocates dense grid over `frame.obj` bounding box; dead voxels (`inside_count=0`) are zero-compute and cost 456 B each. Sparse hash / active mask deferred.
+- `MAX_PARTICLES_PER_VOXEL = 96` with ~1.5× headroom over observed OpenGL peak ~64. Overflow counter in `global_status.overflow_inside_count` for validation.
+- `MAX_INCOMING_PER_VOXEL = 16` guess (~2× CFL-limited per-step crossing rate); validate with `overflow_incoming_count`.
 
-| binding | Name | Purpose |
+### set 2: Ghost (V1 multi-GPU, V0-a: dummy-bound)
+
+Parallels set 0 layout for ghost particles received from peer GPU, plus per-ghost-voxel inside lists:
+
+- `ghost_position_voxel_id`, `ghost_density_pressure`, `ghost_velocity_mass`, `ghost_acceleration`, `ghost_shift`, `ghost_material` (bindings 0, 1, 3, 4, 5, 6)
+- `ghost_inside_particle_count`, `ghost_inside_particle_index` (bindings 10, 12)
+
+V0-a: `GHOST_DIMENSION_* = 0` → all ghost branches dead-code-eliminated by `-O`. Set 2 can bind a single dummy buffer.
+
+### set 3: Global / Transport / Materials / Diagnostics
+
+| binding | Buffer | Purpose |
 |---|---|---|
-| 20 | `InletTemplate` | Read-only prototype particles for inlet spawn kernel |
-| 21 | `GlobalStatus` | n_particles_alive, frame_counter, max_velocity, inlet counters, overflow flags |
-| 30 | `Diagnostic` (optional) | Only bound in debug/render build. Holds curl_u, FTLE, w, etc. for visualization |
+| 0 | `global_status` | `alive_particle_count`, `frame_counter`, `maximum_velocity`, overflow counters, `correction_fallback_count` (64 B = 1 cache line) |
+| 1 | `overflow_log` | Ring buffer of overflow events `(voxel_id, step, kind, lost_pid)` |
+| 2 | `inlet_template` | Template particle states for inlet spawn (V0+) |
+| 3 | `dispatch_indirect` | For `vkCmdDispatchIndirect` (V0+, when alive_count varies) |
+| 4 | `ghost_out_packet` | V1+ send-side pack buffer |
+| 5 | `ghost_in_staging` | V1+ receive-side staging |
+| 6 | `diagnostic` | Optional debug build: curl, FTLE, vorticity |
+| 7 | `material_parameters` | Per-group SPH parameters (48 B × N_groups), indexed by `material[pid]` |
 
-### Spec Constants (replace OpenGL `#define` injection)
+## Specialization constants
 
-Globals that were per-particle `SubData` in OpenGL — promoted to compile-time constants:
+Python side (`utils/sph/config.py` + `case.py`) assembles a `VkSpecializationInfo` from a `SimulationConfig` parsed from `cases/*/case.yaml`, merged with `materials/standard.yaml`. Per-material parameters (rest_density, viscosity, eos_constant, radius, volume, ...) are **not** spec constants — they live in `material_parameters[]` buffer indexed by per-particle `material` field.
 
-```glsl
-layout(constant_id = 0)  const float SMOOTHING_LENGTH = 0.05;
-layout(constant_id = 1)  const float REST_DENSITY     = 1000.0;
-layout(constant_id = 2)  const float VISCOSITY        = 1e-6;
-layout(constant_id = 3)  const float EOS_CONSTANT     = 2.15e6;
-layout(constant_id = 4)  const float EOS_GAMMA        = 7.0;
-layout(constant_id = 5)  const float DELTA_COEFF      = 0.1;   // δ-plus diffusion
-layout(constant_id = 6)  const float DT               = 5e-4;
-layout(constant_id = 7)  const float GRID_ORIGIN_X    = 0.0;
-layout(constant_id = 8)  const float GRID_ORIGIN_Y    = 0.0;
-layout(constant_id = 9)  const float GRID_ORIGIN_Z    = 0.0;
-layout(constant_id = 10) const bool  STRICT_BIT_EXACT = true;  // for multi-GPU V1+
-layout(constant_id = 11) const uint  GRID_DIM_X       = 128;
-layout(constant_id = 12) const uint  GRID_DIM_Y       = 128;
-layout(constant_id = 13) const uint  GRID_DIM_Z       = 128;
-layout(constant_id = 20) const uint  VOXEL_ORDER      = 0;     // 0=linear, 1=Morton, 2=tile (future)
+ID range plan (authoritative in `common.glsl`):
+
+```
+0  - 9   : core physics scalars + own grid origin   (id=3 reserved)
+10       : multi-GPU bit-exactness toggle (V1)
+11 - 13  : own grid dimensions
+14 - 16  : correction regularization tunables
+17 - 19  : gravity
+20 - 29  : voxel layout / micropolar (V0+ reserved)
+30 - 33  : dimension + kernel coefficients
+34 - 39  : reserved
+40 - 49  : SPH numerical parameters (ε_h², PST main, PST anti, ...)
+50 - 53  : capacities + workgroup size + pool size
+54 - 79  : reserved
+80 - 88  : multi-GPU ghost grid (V1)
+89 - 127 : reserved
 ```
 
 ## Pipeline Stages (Leapfrog, 5 stages)
 
-Entering step `n`: `x_n, v_{n-1/2}, a_n, ρ_n, shift_n` all valid from previous step's end. Stored velocity is at half-step time.
+Entering step `n`: `x_n`, `v_{n-1/2}`, `a_n`, `ρ_n`, `shift_n` all valid from previous step's end. Stored velocity is at half-step time.
 
 ```
-1. predict          (full-step kick + drift + crossing detection, per-particle dispatch)
-     reads:  PosVid, Vel, Acc, Shift
-     writes: PosVid (new x, new voxel_id), Vel (new v_half), InBuf (atomic append on crossing)
-     logic:  v_{n+1/2} = v_{n-1/2} + a_n * dt               (full-step kick)
-             x_{n+1}   = x_n + v_{n+1/2} * dt + shift_n     (drift with δ-plus shift)
-             new_vid = voxel_of(x_{n+1})
-             if (new_vid != old_vid) atomicAdd(InCount[new_vid], 1) then append InBuf
-             PosVid[pid].w = float(new_vid)
+1. predict          (per-particle dispatch)
+     reads:  position_voxel_id, velocity_mass, acceleration, shift, material
+     writes: position_voxel_id (new x, new vid), velocity_mass (new v_half),
+             incoming_particle_index + incoming_particle_count (atomic append on crossing)
+     logic:  v_{n+1/2} = v_{n-1/2} + a_n · dt              (full-step kick)
+             x_{n+1}   = x_n + v_{n+1/2} · dt + shift_n    (drift with PST shift)
+             new_vid   = voxel_of(x_{n+1})
+             if (new_vid != old_vid) atomic-append pid into incoming_particle_index[new_vid]
+             Open boundary: drift outside grid → kill (voxel_id=0, pos+vel zeroed)
+             Incoming overflow: log + kill
 
-2. update_voxel     (per-voxel dispatch, one workgroup per voxel)
-     reads:  old InsideBuf, InsideCount, InBuf, InCount, PosVid (for vid match)
-     writes: new InsideBuf (compacted + in_buf appended), new InsideCount, reset InCount=0
-     logic:  for each slot i in [0, InsideCount[v]):
-                  pid = InsideBuf[v][i]
-                  keep iff uint(round(PosVid[pid].w)) == v
-             append InBuf[v][0..InCount[v]) to tail
-     MUST run before correction (correction's neighbor search uses inside_buf).
+2. update_voxel     (per-voxel dispatch, one thread per voxel)
+     reads:  inside_particle_index + inside_particle_count (old),
+             incoming_particle_index + incoming_particle_count,
+             position_voxel_id (for vid match)
+     writes: inside_particle_index (compacted + merged), inside_particle_count (new),
+             incoming_particle_count = 0
+     MUST run before correction (correction's neighbor search uses inside_particle_index).
 
-3. correction       (per-particle, 27-neighbor loop)
-     reads:  PosVid, VelMass, RhoP_read, InsideCount, InsideBuf
-     writes: CorrInv (M⁻¹ symmetric 6), GradKsd (∇ρ + ksd)
+3. correction       (per-particle, 27-voxel neighbor loop)
+     reads:  position_voxel_id, velocity_mass (mass via .w), density_pressure_a,
+             inside_particle_count, inside_particle_index
+     writes: correction_inverse (symmetric M⁻¹),
+             density_gradient_kernel_sum (∇ρ.xyz, kernel_sum)
 
-4. density          (per-particle, 27-neighbor loop)
-     reads:  PosVid, VelMass, RhoP_read, CorrInv, GradKsd, InsideCount, InsideBuf
-     writes: RhoP_write (new ρ, new P via EOS)
+4. density          (per-particle, 27-voxel neighbor loop)
+     reads:  position_voxel_id, velocity_mass, density_pressure_a,
+             correction_inverse, density_gradient_kernel_sum,
+             inside_particle_count, inside_particle_index, material_parameters
+     writes: density_pressure_b (new ρ_{n+1}, new P_{n+1} via Tait EOS)
 
-5. force            (per-particle, 27-neighbor loop)
-     reads:  PosVid, VelMass (v_{n+1/2}), RhoP_write (canonical ρ), CorrInv, InsideCount, InsideBuf
-     writes: Acc (a_{n+1}), Shift (shift_{n+1} via PST)
+5. force            (per-particle, 27-voxel neighbor loop)
+     reads:  position_voxel_id, velocity_mass, density_pressure_b (canonical ρ_{n+1}),
+             correction_inverse, density_gradient_kernel_sum (kernel_sum via .w),
+             material, material_parameters,
+             inside_particle_count, inside_particle_index
+     writes: acceleration (a_{n+1}), shift (shift_{n+1} via PST)
 
-END: x_{n+1}, v_{n+1/2} (half-step, for next kick), a_{n+1}, ρ_{n+1}, shift_{n+1} ready for step n+1.
-Descriptor ping-pong: swap RhoP_A ↔ RhoP_B bindings for next step.
-
-There is NO step 6 (no post-force kick). Leapfrog absorbs Verlet KDK's second half-kick into the next step's predict: `v_{n+1/2} = v_{n-1/2} + a_n * dt` is one full-step kick that combines (kick2 of step n-1) + (kick1 of step n).
+END: x_{n+1}, v_{n+1/2}, a_{n+1}, ρ_{n+1}, shift_{n+1} all ready for step n+1.
+Descriptor ping-pong: swap set 0's density_pressure_a ↔ density_pressure_b bindings.
 ```
 
-### Periodic: Defrag Pass (every N steps, N≈256)
+There is **no step 6** (no post-force kick). Leapfrog absorbs Verlet KDK's second half-kick into the next step's predict: `v_{n+1/2} = v_{n-1/2} + a_n · dt` combines (kick2 of step n−1) + (kick1 of step n) into one full-step kick.
 
-Re-sort particles so each voxel's `InsideBuf` holds contiguous integers → restores cache coherence for neighbor scatter loads. Triggered externally (CPU counter or GPU-side fragmentation metric).
+### Bootstrap (one-time at t = 0)
 
-```
-defrag.comp:
-  1) exclusive prefix sum over InsideCount[] → CellStart[]
-  2) per-voxel scatter: new_pid = CellStart[v] + i, copy all particle fields old→new
-  3) rewrite InsideBuf to contiguous integers
-  4) swap old ↔ new particle-pool bindings
-```
-
-### Bootstrap (one-time at t=0)
-
-Main loop needs `a_0` (for the first kick) and `v_{-1/2}` (stored half-step velocity, **backward** offset from initial v_0). Initial conditions from scene config give `x_0` and `v_0` (integer-step velocity).
+Main loop needs `a_0` and `v_{-1/2}` (**backward** half-step velocity). Initial conditions from `case.yaml` + `.obj` geometry give `x_0` and `v_0` (integer-step velocity, typically 0 for dam-break).
 
 Startup sequence:
-1. Initial voxel bucketing (`update_voxel` on `x_0`)
-2. `correction` on `x_0`
-3. `density` on `x_0`  → `ρ_0`
-4. `force` on `x_0, v_0, ρ_0` → `a_0, shift_0`
-5. **Backward half-kick** (`bootstrap_half_kick.comp`): `v_{-1/2} = v_0 - 0.5 · a_0 · dt`
 
-After this one-time sequence, enter the main 5-stage loop starting from step 1 with `{x_0, v_{-1/2}, a_0, shift_0}` ready. Step 1's predict then computes:
+1. **Python-side initial voxelization**: fill `inside_particle_index` / `inside_particle_count` from `x_0` (skip inlet particles per the InsideParticleIndexBuffer invariant). Done at simulator load time, **not** via `update_voxel.comp`.
+2. `correction.comp` on x_0 → M_0⁻¹, ∇ρ_0, kernel_sum_0
+3. `density.comp` on x_0 → ρ_0, P_0
+4. `force.comp` on x_0, v_0, ρ_0 → a_0, shift_0
+5. `bootstrap_half_kick.comp` → v_{-1/2} = v_0 − 0.5 · a_0 · dt
+
+Then enter the main 5-stage loop at step 1. Step 1's predict computes:
 
 ```
-v_{1/2} = v_{-1/2} + a_0 · dt = v_0 + 0.5 · a_0 · dt    (correct half-step velocity)
+v_{1/2} = v_{-1/2} + a_0 · dt = v_0 + 0.5 · a_0 · dt    (correct half-step)
 x_1     = x_0 + v_{1/2} · dt + shift_0
-        = x_0 + v_0·dt + 0.5·a_0·dt² + shift_0           (Taylor 2nd order, correct)
+        = x_0 + v_0·dt + 0.5·a_0·dt² + shift_0          (Taylor 2nd order ✓)
 ```
 
-The **backward** offset is critical: predict's kick uses `a_buffer = a_n` (precomputed by previous step's force), so step 1's kick consumes `a_0`. To make the kick produce `v_{1/2}`, the buffer must hold `v_{-1/2}`, not `v_{1/2}`. Forward bootstrap (`v_{1/2}`) would cause step 1 to compute `v_{3/2}` from `v_{1/2}` using stale `a_0` instead of correct `a_1`, introducing a permanent O(dt²) error in the trajectory.
+The **backward** offset is critical: predict's kick consumes `acceleration = a_n` (from previous force), so step 1's kick consumes `a_0`. Forward bootstrap (`v_{1/2}`) would feed step 1 a stale `a_0` producing `v_{3/2}` instead of `v_{1/2}`, permanent O(dt²) trajectory error.
 
-Cost: one extra `force` pass plus a tiny half-kick at startup, zero impact on steady-state.
+### Periodic: Defrag Pass (V0+ deferred — not implemented)
+
+Re-sort particles so each voxel's `inside_particle_index` holds contiguous integers → restores cache coherence as particles diffuse. Sketch for future `defrag.comp`:
+
+```
+1) exclusive prefix sum over inside_particle_count[] → cell_start[]
+2) per-voxel scatter: new_pid = cell_start[v] + i; copy all particle fields old → new
+3) rewrite inside_particle_index to contiguous integers
+4) swap old ↔ new particle-pool bindings
+```
+
+Trigger policy TBD (static N≈256 vs GPU fragmentation metric).
 
 ## Key Differences vs OpenGL Baseline
 
-| Aspect | OpenGL (current) | Vulkan V0 |
+| Aspect | OpenGL | Vulkan V0 |
 |---|---|---|
 | Integrator | Euler | Leapfrog (half-step velocity) |
 | Particle buffer | 3 types × 3 sub-buffers = 9 SSBOs | 1 unified SoA pool, SoA-split by field lifetime |
-| Per-particle memory | ~512 B (ParticleData + SubData + RuntimeData mat4) | **132 B** (4× reduction) |
+| Per-particle memory | ~512 B (ParticleData + SubData + RuntimeData mat4) | **132 B core** (4× reduction; +16 B optional extension) |
 | Voxel size | 2912 ints = 11.4 KB/voxel | **~456 B/voxel** (25× reduction), no stored header |
-| Shader constants | GLSL `#define` injected at compile | `VkSpecializationInfo` |
-| Kernel dispatch | One giant compute shader + `stage` uniform branch | One `VkComputePipeline` per stage |
-| Stage count | 5 (Euler) | 5 (Leapfrog: predict + update_voxel + correction + density + force) |
-| update_voxel position | Step tail | After predict, before correction (leapfrog drift moved it up) |
-| Boundary dispatch | Sign-of-index sentinel (`particle_index = -particle_index`) | `Material` field branch |
+| Shader constants | GLSL `#define` injection | `VkSpecializationInfo` |
+| Kernel dispatch | One giant compute shader + `stage` uniform branch | One `VkComputePipeline` per stage (6 total incl. bootstrap) |
+| Stage count | 5 (Euler) | 5 (Leapfrog) + 1 one-time bootstrap |
+| `update_voxel` position | Step tail | After predict, before correction (drift moved it up) |
+| Boundary dispatch | Sign-of-index sentinel (`pid = -pid`) | `material[pid] → MaterialParameters.kind` branch |
+| Indexing | 0-based | 1-based (0 = universal sentinel) |
+| Material parameters | Per-particle spec-const injected | Per-group `material_parameters[]`, indexed by `material[pid]` |
 
 ## Cross-Stage Field Audit
 
 From OpenGL `ParticleRuntimeData`, fields retained as persistent cross-stage state in V0:
 
-- **Kept**: M⁻¹ (→ `CorrInv`), ∇ρ (→ `GradKsd`), kernel_sum_delta (→ `GradKsd.w`), new_ρ / new_P (→ `RhoP_write`), particle_shift (→ `Shift`)
-- **Cut** (kernel-local, do in registers): `kernel_gradient_sum`, `kernel_sum`, `kernel_normalize_matrix` accumulation
+- **Kept**: M⁻¹ (→ `correction_inverse`), ∇ρ + kernel_sum (→ `density_gradient_kernel_sum`), new_ρ / new_P (→ `density_pressure_b`), particle_shift (→ `shift`)
+- **Cut** (kernel-local, computed in registers): `kernel_gradient_sum`, per-particle `kernel_sum` accumulator outside correction, `kernel_normalize_matrix` accumulation
 - **Cut** (extensions, deferred): `curl_u`, `w`, `overlap`, `aw`, `mass_transfer_target_particle`, `FTLE`
-- **Moved to diagnostic buffer** (optional, debug/render builds only): visualization quantities
+- **Reserved slots** (debug/render builds only): `extension_fields` (set 0 binding 9) + optional `diagnostic` buffer (set 3 binding 6)
 
-## Open Items (for next session on 2×5090 rig)
+## Open Items — Status
 
-1. **Kernel-level dispatch design** per stage:
-   - `predict`: workgroup size (64 vs 128), atomic contention in crossing append
-   - `update_voxel`: per-voxel workgroup vs thread-per-slot, shared memory for inside_buf staging
-   - `correction / density / force`: 27-neighbor loop structure, shared-memory tile-caching decision
-   - `defrag`: prefix-sum scan implementation (subgroup intrinsics vs two-pass)
+| Item | Status |
+|---|---|
+| Kernel workgroup size | ✓ `WORKGROUP_SIZE = 128` (id=51, per-kernel overridable via `local_size_x_id`) |
+| Density ping-pong mechanics | ✓ Descriptor set swap at step end (two set 0 instances, parity flip) |
+| Bootstrap pass implementation | ✓ `bootstrap_half_kick.comp` ready; Python orchestrator pending in `utils/sph/simulator.py` |
+| Overflow validation counters | ✓ `global_status.overflow_inside_count`, `overflow_incoming_count`, first-offending-voxel via `atomicCompSwap` |
+| CAP tuning (96 / 16) | ⏳ Pending live profiling on real scenes |
+| Defrag | ⏳ V0+ deferred |
+| Numerical validation (Vulkan vs OpenGL) | ⏳ Gated on Python pipeline + scene loader |
+| 27-neighbor loop shared-memory tiling | ⏳ Deferred to V0 perf pass |
+| Irregular-domain active-voxel mask | ⏳ V0+ deferred; V0 uses full frame-bbox grid |
+| Inlet spawn kernel | ⏳ V0+ (pool includes inlet templates, static in V0) |
 
-2. **Density ping-pong mechanics**: descriptor set swap vs push constant index. Need to pick and implement.
-
-3. **Bootstrap pass**: implement the one-time `correction → density → force` sequence before main loop.
-
-4. **Overflow validation**: add atomic counters for CAP_inside and CAP_in overflow; run with representative scene to validate 96/16 headroom.
-
-5. **CAP tuning once measured**: revisit 96 (inside) and 16 (in) based on live profiling data.
-
-6. **Defrag trigger policy**: static N=256 for V0, migrate to fragmentation-metric-driven later.
-
-7. **Numerical validation gate** (see `feedback_api_rewrite`): same initial conditions on OpenGL vs V0 Vulkan, compare after N steps. No architectural progression until parity holds.
-
-## File Organization Plan (proposed)
+## File Organization (current)
 
 ```
 shaders/sph/
-  predict.comp
-  update_voxel.comp
-  correction.comp
-  density.comp
-  force.comp
-  defrag.comp
-  bootstrap_half_kick.comp    # tiny one-time kernel at t=0
-  common.glsl        # shared: spec constants, coord_of(), neighbor iter, EOS, kernel funcs
-  symmetric_mat3.glsl  # M⁻¹ pack/unpack helpers
+  common.glsl                  # spec constants, descriptor bindings, kind tags, sentinels
+  helpers.glsl                 # Wendland C4, voxel_id↔coord, correction_inverse unpack
+  predict.comp                 # stage 1
+  update_voxel.comp            # stage 2
+  correction.comp              # stage 3
+  density.comp                 # stage 4
+  force.comp                   # stage 5
+  bootstrap_half_kick.comp     # one-time backward half-kick
+  _test_common.comp            # smoke test
+  README.md                    # handoff document
 
-utils/sph/
-  buffers.py         # SSBO allocation + binding descriptors
-  pipeline.py        # compute pipeline creation per stage
-  descriptor.py      # descriptor set layout + ping-pong swap
-  spec_constants.py  # VkSpecializationInfo assembly
+utils/sph/                     # Python pipeline glue — PENDING
+  config.py                    # SimulationConfig + VkSpecializationInfo assembly
+  case.py                      # yaml + obj loader + derived quantities
+  vulkan_context.py            # instance / device / queues / command pool
+  shader_loader.py             # SPV → VkShaderModule
+  buffers.py                   # SoA allocation + staging upload
+  scene.py                     # initial particle pool + voxelization
+  descriptors.py               # 4 set layouts + pool + sets (ping-pong pair)
+  pipelines.py                 # 6 compute pipelines
+  dispatch.py                  # command buffer recording
+  simulator.py                 # top-level driver
 
-main_sph_v0.py       # main loop, binding setup, stage dispatch ordering
+cases/
+  dam_break_2d/
+    case.yaml                  # parameters + obj references
+    domain.obj                 # vertex-as-particle (fluid)
+    boundary.obj               # vertex-as-particle (walls)
+    frame.obj                  # computation bbox (V0: only bbox used)
+
+materials/
+  standard.yaml                # reusable material library (water, wall, ...)
+
+utils/phase1/                  # Archived: Phase 1 cross-GPU migration demo
 ```

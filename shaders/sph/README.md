@@ -222,14 +222,15 @@ edits.
 ## Spec constant ID range plan (see `common.glsl`)
 
 ```
-0  - 9   : core physics scalars + own grid origin
+0  - 9   : core physics scalars + own grid origin  (id=3 reserved)
 10       : multi-GPU bit-exactness toggle (V1)
 11 - 13  : own grid dimensions (and TOTAL_VOXEL_COUNT derived)
 14 - 16  : correction regularization tunables
 17 - 19  : gravity
 20 - 29  : voxel layout / micropolar (V0+ reserved)
 30 - 33  : dimension + kernel coefficients
-40 - 49  : SPH numerical parameters (ε_h², PST anti coef)
+34 - 39  : reserved
+40 - 49  : SPH numerical parameters (ε_h², PST main, PST anti, ...)
 50 - 53  : capacities + workgroup size + POOL_SIZE
 54 - 79  : reserved
 80 - 88  : multi-GPU ghost grid (V1)

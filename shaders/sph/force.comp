@@ -15,8 +15,8 @@
 //   a_pressure    = -Σ_j V_j · F_ji / ρ_i · ∇W̃_ij       (Tait + TIC)
 //   a_viscosity   =  Σ_j 2(DIM+2) · ν · V_j · dot(v_i - v_j, x_ij)
 //                        / (r² + ε_h²) · ∇W̃_ij          (Morris)
-//   shift_main    = -(CFL · 0.1 · 2 · h²) · Σ ... · ∇W̃ · V
-//   shift_anti    = +(CFL · 0.1 · 2 · h²) · Σ (r/Δx) · ∇W̃ · V · anti_coef
+//   shift_main    = -(CFL · PST_MAIN_SHIFT_COEFFICIENT · 2 · h²) · Σ ... · ∇W̃ · V
+//   shift_anti    = +(CFL · PST_MAIN_SHIFT_COEFFICIENT · 2 · h²) · Σ (r/Δx) · ∇W̃ · V · PST_ANTI_SHIFT_COEFFICIENT
 //
 // Where:
 //   F_ji = (P_i > 0) ? P_i + P_j : P_j - P_i                   (TIC)
@@ -94,7 +94,7 @@ void main() {
     //   W_Δx  = evaluate_kernel(Δx_ij)     (per-pair)
     // ========================================================================
     float morris_coefficient  = 2.0 * (float(DIMENSION) + 2.0);  // 8 (2D), 10 (3D)
-    float pst_base_factor     = CFL_NUMBER * 0.1 * 2.0 * (SMOOTHING_LENGTH * SMOOTHING_LENGTH);
+    float pst_base_factor     = CFL_NUMBER * PST_MAIN_SHIFT_COEFFICIENT * 2.0 * (SMOOTHING_LENGTH * SMOOTHING_LENGTH);
 
     // V0-uniform pair quantities
     float viscosity_uniform       = self_params.viscosity;
