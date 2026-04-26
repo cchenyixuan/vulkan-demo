@@ -1,0 +1,656 @@
+"""
+case.py — yaml + obj loader, Case dataclass, spec-constant assembly.
+
+Single CPU-side hub for the V0 SPH pipeline. Everything you need to go from
+``cases/<name>/case.yaml`` to a Vulkan-ready description lives here:
+
+  - 5 block dataclasses mirroring the case.yaml top-level sections
+    (``PhysicsConfig``, ``NumericsConfig``, ``RegularizationConfig``,
+    ``CapacitiesConfig``, ``TimeConfig``). Each owns its intra-block validation.
+  - ``MaterialEntry`` / ``ParticleSource`` resolved entities.
+  - ``Case`` — the atomic unit consumed downstream. Bundles all blocks + grid
+    + materials + particle sources. Owns derived ``@property`` and cross-block
+    validation.
+  - ``build_specialization_info(case)`` — packs the 41 spec constants into a
+    bytes blob (kept in lockstep with ``shaders/sph/common.glsl``).
+  - ``load_case(path)`` — single entry point: yaml + obj on disk → Case.
+
+Stays Vulkan-free. Imports only PyYAML, NumPy, and our two pure utilities
+(``utils.sph.obj_loader`` for vertex parsing, ``utils.sph.grid`` for
+bbox→origin/dimension derivation). Downstream Vulkan code consumes ``Case``
+without touching disk or yaml.
+
+V0 scope:
+  - INLET kind is rejected (inlet spawn is V0+ work).
+  - Single-resolution: smoothing_length / radius / volume are uniform across
+    materials, all derived from case.yaml's physics block.
+"""
+
+import math
+import pathlib
+import struct
+from dataclasses import dataclass
+from typing import Callable, NamedTuple, Optional
+
+import numpy as np
+import yaml
+
+from utils.sph.grid import compute_grid
+from utils.sph.obj_loader import load_obj_vertices
+
+
+# ============================================================================
+# Schema versions — bumped on ANY breaking change to the corresponding yaml
+# format. The loader rejects mismatches hard; case files must be migrated.
+# ============================================================================
+
+CASE_SCHEMA_VERSION = 1
+MATERIAL_SCHEMA_VERSION = 1
+
+
+# ============================================================================
+# Material kind tags — must match shaders/sph/common.glsl exactly.
+# ============================================================================
+
+KIND_FLUID    = 0
+KIND_BOUNDARY = 1
+KIND_INLET    = 2
+KIND_ROTOR    = 3
+
+_KIND_NAME_TO_CODE = {
+    "fluid":    KIND_FLUID,
+    "boundary": KIND_BOUNDARY,
+    "inlet":    KIND_INLET,
+    "rotor":    KIND_ROTOR,
+}
+
+
+# ============================================================================
+# Leaf parameter blocks (1:1 with case.yaml top-level sections).
+# Each block owns its intra-block validation in __post_init__.
+# ============================================================================
+
+
+@dataclass
+class PhysicsConfig:
+    dimension: int                                  # 2 or 3
+    smoothing_length: float                         # h (Wendland C4 support radius)
+    particle_spacing: float                         # dx; per-material radius = dx/2, volume = dx^DIM
+    speed_of_sound: float                           # c0
+    power: float                                    # γ in Tait EOS
+    cfl: float                                      # for timestep derivation
+    gravity: tuple[float, float, float]
+
+    def __post_init__(self):
+        # YAML parses [0, -9.81, 0] as a list; coerce to tuple of floats.
+        self.gravity = tuple(float(component) for component in self.gravity)
+        if len(self.gravity) != 3:
+            raise ValueError(
+                f"physics.gravity must have 3 components, got {len(self.gravity)}")
+        if self.dimension not in (2, 3):
+            raise ValueError(
+                f"physics.dimension must be 2 or 3, got {self.dimension}")
+        if self.smoothing_length <= 0:
+            raise ValueError(
+                f"physics.smoothing_length must be > 0, got {self.smoothing_length}")
+        if self.particle_spacing <= 0:
+            raise ValueError(
+                f"physics.particle_spacing must be > 0, got {self.particle_spacing}")
+        if self.speed_of_sound <= 0:
+            raise ValueError(
+                f"physics.speed_of_sound must be > 0, got {self.speed_of_sound}")
+        if self.power <= 0:
+            raise ValueError(f"physics.power must be > 0, got {self.power}")
+        if self.cfl <= 0:
+            raise ValueError(f"physics.cfl must be > 0, got {self.cfl}")
+        # Hard math contradiction: kernel support < particle spacing means
+        # the nearest neighbor is outside the kernel — SPH cannot operate.
+        if self.particle_spacing > self.smoothing_length:
+            raise ValueError(
+                f"physics.particle_spacing ({self.particle_spacing}) must be "
+                f"<= smoothing_length ({self.smoothing_length}); otherwise the "
+                f"kernel support contains no neighbors and SPH is degenerate.")
+
+
+@dataclass
+class RegularizationConfig:
+    xi: float                                       # Tikhonov diagonal add
+    det_threshold: float                            # below → fall back to identity M⁻¹
+    frobenius_max: float                            # cap |M⁻¹|_F
+
+    def __post_init__(self):
+        if self.xi <= 0:
+            raise ValueError(f"regularization.xi must be > 0, got {self.xi}")
+        if self.det_threshold <= 0:
+            raise ValueError(
+                f"regularization.det_threshold must be > 0, got {self.det_threshold}")
+        if self.frobenius_max <= 0:
+            raise ValueError(
+                f"regularization.frobenius_max must be > 0, got {self.frobenius_max}")
+
+
+@dataclass
+class NumericsConfig:
+    delta_coefficient: float                        # δ in δ-SPH density diffusion
+    pst_main: float                                 # PST main-shift scale (Sun 2017)
+    pst_anti: float                                 # PST anti-shift (cohesion) multiplier
+    regularization: RegularizationConfig
+
+    def __post_init__(self):
+        if self.delta_coefficient < 0:
+            raise ValueError(
+                f"numerics.delta_coefficient must be >= 0, got {self.delta_coefficient}")
+        if self.pst_main < 0:
+            raise ValueError(f"numerics.pst_main must be >= 0, got {self.pst_main}")
+        if self.pst_anti < 0:
+            raise ValueError(f"numerics.pst_anti must be >= 0, got {self.pst_anti}")
+
+
+@dataclass
+class CapacitiesConfig:
+    pool_size: int                                  # max active particles
+    max_per_voxel: int                              # MAX_PARTICLES_PER_VOXEL
+    max_incoming: int                               # MAX_INCOMING_PER_VOXEL
+    workgroup: int                                  # WORKGROUP_SIZE
+
+    def __post_init__(self):
+        if self.pool_size <= 0:
+            raise ValueError(f"capacities.pool_size must be > 0, got {self.pool_size}")
+        if self.max_per_voxel <= 0:
+            raise ValueError(
+                f"capacities.max_per_voxel must be > 0, got {self.max_per_voxel}")
+        if self.max_incoming <= 0:
+            raise ValueError(
+                f"capacities.max_incoming must be > 0, got {self.max_incoming}")
+        if self.workgroup <= 0:
+            raise ValueError(f"capacities.workgroup must be > 0, got {self.workgroup}")
+
+
+@dataclass
+class TimeConfig:
+    """All three budgets are independent; None on a budget disables it."""
+    total: Optional[float]                          # physical-time cap (s); None = unlimited
+    max_steps: Optional[int]                        # step-count cap; None = unlimited
+    output_cadence: Optional[float]                 # snapshot interval (s); None = no snapshots
+
+    def __post_init__(self):
+        if self.total is not None and self.total <= 0:
+            raise ValueError(f"time.total must be > 0 or None, got {self.total}")
+        if self.max_steps is not None and self.max_steps <= 0:
+            raise ValueError(
+                f"time.max_steps must be > 0 or None, got {self.max_steps}")
+        if self.output_cadence is not None and self.output_cadence <= 0:
+            raise ValueError(
+                f"time.output_cadence must be > 0 or None, got {self.output_cadence}")
+
+    def is_time_exceeded(self, current_time: float) -> bool:
+        return self.total is not None and current_time >= self.total
+
+    def is_step_exceeded(self, current_step: int) -> bool:
+        return self.max_steps is not None and current_step >= self.max_steps
+
+
+# ============================================================================
+# Resolved entities
+# ============================================================================
+
+
+@dataclass
+class MaterialEntry:
+    """One resolved material: library spec + derived values + compact group_id.
+
+    Field order from ``kind`` onward mirrors the ``MaterialParameters`` struct
+    in shaders/sph/common.glsl. Buffer upload code can pack each row by reading
+    these fields in declared order without re-sorting (12 × 4 B = 48 B / row).
+    """
+    # --- Python-side metadata (NOT uploaded) -----------------------------
+    name: str
+    group_id: int                                   # compact 0..N-1, indexes material_parameters[]
+
+    # --- GPU struct fields (in common.glsl order; 48 B total) ------------
+    kind: int                                       # uint  (FLUID/BOUNDARY/INLET/ROTOR)
+    rest_density: float
+    viscosity: float                                # kinematic ν
+    eos_constant: float                             # derived: c0² · rest_density / γ
+    smoothing_length: float                         # derived: V0 = global h
+    radius: float                                   # derived: dx / 2
+    volume: float                                   # derived: dx^DIM
+    rotor_angular_velocity: float = 0.0
+    # Reserved (V0 unused; zero-padded on upload to match the struct's 48 B layout).
+    viscosity_transfer: float = 0.0                 # micropolar (V0+)
+    viscosity_rotation: float = 0.0                 # micropolar (V0+)
+    reserved_material_0: int = 0
+    reserved_material_1: int = 0
+
+
+@dataclass
+class ParticleSource:
+    """One obj file's vertices + its material assignment."""
+    obj_path: pathlib.Path
+    vertices: np.ndarray                            # (N, 3) float32
+    material_name: str
+    material_group_id: int                          # backfilled at Case construction
+
+
+# ============================================================================
+# Case — atomic unit consumed by Vulkan. yaml + obj → this; this → Vulkan.
+# ============================================================================
+
+
+@dataclass
+class Case:
+    """Fully resolved case ready for Vulkan upload.
+
+    Holds CPU-side data only; no GPU resources allocated yet. Bundles
+    parameters (the four block configs from case.yaml), the grid derived from
+    frame.obj's bbox, the resolved materials, and per-obj particle sources.
+
+    Derived quantities that depend ONLY on intrinsic parameters are exposed
+    as @property (timestep, kernel coefficients, ...). Cross-block validation
+    (max_per_voxel ≥ closest-packing bound) runs in __post_init__.
+    """
+    # --- Parameters (1:1 with case.yaml top-level blocks) ---------------
+    physics: PhysicsConfig
+    numerics: NumericsConfig
+    capacities: CapacitiesConfig
+    time: TimeConfig
+
+    # --- Geometry-derived ----------------------------------------------
+    grid: dict                                      # {'origin': (3,), 'dimension': (3,)}
+
+    # --- Resolved -------------------------------------------------------
+    materials: list[MaterialEntry]                  # ordered by group_id 0..N-1
+    particle_sources: list[ParticleSource]
+    case_dir: pathlib.Path                          # for relative path debugging
+
+    def __post_init__(self):
+        # Cross-block validation: max_per_voxel must accommodate the
+        # geometric closest-packing upper bound. With this passing, the GPU
+        # initialize_voxelization shader's atomicAdd path provably cannot
+        # overflow — no per-particle CPU pre-count is needed.
+        max_estimate = self.particles_per_voxel_max_estimate
+        if self.capacities.max_per_voxel < max_estimate:
+            ratio = self.physics.smoothing_length / self.physics.particle_spacing
+            raise ValueError(
+                f"capacities.max_per_voxel ({self.capacities.max_per_voxel}) is "
+                f"below the closest-packing upper bound ({max_estimate}) for "
+                f"h/dx = {ratio:.3f} in {self.physics.dimension}D. Increase "
+                f"capacities.max_per_voxel in case.yaml, or coarsen geometry "
+                f"(reduce h/dx ratio).")
+
+    # ------------------------------------------------------------------
+    # Derived from intrinsic parameters (no geometry / materials needed)
+    # ------------------------------------------------------------------
+
+    @property
+    def timestep(self) -> float:
+        """dt = CFL · h / c0."""
+        return (self.physics.cfl * self.physics.smoothing_length
+                / self.physics.speed_of_sound)
+
+    @property
+    def kernel_coefficient(self) -> float:
+        """Wendland C4 normalization (support radius = h, NOT 2h).
+
+        2D:  9   / (π · h²)
+        3D:  495 / (32 · π · h³)
+        """
+        h = self.physics.smoothing_length
+        if self.physics.dimension == 2:
+            return 9.0 / (math.pi * h * h)
+        return 495.0 / (32.0 * math.pi * h * h * h)
+
+    @property
+    def kernel_gradient_coefficient(self) -> float:
+        """∇W coefficient = W coefficient / h."""
+        return self.kernel_coefficient / self.physics.smoothing_length
+
+    @property
+    def eps_h_squared(self) -> float:
+        """Antuono δ-SPH division-by-zero guard for 1/(r² + ε_h²) terms."""
+        h = self.physics.smoothing_length
+        return 0.01 * h * h
+
+    @property
+    def neighbor_z_range(self) -> int:
+        """27-voxel neighbor loop in 3D; collapses to 9 in 2D."""
+        return 1 if self.physics.dimension == 3 else 0
+
+    # --- Capacity diagnostics (uniform-spacing sanity estimates) --------
+    # Both quantities below assume uniform packing at particle_spacing.
+    # The "estimate" forms are loose; the "max" form is the geometric
+    # closest-packing upper bound used to validate capacities.max_per_voxel.
+
+    @property
+    def particles_per_voxel_estimate(self) -> float:
+        """Expected particle count in a single voxel under uniform spacing.
+
+        2D: (h / dx)²        3D: (h / dx)³
+        """
+        ratio = self.physics.smoothing_length / self.physics.particle_spacing
+        return ratio ** self.physics.dimension
+
+    @property
+    def neighbors_in_support_estimate(self) -> float:
+        """Expected neighbor count inside the Wendland C4 support (radius = h).
+
+        2D: π · (h/dx)²              3D: (4/3) · π · (h/dx)³
+
+        Stable WCSPH typically wants >= ~30 in 2D, >= ~50 in 3D.
+        """
+        ratio = self.physics.smoothing_length / self.physics.particle_spacing
+        if self.physics.dimension == 2:
+            return math.pi * ratio * ratio
+        return (4.0 / 3.0) * math.pi * ratio ** 3
+
+    @property
+    def particles_per_voxel_max_estimate(self) -> int:
+        """Geometric upper bound on particles centered inside a single voxel,
+        assuming particles enforce a minimum separation of ``particle_spacing``.
+
+        2D hexagonal close packing density:  2 / (√3 · dx²)  ≈ 1.155 / dx²
+        3D FCC / HCP close packing density:  √2 / dx³        ≈ 1.414 / dx³
+
+        Multiplied by voxel volume (h² in 2D, h³ in 3D) and ceil-rounded.
+        Used as a HARD upper bound for capacities.max_per_voxel.
+        """
+        ratio = self.physics.smoothing_length / self.physics.particle_spacing
+        if self.physics.dimension == 2:
+            density_factor = 2.0 / math.sqrt(3.0)
+            return int(math.ceil(density_factor * ratio * ratio))
+        density_factor = math.sqrt(2.0)
+        return int(math.ceil(density_factor * ratio ** 3))
+
+
+# ============================================================================
+# Specialization constant assembly
+# ----------------------------------------------------------------------------
+# Hand-maintained mapping. MUST be kept in lockstep with shaders/sph/common.glsl
+# spec constant declarations (matching IDs, types, and intent).
+#
+# Each row: (constant_id, getter(case) -> python value, struct format).
+# Format characters: 'f' = float32, 'I' = uint32, 'i' = int32.
+# Boolean spec constants are encoded as 'I' (0 / 1) per VkBool32 convention.
+# ============================================================================
+
+
+_SpecGetter = Callable[[Case], object]
+_SpecRow = tuple[int, _SpecGetter, str]
+
+
+_SPEC_CONSTANT_MAPPING: list[_SpecRow] = [
+    # id  getter                                                       fmt
+    (0,   lambda case: case.physics.smoothing_length,                  'f'),
+    (1,   lambda case: case.physics.speed_of_sound,                    'f'),
+    (2,   lambda case: case.numerics.delta_coefficient,                'f'),
+    # id=3 reserved (was EPSILON_SHIFT, removed)
+    (4,   lambda case: case.physics.power,                             'f'),
+    (5,   lambda case: case.physics.cfl,                               'f'),
+    (6,   lambda case: case.timestep,                                  'f'),  # derived
+    (7,   lambda case: case.grid['origin'][0],                         'f'),
+    (8,   lambda case: case.grid['origin'][1],                         'f'),
+    (9,   lambda case: case.grid['origin'][2],                         'f'),
+    (10,  lambda case: 0,                                              'I'),  # STRICT_BIT_EXACT (V0: false)
+    (11,  lambda case: case.grid['dimension'][0],                      'I'),
+    (12,  lambda case: case.grid['dimension'][1],                      'I'),
+    (13,  lambda case: case.grid['dimension'][2],                      'I'),
+    (14,  lambda case: case.numerics.regularization.xi,                'f'),
+    (15,  lambda case: case.numerics.regularization.det_threshold,     'f'),
+    (16,  lambda case: case.numerics.regularization.frobenius_max,     'f'),
+    (17,  lambda case: case.physics.gravity[0],                        'f'),
+    (18,  lambda case: case.physics.gravity[1],                        'f'),
+    (19,  lambda case: case.physics.gravity[2],                        'f'),
+    (20,  lambda case: 0,                                              'I'),  # VOXEL_ORDER (V0: linear)
+    (21,  lambda case: 2.0,                                            'f'),  # MICROPOLAR_THETA (V0 unused)
+    (30,  lambda case: case.physics.dimension,                         'I'),
+    (31,  lambda case: case.neighbor_z_range,                          'I'),
+    (32,  lambda case: case.kernel_coefficient,                        'f'),
+    (33,  lambda case: case.kernel_gradient_coefficient,               'f'),
+    (40,  lambda case: case.eps_h_squared,                             'f'),
+    (41,  lambda case: case.numerics.pst_main,                         'f'),
+    (42,  lambda case: case.numerics.pst_anti,                         'f'),
+    (50,  lambda case: case.capacities.max_per_voxel,                  'I'),
+    (51,  lambda case: case.capacities.workgroup,                      'I'),
+    (52,  lambda case: case.capacities.max_incoming,                   'I'),
+    (53,  lambda case: case.capacities.pool_size,                      'I'),
+    # V0-a ghost grid: all disabled (GHOST_DIMENSION_* = 0 dead-code-eliminates branches)
+    (80,  lambda case: 0,                                              'I'),
+    (81,  lambda case: 0,                                              'I'),
+    (82,  lambda case: 0,                                              'I'),
+    (83,  lambda case: 0.0,                                            'f'),
+    (84,  lambda case: 0.0,                                            'f'),
+    (85,  lambda case: 0.0,                                            'f'),
+    (86,  lambda case: 0,                                              'i'),
+    (87,  lambda case: 0,                                              'i'),
+    (88,  lambda case: 0,                                              'i'),
+]
+
+
+class SpecializationInfo(NamedTuple):
+    """Pure-Python spec info; pipelines.py converts to VkSpecializationInfo."""
+    map_entries: list[tuple[int, int, int]]         # (constant_id, offset, size)
+    data: bytes                                     # packed blob
+
+
+def build_specialization_info(case: Case) -> SpecializationInfo:
+    """Pack all spec constants into a contiguous data blob and return alongside
+    map entries (constant_id, offset, size).
+
+    Constant ordering and types must match shaders/sph/common.glsl exactly.
+    """
+    map_entries: list[tuple[int, int, int]] = []
+    data = bytearray()
+    for constant_id, getter, fmt in _SPEC_CONSTANT_MAPPING:
+        value = getter(case)
+        size = struct.calcsize(fmt)
+        map_entries.append((constant_id, len(data), size))
+        data.extend(struct.pack(fmt, value))
+    return SpecializationInfo(map_entries=map_entries, data=bytes(data))
+
+
+# ============================================================================
+# Top-level entry
+# ============================================================================
+
+
+def load_case(case_yaml_path) -> Case:
+    """Load and validate a complete case from disk.
+
+    Raises ``ValueError`` on schema mismatch, missing field, or any cross-domain
+    contradiction (over-budget particle count, particle outside frame bbox,
+    unknown material name, V0-disallowed kind). Raises ``TypeError`` on
+    structural mismatch between yaml and dataclass field set (typo / missing
+    field) thanks to ``**kwargs`` splat construction.
+    """
+    case_yaml_path = pathlib.Path(case_yaml_path).resolve()
+    case_dir = case_yaml_path.parent
+
+    case_data = yaml.safe_load(case_yaml_path.read_text(encoding="utf-8"))
+    _check_schema(case_data, CASE_SCHEMA_VERSION, source=str(case_yaml_path))
+
+    # Build parameter blocks via **kwargs splat. Each yaml block's keys must
+    # exactly match the dataclass field names — extras / missing surface as
+    # TypeError immediately.
+    physics = PhysicsConfig(**case_data["physics"])
+    capacities = CapacitiesConfig(**case_data["capacities"])
+    time = TimeConfig(**case_data["time"])
+
+    numerics_data = dict(case_data["numerics"])     # copy so we can pop
+    regularization = RegularizationConfig(**numerics_data.pop("regularization"))
+    numerics = NumericsConfig(regularization=regularization, **numerics_data)
+
+    # Material library
+    library_path = (case_dir / case_data["material_library"]).resolve()
+    library = _load_material_library(library_path)
+
+    # Particle sources
+    particle_sources, used_material_names = _load_particle_sources(
+        case_dir, case_data["geometry"])
+
+    # Resolve only used materials; assign compact 0..N-1 group_ids
+    materials = _resolve_materials(
+        library, used_material_names, physics, library_path)
+    name_to_group = {m.name: m.group_id for m in materials}
+    for source in particle_sources:
+        source.material_group_id = name_to_group[source.material_name]
+
+    # Grid from frame.obj bbox
+    frame_path = (case_dir / case_data["geometry"]["frame"]).resolve()
+    frame_vertices = load_obj_vertices(frame_path)
+    if frame_vertices.shape[0] == 0:
+        raise ValueError(f"frame obj {frame_path} contains no vertices")
+    grid = compute_grid(
+        frame_vertices.min(axis=0),
+        frame_vertices.max(axis=0),
+        physics.smoothing_length,
+        physics.dimension,
+    )
+
+    # Cross-domain validation that needs particle data + frame bbox.
+    # (Case.__post_init__ then runs the closest-packing self-check.)
+    _cross_validate(physics, capacities, particle_sources, frame_vertices)
+
+    return Case(
+        physics=physics,
+        numerics=numerics,
+        capacities=capacities,
+        time=time,
+        grid=grid,
+        materials=materials,
+        particle_sources=particle_sources,
+        case_dir=case_dir,
+    )
+
+
+# ============================================================================
+# Internal helpers
+# ============================================================================
+
+
+def _check_schema(data, expected_version, source) -> None:
+    if not isinstance(data, dict):
+        raise ValueError(
+            f"{source}: top-level yaml must be a mapping, got {type(data).__name__}")
+    actual_version = data.get("schema_version")
+    if actual_version is None:
+        raise ValueError(f"{source}: missing 'schema_version' field")
+    if actual_version != expected_version:
+        raise ValueError(
+            f"{source}: schema_version={actual_version} does not match "
+            f"expected {expected_version}. Migrate the file or pin to an "
+            f"older code revision.")
+
+
+def _load_material_library(library_path) -> dict:
+    if not library_path.exists():
+        raise FileNotFoundError(f"material library not found: {library_path}")
+    data = yaml.safe_load(library_path.read_text(encoding="utf-8"))
+    _check_schema(data, MATERIAL_SCHEMA_VERSION, source=str(library_path))
+    # Drop schema_version key; remaining top-level keys are material names.
+    return {key: value for key, value in data.items() if key != "schema_version"}
+
+
+def _load_particle_sources(case_dir, geometry_dict):
+    """Return (sources, ordered-list-of-unique-material-names)."""
+    sources: list[ParticleSource] = []
+    used_names: list[str] = []
+    for entry in geometry_dict["particles"]:
+        obj_path = (case_dir / entry["file"]).resolve()
+        vertices = load_obj_vertices(obj_path)
+        material_name = entry["material"]
+        sources.append(ParticleSource(
+            obj_path=obj_path,
+            vertices=vertices,
+            material_name=material_name,
+            material_group_id=-1,                   # backfilled in load_case
+        ))
+        if material_name not in used_names:
+            used_names.append(material_name)        # preserve first-seen order
+    return sources, used_names
+
+
+def _resolve_materials(library, used_names, physics, library_path) -> list[MaterialEntry]:
+    """Build MaterialEntry list with compact group_ids and derived values.
+
+    V0 rejects INLET kind explicitly (inlet spawn is V0+).
+    """
+    materials: list[MaterialEntry] = []
+    for group_id, name in enumerate(used_names):
+        if name not in library:
+            raise ValueError(
+                f"material '{name}' referenced in case.yaml not found in "
+                f"library {library_path}")
+        spec = library[name]
+        kind_string = spec.get("kind")
+        if kind_string not in _KIND_NAME_TO_CODE:
+            raise ValueError(
+                f"material '{name}': unknown kind {kind_string!r} (expected one of "
+                f"{list(_KIND_NAME_TO_CODE.keys())})")
+        kind = _KIND_NAME_TO_CODE[kind_string]
+        if kind == KIND_INLET:
+            raise ValueError(
+                f"material '{name}': kind=inlet not supported in V0 (inlet "
+                f"spawn is deferred to V0+). Remove inlet materials from the case.")
+
+        # Derived per-material parameters.
+        speed_of_sound = physics.speed_of_sound
+        gamma = physics.power
+        rest_density = float(spec["rest_density"])
+        eos_constant = speed_of_sound * speed_of_sound * rest_density / gamma
+
+        particle_spacing = physics.particle_spacing
+        radius = 0.5 * particle_spacing
+        volume = particle_spacing ** physics.dimension
+        smoothing_length = physics.smoothing_length
+
+        materials.append(MaterialEntry(
+            name=name,
+            group_id=group_id,
+            kind=kind,
+            rest_density=rest_density,
+            viscosity=float(spec["viscosity"]),
+            eos_constant=eos_constant,
+            smoothing_length=smoothing_length,
+            radius=radius,
+            volume=volume,
+            rotor_angular_velocity=float(spec.get("rotor_angular_velocity", 0.0)),
+        ))
+    return materials
+
+
+def _cross_validate(physics, capacities, particle_sources, frame_vertices) -> None:
+    # Hard: total active particles must fit pool_size.
+    total_active = sum(int(source.vertices.shape[0]) for source in particle_sources)
+    if total_active > capacities.pool_size:
+        raise ValueError(
+            f"total particles ({total_active}) exceeds capacities.pool_size "
+            f"({capacities.pool_size}). Increase pool_size or reduce "
+            f"particle count.")
+
+    # Hard: every particle must lie inside the frame bbox (else init shader
+    # silently kills it via open-boundary semantics, surprising the user).
+    frame_min = frame_vertices.min(axis=0)
+    frame_max = frame_vertices.max(axis=0)
+    for source in particle_sources:
+        if source.vertices.shape[0] == 0:
+            continue
+        ps_min = source.vertices.min(axis=0)
+        ps_max = source.vertices.max(axis=0)
+        if (ps_min < frame_min).any() or (ps_max > frame_max).any():
+            raise ValueError(
+                f"{source.obj_path.name}: particles extend outside frame bbox.\n"
+                f"  frame bbox: min={frame_min.tolist()} max={frame_max.tolist()}\n"
+                f"  particles : min={ps_min.tolist()} max={ps_max.tolist()}")
+
+    # Soft: dx > h/2 means too few neighbors in the kernel support.
+    if physics.particle_spacing > 0.5 * physics.smoothing_length:
+        ratio = physics.smoothing_length / physics.particle_spacing
+        if physics.dimension == 2:
+            neighbors = math.pi * ratio * ratio
+        else:
+            neighbors = (4.0 / 3.0) * math.pi * ratio ** 3
+        print(
+            f"[case] WARNING: h/dx = {ratio:.2f} is low. WCSPH stability "
+            f"typically wants h/dx >= 2 (recommended 3-4). Estimated neighbors "
+            f"in support = {neighbors:.1f}; density / KCG / kernel-sum "
+            f"estimators may be noisy.")
