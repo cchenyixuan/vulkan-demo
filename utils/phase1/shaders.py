@@ -1,8 +1,9 @@
 import os
+import pathlib
 from vulkan import *
 
 
-SHADER_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "shaders")
+SHADER_DIR = str(pathlib.Path(__file__).resolve().parents[2] / "shaders" / "spv")
 
 
 def load_spirv(filename):

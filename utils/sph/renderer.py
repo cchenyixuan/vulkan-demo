@@ -44,7 +44,7 @@ from utils.sph.vulkan_context import VulkanContext
 # ============================================================================
 
 SHADER_RENDER_DIR = (
-    pathlib.Path(__file__).resolve().parents[2] / "shaders" / "sph" / "render"
+    pathlib.Path(__file__).resolve().parents[2] / "shaders" / "spv" / "sph" / "render"
 )
 MAX_FRAMES_IN_FLIGHT = 2
 

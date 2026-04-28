@@ -1,7 +1,0 @@
-# Frame for dam_break_2d.
-# V0: only the bounding box of these vertices is used; interior is assumed
-# fully active. 4 corners of a 0.5 m × 0.3 m 2D rectangle (z = 0).
-v 0.000 0.000 0.000
-v 0.500 0.000 0.000
-v 0.500 0.300 0.000
-v 0.000 0.300 0.000

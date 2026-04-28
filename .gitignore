@@ -3,5 +3,7 @@
 __pycache__/
 *.pyc
 *.spv
+*.obj
 .claude/
 output/
+viewer_run.log

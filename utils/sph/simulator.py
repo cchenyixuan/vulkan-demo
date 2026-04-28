@@ -28,7 +28,7 @@ from utils.sph.vulkan_context import VulkanContext
 # Module-level constants
 # ============================================================================
 
-SHADER_DIR = pathlib.Path(__file__).resolve().parents[2] / "shaders" / "sph"
+SHADER_DIR = pathlib.Path(__file__).resolve().parents[2] / "shaders" / "spv" / "sph"
 
 # Order matters for log readability; not for correctness.
 SHADER_NAMES = [
