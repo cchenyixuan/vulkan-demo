@@ -19,6 +19,12 @@ schema_version: 1
 #
 # Optional / kind-conditional:
 #   rotor_angular_velocity:  rad/s, required for kind=rotor (assumed about z in V0)
+#   initial_velocity:        [vx, vy, vz] m/s, applied to every particle of this
+#                            material at upload time. Useful for moving boundaries
+#                            (e.g. lid-driven cavity top wall: kind=boundary +
+#                            initial_velocity=[1,0,0]; predict.comp skips BOUNDARY
+#                            so the velocity stays constant for the whole run).
+#                            Defaults to [0, 0, 0] when omitted.
 #
 # Derived at solver init (do NOT put in this file):
 #   eos_constant   = speed_of_sound^2 · rest_density / power_parameter
@@ -31,12 +37,18 @@ schema_version: 1
 water:
   kind: fluid
   rest_density: 1000.0
-  viscosity: 1.0e-6         # ν = μ/ρ; water at 20°C, μ = 1.0e-3 Pa·s, ρ = 1000
+  viscosity: 1.0e-3         # ν = μ/ρ; water at 20°C, μ = 1.0e-3 Pa·s, ρ = 1000
 
 wall:
   kind: boundary
   rest_density: 1000.0      # boundary mirrors fluid density for pressure continuity
-  viscosity: 0.0            # boundary doesn't dissipate; static in V0
+  viscosity: 1.0e-3         # match water (V0 unused for boundary; consistency for V0+)
+
+lid:
+  kind: boundary
+  rest_density: 1000.0
+  viscosity: 1.0e-3
+  initial_velocity: [1.0, 0.0, 0.0]   # lid-driven cavity top wall: U = 1 m/s in +x
 
 # ---- Reserved for future cases (uncomment when needed) ---------------------
 # honey:                    # μ ≈ 7 Pa·s, ρ ≈ 1400 → ν ≈ 5.0e-3

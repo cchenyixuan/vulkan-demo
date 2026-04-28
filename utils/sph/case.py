@@ -44,7 +44,7 @@ from utils.sph.obj_loader import load_obj_vertices
 # format. The loader rejects mismatches hard; case files must be migrated.
 # ============================================================================
 
-CASE_SCHEMA_VERSION = 1
+CASE_SCHEMA_VERSION = 2          # bumped: physics fields renamed to h / particle_radius
 MATERIAL_SCHEMA_VERSION = 1
 
 
@@ -71,15 +71,162 @@ _KIND_NAME_TO_CODE = {
 # ============================================================================
 
 
+def _calibrate_particle_volume(
+    h: float,
+    particle_radius: float,
+    dimension: int,
+    lattice: str = "grid",
+) -> float:
+    """SPH partition-of-unity calibration that targets the GPU's ``kernel_sum``.
+
+    correction.comp accumulates ``Σ_{j != i} V_j · W(r_ij)`` (self EXCLUDED via
+    the ``if (neighbor == self) continue;`` line). For an interior particle on
+    a regular lattice with spacing dx = 2·particle_radius, we want:
+
+        Σ_{j != i} V_j · W(r_ij) = 1
+
+    With uniform V_j = V, this gives:
+
+        V_calibrated = 1 / Σ_{j != 0} W(r_j)
+
+    where the sum is over all integer-lattice offsets within the kernel
+    support, EXCLUDING the (0,0[,0]) self term.
+
+    `lattice` determines which lattice points are enumerated:
+      - "grid": Cartesian (square in 2D, simple cubic in 3D), spacing dx
+      - "hex":  hexagonal close packing (2D), face-centered cubic (3D),
+                nearest-neighbor distance dx
+
+    Match the lattice argument to your initial particle layout so the GPU's
+    interior kernel_sum lands on 1.0. (Cartesian Blender export → "grid";
+    hex-packed pre-processor → "hex".)
+    """
+    diameter = 2.0 * particle_radius
+    if dimension == 2:
+        coefficient = 9.0 / (math.pi * h * h)
+    else:
+        coefficient = 495.0 / (32.0 * math.pi * h * h * h)
+
+    def kernel_W(distance: float) -> float:
+        q = distance / h
+        if q >= 1.0:
+            return 0.0
+        one_minus_q = 1.0 - q
+        return (
+            coefficient
+            * (one_minus_q ** 6)
+            * ((35.0 / 3.0) * q * q + 6.0 * q + 1.0)
+        )
+
+    if lattice not in ("grid", "hex"):
+        raise ValueError(
+            f"physics.lattice must be 'grid' or 'hex', got {lattice!r}")
+
+    kernel_sum = 0.0
+
+    if lattice == "grid":
+        n_max = int(math.ceil(h / diameter))
+        if dimension == 2:
+            for i in range(-n_max, n_max + 1):
+                for j in range(-n_max, n_max + 1):
+                    if i == 0 and j == 0:
+                        continue                       # self excluded
+                    r = math.sqrt((i * diameter) ** 2 + (j * diameter) ** 2)
+                    kernel_sum += kernel_W(r)
+        else:
+            for i in range(-n_max, n_max + 1):
+                for j in range(-n_max, n_max + 1):
+                    for k in range(-n_max, n_max + 1):
+                        if i == 0 and j == 0 and k == 0:
+                            continue
+                        r = math.sqrt(
+                            (i * diameter) ** 2
+                            + (j * diameter) ** 2
+                            + (k * diameter) ** 2
+                        )
+                        kernel_sum += kernel_W(r)
+
+    else:  # lattice == "hex"
+        if dimension == 2:
+            # Hex 2D primitive vectors:
+            #   a1 = (dx, 0)
+            #   a2 = (dx/2, dx·√3/2)
+            # Each interior particle sees 6 nearest neighbors at dx.
+            n_iter = int(math.ceil(h / diameter)) + 2     # +2 buffer for skew
+            sqrt3_half = math.sqrt(3.0) * 0.5
+            for i in range(-2 * n_iter, 2 * n_iter + 1):
+                for j in range(-2 * n_iter, 2 * n_iter + 1):
+                    if i == 0 and j == 0:
+                        continue
+                    x = i * diameter + j * diameter * 0.5
+                    y = j * diameter * sqrt3_half
+                    r = math.sqrt(x * x + y * y)
+                    kernel_sum += kernel_W(r)
+        else:
+            # FCC 3D: 4 atoms per cubic supercell of side a = dx·√2 — gives
+            # 12 nearest neighbors at distance dx for each atom.
+            a = diameter * math.sqrt(2.0)
+            n_iter = int(math.ceil(h / a)) + 2
+            basis = (
+                (0.0,     0.0,     0.0),
+                (a * 0.5, a * 0.5, 0.0),
+                (a * 0.5, 0.0,     a * 0.5),
+                (0.0,     a * 0.5, a * 0.5),
+            )
+            for ci in range(-n_iter, n_iter + 1):
+                for cj in range(-n_iter, n_iter + 1):
+                    for ck in range(-n_iter, n_iter + 1):
+                        for (bx, by, bz) in basis:
+                            if (ci == 0 and cj == 0 and ck == 0
+                                    and bx == 0.0 and by == 0.0 and bz == 0.0):
+                                continue
+                            x = ci * a + bx
+                            y = cj * a + by
+                            z = ck * a + bz
+                            r = math.sqrt(x * x + y * y + z * z)
+                            kernel_sum += kernel_W(r)
+
+    if kernel_sum <= 0:
+        raise ValueError(
+            f"calibration failed: kernel_sum={kernel_sum} for "
+            f"h={h}, dx={diameter}, dim={dimension}, lattice='{lattice}'")
+    return 1.0 / kernel_sum
+
+
 @dataclass
 class PhysicsConfig:
+    """Per-case physics parameters.
+
+    Convention used throughout this codebase: ``h`` is the **kernel support
+    radius** (Wendland C4 with W(r)=0 for r>=h, normalization 9/(πh²) in 2D).
+    This is the "support = h" convention — different from Monaghan-style
+    "support = 2h". If your old code used support=2h, divide its h by 2 to
+    convert.
+
+    ``particle_radius`` is half the inter-particle spacing — the natural
+    radius the SPH community usually quotes. Particle diameter (= old
+    `particle_spacing`) is derived as ``2 · particle_radius``.
+    """
     dimension: int                                  # 2 or 3
-    smoothing_length: float                         # h (Wendland C4 support radius)
-    particle_spacing: float                         # dx; per-material radius = dx/2, volume = dx^DIM
+    h: float                                        # kernel support radius (W(r>=h)=0)
+    particle_radius: float                          # particle "size"; diameter dx = 2·r
     speed_of_sound: float                           # c0
     power: float                                    # γ in Tait EOS
     cfl: float                                      # for timestep derivation
     gravity: tuple[float, float, float]
+    # When True (default), per-material volume is calibrated so that
+    # Σ_{j != i} V·W(r_ij) = 1 holds for an interior particle in the chosen
+    # lattice arrangement — i.e. the GPU's correction.comp output kernel_sum
+    # lands on exactly 1.0 in the bulk. Set False to use V = (2·radius)^DIM
+    # (naive) for A/B comparison.
+    calibrate_volume: bool = True
+    # Lattice arrangement used by the case's particle layout. Affects the
+    # calibrated volume (different lattices have different Σ W).
+    #   "grid": Cartesian (square in 2D, simple cubic in 3D)  — Blender's
+    #           default uniform-grid mesh export falls in here.
+    #   "hex":  2D hexagonal close packing / 3D face-centered cubic.
+    # Defaults to "grid"; switch to "hex" if your preprocessor emits hex/FCC.
+    lattice: str = "grid"
 
     def __post_init__(self):
         # YAML parses [0, -9.81, 0] as a list; coerce to tuple of floats.
@@ -90,12 +237,11 @@ class PhysicsConfig:
         if self.dimension not in (2, 3):
             raise ValueError(
                 f"physics.dimension must be 2 or 3, got {self.dimension}")
-        if self.smoothing_length <= 0:
+        if self.h <= 0:
+            raise ValueError(f"physics.h must be > 0, got {self.h}")
+        if self.particle_radius <= 0:
             raise ValueError(
-                f"physics.smoothing_length must be > 0, got {self.smoothing_length}")
-        if self.particle_spacing <= 0:
-            raise ValueError(
-                f"physics.particle_spacing must be > 0, got {self.particle_spacing}")
+                f"physics.particle_radius must be > 0, got {self.particle_radius}")
         if self.speed_of_sound <= 0:
             raise ValueError(
                 f"physics.speed_of_sound must be > 0, got {self.speed_of_sound}")
@@ -103,13 +249,22 @@ class PhysicsConfig:
             raise ValueError(f"physics.power must be > 0, got {self.power}")
         if self.cfl <= 0:
             raise ValueError(f"physics.cfl must be > 0, got {self.cfl}")
-        # Hard math contradiction: kernel support < particle spacing means
+        # Hard math contradiction: kernel support < particle diameter means
         # the nearest neighbor is outside the kernel — SPH cannot operate.
-        if self.particle_spacing > self.smoothing_length:
+        if 2.0 * self.particle_radius > self.h:
             raise ValueError(
-                f"physics.particle_spacing ({self.particle_spacing}) must be "
-                f"<= smoothing_length ({self.smoothing_length}); otherwise the "
-                f"kernel support contains no neighbors and SPH is degenerate.")
+                f"physics: particle diameter (2·particle_radius="
+                f"{2.0 * self.particle_radius}) must be <= h ({self.h}); "
+                f"otherwise the kernel support contains no neighbors and "
+                f"SPH is degenerate.")
+        if self.lattice not in ("grid", "hex"):
+            raise ValueError(
+                f"physics.lattice must be 'grid' or 'hex', got {self.lattice!r}")
+
+    @property
+    def particle_diameter(self) -> float:
+        """dx = 2 · particle_radius (legacy `particle_spacing`)."""
+        return 2.0 * self.particle_radius
 
 
 @dataclass
@@ -135,6 +290,13 @@ class NumericsConfig:
     pst_main: float                                 # PST main-shift scale (Sun 2017)
     pst_anti: float                                 # PST anti-shift (cohesion) multiplier
     regularization: RegularizationConfig
+    # Ablation toggle (default keeps δ-plus KCG behavior). When False, density
+    # and force shaders use identity for M⁻¹ and zero for ∇ρ — equivalent to
+    # plain δ-SPH (Antuono 2012) without kernel-gradient correction. Useful
+    # for A/B-testing against legacy non-KCG codebases. correction.comp still
+    # runs (kernel_sum is needed for PST blend), only its M⁻¹ / ∇ρ outputs
+    # are ignored downstream.
+    use_kcg_correction: bool = True
 
     def __post_init__(self):
         if self.delta_coefficient < 0:
@@ -222,6 +384,14 @@ class MaterialEntry:
     reserved_material_0: int = 0
     reserved_material_1: int = 0
 
+    # --- Python-side runtime hints (NOT in the GPU struct) ---------------
+    # initial_velocity: applied to every particle of this material at upload
+    # time (simulator._build_initial_data writes velocity_mass.xyz from this).
+    # For BOUNDARY kind, predict.comp skips → the value persists, modelling
+    # moving walls (lid-driven cavity top, conveyor belts, ...). For FLUID
+    # kind, the value is the IC velocity and predict overwrites it normally.
+    initial_velocity: tuple[float, float, float] = (0.0, 0.0, 0.0)
+
 
 @dataclass
 class ParticleSource:
@@ -270,7 +440,7 @@ class Case:
         # overflow — no per-particle CPU pre-count is needed.
         max_estimate = self.particles_per_voxel_max_estimate
         if self.capacities.max_per_voxel < max_estimate:
-            ratio = self.physics.smoothing_length / self.physics.particle_spacing
+            ratio = self.physics.h / self.physics.particle_diameter
             raise ValueError(
                 f"capacities.max_per_voxel ({self.capacities.max_per_voxel}) is "
                 f"below the closest-packing upper bound ({max_estimate}) for "
@@ -285,8 +455,7 @@ class Case:
     @property
     def timestep(self) -> float:
         """dt = CFL · h / c0."""
-        return (self.physics.cfl * self.physics.smoothing_length
-                / self.physics.speed_of_sound)
+        return self.physics.cfl * self.physics.h / self.physics.speed_of_sound
 
     @property
     def kernel_coefficient(self) -> float:
@@ -295,7 +464,7 @@ class Case:
         2D:  9   / (π · h²)
         3D:  495 / (32 · π · h³)
         """
-        h = self.physics.smoothing_length
+        h = self.physics.h
         if self.physics.dimension == 2:
             return 9.0 / (math.pi * h * h)
         return 495.0 / (32.0 * math.pi * h * h * h)
@@ -303,12 +472,12 @@ class Case:
     @property
     def kernel_gradient_coefficient(self) -> float:
         """∇W coefficient = W coefficient / h."""
-        return self.kernel_coefficient / self.physics.smoothing_length
+        return self.kernel_coefficient / self.physics.h
 
     @property
     def eps_h_squared(self) -> float:
         """Antuono δ-SPH division-by-zero guard for 1/(r² + ε_h²) terms."""
-        h = self.physics.smoothing_length
+        h = self.physics.h
         return 0.01 * h * h
 
     @property
@@ -317,7 +486,7 @@ class Case:
         return 1 if self.physics.dimension == 3 else 0
 
     # --- Capacity diagnostics (uniform-spacing sanity estimates) --------
-    # Both quantities below assume uniform packing at particle_spacing.
+    # Both quantities below assume uniform packing at diameter dx = 2·r.
     # The "estimate" forms are loose; the "max" form is the geometric
     # closest-packing upper bound used to validate capacities.max_per_voxel.
 
@@ -325,9 +494,9 @@ class Case:
     def particles_per_voxel_estimate(self) -> float:
         """Expected particle count in a single voxel under uniform spacing.
 
-        2D: (h / dx)²        3D: (h / dx)³
+        2D: (h / dx)²        3D: (h / dx)³     (dx = 2·particle_radius)
         """
-        ratio = self.physics.smoothing_length / self.physics.particle_spacing
+        ratio = self.physics.h / self.physics.particle_diameter
         return ratio ** self.physics.dimension
 
     @property
@@ -338,7 +507,7 @@ class Case:
 
         Stable WCSPH typically wants >= ~30 in 2D, >= ~50 in 3D.
         """
-        ratio = self.physics.smoothing_length / self.physics.particle_spacing
+        ratio = self.physics.h / self.physics.particle_diameter
         if self.physics.dimension == 2:
             return math.pi * ratio * ratio
         return (4.0 / 3.0) * math.pi * ratio ** 3
@@ -346,7 +515,7 @@ class Case:
     @property
     def particles_per_voxel_max_estimate(self) -> int:
         """Geometric upper bound on particles centered inside a single voxel,
-        assuming particles enforce a minimum separation of ``particle_spacing``.
+        assuming particles enforce a minimum separation of ``2·particle_radius``.
 
         2D hexagonal close packing density:  2 / (√3 · dx²)  ≈ 1.155 / dx²
         3D FCC / HCP close packing density:  √2 / dx³        ≈ 1.414 / dx³
@@ -354,7 +523,7 @@ class Case:
         Multiplied by voxel volume (h² in 2D, h³ in 3D) and ceil-rounded.
         Used as a HARD upper bound for capacities.max_per_voxel.
         """
-        ratio = self.physics.smoothing_length / self.physics.particle_spacing
+        ratio = self.physics.h / self.physics.particle_diameter
         if self.physics.dimension == 2:
             density_factor = 2.0 / math.sqrt(3.0)
             return int(math.ceil(density_factor * ratio * ratio))
@@ -380,7 +549,7 @@ _SpecRow = tuple[int, _SpecGetter, str]
 
 _SPEC_CONSTANT_MAPPING: list[_SpecRow] = [
     # id  getter                                                       fmt
-    (0,   lambda case: case.physics.smoothing_length,                  'f'),
+    (0,   lambda case: case.physics.h,                                 'f'),
     (1,   lambda case: case.physics.speed_of_sound,                    'f'),
     (2,   lambda case: case.numerics.delta_coefficient,                'f'),
     # id=3 reserved (was EPSILON_SHIFT, removed)
@@ -409,6 +578,7 @@ _SPEC_CONSTANT_MAPPING: list[_SpecRow] = [
     (40,  lambda case: case.eps_h_squared,                             'f'),
     (41,  lambda case: case.numerics.pst_main,                         'f'),
     (42,  lambda case: case.numerics.pst_anti,                         'f'),
+    (43,  lambda case: 1 if case.numerics.use_kcg_correction else 0,   'I'),  # USE_KCG_CORRECTION
     (50,  lambda case: case.capacities.max_per_voxel,                  'I'),
     (51,  lambda case: case.capacities.workgroup,                      'I'),
     (52,  lambda case: case.capacities.max_incoming,                   'I'),
@@ -499,16 +669,28 @@ def load_case(case_yaml_path) -> Case:
     frame_vertices = load_obj_vertices(frame_path)
     if frame_vertices.shape[0] == 0:
         raise ValueError(f"frame obj {frame_path} contains no vertices")
+    frame_min = frame_vertices.min(axis=0)
+    frame_max = frame_vertices.max(axis=0)
+    if physics.dimension == 2:
+        # Tolerate Blender-style frames where the cube has tiny z thickness
+        # (a 2D layout exported with a default Cube → ±1 mm extrusion). The
+        # 2D solver only uses xy; collapse z to zero before grid derivation
+        # and downstream particle-in-bbox check.
+        frame_min = frame_min.copy()
+        frame_max = frame_max.copy()
+        frame_min[2] = 0.0
+        frame_max[2] = 0.0
     grid = compute_grid(
-        frame_vertices.min(axis=0),
-        frame_vertices.max(axis=0),
-        physics.smoothing_length,
+        frame_min, frame_max,
+        physics.h,
         physics.dimension,
     )
 
     # Cross-domain validation that needs particle data + frame bbox.
     # (Case.__post_init__ then runs the closest-packing self-check.)
-    _cross_validate(physics, capacities, particle_sources, frame_vertices)
+    # Pass the (possibly z-flattened) frame bbox to keep the in-frame check
+    # consistent with the grid we just computed.
+    _cross_validate(physics, capacities, particle_sources, frame_min, frame_max)
 
     return Case(
         physics=physics,
@@ -598,10 +780,22 @@ def _resolve_materials(library, used_names, physics, library_path) -> list[Mater
         rest_density = float(spec["rest_density"])
         eos_constant = speed_of_sound * speed_of_sound * rest_density / gamma
 
-        particle_spacing = physics.particle_spacing
-        radius = 0.5 * particle_spacing
-        volume = particle_spacing ** physics.dimension
-        smoothing_length = physics.smoothing_length
+        radius = physics.particle_radius
+        diameter = 2.0 * radius
+        if physics.calibrate_volume:
+            volume = _calibrate_particle_volume(
+                physics.h, radius, physics.dimension, physics.lattice)
+        else:
+            volume = diameter ** physics.dimension
+        smoothing_length = physics.h
+
+        # Optional initial_velocity (default zero). YAML list → tuple[float×3].
+        initial_velocity_raw = spec.get("initial_velocity", [0.0, 0.0, 0.0])
+        if len(initial_velocity_raw) != 3:
+            raise ValueError(
+                f"material '{name}': initial_velocity must have 3 components, "
+                f"got {initial_velocity_raw}")
+        initial_velocity = tuple(float(component) for component in initial_velocity_raw)
 
         materials.append(MaterialEntry(
             name=name,
@@ -614,11 +808,12 @@ def _resolve_materials(library, used_names, physics, library_path) -> list[Mater
             radius=radius,
             volume=volume,
             rotor_angular_velocity=float(spec.get("rotor_angular_velocity", 0.0)),
+            initial_velocity=initial_velocity,
         ))
     return materials
 
 
-def _cross_validate(physics, capacities, particle_sources, frame_vertices) -> None:
+def _cross_validate(physics, capacities, particle_sources, frame_min, frame_max) -> None:
     # Hard: total active particles must fit pool_size.
     total_active = sum(int(source.vertices.shape[0]) for source in particle_sources)
     if total_active > capacities.pool_size:
@@ -629,8 +824,6 @@ def _cross_validate(physics, capacities, particle_sources, frame_vertices) -> No
 
     # Hard: every particle must lie inside the frame bbox (else init shader
     # silently kills it via open-boundary semantics, surprising the user).
-    frame_min = frame_vertices.min(axis=0)
-    frame_max = frame_vertices.max(axis=0)
     for source in particle_sources:
         if source.vertices.shape[0] == 0:
             continue
@@ -643,8 +836,9 @@ def _cross_validate(physics, capacities, particle_sources, frame_vertices) -> No
                 f"  particles : min={ps_min.tolist()} max={ps_max.tolist()}")
 
     # Soft: dx > h/2 means too few neighbors in the kernel support.
-    if physics.particle_spacing > 0.5 * physics.smoothing_length:
-        ratio = physics.smoothing_length / physics.particle_spacing
+    diameter = 2.0 * physics.particle_radius
+    if diameter > 0.5 * physics.h:
+        ratio = physics.h / diameter
         if physics.dimension == 2:
             neighbors = math.pi * ratio * ratio
         else:

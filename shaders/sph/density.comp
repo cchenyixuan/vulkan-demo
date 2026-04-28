@@ -57,9 +57,20 @@ void main() {
     vec3  self_velocity = velocity_mass[self_particle_id].xyz;
     float self_density  = density_pressure_a[self_particle_id].x;   // ρ_n
 
-    // KCG correction matrix and density gradient from correction.comp output
-    mat3 self_correction_matrix = unpack_correction_inverse(self_particle_id);
-    vec3 self_density_gradient  = density_gradient_kernel_sum[self_particle_id].xyz;
+    // KCG correction matrix and density gradient from correction.comp output.
+    // When USE_KCG_CORRECTION is false (ablation), substitute identity / zero
+    // — reduces this kernel to plain δ-SPH (Antuono 2012) without the kernel
+    // gradient correction. The branch is on a spec constant, so glslc -O
+    // dead-code-eliminates one side at compile time (no runtime cost).
+    mat3 self_correction_matrix;
+    vec3 self_density_gradient;
+    if (USE_KCG_CORRECTION) {
+        self_correction_matrix = unpack_correction_inverse(self_particle_id);
+        self_density_gradient  = density_gradient_kernel_sum[self_particle_id].xyz;
+    } else {
+        self_correction_matrix = mat3(1.0);
+        self_density_gradient  = vec3(0.0);
+    }
 
     // Corrected self density gradient (loop-invariant)
     vec3 self_corrected_density_gradient = self_correction_matrix * self_density_gradient;
@@ -105,8 +116,16 @@ void main() {
                     float neighbor_volume   = neighbor_mass / neighbor_density;
 
                     // Read neighbor correction matrix and density gradient
-                    mat3 neighbor_correction_matrix = unpack_correction_inverse(neighbor_particle_id);
-                    vec3 neighbor_density_gradient  = density_gradient_kernel_sum[neighbor_particle_id].xyz;
+                    // (or identity / zero when KCG ablated; spec-const DCE'd).
+                    mat3 neighbor_correction_matrix;
+                    vec3 neighbor_density_gradient;
+                    if (USE_KCG_CORRECTION) {
+                        neighbor_correction_matrix = unpack_correction_inverse(neighbor_particle_id);
+                        neighbor_density_gradient  = density_gradient_kernel_sum[neighbor_particle_id].xyz;
+                    } else {
+                        neighbor_correction_matrix = mat3(1.0);
+                        neighbor_density_gradient  = vec3(0.0);
+                    }
 
                     // --- Kernel gradient: raw then M_i-corrected ------------
                     vec3 raw_gradient        = evaluate_kernel_gradient(position_difference_neighbor_to_self, distance);
@@ -116,7 +135,7 @@ void main() {
                     vec3 neighbor_corrected_density_gradient = neighbor_correction_matrix * neighbor_density_gradient;
                     vec3 corrected_density_gradient_sum = self_corrected_density_gradient + neighbor_corrected_density_gradient;
                     vec3 position_difference_self_to_neighbor = -position_difference_neighbor_to_self; // -x_ij
-                    float psi_ij = (neighbor_density - self_density) - 0.5 * dot(corrected_density_gradient_sum, position_difference_self_to_neighbor);
+                    float psi_ij = (neighbor_density - self_density);// - 0.5 * dot(corrected_density_gradient_sum, position_difference_self_to_neighbor);
 
                     // --- D_ij = 2·ψ_ij · (-x_ij · ∇W̃_ij) / (r² + ε_h²) · V_j ---
                     float dot_xji_gradient = dot(position_difference_self_to_neighbor, corrected_gradient);

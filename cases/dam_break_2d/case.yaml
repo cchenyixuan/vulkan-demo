@@ -1,7 +1,7 @@
 # ============================================================================
 # Schema version — bumped on ANY breaking change to this file's field set.
 # The loader (utils/sph/case.py) rejects mismatches hard; migrate explicitly.
-schema_version: 1
+schema_version: 2
 
 # ============================================================================
 # 2D dam break — V0 fixture case.
@@ -39,8 +39,8 @@ time:
 
 physics:
   dimension: 2               # 2 → 2D (z = 0); 3 → 3D
-  smoothing_length: 0.009    # h (Wendland C4 support radius = h)
-  particle_spacing: 0.005    # used for radius (=spacing/2) and volume (=spacing^DIM)
+  h: 0.025                   # kernel SUPPORT radius (Wendland C4: W(r>=h)=0)
+  particle_radius: 0.0025    # particle "radius"; diameter dx = 2·r used for volume = dx^DIM
   speed_of_sound: 300.0      # c0 (artificial; sets stiffness of Tait EOS)
   power: 7.0                 # γ in Tait EOS
   cfl: 0.15                  # for dt derivation

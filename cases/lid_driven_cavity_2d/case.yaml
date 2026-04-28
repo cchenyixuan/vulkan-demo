@@ -1,0 +1,61 @@
+# ============================================================================
+# Schema version — bumped on ANY breaking change to this file's field set.
+schema_version: 2
+
+# ============================================================================
+# 2D lid-driven cavity — V0 1M-particle benchmark.
+#
+# Geometry (from .obj files):
+#   frame      = bounding box of the 1 m × 1 m cavity (Blender cube; thin z
+#                slab is collapsed to z=0 by the 2D loader)
+#   domain     = ~1.0 M fluid particles filling the cavity interior
+#   wall       = ~18 K static U-shaped wall (bottom + two sides)
+#   wall_top   = ~6 K particles forming the lid; via materials/standard.yaml
+#                the lid material has initial_velocity=[1, 0, 0], so this
+#                row of boundary particles permanently moves at U=1 m/s,
+#                driving the classic lid-driven cavity flow.
+#
+# h = 0.005, dx = 0.001 → h/dx = 5 (≈78 neighbours per support disk in 2D).
+# Closest-packing upper bound: ⌈ (2/√3) · 25 ⌉ = 29 particles/voxel; cap=96
+# leaves >3× headroom.
+# ============================================================================
+
+time:
+  total: null                 # no time budget — run until window closed
+  max_steps: null
+  output_cadence: null
+
+physics:
+  dimension: 2
+  h: 0.005                    # kernel SUPPORT radius (Wendland C4: W(r>=h)=0)
+  particle_radius: 0.0005     # particle "radius"; diameter dx = 2·r → 0.001
+  lattice: grid
+  speed_of_sound: 150.0        # c0 ≈ 20·U_lid (Ma≈0.05) — soft EOS for stability
+  power: 7                  # γ in Tait
+  cfl: 0.15                  # dt = CFL·h/c0 = 3.75e-6 s   (halved from 0.15 for stability)
+  gravity: [0.0, 0.0, 0.0]    # cavity has no body force
+
+numerics:
+  delta_coefficient: 0.1
+  pst_main: 0.1
+  pst_anti: 0.0005
+  use_kcg_correction: true   # ablation: false = identity M⁻¹ + zero ∇ρ (plain δ-SPH)
+  regularization:
+    xi: 0.1
+    det_threshold: 1.0e-4
+    frobenius_max: 10.0
+
+capacities:
+  pool_size: 1100000          # > 1.026 M total active (1M domain + 18K + 6K)
+  max_per_voxel: 96
+  max_incoming: 16
+  workgroup: 128
+
+material_library: ../../materials/standard.yaml
+
+geometry:
+  frame: frame.obj
+  particles:
+    - {file: domain.obj,   material: water}
+    - {file: wall.obj,     material: wall}
+    - {file: wall_top.obj, material: lid}

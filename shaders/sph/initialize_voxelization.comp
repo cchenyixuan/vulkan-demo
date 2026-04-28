@@ -86,7 +86,10 @@ void main() {
         return;
     }
 
-    // --- Commit: write slot entry + particle's voxel_id ---------------------
+    // --- Commit: write slot entry + particle's voxel_id + alive count -------
+    // alive_particle_count is GPU-derived (not trusted from CPU upload):
+    // every successfully placed particle increments it once, and only here.
     inside_particle_index[new_voxel_id * MAX_PARTICLES_PER_VOXEL + slot] = self_particle_id;
     position_voxel_id[self_particle_id].w = float(new_voxel_id);
+    atomicAdd(alive_particle_count, 1u);
 }

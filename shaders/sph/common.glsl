@@ -121,6 +121,12 @@ layout(constant_id = 41) const float PST_MAIN_SHIFT_COEFFICIENT = 0.1;
 // Legacy value 0.005.
 layout(constant_id = 42) const float PST_ANTI_SHIFT_COEFFICIENT = 0.005;
 
+// Ablation toggle: when false, density.comp / force.comp use identity for M⁻¹
+// and zero for ∇ρ instead of reading correction.comp's outputs. Used for
+// comparing against non-KCG SPH codebases. correction.comp still runs
+// (kernel_sum drives PST blend), but its M⁻¹ / ∇ρ are ignored downstream.
+layout(constant_id = 43) const bool USE_KCG_CORRECTION = true;
+
 // --- Capacity / dispatch ---
 layout(constant_id = 50) const uint MAX_PARTICLES_PER_VOXEL = 96u;
 layout(constant_id = 51) const uint WORKGROUP_SIZE          = 128u;

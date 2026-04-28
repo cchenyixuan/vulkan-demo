@@ -71,8 +71,13 @@ void main() {
     float self_pressure = self_density_pressure.y;
 
     // --- Self correction matrix (KCG) and kernel_sum --------------------------
-    mat3  self_correction_matrix = unpack_correction_inverse(self_particle_id);
-    float self_kernel_sum        = density_gradient_kernel_sum[self_particle_id].w;
+    // KCG ablation: USE_KCG_CORRECTION=false → identity M⁻¹ (spec-const DCE'd).
+    // kernel_sum is ALWAYS read because PST main/anti blend uses it regardless.
+    mat3 self_correction_matrix = USE_KCG_CORRECTION
+        ? unpack_correction_inverse(self_particle_id)
+        : mat3(1.0);
+    float self_kernel_sum = density_gradient_kernel_sum[self_particle_id].w;
+    bool near_surface = self_kernel_sum*4.0-3.0 < 0.0? true:false;
 
     // --- Decode self voxel coord ---------------------------------------------
     ivec3 self_voxel_coord = own_coord_of(self_voxel_id);
@@ -147,7 +152,7 @@ void main() {
                     // anti-symmetric (P_j - P_i) otherwise to suppress tensile
                     // instability in the interior.
                     float pressure_combined =
-                        (self_pressure > 0.0)
+                        (self_pressure > 0.0||near_surface)
                             ? (neighbor_pressure + self_pressure)
                             : (neighbor_pressure - self_pressure);
                     a_pressure -= neighbor_volume_dynamic * pressure_combined / self_density

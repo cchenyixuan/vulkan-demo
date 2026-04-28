@@ -92,8 +92,33 @@ def compile_smoke_tests() -> None:
         )
 
 
-if __name__ == "__main__":
-    compile_phase1_shaders()
+def compile_render_shaders(optimize: bool = True) -> None:
+    """Compile shaders/sph/render/*.{vert,frag} for the V0 viewer."""
+    render_dir = os.path.join(SPH_SHADER_DIR, "render")
+    if not os.path.isdir(render_dir):
+        return
+    sources = sorted(
+        glob.glob(os.path.join(render_dir, "*.vert"))
+        + glob.glob(os.path.join(render_dir, "*.frag"))
+    )
+    for source in sources:
+        name = os.path.basename(source)
+        output = source + ".spv"
+        rel_source = os.path.relpath(source, REPO_ROOT)
+        print(f"[render] {rel_source}")
+        _run_glslc(source, output, include_dirs=[], optimize=optimize)
+
+
+def compile_all(optimize: bool = True, include_phase1: bool = True) -> None:
+    """Compile every shader in the repo. Importable from runtime entry scripts
+    so that editing a shader and re-running the viewer is one step."""
+    if include_phase1:
+        compile_phase1_shaders()
     compile_smoke_tests()
-    compile_sph_shaders(optimize=True)
+    compile_sph_shaders(optimize=optimize)
+    compile_render_shaders(optimize=optimize)
     print("All shaders compiled successfully.")
+
+
+if __name__ == "__main__":
+    compile_all()
