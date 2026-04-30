@@ -31,6 +31,7 @@ from utils.sph.vulkan_context import VulkanContext
 SHADER_DIR = pathlib.Path(__file__).resolve().parents[2] / "shaders" / "spv" / "sph"
 
 # Order matters for log readability; not for correctness.
+# Defrag is split out because it uses a different pipeline_layout (5 sets vs 4).
 SHADER_NAMES = [
     "initialize_voxelization",
     "predict",
@@ -40,6 +41,7 @@ SHADER_NAMES = [
     "force",
     "bootstrap_half_kick",
 ]
+DEFRAG_SHADER_NAME = "defrag"
 
 # Fill value for set-2 ghost dummy buffers. uint = 3735928559; if any shader
 # accidentally reads it (e.g. DCE failure when V1 work is half-done), it will
@@ -108,25 +110,36 @@ class SphSimulator:
 
         # Section 2 + 3: allocate every buffer, then upload initial state.
         self.buffers: dict[str, Buffer] = self._allocate_buffers()
+        # Defrag scratch: 10 mirrors of set-0 buffers, used as temporary
+        # destination during defrag. Linear-copied back to set 0 after the
+        # scatter, so set 0 remains canonical at all times.
+        self.scratch_buffers: dict[str, Buffer] = self._allocate_scratch_buffers()
         self._upload_initial_state()
 
         # Section 4: descriptor layouts + pool + sets, then wire buffers.
         self.descriptor_layouts: list = self._build_descriptor_layouts()
+        # Defrag-only set 4 layout (10 storage buffer bindings = scratch SoA).
+        self.defrag_set4_layout = self._build_defrag_set4_layout()
         self.descriptor_pool = self._create_descriptor_pool()
         self.descriptor_sets: dict = self._allocate_descriptor_sets()
+        self.defrag_set4 = self._allocate_defrag_set4()
         self._wire_descriptor_sets()
+        self._wire_defrag_set4()
 
-        # Section 5: pipeline layout + spec info + 7 compute pipelines.
+        # Section 5: pipeline layout + spec info + 7 compute pipelines + defrag pipeline.
         self.pipeline_layout = self._build_pipeline_layout()
+        self.defrag_pipeline_layout = self._build_defrag_pipeline_layout()
         self._spec_info_data = None             # kept alive for the pipelines' lifetime
         self._spec_info_entries = None          # ditto
         self.spec_info = self._build_vk_specialization_info()
         self.pipelines: dict = self._build_compute_pipelines()
+        self.defrag_pipeline = self._build_defrag_pipeline()
 
-        # Section 6: pre-recorded command buffers (bootstrap + step×2 parity).
+        # Section 6: pre-recorded command buffers (bootstrap + step×2 parity + defrag).
         self.bootstrap_cmd = self._record_bootstrap_cmd()
         self.step_cmds = [self._record_step_cmd(parity=0),
                           self._record_step_cmd(parity=1)]
+        self.defrag_cmd = self._record_defrag_cmd()
 
     # ==================================================================
     # Section 0: pre-flight checks
@@ -163,7 +176,7 @@ class SphSimulator:
 
     def _load_shader_modules(self) -> dict:
         modules = {}
-        for name in SHADER_NAMES:
+        for name in [*SHADER_NAMES, DEFRAG_SHADER_NAME]:
             spv_path = SHADER_DIR / f"{name}.comp.spv"
             if not spv_path.exists():
                 raise FileNotFoundError(
@@ -213,11 +226,12 @@ class SphSimulator:
             _BufferSpec("density_gradient_kernel_sum", 0, 8, 16 * pool_capacity,        BSU | TRANSFER),
             _BufferSpec("extension_fields",             0, 9, 16 * pool_capacity,        BSU | TRANSFER),
 
-            # ---- Set 1: voxel cells (4 bindings) ------------------
+            # ---- Set 1: voxel cells (5 bindings) ------------------
             _BufferSpec("inside_particle_count",        1, 0,  4 * voxel_capacity,                       BSU | TRANSFER),
             _BufferSpec("incoming_particle_count",      1, 1,  4 * voxel_capacity,                       BSU | TRANSFER),
             _BufferSpec("inside_particle_index",        1, 2,  4 * voxel_capacity * cap_inside,          BSU | TRANSFER),
             _BufferSpec("incoming_particle_index",      1, 3,  4 * voxel_capacity * cap_incoming,        BSU | TRANSFER),
+            _BufferSpec("voxel_base_offset",            1, 4,  4 * voxel_capacity,                       BSU | TRANSFER),
 
             # ---- Set 2: ghost dummies (V0: minimum size, 0xDEADBEEF fill) ----
             _BufferSpec("ghost_position_voxel_id",      2, 0,  16,                                       BSU | TRANSFER),
@@ -238,6 +252,7 @@ class SphSimulator:
             _BufferSpec("ghost_in_staging",             3, 5,  16,                                       BSU | TRANSFER),
             _BufferSpec("diagnostic",                   3, 6,  16,                                       BSU | TRANSFER),
             _BufferSpec("material_parameters",          3, 7,  48 * max(n_materials, 1),                 BSU | TRANSFER),
+            _BufferSpec("defrag_scratch_counter",       3, 8,   4,                                       BSU | TRANSFER),
         ]
 
     def _allocate_buffer(
@@ -285,6 +300,29 @@ class SphSimulator:
         print(f"[Simulator] allocated {len(buffers)} buffers, "
               f"{total_bytes / (1024*1024):.2f} MB total (device-local)")
         return buffers
+
+    def _allocate_scratch_buffers(self) -> dict[str, Buffer]:
+        """Allocate scratch SoA mirrors of set-0 buffers, sized identically.
+        Used as defrag's destination set; CPU-side bookkeeping treats them as
+        purely transient — set 0 is always the live data after defrag's
+        copy-back step."""
+        usage = (VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+                 | VK_BUFFER_USAGE_TRANSFER_DST_BIT
+                 | VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
+        scratch: dict[str, Buffer] = {}
+        total_bytes = 0
+        for spec in self._buffer_specs:
+            if spec.set_index != 0:
+                continue
+            scratch[spec.name] = self._allocate_buffer(
+                size=spec.size,
+                usage=usage,
+                memory_properties=VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            )
+            total_bytes += spec.size
+        print(f"[Simulator] allocated {len(scratch)} scratch buffers for defrag, "
+              f"{total_bytes / (1024*1024):.2f} MB total (device-local)")
+        return scratch
 
     # ==================================================================
     # Section 3: Initial data upload
@@ -475,26 +513,44 @@ class SphSimulator:
             layouts.append(vkCreateDescriptorSetLayout(self.ctx.device, create_info, None))
         return layouts
 
+    def _build_defrag_set4_layout(self):
+        """Defrag-only set 4: 10 storage buffer bindings, mirror of set 0
+        layout. Defrag.comp scatters into these scratch buffers; CPU then
+        copies them back to the live set-0 buffers."""
+        bindings = []
+        for binding_index in range(10):
+            bindings.append(VkDescriptorSetLayoutBinding(
+                binding=binding_index,
+                descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                descriptorCount=1,
+                stageFlags=VK_SHADER_STAGE_COMPUTE_BIT,
+            ))
+        create_info = VkDescriptorSetLayoutCreateInfo(
+            bindingCount=len(bindings),
+            pBindings=bindings,
+        )
+        return vkCreateDescriptorSetLayout(self.ctx.device, create_info, None)
+
     def _create_descriptor_pool(self):
-        """Pool sized for: set 0 × 2 (ping-pong) + set 1, 2, 3 = 5 sets total.
-        Counts the storage buffer descriptors across all 5 sets."""
-        # Across set 0 (×2), set 1, set 2, set 3:
+        """Pool sized for: set 0 × 2 (ping-pong) + set 1, 2, 3 + defrag set 4
+        = 6 sets total. Counts the storage buffer descriptors across all 6."""
         per_set_binding_count = {
             i: sum(1 for s in self._buffer_specs if s.set_index == i)
             for i in range(4)
         }
         total_descriptors = (
-            2 * per_set_binding_count[0]
-            + per_set_binding_count[1]
-            + per_set_binding_count[2]
-            + per_set_binding_count[3]
+            2 * per_set_binding_count[0]                    # set_0 × 2 ping-pong
+            + per_set_binding_count[1]                      # set_1
+            + per_set_binding_count[2]                      # set_2
+            + per_set_binding_count[3]                      # set_3
+            + 10                                            # defrag set 4 (10 scratch SoA)
         )
         pool_size = VkDescriptorPoolSize(
             type=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
             descriptorCount=total_descriptors,
         )
         create_info = VkDescriptorPoolCreateInfo(
-            maxSets=5,
+            maxSets=6,
             poolSizeCount=1,
             pPoolSizes=[pool_size],
         )
@@ -526,6 +582,38 @@ class SphSimulator:
             "set_2":      allocated[3],
             "set_3":      allocated[4],
         }
+
+    def _allocate_defrag_set4(self):
+        """Allocate the defrag-only set 4 from the same pool."""
+        allocate_info = VkDescriptorSetAllocateInfo(
+            descriptorPool=self.descriptor_pool,
+            descriptorSetCount=1,
+            pSetLayouts=[self.defrag_set4_layout],
+        )
+        return vkAllocateDescriptorSets(self.ctx.device, allocate_info)[0]
+
+    def _wire_defrag_set4(self) -> None:
+        """Wire defrag set 4 to scratch buffers. Bindings 0-9 mirror set 0
+        bindings 0-9 (same names)."""
+        writes = []
+        for spec in self._buffer_specs:
+            if spec.set_index != 0:
+                continue
+            scratch = self.scratch_buffers[spec.name]
+            buffer_info = VkDescriptorBufferInfo(
+                buffer=scratch.handle,
+                offset=0,
+                range=scratch.size,
+            )
+            writes.append(VkWriteDescriptorSet(
+                dstSet=self.defrag_set4,
+                dstBinding=spec.binding,
+                dstArrayElement=0,
+                descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                descriptorCount=1,
+                pBufferInfo=[buffer_info],
+            ))
+        vkUpdateDescriptorSets(self.ctx.device, len(writes), writes, 0, None)
 
     def _wire_descriptor_sets(self) -> None:
         """vkUpdateDescriptorSets: point every (set, binding) at its buffer.
@@ -589,6 +677,18 @@ class SphSimulator:
         )
         return vkCreatePipelineLayout(self.ctx.device, create_info, None)
 
+    def _build_defrag_pipeline_layout(self):
+        """Defrag uses a separate pipeline_layout with 5 sets (sets 0-3 same
+        as standard, plus set 4 = scratch SoA)."""
+        layouts = self.descriptor_layouts + [self.defrag_set4_layout]
+        create_info = VkPipelineLayoutCreateInfo(
+            setLayoutCount=len(layouts),
+            pSetLayouts=layouts,
+            pushConstantRangeCount=0,
+            pPushConstantRanges=[],
+        )
+        return vkCreatePipelineLayout(self.ctx.device, create_info, None)
+
     def _build_vk_specialization_info(self):
         """Convert case.SpecializationInfo → VkSpecializationInfo. The data
         blob and entries list must outlive pipeline creation (we keep refs
@@ -636,6 +736,23 @@ class SphSimulator:
             None,
         )
         return dict(zip(SHADER_NAMES, result))
+
+    def _build_defrag_pipeline(self):
+        """Single VkPipeline for defrag.comp, using the 5-set layout."""
+        stage = VkPipelineShaderStageCreateInfo(
+            stage=VK_SHADER_STAGE_COMPUTE_BIT,
+            module=self.shader_modules[DEFRAG_SHADER_NAME],
+            pName="main",
+            pSpecializationInfo=self.spec_info,
+        )
+        create_info = VkComputePipelineCreateInfo(
+            stage=stage,
+            layout=self.defrag_pipeline_layout,
+        )
+        result = vkCreateComputePipelines(
+            self.ctx.device, VK_NULL_HANDLE, 1, [create_info], None,
+        )
+        return result[0]
 
     # ==================================================================
     # Section 6: Command buffer recording
@@ -789,6 +906,104 @@ class SphSimulator:
         vkEndCommandBuffer(cmd)
         return cmd
 
+    def _record_defrag_cmd(self):
+        """Pre-record the defrag dispatch:
+            1. Reset defrag_scratch_counter to 0 (vkCmdFillBuffer)
+            2. Barrier transfer→compute
+            3. Bind defrag pipeline + 5 descriptor sets (set 0 src + set 4 dst)
+            4. Dispatch per-voxel (scatter from set-0 to scratch + patch
+               inside_particle_index to point at new IDs)
+            5. Barrier compute→transfer
+            6. Linear copy each scratch buffer back to its set-0 primary
+               (10× vkCmdCopyBuffer)
+            7. Barrier transfer→compute (next step's predict will read set 0)
+        """
+        cmd = self._allocate_oneshot_cmd()
+        vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
+            flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
+
+        # Leading barrier: prior step's writes (force.comp on acceleration,
+        # density.comp on density_pressure_b) must complete before defrag reads.
+        self._record_compute_barrier(cmd)
+
+        # 1. Reset defrag_scratch_counter (path B uses atomicAdd; path A unused).
+        scratch_counter = self.buffers["defrag_scratch_counter"]
+        vkCmdFillBuffer(cmd, scratch_counter.handle, 0, scratch_counter.size, 0)
+
+        # 2. transfer (fill) → compute (defrag.comp atomic read/write)
+        fill_to_compute_barrier = VkMemoryBarrier(
+            sType=VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+            srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT,
+            dstAccessMask=VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+        )
+        vkCmdPipelineBarrier(
+            cmd,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            0, 1, [fill_to_compute_barrier], 0, None, 0, None,
+        )
+
+        # 3. Bind defrag pipeline + 5 sets.
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, self.defrag_pipeline)
+        sets = [
+            self.descriptor_sets["set_0_even"],   # natural mapping (a@1, b@2);
+                                                  # defrag treats both density slots
+                                                  # symmetrically — parity is irrelevant.
+            self.descriptor_sets["set_1"],
+            self.descriptor_sets["set_2"],
+            self.descriptor_sets["set_3"],
+            self.defrag_set4,                     # scratch destination
+        ]
+        vkCmdBindDescriptorSets(
+            cmd,
+            VK_PIPELINE_BIND_POINT_COMPUTE,
+            self.defrag_pipeline_layout,
+            0, len(sets), sets,
+            0, None,
+        )
+
+        # 4. Dispatch (per voxel).
+        per_v = self._per_voxel_dispatch_count()
+        vkCmdDispatch(cmd, per_v, 1, 1)
+
+        # 5. compute (scatter writes) → transfer (read for copy-back)
+        compute_to_transfer_barrier = VkMemoryBarrier(
+            sType=VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+            srcAccessMask=VK_ACCESS_SHADER_WRITE_BIT,
+            dstAccessMask=VK_ACCESS_TRANSFER_READ_BIT,
+        )
+        vkCmdPipelineBarrier(
+            cmd,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0, 1, [compute_to_transfer_barrier], 0, None, 0, None,
+        )
+
+        # 6. Linear copy each scratch SoA back to its set-0 primary.
+        for spec in self._buffer_specs:
+            if spec.set_index != 0:
+                continue
+            scratch = self.scratch_buffers[spec.name]
+            primary = self.buffers[spec.name]
+            region = VkBufferCopy(srcOffset=0, dstOffset=0, size=spec.size)
+            vkCmdCopyBuffer(cmd, scratch.handle, primary.handle, 1, [region])
+
+        # 7. transfer (copy-back) → compute (next step's predict reads set 0)
+        copy_to_compute_barrier = VkMemoryBarrier(
+            sType=VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+            srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT,
+            dstAccessMask=VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+        )
+        vkCmdPipelineBarrier(
+            cmd,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            0, 1, [copy_to_compute_barrier], 0, None, 0, None,
+        )
+
+        vkEndCommandBuffer(cmd)
+        return cmd
+
     # ==================================================================
     # Section 7: Public run API
     # ==================================================================
@@ -807,6 +1022,13 @@ class SphSimulator:
                 f"Likely a CPU/GPU floor() mismatch near a voxel boundary.")
         print(f"[Simulator] bootstrap ok: alive={status['alive_particle_count']}")
 
+        # Init defrag: removes the dependency on .obj upload order. After this,
+        # set 0 is voxel-id-sorted regardless of how the source files are
+        # arranged. Tiny one-time cost (~ms), large cache-coherence win.
+        if self.case.numerics.defrag_enabled:
+            self.ctx.submit_and_wait(self.defrag_cmd)
+            print(f"[Simulator] init defrag complete (cadence={self.case.numerics.defrag_cadence})")
+
     def step(self, *, wait: bool = True) -> None:
         """Run one main step (predict → update_voxel → correction → density → force).
 
@@ -818,6 +1040,10 @@ class SphSimulator:
             where the next vkAcquireNextImage / vkWaitForFences on the render
             fence pulls in all pending compute work. Step's leading barrier
             keeps inter-submission memory dependencies satisfied.
+
+        Periodic defrag: at the end of each step, if step_count is a multiple
+        of defrag_cadence, fire the defrag cmd buffer (also fire-and-forget
+        when wait=False; same queue serializes naturally).
         """
         cmd = self.step_cmds[self.parity]
         if wait:
@@ -832,6 +1058,21 @@ class SphSimulator:
         self.parity ^= 1
         self.simulation_time += self.case.timestep
         self.step_count += 1
+
+        # Trigger periodic defrag.
+        numerics = self.case.numerics
+        if (numerics.defrag_enabled
+                and self.step_count > 0
+                and self.step_count % numerics.defrag_cadence == 0):
+            if wait:
+                self.ctx.submit_and_wait(self.defrag_cmd)
+            else:
+                submit_info = VkSubmitInfo(
+                    sType=VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                    commandBufferCount=1,
+                    pCommandBuffers=[self.defrag_cmd],
+                )
+                vkQueueSubmit(self.ctx.compute_queue, 1, submit_info, VK_NULL_HANDLE)
 
     def run_until(
         self,
@@ -937,20 +1178,26 @@ class SphSimulator:
         # Cmd buffers freed when their pool is destroyed (ctx owns the pool).
         # We allocated them from ctx.command_pool, so explicit free is optional
         # but cleaner.
-        cmds = [self.bootstrap_cmd] + self.step_cmds
+        cmds = [self.bootstrap_cmd, self.defrag_cmd] + self.step_cmds
         vkFreeCommandBuffers(device, self.ctx.command_pool, len(cmds), cmds)
 
         for pipeline in self.pipelines.values():
             vkDestroyPipeline(device, pipeline, None)
+        vkDestroyPipeline(device, self.defrag_pipeline, None)
 
         vkDestroyPipelineLayout(device, self.pipeline_layout, None)
+        vkDestroyPipelineLayout(device, self.defrag_pipeline_layout, None)
         # spec info (no destroy fn — refs released when self goes out of scope)
 
         vkDestroyDescriptorPool(device, self.descriptor_pool, None)
         for layout in self.descriptor_layouts:
             vkDestroyDescriptorSetLayout(device, layout, None)
+        vkDestroyDescriptorSetLayout(device, self.defrag_set4_layout, None)
 
         for buffer in self.buffers.values():
+            vkDestroyBuffer(device, buffer.handle, None)
+            vkFreeMemory(device, buffer.memory, None)
+        for buffer in self.scratch_buffers.values():
             vkDestroyBuffer(device, buffer.handle, None)
             vkFreeMemory(device, buffer.memory, None)
 

@@ -102,6 +102,19 @@ void main() {
                     if (neighbor_particle_id == INSIDE_SLOT_EMPTY) break;
                     if (neighbor_particle_id == self_particle_id) continue;
 
+                    // Skip boundary↔boundary pair when self is boundary. The
+                    // boundary's per-step new_density (and the new_pressure
+                    // derived from it via EOS) should reflect ONLY fluid
+                    // neighbor influence, not artifacts from other boundaries
+                    // — those are static and contribute zero divergence but
+                    // their kernel-deficient drift terms still feed back into
+                    // the boundary's apparent pressure. Branch is uniform per
+                    // workgroup since voxel-sorted boundaries cluster together.
+                    if (self_params.kind == MATERIAL_BOUNDARY) {
+                        uint neighbor_group_id = material[neighbor_particle_id];
+                        if (material_parameters[neighbor_group_id].kind == MATERIAL_BOUNDARY) continue;
+                    }
+
                     // --- Distance check (Wendland C4 support = h) -----------
                     // Neighbor is guaranteed non-inlet / non-dead by InsideParticleIndexBuffer invariants.
                     vec3  neighbor_position = position_voxel_id[neighbor_particle_id].xyz;
@@ -164,6 +177,20 @@ void main() {
 
     // ========================================================================
     // Write to ping-pong B (next-step canonical ρ, P).
+    //
+    // Boundary handling: store ρ₀ instead of the integrated new_density so that
+    // boundary particles' density does NOT accumulate step-to-step (this is
+    // what kills the boundary density drift). The pressure stored is still the
+    // freshly-computed new_pressure (= EOS(new_density)) — force.comp this step
+    // reads it for fluid↔boundary pressure interactions, so the boundary still
+    // reacts to local pressure conditions. Next step's density.comp reads back
+    // ρ₀ for the boundary source density (no drift), and force.comp computes
+    // V_j_boundary = m / ρ₀ = V_calibrated (constant, physically correct for
+    // a static solid). Matches the legacy "property buffer = ρ₀ forever,
+    // runtime buffer = per-step new_pressure" architecture.
     // ========================================================================
-    density_pressure_b[self_particle_id] = vec2(new_density, new_pressure);
+    float density_to_store = (self_params.kind == MATERIAL_BOUNDARY)
+        ? self_params.rest_density
+        : new_density;
+    density_pressure_b[self_particle_id] = vec2(density_to_store, new_pressure);
 }

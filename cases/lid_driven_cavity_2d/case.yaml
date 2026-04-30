@@ -30,23 +30,25 @@ physics:
   h: 0.005                    # kernel SUPPORT radius (Wendland C4: W(r>=h)=0)
   particle_radius: 0.0005     # particle "radius"; diameter dx = 2·r → 0.001
   lattice: grid
-  speed_of_sound: 150.0        # c0 ≈ 20·U_lid (Ma≈0.05) — soft EOS for stability
+  speed_of_sound: 20.0        # c0 ≈ 20·U_lid (Ma≈0.05) — soft EOS for stability
   power: 7                  # γ in Tait
-  cfl: 0.15                  # dt = CFL·h/c0 = 3.75e-6 s   (halved from 0.15 for stability)
+  cfl: 0.15                 # dt = CFL·h/c0 = 3.75e-6 s   (halved from 0.15 for stability)
   gravity: [0.0, 0.0, 0.0]    # cavity has no body force
 
 numerics:
   delta_coefficient: 0.1
   pst_main: 0.1
   pst_anti: 0.0005
-  use_kcg_correction: true   # ablation: false = identity M⁻¹ + zero ∇ρ (plain δ-SPH)
+  use_kcg_correction: false   # ablation: false = identity M⁻¹ + zero ∇ρ (plain δ-SPH)
+  defrag_enabled: true        # SoA resort to maintain cache coherence as particles drift
+  defrag_cadence: 1000        # steps between defrag dispatches (also runs once at boot)
   regularization:
     xi: 0.1
     det_threshold: 1.0e-4
     frobenius_max: 10.0
 
 capacities:
-  pool_size: 1100000          # > 1.026 M total active (1M domain + 18K + 6K)
+  pool_size: 1200000          # > 1.026 M total active (1M domain + 18K + 6K)
   max_per_voxel: 96
   max_incoming: 16
   workgroup: 128

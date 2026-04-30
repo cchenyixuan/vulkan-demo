@@ -37,17 +37,17 @@ schema_version: 1
 water:
   kind: fluid
   rest_density: 1000.0
-  viscosity: 1.0e-3         # ν = μ/ρ; water at 20°C, μ = 1.0e-3 Pa·s, ρ = 1000
+  viscosity: 1.0e-6         # ν = μ/ρ; water at 20°C, μ = 1.0e-3 Pa·s, ρ = 1000
 
 wall:
   kind: boundary
   rest_density: 1000.0      # boundary mirrors fluid density for pressure continuity
-  viscosity: 1.0e-3         # match water (V0 unused for boundary; consistency for V0+)
+  viscosity: 1.0e-6         # match water (V0 unused for boundary; consistency for V0+)
 
 lid:
   kind: boundary
   rest_density: 1000.0
-  viscosity: 1.0e-3
+  viscosity: 1.0e-6
   initial_velocity: [1.0, 0.0, 0.0]   # lid-driven cavity top wall: U = 1 m/s in +x
 
 # ---- Reserved for future cases (uncomment when needed) ---------------------

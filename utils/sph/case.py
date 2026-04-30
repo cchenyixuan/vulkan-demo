@@ -297,6 +297,19 @@ class NumericsConfig:
     # runs (kernel_sum is needed for PST blend), only its M⁻¹ / ∇ρ outputs
     # are ignored downstream.
     use_kcg_correction: bool = True
+    # Particle defragmentation: rearranges the particle SoA so that, for every
+    # voxel V, that voxel's particles occupy a contiguous slot range in the
+    # SoA. Restores spatial locality between SoA index and voxel coordinates,
+    # which would otherwise degrade as particles drift between voxels over
+    # time, thrashing GPU caches.
+    #
+    # When enabled, defrag runs once at the end of bootstrap (init defrag, to
+    # remove dependency on .obj upload order) and then every defrag_cadence
+    # steps. Each defrag dispatch is a per-voxel scatter to a scratch buffer,
+    # followed by a linear copy back to the primary SoA — set 0 is always the
+    # canonical live data, scratch is purely transient.
+    defrag_enabled: bool = True
+    defrag_cadence: int = 1000
 
     def __post_init__(self):
         if self.delta_coefficient < 0:
@@ -306,6 +319,9 @@ class NumericsConfig:
             raise ValueError(f"numerics.pst_main must be >= 0, got {self.pst_main}")
         if self.pst_anti < 0:
             raise ValueError(f"numerics.pst_anti must be >= 0, got {self.pst_anti}")
+        if self.defrag_cadence <= 0:
+            raise ValueError(
+                f"numerics.defrag_cadence must be > 0, got {self.defrag_cadence}")
 
 
 @dataclass
@@ -579,6 +595,9 @@ _SPEC_CONSTANT_MAPPING: list[_SpecRow] = [
     (41,  lambda case: case.numerics.pst_main,                         'f'),
     (42,  lambda case: case.numerics.pst_anti,                         'f'),
     (43,  lambda case: 1 if case.numerics.use_kcg_correction else 0,   'I'),  # USE_KCG_CORRECTION
+    # Defrag base-offset path. Phase 1: hardcoded 0 (atomicAdd path) since
+    # prefix_sum.comp doesn't exist yet. Phase 4 will add a yaml toggle.
+    (70,  lambda case: 0,                                              'I'),  # USE_PREFIX_SUM
     (50,  lambda case: case.capacities.max_per_voxel,                  'I'),
     (51,  lambda case: case.capacities.workgroup,                      'I'),
     (52,  lambda case: case.capacities.max_incoming,                   'I'),

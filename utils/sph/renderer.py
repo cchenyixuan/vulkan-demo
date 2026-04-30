@@ -100,7 +100,7 @@ class SphRenderer:
         # Render config (live-tunable via hotkeys)
         self.color_mode = 0
         self.steps_per_frame = 1
-        self.paused = False
+        self.paused = True   # start paused so the initial state is inspectable; SPACE to begin
         self.point_size = 5.0
         # Default scales (tunable live via ',' '.' hotkeys; current value
         # printed to stderr on each change).

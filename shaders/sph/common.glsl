@@ -127,6 +127,14 @@ layout(constant_id = 42) const float PST_ANTI_SHIFT_COEFFICIENT = 0.005;
 // (kernel_sum drives PST blend), but its M⁻¹ / ∇ρ are ignored downstream.
 layout(constant_id = 43) const bool USE_KCG_CORRECTION = true;
 
+// Defrag base-offset source toggle. When true, defrag.comp reads from
+// voxel_base_offset[] (deterministic, voxel-id ordered, requires prefix_sum
+// pass to populate it first). When false, defrag.comp uses an atomicAdd on
+// defrag_scratch_counter — order is non-deterministic but defrag still
+// works standalone (no prefix_sum dependency). Default false; flip to true
+// after prefix_sum is verified.
+layout(constant_id = 70) const bool USE_PREFIX_SUM = false;
+
 // --- Capacity / dispatch ---
 layout(constant_id = 50) const uint MAX_PARTICLES_PER_VOXEL = 96u;
 layout(constant_id = 51) const uint WORKGROUP_SIZE          = 128u;
@@ -302,7 +310,21 @@ layout(std430, set = 1, binding = 3) buffer IncomingParticleIndexBuffer {
     uint incoming_particle_index[];
 };
 
-// binding 4 reserved: CellStart buffer for defrag prefix-sum
+layout(std430, set = 1, binding = 4) buffer VoxelBaseOffsetBuffer {
+    // Exclusive prefix sum of inside_particle_count[]:
+    //   voxel_base_offset[v] = Σ inside_particle_count[0..v-1]
+    //
+    // Populated by prefix_sum.comp; consumed by defrag.comp as the
+    // deterministic destination-SoA base index for voxel v's particles.
+    // When defrag's USE_PREFIX_SUM spec constant is false, this buffer is
+    // declared but unread — DCE removes the load from defrag.spv.
+    // Other shaders never reference it, so glslc -O strips it from their
+    // SPIR-V entirely.
+    //
+    // Size = (voxel_count + 1); slot 0 unused for symmetry with other
+    // voxel buffers.
+    uint voxel_base_offset[];
+};
 // binding 5 reserved
 
 // ============================================================================
@@ -444,6 +466,15 @@ struct MaterialParameters {
 
 layout(std430, set = 3, binding = 7) buffer MaterialParametersBuffer {
     MaterialParameters material_parameters[];
+};
+
+layout(std430, set = 3, binding = 8) buffer DefragScratchCounterBuffer {
+    // Single uint, atomic-incremented by defrag.comp when USE_PREFIX_SUM=false.
+    // CPU resets to 0 before each defrag dispatch (vkCmdFillBuffer).
+    // When USE_PREFIX_SUM=true, declared but unwritten — DCE removes it
+    // from defrag.spv. Other shaders never reference it; glslc -O strips
+    // it from their SPIR-V entirely.
+    uint defrag_scratch_counter;
 };
 
 #endif  // SPH_COMMON_GLSL_INCLUDED
