@@ -7,3 +7,5 @@ __pycache__/
 .claude/
 output/
 viewer_run.log
+experiment/
+fps_*.csv
