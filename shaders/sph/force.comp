@@ -77,7 +77,11 @@ void main() {
         ? unpack_correction_inverse(self_particle_id)
         : mat3(1.0);
     float self_kernel_sum = density_gradient_kernel_sum[self_particle_id].w;
-    bool near_surface = self_kernel_sum*4.0-3.0 < 0.0? true:false;
+    // Free-surface heuristic. In δ-plus WCSPH, fully-supported (interior)
+    // particles have kernel_sum ≈ 1; values below ~0.75 indicate the
+    // neighborhood is kernel-deficient (near a free surface). 0.75 is empirical.
+    // Equivalent to the legacy form (kernel_sum * 4 - 3 < 0).
+    bool near_surface = self_kernel_sum < 0.75;
 
     // --- Decode self voxel coord ---------------------------------------------
     ivec3 self_voxel_coord = own_coord_of(self_voxel_id);
@@ -152,7 +156,7 @@ void main() {
                     // anti-symmetric (P_j - P_i) otherwise to suppress tensile
                     // instability in the interior.
                     float pressure_combined =
-                        (self_pressure > 0.0||near_surface)
+                        (self_pressure > 0.0 || near_surface)
                             ? (neighbor_pressure + self_pressure)
                             : (neighbor_pressure - self_pressure);
                     a_pressure -= neighbor_volume_dynamic * pressure_combined / self_density
@@ -167,32 +171,42 @@ void main() {
                         * kernel_gradient_corrected;
 
                     // ==== Particle shifting (PST) ===========================
-                    // disorder ∈ [-1, 0]: negative if particles overlap (r < Δx).
-                    float distance_ratio = (distance - delta_x_uniform) / delta_x_uniform;
-                    float disorder =
-                        (distance_ratio > 0.0)
-                            ? 0.0
-                            : distance_ratio * min(neighbor_density / self_density, 1.0);
+                    // Gated by USE_PST spec const: glslc -O DCE-removes the entire
+                    // block (including the kernel_value / kernel_value_at_delta_x
+                    // computations and pst_base_factor / volume_ij_uniform pre-loop
+                    // constants once their consumers are gone) when USE_PST = false.
+                    if (USE_PST) {
+                        // disorder ∈ [-1, 0]: negative if particles overlap (r < Δx).
+                        float distance_ratio = (distance - delta_x_uniform) / delta_x_uniform;
+                        float disorder =
+                            (distance_ratio > 0.0)
+                                ? 0.0
+                                : distance_ratio * min(neighbor_density / self_density, 1.0);
 
-                    // Crowding term: W(r) / W(Δx), raised to 4th power.
-                    // kernel_value_at_delta_x is a loop invariant (computed above).
-                    float crowding_ratio =
-                        (kernel_value_at_delta_x > 1e-12)
-                            ? kernel_value / kernel_value_at_delta_x
-                            : 0.0;
-                    float crowding_term = crowding_ratio * crowding_ratio;
-                    crowding_term *= crowding_term;  // (W/W_ref)^4
+                        // Crowding term: W(r) / W(Δx), raised to 4th power.
+                        // kernel_value_at_delta_x is a loop invariant (computed above).
+                        float crowding_ratio =
+                            (kernel_value_at_delta_x > 1e-12)
+                                ? kernel_value / kernel_value_at_delta_x
+                                : 0.0;
+                        float crowding_term = crowding_ratio * crowding_ratio;
+                        crowding_term *= crowding_term;  // (W/W_ref)^4
 
-                    // Main (repulsion + structure) shift
-                    float main_scalar =
-                        1.0 - disorder + 0.1 * self_kernel_sum + 0.2 * crowding_term;
-                    particle_shift_main +=
-                        -pst_base_factor * main_scalar * kernel_gradient_corrected * volume_ij_uniform;
+                        // Main (repulsion + structure) shift.
+                        // The 0.1 and 0.2 weights mix kernel_sum (free-surface signal)
+                        // and crowding (local packing density) into the shift driver.
+                        // Both are δ-plus empirical constants — kept at legacy values
+                        // pending profile-driven retuning.
+                        float main_scalar =
+                            1.0 - disorder + 0.1 * self_kernel_sum + 0.2 * crowding_term;
+                        particle_shift_main +=
+                            -pst_base_factor * main_scalar * kernel_gradient_corrected * volume_ij_uniform;
 
-                    // Anti (cohesion-like) shift
-                    float anti_scalar = (distance / delta_x_uniform) * PST_ANTI_SHIFT_COEFFICIENT;
-                    particle_shift_anti +=
-                        pst_base_factor * anti_scalar * kernel_gradient_corrected * volume_ij_uniform;
+                        // Anti (cohesion-like) shift.
+                        float anti_scalar = (distance / delta_x_uniform) * PST_ANTI_SHIFT_COEFFICIENT;
+                        particle_shift_anti +=
+                            pst_base_factor * anti_scalar * kernel_gradient_corrected * volume_ij_uniform;
+                    }
                 }
             }
         }
@@ -208,13 +222,21 @@ void main() {
     // Blend PST shift by kernel_sum: interior → main, surface → anti
     //   blend_weight = clamp(kernel_sum, 0, 1)^4
     //   shift = blend · main + (1 - blend) · anti
+    //
+    // Gated by USE_PST spec const: when false, glslc -O DCE-removes the blend
+    // (and earlier the loop-body PST accumulators) so shift = 0 and the kernel
+    // does no PST work at all.
     // ========================================================================
-    float kernel_sum_clamped = clamp(self_kernel_sum, 0.0, 1.0);
-    float blend_weight = kernel_sum_clamped * kernel_sum_clamped;
-    blend_weight *= blend_weight;  // ^4
-
-    vec3 particle_shift = blend_weight * particle_shift_main
-                        + (1.0 - blend_weight) * particle_shift_anti;
+    vec3 particle_shift;
+    if (USE_PST) {
+        float kernel_sum_clamped = clamp(self_kernel_sum, 0.0, 1.0);
+        float blend_weight = kernel_sum_clamped * kernel_sum_clamped;
+        blend_weight *= blend_weight;  // ^4
+        particle_shift = blend_weight * particle_shift_main
+                       + (1.0 - blend_weight) * particle_shift_anti;
+    } else {
+        particle_shift = vec3(0.0);
+    }
 
     // ========================================================================
     // Write outputs (shift.w and acceleration.w reserved, leave as 0)

@@ -144,18 +144,32 @@ void main() {
                     vec3 raw_gradient        = evaluate_kernel_gradient(position_difference_neighbor_to_self, distance);
                     vec3 corrected_gradient  = self_correction_matrix * raw_gradient;
 
-                    // --- ψ_ij = (ρ_j - ρ_i) - 0.5 · (M_i·∇ρ_i + M_j·∇ρ_j) · (-x_ij) ---
-                    vec3 neighbor_corrected_density_gradient = neighbor_correction_matrix * neighbor_density_gradient;
-                    vec3 corrected_density_gradient_sum = self_corrected_density_gradient + neighbor_corrected_density_gradient;
-                    vec3 position_difference_self_to_neighbor = -position_difference_neighbor_to_self; // -x_ij
-                    float psi_ij = (neighbor_density - self_density);// - 0.5 * dot(corrected_density_gradient_sum, position_difference_self_to_neighbor);
+                    // --- δ-SPH density diffusion (gated by USE_DENSITY_DIFFUSION) -
+                    // Spec-const branch: glslc -O DCE-removes the entire body when
+                    // USE_DENSITY_DIFFUSION = false → vanilla WCSPH continuity.
+                    if (USE_DENSITY_DIFFUSION) {
+                        // --- ψ_ij ---------------------------------------------------
+                        // V0 simplification: ψ_ij = (ρ_j - ρ_i) only (linear form).
+                        // Full Antuono δ-plus formulation also includes an antisymmetric
+                        // density-gradient projection term that improves accuracy near
+                        // sharp density jumps:
+                        //   ψ_ij = (ρ_j - ρ_i) - 0.5 · (M_i·∇ρ_i + M_j·∇ρ_j) · (-x_ij)
+                        // The second term is intentionally commented out for V0 to keep
+                        // the operator simple while validating the rest of the pipeline.
+                        // The supporting computations below (corrected gradient sums) are
+                        // also kept so the second term can be restored by uncommenting.
+                        vec3 neighbor_corrected_density_gradient = neighbor_correction_matrix * neighbor_density_gradient;
+                        vec3 corrected_density_gradient_sum = self_corrected_density_gradient + neighbor_corrected_density_gradient;
+                        vec3 position_difference_self_to_neighbor = -position_difference_neighbor_to_self; // -x_ij
+                        float psi_ij = (neighbor_density - self_density);// - 0.5 * dot(corrected_density_gradient_sum, position_difference_self_to_neighbor);
 
-                    // --- D_ij = 2·ψ_ij · (-x_ij · ∇W̃_ij) / (r² + ε_h²) · V_j ---
-                    float dot_xji_gradient = dot(position_difference_self_to_neighbor, corrected_gradient);
-                    float d_ij = 2.0 * psi_ij * dot_xji_gradient / (distance * distance + EPS_H_SQUARED) * neighbor_volume;
+                        // --- D_ij = 2·ψ_ij · (-x_ij · ∇W̃_ij) / (r² + ε_h²) · V_j ---
+                        float dot_xji_gradient = dot(position_difference_self_to_neighbor, corrected_gradient);
+                        float d_ij = 2.0 * psi_ij * dot_xji_gradient / (distance * distance + EPS_H_SQUARED) * neighbor_volume;
 
-                    // --- Diffusion: δ · h · c₀ · D_ij -----------------------
-                    density_diffusion += DELTA_COEFFICIENT * SMOOTHING_LENGTH * SPEED_OF_SOUND * d_ij;
+                        // --- Diffusion accumulator: δ · h · c₀ · D_ij ---------
+                        density_diffusion += DELTA_COEFFICIENT * SMOOTHING_LENGTH * SPEED_OF_SOUND * d_ij;
+                    }
 
                     // --- Drift: -ρ_i · V_j · (v_j - v_i) · ∇W̃_ij -----------
                     density_drift += -self_density * neighbor_volume * dot(neighbor_velocity - self_velocity, corrected_gradient);

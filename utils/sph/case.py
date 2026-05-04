@@ -297,6 +297,20 @@ class NumericsConfig:
     # runs (kernel_sum is needed for PST blend), only its M⁻¹ / ∇ρ outputs
     # are ignored downstream.
     use_kcg_correction: bool = True
+    # δ-SPH continuity diffusion: when False, density.comp skips the δ term and
+    # the result reduces to vanilla WCSPH continuity. delta_coefficient is then
+    # spec-const-supplied but unread (DCE).
+    use_density_diffusion: bool = True
+    # Particle Shifting Technique: when False, force.comp skips the shift
+    # accumulation loop and writes shift = 0. predict's drift becomes pure
+    # x_{n+1} = x_n + v_{n+1/2}·dt. pst_main / pst_anti unread (DCE).
+    use_pst: bool = True
+    # Defrag base-offset strategy: when True, defrag.comp consumes
+    # voxel_base_offset[] (deterministic, voxel-id ordered, requires a
+    # prefix_sum pass first). When False, defrag uses an atomicAdd on a
+    # scratch counter (non-deterministic order, but contiguous within each
+    # voxel; works standalone). Default False until prefix_sum.comp lands.
+    use_prefix_sum_defrag: bool = False
     # Particle defragmentation: rearranges the particle SoA so that, for every
     # voxel V, that voxel's particles occupy a contiguous slot range in the
     # SoA. Restores spatial locality between SoA index and voxel coordinates,
@@ -594,10 +608,12 @@ _SPEC_CONSTANT_MAPPING: list[_SpecRow] = [
     (40,  lambda case: case.eps_h_squared,                             'f'),
     (41,  lambda case: case.numerics.pst_main,                         'f'),
     (42,  lambda case: case.numerics.pst_anti,                         'f'),
-    (43,  lambda case: 1 if case.numerics.use_kcg_correction else 0,   'I'),  # USE_KCG_CORRECTION
-    # Defrag base-offset path. Phase 1: hardcoded 0 (atomicAdd path) since
-    # prefix_sum.comp doesn't exist yet. Phase 4 will add a yaml toggle.
-    (70,  lambda case: 0,                                              'I'),  # USE_PREFIX_SUM
+    # Algorithm ablation toggles (id 43-46). bool spec consts; glslc -O DCE
+    # removes dead branches when a toggle is false.
+    (43,  lambda case: 1 if case.numerics.use_kcg_correction    else 0, 'I'),  # USE_KCG_CORRECTION
+    (44,  lambda case: 1 if case.numerics.use_density_diffusion else 0, 'I'),  # USE_DENSITY_DIFFUSION
+    (45,  lambda case: 1 if case.numerics.use_pst               else 0, 'I'),  # USE_PST
+    (46,  lambda case: 1 if case.numerics.use_prefix_sum_defrag else 0, 'I'),  # USE_PREFIX_SUM_DEFRAG
     (50,  lambda case: case.capacities.max_per_voxel,                  'I'),
     (51,  lambda case: case.capacities.workgroup,                      'I'),
     (52,  lambda case: case.capacities.max_incoming,                   'I'),

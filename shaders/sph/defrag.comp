@@ -16,7 +16,7 @@
 // Destination bindings (set 4): the "scratch" particle SoA — written here.
 // CPU-side bank swap promotes set 4 to be the new set 0 after this dispatch.
 //
-// Base index strategy (USE_PREFIX_SUM spec constant):
+// Base index strategy (USE_PREFIX_SUM_DEFRAG spec constant):
 //   true  → base = voxel_base_offset[voxel_id]   (deterministic voxel-id order;
 //                                                 requires prefix_sum.comp first)
 //   false → base = atomicAdd(defrag_scratch_counter, count)
@@ -31,6 +31,18 @@
 //   - 10 SoA buffers in set 4 written at new positions
 //   - inside_particle_index updated in place to point at new IDs
 //   - defrag_scratch_counter incremented (path B only)
+//
+// ⚠ V0 LIMITATION — INLET particles are dropped by defrag.
+// This kernel iterates only inside_particle_index entries. Per the buffer's
+// invariant 2 (common.glsl), inlet-kind particles never appear there, so their
+// SoA data is NOT copied to the scratch (set 4) destination. After CPU bank
+// swap, inlet pool slots in the new set 0 are uninitialised / cleared and the
+// inlet particles are effectively gone.
+//
+// The lid-driven cavity case has no INLET particles so this is dormant in V0.
+// V0+ inlet spawn must redesign this path — options include a separate
+// "non-voxel particle list" the defrag walks in addition, or rebuilding inlet
+// pool slots from inlet_template (set 3 binding 2) after each defrag.
 // ============================================================================
 
 layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
@@ -87,7 +99,7 @@ void main() {
     // Spec-const branch: glslc -O DCE-removes the unused arm.
     // ------------------------------------------------------------------------
     uint base;
-    if (USE_PREFIX_SUM) {
+    if (USE_PREFIX_SUM_DEFRAG) {
         base = voxel_base_offset[voxel_id];             // already excludes self;
                                                         // voxel 1's base is 0
     } else {

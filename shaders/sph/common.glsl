@@ -37,7 +37,9 @@
 //   20 - 29  : voxel layout / reserved
 //   30 - 33  : dimension + kernel coefficients
 //   34 - 39  : reserved for future kernel / simulation options
-//   40 - 49  : SPH numerical parameters (ε_h², PST main, PST anti, ...)
+//   40 - 42  : SPH numerical parameters (ε_h², PST main, PST anti)
+//   43 - 46  : algorithm ablation toggles (KCG, density diffusion, PST, prefix-sum defrag)
+//   47 - 49  : reserved for future ablation toggles
 //   50 - 53  : capacities + workgroup size + pool size
 //   54 - 79  : reserved
 //   80 - 88  : multi-GPU ghost grid parameters
@@ -121,19 +123,39 @@ layout(constant_id = 41) const float PST_MAIN_SHIFT_COEFFICIENT = 0.1;
 // Legacy value 0.005.
 layout(constant_id = 42) const float PST_ANTI_SHIFT_COEFFICIENT = 0.005;
 
-// Ablation toggle: when false, density.comp / force.comp use identity for M⁻¹
+// ----- Algorithm ablation toggles (id 43-46) -------------------------------
+// All bool spec constants; with glslc -O the dead branches are DCE-removed,
+// so disabling a feature actually skips its computation (not just zeroes).
+//
+// Convention: when a toggle is false, the associated coefficients
+// (delta_coefficient, pst_main/anti, regularization tunables) are still
+// spec-const-supplied but unused — case.py may pass any value.
+
+// KCG correction: when false, density.comp / force.comp use identity for M⁻¹
 // and zero for ∇ρ instead of reading correction.comp's outputs. Used for
 // comparing against non-KCG SPH codebases. correction.comp still runs
 // (kernel_sum drives PST blend), but its M⁻¹ / ∇ρ are ignored downstream.
 layout(constant_id = 43) const bool USE_KCG_CORRECTION = true;
 
-// Defrag base-offset source toggle. When true, defrag.comp reads from
+// Density diffusion (the δ term in dρ/dt): when false, density.comp skips the
+// δ-SPH continuity diffusion term. Result is vanilla WCSPH continuity.
+// DELTA_COEFFICIENT is then unused.
+layout(constant_id = 44) const bool USE_DENSITY_DIFFUSION = true;
+
+// Particle shifting technique (PST): when false, force.comp skips the shift
+// computation and writes shift = 0. Predict's drift then becomes pure
+// x_{n+1} = x_n + v_{n+1/2}·dt with no δ-plus correction.
+// PST_MAIN_SHIFT_COEFFICIENT / PST_ANTI_SHIFT_COEFFICIENT are unused.
+layout(constant_id = 45) const bool USE_PST = true;
+
+// Defrag base-offset source: when true, defrag.comp reads from
 // voxel_base_offset[] (deterministic, voxel-id ordered, requires prefix_sum
 // pass to populate it first). When false, defrag.comp uses an atomicAdd on
 // defrag_scratch_counter — order is non-deterministic but defrag still
 // works standalone (no prefix_sum dependency). Default false; flip to true
 // after prefix_sum is verified.
-layout(constant_id = 70) const bool USE_PREFIX_SUM = false;
+layout(constant_id = 46) const bool USE_PREFIX_SUM_DEFRAG = false;
+// ----- end ablation toggles ------------------------------------------------
 
 // --- Capacity / dispatch ---
 layout(constant_id = 50) const uint MAX_PARTICLES_PER_VOXEL = 96u;
@@ -316,7 +338,7 @@ layout(std430, set = 1, binding = 4) buffer VoxelBaseOffsetBuffer {
     //
     // Populated by prefix_sum.comp; consumed by defrag.comp as the
     // deterministic destination-SoA base index for voxel v's particles.
-    // When defrag's USE_PREFIX_SUM spec constant is false, this buffer is
+    // When defrag's USE_PREFIX_SUM_DEFRAG spec constant is false, this buffer is
     // declared but unread — DCE removes the load from defrag.spv.
     // Other shaders never reference it, so glslc -O strips it from their
     // SPIR-V entirely.
@@ -469,9 +491,9 @@ layout(std430, set = 3, binding = 7) buffer MaterialParametersBuffer {
 };
 
 layout(std430, set = 3, binding = 8) buffer DefragScratchCounterBuffer {
-    // Single uint, atomic-incremented by defrag.comp when USE_PREFIX_SUM=false.
+    // Single uint, atomic-incremented by defrag.comp when USE_PREFIX_SUM_DEFRAG=false.
     // CPU resets to 0 before each defrag dispatch (vkCmdFillBuffer).
-    // When USE_PREFIX_SUM=true, declared but unwritten — DCE removes it
+    // When USE_PREFIX_SUM_DEFRAG=true, declared but unwritten — DCE removes it
     // from defrag.spv. Other shaders never reference it; glslc -O strips
     // it from their SPIR-V entirely.
     uint defrag_scratch_counter;
