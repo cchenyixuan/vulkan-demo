@@ -604,42 +604,64 @@ class SphRenderer:
     # Run loop
     # ------------------------------------------------------------------
 
-    def run(self) -> None:
+    def run(self, log_fps_path: Optional[str] = None) -> None:
+        """Main event loop. If log_fps_path is set, append per-window FPS samples
+        to a CSV (header `wallclock_s,step_count,fps_window_avg`) for benchmark
+        comparison runs. wallclock_s is relative to run() entry; step_count is
+        the simulator's step counter at sample time (lets analyzers detect and
+        filter paused intervals where steps don't advance)."""
         last_t = time.perf_counter()
+        run_start_t = last_t
         frame_counter = 0
         title_base = f"SPH V0 - {self.case.case_dir.name}"
 
-        while not glfw.window_should_close(self.window):
-            glfw.poll_events()
+        log_file = None
+        if log_fps_path is not None:
+            log_path_obj = pathlib.Path(log_fps_path)
+            log_path_obj.parent.mkdir(parents=True, exist_ok=True)
+            log_file = open(log_path_obj, "w")
+            log_file.write("wallclock_s,step_count,fps_window_avg\n")
 
-            if not self.paused:
-                # Fire-and-forget compute submits — the per-frame render fence
-                # (vkWaitForFences at the top of _draw_frame) is the only CPU
-                # sync point; all SPH steps and the render submit share the
-                # same queue and serialize naturally. step()'s leading barrier
-                # handles cross-submission memory dependencies.
-                for _ in range(self.steps_per_frame):
-                    self.simulator.step(wait=False)
+        try:
+            while not glfw.window_should_close(self.window):
+                glfw.poll_events()
 
-            self._draw_frame()
+                if not self.paused:
+                    # Fire-and-forget compute submits — the per-frame render fence
+                    # (vkWaitForFences at the top of _draw_frame) is the only CPU
+                    # sync point; all SPH steps and the render submit share the
+                    # same queue and serialize naturally. step()'s leading barrier
+                    # handles cross-submission memory dependencies.
+                    for _ in range(self.steps_per_frame):
+                        self.simulator.step(wait=False)
 
-            frame_counter += 1
-            now = time.perf_counter()
-            if now - last_t > 0.5:
-                fps = frame_counter / (now - last_t)
-                mode_name = ["speed", "accel", "density", "voxel_id", "kernel_sum"][self.color_mode]
-                pause_tag = "  [PAUSED]" if self.paused else ""
-                glfw.set_window_title(
-                    self.window,
-                    f"{title_base}   step={self.simulator.step_count}   "
-                    f"t={self.simulator.simulation_time:.4e}s   "
-                    f"{fps:.0f} fps   spf={self.steps_per_frame}   "
-                    f"color={mode_name}{pause_tag}",
-                )
-                frame_counter = 0
-                last_t = now
+                self._draw_frame()
 
-        vkDeviceWaitIdle(self.ctx.device)
+                frame_counter += 1
+                now = time.perf_counter()
+                if now - last_t > 0.5:
+                    fps = frame_counter / (now - last_t)
+                    mode_name = ["speed", "accel", "density", "voxel_id", "kernel_sum"][self.color_mode]
+                    pause_tag = "  [PAUSED]" if self.paused else ""
+                    glfw.set_window_title(
+                        self.window,
+                        f"{title_base}   step={self.simulator.step_count}   "
+                        f"t={self.simulator.simulation_time:.4e}s   "
+                        f"{fps:.0f} fps   spf={self.steps_per_frame}   "
+                        f"color={mode_name}{pause_tag}",
+                    )
+                    if log_file is not None:
+                        # Flush each row so SIGINT / window-close preserves data.
+                        log_file.write(
+                            f"{now - run_start_t:.3f},{self.simulator.step_count},{fps:.2f}\n")
+                        log_file.flush()
+                    frame_counter = 0
+                    last_t = now
+
+            vkDeviceWaitIdle(self.ctx.device)
+        finally:
+            if log_file is not None:
+                log_file.close()
 
     def _draw_frame(self) -> None:
         device = self.ctx.device
