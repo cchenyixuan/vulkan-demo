@@ -605,22 +605,31 @@ class SphRenderer:
     # ------------------------------------------------------------------
 
     def run(self, log_fps_path: Optional[str] = None) -> None:
-        """Main event loop. If log_fps_path is set, append per-window FPS samples
-        to a CSV (header `wallclock_s,step_count,fps_window_avg`) for benchmark
-        comparison runs. wallclock_s is relative to run() entry; step_count is
-        the simulator's step counter at sample time (lets analyzers detect and
-        filter paused intervals where steps don't advance)."""
+        """Main event loop. If log_fps_path is set, append per-window samples
+        to a CSV (header `wallclock_s,step_count,sim_time,fps_window_avg`) for
+        benchmark comparison runs.
+
+        - `wallclock_s` is relative to run() entry.
+        - `step_count` is the simulator's step counter at sample time.
+        - `sim_time` is the simulation's physical-time clock (== step_count·dt
+          while dt is constant; logged explicitly for cross-case comparisons).
+        - `fps_window_avg` is renderer frame rate over the last ~0.5 s window.
+
+        Rows are only written when `step_count` strictly advanced since the
+        previous log entry — paused / pre-SPACE intervals are skipped to keep
+        the CSV compact and to ensure each row has a unique sim_time."""
         last_t = time.perf_counter()
         run_start_t = last_t
         frame_counter = 0
         title_base = f"SPH V0 - {self.case.case_dir.name}"
 
         log_file = None
+        last_logged_step = 0    # step 0 == nothing has run; first row will be skipped.
         if log_fps_path is not None:
             log_path_obj = pathlib.Path(log_fps_path)
             log_path_obj.parent.mkdir(parents=True, exist_ok=True)
             log_file = open(log_path_obj, "w")
-            log_file.write("wallclock_s,step_count,fps_window_avg\n")
+            log_file.write("wallclock_s,step_count,sim_time,fps_window_avg\n")
 
         try:
             while not glfw.window_should_close(self.window):
@@ -643,18 +652,22 @@ class SphRenderer:
                     fps = frame_counter / (now - last_t)
                     mode_name = ["speed", "accel", "density", "voxel_id", "kernel_sum"][self.color_mode]
                     pause_tag = "  [PAUSED]" if self.paused else ""
+                    current_step = self.simulator.step_count
+                    current_sim_time = self.simulator.simulation_time
                     glfw.set_window_title(
                         self.window,
-                        f"{title_base}   step={self.simulator.step_count}   "
-                        f"t={self.simulator.simulation_time:.4e}s   "
+                        f"{title_base}   step={current_step}   "
+                        f"t={current_sim_time:.4e}s   "
                         f"{fps:.0f} fps   spf={self.steps_per_frame}   "
                         f"color={mode_name}{pause_tag}",
                     )
-                    if log_file is not None:
+                    if log_file is not None and current_step > last_logged_step:
                         # Flush each row so SIGINT / window-close preserves data.
                         log_file.write(
-                            f"{now - run_start_t:.3f},{self.simulator.step_count},{fps:.2f}\n")
+                            f"{now - run_start_t:.3f},{current_step},"
+                            f"{current_sim_time:.6e},{fps:.2f}\n")
                         log_file.flush()
+                        last_logged_step = current_step
                     frame_counter = 0
                     last_t = now
 
