@@ -7,7 +7,13 @@ V0 scope:
   - Headless single-GPU compute. No swapchain / surface; a future renderer
     pulls VkBuffer handles via get_render_buffers().
   - Fully synchronous fence-per-step (no CPU/GPU overlap; V2 work).
-  - One command buffer per parity (ping-pong A↔B for density_pressure).
+
+Density staging: scratch+copy. density.comp writes into the transient
+`density_pressure_scratch` (set 0 binding 2); the step cmd then issues
+`vkCmdCopyBuffer scratch → primary` inside the same submission so that
+force.comp reads ρ_{n+1} from the canonical `density_pressure` (binding 1).
+No descriptor-set parity, single step cmd. Defrag does NOT migrate scratch
+(it's overwritten next step) — set 4's binding 2 is intentionally sparse.
 """
 
 import pathlib
@@ -97,8 +103,7 @@ class SphSimulator:
         self.case = case
         self._destroyed = False
 
-        # Run state
-        self.parity = 0
+        # Run state.
         self.simulation_time = 0.0
         self.step_count = 0
 
@@ -135,10 +140,9 @@ class SphSimulator:
         self.pipelines: dict = self._build_compute_pipelines()
         self.defrag_pipeline = self._build_defrag_pipeline()
 
-        # Section 6: pre-recorded command buffers (bootstrap + step×2 parity + defrag).
+        # Section 6: pre-recorded command buffers (bootstrap + step + defrag).
         self.bootstrap_cmd = self._record_bootstrap_cmd()
-        self.step_cmds = [self._record_step_cmd(parity=0),
-                          self._record_step_cmd(parity=1)]
+        self.step_cmd = self._record_step_cmd()
         self.defrag_cmd = self._record_defrag_cmd()
 
     # ==================================================================
@@ -216,8 +220,8 @@ class SphSimulator:
         return [
             # ---- Set 0: particle SoA (10 bindings) ----------------
             _BufferSpec("position_voxel_id",            0, 0, 16 * pool_capacity,        BSU | TRANSFER | VERT),
-            _BufferSpec("density_pressure_a",           0, 1,  8 * pool_capacity,        BSU | TRANSFER | VERT),
-            _BufferSpec("density_pressure_b",           0, 2,  8 * pool_capacity,        BSU | TRANSFER | VERT),
+            _BufferSpec("density_pressure",             0, 1,  8 * pool_capacity,        BSU | TRANSFER | VERT),
+            _BufferSpec("density_pressure_scratch",     0, 2,  8 * pool_capacity,        BSU | TRANSFER | VERT),
             _BufferSpec("velocity_mass",                0, 3, 16 * pool_capacity,        BSU | TRANSFER | VERT),
             _BufferSpec("acceleration",                 0, 4, 16 * pool_capacity,        BSU | TRANSFER),
             _BufferSpec("shift",                        0, 5, 16 * pool_capacity,        BSU | TRANSFER),
@@ -305,7 +309,11 @@ class SphSimulator:
         """Allocate scratch SoA mirrors of set-0 buffers, sized identically.
         Used as defrag's destination set; CPU-side bookkeeping treats them as
         purely transient — set 0 is always the live data after defrag's
-        copy-back step."""
+        copy-back step.
+
+        Skips binding 2 (`density_pressure_scratch`): that buffer is itself
+        a transient density-staging slot, defrag's set-4 layout omits it
+        (see DEFRAG_SET4_BINDINGS), so it never needs a scratch mirror."""
         usage = (VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
                  | VK_BUFFER_USAGE_TRANSFER_DST_BIT
                  | VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
@@ -313,6 +321,8 @@ class SphSimulator:
         total_bytes = 0
         for spec in self._buffer_specs:
             if spec.set_index != 0:
+                continue
+            if spec.binding not in self.DEFRAG_SET4_BINDINGS:
                 continue
             scratch[spec.name] = self._allocate_buffer(
                 size=spec.size,
@@ -369,22 +379,23 @@ class SphSimulator:
             cursor += n
         data["velocity_mass"] = velocity_mass.tobytes()
 
-        # ---- density_pressure_a: (ρ₀, 0) per particle  -----------------------
+        # ---- density_pressure: (ρ₀, 0) per particle  -------------------------
         # IC declaration: every particle starts at rest at its material's
         # rest_density. With ρ=ρ₀, the EOS gives P=0 — bootstrap's force pass
         # then has no spurious pressure burst (a divide-by-zero would occur
         # if ρ were left at the zero-init default).
         # Padding slots stay at (0, 0) — the init shader's mass-sentinel keeps
         # them out of any neighbor loop, so 0 is fine there.
-        density_pressure_a = np.zeros((pool_capacity, 2), dtype=np.float32)
+        density_pressure = np.zeros((pool_capacity, 2), dtype=np.float32)
         cursor = 1
         for source in case.particle_sources:
             n = int(source.vertices.shape[0])
             material = case.materials[source.material_group_id]
-            density_pressure_a[cursor:cursor + n, 0] = material.rest_density
+            density_pressure[cursor:cursor + n, 0] = material.rest_density
             # column 1 (pressure) stays 0
             cursor += n
-        data["density_pressure_a"] = density_pressure_a.tobytes()
+        data["density_pressure"] = density_pressure.tobytes()
+        # density_pressure_scratch left at zero (transient, overwritten by density.comp)
 
         # ---- material: per-particle group_id ; 0 for unallocated slots ------
         material_array = np.zeros(pool_capacity, dtype=np.uint32)
@@ -513,18 +524,26 @@ class SphSimulator:
             layouts.append(vkCreateDescriptorSetLayout(self.ctx.device, create_info, None))
         return layouts
 
+    # Set 4 is sparse: every set-0 binding is mirrored EXCEPT binding 2
+    # (`density_pressure_scratch`), which is transient (overwritten by
+    # density.comp every step) and therefore not worth migrating. defrag.comp's
+    # destination buffer block at set 4 binding 2 is intentionally absent.
+    DEFRAG_SET4_BINDINGS = (0, 1, 3, 4, 5, 6, 7, 8, 9)
+
     def _build_defrag_set4_layout(self):
-        """Defrag-only set 4: 10 storage buffer bindings, mirror of set 0
-        layout. Defrag.comp scatters into these scratch buffers; CPU then
-        copies them back to the live set-0 buffers."""
-        bindings = []
-        for binding_index in range(10):
-            bindings.append(VkDescriptorSetLayoutBinding(
+        """Defrag-only set 4: 9 storage buffer bindings, sparse mirror of
+        set 0 (skips density_pressure_scratch at binding 2). Defrag.comp
+        scatters into these scratch buffers; CPU then copies them back to
+        the live set-0 buffers."""
+        bindings = [
+            VkDescriptorSetLayoutBinding(
                 binding=binding_index,
                 descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                 descriptorCount=1,
                 stageFlags=VK_SHADER_STAGE_COMPUTE_BIT,
-            ))
+            )
+            for binding_index in self.DEFRAG_SET4_BINDINGS
+        ]
         create_info = VkDescriptorSetLayoutCreateInfo(
             bindingCount=len(bindings),
             pBindings=bindings,
@@ -532,39 +551,34 @@ class SphSimulator:
         return vkCreateDescriptorSetLayout(self.ctx.device, create_info, None)
 
     def _create_descriptor_pool(self):
-        """Pool sized for: set 0 × 2 (ping-pong) + set 1, 2, 3 + defrag set 4
-        = 6 sets total. Counts the storage buffer descriptors across all 6."""
+        """Pool sized for: set 0 + set 1, 2, 3 + defrag set 4 = 5 sets total.
+        Single set 0 — density staging is scratch+copy, not ping-pong."""
         per_set_binding_count = {
             i: sum(1 for s in self._buffer_specs if s.set_index == i)
             for i in range(4)
         }
         total_descriptors = (
-            2 * per_set_binding_count[0]                    # set_0 × 2 ping-pong
+            per_set_binding_count[0]                        # set_0 (single)
             + per_set_binding_count[1]                      # set_1
             + per_set_binding_count[2]                      # set_2
             + per_set_binding_count[3]                      # set_3
-            + 10                                            # defrag set 4 (10 scratch SoA)
+            + len(self.DEFRAG_SET4_BINDINGS)                # defrag set 4 (sparse, scratch skipped)
         )
         pool_size = VkDescriptorPoolSize(
             type=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
             descriptorCount=total_descriptors,
         )
         create_info = VkDescriptorPoolCreateInfo(
-            maxSets=6,
+            maxSets=5,
             poolSizeCount=1,
             pPoolSizes=[pool_size],
         )
         return vkCreateDescriptorPool(self.ctx.device, create_info, None)
 
     def _allocate_descriptor_sets(self) -> dict:
-        """Allocate 5 descriptor sets:
-            set_0_even, set_0_odd  — ping-pong
-            set_1, set_2, set_3
-        """
-        # Order: even, odd, set1, set2, set3 (must match key order below)
+        """Allocate 4 descriptor sets: set_0, set_1, set_2, set_3."""
         layouts_to_allocate = [
-            self.descriptor_layouts[0],     # set_0_even
-            self.descriptor_layouts[0],     # set_0_odd
+            self.descriptor_layouts[0],     # set_0
             self.descriptor_layouts[1],     # set_1
             self.descriptor_layouts[2],     # set_2
             self.descriptor_layouts[3],     # set_3
@@ -576,11 +590,10 @@ class SphSimulator:
         )
         allocated = vkAllocateDescriptorSets(self.ctx.device, allocate_info)
         return {
-            "set_0_even": allocated[0],
-            "set_0_odd":  allocated[1],
-            "set_1":      allocated[2],
-            "set_2":      allocated[3],
-            "set_3":      allocated[4],
+            "set_0": allocated[0],
+            "set_1": allocated[1],
+            "set_2": allocated[2],
+            "set_3": allocated[3],
         }
 
     def _allocate_defrag_set4(self):
@@ -593,12 +606,14 @@ class SphSimulator:
         return vkAllocateDescriptorSets(self.ctx.device, allocate_info)[0]
 
     def _wire_defrag_set4(self) -> None:
-        """Wire defrag set 4 to scratch buffers. Bindings 0-9 mirror set 0
-        bindings 0-9 (same names)."""
+        """Wire defrag set 4 to scratch buffers. Sparse: skips binding 2
+        (density_pressure_scratch is transient — defrag does not migrate it)."""
         writes = []
         for spec in self._buffer_specs:
             if spec.set_index != 0:
                 continue
+            if spec.binding not in self.DEFRAG_SET4_BINDINGS:
+                continue                                # skip transient scratch
             scratch = self.scratch_buffers[spec.name]
             buffer_info = VkDescriptorBufferInfo(
                 buffer=scratch.handle,
@@ -616,8 +631,7 @@ class SphSimulator:
         vkUpdateDescriptorSets(self.ctx.device, len(writes), writes, 0, None)
 
     def _wire_descriptor_sets(self) -> None:
-        """vkUpdateDescriptorSets: point every (set, binding) at its buffer.
-        For ping-pong: set_0_even reads A→1, B→2; set_0_odd reads B→1, A→2."""
+        """vkUpdateDescriptorSets: point every (set, binding) at its buffer."""
         writes = []
 
         def add_write(descriptor_set, binding, buffer):
@@ -638,25 +652,7 @@ class SphSimulator:
                 pBufferInfo=[buffer_info],
             ))
 
-        # ---- Set 0 (× 2 instances) ----------------------------------------
-        for spec in self._buffer_specs:
-            if spec.set_index != 0:
-                continue
-            buffer = self.buffers[spec.name]
-            # Even = "natural" wiring: density_pressure_a@1, density_pressure_b@2
-            # Odd  = swapped:           density_pressure_b@1, density_pressure_a@2
-            if spec.name == "density_pressure_a":
-                add_write(self.descriptor_sets["set_0_even"], 1, buffer)
-                add_write(self.descriptor_sets["set_0_odd"],  2, buffer)
-            elif spec.name == "density_pressure_b":
-                add_write(self.descriptor_sets["set_0_even"], 2, buffer)
-                add_write(self.descriptor_sets["set_0_odd"],  1, buffer)
-            else:
-                add_write(self.descriptor_sets["set_0_even"], spec.binding, buffer)
-                add_write(self.descriptor_sets["set_0_odd"],  spec.binding, buffer)
-
-        # ---- Set 1, 2, 3 (single instance each) ----------------------------
-        for set_index, set_key in [(1, "set_1"), (2, "set_2"), (3, "set_3")]:
+        for set_index, set_key in [(0, "set_0"), (1, "set_1"), (2, "set_2"), (3, "set_3")]:
             for spec in self._buffer_specs:
                 if spec.set_index != set_index:
                     continue
@@ -783,11 +779,45 @@ class SphSimulator:
             0, None,                                    # image
         )
 
-    def _bind_pipeline_and_sets(self, cmd, pipeline_name: str, set_0_key: str) -> None:
+    def _record_density_scratch_to_primary_copy(self, cmd) -> None:
+        """Right after density.comp dispatch: compute→transfer barrier,
+        vkCmdCopyBuffer(scratch → primary), transfer→compute barrier so the
+        following dispatch (force) reads the freshly-written ρ_{n+1} from
+        the canonical density_pressure binding."""
+        compute_to_transfer = VkMemoryBarrier(
+            sType=VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+            srcAccessMask=VK_ACCESS_SHADER_WRITE_BIT,
+            dstAccessMask=VK_ACCESS_TRANSFER_READ_BIT,
+        )
+        vkCmdPipelineBarrier(
+            cmd,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0, 1, [compute_to_transfer], 0, None, 0, None,
+        )
+
+        primary = self.buffers["density_pressure"]
+        scratch = self.buffers["density_pressure_scratch"]
+        region = VkBufferCopy(srcOffset=0, dstOffset=0, size=primary.size)
+        vkCmdCopyBuffer(cmd, scratch.handle, primary.handle, 1, [region])
+
+        transfer_to_compute = VkMemoryBarrier(
+            sType=VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+            srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT,
+            dstAccessMask=VK_ACCESS_SHADER_READ_BIT,
+        )
+        vkCmdPipelineBarrier(
+            cmd,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            0, 1, [transfer_to_compute], 0, None, 0, None,
+        )
+
+    def _bind_pipeline_and_sets(self, cmd, pipeline_name: str) -> None:
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
                           self.pipelines[pipeline_name])
         sets = [
-            self.descriptor_sets[set_0_key],
+            self.descriptor_sets["set_0"],
             self.descriptor_sets["set_1"],
             self.descriptor_sets["set_2"],
             self.descriptor_sets["set_3"],
@@ -815,7 +845,7 @@ class SphSimulator:
 
     def _record_bootstrap_cmd(self):
         """One-time startup: initialize_voxelization → correction → density →
-        force → bootstrap_half_kick. Bound to set_0_even (parity 0)."""
+        (scratch→primary copy) → force → bootstrap_half_kick."""
         cmd = self._allocate_oneshot_cmd()
         # SIMULTANEOUS_USE_BIT: this cmd buffer is pre-recorded once and may be
         # submitted multiple times without waiting for prior submissions to
@@ -824,83 +854,75 @@ class SphSimulator:
             flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
 
         # Leading barrier: makes this cmd buffer self-protective when callers
-        # submit it without waiting on an explicit fence (renderer fast path
-        # — see step(wait=False)). Harmless on the wait-fenced path.
+        # submit it without waiting on an explicit fence (renderer fast path).
         self._record_compute_barrier(cmd)
 
         per_p = self._per_particle_dispatch_count()
 
         # 1. Bucket-sort particles into voxels (writes inside_*, voxel_id, alive_count)
-        self._bind_pipeline_and_sets(cmd, "initialize_voxelization", "set_0_even")
+        self._bind_pipeline_and_sets(cmd, "initialize_voxelization")
         vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_compute_barrier(cmd)
 
         # 2. KCG correction matrix + ∇ρ + kernel_sum
-        self._bind_pipeline_and_sets(cmd, "correction", "set_0_even")
+        self._bind_pipeline_and_sets(cmd, "correction")
         vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_compute_barrier(cmd)
 
-        # 3. Density continuity + Tait EOS → density_pressure_b
-        self._bind_pipeline_and_sets(cmd, "density", "set_0_even")
+        # 3. Density continuity + Tait EOS → density_pressure_scratch
+        self._bind_pipeline_and_sets(cmd, "density")
         vkCmdDispatch(cmd, per_p, 1, 1)
-        self._record_compute_barrier(cmd)
+        # Copy scratch → primary so force reads the freshly-written ρ.
+        self._record_density_scratch_to_primary_copy(cmd)
 
         # 4. Force (pressure + viscosity + PST shift) → acceleration, shift
-        # Note: force reads density_pressure_b which density just wrote → barrier above.
-        self._bind_pipeline_and_sets(cmd, "force", "set_0_even")
+        self._bind_pipeline_and_sets(cmd, "force")
         vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_compute_barrier(cmd)
 
         # 5. Backward half-kick: v_0 → v_{-1/2}
-        self._bind_pipeline_and_sets(cmd, "bootstrap_half_kick", "set_0_even")
+        self._bind_pipeline_and_sets(cmd, "bootstrap_half_kick")
         vkCmdDispatch(cmd, per_p, 1, 1)
 
         vkEndCommandBuffer(cmd)
         return cmd
 
-    def _record_step_cmd(self, parity: int):
-        """One main step: predict → update_voxel → correction → density → force.
-        parity=0 reads density_pressure_a (set_0_even); parity=1 reads B."""
+    def _record_step_cmd(self):
+        """One main step: predict → update_voxel → correction → density →
+        (scratch→primary copy) → force."""
         cmd = self._allocate_oneshot_cmd()
-        # SIMULTANEOUS_USE_BIT: this cmd buffer is pre-recorded once and may be
-        # submitted multiple times without waiting for prior submissions to
-        # complete (renderer's wait=False path keeps several copies in flight).
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
 
-        # Leading barrier: when callers submit successive step cmds without
-        # a CPU fence between them (renderer fast path), this barrier flushes
-        # the previous submission's compute writes so this step's first
-        # dispatch (predict, reading position/velocity/acceleration/shift)
-        # sees a coherent view. Harmless when callers use submit_and_wait.
+        # Leading barrier (renderer fast path; see master version's notes).
         self._record_compute_barrier(cmd)
 
         per_p = self._per_particle_dispatch_count()
         per_v = self._per_voxel_dispatch_count()
-        set_0_key = "set_0_even" if parity == 0 else "set_0_odd"
 
-        # 1. predict (per-particle): kick + drift + crossing detection
-        self._bind_pipeline_and_sets(cmd, "predict", set_0_key)
+        # 1. predict
+        self._bind_pipeline_and_sets(cmd, "predict")
         vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_compute_barrier(cmd)
 
-        # 2. update_voxel (per-voxel): compact inside + merge incoming
-        self._bind_pipeline_and_sets(cmd, "update_voxel", set_0_key)
+        # 2. update_voxel (per-voxel dispatch)
+        self._bind_pipeline_and_sets(cmd, "update_voxel")
         vkCmdDispatch(cmd, per_v, 1, 1)
         self._record_compute_barrier(cmd)
 
-        # 3. correction (per-particle): KCG matrix + ∇ρ + kernel_sum
-        self._bind_pipeline_and_sets(cmd, "correction", set_0_key)
+        # 3. correction
+        self._bind_pipeline_and_sets(cmd, "correction")
         vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_compute_barrier(cmd)
 
-        # 4. density (per-particle): writes the OPPOSITE ping-pong slot
-        self._bind_pipeline_and_sets(cmd, "density", set_0_key)
+        # 4. density: writes density_pressure_scratch
+        self._bind_pipeline_and_sets(cmd, "density")
         vkCmdDispatch(cmd, per_p, 1, 1)
-        self._record_compute_barrier(cmd)
+        # Copy scratch → primary; force will read the new ρ from primary.
+        self._record_density_scratch_to_primary_copy(cmd)
 
-        # 5. force (per-particle)
-        self._bind_pipeline_and_sets(cmd, "force", set_0_key)
+        # 5. force
+        self._bind_pipeline_and_sets(cmd, "force")
         vkCmdDispatch(cmd, per_p, 1, 1)
 
         vkEndCommandBuffer(cmd)
@@ -923,7 +945,8 @@ class SphSimulator:
             flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
 
         # Leading barrier: prior step's writes (force.comp on acceleration,
-        # density.comp on density_pressure_b) must complete before defrag reads.
+        # the post-density copy on density_pressure) must complete before
+        # defrag reads.
         self._record_compute_barrier(cmd)
 
         # 1. Reset defrag_scratch_counter (path B uses atomicAdd; path A unused).
@@ -946,9 +969,11 @@ class SphSimulator:
         # 3. Bind defrag pipeline + 5 sets.
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, self.defrag_pipeline)
         sets = [
-            self.descriptor_sets["set_0_even"],   # natural mapping (a@1, b@2);
-                                                  # defrag treats both density slots
-                                                  # symmetrically — parity is irrelevant.
+            self.descriptor_sets["set_0"],        # density.comp's scratch
+                                                  # buffer at binding 2 is NOT
+                                                  # mirrored into set 4 (it's
+                                                  # transient). See
+                                                  # _build_defrag_set4_layout.
             self.descriptor_sets["set_1"],
             self.descriptor_sets["set_2"],
             self.descriptor_sets["set_3"],
@@ -980,8 +1005,14 @@ class SphSimulator:
         )
 
         # 6. Linear copy each scratch SoA back to its set-0 primary.
+        # Skip binding 2 (density_pressure_scratch): defrag did not write there
+        # (its set-4 layout is sparse — see DEFRAG_SET4_BINDINGS), so there's
+        # nothing to copy back. The transient scratch will be overwritten by
+        # next step's density.comp anyway.
         for spec in self._buffer_specs:
             if spec.set_index != 0:
+                continue
+            if spec.binding not in self.DEFRAG_SET4_BINDINGS:
                 continue
             scratch = self.scratch_buffers[spec.name]
             primary = self.buffers[spec.name]
@@ -1045,7 +1076,7 @@ class SphSimulator:
         of defrag_cadence, fire the defrag cmd buffer (also fire-and-forget
         when wait=False; same queue serializes naturally).
         """
-        cmd = self.step_cmds[self.parity]
+        cmd = self.step_cmd
         if wait:
             self.ctx.submit_and_wait(cmd)
         else:
@@ -1055,7 +1086,6 @@ class SphSimulator:
                 pCommandBuffers=[cmd],
             )
             vkQueueSubmit(self.ctx.compute_queue, 1, submit_info, VK_NULL_HANDLE)
-        self.parity ^= 1
         self.simulation_time += self.case.timestep
         self.step_count += 1
 
@@ -1151,13 +1181,12 @@ class SphSimulator:
         The renderer creates its own graphics pipeline and reads these as
         instanced vertex sources / SSBOs. Buffer USAGE flags already include
         VERTEX_BUFFER_BIT for the keys returned here."""
-        # Note: density_pressure_a/b switches semantics each step (parity).
-        # For correctness, renderer should use parity to pick the read side.
+        # Single canonical density_pressure (scratch+copy variant; the
+        # transient scratch buffer is irrelevant for visualization).
         return {
             "position_voxel_id":    self.buffers["position_voxel_id"].handle,
             "velocity_mass":        self.buffers["velocity_mass"].handle,
-            "density_pressure_a":   self.buffers["density_pressure_a"].handle,
-            "density_pressure_b":   self.buffers["density_pressure_b"].handle,
+            "density_pressure":     self.buffers["density_pressure"].handle,
             "global_status":        self.buffers["global_status"].handle,
         }
 
@@ -1178,7 +1207,7 @@ class SphSimulator:
         # Cmd buffers freed when their pool is destroyed (ctx owns the pool).
         # We allocated them from ctx.command_pool, so explicit free is optional
         # but cleaner.
-        cmds = [self.bootstrap_cmd, self.defrag_cmd] + self.step_cmds
+        cmds = [self.bootstrap_cmd, self.defrag_cmd, self.step_cmd]
         vkFreeCommandBuffers(device, self.ctx.command_pool, len(cmds), cmds)
 
         for pipeline in self.pipelines.values():

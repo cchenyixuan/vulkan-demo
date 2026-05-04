@@ -31,9 +31,11 @@ Main loop (uniform, every step):
                           → a_{n+1}, shift_{n+1}
 ```
 
-Stage order matters. Each step's force consumes density.comp's output
-(`density_pressure_b`); next step's predict consumes force's outputs
-(`acceleration`, `shift`).
+Stage order matters. density.comp writes the new ρ/P to the transient
+`density_pressure_scratch`; the simulator immediately copies that back to
+the canonical `density_pressure` (set 0 binding 1) inside the same step
+cmd, so force.comp sees the freshly-written values. The next step's
+predict consumes force's outputs (`acceleration`, `shift`).
 
 Multi-GPU ghost handling and inlet/outlet kernels are deferred (V0+ work). `defrag.comp` is implemented (separate path from the per-step main loop, triggered periodically — see file inventory below).
 
@@ -122,8 +124,8 @@ Reads (R) and Writes (W) per kernel. See `common.glsl` for binding numbers.
 | Buffer (set 0 unless noted) | bootstrap | predict | update_voxel | correction | density | force |
 |---|---|---|---|---|---|---|
 | `position_voxel_id` | R | R/W | R/W (kill) | R | R | R |
-| `density_pressure_a` | — | — | — | R | R | — |
-| `density_pressure_b` | — | — | — | — | W | R |
+| `density_pressure` | — | — | — | R | R | R |
+| `density_pressure_scratch` | — | — | — | — | W | — |
 | `velocity_mass` | R/W | R/W | R/W (kill) | R (mass via .w) | R | R |
 | `acceleration` | R | R | — | — | — | W |
 | `shift` | — | R | — | — | — | W |
@@ -138,8 +140,11 @@ Reads (R) and Writes (W) per kernel. See `common.glsl` for binding numbers.
 | `global_status` (set 3, atomics) | — | atomic W on overflow | atomic W on overflow | atomic W on fallback | — | — |
 
 Notes:
-- Density ping-pong: at end of step, descriptor set swaps so what was
-  `density_pressure_b` becomes the next step's `density_pressure_a`.
+- Density staging is **scratch+copy**: density.comp writes
+  `density_pressure_scratch` (binding 2); the simulator's step cmd then
+  issues `vkCmdCopyBuffer scratch → primary` so by force.comp the
+  canonical `density_pressure` (binding 1) holds ρ_{n+1}, P_{n+1}.
+  No ping-pong, no descriptor parity.
 - `correction` does not read `material` to skip INLET (see notes above).
 - `force` is the most expensive: reads neighbor M, ∇ρ, mass, density, vel for
   pair-averaged formulas; uniform V0 lets us compute pair quantities from

@@ -17,12 +17,12 @@ V0 scope = single-GPU δ-plus WCSPH rewrite in Vulkan. Match or exceed OpenGL ba
 
 Four descriptor sets, organized by update frequency:
 
-- **set 0** — Own particle SoA (ping-pong subset swapped each step)
+- **set 0** — Own particle SoA (canonical `density_pressure` + transient `density_pressure_scratch`; the simulator step cmd copies scratch → canonical inside each step)
 - **set 1** — Own voxel cell structures (bound once)
 - **set 2** — Ghost particles + ghost voxel structures (V1 multi-GPU; V0-a: bound to dummy, `GHOST_DIMENSION_*=0` makes all ghost branches dead-code-eliminated)
 - **set 3** — Global status, transport, material parameters, diagnostics (bound once)
 
-Ping-pong is implemented by allocating two instances of set 0 in which bindings 1 and 2 (`density_pressure_a` / `density_pressure_b`) point to opposite physical buffers. Even-step dispatches bind the "A-then-B" instance, odd-step the "B-then-A" instance. Shader always reads binding 1 and writes binding 2; swap is invisible to the shader.
+Density uses **scratch + copy** (not ping-pong). `density.comp` writes its new ρ/P into the transient `density_pressure_scratch` (binding 2); the simulator's step cmd then issues `vkCmdCopyBuffer scratch → primary` inside the same submission, so by `force.comp` the canonical `density_pressure` (binding 1) already holds ρ_{n+1}, P_{n+1}. Single descriptor set, no parity bookkeeping.
 
 ## Buffer Layout (V0)
 
@@ -33,8 +33,8 @@ Unified pool — fluid, boundary, inlet, rotor share slots, differentiated by `m
 | binding | Buffer | Type | Size/particle | Access pattern |
 |---|---|---|---|---|
 | 0 | `position_voxel_id` | `vec4` (x, y, z, voxel_id_as_float) | 16 B | Hot (every neighbor loop) |
-| 1 | `density_pressure_a` | `vec2` (ρ, P) | 8 B | ping-pong partner A |
-| 2 | `density_pressure_b` | `vec2` (ρ, P) | 8 B | ping-pong partner B |
+| 1 | `density_pressure` | `vec2` (ρ, P) | 8 B | canonical (post-copy each step) |
+| 2 | `density_pressure_scratch` | `vec2` (ρ, P) | 8 B | density.comp's transient write target |
 | 3 | `velocity_mass` | `vec4` (vx, vy, vz, mass) | 16 B | Force / density read v; predict writes v; mass preserved |
 | 4 | `acceleration` | `vec4` (ax, ay, az, _) | 16 B | **Persistent** (next step's kick consumes a_n) |
 | 5 | `shift` | `vec4` (sx, sy, sz, _) | 16 B | **Persistent** (drift needs shift_n) |
@@ -48,7 +48,7 @@ Core = **132 B/particle** (binding 0–8), +16 B for `extension_fields` if used.
 **Layout notes:**
 
 - `voxel_id` stored as `float(vid)` in `position_voxel_id.w` (1-based, 0 = dead). Decode: `uint vid = uint(round(position_voxel_id[pid].w))`. Single hot load gets `pos + vid`. Using `round()` not `floatBitsToUint` because the small 1-based integer fits exactly in a float and `round()` is cheaper to reason about.
-- `density_pressure` ping-pong: density writes B, next step reads it as A. Descriptor swap at step end.
+- `density_pressure` staging: density.comp writes the scratch buffer at binding 2; the simulator's step cmd issues `vkCmdCopyBuffer scratch → primary` (with surrounding compute↔transfer barriers) inside the same submission, so force.comp reads the freshly-written ρ from binding 1.
 - `correction_inverse` packs symmetric 3×3 M⁻¹ into 2 vec4:
   - `[pid*2]     = (m00, m11, m22, m01)`
   - `[pid*2 + 1] = (m02, m12, _, _)`
@@ -144,26 +144,28 @@ Entering step `n`: `x_n`, `v_{n-1/2}`, `a_n`, `ρ_n`, `shift_n` all valid from p
      MUST run before correction (correction's neighbor search uses inside_particle_index).
 
 3. correction       (per-particle, 27-voxel neighbor loop)
-     reads:  position_voxel_id, velocity_mass (mass via .w), density_pressure_a,
+     reads:  position_voxel_id, velocity_mass (mass via .w), density_pressure,
              inside_particle_count, inside_particle_index
      writes: correction_inverse (symmetric M⁻¹),
              density_gradient_kernel_sum (∇ρ.xyz, kernel_sum)
 
 4. density          (per-particle, 27-voxel neighbor loop)
-     reads:  position_voxel_id, velocity_mass, density_pressure_a,
+     reads:  position_voxel_id, velocity_mass, density_pressure,
              correction_inverse, density_gradient_kernel_sum,
              inside_particle_count, inside_particle_index, material_parameters
-     writes: density_pressure_b (new ρ_{n+1}, new P_{n+1} via Tait EOS)
+     writes: density_pressure_scratch (new ρ_{n+1}, new P_{n+1} via Tait EOS).
+             Simulator immediately copies scratch → density_pressure inside
+             the step cmd (compute→transfer→compute barriers).
 
 5. force            (per-particle, 27-voxel neighbor loop)
-     reads:  position_voxel_id, velocity_mass, density_pressure_b (canonical ρ_{n+1}),
+     reads:  position_voxel_id, velocity_mass, density_pressure (canonical ρ_{n+1}),
              correction_inverse, density_gradient_kernel_sum (kernel_sum via .w),
              material, material_parameters,
              inside_particle_count, inside_particle_index
      writes: acceleration (a_{n+1}), shift (shift_{n+1} via PST)
 
 END: x_{n+1}, v_{n+1/2}, a_{n+1}, ρ_{n+1}, shift_{n+1} all ready for step n+1.
-Descriptor ping-pong: swap set 0's density_pressure_a ↔ density_pressure_b bindings.
+No descriptor parity to swap: density_pressure is canonical at binding 1 throughout.
 ```
 
 There is **no step 6** (no post-force kick). Leapfrog absorbs Verlet KDK's second half-kick into the next step's predict: `v_{n+1/2} = v_{n-1/2} + a_n · dt` combines (kick2 of step n−1) + (kick1 of step n) into one full-step kick.
@@ -225,7 +227,7 @@ Trigger policy: TBD — static cadence (~256 steps) vs GPU-side fragmentation me
 
 From OpenGL `ParticleRuntimeData`, fields retained as persistent cross-stage state in V0:
 
-- **Kept**: M⁻¹ (→ `correction_inverse`), ∇ρ + kernel_sum (→ `density_gradient_kernel_sum`), new_ρ / new_P (→ `density_pressure_b`), particle_shift (→ `shift`)
+- **Kept**: M⁻¹ (→ `correction_inverse`), ∇ρ + kernel_sum (→ `density_gradient_kernel_sum`), new_ρ / new_P (→ `density_pressure_scratch`, copied to `density_pressure` each step), particle_shift (→ `shift`)
 - **Cut** (kernel-local, computed in registers): `kernel_gradient_sum`, per-particle `kernel_sum` accumulator outside correction, `kernel_normalize_matrix` accumulation
 - **Cut** (extensions, deferred): `curl_u`, `w`, `overlap`, `aw`, `mass_transfer_target_particle`, `FTLE`
 - **Reserved slots** (debug/render builds only): `extension_fields` (set 0 binding 9) + optional `diagnostic` buffer (set 3 binding 6)
@@ -235,7 +237,7 @@ From OpenGL `ParticleRuntimeData`, fields retained as persistent cross-stage sta
 | Item | Status |
 |---|---|
 | Kernel workgroup size | ✓ `WORKGROUP_SIZE = 128` (id=51, per-kernel overridable via `local_size_x_id`) |
-| Density ping-pong mechanics | ✓ Descriptor set swap at step end (two set 0 instances, parity flip) |
+| Density staging | ✓ scratch+copy: density.comp writes scratch (binding 2), step cmd copies scratch → primary (binding 1) inside same submission. No parity. |
 | Bootstrap pass implementation | ✓ `bootstrap_half_kick.comp` ready; Python orchestrator pending in `utils/sph/simulator.py` |
 | Overflow validation counters | ✓ `global_status.overflow_inside_count`, `overflow_incoming_count`, first-offending-voxel via `atomicCompSwap` |
 | CAP tuning (96 / 16) | ⏳ Pending live profiling on real scenes |
@@ -267,7 +269,7 @@ utils/sph/                     # Python pipeline glue — PENDING
   shader_loader.py             # SPV → VkShaderModule
   buffers.py                   # SoA allocation + staging upload
   scene.py                     # initial particle pool + voxelization
-  descriptors.py               # 4 set layouts + pool + sets (ping-pong pair)
+  descriptors.py               # 4 set layouts + pool + single set 0 instance
   pipelines.py                 # 6 compute pipelines
   dispatch.py                  # command buffer recording
   simulator.py                 # top-level driver

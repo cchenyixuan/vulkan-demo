@@ -50,8 +50,8 @@ void main() {
     uint self_voxel_id          = uint(round(self_position_voxel_id.w));
     if (self_voxel_id == VOXEL_ID_DEAD) return;
 
-    // Read self's density from the ping-pong "current" buffer.
-    float self_density = density_pressure_a[self_particle_id].x;
+    // Read self's density from the canonical buffer.
+    float self_density = density_pressure[self_particle_id].x;
 
     // --- Decode self voxel coord ---------------------------------------------
     ivec3 self_voxel_coord = own_coord_of(self_voxel_id);
@@ -90,7 +90,7 @@ void main() {
 
                     // --- Read neighbor mass / density / volume --------------
                     float neighbor_mass    = velocity_mass[neighbor_particle_id].w;
-                    float neighbor_density = density_pressure_a[neighbor_particle_id].x;
+                    float neighbor_density = density_pressure[neighbor_particle_id].x;
                     float neighbor_volume  = neighbor_mass / neighbor_density;
 
                     // --- Evaluate kernel and gradient -----------------------

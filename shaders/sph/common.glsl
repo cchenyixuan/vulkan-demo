@@ -221,15 +221,24 @@ layout(std430, set = 0, binding = 0) buffer PositionVoxelIdBuffer {
     vec4 position_voxel_id[];
 };
 
-layout(std430, set = 0, binding = 1) buffer DensityPressureABuffer {
-    // (ρ, P)  ping-pong partner A
-    // Density stage writes to "next" buffer; binding is swapped by descriptor update.
-    vec2 density_pressure_a[];
+layout(std430, set = 0, binding = 1) buffer DensityPressureBuffer {
+    // (ρ, P)  canonical density / pressure per particle.
+    //
+    // density.comp writes new values into `density_pressure_scratch` (binding 2
+    // below). The simulator's step cmd then issues vkCmdCopyBuffer
+    // scratch → primary inside the same submission so that by force.comp's
+    // neighbor loop this binding already holds ρ_{n+1}, P_{n+1}. correction
+    // and force only ever read this buffer; they never touch scratch.
+    vec2 density_pressure[];
 };
 
-layout(std430, set = 0, binding = 2) buffer DensityPressureBBuffer {
-    // (ρ, P)  ping-pong partner B
-    vec2 density_pressure_b[];
+layout(std430, set = 0, binding = 2) buffer DensityPressureScratchBuffer {
+    // (ρ, P)  transient scratch slot for density.comp's writes.
+    //
+    // Only density.comp writes here. The simulator's step cmd then copies
+    // this back into binding 1 immediately after the dispatch, so scratch
+    // contents are stale outside that ~µs window.
+    vec2 density_pressure_scratch[];
 };
 
 layout(std430, set = 0, binding = 3) buffer VelocityMassBuffer {

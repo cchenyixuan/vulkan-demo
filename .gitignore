@@ -7,7 +7,3 @@ __pycache__/
 .claude/
 output/
 viewer_run.log
-experiment/
-fps_*.csv
-_verify_equivalence.py
-_compare_fps.py

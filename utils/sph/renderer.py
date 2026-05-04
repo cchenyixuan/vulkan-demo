@@ -7,7 +7,7 @@ graphics pipeline; particles are drawn as round point sprites.
 
 Hotkeys:
     SPACE       pause/resume the simulation
-    0-3         color mode: 0=speed, 1=accel, 2=density dev, 3=voxel id
+    0-4         color mode: 0=speed, 1=accel, 2=density dev, 3=voxel id, 4=kernel_sum
     P           toggle perspective ↔ orthogonal projection
     F           re-frame to fit the case bbox
     +/-         steps_per_frame ± 1
@@ -137,7 +137,7 @@ class SphRenderer:
         self.render_pass = None
         self.descriptor_layout = None
         self.descriptor_pool = None
-        self.descriptor_sets: list = []      # one per ping-pong density side
+        self.descriptor_sets: list = []      # single set; binding 1 = canonical density_pressure
         self.pipeline_layout = None
         self.pipeline = None
         self.vert_module = None
@@ -383,12 +383,14 @@ class SphRenderer:
         # simulator's set 0 layout in shaders/sph/common.glsl exactly (sparse
         # set: render only needs a subset). This lets particle.vert
         # `#include "common.glsl"` and read sim's buffers under their canonical
-        # binding numbers, eliminating the renderer-local mapping.
+        # binding numbers, eliminating any renderer-local mapping.
+        #
+        # Binding 1 points at density_pressure, the canonical buffer. The
+        # simulator's step cmd has already copied scratch → primary by the
+        # time we render, so this is always the freshly-written ρ.
         #
         #   binding 0 = position_voxel_id
-        #   binding 1 = density_pressure_a/b (ping-pong: CPU swaps the physical
-        #               buffer at this slot each frame; shader always reads
-        #               density_pressure_a)
+        #   binding 1 = density_pressure (canonical; post-copy each step)
         #   binding 3 = velocity_mass
         #   binding 4 = acceleration
         #   binding 8 = density_gradient_kernel_sum
@@ -409,49 +411,47 @@ class SphRenderer:
             None,
         )
 
-        # Pool: 2 sets × 5 SSBOs.
+        # Pool: 1 set × 5 SSBOs.
         pool_size = VkDescriptorPoolSize(
-            type=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, descriptorCount=10)
+            type=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, descriptorCount=5)
         self.descriptor_pool = vkCreateDescriptorPool(
             self.ctx.device,
             VkDescriptorPoolCreateInfo(
-                maxSets=2, poolSizeCount=1, pPoolSizes=[pool_size]),
+                maxSets=1, poolSizeCount=1, pPoolSizes=[pool_size]),
             None,
         )
 
-        # Allocate 2 sets, then write each one wired to a different density side.
         allocate_info = VkDescriptorSetAllocateInfo(
             descriptorPool=self.descriptor_pool,
-            descriptorSetCount=2,
-            pSetLayouts=[self.descriptor_layout, self.descriptor_layout],
+            descriptorSetCount=1,
+            pSetLayouts=[self.descriptor_layout],
         )
+        # `descriptor_sets` is a single-element list; index [0] is the only
+        # used set. (Kept as a list so existing call sites that subscript
+        # don't need to be reshaped.)
         self.descriptor_sets = vkAllocateDescriptorSets(
             self.ctx.device, allocate_info)
 
-        # set 0 → binding 1 holds density_pressure_a; set 1 → binding 1 holds
-        # density_pressure_b. CPU picks which descriptor set to bind each frame
-        # based on which density side was last written.
         sim_buffers = self.simulator.buffers
-        for set_index, density_name in enumerate(["density_pressure_a", "density_pressure_b"]):
-            buffer_pairs = [
-                (0, sim_buffers["position_voxel_id"]),
-                (1, sim_buffers[density_name]),
-                (3, sim_buffers["velocity_mass"]),
-                (4, sim_buffers["acceleration"]),
-                (8, sim_buffers["density_gradient_kernel_sum"]),
-            ]
-            writes = []
-            for binding, buffer in buffer_pairs:
-                buffer_info = VkDescriptorBufferInfo(
-                    buffer=buffer.handle, offset=0, range=buffer.size)
-                writes.append(VkWriteDescriptorSet(
-                    dstSet=self.descriptor_sets[set_index],
-                    dstBinding=binding,
-                    dstArrayElement=0,
-                    descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                    descriptorCount=1,
-                    pBufferInfo=[buffer_info],
-                ))
+        buffer_pairs = [
+            (0, sim_buffers["position_voxel_id"]),
+            (1, sim_buffers["density_pressure"]),
+            (3, sim_buffers["velocity_mass"]),
+            (4, sim_buffers["acceleration"]),
+            (8, sim_buffers["density_gradient_kernel_sum"]),
+        ]
+        writes = []
+        for binding, buffer in buffer_pairs:
+            buffer_info = VkDescriptorBufferInfo(
+                buffer=buffer.handle, offset=0, range=buffer.size)
+            writes.append(VkWriteDescriptorSet(
+                dstSet=self.descriptor_sets[0],
+                dstBinding=binding,
+                dstArrayElement=0,
+                descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                descriptorCount=1,
+                pBufferInfo=[buffer_info],
+            ))
             vkUpdateDescriptorSets(self.ctx.device, len(writes), writes, 0, None)
 
     def _create_pipeline(self) -> None:
@@ -777,23 +777,13 @@ class SphRenderer:
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, self.pipeline)
 
-        # Pick the descriptor set whose binding 1 points to the most-recently-
-        # WRITTEN density buffer (= what we want to visualize):
-        #   - bootstrap used set_0_even → wrote density_pressure_b
-        #   - step N (N≥1) used set_0_<sim.parity^1 before flip>:
-        #       parity_used=0 (even) → wrote B
-        #       parity_used=1 (odd)  → wrote A
-        #     i.e. just-written is B iff sim.parity == 1 after the step.
-        # Combined: B is freshest iff (step_count == 0) or (sim.parity == 1).
-        # set 0 (descriptor_sets[0]) has binding 1 → A; set 1 → B.
-        latest_is_b = (
-            self.simulator.step_count == 0 or self.simulator.parity == 1
-        )
-        descriptor_index = 1 if latest_is_b else 0
+        # Single descriptor set; binding 1 always points at the canonical
+        # density_pressure (post scratch→primary copy in the simulator's
+        # step cmd).
         vkCmdBindDescriptorSets(
             cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
             self.pipeline_layout, 0,
-            1, [self.descriptor_sets[descriptor_index]],
+            1, [self.descriptor_sets[0]],
             0, None,
         )
 

@@ -13,9 +13,8 @@
 //
 // Set 0 buffers actually consumed:
 //   binding 0 : position_voxel_id        (xyz + voxel_id_as_float)
-//   binding 1 : density_pressure_a       (ρ, P) — ping-pong "current" side;
-//                                         CPU swaps which physical buffer is
-//                                         bound here each frame.
+//   binding 1 : density_pressure         (ρ, P) — canonical, post scratch→primary
+//                                         copy in the simulator's step cmd.
 //   binding 3 : velocity_mass            (vxyz, mass)
 //   binding 4 : acceleration             (axyz, _)
 //   binding 8 : density_gradient_kernel_sum (∇ρ, kernel_sum)
@@ -103,9 +102,10 @@ void main() {
         float accel_mag = length(acceleration[particle_id].xyz);
         frag_color = colormap_viridis(accel_mag * pc.acceleration_scale);
     } else if (pc.color_mode == 2u) {
-        // density_pressure_a is the "current read" ping-pong side; CPU swaps
-        // which physical buffer is bound at set 0 binding 1 each frame.
-        float rho = density_pressure_a[particle_id].x;
+        // density_pressure is the canonical ρ at binding 1; the simulator's
+        // step cmd has already copied scratch → primary by render time, so
+        // this read is the freshly-written ρ_{n+1}.
+        float rho = density_pressure[particle_id].x;
         float dev = (rho - pc.rest_density) / max(pc.rest_density, 1e-6);
         frag_color = colormap_diverging(dev * pc.density_deviation_scale);
     } else if (pc.color_mode == 3u) {

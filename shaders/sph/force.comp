@@ -61,12 +61,15 @@ void main() {
     if (self_voxel_id == VOXEL_ID_DEAD) return;
 
     // --- Self velocity + mass + density + pressure ---------------------------
-    // density_pressure_b: canonical ρ_{n+1}, P_{n+1} from density.comp
+    // density_pressure: canonical ρ_{n+1}, P_{n+1}.
+    // density.comp wrote to scratch; the simulator already issued
+    // vkCmdCopyBuffer scratch → primary inside the same step cmd, so this
+    // read is the fresh ρ_{n+1}, P_{n+1}.
     vec4  self_velocity_mass = velocity_mass[self_particle_id];
     vec3  self_velocity      = self_velocity_mass.xyz;
     float self_mass          = self_velocity_mass.w;
 
-    vec2  self_density_pressure = density_pressure_b[self_particle_id];
+    vec2  self_density_pressure = density_pressure[self_particle_id];
     float self_density  = self_density_pressure.x;
     float self_pressure = self_density_pressure.y;
 
@@ -141,7 +144,7 @@ void main() {
                     // V0 uniformity: self_mass used for neighbor mass; ν / R / V
                     // also taken from self_params outside the loop.
                     vec3  neighbor_velocity = velocity_mass[neighbor_particle_id].xyz;
-                    vec2  neighbor_density_pressure = density_pressure_b[neighbor_particle_id];
+                    vec2  neighbor_density_pressure = density_pressure[neighbor_particle_id];
                     float neighbor_density  = neighbor_density_pressure.x;
                     float neighbor_pressure = neighbor_density_pressure.y;
                     float neighbor_volume_dynamic = self_mass / neighbor_density;

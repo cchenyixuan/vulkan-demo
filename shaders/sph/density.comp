@@ -7,7 +7,7 @@
 // density.comp - δ-plus WCSPH density + pressure update (stage 4 of leapfrog).
 //
 // Consumes correction outputs (M^-1, ∇ρ) and current-step density
-// (density_pressure_a). Runs a 27-voxel neighbor loop per particle to
+// (density_pressure, the canonical buffer). Runs a 27-voxel neighbor loop per particle to
 // compute:
 //   density_drift     = Σ_j  -ρ_i · V_j · (v_j - v_i) · ∇W̃_ij
 //   density_diffusion = Σ_j   δ · h · c₀ · D_ij           (Antuono δ-SPH)
@@ -20,8 +20,10 @@
 // Forward integration: ρ_{n+1} = ρ_n + dt · (drift + diffusion)
 // EOS:                 P_{n+1} = eos_constant · ((ρ_{n+1}/ρ₀)^γ - 1)
 //
-// Writes to the ping-pong "write" buffer (density_pressure_b). Next step's
-// descriptor swap makes it the "read" side.
+// Writes to density_pressure_scratch (binding 2). The simulator's step cmd
+// then issues a vkCmdCopyBuffer scratch → primary inside the same submission,
+// so by force.comp the canonical density_pressure holds ρ_{n+1}, P_{n+1}.
+// No descriptor parity / ping-pong.
 //
 // Indexing: 1-based throughout. particle_id ∈ [1, pool_size],
 // voxel_id ∈ [1, voxel_count], slot entries are direct 1-based particle_ids.
@@ -55,7 +57,7 @@ void main() {
     if (self_voxel_id == VOXEL_ID_DEAD) return;
 
     vec3  self_velocity = velocity_mass[self_particle_id].xyz;
-    float self_density  = density_pressure_a[self_particle_id].x;   // ρ_n
+    float self_density  = density_pressure[self_particle_id].x;   // ρ_n
 
     // KCG correction matrix and density gradient from correction.comp output.
     // When USE_KCG_CORRECTION is false (ablation), substitute identity / zero
@@ -125,7 +127,7 @@ void main() {
                     // --- Read neighbor state --------------------------------
                     vec3  neighbor_velocity = velocity_mass[neighbor_particle_id].xyz;
                     float neighbor_mass     = velocity_mass[neighbor_particle_id].w;
-                    float neighbor_density  = density_pressure_a[neighbor_particle_id].x;
+                    float neighbor_density  = density_pressure[neighbor_particle_id].x;
                     float neighbor_volume   = neighbor_mass / neighbor_density;
 
                     // Read neighbor correction matrix and density gradient
@@ -190,7 +192,8 @@ void main() {
     float new_pressure  = self_params.eos_constant * (pow(density_ratio, POWER_PARAMETER) - 1.0);
 
     // ========================================================================
-    // Write to ping-pong B (next-step canonical ρ, P).
+    // Write to scratch (simulator copies scratch → primary right after this
+    // dispatch returns).
     //
     // Boundary handling: store ρ₀ instead of the integrated new_density so that
     // boundary particles' density does NOT accumulate step-to-step (this is
@@ -206,5 +209,5 @@ void main() {
     float density_to_store = (self_params.kind == MATERIAL_BOUNDARY)
         ? self_params.rest_density
         : new_density;
-    density_pressure_b[self_particle_id] = vec2(density_to_store, new_pressure);
+    density_pressure_scratch[self_particle_id] = vec2(density_to_store, new_pressure);
 }

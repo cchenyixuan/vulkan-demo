@@ -59,7 +59,7 @@ SoA fields (V0 — see `sph_v0_design.md` and `shaders/sph/common.glsl` for the 
 
 - `position_voxel_id` — xyz + voxel_id encoded as `float(vid)` (vec4, 1-based with 0 = dead sentinel)
 - `velocity_mass` — vxyz + mass (vec4)
-- `density_pressure_{a,b}` — (ρ, P) ping-pong pair (vec2 × 2 buffers, swapped each step via descriptor set instance)
+- `density_pressure` + `density_pressure_scratch` — (ρ, P) canonical buffer (binding 1) + transient scratch slot (binding 2). density.comp writes scratch; the simulator's step cmd copies scratch → primary inside the same submission so force.comp reads the canonical buffer with ρ_{n+1}.
 - `acceleration` — axyz + pad (vec4, **persistent across steps** — leapfrog's next-step kick consumes a_n)
 - `shift` — δ-plus correction xyz + pad (vec4, **persistent across steps** — next step's drift consumes shift_n)
 - `material` — group_id (uint, indexes `material_parameters[]` to retrieve `kind` / ρ_0 / ν / B / radius / volume)
@@ -74,7 +74,7 @@ Core ≈ **132 B / particle** + 16 B optional `extension_fields`.
 - **Spec constants** (`layout(constant_id=N) const`): truly global / numerical-scheme parameters that apply to every particle and never change at runtime — `dt`, `smoothing_length`, kernel coefficients (Wendland C4 normalization), gravity, PST coefficients, correction regularization ε, capacities (`POOL_SIZE`, `MAX_PARTICLES_PER_VOXEL`, ...), grid dimensions, `STRICT_BIT_EXACT` toggle.
 - **`material_parameters[]` buffer** (set 3 binding 7, indexed by per-particle `material[pid]` → group_id): per-group SPH parameters that may differ between fluid groups, between fluid and boundary, between phases — `rest_density`, `viscosity`, `eos_constant`, `radius`, `volume`, `kind`. Costs ~2 indirect loads per neighbor in density/force, traded for **multi-phase / natural boundary-treatment extensibility** (V0 design intent, not optimization deferral).
 
-**Per-step scratch** (`kernel_gradient_sum`, raw `normalize_matrix` accumulators, etc.) — kept as local variables inside the kernel that produces them. Only fields crossing a kernel boundary are promoted to persistent buffers (M⁻¹, ∇ρ + kernel_sum, ρ/P via ping-pong, shift across steps).
+**Per-step scratch** (`kernel_gradient_sum`, raw `normalize_matrix` accumulators, etc.) — kept as local variables inside the kernel that produces them. Only fields crossing a kernel boundary are promoted to persistent buffers (M⁻¹, ∇ρ + kernel_sum, ρ/P via scratch+copy, shift across steps).
 
 ### Ghost buffer (peer's boundary layer, local copy)
 
