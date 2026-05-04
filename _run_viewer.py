@@ -3,7 +3,7 @@
 Usage:
     .venv/Scripts/python.exe _run_viewer.py [case_path]
 
-Default case: cases/dam_break_2d/case.yaml.
+Default case: cases/lid_driven_cavity_2d/case.yaml.
 
 Hotkeys:
     SPACE       pause/resume
@@ -31,7 +31,7 @@ from utils.sph.simulator import SphSimulator
 from utils.sph.renderer import SphRenderer
 
 
-DEFAULT_CASE = "cases/dam_break_2d/case.yaml"
+DEFAULT_CASE = "cases/lid_driven_cavity_2d/case.yaml"
 
 
 def main() -> None:

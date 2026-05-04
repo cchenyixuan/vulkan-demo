@@ -35,7 +35,7 @@ Stage order matters. Each step's force consumes density.comp's output
 (`density_pressure_b`); next step's predict consumes force's outputs
 (`acceleration`, `shift`).
 
-Multi-GPU ghost handling, defrag, inlet/outlet kernels are deferred (V0+ work).
+Multi-GPU ghost handling and inlet/outlet kernels are deferred (V0+ work). `defrag.comp` is implemented (separate path from the per-step main loop, triggered periodically — see file inventory below).
 
 ---
 
@@ -255,10 +255,13 @@ edits.
   don't actually move (predict skips them).
 
 - **No inlet spawn kernel**: inlet templates exist as static particles in
-  the pool; no new particles are emitted at runtime.
-
-- **No defrag**: particle order in the pool stays fixed after
-  initialization. Cache locality degrades over time as particles diffuse.
+  the pool; no new particles are emitted at runtime. ⚠ Defrag does not
+  preserve inlet pool slots — `defrag.comp` only walks
+  `inside_particle_index`, which by invariant excludes inlet kind. Any case
+  that has INLET particles in the main pool will lose them after the first
+  defrag. The current lid case has no INLET so this is dormant; V0+ inlet
+  spawn must redesign the defrag path (e.g. dedicated inlet pool list, or
+  rebuild inlet slots from `inlet_template` post-defrag).
 
 - **No async multi-GPU**: ghost bindings declared in `common.glsl` (set 2)
   but `GHOST_DIMENSION_*` spec constants are 0, so all ghost-related branches
@@ -277,7 +280,6 @@ edits.
 
 ## What's NOT here yet
 
-- `defrag.comp` — periodic particle re-sort for cache locality. V0 late.
 - `update_dispatch.comp` — 1-thread helper to update DispatchIndirectBuffer.
   Skipped in V0 because all kernels dispatch over POOL_SIZE directly.
 - `inlet_spawn.comp` — spawn new fluid particles from inlet templates. V0+.

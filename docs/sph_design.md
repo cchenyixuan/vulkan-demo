@@ -29,9 +29,9 @@ Per-step pipeline on each GPU (entering with `x_n, v_{n-1/2}, a_n, ρ_n, shift_n
 
 [correction]            on own, reads own + ghost x_{n+1} → M⁻¹, ∇ρ, ksd
 
-[density]               on own, reads own + ghost x_{n+1}, ρ_n → ρ_{n+1}, P_{n+1}
+[density]               on own, reads own + ghost x_{n+1}, v_{n+1/2}, ρ_n + correction outputs (M⁻¹, ∇ρ, kernel_sum) → ρ_{n+1}, P_{n+1}
 
-[force]                 on own, reads own + ghost x, v_{n+1/2}, ρ → a_{n+1}, shift_{n+1}
+[force]                 on own, reads own + ghost x, v_{n+1/2}, ρ_{n+1} + correction outputs + material → a_{n+1}, shift_{n+1}
 
 [Sync]                  pack own boundary [K, N), send to peer ghost buffer
                         content: {x_{n+1}, v_{n+1/2}, a_{n+1}, ρ_{n+1}, shift_{n+1}}
@@ -40,7 +40,7 @@ Per-step pipeline on each GPU (entering with `x_n, v_{n-1/2}, a_n, ρ_n, shift_n
 Note: no explicit post-force kick kernel. The "second half-kick" of velocity Verlet KDK is absorbed into the next step's predict (it becomes part of the full-step kick `v_{n+1/2} = v_{n-1/2} + a_n * dt`). Stored velocity is always at half-step times.
 
 Special cases (preserved from OpenGL code):
-- **Inlet particles** (`voxel_id == 0`): skip integration
+- **Inlet particles** (`MaterialParameters.kind == MATERIAL_INLET`): predict skips integration; density and force skip; correction still runs (deliberate — avoids per-neighbor kind-check overhead, see `shaders/sph/README.md` "Material/kind handling per kernel"). `voxel_id == 0` is reserved as the universal dead/empty sentinel, **not** the inlet marker.
 - **Rotating particles** (rotor group, identified via `MaterialParameters.kind == MATERIAL_ROTOR`): prescribed velocity `ω × r`, skip leapfrog kick. Keep rotor region entirely within one GPU partition to avoid cross-vendor `cos`/`sin` FP divergence.
 
 ## Buffer layout
@@ -55,17 +55,26 @@ Single SoA buffer per GPU, voxel-sorted. Voxel order: **interior voxels first, b
 
 This ordering enables async overlap: dispatch `[0, K)` doesn't touch ghost and can run while sync is in flight.
 
-SoA fields (baseline):
-- `pos_vid` — xyz, voxel_id (vec4)
-- `vel_mass` — vxyz, mass (vec4)
-- `rho_p` — ρ, P, new_ρ, new_P (vec4)
-- `acc` — axyz, temperature (vec4)
-- `shift` — δ-plus correction xyz, padding (vec4)
-- `material` — optional, only if per-particle parameters differ
+SoA fields (V0 — see `sph_v0_design.md` and `shaders/sph/common.glsl` for the canonical binding table; this list summarizes the lifecycle of each field):
 
-**Per-particle global constants** (smoothing_length, eos_constant, viscosity, rest_density) go to `VkSpecializationInfo` / `layout(constant_id=N) const`, NOT per-particle storage.
+- `position_voxel_id` — xyz + voxel_id encoded as `float(vid)` (vec4, 1-based with 0 = dead sentinel)
+- `velocity_mass` — vxyz + mass (vec4)
+- `density_pressure_{a,b}` — (ρ, P) ping-pong pair (vec2 × 2 buffers, swapped each step via descriptor set instance)
+- `acceleration` — axyz + pad (vec4, **persistent across steps** — leapfrog's next-step kick consumes a_n)
+- `shift` — δ-plus correction xyz + pad (vec4, **persistent across steps** — next step's drift consumes shift_n)
+- `material` — group_id (uint, indexes `material_parameters[]` to retrieve `kind` / ρ_0 / ν / B / radius / volume)
+- `correction_inverse` — symmetric M⁻¹ packed (vec4 × 2: 6 unique components + 2 pad)
+- `density_gradient_kernel_sum` — ∇ρ.xyz + kernel_sum (vec4)
+- `extension_fields` — vec4, reserved for V0+ scalar diagnostics (temperature, FTLE, etc.)
 
-**Per-step scratch** (kernel_sum_grad, normalize_matrix, density_gradient, etc.) — promote to buffer only if the field crosses a kernel boundary; otherwise keep as local variables inside the kernel. The OpenGL `ParticleRuntimeData` layout should be audited aggressively; many of its fields likely don't need persistent storage.
+Core ≈ **132 B / particle** + 16 B optional `extension_fields`.
+
+**What goes in `VkSpecializationInfo` vs `material_parameters[]` buffer:**
+
+- **Spec constants** (`layout(constant_id=N) const`): truly global / numerical-scheme parameters that apply to every particle and never change at runtime — `dt`, `smoothing_length`, kernel coefficients (Wendland C4 normalization), gravity, PST coefficients, correction regularization ε, capacities (`POOL_SIZE`, `MAX_PARTICLES_PER_VOXEL`, ...), grid dimensions, `STRICT_BIT_EXACT` toggle.
+- **`material_parameters[]` buffer** (set 3 binding 7, indexed by per-particle `material[pid]` → group_id): per-group SPH parameters that may differ between fluid groups, between fluid and boundary, between phases — `rest_density`, `viscosity`, `eos_constant`, `radius`, `volume`, `kind`. Costs ~2 indirect loads per neighbor in density/force, traded for **multi-phase / natural boundary-treatment extensibility** (V0 design intent, not optimization deferral).
+
+**Per-step scratch** (`kernel_gradient_sum`, raw `normalize_matrix` accumulators, etc.) — kept as local variables inside the kernel that produces them. Only fields crossing a kernel boundary are promoted to persistent buffers (M⁻¹, ∇ρ + kernel_sum, ρ/P via ping-pong, shift across steps).
 
 ### Ghost buffer (peer's boundary layer, local copy)
 
@@ -114,7 +123,7 @@ layout(constant_id = 10) const bool STRICT_BIT_EXACT = true;
 **One sync per step, at end of step.**
 
 Content (own's boundary layer `[K, N)`):
-- `{x_{n+1}, v_{n+1}, a_{n+1}, ρ_{n+1}, shift_{n+1}}` — ~64B per particle (padded)
+- `{x_{n+1}, v_{n+1/2}, a_{n+1}, ρ_{n+1}, shift_{n+1}}` — ~64B per particle (padded). Note `v_{n+1/2}` (half-step), not `v_{n+1}` — leapfrog stores velocity at half-step times.
 
 Typical bandwidth: 100k boundary particles × 64B = **6.4 MB per direction per step**.
 
@@ -160,10 +169,12 @@ Voxel-sorted layout enables dispatch range split:
 Scheduling:
 
 ```
-Step n        [int A][int D][int F][int B][sync out──┐
+(P=predict, C=correction, D=density, F=force; update_voxel runs once between predict and correction, not split)
+
+Step n        [int P][int C][int D][int F][sync out──┐
                                                      ↓
-Step n+1      [int A][int D][int F][int B]  ←── compute queue independent of sync
-              (own interior reads own only)            [bdy A][bdy D][bdy F][bdy B]
+Step n+1      [int P][int C][int D][int F]  ←── compute queue independent of sync
+              (own interior reads own only)            [bdy P][bdy C][bdy D][bdy F]
                                                         ↑ waits for sync
 ```
 

@@ -190,18 +190,20 @@ x_1     = x_0 + v_{1/2} · dt + shift_0
 
 The **backward** offset is critical: predict's kick consumes `acceleration = a_n` (from previous force), so step 1's kick consumes `a_0`. Forward bootstrap (`v_{1/2}`) would feed step 1 a stale `a_0` producing `v_{3/2}` instead of `v_{1/2}`, permanent O(dt²) trajectory error.
 
-### Periodic: Defrag Pass (V0+ deferred — not implemented)
+### Periodic: Defrag Pass (`defrag.comp` — implemented)
 
-Re-sort particles so each voxel's `inside_particle_index` holds contiguous integers → restores cache coherence as particles diffuse. Sketch for future `defrag.comp`:
+Re-sort particle SoA so each voxel's particles occupy a contiguous range `[base_v, base_v + count_v)` → restores spatial locality after particles diffuse. Per-voxel dispatch (one thread per voxel, 1-based vid).
 
-```
-1) exclusive prefix sum over inside_particle_count[] → cell_start[]
-2) per-voxel scatter: new_pid = cell_start[v] + i; copy all particle fields old → new
-3) rewrite inside_particle_index to contiguous integers
-4) swap old ↔ new particle-pool bindings
-```
+Implementation reads the current SoA on `set 0` and writes a scratch SoA on `set 4` that mirrors set 0's layout. CPU-side bank swap after the dispatch promotes set 4 to be the next step's set 0.
 
-Trigger policy TBD (static N≈256 vs GPU fragmentation metric).
+Two base-index strategies via `USE_PREFIX_SUM_DEFRAG` spec constant (id=46):
+
+- `true` — `base = voxel_base_offset[voxel_id]`, deterministic voxel-id order. Requires a prefix-sum pass over `inside_particle_count[]` first.
+- `false` — `base = atomicAdd(defrag_scratch_counter, count)`. Non-deterministic per-voxel order but voxel-internal contiguity preserved (sufficient for the cache-locality goal).
+
+Both paths preserve correctness (total count, voxel→particle assignment); path A additionally guarantees inter-voxel contiguity for stronger cache behavior.
+
+Trigger policy: TBD — static cadence (~256 steps) vs GPU-side fragmentation metric. Currently driver-side from Python.
 
 ## Key Differences vs OpenGL Baseline
 
@@ -237,7 +239,7 @@ From OpenGL `ParticleRuntimeData`, fields retained as persistent cross-stage sta
 | Bootstrap pass implementation | ✓ `bootstrap_half_kick.comp` ready; Python orchestrator pending in `utils/sph/simulator.py` |
 | Overflow validation counters | ✓ `global_status.overflow_inside_count`, `overflow_incoming_count`, first-offending-voxel via `atomicCompSwap` |
 | CAP tuning (96 / 16) | ⏳ Pending live profiling on real scenes |
-| Defrag | ⏳ V0+ deferred |
+| Defrag | ✓ `defrag.comp` implemented (per-voxel scatter, prefix-sum or atomic-counter base via `USE_PREFIX_SUM_DEFRAG` spec const, bank-swap from set 4 → set 0); trigger policy still TBD |
 | Numerical validation (Vulkan vs OpenGL) | ⏳ Gated on Python pipeline + scene loader |
 | 27-neighbor loop shared-memory tiling | ⏳ Deferred to V0 perf pass |
 | Irregular-domain active-voxel mask | ⏳ V0+ deferred; V0 uses full frame-bbox grid |
@@ -271,10 +273,11 @@ utils/sph/                     # Python pipeline glue — PENDING
   simulator.py                 # top-level driver
 
 cases/
-  dam_break_2d/
+  lid_driven_cavity_2d/
     case.yaml                  # parameters + obj references
     domain.obj                 # vertex-as-particle (fluid)
-    boundary.obj               # vertex-as-particle (walls)
+    wall.obj                   # vertex-as-particle (U-shaped static wall)
+    wall_top.obj               # vertex-as-particle (lid: kind=boundary + initial_velocity)
     frame.obj                  # computation bbox (V0: only bbox used)
 
 materials/

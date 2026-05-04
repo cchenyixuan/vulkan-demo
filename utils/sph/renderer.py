@@ -104,8 +104,8 @@ class SphRenderer:
         self.point_size = 5.0
         # Default scales (tunable live via ',' '.' hotkeys; current value
         # printed to stderr on each change).
-        # velocity_scale=1 → saturates at 1 m/s (free-fall reaches ~1.5 m/s
-        #   in 0.15s, so most of dam_break stays in viridis range).
+        # velocity_scale=1 → saturates at 1 m/s (matches lid-driven cavity's
+        #   driving lid speed; retune via hotkey for other characteristic speeds).
         # acceleration_scale=0.01 → saturates at 100 m/s² (gravity = 9.81;
         #   at impact, pressure forces are 1-2 orders larger).
         # density_deviation_scale=100 → saturates at 1% deviation. Typical
