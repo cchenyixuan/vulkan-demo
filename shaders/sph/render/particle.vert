@@ -1,13 +1,24 @@
 #version 460
 #extension GL_GOOGLE_include_directive : enable
+#include "common.glsl"
 
 // ============================================================================
 // particle.vert — point-sprite vertex shader for SPH visualization.
 //
 // One vertex per particle slot; gl_VertexIndex is 0-based, particle_id is
-// 1-based (slot 0 unused). Reads particle state from SSBOs (same physical
-// buffers the simulator owns), applies model-view-projection transform, and
-// passes a per-vertex color to the fragment shader based on color_mode.
+// 1-based (slot 0 unused). Reads particle state from the same set 0 SSBOs the
+// simulator owns — buffer declarations come from common.glsl, so this shader
+// uses identical binding numbers to all compute kernels (single source of
+// truth). glslc -O DCE-strips the bindings this shader does not reference.
+//
+// Set 0 buffers actually consumed:
+//   binding 0 : position_voxel_id        (xyz + voxel_id_as_float)
+//   binding 1 : density_pressure_a       (ρ, P) — ping-pong "current" side;
+//                                         CPU swaps which physical buffer is
+//                                         bound here each frame.
+//   binding 3 : velocity_mass            (vxyz, mass)
+//   binding 4 : acceleration             (axyz, _)
+//   binding 8 : density_gradient_kernel_sum (∇ρ, kernel_sum)
 //
 // Color modes:
 //   0  speed         (length(velocity) → viridis colormap, normalized by scale)
@@ -17,27 +28,8 @@
 //   4  kernel_sum    ((kernel_sum - 1) → diverging blue/white/red; centered on 1
 //                     because Σ V·W ≈ 1 for a well-sampled interior particle)
 //
-// Dead particles (voxel_id < 0.5) are pushed off-screen with size 0.
+// Dead particles (voxel_id == VOXEL_ID_DEAD) are pushed off-screen with size 0.
 // ============================================================================
-
-layout(set = 0, binding = 0) readonly buffer PositionVoxelIdBuffer {
-    vec4 position_voxel_id[];
-};
-layout(set = 0, binding = 1) readonly buffer VelocityMassBuffer {
-    vec4 velocity_mass[];
-};
-layout(set = 0, binding = 2) readonly buffer AccelerationBuffer {
-    vec4 acceleration[];
-};
-layout(set = 0, binding = 3) readonly buffer DensityPressureBuffer {
-    // Whichever ping-pong side is the current read-side at this frame.
-    vec2 density_pressure[];
-};
-layout(set = 0, binding = 4) readonly buffer DensityGradientKernelSumBuffer {
-    // Same physical buffer regardless of ping-pong parity. We only read .w
-    // (kernel_sum) for color mode 4; .xyz holds ∇ρ which is unused here.
-    vec4 density_gradient_kernel_sum[];
-};
 
 layout(push_constant) uniform PushConstants {
     mat4  view_proj;            // 64 B
@@ -90,9 +82,10 @@ vec3 colormap_rainbow_hash(uint key) {
 void main() {
     uint particle_id = gl_VertexIndex + 1u;
     vec4 pos_vid = position_voxel_id[particle_id];
+    uint vid = uint(round(pos_vid.w));
 
     // Dead / unallocated slot → push off-screen and shrink to nothing.
-    if (pos_vid.w < 0.5) {
+    if (vid == VOXEL_ID_DEAD) {
         gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
         gl_PointSize = 0.0;
         frag_color = vec3(0.0);
@@ -110,12 +103,13 @@ void main() {
         float accel_mag = length(acceleration[particle_id].xyz);
         frag_color = colormap_viridis(accel_mag * pc.acceleration_scale);
     } else if (pc.color_mode == 2u) {
-        float rho = density_pressure[particle_id].x;
+        // density_pressure_a is the "current read" ping-pong side; CPU swaps
+        // which physical buffer is bound at set 0 binding 1 each frame.
+        float rho = density_pressure_a[particle_id].x;
         float dev = (rho - pc.rest_density) / max(pc.rest_density, 1e-6);
         frag_color = colormap_diverging(dev * pc.density_deviation_scale);
     } else if (pc.color_mode == 3u) {
         // voxel_id rainbow
-        uint vid = uint(round(pos_vid.w));
         frag_color = colormap_rainbow_hash(vid);
     } else {
         // mode 4: kernel_sum, centered on 1.0

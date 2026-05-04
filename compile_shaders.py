@@ -116,7 +116,9 @@ def compile_render_shaders(optimize: bool = True) -> None:
         output = _spv_output_path(source)
         rel_source = os.path.relpath(source, REPO_ROOT)
         print(f"[render] {rel_source}")
-        _run_glslc(source, output, include_dirs=[], optimize=optimize)
+        # Render shaders may #include "common.glsl" for set 0 binding alignment
+        # with compute kernels — same SPH_INCLUDE_DIR as the .comp shaders.
+        _run_glslc(source, output, include_dirs=[SPH_INCLUDE_DIR], optimize=optimize)
 
 
 def compile_all(optimize: bool = True, include_phase1: bool = True) -> None:

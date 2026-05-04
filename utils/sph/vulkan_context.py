@@ -254,6 +254,18 @@ class VulkanContext:
             pQueuePriorities=[1.0],
         )
         device_extension_list = list(extra_device_extensions) if extra_device_extensions else []
+        # Enable vertexPipelineStoresAndAtomics: Vulkan 1.0 core feature,
+        # universally supported on desktop GPUs. Permits the vertex stage to
+        # bind storage buffers without each declaration being marked
+        # `readonly`. Our render vert shader (particle.vert) reads sim's
+        # set 0 SSBOs via `#include "common.glsl"`, where the buffers are
+        # declared read-write (compute stages need to write). Declaring them
+        # `readonly` only inside the vert would require either macro tricks or
+        # local redeclaration; enabling this feature is the cleaner path. The
+        # shader still does no writes — the feature only relaxes validation.
+        device_features = VkPhysicalDeviceFeatures(
+            vertexPipelineStoresAndAtomics=VK_TRUE,
+        )
         device_create_info = VkDeviceCreateInfo(
             queueCreateInfoCount=1,
             pQueueCreateInfos=[queue_create_info],
@@ -261,6 +273,7 @@ class VulkanContext:
             ppEnabledLayerNames=[],
             enabledExtensionCount=len(device_extension_list),
             ppEnabledExtensionNames=device_extension_list,
+            pEnabledFeatures=device_features,
         )
         device = vkCreateDevice(physical_device, device_create_info, None)
         compute_queue = vkGetDeviceQueue(device, compute_queue_family_index, 0)

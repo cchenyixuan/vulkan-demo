@@ -379,17 +379,28 @@ class SphRenderer:
                 vkCreateFramebuffer(self.ctx.device, create_info, None))
 
     def _create_descriptors(self) -> None:
-        # Layout: 5 SSBO bindings for vertex stage:
-        #   0 = position_voxel_id, 1 = velocity_mass, 2 = acceleration,
-        #   3 = density_pressure_a/b (ping-pong), 4 = density_gradient_kernel_sum
+        # Layout: 5 SSBO bindings for vertex stage. Binding numbers match the
+        # simulator's set 0 layout in shaders/sph/common.glsl exactly (sparse
+        # set: render only needs a subset). This lets particle.vert
+        # `#include "common.glsl"` and read sim's buffers under their canonical
+        # binding numbers, eliminating the renderer-local mapping.
+        #
+        #   binding 0 = position_voxel_id
+        #   binding 1 = density_pressure_a/b (ping-pong: CPU swaps the physical
+        #               buffer at this slot each frame; shader always reads
+        #               density_pressure_a)
+        #   binding 3 = velocity_mass
+        #   binding 4 = acceleration
+        #   binding 8 = density_gradient_kernel_sum
+        render_binding_indices = [0, 1, 3, 4, 8]
         bindings = [
             VkDescriptorSetLayoutBinding(
-                binding=i,
+                binding=binding_index,
                 descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                 descriptorCount=1,
                 stageFlags=VK_SHADER_STAGE_VERTEX_BIT,
             )
-            for i in range(5)
+            for binding_index in render_binding_indices
         ]
         self.descriptor_layout = vkCreateDescriptorSetLayout(
             self.ctx.device,
@@ -417,17 +428,17 @@ class SphRenderer:
         self.descriptor_sets = vkAllocateDescriptorSets(
             self.ctx.device, allocate_info)
 
-        # set 0 → reads density_pressure_a; set 1 → reads density_pressure_b.
-        # Index by (1 - sim.parity): when sim.parity=0 the next read side is A,
-        # so we want set 0; when sim.parity=1 the read side is B → set 1.
+        # set 0 → binding 1 holds density_pressure_a; set 1 → binding 1 holds
+        # density_pressure_b. CPU picks which descriptor set to bind each frame
+        # based on which density side was last written.
         sim_buffers = self.simulator.buffers
         for set_index, density_name in enumerate(["density_pressure_a", "density_pressure_b"]):
             buffer_pairs = [
                 (0, sim_buffers["position_voxel_id"]),
-                (1, sim_buffers["velocity_mass"]),
-                (2, sim_buffers["acceleration"]),
-                (3, sim_buffers[density_name]),
-                (4, sim_buffers["density_gradient_kernel_sum"]),
+                (1, sim_buffers[density_name]),
+                (3, sim_buffers["velocity_mass"]),
+                (4, sim_buffers["acceleration"]),
+                (8, sim_buffers["density_gradient_kernel_sum"]),
             ]
             writes = []
             for binding, buffer in buffer_pairs:
@@ -545,20 +556,33 @@ class SphRenderer:
             self.ctx.device, allocate_info)
 
     def _create_sync_objects(self) -> None:
-        # image_available + in_flight_fence are per in-flight frame.
+        # in_flight_fence is per in-flight frame; created once and survives
+        # swapchain rebuild (not signaled by acquire/present, so resize-safe).
         for _ in range(MAX_FRAMES_IN_FLIGHT):
-            self.image_available_semaphores.append(
-                vkCreateSemaphore(self.ctx.device, VkSemaphoreCreateInfo(), None))
             self.in_flight_fences.append(
                 vkCreateFence(self.ctx.device,
                               VkFenceCreateInfo(flags=VK_FENCE_CREATE_SIGNALED_BIT),
                               None))
+        # image_available is per in-flight frame; recreated on swapchain
+        # rebuild because acquire signals it on VK_SUBOPTIMAL_KHR (AMD's
+        # typical resize signal). On SUBOPTIMAL python-vulkan raises and we
+        # bail to _recreate_swapchain without ever consuming the signal.
+        # Recreating ensures no stale signaled state survives.
+        self._create_image_available_semaphores()
         # render_finished must be per swapchain image (not per in-flight frame):
         # the present operation may still hold the binary semaphore when we
         # cycle frame_index back, so reusing a frame-indexed signal semaphore
         # races with the swapchain. Indexing by image_index makes each
         # acquire-render-present cycle reuse only its own semaphore.
         self._create_render_finished_semaphores()
+
+    def _create_image_available_semaphores(self) -> None:
+        for sem in self.image_available_semaphores:
+            vkDestroySemaphore(self.ctx.device, sem, None)
+        self.image_available_semaphores = [
+            vkCreateSemaphore(self.ctx.device, VkSemaphoreCreateInfo(), None)
+            for _ in range(MAX_FRAMES_IN_FLIGHT)
+        ]
 
     def _create_render_finished_semaphores(self) -> None:
         for sem in self.render_finished_semaphores:
@@ -718,7 +742,7 @@ class SphRenderer:
 
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, self.pipeline)
 
-        # Pick the descriptor set whose binding 3 points to the most-recently-
+        # Pick the descriptor set whose binding 1 points to the most-recently-
         # WRITTEN density buffer (= what we want to visualize):
         #   - bootstrap used set_0_even → wrote density_pressure_b
         #   - step N (N≥1) used set_0_<sim.parity^1 before flip>:
@@ -726,7 +750,7 @@ class SphRenderer:
         #       parity_used=1 (odd)  → wrote A
         #     i.e. just-written is B iff sim.parity == 1 after the step.
         # Combined: B is freshest iff (step_count == 0) or (sim.parity == 1).
-        # set 0 (descriptor_sets[0]) has binding 3 → A; set 1 → B.
+        # set 0 (descriptor_sets[0]) has binding 1 → A; set 1 → B.
         latest_is_b = (
             self.simulator.step_count == 0 or self.simulator.parity == 1
         )
@@ -795,6 +819,11 @@ class SphRenderer:
         # Image count may differ after resize → re-create the per-image
         # render_finished semaphores so the indexing stays valid.
         self._create_render_finished_semaphores()
+        # Also recreate image_available: AMD-style SUBOPTIMAL acquire signals
+        # this semaphore but our exception handler returns before any submit
+        # consumes it. Without recreation, the next frame's acquire on the
+        # same per-frame slot trips "Semaphore must not be currently signaled".
+        self._create_image_available_semaphores()
 
         self.window_width = self.swapchain_extent.width
         self.window_height = self.swapchain_extent.height
