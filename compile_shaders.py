@@ -124,6 +124,12 @@ def compile_render_shaders(optimize: bool = True) -> None:
 def compile_all(optimize: bool = True, include_phase1: bool = True) -> None:
     """Compile every shader in the repo. Importable from runtime entry scripts
     so that editing a shader and re-running the viewer is one step."""
+    if not os.path.isfile(GLSLC):
+        sys.exit(
+            f"glslc not found at {GLSLC}.\n"
+            f"  Either install the Vulkan SDK at the default path "
+            f"(C:/VulkanSDK/<version>/), or set the VULKAN_SDK environment "
+            f"variable to your install root.")
     if include_phase1:
         compile_phase1_shaders()
     compile_smoke_tests()
