@@ -105,12 +105,19 @@ def _find_compute_queue_family(physical_device) -> Optional[int]:
     return None
 
 
-def _select_physical_device(instance):
+def _select_physical_device(instance, requested_device_index: Optional[int] = None):
     """Enumerate all physical devices, print a summary line per device, return
-    (physical_device, compute_queue_family_index) for the first one with a
-    compute-capable queue family. Prints the selection at the end.
+    (physical_device, compute_queue_family_index).
 
-    Raises RuntimeError if no GPU exposes a compute queue.
+    Selection rule:
+      - requested_device_index is None (default): first device exposing a
+        compute-capable queue family. Preserves V0 behaviour exactly.
+      - requested_device_index is an int: that exact index, regardless of
+        whether earlier devices also have compute queues. Errors if the
+        requested index is out of range or lacks a compute queue.
+
+    Raises RuntimeError if no GPU exposes a compute queue (default mode) or
+    if the requested device cannot satisfy the request.
     """
     physical_devices = vkEnumeratePhysicalDevices(instance)
     if not physical_devices:
@@ -138,9 +145,26 @@ def _select_physical_device(instance):
             print(f"        queue_family[{qf_index}]: "
                   f"{_summarize_queue_family(qf_props)}{marker}")
 
-        if selected_index is None and queue_family_index is not None:
-            selected_index = device_index
-            selected_queue_family = queue_family_index
+        if requested_device_index is None:
+            if selected_index is None and queue_family_index is not None:
+                selected_index = device_index
+                selected_queue_family = queue_family_index
+
+    if requested_device_index is not None:
+        if not (0 <= requested_device_index < len(physical_devices)):
+            raise RuntimeError(
+                f"device_index={requested_device_index} out of range "
+                f"(only {len(physical_devices)} physical device(s) present)")
+        candidate = physical_devices[requested_device_index]
+        candidate_qf = _find_compute_queue_family(candidate)
+        if candidate_qf is None:
+            candidate_props = vkGetPhysicalDeviceProperties(candidate)
+            raise RuntimeError(
+                f"requested device_index={requested_device_index} "
+                f"({candidate_props.deviceName}) has no queue family with "
+                f"VK_QUEUE_COMPUTE_BIT")
+        selected_index = requested_device_index
+        selected_queue_family = candidate_qf
 
     if selected_index is None:
         raise RuntimeError(
@@ -191,6 +215,7 @@ class VulkanContext:
         enable_validation: bool = True,
         extra_instance_extensions: Optional[list] = None,
         extra_device_extensions: Optional[list] = None,
+        device_index: Optional[int] = None,
     ) -> "VulkanContext":
         # ---- 1. Decide validation availability --------------------------
         validation_supported = _check_validation_layer_support()
@@ -245,7 +270,8 @@ class VulkanContext:
                 debug_messenger = create_fn(instance, messenger_create_info, None)
 
         # ---- 4. Pick a physical device + compute queue family -----------
-        physical_device, compute_queue_family_index = _select_physical_device(instance)
+        physical_device, compute_queue_family_index = _select_physical_device(
+            instance, requested_device_index=device_index)
 
         # ---- 5. Create logical device + grab the queue ------------------
         queue_create_info = VkDeviceQueueCreateInfo(
