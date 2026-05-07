@@ -86,115 +86,144 @@ GPU 1:  own columns      x_index ∈ [K_split_voxel_x, GRID_NX)
 
 Ghost on the outward (boundary-touching) side is empty — there is no peer there, only the wall. Each GPU's allocated grid is `(own_nx + 1) × ny × nz` voxels in V1 (single peer); the extra column is its ghost slab.
 
-## Descriptor Set 2: Ghost Activation
+## Buffer Layout: Merged Scheme + x-Slowest Encoding
 
-V0-a kept set 2 dummy-bound and `GHOST_DIMENSION_* = 0` to dead-code-eliminate ghost branches. V1 activates them. Layout already declared in `common.glsl` (parallels set 0 + set 1):
+V1 (after the design pivot recorded in `experiment/v1/shaders/`) **abandons the separate set 2 ghost SoA** in favour of merging ghost into set 0 (particles) and set 1 (voxel structures). Rationale:
 
-| binding | Buffer | Type | Purpose |
-|---|---|---|---|
-| 0 | `ghost_position_voxel_id` | `vec4` | x, y, z, ghost_voxel_id_as_float |
-| 1 | `ghost_density_pressure` | `vec2` | ρ, P (refreshed at sync 2) |
-| 3 | `ghost_velocity_mass` | `vec4` | refreshed at sync 1 |
-| 4 | `ghost_acceleration` | `vec4` | refreshed at sync 1 (used by predict on next step's ghost re-eval if any; in V1 pure path only own particles run predict, so this is mostly read-only) |
-| 5 | `ghost_shift` | `vec4` | refreshed at sync 1 |
-| 6 | `ghost_material` | `uint` | refreshed when ghost identity changes |
-| 10 | `ghost_inside_particle_count` | `uint` | per ghost-voxel |
-| 12 | `ghost_inside_particle_index` | `uint × MAX_PARTICLES_PER_VOXEL` | per ghost-voxel |
+- Hot kernels (correction / density / force) need **zero ghost branches** in their neighbour iteration — extended voxel grid covers own + ghost uniformly.
+- Multi-GPU extension (3+ GPUs in 1D, future 2D) just changes spec const values; no descriptor set explosion.
+- Concept unifies: ghost is "an extended slice of the same grid" not "a separate buffer that looks like the grid".
 
-Spec constants flipped in V1:
+### Voxel encoding: x-slowest
 
-- `GHOST_DIMENSION_X/Y/Z` (constant_id=80,81,82): peer's grid dimension covering the 1-voxel ghost extent
-- `GHOST_ORIGIN_X/Y/Z` (id=83,84,85): peer's ghost grid origin in world space
-- `OWN_TO_GHOST_OFFSET_X/Y/Z` (id=86,87,88): translation from own coord to ghost coord (used in cross-partition voxel lookup)
+V0 used `voxel_id = x + y*NX + z*NX*NY + 1` (x-fastest). V1 switches to **`voxel_id = y + z*NY + x*NY*NZ + 1` (x-slowest)** in `experiment/v1/shaders/helpers.glsl`. With the partition cut along X, x-slowest makes own / ghost ranges contiguous in voxel_id space — dispatch ranges and `is_own_voxel(vid)` checks reduce to single comparisons.
 
-Ghost particle count cap: `GHOST_POOL_SIZE` (id=53 region — final id TBD, declare in `common.glsl` when implementing) sized at ~10% of own pool; overflow logged into `global_status.overflow_ghost_count`.
+V0 (`shaders/sph/`) keeps x-fastest, untouched.
 
-## Migration Channel (set 3)
+### Pid and voxel_id layout (symmetric)
 
-Two new bindings on set 3:
+```
+  voxel_id      [1, M] | [M+1, T-N] | [T-N+1, T]
+                 ^^^^^   ^^^^^^^^^^   ^^^^^^^^^^^^^
+                 leading      own      trailing      ghost ↔ extended grid
 
-- binding 8 — `outgoing_to_peer` — packed particle records (x, v, ρ, a, shift, material) appended atomically inside `update_voxel` when a particle crosses `K_split_x`. `outgoing_count` lives in the first slot.
-- binding 9 — `incoming_from_peer` — peer's previous step's outgoing, copied in by host before this step's `update_voxel`.
+  pid           [1, M_pid] | [M_pid+1, M_pid+OWN_POOL_SIZE] | [...+1, ...+TRAILING_POOL]
+                 ^^^^^^^^^   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                 leading                own                            trailing      ghost particles
+```
 
-Packet format = same SoA struct as own particle (matches set 0 bindings 0-6 exactly, ~80 B/record). Pool sized at observed-cross-rate × 4 safety; overflow logged.
+- `M = LEADING_GHOST_VOXEL_COUNT` (id=80); `N = TRAILING_GHOST_VOXEL_COUNT` (id=81); `T = GRID_DIMENSION_X * NY * NZ` (extended).
+- `M_pid = LEADING_GHOST_POOL_SIZE` (id=54); `TRAILING_GHOST_POOL_SIZE` (id=55).
+- End-of-chain GPU: corresponding ghost dim/pool = 0; sub-range collapses to empty, own naturally starts at 1.
+- Middle GPU (1D 3+): all 5 sub-ranges populated; same code, different spec const values.
 
-Migration is **a Channel B distinct from ghost (Channel A)**:
-- Channel A (ghost SoA): replicated state of peer's boundary-side particles, refreshed every sync. Used by own correction/density/force when their neighbour iteration crosses into ghost voxels. **Read-only on receiver side.**
-- Channel B (migration packets): one-way handoff of ownership when a particle's new voxel crosses the partition. Receiver installs into a dead slot in own SoA on next step's `update_voxel`. **Mutates receiver's own state.**
+helpers.glsl exposes `own_first_pid()` / `own_last_pid()` / `leading_ghost_first_pid()` / `trailing_ghost_first_pid()` / `is_own_voxel(vid)` etc. Hot kernels dispatch over `[own_first_pid(), own_last_pid()]`; ghost_send writes into the corresponding ghost sub-ranges.
 
-Why separate channels: a ghost-side particle should not have force-or-density computed by the receiver, only consumed as a neighbour. A migrated particle becomes fully-owned and runs every kernel locally. Folding them would require a `is_ghost_or_owned` flag on every particle and conditional integration — exactly the kind of branch the V0 single-pool design avoided. Bit-exact Kernel-A unification (the original `sph_design.md` plan) achieves this elegantly but only same-vendor; cross-vendor needs the explicit channel.
+### ghost_send.comp: all-in-one packer (no recv kernel)
 
-## Sync Cadence (Option D, double sync)
+V1 ditches separate `ghost_recv` and `clear_ghost_voxel_count` kernels. **`ghost_send.comp` does everything**: per-voxel dispatch (NY*NZ threads), each thread atomic-adds `voxel_count` consecutive slots in one shot, writes both:
 
-Every step has **two CPU↔CPU exchanges**, one after `update_voxel`, one after `density.comp`. Each exchange is bidirectional: GPU0 reads back its boundary-side data + outgoing migration packets to host, host swaps and uploads to peer's ghost / incoming buffers, GPU1 same.
+1. **set 0 ghost-pid range** — 7 SoA fields per particle (`position_voxel_id`, `velocity_mass`, `density_pressure`, `material`, `correction_inverse[*2]`, `density_gradient_kernel_sum`).
+2. **set 1 ghost voxel structures** — `inside_particle_count` + `inside_particle_index` for the ghost voxel column.
 
-Why two and not one:
+The atomic counter and `inside_particle_count` are written *unconditionally* per thread, so previous-step's data is implicitly overwritten — no clear pass needed.
+
+**Pid / voxel_id values written are pre-translated to PEER's frame** via two host-computed signed-int spec consts:
+
+- `GHOST_PID_OFFSET_TO_RECEIVER` (id=93): `peer.dest_first_pid - my.dest_first_pid`.
+- `GHOST_VOXEL_ID_OFFSET_TO_RECEIVER` (id=94): `peer.dest_first_vid - my.dest_first_vid`.
+
+Receiver does a pure byte-level `vkCmdCopyBuffer` of MY ghost-pid range into PEER's matching ghost-pid range (and same for voxel range), then runs hot kernels directly. No per-particle translation on receiver side.
+
+Five per-pipeline spec consts for ghost_send (id 90–94):
+
+| id | name | meaning |
+|---|---|---|
+| 90 | `GHOST_DIRECTION` | 0 = leading send, 1 = trailing send |
+| 91 | `BOUNDARY_VOXEL_X_LOCAL` | own column to read (extended-grid x) |
+| 92 | `GHOST_VOXEL_X_LOCAL` | MY ghost column to write voxel structures |
+| 93 | `GHOST_PID_OFFSET_TO_RECEIVER` | signed int |
+| 94 | `GHOST_VOXEL_ID_OFFSET_TO_RECEIVER` | signed int |
+
+### Per-direction dispatch
+
+End-of-chain GPU runs ghost_send once per step (one direction). Middle 1D GPU runs twice (leading + trailing). 2D 4-peer middle (V3++) runs four times. **Each dispatch is independent**; same SPV, different spec const values, no contention (writes to disjoint sub-ranges, each direction has its own atomic counter in `global_status`).
+
+## Migration Channel (V1.1+)
+
+V1.0 starts WITHOUT migration: own particles that drift into ghost voxel range are **killed** by predict.comp (`voxel_id = 0` sentinel). Lid-driven cavity has bounded mean velocity in X (no fluid actually crosses the partition over a typical run window), so this is a benign approximation for V1.0 baseline.
+
+V1.1+ adds Channel B (migration packets) so own→peer crossings become handoffs of ownership instead of deletions:
+
+- Predict atomic-appends crossing particle's full state into an `outgoing_to_peer` packet buffer (set 3 binding TBD).
+- Transport carries packets to peer.
+- Peer's update_voxel installs each incoming packet into a dead slot in its own SoA.
+
+Channel B stays distinct from ghost (Channel A): a ghost is a *replica* read by neighbour iteration, while migration *transfers ownership*. Folding them would require a per-particle `is_ghost_or_own` flag and conditional integration — exactly the branch the merged-buffer scheme avoids elsewhere. Bit-exact Kernel-A unification (the original `sph_design.md` plan) folds them elegantly but only works same-vendor; cross-vendor needs explicit channels.
+
+## Sync Cadence
+
+Sync options vs ghost staleness in hot kernels:
 
 | Option | Sync after | Mismatches per step | Notes |
 |---|---|---|---|
-| A | force only | 4 (correction, density read stale x/v/ρ; force reads stale x) | original V1.0 sketch |
-| B | update_voxel only | 1 (force reads stale ρ — ~1e-4 error) | density still uses stale neighbour ρ |
-| C | density only | 4 (correction iteration uses 1-step-old positions) | worse than B for KCG |
-| **D** | **update_voxel + density** | **0** | each kernel sees same-step ghost state |
+| A | force only | 4 (correction, density read stale x/v/ρ; force reads stale x) | obsolete |
+| **B** | **update_voxel** | **1** (force reads stale ρ — ~1e-4 error) | **V1.0 baseline** |
+| C | density only | 4 (correction uses 1-step-old positions) | worse than B for KCG |
+| D | update_voxel + density | 0 | V1.0a / V1.1 if smoke validation demands |
 
-Cost of going from B → D: one extra round-trip per step. At ~3 MB ghost ρ/P (the second sync only carries 8 B/particle for ρ+P, much smaller than sync 1's full SoA) over 14 GB/s ≈ 0.2 ms — small relative to a 3-5 ms step at 1M particles. Mismatch elimination is worth it.
+**V1.0 = Option B** (single sync after update_voxel). Trade-off: force.comp reads ghost ρ/P that's one density step stale → ~1e-4 relative error on pressure gradient at the boundary band. Acceptable for cross-vendor portability section of the paper; not bit-exact anyway.
 
-V1 explicitly does not bit-match across vendors; "0 mismatches" here means "each kernel reads ghost data computed in the **same step** as its own data, not a step behind". The actual ghost values still differ at floating-point ULP level cross-vendor, but the algorithmic structure is identical to single-GPU.
+**Option D upgrade is V1.0a/V1.1** because it requires SLOT-STABLE ghost packing across the two syncs. ghost_send's per-voxel atomicAdd order is non-deterministic across threads, so a second sync would write ρ/P into different slots than sync 1 — ghost data inconsistent. Solving needs a deterministic allocator (prefix-sum) or a per-particle persistent slot map; both are V1.0a complexity.
 
-## Pipeline: 9 Phases per Step
+V1 explicitly does not bit-match across vendors; "small mismatch count" means how many kernels per step read ghost data computed in a *different* step than their own data. Floating-point ULP differences cross-vendor are accepted regardless.
 
-Pure single-threaded blocking submission. `wait` = `vkQueueWaitIdle` on the relevant queue (no fence-and-poll optimisation in V1.0). Each phase finishes everywhere before the next begins.
+## Pipeline: V1.0 Single-Sync Per Step
+
+Pure single-threaded blocking submission. `wait` = `vkQueueWaitIdle`. Each phase finishes on both GPUs before the next begins.
 
 ```
-Phase 1  GPU0 [predict + update_voxel] → wait
-         GPU1 [predict + update_voxel] → wait
-                                                    update_voxel atomic-appends:
-                                                      - own crossings stay local
-                                                      - cross-partition crossings → outgoing_to_peer
+Phase 1  GPU0 [predict + update_voxel + ghost_send (1 or 2 dispatches per direction)]
+         GPU1 [same]
+         wait
 
-Phase 2  GPU0 [readback boundary SoA + outgoing_to_peer → host] → wait
-         GPU1 [same] → wait
+Phase 2  GPU0 [vkCmdCopyBuffer set 0 ghost-pid range + set 1 ghost-voxel slice
+              + ghost_send_*_count → host_visible_send_buffer]
+         GPU1 [same]
+         wait
 
-Phase 3  CPU memcpy: swap host buffers (GPU0.boundary → GPU1.ghost_in_host,
-                                         GPU0.outgoing → GPU1.incoming_in_host,
-                                         and vice versa)
+Phase 3  CPU memcpy: swap host buffers between GPU pair, with leading↔trailing
+         direction crossing (MY leading_send → PEER trailing_recv, etc.)
 
-Phase 4  GPU0 [upload ghost_in_host → ghost SoA, incoming → set 3 binding 9] → wait
-         GPU1 [same] → wait
-                                                    ── sync 1 complete ──
+Phase 4  GPU0 [vkCmdCopyBuffer host_visible_recv_buffer → set 0 ghost-pid range
+              + set 1 ghost-voxel slice + ghost_recv_*_count]
+         GPU1 [same]
+         wait
+                                            ── sync complete ──
 
-Phase 5  GPU0 [correction + density (scratch+copy)] → wait
-         GPU1 [same] → wait
-                                                    density.comp writes scratch;
-                                                    same-cmd vkCmdCopyBuffer scratch→primary
-                                                    (same as V0)
-
-Phase 6  GPU0 [readback boundary ρ/P → host] → wait
-         GPU1 [same] → wait
-                                                    sync 2 carries only set 0 binding 1
-                                                    (ρ, P), 8 B/boundary particle
-
-Phase 7  CPU memcpy: swap host ρP buffers
-
-Phase 8  GPU0 [upload host ρP → ghost_density_pressure (set 2 binding 1)] → wait
-         GPU1 [same] → wait
-                                                    ── sync 2 complete ──
-
-Phase 9  GPU0 [force] → wait
-         GPU1 [same] → wait
-
-Phase 10 (next step's Phase 1)
+Phase 5  GPU0 [correction + density (scratch+copy) + force]
+         GPU1 [same]
+         wait
+                                            ── step complete ──
 ```
 
-Each `wait` in V1.0 = full queue-idle. V1.1 will replace with timeline semaphores + interleaved submission so GPU1 can be working on phase N while GPU0 waits on phase N+1's host-side prep.
+Five blocking phases per step instead of nine. No second sync (V1.0 = Option B).
 
-## Boundary Identification (which particles to read back)
+Each transport copies three byte-contiguous slices per direction:
 
-`update_voxel` already knows each particle's voxel. A particle is "boundary on the peer side" if `voxel.x_index ∈ [K_split_x - 1, K_split_x]` (own-side boundary, peer needs as ghost) OR `voxel.x_index == K_split_x + 1` for the peer-receiving side (informational only, peer's data we hold).
+1. set 0 ghost-pid range bytes (~1.5 MB / direction at 16K particles, 92 B each)
+2. set 1 ghost-voxel slice (`inside_particle_count` + `inside_particle_index`, ~80 KB)
+3. `ghost_send_*_count` uint (4 B)
 
-V1 simple approach: `update_voxel` writes a `boundary_pid_list` (set 3 new binding 10, atomic-append) of own particles in the 1-voxel ghost-source band. Phase 2 readback uses this list as a gather index; readback size = O(boundary_count) not O(N). At ~1M particles, boundary_count ≈ 5-10% → 50-100k particles → 5-10 MB SoA per direction.
+Total per-step transport: ~3.2 MB (both directions × full pack), ≈ 0.23 ms over 14 GB/s practical PCIe.
 
-Alternative considered: readback the full set 0 every step. Costs ~150 MB/step at 1M particles → blows the BW budget. Rejected.
+V1.1 replaces `vkQueueWaitIdle` with timeline semaphores + interleaved submission.
+
+## Boundary Identification
+
+ghost_send.comp dispatches per ghost voxel (NY*NZ threads). Each thread reads its own's outermost voxel (at `BOUNDARY_VOXEL_X_LOCAL`) and walks `inside_particle_index` of that one voxel to pick which particles to pack. **No persistent `boundary_pid_list` is needed** — the boundary set is implicit in the dispatch shape and the per-thread voxel lookup.
+
+vkCmdCopyBuffer transports the contiguous ghost-pid range (capacity = `LEADING_GHOST_POOL_SIZE` or `TRAILING_GHOST_POOL_SIZE`, sized at observed-particles × ~3 headroom). Sender-side overflow is logged in `global_status.overflow_ghost_count`. Active particles are front-packed in the ghost range by per-voxel atomic-allocation; trailing capacity bytes carry stale data that the receiver's hot kernels never reference (because `inside_particle_count` for ghost voxels caps the loop at the actual count).
 
 ## Numerical Validation Plan
 
@@ -224,10 +253,26 @@ V1.0 is the only required milestone for the paper's portability section. V1.1+ a
 
 - Async compute queue (V2)
 - Bit-exact ghost Kernel-A (V2 / same-vendor)
-- Dynamic re-partitioning (V3+)
+- Dynamic re-partitioning (V3+; see "Future: wait-time-driven K_split adjustment" below)
 - 3+ GPU configurations (V3+)
 - Y/Z split axes (V2 if benchmarks demand)
 - Multi-resolution / micropolar / thermal extensions
+
+## Future: wait-time-driven K_split adjustment (V3+)
+
+Static partition based on GPU compute weights gives a good initial split but doesn't adapt to mid-run imbalance — e.g., one side of the cavity develops more turbulence and ends up with denser per-voxel particle counts, or thermal throttling on one card shifts the effective ratio. Dynamic re-partitioning closes this gap.
+
+Mechanism sketch:
+
+1. **Instrument per-phase wait time.** The 9-phase blocking loop already inserts `vkQueueWaitIdle` between GPU 0 and GPU 1 at each phase boundary. Sample wall-clock time at "GPU i finished phase k" (`t_finish[i][k]`) for each `(i, k)`. Idle time of the earlier-completing GPU at phase k = `max_i(t_finish[i][k]) - t_finish[earlier][k]`.
+2. **Aggregate over a window.** Rolling N-step (e.g. N=100) average of total per-step idle time per GPU. `wait[0] = Σ_k (max_i t_finish[i][k] - t_finish[0][k])` and similarly for GPU 1. Exactly one of `wait[0]` / `wait[1]` is positive at each phase (the earlier-finisher waits); aggregating across phases tells you who's globally faster.
+3. **Decision rule.** If `wait[0] > wait[1] + threshold` (GPU 0 chronically idle waiting for GPU 1), GPU 1 is overloaded → shift K_split by 1 voxel column toward GPU 1 (give GPU 0 more particles). Threshold should be > one-step jitter (e.g. 5% of mean step time × N).
+4. **When to act.** Schedule re-balance to coincide with periodic defrag (every `defrag_cadence` steps, currently 1000). Defrag is already a "natural break" where particle ordering is reshuffled. K_split shift causes one column's worth of particles to change ownership — handled by the existing migration channel (Channel B) for that one step.
+5. **Convergence.** Step-1-at-a-time shifts give a conservative integral controller. Over hundreds of defrag cycles the system finds the wait-minimising K_split. No PID complexity needed.
+
+Why this is V3+ not V1: needs migration channel (V1 work), needs 9-phase pipeline timing instrumentation (V1.0 baseline gathers it but doesn't act on it), and the actual perf payoff requires a real workload imbalance to show up. V1 / V2 milestones use static K_split from `KNOWN_GPU_SPH_WEIGHT`; V3 layers this on once the substrate is solid.
+
+Per-kernel weighting (V1.2 milestone, see Milestones table) is a related but distinct optimisation: instead of one global weight per GPU, learn separate weights for each kernel (correction is ALU-heavy, density is BW-heavy) and dispatch each kernel to whichever GPU has more headroom for that pattern. Wait-time adjustment operates on K_split (data partition); per-kernel weighting operates on dispatch routing — they compose.
 
 ## Cross-References
 

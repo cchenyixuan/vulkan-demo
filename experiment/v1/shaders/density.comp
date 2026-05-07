@@ -41,7 +41,7 @@ void main() {
     uint self_particle_id = gl_GlobalInvocationID.x + 1u;
 
     // Padding threads (dispatch rounds up to WORKGROUP_SIZE): early-return.
-    if (self_particle_id > POOL_SIZE) return;
+    if (self_particle_id > own_last_pid()) return;
 
     // Read material params (used for EOS at end) and skip inlet particles
     // (their state has no SPH meaning; they never appear as neighbors per the

@@ -68,25 +68,43 @@ vec3 evaluate_kernel_gradient(vec3 relative_position, float distance) {
 }
 
 // ============================================================================
-// 1-based voxel_id ↔ 3D voxel coord.
+// 1-based voxel_id ↔ 3D voxel coord.   (V1: x-slowest encoding)
 //
-// Particles store 1-based voxel_id in position_voxel_id.w (0 = dead sentinel).
-// Voxel coord remains 0-based spatial index (coord.x ∈ [0, GRID_DIMENSION_X-1]).
-// The -1u / +1u adjustments live inside these helpers and are invisible to callers.
+// V1 partitions along X. The voxel_id encoding is "x-slowest" so that
+// each x-column of voxels (NY*NZ voxels at a fixed x) occupies a CONTIGUOUS
+// block of voxel_id values. This makes:
+//   * the leading-ghost and trailing-ghost voxel ranges contiguous segments
+//     of the global voxel_id space
+//   * "is this voxel my own?" reduce to a single range comparison
+//   * predict / update_voxel / defrag dispatch naturally over the own range
+//
+// Encoding:  voxel_id = y + z*GRID_DIMENSION_Y + x*GRID_DIMENSION_Y*GRID_DIMENSION_Z + 1
+// Inverse:   y    = (id-1) % NY
+//            z    = ((id-1) / NY) % NZ
+//            x    = (id-1) / (NY*NZ)
+//
+// Slot 0 of every voxel buffer is unused (1-based). Particles store their
+// voxel_id in position_voxel_id.w (0 = dead sentinel).
+//
+// V1 merged-buffer scheme: GRID_DIMENSION_X is the EXTENDED nx — it covers
+// own columns plus leading/trailing ghost columns. Ghost particles share
+// set 0 / set 1 with own particles; ranges are split by spec const.
+// (See LEADING_GHOST_VOXEL_COUNT / TRAILING_GHOST_VOXEL_COUNT in common.glsl.)
 // ============================================================================
 
 ivec3 own_coord_of(uint voxel_id) {
     uint zero_based = voxel_id - 1u;
-    return ivec3(
-        zero_based % GRID_DIMENSION_X,
-        (zero_based / GRID_DIMENSION_X) % GRID_DIMENSION_Y,
-        zero_based / (GRID_DIMENSION_X * GRID_DIMENSION_Y));
+    uint y           = zero_based % GRID_DIMENSION_Y;
+    uint after_y     = zero_based / GRID_DIMENSION_Y;
+    uint z           = after_y    % GRID_DIMENSION_Z;
+    uint x           = after_y    / GRID_DIMENSION_Z;
+    return ivec3(x, y, z);
 }
 
 uint own_voxel_id_of(ivec3 coord) {
-    return uint(coord.x)
-         + uint(coord.y) * GRID_DIMENSION_X
-         + uint(coord.z) * GRID_DIMENSION_X * GRID_DIMENSION_Y
+    return uint(coord.y)
+         + uint(coord.z) * GRID_DIMENSION_Y
+         + uint(coord.x) * GRID_DIMENSION_Y * GRID_DIMENSION_Z
          + 1u;
 }
 
@@ -94,6 +112,63 @@ bool in_own_grid(ivec3 coord) {
     return coord.x >= 0 && coord.x < int(GRID_DIMENSION_X)
         && coord.y >= 0 && coord.y < int(GRID_DIMENSION_Y)
         && coord.z >= 0 && coord.z < int(GRID_DIMENSION_Z);
+}
+
+// ============================================================================
+// V1 own-vs-ghost classification on the merged voxel_id range.
+//
+// Voxel_id layout in extended grid:
+//   [1, M]                          = leading ghost  (peer's data, end GPUs: M=0)
+//   [M+1, EXTENDED_TOTAL - N]       = own            (this GPU's particles)
+//   [EXTENDED_TOTAL - N + 1, TOTAL] = trailing ghost (peer's data, end GPUs: N=0)
+//
+// EXTENDED_TOTAL = GRID_DIMENSION_X * GRID_DIMENSION_Y * GRID_DIMENSION_Z.
+// M = LEADING_GHOST_VOXEL_COUNT, N = TRAILING_GHOST_VOXEL_COUNT.
+// ============================================================================
+
+uint extended_voxel_count() {
+    return GRID_DIMENSION_X * GRID_DIMENSION_Y * GRID_DIMENSION_Z;
+}
+
+bool is_own_voxel(uint voxel_id) {
+    return voxel_id > LEADING_GHOST_VOXEL_COUNT
+        && voxel_id <= extended_voxel_count() - TRAILING_GHOST_VOXEL_COUNT;
+}
+
+bool is_leading_ghost_voxel(uint voxel_id) {
+    return voxel_id >= 1u && voxel_id <= LEADING_GHOST_VOXEL_COUNT;
+}
+
+bool is_trailing_ghost_voxel(uint voxel_id) {
+    return voxel_id > extended_voxel_count() - TRAILING_GHOST_VOXEL_COUNT
+        && voxel_id <= extended_voxel_count();
+}
+
+// ============================================================================
+// V1 own / ghost pid range helpers (mirrors voxel layout).
+//
+// Pid layout in set 0:
+//   [1, LEADING_GHOST_POOL_SIZE]                            = leading ghost
+//   [own_first_pid, own_last_pid]                           = own
+//   [own_last_pid+1, own_last_pid+TRAILING_GHOST_POOL_SIZE] = trailing ghost
+// ============================================================================
+
+uint own_first_pid() {
+    return LEADING_GHOST_POOL_SIZE + 1u;
+}
+
+uint own_last_pid() {
+    return LEADING_GHOST_POOL_SIZE + OWN_POOL_SIZE;
+}
+
+uint leading_ghost_first_pid() { return 1u; }
+uint leading_ghost_last_pid()  { return LEADING_GHOST_POOL_SIZE; }
+
+uint trailing_ghost_first_pid() {
+    return LEADING_GHOST_POOL_SIZE + OWN_POOL_SIZE + 1u;
+}
+uint trailing_ghost_last_pid() {
+    return LEADING_GHOST_POOL_SIZE + OWN_POOL_SIZE + TRAILING_GHOST_POOL_SIZE;
 }
 
 // ============================================================================

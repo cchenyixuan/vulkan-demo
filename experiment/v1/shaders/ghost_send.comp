@@ -1,0 +1,143 @@
+// ============================================================================
+// ghost_send.comp — V1 sync packer (all-in-one).
+//
+// Per-voxel dispatch (NY*NZ threads). Each thread:
+//   1. Reads its boundary voxel's particle list (own SoA, set 0/1).
+//   2. Atomic-allocates `voxel_count` consecutive slots in the ghost-pid
+//      range with a single atomicAdd.
+//   3. Writes the particle SoA fields (7 of them) into the ghost-pid slots
+//      of THIS GPU's set 0. The .w of position_voxel_id is overwritten with
+//      `peer_dst_vid` so the receiver reads the final value directly.
+//   4. Writes the ghost voxel's `inside_particle_count` and
+//      `inside_particle_index` into THIS GPU's set 1 — the index entries
+//      already point to PEER-SIDE pid values (translated via spec const).
+//
+// After this kernel finishes, vkCmdCopyBuffer transports MY set 0 ghost-pid
+// slice + MY set 1 ghost voxel slice + MY ghost_send_*_count to peer's
+// matching slots (host swaps leading <-> trailing direction during transport).
+// PEER then runs correction/density/force directly: every entry it reads is
+// already in its own pid / voxel_id frame.
+//
+// No recv kernel. No clear kernel. Per-thread `inside_particle_count` write
+// is unconditional, so stale data from previous step is overwritten naturally.
+// ============================================================================
+//
+// Per-pipeline spec consts (set by host at pipeline creation):
+//
+//   GHOST_DIRECTION                 0 = leading send (write into MY leading
+//                                       ghost slots / voxel range)
+//                                   1 = trailing send (MY trailing range)
+//
+//   BOUNDARY_VOXEL_X_LOCAL          extended-grid x of OWN's outermost column
+//                                   on the send direction. The column whose
+//                                   particles get sent.
+//                                     leading send (LEFT edge):  own_first_x
+//                                     trailing send (RIGHT edge): own_last_x
+//
+//   GHOST_VOXEL_X_LOCAL             extended-grid x of MY ghost column where
+//                                   we write voxel structures (and from which
+//                                   transport reads). For a ghost band 1
+//                                   voxel thick:
+//                                     leading send → MY ghost x = 0
+//                                     trailing send → MY ghost x = NX-1
+//
+//   GHOST_PID_OFFSET_TO_RECEIVER    signed int. Add to MY ghost-pid to get
+//                                   PEER's matching ghost-pid. Host-computed:
+//                                     leading send  → peer.trailing_first_pid
+//                                                   - my.leading_first_pid
+//                                     trailing send → peer.leading_first_pid
+//                                                   - my.trailing_first_pid
+//
+//   GHOST_VOXEL_ID_OFFSET_TO_RECEIVER  signed int. Add to MY ghost voxel_id
+//                                   to get PEER's matching ghost voxel_id.
+// ============================================================================
+
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+
+#include "common.glsl"
+#include "helpers.glsl"
+
+layout(constant_id = 90) const uint GHOST_DIRECTION                  = 0u;
+layout(constant_id = 91) const uint BOUNDARY_VOXEL_X_LOCAL           = 0u;
+layout(constant_id = 92) const uint GHOST_VOXEL_X_LOCAL              = 0u;
+layout(constant_id = 93) const int  GHOST_PID_OFFSET_TO_RECEIVER     = 0;
+layout(constant_id = 94) const int  GHOST_VOXEL_ID_OFFSET_TO_RECEIVER = 0;
+
+layout(local_size_x_id = 51) in;
+
+void main() {
+    uint thread_id = gl_GlobalInvocationID.x;
+    uint num_ghost_voxels = GRID_DIMENSION_Y * GRID_DIMENSION_Z;
+    if (thread_id >= num_ghost_voxels) return;
+
+    uint y = thread_id % GRID_DIMENSION_Y;
+    uint z = thread_id / GRID_DIMENSION_Y;
+
+    // Source: own's boundary voxel (read-only).
+    ivec3 src_coord = ivec3(int(BOUNDARY_VOXEL_X_LOCAL), int(y), int(z));
+    uint  src_vid   = own_voxel_id_of(src_coord);
+
+    // MY ghost voxel (where we write voxel structures in MY set 1).
+    ivec3 my_dst_coord = ivec3(int(GHOST_VOXEL_X_LOCAL), int(y), int(z));
+    uint  my_dst_vid   = own_voxel_id_of(my_dst_coord);
+
+    // PEER's matching ghost voxel_id (the value receiver reads from .w and
+    // dereferences inside_particle_count/_index by, after byte transport).
+    uint peer_dst_vid = uint(int(my_dst_vid) + GHOST_VOXEL_ID_OFFSET_TO_RECEIVER);
+
+    uint voxel_count = inside_particle_count[src_vid];
+
+    // Per-voxel atomic: claim `voxel_count` consecutive slots in one shot.
+    // Empty boundary voxels (count=0) trivially allocate nothing.
+    uint dir_pool_size = (GHOST_DIRECTION == 0u)
+        ? LEADING_GHOST_POOL_SIZE
+        : TRAILING_GHOST_POOL_SIZE;
+    uint base_slot = (GHOST_DIRECTION == 0u)
+        ? atomicAdd(ghost_send_leading_count,  voxel_count)
+        : atomicAdd(ghost_send_trailing_count, voxel_count);
+
+    // Overflow: log + write empty count so receiver skips this ghost voxel.
+    if (base_slot + voxel_count > dir_pool_size) {
+        inside_particle_count[my_dst_vid] = 0u;
+        atomicAdd(overflow_ghost_count, voxel_count);
+        return;
+    }
+
+    // Unconditional voxel-structure write (implicit clear: previous step's
+    // count is overwritten regardless of how many particles we have now).
+    inside_particle_count[my_dst_vid] = voxel_count;
+
+    // MY ghost-pid base (where we write particle SoA in MY set 0).
+    uint my_first_dst_pid = (GHOST_DIRECTION == 0u)
+        ? leading_ghost_first_pid()
+        : trailing_ghost_first_pid();
+
+    // Walk source voxel's particle list. INSIDE_SLOT_EMPTY in the middle is
+    // unexpected (count was wrong) but we defensively truncate.
+    for (uint k = 0u; k < voxel_count; k++) {
+        uint src_pid = inside_particle_index[src_vid * MAX_PARTICLES_PER_VOXEL + k];
+        if (src_pid == INSIDE_SLOT_EMPTY) {
+            inside_particle_count[my_dst_vid] = k;
+            break;
+        }
+
+        uint my_dst_pid   = my_first_dst_pid + base_slot + k;
+        uint peer_dst_pid = uint(int(my_dst_pid) + GHOST_PID_OFFSET_TO_RECEIVER);
+
+        // SoA copy: 7 fields. position_voxel_id.w is overwritten with the
+        // peer-side voxel id (final value receiver uses).
+        position_voxel_id[my_dst_pid] = vec4(position_voxel_id[src_pid].xyz,
+                                             float(peer_dst_vid));
+        velocity_mass[my_dst_pid]                = velocity_mass[src_pid];
+        density_pressure[my_dst_pid]             = density_pressure[src_pid];
+        material[my_dst_pid]                     = material[src_pid];
+        correction_inverse[my_dst_pid * 2u + 0u] = correction_inverse[src_pid * 2u + 0u];
+        correction_inverse[my_dst_pid * 2u + 1u] = correction_inverse[src_pid * 2u + 1u];
+        density_gradient_kernel_sum[my_dst_pid]  = density_gradient_kernel_sum[src_pid];
+
+        // inside_particle_index entry uses the PEER-SIDE pid so receiver can
+        // dereference its own set 0 directly after transport.
+        inside_particle_index[my_dst_vid * MAX_PARTICLES_PER_VOXEL + k] = peer_dst_pid;
+    }
+}

@@ -161,23 +161,39 @@ layout(constant_id = 46) const bool USE_PREFIX_SUM_DEFRAG = false;
 layout(constant_id = 50) const uint MAX_PARTICLES_PER_VOXEL = 96u;
 layout(constant_id = 51) const uint WORKGROUP_SIZE          = 128u;
 layout(constant_id = 52) const uint MAX_INCOMING_PER_VOXEL  = 16u;
-// POOL_SIZE = number of particle slots (1..POOL_SIZE). Buffer is sized
-// (POOL_SIZE + 1) under 1-based indexing. Padding threads beyond POOL_SIZE
-// must early-return to avoid OOB access.
-layout(constant_id = 53) const uint POOL_SIZE               = 1000000u;
+// OWN_POOL_SIZE = number of OWN particle slots (1..OWN_POOL_SIZE). Buffer is
+// sized (OWN_POOL_SIZE + LEADING_GHOST_POOL_SIZE + TRAILING_GHOST_POOL_SIZE + 1)
+// under 1-based indexing. predict / correction / density / force pad-check
+// against OWN_POOL_SIZE.
+layout(constant_id = 53) const uint OWN_POOL_SIZE              = 1000000u;
+layout(constant_id = 54) const uint LEADING_GHOST_POOL_SIZE    = 0u;
+layout(constant_id = 55) const uint TRAILING_GHOST_POOL_SIZE   = 0u;
 
-// --- Multi-GPU ghost grid (V0-a: all zero / disabled; V1: populated) ---
-layout(constant_id = 80) const uint  GHOST_DIMENSION_X = 0u;
-layout(constant_id = 81) const uint  GHOST_DIMENSION_Y = 0u;
-layout(constant_id = 82) const uint  GHOST_DIMENSION_Z = 0u;
-layout(constant_id = 83) const float GHOST_ORIGIN_X    = 0.0;
-layout(constant_id = 84) const float GHOST_ORIGIN_Y    = 0.0;
-layout(constant_id = 85) const float GHOST_ORIGIN_Z    = 0.0;
-// Integer offset such that `ghost_coord = own_coord + OWN_TO_GHOST_OFFSET`
-// maps an out-of-own-bounds own coord onto the adjacent ghost region.
-layout(constant_id = 86) const int OWN_TO_GHOST_OFFSET_X = 0;
-layout(constant_id = 87) const int OWN_TO_GHOST_OFFSET_Y = 0;
-layout(constant_id = 88) const int OWN_TO_GHOST_OFFSET_Z = 0;
+// --- Multi-GPU ghost (V1 merged-buffer scheme) ---
+// V1 partitions along X. The voxel_id encoding (helpers.glsl) is "x-slowest"
+// so that each x-column of voxels is a contiguous voxel_id segment. Ghost
+// columns (1 voxel thick on each peer-facing side) are placed at the LEADING
+// and TRAILING ends of the extended voxel_id range. Per-GPU spec consts:
+//
+//   LEADING_GHOST_VOXEL_COUNT   = M = (leading ghost x-thickness) * NY * NZ
+//   TRAILING_GHOST_VOXEL_COUNT  = N = (trailing ghost x-thickness) * NY * NZ
+//
+//                voxel_id = 1 ............ M  M+1 ............. T-N  T-N+1 ........ T
+//                          \____________/ \________________/ \________________/
+//                          leading ghost          own              trailing ghost
+//                                              (extended_voxel_count = T)
+//
+// Endpoints of a 1D chain set the corresponding ghost count to 0:
+//   leftmost  GPU: M = 0,   N = NY*NZ
+//   middle    GPU: M = NY*NZ, N = NY*NZ
+//   rightmost GPU: M = NY*NZ, N = 0
+//
+// Same code path on every GPU; only spec const values differ.
+//
+// V0 / dummy default of 0 makes both branches DCE-friendly when shader is
+// run in single-GPU mode.
+layout(constant_id = 80) const uint LEADING_GHOST_VOXEL_COUNT  = 0u;
+layout(constant_id = 81) const uint TRAILING_GHOST_VOXEL_COUNT = 0u;
 
 // ============================================================================
 // Scalar constants (compile-time, shared by all shaders)
@@ -201,17 +217,34 @@ const uint INSIDE_SLOT_EMPTY     = 0u;
 const uint PARTICLE_ID_NONE      = 0u;
 
 // ============================================================================
-// Descriptor set 0 — Own particle SoA
+// Descriptor set 0 — Particle SoA (own + ghost merged in V1)
 // ----------------------------------------------------------------------------
 // Per-particle persistent state. All particles (fluid / boundary / inlet /
-// rotor) live in this unified pool; they are distinguished by
-// material[pid] (group_id), which indexes into MaterialParametersBuffer
-// (set 3 binding 7) to obtain per-material kind + parameters.
+// rotor) live in this unified pool, distinguished by material[pid].
 //
-// INDEXING: particle_id is 1-based, particle_id ∈ [1, pool_size]. Every
-// particle buffer below is sized pool_size + 1 (slot 0 is unused; 0 is the
-// PARTICLE_ID_NONE sentinel). Shader entry converts gl_GlobalInvocationID.x
-// (0-based) to particle_id via `+ 1u`.
+// V1 PID LAYOUT (mirrors set 1 voxel layout: leading | own | trailing):
+//   [1, LEADING_GHOST_POOL_SIZE]                                  = leading ghost
+//   [LEADING_GHOST_POOL_SIZE+1, LEADING+OWN]                      = own
+//   [LEADING+OWN+1, LEADING+OWN+TRAILING_GHOST_POOL_SIZE]         = trailing ghost
+//
+// Buffer total size = LEADING_GHOST_POOL_SIZE + OWN_POOL_SIZE +
+//                     TRAILING_GHOST_POOL_SIZE + 1 (slot 0 = PARTICLE_ID_NONE).
+// End-of-chain GPUs have LEADING = 0 or TRAILING = 0; the corresponding range
+// is empty and own collapses to [1, OWN_POOL_SIZE], matching V0.
+//
+// Active region per sub-pool:
+//   Leading / trailing ghost: front-packed by atomic-append in ghost_send;
+//     active = first ghost_recv_*_count slots after transport. Remainder is
+//     never referenced by inside_particle_index, so stale content is invisible.
+//   Own: V0 defrag periodically packs alive particles to the front; between
+//     defrags alive particles can sit anywhere in own range, with dead slots
+//     marked by voxel_id=0 sentinel.
+//
+// predict / correction / density / force dispatch over [own_first_pid(),
+// own_last_pid()] (see helpers.glsl). ghost_send writes own's boundary into
+// the ghost-pid sub-range matching the send direction; transport overwrites;
+// ghost_recv re-voxelizes. Hot-path neighbour iteration reads set 0 uniformly
+// — own and ghost neighbours are indistinguishable after recv.
 // ============================================================================
 
 layout(std430, set = 0, binding = 0) buffer PositionVoxelIdBuffer {
@@ -292,11 +325,22 @@ layout(std430, set = 0, binding = 9) buffer ExtensionFieldsBuffer {
 // binding 10 reserved for GlobalIdBuffer (FTLE / Lagrangian tracking)
 
 // ============================================================================
-// Descriptor set 1 — Own voxel cell structures
+// Descriptor set 1 — Voxel cell structures (own + ghost merged in V1)
 // ----------------------------------------------------------------------------
-// INDEXING: voxel_id is 1-based, voxel_id ∈ [1, voxel_count]. Every voxel
-// buffer below is sized (voxel_count + 1) in the count dimension (slot 0
-// unused; 0 is VOXEL_ID_DEAD).
+// V1 VOXEL_ID LAYOUT (extended grid, x-slowest encoding):
+//   [1, M]                            = leading ghost  (M = LEADING_GHOST_VOXEL_COUNT)
+//   [M+1, T - N]                      = own
+//   [T - N + 1, T]                    = trailing ghost (N = TRAILING_GHOST_VOXEL_COUNT)
+// where T = GRID_DIMENSION_X * GRID_DIMENSION_Y * GRID_DIMENSION_Z.
+// Per-voxel buffers below are sized (T + 1) in the count dimension.
+//
+// predict atomic-appends new-voxel arrivals into incoming_particle_index
+// only when target voxel is OWN (is_own_voxel(vid)). Crossings into ghost
+// range are migration events (Channel B; V1.1+). update_voxel dispatches
+// over own voxels only. ghost_recv populates leading/trailing ghost
+// inside_particle_count + inside_particle_index from peer's data.
+// Hot-path neighbour iteration reads inside_particle_count uniformly —
+// own and ghost voxels look identical once populated.
 //
 // Slot values inside the flat `*_particle_index` buffers store 1-based
 // particle_ids directly (no +1 encoding); 0 is the INSIDE_SLOT_EMPTY sentinel.
@@ -359,48 +403,13 @@ layout(std430, set = 1, binding = 4) buffer VoxelBaseOffsetBuffer {
 // binding 5 reserved
 
 // ============================================================================
-// Descriptor set 2 — Ghost particles + ghost voxel structures (V1 multi-GPU)
-// ----------------------------------------------------------------------------
-// Received from peer GPU each step; compute shaders read-only here. In V0-a
-// GHOST_DIMENSION_* == 0, so ghost branches are dead-code-eliminated and this
-// set can be bound to a dummy or left unused.
+// Descriptor set 2 — UNUSED in V1 merged-buffer scheme.
+//
+// V1 stores ghost particles inside set 0's high-pid range and ghost voxel
+// structures inside set 1's leading/trailing voxel-id range. There is no
+// separate ghost SoA. Pipelines that don't need set 2 simply omit it from
+// their pipeline_layout.
 // ============================================================================
-
-layout(std430, set = 2, binding = 0) buffer GhostPositionVoxelIdBuffer {
-    vec4 ghost_position_voxel_id[];
-};
-
-layout(std430, set = 2, binding = 1) buffer GhostDensityPressureBuffer {
-    // Single (not ping-pong); ghost density is received authoritatively from peer.
-    vec2 ghost_density_pressure[];
-};
-
-layout(std430, set = 2, binding = 3) buffer GhostVelocityMassBuffer {
-    vec4 ghost_velocity_mass[];
-};
-
-layout(std430, set = 2, binding = 4) buffer GhostAccelerationBuffer {
-    // Required so that both GPUs can run bit-exact leapfrog kick on ghost particles.
-    vec4 ghost_acceleration[];
-};
-
-layout(std430, set = 2, binding = 5) buffer GhostShiftBuffer {
-    vec4 ghost_shift[];
-};
-
-layout(std430, set = 2, binding = 6) buffer GhostMaterialBuffer {
-    uint ghost_material[];
-};
-
-// ghost bindings 7-9 reserved (parallels set 0 layout)
-
-layout(std430, set = 2, binding = 10) buffer GhostInsideParticleCountBuffer {
-    uint ghost_inside_particle_count[];
-};
-
-layout(std430, set = 2, binding = 12) buffer GhostInsideParticleIndexBuffer {
-    uint ghost_inside_particle_index[];
-};
 
 // ============================================================================
 // Descriptor set 3 — Global status, transport, material parameters, diagnostics
@@ -416,13 +425,16 @@ layout(std430, set = 3, binding = 0) buffer GlobalStatusBuffer {
     uint  first_overflow_voxel_inside;
     uint  first_overflow_voxel_incoming;
     uint  correction_fallback_count;   // particles whose M_inv fell to identity
-    uint  reserved_status_1;
-    uint  reserved_status_2;
-    uint  reserved_status_3;
-    uint  reserved_status_4;
+    uint  overflow_ghost_count;        // ghost_send / ghost_recv bound check failures
+    // V1 ghost transport counters (zeroed at step start; ghost_send writes
+    // send_*; vkCmdCopyBuffer overwrites recv_* with peer's send_*; ghost_recv
+    // reads recv_*).
+    uint  ghost_send_leading_count;
+    uint  ghost_send_trailing_count;
+    uint  ghost_recv_leading_count;
+    uint  ghost_recv_trailing_count;
     uint  reserved_status_5;
-    uint  reserved_status_6;
-    uint  reserved_status_7;            // total 16 uint = 64 B, one cache line
+    uint  reserved_status_6;            // total 16 uint = 64 B, one cache line
 };
 
 layout(std430, set = 3, binding = 1) buffer OverflowLogBuffer {

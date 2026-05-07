@@ -40,8 +40,8 @@ layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
 
 void main() {
     // 0-based → 1-based particle_id
-    uint self_particle_id = gl_GlobalInvocationID.x + 1u;
-    if (self_particle_id > POOL_SIZE) return;
+    uint self_particle_id = gl_GlobalInvocationID.x + own_first_pid();
+    if (self_particle_id > own_last_pid()) return;
 
     // --- Self material group --------------------------------------------------
     uint self_group_id = material[self_particle_id];

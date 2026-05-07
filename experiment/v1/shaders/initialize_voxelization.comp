@@ -18,7 +18,7 @@
 // SLOT SENTINEL: an "unallocated" pool slot has velocity_mass.w (mass) == 0
 // (Python uploads pos=0, vel=0, mass=0 for slots beyond the active count).
 // Real particles have mass > 0 (set to ρ₀·V at upload time). Using mass as
-// the alive sentinel lets us dispatch over POOL_SIZE without extra push
+// the alive sentinel lets us dispatch over OWN_POOL_SIZE without extra push
 // constants and works even if a real particle happens to sit at the origin.
 //
 // Skipped (early return, no state change):
@@ -51,8 +51,8 @@ void kill_particle(uint particle_id) {
 }
 
 void main() {
-    uint self_particle_id = gl_GlobalInvocationID.x + 1u;
-    if (self_particle_id > POOL_SIZE) return;
+    uint self_particle_id = gl_GlobalInvocationID.x + own_first_pid();
+    if (self_particle_id > own_last_pid()) return;
 
     // --- Slot alive check (mass > 0 sentinel) -------------------------------
     vec4 self_velocity_mass = velocity_mass[self_particle_id];
