@@ -25,10 +25,35 @@
 // so by force.comp the canonical density_pressure holds ρ_{n+1}, P_{n+1}.
 // No descriptor parity / ping-pong.
 //
-// Indexing: 1-based throughout. particle_id ∈ [1, pool_size],
-// voxel_id ∈ [1, voxel_count], slot entries are direct 1-based particle_ids.
+// Indexing: 1-based throughout. particle_id ∈ [1, OWN+LEADING+TRAILING],
+// voxel_id ∈ [1, EXTENDED_VOXEL_COUNT], slot entries are direct 1-based pids.
 //
-// V0-a: single GPU, no ghost lookup. No multi-phase rest_density scaling.
+// V1 merged-buffer scheme: own + ghost share set 0 / set 1. Self dispatch
+// is bounded to the own pid range via own_first_pid() / own_last_pid().
+// Neighbor iteration uses in_own_grid (extended) so ghost neighbors are
+// visible automatically.
+//
+// V1 freshness summary under Option B (single sync after update_voxel +
+// ghost_send) at density.comp time:
+//   position / velocity / mass / material  : step t  (own + ghost agree)
+//   density (ρ)                              : step t-1 (own + ghost agree;
+//                                              this kernel is ABOUT to write
+//                                              step t)
+//   correction_inverse                       : own = step t (correction.comp
+//                                              just wrote it),
+//                                              GHOST = step t-1 (peer hadn't
+//                                              run correction.comp yet at
+//                                              ghost_send time)
+//   density_gradient_kernel_sum              : own = step t, ghost = step t-1
+//
+// Self uses its own correction (step t fresh) for `corrected_gradient`.
+// Neighbor's correction is read inside the if (USE_KCG_CORRECTION) branch
+// and currently flows ONLY into the ψ_ij second term, which is commented
+// out — so neighbor's stale ghost correction is effectively dead code.
+// As long as the ψ_ij second term stays commented, USE_KCG_CORRECTION can
+// be toggled freely without introducing ghost-staleness mismatch.
+// Uncommenting the second term turns ghost staleness into a real ~1e-4
+// error and motivates Option D (V1.0a/V1.1).
 // ============================================================================
 
 layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
@@ -37,8 +62,8 @@ layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
 // Main
 // ============================================================================
 void main() {
-    // 0-based invocation → 1-based particle_id.
-    uint self_particle_id = gl_GlobalInvocationID.x + 1u;
+    // 0-based invocation → 1-based particle_id, offset into own pid range.
+    uint self_particle_id = gl_GlobalInvocationID.x + own_first_pid();
 
     // Padding threads (dispatch rounds up to WORKGROUP_SIZE): early-return.
     if (self_particle_id > own_last_pid()) return;
@@ -94,7 +119,6 @@ void main() {
             for (int delta_x = -1; delta_x <= 1; delta_x++) {
                 ivec3 neighbor_coord = self_voxel_coord + ivec3(delta_x, delta_y, delta_z);
                 if (!in_own_grid(neighbor_coord)) continue;
-                // V1 TODO: else if (GHOST_DIMENSION_X > 0u) { check ghost grid }
 
                 uint neighbor_voxel_id = own_voxel_id_of(neighbor_coord);
                 uint neighbor_voxel_particle_count = inside_particle_count[neighbor_voxel_id];
@@ -160,6 +184,17 @@ void main() {
                         // the operator simple while validating the rest of the pipeline.
                         // The supporting computations below (corrected gradient sums) are
                         // also kept so the second term can be restored by uncommenting.
+                        //
+                        // V1 STALENESS NOTE: while the second term stays commented out,
+                        // neighbor_correction_matrix and neighbor_density_gradient flow
+                        // only into corrected_density_gradient_sum, which is dead code
+                        // (glslc -O should DCE the entire chain). This shields V1 from
+                        // the fact that ghost neighbours' correction_inverse and
+                        // density_gradient_kernel_sum are 1 step stale under Option B
+                        // single sync. UNCOMMENTING the second term turns those reads
+                        // live and exposes the staleness as a ~1e-4 error in ψ_ij —
+                        // would require Option D double sync (V1.0a/V1.1) or accepting
+                        // the bias.
                         vec3 neighbor_corrected_density_gradient = neighbor_correction_matrix * neighbor_density_gradient;
                         vec3 corrected_density_gradient_sum = self_corrected_density_gradient + neighbor_corrected_density_gradient;
                         vec3 position_difference_self_to_neighbor = -position_difference_neighbor_to_self; // -x_ij

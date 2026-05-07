@@ -32,8 +32,28 @@
 // MaterialParameters. When multi-phase is enabled (V0+), add back the per-
 // neighbor material / material_parameters reads and restore the harmonic means.
 //
-// Boundary particles early-return (static in V0). Rotor computes the full
+// Boundary particles early-return (static). Rotor computes the full
 // kernel but predict overrides its motion. Micropolar / curl output omitted.
+//
+// V1 merged-buffer scheme: own + ghost share set 0 / set 1. Self dispatch
+// is bounded to the own pid range. Neighbor iteration uses in_own_grid
+// (extended) so ghost neighbors are visible automatically.
+//
+// V1 freshness summary at force.comp time (Option B single sync):
+//   self own (after correction.comp + density.comp this step):
+//     position = t, velocity = t, ρ/P = t (fresh from density.comp's
+//                  scratch+copy), correction_inverse = t, kernel_sum = t.
+//   neighbor own:  position = t, velocity = t, ρ/P = t (same).
+//   neighbor GHOST: position = t, velocity = t, but
+//                   **ρ/P = t-1** (peer's last density.comp; sync 1 was
+//                   before peer's density this step).
+//
+// The ρ/P mismatch flows live into a_pressure (via neighbor_pressure +
+// neighbor_volume_dynamic = self_mass/neighbor_density), a_viscosity (via
+// neighbor_volume_dynamic), and the PST disorder term. Affects only own
+// particles in the boundary band (those whose neighbour iteration reaches
+// ghost voxels). ~1e-4 relative bias at low Mach. Fixed by sync 2 between
+// density.comp and force.comp (Option D, V1.0a/V1.1).
 // ============================================================================
 
 layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
@@ -61,10 +81,15 @@ void main() {
     if (self_voxel_id == VOXEL_ID_DEAD) return;
 
     // --- Self velocity + mass + density + pressure ---------------------------
-    // density_pressure: canonical ρ_{n+1}, P_{n+1}.
+    // density_pressure: canonical ρ_{n+1}, P_{n+1} for OWN particles.
     // density.comp wrote to scratch; the simulator already issued
-    // vkCmdCopyBuffer scratch → primary inside the same step cmd, so this
-    // read is the fresh ρ_{n+1}, P_{n+1}.
+    // vkCmdCopyBuffer scratch → primary inside the same step cmd, so OWN
+    // slots in this binding hold step-t fresh ρ_{n+1}, P_{n+1}.
+    //
+    // Caveat: GHOST slots still hold the values that ghost_send packed at
+    // sync 1 time (= peer's step-t-1 density.comp output). force.comp's
+    // ghost-neighbor reads of density_pressure are therefore one density
+    // step stale until Option D sync 2 is added.
     vec4  self_velocity_mass = velocity_mass[self_particle_id];
     vec3  self_velocity      = self_velocity_mass.xyz;
     float self_mass          = self_velocity_mass.w;
@@ -124,7 +149,6 @@ void main() {
             for (int delta_x = -1; delta_x <= 1; delta_x++) {
                 ivec3 neighbor_coord = self_voxel_coord + ivec3(delta_x, delta_y, delta_z);
                 if (!in_own_grid(neighbor_coord)) continue;
-                // V1 TODO: else if (GHOST_DIMENSION_X > 0u) { check ghost grid }
 
                 uint neighbor_voxel_id = own_voxel_id_of(neighbor_coord);
                 uint neighbor_voxel_particle_count = inside_particle_count[neighbor_voxel_id];

@@ -17,11 +17,16 @@
 // norm cap before inverting M. Writes M^-1 (symmetric, packed into 2 vec4)
 // plus (∇ρ, kernel_sum) into GradientKernelSumBuffer.
 //
-// Indexing: all ids are 1-based. particle_id ∈ [1, pool_size],
-// voxel_id ∈ [1, voxel_count], slot entries ∈ [1, pool_size]. 0 means
+// Indexing: all ids are 1-based. particle_id ∈ [1, OWN+LEADING+TRAILING],
+// voxel_id ∈ [1, EXTENDED_VOXEL_COUNT], slot entries ∈ same. 0 means
 // unallocated/dead/empty everywhere.
 //
-// V0-a: single GPU, no ghost lookup. Ghost neighbor branches reserved for V1.
+// V1 merged-buffer scheme: ghost particles live in set 0 high pid range
+// (leading [1, M_pid] / trailing [...]) and ghost voxels live in set 1
+// extended grid range. Self dispatch is bounded by own_first_pid() /
+// own_last_pid() so only own particles run this kernel. Neighbor iteration
+// uses in_own_grid (which spans the EXTENDED grid in V1) so ghost neighbors
+// are picked up automatically — no separate ghost branch.
 // ============================================================================
 
 layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
@@ -72,7 +77,6 @@ void main() {
             for (int delta_x = -1; delta_x <= 1; delta_x++) {
                 ivec3 neighbor_coord = self_voxel_coord + ivec3(delta_x, delta_y, delta_z);
                 if (!in_own_grid(neighbor_coord)) continue;
-                // V1 TODO: else if (GHOST_DIMENSION_X > 0u) { check ghost grid }
 
                 uint neighbor_voxel_id = own_voxel_id_of(neighbor_coord);
                 uint neighbor_voxel_particle_count = inside_particle_count[neighbor_voxel_id];

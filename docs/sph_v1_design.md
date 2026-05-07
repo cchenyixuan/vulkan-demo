@@ -241,13 +241,30 @@ Tier 2 first (much cheaper to set up), then tier 1 once V1 is stable. The legacy
 
 | Milestone | Definition of done |
 |---|---|
-| **V1.0** | Pure 9-phase pipeline runs the lid case across both GPUs without crash. Tier-2 reproducibility passes. Phase timing CSV instrumented. |
-| **V1.0a** | Tier-1 smoke validation passes (energy + count drift bounded). |
-| **V1.1** | Replace `vkQueueWaitIdle` with timeline semaphores + interleaved phase submission. Same numerical output. |
+| **V1.0** | 5-phase blocking pipeline (single sync, Option B) runs the lid case across both GPUs without crash. Tier-2 reproducibility passes. Phase timing CSV instrumented. force.comp boundary band has ~1e-4 ρ/P stale bias from Option B (known + bounded). |
+| **V1.0a** | Add **Option A sync 2** (full-rerun ghost_send between density and force) — eliminates the ρ/P bias. Costs ~300 μs/step (~4% slowdown) at this stage; still blocking. Tier-1 smoke validation passes. |
+| **V1.1** | Replace `vkQueueWaitIdle` with timeline semaphores + interleaved phase submission. Same numerical output as V1.0a; transport queues still on the same compute queue (no async DMA overlap yet). |
 | **V1.2** | Per-kernel timestamp queries collected; per-kernel weight model replaces single global weight if kernel-mix imbalance is significant. (Whole-pipeline calibration is already done — see `KNOWN_GPU_SPH_WEIGHT` measurements above.) |
 | **V1.3** (deferred) | NV+NV P2P backend swapped in; ghost via `vkCmdCopyBuffer` instead of CPU staging. Probe `probe_interop.py` first. |
 
-V1.0 is the only required milestone for the paper's portability section. V1.1+ are perf optimisations.
+V1.0 is the only required milestone for the paper's portability section. V1.0a is highly recommended (sync 2 = numerically clean baseline). V1.1+ are perf optimisations.
+
+## Sync Strategy Decision (V1.0a → V2 Path)
+
+**V1.0a = Option A full re-run for sync 2** (not B/C selective ρ/P refresh). Rationale:
+
+force.comp's only stale field on ghost neighbours is ρ/P. A "ρ/P-only sync 2" looks attractive (10× less bandwidth) but breaks slot stability — sync 1's per-voxel atomicAdd allocates ghost-pid slots non-deterministically, so a second selective write can't reliably target the same slots. Workarounds (fixed-stride or prefix-sum allocators) require shader rewrites and add complexity.
+
+Option A simply re-runs ghost_send.comp unchanged. New atomic-add allocation in sync 2 produces a different slot mapping than sync 1, but inside_particle_index is also re-written → consistent end state. Zero shader changes, zero slot-stability concerns.
+
+**Bandwidth cost looks bad on paper**: ~3 MB/step extra transport vs ~316 KB for ρ/P-only. But under V2's async architecture (transfer queue concurrent + interior/boundary force split, see `Out-of-Scope for V1`), sync 2 transport runs in parallel with `force_interior` compute (~2.7 ms) and is fully hidden in wall time. **Net wall-time cost approaches zero** when force_interior dominates the step.
+
+So the long-term answer is **A + V2 async overlap, not B/C**. We don't bypass via clever allocators because the transport cost evaporates anyway once async is wired up. The B/C alternatives' costs (memory bloat or extra prefix-sum kernel) are real and remain even after V2.
+
+V1.0a / V1.1 timeline:
+- V1.0a: Option A sync 2, blocking, ~300 μs/step. Wall-time slowdown ~4%.
+- V1.1: Timeline semaphores remove redundant queue-idle barriers; sync 2 still on compute queue. Slowdown drops to ~3%.
+- V2: Transfer queue + interior/boundary force split. Sync 2 transport hides behind force_interior. Slowdown approaches 0%.
 
 ## Out-of-Scope for V1
 
