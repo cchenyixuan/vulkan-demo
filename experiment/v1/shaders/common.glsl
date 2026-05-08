@@ -242,9 +242,27 @@ const uint PARTICLE_ID_NONE      = 0u;
 //
 // predict / correction / density / force dispatch over [own_first_pid(),
 // own_last_pid()] (see helpers.glsl). ghost_send writes own's boundary into
-// the ghost-pid sub-range matching the send direction; transport overwrites;
-// ghost_recv re-voxelizes. Hot-path neighbour iteration reads set 0 uniformly
-// — own and ghost neighbours are indistinguishable after recv.
+// the ghost-pid sub-range matching the send direction; transport overwrites
+// with peer's data; install_migrations.comp finalizes. Hot-path neighbour
+// iteration reads set 0 uniformly — own and ghost neighbours are
+// indistinguishable after install.
+//
+// Path 2 / migration semantics (V1.0a):
+// Each ghost-pid slot's position_voxel_id.w encodes its purpose, set by
+// sender's ghost_send.comp:
+//   * voxel_id in receiver's GHOST voxel range  → REPLICA: used by hot
+//     kernels via ghost voxel's inside_particle_index.
+//   * voxel_id in receiver's OWN voxel range    → MIGRATION: install_migrations
+//     copies the slot's 9 fields into the own pid range (end-allocated from
+//     own_last_pid via migration_install_count) and registers the new own_pid
+//     in own voxel's inside_particle_index.
+//   * voxel_id == 0  → dead/consumed slot (skip). install_migrations sets this
+//     after consuming a migration so subsequent passes don't double-install.
+//
+// Sender packs both replicas and migrations into the same ghost-pid range using
+// the same byte layout and the same GHOST_VOXEL_ID_OFFSET_TO_RECEIVER spec
+// const (the offset cancellation between own boundary↔peer ghost and own
+// ghost↔peer own makes one offset suffice).
 // ============================================================================
 
 layout(std430, set = 0, binding = 0) buffer PositionVoxelIdBuffer {
@@ -334,11 +352,16 @@ layout(std430, set = 0, binding = 9) buffer ExtensionFieldsBuffer {
 // where T = GRID_DIMENSION_X * GRID_DIMENSION_Y * GRID_DIMENSION_Z.
 // Per-voxel buffers below are sized (T + 1) in the count dimension.
 //
-// predict atomic-appends new-voxel arrivals into incoming_particle_index
-// only when target voxel is OWN (is_own_voxel(vid)). Crossings into ghost
-// range are migration events (Channel B; V1.1+). update_voxel dispatches
-// over own voxels only. ghost_recv populates leading/trailing ghost
-// inside_particle_count + inside_particle_index from peer's data.
+// predict.comp atomic-appends new-voxel arrivals into incoming_particle_index
+// for any new voxel_id (own OR ghost — the atomicAdd target is whatever voxel
+// the particle just drifted to). update_voxel.comp filters by is_own_voxel
+// and only rebuilds own voxel inside lists. ghost voxel incoming_particle_index
+// entries are intentionally LEFT for ghost_send.comp, which walks them as the
+// source of MIGRATION packets (own particles that drifted across the partition
+// during this step's predict). Receiver's install_migrations.comp atomic-
+// appends the new own_pid into the receiver's OWN voxel inside_particle_index
+// for migration arrivals. Replicas land in receiver's ghost voxel
+// inside_particle_index directly via ghost_send.
 // Hot-path neighbour iteration reads inside_particle_count uniformly —
 // own and ghost voxels look identical once populated.
 //
@@ -417,24 +440,40 @@ layout(std430, set = 1, binding = 4) buffer VoxelBaseOffsetBuffer {
 
 layout(std430, set = 3, binding = 0) buffer GlobalStatusBuffer {
     uint  alive_particle_count;
-    uint  frame_counter;
     float maximum_velocity;
-    uint  inlet_spawn_count;
-    uint  overflow_inside_count;
-    uint  overflow_incoming_count;
-    uint  first_overflow_voxel_inside;
-    uint  first_overflow_voxel_incoming;
-    uint  correction_fallback_count;   // particles whose M_inv fell to identity
-    uint  overflow_ghost_count;        // ghost_send / ghost_recv bound check failures
-    // V1 ghost transport counters (zeroed at step start; ghost_send writes
-    // send_*; vkCmdCopyBuffer overwrites recv_* with peer's send_*; ghost_recv
-    // reads recv_*).
+    // Per-kernel inside/incoming-list overflow diagnostics. Each kernel that
+    // can drop a particle on a full voxel slot has its own counter + sample-vid
+    // pair so root-cause attribution is unambiguous on host-side readback.
+    uint  overflow_inside_count;          // update_voxel.comp (own incoming → inside, full)
+    uint  overflow_incoming_count;        // predict.comp (atomic-append into incoming, full)
+    uint  first_overflow_voxel_inside;    // update_voxel.comp sample vid
+    uint  first_overflow_voxel_incoming;  // predict.comp sample vid
+    uint  correction_fallback_count;      // particles whose M_inv fell to identity
+    uint  overflow_ghost_count;           // ghost_send sender-side ghost-pool overflow
+    // V1 ghost transport counters. Zeroed at step start (vkCmdFillBuffer
+    // before ghost_send dispatch). ghost_send writes send_*; vkCmdCopyBuffer
+    // overwrites recv_* with peer's send_*; install_migrations reads recv_*
+    // to know dispatch range.
     uint  ghost_send_leading_count;
     uint  ghost_send_trailing_count;
     uint  ghost_recv_leading_count;
     uint  ghost_recv_trailing_count;
-    uint  reserved_status_5;
-    uint  reserved_status_6;            // total 16 uint = 64 B, one cache line
+    // V1.0a migration installation (end-allocate, strategy 1):
+    //   migration_install_count: atomic counter shared by leading + trailing
+    //     install_migrations dispatches. Reset only after each defrag dispatch
+    //     (NOT every step). own_pid for slot N = own_last_pid() - N.
+    //   overflow_install_tail: bumped when end-allocate would overlap with
+    //     post-defrag alive region (own pool tail exhausted before next defrag).
+    //   overflow_install_inside: bumped when an arriving migration finds the
+    //     receiver own voxel's inside_particle_index already at MAX. The newly
+    //     allocated own_pid is rolled back (zeroed) and the migration dropped.
+    //   first_overflow_voxel_install: sample vid for the inside-list overflow on
+    //     the install path; separate from update_voxel's sample so post-mortem
+    //     can distinguish the two failure modes.
+    uint  migration_install_count;
+    uint  overflow_install_tail;
+    uint  overflow_install_inside;
+    uint  first_overflow_voxel_install;   // total 16 uint = 64 B, one cache line
 };
 
 layout(std430, set = 3, binding = 1) buffer OverflowLogBuffer {

@@ -1,6 +1,7 @@
 #version 460
 #extension GL_GOOGLE_include_directive : enable
 #include "common.glsl"
+#include "helpers.glsl"
 
 // ============================================================================
 // defrag.comp — per-voxel SoA scatter to restore spatial locality.
@@ -44,6 +45,28 @@
 // V0+ inlet spawn must redesign this path — options include a separate
 // "non-voxel particle list" the defrag walks in addition, or rebuilding inlet
 // pool slots from inlet_template (set 3 binding 2) after each defrag.
+//
+// V1.0a: this kernel processes OWN voxels only (filtered by is_own_voxel).
+// Ghost voxels are never defragged because:
+//   - ghost voxel inside_particle_count + inside_particle_index are written
+//     by ghost_send + transport every step (replicas overwrite in place);
+//   - ghost-pid range in scratch (set 4) is host-cleared to 0 pre-defrag, so
+//     after CPU bank swap the new set 0 ghost-pid range is empty. It gets
+//     refilled by next step's ghost_send → transport BEFORE any hot kernel
+//     reads it. predict / update_voxel of step N+1 don't touch ghost data.
+// Alive packing: own particles defrag-pack into [own_first_pid, own_first_pid +
+// alive_count - 1]. Dead slots fill [own_first_pid + alive_count, own_last_pid].
+//
+// Host orchestration around defrag dispatch (simulator_v1.py):
+//   1. vkCmdFillBuffer scratch (set 4) = 0          (zero-init dead region)
+//   2. vkCmdFillBuffer defrag_scratch_counter = 0   (reset atomic)
+//   3. defrag.comp dispatch (this kernel)
+//   4. vkCmdCopyBuffer defrag_scratch_counter → alive_particle_count
+//      (refresh post-defrag alive count for downstream install_migrations'
+//       overflow check)
+//   5. vkCmdFillBuffer migration_install_count = 0
+//      (reset end-allocate cycle so install starts at own_last_pid again)
+//   6. CPU bank swap: scratch (set 4) becomes new set 0
 // ============================================================================
 
 layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
@@ -94,7 +117,11 @@ layout(std430, set = 4, binding = 9) writeonly buffer DstExtensionFieldsBuffer {
 
 void main() {
     uint voxel_id = gl_GlobalInvocationID.x + 1u;       // 1-based
-    if (voxel_id > TOTAL_VOXEL_COUNT) return;
+
+    // V1.0a: defrag only own voxels. is_own_voxel filter subsumes the
+    // padding-thread check (vid > TOTAL_VOXEL_COUNT) AND skips ghost voxels
+    // (managed by ghost_send + transport, not by defrag).
+    if (!is_own_voxel(voxel_id)) return;
 
     uint count = inside_particle_count[voxel_id];
     if (count == 0u) return;
@@ -110,8 +137,10 @@ void main() {
     } else {
         base = atomicAdd(defrag_scratch_counter, count);
     }
-    // Convert 0-based reserved offset to 1-based particle_id (slot 0 unused).
-    uint base_id = base + 1u;
+    // V1.0a: pack alive own particles into the OWN pid sub-range starting at
+    // own_first_pid() (= LEADING_GHOST_POOL_SIZE + 1; reduces to 1 for
+    // end-of-chain GPUs where LEADING_GHOST_POOL_SIZE = 0, matching V0).
+    uint base_id = base + own_first_pid();
 
     // ------------------------------------------------------------------------
     // Iterate this voxel's slots, copy each particle to its new slot, and

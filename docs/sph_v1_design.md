@@ -149,17 +149,90 @@ Five per-pipeline spec consts for ghost_send (id 90–94):
 
 End-of-chain GPU runs ghost_send once per step (one direction). Middle 1D GPU runs twice (leading + trailing). 2D 4-peer middle (V3++) runs four times. **Each dispatch is independent**; same SPV, different spec const values, no contention (writes to disjoint sub-ranges, each direction has its own atomic counter in `global_status`).
 
-## Migration Channel (V1.1+)
+## Migration Channel (V1.0a, folded into ghost SoA — path 2)
 
-V1.0 starts WITHOUT migration: own particles that drift into ghost voxel range are **killed** by predict.comp (`voxel_id = 0` sentinel). Lid-driven cavity has bounded mean velocity in X (no fluid actually crosses the partition over a typical run window), so this is a benign approximation for V1.0 baseline.
+Cross-partition migration = an own particle drifts into the ghost voxel range. V1.0a integrates migration into the merged-buffer scheme: there is **NO separate Channel B**. Instead, ghost SoA carries two kinds of payload, distinguished by the `voxel_id` field of each slot:
 
-V1.1+ adds Channel B (migration packets) so own→peer crossings become handoffs of ownership instead of deletions:
+```
+ghost-pid slot k:
+  .position_voxel_id.w = voxel_id (in receiver's frame)
+        ├─ in receiver's GHOST range  → REPLICA   (used as ghost neighbour by hot kernels)
+        └─ in receiver's OWN range    → MIGRATION (installed as own particle by install_migrations.comp)
+```
 
-- Predict atomic-appends crossing particle's full state into an `outgoing_to_peer` packet buffer (set 3 binding TBD).
-- Transport carries packets to peer.
-- Peer's update_voxel installs each incoming packet into a dead slot in its own SoA.
+Sender's `ghost_send.comp` packs both kinds in the same byte stream using the same `GHOST_VOXEL_ID_OFFSET_TO_RECEIVER` spec const (lucky property: replica and migration offsets are equal because their physical voxel offset cancels out — see derivation below).
 
-Channel B stays distinct from ghost (Channel A): a ghost is a *replica* read by neighbour iteration, while migration *transfers ownership*. Folding them would require a per-particle `is_ghost_or_own` flag and conditional integration — exactly the branch the merged-buffer scheme avoids elsewhere. Bit-exact Kernel-A unification (the original `sph_design.md` plan) folds them elegantly but only works same-vendor; cross-vendor needs explicit channels.
+Receiver's new `install_migrations.comp` walks the ghost-pid range after transport, splits replica vs migration based on the voxel_id tag.
+
+Re-add `ghost_acceleration` (set 2 binding 4) and `ghost_shift` (set 2 binding 5) to ghost SoA — the migrated particle needs these for the receiver's NEXT step's predict integration.
+
+### Sender (predict + ghost_send)
+
+`predict.comp`: when an own particle's new voxel_id is in ghost range, it atomically appends to `incoming_particle_index[ghost_voxel_id]` just like any voxel change. update_voxel.comp's `is_own_voxel` filter skips this entry (ghost voxels are not its responsibility), but ghost_send picks it up.
+
+`ghost_send.comp`: per-(y, z) thread reads two sources:
+1. **Own boundary voxel's `inside_particle_index`** (post-update_voxel) → packs as REPLICA, voxel_id_for_peer = own_boundary_vid + GHOST_VOXEL_ID_OFFSET_TO_RECEIVER (in peer's ghost range).
+2. **Adjacent ghost voxel's `incoming_particle_index`** (predict's own→ghost crossings this step) → packs as MIGRATION, voxel_id_for_peer = ghost_vid + GHOST_VOXEL_ID_OFFSET_TO_RECEIVER (lucky property: same offset; lands in peer's own range). Sender marks the migrating own pid as dead (`voxel_id = 0`, `mass = 0`).
+
+After packing, ghost_send resets `incoming_particle_count[ghost_voxel_id] = 0` so it doesn't double-count next step.
+
+### Receiver (install_migrations.comp)
+
+```
+per-ghost-pid thread (dispatch over GHOST_POOL_SIZE):
+  vid = ghost_position_voxel_id[gpid].w
+  if vid == 0:                       return   # dead/consumed slot
+  if !is_own_voxel(vid):             return   # replica, leave for hot kernel
+  
+  # migration arrival: install as own
+  own_pid = allocate_dead_own_slot()          # see "slot allocation" below
+  copy 9 fields ghost_<*>[gpid] → <*>[own_pid]
+  atomic-append own_pid to inside_particle_index[vid]
+  ghost_position_voxel_id[gpid].w = 0          # consume
+```
+
+### Migration slot allocation: strategy 1 (V1.0a) and strategy 2 (V1.x)
+
+`install_migrations` needs a dead slot in the own pid range. Two strategies:
+
+#### Strategy 1: end-allocate (V1.0a default)
+
+Atomic counter `migration_install_count` in `global_status`, init to 0 at simulator start. Each install: `slot_n = atomicAdd(migration_install_count, 1)`, `own_pid = own_last_pid() - slot_n`.
+
+Migrations install at the **tail** of own pid range, indices descending. Mid-range dead slots (left over from predict kills, ghost_send migration-out kills) are NOT recycled — they stay dead until next defrag, when V0 defrag's compaction packs all alive into [own_first_pid, alive_count] and frees the rest.
+
+- Per install: 1 atomicAdd on `migration_install_count` + 1 atomicAdd on `inside_particle_count[vid]` + 9 SoA writes.
+- Per step overhead: ~80 installs × (~150 cycles avg per atomic) ≈ **4-10 μs/step** at lid scale.
+- Storage: 1 uint counter, no buffer.
+- Reset cadence (V1.0a default): **only after each defrag dispatch**. Counter monotonically grows across steps within a defrag cycle. End-pointer descends through the post-defrag dead region. Defrag re-packs alive particles to the front and resets the counter, starting a fresh end-allocate cycle from `own_last_pid()`.
+- Per-step reset (alternative, V1.x candidate): resetting `migration_install_count = 0` at each step start would re-use the same tail slots every step. This works ONLY if those slots are reliably re-killed each step (e.g., by ghost_send marking previous step's installs as dead). Without that guarantee, per-step reset would overwrite live migrations from prior steps. Documented here as a possible future micro-optimization; V1.0a sticks with the safer post-defrag-only reset.
+
+**Risk**: end pointer drops monotonically (~80/step at lid scale, up to 1000+/step at high-flux). Over `defrag_cadence` (default 1000 steps), pointer falls by ~80K to ~1M. If the gap from the start of the dead region (= alive_count) is smaller than this drop, install fails and overflow_migration_install increments. Lid case has ~860K headroom → safe by ~10×. High-flux dam-break-style cases may exhaust earlier and need either smaller `defrag_cadence` or strategy 2.
+
+#### Strategy 2: free-slot stack (V1.x upgrade)
+
+Maintain explicit free-pid stack — `free_pid_stack[FREE_STACK_SIZE]` + `free_pid_count`:
+- `predict.comp` and `ghost_send.comp` push killed pids onto the stack (atomicAdd to count + write slot).
+- `install_migrations` pops from the stack (atomicSub to count + read slot).
+- After each defrag, simulator runs a one-shot rebuild kernel: parallel prefix-sum over own pid range to identify dead slots, write them to stack.
+
+- Per install: 1 atomicSub + 1 stack read + same downstream writes.
+- Per kill (predict / ghost_send): +1 atomicAdd + 1 stack write.
+- Per step overhead: ~10-16 μs/step (~80 push + ~80 pop + the inside_count atomic).
+- Storage: 1 uint counter + free_pid_stack (uint × OWN_POOL_SIZE potential = 4.8 MB worst case at 1.2M; in practice cap at ~50% expected = ~2.4 MB).
+- Defrag interaction: extra ~50 μs dispatch to rebuild stack.
+
+Net difference vs strategy 1: ~5-10 μs/step (~0.07-0.14% of step time).
+
+**Use strategy 2 when**: V1.0 lid passes but high-flux validation cases trip `overflow_migration_install`, or `defrag_cadence` becomes too small for stable behaviour.
+
+### Why this works (and bit-exact concerns ducked)
+
+Migration is **authoritative on the source GPU**: only one side runs predict on the particle (= the side that owns it at the start of the step). That side's predict is the single source of truth for the particle's new voxel. If the new voxel falls in ghost range → migration. Receiver passively installs.
+
+Cross-vendor floating-point ULP differences don't cause ambiguity here — only ONE GPU computes the new position, and that GPU's classification (own / ghost) is final. No double-count, no loss.
+
+This is why we explicitly **don't run predict on ghost particles**. Doing so (mechanism B in the design discussion) would require bit-exact agreement between two GPUs on each ghost particle's new position, which fails cross-vendor and creates ~0.025-0.5% particle count drift.
 
 ## Sync Cadence
 

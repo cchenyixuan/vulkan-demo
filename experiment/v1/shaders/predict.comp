@@ -11,8 +11,11 @@
 //   2. Drift           : x_{n+1}   = x_n + v_{n+1/2} · dt + shift_n
 //   3. Voxel crossing  : compute new voxel_id; if != old, atomic-append particle_id
 //                        to incoming_particle_index of the new voxel.
-//   4. Open boundary   : if new position lies outside the grid, kill the particle
-//                        (zero position + velocity, voxel_id = 0).
+//   4. Open boundary   : if new position lies outside the EXTENDED grid (own +
+//                        ghost columns), kill the particle (zero pos + vel,
+//                        voxel_id = 0). Under CFL, drift per step ≤ 1 voxel,
+//                        so this only fires at the physical domain edge of an
+//                        end-of-chain GPU's outward side.
 //
 // Skipped kinds: BOUNDARY (static), ROTOR (deferred coupling), INLET (emitter).
 // Dead particles (old voxel_id = 0) also skip.
@@ -33,6 +36,16 @@
 //     update_voxel MUST clamp its iteration bound to min(count, CAP).
 //   - Dead particles (killed here) have position_voxel_id.w = 0, so update_voxel
 //     automatically compacts them out of inside_particle_index.
+//
+// V1.0a path 2: new_voxel_id may fall in own range OR in leading/trailing
+// ghost range. Both atomic-append to incoming_particle_index[new_voxel_id]
+// without distinction. Downstream consumes them differently:
+//   - own voxel incoming → consumed by update_voxel.comp (rebuilds own inside list)
+//   - ghost voxel incoming → consumed by ghost_send.comp as MIGRATION packet
+//     source (own particles that drifted across the partition); ghost_send
+//     marks the own pid dead after packing.
+// predict does NOT differentiate; it just records the new voxel and trusts
+// the downstream classification.
 // ============================================================================
 
 layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
@@ -99,6 +112,8 @@ void main() {
 
     // ========================================================================
     // Case B: voxel changed → atomic-append to new voxel's incoming queue.
+    // new_voxel_id may be own or ghost; ghost_send.comp consumes ghost-voxel
+    // incoming as migration source (V1.0a path 2).
     // ========================================================================
     if (new_voxel_id != old_voxel_id) {
         uint slot = atomicAdd(incoming_particle_count[new_voxel_id], 1u);

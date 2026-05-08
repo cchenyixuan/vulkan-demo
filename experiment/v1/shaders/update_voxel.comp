@@ -29,6 +29,19 @@
 //   - inside_particle_count[v] ≤ MAX_PARTICLES_PER_VOXEL.
 //   - No inlet / dead particles in the buffer (predict guarantees incoming
 //     never contains them; dead-in-old are filtered by voxel_id mismatch).
+//
+// V1.0a: this kernel processes OWN voxels only (filtered by is_own_voxel).
+// Ghost voxel inside / incoming are managed elsewhere:
+//   - predict.comp: atomic-appends own→ghost crossings to GHOST voxel's
+//     incoming_particle_index — these stay there for ghost_send to consume.
+//   - ghost_send.comp: walks ghost voxel incoming as MIGRATION packet source;
+//     resets incoming_particle_count[ghost_vid] = 0 after packing.
+//   - transport: overwrites ghost voxel inside_particle_count + index from
+//     peer's ghost_send output (replicas only).
+//   - install_migrations.comp: registers received migrations into receiver's
+//     OWN voxel inside_particle_index (NOT into ghost voxel inside lists).
+// update_voxel.comp skips all ghost voxels via is_own_voxel(self_voxel_id),
+// which also subsumes the dispatch-padding-thread early-return.
 // ============================================================================
 
 layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
@@ -42,7 +55,11 @@ void kill_particle(uint particle_id) {
 void main() {
     // Per-voxel dispatch: gl_GlobalInvocationID.x maps to voxel_id (1-based).
     uint self_voxel_id = gl_GlobalInvocationID.x + 1u;
-    if (self_voxel_id > TOTAL_VOXEL_COUNT) return;
+
+    // is_own_voxel filters TWO things in one check:
+    //   1. dispatch padding threads (vid > TOTAL_VOXEL_COUNT)
+    //   2. ghost voxels (vid in leading/trailing range, V1.0a)
+    if (!is_own_voxel(self_voxel_id)) return;
 
     uint count_old = inside_particle_count[self_voxel_id];
     uint count_in  = incoming_particle_count[self_voxel_id];
