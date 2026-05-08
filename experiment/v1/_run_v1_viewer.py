@@ -30,9 +30,9 @@ import glfw
 
 from utils.sph.case import load_case
 from utils.sph.vulkan_context import VulkanContext
-from utils.sph.renderer import SphRenderer
 
 from experiment.v1 import compile_shaders_v1
+from experiment.v1.utils.renderer_v1 import SphRendererV1
 from experiment.v1.utils.simulator_v1 import SphSimulatorV1
 
 
@@ -81,7 +81,7 @@ def main() -> None:
         sim = SphSimulatorV1(ctx, case)
         try:
             sim.bootstrap()
-            with SphRenderer(sim, window_width=1280, window_height=720) as viewer:
+            with SphRendererV1(sim, window_width=1280, window_height=720) as viewer:
                 viewer.run(log_fps_path=args.log_fps)
         finally:
             sim.destroy()
