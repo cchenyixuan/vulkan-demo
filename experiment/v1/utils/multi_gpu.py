@@ -36,6 +36,7 @@ class MultiGPUContext:
         device_indices: list[int],
         application_name_prefix: str = "sph_v1",
         enable_validation: bool = True,
+        extra_instance_extensions: Optional[list] = None,
         extra_device_extensions: Optional[list] = None,
     ) -> "MultiGPUContext":
         """Build one VulkanContext per requested physical-device index.
@@ -43,6 +44,10 @@ class MultiGPUContext:
         Order matters: contexts[i] uses device_indices[i]. Downstream code
         (partitioner, sync loop) addresses GPUs by this list index, not by
         physical device index.
+
+        extra_instance_extensions: forwarded to every VulkanContext (e.g.
+        GLFW's required surface-related VK_KHR_surface + platform extensions
+        when one of the contexts will own a swapchain).
         """
         if len(device_indices) < 1:
             raise ValueError("device_indices must contain at least one index")
@@ -53,6 +58,7 @@ class MultiGPUContext:
                 context = VulkanContext.create(
                     application_name=f"{application_name_prefix}_gpu{slot_index}",
                     enable_validation=enable_validation,
+                    extra_instance_extensions=extra_instance_extensions,
                     extra_device_extensions=extra_device_extensions,
                     device_index=device_index,
                 )

@@ -1001,10 +1001,23 @@ class SphSimulatorV1:
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             VK_PIPELINE_STAGE_TRANSFER_BIT,
             0, 1, [compute_to_transfer], 0, None, 0, None)
+        # Copy ONLY the own pid range. The ghost-pid range was just populated
+        # by sync 1 transport (with peer's density values); the scratch buffer
+        # is zero-init for ghost-pid slots (density.comp dispatches over own
+        # only, doesn't touch scratch in ghost range), so a full-buffer copy
+        # would overwrite ghost density with zeros and break force.comp's
+        # neighbor reads (volume = mass / 0 = inf → nan).
         primary = self.buffers["density_pressure"]
         scratch = self.buffers["density_pressure_scratch"]
+        density_stride = 8
+        own_first = self.own_first_pid()
+        own_pool = int(self.case.capacities.pool_size)
+        own_byte_offset = own_first * density_stride
+        own_byte_size = own_pool * density_stride
         vkCmdCopyBuffer(cmd, scratch.handle, primary.handle, 1,
-            [VkBufferCopy(srcOffset=0, dstOffset=0, size=primary.size)])
+            [VkBufferCopy(srcOffset=own_byte_offset,
+                          dstOffset=own_byte_offset,
+                          size=own_byte_size)])
         transfer_to_compute = VkMemoryBarrier(
             sType=VK_STRUCTURE_TYPE_MEMORY_BARRIER,
             srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT,
@@ -1058,9 +1071,41 @@ class SphSimulatorV1:
 
     # ---- Step / bootstrap / defrag --------------------------------------------
 
+    def _record_reset_ghost_send_counts(self, cmd) -> None:
+        """Zero the GlobalStatusBuffer ghost_send_*_count fields BEFORE
+        ghost_send. ghost_send.comp uses atomicAdd on these to allocate
+        slots in the ghost-pid range; if non-zero from a previous step,
+        the slot offset overflows past the ghost pool and corrupts own
+        pid SoA. Per common.glsl docstring this reset is required.
+
+        Resets BOTH leading and trailing (4 bytes each) — cheap. Even if
+        only one direction has a peer, the unused field is no-op write.
+
+        Field offsets (V1 layout, 16-uint GlobalStatusBuffer):
+          [8] ghost_send_leading_count   → byte 32
+          [9] ghost_send_trailing_count  → byte 36
+        """
+        if not (self.has_leading_peer or self.has_trailing_peer):
+            return
+        gs = self.buffers["global_status"].handle
+        vkCmdFillBuffer(cmd, gs, 32, 4, 0)   # ghost_send_leading_count
+        vkCmdFillBuffer(cmd, gs, 36, 4, 0)   # ghost_send_trailing_count
+        # transfer-write → compute-shader-read barrier so ghost_send's
+        # atomicAdd sees the fresh zero.
+        barrier = VkMemoryBarrier(
+            sType=VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+            srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT,
+            dstAccessMask=VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+        )
+        vkCmdPipelineBarrier(cmd,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            0, 1, [barrier], 0, None, 0, None)
+
     def _record_ghost_send_phase(self, cmd) -> None:
         """ghost_send dispatches (per-direction). Single-GPU collapse mode is
-        a no-op (no peer pipelines created)."""
+        a no-op (no peer pipelines created). Caller MUST have reset the
+        ghost_send_*_count fields before this (see _record_reset_ghost_send_counts)."""
         if not (self.has_leading_peer or self.has_trailing_peer):
             return
         per_yz = self._per_yz_face_dispatch_count()
@@ -1138,6 +1183,7 @@ class SphSimulatorV1:
         self._record_compute_barrier(cmd)
 
         # Bootstrap ghost sync (degenerate: no migrations, only replicas).
+        self._record_reset_ghost_send_counts(cmd)
         self._record_ghost_sync_phase(cmd)
 
         self._bind_pipeline_and_sets(cmd, "correction")
@@ -1182,6 +1228,9 @@ class SphSimulatorV1:
         self._bind_pipeline_and_sets(cmd, "update_voxel")
         vkCmdDispatch(cmd, per_v, 1, 1)
         self._record_compute_barrier(cmd)
+
+        # Reset ghost_send_*_count BEFORE ghost_send (atomicAdd needs fresh 0).
+        self._record_reset_ghost_send_counts(cmd)
 
         # ghost_send (writes ghost-pid range + ghost-vid count/index +
         # ghost_send_*_count). Skipped in single-GPU collapse.
@@ -1244,6 +1293,9 @@ class SphSimulatorV1:
         self._bind_pipeline_and_sets(cmd, "initialize_voxelization")
         vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_compute_barrier(cmd)
+
+        # Reset ghost_send_*_count BEFORE ghost_send.
+        self._record_reset_ghost_send_counts(cmd)
 
         self._record_ghost_send_phase(cmd)
 
@@ -1309,6 +1361,7 @@ class SphSimulatorV1:
         self._record_compute_barrier(cmd)
 
         # V1.0a sync 1 (ghost_send + install_migrations).
+        self._record_reset_ghost_send_counts(cmd)
         self._record_ghost_sync_phase(cmd)
 
         self._bind_pipeline_and_sets(cmd, "correction")
