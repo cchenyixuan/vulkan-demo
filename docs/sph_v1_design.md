@@ -312,15 +312,33 @@ Tier 2 first (much cheaper to set up), then tier 1 once V1 is stable. The legacy
 
 ## Milestones
 
-| Milestone | Definition of done |
-|---|---|
-| **V1.0** | 5-phase blocking pipeline (single sync, Option B) runs the lid case across both GPUs without crash. Tier-2 reproducibility passes. Phase timing CSV instrumented. force.comp boundary band has ~1e-4 ρ/P stale bias from Option B (known + bounded). |
-| **V1.0a** | Add **Option A sync 2** (full-rerun ghost_send between density and force) — eliminates the ρ/P bias. Costs ~300 μs/step (~4% slowdown) at this stage; still blocking. Tier-1 smoke validation passes. |
-| **V1.1** | Replace `vkQueueWaitIdle` with timeline semaphores + interleaved phase submission. Same numerical output as V1.0a; transport queues still on the same compute queue (no async DMA overlap yet). |
-| **V1.2** | Per-kernel timestamp queries collected; per-kernel weight model replaces single global weight if kernel-mix imbalance is significant. (Whole-pipeline calibration is already done — see `KNOWN_GPU_SPH_WEIGHT` measurements above.) |
-| **V1.3** (deferred) | NV+NV P2P backend swapped in; ghost via `vkCmdCopyBuffer` instead of CPU staging. Probe `probe_interop.py` first. |
+| Milestone | Definition of done | Status |
+|---|---|---|
+| **V1.0** | 5-phase blocking pipeline (single sync, Option B) runs the lid case across both GPUs without crash. Tier-2 reproducibility passes. Phase timing CSV instrumented. force.comp boundary band has ~1e-4 ρ/P stale bias from Option B (known + bounded). | ✅ **Reached 2026-05-08**. Bring-up summary in `## V1.0 Bring-up Notes` below. |
+| **V1.0a** | Add **Option A sync 2** (full-rerun ghost_send between density and force) — eliminates the ρ/P bias. Costs ~300 μs/step (~4% slowdown) at this stage; still blocking. Tier-1 smoke validation passes. | Pending. Code path is currently single-sync (Option B). |
+| **V1.1** | Replace `vkQueueWaitIdle` with timeline semaphores + interleaved phase submission. Same numerical output as V1.0a; transport queues still on the same compute queue (no async DMA overlap yet). | Pending — task #47 (parallel pre/post submits) is the first step. |
+| **V1.2** | Per-kernel timestamp queries collected; per-kernel weight model replaces single global weight if kernel-mix imbalance is significant. (Whole-pipeline calibration is already done — see `KNOWN_GPU_SPH_WEIGHT` measurements above.) | Pending — task #45 / #46. |
+| **V1.3** (deferred) | NV+NV P2P backend swapped in; ghost via `vkCmdCopyBuffer` instead of CPU staging. Probe `probe_interop.py` first. | Pending — task #50. |
 
 V1.0 is the only required milestone for the paper's portability section. V1.0a is highly recommended (sync 2 = numerically clean baseline). V1.1+ are perf optimisations.
+
+## V1.0 Bring-up Notes (2026-05-08)
+
+V1.0 reached on cross-vendor pair NVIDIA RTX 4060 Ti + AMD RX 7900 XTX, lid-driven cavity 2D (NX=NY=205, K_split=67). Validation status:
+
+* **V1 single-GPU bit-equivalence**: V1 in V0-collapse mode (LEADING=TRAILING=0) reproduces V0's `alive=1,046,529, v_max=1.0` over 10 stable steps with zero overflow / zero correction fallback. Confirms V1 kernel set + dispatch ordering didn't introduce numerical drift.
+* **V1 dual-GPU alive conservation**: 2000 viscous-fluid steps (`stick_water` material at ν=1e-3, 10³× stiffer than water) maintained `alive_total = 1,046,529` exactly; 442 particles migrated GPU 0 → GPU 1; 0 overflow; 0 kill. No memory aliasing, no double-installation, no drop.
+* **Renderer**: `experiment/v1/utils/renderer_v1.py` is a fork of V0 `SphRenderer` whose only host-side change is `vkCmdDraw firstVertex = own_first_pid - 1`. V1 reuses V0 SPV; vertex shader's `gl_VertexIndex + 1u` produces the right particle_id under the shifted firstVertex.
+* **Numerical comparison vs V0** (task #44): not yet run. Option B single-sync staleness predicts ~1e-4 boundary bias on ρ/P; expected.
+
+Four dual-GPU-only bugs were caught and fixed during bring-up (single-GPU collapse mode never hit any of them — see memory: `feedback_dual_gpu_debug_isolation`):
+
+1. **`ghost_send_*_count` not reset between steps** → atomicAdd accumulates base_slot, second-step ghost_send writes past the ghost-pid pool into own SoA. Fix: `vkCmdFillBuffer` clear at GlobalStatusBuffer offsets 32 + 36 before each ghost_send dispatch (in both `step_pre_sync_cmd` and `bootstrap_pre_sync_cmd`).
+2. **`density_pressure` scratch→primary copy was full-buffer** → zeroed the just-transported ghost-pid range (scratch buffer is zero in ghost-pid slots, since `density.comp` only dispatches over own). Receiver's `force.comp` then read `neighbor.density = 0` → `volume = mass/0 = inf` → NaN force. Fix: copy restricted to `own_first_pid * stride` byte offset, `OWN_POOL_SIZE * stride` size.
+3. **Cross-GPU transport buffer aliasing** (`CpuStagingMultiGpuTransport`) → the two direction pairs share each GPU's ghost-pid + ghost-vid range as both send-source and recv-destination. Naive sequential `pair_a_to_b.transfer(); pair_b_to_a.transfer()` pumps in pair_a's upload to GPU 1 *before* pair_b's readback of GPU 1 source bytes, so pair_b reads back the just-uploaded peer data instead of GPU 1's own send. Fix: phase the operations — all readbacks first (snapshot both senders), then host memcpy, then all uploads.
+4. **Renderer `vkCmdDraw firstVertex = 0`** → on GPU 1 (LEADING_GHOST_POOL_SIZE > 0) the rendered pid range was [1, OWN_POOL_SIZE], which painted the leading-ghost-pid replicas as native particles AND missed own's tail where install_migrations writes. Fix above.
+
+Performance: 245 fps single-GPU V1 vs 257 fps V0 (~5% slowdown, mostly buffer-allocation address shift after dropping V1's empty set 2; documented in `feedback_glslc_target_env`). Dual-GPU at ~13 fps — 5 sequential fence waits per step gate throughput (tasks #46–#48 to overlap).
 
 ## Sync Strategy Decision (V1.0a → V2 Path)
 
