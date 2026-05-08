@@ -64,6 +64,6 @@ material_library: ../../materials/standard.yaml
 geometry:
   frame: frame.obj
   particles:
-    - {file: domain.obj,   material: water}
-    - {file: wall.obj,     material: wall}
-    - {file: wall_top.obj, material: lid}
+    - {file: domain.obj,   material: stick_water}
+    - {file: wall.obj,     material: stick_wall}
+    - {file: wall_top.obj, material: stick_lid}
