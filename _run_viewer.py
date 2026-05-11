@@ -54,6 +54,12 @@ def main() -> None:
         metavar="PATH",
         help="append per-window fps samples (CSV) to this file for benchmarking",
     )
+    parser.add_argument("--device", type=int, default=None, metavar="N",
+                        help="physical device index (default: first discrete GPU)")
+    parser.add_argument("--auto-quit", type=float, default=None, metavar="SECS",
+                        help="exit cleanly after SECS for scripted benchmarks")
+    parser.add_argument("--unpause", action="store_true",
+                        help="start with paused=False (skip the SPACE-to-begin)")
     args = parser.parse_args()
 
     # Recompile every shader on each run for fast iteration.
@@ -75,12 +81,16 @@ def main() -> None:
         enable_validation=True,
         extra_instance_extensions=required_extensions,
         extra_device_extensions=["VK_KHR_swapchain"],
+        device_index=args.device,
     ) as ctx:
         sim = SphSimulator(ctx, case)
         try:
             sim.bootstrap()
             with SphRenderer(sim, window_width=1280, window_height=720) as viewer:
-                viewer.run(log_fps_path=args.log_fps)
+                if args.unpause:
+                    viewer.paused = False
+                viewer.run(log_fps_path=args.log_fps,
+                           auto_quit_seconds=args.auto_quit)
         finally:
             sim.destroy()
 

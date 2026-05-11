@@ -604,7 +604,8 @@ class SphRenderer:
     # Run loop
     # ------------------------------------------------------------------
 
-    def run(self, log_fps_path: Optional[str] = None) -> None:
+    def run(self, log_fps_path: Optional[str] = None,
+            auto_quit_seconds: Optional[float] = None) -> None:
         """Main event loop. If log_fps_path is set, append per-window samples
         to a CSV (header `wallclock_s,step_count,sim_time,fps_window_avg`) for
         benchmark comparison runs.
@@ -634,6 +635,10 @@ class SphRenderer:
         try:
             while not glfw.window_should_close(self.window):
                 glfw.poll_events()
+
+                if (auto_quit_seconds is not None
+                        and time.perf_counter() - run_start_t >= auto_quit_seconds):
+                    break
 
                 if not self.paused:
                     # Fire-and-forget compute submits — the per-frame render fence
