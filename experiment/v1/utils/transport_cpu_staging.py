@@ -105,10 +105,17 @@ class GhostTransportPair:
             self.total_bytes += seg[4]
 
         # Allocate host-visible staging on each device.
+        # HOST_CACHED is critical for the sender side: host_copy memcpy reads
+        # from this mapping, and write-combined (HOST_COHERENT-only) memory
+        # gives ~290 MB/s reads vs ~29 GB/s for cached. Both NV (4060 Ti) and
+        # AMD (7900 XTX) on this rig expose a HOST_VISIBLE|HOST_COHERENT|
+        # HOST_CACHED type; on a device that doesn't, find_memory_type will
+        # raise and we should add a per-side fallback there.
         usage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT
                  | VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
         host_props = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-                      | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+                      | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+                      | VK_MEMORY_PROPERTY_HOST_CACHED_BIT)
         self.send_staging = sim_send._allocate_buffer(self.total_bytes, usage, host_props)
         self.recv_staging = sim_recv._allocate_buffer(self.total_bytes, usage, host_props)
 
