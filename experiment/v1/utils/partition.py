@@ -92,6 +92,7 @@ def compute_partition(
     gpu_names: list[str],
     *,
     weights_override: Optional[list[float]] = None,
+    allow_idle_slot: bool = False,
 ) -> Partition:
     """Compute the V1.0 1D X-axis static partition.
 
@@ -140,8 +141,19 @@ def compute_partition(
                     f"weights_override.")
             weights.append(float(w))
 
-    if any(w <= 0 for w in weights):
-        raise ValueError(f"weights must be strictly positive, got {weights}")
+    if allow_idle_slot:
+        # passthrough diagnostic mode: exactly one slot may have weight 0
+        # (forces that slot to receive 0 particles). Reject "all zero" or
+        # negative weights.
+        if any(w < 0 for w in weights):
+            raise ValueError(f"weights must be non-negative, got {weights}")
+        if sum(1 for w in weights if w == 0) >= len(weights):
+            raise ValueError(
+                f"allow_idle_slot=True requires at least one positive weight, "
+                f"got {weights}")
+    else:
+        if any(w <= 0 for w in weights):
+            raise ValueError(f"weights must be strictly positive, got {weights}")
     weight_sum = sum(weights)
     fractions = [w / weight_sum for w in weights]
 
@@ -189,13 +201,30 @@ def compute_partition(
         (ghost_ranges[1][0], own_ranges[1][1]),   # GPU 1: K_split - 1 .. grid_nx
     ]
 
+    # passthrough diagnostic: identify the idle slot (weight = 0). It
+    # gets all-False masks (no particles). Particles whose x_index falls
+    # in the idle slot's 1-column slab are dropped — accept this loss for
+    # diagnostic timing comparison; physics is meaningless in this mode.
+    idle_slot = None
+    if allow_idle_slot:
+        for s, w in enumerate(weights):
+            if w == 0.0:
+                idle_slot = s
+                break
+
     gpu_partitions: list[GpuPartition] = []
     for slot_index in range(n_gpus):
         own_start, own_end = own_ranges[slot_index]
-        masks = [
-            (x_indices >= own_start) & (x_indices < own_end)
-            for x_indices in source_voxel_x
-        ]
+        if idle_slot is not None and slot_index == idle_slot:
+            masks = [
+                np.zeros_like(x_indices, dtype=bool)
+                for x_indices in source_voxel_x
+            ]
+        else:
+            masks = [
+                (x_indices >= own_start) & (x_indices < own_end)
+                for x_indices in source_voxel_x
+            ]
         gpu_partitions.append(GpuPartition(
             slot_index=slot_index,
             gpu_name=gpu_names[slot_index],

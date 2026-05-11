@@ -120,7 +120,7 @@ class SphRendererV1:
         # Render config (live-tunable via hotkeys)
         self.color_mode = 0
         self.steps_per_frame = 1
-        self.paused = True   # start paused so the initial state is inspectable; SPACE to begin
+        self.paused = False  # start running; SPACE to pause
         self.point_size = 5.0
         # Default scales (tunable live via ',' '.' hotkeys; current value
         # printed to stderr on each change).
@@ -624,7 +624,8 @@ class SphRendererV1:
     # Run loop
     # ------------------------------------------------------------------
 
-    def run(self, log_fps_path: Optional[str] = None) -> None:
+    def run(self, log_fps_path: Optional[str] = None,
+            auto_quit_seconds: Optional[float] = None) -> None:
         """Main event loop. If log_fps_path is set, append per-window samples
         to a CSV (header `wallclock_s,step_count,sim_time,fps_window_avg`) for
         benchmark comparison runs.
@@ -654,6 +655,10 @@ class SphRendererV1:
         try:
             while not glfw.window_should_close(self.window):
                 glfw.poll_events()
+
+                if (auto_quit_seconds is not None
+                        and time.perf_counter() - run_start_t >= auto_quit_seconds):
+                    break
 
                 if not self.paused:
                     # Fire-and-forget compute submits — the per-frame render fence

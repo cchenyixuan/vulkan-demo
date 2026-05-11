@@ -42,7 +42,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 import glfw
 
 from utils.sph.case import load_case
-from utils.sph.vulkan_context import VulkanContext
+from utils.sph.vulkan_context import VulkanContext  # used by --mode single
 
 from experiment.v1 import compile_shaders_v1
 from experiment.v1.utils.case_slab import build_slab_case
@@ -63,6 +63,14 @@ def main() -> None:
         description="V1.0a dual-GPU viewer (renders one slab).")
     parser.add_argument("case", nargs="?", default=DEFAULT_CASE,
                         help=f"case yaml path (default: {DEFAULT_CASE})")
+    parser.add_argument("--mode", choices=("dual", "passthrough", "single"),
+                        default="dual",
+                        help="dual = normal dual-GPU (default); "
+                             "passthrough = dual-GPU pipeline but one slot "
+                             "owns 0 particles (still goes through transport, "
+                             "diagnostic for framework overhead); "
+                             "single = bypass dual-GPU entirely, run V1 "
+                             "collapse on render-slot's GPU only")
     parser.add_argument("--render-slot", type=int, default=0, choices=(0, 1),
                         help="which slab to render: 0 = leftmost, 1 = rightmost")
     parser.add_argument("--device-a", type=int, default=1,
@@ -72,9 +80,13 @@ def main() -> None:
     parser.add_argument("--gpu-names", default=DEFAULT_GPU_NAMES,
                         help="comma-separated GPU names for partition computation")
     parser.add_argument("--weights", default=None,
-                        help="comma-separated explicit weights override")
+                        help="comma-separated explicit weights override "
+                             "(passthrough mode accepts a 0 weight)")
     parser.add_argument("--log-fps", type=str, default=None, metavar="PATH",
                         help="append per-window fps samples (CSV) to PATH")
+    parser.add_argument("--auto-quit", type=float, default=None, metavar="SECS",
+                        help="exit cleanly after SECS of run() wallclock; useful "
+                             "for scripted benchmarks (no kill needed)")
     args = parser.parse_args()
 
     # Recompile V1 shaders fresh (matches single-GPU viewer UX).
@@ -83,13 +95,48 @@ def main() -> None:
     if not glfw.init():
         raise RuntimeError("glfw.init() failed")
 
-    # ---- Load case + partition ------------------------------------------
+    # ---- Single-GPU diagnostic short-circuit ----------------------------
+    # `--mode single` ignores the dual-GPU machinery entirely. Useful as
+    # the lower bound against `--mode passthrough` (same hot-kernel work
+    # on the active GPU but without any MultiGPUContext / transport
+    # orchestration) — the difference is the pure framework overhead.
+    if args.mode == "single":
+        case = load_case(args.case)
+        # render-slot picks which physical device drives the sim. slot 0
+        # uses --device-a, slot 1 uses --device-b.
+        device_index = args.device_a if args.render_slot == 0 else args.device_b
+        print(f"\n[v1-dual mode=single] running V1 collapse on device {device_index}")
+        print(f"[v1-dual mode=single]   particles: "
+              f"{sum(s.vertices.shape[0] for s in case.particle_sources):,}")
+        required_extensions = list(glfw.get_required_instance_extensions())
+        with VulkanContext.create(
+            application_name="sph_v1_dual_single_mode",
+            enable_validation=True,
+            extra_instance_extensions=required_extensions,
+            extra_device_extensions=["VK_KHR_swapchain"],
+            device_index=device_index,
+        ) as ctx:
+            sim = SphSimulatorV1(ctx, case)
+            try:
+                sim.bootstrap()
+                with SphRendererV1(sim, window_width=1280, window_height=720) as viewer:
+                    viewer.run(log_fps_path=args.log_fps,
+                               auto_quit_seconds=args.auto_quit)
+            finally:
+                sim.destroy()
+        return
+
+    # ---- Load case + partition (dual / passthrough) ---------------------
     case = load_case(args.case)
     gpu_names = [n.strip() for n in args.gpu_names.split(",")]
     weights_override = (
         [float(w.strip()) for w in args.weights.split(",")] if args.weights else None
     )
-    partition = compute_partition(case, gpu_names, weights_override=weights_override)
+    partition = compute_partition(
+        case, gpu_names,
+        weights_override=weights_override,
+        allow_idle_slot=(args.mode == "passthrough"),
+    )
     layouts = build_per_gpu_layouts(partition, case)
 
     print(f"\n[v1-dual] loaded {args.case}")
@@ -163,7 +210,8 @@ def main() -> None:
 
         # ---- Hand off to SphRendererV1 ---------------------------------
         with SphRendererV1(rendered, window_width=1280, window_height=720) as viewer:
-            viewer.run(log_fps_path=args.log_fps)
+            viewer.run(log_fps_path=args.log_fps,
+                       auto_quit_seconds=args.auto_quit)
         print(f"[v1-dual] renderer exited cleanly")
 
     finally:
