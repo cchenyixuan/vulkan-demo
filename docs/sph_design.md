@@ -160,38 +160,30 @@ All backends expose the same interface. Switching is a one-line instantiation de
 | I5 | Boundary state complete at sync time | Sync scheduled after force |
 | I6 | Adopted ghost particle not double-counted | Re-bucketing excludes adopted particles from ghost's next-step cell structure |
 
-## Async overlap (V2 optimization)
+## Async overlap (V2)
 
-Voxel-sorted layout enables dispatch range split:
-- Interior dispatch `[0, K)`: predict + correction + density + force. **No ghost dependency**.
-- Boundary dispatch `[K, N)`: same pipeline. **Depends on ghost**.
+V2 introduces four orthogonal mechanisms to hide all hideable orchestration cost on top of V1's data-flow skeleton. Authoritative spec lives in **`docs/sph_v2_design.md`**; this section is the top-level summary.
 
-Scheduling:
+1. **Timeline semaphore** (Vulkan 1.2 sync2) replaces fences. CPU submits all phases for a step in one shot; semaphore-level dependencies serialise on the GPU side without per-phase fence-wait round trips.
+2. **Two independent CPU sync pathways** on worker threads. `A→B` (A's ghost feeds B's migration) and `B→A` run completely in parallel — no shared mid-state, no mutex.
+3. **`correction.comp` split into interior / boundary pass** via a spec const + inline `in_boundary_band(coord)` check. `correction_interior_pipeline` runs concurrently with the CPU sync window (Submit 2); `correction_boundary_pipeline` runs after sync alongside install_migration + density + force (Submit 3). update_voxel.comp and the other 5 hot kernels are unchanged — only `correction.comp` adds the check.
+4. **Wait-time-driven adaptive partition** (vendor-agnostic black-box feedback). Each GPU's `time = f(N)` shape — driven by ALU throughput / memory bandwidth / cache / DVFS / driver — is collapsed to a single observable: how long the partner GPU waited. Adjust `partition.x` to balance wait time; no vendor-specific shader optimisation needed.
 
-```
-(P=predict, C=correction, D=density, F=force; update_voxel runs once between predict and correction, not split)
+Sync-hiding correctness: interior particles are those whose support radius doesn't touch the ghost zone AND whose neighbours don't include any migrant slot. With `h = voxel_size` and 27-voxel neighbour stencils, "boundary band" = the two voxel columns adjacent to `partition.x` (`NEIGHBOR_X_RANGE = 2`). Particles outside the band do correction with own-only neighbours, valid before sync. See `sph_v2_design.md` §7 for the geometric argument.
 
-Step n        [int P][int C][int D][int F][sync out──┐
-                                                     ↓
-Step n+1      [int P][int C][int D][int F]  ←── compute queue independent of sync
-              (own interior reads own only)            [bdy P][bdy C][bdy D][bdy F]
-                                                        ↑ waits for sync
-```
+Hiding succeeds when `correction_interior_time ≥ cpu_sync_time`. At target scale (1M/GPU, interior correction ≈ 1.9 ms on RX 7900 XTX, CPU sync ≈ 0.5–1 ms with `HOST_CACHED` staging), sync is fully hidden.
 
-Hiding succeeds when `interior_compute_time ≥ sync_time`. At target scale (1M/GPU, interior ~2-3 ms, P2P sync ~0.1-0.5 ms), sync is fully hidden.
-
-**Residual non-hideable overhead** (~1 ms total):
-- Ghost predict kernel (~0.3-0.5 ms) — requires fresh ghost, can't start before sync
-- Pack / unpack kernels (~0.1-0.3 ms)
-- Command submission / fence wait (~0.05 ms)
+**Residual non-hideable overhead** per step:
+- `vkQueueSubmit2` CPU cost (~50 μs × per-step submit count)
+- Memory barriers between dispatches (μs-level)
+- CPU memcpy for host-staging (host-RAM bandwidth bound, ~0.1 ms for ~3 MB / direction)
 
 ## Non-goals (explicitly excluded)
 
 - Separate migration kernel / buffer (replaced by bit-exact adoption via ghost)
 - Multiple syncs per step
-- Dynamic load balancing (deferred beyond V2)
 - Ghost ρ recomputation on receiver (ρ is always synced, never derived locally)
-- Interior/boundary split at the own-particle buffer level (we keep one unified buffer, partitioned by voxel-sort order)
+- Interior/boundary split at the own-particle buffer level (we keep one unified buffer, partitioned by voxel-sort order; V2 uses an inline shader-side check instead of a separate compacted index array)
 
 ## Open knobs
 
@@ -206,12 +198,13 @@ Hiding succeeds when `interior_compute_time ≥ sync_time`. At target scale (1M/
 |---|---|---|---|
 | OpenGL baseline (1× 5090) | 1M | 330 | existing reference |
 | V1 Vulkan (2× 5090) | 2M | 150-250 | no async overlap, correctness validation |
+| V1 Vulkan (NV+AMD) | 1M | ~60 (measured on 4060 Ti + 7900 XTX after `HOST_CACHED` staging fix) | cross-vendor stress test; orchestration dominates step time |
 | V2 Vulkan (2× 5090) | 2M | 300-380 | async overlap + best backend |
-| Stress test (NV+AMD) | ~1M | TBD, slower | CPU staging, shows cross-vendor penalty for paper |
+| V2 Vulkan (NV+AMD) | 1M | ~200-260 estimated (max(per-GPU compute) + ~1 ms transport) | correction-split + timeline + multi-thread; PCIe-bound transport stays |
 
 ## Implementation phases
 
 - **V0**: single-GPU SPH. Voxel grid + leapfrog predict + density + force. Validates integration scheme + SoA layout without cross-GPU complexity. Target: match or exceed OpenGL single-GPU fps.
-- **V1**: multi-GPU with `CpuStagingBackend`, no async overlap. Validates cross-GPU correctness — bit-exact predict kernel, adoption/removal, mass conservation.
-- **V2**: async overlap + `P2PBackend` (if same-vendor). Performance push toward target fps.
-- **V3**: paper experiments — all backends, weak/strong scaling runs, stress-test comparison.
+- **V1**: multi-GPU with `CpuStagingBackend`, no async overlap. Validates cross-GPU correctness — bit-exact ghost kernel A, adoption/removal, mass conservation. See `sph_v1_design.md`.
+- **V2**: timeline semaphores + multi-thread CPU sync pathways + `correction.comp` interior/boundary split + wait-time-driven adaptive partition. Performance push toward target fps; works on both same-vendor and cross-vendor. See `sph_v2_design.md`.
+- **V3**: same-vendor optimisations on top of V2 — `P2PBackend` (`vkCmdCopyBuffer` between same-vendor devices), shared-memory backend if probe passes, multi-axis partition if benchmarks demand. Paper experiments — all backends, weak/strong scaling runs, stress-test comparison.

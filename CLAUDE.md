@@ -61,7 +61,7 @@ vulkan-demo/
 
 - **Leapfrog integration** (half-step velocity storage), not explicit Euler. Algebraically equivalent to velocity Verlet (KDK) but collapses the two half-kicks into a single full-step kick per iteration — **5 kernels per step** instead of Verlet KDK's 6. The drift-before-force ordering still holds, letting end-of-step multi-GPU sync pre-compute everything the next step needs, giving **1 sync per step**.
 - **Migration merged into ghost flow** via bit-exact Kernel A on ghost particles. No separate migration pack/kernel. Controlled by `STRICT_BIT_EXACT` spec constant (`constant_id=10`, default `true`, cost <2% on integration kernel).
-- **Single own-particle SoA buffer**, voxel-sorted with interior voxels first and boundary voxels last. Dispatch range split (`[0, K)` interior, `[K, N)` boundary) enables V2 async overlap without per-step buffer shuffling.
+- **Single own-particle SoA buffer**, voxel-sorted by `voxel_id`. Defrag keeps boundary-column particles clustered in contiguous pid range, so V2's interior/boundary correction split (inline `in_boundary_band(coord)` check in `correction.comp`) lands on contiguous workgroups with near-zero divergence.
 - **Ghost buffer carries `{x, v, ρ, a, shift}`** (~64B/particle padded) so both GPUs can locally do Kernel A + density + force for the boundary. Bandwidth ~1.5× classical ghost but eliminates migration flow.
 - **Transport backend is pluggable**: `CpuStagingBackend` (cross-vendor, Phase 1 pattern), `P2PBackend` (same-vendor `vkCmdCopyBuffer`), `SharedMemoryBackend` (conditional on probe).
 - **Per-particle globals → specialization constants**, not per-particle storage. Audit OpenGL's `ParticleRuntimeData` — most intermediate fields can become local variables inside a single kernel.
@@ -83,13 +83,13 @@ Summary:
 - **Method**: δ-plus WCSPH, explicit **leapfrog** integration (half-step velocity; algebraically equivalent to velocity Verlet KDK but 5 kernels/step instead of 6). Upgrade from OpenGL baseline's explicit Euler.
 - **Neighbor search**: persistent uniform voxel grid (existing OpenGL approach retained).
 - **Shader constants**: `VkSpecializationInfo` + `layout(constant_id=N) const` (replaces OpenGL `#define` injection).
-- **Multi-GPU**: 1D slab decomposition, static partition, 1-voxel-thick ghost. Voxel-sorted own buffer with interior-first layout to enable async overlap via dispatch range split.
+- **Multi-GPU**: 1D slab decomposition, partition adjusts on wait-time feedback (V2; static weight in V1). 1-voxel-thick ghost. Voxel-sorted own buffer; V2 splits `correction.comp` into interior/boundary passes via inline check.
 - **Crossing/migration**: merged into ghost flow via bit-exact Kernel A. No separate migration pipeline.
-- **Transport**: pluggable backend (CPU staging / P2P / shared memory).
-- **Sync cadence**: 1 sync per step at end of step.
-- **Async compute queue overlap**: deferred to V2.
+- **Transport**: pluggable backend (CPU staging / P2P / shared memory). V1.0a uses CPU staging on both cross-vendor and same-vendor; V3 layers `P2PBackend` on top for same-vendor.
+- **Sync cadence**: 1 sync per step at end of step. V2 hides the sync window behind `correction(interior)` running concurrent with the CPU memcpy pathway.
+- **V1 → V2 jump**: timeline semaphores replace fences, two CPU sync pathways run on worker threads, `correction.comp` adds inline `in_boundary_band` check, partition feedback loop adjusts `partition.x` on wait-time imbalance. See `docs/sph_v2_design.md`.
 
-**Performance target**: 2M particles @ 350 fps on 2× RTX 5090 (V2, with async overlap and optimal backend). Baseline: 1M @ 330 fps on single 5090 (OpenGL).
+**Performance target**: 2M particles @ 350 fps on 2× RTX 5090 (V2 same-vendor + adaptive partition). Cross-vendor (NV+AMD) V2 estimate ~200–260 fps for 1M particles, limited by `max(per-GPU compute)` + PCIe transport. V1 cross-vendor measured baseline (after `HOST_CACHED` staging fix) ~60 fps. OpenGL baseline 1M @ 330 fps on single 5090.
 
 ## Performance Notes (OpenGL baseline, pre-migration)
 

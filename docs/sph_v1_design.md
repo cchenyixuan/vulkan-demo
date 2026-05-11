@@ -290,7 +290,7 @@ Each transport copies three byte-contiguous slices per direction:
 
 Total per-step transport: ~3.2 MB (both directions × full pack), ≈ 0.23 ms over 14 GB/s practical PCIe.
 
-V1.1 replaces `vkQueueWaitIdle` with timeline semaphores + interleaved submission.
+V2 replaces `vkQueueWaitIdle` with timeline semaphores + multi-thread CPU pathways — see `sph_v2_design.md`.
 
 ## Boundary Identification
 
@@ -316,7 +316,7 @@ Tier 2 first (much cheaper to set up), then tier 1 once V1 is stable. The legacy
 |---|---|---|
 | **V1.0** | 5-phase blocking pipeline (single sync, Option B) runs the lid case across both GPUs without crash. Tier-2 reproducibility passes. Phase timing CSV instrumented. force.comp boundary band has ~1e-4 ρ/P stale bias from Option B (known + bounded). | ✅ **Reached 2026-05-08**. Bring-up summary in `## V1.0 Bring-up Notes` below. |
 | **V1.0a** | Add **Option A sync 2** (full-rerun ghost_send between density and force) — eliminates the ρ/P bias. Costs ~300 μs/step (~4% slowdown) at this stage; still blocking. Tier-1 smoke validation passes. | Pending. Code path is currently single-sync (Option B). |
-| **V1.1** | Replace `vkQueueWaitIdle` with timeline semaphores + interleaved phase submission. Same numerical output as V1.0a; transport queues still on the same compute queue (no async DMA overlap yet). | Pending — task #47 (parallel pre/post submits) is the first step. |
+| **V1.1** | ~~Replace `vkQueueWaitIdle` with timeline semaphores + interleaved phase submission.~~ **Superseded by V2** — see `sph_v2_design.md`. V2 bundles timeline semaphores + multi-thread CPU sync pathways + correction-pass split + adaptive partition into a single milestone instead of incrementing in V1.x. | n/a — rolled into V2 |
 | **V1.2** | Per-kernel timestamp queries collected; per-kernel weight model replaces single global weight if kernel-mix imbalance is significant. (Whole-pipeline calibration is already done — see `KNOWN_GPU_SPH_WEIGHT` measurements above.) | Pending — task #45 / #46. |
 | **V1.3** (deferred) | NV+NV P2P backend swapped in; ghost via `vkCmdCopyBuffer` instead of CPU staging. Probe `probe_interop.py` first. | Pending — task #50. |
 
@@ -342,6 +342,8 @@ Performance: 245 fps single-GPU V1 vs 257 fps V0 (~5% slowdown, mostly buffer-al
 
 ## Sync Strategy Decision (V1.0a → V2 Path)
 
+> **Note (V2 update)**: The V2 architecture finalised in `sph_v2_design.md` chose a different overlap strategy than what this section anticipated. **V2 keeps Option B (single sync), not Option A/D (sync 2)**, and hides the sync window by splitting **`correction.comp`** into interior/boundary passes — not `force.comp`. The historical analysis below is preserved as the V1 record. V2 doc supersedes the "V2: Transfer queue + interior/boundary force split" prediction at the bottom of this section.
+
 **V1.0a = Option A full re-run for sync 2** (not B/C selective ρ/P refresh). Rationale:
 
 force.comp's only stale field on ghost neighbours is ρ/P. A "ρ/P-only sync 2" looks attractive (10× less bandwidth) but breaks slot stability — sync 1's per-voxel atomicAdd allocates ghost-pid slots non-deterministically, so a second selective write can't reliably target the same slots. Workarounds (fixed-stride or prefix-sum allocators) require shader rewrites and add complexity.
@@ -361,7 +363,7 @@ V1.0a / V1.1 timeline:
 
 - Async compute queue (V2)
 - Bit-exact ghost Kernel-A (V2 / same-vendor)
-- Dynamic re-partitioning (V3+; see "Future: wait-time-driven K_split adjustment" below)
+- Dynamic re-partitioning (~~V3+~~; included in V2 — see `sph_v2_design.md` §11.3. The sketch in "Future: wait-time-driven K_split adjustment" below is V1's early thinking, kept as reference)
 - 3+ GPU configurations (V3+)
 - Y/Z split axes (V2 if benchmarks demand)
 - Multi-resolution / micropolar / thermal extensions
