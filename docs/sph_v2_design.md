@@ -141,8 +141,11 @@ pathway_B_to_A:
 `correction.comp` 在 main() 开头读完 self voxel_id 之后做一次整数比较，根据当前是 Submit 2（interior pass）还是 Submit 3（boundary pass）决定是否早退：
 
 ```glsl
-// correction.comp
-layout(constant_id = N) const uint CORRECTION_MODE = 0u;  // 0 = interior, 1 = boundary
+// correction.comp — actual values are in experiment/v2/shaders/common.glsl:
+//   const uint CORRECTION_MODE_ALL      = 0u;  // V1-equivalent (default): no skip
+//   const uint CORRECTION_MODE_INTERIOR = 1u;  // Submit 2: skip boundary-band particles
+//   const uint CORRECTION_MODE_BOUNDARY = 2u;  // Submit 3: skip interior particles
+layout(constant_id = 47) const uint CORRECTION_MODE = 0u;  // default = CORRECTION_MODE_ALL
 
 void main() {
     uint self_particle_id = gl_GlobalInvocationID.x + own_first_pid();
@@ -155,12 +158,16 @@ void main() {
     ivec3 self_voxel_coord = own_coord_of(self_voxel_id);
     bool self_is_boundary = in_boundary_band(self_voxel_coord);
 
-    if (CORRECTION_MODE == 0u && self_is_boundary) return;       // interior pass
-    if (CORRECTION_MODE == 1u && !self_is_boundary) return;      // boundary pass
+    if (CORRECTION_MODE == CORRECTION_MODE_INTERIOR &&  self_is_boundary) return;
+    if (CORRECTION_MODE == CORRECTION_MODE_BOUNDARY && !self_is_boundary) return;
+    // CORRECTION_MODE_ALL falls through and processes every own particle —
+    // used by single-pipeline / overlap=false validation runs (§12).
 
     // ... rest of correction (M_i 计算 + 求逆) ...
 }
 ```
+
+**枚举约定**：default 取 `CORRECTION_MODE_ALL = 0` 而不是直接 `0 = interior` 是为了 §12 的 overlap=false 验证 run 能直接复用同一份 SPV 而不需要 bespoke spec data —— V2 simulator 只在 split 模式下显式把两条 pipeline 的 `CORRECTION_MODE` 分别设为 `INTERIOR` (1) 和 `BOUNDARY` (2)。
 
 `in_boundary_band(coord)` 就是整数比较：粒子所在的 x 列距 partition 边界 < `NEIGHBOR_X_RANGE`。**典型 SPH 配置（h = voxel_size，27-voxel 邻居遍历）下取 `NEIGHBOR_X_RANGE = 2`**，覆盖两类粒子：
 
@@ -173,8 +180,9 @@ partition 列号、boundary 列号、`NEIGHBOR_X_RANGE` 全部由 spec const 提
 
 **两个 pipeline 共用同一份 shader 源码**，通过 spec const `CORRECTION_MODE` 区分行为：
 
-- `correction_interior_pipeline`：`CORRECTION_MODE = 0`，处理远离边界的多数粒子
-- `correction_boundary_pipeline`：`CORRECTION_MODE = 1`，处理边界列粒子 + 新迁入的 migrant
+- `correction_interior_pipeline`：`CORRECTION_MODE = CORRECTION_MODE_INTERIOR (1)`，处理远离边界的多数粒子
+- `correction_boundary_pipeline`：`CORRECTION_MODE = CORRECTION_MODE_BOUNDARY (2)`，处理边界列粒子 + 新迁入的 migrant
+- 第三档 `CORRECTION_MODE_ALL (0)` 用于 §12 的 overlap=false 单 pipeline 验证 run
 
 **不需要**：stream compaction、atomic counter、interior_indices / boundary_indices 数组、indirect dispatch。
 

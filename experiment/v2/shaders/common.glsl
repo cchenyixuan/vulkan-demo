@@ -39,10 +39,13 @@
 //   34 - 39  : reserved for future kernel / simulation options
 //   40 - 42  : SPH numerical parameters (ε_h², PST main, PST anti)
 //   43 - 46  : algorithm ablation toggles (KCG, density diffusion, PST, prefix-sum defrag)
-//   47 - 49  : reserved for future ablation toggles
+//   47       : V2 correction interior/boundary mode (CORRECTION_MODE)
+//   48 - 49  : reserved for future ablation toggles
 //   50 - 53  : capacities + workgroup size + pool size
 //   54 - 79  : reserved
-//   80 - 88  : multi-GPU ghost grid parameters
+//   80 - 81  : multi-GPU leading/trailing ghost voxel counts
+//   82       : V2 boundary-band thickness (NEIGHBOR_X_RANGE)
+//   83 - 88  : reserved for multi-GPU ghost grid parameters
 //   89 - 127 : reserved
 //
 // Per-material parameters (rest_density, viscosity, eos_constant, radius,
@@ -155,6 +158,17 @@ layout(constant_id = 45) const bool USE_PST = true;
 // works standalone (no prefix_sum dependency). Default false; flip to true
 // after prefix_sum is verified.
 layout(constant_id = 46) const bool USE_PREFIX_SUM_DEFRAG = false;
+
+// V2 correction interior/boundary split (see docs/sph_v2_design.md §7).
+// Two pipelines are built from the same correction.comp source, differing only
+// in this spec const value, and dispatched in different Submits:
+//   Submit 2 (interior chain) : CORRECTION_MODE_INTERIOR → boundary-band lanes early-return,
+//                               runs concurrently with the CPU ghost↔migration swap.
+//   Submit 3 (boundary chain) : CORRECTION_MODE_BOUNDARY → interior lanes early-return,
+//                               runs after install_migration so migrant neighbors are visible.
+// Default CORRECTION_MODE_ALL preserves V1 behavior (no skip) for single-pipeline
+// builds — overlap=false validation runs and V1 SPV reuse both rely on this default.
+layout(constant_id = 47) const uint CORRECTION_MODE = 0u;
 // ----- end ablation toggles ------------------------------------------------
 
 // --- Capacity / dispatch ---
@@ -195,6 +209,16 @@ layout(constant_id = 55) const uint TRAILING_GHOST_POOL_SIZE   = 0u;
 layout(constant_id = 80) const uint LEADING_GHOST_VOXEL_COUNT  = 0u;
 layout(constant_id = 81) const uint TRAILING_GHOST_VOXEL_COUNT = 0u;
 
+// V2 boundary-band thickness in x-columns (see docs/sph_v2_design.md §7).
+// A column is in the "boundary band" if it is within NEIGHBOR_X_RANGE of an
+// own/ghost interface. With h = voxel_size and a 27-voxel neighbor sweep this
+// must be ≥ 2: column 0 reaches into the ghost zone, column 1 reaches into
+// column 0 where migrants land after install_migration. Default 0 means "no
+// boundary band" → in_boundary_band() returns false for every own coord →
+// CORRECTION_MODE_INTERIOR processes everything / BOUNDARY processes nothing.
+// V2 simulator overrides to 2 for both correction pipelines.
+layout(constant_id = 82) const uint NEIGHBOR_X_RANGE = 0u;
+
 // ============================================================================
 // Scalar constants (compile-time, shared by all shaders)
 // ============================================================================
@@ -204,6 +228,11 @@ const uint MATERIAL_FLUID    = 0u;
 const uint MATERIAL_BOUNDARY = 1u;
 const uint MATERIAL_INLET    = 2u;
 const uint MATERIAL_ROTOR    = 3u;
+
+// --- V2 correction mode values (see CORRECTION_MODE spec const) ---
+const uint CORRECTION_MODE_ALL      = 0u;  // V1-equivalent: run every own particle
+const uint CORRECTION_MODE_INTERIOR = 1u;  // V2 Submit 2: skip boundary-band particles
+const uint CORRECTION_MODE_BOUNDARY = 2u;  // V2 Submit 3: skip interior particles
 
 // --- Dead / sentinel values ---
 // Convention: EVERY id in the SPH pipeline is 1-based. 0 is reserved as the

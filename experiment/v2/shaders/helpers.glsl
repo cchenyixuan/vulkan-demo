@@ -145,6 +145,46 @@ bool is_trailing_ghost_voxel(uint voxel_id) {
 }
 
 // ============================================================================
+// V2 boundary-band classification (own coord → "near a peer interface?").
+//
+// See docs/sph_v2_design.md §7. A own-particle column is in the boundary band
+// if its kernel support radius could either:
+//   (a) reach into the ghost zone (column 0, i.e. NEIGHBOR_X_RANGE = 1), or
+//   (b) reach into a column that itself reaches into the ghost zone — i.e.
+//       a column that will receive new migrants when install_migration runs in
+//       Submit 3 (column 1, requiring NEIGHBOR_X_RANGE ≥ 2).
+//
+// The leading and trailing sides are gated independently on whether a peer
+// ghost exists on that side, so end-of-chain GPUs (LEADING_GHOST_VOXEL_COUNT
+// or TRAILING_GHOST_VOXEL_COUNT == 0) correctly report only one boundary band.
+//
+// Ghost x-thickness derivation: V1 voxel encoding is x-slowest, so each
+// x-column occupies exactly GRID_DIMENSION_Y * GRID_DIMENSION_Z voxels.
+// LEADING_GHOST_VOXEL_COUNT is therefore an integer multiple of that product;
+// dividing gives the thickness in columns.
+// ============================================================================
+
+uint leading_ghost_x_thickness() {
+    return LEADING_GHOST_VOXEL_COUNT / (GRID_DIMENSION_Y * GRID_DIMENSION_Z);
+}
+
+uint trailing_ghost_x_thickness() {
+    return TRAILING_GHOST_VOXEL_COUNT / (GRID_DIMENSION_Y * GRID_DIMENSION_Z);
+}
+
+bool in_boundary_band(ivec3 coord) {
+    int leading_x  = int(leading_ghost_x_thickness());
+    int trailing_x = int(trailing_ghost_x_thickness());
+    int range      = int(NEIGHBOR_X_RANGE);
+
+    bool near_leading  = leading_x  > 0 && coord.x <  leading_x + range;
+    int  own_last_x    = int(GRID_DIMENSION_X) - 1 - trailing_x;
+    bool near_trailing = trailing_x > 0 && coord.x >  own_last_x - range;
+
+    return near_leading || near_trailing;
+}
+
+// ============================================================================
 // V1 own / ghost pid range helpers (mirrors voxel layout).
 //
 // Pid layout in set 0:
