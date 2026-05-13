@@ -48,6 +48,8 @@ def compile_v2_shaders() -> None:
     if not os.path.isdir(V2_SHADER_DIR):
         sys.exit(f"V2 shader dir not found: {V2_SHADER_DIR}")
     os.makedirs(V2_SPV_DIR, exist_ok=True)
+    render_spv_dir = os.path.join(V2_SPV_DIR, "render")
+    os.makedirs(render_spv_dir, exist_ok=True)
 
     sources = sorted(glob.glob(os.path.join(V2_SHADER_DIR, "*.comp")))
     n_compiled = 0
@@ -60,6 +62,17 @@ def compile_v2_shaders() -> None:
             continue
         output = os.path.join(V2_SPV_DIR, f"{name}.spv")
         print(f"[v2] {name}")
+        _run_glslc(source, output)
+        n_compiled += 1
+
+    # Render shaders (.vert / .frag) live in shaders/render/
+    render_sources = sorted(
+        glob.glob(os.path.join(V2_SHADER_DIR, "render", "*.vert"))
+        + glob.glob(os.path.join(V2_SHADER_DIR, "render", "*.frag")))
+    for source in render_sources:
+        name = os.path.basename(source)
+        output = os.path.join(render_spv_dir, f"{name}.spv")
+        print(f"[v2/render] {name}")
         _run_glslc(source, output)
         n_compiled += 1
 

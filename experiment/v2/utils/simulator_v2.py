@@ -327,7 +327,21 @@ class SphSimulatorV2:
         raise NotImplementedError("Phase 3 — TODO")
 
     def get_render_buffers(self) -> dict:
-        raise NotImplementedError("Phase 5+ (renderer)")
+        """Buffer handles the renderer needs to bind as descriptor inputs.
+
+        Vert shader reads:
+          - position_voxel_id  (.xyz = position, .w = voxel_id_as_float)
+          - velocity_mass      (.xyz = v_{n+1/2})
+          - density_pressure   (.x = ρ, .y = P)
+        Used by viewer pipeline; sim itself never reads these as descriptor
+        bindings — they live in set 0 for the compute pipeline.
+        """
+        return {
+            "position_voxel_id": self.buffers["position_voxel_id"].handle,
+            "velocity_mass":     self.buffers["velocity_mass"].handle,
+            "density_pressure":  self.buffers["density_pressure"].handle,
+            "global_status":     self.buffers["global_status"].handle,
+        }
 
     # ========================================================================
     # Section 1: Validation helpers
