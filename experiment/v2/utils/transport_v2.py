@@ -158,7 +158,8 @@ class GhostMigrationWorker:
                 #     from host's 3N+2); AMD driver observed to corrupt the value
                 #     to the lower 3N+1, breaking subsequent waits.
                 self.last_activity = ("wait_dest_timeline", frame_n, time.perf_counter_ns())
-                self.dest.wait_timeline(self.dest.value_phase_a_done(frame_n))
+                dest_phase_a = self.dest.value_phase_a_done(frame_n)
+                self.dest.wait_timeline(dest_phase_a)
                 t_wait = time.perf_counter_ns()
 
                 # 2. Byte memcpy
@@ -169,6 +170,16 @@ class GhostMigrationWorker:
                 # 3. Signal dest GPU's cpu_sync_done(n); phase C wait clears.
                 self.last_activity = ("signal_dest_timeline", frame_n, time.perf_counter_ns())
                 signal_value = self.dest.value_cpu_sync_done(frame_n)
+                # Safety net: if a future refactor removes the dest.wait_timeline
+                # above, this assert will trip instead of silently deadlocking
+                # via AMD driver's backwards-signal corruption.
+                current_dest = self.dest.current_timeline_value()
+                assert current_dest >= dest_phase_a, (
+                    f"worker {self.label} about to host_signal({signal_value}) on "
+                    f"dest, but dest.timeline={current_dest} < phase_a_done"
+                    f"={dest_phase_a}. Without waiting dest's GPU phase A signal "
+                    f"first, the host signal would race ahead and corrupt the "
+                    f"timeline (Vulkan backwards-signal hazard).")
                 self.dest.host_signal_timeline(signal_value)
                 t_signal = time.perf_counter_ns()
                 self.last_activity = ("done_frame", frame_n, time.perf_counter_ns())
