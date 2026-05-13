@@ -53,6 +53,56 @@ from experiment.v2.utils.vulkan_context_v2 import VulkanContextV2
 # 2 which IS the scratch).
 DEFRAG_SET0_BINDINGS = (0, 1, 3, 4, 5, 6, 7, 8, 9)
 
+# Ghost transport: 9 SoA fields (same set as defrag — skip binding 2 scratch
+# which is transient) + 2 set-1 buffers (inside_particle_count + index) + 1
+# set-3 count field (ghost_send_*_count → ghost_recv_*_count). Total 12
+# segments per direction; matches V1's transport_cpu_staging.py.
+TRANSPORT_SET0_BINDINGS = DEFRAG_SET0_BINDINGS
+
+# Buffer name → byte stride per particle (set 0 SoA).
+_SET0_BYTE_STRIDES = {
+    "position_voxel_id":           16,
+    "density_pressure":             8,
+    "velocity_mass":               16,
+    "acceleration":                16,
+    "shift":                       16,
+    "material":                     4,
+    "correction_inverse":          32,
+    "density_gradient_kernel_sum": 16,
+    "extension_fields":            16,
+}
+_SET0_BINDING_TO_NAME = {
+    0: "position_voxel_id",
+    1: "density_pressure",
+    3: "velocity_mass",
+    4: "acceleration",
+    5: "shift",
+    6: "material",
+    7: "correction_inverse",
+    8: "density_gradient_kernel_sum",
+    9: "extension_fields",
+}
+
+# GlobalStatusBuffer field offsets (16 × uint, see common.glsl §3)
+_OFFSET_GHOST_SEND_LEADING   = 32   # field [8]
+_OFFSET_GHOST_SEND_TRAILING  = 36   # field [9]
+_OFFSET_GHOST_RECV_LEADING   = 40   # field [10]
+_OFFSET_GHOST_RECV_TRAILING  = 44   # field [11]
+
+
+@dataclass
+class _TransportSegment:
+    """One vkCmdCopyBuffer region for ghost transport.
+
+    For READBACK direction: src = device buffer, dst = sender_staging
+    For UPLOAD direction:   src = recv_staging, dst = device buffer
+    Both sides use the same staging_offset for a given segment index.
+    """
+    buffer_name: str        # 'position_voxel_id', 'inside_particle_count', 'global_status', etc.
+    device_offset: int      # byte offset in the device buffer
+    staging_offset: int     # byte offset in the staging buffer
+    size: int               # byte count
+
 
 # ============================================================================
 # Internal helpers: Buffer + BufferSpec
@@ -253,15 +303,15 @@ class SphSimulatorV2:
     # Worker-facing accessors
     # ========================================================================
 
-    def sender_staging_view(self):
-        """numpy.uint8 view over the *combined* sender staging blob (leading
-        + trailing if both peers). Worker indexes by direction-relative offset."""
-        # Phase 2 returns the leading staging view if exists, else trailing.
-        # Phase 4 worker will use direction-specific accessors.
-        raise NotImplementedError("Phase 4: needs direction parameter")
+    def sender_staging_view(self, direction: str):
+        """numpy.uint8 view over sender_staging_<direction>. Worker reads from
+        this view via slice copy (read side of the worker memcpy)."""
+        return self.staging_buffers[f"sender_staging_{direction}"].mapped_view
 
-    def receiver_staging_view(self):
-        raise NotImplementedError("Phase 4: needs direction parameter")
+    def receiver_staging_view(self, direction: str):
+        """numpy.uint8 view over receiver_staging_<direction>. Worker writes
+        to this view via slice assignment (write side of the worker memcpy)."""
+        return self.staging_buffers[f"receiver_staging_{direction}"].mapped_view
 
     def timeline_semaphore(self):
         return self.timeline
@@ -396,36 +446,77 @@ class SphSimulatorV2:
               f"{total / (1024 * 1024):.2f} MB")
         return scratch
 
+    def _compute_transport_segments(self, direction: str) -> tuple[list[_TransportSegment], int]:
+        """Build the V1-equivalent 12-segment list for one direction. Returns
+        (segments, total_staging_bytes). direction ∈ {'leading','trailing'}."""
+        case = self.case
+        cap_inside = case.capacities.max_particles_per_voxel
+
+        if direction == "leading":
+            pool_size = case.capacities.leading_ghost_pool_size
+            ghost_voxel_count = case.ghost_grid.leading_ghost_voxel_count
+            pid_first = 1                           # leading pid range starts at 1
+            vid_first = 1                           # leading vid range starts at 1
+            send_count_offset = _OFFSET_GHOST_SEND_LEADING
+            recv_count_offset = _OFFSET_GHOST_RECV_LEADING
+        elif direction == "trailing":
+            pool_size = case.capacities.trailing_ghost_pool_size
+            ghost_voxel_count = case.ghost_grid.trailing_ghost_voxel_count
+            # Trailing pid range = [leading + own + 1, leading + own + trailing]
+            pid_first = (case.capacities.leading_ghost_pool_size
+                         + case.capacities.own_pool_size + 1)
+            # Trailing vid range = [total - trailing + 1, total]
+            vid_first = case.grid.total_voxel_count() - ghost_voxel_count + 1
+            send_count_offset = _OFFSET_GHOST_SEND_TRAILING
+            recv_count_offset = _OFFSET_GHOST_RECV_TRAILING
+        else:
+            raise ValueError(f"bad direction: {direction}")
+
+        segments: list[_TransportSegment] = []
+        staging_offset = 0
+        if pool_size == 0 or ghost_voxel_count == 0:
+            return segments, 0
+
+        # 1-9. Nine SoA fields × ghost-pid range
+        for binding in TRANSPORT_SET0_BINDINGS:
+            name = _SET0_BINDING_TO_NAME[binding]
+            stride = _SET0_BYTE_STRIDES[name]
+            size = stride * pool_size
+            device_offset = stride * pid_first
+            segments.append(_TransportSegment(name, device_offset, staging_offset, size))
+            staging_offset += size
+
+        # 10. set 1 inside_particle_count × ghost-vid range
+        size = 4 * ghost_voxel_count
+        segments.append(_TransportSegment(
+            "inside_particle_count", 4 * vid_first, staging_offset, size))
+        staging_offset += size
+
+        # 11. set 1 inside_particle_index × ghost-vid range × MAX_PARTICLES_PER_VOXEL
+        size = 4 * ghost_voxel_count * cap_inside
+        segments.append(_TransportSegment(
+            "inside_particle_index",
+            4 * vid_first * cap_inside, staging_offset, size))
+        staging_offset += size
+
+        # 12. set 3 ghost_send_*_count (sender side: read device→staging at
+        #     send_count_offset; receiver side: write staging→device at
+        #     recv_count_offset). Buffer is global_status; both sides use the
+        #     same staging slot but different device offsets. We store the
+        #     SENDER's device offset here; recv side overrides at cmd record time.
+        segments.append(_TransportSegment(
+            "global_status", send_count_offset, staging_offset, 4))
+        staging_offset += 4
+
+        # Store the receiver-side count offset for later use during upload cmd record.
+        self._recv_count_offsets = getattr(self, "_recv_count_offsets", {})
+        self._recv_count_offsets[direction] = recv_count_offset
+        return segments, staging_offset
+
     def _allocate_staging_buffers(self) -> dict[str, _Buffer]:
         """Per-direction host-visible stagings (sender CACHED, receiver COHERENT)
-        — see docs/sph_v2_design.md §14.5. Persistent-mapped at construction.
-
-        Naming: {sender, receiver}_staging_{leading, trailing}. Only allocated
-        for directions where THIS GPU has a peer (transport.has_*_peer)."""
-        # Per-direction staging size = sum of segment sizes. Segments mirror
-        # V1's transport: 10 SoA × ghost-pid range + 2 set-1 ghost-vid buffers
-        # + 1 set-3 count field. Detailed segment math is Phase 4 (worker uses
-        # it to compute offsets); for Phase 2 we just need a size upper bound.
-        # Conservative bound: 10 vec4 + 2 set-1 buffers + 4 B count, per pool.
+        — see docs/sph_v2_design.md §14.5. Persistent-mapped at construction."""
         case = self.case
-
-        def staging_size_for_pool(pool_size: int) -> int:
-            if pool_size == 0:
-                return 0
-            voxels_in_dir = case.ghost_grid.leading_ghost_voxel_count  # same per dir
-            # Use the max of leading/trailing for simplicity (Phase 4 will refine)
-            voxels_in_dir = max(case.ghost_grid.leading_ghost_voxel_count,
-                                case.ghost_grid.trailing_ghost_voxel_count)
-            cap_inside = case.capacities.max_particles_per_voxel
-            # Conservative: each ghost-pid carries ~136 B of SoA (V1 packet).
-            packet_bytes = 16 + 8 + 16 + 16 + 16 + 4 + 32 + 16 + 16  # 140 B
-            per_pid_bytes = packet_bytes * pool_size
-            voxel_bytes = (4 * voxels_in_dir) + (4 * voxels_in_dir * cap_inside)
-            count_bytes = 4
-            return per_pid_bytes + voxel_bytes + count_bytes
-
-        stagings: dict[str, _Buffer] = {}
-        # Required + preferred for sender (HOST_CACHED preferred)
         sender_required = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
                            | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
         sender_preferred = VK_MEMORY_PROPERTY_HOST_CACHED_BIT
@@ -434,34 +525,39 @@ class SphSimulatorV2:
         usage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT
                  | VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
 
-        for direction_name, peer_attr, pool_attr in (
-            ("leading",  "has_leading_peer",  "leading_ghost_pool_size"),
-            ("trailing", "has_trailing_peer", "trailing_ghost_pool_size"),
+        # Compute segments + total size per direction; cache on self for cmd recording.
+        self._transport_segments: dict[str, list[_TransportSegment]] = {}
+        self._transport_total_bytes: dict[str, int] = {}
+        self._recv_count_offsets = {}
+        stagings: dict[str, _Buffer] = {}
+        for direction_name, peer_attr in (
+            ("leading",  "has_leading_peer"),
+            ("trailing", "has_trailing_peer"),
         ):
             if not getattr(case.transport, peer_attr):
                 continue
-            pool_size = getattr(case.capacities, pool_attr)
-            size = staging_size_for_pool(pool_size)
-            if size == 0:
+            segments, total = self._compute_transport_segments(direction_name)
+            if total == 0:
                 continue
-            # Sender side
+            self._transport_segments[direction_name] = segments
+            self._transport_total_bytes[direction_name] = total
+
             sender_buf = self._allocate_buffer(
-                size, usage, sender_required, sender_preferred)
-            mapped = vkMapMemory(self.ctx.device, sender_buf.memory, 0, size, 0)
+                total, usage, sender_required, sender_preferred)
+            mapped = vkMapMemory(self.ctx.device, sender_buf.memory, 0, total, 0)
             sender_buf.mapped = mapped
-            sender_buf.mapped_view = np.frombuffer(mapped, dtype=np.uint8, count=size)
+            sender_buf.mapped_view = np.frombuffer(mapped, dtype=np.uint8, count=total)
             stagings[f"sender_staging_{direction_name}"] = sender_buf
 
-            # Receiver side
-            recv_buf = self._allocate_buffer(size, usage, receiver_required)
-            mapped_r = vkMapMemory(self.ctx.device, recv_buf.memory, 0, size, 0)
+            recv_buf = self._allocate_buffer(total, usage, receiver_required)
+            mapped_r = vkMapMemory(self.ctx.device, recv_buf.memory, 0, total, 0)
             recv_buf.mapped = mapped_r
-            recv_buf.mapped_view = np.frombuffer(mapped_r, dtype=np.uint8, count=size)
+            recv_buf.mapped_view = np.frombuffer(mapped_r, dtype=np.uint8, count=total)
             stagings[f"receiver_staging_{direction_name}"] = recv_buf
 
-        total = sum(b.size for b in stagings.values())
+        total_bytes = sum(b.size for b in stagings.values())
         print(f"[SimV2] host staging buffers: {len(stagings)}, "
-              f"{total / 1024:.1f} KB (persistent-mapped)")
+              f"{total_bytes / 1024:.1f} KB (persistent-mapped)")
         return stagings
 
     # ========================================================================
@@ -843,6 +939,22 @@ class SphSimulatorV2:
         v = self.case.grid.total_voxel_count()
         return (v + wg - 1) // wg
 
+    def _per_yz_face_dispatch_count(self) -> int:
+        """ghost_send dispatches one thread per (y,z) face slot = NY*NZ threads."""
+        wg = self.case.capacities.workgroup_size
+        face = self.case.grid.grid_dimension_y * self.case.grid.grid_dimension_z
+        return (face + wg - 1) // wg
+
+    def _per_ghost_pid_dispatch_count(self, direction: str) -> int:
+        wg = self.case.capacities.workgroup_size
+        if direction == "leading":
+            pool = self.case.capacities.leading_ghost_pool_size
+        elif direction == "trailing":
+            pool = self.case.capacities.trailing_ghost_pool_size
+        else:
+            raise ValueError(direction)
+        return (pool + wg - 1) // wg if pool > 0 else 0
+
     # ----- sync2 barriers ---------------------------------------------------
 
     def _record_compute_barrier(self, cmd) -> None:
@@ -893,6 +1005,65 @@ class SphSimulatorV2:
             pMemoryBarriers=[mb],
         )
         vkCmdPipelineBarrier2(cmd, info)
+
+    def _record_compute_to_host_barrier(self, cmd) -> None:
+        """End of Phase A: GPU finished writing sender_staging; host (worker
+        thread) about to read it via mapped pointer. HOST_COHERENT alone is
+        insufficient — need an explicit access-scope barrier per spec."""
+        mb = VkMemoryBarrier2(
+            sType=VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+            srcStageMask=VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            srcAccessMask=VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            dstStageMask=VK_PIPELINE_STAGE_2_HOST_BIT,
+            dstAccessMask=VK_ACCESS_2_HOST_READ_BIT,
+        )
+        info = VkDependencyInfo(
+            sType=VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            memoryBarrierCount=1,
+            pMemoryBarriers=[mb],
+        )
+        vkCmdPipelineBarrier2(cmd, info)
+
+    def _record_reset_ghost_send_count(self, cmd, direction: str) -> None:
+        """Zero the ghost_send_<direction>_count field of GlobalStatusBuffer
+        before ghost_send.comp's atomicAdd. Without reset, the previous step's
+        count corrupts slot allocation."""
+        offset = (_OFFSET_GHOST_SEND_LEADING if direction == "leading"
+                  else _OFFSET_GHOST_SEND_TRAILING)
+        vkCmdFillBuffer(
+            cmd, self.buffers["global_status"].handle, offset, 4, 0)
+
+    def _record_readback_for_direction(self, cmd, direction: str) -> None:
+        """Scatter device-local ghost bytes → sender_staging_<direction>."""
+        staging = self.staging_buffers[f"sender_staging_{direction}"]
+        for seg in self._transport_segments[direction]:
+            src_buf = self.buffers[seg.buffer_name]
+            region = VkBufferCopy(
+                srcOffset=seg.device_offset,
+                dstOffset=seg.staging_offset,
+                size=seg.size,
+            )
+            vkCmdCopyBuffer(cmd, src_buf.handle, staging.handle, 1, [region])
+
+    def _record_upload_for_direction(self, cmd, direction: str) -> None:
+        """Gather receiver_staging_<direction> → device-local ghost bytes.
+        For the count segment specifically, dst is global_status[recv_count_offset]
+        not [send_count_offset] — sender's count slot becomes receiver's
+        ghost_recv_*_count slot."""
+        staging = self.staging_buffers[f"receiver_staging_{direction}"]
+        recv_count_offset = self._recv_count_offsets[direction]
+        for seg in self._transport_segments[direction]:
+            dst_buf = self.buffers[seg.buffer_name]
+            if seg.buffer_name == "global_status":
+                dst_offset = recv_count_offset
+            else:
+                dst_offset = seg.device_offset
+            region = VkBufferCopy(
+                srcOffset=seg.staging_offset,
+                dstOffset=dst_offset,
+                size=seg.size,
+            )
+            vkCmdCopyBuffer(cmd, staging.handle, dst_buf.handle, 1, [region])
 
     # ----- Pipeline binding -------------------------------------------------
 
@@ -1047,20 +1218,55 @@ class SphSimulatorV2:
     # Section 8: Bootstrap (Phase 3)
     # ========================================================================
 
-    def _record_bootstrap_cmd(self):
-        """Bootstrap = initialize_voxelization → correction(ALL) → density →
-        force → bootstrap_half_kick. Single-GPU only; multi-GPU bootstrap with
-        ghost transport is Phase 4."""
+    def _record_bootstrap_init_cmd(self):
+        """Bootstrap stage 1: initialize_voxelization + (if peer) ghost_send +
+        readback. Outbox staging ready after this submit. Fence-wait submit.
+        For sims with no peer this is just init_voxelization."""
         cmd = self._allocate_oneshot_cmd()
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT))
         self._record_compute_barrier(cmd)
 
         per_p = self._per_own_particle_dispatch_count()
+        per_yz = self._per_yz_face_dispatch_count()
 
         self._bind_pipeline_and_sets(cmd, "initialize_voxelization")
         vkCmdDispatch(cmd, per_p, 1, 1)
-        self._record_compute_barrier(cmd)
+
+        for direction in ("leading", "trailing"):
+            if direction not in self._transport_segments:
+                continue
+            self._record_compute_barrier(cmd)
+            self._record_reset_ghost_send_count(cmd, direction)
+            self._record_transfer_to_compute_barrier(cmd)
+            self._bind_pipeline_and_sets(cmd, f"ghost_send_{direction}")
+            vkCmdDispatch(cmd, per_yz, 1, 1)
+            self._record_compute_to_transfer_barrier(cmd)
+            self._record_readback_for_direction(cmd, direction)
+            self._record_compute_to_host_barrier(cmd)
+
+        vkEndCommandBuffer(cmd)
+        return cmd
+
+    def _record_bootstrap_compute_cmd(self):
+        """Bootstrap stage 2: (if peer) upload + install_migrations →
+        correction(ALL) → density → force → bootstrap_half_kick. Runs after
+        host memcpy completes the cross-GPU ghost transport."""
+        cmd = self._allocate_oneshot_cmd()
+        vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
+            flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT))
+
+        per_p = self._per_own_particle_dispatch_count()
+
+        for direction in ("leading", "trailing"):
+            if direction not in self._transport_segments:
+                continue
+            self._record_upload_for_direction(cmd, direction)
+            self._record_transfer_to_compute_barrier(cmd)
+            self._bind_pipeline_and_sets(cmd, f"install_migrations_{direction}")
+            per_ghost_pid = self._per_ghost_pid_dispatch_count(direction)
+            vkCmdDispatch(cmd, per_ghost_pid, 1, 1)
+            self._record_compute_barrier(cmd)
 
         self._bind_pipeline_and_sets(cmd, "correction_all")
         vkCmdDispatch(cmd, per_p, 1, 1)
@@ -1080,15 +1286,40 @@ class SphSimulatorV2:
         vkEndCommandBuffer(cmd)
         return cmd
 
-    def bootstrap(self) -> None:
+    def bootstrap_init(self) -> None:
+        """First half of split bootstrap: upload initial state + run
+        initialize_voxelization + ghost_send + readback. After this returns,
+        sender_staging_view(<dir>) holds the boundary replicas ready for
+        host memcpy. Orchestrator calls this on both sims, then bridges via
+        memcpy, then calls bootstrap_compute on both sims."""
         self._upload_initial_state()
-        cmd = self._record_bootstrap_cmd()
+        cmd = self._record_bootstrap_init_cmd()
+        self.ctx.submit_and_wait(cmd)
+        vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
+
+    def bootstrap_compute(self) -> None:
+        """Second half of split bootstrap: upload ghost (host memcpy already
+        landed in receiver_staging by caller) + install_migrations + correction
+        + density + force + bootstrap_half_kick. After this returns, a_0 and
+        v_{-1/2} are set with valid ghost-neighbor SPH contributions."""
+        cmd = self._record_bootstrap_compute_cmd()
         self.ctx.submit_and_wait(cmd)
         vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
         status = self.readback_global_status()
         print(f"[SimV2] bootstrap done: alive={status['alive_particle_count']} "
               f"overflow_inside={status['overflow_inside_count']} "
               f"overflow_incoming={status['overflow_incoming_count']}")
+
+    def bootstrap(self) -> None:
+        """Single-GPU bootstrap convenience: combine init + compute. No ghost
+        transport needed when this sim has no peer."""
+        if self._transport_segments:
+            raise RuntimeError(
+                "bootstrap() is single-GPU only; for dual-GPU call "
+                "bootstrap_init() + (host memcpy) + bootstrap_compute() via "
+                "DualGpuOrchestratorV2.bootstrap_all()")
+        self.bootstrap_init()
+        self.bootstrap_compute()
 
     # ========================================================================
     # Section 9: Readback (Phase 3)
@@ -1152,7 +1383,9 @@ class SphSimulatorV2:
     # ========================================================================
 
     def _record_phase_a_cmd(self):
-        """V2 v1.0 single-GPU: predict + update_voxel. signal 3N+1 at submit."""
+        """V2 phase A: predict + update_voxel + (per-direction: reset ghost_send_count
+        + ghost_send dispatch + readback vkCmdCopyBuffer + compute→host barrier).
+        signal 3N+1 at submit."""
         cmd = self._allocate_oneshot_cmd()
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
@@ -1160,6 +1393,7 @@ class SphSimulatorV2:
 
         per_p = self._per_own_particle_dispatch_count()
         per_v = self._per_extended_voxel_dispatch_count()
+        per_yz = self._per_yz_face_dispatch_count()
 
         self._bind_pipeline_and_sets(cmd, "predict")
         vkCmdDispatch(cmd, per_p, 1, 1)
@@ -1167,7 +1401,21 @@ class SphSimulatorV2:
 
         self._bind_pipeline_and_sets(cmd, "update_voxel")
         vkCmdDispatch(cmd, per_v, 1, 1)
-        # Phase 4 will append ghost_send + readback + compute→host barrier here.
+
+        # Per-direction ghost flow (skipped if this GPU has no peer on that side)
+        for direction in ("leading", "trailing"):
+            if direction not in self._transport_segments:
+                continue
+            self._record_compute_barrier(cmd)
+            self._record_reset_ghost_send_count(cmd, direction)
+            self._record_transfer_to_compute_barrier(cmd)
+            self._bind_pipeline_and_sets(cmd, f"ghost_send_{direction}")
+            vkCmdDispatch(cmd, per_yz, 1, 1)
+            self._record_compute_to_transfer_barrier(cmd)
+            # Readback: device → sender_staging
+            self._record_readback_for_direction(cmd, direction)
+            # compute→host barrier so worker's mapped read sees device writes
+            self._record_compute_to_host_barrier(cmd)
 
         vkEndCommandBuffer(cmd)
         return cmd
@@ -1192,18 +1440,25 @@ class SphSimulatorV2:
         return cmd
 
     def _record_phase_c_cmd(self):
-        """V2 v1.0 single-GPU: density → density_scratch_copy → force.
-        wait 3N+2 at submit (signaled by host_signal_timeline in single-GPU
-        smoke test, or by worker in dual-GPU mode). signal 3N+3 at submit end."""
+        """V2 phase C: (per-direction: upload vkCmdCopyBuffer + transfer→compute +
+        install_migration) → correction(BOUNDARY-or-ALL) → density → force.
+        wait 3N+2 at entry; signal 3N+3 at submit end."""
         cmd = self._allocate_oneshot_cmd()
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
-        # No entry barrier: semaphore wait on 3N+2 covers host-write visibility
-        # (Phase 4 worker writes migration buffer); phase B's exit barrier
-        # covers B→C GPU-write visibility.
 
         per_p = self._per_own_particle_dispatch_count()
-        # Phase 4 will prepend install_migration here. v1.0 single-GPU skips it.
+
+        # Per-direction upload + install_migration (skipped if no peer on that side)
+        for direction in ("leading", "trailing"):
+            if direction not in self._transport_segments:
+                continue
+            self._record_upload_for_direction(cmd, direction)
+            self._record_transfer_to_compute_barrier(cmd)
+            self._bind_pipeline_and_sets(cmd, f"install_migrations_{direction}")
+            per_ghost_pid = self._per_ghost_pid_dispatch_count(direction)
+            vkCmdDispatch(cmd, per_ghost_pid, 1, 1)
+            self._record_compute_barrier(cmd)
 
         self._bind_pipeline_and_sets(cmd, "density")
         vkCmdDispatch(cmd, per_p, 1, 1)

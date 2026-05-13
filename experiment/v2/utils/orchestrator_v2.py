@@ -6,15 +6,14 @@ Owns 2 SphSimulatorV2 (borrows, does not destroy) + 2 GhostMigrationWorker
 defrag at cadence boundaries. LoadBalancer hook is reserved for v1.x
 (docs/sph_v2_design.md §11.3) — v1.0 uses static partition only.
 
-Frame loop (synchronous, depth=1; depth>1 frame pipelining is §5.4 future):
+Frame loop (synchronous depth=1; depth>1 frame pipelining is §5.4 future):
 
     n = self.frame_count
-    for worker in self.workers:  worker.notify(n)
-    for sim in self.sims:        sim.submit_phase_a(n)
-    for sim in self.sims:        sim.submit_phase_b(n)
-    for sim in self.sims:        sim.submit_phase_c(n)
-    for sim in self.sims:        sim.wait_frame_done(n)
-    self._collect_instrumentation(n)
+    for w in self.workers:  w.notify(n)
+    for sim in self.sims:   sim.submit_phase_a(n)
+    for sim in self.sims:   sim.submit_phase_b(n)
+    for sim in self.sims:   sim.submit_phase_c(n)
+    for sim in self.sims:   sim.wait_frame_done(n)
     if defrag_due(n):
         for sim in self.sims:    sim.submit_defrag_and_wait()
     self.frame_count += 1
@@ -22,27 +21,17 @@ Frame loop (synchronous, depth=1; depth>1 frame pipelining is §5.4 future):
 
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING, Any, Optional
+
+from experiment.v2.utils.transport_v2 import GhostMigrationWorker
 
 if TYPE_CHECKING:
     from experiment.v2.utils.simulator_v2 import SphSimulatorV2
-    from experiment.v2.utils.transport_v2 import GhostMigrationWorker
 
 
 class DualGpuOrchestratorV2:
-    """V2 dual-GPU orchestrator.
-
-    Lifecycle:
-        sim_a = SphSimulatorV2(...); sim_b = SphSimulatorV2(...)
-        with DualGpuOrchestratorV2(sim_a, sim_b) as orch:
-            orch.bootstrap_all()
-            orch.run_until(max_steps=1000)
-        sim_a.destroy(); sim_b.destroy()
-    """
-
-    # ========================================================================
-    # Construction / destruction
-    # ========================================================================
+    """V2 dual-GPU orchestrator. Sim ownership: borrows only."""
 
     def __init__(
         self,
@@ -51,13 +40,48 @@ class DualGpuOrchestratorV2:
         *,
         defrag_cadence: int = 1000,
     ) -> None:
-        # Phase 4 fills in: build 2 GhostMigrationWorker (a→b, b→a), start them.
-        raise NotImplementedError("Phase 4")
+        self.sim_a = sim_a
+        self.sim_b = sim_b
+        self.sims = (sim_a, sim_b)
+        self.defrag_cadence = defrag_cadence
+
+        # Pathway A→B: sim_a sends in its peer direction; sim_b receives in
+        # the opposite direction. For the standard 2-GPU 1D layout:
+        #   sim_a = leftmost  → has trailing peer (sim_b)
+        #   sim_b = rightmost → has leading peer  (sim_a)
+        # So worker_a_to_b: source_dir=trailing, dest_dir=leading
+        #    worker_b_to_a: source_dir=leading,  dest_dir=trailing
+        # Validate before constructing workers.
+        if not sim_a.case.transport.has_trailing_peer:
+            raise ValueError("sim_a must have trailing peer (leftmost slot)")
+        if not sim_b.case.transport.has_leading_peer:
+            raise ValueError("sim_b must have leading peer (rightmost slot)")
+
+        self.worker_a_to_b = GhostMigrationWorker(
+            source_sim=sim_a, dest_sim=sim_b,
+            source_direction="trailing", dest_direction="leading",
+            label="a_to_b")
+        self.worker_b_to_a = GhostMigrationWorker(
+            source_sim=sim_b, dest_sim=sim_a,
+            source_direction="leading", dest_direction="trailing",
+            label="b_to_a")
+        self.workers = (self.worker_a_to_b, self.worker_b_to_a)
+
+        self._frame_count = 0
+        self._records: list[dict] = []
+        self._destroyed = False
+
+        for w in self.workers:
+            w.start()
+        print(f"[OrchV2] workers started ({self.worker_a_to_b.label}, "
+              f"{self.worker_b_to_a.label})")
 
     def destroy(self) -> None:
-        """Stop workers, vkDeviceWaitIdle on both sims. Does NOT destroy sims —
-        caller's responsibility (sims pre-exist orchestrator, may outlive it)."""
-        raise NotImplementedError("Phase 4")
+        if self._destroyed:
+            return
+        for w in self.workers:
+            w.stop()
+        self._destroyed = True
 
     def __enter__(self) -> "DualGpuOrchestratorV2":
         return self
@@ -70,37 +94,105 @@ class DualGpuOrchestratorV2:
     # ========================================================================
 
     def bootstrap_all(self) -> None:
-        """Bootstrap both sims sequentially. Each sim's bootstrap is fence-
-        waited (synchronous); cross-GPU ghost on bootstrap step is handled by
-        an explicit single-shot worker run after both sims complete."""
-        raise NotImplementedError("Phase 4")
+        """Dual-GPU bootstrap with one synchronous ghost round.
+
+        Without the ghost round, step 1's correction/density/force on boundary
+        particles would see EMPTY ghost neighbors → density underestimate →
+        negative pressure → wild attractive forces → particles drift across
+        the slab and overflow corner voxels by step 10–20. Symptom: vid=1
+        overflow_incoming spikes. Fix matches V1's _record_bootstrap_pre_sync
+        / _record_bootstrap_post_sync split.
+
+        Sequence:
+          1. Per sim: bootstrap_init (init_voxelization + ghost_send + readback)
+          2. Inline CPU memcpy: sim0.sender_staging_trailing → sim1.receiver_staging_leading,
+                                 sim1.sender_staging_leading  → sim0.receiver_staging_trailing
+             (replicas only — no particles have moved yet, so migrations are empty)
+          3. Per sim: bootstrap_compute (upload + install_migrations + correction +
+             density + force + bootstrap_half_kick)
+          4. Per sim: prepare_step_cmd_buffers (record phase A/B/C for run loop)
+        """
+        # Stage 1: init + ghost_send on both GPUs
+        for sim in self.sims:
+            sim.bootstrap_init()
+
+        # Stage 2: host bridge — exchange replicas between the two staging pairs
+        # Use the same view shapes the workers use during steady-state to
+        # validate the staging size match.
+        self.sim_b.receiver_staging_view("leading")[:] = self.sim_a.sender_staging_view("trailing")
+        self.sim_a.receiver_staging_view("trailing")[:] = self.sim_b.sender_staging_view("leading")
+        print(f"[OrchV2] bootstrap ghost sync: bridged "
+              f"{self.sim_a.sender_staging_view('trailing').nbytes / 1024:.1f} KB each way")
+
+        # Stage 3: install + correction + density + force + half_kick
+        for sim in self.sims:
+            sim.bootstrap_compute()
+
+        # Stage 4: record per-frame cmd buffers (phase A/B/C)
+        for sim in self.sims:
+            sim.prepare_step_cmd_buffers()
+        print(f"[OrchV2] both sims bootstrapped + step cmds ready")
 
     def step(self) -> dict:
-        """One frame. Returns per-frame instrumentation record:
-            {
-                "frame_n": int,
-                "t_frame_start_ns": int,
-                "t_a_phase_a_done_ns": int / None,   (None if not measured)
-                "t_b_phase_a_done_ns": int / None,
-                "t_a_cpu_sync_done_ns": int / None,
-                "t_b_cpu_sync_done_ns": int / None,
-                "t_a_frame_done_ns": int,
-                "t_b_frame_done_ns": int,
-            }
+        """Run one frame, return per-frame instrumentation record."""
+        n = self._frame_count
+        t_start = time.perf_counter_ns()
 
-        Most timestamps come from worker dicts; the frame_done ones are taken
-        by the orchestrator after vkWaitSemaphores returns. See §10.
-        """
-        raise NotImplementedError("Phase 4")
+        # 1. Notify workers (they wait for phase_a_done internally)
+        for w in self.workers:
+            w.notify(n)
+
+        # 2. Submit phase A on both sims (signal 3N+1 each)
+        for sim in self.sims:
+            sim.submit_phase_a(n)
+
+        # 3. Submit phase B on both sims (queue-ordered after A; no sem ops)
+        for sim in self.sims:
+            sim.submit_phase_b(n)
+
+        # 4. Submit phase C on both sims (wait 3N+2 = signaled by worker,
+        #    signal 3N+3 at end)
+        for sim in self.sims:
+            sim.submit_phase_c(n)
+
+        # 5. Wait for both sims to reach 3N+3 (frame done)
+        for sim in self.sims:
+            sim.wait_frame_done(n)
+        t_end = time.perf_counter_ns()
+
+        # Check worker health
+        for w in self.workers:
+            if w.last_error is not None:
+                raise RuntimeError(
+                    f"worker {w.label} died: {w.last_error}") from w.last_error
+
+        record = {
+            "frame_n": n,
+            "frame_start_ns": t_start,
+            "frame_end_ns": t_end,
+            "frame_time_us": (t_end - t_start) / 1000.0,
+            "worker_a_to_b": self.worker_a_to_b.timestamps_for_frame(n),
+            "worker_b_to_a": self.worker_b_to_a.timestamps_for_frame(n),
+        }
+        self._records.append(record)
+        self._frame_count += 1
+
+        # 6. Defrag if due (independent fence-wait pass; not in timeline)
+        if (self._frame_count > 0
+                and self._frame_count % self.defrag_cadence == 0):
+            for sim in self.sims:
+                sim.submit_defrag_and_wait()
+
+        return record
 
     def run_until(
         self,
-        total_time: Optional[float] = None,
         max_steps: Optional[int] = None,
     ) -> None:
-        """Drive step() until either condition is met. v1.0: caller must
-        provide at least one bound (no time-budget abstraction)."""
-        raise NotImplementedError("Phase 4")
+        if max_steps is None:
+            raise ValueError("v1.0 requires max_steps (no time budget yet)")
+        while self._frame_count < max_steps:
+            self.step()
 
     # ========================================================================
     # Inspection
@@ -108,20 +200,7 @@ class DualGpuOrchestratorV2:
 
     @property
     def frame_count(self) -> int:
-        raise NotImplementedError("Phase 4")
+        return self._frame_count
 
-    def instrumentation_records(self) -> list:
-        """All collected per-frame records since construction. Caller can
-        feed this to pandas / matplotlib for offline analysis."""
-        raise NotImplementedError("Phase 4")
-
-    # ========================================================================
-    # LoadBalancer hook (v1.x; v1.0 is no-op)
-    # ========================================================================
-
-    def _maybe_adjust_partition(self) -> None:
-        """Called before defrag every defrag_cadence frames. v1.0: no-op.
-        v1.x will accumulate wait_X from instrumentation and adjust partition.x
-        per docs/sph_v2_design.md §11.3."""
-        # v1.0 intentional no-op; keep the call site so v1.x just fills the body.
-        pass
+    def instrumentation_records(self) -> list[dict]:
+        return list(self._records)
