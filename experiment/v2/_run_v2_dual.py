@@ -109,13 +109,15 @@ def main() -> int:
                     print(f"  step {orch.frame_count:5d}  fps={fps:6.1f}  "
                           f"a: alive={s_a['alive_particle_count']:7d} "
                           f"ofl_in={s_a['overflow_inside_count']:5d} "
+                          f"@v={s_a['first_overflow_voxel_inside']:5d} "
                           f"ofl_inc={s_a['overflow_incoming_count']:6d} "
-                          f"ofl_ghost={s_a['overflow_ghost_count']:5d} "
+                          f"@v={s_a['first_overflow_voxel_incoming']:5d} "
                           f"install={s_a['migration_install_count']:5d}  "
                           f"|  b: alive={s_b['alive_particle_count']:7d} "
                           f"ofl_in={s_b['overflow_inside_count']:5d} "
+                          f"@v={s_b['first_overflow_voxel_inside']:5d} "
                           f"ofl_inc={s_b['overflow_incoming_count']:6d} "
-                          f"ofl_ghost={s_b['overflow_ghost_count']:5d} "
+                          f"@v={s_b['first_overflow_voxel_incoming']:5d} "
                           f"install={s_b['migration_install_count']:5d}",
                           flush=True)
                     next_status += args.status_every
