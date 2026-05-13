@@ -155,12 +155,48 @@ class DualGpuOrchestratorV2:
         for sim in self.sims:
             sim.submit_phase_c(n)
 
-        # 5. Wait for both sims to reach 3N+3 (frame done)
-        for sim in self.sims:
-            sim.wait_frame_done(n)
+        # 5. Wait for both sims to reach 3N+3 (frame done).
+        # Use a watchdog poll instead of INFINITE wait so a dead worker thread
+        # surfaces as a clear error instead of an opaque hang. Each poll is
+        # 0.5s; we re-check worker health between polls.
+        WATCHDOG_TIMEOUT_S = 1.0
+        MAX_POLL_ITERS = 10   # → 10s total before giving up
+        for sim_idx, sim in enumerate(self.sims):
+            target_value = sim.value_frame_done(n)
+            for poll_iter in range(MAX_POLL_ITERS):
+                done = sim.wait_timeline(
+                    target_value, timeout_ns=int(WATCHDOG_TIMEOUT_S * 1e9))
+                if done:
+                    break
+                # Check workers
+                for w in self.workers:
+                    if w.last_error is not None:
+                        raise RuntimeError(
+                            f"worker {w.label} died during frame {n}: "
+                            f"{w.last_error}") from w.last_error
+                # Workers alive but timeline stuck → likely GPU TDR or kernel hang
+                cur_a = self.sim_a.current_timeline_value()
+                cur_b = self.sim_b.current_timeline_value()
+                wa = self.worker_a_to_b
+                wb = self.worker_b_to_a
+                print(f"[OrchV2 WATCHDOG] frame {n}: waiting sim_{('a','b')[sim_idx]} "
+                      f"to reach {target_value}; cur a={cur_a} b={cur_b}; "
+                      f"a→b iters={wa.iteration_count} last_done={wa.last_completed_frame} "
+                      f"phase={wa.last_activity[0]}@frame{wa.last_activity[1]}; "
+                      f"b→a iters={wb.iteration_count} last_done={wb.last_completed_frame} "
+                      f"phase={wb.last_activity[0]}@frame{wb.last_activity[1]}; "
+                      f"poll {poll_iter+1}/{MAX_POLL_ITERS}", flush=True)
+            else:
+                # Loop exhausted without success
+                raise RuntimeError(
+                    f"frame {n}: sim_{('a','b')[sim_idx]} timeline stuck at "
+                    f"{self.sims[sim_idx].current_timeline_value()} "
+                    f"(target {target_value}) after {MAX_POLL_ITERS * WATCHDOG_TIMEOUT_S}s. "
+                    f"Likely GPU device-lost / kernel hang.")
         t_end = time.perf_counter_ns()
 
-        # Check worker health
+        # Check worker health one more time (catches workers that died right
+        # at the end of the frame).
         for w in self.workers:
             if w.last_error is not None:
                 raise RuntimeError(

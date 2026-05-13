@@ -86,6 +86,11 @@ class GhostMigrationWorker:
         # checks each frame to fail-fast instead of deadlocking.
         self.last_error: Optional[BaseException] = None
 
+        # Initialized in _run(); seed here so orchestrator can peek before start.
+        self.last_activity: tuple = ("not_started", -1, 0)
+        self.iteration_count = 0
+        self.last_completed_frame = -1
+
         self.thread = threading.Thread(
             target=self._run, name=f"ghost-{label}", daemon=False)
         self._started = False
@@ -130,26 +135,44 @@ class GhostMigrationWorker:
     # ========================================================================
 
     def _run(self) -> None:
+        import sys as _sys
+        # Last activity timestamp + phase, for orchestrator watchdog introspection.
+        self.last_activity: tuple = ("init", 0, time.perf_counter_ns())
+        self.iteration_count = 0
+        self.last_completed_frame = -1
         try:
             while True:
+                self.last_activity = ("wait_queue", -1, time.perf_counter_ns())
                 frame_n = self.work_queue.get()
                 if frame_n == _STOP_SENTINEL:
                     return
+                self.iteration_count += 1
 
-                # 1. Wait for source GPU to signal phase_a_done(n)
-                wait_value = self.source.value_phase_a_done(frame_n)
-                self.source.wait_timeline(wait_value)
+                # 1a. Wait for source GPU to signal phase_a_done(n) — data ready
+                self.last_activity = ("wait_source_timeline", frame_n, time.perf_counter_ns())
+                self.source.wait_timeline(self.source.value_phase_a_done(frame_n))
+                # 1b. Wait for DEST GPU to also reach phase_a_done(n) — critical:
+                #     without this, our host_signal_timeline(dest, 3N+2) below could
+                #     race ahead of dest's GPU-side phase A signal=(3N+1). Vulkan
+                #     spec then forbids the GPU signaling 3N+1 (would be backwards
+                #     from host's 3N+2); AMD driver observed to corrupt the value
+                #     to the lower 3N+1, breaking subsequent waits.
+                self.last_activity = ("wait_dest_timeline", frame_n, time.perf_counter_ns())
+                self.dest.wait_timeline(self.dest.value_phase_a_done(frame_n))
                 t_wait = time.perf_counter_ns()
 
-                # 2. Byte memcpy (numpy slice assignment; releases GIL during
-                #    the underlying memmove for HOST_VISIBLE memory).
+                # 2. Byte memcpy
+                self.last_activity = ("memcpy", frame_n, time.perf_counter_ns())
                 self._dest_view[:] = self._source_view
                 t_copy = time.perf_counter_ns()
 
                 # 3. Signal dest GPU's cpu_sync_done(n); phase C wait clears.
+                self.last_activity = ("signal_dest_timeline", frame_n, time.perf_counter_ns())
                 signal_value = self.dest.value_cpu_sync_done(frame_n)
                 self.dest.host_signal_timeline(signal_value)
                 t_signal = time.perf_counter_ns()
+                self.last_activity = ("done_frame", frame_n, time.perf_counter_ns())
+                self.last_completed_frame = frame_n
 
                 self.timestamps[frame_n] = {
                     "wait_ns": t_wait,
@@ -158,3 +181,7 @@ class GhostMigrationWorker:
                 }
         except BaseException as e:  # noqa: BLE001 — capture everything for diagnostics
             self.last_error = e
+            import traceback as _tb
+            print(f"[worker {self.label}] DIED at {self.last_activity}: {e!r}",
+                  file=_sys.stderr, flush=True)
+            _tb.print_exc(file=_sys.stderr)

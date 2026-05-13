@@ -1525,14 +1525,28 @@ class SphSimulatorV2:
         )
         vkQueueSubmit2(self.ctx.compute_queue, 1, [submit_info], VK_NULL_HANDLE)
 
-    def wait_timeline(self, value: int) -> None:
+    def wait_timeline(self, value: int, timeout_ns: int = 0xFFFFFFFFFFFFFFFF) -> bool:
+        """vkWaitSemaphores with optional timeout. Default INFINITE.
+        Returns True if value was reached, False if timed out.
+
+        python-vulkan raises an exception on VK_TIMEOUT rather than returning
+        it as a value, so we catch the timeout case explicitly. Other
+        VkResult errors (DEVICE_LOST etc.) propagate.
+        """
         info = VkSemaphoreWaitInfo(
             sType=VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
             semaphoreCount=1,
             pSemaphores=[self.timeline],
             pValues=[value],
         )
-        vkWaitSemaphores(self.ctx.device, info, 0xFFFFFFFFFFFFFFFF)
+        try:
+            vkWaitSemaphores(self.ctx.device, info, timeout_ns)
+            return True
+        except Exception as e:
+            # python-vulkan maps VK_TIMEOUT (=2) to VkTimeout class
+            if type(e).__name__ == "VkTimeout":
+                return False
+            raise
 
     def host_signal_timeline(self, value: int) -> None:
         """vkSignalSemaphore for host-side timeline advance. Workers call this
