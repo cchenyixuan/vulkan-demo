@@ -325,3 +325,37 @@ def make_minimal_test_case(
         materials=materials,
         initial=initial,
     )
+
+
+def make_smoke_test_case(
+    own_pool_size: int = 4096,
+    grid_xyz: tuple[int, int, int] = (32, 32, 1),
+    fluid_grid: tuple[int, int] = (8, 8),
+) -> CaseV2:
+    """Phase 3 smoke test case: a small fluid grid placed in the lower-left
+    interior, zero gravity, free particles. Just enough for SPH to do real
+    neighbor-loop work so cmd buffer recording / bootstrap / step loop can
+    be smoke-tested. Physics is not validated — that's Phase 5's job."""
+    case = make_minimal_test_case(
+        own_pool_size=own_pool_size, grid_xyz=grid_xyz,
+        has_leading_peer=False, has_trailing_peer=False,
+    )
+
+    h = case.physics.smoothing_length
+    spacing = h * 0.5
+    nx, ny = fluid_grid
+    # Place fluid block starting at (2h, 2h) so neighbors don't wrap out of domain.
+    x0, y0 = 2.0 * h, 2.0 * h
+    positions = np.zeros((nx * ny, 3), dtype=np.float32)
+    idx = 0
+    for ix in range(nx):
+        for iy in range(ny):
+            positions[idx] = (x0 + ix * spacing, y0 + iy * spacing, 0.0)
+            idx += 1
+
+    case.initial = InitialParticles(
+        positions=positions,
+        velocities=np.zeros((nx * ny, 3), dtype=np.float32),
+        material_group=np.zeros(nx * ny, dtype=np.uint32),  # all FLUID (group 0)
+    )
+    return case

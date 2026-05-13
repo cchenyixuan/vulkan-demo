@@ -14,8 +14,11 @@
 // Per-voxel dispatch: gl_GlobalInvocationID.x → voxel_id (1-based).
 //
 // Source bindings (set 0): the "current" particle SoA — read-only here.
-// Destination bindings (set 4): the "scratch" particle SoA — written here.
-// CPU-side bank swap promotes set 4 to be the new set 0 after this dispatch.
+// Destination bindings (set 4): the persistent "scratch" particle SoA — written here.
+// After this dispatch, the host issues vkCmdCopyBuffer scratch → primary
+// for each set-0 SoA in the defrag cmd buffer ("copy-back" pattern; V1/V2).
+// (Earlier V0 design envisioned bank swap; V1 settled on copy-back so set 4
+// is just a transient destination, not a bank that gets promoted.)
 //
 // Base index strategy (USE_PREFIX_SUM_DEFRAG spec constant):
 //   true  → base = voxel_base_offset[voxel_id]   (deterministic voxel-id order;
@@ -46,27 +49,37 @@
 // "non-voxel particle list" the defrag walks in addition, or rebuilding inlet
 // pool slots from inlet_template (set 3 binding 2) after each defrag.
 //
-// V1.0a: this kernel processes OWN voxels only (filtered by is_own_voxel).
+// V1.0a / V2: this kernel processes OWN voxels only (filtered by is_own_voxel).
 // Ghost voxels are never defragged because:
 //   - ghost voxel inside_particle_count + inside_particle_index are written
 //     by ghost_send + transport every step (replicas overwrite in place);
-//   - ghost-pid range in scratch (set 4) is host-cleared to 0 pre-defrag, so
-//     after CPU bank swap the new set 0 ghost-pid range is empty. It gets
-//     refilled by next step's ghost_send → transport BEFORE any hot kernel
-//     reads it. predict / update_voxel of step N+1 don't touch ghost data.
+//   - ghost-pid range in scratch (set 4) is NOT cleared pre-defrag; it
+//     retains stale bytes from the previous defrag pass. After copy-back the
+//     ghost-pid range in primary becomes stale too — this is intentional: the
+//     next step's ghost_send writes fresh bytes into the ghost-pid range
+//     BEFORE install_migrations and the hot kernels touch it. predict /
+//     update_voxel of step N+1 don't read ghost data. The stale window is
+//     between defrag-completion and next ghost_send write, with no readers.
 // Alive packing: own particles defrag-pack into [own_first_pid, own_first_pid +
 // alive_count - 1]. Dead slots fill [own_first_pid + alive_count, own_last_pid].
 //
-// Host orchestration around defrag dispatch (simulator_v1.py):
-//   1. vkCmdFillBuffer scratch (set 4) = 0          (zero-init dead region)
-//   2. vkCmdFillBuffer defrag_scratch_counter = 0   (reset atomic)
+// Host orchestration around defrag dispatch (V1 / V2 simulator):
+//   1. vkCmdFillBuffer defrag_scratch_counter = 0   (reset atomic; path B only)
+//   2. transfer→compute barrier
 //   3. defrag.comp dispatch (this kernel)
-//   4. vkCmdCopyBuffer defrag_scratch_counter → alive_particle_count
+//   4. compute→transfer barrier
+//   5. vkCmdCopyBuffer scratch → primary, for each set-0 SoA in
+//      DEFRAG_SET0_BINDINGS (= {0, 1, 3..9}, skipping density_pressure_scratch)
+//   6. vkCmdCopyBuffer defrag_scratch_counter → alive_particle_count
 //      (refresh post-defrag alive count for downstream install_migrations'
 //       overflow check)
-//   5. vkCmdFillBuffer migration_install_count = 0
+//   7. vkCmdFillBuffer migration_install_count = 0
 //      (reset end-allocate cycle so install starts at own_last_pid again)
-//   6. CPU bank swap: scratch (set 4) becomes new set 0
+//   8. transfer→compute barrier (next step's predict reads set 0)
+//
+// V2: defrag runs as an independent fence-wait pass (not in the 3N+k timeline);
+// orchestrator dispatches once every `defrag_cadence` frames between frame N's
+// wait_frame_done and frame N+1's submit_phase_a. See docs/sph_v2_design.md §14.4.
 // ============================================================================
 
 layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;

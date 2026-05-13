@@ -128,6 +128,14 @@ class SphSimulatorV2:
         self.shader_modules = self._load_shader_modules()
         self.pipelines = self._build_compute_pipelines()
 
+        # Defrag has its own 5-set pipeline layout (set 4 = scratch SoA dst)
+        # and its own descriptor pool + set 4 descriptor.
+        self.defrag_set4_layout = self._build_defrag_set4_layout()
+        self.defrag_descriptor_pool, self.defrag_set4 = self._allocate_defrag_set4()
+        self._wire_defrag_set4()
+        self.defrag_pipeline_layout = self._build_defrag_pipeline_layout()
+        self.pipelines["defrag"] = self._build_defrag_pipeline()
+
         # Timeline semaphore (Phase 3 uses it; creation is here)
         self.timeline = self._create_timeline_semaphore()
 
@@ -168,14 +176,23 @@ class SphSimulatorV2:
             vkDestroyShaderModule(device, module, None)
         self.shader_modules = {}
 
+        if self.defrag_pipeline_layout is not None:
+            vkDestroyPipelineLayout(device, self.defrag_pipeline_layout, None)
+            self.defrag_pipeline_layout = None
         if self.pipeline_layout is not None:
             vkDestroyPipelineLayout(device, self.pipeline_layout, None)
             self.pipeline_layout = None
 
+        if self.defrag_descriptor_pool is not None:
+            vkDestroyDescriptorPool(device, self.defrag_descriptor_pool, None)
+            self.defrag_descriptor_pool = None
         if self.descriptor_pool is not None:
             vkDestroyDescriptorPool(device, self.descriptor_pool, None)
             self.descriptor_pool = None
 
+        if self.defrag_set4_layout is not None:
+            vkDestroyDescriptorSetLayout(device, self.defrag_set4_layout, None)
+            self.defrag_set4_layout = None
         for layout in self.descriptor_layouts:
             vkDestroyDescriptorSetLayout(device, layout, None)
         self.descriptor_layouts = []
@@ -223,34 +240,14 @@ class SphSimulatorV2:
         return vkGetSemaphoreCounterValue(self.ctx.device, self.timeline)
 
     # ========================================================================
-    # High-level frame API — Phase 3 fills bodies
+    # High-level frame API
+    # bootstrap() implemented in Section 8; submit_phase_* + wait_* in Section 10
     # ========================================================================
 
-    def bootstrap(self) -> None:
-        raise NotImplementedError("Phase 3")
-
-    def submit_phase_a(self, frame_n: int) -> None:
-        raise NotImplementedError("Phase 3")
-
-    def submit_phase_b(self, frame_n: int) -> None:
-        raise NotImplementedError("Phase 3")
-
-    def submit_phase_c(self, frame_n: int) -> None:
-        raise NotImplementedError("Phase 3")
-
-    def wait_frame_done(self, frame_n: int) -> None:
-        raise NotImplementedError("Phase 3")
-
     def submit_defrag_and_wait(self) -> None:
-        raise NotImplementedError("Phase 3")
-
-    def submit_with_timeline(
-        self, cmd, *, wait_value: Optional[int], signal_value: Optional[int]
-    ) -> None:
-        raise NotImplementedError("Phase 3")
-
-    def wait_timeline(self, value: int) -> None:
-        raise NotImplementedError("Phase 3")
+        if self.defrag_cmd is None:
+            self.defrag_cmd = self._record_defrag_cmd()
+        self.ctx.submit_and_wait(self.defrag_cmd)
 
     # ========================================================================
     # Worker-facing accessors
@@ -273,14 +270,11 @@ class SphSimulatorV2:
         return self.ctx.device
 
     # ========================================================================
-    # Readback (Phase 3+; placeholder)
+    # Readback (Phase 3 — implemented in Section 9 below)
     # ========================================================================
 
-    def readback_global_status(self) -> dict:
-        raise NotImplementedError("Phase 3")
-
     def readback_positions(self):
-        raise NotImplementedError("Phase 3")
+        raise NotImplementedError("Phase 3 — TODO")
 
     def get_render_buffers(self) -> dict:
         raise NotImplementedError("Phase 5+ (renderer)")
@@ -826,3 +820,648 @@ class SphSimulatorV2:
         )
         ci = VkSemaphoreCreateInfo(pNext=type_info)
         return vkCreateSemaphore(self.ctx.device, ci, None)
+
+    # ========================================================================
+    # Section 6: Cmd buffer helpers (Phase 3)
+    # ========================================================================
+
+    def _allocate_oneshot_cmd(self):
+        info = VkCommandBufferAllocateInfo(
+            commandPool=self.ctx.command_pool,
+            level=VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            commandBufferCount=1,
+        )
+        return vkAllocateCommandBuffers(self.ctx.device, info)[0]
+
+    def _per_own_particle_dispatch_count(self) -> int:
+        wg = self.case.capacities.workgroup_size
+        own = self.case.capacities.own_pool_size
+        return (own + wg - 1) // wg
+
+    def _per_extended_voxel_dispatch_count(self) -> int:
+        wg = self.case.capacities.workgroup_size
+        v = self.case.grid.total_voxel_count()
+        return (v + wg - 1) // wg
+
+    # ----- sync2 barriers ---------------------------------------------------
+
+    def _record_compute_barrier(self, cmd) -> None:
+        """Global compute→compute memory barrier (sync2)."""
+        mb = VkMemoryBarrier2(
+            sType=VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+            srcStageMask=VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            srcAccessMask=(VK_ACCESS_2_SHADER_STORAGE_READ_BIT
+                           | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
+            dstStageMask=VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            dstAccessMask=(VK_ACCESS_2_SHADER_STORAGE_READ_BIT
+                           | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
+        )
+        info = VkDependencyInfo(
+            sType=VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            memoryBarrierCount=1,
+            pMemoryBarriers=[mb],
+        )
+        vkCmdPipelineBarrier2(cmd, info)
+
+    def _record_transfer_to_compute_barrier(self, cmd) -> None:
+        mb = VkMemoryBarrier2(
+            sType=VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+            srcStageMask=VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            srcAccessMask=VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            dstStageMask=VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            dstAccessMask=(VK_ACCESS_2_SHADER_STORAGE_READ_BIT
+                           | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
+        )
+        info = VkDependencyInfo(
+            sType=VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            memoryBarrierCount=1,
+            pMemoryBarriers=[mb],
+        )
+        vkCmdPipelineBarrier2(cmd, info)
+
+    def _record_compute_to_transfer_barrier(self, cmd) -> None:
+        mb = VkMemoryBarrier2(
+            sType=VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+            srcStageMask=VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            srcAccessMask=VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT,
+            dstStageMask=VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            dstAccessMask=VK_ACCESS_2_TRANSFER_READ_BIT,
+        )
+        info = VkDependencyInfo(
+            sType=VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            memoryBarrierCount=1,
+            pMemoryBarriers=[mb],
+        )
+        vkCmdPipelineBarrier2(cmd, info)
+
+    # ----- Pipeline binding -------------------------------------------------
+
+    def _bind_pipeline_and_sets(self, cmd, pipeline_key: str) -> None:
+        vkCmdBindPipeline(
+            cmd, VK_PIPELINE_BIND_POINT_COMPUTE, self.pipelines[pipeline_key])
+        vkCmdBindDescriptorSets(
+            cmd, VK_PIPELINE_BIND_POINT_COMPUTE, self.pipeline_layout,
+            0, 4, self.descriptor_sets, 0, None)
+
+    # ----- Density scratch copy-back (inside step cmd) ---------------------
+
+    def _record_density_scratch_to_primary_copy(self, cmd) -> None:
+        """After density.comp writes density_pressure_scratch, copy that back
+        to density_pressure (primary) inside the same submit. Force.comp's
+        next dispatch reads primary."""
+        scratch = self.buffers["density_pressure_scratch"]
+        primary = self.buffers["density_pressure"]
+        # compute→transfer (density wrote scratch)
+        self._record_compute_to_transfer_barrier(cmd)
+        vkCmdCopyBuffer(cmd, scratch.handle, primary.handle, 1, [
+            VkBufferCopy(srcOffset=0, dstOffset=0, size=scratch.size)
+        ])
+        # transfer→compute (force will read primary)
+        self._record_transfer_to_compute_barrier(cmd)
+
+    # ========================================================================
+    # Section 7: Initial data upload (Phase 3)
+    # ========================================================================
+
+    def own_first_pid(self) -> int:
+        return self.case.capacities.leading_ghost_pool_size + 1
+
+    def own_last_pid(self) -> int:
+        return (self.case.capacities.leading_ghost_pool_size
+                + self.case.capacities.own_pool_size)
+
+    def _build_initial_data(self) -> dict[str, bytes]:
+        """Build CPU-side payloads keyed by buffer name. Caller uploads each
+        via _staging_upload + ctx.submit_and_wait. Buffers not in this dict
+        get zeroed via _zero_buffer.
+
+        V2 layout: own particles start at own_first_pid (V1.0a merged-buffer
+        scheme); ghost-pid slots stay zero until next step's ghost_send fills
+        them.
+        """
+        case = self.case
+        pool_capacity = case.capacities.total_pool_capacity()
+        own_first = self.own_first_pid()
+        n_initial = case.initial.positions.shape[0]
+        data: dict[str, bytes] = {}
+
+        # position_voxel_id (vec4: xyz, voxel_id_as_float=0 initially)
+        position_voxel_id = np.zeros((pool_capacity, 4), dtype=np.float32)
+        position_voxel_id[own_first:own_first + n_initial, 0:3] = case.initial.positions
+        data["position_voxel_id"] = position_voxel_id.tobytes()
+
+        # velocity_mass (vec4: vx, vy, vz, mass)
+        velocity_mass = np.zeros((pool_capacity, 4), dtype=np.float32)
+        velocity_mass[own_first:own_first + n_initial, 0:3] = case.initial.velocities
+        for i in range(n_initial):
+            group = int(case.initial.material_group[i])
+            mat = case.materials[group]
+            velocity_mass[own_first + i, 3] = mat.rest_density * mat.volume
+        data["velocity_mass"] = velocity_mass.tobytes()
+
+        # density_pressure (vec2: ρ₀, 0)
+        density_pressure = np.zeros((pool_capacity, 2), dtype=np.float32)
+        for i in range(n_initial):
+            group = int(case.initial.material_group[i])
+            mat = case.materials[group]
+            density_pressure[own_first + i, 0] = mat.rest_density
+        data["density_pressure"] = density_pressure.tobytes()
+
+        # material (uint group_id, 0 for empty slots)
+        material_arr = np.zeros(pool_capacity, dtype=np.uint32)
+        if n_initial > 0:
+            material_arr[own_first:own_first + n_initial] = case.initial.material_group
+        data["material"] = material_arr.tobytes()
+
+        # material_parameters (48 B per row)
+        mp_blob = bytearray()
+        for mat in case.materials:
+            row = struct.pack(
+                "<I f f f f f f f f f I I",
+                mat.kind, mat.rest_density, mat.viscosity, mat.eos_constant,
+                mat.smoothing_length, mat.radius, mat.volume,
+                mat.rotor_angular_velocity,
+                mat.viscosity_transfer, mat.viscosity_rotation,
+                mat.reserved_material_0, mat.reserved_material_1,
+            )
+            assert len(row) == 48
+            mp_blob.extend(row)
+        if not mp_blob:
+            mp_blob = b"\x00" * 48
+        data["material_parameters"] = bytes(mp_blob)
+
+        return data
+
+    def _staging_upload(self, dest: _Buffer, payload: bytes) -> None:
+        if len(payload) > dest.size:
+            raise ValueError(
+                f"payload {len(payload)} > buffer {dest.size}")
+        staging = self._allocate_buffer(
+            size=len(payload),
+            usage=VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            required_properties=(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+                                 | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
+        )
+        try:
+            mapped = vkMapMemory(self.ctx.device, staging.memory, 0, len(payload), 0)
+            view = np.frombuffer(mapped, dtype=np.uint8, count=len(payload))
+            view[:] = np.frombuffer(payload, dtype=np.uint8)
+            vkUnmapMemory(self.ctx.device, staging.memory)
+            cmd = self._allocate_oneshot_cmd()
+            vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
+                flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT))
+            vkCmdCopyBuffer(cmd, staging.handle, dest.handle, 1, [
+                VkBufferCopy(srcOffset=0, dstOffset=0, size=len(payload))
+            ])
+            vkEndCommandBuffer(cmd)
+            self.ctx.submit_and_wait(cmd)
+            vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
+        finally:
+            vkDestroyBuffer(self.ctx.device, staging.handle, None)
+            vkFreeMemory(self.ctx.device, staging.memory, None)
+
+    def _zero_buffer(self, dest: _Buffer) -> None:
+        cmd = self._allocate_oneshot_cmd()
+        vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
+            flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT))
+        vkCmdFillBuffer(cmd, dest.handle, 0, dest.size, 0)
+        vkEndCommandBuffer(cmd)
+        self.ctx.submit_and_wait(cmd)
+        vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
+
+    def _upload_initial_state(self) -> None:
+        initial = self._build_initial_data()
+        for name, buf in self.buffers.items():
+            if name in initial:
+                payload = initial[name]
+                if len(payload) < buf.size:
+                    payload = payload + b"\x00" * (buf.size - len(payload))
+                self._staging_upload(buf, payload)
+            else:
+                self._zero_buffer(buf)
+        for buf in self.scratch_buffers.values():
+            self._zero_buffer(buf)
+        print(f"[SimV2] uploaded initial state ({len(initial)} payload buffers)")
+
+    # ========================================================================
+    # Section 8: Bootstrap (Phase 3)
+    # ========================================================================
+
+    def _record_bootstrap_cmd(self):
+        """Bootstrap = initialize_voxelization → correction(ALL) → density →
+        force → bootstrap_half_kick. Single-GPU only; multi-GPU bootstrap with
+        ghost transport is Phase 4."""
+        cmd = self._allocate_oneshot_cmd()
+        vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
+            flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT))
+        self._record_compute_barrier(cmd)
+
+        per_p = self._per_own_particle_dispatch_count()
+
+        self._bind_pipeline_and_sets(cmd, "initialize_voxelization")
+        vkCmdDispatch(cmd, per_p, 1, 1)
+        self._record_compute_barrier(cmd)
+
+        self._bind_pipeline_and_sets(cmd, "correction_all")
+        vkCmdDispatch(cmd, per_p, 1, 1)
+        self._record_compute_barrier(cmd)
+
+        self._bind_pipeline_and_sets(cmd, "density")
+        vkCmdDispatch(cmd, per_p, 1, 1)
+        self._record_density_scratch_to_primary_copy(cmd)
+
+        self._bind_pipeline_and_sets(cmd, "force")
+        vkCmdDispatch(cmd, per_p, 1, 1)
+        self._record_compute_barrier(cmd)
+
+        self._bind_pipeline_and_sets(cmd, "bootstrap_half_kick")
+        vkCmdDispatch(cmd, per_p, 1, 1)
+
+        vkEndCommandBuffer(cmd)
+        return cmd
+
+    def bootstrap(self) -> None:
+        self._upload_initial_state()
+        cmd = self._record_bootstrap_cmd()
+        self.ctx.submit_and_wait(cmd)
+        vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
+        status = self.readback_global_status()
+        print(f"[SimV2] bootstrap done: alive={status['alive_particle_count']} "
+              f"overflow_inside={status['overflow_inside_count']} "
+              f"overflow_incoming={status['overflow_incoming_count']}")
+
+    # ========================================================================
+    # Section 9: Readback (Phase 3)
+    # ========================================================================
+
+    def _readback_buffer(self, buf: _Buffer) -> bytes:
+        staging = self._allocate_buffer(
+            size=buf.size,
+            usage=VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            required_properties=(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+                                 | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
+        )
+        try:
+            cmd = self._allocate_oneshot_cmd()
+            vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
+                flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT))
+            vkCmdCopyBuffer(cmd, buf.handle, staging.handle, 1, [
+                VkBufferCopy(srcOffset=0, dstOffset=0, size=buf.size)
+            ])
+            vkEndCommandBuffer(cmd)
+            self.ctx.submit_and_wait(cmd)
+            vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
+            mapped = vkMapMemory(self.ctx.device, staging.memory, 0, buf.size, 0)
+            payload = bytes(np.frombuffer(mapped, dtype=np.uint8, count=buf.size))
+            vkUnmapMemory(self.ctx.device, staging.memory)
+            return payload
+        finally:
+            vkDestroyBuffer(self.ctx.device, staging.handle, None)
+            vkFreeMemory(self.ctx.device, staging.memory, None)
+
+    def readback_global_status(self) -> dict:
+        """GlobalStatusBuffer is 16 × 4 B = 64 B. Layout per common.glsl §3."""
+        payload = self._readback_buffer(self.buffers["global_status"])
+        fields = struct.unpack("<I f I I I I I I I I I I I I I I", payload)
+        return {
+            "alive_particle_count":         fields[0],
+            "maximum_velocity":             fields[1],
+            "overflow_inside_count":        fields[2],
+            "overflow_incoming_count":      fields[3],
+            "first_overflow_voxel_inside":  fields[4],
+            "first_overflow_voxel_incoming":fields[5],
+            "correction_fallback_count":    fields[6],
+            "overflow_ghost_count":         fields[7],
+            "ghost_send_leading_count":     fields[8],
+            "ghost_send_trailing_count":    fields[9],
+            "ghost_recv_leading_count":     fields[10],
+            "ghost_recv_trailing_count":    fields[11],
+            "migration_install_count":      fields[12],
+            "overflow_install_tail":        fields[13],
+            "overflow_install_inside":      fields[14],
+            "first_overflow_voxel_install": fields[15],
+        }
+
+    # ========================================================================
+    # Section 10: Step cmd buffers + sync2 timeline submit/wait (Phase 3b)
+    #
+    # V2 v1.0 single-GPU simplification: phase A only does predict + update_voxel;
+    # phase B does correction(ALL); phase C does density + force. ghost_send /
+    # install_migration / readback / upload are skipped (no peer; ghost-pid pool
+    # is sized 0 in case construction). Phase 4 wires per-direction ghost flow.
+    # ========================================================================
+
+    def _record_phase_a_cmd(self):
+        """V2 v1.0 single-GPU: predict + update_voxel. signal 3N+1 at submit."""
+        cmd = self._allocate_oneshot_cmd()
+        vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
+            flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
+        self._record_compute_barrier(cmd)
+
+        per_p = self._per_own_particle_dispatch_count()
+        per_v = self._per_extended_voxel_dispatch_count()
+
+        self._bind_pipeline_and_sets(cmd, "predict")
+        vkCmdDispatch(cmd, per_p, 1, 1)
+        self._record_compute_barrier(cmd)
+
+        self._bind_pipeline_and_sets(cmd, "update_voxel")
+        vkCmdDispatch(cmd, per_v, 1, 1)
+        # Phase 4 will append ghost_send + readback + compute→host barrier here.
+
+        vkEndCommandBuffer(cmd)
+        return cmd
+
+    def _record_phase_b_cmd(self):
+        """V2 v1.0 single-GPU: correction(ALL). queue-ordered after phase A."""
+        cmd = self._allocate_oneshot_cmd()
+        vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
+            flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
+        # Cross-submit memory visibility: phase A's writes → phase B's reads.
+        self._record_compute_barrier(cmd)
+
+        per_p = self._per_own_particle_dispatch_count()
+        self._bind_pipeline_and_sets(cmd, "correction_all")
+        vkCmdDispatch(cmd, per_p, 1, 1)
+        # Phase B exit barrier — required so phase C's density reads see
+        # correction_inverse writes (no semaphore bridges B→C; cpu_sync only
+        # carries worker's host writes, not GPU writes). See docs §5.2 step 3.
+        self._record_compute_barrier(cmd)
+
+        vkEndCommandBuffer(cmd)
+        return cmd
+
+    def _record_phase_c_cmd(self):
+        """V2 v1.0 single-GPU: density → density_scratch_copy → force.
+        wait 3N+2 at submit (signaled by host_signal_timeline in single-GPU
+        smoke test, or by worker in dual-GPU mode). signal 3N+3 at submit end."""
+        cmd = self._allocate_oneshot_cmd()
+        vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
+            flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
+        # No entry barrier: semaphore wait on 3N+2 covers host-write visibility
+        # (Phase 4 worker writes migration buffer); phase B's exit barrier
+        # covers B→C GPU-write visibility.
+
+        per_p = self._per_own_particle_dispatch_count()
+        # Phase 4 will prepend install_migration here. v1.0 single-GPU skips it.
+
+        self._bind_pipeline_and_sets(cmd, "density")
+        vkCmdDispatch(cmd, per_p, 1, 1)
+        self._record_density_scratch_to_primary_copy(cmd)
+
+        self._bind_pipeline_and_sets(cmd, "force")
+        vkCmdDispatch(cmd, per_p, 1, 1)
+
+        vkEndCommandBuffer(cmd)
+        return cmd
+
+    def prepare_step_cmd_buffers(self) -> None:
+        """Record phase A/B/C cmd buffers once. Caller invokes after bootstrap.
+        Re-call to re-record (e.g. when switching CORRECTION_MODE_ALL → split
+        in Phase 6)."""
+        device = self.ctx.device
+        pool = self.ctx.command_pool
+        for old in (self.phase_a_cmd, self.phase_b_cmd, self.phase_c_cmd):
+            if old is not None:
+                vkFreeCommandBuffers(device, pool, 1, [old])
+        self.phase_a_cmd = self._record_phase_a_cmd()
+        self.phase_b_cmd = self._record_phase_b_cmd()
+        self.phase_c_cmd = self._record_phase_c_cmd()
+        print(f"[SimV2] step cmd buffers recorded (phase A/B/C)")
+
+    # ----- sync2 timeline submit / wait / host signal -----------------------
+
+    def submit_with_timeline(
+        self,
+        cmd,
+        *,
+        wait_value: Optional[int],
+        signal_value: Optional[int],
+        wait_stage: int = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+    ) -> None:
+        wait_infos = []
+        if wait_value is not None:
+            wait_infos.append(VkSemaphoreSubmitInfo(
+                sType=VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                semaphore=self.timeline,
+                value=wait_value,
+                stageMask=wait_stage,
+            ))
+        signal_infos = []
+        if signal_value is not None:
+            signal_infos.append(VkSemaphoreSubmitInfo(
+                sType=VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                semaphore=self.timeline,
+                value=signal_value,
+                stageMask=VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            ))
+        cmd_info = VkCommandBufferSubmitInfo(
+            sType=VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+            commandBuffer=cmd,
+        )
+        submit_info = VkSubmitInfo2(
+            sType=VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+            waitSemaphoreInfoCount=len(wait_infos),
+            pWaitSemaphoreInfos=wait_infos if wait_infos else None,
+            commandBufferInfoCount=1,
+            pCommandBufferInfos=[cmd_info],
+            signalSemaphoreInfoCount=len(signal_infos),
+            pSignalSemaphoreInfos=signal_infos if signal_infos else None,
+        )
+        vkQueueSubmit2(self.ctx.compute_queue, 1, [submit_info], VK_NULL_HANDLE)
+
+    def wait_timeline(self, value: int) -> None:
+        info = VkSemaphoreWaitInfo(
+            sType=VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+            semaphoreCount=1,
+            pSemaphores=[self.timeline],
+            pValues=[value],
+        )
+        vkWaitSemaphores(self.ctx.device, info, 0xFFFFFFFFFFFFFFFF)
+
+    def host_signal_timeline(self, value: int) -> None:
+        """vkSignalSemaphore for host-side timeline advance. Workers call this
+        on the *destination* sim. Single-GPU smoke tests call it on self
+        between phase B and phase C to substitute for the absent worker."""
+        info = VkSemaphoreSignalInfo(
+            sType=VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
+            semaphore=self.timeline,
+            value=value,
+        )
+        vkSignalSemaphore(self.ctx.device, info)
+
+    # ----- High-level frame API (replaces earlier stubs) --------------------
+
+    def submit_phase_a(self, frame_n: int) -> None:
+        if self.phase_a_cmd is None:
+            raise RuntimeError("phase_a_cmd not recorded; call prepare_step_cmd_buffers()")
+        wait_value = (self.value_frame_done(frame_n - 1) if frame_n > 0 else 0)
+        self.submit_with_timeline(
+            self.phase_a_cmd,
+            wait_value=wait_value,
+            signal_value=self.value_phase_a_done(frame_n),
+        )
+
+    def submit_phase_b(self, frame_n: int) -> None:
+        # Queue-ordered after phase A on same queue; no semaphore wait/signal.
+        if self.phase_b_cmd is None:
+            raise RuntimeError("phase_b_cmd not recorded; call prepare_step_cmd_buffers()")
+        self.submit_with_timeline(
+            self.phase_b_cmd, wait_value=None, signal_value=None)
+
+    def submit_phase_c(self, frame_n: int) -> None:
+        if self.phase_c_cmd is None:
+            raise RuntimeError("phase_c_cmd not recorded; call prepare_step_cmd_buffers()")
+        self.submit_with_timeline(
+            self.phase_c_cmd,
+            wait_value=self.value_cpu_sync_done(frame_n),
+            signal_value=self.value_frame_done(frame_n),
+        )
+
+    def wait_frame_done(self, frame_n: int) -> None:
+        self.wait_timeline(self.value_frame_done(frame_n))
+
+    # ========================================================================
+    # Section 11: Defrag pipeline + cmd (Phase 3c)
+    # 5-set pipeline layout: sets 0..3 reused + set 4 for scratch destination
+    # SoA. Skips binding 2 (density_pressure_scratch) — transient, no need
+    # to migrate.
+    # ========================================================================
+
+    def _build_defrag_set4_layout(self):
+        bindings = [
+            VkDescriptorSetLayoutBinding(
+                binding=b,
+                descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                descriptorCount=1,
+                stageFlags=VK_SHADER_STAGE_COMPUTE_BIT,
+            )
+            for b in DEFRAG_SET0_BINDINGS
+        ]
+        ci = VkDescriptorSetLayoutCreateInfo(
+            bindingCount=len(bindings), pBindings=bindings)
+        return vkCreateDescriptorSetLayout(self.ctx.device, ci, None)
+
+    def _allocate_defrag_set4(self):
+        pool_size = VkDescriptorPoolSize(
+            type=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            descriptorCount=len(DEFRAG_SET0_BINDINGS),
+        )
+        pool_ci = VkDescriptorPoolCreateInfo(
+            maxSets=1, poolSizeCount=1, pPoolSizes=[pool_size])
+        pool = vkCreateDescriptorPool(self.ctx.device, pool_ci, None)
+        alloc = VkDescriptorSetAllocateInfo(
+            descriptorPool=pool,
+            descriptorSetCount=1,
+            pSetLayouts=[self.defrag_set4_layout],
+        )
+        descriptor_set = vkAllocateDescriptorSets(self.ctx.device, alloc)[0]
+        return pool, descriptor_set
+
+    def _wire_defrag_set4(self) -> None:
+        # Names match set 0 SoA — same buffer keys for scratch and primary.
+        # Skip binding 2 (density_pressure_scratch); it's not in
+        # DEFRAG_SET0_BINDINGS so no scratch twin exists.
+        writes = []
+        for spec in self._buffer_specs:
+            if spec.set_index != 0:
+                continue
+            if spec.binding not in DEFRAG_SET0_BINDINGS:
+                continue
+            scratch_buf = self.scratch_buffers[spec.name]
+            buf_info = VkDescriptorBufferInfo(
+                buffer=scratch_buf.handle, offset=0, range=scratch_buf.size)
+            writes.append(VkWriteDescriptorSet(
+                dstSet=self.defrag_set4,
+                dstBinding=spec.binding,
+                dstArrayElement=0,
+                descriptorCount=1,
+                descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                pBufferInfo=[buf_info],
+            ))
+        vkUpdateDescriptorSets(self.ctx.device, len(writes), writes, 0, None)
+
+    def _build_defrag_pipeline_layout(self):
+        # 5 sets: existing 4 (0..3) + defrag's set 4
+        layouts = list(self.descriptor_layouts) + [self.defrag_set4_layout]
+        ci = VkPipelineLayoutCreateInfo(
+            setLayoutCount=5, pSetLayouts=layouts, pushConstantRangeCount=0)
+        return vkCreatePipelineLayout(self.ctx.device, ci, None)
+
+    def _build_defrag_pipeline(self):
+        spec_info = self._make_spec_info(self._global_entries())
+        stage = VkPipelineShaderStageCreateInfo(
+            stage=VK_SHADER_STAGE_COMPUTE_BIT,
+            module=self.shader_modules["defrag"],
+            pName="main",
+            pSpecializationInfo=spec_info,
+        )
+        ci = VkComputePipelineCreateInfo(
+            stage=stage, layout=self.defrag_pipeline_layout)
+        return vkCreateComputePipelines(
+            self.ctx.device, VK_NULL_HANDLE, 1, [ci], None)[0]
+
+    def _record_defrag_cmd(self):
+        """V2 defrag cmd buffer (mirrors V1 _record_defrag_cmd):
+            1. fill defrag_scratch_counter = 0
+            2. transfer→compute barrier
+            3. defrag dispatch (per extended voxel)
+            4. compute→transfer barrier
+            5. copy each scratch SoA → primary (9 copies, set 0 except scratch)
+            6. copy defrag_scratch_counter → global_status.alive_particle_count
+            7. fill migration_install_count = 0
+            8. transfer→compute barrier (next step's predict reads set 0)
+        """
+        cmd = self._allocate_oneshot_cmd()
+        vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
+            flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
+        self._record_compute_barrier(cmd)
+
+        # 1. Reset scratch counter
+        scratch_counter = self.buffers["defrag_scratch_counter"]
+        vkCmdFillBuffer(cmd, scratch_counter.handle, 0, scratch_counter.size, 0)
+
+        # 2. transfer→compute (defrag dispatch will atomicAdd the counter)
+        self._record_transfer_to_compute_barrier(cmd)
+
+        # 3. defrag dispatch — uses defrag_pipeline_layout (5 sets)
+        vkCmdBindPipeline(
+            cmd, VK_PIPELINE_BIND_POINT_COMPUTE, self.pipelines["defrag"])
+        all_sets = list(self.descriptor_sets) + [self.defrag_set4]
+        vkCmdBindDescriptorSets(
+            cmd, VK_PIPELINE_BIND_POINT_COMPUTE, self.defrag_pipeline_layout,
+            0, 5, all_sets, 0, None)
+        vkCmdDispatch(cmd, self._per_extended_voxel_dispatch_count(), 1, 1)
+
+        # 4. compute→transfer (copy scratch→primary)
+        self._record_compute_to_transfer_barrier(cmd)
+
+        # 5. Copy each scratch SoA back to primary
+        for spec in self._buffer_specs:
+            if spec.set_index != 0:
+                continue
+            if spec.binding not in DEFRAG_SET0_BINDINGS:
+                continue
+            src = self.scratch_buffers[spec.name].handle
+            dst = self.buffers[spec.name].handle
+            vkCmdCopyBuffer(cmd, src, dst, 1, [
+                VkBufferCopy(srcOffset=0, dstOffset=0, size=spec.size)
+            ])
+
+        # 6. Refresh alive_particle_count from defrag_scratch_counter.
+        # GlobalStatusBuffer layout: alive_particle_count at offset 0, 4 B.
+        vkCmdCopyBuffer(
+            cmd, scratch_counter.handle,
+            self.buffers["global_status"].handle, 1, [
+                VkBufferCopy(srcOffset=0, dstOffset=0, size=4)
+            ])
+
+        # 7. Reset migration_install_count (offset 12 × 4 = 48 in global_status,
+        # cf. common.glsl GlobalStatusBuffer field order).
+        vkCmdFillBuffer(cmd, self.buffers["global_status"].handle, 48, 4, 0)
+
+        # 8. transfer→compute (next step's predict reads set 0)
+        self._record_transfer_to_compute_barrier(cmd)
+
+        vkEndCommandBuffer(cmd)
+        return cmd
