@@ -1435,28 +1435,38 @@ class SphSimulatorV2:
         return cmd
 
     def _record_phase_b_cmd(self):
-        """V2 v1.0 single-GPU: correction(ALL). queue-ordered after phase A."""
+        """V2 v1.0 (overlap=false): Phase B is empty (just a cross-submit barrier
+        for memory visibility). Correction runs in Phase C after upload, so
+        boundary particles see *uploaded* ghost data (set 1 inside_particle_index
+        of ghost voxels has peer-frame pid values until upload overwrites them
+        with own-frame pid values).
+
+        Phase 6 (overlap=true) will run correction(INTERIOR) here — interior
+        particles whose support radius does NOT reach the ghost zone, so they
+        can read the stale-but-irrelevant ghost-vid inside_particle_index
+        safely. See docs/sph_v2_design.md §7."""
         cmd = self._allocate_oneshot_cmd()
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
-        # Cross-submit memory visibility: phase A's writes → phase B's reads.
+        # Cross-submit memory visibility: phase A's writes → next-stage reads.
+        # In v1.0 this barrier doesn't gate any local dispatch but it makes the
+        # Phase A → Phase C transitive memory dependency explicit (the queue
+        # order alone doesn't provide memory visibility — we need a barrier).
         self._record_compute_barrier(cmd)
-
-        per_p = self._per_own_particle_dispatch_count()
-        self._bind_pipeline_and_sets(cmd, "correction_all")
-        vkCmdDispatch(cmd, per_p, 1, 1)
-        # Phase B exit barrier — required so phase C's density reads see
-        # correction_inverse writes (no semaphore bridges B→C; cpu_sync only
-        # carries worker's host writes, not GPU writes). See docs §5.2 step 3.
-        self._record_compute_barrier(cmd)
-
         vkEndCommandBuffer(cmd)
         return cmd
 
     def _record_phase_c_cmd(self):
-        """V2 phase C: (per-direction: upload vkCmdCopyBuffer + transfer→compute +
-        install_migration) → correction(BOUNDARY-or-ALL) → density → force.
-        wait 3N+2 at entry; signal 3N+3 at submit end."""
+        """V2 phase C (overlap=false / v1.0): per-direction upload + install_migration,
+        then correction(ALL) + density + force. correction lives here (not in
+        Phase B) because boundary particles' neighbor loop reads ghost vid's
+        inside_particle_index, which only has correct (own-frame) pid values
+        AFTER the upload overwrites Phase A's ghost_send-written peer-frame
+        scratch values. See docs/sph_v2_design.md §7 + §12.
+
+        Phase 6 (overlap=true) will switch this to correction(BOUNDARY) — only
+        boundary particles still need post-install correction. Interior particles
+        will already have run in Phase B."""
         cmd = self._allocate_oneshot_cmd()
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
@@ -1473,6 +1483,16 @@ class SphSimulatorV2:
             per_ghost_pid = self._per_ghost_pid_dispatch_count(direction)
             vkCmdDispatch(cmd, per_ghost_pid, 1, 1)
             self._record_compute_barrier(cmd)
+
+        # Correction over all own particles — sees correct (post-upload) ghost
+        # neighbors via set 1 ghost-vid inside_particle_index. Writes M⁻¹ and
+        # density_gradient_kernel_sum to own pid range; ghost-pid range keeps
+        # its uploaded values (which came from peer's correction on peer's
+        # boundary particles, one frame ago — V2 design accepts this 1-frame
+        # lag in ghost-side correction outputs).
+        self._bind_pipeline_and_sets(cmd, "correction_all")
+        vkCmdDispatch(cmd, per_p, 1, 1)
+        self._record_compute_barrier(cmd)
 
         self._bind_pipeline_and_sets(cmd, "density")
         vkCmdDispatch(cmd, per_p, 1, 1)
