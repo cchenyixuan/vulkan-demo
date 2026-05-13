@@ -78,8 +78,9 @@ CPU 协调两个 timeline 的 wait / signal。
 
 命令序列：
 
-1. `vkCmdPipelineBarrier2`（cross-submit memory visibility）
+1. `vkCmdPipelineBarrier2`（cross-submit memory visibility — 入口）
 2. `vkCmdDispatch(correction_interior_pipeline, per_own_particle_dispatch_count, 1, 1)` — direct dispatch over own pid range；shader inline 早退 boundary 粒子（见 §7）
+3. `vkCmdPipelineBarrier2`（**出口；存疑待排查**）— Submit 2 写了 `correction_inverse` 和 `density_gradient_kernel_sum` 的 INTERIOR pid 部分。Submit 3 的 density 要读全 own pid range 的 `correction_inverse`。Submit 2 不 signal、Submit 3 wait 的是 3N+2（worker 的 host signal，只承载 host 写可见性），所以 Submit 2 → Submit 3 的 GPU 写可见性没有 semaphore 桥接，理论上必须 explicit barrier。**TODO**：bring-up 时跑一次去掉这条 barrier 的 differential check，确认是否真的必需（同 queue 上 vkQueueSubmit 之间的隐式 memory dependency 在 spec 里有微妙措辞，需要实测验证）。
 
 实施时 host 端 assert `per_own_particle_dispatch_count * workgroup_size >= own_last_pid() - own_first_pid() + 1`，避免 dispatch shape 与 shader 内的 `own_first_pid() ... own_last_pid()` 范围错位。
 
@@ -99,34 +100,48 @@ CPU 协调两个 timeline 的 wait / signal。
 6. memory barrier
 7. `vkCmdDispatch(force)` — 全粒子
 
+### 5.4 Frame pipelining (深度 > 1)
+
+V2 v1 实现走「每帧末等 `3N+3` 再提交下一帧的 Submit 1」的同步节奏，与 V1 一致，便于
+instrumentation 阅读和 bring-up 调试。但 timeline semaphore 的 wait/signal 编号天然
+支持 CPU 端把下一帧的 Submit 1 提前排入 queue —— 例如把 frame N+1 的 Submit 1 在
+frame N 的 Submit 3 还在跑时就 enqueue，让 GPU 在完成 N 的 Submit 3 后立刻接 N+1 的
+Submit 1（不需要回到 CPU 一圈）。这对纯 GPU-bound 场景能再压一些 frame time。
+
+实现接口预留：`SphSimulatorV2.submit_phase_a/b/c(frame_n)` 已经把 `frame_n` 作为入参，
+orchestrator 控制是否提前 enqueue。开启深度 > 1 时唯一要变的是 orchestrator 的 `step()`
+循环（不再在每帧末调 `wait_frame_done`，改为只在最后一帧或 readback 时调）和 cmd
+buffer 的并发使用上界（`SIMULTANEOUS_USE_BIT` 已设，但要确认 cmd buffer pool 容量够
+支撑同时 in-flight 的多帧）。这是 V2 后期 perf 优化项，不在 v1 范围。
+
 ## 6. CPU Sync 逻辑
 
 **两条完全独立的 pathway，按"哪个 GPU 先 signal 就先处理哪个"**——不是阻塞式的"等两边都好再 swap"。每条 pathway 用一个 GPU 的 ghost 生产对方 GPU 的 migration，触及的 buffer 完全不重叠，可并行：
 
 ```
-# Pathway A→B：A 的 ghost 转成 B 的 migration
+# Pathway A→B：A 的 ghost 字节拷贝到 B 的 migration
 pathway_A_to_B:
     vkWaitSemaphores(timelineA, 3N+1, INFINITE)        # 等 A 的 ghost ready
-    memcpy(staging_AtoB, A.ghost_buffer)               # 从 A 读
-    remap_indices_for_B(staging_AtoB)                  # A 的 local id → B 的 local id
-    memcpy(B.migration_buffer, staging_AtoB)           # 写到 B
+    memcpy(B.migration_buffer, A.ghost_buffer)         # 纯 byte memcpy
     vkSignalSemaphore(timelineB, 3N+2)                 # B 的 boundary chain 解锁
 
-# Pathway B→A：B 的 ghost 转成 A 的 migration
+# Pathway B→A：对称
 pathway_B_to_A:
     vkWaitSemaphores(timelineB, 3N+1, INFINITE)
-    memcpy(staging_BtoA, B.ghost_buffer)
-    remap_indices_for_A(staging_BtoA)
-    memcpy(A.migration_buffer, staging_BtoA)
+    memcpy(A.migration_buffer, B.ghost_buffer)
     vkSignalSemaphore(timelineA, 3N+2)
 ```
 
+**重要：CPU 不做 voxel_id / pid 转换**。sender 的 `ghost_send.comp` 通过 spec const `GHOST_VOXEL_ID_OFFSET_TO_RECEIVER` 和 `GHOST_PID_OFFSET_TO_RECEIVER` 在写 packet 时已经把 `.w` 和 set 1 inside_particle_index 编码成 receiver 坐标系；receiver 的 `install_migrations.comp` 第 144 行注释里也明确「no translation needed」。worker 拿到的是已经 ready-to-install 的字节，整段 transport 与 partition 几何完全解耦——这是 design doc §1 「transport pluggable backend」 的几何基础，未来切到 P2P / 共享内存 backend 时这条 transport 路径也不需要重写。
+
 **关键性质**：A 的 ghost 数据**只**喂 B 的 migration，B 的 ghost **只**喂 A 的 migration——两条 pathway 没有任何共享中间状态，CPU 端不需要 mutex。快 GPU（先 signal 3N+1）的 ghost 立刻被处理，在慢 GPU 还在跑 Phase A 时，对方 GPU 的 migration 数据已经准备好了。
 
-**实现选项**：
+**命名澄清**：上文 `A.ghost_buffer` / `B.migration_buffer` 指的是 **host-visible 中间 staging buffer**，不是 device-local 的 set 0/set 1 ghost 存储。device-local ghost 存储是 hot kernel（correction/density/force）的 neighbor 读取目标，频率极高，必须留在 VRAM；让它做 HOST_VISIBLE 会把 hot kernel 拉去走 PCIe，~30% neighbor 命中 ghost 时 PCIe 流量约 1.5 GB/s（1M 粒子 350 fps 量级），实际 latency + 与其它流量竞争下会卡死 hot kernel。V2 沿用 V1 的 3-跳拓扑（device-local ghost → sender host staging → memcpy → receiver host staging → device-local ghost），只把同步原语换成 timeline；不改变 device-local 与 staging 的分离。
 
-- **两个 persistent worker thread**（推荐）：每帧主线程通过 condition variable 通知两个 worker 开始，每个 worker 跑自己的 pathway。线程开销在程序启动时一次性付掉，两条 pathway 真正并行
-- **Single thread + `vkWaitSemaphores` 配合 `WAIT_ANY`**：单线程轮询哪个 timeline 先到 3N+1，按到达顺序处理。简单，但两条 pathway 串行，read+remap+write 不能并行
+**实现选项**（v1.0 落地选 2-thread；见 §14.1）：
+
+- **两个 persistent worker thread**（v1.0 选定）：每帧主线程通过 condition variable 通知两个 worker 开始，每个 worker 跑自己的 pathway。线程开销在程序启动时一次性付掉，两条 pathway 真正并行
+- **Single thread + `vkWaitSemaphores` 配合 `WAIT_ANY`**：单线程轮询哪个 timeline 先到 3N+1，按到达顺序处理。简单，但两条 pathway 串行，read+memcpy+write 不能并行
 
 **内存类型**：`ghost_buffer` 和 `migration_buffer` 均 `HOST_VISIBLE | HOST_COHERENT`，persistent mapped，避免显式 `vkFlushMappedMemoryRanges` 和 transfer-queue staging 复杂度。
 
@@ -364,3 +379,82 @@ lb.reset();
 - 所有 shader 层面的 vendor 差异由 §11.3 的 load balancer 自动吸收。**不在 shader / pipeline / dispatch 层做任何 vendor-specific 优化**——观测 wait time、调 partition、收工
 - Submit count 从 2 涨到 3，验证两 vendor 上 `vkQueueSubmit2` CPU 开销可接受
 - 用 §10 的 instrumentation 监控两 vendor 的 timeline semaphore signal / wait 延迟，确认无显著差异；如有，依然交给 §11.3 吸收
+
+## 14. V2 v1.0 实现切片（Implementation Plan）
+
+V2 spec 整体很大；v1.0 切出最小端到端可跑的版本。本节记录落地决议（2026-05-12 确定），便于后续 session 直接读 doc 接力，不依赖会话上下文。
+
+### 14.1 类与文件结构
+
+3 个类，2 个文件，全部位于 `experiment/v2/utils/`：
+
+```
+experiment/v2/utils/
+├── simulator_v2.py
+│     ├── class SphSimulatorV2         (per-GPU；与 V1 类平行但代码独立)
+│     └── class GhostMigrationWorker    (per-pathway worker thread 封装)
+└── orchestrator_v2.py
+      └── class DualGpuOrchestratorV2  (拥有 2 个 sim + 2 个 worker)
+```
+
+**`SphSimulatorV2`** 拥有 per-GPU 的所有 Vulkan 资源：buffers、pipelines（含 V2 新增的 2 个 correction pipeline，spec const `CORRECTION_MODE` 不同）、descriptor sets、3 个 pre-recorded cmd buffer (`phase_a_cmd`/`phase_b_cmd`/`phase_c_cmd`)、独立的 defrag cmd buffer、1 个 timeline `VkSemaphore`。
+
+**`DualGpuOrchestratorV2`** 跨 GPU 协调：frame 计数、worker thread 生命周期、§10 instrumentation 收集、未来的 LoadBalancer 挂载点。每帧 `step()` 6 个 submit + worker notify + `wait_frame_done`。
+
+**`GhostMigrationWorker`** 封装一条 pathway（A→B 或 B→A）：持久 thread，主循环里 `vkWaitSemaphores(source.timeline, 3N+1)` → memcpy + remap + memcpy → `vkSignalSemaphore(dest.timeline, 3N+2)`。两条 pathway 触碰的 buffer 不重叠 → 无 lock。
+
+### 14.2 时间线编号 API
+
+`SphSimulatorV2` 封装 3N+k 编号（doc §4），对外暴露：
+
+```python
+# 编号源（caller 用来取数，例如 worker 计算 wait/signal 值）
+value_phase_a_done(n)      # 3n+1
+value_cpu_sync_done(n)     # 3n+2
+value_frame_done(n)        # 3n+3
+current_timeline_value()   # vkGetSemaphoreCounterValue 非阻塞 peek（instrumentation 用）
+
+# 高层 frame API（orchestrator 主用）
+submit_phase_a(n) / submit_phase_b(n) / submit_phase_c(n)
+wait_frame_done(n)
+
+# 底层 escape hatch（probe / 临时 submit / 未来扩展用）
+submit_with_timeline(cmd, *, wait_value, signal_value)
+wait_timeline(value)
+```
+
+**编号集中**在 sim 内部一处定义，worker / orchestrator / 未来 LoadBalancer 都从 `value_*` helper 取数，避免 `3*n+k` 算术散落在 3 处导致 off-by-one。`submit_phase_*` 是 `submit_with_timeline` 的薄壳，保留底层接口以支持未来 §5.4 frame pipelining 等扩展。
+
+### 14.3 v1.0 范围内 / 范围外
+
+**v1.0 范围内**：
+- 3-submit per frame 骨架完整可跑
+- 2 个 persistent worker thread (per-pathway，§6)
+- timeline semaphore 替代 V1 fence
+- **同步式 frame loop**：每帧末 `wait_frame_done(N)` 后再 submit N+1 的 phase_a
+- §10 instrumentation 全部 6 个时间戳收集 + 派生指标打印
+- §12 验证 path：`overlap=false` 退化模式 = `CORRECTION_MODE_ALL` + 单 correction pipeline，跑 V1-等价的 2-submit 风格做 differential check
+
+**v1.0 范围外**（留给 v1.x / v2）：
+- §5.4 Frame pipelining (深度 > 1)。接口预留 (`submit_phase_*(frame_n)` 已经把 `frame_n` 作为入参)，开启时只改 orchestrator 的 `step()` 循环
+- §11.3 LoadBalancer / adaptive partition。v1.0 用静态 partition；instrumentation 先到位，反馈律单独迭代（避免 oscillation 调参与 bring-up 调试纠缠）
+- §11.1 扩展 overlap 窗口 (density / force 也分 interior/boundary)
+- §11.2 External timeline semaphore（跨 vendor 不适用）
+
+### 14.4 编码约束
+
+- **V2 完全自包含**：`experiment/v2/utils/` 不 import `experiment/v1/utils/` 或 `utils/sph/`。VulkanContext / buffer alloc / descriptor / pipeline build / shader load 全部 V2 内部 fresh write。V1 frozen 作为 baseline；V2 演进不能反向污染 V1。
+- **不与 V1 共享基类**。两者算法相同但同步原语完全不同（V1 fence-wait 顺序、V2 timeline + 异步 overlap），抽象成本 > 收益。
+- **Defrag 走独立 fence-wait pass**，不进 timeline 编号。`SphSimulatorV2.submit_defrag_and_wait()` 行为同 V1，每 `defrag_cadence` 帧由 orchestrator 调一次。这样 timeline 永远是 3N+k 干净编号，不被 defrag 打断。
+- **`vkWaitSemaphores` timeout 一律 `UINT64_MAX`**（无限等）。死锁监控 = v1.x 的 watchdog 任务，不在 v1.0。
+- **device feature `timelineSemaphore = VK_TRUE`** 必须在 V2 自己的 VulkanContext 构造时启用（VK 1.2 core feature，但默认 false）。
+
+### 14.5 内存与 Transport 拓扑
+
+- **3-hop transport（V2 v1.0 沿用 V1）**：`VRAM_sender → sender_host_staging → memcpy → receiver_host_staging → VRAM_receiver`。中间两块 staging 是分别属于 `device_sender` / `device_receiver` 的 `VkDeviceMemory`，物理上都在系统 RAM 但 Vulkan 不允许跨 device 边界访问 → CPU memcpy 是合法路径。2-hop（共享 host buffer via `VK_EXT_external_memory_host`）是 v2.x 优化候选。
+- **Staging memory type**：
+  - sender 侧 `HOST_VISIBLE | HOST_COHERENT | HOST_CACHED`（CPU 读优化；fallback 到 `HOST_VISIBLE | HOST_COHERENT` 单独，warn）
+  - receiver 侧 `HOST_VISIBLE | HOST_COHERENT`（write-combined，CPU 顺序写优化）
+- **持久映射**：sim 构造时一次性 `vkMapMemory`，destroy 时 `vkUnmapMemory`。buffer 大小固定 → 每帧 map/unmap 是纯 API 开销，无收益。
+- **device-local ghost storage 不动**：set 0 / set 1 的 ghost-pid / ghost-vid 范围依然 `DEVICE_LOCAL`，hot kernel neighbor 读不走 PCIe。staging 只是 transport 的中转区，hot kernel 不读它。
+- **cmd buffer 录制位置**：readback (`vkCmdCopyBuffer device→staging` + `compute→host` barrier) 折进 Phase A 末尾；upload (`vkCmdCopyBuffer staging→device` + `transfer→compute` barrier) 折进 Phase C 开头。timeline 编号保持 3N+k 不变；cmd buffer 数仍为 3 个 / sim / frame。Transport backend 切换时重录 Phase A/C cmd buffer；v1.0 只有 CpuStaging backend，此简化可接受。
