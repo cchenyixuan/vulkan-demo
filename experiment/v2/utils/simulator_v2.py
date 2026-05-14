@@ -1099,13 +1099,26 @@ class SphSimulatorV2:
     def _record_density_scratch_to_primary_copy(self, cmd) -> None:
         """After density.comp writes density_pressure_scratch, copy that back
         to density_pressure (primary) inside the same submit. Force.comp's
-        next dispatch reads primary."""
+        next dispatch reads primary.
+
+        Copy ONLY the own pid range. The ghost-pid range of primary holds
+        ρ values uploaded from the peer GPU this step; density.comp doesn't
+        dispatch on ghost pids so scratch's ghost range is stale zero — a
+        full-buffer copy would zero out the uploaded ghost density and make
+        force.comp read ρ=0 for ghost neighbours (→ NaN pressure)."""
         scratch = self.buffers["density_pressure_scratch"]
         primary = self.buffers["density_pressure"]
+        density_stride = 8  # vec2 floats
+        own_first = self.own_first_pid()
+        own_pool = self.case.capacities.own_pool_size
+        own_byte_offset = own_first * density_stride
+        own_byte_size = own_pool * density_stride
         # compute→transfer (density wrote scratch)
         self._record_compute_to_transfer_barrier(cmd)
         vkCmdCopyBuffer(cmd, scratch.handle, primary.handle, 1, [
-            VkBufferCopy(srcOffset=0, dstOffset=0, size=scratch.size)
+            VkBufferCopy(srcOffset=own_byte_offset,
+                         dstOffset=own_byte_offset,
+                         size=own_byte_size)
         ])
         # transfer→compute (force will read primary)
         self._record_transfer_to_compute_barrier(cmd)
