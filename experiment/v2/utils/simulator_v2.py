@@ -1763,6 +1763,24 @@ class SphSimulatorV2:
         scratch_counter = self.buffers["defrag_scratch_counter"]
         vkCmdFillBuffer(cmd, scratch_counter.handle, 0, scratch_counter.size, 0)
 
+        # 1b. Zero each defrag scratch SoA before dispatch.
+        # defrag.comp only writes scratch[own_first_pid .. own_first_pid + alive - 1].
+        # Without this fill, the dead-tail (slots beyond alive) keeps stale bytes
+        # from PREVIOUS defrag runs — when vkCmdCopyBuffer scratch→primary
+        # overwrites primary wholesale, those stale bytes resurrect "ghost
+        # particles" with mass>0 and valid voxel_id but no inside_particle_index
+        # reference (orphans). Investigation 2026-05-19 traced the alive-count
+        # drift bug to exactly this; see logs/test_run/snapshots analysis.
+        # Cost: ~167 MB total fill per defrag → ~3 ms at VRAM bandwidth, runs
+        # every defrag_cadence (1000) frames → <0.05% wall-clock impact.
+        for spec in self._buffer_specs:
+            if spec.set_index != 0:
+                continue
+            if spec.binding not in DEFRAG_SET0_BINDINGS:
+                continue
+            scratch_buf = self.scratch_buffers[spec.name]
+            vkCmdFillBuffer(cmd, scratch_buf.handle, 0, scratch_buf.size, 0)
+
         # 2. transfer→compute (defrag dispatch will atomicAdd the counter)
         self._record_transfer_to_compute_barrier(cmd)
 
