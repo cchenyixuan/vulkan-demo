@@ -22,7 +22,7 @@ Options:
     --disable-pst        override use_pst=False
     --no-defrag          skip defrag entirely
 
-Hotkeys (handled by SphRendererV2): SPACE pause, 0..4 colour modes,
+Hotkeys (handled by SphRendererV2): SPACE pause, 0..4 color modes,
 , / .  scale tune, P perspective ↔ ortho, F frame-fit, +/- steps_per_frame,
 ESC quit, mouse drag = orbit / pan, scroll = zoom.
 """
@@ -55,6 +55,16 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--window-height", type=int, default=720)
     p.add_argument("--auto-quit", type=float, default=None,
                    help="auto-close window after N seconds (for smoke tests)")
+    # Debug logging (opt-in)
+    p.add_argument("--debug-log", type=str, default=None,
+                   help="enable debug log; arg = output directory (e.g. logs/run_001)")
+    p.add_argument("--debug-log-every", type=int, default=50,
+                   help="frames between CSV log writes")
+    p.add_argument("--debug-snapshot-every", type=int, default=500,
+                   help="frames between full buffer snapshots; 0 disables")
+    p.add_argument("--debug-snapshot-format", choices=["npz", "h5"], default="npz")
+    p.add_argument("--debug-snapshot-no-compress", action="store_true",
+                   help="disable npz/h5 compression (~3-5× larger files)")
     return p.parse_args()
 
 
@@ -79,6 +89,7 @@ def main() -> int:
     args = parse_args()
 
     from experiment.v2.utils.case_loader_v2 import load_case_v2
+    from experiment.v2.utils.debug_log_v2 import DebugLogger
     from experiment.v2.utils.orchestrator_v2 import DualGpuOrchestratorV2
     from experiment.v2.utils.partition_v2 import compute_dual_gpu_partition
     from experiment.v2.utils.renderer_v2 import SphRendererV2
@@ -138,34 +149,60 @@ def main() -> int:
                                    defrag_cadence=defrag_cadence) as orch:
             orch.bootstrap_all()
 
-            renderer = SphRendererV2(
-                render_sim,
-                window_width=args.window_width,
-                window_height=args.window_height,
-            )
+            logger = None
+            if args.debug_log:
+                logger = DebugLogger(
+                    output_dir=args.debug_log,
+                    sims={"a": sim_a, "b": sim_b},
+                    log_every=args.debug_log_every,
+                    snapshot_every=(args.debug_snapshot_every
+                                    if args.debug_snapshot_every > 0 else None),
+                    snapshot_format=args.debug_snapshot_format,
+                    snapshot_compressed=not args.debug_snapshot_no_compress,
+                    meta_extra={
+                        "case": args.case,
+                        "weights": weights,
+                        "render_slot": args.render_slot,
+                        "max_steps": args.max_steps,
+                        "defrag_cadence": defrag_cadence,
+                        "runner": "_run_v2_dual_viewer",
+                    },
+                )
 
             try:
-                # step_fn: drive one orchestrator step (= one full dual-GPU
-                # 3-submit frame, synchronous). Renderer calls this every
-                # frame iteration when not paused. Respects --max-steps.
-                def step_fn() -> None:
-                    if args.max_steps is not None and orch.frame_count >= args.max_steps:
-                        return
-                    orch.step()
-
-                renderer.run(
-                    step_fn=step_fn,
-                    step_count_fn=lambda: orch.frame_count,
-                    auto_quit_seconds=args.auto_quit,
+                renderer = SphRendererV2(
+                    render_sim,
+                    window_width=args.window_width,
+                    window_height=args.window_height,
                 )
-            finally:
-                renderer.destroy()
 
-            s_a = sim_a.readback_global_status()
-            s_b = sim_b.readback_global_status()
-            print(f"[run_v2_viewer] final alive: "
-                  f"a={s_a['alive_particle_count']:,} b={s_b['alive_particle_count']:,} "
-                  f"total={s_a['alive_particle_count'] + s_b['alive_particle_count']:,}")
+                try:
+                    # step_fn: drive one orchestrator step (= one full dual-GPU
+                    # 3-submit frame, synchronous). Renderer calls this every
+                    # frame iteration when not paused. Respects --max-steps.
+                    def step_fn() -> None:
+                        if args.max_steps is not None and orch.frame_count >= args.max_steps:
+                            return
+                        orch.step()
+                        if logger is not None:
+                            logger.tick(orch.frame_count)
+
+                    renderer.run(
+                        step_fn=step_fn,
+                        step_count_fn=lambda: orch.frame_count,
+                        auto_quit_seconds=args.auto_quit,
+                    )
+                finally:
+                    renderer.destroy()
+
+                s_a = sim_a.readback_global_status()
+                s_b = sim_b.readback_global_status()
+                print(f"[run_v2_viewer] final alive: "
+                      f"a={s_a['alive_particle_count']:,} b={s_b['alive_particle_count']:,} "
+                      f"total={s_a['alive_particle_count'] + s_b['alive_particle_count']:,}")
+            finally:
+                if logger is not None:
+                    logger.close()
     finally:
         sim_a.destroy()
         sim_b.destroy()

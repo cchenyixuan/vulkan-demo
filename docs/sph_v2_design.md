@@ -149,6 +149,19 @@ pathway_B_to_A:
 
 **Release / acquire 语义**：`vkSignalSemaphore` 提供 release semantics 给前面的 CPU 写；GPU 的 wait 提供 acquire semantics。不需要额外 barrier。
 
+### 实装注：worker 的 dest wait 偏离
+
+`experiment/v2/utils/transport_v2.py:153-162` 的 worker 在 `vkWaitSemaphores(source.timeline, 3N+1)` 之后**额外加了一次** `vkWaitSemaphores(dest.timeline, 3N+1)`，等 dest 自己的 phase A 也完成才开始 memcpy + host_signal。这与上文伪代码"只 wait source"不一致。两点说明：
+
+**(a) 偏离动机**：dest 的 timeline 同时承载 GPU signal（3N+1 = phase A done）和 host signal（3N+2 = cpu_sync_done）。Vulkan timeline 规约要求 counter 严格单调递增。若 dest GPU 还没 signal 3N+1，worker 就 host_signal 3N+2，则 dest GPU 后续 deferred signal(3N+1) 会比当前 counter (3N+2) 小，违反单调性。AMD 7900 XTX 实测：driver 把 counter 强行掰回 3N+1，破坏所有 ≥ 3N+2 的 wait，整 pipeline 死锁。dest wait 强制让 GPU 先 signal 3N+1，再 host signal 3N+2，单调性成立。
+
+**(b) sync hiding 在 `t_pb >> t_mc` 时仍等价**：dest wait 让 worker memcpy 推迟到 `max(T_source, T_dest)` 才开始，而不是 `T_source`。但 sim_b（dest）phase C 入口的实际开始时刻 = `max(phase B done, 3N+2 signaled)`，取决于 `t_pb`（phase B / correction_interior 耗时）与 `t_mc`（memcpy 耗时）的相对大小：
+
+- design：phase B done at `T_slow + t_pb`；3N+2 at `T_fast + t_mc` → entry = `T_slow + t_pb`（B 是 critical path）
+- 实装：phase B done at `T_slow + t_pb`；3N+2 at `T_slow + t_mc` → entry = `T_slow + t_pb`（同样 B dominate，因为 `t_pb > t_mc`）
+
+cavity 1M 实测 `t_pb ≈ 1ms`、`t_mc ≈ 70μs`，比值约 14×，wall-clock 完全等价。只在 `t_mc > t_pb` 的极端场景（小 case + 大 staging）实装会造成 sim_b 真 stall（差值 `t_mc - t_pb`），但这不是 production scale。
+
 ## 7. Interior / Boundary 粒子分类
 
 **通过 inline check 实现，不维护任何集合 / 计数器 / compaction 数组**。`update_voxel.comp` 不动，逻辑等同 V1.0。
@@ -458,3 +471,34 @@ wait_timeline(value)
 - **持久映射**：sim 构造时一次性 `vkMapMemory`，destroy 时 `vkUnmapMemory`。buffer 大小固定 → 每帧 map/unmap 是纯 API 开销，无收益。
 - **device-local ghost storage 不动**：set 0 / set 1 的 ghost-pid / ghost-vid 范围依然 `DEVICE_LOCAL`，hot kernel neighbor 读不走 PCIe。staging 只是 transport 的中转区，hot kernel 不读它。
 - **cmd buffer 录制位置**：readback (`vkCmdCopyBuffer device→staging` + `compute→host` barrier) 折进 Phase A 末尾；upload (`vkCmdCopyBuffer staging→device` + `transfer→compute` barrier) 折进 Phase C 开头。timeline 编号保持 3N+k 不变；cmd buffer 数仍为 3 个 / sim / frame。Transport backend 切换时重录 Phase A/C cmd buffer；v1.0 只有 CpuStaging backend，此简化可接受。
+
+### 14.6 Case 数据流与 loader / partition 契约
+
+V2 把"YAML 解析"和"切分 ghost"切成两个独立阶段，由两个文件分别负责，**约定通过断言钉死**：
+
+| 阶段 | 文件 | 输入 | 输出 |
+|---|---|---|---|
+| 1. 解析 | `case_loader_v2.load_case_v2(path)` | YAML + OBJ | **degenerate CaseV2**：owns 整个域，无 peer，`ghost_grid=(0,0)`，`transport=(None,None)`，ghost pool sizes = 0 |
+| 2. 切分 | `partition_v2.compute_dual_gpu_partition(global_case, weights)` | degenerate CaseV2 | `(slab_case_gpu0, slab_case_gpu1, k_split)` — 每个 slab 含完整 ghost / transport |
+
+**关键性质**：
+
+- **global == 退化 slab**：CaseV2 dataclass 不在类型系统上区分 global / slab，两者是同一个 shape 的不同填充。global 形态 = "唯一 GPU + 整个域"的退化情形。
+- **单 GPU 等于跳过 partition**：把 loader 输出直接喂给 `SphSimulatorV2`；sim 内 ghost flow 按 `case.transport.has_*_peer` 自动跳过，pipeline 仍 build 但永不 dispatch。
+- **partition 是 ghost 的唯一生产者**：`compute_dual_gpu_partition` 在入口 `assert` 输入的 `ghost_grid` / `transport` / `leading/trailing_ghost_pool_size` 全部为 degenerate；防止"对已分片的 slab 再分片"导致 ghost 容量翻倍 + offset 串位。
+- **dataclass 定义集中在 `case_v2.py`**：包括 `GhostGridParams` / `TransportConfig` / `DirectionalTransportSpec`——它们属于 schema 而非 partition 算法，集中在一个文件方便阅读 schema 全貌。partition 仅"填充"它们，不"定义"它们。
+
+调用拓扑：
+
+```
+                  load_case_v2(path)
+                          │
+                          ▼
+                  degenerate CaseV2
+                  ┌──────┴──────┐
+                  │             │
+       单 GPU：直接喂        多 GPU：compute_dual_gpu_partition
+                  │             │
+                  ▼             ▼
+        SphSimulatorV2     (slab0, slab1) → 2× SphSimulatorV2 + Orchestrator
+```

@@ -48,6 +48,16 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--validation", action="store_true")
     p.add_argument("--disable-pst", action="store_true")
     p.add_argument("--no-defrag", action="store_true")
+    # Debug logging (opt-in)
+    p.add_argument("--debug-log", type=str, default=None,
+                   help="enable debug log; arg = output directory (e.g. logs/run_001)")
+    p.add_argument("--debug-log-every", type=int, default=50,
+                   help="frames between CSV log writes")
+    p.add_argument("--debug-snapshot-every", type=int, default=500,
+                   help="frames between full buffer snapshots; 0 disables")
+    p.add_argument("--debug-snapshot-format", choices=["npz", "h5"], default="npz")
+    p.add_argument("--debug-snapshot-no-compress", action="store_true",
+                   help="disable npz/h5 compression (~3-5× larger files)")
     return p.parse_args()
 
 
@@ -55,6 +65,7 @@ def main() -> int:
     args = parse_args()
 
     from experiment.v2.utils.case_loader_v2 import load_case_v2
+    from experiment.v2.utils.debug_log_v2 import DebugLogger
     from experiment.v2.utils.orchestrator_v2 import DualGpuOrchestratorV2
     from experiment.v2.utils.partition_v2 import compute_dual_gpu_partition
     from experiment.v2.utils.simulator_v2 import SphSimulatorV2
@@ -97,50 +108,75 @@ def main() -> int:
                                     defrag_cadence=defrag_cadence) as orch:
             orch.bootstrap_all()
 
-            t_start = time.perf_counter()
-            next_status = args.status_every
-            while orch.frame_count < args.max_steps:
-                orch.step()
-                if orch.frame_count >= next_status:
-                    s_a = sim_a.readback_global_status()
-                    s_b = sim_b.readback_global_status()
-                    elapsed = time.perf_counter() - t_start
-                    fps = orch.frame_count / elapsed
-                    print(f"  step {orch.frame_count:5d}  fps={fps:6.1f}  "
-                          f"a: alive={s_a['alive_particle_count']:7d} "
-                          f"ofl_in={s_a['overflow_inside_count']:5d} "
-                          f"@v={s_a['first_overflow_voxel_inside']:5d} "
-                          f"ofl_inc={s_a['overflow_incoming_count']:6d} "
-                          f"@v={s_a['first_overflow_voxel_incoming']:5d} "
-                          f"install={s_a['migration_install_count']:5d}  "
-                          f"|  b: alive={s_b['alive_particle_count']:7d} "
-                          f"ofl_in={s_b['overflow_inside_count']:5d} "
-                          f"@v={s_b['first_overflow_voxel_inside']:5d} "
-                          f"ofl_inc={s_b['overflow_incoming_count']:6d} "
-                          f"@v={s_b['first_overflow_voxel_incoming']:5d} "
-                          f"install={s_b['migration_install_count']:5d}",
-                          flush=True)
-                    next_status += args.status_every
+            logger = None
+            if args.debug_log:
+                logger = DebugLogger(
+                    output_dir=args.debug_log,
+                    sims={"a": sim_a, "b": sim_b},
+                    log_every=args.debug_log_every,
+                    snapshot_every=(args.debug_snapshot_every
+                                    if args.debug_snapshot_every > 0 else None),
+                    snapshot_format=args.debug_snapshot_format,
+                    snapshot_compressed=not args.debug_snapshot_no_compress,
+                    meta_extra={
+                        "case": args.case,
+                        "weights": weights,
+                        "max_steps": args.max_steps,
+                        "defrag_cadence": defrag_cadence,
+                        "runner": "_run_v2_dual",
+                    },
+                )
 
-            total_elapsed = time.perf_counter() - t_start
-            print(f"[run_v2_dual] {args.max_steps} steps in {total_elapsed:.2f}s "
-                  f"= {args.max_steps / total_elapsed:.1f} fps")
+            try:
+                t_start = time.perf_counter()
+                next_status = args.status_every
+                while orch.frame_count < args.max_steps:
+                    orch.step()
+                    if logger is not None:
+                        logger.tick(orch.frame_count)
+                    if orch.frame_count >= next_status:
+                        s_a = sim_a.readback_global_status()
+                        s_b = sim_b.readback_global_status()
+                        elapsed = time.perf_counter() - t_start
+                        fps = orch.frame_count / elapsed
+                        print(f"  step {orch.frame_count:5d}  fps={fps:6.1f}  "
+                              f"a: alive={s_a['alive_particle_count']:7d} "
+                              f"ofl_in={s_a['overflow_inside_count']:5d} "
+                              f"@v={s_a['first_overflow_voxel_inside']:5d} "
+                              f"ofl_inc={s_a['overflow_incoming_count']:6d} "
+                              f"@v={s_a['first_overflow_voxel_incoming']:5d} "
+                              f"install={s_a['migration_install_count']:5d}  "
+                              f"|  b: alive={s_b['alive_particle_count']:7d} "
+                              f"ofl_in={s_b['overflow_inside_count']:5d} "
+                              f"@v={s_b['first_overflow_voxel_inside']:5d} "
+                              f"ofl_inc={s_b['overflow_incoming_count']:6d} "
+                              f"@v={s_b['first_overflow_voxel_incoming']:5d} "
+                              f"install={s_b['migration_install_count']:5d}",
+                              flush=True)
+                        next_status += args.status_every
 
-            # Final defrag to validate alive count
-            if not args.no_defrag:
-                print("[run_v2_dual] final defrag …")
-                sim_a.submit_defrag_and_wait()
-                sim_b.submit_defrag_and_wait()
-            s_a = sim_a.readback_global_status()
-            s_b = sim_b.readback_global_status()
-            total = s_a["alive_particle_count"] + s_b["alive_particle_count"]
-            print(f"[run_v2_dual] final: a={s_a['alive_particle_count']:,} "
-                  f"b={s_b['alive_particle_count']:,} "
-                  f"total={total:,} (expected {expected_total:,})")
-            if total != expected_total:
-                print(f"[run_v2_dual] WARN: alive count drift = "
-                      f"{total - expected_total}", file=sys.stderr)
-                rc = 1
+                total_elapsed = time.perf_counter() - t_start
+                print(f"[run_v2_dual] {args.max_steps} steps in {total_elapsed:.2f}s "
+                      f"= {args.max_steps / total_elapsed:.1f} fps")
+
+                # Final defrag to validate alive count
+                if not args.no_defrag:
+                    print("[run_v2_dual] final defrag …")
+                    sim_a.submit_defrag_and_wait()
+                    sim_b.submit_defrag_and_wait()
+                s_a = sim_a.readback_global_status()
+                s_b = sim_b.readback_global_status()
+                total = s_a["alive_particle_count"] + s_b["alive_particle_count"]
+                print(f"[run_v2_dual] final: a={s_a['alive_particle_count']:,} "
+                      f"b={s_b['alive_particle_count']:,} "
+                      f"total={total:,} (expected {expected_total:,})")
+                if total != expected_total:
+                    print(f"[run_v2_dual] WARN: alive count drift = "
+                          f"{total - expected_total}", file=sys.stderr)
+                    rc = 1
+            finally:
+                if logger is not None:
+                    logger.close()
     finally:
         # Destroy sims AFTER orchestrator stops its workers (handled by
         # orchestrator's destroy() inside the `with`).

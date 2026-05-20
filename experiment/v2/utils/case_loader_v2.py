@@ -20,6 +20,7 @@ What is NOT replicated:
 
 from __future__ import annotations
 
+import math
 import pathlib
 
 import numpy as np
@@ -28,7 +29,6 @@ import yaml
 from experiment.v2.utils.case_v2 import (
     CaseV2,
     Capacities,
-    DirectionalTransportSpec,
     GhostGridParams,
     GridLayout,
     InitialParticles,
@@ -81,6 +81,16 @@ def _parse_obj_vertices(path: pathlib.Path) -> np.ndarray:
 def _compute_grid(bbox_min: np.ndarray, bbox_max: np.ndarray,
                   h: float, dimension: int) -> tuple[tuple[float, float, float],
                                                     tuple[int, int, int]]:
+    """Anchor voxel (0,0,0) at bbox_min and size the grid to enclose bbox_max.
+
+    Conventions:
+      - origin = bbox_min - 0.5·h shifts origin half a voxel "below" so that
+        bbox_min sits at the CENTER of voxel (0,0,0) (not its corner).
+      - dims uses round-then-+1: round(span/h) gives the number of voxel-
+        spacings between min and max centers; +1 converts spacings → voxel
+        count (e.g. span=0 → 1 voxel, span=h → 2 voxels).
+      - 2D: collapse z to a single voxel layer so dim_z = 1.
+    """
     bbox_min = np.asarray(bbox_min, dtype=np.float64)
     bbox_max = np.asarray(bbox_max, dtype=np.float64)
     if dimension == 2:
@@ -96,6 +106,121 @@ def _compute_grid(bbox_min: np.ndarray, bbox_max: np.ndarray,
 
 
 # ============================================================================
+# Particle volume calibration (ported from utils/sph/case.py:74-193)
+# ============================================================================
+
+def _calibrate_particle_volume(
+    h: float,
+    particle_radius: float,
+    dimension: int,
+    lattice: str,
+) -> float:
+    """SPH partition-of-unity volume: V = 1 / Σ_{j≠i} W(r_ij).
+
+    ``correction.comp`` accumulates ``Σ_{j != i} V_j · W(r_ij)`` (self excluded
+    via ``if (neighbor == self) continue``). For an interior particle on a
+    regular lattice with spacing dx = 2·particle_radius and uniform V_j = V,
+    setting V = 1 / Σ W(r_j) makes interior ``kernel_sum`` land on 1.0 in the
+    bulk — the partition-of-unity property the KGC correction and δ-SPH
+    diffusion both assume.
+
+    ``lattice`` must match the preprocessor's particle layout:
+      - ``"grid"``: Cartesian (square 2D / simple cubic 3D), spacing dx.
+                    Blender uniform-mesh export defaults to this.
+      - ``"hex"`` : 2D hex close packing / 3D FCC, nearest-neighbor distance dx.
+    """
+    if lattice not in ("grid", "hex"):
+        raise ValueError(f"lattice must be 'grid' or 'hex', got {lattice!r}")
+
+    diameter = 2.0 * particle_radius
+    if dimension == 2:
+        coefficient = 9.0 / (math.pi * h * h)
+    else:
+        coefficient = 495.0 / (32.0 * math.pi * h * h * h)
+
+    def kernel_W(distance: float) -> float:
+        q = distance / h
+        if q >= 1.0:
+            return 0.0
+        one_minus_q = 1.0 - q
+        return (
+            coefficient
+            * (one_minus_q ** 6)
+            * ((35.0 / 3.0) * q * q + 6.0 * q + 1.0)
+        )
+
+    kernel_sum = 0.0
+
+    if lattice == "grid":
+        n_max = int(math.ceil(h / diameter))
+        if dimension == 2:
+            for i in range(-n_max, n_max + 1):
+                for j in range(-n_max, n_max + 1):
+                    if i == 0 and j == 0:
+                        continue                       # self excluded
+                    r = math.sqrt((i * diameter) ** 2 + (j * diameter) ** 2)
+                    kernel_sum += kernel_W(r)
+        else:
+            for i in range(-n_max, n_max + 1):
+                for j in range(-n_max, n_max + 1):
+                    for k in range(-n_max, n_max + 1):
+                        if i == 0 and j == 0 and k == 0:
+                            continue
+                        r = math.sqrt(
+                            (i * diameter) ** 2
+                            + (j * diameter) ** 2
+                            + (k * diameter) ** 2
+                        )
+                        kernel_sum += kernel_W(r)
+
+    else:  # lattice == "hex"
+        if dimension == 2:
+            # Hex 2D primitive vectors:
+            #   a1 = (dx, 0)
+            #   a2 = (dx/2, dx·√3/2)
+            # Each interior particle sees 6 nearest neighbors at dx.
+            n_iter = int(math.ceil(h / diameter)) + 2     # +2 buffer for skew
+            sqrt3_half = math.sqrt(3.0) * 0.5
+            for i in range(-2 * n_iter, 2 * n_iter + 1):
+                for j in range(-2 * n_iter, 2 * n_iter + 1):
+                    if i == 0 and j == 0:
+                        continue
+                    x = i * diameter + j * diameter * 0.5
+                    y = j * diameter * sqrt3_half
+                    r = math.sqrt(x * x + y * y)
+                    kernel_sum += kernel_W(r)
+        else:
+            # FCC 3D: 4 atoms per cubic supercell of side a = dx·√2 — gives
+            # 12 nearest neighbors at distance dx for each atom.
+            a = diameter * math.sqrt(2.0)
+            n_iter = int(math.ceil(h / a)) + 2
+            basis = (
+                (0.0,     0.0,     0.0),
+                (a * 0.5, a * 0.5, 0.0),
+                (a * 0.5, 0.0,     a * 0.5),
+                (0.0,     a * 0.5, a * 0.5),
+            )
+            for ci in range(-n_iter, n_iter + 1):
+                for cj in range(-n_iter, n_iter + 1):
+                    for ck in range(-n_iter, n_iter + 1):
+                        for (bx, by, bz) in basis:
+                            if (ci == 0 and cj == 0 and ck == 0
+                                    and bx == 0.0 and by == 0.0 and bz == 0.0):
+                                continue
+                            x = ci * a + bx
+                            y = cj * a + by
+                            z = ck * a + bz
+                            r = math.sqrt(x * x + y * y + z * z)
+                            kernel_sum += kernel_W(r)
+
+    if kernel_sum <= 0:
+        raise ValueError(
+            f"calibration failed: kernel_sum={kernel_sum} for "
+            f"h={h}, dx={diameter}, dim={dimension}, lattice={lattice!r}")
+    return 1.0 / kernel_sum
+
+
+# ============================================================================
 # Material library resolution
 # ============================================================================
 
@@ -107,14 +232,20 @@ def _resolve_materials(
     power: float,
     particle_radius: float,
     dimension: int,
+    lattice: str,
+    calibrate_volume: bool,
 ) -> list[MaterialParameter]:
     """For each name in used_names, build a MaterialParameter at group_id = index.
 
     Derived fields (not in YAML):
       eos_constant     = c0² · rest_density / power
-      smoothing_length = global h (V0/V1 spec; per-material spacing is V0+)
+      smoothing_length = global h (per-material spacing is a future feature;
+                                   version TBD)
       radius           = global particle_radius
-      volume           = radius^2 · 4 (2D) or radius^3 · 8 (3D)  // matches V1
+      volume           = partition-of-unity calibrated (1 / Σ W on the
+                         requested lattice) when calibrate_volume=True; else
+                         naive (2·radius)^dimension. See
+                         _calibrate_particle_volume.
     """
     result: list[MaterialParameter] = []
     for name in used_names:
@@ -128,9 +259,12 @@ def _resolve_materials(
         rest_density = float(spec["rest_density"])
         viscosity = float(spec.get("viscosity", 0.0))
         eos_constant = speed_of_sound ** 2 * rest_density / power
-        # Volume convention: V0's case.py uses (2r)^dim → particle "cell" size.
-        diameter = 2.0 * particle_radius
-        volume = diameter ** dimension
+        if calibrate_volume:
+            volume = _calibrate_particle_volume(
+                physics_h, particle_radius, dimension, lattice)
+        else:
+            diameter = 2.0 * particle_radius
+            volume = diameter ** dimension
         initial_velocity = tuple(spec.get("initial_velocity", [0.0, 0.0, 0.0]))
         result.append(MaterialParameter(
             kind=kind,
@@ -152,15 +286,24 @@ def _resolve_materials(
 # Public loader
 # ============================================================================
 
-def load_case_v2(case_yaml_path: str | pathlib.Path,
-                 *,
-                 leading_ghost_x_thickness: int = 0,
-                 trailing_ghost_x_thickness: int = 0) -> CaseV2:
-    """Load a V0/V1-style case.yaml into a CaseV2.
+def load_case_v2(case_yaml_path: str | pathlib.Path) -> CaseV2:
+    """Parse a V0/V1-style case.yaml into a CaseV2.
 
-    Single-GPU mode (Phase 3 testing): both ghost thicknesses = 0 → end-of-chain
-    layout, no peer. Phase 4 will introduce per-slab loading where each GPU
-    sees a sub-range of the global grid plus the appropriate ghost columns.
+    Output contract: the returned CaseV2 is a **degenerate slab** that owns
+    the whole simulation domain — no peer, ghost pools = 0, ghost voxel
+    counts = 0, transport.leading / transport.trailing both None.
+
+    Two consumption modes downstream:
+
+      single-GPU: feed the returned CaseV2 directly into SphSimulatorV2;
+                  the simulator's per-direction ghost flow auto-skips because
+                  ``case.transport.has_*_peer`` is False on both sides.
+
+      dual-GPU:   hand it to ``partition_v2.compute_dual_gpu_partition`` which
+                  splits this global case into per-slab CaseV2s with populated
+                  ghost / transport fields.
+
+    Ghost column synthesis is partition_v2's job, not this loader's.
     """
     case_path = pathlib.Path(case_yaml_path).resolve()
     case_dir = case_path.parent
@@ -181,6 +324,11 @@ def load_case_v2(case_yaml_path: str | pathlib.Path,
     dimension = int(phys["dimension"])
     gravity = tuple(float(g) for g in phys.get("gravity", [0.0, 0.0, 0.0]))
     particle_radius = float(phys["particle_radius"])
+    lattice = str(phys.get("lattice", "grid"))
+    if lattice not in ("grid", "hex"):
+        raise ValueError(
+            f"physics.lattice must be 'grid' or 'hex', got {lattice!r}")
+    calibrate_volume = bool(phys.get("calibrate_volume", True))
 
     physics = PhysicsConstants(
         smoothing_length=h,
@@ -197,6 +345,8 @@ def load_case_v2(case_yaml_path: str | pathlib.Path,
                             else 495.0 / (32.0 * np.pi * h ** 3)),
         kernel_gradient_coefficient=(9.0 / (np.pi * h ** 3) if dimension == 2
                                      else 495.0 / (32.0 * np.pi * h ** 4)),
+        lattice=lattice,
+        calibrate_volume=calibrate_volume,
     )
 
     # --- Numerics ---------------------------------------------------------
@@ -237,6 +387,7 @@ def load_case_v2(case_yaml_path: str | pathlib.Path,
         library_yaml, used_material_names,
         physics_h=h, speed_of_sound=speed_of_sound, power=power,
         particle_radius=particle_radius, dimension=dimension,
+        lattice=lattice, calibrate_volume=calibrate_volume,
     )
     material_name_to_group = {name: idx for idx, name in enumerate(used_material_names)}
 
@@ -283,50 +434,29 @@ def load_case_v2(case_yaml_path: str | pathlib.Path,
     bbox_max = frame_verts.max(axis=0)
     origin_tuple, dim_tuple = _compute_grid(bbox_min, bbox_max, h, dimension)
 
-    # V2 single-GPU = end-of-chain on both sides → no ghost columns
+    # Degenerate slab: owns the whole domain, no ghost columns, no peer.
+    # partition_v2 is responsible for synthesizing per-slab ghost / transport.
     grid = GridLayout(
         origin_x=origin_tuple[0],
         origin_y=origin_tuple[1],
         origin_z=origin_tuple[2],
-        grid_dimension_x=dim_tuple[0] + leading_ghost_x_thickness + trailing_ghost_x_thickness,
+        grid_dimension_x=dim_tuple[0],
         grid_dimension_y=dim_tuple[1],
         grid_dimension_z=dim_tuple[2],
     )
-    voxel_per_x_column = grid.grid_dimension_y * grid.grid_dimension_z
-    leading_voxel_count = leading_ghost_x_thickness * voxel_per_x_column
-    trailing_voxel_count = trailing_ghost_x_thickness * voxel_per_x_column
-    leading_pool = leading_voxel_count * (cap_inside + cap_incoming) if leading_ghost_x_thickness > 0 else 0
-    trailing_pool = trailing_voxel_count * (cap_inside + cap_incoming) if trailing_ghost_x_thickness > 0 else 0
-
     capacities = Capacities(
         max_particles_per_voxel=cap_inside,
         workgroup_size=int(caps["workgroup"]),
         max_incoming_per_voxel=cap_incoming,
         own_pool_size=own_pool_size,
-        leading_ghost_pool_size=leading_pool,
-        trailing_ghost_pool_size=trailing_pool,
+        leading_ghost_pool_size=0,
+        trailing_ghost_pool_size=0,
     )
     ghost_grid = GhostGridParams(
-        leading_ghost_voxel_count=leading_voxel_count,
-        trailing_ghost_voxel_count=trailing_voxel_count,
+        leading_ghost_voxel_count=0,
+        trailing_ghost_voxel_count=0,
     )
-    transport = TransportConfig(
-        leading=DirectionalTransportSpec(
-            direction=0, boundary_voxel_x_local=leading_ghost_x_thickness,
-            ghost_voxel_x_local=0,
-            ghost_pid_offset_to_receiver=0,
-            ghost_voxel_id_offset_to_receiver=0,
-            pool_size=leading_pool,
-        ) if leading_ghost_x_thickness > 0 else None,
-        trailing=DirectionalTransportSpec(
-            direction=1,
-            boundary_voxel_x_local=grid.grid_dimension_x - 1 - trailing_ghost_x_thickness,
-            ghost_voxel_x_local=grid.grid_dimension_x - 1,
-            ghost_pid_offset_to_receiver=0,
-            ghost_voxel_id_offset_to_receiver=0,
-            pool_size=trailing_pool,
-        ) if trailing_ghost_x_thickness > 0 else None,
-    )
+    transport = TransportConfig()
 
     initial = InitialParticles(
         positions=positions, velocities=velocities, material_group=material_group)

@@ -1,11 +1,18 @@
 """
 partition_v2.py — V2 dual-GPU static 1D X-axis partition.
 
-Takes a global CaseV2 (loaded by case_loader_v2.load_case_v2) and computes:
+Input contract: a **degenerate** CaseV2 from ``case_loader_v2.load_case_v2``
+— owns the whole domain, no peer, ghost_grid = (0, 0), transport = empty.
+``compute_dual_gpu_partition`` asserts this at entry to keep the loader →
+partition seam honest.
+
+Given that input, computes:
   - K_split_voxel_x        (the column where domain boundary sits)
-  - per-GPU slab CaseV2    (own column range + leading/trailing ghost)
-  - per-direction transport spec (offsets that match ghost_send.comp's
-    spec const semantics — see shaders/ghost_send.comp Option B header)
+  - per-GPU slab CaseV2    (own column range + leading/trailing ghost +
+                            per-direction transport spec)
+
+Per-direction transport spec offsets match ``shaders/ghost_send.comp``'s
+spec const semantics (see Option B header in that file).
 
 V2 v1.0: 2 GPUs only, static partition (V3+ generalizes to N + dynamic).
 """
@@ -33,8 +40,27 @@ GHOST_THICKNESS = 1   # V2 v1.0: 1-voxel-thick ghost on the interior side
 
 
 def _ghost_pool_size(case: CaseV2) -> int:
-    """Worst-case per-direction ghost pool capacity. One yz-face's worth of
-    replicas (one full boundary voxel) + migrations (one full incoming list)."""
+    """Worst-case pid-slot count for ONE direction's ghost pool.
+
+    V2 v1.0 ghost is 1 voxel thick (``GHOST_THICKNESS``), so the ghost zone
+    is one full x-column = NY × NZ voxels. Each ghost voxel reserves slots
+    for two kinds of particles that **share the same pid pool**:
+
+      - REPLICAS  : peer's boundary-column particles copied every step by
+                    ghost_send.comp (live for one step, overwritten next).
+                    Up to ``max_particles_per_voxel`` per voxel.
+      - MIGRATIONS: peer particles that crossed the boundary; install_migrations
+                    promotes them into own pid the same step. Up to
+                    ``max_incoming_per_voxel`` per voxel.
+
+    Total = (NY · NZ) · (max_particles_per_voxel + max_incoming_per_voxel).
+
+    "Worst-case" assumes every ghost voxel saturates simultaneously. Real
+    distributions are uneven (boundary-adjacent voxels fill, distant ones
+    stay sparse), so typical occupancy is far below this. Over-allocating
+    is cheap (~16 B / slot in set 0 SoA); the alternative — overflow — silently
+    drops particles via ``overflow_inside_count`` / ``overflow_incoming_count``.
+    """
     voxel_per_x = case.grid.grid_dimension_y * case.grid.grid_dimension_z
     return voxel_per_x * (case.capacities.max_particles_per_voxel
                           + case.capacities.max_incoming_per_voxel)
@@ -84,7 +110,28 @@ def _filter_particles_by_x_range(
     x_lo_inclusive: int,
     x_hi_exclusive: int,
 ) -> InitialParticles:
-    """Keep particles whose global voxel x-index ∈ [lo, hi)."""
+    """Slice the global particle set down to one slab's OWN x-column range.
+
+    For each global particle, compute its voxel x-index via
+    ``floor((position.x - origin_x) / h)`` (matches ``_compute_grid``'s
+    convention that voxel (0,…) is centered on bbox_min). Keep particles
+    whose voxel-x falls in ``[lo, hi)``.
+
+    The clamp ``np.clip(x_indices, 0, grid_nx - 1)`` covers two edge cases:
+      - Particles exactly on the +x bbox face floor() to ``grid_nx`` (one
+        past the last valid column) — clamp pulls them back into the last
+        column where they geometrically belong.
+      - Particles at ``position.x == origin_x`` floor() to 0 already; the
+        ``max(0, ...)`` half is defensive against slight float drift
+        producing -1 for particles at or just below the bbox-min face.
+
+    Returns INDEPENDENT arrays (``.copy()``) so each slab's InitialParticles
+    can be mutated downstream without aliasing the global case.
+
+    Note: ghost-column particles are NOT included here. Ghost data is
+    populated at runtime by ``ghost_send.comp`` from the peer GPU, not at
+    load time. This filter is strictly for OWN particles.
+    """
     positions = global_case.initial.positions
     velocities = global_case.initial.velocities
     material_group = global_case.initial.material_group
@@ -181,17 +228,13 @@ def _build_slab_case(
         peer_ghost_first_x_local = peer_extended_nx - 1   # trailing ghost
         my_own_boundary_first_x_local = leading_thickness
         voxel_id_offset = (peer_ghost_first_x_local - my_own_boundary_first_x_local) * voxel_per_x
-        # PID offset: both GPUs have equal own_pool_size; peer's leading_ghost_pool_size
-        # == my trailing_ghost_pool_size (== pool_per_dir). For now keep 0; refined below
-        # based on the actual pid layout (slot 0's trailing-ghost-pid range vs slot 1's leading-ghost-pid range).
-        pid_offset = _compute_pid_offset(global_case, slot_index=1, direction="leading", peer_slot=0)
+        pid_offset = _compute_pid_offset(global_case, slot_index=1, direction="leading")
         transport.leading = DirectionalTransportSpec(
             direction=0,
             boundary_voxel_x_local=leading_thickness,
             ghost_voxel_x_local=0,
             ghost_pid_offset_to_receiver=pid_offset,
             ghost_voxel_id_offset_to_receiver=voxel_id_offset,
-            pool_size=leading_pool,
         )
     if trailing_thickness > 0:
         # Slot 0's trailing send: sends to slot 1's leading ghost
@@ -199,20 +242,20 @@ def _build_slab_case(
         my_own_boundary_first_x_local = my_extended_nx - 1 - trailing_thickness  # = own_last_x_local
         peer_ghost_first_x_local = 0  # slot 1's leading ghost
         voxel_id_offset = (peer_ghost_first_x_local - my_own_boundary_first_x_local) * voxel_per_x
-        pid_offset = _compute_pid_offset(global_case, slot_index=0, direction="trailing", peer_slot=1)
+        pid_offset = _compute_pid_offset(global_case, slot_index=0, direction="trailing")
         transport.trailing = DirectionalTransportSpec(
             direction=1,
             boundary_voxel_x_local=my_own_boundary_first_x_local,
             ghost_voxel_x_local=my_extended_nx - 1,
             ghost_pid_offset_to_receiver=pid_offset,
             ghost_voxel_id_offset_to_receiver=voxel_id_offset,
-            pool_size=trailing_pool,
         )
 
     capacities = Capacities(
         max_particles_per_voxel=global_case.capacities.max_particles_per_voxel,
         workgroup_size=global_case.capacities.workgroup_size,
         max_incoming_per_voxel=global_case.capacities.max_incoming_per_voxel,
+        # Conservative: each slab sized for the WHOLE domain, not just its share.
         own_pool_size=global_case.capacities.own_pool_size,
         leading_ghost_pool_size=leading_pool,
         trailing_ghost_pool_size=trailing_pool,
@@ -241,56 +284,67 @@ def _compute_pid_offset(
     *,
     slot_index: int,        # the sender
     direction: str,         # "leading" or "trailing"
-    peer_slot: int,         # the receiver
 ) -> int:
-    """Compute GHOST_PID_OFFSET_TO_RECEIVER.
+    """Compute ``GHOST_PID_OFFSET_TO_RECEIVER`` for one send direction.
 
-    From shaders/ghost_send.comp:
-      peer_dst_pid = my_dst_pid + GHOST_PID_OFFSET_TO_RECEIVER
+    ``ghost_send.comp`` uses this to pre-encode each ghost replica's pid in
+    the receiver's coordinate system, so receiver's ``install_migrations.comp``
+    sees ready-to-install bytes without any CPU remap:
 
-    where my_dst_pid is the sender's ghost-pid slot (in sender's pid layout)
-    and peer_dst_pid is the corresponding slot in receiver's pid layout
-    (where receiver's install_migrations reads from).
+        peer_dst_pid = my_dst_pid + GHOST_PID_OFFSET_TO_RECEIVER
 
-    Sender's ghost-pid range for `direction`:
-      direction=trailing → [own_first_pid + own_pool_size, ... + trailing_pool] (trailing range)
-      direction=leading  → [1, leading_pool]
+    where ``my_dst_pid`` is the slot sender allocated in its own ghost-pid
+    range, and ``peer_dst_pid`` is the same slot expressed in the receiver's
+    pid layout.
 
-    Receiver's ghost-pid range for the corresponding receive direction:
-      sender direction=trailing → receiver's LEADING range = [1, leading_pool]
-      sender direction=leading  → receiver's TRAILING range
+    Per-GPU pid layout (P = own_pool_size, G = ghost_pool_size):
 
-    For symmetric 2-GPU (equal own_pool_size, equal ghost pools):
-      offset = receiver_first_dst_pid - sender_first_dst_pid
+        slot 0  (trailing peer = slot 1, no leading peer):
+            0           : sentinel
+            1 .. P      : own particles
+            P+1 .. P+G  : trailing-ghost-pid range
+                            ↳ sender writes here when sending to slot 1
+                            ↳ receives here when slot 1 sends back
 
-    Sender first dst pid (direction=trailing) = leading_ghost_pool + own_pool + 1
-                                              = (leading + own) + 1
-    Receiver first dst pid (its leading)      = 1
-    offset = 1 - (leading + own + 1) = -(leading + own)
+        slot 1  (leading peer = slot 0, no trailing peer):
+            0           : sentinel
+            1 .. G      : leading-ghost-pid range
+                            ↳ sender writes here when sending to slot 0
+                            ↳ receives here when slot 0 sends back
+            G+1 .. G+P  : own particles
 
-    For 2-GPU where both have same own + both have one peer (one direction
-    only), sender's leading = 0 if direction=trailing-send. So:
-      offset = 1 - (0 + own + 1) = -own_pool_size  for trailing-send→receiver-leading
-              = (leading + own + 1) - 1            for leading-send→receiver-trailing
-              = own_pool_size + leading_ghost_pool_size  (positive)
+    For the k-th slot of a send, sender allocates pid = ``sender_first + k``
+    and wants the receiver to interpret it as pid = ``receiver_first + k``:
 
-    Conservatively compute both endpoints from layout.
+        offset = (receiver_first + k) - (sender_first + k)
+               = receiver_first - sender_first       ← k drops out
+
+    Per-direction derivation:
+
+      (a) slot 0, trailing-send  →  slot 1's leading-receive
+          sender_first   = P + 1   (slot 0's trailing range start)
+          receiver_first = 1       (slot 1's leading  range start)
+          offset = 1 - (P + 1)     = -P
+
+      (b) slot 1, leading-send   →  slot 0's trailing-receive
+          sender_first   = 1       (slot 1's leading  range start)
+          receiver_first = P + 1   (slot 0's trailing range start)
+          offset = (P + 1) - 1     = +P
+
+    Note: the offset depends only on P, not on G. The two ghost ranges have
+    the same width G by construction (symmetric 2-GPU), but their starting
+    positions differ by exactly P slots — that's all the formula needs.
+
+    Endpoint GPUs with no peer in this direction return 0 (caller drops it).
     """
     own_pool = global_case.capacities.own_pool_size
-    ghost_pool = _ghost_pool_size(global_case)
 
     if slot_index == 0 and direction == "trailing":
-        # sender = slot 0; its trailing ghost-pid first slot:
-        # slot 0 has leading_ghost = 0; its own range = [1, own_pool]
-        # its trailing range = [own_pool + 1, own_pool + ghost_pool]
-        sender_first = own_pool + 1
-        # receiver = slot 1; its leading-pid range = [1, ghost_pool]
-        receiver_first = 1
+        sender_first   = own_pool + 1   # slot 0's trailing range starts after its own range
+        receiver_first = 1              # slot 1's leading  range starts at pid 1
     elif slot_index == 1 and direction == "leading":
-        # sender = slot 1; its leading ghost-pid first slot = 1
-        sender_first = 1
-        # receiver = slot 0; its trailing range = [own_pool + 1, own_pool + ghost_pool]
-        receiver_first = own_pool + 1
+        sender_first   = 1              # slot 1's leading  range starts at pid 1
+        receiver_first = own_pool + 1   # slot 0's trailing range starts after its own range
     else:
         return 0   # endpoint with no peer in this direction
     return receiver_first - sender_first
@@ -304,6 +358,24 @@ def compute_dual_gpu_partition(
 
     Returns (slab_case_gpu0, slab_case_gpu1, k_split_voxel_x).
     """
+    # Contract check — input must be a degenerate slab from load_case_v2.
+    # Re-partitioning an already-partitioned case (ghost / transport populated)
+    # would silently double-count ghost capacity and corrupt offsets.
+    assert global_case.ghost_grid.leading_ghost_voxel_count == 0, (
+        "global_case must be degenerate (leading_ghost_voxel_count == 0); "
+        "got an already-partitioned slab")
+    assert global_case.ghost_grid.trailing_ghost_voxel_count == 0, (
+        "global_case must be degenerate (trailing_ghost_voxel_count == 0); "
+        "got an already-partitioned slab")
+    assert global_case.transport.leading is None, (
+        "global_case.transport.leading must be None for a degenerate slab")
+    assert global_case.transport.trailing is None, (
+        "global_case.transport.trailing must be None for a degenerate slab")
+    assert global_case.capacities.leading_ghost_pool_size == 0, (
+        "global_case.capacities.leading_ghost_pool_size must be 0 for a degenerate slab")
+    assert global_case.capacities.trailing_ghost_pool_size == 0, (
+        "global_case.capacities.trailing_ghost_pool_size must be 0 for a degenerate slab")
+
     grid_nx = global_case.grid.grid_dimension_x
     k_split = compute_k_split(global_case, weights)
     print(f"[partition_v2] K_split = {k_split} / {grid_nx} "

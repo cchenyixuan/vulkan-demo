@@ -30,6 +30,7 @@ physics:
   h: 0.005                    # kernel SUPPORT radius (Wendland C4: W(r>=h)=0)
   particle_radius: 0.0005     # particle "radius"; diameter dx = 2·r → 0.001
   lattice: grid
+  calibrate_volume: true
   speed_of_sound: 20.0        # c0 ≈ 20·U_lid (Ma≈0.05) — soft EOS for stability
   power: 7                  # γ in Tait
   cfl: 0.15                 # dt = CFL·h/c0 = 3.75e-6 s
@@ -39,7 +40,7 @@ numerics:
   use_density_diffusion: true       # δ term in dρ/dt; false = vanilla WCSPH continuity
   delta_coefficient: 0.1
 
-  use_kcg_correction: false         # false = identity M⁻¹ + zero ∇ρ (plain δ-SPH)
+  use_kcg_correction: true         # false = identity M⁻¹ + zero ∇ρ (plain δ-SPH)
   regularization:
     xi: 0.1
     det_threshold: 1.0e-4

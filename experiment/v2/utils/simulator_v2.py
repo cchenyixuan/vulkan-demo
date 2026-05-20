@@ -140,10 +140,13 @@ class SphSimulatorV2:
 
     Lifecycle:
         ctx = VulkanContextV2.create(device_index=...)
-        case = make_minimal_test_case(...)
+        case = load_case_v2("cases/lid_driven_cavity_2d/case.yaml")
         with SphSimulatorV2(ctx, case) as sim:
-            # Phase 3: sim.bootstrap(); sim.submit_phase_a(n); ...
-            pass
+            sim.bootstrap()                  # single-GPU path
+            sim.prepare_step_cmd_buffers()
+            for n in range(max_steps):
+                sim.submit_phase_a(n); sim.submit_phase_b(n); sim.submit_phase_c(n)
+                sim.wait_frame_done(n)
     """
 
     # ========================================================================
@@ -667,64 +670,6 @@ class SphSimulatorV2:
 
     # ----- Spec const blob helpers -----
 
-    def _pack_global_spec(self) -> tuple[bytes, list[VkSpecializationMapEntry]]:
-        """Build (data_blob, map_entries) for global spec consts (ids 0-83
-        roughly, excluding ghost/correction per-pipeline overrides).
-
-        Layout matches common.glsl id table. Encoded as little-endian
-        per the SPIR-V spec const ABI (matches vulkan host byte order on x86)."""
-        p = self.case.physics
-        n = self.case.numerics
-        cap = self.case.capacities
-        g = self.case.grid
-        gh = self.case.ghost_grid
-
-        entries: list[tuple[int, str, Any]] = [
-            # (id, fmt, value); fmt = 'f'=float32, 'I'=uint32, 'i'=int32, 'B'=bool-as-uint32
-            (0,  'f', p.smoothing_length),
-            (1,  'f', p.speed_of_sound),
-            (2,  'f', p.delta_coefficient),
-            (4,  'f', p.power_parameter),
-            (5,  'f', p.cfl_number),
-            (6,  'f', p.timestep),
-            (7,  'f', g.origin_x),
-            (8,  'f', g.origin_y),
-            (9,  'f', g.origin_z),
-            (10, 'B', 0),                       # STRICT_BIT_EXACT (V2 v1.0 = false)
-            (11, 'I', g.grid_dimension_x),
-            (12, 'I', g.grid_dimension_y),
-            (13, 'I', g.grid_dimension_z),
-            (14, 'f', n.regularization_xi),
-            (15, 'f', n.regularization_determinant_threshold),
-            (16, 'f', n.regularization_max_frobenius_norm),
-            (17, 'f', p.gravity[0]),
-            (18, 'f', p.gravity[1]),
-            (19, 'f', p.gravity[2]),
-            (20, 'I', g.voxel_order),
-            (30, 'I', p.dimension),
-            (31, 'I', p.neighbor_z_range),
-            (32, 'f', p.kernel_coefficient),
-            (33, 'f', p.kernel_gradient_coefficient),
-            (40, 'f', n.eps_h_squared),
-            (41, 'f', n.pst_main_shift_coefficient),
-            (42, 'f', n.pst_anti_shift_coefficient),
-            (43, 'B', int(n.use_kcg_correction)),
-            (44, 'B', int(n.use_density_diffusion)),
-            (45, 'B', int(n.use_pst)),
-            (46, 'B', int(n.use_prefix_sum_defrag)),
-            (50, 'I', cap.max_particles_per_voxel),
-            (51, 'I', cap.workgroup_size),
-            (52, 'I', cap.max_incoming_per_voxel),
-            (53, 'I', cap.own_pool_size),
-            (54, 'I', cap.leading_ghost_pool_size),
-            (55, 'I', cap.trailing_ghost_pool_size),
-            (80, 'I', gh.leading_ghost_voxel_count),
-            (81, 'I', gh.trailing_ghost_voxel_count),
-            (82, 'I', 0),                       # NEIGHBOR_X_RANGE; V2 overlap mode sets this
-        ]
-
-        return self._pack_spec(entries)
-
     def _pack_spec(self, entries: list[tuple[int, str, Any]]
                    ) -> tuple[bytes, list[VkSpecializationMapEntry]]:
         """Pack a list of (constant_id, fmt, value) into a contiguous data blob
@@ -779,7 +724,7 @@ class SphSimulatorV2:
             (7,  'f', g.origin_x),
             (8,  'f', g.origin_y),
             (9,  'f', g.origin_z),
-            (10, 'B', 0),
+            (10, 'B', 0),                       # STRICT_BIT_EXACT — 目前版本不再需要 bit-exact
             (11, 'I', g.grid_dimension_x),
             (12, 'I', g.grid_dimension_y),
             (13, 'I', g.grid_dimension_z),
@@ -1405,6 +1350,74 @@ class SphSimulatorV2:
             "overflow_install_inside":      fields[14],
             "first_overflow_voxel_install": fields[15],
         }
+
+    def readback_buffer_by_name(self, name: str) -> bytes:
+        """Public wrapper of _readback_buffer for debug-log helpers.
+
+        Issues one vkCmdCopyBuffer device→staging + fence-wait. Use for ad-hoc
+        single-buffer inspection. For multi-buffer snapshot, prefer
+        readback_buffers_batch() to amortize the fence cost.
+        """
+        if name not in self.buffers:
+            raise KeyError(f"unknown buffer: {name!r}")
+        return self._readback_buffer(self.buffers[name])
+
+    def readback_buffers_batch(self, names: list[str]) -> dict[str, bytes]:
+        """Read N buffers via a single cmd buffer + fence wait.
+
+        Per-buffer fence overhead is the dominant cost when reading many small
+        buffers; batching N copies into one submit drops 22 fence waits to 1
+        for a 23-buffer snapshot (~100-200ms saved on cavity scale). Stagings
+        are allocated/destroyed per call (debug-only path; not hot).
+        """
+        if not names:
+            return {}
+        for name in names:
+            if name not in self.buffers:
+                raise KeyError(f"unknown buffer: {name!r}")
+
+        device = self.ctx.device
+        # 1. Allocate one staging per source buffer
+        stagings: dict[str, _Buffer] = {}
+        for name in names:
+            buf = self.buffers[name]
+            stagings[name] = self._allocate_buffer(
+                size=buf.size,
+                usage=VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                required_properties=(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+                                     | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
+            )
+
+        try:
+            # 2. Record one cmd buffer with all copies
+            cmd = self._allocate_oneshot_cmd()
+            vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
+                flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT))
+            for name in names:
+                buf = self.buffers[name]
+                staging = stagings[name]
+                vkCmdCopyBuffer(cmd, buf.handle, staging.handle, 1, [
+                    VkBufferCopy(srcOffset=0, dstOffset=0, size=buf.size)
+                ])
+            vkEndCommandBuffer(cmd)
+
+            # 3. Single fence-wait submit
+            self.ctx.submit_and_wait(cmd)
+            vkFreeCommandBuffers(device, self.ctx.command_pool, 1, [cmd])
+
+            # 4. Map each staging, copy bytes out
+            result: dict[str, bytes] = {}
+            for name in names:
+                staging = stagings[name]
+                mapped = vkMapMemory(device, staging.memory, 0, staging.size, 0)
+                result[name] = bytes(np.frombuffer(mapped, dtype=np.uint8,
+                                                   count=staging.size))
+                vkUnmapMemory(device, staging.memory)
+            return result
+        finally:
+            for staging in stagings.values():
+                vkDestroyBuffer(device, staging.handle, None)
+                vkFreeMemory(device, staging.memory, None)
 
     # ========================================================================
     # Section 10: Step cmd buffers + sync2 timeline submit/wait (Phase 3b)

@@ -106,6 +106,21 @@ class GhostMigrationWorker:
         self._started = True
 
     def stop(self) -> None:
+        """Best-effort stop. Safe on happy-path close (worker idle in
+        work_queue.get); UNSAFE on exception paths.
+
+        TODO(v1.x): not robust against worker stuck in vkWaitSemaphores.
+        Current behavior on failure:
+          - queue.Full silently swallowed → sentinel never delivered
+          - thread.join(timeout=10) returns regardless → leaked daemon=False
+            thread blocks process exit
+          - subsequent stop() returns early (_started=False set anyway),
+            masking the leak
+        Fix sketch: (a) host_signal_timeline(POISON) on source+dest to wake
+        blocked vkWaitSemaphores; (b) log timeout cases; (c) return bool so
+        orchestrator can react. Deferred per docs/sph_v2_design.md §14.4
+        ("watchdog = v1.x task, not v1.0").
+        """
         if not self._started:
             return
         try:

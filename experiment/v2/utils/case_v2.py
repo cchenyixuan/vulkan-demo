@@ -40,7 +40,13 @@ KIND_ROTOR    = 3
 
 @dataclass
 class PhysicsConstants:
-    """Spec const ids 0-9, 17-19, 30-33 in common.glsl."""
+    """Spec const ids 0-2, 4-6, 17-19, 30-33 in common.glsl. (id=3 reserved.)
+
+    CPU-only fields (NOT packed into spec consts): ``lattice``,
+    ``calibrate_volume``. Consumed at load time by
+    ``case_loader_v2._calibrate_particle_volume`` to derive each material's
+    ``volume`` so that interior ``Σ V·W(r) = 1`` in the bulk.
+    """
     smoothing_length: float          # h
     speed_of_sound: float            # c0
     delta_coefficient: float         # δ
@@ -52,6 +58,8 @@ class PhysicsConstants:
     neighbor_z_range: int            # 0 for 2D, 1 for 3D
     kernel_coefficient: float
     kernel_gradient_coefficient: float
+    lattice: str = "grid"            # CPU-only; {"grid", "hex"}; preprocessor's particle layout
+    calibrate_volume: bool = True    # CPU-only; True → partition-of-unity calibrated V; False → (2·r)^dim
 
 
 @dataclass
@@ -72,13 +80,21 @@ class NumericsConstants:
 
 @dataclass
 class Capacities:
-    """Spec const ids 50-55."""
+    """Particle pool sizing (spec const ids 50-55).
+
+    Pool sizes are particle slot counts (not bytes). The pid layout is:
+      0              — sentinel (unused, contributes the +1 in total_pool_capacity)
+      [1, L]         — leading ghost  (L = leading_ghost_pool_size)
+      [L+1, L+O]     — own particles  (O = own_pool_size)
+      [L+O+1, L+O+T] — trailing ghost (T = trailing_ghost_pool_size)
+    End-of-chain GPUs set the non-peer side's ghost pool size to 0.
+    """
     max_particles_per_voxel: int
     workgroup_size: int
     max_incoming_per_voxel: int
     own_pool_size: int
-    leading_ghost_pool_size: int     # = 0 if no leading peer (end of chain)
-    trailing_ghost_pool_size: int    # = 0 if no trailing peer
+    leading_ghost_pool_size: int
+    trailing_ghost_pool_size: int
 
     def total_pool_capacity(self) -> int:
         """Total particle slot count = slot 0 unused + leading + own + trailing."""
@@ -90,12 +106,20 @@ class Capacities:
 
 @dataclass
 class GridLayout:
-    """Spec const ids 7-9, 11-13, 20.
+    """Per-GPU extended grid layout (spec const ids 7-9, 11-13, 20).
 
-    For V1's merged-buffer scheme, grid_dimension_x is the EXTENDED nx covering
-    own columns PLUS leading + trailing ghost columns. origin_x is the world-
-    space x of voxel column 0 on THIS GPU (= world domain origin shifted left
-    by leading ghost columns × voxel_size for end-of-chain-rightmost / middle).
+    All fields are per-GPU; orchestrator builds a different GridLayout per slab.
+
+    ``grid_dimension_x`` is the EXTENDED nx = own_x_count + leading_x_thickness
+    + trailing_x_thickness. Voxel-x 0 is THIS GPU's leftmost extended column —
+    a leading ghost column when a leading peer exists, otherwise own's first
+    column. ``origin_x/y/z`` is the world-space position of voxel (0,0,0); see
+    ``partition_v2._build_slab_case`` for the per-slab shift formula.
+
+    Voxel_id encoding (helpers.glsl) is 1-based over the extended grid:
+        [1, M]                          — leading ghost voxels  (M = LEADING_GHOST_VOXEL_COUNT)
+        [M+1, EXTENDED_TOTAL - N]       — own voxels
+        [EXTENDED_TOTAL - N + 1, TOTAL] — trailing ghost voxels (N = TRAILING_GHOST_VOXEL_COUNT)
     """
     origin_x: float
     origin_y: float
@@ -123,18 +147,23 @@ class GhostGridParams:
 
 @dataclass
 class DirectionalTransportSpec:
-    """Per-direction (one of leading / trailing) ghost_send + install_migrations
-    spec constants. Spec const ids 90-94.
+    """Per-direction (leading / trailing) ghost_send + install_migrations
+    spec constants (ids 90-94 in common.glsl).
 
-    Created only for directions where THIS GPU has a peer (end-of-chain GPUs
-    have None for the non-peer direction).
+    Each direction holds an independent instance — the same GPU's leading and
+    trailing specs carry different values (the offsets typically have opposite
+    signs in the symmetric 2-GPU case). End-of-chain GPUs leave the non-peer
+    direction as None.
+
+    Ghost pool capacity is NOT stored here; it lives in
+    ``Capacities.leading_ghost_pool_size`` / ``trailing_ghost_pool_size``
+    (spec const ids 54/55).
     """
-    direction: int                            # 0 = leading send, 1 = trailing send
-    boundary_voxel_x_local: int               # this GPU's outermost own column (extended-grid local)
-    ghost_voxel_x_local: int                  # this GPU's ghost column adjacent to boundary
-    ghost_pid_offset_to_receiver: int         # signed; for equal-pool 2-GPU = ±OWN_POOL_SIZE
-    ghost_voxel_id_offset_to_receiver: int    # signed; sender→receiver coord shift
-    pool_size: int                            # this direction's ghost pool (own side, capacity)
+    direction: int                            # id=90; 0 = leading send, 1 = trailing send
+    boundary_voxel_x_local: int               # id=91; this GPU's outermost own column (extended-grid local x)
+    ghost_voxel_x_local: int                  # id=92; this GPU's ghost column adjacent to that boundary
+    ghost_pid_offset_to_receiver: int         # id=93; signed; peer_dst_pid = my_dst_pid + this
+    ghost_voxel_id_offset_to_receiver: int    # id=94; signed; peer_vid     = my_vid     + this
 
 
 @dataclass
@@ -177,8 +206,7 @@ class MaterialParameter:
 @dataclass
 class InitialParticles:
     """Pre-filtered initial state for THIS GPU's slab. Sized (N_alive,);
-    simulator pads up to own_pool_size during upload. N_alive may be 0 for
-    Phase 2 test cases (buffer allocation doesn't need particles)."""
+    simulator pads up to own_pool_size during upload."""
     positions: np.ndarray              # (N, 3) float32; world coords
     velocities: np.ndarray             # (N, 3) float32
     material_group: np.ndarray         # (N,) uint32, indexes CaseV2.materials
@@ -201,161 +229,3 @@ class CaseV2:
     initial: InitialParticles
 
 
-# ============================================================================
-# Minimal test factory — for Phase 2 / Phase 3 bring-up without real case data
-# ============================================================================
-
-def make_minimal_test_case(
-    own_pool_size: int = 1024,
-    grid_xyz: tuple[int, int, int] = (16, 16, 1),
-    ghost_x_thickness: int = 1,
-    *,
-    has_leading_peer: bool = False,
-    has_trailing_peer: bool = False,
-) -> CaseV2:
-    """Build a tiny CaseV2 sized for Phase 2/3 bring-up. No particles
-    (InitialParticles is empty arrays); buffer sizing covers the requested
-    pool_size + ghost capacity. Physical params are V1-cavity-ish defaults.
-
-    has_leading_peer / has_trailing_peer toggle which directions have ghost
-    pool + transport spec populated. Default = endpoint GPU (no peers; ghost
-    counts all zero) for single-GPU smoke tests.
-    """
-    nx_own, ny, nz = grid_xyz
-    leading_thickness = ghost_x_thickness if has_leading_peer else 0
-    trailing_thickness = ghost_x_thickness if has_trailing_peer else 0
-    extended_nx = nx_own + leading_thickness + trailing_thickness
-    voxel_per_x_column = ny * nz
-
-    leading_voxel_count = leading_thickness * voxel_per_x_column
-    trailing_voxel_count = trailing_thickness * voxel_per_x_column
-    # Conservative ghost pool size: 1 yz-face × (replicas + migrations) per slot
-    cap_inside = 96
-    cap_incoming = 16
-    leading_pool = leading_voxel_count * (cap_inside + cap_incoming) if has_leading_peer else 0
-    trailing_pool = trailing_voxel_count * (cap_inside + cap_incoming) if has_trailing_peer else 0
-
-    h = 0.009  # V1 default smoothing length
-    voxel_size = h
-    physics = PhysicsConstants(
-        smoothing_length=h,
-        speed_of_sound=300.0,
-        delta_coefficient=0.1,
-        power_parameter=7.0,
-        cfl_number=0.15,
-        timestep=0.15 * h / 300.0,
-        gravity=(0.0, 0.0, 0.0),
-        dimension=2 if nz == 1 else 3,
-        neighbor_z_range=0 if nz == 1 else 1,
-        kernel_coefficient=9.0 / (np.pi * h * h),               # 2D Wendland C4
-        kernel_gradient_coefficient=9.0 / (np.pi * h * h * h),
-    )
-    numerics = NumericsConstants(
-        regularization_xi=0.1,
-        regularization_determinant_threshold=1e-4,
-        regularization_max_frobenius_norm=10.0,
-        eps_h_squared=0.01 * h * h,
-        pst_main_shift_coefficient=0.1,
-        pst_anti_shift_coefficient=0.005,
-    )
-    capacities = Capacities(
-        max_particles_per_voxel=cap_inside,
-        workgroup_size=128,
-        max_incoming_per_voxel=cap_incoming,
-        own_pool_size=own_pool_size,
-        leading_ghost_pool_size=leading_pool,
-        trailing_ghost_pool_size=trailing_pool,
-    )
-    grid = GridLayout(
-        origin_x=0.0,
-        origin_y=0.0,
-        origin_z=0.0,
-        grid_dimension_x=extended_nx,
-        grid_dimension_y=ny,
-        grid_dimension_z=nz,
-    )
-    ghost_grid = GhostGridParams(
-        leading_ghost_voxel_count=leading_voxel_count,
-        trailing_ghost_voxel_count=trailing_voxel_count,
-    )
-
-    transport = TransportConfig(
-        leading=DirectionalTransportSpec(
-            direction=0,
-            boundary_voxel_x_local=leading_thickness,
-            ghost_voxel_x_local=0,
-            ghost_pid_offset_to_receiver=0,   # placeholder; orchestrator fills real value
-            ghost_voxel_id_offset_to_receiver=0,
-            pool_size=leading_pool,
-        ) if has_leading_peer else None,
-        trailing=DirectionalTransportSpec(
-            direction=1,
-            boundary_voxel_x_local=extended_nx - 1 - trailing_thickness,
-            ghost_voxel_x_local=extended_nx - 1,
-            ghost_pid_offset_to_receiver=0,
-            ghost_voxel_id_offset_to_receiver=0,
-            pool_size=trailing_pool,
-        ) if has_trailing_peer else None,
-    )
-
-    fluid = MaterialParameter(
-        kind=KIND_FLUID,
-        rest_density=1000.0,
-        viscosity=1e-3,
-        eos_constant=300.0 ** 2 * 1000.0 / 7.0,
-        smoothing_length=h,
-        radius=h * 0.5,
-        volume=h * h,                # 2D
-    )
-    materials = [fluid]
-
-    initial = InitialParticles(
-        positions=np.zeros((0, 3), dtype=np.float32),
-        velocities=np.zeros((0, 3), dtype=np.float32),
-        material_group=np.zeros(0, dtype=np.uint32),
-    )
-
-    return CaseV2(
-        physics=physics,
-        numerics=numerics,
-        capacities=capacities,
-        grid=grid,
-        ghost_grid=ghost_grid,
-        transport=transport,
-        materials=materials,
-        initial=initial,
-    )
-
-
-def make_smoke_test_case(
-    own_pool_size: int = 4096,
-    grid_xyz: tuple[int, int, int] = (32, 32, 1),
-    fluid_grid: tuple[int, int] = (8, 8),
-) -> CaseV2:
-    """Phase 3 smoke test case: a small fluid grid placed in the lower-left
-    interior, zero gravity, free particles. Just enough for SPH to do real
-    neighbor-loop work so cmd buffer recording / bootstrap / step loop can
-    be smoke-tested. Physics is not validated — that's Phase 5's job."""
-    case = make_minimal_test_case(
-        own_pool_size=own_pool_size, grid_xyz=grid_xyz,
-        has_leading_peer=False, has_trailing_peer=False,
-    )
-
-    h = case.physics.smoothing_length
-    spacing = h * 0.5
-    nx, ny = fluid_grid
-    # Place fluid block starting at (2h, 2h) so neighbors don't wrap out of domain.
-    x0, y0 = 2.0 * h, 2.0 * h
-    positions = np.zeros((nx * ny, 3), dtype=np.float32)
-    idx = 0
-    for ix in range(nx):
-        for iy in range(ny):
-            positions[idx] = (x0 + ix * spacing, y0 + iy * spacing, 0.0)
-            idx += 1
-
-    case.initial = InitialParticles(
-        positions=positions,
-        velocities=np.zeros((nx * ny, 3), dtype=np.float32),
-        material_group=np.zeros(nx * ny, dtype=np.uint32),  # all FLUID (group 0)
-    )
-    return case

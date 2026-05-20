@@ -84,14 +84,14 @@ _DEVICE_TYPE_NAMES = {
 }
 
 
-def _summarize_queue_family(qf_props) -> str:
-    flags = qf_props.queueFlags
+def _summarize_queue_family(queue_family_properties) -> str:
+    flags = queue_family_properties.queueFlags
     parts = []
     if flags & VK_QUEUE_GRAPHICS_BIT:       parts.append("graphics")
     if flags & VK_QUEUE_COMPUTE_BIT:        parts.append("compute")
     if flags & VK_QUEUE_TRANSFER_BIT:       parts.append("transfer")
     if flags & VK_QUEUE_SPARSE_BINDING_BIT: parts.append("sparse")
-    return f"{'+'.join(parts) if parts else 'none'} (count={qf_props.queueCount})"
+    return f"{'+'.join(parts) if parts else 'none'} (count={queue_family_properties.queueCount})"
 
 
 def _find_compute_queue_family(physical_device) -> Optional[int]:
@@ -110,24 +110,24 @@ def _select_physical_device(instance, requested_device_index: Optional[int]):
     print(f"[VulkanContextV2] available physical devices ({len(physical_devices)}):")
 
     auto_selected_index = None
-    auto_selected_qf = None
+    auto_selected_queue_family_index = None
     for device_index, physical_device in enumerate(physical_devices):
         properties = vkGetPhysicalDeviceProperties(physical_device)
         device_type = _DEVICE_TYPE_NAMES.get(properties.deviceType, "UNKNOWN")
         api_version = (f"{VK_VERSION_MAJOR(properties.apiVersion)}."
                        f"{VK_VERSION_MINOR(properties.apiVersion)}."
                        f"{VK_VERSION_PATCH(properties.apiVersion)}")
-        qf_index = _find_compute_queue_family(physical_device)
+        queue_family_index = _find_compute_queue_family(physical_device)
         print(f"  [{device_index}] {properties.deviceName}  "
               f"type={device_type}  api={api_version}")
-        for qf_idx, qf_props in enumerate(
+        for family_index, family_properties in enumerate(
                 vkGetPhysicalDeviceQueueFamilyProperties(physical_device)):
-            marker = "  <- compute pick" if qf_idx == qf_index else ""
-            print(f"        queue_family[{qf_idx}]: "
-                  f"{_summarize_queue_family(qf_props)}{marker}")
-        if requested_device_index is None and auto_selected_index is None and qf_index is not None:
+            marker = "  <- compute pick" if family_index == queue_family_index else ""
+            print(f"        queue_family[{family_index}]: "
+                  f"{_summarize_queue_family(family_properties)}{marker}")
+        if requested_device_index is None and auto_selected_index is None and queue_family_index is not None:
             auto_selected_index = device_index
-            auto_selected_qf = qf_index
+            auto_selected_queue_family_index = queue_family_index
 
     if requested_device_index is not None:
         if not (0 <= requested_device_index < len(physical_devices)):
@@ -135,23 +135,23 @@ def _select_physical_device(instance, requested_device_index: Optional[int]):
                 f"device_index={requested_device_index} out of range "
                 f"(only {len(physical_devices)} present)")
         candidate = physical_devices[requested_device_index]
-        candidate_qf = _find_compute_queue_family(candidate)
-        if candidate_qf is None:
+        candidate_queue_family_index = _find_compute_queue_family(candidate)
+        if candidate_queue_family_index is None:
             props = vkGetPhysicalDeviceProperties(candidate)
             raise RuntimeError(
                 f"requested device_index={requested_device_index} "
                 f"({props.deviceName}) has no compute queue family")
-        selected_index, selected_qf = requested_device_index, candidate_qf
+        selected_index, selected_queue_family_index = requested_device_index, candidate_queue_family_index
     else:
         if auto_selected_index is None:
             raise RuntimeError(
                 "no physical device exposes a queue family with VK_QUEUE_COMPUTE_BIT")
-        selected_index, selected_qf = auto_selected_index, auto_selected_qf
+        selected_index, selected_queue_family_index = auto_selected_index, auto_selected_queue_family_index
 
     selected_props = vkGetPhysicalDeviceProperties(physical_devices[selected_index])
     print(f"[VulkanContextV2] selected: [{selected_index}] {selected_props.deviceName} "
-          f"on queue_family[{selected_qf}]")
-    return physical_devices[selected_index], selected_qf
+          f"on queue_family[{selected_queue_family_index}]")
+    return physical_devices[selected_index], selected_queue_family_index
 
 
 # ============================================================================
@@ -236,7 +236,7 @@ class VulkanContextV2:
                 debug_messenger = create_fn(instance, messenger_info, None)
 
         # ---- Physical device + compute queue family ---------------------
-        physical_device, compute_qf = _select_physical_device(instance, device_index)
+        physical_device, compute_queue_family_index = _select_physical_device(instance, device_index)
         device_name = vkGetPhysicalDeviceProperties(physical_device).deviceName
 
         # ---- Logical device ---------------------------------------------
@@ -244,7 +244,7 @@ class VulkanContextV2:
         # synchronization2 (1.3 core feature). Both default to FALSE per
         # spec; opt-in via pNext-chained VkPhysicalDeviceFeatures2.
         queue_create_info = VkDeviceQueueCreateInfo(
-            queueFamilyIndex=compute_qf,
+            queueFamilyIndex=compute_queue_family_index,
             queueCount=1,
             pQueuePriorities=[1.0],
         )
@@ -287,12 +287,12 @@ class VulkanContextV2:
             pEnabledFeatures=None,
         )
         device = vkCreateDevice(physical_device, device_create_info, None)
-        compute_queue = vkGetDeviceQueue(device, compute_qf, 0)
+        compute_queue = vkGetDeviceQueue(device, compute_queue_family_index, 0)
 
         # ---- Command pool -----------------------------------------------
         command_pool = vkCreateCommandPool(device, VkCommandPoolCreateInfo(
             flags=VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-            queueFamilyIndex=compute_qf,
+            queueFamilyIndex=compute_queue_family_index,
         ), None)
 
         memory_properties = vkGetPhysicalDeviceMemoryProperties(physical_device)
@@ -302,7 +302,7 @@ class VulkanContextV2:
             physical_device=physical_device,
             device=device,
             compute_queue=compute_queue,
-            compute_queue_family_index=compute_qf,
+            compute_queue_family_index=compute_queue_family_index,
             command_pool=command_pool,
             device_name=device_name,
             _validation_enabled=validation_active,

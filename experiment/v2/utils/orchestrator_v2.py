@@ -158,7 +158,15 @@ class DualGpuOrchestratorV2:
         # 5. Wait for both sims to reach 3N+3 (frame done).
         # Use a watchdog poll instead of INFINITE wait so a dead worker thread
         # surfaces as a clear error instead of an opaque hang. Each poll is
-        # 0.5s; we re-check worker health between polls.
+        # 1s; we re-check worker health between polls.
+        #
+        # TODO(refactor): this block uses for-else + inline magic constants +
+        # a long f-string print. Split into helpers:
+        #   _wait_frame_done_with_watchdog(sim_idx, sim, frame_n)
+        #   _raise_if_worker_died(frame_n)
+        #   _log_watchdog(frame_n, sim_idx, target, poll)
+        # Hoist constants to class level. Drops step() body from ~35 lines to
+        # ~3 lines for this section. Functional behavior unchanged.
         WATCHDOG_TIMEOUT_S = 1.0
         MAX_POLL_ITERS = 10   # → 10s total before giving up
         for sim_idx, sim in enumerate(self.sims):
