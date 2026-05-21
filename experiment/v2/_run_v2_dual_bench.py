@@ -50,7 +50,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--case", default="cases/lid_driven_cavity_2d/case.yaml")
     p.add_argument("--device-a", type=int, default=0)
     p.add_argument("--device-b", type=int, default=1)
-    p.add_argument("--weights", default="1.0,1.0")
+    p.add_argument("--weights", default="3.2,1.0",
+                   help="partition weights (W_AMD, W_NV). Default 3.2,1.0 is "
+                        "the V2 Path A+ optimum for cross-vendor AMD+NV cavity "
+                        "1M (277 fps). Override for other hardware/cases.")
     p.add_argument("--max-steps", type=int, default=2000)
     p.add_argument("--defrag-cadence", type=int, default=None)
     p.add_argument("--validation", action="store_true")

@@ -14,7 +14,8 @@ Usage:
 Options:
     --case PATH          case.yaml path
     --device-a/-b N      physical device indices (default 0 / 1)
-    --weights W0,W1      partition weights  (default: 1.0,1.0)
+    --weights W0,W1      partition weights  (default: 3.2,1.0 — V2 Path A+
+                         optimum for AMD+NV cross-vendor cavity 1M)
     --render-slot 0|1    which slab to render in the window (default: 0)
     --max-steps N        cap total steps (default: unlimited; ESC to quit)
     --defrag-cadence N   override case.yaml
@@ -43,7 +44,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--case", default="cases/lid_driven_cavity_2d/case.yaml")
     p.add_argument("--device-a", type=int, default=0)
     p.add_argument("--device-b", type=int, default=1)
-    p.add_argument("--weights", default="1.0,1.0")
+    p.add_argument("--weights", default="3.2,1.0")
     p.add_argument("--render-slot", type=int, default=0, choices=(0, 1))
     p.add_argument("--max-steps", type=int, default=None,
                    help="cap total simulation steps; default = no cap (ESC quits)")

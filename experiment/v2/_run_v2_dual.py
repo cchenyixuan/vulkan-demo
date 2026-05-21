@@ -12,7 +12,9 @@ Options (all optional):
     --case PATH          case.yaml path  (default: cases/lid_driven_cavity_2d/case.yaml)
     --device-a N         physical device index for sim_a (default: 0)
     --device-b N         physical device index for sim_b (default: 1)
-    --weights W0,W1      partition weights  (default: 1.0,1.0)
+    --weights W0,W1      partition weights  (default: 3.2,1.0 — empirically
+                         optimal for V2 Path A+ on AMD 7900 XTX + NV 4060 Ti
+                         cavity 1M; override for other hardware/cases)
     --max-steps N        steps to run  (default: 1000)
     --status-every N     print global_status every N steps  (default: 100)
     --defrag-cadence N   override case's defrag_cadence  (default: from case.yaml)
@@ -41,7 +43,13 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--case", default="cases/lid_driven_cavity_2d/case.yaml")
     p.add_argument("--device-a", type=int, default=0)
     p.add_argument("--device-b", type=int, default=1)
-    p.add_argument("--weights", default="1.0,1.0")
+    p.add_argument("--weights", default="3.2,1.0",
+                   help="partition weights (W_AMD, W_NV). Default 3.2,1.0 is "
+                        "the V2 Path A+ optimum for cross-vendor AMD 7900 XTX "
+                        "+ NV 4060 Ti cavity 1M, found by sweep (277 fps peak). "
+                        "Override for other hardware: same-vendor should try "
+                        "1.0,1.0 first; pure single-GPU use 1.0,1e6 to force "
+                        "all particles onto sim_a.")
     p.add_argument("--max-steps", type=int, default=1000)
     p.add_argument("--status-every", type=int, default=100)
     p.add_argument("--defrag-cadence", type=int, default=None)
