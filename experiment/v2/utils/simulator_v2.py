@@ -203,6 +203,13 @@ class SphSimulatorV2:
         # dual-GPU path on the same sim — the two recordings would clash on
         # SIMULTANEOUS_USE replay scheduling.
         self.step_single_cmd: Any = None
+        # P3.C validation flag: when True, _record_step_single_cmd uses the
+        # split pipeline variants (correction_interior + _boundary, density_
+        # deep_interior + _boundary, force_deep_interior + _boundary) in
+        # place of the *_all variants. Single-GPU mode's empty boundary band
+        # makes the two paths bit-equivalent — any divergence is a shader
+        # bug. Set BEFORE prepare_step_single_cmd_buffer() to take effect.
+        self.step_single_use_split: bool = False
 
         # Optional GPU-timestamp collector. Attached by the benchmark runner
         # BEFORE prepare_step_cmd_buffers() (and BEFORE the first defrag) so
@@ -817,21 +824,34 @@ class SphSimulatorV2:
             (55, 'I', cap.trailing_ghost_pool_size),
             (80, 'I', gh.leading_ghost_voxel_count),
             (81, 'I', gh.trailing_ghost_voxel_count),
-            # NEIGHBOR_X_RANGE — width of the boundary band (in x-columns) that
-            # interior/boundary correction split is keyed off. =2 covers both:
-            #   (a) column 0 of own range whose support radius touches ghost zone
-            #   (b) column 1 of own range whose support radius reaches column 0
-            #       (where new migrants land after install_migration in Phase C).
-            # See docs/sph_v2_design.md §7.
-            (82, 'I', 2),
+            # NEIGHBOR_X_RANGE (id=82) is NOT global anymore — Path A+ needs
+            # different widths per kernel (correction=2, density=3, force=4
+            # for the cascading interior/boundary split). Each split-kernel
+            # pipeline appends its own (82, 'I', width) via the helpers
+            # below. Non-split kernels (predict / update_voxel / ghost_send /
+            # install_migrations / defrag) don't use in_boundary_band at all,
+            # so they rely on the GLSL default (NEIGHBOR_X_RANGE = 0u).
         ]
 
-    def _correction_mode_entry(self, mode: int) -> list[tuple[int, str, Any]]:
-        # constant_id=47 CORRECTION_MODE, 82 NEIGHBOR_X_RANGE (overlap mode)
-        # V2 v1.0 first cut: keep NEIGHBOR_X_RANGE=0 → in_boundary_band always
-        # false → CORRECTION_MODE_ALL behaves identically to V1.
-        # Phase 6 will set NEIGHBOR_X_RANGE=2 + INTERIOR/BOUNDARY modes.
-        return [(47, 'I', mode)]
+    # ----- Per-pipeline mode entries (kernel-specific spec const overrides) ---
+
+    def _correction_mode_entries(self, mode: int) -> list[tuple[int, str, Any]]:
+        """CORRECTION_MODE (id=47) + NEIGHBOR_X_RANGE (id=82).
+        Boundary band = 2 voxels (column 0 reaches ghost; column 1 reaches
+        column 0 where migrants land after install_migration)."""
+        return [(47, 'I', mode), (82, 'I', 2)]
+
+    def _density_mode_entries(self, mode: int) -> list[tuple[int, str, Any]]:
+        """DENSITY_MODE (id=48) + NEIGHBOR_X_RANGE (id=82).
+        Boundary band = 3 voxels (= correction's 2 + 1 for neighbor reach
+        into stale-correction). Used by Path A+ density split."""
+        return [(48, 'I', mode), (82, 'I', 3)]
+
+    def _force_mode_entries(self, mode: int) -> list[tuple[int, str, Any]]:
+        """FORCE_MODE (id=49) + NEIGHBOR_X_RANGE (id=82).
+        Boundary band = 4 voxels (= density's 3 + 1 for neighbor reach into
+        stale-density). Used by Path A+ force split."""
+        return [(49, 'I', mode), (82, 'I', 4)]
 
     def _ghost_direction_entries(
         self, direction: int
@@ -859,7 +879,7 @@ class SphSimulatorV2:
         ]
 
     def _build_compute_pipelines(self) -> dict[str, object]:
-        """Build the 12 compute pipelines:
+        """Build the compute pipelines:
 
             1 × initialize_voxelization
             1 × bootstrap_half_kick
@@ -867,10 +887,20 @@ class SphSimulatorV2:
             1 × update_voxel
             2 × ghost_send (leading, trailing)
             2 × install_migrations (leading, trailing)
-            3 × correction (ALL, INTERIOR, BOUNDARY)
-            1 × density
-            1 × force
-            1 × defrag
+            3 × correction (ALL, INTERIOR, BOUNDARY)             ← V2 split
+            3 × density    (ALL, DEEP_INTERIOR, BOUNDARY)        ← Path A+ split
+            3 × force      (ALL, DEEP_INTERIOR, BOUNDARY)        ← Path A+ split
+            1 × defrag                                            (built later)
+
+        Total = 16 (+ defrag built in Section 11 = 17).
+
+        Naming convention: `<kernel>_all` for the V1-equivalent single-
+        pipeline variant (used by bootstrap + single-GPU step + dual Phase
+        C while Path A+ wiring is pending); `<kernel>_interior` and
+        `<kernel>_boundary` for correction's 2-voxel split; density and
+        force use `_deep_interior` to mark the larger boundary band
+        (3 and 4 voxels respectively, accounting for cascading neighbor
+        reach into stale-output regions).
 
         ghost_send + install_migrations are always built for BOTH directions
         even if this GPU has no peer on that side; phase A/C cmd recording
@@ -878,11 +908,12 @@ class SphSimulatorV2:
         pipelines: dict[str, object] = {}
 
         # Pipelines that only need global spec consts (and the shared 4-set
-        # pipeline layout). defrag is excluded here — it uses set 4 for its
-        # destination SoA buffers and needs a 5-set layout; built in Phase 3
-        # together with its cmd buffer.
+        # pipeline layout). These kernels don't use in_boundary_band, so they
+        # rely on the GLSL default NEIGHBOR_X_RANGE = 0u. defrag is excluded
+        # here — it uses a 5-set layout (set 4 = destination scratch SoA) and
+        # is built in Section 11 alongside its cmd buffer.
         for key in ("initialize_voxelization", "bootstrap_half_kick",
-                    "predict", "update_voxel", "density", "force"):
+                    "predict", "update_voxel"):
             pipelines[key] = self._create_pipeline(
                 shader=self.shader_modules[key],
                 entries=self._global_entries(),
@@ -902,12 +933,25 @@ class SphSimulatorV2:
                 entries=self._global_entries() + self._ghost_direction_entries(direction),
             )
 
-        # correction × 3 modes (V2 #1)
-        # mode values: 0 = ALL (v1.0 default; V1-equivalent), 1 = INTERIOR, 2 = BOUNDARY
+        # correction × 3 modes (V2 #1 — boundary band = 2 voxels)
         for mode, mode_name in ((0, "all"), (1, "interior"), (2, "boundary")):
             pipelines[f"correction_{mode_name}"] = self._create_pipeline(
                 shader=self.shader_modules["correction"],
-                entries=self._global_entries() + self._correction_mode_entry(mode),
+                entries=self._global_entries() + self._correction_mode_entries(mode),
+            )
+
+        # density × 3 modes (Path A+ — boundary band = 3 voxels)
+        for mode, mode_name in ((0, "all"), (1, "deep_interior"), (2, "boundary")):
+            pipelines[f"density_{mode_name}"] = self._create_pipeline(
+                shader=self.shader_modules["density"],
+                entries=self._global_entries() + self._density_mode_entries(mode),
+            )
+
+        # force × 3 modes (Path A+ — boundary band = 4 voxels)
+        for mode, mode_name in ((0, "all"), (1, "deep_interior"), (2, "boundary")):
+            pipelines[f"force_{mode_name}"] = self._create_pipeline(
+                shader=self.shader_modules["force"],
+                entries=self._global_entries() + self._force_mode_entries(mode),
             )
 
         print(f"[SimV2] compute pipelines: {len(pipelines)}")
@@ -1330,11 +1374,11 @@ class SphSimulatorV2:
         vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_compute_barrier(cmd)
 
-        self._bind_pipeline_and_sets(cmd, "density")
+        self._bind_pipeline_and_sets(cmd, "density_all")
         vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_density_scratch_to_primary_copy(cmd)
 
-        self._bind_pipeline_and_sets(cmd, "force")
+        self._bind_pipeline_and_sets(cmd, "force_all")
         vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_compute_barrier(cmd)
 
@@ -1636,12 +1680,12 @@ class SphSimulatorV2:
         self._record_compute_barrier(cmd)
         self._bench_tick(cmd, "c_correction_boundary_end")
 
-        self._bind_pipeline_and_sets(cmd, "density")
+        self._bind_pipeline_and_sets(cmd, "density_all")
         vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_density_scratch_to_primary_copy(cmd)
         self._bench_tick(cmd, "c_density_end")
 
-        self._bind_pipeline_and_sets(cmd, "force")
+        self._bind_pipeline_and_sets(cmd, "force_all")
         vkCmdDispatch(cmd, per_p, 1, 1)
         self._bench_tick(cmd, "c_force_end")
 
@@ -1697,19 +1741,48 @@ class SphSimulatorV2:
         self._bench_tick(cmd, "voxel_end")
         self._record_compute_barrier(cmd)
 
-        self._bind_pipeline_and_sets(cmd, "correction_all")
-        vkCmdDispatch(cmd, per_p, 1, 1)
+        if self.step_single_use_split:
+            # P3.C validation: substitute _all variants with their split
+            # equivalents. In single-GPU mode in_boundary_band always returns
+            # false (LEADING/TRAILING_GHOST_VOXEL_COUNT = 0), so:
+            #   _interior / _deep_interior cover ALL particles (identical to _all)
+            #   _boundary covers ZERO particles (every thread early-returns)
+            # Output must therefore be bit-identical to the non-split path —
+            # any divergence in alive count or per-buffer state proves a
+            # shader-side bug.
+            self._bind_pipeline_and_sets(cmd, "correction_interior")
+            vkCmdDispatch(cmd, per_p, 1, 1)
+            self._record_compute_barrier(cmd)
+            self._bind_pipeline_and_sets(cmd, "correction_boundary")
+            vkCmdDispatch(cmd, per_p, 1, 1)
+        else:
+            self._bind_pipeline_and_sets(cmd, "correction_all")
+            vkCmdDispatch(cmd, per_p, 1, 1)
         self._bench_tick(cmd, "correction_end")
         self._record_compute_barrier(cmd)
 
-        self._bind_pipeline_and_sets(cmd, "density")
-        vkCmdDispatch(cmd, per_p, 1, 1)
+        if self.step_single_use_split:
+            self._bind_pipeline_and_sets(cmd, "density_deep_interior")
+            vkCmdDispatch(cmd, per_p, 1, 1)
+            self._record_compute_barrier(cmd)
+            self._bind_pipeline_and_sets(cmd, "density_boundary")
+            vkCmdDispatch(cmd, per_p, 1, 1)
+        else:
+            self._bind_pipeline_and_sets(cmd, "density_all")
+            vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_density_scratch_to_primary_copy(cmd)
         self._bench_tick(cmd, "density_end")
         self._record_compute_barrier(cmd)
 
-        self._bind_pipeline_and_sets(cmd, "force")
-        vkCmdDispatch(cmd, per_p, 1, 1)
+        if self.step_single_use_split:
+            self._bind_pipeline_and_sets(cmd, "force_deep_interior")
+            vkCmdDispatch(cmd, per_p, 1, 1)
+            self._record_compute_barrier(cmd)
+            self._bind_pipeline_and_sets(cmd, "force_boundary")
+            vkCmdDispatch(cmd, per_p, 1, 1)
+        else:
+            self._bind_pipeline_and_sets(cmd, "force_all")
+            vkCmdDispatch(cmd, per_p, 1, 1)
         self._bench_tick(cmd, "force_end")
 
         vkEndCommandBuffer(cmd)

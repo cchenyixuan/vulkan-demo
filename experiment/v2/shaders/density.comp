@@ -81,6 +81,20 @@ void main() {
     uint  self_voxel_id          = uint(round(self_position_voxel_id.w));
     if (self_voxel_id == VOXEL_ID_DEAD) return;
 
+    // --- V2 Path A+ interior/boundary early-return ---------------------------
+    // Density's deep-interior pipeline runs in Phase B concurrently with
+    // transfer DMA (readback + worker memcpy + upload). To stay correct it
+    // skips any particle whose neighbor reach touches an OWN voxel column
+    // that correction_boundary owns (those columns' correction is still
+    // pre-install_migrations, so reading them would mix in stale data).
+    // NEIGHBOR_X_RANGE for density variants must therefore be ≥ correction's
+    // band (2) + 1 = 3 voxels (simulator overrides to 3 at pipeline build).
+    // Default DENSITY_MODE = ALL preserves V1 single-pipeline behavior.
+    ivec3 self_voxel_coord = own_coord_of(self_voxel_id);
+    bool self_in_boundary_band = in_boundary_band(self_voxel_coord);
+    if (DENSITY_MODE == PIPELINE_MODE_INTERIOR &&  self_in_boundary_band) return;
+    if (DENSITY_MODE == PIPELINE_MODE_BOUNDARY && !self_in_boundary_band) return;
+
     vec3  self_velocity = velocity_mass[self_particle_id].xyz;
     float self_density  = density_pressure[self_particle_id].x;   // ρ_n
 
@@ -102,8 +116,7 @@ void main() {
     // Corrected self density gradient (loop-invariant)
     vec3 self_corrected_density_gradient = self_correction_matrix * self_density_gradient;
 
-    // --- Decode self voxel coord ---------------------------------------------
-    ivec3 self_voxel_coord = own_coord_of(self_voxel_id);
+    // (self_voxel_coord already decoded above for boundary-band check)
 
     // --- Accumulators --------------------------------------------------------
     float density_drift     = 0.0;

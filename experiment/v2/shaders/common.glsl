@@ -40,7 +40,8 @@
 //   40 - 42  : SPH numerical parameters (ε_h², PST main, PST anti)
 //   43 - 46  : algorithm ablation toggles (KCG, density diffusion, PST, prefix-sum defrag)
 //   47       : V2 correction interior/boundary mode (CORRECTION_MODE)
-//   48 - 49  : reserved for future ablation toggles
+//   48       : V2 density    interior/boundary mode (DENSITY_MODE) — Path A+
+//   49       : V2 force      interior/boundary mode (FORCE_MODE)   — Path A+
 //   50 - 53  : capacities + workgroup size + pool size
 //   54 - 79  : reserved
 //   80 - 81  : multi-GPU leading/trailing ghost voxel counts
@@ -169,6 +170,16 @@ layout(constant_id = 46) const bool USE_PREFIX_SUM_DEFRAG = false;
 // Default CORRECTION_MODE_ALL preserves V1 behavior (no skip) for single-pipeline
 // builds — overlap=false validation runs and V1 SPV reuse both rely on this default.
 layout(constant_id = 47) const uint CORRECTION_MODE = 0u;
+
+// V2 Path A+ density interior/boundary split. Same tri-state semantics as
+// CORRECTION_MODE, applied to density.comp. Boundary band must be ≥ 3 voxels
+// (correction's 2-voxel band + 1 for neighbor reach into stale-correction).
+layout(constant_id = 48) const uint DENSITY_MODE = 0u;
+
+// V2 Path A+ force interior/boundary split. Same tri-state semantics, applied
+// to force.comp. Boundary band must be ≥ 4 voxels (density's 3-voxel band +
+// 1 for neighbor reach into stale-density).
+layout(constant_id = 49) const uint FORCE_MODE = 0u;
 // ----- end ablation toggles ------------------------------------------------
 
 // --- Capacity / dispatch ---
@@ -229,10 +240,15 @@ const uint MATERIAL_BOUNDARY = 1u;
 const uint MATERIAL_INLET    = 2u;
 const uint MATERIAL_ROTOR    = 3u;
 
-// --- V2 correction mode values (see CORRECTION_MODE spec const) ---
-const uint CORRECTION_MODE_ALL      = 0u;  // V1-equivalent: run every own particle
-const uint CORRECTION_MODE_INTERIOR = 1u;  // V2 Submit 2: skip boundary-band particles
-const uint CORRECTION_MODE_BOUNDARY = 2u;  // V2 Submit 3: skip interior particles
+// --- V2 pipeline mode values (shared by CORRECTION_MODE / DENSITY_MODE /
+//     FORCE_MODE — same tri-state semantics, applied per kernel). ---
+const uint PIPELINE_MODE_ALL      = 0u;  // V1-equivalent: run every own particle
+const uint PIPELINE_MODE_INTERIOR = 1u;  // Phase B (deep) interior: skip boundary band
+const uint PIPELINE_MODE_BOUNDARY = 2u;  // Phase C boundary: skip interior particles
+// Backward-compat aliases for correction.comp's original naming.
+const uint CORRECTION_MODE_ALL      = PIPELINE_MODE_ALL;
+const uint CORRECTION_MODE_INTERIOR = PIPELINE_MODE_INTERIOR;
+const uint CORRECTION_MODE_BOUNDARY = PIPELINE_MODE_BOUNDARY;
 
 // --- Dead / sentinel values ---
 // Convention: EVERY id in the SPH pipeline is 1-based. 0 is reserved as the

@@ -80,6 +80,19 @@ void main() {
     uint self_voxel_id          = uint(round(self_position_voxel_id.w));
     if (self_voxel_id == VOXEL_ID_DEAD) return;
 
+    // --- V2 Path A+ interior/boundary early-return ---------------------------
+    // Force's deep-interior pipeline runs in Phase B concurrently with
+    // transfer DMA. To stay correct it must skip any particle whose neighbor
+    // reach touches an OWN voxel column that density_boundary owns (those
+    // columns' density / pressure are still pre-install_migrations). The
+    // boundary band for force must therefore be ≥ density's band (3) + 1 = 4
+    // voxels (simulator overrides NEIGHBOR_X_RANGE to 4 at pipeline build).
+    // Default FORCE_MODE = ALL preserves V1 single-pipeline behavior.
+    ivec3 self_voxel_coord = own_coord_of(self_voxel_id);
+    bool self_in_boundary_band = in_boundary_band(self_voxel_coord);
+    if (FORCE_MODE == PIPELINE_MODE_INTERIOR &&  self_in_boundary_band) return;
+    if (FORCE_MODE == PIPELINE_MODE_BOUNDARY && !self_in_boundary_band) return;
+
     // --- Self velocity + mass + density + pressure ---------------------------
     // density_pressure: canonical ρ_{n+1}, P_{n+1} for OWN particles.
     // density.comp wrote to scratch; the simulator already issued
@@ -111,8 +124,7 @@ void main() {
     // Equivalent to the legacy form (kernel_sum * 4 - 3 < 0).
     bool near_surface = self_kernel_sum < 0.75;
 
-    // --- Decode self voxel coord ---------------------------------------------
-    ivec3 self_voxel_coord = own_coord_of(self_voxel_id);
+    // (self_voxel_coord already decoded above for boundary-band check)
 
     // --- Accumulators --------------------------------------------------------
     vec3 a_pressure          = vec3(0.0);

@@ -52,6 +52,12 @@ def parse_args() -> argparse.Namespace:
                    help="frames between stderr aggregate prints")
     p.add_argument("--warmup", type=int, default=50,
                    help="frames to discard before any aggregate / CSV row")
+    p.add_argument("--validate-split", action="store_true",
+                   help="P3.C: use split pipeline variants (correction_interior+"
+                        "_boundary, density_deep_interior+_boundary, force_deep_"
+                        "interior+_boundary) in place of *_all. Single-GPU mode's"
+                        " empty boundary band makes the two paths bit-equivalent;"
+                        " divergent alive / readback proves a shader bug.")
     return p.parse_args()
 
 
@@ -184,8 +190,12 @@ def main() -> int:
 
     try:
         # Single-GPU bootstrap (sim.bootstrap() asserts no peer) + record
-        # the combined step cmd buffer.
+        # the combined step cmd buffer. step_single_use_split flag selects
+        # _all vs split pipeline variants (P3.C validation harness).
         sim.bootstrap()
+        sim.step_single_use_split = args.validate_split
+        if args.validate_split:
+            print(f"[bench_v2_single] VALIDATION MODE: using split pipeline variants")
         sim.prepare_step_single_cmd_buffer()
 
         t_start = time.perf_counter()
