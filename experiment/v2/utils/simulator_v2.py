@@ -197,6 +197,19 @@ class SphSimulatorV2:
         self.phase_b_cmd: Any = None
         self.phase_c_cmd: Any = None
         self.defrag_cmd: Any = None
+        # Single-GPU baseline path: one combined cmd buffer replacing the
+        # 3-submit phase A/B/C pattern. Used only when this sim has no peer
+        # (see prepare_step_single_cmd_buffer()). Cannot coexist with the
+        # dual-GPU path on the same sim — the two recordings would clash on
+        # SIMULTANEOUS_USE replay scheduling.
+        self.step_single_cmd: Any = None
+
+        # Optional GPU-timestamp collector. Attached by the benchmark runner
+        # BEFORE prepare_step_cmd_buffers() (and BEFORE the first defrag) so
+        # that ticks get baked into the pre-recorded SIMULTANEOUS_USE cmds.
+        # When None, _bench_tick / _bench_reset_step / _bench_reset_defrag
+        # are pure no-ops; the production runner pays zero per-frame cost.
+        self.bench: Any = None
 
         self._destroyed = False
         print(f"[SimV2] init complete on {ctx.device_name} "
@@ -920,6 +933,23 @@ class SphSimulatorV2:
             raise ValueError(direction)
         return (pool + wg - 1) // wg if pool > 0 else 0
 
+    # ----- bench timestamp helpers (no-op when self.bench is None) ----------
+
+    def _bench_tick(self, cmd, label: str) -> None:
+        """Insert vkCmdWriteTimestamp into ``cmd`` if a BenchTimer is attached."""
+        if self.bench is not None:
+            self.bench.tick(cmd, label)
+
+    def _bench_reset_step(self, cmd, start_label: str) -> None:
+        """First action of phase_a_cmd: reset step query slots + first tick."""
+        if self.bench is not None:
+            self.bench.record_step_reset_and_start(cmd, start_label)
+
+    def _bench_reset_defrag(self, cmd, start_label: str) -> None:
+        """First action of defrag_cmd: reset defrag slots + defrag start tick."""
+        if self.bench is not None:
+            self.bench.record_defrag_reset_and_start(cmd, start_label)
+
     # ----- sync2 barriers ---------------------------------------------------
 
     def _record_compute_barrier(self, cmd) -> None:
@@ -1435,6 +1465,9 @@ class SphSimulatorV2:
         cmd = self._allocate_oneshot_cmd()
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
+        # Bench: phase A is the first cmd of the frame, so it owns the
+        # per-frame step-slot reset. No-op when bench is unattached.
+        self._bench_reset_step(cmd, "a_start")
         self._record_compute_barrier(cmd)
 
         per_p = self._per_own_particle_dispatch_count()
@@ -1443,12 +1476,17 @@ class SphSimulatorV2:
 
         self._bind_pipeline_and_sets(cmd, "predict")
         vkCmdDispatch(cmd, per_p, 1, 1)
+        self._bench_tick(cmd, "a_predict_end")
         self._record_compute_barrier(cmd)
 
         self._bind_pipeline_and_sets(cmd, "update_voxel")
         vkCmdDispatch(cmd, per_v, 1, 1)
+        self._bench_tick(cmd, "a_voxel_end")
 
-        # Per-direction ghost flow (skipped if this GPU has no peer on that side)
+        # Per-direction ghost flow (skipped if this GPU has no peer on that side).
+        # Three bench ticks split the block into (setup+dispatch) / (readback DMA)
+        # / (host coherence barrier) so the bench runner can pinpoint where the
+        # cross-vendor cost lives — see _run_v2_dual_bench.py output.
         for direction in ("leading", "trailing"):
             if direction not in self._transport_segments:
                 continue
@@ -1457,11 +1495,16 @@ class SphSimulatorV2:
             self._record_transfer_to_compute_barrier(cmd)
             self._bind_pipeline_and_sets(cmd, f"ghost_send_{direction}")
             vkCmdDispatch(cmd, per_yz, 1, 1)
+            # Split tick 1: after pure compute dispatch (still device-local).
+            self._bench_tick(cmd, f"a_ghost_{direction}_dispatch_end")
             self._record_compute_to_transfer_barrier(cmd)
-            # Readback: device → sender_staging
+            # Readback: device → sender_staging (the suspected NV bottleneck).
             self._record_readback_for_direction(cmd, direction)
+            # Split tick 2: after readback DMA, before the host-visibility barrier.
+            self._bench_tick(cmd, f"a_ghost_{direction}_readback_end")
             # compute→host barrier so worker's mapped read sees device writes
             self._record_compute_to_host_barrier(cmd)
+            self._bench_tick(cmd, f"a_ghost_{direction}_end")
 
         vkEndCommandBuffer(cmd)
         return cmd
@@ -1483,6 +1526,7 @@ class SphSimulatorV2:
         cmd = self._allocate_oneshot_cmd()
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
+        self._bench_tick(cmd, "b_start")
         # Entry: cross-submit memory visibility (Phase A writes → here reads)
         self._record_compute_barrier(cmd)
 
@@ -1494,6 +1538,7 @@ class SphSimulatorV2:
         # density.comp reads them. No semaphore bridges B→C, so explicit barrier
         # required (docs §5.2 step 3 — flagged 「存疑待排查」, included for safety).
         self._record_compute_barrier(cmd)
+        self._bench_tick(cmd, "b_correction_interior_end")
         vkEndCommandBuffer(cmd)
         return cmd
 
@@ -1512,19 +1557,26 @@ class SphSimulatorV2:
         cmd = self._allocate_oneshot_cmd()
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
+        self._bench_tick(cmd, "c_start")
 
         per_p = self._per_own_particle_dispatch_count()
 
-        # Per-direction upload + install_migration (skipped if no peer)
+        # Per-direction upload + install_migration (skipped if no peer).
+        # Split tick after upload DMA isolates host→device transfer cost from
+        # the install_migrations.comp dispatch — symmetric to ghost_send's
+        # readback split. See _run_v2_dual_bench.py output for derived metrics.
         for direction in ("leading", "trailing"):
             if direction not in self._transport_segments:
                 continue
             self._record_upload_for_direction(cmd, direction)
+            # Split tick: after upload DMA (host_staging → device).
+            self._bench_tick(cmd, f"c_install_{direction}_upload_end")
             self._record_transfer_to_compute_barrier(cmd)
             self._bind_pipeline_and_sets(cmd, f"install_migrations_{direction}")
             per_ghost_pid = self._per_ghost_pid_dispatch_count(direction)
             vkCmdDispatch(cmd, per_ghost_pid, 1, 1)
             self._record_compute_barrier(cmd)
+            self._bench_tick(cmd, f"c_install_{direction}_end")
 
         # Correction on boundary band only (interior was covered by Phase B).
         # Includes any new migrants installed above (they land in boundary
@@ -1532,13 +1584,16 @@ class SphSimulatorV2:
         self._bind_pipeline_and_sets(cmd, "correction_boundary")
         vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_compute_barrier(cmd)
+        self._bench_tick(cmd, "c_correction_boundary_end")
 
         self._bind_pipeline_and_sets(cmd, "density")
         vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_density_scratch_to_primary_copy(cmd)
+        self._bench_tick(cmd, "c_density_end")
 
         self._bind_pipeline_and_sets(cmd, "force")
         vkCmdDispatch(cmd, per_p, 1, 1)
+        self._bench_tick(cmd, "c_force_end")
 
         vkEndCommandBuffer(cmd)
         return cmd
@@ -1556,6 +1611,88 @@ class SphSimulatorV2:
         self.phase_b_cmd = self._record_phase_b_cmd()
         self.phase_c_cmd = self._record_phase_c_cmd()
         print(f"[SimV2] step cmd buffers recorded (phase A/B/C)")
+
+    def _record_step_single_cmd(self):
+        """Single-GPU combined cmd: predict + update_voxel + correction_all
+        + density + force. No ghost flow, no timeline semaphores — caller
+        submits with a plain fence wait per frame.
+
+        Skips ghost_send and install_migrations because they are cross-GPU
+        exclusive: no peer means nothing to replicate and nothing to install
+        (predict's drift-to-ghost branch never fires when both ghost x
+        thicknesses are 0; particles that leave the domain hit !in_own_grid
+        and are killed locally). Uses correction_all instead of the
+        interior/boundary split because there is no sync window to hide and
+        in_boundary_band is empty when both ghost pools = 0 (split would
+        run interior over all particles + boundary as a per-particle
+        early-return no-op, equivalent but with one extra dispatch)."""
+        cmd = self._allocate_oneshot_cmd()
+        vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
+            flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
+        # Bench: this is the only step cmd on this path, so it owns the
+        # per-frame step-slot reset. No-op when bench is unattached.
+        self._bench_reset_step(cmd, "step_start")
+        self._record_compute_barrier(cmd)
+
+        per_p = self._per_own_particle_dispatch_count()
+        per_v = self._per_extended_voxel_dispatch_count()
+
+        self._bind_pipeline_and_sets(cmd, "predict")
+        vkCmdDispatch(cmd, per_p, 1, 1)
+        self._bench_tick(cmd, "predict_end")
+        self._record_compute_barrier(cmd)
+
+        self._bind_pipeline_and_sets(cmd, "update_voxel")
+        vkCmdDispatch(cmd, per_v, 1, 1)
+        self._bench_tick(cmd, "voxel_end")
+        self._record_compute_barrier(cmd)
+
+        self._bind_pipeline_and_sets(cmd, "correction_all")
+        vkCmdDispatch(cmd, per_p, 1, 1)
+        self._bench_tick(cmd, "correction_end")
+        self._record_compute_barrier(cmd)
+
+        self._bind_pipeline_and_sets(cmd, "density")
+        vkCmdDispatch(cmd, per_p, 1, 1)
+        self._record_density_scratch_to_primary_copy(cmd)
+        self._bench_tick(cmd, "density_end")
+        self._record_compute_barrier(cmd)
+
+        self._bind_pipeline_and_sets(cmd, "force")
+        vkCmdDispatch(cmd, per_p, 1, 1)
+        self._bench_tick(cmd, "force_end")
+
+        vkEndCommandBuffer(cmd)
+        return cmd
+
+    def prepare_step_single_cmd_buffer(self) -> None:
+        """Record the single-GPU combined step cmd buffer once. Caller invokes
+        after bootstrap. Mutually exclusive with prepare_step_cmd_buffers()
+        — the dual-GPU 3-submit path requires this sim to have at least one
+        peer direction, which conflicts with the single-GPU assumption."""
+        if self._transport_segments:
+            raise RuntimeError(
+                "prepare_step_single_cmd_buffer() requires a no-peer sim; "
+                "this sim has transport segments for "
+                f"{sorted(self._transport_segments)}. Use "
+                "prepare_step_cmd_buffers() (dual-GPU 3-submit path) instead.")
+        device = self.ctx.device
+        pool = self.ctx.command_pool
+        if self.step_single_cmd is not None:
+            vkFreeCommandBuffers(device, pool, 1, [self.step_single_cmd])
+        self.step_single_cmd = self._record_step_single_cmd()
+        print(f"[SimV2] step cmd buffer recorded (single-GPU combined)")
+
+    def submit_step_single_and_wait(self) -> None:
+        """Submit the single-GPU step cmd buffer and block on its fence.
+        One submit + one wait per frame — no timeline semaphores, no peer
+        sync. Used by _run_v2_single_bench.py and any future single-GPU
+        runner."""
+        if self.step_single_cmd is None:
+            raise RuntimeError(
+                "step_single_cmd not recorded; "
+                "call prepare_step_single_cmd_buffer()")
+        self.ctx.submit_and_wait(self.step_single_cmd)
 
     # ----- sync2 timeline submit / wait / host signal -----------------------
 
@@ -1757,6 +1894,10 @@ class SphSimulatorV2:
         cmd = self._allocate_oneshot_cmd()
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
+        # Bench: defrag owns its own slot-range reset (the step reset in
+        # phase_a_cmd doesn't cover defrag slots — defrag may not run that
+        # frame, and we don't want stale defrag readings).
+        self._bench_reset_defrag(cmd, "defrag_start")
         self._record_compute_barrier(cmd)
 
         # 1. Reset scratch counter
@@ -1822,6 +1963,7 @@ class SphSimulatorV2:
 
         # 8. transfer→compute (next step's predict reads set 0)
         self._record_transfer_to_compute_barrier(cmd)
+        self._bench_tick(cmd, "defrag_end")
 
         vkEndCommandBuffer(cmd)
         return cmd
