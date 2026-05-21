@@ -545,13 +545,32 @@ class SphSimulatorV2:
 
     def _allocate_staging_buffers(self) -> dict[str, _Buffer]:
         """Per-direction host-visible stagings (sender CACHED, receiver COHERENT)
-        — see docs/sph_v2_design.md §14.5. Persistent-mapped at construction."""
+        — see docs/sph_v2_design.md §14.5. Persistent-mapped at construction.
+
+        Diagnostic print below shows the actual memory type the driver
+        picked for sender and receiver, including whether DEVICE_LOCAL
+        was granted (ReBAR-style VRAM exposed to CPU). Useful for
+        future memory-type experiments.
+
+        Attempted optimization 2026-05-21 (experiment B3): preferring
+        DEVICE_LOCAL for sender and/or receiver. Result: receiver-as-
+        ReBAR cut NV's install upload DMA 556→23 µs (24× faster) BUT
+        broke worker memcpy — CPU write to ReBAR via numpy[:] runs at
+        ~2.3 GB/s (vs theoretical 12 GB/s WC), so worker time grew
+        220→1384 µs and stopped fitting inside correction_interior →
+        sync hiding collapsed → net fps 228→175 (-23%). Sender-as-
+        ReBAR was worse (CPU read of ReBAR is uncached PCIe BAR at
+        ~10 MB/s, fps 228→2.7). The worker-bridge architecture
+        requires sender_staging in cached host RAM, full stop.
+        Real fix requires moving the worker memcpy off the CPU
+        (Path A: cross-queue device→device transfer)."""
         case = self.case
         sender_required = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
                            | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
         sender_preferred = VK_MEMORY_PROPERTY_HOST_CACHED_BIT
         receiver_required = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
                              | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+        receiver_preferred = 0
         usage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT
                  | VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
 
@@ -579,15 +598,46 @@ class SphSimulatorV2:
             sender_buf.mapped_view = np.frombuffer(mapped, dtype=np.uint8, count=total)
             stagings[f"sender_staging_{direction_name}"] = sender_buf
 
-            recv_buf = self._allocate_buffer(total, usage, receiver_required)
+            recv_buf = self._allocate_buffer(
+                total, usage, receiver_required, receiver_preferred)
             mapped_r = vkMapMemory(self.ctx.device, recv_buf.memory, 0, total, 0)
             recv_buf.mapped = mapped_r
             recv_buf.mapped_view = np.frombuffer(mapped_r, dtype=np.uint8, count=total)
             stagings[f"receiver_staging_{direction_name}"] = recv_buf
 
         total_bytes = sum(b.size for b in stagings.values())
-        print(f"[SimV2] host staging buffers: {len(stagings)}, "
-              f"{total_bytes / 1024:.1f} KB (persistent-mapped)")
+        # Diagnostic: re-query the chosen memory type for one sender and one
+        # receiver buffer. Sender and receiver have asymmetric preferred
+        # properties (see docstring), so we report both. Same args →
+        # find_memory_type returns the same index as the actual allocation.
+        if stagings:
+            def _flag_str(flags: int) -> str:
+                names = []
+                for bit, name in (
+                    (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,  "DEVICE_LOCAL"),
+                    (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,  "HOST_VISIBLE"),
+                    (VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, "HOST_COHERENT"),
+                    (VK_MEMORY_PROPERTY_HOST_CACHED_BIT,   "HOST_CACHED"),
+                ):
+                    if flags & bit:
+                        names.append(name)
+                return "|".join(names) if names else "(none)"
+
+            def _probe(buf, required, preferred) -> str:
+                reqs = vkGetBufferMemoryRequirements(self.ctx.device, buf.handle)
+                idx = self.ctx.find_memory_type(reqs.memoryTypeBits, required, preferred)
+                flags = self.ctx._memory_properties.memoryTypes[idx].propertyFlags
+                rebar = "[OK ReBAR]" if (flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) else "[host RAM]"
+                return f"type[{idx}]={_flag_str(flags)} {rebar}"
+
+            sender_example = next(b for k, b in stagings.items() if k.startswith("sender_"))
+            recv_example   = next(b for k, b in stagings.items() if k.startswith("receiver_"))
+            print(f"[SimV2] host staging buffers: {len(stagings)}, "
+                  f"{total_bytes / 1024:.1f} KB (persistent-mapped)")
+            print(f"  sender   {_probe(sender_example, sender_required, sender_preferred)}")
+            print(f"  receiver {_probe(recv_example, receiver_required, receiver_preferred)}")
+        else:
+            print(f"[SimV2] host staging buffers: 0 (single-GPU mode, no peer)")
         return stagings
 
     # ========================================================================
