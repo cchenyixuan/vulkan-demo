@@ -90,6 +90,38 @@ _OFFSET_GHOST_RECV_LEADING   = 40   # field [10]
 _OFFSET_GHOST_RECV_TRAILING  = 44   # field [11]
 
 
+# Path A+ (P2): buffer names that participate in cross-GPU transport and
+# therefore must be created with SHARING_MODE_CONCURRENT across the compute
+# and transfer queue families. Without this, vkCmdCopyBuffer on the transfer
+# queue would require explicit queue family ownership transfer barriers in
+# every readback / upload cmd buffer (~24 barriers per direction per frame).
+# CONCURRENT trades a small driver-side optimization (~3-5% theoretical
+# overhead, in practice within noise on our test setup) for skipping all
+# that synchronization plumbing.
+#
+# Same name set as TRANSPORT_SET0_BINDINGS + set 1 inside_particle_count/
+# index + set 3 global_status (the 12 segments listed in _compute_transport_
+# segments). All other buffers stay SHARING_MODE_EXCLUSIVE (compute-queue-
+# only).
+_CONCURRENT_BUFFER_NAMES = frozenset({
+    # Set 0 SoA (9)
+    "position_voxel_id",
+    "density_pressure",
+    "velocity_mass",
+    "acceleration",
+    "shift",
+    "material",
+    "correction_inverse",
+    "density_gradient_kernel_sum",
+    "extension_fields",
+    # Set 1 (2)
+    "inside_particle_count",
+    "inside_particle_index",
+    # Set 3 (1)
+    "global_status",
+})
+
+
 @dataclass
 class _TransportSegment:
     """One vkCmdCopyBuffer region for ghost transport.
@@ -197,6 +229,15 @@ class SphSimulatorV2:
         self.phase_b_cmd: Any = None
         self.phase_c_cmd: Any = None
         self.defrag_cmd: Any = None
+        # Path A+ (P4): per-direction transfer queue cmd buffers. Allocated
+        # from ctx.transfer_command_pool and submitted on ctx.transfer_queue.
+        # Each readback cmd runs in parallel with Phase B (correction_interior
+        # + density_deep_interior) on the compute queue; each upload cmd runs
+        # in parallel with Phase B's tail end (after worker memcpy) before
+        # Phase C starts. Maps {direction → cmd}; only the directions in
+        # _transport_segments have entries.
+        self.transfer_readback_cmds: dict[str, Any] = {}
+        self.transfer_upload_cmds: dict[str, Any] = {}
         # Single-GPU baseline path: one combined cmd buffer replacing the
         # 3-submit phase A/B/C pattern. Used only when this sim has no peer
         # (see prepare_step_single_cmd_buffer()). Cannot coexist with the
@@ -233,9 +274,18 @@ class SphSimulatorV2:
         # cmd buffers (only if Phase 3 recorded them)
         cmd_pool = self.ctx.command_pool
         for cmd in (self.phase_a_cmd, self.phase_b_cmd,
-                    self.phase_c_cmd, self.defrag_cmd):
+                    self.phase_c_cmd, self.defrag_cmd, self.step_single_cmd):
             if cmd is not None:
                 vkFreeCommandBuffers(device, cmd_pool, 1, [cmd])
+
+        # Path A+ transfer queue cmd buffers (P4)
+        transfer_pool = self.ctx.transfer_command_pool
+        for cmd in list(self.transfer_readback_cmds.values()):
+            vkFreeCommandBuffers(device, transfer_pool, 1, [cmd])
+        for cmd in list(self.transfer_upload_cmds.values()):
+            vkFreeCommandBuffers(device, transfer_pool, 1, [cmd])
+        self.transfer_readback_cmds = {}
+        self.transfer_upload_cmds = {}
 
         if self.timeline is not None:
             vkDestroySemaphore(device, self.timeline, None)
@@ -299,15 +349,43 @@ class SphSimulatorV2:
     # ========================================================================
     # Timeline value source (public; workers + instrumentation read these)
     # ========================================================================
+    #
+    # Path A+ 5N timeline (one semaphore per sim, advances 5 values per frame):
+    #
+    #   5N+1  phase_a_done            compute Q signals at end of Phase A
+    #                                 (predict + update_voxel + ghost_send only)
+    #   5N+2  readback_done           transfer Q signals after device→sender_
+    #                                 staging DMA + host coherence barrier
+    #   5N+3  worker_done             worker host-signals after CPU memcpy
+    #                                 (source.sender_staging → dest.receiver_staging)
+    #   5N+4  upload_done             transfer Q signals after receiver_staging→
+    #                                 device DMA
+    #   5N+5  frame_done              compute Q signals at end of Phase C
+    #
+    # See docs/sph_v2_design.md §6 (Path A+ overhaul) for the rationale and
+    # parallelism diagram. Transition from V2.0's 3N timeline (which had only
+    # 3N+1 / 3N+2 / 3N+3) → 5N preserves all the same monotonic orderings,
+    # just inserts the new transfer-queue events between phase boundaries.
 
     def value_phase_a_done(self, frame_n: int) -> int:
-        return 3 * frame_n + 1
+        return 5 * frame_n + 1
 
-    def value_cpu_sync_done(self, frame_n: int) -> int:
-        return 3 * frame_n + 2
+    def value_readback_done(self, frame_n: int) -> int:
+        """Transfer queue signals this after device→sender_staging readback DMA."""
+        return 5 * frame_n + 2
+
+    def value_worker_done(self, frame_n: int) -> int:
+        """Worker host-signals this after CPU memcpy completes. (Replaces V2.0's
+        value_cpu_sync_done — same semantic role, renamed to match the 5N layout
+        and to reflect that the work it gates is CPU-memcpy, not arbitrary 'sync'.)"""
+        return 5 * frame_n + 3
+
+    def value_upload_done(self, frame_n: int) -> int:
+        """Transfer queue signals this after receiver_staging→device upload DMA."""
+        return 5 * frame_n + 4
 
     def value_frame_done(self, frame_n: int) -> int:
-        return 3 * frame_n + 3
+        return 5 * frame_n + 5
 
     def current_timeline_value(self) -> int:
         return vkGetSemaphoreCounterValue(self.ctx.device, self.timeline)
@@ -433,11 +511,40 @@ class SphSimulatorV2:
         usage: int,
         required_properties: int,
         preferred_properties: int = 0,
+        shared_with_transfer: bool = False,
     ) -> _Buffer:
+        """Allocate a device-local buffer.
+
+        ``shared_with_transfer=True`` selects SHARING_MODE_CONCURRENT with
+        both the compute and transfer queue family indices. Required for
+        any buffer that the Path A+ transfer queue will vkCmdCopyBuffer
+        (read or write). When the transfer family equals the compute family
+        (fallback path in VulkanContextV2), CONCURRENT degenerates to a
+        single-family case and the driver should treat it like EXCLUSIVE
+        with no penalty.
+        """
         if size == 0:
             raise ValueError("buffer size must be > 0")
-        bci = VkBufferCreateInfo(
-            size=size, usage=usage, sharingMode=VK_SHARING_MODE_EXCLUSIVE)
+        if (shared_with_transfer
+                and self.ctx.transfer_queue_family_index
+                    != self.ctx.compute_queue_family_index):
+            family_indices = [
+                self.ctx.compute_queue_family_index,
+                self.ctx.transfer_queue_family_index,
+            ]
+            bci = VkBufferCreateInfo(
+                size=size, usage=usage,
+                sharingMode=VK_SHARING_MODE_CONCURRENT,
+                queueFamilyIndexCount=len(family_indices),
+                pQueueFamilyIndices=family_indices,
+            )
+        else:
+            # EXCLUSIVE = single-queue-family ownership; no penalty if the
+            # transfer family is the same as compute (no real cross-queue
+            # access anyway).
+            bci = VkBufferCreateInfo(
+                size=size, usage=usage,
+                sharingMode=VK_SHARING_MODE_EXCLUSIVE)
         handle = vkCreateBuffer(self.ctx.device, bci, None)
         reqs = vkGetBufferMemoryRequirements(self.ctx.device, handle)
         type_index = self.ctx.find_memory_type(
@@ -451,14 +558,20 @@ class SphSimulatorV2:
     def _allocate_buffers(self) -> dict[str, _Buffer]:
         buffers: dict[str, _Buffer] = {}
         total = 0
+        concurrent_count = 0
         for spec in self._buffer_specs:
+            shared = spec.name in _CONCURRENT_BUFFER_NAMES
             buffers[spec.name] = self._allocate_buffer(
                 spec.size, spec.usage,
                 required_properties=VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                shared_with_transfer=shared,
             )
             total += spec.size
+            if shared:
+                concurrent_count += 1
         print(f"[SimV2] device-local buffers: {len(buffers)}, "
-              f"{total / (1024 * 1024):.2f} MB")
+              f"{total / (1024 * 1024):.2f} MB "
+              f"({concurrent_count} CONCURRENT for transfer queue)")
         return buffers
 
     def _allocate_scratch_buffers(self) -> dict[str, _Buffer]:
@@ -996,6 +1109,18 @@ class SphSimulatorV2:
     def _allocate_oneshot_cmd(self):
         info = VkCommandBufferAllocateInfo(
             commandPool=self.ctx.command_pool,
+            level=VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            commandBufferCount=1,
+        )
+        return vkAllocateCommandBuffers(self.ctx.device, info)[0]
+
+    def _allocate_transfer_oneshot_cmd(self):
+        """Allocate a cmd buffer from ctx.transfer_command_pool — required for
+        cmd buffers that get submitted on ctx.transfer_queue (Vulkan binds
+        a pool to a specific queue family at creation). Used by Path A+
+        readback / upload cmds."""
+        info = VkCommandBufferAllocateInfo(
+            commandPool=self.ctx.transfer_command_pool,
             level=VK_COMMAND_BUFFER_LEVEL_PRIMARY,
             commandBufferCount=1,
         )
@@ -1578,9 +1703,12 @@ class SphSimulatorV2:
         self._bench_tick(cmd, "a_voxel_end")
 
         # Per-direction ghost flow (skipped if this GPU has no peer on that side).
-        # Three bench ticks split the block into (setup+dispatch) / (readback DMA)
-        # / (host coherence barrier) so the bench runner can pinpoint where the
-        # cross-vendor cost lives — see _run_v2_dual_bench.py output.
+        # Path A+: ghost_send.comp dispatch only. The readback DMA + host
+        # coherence barrier have been MOVED to the transfer queue (see
+        # _record_transfer_readback_cmd). Phase A signal 5N+1 marks "ghost_send
+        # has written device buffers"; the transfer queue waits for 5N+1, then
+        # runs the readback DMA in parallel with Phase B (correction_interior +
+        # density_deep_interior) on the compute queue.
         for direction in ("leading", "trailing"):
             if direction not in self._transport_segments:
                 continue
@@ -1589,34 +1717,34 @@ class SphSimulatorV2:
             self._record_transfer_to_compute_barrier(cmd)
             self._bind_pipeline_and_sets(cmd, f"ghost_send_{direction}")
             vkCmdDispatch(cmd, per_yz, 1, 1)
-            # Split tick 1: after pure compute dispatch (still device-local).
-            self._bench_tick(cmd, f"a_ghost_{direction}_dispatch_end")
-            self._record_compute_to_transfer_barrier(cmd)
-            # Readback: device → sender_staging (the suspected NV bottleneck).
-            self._record_readback_for_direction(cmd, direction)
-            # Split tick 2: after readback DMA, before the host-visibility barrier.
-            self._bench_tick(cmd, f"a_ghost_{direction}_readback_end")
-            # compute→host barrier so worker's mapped read sees device writes
-            self._record_compute_to_host_barrier(cmd)
             self._bench_tick(cmd, f"a_ghost_{direction}_end")
 
         vkEndCommandBuffer(cmd)
         return cmd
 
     def _record_phase_b_cmd(self):
-        """V2 Phase B: correction(INTERIOR) over own pid range. Interior
-        particles' support radius does NOT touch the ghost zone (by definition
-        of NEIGHBOR_X_RANGE band), so they can safely read the ghost-vid
-        inside_particle_index even though it still holds Phase A's ghost_send-
-        written peer-frame pid scratch values — interior just never queries
-        it. Boundary particles early-return in this kernel (CORRECTION_MODE_
-        INTERIOR + in_boundary_band(coord)=true).
+        """V2 Path A+ Phase B: correction_interior + density_deep_interior over
+        own pid range. Both kernels skip their respective boundary bands
+        (correction: 2-voxel band; density_deep: 3-voxel band) so they only
+        touch particles whose neighbor support is entirely within "interior"
+        own particles whose data is valid for this frame.
 
-        Runs concurrently with the CPU sync window (worker memcpy). After
-        Phase B's exit barrier, Phase C density/force reads correction_inverse
-        writes (which only cover interior pids; boundary pids get filled by
-        correction_boundary in Phase C). See docs/sph_v2_design.md §5.2 + §7.
-        """
+        Runs in parallel with the transfer chain on the transfer queue
+        (readback DMA + worker memcpy + upload DMA). Phase B's total work
+        must be ≥ transfer chain length to fully hide it — on cross-vendor
+        cavity 1M, Phase B ≈ 1.9 ms vs transfer chain ≈ 1.3 ms, so fully
+        hidden. See docs/sph_v2_design.md Path A+ section for the cascading-
+        split data dependency analysis.
+
+        density_deep_interior writes density_pressure_scratch[deep_interior
+        pids]; the scratch→primary copy is deferred until Phase C (after
+        density_boundary also writes its scratch slice). This means the
+        primary density_pressure buffer holds previous-frame values during
+        Phase B — that's fine because Phase B's only consumer of density is
+        density_deep_interior itself, which reads primary for ρ_n (the
+        SPH continuity equation uses LAST-frame density). force_deep_interior
+        would need to read scratch (this frame's value); since we don't
+        cascade force in this design, this is a non-issue."""
         cmd = self._allocate_oneshot_cmd()
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
@@ -1625,14 +1753,24 @@ class SphSimulatorV2:
         self._record_compute_barrier(cmd)
 
         per_p = self._per_own_particle_dispatch_count()
+
         self._bind_pipeline_and_sets(cmd, "correction_interior")
         vkCmdDispatch(cmd, per_p, 1, 1)
-
-        # Exit: Phase B writes correction_inverse for interior pids; Phase C's
-        # density.comp reads them. No semaphore bridges B→C, so explicit barrier
-        # required (docs §5.2 step 3 — flagged 「存疑待排查」, included for safety).
+        # Barrier between correction_interior and density_deep_interior:
+        # density reads correction_inverse just written.
         self._record_compute_barrier(cmd)
         self._bench_tick(cmd, "b_correction_interior_end")
+
+        # Path A+ P5: density_deep_interior in Phase B. Boundary band = 3
+        # voxels (correction's 2 + 1 for neighbor reach). Writes to scratch;
+        # scratch→primary copy happens in Phase C after density_boundary.
+        self._bind_pipeline_and_sets(cmd, "density_deep_interior")
+        vkCmdDispatch(cmd, per_p, 1, 1)
+        # Exit barrier — Phase C's density_boundary reads scratch, force_all
+        # reads primary (after copy). Cross-submit visibility required.
+        self._record_compute_barrier(cmd)
+        self._bench_tick(cmd, "b_density_deep_interior_end")
+
         vkEndCommandBuffer(cmd)
         return cmd
 
@@ -1655,16 +1793,18 @@ class SphSimulatorV2:
 
         per_p = self._per_own_particle_dispatch_count()
 
-        # Per-direction upload + install_migration (skipped if no peer).
-        # Split tick after upload DMA isolates host→device transfer cost from
-        # the install_migrations.comp dispatch — symmetric to ghost_send's
-        # readback split. See _run_v2_dual_bench.py output for derived metrics.
+        # Per-direction install_migration (skipped if no peer). Path A+:
+        # upload DMA has been MOVED to the transfer queue (see
+        # _record_transfer_upload_cmd). Phase C's wait on 5N+4 (upload_done)
+        # guarantees receiver_staging→device DMA is complete before install
+        # starts, so install can read the ghost-pid range directly.
         for direction in ("leading", "trailing"):
             if direction not in self._transport_segments:
                 continue
-            self._record_upload_for_direction(cmd, direction)
-            # Split tick: after upload DMA (host_staging → device).
-            self._bench_tick(cmd, f"c_install_{direction}_upload_end")
+            # Cross-queue handover barrier: transfer queue wrote our ghost-
+            # pid SoA via vkCmdCopyBuffer; we now read it via install_
+            # migrations.comp. CONCURRENT sharing (P2) means no queue family
+            # ownership transfer needed, but visibility barrier still required.
             self._record_transfer_to_compute_barrier(cmd)
             self._bind_pipeline_and_sets(cmd, f"install_migrations_{direction}")
             per_ghost_pid = self._per_ghost_pid_dispatch_count(direction)
@@ -1680,7 +1820,12 @@ class SphSimulatorV2:
         self._record_compute_barrier(cmd)
         self._bench_tick(cmd, "c_correction_boundary_end")
 
-        self._bind_pipeline_and_sets(cmd, "density_all")
+        # Path A+ P5: density_boundary covers only the 3-voxel boundary band;
+        # density_deep_interior in Phase B already wrote scratch[deep_interior
+        # pids]. Together they cover the full own pid range. The scratch→primary
+        # copy below transfers the union to primary in one shot, so force_all
+        # below reads fresh ρ_{n+1} for every neighbor.
+        self._bind_pipeline_and_sets(cmd, "density_boundary")
         vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_density_scratch_to_primary_copy(cmd)
         self._bench_tick(cmd, "c_density_end")
@@ -1692,19 +1837,72 @@ class SphSimulatorV2:
         vkEndCommandBuffer(cmd)
         return cmd
 
+    def _record_transfer_readback_cmd(self, direction: str):
+        """Path A+ transfer queue cmd: device→sender_staging DMA + host
+        coherence barrier for one direction. Submitted on ctx.transfer_queue
+        in parallel with Phase B on the compute queue.
+
+        SIMULTANEOUS_USE so the same cmd can be in flight across frames if
+        we ever go to depth>1 (current depth=1 still benefits from skipping
+        per-frame re-recording)."""
+        cmd = self._allocate_transfer_oneshot_cmd()
+        vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
+            flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
+        # Note: no compute→transfer barrier needed here. The 5N+1 timeline
+        # wait already ensures ghost_send.comp's writes have happened-before
+        # this submit; CONCURRENT buffer sharing (P2) eliminates the queue
+        # family ownership transfer cost.
+        self._record_readback_for_direction(cmd, direction)
+        # Compute→host barrier so worker's CPU read sees the just-written
+        # sender_staging bytes. Issued on transfer queue (legal — barriers
+        # can be issued on any queue including transfer).
+        self._record_compute_to_host_barrier(cmd)
+        vkEndCommandBuffer(cmd)
+        return cmd
+
+    def _record_transfer_upload_cmd(self, direction: str):
+        """Path A+ transfer queue cmd: receiver_staging→device DMA for one
+        direction. Submitted on ctx.transfer_queue after worker host-signal
+        5N+3 (worker memcpy done). Phase C waits for 5N+4 (signal at end of
+        this cmd) before install_migrations dispatches."""
+        cmd = self._allocate_transfer_oneshot_cmd()
+        vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
+            flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
+        self._record_upload_for_direction(cmd, direction)
+        vkEndCommandBuffer(cmd)
+        return cmd
+
     def prepare_step_cmd_buffers(self) -> None:
-        """Record phase A/B/C cmd buffers once. Caller invokes after bootstrap.
-        Re-call to re-record (e.g. when switching CORRECTION_MODE_ALL → split
-        in Phase 6)."""
+        """Record phase A/B/C cmd buffers + Path A+ transfer queue cmd
+        buffers once. Caller invokes after bootstrap. Re-call to re-record
+        (e.g. when switching CORRECTION_MODE_ALL → split in Phase 6)."""
         device = self.ctx.device
         pool = self.ctx.command_pool
         for old in (self.phase_a_cmd, self.phase_b_cmd, self.phase_c_cmd):
             if old is not None:
                 vkFreeCommandBuffers(device, pool, 1, [old])
+        for direction, old in list(self.transfer_readback_cmds.items()):
+            vkFreeCommandBuffers(
+                device, self.ctx.transfer_command_pool, 1, [old])
+        for direction, old in list(self.transfer_upload_cmds.items()):
+            vkFreeCommandBuffers(
+                device, self.ctx.transfer_command_pool, 1, [old])
+        self.transfer_readback_cmds = {}
+        self.transfer_upload_cmds = {}
+
         self.phase_a_cmd = self._record_phase_a_cmd()
         self.phase_b_cmd = self._record_phase_b_cmd()
         self.phase_c_cmd = self._record_phase_c_cmd()
-        print(f"[SimV2] step cmd buffers recorded (phase A/B/C)")
+
+        for direction in self._transport_segments:
+            self.transfer_readback_cmds[direction] = (
+                self._record_transfer_readback_cmd(direction))
+            self.transfer_upload_cmds[direction] = (
+                self._record_transfer_upload_cmd(direction))
+
+        n_dir = len(self._transport_segments)
+        print(f"[SimV2] step cmd buffers recorded "
+              f"(phase A/B/C + {n_dir} readback + {n_dir} upload on transfer Q)")
 
     def _record_step_single_cmd(self):
         """Single-GPU combined cmd: predict + update_voxel + correction_all
@@ -1826,7 +2024,15 @@ class SphSimulatorV2:
         wait_value: Optional[int],
         signal_value: Optional[int],
         wait_stage: int = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+        queue: Optional[object] = None,
+        signal_stage: int = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
     ) -> None:
+        """Submit ``cmd`` with timeline-semaphore wait/signal. Defaults to
+        compute_queue + compute_shader stage mask; pass ``queue=ctx.transfer_
+        queue`` + ``wait_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT`` for
+        Path A+ readback/upload submits on the transfer queue."""
+        if queue is None:
+            queue = self.ctx.compute_queue
         wait_infos = []
         if wait_value is not None:
             wait_infos.append(VkSemaphoreSubmitInfo(
@@ -1841,7 +2047,7 @@ class SphSimulatorV2:
                 sType=VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
                 semaphore=self.timeline,
                 value=signal_value,
-                stageMask=VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                stageMask=signal_stage,
             ))
         cmd_info = VkCommandBufferSubmitInfo(
             sType=VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
@@ -1856,7 +2062,7 @@ class SphSimulatorV2:
             signalSemaphoreInfoCount=len(signal_infos),
             pSignalSemaphoreInfos=signal_infos if signal_infos else None,
         )
-        vkQueueSubmit2(self.ctx.compute_queue, 1, [submit_info], VK_NULL_HANDLE)
+        vkQueueSubmit2(queue, 1, [submit_info], VK_NULL_HANDLE)
 
     def wait_timeline(self, value: int, timeout_ns: int = 0xFFFFFFFFFFFFFFFF) -> bool:
         """vkWaitSemaphores with optional timeout. Default INFINITE.
@@ -1895,6 +2101,8 @@ class SphSimulatorV2:
     # ----- High-level frame API (replaces earlier stubs) --------------------
 
     def submit_phase_a(self, frame_n: int) -> None:
+        """Compute Q: predict + update_voxel + ghost_send. Signals 5N+1.
+        Waits for previous frame's frame_done (5(N-1)+5)."""
         if self.phase_a_cmd is None:
             raise RuntimeError("phase_a_cmd not recorded; call prepare_step_cmd_buffers()")
         wait_value = (self.value_frame_done(frame_n - 1) if frame_n > 0 else 0)
@@ -1905,19 +2113,86 @@ class SphSimulatorV2:
         )
 
     def submit_phase_b(self, frame_n: int) -> None:
-        # Queue-ordered after phase A on same queue; no semaphore wait/signal.
+        """Compute Q: correction_interior (+ density_deep_interior in P5).
+        Queue-ordered after phase A on compute queue; no semaphore wait/signal.
+        Runs in parallel with transfer Q's readback + worker memcpy + upload."""
         if self.phase_b_cmd is None:
             raise RuntimeError("phase_b_cmd not recorded; call prepare_step_cmd_buffers()")
         self.submit_with_timeline(
             self.phase_b_cmd, wait_value=None, signal_value=None)
 
     def submit_phase_c(self, frame_n: int) -> None:
+        """Compute Q: install + correction_boundary + density_all + copy + force.
+        Waits for 5N+4 (upload_done from transfer Q). Signals 5N+5 (frame_done)."""
         if self.phase_c_cmd is None:
             raise RuntimeError("phase_c_cmd not recorded; call prepare_step_cmd_buffers()")
+        # If this sim has no peer, there's no upload to wait for. Wait on
+        # phase_a_done (5N+1) instead — queue-ordered guarantees Phase B is
+        # done by the time the wait could even matter; we just need a valid
+        # wait value that's monotonically advancing.
+        wait_value = (self.value_upload_done(frame_n)
+                      if self._transport_segments
+                      else self.value_phase_a_done(frame_n))
         self.submit_with_timeline(
             self.phase_c_cmd,
-            wait_value=self.value_cpu_sync_done(frame_n),
+            wait_value=wait_value,
             signal_value=self.value_frame_done(frame_n),
+        )
+
+    def submit_transfer_readback(self, frame_n: int) -> None:
+        """Transfer Q: device→sender_staging DMA for all active directions.
+        Each direction's cmd waits 5N+1 (phase A done) and signals 5N+2
+        (readback done). All directions share the same timeline value;
+        execution is serial within the transfer queue (queue FIFO), so
+        the LAST submitted direction's signal effectively governs 5N+2.
+        No-op when this sim has no peer (single-GPU-style slab)."""
+        if not self.transfer_readback_cmds:
+            # No peers → no readback. Worker won't wait on this either.
+            return
+        directions = list(self.transfer_readback_cmds)
+        # All but the last: wait only (no signal), so the timeline only
+        # advances once all readbacks are complete.
+        for direction in directions[:-1]:
+            self.submit_with_timeline(
+                self.transfer_readback_cmds[direction],
+                wait_value=self.value_phase_a_done(frame_n),
+                signal_value=None,
+                wait_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
+                queue=self.ctx.transfer_queue,
+            )
+        # Last cmd: signals 5N+2 (readback done across all directions).
+        self.submit_with_timeline(
+            self.transfer_readback_cmds[directions[-1]],
+            wait_value=self.value_phase_a_done(frame_n),
+            signal_value=self.value_readback_done(frame_n),
+            wait_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
+            signal_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
+            queue=self.ctx.transfer_queue,
+        )
+
+    def submit_transfer_upload(self, frame_n: int) -> None:
+        """Transfer Q: receiver_staging→device DMA for all active directions.
+        Each direction's cmd waits 5N+3 (worker memcpy done — host-signaled
+        by the worker that wrote our receiver_staging). Last cmd signals
+        5N+4 (upload done); Phase C waits on this. No-op when no peer."""
+        if not self.transfer_upload_cmds:
+            return
+        directions = list(self.transfer_upload_cmds)
+        for direction in directions[:-1]:
+            self.submit_with_timeline(
+                self.transfer_upload_cmds[direction],
+                wait_value=self.value_worker_done(frame_n),
+                signal_value=None,
+                wait_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
+                queue=self.ctx.transfer_queue,
+            )
+        self.submit_with_timeline(
+            self.transfer_upload_cmds[directions[-1]],
+            wait_value=self.value_worker_done(frame_n),
+            signal_value=self.value_upload_done(frame_n),
+            wait_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
+            signal_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
+            queue=self.ctx.transfer_queue,
         )
 
     def wait_frame_done(self, frame_n: int) -> None:

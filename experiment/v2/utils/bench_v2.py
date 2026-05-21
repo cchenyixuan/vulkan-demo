@@ -328,10 +328,22 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
         out["a_to_b_gap_us"] = v
     if (v := diff_us("b_correction_interior_end", "b_start")) is not None:
         out["correction_interior_us"] = v
+    # Path A+ P5: density_deep_interior added to Phase B. phase_b_us is the
+    # total Phase B GPU time (= last Phase B tick - b_start).
+    last_b_label = "b_start"
+    if "b_correction_interior_end" in ticks:
+        last_b_label = "b_correction_interior_end"
+    if (v := diff_us("b_density_deep_interior_end", "b_correction_interior_end")) is not None:
+        out["density_deep_interior_us"] = v
+        last_b_label = "b_density_deep_interior_end"
+    if (v := diff_us(last_b_label, "b_start")) is not None and last_b_label != "b_start":
         out["phase_b_us"] = v
 
     # --- Phase C + B→C gap (the sync-hiding KPI) ---
-    if (v := diff_us("c_start", "b_correction_interior_end")) is not None:
+    # b_to_c_gap = time GPU idled between Phase B end and Phase C start.
+    # = c_start - (last Phase B tick). Last Phase B tick is density_deep_
+    # interior_end if P5 dispatch is present, else correction_interior_end.
+    if (v := diff_us("c_start", last_b_label)) is not None and last_b_label != "b_start":
         out["b_to_c_gap_us"] = v
 
     last_c_label = "c_start"

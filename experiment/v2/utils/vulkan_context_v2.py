@@ -102,6 +102,57 @@ def _find_compute_queue_family(physical_device) -> Optional[int]:
     return None
 
 
+def _find_transfer_queue_family(
+    physical_device,
+    compute_queue_family_index: int,
+) -> int:
+    """Pick a queue family for Path A+ transfer-only DMA work (readback +
+    upload) so vkCmdCopyBuffer can run in parallel with compute_queue's
+    correction_interior / density_deep_interior / force_deep_interior.
+
+    Priority:
+      1. DEDICATED transfer family — has TRANSFER bit, NO GRAPHICS, NO COMPUTE.
+         Maps to the GPU's DMA engine on most vendors (AMD family[2] on
+         7900 XTX, NV family[1]/[3]/[4]/[5] on 4060 Ti). Best for cross-
+         queue parallelism: physically separate hardware from compute SMs.
+      2. Different family from compute but still has TRANSFER bit
+         (e.g., compute+transfer family that's distinct from the picked
+         compute family). Still parallelism but shares some scheduling.
+      3. Fallback — same family as compute. Loses parallelism but keeps the
+         pipeline functional (transfer cmds serialize behind compute cmds
+         in the queue's FIFO). Warns to stderr.
+
+    All transfer queue families on the vendors we've tested have multiple
+    queues (count ≥ 1), so we always pick queue index 0 in that family.
+    """
+    families = vkGetPhysicalDeviceQueueFamilyProperties(physical_device)
+
+    # Pass 1: dedicated transfer (TRANSFER bit, no GRAPHICS, no COMPUTE).
+    for index, props in enumerate(families):
+        if not (props.queueFlags & VK_QUEUE_TRANSFER_BIT):
+            continue
+        if props.queueFlags & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT):
+            continue
+        return index
+
+    # Pass 2: a different family from compute that still has TRANSFER.
+    for index, props in enumerate(families):
+        if index == compute_queue_family_index:
+            continue
+        if props.queueFlags & VK_QUEUE_TRANSFER_BIT:
+            return index
+
+    # Pass 3: fallback — same family as compute. Caller will need to use
+    # a different queue index in this family (if count > 1) or accept
+    # serialization (if count == 1).
+    import sys as _sys
+    print(f"[VulkanContextV2] WARNING: no dedicated transfer queue family; "
+          f"transfer queue will share family {compute_queue_family_index} "
+          f"with compute (Path A+ parallelism may be reduced).",
+          file=_sys.stderr)
+    return compute_queue_family_index
+
+
 def _select_physical_device(instance, requested_device_index: Optional[int]):
     physical_devices = vkEnumeratePhysicalDevices(instance)
     if not physical_devices:
@@ -164,6 +215,16 @@ class VulkanContextV2:
 
     Use ``VulkanContextV2.create(...)``; destroy via ``destroy()`` or
     context manager.
+
+    Holds TWO queue handles per device:
+      - compute_queue: every SPH dispatch (predict / correction / density /
+        force / ghost_send / install_migrations / defrag) runs here.
+      - transfer_queue: Path A+ readback / upload vkCmdCopyBuffer between
+        device-local SoA and host-visible staging. Lets DMA run in parallel
+        with compute on its own DMA engine (when a dedicated transfer queue
+        family exists, which it does on both AMD and NV in our test setup).
+        Falls back to the compute family if no dedicated transfer family
+        exists (warning printed; effectively serializes DMA behind compute).
     """
     instance: object
     physical_device: object
@@ -171,6 +232,9 @@ class VulkanContextV2:
     compute_queue: object
     compute_queue_family_index: int
     command_pool: object
+    transfer_queue: object
+    transfer_queue_family_index: int
+    transfer_command_pool: object
     device_name: str
 
     _validation_enabled: bool = False
@@ -239,15 +303,37 @@ class VulkanContextV2:
         physical_device, compute_queue_family_index = _select_physical_device(instance, device_index)
         device_name = vkGetPhysicalDeviceProperties(physical_device).deviceName
 
+        # ---- Transfer queue family (Path A+) ----------------------------
+        # Picked alongside compute; the actual queue + command pool are
+        # created after device creation below. See _find_transfer_queue_
+        # family for the priority list.
+        transfer_queue_family_index = _find_transfer_queue_family(
+            physical_device, compute_queue_family_index)
+        print(f"[VulkanContextV2] transfer queue family: "
+              f"queue_family[{transfer_queue_family_index}]"
+              + (" (same as compute — no parallelism)"
+                 if transfer_queue_family_index == compute_queue_family_index
+                 else " (dedicated)"))
+
         # ---- Logical device ---------------------------------------------
         # V2 must enable BOTH timelineSemaphore (1.2 core feature) and
         # synchronization2 (1.3 core feature). Both default to FALSE per
         # spec; opt-in via pNext-chained VkPhysicalDeviceFeatures2.
-        queue_create_info = VkDeviceQueueCreateInfo(
+        # Request two queues: one on compute family, one on transfer family.
+        # If they happen to be the same family (fallback path) we still
+        # only need one VkDeviceQueueCreateInfo with queueCount=1 (we'll
+        # reuse the same queue for both roles — see vkGetDeviceQueue below).
+        queue_create_infos = [VkDeviceQueueCreateInfo(
             queueFamilyIndex=compute_queue_family_index,
             queueCount=1,
             pQueuePriorities=[1.0],
-        )
+        )]
+        if transfer_queue_family_index != compute_queue_family_index:
+            queue_create_infos.append(VkDeviceQueueCreateInfo(
+                queueFamilyIndex=transfer_queue_family_index,
+                queueCount=1,
+                pQueuePriorities=[1.0],
+            ))
 
         # pNext chain (innermost first; chain pNext from outer to inner):
         #   VkDeviceCreateInfo.pNext ─→ Features2
@@ -276,8 +362,8 @@ class VulkanContextV2:
         device_extension_list = list(extra_device_extensions) if extra_device_extensions else []
         device_create_info = VkDeviceCreateInfo(
             pNext=features_2,
-            queueCreateInfoCount=1,
-            pQueueCreateInfos=[queue_create_info],
+            queueCreateInfoCount=len(queue_create_infos),
+            pQueueCreateInfos=queue_create_infos,
             enabledLayerCount=0,
             ppEnabledLayerNames=[],
             enabledExtensionCount=len(device_extension_list),
@@ -288,11 +374,26 @@ class VulkanContextV2:
         )
         device = vkCreateDevice(physical_device, device_create_info, None)
         compute_queue = vkGetDeviceQueue(device, compute_queue_family_index, 0)
+        # Transfer queue: a dedicated family was requested as its own
+        # VkDeviceQueueCreateInfo above, so queue index 0 is ours. If the
+        # transfer family equals the compute family (fallback path),
+        # vkGetDeviceQueue returns the SAME handle as compute_queue — the
+        # two roles share one queue and DMA work serializes behind compute.
+        transfer_queue = vkGetDeviceQueue(device, transfer_queue_family_index, 0)
 
-        # ---- Command pool -----------------------------------------------
+        # ---- Command pools ----------------------------------------------
+        # Separate pool per family. Pool's queueFamilyIndex restricts which
+        # queue can submit its cmd buffers — transfer cmd buffers must come
+        # from the transfer pool to be submittable on transfer_queue.
         command_pool = vkCreateCommandPool(device, VkCommandPoolCreateInfo(
             flags=VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
             queueFamilyIndex=compute_queue_family_index,
+        ), None)
+        # Same flag (RESET_COMMAND_BUFFER) on transfer pool so simulator can
+        # re-record readback/upload cmds if needed (e.g. for ablation runs).
+        transfer_command_pool = vkCreateCommandPool(device, VkCommandPoolCreateInfo(
+            flags=VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+            queueFamilyIndex=transfer_queue_family_index,
         ), None)
 
         memory_properties = vkGetPhysicalDeviceMemoryProperties(physical_device)
@@ -304,6 +405,9 @@ class VulkanContextV2:
             compute_queue=compute_queue,
             compute_queue_family_index=compute_queue_family_index,
             command_pool=command_pool,
+            transfer_queue=transfer_queue,
+            transfer_queue_family_index=transfer_queue_family_index,
+            transfer_command_pool=transfer_command_pool,
             device_name=device_name,
             _validation_enabled=validation_active,
             _debug_messenger=debug_messenger,
@@ -378,6 +482,9 @@ class VulkanContextV2:
         if self.command_pool is not None:
             vkDestroyCommandPool(self.device, self.command_pool, None)
             self.command_pool = None
+        if self.transfer_command_pool is not None:
+            vkDestroyCommandPool(self.device, self.transfer_command_pool, None)
+            self.transfer_command_pool = None
         if self.device is not None:
             vkDestroyDevice(self.device, None)
             self.device = None

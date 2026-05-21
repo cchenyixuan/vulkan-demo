@@ -138,20 +138,32 @@ class DualGpuOrchestratorV2:
         n = self._frame_count
         t_start = time.perf_counter_ns()
 
-        # 1. Notify workers (they wait for phase_a_done internally)
+        # 1. Notify workers (they wait for readback_done(n) = 5N+2 internally)
         for w in self.workers:
             w.notify(n)
 
-        # 2. Submit phase A on both sims (signal 3N+1 each)
+        # 2. Compute Q: submit phase A on both sims (signal 5N+1)
         for sim in self.sims:
             sim.submit_phase_a(n)
 
-        # 3. Submit phase B on both sims (queue-ordered after A; no sem ops)
+        # 3. Transfer Q: submit readback DMAs (wait 5N+1, signal 5N+2).
+        #    Runs in parallel with Phase B on the compute queue.
+        for sim in self.sims:
+            sim.submit_transfer_readback(n)
+
+        # 4. Compute Q: submit phase B (queue-ordered after A on compute Q;
+        #    no semaphore ops). Hides transfer chain behind correction_
+        #    interior + density_deep_interior.
         for sim in self.sims:
             sim.submit_phase_b(n)
 
-        # 4. Submit phase C on both sims (wait 3N+2 = signaled by worker,
-        #    signal 3N+3 at end)
+        # 5. Transfer Q: submit upload DMAs (wait 5N+3 = worker host-signal,
+        #    signal 5N+4). Submitted ahead of time; transfer queue blocks
+        #    until worker memcpy completes.
+        for sim in self.sims:
+            sim.submit_transfer_upload(n)
+
+        # 6. Compute Q: submit phase C (wait 5N+4 = upload done, signal 5N+5)
         for sim in self.sims:
             sim.submit_phase_c(n)
 

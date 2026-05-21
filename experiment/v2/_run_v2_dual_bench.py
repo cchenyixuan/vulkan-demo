@@ -84,6 +84,7 @@ _PER_GPU_KEYS = [
     "phase_a_us",
     "a_to_b_gap_us",
     "correction_interior_us",
+    "density_deep_interior_us",            # Path A+ P5
     "phase_b_us",
     "b_to_c_gap_us",
     "install_leading_us",

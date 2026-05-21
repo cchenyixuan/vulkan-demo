@@ -38,10 +38,10 @@ class GhostMigrationWorker:
     """One pathway (source → dest) persistent worker thread.
 
     Per-frame main loop:
-        1. wait source.timeline >= source.value_phase_a_done(n)
+        1. wait source.timeline >= source.value_readback_done(n)
         2. memcpy source.sender_staging_view(source_dir) →
                   dest.receiver_staging_view(dest_dir)
-        3. host_signal dest.timeline = dest.value_cpu_sync_done(n)
+        3. host_signal dest.timeline = dest.value_worker_done(n)
         4. record per-frame timestamps for instrumentation
 
     The (source_dir, dest_dir) pair is asymmetric: GPU 0's trailing send goes
@@ -163,38 +163,45 @@ class GhostMigrationWorker:
                     return
                 self.iteration_count += 1
 
-                # 1a. Wait for source GPU to signal phase_a_done(n) — data ready
+                # 1a. Wait for source GPU's transfer queue to signal
+                #     readback_done(n) = 5N+2 — sender_staging is now fully
+                #     populated and CPU-visible (host coherence barrier ran).
+                #     Path A+: previously was phase_a_done (3N+1) which included
+                #     the readback DMA inside phase A; now readback is on its
+                #     own queue and signals 5N+2 independently.
                 self.last_activity = ("wait_source_timeline", frame_n, time.perf_counter_ns())
-                self.source.wait_timeline(self.source.value_phase_a_done(frame_n))
-                # 1b. Wait for DEST GPU to also reach phase_a_done(n) — critical:
-                #     without this, our host_signal_timeline(dest, 3N+2) below could
-                #     race ahead of dest's GPU-side phase A signal=(3N+1). Vulkan
-                #     spec then forbids the GPU signaling 3N+1 (would be backwards
-                #     from host's 3N+2); AMD driver observed to corrupt the value
-                #     to the lower 3N+1, breaking subsequent waits.
+                self.source.wait_timeline(self.source.value_readback_done(frame_n))
+                # 1b. Wait for DEST sim's readback to also be done (5N+2).
+                #     Critical for timeline monotonicity: our host_signal of
+                #     dest.worker_done (5N+3) must come AFTER dest's transfer
+                #     queue signals 5N+2, otherwise dest's signal would be
+                #     "backwards" relative to host's. Same hazard as V2.0's
+                #     wait-for-dest-phase-a-done; just shifted by 1 value.
                 self.last_activity = ("wait_dest_timeline", frame_n, time.perf_counter_ns())
-                dest_phase_a = self.dest.value_phase_a_done(frame_n)
-                self.dest.wait_timeline(dest_phase_a)
+                dest_readback = self.dest.value_readback_done(frame_n)
+                self.dest.wait_timeline(dest_readback)
                 t_wait = time.perf_counter_ns()
 
-                # 2. Byte memcpy
+                # 2. Byte memcpy (CPU → CPU)
                 self.last_activity = ("memcpy", frame_n, time.perf_counter_ns())
                 self._dest_view[:] = self._source_view
                 t_copy = time.perf_counter_ns()
 
-                # 3. Signal dest GPU's cpu_sync_done(n); phase C wait clears.
+                # 3. Host-signal dest's worker_done(n) = 5N+3. Dest's transfer
+                #    queue's upload cmd waits on this and then signals 5N+4
+                #    (upload_done), which Phase C's submit waits on.
                 self.last_activity = ("signal_dest_timeline", frame_n, time.perf_counter_ns())
-                signal_value = self.dest.value_cpu_sync_done(frame_n)
+                signal_value = self.dest.value_worker_done(frame_n)
                 # Safety net: if a future refactor removes the dest.wait_timeline
                 # above, this assert will trip instead of silently deadlocking
                 # via AMD driver's backwards-signal corruption.
                 current_dest = self.dest.current_timeline_value()
-                assert current_dest >= dest_phase_a, (
+                assert current_dest >= dest_readback, (
                     f"worker {self.label} about to host_signal({signal_value}) on "
-                    f"dest, but dest.timeline={current_dest} < phase_a_done"
-                    f"={dest_phase_a}. Without waiting dest's GPU phase A signal "
-                    f"first, the host signal would race ahead and corrupt the "
-                    f"timeline (Vulkan backwards-signal hazard).")
+                    f"dest, but dest.timeline={current_dest} < readback_done"
+                    f"={dest_readback}. Without waiting dest's transfer-queue "
+                    f"readback signal first, the host signal would race ahead "
+                    f"and corrupt the timeline (Vulkan backwards-signal hazard).")
                 self.dest.host_signal_timeline(signal_value)
                 t_signal = time.perf_counter_ns()
                 self.last_activity = ("done_frame", frame_n, time.perf_counter_ns())
