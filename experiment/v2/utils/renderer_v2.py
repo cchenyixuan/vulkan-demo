@@ -23,6 +23,7 @@ pipeline; particles are drawn as round point sprites.
 Hotkeys:
     SPACE       pause/resume the simulation
     0-4         color mode: 0=speed, 1=accel, 2=density dev, 3=voxel id, 4=kernel_sum
+    G           ghost render mode: own only → own+ghost → ghost only
     P           toggle perspective ↔ orthogonal projection
     F           re-frame to fit the case bbox
     +/-         steps_per_frame ± 1
@@ -67,7 +68,7 @@ SHADER_RENDER_DIR = (
 MAX_FRAMES_IN_FLIGHT = 2
 
 # Push constant block — must match shaders/sph/render/particle.vert exactly.
-# Layout (92 B, std430 / push_constant):
+# Layout (96 B, std430 / push_constant):
 #   mat4  view_proj                64 B
 #   uint  color_mode                4 B
 #   float velocity_scale            4 B
@@ -76,7 +77,15 @@ MAX_FRAMES_IN_FLIGHT = 2
 #   float rest_density              4 B
 #   float point_size                4 B
 #   float kernel_sum_scale          4 B
-PUSH_CONSTANT_SIZE = 64 + 4 * 7
+#   uint  is_ghost                  4 B   pushed per-draw to differentiate
+#                                          own (0) and ghost (1) draw calls.
+PUSH_CONSTANT_SIZE = 64 + 4 * 8
+
+# Ghost render modes (cycled by 'G' hotkey).
+GHOST_MODE_OWN_ONLY = 0
+GHOST_MODE_OWN_PLUS_GHOST = 1
+GHOST_MODE_GHOST_ONLY = 2
+_GHOST_MODE_NAMES = ("own", "own+ghost", "ghost")
 
 
 # ============================================================================
@@ -118,6 +127,7 @@ class SphRendererV2:
 
         # Render config (live-tunable via hotkeys)
         self.color_mode = 0
+        self.ghost_render_mode = GHOST_MODE_OWN_ONLY
         self.steps_per_frame = 1
         self.paused = False  # start running; SPACE to pause
         self.point_size = 5.0
@@ -677,6 +687,7 @@ class SphRendererV2:
                 if now - last_t > 0.5:
                     fps = frame_counter / (now - last_t)
                     mode_name = ["speed", "accel", "density", "voxel_id", "kernel_sum"][self.color_mode]
+                    ghost_tag = _GHOST_MODE_NAMES[self.ghost_render_mode]
                     pause_tag = "  [PAUSED]" if self.paused else ""
                     current_step = step_count_fn() if step_count_fn else 0
                     current_sim_time = current_step * self.case.physics.timestep
@@ -685,7 +696,7 @@ class SphRendererV2:
                         f"{title_base}   step={current_step}   "
                         f"t={current_sim_time:.4e}s   "
                         f"{fps:.0f} fps   spf={self.steps_per_frame}   "
-                        f"color={mode_name}{pause_tag}",
+                        f"color={mode_name}   draw={ghost_tag}{pause_tag}",
                     )
                     if log_file is not None and current_step > last_logged_step:
                         # Flush each row so SIGINT / window-close preserves data.
@@ -813,35 +824,56 @@ class SphRendererV2:
             0, None,
         )
 
-        # Push constants — view_proj + color params.
+        # Push constants — view_proj + color params. Pushed per-draw because
+        # the `is_ghost` flag changes between own and ghost draw calls.
         view_projection = self.camera.view_projection()
         rest_density = (
             self.case.materials[0].rest_density if self.case.materials else 1000.0
         )
-        push_data = bytearray()
-        push_data.extend(view_projection.tobytes())                  # 64 B
-        push_data.extend(np.uint32(self.color_mode).tobytes())       #  4 B
-        push_data.extend(np.float32(self.velocity_scale).tobytes())  #  4 B
-        push_data.extend(np.float32(self.acceleration_scale).tobytes())       # 4 B
-        push_data.extend(np.float32(self.density_deviation_scale).tobytes())  # 4 B
-        push_data.extend(np.float32(rest_density).tobytes())         #  4 B
-        push_data.extend(np.float32(self.point_size).tobytes())      #  4 B
-        push_data.extend(np.float32(self.kernel_sum_scale).tobytes())         # 4 B
-        assert len(push_data) == PUSH_CONSTANT_SIZE
-        push_cdata = ffi.new("uint8_t[]", bytes(push_data))
-        vkCmdPushConstants(
-            cmd, self.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT,
-            0, PUSH_CONSTANT_SIZE, push_cdata,
-        )
 
-        # V1 fix: draw OWN pid range only, skipping leading-ghost-pid slots
-        # (which hold peer's replicas, not this GPU's own particles).
-        # firstVertex = own_first_pid - 1 shifts gl_VertexIndex so that the
-        # vertex shader's `gl_VertexIndex + 1u` lands at own_first_pid for
-        # vertex 0 and own_last_pid for vertex (OWN_POOL_SIZE - 1).
-        own_pool = self.case.capacities.own_pool_size
-        first_vertex = self.simulator.own_first_pid() - 1
-        vkCmdDraw(cmd, own_pool, 1, first_vertex, 0)
+        def push_and_draw(first_pid: int, count: int, is_ghost: int) -> None:
+            """Push constants then draw vertices [first_pid-1 .. first_pid-1+count).
+            Vertex shader maps gl_VertexIndex+1 → particle_id, so this paints
+            pid range [first_pid, first_pid+count-1]."""
+            if count <= 0:
+                return
+            push_data = bytearray()
+            push_data.extend(view_projection.tobytes())                  # 64 B
+            push_data.extend(np.uint32(self.color_mode).tobytes())       #  4 B
+            push_data.extend(np.float32(self.velocity_scale).tobytes())           # 4 B
+            push_data.extend(np.float32(self.acceleration_scale).tobytes())       # 4 B
+            push_data.extend(np.float32(self.density_deviation_scale).tobytes())  # 4 B
+            push_data.extend(np.float32(rest_density).tobytes())         #  4 B
+            push_data.extend(np.float32(self.point_size).tobytes())      #  4 B
+            push_data.extend(np.float32(self.kernel_sum_scale).tobytes())         # 4 B
+            push_data.extend(np.uint32(is_ghost).tobytes())              #  4 B
+            assert len(push_data) == PUSH_CONSTANT_SIZE
+            push_cdata = ffi.new("uint8_t[]", bytes(push_data))
+            vkCmdPushConstants(
+                cmd, self.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT,
+                0, PUSH_CONSTANT_SIZE, push_cdata,
+            )
+            vkCmdDraw(cmd, count, 1, first_pid - 1, 0)
+
+        # Up to three draw calls depending on ghost_render_mode:
+        #   - own:      pid [own_first_pid, own_last_pid]
+        #   - leading:  pid [1, leading_ghost_pool_size]   (peer replicas at -x face)
+        #   - trailing: pid [own_last_pid+1, own_last_pid+trailing_ghost_pool_size]
+        # Each draw pushes its own is_ghost flag so the vertex shader can
+        # desaturate ghost particles for visual disambiguation.
+        cap = self.case.capacities
+        draw_own = self.ghost_render_mode in (
+            GHOST_MODE_OWN_ONLY, GHOST_MODE_OWN_PLUS_GHOST)
+        draw_ghost = self.ghost_render_mode in (
+            GHOST_MODE_OWN_PLUS_GHOST, GHOST_MODE_GHOST_ONLY)
+
+        if draw_own:
+            push_and_draw(self.simulator.own_first_pid(),
+                          cap.own_pool_size, is_ghost=0)
+        if draw_ghost:
+            push_and_draw(1, cap.leading_ghost_pool_size, is_ghost=1)
+            push_and_draw(self.simulator.own_last_pid() + 1,
+                          cap.trailing_ghost_pool_size, is_ghost=1)
 
         vkCmdEndRenderPass(cmd)
         vkEndCommandBuffer(cmd)
@@ -928,6 +960,10 @@ class SphRendererV2:
             self._frame_camera_to_case()
         elif key in (glfw.KEY_0, glfw.KEY_1, glfw.KEY_2, glfw.KEY_3, glfw.KEY_4):
             self.color_mode = key - glfw.KEY_0
+        elif key == glfw.KEY_G:
+            self.ghost_render_mode = (self.ghost_render_mode + 1) % 3
+            print(f"[viewer] ghost render mode = "
+                  f"{_GHOST_MODE_NAMES[self.ghost_render_mode]}")
         elif key in (glfw.KEY_EQUAL, glfw.KEY_KP_ADD):       # '+' / numpad +
             self.steps_per_frame += 1
         elif key in (glfw.KEY_MINUS, glfw.KEY_KP_SUBTRACT):  # '-' / numpad -
