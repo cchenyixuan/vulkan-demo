@@ -1,0 +1,39 @@
+
+=== 3d_hole (test_3d_hole.obj) ===
+  loaded cached fill: interior=776856 boundary=204987
+  metrics BEFORE:
+    before: NN dist mean=1.000dx min=1.000dx CV=0.000  |  kernel_sum mean=0.973 std=0.085
+    classes: {'frozen': 806731, 'free': 112285, 'surface': 61228, 'feature': 1599, 'pinned': 0}
+    iter 10/30  max|delta|=0.120dx
+    iter 20/30  max|delta|=0.098dx
+    iter 30/30  max|delta|=0.078dx
+  relaxed in 173s
+  metrics AFTER:
+    after : NN dist mean=0.992dx min=0.000dx CV=0.039  |  kernel_sum mean=0.970 std=0.084
+  -> C:\Users\cchen\PycharmProjects\vulkan-demo\utils\geometry\test_cases\out\relax_3d_hole.png
+
+=== 3d_2_hole (test_3d_2_hole.obj) ===
+  filled: interior=645334 boundary=106343 (29s)
+  metrics BEFORE:
+    before: NN dist mean=1.000dx min=1.000dx CV=0.000  |  kernel_sum mean=0.970 std=0.092
+    classes: {'frozen': 645334, 'free': 65442, 'surface': 40162, 'feature': 739, 'pinned': 0}
+    iter 10/30  max|delta|=0.102dx
+    iter 20/30  max|delta|=0.078dx
+    iter 30/30  max|delta|=0.064dx
+  relaxed in 698s
+  metrics AFTER:
+    after : NN dist mean=0.985dx min=0.495dx CV=0.058  |  kernel_sum mean=0.965 std=0.089
+  -> C:\Users\cchen\PycharmProjects\vulkan-demo\utils\geometry\test_cases\out\relax_3d_2_hole.png
+
+=== 3d_tube (test_3d_tube.obj) ===
+  filled: interior=418394 boundary=195905 (126s)
+  metrics BEFORE:
+    before: NN dist mean=1.000dx min=1.000dx CV=0.000  |  kernel_sum mean=0.955 std=0.110
+    classes: {'frozen': 418394, 'free': 118203, 'surface': 76470, 'feature': 1232, 'pinned': 0}
+    iter 10/30  max|delta|=0.138dx
+    iter 20/30  max|delta|=0.111dx
+    iter 30/30  max|delta|=0.099dx
+  relaxed in 88s
+  metrics AFTER:
+    after : NN dist mean=0.954dx min=0.000dx CV=0.155  |  kernel_sum mean=0.943 std=0.098
+  -> C:\Users\cchen\PycharmProjects\vulkan-demo\utils\geometry\test_cases\out\relax_3d_tube.png
