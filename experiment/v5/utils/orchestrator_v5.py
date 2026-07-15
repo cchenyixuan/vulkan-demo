@@ -138,16 +138,16 @@ class DualGpuOrchestratorV5:
         n = self._frame_count
         t_start = time.perf_counter_ns()
 
-        # 1. Notify workers (they wait for readback_done(n) = 5N+2 internally)
+        # 1. Notify workers (they wait for readback_done(n) internally)
         for w in self.workers:
             w.notify(n)
 
-        # 2. Compute Q: submit phase A on both sims (signal 5N+1)
+        # 2. Compute Q: submit phase A on both sims (signal phase_a_done)
         for sim in self.sims:
             sim.submit_phase_a(n)
 
-        # 3. Transfer Q: submit readback DMAs (wait 5N+1, signal 5N+2).
-        #    Runs in parallel with Phase B on the compute queue.
+        # 3. Transfer Q: submit readback DMAs (wait phase_a_done, signal
+        #    readback_done). Runs in parallel with Phase B on the compute queue.
         for sim in self.sims:
             sim.submit_transfer_readback(n)
 
@@ -157,17 +157,17 @@ class DualGpuOrchestratorV5:
         for sim in self.sims:
             sim.submit_phase_b(n)
 
-        # 5. Transfer Q: submit upload DMAs (wait 5N+3 = worker host-signal,
-        #    signal 5N+4). Submitted ahead of time; transfer queue blocks
-        #    until worker memcpy completes.
+        # 5. Transfer Q: submit upload DMAs (wait worker_done = worker
+        #    host-signal, signal upload_done). Submitted ahead of time;
+        #    transfer queue blocks until worker memcpy completes.
         for sim in self.sims:
             sim.submit_transfer_upload(n)
 
-        # 6. Compute Q: submit phase C (wait 5N+4 = upload done, signal 5N+5)
+        # 6. Compute Q: submit phase C (wait upload_done, signal frame_done)
         for sim in self.sims:
             sim.submit_phase_c(n)
 
-        # 5. Wait for both sims to reach 3N+3 (frame done).
+        # 7. Wait for both sims to reach frame_done(n).
         # Use a watchdog poll instead of INFINITE wait so a dead worker thread
         # surfaces as a clear error instead of an opaque hang. Each poll is
         # 1s; we re-check worker health between polls.
@@ -182,10 +182,11 @@ class DualGpuOrchestratorV5:
         WATCHDOG_TIMEOUT_S = 1.0
         MAX_POLL_ITERS = 10   # → 10s total before giving up
         for sim_idx, sim in enumerate(self.sims):
-            target_value = sim.value_frame_done(n)
+            frame_semaphore, target_value = sim.sync.frame_done_op(n)
             for poll_iter in range(MAX_POLL_ITERS):
-                done = sim.wait_timeline(
-                    target_value, timeout_ns=int(WATCHDOG_TIMEOUT_S * 1e9))
+                done = sim.wait_semaphore(
+                    frame_semaphore, target_value,
+                    timeout_ns=int(WATCHDOG_TIMEOUT_S * 1e9))
                 if done:
                     break
                 # Check workers
@@ -195,12 +196,12 @@ class DualGpuOrchestratorV5:
                             f"worker {w.label} died during frame {n}: "
                             f"{w.last_error}") from w.last_error
                 # Workers alive but timeline stuck → likely GPU TDR or kernel hang
-                cur_a = self.sim_a.current_timeline_value()
-                cur_b = self.sim_b.current_timeline_value()
+                state_a = self.sim_a.sync_state()
+                state_b = self.sim_b.sync_state()
                 wa = self.worker_a_to_b
                 wb = self.worker_b_to_a
                 print(f"[OrchV5 WATCHDOG] frame {n}: waiting sim_{('a','b')[sim_idx]} "
-                      f"to reach {target_value}; cur a={cur_a} b={cur_b}; "
+                      f"to reach {target_value}; cur a={state_a} b={state_b}; "
                       f"a→b iters={wa.iteration_count} last_done={wa.last_completed_frame} "
                       f"phase={wa.last_activity[0]}@frame{wa.last_activity[1]}; "
                       f"b→a iters={wb.iteration_count} last_done={wb.last_completed_frame} "
@@ -210,7 +211,7 @@ class DualGpuOrchestratorV5:
                 # Loop exhausted without success
                 raise RuntimeError(
                     f"frame {n}: sim_{('a','b')[sim_idx]} timeline stuck at "
-                    f"{self.sims[sim_idx].current_timeline_value()} "
+                    f"{self.sims[sim_idx].sync_state()} "
                     f"(target {target_value}) after {MAX_POLL_ITERS * WATCHDOG_TIMEOUT_S}s. "
                     f"Likely GPU device-lost / kernel hang.")
         t_end = time.perf_counter_ns()
@@ -277,9 +278,10 @@ class DualGpuOrchestratorV5:
     # ========================================================================
 
     def _submit_frame(self, n: int) -> None:
-        """Submit all of frame n's work (no wait). The 5N timeline enforces the
-        GPU-side ordering — phase_a(n) waits frame_done(n-1) etc. — so it is safe
-        to queue a frame before the previous one has finished on the GPU."""
+        """Submit all of frame n's work (no wait). The sync-scheme timelines
+        enforce the GPU-side ordering — phase_a(n) waits frame_done(n-1) etc. —
+        so it is safe to queue a frame before the previous one finished on the
+        GPU."""
         for w in self.workers:
             w.notify(n)
         for sim in self.sims:
@@ -315,11 +317,14 @@ class DualGpuOrchestratorV5:
         the GPU never idles on CPU submit latency / the inter-frame bubble that
         the synchronous depth-1 ``step()`` pays every frame.
 
-        SAFETY (single-buffered state, validated drift=0 at depth 2 and 3): the
-        5N timeline makes worker(n)'s host-signal 5n+3 a prerequisite for frame
-        n+1's readback 5n+7 (5n+7 ← phase_a(n+1)=5n+6 ← frame_done(n)=5n+5 ←
-        upload(n)=5n+4 ← worker(n)=5n+3). So no staging buffer is reused before
-        its reader finishes, and no host-signal ever goes backwards, at any depth.
+        SAFETY (single-buffered state, validated drift=0 at depth 2 and 3):
+        the sync-scheme timelines make worker(n)'s host-signal a prerequisite
+        for frame n+1's readback: readback(n+1) ← phase_a(n+1) ←
+        frame_done(n) ← phase_c(n) ← upload_done(n) ← worker_done(n). The
+        chain holds in both schemes (aggregated: all on one timeline;
+        per-direction: through main + the direction's transport timeline).
+        So no staging buffer is reused before its reader finishes, and no
+        host-signal ever goes backwards, at any depth.
 
         NOTE: does NOT collect per-kernel GPU timestamps — the in-flight next
         frame would overwrite the query-pool slots. Use the synchronous ``step()``

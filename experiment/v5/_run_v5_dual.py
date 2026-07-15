@@ -53,6 +53,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--max-steps", type=int, default=1000)
     p.add_argument("--status-every", type=int, default=100)
     p.add_argument("--defrag-cadence", type=int, default=None)
+    p.add_argument("--sync-scheme", default="aggregated",
+                   choices=["aggregated", "per-direction"],
+                   help="frame sync scheme (see sync_scheme_v5.py)")
     p.add_argument("--validation", action="store_true")
     p.add_argument("--disable-pst", action="store_true")
     p.add_argument("--no-defrag", action="store_true")
@@ -107,8 +110,8 @@ def main() -> int:
         device_index=args.device_b, enable_validation=args.validation,
         application_name="sph_v5_dual_b")
 
-    sim_a = SphSimulatorV5(ctx_a, slab0)
-    sim_b = SphSimulatorV5(ctx_b, slab1)
+    sim_a = SphSimulatorV5(ctx_a, slab0, sync_scheme=args.sync_scheme)
+    sim_b = SphSimulatorV5(ctx_b, slab1, sync_scheme=args.sync_scheme)
 
     rc = 0
     try:

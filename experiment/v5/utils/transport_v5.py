@@ -37,12 +37,15 @@ _STOP_SENTINEL = -1   # frame_n value that means "stop the worker thread"
 class GhostMigrationWorker:
     """One pathway (source → dest) persistent worker thread.
 
-    Per-frame main loop:
-        1. wait source.timeline >= source.value_readback_done(n)
-        2. memcpy source.sender_staging_view(source_dir) →
+    Per-frame main loop (semaphores/values come from each sim's sync scheme —
+    see sync_scheme_v5.py; aggregated = shared 5N timeline, per-direction =
+    the direction's own transport timeline):
+        1. wait source readback_done(n)  [sender_staging fully populated]
+        2. wait dest readback_done(n)    [backwards-signal guard, see _run]
+        3. memcpy source.sender_staging_view(source_dir) →
                   dest.receiver_staging_view(dest_dir)
-        3. host_signal dest.timeline = dest.value_worker_done(n)
-        4. record per-frame timestamps for instrumentation
+        4. host_signal dest worker_done(n)
+        5. record per-frame timestamps for instrumentation
 
     The (source_dir, dest_dir) pair is asymmetric: GPU 0's trailing send goes
     to GPU 1's leading receive. Caller (orchestrator) sets these at construction.
@@ -164,22 +167,24 @@ class GhostMigrationWorker:
                 self.iteration_count += 1
 
                 # 1a. Wait for source GPU's transfer queue to signal
-                #     readback_done(n) = 5N+2 — sender_staging is now fully
+                #     readback_done(n) — sender_staging is now fully
                 #     populated and CPU-visible (host coherence barrier ran).
-                #     Path A+: previously was phase_a_done (3N+1) which included
-                #     the readback DMA inside phase A; now readback is on its
-                #     own queue and signals 5N+2 independently.
                 self.last_activity = ("wait_source_timeline", frame_n, time.perf_counter_ns())
-                self.source.wait_timeline(self.source.value_readback_done(frame_n))
-                # 1b. Wait for DEST sim's readback to also be done (5N+2).
-                #     Critical for timeline monotonicity: our host_signal of
-                #     dest.worker_done (5N+3) must come AFTER dest's transfer
-                #     queue signals 5N+2, otherwise dest's signal would be
-                #     "backwards" relative to host's. Same hazard as V5.0's
-                #     wait-for-dest-phase-a-done; just shifted by 1 value.
+                source_semaphore, source_value = self.source.sync.source_readback_op(
+                    self.source_direction, frame_n)
+                self.source.wait_semaphore(source_semaphore, source_value)
+                # 1b. Wait for DEST sim's readback_done(n) on the SAME
+                #     semaphore we are about to host-signal. Critical for
+                #     timeline monotonicity: our host_signal of worker_done
+                #     must come AFTER the pending GPU signal below it
+                #     (dest's own readback), otherwise the GPU signal would
+                #     land "backwards" relative to ours. This is the
+                #     sync-scheme safety invariant: before host-signaling
+                #     value v on semaphore S, wait S >= v-1.
                 self.last_activity = ("wait_dest_timeline", frame_n, time.perf_counter_ns())
-                dest_readback = self.dest.value_readback_done(frame_n)
-                self.dest.wait_timeline(dest_readback)
+                guard_semaphore, guard_value = self.dest.sync.dest_guard_op(
+                    self.dest_direction, frame_n)
+                self.dest.wait_semaphore(guard_semaphore, guard_value)
                 t_wait = time.perf_counter_ns()
 
                 # 2. Byte memcpy (CPU → CPU)
@@ -187,22 +192,24 @@ class GhostMigrationWorker:
                 self._dest_view[:] = self._source_view
                 t_copy = time.perf_counter_ns()
 
-                # 3. Host-signal dest's worker_done(n) = 5N+3. Dest's transfer
-                #    queue's upload cmd waits on this and then signals 5N+4
-                #    (upload_done), which Phase C's submit waits on.
+                # 3. Host-signal dest's worker_done(n). Dest's transfer
+                #    queue's upload cmd for our direction waits on this and
+                #    then signals upload_done, which Phase C's submit waits on.
                 self.last_activity = ("signal_dest_timeline", frame_n, time.perf_counter_ns())
-                signal_value = self.dest.value_worker_done(frame_n)
-                # Safety net: if a future refactor removes the dest.wait_timeline
+                signal_semaphore, signal_value = self.dest.sync.worker_signal_op(
+                    self.dest_direction, frame_n)
+                # Safety net: if a future refactor removes the dest guard wait
                 # above, this assert will trip instead of silently deadlocking
-                # via AMD driver's backwards-signal corruption.
-                current_dest = self.dest.current_timeline_value()
-                assert current_dest >= dest_readback, (
+                # via AMD driver's backwards-signal corruption. (worker_signal
+                # and dest_guard target the same semaphore in both schemes.)
+                current_dest = self.dest.semaphore_value(signal_semaphore)
+                assert current_dest >= guard_value, (
                     f"worker {self.label} about to host_signal({signal_value}) on "
-                    f"dest, but dest.timeline={current_dest} < readback_done"
-                    f"={dest_readback}. Without waiting dest's transfer-queue "
+                    f"dest, but dest semaphore={current_dest} < readback_done"
+                    f"={guard_value}. Without waiting dest's transfer-queue "
                     f"readback signal first, the host signal would race ahead "
                     f"and corrupt the timeline (Vulkan backwards-signal hazard).")
-                self.dest.host_signal_timeline(signal_value)
+                self.dest.host_signal_semaphore(signal_semaphore, signal_value)
                 t_signal = time.perf_counter_ns()
                 self.last_activity = ("done_frame", frame_n, time.perf_counter_ns())
                 self.last_completed_frame = frame_n

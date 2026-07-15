@@ -41,6 +41,7 @@ from experiment.v5.utils.case_v5 import (
     CaseV5,
     KIND_FLUID,
 )
+from experiment.v5.utils.sync_scheme_v5 import make_sync_scheme
 from experiment.v5.utils.vulkan_context_v5 import VulkanContextV5
 
 
@@ -185,7 +186,8 @@ class SphSimulatorV5:
     # Construction / destruction
     # ========================================================================
 
-    def __init__(self, ctx: VulkanContextV5, case: CaseV5) -> None:
+    def __init__(self, ctx: VulkanContextV5, case: CaseV5,
+                 *, sync_scheme: str = "aggregated") -> None:
         self.ctx = ctx
         self.case = case
 
@@ -221,8 +223,18 @@ class SphSimulatorV5:
         self.defrag_pipeline_layout = self._build_defrag_pipeline_layout()
         self.pipelines["defrag"] = self._build_defrag_pipeline()
 
-        # Timeline semaphore (Phase 3 uses it; creation is here)
-        self.timeline = self._create_timeline_semaphore()
+        # Frame sync scheme: owns the timeline semaphore(s) and decides every
+        # submit site's wait/signal (semaphore, value) pairs. "aggregated" =
+        # historical 5N single timeline; "per-direction" = 3N main + 2N
+        # transport timeline per peer direction (N-GPU chain safe). See
+        # experiment/v5/utils/sync_scheme_v5.py + docs/sph_v5_design.md §3.1.
+        peer_directions = tuple(
+            direction for direction, has_peer in (
+                ("leading", case.transport.has_leading_peer),
+                ("trailing", case.transport.has_trailing_peer),
+            ) if has_peer)
+        self.sync = make_sync_scheme(sync_scheme, peer_directions)
+        self.sync.create(ctx.device)
 
         # cmd buffer slots reserved for Phase 3
         self.phase_a_cmd: Any = None
@@ -287,9 +299,7 @@ class SphSimulatorV5:
         self.transfer_readback_cmds = {}
         self.transfer_upload_cmds = {}
 
-        if self.timeline is not None:
-            vkDestroySemaphore(device, self.timeline, None)
-            self.timeline = None
+        self.sync.destroy(device)
 
         for pipeline in self.pipelines.values():
             vkDestroyPipeline(device, pipeline, None)
@@ -347,48 +357,29 @@ class SphSimulatorV5:
         self.destroy()
 
     # ========================================================================
-    # Timeline value source (public; workers + instrumentation read these)
+    # Frame sync (delegated to self.sync — see sync_scheme_v5.py for the
+    # timeline layouts: "aggregated" 5N single timeline vs "per-direction"
+    # 3N main + 2N transport timeline per peer direction)
     # ========================================================================
-    #
-    # Path A+ 5N timeline (one semaphore per sim, advances 5 values per frame):
-    #
-    #   5N+1  phase_a_done            compute Q signals at end of Phase A
-    #                                 (predict + update_voxel + ghost_send only)
-    #   5N+2  readback_done           transfer Q signals after device→sender_
-    #                                 staging DMA + host coherence barrier
-    #   5N+3  worker_done             worker host-signals after CPU memcpy
-    #                                 (source.sender_staging → dest.receiver_staging)
-    #   5N+4  upload_done             transfer Q signals after receiver_staging→
-    #                                 device DMA
-    #   5N+5  frame_done              compute Q signals at end of Phase C
-    #
-    # See docs/sph_v5_design.md §6 (Path A+ overhaul) for the rationale and
-    # parallelism diagram. Transition from V5.0's 3N timeline (which had only
-    # 3N+1 / 3N+2 / 3N+3) → 5N preserves all the same monotonic orderings,
-    # just inserts the new transfer-queue events between phase boundaries.
 
-    def value_phase_a_done(self, frame_n: int) -> int:
-        return 5 * frame_n + 1
-
-    def value_readback_done(self, frame_n: int) -> int:
-        """Transfer queue signals this after device→sender_staging readback DMA."""
-        return 5 * frame_n + 2
-
-    def value_worker_done(self, frame_n: int) -> int:
-        """Worker host-signals this after CPU memcpy completes. (Replaces V5.0's
-        value_cpu_sync_done — same semantic role, renamed to match the 5N layout
-        and to reflect that the work it gates is CPU-memcpy, not arbitrary 'sync'.)"""
-        return 5 * frame_n + 3
-
-    def value_upload_done(self, frame_n: int) -> int:
-        """Transfer queue signals this after receiver_staging→device upload DMA."""
-        return 5 * frame_n + 4
-
-    def value_frame_done(self, frame_n: int) -> int:
-        return 5 * frame_n + 5
+    @property
+    def timeline(self):
+        """Primary timeline semaphore (carries frame_done). Kept for coarse
+        progress introspection; per-direction transport semaphores are only
+        reachable through self.sync."""
+        return self.sync.primary_semaphore()
 
     def current_timeline_value(self) -> int:
-        return vkGetSemaphoreCounterValue(self.ctx.device, self.timeline)
+        return vkGetSemaphoreCounterValue(
+            self.ctx.device, self.sync.primary_semaphore())
+
+    def semaphore_value(self, semaphore) -> int:
+        return vkGetSemaphoreCounterValue(self.ctx.device, semaphore)
+
+    def sync_state(self) -> dict:
+        """{semaphore_name: current value} across all sync semaphores —
+        watchdog / debug prints."""
+        return self.sync.state(self.ctx.device)
 
     # ========================================================================
     # High-level frame API
@@ -1093,15 +1084,6 @@ class SphSimulatorV5:
     # Section 5: Timeline semaphore
     # ========================================================================
 
-    def _create_timeline_semaphore(self):
-        type_info = VkSemaphoreTypeCreateInfo(
-            sType=VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
-            semaphoreType=VK_SEMAPHORE_TYPE_TIMELINE,
-            initialValue=0,
-        )
-        ci = VkSemaphoreCreateInfo(pNext=type_info)
-        return vkCreateSemaphore(self.ctx.device, ci, None)
-
     # ========================================================================
     # Section 6: Cmd buffer helpers (Phase 3)
     # ========================================================================
@@ -1730,10 +1712,10 @@ class SphSimulatorV5:
         # Per-direction ghost flow (skipped if this GPU has no peer on that side).
         # Path A+: ghost_send.comp dispatch only. The readback DMA + host
         # coherence barrier have been MOVED to the transfer queue (see
-        # _record_transfer_readback_cmd). Phase A signal 5N+1 marks "ghost_send
-        # has written device buffers"; the transfer queue waits for 5N+1, then
-        # runs the readback DMA in parallel with Phase B (correction_interior +
-        # density_deep_interior) on the compute queue.
+        # _record_transfer_readback_cmd). Phase A's phase_a_done signal marks
+        # "ghost_send has written device buffers"; the transfer queue waits on
+        # it, then runs the readback DMA in parallel with Phase B
+        # (correction_interior + density_deep_interior) on the compute queue.
         for direction in ("leading", "trailing"):
             if direction not in self._transport_segments:
                 continue
@@ -1800,8 +1782,9 @@ class SphSimulatorV5:
         return cmd
 
     def _record_phase_c_cmd(self):
-        """V5 Phase C: per-direction upload + install_migration → correction
-        (BOUNDARY) → density → force. wait 3N+2 at entry; signal 3N+3 at end.
+        """V5 Phase C: per-direction install_migration → correction
+        (BOUNDARY) → density → force. Submitted waiting upload_done, signals
+        frame_done (values per sync scheme).
 
         correction_boundary runs ONLY on boundary-band particles (interior
         already covered by Phase B). It runs AFTER install_migrations so that:
@@ -1820,7 +1803,7 @@ class SphSimulatorV5:
 
         # Per-direction install_migration (skipped if no peer). Path A+:
         # upload DMA has been MOVED to the transfer queue (see
-        # _record_transfer_upload_cmd). Phase C's wait on 5N+4 (upload_done)
+        # _record_transfer_upload_cmd). Phase C's wait on upload_done
         # guarantees receiver_staging→device DMA is complete before install
         # starts, so install can read the ghost-pid range directly.
         for direction in ("leading", "trailing"):
@@ -1873,10 +1856,10 @@ class SphSimulatorV5:
         cmd = self._allocate_transfer_oneshot_cmd()
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
-        # Note: no compute→transfer barrier needed here. The 5N+1 timeline
-        # wait already ensures ghost_send.comp's writes have happened-before
-        # this submit; CONCURRENT buffer sharing (P2) eliminates the queue
-        # family ownership transfer cost.
+        # Note: no compute→transfer barrier needed here. The phase_a_done
+        # timeline wait already ensures ghost_send.comp's writes have
+        # happened-before this submit; CONCURRENT buffer sharing (P2)
+        # eliminates the queue family ownership transfer cost.
         self._record_readback_for_direction(cmd, direction)
         # Compute→host barrier so worker's CPU read sees the just-written
         # sender_staging bytes. Issued on transfer queue (legal — barriers
@@ -1887,9 +1870,10 @@ class SphSimulatorV5:
 
     def _record_transfer_upload_cmd(self, direction: str):
         """Path A+ transfer queue cmd: receiver_staging→device DMA for one
-        direction. Submitted on ctx.transfer_queue after worker host-signal
-        5N+3 (worker memcpy done). Phase C waits for 5N+4 (signal at end of
-        this cmd) before install_migrations dispatches."""
+        direction. Submitted on ctx.transfer_queue gated on the worker's
+        worker_done host-signal (memcpy done). Phase C waits for upload_done
+        (signaled at end of the last direction's cmd) before
+        install_migrations dispatches."""
         cmd = self._allocate_transfer_oneshot_cmd()
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
@@ -2046,34 +2030,36 @@ class SphSimulatorV5:
         self,
         cmd,
         *,
-        wait_value: Optional[int],
-        signal_value: Optional[int],
+        waits: list,
+        signals: list,
         wait_stage: int = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
         queue: Optional[object] = None,
         signal_stage: int = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
     ) -> None:
-        """Submit ``cmd`` with timeline-semaphore wait/signal. Defaults to
-        compute_queue + compute_shader stage mask; pass ``queue=ctx.transfer_
-        queue`` + ``wait_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT`` for
-        Path A+ readback/upload submits on the transfer queue."""
+        """Submit ``cmd`` with timeline-semaphore wait/signal ops. ``waits`` /
+        ``signals`` are lists of (semaphore, value) pairs — produced by
+        self.sync's per-site getters. Defaults to compute_queue +
+        compute_shader stage mask; pass ``queue=ctx.transfer_queue`` +
+        ``wait_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT`` for Path A+
+        readback/upload submits on the transfer queue."""
         if queue is None:
             queue = self.ctx.compute_queue
-        wait_infos = []
-        if wait_value is not None:
-            wait_infos.append(VkSemaphoreSubmitInfo(
+        wait_infos = [
+            VkSemaphoreSubmitInfo(
                 sType=VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-                semaphore=self.timeline,
-                value=wait_value,
+                semaphore=semaphore,
+                value=value,
                 stageMask=wait_stage,
-            ))
-        signal_infos = []
-        if signal_value is not None:
-            signal_infos.append(VkSemaphoreSubmitInfo(
+            ) for semaphore, value in waits
+        ]
+        signal_infos = [
+            VkSemaphoreSubmitInfo(
                 sType=VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-                semaphore=self.timeline,
-                value=signal_value,
+                semaphore=semaphore,
+                value=value,
                 stageMask=signal_stage,
-            ))
+            ) for semaphore, value in signals
+        ]
         cmd_info = VkCommandBufferSubmitInfo(
             sType=VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
             commandBuffer=cmd,
@@ -2089,7 +2075,8 @@ class SphSimulatorV5:
         )
         vkQueueSubmit2(queue, 1, [submit_info], VK_NULL_HANDLE)
 
-    def wait_timeline(self, value: int, timeout_ns: int = 0xFFFFFFFFFFFFFFFF) -> bool:
+    def wait_semaphore(self, semaphore, value: int,
+                       timeout_ns: int = 0xFFFFFFFFFFFFFFFF) -> bool:
         """vkWaitSemaphores with optional timeout. Default INFINITE.
         Returns True if value was reached, False if timed out.
 
@@ -2100,7 +2087,7 @@ class SphSimulatorV5:
         info = VkSemaphoreWaitInfo(
             sType=VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
             semaphoreCount=1,
-            pSemaphores=[self.timeline],
+            pSemaphores=[semaphore],
             pValues=[value],
         )
         try:
@@ -2112,116 +2099,109 @@ class SphSimulatorV5:
                 return False
             raise
 
-    def host_signal_timeline(self, value: int) -> None:
-        """vkSignalSemaphore for host-side timeline advance. Workers call this
-        on the *destination* sim. Single-GPU smoke tests call it on self
-        between phase B and phase C to substitute for the absent worker."""
+    def wait_timeline(self, value: int, timeout_ns: int = 0xFFFFFFFFFFFFFFFF) -> bool:
+        """Wait on the PRIMARY timeline (frame_done carrier). Prefer the
+        (semaphore, value) ops from self.sync for anything scheme-dependent."""
+        return self.wait_semaphore(self.sync.primary_semaphore(), value,
+                                   timeout_ns=timeout_ns)
+
+    def host_signal_semaphore(self, semaphore, value: int) -> None:
+        """vkSignalSemaphore for host-side timeline advance. Ghost workers
+        call this on the *destination* sim with the (semaphore, value) from
+        dest.sync.worker_signal_op()."""
         info = VkSemaphoreSignalInfo(
             sType=VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
-            semaphore=self.timeline,
+            semaphore=semaphore,
             value=value,
         )
         vkSignalSemaphore(self.ctx.device, info)
 
+    def host_signal_timeline(self, value: int) -> None:
+        """Legacy: host-signal the PRIMARY timeline (single-GPU smoke tests
+        substitute for the absent worker this way, aggregated scheme only)."""
+        self.host_signal_semaphore(self.sync.primary_semaphore(), value)
+
     # ----- High-level frame API (replaces earlier stubs) --------------------
 
     def submit_phase_a(self, frame_n: int) -> None:
-        """Compute Q: predict + update_voxel + ghost_send. Signals 5N+1.
-        Waits for previous frame's frame_done (5(N-1)+5)."""
+        """Compute Q: predict + update_voxel + ghost_send. Signals
+        phase_a_done; waits for previous frame's frame_done."""
         if self.phase_a_cmd is None:
             raise RuntimeError("phase_a_cmd not recorded; call prepare_step_cmd_buffers()")
-        wait_value = (self.value_frame_done(frame_n - 1) if frame_n > 0 else 0)
         self.submit_with_timeline(
             self.phase_a_cmd,
-            wait_value=wait_value,
-            signal_value=self.value_phase_a_done(frame_n),
+            waits=self.sync.phase_a_waits(frame_n),
+            signals=self.sync.phase_a_signals(frame_n),
         )
 
     def submit_phase_b(self, frame_n: int) -> None:
         """Compute Q: correction_interior (+ density_deep_interior in P5).
-        Queue-ordered after phase A on compute queue; no semaphore wait/signal.
+        Queue-ordered after phase A on compute queue; no semaphore wait/signal
+        in ANY sync scheme — this is the transfer-hiding window.
         Runs in parallel with transfer Q's readback + worker memcpy + upload."""
         if self.phase_b_cmd is None:
             raise RuntimeError("phase_b_cmd not recorded; call prepare_step_cmd_buffers()")
-        self.submit_with_timeline(
-            self.phase_b_cmd, wait_value=None, signal_value=None)
+        self.submit_with_timeline(self.phase_b_cmd, waits=[], signals=[])
 
     def submit_phase_c(self, frame_n: int) -> None:
-        """Compute Q: install + correction_boundary + density_all + copy + force.
-        Waits for 5N+4 (upload_done from transfer Q). Signals 5N+5 (frame_done)."""
+        """Compute Q: install + correction_boundary + density_boundary + copy
+        + force. Waits upload_done (from transfer Q; scheme decides the
+        semaphore/value — no-peer sims wait phase_a_done instead, a valid
+        monotonically advancing stand-in). Signals frame_done."""
         if self.phase_c_cmd is None:
             raise RuntimeError("phase_c_cmd not recorded; call prepare_step_cmd_buffers()")
-        # If this sim has no peer, there's no upload to wait for. Wait on
-        # phase_a_done (5N+1) instead — queue-ordered guarantees Phase B is
-        # done by the time the wait could even matter; we just need a valid
-        # wait value that's monotonically advancing.
-        wait_value = (self.value_upload_done(frame_n)
-                      if self._transport_segments
-                      else self.value_phase_a_done(frame_n))
         self.submit_with_timeline(
             self.phase_c_cmd,
-            wait_value=wait_value,
-            signal_value=self.value_frame_done(frame_n),
+            waits=self.sync.phase_c_waits(frame_n),
+            signals=self.sync.phase_c_signals(frame_n),
         )
 
     def submit_transfer_readback(self, frame_n: int) -> None:
         """Transfer Q: device→sender_staging DMA for all active directions.
-        Each direction's cmd waits 5N+1 (phase A done) and signals 5N+2
-        (readback done). All directions share the same timeline value;
-        execution is serial within the transfer queue (queue FIFO), so
-        the LAST submitted direction's signal effectively governs 5N+2.
+        Each direction's cmd waits phase_a_done. Signal placement is
+        scheme-dependent: aggregated — only the LAST direction signals the
+        shared readback_done (queue FIFO makes it govern all directions);
+        per-direction — every direction signals its own transport timeline.
         No-op when this sim has no peer (single-GPU-style slab)."""
         if not self.transfer_readback_cmds:
             # No peers → no readback. Worker won't wait on this either.
             return
         directions = list(self.transfer_readback_cmds)
-        # All but the last: wait only (no signal), so the timeline only
-        # advances once all readbacks are complete.
-        for direction in directions[:-1]:
+        for index, direction in enumerate(directions):
+            is_last = index == len(directions) - 1
             self.submit_with_timeline(
                 self.transfer_readback_cmds[direction],
-                wait_value=self.value_phase_a_done(frame_n),
-                signal_value=None,
+                waits=self.sync.readback_waits(direction, frame_n),
+                signals=self.sync.readback_signals(direction, frame_n, is_last),
                 wait_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
+                signal_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
                 queue=self.ctx.transfer_queue,
             )
-        # Last cmd: signals 5N+2 (readback done across all directions).
-        self.submit_with_timeline(
-            self.transfer_readback_cmds[directions[-1]],
-            wait_value=self.value_phase_a_done(frame_n),
-            signal_value=self.value_readback_done(frame_n),
-            wait_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
-            signal_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
-            queue=self.ctx.transfer_queue,
-        )
 
     def submit_transfer_upload(self, frame_n: int) -> None:
         """Transfer Q: receiver_staging→device DMA for all active directions.
-        Each direction's cmd waits 5N+3 (worker memcpy done — host-signaled
-        by the worker that wrote our receiver_staging). Last cmd signals
-        5N+4 (upload done); Phase C waits on this. No-op when no peer."""
+        Each direction's cmd waits its worker memcpy (host-signaled by the
+        worker that wrote our receiver_staging; scheme decides whether that
+        is the shared worker_done slot or the direction's own transport
+        timeline). Last cmd signals upload_done; Phase C waits on this.
+        No-op when no peer."""
         if not self.transfer_upload_cmds:
             return
         directions = list(self.transfer_upload_cmds)
-        for direction in directions[:-1]:
+        for index, direction in enumerate(directions):
+            is_last = index == len(directions) - 1
             self.submit_with_timeline(
                 self.transfer_upload_cmds[direction],
-                wait_value=self.value_worker_done(frame_n),
-                signal_value=None,
+                waits=self.sync.upload_waits(direction, frame_n),
+                signals=self.sync.upload_signals(direction, frame_n, is_last),
                 wait_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
+                signal_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
                 queue=self.ctx.transfer_queue,
             )
-        self.submit_with_timeline(
-            self.transfer_upload_cmds[directions[-1]],
-            wait_value=self.value_worker_done(frame_n),
-            signal_value=self.value_upload_done(frame_n),
-            wait_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
-            signal_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
-            queue=self.ctx.transfer_queue,
-        )
 
     def wait_frame_done(self, frame_n: int) -> None:
-        self.wait_timeline(self.value_frame_done(frame_n))
+        semaphore, value = self.sync.frame_done_op(frame_n)
+        self.wait_semaphore(semaphore, value)
 
     # ========================================================================
     # Section 11: Defrag pipeline + cmd (Phase 3c)

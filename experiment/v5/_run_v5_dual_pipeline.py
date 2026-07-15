@@ -41,6 +41,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--device-b", type=int, default=1)
     p.add_argument("--weights", default="2.9,1.0")
     p.add_argument("--depth", type=int, default=2, help="frames in flight (1=synchronous baseline)")
+    p.add_argument("--sync-scheme", default="aggregated",
+                   choices=["aggregated", "per-direction"],
+                   help="frame sync scheme (see sync_scheme_v5.py)")
     p.add_argument("--pool-safety", type=float, default=None,
                    help="per-slab own_pool_size = ceil(slab_particles*FACTOR); None=global pool")
     p.add_argument("--max-steps", type=int, default=20000)
@@ -69,8 +72,8 @@ def main() -> int:
 
     ctx_a = VulkanContextV5.create(device_index=args.device_a, application_name="pipe_v5_a")
     ctx_b = VulkanContextV5.create(device_index=args.device_b, application_name="pipe_v5_b")
-    sim_a = SphSimulatorV5(ctx_a, slab0)
-    sim_b = SphSimulatorV5(ctx_b, slab1)
+    sim_a = SphSimulatorV5(ctx_a, slab0, sync_scheme=args.sync_scheme)
+    sim_b = SphSimulatorV5(ctx_b, slab1, sync_scheme=args.sync_scheme)
 
     print(f"[pipe_v5] depth={args.depth} weights={weights} "
           f"pool_safety={args.pool_safety} max_steps={args.max_steps} "

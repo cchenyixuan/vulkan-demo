@@ -179,6 +179,18 @@ frame_done 链挡住，不可能越过。
 **端点 sim（单 peer）在方案 B 下与今天行为完全一致** → 回归标准：真实 2-GPU dual
 在 1M 与 8M 上 fps 与当前实现差异 ≤2%（噪声内），50k 步 drift=0。
 
+> **M1 落地记录（2026-07-15）**：实现为可插拔 `FrameSyncScheme`
+> （`experiment/v5/utils/sync_scheme_v5.py`：`AggregatedTimelineScheme` 保留原
+> 5N 语义 + `PerDirectionTimelineScheme`），command buffer 零改动——两种方案的
+> 全部差异只在 vkQueueSubmit2 的信号量参数。runner 开关 `--sync-scheme`，
+> **默认仍为 aggregated**（对照基准保留到 M3）。ABAB 交替回归（warmup 5000）：
+> 1M 583.1 vs 581.2 fps（−0.33%，组内离散内）；8M 120.0/120.0 vs 119.9/120.0
+> （−0.02%）；50k 步长跑 571.6 vs 570.2 fps（−0.24%）；全部 drift=0。depth-1 逐 kernel 时间戳全部 ±1.2% 内重合；
+> b_to_c_gap 两 GPU 均 −2.4%（新方案略优，量级属噪声）。位级等价不可用——
+> 基线本身跨 run 不确定（atomicAdd 槽位次序 + 浮点求和次序 + 混沌放大），
+> 改用聚合物理量判据：alive 精确一致，动能/动量/平均密度/质心的跨 scheme
+> 差异与 run 间基线同量级（相对 1e-6~1e-10）。
+
 ### 3.2 M2 — partition N 路泛化
 
 新 API（保留 `compute_dual_gpu_partition` 作为 N=2 薄包装）：
@@ -268,7 +280,7 @@ PCIe-across 会混用，**backend 必须是 per-link 而非全局的**（这就�
 
 | 里程碑 | 内容 | 验收标准 |
 |---|---|---|
-| **M1** | per-direction transport timeline（§3.1）+ 修 `:170` 旧注释 | 真实 dual 1M/8M fps 差 ≤2%，50k 步 drift=0 |
+| **M1** ✅ 2026-07-15 | per-direction transport timeline（§3.1）+ 修 `:170` 旧注释 | 真实 dual 1M/8M fps 差 ≤2%，50k 步 drift=0 |
 | **M2** | partition N 路（§3.2） | N=2 输出与现实现逐字段一致；N=4 合成断言（切点单调、池/offset 自洽、最小宽度拒绝） |
 | **M3** | orchestrator/bench N 化（§3.3） | K=2 与 Dual 回归等价；K=3 在 2 卡上首跑通过（interior slab 落地） |
 | **M4** | VGPU 战役（§3.4） | K=4/6/8 × {1M, 8M} × 50k 步全部 drift=0；数值等价过容差 |
