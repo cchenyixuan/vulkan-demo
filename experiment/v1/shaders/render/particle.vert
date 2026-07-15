@@ -16,7 +16,8 @@
 //   binding 1 : density_pressure         (ρ, P) — canonical, post scratch→primary
 //                                         copy in the simulator's step cmd.
 //   binding 3 : velocity_mass            (vxyz, mass)
-//   binding 4 : acceleration             (axyz, _)
+//   binding 4 : acceleration             (axyz, ω_z) — .w carries vorticity,
+//                                         written by force.comp for mode 5.
 //   binding 8 : density_gradient_kernel_sum (∇ρ, kernel_sum)
 //
 // Color modes:
@@ -26,19 +27,22 @@
 //   3  voxel_id      (deterministic rainbow hash; debug neighbor-cell sort)
 //   4  kernel_sum    ((kernel_sum - 1) → diverging blue/white/red; centered on 1
 //                     because Σ V·W ≈ 1 for a well-sampled interior particle)
+//   5  vorticity     (ω_z = [∇×v]_z from acceleration.w → filled contour bands,
+//                     warm = CCW/positive, cool = CW/negative)
 //
 // Dead particles (voxel_id == VOXEL_ID_DEAD) are pushed off-screen with size 0.
 // ============================================================================
 
 layout(push_constant) uniform PushConstants {
     mat4  view_proj;            // 64 B
-    uint  color_mode;           //  4 B   0/1/2/3/4
+    uint  color_mode;           //  4 B   0/1/2/3/4/5
     float velocity_scale;       //  4 B   normalize speed → [0, 1]
     float acceleration_scale;   //  4 B   normalize |a| → [0, 1]
     float density_deviation_scale; // 4 B normalize (rho-rho0)/rho0 → [-1, +1]
     float rest_density;         //  4 B   reference density for mode 2
     float point_size;           //  4 B   gl_PointSize in pixels
     float kernel_sum_scale;     //  4 B   normalize (kernel_sum - 1) → [-1, +1]
+    float vorticity_scale;      //  4 B   normalize ω_z → [-1, +1] (mode 5)
 } pc;
 
 layout(location = 0) out vec3 frag_color;
@@ -78,6 +82,37 @@ vec3 colormap_rainbow_hash(uint key) {
     return clamp(p - 1.0, 0.0, 1.0);
 }
 
+// Vorticity contour map — ported from the legacy OpenGL vorticity shader.
+// Input v is the already-scaled ω_z (dimensionless; |v| >= 1 saturates). Warm
+// (yellow→dark red) for positive/CCW, cool (light→dark blue) for negative/CW,
+// quantized into filled contour bands with subtle in-band gradient, band-edge
+// line highlights, and a white flash on the strongest cores.
+vec3 colormap_vorticity(float v) {
+    const float n_levels = 10.0;                 // number of contour bands
+    float level = floor(v * n_levels) / n_levels;
+    float next_level = level + 1.0 / n_levels;
+    float level_frac = clamp((v - level) / max(next_level - level, 1e-6), 0.0, 1.0);
+
+    float norm_level = clamp(abs(level), 0.0, 1.0);
+    vec3 color = (v > 0.0)
+        ? mix(vec3(1.0, 0.9, 0.7), vec3(0.8, 0.2, 0.0), norm_level)   // warm
+        : mix(vec3(0.7, 0.9, 1.0), vec3(0.0, 0.2, 0.8), norm_level);  // cool
+
+    // Subtle gradient within each contour band.
+    color = mix(color * 0.9, color * 1.1, level_frac);
+
+    // Darken the band edges so the contour lines read.
+    float line_highlight = 1.0 - smoothstep(0.9, 1.0, level_frac)
+                         + smoothstep(0.0, 0.1, level_frac);
+    color = mix(color, color * 0.5, line_highlight * 0.3);
+
+    // Strong-vorticity cores flash toward white.
+    if (abs(v) > 0.8) {
+        color = mix(color, vec3(1.0), 0.2);
+    }
+    return clamp(color, 0.0, 1.0);
+}
+
 void main() {
     uint particle_id = gl_VertexIndex + 1u;
     vec4 pos_vid = position_voxel_id[particle_id];
@@ -111,10 +146,16 @@ void main() {
     } else if (pc.color_mode == 3u) {
         // voxel_id rainbow
         frag_color = colormap_rainbow_hash(vid);
-    } else {
-        // mode 4: kernel_sum, centered on 1.0
+    } else if (pc.color_mode == 4u) {
+        // kernel_sum, centered on 1.0
         float ks = density_gradient_kernel_sum[particle_id].w;
         float dev = (ks - 1.0) * pc.kernel_sum_scale;
         frag_color = colormap_diverging(dev);
+    } else {
+        // mode 5: vorticity ω_z, stashed in acceleration.w by force.comp.
+        // Boundary/inlet particles never run force.comp so their .w stays 0
+        // (neutral band); the fluid shows the rotating structure.
+        float vort_z = acceleration[particle_id].w * pc.vorticity_scale;
+        frag_color = colormap_vorticity(vort_z);
     }
 }

@@ -59,16 +59,16 @@ from experiment.v1.utils.simulator_v1 import SphSimulatorV1
 # Constants
 # ============================================================================
 
-# V1 reuses V0's compiled render SPV (vertex shader logic is identical;
-# only host-side draw call needs adjustment). parents[3] from
-# experiment/v1/utils/renderer_v1.py = repo root.
+# V1 owns its render SPV (experiment/v1/shaders/render/particle.{vert,frag}) so
+# it can add the vorticity color mode without perturbing V0's shared shader.
+# parents[1] from experiment/v1/utils/renderer_v1.py = experiment/v1/.
 SHADER_RENDER_DIR = (
-    pathlib.Path(__file__).resolve().parents[3] / "shaders" / "spv" / "sph" / "render"
+    pathlib.Path(__file__).resolve().parents[1] / "shaders" / "spv" / "render"
 )
 MAX_FRAMES_IN_FLIGHT = 2
 
-# Push constant block — must match shaders/sph/render/particle.vert exactly.
-# Layout (92 B, std430 / push_constant):
+# Push constant block — must match experiment/v1/shaders/render/particle.vert.
+# Layout (96 B, std430 / push_constant):
 #   mat4  view_proj                64 B
 #   uint  color_mode                4 B
 #   float velocity_scale            4 B
@@ -77,7 +77,8 @@ MAX_FRAMES_IN_FLIGHT = 2
 #   float rest_density              4 B
 #   float point_size                4 B
 #   float kernel_sum_scale          4 B
-PUSH_CONSTANT_SIZE = 64 + 4 * 7
+#   float vorticity_scale           4 B   ω_z normalizer for color mode 5
+PUSH_CONSTANT_SIZE = 64 + 4 * 8
 
 
 # ============================================================================
@@ -135,6 +136,12 @@ class SphRendererV1:
         self.density_deviation_scale = 100.0
         # kernel_sum_scale=20 → saturate at ±0.05 from 1.0 (= 0.95 to 1.05).
         self.kernel_sum_scale = 20.0
+        # vorticity_scale=0.02 → saturate at |ω_z| = 50 1/s. force.comp's curl
+        # uses the M-corrected gradient so ω_z is in physical units. Measured on
+        # the lid-driven cavity: the lid shear layer reaches ~300/s while the
+        # interior vortex builds up slowly (O(1-30)/s), so 50 shows both. Retune
+        # live ( , / . in mode 5 ) for other flows.
+        self.vorticity_scale = 0.02
 
         # Camera
         self.camera = Camera(projection_type="orthogonal")
@@ -675,7 +682,7 @@ class SphRendererV1:
                 now = time.perf_counter()
                 if now - last_t > 0.5:
                     fps = frame_counter / (now - last_t)
-                    mode_name = ["speed", "accel", "density", "voxel_id", "kernel_sum"][self.color_mode]
+                    mode_name = ["speed", "accel", "density", "voxel_id", "kernel_sum", "vorticity"][self.color_mode]
                     pause_tag = "  [PAUSED]" if self.paused else ""
                     current_step = self.simulator.step_count
                     current_sim_time = self.simulator.simulation_time
@@ -826,6 +833,7 @@ class SphRendererV1:
         push_data.extend(np.float32(rest_density).tobytes())         #  4 B
         push_data.extend(np.float32(self.point_size).tobytes())      #  4 B
         push_data.extend(np.float32(self.kernel_sum_scale).tobytes())         # 4 B
+        push_data.extend(np.float32(self.vorticity_scale).tobytes())          # 4 B
         assert len(push_data) == PUSH_CONSTANT_SIZE
         push_cdata = ffi.new("uint8_t[]", bytes(push_data))
         vkCmdPushConstants(
@@ -925,7 +933,8 @@ class SphRendererV1:
             self.camera.switch_projection()
         elif key == glfw.KEY_F:
             self._frame_camera_to_case()
-        elif key in (glfw.KEY_0, glfw.KEY_1, glfw.KEY_2, glfw.KEY_3, glfw.KEY_4):
+        elif key in (glfw.KEY_0, glfw.KEY_1, glfw.KEY_2, glfw.KEY_3,
+                     glfw.KEY_4, glfw.KEY_5):
             self.color_mode = key - glfw.KEY_0
         elif key in (glfw.KEY_EQUAL, glfw.KEY_KP_ADD):       # '+' / numpad +
             self.steps_per_frame += 1
@@ -935,6 +944,13 @@ class SphRendererV1:
             self.steps_per_frame = max(1, self.steps_per_frame // 2)
         elif key == glfw.KEY_RIGHT_BRACKET:
             self.steps_per_frame *= 2
+        # ';' / ''' shrink / grow the rendered point size (live).
+        elif key == glfw.KEY_SEMICOLON:
+            self.point_size = max(0.5, self.point_size / 1.25)
+            print(f"[viewer] point_size = {self.point_size:.3g} px")
+        elif key == glfw.KEY_APOSTROPHE:
+            self.point_size = min(64.0, self.point_size * 1.25)
+            print(f"[viewer] point_size = {self.point_size:.3g} px")
         # ',' / '.' adjust whichever scale the current color_mode uses.
         elif key == glfw.KEY_COMMA:
             self._scale_current_mode(1.0 / 1.5)
@@ -959,6 +975,10 @@ class SphRendererV1:
             self.kernel_sum_scale *= factor
             print(f"[viewer] kernel_sum_scale = {self.kernel_sum_scale:.4g} "
                   f"(saturates at kernel_sum = 1.0 +- {1.0/self.kernel_sum_scale:.4g})")
+        elif self.color_mode == 5:
+            self.vorticity_scale *= factor
+            print(f"[viewer] vorticity_scale = {self.vorticity_scale:.4g} "
+                  f"(saturates at |omega_z| = {1.0/self.vorticity_scale:.4g} 1/s)")
 
     # ------------------------------------------------------------------
     # Cleanup

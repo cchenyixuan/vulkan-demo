@@ -65,6 +65,24 @@ def compile_v1_shaders() -> None:
         _run_glslc(source, output)
         n_compiled += 1
 
+    # Render shaders (.vert/.frag) for SphRendererV1. Compiled with the SAME
+    # include dir so #include "common.glsl" resolves to V1's buffer layout —
+    # the render shader then reads the exact fields the compute kernels write
+    # (e.g. acceleration.w = vorticity ω_z for color mode 5).
+    render_dir = os.path.join(V1_SHADER_DIR, "render")
+    if os.path.isdir(render_dir):
+        render_spv_dir = os.path.join(V1_SPV_DIR, "render")
+        os.makedirs(render_spv_dir, exist_ok=True)
+        render_sources = sorted(
+            glob.glob(os.path.join(render_dir, "*.vert"))
+            + glob.glob(os.path.join(render_dir, "*.frag")))
+        for source in render_sources:
+            name = os.path.basename(source)
+            output = os.path.join(render_spv_dir, f"{name}.spv")
+            print(f"[v1] render/{name}")
+            _run_glslc(source, output)
+            n_compiled += 1
+
     print(f"[v1] compiled {n_compiled} shaders, skipped {n_skipped}")
 
 

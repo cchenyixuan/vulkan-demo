@@ -119,6 +119,12 @@ void main() {
     vec3 a_viscosity         = vec3(0.0);
     vec3 particle_shift_main = vec3(0.0);
     vec3 particle_shift_anti = vec3(0.0);
+    // ω_z = [∇ × v]_z — 2D scalar vorticity, diagnostic-only (render color
+    // mode 5). Accumulated with the SAME M-corrected gradient the physics uses,
+    // so it is first-order consistent and recovers the true curl in physical
+    // units (1/s). Positive = counter-clockwise. Stashed in acceleration.w
+    // (line ~271), a slot the pipeline otherwise leaves at 0.
+    float vorticity_z = 0.0;
 
     // ========================================================================
     // Loop-invariant constants (all pair-averaged quantities uniform in V0).
@@ -197,6 +203,17 @@ void main() {
                         / (distance * distance + EPS_H_SQUARED)
                         * kernel_gradient_corrected;
 
+                    // ==== Vorticity (ω_z = [∇×v]_z) — diagnostic for viz =====
+                    // (∇×v)_i ≈ Σ_j V_j (v_i - v_j) × ∇W̃_ij ; z-component in 2D.
+                    // The (v_i - v_j) ordering (not v_j - v_i) makes the sign
+                    // physical: with the M-corrected gradient this reduces to
+                    // +2Ω for a solid-body rotation Ω (positive = CCW).
+                    vec3 velocity_difference_self_minus_neighbor =
+                        self_velocity - neighbor_velocity;
+                    vorticity_z += neighbor_volume_dynamic
+                        * (velocity_difference_self_minus_neighbor.x * kernel_gradient_corrected.y
+                         - velocity_difference_self_minus_neighbor.y * kernel_gradient_corrected.x);
+
                     // ==== Particle shifting (PST) ===========================
                     // Gated by USE_PST spec const: glslc -O DCE-removes the entire
                     // block (including the kernel_value / kernel_value_at_delta_x
@@ -266,8 +283,10 @@ void main() {
     }
 
     // ========================================================================
-    // Write outputs (shift.w and acceleration.w reserved, leave as 0)
+    // Write outputs. acceleration.w carries ω_z (2D vorticity) for render color
+    // mode 5 — a free slot (integration reads only acceleration.xyz). shift.w
+    // stays reserved (0).
     // ========================================================================
-    acceleration[self_particle_id] = vec4(total_acceleration, 0.0);
+    acceleration[self_particle_id] = vec4(total_acceleration, vorticity_z);
     shift[self_particle_id]        = vec4(particle_shift, 0.0);
 }
