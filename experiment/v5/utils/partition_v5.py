@@ -367,12 +367,16 @@ def _compute_pid_offset(
     return receiver_first - sender_first
 
 
-def compute_dual_gpu_partition(
+def legacy_dual_gpu_partition(
     global_case: CaseV5,
     weights: list[float],
     pool_safety: Optional[float] = None,
 ) -> tuple[CaseV5, CaseV5, int]:
-    """Top-level entry: split global_case into two slab CaseV5 + return K_split.
+    """LEGACY 2-GPU implementation, kept verbatim as the golden reference for
+    ``_test_partition_chain.py``. Production entry points go through
+    ``compute_chain_partition`` / ``compute_dual_gpu_partition`` (below); this
+    body is the pre-M2 code that months of GPU runs validated (50k drift=0,
+    the 12 h soak). Do not modify.
 
     Returns (slab_case_gpu0, slab_case_gpu1, k_split_voxel_x).
 
@@ -444,3 +448,447 @@ def compute_dual_gpu_partition(
     print(f"  slab 1: own_x [{k_split}, {grid_nx}) + leading ghost; "
           f"{slab1.initial.positions.shape[0]:,} particles, pool={own_pool_1:,}")
     return slab0, slab1, k_split
+
+
+# ============================================================================
+# M2: N-way chain partition (docs/sph_v5_design.md §3.2)
+#
+# Generalizes the 2-slot logic above to an N-slab 1D chain. Interior slabs
+# have ghost + transport on BOTH sides. The legacy dual implementation is
+# kept verbatim above as the golden reference; `compute_dual_gpu_partition`
+# is now a thin N=2 wrapper over `compute_chain_partition`.
+#
+# Per-GPU pid layout (general; L/O/T = leading ghost / own / trailing ghost
+# pool sizes, slot 0 of the buffer is the sentinel):
+#
+#     0                     sentinel
+#     1 .. L                leading-ghost pid range
+#     L+1 .. L+O            own particles
+#     L+O+1 .. L+O+T        trailing-ghost pid range
+#
+# Link offset algebra (the sender pre-encodes receiver pids, so the offset
+# is receiver_ghost_range_first - sender_ghost_range_first):
+#
+#     trailing send (slab i -> slab i+1's leading ghost):
+#         sender_first   = L_i + O_i + 1
+#         receiver_first = 1
+#         offset         = -(L_i + O_i)          <- depends on SENDER layout
+#     leading send  (slab i -> slab i-1's trailing ghost):
+#         sender_first   = 1
+#         receiver_first = L_prev + O_prev + 1
+#         offset         = +(L_prev + O_prev)    <- depends on RECEIVER layout
+#
+# The dual case (L_0 = 0) collapses both to -/+ slot0_own_pool — the legacy
+# "offsets depend only on slot 0's pool" rule is the special case of this.
+# ============================================================================
+
+import sys as _sys
+from dataclasses import dataclass, field
+
+
+MINIMUM_OWN_COLUMNS_HARD = 12   # < 8 -> force deep-interior empty; 12 = margin
+MINIMUM_OWN_COLUMNS_WARN = 20   # below this Phase B's hiding budget is thin
+
+
+@dataclass
+class PidLayout:
+    """One slab's pid-pool triple. Offsets are pure functions of these."""
+    leading_ghost_pool_size: int
+    own_pool_size: int
+    trailing_ghost_pool_size: int
+
+    def ghost_range_first(self, direction: str) -> int:
+        if direction == "leading":
+            return 1
+        if direction == "trailing":
+            return self.leading_ghost_pool_size + self.own_pool_size + 1
+        raise ValueError(f"unknown direction {direction!r}")
+
+
+@dataclass
+class SlabGeometry:
+    """Per-slab scalar geometry, computed in pass 1 before any CaseV5 exists."""
+    slot_index: int
+    own_global_first_column: int        # inclusive, global voxel-x
+    own_global_last_column: int         # inclusive
+    has_leading_peer: bool
+    has_trailing_peer: bool
+    own_pool_size: int
+    own_particle_count: int
+
+    @property
+    def own_column_count(self) -> int:
+        return self.own_global_last_column - self.own_global_first_column + 1
+
+    @property
+    def leading_thickness(self) -> int:
+        return GHOST_THICKNESS if self.has_leading_peer else 0
+
+    @property
+    def trailing_thickness(self) -> int:
+        return GHOST_THICKNESS if self.has_trailing_peer else 0
+
+    @property
+    def extended_column_count(self) -> int:
+        return self.own_column_count + self.leading_thickness + self.trailing_thickness
+
+    def pid_layout(self, ghost_pool_per_direction: int) -> "PidLayout":
+        return PidLayout(
+            leading_ghost_pool_size=(ghost_pool_per_direction
+                                     if self.has_leading_peer else 0),
+            own_pool_size=self.own_pool_size,
+            trailing_ghost_pool_size=(ghost_pool_per_direction
+                                      if self.has_trailing_peer else 0),
+        )
+
+
+@dataclass
+class LinkSpec:
+    """One directed ghost pathway (metadata mirror of the spec constants)."""
+    sender_index: int
+    receiver_index: int
+    direction: str                      # sender-side direction name
+    ghost_pid_offset_to_receiver: int
+    ghost_voxel_id_offset_to_receiver: int
+
+
+@dataclass
+class ChainPartition:
+    slabs: list                         # list[CaseV5], left -> right
+    geometry: list                      # list[SlabGeometry], same order
+    cuts: list                          # N-1 global voxel-x cut columns
+    links: list = field(default_factory=list)   # list[LinkSpec], both directions
+
+
+def derive_link_pid_offset(sender_layout: PidLayout,
+                           receiver_layout: PidLayout,
+                           direction: str) -> int:
+    """GHOST_PID_OFFSET_TO_RECEIVER for one directed link (header algebra)."""
+    receive_side = "leading" if direction == "trailing" else "trailing"
+    return (receiver_layout.ghost_range_first(receive_side)
+            - sender_layout.ghost_range_first(direction))
+
+
+def derive_link_voxel_id_offset(sender_geometry: SlabGeometry,
+                                receiver_geometry: SlabGeometry,
+                                direction: str,
+                                voxel_per_x: int) -> int:
+    """GHOST_VOXEL_ID_OFFSET_TO_RECEIVER for one directed link.
+
+    Local-x of the sender's boundary column (in ITS extended grid) vs local-x
+    of the receiver's ghost column (in ITS extended grid); both grids share
+    NY x NZ so the column delta x voxel_per_x is exact in voxel_id space.
+    """
+    if direction == "trailing":
+        sender_boundary_x_local = (sender_geometry.leading_thickness
+                                   + sender_geometry.own_column_count - 1)
+        receiver_ghost_x_local = 0
+    elif direction == "leading":
+        sender_boundary_x_local = sender_geometry.leading_thickness
+        receiver_ghost_x_local = (receiver_geometry.leading_thickness
+                                  + receiver_geometry.own_column_count)
+    else:
+        raise ValueError(f"unknown direction {direction!r}")
+    return (receiver_ghost_x_local - sender_boundary_x_local) * voxel_per_x
+
+
+def _bin_fluid_counts(global_case: CaseV5) -> np.ndarray:
+    """Vectorized per-column fluid particle histogram (same result as the
+    legacy per-particle loop in compute_k_split, minus the Python time)."""
+    grid_nx = global_case.grid.grid_dimension_x
+    h = global_case.physics.smoothing_length
+    origin_x = global_case.grid.origin_x
+    positions = global_case.initial.positions
+    material_group = global_case.initial.material_group
+
+    fluid_groups = np.array(
+        [index for index, material in enumerate(global_case.materials)
+         if material.kind == KIND_FLUID], dtype=material_group.dtype)
+    fluid_mask = np.isin(material_group, fluid_groups)
+    x_indices = np.floor(
+        (positions[fluid_mask, 0] - origin_x) / h).astype(np.int64)
+    np.clip(x_indices, 0, grid_nx - 1, out=x_indices)
+    return np.bincount(x_indices, minlength=grid_nx).astype(np.int64)
+
+
+def compute_chain_cuts(global_case: CaseV5, weights: list[float],
+                       minimum_own_columns: int) -> list[int]:
+    """N-1 monotonic cut columns from N weights.
+
+    Degenerates EXACTLY to the legacy compute_k_split for N=2 with
+    minimum_own_columns=1: same target formula, same searchsorted side,
+    same clamp.
+    """
+    if any(weight <= 0 for weight in weights):
+        raise ValueError(f"weights must be positive, got {weights}")
+    slab_count = len(weights)
+    grid_nx = global_case.grid.grid_dimension_x
+    if grid_nx < slab_count * minimum_own_columns:
+        raise ValueError(
+            f"grid has {grid_nx} columns; {slab_count} slabs need at least "
+            f"{slab_count * minimum_own_columns} (minimum_own_columns="
+            f"{minimum_own_columns})")
+
+    fluid_counts = _bin_fluid_counts(global_case)
+    fluid_total = int(fluid_counts.sum())
+    if fluid_total == 0:
+        raise ValueError("global case has no fluid particles")
+    cumulative = np.cumsum(fluid_counts)
+    weight_total = sum(weights)
+
+    cuts: list[int] = []
+    cumulative_weight = 0.0
+    for weight in weights[:-1]:
+        cumulative_weight += weight
+        target = max(1, int(fluid_total * (cumulative_weight / weight_total)))
+        cuts.append(int(np.searchsorted(cumulative, target, side="left")))
+
+    # Enforce monotonicity + per-slab minimum width (leaving room for the
+    # slabs still to come on the right).
+    for j in range(len(cuts)):
+        low = (cuts[j - 1] if j > 0 else 0) + minimum_own_columns
+        high = grid_nx - minimum_own_columns * (slab_count - 1 - j)
+        if low > high:
+            raise ValueError(
+                f"cannot place cut {j}: need [{low}, {high}] with "
+                f"minimum_own_columns={minimum_own_columns}")
+        cuts[j] = max(low, min(cuts[j], high))
+    return cuts
+
+
+def _sized_pool(particle_count: int, pool_safety: float, workgroup: int,
+                global_pool: int) -> int:
+    value = int(math.ceil(particle_count * pool_safety))
+    value = ((value + workgroup - 1) // workgroup) * workgroup
+    return min(value, global_pool)
+
+
+def _build_chain_slab_case(
+    global_case: CaseV5,
+    geometry: SlabGeometry,
+    left_neighbor: Optional[SlabGeometry],
+    right_neighbor: Optional[SlabGeometry],
+    ghost_pool_per_direction: int,
+) -> CaseV5:
+    """General slab builder: endpoint OR interior (both-sided) slabs."""
+    h = global_case.physics.smoothing_length
+    ny = global_case.grid.grid_dimension_y
+    nz = global_case.grid.grid_dimension_z
+    voxel_per_x = ny * nz
+
+    grid = GridLayout(
+        origin_x=(global_case.grid.origin_x
+                  + (geometry.own_global_first_column
+                     - geometry.leading_thickness) * h),
+        origin_y=global_case.grid.origin_y,
+        origin_z=global_case.grid.origin_z,
+        grid_dimension_x=geometry.extended_column_count,
+        grid_dimension_y=ny,
+        grid_dimension_z=nz,
+        voxel_order=global_case.grid.voxel_order,
+    )
+    ghost_grid = GhostGridParams(
+        leading_ghost_voxel_count=geometry.leading_thickness * voxel_per_x,
+        trailing_ghost_voxel_count=geometry.trailing_thickness * voxel_per_x,
+    )
+
+    my_layout = geometry.pid_layout(ghost_pool_per_direction)
+    transport = TransportConfig()
+    if geometry.has_leading_peer:
+        assert left_neighbor is not None
+        transport.leading = DirectionalTransportSpec(
+            direction=0,
+            boundary_voxel_x_local=geometry.leading_thickness,
+            ghost_voxel_x_local=0,
+            ghost_pid_offset_to_receiver=derive_link_pid_offset(
+                my_layout,
+                left_neighbor.pid_layout(ghost_pool_per_direction),
+                "leading"),
+            ghost_voxel_id_offset_to_receiver=derive_link_voxel_id_offset(
+                geometry, left_neighbor, "leading", voxel_per_x),
+        )
+    if geometry.has_trailing_peer:
+        assert right_neighbor is not None
+        transport.trailing = DirectionalTransportSpec(
+            direction=1,
+            boundary_voxel_x_local=(geometry.leading_thickness
+                                    + geometry.own_column_count - 1),
+            ghost_voxel_x_local=geometry.extended_column_count - 1,
+            ghost_pid_offset_to_receiver=derive_link_pid_offset(
+                my_layout,
+                right_neighbor.pid_layout(ghost_pool_per_direction),
+                "trailing"),
+            ghost_voxel_id_offset_to_receiver=derive_link_voxel_id_offset(
+                geometry, right_neighbor, "trailing", voxel_per_x),
+        )
+
+    capacities = Capacities(
+        max_particles_per_voxel=global_case.capacities.max_particles_per_voxel,
+        workgroup_size=global_case.capacities.workgroup_size,
+        max_incoming_per_voxel=global_case.capacities.max_incoming_per_voxel,
+        own_pool_size=geometry.own_pool_size,
+        leading_ghost_pool_size=my_layout.leading_ghost_pool_size,
+        trailing_ghost_pool_size=my_layout.trailing_ghost_pool_size,
+    )
+    initial = _filter_particles_by_x_range(
+        global_case,
+        x_lo_inclusive=geometry.own_global_first_column,
+        x_hi_exclusive=geometry.own_global_last_column + 1,
+    )
+    return CaseV5(
+        physics=global_case.physics,
+        numerics=global_case.numerics,
+        capacities=capacities,
+        grid=grid,
+        ghost_grid=ghost_grid,
+        transport=transport,
+        materials=list(global_case.materials),
+        initial=initial,
+    )
+
+
+def _assert_degenerate_global(global_case: CaseV5) -> None:
+    assert global_case.ghost_grid.leading_ghost_voxel_count == 0, (
+        "global_case must be degenerate; got an already-partitioned slab")
+    assert global_case.ghost_grid.trailing_ghost_voxel_count == 0, (
+        "global_case must be degenerate; got an already-partitioned slab")
+    assert global_case.transport.leading is None
+    assert global_case.transport.trailing is None
+    assert global_case.capacities.leading_ghost_pool_size == 0
+    assert global_case.capacities.trailing_ghost_pool_size == 0
+
+
+def compute_chain_partition(
+    global_case: CaseV5,
+    weights: list[float],
+    pool_safety: Optional[float] = None,
+    *,
+    minimum_own_columns: int = MINIMUM_OWN_COLUMNS_HARD,
+) -> ChainPartition:
+    """Split a degenerate global case into an N-slab 1D chain.
+
+    ``weights[i]`` is slab i's share of the fluid particle count (left ->
+    right). Interior slabs carry ghost pools + transport specs on BOTH
+    sides. ``pool_safety`` sizes each slab's own pool as in the dual path
+    (None = every slab gets the global pool). ``minimum_own_columns``
+    guards the cascading-band floor (interior deep-interior work vanishes
+    below 2 x force_band = 8 own columns; the N=2 compatibility wrapper
+    passes 1 to reproduce legacy clamping).
+    """
+    _assert_degenerate_global(global_case)
+    slab_count = len(weights)
+    if slab_count < 1:
+        raise ValueError("need at least one weight")
+    grid_nx = global_case.grid.grid_dimension_x
+
+    cuts = compute_chain_cuts(global_case, weights, minimum_own_columns)
+    boundaries = [0] + cuts + [grid_nx]   # slab i owns [boundaries[i], boundaries[i+1])
+
+    # Pass 1: per-slab scalar geometry (pools need particle counts first).
+    global_pool = global_case.capacities.own_pool_size
+    workgroup = global_case.capacities.workgroup_size
+    geometry: list[SlabGeometry] = []
+    for index in range(slab_count):
+        first, last = boundaries[index], boundaries[index + 1] - 1
+        own_particles = _filter_particles_by_x_range(
+            global_case, first, last + 1).positions.shape[0]
+        if pool_safety is None:
+            own_pool = global_pool
+        else:
+            if pool_safety <= 1.0:
+                raise ValueError(f"pool_safety must be > 1.0, got {pool_safety}")
+            own_pool = _sized_pool(own_particles, pool_safety, workgroup,
+                                   global_pool)
+        geometry.append(SlabGeometry(
+            slot_index=index,
+            own_global_first_column=first,
+            own_global_last_column=last,
+            has_leading_peer=index > 0,
+            has_trailing_peer=index < slab_count - 1,
+            own_pool_size=own_pool,
+            own_particle_count=int(own_particles),
+        ))
+        if geometry[-1].own_column_count < MINIMUM_OWN_COLUMNS_WARN:
+            print(f"[partition_v5] WARN slab {index}: only "
+                  f"{geometry[-1].own_column_count} own columns — Phase B "
+                  f"hiding budget is thin (warn threshold "
+                  f"{MINIMUM_OWN_COLUMNS_WARN})", file=_sys.stderr)
+
+    # Pass 2: build cases with neighbor geometry in hand.
+    ghost_pool_per_direction = _ghost_pool_size(global_case)
+    slabs = []
+    links: list[LinkSpec] = []
+    for index, slab_geometry in enumerate(geometry):
+        left = geometry[index - 1] if index > 0 else None
+        right = geometry[index + 1] if index < slab_count - 1 else None
+        case = _build_chain_slab_case(
+            global_case, slab_geometry, left, right, ghost_pool_per_direction)
+        slabs.append(case)
+        if case.transport.trailing is not None:
+            links.append(LinkSpec(
+                sender_index=index, receiver_index=index + 1,
+                direction="trailing",
+                ghost_pid_offset_to_receiver=(
+                    case.transport.trailing.ghost_pid_offset_to_receiver),
+                ghost_voxel_id_offset_to_receiver=(
+                    case.transport.trailing.ghost_voxel_id_offset_to_receiver)))
+        if case.transport.leading is not None:
+            links.append(LinkSpec(
+                sender_index=index, receiver_index=index - 1,
+                direction="leading",
+                ghost_pid_offset_to_receiver=(
+                    case.transport.leading.ghost_pid_offset_to_receiver),
+                ghost_voxel_id_offset_to_receiver=(
+                    case.transport.leading.ghost_voxel_id_offset_to_receiver)))
+
+    column_spans = ", ".join(
+        f"[{g.own_global_first_column},{g.own_global_last_column + 1})"
+        for g in geometry)
+    print(f"[partition_v5] chain N={slab_count}: columns {column_spans} "
+          f"of {grid_nx}; particles "
+          + ", ".join(f"{g.own_particle_count:,}" for g in geometry))
+    return ChainPartition(slabs=slabs, geometry=geometry, cuts=cuts,
+                          links=links)
+
+
+def compute_dual_gpu_partition(
+    global_case: CaseV5,
+    weights: list[float],
+    pool_safety: Optional[float] = None,
+) -> tuple[CaseV5, CaseV5, int]:
+    """N=2 compatibility wrapper over ``compute_chain_partition``.
+
+    Same signature/return as the legacy entry point (all runners keep
+    working unchanged). ``minimum_own_columns=1`` reproduces the legacy
+    clamp semantics exactly; ``_test_partition_chain.py`` asserts
+    field-by-field equality against ``legacy_dual_gpu_partition``.
+    """
+    if len(weights) != 2:
+        raise NotImplementedError(
+            "compute_dual_gpu_partition is the 2-GPU wrapper; use "
+            "compute_chain_partition for N != 2")
+    chain = compute_chain_partition(global_case, weights, pool_safety,
+                                    minimum_own_columns=1)
+    return chain.slabs[0], chain.slabs[1], chain.cuts[0]
+
+
+def isolate_slab(global_case: CaseV5, chain: ChainPartition,
+                 slab_index: int) -> CaseV5:
+    """The η_weak helper: slab ``slab_index``'s own subdomain as a standalone
+    no-peer case (ghost pools 0, transport empty, grid = own columns only).
+
+    Keeps the chain slab's own_pool_size so per-kernel dispatch counts match
+    the in-chain slab — the single-run reference then isolates pure
+    coordination overhead. See docs/sph_v5_design.md §1.3 / roadmap η_weak."""
+    source = chain.geometry[slab_index]
+    isolated = SlabGeometry(
+        slot_index=0,
+        own_global_first_column=source.own_global_first_column,
+        own_global_last_column=source.own_global_last_column,
+        has_leading_peer=False,
+        has_trailing_peer=False,
+        own_pool_size=source.own_pool_size,
+        own_particle_count=source.own_particle_count,
+    )
+    return _build_chain_slab_case(global_case, isolated, None, None,
+                                  ghost_pool_per_direction=0)

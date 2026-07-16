@@ -215,6 +215,23 @@ compute_chain_partition(case, weights: list[float], *, pool_safety=1.05)
 - **slab 元数据显式化**：CaseV5（或 sidecar struct）增加 `slot_index`、
   `own_global_x_range`、`neighbor slot ids`——weights sweep、DLB、调试都需要。
 
+> **M2 落地记录（2026-07-16）**：`compute_chain_partition` + `ChainPartition`/
+> `SlabGeometry`/`PidLayout`/`LinkSpec` + `isolate_slab`（η_weak 口子）落在
+> `partition_v5.py` M2 段；旧实现原样保留为 `legacy_dual_gpu_partition`（金标
+> 准参照，勿改）；`compute_dual_gpu_partition` 降为 N=2 包装
+> （`minimum_own_columns=1` 精确复刻旧钳制）。**offset 代数比设计时预想的简单**：
+> trailing 发送 = −(L_sender+O_sender)，leading 发送 = +(L_receiver+O_receiver)
+> ——dual 的"只依赖 slot 0 池"是 L_0=0 时的特例。验收
+> `_test_partition_chain.py`：**2670 项检查全过**（金标准 1M×20 组合 + 8M×4；
+> 不对称权重链不变量；**独立 Capacities oracle**（接收范围平铺池空间，
+> 不经产码 PidLayout，避免同义反复）；ghost_voxel_x_local/boundary spec 断言；
+> 世界坐标接缝列相等；别名与全局不可变检查；GPU interior slab 构造冒烟——
+> 双侧 ghost 池 + 4 staging + per-direction 双 transport 时间线在 5090 上
+> 实例化成功）。对抗审查：offset 数学 CLEAN（不等池 N=3 手算 + 独立重构验证
+> 双射）、8 个消费方全兼容。**M3 备忘**：(a) N 路 orchestrator 必须保留 worker
+> 的 dest-readback 守卫（backwards-signal 防护）；(b) `ghost_voxel_x_local =
+> extended−1` 隐含 GHOST_THICKNESS=1，加厚 ghost 时需同步改。
+
 ### 3.3 M3 — orchestrator N 化 + bench 泛化
 
 `ChainOrchestratorV5(sims: list, *, defrag_cadence)`（或直接泛化现类）：
@@ -281,7 +298,7 @@ PCIe-across 会混用，**backend 必须是 per-link 而非全局的**（这就�
 | 里程碑 | 内容 | 验收标准 |
 |---|---|---|
 | **M1** ✅ 2026-07-15 | per-direction transport timeline（§3.1）+ 修 `:170` 旧注释 | 真实 dual 1M/8M fps 差 ≤2%，50k 步 drift=0 |
-| **M2** | partition N 路（§3.2） | N=2 输出与现实现逐字段一致；N=4 合成断言（切点单调、池/offset 自洽、最小宽度拒绝） |
+| **M2** ✅ 2026-07-16 | partition N 路（§3.2） | N=2 输出与现实现逐字段一致；N=4 合成断言（切点单调、池/offset 自洽、最小宽度拒绝） |
 | **M3** | orchestrator/bench N 化（§3.3） | K=2 与 Dual 回归等价；K=3 在 2 卡上首跑通过（interior slab 落地） |
 | **M4** | VGPU 战役（§3.4） | K=4/6/8 × {1M, 8M} × 50k 步全部 drift=0；数值等价过容差 |
 | **M5** | 计时 + 重放（§3.5） | 真实 dual 重放校准 ±5%；输出 K=4/8 虚拟帧时间 + NVLink what-if 报告 |
