@@ -326,6 +326,27 @@ def verify_chain(global_case: CaseV5, chain: ChainPartition, label: str,
                           + receiver_ghost_local * h)
         check(abs(sender_world - receiver_world) < 1e-9,
               f"{label}: boundary/ghost world-x mismatch")
+        # Migration landing — ghost_send.comp's Option B uses ONE vid offset
+        # for both packet kinds via a +/-1-column cancellation: replica maps
+        # my BOUNDARY column onto the receiver's GHOST column (checked
+        # above); migration maps my GHOST column onto the receiver's OWN
+        # boundary column (first own col for trailing sends, last own col
+        # for leading sends). Assert the cancellation holds per link.
+        migration_destination = spec.ghost_voxel_x_local + column_delta
+        expected_migration_destination = (
+            receiver_geometry.leading_thickness
+            if link.direction == "trailing"
+            else receiver_geometry.leading_thickness
+            + receiver_geometry.own_column_count - 1)
+        check(migration_destination == expected_migration_destination,
+              f"{label}: migration landing column {migration_destination} "
+              f"!= {expected_migration_destination}")
+        migration_world_source = (sender_case.grid.origin_x
+                                  + spec.ghost_voxel_x_local * h)
+        migration_world_destination = (receiver_case.grid.origin_x
+                                       + migration_destination * h)
+        check(abs(migration_world_source - migration_world_destination) < 1e-9,
+              f"{label}: migration world-x mismatch")
 
 
 def test_chain_invariants(global_case: CaseV5, tag: str,
