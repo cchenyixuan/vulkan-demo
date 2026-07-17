@@ -59,9 +59,11 @@ class _SoakDone(Exception):
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="V5 dual-GPU long-duration soak runner")
     p.add_argument("--case", default="cases/lid_driven_cavity_2d_8m/case.yaml")
-    p.add_argument("--device-a", type=int, default=0)
-    p.add_argument("--device-b", type=int, default=1)
-    p.add_argument("--weights", default="1.0,1.0")
+    p.add_argument("--weights", default="1.0,1.0",
+                   help="K comma-separated slab weights (chain)")
+    p.add_argument("--device-map", default=None,
+                   help="K comma-separated device indices; default "
+                        "round-robin over 0,1")
     p.add_argument("--depth", type=int, default=2)
     p.add_argument("--sync-scheme", default="per-direction",
                    choices=["aggregated", "per-direction"],
@@ -145,8 +147,8 @@ def main() -> int:
     args = parse_args()
 
     from experiment.v5.utils.case_loader_v5 import load_case_v5
-    from experiment.v5.utils.orchestrator_v5 import DualGpuOrchestratorV5
-    from experiment.v5.utils.partition_v5 import compute_dual_gpu_partition
+    from experiment.v5.utils.orchestrator_v5 import ChainOrchestratorV5
+    from experiment.v5.utils.partition_v5 import compute_chain_partition
     from experiment.v5.utils.simulator_v5 import SphSimulatorV5
     from experiment.v5.utils.vulkan_context_v5 import VulkanContextV5
 
@@ -159,9 +161,16 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     weights = [float(w) for w in args.weights.split(",")]
+    slab_count = len(weights)
+    if args.device_map is not None:
+        device_map = [int(d) for d in args.device_map.split(",")]
+        if len(device_map) != slab_count:
+            raise SystemExit(f"--device-map needs {slab_count} entries")
+    else:
+        device_map = [index % 2 for index in range(slab_count)]
     global_case = load_case_v5(args.case)
     expected_total = int(global_case.initial.positions.shape[0])
-    slab0, slab1, _k = compute_dual_gpu_partition(
+    chain = compute_chain_partition(
         global_case, weights, pool_safety=args.pool_safety)
     defrag_cadence = (args.defrag_cadence if args.defrag_cadence is not None
                       else global_case.numerics.defrag_cadence)
@@ -172,7 +181,8 @@ def main() -> int:
     max_steps = int(budget_s * 250)
 
     meta = {
-        "case": args.case, "weights": weights, "depth": args.depth,
+        "case": args.case, "weights": weights, "device_map": device_map,
+        "depth": args.depth,
         "sync_scheme": args.sync_scheme, "hours": args.hours,
         "defrag_cadence": defrag_cadence, "pool_safety": args.pool_safety,
         "expected_total": expected_total, "max_steps_bound": max_steps,
@@ -185,10 +195,13 @@ def main() -> int:
     telemetry = _start_telemetry(out_dir, args.telemetry_interval)
     intervals_file = open(out_dir / "intervals.jsonl", "w", encoding="utf-8")
 
-    ctx_a = VulkanContextV5.create(device_index=args.device_a, application_name="soak_v5_a")
-    ctx_b = VulkanContextV5.create(device_index=args.device_b, application_name="soak_v5_b")
-    sim_a = SphSimulatorV5(ctx_a, slab0, sync_scheme=args.sync_scheme)
-    sim_b = SphSimulatorV5(ctx_b, slab1, sync_scheme=args.sync_scheme)
+    contexts, sims = [], []
+    for index in range(slab_count):
+        contexts.append(VulkanContextV5.create(
+            device_index=device_map[index],
+            application_name=f"soak_v5_s{index}"))
+        sims.append(SphSimulatorV5(contexts[-1], chain.slabs[index],
+                                   sync_scheme=args.sync_scheme))
 
     soak_state = {
         "t_start": None, "t_last": None, "frame_last": 0,
@@ -215,7 +228,7 @@ def main() -> int:
         return stats
 
     try:
-        with DualGpuOrchestratorV5(sim_a, sim_b, defrag_cadence=defrag_cadence) as orch:
+        with ChainOrchestratorV5(sims, defrag_cadence=defrag_cadence) as orch:
             orch.bootstrap_all()
 
             def on_defrag(frame_n: int, report: list) -> None:
@@ -231,8 +244,7 @@ def main() -> int:
                 soak_state["max_fps"] = max(soak_state["max_fps"], interval_fps)
                 soak_state["fps_sum"] += interval_fps
 
-                a, b = report[0], report[1]
-                alive_total = a["alive"] + b["alive"]
+                alive_total = sum(r["alive"] for r in report)
                 row = {
                     "iso": datetime.datetime.now().isoformat(timespec="seconds"),
                     "elapsed_s": round(elapsed, 3),
@@ -240,13 +252,12 @@ def main() -> int:
                     "interval_fps": round(interval_fps, 2),
                     "alive_total": alive_total,
                     "drift": alive_total - expected_total,
-                    "a_alive": a["alive"], "b_alive": b["alive"],
-                    "a_interval_migration": a["interval_migration"],
-                    "b_interval_migration": b["interval_migration"],
-                    "a_used_fraction": round(a["used_fraction"], 4),
-                    "b_used_fraction": round(b["used_fraction"], 4),
-                    "a_overflow": a["overflow_install_tail"],
-                    "b_overflow": b["overflow_install_tail"],
+                    "alive": [r["alive"] for r in report],
+                    "interval_migration": [r["interval_migration"]
+                                           for r in report],
+                    "used_fraction": [round(r["used_fraction"], 4)
+                                      for r in report],
+                    "overflow": [r["overflow_install_tail"] for r in report],
                     "workers": worker_interval_stats(orch),
                     "working_set_mb": round(_working_set_mb(), 1),
                 }
@@ -270,11 +281,10 @@ def main() -> int:
                 summary["outcome"] = "completed"
 
             # Final drain state is clean (callback fires pipeline-drained).
-            sim_a.submit_defrag_and_wait()
-            sim_b.submit_defrag_and_wait()
-            s_a = sim_a.readback_global_status()
-            s_b = sim_b.readback_global_status()
-            total = s_a["alive_particle_count"] + s_b["alive_particle_count"]
+            for sim in sims:
+                sim.submit_defrag_and_wait()
+            total = sum(sim.readback_global_status()["alive_particle_count"]
+                        for sim in sims)
             elapsed_total = time.perf_counter() - soak_state["t_start"]
             intervals_done = soak_state["interval_index"]
             summary.update({
@@ -287,8 +297,7 @@ def main() -> int:
                 "max_interval_fps": round(soak_state["max_fps"], 2),
                 "final_alive": total,
                 "final_drift": total - expected_total,
-                "pool_health_a": sim_a.readback_pool_health(),
-                "pool_health_b": sim_b.readback_pool_health(),
+                "pool_health": [sim.readback_pool_health() for sim in sims],
                 "finished_iso": datetime.datetime.now().isoformat(timespec="seconds"),
             })
             print(f"[soak] DONE: {summary['frames_total']:,} frames in "
@@ -305,10 +314,10 @@ def main() -> int:
         intervals_file.close()
         if telemetry is not None:
             telemetry.terminate()
-        sim_a.destroy()
-        sim_b.destroy()
-        ctx_a.destroy()
-        ctx_b.destroy()
+        for sim in sims:
+            sim.destroy()
+        for ctx in contexts:
+            ctx.destroy()
     return 0
 
 
