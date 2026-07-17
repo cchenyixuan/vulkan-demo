@@ -61,6 +61,9 @@ class GhostMigrationWorker:
         source_direction: str,         # "leading" or "trailing"
         dest_direction: str,
         label: str,
+        queue_depth: int = 1,          # notify backpressure depth; the chain
+                                       # orchestrator passes >1 so one slow
+                                       # link cannot stall the submit loop
     ) -> None:
         self.source = source_sim
         self.dest = dest_sim
@@ -79,8 +82,9 @@ class GhostMigrationWorker:
                 f"Likely partition / GhostTransportConfig misconfigured.")
 
         # Notify channel: main thread puts frame_n; worker takes it.
-        # maxsize=1 = backpressure (main thread blocks if worker is behind).
-        self.work_queue: queue.Queue = queue.Queue(maxsize=1)
+        # Bounded = backpressure (main thread blocks if worker falls
+        # queue_depth frames behind; the historical default is 1).
+        self.work_queue: queue.Queue = queue.Queue(maxsize=max(1, queue_depth))
 
         # Instrumentation: per-frame timestamps populated inside _run().
         self.timestamps: dict[int, dict] = {}
@@ -138,12 +142,19 @@ class GhostMigrationWorker:
     # ========================================================================
 
     def notify(self, frame_n: int) -> None:
-        """Push frame_n; blocks if worker hasn't consumed previous frame yet
-        (queue maxsize=1). Fail-fast if worker died last frame."""
-        if self.last_error is not None:
-            raise RuntimeError(
-                f"worker {self.label} died: {self.last_error}") from self.last_error
-        self.work_queue.put(frame_n)
+        """Push frame_n; blocks if the worker is queue_depth frames behind.
+        Fail-fast if the worker died — including WHILE blocked in put(), so
+        a dead worker can never hang the orchestrator inside notify()."""
+        while True:
+            if self.last_error is not None:
+                raise RuntimeError(
+                    f"worker {self.label} died: "
+                    f"{self.last_error}") from self.last_error
+            try:
+                self.work_queue.put(frame_n, timeout=1.0)
+                return
+            except queue.Full:
+                continue
 
     def timestamps_for_frame(self, frame_n: int) -> dict:
         return self.timestamps.get(frame_n, {})

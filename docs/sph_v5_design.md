@@ -245,6 +245,17 @@ compute_chain_partition(case, weights: list[float], *, pool_safety=1.05)
 - bench：CSV 列由 sims/links 动态生成，删除从未填充的 V4 遗留列；打印标签用
   device 名而非 "AMD/a"。
 
+> **M3 落地记录（2026-07-17）**：`ChainOrchestratorV5`（orchestrator_v5.py，
+> Dual 类原样保留为对照）+ `_run_v5_chain_bench.py`（--weights K 值 +
+> --device-map 虚拟 GPU 映射 + 内置每接缝数值完整性检查）。notify 后置 +
+> worker queue_depth=4 消除了单慢链路的队头阻塞。**验收结果**：K=2 ABAB
+> （同 scheme 同 pool_safety）chain 602.6 vs dual 585.0 fps——链版反而
+> **+3.0%**（归因于 notify 重排移除了每帧 put 阻塞；两次 chain run 离散仅
+> 0.3 fps）；**K=3 首航**（第一个 interior slab + 首次同卡双 sim 分时）2000
+> 步与 50k 步均 drift=0、双接缝 overshoot ≤0.01dx、零重复；**K=4**（两个
+> interior、三接缝）顺手通过。M1 的 per-direction 协议在其目标场景（interior
+> 双入向 worker）首次实战即正确。
+
 ### 3.4 M4 — VGPU 映射层 + 正确性战役
 
 - 配置：`--vgpus K --device-map 0,0,1,1,...`（长度 K）；每 VGPU 一个
@@ -299,7 +310,7 @@ PCIe-across 会混用，**backend 必须是 per-link 而非全局的**（这就�
 |---|---|---|
 | **M1** ✅ 2026-07-15 | per-direction transport timeline（§3.1）+ 修 `:170` 旧注释 | 真实 dual 1M/8M fps 差 ≤2%，50k 步 drift=0 |
 | **M2** ✅ 2026-07-16 | partition N 路（§3.2） | N=2 输出与现实现逐字段一致；N=4 合成断言（切点单调、池/offset 自洽、最小宽度拒绝） |
-| **M3** | orchestrator/bench N 化（§3.3） | K=2 与 Dual 回归等价；K=3 在 2 卡上首跑通过（interior slab 落地） |
+| **M3** ✅ 2026-07-17 | orchestrator/bench N 化（§3.3） | K=2 与 Dual 回归等价；K=3 在 2 卡上首跑通过（interior slab 落地） |
 | **M4** | VGPU 战役（§3.4） | K=4/6/8 × {1M, 8M} × 50k 步全部 drift=0；数值等价过容差 |
 | **M5** | 计时 + 重放（§3.5） | 真实 dual 重放校准 ±5%；输出 K=4/8 虚拟帧时间 + NVLink what-if 报告 |
 

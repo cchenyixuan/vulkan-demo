@@ -395,3 +395,300 @@ class DualGpuOrchestratorV5:
 
     def instrumentation_records(self) -> list[dict]:
         return list(self._records)
+
+
+# ============================================================================
+# M3: N-slab chain orchestrator (docs/sph_v5_design.md §3.3)
+#
+# DualGpuOrchestratorV5 above stays UNTOUCHED as the K=2 reference for the
+# M3.3 A/B regression (same philosophy as legacy_dual_gpu_partition in M2).
+# This class is the general implementation used going forward: N sims,
+# 2(N-1) ghost workers built from the chain topology, a generic bootstrap
+# bridge, and notify-last submission with queue_depth>1 so a slow link
+# cannot head-of-line-block the submit loop.
+# ============================================================================
+
+
+class ChainOrchestratorV5:
+    """N-slab 1D chain orchestrator. Sim ownership: borrows only.
+
+    sims[i] must be slab i of a ChainPartition (left to right): its
+    transport flags must be has_leading_peer == (i > 0) and
+    has_trailing_peer == (i < N-1). Interior sims require
+    sync_scheme='per-direction' (the aggregated scheme raises at sim
+    construction — shared worker_done slot)."""
+
+    WATCHDOG_TIMEOUT_S = 1.0
+    MAX_POLL_ITERS = 10
+
+    def __init__(
+        self,
+        sims: list,
+        *,
+        defrag_cadence: int = 1000,
+        worker_queue_depth: int = 4,
+    ) -> None:
+        self.sims = list(sims)
+        slab_count = len(self.sims)
+        if slab_count < 1:
+            raise ValueError("need at least one sim")
+        self.defrag_cadence = defrag_cadence
+
+        for index, sim in enumerate(self.sims):
+            transport = sim.case.transport
+            if transport.has_leading_peer != (index > 0):
+                raise ValueError(
+                    f"sim {index}: has_leading_peer="
+                    f"{transport.has_leading_peer} does not match chain "
+                    f"position (expected {index > 0})")
+            if transport.has_trailing_peer != (index < slab_count - 1):
+                raise ValueError(
+                    f"sim {index}: has_trailing_peer="
+                    f"{transport.has_trailing_peer} does not match chain "
+                    f"position (expected {index < slab_count - 1})")
+
+        # 2(N-1) directed ghost workers, one pair per adjacent link.
+        workers = []
+        for index in range(slab_count - 1):
+            workers.append(GhostMigrationWorker(
+                source_sim=self.sims[index], dest_sim=self.sims[index + 1],
+                source_direction="trailing", dest_direction="leading",
+                label=f"s{index}_to_s{index + 1}",
+                queue_depth=worker_queue_depth))
+            workers.append(GhostMigrationWorker(
+                source_sim=self.sims[index + 1], dest_sim=self.sims[index],
+                source_direction="leading", dest_direction="trailing",
+                label=f"s{index + 1}_to_s{index}",
+                queue_depth=worker_queue_depth))
+        self.workers = tuple(workers)
+
+        self._frame_count = 0
+        self._records: list[dict] = []
+        self._destroyed = False
+
+        for worker in self.workers:
+            worker.start()
+        print(f"[ChainOrchV5] N={slab_count}, {len(self.workers)} workers "
+              f"started ({', '.join(w.label for w in self.workers)})")
+
+    def destroy(self) -> None:
+        if self._destroyed:
+            return
+        for worker in self.workers:
+            worker.stop()
+        self._destroyed = True
+
+    def __enter__(self) -> "ChainOrchestratorV5":
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        self.destroy()
+
+    # ========================================================================
+    # Bootstrap
+    # ========================================================================
+
+    def bootstrap_all(self) -> None:
+        """Chain bootstrap with one synchronous ghost round per link.
+
+        Same 4 stages as the dual orchestrator (see its docstring for why
+        the ghost round is required), with stage 2 generalized to a bridge
+        loop over the N-1 links (replicas only; no migrations at t=0)."""
+        for sim in self.sims:
+            sim.bootstrap_init()
+
+        total_bridged_bytes = 0
+        for index in range(len(self.sims) - 1):
+            left, right = self.sims[index], self.sims[index + 1]
+            right.receiver_staging_view("leading")[:] = (
+                left.sender_staging_view("trailing"))
+            left.receiver_staging_view("trailing")[:] = (
+                right.sender_staging_view("leading"))
+            total_bridged_bytes += (
+                left.sender_staging_view("trailing").nbytes
+                + right.sender_staging_view("leading").nbytes)
+        if len(self.sims) > 1:
+            print(f"[ChainOrchV5] bootstrap ghost sync: bridged "
+                  f"{total_bridged_bytes / 1024:.1f} KB over "
+                  f"{len(self.sims) - 1} links")
+
+        for sim in self.sims:
+            sim.bootstrap_compute()
+        for sim in self.sims:
+            sim.prepare_step_cmd_buffers()
+        print(f"[ChainOrchV5] all {len(self.sims)} sims bootstrapped "
+              f"+ step cmds ready")
+
+    # ========================================================================
+    # Frame loop
+    # ========================================================================
+
+    def _submit_frame(self, frame_n: int) -> None:
+        """Submit all of frame n's work (no wait). Submits go FIRST and
+        worker notifies LAST — with queue_depth>1 on the notify queues, a
+        slow link's backpressure lands after the frame's GPU work is
+        already queued instead of stalling every sim's submission."""
+        for sim in self.sims:
+            sim.submit_phase_a(frame_n)
+        for sim in self.sims:
+            sim.submit_transfer_readback(frame_n)
+        for sim in self.sims:
+            sim.submit_phase_b(frame_n)
+        for sim in self.sims:
+            sim.submit_transfer_upload(frame_n)
+        for sim in self.sims:
+            sim.submit_phase_c(frame_n)
+        for worker in self.workers:
+            worker.notify(frame_n)
+
+    def _wait_frame(self, frame_n: int) -> None:
+        for sim in self.sims:
+            sim.wait_frame_done(frame_n)
+        self._raise_if_worker_died(frame_n)
+
+    def _raise_if_worker_died(self, frame_n: int) -> None:
+        for worker in self.workers:
+            if worker.last_error is not None:
+                raise RuntimeError(
+                    f"worker {worker.label} died (frame {frame_n}): "
+                    f"{worker.last_error}") from worker.last_error
+
+    def _wait_frame_with_watchdog(self, frame_n: int) -> None:
+        for sim_index, sim in enumerate(self.sims):
+            frame_semaphore, target_value = sim.sync.frame_done_op(frame_n)
+            for poll_iter in range(self.MAX_POLL_ITERS):
+                done = sim.wait_semaphore(
+                    frame_semaphore, target_value,
+                    timeout_ns=int(self.WATCHDOG_TIMEOUT_S * 1e9))
+                if done:
+                    break
+                self._raise_if_worker_died(frame_n)
+                states = " | ".join(
+                    f"s{i}={s.sync_state()}" for i, s in enumerate(self.sims))
+                worker_states = " | ".join(
+                    f"{w.label}:{w.last_activity[0]}@{w.last_activity[1]}"
+                    f"(done={w.last_completed_frame})" for w in self.workers)
+                print(f"[ChainOrchV5 WATCHDOG] frame {frame_n}: waiting "
+                      f"sim{sim_index} -> {target_value}; {states}; "
+                      f"{worker_states}; poll {poll_iter + 1}/"
+                      f"{self.MAX_POLL_ITERS}", flush=True)
+            else:
+                raise RuntimeError(
+                    f"frame {frame_n}: sim{sim_index} timeline stuck at "
+                    f"{sim.sync_state()} (target {target_value}) after "
+                    f"{self.MAX_POLL_ITERS * self.WATCHDOG_TIMEOUT_S}s. "
+                    f"Likely GPU device-lost / kernel hang.")
+
+    def step(self) -> dict:
+        """Run one frame synchronously, return the per-frame record."""
+        frame_n = self._frame_count
+        t_start = time.perf_counter_ns()
+        self._submit_frame(frame_n)
+        self._wait_frame_with_watchdog(frame_n)
+        t_end = time.perf_counter_ns()
+        self._raise_if_worker_died(frame_n)
+
+        record = {
+            "frame_n": frame_n,
+            "frame_start_ns": t_start,
+            "frame_end_ns": t_end,
+            "frame_time_us": (t_end - t_start) / 1000.0,
+            "workers": {w.label: w.timestamps_for_frame(frame_n)
+                        for w in self.workers},
+        }
+        self._records.append(record)
+        self._frame_count += 1
+
+        if self._frame_count > 0 and self._frame_count % self.defrag_cadence == 0:
+            record["defrag_frame"] = self._frame_count
+            record["defrag_report"] = self._collect_defrag_report()
+            for sim in self.sims:
+                sim.submit_defrag_and_wait()
+        return record
+
+    def _collect_defrag_report(self) -> list[dict]:
+        report = []
+        for sim in self.sims:
+            status = sim.readback_global_status()
+            health = sim.readback_pool_health()
+            report.append({
+                "interval_migration":     status["migration_install_count"],
+                "alive":                  status["alive_particle_count"],
+                "overflow_install_tail":  status["overflow_install_tail"],
+                "peak_migration":         health["peak_migration_count"],
+                "peak_tail":              health["peak_tail_high_water"],
+                "own_pool":               health["own_pool_size"],
+                "used_fraction":          health["used_fraction"],
+            })
+        return report
+
+    def run_until(self, max_steps: Optional[int] = None) -> None:
+        if max_steps is None:
+            raise ValueError("requires max_steps (no time budget)")
+        while self._frame_count < max_steps:
+            self.step()
+
+    def run_pipelined(
+        self,
+        max_steps: int,
+        *,
+        depth: int = 2,
+        warmup: int = 0,
+        on_defrag=None,
+    ) -> dict:
+        """Submit-ahead pipelined run loop — same protocol-safety argument
+        as DualGpuOrchestratorV5.run_pipelined (see its docstring); the
+        chain adds nothing new because all cross-sim dependencies remain
+        nearest-neighbor worker-mediated edges."""
+        depth = max(1, depth)
+        t_start = time.perf_counter()
+        warmup_t = None
+        warmup_frame = None
+        n = 0
+        next_wait = 0
+        while n < max_steps:
+            self._submit_frame(n)
+            n += 1
+            self._frame_count = n
+            while n - next_wait >= depth:
+                self._wait_frame(next_wait)
+                next_wait += 1
+            if warmup_t is None and n >= warmup:
+                warmup_t = time.perf_counter()
+                warmup_frame = n
+            if n % self.defrag_cadence == 0:
+                while next_wait < n:
+                    self._wait_frame(next_wait)
+                    next_wait += 1
+                report = self._collect_defrag_report()
+                if on_defrag is not None:
+                    on_defrag(n, report)
+                for sim in self.sims:
+                    sim.submit_defrag_and_wait()
+        while next_wait < max_steps:
+            self._wait_frame(next_wait)
+            next_wait += 1
+        t_end = time.perf_counter()
+
+        elapsed = t_end - t_start
+        out = {
+            "frame_count": max_steps,
+            "elapsed_s": elapsed,
+            "fps": max_steps / elapsed if elapsed > 0 else 0.0,
+        }
+        if warmup_t is not None:
+            steady_frames = max_steps - warmup_frame
+            steady_s = t_end - warmup_t
+            out.update({
+                "steady_frames": steady_frames,
+                "steady_s": steady_s,
+                "steady_fps": steady_frames / steady_s if steady_s > 0 else 0.0,
+            })
+        return out
+
+    @property
+    def frame_count(self) -> int:
+        return self._frame_count
+
+    def instrumentation_records(self) -> list[dict]:
+        return list(self._records)

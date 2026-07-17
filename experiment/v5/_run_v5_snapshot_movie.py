@@ -44,6 +44,9 @@ if str(_REPO_ROOT) not in sys.path:
 
 BLUE = "#2a78d6"
 GREEN = "#008300"
+# Fixed per-slab colors (categorical palette slots, assigned in slab order —
+# never cycled): slab0 blue, slab1 green, slab2 magenta, slab3 yellow, ...
+SLAB_COLORS = ["#2a78d6", "#008300", "#e87ba4", "#eda100", "#1baf7a", "#eb6834"]
 
 
 class _RunDone(Exception):
@@ -53,9 +56,12 @@ class _RunDone(Exception):
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="V5 dual-GPU snapshot-movie runner")
     p.add_argument("--case", default="cases/lid_driven_cavity_2d_8m/case.yaml")
-    p.add_argument("--device-a", type=int, default=0)
-    p.add_argument("--device-b", type=int, default=1)
-    p.add_argument("--weights", default="1.0,1.0")
+    p.add_argument("--weights", default="1.0,1.0",
+                   help="K comma-separated slab weights (K=2 reproduces the "
+                        "original dual behaviour)")
+    p.add_argument("--device-map", default=None,
+                   help="K comma-separated device indices; default "
+                        "round-robin over 0,1")
     p.add_argument("--depth", type=int, default=2)
     p.add_argument("--sync-scheme", default="per-direction",
                    choices=["aggregated", "per-direction"])
@@ -74,18 +80,19 @@ class SnapshotRenderer(threading.Thread):
     """Off-thread renderer: consumes merged snapshot dicts, writes PNGs.
     Bounded queue gives backpressure instead of unbounded RAM growth."""
 
-    def __init__(self, out_dir: pathlib.Path, extent: tuple, x_cut: float,
+    def __init__(self, out_dir: pathlib.Path, extent: tuple, x_cuts: list,
                  seam_half_width: float, bins: int, lid_speed: float,
-                 expected_total: int):
+                 expected_total: int, slab_count: int):
         super().__init__(name="snapshot-renderer", daemon=False)
         self.jobs: queue.Queue = queue.Queue(maxsize=2)
         self.out_dir = out_dir
         self.extent = extent          # (x0, x1, y0, y1)
-        self.x_cut = x_cut
+        self.x_cuts = list(x_cuts)    # N-1 world-space cut positions
         self.seam_half_width = seam_half_width
         self.bins = bins
         self.lid_speed = lid_speed
         self.expected_total = expected_total
+        self.slab_count = slab_count
         self.last_error = None
         self.rendered = 0
 
@@ -106,9 +113,16 @@ class SnapshotRenderer(threading.Thread):
         x0, x1, y0, y1 = self.extent
         position = job["position"]
         speed = job["speed"]
-        source = job["source"]        # 0 = sim A, 1 = sim B
+        source = job["source"]        # slab index per particle
+        seam_count = max(1, len(self.x_cuts))
 
-        fig, axes = plt.subplots(1, 3, figsize=(19, 6.4), dpi=110)
+        # Layout: speed | count | (N-1 stacked seam zooms in one column)
+        fig = plt.figure(figsize=(19, 6.4), dpi=110)
+        grid = fig.add_gridspec(nrows=seam_count, ncols=3)
+        ax_speed = fig.add_subplot(grid[:, 0])
+        ax_count = fig.add_subplot(grid[:, 1])
+        seam_axes = [fig.add_subplot(grid[row, 2])
+                     for row in range(seam_count)]
 
         # Panel 1: mean speed field
         count, xe, ye = np.histogram2d(
@@ -119,51 +133,63 @@ class SnapshotRenderer(threading.Thread):
             range=[[x0, x1], [y0, y1]], weights=speed)
         with np.errstate(invalid="ignore", divide="ignore"):
             mean_speed = speed_sum / count
-        ax = axes[0]
         # Empty pixels (count=0) render light gray — a hole in the fluid
         # interior shows up immediately.
         speed_cmap = plt.get_cmap("viridis").copy()
         speed_cmap.set_bad("#dddddd")
-        im = ax.imshow(np.ma.masked_invalid(mean_speed.T), origin="lower",
-                       extent=(x0, x1, y0, y1),
-                       cmap=speed_cmap, vmin=0.0, vmax=self.lid_speed,
-                       interpolation="nearest")
-        ax.axvline(self.x_cut, color="white", linewidth=0.6, alpha=0.6)
-        fig.colorbar(im, ax=ax, shrink=0.85, label="|v| (m/s)")
-        ax.set_title(f"mean speed   frame {index}   "
-                     f"t={job['sim_time']:.3f}s   step={job['step']:,}")
+        im = ax_speed.imshow(np.ma.masked_invalid(mean_speed.T),
+                             origin="lower", extent=(x0, x1, y0, y1),
+                             cmap=speed_cmap, vmin=0.0, vmax=self.lid_speed,
+                             interpolation="nearest")
+        for x_cut in self.x_cuts:
+            ax_speed.axvline(x_cut, color="white", linewidth=0.6, alpha=0.6)
+        fig.colorbar(im, ax=ax_speed, shrink=0.85, label="|v| (m/s)")
+        ax_speed.set_title(f"mean speed   frame {index}   "
+                           f"t={job['sim_time']:.3f}s   step={job['step']:,}")
 
         # Panel 2: particle count per pixel (holes / clumps / duplicates)
         fluid_pixels = max((count > 0).sum(), 1)
         expected_per_pixel = len(position) / fluid_pixels
-        ax = axes[1]
-        im = ax.imshow(count.T, origin="lower", extent=(x0, x1, y0, y1),
-                       cmap="Blues", vmin=0.0, vmax=3.0 * expected_per_pixel,
-                       interpolation="nearest")
-        ax.axvline(self.x_cut, color="red", linewidth=0.6, alpha=0.6)
-        fig.colorbar(im, ax=ax, shrink=0.85, label="particles / pixel")
-        alive_a = int((source == 0).sum())
-        alive_b = int((source == 1).sum())
+        im = ax_count.imshow(count.T, origin="lower",
+                             extent=(x0, x1, y0, y1),
+                             cmap="Blues", vmin=0.0,
+                             vmax=3.0 * expected_per_pixel,
+                             interpolation="nearest")
+        for x_cut in self.x_cuts:
+            ax_count.axvline(x_cut, color="red", linewidth=0.6, alpha=0.6)
+        fig.colorbar(im, ax=ax_count, shrink=0.85, label="particles / pixel")
+        per_slab = "  ".join(
+            f"s{value}={int((source == value).sum()):,}"
+            for value in range(self.slab_count))
         drift = len(position) - self.expected_total
-        ax.set_title(f"count map   A={alive_a:,}  B={alive_b:,}  drift={drift}")
+        ax_count.set_title(f"count map   {per_slab}  drift={drift}")
 
-        # Panel 3: seam zoom, colored by source GPU
-        seam_mask = np.abs(position[:, 0] - self.x_cut) < self.seam_half_width
-        seam_position = position[seam_mask]
-        seam_source = source[seam_mask]
-        ax = axes[2]
-        for value, color, label in ((0, BLUE, "sim A"), (1, GREEN, "sim B")):
-            sel = seam_source == value
-            ax.scatter(seam_position[sel, 0], seam_position[sel, 1],
-                       s=0.3, c=color, alpha=0.45, linewidths=0, label=label)
-        ax.axvline(self.x_cut, color="red", linewidth=0.8, alpha=0.7)
-        ax.set_xlim(self.x_cut - self.seam_half_width,
-                    self.x_cut + self.seam_half_width)
-        ax.set_ylim(y0, y1)
-        ax.set_aspect("auto")
-        ax.legend(fontsize=8, frameon=False, markerscale=12, loc="upper right")
-        ax.set_title(f"seam zoom (±{self.seam_half_width * 1000:.1f} mm), "
-                     f"seam particles={seam_mask.sum():,}")
+        # Panel 3: one zoom per seam, particles colored by source slab
+        for seam_index, (ax, x_cut) in enumerate(
+                zip(seam_axes, self.x_cuts)):
+            seam_mask = np.abs(position[:, 0] - x_cut) < self.seam_half_width
+            seam_position = position[seam_mask]
+            seam_source = source[seam_mask]
+            for value in (seam_index, seam_index + 1):
+                color = SLAB_COLORS[value % len(SLAB_COLORS)]
+                sel = seam_source == value
+                ax.scatter(seam_position[sel, 0], seam_position[sel, 1],
+                           s=0.3, c=color, alpha=0.45, linewidths=0,
+                           label=f"slab {value}")
+            stray = int((~np.isin(seam_source,
+                                  (seam_index, seam_index + 1))).sum())
+            ax.axvline(x_cut, color="red", linewidth=0.8, alpha=0.7)
+            ax.set_xlim(x_cut - self.seam_half_width,
+                        x_cut + self.seam_half_width)
+            ax.set_ylim(y0, y1)
+            ax.set_aspect("auto")
+            ax.legend(fontsize=7, frameon=False, markerscale=12,
+                      loc="upper right")
+            ax.set_title(
+                f"seam {seam_index} (±{self.seam_half_width * 1000:.1f} mm) "
+                f"n={seam_mask.sum():,}"
+                + (f"  *** STRAY={stray} ***" if stray else ""),
+                fontsize=9)
 
         fig.tight_layout()
         fig.savefig(self.out_dir / "frames" / f"frame_{index:05d}.png",
@@ -175,8 +201,8 @@ def main() -> int:
     args = parse_args()
 
     from experiment.v5.utils.case_loader_v5 import load_case_v5
-    from experiment.v5.utils.orchestrator_v5 import DualGpuOrchestratorV5
-    from experiment.v5.utils.partition_v5 import compute_dual_gpu_partition
+    from experiment.v5.utils.orchestrator_v5 import ChainOrchestratorV5
+    from experiment.v5.utils.partition_v5 import compute_chain_partition
     from experiment.v5.utils.simulator_v5 import SphSimulatorV5
     from experiment.v5.utils.vulkan_context_v5 import VulkanContextV5
 
@@ -187,9 +213,16 @@ def main() -> int:
     (out_dir / "snaps").mkdir(parents=True, exist_ok=True)
 
     weights = [float(w) for w in args.weights.split(",")]
+    slab_count = len(weights)
+    if args.device_map is not None:
+        device_map = [int(d) for d in args.device_map.split(",")]
+        if len(device_map) != slab_count:
+            sys.exit(f"--device-map needs {slab_count} entries")
+    else:
+        device_map = [index % 2 for index in range(slab_count)]
     global_case = load_case_v5(args.case)
     expected_total = int(global_case.initial.positions.shape[0])
-    slab0, slab1, k_split = compute_dual_gpu_partition(
+    chain = compute_chain_partition(
         global_case, weights, pool_safety=args.pool_safety)
     defrag_cadence = (args.defrag_cadence if args.defrag_cadence is not None
                       else global_case.numerics.defrag_cadence)
@@ -198,32 +231,37 @@ def main() -> int:
     h = global_case.physics.smoothing_length
     extent = (grid.origin_x, grid.origin_x + grid.grid_dimension_x * h,
               grid.origin_y, grid.origin_y + grid.grid_dimension_y * h)
-    x_cut = grid.origin_x + k_split * h
+    x_cuts = [grid.origin_x + cut * h for cut in chain.cuts]
     seam_half_width = 8.0 * h
     lid_speed = 1.0
     timestep = global_case.physics.timestep
     budget_s = args.minutes * 60.0
 
     meta = {
-        "case": args.case, "weights": weights, "depth": args.depth,
+        "case": args.case, "weights": weights, "device_map": device_map,
+        "depth": args.depth,
         "sync_scheme": args.sync_scheme, "minutes": args.minutes,
         "defrag_cadence": defrag_cadence, "expected_total": expected_total,
-        "k_split": int(k_split), "x_cut": x_cut, "extent": extent,
-        "timestep": timestep,
+        "cuts": [int(c) for c in chain.cuts], "x_cuts": x_cuts,
+        "extent": extent, "timestep": timestep,
         "started_iso": datetime.datetime.now().isoformat(timespec="seconds"),
     }
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=2))
     print(f"[snapmovie] out_dir={out_dir}")
     print(f"[snapmovie] {json.dumps(meta)}")
 
-    renderer = SnapshotRenderer(out_dir, extent, x_cut, seam_half_width,
-                                args.bins, lid_speed, expected_total)
+    renderer = SnapshotRenderer(out_dir, extent, x_cuts, seam_half_width,
+                                args.bins, lid_speed, expected_total,
+                                slab_count)
     renderer.start()
 
-    ctx_a = VulkanContextV5.create(device_index=args.device_a, application_name="snap_v5_a")
-    ctx_b = VulkanContextV5.create(device_index=args.device_b, application_name="snap_v5_b")
-    sim_a = SphSimulatorV5(ctx_a, slab0, sync_scheme=args.sync_scheme)
-    sim_b = SphSimulatorV5(ctx_b, slab1, sync_scheme=args.sync_scheme)
+    contexts, sims = [], []
+    for index in range(slab_count):
+        contexts.append(VulkanContextV5.create(
+            device_index=device_map[index],
+            application_name=f"snap_v5_s{index}"))
+        sims.append(SphSimulatorV5(contexts[-1], chain.slabs[index],
+                                   sync_scheme=args.sync_scheme))
 
     state = {"t_start": None, "snapshot_index": 0}
     READBACK_NAMES = ["position_voxel_id", "velocity_mass", "density_pressure"]
@@ -233,7 +271,7 @@ def main() -> int:
         state["snapshot_index"] += 1
         merged_position, merged_speed, merged_source = [], [], []
         merged_velocity, merged_density = [], []
-        for source_value, sim in ((0, sim_a), (1, sim_b)):
+        for source_value, sim in enumerate(sims):
             capacities = sim.case.capacities
             pool = capacities.total_pool_capacity()
             raw = sim.readback_buffers_batch(READBACK_NAMES)
@@ -275,7 +313,7 @@ def main() -> int:
                 source=job["source"])
 
     try:
-        with DualGpuOrchestratorV5(sim_a, sim_b, defrag_cadence=defrag_cadence) as orch:
+        with ChainOrchestratorV5(sims, defrag_cadence=defrag_cadence) as orch:
             orch.bootstrap_all()
 
             def on_defrag(frame_n: int, report: list) -> None:
@@ -296,21 +334,23 @@ def main() -> int:
             except _RunDone:
                 pass
 
-            s_a = sim_a.readback_global_status()
-            s_b = sim_b.readback_global_status()
-            total = s_a["alive_particle_count"] + s_b["alive_particle_count"]
-            print(f"[snapmovie] final: a={s_a['alive_particle_count']:,} "
-                  f"b={s_b['alive_particle_count']:,} total={total:,} "
+            total = 0
+            per_slab = []
+            for sim in sims:
+                alive = sim.readback_global_status()["alive_particle_count"]
+                per_slab.append(f"{alive:,}")
+                total += alive
+            print(f"[snapmovie] final: {' / '.join(per_slab)} total={total:,} "
                   f"(expected {expected_total:,}) drift={total - expected_total}")
             print(f"[snapmovie] snapshots taken: {state['snapshot_index']}")
     finally:
         renderer.jobs.put(None)
         renderer.join(timeout=120)
         print(f"[snapmovie] frames rendered: {renderer.rendered}")
-        sim_a.destroy()
-        sim_b.destroy()
-        ctx_a.destroy()
-        ctx_b.destroy()
+        for sim in sims:
+            sim.destroy()
+        for ctx in contexts:
+            ctx.destroy()
     return 0
 
 
