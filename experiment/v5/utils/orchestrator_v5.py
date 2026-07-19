@@ -541,9 +541,25 @@ class ChainOrchestratorV5:
         for worker in self.workers:
             worker.notify(frame_n)
 
-    def _wait_frame(self, frame_n: int) -> None:
-        for sim in self.sims:
-            sim.wait_frame_done(frame_n)
+    def _wait_frame(self, frame_n: int, stall_timeout_s: float = 120.0) -> None:
+        """Bounded wait on every sim's frame_done. Polls in 1 s slices so a
+        worker death surfaces immediately; a stall past ``stall_timeout_s``
+        dumps the autopsy and raises instead of hanging forever."""
+        deadline = time.perf_counter() + stall_timeout_s
+        for sim_index, sim in enumerate(self.sims):
+            frame_semaphore, target_value = sim.sync.frame_done_op(frame_n)
+            while True:
+                if sim.wait_semaphore(frame_semaphore, target_value,
+                                      timeout_ns=int(1e9)):
+                    break
+                self._raise_if_worker_died(frame_n)
+                if time.perf_counter() > deadline:
+                    autopsy = self.dump_stall_autopsy(frame_n)
+                    print(autopsy, flush=True)
+                    raise RuntimeError(
+                        f"frame {frame_n}: sim{sim_index} frame_done stalled "
+                        f"> {stall_timeout_s}s (GPU pipeline stall or lost "
+                        f"signal). Autopsy above.")
         self._raise_if_worker_died(frame_n)
 
     def _raise_if_worker_died(self, frame_n: int) -> None:
@@ -615,6 +631,13 @@ class ChainOrchestratorV5:
                 "interval_migration":     status["migration_install_count"],
                 "alive":                  status["alive_particle_count"],
                 "overflow_install_tail":  status["overflow_install_tail"],
+                # Ghost-pool per-voxel-slot drops — the counters the K=8
+                # 60h soak's drift=-85 was invisible in (only install_tail
+                # was logged). Cumulative since last defrag reset.
+                "overflow_inside":        status["overflow_inside_count"],
+                "overflow_incoming":      status["overflow_incoming_count"],
+                "overflow_ghost":         status["overflow_ghost_count"],
+                "overflow_install_inside": status["overflow_install_inside"],
                 "peak_migration":         health["peak_migration_count"],
                 "peak_tail":              health["peak_tail_high_water"],
                 "own_pool":               health["own_pool_size"],
@@ -628,6 +651,25 @@ class ChainOrchestratorV5:
         while self._frame_count < max_steps:
             self.step()
 
+    def dump_stall_autopsy(self, frame_n: int) -> str:
+        """Host-side-only diagnostic snapshot (safe on a stalled device:
+        vkGetSemaphoreCounterValue never blocks). Returns a multi-line
+        string with every sim's full semaphore state and every worker's
+        last activity — the data the 2026-07-18 K=8 hang lacked."""
+        lines = [f"=== STALL AUTOPSY (waiting frame {frame_n}) ==="]
+        for index, sim in enumerate(self.sims):
+            frame_semaphore, target = sim.sync.frame_done_op(frame_n)
+            lines.append(f"sim{index}: sync_state={sim.sync_state()} "
+                         f"frame_done_target={target}")
+        for worker in self.workers:
+            activity, activity_frame, stamp_ns = worker.last_activity
+            lines.append(
+                f"worker {worker.label}: {activity}@frame{activity_frame} "
+                f"iters={worker.iteration_count} "
+                f"last_done={worker.last_completed_frame} "
+                f"age={(time.perf_counter_ns() - stamp_ns) / 1e9:.1f}s")
+        return "\n".join(lines)
+
     def run_pipelined(
         self,
         max_steps: int,
@@ -635,11 +677,18 @@ class ChainOrchestratorV5:
         depth: int = 2,
         warmup: int = 0,
         on_defrag=None,
+        stall_timeout_s: float = 120.0,
     ) -> dict:
         """Submit-ahead pipelined run loop — same protocol-safety argument
         as DualGpuOrchestratorV5.run_pipelined (see its docstring); the
         chain adds nothing new because all cross-sim dependencies remain
-        nearest-neighbor worker-mediated edges."""
+        nearest-neighbor worker-mediated edges.
+
+        Unlike the dual version, _wait_frame here is BOUNDED: a frame that
+        fails to complete within ``stall_timeout_s`` triggers a full
+        semaphore/worker autopsy dump and raises. The 2026-07-18 K=8 soak
+        hang sat invisible for 1.7 days behind an INFINITE vkWaitSemaphores
+        — never again."""
         depth = max(1, depth)
         t_start = time.perf_counter()
         warmup_t = None
@@ -651,14 +700,14 @@ class ChainOrchestratorV5:
             n += 1
             self._frame_count = n
             while n - next_wait >= depth:
-                self._wait_frame(next_wait)
+                self._wait_frame(next_wait, stall_timeout_s)
                 next_wait += 1
             if warmup_t is None and n >= warmup:
                 warmup_t = time.perf_counter()
                 warmup_frame = n
             if n % self.defrag_cadence == 0:
                 while next_wait < n:
-                    self._wait_frame(next_wait)
+                    self._wait_frame(next_wait, stall_timeout_s)
                     next_wait += 1
                 report = self._collect_defrag_report()
                 if on_defrag is not None:
@@ -666,7 +715,7 @@ class ChainOrchestratorV5:
                 for sim in self.sims:
                     sim.submit_defrag_and_wait()
         while next_wait < max_steps:
-            self._wait_frame(next_wait)
+            self._wait_frame(next_wait, stall_timeout_s)
             next_wait += 1
         t_end = time.perf_counter()
 

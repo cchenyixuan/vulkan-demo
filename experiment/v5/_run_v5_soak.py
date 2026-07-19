@@ -258,6 +258,14 @@ def main() -> int:
                     "used_fraction": [round(r["used_fraction"], 4)
                                       for r in report],
                     "overflow": [r["overflow_install_tail"] for r in report],
+                    "overflow_incoming": [r.get("overflow_incoming", 0)
+                                          for r in report],
+                    "overflow_inside": [r.get("overflow_inside", 0)
+                                        for r in report],
+                    "overflow_ghost": [r.get("overflow_ghost", 0)
+                                       for r in report],
+                    "overflow_install_inside": [
+                        r.get("overflow_install_inside", 0) for r in report],
                     "workers": worker_interval_stats(orch),
                     "working_set_mb": round(_working_set_mb(), 1),
                 }
