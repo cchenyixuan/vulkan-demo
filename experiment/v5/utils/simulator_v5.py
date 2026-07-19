@@ -41,8 +41,21 @@ from experiment.v5.utils.case_v5 import (
     CaseV5,
     KIND_FLUID,
 )
+import threading
+
 from experiment.v5.utils.sync_scheme_v5 import make_sync_scheme
 from experiment.v5.utils.vulkan_context_v5 import VulkanContextV5
+
+# Process-wide serialization of driver-entry calls that MUTATE queue/semaphore
+# state (vkQueueSubmit2, vkSignalSemaphore). Diagnostic mitigation for the
+# K=8 soak wedges (2026-07-18 sim6, 2026-07-19 sim2 — autopsy-proven: a
+# submitted transfer batch with its semaphore wait objectively satisfied
+# never executed on an idle, non-lost device; both on the display GPU).
+# Theory A = driver race under 15-thread submit/signal concurrency (this lock
+# removes it); theory B = WDDM display-GPU preemption wedge (this lock will
+# NOT help — that outcome implicates the device map / display placement).
+# vkWaitSemaphores is deliberately NOT locked (it blocks for seconds).
+_DRIVER_SUBMIT_SIGNAL_LOCK = threading.Lock()
 
 
 # ============================================================================
@@ -2073,7 +2086,8 @@ class SphSimulatorV5:
             signalSemaphoreInfoCount=len(signal_infos),
             pSignalSemaphoreInfos=signal_infos if signal_infos else None,
         )
-        vkQueueSubmit2(queue, 1, [submit_info], VK_NULL_HANDLE)
+        with _DRIVER_SUBMIT_SIGNAL_LOCK:
+            vkQueueSubmit2(queue, 1, [submit_info], VK_NULL_HANDLE)
 
     def wait_semaphore(self, semaphore, value: int,
                        timeout_ns: int = 0xFFFFFFFFFFFFFFFF) -> bool:
@@ -2114,7 +2128,8 @@ class SphSimulatorV5:
             semaphore=semaphore,
             value=value,
         )
-        vkSignalSemaphore(self.ctx.device, info)
+        with _DRIVER_SUBMIT_SIGNAL_LOCK:
+            vkSignalSemaphore(self.ctx.device, info)
 
     def host_signal_timeline(self, value: int) -> None:
         """Legacy: host-signal the PRIMARY timeline (single-GPU smoke tests
