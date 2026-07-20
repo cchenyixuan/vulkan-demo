@@ -41,7 +41,16 @@ _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 _SOAK = pathlib.Path(__file__).parent / "_run_v5_soak.py"
 
 INACTIVITY_KILL_S = 600          # no intervals.jsonl update -> kill segment
-POST_WEDGE_COOLDOWN_S = 30       # let the driver settle between segments
+BOOT_GRACE_S = 1200              # segment yet to produce its FIRST interval:
+                                 # 8M K=8 case-load + 8-sim bootstrap takes
+                                 # minutes, and a wedged-driver recovery can
+                                 # stall device creation — don't kill early
+POST_WEDGE_COOLDOWN_S = 60       # let the driver settle between segments
+BOOT_FAIL_COOLDOWN_S = 300       # segment died at boot (0 intervals): the
+                                 # previous zombie likely still held the GPU
+                                 # — wait much longer before retrying
+ZOMBIE_WAIT_S = 900              # a killed process stuck in a kernel-mode
+                                 # driver call can be unkillable for minutes
 
 
 def parse_args():
@@ -64,25 +73,51 @@ def run_segment(segment_dir: pathlib.Path, hours: float,
                                stderr=subprocess.STDOUT, cwd=str(_REPO_ROOT))
     intervals_path = segment_dir / "intervals.jsonl"
     killed_for_inactivity = False
+    zombie = False
+    segment_start = time.time()
     while True:
         try:
             process.wait(timeout=60)
             break
         except subprocess.TimeoutExpired:
             pass
-        if intervals_path.exists():
+        produced_any = (intervals_path.exists()
+                        and intervals_path.stat().st_size > 0)
+        if produced_any:
             age = time.time() - intervals_path.stat().st_mtime
-            if age > INACTIVITY_KILL_S:
-                killed_for_inactivity = True
-                print(f"[supervisor] segment inactive {age:.0f}s "
-                      f"(teardown hang?) — killing", flush=True)
-                process.kill()
-                process.wait(timeout=60)
-                break
+            limit = INACTIVITY_KILL_S
+        else:
+            age = time.time() - segment_start
+            limit = BOOT_GRACE_S
+        if age > limit:
+            killed_for_inactivity = True
+            print(f"[supervisor] segment inactive {age:.0f}s "
+                  f"({'teardown hang' if produced_any else 'boot stall'}) "
+                  f"— killing", flush=True)
+            process.kill()
+            # A process wedged inside a kernel-mode driver call can be
+            # unkillable until the driver releases it — poll patiently
+            # instead of letting TimeoutExpired kill the supervisor
+            # (the p2 seg_01 incident).
+            deadline = time.time() + ZOMBIE_WAIT_S
+            while time.time() < deadline:
+                try:
+                    process.wait(timeout=30)
+                    break
+                except subprocess.TimeoutExpired:
+                    print("[supervisor] waiting for killed process to "
+                          "exit (kernel-mode zombie)...", flush=True)
+            else:
+                zombie = True
+                print("[supervisor] process STILL alive after "
+                      f"{ZOMBIE_WAIT_S}s — driver likely needs manual "
+                      "attention; stopping the supervisor", flush=True)
+            break
     log_handle.close()
 
     result = {"returncode": process.returncode,
-              "killed_for_inactivity": killed_for_inactivity}
+              "killed_for_inactivity": killed_for_inactivity,
+              "zombie": zombie}
     summary_path = segment_dir / "summary.json"
     if summary_path.exists():
         try:
@@ -138,7 +173,13 @@ def main() -> int:
               flush=True)
         if result.get("outcome") == "completed":
             break
-        time.sleep(POST_WEDGE_COOLDOWN_S)
+        if result.get("zombie"):
+            print("[supervisor] aborting: unkillable zombie holds the GPU",
+                  flush=True)
+            break
+        died_at_boot = not result.get("frames")
+        time.sleep(BOOT_FAIL_COOLDOWN_S if died_at_boot
+                   else POST_WEDGE_COOLDOWN_S)
 
     summary = {
         "hours_total_budget": args.hours_total,
