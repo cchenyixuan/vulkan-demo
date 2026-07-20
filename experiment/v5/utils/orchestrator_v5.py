@@ -638,6 +638,15 @@ class ChainOrchestratorV5:
                 "overflow_incoming":      status["overflow_incoming_count"],
                 "overflow_ghost":         status["overflow_ghost_count"],
                 "overflow_install_inside": status["overflow_install_inside"],
+                # Send/recv pairing probe for the silent-loss investigation
+                # (2026-07-20: drift −52 in ONE interval with ALL overflow
+                # counters zero → lost-migration-in-transport theory; pairing
+                # sender's send counts against receiver's recv counts across
+                # a link localizes the lossy hop next time an event fires).
+                "ghost_send_leading":     status["ghost_send_leading_count"],
+                "ghost_send_trailing":    status["ghost_send_trailing_count"],
+                "ghost_recv_leading":     status["ghost_recv_leading_count"],
+                "ghost_recv_trailing":    status["ghost_recv_trailing_count"],
                 "peak_migration":         health["peak_migration_count"],
                 "peak_tail":              health["peak_tail_high_water"],
                 "own_pool":               health["own_pool_size"],

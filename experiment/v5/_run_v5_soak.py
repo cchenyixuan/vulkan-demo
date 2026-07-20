@@ -266,6 +266,12 @@ def main() -> int:
                                        for r in report],
                     "overflow_install_inside": [
                         r.get("overflow_install_inside", 0) for r in report],
+                    "ghost_send": [[r.get("ghost_send_leading", 0),
+                                    r.get("ghost_send_trailing", 0)]
+                                   for r in report],
+                    "ghost_recv": [[r.get("ghost_recv_leading", 0),
+                                    r.get("ghost_recv_trailing", 0)]
+                                   for r in report],
                     "workers": worker_interval_stats(orch),
                     "working_set_mb": round(_working_set_mb(), 1),
                 }
