@@ -43,17 +43,16 @@ from experiment.v5.utils.replay_v5 import (
 MEASURED = {
     "1M": {
         "phase_a": 78.6, "phase_b": 564.5, "phase_c": 580.9,
-        "readback_dma": 154.5, "upload_dma": 184.0, "memcpy": 418.5,
-        # measured references
-        "fps_dual_depth2": 585.0,     # M3.3-era clean baseline (pre-TDR-storm
-                                      # driver state; today's 516 is flagged
-                                      # dirty in the M5a report)
-        "fps_chain_k2": 602.6,
+        "readback_dma": 153.3, "upload_dma": 177.7, "memcpy": 411.8,
+        # measured references — POST-REBOOT clean baselines (2026-07-21):
+        # the dirty-driver -12% depth-2 anomaly resolved on reboot.
+        "fps_dual_depth2": 596.7,
+        "fps_chain_k2": 606.5,
     },
     "8M": {
         "phase_a": 461.0, "phase_b": 4025.0, "phase_c": 3282.6,
-        "readback_dma": 489.2, "upload_dma": 546.8, "memcpy": 1167.8,
-        "fps_dual_depth2": 125.4,     # measured today (8M path is clean)
+        "readback_dma": 472.4, "upload_dma": 534.5, "memcpy": 1157.5,
+        "fps_dual_depth2": 126.2,     # post-reboot clean baseline
         "fps_k4_measured": 92.8,      # M4 campaign 50k
         "fps_k4_soak": 90.6,          # 30-min soak mean
     },
@@ -62,15 +61,16 @@ MEASURED = {
 # Blind-validation set: measured chain fps on 2 physical GPUs (M4 campaign
 # 50k steady, maps alternate 0,1,0,1,...). The context-switch parameter is
 # fit ONLY on 8M K=4; every other row is a no-refit prediction target.
+# Post-reboot re-measured sweep (2026-07-21, current code, clean driver).
 VALIDATION_POINTS = [
-    # (case, K, measured_fps, role)
-    ("8M", 4, 92.8, "FIT"),
-    ("8M", 6, 79.1, "blind"),
-    ("8M", 8, 58.5, "blind"),
-    ("1M", 3, 403.0, "blind"),
-    ("1M", 4, 330.8, "FIT"),
-    ("1M", 6, 226.5, "blind"),
-    ("1M", 8, 162.3, "blind"),
+    # (case, K, measured_fps, note)
+    ("1M", 3, 393.2, ""),
+    ("1M", 4, 298.4, ""),
+    ("1M", 6, 215.2, ""),
+    ("1M", 8, 160.9, ""),
+    ("8M", 4, 92.8, "pre-reboot m4 campaign"),
+    ("8M", 6, 79.1, "pre-reboot m4 campaign"),
+    ("8M", 8, 58.5, "pre-reboot m4 campaign"),
 ]
 
 
@@ -159,50 +159,37 @@ def main() -> int:
 
     print()
     print("=" * 72)
-    print("Stage 2 — oversubscription: fit context_switch on 8M K=4, "
-          "blind-validate the rest")
+    print("Stage 2 — oversubscription validation: host memcpy serialization "
+          "model, zero fitted parameters")
     print("=" * 72)
 
-    def replay_chain(tag, slab_count, alpha):
+    # ZERO-parameter oversubscription model (2026-07-21 breakthrough):
+    # the post-reboot K-sweep showed period ~linear in K — worker memcpys
+    # SERIALIZE on the shared host beyond the 2-concurrent baseline that
+    # the K=2-measured memcpy durations already embed. memcpy_channels=1
+    # for K>=3 (marginal copies serialize); K=2 keeps parallel (inputs
+    # were measured under exactly that 2-way concurrency). The former
+    # coresidency-alpha model is retired (it needed per-case fits and
+    # still missed K=3 by 37%).
+    print(f"{'case':>4} {'K':>3} {'measured':>9} {'replay':>9} "
+          f"{'error':>8}")
+    worst = 0.0
+    for tag, slab_count, measured_fps, _ in VALIDATION_POINTS:
         case_data = MEASURED[tag]
         device_map_chain = [index % 2 for index in range(slab_count)]
         sims, links = build_k_chain(case_data, slab_count,
-                                    device_map_chain, alpha)
-        return replay(sims, links, device_map_chain,
-                      ReplayParams(host_overhead_us=overhead[tag]))
-
-    # Per-case coresidency alpha, fit on that case's K=4 row only.
-    alphas = {}
-    for tag in MEASURED:
-        fit_rows = [(t, k, fps) for t, k, fps, role in VALIDATION_POINTS
-                    if t == tag and role == "FIT"]
-        if not fit_rows:
-            continue
-        _, fit_k, fit_fps = fit_rows[0]
-        low, high = 0.0, 2.0
-        for _ in range(40):
-            mid = 0.5 * (low + high)
-            if replay_chain(tag, fit_k, mid).steady_fps > fit_fps:
-                low = mid
-            else:
-                high = mid
-        alphas[tag] = 0.5 * (low + high)
-        print(f"{tag}: coresidency alpha fit on K={fit_k} "
-              f"(target {fit_fps}) -> {alphas[tag]:.3f} "
-              f"(+{100 * alphas[tag]:.0f}% kernel slowdown per coresident)")
-
-    print(f"\n{'case':>4} {'K':>3} {'measured':>9} {'replay':>9} "
-          f"{'error':>8}  role")
-    worst_blind = 0.0
-    for tag, slab_count, measured_fps, role in VALIDATION_POINTS:
-        predicted = replay_chain(tag, slab_count, alphas[tag]).steady_fps
-        error = 100 * (predicted - measured_fps) / measured_fps
-        if role == "blind":
-            worst_blind = max(worst_blind, abs(error))
+                                    device_map_chain, 0.0)
+        channels = 0 if slab_count <= 2 else 1
+        res = replay(sims, links, device_map_chain,
+                     ReplayParams(host_overhead_us=overhead[tag],
+                                  memcpy_channels=channels))
+        error = 100 * (res.steady_fps - measured_fps) / measured_fps
+        worst = max(worst, abs(error))
         print(f"{tag:>4} {slab_count:>3} {measured_fps:>9.1f} "
-              f"{predicted:>9.1f} {error:>+7.1f}%  {role}")
-    print(f"\nworst blind error: {worst_blind:.1f}% "
-          f"({'PASS' if worst_blind <= 10.0 else 'NEEDS WORK'} vs ±10% bar)")
+              f"{res.steady_fps:>9.1f} {error:>+7.1f}%")
+    print(f"\nworst error (all points, ZERO oversubscription-specific "
+          f"fits): {worst:.1f}% ({'PASS' if worst <= 10.0 else 'NEEDS WORK'}"
+          f" vs ±10% bar)")
 
     print()
     print("=" * 72)
@@ -234,7 +221,11 @@ def main() -> int:
                     host_overhead_us=overhead[tag],
                     sched_gap_us=override.get("sched", 44.8),
                     sem_latency_us=override.get("sem", 35.8))
-                # 1 sim per GPU — the real-cluster shape.
+                # 1 sim per GPU — the real-cluster shape. The 10x3090 is
+                # a SINGLE HOST: staged memcpys serialize there too
+                # (channels=1); P2P/ideal transports have no memcpy.
+                if mod["memcpy"] > 0 and slab_count > 2:
+                    params.memcpy_channels = 1
                 res = replay(sims, links, list(range(slab_count)), params)
                 row.append(res.steady_fps)
             rows[slab_count] = row

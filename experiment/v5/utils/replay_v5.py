@@ -57,6 +57,12 @@ class ReplayParams:
     sem_latency_us: float = 35.8     # upload landed -> phase C start (M5a)
     host_overhead_us: float = 0.0    # fit on K=2 calibration
     worker_wakeup_us: float = 0.0    # folded into host_overhead by default
+    memcpy_channels: int = 0         # >0: worker memcpys contend for this
+                                     # many host-RAM channels (the 1M/8M
+                                     # K-sweep shows period ~linear in K —
+                                     # memcpys serialize on host memory
+                                     # bandwidth, NOT kernel cache thrash);
+                                     # 0 = unlimited (legacy parallel)
     context_switch_us: float = 0.0   # engine cost when consecutive batches
                                      # belong to DIFFERENT VkDevices on one
                                      # physical device (WDDM context switch;
@@ -144,14 +150,29 @@ def replay(sims: list, links: list, device_map: list,
                 a_done[i], sim.phase_b, owner=i)
 
         # Workers: memcpy after BOTH endpoint readbacks (guard included).
+        # With memcpy_channels > 0, memcpys contend for host RAM channels:
+        # earliest-ready first, each assigned to the earliest-free channel.
         worker_done = {}
+        ready_list = []
         for link in links:
             src_rb = rb_done[(link.source_index, link.source_direction)]
             dst_rb = rb_done[(link.destination_index,
                               link.destination_direction)]
-            start = max(src_rb, dst_rb) + params.worker_wakeup_us
-            worker_done[(link.destination_index,
-                         link.destination_direction)] = start + link.memcpy
+            ready = max(src_rb, dst_rb) + params.worker_wakeup_us
+            ready_list.append((ready, link))
+        if params.memcpy_channels > 0:
+            channel_free = [0.0] * params.memcpy_channels
+            for ready, link in sorted(ready_list, key=lambda item: item[0]):
+                channel = min(range(len(channel_free)),
+                              key=lambda c: channel_free[c])
+                start = max(ready, channel_free[channel])
+                channel_free[channel] = start + link.memcpy
+                worker_done[(link.destination_index,
+                             link.destination_direction)] = start + link.memcpy
+        else:
+            for ready, link in ready_list:
+                worker_done[(link.destination_index,
+                             link.destination_direction)] = ready + link.memcpy
 
         # Uploads (dest transfer queue, FIFO behind that device's readbacks).
         upload_done = [0.0] * sim_count
