@@ -63,7 +63,14 @@ class BenchTimer:
     read_frame() calls reuse the same slots every frame.
     """
 
-    def __init__(self, ctx, label: str):
+    def __init__(self, ctx, label: str, queue_family_index: Optional[int] = None):
+        """``queue_family_index`` selects which queue family's cmd buffers
+        will write into this pool (validity check only — the pool itself is
+        queue-agnostic). Default = the compute family. Pass
+        ``ctx.transfer_queue_family_index`` for a transfer-queue timer (M5a:
+        the 5090's dedicated transfer family reports timestampValidBits=64).
+        Timestamps from BOTH families share the same device clock domain, so
+        diffs across the two pools of one GPU are meaningful."""
         self.ctx = ctx
         self.label = label
 
@@ -75,15 +82,17 @@ class BenchTimer:
                 f"BenchTimer({label}): physical device reports "
                 f"timestampPeriod={self.ns_per_tick}; timestamps unsupported.")
 
+        if queue_family_index is None:
+            queue_family_index = ctx.compute_queue_family_index
         queue_family_properties_list = vkGetPhysicalDeviceQueueFamilyProperties(
             ctx.physical_device)
         valid_bits = queue_family_properties_list[
-            ctx.compute_queue_family_index].timestampValidBits
+            queue_family_index].timestampValidBits
         if valid_bits == 0:
             raise RuntimeError(
-                f"BenchTimer({label}): compute queue family "
-                f"{ctx.compute_queue_family_index} has timestampValidBits=0; "
-                f"GPU timestamps not supported on this queue.")
+                f"BenchTimer({label}): queue family {queue_family_index} "
+                f"has timestampValidBits=0; GPU timestamps not supported "
+                f"on this queue.")
         self.valid_bits = valid_bits
 
         # Single query pool covering both step phases and defrag.
@@ -372,6 +381,28 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
         out["force_us"] = v
     if (v := diff_us("c_force_end", "c_start")) is not None:
         out["phase_c_us"] = v
+
+    # --- M5a: transfer-queue DMA segments (labels live in the transfer
+    # pool; the runner merges both pools' tick dicts before calling — same
+    # device clock domain, so cross-queue diffs are exact) ---
+    for direction in ("leading", "trailing"):
+        if (v := diff_us(f"t_rb_{direction}_copy_end",
+                         f"t_rb_{direction}_start")) is not None:
+            out[f"readback_{direction}_dma_us"] = v
+        if (v := diff_us(f"t_rb_{direction}_end",
+                         f"t_rb_{direction}_copy_end")) is not None:
+            out[f"readback_{direction}_barrier_us"] = v
+        if (v := diff_us(f"t_up_{direction}_end",
+                         f"t_up_{direction}_start")) is not None:
+            out[f"upload_{direction}_dma_us"] = v
+        # Cross-queue scheduling offsets (compute tick ↔ transfer tick):
+        # how long after ghost_send's data was ready did the DMA actually
+        # start, and how long before phase C did the upload land.
+        if (v := diff_us(f"t_rb_{direction}_start",
+                         f"a_ghost_{direction}_end")) is not None:
+            out[f"readback_{direction}_sched_gap_us"] = v
+        if (v := diff_us("c_start", f"t_up_{direction}_end")) is not None:
+            out[f"upload_{direction}_to_c_gap_us"] = v
 
     # --- Defrag (only present on defrag-cycle frames) ---
     if (v := diff_us("defrag_end", "defrag_start")) is not None:

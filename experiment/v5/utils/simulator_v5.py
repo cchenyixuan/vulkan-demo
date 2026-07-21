@@ -283,6 +283,13 @@ class SphSimulatorV5:
         # When None, _bench_tick / _bench_reset_step / _bench_reset_defrag
         # are pure no-ops; the production runner pays zero per-frame cost.
         self.bench: Any = None
+        # M5a: separate BenchTimer for the TRANSFER queue's readback/upload
+        # cmds (own query pool — avoids cross-queue reset races; same device
+        # clock domain as self.bench so cross-pool diffs are exact). Attach
+        # with queue_family_index=ctx.transfer_queue_family_index BEFORE
+        # prepare_step_cmd_buffers.
+        self.bench_transfer: Any = None
+        self._bench_transfer_reset_recorded = False
 
         self._destroyed = False
         print(f"[SimV5] init complete on {ctx.device_name} "
@@ -1149,6 +1156,18 @@ class SphSimulatorV5:
 
     # ----- bench timestamp helpers (no-op when self.bench is None) ----------
 
+    def _bench_tick_transfer(self, cmd, label: str) -> None:
+        """Transfer-pool tick; embeds the pool reset in the FIRST transfer
+        cmd recorded per prepare pass (the first-submitted readback each
+        frame), so all transfer slots are clean before any write."""
+        if self.bench_transfer is None:
+            return
+        if not self._bench_transfer_reset_recorded:
+            self._bench_transfer_reset_recorded = True
+            self.bench_transfer.record_step_reset_and_start(cmd, label)
+        else:
+            self.bench_transfer.tick(cmd, label)
+
     def _bench_tick(self, cmd, label: str) -> None:
         """Insert vkCmdWriteTimestamp into ``cmd`` if a BenchTimer is attached."""
         if self.bench is not None:
@@ -1873,11 +1892,14 @@ class SphSimulatorV5:
         # timeline wait already ensures ghost_send.comp's writes have
         # happened-before this submit; CONCURRENT buffer sharing (P2)
         # eliminates the queue family ownership transfer cost.
+        self._bench_tick_transfer(cmd, f"t_rb_{direction}_start")
         self._record_readback_for_direction(cmd, direction)
+        self._bench_tick_transfer(cmd, f"t_rb_{direction}_copy_end")
         # Compute→host barrier so worker's CPU read sees the just-written
         # sender_staging bytes. Issued on transfer queue (legal — barriers
         # can be issued on any queue including transfer).
         self._record_compute_to_host_barrier(cmd)
+        self._bench_tick_transfer(cmd, f"t_rb_{direction}_end")
         vkEndCommandBuffer(cmd)
         return cmd
 
@@ -1890,7 +1912,9 @@ class SphSimulatorV5:
         cmd = self._allocate_transfer_oneshot_cmd()
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
+        self._bench_tick_transfer(cmd, f"t_up_{direction}_start")
         self._record_upload_for_direction(cmd, direction)
+        self._bench_tick_transfer(cmd, f"t_up_{direction}_end")
         vkEndCommandBuffer(cmd)
         return cmd
 
@@ -1916,6 +1940,9 @@ class SphSimulatorV5:
         self.phase_b_cmd = self._record_phase_b_cmd()
         self.phase_c_cmd = self._record_phase_c_cmd()
 
+        # Transfer-pool reset lives in the first transfer cmd recorded per
+        # pass; clear the flag so re-recording re-embeds it.
+        self._bench_transfer_reset_recorded = False
         for direction in self._transport_segments:
             self.transfer_readback_cmds[direction] = (
                 self._record_transfer_readback_cmd(direction))

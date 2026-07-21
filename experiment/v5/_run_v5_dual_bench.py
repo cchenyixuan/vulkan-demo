@@ -111,6 +111,19 @@ _PER_GPU_KEYS = [
     "force_us",
     "phase_c_us",
     "defrag_us",
+    # M5a: transfer-QUEUE DMA segments (measured on the transfer queue's own
+    # query pool; same device clock as the compute pool, so the *_sched_gap /
+    # *_to_c_gap cross-queue offsets are exact).
+    "readback_leading_dma_us",
+    "readback_leading_barrier_us",
+    "readback_leading_sched_gap_us",
+    "upload_leading_dma_us",
+    "upload_leading_to_c_gap_us",
+    "readback_trailing_dma_us",
+    "readback_trailing_barrier_us",
+    "readback_trailing_sched_gap_us",
+    "upload_trailing_dma_us",
+    "upload_trailing_to_c_gap_us",
 ]
 
 _WORKER_KEYS = [
@@ -256,6 +269,13 @@ def main() -> int:
     bench_b = BenchTimer(ctx_b, label="gpu_b")
     sim_a.bench = bench_a
     sim_b.bench = bench_b
+    # M5a: transfer-queue timers (separate pool per GPU, same clock domain).
+    bench_ta = BenchTimer(ctx_a, label="gpu_a_transfer",
+                          queue_family_index=ctx_a.transfer_queue_family_index)
+    bench_tb = BenchTimer(ctx_b, label="gpu_b_transfer",
+                          queue_family_index=ctx_b.transfer_queue_family_index)
+    sim_a.bench_transfer = bench_ta
+    sim_b.bench_transfer = bench_tb
     print(f"[bench_v5_dual] timestampPeriod a={bench_a.ns_per_tick:.4f}ns  "
           f"b={bench_b.ns_per_tick:.4f}ns")
 
@@ -301,6 +321,10 @@ def main() -> int:
 
                 gpu_a_ticks = bench_a.read_frame(include_defrag=defrag_ran)
                 gpu_b_ticks = bench_b.read_frame(include_defrag=defrag_ran)
+                # Merge transfer-pool ticks: same device clock domain, so
+                # compute_durations can form exact cross-queue offsets.
+                gpu_a_ticks.update(bench_ta.read_frame(include_defrag=False))
+                gpu_b_ticks.update(bench_tb.read_frame(include_defrag=False))
                 gpu_a = compute_durations(gpu_a_ticks)
                 gpu_b = compute_durations(gpu_b_ticks)
                 worker = _extract_worker_metrics(record)
@@ -369,6 +393,8 @@ def main() -> int:
             csv_file.close()
         bench_a.destroy()
         bench_b.destroy()
+        bench_ta.destroy()
+        bench_tb.destroy()
         sim_a.destroy()
         sim_b.destroy()
         ctx_a.destroy()
