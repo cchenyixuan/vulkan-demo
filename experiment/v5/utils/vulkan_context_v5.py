@@ -158,7 +158,20 @@ def _select_physical_device(instance, requested_device_index: Optional[int]):
     if not physical_devices:
         raise RuntimeError("vkEnumeratePhysicalDevices returned no devices")
 
-    print(f"[VulkanContextV5] available physical devices ({len(physical_devices)}):")
+    # STABLE ORDERING (2026-07-21 incident): the raw vkEnumeratePhysicalDevices
+    # order is NOT stable across reboots — after a reboot the AMD iGPU moved
+    # from slot [2] to slot [1], silently landing sim_b on the integrated
+    # GPU for every runner that passes the historical indices 0/1. Reorder
+    # DISCRETE GPUs first (relative order preserved), integrated/others
+    # last, so index semantics ("0/1 = the two 5090s") survive reboots.
+    def _device_class(physical_device) -> int:
+        properties = vkGetPhysicalDeviceProperties(physical_device)
+        return 0 if properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU else 1
+
+    physical_devices = sorted(physical_devices, key=_device_class)
+
+    print(f"[VulkanContextV5] available physical devices ({len(physical_devices)}, "
+          f"discrete-first stable order):")
 
     auto_selected_index = None
     auto_selected_queue_family_index = None
