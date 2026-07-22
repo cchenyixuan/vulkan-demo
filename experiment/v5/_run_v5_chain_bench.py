@@ -64,7 +64,14 @@ def seam_integrity_check(chain, sims, global_case) -> bool:
     compressible band, vmax <= lid speed + tolerance."""
     h = global_case.physics.smoothing_length
     origin_x = global_case.grid.origin_x
-    dx = 1.0 / np.sqrt(global_case.initial.positions.shape[0])
+    dimension = global_case.physics.dimension
+    # Lattice spacing from the initial positions themselves (the old
+    # 1/sqrt(N) shortcut assumed a 2D unit-square domain; it is ~14x off
+    # for 3D and wrong for stretched domains). Unique x levels of a
+    # lattice case are exact, so the minimum positive gap IS dx.
+    unique_x = np.unique(np.round(
+        global_case.initial.positions[:, 0].astype(np.float64), 9))
+    dx = float(np.diff(unique_x).min())
 
     per_sim = []
     for sim in sims:
@@ -82,7 +89,10 @@ def seam_integrity_check(chain, sims, global_case) -> bool:
                     sim.own_first_pid() + capacities.own_pool_size)
         alive = velocity_mass[own, 3] > 0
         per_sim.append({
-            "position": position_voxel[own, 0:2][alive],
+            # Keep all `dimension` coordinates: the duplicate check must
+            # quantize the FULL position, or every 3D z-column collapses
+            # onto one (x, y) key and reports thousands of false pairs.
+            "position": position_voxel[own, 0:dimension][alive],
             "speed": np.sqrt((velocity_mass[own, 0:3][alive] ** 2).sum(1)),
             "density": density_pressure[own, 0][alive],
         })
