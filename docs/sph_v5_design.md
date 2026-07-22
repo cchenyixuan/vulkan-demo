@@ -6,7 +6,7 @@ V5 scope 有两章：**(已完成)** 2×RTX 5090 same-vendor scaling study —�
 以**虚拟 GPU（oversubscription）**方式提前开发和验证全部接口，等远程 10×3090 +
 NVLink + Linux 机器到手时做到 plug-and-play。
 
-> **Status**: 设计定稿，待实现（M1–M5）。开发就地在 `experiment/v5/` 进行，不再 fork。
+> **Status**: M1–M5 全部完成（2026-07-22）。开发就地在 `experiment/v5/` 进行，不再 fork。
 > **Hardware（开发期）**: 2× RTX 5090（device[0] 带 Windows 桌面，device[2] = AMD iGPU 忽略）。
 > **Hardware（部署目标）**: 远程 10× RTX 3090，NVLink 成对桥接（pairwise，无 NVSwitch），Linux。
 > **前置结论**（勿重查）: 消费级 GeForce 无 P2P（`_probe_p2p_interop.py`，2026-06-19）；
@@ -333,10 +333,54 @@ PCIe-across 会混用，**backend 必须是 per-link 而非全局的**（这就�
 | **M2** ✅ 2026-07-16 | partition N 路（§3.2） | N=2 输出与现实现逐字段一致；N=4 合成断言（切点单调、池/offset 自洽、最小宽度拒绝） |
 | **M3** ✅ 2026-07-17 | orchestrator/bench N 化（§3.3） | K=2 与 Dual 回归等价；K=3 在 2 卡上首跑通过（interior slab 落地） |
 | **M4** ✅ 2026-07-21 | VGPU 战役（§3.4） | K=4/6/8 × {1M, 8M} × 50k 步全部 drift=0；数值等价过容差 |
-| **M5** | 计时 + 重放（§3.5） | 真实 dual 重放校准 ±5%；输出 K=4/8 虚拟帧时间 + NVLink what-if 报告 |
+| **M5** ✅ 2026-07-22 | 计时（M5a）+ 重放（M5b）+ 仪器审查与弱扩展（M5c） | M5a: transfer 队列 GPU 时间戳全链路落地；M5b: K=2 校准重放，7 个 chain 点零拟合误差 ≤9.1%；M5c: 见下方落地记录 |
 
 **总退出判据（远程机就绪）**：换一台机器只需要改 `--device-map`、`.venv` 路径、
 glslc 路径；OPAQUE_FD probe（`_probe_p2p_interop.py` 的 Linux 版）就绪待跑。
+
+### M5c 落地记录（2026-07-22）— 仪器审查 + 等负载弱扩展
+
+**仪器审查**（用户质疑探针/计时脚本后发起，4 项裁定）与修复（commit `aaf42cf`）：
+
+1. transfer-only 队列上的 `vkCmdResetQueryPool` 为**规范违规**（vk.xml queues 列表无
+   TRANSFER；timestamp 写本身合法）。重置已挪入 phase A 的 compute cmd，信号量链
+   （phase_a_done / frame_done）在任意流水深度下保证顺序。验收：validation 开启的
+   dual 1M 冒烟零报错，DMA 中位数与 M5a 基线一致。
+2. 跨 query-pool 的时间差（`*_sched_gap_us` / `*_to_c_gap_us`）**无规范背书**（未启用
+   calibrated timestamps）——降级为"驱动一致的观测值"；同池差值不受影响。
+3. worker 主机时间戳的 GIL 污染只影响尾部统计；均值偏低 ~5-8%，K=2 memcpy 中位数
+   存活。宿主机只有**单条 32GB DIMM（单通道 DDR5，~24-27GB/s 拷贝上限）**——
+   host 拷贝天花板部分是机器配置产物。
+4. 全局提交/信号锁改为**按物理 GPU 分锁**（`V5_SUBMIT_LOCK_SCOPE={device,global,none}`）。
+   实测：weak K=8 三种作用域无差（55.1–55.5 fps）；1M K=8 固定 N 形态 global 比
+   device/none 慢 ~2.5%（159.2 vs 163.2/163.4）——旧全局锁对旧 sweep 有小幅污染，
+   但**不是**线性增长的主因。
+
+**等负载弱扩展战役**（用户设计：固定每 slab 工作量，否则 K 增大时 Phase B 隐藏窗口
+收缩与协调成本增长混淆）。case 族 `cavity_weak_k{1,2,3,4,6,8}`：等高 1 m、宽度 ∝ K、
+同 dx 的拉伸方腔，每 slab 恒定 ~2.0M 流体粒子（散布 <0.04%；生成器 `--half-x`，
+commit `2abde25`）。配对设计：chain1_k{2,3,4}（单卡）↔ dual_k{4,6,8}（ABAB 全跨卡），
+每对的单卡 slab 数相同、链长翻倍。战役 `_run_weak_scaling_campaign.py`（逐点归档
+stdout + git HEAD + 锁作用域 + validation 环境），分析 `_plot_weak_scaling.py`，
+图 `docs/weak_scaling_2m_per_slab.png`，数据 `logs/weak_scaling_20260722/`。
+
+**结果（12 点全 drift=0）**：T_solo dev0/dev1 = 3898.7/3881.3 µs（桌面显示惩罚≈0）。
+核心结论：
+
+- **dual_k2（每卡 1 slab = 真实集群形态）：overhead 仅 +203 µs，η_weak 95.0%**——
+  外推 N-GPU 链式集群的锚点；链式拓扑每卡 ≤2 条链路，该开销不随 N 累积。
+- **每新增一条 host-staged 跨卡链路的边际成本 ~100–170 µs 且随规模递减**（配对
+  增量 +339/+291/+396 µs 对应 +2/+3/+4 条链路）——传输链路亚可加，无带宽墙迹象
+  （2M/slab 的隐藏窗口下）。
+- **每卡多挤一个共驻 sim 的成本 ~500–1000 µs**——旧固定 N sweep 的"744µs×K 线性
+  增长"主要是共驻 sim 的时间片/提交开销（VGPU 模拟产物，真实集群不存在），
+  不是 memcpy 串行化。M5b 重放模型的 `memcpy_channels=1` 机制解读据此**撤回**；
+  模型拟合的数值预测能力不受影响（机制简并，audit 第 4 项）。
+- 本战役同时补上论文的 **η_weak 弱扩展实验**（roadmap 缺口 #1）。
+
+**运行环境教训**：桌面活动（Blender/浏览器等）可使 1M K=8 共驻形态出现 fps 压低
+~14% 甚至 drift≠0（+17/+2，一次性、不可复现、溢出计数全零）；基准窗口内保持桌面
+静默，脏点必须复跑判别。
 
 ---
 
