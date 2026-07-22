@@ -27,6 +27,7 @@ V5 is fully self-contained: no imports from experiment/v1/ or utils/sph/.
 
 from __future__ import annotations
 
+import os
 import pathlib
 import struct
 from dataclasses import dataclass
@@ -46,16 +47,69 @@ import threading
 from experiment.v5.utils.sync_scheme_v5 import make_sync_scheme
 from experiment.v5.utils.vulkan_context_v5 import VulkanContextV5
 
-# Process-wide serialization of driver-entry calls that MUTATE queue/semaphore
-# state (vkQueueSubmit2, vkSignalSemaphore). Diagnostic mitigation for the
-# K=8 soak wedges (2026-07-18 sim6, 2026-07-19 sim2 — autopsy-proven: a
-# submitted transfer batch with its semaphore wait objectively satisfied
-# never executed on an idle, non-lost device; both on the display GPU).
-# Theory A = driver race under 15-thread submit/signal concurrency (this lock
-# removes it); theory B = WDDM display-GPU preemption wedge (this lock will
-# NOT help — that outcome implicates the device map / display placement).
-# vkWaitSemaphores is deliberately NOT locked (it blocks for seconds).
-_DRIVER_SUBMIT_SIGNAL_LOCK = threading.Lock()
+# Serialization of driver-entry calls that MUTATE queue/semaphore state
+# (vkQueueSubmit2, vkSignalSemaphore).
+#
+# History: added 2026-07-18 as a PROCESS-WIDE lock, a diagnostic mitigation
+# for the K=8 soak wedges (sim6/sim2 — a submitted transfer batch with its
+# semaphore wait objectively satisfied never executed on an idle, non-lost
+# device). The wedges recurred WITH the lock in place (theory A refuted;
+# scoped as environmental — see docs M4 closure), and the 2026-07-22
+# instruments audit flagged the GLOBAL scope itself as a confound for the
+# K-sweep: every vkQueueSubmit2 (all from the single orchestrator step
+# thread) contends with every worker thread's vkSignalSemaphore across BOTH
+# physical GPUs — coupling the two GPUs' submit paths through one mutex,
+# which the spec never requires.
+#
+# Facts that bound what locking is actually needed here:
+#   - All vkQueueSubmit2 calls come from ONE thread (the orchestrator step
+#     loop), so per-queue external synchronization is satisfied lock-free.
+#   - vkSignalSemaphore on timeline semaphores has no externally-
+#     synchronized parameters (host-side timeline ops are concurrency-safe
+#     by spec).
+# So no lock is REQUIRED by the spec; it exists only as insurance against
+# driver/binding thread-safety bugs. Scope is configurable for A/B:
+#   V5_SUBMIT_LOCK_SCOPE=device  (default) one lock per PHYSICAL GPU —
+#                                cross-GPU driver entries never serialize
+#   V5_SUBMIT_LOCK_SCOPE=global  the historical process-wide lock
+#   V5_SUBMIT_LOCK_SCOPE=none    no locking (spec-legal here, see above)
+# vkWaitSemaphores is deliberately never locked (it blocks for seconds).
+_SUBMIT_LOCK_SCOPE = os.environ.get("V5_SUBMIT_LOCK_SCOPE", "device")
+_GLOBAL_SUBMIT_LOCK = threading.Lock()
+_PER_DEVICE_SUBMIT_LOCKS: dict = {}
+_PER_DEVICE_SUBMIT_LOCKS_GUARD = threading.Lock()
+
+
+class _NoOpLock:
+    """Context-manager stand-in for V5_SUBMIT_LOCK_SCOPE=none."""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return False
+
+
+_NO_OP_LOCK = _NoOpLock()
+
+
+def _driver_submit_lock_for(physical_device_index: int):
+    """Resolve the driver submit/signal lock for one physical GPU according
+    to V5_SUBMIT_LOCK_SCOPE. Called once per simulator at init."""
+    if _SUBMIT_LOCK_SCOPE == "global":
+        return _GLOBAL_SUBMIT_LOCK
+    if _SUBMIT_LOCK_SCOPE == "none":
+        return _NO_OP_LOCK
+    if _SUBMIT_LOCK_SCOPE != "device":
+        raise ValueError(
+            f"V5_SUBMIT_LOCK_SCOPE={_SUBMIT_LOCK_SCOPE!r} — "
+            f"expected one of: device, global, none")
+    with _PER_DEVICE_SUBMIT_LOCKS_GUARD:
+        lock = _PER_DEVICE_SUBMIT_LOCKS.get(physical_device_index)
+        if lock is None:
+            lock = threading.Lock()
+            _PER_DEVICE_SUBMIT_LOCKS[physical_device_index] = lock
+        return lock
 
 
 # ============================================================================
@@ -284,12 +338,17 @@ class SphSimulatorV5:
         # are pure no-ops; the production runner pays zero per-frame cost.
         self.bench: Any = None
         # M5a: separate BenchTimer for the TRANSFER queue's readback/upload
-        # cmds (own query pool — avoids cross-queue reset races; same device
-        # clock domain as self.bench so cross-pool diffs are exact). Attach
-        # with queue_family_index=ctx.transfer_queue_family_index BEFORE
-        # prepare_step_cmd_buffers.
+        # cmds (own query pool — avoids cross-queue reset races). Same-pool
+        # diffs are exact; cross-pool diffs vs self.bench are driver-
+        # consistent but not spec-guaranteed (see bench_v5 audit notes).
+        # Attach with queue_family_index=ctx.transfer_queue_family_index
+        # BEFORE prepare_step_cmd_buffers.
         self.bench_transfer: Any = None
-        self._bench_transfer_reset_recorded = False
+
+        # Driver submit/signal lock, scoped per V5_SUBMIT_LOCK_SCOPE
+        # (default: one lock per physical GPU). See module-level comment.
+        self._driver_submit_lock = _driver_submit_lock_for(
+            ctx.physical_device_index)
 
         self._destroyed = False
         print(f"[SimV5] init complete on {ctx.device_name} "
@@ -1157,15 +1216,13 @@ class SphSimulatorV5:
     # ----- bench timestamp helpers (no-op when self.bench is None) ----------
 
     def _bench_tick_transfer(self, cmd, label: str) -> None:
-        """Transfer-pool tick; embeds the pool reset in the FIRST transfer
-        cmd recorded per prepare pass (the first-submitted readback each
-        frame), so all transfer slots are clean before any write."""
-        if self.bench_transfer is None:
-            return
-        if not self._bench_transfer_reset_recorded:
-            self._bench_transfer_reset_recorded = True
-            self.bench_transfer.record_step_reset_and_start(cmd, label)
-        else:
+        """Transfer-pool tick (vkCmdWriteTimestamp IS legal on transfer-only
+        queues). The pool RESET is NOT recorded here — vkCmdResetQueryPool
+        is not supported on transfer-only queues (vk.xml queues list; the
+        old embedded reset ran only because validation was off and the NV
+        driver tolerated it). The reset lives in phase_a_cmd on the compute
+        queue instead; see _record_phase_a_cmd."""
+        if self.bench_transfer is not None:
             self.bench_transfer.tick(cmd, label)
 
     def _bench_tick(self, cmd, label: str) -> None:
@@ -1726,6 +1783,15 @@ class SphSimulatorV5:
         # Bench: phase A is the first cmd of the frame, so it owns the
         # per-frame step-slot reset. No-op when bench is unattached.
         self._bench_reset_step(cmd, "a_start")
+        # The TRANSFER pool's per-frame reset also lives here, on the
+        # compute queue (2026-07-22 audit fix: vkCmdResetQueryPool is
+        # invalid on transfer-only queues). Ordering is guaranteed by the
+        # semaphore chain alone, at any pipelining depth: this cmd signals
+        # phase_a_done, which every readback cmd of frame N waits on; and
+        # frame N's transfer writes happen-before frame_done(N), which
+        # phase A of frame N+1 waits on before resetting again.
+        if self.bench_transfer is not None:
+            self.bench_transfer.record_external_reset(cmd)
         self._record_compute_barrier(cmd)
 
         per_p = self._per_own_particle_dispatch_count()
@@ -1940,9 +2006,8 @@ class SphSimulatorV5:
         self.phase_b_cmd = self._record_phase_b_cmd()
         self.phase_c_cmd = self._record_phase_c_cmd()
 
-        # Transfer-pool reset lives in the first transfer cmd recorded per
-        # pass; clear the flag so re-recording re-embeds it.
-        self._bench_transfer_reset_recorded = False
+        # (Transfer-pool reset is recorded inside phase_a_cmd above —
+        # compute queue — not in the transfer cmds; see _bench_tick_transfer.)
         for direction in self._transport_segments:
             self.transfer_readback_cmds[direction] = (
                 self._record_transfer_readback_cmd(direction))
@@ -2113,7 +2178,7 @@ class SphSimulatorV5:
             signalSemaphoreInfoCount=len(signal_infos),
             pSignalSemaphoreInfos=signal_infos if signal_infos else None,
         )
-        with _DRIVER_SUBMIT_SIGNAL_LOCK:
+        with self._driver_submit_lock:
             vkQueueSubmit2(queue, 1, [submit_info], VK_NULL_HANDLE)
 
     def wait_semaphore(self, semaphore, value: int,
@@ -2155,7 +2220,7 @@ class SphSimulatorV5:
             semaphore=semaphore,
             value=value,
         )
-        with _DRIVER_SUBMIT_SIGNAL_LOCK:
+        with self._driver_submit_lock:
             vkSignalSemaphore(self.ctx.device, info)
 
     def host_signal_timeline(self, value: int) -> None:

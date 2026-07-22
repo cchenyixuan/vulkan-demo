@@ -215,7 +215,7 @@ def _select_physical_device(instance, requested_device_index: Optional[int]):
     selected_props = vkGetPhysicalDeviceProperties(physical_devices[selected_index])
     print(f"[VulkanContextV5] selected: [{selected_index}] {selected_props.deviceName} "
           f"on queue_family[{selected_queue_family_index}]")
-    return physical_devices[selected_index], selected_queue_family_index
+    return physical_devices[selected_index], selected_queue_family_index, selected_index
 
 
 # ============================================================================
@@ -249,6 +249,13 @@ class VulkanContextV5:
     transfer_queue_family_index: int
     transfer_command_pool: object
     device_name: str
+
+    # Index of the selected physical device in the discrete-first stable
+    # order (_select_physical_device). Identifies the PHYSICAL GPU across
+    # multiple VulkanContextV5 instances in one process — device_name can't
+    # (two identical 5090s share a name). Used to key the per-physical-GPU
+    # driver submit lock in simulator_v5.
+    physical_device_index: int = -1
 
     _validation_enabled: bool = False
     _debug_messenger: Optional[object] = None
@@ -313,7 +320,8 @@ class VulkanContextV5:
                 debug_messenger = create_fn(instance, messenger_info, None)
 
         # ---- Physical device + compute queue family ---------------------
-        physical_device, compute_queue_family_index = _select_physical_device(instance, device_index)
+        physical_device, compute_queue_family_index, physical_device_index = (
+            _select_physical_device(instance, device_index))
         device_name = vkGetPhysicalDeviceProperties(physical_device).deviceName
 
         # ---- Transfer queue family (Path A+) ----------------------------
@@ -422,6 +430,7 @@ class VulkanContextV5:
             transfer_queue_family_index=transfer_queue_family_index,
             transfer_command_pool=transfer_command_pool,
             device_name=device_name,
+            physical_device_index=physical_device_index,
             _validation_enabled=validation_active,
             _debug_messenger=debug_messenger,
             _memory_properties=memory_properties,

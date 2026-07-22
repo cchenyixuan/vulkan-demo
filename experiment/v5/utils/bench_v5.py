@@ -69,8 +69,17 @@ class BenchTimer:
         queue-agnostic). Default = the compute family. Pass
         ``ctx.transfer_queue_family_index`` for a transfer-queue timer (M5a:
         the 5090's dedicated transfer family reports timestampValidBits=64).
-        Timestamps from BOTH families share the same device clock domain, so
-        diffs across the two pools of one GPU are meaningful."""
+
+        NOTE (2026-07-22 audit): a transfer-only queue may WRITE timestamps
+        but may NOT reset a query pool (vkCmdResetQueryPool queue list
+        excludes TRANSFER). A transfer-pool timer's reset must be recorded
+        from a graphics/compute-queue cmd via ``record_external_reset``.
+
+        Cross-pool diffs (compute tick minus transfer tick of one GPU) are
+        empirically consistent on the NV driver but NOT spec-guaranteed
+        without VK_KHR_calibrated_timestamps — treat *_sched_gap_us /
+        *_to_c_gap_us as driver-specific observations, same-pool diffs as
+        exact."""
         self.ctx = ctx
         self.label = label
 
@@ -135,6 +144,17 @@ class BenchTimer:
             # data in unallocated slots.
             vkCmdResetQueryPool(cmd, self.pool, 0, _MAX_TICKS)
         self.tick(cmd, start_label)
+
+    def record_external_reset(self, cmd) -> None:
+        """Reset ALL slots of this pool from an EXTERNALLY-owned cmd buffer
+        on a graphics/compute queue (query pools are queue-agnostic objects;
+        only the reset COMMAND has queue-type restrictions). Used for the
+        transfer-pool timer: the simulator records this into phase_a_cmd,
+        whose phase_a_done signal orders it before every same-frame transfer
+        write, and whose frame_done(N-1) wait orders it after every prior-
+        frame transfer write. No tick is written here — transfer labels are
+        allocated lazily by tick() inside the transfer cmds themselves."""
+        vkCmdResetQueryPool(cmd, self.pool, 0, _MAX_TICKS)
 
     def record_defrag_reset_and_start(self, cmd, start_label: str = "defrag_start") -> None:
         """First action of defrag_cmd: reset defrag slots and write the
@@ -383,8 +403,11 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
         out["phase_c_us"] = v
 
     # --- M5a: transfer-queue DMA segments (labels live in the transfer
-    # pool; the runner merges both pools' tick dicts before calling — same
-    # device clock domain, so cross-queue diffs are exact) ---
+    # pool; the runner merges both pools' tick dicts before calling).
+    # Same-pool diffs (the *_dma_us / *_barrier_us) are exact. CROSS-pool
+    # diffs (*_sched_gap_us / *_to_c_gap_us) assume both pools share one
+    # device clock — empirically consistent on the NV driver but not
+    # spec-guaranteed without calibrated timestamps (2026-07-22 audit). ---
     for direction in ("leading", "trailing"):
         if (v := diff_us(f"t_rb_{direction}_copy_end",
                          f"t_rb_{direction}_start")) is not None:
