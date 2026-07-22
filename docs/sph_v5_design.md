@@ -382,6 +382,37 @@ stdout + git HEAD + 锁作用域 + validation 环境），分析 `_plot_weak_sca
 ~14% 甚至 drift≠0（+17/+2，一次性、不可复现、溢出计数全零）；基准窗口内保持桌面
 静默，脏点必须复跑判别。
 
+### 3D 扩展记录（2026-07-23）— 单卡 + 双卡 lid-driven cavity
+
+3D 代码路径（27-邻域 spec constant、3×3 correction 求逆、3D 体积标定、无量纲
+partition）首次实跑全部通过，无 shader 改动。工具：`utils/geometry/
+_demo_cavity_case_3d.py`（h/dx=4、max_per_voxel=128≥堆积界限 91 带生成器硬检查、
+max_incoming=32）+ `experiment/v5/_run_v5_3d_slice.py`（中面切片可视化）。
+
+**结果（cavity3d_8m：201³=8.12M 流体，总 10.5M）**：
+
+| 配置 | 稳态 fps | 备注 |
+|---|---|---|
+| 单卡 dev1 | 10.2 | 25k 步 drift=0；~107M 粒子步/s ≈ 2D 的 1/5.2（邻居比 3.4× + stencil/求逆/占用） |
+| 双卡 col27（6.4% 不均） | 19.9 | 等权重的默认切分；GPU0 每帧闲 ~10%（用户观察到的"脉冲"） |
+| 双卡 col28（0.9% 不均，`--weights 1.05,1`） | **20.1** | **η_strong ≈ 98%**；25k 步 drift=0，seam dup=0，ρ∈[999.0,1001.3]，vmax=1.0 |
+
+**3D 双卡的两个要点**：
+
+1. **传输完全隐藏**：ghost 定长段 70.2MB/方向（501,760 槽 × 140B；过度拷贝仅
+   ~2.6×，"30×"是 1M 小 case 的情形），rb/up DMA 各 ~4.2ms @ 16.5GB/s，b_to_c_gap
+   实测 **5µs** —— 8M 级 Phase B 窗口 22–24ms 全部藏住。大 N 下 3D host-staged
+   传输无压力（用户预判正确）。
+2. **3D 的负载切分陷阱**：墙+盖占总粒子 **23%**（2D 仅 ~1%），而 `compute_k_split`
+   只按流体均分 → 等权重下总量不均 6.4%（还叠加半体素相位）。切分列粒度粗
+   （56 列，每列 ~1.9%）。用权重把流体份额推进目标列区间即可（本 case
+   `1.05,1` → col 28）；注意 `searchsorted(left)` 语义 —— 给 sim0 加列要**增大**
+   sim0 权重。逐相解剖（`logs/cavity3d_first_light/dual_anatomy_w11.csv`）另示
+   dev1 该负载下每粒子慢 ~3%，抵消了部分再平衡收益。
+
+未做/已知边界：inflow/outflow 仍缺（封闭域 only）；K>2 3D 链未跑；深躺区
+（Ku/Albensoeder 3D 基准对照）需稳态长跑，未启动。
+
 ---
 
 ## 5. 风险与非目标
