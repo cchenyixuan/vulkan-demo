@@ -19,7 +19,31 @@ import subprocess
 import sys
 
 
-GLSLC = os.environ.get("VULKAN_SDK", "C:/VulkanSDK/1.4.341.1") + "/Bin/glslc.exe"
+def _find_glslc() -> str:
+    """Locate glslc cross-platform: $VULKAN_SDK layout first (Windows Bin/
+    glslc.exe, Linux bin/glslc or x86_64/bin/glslc), then PATH. On the
+    air-gapped server glslc is NOT required at all — the offline kit ships
+    precompiled .spv (SPIR-V is platform-independent); this script only
+    runs where shaders are (re)compiled."""
+    import shutil as _shutil
+    sdk = os.environ.get("VULKAN_SDK")
+    candidates = []
+    if sdk:
+        candidates += [sdk + "/Bin/glslc.exe", sdk + "/bin/glslc",
+                       sdk + "/x86_64/bin/glslc"]
+    else:
+        candidates += ["C:/VulkanSDK/1.4.341.1/Bin/glslc.exe",
+                       "C:/VulkanSDK/1.4.350.0/Bin/glslc.exe"]
+    for candidate in candidates:
+        if os.path.isfile(candidate):
+            return candidate
+    from_path = _shutil.which("glslc")
+    if from_path:
+        return from_path
+    return candidates[0]   # keep the old error message path
+
+
+GLSLC = _find_glslc()
 
 V5_SHADER_DIR = os.path.dirname(os.path.abspath(__file__)) + "/shaders"
 V5_SPV_DIR = V5_SHADER_DIR + "/spv"

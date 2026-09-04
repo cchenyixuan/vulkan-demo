@@ -39,12 +39,13 @@ from __future__ import annotations
 
 import argparse
 import ctypes
-import ctypes.wintypes
+import sys
+if sys.platform == "win32":
+    import ctypes.wintypes
 import datetime
 import json
 import pathlib
 import subprocess
-import sys
 import time
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -82,16 +83,29 @@ def parse_args() -> argparse.Namespace:
 
 def _keep_system_awake() -> None:
     """Prevent Windows sleep for this process's lifetime (auto-reverts on
-    exit). ES_CONTINUOUS | ES_SYSTEM_REQUIRED — display may still sleep."""
+    exit). ES_CONTINUOUS | ES_SYSTEM_REQUIRED — display may still sleep.
+    No-op on Linux (servers do not sleep under us)."""
+    if sys.platform != "win32":
+        return
     try:
         ctypes.windll.kernel32.SetThreadExecutionState(0x80000001)
         print("[soak] SetThreadExecutionState: system sleep inhibited")
-    except Exception as e:  # non-Windows or unexpected failure — not fatal
+    except Exception as e:  # unexpected failure — not fatal
         print(f"[soak] WARNING: could not inhibit system sleep: {e!r}")
 
 
 def _working_set_mb() -> float:
-    """Current process working set in MB (Windows psapi; leak detector)."""
+    """Current process resident memory in MB (leak detector).
+    Windows: psapi working set. Linux: /proc/self/status VmRSS."""
+    if sys.platform != "win32":
+        try:
+            with open("/proc/self/status", encoding="ascii") as status_file:
+                for line in status_file:
+                    if line.startswith("VmRSS:"):
+                        return float(line.split()[1]) / 1024.0   # kB -> MB
+        except Exception:
+            pass
+        return float("nan")
     try:
         class PROCESS_MEMORY_COUNTERS(ctypes.Structure):
             _fields_ = [

@@ -16,7 +16,7 @@ import subprocess
 import sys
 
 _REPO = pathlib.Path(__file__).resolve().parents[2]
-_PYTHON = str(_REPO / ".venv/Scripts/python.exe")
+_PYTHON = sys.executable   # same interpreter (portable: .venv/Scripts on Windows, .venv/bin on Linux)
 _ENV = {**os.environ, "VK_LOADER_LAYERS_DISABLE": "VK_LAYER_KHRONOS_validation"}
 _RESULTS = _REPO / "logs/single_ceiling.jsonl"
 

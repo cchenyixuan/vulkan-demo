@@ -54,7 +54,7 @@ import sys
 import time
 
 _REPO = pathlib.Path(__file__).resolve().parents[2]
-_PYTHON = str(_REPO / ".venv/Scripts/python.exe")
+_PYTHON = sys.executable   # same interpreter (portable: .venv/Scripts on Windows, .venv/bin on Linux)
 _OUT_DIR = _REPO / "logs/weak_scaling_20260722"
 
 _ENV = {
