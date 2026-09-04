@@ -99,8 +99,11 @@ def main() -> int:
         print("[kit] 3/4 SKIPPED (reusing wheels/)")
 
     print("[kit] 4/4 stage server scripts + pack")
-    shutil.copy2(_REPO / "remote/install_kit.sh", stage / "install_kit.sh")
-    shutil.copy2(_REPO / "remote/bringup_check.py", stage / "bringup_check.py")
+    # Force LF: a CRLF install_kit.sh (Windows autocrlf checkout) breaks
+    # bash on the server with "\r: command not found".
+    for name in ("remote/install_kit.sh", "remote/bringup_check.py"):
+        content = (_REPO / name).read_bytes().replace(b"\r\n", b"\n")
+        (stage / pathlib.Path(name).name).write_bytes(content)
 
     stamp = datetime.date.today().strftime("%Y%m%d")
     tarball = _REPO / args.out_dir / f"v5_offline_kit_{stamp}.tar.gz"
