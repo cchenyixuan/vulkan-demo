@@ -518,7 +518,25 @@ layout(std430, set = 3, binding = 0) buffer GlobalStatusBuffer {
     uint  migration_install_count;
     uint  overflow_install_tail;
     uint  overflow_install_inside;
-    uint  first_overflow_voxel_install;   // total 16 uint = 64 B, one cache line
+    uint  first_overflow_voxel_install;
+    // --- 2026-09-05 frame-stamp instrumentation (cluster residual-race hunt).
+    // predict.comp thread 0 increments frame_stamp once per frame. The ghost
+    // transport carries the SENDER's frame_stamp into the RECEIVER's
+    // ghost_stamp_<direction> slot (same staging segment mechanism as the
+    // ghost counts, zero extra sync). install_migrations.comp thread 0
+    // compares it against the receiver's own frame_stamp: any stale or torn
+    // transport payload shows up as stamp_error_count > 0 with the first
+    // mismatch encoded in stamp_error_sample = (own & 0xFFFF) << 16 | (ghost
+    // & 0xFFFF). Sims bootstrap in lockstep, so equal stamps are the
+    // invariant.
+    uint  frame_stamp;
+    uint  ghost_stamp_leading;
+    uint  ghost_stamp_trailing;
+    uint  stamp_error_count;
+    uint  stamp_error_sample;
+    uint  stamp_padding_0;
+    uint  stamp_padding_1;
+    uint  stamp_padding_2;                // total 24 uint = 96 B
 };
 
 // ----------------------------------------------------------------------------

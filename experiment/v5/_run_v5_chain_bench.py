@@ -197,18 +197,27 @@ def main() -> int:
             for sim in sims:
                 sim.submit_defrag_and_wait()
             total = 0
+            stamp_errors_gpu = 0
             for index, sim in enumerate(sims):
                 status = sim.readback_global_status()
                 health = sim.readback_pool_health()
                 total += status["alive_particle_count"]
+                stamp_errors_gpu += status.get("stamp_error_count", 0)
                 print(f"[chain_v5] sim{index} (dev{device_map[index]}): "
                       f"alive={status['alive_particle_count']:,} "
                       f"pool_used={health['used_fraction']*100:.1f}% "
                       f"peak_migration={health['peak_migration_count']} "
-                      f"drops={status['overflow_install_tail']}")
+                      f"drops={status['overflow_install_tail']} "
+                      f"stamp_err={status.get('stamp_error_count', 0)}"
+                      + (f" sample=0x{status.get('stamp_error_sample', 0):08x}"
+                         if status.get("stamp_error_count", 0) else ""))
+            stamp_errors_host = sum(
+                getattr(worker, "stamp_error_count", 0)
+                for worker in getattr(orch, "workers", []))
             drift = total - expected_total
             print(f"[chain_v5] final: total={total:,} "
-                  f"(expected {expected_total:,}) drift={drift}")
+                  f"(expected {expected_total:,}) drift={drift} "
+                  f"stamp_errors gpu={stamp_errors_gpu} host={stamp_errors_host}")
 
             seam_ok = True
             if args.seam_check:

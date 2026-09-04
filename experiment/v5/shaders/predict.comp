@@ -59,6 +59,11 @@ void kill_particle(uint particle_id) {
 }
 
 void main() {
+    // Frame-stamp instrumentation: exactly one thread bumps the per-frame
+    // counter (predict is dispatched once per frame, first in phase A).
+    if (gl_GlobalInvocationID.x == 0u) {
+        atomicAdd(frame_stamp, 1u);
+    }
     uint self_particle_id = gl_GlobalInvocationID.x + own_first_pid();
     if (self_particle_id > own_last_pid()) return;
 

@@ -101,6 +101,23 @@ layout(local_size_x_id = 51) in;
 void main() {
     uint thread_id = gl_GlobalInvocationID.x;
 
+    // Frame-stamp validation: the upload that precedes this dispatch wrote the
+    // sender's frame_stamp into ghost_stamp_<direction>. Sims run in lockstep,
+    // so it must equal our own frame_stamp; anything else = stale/torn
+    // transport payload.
+    if (thread_id == 0u) {
+        uint ghost_stamp = (GHOST_DIRECTION == 0u)
+            ? ghost_stamp_leading
+            : ghost_stamp_trailing;
+        if (ghost_stamp != frame_stamp) {
+            uint previous_errors = atomicAdd(stamp_error_count, 1u);
+            if (previous_errors == 0u) {
+                stamp_error_sample =
+                    ((frame_stamp & 0xFFFFu) << 16) | (ghost_stamp & 0xFFFFu);
+            }
+        }
+    }
+
     // Early return: only walk slots up to peer's actual outgoing count.
     // Slots beyond ghost_recv_<dir>_count contain stale data from previous
     // step's transport (or zeros) — sender wrote nothing there this step.

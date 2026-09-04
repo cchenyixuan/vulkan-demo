@@ -23,6 +23,7 @@ is disjoint.
 from __future__ import annotations
 
 import queue
+import struct
 import threading
 import time
 from typing import TYPE_CHECKING, Optional
@@ -75,6 +76,9 @@ class GhostMigrationWorker:
         # hot loop doesn't reach into sim internals each frame.
         self._source_view = source_sim.sender_staging_view(source_direction)
         self._dest_view = dest_sim.receiver_staging_view(dest_direction)
+        # Frame-stamp host check state (segment 13 of the staging layout).
+        self._stamp_base: Optional[int] = None
+        self.stamp_error_count = 0
         if self._source_view.nbytes != self._dest_view.nbytes:
             raise ValueError(
                 f"worker {label}: source/dest staging sizes mismatch — "
@@ -207,6 +211,23 @@ class GhostMigrationWorker:
                     self.dest.wait_semaphore(upload_guard_semaphore,
                                              upload_guard_value)
                 t_wait = time.perf_counter_ns()
+
+                # 1c-bis. Host-side frame-stamp check: the LAST 4 bytes of the
+                # sender staging carry the sender GPU's frame_stamp (segment
+                # 13). It must advance by exactly 1 per frame; anything else
+                # means the readback delivered stale/torn bytes DESPITE the
+                # semaphore wait — the exact failure the cluster residual-race
+                # hunt is trying to localize.
+                stamp = struct.unpack_from(
+                    "<I", self._source_view, len(self._source_view) - 4)[0]
+                if self._stamp_base is None:
+                    self._stamp_base = stamp - frame_n
+                elif stamp != self._stamp_base + frame_n:
+                    self.stamp_error_count += 1
+                    if self.stamp_error_count <= 5:
+                        print(f"[worker {self.label}] *** STALE READBACK at "
+                              f"frame {frame_n}: stamp={stamp} expected="
+                              f"{self._stamp_base + frame_n} ***", flush=True)
 
                 # 2. Byte memcpy (CPU → CPU)
                 self.last_activity = ("memcpy", frame_n, time.perf_counter_ns())

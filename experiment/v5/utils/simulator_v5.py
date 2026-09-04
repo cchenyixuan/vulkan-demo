@@ -156,6 +156,10 @@ _OFFSET_GHOST_SEND_LEADING   = 32   # field [8]
 _OFFSET_GHOST_SEND_TRAILING  = 36   # field [9]
 _OFFSET_GHOST_RECV_LEADING   = 40   # field [10]
 _OFFSET_GHOST_RECV_TRAILING  = 44   # field [11]
+# Frame-stamp instrumentation fields (see common.glsl GlobalStatusBuffer).
+_OFFSET_FRAME_STAMP          = 64   # field [16]
+_OFFSET_GHOST_STAMP_LEADING  = 68   # field [17]
+_OFFSET_GHOST_STAMP_TRAILING = 72   # field [18]
 
 
 # Path A+ (P2): buffer names that participate in cross-GPU transport and
@@ -564,7 +568,7 @@ class SphSimulatorV5:
             _BufferSpec("voxel_base_offset",            1, 4,  4 * voxel_capacity,                BSU | TRANSFER),
 
             # Set 3: global / pool-health / materials
-            _BufferSpec("global_status",                3, 0,  64,                      BSU | TRANSFER),
+            _BufferSpec("global_status",                3, 0,  96,                      BSU | TRANSFER),
             # binding 1: V5 pool-health watermark (4 uint = 16 B). Reclaims the
             # former unused overflow_log ring. See common.glsl PoolHealthBuffer.
             _BufferSpec("pool_health",                  3, 1,  16,                      BSU | TRANSFER),
@@ -728,7 +732,24 @@ class SphSimulatorV5:
             "global_status", send_count_offset, staging_offset, 4))
         staging_offset += 4
 
-        # Store the receiver-side count offset for later use during upload cmd record.
+        # 13. set 3 frame stamp: sender's frame_stamp → receiver's
+        #     ghost_stamp_<direction> (same send→recv override pattern as the
+        #     count). LAST 4 bytes of the staging — the worker's host-side
+        #     stamp check relies on that position.
+        recv_stamp_offset = (_OFFSET_GHOST_STAMP_LEADING if direction == "leading"
+                             else _OFFSET_GHOST_STAMP_TRAILING)
+        segments.append(_TransportSegment(
+            "global_status", _OFFSET_FRAME_STAMP, staging_offset, 4))
+        staging_offset += 4
+
+        # Receiver-side device-offset overrides for the two global_status
+        # segments, keyed by the SENDER-side offset recorded in the segment.
+        self._recv_status_overrides = getattr(self, "_recv_status_overrides", {})
+        self._recv_status_overrides[direction] = {
+            send_count_offset: recv_count_offset,
+            _OFFSET_FRAME_STAMP: recv_stamp_offset,
+        }
+        # Legacy alias used by older code paths.
         self._recv_count_offsets = getattr(self, "_recv_count_offsets", {})
         self._recv_count_offsets[direction] = recv_count_offset
         return segments, staging_offset
@@ -1336,11 +1357,11 @@ class SphSimulatorV5:
         not [send_count_offset] — sender's count slot becomes receiver's
         ghost_recv_*_count slot."""
         staging = self.staging_buffers[f"receiver_staging_{direction}"]
-        recv_count_offset = self._recv_count_offsets[direction]
+        recv_overrides = self._recv_status_overrides[direction]
         for seg in self._transport_segments[direction]:
             dst_buf = self.buffers[seg.buffer_name]
             if seg.buffer_name == "global_status":
-                dst_offset = recv_count_offset
+                dst_offset = recv_overrides[seg.device_offset]
             else:
                 dst_offset = seg.device_offset
             region = VkBufferCopy(
@@ -1649,9 +1670,10 @@ class SphSimulatorV5:
             vkFreeMemory(self.ctx.device, staging.memory, None)
 
     def readback_global_status(self) -> dict:
-        """GlobalStatusBuffer is 16 × 4 B = 64 B. Layout per common.glsl §3."""
+        """GlobalStatusBuffer is 24 × 4 B = 96 B. Layout per common.glsl §3."""
         payload = self._readback_buffer(self.buffers["global_status"])
-        fields = struct.unpack("<I f I I I I I I I I I I I I I I", payload)
+        fields = struct.unpack("<I f I I I I I I I I I I I I I I I I I I I I I I",
+                               payload)
         return {
             "alive_particle_count":         fields[0],
             "maximum_velocity":             fields[1],
@@ -1669,6 +1691,11 @@ class SphSimulatorV5:
             "overflow_install_tail":        fields[13],
             "overflow_install_inside":      fields[14],
             "first_overflow_voxel_install": fields[15],
+            "frame_stamp":                  fields[16],
+            "ghost_stamp_leading":          fields[17],
+            "ghost_stamp_trailing":         fields[18],
+            "stamp_error_count":            fields[19],
+            "stamp_error_sample":           fields[20],
         }
 
     def readback_pool_health(self) -> dict:
