@@ -93,8 +93,20 @@ def ensure_cases() -> None:
                  f"{args} --out {rel}")
         print(f"[gen] {rel}: {args}", flush=True)
         code, output = srun(inner, gres=None, cpus=4, minutes=90, job="cA_gen")
-        if code != 0 or not (case_dir / "domain.obj").exists():
-            print(f"[gen] FAILED {rel}:\n{output[-1500:]}", flush=True)
+        # Success judged by the generator's own completion line — the srun ran
+        # on node02 and the head node's NFS attribute cache can lag several
+        # seconds behind, so an immediate exists() check false-negatives
+        # (this exact trap killed the first driver launch).
+        success = "wrote frame.obj domain.obj" in output
+        if not success:
+            for _ in range(12):
+                if (case_dir / "domain.obj").exists():
+                    success = True
+                    break
+                time.sleep(5)
+        if not success:
+            print(f"[gen] FAILED {rel} (srun rc={code}):\n{output[-1500:]}",
+                  flush=True)
             raise SystemExit(1)
 
 
@@ -148,8 +160,12 @@ def run_point(name: str, case_rel: str, k: int) -> None:
 
 def main() -> int:
     _OUT.mkdir(parents=True, exist_ok=True)
-    git_head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=_REPO,
-                              capture_output=True, text=True).stdout.strip()
+    try:
+        git_head = subprocess.run(["git", "rev-parse", "--short", "HEAD"],
+                                  cwd=_REPO, capture_output=True,
+                                  text=True).stdout.strip() or "n/a"
+    except OSError:
+        git_head = "n/a (no git on head node; deployed from tarball)"
     print(f"[campaign A] start git={git_head} python={PYTHON}", flush=True)
 
     ensure_cases()
