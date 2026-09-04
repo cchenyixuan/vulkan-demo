@@ -234,6 +234,16 @@ class GhostMigrationWorker:
                 self._dest_view[:] = self._source_view
                 t_copy = time.perf_counter_ns()
 
+                # 2b. Consumed-ack on the SOURCE: sender_staging(frame_n) has
+                # been fully read — the source's readback(frame_n+1) waits
+                # this before overwriting it. THE fix for the stale-readback
+                # race the frame stamps caught (see consumed_signal_op).
+                consumed_semaphore, consumed_value = (
+                    self.source.sync.consumed_signal_op(
+                        self.source_direction, frame_n))
+                self.source.host_signal_semaphore(consumed_semaphore,
+                                                  consumed_value)
+
                 # 3. Host-signal dest's worker_done(n). Dest's transfer
                 #    queue's upload cmd for our direction waits on this and
                 #    then signals upload_done, which Phase C's submit waits on.

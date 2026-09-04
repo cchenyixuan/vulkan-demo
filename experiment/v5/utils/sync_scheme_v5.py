@@ -147,6 +147,23 @@ class FrameSyncScheme:
         operative race — see memory/project-cluster-drift-investigation."""
         raise NotImplementedError
 
+    def consumed_signal_op(self, direction: str, frame_n: int) -> SemaphoreOp:
+        """The worker host-signals this on the SOURCE sim after its memcpy:
+        'sender_staging_<direction> for frame_n has been fully read'. The
+        source's readback(frame_n+1) waits it before overwriting the staging.
+
+        THE 2026-09-05 cluster race, caught by frame stamps: NOTHING gated
+        the source's next readback on the outgoing worker's consumption —
+        the source's own frame chain (frame_done) depends only on its
+        INBOUND uploads, so a source running ahead of its downstream
+        neighbor overwrote sender_staging mid-read (the host worker saw
+        stamps from the FUTURE: 2976 stale readbacks / 25k steps at K=3
+        depth 2, drift −834). K=2's mutual per-frame coupling shrinks the
+        window to the ±few-drift level; interior chain nodes blow it open.
+        A dedicated single-writer timeline per direction (worker signals
+        value frame_n+1) has no backwards-signal hazard by construction."""
+        raise NotImplementedError
+
     def worker_signal_op(self, direction: str, frame_n: int) -> SemaphoreOp:
         """Worker host-signals this on the DEST sim after its memcpy."""
         raise NotImplementedError
@@ -170,15 +187,21 @@ class AggregatedTimelineScheme(FrameSyncScheme):
                 "(two inbound workers would collide on the shared worker_done "
                 "slot 5N+3) — use sync_scheme='per-direction'")
         self.timeline = None
+        self.consumed: dict = {}
 
     # -- lifecycle
     def create(self, device) -> None:
         self.timeline = _create_timeline_semaphore(device)
+        for direction in self.peer_directions:
+            self.consumed[direction] = _create_timeline_semaphore(device)
 
     def destroy(self, device) -> None:
         if self.timeline is not None:
             vkDestroySemaphore(device, self.timeline, None)
             self.timeline = None
+        for direction, semaphore in self.consumed.items():
+            vkDestroySemaphore(device, semaphore, None)
+        self.consumed = {}
 
     def primary_semaphore(self):
         return self.timeline
@@ -222,7 +245,11 @@ class AggregatedTimelineScheme(FrameSyncScheme):
     # direction signals, so the value advances once all DMAs completed
     # (transfer queue is FIFO).
     def readback_waits(self, direction: str, frame_n: int) -> list:
-        return [(self.timeline, self.value_phase_a_done(frame_n))]
+        # consumed >= frame_n means frames 0..frame_n-1 were read out of
+        # sender_staging by the outgoing worker — only then may this
+        # readback overwrite it (see consumed_signal_op).
+        return [(self.timeline, self.value_phase_a_done(frame_n)),
+                (self.consumed[direction], frame_n)]
 
     def readback_signals(self, direction: str, frame_n: int, is_last: bool) -> list:
         if not is_last:
@@ -257,9 +284,16 @@ class AggregatedTimelineScheme(FrameSyncScheme):
     def worker_signal_op(self, direction: str, frame_n: int) -> SemaphoreOp:
         return (self.timeline, self.value_worker_done(frame_n))
 
+    def consumed_signal_op(self, direction: str, frame_n: int) -> SemaphoreOp:
+        return (self.consumed[direction], frame_n + 1)
+
     # -- diagnostics
     def state(self, device) -> dict:
-        return {"timeline": vkGetSemaphoreCounterValue(device, self.timeline)}
+        result = {"timeline": vkGetSemaphoreCounterValue(device, self.timeline)}
+        for direction, semaphore in self.consumed.items():
+            result[f"consumed_{direction}"] = vkGetSemaphoreCounterValue(
+                device, semaphore)
+        return result
 
 
 class PerDirectionTimelineScheme(FrameSyncScheme):
@@ -276,8 +310,10 @@ class PerDirectionTimelineScheme(FrameSyncScheme):
     # -- lifecycle
     def create(self, device) -> None:
         self.main = _create_timeline_semaphore(device)
+        self.consumed = {}
         for direction in self.peer_directions:
             self.transport[direction] = _create_timeline_semaphore(device)
+            self.consumed[direction] = _create_timeline_semaphore(device)
 
     def destroy(self, device) -> None:
         if self.main is not None:
@@ -286,6 +322,9 @@ class PerDirectionTimelineScheme(FrameSyncScheme):
         for direction, semaphore in self.transport.items():
             vkDestroySemaphore(device, semaphore, None)
         self.transport = {}
+        for direction, semaphore in getattr(self, "consumed", {}).items():
+            vkDestroySemaphore(device, semaphore, None)
+        self.consumed = {}
 
     def primary_semaphore(self):
         return self.main
@@ -326,7 +365,11 @@ class PerDirectionTimelineScheme(FrameSyncScheme):
     # (no aggregation — this is what frees the inbound workers from each
     # other); the LAST upload signals main.upload_done for Phase C.
     def readback_waits(self, direction: str, frame_n: int) -> list:
-        return [(self.main, self.value_phase_a_done(frame_n))]
+        # consumed >= frame_n means frames 0..frame_n-1 were read out of
+        # sender_staging by the outgoing worker — only then may this
+        # readback overwrite it (see consumed_signal_op).
+        return [(self.main, self.value_phase_a_done(frame_n)),
+                (self.consumed[direction], frame_n)]
 
     def readback_signals(self, direction: str, frame_n: int, is_last: bool) -> list:
         return [(self.transport[direction], self.value_readback_done(frame_n))]
@@ -362,11 +405,17 @@ class PerDirectionTimelineScheme(FrameSyncScheme):
     def worker_signal_op(self, direction: str, frame_n: int) -> SemaphoreOp:
         return (self.transport[direction], self.value_worker_done(frame_n))
 
+    def consumed_signal_op(self, direction: str, frame_n: int) -> SemaphoreOp:
+        return (self.consumed[direction], frame_n + 1)
+
     # -- diagnostics
     def state(self, device) -> dict:
         result = {"main": vkGetSemaphoreCounterValue(device, self.main)}
         for direction, semaphore in self.transport.items():
             result[f"transport_{direction}"] = vkGetSemaphoreCounterValue(
+                device, semaphore)
+        for direction, semaphore in getattr(self, "consumed", {}).items():
+            result[f"consumed_{direction}"] = vkGetSemaphoreCounterValue(
                 device, semaphore)
         return result
 
