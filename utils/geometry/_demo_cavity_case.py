@@ -161,6 +161,14 @@ def main() -> int:
     parser.add_argument("--lid", type=int, default=11, help="lid layers")
     parser.add_argument("--out", default="cases/lid_driven_cavity_2d_6m")
     parser.add_argument("--no-preview", action="store_true", help="skip split_preview.png")
+    parser.add_argument("--objs-only", action="store_true",
+                        help="write geometry (.obj) only, NEVER touch case.yaml. "
+                             "For regenerating gitignored geometry of a TRACKED case "
+                             "on a fresh checkout — 2026-09-04 lesson: overwriting the "
+                             "tracked 1M case.yaml silently changed gamma 1.4->7, "
+                             "materials water->stick and c 20->100, creating an "
+                             "unvalidated physics combo that ejects particles at the "
+                             "lid corners on every platform.")
     args = parser.parse_args()
 
     half_index_y = args.half
@@ -210,6 +218,13 @@ def main() -> int:
     frame_half_x = half_total_x * dx + 0.6 * dx
     frame_half_y = half_total_y * dx + 0.6 * dx
     write_frame_obj(out_dir / "frame.obj", frame_half_x, frame_half_y, particle_radius)
+    if args.objs_only:
+        print("wrote frame.obj domain.obj wall.obj wall_top.obj "
+              "(--objs-only: case.yaml untouched)")
+        if not args.no_preview:
+            write_preview(out_dir / "split_preview.png", domain, wall, lid_points, dx,
+                          frame_half_x, frame_half_y, fluid_half_x, fluid_half_y)
+        return 0
     (out_dir / "case.yaml").write_text(CASE_YAML.format(
         fluid_millions=n_fluid / 1e6, n_fluid=n_fluid, n_wall=n_wall, n_lid=n_lid,
         border=border, lid=lid, h=smoothing_length, dx=dx, particle_radius=particle_radius,

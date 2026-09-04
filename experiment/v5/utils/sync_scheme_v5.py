@@ -134,6 +134,19 @@ class FrameSyncScheme:
         semaphore (Vulkan backwards-signal hazard)."""
         raise NotImplementedError
 
+    def dest_upload_guard_ops(self, direction: str, frame_n: int) -> list:
+        """Waits (list of (semaphore, value)) the worker must complete on the
+        DEST sim before MEMCPYING into receiver_staging for frame_n: the
+        dest's upload DMA of frame_n-1 must have finished READING that same
+        buffer. Without this, the only thing separating the worker's write
+        from the previous upload's read is the dest transfer queue's FIFO
+        COMPLETION order — which the spec does not guarantee between
+        batches. Added 2026-09-04 during the 3090-cluster drift hunt; note
+        the cluster's depth>=2 residual drift PERSISTED after this fix, so
+        this closes a real formal hazard but is NOT the (still-open)
+        operative race — see memory/project-cluster-drift-investigation."""
+        raise NotImplementedError
+
     def worker_signal_op(self, direction: str, frame_n: int) -> SemaphoreOp:
         """Worker host-signals this on the DEST sim after its memcpy."""
         raise NotImplementedError
@@ -234,6 +247,13 @@ class AggregatedTimelineScheme(FrameSyncScheme):
     def dest_guard_op(self, direction: str, frame_n: int) -> SemaphoreOp:
         return (self.timeline, self.value_readback_done(frame_n))
 
+    def dest_upload_guard_ops(self, direction: str, frame_n: int) -> list:
+        # Single monotonic timeline: readback_done(n) = 5n+2 can only have
+        # been signaled after upload_done(n-1) = 5n-1 (values signal in
+        # increasing order), so dest_guard_op already implies the upload
+        # of the previous frame finished. Nothing extra to wait.
+        return []
+
     def worker_signal_op(self, direction: str, frame_n: int) -> SemaphoreOp:
         return (self.timeline, self.value_worker_done(frame_n))
 
@@ -328,6 +348,16 @@ class PerDirectionTimelineScheme(FrameSyncScheme):
 
     def dest_guard_op(self, direction: str, frame_n: int) -> SemaphoreOp:
         return (self.transport[direction], self.value_readback_done(frame_n))
+
+    def dest_upload_guard_ops(self, direction: str, frame_n: int) -> list:
+        # main.upload_done(n-1) is signaled by the LAST direction's upload,
+        # so this single wait covers receiver_staging of EVERY direction of
+        # the dest sim. Trivially satisfied in steady state (that upload
+        # finished long ago); it only ever blocks when the pipeline would
+        # otherwise tear the buffer. frame 0 has no predecessor.
+        if frame_n == 0:
+            return []
+        return [(self.main, self.value_upload_done(frame_n - 1))]
 
     def worker_signal_op(self, direction: str, frame_n: int) -> SemaphoreOp:
         return (self.transport[direction], self.value_worker_done(frame_n))

@@ -196,6 +196,16 @@ class GhostMigrationWorker:
                 guard_semaphore, guard_value = self.dest.sync.dest_guard_op(
                     self.dest_direction, frame_n)
                 self.dest.wait_semaphore(guard_semaphore, guard_value)
+                # 1c. Wait until dest's upload of frame n-1 has finished
+                #     READING receiver_staging before we overwrite it.
+                #     Transfer-queue FIFO completion order is NOT a spec
+                #     guarantee — relying on it caused reproducible drift
+                #     on the 3090 cluster (see dest_upload_guard_ops).
+                for upload_guard_semaphore, upload_guard_value in (
+                        self.dest.sync.dest_upload_guard_ops(
+                            self.dest_direction, frame_n)):
+                    self.dest.wait_semaphore(upload_guard_semaphore,
+                                             upload_guard_value)
                 t_wait = time.perf_counter_ns()
 
                 # 2. Byte memcpy (CPU → CPU)
