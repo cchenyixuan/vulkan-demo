@@ -114,8 +114,11 @@ def run_point(name: str, case_rel: str, k: int) -> None:
     log_path = _OUT / f"{name}.log"
     case_path = _REPO / case_rel
     minutes = 80 if "16m" in case_rel and k == 1 else 45
+    # env.sh provides LD_LIBRARY_PATH for the bundled Vulkan loader — without
+    # it python-vulkan dies on import (launch-2 lesson: all 15 points in 3s).
+    env_prefix = "source ~/swq/env.sh && "
     if k == 1:
-        inner = (f"cd {_REPO} && nvidia-smi --query-gpu=index,name,pci.bus_id "
+        inner = (env_prefix + f"cd {_REPO} && nvidia-smi --query-gpu=index,name,pci.bus_id "
                  f"--format=csv,noheader; {PYTHON} experiment/v5/_run_v5_single_bench.py "
                  f"--case {case_rel} --device 0 --max-steps {MAX_STEPS} "
                  f"--warmup {WARMUP} --bench-window {MAX_STEPS - WARMUP}")
@@ -123,7 +126,7 @@ def run_point(name: str, case_rel: str, k: int) -> None:
     else:
         weights = ",".join(["1"] * k)
         device_map = ",".join(str(i) for i in range(k))
-        inner = (f"cd {_REPO} && nvidia-smi --query-gpu=index,name,pci.bus_id "
+        inner = (env_prefix + f"cd {_REPO} && nvidia-smi --query-gpu=index,name,pci.bus_id "
                  f"--format=csv,noheader; {PYTHON} experiment/v5/_run_v5_chain_bench.py "
                  f"--case {case_rel} --weights {weights} --device-map {device_map} "
                  f"--sync-scheme per-direction --depth 1 "
