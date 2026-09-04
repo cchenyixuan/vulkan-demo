@@ -40,11 +40,11 @@ _REPO = pathlib.Path(__file__).resolve().parents[1]
 
 # Server runtime dependencies. Viewers (glfw/pyrr) are deliberately NOT
 # included — the server is headless; slice rendering uses matplotlib Agg.
-RUNTIME_PACKAGES = ["numpy", "PyYAML", "matplotlib", "scipy"]
+# python-vulkan ships a universal py3-none-any wheel (pure python, cffi
+# ABI mode), so it rides the same --only-binary download; its cffi
+# dependency resolves to manylinux wheels per version.
+RUNTIME_PACKAGES = ["numpy", "PyYAML", "matplotlib", "scipy", "vulkan"]
 BOOTSTRAP_PACKAGES = ["pip", "setuptools", "wheel"]
-# python-vulkan publishes a universal (pure-python, cffi ABI-mode) build —
-# downloaded separately because --only-binary would reject an sdist.
-UNIVERSAL_PACKAGES = ["vulkan"]
 PYTHON_MINOR_VERSIONS = ["3.10", "3.11", "3.12", "3.13"]
 
 
@@ -90,11 +90,6 @@ def main() -> int:
                  "--python-version", version,
                  "--only-binary=:all:", "--quiet",
                  *RUNTIME_PACKAGES, *BOOTSTRAP_PACKAGES])
-            run([sys.executable, "-m", "pip", "download",
-                 "--dest", str(wheel_dir),
-                 "--python-version", version,
-                 "--no-deps", "--no-binary=:all:", "--quiet",
-                 *UNIVERSAL_PACKAGES])
     else:
         print("[kit] 3/4 SKIPPED (reusing wheels/)")
 
