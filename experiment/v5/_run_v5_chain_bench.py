@@ -249,6 +249,34 @@ def main() -> int:
             stamp_errors_host = sum(
                 getattr(worker, "stamp_error_count", 0)
                 for worker in getattr(orch, "workers", []))
+
+            # Per-worker wait/copy accounting across the WHOLE run: where
+            # does each exchange spend its time? (thermal-vs-comm-vs-bug
+            # discrimination, 2026-09-05.)
+            for worker in getattr(orch, "workers", []):
+                segment_samples: dict = {}
+                for stamps in worker.timestamps.values():
+                    if "dequeue_ns" not in stamps:
+                        continue
+                    pairs = (("src_wait", "dequeue_ns", "source_wait_ns"),
+                             ("dest_guard", "source_wait_ns", "dest_guard_ns"),
+                             ("upload_guard", "dest_guard_ns", "wait_ns"),
+                             ("copy", "wait_ns", "copy_ns"),
+                             ("signal", "copy_ns", "signal_ns"))
+                    for name, start_key, end_key in pairs:
+                        segment_samples.setdefault(name, []).append(
+                            (stamps[end_key] - stamps[start_key]) / 1000.0)
+                if not segment_samples:
+                    continue
+                parts = []
+                for name, values in segment_samples.items():
+                    values.sort()
+                    parts.append(f"{name}="
+                                 f"{values[len(values)//2]:.0f}/"
+                                 f"{values[int(len(values)*0.9)]:.0f}/"
+                                 f"{values[-1]:.0f}")
+                print(f"[worker {worker.label}] us p50/p90/max: "
+                      + "  ".join(parts))
             drift = total - expected_total
             print(f"[chain_v5] final: total={total:,} "
                   f"(expected {expected_total:,}) drift={drift} "

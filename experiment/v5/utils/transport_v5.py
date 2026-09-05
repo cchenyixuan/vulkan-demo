@@ -184,10 +184,12 @@ class GhostMigrationWorker:
                 # 1a. Wait for source GPU's transfer queue to signal
                 #     readback_done(n) — sender_staging is now fully
                 #     populated and CPU-visible (host coherence barrier ran).
-                self.last_activity = ("wait_source_timeline", frame_n, time.perf_counter_ns())
+                t_dequeue = time.perf_counter_ns()
+                self.last_activity = ("wait_source_timeline", frame_n, t_dequeue)
                 source_semaphore, source_value = self.source.sync.source_readback_op(
                     self.source_direction, frame_n)
                 self.source.wait_semaphore(source_semaphore, source_value)
+                t_source_wait = time.perf_counter_ns()
                 # 1b. Wait for DEST sim's readback_done(n) on the SAME
                 #     semaphore we are about to host-signal. Critical for
                 #     timeline monotonicity: our host_signal of worker_done
@@ -200,6 +202,7 @@ class GhostMigrationWorker:
                 guard_semaphore, guard_value = self.dest.sync.dest_guard_op(
                     self.dest_direction, frame_n)
                 self.dest.wait_semaphore(guard_semaphore, guard_value)
+                t_dest_guard = time.perf_counter_ns()
                 # 1c. Wait until dest's upload of frame n-1 has finished
                 #     READING receiver_staging before we overwrite it.
                 #     Transfer-queue FIFO completion order is NOT a spec
@@ -267,6 +270,13 @@ class GhostMigrationWorker:
                 self.last_completed_frame = frame_n
 
                 self.timestamps[frame_n] = {
+                    # Segment boundaries (perf_counter_ns) — diff neighbours
+                    # for per-exchange accounting: dequeue -> source-readback
+                    # wait -> dest guard wait -> upload guard wait -> memcpy
+                    # -> host signals.
+                    "dequeue_ns": t_dequeue,
+                    "source_wait_ns": t_source_wait,
+                    "dest_guard_ns": t_dest_guard,
                     "wait_ns": t_wait,
                     "copy_ns": t_copy,
                     "signal_ns": t_signal,
