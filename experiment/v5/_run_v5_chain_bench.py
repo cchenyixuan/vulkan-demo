@@ -49,6 +49,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--defrag-cadence", type=int, default=None)
     p.add_argument("--no-defrag", action="store_true")
     p.add_argument("--validation", action="store_true")
+    p.add_argument("--anatomy", action="store_true",
+                   help="attach BenchTimers (compute + transfer pools) to every "
+                        "sim and print one frame's per-phase durations per sim "
+                        "at each defrag boundary — per-slab A/B/C + b_to_c_gap "
+                        "+ DMA segments. Used to localize the cluster K>=3 "
+                        "collapse (2026-09-05).")
     p.add_argument("--seam-check", action="store_true", default=True)
     p.add_argument("--no-seam-check", dest="seam_check", action="store_false")
     return p.parse_args()
@@ -174,12 +180,41 @@ def main() -> int:
             sims.append(SphSimulatorV5(ctx, chain.slabs[index],
                                        sync_scheme=args.sync_scheme))
 
+        anatomy_timers = []
+        if args.anatomy:
+            from experiment.v5.utils.bench_v5 import BenchTimer, compute_durations
+            for index, sim in enumerate(sims):
+                bench = BenchTimer(sim.ctx, label=f"s{index}")
+                bench_transfer = BenchTimer(
+                    sim.ctx, label=f"s{index}_transfer",
+                    queue_family_index=sim.ctx.transfer_queue_family_index)
+                sim.bench = bench
+                sim.bench_transfer = bench_transfer
+                anatomy_timers.append((bench, bench_transfer))
+
         def on_defrag(frame_n: int, report: list) -> None:
             migrations = "/".join(str(r["interval_migration"]) for r in report)
             drops = sum(r["overflow_install_tail"] for r in report)
             if drops:
                 print(f"[migration] frame {frame_n}: interval {migrations} "
                       f"*** DROPS={drops} ***", file=sys.stderr, flush=True)
+            if anatomy_timers:
+                # Pipeline is drained here; the query pools hold the LAST
+                # executed frame's ticks — one full-frame anatomy per sim.
+                for index, (bench, bench_transfer) in enumerate(anatomy_timers):
+                    ticks = bench.read_frame(include_defrag=False)
+                    ticks.update(bench_transfer.read_frame(include_defrag=False))
+                    durations = compute_durations(ticks)
+                    keys = ("phase_a_us", "phase_b_us", "phase_c_us",
+                            "a_to_b_gap_us", "b_to_c_gap_us",
+                            "readback_leading_dma_us", "readback_trailing_dma_us",
+                            "upload_leading_dma_us", "upload_trailing_dma_us",
+                            "upload_leading_to_c_gap_us",
+                            "upload_trailing_to_c_gap_us")
+                    parts = " ".join(
+                        f"{key.replace('_us', '')}={durations[key]:.0f}"
+                        for key in keys if key in durations)
+                    print(f"[anatomy] f{frame_n} s{index}: {parts}", flush=True)
 
         with ChainOrchestratorV5(sims, defrag_cadence=defrag_cadence) as orch:
             orch.bootstrap_all()
