@@ -94,8 +94,51 @@ streamed once per kernel rather than reused across a wide pid range, so the per-
 L2 hit rate than in the interior; that is exactly what the GPU Trace metrics (L2 hit rate, warp stall
 reasons) would show.
 
-## Nsight Graphics
+## Nsight Graphics GPU Trace (2026-09-17, local RTX 5090, driver 576.88)
 
-2026.3.1 downloaded (public link, 569 MB) and installed on the local machine (see the session log for the
-exact outcome); GPU Trace of the density / force band kernels is the next step on the `exp/band-compact`
-branch.
+Nsight Graphics 2026.3.1 installed (elevated msiexec; the driver's performance counters are admin-only, so the
+trace runs through an elevated `cmd` wrapper). Trace: 3-D 8M border-4 case, K=1 with the fake band at column
+20 (identical kernels and costs to the real seam band, single device), `--start-after-submits 300
+--limit-to-submits 3` (3 frames), Blackwell GB20x "Top-Level Triage" metric set with multi-pass counters,
+GPU clocks unaltered. Per-kernel "regimes" come from VK_EXT_debug_utils labels around every pipeline bind
+(`V5_DEBUG_LABELS=1`, branch `exp/band-compact` commit d933736). Raw table: `band_gputrace_metrics.txt`.
+Averages over the 3 traced frames; the regime spans bind-to-bind (dispatch + following barrier), so the
+percentages are diluted by ≈ 1–3% of barrier time.
+
+| kernel | mode | Mcycles | SM throughput % | warps active % of peak | threads per warp-inst (of 32) | L1 hit % | L2 hit % | L2 traffic GB | long-scoreboard (L1TEX) stall % | "not selected" % |
+|---|---|---|---|---|---|---|---|---|---|---|
+| correction_interior | phase B | 58.4 | 81 | **95** | 21.0 | 77 | 85 | 458 | 38 | 18 |
+| correction_boundary | band (voxel, slot) | 3.92 | 47 | **43** | 22.0 | 78 | 88 | 12.2 | 20 | 1.9 |
+| correction_boundary | compact list | 3.04 | 63 | **69** | 21.0 | 78 | 92 | 17.9 | 27 | 12 |
+| density_deep_interior | phase B | 60.4 | 80 | **94** | 21.3 | 78 | 86 | 489 | 40 | 14 |
+| density_boundary | band | 6.07 | 48 | **46** | 22.6 | 76 | 81 | 25.2 | 22 | 3.3 |
+| density_boundary | compact | 5.40 | 56 | **63** | 21.7 | 74 | 86 | 35.7 | 27 | 11 |
+| force_deep_interior (scratch) | phase B | 77.5 | 70 | **62** | 18.1 | 78 | 81 | 385 | 27 | 7 |
+| force_boundary | band | 8.11 | 54 | **43** | 19.6 | 78 | 87 | 24.1 | 19 | 3.2 |
+| force_boundary | compact | 6.97 | 66 | **56** | 18.5 | 78 | 91 | 31.9 | 23 | 7 |
+
+Reading:
+
+1. **Divergence is not the cause**: active threads per warp instruction are 20–23 of 32 for band and
+   interior alike (the neighbour loop's trip-count variance, same in both).
+2. **Cache locality is not the cause**: L1 hit 76–78% and L2 hit 81–92% for the band kernels equal or exceed
+   the interior's; the band kernels also see *fewer* long-scoreboard (memory-latency) stalls per active warp.
+3. **The band kernels are occupancy-limited.** In (voxel, slot) mode they run at 43–46% of peak warps versus
+   94–95% for the interior correction/density kernels — the 50% (3-D) / 75% (2-D) of launched threads that
+   exit at the slot check keep their CTA's warp slots and registers until the whole CTA retires, so only
+   half the resident warps do work, and SM throughput follows (47–54% vs 80%). The compacted list lifts
+   occupancy to 56–69% and cuts the cycles by 22 / 11 / 14% (correction / density / force), but it does not
+   reach the interior's 95%: a band kernel of 0.2–0.8M particles is a **single wave** on 170 SMs (≈ 15 CTAs
+   per SM), so the CTA-retirement tail alone caps the average occupancy at ≈ 60–70%, and the compact list
+   (voxel-list arrival order) moves 30–47% more L2 sectors than the band mode (less coalesced self / neighbour
+   loads) — which is why the compact gain is smaller than the occupancy gain.
+4. In 2-D the same picture holds with 75% dead threads plus a fixed ≈ 77 µs per launch that dominates
+   20–110k-particle bands.
+
+Consequences (no code changed on the main path): the remaining band-kernel excess is a scheduling-granularity
+effect, not memory locality and not instruction count. The cheapest untested lever is to give the band
+pipelines a **32-thread workgroup** (spec constant 51 per pipeline: one warp per CTA, so a dead warp retires
+its CTA immediately and frees its slot to a live one), which needs no list build; a second lever is to sort
+the compacted list by pid so the loads coalesce like the interior's. At 64M K=8 in 2-D the three band kernels
+are ≈ 0.6 ms of a 15.2 ms frame, so even perfect band kernels are worth ≈ 3% there; in 3-D (C/B ≈ 0.1) the
+stake is ≈ 3–4%. Whether to spend the freeze on it is a decision for after the 3-D matrix.
