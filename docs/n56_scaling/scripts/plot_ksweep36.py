@@ -57,7 +57,7 @@ for size in ("64m", "32m"):
         table[(size, tag)] = {"K": K, "fps": [runs[(size, tag, t)] for t in trials], "eta": np.mean(eta),
                               "std": np.std(eta, ddof=1) if len(eta) > 1 else 0.0, "eta_min": np.mean(eta_min),
                               "ref_mean": ref_means, "spread": spread[0], "trials": trials}
-        print(f"{size:>4s} {tag:>4s} {K:>2d} {str([round(v, 1) for v in table[(size, tag)]['fps']]):>24s} {str([round(v, 2) for v in ref_means]):>26s} "
+        print(f"{size:>4s} {tag:>4s} {K:>2d} {str([round(v, 1) for v in table[(size, tag)]['fps']]):>24s} {str([round(float(v), 2) for v in ref_means]):>26s} "
               f"{spread[0][0]:6.2f}-{spread[0][1]:<6.2f} {np.mean(eta) * 100:6.1f}% {table[(size, tag)]['std'] * 100:4.1f}% {np.mean(eta_min) * 100:7.1f}%")
 
 # ---------- figure 1: eta vs K ----------
@@ -73,7 +73,7 @@ for size, label in (("64m", "64M (8M per GPU at K=8)"), ("32m", "32M (4M per GPU
         ax.errorbar(ks, etas, yerr=errs, fmt="o-", color=colors[size], capsize=4, linewidth=1.6, markersize=6, label=label + ", eta_mean")
         ax.plot(ks, emin, "s--", color=colors[size], linewidth=1, markersize=4, alpha=0.7, label=label + ", eta_min")
         for k, e in zip(ks[1:], etas[1:]):
-            ax.annotate(f"{e:.1f}%", (k, e), textcoords="offset points", xytext=(0, -14), ha="center", fontsize=8, color=colors[size])
+            ax.annotate(f"{e:.1f}%", (k, e), textcoords="offset points", xytext=(0, 8 if size == "64m" else -14), ha="center", fontsize=8, color=colors[size])
     if (size, "k2x") in table:
         r = table[(size, "k2x")]
         ax.errorbar([2.15], [r["eta"] * 100], yerr=[r["std"] * 100], fmt="D", color=colors[size], capsize=3, markersize=6, mfc="white", label=f"{size} K=2 on cross-NUMA pair (3,4)")
@@ -139,7 +139,7 @@ if bars:
     data = [b[4] for b in bars[1:] if b[4]]
     labels = [b[0] for b in bars[1:] if b[4]]
     if data:
-        ax.boxplot(data, labels=labels, showfliers=True)
+        ax.boxplot(data, tick_labels=labels, showfliers=True)
         ax.set_ylabel("upload landed before Phase C start (ms)"); ax.set_title("64M: transport slack samples per K (2 frames x GPUs x links x trials)", fontsize=9)
         ax.axhline(0, color="#888", linestyle=":", linewidth=1); ax.grid(axis="y", alpha=0.3)
     fig.tight_layout(); fig.savefig(out_dir / "anatomy_vs_k_64m.png", dpi=140); print("saved", out_dir / "anatomy_vs_k_64m.png")
