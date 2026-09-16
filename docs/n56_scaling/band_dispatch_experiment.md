@@ -54,3 +54,48 @@ the branch once it is available.
 
 Files: branch `exp/band-compact` (band_compact.comp, helpers `compact_thread_particle`, simulator recording,
 `band_compact_us` in the anatomy); logs in the scratchpad `compact/`.
+
+## Interior vs band: what the kernel actually executes (specialized SPIR-V diff)
+
+The interior and band pipelines are the same shader module with different specialization constants
+(`*_MODE` 1 vs 2, `BAND_VOXEL_DISPATCH` 0 vs 1). To see the code each variant runs, the frozen `.spv` was
+specialized with `spirv-opt --set-spec-const-default-value … --freeze-spec-const
+--fold-spec-const-op-composite --eliminate-dead-branches -O` for both variants and disassembled; the opcode
+sequences (ids stripped) were diffed.
+
+| kernel | interior: instructions / loads / access chains / branches / loops | band: same | band − interior |
+|---|---|---|---|
+| correction | 541 / 16 / 19 / 62 / 6 | 584 / 18 / 21 / 69 / 6 | +43 / +2 / +2 / +7 / 0 |
+| density | 476 / 18 / 19 / 53 / 4 | 519 / 20 / 21 / 60 / 4 | +43 / +2 / +2 / +7 / 0 |
+| force | 618 / 17 / 19 / 66 / 4 | 661 / 19 / 21 / 73 / 4 | +43 / +2 / +2 / +7 / 0 |
+
+The 48 added / 5 removed opcodes are identical for the three kernels and all sit in `main()` before
+`process_particle`: the band variant replaces "pid = thread + own_first_pid; if pid > own_last_pid return"
+(5 opcodes) with `band_thread_particle`: thread → (band voxel, slot) (3 `OpUDiv`, 2 `OpUMod`, 2 `OpIMul`,
+5 `OpIAdd`), side selection (3 `OpSelectionMerge` + `OpBranchConditional`, 3 `OpPhi`), then **two dependent
+global loads** — `inside_particle_count[vid]` (slot ≥ count → exit) and `inside_particle_index[vid·MPV + slot]`
+— before the body can issue its first load of `position_voxel_id[pid]`. **Per neighbour the two variants
+execute exactly the same instructions** (the loop bodies are opcode-identical; same loop count, same loads
+per neighbour). So the extra cost is not instruction count in the neighbour loop; what differs per particle is:
+
+1. two serialized dependent loads (count → index → self position) instead of an add — ~2 extra DRAM
+   latencies at the start of every thread, partially hidden by occupancy;
+2. the self pid arrives through a gather (`inside_particle_index`, voxel-list order = atomic arrival order)
+   instead of `thread_id + const`, so a warp's 32 self loads are no longer one coalesced 512 B line, and its
+   neighbour loops start from 32 different voxels in a less regular order than the pid-sorted interior warp;
+3. 75% (2-D, 24 of 96 slots) / 50% (3-D, 64 of 128) of the launched threads exit at the count check —
+   warps that are only partly full run the loop body with idle lanes.
+
+The compact-list experiment removes (1) and (3) and most of (2), and recovers −20% (correction) / −11%
+(force) / −2% (density): consistent with the mapping being a secondary factor. What remains (density
+1.35×, correction 1.31×) has to come from the memory side of the *same* instruction stream — the band
+particles' neighbour lists and neighbour data are only 2–4 columns wide, i.e. a working set that is
+streamed once per kernel rather than reused across a wide pid range, so the per-neighbour loads see a lower
+L2 hit rate than in the interior; that is exactly what the GPU Trace metrics (L2 hit rate, warp stall
+reasons) would show.
+
+## Nsight Graphics
+
+2026.3.1 downloaded (public link, 569 MB) and installed on the local machine (see the session log for the
+exact outcome); GPU Trace of the density / force band kernels is the next step on the `exp/band-compact`
+branch.

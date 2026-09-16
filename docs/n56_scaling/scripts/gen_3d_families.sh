@@ -7,7 +7,10 @@
 # BORDER (wall shell layers): 4 = one support radius (h = 4 dx) is the default since 2026-09-17 (verified
 # equivalent to the old 9 = 2*hdx+1 on 8M K=1 and the stretched K=2 case; -13% particles, +7-9% fps).
 # Pass BORDER=9 to build the thick-wall variants (suffix _b9).
-source ~/run/tools/env.sh 2>/dev/null; cd "$(dirname "$0")/.." 2>/dev/null || cd ~/run/vulkan-demo
+source ~/run/tools/env.sh 2>/dev/null
+# run from the repo root (the script lives in docs/n56_scaling/scripts locally and in ~/run/tools on the cluster)
+REPO=${REPO:-~/run/vulkan-demo}; [ -f utils/geometry/_demo_cavity_case_3d.py ] || cd "$REPO" || exit 1
+[ -f utils/geometry/_demo_cavity_case_3d.py ] || { echo "not a vulkan-demo checkout: $(pwd)"; exit 1; }
 BORDER=${BORDER:-4}; SUF=""; [ "$BORDER" != 4 ] && SUF="_b$BORDER"
 gen() {  # name half half_x
   local NAME=$1$SUF; local T=$(date +%s)
@@ -16,10 +19,15 @@ gen() {  # name half half_x
   python utils/geometry/_demo_cavity_case_3d.py --half $2 --half-x $3 --border $BORDER --out cases/$NAME --no-preview 2>&1 | grep -E "lattice|domain|pool_size"
   echo "[$(date +%T)] done $NAME in $(( $(date +%s) - T )) s: $(du -sh cases/$NAME | cut -f1)"
 }
-for K in 1 2 4 8; do gen cavity3d_weak4_k${K}_$(( 4 * K ))m 79 $(( 79 * K + K / 2 )); done
-touch cases/.cavity3d_weak4${SUF}_ready
-for K in 1 2 4 8; do gen cavity3d_weak8_k${K}_$(( 8 * K ))m 100 $(( 100 * K + K / 2 )); done
-touch cases/.cavity3d_weak8${SUF}_ready
-gen cavity3d_cube_64m 200 200
-touch cases/.cavity3d_cube64${SUF}_ready
-echo GEN3D_DONE
+# FAMILIES selects the blocks (default all); run several instances in parallel on the login node.
+FAMILIES=${FAMILIES:-weak4 weak8 cube}
+case " $FAMILIES " in *" weak4 "*)
+  for K in 1 2 4 8; do gen cavity3d_weak4_k${K}_$(( 4 * K ))m 79 $(( 79 * K + K / 2 )); done
+  touch cases/.cavity3d_weak4${SUF}_ready;; esac
+case " $FAMILIES " in *" weak8 "*)
+  for K in 1 2 4 8; do gen cavity3d_weak8_k${K}_$(( 8 * K ))m 100 $(( 100 * K + K / 2 )); done
+  touch cases/.cavity3d_weak8${SUF}_ready;; esac
+case " $FAMILIES " in *" cube "*)
+  gen cavity3d_cube_64m 200 200
+  touch cases/.cavity3d_cube64${SUF}_ready;; esac
+echo "GEN3D_DONE ($FAMILIES)"
