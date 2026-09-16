@@ -20,7 +20,6 @@ for K in 1 2 4 8; do gen cavity3d_weak4_k${K}_$(( 4 * K ))m 79 $(( 79 * K + K / 
 touch cases/.cavity3d_weak4${SUF}_ready
 for K in 1 2 4 8; do gen cavity3d_weak8_k${K}_$(( 8 * K ))m 100 $(( 100 * K + K / 2 )); done
 touch cases/.cavity3d_weak8${SUF}_ready
-gen cavity3d_cube_32m 159 159
 gen cavity3d_cube_64m 200 200
-touch cases/.cavity3d_cubes${SUF}_ready
+touch cases/.cavity3d_cube64${SUF}_ready
 echo GEN3D_DONE
