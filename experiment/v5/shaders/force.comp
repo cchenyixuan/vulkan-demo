@@ -58,10 +58,28 @@
 
 layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
 
+// V3.3 cascading force: rho/P source is a specialization constant so the
+// Phase B pipeline (force_deep_interior_scratch) reads this frame's density
+// from scratch while the Phase C pipeline (force_boundary / force_all)
+// keeps reading primary after the scratch->primary copy. Branch is DCE'd.
+vec2 read_density_pressure(uint particle_id) {
+    if (FORCE_DENSITY_SOURCE == FORCE_DENSITY_SOURCE_SCRATCH) {
+        return density_pressure_scratch[particle_id];
+    }
+    return density_pressure[particle_id];
+}
+
 void main() {
     // 0-based → 1-based particle_id
-    uint self_particle_id = gl_GlobalInvocationID.x + own_first_pid();
-    if (self_particle_id > own_last_pid()) return;
+    uint self_particle_id;
+    if (BAND_VOXEL_DISPATCH == 1u) {
+        // V3.4: thread = (band voxel, slot); pid from the voxel list.
+        if (!band_thread_particle(gl_GlobalInvocationID.x, NEIGHBOR_X_RANGE,
+                                  self_particle_id)) return;
+    } else {
+        self_particle_id = gl_GlobalInvocationID.x + own_first_pid();
+        if (self_particle_id > own_last_pid()) return;
+    }
 
     // --- Self material group --------------------------------------------------
     uint self_group_id = material[self_particle_id];
@@ -107,7 +125,7 @@ void main() {
     vec3  self_velocity      = self_velocity_mass.xyz;
     float self_mass          = self_velocity_mass.w;
 
-    vec2  self_density_pressure = density_pressure[self_particle_id];
+    vec2  self_density_pressure = read_density_pressure(self_particle_id);
     float self_density  = self_density_pressure.x;
     float self_pressure = self_density_pressure.y;
 
@@ -180,7 +198,7 @@ void main() {
                     // V0 uniformity: self_mass used for neighbor mass; ν / R / V
                     // also taken from self_params outside the loop.
                     vec3  neighbor_velocity = velocity_mass[neighbor_particle_id].xyz;
-                    vec2  neighbor_density_pressure = density_pressure[neighbor_particle_id];
+                    vec2  neighbor_density_pressure = read_density_pressure(neighbor_particle_id);
                     float neighbor_density  = neighbor_density_pressure.x;
                     float neighbor_pressure = neighbor_density_pressure.y;
                     float neighbor_volume_dynamic = self_mass / neighbor_density;

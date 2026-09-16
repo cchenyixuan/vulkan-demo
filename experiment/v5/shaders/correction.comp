@@ -37,10 +37,15 @@ layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
 void main() {
     // 0-based invocation → 1-based particle_id, offset into own pid range
     // (own = [LEADING_GHOST_POOL_SIZE+1, LEADING+OWN_POOL_SIZE]).
-    uint self_particle_id = gl_GlobalInvocationID.x + own_first_pid();
-
-    // Padding threads (dispatch rounds up to WORKGROUP_SIZE): early-return.
-    if (self_particle_id > own_last_pid()) return;
+    uint self_particle_id;
+    if (BAND_VOXEL_DISPATCH == 1u) {
+        // V3.4: thread = (band voxel, slot); pid from the voxel list.
+        if (!band_thread_particle(gl_GlobalInvocationID.x, NEIGHBOR_X_RANGE,
+                                  self_particle_id)) return;
+    } else {
+        self_particle_id = gl_GlobalInvocationID.x + own_first_pid();
+        if (self_particle_id > own_last_pid()) return;
+    }
 
     // No material / kind check here: correction does not consume any
     // MaterialParameters fields, so adding an INLET skip would require

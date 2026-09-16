@@ -52,7 +52,17 @@ from vulkan._vulkancache import ffi
 # Max distinct tick labels per GPU. 15 is the steady-state count for the
 # 4-direction case; 64 leaves headroom for instrumentation experiments and
 # is cheap (64 * 8 = 512 B of query pool VRAM).
-_MAX_TICKS = 64
+_MAX_TICKS = 96
+# Parity-region layout (BenchTimer.enable_parity_regions): A/B labels in
+# [0, 24), phase-C labels of even frames in [24, 40), of odd frames in
+# [40, 56), defrag from 56. Phase A resets only [0, 24); each phase-C cmd
+# resets its own region, so after a pipeline drain the pool still holds the
+# PREVIOUS frame's c_force_end -> cross-frame c_to_a_gap (2026-09-15).
+_PARITY_AB_HI = 24
+_PARITY_REGION_BASE = {0: 24, 1: 40}
+_PARITY_REGION_SIZE = 16
+_PARITY_STEP_HI = 56
+_ODD_SUFFIX = "~odd"
 
 
 class BenchTimer:
@@ -124,6 +134,36 @@ class BenchTimer:
         self._defrag_slot_lo = 0
         self._defrag_slot_hi = 0
         self._defrag_recording = False
+        # Parity regions (see _PARITY_* above). Off unless enabled before
+        # the first recording.
+        self.parity_regions = False
+        self._active_region = None
+        self._region_counts = {0: 0, 1: 0}
+        self._ab_count = 0
+
+    def enable_parity_regions(self) -> None:
+        """Fixed slot layout so phase-C ticks of consecutive frames survive
+        each other (cross-frame c_to_a_gap). Call before any recording."""
+        if self.parity_regions:
+            return
+        if self.label_to_slot:
+            raise RuntimeError(f"BenchTimer({self.label}): enable_parity_regions "
+                               f"must precede the first tick()")
+        self.parity_regions = True
+        self._step_slot_hi = _PARITY_STEP_HI
+
+    def begin_phase_c_region(self, cmd, parity: int) -> None:
+        """First action of phase_c_cmd[parity]: reset THIS parity's region
+        only. No-op (except bookkeeping) when parity regions are off."""
+        if not self.parity_regions:
+            return
+        self._active_region = parity
+        self._region_counts[parity] = 0
+        vkCmdResetQueryPool(cmd, self.pool, _PARITY_REGION_BASE[parity],
+                            _PARITY_REGION_SIZE)
+
+    def end_phase_c_region(self) -> None:
+        self._active_region = None
 
     # ----------------------------------------------------------------- recording
 
@@ -135,7 +175,11 @@ class BenchTimer:
         # appended *after* all step labels were seen on first recording.
         # On the very first call the step range may equal the entire pool;
         # subsequent defrag recording shrinks the step range.
-        if self._defrag_recording:
+        if self.parity_regions:
+            # A/B slots only — the two phase-C regions are reset by their
+            # own cmds so the previous frame's C ticks stay readable.
+            vkCmdResetQueryPool(cmd, self.pool, 0, _PARITY_AB_HI)
+        elif self._defrag_recording:
             # defrag has already been recorded; step range was fixed at that
             # point. Reset only step slots.
             vkCmdResetQueryPool(cmd, self.pool, 0, self._step_slot_hi)
@@ -163,7 +207,10 @@ class BenchTimer:
         if not self._defrag_recording:
             self._defrag_recording = True
             # Lock the step range at whatever was seen by now.
-            self._step_slot_hi = len(self.label_to_slot)
+            if self.parity_regions:
+                self._step_slot_hi = _PARITY_STEP_HI
+            else:
+                self._step_slot_hi = len(self.label_to_slot)
             self._defrag_slot_lo = self._step_slot_hi
         vkCmdResetQueryPool(
             cmd, self.pool, self._defrag_slot_lo,
@@ -174,15 +221,33 @@ class BenchTimer:
         """Record a timestamp at BOTTOM_OF_PIPE = "all prior work in this
         cmd buffer has finished". Per-kernel duration is computed by the
         runner as (tick[label_N+1] - tick[label_N])."""
+        if self.parity_regions and self._active_region == 1:
+            label = label + _ODD_SUFFIX
         if label not in self.label_to_slot:
-            slot = len(self.label_to_slot)
+            if self.parity_regions and self._active_region is not None:
+                region = self._active_region
+                if self._region_counts[region] >= _PARITY_REGION_SIZE:
+                    raise RuntimeError(f"BenchTimer({self.label}): phase-C region full")
+                slot = _PARITY_REGION_BASE[region] + self._region_counts[region]
+                self._region_counts[region] += 1
+            elif self.parity_regions and not self._defrag_recording:
+                if self._ab_count >= _PARITY_AB_HI:
+                    raise RuntimeError(f"BenchTimer({self.label}): A/B region full")
+                slot = self._ab_count
+                self._ab_count += 1
+            else:
+                slot = (self._defrag_slot_hi if (self.parity_regions and self._defrag_recording)
+                        else len(self.label_to_slot))
+                if self.parity_regions and slot < self._defrag_slot_lo:
+                    slot = self._defrag_slot_lo
             if slot >= _MAX_TICKS:
                 raise RuntimeError(
                     f"BenchTimer({self.label}): out of slots ({_MAX_TICKS}); "
                     f"labels so far: {list(self.label_to_slot)}")
             self.label_to_slot[label] = slot
             if not self._defrag_recording:
-                self._step_slot_hi = slot + 1
+                if not self.parity_regions:
+                    self._step_slot_hi = slot + 1
             else:
                 self._defrag_slot_hi = slot + 1
         slot = self.label_to_slot[label]
@@ -206,25 +271,47 @@ class BenchTimer:
                      else self._step_slot_hi)
         if last_slot == 0:
             return {}
-        # WITH_AVAILABILITY: each result is (uint64 value, uint64 available_flag).
-        # Allocate as cffi array; python-vulkan needs a cdata pointer for pData.
+        # Query only ALLOCATED slot ranges: a reset-but-never-written slot
+        # makes vkGetQueryPoolResults report VK_NOT_READY for the whole
+        # range (parity layout has such holes; a region whose parity has
+        # not executed yet is simply skipped).
+        if self.parity_regions:
+            ranges = [(0, self._ab_count),
+                      (_PARITY_REGION_BASE[0], self._region_counts[0]),
+                      (_PARITY_REGION_BASE[1], self._region_counts[1])]
+            if include_defrag and self._defrag_recording:
+                ranges.append((self._defrag_slot_lo,
+                               self._defrag_slot_hi - self._defrag_slot_lo))
+        else:
+            ranges = [(0, last_slot)]
+        values: dict[int, float] = {}
         stride = 16
-        data_size = stride * last_slot
-        data = ffi.new(f"uint64_t[{2 * last_slot}]")
-        vkGetQueryPoolResults(
-            self.ctx.device, self.pool,
-            0, last_slot, data_size, data, stride,
-            VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WITH_AVAILABILITY_BIT,
-        )
+        for first, count in ranges:
+            if count <= 0:
+                continue
+            # WITH_AVAILABILITY: each result is (uint64 value, uint64 available_flag).
+            # Allocate as cffi array; python-vulkan needs a cdata pointer for pData.
+            data = ffi.new(f"uint64_t[{2 * count}]")
+            try:
+                vkGetQueryPoolResults(
+                    self.ctx.device, self.pool,
+                    first, count, stride * count, data, stride,
+                    VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WITH_AVAILABILITY_BIT,
+                )
+            except Exception:
+                # VK_NOT_READY (some slot of the range unavailable): the
+                # available ones are still written; fall through to the
+                # per-slot availability flags below.
+                pass
+            for offset in range(count):
+                if int(data[2 * offset + 1]) != 0:
+                    values[first + offset] = float(int(data[2 * offset])) * self.ns_per_tick
         result: dict[str, float] = {}
         for label, slot in self.label_to_slot.items():
-            if slot >= last_slot:
+            if slot >= last_slot and not (include_defrag and self._defrag_recording):
                 continue
-            value = int(data[2 * slot])
-            availability = int(data[2 * slot + 1])
-            if availability == 0:
-                continue
-            result[label] = float(value) * self.ns_per_tick
+            if slot in values:
+                result[label] = values[slot]
         return result
 
     # --------------------------------------------------------------- teardown
@@ -239,6 +326,26 @@ class BenchTimer:
 # Frame analyzer — turns a {label: ns} pair into named per-kernel durations.
 # Pure-Python, no Vulkan dependency; runner uses it to format CSV / stderr.
 # ============================================================================
+
+
+def split_parity_ticks(ticks: dict[str, float], current_parity: int):
+    """Parity-region pools: return (same-frame ticks with plain labels,
+    previous-frame c_force_end or None). Non-C labels are kept as they are;
+    C labels of ``current_parity`` are renamed to their plain form; the
+    other parity's c_force_end is the previous frame's."""
+    current: dict[str, float] = {}
+    previous_c_end = None
+    for label, value in ticks.items():
+        is_odd = label.endswith(_ODD_SUFFIX)
+        plain = label[:-len(_ODD_SUFFIX)] if is_odd else label
+        if not plain.startswith("c_"):
+            current[label] = value
+            continue
+        if int(is_odd) == current_parity:
+            current[plain] = value
+        elif plain == "c_force_end":
+            previous_c_end = value
+    return current, previous_c_end
 
 
 def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
@@ -365,6 +472,10 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
     if (v := diff_us("b_density_deep_interior_end", "b_correction_interior_end")) is not None:
         out["density_deep_interior_us"] = v
         last_b_label = "b_density_deep_interior_end"
+    # V3.3 cascading force: force_deep_interior_scratch appended to Phase B.
+    if (v := diff_us("b_force_deep_interior_end", "b_density_deep_interior_end")) is not None:
+        out["force_deep_interior_us"] = v
+        last_b_label = "b_force_deep_interior_end"
     if (v := diff_us(last_b_label, "b_start")) is not None and last_b_label != "b_start":
         out["phase_b_us"] = v
 

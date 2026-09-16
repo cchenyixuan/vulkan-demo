@@ -185,6 +185,50 @@ bool in_boundary_band(ivec3 coord) {
 }
 
 // ============================================================================
+// V3.4 band-voxel dispatch (BAND_VOXEL_DISPATCH = 1) for the boundary
+// pipelines. The band of width `range` is exactly the set of voxels for
+// which in_boundary_band() is true: leading band = own columns
+// [leading_x, leading_x + range) when a leading peer exists, trailing band =
+// the last `range` own columns when a trailing peer exists. Voxel ids of one
+// column are contiguous (vid = 1 + x*NY*NZ + y + z*NY), so band voxel index
+// i -> column i / (NY*NZ), yz = i % (NY*NZ). A thread is one (voxel, slot)
+// pair; each pair is visited exactly once, so each band particle is
+// processed exactly once. The simulator sizes the dispatch with the same
+// formula (band_voxel_count(range) * MAX_PARTICLES_PER_VOXEL threads).
+// ============================================================================
+uint band_voxel_count(uint range) {
+    uint face = GRID_DIMENSION_Y * GRID_DIMENSION_Z;
+    uint columns = 0u;
+    if (leading_ghost_x_thickness()  > 0u) columns += range;
+    if (trailing_ghost_x_thickness() > 0u) columns += range;
+    return columns * face;
+}
+
+bool band_thread_particle(uint thread_id, uint range, out uint self_particle_id) {
+    uint face        = GRID_DIMENSION_Y * GRID_DIMENSION_Z;
+    uint voxel_index = thread_id / MAX_PARTICLES_PER_VOXEL;
+    uint slot        = thread_id % MAX_PARTICLES_PER_VOXEL;
+    uint leading_x   = leading_ghost_x_thickness();
+    uint trailing_x  = trailing_ghost_x_thickness();
+    uint leading_voxels = (leading_x > 0u) ? range * face : 0u;
+    uint column;
+    if (voxel_index < leading_voxels) {
+        column = leading_x + voxel_index / face;
+    } else {
+        uint trailing_index = voxel_index - leading_voxels;
+        if (trailing_x == 0u || trailing_index >= range * face) return false;
+        uint own_last_x = GRID_DIMENSION_X - 1u - trailing_x;
+        column = own_last_x - range + 1u + trailing_index / face;
+    }
+    // leading_voxels is a multiple of face, so this holds on both sides.
+    uint yz = voxel_index % face;
+    uint voxel_id = 1u + column * face + yz;
+    if (slot >= inside_particle_count[voxel_id]) return false;
+    self_particle_id = inside_particle_index[voxel_id * MAX_PARTICLES_PER_VOXEL + slot];
+    return true;
+}
+
+// ============================================================================
 // V1 own / ghost pid range helpers (mirrors voxel layout).
 //
 // Pid layout in set 0:

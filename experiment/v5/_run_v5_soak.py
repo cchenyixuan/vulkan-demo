@@ -44,6 +44,7 @@ if sys.platform == "win32":
     import ctypes.wintypes
 import datetime
 import json
+import os
 import pathlib
 import subprocess
 import time
@@ -158,6 +159,12 @@ def _start_telemetry(out_dir: pathlib.Path, interval_s: int):
 
 
 def main() -> int:
+    # 2026-09-15 GIL-latency experiment: V5_SWITCH_INTERVAL_MS shrinks the
+    # interpreter switch interval (default 5 ms) for the 15-thread K=8 chain.
+    _si = os.environ.get("V5_SWITCH_INTERVAL_MS")
+    if _si:
+        sys.setswitchinterval(float(_si) / 1000.0)
+        print(f"[soak] sys.setswitchinterval({float(_si)/1000.0}) applied")
     args = parse_args()
 
     from experiment.v5.utils.case_loader_v5 import load_case_v5
@@ -227,17 +234,27 @@ def main() -> int:
     def worker_interval_stats(orch) -> dict:
         stats = {}
         for worker in orch.workers:
-            copies_us = []
-            for frame_stamps in worker.timestamps.values():
-                if "wait_ns" in frame_stamps and "copy_ns" in frame_stamps:
-                    copies_us.append(
-                        (frame_stamps["copy_ns"] - frame_stamps["wait_ns"]) / 1000.0)
-            if copies_us:
-                copies_us.sort()
-                stats[worker.label] = {
-                    "copy_us_p50": copies_us[len(copies_us) // 2],
-                    "copy_us_max": copies_us[-1],
-                }
+            # 2026-09-15: fold EVERY segment of the worker chain, not just the
+            # memcpy — readback wait (dequeue -> source readback_done), guard
+            # waits (dest readback guard + dest upload guard), copy, and the
+            # host signal; total = dequeue -> signal.
+            segs = {"readback_wait": [], "guard_wait": [], "copy": [], "signal": [], "total": []}
+            for fs in worker.timestamps.values():
+                if all(k in fs for k in ("dequeue_ns", "source_wait_ns", "wait_ns", "copy_ns", "signal_ns")):
+                    segs["readback_wait"].append((fs["source_wait_ns"] - fs["dequeue_ns"]) / 1000.0)
+                    segs["guard_wait"].append((fs["wait_ns"] - fs["source_wait_ns"]) / 1000.0)
+                    segs["copy"].append((fs["copy_ns"] - fs["wait_ns"]) / 1000.0)
+                    segs["signal"].append((fs["signal_ns"] - fs["copy_ns"]) / 1000.0)
+                    segs["total"].append((fs["signal_ns"] - fs["dequeue_ns"]) / 1000.0)
+            if segs["copy"]:
+                row = {}
+                for name, values in segs.items():
+                    values.sort()
+                    row[f"{name}_us_p50"] = values[len(values) // 2]
+                    row[f"{name}_us_max"] = values[-1]
+                # legacy keys kept for older plot scripts
+                row["copy_us_p50"] = row["copy_us_p50"]; row["copy_us_max"] = row["copy_us_max"]
+                stats[worker.label] = row
             worker.timestamps.clear()
         return stats
 
@@ -287,6 +304,8 @@ def main() -> int:
                                     r.get("ghost_recv_trailing", 0)]
                                    for r in report],
                     "workers": worker_interval_stats(orch),
+                    "loop": (orch.loop_trace_stats()
+                             if hasattr(orch, "loop_trace_stats") else {}),
                     "working_set_mb": round(_working_set_mb(), 1),
                 }
                 soak_state["last_row"] = row

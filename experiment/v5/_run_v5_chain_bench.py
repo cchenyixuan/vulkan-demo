@@ -182,7 +182,8 @@ def main() -> int:
 
         anatomy_timers = []
         if args.anatomy:
-            from experiment.v5.utils.bench_v5 import BenchTimer, compute_durations
+            from experiment.v5.utils.bench_v5 import (
+                BenchTimer, compute_durations, split_parity_ticks)
             for index, sim in enumerate(sims):
                 bench = BenchTimer(sim.ctx, label=f"s{index}")
                 bench_transfer = BenchTimer(
@@ -204,9 +205,21 @@ def main() -> int:
                 for index, (bench, bench_transfer) in enumerate(anatomy_timers):
                     ticks = bench.read_frame(include_defrag=False)
                     ticks.update(bench_transfer.read_frame(include_defrag=False))
+                    previous_c_end = None
+                    if bench.parity_regions:
+                        # last executed frame is frame_n-1; the other parity
+                        # region still holds frame_n-2's phase C ticks.
+                        ticks, previous_c_end = split_parity_ticks(
+                            ticks, (frame_n - 1) % 2)
                     durations = compute_durations(ticks)
+                    if previous_c_end is not None and "a_start" in ticks:
+                        durations["c_to_a_gap_us"] = (ticks["a_start"] - previous_c_end) / 1000.0
                     keys = ("phase_a_us", "phase_b_us", "phase_c_us",
-                            "a_to_b_gap_us", "b_to_c_gap_us",
+                            "correction_interior_us", "density_deep_interior_us",
+                            "force_deep_interior_us", "install_leading_us",
+                            "install_trailing_us", "correction_boundary_us",
+                            "density_us", "force_us",
+                            "a_to_b_gap_us", "b_to_c_gap_us", "c_to_a_gap_us",
                             "readback_leading_dma_us", "readback_trailing_dma_us",
                             "upload_leading_dma_us", "upload_trailing_dma_us",
                             "upload_leading_to_c_gap_us",
@@ -215,8 +228,13 @@ def main() -> int:
                         f"{key.replace('_us', '')}={durations[key]:.0f}"
                         for key in keys if key in durations)
                     print(f"[anatomy] f{frame_n} s{index}: {parts}", flush=True)
+                loop = orch_ref[0].loop_trace_stats() if orch_ref else {}
+                if loop:
+                    print(f"[loop] f{frame_n}: " + " ".join(f"{k}={v}" for k, v in loop.items()), flush=True)
 
+        orch_ref: list = []
         with ChainOrchestratorV5(sims, defrag_cadence=defrag_cadence) as orch:
+            orch_ref.append(orch)
             orch.bootstrap_all()
             result = orch.run_pipelined(
                 args.max_steps, depth=args.depth, warmup=args.warmup,

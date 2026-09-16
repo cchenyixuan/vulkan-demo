@@ -21,6 +21,7 @@ Frame loop (synchronous depth=1; depth>1 frame pipelining is §5.4 future):
 
 from __future__ import annotations
 
+import os
 import time
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -528,6 +529,18 @@ class ChainOrchestratorV5:
         worker notifies LAST — with queue_depth>1 on the notify queues, a
         slow link's backpressure lands after the frame's GPU work is
         already queued instead of stalling every sim's submission."""
+        if getattr(self.sims[0], "_fast_ready", False):
+            # V3.5: one compute batch (A+B+C) + one readback batch + one
+            # upload batch per sim, raw cffi. Same semaphore ops.
+            for sim in self.sims:
+                sim.submit_frame_compute_fast(frame_n)
+            for sim in self.sims:
+                sim.submit_transfer_readback_fast(frame_n)
+            for sim in self.sims:
+                sim.submit_transfer_upload_fast(frame_n)
+            for worker in self.workers:
+                worker.notify(frame_n)
+            return
         for sim in self.sims:
             sim.submit_phase_a(frame_n)
         for sim in self.sims:
@@ -698,19 +711,41 @@ class ChainOrchestratorV5:
         semaphore/worker autopsy dump and raises. The 2026-07-18 K=8 soak
         hang sat invisible for 1.7 days behind an INFINITE vkWaitSemaphores
         — never again."""
+        # 2026-09-15 (N56 K=8 wave diagnosis): the legacy loop below waits for
+        # EVERY sim's frame n-depth (sequentially) before submitting frame n to
+        # ANY sim — one global barrier per frame through the latest sim.
+        # V5_PER_SIM_PIPELINE=1 lets each sim advance on its own frame_done
+        # and notifies each link's two workers as soon as both endpoints have
+        # frame n submitted; the semaphore protocol is unchanged.
+        if os.environ.get("V5_PER_SIM_PIPELINE", "0") == "2":
+            return self._run_pipelined_ready(
+                max_steps, depth=depth, warmup=warmup, on_defrag=on_defrag,
+                stall_timeout_s=stall_timeout_s)
+        if os.environ.get("V5_PER_SIM_PIPELINE", "0") == "1":
+            return self._run_pipelined_per_sim(
+                max_steps, depth=depth, warmup=warmup, on_defrag=on_defrag,
+                stall_timeout_s=stall_timeout_s)
         depth = max(1, depth)
+        # V5_LOOP_TRACE=1: per-frame CPU accounting (submit time vs time
+        # blocked in frame_done waits) -> loop_trace_stats().
+        trace = self._loop_trace if os.environ.get("V5_LOOP_TRACE", "0") == "1" else None
         t_start = time.perf_counter()
         warmup_t = None
         warmup_frame = None
         n = 0
         next_wait = 0
         while n < max_steps:
+            t_loop = time.perf_counter()
             self._submit_frame(n)
+            t_submitted = time.perf_counter()
             n += 1
             self._frame_count = n
             while n - next_wait >= depth:
                 self._wait_frame(next_wait, stall_timeout_s)
                 next_wait += 1
+            if trace is not None:
+                trace.append((t_loop, t_submitted - t_loop,
+                              time.perf_counter() - t_submitted))
             if warmup_t is None and n >= warmup:
                 warmup_t = time.perf_counter()
                 warmup_frame = n
@@ -726,6 +761,235 @@ class ChainOrchestratorV5:
         while next_wait < max_steps:
             self._wait_frame(next_wait, stall_timeout_s)
             next_wait += 1
+        t_end = time.perf_counter()
+
+        elapsed = t_end - t_start
+        out = {
+            "frame_count": max_steps,
+            "elapsed_s": elapsed,
+            "fps": max_steps / elapsed if elapsed > 0 else 0.0,
+        }
+        if warmup_t is not None:
+            steady_frames = max_steps - warmup_frame
+            steady_s = t_end - warmup_t
+            out.update({
+                "steady_frames": steady_frames,
+                "steady_s": steady_s,
+                "steady_fps": steady_frames / steady_s if steady_s > 0 else 0.0,
+            })
+        return out
+
+    @property
+    def _loop_trace(self) -> list:
+        trace = getattr(self, "_loop_trace_rows", None)
+        if trace is None:
+            trace = self._loop_trace_rows = []
+        return trace
+
+    def loop_trace_stats(self, reset: bool = True) -> dict:
+        """CPU-side loop accounting since the last call (V5_LOOP_TRACE=1):
+        period = spacing of consecutive frame submits; submit = time inside
+        _submit_frame (all sims' vkQueueSubmits + worker notifies); wait =
+        time blocked in frame_done waits. cpu_share ~ 1 means the CPU loop,
+        not the GPUs, paces the pipeline."""
+        rows = self._loop_trace
+        if len(rows) < 3:
+            return {}
+        starts = [r[0] for r in rows]
+        periods = sorted((b - a) * 1e3 for a, b in zip(starts, starts[1:]))
+        submits = sorted(r[1] * 1e3 for r in rows)
+        waits = sorted(r[2] * 1e3 for r in rows)
+
+        def p50(v):
+            return v[len(v) // 2]
+
+        out = {
+            "frames": len(rows),
+            "period_ms_p50": round(p50(periods), 3),
+            "period_ms_max": round(periods[-1], 3),
+            "submit_ms_p50": round(p50(submits), 3),
+            "submit_ms_mean": round(sum(submits) / len(submits), 3),
+            "submit_ms_max": round(submits[-1], 3),
+            "wait_ms_p50": round(p50(waits), 3),
+            "wait_ms_mean": round(sum(waits) / len(waits), 3),
+            "wait_ms_max": round(waits[-1], 3),
+        }
+        mean_period = sum(periods) / len(periods)
+        out["cpu_share"] = round(out["submit_ms_mean"] / mean_period, 3) if mean_period > 0 else 0.0
+        if reset:
+            del rows[:]
+        return out
+
+    def _run_pipelined_ready(
+        self,
+        max_steps: int,
+        *,
+        depth: int = 2,
+        warmup: int = 0,
+        on_defrag=None,
+        stall_timeout_s: float = 120.0,
+    ) -> dict:
+        """V3.7 readiness-driven per-sim scheduler (V5_PER_SIM_PIPELINE=2).
+        Every sim keeps `depth` frames queued on its own GPU: frame n of sim
+        i is submitted as soon as sim i's frame_done(n-depth) is observed
+        (polled), independent of the other sims. Link (i-1, i)'s workers are
+        notified for frame n once both endpoints have submitted n. Drains
+        (all sims) only at defrag boundaries and at the end."""
+        depth = max(1, depth)
+        sim_count = len(self.sims)
+        next_frame = [0] * sim_count
+        t_start = time.perf_counter()
+        warmup_t = None
+        warmup_frame = None
+        boundary = self.defrag_cadence
+        poll_ns = int(2.5e5)   # 250 us slice when nothing is ready
+        while True:
+            target = min(max_steps, boundary)
+            last_progress = time.perf_counter()
+            while min(next_frame) < target:
+                progressed = False
+                for i, sim in enumerate(self.sims):
+                    n = next_frame[i]
+                    if n >= target:
+                        continue
+                    if n - depth >= 0 and not sim.frame_done_reached(n - depth):
+                        continue
+                    self._submit_sim_frame(sim, n)
+                    next_frame[i] = n + 1
+                    # notify a link's two workers once BOTH endpoints have frame n
+                    if i >= 1 and next_frame[i - 1] > n:
+                        self.workers[2 * (i - 1)].notify(n)
+                        self.workers[2 * (i - 1) + 1].notify(n)
+                    if i + 1 < sim_count and next_frame[i + 1] > n:
+                        self.workers[2 * i].notify(n)
+                        self.workers[2 * i + 1].notify(n)
+                    progressed = True
+                self._frame_count = min(next_frame)
+                if warmup_t is None and self._frame_count >= warmup:
+                    warmup_t = time.perf_counter()
+                    warmup_frame = self._frame_count
+                if progressed:
+                    last_progress = time.perf_counter()
+                    continue
+                # nothing ready: block briefly on the laggard's pending frame
+                laggard = min(range(sim_count), key=lambda k: next_frame[k])
+                pending = next_frame[laggard] - depth
+                sim = self.sims[laggard]
+                semaphore, value = sim.sync.frame_done_op(pending)
+                sim.wait_semaphore(semaphore, value, timeout_ns=poll_ns)
+                self._raise_if_worker_died(pending)
+                if time.perf_counter() - last_progress > stall_timeout_s:
+                    print(self.dump_stall_autopsy(pending), flush=True)
+                    raise RuntimeError(
+                        f"ready scheduler: no sim progressed for {stall_timeout_s}s "
+                        f"(next_frame={next_frame}). Autopsy above.")
+            # drain every sim to `target`
+            for frame_n in range(max(0, target - depth), target):
+                self._wait_frame(frame_n, stall_timeout_s)
+            self._frame_count = target
+            if target % self.defrag_cadence == 0:
+                # same cadence semantics as the legacy loop (including a
+                # boundary that coincides with the end of the run)
+                report = self._collect_defrag_report()
+                if on_defrag is not None:
+                    on_defrag(target, report)
+                for sim in self.sims:
+                    sim.submit_defrag_and_wait()
+            if target >= max_steps:
+                break
+            boundary += self.defrag_cadence
+        t_end = time.perf_counter()
+        elapsed = t_end - t_start
+        out = {
+            "frame_count": max_steps,
+            "elapsed_s": elapsed,
+            "fps": max_steps / elapsed if elapsed > 0 else 0.0,
+        }
+        if warmup_t is not None:
+            steady_frames = max_steps - warmup_frame
+            steady_s = t_end - warmup_t
+            out.update({
+                "steady_frames": steady_frames,
+                "steady_s": steady_s,
+                "steady_fps": steady_frames / steady_s if steady_s > 0 else 0.0,
+            })
+        return out
+
+    def _wait_sim_frame(self, sim_index: int, frame_n: int,
+                        stall_timeout_s: float = 120.0) -> None:
+        """Bounded wait on ONE sim's frame_done (per-sim pipeline)."""
+        sim = self.sims[sim_index]
+        deadline = time.perf_counter() + stall_timeout_s
+        frame_semaphore, target_value = sim.sync.frame_done_op(frame_n)
+        while True:
+            if sim.wait_semaphore(frame_semaphore, target_value,
+                                  timeout_ns=int(1e9)):
+                break
+            self._raise_if_worker_died(frame_n)
+            if time.perf_counter() > deadline:
+                autopsy = self.dump_stall_autopsy(frame_n)
+                print(autopsy, flush=True)
+                raise RuntimeError(
+                    f"frame {frame_n}: sim{sim_index} frame_done stalled "
+                    f"> {stall_timeout_s}s (per-sim pipeline). Autopsy above.")
+
+    def _submit_sim_frame(self, sim, frame_n: int) -> None:
+        """All of ONE sim's frame-n submits, in the same intra-sim order as
+        _submit_frame (phase A, readback, phase B, upload, phase C)."""
+        if getattr(sim, "_fast_ready", False):
+            sim.submit_frame_compute_fast(frame_n)
+            sim.submit_transfer_readback_fast(frame_n)
+            sim.submit_transfer_upload_fast(frame_n)
+            return
+        sim.submit_phase_a(frame_n)
+        sim.submit_transfer_readback(frame_n)
+        sim.submit_phase_b(frame_n)
+        sim.submit_transfer_upload(frame_n)
+        sim.submit_phase_c(frame_n)
+
+    def _run_pipelined_per_sim(
+        self,
+        max_steps: int,
+        *,
+        depth: int = 2,
+        warmup: int = 0,
+        on_defrag=None,
+        stall_timeout_s: float = 120.0,
+    ) -> dict:
+        """Per-sim submit-ahead loop: sim i submits frame n as soon as ITS
+        frame n-depth is done; link (i-1, i)'s two workers are notified once
+        both endpoints have frame n submitted. Drains (all sims) only at the
+        defrag boundary and at the end, exactly like the legacy loop."""
+        depth = max(1, depth)
+        sim_count = len(self.sims)
+        t_start = time.perf_counter()
+        warmup_t = None
+        warmup_frame = None
+        n = 0
+        while n < max_steps:
+            for sim_index, sim in enumerate(self.sims):
+                if n - depth >= 0:
+                    self._wait_sim_frame(sim_index, n - depth, stall_timeout_s)
+                self._submit_sim_frame(sim, n)
+                if sim_index >= 1:
+                    link = sim_index - 1
+                    self.workers[2 * link].notify(n)
+                    self.workers[2 * link + 1].notify(n)
+            n += 1
+            self._frame_count = n
+            if warmup_t is None and n >= warmup:
+                warmup_t = time.perf_counter()
+                warmup_frame = n
+            if n % self.defrag_cadence == 0:
+                for frame_n in range(max(0, n - depth), n):
+                    self._wait_frame(frame_n, stall_timeout_s)
+                report = self._collect_defrag_report()
+                if on_defrag is not None:
+                    on_defrag(n, report)
+                for sim in self.sims:
+                    sim.submit_defrag_and_wait()
+        for frame_n in range(max(0, max_steps - depth), max_steps):
+            self._wait_frame(frame_n, stall_timeout_s)
         t_end = time.perf_counter()
 
         elapsed = t_end - t_start

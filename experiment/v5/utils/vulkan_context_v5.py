@@ -23,6 +23,8 @@ V5-specific differences vs V0/V1's utils/sph/vulkan_context.py:
 
 from __future__ import annotations
 
+import os
+
 import sys
 from dataclasses import dataclass, field
 from typing import Optional
@@ -249,6 +251,7 @@ class VulkanContextV5:
     transfer_queue_family_index: int
     transfer_command_pool: object
     device_name: str
+    transfer_queue_upload: object = None   # 2026-09-15: second transfer queue (uploads) when V5_SPLIT_TRANSFER_QUEUES=1
 
     # Index of the selected physical device in the discrete-first stable
     # order (_select_physical_device). Identifies the PHYSICAL GPU across
@@ -349,11 +352,20 @@ class VulkanContextV5:
             queueCount=1,
             pQueuePriorities=[1.0],
         )]
+        # 2026-09-15 (N56 K=8 head-of-line diagnosis): with ONE transfer queue,
+        # readback(n+1) sits behind upload(n) (which waits on the host worker)
+        # and every link's chain latency is carried into the next frame.
+        # V5_SPLIT_TRANSFER_QUEUES=1 requests a second queue on the transfer
+        # family for uploads (5090 transfer-only families expose 2 queues).
+        split_transfer = (os.environ.get("V5_SPLIT_TRANSFER_QUEUES", "0") == "1"
+                          and transfer_queue_family_index != compute_queue_family_index
+                          and vkGetPhysicalDeviceQueueFamilyProperties(physical_device)[
+                              transfer_queue_family_index].queueCount >= 2)
         if transfer_queue_family_index != compute_queue_family_index:
             queue_create_infos.append(VkDeviceQueueCreateInfo(
                 queueFamilyIndex=transfer_queue_family_index,
-                queueCount=1,
-                pQueuePriorities=[1.0],
+                queueCount=2 if split_transfer else 1,
+                pQueuePriorities=[1.0, 1.0] if split_transfer else [1.0],
             ))
 
         # pNext chain (innermost first; chain pNext from outer to inner):
@@ -401,6 +413,9 @@ class VulkanContextV5:
         # vkGetDeviceQueue returns the SAME handle as compute_queue — the
         # two roles share one queue and DMA work serializes behind compute.
         transfer_queue = vkGetDeviceQueue(device, transfer_queue_family_index, 0)
+        transfer_queue_upload = (vkGetDeviceQueue(device, transfer_queue_family_index, 1)
+                                 if split_transfer else transfer_queue)
+        print(f"[VulkanContextV5] transfer queues: {'2 (readback + upload split)' if split_transfer else '1 (shared)'}")
 
         # ---- Command pools ----------------------------------------------
         # Separate pool per family. Pool's queueFamilyIndex restricts which
@@ -427,6 +442,7 @@ class VulkanContextV5:
             compute_queue_family_index=compute_queue_family_index,
             command_pool=command_pool,
             transfer_queue=transfer_queue,
+            transfer_queue_upload=transfer_queue_upload,
             transfer_queue_family_index=transfer_queue_family_index,
             transfer_command_pool=transfer_command_pool,
             device_name=device_name,

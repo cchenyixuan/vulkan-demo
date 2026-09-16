@@ -75,6 +75,35 @@ from experiment.v5.utils.vulkan_context_v5 import VulkanContextV5
 #   V5_SUBMIT_LOCK_SCOPE=none    no locking (spec-legal here, see above)
 # vkWaitSemaphores is deliberately never locked (it blocks for seconds).
 _SUBMIT_LOCK_SCOPE = os.environ.get("V5_SUBMIT_LOCK_SCOPE", "device")
+# V3.3 cascading force (2026-09-15, N56 K=8 hiding-window work): move
+# force_deep_interior (boundary band = 4 voxel columns, density source =
+# scratch) into Phase B so the transfer chain hides behind correction +
+# density + force instead of correction + density only; Phase C then runs
+# force_boundary instead of force_all. Off by default until validated.
+_CASCADE_FORCE = os.environ.get("V5_CASCADE_FORCE", "0") == "1"
+# V3.4 band-voxel dispatch (2026-09-15): Phase C boundary pipelines launch
+# one thread per (band voxel, slot) instead of one per own pool slot with
+# early return (spec const 57; see common.glsl / helpers.glsl). Off by
+# default until validated.
+_BAND_VOXEL_DISPATCH = os.environ.get("V5_BAND_VOXEL_DISPATCH", "0") == "1"
+# V3.5 fast submit (2026-09-15): pre-built cffi submit batches + raw cffi
+# entry points instead of python-vulkan's per-call struct building. Same
+# semaphore ops, one vkQueueSubmit2 per queue per frame. Off by default.
+_FAST_SUBMIT = os.environ.get("V5_FAST_SUBMIT", "1") == "1"   # default ON since 2026-09-15 (validated: N56 probe29/30/31/32, local verifier)
+# V3.6 (2026-09-15, N56 c_to_a diagnosis): phase A's semaphore wait on its
+# OWN frame_done(n-1) is redundant — C(n-1) precedes A(n) in submission
+# order on the same queue and A opens with a compute->compute memory
+# barrier, which orders and makes visible everything earlier on that queue
+# (C's force writes, and transitively upload/readback of n-1 because C(n-1)
+# itself waited upload_done(n-1)). The wait is only satisfied at the very
+# end of C(n-1), so the GPU scheduler re-evaluates it late: measured
+# c_to_a gaps of 0-0.5 ms (mean ~0.25) on 64M K=8. With the wait dropped
+# the c->a boundary behaves like a->b (~3 us). The frame_done SIGNAL stays
+# (host and workers rely on it). Off by default until validated.
+_PHASE_A_NO_WAIT = os.environ.get("V5_PHASE_A_NO_WAIT", "0") == "1"
+if _FAST_SUBMIT:
+    from vulkan._vulkancache import ffi as _ffi
+    from vulkan._vulkan import lib as _lib
 _GLOBAL_SUBMIT_LOCK = threading.Lock()
 _PER_DEVICE_SUBMIT_LOCKS: dict = {}
 _PER_DEVICE_SUBMIT_LOCKS_GUARD = threading.Lock()
@@ -311,6 +340,7 @@ class SphSimulatorV5:
         self.phase_a_cmd: Any = None
         self.phase_b_cmd: Any = None
         self.phase_c_cmd: Any = None
+        self.phase_c_cmd_odd: Any = None   # bench parity regions: odd-frame phase C
         self.defrag_cmd: Any = None
         # Path A+ (P4): per-direction transfer queue cmd buffers. Allocated
         # from ctx.transfer_command_pool and submitted on ctx.transfer_queue.
@@ -369,7 +399,8 @@ class SphSimulatorV5:
         # cmd buffers (only if Phase 3 recorded them)
         cmd_pool = self.ctx.command_pool
         for cmd in (self.phase_a_cmd, self.phase_b_cmd,
-                    self.phase_c_cmd, self.defrag_cmd, self.step_single_cmd):
+                    self.phase_c_cmd, self.phase_c_cmd_odd,
+                    self.defrag_cmd, self.step_single_cmd):
             if cmd is not None:
                 vkFreeCommandBuffers(device, cmd_pool, 1, [cmd])
 
@@ -457,7 +488,18 @@ class SphSimulatorV5:
             self.ctx.device, self.sync.primary_semaphore())
 
     def semaphore_value(self, semaphore) -> int:
+        if _FAST_SUBMIT:
+            out = _ffi.new("uint64_t*")
+            result = _lib.vkGetSemaphoreCounterValue(self.ctx.device, semaphore, out)
+            if result != 0:
+                raise RuntimeError(f"vkGetSemaphoreCounterValue failed: VkResult {result}")
+            return int(out[0])
         return vkGetSemaphoreCounterValue(self.ctx.device, semaphore)
+
+    def frame_done_reached(self, frame_n: int) -> bool:
+        """Non-blocking: has this sim's frame_done(frame_n) been signaled?"""
+        semaphore, value = self.sync.frame_done_op(frame_n)
+        return self.semaphore_value(semaphore) >= value
 
     def sync_state(self) -> dict:
         """{semaphore_name: current value} across all sync semaphores —
@@ -781,7 +823,13 @@ class SphSimulatorV5:
         sender_preferred = VK_MEMORY_PROPERTY_HOST_CACHED_BIT
         receiver_required = (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
                              | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
-        receiver_preferred = 0
+        # 2026-09-15 (N56 8-GPU diagnosis): without a CACHED preference the NV
+        # driver hands the receiver an UNCACHED write-combined host type and the
+        # worker's numpy[:] copy into it runs at only ~1-2 GB/s (2.6 MB -> 1.5-2.8 ms
+        # at 64M K=8). V5_RECEIVER_CACHED=1 prefers HOST_CACHED for the receiver
+        # (A/B switch; default keeps the legacy choice until validated).
+        receiver_preferred = (VK_MEMORY_PROPERTY_HOST_CACHED_BIT
+                              if os.environ.get("V5_RECEIVER_CACHED", "0") == "1" else 0)
         usage = (VK_BUFFER_USAGE_TRANSFER_DST_BIT
                  | VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
 
@@ -1039,23 +1087,30 @@ class SphSimulatorV5:
 
     # ----- Per-pipeline mode entries (kernel-specific spec const overrides) ---
 
-    def _correction_mode_entries(self, mode: int) -> list[tuple[int, str, Any]]:
-        """CORRECTION_MODE (id=47) + NEIGHBOR_X_RANGE (id=82).
-        Boundary band = 2 voxels (column 0 reaches ghost; column 1 reaches
-        column 0 where migrants land after install_migration)."""
-        return [(47, 'I', mode), (82, 'I', 2)]
+    def _correction_mode_entries(self, mode: int,
+                                 band_dispatch: int = 0) -> list[tuple[int, str, Any]]:
+        """CORRECTION_MODE (id=47) + NEIGHBOR_X_RANGE (id=82) + BAND_VOXEL_
+        DISPATCH (id=57). Boundary band = 2 voxels (column 0 reaches ghost;
+        column 1 reaches column 0 where migrants land after install_migration)."""
+        return [(47, 'I', mode), (82, 'I', 2), (57, 'I', band_dispatch)]
 
-    def _density_mode_entries(self, mode: int) -> list[tuple[int, str, Any]]:
-        """DENSITY_MODE (id=48) + NEIGHBOR_X_RANGE (id=82).
-        Boundary band = 3 voxels (= correction's 2 + 1 for neighbor reach
-        into stale-correction). Used by Path A+ density split."""
-        return [(48, 'I', mode), (82, 'I', 3)]
+    def _density_mode_entries(self, mode: int,
+                              band_dispatch: int = 0) -> list[tuple[int, str, Any]]:
+        """DENSITY_MODE (id=48) + NEIGHBOR_X_RANGE (id=82) + BAND_VOXEL_DISPATCH
+        (id=57). Boundary band = 3 voxels (= correction's 2 + 1 for neighbor
+        reach into stale-correction). Used by Path A+ density split."""
+        return [(48, 'I', mode), (82, 'I', 3), (57, 'I', band_dispatch)]
 
-    def _force_mode_entries(self, mode: int) -> list[tuple[int, str, Any]]:
-        """FORCE_MODE (id=49) + NEIGHBOR_X_RANGE (id=82).
-        Boundary band = 4 voxels (= density's 3 + 1 for neighbor reach into
-        stale-density). Used by Path A+ force split."""
-        return [(49, 'I', mode), (82, 'I', 4)]
+    def _force_mode_entries(self, mode: int,
+                            density_source: int = 0,
+                            band_dispatch: int = 0) -> list[tuple[int, str, Any]]:
+        """FORCE_MODE (id=49) + NEIGHBOR_X_RANGE (id=82) + FORCE_DENSITY_SOURCE
+        (id=56; 0 = primary, 1 = scratch). Boundary band = 4 voxels (=
+        density's 3 + 1 for neighbor reach into stale-density). The Phase B
+        cascading pipeline uses density_source=1 because the scratch->primary
+        copy is only issued in Phase C."""
+        return [(49, 'I', mode), (82, 'I', 4), (56, 'I', density_source),
+                (57, 'I', band_dispatch)]
 
     def _ghost_direction_entries(
         self, direction: int
@@ -1157,8 +1212,34 @@ class SphSimulatorV5:
                 shader=self.shader_modules["force"],
                 entries=self._global_entries() + self._force_mode_entries(mode),
             )
+        # V3.3: Phase B variant of force_deep_interior reading rho/P from scratch.
+        pipelines["force_deep_interior_scratch"] = self._create_pipeline(
+            shader=self.shader_modules["force"],
+            entries=self._global_entries() + self._force_mode_entries(1, density_source=1),
+        )
+        # V3.4: band-voxel dispatch variants of the three Phase C boundary
+        # pipelines (thread = (band voxel, slot); see helpers.glsl).
+        pipelines["correction_boundary_band"] = self._create_pipeline(
+            shader=self.shader_modules["correction"],
+            entries=self._global_entries() + self._correction_mode_entries(2, band_dispatch=1),
+        )
+        pipelines["density_boundary_band"] = self._create_pipeline(
+            shader=self.shader_modules["density"],
+            entries=self._global_entries() + self._density_mode_entries(2, band_dispatch=1),
+        )
+        pipelines["force_boundary_band"] = self._create_pipeline(
+            shader=self.shader_modules["force"],
+            entries=self._global_entries() + self._force_mode_entries(2, band_dispatch=1),
+        )
 
-        print(f"[SimV5] compute pipelines: {len(pipelines)}")
+        cascade_note = (" (V5_CASCADE_FORCE=1: force_deep_interior in Phase B)"
+                        if _CASCADE_FORCE else "")
+        if _BAND_VOXEL_DISPATCH:
+            cascade_note += (" (V5_BAND_VOXEL_DISPATCH=1: boundary kernels over "
+                             f"band voxels: {self._band_thread_count(2):,}/"
+                             f"{self._band_thread_count(3):,}/{self._band_thread_count(4):,} "
+                             f"threads vs {self.case.capacities.own_pool_size:,})")
+        print(f"[SimV5] compute pipelines: {len(pipelines)}{cascade_note}")
         return pipelines
 
     def _create_pipeline(
@@ -1218,6 +1299,21 @@ class SphSimulatorV5:
         v = self.case.grid.total_voxel_count()
         return (v + wg - 1) // wg
 
+    def _band_thread_count(self, band_range: int) -> int:
+        """V3.4: threads for a band-voxel dispatch = band voxels * slots.
+        Mirrors helpers.glsl band_voxel_count(): `range` own columns on every
+        side that has a peer (ghost voxel count > 0), times NY*NZ, times
+        MAX_PARTICLES_PER_VOXEL."""
+        gh = self.case.ghost_grid
+        face = self.case.grid.grid_dimension_y * self.case.grid.grid_dimension_z
+        columns = ((band_range if gh.leading_ghost_voxel_count > 0 else 0)
+                   + (band_range if gh.trailing_ghost_voxel_count > 0 else 0))
+        return columns * face * self.case.capacities.max_particles_per_voxel
+
+    def _per_band_dispatch_count(self, band_range: int) -> int:
+        wg = self.case.capacities.workgroup_size
+        return (self._band_thread_count(band_range) + wg - 1) // wg
+
     def _per_yz_face_dispatch_count(self) -> int:
         """ghost_send dispatches one thread per (y,z) face slot = NY*NZ threads."""
         wg = self.case.capacities.workgroup_size
@@ -1250,6 +1346,123 @@ class SphSimulatorV5:
         """Insert vkCmdWriteTimestamp into ``cmd`` if a BenchTimer is attached."""
         if self.bench is not None:
             self.bench.tick(cmd, label)
+
+    # ----- V3.5 fast submit: cached cffi batches + raw entry points ----------
+
+    def _fast_build_batch(self, sites: list, queue_stage: int):
+        """sites = [(cmd, waits, signals)] for ONE queue, in submission order.
+        Returns (VkSubmitInfo2[n], keepalive list). Wait/signal semaphore
+        handles and counts are fixed per site; only the values change per
+        frame (rewritten by _fast_set_values)."""
+        infos = _ffi.new("VkSubmitInfo2[%d]" % len(sites))
+        keep = [infos]
+        for index, (cmd, waits, signals) in enumerate(sites):
+            info = infos[index]
+            info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2
+            cmd_info = _ffi.new("VkCommandBufferSubmitInfo[1]")
+            cmd_info[0].sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO
+            cmd_info[0].commandBuffer = cmd
+            info.commandBufferInfoCount = 1
+            info.pCommandBufferInfos = cmd_info
+            keep.append(cmd_info)
+            for count_field, ptr_field, ops in (
+                    ("waitSemaphoreInfoCount", "pWaitSemaphoreInfos", waits),
+                    ("signalSemaphoreInfoCount", "pSignalSemaphoreInfos", signals)):
+                if not ops:
+                    continue
+                arr = _ffi.new("VkSemaphoreSubmitInfo[%d]" % len(ops))
+                for k, (semaphore, value) in enumerate(ops):
+                    arr[k].sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO
+                    arr[k].semaphore = semaphore
+                    arr[k].value = value
+                    arr[k].stageMask = queue_stage
+                setattr(info, count_field, len(ops))
+                setattr(info, ptr_field, arr)
+                keep.append(arr)
+        return infos, keep
+
+    @staticmethod
+    def _fast_set_values(info, waits: list, signals: list) -> None:
+        if waits:
+            assert info.waitSemaphoreInfoCount == len(waits)
+            for k, (_, value) in enumerate(waits):
+                info.pWaitSemaphoreInfos[k].value = value
+        if signals:
+            assert info.signalSemaphoreInfoCount == len(signals)
+            for k, (_, value) in enumerate(signals):
+                info.pSignalSemaphoreInfos[k].value = value
+
+    def _fast_submit_prepare(self) -> None:
+        """Build the cached batches (call after prepare_step_cmd_buffers)."""
+        if not _FAST_SUBMIT:
+            return
+        s = self.sync
+        compute_sites = [
+            (self.phase_a_cmd, [] if _PHASE_A_NO_WAIT else s.phase_a_waits(1),
+             s.phase_a_signals(1)),
+            (self.phase_b_cmd, [], []),
+            (self.phase_c_cmd, s.phase_c_waits(1), s.phase_c_signals(1)),
+        ]
+        self._fast_compute, self._fast_compute_keep = self._fast_build_batch(
+            compute_sites, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT)
+        self._fast_readback_dirs = list(self.transfer_readback_cmds)
+        readback_sites = [
+            (self.transfer_readback_cmds[d], s.readback_waits(d, 1),
+             s.readback_signals(d, 1, i == len(self._fast_readback_dirs) - 1))
+            for i, d in enumerate(self._fast_readback_dirs)]
+        self._fast_readback, self._fast_readback_keep = (
+            self._fast_build_batch(readback_sites, VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT)
+            if readback_sites else (None, []))
+        self._fast_upload_dirs = list(self.transfer_upload_cmds)
+        upload_sites = [
+            (self.transfer_upload_cmds[d], s.upload_waits(d, 1),
+             s.upload_signals(d, 1, i == len(self._fast_upload_dirs) - 1))
+            for i, d in enumerate(self._fast_upload_dirs)]
+        self._fast_upload, self._fast_upload_keep = (
+            self._fast_build_batch(upload_sites, VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT)
+            if upload_sites else (None, []))
+        self._fast_ready = True
+
+    def _fast_queue_submit(self, queue, count: int, infos) -> None:
+        with self._driver_submit_lock:
+            result = _lib.vkQueueSubmit2(queue, count, infos, _ffi.NULL)
+        if result != 0:
+            raise RuntimeError(f"vkQueueSubmit2 (fast path) failed: VkResult {result}")
+
+    def submit_frame_compute_fast(self, frame_n: int) -> None:
+        """Phase A + B + C of frame n in ONE vkQueueSubmit2 (3 in-order
+        VkSubmitInfo2). Wait/signal ops identical to submit_phase_a/b/c."""
+        s = self.sync
+        infos = self._fast_compute
+        self._fast_set_values(infos[0], [] if _PHASE_A_NO_WAIT else s.phase_a_waits(frame_n),
+                              s.phase_a_signals(frame_n))
+        self._fast_set_values(infos[2], s.phase_c_waits(frame_n), s.phase_c_signals(frame_n))
+        phase_c_cmd = (self.phase_c_cmd_odd
+                       if (self.phase_c_cmd_odd is not None and frame_n % 2 == 1)
+                       else self.phase_c_cmd)
+        infos[2].pCommandBufferInfos[0].commandBuffer = phase_c_cmd
+        self._fast_queue_submit(self.ctx.compute_queue, 3, infos)
+
+    def submit_transfer_readback_fast(self, frame_n: int) -> None:
+        if self._fast_readback is None:
+            return
+        s = self.sync
+        last = len(self._fast_readback_dirs) - 1
+        for i, d in enumerate(self._fast_readback_dirs):
+            self._fast_set_values(self._fast_readback[i], s.readback_waits(d, frame_n),
+                                  s.readback_signals(d, frame_n, i == last))
+        self._fast_queue_submit(self.ctx.transfer_queue, last + 1, self._fast_readback)
+
+    def submit_transfer_upload_fast(self, frame_n: int) -> None:
+        if self._fast_upload is None:
+            return
+        s = self.sync
+        last = len(self._fast_upload_dirs) - 1
+        for i, d in enumerate(self._fast_upload_dirs):
+            self._fast_set_values(self._fast_upload[i], s.upload_waits(d, frame_n),
+                                  s.upload_signals(d, frame_n, i == last))
+        queue = getattr(self.ctx, "transfer_queue_upload", None) or self.ctx.transfer_queue
+        self._fast_queue_submit(queue, last + 1, self._fast_upload)
 
     def _bench_reset_step(self, cmd, start_label: str) -> None:
         """First action of phase_a_cmd: reset step query slots + first tick."""
@@ -1903,10 +2116,24 @@ class SphSimulatorV5:
         self._record_compute_barrier(cmd)
         self._bench_tick(cmd, "b_density_deep_interior_end")
 
+        if _CASCADE_FORCE:
+            # V3.3 cascading force: force on the deep interior (band = 4
+            # voxel columns) reads rho/P from SCRATCH (this frame's values
+            # for columns >= 3, all written by density_deep_interior above),
+            # self correction_inverse / kernel_sum from correction_interior
+            # above, and positions / velocities from Phase A. Nothing it
+            # touches is modified by Phase C's install_migrations (migrants
+            # land in column 0) or density_boundary (columns 0..2), so it is
+            # safe here and widens the transfer-hiding window to B + force.
+            self._bind_pipeline_and_sets(cmd, "force_deep_interior_scratch")
+            vkCmdDispatch(cmd, per_p, 1, 1)
+            self._record_compute_barrier(cmd)
+            self._bench_tick(cmd, "b_force_deep_interior_end")
+
         vkEndCommandBuffer(cmd)
         return cmd
 
-    def _record_phase_c_cmd(self):
+    def _record_phase_c_cmd(self, parity: int = 0):
         """V5 Phase C: per-direction install_migration → correction
         (BOUNDARY) → density → force. Submitted waiting upload_done, signals
         frame_done (values per sync scheme).
@@ -1922,6 +2149,8 @@ class SphSimulatorV5:
         cmd = self._allocate_oneshot_cmd()
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
+        if self.bench is not None:
+            self.bench.begin_phase_c_region(cmd, parity)
         self._bench_tick(cmd, "c_start")
 
         per_p = self._per_own_particle_dispatch_count()
@@ -1948,8 +2177,17 @@ class SphSimulatorV5:
         # Correction on boundary band only (interior was covered by Phase B).
         # Includes any new migrants installed above (they land in boundary
         # columns by construction).
-        self._bind_pipeline_and_sets(cmd, "correction_boundary")
-        vkCmdDispatch(cmd, per_p, 1, 1)
+        # V3.4: with band-voxel dispatch the three boundary pipelines launch
+        # only (band voxel, slot) threads; a slab without peers has no band
+        # and skips the dispatch (the full-range path early-returned anyway).
+        if _BAND_VOXEL_DISPATCH:
+            per_band_correction = self._per_band_dispatch_count(2)
+            if per_band_correction > 0:
+                self._bind_pipeline_and_sets(cmd, "correction_boundary_band")
+                vkCmdDispatch(cmd, per_band_correction, 1, 1)
+        else:
+            self._bind_pipeline_and_sets(cmd, "correction_boundary")
+            vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_compute_barrier(cmd)
         self._bench_tick(cmd, "c_correction_boundary_end")
 
@@ -1958,16 +2196,35 @@ class SphSimulatorV5:
         # pids]. Together they cover the full own pid range. The scratch→primary
         # copy below transfers the union to primary in one shot, so force_all
         # below reads fresh ρ_{n+1} for every neighbor.
-        self._bind_pipeline_and_sets(cmd, "density_boundary")
-        vkCmdDispatch(cmd, per_p, 1, 1)
+        if _BAND_VOXEL_DISPATCH:
+            per_band_density = self._per_band_dispatch_count(3)
+            if per_band_density > 0:
+                self._bind_pipeline_and_sets(cmd, "density_boundary_band")
+                vkCmdDispatch(cmd, per_band_density, 1, 1)
+        else:
+            self._bind_pipeline_and_sets(cmd, "density_boundary")
+            vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_density_scratch_to_primary_copy(cmd)
         self._bench_tick(cmd, "c_density_end")
 
-        self._bind_pipeline_and_sets(cmd, "force_all")
-        vkCmdDispatch(cmd, per_p, 1, 1)
+        # V3.3: with cascading force, Phase B already covered the deep
+        # interior; only the 4-column boundary band (incl. this frame's
+        # migrants) remains, reading primary (fresh for every own column
+        # after the copy above; ghost slots stale by one step as before).
+        if _CASCADE_FORCE and _BAND_VOXEL_DISPATCH:
+            per_band_force = self._per_band_dispatch_count(4)
+            if per_band_force > 0:
+                self._bind_pipeline_and_sets(cmd, "force_boundary_band")
+                vkCmdDispatch(cmd, per_band_force, 1, 1)
+        else:
+            self._bind_pipeline_and_sets(
+                cmd, "force_boundary" if _CASCADE_FORCE else "force_all")
+            vkCmdDispatch(cmd, per_p, 1, 1)
         self._bench_tick(cmd, "c_force_end")
 
         vkEndCommandBuffer(cmd)
+        if self.bench is not None:
+            self.bench.end_phase_c_region()
         return cmd
 
     def _record_transfer_readback_cmd(self, direction: str):
@@ -2017,9 +2274,13 @@ class SphSimulatorV5:
         (e.g. when switching CORRECTION_MODE_ALL → split in Phase 6)."""
         device = self.ctx.device
         pool = self.ctx.command_pool
-        for old in (self.phase_a_cmd, self.phase_b_cmd, self.phase_c_cmd):
+        for old in (self.phase_a_cmd, self.phase_b_cmd, self.phase_c_cmd,
+                    self.phase_c_cmd_odd):
             if old is not None:
                 vkFreeCommandBuffers(device, pool, 1, [old])
+        self.phase_c_cmd_odd = None
+        if self.bench is not None and os.environ.get("V5_BENCH_PARITY", "1") == "1":
+            self.bench.enable_parity_regions()
         for direction, old in list(self.transfer_readback_cmds.items()):
             vkFreeCommandBuffers(
                 device, self.ctx.transfer_command_pool, 1, [old])
@@ -2028,10 +2289,14 @@ class SphSimulatorV5:
                 device, self.ctx.transfer_command_pool, 1, [old])
         self.transfer_readback_cmds = {}
         self.transfer_upload_cmds = {}
+        self._fast_ready = False
 
         self.phase_a_cmd = self._record_phase_a_cmd()
         self.phase_b_cmd = self._record_phase_b_cmd()
-        self.phase_c_cmd = self._record_phase_c_cmd()
+        self.phase_c_cmd = self._record_phase_c_cmd(0)
+        if self.bench is not None and self.bench.parity_regions:
+            # Identical work; only the timestamp slots differ (odd region).
+            self.phase_c_cmd_odd = self._record_phase_c_cmd(1)
 
         # (Transfer-pool reset is recorded inside phase_a_cmd above —
         # compute queue — not in the transfer cmds; see _bench_tick_transfer.)
@@ -2044,6 +2309,10 @@ class SphSimulatorV5:
         n_dir = len(self._transport_segments)
         print(f"[SimV5] step cmd buffers recorded "
               f"(phase A/B/C + {n_dir} readback + {n_dir} upload on transfer Q)")
+        self._fast_submit_prepare()
+        if _FAST_SUBMIT:
+            print("[SimV5] V5_FAST_SUBMIT=1: cached cffi submit batches "
+                  f"(compute A+B+C, {n_dir} readback, {n_dir} upload), raw waits/signals")
 
     def _record_step_single_cmd(self):
         """Single-GPU combined cmd: predict + update_voxel + correction_all
@@ -2217,6 +2486,22 @@ class SphSimulatorV5:
         it as a value, so we catch the timeout case explicitly. Other
         VkResult errors (DEVICE_LOST etc.) propagate.
         """
+        if _FAST_SUBMIT:
+            # raw cffi (thread-safe: fresh small structs per call, ~3 us vs
+            # ~40 us through the wrapper; workers call this too).
+            semaphores = _ffi.new("VkSemaphore[1]", [semaphore])
+            values = _ffi.new("uint64_t[1]", [value])
+            info = _ffi.new("VkSemaphoreWaitInfo*")
+            info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO
+            info.semaphoreCount = 1
+            info.pSemaphores = semaphores
+            info.pValues = values
+            result = _lib.vkWaitSemaphores(self.ctx.device, info, timeout_ns)
+            if result == 0:
+                return True
+            if result == 2:   # VK_TIMEOUT
+                return False
+            raise RuntimeError(f"vkWaitSemaphores (fast path) failed: VkResult {result}")
         info = VkSemaphoreWaitInfo(
             sType=VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
             semaphoreCount=1,
@@ -2242,6 +2527,15 @@ class SphSimulatorV5:
         """vkSignalSemaphore for host-side timeline advance. Ghost workers
         call this on the *destination* sim with the (semaphore, value) from
         dest.sync.worker_signal_op()."""
+        if _FAST_SUBMIT:
+            info = _ffi.new("VkSemaphoreSignalInfo*")
+            info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO
+            info.semaphore = semaphore
+            info.value = value
+            result = _lib.vkSignalSemaphore(self.ctx.device, info)
+            if result != 0:
+                raise RuntimeError(f"vkSignalSemaphore (fast path) failed: VkResult {result}")
+            return
         info = VkSemaphoreSignalInfo(
             sType=VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
             semaphore=semaphore,
@@ -2264,7 +2558,7 @@ class SphSimulatorV5:
             raise RuntimeError("phase_a_cmd not recorded; call prepare_step_cmd_buffers()")
         self.submit_with_timeline(
             self.phase_a_cmd,
-            waits=self.sync.phase_a_waits(frame_n),
+            waits=[] if _PHASE_A_NO_WAIT else self.sync.phase_a_waits(frame_n),
             signals=self.sync.phase_a_signals(frame_n),
         )
 
@@ -2284,8 +2578,11 @@ class SphSimulatorV5:
         monotonically advancing stand-in). Signals frame_done."""
         if self.phase_c_cmd is None:
             raise RuntimeError("phase_c_cmd not recorded; call prepare_step_cmd_buffers()")
+        phase_c_cmd = (self.phase_c_cmd_odd
+                       if (self.phase_c_cmd_odd is not None and frame_n % 2 == 1)
+                       else self.phase_c_cmd)
         self.submit_with_timeline(
-            self.phase_c_cmd,
+            phase_c_cmd,
             waits=self.sync.phase_c_waits(frame_n),
             signals=self.sync.phase_c_signals(frame_n),
         )
@@ -2330,7 +2627,8 @@ class SphSimulatorV5:
                 signals=self.sync.upload_signals(direction, frame_n, is_last),
                 wait_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
                 signal_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
-                queue=self.ctx.transfer_queue,
+                queue=(getattr(self.ctx, "transfer_queue_upload", None)
+                       or self.ctx.transfer_queue),
             )
 
     def wait_frame_done(self, frame_n: int) -> None:

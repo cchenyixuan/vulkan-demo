@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import copy
 import math
+import os
 from typing import Optional
 
 import numpy as np
@@ -63,8 +64,17 @@ def _ghost_pool_size(case: CaseV5) -> int:
     drops particles via ``overflow_inside_count`` / ``overflow_incoming_count``.
     """
     voxel_per_x = case.grid.grid_dimension_y * case.grid.grid_dimension_z
-    return voxel_per_x * (case.capacities.max_particles_per_voxel
+    pool = voxel_per_x * (case.capacities.max_particles_per_voxel
                           + case.capacities.max_incoming_per_voxel)
+    # 2026-09-15 experiment (N56 64M K=8 utilization): the worst-case pool is
+    # ~10x the live ghost count and every readback/upload DMA moves the full
+    # pool. V5_GHOST_POOL_FACTOR=<0..1> scales the pool (overflow_ghost is
+    # reported per interval if the bound is ever exceeded).
+    factor = float(os.environ.get("V5_GHOST_POOL_FACTOR", "1"))
+    if factor != 1.0:
+        pool = int(math.ceil(pool * factor))
+        print(f"[partition_v5] V5_GHOST_POOL_FACTOR={factor}: ghost pool per direction {pool:,}")
+    return pool
 
 
 def compute_k_split(global_case: CaseV5, weights: list[float]) -> int:

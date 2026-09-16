@@ -180,6 +180,28 @@ layout(constant_id = 48) const uint DENSITY_MODE = 0u;
 // to force.comp. Boundary band must be ≥ 4 voxels (density's 3-voxel band +
 // 1 for neighbor reach into stale-density).
 layout(constant_id = 49) const uint FORCE_MODE = 0u;
+
+// V3.3 cascading force (2026-09-15). When force_deep_interior runs in Phase B
+// the scratch->primary density copy has NOT happened yet (it is issued in
+// Phase C after density_boundary), so the Phase B force pipeline must read
+// this frame's rho/P from density_pressure_scratch instead of primary. Deep
+// interior (band 4) reads only columns >= 3, all of which density_deep_
+// interior (band 3) has already written to scratch. 0 = primary, 1 = scratch.
+layout(constant_id = 56) const uint FORCE_DENSITY_SOURCE = 0u;
+const uint FORCE_DENSITY_SOURCE_PRIMARY = 0u;
+const uint FORCE_DENSITY_SOURCE_SCRATCH = 1u;
+
+// V3.4 band-voxel dispatch (2026-09-15). The Phase C boundary pipelines
+// (correction/density/force _boundary) used to launch one thread per OWN
+// POOL SLOT and early-return for the ~99% of particles outside the band —
+// ~0.35 ms per launch at 8M-particle slabs, i.e. most of the K=8 per-GPU
+// overhead. With BAND_VOXEL_DISPATCH = 1 a thread is (band voxel, slot) and
+// the self pid comes from that voxel's inside_particle_index — the same
+// per-frame voxel lists the neighbour loops trust (rebuilt by update_voxel,
+// appended by install_migrations before Phase C's boundary kernels), so the
+// band is covered exactly every frame with no dependence on defrag order or
+// particle drift. See helpers.glsl band_thread_particle().
+layout(constant_id = 57) const uint BAND_VOXEL_DISPATCH = 0u;
 // ----- end ablation toggles ------------------------------------------------
 
 // --- Capacity / dispatch ---

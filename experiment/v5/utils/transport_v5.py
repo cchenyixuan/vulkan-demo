@@ -23,6 +23,7 @@ is disjoint.
 from __future__ import annotations
 
 import queue
+import os
 import struct
 import threading
 import time
@@ -84,6 +85,29 @@ class GhostMigrationWorker:
                 f"worker {label}: source/dest staging sizes mismatch — "
                 f"{self._source_view.nbytes} vs {self._dest_view.nbytes}. "
                 f"Likely partition / GhostTransportConfig misconfigured.")
+
+        # Count-aware copy plan (2026-09-15, N56 8-GPU diagnosis): every
+        # per-particle segment is sized stride x ghost_pool_size, so the
+        # legacy whole-view copy moves the full POOL capacity every frame
+        # (25 MB per direction at 64M vs ~2.6 MB of live ghosts -> 1.5-2.8 ms
+        # of memcpy per link). With V5_WORKER_COUNT_AWARE=1 the worker reads
+        # the sender's ghost count (segment 12) and copies only count*stride
+        # bytes of each SoA segment; the voxel-indexed segments (10, 11) and
+        # the count/stamp words (12, 13) are copied in full.
+        self._count_aware = os.environ.get("V5_WORKER_COUNT_AWARE", "0") == "1"
+        self._copy_plan: list[tuple[int, int, int]] = []   # (staging_offset, size, stride; 0 = copy in full)
+        self._count_offset: Optional[int] = None
+        self.last_copy_bytes = 0
+        if self._count_aware:
+            from experiment.v5.utils.simulator_v5 import (_SET0_BYTE_STRIDES,
+                                                           TRANSPORT_SET0_BINDINGS)
+            segments = source_sim._transport_segments[source_direction]
+            per_particle = len(TRANSPORT_SET0_BINDINGS)
+            for index, segment in enumerate(segments):
+                stride = (_SET0_BYTE_STRIDES[segment.buffer_name]
+                          if index < per_particle else 0)
+                self._copy_plan.append((segment.staging_offset, segment.size, stride))
+            self._count_offset = segments[-2].staging_offset      # segment 12 = ghost send count
 
         # Notify channel: main thread puts frame_n; worker takes it.
         # Bounded = backpressure (main thread blocks if worker falls
@@ -168,6 +192,25 @@ class GhostMigrationWorker:
     # ========================================================================
 
     def _run(self) -> None:
+        # 2026-09-15 NUMA pinning experiment: V5_WORKER_AFFINITY="cpulist0;cpulist1;..."
+        # indexed by the DEST sim's physical device index (job script builds it
+        # from sysfs numa_node -> node cpulist). Pins this worker thread.
+        affinity = os.environ.get("V5_WORKER_AFFINITY")
+        if affinity:
+            try:
+                ctx = getattr(self.dest, "ctx", None) or getattr(self.dest, "context", None)
+                device_index = int(getattr(ctx, "physical_device_index"))
+                cpulist = affinity.split(";")[device_index]
+                cpus = set()
+                for part in cpulist.split(","):
+                    if "-" in part:
+                        lo, hi = part.split("-"); cpus.update(range(int(lo), int(hi) + 1))
+                    elif part.strip():
+                        cpus.add(int(part))
+                os.sched_setaffinity(0, cpus)
+                print(f"[worker {self.label}] pinned to dest device {device_index} cpus {cpulist}", flush=True)
+            except Exception as error:      # noqa: BLE001
+                print(f"[worker {self.label}] affinity pin skipped: {error!r}", flush=True)
         import sys as _sys
         # Last activity timestamp + phase, for orchestrator watchdog introspection.
         self.last_activity: tuple = ("init", 0, time.perf_counter_ns())
@@ -234,7 +277,19 @@ class GhostMigrationWorker:
 
                 # 2. Byte memcpy (CPU → CPU)
                 self.last_activity = ("memcpy", frame_n, time.perf_counter_ns())
-                self._dest_view[:] = self._source_view
+                if self._count_aware:
+                    ghost_count = struct.unpack_from(
+                        "<I", self._source_view, self._count_offset)[0]
+                    copied = 0
+                    for staging_offset, size, stride in self._copy_plan:
+                        n = min(size, ghost_count * stride) if stride else size
+                        if n:
+                            self._dest_view[staging_offset:staging_offset + n] = \
+                                self._source_view[staging_offset:staging_offset + n]
+                            copied += n
+                    self.last_copy_bytes = copied
+                else:
+                    self._dest_view[:] = self._source_view
                 t_copy = time.perf_counter_ns()
 
                 # 2b. Consumed-ack on the SOURCE: sender_staging(frame_n) has
