@@ -49,6 +49,10 @@ def parse_args() -> argparse.Namespace:
                    help="comma-separated KEY=VAL for the reference runs (A), e.g. '' = legacy")
     p.add_argument("--b-env", default="V5_CASCADE_FORCE=1",
                    help="comma-separated KEY=VAL for the candidate runs (B)")
+    p.add_argument("--b-case", default=None,
+                   help="case for the B (candidate) runs when it differs from --case "
+                        "(e.g. a wall-shell variant of the same fluid); particles are "
+                        "matched by position, statistics restricted to fluid (material 0)")
     p.add_argument("--out", default="logs/verify_cascade")
     p.add_argument("--dump", default=None,
                    help="(worker mode) run one K=2 chain and save per-particle state to this .npz")
@@ -86,7 +90,7 @@ def dump_state(args) -> None:
                 pool = capacities.total_pool_capacity()
                 raw = sim.readback_buffers_batch(
                     ["position_voxel_id", "velocity_mass", "density_pressure",
-                     "acceleration", "shift", "inside_particle_count"])
+                     "acceleration", "shift", "inside_particle_count", "material"])
                 position_voxel = np.frombuffer(raw["position_voxel_id"], np.float32).reshape(pool, 4)
                 # Band invariant (V3.4 band-voxel dispatch): the particles reachable
                 # through the band voxels' lists must be exactly the own alive
@@ -125,6 +129,8 @@ def dump_state(args) -> None:
                 saved[f"s{index}_pressure"] = density_pressure[own, 1][alive]
                 saved[f"s{index}_acceleration"] = acceleration[own, 0:3][alive]
                 saved[f"s{index}_shift"] = shift[own, 0:3][alive]
+                material = np.frombuffer(raw["material"], np.uint32)[:pool]
+                saved[f"s{index}_material"] = material[own][alive]
     finally:
         for sim in sims:
             sim.destroy()
@@ -149,7 +155,18 @@ def match(a_pos: np.ndarray, b_pos: np.ndarray, tolerance: float):
     return index, distance <= tolerance
 
 
-def compare(a: dict, b: dict, sim: int, tolerance: float) -> dict:
+def compare(a: dict, b: dict, sim: int, tolerance: float, fluid_only: bool = False) -> dict:
+    """``fluid_only``: restrict both sides to material 0 (used when A and B are
+    different wall-shell variants of the same fluid, --b-case)."""
+    a_sel = np.ones(a[f"s{sim}_position"].shape[0], dtype=bool)
+    b_sel = np.ones(b[f"s{sim}_position"].shape[0], dtype=bool)
+    if fluid_only and f"s{sim}_material" in a and f"s{sim}_material" in b:
+        a_sel = a[f"s{sim}_material"] == 0
+        b_sel = b[f"s{sim}_material"] == 0
+    a = {k: (v[a_sel] if k.startswith(f"s{sim}_") and getattr(v, "shape", ()) and v.shape[0] == a_sel.shape[0] else v)
+         for k, v in a.items()}
+    b = {k: (v[b_sel] if k.startswith(f"s{sim}_") and getattr(v, "shape", ()) and v.shape[0] == b_sel.shape[0] else v)
+         for k, v in b.items()}
     a_pos, b_pos = a[f"s{sim}_position"], b[f"s{sim}_position"]
     index, ok = match(a_pos, b_pos, tolerance)
     out = {"n_a": int(a_pos.shape[0]), "n_b": int(b_pos.shape[0]), "unmatched": int((~ok).sum())}
@@ -167,8 +184,13 @@ def compare(a: dict, b: dict, sim: int, tolerance: float) -> dict:
     global_column = np.floor((a_pos[ok, 0] - origin_x) / h).astype(np.int64)
     # 0-based distance to the NEAREST seam: right of a cut = col - cut,
     # left of it = cut - 1 - col. The force band is distance 0..3 on each side.
-    right = global_column[:, None] - cuts[None, :]
-    col = np.where(right >= 0, right, -right - 1).min(axis=1)
+    if cuts.size == 0:
+        # single slab (no seam): bin by distance to the domain's x faces instead
+        n_columns = int(np.ceil((a_pos[:, 0].max() - origin_x) / h)) + 1
+        col = np.minimum(global_column, n_columns - 1 - global_column)
+    else:
+        right = global_column[:, None] - cuts[None, :]
+        col = np.where(right >= 0, right, -right - 1).min(axis=1)
     accel_diff = np.linalg.norm(
         a[f"s{sim}_acceleration"][ok].astype(np.float64)
         - b[f"s{sim}_acceleration"][index[ok]].astype(np.float64), axis=1)
@@ -205,7 +227,8 @@ def main() -> int:
                    VK_LOADER_LAYERS_DISABLE="VK_LAYER_KHRONOS_validation")
         env.update(run_env)
         cascade = env["V5_CASCADE_FORCE"]
-        cmd = [sys.executable, __file__, "--case", args.case, "--steps", str(args.steps),
+        run_case = args.b_case if (args.b_case and name.startswith("cascade")) else args.case
+        cmd = [sys.executable, __file__, "--case", run_case, "--steps", str(args.steps),
                "--slabs", str(args.slabs),
                "--depth", str(args.depth), "--pool-safety", str(args.pool_safety),
                "--device-map", args.device_map, "--dump", str(path)]
@@ -246,7 +269,8 @@ def main() -> int:
         print(f"\n--- {label} ---")
         report["pairs"][label] = {}
         for sim in range(slabs):
-            r = compare(dumps[a_name], dumps[b_name], sim, tolerance)
+            r = compare(dumps[a_name], dumps[b_name], sim, tolerance,
+                        fluid_only=bool(args.b_case))
             report["pairs"][label][f"s{sim}"] = r
             print(f"  s{sim}: n={r['n_a']}/{r['n_b']} unmatched={r['unmatched']}  " + "  ".join(
                 f"{f}: max {r[f]['max']:.3e} (p99.9 {r[f]['p999']:.2e}, scale {r[f]['scale']:.2e})"
@@ -273,7 +297,9 @@ def main() -> int:
         if n is None or m is None or t is None:
             continue
         floor = max(n, m)
-        ratio = t / floor if floor > 0 else float("inf")
+        # a column where both noise pairs AND the test pair are exactly 0 (e.g. the
+        # wall columns of a single-slab run, walls get no force) is not a failure
+        ratio = t / floor if floor > 0 else (float("inf") if t > 0 else 0.0)
         rows.append((c, count, n, m, t, ratio))
         print(f"{c:>5d} {count:>7d} {n:>12.3e} {m:>12.3e} {t:>12.3e} {ratio:>11.2f}")
     worst = max(rows, key=lambda r: r[5]) if rows else None

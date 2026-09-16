@@ -88,6 +88,12 @@ _CASCADE_FORCE = os.environ.get("V5_CASCADE_FORCE", "0") == "1"
 _BAND_VOXEL_DISPATCH = os.environ.get("V5_BAND_VOXEL_DISPATCH", "0") == "1"
 # V3.8: lanes per band voxel for the band-dispatch pipelines (spec const 58); 0 = one thread per slot.
 _BAND_SLOT_LANES = int(os.environ.get("V5_BAND_SLOT_LANES", "0"))
+# Diagnostic (2026-09-16): V5_FAKE_BAND_TEST=<column> places the boundary band
+# at own columns [column, column + range) of a SINGLE-GPU run (spec const 59)
+# and runs the boundary pipelines on it (no ghosts: all neighbours local) to
+# separate ghost-pool locality from the band code path. 0 = off. Ignored on
+# sims that have a peer.
+_FAKE_BAND_COLUMN = int(os.environ.get("V5_FAKE_BAND_TEST", "0"))
 # V3.5 fast submit (2026-09-15): pre-built cffi submit batches + raw cffi
 # entry points instead of python-vulkan's per-call struct building. Same
 # semaphore ops, one vkQueueSubmit2 per queue per frame. Off by default.
@@ -1099,7 +1105,8 @@ class SphSimulatorV5:
         DISPATCH (id=57). Boundary band = 2 voxels (column 0 reaches ghost;
         column 1 reaches column 0 where migrants land after install_migration)."""
         return [(47, 'I', mode), (82, 'I', 2), (57, 'I', band_dispatch),
-                (58, 'I', _BAND_SLOT_LANES if band_dispatch else 0)]
+                (58, 'I', _BAND_SLOT_LANES if band_dispatch else 0),
+                (59, 'I', self._fake_band_column())]
 
     def _density_mode_entries(self, mode: int,
                               band_dispatch: int = 0) -> list[tuple[int, str, Any]]:
@@ -1107,7 +1114,8 @@ class SphSimulatorV5:
         (id=57). Boundary band = 3 voxels (= correction's 2 + 1 for neighbor
         reach into stale-correction). Used by Path A+ density split."""
         return [(48, 'I', mode), (82, 'I', 3), (57, 'I', band_dispatch),
-                (58, 'I', _BAND_SLOT_LANES if band_dispatch else 0)]
+                (58, 'I', _BAND_SLOT_LANES if band_dispatch else 0),
+                (59, 'I', self._fake_band_column())]
 
     def _force_mode_entries(self, mode: int,
                             density_source: int = 0,
@@ -1118,7 +1126,17 @@ class SphSimulatorV5:
         cascading pipeline uses density_source=1 because the scratch->primary
         copy is only issued in Phase C."""
         return [(49, 'I', mode), (82, 'I', 4), (56, 'I', density_source),
-                (57, 'I', band_dispatch), (58, 'I', _BAND_SLOT_LANES if band_dispatch else 0)]
+                (57, 'I', band_dispatch), (58, 'I', _BAND_SLOT_LANES if band_dispatch else 0),
+                (59, 'I', self._fake_band_column())]
+
+    def _fake_band_column(self) -> int:
+        """Spec const 59 value: the diagnostic band column for a sim without
+        peers (V5_FAKE_BAND_TEST), 0 otherwise."""
+        gh = self.case.ghost_grid
+        if (_FAKE_BAND_COLUMN > 0 and gh.leading_ghost_voxel_count == 0
+                and gh.trailing_ghost_voxel_count == 0):
+            return _FAKE_BAND_COLUMN
+        return 0
 
     def _ghost_direction_entries(
         self, direction: int
@@ -1316,6 +1334,8 @@ class SphSimulatorV5:
         face = self.case.grid.grid_dimension_y * self.case.grid.grid_dimension_z
         columns = ((band_range if gh.leading_ghost_voxel_count > 0 else 0)
                    + (band_range if gh.trailing_ghost_voxel_count > 0 else 0))
+        if self._fake_band_column() > 0:
+            columns = band_range          # diagnostic band, one side
         lanes = _BAND_SLOT_LANES if _BAND_SLOT_LANES > 0 else self.case.capacities.max_particles_per_voxel
         return columns * face * lanes
 
@@ -2213,6 +2233,7 @@ class SphSimulatorV5:
         else:
             self._bind_pipeline_and_sets(cmd, "density_boundary")
             vkCmdDispatch(cmd, per_p, 1, 1)
+        self._bench_tick(cmd, "c_density_boundary_end")   # kernel vs copy split
         self._record_density_scratch_to_primary_copy(cmd)
         self._bench_tick(cmd, "c_density_end")
 
@@ -2358,7 +2379,22 @@ class SphSimulatorV5:
         self._bench_tick(cmd, "voxel_end")
         self._record_compute_barrier(cmd)
 
-        if self.step_single_use_split:
+        # V5_FAKE_BAND_TEST (diagnostic): a non-empty band inside a single-GPU
+        # domain forces the split path, with the boundary pipelines dispatched
+        # over the band voxels (V3.4 band dispatch) exactly as in Phase C of a
+        # multi-GPU run, and one tick per kernel so the band kernels' cost can
+        # be read per particle.
+        use_split = self.step_single_use_split or self._fake_band_column() > 0
+
+        def dispatch_boundary(name: str, band_range: int) -> None:
+            if _BAND_VOXEL_DISPATCH and self._band_thread_count(band_range) > 0:
+                self._bind_pipeline_and_sets(cmd, name + "_band")
+                vkCmdDispatch(cmd, self._per_band_dispatch_count(band_range), 1, 1)
+            else:
+                self._bind_pipeline_and_sets(cmd, name)
+                vkCmdDispatch(cmd, per_p, 1, 1)
+
+        if use_split:
             # P3.C validation: substitute _all variants with their split
             # equivalents. In single-GPU mode in_boundary_band always returns
             # false (LEADING/TRAILING_GHOST_VOXEL_COUNT = 0), so:
@@ -2366,24 +2402,27 @@ class SphSimulatorV5:
             #   _boundary covers ZERO particles (every thread early-returns)
             # Output must therefore be bit-identical to the non-split path —
             # any divergence in alive count or per-buffer state proves a
-            # shader-side bug.
+            # shader-side bug. (With a fake band the boundary pipelines cover
+            # the band and the interior ones the rest; still equivalent.)
             self._bind_pipeline_and_sets(cmd, "correction_interior")
             vkCmdDispatch(cmd, per_p, 1, 1)
+            self._bench_tick(cmd, "correction_interior_end")
             self._record_compute_barrier(cmd)
-            self._bind_pipeline_and_sets(cmd, "correction_boundary")
-            vkCmdDispatch(cmd, per_p, 1, 1)
+            dispatch_boundary("correction_boundary", 2)
         else:
             self._bind_pipeline_and_sets(cmd, "correction_all")
             vkCmdDispatch(cmd, per_p, 1, 1)
         self._bench_tick(cmd, "correction_end")
         self._record_compute_barrier(cmd)
 
-        if self.step_single_use_split:
+        if use_split:
             self._bind_pipeline_and_sets(cmd, "density_deep_interior")
             vkCmdDispatch(cmd, per_p, 1, 1)
+            self._bench_tick(cmd, "density_deep_interior_end")
             self._record_compute_barrier(cmd)
-            self._bind_pipeline_and_sets(cmd, "density_boundary")
-            vkCmdDispatch(cmd, per_p, 1, 1)
+            dispatch_boundary("density_boundary", 3)
+            self._bench_tick(cmd, "density_boundary_end")
+            self._record_compute_barrier(cmd)
         else:
             self._bind_pipeline_and_sets(cmd, "density_all")
             vkCmdDispatch(cmd, per_p, 1, 1)
@@ -2391,12 +2430,12 @@ class SphSimulatorV5:
         self._bench_tick(cmd, "density_end")
         self._record_compute_barrier(cmd)
 
-        if self.step_single_use_split:
+        if use_split:
             self._bind_pipeline_and_sets(cmd, "force_deep_interior")
             vkCmdDispatch(cmd, per_p, 1, 1)
+            self._bench_tick(cmd, "force_deep_interior_end")
             self._record_compute_barrier(cmd)
-            self._bind_pipeline_and_sets(cmd, "force_boundary")
-            vkCmdDispatch(cmd, per_p, 1, 1)
+            dispatch_boundary("force_boundary", 4)
         else:
             self._bind_pipeline_and_sets(cmd, "force_all")
             vkCmdDispatch(cmd, per_p, 1, 1)

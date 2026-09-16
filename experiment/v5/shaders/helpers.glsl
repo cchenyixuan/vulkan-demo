@@ -176,6 +176,10 @@ bool in_boundary_band(ivec3 coord) {
     int leading_x  = int(leading_ghost_x_thickness());
     int trailing_x = int(trailing_ghost_x_thickness());
     int range      = int(NEIGHBOR_X_RANGE);
+    if (FAKE_BAND_COLUMN > 0u) {
+        // diagnostic band in the interior of a single-GPU domain
+        return coord.x >= int(FAKE_BAND_COLUMN) && coord.x < int(FAKE_BAND_COLUMN) + range;
+    }
 
     bool near_leading  = leading_x  > 0 && coord.x <  leading_x + range;
     int  own_last_x    = int(GRID_DIMENSION_X) - 1 - trailing_x;
@@ -198,6 +202,7 @@ bool in_boundary_band(ivec3 coord) {
 // ============================================================================
 uint band_voxel_count(uint range) {
     uint face = GRID_DIMENSION_Y * GRID_DIMENSION_Z;
+    if (FAKE_BAND_COLUMN > 0u) return range * face;
     uint columns = 0u;
     if (leading_ghost_x_thickness()  > 0u) columns += range;
     if (trailing_ghost_x_thickness() > 0u) columns += range;
@@ -207,6 +212,11 @@ uint band_voxel_count(uint range) {
 // band voxel index (0 .. band_voxel_count(range)-1) -> voxel id of that band voxel
 bool band_thread_voxel(uint voxel_index, uint range, out uint voxel_id) {
     uint face        = GRID_DIMENSION_Y * GRID_DIMENSION_Z;
+    if (FAKE_BAND_COLUMN > 0u) {
+        if (voxel_index >= range * face) return false;
+        voxel_id = 1u + (FAKE_BAND_COLUMN + voxel_index / face) * face + (voxel_index % face);
+        return true;
+    }
     uint leading_x   = leading_ghost_x_thickness();
     uint trailing_x  = trailing_ghost_x_thickness();
     uint leading_voxels = (leading_x > 0u) ? range * face : 0u;
@@ -231,7 +241,10 @@ bool band_thread_particle(uint thread_id, uint range, out uint self_particle_id)
     uint trailing_x  = trailing_ghost_x_thickness();
     uint leading_voxels = (leading_x > 0u) ? range * face : 0u;
     uint column;
-    if (voxel_index < leading_voxels) {
+    if (FAKE_BAND_COLUMN > 0u) {
+        if (voxel_index >= range * face) return false;
+        column = FAKE_BAND_COLUMN + voxel_index / face;
+    } else if (voxel_index < leading_voxels) {
         column = leading_x + voxel_index / face;
     } else {
         uint trailing_index = voxel_index - leading_voxels;

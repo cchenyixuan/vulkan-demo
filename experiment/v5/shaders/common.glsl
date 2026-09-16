@@ -205,6 +205,12 @@ layout(constant_id = 57) const uint BAND_VOXEL_DISPATCH = 0u;
 // V3.8: lanes per band voxel for the boundary pipelines (0 = one thread per
 // slot as in V3.4; L > 0 = L threads per voxel looping over slots lane, lane+L, ...).
 layout(constant_id = 58) const uint BAND_SLOT_LANES = 0u;
+// Diagnostic (V5_FAKE_BAND_TEST, 2026-09-16): when > 0, the boundary band is
+// NOT derived from the ghost thickness but placed at own columns
+// [FAKE_BAND_COLUMN, FAKE_BAND_COLUMN + NEIGHBOR_X_RANGE) of a single-GPU run,
+// so the band path (boundary pipelines) runs on particles whose neighbours are
+// all local. Isolates ghost-pool locality from the band code path.
+layout(constant_id = 59) const uint FAKE_BAND_COLUMN = 0u;
 // ----- end ablation toggles ------------------------------------------------
 
 // --- Capacity / dispatch ---

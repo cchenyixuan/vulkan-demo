@@ -420,6 +420,18 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
             out["force_us"] = v
         if (v := diff_us("force_end", "step_start")) is not None:
             out["step_total_us"] = v
+        # single-GPU split path (P3.C validation / V5_FAKE_BAND_TEST): one tick
+        # per kernel -> interior vs boundary(band) durations, copy separated.
+        if (v := diff_us("correction_interior_end", "voxel_end")) is not None:
+            out["correction_interior_us"] = v
+            out["correction_boundary_us"] = diff_us("correction_end", "correction_interior_end")
+        if (v := diff_us("density_deep_interior_end", "correction_end")) is not None:
+            out["density_deep_interior_us"] = v
+            out["density_boundary_us"] = diff_us("density_boundary_end", "density_deep_interior_end")
+            out["density_copy_us"] = diff_us("density_end", "density_boundary_end")
+        if (v := diff_us("force_deep_interior_end", "density_end")) is not None:
+            out["force_deep_interior_us"] = v
+            out["force_boundary_us"] = diff_us("force_end", "force_deep_interior_end")
         if (v := diff_us("defrag_end", "defrag_start")) is not None:
             out["defrag_us"] = v
         return out
@@ -508,6 +520,9 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
         out["correction_boundary_us"] = v
     if (v := diff_us("c_density_end", "c_correction_boundary_end")) is not None:
         out["density_us"] = v
+    if (v := diff_us("c_density_boundary_end", "c_correction_boundary_end")) is not None:
+        out["density_boundary_us"] = v
+        out["density_copy_us"] = diff_us("c_density_end", "c_density_boundary_end")
     if (v := diff_us("c_force_end", "c_density_end")) is not None:
         out["force_us"] = v
     if (v := diff_us("c_force_end", "c_start")) is not None:
