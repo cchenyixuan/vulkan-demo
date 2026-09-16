@@ -18,6 +18,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import pathlib
 import sys
 
@@ -182,12 +183,16 @@ def main() -> int:
         from experiment.v5.utils.phase_trace_v5 import (
             CALIBRATED_TIMESTAMPS_EXTENSION, PhaseTracer)
         extra_device_extensions = [CALIBRATED_TIMESTAMPS_EXTENSION]
+    # EXPERIMENT: per-kernel debug-utils labels for Nsight GPU Trace regimes
+    extra_instance_extensions = (["VK_EXT_debug_utils"]
+                                 if os.environ.get("V5_DEBUG_LABELS", "0") == "1" else None)
     try:
         for index in range(slab_count):
             ctx = VulkanContextV5.create(
                 device_index=device_map[index],
                 enable_validation=args.validation,
                 application_name=f"chain_v5_s{index}",
+                extra_instance_extensions=extra_instance_extensions,
                 extra_device_extensions=extra_device_extensions)
             contexts.append(ctx)
             sims.append(SphSimulatorV5(ctx, chain.slabs[index],

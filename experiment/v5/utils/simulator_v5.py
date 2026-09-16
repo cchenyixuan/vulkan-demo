@@ -98,6 +98,10 @@ _FAKE_BAND_COLUMN = int(os.environ.get("V5_FAKE_BAND_TEST", "0"))
 # kernels over a compacted pid list with one thread per particle (band_compact.comp
 # + indirect dispatch) instead of the (band voxel, slot) mapping. 0 = off.
 _BAND_COMPACT = os.environ.get("V5_BAND_COMPACT_DISPATCH", "0") == "1"
+# EXPERIMENT: V5_DEBUG_LABELS=1 wraps every pipeline bind in a VK_EXT_debug_utils
+# label named after the pipeline key, so Nsight Graphics GPU Trace reports
+# per-kernel "regimes" (needs the instance extension; the chain bench enables it).
+_DEBUG_LABELS = os.environ.get("V5_DEBUG_LABELS", "0") == "1"
 # V3.5 fast submit (2026-09-15): pre-built cffi submit batches + raw cffi
 # entry points instead of python-vulkan's per-call struct building. Same
 # semaphore ops, one vkQueueSubmit2 per queue per frame. Off by default.
@@ -1262,12 +1266,15 @@ class SphSimulatorV5:
             pipelines["force_boundary_compact"] = self._create_pipeline(
                 shader=self.shader_modules["force"],
                 entries=self._global_entries() + self._force_mode_entries(2, band_dispatch=2))
+            # (59 = FAKE_BAND_COLUMN must match the band kernels, otherwise the scan
+            # sees an empty band with V5_FAKE_BAND_TEST and the indirect dispatches
+            # run 0 groups — caught in the first GPU Trace of the compact mode.)
             pipelines["band_compact_scan"] = self._create_pipeline(
                 shader=self.shader_modules["band_compact"],
-                entries=self._global_entries() + [(60, 'I', 0)])
+                entries=self._global_entries() + [(60, 'I', 0), (59, 'I', self._fake_band_column())])
             pipelines["band_compact_scatter"] = self._create_pipeline(
                 shader=self.shader_modules["band_compact"],
-                entries=self._global_entries() + [(60, 'I', 1)])
+                entries=self._global_entries() + [(60, 'I', 1), (59, 'I', self._fake_band_column())])
         # V3.4: band-voxel dispatch variants of the three Phase C boundary
         # pipelines (thread = (band voxel, slot); see helpers.glsl).
         pipelines["correction_boundary_band"] = self._create_pipeline(
@@ -1659,7 +1666,28 @@ class SphSimulatorV5:
 
     # ----- Pipeline binding -------------------------------------------------
 
+    def _label_begin(self, cmd, name: str) -> None:
+        """EXPERIMENT (V5_DEBUG_LABELS): open a debug-utils label; closes the
+        previous one so labels tile the command buffer bind-to-bind."""
+        if not _DEBUG_LABELS:
+            return
+        if not hasattr(self, "_label_fns"):
+            self._label_fns = (
+                vkGetInstanceProcAddr(self.ctx.instance, "vkCmdBeginDebugUtilsLabelEXT"),
+                vkGetInstanceProcAddr(self.ctx.instance, "vkCmdEndDebugUtilsLabelEXT"))
+            self._label_open = False
+        if self._label_open:
+            self._label_fns[1](cmd)
+        self._label_fns[0](cmd, VkDebugUtilsLabelEXT(pLabelName=name, color=[0.0, 0.0, 0.0, 0.0]))
+        self._label_open = True
+
+    def _label_end(self, cmd) -> None:
+        if _DEBUG_LABELS and getattr(self, "_label_open", False):
+            self._label_fns[1](cmd)
+            self._label_open = False
+
     def _bind_pipeline_and_sets(self, cmd, pipeline_key: str) -> None:
+        self._label_begin(cmd, pipeline_key)
         vkCmdBindPipeline(
             cmd, VK_PIPELINE_BIND_POINT_COMPUTE, self.pipelines[pipeline_key])
         vkCmdBindDescriptorSets(
@@ -1789,6 +1817,7 @@ class SphSimulatorV5:
             vkCmdCopyBuffer(cmd, staging.handle, dest.handle, 1, [
                 VkBufferCopy(srcOffset=0, dstOffset=0, size=len(payload))
             ])
+            self._label_end(cmd)
             vkEndCommandBuffer(cmd)
             self.ctx.submit_and_wait(cmd)
             vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
@@ -1801,6 +1830,7 @@ class SphSimulatorV5:
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT))
         vkCmdFillBuffer(cmd, dest.handle, 0, dest.size, 0)
+        self._label_end(cmd)
         vkEndCommandBuffer(cmd)
         self.ctx.submit_and_wait(cmd)
         vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
@@ -1850,6 +1880,7 @@ class SphSimulatorV5:
             self._record_readback_for_direction(cmd, direction)
             self._record_compute_to_host_barrier(cmd)
 
+        self._label_end(cmd)
         vkEndCommandBuffer(cmd)
         return cmd
 
@@ -1888,6 +1919,7 @@ class SphSimulatorV5:
         self._bind_pipeline_and_sets(cmd, "bootstrap_half_kick")
         vkCmdDispatch(cmd, per_p, 1, 1)
 
+        self._label_end(cmd)
         vkEndCommandBuffer(cmd)
         return cmd
 
@@ -1944,6 +1976,7 @@ class SphSimulatorV5:
             vkCmdCopyBuffer(cmd, buf.handle, staging.handle, 1, [
                 VkBufferCopy(srcOffset=0, dstOffset=0, size=buf.size)
             ])
+            self._label_end(cmd)
             vkEndCommandBuffer(cmd)
             self.ctx.submit_and_wait(cmd)
             vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
@@ -2057,6 +2090,7 @@ class SphSimulatorV5:
                 vkCmdCopyBuffer(cmd, buf.handle, staging.handle, 1, [
                     VkBufferCopy(srcOffset=0, dstOffset=0, size=buf.size)
                 ])
+            self._label_end(cmd)
             vkEndCommandBuffer(cmd)
 
             # 3. Single fence-wait submit
@@ -2137,6 +2171,7 @@ class SphSimulatorV5:
             vkCmdDispatch(cmd, per_yz, 1, 1)
             self._bench_tick(cmd, f"a_ghost_{direction}_end")
 
+        self._label_end(cmd)
         vkEndCommandBuffer(cmd)
         return cmd
 
@@ -2203,6 +2238,7 @@ class SphSimulatorV5:
             self._record_compute_barrier(cmd)
             self._bench_tick(cmd, "b_force_deep_interior_end")
 
+        self._label_end(cmd)
         vkEndCommandBuffer(cmd)
         return cmd
 
@@ -2316,6 +2352,7 @@ class SphSimulatorV5:
             vkCmdDispatch(cmd, per_p, 1, 1)
         self._bench_tick(cmd, "c_force_end")
 
+        self._label_end(cmd)
         vkEndCommandBuffer(cmd)
         if self.bench is not None:
             self.bench.end_phase_c_region()
@@ -2344,6 +2381,7 @@ class SphSimulatorV5:
         # can be issued on any queue including transfer).
         self._record_compute_to_host_barrier(cmd)
         self._bench_tick_transfer(cmd, f"t_rb_{direction}_end")
+        self._label_end(cmd)
         vkEndCommandBuffer(cmd)
         return cmd
 
@@ -2359,6 +2397,7 @@ class SphSimulatorV5:
         self._bench_tick_transfer(cmd, f"t_up_{direction}_start")
         self._record_upload_for_direction(cmd, direction)
         self._bench_tick_transfer(cmd, f"t_up_{direction}_end")
+        self._label_end(cmd)
         vkEndCommandBuffer(cmd)
         return cmd
 
@@ -2505,6 +2544,7 @@ class SphSimulatorV5:
             vkCmdDispatch(cmd, per_p, 1, 1)
         self._bench_tick(cmd, "force_end")
 
+        self._label_end(cmd)
         vkEndCommandBuffer(cmd)
         return cmd
 
@@ -2912,5 +2952,6 @@ class SphSimulatorV5:
         self._record_transfer_to_compute_barrier(cmd)
         self._bench_tick(cmd, "defrag_end")
 
+        self._label_end(cmd)
         vkEndCommandBuffer(cmd)
         return cmd
