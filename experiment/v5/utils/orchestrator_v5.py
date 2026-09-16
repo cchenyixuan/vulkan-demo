@@ -574,6 +574,10 @@ class ChainOrchestratorV5:
                         f"> {stall_timeout_s}s (GPU pipeline stall or lost "
                         f"signal). Autopsy above.")
         self._raise_if_worker_died(frame_n)
+        # Phase tracer hook (phase_trace_v5): every sim's frame_n is complete.
+        on_frame_done = getattr(self, "on_frame_done", None)
+        if on_frame_done is not None:
+            on_frame_done(frame_n, None)
 
     def _raise_if_worker_died(self, frame_n: int) -> None:
         for worker in self.workers:
@@ -843,6 +847,7 @@ class ChainOrchestratorV5:
         warmup_frame = None
         boundary = self.defrag_cadence
         poll_ns = int(2.5e5)   # 250 us slice when nothing is ready
+        on_frame_done = getattr(self, "on_frame_done", None)   # phase_trace_v5 hook
         while True:
             target = min(max_steps, boundary)
             last_progress = time.perf_counter()
@@ -854,6 +859,8 @@ class ChainOrchestratorV5:
                         continue
                     if n - depth >= 0 and not sim.frame_done_reached(n - depth):
                         continue
+                    if n - depth >= 0 and on_frame_done is not None:
+                        on_frame_done(n - depth, i)
                     self._submit_sim_frame(sim, n)
                     next_frame[i] = n + 1
                     # notify a link's two workers once BOTH endpoints have frame n

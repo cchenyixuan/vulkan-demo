@@ -57,6 +57,13 @@ def parse_args() -> argparse.Namespace:
                         "collapse (2026-09-05).")
     p.add_argument("--seam-check", action="store_true", default=True)
     p.add_argument("--no-seam-check", dest="seam_check", action="store_false")
+    p.add_argument("--phase-trace", default=None, metavar="DIR",
+                   help="record every frame's phase A/B/C start+end GPU timestamps "
+                        "per sim on one host clock (VK_KHR_calibrated_timestamps) "
+                        "-> DIR/phase_trace.csv + calibration.csv; see "
+                        "utils/phase_trace_v5.py (inter-GPU phase offset study, "
+                        "2026-09-16). Attaches compute BenchTimers if --anatomy is off.")
+    p.add_argument("--phase-trace-calibrate-every", type=int, default=100)
     return p.parse_args()
 
 
@@ -170,28 +177,37 @@ def main() -> int:
           f"depth={args.depth} pool_safety={pool_safety}")
 
     contexts, sims = [], []
+    extra_device_extensions = None
+    if args.phase_trace:
+        from experiment.v5.utils.phase_trace_v5 import (
+            CALIBRATED_TIMESTAMPS_EXTENSION, PhaseTracer)
+        extra_device_extensions = [CALIBRATED_TIMESTAMPS_EXTENSION]
     try:
         for index in range(slab_count):
             ctx = VulkanContextV5.create(
                 device_index=device_map[index],
                 enable_validation=args.validation,
-                application_name=f"chain_v5_s{index}")
+                application_name=f"chain_v5_s{index}",
+                extra_device_extensions=extra_device_extensions)
             contexts.append(ctx)
             sims.append(SphSimulatorV5(ctx, chain.slabs[index],
                                        sync_scheme=args.sync_scheme))
 
         anatomy_timers = []
-        if args.anatomy:
+        phase_timers = []
+        if args.anatomy or args.phase_trace:
             from experiment.v5.utils.bench_v5 import (
                 BenchTimer, compute_durations, split_parity_ticks)
             for index, sim in enumerate(sims):
                 bench = BenchTimer(sim.ctx, label=f"s{index}")
-                bench_transfer = BenchTimer(
-                    sim.ctx, label=f"s{index}_transfer",
-                    queue_family_index=sim.ctx.transfer_queue_family_index)
                 sim.bench = bench
-                sim.bench_transfer = bench_transfer
-                anatomy_timers.append((bench, bench_transfer))
+                phase_timers.append(bench)
+                if args.anatomy:
+                    bench_transfer = BenchTimer(
+                        sim.ctx, label=f"s{index}_transfer",
+                        queue_family_index=sim.ctx.transfer_queue_family_index)
+                    sim.bench_transfer = bench_transfer
+                    anatomy_timers.append((bench, bench_transfer))
 
         def on_defrag(frame_n: int, report: list) -> None:
             migrations = "/".join(str(r["interval_migration"]) for r in report)
@@ -236,9 +252,17 @@ def main() -> int:
         with ChainOrchestratorV5(sims, defrag_cadence=defrag_cadence) as orch:
             orch_ref.append(orch)
             orch.bootstrap_all()
+            tracer = None
+            if args.phase_trace:
+                # After bootstrap: the timers' slot maps are frozen by now.
+                tracer = PhaseTracer(sims, phase_timers,
+                                     calibrate_every=args.phase_trace_calibrate_every)
+                orch.on_frame_done = tracer.on_frame_done
             result = orch.run_pipelined(
                 args.max_steps, depth=args.depth, warmup=args.warmup,
                 on_defrag=on_defrag)
+            if tracer is not None:
+                tracer.write(args.phase_trace)
             print(f"[chain_v5] TOTAL: {result['frame_count']} steps in "
                   f"{result['elapsed_s']:.2f}s = {result['fps']:.1f} fps")
             if "steady_fps" in result:
