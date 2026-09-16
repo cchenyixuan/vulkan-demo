@@ -204,6 +204,25 @@ uint band_voxel_count(uint range) {
     return columns * face;
 }
 
+// band voxel index (0 .. band_voxel_count(range)-1) -> voxel id of that band voxel
+bool band_thread_voxel(uint voxel_index, uint range, out uint voxel_id) {
+    uint face        = GRID_DIMENSION_Y * GRID_DIMENSION_Z;
+    uint leading_x   = leading_ghost_x_thickness();
+    uint trailing_x  = trailing_ghost_x_thickness();
+    uint leading_voxels = (leading_x > 0u) ? range * face : 0u;
+    uint column;
+    if (voxel_index < leading_voxels) {
+        column = leading_x + voxel_index / face;
+    } else {
+        uint trailing_index = voxel_index - leading_voxels;
+        if (trailing_x == 0u || trailing_index >= range * face) return false;
+        uint own_last_x = GRID_DIMENSION_X - 1u - trailing_x;
+        column = own_last_x - range + 1u + trailing_index / face;
+    }
+    voxel_id = 1u + column * face + (voxel_index % face);
+    return true;
+}
+
 bool band_thread_particle(uint thread_id, uint range, out uint self_particle_id) {
     uint face        = GRID_DIMENSION_Y * GRID_DIMENSION_Z;
     uint voxel_index = thread_id / MAX_PARTICLES_PER_VOXEL;

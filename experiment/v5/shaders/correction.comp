@@ -34,18 +34,9 @@ layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
 // ============================================================================
 // Main
 // ============================================================================
-void main() {
+void process_particle(uint self_particle_id) {
     // 0-based invocation → 1-based particle_id, offset into own pid range
     // (own = [LEADING_GHOST_POOL_SIZE+1, LEADING+OWN_POOL_SIZE]).
-    uint self_particle_id;
-    if (BAND_VOXEL_DISPATCH == 1u) {
-        // V3.4: thread = (band voxel, slot); pid from the voxel list.
-        if (!band_thread_particle(gl_GlobalInvocationID.x, NEIGHBOR_X_RANGE,
-                                  self_particle_id)) return;
-    } else {
-        self_particle_id = gl_GlobalInvocationID.x + own_first_pid();
-        if (self_particle_id > own_last_pid()) return;
-    }
 
     // No material / kind check here: correction does not consume any
     // MaterialParameters fields, so adding an INLET skip would require
@@ -204,4 +195,36 @@ void main() {
         0.0);
 
     density_gradient_kernel_sum[self_particle_id] = vec4(density_gradient, kernel_sum);
+}
+
+
+// ---------------------------------------------------------------------------
+// Entry point (V3.4 / V3.8): derive the self pid(s) for this thread and run the
+// per-particle body above. BAND_VOXEL_DISPATCH = 0: one thread per own pool
+// slot. BAND_VOXEL_DISPATCH = 1, BAND_SLOT_LANES = 0: thread = (band voxel,
+// slot). BAND_SLOT_LANES = L > 0: thread = (band voxel, lane), looping over
+// slots lane, lane + L, ... so a warp stays full when a voxel holds far fewer
+// particles than MAX_PARTICLES_PER_VOXEL.
+// ---------------------------------------------------------------------------
+void main() {
+    uint thread_id = gl_GlobalInvocationID.x;
+    if (BAND_VOXEL_DISPATCH == 1u) {
+        if (BAND_SLOT_LANES == 0u) {
+            uint self_particle_id;
+            if (band_thread_particle(thread_id, NEIGHBOR_X_RANGE, self_particle_id)) {
+                process_particle(self_particle_id);
+            }
+            return;
+        }
+        uint voxel_id;
+        if (!band_thread_voxel(thread_id / BAND_SLOT_LANES, NEIGHBOR_X_RANGE, voxel_id)) return;
+        uint count = inside_particle_count[voxel_id];
+        for (uint slot = thread_id % BAND_SLOT_LANES; slot < count; slot += BAND_SLOT_LANES) {
+            process_particle(inside_particle_index[voxel_id * MAX_PARTICLES_PER_VOXEL + slot]);
+        }
+        return;
+    }
+    uint self_particle_id = thread_id + own_first_pid();
+    if (self_particle_id > own_last_pid()) return;
+    process_particle(self_particle_id);
 }

@@ -86,6 +86,8 @@ _CASCADE_FORCE = os.environ.get("V5_CASCADE_FORCE", "0") == "1"
 # early return (spec const 57; see common.glsl / helpers.glsl). Off by
 # default until validated.
 _BAND_VOXEL_DISPATCH = os.environ.get("V5_BAND_VOXEL_DISPATCH", "0") == "1"
+# V3.8: lanes per band voxel for the band-dispatch pipelines (spec const 58); 0 = one thread per slot.
+_BAND_SLOT_LANES = int(os.environ.get("V5_BAND_SLOT_LANES", "0"))
 # V3.5 fast submit (2026-09-15): pre-built cffi submit batches + raw cffi
 # entry points instead of python-vulkan's per-call struct building. Same
 # semaphore ops, one vkQueueSubmit2 per queue per frame. Off by default.
@@ -974,6 +976,10 @@ class SphSimulatorV5:
     def _load_shader_modules(self) -> dict[str, object]:
         shader_dir = (pathlib.Path(__file__).resolve().parents[1]
                       / "shaders" / "spv")
+        # V5_SPV_DIR: load compiled shaders from another directory (A/B of
+        # shader builds with the per-particle verifier, e.g. git HEAD vs tree).
+        if os.environ.get("V5_SPV_DIR"):
+            shader_dir = pathlib.Path(os.environ["V5_SPV_DIR"])
         modules: dict[str, object] = {}
         for shader_name in (
             "bootstrap_half_kick", "initialize_voxelization",
@@ -1092,14 +1098,16 @@ class SphSimulatorV5:
         """CORRECTION_MODE (id=47) + NEIGHBOR_X_RANGE (id=82) + BAND_VOXEL_
         DISPATCH (id=57). Boundary band = 2 voxels (column 0 reaches ghost;
         column 1 reaches column 0 where migrants land after install_migration)."""
-        return [(47, 'I', mode), (82, 'I', 2), (57, 'I', band_dispatch)]
+        return [(47, 'I', mode), (82, 'I', 2), (57, 'I', band_dispatch),
+                (58, 'I', _BAND_SLOT_LANES if band_dispatch else 0)]
 
     def _density_mode_entries(self, mode: int,
                               band_dispatch: int = 0) -> list[tuple[int, str, Any]]:
         """DENSITY_MODE (id=48) + NEIGHBOR_X_RANGE (id=82) + BAND_VOXEL_DISPATCH
         (id=57). Boundary band = 3 voxels (= correction's 2 + 1 for neighbor
         reach into stale-correction). Used by Path A+ density split."""
-        return [(48, 'I', mode), (82, 'I', 3), (57, 'I', band_dispatch)]
+        return [(48, 'I', mode), (82, 'I', 3), (57, 'I', band_dispatch),
+                (58, 'I', _BAND_SLOT_LANES if band_dispatch else 0)]
 
     def _force_mode_entries(self, mode: int,
                             density_source: int = 0,
@@ -1110,7 +1118,7 @@ class SphSimulatorV5:
         cascading pipeline uses density_source=1 because the scratch->primary
         copy is only issued in Phase C."""
         return [(49, 'I', mode), (82, 'I', 4), (56, 'I', density_source),
-                (57, 'I', band_dispatch)]
+                (57, 'I', band_dispatch), (58, 'I', _BAND_SLOT_LANES if band_dispatch else 0)]
 
     def _ghost_direction_entries(
         self, direction: int
@@ -1235,7 +1243,7 @@ class SphSimulatorV5:
         cascade_note = (" (V5_CASCADE_FORCE=1: force_deep_interior in Phase B)"
                         if _CASCADE_FORCE else "")
         if _BAND_VOXEL_DISPATCH:
-            cascade_note += (" (V5_BAND_VOXEL_DISPATCH=1: boundary kernels over "
+            cascade_note += (f" (V5_BAND_VOXEL_DISPATCH=1, lanes={_BAND_SLOT_LANES or 'slots'}: boundary kernels over "
                              f"band voxels: {self._band_thread_count(2):,}/"
                              f"{self._band_thread_count(3):,}/{self._band_thread_count(4):,} "
                              f"threads vs {self.case.capacities.own_pool_size:,})")
@@ -1308,7 +1316,8 @@ class SphSimulatorV5:
         face = self.case.grid.grid_dimension_y * self.case.grid.grid_dimension_z
         columns = ((band_range if gh.leading_ghost_voxel_count > 0 else 0)
                    + (band_range if gh.trailing_ghost_voxel_count > 0 else 0))
-        return columns * face * self.case.capacities.max_particles_per_voxel
+        lanes = _BAND_SLOT_LANES if _BAND_SLOT_LANES > 0 else self.case.capacities.max_particles_per_voxel
+        return columns * face * lanes
 
     def _per_band_dispatch_count(self, band_range: int) -> int:
         wg = self.case.capacities.workgroup_size

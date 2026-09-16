@@ -202,6 +202,9 @@ const uint FORCE_DENSITY_SOURCE_SCRATCH = 1u;
 // band is covered exactly every frame with no dependence on defrag order or
 // particle drift. See helpers.glsl band_thread_particle().
 layout(constant_id = 57) const uint BAND_VOXEL_DISPATCH = 0u;
+// V3.8: lanes per band voxel for the boundary pipelines (0 = one thread per
+// slot as in V3.4; L > 0 = L threads per voxel looping over slots lane, lane+L, ...).
+layout(constant_id = 58) const uint BAND_SLOT_LANES = 0u;
 // ----- end ablation toggles ------------------------------------------------
 
 // --- Capacity / dispatch ---

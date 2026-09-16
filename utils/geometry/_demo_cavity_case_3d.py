@@ -41,10 +41,11 @@ def write_obj(path, points_3d):
 
 
 def write_frame_obj(path, half_extent):
-    h = half_extent
+    """half_extent: scalar (cube) or (hx, hy, hz) box half extents."""
+    hx, hy, hz = (half_extent,) * 3 if np.isscalar(half_extent) else half_extent
     vertices = np.array([
-        [-h, -h, -h], [-h, h, -h], [h, -h, -h], [h, h, -h],
-        [-h, -h,  h], [-h, h,  h], [h, -h,  h], [h, h,  h]])
+        [-hx, -hy, -hz], [-hx, hy, -hz], [hx, -hy, -hz], [hx, hy, -hz],
+        [-hx, -hy,  hz], [-hx, hy,  hz], [hx, -hy,  hz], [hx, hy,  hz]])
     faces = [(1, 2, 4), (1, 4, 3), (5, 7, 8), (5, 8, 6), (1, 5, 6), (1, 6, 2),
              (3, 4, 8), (3, 8, 7), (1, 3, 7), (1, 7, 5), (2, 6, 8), (2, 8, 4)]
     with open(path, "w") as handle:
@@ -158,6 +159,11 @@ def main() -> int:
                         help="h/dx ratio (support radius in lattice units). 4 is the "
                              "3D default (268 neighbors); 5 matches the 2D cases but "
                              "costs ~2x (523 neighbors) and needs max_per_voxel >= 177.")
+    parser.add_argument("--half-x", type=int, default=None,
+                        help="fluid half-resolution along x (default = --half). Stretched "
+                             "domains for weak / stretched-strong families use "
+                             "half_x = half*K + K//2 (same rule as the 2-D generator); the lid "
+                             "covers the whole +y face of the fluid footprint.")
     parser.add_argument("--border", type=int, default=None,
                         help="wall shell layers (default 2*hdx+1)")
     parser.add_argument("--max-per-voxel", type=int, default=128)
@@ -167,6 +173,7 @@ def main() -> int:
     args = parser.parse_args()
 
     half_index = args.half
+    half_x = args.half_x if args.half_x is not None else half_index
     dx = FLUID_HALF_EXTENT / half_index
     particle_radius = 0.5 * dx
     smoothing_length = args.hdx * dx
@@ -180,31 +187,33 @@ def main() -> int:
         return 1
 
     half_total = half_index + border
-    index = np.arange(-half_total, half_total + 1, dtype=np.int32)
-    index_x, index_y, index_z = np.meshgrid(index, index, index, indexing="ij")
-    index_x = index_x.ravel()
-    index_y = index_y.ravel()
-    index_z = index_z.ravel()
-
-    in_fluid = ((np.abs(index_x) <= half_index)
-                & (np.abs(index_y) <= half_index)
-                & (np.abs(index_z) <= half_index))
-    is_lid = ((index_y > half_index)
-              & (np.abs(index_x) <= half_index)
-              & (np.abs(index_z) <= half_index))
-    is_wall = (~in_fluid) & (~is_lid)
-
-    sites = np.column_stack([index_x * dx, index_y * dx, index_z * dx]).astype(np.float64)
-    domain = sites[in_fluid]
-    lid_points = sites[is_lid]
-    wall = sites[is_wall]
+    half_total_x = half_x + border
+    index_yz = np.arange(-half_total, half_total + 1, dtype=np.int32)
+    # x-chunked generation: a 1600x200x200 dx fluid (64M) with its shell is ~270M lattice
+    # sites; building them all at once needs >10 GB. Walk x in slabs of ~64 planes.
+    domain_parts, wall_parts, lid_parts = [], [], []
+    x_all = np.arange(-half_total_x, half_total_x + 1, dtype=np.int32)
+    for start in range(0, x_all.size, 64):
+        index_x, index_y, index_z = np.meshgrid(x_all[start:start + 64], index_yz, index_yz, indexing="ij")
+        index_x = index_x.ravel(); index_y = index_y.ravel(); index_z = index_z.ravel()
+        in_fluid = ((np.abs(index_x) <= half_x)
+                    & (np.abs(index_y) <= half_index)
+                    & (np.abs(index_z) <= half_index))
+        is_lid = ((index_y > half_index)
+                  & (np.abs(index_x) <= half_x)
+                  & (np.abs(index_z) <= half_index))
+        is_wall = (~in_fluid) & (~is_lid)
+        sites = np.column_stack([index_x * dx, index_y * dx, index_z * dx]).astype(np.float64)
+        domain_parts.append(sites[in_fluid]); lid_parts.append(sites[is_lid]); wall_parts.append(sites[is_wall])
+    domain = np.concatenate(domain_parts); lid_points = np.concatenate(lid_parts); wall = np.concatenate(wall_parts)
     n_fluid, n_wall, n_lid = domain.shape[0], wall.shape[0], lid_points.shape[0]
     total = n_fluid + n_wall + n_lid
     pool_size = int(math.ceil(total * 1.15 / 128) * 128)
 
     out_dir = _REPO_ROOT / args.out
     out_dir.mkdir(parents=True, exist_ok=True)
-    print(f"dx={dx:.6e}  h={smoothing_length:.6e}  h/dx={args.hdx}  border={border}")
+    print(f"dx={dx:.6e}  h={smoothing_length:.6e}  h/dx={args.hdx}  border={border}  "
+          f"fluid lattice {2 * half_x + 1} x {2 * half_index + 1} x {2 * half_index + 1} dx")
     print(f"domain(fluid)={n_fluid:,}  wall={n_wall:,}  wall_top(lid)={n_lid:,}  total={total:,}")
     print(f"pool_size={pool_size:,}  max_per_voxel={args.max_per_voxel} "
           f"(bound {packing_bound})  max_incoming={args.max_incoming}")
@@ -214,7 +223,7 @@ def main() -> int:
     write_obj(out_dir / "wall.obj", wall)
     write_obj(out_dir / "wall_top.obj", lid_points)
     frame_half = half_total * dx + 0.6 * dx
-    write_frame_obj(out_dir / "frame.obj", frame_half)
+    write_frame_obj(out_dir / "frame.obj", (half_total_x * dx + 0.6 * dx, frame_half, frame_half))
     (out_dir / "case.yaml").write_text(CASE_YAML.format(
         fluid_millions=n_fluid / 1e6, n_fluid=n_fluid, n_wall=n_wall, n_lid=n_lid,
         border=border, h=smoothing_length, dx=dx, hdx=args.hdx,
