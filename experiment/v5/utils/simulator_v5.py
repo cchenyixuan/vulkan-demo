@@ -94,6 +94,10 @@ _BAND_SLOT_LANES = int(os.environ.get("V5_BAND_SLOT_LANES", "0"))
 # separate ghost-pool locality from the band code path. 0 = off. Ignored on
 # sims that have a peer.
 _FAKE_BAND_COLUMN = int(os.environ.get("V5_FAKE_BAND_TEST", "0"))
+# EXPERIMENT exp/band-compact (2026-09-17, not on the main path): Phase C band
+# kernels over a compacted pid list with one thread per particle (band_compact.comp
+# + indirect dispatch) instead of the (band voxel, slot) mapping. 0 = off.
+_BAND_COMPACT = os.environ.get("V5_BAND_COMPACT_DISPATCH", "0") == "1"
 # V3.5 fast submit (2026-09-15): pre-built cffi submit batches + raw cffi
 # entry points instead of python-vulkan's per-call struct building. Same
 # semaphore ops, one vkQueueSubmit2 per queue per frame. Off by default.
@@ -627,6 +631,9 @@ class SphSimulatorV5:
             # were declared in V1/V2 but never read or written by any kernel.
             _BufferSpec("material_parameters",          3, 7,  48 * n_materials,        BSU | TRANSFER),
             _BufferSpec("defrag_scratch_counter",       3, 8,   4,                      BSU | TRANSFER),
+            # EXPERIMENT exp/band-compact: indirect dispatch sizes + column starts
+            _BufferSpec("band_compact_meta",            3, 9, 128,
+                        BSU | TRANSFER | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT),
         ]
 
     def _allocate_buffer(
@@ -990,7 +997,7 @@ class SphSimulatorV5:
         for shader_name in (
             "bootstrap_half_kick", "initialize_voxelization",
             "predict", "update_voxel", "ghost_send", "install_migrations",
-            "correction", "density", "force", "defrag",
+            "correction", "density", "force", "defrag", "band_compact",
         ):
             spv_path = shader_dir / f"{shader_name}.comp.spv"
             if not spv_path.exists():
@@ -1243,6 +1250,24 @@ class SphSimulatorV5:
             shader=self.shader_modules["force"],
             entries=self._global_entries() + self._force_mode_entries(1, density_source=1),
         )
+        # EXPERIMENT exp/band-compact: compacted-list variants (BAND_VOXEL_DISPATCH = 2)
+        # + the two compaction pipelines (scan / scatter) from band_compact.comp.
+        if _BAND_COMPACT:
+            pipelines["correction_boundary_compact"] = self._create_pipeline(
+                shader=self.shader_modules["correction"],
+                entries=self._global_entries() + self._correction_mode_entries(2, band_dispatch=2))
+            pipelines["density_boundary_compact"] = self._create_pipeline(
+                shader=self.shader_modules["density"],
+                entries=self._global_entries() + self._density_mode_entries(2, band_dispatch=2))
+            pipelines["force_boundary_compact"] = self._create_pipeline(
+                shader=self.shader_modules["force"],
+                entries=self._global_entries() + self._force_mode_entries(2, band_dispatch=2))
+            pipelines["band_compact_scan"] = self._create_pipeline(
+                shader=self.shader_modules["band_compact"],
+                entries=self._global_entries() + [(60, 'I', 0)])
+            pipelines["band_compact_scatter"] = self._create_pipeline(
+                shader=self.shader_modules["band_compact"],
+                entries=self._global_entries() + [(60, 'I', 1)])
         # V3.4: band-voxel dispatch variants of the three Phase C boundary
         # pipelines (thread = (band voxel, slot); see helpers.glsl).
         pipelines["correction_boundary_band"] = self._create_pipeline(
@@ -1504,6 +1529,25 @@ class SphSimulatorV5:
             self.bench.record_defrag_reset_and_start(cmd, start_label)
 
     # ----- sync2 barriers ---------------------------------------------------
+
+    def _record_indirect_barrier(self, cmd) -> None:
+        """EXPERIMENT exp/band-compact: compute writes → indirect-command read +
+        compute read (the scan writes the dispatch sizes the next dispatches use)."""
+        mb = VkMemoryBarrier2(
+            sType=VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
+            srcStageMask=VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+            srcAccessMask=(VK_ACCESS_2_SHADER_STORAGE_READ_BIT
+                           | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
+            dstStageMask=(VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT
+                          | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT),
+            dstAccessMask=(VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT
+                           | VK_ACCESS_2_SHADER_STORAGE_READ_BIT
+                           | VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT),
+        )
+        info = VkDependencyInfo(
+            sType=VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+            memoryBarrierCount=1, pMemoryBarriers=[mb])
+        vkCmdPipelineBarrier2(cmd, info)
 
     def _record_compute_barrier(self, cmd) -> None:
         """Global compute→compute memory barrier (sync2)."""
@@ -2209,7 +2253,21 @@ class SphSimulatorV5:
         # V3.4: with band-voxel dispatch the three boundary pipelines launch
         # only (band voxel, slot) threads; a slab without peers has no band
         # and skips the dispatch (the full-range path early-returned anyway).
-        if _BAND_VOXEL_DISPATCH:
+        compact = _BAND_COMPACT and self._per_band_dispatch_count(4) > 0
+        if compact:
+            # EXPERIMENT exp/band-compact: scan (1 workgroup) + scatter build the
+            # contiguous band pid list; the band kernels then run one thread per
+            # list entry through indirect dispatches sized by the scan.
+            self._bind_pipeline_and_sets(cmd, "band_compact_scan")
+            vkCmdDispatch(cmd, 1, 1, 1)
+            self._record_compute_barrier(cmd)
+            self._bind_pipeline_and_sets(cmd, "band_compact_scatter")
+            vkCmdDispatch(cmd, self._per_band_dispatch_count(4), 1, 1)
+            self._record_indirect_barrier(cmd)
+            self._bench_tick(cmd, "c_compact_end")
+            self._bind_pipeline_and_sets(cmd, "correction_boundary_compact")
+            vkCmdDispatchIndirect(cmd, self.buffers["band_compact_meta"].handle, 0)
+        elif _BAND_VOXEL_DISPATCH:
             per_band_correction = self._per_band_dispatch_count(2)
             if per_band_correction > 0:
                 self._bind_pipeline_and_sets(cmd, "correction_boundary_band")
@@ -2225,7 +2283,10 @@ class SphSimulatorV5:
         # pids]. Together they cover the full own pid range. The scratch→primary
         # copy below transfers the union to primary in one shot, so force_all
         # below reads fresh ρ_{n+1} for every neighbor.
-        if _BAND_VOXEL_DISPATCH:
+        if compact:
+            self._bind_pipeline_and_sets(cmd, "density_boundary_compact")
+            vkCmdDispatchIndirect(cmd, self.buffers["band_compact_meta"].handle, 16)
+        elif _BAND_VOXEL_DISPATCH:
             per_band_density = self._per_band_dispatch_count(3)
             if per_band_density > 0:
                 self._bind_pipeline_and_sets(cmd, "density_boundary_band")
@@ -2241,7 +2302,10 @@ class SphSimulatorV5:
         # interior; only the 4-column boundary band (incl. this frame's
         # migrants) remains, reading primary (fresh for every own column
         # after the copy above; ghost slots stale by one step as before).
-        if _CASCADE_FORCE and _BAND_VOXEL_DISPATCH:
+        if _CASCADE_FORCE and compact:
+            self._bind_pipeline_and_sets(cmd, "force_boundary_compact")
+            vkCmdDispatchIndirect(cmd, self.buffers["band_compact_meta"].handle, 32)
+        elif _CASCADE_FORCE and _BAND_VOXEL_DISPATCH:
             per_band_force = self._per_band_dispatch_count(4)
             if per_band_force > 0:
                 self._bind_pipeline_and_sets(cmd, "force_boundary_band")

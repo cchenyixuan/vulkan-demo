@@ -633,6 +633,17 @@ layout(std430, set = 3, binding = 7) buffer MaterialParametersBuffer {
     MaterialParameters material_parameters[];
 };
 
+// EXPERIMENT exp/band-compact (2026-09-17): metadata of the compacted band pid
+// list (see band_compact.comp). groups[r-2] = VkDispatchIndirectCommand (x,y,z)
+// + particle count for band width r = 2/3/4 (16 B stride: the indirect
+// dispatch reads 12 B at offset 16*(r-2)); column_start[c] = list offset of
+// band column c (leading L..L+3 then trailing T-3..T), [8] / total = end.
+layout(std430, set = 3, binding = 9) buffer BandCompactMetaBuffer {
+    uvec4 band_compact_groups[3];
+    uint  band_compact_column_start[9];
+    uint  band_compact_total;
+};
+
 layout(std430, set = 3, binding = 8) buffer DefragScratchCounterBuffer {
     // Single uint, atomic-incremented by defrag.comp when USE_PREFIX_SUM_DEFRAG=false.
     // CPU resets to 0 before each defrag dispatch (vkCmdFillBuffer).

@@ -233,6 +233,45 @@ bool band_thread_voxel(uint voxel_index, uint range, out uint voxel_id) {
     return true;
 }
 
+// ---- EXPERIMENT exp/band-compact: compacted band pid list in extension_fields
+// (uint view: entry k = extension_fields[k >> 2][k & 3]); list at [0, total),
+// per-band-voxel offsets at the tail (64 slots below the end of the pool view).
+uint compact_list_at(uint k) {
+    return floatBitsToUint(extension_fields[k >> 2u][k & 3u]);
+}
+void compact_list_store(uint k, uint value) {
+    extension_fields[k >> 2u][k & 3u] = uintBitsToFloat(value);
+}
+uint compact_voxel_offset_base() {
+    uint pool_uints = 4u * (LEADING_GHOST_POOL_SIZE + OWN_POOL_SIZE + TRAILING_GHOST_POOL_SIZE);
+    return pool_uints - 64u - band_voxel_count(4u);
+}
+uint compact_voxel_offset_at(uint voxel_index) {
+    return compact_list_at(compact_voxel_offset_base() + voxel_index);
+}
+void compact_voxel_offset_store(uint voxel_index, uint value) {
+    compact_list_store(compact_voxel_offset_base() + voxel_index, value);
+}
+// thread -> pid through the compacted list for band width `range`: leading part
+// = columns [0, range) of the list, trailing part = the last `range` columns.
+bool compact_thread_particle(uint thread_id, uint range, out uint self_particle_id) {
+    bool leading  = leading_ghost_x_thickness() > 0u || FAKE_BAND_COLUMN > 0u;
+    bool trailing = trailing_ghost_x_thickness() > 0u && FAKE_BAND_COLUMN == 0u;
+    uint leading_columns = leading ? 4u : 0u;
+    uint leading_count = leading ? band_compact_column_start[range] - band_compact_column_start[0] : 0u;
+    if (thread_id < leading_count) {
+        self_particle_id = compact_list_at(band_compact_column_start[0] + thread_id);
+        return true;
+    }
+    thread_id -= leading_count;
+    if (!trailing) return false;
+    uint trailing_begin = band_compact_column_start[leading_columns + 4u - range];
+    uint trailing_count = band_compact_column_start[leading_columns + 4u] - trailing_begin;
+    if (thread_id >= trailing_count) return false;
+    self_particle_id = compact_list_at(trailing_begin + thread_id);
+    return true;
+}
+
 bool band_thread_particle(uint thread_id, uint range, out uint self_particle_id) {
     uint face        = GRID_DIMENSION_Y * GRID_DIMENSION_Z;
     uint voxel_index = thread_id / MAX_PARTICLES_PER_VOXEL;

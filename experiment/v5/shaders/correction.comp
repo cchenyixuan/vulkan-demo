@@ -208,6 +208,14 @@ void process_particle(uint self_particle_id) {
 // ---------------------------------------------------------------------------
 void main() {
     uint thread_id = gl_GlobalInvocationID.x;
+    if (BAND_VOXEL_DISPATCH == 2u) {
+        // EXPERIMENT exp/band-compact: thread = list entry (interior-style mapping)
+        uint self_particle_id;
+        if (compact_thread_particle(thread_id, NEIGHBOR_X_RANGE, self_particle_id)) {
+            process_particle(self_particle_id);
+        }
+        return;
+    }
     if (BAND_VOXEL_DISPATCH == 1u) {
         if (BAND_SLOT_LANES == 0u) {
             uint self_particle_id;

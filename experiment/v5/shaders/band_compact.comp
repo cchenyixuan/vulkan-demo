@@ -1,0 +1,98 @@
+#version 460
+// ============================================================================
+// band_compact.comp — EXPERIMENT (exp/band-compact, 2026-09-17): compact the
+// boundary-band particles into a contiguous pid list so the three Phase C band
+// kernels can run with the interior's thread mapping (one thread per particle,
+// consecutive threads = consecutive list entries, list in band-voxel order which
+// after a defrag is pid order). Two pipelines from this source:
+//
+//   BAND_COMPACT_MODE = 0  scan     ONE workgroup. Walks the band-4 voxels in
+//                                   band_thread_voxel() order (leading columns
+//                                   L..L+3, then trailing T-3..T), exclusive
+//                                   prefix of inside_particle_count -> per-voxel
+//                                   list offset (stashed in the tail of
+//                                   extension_fields), column_start[0..8] and the
+//                                   indirect dispatch sizes for band 2 / 3 / 4.
+//   BAND_COMPACT_MODE = 1  scatter  thread = (band voxel, slot): copies the pid
+//                                   into list[offset + slot].
+//
+// Storage (no new per-particle buffer): the dormant extension_fields SoA
+// (set 0 binding 9, vec4 per pool slot, copied but never read by any kernel) is
+// used as a uint array: list at [0, total), per-voxel offsets at the tail.
+// Column starts / total / indirect sizes live in band_compact_meta (set 3,
+// binding 9, 128 B).
+// ============================================================================
+#include "common.glsl"
+#include "helpers.glsl"
+
+layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
+
+layout(constant_id = 60) const uint BAND_COMPACT_MODE = 0u;
+
+shared uint scan_values[128];
+shared uint scan_carry;
+
+void main() {
+    uint face = GRID_DIMENSION_Y * GRID_DIMENSION_Z;
+    uint band_voxels = band_voxel_count(4u);
+    if (BAND_COMPACT_MODE == 1u) {
+        uint thread_id = gl_GlobalInvocationID.x;
+        uint voxel_index = thread_id / MAX_PARTICLES_PER_VOXEL;
+        uint slot = thread_id % MAX_PARTICLES_PER_VOXEL;
+        uint voxel_id;
+        if (voxel_index >= band_voxels) return;
+        if (!band_thread_voxel(voxel_index, 4u, voxel_id)) return;
+        if (slot >= inside_particle_count[voxel_id]) return;
+        uint offset = compact_voxel_offset_at(voxel_index);
+        compact_list_store(offset + slot,
+                           inside_particle_index[voxel_id * MAX_PARTICLES_PER_VOXEL + slot]);
+        return;
+    }
+
+    // ---- mode 0: single-workgroup exclusive scan over the band voxels ----
+    uint local_id = gl_LocalInvocationID.x;
+    if (local_id == 0u) scan_carry = 0u;
+    barrier();
+    for (uint base = 0u; base < band_voxels; base += WORKGROUP_SIZE) {
+        uint index = base + local_id;
+        uint count = 0u;
+        uint voxel_id;
+        if (index < band_voxels && band_thread_voxel(index, 4u, voxel_id)) {
+            count = inside_particle_count[voxel_id];
+        }
+        scan_values[local_id] = count;
+        barrier();
+        for (uint stride = 1u; stride < WORKGROUP_SIZE; stride <<= 1u) {
+            uint addend = (local_id >= stride) ? scan_values[local_id - stride] : 0u;
+            barrier();
+            scan_values[local_id] += addend;
+            barrier();
+        }
+        uint exclusive = scan_values[local_id] - count + scan_carry;
+        if (index < band_voxels) {
+            compact_voxel_offset_store(index, exclusive);
+            if (index % face == 0u) band_compact_column_start[index / face] = exclusive;
+        }
+        barrier();
+        if (local_id == WORKGROUP_SIZE - 1u) scan_carry += scan_values[local_id];
+        barrier();
+    }
+    if (local_id == 0u) {
+        uint total = scan_carry;
+        uint columns = band_voxels / face;
+        band_compact_column_start[columns] = total;
+        for (uint c = columns + 1u; c < 9u; c++) band_compact_column_start[c] = total;
+        band_compact_total = total;
+        // indirect dispatch sizes for the three band widths
+        bool leading = leading_ghost_x_thickness() > 0u || FAKE_BAND_COLUMN > 0u;
+        bool trailing = trailing_ghost_x_thickness() > 0u && FAKE_BAND_COLUMN == 0u;
+        uint leading_columns = leading ? 4u : 0u;
+        for (uint range = 2u; range <= 4u; range++) {
+            uint n = 0u;
+            if (leading) n += band_compact_column_start[range] - band_compact_column_start[0];
+            if (trailing) n += band_compact_column_start[leading_columns + 4u]
+                             - band_compact_column_start[leading_columns + 4u - range];
+            band_compact_groups[range - 2u] = uvec4((n + WORKGROUP_SIZE - 1u) / WORKGROUP_SIZE, 1u, 1u, n);
+        }
+    }
+}

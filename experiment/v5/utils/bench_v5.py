@@ -516,6 +516,9 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
             out["install_trailing_dispatch_us"] = diff_us(
                 "c_install_trailing_end", "c_install_trailing_upload_end")
         last_c_label = "c_install_trailing_end"
+    if "c_compact_end" in ticks:   # exp/band-compact: list build before the band kernels
+        out["band_compact_us"] = diff_us("c_compact_end", last_c_label)
+        last_c_label = "c_compact_end"
     if (v := diff_us("c_correction_boundary_end", last_c_label)) is not None:
         out["correction_boundary_us"] = v
     if (v := diff_us("c_density_end", "c_correction_boundary_end")) is not None:

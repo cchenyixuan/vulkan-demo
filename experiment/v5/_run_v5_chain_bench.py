@@ -233,7 +233,7 @@ def main() -> int:
                     keys = ("phase_a_us", "phase_b_us", "phase_c_us",
                             "correction_interior_us", "density_deep_interior_us",
                             "force_deep_interior_us", "install_leading_us",
-                            "install_trailing_us", "correction_boundary_us",
+                            "install_trailing_us", "band_compact_us", "correction_boundary_us",
                             "density_us", "density_boundary_us", "density_copy_us",
                             "force_us", "force_boundary_us",
                             "a_to_b_gap_us", "b_to_c_gap_us", "c_to_a_gap_us",
