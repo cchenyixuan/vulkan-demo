@@ -80,12 +80,12 @@ _SUBMIT_LOCK_SCOPE = os.environ.get("V5_SUBMIT_LOCK_SCOPE", "device")
 # scratch) into Phase B so the transfer chain hides behind correction +
 # density + force instead of correction + density only; Phase C then runs
 # force_boundary instead of force_all. Off by default until validated.
-_CASCADE_FORCE = os.environ.get("V5_CASCADE_FORCE", "0") == "1"
+_CASCADE_FORCE = os.environ.get("V5_CASCADE_FORCE", "1") == "1"   # default ON since the 2026-09-17 freeze (every N56 curve job ran with it; verifier + seam evidence in docs/n56_scaling)
 # V3.4 band-voxel dispatch (2026-09-15): Phase C boundary pipelines launch
 # one thread per (band voxel, slot) instead of one per own pool slot with
 # early return (spec const 57; see common.glsl / helpers.glsl). Off by
 # default until validated.
-_BAND_VOXEL_DISPATCH = os.environ.get("V5_BAND_VOXEL_DISPATCH", "0") == "1"
+_BAND_VOXEL_DISPATCH = os.environ.get("V5_BAND_VOXEL_DISPATCH", "1") == "1"   # default ON since the 2026-09-17 freeze
 # V3.8: lanes per band voxel for the band-dispatch pipelines (spec const 58); 0 = one thread per slot.
 _BAND_SLOT_LANES = int(os.environ.get("V5_BAND_SLOT_LANES", "0"))
 # Diagnostic (2026-09-16): V5_FAKE_BAND_TEST=<column> places the boundary band
