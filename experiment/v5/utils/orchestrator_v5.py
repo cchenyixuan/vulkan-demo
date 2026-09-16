@@ -132,6 +132,11 @@ class DualGpuOrchestratorV5:
         # Stage 4: record per-frame cmd buffers (phase A/B/C)
         for sim in self.sims:
             sim.prepare_step_cmd_buffers()
+        # Stage 5: bootstrap defrag — voxel-sort the generator's initial order
+        # (see ChainOrchestratorV5.bootstrap_all); same path as the periodic
+        # defrag, pipeline idle.
+        for sim in self.sims:
+            sim.submit_defrag_and_wait()
         print(f"[OrchV5] both sims bootstrapped + step cmds ready")
 
     def step(self) -> dict:
@@ -517,6 +522,13 @@ class ChainOrchestratorV5:
             sim.bootstrap_compute()
         for sim in self.sims:
             sim.prepare_step_cmd_buffers()
+        # Bootstrap defrag (2026-09-16): the generator's initial particle order
+        # is not voxel-sorted, and without this the first defrag_cadence frames
+        # run the interior kernels 5-9x slower (2-D 4M: phase B 23.7 ms at
+        # f1000 vs 3.5 ms at f2000). Same path as the periodic defrag; the
+        # pipeline is idle here and no frame has been submitted yet.
+        for sim in self.sims:
+            sim.submit_defrag_and_wait()
         print(f"[ChainOrchV5] all {len(self.sims)} sims bootstrapped "
               f"+ step cmds ready")
 
