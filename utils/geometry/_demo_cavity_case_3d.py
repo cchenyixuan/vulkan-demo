@@ -165,7 +165,11 @@ def main() -> int:
                              "half_x = half*K + K//2 (same rule as the 2-D generator); the lid "
                              "covers the whole +y face of the fluid footprint.")
     parser.add_argument("--border", type=int, default=None,
-                        help="wall shell layers (default 2*hdx+1)")
+                        help="wall shell layers (default hdx = one support radius; the "
+                             "solver reads nothing beyond h: walls are static, get no force, "
+                             "keep rest density. Border hdx vs 2*hdx+1 verified equivalent "
+                             "on 8M K=1 and the stretched K=2 case, 2026-09-17; the older "
+                             "cavity3d_1m/2m/4m/8m cases were built with 2*hdx+1 = 9)")
     parser.add_argument("--max-per-voxel", type=int, default=128)
     parser.add_argument("--max-incoming", type=int, default=32)
     parser.add_argument("--out", default="cases/cavity3d_1m")
@@ -177,7 +181,7 @@ def main() -> int:
     dx = FLUID_HALF_EXTENT / half_index
     particle_radius = 0.5 * dx
     smoothing_length = args.hdx * dx
-    border = args.border if args.border is not None else 2 * args.hdx + 1
+    border = args.border if args.border is not None else args.hdx
 
     packing_bound = math.ceil(math.sqrt(2.0) * args.hdx ** 3)
     if args.max_per_voxel < packing_bound:

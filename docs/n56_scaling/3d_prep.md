@@ -84,7 +84,7 @@ K=8 weak geometry doubles as the fixed-N strong geometry.
 
 | block | cases | K | reference | trials | est. node time |
 |---|---|---|---|---|---|
-| strong 3-D, 64M (8M/GPU) | cavity3d_weak8_k8_64m (1608×201×201) | 2, 4, 8 | K=2 pairs on the participating GPUs (76M total incl. walls does not fit one 32 GB card at border 9; ~66M at border 4 is borderline) | 3 | refs 3 × (8M/GPU K=2 ≈ 5.5 min) + runs → ≈ 60 min |
+| strong 3-D, 64M (8M/GPU) | cavity3d_weak8_k8_64m (1608×201×201, border 4: 70.6M total) | 2, 4, 8 | K=1 on all 8 GPUs at once per trial, subsets reused for K=2/4 (fits: 23.0 GB measured locally at border 4, 1.7 fps → 29 min per reference; border 9 ≈ 24.7 GB est.) | 3 | 3 × 29 min refs + runs (K=2 ≈ 15, K=4 ≈ 8, K=8 ≈ 4 min) ×3 → ≈ 3 h |
 | strong 3-D, 32M (4M/GPU) | cavity3d_weak4_k8_32m (1272×159×159) | 2, 4, 8 | K=1 on participating GPUs (39M total fits) | 3 | ≈ 45 min |
 | cube control | cavity3d_cube_64m (401³) | 8 only | 8 × K=1? does not fit (73M total) → K=2 pairs | 3 | ≈ 25 min |
 | weak 3-D, 4M/GPU | cavity3d_weak4_k{1,2,4,8} | 1, 2, 4, 8 | K=1 on all 8 GPUs simultaneously | 3 | ≈ 35 min |
@@ -95,8 +95,12 @@ Frame times: 8M/GPU 3-D ≈ 11.6 fps single → 3000 steps ≈ 4.3 min per run; 
 ~3 min case load. Recommended switches: `V5_GHOST_POOL_FACTOR=1.0` (3-D), otherwise identical to the 2-D curve
 jobs; `V5_BAND_SLOT_LANES=0`.
 
-Open decisions before submission: wall border (9 vs 4) and whether the 64M reference uses K=2 pairs at border 9
-or K=1 at border 4.
+Update 2026-09-17 (see `bootstrap_defrag_fakeband_border.md`): wall border is now **4** by default (verified
+equivalent to 9 on 8M K=1 and the stretched K=2 case; −13% particles, +7–9% fps); the 64M stretched K=1
+reference fits one card (23.0 GB measured) and the block budget is ≈ 3 h with references shared across K;
+the bootstrap defrag removes the slow first 1000 frames (3-D 8M: 188 → 83 s), so every 3000-step run costs
+≈ 1000/fps + 2000/fps instead of 2.2 × that for the first third. Total matrix ≈ 3 h (64M strong) + 1 h (32M
+strong) + 0.5 h (cube) + 1.5 h (weak 4M + 8M) ≈ 6 node-hours plus case generation.
 
 ## Files
 
