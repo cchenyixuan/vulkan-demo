@@ -93,23 +93,33 @@ for p in points:
     p["x"] = p["margin_p50"]
     print(f"{p['label']:18s} {100 * p['eta']:5.1f}% {p['T_B']:8.2f} {p['slack_p50']:9.2f} {p['b_to_c']:6.2f} {p['margin_p50']:10.3f} {p['margin_p10']:7.3f} {p['margin_min']:7.3f} {p['n']:4d}")
 
-fig, ax = plt.subplots(figsize=(9, 5.5))
+fig, (ax, axz) = plt.subplots(1, 2, figsize=(13, 5.5), gridspec_kw={"width_ratios": [1.15, 1]})
 markers = {"2-D K=8 vs size": ("o", "#2a78d6"), "2-D fixed-N K sweep": ("s", "#eb6834"), "3-D stretched": ("^", "#2f9e5c")}
-for group, (mk, color) in markers.items():
-    ps = [p for p in points if p["group"] == group]
-    if not ps:
-        continue
-    ax.errorbar([p["x"] for p in ps], [100 * p["eta"] for p in ps], yerr=[100 * p["std"] for p in ps],
-                xerr=[[p["x"] - p["margin_p10"] for p in ps], [0 for p in ps]],
-                fmt=mk, color=color, capsize=3, markersize=7, linestyle="none", label=group)
-    for p in ps:
-        ax.annotate(p["label"].replace("2-D ", "").replace("3-D ", ""), (p["x"], 100 * p["eta"]), textcoords="offset points", xytext=(6, -3 if "3-D" in p["label"] else 4), fontsize=7, color=color)
-ax.axvline(0, color="#888", linestyle=":", linewidth=1)
+for a, zoom in ((ax, False), (axz, True)):
+    for group, (mk, color) in markers.items():
+        ps = [p for p in points if p["group"] == group and (not zoom or p["eta"] > 0.88)]
+        if not ps:
+            continue
+        a.errorbar([p["x"] for p in ps], [100 * p["eta"] for p in ps], yerr=[100 * p["std"] for p in ps],
+                   fmt=mk, color=color, capsize=3, markersize=7, linestyle="none", label=group)
+        if zoom:
+            for p in ps:
+                a.annotate(p["label"].replace("2-D ", "").replace("3-D ", "") + (" (3-D)" if "3-D" in p["label"] else ""),
+                           (p["x"], 100 * p["eta"]), textcoords="offset points", xytext=(5, 3), fontsize=7, color=color)
+        else:
+            for p in ps:
+                if p["eta"] <= 0.88:
+                    a.annotate(p["label"], (p["x"], 100 * p["eta"]), textcoords="offset points", xytext=(6, 4), fontsize=7, color=color)
+    a.axvline(0, color="#888", linestyle=":", linewidth=1); a.grid(alpha=0.3)
 ax.set_xscale("symlog", linthresh=1.0, linscale=2.0); ax.set_xlim(-8, 1.05)
 ax.set_xticks([-6, -3, -1, -0.5, 0, 0.25, 0.5, 0.75, 1]); ax.set_xticklabels(["−6", "−3", "−1", "−0.5", "0", "0.25", "0.5", "0.75", "1"])
-ax.set_xlabel("hiding margin (T_B − t_transport) / T_B of the binding link, p50 over frames (x-bar to p10); < 0: phase C waited")
-ax.set_ylabel("standardized strong-scaling efficiency η (%)"); ax.grid(alpha=0.3)
-ax.set_title("All strong-scaling points vs their transport hiding margin (one node, 8× RTX 5090)", fontsize=9)
+ax.set_xlabel("hiding margin (T_B − t_transport) / T_B of the binding link, p50 over frames; < 0: phase C waited")
+ax.set_ylabel("standardized strong-scaling efficiency η (%)")
+ax.set_title("All 15 strong-scaling points (one node, 8× RTX 5090)", fontsize=9)
 ax.legend(fontsize=8, loc="lower right")
+axz.set_xlim(0.3, 0.95); axz.set_ylim(90, 99.5); axz.set_xlabel("hiding margin (zoom on the hidden regime, η > 88%)")
+axz.set_title("Hidden regime: η ordered by K, not by margin", fontsize=9)
+for K, y in ((2, 97.6), (4, 94.4), (8, 92.3)):
+    axz.text(0.31, y, f"K={K}", fontsize=8, color="#555", va="center")
 fig.tight_layout(); fig.savefig(out_dir / "eta_vs_hiding_margin.png", dpi=140); print("saved", out_dir / "eta_vs_hiding_margin.png")
 json.dump(points, open(out_dir / "hiding_margin_points.json", "w"), indent=1)
