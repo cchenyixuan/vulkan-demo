@@ -50,6 +50,28 @@ per frame; the plotted x is the p50 over frames (x-bar down to the p10). y = sta
   `phase_offset_trace.md`: the faster card drifts ahead until its C waits). Those frames cost the 0.2–0.9 ms
   b→c gaps seen at K=2/4 in 3-D.
 
+### Log-axis version and hidden-regime model (2026-09-17, second pass)
+
+The figure now uses r = t_transport / T_B = 1 − margin on a log axis (r < 1 hidden, r > 1 exposed; the
+2-D 4M / 16M / 32M K=8 points at r = 7.1 / 1.25 / 0.75). For the twelve hidden points the per-frame excess
+over the ideal period, excess = T_ideal (1/η − 1) with T_ideal = T_ref / K, was fitted per dimension:
+
+| model | 2-D (6 points) | 3-D (6 points) | points whose residual exceeds their error bar |
+|---|---|---|---|
+| A: excess = α + β (K−1) | α = 0.75 ms, β = 0.18 ms per extra GPU | α = 5.82 ms, β = −0.14 ms | 10 of 12 |
+| B: excess = α + β (K−1) + γ · T_ideal | α = 0.15 ms, β = 0.19 ms, γ = 1.75% of the frame | α = 3.34 ms, β = 0.15 ms, γ = 1.06% | 8 of 12 |
+
+Residuals of model B (measured − model, points of η): 2-D 64M K=8 **+2.4**, 128M K=8 −0.4, 64M K=2 +0.7,
+64M K=4 **−1.3**, 32M K=2 −0.1, 32M K=4 −0.9; 3-D 64M K=2 +0.1, 64M K=4 −0.5, 64M K=8 **−1.0**, 32M K=2 +0.3,
+32M K=4 −0.4, 32M K=8 **+2.6**. The error bars are 0.1–0.5 points, so neither model is statistically
+adequate: the residual rms is ≈ 1.2 points. The structure of the residuals is the finding — the K=8 points at
+4–9M per GPU (2-D 64M, 3-D 32M) are 2.4–2.6 points *better* than a smooth floor model, the K=4 points are
+0.5–1.3 points *worse* — i.e. the non-scaling excess is not linear in K − 1: the K=4 runs carry the largest
+c→a gaps (3-D 64M K=4: 1.38 ms vs 0.01 at K=2; 2-D 64M K=4: 0.50 + 0.37 ms), while at K=8 the shorter slabs
+bring the band work back into an efficient regime. Any paper statement should therefore quote the measured
+points and the ledger, and use the model only for the two coarse constants: ≈ 1–2% of the frame plus
+0.2 ms per extra GPU (2-D), ≈ 1% plus a 3.3 ms floor (3-D).
+
 ## 2. 3-D anatomy vs K — `anatomy_vs_k_3d.png`
 
 Per-GPU frame (ms, f1000, all GPUs, 3 trials; K=1 = the 8-GPU reference set); gaps split into c→a (queue ran
