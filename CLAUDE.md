@@ -11,6 +11,8 @@ Cross-vendor is an intentional robustness test, not the primary deployment const
 
 ## Current State
 
+**V0 = the reference single-GPU solver.** It has no formal name in the repo: `utils/sph/` (`SphSimulator`, `VulkanContext`, case loader) + `shaders/sph/` + `_run_viewer.py`. Its loop is synchronous, one `vkQueueSubmit` + fence wait per step (1 frame in flight), and it has no headless runner of its own — `_run_single_baseline_bench.py` (repo root) is its benchmark entry point and can also drive it with N frames in flight (fence ring over the SIMULTANEOUS_USE step cmd). Two V0 gotchas fixed/found 2026-09-23: (1) `_build_compute_pipelines` freed the stage wrappers (`pName` buffer) before `vkCreateComputePipelines` ran → intermittent `VK_ERROR_UNKNOWN`; fixed by keeping them alive. (2) V0's `VulkanContext` indexes the RAW physical-device order (this rig: 5090-display, iGPU, 5090-headless) while V5 sorts discrete-first (5090, 5090, iGPU) — `--device 1` is the iGPU for V0 but the headless 5090 for V5; pin by UUID (`--gpu-uuid`, headless 5090 = `ae137c668a40f5acaab90a83f7cda175`).
+
 **Phase 1 complete** (`main_multigpu_particles.py`): 10M particle cross-GPU migration demo. CPU-staged migration via host-visible buffers. Ping-pong particle buffers, atomic counters, `vkCmdDrawIndirect` for variable alive count. Resize-resilient (recovered from acquire/present failures without state corruption). Validated: total particle count conserved; visible asymmetric GPU load (4060Ti ~38fps vs 7900XTX ~140fps at peak).
 
 **Phase 2 (shared memory)** result is hardware-pair-dependent:
@@ -25,6 +27,11 @@ Cross-vendor is an intentional robustness test, not the primary deployment const
 
 ```
 vulkan-demo/
+├── _run_viewer.py                # V0 (reference single-GPU SPH solver) live viewer
+├── _run_single_baseline_bench.py # headless bench: V0 or V5-single, 1..N frames in flight, UUID-pinned GPU
+├── _run_single_baseline_campaign.py  # V0-vs-V5 single-GPU campaign (sizes × depth × trials + telemetry)
+├── _summarize_single_baseline.py # tables (mean ± std, trial-wise ratios) + figure for the campaign
+├── _run_kernel_breakdown.py      # per-kernel GPU timestamps for V0 and V5-single on the same case
 ├── main_multigpu_particles.py    # Phase 1 reference demo (kept for SPH cross-GPU pattern reuse)
 ├── probe_external.py              # cross-vendor memory/semaphore capability probe
 ├── probe_interop.py               # actual OPAQUE_WIN32 export/import test
@@ -124,6 +131,21 @@ A different machine from the table above. **The FAST card is now the NV 5090, an
 **NO P2P on consumer GeForce** (the gate failed): OPAQUE_WIN32 external-memory import fails even NV→NV (`vkGetMemoryWin32HandlePropertiesKHR`→INITIALIZATION_FAILED, alloc→OUT_OF_DEVICE_MEMORY; correct probe `experiment/v5/_probe_p2p_interop.py`) AND `VK_KHR_device_group` puts the two 5090s in separate groups of 1 (no NVLink/SLI). **So the V3.2 P2P-backend premise is dead — even 2×5090 uses the same host-staging as cross-vendor; nothing to build.** "Consumer GeForce has no usable P2P" is itself a paper finding.
 
 2×5090 curve (host-staged, symmetric w=1.0 from 4M up, all drift=0): 1M 612fps/η60.3% · 2M 422/80.5% · 4M 235/93.6% · 6M 168/93.6% · 8M 126/92.7% · 10M 104/92.8% · 14M 71.6/93.0% · 16M 64.8/94.0%. **Headline — the η curves CROSS:** 2×5090 has higher absolute fps everywhere (~1.15–1.3×; 2M=422 smashes the 350 target) BUT its strong-scaling η **plateaus ~93–94% and never reaches the cross-vendor pair's ~99%** (and at 1M is worse, 60% vs 71%). Instrumented `b_to_c_gap` (w1.0, depth-1) splits this into two regimes: **1M = ~330µs exposed (transport-FLOORED → η60%); 8M = ~5µs (transport HIDDEN → η93%).** So small-N is genuinely transport-floored (the ~418µs host worker memcpy dominates), but **the large-N plateau is NOT transport** — it's mostly a η_strong metric artifact: η_strong=dual(N)/(2·single(N)) but each 5090 runs only N/2, and the 5090 is strongly sublinear (517 M/s@1M→553@8M), so per-GPU half-problems sit in a less-efficient regime than the single-full reference (~5–7% "loss", a reference choice not overhead; dual ≈100% vs single-on-half). Cross-vendor's 99% is partly metric-flattered (its small ~36% AMD share lands in AMD's efficient small-problem regime). Real squeezables: small-N transport (`PCIe x8/x8` riser+bifurcation → clean x16 / shared-host to skip the memcpy), `device[0]`=DISPLAY GPU (~6% extra mem-BW → move display to iGPU), depth-2 bubble. Binning/thermals NOT a factor (both boost ~2835–2895 MHz, 600W limit, no throttle). Curve dev: `experiment/v5/`; figures `docs/compare_{eta,fps}.png`; details `docs/sph_v4_summary.md` §3c + `memory/project-v5-2x5090-plan.md`.
+
+### Single-GPU baseline — V0 reference vs V5 single-GPU mode (measured 2026-09-23)
+
+One headless RTX 5090 (UUID-pinned), 2-D cavity 1M–32M, 3 interleaved trials per point, warmup 1000 + measured 2000–10000 steps, validation off, no timestamps, drift 0 on all 120 runs; card at its 600 W limit (~2710–2810 MHz SM) throughout. Data `logs/single_baseline_20260923/` (results.jsonl, telemetry.csv, summary.md), figure `docs/single_gpu_baseline_v0_vs_v5.png`, write-up `docs/single_gpu_baseline_v0_vs_v5.md`. Campaign `_run_single_baseline_campaign.py`, summary `_summarize_single_baseline.py`. The 1M point is `cases/lid_driven_cavity_2d_gen` (same generator/physics family as 2M–32M); the retuned `lid_driven_cavity_2d` is listed as `1m_orig`.
+
+| size | V0 sync (fps) | V0 2-in-flight | V5 sync | V5 2-in-flight | V5/V0 (2-in-flight) |
+|---|---|---|---|---|---|
+| 1M | 519.0 ± 4.3 | 546.2 ± 1.1 | 505.0 ± 0.3 | 528.5 ± 0.1 | 96.8% |
+| 2M | 267.1 | 274.2 | 259.0 | 265.5 | 96.8% |
+| 4M | 129.8 | 131.7 | 124.1 | 126.3 | 95.9% |
+| 8M | 69.9 | 70.4 | 67.2 | 67.8 | 96.2% |
+| 16M | 35.4 | 35.6 | 34.1 | 34.4 | 96.5% |
+| 32M | 18.2 | 18.3 | 17.6 | 17.7 | 96.9% |
+
+**Headline:** the multi-GPU solver in single-GPU mode runs at **95.6–97.4% of V0** (≈3.2% cost, flat in N, std ≤0.8%); on the retuned `1m_orig` case 93%. Two frames in flight are worth +5.3% at 1M (both solvers) and fade to +0.3% at 32M — the exposed CPU submit bubble is ~100 µs/step. Per-particle throughput ~540–590 M particle-steps/s for both. `SHARING_MODE_CONCURRENT` is NOT the cause of the 3% (A/B with the new single-GPU-only diagnostic `V5_CONCURRENT_BUFFERS=0`: ≤1.2% at 8M/2-in-flight, 0 at 2M and 32M). Per-kernel timestamps (`_run_kernel_breakdown.py`, 2M + 8M): predict / update_voxel / correction identical to the µs; the whole gap is **density +5% and force +6–7%** (the two kernels with the heaviest per-neighbor reads) — inner-loop source is identical, so it is the slab-friendly x-slowest `voxel_id` encoding's memory-locality cost, not ghost/migration/sync logic (which never executes in single mode). Sync-loop CPU bubble measured ≈165 µs/step at 2M.
 
 ## SPH Architecture Plan
 

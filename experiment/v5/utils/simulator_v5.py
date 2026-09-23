@@ -683,8 +683,13 @@ class SphSimulatorV5:
         buffers: dict[str, _Buffer] = {}
         total = 0
         concurrent_count = 0
+        # V5_CONCURRENT_BUFFERS=0 is a SINGLE-GPU diagnostic only: it keeps
+        # every buffer EXCLUSIVE to the compute family so the cost of
+        # CONCURRENT sharing can be measured against the V0 reference. A
+        # multi-GPU run needs CONCURRENT for the transfer-queue DMA.
+        concurrent_enabled = os.environ.get("V5_CONCURRENT_BUFFERS", "1") == "1"
         for spec in self._buffer_specs:
-            shared = spec.name in _CONCURRENT_BUFFER_NAMES
+            shared = concurrent_enabled and spec.name in _CONCURRENT_BUFFER_NAMES
             buffers[spec.name] = self._allocate_buffer(
                 spec.size, spec.usage,
                 required_properties=VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
