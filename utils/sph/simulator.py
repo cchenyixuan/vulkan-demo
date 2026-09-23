@@ -712,6 +712,15 @@ class SphSimulator:
     def _build_compute_pipelines(self) -> dict:
         """One VkPipeline per shader, all sharing pipeline_layout + spec_info."""
         create_infos = []
+        # Keep every stage wrapper alive until vkCreateComputePipelines has
+        # returned. VkComputePipelineCreateInfo copies the stage struct by
+        # value, but the struct's pName points at a cffi string buffer owned
+        # by the python-vulkan wrapper; rebinding `stage` each iteration freed
+        # that buffer for all but the last pipeline, leaving the driver to
+        # read "main" from released memory. Symptom (measured 2026-09-23 on
+        # RTX 5090 / driver 576.88): intermittent VK_ERROR_UNKNOWN from
+        # vkCreateComputePipelines depending on heap layout.
+        stages = []
         for name in SHADER_NAMES:
             stage = VkPipelineShaderStageCreateInfo(
                 stage=VK_SHADER_STAGE_COMPUTE_BIT,
@@ -719,6 +728,7 @@ class SphSimulator:
                 pName="main",
                 pSpecializationInfo=self.spec_info,
             )
+            stages.append(stage)
             create_infos.append(VkComputePipelineCreateInfo(
                 stage=stage,
                 layout=self.pipeline_layout,
@@ -731,6 +741,7 @@ class SphSimulator:
             create_infos,
             None,
         )
+        del stages
         return dict(zip(SHADER_NAMES, result))
 
     def _build_defrag_pipeline(self):
