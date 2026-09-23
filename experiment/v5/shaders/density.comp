@@ -123,9 +123,13 @@ void process_particle(uint self_particle_id) {
     // ------------------------------------------------------------------------
     // 27-voxel neighbor loop (9 in 2D).
     // ------------------------------------------------------------------------
-    for (int delta_z = -neighbor_z_range; delta_z <= neighbor_z_range; delta_z++) {
-        for (int delta_y = -1; delta_y <= 1; delta_y++) {
-            for (int delta_x = -1; delta_x <= 1; delta_x++) {
+    // Innermost loop follows the fastest-varying axis of the x-slowest
+    // voxel_id encoding (y), so consecutive neighbor voxels are adjacent
+    // in memory. Measured 2026-09-23 on RTX 5090: with dx innermost,
+    // density and force ran 5-7% slower than the x-fastest V0 layout.
+    for (int delta_x = -1; delta_x <= 1; delta_x++) {
+        for (int delta_z = -neighbor_z_range; delta_z <= neighbor_z_range; delta_z++) {
+            for (int delta_y = -1; delta_y <= 1; delta_y++) {
                 ivec3 neighbor_coord = self_voxel_coord + ivec3(delta_x, delta_y, delta_z);
                 if (!in_own_grid(neighbor_coord)) continue;
 
