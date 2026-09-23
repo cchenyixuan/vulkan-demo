@@ -1,0 +1,230 @@
+[migration] frame   1000  interval AMD=    0 NV=   10  |  peak/run AMD=    0 NV=   10  |  peak_tail AMD=0 (0.0%) NV=1,034,650 (43.6%)  |  drops AMD=0 NV=0
+[migration] frame   2000  interval AMD=    0 NV=   25  |  peak/run AMD=    0 NV=   25  |  peak_tail AMD=0 (0.0%) NV=1,034,675 (43.6%)  |  drops AMD=0 NV=0
+[bench] frames 1001..2000  fps= 416.9  (wall 4.8s)
+  frame_total_us                          mean=  2376.1us  p50=  2310.2us  p99=  3943.3us  n=1000
+  gpu_a_a_to_b_gap_us                     mean=    29.3us  p50=     4.9us  p99=   251.4us  n=1000
+  gpu_a_b_to_c_gap_us                     mean= -1177.1us  p50= -1092.1us  p99=   506.6us  n=1000
+  gpu_a_correction_boundary_us            mean=    79.9us  p50=    77.8us  p99=    78.6us  n=1000
+  gpu_a_correction_interior_us            mean=   469.3us  p50=   466.4us  p99=   492.5us  n=1000
+  gpu_a_defrag_us                         mean=  2320.6us  p50=  2320.6us  p99=  2320.6us  n=1
+  gpu_a_density_deep_interior_us          mean=   486.4us  p50=   483.3us  p99=   504.1us  n=1000
+  gpu_a_density_us                        mean=   161.6us  p50=   157.7us  p99=   158.0us  n=1000
+  gpu_a_force_us                          mean=    77.7us  p50=    77.6us  p99=    78.6us  n=1000
+  gpu_a_ghost_send_trailing_us            mean=    79.4us  p50=    78.1us  p99=    82.2us  n=1000
+  gpu_a_install_trailing_us               mean=     5.0us  p50=     4.9us  p99=     6.7us  n=1000
+  gpu_a_phase_a_us                        mean=   166.9us  p50=   165.9us  p99=   171.3us  n=1000
+  gpu_a_phase_b_us                        mean=  1570.2us  p50=  1560.6us  p99=  1886.5us  n=1000
+  gpu_a_phase_c_us                        mean=   324.2us  p50=   318.0us  p99=   525.3us  n=1000
+  gpu_a_predict_us                        mean=    64.4us  p50=    64.3us  p99=    68.1us  n=1000
+  gpu_a_readback_trailing_barrier_us      mean=     0.9us  p50=     1.0us  p99=     1.3us  n=1000
+  gpu_a_readback_trailing_dma_us          mean=   241.7us  p50=   233.7us  p99=   642.6us  n=1000
+  gpu_a_readback_trailing_sched_gap_us    mean=    52.2us  p50=    42.2us  p99=   126.0us  n=1000
+  gpu_a_update_voxel_us                   mean=    23.1us  p50=    22.5us  p99=    24.6us  n=1000
+  gpu_a_upload_trailing_dma_us            mean=   282.8us  p50=   274.9us  p99=   490.8us  n=1000
+  gpu_a_upload_trailing_to_c_gap_us       mean=  -913.3us  p50=  -935.4us  p99=   487.7us  n=1000
+  gpu_b_a_to_b_gap_us                     mean=    16.1us  p50=     5.6us  p99=   185.3us  n=1000
+  gpu_b_b_to_c_gap_us                     mean= -1178.2us  p50= -1137.8us  p99=   448.5us  n=1000
+  gpu_b_correction_boundary_us            mean=    80.4us  p50=    79.9us  p99=    81.9us  n=1000
+  gpu_b_correction_interior_us            mean=   479.3us  p50=   478.7us  p99=   496.4us  n=1000
+  gpu_b_defrag_us                         mean=  2398.2us  p50=  2398.2us  p99=  2398.2us  n=1
+  gpu_b_density_deep_interior_us          mean=   512.5us  p50=   513.0us  p99=   526.1us  n=1000
+  gpu_b_density_us                        mean=   165.2us  p50=   164.9us  p99=   166.9us  n=1000
+  gpu_b_force_us                          mean=    83.2us  p50=    84.0us  p99=    85.0us  n=1000
+  gpu_b_ghost_send_leading_us             mean=    84.4us  p50=    84.2us  p99=    86.8us  n=1000
+  gpu_b_install_leading_us                mean=     5.0us  p50=     4.9us  p99=     9.0us  n=1000
+  gpu_b_phase_a_us                        mean=   170.8us  p50=   170.5us  p99=   174.8us  n=1000
+  gpu_b_phase_b_us                        mean=  1622.1us  p50=  1622.1us  p99=  1646.8us  n=1000
+  gpu_b_phase_c_us                        mean=   333.8us  p50=   333.6us  p99=   337.9us  n=1000
+  gpu_b_predict_us                        mean=    63.6us  p50=    63.5us  p99=    66.3us  n=1000
+  gpu_b_readback_leading_barrier_us       mean=     1.0us  p50=     1.0us  p99=     1.3us  n=1000
+  gpu_b_readback_leading_dma_us           mean=   243.4us  p50=   235.8us  p99=   643.3us  n=1000
+  gpu_b_readback_leading_sched_gap_us     mean=    50.8us  p50=    46.1us  p99=   123.9us  n=1000
+  gpu_b_update_voxel_us                   mean=    22.7us  p50=    22.5us  p99=    24.8us  n=1000
+  gpu_b_upload_leading_dma_us             mean=   287.1us  p50=   280.1us  p99=   492.5us  n=1000
+  gpu_b_upload_leading_to_c_gap_us        mean=  -799.9us  p50=  -897.2us  p99=   567.0us  n=1000
+  worker_a_to_b_memcpy_us                 mean=   590.1us  p50=   571.5us  p99=   979.5us  n=1000
+  worker_a_to_b_wait_us                   mean=   644.5us  p50=   619.1us  p99=  1321.5us  n=1000
+  worker_b_to_a_memcpy_us                 mean=   600.3us  p50=   575.8us  p99=  1358.8us  n=1000
+  worker_b_to_a_wait_us                   mean=   653.4us  p50=   629.4us  p99=  1335.1us  n=1000
+[migration] frame   3000  interval AMD=    0 NV=   33  |  peak/run AMD=    0 NV=   33  |  peak_tail AMD=0 (0.0%) NV=1,034,708 (43.6%)  |  drops AMD=0 NV=0
+[bench] frames 2001..3000  fps= 413.2  (wall 7.3s)
+  frame_total_us                          mean=  2375.7us  p50=  2316.7us  p99=  4087.7us  n=1000
+  gpu_a_a_to_b_gap_us                     mean=    31.6us  p50=     4.6us  p99=   284.7us  n=1000
+  gpu_a_b_to_c_gap_us                     mean= -1176.9us  p50= -1119.7us  p99=   491.3us  n=1000
+  gpu_a_correction_boundary_us            mean=    79.6us  p50=    77.8us  p99=    79.9us  n=1000
+  gpu_a_correction_interior_us            mean=   473.6us  p50=   472.3us  p99=   495.4us  n=1000
+  gpu_a_defrag_us                         mean=  2352.9us  p50=  2352.9us  p99=  2352.9us  n=1
+  gpu_a_density_deep_interior_us          mean=   498.7us  p50=   495.0us  p99=   518.7us  n=1000
+  gpu_a_density_us                        mean=   159.6us  p50=   157.7us  p99=   159.7us  n=1000
+  gpu_a_force_us                          mean=    78.1us  p50=    78.6us  p99=    79.6us  n=1000
+  gpu_a_ghost_send_trailing_us            mean=    82.6us  p50=    82.2us  p99=    84.5us  n=1000
+  gpu_a_install_trailing_us               mean=     5.0us  p50=     4.9us  p99=     6.7us  n=1000
+  gpu_a_phase_a_us                        mean=   169.4us  p50=   168.7us  p99=   174.1us  n=1000
+  gpu_a_phase_b_us                        mean=  1593.1us  p50=  1582.6us  p99=  1825.0us  n=1000
+  gpu_a_phase_c_us                        mean=   322.4us  p50=   319.0us  p99=   324.6us  n=1000
+  gpu_a_predict_us                        mean=    64.1us  p50=    64.0us  p99=    67.1us  n=1000
+  gpu_a_readback_trailing_barrier_us      mean=     1.0us  p50=     1.0us  p99=     1.3us  n=1000
+  gpu_a_readback_trailing_dma_us          mean=   241.6us  p50=   235.8us  p99=   640.5us  n=1000
+  gpu_a_readback_trailing_sched_gap_us    mean=    52.6us  p50=    42.0us  p99=   137.7us  n=1000
+  gpu_a_update_voxel_us                   mean=    22.6us  p50=    22.5us  p99=    24.6us  n=1000
+  gpu_a_upload_trailing_dma_us            mean=   278.4us  p50=   272.9us  p99=   528.4us  n=1000
+  gpu_a_upload_trailing_to_c_gap_us       mean=  -876.1us  p50=  -914.2us  p99=   541.4us  n=1000
+  gpu_b_a_to_b_gap_us                     mean=    17.9us  p50=     5.6us  p99=   209.9us  n=1000
+  gpu_b_b_to_c_gap_us                     mean= -1185.1us  p50= -1128.4us  p99=   640.8us  n=1000
+  gpu_b_correction_boundary_us            mean=    80.7us  p50=    79.9us  p99=    81.9us  n=1000
+  gpu_b_correction_interior_us            mean=   483.4us  p50=   482.8us  p99=   503.3us  n=1000
+  gpu_b_defrag_us                         mean=  2376.7us  p50=  2376.7us  p99=  2376.7us  n=1
+  gpu_b_density_deep_interior_us          mean=   517.4us  p50=   517.4us  p99=   533.2us  n=1000
+  gpu_b_density_us                        mean=   163.2us  p50=   162.8us  p99=   166.9us  n=1000
+  gpu_b_force_us                          mean=    82.8us  p50=    81.9us  p99=    84.0us  n=1000
+  gpu_b_ghost_send_leading_us             mean=    84.5us  p50=    84.2us  p99=    86.8us  n=1000
+  gpu_b_install_leading_us                mean=     5.0us  p50=     4.9us  p99=     9.2us  n=1000
+  gpu_b_phase_a_us                        mean=   170.8us  p50=   170.5us  p99=   174.6us  n=1000
+  gpu_b_phase_b_us                        mean=  1633.3us  p50=  1633.0us  p99=  1663.0us  n=1000
+  gpu_b_phase_c_us                        mean=   331.6us  p50=   331.5us  p99=   337.7us  n=1000
+  gpu_b_predict_us                        mean=    63.6us  p50=    63.5us  p99=    66.0us  n=1000
+  gpu_b_readback_leading_barrier_us       mean=     1.0us  p50=     1.0us  p99=     1.3us  n=1000
+  gpu_b_readback_leading_dma_us           mean=   243.0us  p50=   237.8us  p99=   645.9us  n=1000
+  gpu_b_readback_leading_sched_gap_us     mean=    50.9us  p50=    45.6us  p99=   120.8us  n=1000
+  gpu_b_update_voxel_us                   mean=    22.7us  p50=    22.5us  p99=    24.8us  n=1000
+  gpu_b_upload_leading_dma_us             mean=   283.0us  p50=   278.5us  p99=   508.7us  n=1000
+  gpu_b_upload_leading_to_c_gap_us        mean=  -782.0us  p50=  -874.4us  p99=   617.2us  n=1000
+  worker_a_to_b_memcpy_us                 mean=   587.1us  p50=   570.0us  p99=   915.7us  n=1000
+  worker_a_to_b_wait_us                   mean=   646.9us  p50=   617.8us  p99=  1275.9us  n=1000
+  worker_b_to_a_memcpy_us                 mean=   594.3us  p50=   574.4us  p99=  1026.1us  n=1000
+  worker_b_to_a_wait_us                   mean=   655.7us  p50=   628.3us  p99=  1297.4us  n=1000
+[migration] frame   4000  interval AMD=   77 NV=   41  |  peak/run AMD=   77 NV=   41  |  peak_tail AMD=1,030,338 (43.4%) NV=1,034,749 (43.6%)  |  drops AMD=0 NV=0
+[bench] frames 3001..4000  fps= 409.3  (wall 9.8s)
+  frame_total_us                          mean=  2422.6us  p50=  2349.4us  p99=  4261.4us  n=1000
+  gpu_a_a_to_b_gap_us                     mean=    36.5us  p50=     4.9us  p99=   310.0us  n=1000
+  gpu_a_b_to_c_gap_us                     mean= -1195.3us  p50= -1102.0us  p99=  1010.7us  n=1000
+  gpu_a_correction_boundary_us            mean=    81.6us  p50=    79.9us  p99=    81.9us  n=1000
+  gpu_a_correction_interior_us            mean=   480.1us  p50=   476.7us  p99=   504.8us  n=1000
+  gpu_a_defrag_us                         mean=  2370.0us  p50=  2370.0us  p99=  2370.0us  n=1
+  gpu_a_density_deep_interior_us          mean=   501.8us  p50=   495.9us  p99=   520.7us  n=1000
+  gpu_a_density_us                        mean=   159.2us  p50=   157.7us  p99=   160.8us  n=1000
+  gpu_a_force_us                          mean=    81.0us  p50=    78.6us  p99=    80.6us  n=1000
+  gpu_a_ghost_send_trailing_us            mean=    79.3us  p50=    79.9us  p99=    82.2us  n=1000
+  gpu_a_install_trailing_us               mean=     5.7us  p50=     4.9us  p99=     9.5us  n=1000
+  gpu_a_phase_a_us                        mean=   166.5us  p50=   166.1us  p99=   171.3us  n=1000
+  gpu_a_phase_b_us                        mean=  1609.4us  p50=  1596.4us  p99=  1974.3us  n=1000
+  gpu_a_phase_c_us                        mean=   327.5us  p50=   321.3us  p99=   527.1us  n=1000
+  gpu_a_predict_us                        mean=    64.5us  p50=    64.0us  p99=    68.6us  n=1000
+  gpu_a_readback_trailing_barrier_us      mean=     1.0us  p50=     1.0us  p99=     1.3us  n=1000
+  gpu_a_readback_trailing_dma_us          mean=   243.1us  p50=   233.6us  p99=   673.5us  n=1000
+  gpu_a_readback_trailing_sched_gap_us    mean=    54.0us  p50=    43.8us  p99=   138.8us  n=1000
+  gpu_a_update_voxel_us                   mean=    22.7us  p50=    22.5us  p99=    24.6us  n=1000
+  gpu_a_upload_trailing_dma_us            mean=   285.1us  p50=   275.5us  p99=   602.4us  n=1000
+  gpu_a_upload_trailing_to_c_gap_us       mean=  -898.1us  p50=  -911.5us  p99=   701.4us  n=1000
+  gpu_b_a_to_b_gap_us                     mean=    18.0us  p50=     5.6us  p99=   216.1us  n=1000
+  gpu_b_b_to_c_gap_us                     mean= -1201.3us  p50= -1155.2us  p99=  1091.8us  n=1000
+  gpu_b_correction_boundary_us            mean=    83.6us  p50=    84.0us  p99=    84.0us  n=1000
+  gpu_b_correction_interior_us            mean=   492.7us  p50=   492.5us  p99=   510.2us  n=1000
+  gpu_b_defrag_us                         mean=  2382.6us  p50=  2382.6us  p99=  2382.6us  n=1
+  gpu_b_density_deep_interior_us          mean=   525.5us  p50=   525.8us  p99=   543.0us  n=1000
+  gpu_b_density_us                        mean=   165.7us  p50=   165.9us  p99=   167.9us  n=1000
+  gpu_b_force_us                          mean=    80.7us  p50=    79.9us  p99=    81.9us  n=1000
+  gpu_b_ghost_send_leading_us             mean=    85.0us  p50=    84.2us  p99=    87.8us  n=1000
+  gpu_b_install_leading_us                mean=     5.0us  p50=     4.9us  p99=     9.2us  n=1000
+  gpu_b_phase_a_us                        mean=   171.8us  p50=   171.8us  p99=   176.4us  n=1000
+  gpu_b_phase_b_us                        mean=  1656.8us  p50=  1656.2us  p99=  1691.6us  n=1000
+  gpu_b_phase_c_us                        mean=   335.0us  p50=   334.8us  p99=   340.5us  n=1000
+  gpu_b_predict_us                        mean=    64.2us  p50=    63.7us  p99=    67.6us  n=1000
+  gpu_b_readback_leading_barrier_us       mean=     1.0us  p50=     1.0us  p99=     1.3us  n=1000
+  gpu_b_readback_leading_dma_us           mean=   244.5us  p50=   235.5us  p99=   707.6us  n=1000
+  gpu_b_readback_leading_sched_gap_us     mean=    51.1us  p50=    45.6us  p99=   129.8us  n=1000
+  gpu_b_update_voxel_us                   mean=    22.7us  p50=    22.5us  p99=    24.6us  n=1000
+  gpu_b_upload_leading_dma_us             mean=   289.9us  p50=   280.3us  p99=   609.8us  n=1000
+  gpu_b_upload_leading_to_c_gap_us        mean=  -793.7us  p50=  -884.4us  p99=   592.1us  n=1000
+  worker_a_to_b_memcpy_us                 mean=   596.5us  p50=   572.5us  p99=  1277.2us  n=1000
+  worker_a_to_b_wait_us                   mean=   649.5us  p50=   622.7us  p99=  1259.9us  n=1000
+  worker_b_to_a_memcpy_us                 mean=   605.0us  p50=   575.8us  p99=  1330.7us  n=1000
+  worker_b_to_a_wait_us                   mean=   658.8us  p50=   632.5us  p99=  1276.8us  n=1000
+[bench_v5_dual] case=cases/lid_driven_cavity_2d_2m/case.yaml
+[bench_v5_dual] device_a=0 device_b=1 weights=[1.0, 1.0]  max_steps=4000  warmup=1000
+[case_loader_v5] loading lid_driven_cavity_2d_2m
+  - domain.obj: 2,002,225 particles (stick_water)
+  - wall.obj: 47,179 particles (stick_wall)
+  - wall_top.obj: 15,565 particles (stick_lid)
+[case_loader_v5] total loaded: 2,064,969 particles
+[case_loader_v5] grid: dim=(288, 288, 1) origin=(-0.5099719833068848, -0.5099719833068848, -0.001768)
+[partition_v5] chain N=2: columns [0,144), [144,288) of 288; particles 1,030,329, 1,034,640
+[VulkanContextV5] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV5] selected: [0] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV5] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV5] transfer queues: 1 (shared)
+[VulkanContextV5] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV5] selected: [1] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV5] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV5] transfer queues: 1 (shared)
+[bench_v5_dual] sync_scheme=aggregated
+[SimV5] device-local buffers: 19, 358.06 MB (12 CONCURRENT for transfer queue)
+[SimV5] defrag scratch buffers: 9, 321.37 MB
+[SimV5] host staging buffers: 2, 9038.3 KB (persistent-mapped)
+  sender   type[3]=HOST_VISIBLE|HOST_COHERENT|HOST_CACHED [host RAM]
+  receiver type[2]=HOST_VISIBLE|HOST_COHERENT [host RAM]
+[SimV5] compute pipelines: 21 (V5_CASCADE_FORCE=1: force_deep_interior in Phase B) (V5_BAND_VOXEL_DISPATCH=1, lanes=slots: boundary kernels over band voxels: 55,296/82,944/110,592 threads vs 2,374,784)
+[SimV5] init complete on NVIDIA GeForce RTX 5090 (own=2374784, ghost L=0 T=32256)
+[SimV5] device-local buffers: 19, 358.06 MB (12 CONCURRENT for transfer queue)
+[SimV5] defrag scratch buffers: 9, 321.37 MB
+[SimV5] host staging buffers: 2, 9038.3 KB (persistent-mapped)
+  sender   type[3]=HOST_VISIBLE|HOST_COHERENT|HOST_CACHED [host RAM]
+  receiver type[2]=HOST_VISIBLE|HOST_COHERENT [host RAM]
+[SimV5] compute pipelines: 21 (V5_CASCADE_FORCE=1: force_deep_interior in Phase B) (V5_BAND_VOXEL_DISPATCH=1, lanes=slots: boundary kernels over band voxels: 55,296/82,944/110,592 threads vs 2,374,784)
+[SimV5] init complete on NVIDIA GeForce RTX 5090 (own=2374784, ghost L=32256 T=0)
+[bench_v5_dual] timestampPeriod a=1.0000ns  b=1.0000ns
+[OrchV5] workers started (a_to_b, b_to_a)
+[SimV5] uploaded initial state (5 payload buffers)
+[SimV5] uploaded initial state (5 payload buffers)
+[OrchV5] bootstrap ghost sync: bridged 4519.1 KB each way
+[SimV5] bootstrap done: alive=1030329 overflow_inside=0 overflow_incoming=0
+[SimV5] bootstrap done: alive=1034640 overflow_inside=0 overflow_incoming=0
+[SimV5] step cmd buffers recorded (phase A/B/C + 1 readback + 1 upload on transfer Q)
+[SimV5] V5_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 1 readback, 1 upload), raw waits/signals
+[SimV5] step cmd buffers recorded (phase A/B/C + 1 readback + 1 upload on transfer Q)
+[SimV5] V5_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 1 readback, 1 upload), raw waits/signals
+[OrchV5] both sims bootstrapped + step cmds ready
+[bench_v5_dual] 4000 steps in 9.78s = 409.0 fps
+[bench_v5_dual] final: a=1,030,297 b=1,034,672 total=2,064,969 (expected 2,064,969)
+[bench_v5_dual] pool_health[AMD/a]: peak_tail=1,030,338 / own_pool=2,374,784  used=43.4%  margin=1,344,446  peak_migration=77  install_tail_drops=0
+[bench_v5_dual] pool_health[NV/b]: peak_tail=1,034,749 / own_pool=2,374,784  used=43.6%  margin=1,340,035  peak_migration=41  install_tail_drops=0

@@ -312,7 +312,14 @@ def plot(out_dir: pathlib.Path, rows, docs_png: pathlib.Path | None) -> pathlib.
     ax_ratio.set_xlabel("particles (fluid + wall)")
     ax_ratio.legend(frameon=False, fontsize=8, loc="lower right")
     ax_ratio.grid(True, which="major", axis="y")
-    ax_ratio.set_ylim(94, 101)
+    ratio_values = []
+    for depth in (1, 2):
+        for tag in sizes:
+            mean, std, n = trialwise_ratio(rows, tag, ("v5", depth), ("v0", depth))
+            if n:
+                ratio_values += [100 * (mean - std), 100 * (mean + std)]
+    if ratio_values:
+        ax_ratio.set_ylim(min(99.0, min(ratio_values) - 1.0), max(101.0, max(ratio_values) + 1.0))
     # Label the power-of-two sizes only (1M..32M); the others get unlabeled
     # minor ticks so 14M and 16M do not collide.
     labeled = [tag for tag in sizes if tag in ("1m", "2m", "4m", "8m", "16m", "32m")]

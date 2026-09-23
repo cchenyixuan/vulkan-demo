@@ -1,0 +1,262 @@
+[case_loader_v5] loading lid_driven_cavity_2d_2m
+  - domain.obj: 2,002,225 particles (stick_water)
+  - wall.obj: 47,179 particles (stick_wall)
+  - wall_top.obj: 15,565 particles (stick_lid)
+[case_loader_v5] total loaded: 2,064,969 particles
+[case_loader_v5] grid: dim=(288, 288, 1) origin=(-0.5099719833068848, -0.5099719833068848, -0.001768)
+
+[equiv] === run 0: K=1 (2000 steps) ===
+[VulkanContextV5] WARNING: validation layer requested but not available; continuing without.
+[partition_v5] chain N=1: columns [0,288) of 288; particles 2,064,969
+[VulkanContextV5] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV5] selected: [0] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV5] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV5] transfer queues: 1 (shared)
+[SimV5] device-local buffers: 19, 371.57 MB (12 CONCURRENT for transfer queue)
+[SimV5] defrag scratch buffers: 9, 317.07 MB
+[SimV5] host staging buffers: 0 (single-GPU mode, no peer)
+[SimV5] compute pipelines: 21 (V5_CASCADE_FORCE=1: force_deep_interior in Phase B) (V5_BAND_VOXEL_DISPATCH=1, lanes=slots: boundary kernels over band voxels: 0/0/0 threads vs 2,374,784)
+[SimV5] init complete on NVIDIA GeForce RTX 5090 (own=2374784, ghost L=0 T=0)
+[ChainOrchV5] N=1, 0 workers started ()
+[SimV5] uploaded initial state (5 payload buffers)
+[SimV5] bootstrap done: alive=2064969 overflow_inside=0 overflow_incoming=0
+[SimV5] step cmd buffers recorded (phase A/B/C + 0 readback + 0 upload on transfer Q)
+[SimV5] V5_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 0 readback, 0 upload), raw waits/signals
+[ChainOrchV5] all 1 sims bootstrapped + step cmds ready
+
+[equiv] === run 1: K=1 (2000 steps) ===
+[VulkanContextV5] WARNING: validation layer requested but not available; continuing without.
+[partition_v5] chain N=1: columns [0,288) of 288; particles 2,064,969
+[VulkanContextV5] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV5] selected: [0] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV5] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV5] transfer queues: 1 (shared)
+[SimV5] device-local buffers: 19, 371.57 MB (12 CONCURRENT for transfer queue)
+[SimV5] defrag scratch buffers: 9, 317.07 MB
+[SimV5] host staging buffers: 0 (single-GPU mode, no peer)
+[SimV5] compute pipelines: 21 (V5_CASCADE_FORCE=1: force_deep_interior in Phase B) (V5_BAND_VOXEL_DISPATCH=1, lanes=slots: boundary kernels over band voxels: 0/0/0 threads vs 2,374,784)
+[SimV5] init complete on NVIDIA GeForce RTX 5090 (own=2374784, ghost L=0 T=0)
+[ChainOrchV5] N=1, 0 workers started ()
+[SimV5] uploaded initial state (5 payload buffers)
+[SimV5] bootstrap done: alive=2064969 overflow_inside=0 overflow_incoming=0
+[SimV5] step cmd buffers recorded (phase A/B/C + 0 readback + 0 upload on transfer Q)
+[SimV5] V5_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 0 readback, 0 upload), raw waits/signals
+[ChainOrchV5] all 1 sims bootstrapped + step cmds ready
+
+[equiv] === run 2: K=2 (2000 steps) ===
+[VulkanContextV5] WARNING: validation layer requested but not available; continuing without.
+[VulkanContextV5] WARNING: validation layer requested but not available; continuing without.
+[partition_v5] chain N=2: columns [0,144), [144,288) of 288; particles 1,030,329, 1,034,640
+[VulkanContextV5] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV5] selected: [0] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV5] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV5] transfer queues: 1 (shared)
+[SimV5] device-local buffers: 19, 197.39 MB (12 CONCURRENT for transfer queue)
+[SimV5] defrag scratch buffers: 9, 169.39 MB
+[SimV5] host staging buffers: 2, 9038.3 KB (persistent-mapped)
+  sender   type[3]=HOST_VISIBLE|HOST_COHERENT|HOST_CACHED [host RAM]
+  receiver type[2]=HOST_VISIBLE|HOST_COHERENT [host RAM]
+[SimV5] compute pipelines: 21 (V5_CASCADE_FORCE=1: force_deep_interior in Phase B) (V5_BAND_VOXEL_DISPATCH=1, lanes=slots: boundary kernels over band voxels: 55,296/82,944/110,592 threads vs 1,236,480)
+[SimV5] init complete on NVIDIA GeForce RTX 5090 (own=1236480, ghost L=0 T=32256)
+[VulkanContextV5] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV5] selected: [1] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV5] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV5] transfer queues: 1 (shared)
+[SimV5] device-local buffers: 19, 198.12 MB (12 CONCURRENT for transfer queue)
+[SimV5] defrag scratch buffers: 9, 170.08 MB
+[SimV5] host staging buffers: 2, 9038.3 KB (persistent-mapped)
+  sender   type[3]=HOST_VISIBLE|HOST_COHERENT|HOST_CACHED [host RAM]
+  receiver type[2]=HOST_VISIBLE|HOST_COHERENT [host RAM]
+[SimV5] compute pipelines: 21 (V5_CASCADE_FORCE=1: force_deep_interior in Phase B) (V5_BAND_VOXEL_DISPATCH=1, lanes=slots: boundary kernels over band voxels: 55,296/82,944/110,592 threads vs 1,241,600)
+[SimV5] init complete on NVIDIA GeForce RTX 5090 (own=1241600, ghost L=32256 T=0)
+[ChainOrchV5] N=2, 2 workers started (s0_to_s1, s1_to_s0)
+[SimV5] uploaded initial state (5 payload buffers)
+[SimV5] uploaded initial state (5 payload buffers)
+[ChainOrchV5] bootstrap ghost sync: bridged 9038.3 KB over 1 links
+[SimV5] bootstrap done: alive=1030329 overflow_inside=0 overflow_incoming=0
+[SimV5] bootstrap done: alive=1034640 overflow_inside=0 overflow_incoming=0
+[SimV5] step cmd buffers recorded (phase A/B/C + 1 readback + 1 upload on transfer Q)
+[SimV5] V5_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 1 readback, 1 upload), raw waits/signals
+[SimV5] step cmd buffers recorded (phase A/B/C + 1 readback + 1 upload on transfer Q)
+[SimV5] V5_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 1 readback, 1 upload), raw waits/signals
+[ChainOrchV5] all 2 sims bootstrapped + step cmds ready
+
+[equiv] === run 3: K=2 (2000 steps) ===
+[VulkanContextV5] WARNING: validation layer requested but not available; continuing without.
+[VulkanContextV5] WARNING: validation layer requested but not available; continuing without.
+[partition_v5] chain N=2: columns [0,144), [144,288) of 288; particles 1,030,329, 1,034,640
+[VulkanContextV5] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV5] selected: [0] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV5] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV5] transfer queues: 1 (shared)
+[SimV5] device-local buffers: 19, 197.39 MB (12 CONCURRENT for transfer queue)
+[SimV5] defrag scratch buffers: 9, 169.39 MB
+[SimV5] host staging buffers: 2, 9038.3 KB (persistent-mapped)
+  sender   type[3]=HOST_VISIBLE|HOST_COHERENT|HOST_CACHED [host RAM]
+  receiver type[2]=HOST_VISIBLE|HOST_COHERENT [host RAM]
+[SimV5] compute pipelines: 21 (V5_CASCADE_FORCE=1: force_deep_interior in Phase B) (V5_BAND_VOXEL_DISPATCH=1, lanes=slots: boundary kernels over band voxels: 55,296/82,944/110,592 threads vs 1,236,480)
+[SimV5] init complete on NVIDIA GeForce RTX 5090 (own=1236480, ghost L=0 T=32256)
+[VulkanContextV5] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV5] selected: [1] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV5] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV5] transfer queues: 1 (shared)
+[SimV5] device-local buffers: 19, 198.12 MB (12 CONCURRENT for transfer queue)
+[SimV5] defrag scratch buffers: 9, 170.08 MB
+[SimV5] host staging buffers: 2, 9038.3 KB (persistent-mapped)
+  sender   type[3]=HOST_VISIBLE|HOST_COHERENT|HOST_CACHED [host RAM]
+  receiver type[2]=HOST_VISIBLE|HOST_COHERENT [host RAM]
+[SimV5] compute pipelines: 21 (V5_CASCADE_FORCE=1: force_deep_interior in Phase B) (V5_BAND_VOXEL_DISPATCH=1, lanes=slots: boundary kernels over band voxels: 55,296/82,944/110,592 threads vs 1,241,600)
+[SimV5] init complete on NVIDIA GeForce RTX 5090 (own=1241600, ghost L=32256 T=0)
+[ChainOrchV5] N=2, 2 workers started (s0_to_s1, s1_to_s0)
+[SimV5] uploaded initial state (5 payload buffers)
+[SimV5] uploaded initial state (5 payload buffers)
+[ChainOrchV5] bootstrap ghost sync: bridged 9038.3 KB over 1 links
+[SimV5] bootstrap done: alive=1030329 overflow_inside=0 overflow_incoming=0
+[SimV5] bootstrap done: alive=1034640 overflow_inside=0 overflow_incoming=0
+[SimV5] step cmd buffers recorded (phase A/B/C + 1 readback + 1 upload on transfer Q)
+[SimV5] V5_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 1 readback, 1 upload), raw waits/signals
+[SimV5] step cmd buffers recorded (phase A/B/C + 1 readback + 1 upload on transfer Q)
+[SimV5] V5_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 1 readback, 1 upload), raw waits/signals
+[ChainOrchV5] all 2 sims bootstrapped + step cmds ready
+
+[equiv] calibration (rerun = scheduling noise; K=2 = validated decomposition's chaos response):
+metric                reference  |K1-K1_rerun|        |K1-K2|       envelope
+kinetic_energy     5.263713e+00   3.411957e-06   1.006050e-05   1.006050e-05
+momentum_x         1.122643e+01   1.834341e-04   2.137349e-04   2.137349e-04
+momentum_y        -2.197388e-02   5.869795e-04   5.681402e-04   5.869795e-04
+mean_density       1.000000e+03   1.575410e-05   3.574698e-05   2.000001e-04
+max_speed          1.000000e+00   0.000000e+00   0.000000e+00   2.000000e-07
+center_x           1.592670e-05   4.338900e-09   8.859092e-09   2.000000e-07
+center_y          -5.567837e-09   2.034670e-10   5.006281e-10   2.000000e-07
+
+metric                      K=2   verdict
+kinetic_energy     1.663686e-06   PASS
+momentum_x         9.515979e-04   PASS
+momentum_y         3.627858e-05   PASS
+mean_density       2.182047e-06   PASS
+max_speed          0.000000e+00   PASS
+center_x           1.650158e-09   PASS
+center_y           3.720365e-09   PASS
+n (exact)                     0   PASS
+
+[equiv] ALL PASS
