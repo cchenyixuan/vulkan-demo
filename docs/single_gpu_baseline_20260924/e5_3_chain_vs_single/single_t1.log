@@ -1,0 +1,42 @@
+[baseline_bench] solver=v5 in_flight=2 device=1 case=cases/lid_driven_cavity_2d_8m/case.yaml warmup=1000 measure=2000
+[case_loader_v5] loading lid_driven_cavity_2d_8m
+  - domain.obj: 8,003,241 particles (stick_water)
+  - wall.obj: 93,841 particles (stick_wall)
+  - wall_top.obj: 31,119 particles (stick_lid)
+[case_loader_v5] total loaded: 8,128,201 particles
+[case_loader_v5] grid: dim=(571, 571, 1) origin=(-0.5049859916534424, -0.5049859916534424, -0.000884)
+[VulkanContextV5] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV5] selected: [1] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV5] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV5] transfer queues: 1 (shared)
+[SimV5] device-local buffers: 19, 1462.37 MB (12 CONCURRENT for transfer queue)
+[SimV5] defrag scratch buffers: 9, 1248.02 MB
+[SimV5] host staging buffers: 0 (single-GPU mode, no peer)
+[SimV5] compute pipelines: 21 (V5_CASCADE_FORCE=1: force_deep_interior in Phase B) (V5_BAND_VOXEL_DISPATCH=1, lanes=slots: boundary kernels over band voxels: 0/0/0 threads vs 9,347,456)
+[SimV5] init complete on NVIDIA GeForce RTX 5090 (own=9347456, ghost L=0 T=0)
+[SimV5] uploaded initial state (5 payload buffers)
+[SimV5] bootstrap done: alive=8128201 overflow_inside=0 overflow_incoming=0
+[SimV5] step cmd buffer recorded (single-GPU combined)
+[baseline_bench] gpu=NVIDIA GeForce RTX 5090  particles=8,128,201  load=0.2s setup=2.1s  defrag_cadence=1000
+[baseline_bench] fps=71.71  us/step=13946.0  alive=8,128,201 drift=+0 overflow=0
+RESULT {"status": "ok", "solver": "v5", "in_flight": 2, "case": "cases/lid_driven_cavity_2d_8m/case.yaml", "tag": "e5.3_single", "trial": 1, "device": 1, "gpu_uuid": null, "gpu": "NVIDIA GeForce RTX 5090", "particles": 8128201, "alive": 8128201, "drift": 0, "overflow_inside": 0, "overflow_incoming": 0, "correction_fallback": 0, "warmup": 1000, "measure": 2000, "defrag_cadence": 1000, "load_seconds": 0.15, "setup_seconds": 2.15, "measure_seconds": 27.892, "fps": 71.7051, "us_per_step": 13946.0115, "epoch_start": 1790233544.9188, "epoch_end": 1790233572.8109}

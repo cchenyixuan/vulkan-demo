@@ -1,0 +1,36 @@
+[VulkanContext] available physical devices (3):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+  [2] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+[VulkanContext] selected: [2] NVIDIA GeForce RTX 5090 on queue_family[0]
+[Simulator] WORKGROUP_SIZE check:
+  requested workgroup x = 128
+  device maxComputeWorkGroupSize  = (1024, 1024, 64)
+  device maxComputeWorkGroupInvocations = 1024
+  ok
+
+[Simulator] loaded 8 shader modules from C:\Users\cchen\PycharmProjects\vulkan-demo\shaders\spv\sph
+[Simulator] allocated 32 buffers, 1814.09 MB total (device-local)
+[Simulator] allocated 9 scratch buffers for defrag, 1612.73 MB total (device-local)
+[Simulator] uploaded initial state to 32 buffers
+[Simulator] bootstrap ok: alive=10503459
+[Simulator] init defrag complete (cadence=1000)
+[kernel_breakdown] solver=v0 gpu=NVIDIA GeForce RTX 5090 particles=10,503,459 dimension=3 timestampPeriod=1.0ns
+RESULT {"solver": "v0", "case": "cases/cavity3d_8m/case.yaml", "tag": "cavity3d_8m", "run": 2, "device": 2, "gpu": "NVIDIA GeForce RTX 5090", "dimension": 3, "particles": 10503459, "alive": 10503459, "drift": 0, "overflow": 0, "warmup": 1000, "measure": 2000, "frames_timed": 1998, "cpu_fps": 11.675201091755088, "timestamp_period_ns": 1.0, "mean_us": {"predict": 506.8, "update_voxel": 360.17, "correction": 26835.5, "density_kernel": 27099.0, "density_copy": 355.62, "force": 30189.16, "gpu_frame": 85346.25}, "p50_us": {"predict": 506.75, "update_voxel": 360.45, "correction": 26711.04, "density_kernel": 26963.84, "density_copy": 356.48, "force": 29964.16, "gpu_frame": 84852.56}, "std_us": {"predict": 1.41, "update_voxel": 2.24, "correction": 565.33, "density_kernel": 595.46, "density_copy": 1.0, "force": 859.71, "gpu_frame": 2020.06}}
