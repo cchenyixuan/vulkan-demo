@@ -1,0 +1,76 @@
+[VulkanContext] available physical devices (3):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+  [2] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+[VulkanContext] selected: [2] NVIDIA GeForce RTX 5090 on queue_family[0]
+[Simulator] WORKGROUP_SIZE check:
+  requested workgroup x = 128
+  device maxComputeWorkGroupSize  = (1024, 1024, 64)
+  device maxComputeWorkGroupInvocations = 1024
+  ok
+
+[Simulator] loaded 8 shader modules from C:\Users\cchen\PycharmProjects\vulkan-demo\shaders\spv\sph
+[Simulator] allocated 32 buffers, 239.03 MB total (device-local)
+[Simulator] allocated 9 scratch buffers for defrag, 198.86 MB total (device-local)
+[Simulator] uploaded initial state to 32 buffers
+[Simulator] bootstrap ok: alive=1295029
+[Simulator] init defrag complete (cadence=1000)
+[hdx_sweep] tag=hdx2.0 gpu=NVIDIA GeForce RTX 5090 particles=1,295,029 h=0.02 dx=0.01 h/dx=2.000 dt=3.000e-05 steps=40000 T=1.2000s
+[hdx_sweep] step   1000 t=0.0300s    3540.5 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/3412 fallback=0 KE=2.39104 rho_std=2.05e-05 max|v|=2.921
+[hdx_sweep] step   2000 t=0.0600s    3671.6 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/3733 fallback=0 KE=4.12436 rho_std=2.28e-05 max|v|=4.209
+[hdx_sweep] step   3000 t=0.0900s    3566.2 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/4107 fallback=0 KE=5.09528 rho_std=2.64e-05 max|v|=4.245
+[hdx_sweep] step   4000 t=0.1200s    3544.0 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/4477 fallback=0 KE=5.01908 rho_std=3.71e-05 max|v|=5.162
+[hdx_sweep] step   5000 t=0.1500s    3540.7 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/4838 fallback=0 KE=5.29520 rho_std=3.50e-05 max|v|=6.202
+[hdx_sweep] step   6000 t=0.1800s    3542.0 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/5172 fallback=0 KE=5.59629 rho_std=2.82e-05 max|v|=7.519
+[hdx_sweep] step   7000 t=0.2100s    3538.8 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/5549 fallback=0 KE=4.94838 rho_std=2.07e-05 max|v|=2.594
+[hdx_sweep] step   8000 t=0.2400s    3537.3 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/5898 fallback=0 KE=5.13624 rho_std=2.43e-05 max|v|=3.333
+[hdx_sweep] step   9000 t=0.2700s    3537.9 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/6250 fallback=0 KE=5.02049 rho_std=2.51e-05 max|v|=4.760
+[hdx_sweep] step  10000 t=0.3000s    3522.3 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/6588 fallback=0 KE=5.15721 rho_std=2.30e-05 max|v|=5.770
+[hdx_sweep] step  11000 t=0.3300s    3544.9 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/6944 fallback=0 KE=4.80093 rho_std=2.14e-05 max|v|=2.695
+[hdx_sweep] step  12000 t=0.3600s    3527.6 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/7305 fallback=0 KE=4.86124 rho_std=2.30e-05 max|v|=3.511
+[hdx_sweep] step  13000 t=0.3900s    3547.0 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/7637 fallback=0 KE=4.75542 rho_std=2.12e-05 max|v|=4.045
+[hdx_sweep] step  14000 t=0.4200s    3536.3 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/7994 fallback=0 KE=4.40023 rho_std=1.98e-05 max|v|=2.674
+[hdx_sweep] step  15000 t=0.4500s    3516.5 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/8373 fallback=0 KE=4.82957 rho_std=2.22e-05 max|v|=3.319
+[hdx_sweep] step  16000 t=0.4800s    3530.7 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/8700 fallback=0 KE=4.83708 rho_std=2.23e-05 max|v|=2.765
+[hdx_sweep] step  17000 t=0.5100s    3515.1 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/9014 fallback=0 KE=4.86220 rho_std=2.73e-05 max|v|=3.931
+[hdx_sweep] step  18000 t=0.5400s    3539.4 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/9333 fallback=0 KE=5.23408 rho_std=3.57e-05 max|v|=4.110
+[hdx_sweep] step  19000 t=0.5700s    3517.1 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/9703 fallback=0 KE=4.74349 rho_std=2.64e-05 max|v|=4.272
+[hdx_sweep] step  20000 t=0.6000s    3524.3 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/10139 fallback=0 KE=4.91987 rho_std=3.64e-05 max|v|=4.612
+[hdx_sweep] step  21000 t=0.6300s    3511.3 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/10539 fallback=0 KE=4.64446 rho_std=2.18e-05 max|v|=4.366
+[hdx_sweep] step  22000 t=0.6600s    3540.3 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/10913 fallback=0 KE=5.26707 rho_std=2.38e-05 max|v|=3.318
+[hdx_sweep] step  23000 t=0.6900s    3521.2 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/11273 fallback=0 KE=5.30724 rho_std=2.48e-05 max|v|=5.600
+[hdx_sweep] step  24000 t=0.7200s    3541.5 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/11629 fallback=0 KE=4.88961 rho_std=2.34e-05 max|v|=4.679
+[hdx_sweep] step  25000 t=0.7500s    3537.8 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/11985 fallback=0 KE=4.77745 rho_std=2.12e-05 max|v|=3.070
+[hdx_sweep] step  26000 t=0.7800s    3530.3 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/12339 fallback=0 KE=4.36822 rho_std=2.05e-05 max|v|=3.226
+[hdx_sweep] step  27000 t=0.8100s    3535.6 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/12659 fallback=0 KE=4.75559 rho_std=2.10e-05 max|v|=3.048
+[hdx_sweep] step  28000 t=0.8400s    3535.5 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/13048 fallback=0 KE=5.71422 rho_std=2.63e-05 max|v|=3.407
+[hdx_sweep] step  29000 t=0.8700s    3538.1 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/13381 fallback=0 KE=5.58369 rho_std=3.98e-05 max|v|=5.247
+[hdx_sweep] step  30000 t=0.9000s    3529.3 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/13722 fallback=0 KE=5.22458 rho_std=2.27e-05 max|v|=3.524
+[hdx_sweep] step  31000 t=0.9300s    3561.6 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/14071 fallback=0 KE=5.19792 rho_std=2.20e-05 max|v|=4.491
+[hdx_sweep] step  32000 t=0.9600s    3540.2 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/14445 fallback=0 KE=4.94961 rho_std=2.42e-05 max|v|=4.082
+[hdx_sweep] step  33000 t=0.9900s    3548.3 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/14833 fallback=0 KE=4.73437 rho_std=2.21e-05 max|v|=3.310
+[hdx_sweep] step  34000 t=1.0200s    3529.1 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/15184 fallback=0 KE=4.54758 rho_std=2.28e-05 max|v|=2.942
+[hdx_sweep] step  35000 t=1.0500s    3512.0 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/15565 fallback=0 KE=4.55440 rho_std=1.92e-05 max|v|=3.294
+[hdx_sweep] step  36000 t=1.0800s    3531.5 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/15968 fallback=0 KE=4.48212 rho_std=2.14e-05 max|v|=6.402
+[hdx_sweep] step  37000 t=1.1100s    3514.7 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/16315 fallback=0 KE=5.16652 rho_std=2.69e-05 max|v|=3.746
+[hdx_sweep] step  38000 t=1.1400s    3517.3 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/16661 fallback=0 KE=5.85855 rho_std=3.00e-05 max|v|=4.218
+[hdx_sweep] step  39000 t=1.1700s    3527.3 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/16980 fallback=0 KE=5.50560 rho_std=3.66e-05 max|v|=4.608
+[hdx_sweep] step  40000 t=1.2000s    3523.2 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/17328 fallback=0 KE=5.01279 rho_std=2.04e-05 max|v|=3.930
+RESULT {"tag": "hdx2.0", "case": "cases/hdx_sweep_3d/hdx2.0/case.yaml", "gpu": "NVIDIA GeForce RTX 5090", "device": 2, "particles": 1295029, "h": 0.02, "dx": 0.01, "hdx": 2.0, "timestep": 3e-05, "steps": 40000, "physical_time": 1.2, "wall_sim_seconds": 141.467, "us_per_step": 3536.67, "fps": 282.752, "wall_readback_seconds": 16.28, "wall_total_seconds": 158.0, "snapshot": "docs\\hdx_sweep_3d_20260924\\snapshots\\hdx2.0.npz", "final": {"step": 40000, "time": 1.2, "alive": 1295029, "drift": 0, "overflow_inside_count": 0, "overflow_incoming_count": 17328, "first_overflow_voxel_inside": 0, "first_overflow_voxel_incoming": 55680, "correction_fallback_count": 0, "status_maximum_velocity": 0.0, "alive_from_buffers": 1295029, "dead_count": 0, "fluid_count": 904616, "kinetic_energy": 5.01278811652449, "momentum": [12.741011544017356, -1.8618229435438878, -0.13636840152297747], "mean_density": 1000.0002536991443, "density_std_rel": 2.035962891786775e-05, "max_abs_density_dev_rel": 0.0037507324218750693, "max_speed": 3.929815353695285, "block_wall_seconds": 3.5232237012824044, "block_us_per_step": 3523.2237012824044, "wall_sim_seconds_cumulative": 141.46674409869593}, "status": "bad_state"}

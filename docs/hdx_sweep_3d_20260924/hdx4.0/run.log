@@ -1,0 +1,56 @@
+[VulkanContext] available physical devices (3):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+  [2] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+[VulkanContext] selected: [2] NVIDIA GeForce RTX 5090 on queue_family[0]
+[Simulator] WORKGROUP_SIZE check:
+  requested workgroup x = 128
+  device maxComputeWorkGroupSize  = (1024, 1024, 64)
+  device maxComputeWorkGroupInvocations = 1024
+  ok
+
+[Simulator] loaded 8 shader modules from C:\Users\cchen\PycharmProjects\vulkan-demo\shaders\spv\sph
+[Simulator] allocated 32 buffers, 223.87 MB total (device-local)
+[Simulator] allocated 9 scratch buffers for defrag, 198.86 MB total (device-local)
+[Simulator] uploaded initial state to 32 buffers
+[Simulator] bootstrap ok: alive=1295029
+[Simulator] init defrag complete (cadence=1000)
+[hdx_sweep] tag=hdx4.0 gpu=NVIDIA GeForce RTX 5090 particles=1,295,029 h=0.04 dx=0.01 h/dx=4.000 dt=6.000e-05 steps=20000 T=1.2000s
+[hdx_sweep] step   1000 t=0.0600s   10680.1 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=0.49045 rho_std=8.77e-06 max|v|=0.541
+[hdx_sweep] step   2000 t=0.1200s   10964.8 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=1.13966 rho_std=1.17e-05 max|v|=0.678
+[hdx_sweep] step   3000 t=0.1800s   11607.8 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=1.73781 rho_std=1.15e-05 max|v|=0.707
+[hdx_sweep] step   4000 t=0.2400s   11882.8 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=2.26751 rho_std=1.18e-05 max|v|=0.703
+[hdx_sweep] step   5000 t=0.3000s   12092.9 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=2.74086 rho_std=1.17e-05 max|v|=0.772
+[hdx_sweep] step   6000 t=0.3600s   12194.5 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=3.16813 rho_std=1.17e-05 max|v|=0.761
+[hdx_sweep] step   7000 t=0.4200s   12235.8 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=3.55629 rho_std=1.18e-05 max|v|=0.799
+[hdx_sweep] step   8000 t=0.4800s   12228.8 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=3.91192 rho_std=1.18e-05 max|v|=0.830
+[hdx_sweep] step   9000 t=0.5400s   12222.9 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=4.24044 rho_std=1.18e-05 max|v|=0.793
+[hdx_sweep] step  10000 t=0.6000s   12250.6 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=4.54676 rho_std=1.19e-05 max|v|=0.781
+[hdx_sweep] step  11000 t=0.6600s   12284.1 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=4.83332 rho_std=1.20e-05 max|v|=0.778
+[hdx_sweep] step  12000 t=0.7200s   12252.3 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=5.10167 rho_std=1.20e-05 max|v|=0.820
+[hdx_sweep] step  13000 t=0.7800s   12236.7 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=5.35542 rho_std=1.20e-05 max|v|=0.773
+[hdx_sweep] step  14000 t=0.8400s   12289.4 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=5.59381 rho_std=1.20e-05 max|v|=0.804
+[hdx_sweep] step  15000 t=0.9000s   12264.7 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=5.81942 rho_std=1.20e-05 max|v|=0.865
+[hdx_sweep] step  16000 t=0.9600s   12289.7 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=6.03424 rho_std=1.19e-05 max|v|=0.799
+[hdx_sweep] step  17000 t=1.0200s   12316.8 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=6.23906 rho_std=1.19e-05 max|v|=0.825
+[hdx_sweep] step  18000 t=1.0800s   12246.1 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=6.43352 rho_std=1.20e-05 max|v|=0.808
+[hdx_sweep] step  19000 t=1.1400s   12319.1 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=6.61996 rho_std=1.20e-05 max|v|=0.816
+[hdx_sweep] step  20000 t=1.2000s   12295.7 us/step  alive=1,295,029 drift=+0 dead=0 ovf=0/0 fallback=0 KE=6.79955 rho_std=1.20e-05 max|v|=0.821
+RESULT {"tag": "hdx4.0", "case": "cases/hdx_sweep_3d/hdx4.0/case.yaml", "gpu": "NVIDIA GeForce RTX 5090", "device": 2, "particles": 1295029, "h": 0.04, "dx": 0.01, "hdx": 4.0, "timestep": 6e-05, "steps": 20000, "physical_time": 1.2, "wall_sim_seconds": 241.156, "us_per_step": 12057.78, "fps": 82.934, "wall_readback_seconds": 9.5, "wall_total_seconds": 250.8, "snapshot": "docs\\hdx_sweep_3d_20260924\\snapshots\\hdx4.0.npz", "final": {"step": 20000, "time": 1.2, "alive": 1295029, "drift": 0, "overflow_inside_count": 0, "overflow_incoming_count": 0, "first_overflow_voxel_inside": 0, "first_overflow_voxel_incoming": 0, "correction_fallback_count": 0, "status_maximum_velocity": 0.0, "alive_from_buffers": 1295029, "dead_count": 0, "fluid_count": 1030301, "kinetic_energy": 6.799546746620258, "momentum": [-0.39492420459109, 0.004827543860872207, 0.0034311258557844357], "mean_density": 999.9998273658744, "density_std_rel": 1.2020875911239488e-05, "max_abs_density_dev_rel": 0.0012538452148438406, "max_speed": 0.8212502235890252, "block_wall_seconds": 12.295746001414955, "block_us_per_step": 12295.746001414955, "wall_sim_seconds_cumulative": 241.1556291995803}, "status": "ok"}

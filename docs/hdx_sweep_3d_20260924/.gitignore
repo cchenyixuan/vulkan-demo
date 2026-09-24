@@ -1,0 +1,2 @@
+# final-state snapshots (~50 MB each) stay local; regenerate with _run_hdx_sweep_3d.py
+snapshots/*.npz

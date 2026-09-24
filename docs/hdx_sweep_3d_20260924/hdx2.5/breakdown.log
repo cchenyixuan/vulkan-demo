@@ -1,0 +1,36 @@
+[VulkanContext] available physical devices (3):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+  [2] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+[VulkanContext] selected: [2] NVIDIA GeForce RTX 5090 on queue_family[0]
+[Simulator] WORKGROUP_SIZE check:
+  requested workgroup x = 128
+  device maxComputeWorkGroupSize  = (1024, 1024, 64)
+  device maxComputeWorkGroupInvocations = 1024
+  ok
+
+[Simulator] loaded 8 shader modules from C:\Users\cchen\PycharmProjects\vulkan-demo\shaders\spv\sph
+[Simulator] allocated 32 buffers, 225.17 MB total (device-local)
+[Simulator] allocated 9 scratch buffers for defrag, 198.86 MB total (device-local)
+[Simulator] uploaded initial state to 32 buffers
+[Simulator] bootstrap ok: alive=1295029
+[Simulator] init defrag complete (cadence=1000)
+[kernel_breakdown] solver=v0 gpu=NVIDIA GeForce RTX 5090 particles=1,295,029 dimension=3 timestampPeriod=1.0ns
+RESULT {"solver": "v0", "case": "cases/hdx_sweep_3d/hdx2.5/case.yaml", "tag": "hdx2.5", "run": 0, "device": 2, "gpu": "NVIDIA GeForce RTX 5090", "dimension": 3, "particles": 1295029, "alive": 1295029, "drift": 0, "overflow": 0, "warmup": 1000, "measure": 2000, "frames_timed": 1998, "cpu_fps": 201.5082002138218, "timestamp_period_ns": 1.0, "mean_us": {"predict": 29.63, "update_voxel": 24.95, "correction": 1302.22, "density_kernel": 1748.65, "density_copy": 47.23, "force": 1676.93, "gpu_frame": 4829.62}, "p50_us": {"predict": 29.54, "update_voxel": 24.58, "correction": 1302.53, "density_kernel": 1762.18, "density_copy": 47.23, "force": 1688.45, "gpu_frame": 4858.19}, "std_us": {"predict": 1.19, "update_voxel": 0.81, "correction": 90.97, "density_kernel": 229.5, "density_copy": 0.0, "force": 63.17, "gpu_frame": 380.91}}

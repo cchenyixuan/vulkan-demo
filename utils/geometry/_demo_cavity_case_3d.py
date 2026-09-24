@@ -101,7 +101,7 @@ schema_version: 2
 # h = {h:.6f}, dx = {dx:.6f} -> h/dx = {hdx} (3D cost knob; 2D cases use 5).
 # max_per_voxel {max_per_voxel} >= ceil(sqrt(2)*(h/dx)^3) = {packing_bound}
 # (V5 loader does not self-check; undersized cap = SILENT particle kills).
-
+{derived_comment}
 time:
   total: null
   max_steps: null
@@ -139,7 +139,7 @@ capacities:
   max_incoming: {max_incoming}
   workgroup: 128
 
-material_library: ../../materials/standard.yaml
+material_library: {material_library}
 
 geometry:
   frame: frame.obj
@@ -155,10 +155,14 @@ def main() -> int:
     parser.add_argument("--half", type=int, default=50,
                         help="fluid half-resolution: 0.5/dx (fluid is (2*half+1)^3 "
                              "particles). 50 -> ~1.03M, 100 -> ~8.12M, 116 -> ~12.6M")
-    parser.add_argument("--hdx", type=int, default=4,
-                        help="h/dx ratio (support radius in lattice units). 4 is the "
-                             "3D default (268 neighbors); 5 matches the 2D cases but "
-                             "costs ~2x (523 neighbors) and needs max_per_voxel >= 177.")
+    parser.add_argument("--hdx", type=float, default=4.0,
+                        help="h/dx ratio (support radius in lattice units; float allowed, "
+                             "e.g. 3.5). 4 is the 3D default (268 neighbors); 5 matches "
+                             "the 2D cases but costs ~2x (523 neighbors) and needs "
+                             "max_per_voxel >= 177.")
+    parser.add_argument("--target-time", type=float, default=None,
+                        help="physical time T (s) to report the step count for "
+                             "(steps = ceil(T / dt), dt = cfl*h/c0)")
     parser.add_argument("--half-x", type=int, default=None,
                         help="fluid half-resolution along x (default = --half). Stretched "
                              "domains for weak / stretched-strong families use "
@@ -170,8 +174,11 @@ def main() -> int:
                              "keep rest density. Border hdx vs 2*hdx+1 verified equivalent "
                              "on 8M K=1 and the stretched K=2 case, 2026-09-17; the older "
                              "cavity3d_1m/2m/4m/8m cases were built with 2*hdx+1 = 9)")
-    parser.add_argument("--max-per-voxel", type=int, default=128)
-    parser.add_argument("--max-incoming", type=int, default=32)
+    parser.add_argument("--max-per-voxel", type=int, default=None,
+                        help="default: closest-packing bound ceil(sqrt(2)*(h/dx)^3) with "
+                             ">= 30%% headroom, rounded up to a multiple of 32 (min 32)")
+    parser.add_argument("--max-incoming", type=int, default=None,
+                        help="default: max_per_voxel / 4 (the 8M case's 128 -> 32 ratio), min 8")
     parser.add_argument("--out", default="cases/cavity3d_1m")
     parser.add_argument("--no-preview", action="store_true")
     args = parser.parse_args()
@@ -181,9 +188,21 @@ def main() -> int:
     dx = FLUID_HALF_EXTENT / half_index
     particle_radius = 0.5 * dx
     smoothing_length = args.hdx * dx
-    border = args.border if args.border is not None else args.hdx
+    border = args.border if args.border is not None else math.ceil(args.hdx)
 
     packing_bound = math.ceil(math.sqrt(2.0) * args.hdx ** 3)
+    if args.max_per_voxel is None:
+        # >= 30 % headroom over the closest-packing bound, multiple of 32, min 32.
+        args.max_per_voxel = max(32, int(math.ceil(packing_bound * 1.3 / 32.0) * 32))
+    if args.max_incoming is None:
+        args.max_incoming = max(8, args.max_per_voxel // 4)
+    # Quantities tied to h (the solver derives them from the yaml; reported here).
+    speed_of_sound, cfl = 100.0, 0.15
+    timestep = cfl * smoothing_length / speed_of_sound
+    expected_neighbors = 4.0 / 3.0 * math.pi * args.hdx ** 3
+    expected_per_voxel = args.hdx ** 3                 # SC lattice at rest, voxel edge = h
+    steps_to_target = (int(math.ceil(args.target_time / timestep))
+                       if args.target_time is not None else None)
     if args.max_per_voxel < packing_bound:
         print(f"ERROR: max_per_voxel={args.max_per_voxel} < closest-packing bound "
               f"{packing_bound} for h/dx={args.hdx}; the loader will NOT catch this "
@@ -221,7 +240,22 @@ def main() -> int:
     print(f"domain(fluid)={n_fluid:,}  wall={n_wall:,}  wall_top(lid)={n_lid:,}  total={total:,}")
     print(f"pool_size={pool_size:,}  max_per_voxel={args.max_per_voxel} "
           f"(bound {packing_bound})  max_incoming={args.max_incoming}")
+    print(f"expected neighbors (4/3)pi(h/dx)^3 = {expected_neighbors:.1f}  "
+          f"expected particles per voxel (h/dx)^3 = {expected_per_voxel:.1f}  "
+          f"dt = cfl*h/c0 = {timestep:.6e} s"
+          + (f"  steps to T={args.target_time:g} s: {steps_to_target:,}" if steps_to_target else "")
+          + f"  total particles = {total:,}")
     print(f"-> {out_dir}")
+    derived_comment = (
+        f"# derived: expected neighbors (4/3)pi(h/dx)^3 = {expected_neighbors:.1f}; "
+        f"particles per voxel (h/dx)^3 = {expected_per_voxel:.1f}; dt = cfl*h/c0 = {timestep:.6e} s"
+        + (f"; steps to T={args.target_time:g} s = {steps_to_target:,}" if steps_to_target else "")
+        + f"; total particles = {total:,}\n"
+        f"# max_per_voxel = ceil(1.3 * bound) rounded up to 32 (min 32); max_incoming = max_per_voxel/4 (min 8);"
+        f" eps_h^2 = 0.01 h^2, delta and PST coefficients unchanged (dimensionless).")
+    material_library = pathlib.Path(
+        __import__("os").path.relpath(_REPO_ROOT / "materials" / "standard.yaml", out_dir)
+    ).as_posix()
 
     write_obj(out_dir / "domain.obj", domain)
     write_obj(out_dir / "wall.obj", wall)
@@ -233,7 +267,8 @@ def main() -> int:
         border=border, h=smoothing_length, dx=dx, hdx=args.hdx,
         particle_radius=particle_radius, pool_size=pool_size,
         max_per_voxel=args.max_per_voxel, max_incoming=args.max_incoming,
-        packing_bound=packing_bound), encoding="utf-8")
+        packing_bound=packing_bound, derived_comment=derived_comment,
+        material_library=material_library), encoding="utf-8")
     print("wrote frame.obj domain.obj wall.obj wall_top.obj case.yaml")
     if not args.no_preview:
         write_preview(out_dir / "split_preview.png", domain, wall, lid_points, dx)
