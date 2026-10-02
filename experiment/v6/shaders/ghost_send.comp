@@ -255,6 +255,12 @@ void send_two_layers(uint y, uint z) {
                                        : atomicAdd(ghost_send_leading_count,  migration_count);
         if (base_slot + migration_count > migrant_region_size) {
             atomicAdd(overflow_ghost_count, migration_count);
+            // V6: the reserved slots that still fall inside the region would ship
+            // stale records; mark them dead so the receiver's install skips them.
+            for (uint slot_index = base_slot; slot_index < min(base_slot + migration_count, migrant_region_size);
+                 slot_index++) {
+                position_voxel_id[migrant_region_first_particle_id + slot_index] = vec4(0.0);
+            }
             incoming_particle_count[ghost_voxel_id] = 0u;
             continue;
         }
@@ -324,6 +330,12 @@ void main() {
     if (base_slot + total_count > dir_pool_size) {
         inside_particle_count[sender_ghost_vid] = 0u;
         atomicAdd(overflow_ghost_count, total_count);
+        // V6: mark the reserved in-pool slots dead (stale records otherwise).
+        uint overflow_first_pid = (GHOST_DIRECTION == 0u) ? leading_ghost_first_pid()
+                                                          : trailing_ghost_first_pid();
+        for (uint slot_index = base_slot; slot_index < min(base_slot + total_count, dir_pool_size); slot_index++) {
+            position_voxel_id[overflow_first_pid + slot_index] = vec4(0.0);
+        }
         incoming_particle_count[sender_ghost_vid] = 0u;
         return;
     }

@@ -124,6 +124,13 @@ void main() {
     uint count_for_dir = (GHOST_DIRECTION == 0u)
         ? ghost_recv_leading_count
         : ghost_recv_trailing_count;
+    // V6: the sender's counter overshoots the region when it overflowed (already
+    // counted in its overflow_ghost_count); never walk past the migrant region
+    // (on the leading side the next pids are this GPU's own particles).
+    uint migrant_region_slots = ((GHOST_DIRECTION == 0u) ? LEADING_GHOST_POOL_SIZE
+                                                         : TRAILING_GHOST_POOL_SIZE)
+                              - migrant_region_offset();
+    count_for_dir = min(count_for_dir, migrant_region_slots);
     if (thread_id >= count_for_dir) return;
 
     // Resolve gpid from direction + thread_id. V6: with GHOST_LAYERS = 2 the
@@ -201,6 +208,9 @@ void main() {
     // ------------------------------------------------------------------------
     uint slot = atomicAdd(inside_particle_count[vid], 1u);
     if (slot >= MAX_PARTICLES_PER_VOXEL) {
+        // V6: undo the increment so the count never exceeds MAX (an over-count
+        // makes every later list walk read the next voxel's row).
+        atomicAdd(inside_particle_count[vid], 0xFFFFFFFFu);
         // Voxel inside list full. Roll back the own slot (mark dead) and log.
         position_voxel_id[own_pid] = vec4(0.0);
         velocity_mass[own_pid]     = vec4(0.0);

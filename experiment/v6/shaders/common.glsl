@@ -704,8 +704,9 @@ layout(std430, set = 3, binding = 0) buffer GlobalStatusBuffer {
     //   them one column into a ghost column (a restart state with a particle
     //   within rounding of a seam). Not an error.
     // overflow_initialization_outside (cumulative, must be 0): own particles
-    //   initialize_voxelization killed because their voxel is outside the
-    //   extended grid (was a silent loss).
+    //   initialize_voxelization could not place in an own voxel: outside the
+    //   extended grid (killed), or in a ghost voxel (lost at the bootstrap ghost
+    //   round). Both were silent losses.
     uint  initialization_seam_clamp_count;
     uint  overflow_initialization_outside;
     uint  status_reserved_2;

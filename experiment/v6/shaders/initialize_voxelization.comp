@@ -89,6 +89,11 @@ void main() {
         return;
     }
     uint new_voxel_id = own_voxel_id_of(voxel_coord);
+    // V6: an own particle listed in a GHOST voxel is lost at the bootstrap ghost
+    // round (the outbox overwrites the list); without V6_INIT_SEAM_CLAMP this is
+    // the seam-edge case of a restart state, with it only a two-column host / GPU
+    // disagreement can reach here. Count it as a must-be-zero event.
+    if (!is_own_voxel(new_voxel_id)) atomicAdd(overflow_initialization_outside, 1u);
 
     // --- Atomic-append into inside_particle_index ---------------------------
     // Per the contract above, slot < CAP is guaranteed by scene-side

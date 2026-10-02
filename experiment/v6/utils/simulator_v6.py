@@ -2347,7 +2347,7 @@ class SphSimulatorV6:
         "extension_fields":            (4, np.float32),
     }
 
-    def restart_init(self, state: dict) -> None:
+    def restart_init(self, state: dict, stored_density_offset: float = 0.0) -> None:
         """Restart instead of bootstrap, from a saved step-boundary state.
 
         ``state[name]`` holds this slab's own particles, one row each, for
@@ -2383,9 +2383,13 @@ class SphSimulatorV6:
                                  f"expected {np.dtype(element_type)} {expected_shape}")
             full = np.zeros((pool_capacity,) + expected_shape[1:], dtype=element_type)
             full[own_first:own_first + row_count] = rows
-            if name == "density_pressure" and self.stored_density_offset() != 0.0:
-                # restart states hold rho; V6_DELTA_DENSITY stores rho - rho_ref
-                full[own_first:own_first + row_count, 0] -= np.float32(self.stored_density_offset())
+            shift = float(stored_density_offset) - self.stored_density_offset()
+            if name == "density_pressure" and shift != 0.0:
+                # the state holds stored + stored_density_offset = rho (0: plain rho);
+                # convert to this sim's representation in float64 (exact when the
+                # two offsets are equal: the shift is then 0 and nothing changes)
+                rows64 = full[own_first:own_first + row_count, 0].astype(np.float64) + shift
+                full[own_first:own_first + row_count, 0] = rows64.astype(np.float32)
             payload[name] = full.tobytes()
         if row_count and float(np.asarray(state["velocity_mass"])[:, 3].min()) <= 0.0:
             raise ValueError("restart state has rows with mass <= 0 "
@@ -2501,8 +2505,13 @@ class SphSimulatorV6:
             raise KeyError(f"unknown buffer: {name!r}")
         return self._readback_buffer(self.buffers[name])
 
-    def readback_buffers_batch(self, names: list[str]) -> dict[str, bytes]:
+    def readback_buffers_batch(self, names: list[str], density: str = "absolute") -> dict[str, bytes]:
         """Read N buffers via a single cmd buffer + fence wait.
+
+        density = "absolute" (default): density_pressure / density_pressure_scratch
+        come back with .x = rho also under V6_DELTA_DENSITY (rho_ref added, float32);
+        "stored": the raw stored value (rho - rho_ref under the switch) for tools
+        that need the exact representation (delta_density_eval).
 
         Per-buffer fence overhead is the dominant cost when reading many small
         buffers; batching N copies into one submit drops 22 fence waits to 1
@@ -2552,6 +2561,12 @@ class SphSimulatorV6:
                 result[name] = bytes(np.frombuffer(mapped, dtype=np.uint8,
                                                    count=staging.size))
                 vkUnmapMemory(device, staging.memory)
+                offset = self.stored_density_offset()
+                if (density == "absolute" and offset != 0.0
+                        and name in ("density_pressure", "density_pressure_scratch")):
+                    values = np.frombuffer(result[name], dtype=np.float32).copy().reshape(-1, 2)
+                    values[:, 0] += np.float32(offset)
+                    result[name] = values.tobytes()
             return result
         finally:
             for staging in stagings.values():

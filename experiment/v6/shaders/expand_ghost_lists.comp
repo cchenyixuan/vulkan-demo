@@ -40,7 +40,7 @@ void main() {
     if (slot_index >= inside_particle_count[voxel_id]) return;
     uint particle_id = ghost_voxel_first_particle_id[voxel_id] + slot_index;
     inside_particle_index[voxel_id * MAX_PARTICLES_PER_VOXEL + slot_index] = particle_id;
-    if (!PACKED_REPLICAS) return;
+    if (!PACKED_REPLICAS || REPLICA_REGION_SIZE == 0u) return;   // (host rejects layers < 2 too)
 
     // V6_PACKED_REPLICAS: unpack the replica into its ghost SoA slot. Leading
     // ghost columns are x = 0 (outer) and 1 (inner, next to own); trailing ghost

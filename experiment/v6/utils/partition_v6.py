@@ -22,6 +22,7 @@ from __future__ import annotations
 import copy
 import math
 import os
+import sys
 from typing import Optional
 
 import numpy as np
@@ -118,8 +119,14 @@ def configured_compact_ghost_lists() -> bool:
 
 def configured_packed_replicas() -> bool:
     """V6_PACKED_REPLICAS=1: two-layer replicas travel packed (G1 36 B, G2 32 B;
-    common.glsl id 98). Needs V6_GHOST_LAYERS=2 and V6_COMPACT_GHOST_LISTS=1."""
-    return os.environ.get("V6_PACKED_REPLICAS", "0") == "1"
+    common.glsl id 98). Needs V6_GHOST_LAYERS=2 and V6_COMPACT_GHOST_LISTS=1:
+    with one ghost layer there is no packed region and expand_ghost_lists
+    would unpack garbage over every inbound replica, so the combination is
+    rejected here (every reader of the switch goes through this function)."""
+    packed = os.environ.get("V6_PACKED_REPLICAS", "0") == "1"
+    if packed and (configured_ghost_layers() != 2 or not configured_compact_ghost_lists()):
+        raise ValueError("V6_PACKED_REPLICAS=1 needs V6_GHOST_LAYERS=2 and V6_COMPACT_GHOST_LISTS=1")
+    return packed
 
 
 def configured_delta_density() -> bool:
@@ -183,7 +190,27 @@ def _ghost_pool_layout(global_case: CaseV6, ghost_layers: int) -> tuple[int, int
                        + global_case.capacities.max_incoming_per_voxel) * factor))
     migrant_region = max(MIGRANT_REGION_FLOOR, int(math.ceil(
         voxel_per_x * global_case.capacities.max_incoming_per_voxel * migrant_factor)))
+    _warn_if_replica_region_tight(global_case, replica_region / voxel_per_x, factor)
     return 2 * replica_region + migrant_region, replica_region
+
+
+def _warn_if_replica_region_tight(global_case: CaseV6, slots_per_voxel: float, factor: float) -> None:
+    """A ghost column holds ~(h/dx)^d particles per voxel; the replica region
+    reserves (C + C_inc) * f slots per voxel. Measured peaks reached 0.2252 (2-D,
+    h/dx 5, C + C_inc = 112) and 0.3891 (3-D, h/dx 4, 160) of the f = 1 slots,
+    i.e. ~1.01 x (h/dx)^d; below 1.2 x (h/dx)^d the region has < 20 % headroom
+    (the release factors were derived for those capacities; other C / h/dx need
+    their own factor). Warning only: an overflow is counted, never silent."""
+    radii = [float(material.radius) for material in global_case.materials if float(material.radius) > 0]
+    if not radii:
+        return
+    spacing = 2.0 * min(radii)
+    ratio = global_case.physics.smoothing_length / spacing
+    expected = ratio ** global_case.physics.dimension
+    if slots_per_voxel < 1.2 * expected:
+        print(f"[partition_v6] WARNING: replica region {slots_per_voxel:.1f} slots per voxel "
+              f"(V6_GHOST_POOL_FACTOR={factor}) < 1.2 x (h/dx)^d = {1.2 * expected:.1f}; "
+              f"expect overflow_ghost_count > 0", file=sys.stderr, flush=True)
 
 
 def _ghost_pool_size(case: CaseV6) -> int:

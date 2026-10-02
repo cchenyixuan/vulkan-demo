@@ -39,21 +39,26 @@ if str(_REPO_ROOT) not in sys.path:
 
 
 def _synthetic_global_case(case_module, column_count=48, row_count=14,
-                           particles_per_voxel_side=4):
-    """A degenerate (no-peer) 2-D global case on a lattice, built in memory."""
+                           particles_per_voxel_side=4, depth_count=1):
+    """A degenerate (no-peer) global case on a lattice, built in memory: 2-D, or
+    3-D with depth_count voxels in z (depth_count > 1)."""
     smoothing_length = 0.01
     spacing = smoothing_length / particles_per_voxel_side
     x_values = (np.arange(column_count * particles_per_voxel_side) + 0.5) * spacing
     y_values = (np.arange(row_count * particles_per_voxel_side) + 0.5) * spacing
-    grid_x, grid_y = np.meshgrid(x_values, y_values, indexing="ij")
+    z_values = ((np.arange(depth_count * particles_per_voxel_side) + 0.5) * spacing
+                if depth_count > 1 else np.zeros(1))
+    grid_x, grid_y, grid_z = np.meshgrid(x_values, y_values, z_values, indexing="ij")
     positions = np.zeros((grid_x.size, 3), dtype=np.float32)
     positions[:, 0] = grid_x.ravel()
     positions[:, 1] = grid_y.ravel()
+    positions[:, 2] = grid_z.ravel()
     material_group = np.where(positions[:, 1] < 2 * spacing, 1, 0).astype(np.uint32)
     physics = case_module.PhysicsConstants(
         smoothing_length=smoothing_length, speed_of_sound=100.0, delta_coefficient=0.1,
         power_parameter=7.0, cfl_number=0.15, timestep=7.5e-6, gravity=(0.0, 0.0, 0.0),
-        dimension=2, neighbor_z_range=0, kernel_coefficient=1.0,
+        dimension=3 if depth_count > 1 else 2, neighbor_z_range=1 if depth_count > 1 else 0,
+        kernel_coefficient=1.0,
         kernel_gradient_coefficient=1.0)
     numerics = case_module.NumericsConstants(
         regularization_xi=0.1, regularization_determinant_threshold=1e-4,
@@ -65,7 +70,7 @@ def _synthetic_global_case(case_module, column_count=48, row_count=14,
         trailing_ghost_pool_size=0)
     grid = case_module.GridLayout(origin_x=0.0, origin_y=0.0, origin_z=0.0,
                                   grid_dimension_x=column_count,
-                                  grid_dimension_y=row_count, grid_dimension_z=1)
+                                  grid_dimension_y=row_count, grid_dimension_z=depth_count)
     materials = [
         case_module.MaterialParameter(kind=case_module.KIND_FLUID, rest_density=1000.0,
                                       viscosity=1e-3, eos_constant=1.0,
@@ -345,7 +350,7 @@ def check_two_layer_algebra(failures: list) -> None:
                                 f"cover exactly the migrant region")
 
 
-def check_lean_transport(failures: list) -> None:
+def check_lean_transport(failures: list, depth_count: int = 1) -> None:
     """V6_LEAN_TRANSPORT: the per-particle segments of the V5 mixed pool and
     of the two-layer migrant region are exactly the 4 read fields (+
     extension_fields with V6_TRANSPORT_EXTENSION), at the SAME device offsets
@@ -365,10 +370,10 @@ def check_lean_transport(failures: list) -> None:
         for extension in (0, 1):
             _set_switches(ghost_layers, keep_departed, lean=0)
             full_chain = partition_v6.compute_chain_partition(
-                _synthetic_global_case(case_v6), [1.0, 1.0, 1.0], pool_safety=1.2)
+                _synthetic_global_case(case_v6, depth_count=depth_count), [1.0, 1.0, 1.0], pool_safety=1.2)
             _set_switches(ghost_layers, keep_departed, lean=1, extension=extension)
             lean_chain = partition_v6.compute_chain_partition(
-                _synthetic_global_case(case_v6), [1.0, 1.0, 1.0], pool_safety=1.2)
+                _synthetic_global_case(case_v6, depth_count=depth_count), [1.0, 1.0, 1.0], pool_safety=1.2)
             expected_fields = lean_fields | ({"extension_fields"} if extension else set())
             tag = f"layers={ghost_layers} keep={keep_departed} ext={extension}"
             for index, (full_slab, lean_slab) in enumerate(zip(full_chain.slabs, lean_chain.slabs)):
@@ -428,7 +433,7 @@ def check_lean_transport(failures: list) -> None:
                                         f"migrant slot, expected {expected_slot_bytes}")
 
 
-def check_compact_ghost_lists(failures: list) -> None:
+def check_compact_ghost_lists(failures: list, depth_count: int = 1) -> None:
     """V6_COMPACT_GHOST_LISTS: the inside_particle_index segment (ghost voxels x
     MAX_PARTICLES_PER_VOXEL x 4 B) becomes one ghost_voxel_first_particle_id word
     per ghost voxel at device offset 4 x first ghost vid; every other segment
@@ -443,7 +448,7 @@ def check_compact_ghost_lists(failures: list) -> None:
     for ghost_layers, keep_departed in ((1, 0), (1, 1), (2, 1)):
         _set_switches(ghost_layers, keep_departed, lean=1)
         chain = partition_v6.compute_chain_partition(
-            _synthetic_global_case(case_v6), [1.0, 1.0, 1.0], pool_safety=1.2)
+            _synthetic_global_case(case_v6, depth_count=depth_count), [1.0, 1.0, 1.0], pool_safety=1.2)
         tag = f"compact layers={ghost_layers} keep={keep_departed}"
         for index, slab in enumerate(chain.slabs):
             cap_inside = slab.capacities.max_particles_per_voxel
@@ -476,7 +481,7 @@ def check_compact_ghost_lists(failures: list) -> None:
                     failures.append(f"{tag} slab {index} {direction}: staging total / stamp")
 
 
-def check_packed_replicas(failures: list) -> None:
+def check_packed_replicas(failures: list, depth_count: int = 1) -> None:
     """V6_PACKED_REPLICAS (two layers, compact lists): the 8 replica SoA segments
     become 5 ghost_packed_words blocks (G1 16/16/4 B, G2 16/16 B per replica) at
     direction base d * 68 R bytes, with the inner / outer count words; the
@@ -491,7 +496,7 @@ def check_packed_replicas(failures: list) -> None:
     _set_switches(2, 1, lean=1)
     os.environ["V6_COMPACT_GHOST_LISTS"] = "1"
     chain = partition_v6.compute_chain_partition(
-        _synthetic_global_case(case_v6), [1.0, 1.0, 1.0], pool_safety=1.2)
+        _synthetic_global_case(case_v6, depth_count=depth_count), [1.0, 1.0, 1.0], pool_safety=1.2)
     for index, slab in enumerate(chain.slabs):
         replica_region = slab.capacities.replica_region_size
         for direction in ("leading", "trailing"):
@@ -534,13 +539,31 @@ def check_packed_replicas(failures: list) -> None:
     os.environ.pop("V6_PACKED_REPLICAS", None)
 
 
+def check_packed_rejection(failures: list) -> None:
+    """V6_PACKED_REPLICAS=1 without two ghost layers or without compact lists is rejected."""
+    import experiment.v6.utils.partition_v6 as partition_v6
+    for ghost_layers, keep_departed, compact in ((1, 1, 1), (2, 1, 0)):
+        _set_switches(ghost_layers, keep_departed, lean=1)
+        os.environ["V6_COMPACT_GHOST_LISTS"] = str(compact)
+        os.environ["V6_PACKED_REPLICAS"] = "1"
+        try:
+            partition_v6.configured_packed_replicas()
+            failures.append(f"packed accepted with layers={ghost_layers} compact={compact}")
+        except ValueError:
+            pass
+    os.environ.pop("V6_COMPACT_GHOST_LISTS", None)
+    os.environ.pop("V6_PACKED_REPLICAS", None)
+
+
 def main() -> int:
     failures: list = []
     check_v5_equivalence(failures)
     check_two_layer_algebra(failures)
-    check_lean_transport(failures)
-    check_compact_ghost_lists(failures)
-    check_packed_replicas(failures)
+    for depth_count in (1, 3):            # 2-D and a 3-D case with NZ = 3
+        check_lean_transport(failures, depth_count)
+        check_compact_ghost_lists(failures, depth_count)
+        check_packed_replicas(failures, depth_count)
+    check_packed_rejection(failures)
     _set_switches(1, 0)
     if failures:
         print(f"[seam_layout] {len(failures)} FAILURE(S):")
@@ -548,7 +571,7 @@ def main() -> int:
             print("  - " + failure)
         return 1
     print("[seam_layout] ALL PASS (layers=1 == v5 partition + transport; layers=2 column/pid algebra, "
-          "segment layout, install range; lean transport segments; compact ghost lists; packed replicas)")
+          "segment layout, install range; lean / compact / packed segments in 2-D and 3-D; packed rejection)")
     return 0
 
 
