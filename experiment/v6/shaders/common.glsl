@@ -285,6 +285,24 @@ layout(constant_id = 85) const uint GHOST_SELF_LAYER = 0u;
 // travel with 4 fields, migrants with all 9. 0 = the V5 mixed pool (replicas
 // and migrants interleaved per (y, z) thread, all fields).
 layout(constant_id = 86) const uint REPLICA_REGION_SIZE = 0u;
+// LEAN_TRANSPORT (V6_LEAN_TRANSPORT): every ghost packet (replicas AND
+// migrants, both pool layouts) and every departed copy carries only the four
+// fields a receiver reads before recomputing them: position_voxel_id,
+// velocity_mass, density_pressure, material. acceleration, shift,
+// correction_inverse and density_gradient_kernel_sum are dead on arrival: a
+// replica is only ever a neighbour (the sweeps read the four fields above;
+// density's neighbour correction / gradient reads feed the commented-out psi
+// term and are DCE'd), and an installed migrant sits in the boundary band, so
+// C2 rewrites its correction_inverse and density gradient / kernel sum and C5
+// its acceleration and shift before anything reads them (predict reads them
+// next step). install_migrations then copies the four fields only.
+layout(constant_id = 87) const bool LEAN_TRANSPORT = false;
+// TRANSPORT_EXTENSION (V6_TRANSPORT_EXTENSION, only meaningful with
+// LEAN_TRANSPORT): extension_fields rides along with the lean packets (the
+// seam audit's global particle ids live there; so would any future per-
+// particle quantity that must survive a migration). Off: an installed migrant
+// gets extension_fields = 0 (what V5 transported in production).
+layout(constant_id = 88) const bool TRANSPORT_EXTENSION = false;
 
 // ============================================================================
 // Scalar constants (compile-time, shared by all shaders)

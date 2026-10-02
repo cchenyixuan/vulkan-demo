@@ -105,6 +105,13 @@
 //   their counter and becomes the receiver's install count, exactly as before.
 //   The same GHOST_VOXEL_ID_OFFSET_TO_RECEIVER translates every column (it is
 //   a pure x translation, see partition_v6.derive_link_voxel_id_offset).
+//
+// LEAN_TRANSPORT (V6_LEAN_TRANSPORT): every packet above (replica, migrant,
+//   departed copy) writes the four fields only (+ extension_fields with
+//   TRANSPORT_EXTENSION); the "10 SoA fields" comments below then describe the
+//   V5 layout. The V5 header's claim that acceleration and shift are needed for
+//   the migrant's next predict is stale: C5 force rewrites both (and C2 the
+//   correction / gradient fields) for the installed migrant first.
 // ============================================================================
 
 #version 460
@@ -121,6 +128,23 @@ layout(constant_id = 94) const int  GHOST_VOXEL_ID_OFFSET_TO_RECEIVER = 0;
 
 layout(local_size_x_id = 51) in;
 
+// The fields a receiver recomputes before reading them (see LEAN_TRANSPORT in
+// common.glsl). V5 / LEAN_TRANSPORT off: copied with every packet. Lean: not
+// written at all (the staging and the receiver keep whatever was there; nothing
+// reads it), except extension_fields when TRANSPORT_EXTENSION.
+void copy_recomputed_fields(uint destination_particle_id, uint source_particle_id) {
+    if (!LEAN_TRANSPORT) {
+        acceleration[destination_particle_id]                 = acceleration[source_particle_id];
+        shift[destination_particle_id]                        = shift[source_particle_id];
+        correction_inverse[destination_particle_id * 2u + 0u] = correction_inverse[source_particle_id * 2u + 0u];
+        correction_inverse[destination_particle_id * 2u + 1u] = correction_inverse[source_particle_id * 2u + 1u];
+        density_gradient_kernel_sum[destination_particle_id]  = density_gradient_kernel_sum[source_particle_id];
+    }
+    if (!LEAN_TRANSPORT || TRANSPORT_EXTENSION) {
+        extension_fields[destination_particle_id] = extension_fields[source_particle_id];
+    }
+}
+
 // V6_KEEP_DEPARTED: keep a sender-side copy of an outgoing migrant. Must run
 // BEFORE the source slot is killed. ghost_voxel_id is the voxel (in THIS GPU's
 // extended grid) the particle drifted into.
@@ -136,13 +160,8 @@ void store_departed(uint source_particle_id, uint ghost_voxel_id) {
                                                    float(ghost_voxel_id));
     velocity_mass[departed_particle_id]                = velocity_mass[source_particle_id];
     density_pressure[departed_particle_id]             = density_pressure[source_particle_id];
-    acceleration[departed_particle_id]                 = acceleration[source_particle_id];
-    shift[departed_particle_id]                        = shift[source_particle_id];
     material[departed_particle_id]                     = material[source_particle_id];
-    correction_inverse[departed_particle_id * 2u + 0u] = correction_inverse[source_particle_id * 2u + 0u];
-    correction_inverse[departed_particle_id * 2u + 1u] = correction_inverse[source_particle_id * 2u + 1u];
-    density_gradient_kernel_sum[departed_particle_id]  = density_gradient_kernel_sum[source_particle_id];
-    extension_fields[departed_particle_id]             = extension_fields[source_particle_id];
+    copy_recomputed_fields(departed_particle_id, source_particle_id);
 }
 
 // GHOST_LAYERS = 2 path (see header). One (y, z) face voxel per thread.
@@ -221,13 +240,8 @@ void send_two_layers(uint y, uint z) {
                                                                  float(peer_migration_voxel_id));
             velocity_mass[my_destination_particle_id]                = velocity_mass[source_particle_id];
             density_pressure[my_destination_particle_id]             = density_pressure[source_particle_id];
-            acceleration[my_destination_particle_id]                 = acceleration[source_particle_id];
-            shift[my_destination_particle_id]                        = shift[source_particle_id];
             material[my_destination_particle_id]                     = material[source_particle_id];
-            correction_inverse[my_destination_particle_id * 2u + 0u] = correction_inverse[source_particle_id * 2u + 0u];
-            correction_inverse[my_destination_particle_id * 2u + 1u] = correction_inverse[source_particle_id * 2u + 1u];
-            density_gradient_kernel_sum[my_destination_particle_id]  = density_gradient_kernel_sum[source_particle_id];
-            extension_fields[my_destination_particle_id]             = extension_fields[source_particle_id];
+            copy_recomputed_fields(my_destination_particle_id, source_particle_id);
             if (DEPARTED_POOL_SIZE > 0u) store_departed(source_particle_id, ghost_voxel_id);
             position_voxel_id[source_particle_id] = vec4(0.0);
             velocity_mass[source_particle_id]     = vec4(0.0);
@@ -313,13 +327,8 @@ void main() {
                                              float(peer_replica_vid));
         velocity_mass[my_dst_pid]                = velocity_mass[src_pid];
         density_pressure[my_dst_pid]             = density_pressure[src_pid];
-        acceleration[my_dst_pid]                 = acceleration[src_pid];
-        shift[my_dst_pid]                        = shift[src_pid];
         material[my_dst_pid]                     = material[src_pid];
-        correction_inverse[my_dst_pid * 2u + 0u] = correction_inverse[src_pid * 2u + 0u];
-        correction_inverse[my_dst_pid * 2u + 1u] = correction_inverse[src_pid * 2u + 1u];
-        density_gradient_kernel_sum[my_dst_pid]  = density_gradient_kernel_sum[src_pid];
-        extension_fields[my_dst_pid]             = extension_fields[src_pid];
+        copy_recomputed_fields(my_dst_pid, src_pid);
 
         // Set 1 inside_particle_index entry — points to peer's ghost-pid slot
         // after transport. install_migrations leaves replica slots intact.
@@ -345,13 +354,8 @@ void main() {
                                              float(peer_migration_vid));
         velocity_mass[my_dst_pid]                = velocity_mass[src_pid];
         density_pressure[my_dst_pid]             = density_pressure[src_pid];
-        acceleration[my_dst_pid]                 = acceleration[src_pid];
-        shift[my_dst_pid]                        = shift[src_pid];
         material[my_dst_pid]                     = material[src_pid];
-        correction_inverse[my_dst_pid * 2u + 0u] = correction_inverse[src_pid * 2u + 0u];
-        correction_inverse[my_dst_pid * 2u + 1u] = correction_inverse[src_pid * 2u + 1u];
-        density_gradient_kernel_sum[my_dst_pid]  = density_gradient_kernel_sum[src_pid];
-        extension_fields[my_dst_pid]             = extension_fields[src_pid];
+        copy_recomputed_fields(my_dst_pid, src_pid);
 
         // V6_KEEP_DEPARTED: keep a local copy for this step's seam sweeps.
         if (DEPARTED_POOL_SIZE > 0u) store_departed(src_pid, sender_ghost_vid);

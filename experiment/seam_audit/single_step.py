@@ -64,6 +64,7 @@ from experiment.seam_audit.dump_state import (  # noqa: E402
     OwnPositionReader,
     check_encoding_round_trip,
     decode_global_ids,
+    enable_audit_transport,
     install_global_id_injection,
     json_default,
     perform_defrag,
@@ -1179,6 +1180,7 @@ def parse_arguments(argument_list=None) -> argparse.Namespace:
 
 
 def main(argument_list=None) -> int:
+    enable_audit_transport()
     arguments = parse_arguments(argument_list)
     if arguments.command == "analyze":
         return run_analyze(arguments)

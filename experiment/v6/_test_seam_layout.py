@@ -15,6 +15,10 @@ _test_seam_layout.py — CPU-only checks of the V6 seam layout (no Vulkan device
 4. V6_GHOST_LAYERS=2 transport segments: regions partition the ghost pool, the
    replica regions carry exactly the 4 sweep fields, every per-particle segment
    has a live-count word, staging is contiguous and ends with the frame stamp.
+5. V6_LEAN_TRANSPORT=1 (both layouts, with / without V6_TRANSPORT_EXTENSION):
+   the partition is unchanged, the particle segments are the full layout's
+   segments restricted to the 4 read fields (+ extension_fields), same device
+   ranges, count words and stamp; 44 (60) B per migrant slot.
 
 Usage:
     .venv/Scripts/python.exe experiment/v6/_test_seam_layout.py
@@ -85,9 +89,12 @@ def _synthetic_global_case(case_module, column_count=48, row_count=14,
         transport=case_module.TransportConfig(), materials=materials, initial=initial)
 
 
-def _set_switches(ghost_layers: int, keep_departed: int) -> None:
+def _set_switches(ghost_layers: int, keep_departed: int, lean: int = 0,
+                  extension: int = 0) -> None:
     os.environ["V6_GHOST_LAYERS"] = str(ghost_layers)
     os.environ["V6_KEEP_DEPARTED"] = str(keep_departed)
+    os.environ["V6_LEAN_TRANSPORT"] = str(lean)
+    os.environ["V6_TRANSPORT_EXTENSION"] = str(extension)
     os.environ.pop("V6_DEPARTED_CAPACITY", None)
 
 
@@ -338,10 +345,94 @@ def check_two_layer_algebra(failures: list) -> None:
                                 f"cover exactly the migrant region")
 
 
+def check_lean_transport(failures: list) -> None:
+    """V6_LEAN_TRANSPORT: the per-particle segments of the V5 mixed pool and
+    of the two-layer migrant region are exactly the 4 read fields (+
+    extension_fields with V6_TRANSPORT_EXTENSION), at the SAME device offsets
+    and sizes as the full layout; voxel lists, count words and stamp are
+    unchanged; the count-aware plan still points every particle segment at
+    its live-count word; staging stays contiguous."""
+    import experiment.v6.utils.case_v6 as case_v6
+    import experiment.v6.utils.partition_v6 as partition_v6
+    import experiment.v6.utils.simulator_v6 as simulator_v6
+
+    lean_fields = {"position_voxel_id", "velocity_mass", "density_pressure", "material"}
+
+    def key(segment):
+        return (segment.buffer_name, segment.device_offset, segment.size, segment.stride)
+
+    for ghost_layers, keep_departed in ((1, 0), (1, 1), (2, 1)):
+        for extension in (0, 1):
+            _set_switches(ghost_layers, keep_departed, lean=0)
+            full_chain = partition_v6.compute_chain_partition(
+                _synthetic_global_case(case_v6), [1.0, 1.0, 1.0], pool_safety=1.2)
+            _set_switches(ghost_layers, keep_departed, lean=1, extension=extension)
+            lean_chain = partition_v6.compute_chain_partition(
+                _synthetic_global_case(case_v6), [1.0, 1.0, 1.0], pool_safety=1.2)
+            expected_fields = lean_fields | ({"extension_fields"} if extension else set())
+            tag = f"layers={ghost_layers} keep={keep_departed} ext={extension}"
+            for index, (full_slab, lean_slab) in enumerate(zip(full_chain.slabs, lean_chain.slabs)):
+                if _comparable(full_slab) != _comparable(lean_slab):
+                    failures.append(f"{tag} slab {index}: the lean switch changed the partition")
+                replica_region = lean_slab.capacities.replica_region_size
+
+                def is_replica_segment(segment):
+                    return (replica_region > 0
+                            and segment.buffer_name in simulator_v6._REPLICA_TRANSPORT_FIELDS
+                            and segment.size == segment.stride * replica_region)
+
+                for direction in ("leading", "trailing"):
+                    _set_switches(ghost_layers, keep_departed, lean=0)
+                    full_segments, full_total = simulator_v6.SphSimulatorV6._compute_transport_segments(
+                        _fake_simulator(simulator_v6.SphSimulatorV6, full_slab), direction)
+                    _set_switches(ghost_layers, keep_departed, lean=1, extension=extension)
+                    lean_segments, lean_total = simulator_v6.SphSimulatorV6._compute_transport_segments(
+                        _fake_simulator(simulator_v6.SphSimulatorV6, lean_slab), direction)
+                    if not full_segments:
+                        if lean_segments:
+                            failures.append(f"{tag} slab {index} {direction}: lean adds segments")
+                        continue
+                    # every non-particle segment, every replica-region segment
+                    # and the lean fields of the migrant / mixed region survive
+                    expected = [key(segment) for segment in full_segments
+                                if not segment.stride or is_replica_segment(segment)
+                                or segment.buffer_name in expected_fields]
+                    observed = [key(segment) for segment in lean_segments]
+                    if observed != expected:
+                        failures.append(f"{tag} slab {index} {direction}: lean segments "
+                                        f"{[item[0] for item in observed]} != "
+                                        f"{[item[0] for item in expected]}")
+                    offset = 0
+                    for segment in lean_segments:
+                        if segment.staging_offset != offset:
+                            failures.append(f"{tag} slab {index} {direction}: staging gap")
+                        offset = segment.staging_offset + segment.size
+                        if segment.stride and segment.count_staging_offset is None:
+                            failures.append(f"{tag} slab {index} {direction}: particle segment "
+                                            f"{segment.buffer_name} without a count word")
+                    if offset != lean_total:
+                        failures.append(f"{tag} slab {index} {direction}: staging total mismatch")
+                    if lean_segments[-1].device_offset != simulator_v6._OFFSET_FRAME_STAMP:
+                        failures.append(f"{tag} slab {index} {direction}: stamp is not last")
+                    full_words = [segment.device_offset for segment in full_segments
+                                  if segment.buffer_name == "global_status"]
+                    lean_words = [segment.device_offset for segment in lean_segments
+                                  if segment.buffer_name == "global_status"]
+                    if full_words != lean_words:
+                        failures.append(f"{tag} slab {index} {direction}: count / stamp words differ")
+                    migrant_slot_bytes = sum(segment.stride for segment in lean_segments
+                                             if segment.stride and not is_replica_segment(segment))
+                    expected_slot_bytes = 60 if extension else 44
+                    if migrant_slot_bytes != expected_slot_bytes:
+                        failures.append(f"{tag} slab {index} {direction}: {migrant_slot_bytes} B per "
+                                        f"migrant slot, expected {expected_slot_bytes}")
+
+
 def main() -> int:
     failures: list = []
     check_v5_equivalence(failures)
     check_two_layer_algebra(failures)
+    check_lean_transport(failures)
     _set_switches(1, 0)
     if failures:
         print(f"[seam_layout] {len(failures)} FAILURE(S):")
@@ -349,7 +440,7 @@ def main() -> int:
             print("  - " + failure)
         return 1
     print("[seam_layout] ALL PASS (layers=1 == v5 partition + transport; layers=2 column/pid algebra, "
-          "segment layout, install range)")
+          "segment layout, install range; lean transport segments)")
     return 0
 
 

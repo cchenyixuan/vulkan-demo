@@ -170,16 +170,23 @@ void main() {
     // .w of position_voxel_id is already in receiver's own range (sender
     // pre-encoded), so we just copy the whole vec4 — no translation needed.
     // ------------------------------------------------------------------------
+    // V6_LEAN_TRANSPORT: only the four transported fields are copied; C2 / C5
+    // rewrite the other four for this particle (it lands in the boundary band)
+    // before anything reads them. extension_fields is copied when it travelled
+    // (TRANSPORT_EXTENSION) and zeroed otherwise (V5 shipped zeros there).
     position_voxel_id[own_pid]               = position_voxel_id[gpid];
     velocity_mass[own_pid]                   = velocity_mass[gpid];
     density_pressure[own_pid]                = density_pressure[gpid];
-    acceleration[own_pid]                    = acceleration[gpid];
-    shift[own_pid]                           = shift[gpid];
     material[own_pid]                        = material[gpid];
-    correction_inverse[own_pid * 2u + 0u]    = correction_inverse[gpid * 2u + 0u];
-    correction_inverse[own_pid * 2u + 1u]    = correction_inverse[gpid * 2u + 1u];
-    density_gradient_kernel_sum[own_pid]     = density_gradient_kernel_sum[gpid];
-    extension_fields[own_pid]                = extension_fields[gpid];
+    if (!LEAN_TRANSPORT) {
+        acceleration[own_pid]                 = acceleration[gpid];
+        shift[own_pid]                        = shift[gpid];
+        correction_inverse[own_pid * 2u + 0u] = correction_inverse[gpid * 2u + 0u];
+        correction_inverse[own_pid * 2u + 1u] = correction_inverse[gpid * 2u + 1u];
+        density_gradient_kernel_sum[own_pid]  = density_gradient_kernel_sum[gpid];
+    }
+    extension_fields[own_pid] = (!LEAN_TRANSPORT || TRANSPORT_EXTENSION)
+                                    ? extension_fields[gpid] : vec4(0.0);
 
     // ------------------------------------------------------------------------
     // Register in receiver's own voxel inside_particle_index. Atomic-append

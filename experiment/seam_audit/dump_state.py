@@ -84,6 +84,15 @@ RESULT_PREFIX = "[seam_audit] RESULT "
 LOG_PREFIX = "[seam_audit]"
 DUMP_FORMAT_VERSION = 1
 
+
+
+def enable_audit_transport() -> None:
+    """Audit mode: the global ids ride in extension_fields, so a v6 build with
+    lean ghost packets (V6_LEAN_TRANSPORT=1) must still carry that field across
+    the link. Called first thing by the audit workers (dump_state, single_step);
+    the physics does not read extension_fields."""
+    os.environ["V6_TRANSPORT_EXTENSION"] = "1"
+
 # Global id encoding inside extension_fields (z = high part, w = low part).
 GLOBAL_ID_LOW_BASE = 2 ** 20
 GLOBAL_ID_HIGH_COMPONENT = 2
@@ -1090,6 +1099,7 @@ def run(arguments, summary: dict) -> int:
 
 
 def main(argument_list=None) -> int:
+    enable_audit_transport()
     arguments = parse_arguments(argument_list)
     summary = {
         "run_name": arguments.run_name,

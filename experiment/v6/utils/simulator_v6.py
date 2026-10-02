@@ -44,6 +44,11 @@ from experiment.v6.utils.case_v6 import (
 )
 import threading
 
+from experiment.v6.utils.partition_v6 import (
+    configured_lean_transport,
+    configured_transport_extension,
+    transported_particle_fields,
+)
 from experiment.v6.utils.sync_scheme_v6 import make_sync_scheme
 from experiment.v6.utils.vulkan_context_v6 import VulkanContextV6
 
@@ -285,6 +290,10 @@ class _TransportSegment:
     # sender's allocation counter for that region). None = copy in full.
     stride: int = 0
     count_staging_offset: Optional[int] = None
+    # Pool region the slots belong to ("mixed" = the V5 pool; "inner" /
+    # "outer" / "migrant" = the two-layer regions); None for voxel lists,
+    # count words and the stamp. Used by the pool-peak recorder.
+    region: Optional[str] = None
 
 
 # ============================================================================
@@ -802,14 +811,15 @@ class SphSimulatorV6:
                 direction, pool_size, ghost_voxel_count, pid_first, vid_first,
                 send_count_offset, recv_count_offset)
 
-        # 1-9. Nine SoA fields × ghost-pid range
-        for binding in TRANSPORT_SET0_BINDINGS:
-            name = _SET0_BINDING_TO_NAME[binding]
+        # 1-9. Nine SoA fields × ghost-pid range (V6_LEAN_TRANSPORT: four,
+        #      + extension_fields with V6_TRANSPORT_EXTENSION)
+        particle_fields = transported_particle_fields()
+        for name in particle_fields:
             stride = _SET0_BYTE_STRIDES[name]
             size = stride * pool_size
             device_offset = stride * pid_first
             segments.append(_TransportSegment(name, device_offset, staging_offset, size,
-                                              stride=stride))
+                                              stride=stride, region="mixed"))
             staging_offset += size
 
         # 10. set 1 inside_particle_count × ghost-vid range
@@ -835,7 +845,7 @@ class SphSimulatorV6:
             "global_status", send_count_offset, staging_offset, 4))
         staging_offset += 4
         # The nine per-particle segments are live up to the send count.
-        for segment in segments[:len(TRANSPORT_SET0_BINDINGS)]:
+        for segment in segments[:len(particle_fields)]:
             segment.count_staging_offset = count_staging_offset
 
         # 13. set 3 frame stamp: sender's frame_stamp → receiver's
@@ -892,15 +902,15 @@ class SphSimulatorV6:
                 stride = _SET0_BYTE_STRIDES[name]
                 segment = _TransportSegment(
                     name, stride * (pid_first + first_slot), staging_offset,
-                    stride * slot_count, stride=stride)
+                    stride * slot_count, stride=stride, region=count_key)
                 segments.append(segment)
                 counted_segments.append((segment, count_key))
                 staging_offset += stride * slot_count
 
-        all_fields = [_SET0_BINDING_TO_NAME[binding] for binding in TRANSPORT_SET0_BINDINGS]
         add_particle_segments(_REPLICA_TRANSPORT_FIELDS, 0, replica_region, "inner")
         add_particle_segments(_REPLICA_TRANSPORT_FIELDS, replica_region, replica_region, "outer")
-        add_particle_segments(all_fields, 2 * replica_region, migrant_region, "migrant")
+        add_particle_segments(transported_particle_fields(), 2 * replica_region,
+                              migrant_region, "migrant")
 
         size = 4 * ghost_voxel_count
         segments.append(_TransportSegment(
@@ -1227,10 +1237,12 @@ class SphSimulatorV6:
             (55, 'I', cap.trailing_ghost_pool_size),
             (80, 'I', gh.leading_ghost_voxel_count),
             (81, 'I', gh.trailing_ghost_voxel_count),
-            # V6 seam switches (common.glsl ids 83/84/86; defaults = V5).
+            # V6 seam / transport switches (common.glsl ids 83-88; defaults = V5).
             (83, 'I', gh.ghost_layers),
             (84, 'I', cap.departed_pool_size),
             (86, 'I', cap.replica_region_size),
+            (87, 'B', int(configured_lean_transport())),
+            (88, 'B', int(configured_transport_extension())),
             # NEIGHBOR_X_RANGE (id=82) is NOT global anymore — Path A+ needs
             # different widths per kernel (correction=2, density=3, force=4
             # for the cascading interior/boundary split). Each split-kernel

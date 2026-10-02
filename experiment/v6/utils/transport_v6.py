@@ -117,6 +117,22 @@ class GhostMigrationWorker:
                 else:
                     self._copy_plan.append((segment.staging_offset, segment.size, 0, None))
 
+        # V6_POOL_PEAKS=1: record every frame's live slot count of each pool
+        # region (the sender's allocation counter = demand, also when it
+        # exceeds the region) for the pool-capacity study. Off by default:
+        # the reads sit on the worker's critical path.
+        self.region_capacity: dict[str, int] = {}
+        self.region_counts: dict[str, list] = {}
+        self._region_words: list[tuple[str, int]] = []
+        if os.environ.get("V6_POOL_PEAKS", "0") == "1":
+            for segment in source_sim._transport_segments[source_direction]:
+                region = getattr(segment, "region", None)
+                if region is None or region in self.region_capacity:
+                    continue
+                self.region_capacity[region] = segment.size // segment.stride
+                self.region_counts[region] = []
+                self._region_words.append((region, segment.count_staging_offset))
+
         # Notify channel: main thread puts frame_n; worker takes it.
         # Bounded = backpressure (main thread blocks if worker falls
         # queue_depth frames behind; the historical default is 1).
@@ -282,6 +298,10 @@ class GhostMigrationWorker:
                         print(f"[worker {self.label}] *** STALE READBACK at "
                               f"frame {frame_n}: stamp={stamp} expected="
                               f"{self._stamp_base + frame_n} ***", flush=True)
+
+                for region, count_offset in self._region_words:
+                    self.region_counts[region].append(struct.unpack_from(
+                        "<I", self._source_view, count_offset)[0])
 
                 # 2. Byte memcpy (CPU → CPU)
                 self.last_activity = ("memcpy", frame_n, time.perf_counter_ns())

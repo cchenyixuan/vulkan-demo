@@ -61,6 +61,11 @@ GHOST_THICKNESS = 1   # V5 v1.0: 1-voxel-thick ghost on the interior side (legac
 #                            voxels x peer sides)); f = 0.25 by default. The
 #                            seam crossing rate per frame scales with the face
 #                            area, not with NY*NZ*MAX_INCOMING_PER_VOXEL.
+#   V6_LEAN_TRANSPORT=1      every ghost packet carries 4 fields (position +
+#                            vid, velocity + mass, rho / P, material) instead
+#                            of 9; see common.glsl LEAN_TRANSPORT.
+#   V6_TRANSPORT_EXTENSION=1 lean packets also carry extension_fields (seam
+#                            audit ids; forced on by experiment/seam_audit).
 # ============================================================================
 
 DEPARTED_CAPACITY_FLOOR = 64
@@ -79,6 +84,33 @@ def configured_ghost_layers() -> int:
 
 def configured_keep_departed() -> bool:
     return os.environ.get("V6_KEEP_DEPARTED", "0") == "1"
+
+
+def configured_lean_transport() -> bool:
+    """V6_LEAN_TRANSPORT=1: ghost packets carry 4 fields (common.glsl id 87)."""
+    return os.environ.get("V6_LEAN_TRANSPORT", "0") == "1"
+
+
+def configured_transport_extension() -> bool:
+    """V6_TRANSPORT_EXTENSION=1: lean packets also carry extension_fields
+    (common.glsl id 88). The seam-audit workers force it on (global ids)."""
+    return os.environ.get("V6_TRANSPORT_EXTENSION", "0") == "1"
+
+
+def transported_particle_fields() -> tuple[str, ...]:
+    """SoA fields of a migrant packet (and of every slot of the V5 mixed pool).
+    V5 / lean off: the nine defrag fields. Lean: the four fields the receiver
+    reads, + extension_fields when V6_TRANSPORT_EXTENSION=1."""
+    if not configured_lean_transport():
+        return ("position_voxel_id", "density_pressure", "velocity_mass",
+                "acceleration", "shift", "material", "correction_inverse",
+                "density_gradient_kernel_sum", "extension_fields")
+    # same relative order as the full layout (set 0 binding order), so the
+    # lean staging is the full staging with the dead segments removed
+    fields = ("position_voxel_id", "density_pressure", "velocity_mass", "material")
+    if configured_transport_extension():
+        fields += ("extension_fields",)
+    return fields
 
 
 def _departed_pool_size(global_case: CaseV6, peer_side_count: int) -> int:
