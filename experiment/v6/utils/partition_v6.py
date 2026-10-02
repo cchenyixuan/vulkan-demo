@@ -69,6 +69,8 @@ GHOST_THICKNESS = 1   # V5 v1.0: 1-voxel-thick ghost on the interior side (legac
 #   V6_MIGRANT_POOL_FACTOR=<f> V6_GHOST_LAYERS=2: migrant region = max(64,
 #                            ceil(face x MAX_INCOMING x f)) slots per direction;
 #                            default f = V6_GHOST_POOL_FACTOR (the old sizing).
+#   V6_COMPACT_GHOST_LISTS=1 ghost voxel lists travel as (count, first pid) and
+#                            are rebuilt on the receiver (expand_ghost_lists).
 # ============================================================================
 
 DEPARTED_CAPACITY_FLOOR = 64
@@ -106,6 +108,12 @@ def configured_init_seam_clamp() -> bool:
     lands one column into a ghost column in the adjacent own column (common.glsl
     id 97) instead of losing it at the bootstrap."""
     return os.environ.get("V6_INIT_SEAM_CLAMP", "0") == "1"
+
+
+def configured_compact_ghost_lists() -> bool:
+    """V6_COMPACT_GHOST_LISTS=1: the transport ships one first-pid word per
+    ghost voxel instead of the inside_particle_index rows (common.glsl id 89)."""
+    return os.environ.get("V6_COMPACT_GHOST_LISTS", "0") == "1"
 
 
 def transported_particle_fields() -> tuple[str, ...]:

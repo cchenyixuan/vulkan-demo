@@ -428,11 +428,60 @@ def check_lean_transport(failures: list) -> None:
                                         f"migrant slot, expected {expected_slot_bytes}")
 
 
+def check_compact_ghost_lists(failures: list) -> None:
+    """V6_COMPACT_GHOST_LISTS: the inside_particle_index segment (ghost voxels x
+    MAX_PARTICLES_PER_VOXEL x 4 B) becomes one ghost_voxel_first_particle_id word
+    per ghost voxel at device offset 4 x first ghost vid; every other segment
+    keeps its device range; staging stays contiguous, count words / stamp last."""
+    import experiment.v6.utils.case_v6 as case_v6
+    import experiment.v6.utils.partition_v6 as partition_v6
+    import experiment.v6.utils.simulator_v6 as simulator_v6
+
+    def key(segment):
+        return (segment.buffer_name, segment.device_offset, segment.size, segment.stride)
+
+    for ghost_layers, keep_departed in ((1, 0), (1, 1), (2, 1)):
+        _set_switches(ghost_layers, keep_departed, lean=1)
+        chain = partition_v6.compute_chain_partition(
+            _synthetic_global_case(case_v6), [1.0, 1.0, 1.0], pool_safety=1.2)
+        tag = f"compact layers={ghost_layers} keep={keep_departed}"
+        for index, slab in enumerate(chain.slabs):
+            cap_inside = slab.capacities.max_particles_per_voxel
+            for direction in ("leading", "trailing"):
+                os.environ["V6_COMPACT_GHOST_LISTS"] = "0"
+                full, _ = simulator_v6.SphSimulatorV6._compute_transport_segments(
+                    _fake_simulator(simulator_v6.SphSimulatorV6, slab), direction)
+                os.environ["V6_COMPACT_GHOST_LISTS"] = "1"
+                compact, total = simulator_v6.SphSimulatorV6._compute_transport_segments(
+                    _fake_simulator(simulator_v6.SphSimulatorV6, slab), direction)
+                os.environ["V6_COMPACT_GHOST_LISTS"] = "0"
+                if not full:
+                    continue
+                expected = []
+                for segment in full:
+                    if segment.buffer_name == "inside_particle_index":
+                        voxels = segment.size // (4 * cap_inside)
+                        first_vid = segment.device_offset // (4 * cap_inside)
+                        expected.append(("ghost_voxel_first_particle_id", 4 * first_vid, 4 * voxels, 0))
+                    else:
+                        expected.append(key(segment))
+                if [key(segment) for segment in compact] != expected:
+                    failures.append(f"{tag} slab {index} {direction}: compact segments differ")
+                offset = 0
+                for segment in compact:
+                    if segment.staging_offset != offset:
+                        failures.append(f"{tag} slab {index} {direction}: staging gap")
+                    offset = segment.staging_offset + segment.size
+                if offset != total or compact[-1].device_offset != simulator_v6._OFFSET_FRAME_STAMP:
+                    failures.append(f"{tag} slab {index} {direction}: staging total / stamp")
+
+
 def main() -> int:
     failures: list = []
     check_v5_equivalence(failures)
     check_two_layer_algebra(failures)
     check_lean_transport(failures)
+    check_compact_ghost_lists(failures)
     _set_switches(1, 0)
     if failures:
         print(f"[seam_layout] {len(failures)} FAILURE(S):")
@@ -440,7 +489,7 @@ def main() -> int:
             print("  - " + failure)
         return 1
     print("[seam_layout] ALL PASS (layers=1 == v5 partition + transport; layers=2 column/pid algebra, "
-          "segment layout, install range; lean transport segments)")
+          "segment layout, install range; lean transport segments; compact ghost lists)")
     return 0
 
 

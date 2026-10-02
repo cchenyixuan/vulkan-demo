@@ -45,6 +45,7 @@ from experiment.v6.utils.case_v6 import (
 import threading
 
 from experiment.v6.utils.partition_v6 import (
+    configured_compact_ghost_lists,
     configured_lean_transport,
     configured_transport_extension,
     transported_particle_fields,
@@ -266,9 +267,10 @@ _CONCURRENT_BUFFER_NAMES = frozenset({
     "correction_inverse",
     "density_gradient_kernel_sum",
     "extension_fields",
-    # Set 1 (2)
+    # Set 1 (3)
     "inside_particle_count",
     "inside_particle_index",
+    "ghost_voxel_first_particle_id",   # V6_COMPACT_GHOST_LISTS
     # Set 3 (1)
     "global_status",
 })
@@ -669,6 +671,8 @@ class SphSimulatorV6:
             _BufferSpec("inside_particle_index",        1, 2,  4 * voxel_capacity * cap_inside,   BSU | TRANSFER),
             _BufferSpec("incoming_particle_index",      1, 3,  4 * voxel_capacity * cap_incoming, BSU | TRANSFER),
             _BufferSpec("voxel_base_offset",            1, 4,  4 * voxel_capacity,                BSU | TRANSFER),
+            # V6_COMPACT_GHOST_LISTS: per-voxel first replica pid (ghost range used)
+            _BufferSpec("ghost_voxel_first_particle_id", 1, 5, 4 * voxel_capacity,                BSU | TRANSFER),
 
             # Set 3: global / pool-health / materials
             _BufferSpec("global_status",                3, 0,  _GLOBAL_STATUS_BYTES,    BSU | TRANSFER),
@@ -831,11 +835,9 @@ class SphSimulatorV6:
         staging_offset += size
 
         # 11. set 1 inside_particle_index × ghost-vid range × MAX_PARTICLES_PER_VOXEL
-        size = 4 * ghost_voxel_count * cap_inside
-        segments.append(_TransportSegment(
-            "inside_particle_index",
-            4 * vid_first * cap_inside, staging_offset, size))
-        staging_offset += size
+        #     (V6_COMPACT_GHOST_LISTS: one first-pid word per ghost voxel)
+        segments.append(self._ghost_list_segment(ghost_voxel_count, vid_first, staging_offset))
+        staging_offset += segments[-1].size
 
         # 12. set 3 ghost_send_*_count (sender side: read device→staging at
         #     send_count_offset; receiver side: write staging→device at
@@ -918,10 +920,8 @@ class SphSimulatorV6:
         segments.append(_TransportSegment(
             "inside_particle_count", 4 * vid_first, staging_offset, size))
         staging_offset += size
-        size = 4 * ghost_voxel_count * cap_inside
-        segments.append(_TransportSegment(
-            "inside_particle_index", 4 * vid_first * cap_inside, staging_offset, size))
-        staging_offset += size
+        segments.append(self._ghost_list_segment(ghost_voxel_count, vid_first, staging_offset))
+        staging_offset += segments[-1].size
 
         count_words = (
             ("migrant", send_count_offset, recv_count_offset),
@@ -950,6 +950,19 @@ class SphSimulatorV6:
         self._recv_count_offsets = getattr(self, "_recv_count_offsets", {})
         self._recv_count_offsets[direction] = recv_count_offset
         return segments, staging_offset
+
+    def _ghost_list_segment(self, ghost_voxel_count: int, vid_first: int,
+                            staging_offset: int) -> "_TransportSegment":
+        """The ghost columns' inside lists: the MAX_PARTICLES_PER_VOXEL-wide
+        inside_particle_index rows, or (V6_COMPACT_GHOST_LISTS) one
+        ghost_voxel_first_particle_id word per voxel (expand_ghost_lists.comp
+        rebuilds the rows on the receiver)."""
+        if configured_compact_ghost_lists():
+            return _TransportSegment("ghost_voxel_first_particle_id", 4 * vid_first,
+                                     staging_offset, 4 * ghost_voxel_count)
+        cap_inside = self.case.capacities.max_particles_per_voxel
+        return _TransportSegment("inside_particle_index", 4 * vid_first * cap_inside,
+                                 staging_offset, 4 * ghost_voxel_count * cap_inside)
 
     def transport_staging_bytes(self) -> dict[str, int]:
         """Bytes one readback (= one upload) DMA moves per direction per frame."""
@@ -1142,6 +1155,7 @@ class SphSimulatorV6:
             "bootstrap_half_kick", "initialize_voxelization",
             "predict", "update_voxel", "ghost_send", "install_migrations",
             "correction", "density", "force", "defrag", "append_departed",
+            "expand_ghost_lists",
         ):
             spv_path = shader_dir / f"{shader_name}.comp.spv"
             if not spv_path.exists():
@@ -1245,6 +1259,7 @@ class SphSimulatorV6:
             (86, 'I', cap.replica_region_size),
             (87, 'B', int(configured_lean_transport())),
             (88, 'B', int(configured_transport_extension())),
+            (89, 'B', int(configured_compact_ghost_lists())),
             (97, 'B', int(configured_init_seam_clamp())),
             # NEIGHBOR_X_RANGE (id=82) is NOT global anymore — Path A+ needs
             # different widths per kernel (correction=2, density=3, force=4
@@ -1388,7 +1403,7 @@ class SphSimulatorV6:
                              "band-voxel dispatch of correction/density_boundary; it needs "
                              "V6_BAND_VOXEL_DISPATCH=1")
         for key in ("initialize_voxelization", "bootstrap_half_kick",
-                    "predict", "update_voxel", "append_departed"):
+                    "predict", "update_voxel", "append_departed", "expand_ghost_lists"):
             pipelines[key] = self._create_pipeline(
                 shader=self.shader_modules[key],
                 entries=self._global_entries(),
@@ -1558,6 +1573,29 @@ class SphSimulatorV6:
         if pool > 0:
             pool -= 2 * self.case.capacities.replica_region_size
         return (pool + wg - 1) // wg if pool > 0 else 0
+
+    def _per_expand_dispatch_count(self) -> int:
+        """expand_ghost_lists threads: (inbound ghost voxel, slot) pairs; 0 when
+        V6_COMPACT_GHOST_LISTS is off or the slab has no peer."""
+        if not (configured_compact_ghost_lists() and self._transport_segments):
+            return 0
+        ghost_grid = self.case.ghost_grid
+        voxels = ghost_grid.leading_ghost_voxel_count + ghost_grid.trailing_ghost_voxel_count
+        threads = voxels * self.case.capacities.max_particles_per_voxel
+        wg = self.case.capacities.workgroup_size
+        return (threads + wg - 1) // wg
+
+    def _record_expand_ghost_lists(self, cmd) -> bool:
+        """V6_COMPACT_GHOST_LISTS: rebuild the inbound ghost voxel rows from
+        (count, first pid) after the upload, before append_departed / sweeps."""
+        groups = self._per_expand_dispatch_count()
+        if groups == 0:
+            return False
+        self._record_transfer_to_compute_barrier(cmd)
+        self._bind_pipeline_and_sets(cmd, "expand_ghost_lists")
+        vkCmdDispatch(cmd, groups, 1, 1)
+        self._record_compute_barrier(cmd)
+        return True
 
     def _per_departed_dispatch_count(self) -> int:
         wg = self.case.capacities.workgroup_size
@@ -2103,6 +2141,7 @@ class SphSimulatorV6:
             per_ghost_pid = self._per_ghost_pid_dispatch_count(direction)
             vkCmdDispatch(cmd, per_ghost_pid, 1, 1)
             self._record_compute_barrier(cmd)
+        self._record_expand_ghost_lists(cmd)
 
         self._bind_pipeline_and_sets(cmd, "correction_all")
         vkCmdDispatch(cmd, per_p, 1, 1)
@@ -2560,6 +2599,10 @@ class SphSimulatorV6:
         self._bench_tick(cmd, "c_start")
 
         per_p = self._per_own_particle_dispatch_count()
+
+        # V6_COMPACT_GHOST_LISTS: the inbound ghost voxel rows first.
+        if self._record_expand_ghost_lists(cmd):
+            self._bench_tick(cmd, "c_expand_end")
 
         # Per-direction install_migration (skipped if no peer). Path A+:
         # upload DMA has been MOVED to the transfer queue (see

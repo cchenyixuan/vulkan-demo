@@ -499,6 +499,10 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
         out["b_to_c_gap_us"] = v
 
     last_c_label = "c_start"
+    # V6_COMPACT_GHOST_LISTS: inbound ghost rows rebuilt first.
+    if (v := diff_us("c_expand_end", last_c_label)) is not None:
+        out["expand_lists_us"] = v
+        last_c_label = "c_expand_end"
     if "c_install_leading_end" in ticks:
         out["install_leading_us"] = diff_us("c_install_leading_end", last_c_label)
         # Two-way split: upload DMA / (dispatch + barriers).

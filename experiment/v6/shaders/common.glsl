@@ -303,6 +303,14 @@ layout(constant_id = 87) const bool LEAN_TRANSPORT = false;
 // particle quantity that must survive a migration). Off: an installed migrant
 // gets extension_fields = 0 (what V5 transported in production).
 layout(constant_id = 88) const bool TRANSPORT_EXTENSION = false;
+// COMPACT_GHOST_LISTS (V6_COMPACT_GHOST_LISTS): ghost_send writes, per outbox
+// ghost voxel, the receiver-frame pid of its first replica into
+// ghost_voxel_first_particle_id instead of the MAX_PARTICLES_PER_VOXEL-wide
+// inside_particle_index row (a voxel's replicas occupy consecutive pool slots,
+// so the row is first + k); the transport ships that one uint per voxel and
+// expand_ghost_lists.comp rebuilds the rows on the receiver at the start of
+// phase C (same entries, same order).
+layout(constant_id = 89) const bool COMPACT_GHOST_LISTS = false;
 // INIT_SEAM_CLAMP (V6_INIT_SEAM_CLAMP): initialize_voxelization registers an
 // own particle whose voxel lands one column into a ghost column in the adjacent
 // own column. The host partition and every slab compute the column in float32
@@ -553,7 +561,14 @@ layout(std430, set = 1, binding = 4) buffer VoxelBaseOffsetBuffer {
     // voxel buffers.
     uint voxel_base_offset[];
 };
-// binding 5 reserved
+
+layout(std430, set = 1, binding = 5) buffer GhostVoxelFirstParticleIdBuffer {
+    // V6_COMPACT_GHOST_LISTS only: per ghost voxel, the receiver-frame pid of
+    // the voxel's first replica (ghost_send writes the outbox entries, the
+    // transport carries the ghost range, expand_ghost_lists.comp reads the
+    // inbound entries). Size = voxel_count + 1, indexed by voxel_id.
+    uint ghost_voxel_first_particle_id[];
+};
 
 // ============================================================================
 // Descriptor set 2 — UNUSED in V1 merged-buffer scheme.

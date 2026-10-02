@@ -200,6 +200,10 @@ void send_two_layers(uint y, uint z) {
         inside_particle_count[outbox_voxel_id] = replica_count;
         uint region_first_particle_id = first_ghost_particle_id + layer_index * REPLICA_REGION_SIZE;
         uint peer_replica_voxel_id = uint(int(source_voxel_id) + GHOST_VOXEL_ID_OFFSET_TO_RECEIVER);
+        if (COMPACT_GHOST_LISTS) {
+            ghost_voxel_first_particle_id[outbox_voxel_id] =
+                uint(int(region_first_particle_id + base_slot) + GHOST_PID_OFFSET_TO_RECEIVER);
+        }
         for (uint slot_index = 0u; slot_index < replica_count; slot_index++) {
             uint source_particle_id = inside_particle_index[source_voxel_id * MAX_PARTICLES_PER_VOXEL + slot_index];
             uint my_destination_particle_id   = region_first_particle_id + base_slot + slot_index;
@@ -209,7 +213,9 @@ void send_two_layers(uint y, uint z) {
             velocity_mass[my_destination_particle_id]    = velocity_mass[source_particle_id];
             density_pressure[my_destination_particle_id] = density_pressure[source_particle_id];
             material[my_destination_particle_id]         = material[source_particle_id];
-            inside_particle_index[outbox_voxel_id * MAX_PARTICLES_PER_VOXEL + slot_index] = peer_destination_particle_id;
+            if (!COMPACT_GHOST_LISTS) {
+                inside_particle_index[outbox_voxel_id * MAX_PARTICLES_PER_VOXEL + slot_index] = peer_destination_particle_id;
+            }
         }
     }
 
@@ -310,6 +316,10 @@ void main() {
     uint my_first_dst_pid = (GHOST_DIRECTION == 0u)
         ? leading_ghost_first_pid()
         : trailing_ghost_first_pid();
+    if (COMPACT_GHOST_LISTS) {
+        ghost_voxel_first_particle_id[sender_ghost_vid] =
+            uint(int(my_first_dst_pid + base_slot) + GHOST_PID_OFFSET_TO_RECEIVER);
+    }
 
     // ========================================================================
     // (a) Pack REPLICAS: walk own_boundary's inside_particle_index.
@@ -332,7 +342,10 @@ void main() {
 
         // Set 1 inside_particle_index entry — points to peer's ghost-pid slot
         // after transport. install_migrations leaves replica slots intact.
-        inside_particle_index[sender_ghost_vid * MAX_PARTICLES_PER_VOXEL + k] = peer_dst_pid;
+        // (V6_COMPACT_GHOST_LISTS: the receiver rebuilds it as first + k.)
+        if (!COMPACT_GHOST_LISTS) {
+            inside_particle_index[sender_ghost_vid * MAX_PARTICLES_PER_VOXEL + k] = peer_dst_pid;
+        }
     }
 
     // ========================================================================
