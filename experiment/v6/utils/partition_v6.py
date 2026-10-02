@@ -66,9 +66,13 @@ GHOST_THICKNESS = 1   # V5 v1.0: 1-voxel-thick ghost on the interior side (legac
 #                            of 9; see common.glsl LEAN_TRANSPORT.
 #   V6_TRANSPORT_EXTENSION=1 lean packets also carry extension_fields (seam
 #                            audit ids; forced on by experiment/seam_audit).
+#   V6_MIGRANT_POOL_FACTOR=<f> V6_GHOST_LAYERS=2: migrant region = max(64,
+#                            ceil(face x MAX_INCOMING x f)) slots per direction;
+#                            default f = V6_GHOST_POOL_FACTOR (the old sizing).
 # ============================================================================
 
 DEPARTED_CAPACITY_FLOOR = 64
+MIGRANT_REGION_FLOOR = 64      # V6_GHOST_LAYERS = 2 migrant region, slots per direction
 
 
 def configured_ghost_layers() -> int:
@@ -149,11 +153,16 @@ def _ghost_pool_layout(global_case: CaseV6, ghost_layers: int) -> tuple[int, int
         return _ghost_pool_size(global_case), 0
     voxel_per_x = global_case.grid.grid_dimension_y * global_case.grid.grid_dimension_z
     factor = float(os.environ.get("V6_GHOST_POOL_FACTOR", "1"))
+    # V6_MIGRANT_POOL_FACTOR (default = the ghost pool factor): the migrant
+    # region's own scale. A frame's migrants are a few per seam row (measured
+    # in docs/seam_audit/v6_opt.md), far below one column's replicas, so the
+    # shared factor over-sizes this region ~100x; every slot is DMA'd.
+    migrant_factor = float(os.environ.get("V6_MIGRANT_POOL_FACTOR", str(factor)))
     replica_region = int(math.ceil(
         voxel_per_x * (global_case.capacities.max_particles_per_voxel
                        + global_case.capacities.max_incoming_per_voxel) * factor))
-    migrant_region = int(math.ceil(
-        voxel_per_x * global_case.capacities.max_incoming_per_voxel * factor))
+    migrant_region = max(MIGRANT_REGION_FLOOR, int(math.ceil(
+        voxel_per_x * global_case.capacities.max_incoming_per_voxel * migrant_factor)))
     return 2 * replica_region + migrant_region, replica_region
 
 

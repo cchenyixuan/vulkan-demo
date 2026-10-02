@@ -88,6 +88,18 @@ def production_environment(dimension: int) -> dict:
     }
 
 
+def resolve_by_dimension(environment: dict, dimension: int) -> dict:
+    """A value written 'd2:X|d3:Y' takes X in 2-D cases and Y in 3-D cases
+    (per-dimension pool factors in one configuration)."""
+    resolved = {}
+    for key, value in environment.items():
+        if isinstance(value, str) and value.startswith("d2:"):
+            choices = dict(part.split(":", 1) for part in value.split("|"))
+            value = choices[f"d{dimension}"]
+        resolved[key] = value
+    return resolved
+
+
 def parse_definitions(definitions) -> dict:
     """--define name=KEY=VALUE;KEY=VALUE ... (a definition may start from a
     preset: name=@l2;KEY=VALUE)."""
@@ -267,7 +279,7 @@ def run_driver(args, configs: dict) -> int:
                 environment = {key: value for key, value in os.environ.items()
                                if not key.startswith("V6_")}
                 environment.update(production_environment(dimension))
-                environment.update(configs[config_name])
+                environment.update(resolve_by_dimension(configs[config_name], dimension))
                 command = [sys.executable, str(pathlib.Path(__file__).resolve()), "--worker",
                            "--case", case_path, "--device-map", args.device_map,
                            "--warmup", str(warmup), "--steps", str(steps),
@@ -370,6 +382,7 @@ def summarize(out_dir: pathlib.Path, config_order=None) -> list:
                    "force_band_us": anatomy_max("force_us"),
                    "append_departed_us": anatomy_max("append_departed_us"),
                    "expand_lists_us": anatomy_max("expand_lists_us"),
+                   "band_compact_us": anatomy_max("band_compact_us"),
                    "dma_bytes": link_mean("dma_bytes_per_frame"),
                    "host_bytes": link_mean("host_copy_bytes_per_frame"),
                    "readback_us": link_mean("readback_dma_us"),
