@@ -117,7 +117,7 @@ void process_particle(uint self_particle_id) {
     float self_mass          = self_velocity_mass.w;
 
     vec2  self_density_pressure = read_density_pressure(self_particle_id);
-    float self_density  = self_density_pressure.x;
+    float self_density  = density_from_stored(self_density_pressure.x);
     float self_pressure = self_density_pressure.y;
 
     // --- Self correction matrix (KCG) and kernel_sum --------------------------
@@ -194,7 +194,7 @@ void process_particle(uint self_particle_id) {
                     // also taken from self_params outside the loop.
                     vec3  neighbor_velocity = velocity_mass[neighbor_particle_id].xyz;
                     vec2  neighbor_density_pressure = read_density_pressure(neighbor_particle_id);
-                    float neighbor_density  = neighbor_density_pressure.x;
+                    float neighbor_density  = density_from_stored(neighbor_density_pressure.x);
                     float neighbor_pressure = neighbor_density_pressure.y;
                     float neighbor_volume_dynamic = self_mass / neighbor_density;
 

@@ -92,7 +92,8 @@ void process_particle(uint self_particle_id) {
     if (DENSITY_MODE == PIPELINE_MODE_BOUNDARY && !self_in_boundary_band) return;
 
     vec3  self_velocity = velocity_mass[self_particle_id].xyz;
-    float self_density  = density_pressure[self_particle_id].x;   // ρ_n
+    float self_stored_density = density_pressure[self_particle_id].x;   // ρ_n (V6_DELTA_DENSITY: ρ_n - ρ_ref)
+    float self_density  = density_from_stored(self_stored_density);
 
     // KCG correction matrix and density gradient from correction.comp output.
     // When USE_KCG_CORRECTION is false (ablation), substitute identity / zero
@@ -164,8 +165,8 @@ void process_particle(uint self_particle_id) {
                     // --- Read neighbor state --------------------------------
                     vec3  neighbor_velocity = velocity_mass[neighbor_particle_id].xyz;
                     float neighbor_mass     = velocity_mass[neighbor_particle_id].w;
-                    float neighbor_density  = density_pressure[neighbor_particle_id].x;
-                    float neighbor_volume   = neighbor_mass / neighbor_density;
+                    float neighbor_stored_density = density_pressure[neighbor_particle_id].x;
+                    float neighbor_volume   = neighbor_mass / density_from_stored(neighbor_stored_density);
 
                     // Read neighbor correction matrix and density gradient
                     // (or identity / zero when KCG ablated; spec-const DCE'd).
@@ -211,7 +212,7 @@ void process_particle(uint self_particle_id) {
                         vec3 neighbor_corrected_density_gradient = neighbor_correction_matrix * neighbor_density_gradient;
                         vec3 corrected_density_gradient_sum = self_corrected_density_gradient + neighbor_corrected_density_gradient;
                         vec3 position_difference_self_to_neighbor = -position_difference_neighbor_to_self; // -x_ij
-                        float psi_ij = (neighbor_density - self_density);// - 0.5 * dot(corrected_density_gradient_sum, position_difference_self_to_neighbor);
+                        float psi_ij = (neighbor_stored_density - self_stored_density);// - 0.5 * dot(corrected_density_gradient_sum, position_difference_self_to_neighbor);
 
                         // --- D_ij = 2·ψ_ij · (-x_ij · ∇W̃_ij) / (r² + ε_h²) · V_j ---
                         float dot_xji_gradient = dot(position_difference_self_to_neighbor, corrected_gradient);
@@ -231,13 +232,13 @@ void process_particle(uint self_particle_id) {
     // ========================================================================
     // Forward integration (full dt; leapfrog only staggers v, not ρ).
     // ========================================================================
-    float new_density = self_density + TIMESTEP * (density_drift + density_diffusion);
+    float new_stored_density = self_stored_density + TIMESTEP * (density_drift + density_diffusion);
 
     // ========================================================================
     // Tait EOS: P = eos_constant · ((ρ/ρ₀)^γ - 1)
     // ========================================================================
-    float density_ratio = new_density / self_params.rest_density;
-    float new_pressure  = self_params.eos_constant * (pow(density_ratio, POWER_PARAMETER) - 1.0);
+    float new_pressure  = tait_pressure(new_stored_density, self_params.rest_density,
+                                        self_params.eos_constant);
 
     // ========================================================================
     // Write to scratch (simulator copies scratch → primary right after this
@@ -255,8 +256,8 @@ void process_particle(uint self_particle_id) {
     // runtime buffer = per-step new_pressure" architecture.
     // ========================================================================
     float density_to_store = (self_params.kind == MATERIAL_BOUNDARY)
-        ? self_params.rest_density
-        : new_density;
+        ? stored_rest_density(self_params.rest_density)
+        : new_stored_density;
     density_pressure_scratch[self_particle_id] = vec2(density_to_store, new_pressure);
 }
 

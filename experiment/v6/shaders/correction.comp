@@ -52,8 +52,9 @@ void process_particle(uint self_particle_id) {
     uint self_voxel_id          = uint(round(self_position_voxel_id.w));
     if (self_voxel_id == VOXEL_ID_DEAD) return;
 
-    // Read self's density from the canonical buffer.
-    float self_density = density_pressure[self_particle_id].x;
+    // Read self's density from the canonical buffer (V6_DELTA_DENSITY: rho - rho_ref;
+    // only the difference to the neighbour's stored value is used below).
+    float self_stored_density = density_pressure[self_particle_id].x;
 
     // --- Decode self voxel coord ---------------------------------------------
     ivec3 self_voxel_coord = own_coord_of(self_voxel_id);
@@ -106,8 +107,8 @@ void process_particle(uint self_particle_id) {
 
                     // --- Read neighbor mass / density / volume --------------
                     float neighbor_mass    = velocity_mass[neighbor_particle_id].w;
-                    float neighbor_density = density_pressure[neighbor_particle_id].x;
-                    float neighbor_volume  = neighbor_mass / neighbor_density;
+                    float neighbor_stored_density = density_pressure[neighbor_particle_id].x;
+                    float neighbor_volume  = neighbor_mass / density_from_stored(neighbor_stored_density);
 
                     // --- Evaluate kernel and gradient -----------------------
                     vec3  kernel_gradient_value = evaluate_kernel_gradient(
@@ -121,7 +122,7 @@ void process_particle(uint self_particle_id) {
 
                     // ---- Density gradient: ∇ρ_i = Σ V_j · (ρ_j - ρ_i) · ∇W_ij
                     density_gradient += neighbor_volume
-                                      * (neighbor_density - self_density)
+                                      * (neighbor_stored_density - self_stored_density)
                                       * kernel_gradient_value;
 
                     // ---- Kernel sum: Σ V_j · W_ij

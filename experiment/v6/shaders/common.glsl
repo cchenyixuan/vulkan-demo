@@ -313,6 +313,18 @@ layout(constant_id = 88) const bool TRANSPORT_EXTENSION = false;
 // expand_ghost_lists.comp rebuilds the rows on the receiver at the start of
 // phase C (same entries, same order).
 layout(constant_id = 89) const bool COMPACT_GHOST_LISTS = false;
+// DELTA_DENSITY (V6_DELTA_DENSITY, evaluation switch, default off):
+// density_pressure.x (and its scratch) stores delta = rho - REFERENCE_DENSITY
+// instead of rho. Near rho0 = 1000 a float32 rho has a ULP of 6.1e-5 kg/m3, so
+// most per-step density increments round away and the Tait pressure moves in
+// 0.6-2 Pa steps; delta keeps ~1e-8 relative resolution of the increment.
+// Every read goes through density_from_stored (absolute rho for volumes, the
+// drift term and the PST ratio) or uses stored differences directly (density
+// gradient, delta-SPH psi); the EOS takes x = (rho - rho0) / rho0 from delta
+// and evaluates (1 + x)^gamma - 1 as its binomial series (tait_pressure).
+// REFERENCE_DENSITY = the first fluid material's rest density (host).
+layout(constant_id = 95) const bool DELTA_DENSITY = false;
+layout(constant_id = 96) const float REFERENCE_DENSITY = 1000.0;
 // PACKED_REPLICAS (V6_PACKED_REPLICAS, needs V6_GHOST_LAYERS=2 and
 // COMPACT_GHOST_LISTS): the two-layer replicas travel in ghost_packed_words
 // with only what the receiver reads and cannot rebuild: inner (G1) x, y, z, rho,

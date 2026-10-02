@@ -46,6 +46,7 @@ import threading
 
 from experiment.v6.utils.partition_v6 import (
     configured_compact_ghost_lists,
+    configured_delta_density,
     configured_lean_transport,
     configured_transport_extension,
     transported_particle_fields,
@@ -1295,6 +1296,8 @@ class SphSimulatorV6:
             (87, 'B', int(configured_lean_transport())),
             (88, 'B', int(configured_transport_extension())),
             (89, 'B', int(configured_compact_ghost_lists())),
+            (95, 'B', int(configured_delta_density())),
+            (96, 'f', self.reference_density()),
             (98, 'B', int(configured_packed_replicas())),
             (97, 'B', int(configured_init_seam_clamp())),
             # NEIGHBOR_X_RANGE (id=82) is NOT global anymore — Path A+ needs
@@ -1347,6 +1350,18 @@ class SphSimulatorV6:
 
     def _ghost_self_density(self) -> bool:
         return self.ghost_layers() >= 2 and "density" in _DIAG_GHOST_SELF_KERNELS
+
+    def reference_density(self) -> float:
+        """rho_ref of V6_DELTA_DENSITY: the first fluid material's rest density
+        (every material's rest density otherwise)."""
+        fluids = [m for m in self.case.materials if m.kind == KIND_FLUID]
+        chosen = fluids[0] if fluids else self.case.materials[0]
+        return float(chosen.rest_density)
+
+    def stored_density_offset(self) -> float:
+        """Add to density_pressure.x read back from the GPU to get rho
+        (rho_ref with V6_DELTA_DENSITY, 0 otherwise)."""
+        return self.reference_density() if configured_delta_density() else 0.0
 
     def ghost_layers(self) -> int:
         return self.case.ghost_grid.ghost_layers
@@ -2094,12 +2109,13 @@ class SphSimulatorV6:
             velocity_mass[own_first + i, 3] = mat.rest_density * mat.volume
         data["velocity_mass"] = velocity_mass.tobytes()
 
-        # density_pressure (vec2: ρ₀, 0)
+        # density_pressure (vec2: ρ₀, 0); V6_DELTA_DENSITY stores ρ₀ - ρ_ref
         density_pressure = np.zeros((pool_capacity, 2), dtype=np.float32)
+        stored_offset = self.stored_density_offset()
         for i in range(n_initial):
             group = int(case.initial.material_group[i])
             mat = case.materials[group]
-            density_pressure[own_first + i, 0] = mat.rest_density
+            density_pressure[own_first + i, 0] = mat.rest_density - stored_offset
         data["density_pressure"] = density_pressure.tobytes()
 
         # material (uint group_id, 0 for empty slots)
@@ -2367,6 +2383,9 @@ class SphSimulatorV6:
                                  f"expected {np.dtype(element_type)} {expected_shape}")
             full = np.zeros((pool_capacity,) + expected_shape[1:], dtype=element_type)
             full[own_first:own_first + row_count] = rows
+            if name == "density_pressure" and self.stored_density_offset() != 0.0:
+                # restart states hold rho; V6_DELTA_DENSITY stores rho - rho_ref
+                full[own_first:own_first + row_count, 0] -= np.float32(self.stored_density_offset())
             payload[name] = full.tobytes()
         if row_count and float(np.asarray(state["velocity_mass"])[:, 3].min()) <= 0.0:
             raise ValueError("restart state has rows with mass <= 0 "

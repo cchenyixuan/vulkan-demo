@@ -122,6 +122,12 @@ def configured_packed_replicas() -> bool:
     return os.environ.get("V6_PACKED_REPLICAS", "0") == "1"
 
 
+def configured_delta_density() -> bool:
+    """V6_DELTA_DENSITY=1 (evaluation): density_pressure.x stores rho - rho_ref
+    (common.glsl ids 95 / 96)."""
+    return os.environ.get("V6_DELTA_DENSITY", "0") == "1"
+
+
 def transported_particle_fields() -> tuple[str, ...]:
     """SoA fields of a migrant packet (and of every slot of the V5 mixed pool).
     V5 / lean off: the nine defrag fields. Lean: the four fields the receiver

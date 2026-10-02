@@ -147,6 +147,39 @@ vec4 load_packed_vec4(uint word) {
                 uintBitsToFloat(ghost_packed_words[word + 3u]));
 }
 
+// ============================================================================
+// V6_DELTA_DENSITY helpers (identity / the V5 expression when the switch is off)
+// ============================================================================
+float density_from_stored(float stored_density) {
+    return DELTA_DENSITY ? REFERENCE_DENSITY + stored_density : stored_density;
+}
+
+float stored_rest_density(float rest_density) {
+    return DELTA_DENSITY ? rest_density - REFERENCE_DENSITY : rest_density;
+}
+
+// Tait EOS P = B ((rho / rho0)^gamma - 1). Off: the V5 expression on the stored
+// (absolute) density. On: x = (rho - rho0) / rho0 from the stored delta and
+// (1 + x)^gamma - 1 = sum_k C(gamma, k) x^k, k = 1..8 by Horner (an exact
+// polynomial for integer gamma; for |x| < 0.1 the truncation is < 1e-9 relative
+// for non-integer gamma <= 8).
+float tait_pressure(float stored_density, float rest_density, float eos_constant) {
+    if (!DELTA_DENSITY) {
+        return eos_constant * (pow(stored_density / rest_density, POWER_PARAMETER) - 1.0);
+    }
+    float x = (REFERENCE_DENSITY - rest_density + stored_density) / rest_density;
+    float coefficient[9];
+    coefficient[0] = 1.0;
+    for (int order = 1; order <= 8; order++) {
+        coefficient[order] = coefficient[order - 1] * (POWER_PARAMETER - float(order - 1)) / float(order);
+    }
+    float series = coefficient[8];
+    for (int order = 7; order >= 1; order--) {
+        series = coefficient[order] + x * series;
+    }
+    return eos_constant * x * series;
+}
+
 uint extended_voxel_count() {
     return GRID_DIMENSION_X * GRID_DIMENSION_Y * GRID_DIMENSION_Z;
 }
