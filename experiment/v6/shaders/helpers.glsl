@@ -261,6 +261,35 @@ bool band_thread_voxel(uint voxel_index, uint range, out uint voxel_id) {
     return true;
 }
 
+// V6_BAND_COMPACT_DISPATCH (BAND_VOXEL_DISPATCH = 2): thread -> pid through
+// the compacted band list. Per side the list holds 4 own columns + L inner ghost
+// columns (L = 1 with V6_GHOST_LAYERS = 2); a kernel of width `range` walking
+// GHOST_SELF_LAYER (<= L) ghost columns takes leading list columns
+// [L - GHOST_SELF_LAYER, L + range) and trailing list columns
+// [block + 4 - range, block + 4 + GHOST_SELF_LAYER) — the same particles as
+// band_thread_particle, in the same per-voxel order.
+bool compact_thread_particle(uint thread_id, uint range, out uint self_particle_id) {
+    uint list_self_layer = (GHOST_LAYERS >= 2u) ? 1u : 0u;
+    bool leading  = leading_ghost_x_thickness() > 0u;
+    bool trailing = trailing_ghost_x_thickness() > 0u;
+    uint trailing_block = leading ? 4u + list_self_layer : 0u;
+    uint leading_begin = band_compact_column_start[list_self_layer - GHOST_SELF_LAYER];
+    uint leading_count = leading
+        ? band_compact_column_start[list_self_layer + range] - leading_begin : 0u;
+    if (thread_id < leading_count) {
+        self_particle_id = band_compact_list[leading_begin + thread_id];
+        return true;
+    }
+    thread_id -= leading_count;
+    if (!trailing) return false;
+    uint trailing_begin = band_compact_column_start[trailing_block + 4u - range];
+    uint trailing_count = band_compact_column_start[trailing_block + 4u + GHOST_SELF_LAYER]
+                        - trailing_begin;
+    if (thread_id >= trailing_count) return false;
+    self_particle_id = band_compact_list[trailing_begin + thread_id];
+    return true;
+}
+
 bool band_thread_particle(uint thread_id, uint range, out uint self_particle_id) {
     uint face        = GRID_DIMENSION_Y * GRID_DIMENSION_Z;
     uint voxel_index = thread_id / MAX_PARTICLES_PER_VOXEL;

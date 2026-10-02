@@ -1,0 +1,130 @@
+// ============================================================================
+// band_compact.comp — V6_BAND_COMPACT_DISPATCH (port of exp/band-compact,
+// 2026-09-17, to the v6 seam layout).
+//
+// The phase C band kernels (correction r = 2, density r = 3, force r = 4) in
+// (band voxel, slot) mode launch MAX_PARTICLES_PER_VOXEL threads per band voxel,
+// 50-75 % of which exit at the slot check and hold their CTA's warp slots until
+// it retires (Nsight trace in docs/n56_scaling/band_dispatch_experiment.md: 43-46 %
+// warps active vs 95 % for the interior). This kernel compacts the band's pids
+// into one contiguous list so the band kernels run one thread per particle
+// (BAND_VOXEL_DISPATCH = 2, helpers.glsl compact_thread_particle) through
+// indirect dispatches sized here. Which thread processes a particle changes,
+// the computation of every particle does not: results are bit-identical to
+// the (band voxel, slot) mapping.
+//
+// List layout (band_compact_list, set 1 binding 6): the band voxels of band
+// width 4 plus, with V6_GHOST_LAYERS = 2, the inner ghost column (this
+// pipeline's GHOST_SELF_LAYER = 1), in band_thread_voxel order — leading side
+// [G1,] own columns 0..3, then trailing side own_last-3 .. own_last[, G1] —
+// and inside a voxel the inside-list order. Entries [0, total) hold pids; the
+// per-voxel offsets sit after the worst-case list (band voxels x MAX slots).
+// band_compact_column_start[c] = list offset of list column c (c = columns ->
+// total). A kernel of band width r walking s inner ghost columns takes, per
+// side, one contiguous column range of the list.
+//
+//   BAND_COMPACT_MODE = 0  scan     ONE workgroup of 1024 threads: per-voxel
+//                                   exclusive offsets (each thread owns a
+//                                   contiguous run of voxels), column starts and
+//                                   the three indirect dispatch sizes.
+//   BAND_COMPACT_MODE = 1  scatter  thread = (band voxel, slot): list[offset +
+//                                   slot] = the voxel's inside_particle_index entry.
+// ============================================================================
+
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+
+#include "common.glsl"
+#include "helpers.glsl"
+
+layout(constant_id = 60) const uint BAND_COMPACT_MODE = 0u;
+// inner ghost columns walked as self by the correction / density band kernels
+// (their GHOST_SELF_LAYER; force never walks it)
+layout(constant_id = 61) const uint COMPACT_CORRECTION_SELF_LAYER = 0u;
+layout(constant_id = 62) const uint COMPACT_DENSITY_SELF_LAYER = 0u;
+
+const uint SCAN_THREADS = 1024u;
+layout(local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
+
+shared uint chunk_totals[SCAN_THREADS];
+
+uint voxel_offset_slot(uint voxel_index) {
+    return band_voxel_count(4u) * MAX_PARTICLES_PER_VOXEL + voxel_index;
+}
+
+// indirect dispatch size for band width `range` walking `self_layer` inner ghost
+// columns; the list holds GHOST_SELF_LAYER of them per side
+uvec4 kernel_groups(uint range, uint self_layer, bool leading, bool trailing) {
+    uint side_columns = 4u + GHOST_SELF_LAYER;
+    uint trailing_block = leading ? side_columns : 0u;
+    uint particle_count = 0u;
+    if (leading) {
+        particle_count += band_compact_column_start[GHOST_SELF_LAYER + range]
+                        - band_compact_column_start[GHOST_SELF_LAYER - self_layer];
+    }
+    if (trailing) {
+        particle_count += band_compact_column_start[trailing_block + 4u + self_layer]
+                        - band_compact_column_start[trailing_block + 4u - range];
+    }
+    return uvec4((particle_count + WORKGROUP_SIZE - 1u) / WORKGROUP_SIZE, 1u, 1u, particle_count);
+}
+
+void main() {
+    uint face = GRID_DIMENSION_Y * GRID_DIMENSION_Z;
+    uint band_voxels = band_voxel_count(4u);
+    if (BAND_COMPACT_MODE == 1u) {
+        uint thread_id = gl_GlobalInvocationID.x;
+        uint voxel_index = thread_id / MAX_PARTICLES_PER_VOXEL;
+        uint slot_index = thread_id % MAX_PARTICLES_PER_VOXEL;
+        uint voxel_id;
+        if (voxel_index >= band_voxels) return;
+        if (!band_thread_voxel(voxel_index, 4u, voxel_id)) return;
+        if (slot_index >= inside_particle_count[voxel_id]) return;
+        uint offset = band_compact_list[voxel_offset_slot(voxel_index)];
+        band_compact_list[offset + slot_index] =
+            inside_particle_index[voxel_id * MAX_PARTICLES_PER_VOXEL + slot_index];
+        return;
+    }
+
+    // ---- mode 0: chunked exclusive scan over the band voxels (1 workgroup) ----
+    uint local_id = gl_LocalInvocationID.x;
+    uint chunk = (band_voxels + SCAN_THREADS - 1u) / SCAN_THREADS;
+    uint first = min(local_id * chunk, band_voxels);
+    uint last = min(first + chunk, band_voxels);
+    uint chunk_total = 0u;
+    for (uint voxel_index = first; voxel_index < last; voxel_index++) {
+        uint voxel_id;
+        if (band_thread_voxel(voxel_index, 4u, voxel_id)) chunk_total += inside_particle_count[voxel_id];
+    }
+    chunk_totals[local_id] = chunk_total;
+    barrier();
+    // Hillis-Steele inclusive scan of the chunk totals
+    for (uint stride = 1u; stride < SCAN_THREADS; stride <<= 1u) {
+        uint addend = (local_id >= stride) ? chunk_totals[local_id - stride] : 0u;
+        barrier();
+        chunk_totals[local_id] += addend;
+        barrier();
+    }
+    uint running = chunk_totals[local_id] - chunk_total;   // exclusive start of this chunk
+    for (uint voxel_index = first; voxel_index < last; voxel_index++) {
+        uint voxel_id;
+        uint count = band_thread_voxel(voxel_index, 4u, voxel_id) ? inside_particle_count[voxel_id] : 0u;
+        band_compact_list[voxel_offset_slot(voxel_index)] = running;
+        if (voxel_index % face == 0u) band_compact_column_start[voxel_index / face] = running;
+        running += count;
+    }
+    memoryBarrierBuffer();
+    barrier();
+    if (local_id == SCAN_THREADS - 1u) {
+        uint total = chunk_totals[SCAN_THREADS - 1u];
+        for (uint column = band_voxels / face; column <= BAND_COMPACT_MAX_COLUMNS; column++) {
+            band_compact_column_start[column] = total;
+        }
+        band_compact_total = total;
+        bool leading = leading_ghost_x_thickness() > 0u;
+        bool trailing = trailing_ghost_x_thickness() > 0u;
+        band_compact_groups[0] = kernel_groups(2u, COMPACT_CORRECTION_SELF_LAYER, leading, trailing);
+        band_compact_groups[1] = kernel_groups(3u, COMPACT_DENSITY_SELF_LAYER, leading, trailing);
+        band_compact_groups[2] = kernel_groups(4u, 0u, leading, trailing);
+    }
+}

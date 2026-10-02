@@ -201,6 +201,8 @@ const uint FORCE_DENSITY_SOURCE_SCRATCH = 1u;
 // appended by install_migrations before Phase C's boundary kernels), so the
 // band is covered exactly every frame with no dependence on defrag order or
 // particle drift. See helpers.glsl band_thread_particle().
+// BAND_VOXEL_DISPATCH = 2 (V6_BAND_COMPACT_DISPATCH): one thread per entry of
+// the compacted band list (band_compact.comp), launched indirectly.
 layout(constant_id = 57) const uint BAND_VOXEL_DISPATCH = 0u;
 // V3.8: lanes per band voxel for the boundary pipelines (0 = one thread per
 // slot as in V3.4; L > 0 = L threads per voxel looping over slots lane, lane+L, ...).
@@ -580,6 +582,12 @@ layout(std430, set = 1, binding = 5) buffer GhostVoxelFirstParticleIdBuffer {
     uint ghost_voxel_first_particle_id[];
 };
 
+layout(std430, set = 1, binding = 6) buffer BandCompactListBuffer {
+    // V6_BAND_COMPACT_DISPATCH only (band_compact.comp): the band's pids in
+    // band-voxel order, then the per-band-voxel list offsets. 4 B otherwise.
+    uint band_compact_list[];
+};
+
 layout(std430, set = 1, binding = 7) buffer GhostPackedBuffer {
     // V6_PACKED_REPLICAS only: per direction d (0 leading, 1 trailing) and
     // R = REPLICA_REGION_SIZE, in words: [d*17R, +4R) G1 x y z rho | [+4R, +4R)
@@ -761,6 +769,19 @@ struct MaterialParameters {
 
 layout(std430, set = 3, binding = 7) buffer MaterialParametersBuffer {
     MaterialParameters material_parameters[];
+};
+
+// V6_BAND_COMPACT_DISPATCH (band_compact.comp): band_compact_groups[k] =
+// VkDispatchIndirectCommand (x, y, z) + particle count of the correction (k = 0),
+// density (1) and force (2) band kernels (16 B stride: the indirect dispatch
+// reads 12 B at offset 16 k); band_compact_column_start[c] = list offset of list
+// column c (per side 4 own columns + the inner ghost column with
+// V6_GHOST_LAYERS = 2), entries past the last column = total.
+const uint BAND_COMPACT_MAX_COLUMNS = 10u;
+layout(std430, set = 3, binding = 9) buffer BandCompactMetaBuffer {
+    uvec4 band_compact_groups[3];
+    uint  band_compact_column_start[BAND_COMPACT_MAX_COLUMNS + 1u];
+    uint  band_compact_total;
 };
 
 layout(std430, set = 3, binding = 8) buffer DefragScratchCounterBuffer {

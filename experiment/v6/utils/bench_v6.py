@@ -524,6 +524,10 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
     if (v := diff_us("c_append_departed_end", last_c_label)) is not None:
         out["append_departed_us"] = v
         last_c_label = "c_append_departed_end"
+    # V6_BAND_COMPACT_DISPATCH: band list build (scan + scatter).
+    if (v := diff_us("c_band_compact_end", last_c_label)) is not None:
+        out["band_compact_us"] = v
+        last_c_label = "c_band_compact_end"
     if (v := diff_us("c_correction_boundary_end", last_c_label)) is not None:
         out["correction_boundary_us"] = v
     if (v := diff_us("c_density_end", "c_correction_boundary_end")) is not None:
