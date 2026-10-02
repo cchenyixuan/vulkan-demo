@@ -303,6 +303,14 @@ layout(constant_id = 87) const bool LEAN_TRANSPORT = false;
 // particle quantity that must survive a migration). Off: an installed migrant
 // gets extension_fields = 0 (what V5 transported in production).
 layout(constant_id = 88) const bool TRANSPORT_EXTENSION = false;
+// INIT_SEAM_CLAMP (V6_INIT_SEAM_CLAMP): initialize_voxelization registers an
+// own particle whose voxel lands one column into a ghost column in the adjacent
+// own column. The host partition and every slab compute the column in float32
+// from different origins; a particle within rounding of the seam can be "own"
+// to the host and "ghost" to the slab (or to both slabs), and was then listed
+// in a ghost voxel that the bootstrap ghost round overwrites -> lost at the
+// bootstrap defrag. Lattice initial conditions never sit on a column edge.
+layout(constant_id = 97) const bool INIT_SEAM_CLAMP = false;
 
 // ============================================================================
 // Scalar constants (compile-time, shared by all shaders)
@@ -636,8 +644,16 @@ layout(std430, set = 3, binding = 0) buffer GlobalStatusBuffer {
     uint  replica_inner_recv_trailing_count;
     uint  replica_outer_recv_leading_count;
     uint  replica_outer_recv_trailing_count;
-    uint  status_reserved_0;
-    uint  status_reserved_1;
+    // initialization_seam_clamp_count (V6_INIT_SEAM_CLAMP, cumulative,
+    //   diagnostic): own particles that initialize_voxelization registered in
+    //   the adjacent own column because this slab's float32 voxel formula put
+    //   them one column into a ghost column (a restart state with a particle
+    //   within rounding of a seam). Not an error.
+    // overflow_initialization_outside (cumulative, must be 0): own particles
+    //   initialize_voxelization killed because their voxel is outside the
+    //   extended grid (was a silent loss).
+    uint  initialization_seam_clamp_count;
+    uint  overflow_initialization_outside;
     uint  status_reserved_2;
     uint  status_reserved_3;
     uint  status_reserved_4;

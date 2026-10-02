@@ -48,6 +48,7 @@ from experiment.v6.utils.partition_v6 import (
     configured_lean_transport,
     configured_transport_extension,
     transported_particle_fields,
+    configured_init_seam_clamp,
 )
 from experiment.v6.utils.sync_scheme_v6 import make_sync_scheme
 from experiment.v6.utils.vulkan_context_v6 import VulkanContextV6
@@ -231,6 +232,7 @@ _GLOBAL_STATUS_FIELD_NAMES = (
     "replica_outer_send_leading_count", "replica_outer_send_trailing_count",
     "replica_inner_recv_leading_count", "replica_inner_recv_trailing_count",
     "replica_outer_recv_leading_count", "replica_outer_recv_trailing_count",
+    "initialization_seam_clamp_count", "overflow_initialization_outside",
 )
 # Replicas of the two-layer ghost (V6_GHOST_LAYERS = 2) carry only what the
 # neighbour sweeps read (correction / density / force, incl. the inner layer
@@ -1243,6 +1245,7 @@ class SphSimulatorV6:
             (86, 'I', cap.replica_region_size),
             (87, 'B', int(configured_lean_transport())),
             (88, 'B', int(configured_transport_extension())),
+            (97, 'B', int(configured_init_seam_clamp())),
             # NEIGHBOR_X_RANGE (id=82) is NOT global anymore — Path A+ needs
             # different widths per kernel (correction=2, density=3, force=4
             # for the cascading interior/boundary split). Each split-kernel

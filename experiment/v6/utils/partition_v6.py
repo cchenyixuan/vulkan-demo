@@ -97,6 +97,13 @@ def configured_transport_extension() -> bool:
     return os.environ.get("V6_TRANSPORT_EXTENSION", "0") == "1"
 
 
+def configured_init_seam_clamp() -> bool:
+    """V6_INIT_SEAM_CLAMP=1: initialize_voxelization keeps an own particle that
+    lands one column into a ghost column in the adjacent own column (common.glsl
+    id 97) instead of losing it at the bootstrap."""
+    return os.environ.get("V6_INIT_SEAM_CLAMP", "0") == "1"
+
+
 def transported_particle_fields() -> tuple[str, ...]:
     """SoA fields of a migrant packet (and of every slot of the V5 mixed pool).
     V5 / lean off: the nine defrag fields. Lean: the four fields the receiver

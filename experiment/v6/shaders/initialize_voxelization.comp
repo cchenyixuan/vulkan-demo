@@ -68,7 +68,23 @@ void main() {
     vec3 own_origin    = vec3(OWN_ORIGIN_X, OWN_ORIGIN_Y, OWN_ORIGIN_Z);
     ivec3 voxel_coord  = ivec3(floor((self_position - own_origin) / SMOOTHING_LENGTH));
 
+    // V6_INIT_SEAM_CLAMP: one column into a ghost column = within float32
+    // rounding of the seam (see common.glsl) -> the adjacent own column. The
+    // next predict recomputes the voxel and migrates it normally if needed.
+    if (INIT_SEAM_CLAMP) {
+        int first_own_x = int(leading_ghost_x_thickness());
+        int last_own_x  = int(GRID_DIMENSION_X) - 1 - int(trailing_ghost_x_thickness());
+        if (leading_ghost_x_thickness() > 0u && voxel_coord.x == first_own_x - 1) {
+            voxel_coord.x = first_own_x;
+            atomicAdd(initialization_seam_clamp_count, 1u);
+        } else if (trailing_ghost_x_thickness() > 0u && voxel_coord.x == last_own_x + 1) {
+            voxel_coord.x = last_own_x;
+            atomicAdd(initialization_seam_clamp_count, 1u);
+        }
+    }
+
     if (!in_own_grid(voxel_coord)) {
+        atomicAdd(overflow_initialization_outside, 1u);
         kill_particle(self_particle_id);
         return;
     }
