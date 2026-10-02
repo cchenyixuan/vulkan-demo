@@ -116,6 +116,12 @@ def configured_compact_ghost_lists() -> bool:
     return os.environ.get("V6_COMPACT_GHOST_LISTS", "0") == "1"
 
 
+def configured_packed_replicas() -> bool:
+    """V6_PACKED_REPLICAS=1: two-layer replicas travel packed (G1 36 B, G2 32 B;
+    common.glsl id 98). Needs V6_GHOST_LAYERS=2 and V6_COMPACT_GHOST_LISTS=1."""
+    return os.environ.get("V6_PACKED_REPLICAS", "0") == "1"
+
+
 def transported_particle_fields() -> tuple[str, ...]:
     """SoA fields of a migrant packet (and of every slot of the V5 mixed pool).
     V5 / lean off: the nine defrag fields. Lean: the four fields the receiver

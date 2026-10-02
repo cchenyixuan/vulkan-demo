@@ -50,6 +50,7 @@ from experiment.v6.utils.partition_v6 import (
     configured_transport_extension,
     transported_particle_fields,
     configured_init_seam_clamp,
+    configured_packed_replicas,
 )
 from experiment.v6.utils.sync_scheme_v6 import make_sync_scheme
 from experiment.v6.utils.vulkan_context_v6 import VulkanContextV6
@@ -271,6 +272,7 @@ _CONCURRENT_BUFFER_NAMES = frozenset({
     "inside_particle_count",
     "inside_particle_index",
     "ghost_voxel_first_particle_id",   # V6_COMPACT_GHOST_LISTS
+    "ghost_packed_words",              # V6_PACKED_REPLICAS
     # Set 3 (1)
     "global_status",
 })
@@ -673,6 +675,10 @@ class SphSimulatorV6:
             _BufferSpec("voxel_base_offset",            1, 4,  4 * voxel_capacity,                BSU | TRANSFER),
             # V6_COMPACT_GHOST_LISTS: per-voxel first replica pid (ghost range used)
             _BufferSpec("ghost_voxel_first_particle_id", 1, 5, 4 * voxel_capacity,                BSU | TRANSFER),
+            # V6_PACKED_REPLICAS: packed replica out/inbox, 17 R words per direction
+            _BufferSpec("ghost_packed_words",           1, 7,
+                        max(4, 4 * 2 * 17 * case.capacities.replica_region_size)
+                        if configured_packed_replicas() else 4,                       BSU | TRANSFER),
 
             # Set 3: global / pool-health / materials
             _BufferSpec("global_status",                3, 0,  _GLOBAL_STATUS_BYTES,    BSU | TRANSFER),
@@ -911,8 +917,28 @@ class SphSimulatorV6:
                 counted_segments.append((segment, count_key))
                 staging_offset += stride * slot_count
 
-        add_particle_segments(_REPLICA_TRANSPORT_FIELDS, 0, replica_region, "inner")
-        add_particle_segments(_REPLICA_TRANSPORT_FIELDS, replica_region, replica_region, "outer")
+        if configured_packed_replicas():
+            # V6_PACKED_REPLICAS: G1 (x y z rho | vx vy vz P | material) and G2
+            # (x y z rho | vx vy vz material) blocks of this direction's packed
+            # region (common.glsl GhostPackedBuffer); stride = bytes per replica
+            # of the block, live prefix = the layer's replica counter.
+            if not configured_compact_ghost_lists():
+                raise ValueError("V6_PACKED_REPLICAS=1 needs V6_COMPACT_GHOST_LISTS=1 "
+                                 "(expand_ghost_lists unpacks the replicas)")
+            region_bytes = 4 * replica_region
+            direction_base = (0 if direction == "leading" else 1) * 17 * region_bytes
+            for word_offset, stride, count_key in ((0, 16, "inner"), (4, 16, "inner"),
+                                                    (8, 4, "inner"), (9, 16, "outer"),
+                                                    (13, 16, "outer")):
+                segment = _TransportSegment(
+                    "ghost_packed_words", direction_base + word_offset * region_bytes,
+                    staging_offset, stride * replica_region, stride=stride, region=count_key)
+                segments.append(segment)
+                counted_segments.append((segment, count_key))
+                staging_offset += stride * replica_region
+        else:
+            add_particle_segments(_REPLICA_TRANSPORT_FIELDS, 0, replica_region, "inner")
+            add_particle_segments(_REPLICA_TRANSPORT_FIELDS, replica_region, replica_region, "outer")
         add_particle_segments(transported_particle_fields(), 2 * replica_region,
                               migrant_region, "migrant")
 
@@ -1260,6 +1286,7 @@ class SphSimulatorV6:
             (87, 'B', int(configured_lean_transport())),
             (88, 'B', int(configured_transport_extension())),
             (89, 'B', int(configured_compact_ghost_lists())),
+            (98, 'B', int(configured_packed_replicas())),
             (97, 'B', int(configured_init_seam_clamp())),
             # NEIGHBOR_X_RANGE (id=82) is NOT global anymore — Path A+ needs
             # different widths per kernel (correction=2, density=3, force=4
@@ -2022,13 +2049,16 @@ class SphSimulatorV6:
         case = self.case
         mp_blob = bytearray()
         for mat in case.materials:
+            # particle_mass (V6, was reserved_material_0): the float32 of
+            # rest_density * volume, the same value _build_initial_data uploads
+            # as every particle's mass (V6_PACKED_REPLICAS rebuilds it from here).
             row = struct.pack(
-                "<I f f f f f f f f f I I",
+                "<I f f f f f f f f f f I",
                 mat.kind, mat.rest_density, mat.viscosity, mat.eos_constant,
                 mat.smoothing_length, mat.radius, mat.volume,
                 mat.rotor_angular_velocity,
                 mat.viscosity_transfer, mat.viscosity_rotation,
-                mat.reserved_material_0, mat.reserved_material_1,
+                mat.rest_density * mat.volume, mat.reserved_material_1,
             )
             assert len(row) == 48
             mp_blob.extend(row)

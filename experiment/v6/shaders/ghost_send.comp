@@ -208,11 +208,31 @@ void send_two_layers(uint y, uint z) {
             uint source_particle_id = inside_particle_index[source_voxel_id * MAX_PARTICLES_PER_VOXEL + slot_index];
             uint my_destination_particle_id   = region_first_particle_id + base_slot + slot_index;
             uint peer_destination_particle_id = uint(int(my_destination_particle_id) + GHOST_PID_OFFSET_TO_RECEIVER);
-            position_voxel_id[my_destination_particle_id] = vec4(position_voxel_id[source_particle_id].xyz,
-                                                                 float(peer_replica_voxel_id));
-            velocity_mass[my_destination_particle_id]    = velocity_mass[source_particle_id];
-            density_pressure[my_destination_particle_id] = density_pressure[source_particle_id];
-            material[my_destination_particle_id]         = material[source_particle_id];
+            if (PACKED_REPLICAS) {
+                // V6_PACKED_REPLICAS: G1 36 B / G2 32 B into this direction's
+                // packed region (common.glsl); no SoA ghost slot is written.
+                uint packed_base = packed_layer_base(GHOST_DIRECTION, layer_index);
+                uint region_slot = base_slot + slot_index;
+                vec2 source_density_pressure = density_pressure[source_particle_id];
+                vec3 source_velocity = velocity_mass[source_particle_id].xyz;
+                uint source_material = material[source_particle_id];
+                store_packed_vec4(packed_base + 4u * region_slot,
+                                  vec4(position_voxel_id[source_particle_id].xyz, source_density_pressure.x));
+                if (layer_index == 0u) {
+                    store_packed_vec4(packed_base + 4u * REPLICA_REGION_SIZE + 4u * region_slot,
+                                      vec4(source_velocity, source_density_pressure.y));
+                    ghost_packed_words[packed_base + 8u * REPLICA_REGION_SIZE + region_slot] = source_material;
+                } else {
+                    store_packed_vec4(packed_base + 4u * REPLICA_REGION_SIZE + 4u * region_slot,
+                                      vec4(source_velocity, uintBitsToFloat(source_material)));
+                }
+            } else {
+                position_voxel_id[my_destination_particle_id] = vec4(position_voxel_id[source_particle_id].xyz,
+                                                                     float(peer_replica_voxel_id));
+                velocity_mass[my_destination_particle_id]    = velocity_mass[source_particle_id];
+                density_pressure[my_destination_particle_id] = density_pressure[source_particle_id];
+                material[my_destination_particle_id]         = material[source_particle_id];
+            }
             if (!COMPACT_GHOST_LISTS) {
                 inside_particle_index[outbox_voxel_id * MAX_PARTICLES_PER_VOXEL + slot_index] = peer_destination_particle_id;
             }

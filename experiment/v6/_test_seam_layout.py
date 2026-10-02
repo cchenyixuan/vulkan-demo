@@ -476,12 +476,71 @@ def check_compact_ghost_lists(failures: list) -> None:
                     failures.append(f"{tag} slab {index} {direction}: staging total / stamp")
 
 
+def check_packed_replicas(failures: list) -> None:
+    """V6_PACKED_REPLICAS (two layers, compact lists): the 8 replica SoA segments
+    become 5 ghost_packed_words blocks (G1 16/16/4 B, G2 16/16 B per replica) at
+    direction base d * 68 R bytes, with the inner / outer count words; the
+    migrant region, voxel lists, count words and stamp are unchanged."""
+    import experiment.v6.utils.case_v6 as case_v6
+    import experiment.v6.utils.partition_v6 as partition_v6
+    import experiment.v6.utils.simulator_v6 as simulator_v6
+
+    def key(segment):
+        return (segment.buffer_name, segment.device_offset, segment.size, segment.stride)
+
+    _set_switches(2, 1, lean=1)
+    os.environ["V6_COMPACT_GHOST_LISTS"] = "1"
+    chain = partition_v6.compute_chain_partition(
+        _synthetic_global_case(case_v6), [1.0, 1.0, 1.0], pool_safety=1.2)
+    for index, slab in enumerate(chain.slabs):
+        replica_region = slab.capacities.replica_region_size
+        for direction in ("leading", "trailing"):
+            os.environ["V6_PACKED_REPLICAS"] = "0"
+            plain, _ = simulator_v6.SphSimulatorV6._compute_transport_segments(
+                _fake_simulator(simulator_v6.SphSimulatorV6, slab), direction)
+            os.environ["V6_PACKED_REPLICAS"] = "1"
+            packed, total = simulator_v6.SphSimulatorV6._compute_transport_segments(
+                _fake_simulator(simulator_v6.SphSimulatorV6, slab), direction)
+            os.environ["V6_PACKED_REPLICAS"] = "0"
+            if not plain:
+                continue
+            base = (0 if direction == "leading" else 1) * 68 * replica_region
+            expected_blocks = [("ghost_packed_words", base + 4 * replica_region * words, stride * replica_region, stride)
+                               for words, stride in ((0, 16), (4, 16), (8, 4), (9, 16), (13, 16))]
+            replica_plain = [segment for segment in plain if segment.region in ("inner", "outer")]
+            rest_plain = [key(segment) for segment in plain if segment.region not in ("inner", "outer")]
+            blocks = [key(segment) for segment in packed if segment.buffer_name == "ghost_packed_words"]
+            rest_packed = [key(segment) for segment in packed if segment.buffer_name != "ghost_packed_words"]
+            tag = f"packed slab {index} {direction}"
+            if blocks != expected_blocks:
+                failures.append(f"{tag}: packed blocks {blocks} != {expected_blocks}")
+            if rest_packed != rest_plain:
+                failures.append(f"{tag}: non-replica segments changed")
+            regions = [segment.region for segment in packed if segment.buffer_name == "ghost_packed_words"]
+            if regions != ["inner", "inner", "inner", "outer", "outer"]:
+                failures.append(f"{tag}: block regions {regions}")
+            plain_bytes = sum(segment.stride for segment in replica_plain)
+            packed_bytes = sum(segment.stride for segment in packed if segment.buffer_name == "ghost_packed_words")
+            if (plain_bytes, packed_bytes) != (88, 68):
+                failures.append(f"{tag}: bytes per G1+G2 replica pair {plain_bytes} -> {packed_bytes}, expected 88 -> 68")
+            offset = 0
+            for segment in packed:
+                if segment.staging_offset != offset:
+                    failures.append(f"{tag}: staging gap")
+                offset = segment.staging_offset + segment.size
+            if offset != total:
+                failures.append(f"{tag}: staging total")
+    os.environ.pop("V6_COMPACT_GHOST_LISTS", None)
+    os.environ.pop("V6_PACKED_REPLICAS", None)
+
+
 def main() -> int:
     failures: list = []
     check_v5_equivalence(failures)
     check_two_layer_algebra(failures)
     check_lean_transport(failures)
     check_compact_ghost_lists(failures)
+    check_packed_replicas(failures)
     _set_switches(1, 0)
     if failures:
         print(f"[seam_layout] {len(failures)} FAILURE(S):")
@@ -489,7 +548,7 @@ def main() -> int:
             print("  - " + failure)
         return 1
     print("[seam_layout] ALL PASS (layers=1 == v5 partition + transport; layers=2 column/pid algebra, "
-          "segment layout, install range; lean transport segments; compact ghost lists)")
+          "segment layout, install range; lean transport segments; compact ghost lists; packed replicas)")
     return 0
 
 

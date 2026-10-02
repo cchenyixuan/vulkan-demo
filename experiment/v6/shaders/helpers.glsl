@@ -126,6 +126,27 @@ bool in_own_grid(ivec3 coord) {
 // M = LEADING_GHOST_VOXEL_COUNT, N = TRAILING_GHOST_VOXEL_COUNT.
 // ============================================================================
 
+// ============================================================================
+// V6_PACKED_REPLICAS: word offsets in ghost_packed_words (see common.glsl).
+// ============================================================================
+uint packed_layer_base(uint direction, uint layer) {
+    return (direction * 17u + layer * 9u) * REPLICA_REGION_SIZE;
+}
+
+void store_packed_vec4(uint word, vec4 value) {
+    ghost_packed_words[word + 0u] = floatBitsToUint(value.x);
+    ghost_packed_words[word + 1u] = floatBitsToUint(value.y);
+    ghost_packed_words[word + 2u] = floatBitsToUint(value.z);
+    ghost_packed_words[word + 3u] = floatBitsToUint(value.w);
+}
+
+vec4 load_packed_vec4(uint word) {
+    return vec4(uintBitsToFloat(ghost_packed_words[word + 0u]),
+                uintBitsToFloat(ghost_packed_words[word + 1u]),
+                uintBitsToFloat(ghost_packed_words[word + 2u]),
+                uintBitsToFloat(ghost_packed_words[word + 3u]));
+}
+
 uint extended_voxel_count() {
     return GRID_DIMENSION_X * GRID_DIMENSION_Y * GRID_DIMENSION_Z;
 }

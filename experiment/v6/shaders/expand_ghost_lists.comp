@@ -38,6 +38,30 @@ void main() {
         : extended_voxel_count() - TRAILING_GHOST_VOXEL_COUNT + 1u
               + (voxel_ordinal - LEADING_GHOST_VOXEL_COUNT);
     if (slot_index >= inside_particle_count[voxel_id]) return;
-    inside_particle_index[voxel_id * MAX_PARTICLES_PER_VOXEL + slot_index] =
-        ghost_voxel_first_particle_id[voxel_id] + slot_index;
+    uint particle_id = ghost_voxel_first_particle_id[voxel_id] + slot_index;
+    inside_particle_index[voxel_id * MAX_PARTICLES_PER_VOXEL + slot_index] = particle_id;
+    if (!PACKED_REPLICAS) return;
+
+    // V6_PACKED_REPLICAS: unpack the replica into its ghost SoA slot. Leading
+    // ghost columns are x = 0 (outer) and 1 (inner, next to own); trailing ghost
+    // columns are own_last + 1 (inner) and own_last + 2 (outer).
+    uint face = GRID_DIMENSION_Y * GRID_DIMENSION_Z;
+    bool leading = voxel_ordinal < LEADING_GHOST_VOXEL_COUNT;
+    uint column = (leading ? voxel_ordinal : voxel_ordinal - LEADING_GHOST_VOXEL_COUNT) / face;
+    uint layer = leading ? 1u - column : column;
+    uint direction = leading ? 0u : 1u;
+    uint region_first_particle_id = (leading ? leading_ghost_first_pid() : trailing_ghost_first_pid())
+                                  + layer * REPLICA_REGION_SIZE;
+    uint region_slot = particle_id - region_first_particle_id;
+    uint packed_base = packed_layer_base(direction, layer);
+    vec4 position_density = load_packed_vec4(packed_base + 4u * region_slot);
+    vec4 velocity_extra = load_packed_vec4(packed_base + 4u * REPLICA_REGION_SIZE + 4u * region_slot);
+    uint material_id = (layer == 0u)
+        ? ghost_packed_words[packed_base + 8u * REPLICA_REGION_SIZE + region_slot]
+        : floatBitsToUint(velocity_extra.w);
+    float pressure = (layer == 0u) ? velocity_extra.w : 0.0;
+    position_voxel_id[particle_id] = vec4(position_density.xyz, float(voxel_id));
+    velocity_mass[particle_id]     = vec4(velocity_extra.xyz, material_parameters[material_id].particle_mass);
+    density_pressure[particle_id]  = vec2(position_density.w, pressure);
+    material[particle_id]          = material_id;
 }

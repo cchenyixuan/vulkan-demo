@@ -311,6 +311,16 @@ layout(constant_id = 88) const bool TRANSPORT_EXTENSION = false;
 // expand_ghost_lists.comp rebuilds the rows on the receiver at the start of
 // phase C (same entries, same order).
 layout(constant_id = 89) const bool COMPACT_GHOST_LISTS = false;
+// PACKED_REPLICAS (V6_PACKED_REPLICAS, needs V6_GHOST_LAYERS=2 and
+// COMPACT_GHOST_LISTS): the two-layer replicas travel in ghost_packed_words
+// with only what the receiver reads and cannot rebuild: inner (G1) x, y, z, rho,
+// v, P, material (36 B); outer (G2) x, y, z, rho, v, material (32 B). Dropped:
+// the voxel id (expand_ghost_lists knows the voxel it lists the replica in, the
+// same id the sender encoded), the mass (per material constant, from
+// MaterialParameters.particle_mass, bit-identical to the uploaded mass), and
+// G2's pressure (nothing reads it: G2 is only a neighbour of G1-as-self in
+// correction / density). expand_ghost_lists unpacks into the ghost SoA slots.
+layout(constant_id = 98) const bool PACKED_REPLICAS = false;
 // INIT_SEAM_CLAMP (V6_INIT_SEAM_CLAMP): initialize_voxelization registers an
 // own particle whose voxel lands one column into a ghost column in the adjacent
 // own column. The host partition and every slab compute the column in float32
@@ -570,6 +580,15 @@ layout(std430, set = 1, binding = 5) buffer GhostVoxelFirstParticleIdBuffer {
     uint ghost_voxel_first_particle_id[];
 };
 
+layout(std430, set = 1, binding = 7) buffer GhostPackedBuffer {
+    // V6_PACKED_REPLICAS only: per direction d (0 leading, 1 trailing) and
+    // R = REPLICA_REGION_SIZE, in words: [d*17R, +4R) G1 x y z rho | [+4R, +4R)
+    // G1 vx vy vz P | [+8R, +R) G1 material | [+9R, +4R) G2 x y z rho |
+    // [+13R, +4R) G2 vx vy vz material-bits. Outbox in phase A, inbox in phase C
+    // (the same aliasing as the ghost SoA range). 4 B otherwise.
+    uint ghost_packed_words[];
+};
+
 // ============================================================================
 // Descriptor set 2 — UNUSED in V1 merged-buffer scheme.
 //
@@ -736,7 +755,7 @@ struct MaterialParameters {
     // --- Reserved for __future__ (V0 unused) --------------------------------
     float viscosity_transfer;     // micropolar mass transfer
     float viscosity_rotation;     // micropolar rotation
-    uint  reserved_material_0;
+    float particle_mass;          // V6: rest_density * volume as uploaded (float32); V6_PACKED_REPLICAS
     uint  reserved_material_1;
 };  // 48 B total
 
