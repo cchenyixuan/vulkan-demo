@@ -126,7 +126,8 @@ def run_worker(args) -> int:
     own = slice(sim.own_first_pid(), sim.own_first_pid() + case.capacities.own_pool_size)
 
     def read_state():
-        raw = sim.readback_buffers_batch(["position_voxel_id", "velocity_mass", "density_pressure", "material"])
+        raw = sim.readback_buffers_batch(["position_voxel_id", "velocity_mass", "density_pressure", "material"],
+                                         density="stored")
         position = np.frombuffer(raw["position_voxel_id"], np.float32).reshape(pool, 4)[own]
         velocity = np.frombuffer(raw["velocity_mass"], np.float32).reshape(pool, 4)[own]
         density_pressure = np.frombuffer(raw["density_pressure"], np.float32).reshape(pool, 2)[own]

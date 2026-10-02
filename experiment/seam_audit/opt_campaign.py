@@ -272,7 +272,10 @@ def run_driver(args, configs: dict) -> int:
     for trial in range(1, args.trials + 1):
         for case_name in case_names:
             case_path, dimension, warmup, steps, anatomy_frames = CASES[case_name]
-            for config_name in config_names:
+            # --counterbalance: even trials run the configurations in reverse
+            # order, so no configuration always holds the first position
+            order = list(reversed(config_names)) if (args.counterbalance and trial % 2 == 0) else config_names
+            for config_name in order:
                 run_id = f"{case_name}/{config_name}/t{trial}"
                 if run_id in done:
                     continue
@@ -425,6 +428,9 @@ def parse_args():
     parser.add_argument("--trials", type=int, default=3)
     parser.add_argument("--timeout", type=int, default=2400)
     parser.add_argument("--summarize-only", action="store_true")
+    parser.add_argument("--counterbalance", action="store_true",
+                        help="reverse the configuration order on even trials (the 2026-10-03 campaigns used the "
+                             "fixed order; their sub-1 %% ratios are not resolved against position effects)")
     return parser.parse_args()
 
 

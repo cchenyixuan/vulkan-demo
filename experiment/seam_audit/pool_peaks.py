@@ -12,7 +12,7 @@ reset). The measurement factor is generous (V6_GHOST_POOL_FACTOR=1.0 unless the 
 says otherwise) so no region overflows and the flow is never perturbed.
 
 Developed flow: the 2-D 1M / 2M jobs restart from checkpoints of the cavity validation
-campaign (logs/cavity_validation, Re 1000 at t = 52.7 s and Re 3200 at t = 99.5 s / 141 s):
+campaign (logs/cavity_validation, Re 1000 at t = 52.65 s and Re 3200 at t = 99.45 s (1M) / 99.8 s (2M)):
 positions, velocities and material groups of every particle replace the case's initial
 condition, then the normal bootstrap runs (densities restart at rho0, pressure rebuilds
 within a few hundred steps). The other cases start from their initial condition.
@@ -57,7 +57,7 @@ JOBS = {
                          f"{_VALIDATION}/campaign_20260929/re1000_1m_k2/checkpoint_007020000.npz", 20000),
     "2d_1m_re3200_t99": ("cases/cavity_validation/re3200_1m/case.yaml", 2,
                          f"{_VALIDATION}/campaign_20260929/re3200_1m_k1/checkpoint_013260000.npz", 20000),
-    "2d_2m_re3200_t141": ("cases/cavity_validation/kcgoff_re3200_2m/case.yaml", 2,
+    "2d_2m_re3200_t100": ("cases/cavity_validation/kcgoff_re3200_2m/case.yaml", 2,
                           f"{_VALIDATION}/campaign_20260930_kcgoff/re3200_2m_k1/checkpoint_018810000.npz", 10000),
     "2d_4m_init": (CASES["2d_4m"][0], 2, None, 10000),
     "2d_16m_init": (CASES["2d_16m"][0], 2, None, 4000),
@@ -210,7 +210,10 @@ def run_driver(args) -> int:
         environment.update(production_environment(dimension))
         environment.update(SEAM_L2)
         environment.update({"V6_LEAN_TRANSPORT": "1", "V6_POOL_PEAKS": "1",
-                            "V6_GHOST_POOL_FACTOR": args.factor})
+                            "V6_GHOST_POOL_FACTOR": args.factor,
+                            # restarts from arbitrary states: a particle within float32 rounding of
+                            # the cut is otherwise lost at bootstrap (a1a1838; 2d_1m_re3200 lost one)
+                            "V6_INIT_SEAM_CLAMP": "1"})
         for item in args.env:
             key, _, value = item.partition("=")
             environment[key] = value
