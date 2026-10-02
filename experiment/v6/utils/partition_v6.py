@@ -972,6 +972,27 @@ def compute_chain_partition(
                           links=links)
 
 
+def restart_slab_rows(global_case: CaseV6, chain: ChainPartition,
+                      positions_x: np.ndarray) -> list[np.ndarray]:
+    """Row indices of a saved step-boundary state owned by each slab of
+    ``chain``: the x-column test of _filter_particles_by_x_range (same
+    expression and clamp), so a restart partitions a saved state exactly
+    the way the case loader partitions the initial condition. Every row is
+    owned by exactly one slab."""
+    h = global_case.physics.smoothing_length
+    origin_x = global_case.grid.origin_x
+    x_indices = np.floor((np.asarray(positions_x) - origin_x) / h).astype(np.int64)
+    np.clip(x_indices, 0, global_case.grid.grid_dimension_x - 1, out=x_indices)
+    rows = []
+    for geometry in chain.geometry:
+        mask = ((x_indices >= geometry.own_global_first_column)
+                & (x_indices < geometry.own_global_last_column + 1))
+        rows.append(np.flatnonzero(mask))
+    if sum(part.size for part in rows) != x_indices.size:
+        raise AssertionError("restart_slab_rows: the slabs do not cover every row")
+    return rows
+
+
 def compute_dual_gpu_partition(
     global_case: CaseV6,
     weights: list[float],

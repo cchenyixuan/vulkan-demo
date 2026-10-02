@@ -1961,7 +1961,12 @@ class SphSimulatorV6:
             material_arr[own_first:own_first + n_initial] = case.initial.material_group
         data["material"] = material_arr.tobytes()
 
-        # material_parameters (48 B per row)
+        data["material_parameters"] = self._material_parameters_payload()
+        return data
+
+    def _material_parameters_payload(self) -> bytes:
+        """material_parameters (48 B per row), shared by bootstrap and restart."""
+        case = self.case
         mp_blob = bytearray()
         for mat in case.materials:
             row = struct.pack(
@@ -1976,9 +1981,7 @@ class SphSimulatorV6:
             mp_blob.extend(row)
         if not mp_blob:
             mp_blob = b"\x00" * 48
-        data["material_parameters"] = bytes(mp_blob)
-
-        return data
+        return bytes(mp_blob)
 
     def _staging_upload(self, dest: _Buffer, payload: bytes) -> None:
         if len(payload) > dest.size:
@@ -2017,8 +2020,9 @@ class SphSimulatorV6:
         self.ctx.submit_and_wait(cmd)
         vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
 
-    def _upload_initial_state(self) -> None:
-        initial = self._build_initial_data()
+    def _upload_initial_state(self, initial: Optional[dict[str, bytes]] = None) -> None:
+        if initial is None:
+            initial = self._build_initial_data()
         for name, buf in self.buffers.items():
             if name in initial:
                 payload = initial[name]
@@ -2151,6 +2155,104 @@ class SphSimulatorV6:
                 "DualGpuOrchestratorV6.bootstrap_all()")
         self.bootstrap_init()
         self.bootstrap_compute()
+
+    # ========================================================================
+    # Section 8b: Restart from a saved step-boundary state
+    # ========================================================================
+
+    # The set-0 fields of one own particle at a step boundary, as (components
+    # per pool slot, dtype). Everything a step reads from the previous one:
+    # predict reads position_voxel_id (x_n), velocity_mass (v_{n-1/2}, m),
+    # acceleration (a_n), shift (shift_n) and material; density integrates
+    # density_pressure.x (rho_n) and a ghost replica packed in phase A carries
+    # rho_n, P_n. correction_inverse and density_gradient_kernel_sum are
+    # recomputed before every read but are restored too (the 1-layer replica
+    # carries them over the link). extension_fields carries no physics.
+    RESTART_FIELD_LAYOUT = {
+        "position_voxel_id":           (4, np.float32),
+        "velocity_mass":               (4, np.float32),
+        "density_pressure":            (2, np.float32),
+        "acceleration":                (4, np.float32),
+        "shift":                       (4, np.float32),
+        "material":                    (1, np.uint32),
+        "correction_inverse":          (8, np.float32),
+        "density_gradient_kernel_sum": (4, np.float32),
+        "extension_fields":            (4, np.float32),
+    }
+
+    def restart_init(self, state: dict) -> None:
+        """Restart instead of bootstrap, from a saved step-boundary state.
+
+        ``state[name]`` holds this slab's own particles, one row each, for
+        every field of RESTART_FIELD_LAYOUT (same row order in every field;
+        the row order becomes the initial pid order). Rows go to own pids
+        own_first_pid() + k, every other slot and buffer is zeroed, and
+        initialize_voxelization rebuilds the voxel lists and voxel ids.
+        No correction / density / force pass and no backward half kick:
+        a_n, shift_n, rho_n, P_n and v_{n-1/2} come from the state, so the
+        next submitted frame is step n + 1 of the run the state came from.
+        Ghost slots stay empty; the frame's own phase A (ghost_send) and the
+        transport fill them before any kernel reads them, as in every step.
+        Callers then record the step cmd buffers (ChainOrchestratorV6.
+        restart_all, which also runs the bootstrap defrag)."""
+        layout = self.RESTART_FIELD_LAYOUT
+        missing = [name for name in layout if name not in state]
+        if missing:
+            raise ValueError(f"restart state lacks {missing}")
+        row_count = int(np.asarray(state["position_voxel_id"]).shape[0])
+        own_pool = self.case.capacities.own_pool_size
+        if row_count > own_pool:
+            raise ValueError(f"restart state has {row_count:,} particles for an own "
+                             f"pool of {own_pool:,}")
+        pool_capacity = self.case.capacities.total_pool_capacity()
+        own_first = self.own_first_pid()
+        payload: dict[str, bytes] = {}
+        for name, (component_count, element_type) in layout.items():
+            rows = np.asarray(state[name])
+            expected_shape = ((row_count,) if component_count == 1
+                              else (row_count, component_count))
+            if rows.shape != expected_shape or rows.dtype != element_type:
+                raise ValueError(f"restart field {name}: {rows.dtype} {rows.shape}, "
+                                 f"expected {np.dtype(element_type)} {expected_shape}")
+            full = np.zeros((pool_capacity,) + expected_shape[1:], dtype=element_type)
+            full[own_first:own_first + row_count] = rows
+            payload[name] = full.tobytes()
+        if row_count and float(np.asarray(state["velocity_mass"])[:, 3].min()) <= 0.0:
+            raise ValueError("restart state has rows with mass <= 0 "
+                             "(initialize_voxelization would skip them)")
+        payload["material_parameters"] = self._material_parameters_payload()
+        self._upload_initial_state(payload)
+
+        cmd = self._allocate_oneshot_cmd()
+        vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
+            flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT))
+        self._record_compute_barrier(cmd)
+        self._bind_pipeline_and_sets(cmd, "initialize_voxelization")
+        vkCmdDispatch(cmd, self._per_own_particle_dispatch_count(), 1, 1)
+        self._record_compute_barrier(cmd)
+        vkEndCommandBuffer(cmd)
+        self.ctx.submit_and_wait(cmd)
+        vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
+
+        # Every row must land in an OWN voxel: a particle exactly on a cut
+        # line could round into a ghost column on the GPU, where the next
+        # upload would overwrite it.
+        status = self.readback_global_status()
+        positions = np.frombuffer(self.readback_buffer_by_name("position_voxel_id"),
+                                  dtype=np.float32)[:pool_capacity * 4].reshape(pool_capacity, 4)
+        voxel_ids = np.rint(positions[own_first:own_first + row_count, 3]).astype(np.int64)
+        first_own_voxel = self.case.ghost_grid.leading_ghost_voxel_count + 1
+        last_own_voxel = (self.case.grid.total_voxel_count()
+                          - self.case.ghost_grid.trailing_ghost_voxel_count)
+        outside = int(((voxel_ids < first_own_voxel) | (voxel_ids > last_own_voxel)).sum())
+        if (status["alive_particle_count"] != row_count
+                or status["overflow_inside_count"] or outside):
+            raise RuntimeError(
+                f"restart: {status['alive_particle_count']:,} of {row_count:,} particles "
+                f"placed, overflow_inside={status['overflow_inside_count']}, {outside} "
+                f"outside the own voxels")
+        print(f"[SimV6] restart state loaded: {row_count:,} own particles, voxel lists "
+              f"rebuilt (no bootstrap correction/density/force/half kick)")
 
     # ========================================================================
     # Section 9: Readback (Phase 3)

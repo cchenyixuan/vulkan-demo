@@ -12,3 +12,5 @@ logs/
 
 # V5 compiled shaders are shipped to air-gapped cluster nodes (no glslc there); keep them tracked
 !experiment/v5/shaders/spv/*.spv
+# V6 likewise, so the cluster can run v6 without glslc
+!experiment/v6/shaders/spv/*.spv

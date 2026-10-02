@@ -532,6 +532,26 @@ class ChainOrchestratorV6:
         print(f"[ChainOrchV6] all {len(self.sims)} sims bootstrapped "
               f"+ step cmds ready")
 
+    def restart_all(self, states: list) -> None:
+        """Start the chain from a saved step-boundary state instead of the
+        case's initial condition: SphSimulatorV6.restart_init on every sim
+        (full-state upload + voxel lists; no bootstrap correction / density /
+        force, no backward half kick, no bootstrap ghost round - the first
+        frame's phase A rebuilds the ghosts). ``states[i]`` holds slab i's own
+        particles (partition_v6.restart_slab_rows splits a saved state). Then
+        the bootstrap_all tail: step cmd buffers + one defrag. The next frame
+        submitted is the step after the one the state was saved at."""
+        if len(states) != len(self.sims):
+            raise ValueError(f"{len(states)} restart states for {len(self.sims)} sims")
+        for sim, state in zip(self.sims, states):
+            sim.restart_init(state)
+        for sim in self.sims:
+            sim.prepare_step_cmd_buffers()
+        for sim in self.sims:
+            sim.submit_defrag_and_wait()
+        print(f"[ChainOrchV6] all {len(self.sims)} sims restarted from a saved "
+              f"state + step cmds ready")
+
     # ========================================================================
     # Frame loop
     # ========================================================================
