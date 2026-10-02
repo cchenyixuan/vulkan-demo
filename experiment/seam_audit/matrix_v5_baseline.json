@@ -1,0 +1,61 @@
+{
+  "description": "Seam audit baseline: production V5 chains (K=2 on devices 0,1; K=4 on 0,1,0,1, 2-D only) against the V5 K=1 reference on the headless 5090 (device 1), 2-D cavity 1M and 4M and 3-D cavity 1M, horizons 300 and 2000, two trials of every configuration.",
+  "cases": [
+    {
+      "name": "cavity2d_1m",
+      "path": "cases/lid_driven_cavity_2d_gen/case.yaml",
+      "dimension": 2
+    },
+    {
+      "name": "cavity2d_4m",
+      "path": "cases/lid_driven_cavity_2d_4m/case.yaml",
+      "dimension": 2,
+      "window": 200
+    }
+  ],
+  "horizons": [
+    300,
+    2000
+  ],
+  "depth": 2,
+  "pool_safety": 1.2,
+  "sync_scheme": "per-direction",
+  "timeout_s": 1800,
+  "match": "kdtree",
+  "particles": "fluid",
+  "far_bin_start": 8,
+  "reference": {
+    "name": "v5_K1",
+    "version": "v5",
+    "slabs": 1,
+    "device_map": "1",
+    "trials": 2
+  },
+  "tests": [
+    {
+      "name": "v5",
+      "version": "v5",
+      "slabs": 2,
+      "device_map": "0,1",
+      "env": {},
+      "trials": 2
+    },
+    {
+      "name": "v5",
+      "version": "v5",
+      "slabs": 4,
+      "device_map": "0,1,0,1",
+      "env": {},
+      "trials": 2,
+      "dimensions": [
+        2
+      ]
+    }
+  ],
+  "window": 400,
+  "window_note": "two-pass crossing-capture window before the listed horizons (frames stepped one at a time): test runs capture every particle within 1.5 h of a seam-line crossing; --build-capture-requests unions them; the K=1 references then capture exactly those (frame, id) rows. Order: --roles test for every matrix sharing --out, --build-capture-requests, --roles reference, then --analyze-only.",
+  "window_horizons": [
+    2000
+  ],
+  "note_3d": "3-D cavity3d_1m removed on 2026-10-02 at the user's request (2-D first); re-add {\"name\": \"cavity3d_1m\", \"path\": \"cases/cavity3d_1m/case.yaml\", \"dimension\": 3, \"window\": 200} to run it."
+}

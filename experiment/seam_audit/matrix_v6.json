@@ -1,0 +1,117 @@
+{
+  "description": "Seam audit of the V6 seam fixes: V6_KEEP_DEPARTED (keep a departed migrant visible to the sender for the rest of its step) and V6_GHOST_LAYERS (ghost thickness in voxel columns), K=2 (all cases) and K=4 (2-D only), against the SAME V5 K=1 reference as matrix_v5_baseline.json - pass the same --out to reuse its reference dumps (the reference run ids do not depend on the matrix file).",
+  "cases": [
+    {
+      "name": "cavity2d_1m",
+      "path": "cases/lid_driven_cavity_2d_gen/case.yaml",
+      "dimension": 2
+    },
+    {
+      "name": "cavity2d_4m",
+      "path": "cases/lid_driven_cavity_2d_4m/case.yaml",
+      "dimension": 2,
+      "window": 200
+    }
+  ],
+  "horizons": [
+    300,
+    2000
+  ],
+  "depth": 2,
+  "pool_safety": 1.2,
+  "sync_scheme": "per-direction",
+  "timeout_s": 1800,
+  "match": "kdtree",
+  "particles": "fluid",
+  "far_bin_start": 8,
+  "reference": {
+    "name": "v5_K1",
+    "version": "v5",
+    "slabs": 1,
+    "device_map": "1",
+    "trials": 2
+  },
+  "tests": [
+    {
+      "name": "v6_keep0_layers1",
+      "version": "v6",
+      "slabs": 2,
+      "device_map": "0,1",
+      "env": {
+        "V6_KEEP_DEPARTED": "0",
+        "V6_GHOST_LAYERS": "1"
+      },
+      "trials": 2
+    },
+    {
+      "name": "v6_keep0_layers1",
+      "version": "v6",
+      "slabs": 4,
+      "device_map": "0,1,0,1",
+      "env": {
+        "V6_KEEP_DEPARTED": "0",
+        "V6_GHOST_LAYERS": "1"
+      },
+      "trials": 2,
+      "dimensions": [
+        2
+      ]
+    },
+    {
+      "name": "v6_keep1_layers1",
+      "version": "v6",
+      "slabs": 2,
+      "device_map": "0,1",
+      "env": {
+        "V6_KEEP_DEPARTED": "1",
+        "V6_GHOST_LAYERS": "1"
+      },
+      "trials": 2
+    },
+    {
+      "name": "v6_keep1_layers1",
+      "version": "v6",
+      "slabs": 4,
+      "device_map": "0,1,0,1",
+      "env": {
+        "V6_KEEP_DEPARTED": "1",
+        "V6_GHOST_LAYERS": "1"
+      },
+      "trials": 2,
+      "dimensions": [
+        2
+      ]
+    },
+    {
+      "name": "v6_keep1_layers2",
+      "version": "v6",
+      "slabs": 2,
+      "device_map": "0,1",
+      "env": {
+        "V6_KEEP_DEPARTED": "1",
+        "V6_GHOST_LAYERS": "2"
+      },
+      "trials": 2
+    },
+    {
+      "name": "v6_keep1_layers2",
+      "version": "v6",
+      "slabs": 4,
+      "device_map": "0,1,0,1",
+      "env": {
+        "V6_KEEP_DEPARTED": "1",
+        "V6_GHOST_LAYERS": "2"
+      },
+      "trials": 2,
+      "dimensions": [
+        2
+      ]
+    }
+  ],
+  "window": 400,
+  "window_note": "two-pass crossing-capture window before the listed horizons (frames stepped one at a time): test runs capture every particle within 1.5 h of a seam-line crossing; --build-capture-requests unions them; the K=1 references then capture exactly those (frame, id) rows. Order: --roles test for every matrix sharing --out, --build-capture-requests, --roles reference, then --analyze-only.",
+  "window_horizons": [
+    2000
+  ],
+  "note_3d": "3-D cavity3d_1m removed on 2026-10-02 at the user's request (2-D first); re-add {\"name\": \"cavity3d_1m\", \"path\": \"cases/cavity3d_1m/case.yaml\", \"dimension\": 3, \"window\": 200} to run it."
+}
