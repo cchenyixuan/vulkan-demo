@@ -1,0 +1,57 @@
+// ============================================================================
+// append_departed.comp — V6_KEEP_DEPARTED, phase C after the inbound upload.
+//
+// ghost_send (phase A) copied this frame's outgoing migrants into the departed
+// pool [departed_first_pid(), + departed_count) with position.w = the ghost
+// voxel (in THIS GPU's extended grid) each one drifted into, then killed the
+// own slots. The upload has since overwritten this GPU's ghost voxel lists with
+// the peer's replicas — which the peer packed BEFORE it installed these very
+// migrants. Appending the departed copies to those lists restores the seam
+// column's neighbour set for the rest of the step (correction / density /
+// force), which is exactly the peer's post-install column.
+//
+// One thread per departed slot. The append uses a compare-and-swap loop so a
+// full ghost voxel list is never pushed past MAX_PARTICLES_PER_VOXEL (the
+// neighbour loops read inside_particle_count as the slot bound); a loss is
+// counted in overflow_departed_count and makes the run invalid.
+//
+// Runs after install_migrations (own voxel lists) — the two kernels touch
+// disjoint voxel ranges (own vs ghost), so they need no barrier between them,
+// but the simulator keeps them in order for clarity.
+// ============================================================================
+
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+
+#include "common.glsl"
+#include "helpers.glsl"
+
+layout(local_size_x_id = 51) in;
+
+void main() {
+    uint departed_slot = gl_GlobalInvocationID.x;
+    if (departed_slot >= min(departed_count, DEPARTED_POOL_SIZE)) return;
+
+    uint departed_particle_id = departed_first_pid() + departed_slot;
+    uint voxel_id = uint(round(position_voxel_id[departed_particle_id].w));
+    bool is_ghost_voxel = is_leading_ghost_voxel(voxel_id) || is_trailing_ghost_voxel(voxel_id);
+    if (!is_ghost_voxel) {
+        // Not possible for a migrant ghost_send packed; count it rather than
+        // corrupt an own list.
+        atomicAdd(overflow_departed_count, 1u);
+        return;
+    }
+
+    uint observed_count = inside_particle_count[voxel_id];
+    while (true) {
+        if (observed_count >= MAX_PARTICLES_PER_VOXEL) {
+            atomicAdd(overflow_departed_count, 1u);
+            return;
+        }
+        uint previous_count = atomicCompSwap(inside_particle_count[voxel_id],
+                                             observed_count, observed_count + 1u);
+        if (previous_count == observed_count) break;
+        observed_count = previous_count;
+    }
+    inside_particle_index[voxel_id * MAX_PARTICLES_PER_VOXEL + observed_count] = departed_particle_id;
+}
