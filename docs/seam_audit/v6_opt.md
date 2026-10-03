@@ -4,23 +4,27 @@
 
 ## 结论(TL;DR)
 
-- **推荐的发布组合**(下表)相对 (1,2) 起点(同一构建、3 次交错试验):fps 2-D 10k +6.3 %(该算例试验间散布 ±2 %)、1M +2.7 %、4M +1.6 %、16M +0.6 %,3-D 8M +3.4 %、3-D narrow +3.7 %;每条链路每帧的字节 2-D −39 … −41 %(DMA)/ −42 … −43 %(主机拷贝)、3-D −72 % / −35 %;传输链 t_tr 2-D −28 … −42 %、3-D −63 %;phase C 2-D −5 … −14 %、3-D −5 … −8 %。精确的 (1,2) 起点在 3-D 比 v5 慢 2 %,发布组合在所有算例都比 v5 快(+0.2 … +6.5 %;"对 v5"一列受配置顺序固定的限制,1 % 以下的差不可分辨)。
+- **推荐的发布组合**(下表)相对 (1,2) 起点(同一构建、3 次交错试验):fps 2-D 10k +6.3 %(该算例试验间散布 ±2 %)、1M +2.7 %、4M +1.6 %、16M +0.6 %,3-D 8M +3.4 %、3-D narrow +3.7 %;每条链路每帧的字节 2-D −39 … −41 %(DMA)/ −42 … −43 %(主机拷贝)、3-D −72 % / −35 %;传输链 t_tr 2-D −28 … −42 %、3-D −63 %;phase C 2-D −5 … −14 %、3-D −5 … −8 %。
+- **与 v5、与 (1,1) 的同等比较**(都不开 lanes;lanes 64 对任何 seam 配置都适用,本文的 campaign 只给 (1,2) 开了):
+  - (1,2) + 全部字节优化(`packed`)对 v5:2-D −0.1 … +2.4 %(10k / 1M 受位置效应影响,见下)、3-D −1.4 / −2.0 %。
+  - 对做了同样字节优化的 (1,1)(`l1x`,不精确):(1,1) 快 0.6–1.7 %(2-D)、3.0 / 4.8 %(3-D 8M / narrow)。这是精确性的代价;3-D 的差主要在 phase C(多 1.1–1.2 ms,其中 correction / density band 0.9 ms)。
+  - 发布组合对 v5 生产配置(不开 lanes)快 0.2–6.5 %,但其中含 lanes 的贡献,不是同等比较;而且 `v5eq` 总在每次试验的第一位,2-D 10k / 1M 的"对 v5"比值(包括上一条)受位置效应影响,分辨不到 1 %。
 - **精确性:**
-  - 正确性门对发布组合通过:修复后的构建(33f084e)与修过的门工具,审计 1.73、单步 1.08、K = 4 drift 0 且所有溢出计数为 0(此前两次 1.72 / 1.57、1.04 / 1.13)。
-  - 新做的重复 A/B 等价检验从同一快照出发,2-D 跑 100 步(第 5 步首次越界)、3-D 跑 50 步(13 次越界);发布组合与 (1,2) 的差落在"(1,2) 换一个粒子内存顺序重跑"的底之内(最差比值 2-D 1.06、3-D 1.22)。
-  - 拆开看:不含 (e) 的组合与相同配置重跑同级(3-D 1.73,对"相同重跑"的底);(e) 的 replica 因子改变 pid 布局,因而改变 float32 的求和顺序,与打乱上传顺序同级(1.19)。
+  - 正确性门(只有 2-D)对发布组合通过:修复后的构建(33f084e)与修过的门工具,审计 1.73、单步 1.08、K = 4 drift 0 且所有溢出计数为 0(此前两次 1.72 / 1.57、1.04 / 1.13)。3-D 的发布值只经过 3-D 的 A/B 检验与性能运行的不变量。
+  - 重复 A/B 等价检验从同一快照出发:2-D 跑 100 步(只有 1 次越界,在第 5 步)、3-D 跑 50 步(13 次越界);发布组合的差在噪声底之内(底 = (1,2) 相同重跑对与打乱内存顺序对的中位数中较大者;最差比值 2-D 1.06、3-D 1.22)。近 migrant 组的检验力弱(底被个别运行的离散事件抬高),见"验证审计"。
+  - 拆开看(单对设计):不含 (e) 的组合与相同配置重跑同级(3-D 1.73);(e) 的 replica 因子改变 pid 布局、因而改变 float32 的求和顺序,与打乱上传顺序同级(1.19)。
 - **逐项:**
   - (d) lean transport:DMA −10 % / −16 %。
-  - (e) pool 按实测峰值:3-D DMA −51 %;2-D 反而 +7–10 %,因为生产的 0.25 在发展流峰值下只剩 11–16 % 余量,提到 0.29。
-  - (a1) 列表按 (count, first pid) 传:DMA −12 … −21 %,主机 −15 … −26 %。
+  - (e) pool 按实测峰值:3-D DMA −51 %;2-D 反而 +7–10 %:生产的 0.25 在发展流峰值下只剩 11–12 % 余量,提到 0.29(单看这一项是 +12–16 % 的 DMA,+7–10 % 是它与 migrant 区段缩小的净值)。
+  - (a1) 列表按 (count, first pid) 传:DMA −12 … −21 %,主机 −16 … −27 %。
   - (b)(c) 打包:先估算再省 22 %,超过门槛,实现后实测 −22 % / −23 %。
   - (f) 直接写 host staging:不推荐,kernel 慢 2.4–18 倍且在关键路径上。
-  - phase C:lanes 64 在所有算例 +0.3 … +3.8 %,推荐;压缩 band 表在 3-D 抵消 (1,2) 多出的 phase C 的 86 %,fps 与 lanes 64 持平,2-D 变慢,不采纳。
+  - phase C:lanes 64 在所有算例 +0.3 … +3.8 %,推荐;它省的主要是 force band(与 (1,1) 共有),不减 (1,2) 多出的 correction / density 时间。压缩 band 表在 3-D 把 (1,2) 多出的 correction / density 时间减掉 34 % / 40 %,另外省下共有的 force band 时间,但 fps 不比 lanes 64 好,2-D 10k–4M 还变慢(16M 略快),不采纳。
   - 旁测:K = 1 链 depth 1 与单缓冲等速,depth 2 快 0.3–3.9 %。
-  - δρ:内部压力噪声约 3 倍更小、去掉压力台阶,流动量不变,吞吐 −1.2 %;只报告,等你决定。
+  - δρ:去掉压力台阶,内部压力噪声小 2.2–3.4 倍;整体与壁面附近的噪声(由壁面与 lid 主导)没有可分辨的差别;流动量不变;吞吐 −1.2 %(单卡单缓冲测量);多卡门通过;只报告,等你决定。
 - **途中发现并修复:**
   - 从保存的状态重启时,seam 列边上的粒子会在 bootstrap 静默丢失(继承自 v5,`V6_INIT_SEAM_CLAMP`)。
-  - 验证审计确认了打包开关缺少配置校验、溢出时的连带损坏、δρ 的读回不一致,以及门工具的几处漏洞;全部修复并重新验证,见"验证审计"。
+  - 验证审计确认了打包开关缺少配置校验、溢出时的连带损坏、δρ 的读回不一致,以及门工具的几处漏洞;全部修复并重新验证。文档对数据的审计又改正了本文的一批数与说法(上面的同等比较就是其中之一)。见"验证审计"。
 
 ## 推荐的发布默认组合
 
@@ -43,20 +47,20 @@
 **正确性门(`experiment/seam_audit/opt_validate.py`,每一项都跑):**
 
 1. seam 审计 K2 vs K1:2-D 1M,N = 2000,(1,2) + 该项开关,两次被测运行对两次 v6 K = 1 参照,越界捕获窗口两遍法(同 `v6.md`)。判定量 = column 0 各量(加速度、shift、速度、密度、压力、kernel_sum)的 rms 比值、第二对的比值(加速度、shift、密度)与越界窗口各组(flagged / departed / arrived / control)的比值,全部 ≤ 2.0(噪声底为 1,两次 K = 1 之间的比值通常 0.8–1.7)。验证审计之后还要求:四个运行都产生有效的 dump(所有不变量为 0,含 `far_migration_count`),分析行完整(无缺失输入、越界窗口与第二对都在),缺失、NaN 或 inf 的统计量一律算失败。
-2. 单步测试:从 2-D 1M N = 2000 的 K = 1 快照重启,k = 1, 2, 5, 10, 50 步,(1,2) + 该项开关两次,对两次 K = 1 重启与一次打乱上传顺序的噪声重启;判定 = k = 1 时 column 0 / 1 的 rms 比与中位比、CPU 重建残差/噪声,全部 ≤ 2.5。从这个快照出发第一次越界在 k = 5,所以这一步不经过迁移路径;迁移路径由第 5 项的 A/B 检验覆盖。审计之后 (1,2) 的重启用生产传输(count-aware worker、split transfer queues),此前的逐项门用的是整块拷贝。
+2. 单步测试:从 2-D 1M N = 2000 的 K = 1 快照重启,k = 1, 2, 5, 10, 50 步,(1,2) + 该项开关两次,对一次 K = 1 参照重启;噪声 = 一次打乱上传顺序的 K = 1 重启;判定 = k = 1 时 column 0 / 1 的 rms 比与中位比、CPU 重建残差/噪声,全部 ≤ 2.5。从这个快照出发第一次越界在 k = 5,所以这一步不经过迁移路径;迁移路径由第 5 项的 A/B 检验覆盖。审计之后 (1,2) 的重启用生产传输(count-aware worker、split transfer queues),此前的逐项门用的是整块拷贝。
 3. K = 4 冒烟:2-D 1M,weights 1,1,1,1,两卡各 2 个 sim,1000 步。只有停顿(日志里没有 final 行)才重试一次;出现 `*** VALIDATION FAILED ***` 直接失败(审计之前任何非零退出都会重试;所有门的记录都是一次通过,所以这个漏洞没有影响任何结论)。
 4. 所有不变量为 0:drift、所有 `overflow_*`(含新增的 `overflow_initialization_outside`)、主机与 GPU 帧戳错误、`far_migration_count`。每次性能运行也检查这些。
 5. 重复 A/B 等价检验(`ab_restart.py`,验证审计之后加的,只对发布组合与它的拆分跑):从同一 K = 1 快照出发,2-D 1M 跑 100 步、3-D 1M 跑 50 步,经过越界与迁移;见"验证审计"。
 
 审计 worker(`dump_state` / `single_step` 的 main)强制 `V6_TRANSPORT_EXTENSION=1`,让全局 id 跟着精简后的包走;物理不读 `extension_fields`。所以不带 extension 的生产段表不经过物理比较,只由 CPU 布局检查(`_test_seam_layout.py` 第 5 项:精简段表 = 完整段表去掉死段)与 K = 4 / 性能运行的不变量覆盖。
 
-**性能(`experiment/seam_audit/opt_campaign.py`):** 本机 2 × RTX 5090,K = 2,生产开关(count-aware worker、split transfer queues、cascade force、band voxel dispatch;2-D 池因子 0.25、3-D 1.0 是"之前"的值),3 次交错试验(试验 → 算例 → 配置),机器空闲。每次运行一个进程:(1) fps:生产 depth-2 流水线循环、无计时器;(2) 字节:worker 的每帧主机拷贝字节(count-aware 的 live 前缀)与 DMA 字节(staging 大小 = readback = upload);(3) 解剖:挂 GPU 时间戳、depth 1,取每帧中位数(两个 sim 取大)——phase C、band kernel、readback / upload DMA;主机拷贝 = worker 的 copy − wait 时间戳。t_tr = 发送方 readback DMA + 主机拷贝 + 接收方 upload DMA(两条 link 平均)。fps 比值逐试验配对(after_t / before_t),给均值 ± 标准差。配置顺序在每个试验内固定(审计指出;`--counterbalance` 之后才加,本文的 campaign 都没有平衡),所以 1 % 以下的差不能排除位置效应。
+**性能(`experiment/seam_audit/opt_campaign.py`):** 本机 2 × RTX 5090,K = 2,生产开关(count-aware worker、split transfer queues、cascade force、band voxel dispatch;2-D 池因子 0.25、3-D 1.0 是"之前"的值),3 次交错试验(试验 → 算例 → 配置),机器空闲。每次运行一个进程:(1) fps:生产 depth-2 流水线循环、无计时器;(2) 字节:worker 的每帧主机拷贝字节(count-aware 的 live 前缀)与 DMA 字节(staging 大小 = readback = upload);(3) 解剖:挂 GPU 时间戳、depth 1,取每帧中位数(两个 sim 取大)——phase C、band kernel、readback / upload DMA;主机拷贝 = worker 的 copy − wait 时间戳。t_tr = 发送方 readback DMA + 主机拷贝 + 接收方 upload DMA(两条 link 平均)。fps 比值逐试验配对(after_t / before_t),给均值 ± 标准差。配置顺序在每个试验内固定(审计指出;`--counterbalance` 之后才加,本文的 campaign 都没有平衡),所以比值不能排除位置效应:1 % 以下的差都不可分辨,2-D 10k / 1M 上第一位的配置还观察到约 3 % 的偏差(见"总览")。
 
-算例:2-D 10k(narrow,cavity_2d_10k,12 列 / slab)、2-D 1M / 4M / 16M、3-D 8M(cavity3d_8m)、3-D narrow(`cases/cavity3d_narrow`:26 × 53 × 53 个 voxel,K = 2 时每 slab 12–14 列,4,324,419 粒子,接近立方体的 slab)。
+算例:2-D 10k(narrow,cavity_2d_10k,K = 2 时每 slab 12 / 14 列)、2-D 1M / 4M / 16M、3-D 8M(cavity3d_8m)、3-D narrow(`cases/cavity3d_narrow`:26 × 53 × 53 个 voxel,K = 2 时每 slab 12–14 × 53 × 53 个 voxel,4,324,419 粒子;slab 比 3-D 8M 的(27–29 × 56 × 56)薄一半,seam 面相对体积更大)。
 
 ## 修复:bootstrap 在 seam 列边上静默丢粒子(`V6_INIT_SEAM_CLAMP`,a1a1838)
 
-测 pool 峰值时,从 Re 3200 发展流快照(1M,t = 99.45 s)重启的 K = 2 运行 drift = −1,而所有 overflow 计数都是 0。用全局 id 追踪:粒子在 `bootstrap_all` 之后就已经不见了,位置 x = −0.0041000363,离 cut 线只有 3.8×10⁻⁶ h。主机分区(numpy float32,Python 标量是弱类型)把它算进第 102 列(slab 1);slab 1 的 GPU 用**自己的** origin 以 float32 算 floor((x − origin)/h),得到它自己的 leading ghost 列(全局第 101 列);slab 0 的 GPU 会得到它的 trailing ghost 列(第 102 列)——两边都认为它是 ghost。`initialize_voxelization` 的 `in_own_grid` 覆盖扩展网格,于是把它登记进 ghost voxel 的列表并计入 alive;bootstrap 的 ghost 往返覆盖了 ghost 列表;bootstrap defrag 把这个没人登记的粒子丢掉。格点初始条件离每条列边都有半个间距,永远碰不到;从保存的状态重启(发展流快照、`single_step` 的 `restart_init`)就可能碰到。v5 的 `initialize_voxelization` 相同,这是继承来的问题,与本轮的开关无关。
+测 pool 峰值时,从 Re 3200 发展流快照(1M,t = 99.45 s)重启的 K = 2 运行 drift = −1,而所有 overflow 计数都是 0。用全局 id 追踪:粒子在 `bootstrap_all` 之后就已经不见了,位置 x = −0.0041000363,离 cut 线只有 3.8×10⁻⁶ h。主机分区(numpy float32,Python 标量是弱类型)把它算进第 102 列(slab 1);slab 1 的 GPU 用**自己的** origin 以 float32 算 floor((x − origin)/h),得到它自己的 leading ghost 列(全局第 101 列);slab 0 的 GPU 会得到它的 trailing ghost 列(第 102 列)——两边都认为它是 ghost。`initialize_voxelization` 的 `in_own_grid` 覆盖扩展网格,于是把它登记进 ghost voxel 的列表并计入 alive;bootstrap 的 ghost 往返覆盖了 ghost 列表;bootstrap defrag 把这个没人登记的粒子丢掉。格点初始条件离列边最近只有 0.1–0.4 Δx(不是半个间距),但仍比 float32 的舍入(约 4 × 10⁻⁶ h)大三个量级以上,碰不到;从保存的状态重启(发展流快照、`single_step` 的 `restart_init`)就可能碰到。v5 的 `initialize_voxelization` 相同,这是继承来的问题,与本轮的开关无关。
 
 `V6_INIT_SEAM_CLAMP=1`(spec 97):own 粒子的 voxel 恰好落进 ghost 列一列时,登记到相邻的 own 列(它就在那条边的舍入误差内);下一次 predict 按位置重算 voxel,需要时走正常的迁移路径。计数 `initialization_seam_clamp_count`(诊断);扩展网格之外被 kill 的粒子现在计入 `overflow_initialization_outside`(必须为 0;原来是静默丢失);验证审计之后,开关关闭时落进 ghost voxel 的 own 粒子也计入它(33f084e),所以上面这种丢失在默认配置下也不再静默。验证:同一重启打开开关后 bootstrap 后与 20,000 帧后 alive 都是 1,046,529,无缺失、无重复 id,clamp 计数 [0, 1];关闭时 −1(id 303255)。所有格点算例(2-D 10k / 1M K = 4 / 16M、3-D 8M / narrow)clamp 计数为 0,即对正常运行是空操作;单步门(从 N = 2000 快照重启)worst 1.03,6 次重启 clamp 都是 0,所以此前的单步结果不受影响;K = 4 冒烟通过。
 
@@ -81,7 +85,7 @@
 
 ## (e) pool 容量按实测峰值:`V6_MIGRANT_POOL_FACTOR`(9b1009f)
 
-**测量**(`pool_peaks.py`):每帧由 worker 从发送方 staging 读每个区段的分配计数器——这是需求,超过容量也照样记(ghost_send 先加计数再判溢出);departed 用 PoolHealth 的 `peak_departed_count`。测量时池因子取 1.0,不会溢出、也不扰动流动。发展流从 cavity 验证 campaign 的快照重启(位置、速度、材料组,密度从 ρ₀ 重新开始):2-D 1M Re 1000 t = 52.6 s、1M Re 3200 t = 99.5 s、2M Re 3200 t = 99.8 s;其余从静止开始。1M Re 3200 的第一次测量因 bootstrap 丢了一个粒子(见上一节)记为无效,打开 `V6_INIT_SEAM_CLAMP` 重测(`pool_peaks_rerun`,有效);下表用重测的值(第一次的最大值 5,196 / 0.2252,少一个粒子只能让计数少 1,不会更多,所以两次都是有效的需求测量)。
+**测量**(`pool_peaks.py`):每帧由 worker 从发送方 staging 读每个区段的分配计数器——这是需求,超过容量也照样记(ghost_send 先加计数再判溢出);departed 用 PoolHealth 的 `peak_departed_count`。测量时池因子取 1.0,不会溢出、也不扰动流动。发展流从 cavity 验证 campaign 的快照重启(位置、速度、材料组,密度从 ρ₀ 重新开始):2-D 1M Re 1000 t = 52.6 s、1M Re 3200 t = 99.5 s、2M Re 3200 t = 99.8 s(这一个来自 KCG 关闭的验证运行,数值设置与其余不同;2-D 的最大值来自 KCG 打开的 1M Re 3200,不影响发布值);其余从静止开始。1M Re 3200 的第一次测量因 bootstrap 丢了一个粒子(见上一节)记为无效,打开 `V6_INIT_SEAM_CLAMP` 重测(`pool_peaks_rerun`,有效);下表用重测的值(第一次的最大值 5,196 / 0.2252,少一个粒子只能让计数少 1,不会更多,所以两次都是有效的需求测量)。
 
 | run | frames | flow | replicas per column, max (mean) | slots per column at f = 1 | required f | migrants / frame / direction, max | per face voxel | departed peak / sim | drift |
 |---|---|---|---|---|---|---|---|---|---|
@@ -96,10 +100,10 @@
 | 3d_narrow_init | 3,000 | from rest | 174,887 (174,701) | 449,440 | 0.3891 | 139 | 0.0495 | 139 | 0 |
 
 - **replica 区段的需求就是一整列粒子数,几乎不随时间变。** 一个 ghost 列装 face × (h/Δx)^d 个左右的粒子;封闭腔内这一列的粒子数只随密度涨落与无序变化:2-D 1M 的最大值从静止流的 5,148 到发展流的 5,157(Re 1000)/ 5,192(Re 3200),只差 1 %;20,000 帧内的 min–max 宽度 ±1.5 %。所以按 f = 1 的槽数归一的需求在 2-D 是 0.216–0.2250、在 3-D 是 0.382–0.389,与 h/Δx(2-D 为 5,3-D 为 4)一致。
-- **生产 2-D 的 0.25 只剩 11–16 % 余量**(发展流 1M:5,768 槽装 5,192),3-D 的 1.0 有 157–161 %。
+- **生产 2-D 的 0.25 在发展流下只剩 11–12 % 余量**(1M Re 3200:5,768 槽装 5,192;静止起步的 10k 也只有 16 %),3-D 的 1.0 有 157–161 %。
 - **migrant 的需求小两个量级。** 每帧每个方向最多 2–8 个(2-D)、196 个(3-D 8M 初期:格点排成的一整排粒子在同一帧越过 seam),即每个 face voxel 每帧 ≤ 0.08 个;而共用因子给它 face × MAX_INCOMING × f 个槽(2-D 1M 在 f = 0.25 时 824 个,3-D 8M 在 f = 1 时 100,352 个),每个槽都进 DMA。departed 的需求与 migrant 相同(每个离开的 migrant 都存一份)。
 
-**规则与发布值:** replica 区段按实测最大值留 25 %(2-D f = 0.29、3-D f = 0.5);migrant 区段用新开关 `V6_MIGRANT_POOL_FACTOR` 单独定(2-D 0.05、3-D 0.02,区段下限 64 槽),槽数 / 实测峰值 ≥ 10(3-D 8M 初期格点整排越界的突发 196 → 2,008 槽;2-D 每个 face voxel 0.8 个槽,实测最大 0.077 个)。这是经验余量:格点排列的初期流动会让一整排粒子在同一帧越界,所以不按平均越界率推上限;departed 池等于 migrant 区段 × 邻居侧数(用已有的 `V6_DEPARTED_FACE_FRACTION`:2-D 0.8、3-D 0.64),保证 departed 不会先于 migrant 区段溢出。溢出计数仍是必须为 0 的不变量,所有性能运行都检查。
+**规则与发布值:** replica 区段按实测最大值留 25 %(2-D f = 0.29、3-D f = 0.5);migrant 区段用新开关 `V6_MIGRANT_POOL_FACTOR` 单独定(2-D 0.05、3-D 0.02,区段下限 64 槽),槽数 / 实测峰值 ≥ 10(3-D 8M 初期格点整排越界的突发 196 → 2,008 槽;2-D 每个 face voxel 0.8 个槽,实测最大 0.077 个)。这是经验余量:格点排列的初期流动会让一整排粒子在同一帧越界,所以不按平均越界率推上限;departed 池用已有的 `V6_DEPARTED_FACE_FRACTION` 按同样的比例定(2-D 0.8 = 16 × 0.05、3-D 0.64 = 32 × 0.02,即每个 face voxel 的槽数与 migrant 区段相同):K = 2 时每个 slab 只有一个邻居侧,两者相等;两侧都有邻居的 slab 上,各自的 64 槽下限与取整会让 departed 比两侧 migrant 区段之和少(10k 的中间 slab 64 对 128),而 departed 的需求(每帧离开的 migrant,实测 2-D ≤ 8、3-D ≤ 196)都远低于容量。溢出计数仍是必须为 0 的不变量,所有性能运行都检查。**适用条件:** replica 区段的需求约为每 voxel (h/Δx)^d 个粒子(实测 0.97–1.01 倍),所以发布值只对实测的 C + C_inc 与 h/Δx 有效(2-D C = 96 / C_inc = 16、h/Δx = 5;3-D C = 128 / 32、h/Δx = 4);其他算例要按"实测最大值 + 25 %"重定,`partition_v6` 在每 voxel 槽数 < 1.2 × (h/Δx)^d 时警告。
 
 | run | replica peak | slots f=prod | headroom | slots f=release | headroom | migrant peak | migrant slots (release) | headroom | departed peak | departed slots (release) | headroom |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -126,7 +130,7 @@
 
 正确性门:audit ✓ 1.19, single ✓ 1.15, k4 ✓ (attempts [0])。
 
-2-D 的 DMA 增加 7–10 %——这是把 replica 余量从 11–16 % 提到约 30 % 的代价;3-D 的 DMA 减半,t_tr 降 36 %。主机拷贝不受容量影响(count-aware),phase C 不变,fps 在噪声内。
+2-D 的 DMA 增加 7–10 %——这是把 replica 余量从 11–16 %(发展流 11–12 %)提到约 30 % 的代价,而且已经扣掉了 migrant 区段缩小的节省(单看 0.29 是 +12 %);3-D 的 DMA 减半,t_tr 降 36 %。主机拷贝不受容量影响(count-aware),phase C 不变,fps 在噪声内。
 
 ## (a1) ghost voxel 列表按 (count, first pid) 传:`V6_COMPACT_GHOST_LISTS`(b0aeaa1)
 
@@ -147,7 +151,7 @@ ghost_send 给每个 (y, z) face voxel 和每层用一次 atomicAdd 分配一段
 
 ## (b)(c) 打包格式:`V6_PACKED_REPLICAS`
 
-**先估算**(按实测段表的字节模型,模型与实测的 lean / e / a1 字节逐 KiB 吻合):在 (d)(e)(a1) 之后,两层 replica 占每条链路 DMA 与主机拷贝的 96–99 %;打包后每对 G1 + G2 从 88 B 降到 68 B(G1 去掉质量与 voxel id:36 B;G2 再去掉 P:32 B),**DMA 再省 21.8–22.6 %、主机拷贝 22.5–22.7 %**,超过 10 % 的门槛,所以实现。migrant 不打包(它的 voxel id 是 install 的目标、不能由接收方按位置重算——那正是上面 bootstrap 问题的舍入歧义;它在 (e) 之后只占 DMA 的 0.4–3.6 %(2-D 10k 的 3.6 % 来自 64 槽的下限))。
+**先估算**(按实测段表的字节模型:模型的 DMA 字节与实测的 lean / e / a1 逐字节吻合,主机拷贝(用 pool_peaks 的平均 live 数)差 < 0.1 %):在 (d)(e)(a1) 之后,两层 replica 占每条链路 DMA 与主机拷贝的 96–99 %;打包后每对 G1 + G2 从 88 B 降到 68 B(G1 去掉质量与 voxel id:36 B;G2 再去掉 P:32 B),**DMA 再省 21.8–22.6 %、主机拷贝 22.5–22.7 %**,超过 10 % 的门槛,所以实现。migrant 不打包(它的 voxel id 是 install 的目标、不能由接收方按位置重算——那正是上面 bootstrap 问题的舍入歧义;它在 (e) 之后只占 DMA 的 0.4–3.6 %(2-D 10k 的 3.6 % 来自 64 槽的下限))。
 
 | case | lean (d) DMA / host | + pools (e) | + compact lists (a1) | + packed (b)(c) | packing saves DMA / host |
 |---|---|---|---|---|---|
@@ -158,7 +162,7 @@ ghost_send 给每个 (y, z) face voxel 和每层用一次 atomicAdd 分配一段
 | 3-D 8M | 50,592.5 / 19,646.6 | 24,806.8 / 19,646.6 | 21,695.3 / 16,535.1 | 16,795.3 / 12,788.3 | 22.6 % / 22.7 % |
 | 3-D narrow | 45,317.1 / 17,843.2 | 22,220.1 / 17,843.2 | 19,433.0 / 15,056.1 | 15,044.0 / 11,644.3 | 22.6 % / 22.7 % |
 
-**实现:** 新 buffer `ghost_packed_words`(每个方向 17 R 个字:G1 的 x y z ρ、vx vy vz P、material 三块,G2 的 x y z ρ、vx vy vz material 两块,R = replica 区段槽数),与 ghost SoA 区间一样在 phase A 作 outbox、phase C 作 inbox。ghost_send 只往这里写;`expand_ghost_lists.comp` 在写回列表的同一个线程里解包到 ghost SoA 槽:voxel id = 这个线程正在展开的 voxel(与发送方编码的 `.w` 是同一个,`_test_seam_layout.py` 第 3 项的列代数),质量 = `MaterialParameters.particle_mass`(原 `reserved_material_0`,主机写入与上传每个粒子质量时完全相同的 float32(ρ₀ · V)),G2 的 P 写 0(没人读:G2 只作 G1 当 self 时 correction / density 的邻居)。所以解包后的 SoA 与 lean 路径逐位相同。需要 `V6_GHOST_LAYERS=2` 与 `V6_COMPACT_GHOST_LISTS=1`;其他组合在主机端直接报错(验证审计之后加的,33f084e:LAYERS = 1 时没有打包区,展开 kernel 会从占位 buffer 解包、覆盖所有入站 replica)。
+**实现:** 新 buffer `ghost_packed_words`(每个方向 17 R 个字:G1 的 x y z ρ、vx vy vz P、material 三块,G2 的 x y z ρ、vx vy vz material 两块,R = replica 区段槽数),与 ghost SoA 区间一样在 phase A 作 outbox、phase C 作 inbox。ghost_send 只往这里写;`expand_ghost_lists.comp` 在写回列表的同一个线程里解包到 ghost SoA 槽:voxel id = 这个线程正在展开的 voxel(与发送方编码的 `.w` 是同一个,`_test_seam_layout.py` 第 3 项的列代数),质量 = `MaterialParameters.particle_mass`(原 `reserved_material_0`,主机写入与上传每个粒子质量时完全相同的 float32(ρ₀ · V)),G2 的 P 写 0(没人读:G2 只作 G1 当 self 时 correction / density 的邻居)。所以解包后的 SoA 在所有会被读的字段上与 lean 路径逐位相同(G2 的 P 例外:lean 路径传发送方的值,这里是 0)。需要 `V6_GHOST_LAYERS=2` 与 `V6_COMPACT_GHOST_LISTS=1`;其他组合在主机端直接报错(验证审计之后加的,33f084e:LAYERS = 1 时没有打包区,展开 kernel 会从占位 buffer 解包、覆盖所有入站 replica)。
 
 **(b)(c) packed replicas** (campaign `perf_packed_phase_c`, `a1` → `packed`, 3 interleaved trials; per link per frame)
 
@@ -179,7 +183,7 @@ ghost_send 给每个 (y, z) face voxel 和每层用一次 atomicAdd 分配一段
 
 **平台要求与 core 回退:** Vulkan core 保证每个非稀疏 buffer 的 `memoryTypeBits` 至少含一个 HOST_VISIBLE | HOST_COHERENT 类型,所以"storage buffer 放在可映射内存里、shader 直接写"不需要任何扩展,core-only 即可;可见性靠提交里一个 COMPUTE → HOST(HOST_READ)的内存屏障加 fence / timeline 等待,非 coherent 的 HOST_CACHED 类型再加 `vkInvalidateMappedMemoryRanges`。不需要 ReBAR(那是 CPU 访问显存的方向)。
 
-**测量(`direct_staging_probe.py`,无头 5090):** 合成的 ghost_send 替身——每个 (y, z) face voxel × 2 层一个线程,一次 atomicAdd 拿一段连续槽,按精简包的 SoA 段(位置 + vid、速度 + 质量、ρ / P、material)写入,源数据从显存读;线程数与每线程记录数按各算例的 face 与每 voxel 粒子数取。三种目标:今天的路径(显存 + transfer 队列上按容量 = live / 0.8 的 readback DMA)、直接写 HOST_CACHED(发送方 staging 现在用的类型,驱动给的是 VISIBLE | COHERENT | CACHED)、直接写 HOST_COHERENT 非缓存(write-combined)。60 次迭代取中位数。
+**测量(`direct_staging_probe.py`,无头 5090):** 合成的 ghost_send 替身——每个 (y, z) face voxel × 2 层一个线程,一次 atomicAdd 拿一段连续槽,按精简包的 SoA 段(位置 + vid、速度 + 质量、ρ / P、material)写入,源数据从显存读;线程数与每线程记录数按各算例的 face 与每 voxel 粒子数取。三种目标:今天的路径(显存 + transfer 队列上按容量 = live / 0.8 的 readback DMA)、直接写 HOST_CACHED(发送方 staging 现在用的类型,驱动给的是 VISIBLE | COHERENT | CACHED)、直接写 HOST_COHERENT 非缓存(write-combined)。60 次迭代,去掉前 10 次预热,取后 50 次的中位数。2-D 10k 的替身(40 线程 × 16 条 = 640 条记录)只有实际每帧 replica 数(约 1,230 条)的一半左右,所以 10k 一行的直接写 kernel 时间偏小;其他算例与实际相差约 ±8 % 以内。
 
 | workload | live KiB | DMA KiB (live / 0.8) | today: kernel + readback DMA µs | direct HOST_CACHED: kernel µs | direct HOST_COHERENT: kernel µs | CPU read of the live bytes: cached / coherent µs |
 |---|---|---|---|---|---|---|
@@ -191,10 +195,10 @@ ghost_send 给每个 (y, z) face voxel 和每层用一次 atomicAdd 分配一段
 | 3d_8m (6500 threads × 64) | 17,900.4 | 22,369.2 | 32.6 + 844.0 | 8,850.3 | 14,643.0 | 2,082.6 / 82,692.6 |
 
 - **kernel 本身就比今天的 kernel + DMA 慢 2.4–10 倍(HOST_CACHED)/ 2.6–18 倍(非缓存)。** 从 SM 往系统内存的分散写只有约 2 GB/s(3-D 8M:17.5 MiB 写了 8.9 ms),而今天的路径是显存写(33 µs)加 DMA 引擎整段搬运(21.8 MiB 用 0.84 ms,约 27 GB/s)。
-- **而且慢在关键路径上。** ghost_send 在 phase A,phase B 与它同一条 compute 队列、必须等它结束;今天的 readback DMA 在 transfer 队列上与 phase B 并行(`b→c` 间隙只有几 µs 就是证据)。直接写把 0.17 ms(2-D 1M)到 8 ms(3-D 8M)的 PCIe 时间搬进了串行段,换掉的是本来被藏住的 DMA。
+- **而且慢在关键路径上。** ghost_send 在 phase A,phase B 与它同一条 compute 队列、必须等它结束;今天的 readback DMA 在 transfer 队列上与 phase B 并行(`b→c` 间隙只有几 µs 就是证据)。直接写把 0.17 ms(2-D 1M)到 8.8 ms(3-D 8M,HOST_CACHED;非缓存 14.6 ms)的 PCIe 时间搬进了串行段,换掉的是本来被藏住的 DMA。
 - **非缓存 coherent 内存还让 CPU 读变成灾难**(worker 读 live 字节 3-D 69–83 ms;缓存类型 1.6–2.1 ms,与今天的 1.4–1.9 ms 同级)。
 - 唯一"赢"的是 2-D 10k 的提交到 fence 墙钟(105 → 59–69 µs),那是因为今天的探针路径要两次提交与两次 fence;实际流水线里 readback 只有 6.9 µs(packed 之后),换成慢 9 µs 的 kernel 不会更快。
-- **探针的范围:** 墙钟是两次主机往返(提交 → fence),不等于生产流水线里的 readback 延迟;写入方只测了"每个 face voxel 一个线程"这一种形状。第一版探针在 transfer 队列上 reset query pool(无效用法,验证审计指出);修正后重测(`direct_staging_v2`,上表),与第一版差几 %,结论不变。
+- **探针的范围:** 墙钟是两次主机往返(提交 → fence),不等于生产流水线里的 readback 延迟;写入方只测了"每个 face voxel 一个线程"这一种形状。第一版探针在 transfer 队列上 reset query pool(无效用法,验证审计指出);修正后重测(`direct_staging_v2`,上表):大的 kernel 与第一版差 ≤ 5 %,3-D 8M 的 HOST_CACHED kernel +8.7 %;小算例的墙钟与 CPU 读变化更大(15–110 %,都在几十 µs 以内)。结论不变。
 
 **结论:不推荐。** 收益(省 20–25 % 的 readback 字节与一次队列跳转)既不明确也不稳健:在本机它在所有规模上都把 PCIe 时间从并行段搬进串行段;是否划算强烈依赖平台对 GPU 写系统内存的实现(本机约 2 GB/s),而 core-only 回退正是本机测到的这条慢路径。
 
@@ -235,11 +239,11 @@ band kernel 在 (band voxel, slot) 映射下每个 band voxel 发 MAX_PARTICLES_
 正确性门:lanes 64 audit ✓ 1.22, single ✓ 1.01, k4 ✓ (attempts [0]);压缩表 audit ✓ 1.57, single ✓ 1.02, k4 ✓ (attempts [0])。
 
 读法:
-- **2-D:lanes 最好,压缩表最差。** 2-D 的 band 每侧只有 1–2 个 voxel 深、几万个粒子,kernel 受启动与尾部限制;lanes 32 / 64 把 correction / density band kernel 从 72–87 µs 降到 61–72 µs(force band 在 10k–4M 基本不变;16M 的 lanes 32 把它从 177 降到 116 µs,lanes 64 只到 170 µs),fps +2–4.5 %(10k、1M),4M / 16M +0.3–0.6 %;2-D 16M 的 density band 第二波(160 µs,96 线程 / voxel 只有约 25 个粒子)被 lanes 消掉(88 µs)。压缩表多一次 7–15 µs 的建表,而且表项按 voxel 内的原子到达顺序排列、自身加载不如 interior 那样合并,2-D 小 band 上得不偿失(10k −2.3 %、1M −0.4 %、4M −0.45 %)。
-- **3-D:lanes 64 与压缩表持平,lanes 32 变差。** 3-D 每个 voxel 约 64 个粒子,lanes 32 要两遍,correction band 反而慢 20–26 %、density band 慢 8–20 %(phase C +400–690 µs)。lanes 64 与压缩表 fps 都是 +2.0–3.4 %(两者差 0.2–0.5 %,与试验间散布同级,lanes 64 略高);depth-1 计时下压缩表的 phase C 降得更多(−870 / −980 µs 对 lanes 64 的 −310 / −640 µs),但 depth-2 的实际帧时间两者一样(3-D narrow 帧 21,409 → 20,712 µs(lanes 64)/ 20,758 µs(压缩表))。
+- **2-D:lanes 最好;压缩表在 10k–4M 最差,16M 例外。** 2-D 的 band 每侧 3–4 列(own 2 / 3 / 4 列,correction 与 density 再加上当 self 的 G1),10k 约 2 千个粒子、1M–16M 约 1.5–8 万个,kernel 受启动与尾部限制;lanes 32 / 64 把 correction / density band kernel 从 72–87 µs 降到 61–72 µs(10k、1M;4M 从 84 / 94 µs 降到 74–80 µs,16M 的 correction 从 88 降到 78–80 µs;force band 在 10k–4M 基本不变;16M 的 lanes 32 把它从 177 降到 116 µs,lanes 64 只到 170 µs),fps +2–4.5 %(10k、1M),4M / 16M +0.3–0.6 %;2-D 16M 的 density band 第二波(160 µs,96 线程 / voxel 只有约 25 个粒子)被 lanes 消掉(88 µs)。压缩表多一次 7–15 µs 的建表,而且表项按 voxel 内的原子到达顺序排列、自身加载不如 interior 那样合并,2-D 小 band 上得不偿失(10k −2.3 %、1M −0.4 %、4M −0.45 %);16M 反而 +0.6 %,与 lanes 32 持平、比 lanes 64 高 0.15 %(force band 110 对 170 µs)。
+- **3-D:lanes 64 与压缩表持平,lanes 32 变差。** 3-D 每个 voxel 约 64 个粒子,lanes 32 要两遍,correction band 反而慢 20–27 %、density band 慢 8–20 %(phase C +400–690 µs)。lanes 64 与压缩表 fps 都是 +2.0–3.4 %(两者差 0.2–0.5 %,与试验间散布同级,lanes 64 略高);depth-1 计时下压缩表的 phase C 降得更多(−870 / −980 µs 对 lanes 64 的 −310 / −640 µs),但 depth-2 的实际帧时间两者一样(3-D narrow 帧 21,409 → 20,712 µs(lanes 64)/ 20,758 µs(压缩表))。
 - **推荐:`V6_BAND_SLOT_LANES=64` 作为发布默认(所有算例 +0.3 % 到 +3.8 %,没有一个算例变差);压缩表保持关闭。** 按算例:2-D 的 lanes 32 与 64 相差 −0.05 … +0.66 %(32 在 16M 的 phase C 少 55 µs,fps 只差 0.2 %,都在噪声内),两者都行;3-D 只能用 64(32 要两遍,变慢)。所以统一用 64。
 
-(1,2) 比 (1,1) 多出的 phase C 被 lanes 64 与压缩表各抵消多少,见文末"总览"的第二张表(同一 campaign 里的 `l1x` 对 `packed`)。
+(1,2) 比 (1,1) 多出的 phase C 在哪几个 band、lanes 64 与压缩表各省在哪里,见文末"总览"的第二张表与读法(同一 campaign 里的 `l1x` 对 `packed`)。
 
 ## 旁测:K = 1 链式参考 vs 单缓冲形式(五)
 
@@ -256,8 +260,8 @@ band kernel 在 (band voxel, slot) 映射下每个 band voxel 发 MAX_PARTICLES_
 
 
 - **三批提交本身不花钱:** 链 depth 1 是单缓冲的 100.1–100.8 %(1M 最大,32M 最小)。
-- **depth 2 多出来的是 CPU 提交气泡:** +3.9 %(1M)逐渐降到 +0.3 %(32M),与此前单卡基线里"两帧在途在 1M 值 +5 %、32M +0.4 %"一致。所以审计的 K = 1 参照与单缓冲形式等速;用链 depth 2 作为 η 的单卡参照会比单缓冲高 0.3–3.9 %。
-- **陷阱:** 单缓冲路径的 `sim.bootstrap()` 不做 defrag,而链的 `bootstrap_all` 以一次 defrag 结束。不补这一次 defrag,单缓冲在第一次 cadence defrag(1M 为第 1000 步)之前按 case 文件顺序运行,1M 只有 377 fps(补上后 537)。此前的单卡基线 campaign 预热 1000 步,不受影响;本测量对单缓冲形式也在 bootstrap 后补了一次 defrag。
+- **depth 2 多出来的是 CPU 提交气泡:** 链 depth 2 对单缓冲 +3.9 %(1M)逐渐降到 +0.3 %(32M),对链 depth 1 是 +3.0 % 降到 +0.16 %;趋势与此前单卡基线(两帧在途 1M +5 %、32M +0.4 %)一致,幅度更小。审计的 K = 1 参照用的是 depth 2(`dump_state` 的默认),所以它比单缓冲快 0.3–3.9 %;与单缓冲等速的是链 depth 1。用链 depth 2 作为 η 的单卡参照,参照会比单缓冲高 0.3–3.9 %(η 相应变低)。
+- **陷阱:** 单缓冲路径的 `sim.bootstrap()` 不做 defrag,而链的 `bootstrap_all` 以一次 defrag 结束。不补这一次 defrag,单缓冲在第一次 cadence defrag(1M 为第 1000 步)之前按 case 文件顺序运行:开发时的短冒烟(预热 200 步、测 800 步,都在第 1000 步之前;未存日志)1M 只有 377 fps,补上后 537 fps。此前的单卡基线 campaign 预热 1000 步,不受影响;本测量对单缓冲形式也在 bootstrap 后补了一次 defrag。
 
 ## 六、float32 密度量化:`V6_DELTA_DENSITY`(只评估,默认关闭,等你决定)
 
@@ -290,21 +294,21 @@ band kernel 在 (band voxel, slot) 映射下每个 band voxel 发 MAX_PARTICLES_
 | rest | baseline | 14 | 1.000 | 1046529 | — | 0.2437 / 0.3096 | 3.34 / 94.72 | 0.158 / 0.239 | 11.79 / 335.98 | 1.91 % | 13 / 373,664 |
 | rest | delta | 14 | 1.000 | 1046529 | 0.0203 % | 0.2437 / 0.3096 | 4.00 / 57.18 | 0.058 / 0.065 | 14.11 / 202.32 | 99.99 % | 373,384 / 377,572 |
 
-**终态按区域的噪声(单个快照;上:第一次运行,下:密集运行):**
+**终态按区域的噪声(单个快照;上:第一次运行,下:密集运行;与时间序列相同,每 50 个流体粒子取一个,所以各行与序列的最后一个样本一致;all / wall / lid 列由少数离群值主导、随取样变化,interior 列不变):**
 
 | scenario | variant | P rms (Pa) | noise rms: all | interior | within 4 h of a wall | within 4 h of the lid | 99.9 % quantile of the residual |
 |---|---|---|---|---|---|---|---|
-| developed | baseline | 67.4 | 4.11 | 0.216 | 14.50 | 26.66 | 21.5 |
-| developed | delta | 68.3 | 9.29 | 0.064 | 32.81 | 64.06 | 19.9 |
-| rest | baseline | 41.5 | 5.36 | 0.157 | 18.92 | 36.96 | 15.8 |
-| rest | delta | 40.5 | 2.74 | 0.065 | 9.68 | 16.71 | 14.4 |
+| developed | baseline | 67.4 | 5.30 | 0.215 | 18.76 | 35.98 | 21.2 |
+| developed | delta | 68.3 | 12.98 | 0.064 | 45.80 | 89.66 | 20.8 |
+| rest | baseline | 41.5 | 4.35 | 0.158 | 15.38 | 29.77 | 15.2 |
+| rest | delta | 40.5 | 3.07 | 0.065 | 10.84 | 19.35 | 12.3 |
 
 | scenario | variant | P rms (Pa) | noise rms: all | interior | within 4 h of a wall | within 4 h of the lid | 99.9 % quantile of the residual |
 |---|---|---|---|---|---|---|---|
-| developed | baseline | 67.8 | 4.07 | 0.216 | 14.34 | 26.68 | 23.6 |
-| developed | delta | 68.1 | 2.33 | 0.076 | 8.24 | 10.71 | 19.6 |
-| rest | baseline | 28.3 | 7.51 | 0.145 | 26.48 | 52.21 | 8.7 |
-| rest | delta | 28.2 | 7.66 | 0.064 | 27.07 | 53.04 | 9.2 |
+| developed | baseline | 67.8 | 4.31 | 0.217 | 15.16 | 28.15 | 21.0 |
+| developed | delta | 68.1 | 2.35 | 0.073 | 8.32 | 11.99 | 18.5 |
+| rest | baseline | 28.3 | 10.33 | 0.145 | 36.35 | 71.63 | 8.5 |
+| rest | delta | 28.2 | 10.81 | 0.065 | 38.17 | 74.62 | 9.2 |
 
 **吞吐(同一张无头 5090,单缓冲形式,3 次交错):**
 
@@ -312,6 +316,14 @@ band kernel 在 (band voxel, slot) 映射下每个 band voxel 发 MAX_PARTICLES_
 |---|---|---|---|---|
 | 1m | 523.5 ± 0.7 | 517.4 ± 0.4 | 98.83 ± 0.06 % | [0] |
 | 4m | 130.2 ± 0.1 | 128.6 ± 0.1 | 98.75 ± 0.08 % | [0] |
+
+**读法:**
+
+- **台阶消失:** 基线每步只有 0.7–1.9 % 的流体粒子的存储值变化(都是 ±1 ULP),ρ₀ ± 10 ULP 窗口里的流体粒子只取 13 个不同的 P 值;δρ 下 99.96–99.99 % 的粒子每步都变,同一窗口里的 P 值几乎每个粒子都不同(97.9–99.8 %)。
+- **内部压力噪声小 2.2–3.4 倍:** 远离壁面的流体的残差 rms 基线 0.145–0.218 Pa、δρ 0.058–0.073 Pa(密集运行的中位数 0.218 → 0.065、0.158 → 0.058 Pa;四个终态快照 2.2–3.4 倍),量级与 ±1 ULP 台阶在 Shepard 平均下留下的残差一致。这一列几乎不随取样变化(每 25 个与每 50 个取一个差 ≤ 4 %)。
+- **壁面与 lid 附近没有可分辨的差别:** 那里的残差 rms(8–90 Pa)来自壁面边界与 lid 角点,由少数离群值主导,换一个取样就变 −29 … +23 %;单个快照里两个变体之比在 0.4 到 2.5 之间来回变(第一次运行的发展流终态 δρ 高 2.4–2.5 倍,密集运行的发展流终态低 1.8–2.4 倍),密集运行 27 / 14 个样本的中位数接近(12.96 / 13.29、11.79 / 14.11 Pa),残差的 99.9 % 分位数两者同级(8.5–21.2 对 9.2–20.8 Pa)。所以整体噪声也没有可分辨的差别(密集运行中位数 3.67 / 3.76、3.34 / 4.00 Pa;第一次运行每个场景只有 2 个样本,δρ 8.6 / 8.8 Pa 对基线 5.7 / 3.0 Pa,样本太少,不足以分辨)。
+- **流动量不变:** 动能与基线的相对差最大 0.021 %;Ghia 中线 rms 误差相同到 10⁻⁴(发展流 0.0189 / 0.0217,第一次运行差最后一位);静止起步只比较两个变体(流动未发展,数值不与 Ghia 比)。
+- **吞吐:** 同一张卡交错 3 次,1M 98.83 %、4M 98.75 %,即 −1.2 %。
 
 **多卡正确性(验证审计之后补的):** 原来的评估只在 K = 1 单缓冲路径上。用 `opt_validate --env V6_DELTA_DENSITY=1 --reference-env V6_DELTA_DENSITY=1`(K = 1 参照也开开关)对发布组合 + δρ 跑完整的门:审计 1.73(最差项是第二对 column 0 的密度,恰好 √3,即翻转个数 3 : 1 的离散效应)、单步 1.14、K = 4 drift 0,全部通过。
 
@@ -360,7 +372,7 @@ band kernel 在 (band voxel, slot) 映射下每个 band voxel 发 MAX_PARTICLES_
 | 3-D narrow | release | 48.3 ± 0.0 | 103.68 ± 0.03 % | 101.44 ± 0.47 % | 6,797.2 | 15,044.0 | 11,646.4 | 3,518.0 | yes |
 | 3-D narrow | release_compact | 48.1 ± 0.1 | 103.16 ± 0.20 % | 100.93 ± 0.33 % | 6,236.7 | 15,044.0 | 11,646.5 | 3,540.3 | yes |
 
-**phase C:(1,2) 比 (1,1) 多出的时间,lanes 64 与压缩表各抵消多少**(同一 campaign,相对 `packed`):
+**phase C:(1,2) 比 (1,1) 多在哪里,lanes 64 与压缩表各省在哪里**(同一 campaign,相对 `packed`;band 列是 depth-1 计时的每帧中位数):
 
 | case | config | fps | vs packed (trial-wise) | phase C µs | correction band | density band | force band | list build |
 |---|---|---|---|---|---|---|---|---|
@@ -392,9 +404,9 @@ band kernel 在 (band voxel, slot) 映射下每个 band voxel 发 MAX_PARTICLES_
 读法:
 
 - **发布组合对 (1,2) 起点:** fps 2-D +6.3 %(10k,试验间散布 ±2 %)、+2.7 %(1M)、+1.6 %(4M)、+0.6 %(16M),3-D +3.4 %(8M)、+3.7 %(narrow);每条链路每帧的 DMA 2-D 1M 764.5 → 454.6 KiB(−41 %)、3-D 8M 60,000 → 16,795 KiB(−72 %);t_tr 2-D 1M 175 → 105 µs、3-D 8M 10,775 → 4,012 µs。
-- **对 v5:** 精确的 (1,2) 起点在 3-D 慢 2.1–2.2 %(phase C 多 1,100 µs);发布组合在所有算例都比 v5 快(+0.2 … +6.5 %),3-D +1.3 / +1.4 %。这一列受配置顺序固定的限制(`v5eq` 总在第一位),1 % 以下的差不可分辨。
-- **精确性的代价:** 与做了同样字节优化的 (1,1)(`l1x`,一层 replica,不精确)相比,发布组合 2-D 10k +2.5 %、1M / 4M / 16M −0.3 … +0.2 %,3-D 8M −0.3 %、3-D narrow −1.2 %;它的 DMA 仍是 `l1x` 的 1.55–1.62 倍(两层 replica)。
-- **phase C(第二张表):** (1,2) 比 (1,1) 多出的 phase C(`packed` − `l1x`)在 3-D 是 1,210 µs(8M)/ 1,135 µs(narrow),在 2-D 只有 0–66 µs。lanes 64 抵消其中的 601 / 411 µs(50 % / 36 %),压缩表抵消 1,037 / 971 µs(86 % / 86 %)。但 fps 上压缩表并不比 lanes 64 好(相对 `packed`:3-D 8M 102.3 % 对 102.7 %,narrow 103.0 % 对 103.6 %),2-D 压缩表更慢(10k −2.0 %、1M −0.5 %)。depth-1 计时下压缩表的 phase C 少 440–560 µs,而 depth-2 的 fps 没有对应的提升;本文没有进一步拆这个差。
+- **对 v5(同等比较只能不开 lanes):** 精确的 (1,2) 起点在 3-D 慢 2.1–2.2 %(phase C 多 1,100 µs)。`packed`((1,2) + 全部字节优化)对 `v5eq`:2-D 10k +2.4 ± 1.9 %、1M +1.4 ± 1.4 %、4M +0.7 ± 0.6 %、16M −0.1 ± 0.1 %,3-D 8M −1.4 ± 0.5 %、narrow −2.0 ± 0.5 %。发布组合对 `v5eq` 快 0.2–6.5 %(3-D 1.3 / 1.4 %),但其中含 lanes 64 的贡献,而 lanes 64 也能用在 v5 上(`v5eq` 没开),所以这不是同等比较。另外 `v5eq` 总在每次试验的第一位:2-D 1M 第 3 次试验 v5eq 只有 722.0 fps(另两次 742.8 / 746.0),单这一次就把该次比值推到 105.6 %;2-D 10k 第 3 次试验排在后面的配置掉了 4–5 %、v5eq 只掉约 1 %。所以 2-D 10k / 1M 的"对 v5"分辨不到 1 %,16M 与 v5 持平。
+- **精确性的代价(同等比较:`l1x` 对 `packed`,两者都不开 lanes):** (1,1) 快 1.5 / 1.7 / 0.9 / 0.6 %(2-D 10k / 1M / 4M / 16M)、3.0 / 4.8 %(3-D 8M / narrow),尽管 `packed` 多了 (1,1) 用不上的打包。3-D 的差主要在 phase C(多 1.21 / 1.13 ms,其中 correction / density band 0.95 / 0.89 ms,见下一条);2-D 的 phase C 只多 0–67 µs,其余差别本文没有拆开。`packed` 的 DMA 是 `l1x` 的 1.55–1.62 倍(两层 replica)。lanes 64 主要省 force band,(1,1) 开了同样受益,所以发布组合对 `l1x` 的 −1.2 … +2.5 % 不是同等比较。
+- **phase C(第二张表):** (1,2) 比 (1,1) 多出的 phase C(`packed` − `l1x`)在 3-D 是 1,210 / 1,135 µs(8M / narrow),其中 correction band +425 / +403 µs、density band +523 / +485 µs,force band 只有 +18 / +8 µs;2-D 只多 0–66 µs。lanes 64 让 correction band 变慢(+105 / +124 µs)、density band −115 / +16 µs,省下的 601 / 411 µs 约 2/3 在 force band(−396 / −289 µs),其余在 band kernel 以外(各项是独立的每帧中位数,不严格相加):它不减 (1,2) 多出的部分,(1,1) 开 lanes 也能拿到这份节省。压缩表把 correction + density 减 325 / 356 µs(即 (1,2) 多出部分的 34 % / 40 %),force band 减 447 / 433 µs(同样是共有的节省),建表 +30 / +28 µs,净 −1,037 / −971 µs。fps 上压缩表并不比 lanes 64 好(相对 `packed`:3-D 8M 102.3 % 对 102.7 %,narrow 103.0 % 对 103.6 %),2-D 10k–4M 更慢(10k −2.0 %、1M −0.5 %),16M 略快。depth-1 计时下压缩表的 phase C 少 440–560 µs,而 depth-2 的 fps 没有对应的提升;本文没有进一步拆这个差。
 - **发布组合的门(修复后的构建与工具):** 审计 1.73、单步 1.08、K = 4 drift 0;重复 A/B:2-D 1.06、3-D 1.22(见下节)。
 
 ## 验证审计
@@ -416,23 +428,33 @@ band kernel 在 (band voxel, slot) 映射下每个 band voxel 发 MAX_PARTICLES_
 | minor | 单步步骤用的是非生产传输(整块拷贝、单 transfer 队列、池因子 1);审计与单步强制 `V6_TRANSPORT_EXTENSION=1` | 单步改用生产传输;extension 仍在审计里打开(全局 id 匹配必需),不带 extension 的生产段表只由 CPU 布局检查与不变量覆盖(见残余限制) | 245c164 |
 | minor | NaN 统计量永远不会让门失败(NaN → None 被丢掉;字符串 "inf" 让 max() 抛异常) | 缺失、NaN、inf 一律算失败 | 245c164 |
 | minor | 所有 campaign 的配置顺序固定(没有平衡) | 加 `--counterbalance`;本文的 campaign 没有重跑(见残余限制) | 245c164 |
-| minor | 直接写 staging 探针在 transfer 队列上 reset query pool(无效用法);两个墙钟数都不是生产的 readback 延迟 | 改在 compute 命令里 reset;重测(差几 %);文中注明范围 | 245c164 |
+| minor | 直接写 staging 探针在 transfer 队列上 reset query pool(无效用法);两个链路数都不是生产的 readback 延迟(提交 → fence 墙钟含两次主机往返,GPU 时间戳之和不含跨队列的 semaphore 跳转) | 改在 compute 命令里 reset;重测(大 kernel ≤ 5 %,3-D 8M HOST_CACHED +8.7 %,小算例的墙钟与 CPU 读变化更大);文中注明范围 | 245c164 |
 | minor | 用同一个名字重跑门会重用旧的审计 dump、合并旧的 verdict | 输出目录已存在时拒绝运行,`--fresh` 把旧目录改名保留;verdict 记录 HEAD 与 experiment/v6 是否有未提交改动 | 245c164 |
 | minor | 发布池因子绑定在实测算例的 C + C_inc 与 h/Δx 上 | 推荐表写明适用条件;replica 区每 voxel 槽数 < 1.2 × (h/Δx)^d 时 stderr 警告 | 33f084e |
 | nit | 安装溢出把 `inside_particle_count[vid]` 留在 MAX 之上(继承自 v5),之后的列表遍历读进下一个 voxel 的行 | v6 里回滚这次计数(v5 不改) | 33f084e |
 | nit | `V6_INIT_SEAM_CLAMP` 关闭(默认)时,落进 ghost 列的 own 粒子仍然无计数地丢失 | 计入 `overflow_initialization_outside`(必须为 0) | 33f084e |
-| nit | 提交里的测量无法从仓库复现:本文不存在,`delta_density_perf.py` 依赖未入库的脚本 | 本文与 `k1_chain_vs_single.py` 入库 | 245c164、本文 |
+| nit | 提交里的测量无法从仓库复现:本文不存在,`delta_density_perf.py` 依赖未入库的脚本 | 本文与 `k1_chain_vs_single.py` 入库;门、A/B、性能与 pool 测量用到的 case 文件与快照仍不在库里(见"复现") | 245c164、本文 |
 | nit | docstring 夸大(第二对只查 a / shift / ρ;窗口出错时跳过;opt_campaign 说默认 (1,2);pool_peaks 的时间写错) | 改正;窗口缺失现在判失败;pool_peaks 的任务改名 `2d_2m_re3200_t100` | 245c164、本文 |
 
 **驳回的 5 条(验证 agent 的理由):** 发布值引用不存在的本文(悬空引用,数与原始数据都在;本文即补上);`V6_MIGRANT_POOL_FACTOR` 默认值也受 64 槽下限影响(提交信息同一句里写明了下限,生产算例都到不了下限);CPU 布局测试检查的比声称的少(被测代码按构造是对的,只是测试质量);9b1009f 的 2-D 峰值来自被标无效的运行(少一个粒子只能让计数少 1,不改结论;现已用 clamp 重测,0.2250);压缩 band 表在某 voxel 计数 > MAX 时与原映射不同(只在已判无效的溢出之后发生,且现在安装溢出会回滚计数)。
+
+**文档对数据的审计:** 本文写完后又走了一遍:三个审查 agent 各负责一段,把每个数、范围与说法对照 `logs/seam_audit/opt/` 与代码重算,每条发现再由独立的验证 agent 复核。39 条发现,29 条确认,10 条驳回(驳回的多是"可以写得更细"一类,本文仍按建议补了细节)。确认的改动里影响结论的有:
+
+- 精确性的代价改用同等比较:`packed` 对 `l1x`(都不开 lanes),3-D 3.0 / 4.8 %;原来的 −0.3 / −1.2 % 混进了只给 (1,2) 开的 lanes 64。
+- "发布组合在所有算例都比 v5 快"改成同等比较:`packed` 对 v5 在 3-D −1.4 / −2.0 %;发布组合对 v5 的数含 lanes 的贡献,2-D 10k / 1M 还受位置效应影响。
+- "lanes 64 / 压缩表抵消 (1,2) 多出的 phase C 的 50 % / 86 %"改成按 band 拆开:lanes 64 不减 (1,2) 多出的 correction / density 时间,压缩表减 34 % / 40 %,其余都是与 (1,1) 共有的 force band 节省。
+- δρ 的终态噪声表改用与时间序列相同的取样(`opt_tables` 原来每 25 个取一个,时间序列每 50 个);壁面与整体噪声由少数离群值主导,结论改为"没有可分辨的差别"。
+- A/B 检验:"全部"组是 dump 窗口而不是全部流体粒子;一次运行的随机事件会移动 3 个被测对与 2 个相同对,近 migrant 组的检验力因此弱。
+
+其余是数的更正(3-D 8M 的串行 PCIe 时间 8 → 8.8 ms、发展流余量 11–16 % → 11–12 %、G1 去 P 的节省 4.5 % → 5.9 %、0.29 本身的代价 12–16 %、lanes 32 对 64 的 3-D 损失、band 深度、K = 1 参照的 depth)与表述(单步门只有一次 K = 1 参照、departed 池与 migrant 区段的关系、G2 的 P、格点到列边的距离、slab 形状、2-D 10k 探针的规模、不入库的复现输入)。
 
 ### 重复 A/B 等价检验(`ab_restart.py`)
 
 单步门只在 k = 1、远离越界的粒子上判定;这个检验跟着运行穿过迁移。从同一个 K = 1 快照(N = 2000)出发:3 次基线(1,2) 用原上传顺序、1 次基线用打乱的上传顺序(seed 1)、3 次被测(基线 + 发布组合);2-D 1M 在 k = 1, 2, 5, 10, 20, 50, 100 dump(第 5 步首次越界),3-D 1M 在 k = 1, 2, 5, 10, 20, 50 dump(第 1 步开始越界,50 步内 13 次)。
 
-**为什么要重复:** 两次相同的 K = 2 运行并不逐位相同(GPU 的原子顺序不同:3-D 第 1 步就有约 20 个粒子的 float32 ρ 差 1 ULP),这种稀有的离散事件主导小组的任何统计量(迁移粒子旁边的一次翻转能让组内加速度差的 90 分位数变三个量级)。最早的单对设计因此给出 2-D 15、3-D 37,052 这样的"失败"——那是用"几乎为 0 的 A/A 底"去除一个改变了内存顺序的组合。拆分(单对设计)显示:不含 (e) 的组合与相同重跑同级(3-D 1.73);只改 replica 因子与打乱上传顺序同级(1.19),即 pool 尺寸改变 pid 布局、因而改变 float32 求和顺序;只改 migrant 因子的 3-D 运行在 seam 列的 90 分位数上超了(k = 20,8.2 倍;那一对的 ρ 翻转数 154,A/A 111、A/S 106)。单对设计分不清这是系统性的还是一次随机事件,于是改成下面的重复设计:包含这个 migrant 因子的发布组合在同一步同一组的比值是 0.55(9 对的中位数),ρ 翻转数中位数 114 对底 115。
+**为什么要重复:** 两次相同的 K = 2 运行并不逐位相同(GPU 的原子顺序不同:3-D 第 1 步就有约 20 个粒子的 float32 ρ 差 1 ULP),这种稀有的离散事件主导小组的任何统计量(迁移粒子旁边的一次翻转能让组内加速度差的 90 分位数变三个量级)。最早的单对设计因此给出 2-D 15、3-D 37,052 这样的"失败"——那是用"几乎为 0 的 A/A 底"去除一个改变了内存顺序的组合。第二版单对设计改用 max(A/A, A/S) 作底,发布组合仍然"失败"(2-D 4.0、3-D 1,299,都在近 migrant 组,是单个运行的离散事件)。拆分(单对设计)显示:不含 (e) 的组合与相同重跑同级(3-D 1.73);只改 replica 因子与打乱上传顺序同级(1.19),即 pool 尺寸改变 pid 布局、因而改变 float32 求和顺序;只改 migrant 因子的 3-D 运行在 seam 列的 90 分位数上超了(k = 20,8.2 倍;那一对的 ρ 翻转数 154,A/A 111、A/S 106)。单对设计分不清这是系统性的还是一次随机事件,于是改成下面的重复设计:包含这个 migrant 因子的发布组合在同一步同一组的比值是 0.55(9 对的中位数),ρ 翻转数中位数 114 对底 115。
 
-**判定(最终设计):** 底 = max(3 对相同运行的中位数, 3 对打乱运行的中位数);被测 = 9 对(被测 × 基线)的中位数;对每个 dump、每组(全部流体粒子取 rms;seam 列 |x − cut| < 2h 与"近 migrant"——2h 内有换过 slab 的粒子——取 |差| 的 90 分位数)、每个量(位置、速度、加速度、shift、ρ、P、kernel_sum),被测 ≤ 2 × 底(另有 1e-7 × 该量 rms 的绝对底)。系统性的迁移路径错误会移动每一对,随机事件只移动九对中的一对。下表列加速度(其余量见 `logs/seam_audit/opt/ab_release_final/table.md`):
+**判定(最终设计):** 底 = max(3 对相同运行的中位数, 3 对打乱运行的中位数);被测 = 9 对(被测 × 基线)的中位数;对每个 dump、每组("全部" = dump 窗口里的所有粒子,取 rms:2-D seam 两侧各 12 列,约 11 % 的粒子;3-D k = 1 两侧各 8 列、之后 5 列;k = 1 的 dump 还含壁面粒子;seam 列 |x − cut| < 2h 与"近 migrant"——2h 内有换过 slab 的粒子——取 |差| 的 90 分位数)、每个量(位置、速度、加速度、shift、ρ、P、kernel_sum),被测 ≤ 2 × 底(另有 1e-7 × 该量 rms 的绝对底)。系统性的迁移路径错误会移动每一对;一次运行里的随机事件会移动含这次运行的 9 个被测对中的 3 对(中位数不变),同时移动 3 个相同对中的 2 对(把"相同运行"的底抬高);两次运行各有事件时可能移动 5 对以上、改变被测中位数。近 migrant 组正是这样:2-D 与 3-D 的 k = 10,被测中位数是打乱对中位数的 4.9 / 3.4 倍,能通过是因为基线运行的事件也把相同对的底抬高了(2-D 到 1.07 × 10⁻²),所以这一组的检验力弱(见残余限制)。下表列加速度(其余量见 `logs/seam_audit/opt/ab_release_final/table.md`):
 
 | case | k | crossed | group (statistic) | acceleration: identical / shuffled / release (medians) | ratio | ρ flips: floor / release (medians) |
 |---|---|---|---|---|---|---|
@@ -478,23 +500,25 @@ Verdict: cavity2d_1m: pass, worst ratio 1.06; cavity3d_1m: pass, worst ratio 1.2
 
 **残余限制:**
 
-- **配置顺序固定:** 所有性能 campaign 在每个试验内按固定顺序跑配置(`v5eq` 总在第一位)。逐试验配对的比值抵消了试验间的漂移,但没有抵消位置效应;"对 v5"一列与所有 1 % 以下的差都不能排除这一点。`--counterbalance` 已加,没有重跑。
+- **配置顺序固定:** 所有性能 campaign 在每个试验内按固定顺序跑配置(`v5eq` 总在第一位)。逐试验配对的比值抵消了试验间的漂移,但没有抵消位置效应;"对 v5"一列与所有 1 % 以下的差都不能排除这一点,2-D 10k / 1M 上排第一的 `v5eq` 有一次试验偏了约 3 %(见"总览")。`--counterbalance` 已加,没有重跑。
 - **审计之前的逐项门用的是旧门工具**(单步非生产传输、K = 4 会重试、缺输入不失败)。记录显示每个门的审计都有 4 个新跑的有效运行、K = 4 都是一次通过,所以这些漏洞没有改变任何逐项结论;发布组合与 δρ 在修复后用新工具重跑通过。
 - **不带 extension 的生产段表**不经过物理比较(审计 worker 需要全局 id),只由 CPU 布局检查第 5 项与 K = 4 / 性能运行的不变量(drift、溢出、帧戳)覆盖。
-- **A/B 检验的规模:** 2-D 100 步内只有 1 次越界,3-D 50 步 13 次;近 migrant 组只有 214–2,590 个粒子。它能抓住系统性错误,抓不住只在罕见几何下出现的错误。
+- **A/B 检验的规模与检验力:** 2-D 100 步内只有 1 次越界,3-D 50 步 13 次;近 migrant 组只有 214–2,590 个粒子,它的底被个别运行的离散事件抬高(相同对的中位数比打乱对高一到三个量级的情况都有),只能排除比这个被抬高的底大 2 倍以上的系统误差。"全部"与 seam 列组(几万到几十万个粒子)上检验力强。它能抓住系统性错误,抓不住只在罕见几何下出现的错误。
+- **压缩 band 表的 3-D 路径**没有做物理比较(A/B 检验的发布组合不含它,CPU 布局测试也不覆盖它);它不在发布组合里。
+- **同等比较:** 本文的 campaign 没有给 v5 / (1,1) 开 lanes 64,所以对 v5、对 (1,1) 的同等比较只有不开 lanes 的 `packed`。
 - **池因子:** 发布值只对实测的 C + C_inc 与 h/Δx 有效(2-D C = 96 / C_inc = 16、h/Δx = 5;3-D C = 128 / 32、h/Δx = 4),其他算例要重测或接受警告提示的风险;溢出永远被计数、不会静默。
 - **(f) 探针**只测了"每个 face voxel 一个线程"的写法;墙钟是两次主机往返。
 
 ## 未采用的项与原因
 
-- **`V6_BAND_COMPACT_DISPATCH`(压缩 band 映射):** 3-D 抵消 (1,2) 多出的 phase C 的 86 %(depth-1 计时),但 fps 不比 lanes 64 好(3-D 低 0.2–0.5 %);2-D 10k–4M 的小 band 上反而比 `packed` 慢 0.1–2.3 %(建表 7–15 µs,加上表项按原子到达顺序排列、加载不如 interior 合并);唯一的例外是 2-D 16M,压缩表比 lanes 64 快 0.15–0.45 %(force band 110 对 170 µs;lanes 32 也把它降到 116 µs,lanes 64 没有,原因本文没有拆);多一个 kernel、两块 buffer 与一次间接派发。开关保留(逐位等价、门通过),默认关闭。
-- **`V6_BAND_SLOT_LANES=32`:** 2-D 与 64 持平(差 ≤ 0.7 %,噪声内);3-D 每个 voxel 约 64 个粒子要两遍,correction / density band 慢 8–27 %,fps −0.35 % 到 +0.08 %。
+- **`V6_BAND_COMPACT_DISPATCH`(压缩 band 映射):** 3-D 里把 (1,2) 多出的 correction / density 时间减掉 34 % / 40 %,另外省下 force band 的 0.43–0.45 ms(与 (1,1) 共有),phase C 净降 0.97–1.04 ms(depth-1 计时),但 fps 不比 lanes 64 好(3-D 低 0.2–0.5 %);2-D 10k–4M 的小 band 上反而比 `packed` 慢 0.1–2.3 %(建表 7–15 µs,加上表项按原子到达顺序排列、加载不如 interior 合并);唯一的例外是 2-D 16M,压缩表比 lanes 64 快 0.15–0.45 %(force band 110 对 170 µs;lanes 32 也把它降到 116 µs,lanes 64 没有,原因本文没有拆);代价:同一个 `band_compact.comp` 的两次派发(扫描与 scatter,外加两道屏障)、两块 buffer,三个 band kernel 都改成间接派发。开关保留、默认关闭;它在设计上逐位等价,2-D 门通过,3-D 的扫描路径只经过性能运行的不变量,没有做物理比较。
+- **`V6_BAND_SLOT_LANES=32`:** 2-D 与 64 持平(差 ≤ 0.7 %,噪声内);3-D 每个 voxel 约 64 个粒子要两遍,对 lanes 64:fps −2.3 %(8M)/ −3.6 %(narrow),correction / density band 慢 13.5–19 %(对不开 lanes:fps −0.35 … +0.08 %,band 慢 8–27 %)。
 - **(f) ghost_send 直接写 host-visible staging:** 不实现;kernel 慢 2.4–18 倍且在关键路径上(见上)。
 - **migrant 打包:** 它的 voxel id 是 install 的目标,接收方按位置重算会碰到 bootstrap 修复里的 float32 舍入歧义;(e) 之后它只占 DMA 的 0.4–3.6 %。
-- **G1 再去掉 P(多省 4 B / G1 replica):** 必要性表里 G1 的 P 在 C4 之前同样无人读,但你的规格只要求 G2 去 P;按规格做,作为后续选项记录(再省约 4.5 % 的 replica 字节)。
-- **`V6_DELTA_DENSITY`:** 评估结果见上;改变的是数值性质(内部压力噪声约 3 倍更小、去掉压力台阶,流动量不变,吞吐 −1.2 %),多卡门通过;是否作为发布默认由你决定。它改变了 GPU 上 `.x` 的含义:Python 端经过 `readback_buffers_batch` 的读者已经拿到 ρ,采纳前还要改渲染 vertex shader 的密度着色(只影响可视化)。
+- **G1 再去掉 P(多省 4 B / G1 replica):** 必要性表里 G1 的 P 在 C4 之前同样无人读,但你的规格只要求 G2 去 P;按规格做,作为后续选项记录(再省 4 / 68 B = 5.9 % 的 replica 字节,约为发布组合 DMA 的 5.6–5.8 %)。
+- **`V6_DELTA_DENSITY`:** 评估结果见上;改变的是数值性质(去掉压力台阶,内部压力噪声小 2.2–3.4 倍,壁面附近没有可分辨的差别,流动量不变,吞吐 −1.2 %),多卡门通过;是否作为发布默认由你决定。它改变了 GPU 上 `.x` 的含义:Python 端经过 `readback_buffers_batch` 的读者已经拿到 ρ,采纳前还要改渲染 vertex shader 的密度着色(只影响可视化)。
 - **`V6_TRANSPORT_EXTENSION`:** 只给审计用(全局 id);生产不传 `extension_fields`。
-- **2-D 池因子保持 0.25:** 不采纳——发展流峰值只剩 11–16 % 余量;0.29 的代价是 2-D DMA 多 7–10 %(fps 不变)。
+- **2-D 池因子保持 0.25:** 不采纳——发展流峰值下只剩 11–12 % 余量(静止起步的 10k 16 %)。单看这一项,0.29 比 0.25 多 12 %(lean 阶段)/ 15–16 %(发布组合)的 2-D DMA;(e) 那一步的 +7–10 % 是它与 migrant 区段缩小的净值。fps 不变。
 
 ## 复现
 
@@ -524,6 +548,8 @@ REL="--env V6_LEAN_TRANSPORT=1 --env V6_GHOST_POOL_FACTOR=0.29 --env V6_MIGRANT_
 .venv/Scripts/python.exe experiment/seam_audit/delta_density_perf.py
 .venv/Scripts/python.exe -m experiment.seam_audit.opt_tables --out logs/seam_audit/opt/tables.md
 ```
+
+**注意:** 这些命令用到不入库的输入:`cases/lid_driven_cavity_2d_gen`、`cases/cavity3d_narrow`、`cases/cavity_validation/*`(未跟踪),以及 `logs/` 下的 2-D 10k case(`logs/two_hop_experiment/cases/cavity_2d_10k`)、N = 2000 快照(`logs/seam_audit/single_step/`)与验证 campaign 的 checkpoint(`logs/` 被 .gitignore 忽略)。干净的 checkout 不能直接复现,要先生成或拷贝这些输入。
 
 数据都在 `logs/seam_audit/opt/`(不入库):`perf_*` 与 `smoke_fixed`(results.jsonl、summary.md / .json)、`validate_*`(verdict.json 与各步日志)、`ab_*`(A/B 的 result.json 与 table.md,`ab_release_final` 是最终设计)、`pool_peaks` 与 `pool_peaks_rerun`(含逐帧序列 npz)、`k1_chain_vs_single`、`direct_staging` / `direct_staging_v2`、`delta_density*`。
 

@@ -343,7 +343,10 @@ def delta_density_noise_split(directory_name: str) -> str:
             fluid = data["fluid"]
             volumes = 1.0e-3 / density            # m = rho0 dx^2 = 1e-3 kg per unit depth
             tree = cKDTree(positions)
-            sample = np.flatnonzero(fluid)[::25]
+            # the same subsample as delta_density_eval's time series (every fluid_count // 20000-th
+            # fluid particle), so the final-state rows match the series' last samples; the all / wall /
+            # lid columns are dominated by a few outliers and change with the subsample, interior does not
+            sample = np.flatnonzero(fluid)[::max(1, int(fluid.sum()) // 20000)]
             residual = pressure[sample] - shepard(tree, positions, volumes, pressure[:, None], positions[sample],
                                                   smoothing_length)[:, 0]
             extent = np.maximum(np.abs(positions[sample, 0]), np.abs(positions[sample, 1]))
