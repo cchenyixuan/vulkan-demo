@@ -21,9 +21,11 @@ chain:
 
 Configurations are switch sets on top of the production environment
 (count-aware worker, split transfer queues, cascade force, band-voxel dispatch,
-ghost pool factor 0.25 in 2-D / 1.0 in 3-D) and of the seam configuration
-(1,2) = V6_KEEP_DEPARTED=1 V6_GHOST_LAYERS=2 unless a preset says otherwise.
-Presets are in CONFIGS; more with --define name=KEY=VALUE;KEY=VALUE.
+ghost pool factor 0.25 in 2-D / 1.0 in 3-D). The seam configuration is part of
+the switch set, not added by the driver: the presets in CONFIGS that start from
+(1,2) = V6_KEEP_DEPARTED=1 V6_GHOST_LAYERS=2 contain it, and a --define
+configuration gets it only through '@l2' (name=@l2;KEY=VALUE;...); without it
+the run is v5-equivalent (0,1).
 
 Driver: trials interleaved (trial-major, then case, then configuration).
 

@@ -196,9 +196,9 @@ def _ghost_pool_layout(global_case: CaseV6, ghost_layers: int) -> tuple[int, int
 
 def _warn_if_replica_region_tight(global_case: CaseV6, slots_per_voxel: float, factor: float) -> None:
     """A ghost column holds ~(h/dx)^d particles per voxel; the replica region
-    reserves (C + C_inc) * f slots per voxel. Measured peaks reached 0.2252 (2-D,
+    reserves (C + C_inc) * f slots per voxel. Measured peaks reached 0.2250 (2-D,
     h/dx 5, C + C_inc = 112) and 0.3891 (3-D, h/dx 4, 160) of the f = 1 slots,
-    i.e. ~1.01 x (h/dx)^d; below 1.2 x (h/dx)^d the region has < 20 % headroom
+    i.e. 0.97-1.01 x (h/dx)^d; below 1.2 x (h/dx)^d the region has < 20 % headroom
     (the release factors were derived for those capacities; other C / h/dx need
     their own factor). Warning only: an overflow is counted, never silent."""
     radii = [float(material.radius) for material in global_case.materials if float(material.radius) > 0]
