@@ -80,6 +80,7 @@ REPOSITORY_ROOT = pathlib.Path(__file__).resolve().parents[2]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 from experiment.validation import cavity_reference, cavity_sampling  # noqa: E402
+from experiment.validation.cavity_analysis import run_numerics  # noqa: E402
 
 DEFAULT_CAMPAIGN_DIRECTORY = REPOSITORY_ROOT / "logs" / "validation" / "cavity_re1000"
 DEFAULT_OUTPUT_DIRECTORY = REPOSITORY_ROOT / "docs" / "validation" / "fields"
@@ -530,9 +531,7 @@ def load_job(job_directory: pathlib.Path, snapshot_name: str = "final") -> dict:
     run_meta = json.loads((job_directory / "meta.json").read_text(encoding="utf-8"))
     steady_path = job_directory / "steady.json"
     steady = json.loads(steady_path.read_text(encoding="utf-8")) if steady_path.exists() else {}
-    case = yaml.safe_load((REPOSITORY_ROOT / run_meta["case"]).read_text(encoding="utf-8"))
-    xi = float(case["numerics"]["regularization"]["xi"])
-    epsilon_factor = float(case["numerics"].get("epsilon_squared_factor", 0.01))
+    xi, epsilon_factor = run_numerics(job_directory, run_meta)
     spacing = float(run_meta["spacing"])
     step = int(path.stem[1:])
     data["meta"] = {"case": run_meta["case"].replace("\\", "/"), "re": int(round(run_meta["reynolds_nominal"])),

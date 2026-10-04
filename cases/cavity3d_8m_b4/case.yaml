@@ -32,9 +32,12 @@ numerics:
   delta_coefficient: 0.1
   use_kcg_correction: true
   regularization:
-    xi: 0.1
+    xi: 0.001
     det_threshold: 1.0e-4
     frobenius_max: 10.0
+  # eps^2 = epsilon_squared_factor * h^2 (h = support radius) in the viscous / delta-diffusion
+  # denominators; read by the V0 and v6 loaders (v2-v5 ignore it and use 0.01)
+  epsilon_squared_factor: 0.0025
   use_pst: true
   pst_main: 0.1
   pst_anti: 0.0005

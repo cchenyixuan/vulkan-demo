@@ -67,6 +67,10 @@ RUNS = [
      "devices": "0,1", "expect": "release"},
     {"id": "n1000_k1_float32_xi0p001_eps0p0025", "case": "n1000_xi0p001_eps0p0025", "size": "n1000", "slabs": 1,
      "devices": "1", "expect": "release", "require_uuid": "ae137c668a40f5acaab90a83f7cda175"},
+    # 2026-10-05 (user request): the 1000^2 main-series run continued beyond t = 100 to test time convergence; the
+    # directory is a copy of n1000_k2_float32_xi0p001_eps0p0025 resumed from its t = 99.2 checkpoint (run --t-end 300)
+    {"id": "n1000_k2_float32_xi0p001_eps0p0025_long", "case": "n1000_xi0p001_eps0p0025", "size": "n1000", "slabs": 2,
+     "devices": "0,1", "expect": "release"},
 ]
 DT = {"n250": 3.0e-5, "n500": 1.5e-5, "n1000": 7.5e-6, "n2000": 3.75e-6}       # 0.15 * h / c0, h = 5 dx, c0 = 100
 CALIBRATION_STEPS = {"n250": 42000, "n500": 52000, "n1000": 108000, "n2000": 159000}   # about 1.2-1.6 time units

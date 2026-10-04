@@ -18,7 +18,8 @@ production depth-2 loop) and does all I/O in the drained on_defrag hook:
 The run stops at t_stop = max(t_end, t_steady + average_span) (t_steady = end of the first window whose
 mean profiles and mean kinetic energy changed by less than --steady-tol relative to the previous window),
 or at --t-max. The release switches arrive through the environment (cavity_campaign.py builds it); this
-runner refuses to start if they do not match --expect.
+runner refuses to start if they do not match --expect. A fresh run keeps a copy of its case.yaml in the run
+directory: the analysis reads the run's numerics (xi, epsilon_squared_factor) from that copy, not from cases/.
 
     .venv/Scripts/python.exe -m experiment.validation.cavity_runner --case cases/lid_driven_cavity_2d_n250/case.yaml \
         --run-dir logs/validation/cavity_re1000/n250_k2_float32 --slabs 2 --device-map 0,1 --expect release
@@ -390,6 +391,7 @@ def main() -> int:
                 "fluid_groups": fluid_groups.tolist(), "git": git_state(),
                 "code_hashes": code_hashes(pathlib.Path(arguments.case).resolve())}
         meta_path.write_text(json.dumps(meta, indent=1), encoding="utf-8")
+        (run_dir / "case.yaml").write_bytes(pathlib.Path(arguments.case).read_bytes())
         np.savez(run_dir / "points.npz", **{name: points for name, (_, points) in point_sets.items()},
                  dense_reference=dense_reference, u_reference_y=reference["u"][0], v_reference_x=reference["v"][0])
 

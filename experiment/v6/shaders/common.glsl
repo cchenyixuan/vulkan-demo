@@ -83,7 +83,9 @@ layout(constant_id = 13) const uint GRID_DIMENSION_Z = 1u;        // 1 in 2D
 const uint TOTAL_VOXEL_COUNT = GRID_DIMENSION_X * GRID_DIMENSION_Y * GRID_DIMENSION_Z;
 
 // --- Correction (KCG) regularization ---
-layout(constant_id = 14) const float REGULARIZATION_XI                    = 0.1;
+// ξ is added to the diagonal of M before the inversion. M ≈ 1.13 I in a full support, so every corrected
+// operator carries M (M + ξ I)⁻¹: 0.999 at ξ = 0.001 (case default since 2026-10-05), 0.92 at the old 0.1.
+layout(constant_id = 14) const float REGULARIZATION_XI                    = 0.001;
 layout(constant_id = 15) const float REGULARIZATION_DETERMINANT_THRESHOLD = 1e-4;
 layout(constant_id = 16) const float REGULARIZATION_MAX_FROBENIUS_NORM    = 10.0;
 
@@ -115,8 +117,10 @@ layout(constant_id = 33) const float KERNEL_GRADIENT_COEFFICIENT  = 3929751.7;  
 // --- Density diffusion / viscosity division-by-zero guard ---
 // Used in δ-SPH density diffusion and artificial-viscosity expressions where a
 // 1/(r² + ε_h²) term would otherwise blow up when two particles approach each
-// other. Typical value: 0.01 · H² (Antuono et al. δ-SPH).
-layout(constant_id = 40) const float EPS_H_SQUARED = 8.1e-7;  // 0.01 · 0.009²
+// other. Antuono et al. (δ-SPH) use 0.01 · H² with H the smoothing length; with the support radius
+// h = 2H used here that is 0.0025 · h² (case default since 2026-10-05; the old 0.01 · h² lowered the
+// viscous operator by ~7 %, docs/validation/cavity_re1000.md).
+layout(constant_id = 40) const float EPS_H_SQUARED = 2.025e-7;  // 0.0025 · 0.009²
 
 // PST main-shift scale coefficient (Sun 2017 δ-plus empirical constant).
 // Enters as:  pst_base_factor = CFL · PST_MAIN_SHIFT_COEFFICIENT · 2·h²

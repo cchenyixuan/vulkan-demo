@@ -2,7 +2,8 @@
 
 force.comp computes the viscous acceleration (Monaghan form with the KCG-corrected kernel gradient)
     a_i = sum_{j != i} 2 (d + 2) nu V_j ((v_i - v_j) . x_ij) / (r_ij^2 + eps^2) (M_i + xi I)^-1 grad_i W_ij
-with V_j = m / rho_j, eps^2 = numerics.eps_h_squared (= 0.01 h^2, h = support radius), xi = numerics.regularization_xi
+with V_j = m / rho_j, eps^2 = epsilon_squared_factor h^2 (h = support radius; 0.01 in the release cases), xi = the
+KCG regularization (0.1 in the release cases), both as the run was started (its copy of the case.yaml)
 and M_i = sum_{j != i} V_j (r_j - r_i) (x) grad_i W_ij (correction.comp). The loader calibrates the particle volume
 as V = 1 / sum_{j != i} W on the lattice (1.1293 dx^2 at h = 5 dx), so in a full support M ~ 1.129 I and the
 regularised inverse leaves the factor F = M (M + xi I)^-1 ~ 0.919 on every corrected operator.
@@ -32,8 +33,7 @@ _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from experiment.v6.utils.case_loader_v6 import load_case_v6  # noqa: E402
-from experiment.validation.cavity_analysis import DATA, LOGS, write_csv  # noqa: E402
+from experiment.validation.cavity_analysis import DATA, LOGS, run_numerics, write_csv  # noqa: E402
 
 MATRIX_SUBSET = 60000
 OPERATOR_SUBSET = 20000
@@ -65,9 +65,9 @@ def neighbourhood(positions: np.ndarray, particle: int, neighbours: list[int], s
 def evaluate(run_id: str) -> tuple[list[list], list[list]]:
     run_dir = LOGS / run_id
     meta = json.loads((run_dir / "meta.json").read_text(encoding="utf-8"))
-    case = load_case_v6(_REPO_ROOT / meta["case"])
-    regularization, epsilon_squared = float(case.numerics.regularization_xi), float(case.numerics.eps_h_squared)
     spacing, support = float(meta["spacing"]), float(meta["support_radius"])
+    regularization, epsilon_factor = run_numerics(run_dir, meta)
+    epsilon_squared = epsilon_factor * support ** 2
     snapshot = sorted((run_dir / "snapshots").glob("t*.npz"))[-1]
     with np.load(snapshot) as archive:
         positions = archive["positions"][:, :2].astype(np.float64)

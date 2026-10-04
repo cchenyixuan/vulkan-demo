@@ -353,12 +353,15 @@ def load_case_v6(case_yaml_path: str | pathlib.Path) -> CaseV6:
     nm = case_data["numerics"]
     reg = nm["regularization"]
     numerics = NumericsConstants(
-        regularization_xi=float(reg["xi"]),
+        # KCG Tikhonov ξ (added to the diagonal of M). Optional; default 0.001 since 2026-10-05 (was 0.1,
+        # which scaled every corrected operator by M (M + ξ I)⁻¹ ≈ 0.92, docs/validation/cavity_re1000.md).
+        regularization_xi=float(reg.get("xi", 0.001)),
         regularization_determinant_threshold=float(reg["det_threshold"]),
         regularization_max_frobenius_norm=float(reg["frobenius_max"]),
         # ε² in the r² + ε² denominators (viscosity, δ-diffusion): epsilon_squared_factor · h², h = support
-        # radius. Optional; 0.01 is the V0/V1 default (Antuono δ-SPH).
-        eps_h_squared=float(nm.get("epsilon_squared_factor", 0.01)) * h * h,
+        # radius. Optional; default 0.0025 since 2026-10-05 = Antuono's 0.01 H² with the smoothing length
+        # H = h / 2 (was 0.01, the V0/V1 value, which lowered the viscous operator by ~7 %).
+        eps_h_squared=float(nm.get("epsilon_squared_factor", 0.0025)) * h * h,
         pst_main_shift_coefficient=float(nm.get("pst_main", 0.1)),
         pst_anti_shift_coefficient=float(nm.get("pst_anti", 0.005)),
         use_kcg_correction=bool(nm.get("use_kcg_correction", True)),

@@ -290,6 +290,10 @@ class NumericsConfig:
     pst_main: float                                 # PST main-shift scale (Sun 2017)
     pst_anti: float                                 # PST anti-shift (cohesion) multiplier
     regularization: RegularizationConfig
+    # ε² = epsilon_squared_factor · h² in the 1/(r² + ε²) terms (viscosity, δ-diffusion), h = support
+    # radius. 0.0025 = Antuono's 0.01 · H² with the smoothing length H = h / 2 (default since 2026-10-05;
+    # V0 hard-coded 0.01 · h² before, which lowered the viscous operator by ~7 %).
+    epsilon_squared_factor: float = 0.0025
     # Ablation toggle (default keeps δ-plus KCG behavior). When False, density
     # and force shaders use identity for M⁻¹ and zero for ∇ρ — equivalent to
     # plain δ-SPH (Antuono 2012) without kernel-gradient correction. Useful
@@ -333,6 +337,9 @@ class NumericsConfig:
             raise ValueError(f"numerics.pst_main must be >= 0, got {self.pst_main}")
         if self.pst_anti < 0:
             raise ValueError(f"numerics.pst_anti must be >= 0, got {self.pst_anti}")
+        if self.epsilon_squared_factor <= 0:
+            raise ValueError(
+                f"numerics.epsilon_squared_factor must be > 0, got {self.epsilon_squared_factor}")
         if self.defrag_cadence <= 0:
             raise ValueError(
                 f"numerics.defrag_cadence must be > 0, got {self.defrag_cadence}")
@@ -508,7 +515,7 @@ class Case:
     def eps_h_squared(self) -> float:
         """Antuono δ-SPH division-by-zero guard for 1/(r² + ε_h²) terms."""
         h = self.physics.h
-        return 0.01 * h * h
+        return self.numerics.epsilon_squared_factor * h * h
 
     @property
     def neighbor_z_range(self) -> int:

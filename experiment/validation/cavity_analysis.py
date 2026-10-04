@@ -39,7 +39,9 @@ RESOLUTIONS = {"n250": 250, "n500": 500, "n1000": 1000, "n2000": 2000}
 EXTREMA_SEARCH = {"u_min": ("u", "min", (0.05, 0.45)), "v_max": ("v", "max", (0.05, 0.45)),
                   "v_min": ("v", "min", (0.60, 0.99))}
 GRID_POINTS = 513
-# numerics of the release cases; runs with other values get a variant suffix (e.g. float32_xi0.001)
+# numerics of the release cases the campaign started with; runs with other values get a variant suffix (e.g.
+# float32_xi0.001). Since 2026-10-05 the case defaults are xi 0.001 + epsilon_squared_factor 0.0025 (the main
+# series, label float32_xi0.001_eps0.0025); the labels keep naming what each run used.
 BASELINE_NUMERICS = {"xi": 0.1, "epsilon_factor": 0.01}
 # frames by the physical half width of the benchmark's unit square (dx = particle spacing): wall = centre lines of
 # the innermost wall / lid rows, mid = half way between those rows and the outermost fluid rows (the usual SPH wall
@@ -71,14 +73,23 @@ def load_run(run_id: str, root: pathlib.Path | None = None) -> dict | None:
            "segments": [json.loads(line) for line in (directory / "segments.jsonl").read_text(encoding="utf-8").splitlines()
                         if line] if (directory / "segments.jsonl").exists() else []}
     spacing = float(meta["spacing"])
-    numerics = yaml.safe_load((_REPO_ROOT / meta["case"]).read_text(encoding="utf-8"))["numerics"]
-    xi = float(numerics["regularization"]["xi"])
-    epsilon_factor = float(numerics.get("epsilon_squared_factor", BASELINE_NUMERICS["epsilon_factor"]))
+    xi, epsilon_factor = run_numerics(directory, meta)
     storage = "delta" if meta["expect"] == "release_delta" else "float32"
     run.update({"case": pathlib.Path(meta["case"]).parent.name, "slabs": int(meta["slabs"]),
                 "variant": storage + numerics_suffix(xi, epsilon_factor), "storage": storage, "xi": xi,
                 "epsilon_factor": epsilon_factor, "spacing": spacing, "resolution": int(round(1.0 / spacing))})
     return run
+
+
+def run_numerics(directory: pathlib.Path, meta: dict) -> tuple[float, float]:
+    """(xi, epsilon_squared_factor) the run was started with, from the run directory's copy of its case.yaml
+    (the runner writes it; the runs before 2026-10-05 got theirs copied in before the case defaults changed to
+    xi 0.001, epsilon_squared_factor 0.0025), else from the case in cases/. A case without the key ran with the
+    loader default of its time, 0.01 (every case written since carries the key)."""
+    copy = directory / "case.yaml"
+    case_path = copy if copy.exists() else _REPO_ROOT / meta["case"]
+    numerics = yaml.safe_load(case_path.read_text(encoding="utf-8"))["numerics"]
+    return float(numerics["regularization"]["xi"]), float(numerics.get("epsilon_squared_factor", 0.01))
 
 
 def numerics_suffix(xi: float, epsilon_factor: float) -> str:
@@ -568,8 +579,10 @@ def main() -> int:
     parser.add_argument("--from-cache", action="store_true",
                         help="redo only the figures and tables from the analyses cached by the last full run")
     arguments = parser.parse_args()
-    run_ids = arguments.runs.split(",") if arguments.runs else sorted(path.name for path in LOGS.iterdir()
-                                                                       if (path / "result.json").exists())
+    # *_long = a finished run continued past its stop time (time-convergence check, long_run_convergence.py);
+    # it repeats its parent's case and settings, so it stays out of the comparison tables
+    run_ids = arguments.runs.split(",") if arguments.runs else sorted(
+        path.name for path in LOGS.iterdir() if (path / "result.json").exists() and not path.name.endswith("_long"))
     analyses = list(np.load(LOGS / "analysis_cache.npy", allow_pickle=True)) if arguments.from_cache else []
     for run_id in [] if arguments.from_cache else run_ids:
         run = load_run(run_id)
