@@ -1,0 +1,8 @@
+# delta-density minus float32 time-averaged profiles (MLS, wall-row frame) at the Marchi points, and the errors of each.
+resolution,K,line,max_abs_diff,rms_diff,median_combined_sem,L2_float32,L2_delta,Linf_float32,Linf_delta
+250,2,u,8.89e-05,5.81e-05,4.44e-05,0.02681,0.02686,0.04793,0.04799
+250,2,v,2.19e-04,9.18e-05,5.31e-05,0.02683,0.02690,0.05377,0.05388
+500,2,u,1.18e-04,5.51e-05,2.62e-05,0.01949,0.01952,0.03789,0.03785
+500,2,v,9.35e-05,5.34e-05,2.60e-05,0.01809,0.01813,0.03995,0.04000
+1000,2,u,8.57e-05,3.80e-05,2.20e-05,0.01573,0.01575,0.03182,0.03185
+1000,2,v,6.90e-05,4.10e-05,1.82e-05,0.01423,0.01425,0.03254,0.03260

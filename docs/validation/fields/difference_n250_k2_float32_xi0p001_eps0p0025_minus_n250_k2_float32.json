@@ -1,0 +1,79 @@
+{
+ "minuend": {
+  "job": "n250_k2_float32_xi0p001_eps0p0025",
+  "snapshot": "final",
+  "time": 90.72,
+  "step": 3024000,
+  "k": 2,
+  "re": 1000,
+  "converged": true,
+  "slab_cuts": [
+   {
+    "column": 27,
+    "x": -0.016269841269841212,
+    "ownership_mismatches": null,
+    "owned_left_maximum_x": null,
+    "owned_right_minimum_x": null
+   }
+  ],
+  "setting": "\u03be = 0.001, \u03b5\u00b2 = 0.0025 h\u00b2"
+ },
+ "subtrahend": {
+  "job": "n250_k2_float32",
+  "snapshot": "final",
+  "time": 99.9,
+  "step": 3330000,
+  "k": 2,
+  "re": 1000,
+  "converged": true,
+  "setting": "\u03be = 0.1, \u03b5\u00b2 = 0.01 h\u00b2 (release)"
+ },
+ "grid_cells": 2048,
+ "statistics_all_fluid": {
+  "cells": 3544498,
+  "max_abs_delta_u": 0.030512144758158444,
+  "rms_delta_u": 0.007291687592579418,
+  "max_abs_delta_v": 0.024595487966519558,
+  "rms_delta_v": 0.006405905345811348,
+  "max_delta_magnitude": 0.030549022121754556,
+  "max_delta_magnitude_at": [
+   0.19081622867229775,
+   0.9826863838092871
+  ],
+  "rms_delta_magnitude": 0.009705891574052897,
+  "max_abs_delta_vorticity": 2.6323540002166537,
+  "rms_delta_vorticity": 0.28259032159610514
+ },
+ "statistics_interior": {
+  "cells": 3027600,
+  "max_abs_delta_u": 0.02185041474971272,
+  "rms_delta_u": 0.0070798976043671,
+  "max_abs_delta_v": 0.024595487966519558,
+  "rms_delta_v": 0.006566507688858292,
+  "max_delta_magnitude": 0.025910953455224643,
+  "max_delta_magnitude_at": [
+   0.9197387896467608,
+   0.3960571239249042
+  ],
+  "rms_delta_magnitude": 0.009656291903011118,
+  "max_abs_delta_vorticity": 1.4141358825310704,
+  "rms_delta_vorticity": 0.22186441389586503
+ },
+ "seam": [
+  {
+   "cut_x": 0.4837301587301588,
+   "magnitude_at_cut_over_neighbourhood_median": 0.9607381904840586,
+   "vorticity_at_cut_over_neighbourhood_median": 0.8482137427521433,
+   "magnitude_profile_maximum_within_0.2_of_cut_at": 0.6832885830026498,
+   "vorticity_profile_maximum_within_0.2_of_cut_at": 0.31988524527445233,
+   "difference_column_jump_at_cut": 2.039803933216631e-05,
+   "difference_column_jump_interior_median": 4.563664456646827e-05,
+   "difference_column_jump_interior_percentile_99": 0.00030707374666189973,
+   "difference_column_jump_fraction_larger_than_at_cut": 0.8523836875358989,
+   "dual_second_difference_near_cut_maximum": 9.692775666508581e-07,
+   "dual_second_difference_interior_median": 2.0732581832035663e-06,
+   "dual_second_difference_interior_percentile_99": 5.715835546335711e-05
+  }
+ ],
+ "context": {}
+}

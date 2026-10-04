@@ -1,0 +1,10 @@
+# KCG correction matrix M = sum_{j != i} V_j (r_j - r_i) (x) grad W_ij on the last snapshot of each run (random
+# subset of up to 60000 fluid particles; interior = at least one support radius from the wall / lid rows)
+# and the factor F = M (M + xi I)^-1 that the regularised correction leaves on every corrected operator (diagonal mean).
+run,resolution,snapshot,region,particles,xi,volume_over_dx2,M_diagonal_mean,M_diagonal_p01,M_diagonal_p99,M_offdiagonal_mean_abs,kernel_sum_mean,factor_mean,factor_p01,factor_p99
+n250_k2_float32,250,t0003333000.npz,interior,55726,0.1,1.12931,1.12906,1.12754,1.13087,3.37e-04,0.99998,0.91864,0.91854,0.91876
+n250_k2_float32,250,t0003333000.npz,near_wall,4274,0.1,1.12931,1.12909,1.12705,1.13232,5.18e-04,1.00000,0.91864,0.91850,0.91885
+n500_k2_float32,500,t0006633000.npz,interior,57826,0.1,1.12931,1.12906,1.12741,1.13338,2.66e-04,0.99997,0.91864,0.91853,0.91892
+n500_k2_float32,500,t0006633000.npz,near_wall,2174,0.1,1.12931,1.12927,1.12687,1.13750,4.02e-04,1.00016,0.91865,0.91849,0.91919
+n1000_k2_float32,1000,t0013300000.npz,interior,58823,0.1,1.12931,1.12908,1.12635,1.13759,2.08e-04,0.99998,0.91864,0.91846,0.91920
+n1000_k2_float32,1000,t0013300000.npz,near_wall,1177,0.1,1.12931,1.12944,1.12580,1.14694,3.22e-04,1.00035,0.91866,0.91842,0.91980

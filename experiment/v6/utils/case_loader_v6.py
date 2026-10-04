@@ -356,7 +356,9 @@ def load_case_v6(case_yaml_path: str | pathlib.Path) -> CaseV6:
         regularization_xi=float(reg["xi"]),
         regularization_determinant_threshold=float(reg["det_threshold"]),
         regularization_max_frobenius_norm=float(reg["frobenius_max"]),
-        eps_h_squared=0.01 * h * h,                # V0/V1 default (Antuono δ-SPH)
+        # ε² in the r² + ε² denominators (viscosity, δ-diffusion): epsilon_squared_factor · h², h = support
+        # radius. Optional; 0.01 is the V0/V1 default (Antuono δ-SPH).
+        eps_h_squared=float(nm.get("epsilon_squared_factor", 0.01)) * h * h,
         pst_main_shift_coefficient=float(nm.get("pst_main", 0.1)),
         pst_anti_shift_coefficient=float(nm.get("pst_anti", 0.005)),
         use_kcg_correction=bool(nm.get("use_kcg_correction", True)),

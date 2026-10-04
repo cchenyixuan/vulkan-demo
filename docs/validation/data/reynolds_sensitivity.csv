@@ -1,0 +1,11 @@
+# Rough size of the change of the extrema for Re 1000 -> 1000 / F (F = nu_eff / nu of the released viscous
+# operator, mean of the three resolutions in effective_viscosity.csv), from Ghia 1982's tabulated points at
+# Re 400 / 1000 / 3200 (ghia1982_extrema.csv); derivative against ln Re bracketed by the 1000-3200 secant and
+# the slope at 1000 of the parabola through the three. Observed: K = 2 float32 1000^2 (release) minus Marchi 2021 Tc.
+quantity,kind,ghia_re400,ghia_re1000,ghia_re3200,d_dlnRe_secant_1000_3200,d_dlnRe_parabola_at_1000,nu_eff_over_nu,predicted_change_low,predicted_change_high,predicted_change_relative,observed_1000_minus_Tc
+y(u_min),position,0.28130,0.17190,0.10160,-0.06044,-0.09342,0.8535,-0.00957,-0.01480,,-0.01120
+u_min,value,-0.32726,-0.38289,-0.41933,-0.03133,-0.04776,0.8535,-0.00496,-0.00757,+1.3 … +1.9 %,+0.00998
+x(v_max),position,0.22660,0.15630,0.09380,-0.05373,-0.06659,0.8535,-0.00851,-0.01055,,-0.00760
+v_max,value,0.30203,0.37095,0.42768,+0.04877,+0.06356,0.8535,+0.00773,+0.01007,+2.0 … +2.7 %,-0.00904
+x(v_min),position,0.85940,0.90630,0.94530,+0.03353,+0.04341,0.8535,+0.00531,+0.00688,,+0.00530
+v_min,value,-0.44993,-0.51550,-0.54053,-0.02152,-0.04951,0.8535,-0.00341,-0.00784,+0.6 … +1.5 %,+0.01524

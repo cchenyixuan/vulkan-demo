@@ -1,0 +1,16 @@
+# Ghia, Ghia & Shin (1982), J. Comput. Phys. 48, 387-411, Table I (u at x = 0.5) and Table II (v at y = 0.5), 129 x 129 grid:
+# for each extremum the tabulated point with the largest |value| (17 tabulated points per line including the walls).
+# Values from the repository transcription docs/cavity_validation/reference/ghia1982.json (gist ivan-pi, checked against
+# the paper; its two corrected typos are Re 3200 u(0.4531) and Re 1000 v(0.9063) -- the latter is the Re 1000 v_min point
+# below, used with the corrected value -0.51550). Positions are quantised to the tabulated points. Used only for the
+# rough Reynolds-number sensitivity in the discussion of cavity_re1000.md (reynolds_sensitivity.py), never as a reference.
+reynolds,extremum,line,tabulated_position,tabulated_value
+400,u_min,u_at_x_0.5,0.2813,-0.32726
+400,v_max,v_at_y_0.5,0.2266,0.30203
+400,v_min,v_at_y_0.5,0.8594,-0.44993
+1000,u_min,u_at_x_0.5,0.1719,-0.38289
+1000,v_max,v_at_y_0.5,0.1563,0.37095
+1000,v_min,v_at_y_0.5,0.9063,-0.51550
+3200,u_min,u_at_x_0.5,0.1016,-0.41933
+3200,v_max,v_at_y_0.5,0.0938,0.42768
+3200,v_min,v_at_y_0.5,0.9453,-0.54053

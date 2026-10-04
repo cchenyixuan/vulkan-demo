@@ -1,0 +1,79 @@
+{
+ "minuend": {
+  "job": "n500_k2_float32_xi0p001_eps0p0025",
+  "snapshot": "final",
+  "time": 99.45,
+  "step": 6630000,
+  "k": 2,
+  "re": 1000,
+  "converged": true,
+  "slab_cuts": [
+   {
+    "column": 52,
+    "x": -0.008167330677290807,
+    "ownership_mismatches": null,
+    "owned_left_maximum_x": null,
+    "owned_right_minimum_x": null
+   }
+  ],
+  "setting": "\u03be = 0.001, \u03b5\u00b2 = 0.0025 h\u00b2"
+ },
+ "subtrahend": {
+  "job": "n500_k2_float32",
+  "snapshot": "final",
+  "time": 99.45,
+  "step": 6630000,
+  "k": 2,
+  "re": 1000,
+  "converged": true,
+  "setting": "\u03be = 0.1, \u03b5\u00b2 = 0.01 h\u00b2 (release)"
+ },
+ "grid_cells": 2048,
+ "statistics_all_fluid": {
+  "cells": 3848876,
+  "max_abs_delta_u": 0.03227194267208533,
+  "rms_delta_u": 0.007502765404163854,
+  "max_abs_delta_v": 0.025214491350855905,
+  "rms_delta_v": 0.006592440313488338,
+  "max_delta_magnitude": 0.03229603233309892,
+  "max_delta_magnitude_at": [
+   0.1477201532533548,
+   0.9820002235269982
+  ],
+  "rms_delta_magnitude": 0.009987580187253778,
+  "max_abs_delta_vorticity": 8.297674217033393,
+  "rms_delta_vorticity": 0.3077744059109446
+ },
+ "statistics_interior": {
+  "cells": 3564544,
+  "max_abs_delta_u": 0.0315398409183979,
+  "rms_delta_u": 0.007521023431012231,
+  "max_abs_delta_v": 0.025214491350855905,
+  "rms_delta_v": 0.006743005909873319,
+  "max_delta_magnitude": 0.03156987746746091,
+  "max_delta_magnitude_at": [
+   0.1467027385335089,
+   0.9799653940873065
+  ],
+  "rms_delta_magnitude": 0.010101184195450625,
+  "max_abs_delta_vorticity": 2.598769814203889,
+  "rms_delta_vorticity": 0.25031381672030323
+ },
+ "seam": [
+  {
+   "cut_x": 0.4918326693227092,
+   "magnitude_at_cut_over_neighbourhood_median": 0.9680910785695983,
+   "vorticity_at_cut_over_neighbourhood_median": 0.8867555175907315,
+   "magnitude_profile_maximum_within_0.2_of_cut_at": 0.6915283210109919,
+   "vorticity_profile_maximum_within_0.2_of_cut_at": 0.6915283210109919,
+   "difference_column_jump_at_cut": 1.4748785149244994e-05,
+   "difference_column_jump_interior_median": 4.8336217012070924e-05,
+   "difference_column_jump_interior_percentile_99": 0.0003207174000993195,
+   "difference_column_jump_fraction_larger_than_at_cut": 0.9750927397986221,
+   "dual_second_difference_near_cut_maximum": 1.0331597864223371e-06,
+   "dual_second_difference_interior_median": 2.390970535020866e-06,
+   "dual_second_difference_interior_percentile_99": 0.00011648696488192907
+  }
+ ],
+ "context": {}
+}
