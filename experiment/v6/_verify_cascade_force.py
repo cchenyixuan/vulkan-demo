@@ -52,7 +52,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--device-map", default="0,1")
     p.add_argument("--slabs", type=int, default=2, help="K (sims cycle over --device-map)")
     p.add_argument("--a-env", default="",
-                   help="comma-separated KEY=VAL for the reference runs (A), e.g. '' = legacy")
+                   help="comma-separated KEY=VAL for the reference runs (A), e.g. '' = legacy; an item "
+                        "without '=' continues the previous value (V6_BAND_WIDTHS=2,2,3)")
     p.add_argument("--b-env", default="V6_CASCADE_FORCE=1",
                    help="comma-separated KEY=VAL for the candidate runs (B)")
     p.add_argument("--b-case", default=None,
@@ -220,7 +221,19 @@ def main() -> int:
     out_dir = pathlib.Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     def parse_env(text: str) -> dict:
-        return dict(item.split("=", 1) for item in text.split(",") if item.strip())
+        """Comma-separated KEY=VAL; an item without '=' continues the previous value
+        (V6_BAND_WIDTHS=2,2,3)."""
+        environment, key = {}, None
+        for item in text.split(","):
+            if "=" in item:
+                key, _, value = item.partition("=")
+                key = key.strip()
+                environment[key] = value.strip()
+            elif item.strip():
+                if key is None:
+                    raise ValueError(f"environment item {item!r} is not KEY=VALUE")
+                environment[key] += "," + item.strip()
+        return environment
 
     # "legacy_*" = reference configuration A, "cascade_*" = candidate configuration B
     # (names kept for the report; the actual switches come from --a-env / --b-env).
