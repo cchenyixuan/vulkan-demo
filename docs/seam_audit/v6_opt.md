@@ -680,7 +680,7 @@ RELEASE='release=@l2;V6_LEAN_TRANSPORT=1;V6_GHOST_POOL_FACTOR=d2:0.29|d3:0.5;V6_
 
 ## band 2/2/3:density 与 force 的 band 各窄一列(E26,2026-10-05)
 
-**依据。** phase B 时 own column 0、1 缺输入(本帧的 migrant 落在 column 0,ghost 在 phase C 才上传),column 2 起 correction 的 L 是最终值。density 只读自己的 L,以及邻居的 r、v、m、ρⁿ、material,这些从 column 2 起在 phase B 都已是最终值;density.comp 读邻居 L、∇ρ 的代码只喂给被注释掉的 ψ 第二项,编译后已被删掉。force 读邻居的 ρⁿ⁺¹,density band 为 2 时 phase B 从 column 2 起就有。所以 correction / density / force 的 band 可以是 2 / 2 / 3;原来 density 多出的一列是给 ψ 第二项(读邻居的 L、∇ρ)留的,force 的一列跟着它。
+**依据。** phase B 时 own column 0、1 缺输入(本帧的 migrant 落在 column 0;ghost 的上传与 phase B 并行,phase C 才可用),column 2 起 correction 的 L 是最终值。density 只读自己的 L,以及邻居的 r、v、m、ρⁿ、material,这些从 column 2 起在 phase B 都已是最终值;density.comp 读邻居 L、∇ρ 的代码只喂给被注释掉的 ψ 第二项,编译后已被删掉。force 读邻居的 ρⁿ⁺¹,density band 为 2 时 phase B 从 column 2 起就有。所以 correction / density / force 的 band 可以是 2 / 2 / 3;原来 density 多出的一列是给 ψ 第二项(读邻居的 L、∇ρ)留的,force 的一列跟着它。
 
 **改动。**
 
@@ -708,14 +708,17 @@ RELEASE='release=@l2;V6_LEAN_TRANSPORT=1;V6_GHOST_POOL_FACTOR=d2:0.29|d3:0.5;V6_
 | 3-D 1M | k = 5,近 migrant(n = 416),kernel_sum | E23 最终(2/3/4) | 3.278e-07 | 2.384e-07 / 2.682e-07 | 1.22 |
 | 3-D 1M | 同上 | E26(2/2/3) | 3.278e-07 | 2.384e-07 / 2.384e-07 | 1.38 |
 
-**band 不变量**(`_verify_cascade_force.py`,A = 发布组合两次,B = 发布组合 + 2,2,3 两次):每次运行、每个 sim、该次运行用到的每个 band 宽度,band voxel 表里的粒子数都等于按坐标数出的 band 粒子数。K = 4 的中间两块 slab 两侧都有 band。同一工具顺带给出逐列加速度 A/B(每列 max |Δa|,A−B 对 A−A / B−B 中较大的底;< 3 为通过)。单卡那一行用的是诊断开关 `V6_FAKE_BAND_TEST=8`,在单卡区域内部放一个假 band(第 8 列起;单卡分拆路径的 `dispatch_boundary` 也跟开关走),对普通单卡路径比较;没有 seam,不变量不适用。
+**band 不变量**(`_verify_cascade_force.py`,A = 发布组合两次,B = 发布组合 + 2,2,3 两次):每次运行、每个 sim、该次运行用到的每个 band 宽度,band voxel 表里的粒子数都等于按坐标数出的 band 粒子数。K = 4 的中间两块 slab 两侧都有 band。同一工具顺带给出逐列加速度 A/B(每列 max |Δa|,A−B 对 A−A / B−B 中较大的底;两对 A−B 都列出,< 3 为通过;工具自己的判定只用第一对)。所有运行的每一对都全部匹配(未匹配 0)。
 
-| 算例 | K | 步数 | band 宽度(A / B) | band 不变量 | 逐列 A/B 最差比值(列) | band 所在列的最大比值 | 结论 |
+单卡假 band(诊断开关 `V6_FAKE_BAND_TEST=8`,全局列 8 起,对普通路径比较;没有 seam,不变量不适用;verifier 的逐列表把左右两侧合在一起,所以这两行按全局列从 dump 重算):有效的是 `V6_CASCADE_FORCE=0`(verifier 的默认)的那次,K = 1 走 phase A/B/C,phase C 的 correction / density band(宽 2,全局列 8–9)换成 band kernel,force 走 force_all。开 cascade 时假 band 不是有效的等价检验:它只有一侧,左边的 interior 粒子(全局列 7)在 phase B 的 force 里读第 8–9 列的 ρⁿ⁺¹、Pⁿ⁺¹,而这两列要到 phase C 才写(2/3/4 一样;真 seam 那一侧只有 ghost,不受影响);那次运行 band 左侧的全局列 4 / 5 两对取大为 2.03 / 2.19(cascade 关时 1.27 / 1.00),与此一致,不作为证据。单卡合并命令里的 `dispatch_boundary`(三个 band 都派发)只在一次单独的 bench 运行里跑过:线程数 26,368 / 26,368 / 39,552(2、2、3 列 × 206 × 64 lanes),300 步粒子数守恒,没有做 A/B。
+
+| 算例 | K | 步数 | band 宽度(A / B) | band 不变量 | 逐列最差比值(A1−B1 / A2−B2,列) | band 列最大比值(A1−B1 / A2−B2) | 结论 |
 |---|---|---|---|---|---|---|---|
-| 2-D 1M | 2 | 300 | 2/3/4 / 2/2/3 | 成立 | 1.41(8) | 0.83(列 0–3) | 通过 |
-| 2-D 1M | 4 | 300 | 2/3/4 / 2/2/3 | 成立 | 1.42(0) | 1.42(列 0–3) | 通过 |
-| 3-D 1M | 2 | 200 | 2/3/4 / 2/2/3 | 成立 | 1.10(4) | 1.06(列 0–3) | 通过 |
-| 2-D 1M 单卡假 band | 1 | 300 | — / 2/2/3 + 假 band | 不适用 | 1.13(15) | 0.98(列 8–10) | 通过 |
+| 2-D 1M | 2 | 300 | 2/3/4 / 2/2/3 | 成立 | 1.41(列 8)/ 1.24(列 8) | 0.83 / 0.97(列 0–3) | 通过 |
+| 2-D 1M | 4 | 300 | 2/3/4 / 2/2/3 | 成立 | 1.42(列 0)/ 1.19(列 13) | 1.42 / 1.18(列 0–3) | 通过 |
+| 3-D 1M | 2 | 200 | 2/3/4 / 2/2/3 | 成立 | 1.10(列 4)/ 1.38(列 2) | 1.06 / 1.38(列 0–3) | 通过 |
+| 2-D 1M 单卡假 band,cascade 关 | 1 | 300 | — / 2/2/3 + 假 band | 不适用 | 1.64(全局列 51)/ 1.66(全局列 40) | 0.73 / 0.98(全局列 8–9) | 通过 |
+| 2-D 1M 单卡假 band,cascade 开 | 1 | 300 | — / 2/2/3 + 假 band | 不适用 | 2.16(全局列 5)/ 2.19(全局列 5) | 1.13 / 1.13(全局列 8–9) | 不作为证据 |
 
 ### 性能
 
@@ -760,6 +763,8 @@ REL3D="$COMMON,V6_GHOST_POOL_FACTOR=0.5,V6_MIGRANT_POOL_FACTOR=0.02,V6_DEPARTED_
     --slabs 1 --device-map 0 --a-env "V6_BAND_VOXEL_DISPATCH=1,V6_BAND_SLOT_LANES=64" \
     --b-env "V6_BAND_VOXEL_DISPATCH=1,V6_BAND_SLOT_LANES=64,V6_FAKE_BAND_TEST=8,V6_BAND_WIDTHS=2,2,3" \
     --out logs/seam_audit/opt/e26_invariant/fakeband_2d_1m_k1
+#   (verifier 默认 V6_CASCADE_FORCE=0;假 band 只在 cascade 关时是有效的等价检验。cascade 开的对照:两边都加
+#    V6_CASCADE_FORCE=1 → fakeband_2d_1m_k1_cascade。K = 1 的两行由 opt_tables 按全局列从 dump 重算)
 # 单步 + K = 4 冒烟;重复 A/B(测试组 = 发布组合 + 2,2,3)
 REL="--env V6_LEAN_TRANSPORT=1 --env V6_GHOST_POOL_FACTOR=0.29 --env V6_MIGRANT_POOL_FACTOR=0.05 \
      --env V6_DEPARTED_FACE_FRACTION=0.8 --env V6_COMPACT_GHOST_LISTS=1 --env V6_PACKED_REPLICAS=1 \
@@ -775,7 +780,7 @@ RELEASE='release=@l2;V6_LEAN_TRANSPORT=1;V6_GHOST_POOL_FACTOR=d2:0.29|d3:0.5;V6_
 .venv/Scripts/python.exe -m experiment.seam_audit.opt_tables --out logs/seam_audit/opt/tables.md
 ```
 
-数据在 `logs/seam_audit/opt/`(不入库):`e26_invariant/{cavity2d_1m_k2,cavity2d_1m_k4,cavity3d_1m_k2,fakeband_2d_1m_k1}`、`validate_e26_band223`、`ab_e26_band223`、`perf_band223`、`e26_logs`。
+数据在 `logs/seam_audit/opt/`(不入库):`e26_invariant/{cavity2d_1m_k2,cavity2d_1m_k4,cavity3d_1m_k2,fakeband_2d_1m_k1,fakeband_2d_1m_k1_cascade,fakeband_step1_cascade0,fakeband_step1_cascade1}`、`e26_smoke/verify_2d_k2.log`、`validate_e26_band223`、`ab_e26_band223`、`perf_band223`、`e26_logs`。
 
 ## 未采用的项与原因
 
@@ -839,5 +844,5 @@ REL="--env V6_LEAN_TRANSPORT=1 --env V6_GHOST_POOL_FACTOR=0.29 --env V6_MIGRANT_
 | 2b297d1 | `poison_g1.py`;opt_campaign 的 `OPT_BUILD_ROOT`、p95、install 之和、公式采样;opt_tables 的 E23 表;段表与着色器检查 |
 | 7b0dbd3 | E23 文档:本文"G1 去 P"与 `v6_design.md`(opt_campaign 与 partition_v6 的 docstring 在 2b297d1 / c47dbd9) |
 | 751c6c6 / 55ae508 | E26:`V6_BAND_WIDTHS`(spec 82、phase C 与 bootstrap 的 band 派发、单卡分拆路径;压缩派发只接受 2/3/4);density.comp 删掉读邻居 L、∇ρ 的死代码 |
-| 6c2d14a / 21ce20d / d58b95d | band 不变量与 force band 边跟开关走、`--a-env` / `--b-env` 的逗号值、开关检查;opt_tables 的 E26 表 |
+| 6c2d14a / 21ce20d / d58b95d / 3f19b43 | band 不变量与 force band 边跟开关走、`--a-env` / `--b-env` 的逗号值、开关检查;opt_tables 的 E26 表(逐列 A/B 两对都列、单卡假 band 按全局列重算) |
 | (本文,E26) | 本文"band 2/2/3"与推荐组合;`v6_design.md` 的阶段表与开关表 |
