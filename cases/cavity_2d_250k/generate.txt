@@ -1,0 +1,3 @@
+# 2-D lid-driven cavity, 251,001 fluid + 17,017 wall + 5,511 lid = 273,529 particles, h/dx = 5, border 11 (E29 scan).
+# The particle files (.obj) are git-ignored; rebuild them without touching case.yaml:
+.venv/Scripts/python.exe utils/geometry/_demo_cavity_case.py --half 250 --out cases/cavity_2d_250k --objs-only --no-preview

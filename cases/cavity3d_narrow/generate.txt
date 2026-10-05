@@ -1,0 +1,4 @@
+# 3-D lid-driven cavity, narrow in x: fluid 91 x 201 x 201 = 3,676,491, wall shell 4 layers 574,764, lid 73,164
+# = 4,324,419 particles, h/dx = 4, grid 26 x 53 x 53 voxels (E23 / E26 / E29 / E31).
+# The 3-D generator has no --objs-only: this rewrites case.yaml too (same content) together with the .obj files:
+.venv/Scripts/python.exe utils/geometry/_demo_cavity_case_3d.py --half 100 --half-x 45 --border 4 --out cases/cavity3d_narrow --no-preview

@@ -1,0 +1,6 @@
+# 2-D lid-driven cavity, 10,201 fluid + 3,817 wall + 1,111 lid = 15,129 particles, h/dx = 5, border 11 (E31).
+# case.yaml was written by the committed generator (last changed in f2b6d67):
+#   .venv/Scripts/python.exe utils/geometry/_demo_cavity_case.py --half 50 --out cases/cavity_2d_10k --no-preview
+# The particle files (.obj) are git-ignored; rebuild them without touching case.yaml:
+.venv/Scripts/python.exe utils/geometry/_demo_cavity_case.py --half 50 --out cases/cavity_2d_10k --objs-only --no-preview
+# The E29 scan ran logs/two_hop_experiment/cases/cavity_2d_10k: identical particle files, xi 0.1 (here 0.001).
