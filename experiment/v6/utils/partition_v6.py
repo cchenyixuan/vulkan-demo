@@ -167,6 +167,32 @@ def configured_delta_density() -> bool:
     return os.environ.get("V6_DELTA_DENSITY", "0") == "1"
 
 
+DEFAULT_BAND_WIDTHS = (2, 3, 4)
+
+
+def configured_band_widths() -> tuple[int, int, int]:
+    """V6_BAND_WIDTHS="c,d,f" (default "2,3,4"): boundary band widths in own voxel
+    columns of correction / density / force = NEIGHBOR_X_RANGE (spec 82) of each
+    kernel's split pipelines. Phase B runs the interior variants (every column from
+    the band on), phase C the bands. In phase B own columns 0 and 1 lack inputs
+    (this frame's migrants land in column 0 and the ghosts arrive in phase C), so a
+    column's correction is final from column 2 on: c >= 2. Density reads its own L
+    and the neighbours' r, v, m, rho_n and material only: d >= c. Force reads the
+    neighbours' rho_{n+1} / P_{n+1}: f >= d + 1. Anything else is rejected."""
+    text = os.environ.get("V6_BAND_WIDTHS", "2,3,4")
+    try:
+        widths = tuple(int(part) for part in text.split(","))
+    except ValueError:
+        widths = ()
+    if len(widths) != 3:
+        raise ValueError(f"V6_BAND_WIDTHS={text!r}: expected three integers 'correction,density,force'")
+    correction, density, force = widths
+    if correction < 2 or density < correction or force < density + 1:
+        raise ValueError(f"V6_BAND_WIDTHS={text!r}: needs correction >= 2, density >= correction and "
+                         "force >= density + 1")
+    return widths
+
+
 def transported_particle_fields() -> tuple[str, ...]:
     """SoA fields of a migrant packet (and of every slot of the V5 mixed pool).
     V5 / lean off: the nine defrag fields. Lean: the four fields the receiver
@@ -700,7 +726,7 @@ import sys as _sys
 from dataclasses import dataclass, field
 
 
-MINIMUM_OWN_COLUMNS_HARD = 12   # < 8 -> force deep-interior empty; 12 = margin
+MINIMUM_OWN_COLUMNS_HARD = 12   # < 2 x force band (8 at the default V6_BAND_WIDTHS) -> force deep-interior empty; 12 = margin
 MINIMUM_OWN_COLUMNS_WARN = 20   # below this Phase B's hiding budget is thin
 
 

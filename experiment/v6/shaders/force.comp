@@ -94,8 +94,8 @@ void process_particle(uint self_particle_id) {
     // transfer DMA. To stay correct it must skip any particle whose neighbor
     // reach touches an OWN voxel column that density_boundary owns (those
     // columns' density / pressure are still pre-install_migrations). The
-    // boundary band for force must therefore be ≥ density's band (3) + 1 = 4
-    // voxels (simulator overrides NEIGHBOR_X_RANGE to 4 at pipeline build).
+    // boundary band for force must therefore be ≥ density's band + 1 voxels
+    // (simulator: NEIGHBOR_X_RANGE from V6_BAND_WIDTHS, default 4 = 3 + 1).
     // Default FORCE_MODE = ALL preserves V1 single-pipeline behavior.
     ivec3 self_voxel_coord = own_coord_of(self_voxel_id);
     bool self_in_boundary_band = in_boundary_band(self_voxel_coord);

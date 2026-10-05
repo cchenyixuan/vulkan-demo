@@ -54,6 +54,8 @@ from experiment.v6.utils.partition_v6 import (
     configured_packed_replicas,
     configured_ghost_self_kernels,
     configured_diagnostic_poison_inner_replica,
+    configured_band_widths,
+    DEFAULT_BAND_WIDTHS,
 )
 from experiment.v6.utils.sync_scheme_v6 import make_sync_scheme
 from experiment.v6.utils.vulkan_context_v6 import VulkanContextV6
@@ -87,8 +89,8 @@ from experiment.v6.utils.vulkan_context_v6 import VulkanContextV6
 # vkWaitSemaphores is deliberately never locked (it blocks for seconds).
 _SUBMIT_LOCK_SCOPE = os.environ.get("V6_SUBMIT_LOCK_SCOPE", "device")
 # V3.3 cascading force (2026-09-15, N56 K=8 hiding-window work): move
-# force_deep_interior (boundary band = 4 voxel columns, density source =
-# scratch) into Phase B so the transfer chain hides behind correction +
+# force_deep_interior (boundary band = 4 voxel columns by default, V6_BAND_WIDTHS;
+# density source = scratch) into Phase B so the transfer chain hides behind correction +
 # density + force instead of correction + density only; Phase C then runs
 # force_boundary instead of force_all. Off by default until validated.
 _CASCADE_FORCE = os.environ.get("V6_CASCADE_FORCE", "1") == "1"   # default ON since the 2026-09-17 freeze (every N56 curve job ran with it; verifier + seam evidence in docs/n56_scaling)
@@ -377,6 +379,9 @@ class SphSimulatorV6:
         if configured_packed_replicas() and self.ghost_layers() >= 2 and "density" not in _DIAG_GHOST_SELF_KERNELS:
             raise ValueError("V6_PACKED_REPLICAS=1 ships no G1 pressure, but this process imported simulator_v6 with "
                              f"V6_DIAG_GHOST_SELF={','.join(_DIAG_GHOST_SELF_KERNELS)!r} (no 'density')")
+        # V6_BAND_WIDTHS: boundary band widths (own voxel columns) of correction / density / force, read once
+        # here; every spec 82 and band dispatch of this sim uses these values.
+        self.band_widths = self._configured_band_widths()
 
         # Buffer allocation
         self._buffer_specs = self._build_buffer_specs()
@@ -1312,8 +1317,9 @@ class SphSimulatorV6:
             (99, 'I', configured_diagnostic_poison_inner_replica()),   # V6_DIAG_POISON_G1
             (97, 'B', int(configured_init_seam_clamp())),
             # NEIGHBOR_X_RANGE (id=82) is NOT global anymore — Path A+ needs
-            # different widths per kernel (correction=2, density=3, force=4
-            # for the cascading interior/boundary split). Each split-kernel
+            # different widths per kernel (correction / density / force =
+            # self.band_widths, V6_BAND_WIDTHS, default 2/3/4, for the
+            # cascading interior/boundary split). Each split-kernel
             # pipeline appends its own (82, 'I', width) via the helpers
             # below. Non-split kernels (predict / update_voxel / ghost_send /
             # install_migrations / defrag) don't use in_boundary_band at all,
@@ -1325,11 +1331,12 @@ class SphSimulatorV6:
     def _correction_mode_entries(self, mode: int,
                                  band_dispatch: int = 0) -> list[tuple[int, str, Any]]:
         """CORRECTION_MODE (id=47) + NEIGHBOR_X_RANGE (id=82) + BAND_VOXEL_
-        DISPATCH (id=57). Boundary band = 2 voxels (column 0 reaches ghost;
-        column 1 reaches column 0 where migrants land after install_migration).
+        DISPATCH (id=57). Boundary band = band_widths[0] voxels (>= 2: column 0
+        reaches ghost; column 1 reaches column 0 where migrants land after
+        install_migration).
         V6: the band-dispatch boundary variant also walks the inner ghost
         column as self when V6_GHOST_LAYERS = 2 (GHOST_SELF_LAYER, id=85)."""
-        return [(47, 'I', mode), (82, 'I', 2), (57, 'I', band_dispatch),
+        return [(47, 'I', mode), (82, 'I', self.band_widths[0]), (57, 'I', band_dispatch),
                 (58, 'I', _BAND_SLOT_LANES if band_dispatch == 1 else 0),
                 (59, 'I', self._fake_band_column()),
                 (85, 'I', self._ghost_self_layer(mode, band_dispatch, "correction"))]
@@ -1337,10 +1344,13 @@ class SphSimulatorV6:
     def _density_mode_entries(self, mode: int,
                               band_dispatch: int = 0) -> list[tuple[int, str, Any]]:
         """DENSITY_MODE (id=48) + NEIGHBOR_X_RANGE (id=82) + BAND_VOXEL_DISPATCH
-        (id=57). Boundary band = 3 voxels (= correction's 2 + 1 for neighbor
-        reach into stale-correction). Used by Path A+ density split.
+        (id=57). Boundary band = band_widths[1] voxels (>= correction's band:
+        density reads its own L and the neighbours' r, v, m, rho_n, material,
+        never a neighbour's correction output; the historical default 3 added
+        a column for the neighbour reach into stale correction that only the
+        commented-out psi term needed). Used by Path A+ density split.
         V6: GHOST_SELF_LAYER (id=85) as in _correction_mode_entries."""
-        return [(48, 'I', mode), (82, 'I', 3), (57, 'I', band_dispatch),
+        return [(48, 'I', mode), (82, 'I', self.band_widths[1]), (57, 'I', band_dispatch),
                 (58, 'I', _BAND_SLOT_LANES if band_dispatch == 1 else 0),
                 (59, 'I', self._fake_band_column()),
                 (85, 'I', self._ghost_self_layer(mode, band_dispatch, "density"))]
@@ -1384,13 +1394,24 @@ class SphSimulatorV6:
                             density_source: int = 0,
                             band_dispatch: int = 0) -> list[tuple[int, str, Any]]:
         """FORCE_MODE (id=49) + NEIGHBOR_X_RANGE (id=82) + FORCE_DENSITY_SOURCE
-        (id=56; 0 = primary, 1 = scratch). Boundary band = 4 voxels (=
-        density's 3 + 1 for neighbor reach into stale-density). The Phase B
-        cascading pipeline uses density_source=1 because the scratch->primary
-        copy is only issued in Phase C."""
-        return [(49, 'I', mode), (82, 'I', 4), (56, 'I', density_source),
+        (id=56; 0 = primary, 1 = scratch). Boundary band = band_widths[2]
+        voxels (>= density's band + 1 for neighbor reach into stale-density).
+        The Phase B cascading pipeline uses density_source=1 because the
+        scratch->primary copy is only issued in Phase C."""
+        return [(49, 'I', mode), (82, 'I', self.band_widths[2]), (56, 'I', density_source),
                 (57, 'I', band_dispatch), (58, 'I', _BAND_SLOT_LANES if band_dispatch == 1 else 0),
                 (59, 'I', self._fake_band_column())]
+
+    def _configured_band_widths(self) -> tuple[int, int, int]:
+        """V6_BAND_WIDTHS (partition_v6.configured_band_widths checks c >= 2,
+        d >= c, f >= d + 1). V6_BAND_COMPACT_DISPATCH builds its band list for
+        the default 2/3/4 bands only (band_compact.comp), so other widths are
+        rejected with it."""
+        widths = configured_band_widths()
+        if _BAND_COMPACT and widths != DEFAULT_BAND_WIDTHS:
+            raise ValueError("V6_BAND_COMPACT_DISPATCH=1 builds its band list for the 2/3/4 bands only; "
+                             f"V6_BAND_WIDTHS={','.join(map(str, widths))} is not supported with it")
+        return widths
 
     def _fake_band_column(self) -> int:
         """Spec const 59 value: the diagnostic band column for a sim without
@@ -1445,10 +1466,10 @@ class SphSimulatorV6:
         Naming convention: `<kernel>_all` for the V1-equivalent single-
         pipeline variant (used by bootstrap + single-GPU step + dual Phase
         C while Path A+ wiring is pending); `<kernel>_interior` and
-        `<kernel>_boundary` for correction's 2-voxel split; density and
-        force use `_deep_interior` to mark the larger boundary band
-        (3 and 4 voxels respectively, accounting for cascading neighbor
-        reach into stale-output regions).
+        `<kernel>_boundary` for correction's split; density and
+        force use `_deep_interior` (historically the larger boundary band).
+        Band widths = self.band_widths (V6_BAND_WIDTHS, default 2/3/4 voxels
+        for correction / density / force).
 
         ghost_send + install_migrations are always built for BOTH directions
         even if this GPU has no peer on that side; phase A/C cmd recording
@@ -1485,21 +1506,21 @@ class SphSimulatorV6:
                 entries=self._global_entries() + self._ghost_direction_entries(direction),
             )
 
-        # correction × 3 modes (V5 #1 — boundary band = 2 voxels)
+        # correction × 3 modes (V5 #1 — boundary band = band_widths[0] voxels)
         for mode, mode_name in ((0, "all"), (1, "interior"), (2, "boundary")):
             pipelines[f"correction_{mode_name}"] = self._create_pipeline(
                 shader=self.shader_modules["correction"],
                 entries=self._global_entries() + self._correction_mode_entries(mode),
             )
 
-        # density × 3 modes (Path A+ — boundary band = 3 voxels)
+        # density × 3 modes (Path A+ — boundary band = band_widths[1] voxels)
         for mode, mode_name in ((0, "all"), (1, "deep_interior"), (2, "boundary")):
             pipelines[f"density_{mode_name}"] = self._create_pipeline(
                 shader=self.shader_modules["density"],
                 entries=self._global_entries() + self._density_mode_entries(mode),
             )
 
-        # force × 3 modes (Path A+ — boundary band = 4 voxels)
+        # force × 3 modes (Path A+ — boundary band = band_widths[2] voxels)
         for mode, mode_name in ((0, "all"), (1, "deep_interior"), (2, "boundary")):
             pipelines[f"force_{mode_name}"] = self._create_pipeline(
                 shader=self.shader_modules["force"],
@@ -1550,10 +1571,13 @@ class SphSimulatorV6:
         cascade_note = (" (V6_CASCADE_FORCE=1: force_deep_interior in Phase B)"
                         if _CASCADE_FORCE else "")
         ghost_self = 1 if self.ghost_layers() >= 2 else 0
+        correction_band, density_band, force_band = self.band_widths
         if _BAND_VOXEL_DISPATCH:
-            cascade_note += (f" (V6_BAND_VOXEL_DISPATCH=1, lanes={_BAND_SLOT_LANES or 'slots'}: boundary kernels over "
-                             f"band voxels: {self._band_thread_count(2, ghost_self):,}/"
-                             f"{self._band_thread_count(3, ghost_self):,}/{self._band_thread_count(4):,} "
+            cascade_note += (f" (V6_BAND_VOXEL_DISPATCH=1, lanes={_BAND_SLOT_LANES or 'slots'}, bands "
+                             f"{correction_band}/{density_band}/{force_band}: boundary kernels over "
+                             f"band voxels: {self._band_thread_count(correction_band, ghost_self):,}/"
+                             f"{self._band_thread_count(density_band, ghost_self):,}/"
+                             f"{self._band_thread_count(force_band):,} "
                              f"threads vs {self.case.capacities.own_pool_size:,})")
         if self._transport_segments:
             cascade_note += (f" (seam: ghost_layers={self.ghost_layers()}, departed pool="
@@ -1636,7 +1660,9 @@ class SphSimulatorV6:
 
     def _band_compact_voxel_count(self) -> int:
         """Band voxels of the compacted list: 4 own columns + the inner ghost
-        column (V6_GHOST_LAYERS = 2) per side with a peer, times NY*NZ."""
+        column (V6_GHOST_LAYERS = 2) per side with a peer, times NY*NZ. The
+        list serves the default 2/3/4 bands only (other V6_BAND_WIDTHS are
+        rejected with V6_BAND_COMPACT_DISPATCH in the constructor)."""
         gh = self.case.ghost_grid
         face = self.case.grid.grid_dimension_y * self.case.grid.grid_dimension_z
         side_columns = 4 + (1 if gh.ghost_layers >= 2 else 0)
@@ -2277,7 +2303,7 @@ class SphSimulatorV6:
             # so the bootstrap force reads this step's rho/P at the seam too.
             self._bind_pipeline_and_sets(cmd, "correction_boundary_band")
             vkCmdDispatch(cmd, self._per_band_dispatch_count(
-                2, self._ghost_self_layer(2, 1, "correction")), 1, 1)
+                self.band_widths[0], self._ghost_self_layer(2, 1, "correction")), 1, 1)
             self._record_compute_barrier(cmd)
 
         self._bind_pipeline_and_sets(cmd, "density_all")
@@ -2286,7 +2312,7 @@ class SphSimulatorV6:
             self._record_compute_barrier(cmd)
             self._bind_pipeline_and_sets(cmd, "density_boundary_band")
             vkCmdDispatch(cmd, self._per_band_dispatch_count(
-                3, self._ghost_self_layer(2, 1, "density")), 1, 1)
+                self.band_widths[1], self._ghost_self_layer(2, 1, "density")), 1, 1)
         self._record_density_scratch_to_primary_copy(cmd)
 
         self._bind_pipeline_and_sets(cmd, "force_all")
@@ -2657,9 +2683,8 @@ class SphSimulatorV6:
     def _record_phase_b_cmd(self):
         """V5 Path A+ Phase B: correction_interior + density_deep_interior over
         own pid range. Both kernels skip their respective boundary bands
-        (correction: 2-voxel band; density_deep: 3-voxel band) so they only
-        touch particles whose neighbor support is entirely within "interior"
-        own particles whose data is valid for this frame.
+        (self.band_widths, default correction 2 / density_deep 3 voxels) so
+        they only touch particles whose inputs are all final for this frame.
 
         Runs in parallel with the transfer chain on the transfer queue
         (readback DMA + worker memcpy + upload DMA). Phase B's total work
@@ -2693,8 +2718,9 @@ class SphSimulatorV6:
         self._record_compute_barrier(cmd)
         self._bench_tick(cmd, "b_correction_interior_end")
 
-        # Path A+ P5: density_deep_interior in Phase B. Boundary band = 3
-        # voxels (correction's 2 + 1 for neighbor reach). Writes to scratch;
+        # Path A+ P5: density_deep_interior in Phase B. Boundary band =
+        # band_widths[1] voxels (>= correction's: density reads its own L and
+        # no neighbour correction output). Writes to scratch;
         # scratch→primary copy happens in Phase C after density_boundary.
         self._bind_pipeline_and_sets(cmd, "density_deep_interior")
         vkCmdDispatch(cmd, per_p, 1, 1)
@@ -2704,13 +2730,14 @@ class SphSimulatorV6:
         self._bench_tick(cmd, "b_density_deep_interior_end")
 
         if _CASCADE_FORCE:
-            # V3.3 cascading force: force on the deep interior (band = 4
-            # voxel columns) reads rho/P from SCRATCH (this frame's values
-            # for columns >= 3, all written by density_deep_interior above),
-            # self correction_inverse / kernel_sum from correction_interior
-            # above, and positions / velocities from Phase A. Nothing it
-            # touches is modified by Phase C's install_migrations (migrants
-            # land in column 0) or density_boundary (columns 0..2), so it is
+            # V3.3 cascading force: force on the deep interior (band =
+            # band_widths[2] voxel columns) reads rho/P from SCRATCH (this
+            # frame's values for columns >= band_widths[1], all written by
+            # density_deep_interior above), self correction_inverse /
+            # kernel_sum from correction_interior above, and positions /
+            # velocities from Phase A. Nothing it touches is modified by
+            # Phase C's install_migrations (migrants land in column 0) or
+            # density_boundary (columns below band_widths[1]), so it is
             # safe here and widens the transfer-hiding window to B + force.
             self._bind_pipeline_and_sets(cmd, "force_deep_interior_scratch")
             vkCmdDispatch(cmd, per_p, 1, 1)
@@ -2780,6 +2807,8 @@ class SphSimulatorV6:
         # V3.4: with band-voxel dispatch the three boundary pipelines launch
         # only (band voxel, slot) threads; a slab without peers has no band
         # and skips the dispatch (the full-range path early-returned anyway).
+        # Band widths: self.band_widths (V6_BAND_WIDTHS, default 2/3/4).
+        correction_band, density_band, force_band = self.band_widths
         compact = _BAND_COMPACT and self._band_compact_voxel_count() > 0
         if compact:
             # V6_BAND_COMPACT_DISPATCH: scan (1 workgroup) + scatter build the
@@ -2798,7 +2827,7 @@ class SphSimulatorV6:
             vkCmdDispatchIndirect(cmd, self.buffers["band_compact_meta"].handle, 0)
         elif _BAND_VOXEL_DISPATCH:
             per_band_correction = self._per_band_dispatch_count(
-                2, self._ghost_self_layer(2, 1, "correction"))
+                correction_band, self._ghost_self_layer(2, 1, "correction"))
             if per_band_correction > 0:
                 self._bind_pipeline_and_sets(cmd, "correction_boundary_band")
                 vkCmdDispatch(cmd, per_band_correction, 1, 1)
@@ -2808,7 +2837,7 @@ class SphSimulatorV6:
         self._record_compute_barrier(cmd)
         self._bench_tick(cmd, "c_correction_boundary_end")
 
-        # Path A+ P5: density_boundary covers only the 3-voxel boundary band;
+        # Path A+ P5: density_boundary covers only the density boundary band;
         # density_deep_interior in Phase B already wrote scratch[deep_interior
         # pids]. Together they cover the full own pid range. The scratch→primary
         # copy below transfers the union to primary in one shot, so force_all
@@ -2818,7 +2847,7 @@ class SphSimulatorV6:
             vkCmdDispatchIndirect(cmd, self.buffers["band_compact_meta"].handle, 16)
         elif _BAND_VOXEL_DISPATCH:
             per_band_density = self._per_band_dispatch_count(
-                3, self._ghost_self_layer(2, 1, "density"))
+                density_band, self._ghost_self_layer(2, 1, "density"))
             if per_band_density > 0:
                 self._bind_pipeline_and_sets(cmd, "density_boundary_band")
                 vkCmdDispatch(cmd, per_band_density, 1, 1)
@@ -2830,14 +2859,14 @@ class SphSimulatorV6:
         self._bench_tick(cmd, "c_density_end")
 
         # V3.3: with cascading force, Phase B already covered the deep
-        # interior; only the 4-column boundary band (incl. this frame's
+        # interior; only the force boundary band (incl. this frame's
         # migrants) remains, reading primary (fresh for every own column
         # after the copy above; ghost slots stale by one step as before).
         if _CASCADE_FORCE and compact:
             self._bind_pipeline_and_sets(cmd, "force_boundary_compact")
             vkCmdDispatchIndirect(cmd, self.buffers["band_compact_meta"].handle, 32)
         elif _CASCADE_FORCE and _BAND_VOXEL_DISPATCH:
-            per_band_force = self._per_band_dispatch_count(4)
+            per_band_force = self._per_band_dispatch_count(force_band)
             if per_band_force > 0:
                 self._bind_pipeline_and_sets(cmd, "force_boundary_band")
                 vkCmdDispatch(cmd, per_band_force, 1, 1)
@@ -2980,6 +3009,7 @@ class SphSimulatorV6:
         # multi-GPU run, and one tick per kernel so the band kernels' cost can
         # be read per particle.
         use_split = self.step_single_use_split or self._fake_band_column() > 0
+        correction_band, density_band, force_band = self.band_widths
 
         def dispatch_boundary(name: str, band_range: int) -> None:
             if _BAND_VOXEL_DISPATCH and self._band_thread_count(band_range) > 0:
@@ -3003,7 +3033,7 @@ class SphSimulatorV6:
             vkCmdDispatch(cmd, per_p, 1, 1)
             self._bench_tick(cmd, "correction_interior_end")
             self._record_compute_barrier(cmd)
-            dispatch_boundary("correction_boundary", 2)
+            dispatch_boundary("correction_boundary", correction_band)
         else:
             self._bind_pipeline_and_sets(cmd, "correction_all")
             vkCmdDispatch(cmd, per_p, 1, 1)
@@ -3015,7 +3045,7 @@ class SphSimulatorV6:
             vkCmdDispatch(cmd, per_p, 1, 1)
             self._bench_tick(cmd, "density_deep_interior_end")
             self._record_compute_barrier(cmd)
-            dispatch_boundary("density_boundary", 3)
+            dispatch_boundary("density_boundary", density_band)
             self._bench_tick(cmd, "density_boundary_end")
             self._record_compute_barrier(cmd)
         else:
@@ -3030,7 +3060,7 @@ class SphSimulatorV6:
             vkCmdDispatch(cmd, per_p, 1, 1)
             self._bench_tick(cmd, "force_deep_interior_end")
             self._record_compute_barrier(cmd)
-            dispatch_boundary("force_boundary", 4)
+            dispatch_boundary("force_boundary", force_band)
         else:
             self._bind_pipeline_and_sets(cmd, "force_all")
             vkCmdDispatch(cmd, per_p, 1, 1)

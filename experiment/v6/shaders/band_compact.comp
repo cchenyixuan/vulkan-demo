@@ -2,7 +2,9 @@
 // band_compact.comp — V6_BAND_COMPACT_DISPATCH (port of exp/band-compact,
 // 2026-09-17, to the v6 seam layout).
 //
-// The phase C band kernels (correction r = 2, density r = 3, force r = 4) in
+// The phase C band kernels (correction r = 2, density r = 3, force r = 4: the
+// default V6_BAND_WIDTHS, the only widths this list supports; the simulator
+// rejects others with V6_BAND_COMPACT_DISPATCH) in
 // (band voxel, slot) mode launch MAX_PARTICLES_PER_VOXEL threads per band voxel,
 // 50-75 % of which exit at the slot check and hold their CTA's warp slots until
 // it retires (Nsight trace in docs/n56_scaling/band_dispatch_experiment.md: 43-46 %

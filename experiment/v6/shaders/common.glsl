@@ -270,7 +270,9 @@ layout(constant_id = 81) const uint TRAILING_GHOST_VOXEL_COUNT = 0u;
 // column 0 where migrants land after install_migration. Default 0 means "no
 // boundary band" → in_boundary_band() returns false for every own coord →
 // CORRECTION_MODE_INTERIOR processes everything / BOUNDARY processes nothing.
-// V4 simulator overrides to 2 for both correction pipelines.
+// The simulator sets it per kernel for the split pipelines: correction /
+// density / force = V6_BAND_WIDTHS (default 2 / 3 / 4; needs c ≥ 2, d ≥ c,
+// f ≥ d + 1).
 layout(constant_id = 82) const uint NEIGHBOR_X_RANGE = 0u;
 
 // --- V6 seam switches (ids 83-86; all defaults = the V5 behaviour) ---------
