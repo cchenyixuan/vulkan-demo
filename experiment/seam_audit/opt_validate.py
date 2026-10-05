@@ -13,6 +13,13 @@ opt_validate.py - correctness gate for one v6 optimisation switch set
           the second pair (acceleration, shift, density: analyze.PRIMARY_FIELDS)
           and every crossing-window group of both pairs are <= AUDIT_LIMIT; a
           missing, NaN or infinite statistic fails the step.
+          Density (E14): the test runs AND the K=1 references run with
+          V6_DELTA_DENSITY=1 by default and the dumps keep rho in float64
+          (dump_state). With rho ~ 1000 in float32 the K1 - K1 noise
+          (~3e-6 kg/m^3) is far below the 6.1e-5 float32 spacing, so the
+          plain-density ratios were quotients of quantised values. An explicit
+          V6_DELTA_DENSITY in --env sets both sides (--reference-env can still
+          override the references); V6_DELTA_DENSITY=0 is the old audit.
   single  single-step test from the kept 2-D 1M N = 2000 snapshot: K=1
           reference + K=1 shuffled-order noise + two (1,2)+switch restarts,
           k = 1, 2, 5, 10, 50.
@@ -58,6 +65,8 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 AUDIT_LIMIT = 2.0
+# E14 (2026-10-05): the audit runs with delta density on both sides unless --env sets V6_DELTA_DENSITY
+AUDIT_DELTA_DENSITY_DEFAULT = "1"
 SINGLE_LIMIT = 2.5
 SEAM_L2 = {"V6_KEEP_DEPARTED": "1", "V6_GHOST_LAYERS": "2"}
 CASE_1M = "cases/lid_driven_cavity_2d_gen/case.yaml"
@@ -110,6 +119,10 @@ def run_audit(out_dir: pathlib.Path, switches: dict, name: str, timeout: float,
     audit_dir = out_dir / "audit"
     audit_dir.mkdir(parents=True, exist_ok=True)
     test_name = f"v6_l2_{name}"
+    # delta density on both sides (see the module docstring); the references follow the test side
+    delta_density = switches.get("V6_DELTA_DENSITY", AUDIT_DELTA_DENSITY_DEFAULT)
+    switches = dict(switches, V6_DELTA_DENSITY=delta_density)
+    reference_switches = dict({"V6_DELTA_DENSITY": delta_density}, **(reference_switches or {}))
     matrix = {
         "description": f"optimisation gate {name}: v6 (1,2) + {switches} vs fresh v6 K=1 references",
         "cases": [{"name": "cavity2d_1m", "path": CASE_1M, "dimension": 2}],

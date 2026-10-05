@@ -497,8 +497,21 @@ def install_global_id_injection(simulator_class) -> None:
 def read_own_slots(sim, buffer_names) -> tuple[dict, np.ndarray]:
     """One batched readback; returns the OWN pool range of every buffer
     (copies, so the raw bytes can be freed) and the alive mask
-    (mass > 0 and voxel id > 0.5)."""
-    raw = sim.readback_buffers_batch(list(buffer_names))
+    (mass > 0 and voxel id > 0.5).
+
+    V6_DELTA_DENSITY (stored density offset rho_ref != 0): density_pressure .x
+    is read in its stored form (rho - rho_ref) and arrays["density_exact"] =
+    float64(stored) + rho_ref is added. That rho is exact; the float32 rho of
+    the default readback is quantised at the float32 spacing of rho ~ 1000
+    (6.1e-5), the resolution the switch exists to remove. density_pressure
+    keeps the float32 rho as before."""
+    offset = 0.0
+    if hasattr(sim, "stored_density_offset"):          # v6 (v5 has no delta density)
+        offset = float(sim.stored_density_offset())
+    if offset != 0.0:
+        raw = sim.readback_buffers_batch(list(buffer_names), density="stored")
+    else:
+        raw = sim.readback_buffers_batch(list(buffer_names))
     capacities = sim.case.capacities
     pool_capacity = capacities.total_pool_capacity()
     own_first = sim.own_first_pid()
@@ -511,6 +524,9 @@ def read_own_slots(sim, buffer_names) -> tuple[dict, np.ndarray]:
         if component_count > 1:
             flat = flat.reshape(pool_capacity, component_count)
         arrays[name] = np.array(flat[own_first:own_stop])
+        if name == "density_pressure" and offset != 0.0:
+            arrays["density_exact"] = arrays[name][:, 0].astype(np.float64) + offset
+            arrays[name][:, 0] += np.float32(offset)
     del raw
     alive = ((arrays["velocity_mass"][:, 3] > 0)
              & (arrays["position_voxel_id"][:, 3] > 0.5))
@@ -552,8 +568,10 @@ def collect_state(sims, dimension: int, initial_total: int,
     foreign_count = 0
     alive_total = 0
     alive_per_slab = []
+    exact_density = False
     for slab_index, sim in enumerate(sims):
         arrays, alive = read_own_slots(sim, STATE_BUFFER_NAMES)
+        exact_density = "density_exact" in arrays
         alive_count = int(alive.sum())
         alive_total += alive_count
         alive_per_slab.append(alive_count)
@@ -571,7 +589,9 @@ def collect_state(sims, dimension: int, initial_total: int,
             "velocity": arrays["velocity_mass"][selected_slots, :dimension],
             "acceleration": arrays["acceleration"][selected_slots, :dimension],
             "shift": arrays["shift"][selected_slots, :dimension],
-            "density": density_pressure[:, 0],
+            # float64 under V6_DELTA_DENSITY (see read_own_slots), float32 otherwise
+            "density": (arrays["density_exact"][selected_slots] if exact_density
+                        else density_pressure[:, 0]),
             "pressure": density_pressure[:, 1],
             "kernel_sum": arrays["density_gradient_kernel_sum"][selected_slots, 3],
             "material": arrays["material"][selected_slots].astype(np.uint16),
@@ -589,6 +609,8 @@ def collect_state(sims, dimension: int, initial_total: int,
                                   & (state["previous_slab"] != state["slab"]))
     for name in ("position", "velocity", "acceleration", "shift",
                  "density", "pressure", "kernel_sum"):
+        if name == "density" and exact_density:
+            continue                     # keep the exact float64 rho of V6_DELTA_DENSITY
         state[name] = state[name].astype(np.float32, copy=False)
 
     crossed = state["crossed_last_step"]
@@ -606,6 +628,7 @@ def collect_state(sims, dimension: int, initial_total: int,
         "foreign_extension_values": foreign_count,
         "crossed_last_step_count": int(crossed.sum()),
         "crossings_by_direction": dict(sorted(crossings_by_direction.items())),
+        "density_exact_float64": bool(exact_density),
         "unknown_previous_owner": int((state["previous_slab"] == UNKNOWN_SLAB).sum()),
     }
     return state, bookkeeping

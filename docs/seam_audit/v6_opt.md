@@ -24,6 +24,7 @@
   - δρ:去掉压力台阶,内部压力噪声小 2.2–3.4 倍;整体与壁面附近的噪声(由壁面与 lid 主导)没有可分辨的差别;流动量不变;吞吐 −1.2 %(单卡单缓冲测量);多卡门通过;只报告,等你决定。
 - **G1 去 P(E23,2026-10-05):** `V6_PACKED_REPLICAS` 的 G1 改成与 G2 同一格式,各 32 B(每对 68 → 64 B,每个方向 16 R 个字),packet 只带接收方读的量。毒化测试直接证明 G1 的 Pⁿ 没人读(阴性对照出现 NaN);字节 DMA −5.7 … −5.8 %、主机 −5.8 … −5.9 %,主机字节公式逐帧精确成立,fps 不变;单步、A/B、K = 4 通过,审计的密度判据在新数值参数下对两个构建都不可靠(见"G1 去 P")。
 - **band 2/2/3(E26,2026-10-05):** 新开关 `V6_BAND_WIDTHS`(代码默认仍是 `2,3,4`),density 与 force 的 band 各窄一列;density.comp 删掉读邻居 L、∇ρ 的死代码(重编的 SPIR-V 只差 id 编号)。发布组合 + 2,2,3:单步 1.07、A/B 1.11 / 1.38、K = 4 drift 0,band 不变量在 2-D K = 2 / K = 4、3-D K = 2 都成立。本机 K = 2 的传输已被 phase B 藏住,fps 2-D 1M −0.39 %、2-D 16M +0.27 %、3-D 8M −0.39 %;phase C −0.8 / −10.3 / −13.8 %,phase B +0.1 / +0.3 / +3.1 %(同一列从 C 挪到 B;只有 2-D 16M 的计算总量减少)。列入推荐组合;它缩短的是传输之后的 phase C,要在传输暴露时才会变成 fps(本次没测,见"band 2/2/3")。
+- **审计门(E14,2026-10-05):** 两边都开 `V6_DELTA_DENSITY` 并让 dump 存精确的 ρ 之后,发布组合 + 2,2,3 的三次审计为 1.57 / 1.47 / 1.33,control 噪声 2.7–2.9 × 10⁻⁶ kg/m³(原来被 ρ ≈ 1000 的 float32 间隔 6.1 × 10⁻⁵ 量化掉),各组 ÷ control 0.66–1.37;审计门以后默认开 δρ(见"审计门的密度量化")。
 - **途中发现并修复:**
   - 从保存的状态重启时,seam 列边上的粒子会在 bootstrap 静默丢失(继承自 v5,`V6_INIT_SEAM_CLAMP`)。
   - 验证审计确认了打包开关缺少配置校验、溢出时的连带损坏、δρ 的读回不一致,以及门工具的几处漏洞;全部修复并重新验证。文档对数据的审计又改正了本文的一批数与说法(上面的同等比较就是其中之一)。见"验证审计"。
@@ -49,7 +50,7 @@
 
 **正确性门(`experiment/seam_audit/opt_validate.py`,每一项都跑):**
 
-1. seam 审计 K2 vs K1:2-D 1M,N = 2000,(1,2) + 该项开关,两次被测运行对两次 v6 K = 1 参照,越界捕获窗口两遍法(同 `v6.md`)。判定量 = column 0 各量(加速度、shift、速度、密度、压力、kernel_sum)的 rms 比值、第二对的比值(加速度、shift、密度)与越界窗口各组(flagged / departed / arrived / control)的比值,全部 ≤ 2.0(噪声底为 1,两次 K = 1 之间的比值通常 0.8–1.7)。验证审计之后还要求:四个运行都产生有效的 dump(所有不变量为 0,含 `far_migration_count`),分析行完整(无缺失输入、越界窗口与第二对都在),缺失、NaN 或 inf 的统计量一律算失败。
+1. seam 审计 K2 vs K1:2-D 1M,N = 2000,(1,2) + 该项开关,两次被测运行对两次 v6 K = 1 参照,越界捕获窗口两遍法(同 `v6.md`)。判定量 = column 0 各量(加速度、shift、速度、密度、压力、kernel_sum)的 rms 比值、第二对的比值(加速度、shift、密度)与越界窗口各组(flagged / departed / arrived / control)的比值,全部 ≤ 2.0(噪声底为 1,两次 K = 1 之间的比值通常 0.8–1.7)。E14 起审计默认在被测运行与 K = 1 参照两边都开 `V6_DELTA_DENSITY`,dump 里的 ρ 存 float64(见"审计门的密度量化")。验证审计之后还要求:四个运行都产生有效的 dump(所有不变量为 0,含 `far_migration_count`),分析行完整(无缺失输入、越界窗口与第二对都在),缺失、NaN 或 inf 的统计量一律算失败。
 2. 单步测试:从 2-D 1M N = 2000 的 K = 1 快照重启,k = 1, 2, 5, 10, 50 步,(1,2) + 该项开关两次,对一次 K = 1 参照重启;噪声 = 一次打乱上传顺序的 K = 1 重启;判定 = k = 1 时 column 0 / 1 的 rms 比与中位比、CPU 重建残差/噪声,全部 ≤ 2.5。从这个快照出发第一次越界在 k = 5,所以这一步不经过迁移路径;迁移路径由第 5 项的 A/B 检验覆盖。审计之后 (1,2) 的重启用生产传输(count-aware worker、split transfer queues),此前的逐项门用的是整块拷贝。
 3. K = 4 冒烟:2-D 1M,weights 1,1,1,1,两卡各 2 个 sim,1000 步。只有停顿(日志里没有 final 行)才重试一次;出现 `*** VALIDATION FAILED ***` 直接失败(审计之前任何非零退出都会重试;所有门的记录都是一次通过,所以这个漏洞没有影响任何结论)。
 4. 所有不变量为 0:drift、所有 `overflow_*`(含新增的 `overflow_initialization_outside`)、主机与 GPU 帧戳错误、`far_migration_count`。每次性能运行也检查这些。
@@ -781,6 +782,37 @@ RELEASE='release=@l2;V6_LEAN_TRANSPORT=1;V6_GHOST_POOL_FACTOR=d2:0.29|d3:0.5;V6_
 ```
 
 数据在 `logs/seam_audit/opt/`(不入库):`e26_invariant/{cavity2d_1m_k2,cavity2d_1m_k4,cavity3d_1m_k2,fakeband_2d_1m_k1,fakeband_2d_1m_k1_cascade,fakeband_step1_cascade0,fakeband_step1_cascade1}`、`e26_smoke/verify_2d_k2.log`、`validate_e26_band223`、`ab_e26_band223`、`perf_band223`、`e26_logs`。
+
+## 审计门的密度量化:δρ(E14,2026-10-05)
+
+**问题。** E23 发现审计的密度统计量在新数值参数下不稳:ρ ≈ 1000 时 float32 的间隔是 2⁻¹⁴ = 6.1 × 10⁻⁵,两次 K = 1 之间的噪声被量化成 0.4–1.1 个间隔,比值是两个量化到个位数的数相除;改动前构建与 E23 构建都偶尔超过 2.0,而各组 ÷ control 只有 0.73–1.12,没有 seam 特有的增量。
+
+**做法。** 发布组合 + `V6_BAND_WIDTHS=2,2,3`,K = 2 的被测运行与 K = 1 参照两边都开 `V6_DELTA_DENSITY=1`(存 ρ − ρ_ref),跑 3 次审计,其余设置与 E23 相同。另有一处必要的工具修改:审计读回时原来在 float32 里把 ρ_ref 加回去,开了 δρ 也会把 ρ 重新量化到 6.1 × 10⁻⁵;`dump_state` 现在开 δρ 时读存储值,按 float64(δρ) + ρ_ref 存 ρ(精确),不开 δρ 时 dump 不变。
+
+| 审计 | 最差 | 最差项 | 窗口对 | control:K2 − K1 rms kg/m³ | K1 − K1 噪声 rms kg/m³ | 噪声 ÷ ρ≈1000 的 ULP | 噪声 ÷ δρ 的 float32 间隔 | control 比值 | density:越界 / 迁出 / 迁入 ÷ control | acceleration:越界 / 迁出 / 迁入 ÷ control |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 ✓ | 1.57 | 第 1 对 column 0 acceleration rms(1.57) | B1 vs A1 | 3.44e-06 | 2.87e-06 | 0.047 | 197,330 | 1.20 | 0.76 / 0.83 / 0.73 | 0.94 / 1.03 / 0.90 |
+| 1 ✓ | 1.57 | 第 1 对 column 0 acceleration rms(1.57) | B2 vs A2 | 2.74e-06 | 2.87e-06 | 0.047 | 197,105 | 0.95 | 1.25 / 1.33 / 1.22 | 1.28 / 1.37 / 1.24 |
+| 2 ✓ | 1.47 | 第 1 对 column 0 pressure rms(1.47) | B1 vs A1 | 3.32e-06 | 2.66e-06 | 0.044 | 182,632 | 1.25 | 0.79 / 0.78 / 0.79 | 0.86 / 0.79 / 0.94 |
+| 2 ✓ | 1.47 | 第 1 对 column 0 pressure rms(1.47) | B2 vs A2 | 2.82e-06 | 2.66e-06 | 0.044 | 182,875 | 1.06 | 0.69 / 0.70 / 0.66 | 0.84 / 0.87 / 0.80 |
+| 3 ✓ | 1.33 | 越界窗口 B2 vs A2,迁出 组 density_rms(1.33) | B1 vs A1 | 3.19e-06 | 2.71e-06 | 0.044 | 186,526 | 1.18 | 1.04 / 1.06 / 1.03 | 1.05 / 1.10 / 1.01 |
+| 3 ✓ | 1.33 | 越界窗口 B2 vs A2,迁出 组 density_rms(1.33) | B2 vs A2 | 2.81e-06 | 2.83e-06 | 0.046 | 194,137 | 1.00 | 1.25 / 1.34 / 1.16 | 1.06 / 0.96 / 1.13 |
+
+- **3 次都通过,最差 1.57 / 1.47 / 1.33**,依次是第 1 对 column 0 的加速度、第 1 对 column 0 的压力、越界窗口 B2 对 A2 迁出组的密度。
+- **control 组的密度噪声**(K1 − K1)rms 2.7–2.9 × 10⁻⁶ kg/m³:是存储值 δρ 自身 float32 间隔的 18–20 万倍,只有 ρ ≈ 1000 处间隔的 0.044–0.047。E23 看到的 0.4–1.1 个间隔是量化出来的,真实噪声远小于一个间隔。
+- **各组 ÷ control:** density 0.66–1.34,acceleration 0.79–1.37,没有 seam 特有的增量。
+
+**结论与改动。** 3 次都稳定在 2.0 以下,审计门以后默认开 δρ:`opt_validate` 的审计在被测运行与 K = 1 参照两边都设 `V6_DELTA_DENSITY=1`;`--env V6_DELTA_DENSITY=0` 两边都关(旧审计),`--reference-env` 仍可单独覆盖参照。单步与 K = 4 不变;求解器的默认不变(`V6_DELTA_DENSITY` 仍默认关)。
+
+```bash
+REL="--env V6_LEAN_TRANSPORT=1 --env V6_GHOST_POOL_FACTOR=0.29 --env V6_MIGRANT_POOL_FACTOR=0.05      --env V6_DEPARTED_FACE_FRACTION=0.8 --env V6_COMPACT_GHOST_LISTS=1 --env V6_PACKED_REPLICAS=1      --env V6_BAND_SLOT_LANES=64 --env V6_INIT_SEAM_CLAMP=1"
+for suffix in "" _audit2 _audit3; do
+  .venv/Scripts/python.exe -m experiment.seam_audit.opt_validate --name e14_ddens_band223$suffix --steps audit $REL       --env V6_BAND_WIDTHS=2,2,3 --env V6_DELTA_DENSITY=1 --reference-env V6_DELTA_DENSITY=1
+done
+.venv/Scripts/python.exe -m experiment.seam_audit.opt_tables --out logs/seam_audit/opt/tables.md   # "## E14 ..."
+```
+
+数据在 `logs/seam_audit/opt/`(不入库):`validate_e14_ddens_band223{,_audit2,_audit3}`、`e14_logs`。
 
 ## 未采用的项与原因
 

@@ -219,6 +219,8 @@ def main() -> int:
                   "## E26 band invariant + per-column A/B", e26_invariant_table(), "",
                   "## E26 performance (2/3/4 → 2/2/3, --counterbalance)", e26_perf_table(), "",
                   "## E26 kernels per sim", e26_kernel_table(), ""]
+    if (ROOT / f"validate_{E14_AUDITS[0]}" / "verdict.json").exists():
+        parts += ["## E14 audit with V6_DELTA_DENSITY (release set + 2,2,3)", e14_audit_table(), ""]
     if (ROOT / "perf_final" / "summary.json").exists():
         parts += ["## final", final_table(), "",
                   "## final phase C", phase_c_table("perf_final", ["l1x", "packed", "release", "release_compact"], "packed"), ""]
@@ -743,6 +745,74 @@ def e26_kernel_table(campaign: str = E26_CAMPAIGN, before: str = "release", afte
                     continue
                 cells.append(f"{fmt(statistics.mean(before_values))} → {fmt(statistics.mean(after_values))}")
             lines.append(f"| {CASE_LABEL[case]} | s{sim} | " + " | ".join(cells) + " |")
+    return NEWLINE.join(lines)
+
+
+# ---------------------------------------------------------------- E14: audit with V6_DELTA_DENSITY
+E14_AUDITS = ("e14_ddens_band223", "e14_ddens_band223_audit2", "e14_ddens_band223_audit3")
+E14_REFERENCE_DENSITY = 1000.0
+E14_GROUP = {"flagged": "越界", "departed": "迁出", "arrived": "迁入", "control": "control"}
+
+
+def e14_worst_item(pair: dict) -> tuple:
+    """(value, label) of the largest audit statistic of one opt_validate audit pair entry."""
+    items = []
+    for field, value in (pair.get("column0_rms_ratio") or {}).items():
+        items.append((value, f"第 1 对 column 0 {field} rms"))
+    for field, value in (pair.get("second_pair_d0_rms_ratio") or {}).items():
+        items.append((value, f"第 2 对 column 0 {field} rms"))
+    for key, value in (pair.get("window_groups") or {}).items():
+        label, group, statistic = (part.strip() for part in key.split("|"))
+        items.append((value, f"越界窗口 {label.split(' (')[0]},{E14_GROUP.get(group, group)} 组 {statistic}"))
+    items = [(value, label) for value, label in items if value is not None]
+    return max(items) if items else (None, "—")
+
+
+def e14_density_spacing(name: str) -> float:
+    """Median float32 spacing of the stored delta-rho (rho - rho_ref) over the particles of the first reference
+    run's crossing-window capture: the resolution of the stored representation where the window statistics live."""
+    import numpy as np
+    paths = sorted((ROOT / f"validate_{name}" / "audit" / "dumps" / "cavity2d_1m").glob("reference_*_t1_N2000_window.npz"))
+    if not paths:
+        return float("nan")
+    with np.load(paths[0]) as archive:
+        density = archive["density"].astype(np.float64)
+    stored = np.abs(density - E14_REFERENCE_DENSITY).astype(np.float32)
+    return float(np.median(np.spacing(stored)))
+
+
+def e14_audit_table() -> str:
+    """Three audits of the release set + V6_BAND_WIDTHS=2,2,3 with V6_DELTA_DENSITY=1 on the K = 2 runs and the
+    K = 1 references (dumps keep rho in float64 = stored delta-rho + rho_ref): the worst statistic and where it
+    is, per crossing-window pair the control group's density difference (K2 - K1) and noise (K1 - K1) rms in
+    kg/m^3, the noise against the float32 spacing of rho ~ 1000 (2^-14) and of the stored delta-rho, the control
+    ratio and each crossing group's density / acceleration ratio over the control group's."""
+    lines = ["| 审计 | 最差 | 最差项 | 窗口对 | control:K2 − K1 rms kg/m³ | K1 − K1 噪声 rms kg/m³ | 噪声 ÷ ρ≈1000 的 ULP | "
+             "噪声 ÷ δρ 的 float32 间隔 | control 比值 | density:越界 / 迁出 / 迁入 ÷ control | "
+             "acceleration:越界 / 迁出 / 迁入 ÷ control |", "|---|---|---|---|---|---|---|---|---|---|---|"]
+    groups = ("flagged", "departed", "arrived")
+    for index, name in enumerate(E14_AUDITS, 1):
+        verdict_path = ROOT / f"validate_{name}" / "verdict.json"
+        if not verdict_path.exists():
+            continue
+        audit = json.loads(verdict_path.read_text(encoding="utf-8"))["audit"]
+        worst_value, worst_label = max((e14_worst_item(pair) for pair in audit["pairs"]), key=lambda item: item[0] or 0.0)
+        spacing = e14_density_spacing(name)
+        for report_path in sorted((ROOT / f"validate_{name}" / "audit" / "analysis" / "cavity2d_1m").glob("*/window_report.json")):
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            for pair in report["pairs"]:
+                statistics_ = pair["statistics"]
+                density = statistics_["control"]["density"]
+                control = density["ratio"]["rms"]
+                control_acceleration = statistics_["control"]["acceleration"]["ratio"]["rms"]
+                noise = density["noise"]["rms"]
+                lines.append(
+                    f"| {index}{' ✓' if audit.get('pass') else ' ✗'} | {audit['worst']:.2f} | {worst_label}({worst_value:.2f}) | "
+                    f"{pair['label'].split(' (')[0]} | {density['test']['rms']:.2e} | {noise:.2e} | "
+                    f"{noise / DENSITY_ULP:.3f} | {noise / spacing:,.0f} | {control:.2f} | "
+                    + " / ".join(f"{statistics_[g]['density']['ratio']['rms'] / control:.2f}" for g in groups) + " | "
+                    + " / ".join(f"{statistics_[g]['acceleration']['ratio']['rms'] / control_acceleration:.2f}"
+                                 for g in groups) + " |")
     return NEWLINE.join(lines)
 
 
