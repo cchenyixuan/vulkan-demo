@@ -221,6 +221,8 @@ def main() -> int:
                   "## E26 kernels per sim", e26_kernel_table(), ""]
     if (ROOT / f"validate_{E14_AUDITS[0]}" / "verdict.json").exists():
         parts += ["## E14 audit with V6_DELTA_DENSITY (release set + 2,2,3)", e14_audit_table(), ""]
+    if (ROOT / E24_CAMPAIGNS[0][0] / "results.jsonl").exists():
+        parts += ["## E24 host step (existing records only)", e24_host_table(), ""]
     if (ROOT / "perf_final" / "summary.json").exists():
         parts += ["## final", final_table(), "",
                   "## final phase C", phase_c_table("perf_final", ["l1x", "packed", "release", "release_compact"], "packed"), ""]
@@ -813,6 +815,49 @@ def e14_audit_table() -> str:
                     + " / ".join(f"{statistics_[g]['density']['ratio']['rms'] / control:.2f}" for g in groups) + " | "
                     + " / ".join(f"{statistics_[g]['acceleration']['ratio']['rms'] / control_acceleration:.2f}"
                                  for g in groups) + " |")
+    return NEWLINE.join(lines)
+
+
+# ---------------------------------------------------------------- E24: host step from the existing campaign records
+E24_CAMPAIGNS = (("perf_g1_nop_v2", "base", "1b52dd2(G1 36 B)"), ("perf_g1_nop_v2", "release", "d2b5e98"),
+                 ("perf_band223", "release", "21ce20d,band 2/3/4"), ("perf_band223", "band223", "21ce20d,band 2/2/3"))
+E24_CASES = ("2d_1m", "2d_16m", "3d_8m")
+# link -> (sender sim, its readback direction, receiver sim, its upload direction)
+E24_LINKS = {"s0_to_s1": (0, "trailing", 1, "leading"), "s1_to_s0": (1, "leading", 0, "trailing")}
+
+
+def e24_host_table() -> str:
+    """Per case, build and link, from the records the opt_campaign workers already wrote (depth-1 anatomy frames,
+    mean over the trials): the worker's copy segment (copy_ns - wait_ns: frame-stamp check, count words and the
+    count-aware memcpy; only its median per run was stored) with the host bytes per frame and the resulting
+    bandwidth, and the readback / upload DMA (GPU timestamps on the transfer queues, median and p95) with the
+    staging bytes per frame and bandwidth at the median. The worker's wait segments (sender readback, receiver
+    readback_done(n), receiver upload of n - 1) and the host signals were not stored by these campaigns."""
+    lines = ["| 算例 | 构建 | 链路 | 主机拷贝段 p50 µs | 主机字节/帧 KiB | 主机拷贝带宽 GB/s | readback p50 / p95 µs | "
+             "upload p50 / p95 µs | DMA 字节/帧 KiB | readback 带宽 GB/s(p50) | upload 带宽 GB/s(p50) |",
+             "|---|---|---|---|---|---|---|---|---|---|---|"]
+    for case in E24_CASES:
+        for campaign, config, label in E24_CAMPAIGNS:
+            runs = [record["result"] for record in campaign_records(campaign)
+                    if record.get("ok") and record["case"] == case and record["config"] == config]
+            if not runs:
+                continue
+            for link, (sender, sender_direction, receiver, receiver_direction) in E24_LINKS.items():
+                def mean(values):
+                    values = [value for value in values if value is not None]
+                    return statistics.mean(values) if values else None
+                copy_us = mean(run["links"][link].get("host_copy_us") for run in runs)
+                host_bytes = mean(run["links"][link].get("host_copy_bytes_per_frame") for run in runs)
+                dma_bytes = mean(run["links"][link].get("dma_bytes_per_frame") for run in runs)
+                readback = [run["anatomy"][sender].get(f"readback_{sender_direction}_dma_us", {}) for run in runs]
+                upload = [run["anatomy"][receiver].get(f"upload_{receiver_direction}_dma_us", {}) for run in runs]
+                readback_p50, readback_p95 = mean(e.get("median") for e in readback), mean(e.get("p95") for e in readback)
+                upload_p50, upload_p95 = mean(e.get("median") for e in upload), mean(e.get("p95") for e in upload)
+                lines.append(
+                    f"| {CASE_LABEL[case]} | {label} | {E23_LINK_LABEL[link]} | {fmt(copy_us)} | {fmt(host_bytes / 1024)} | "
+                    f"{fmt(host_bytes / copy_us / 1000, 2)} | {fmt(readback_p50)} / {fmt(readback_p95)} | "
+                    f"{fmt(upload_p50)} / {fmt(upload_p95)} | {fmt(dma_bytes / 1024)} | "
+                    f"{fmt(dma_bytes / readback_p50 / 1000, 2)} | {fmt(dma_bytes / upload_p50 / 1000, 2)} |")
     return NEWLINE.join(lines)
 
 
