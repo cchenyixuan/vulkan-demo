@@ -1,6 +1,6 @@
 # v6 发布前优化:链路字节、pool 容量、phase C(2026-10-03)
 
-接 [`v6.md`](v6.md)(seam 修复与审计)、[`v6_single_step.md`](v6_single_step.md)(单步测试)、[`v6_design.md`](v6_design.md)(设计与字节清单)。目标:在保持 seam 精确性(K = 2 与 K = 1 的差在噪声底内,单步测试也在噪声底内)的前提下,把 (1,2) = (`V6_KEEP_DEPARTED=1`, `V6_GHOST_LAYERS=2`) 调到发布状态:链路字节与 phase C 时间尽量小。每一项都是新的 `V6_*` 开关,代码默认关闭;每项单独验证、单独提交。v5 与集群脚本没有改动。
+接 [`v6.md`](v6.md)(seam 修复与审计)、[`v6_single_step.md`](v6_single_step.md)(单步测试)、[`v6_design.md`](v6_design.md)(设计与字节清单)。目标:在保持 seam 精确性(K = 2 与 K = 1 的差在噪声底内,单步测试也在噪声底内)的前提下,把 (1,2) = (`V6_KEEP_DEPARTED=1`, `V6_GHOST_LAYERS=2`) 调到发布状态:链路字节与 phase C 时间尽量小。每一项都是新的 `V6_*` 开关,验证时代码默认关闭;每项单独验证、单独提交。E6b(2026-10-05)起推荐组合就是 v6 的代码默认,集群脚本也改成了 v6(见"发布组合成为代码默认");v5 没有改动。
 
 ## 结论(TL;DR)
 
@@ -23,13 +23,16 @@
   - 旁测:K = 1 链 depth 1 与单缓冲等速,depth 2 快 0.3–3.9 %。
   - δρ:去掉压力台阶,内部压力噪声小 2.2–3.4 倍;整体与壁面附近的噪声(由壁面与 lid 主导)没有可分辨的差别;流动量不变;吞吐 −1.2 %(单卡单缓冲测量);多卡门通过;只报告,等你决定。
 - **G1 去 P(E23,2026-10-05):** `V6_PACKED_REPLICAS` 的 G1 改成与 G2 同一格式,各 32 B(每对 68 → 64 B,每个方向 16 R 个字),packet 只带接收方读的量。毒化测试直接证明 G1 的 Pⁿ 没人读(阴性对照出现 NaN);字节 DMA −5.7 … −5.8 %、主机 −5.8 … −5.9 %,主机字节公式逐帧精确成立,fps 不变;单步、A/B、K = 4 通过,审计的密度判据在新数值参数下对两个构建都不可靠(见"G1 去 P")。
-- **band 2/2/3(E26,2026-10-05):** 新开关 `V6_BAND_WIDTHS`(代码默认仍是 `2,3,4`),density 与 force 的 band 各窄一列;density.comp 删掉读邻居 L、∇ρ 的死代码(重编的 SPIR-V 只差 id 编号)。发布组合 + 2,2,3:单步 1.07、A/B 1.11 / 1.38、K = 4 drift 0,band 不变量在 2-D K = 2 / K = 4、3-D K = 2 都成立。本机 K = 2 的传输已被 phase B 藏住,fps 2-D 1M −0.39 %、2-D 16M +0.27 %、3-D 8M −0.39 %;phase C −0.8 / −10.3 / −13.8 %,phase B +0.1 / +0.3 / +3.1 %(同一列从 C 挪到 B;只有 2-D 16M 的计算总量减少)。列入推荐组合;它缩短的是传输之后的 phase C,要在传输暴露时才会变成 fps(本次没测,见"band 2/2/3")。
+- **band 2/2/3(E26,2026-10-05):** 新开关 `V6_BAND_WIDTHS`(当时代码默认仍是 `2,3,4`,E6b 起是 `2,2,3`),density 与 force 的 band 各窄一列;density.comp 删掉读邻居 L、∇ρ 的死代码(重编的 SPIR-V 只差 id 编号)。发布组合 + 2,2,3:单步 1.07、A/B 1.11 / 1.38、K = 4 drift 0,band 不变量在 2-D K = 2 / K = 4、3-D K = 2 都成立。本机 K = 2 的传输已被 phase B 藏住,fps 2-D 1M −0.39 %、2-D 16M +0.27 %、3-D 8M −0.39 %;phase C −0.8 / −10.3 / −13.8 %,phase B +0.1 / +0.3 / +3.1 %(同一列从 C 挪到 B;只有 2-D 16M 的计算总量减少)。列入推荐组合;它缩短的是传输之后的 phase C,要在传输暴露时才会变成 fps(本次没测,见"band 2/2/3")。
 - **审计门(E14,2026-10-05):** 两边都开 `V6_DELTA_DENSITY` 并让 dump 存精确的 ρ 之后,发布组合 + 2,2,3 的三次审计为 1.57 / 1.47 / 1.33,control 噪声 2.7–2.9 × 10⁻⁶ kg/m³(原来被 ρ ≈ 1000 的 float32 间隔 6.1 × 10⁻⁵ 量化掉),各组 ÷ control 0.66–1.37;审计门以后默认开 δρ(见"审计门的密度量化")。
+- **代码默认(E6b,2026-10-05):** 推荐组合成为 v6 的代码默认(池因子按维度取),旧值都还能显式选。不设任何环境变量时 2-D 1M K = 2 与 K = 4 冒烟 drift 0、溢出 0、帧戳错误 0;K = 2 fps 与显式设置发布组合差 +0.08 %(交错 2 次,逐次 +0.55 / −0.40 %,先跑的快)。seam_audit 工具先钉住 E6b 之前的默认(`partition_v6.LEGACY_DEFAULTS`),本文的命令含义不变;集群脚本改用 v6 与 `V6_*`,与新默认不同的三个 export 保留(见"发布组合成为代码默认")。
 - **途中发现并修复:**
   - 从保存的状态重启时,seam 列边上的粒子会在 bootstrap 静默丢失(继承自 v5,`V6_INIT_SEAM_CLAMP`)。
   - 验证审计确认了打包开关缺少配置校验、溢出时的连带损坏、δρ 的读回不一致,以及门工具的几处漏洞;全部修复并重新验证。文档对数据的审计又改正了本文的一批数与说法(上面的同等比较就是其中之一)。见"验证审计"。
 
 ## 推荐的发布默认组合
+
+E6b 起这就是 v6 的代码默认:不设变量即得到下表(池因子按算例维度取);E6b 之前的默认、条件默认与验证见"发布组合成为代码默认"。
 
 | 开关 | 2-D | 3-D | 来源 |
 |---|---|---|---|
@@ -42,8 +45,8 @@
 | `V6_PACKED_REPLICAS` | 1 | 1 | (b)(c);E23 起 G1 与 G2 同一格式,各 32 B(x y z ρ、vx vy vz material 位),每个方向 16 R 个字(见"G1 去 P") |
 | `V6_BAND_SLOT_LANES` | 64 | 64 | phase C |
 | `V6_INIT_SEAM_CLAMP` | 1 | 1 | 修复(对格点初始条件是空操作) |
-| `V6_BAND_WIDTHS` | 2,2,3 | 2,2,3 | E26:correction / density / force 的 band 宽度(代码默认 2,3,4);phase C −1 … −14 %、phase B +0.1 … +3 %,本机 K = 2 fps −0.4 … +0.3 %(传输已藏住),见"band 2/2/3" |
-| 不变的生产开关 | `V6_WORKER_COUNT_AWARE=1`、`V6_SPLIT_TRANSFER_QUEUES=1`,代码默认开的 `V6_CASCADE_FORCE`、`V6_BAND_VOXEL_DISPATCH`、`V6_FAST_SUBMIT` | 同左 | |
+| `V6_BAND_WIDTHS` | 2,2,3 | 2,2,3 | E26:correction / density / force 的 band 宽度(E6b 之前的代码默认 2,3,4);phase C −1 … −14 %、phase B +0.1 … +3 %,本机 K = 2 fps −0.4 … +0.3 %(传输已藏住),见"band 2/2/3" |
+| 不变的生产开关 | `V6_WORKER_COUNT_AWARE=1`、`V6_SPLIT_TRANSFER_QUEUES=1`(E6b 起也是代码默认),一直默认开的 `V6_CASCADE_FORCE`、`V6_BAND_VOXEL_DISPATCH`、`V6_FAST_SUBMIT` | 同左 | |
 | 不采纳 / 只评估 | `V6_BAND_COMPACT_DISPATCH`、(f)、`V6_DELTA_DENSITY`(等你决定)、`V6_TRANSPORT_EXTENSION`(只给审计)、`V6_DIAG_POISON_G1`(只用于诊断,E23) | | 见文末 |
 
 ## 方法
@@ -56,6 +59,8 @@
 4. 所有不变量为 0:drift、所有 `overflow_*`(含新增的 `overflow_initialization_outside`)、主机与 GPU 帧戳错误、`far_migration_count`。每次性能运行也检查这些。
 5. 重复 A/B 等价检验(`ab_restart.py`,验证审计之后加的,只对发布组合与它的拆分跑):从同一 K = 1 快照出发,2-D 1M 跑 100 步、3-D 1M 跑 50 步,经过越界与迁移;见"验证审计"。
 
+E6b 之后,这些门工具与本文的 campaign、测量工具都先钉住 E6b 之前的默认(`partition_v6.LEGACY_DEFAULTS`),再加各自的开关(调用方显式设的变量优先),所以"(1,2) + 该项开关"、`l2`、`release` 等配置的含义不变(见"发布组合成为代码默认")。
+
 审计 worker(`dump_state` / `single_step` 的 main)强制 `V6_TRANSPORT_EXTENSION=1`,让全局 id 跟着精简后的包走;物理不读 `extension_fields`。所以不带 extension 的生产段表不经过物理比较,只由 CPU 布局检查(`_test_seam_layout.py` 第 5 项:精简段表 = 完整段表去掉死段)与 K = 4 / 性能运行的不变量覆盖。
 
 **性能(`experiment/seam_audit/opt_campaign.py`):** 本机 2 × RTX 5090,K = 2,生产开关(count-aware worker、split transfer queues、cascade force、band voxel dispatch;2-D 池因子 0.25、3-D 1.0 是"之前"的值),3 次交错试验(试验 → 算例 → 配置),机器空闲。每次运行一个进程:(1) fps:生产 depth-2 流水线循环、无计时器;(2) 字节:worker 的每帧主机拷贝字节(count-aware 的 live 前缀)与 DMA 字节(staging 大小 = readback = upload);(3) 解剖:挂 GPU 时间戳、depth 1,取每帧中位数(两个 sim 取大)——phase C、band kernel、readback / upload DMA;主机拷贝 = worker 的 copy − wait 时间戳。t_tr = 发送方 readback DMA + 主机拷贝 + 接收方 upload DMA(两条 link 平均)。fps 比值逐试验配对(after_t / before_t),给均值 ± 标准差。配置顺序在每个试验内固定(审计指出;`--counterbalance` 之后才加,本文的 campaign 都没有平衡),所以比值不能排除位置效应:1 % 以下的差都不可分辨,2-D 10k / 1M 上第一位的配置还观察到约 3 % 的偏差(见"总览")。
@@ -66,7 +71,7 @@
 
 测 pool 峰值时,从 Re 3200 发展流快照(1M,t = 99.45 s)重启的 K = 2 运行 drift = −1,而所有 overflow 计数都是 0。用全局 id 追踪:粒子在 `bootstrap_all` 之后就已经不见了,位置 x = −0.0041000363,离 cut 线只有 3.8×10⁻⁶ h。主机分区(numpy float32,Python 标量是弱类型)把它算进第 102 列(slab 1);slab 1 的 GPU 用**自己的** origin 以 float32 算 floor((x − origin)/h),得到它自己的 leading ghost 列(全局第 101 列);slab 0 的 GPU 会得到它的 trailing ghost 列(第 102 列)——两边都认为它是 ghost。`initialize_voxelization` 的 `in_own_grid` 覆盖扩展网格,于是把它登记进 ghost voxel 的列表并计入 alive;bootstrap 的 ghost 往返覆盖了 ghost 列表;bootstrap defrag 把这个没人登记的粒子丢掉。格点初始条件离列边最近只有 0.1–0.4 Δx(不是半个间距),但仍比 float32 的舍入(约 4 × 10⁻⁶ h)大三个量级以上,碰不到;从保存的状态重启(发展流快照、`single_step` 的 `restart_init`)就可能碰到。v5 的 `initialize_voxelization` 相同,这是继承来的问题,与本轮的开关无关。
 
-`V6_INIT_SEAM_CLAMP=1`(spec 97):own 粒子的 voxel 恰好落进 ghost 列一列时,登记到相邻的 own 列(它就在那条边的舍入误差内);下一次 predict 按位置重算 voxel,需要时走正常的迁移路径。计数 `initialization_seam_clamp_count`(诊断);扩展网格之外被 kill 的粒子现在计入 `overflow_initialization_outside`(必须为 0;原来是静默丢失);验证审计之后,开关关闭时落进 ghost voxel 的 own 粒子也计入它(33f084e),所以上面这种丢失在默认配置下也不再静默。验证:同一重启打开开关后 bootstrap 后与 20,000 帧后 alive 都是 1,046,529,无缺失、无重复 id,clamp 计数 [0, 1];关闭时 −1(id 303255)。所有格点算例(2-D 10k / 1M K = 4 / 16M、3-D 8M / narrow)clamp 计数为 0,即对正常运行是空操作;单步门(从 N = 2000 快照重启)worst 1.03,6 次重启 clamp 都是 0,所以此前的单步结果不受影响;K = 4 冒烟通过。
+`V6_INIT_SEAM_CLAMP=1`(spec 97):own 粒子的 voxel 恰好落进 ghost 列一列时,登记到相邻的 own 列(它就在那条边的舍入误差内);下一次 predict 按位置重算 voxel,需要时走正常的迁移路径。计数 `initialization_seam_clamp_count`(诊断);扩展网格之外被 kill 的粒子现在计入 `overflow_initialization_outside`(必须为 0;原来是静默丢失);验证审计之后,开关关闭时落进 ghost voxel 的 own 粒子也计入它(33f084e),所以上面这种丢失在开关关闭(E6b 之前的默认)时也不再静默。验证:同一重启打开开关后 bootstrap 后与 20,000 帧后 alive 都是 1,046,529,无缺失、无重复 id,clamp 计数 [0, 1];关闭时 −1(id 303255)。所有格点算例(2-D 10k / 1M K = 4 / 16M、3-D 8M / narrow)clamp 计数为 0,即对正常运行是空操作;单步门(从 N = 2000 快照重启)worst 1.03,6 次重启 clamp 都是 0,所以此前的单步结果不受影响;K = 4 冒烟通过。
 
 ## (d) 只传接收方读的 4 个字段:`V6_LEAN_TRANSPORT`(56a2195)
 
@@ -685,7 +690,7 @@ RELEASE='release=@l2;V6_LEAN_TRANSPORT=1;V6_GHOST_POOL_FACTOR=d2:0.29|d3:0.5;V6_
 
 **改动。**
 
-- 新开关 `V6_BAND_WIDTHS="c,d,f"`,代码默认仍是 `2,3,4`。主机端校验 c ≥ 2、d ≥ c、f ≥ d + 1,格式不对也报错(`partition_v6.configured_band_widths`);每个 sim 构造时读一次。
+- 新开关 `V6_BAND_WIDTHS="c,d,f"`,代码默认当时仍是 `2,3,4`(E6b 起 `2,2,3`)。主机端校验 c ≥ 2、d ≥ c、f ≥ d + 1,格式不对也报错(`partition_v6.configured_band_widths`);每个 sim 构造时读一次。
 - 跟着开关走的地方:三个 kernel 分拆 pipeline 的 spec 82;phase C 三个 band 派发的线程数;单卡分拆路径(`V6_FAKE_BAND_TEST`)的 `dispatch_boundary`;bootstrap 里 G1-as-self 的 correction / density band 派发(原来同样写死了 2 / 3);建管线时打印的 band。
 - `V6_BAND_COMPACT_DISPATCH` 的压缩表只按 2/3/4 建,宽度不是 2/3/4 时主机端拒绝,不适配。
 - density.comp:从源码删掉读邻居 L、∇ρ 的死代码(连同只喂给 ψ 第二项的自身 ∇ρ),ψ 的完整公式留作注释,并写明恢复它需要什么(ghost 的 L、∇ρ 要新鲜;density band 要回到 ≥ correction band + 1)。重编后的 `density.comp.spv` 与原来的只差 SPIR-V id 编号:按出现顺序重编号后逐行相同,11 个 descriptor 绑定(set, binding)、存储类、spec id 与 2389 条指令都不变;其余 `.spv` 逐字节不变(force / common / band_compact 只改了注释)。
@@ -865,6 +870,79 @@ done
 
 表格由 `experiment/seam_audit/opt_tables.py` 的 `e24_host_table` 从 `logs/seam_audit/opt/{perf_g1_nop_v2,perf_band223}/results.jsonl` 生成(`--out logs/seam_audit/opt/tables.md`,"## E24 ...")。
 
+## 发布组合成为代码默认(E6b,2026-10-05)
+
+**改动(63c5e43;核对后的修复 f08a59b)。** 不设任何 `V6_*` 变量就得到"推荐的发布默认组合",池因子按算例维度取;每个开关的旧值都还能显式设置。数值参数没有改。
+
+| 开关 | 代码默认(2-D / 3-D) | E6b 之前 |
+|---|---|---|
+| `V6_KEEP_DEPARTED` | 1 | 0 |
+| `V6_GHOST_LAYERS` | 2(条件) | 1 |
+| `V6_LEAN_TRANSPORT` | 1 | 0 |
+| `V6_GHOST_POOL_FACTOR` | 0.29 / 0.5 | 1 |
+| `V6_MIGRANT_POOL_FACTOR` | 0.05 / 0.02(条件) | = ghost 因子 |
+| `V6_DEPARTED_FACE_FRACTION` | 0.8 / 0.64 | 0.25 |
+| `V6_COMPACT_GHOST_LISTS` | 1 | 0 |
+| `V6_PACKED_REPLICAS` | 1(条件) | 0 |
+| `V6_BAND_SLOT_LANES` | 64 | 0 |
+| `V6_INIT_SEAM_CLAMP` | 1 | 0 |
+| `V6_BAND_WIDTHS` | 2,2,3(条件) | 2,3,4 |
+| `V6_WORKER_COUNT_AWARE` | 1 | 0 |
+| `V6_SPLIT_TRANSFER_QUEUES` | 1 | 0 |
+| `V6_CASCADE_FORCE`、`V6_BAND_VOXEL_DISPATCH`、`V6_FAST_SUBMIT` | 1(不变) | 1 |
+
+lanes 由 `simulator_v6` 在 import 时读(cascade force、band-voxel 派发与 fast submit 也是),count-aware 与 split 由传输 worker 与 Vulkan context 在构造时读,其余发布开关由 `partition_v6` 读(池因子的发布值在 `RELEASE_POOL_DEFAULTS`)。
+
+**条件默认**(只在该变量未设时起作用;单独选一个旧值不报错,依赖它的开关跟着回到旧值):
+
+- `V6_GHOST_LAYERS`:`V6_KEEP_DEPARTED=1` 且 `V6_BAND_VOXEL_DISPATCH=1` 时为 2,否则 1。
+- `V6_PACKED_REPLICAS`:两列 ghost、compact lists、`V6_DIAG_GHOST_SELF` 含 density 时开,否则关;显式设 1 时照旧校验,不合法就报错。
+- `V6_BAND_WIDTHS`:`V6_BAND_COMPACT_DISPATCH=1` 时为 2,3,4(压缩派发只支持这一组),否则 2,2,3。
+- `V6_MIGRANT_POOL_FACTOR`:显式设了 `V6_GHOST_POOL_FACTOR` 就跟它(E6b 之前的规则),否则取发布值。
+- 池因子的发布值只对实测的容量有效(2-D C = 96 / C_inc = 16、h/Δx = 5;3-D C = 128 / 32、h/Δx = 4),其他算例按 (e) 的条件重定(`partition_v6` 的槽数警告照旧)。
+
+**工具。** `partition_v6.LEGACY_DEFAULTS` 是 E6b 之前的默认。按"旧默认 + 指定开关"定义配置的工具先钉住它(优先级:调用方设的变量 > 工具自己的生产开关与配置 > 旧默认),所以本文、`v6.md`、`v6_single_step.md` 里的命令含义不变:`opt_validate`、`ab_restart`、`single_step`、`run_matrix`(v6)、`opt_campaign`、`perf_campaign`(v6)、`pool_peaks`(经 `opt_campaign`)、`link_inventory`、`poison_g1`、`k1_chain_vs_single`、`delta_density_eval` / `_perf`、`_verify_cascade_force`;`v6.md` 的"单次 v6 运行"直接调用 chain bench,命令里补上了当时的默认。CPU 测试:`_test_seam_layout` 的逐项检查钉旧默认,新增一项检查新默认(2-D / 3-D)、单独选旧值、migrant 规则与 LEGACY 往返;`_test_partition_chain` 照旧按一层 ghost 检查 M2 链代数。其余 runner 不钉,从此跑发布组合,例如 `_run_v6_chain_bench.py`、`_run_v6_dual_pipeline.py`(dual 路径,`_run_scaling_campaign.py` 用它)、`_run_v6_single_bench.py`、`_run_v6_equivalence.py`、`_run_v6_soak.py`、`_run_scaling_campaign.py`、`_run_weak_scaling_campaign.py`、`_run_single_ceiling.py`、viewer 与 `experiment/validation/` 的运行器。其中 `cavity_runner.py`(工作区里有别的 session 未提交的改动,本次没动)显式设了发布组合但没设 `V6_BAND_WIDTHS`,而且只接受与它的清单完全相同的 `V6_*` 环境,所以它的新运行用 2,2,3,要回到 2,3,4 得改它的清单;它按 `experiment/v6/utils/*.py` 的哈希校验续算,63c5e43 之前开始的运行不能再续算。
+
+**集群脚本(`docs/n56_scaling/scripts/probe34–38`)。** runner 换成 `experiment/v6/_run_v6_chain_bench.py`,`V5_*` 改成 `V6_*`,日志解析改成 `[chain_v6]`;去掉现在是代码默认的 export(`FAST_SUBMIT=1`、`CASCADE_FORCE=1`、`BAND_VOXEL_DISPATCH=1`、`WORKER_COUNT_AWARE=1`、`SPLIT_TRANSFER_QUEUES=1`,以及本来就是默认的 `FAKE_BAND_TEST=0`、`PHASE_A_NO_WAIT=0`、`PER_SIM_PIPELINE=0`、`RECEIVER_CACHED=0`、`LOOP_TRACE=0`、`BENCH_PARITY=1`),也去掉 probe37/38 的 `BAND_SLOT_LANES=0`:它在原脚本里钉的是 v5 的默认值(probe34–36 不 export,同样跑 0),保留它会让 probe38 的解剖与 probe34 的计时用不同的 phase C;现在五个脚本都跑 lanes 64。保留的 export:按节点算的 `V6_WORKER_AFFINITY`;原协议有意选的池因子 `V6_GHOST_POOL_FACTOR=0.25`(2-D,probe34/35/36/38;发布值 0.29)与 `1.0`(3-D,probe37;发布值 0.5);`V6_SWITCH_INTERVAL_MS=0.2`(chain bench 不读它,0.2 ms 的切换间隔来自 `python -c` 里的 `setswitchinterval`;只有 soak runner 读,v5 时也一样)。池因子改不改成发布值等你决定;保留时 migrant 区段跟 ghost 因子取同一值,departed 池取发布值;2-D 的 0.25 每 voxel 只有 28 个槽,低于 1.2 (h/Δx)^d = 30,`partition_v6` 每次运行都会打印溢出风险警告(发展流余量 11–12 %,见 (e);溢出照样计数,bench 遇到溢出返回 1)。probe36 / probe37 期望的提交改成 63c5e43(probe37 不一致就退出),probe34/35 的表头补打印 commit。部署:63c5e43 的树里还是旧的 v5 版脚本,要先 checkout 63c5e43,再把本提交的脚本拷到 `~/run`(九月的做法也是脚本晚于它要求的提交),不要直接 sbatch 树里的旧副本。数值也与九月不同:v6 读 case.yaml 的 ξ 与 `epsilon_squared_factor`(缺省 0.0025),库里的 2-D strong 算例自 f2b6d67 起是 ξ 0.001、ε² 0.0025 h²,九月在集群上生成的 weak / 3-D 算例(未入库)是 ξ 0.1、没有 ε 键(于是取 0.0025),而九月的 v5 一律是 ξ 0.1、ε² 0.01 h²;要与九月的数据逐项比较,得先统一这两项。N56 的脚本只有这 5 个;`remote/` 里 3090 集群的归档脚本调用 v5 runner、不 export 开关,没改。本机按脚本的确切环境冒烟过:2-D 1M 的 K = 1 参照与 K = 2 `--anatomy` depth 2(因子 0.25)、3-D 1M 的 K = 1 与 K = 2(因子 1.0),都是 rc 0、drift 0、溢出 0,`[anatomy]` 行可解析;没有在集群上跑过。
+
+**验证**(不设任何环境变量;本机 2 × RTX 5090,2-D 1M = `cases/lid_driven_cavity_2d_gen`,depth 2,验证层关):
+
+| 运行 | 步数 / warmup | steady fps | drift | 溢出 | 帧戳错误 gpu / host | far migration | seam 检查 |
+|---|---|---|---|---|---|---|---|
+| K = 2 冒烟(weights 1,1,devices 0,1) | 2,000 / 500 | 799.2 | 0 | 0 | 0 / 0 | 0 | OK |
+| K = 4 冒烟(weights 1,1,1,1,devices 0,1,0,1) | 1,000 / 200 | 488.1 | 0 | 0 | 0 / 0 | 0 | 3 个 seam 都 OK |
+
+日志里的配置:ghost_layers 2、keep_departed 1、ghost 池每方向 13,547(replica 区段 2 × 6,691 + migrant 165)、departed 池 165(K = 4 的内部 slab 330)、lanes 64、bands 2/2/3、readback / upload 两条传输队列、count-aware(每帧主机 322.9 KiB、DMA 428.5 KiB)。
+
+**fps:代码默认对显式设置发布组合**(K = 2,7,000 步、warmup 1,000,steady = 后 6,000 步;每次一个进程,试验 1 先跑默认,试验 2 先跑显式):
+
+| 试验 | 代码默认 | 显式发布组合 | 默认 ÷ 显式 − 1 |
+|---|---|---|---|
+| 1(默认先) | 779.2 | 774.9 | +0.55 % |
+| 2(显式先) | 775.1 | 778.2 | −0.40 % |
+| 平均 | 777.2 | 776.6 | +0.08 % |
+
+两次都是先跑的快约 0.5 %(位置效应),交错后平均 +0.08 %,在 ±0.5 % 之内;单看试验 1 是 +0.55 %。两边打印的配置(池、seam、pipeline、buffer、传输队列;日志前 82 行)逐行相同,DMA 字节相同;不同的只有运行间本来就不确定的量(slab 间粒子分配、迁移与 departed 峰值、worker 时延、ρ 范围、主机拷贝 322.7–323.0 KiB,配对差 ≤ 0.2 KiB)。四次运行的不变量都为 0,seam 检查都通过。另外不设变量时 dual 路径(`_run_v6_dual_pipeline.py`,weights 1,1)与 single bench(`_run_v6_single_bench.py`)各冒烟一次:dual drift 0、796.7 fps,配置同上;single 粒子数守恒。
+
+```bash
+# CPU:新默认、条件默认、LEGACY 往返;M2 链代数
+.venv/Scripts/python.exe -m experiment.v6._test_seam_layout
+.venv/Scripts/python.exe experiment/v6/_test_partition_chain.py
+# GPU:先清掉所有 V5_* / V6_* 变量
+C=cases/lid_driven_cavity_2d_gen/case.yaml
+.venv/Scripts/python.exe experiment/v6/_run_v6_chain_bench.py --case $C --weights 1,1 --device-map 0,1 --max-steps 2000 --warmup 500
+.venv/Scripts/python.exe experiment/v6/_run_v6_chain_bench.py --case $C --weights 1,1,1,1 --device-map 0,1,0,1 --max-steps 1000 --warmup 200
+# fps:默认一次、显式一次,交错 2 次(第 2 次倒序)
+.venv/Scripts/python.exe experiment/v6/_run_v6_chain_bench.py --case $C --weights 1,1 --device-map 0,1 --max-steps 7000 --warmup 1000
+env V6_KEEP_DEPARTED=1 V6_GHOST_LAYERS=2 V6_LEAN_TRANSPORT=1 V6_GHOST_POOL_FACTOR=0.29 V6_MIGRANT_POOL_FACTOR=0.05 \
+    V6_DEPARTED_FACE_FRACTION=0.8 V6_COMPACT_GHOST_LISTS=1 V6_PACKED_REPLICAS=1 V6_BAND_SLOT_LANES=64 \
+    V6_INIT_SEAM_CLAMP=1 V6_BAND_WIDTHS=2,2,3 V6_WORKER_COUNT_AWARE=1 V6_SPLIT_TRANSFER_QUEUES=1 \
+    V6_CASCADE_FORCE=1 V6_BAND_VOXEL_DISPATCH=1 V6_FAST_SUBMIT=1 \
+    .venv/Scripts/python.exe experiment/v6/_run_v6_chain_bench.py --case $C --weights 1,1 --device-map 0,1 --max-steps 7000 --warmup 1000
+```
+
+数据在 `logs/e6b_defaults_20261005/`(不入库):每次运行的日志与 `results.jsonl`。
+
 ## 未采用的项与原因
 
 - **`V6_BAND_COMPACT_DISPATCH`(压缩 band 映射):** 3-D 里把 (1,2) 多出的 correction / density 时间减掉 34 % / 40 %,另外省下 force band 的 0.43–0.45 ms(与 (1,1) 共有),phase C 净降 0.97–1.04 ms(depth-1 计时),但 fps 不比 lanes 64 好(3-D 低 0.2–0.5 %);2-D 10k–4M 的小 band 上反而比 `packed` 慢 0.1–2.3 %(建表 7–15 µs,加上表项按原子到达顺序排列、加载不如 interior 合并);唯一的例外是 2-D 16M,压缩表比 lanes 64 快 0.15–0.45 %(force band 110 对 170 µs;lanes 32 也把它降到 116 µs,lanes 64 没有,原因本文没有拆);代价:同一个 `band_compact.comp` 的两次派发(扫描与 scatter,外加两道屏障)、两块 buffer,三个 band kernel 都改成间接派发。开关保留、默认关闭;它在设计上逐位等价,2-D 门通过,3-D 的扫描路径只经过性能运行的不变量,没有做物理比较。
@@ -928,4 +1006,9 @@ REL="--env V6_LEAN_TRANSPORT=1 --env V6_GHOST_POOL_FACTOR=0.29 --env V6_MIGRANT_
 | 7b0dbd3 | E23 文档:本文"G1 去 P"与 `v6_design.md`(opt_campaign 与 partition_v6 的 docstring 在 2b297d1 / c47dbd9) |
 | 751c6c6 / 55ae508 | E26:`V6_BAND_WIDTHS`(spec 82、phase C 与 bootstrap 的 band 派发、单卡分拆路径;压缩派发只接受 2/3/4);density.comp 删掉读邻居 L、∇ρ 的死代码 |
 | 6c2d14a / 21ce20d / d58b95d / 3f19b43 | band 不变量与 force band 边跟开关走、`--a-env` / `--b-env` 的逗号值、开关检查;opt_tables 的 E26 表(逐列 A/B 两对都列、单卡假 band 按全局列重算) |
-| (本文,E26) | 本文"band 2/2/3"与推荐组合;`v6_design.md` 的阶段表与开关表 |
+| 047f753 / 5a18397 | E26 文档:本文"band 2/2/3"与推荐组合、`v6_design.md` 的阶段表与开关表;更正 |
+| baba336 | E14:dump 存精确 ρ,审计默认两边开 δρ;本文"审计门的密度量化" |
+| c4115cc | E24:host 步拆分表(只用已有记录);本文"host 步拆分" |
+| 63c5e43 | E6b:发布组合成为代码默认、`LEGACY_DEFAULTS` 与工具钉值、CPU 测试 |
+| f08a59b | E6b 核对后的修复:`link_inventory` 的钉值顺序、`perf_campaign` 保留调用方的 `V6_*`、`pool_peaks` 记录实际因子、过时的默认值注释 |
+| (本文,E6b) | 本文"发布组合成为代码默认";`v6_design.md` 的开关表;`v6.md` 单次运行命令补上当时的默认;集群脚本 probe34–38 改用 v6 |

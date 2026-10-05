@@ -6,14 +6,16 @@
 #SBATCH -o /data/run01/scxm138/logs/probe37_3d_%j.out
 # 3-D matrix (docs/n56_scaling/3d_matrix_budget.md, 2026-09-17) — NOT to be submitted without confirmation.
 #   Protocol: chain bench 1500 steps, steady = last 1000 (warmup 500), reference and K-run share the window;
-#   per N ONE 8-GPU simultaneous K=1 reference per job, K-runs x3; --anatomy everywhere; V5_GHOST_POOL_FACTOR=1.0;
+#   per N ONE 8-GPU simultaneous K=1 reference per job, K-runs x3; --anatomy everywhere; V6_GHOST_POOL_FACTOR=1.0;
 #   border-4 cases (gen_3d_families.sh default); other switches as the 2-D curve jobs. Bootstrap defrag is in
-#   the frozen code (eda4b8f), so no slow first-1000 phase.
+#   the code (since eda4b8f), so no slow first-1000 phase.
 #   Order: strong 64M stretched (K=2/4/8) -> weak 8M (K=2/4; K=8 shared with the strong block) -> strong 32M
 #   (K=2/4/8) -> weak 4M (K=2/4) -> cube 64M K=8 control (no reference: fps + anatomy only).
 #   RESULT labels: <block>_ref_g<G> (K=1 on GPU G, 8 at once) / <block>_k<K>_run_t<T>.
+# v6 (2026-10-05, E6b): v6 solver (experiment/v6/_run_v6_chain_bench.py), V6_* switches; the switches
+# that are v6 code defaults (the release set, docs/seam_audit/v6_opt.md) are no longer exported.
 set -u
-COMMIT=${COMMIT:-eda4b8f}
+COMMIT=${COMMIT:-63c5e43}
 STEPS=${STEPS:-1500}; WARMUP=${WARMUP:-500}
 source ~/run/tools/env.sh
 export MPLCONFIGDIR=/dev/shm/scxm138/mplconfig; mkdir -p "$MPLCONFIGDIR"
@@ -27,11 +29,12 @@ for M in .cavity3d_weak4_ready .cavity3d_weak8_ready .cavity3d_cube64_ready; do 
 nvidia-smi --query-gpu=index,name,pci.bus_id,power.limit --format=csv,noheader | head -8
 echo "--- nvidia-smi topo -m ---"; nvidia-smi topo -m 2>/dev/null | head -14
 CPUL=(); SYS=""; for bus in $(nvidia-smi --query-gpu=pci.bus_id --format=csv,noheader | sed 's/^0000//' | tr 'A-Z' 'a-z'); do p=/sys/bus/pci/devices/$bus; n=$(cat $p/numa_node 2>/dev/null || echo 0); [ "$n" -lt 0 ] && n=0; CPUL+=("$(cat /sys/devices/system/node/node$n/cpulist)"); [ -d "$p" ] && SYS="$SYS $p"; done
-AFF=""; for p in $SYS; do n=$(cat $p/numa_node); AFF="$AFF$(cat /sys/devices/system/node/node$n/cpulist);"; done; export V5_WORKER_AFFINITY="${AFF%;}"
-# explicit switches (do not rely on code defaults)
-export V5_FAST_SUBMIT=1 V5_CASCADE_FORCE=1 V5_BAND_VOXEL_DISPATCH=1 V5_BAND_SLOT_LANES=0 V5_FAKE_BAND_TEST=0 V5_PHASE_A_NO_WAIT=0 V5_PER_SIM_PIPELINE=0
-export V5_WORKER_COUNT_AWARE=1 V5_GHOST_POOL_FACTOR=1.0 V5_SWITCH_INTERVAL_MS=0.2 V5_SPLIT_TRANSFER_QUEUES=1 V5_RECEIVER_CACHED=0 V5_LOOP_TRACE=0 V5_BENCH_PARITY=1
-env | grep -E '^V5_' | sort | tr '\n' ' '; echo
+AFF=""; for p in $SYS; do n=$(cat $p/numa_node); AFF="$AFF$(cat /sys/devices/system/node/node$n/cpulist);"; done; export V6_WORKER_AFFINITY="${AFF%;}"
+# v6 code defaults = the release set (docs/seam_audit/v6_opt.md, E6b). Still exported: the per-node
+# worker affinity, the September 3-D ghost pool factor 1.0 (release default 0.5) and
+# the switch interval (read by the soak runner only).
+export V6_GHOST_POOL_FACTOR=1.0 V6_SWITCH_INTERVAL_MS=0.2
+env | grep -E '^V6_' | sort | tr '\n' ' '; echo
 nvidia-smi --query-gpu=timestamp,index,utilization.gpu,power.draw,temperature.gpu,clocks.current.sm --format=csv -l 5 > "$SHM/telemetry.csv" 2>/dev/null &
 TELEPID=$!
 
@@ -39,11 +42,11 @@ bench() {  # label case weights devmap [cpulist]  -> prints RESULT (anatomy in t
   local L=$1 C=$2 W=$3 D=$4 PREFIX=""
   [ -n "${5:-}" ] && PREFIX="taskset -c $5"
   local TA=$(date +%s)
-  $PREFIX python -c "import sys; sys.setswitchinterval(0.0002); import runpy; sys.argv=['x','--case','$C','--weights','$W','--device-map','$D','--depth','2','--pool-safety','1.2','--max-steps','$STEPS','--warmup','$WARMUP','--anatomy','--no-seam-check']; runpy.run_path('experiment/v5/_run_v5_chain_bench.py', run_name='__main__')" > "$SHM/$L.log" 2>&1
+  $PREFIX python -c "import sys; sys.setswitchinterval(0.0002); import runpy; sys.argv=['x','--case','$C','--weights','$W','--device-map','$D','--depth','2','--pool-safety','1.2','--max-steps','$STEPS','--warmup','$WARMUP','--anatomy','--no-seam-check']; runpy.run_path('experiment/v6/_run_v6_chain_bench.py', run_name='__main__')" > "$SHM/$L.log" 2>&1
   local RC=$?
   local FPS=$(grep -a "STEADY" "$SHM/$L.log" | sed -E 's/.*= ([0-9.]+) fps.*/\1/' | tail -1)
-  local DRIFT=$(grep -a "\[chain_v5\] final" "$SHM/$L.log" | sed -E 's/.*drift=([-0-9]+).*/\1/' | tail -1)
-  local STAMPS=$(grep -a "\[chain_v5\] final" "$SHM/$L.log" | sed -E 's/.*stamp_errors gpu=([0-9]+) host=([0-9]+).*/\1+\2/' | tail -1)
+  local DRIFT=$(grep -a "\[chain_v6\] final" "$SHM/$L.log" | sed -E 's/.*drift=([-0-9]+).*/\1/' | tail -1)
+  local STAMPS=$(grep -a "\[chain_v6\] final" "$SHM/$L.log" | sed -E 's/.*stamp_errors gpu=([0-9]+) host=([0-9]+).*/\1+\2/' | tail -1)
   local LOAD=$(grep -a "total loaded" "$SHM/$L.log" | head -1 | sed -E 's/.*: ([0-9,]+) particles.*/\1/')
   echo "RESULT label=$L rc=$RC steady_fps=${FPS:-nan} drift=${DRIFT:-nan} stamps=${STAMPS:-nan} particles=${LOAD:-nan} wall=$(( $(date +%s) - TA ))s $(date +%T)"
   grep -aE "Traceback|Error" "$SHM/$L.log" | head -2

@@ -11,8 +11,10 @@
 #   on every run (per-GPU A/B/C/gaps at f2000, f3000).  Topology add-on: 64M K=2 on the cross-NUMA pair (3,4) x2.
 #   RESULT label format: <size>_k<K>_ref_t<T>_g<G> (reference GPU G) / <size>_k<K>_run_t<T> / <size>_k2x_ref_t<T>_g<G>,
 #   <size>_k2x_run_t<T> for the cross-NUMA pair.
+# v6 (2026-10-05, E6b): v6 solver (experiment/v6/_run_v6_chain_bench.py), V6_* switches; the switches
+# that are v6 code defaults (the release set, docs/seam_audit/v6_opt.md) are no longer exported.
 set -u
-COMMIT=${COMMIT:-367706a}
+COMMIT=${COMMIT:-63c5e43}
 source ~/run/tools/env.sh
 export MPLCONFIGDIR=/dev/shm/scxm138/mplconfig; mkdir -p "$MPLCONFIGDIR"
 cd ~/run/vulkan-demo
@@ -22,11 +24,12 @@ echo "=== node $(hostname) job $SLURM_JOB_ID probe36_ksweep commit=$(timeout 30 
 nvidia-smi --query-gpu=index,name,pci.bus_id,power.limit --format=csv,noheader | head -8
 echo "--- nvidia-smi topo -m ---"; nvidia-smi topo -m 2>/dev/null | head -14
 CPUL=(); SYS=""; for bus in $(nvidia-smi --query-gpu=pci.bus_id --format=csv,noheader | sed 's/^0000//' | tr 'A-Z' 'a-z'); do p=/sys/bus/pci/devices/$bus; n=$(cat $p/numa_node 2>/dev/null || echo 0); [ "$n" -lt 0 ] && n=0; CPUL+=("$(cat /sys/devices/system/node/node$n/cpulist)"); [ -d "$p" ] && SYS="$SYS $p"; done
-AFF=""; for p in $SYS; do n=$(cat $p/numa_node); AFF="$AFF$(cat /sys/devices/system/node/node$n/cpulist);"; done; export V5_WORKER_AFFINITY="${AFF%;}"
-# explicit switches (do not rely on code defaults)
-export V5_FAST_SUBMIT=1 V5_CASCADE_FORCE=1 V5_BAND_VOXEL_DISPATCH=1 V5_PHASE_A_NO_WAIT=0 V5_PER_SIM_PIPELINE=0
-export V5_WORKER_COUNT_AWARE=1 V5_GHOST_POOL_FACTOR=0.25 V5_SWITCH_INTERVAL_MS=0.2 V5_SPLIT_TRANSFER_QUEUES=1 V5_RECEIVER_CACHED=0 V5_LOOP_TRACE=0 V5_BENCH_PARITY=1
-env | grep -E '^V5_' | sort | tr '\n' ' '; echo
+AFF=""; for p in $SYS; do n=$(cat $p/numa_node); AFF="$AFF$(cat /sys/devices/system/node/node$n/cpulist);"; done; export V6_WORKER_AFFINITY="${AFF%;}"
+# v6 code defaults = the release set (docs/seam_audit/v6_opt.md, E6b). Still exported: the per-node
+# worker affinity, the September 2-D ghost pool factor 0.25 (release default 0.29; v6 warns
+# below 1.2 (h/dx)^d slots per voxel) and the switch interval (read by the soak runner only).
+export V6_GHOST_POOL_FACTOR=0.25 V6_SWITCH_INTERVAL_MS=0.2
+env | grep -E '^V6_' | sort | tr '\n' ' '; echo
 nvidia-smi --query-gpu=timestamp,index,utilization.gpu,power.draw,temperature.gpu,clocks.current.sm --format=csv -l 5 > "$SHM/telemetry.csv" 2>/dev/null &
 TELEPID=$!
 
@@ -34,11 +37,11 @@ bench() {  # label case weights devmap [cpulist]  -> prints RESULT (anatomy in t
   local L=$1 C=$2 W=$3 D=$4 PREFIX=""
   [ -n "${5:-}" ] && PREFIX="taskset -c $5"
   local TA=$(date +%s)
-  $PREFIX python -c "import sys; sys.setswitchinterval(0.0002); import runpy; sys.argv=['x','--case','$C','--weights','$W','--device-map','$D','--depth','2','--pool-safety','1.2','--max-steps','3000','--warmup','1000','--anatomy','--no-seam-check']; runpy.run_path('experiment/v5/_run_v5_chain_bench.py', run_name='__main__')" > "$SHM/$L.log" 2>&1
+  $PREFIX python -c "import sys; sys.setswitchinterval(0.0002); import runpy; sys.argv=['x','--case','$C','--weights','$W','--device-map','$D','--depth','2','--pool-safety','1.2','--max-steps','3000','--warmup','1000','--anatomy','--no-seam-check']; runpy.run_path('experiment/v6/_run_v6_chain_bench.py', run_name='__main__')" > "$SHM/$L.log" 2>&1
   local RC=$?
   local FPS=$(grep -a "STEADY" "$SHM/$L.log" | sed -E 's/.*= ([0-9.]+) fps.*/\1/' | tail -1)
-  local DRIFT=$(grep -a "\[chain_v5\] final" "$SHM/$L.log" | sed -E 's/.*drift=([-0-9]+).*/\1/' | tail -1)
-  local STAMPS=$(grep -a "\[chain_v5\] final" "$SHM/$L.log" | sed -E 's/.*stamp_errors gpu=([0-9]+) host=([0-9]+).*/\1+\2/' | tail -1)
+  local DRIFT=$(grep -a "\[chain_v6\] final" "$SHM/$L.log" | sed -E 's/.*drift=([-0-9]+).*/\1/' | tail -1)
+  local STAMPS=$(grep -a "\[chain_v6\] final" "$SHM/$L.log" | sed -E 's/.*stamp_errors gpu=([0-9]+) host=([0-9]+).*/\1+\2/' | tail -1)
   echo "RESULT label=$L rc=$RC steady_fps=${FPS:-nan} drift=${DRIFT:-nan} stamps=${STAMPS:-nan} wall=$(( $(date +%s) - TA ))s $(date +%T)"
   grep -aE "Traceback|Error" "$SHM/$L.log" | head -2
 }

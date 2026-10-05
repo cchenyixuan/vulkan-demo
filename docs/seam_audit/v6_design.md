@@ -58,20 +58,23 @@ LAYERS=2:  [ G2 G1 | own 0 … own N−1 | G1 G2 ]
 - A3:ghost_send 在 kill 一个 migrant 之前 `store_departed`:原子分配一个槽(`departed_count`,同时更新 `peak_departed_count`),复制全部 10 个字段,`.w` 改成该粒子进入的 ghost voxel(本卡坐标)。池满则 `overflow_departed_count` 加 1。
 - C1b:`append_departed` 把每个 departed 粒子追加进它所在 ghost voxel 的 inside 表。此时 ghost 表刚被上传覆盖成对方的 replica,而对方打包 replica 时还没 install 这个粒子;追加之后本卡的 G1 列正好等于对方 install 之后的 column 0。修的是缺陷 2。
 - LAYERS=2 时 departed 粒子在 G1 列表里,C2 / C3 把它当 self 重算,C4 把它的 ρⁿ⁺¹, Pⁿ⁺¹ 拷进 primary,C5 读到的是新值。
-- 容量:默认 max(64, ⌈0.25 · face · 邻居侧数⌉);`V6_DEPARTED_CAPACITY` / `V6_DEPARTED_FACE_FRACTION` 覆盖。实测每帧峰值:2-D 2–5(容量 64–202),3-D 8M 197(容量 784)。
+- 容量:max(64, ⌈fraction · face · 邻居侧数⌉),fraction = `V6_DEPARTED_FACE_FRACTION`,默认 0.8(2-D)/ 0.64(3-D)(E6b 之前 0.25);`V6_DEPARTED_CAPACITY` 直接覆盖。实测每帧峰值:2-D 2–5(0.25 时容量 64–202),3-D 8M 197(0.25 时容量 784)。
 
 ### 1.4 开关
 
 | 开关 | 默认 | 作用 |
 |---|---|---|
-| `V6_KEEP_DEPARTED` | 0 | 1:departed 池 + `append_departed`(§1.3) |
-| `V6_GHOST_LAYERS` | 1 | 2:两列 ghost、replica 4 字段、G1 as self、C4 覆盖 G1 与 departed;要求 KEEP=1 且 band-voxel 派发 |
+| `V6_KEEP_DEPARTED` | 1(E6b 之前 0) | 1:departed 池 + `append_departed`(§1.3);0 = v5 的 seam |
+| `V6_GHOST_LAYERS` | 2(E6b 之前 1;未设且 KEEP=0 或 band-voxel 派发关时为 1) | 2:两列 ghost、replica 4 字段、G1 as self、C4 覆盖 G1 与 departed;要求 KEEP=1 且 band-voxel 派发 |
 | `V6_DEPARTED_CAPACITY` | 未设 | departed 池每 slab 槽数(覆盖下面的面积比例) |
-| `V6_DEPARTED_FACE_FRACTION` | 0.25 | 容量 = max(64, ⌈fraction · face · 邻居侧数⌉) |
-| `V6_DIAG_GHOST_SELF` | `correction,density` | 仅诊断:LAYERS=2 时哪些 band kernel 把 G1 当 self;去掉 `density` 就回到缺陷 1(只对 `V6_PACKED_REPLICAS=0` 成立:打包格式不带 G1 的 P,展开时写 0,所以打包时去掉 `density` 会被主机端拒绝,否则 C5 会读到 P = 0) |
+| `V6_DEPARTED_FACE_FRACTION` | 0.8(2-D)/ 0.64(3-D)(E6b 之前 0.25) | 容量 = max(64, ⌈fraction · face · 邻居侧数⌉) |
+| `V6_DIAG_GHOST_SELF` | `correction,density` | 仅诊断:LAYERS=2 时哪些 band kernel 把 G1 当 self;去掉 `density` 就回到缺陷 1(只对 `V6_PACKED_REPLICAS=0` 成立:打包格式不带 G1 的 P,展开时写 0,所以显式设 `V6_PACKED_REPLICAS=1` 时去掉 `density` 会被主机端拒绝,否则 C5 会读到 P = 0;未设时打包随之关闭) |
 | `V6_DIAG_POISON_G1` | 未设(`off`) | 仅诊断(E23):`pressure` = 展开时往每个 G1 replica 的 P 写 NaN(G1 的 Pⁿ 没人读,所以全场必须保持有限),`density` = 往 G1 的 ρ 写 NaN(阴性对照,必须出现 NaN);只作用于 `V6_PACKED_REPLICAS=1` 的展开路径,别的组合在主机端报错;spec 常量 99,为 0 时被折叠掉。用法见 `v6_opt.md`"G1 去 P" |
-| `V6_BAND_WIDTHS` | `2,3,4` | E26:correction / density / force 的 band 宽度(own 列数,= 各自分拆 pipeline 的 spec 82);主机端要求 c ≥ 2、d ≥ c、f ≥ d + 1;`V6_BAND_COMPACT_DISPATCH` 只支持 2/3/4,其他宽度一起开时报错。推荐 `2,2,3`,见 `v6_opt.md`"band 2/2/3" |
-| 继承自 v5(改名 `V6_`) | | `V6_GHOST_POOL_FACTOR`(默认 1;生产 2-D 0.25、3-D 1.0)、`V6_WORKER_COUNT_AWARE`(默认 0;生产 1)、`V6_SPLIT_TRANSFER_QUEUES`(默认 0;生产 1)、`V6_CASCADE_FORCE`(1)、`V6_BAND_VOXEL_DISPATCH`(1)、`V6_BAND_SLOT_LANES`(0)等,语义不变 |
+| `V6_BAND_WIDTHS` | `2,2,3`(E6b 之前 `2,3,4`;未设且 `V6_BAND_COMPACT_DISPATCH=1` 时 `2,3,4`) | E26:correction / density / force 的 band 宽度(own 列数,= 各自分拆 pipeline 的 spec 82);主机端要求 c ≥ 2、d ≥ c、f ≥ d + 1;`V6_BAND_COMPACT_DISPATCH` 只支持 2/3/4,其他宽度一起开时报错。见 `v6_opt.md`"band 2/2/3" |
+| 发布前优化(`v6_opt.md`) | | `V6_LEAN_TRANSPORT`、`V6_COMPACT_GHOST_LISTS`、`V6_INIT_SEAM_CLAMP`(默认 1)、`V6_PACKED_REPLICAS`(未设时在合法处开)、`V6_MIGRANT_POOL_FACTOR`(默认 2-D 0.05、3-D 0.02;未设而 `V6_GHOST_POOL_FACTOR` 显式设了时跟它);E6b 之前全部关、migrant 跟 ghost 因子 |
+| 继承自 v5(改名 `V6_`) | | `V6_GHOST_POOL_FACTOR`(默认 2-D 0.29、3-D 0.5;E6b 之前默认 1,生产 2-D 0.25、3-D 1.0)、`V6_WORKER_COUNT_AWARE`(默认 1;E6b 之前 0)、`V6_SPLIT_TRANSFER_QUEUES`(默认 1;E6b 之前 0)、`V6_CASCADE_FORCE`(1)、`V6_BAND_VOXEL_DISPATCH`(1)、`V6_BAND_SLOT_LANES`(默认 64;E6b 之前 0)等,语义不变 |
+
+E6b(2026-10-05)起默认就是 `v6_opt.md` 的推荐组合;E6b 之前的默认在 `partition_v6.LEGACY_DEFAULTS`,按旧默认定义配置的 seam_audit 与 v6 验证工具先钉住它,见 `v6_opt.md`"发布组合成为代码默认"。
 
 spec 常量:83 `GHOST_LAYERS`、84 `DEPARTED_POOL_SIZE`、85 `GHOST_SELF_LAYER`(按 pipeline,只有 correction / density 的 band 变体为 1)、86 `REPLICA_REGION_SIZE`。
 
