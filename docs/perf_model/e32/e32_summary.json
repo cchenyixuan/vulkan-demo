@@ -1,0 +1,6624 @@
+{
+ "nowait": {
+  "gate": [
+   {
+    "configuration": "cavity2d_1m_k2",
+    "horizon": 300,
+    "worst": 1.0611402211428478,
+    "pass": true,
+    "problems": [],
+    "column0_rms_ratio": {
+     "acceleration": 0.8215978169391934,
+     "shift": 0.9328616851924163,
+     "velocity": 1.0611402211428478,
+     "density": 0.745562972428243,
+     "pressure": 0.7455629699555413,
+     "kernel_sum": 0.8800557371856281
+    },
+    "second_pair_d0_rms_ratio": {
+     "acceleration": 1.0077778133674817,
+     "shift": 0.9469340615740678,
+     "density": 1.0551118756190367
+    },
+    "null_column0_rms_ratio": {
+     "acceleration": 0.8340317423797458,
+     "shift": 0.9358865655127848,
+     "velocity": 1.161124251292352,
+     "density": 0.8409684157005182,
+     "pressure": 0.8409683891056319,
+     "kernel_sum": 0.9390487663919024
+    },
+    "invariants_valid": true
+   },
+   {
+    "configuration": "cavity2d_1m_k2",
+    "horizon": 2000,
+    "worst": 9.804380577777053,
+    "pass": false,
+    "problems": [],
+    "column0_rms_ratio": {
+     "acceleration": 1.0185148245226718,
+     "shift": 0.6580841110771993,
+     "velocity": 0.6771323096835905,
+     "density": 0.40106839708714803,
+     "pressure": 0.4010681041236037,
+     "kernel_sum": 0.8468496150683422
+    },
+    "second_pair_d0_rms_ratio": {
+     "acceleration": 2.4037044083071875,
+     "shift": 0.6870620305238061,
+     "density": 9.804380577777053
+    },
+    "null_column0_rms_ratio": {
+     "acceleration": 1.1712839313053724,
+     "shift": 0.6881992842093141,
+     "velocity": 1.2905074802414913,
+     "density": 2.5544559551923927,
+     "pressure": 2.554455952416487,
+     "kernel_sum": 0.8624736483814959
+    },
+    "invariants_valid": true
+   },
+   {
+    "configuration": "cavity3d_1m_k2",
+    "horizon": 300,
+    "worst": 1.0216496131837391,
+    "pass": true,
+    "problems": [],
+    "column0_rms_ratio": {
+     "acceleration": 0.9440109776062251,
+     "shift": 0.9921479148406732,
+     "velocity": 1.0216496131837391,
+     "density": 0.9507378088945475,
+     "pressure": 0.9507402675657067,
+     "kernel_sum": 0.9960067107598374
+    },
+    "second_pair_d0_rms_ratio": {
+     "acceleration": 0.8938290215141977,
+     "shift": 0.99236764930642,
+     "density": 0.9051643431696806
+    },
+    "null_column0_rms_ratio": {
+     "acceleration": 0.9915273374953656,
+     "shift": 1.0023750662935473,
+     "velocity": 1.0313728994887594,
+     "density": 0.9956173395332331,
+     "pressure": 0.9956233509328358,
+     "kernel_sum": 0.9991968073062549
+    },
+    "invariants_valid": true
+   },
+   {
+    "configuration": "cavity3d_1m_k2",
+    "horizon": 2000,
+    "worst": 1.1785982099236505,
+    "pass": true,
+    "problems": [],
+    "column0_rms_ratio": {
+     "acceleration": 0.9084406620264077,
+     "shift": 0.9939078710643918,
+     "velocity": 0.7990874997814711,
+     "density": 0.9154896916279123,
+     "pressure": 0.9154886412370068,
+     "kernel_sum": 0.9921926969111765
+    },
+    "second_pair_d0_rms_ratio": {
+     "acceleration": 1.1323870306754578,
+     "shift": 1.002550310594373,
+     "density": 1.1785982099236505
+    },
+    "null_column0_rms_ratio": {
+     "acceleration": 0.938568243413879,
+     "shift": 0.9935072517152989,
+     "velocity": 0.9418203894987819,
+     "density": 1.3984740218024234,
+     "pressure": 1.3984803641888008,
+     "kernel_sum": 0.9951644949135133
+    },
+    "invariants_valid": true
+   },
+   {
+    "configuration": "cavity2d_1m_k4",
+    "horizon": 300,
+    "worst": 1.4665876938961813,
+    "pass": true,
+    "problems": [],
+    "column0_rms_ratio": {
+     "acceleration": 1.0415932956148344,
+     "shift": 0.9796741686944146,
+     "velocity": 1.4665876938961813,
+     "density": 0.999284106004759,
+     "pressure": 0.9993024290928341,
+     "kernel_sum": 0.94993899437495
+    },
+    "second_pair_d0_rms_ratio": {
+     "acceleration": 0.90917380269867,
+     "shift": 0.9901171521120609,
+     "density": 0.9563965045235316
+    },
+    "null_column0_rms_ratio": {
+     "acceleration": 0.9323299626637916,
+     "shift": 0.9888872275951426,
+     "velocity": 0.9980304185649884,
+     "density": 1.0151625713356762,
+     "pressure": 1.0151546914190734,
+     "kernel_sum": 1.0036854475172845
+    },
+    "invariants_valid": true
+   },
+   {
+    "configuration": "cavity2d_1m_k4",
+    "horizon": 2000,
+    "worst": 4.844647437359262,
+    "pass": false,
+    "problems": [],
+    "column0_rms_ratio": {
+     "acceleration": 1.2879616040004227,
+     "shift": 0.7303282777833496,
+     "velocity": 4.844647437359262,
+     "density": 3.0050409463684296,
+     "pressure": 3.0050877665722058,
+     "kernel_sum": 1.0441042529906572
+    },
+    "second_pair_d0_rms_ratio": {
+     "acceleration": 0.4035916973890625,
+     "shift": 1.1342994959991786,
+     "density": 0.16891463907698478
+    },
+    "null_column0_rms_ratio": {
+     "acceleration": 0.3998033760877439,
+     "shift": 0.6545984957391071,
+     "velocity": 0.4153256749998014,
+     "density": 0.16856652060245184,
+     "pressure": 0.1685668832258278,
+     "kernel_sum": 0.9227833523079051
+    },
+    "invariants_valid": true
+   }
+  ],
+  "ensemble": [
+   {
+    "configuration": "cavity2d_1m_k2",
+    "horizon": 300,
+    "runs": 12,
+    "max_cross_over_within0": 1.0733669063407856,
+    "max_at": [
+     "pressure",
+     "d1_3"
+    ],
+    "min_cross_over_within0": 0.8682451730066478,
+    "tests": 30,
+    "cross_p_below_005": 1,
+    "one_p_below_005": 0,
+    "min_cross_p": 0.030303030303030304,
+    "min_one_p": 0.12878787878787878,
+    "gate_fail_null_d0": 0.016666666666666666,
+    "gate_fail_test_d0": 0.022222222222222223,
+    "velocity_far": {
+     "cross": 6.215005099855146e-07,
+     "within_0": 6.202924196633509e-07,
+     "within_1": 6.375068536143385e-07
+    },
+    "density_d0": {
+     "cross": 6.230026591955097e-07,
+     "within_0": 7.175421771717263e-07,
+     "within_1": 5.877875664014716e-07
+    }
+   },
+   {
+    "configuration": "cavity2d_1m_k2",
+    "horizon": 2000,
+    "runs": 12,
+    "max_cross_over_within0": 1.2035791821632298,
+    "max_at": [
+     "density",
+     "d0"
+    ],
+    "min_cross_over_within0": 0.5479921652294713,
+    "tests": 30,
+    "cross_p_below_005": 0,
+    "one_p_below_005": 0,
+    "min_cross_p": 0.3225108225108225,
+    "min_one_p": 0.19264069264069264,
+    "gate_fail_null_d0": 0.25833333333333336,
+    "gate_fail_test_d0": 0.21666666666666667,
+    "velocity_far": {
+     "cross": 0.0002779132413365242,
+     "within_0": 0.00046099746530815213,
+     "within_1": 0.00028750734100189816
+    },
+    "density_d0": {
+     "cross": 4.12530073422466e-06,
+     "within_0": 3.42752749080466e-06,
+     "within_1": 4.949622309616095e-06
+    }
+   },
+   {
+    "configuration": "cavity3d_1m_k2",
+    "horizon": 300,
+    "runs": 12,
+    "max_cross_over_within0": 1.0158048879172683,
+    "max_at": [
+     "acceleration",
+     "d1_3"
+    ],
+    "min_cross_over_within0": 0.9755792541559486,
+    "tests": 30,
+    "cross_p_below_005": 1,
+    "one_p_below_005": 0,
+    "min_cross_p": 0.045454545454545456,
+    "min_one_p": 0.08225108225108226,
+    "gate_fail_null_d0": 0.0,
+    "gate_fail_test_d0": 0.0,
+    "velocity_far": {
+     "cross": 1.2133313967891072e-07,
+     "within_0": 1.2244498998219325e-07,
+     "within_1": 1.210123192778367e-07
+    },
+    "density_d0": {
+     "cross": 6.873216362628443e-08,
+     "within_0": 6.985872426355079e-08,
+     "within_1": 6.717200615558865e-08
+    }
+   },
+   {
+    "configuration": "cavity3d_1m_k2",
+    "horizon": 2000,
+    "runs": 12,
+    "max_cross_over_within0": 1.4137777543123753,
+    "max_at": [
+     "acceleration",
+     "d4_7"
+    ],
+    "min_cross_over_within0": 0.891076554572657,
+    "tests": 30,
+    "cross_p_below_005": 0,
+    "one_p_below_005": 0,
+    "min_cross_p": 0.07142857142857142,
+    "min_one_p": 0.1396103896103896,
+    "gate_fail_null_d0": 0.0,
+    "gate_fail_test_d0": 0.0,
+    "velocity_far": {
+     "cross": 2.7447481034407853e-05,
+     "within_0": 2.850341523764647e-05,
+     "within_1": 2.9329850831944087e-05
+    },
+    "density_d0": {
+     "cross": 1.2147850863350694e-07,
+     "within_0": 1.1303452802804447e-07,
+     "within_1": 1.2213671286654334e-07
+    }
+   },
+   {
+    "configuration": "cavity2d_1m_k4",
+    "horizon": 300,
+    "runs": 12,
+    "max_cross_over_within0": 1.2234231909823103,
+    "max_at": [
+     "velocity",
+     "d0"
+    ],
+    "min_cross_over_within0": 0.9313933651958202,
+    "tests": 30,
+    "cross_p_below_005": 0,
+    "one_p_below_005": 0,
+    "min_cross_p": 0.06926406926406926,
+    "min_one_p": 0.22835497835497837,
+    "gate_fail_null_d0": 0.16666666666666666,
+    "gate_fail_test_d0": 0.0,
+    "velocity_far": {
+     "cross": 3.8960612706540623e-07,
+     "within_0": 3.834333957905851e-07,
+     "within_1": 4.2158052366781786e-07
+    },
+    "density_d0": {
+     "cross": 4.79925425736757e-07,
+     "within_0": 4.651033546782483e-07,
+     "within_1": 4.986727307986417e-07
+    }
+   },
+   {
+    "configuration": "cavity2d_1m_k4",
+    "horizon": 2000,
+    "runs": 12,
+    "max_cross_over_within0": 1.072713759253992,
+    "max_at": [
+     "velocity",
+     "far"
+    ],
+    "min_cross_over_within0": 0.8025820099172117,
+    "tests": 30,
+    "cross_p_below_005": 0,
+    "one_p_below_005": 0,
+    "min_cross_p": 0.09523809523809523,
+    "min_one_p": 0.23160173160173161,
+    "gate_fail_null_d0": 0.31666666666666665,
+    "gate_fail_test_d0": 0.3333333333333333,
+    "velocity_far": {
+     "cross": 0.0005661875895268747,
+     "within_0": 0.0005278086392036438,
+     "within_1": 0.0006215843458791365
+    },
+    "density_d0": {
+     "cross": 8.177188947881829e-06,
+     "within_0": 9.728479683072537e-06,
+     "within_1": 9.570350431020946e-06
+    }
+   }
+  ]
+ },
+ "weights": {
+  "2d_1m_k2": {
+   "weights": [
+    1.0033638648239935,
+    0.9966361351760065
+   ],
+   "cuts": [
+    103
+   ],
+   "device_map": [
+    0,
+    1
+   ],
+   "seconds": 1.4815023997798562,
+   "rounds": [
+    {
+     "round": 1,
+     "weights": [
+      1.0,
+      1.0
+     ],
+     "cuts": [
+      103
+     ],
+     "own_columns": [
+      103,
+      103
+     ],
+     "fluid": [
+      501501,
+      500500
+     ],
+     "all": [
+      523776,
+      522753
+     ],
+     "busy_sim_p50_us": [
+      1171.0720000000001,
+      1176.6239999999998
+     ],
+     "busy_sim_p95_us": [
+      1621.1120000000012,
+      1185.9568
+     ],
+     "phase_p50_us": [
+      [
+       64.16,
+       872.592,
+       232.96
+      ],
+      [
+       71.75999999999999,
+       882.048,
+       223.52
+      ]
+     ],
+     "busy_device_us": {
+      "0": 1171.0720000000001,
+      "1": 1176.6239999999998
+     },
+     "device_method": {
+      "0": "median of T_A + T_B + T_C",
+      "1": "median of T_A + T_B + T_C"
+     },
+     "device_union": {},
+     "omega": [
+      1.0033638648239935,
+      0.9966361351760065
+     ],
+     "next_cuts": [
+      103
+     ],
+     "changed": false,
+     "pilot_steady_fps": 781.3273188050813,
+     "seconds": 1.3816317999735475
+    }
+   ],
+   "host": "DESKTOP-LDQTHT7",
+   "devices": [
+    {
+     "device_index": 0,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8"
+    },
+    {
+     "device_index": 1,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "ae137c668a40f5acaab90a83f7cda175"
+    }
+   ],
+   "commit": "1ece00845ba42c65bb73eab16d6a8f3ac46c3425",
+   "settings": {
+    "warmup": 200,
+    "steps": 300,
+    "rounds": 2,
+    "depth": 2,
+    "pool_safety": 1.2,
+    "sync_scheme": "per-direction",
+    "defrag_cadence": 1000
+   }
+  },
+  "2d_4m_k3": {
+   "weights": [
+    0.6908848652242711,
+    0.6967522526147107,
+    1.6123628821610183
+   ],
+   "cuts": [
+    97,
+    190
+   ],
+   "device_map": [
+    0,
+    0,
+    1
+   ],
+   "seconds": 11.60762619995512,
+   "rounds": [
+    {
+     "round": 1,
+     "weights": [
+      1.0,
+      1.0,
+      1.0
+     ],
+     "cuts": [
+      138,
+      272
+     ],
+     "own_columns": [
+      138,
+      134,
+      138
+     ],
+     "fluid": [
+      1332666,
+      1340670,
+      1330665
+     ],
+     "all": [
+      1406960,
+      1370150,
+      1404915
+     ],
+     "busy_sim_p50_us": [
+      4990.32,
+      5039.296,
+      2679.5200000000004
+     ],
+     "busy_sim_p95_us": [
+      7274.3712,
+      7696.150400000001,
+      2691.4384000000005
+     ],
+     "phase_p50_us": [
+      [
+       148.128,
+       4541.664,
+       288.08000000000004
+      ],
+      [
+       215.392,
+       4485.216,
+       312.16
+      ],
+      [
+       158.24,
+       2221.248,
+       299.744
+      ]
+     ],
+     "busy_device_us": {
+      "0": 5980.946773333333,
+      "1": 2679.5200000000004
+     },
+     "device_method": {
+      "0": "union of the sims' phase intervals per frame",
+      "1": "median of T_A + T_B + T_C"
+     },
+     "device_union": {
+      "0": {
+       "union_us": 5980.946773333333,
+       "span_per_frame_us": 6042.554026666667,
+       "sim_medians_us": [
+        4990.32,
+        5039.296
+       ]
+      }
+     },
+     "omega": [
+      0.7084242047128825,
+      0.7126790047411882,
+      1.5788967905459292
+     ],
+     "next_cuts": [
+      99,
+      194
+     ],
+     "changed": true,
+     "pilot_steady_fps": 164.84341606750237,
+     "seconds": 5.215390899917111
+    },
+    {
+     "round": 2,
+     "weights": [
+      0.7084242047128825,
+      0.7126790047411882,
+      1.5788967905459292
+     ],
+     "cuts": [
+      99,
+      194
+     ],
+     "own_columns": [
+      99,
+      95,
+      216
+     ],
+     "fluid": [
+      942471,
+      950475,
+      2111055
+     ],
+     "all": [
+      1008185,
+      971375,
+      2202465
+     ],
+     "busy_sim_p50_us": [
+      4262.896,
+      4261.664000000001,
+      4165.487999999999
+     ],
+     "busy_sim_p95_us": [
+      4387.100800000001,
+      4334.256,
+      4178.6032
+     ],
+     "phase_p50_us": [
+      [
+       102.912,
+       3893.392,
+       267.2
+      ],
+      [
+       166.56,
+       3803.264,
+       294.752
+      ],
+      [
+       229.952,
+       3615.888,
+       319.36
+      ]
+     ],
+     "busy_device_us": {
+      "0": 4340.017173333334,
+      "1": 4165.487999999999
+     },
+     "device_method": {
+      "0": "union of the sims' phase intervals per frame",
+      "1": "median of T_A + T_B + T_C"
+     },
+     "device_union": {
+      "0": {
+       "union_us": 4340.017173333334,
+       "span_per_frame_us": 4338.710186666667,
+       "sim_medians_us": [
+        4262.896,
+        4261.664000000001
+       ]
+      }
+     },
+     "omega": [
+      0.6908848652242711,
+      0.6967522526147107,
+      1.6123628821610183
+     ],
+     "next_cuts": [
+      97,
+      190
+     ],
+     "changed": true,
+     "pilot_steady_fps": 229.75403604846983,
+     "seconds": 6.272729299962521
+    }
+   ],
+   "host": "DESKTOP-LDQTHT7",
+   "devices": [
+    {
+     "device_index": 0,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8"
+    },
+    {
+     "device_index": 0,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8"
+    },
+    {
+     "device_index": 1,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "ae137c668a40f5acaab90a83f7cda175"
+    }
+   ],
+   "commit": "1ece00845ba42c65bb73eab16d6a8f3ac46c3425",
+   "settings": {
+    "warmup": 200,
+    "steps": 300,
+    "rounds": 2,
+    "depth": 2,
+    "pool_safety": 1.2,
+    "sync_scheme": "per-direction",
+    "defrag_cadence": 1000
+   }
+  },
+  "3d_8m_k2": {
+   "weights": [
+    0.978730896143293,
+    1.0212691038567068
+   ],
+   "cuts": [
+    27
+   ],
+   "device_map": [
+    0,
+    1
+   ],
+   "seconds": 52.89453519997187,
+   "rounds": [
+    {
+     "round": 1,
+     "weights": [
+      1.0,
+      1.0
+     ],
+     "cuts": [
+      28
+     ],
+     "own_columns": [
+      28,
+      28
+     ],
+     "fluid": [
+      4080501,
+      4040100
+     ],
+     "all": [
+      5275710,
+      5227749
+     ],
+     "busy_sim_p50_us": [
+      44221.408,
+      40875.664000000004
+     ],
+     "busy_sim_p95_us": [
+      48599.2912,
+      41305.563200000004
+     ],
+     "phase_p50_us": [
+      [
+       576.848,
+       38418.944,
+       5097.168
+      ],
+      [
+       596.3040000000001,
+       35204.208,
+       5087.616
+      ]
+     ],
+     "busy_device_us": {
+      "0": 44221.408,
+      "1": 40875.664000000004
+     },
+     "device_method": {
+      "0": "median of T_A + T_B + T_C",
+      "1": "median of T_A + T_B + T_C"
+     },
+     "device_union": {},
+     "omega": [
+      0.9656516122150524,
+      1.0343483877849475
+     ],
+     "next_cuts": [
+      27
+     ],
+     "changed": true,
+     "pilot_steady_fps": 22.340148585392363,
+     "seconds": 26.73916419991292
+    },
+    {
+     "round": 2,
+     "weights": [
+      0.9656516122150524,
+      1.0343483877849475
+     ],
+     "cuts": [
+      27
+     ],
+     "own_columns": [
+      27,
+      29
+     ],
+     "fluid": [
+      3918897,
+      4201704
+     ],
+     "all": [
+      5083866,
+      5419593
+     ],
+     "busy_sim_p50_us": [
+      42350.528,
+      43515.456000000006
+     ],
+     "busy_sim_p95_us": [
+      46537.648,
+      43678.1072
+     ],
+     "phase_p50_us": [
+      [
+       553.568,
+       36442.112,
+       5090.96
+      ],
+      [
+       614.816,
+       37737.36,
+       5170.512
+      ]
+     ],
+     "busy_device_us": {
+      "0": 42350.528,
+      "1": 43515.456000000006
+     },
+     "device_method": {
+      "0": "median of T_A + T_B + T_C",
+      "1": "median of T_A + T_B + T_C"
+     },
+     "device_union": {},
+     "omega": [
+      0.978730896143293,
+      1.0212691038567068
+     ],
+     "next_cuts": [
+      27
+     ],
+     "changed": false,
+     "pilot_steady_fps": 22.96172094361465,
+     "seconds": 26.049417400034145
+    }
+   ],
+   "host": "DESKTOP-LDQTHT7",
+   "devices": [
+    {
+     "device_index": 0,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8"
+    },
+    {
+     "device_index": 1,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "ae137c668a40f5acaab90a83f7cda175"
+    }
+   ],
+   "commit": "1ece00845ba42c65bb73eab16d6a8f3ac46c3425",
+   "settings": {
+    "warmup": 200,
+    "steps": 300,
+    "rounds": 2,
+    "depth": 2,
+    "pool_safety": 1.2,
+    "sync_scheme": "per-direction",
+    "defrag_cadence": 1000
+   }
+  },
+  "3d_8m_k2_matched": {
+   "weights": [
+    0.9815592984889342,
+    1.0184407015110657
+   ],
+   "cuts": [
+    27
+   ],
+   "device_map": [
+    0,
+    1
+   ],
+   "seconds": 52.47288049990311,
+   "rounds": [
+    {
+     "round": 1,
+     "weights": [
+      1.0,
+      1.0
+     ],
+     "cuts": [
+      28
+     ],
+     "own_columns": [
+      28,
+      28
+     ],
+     "fluid": [
+      4080501,
+      4040100
+     ],
+     "all": [
+      5275710,
+      5227749
+     ],
+     "busy_sim_p50_us": [
+      43643.263999999996,
+      41090.60800000001
+     ],
+     "busy_sim_p95_us": [
+      48006.95360000001,
+      41443.4976
+     ],
+     "phase_p50_us": [
+      [
+       572.416,
+       37787.168000000005,
+       5094.752
+      ],
+      [
+       588.592,
+       35358.928,
+       5141.7119999999995
+      ]
+     ],
+     "busy_device_us": {
+      "0": 43643.263999999996,
+      "1": 41090.60800000001
+     },
+     "device_method": {
+      "0": "median of T_A + T_B + T_C",
+      "1": "median of T_A + T_B + T_C"
+     },
+     "device_union": {},
+     "omega": [
+      0.9748457865732217,
+      1.0251542134267781
+     ],
+     "next_cuts": [
+      27
+     ],
+     "changed": true,
+     "pilot_steady_fps": 22.711131822611502,
+     "seconds": 26.39113279990852
+    },
+    {
+     "round": 2,
+     "weights": [
+      0.9748457865732217,
+      1.0251542134267781
+     ],
+     "cuts": [
+      27
+     ],
+     "own_columns": [
+      27,
+      29
+     ],
+     "fluid": [
+      3918897,
+      4201704
+     ],
+     "all": [
+      5083866,
+      5419593
+     ],
+     "busy_sim_p50_us": [
+      42197.615999999995,
+      43604.399999999994
+     ],
+     "busy_sim_p95_us": [
+      46498.620800000004,
+      43759.3152
+     ],
+     "phase_p50_us": [
+      [
+       552.864,
+       36190.864,
+       5114.528
+      ],
+      [
+       607.808,
+       37815.936,
+       5190.08
+      ]
+     ],
+     "busy_device_us": {
+      "0": 42197.615999999995,
+      "1": 43604.399999999994
+     },
+     "device_method": {
+      "0": "median of T_A + T_B + T_C",
+      "1": "median of T_A + T_B + T_C"
+     },
+     "device_union": {},
+     "omega": [
+      0.9815592984889342,
+      1.0184407015110657
+     ],
+     "next_cuts": [
+      27
+     ],
+     "changed": false,
+     "pilot_steady_fps": 22.913629099414603,
+     "seconds": 25.94240999990143
+    }
+   ],
+   "host": "DESKTOP-LDQTHT7",
+   "devices": [
+    {
+     "device_index": 0,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8"
+    },
+    {
+     "device_index": 1,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "ae137c668a40f5acaab90a83f7cda175"
+    }
+   ],
+   "commit": "1ece00845ba42c65bb73eab16d6a8f3ac46c3425",
+   "settings": {
+    "warmup": 200,
+    "steps": 300,
+    "rounds": 2,
+    "depth": 2,
+    "pool_safety": 1.2,
+    "sync_scheme": "per-direction",
+    "defrag_cadence": 1000
+   }
+  },
+  "3d_narrow_k2": {
+   "weights": [
+    0.9777838041480642,
+    1.0222161958519358
+   ],
+   "cuts": [
+    13
+   ],
+   "device_map": [
+    0,
+    1
+   ],
+   "seconds": 12.262469000183046,
+   "rounds": [
+    {
+     "round": 1,
+     "weights": [
+      1.0,
+      1.0
+     ],
+     "cuts": [
+      13
+     ],
+     "own_columns": [
+      13,
+      13
+     ],
+     "fluid": [
+      1858446,
+      1818045
+     ],
+     "all": [
+      2184050,
+      2140369
+     ],
+     "busy_sim_p50_us": [
+      19739.023999999998,
+      18470.576
+     ],
+     "busy_sim_p95_us": [
+      22394.1216,
+      18582.6544
+     ],
+     "phase_p50_us": [
+      [
+       295.456,
+       14507.952000000001,
+       4634.096
+      ],
+      [
+       312.304,
+       13534.752,
+       4620.896
+      ]
+     ],
+     "busy_device_us": {
+      "0": 19739.023999999998,
+      "1": 18470.576
+     },
+     "device_method": {
+      "0": "median of T_A + T_B + T_C",
+      "1": "median of T_A + T_B + T_C"
+     },
+     "device_union": {},
+     "omega": [
+      0.9777838041480642,
+      1.0222161958519358
+     ],
+     "next_cuts": [
+      13
+     ],
+     "changed": false,
+     "pilot_steady_fps": 49.85797208882781,
+     "seconds": 12.188748800195754
+    }
+   ],
+   "host": "DESKTOP-LDQTHT7",
+   "devices": [
+    {
+     "device_index": 0,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8"
+    },
+    {
+     "device_index": 1,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "ae137c668a40f5acaab90a83f7cda175"
+    }
+   ],
+   "commit": "1ece00845ba42c65bb73eab16d6a8f3ac46c3425",
+   "settings": {
+    "warmup": 200,
+    "steps": 300,
+    "rounds": 2,
+    "depth": 2,
+    "pool_safety": 1.2,
+    "sync_scheme": "per-direction",
+    "defrag_cadence": 1000
+   }
+  }
+ },
+ "eta": {
+  "2d_1m": {
+   "trials": [
+    {
+     "trial": 1,
+     "k1": [
+      530.9,
+      550.8
+     ],
+     "equal": 778.5,
+     "auto": 781.3,
+     "eta_equal": 0.7197004714800778,
+     "eta_auto": 0.7222889895534808,
+     "eta_min_equal": 0.7331889244678848,
+     "eta_min_auto": 0.7358259559239028,
+     "auto_over_equal": 1.0035966602440591,
+     "invariants": [
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      }
+     ]
+    },
+    {
+     "trial": 2,
+     "k1": [
+      529.2,
+      551.3
+     ],
+     "equal": 781.8,
+     "auto": 790.8,
+     "eta_equal": 0.7235539102267469,
+     "eta_auto": 0.7318833873206848,
+     "eta_min_equal": 0.7386621315192743,
+     "eta_min_auto": 0.7471655328798185,
+     "auto_over_equal": 1.0115118956254796,
+     "invariants": [
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      }
+     ]
+    },
+    {
+     "trial": 3,
+     "k1": [
+      534.9,
+      552.6
+     ],
+     "equal": 790.4,
+     "auto": 795.6,
+     "eta_equal": 0.7268045977011494,
+     "eta_auto": 0.7315862068965517,
+     "eta_min_equal": 0.7388296877921107,
+     "eta_min_auto": 0.743690409422322,
+     "auto_over_equal": 1.006578947368421,
+     "invariants": [
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      }
+     ]
+    }
+   ],
+   "eta_equal_mean": 0.7233529931359913,
+   "eta_equal_std": 0.0035563222715675664,
+   "eta_auto_mean": 0.728586194590239,
+   "eta_auto_std": 0.005455563445452082,
+   "eta_min_equal_mean": 0.7368935812597566,
+   "eta_min_equal_std": 0.003209420545100502,
+   "eta_min_auto_mean": 0.742227299408681,
+   "eta_min_auto_std": 0.005809648833517897,
+   "auto_over_equal_mean": 1.0072291677459866,
+   "auto_over_equal_std": 0.003997477666025634,
+   "equal_mean": 783.5666666666666,
+   "equal_std": 6.143560314128385,
+   "auto_mean": 789.2333333333332,
+   "auto_std": 7.27759117657304,
+   "k1_mean": [
+    531.6666666666666,
+    551.5666666666666
+   ]
+  },
+  "3d_narrow": {
+   "trials": [
+    {
+     "trial": 1,
+     "k1": [
+      25.52974214960429,
+      26.77376171352075
+     ],
+     "equal": 44.964028776978424,
+     "auto": 44.85310607759587,
+     "eta_equal": 0.8596752694551104,
+     "eta_auto": 0.8575545186221866,
+     "eta_min_equal": 0.8806205035971224,
+     "eta_min_auto": 0.8784480825297151,
+     "auto_over_equal": 0.997533079165732,
+     "invariants": [
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      }
+     ]
+    },
+    {
+     "trial": 2,
+     "k1": [
+      26.925148088314486,
+      26.75227394328518
+     ],
+     "equal": 44.91354143274197,
+     "auto": 44.76275738585497,
+     "eta_equal": 0.8367305979467786,
+     "eta_auto": 0.8339215202902877,
+     "eta_min_equal": 0.8394340893779475,
+     "eta_min_auto": 0.8366159355416294,
+     "auto_over_equal": 0.9966427931960609,
+     "invariants": [
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      }
+     ]
+    },
+    {
+     "trial": 3,
+     "k1": [
+      26.89256420599704,
+      26.74869600106995
+     ],
+     "equal": 47.89272030651341,
+     "auto": 47.973135044375155,
+     "eta_equal": 0.8928336157956961,
+     "eta_auto": 0.8943327367624915,
+     "eta_min_equal": 0.8952346743295019,
+     "eta_min_auto": 0.8967378268169826,
+     "auto_over_equal": 1.0016790597265532,
+     "invariants": [
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      }
+     ]
+    }
+   ],
+   "eta_equal_mean": 0.8630798277325283,
+   "eta_equal_std": 0.02820603509423541,
+   "eta_auto_mean": 0.8619362585583219,
+   "eta_auto_std": 0.030443037012818055,
+   "eta_min_equal_mean": 0.871763089101524,
+   "eta_min_equal_std": 0.028935560542246934,
+   "eta_min_auto_mean": 0.8706006149627757,
+   "eta_min_auto_std": 0.030819596250469785,
+   "auto_over_equal_mean": 0.9986183106961154,
+   "auto_over_equal_std": 0.0026878040753453643,
+   "equal_mean": 45.923430172077936,
+   "equal_std": 1.7056420984985923,
+   "auto_mean": 45.86299950260866,
+   "auto_std": 1.8279892573520355,
+   "k1_mean": [
+    26.449151481305268,
+    26.758243885958624
+   ]
+  },
+  "3d_8m": {
+   "trials": [
+    {
+     "trial": 1,
+     "k1": [
+      12.048192771084338,
+      11.916110581506196
+     ],
+     "equal": 22.75830678197542,
+     "auto": 22.13368747233289,
+     "eta_equal": 0.949675291917687,
+     "eta_auto": 0.9236107199394238,
+     "eta_min_equal": 0.9549385525716887,
+     "eta_min_auto": 0.9287295263390881,
+     "auto_over_equal": 0.9725542275343072,
+     "invariants": [
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      }
+     ]
+    },
+    {
+     "trial": 2,
+     "k1": [
+      12.006243246488173,
+      11.879306248515086
+     ],
+     "equal": 22.747952684258415,
+     "auto": 22.08968411751712,
+     "eta_equal": 0.9523730106781582,
+     "eta_auto": 0.9248137298301708,
+     "eta_min_equal": 0.9574613284804367,
+     "eta_min_auto": 0.9297548045062957,
+     "auto_over_equal": 0.9710625138060527,
+     "invariants": [
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      }
+     ]
+    },
+    {
+     "trial": 3,
+     "k1": [
+      11.917530687641522,
+      11.892020454275182
+     ],
+     "equal": 22.779043280182233,
+     "auto": 22.045855379188712,
+     "eta_equal": 0.9567187194923528,
+     "eta_auto": 0.9259248630007558,
+     "eta_min_equal": 0.9577448747152619,
+     "eta_min_auto": 0.9269179894179894,
+     "auto_over_equal": 0.9678130511463845,
+     "invariants": [
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      },
+      {
+       "drift": 0,
+       "overflow_total": 0,
+       "stamp_errors": 0,
+       "far_migration_total": 0
+      }
+     ]
+    }
+   ],
+   "eta_equal_mean": 0.952922340696066,
+   "eta_equal_std": 0.0035537009724119443,
+   "eta_auto_mean": 0.9247831042567835,
+   "eta_auto_std": 0.0011573754669020708,
+   "eta_min_equal_mean": 0.956714918589129,
+   "eta_min_equal_std": 0.001544897015259841,
+   "eta_min_auto_mean": 0.928467440087791,
+   "eta_min_auto_std": 0.0014364528755408917,
+   "auto_over_equal_mean": 0.9704765974955815,
+   "auto_over_equal_std": 0.0024242858386556054,
+   "equal_mean": 22.76176758213869,
+   "equal_std": 0.015831586845673068,
+   "auto_mean": 22.08974232301291,
+   "auto_std": 0.04391607550125291,
+   "k1_mean": [
+    11.990655568404678,
+    11.895812428098822
+   ]
+  }
+ },
+ "wait": {
+  "2d_1m": {
+   "auto": {
+    "sims": [
+     {
+      "sim": 0.0,
+      "own_columns": 103,
+      "n_B": 508423,
+      "own_particles": 523768,
+      "T_B_p50_us": 878.632,
+      "b_to_c_p50_us": 7.872,
+      "b_to_c_mean_us": 30.0599035,
+      "b_to_c_p95_us": 50.836149999999954,
+      "period_mean_us": 1224.934323661831,
+      "period_p50_us": 1198.059
+     },
+     {
+      "sim": 1.0,
+      "own_columns": 103,
+      "n_B": 507416,
+      "own_particles": 522761,
+      "T_B_p50_us": 893.226,
+      "b_to_c_p50_us": 6.368,
+      "b_to_c_mean_us": 20.421641499999996,
+      "b_to_c_p95_us": 9.344,
+      "period_mean_us": 1225.2503631815907,
+      "period_p50_us": 1205.966
+     }
+    ],
+    "steady_fps": 813.0535090549747,
+    "weights": [
+     1.0033638648239935,
+     0.9966361351760065
+    ],
+    "cuts": [
+     103
+    ],
+    "exposed_steps_fraction": 0.0775,
+    "exposure_mean_us": 20.179862,
+    "r_chain_worst_p50": 0.22720430969278127
+   },
+   "equal": {
+    "sims": [
+     {
+      "sim": 0.0,
+      "own_columns": 103,
+      "n_B": 508423,
+      "own_particles": 523768,
+      "T_B_p50_us": 880.1510000000001,
+      "b_to_c_p50_us": 6.944,
+      "b_to_c_mean_us": 28.092106,
+      "b_to_c_p95_us": 37.41279999999996,
+      "period_mean_us": 1227.3050790395196,
+      "period_p50_us": 1198.474
+     },
+     {
+      "sim": 1.0,
+      "own_columns": 103,
+      "n_B": 507416,
+      "own_particles": 522761,
+      "T_B_p50_us": 891.0175,
+      "b_to_c_p50_us": 4.544,
+      "b_to_c_mean_us": 22.53566,
+      "b_to_c_p95_us": 9.152,
+      "period_mean_us": 1227.581252126063,
+      "period_p50_us": 1203.086
+     }
+    ],
+    "steady_fps": 811.2631886379736,
+    "weights": [
+     1.0,
+     1.0
+    ],
+    "cuts": [
+     103
+    ],
+    "exposed_steps_fraction": 0.0485,
+    "exposure_mean_us": 23.042807,
+    "r_chain_worst_p50": 0.23149551066478083
+   }
+  },
+  "3d_8m": {
+   "auto": {
+    "sims": [
+     {
+      "sim": 0.0,
+      "own_columns": 27,
+      "n_B": 4507735,
+      "own_particles": 5083266,
+      "T_B_p50_us": 38111.012,
+      "b_to_c_p50_us": 4.768,
+      "b_to_c_mean_us": 5.854404,
+      "b_to_c_p95_us": 8.736,
+      "period_mean_us": 45206.03233833834,
+      "period_p50_us": 45010.254
+     },
+     {
+      "sim": 1.0,
+      "own_columns": 29,
+      "n_B": 4844661,
+      "own_particles": 5420193,
+      "T_B_p50_us": 38270.653000000006,
+      "b_to_c_p50_us": 5.376,
+      "b_to_c_mean_us": 248.827934,
+      "b_to_c_p95_us": 1651.1866499999971,
+      "period_mean_us": 45170.88537237237,
+      "period_p50_us": 45016.368
+     }
+    ],
+    "steady_fps": 22.062642832369377,
+    "weights": [
+     0.978730896143293,
+     1.0212691038567068
+    ],
+    "cuts": [
+     27
+    ],
+    "exposed_steps_fraction": 0.117,
+    "exposure_mean_us": 237.33447600000002,
+    "r_chain_worst_p50": 0.10154839259483558
+   },
+   "equal": {
+    "sims": [
+     {
+      "sim": 0.0,
+      "own_columns": 28,
+      "n_B": 4699579,
+      "own_particles": 5275111,
+      "T_B_p50_us": 39726.843,
+      "b_to_c_p50_us": 7.072,
+      "b_to_c_mean_us": 7.74613,
+      "b_to_c_p95_us": 8.832,
+      "period_mean_us": 46773.74556256256,
+      "period_p50_us": 46663.432
+     },
+     {
+      "sim": 1.0,
+      "own_columns": 28,
+      "n_B": 4652817,
+      "own_particles": 5228348,
+      "T_B_p50_us": 35959.816000000006,
+      "b_to_c_p50_us": 3907.6245,
+      "b_to_c_mean_us": 4188.099613,
+      "b_to_c_p95_us": 9096.1827,
+      "period_mean_us": 46734.4382012012,
+      "period_p50_us": 46571.445
+     }
+    ],
+    "steady_fps": 21.321420538223297,
+    "weights": [
+     1.0,
+     1.0
+    ],
+    "cuts": [
+     28
+    ],
+    "exposed_steps_fraction": 0.93,
+    "exposure_mean_us": 4135.624592,
+    "r_chain_worst_p50": 0.10379279762109986
+   }
+  },
+  "3d_narrow": {
+   "auto": {
+    "sims": [
+     {
+      "sim": 0.0,
+      "own_columns": 13,
+      "n_B": 1659277,
+      "own_particles": 2183451,
+      "T_B_p50_us": 14568.3975,
+      "b_to_c_p50_us": 4.672,
+      "b_to_c_mean_us": 4.874510999999999,
+      "b_to_c_p95_us": 5.735999999999993,
+      "period_mean_us": 20872.05275237619,
+      "period_p50_us": 20785.148
+     },
+     {
+      "sim": 1.0,
+      "own_columns": 13,
+      "n_B": 1616798,
+      "own_particles": 2140968,
+      "T_B_p50_us": 14503.382,
+      "b_to_c_p50_us": 8.48,
+      "b_to_c_mean_us": 178.2290765,
+      "b_to_c_p95_us": 1215.0424499999976,
+      "period_mean_us": 20866.485769384693,
+      "period_p50_us": 20783.451
+     }
+    ],
+    "steady_fps": 47.85929638694237,
+    "weights": [
+     0.9777838041480642,
+     1.0222161958519358
+    ],
+    "cuts": [
+     13
+    ],
+    "exposed_steps_fraction": 0.2385,
+    "exposure_mean_us": 161.5038445,
+    "r_chain_worst_p50": 0.20867656844053117
+   },
+   "equal": {
+    "sims": [
+     {
+      "sim": 0.0,
+      "own_columns": 13,
+      "n_B": 1659277,
+      "own_particles": 2183451,
+      "T_B_p50_us": 14569.630000000001,
+      "b_to_c_p50_us": 4.8,
+      "b_to_c_mean_us": 5.2691245,
+      "b_to_c_p95_us": 7.904,
+      "period_mean_us": 20842.202975487744,
+      "period_p50_us": 20752.412
+     },
+     {
+      "sim": 1.0,
+      "own_columns": 13,
+      "n_B": 1616798,
+      "own_particles": 2140968,
+      "T_B_p50_us": 14411.065,
+      "b_to_c_p50_us": 8.704,
+      "b_to_c_mean_us": 165.9134925,
+      "b_to_c_p95_us": 1018.4638499999938,
+      "period_mean_us": 20836.520382191095,
+      "period_p50_us": 20746.72
+     }
+    ],
+    "steady_fps": 47.93002182313051,
+    "weights": [
+     1.0,
+     1.0
+    ],
+    "cuts": [
+     13
+    ],
+    "exposed_steps_fraction": 0.262,
+    "exposure_mean_us": 148.60468,
+    "r_chain_worst_p50": 0.20780986356219255
+   }
+  }
+ },
+ "k3": {
+  "trials": [
+   {
+    "trial": 1,
+    "equal": 166.7,
+    "equal_invariants": {
+     "drift": 0,
+     "overflow_total": 0,
+     "stamp_errors": 0,
+     "far_migration_total": 0
+    },
+    "auto": 229.8,
+    "auto_invariants": {
+     "drift": 0,
+     "overflow_total": 0,
+     "stamp_errors": 0,
+     "far_migration_total": 0
+    }
+   },
+   {
+    "trial": 2,
+    "equal": 166.6,
+    "equal_invariants": {
+     "drift": 0,
+     "overflow_total": 0,
+     "stamp_errors": 0,
+     "far_migration_total": 0
+    },
+    "auto": 229.8,
+    "auto_invariants": {
+     "drift": 0,
+     "overflow_total": 0,
+     "stamp_errors": 0,
+     "far_migration_total": 0
+    }
+   }
+  ],
+  "equal_mean": 166.64999999999998,
+  "auto_mean": 229.8,
+  "auto_over_equal": 1.3789378937893793
+ },
+ "tracecost": {
+  "trials": [
+   {
+    "trial": 1,
+    "off": [
+     11.427265455376528,
+     12.081672103419114
+    ],
+    "off_desktop_awake": true,
+    "on": [
+     11.380962210248645,
+     12.044387151038682
+    ],
+    "on_desktop_awake": true
+   },
+   {
+    "trial": 2,
+    "off": [
+     11.425959780621573,
+     12.080212611741967
+    ],
+    "off_desktop_awake": true,
+    "on": [
+     11.40962947465985,
+     12.072133455301639
+    ],
+    "on_desktop_awake": true
+   }
+  ],
+  "gpu0_on_over_off": 0.9972593123971426,
+  "gpu1_on_over_off": 0.9981224929530315
+ },
+ "matched": {
+  "trials": [
+   {
+    "trial": 1,
+    "equal": 21.240441801189466,
+    "equal_desktop_awake": true,
+    "auto": 21.953896816684964,
+    "auto_desktop_awake": true,
+    "auto_over_equal": 1.033589462129528
+   },
+   {
+    "trial": 2,
+    "equal": 21.29471890971039,
+    "equal_desktop_awake": true,
+    "auto": 21.8435998252512,
+    "auto_desktop_awake": true,
+    "auto_over_equal": 1.0257754477937964
+   },
+   {
+    "trial": 3,
+    "equal": 21.331058020477816,
+    "equal_desktop_awake": true,
+    "auto": 21.85792349726776,
+    "auto_desktop_awake": true,
+    "auto_over_equal": 1.0246994535519125
+   }
+  ],
+  "weights": [
+   0.9815592984889342,
+   1.0184407015110657
+  ],
+  "cuts": [
+   27
+  ],
+  "rounds": [
+   {
+    "cuts": [
+     28
+    ],
+    "busy_us": [
+     43643.263999999996,
+     41090.60800000001
+    ],
+    "fluid": [
+     4080501,
+     4040100
+    ],
+    "all": [
+     5275710,
+     5227749
+    ],
+    "omega": [
+     0.9748457865732217,
+     1.0251542134267781
+    ],
+    "next_cuts": [
+     27
+    ],
+    "pilot_steady_fps": 22.711131822611502
+   },
+   {
+    "cuts": [
+     27
+    ],
+    "busy_us": [
+     42197.615999999995,
+     43604.399999999994
+    ],
+    "fluid": [
+     3918897,
+     4201704
+    ],
+    "all": [
+     5083866,
+     5419593
+    ],
+    "omega": [
+     0.9815592984889342,
+     1.0184407015110657
+    ],
+    "next_cuts": [
+     27
+    ],
+    "pilot_steady_fps": 22.913629099414603
+   }
+  ],
+  "auto_over_equal_mean": 1.0280214544917456,
+  "auto_over_equal_std": 0.004851955553479892
+ },
+ "gpu0_timeline": {
+  "origin": "03:48:19",
+  "states": [
+   {
+    "minute": 0.0,
+    "awake": true,
+    "power_w": 43.58,
+    "clock_mhz": 1080.0,
+    "run": "calibrate/2d_1m/k2"
+   },
+   {
+    "minute": 0.11666666666666667,
+    "awake": true,
+    "power_w": 42.22,
+    "clock_mhz": 1087.0,
+    "run": "calibrate/3d_narrow/k2"
+   },
+   {
+    "minute": 0.45,
+    "awake": true,
+    "power_w": 41.99,
+    "clock_mhz": 937.0,
+    "run": "calibrate/3d_8m/k2"
+   },
+   {
+    "minute": 1.5333333333333334,
+    "awake": true,
+    "power_w": 46.64,
+    "clock_mhz": 795.0,
+    "run": "eta/2d_1m/t1/k1"
+   },
+   {
+    "minute": 1.75,
+    "awake": true,
+    "power_w": 46.54,
+    "clock_mhz": 727.0,
+    "run": "eta/2d_1m/t1/equal"
+   },
+   {
+    "minute": 1.9333333333333333,
+    "awake": true,
+    "power_w": 41.28,
+    "clock_mhz": 742.0,
+    "run": "eta/2d_1m/t1/auto"
+   },
+   {
+    "minute": 2.1166666666666667,
+    "awake": true,
+    "power_w": 42.75,
+    "clock_mhz": 795.0,
+    "run": "eta/2d_1m/t2/auto"
+   },
+   {
+    "minute": 2.3,
+    "awake": true,
+    "power_w": 43.04,
+    "clock_mhz": 915.0,
+    "run": "eta/2d_1m/t2/equal"
+   },
+   {
+    "minute": 2.4833333333333334,
+    "awake": true,
+    "power_w": 42.93,
+    "clock_mhz": 982.0,
+    "run": "eta/2d_1m/t2/k1"
+   },
+   {
+    "minute": 2.7,
+    "awake": true,
+    "power_w": 44.99,
+    "clock_mhz": 765.0,
+    "run": "eta/2d_1m/t3/k1"
+   },
+   {
+    "minute": 2.9166666666666665,
+    "awake": true,
+    "power_w": 44.91,
+    "clock_mhz": 645.0,
+    "run": "eta/2d_1m/t3/auto"
+   },
+   {
+    "minute": 3.0833333333333335,
+    "awake": true,
+    "power_w": 39.12,
+    "clock_mhz": 855.0,
+    "run": "eta/2d_1m/t3/equal"
+   },
+   {
+    "minute": 3.2666666666666666,
+    "awake": true,
+    "power_w": 41.51,
+    "clock_mhz": 735.0,
+    "run": "eta/3d_narrow/t1/k1"
+   },
+   {
+    "minute": 5.4,
+    "awake": true,
+    "power_w": 43.86,
+    "clock_mhz": 825.0,
+    "run": "eta/3d_narrow/t1/equal"
+   },
+   {
+    "minute": 6.7,
+    "awake": true,
+    "power_w": 44.56,
+    "clock_mhz": 1140.0,
+    "run": "eta/3d_narrow/t1/auto"
+   },
+   {
+    "minute": 8.0,
+    "awake": true,
+    "power_w": 41.62,
+    "clock_mhz": 1117.0,
+    "run": "eta/3d_narrow/t2/auto"
+   },
+   {
+    "minute": 9.283333333333333,
+    "awake": true,
+    "power_w": 45.67,
+    "clock_mhz": 1080.0,
+    "run": "eta/3d_narrow/t2/equal"
+   },
+   {
+    "minute": 10.583333333333334,
+    "awake": true,
+    "power_w": 45.07,
+    "clock_mhz": 1110.0,
+    "run": "eta/3d_narrow/t2/k1"
+   },
+   {
+    "minute": 12.616666666666667,
+    "awake": false,
+    "power_w": 20.27,
+    "clock_mhz": 33.0,
+    "run": "eta/3d_narrow/t3/k1"
+   },
+   {
+    "minute": 14.666666666666666,
+    "awake": false,
+    "power_w": 24.89,
+    "clock_mhz": 28.0,
+    "run": "eta/3d_narrow/t3/auto"
+   },
+   {
+    "minute": 15.883333333333333,
+    "awake": false,
+    "power_w": 18.09,
+    "clock_mhz": 28.0,
+    "run": "eta/3d_narrow/t3/equal"
+   },
+   {
+    "minute": 17.1,
+    "awake": false,
+    "power_w": 18.86,
+    "clock_mhz": 36.0,
+    "run": "eta/3d_8m/t1/k1"
+   },
+   {
+    "minute": 20.233333333333334,
+    "awake": false,
+    "power_w": 16.96,
+    "clock_mhz": 28.0,
+    "run": "eta/3d_8m/t1/equal"
+   },
+   {
+    "minute": 22.0,
+    "awake": false,
+    "power_w": 18.75,
+    "clock_mhz": 36.0,
+    "run": "eta/3d_8m/t1/auto"
+   },
+   {
+    "minute": 23.8,
+    "awake": false,
+    "power_w": 18.86,
+    "clock_mhz": 34.0,
+    "run": "eta/3d_8m/t2/auto"
+   },
+   {
+    "minute": 25.616666666666667,
+    "awake": false,
+    "power_w": 18.84,
+    "clock_mhz": 34.0,
+    "run": "eta/3d_8m/t2/equal"
+   },
+   {
+    "minute": 27.383333333333333,
+    "awake": false,
+    "power_w": 18.22,
+    "clock_mhz": 28.0,
+    "run": "eta/3d_8m/t2/k1"
+   },
+   {
+    "minute": 30.516666666666666,
+    "awake": false,
+    "power_w": 18.25,
+    "clock_mhz": 39.0,
+    "run": "eta/3d_8m/t3/k1"
+   },
+   {
+    "minute": 33.65,
+    "awake": false,
+    "power_w": 17.95,
+    "clock_mhz": 48.0,
+    "run": "eta/3d_8m/t3/auto"
+   },
+   {
+    "minute": 35.46666666666667,
+    "awake": false,
+    "power_w": 17.56,
+    "clock_mhz": 36.0,
+    "run": "eta/3d_8m/t3/equal"
+   },
+   {
+    "minute": 37.21666666666667,
+    "awake": false,
+    "power_w": 18.29,
+    "clock_mhz": 41.0,
+    "run": "trace/2d_1m/equal"
+   },
+   {
+    "minute": 37.4,
+    "awake": false,
+    "power_w": 22.36,
+    "clock_mhz": 36.0,
+    "run": "trace/2d_1m/auto"
+   },
+   {
+    "minute": 37.583333333333336,
+    "awake": false,
+    "power_w": 21.26,
+    "clock_mhz": 36.0,
+    "run": "trace/3d_narrow/equal"
+   },
+   {
+    "minute": 38.81666666666667,
+    "awake": false,
+    "power_w": 17.85,
+    "clock_mhz": 36.0,
+    "run": "trace/3d_narrow/auto"
+   },
+   {
+    "minute": 40.03333333333333,
+    "awake": false,
+    "power_w": 19.51,
+    "clock_mhz": 56.0,
+    "run": "trace/3d_8m/equal"
+   },
+   {
+    "minute": 41.916666666666664,
+    "awake": true,
+    "power_w": 44.11,
+    "clock_mhz": 1140.0,
+    "run": "trace/3d_8m/auto"
+   },
+   {
+    "minute": 43.766666666666666,
+    "awake": true,
+    "power_w": 44.66,
+    "clock_mhz": 1200.0,
+    "run": "calibrate/2d_4m/k3"
+   },
+   {
+    "minute": 44.11666666666667,
+    "awake": true,
+    "power_w": 45.91,
+    "clock_mhz": 750.0,
+    "run": "k3/2d_4m/t1/equal"
+   },
+   {
+    "minute": 44.63333333333333,
+    "awake": true,
+    "power_w": 43.92,
+    "clock_mhz": 787.0,
+    "run": "k3/2d_4m/t1/auto"
+   },
+   {
+    "minute": 45.083333333333336,
+    "awake": true,
+    "power_w": 41.9,
+    "clock_mhz": 840.0,
+    "run": "k3/2d_4m/t2/equal"
+   },
+   {
+    "minute": 45.6,
+    "awake": true,
+    "power_w": 44.31,
+    "clock_mhz": 660.0,
+    "run": "k3/2d_4m/t2/auto"
+   },
+   {
+    "minute": 46.2,
+    "awake": true,
+    "power_w": 42.87,
+    "clock_mhz": 1072.0,
+    "run": "tracecost/3d_8m/t1/off"
+   },
+   {
+    "minute": 48.75,
+    "awake": true,
+    "power_w": 45.45,
+    "clock_mhz": 1117.0,
+    "run": "tracecost/3d_8m/t1/on"
+   },
+   {
+    "minute": 51.31666666666667,
+    "awake": true,
+    "power_w": 45.69,
+    "clock_mhz": 1335.0,
+    "run": "tracecost/3d_8m/t2/on"
+   },
+   {
+    "minute": 53.88333333333333,
+    "awake": true,
+    "power_w": 46.05,
+    "clock_mhz": 1110.0,
+    "run": "tracecost/3d_8m/t2/off"
+   },
+   {
+    "minute": 57.016666666666666,
+    "awake": true,
+    "power_w": 44.77,
+    "clock_mhz": 1117.0,
+    "run": "matched/3d_8m/calibrate"
+   },
+   {
+    "minute": 58.083333333333336,
+    "awake": true,
+    "power_w": 44.46,
+    "clock_mhz": 937.0,
+    "run": "matched/3d_8m/t1/equal"
+   },
+   {
+    "minute": 59.96666666666667,
+    "awake": true,
+    "power_w": 44.4,
+    "clock_mhz": 134.0,
+    "run": "matched/3d_8m/t1/auto"
+   },
+   {
+    "minute": 61.81666666666667,
+    "awake": true,
+    "power_w": 42.62,
+    "clock_mhz": 1147.0,
+    "run": "matched/3d_8m/t2/auto"
+   },
+   {
+    "minute": 63.666666666666664,
+    "awake": true,
+    "power_w": 47.6,
+    "clock_mhz": 1470.0,
+    "run": "matched/3d_8m/t2/equal"
+   },
+   {
+    "minute": 65.53333333333333,
+    "awake": true,
+    "power_w": 42.19,
+    "clock_mhz": 1155.0,
+    "run": "matched/3d_8m/t3/equal"
+   },
+   {
+    "minute": 67.41666666666667,
+    "awake": true,
+    "power_w": 44.61,
+    "clock_mhz": 1095.0,
+    "run": "matched/3d_8m/t3/auto"
+   }
+  ],
+  "points": [
+   {
+    "minute": 1.5333333333333334,
+    "source": "K=1 pair (2d_1m)",
+    "ratio": 0.9638707334785767,
+    "run": "eta/2d_1m/t1/k1"
+   },
+   {
+    "minute": 2.4833333333333334,
+    "source": "K=1 pair (2d_1m)",
+    "ratio": 0.9599129330672956,
+    "run": "eta/2d_1m/t2/k1"
+   },
+   {
+    "minute": 2.7,
+    "source": "K=1 pair (2d_1m)",
+    "ratio": 0.9679695982627577,
+    "run": "eta/2d_1m/t3/k1"
+   },
+   {
+    "minute": 3.2666666666666666,
+    "source": "K=1 pair (3d_narrow)",
+    "ratio": 0.9535358692877203,
+    "run": "eta/3d_narrow/t1/k1"
+   },
+   {
+    "minute": 10.583333333333334,
+    "source": "K=1 pair (3d_narrow)",
+    "ratio": 1.0064620355411955,
+    "run": "eta/3d_narrow/t2/k1"
+   },
+   {
+    "minute": 12.616666666666667,
+    "source": "K=1 pair (3d_narrow)",
+    "ratio": 1.0053785128411994,
+    "run": "eta/3d_narrow/t3/k1"
+   },
+   {
+    "minute": 17.1,
+    "source": "K=1 pair (3d_8m)",
+    "ratio": 1.0110843373493976,
+    "run": "eta/3d_8m/t1/k1"
+   },
+   {
+    "minute": 27.383333333333333,
+    "source": "K=1 pair (3d_8m)",
+    "ratio": 1.0106855564893746,
+    "run": "eta/3d_8m/t2/k1"
+   },
+   {
+    "minute": 30.516666666666666,
+    "source": "K=1 pair (3d_8m)",
+    "ratio": 1.0021451555237755,
+    "run": "eta/3d_8m/t3/k1"
+   },
+   {
+    "minute": 46.2,
+    "source": "K=1 pair (3d_8m)",
+    "ratio": 0.9458347617415152,
+    "run": "tracecost/3d_8m/t1/off"
+   },
+   {
+    "minute": 48.75,
+    "source": "K=1 pair (3d_8m)",
+    "ratio": 0.9449183314625664,
+    "run": "tracecost/3d_8m/t1/on"
+   },
+   {
+    "minute": 51.31666666666667,
+    "source": "K=1 pair (3d_8m)",
+    "ratio": 0.9451212179607871,
+    "run": "tracecost/3d_8m/t2/on"
+   },
+   {
+    "minute": 53.88333333333333,
+    "source": "K=1 pair (3d_8m)",
+    "ratio": 0.9458409506398539,
+    "run": "tracecost/3d_8m/t2/off"
+   },
+   {
+    "minute": 0.03333333333333333,
+    "source": "pilot (K=2)",
+    "ratio": 1.0067071802571002,
+    "run": "2d_1m_k2 round 1"
+   },
+   {
+    "minute": 1.45,
+    "source": "pilot (K=2)",
+    "ratio": 0.9328212727135039,
+    "run": "3d_8m_k2 round 1"
+   },
+   {
+    "minute": 1.45,
+    "source": "pilot (K=2)",
+    "ratio": 0.9638559472785286,
+    "run": "3d_8m_k2 round 2"
+   },
+   {
+    "minute": 58.0,
+    "source": "pilot (K=2)",
+    "ratio": 0.950148596930007,
+    "run": "3d_8m_k2_matched round 1"
+   },
+   {
+    "minute": 58.0,
+    "source": "pilot (K=2)",
+    "ratio": 0.9693259087877406,
+    "run": "3d_8m_k2_matched round 2"
+   },
+   {
+    "minute": 0.36666666666666664,
+    "source": "pilot (K=2)",
+    "ratio": 0.9548357877579079,
+    "run": "3d_narrow_k2 round 1"
+   },
+   {
+    "minute": 41.916666666666664,
+    "source": "traced K=2 run",
+    "ratio": 0.9369170385443651,
+    "run": "trace/3d_8m/auto"
+   },
+   {
+    "minute": 40.03333333333333,
+    "source": "traced K=2 run",
+    "ratio": 0.9191561920258797,
+    "run": "trace/3d_8m/equal"
+   },
+   {
+    "minute": 38.81666666666667,
+    "source": "traced K=2 run",
+    "ratio": 1.0163167351983569,
+    "run": "trace/3d_narrow/auto"
+   },
+   {
+    "minute": 37.583333333333336,
+    "source": "traced K=2 run",
+    "ratio": 1.0147226048080464,
+    "run": "trace/3d_narrow/equal"
+   }
+  ]
+ },
+ "walls": {
+  "2d_4m": {
+   "2": {
+    "cuts": [
+     203
+    ],
+    "n_B": [
+     2016931,
+     2014908
+    ],
+    "own": [
+     2047276,
+     2045253
+    ],
+    "fluid": [
+     2003001,
+     2001000
+    ],
+    "own_columns": [
+     203,
+     203
+    ],
+    "end_over_interior": 1.0005017561465128,
+    "own_end_over_interior": 1.0004943153732082,
+    "n_B_imbalance": 0.0005017561465128217
+   },
+   "4": {
+    "cuts": [
+     103,
+     203,
+     303
+    ],
+    "n_B": [
+     1005431,
+     950810,
+     950810,
+     1003408
+    ],
+    "own": [
+     1035776,
+     1011500,
+     1011500,
+     1033753
+    ],
+    "fluid": [
+     1002501,
+     1000500,
+     1000500,
+     1000500
+    ],
+    "own_columns": [
+     103,
+     100,
+     100,
+     103
+    ],
+    "end_over_interior": 1.0574468085106383,
+    "own_end_over_interior": 1.024,
+    "n_B_imbalance": 0.02845318158303156
+   },
+   "8": {
+    "cuts": [
+     53,
+     103,
+     153,
+     203,
+     253,
+     303,
+     353
+    ],
+    "n_B": [
+     499681,
+     445060,
+     445060,
+     445060,
+     445060,
+     445060,
+     445060,
+     497658
+    ],
+    "own": [
+     530026,
+     505750,
+     505750,
+     505750,
+     505750,
+     505750,
+     505750,
+     528003
+    ],
+    "fluid": [
+     502251,
+     500250,
+     500250,
+     500250,
+     500250,
+     500250,
+     500250,
+     500250
+    ],
+    "own_columns": [
+     53,
+     50,
+     50,
+     50,
+     50,
+     50,
+     50,
+     53
+    ],
+    "end_over_interior": 1.1227272727272728,
+    "own_end_over_interior": 1.048,
+    "n_B_imbalance": 0.08990623276337573
+   }
+  },
+  "2d_8m": {
+   "2": {
+    "cuts": [
+     286
+    ],
+    "n_B": [
+     4025612,
+     4017059
+    ],
+    "own": [
+     4068377,
+     4059824
+    ],
+    "fluid": [
+     4005864,
+     3997377
+    ],
+    "own_columns": [
+     286,
+     285
+    ],
+    "end_over_interior": 1.001063452676356,
+    "own_end_over_interior": 1.0010522623640827,
+    "n_B_imbalance": 0.0010634526763559915
+   },
+   "4": {
+    "cuts": [
+     144,
+     286,
+     427
+    ],
+    "n_B": [
+     2001402,
+     1938680,
+     1924425,
+     2007104
+    ],
+    "own": [
+     2044167,
+     2024210,
+     2009955,
+     2049869
+    ],
+    "fluid": [
+     1997274,
+     2008590,
+     1994445,
+     2002932
+    ],
+    "own_columns": [
+     144,
+     142,
+     141,
+     144
+    ],
+    "end_over_interior": 1.0391143911439114,
+    "own_end_over_interior": 1.0162544169611307,
+    "n_B_imbalance": 0.019920318725099584
+   },
+   "8": {
+    "cuts": [
+     74,
+     144,
+     215,
+     286,
+     356,
+     427,
+     498
+    ],
+    "n_B": [
+     1003552,
+     912320,
+     926575,
+     926575,
+     912320,
+     926575,
+     926575,
+     994999
+    ],
+    "own": [
+     1046317,
+     997850,
+     1012105,
+     1012105,
+     997850,
+     1012105,
+     1012105,
+     1037764
+    ],
+    "fluid": [
+     1007124,
+     990150,
+     1004295,
+     1004295,
+     990150,
+     1004295,
+     1004295,
+     998637
+    ],
+    "own_columns": [
+     74,
+     70,
+     71,
+     71,
+     70,
+     71,
+     71,
+     73
+    ],
+    "end_over_interior": 1.088659793814433,
+    "own_end_over_interior": 1.038679245283019,
+    "n_B_imbalance": 0.0662627792502839
+   }
+  },
+  "2d_16m": {
+   "2": {
+    "cuts": [
+     403
+    ],
+    "n_B": [
+     8033931,
+     8029908
+    ],
+    "own": [
+     8094276,
+     8090253
+    ],
+    "fluid": [
+     8006001,
+     8002000
+    ],
+    "own_columns": [
+     403,
+     403
+    ],
+    "end_over_interior": 1.0002504382669672,
+    "own_end_over_interior": 1.0002485707183695,
+    "n_B_imbalance": 0.0002504382669672456
+   },
+   "4": {
+    "cuts": [
+     203,
+     403,
+     603
+    ],
+    "n_B": [
+     4010931,
+     3902310,
+     3902310,
+     4006908
+    ],
+    "own": [
+     4071276,
+     4023000,
+     4023000,
+     4067253
+    ],
+    "fluid": [
+     4005001,
+     4001000,
+     4001000,
+     4001000
+    ],
+    "own_columns": [
+     203,
+     200,
+     200,
+     203
+    ],
+    "end_over_interior": 1.0278350515463917,
+    "own_end_over_interior": 1.012,
+    "n_B_imbalance": 0.013984235952199331
+   },
+   "8": {
+    "cuts": [
+     103,
+     203,
+     303,
+     403,
+     503,
+     603,
+     703
+    ],
+    "n_B": [
+     1999431,
+     1890810,
+     1890810,
+     1890810,
+     1890810,
+     1890810,
+     1890810,
+     1995408
+    ],
+    "own": [
+     2059776,
+     2011500,
+     2011500,
+     2011500,
+     2011500,
+     2011500,
+     2011500,
+     2055753
+    ],
+    "fluid": [
+     2004501,
+     2000500,
+     2000500,
+     2000500,
+     2000500,
+     2000500,
+     2000500,
+     2000500
+    ],
+    "own_columns": [
+     103,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     103
+    ],
+    "end_over_interior": 1.0574468085106383,
+    "own_end_over_interior": 1.024,
+    "n_B_imbalance": 0.04274849200104902
+   }
+  },
+  "2d_32m": {
+   "2": {
+    "cuts": [
+     568
+    ],
+    "n_B": [
+     16026138,
+     16054533
+    ],
+    "own": [
+     16111323,
+     16139718
+    ],
+    "fluid": [
+     15986682,
+     16014967
+    ],
+    "own_columns": [
+     568,
+     569
+    ],
+    "end_over_interior": 1.000885112409276,
+    "own_end_over_interior": 1.0008804366966015,
+    "n_B_imbalance": 0.0008851124092759122
+   },
+   "4": {
+    "cuts": [
+     286,
+     568,
+     851
+    ],
+    "n_B": [
+     8018748,
+     7837020,
+     7865415,
+     8018748
+    ],
+    "own": [
+     8103933,
+     8007390,
+     8035785,
+     8103933
+    ],
+    "fluid": [
+     8010312,
+     7976370,
+     8004655,
+     8010312
+    ],
+    "own_columns": [
+     286,
+     282,
+     283,
+     286
+    ],
+    "end_over_interior": 1.0213381555153707,
+    "own_end_over_interior": 1.0102654867256637,
+    "n_B_imbalance": 0.010556450169976639
+   },
+   "8": {
+    "cuts": [
+     144,
+     286,
+     427,
+     568,
+     710,
+     851,
+     993
+    ],
+    "n_B": [
+     3986658,
+     3861720,
+     3833325,
+     3833325,
+     3861720,
+     3833325,
+     3861720,
+     3986658
+    ],
+    "own": [
+     4071843,
+     4032090,
+     4003695,
+     4003695,
+     4032090,
+     4003695,
+     4032090,
+     4071843
+    ],
+    "fluid": [
+     3993842,
+     4016470,
+     3988185,
+     3988185,
+     4016470,
+     3988185,
+     4016470,
+     3993842
+    ],
+    "own_columns": [
+     144,
+     142,
+     141,
+     141,
+     142,
+     141,
+     142,
+     144
+    ],
+    "end_over_interior": 1.0361623616236162,
+    "own_end_over_interior": 1.0134275618374557,
+    "n_B_imbalance": 0.026878771256171108
+   }
+  },
+  "2d_64m": {
+   "2": {
+    "cuts": [
+     803
+    ],
+    "n_B": [
+     32067931,
+     32059908
+    ],
+    "own": [
+     32188276,
+     32180253
+    ],
+    "fluid": [
+     32012001,
+     32004000
+    ],
+    "own_columns": [
+     803,
+     803
+    ],
+    "end_over_interior": 1.000125109470787,
+    "own_end_over_interior": 1.0001246416552412,
+    "n_B_imbalance": 0.0001251094707870326
+   },
+   "4": {
+    "cuts": [
+     403,
+     803,
+     1203
+    ],
+    "n_B": [
+     16021931,
+     15805310,
+     15805310,
+     16013908
+    ],
+    "own": [
+     16142276,
+     16046000,
+     16046000,
+     16134253
+    ],
+    "fluid": [
+     16010001,
+     16002000,
+     16002000,
+     16002000
+    ],
+    "own_columns": [
+     403,
+     400,
+     400,
+     403
+    ],
+    "end_over_interior": 1.0137055837563451,
+    "own_end_over_interior": 1.006,
+    "n_B_imbalance": 0.006933064414471168
+   },
+   "8": {
+    "cuts": [
+     203,
+     403,
+     603,
+     803,
+     1003,
+     1203,
+     1403
+    ],
+    "n_B": [
+     7998931,
+     7782310,
+     7782310,
+     7782310,
+     7782310,
+     7782310,
+     7782310,
+     7990908
+    ],
+    "own": [
+     8119276,
+     8023000,
+     8023000,
+     8023000,
+     8023000,
+     8023000,
+     8023000,
+     8111253
+    ],
+    "fluid": [
+     8009001,
+     8001000,
+     8001000,
+     8001000,
+     8001000,
+     8001000,
+     8001000,
+     8001000
+    ],
+    "own_columns": [
+     203,
+     200,
+     200,
+     200,
+     200,
+     200,
+     200,
+     203
+    ],
+    "end_over_interior": 1.0278350515463917,
+    "own_end_over_interior": 1.012,
+    "n_B_imbalance": 0.020862664789453422
+   }
+  },
+  "2d_128m": {
+   "2": {
+    "cuts": [
+     1134
+    ],
+    "n_B": [
+     64065420,
+     64076755
+    ],
+    "own": [
+     64235445,
+     64246780
+    ],
+    "fluid": [
+     63986328,
+     63997641
+    ],
+    "own_columns": [
+     1134,
+     1134
+    ],
+    "end_over_interior": 1.0000884564352057,
+    "own_end_over_interior": 1.000088222320247,
+    "n_B_imbalance": 8.845643520571933e-05
+   },
+   "4": {
+    "cuts": [
+     568,
+     1134,
+     1700
+    ],
+    "n_B": [
+     31987370,
+     31738000,
+     31738000,
+     31998705
+    ],
+    "own": [
+     32157395,
+     32078050,
+     32078050,
+     32168730
+    ],
+    "fluid": [
+     31970538,
+     32015790,
+     32015790,
+     31981851
+    ],
+    "own_columns": [
+     568,
+     566,
+     566,
+     568
+    ],
+    "end_over_interior": 1.0082142857142857,
+    "own_end_over_interior": 1.002826855123675,
+    "n_B_imbalance": 0.004179635393508185
+   },
+   "8": {
+    "cuts": [
+     286,
+     568,
+     851,
+     1134,
+     1417,
+     1700,
+     1983
+    ],
+    "n_B": [
+     16005020,
+     15642300,
+     15698975,
+     15698975,
+     15698975,
+     15698975,
+     15698975,
+     15959680
+    ],
+    "own": [
+     16175045,
+     15982350,
+     16039025,
+     16039025,
+     16039025,
+     16039025,
+     16039025,
+     16129705
+    ],
+    "fluid": [
+     16019208,
+     15951330,
+     16007895,
+     16007895,
+     16007895,
+     16007895,
+     16007895,
+     15973956
+    ],
+    "own_columns": [
+     286,
+     282,
+     283,
+     283,
+     283,
+     283,
+     283,
+     285
+    ],
+    "end_over_interior": 1.0201083684527394,
+    "own_end_over_interior": 1.0090748379493224,
+    "n_B_imbalance": 0.015370786516853974
+   }
+  },
+  "3d_stretched_32m": {
+   "2": {
+    "cuts": [
+     161
+    ],
+    "n_B": [
+     17570070,
+     17486403
+    ],
+    "own": [
+     17904738,
+     17821071
+    ],
+    "fluid": [
+     16129278,
+     16053435
+    ],
+    "own_columns": [
+     161,
+     160
+    ],
+    "end_over_interior": 1.0023866348448687,
+    "own_end_over_interior": 1.0023419203747073,
+    "n_B_imbalance": 0.0023866348448686736
+   },
+   "4": {
+    "cuts": [
+     81,
+     161,
+     240
+    ],
+    "n_B": [
+     8645590,
+     8255144,
+     8143588,
+     8673479
+    ],
+    "own": [
+     8980258,
+     8924480,
+     8812924,
+     9008147
+    ],
+    "fluid": [
+     8039358,
+     8089920,
+     7988796,
+     8064639
+    ],
+    "own_columns": [
+     81,
+     80,
+     79,
+     81
+    ],
+    "end_over_interior": 1.0578231292517006,
+    "own_end_over_interior": 1.0157232704402517,
+    "n_B_imbalance": 0.028949545078577277
+   },
+   "8": {
+    "cuts": [
+     41,
+     81,
+     121,
+     161,
+     200,
+     240,
+     280
+    ],
+    "n_B": [
+     4183350,
+     3792904,
+     3792904,
+     3792904,
+     3681348,
+     3792904,
+     3792904,
+     4211239
+    ],
+    "own": [
+     4518018,
+     4462240,
+     4462240,
+     4462240,
+     4350684,
+     4462240,
+     4462240,
+     4545907
+    ],
+    "fluid": [
+     3994398,
+     4044960,
+     4044960,
+     4044960,
+     3943836,
+     4044960,
+     4044960,
+     4019679
+    ],
+    "own_columns": [
+     41,
+     40,
+     40,
+     40,
+     39,
+     40,
+     40,
+     41
+    ],
+    "end_over_interior": 1.1157635467980296,
+    "own_end_over_interior": 1.0230125523012552,
+    "n_B_imbalance": 0.08535489667565144
+   }
+  },
+  "3d_stretched_64m": {
+   "2": {
+    "cuts": [
+     203
+    ],
+    "n_B": [
+     34857438,
+     34726395
+    ],
+    "own": [
+     35381610,
+     35250567
+    ],
+    "fluid": [
+     32563206,
+     32442003
+    ],
+    "own_columns": [
+     203,
+     202
+    ],
+    "end_over_interior": 1.0018832391713748,
+    "own_end_over_interior": 1.0018552875695732,
+    "n_B_imbalance": 0.0018832391713747842
+   },
+   "4": {
+    "cuts": [
+     102,
+     203,
+     303
+    ],
+    "n_B": [
+     17210314,
+     16598780,
+     16424056,
+     17253995
+    ],
+    "own": [
+     17734486,
+     17647124,
+     17472400,
+     17778167
+    ],
+    "fluid": [
+     16241202,
+     16322004,
+     16160400,
+     16281603
+    ],
+    "own_columns": [
+     102,
+     101,
+     100,
+     102
+    ],
+    "end_over_interior": 1.0449735449735449,
+    "own_end_over_interior": 1.0124378109452736,
+    "n_B_imbalance": 0.02265372168284796
+   },
+   "8": {
+    "cuts": [
+     52,
+     102,
+     152,
+     203,
+     253,
+     303,
+     353
+    ],
+    "n_B": [
+     8474114,
+     7687856,
+     7687856,
+     7862580,
+     7687856,
+     7687856,
+     7687856,
+     8517795
+    ],
+    "own": [
+     8998286,
+     8736200,
+     8736200,
+     8910924,
+     8736200,
+     8736200,
+     8736200,
+     9041967
+    ],
+    "fluid": [
+     8161002,
+     8080200,
+     8080200,
+     8241804,
+     8080200,
+     8080200,
+     8080200,
+     8201403
+    ],
+    "own_columns": [
+     52,
+     50,
+     50,
+     51,
+     50,
+     50,
+     50,
+     52
+    ],
+    "end_over_interior": 1.1037735849056602,
+    "own_end_over_interior": 1.03156146179402,
+    "n_B_imbalance": 0.07660455486542439
+   }
+  },
+  "3d_cube_401": {
+   "2": {
+    "cuts": [
+     52
+    ],
+    "n_B": [
+     32452514,
+     31950671
+    ],
+    "own": [
+     34459886,
+     33958043
+    ],
+    "fluid": [
+     32481802,
+     31999399
+    ],
+    "own_columns": [
+     52,
+     51
+    ],
+    "end_over_interior": 1.0077922077922077,
+    "own_end_over_interior": 1.0073349633251834,
+    "n_B_imbalance": 0.007792207792207684
+   },
+   "4": {
+    "cuts": [
+     27,
+     52,
+     77
+    ],
+    "n_B": [
+     15724414,
+     12713356,
+     12713356,
+     15222571
+    ],
+    "own": [
+     17731786,
+     16728100,
+     16728100,
+     17229943
+    ],
+    "fluid": [
+     16401702,
+     16080100,
+     16080100,
+     15919299
+    ],
+    "own_columns": [
+     27,
+     25,
+     25,
+     26
+    ],
+    "end_over_interior": 1.236842105263158,
+    "own_end_over_interior": 1.06,
+    "n_B_imbalance": 0.11572700296735916
+   },
+   "8": {
+    "cuts": [
+     14,
+     27,
+     39,
+     52,
+     64,
+     77,
+     89
+    ],
+    "n_B": [
+     7025802,
+     4683868,
+     4014744,
+     4683868,
+     4014744,
+     4683868,
+     4014744,
+     7193083
+    ],
+    "own": [
+     9033174,
+     8698612,
+     8029488,
+     8698612,
+     8029488,
+     8698612,
+     8029488,
+     9200455
+    ],
+    "fluid": [
+     8040050,
+     8361652,
+     7718448,
+     8361652,
+     7718448,
+     8361652,
+     7718448,
+     8200851
+    ],
+    "own_columns": [
+     14,
+     13,
+     12,
+     13,
+     12,
+     13,
+     12,
+     14
+    ],
+    "end_over_interior": 1.6538461538461537,
+    "own_end_over_interior": 1.1,
+    "n_B_imbalance": 0.4273858921161826
+   }
+  }
+ },
+ "aligned": {
+  "cavity2d_n240": {
+   "name": "cavity2d_n240",
+   "role": "E29 per card 32k (K=2)",
+   "old_yaml": "cases/cavity_2d_62k/case.yaml",
+   "old": {
+    "lattice": [
+     2,
+     124,
+     124,
+     11,
+     5.0
+    ],
+    "fluid": 62001,
+    "total": 73441,
+    "columns": 55,
+    "fluid_columns": 51,
+    "K2": 0.012048192771084265,
+    "K2_fluid_columns": [
+     26,
+     25
+    ],
+    "K4": 0.04417670682730934,
+    "K4_fluid_columns": [
+     13,
+     13,
+     12,
+     13
+    ],
+    "K8": null
+   },
+   "new": {
+    "lattice": [
+     2,
+     240,
+     240,
+     11,
+     5.0
+    ],
+    "fluid": 57600,
+    "wall": 8404,
+    "lid": 2640,
+    "total": 68644,
+    "columns": 54,
+    "fluid_columns": 48,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     24,
+     24
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     12,
+     12,
+     12,
+     12
+    ],
+    "K8": null
+   },
+   "fluid_change": -0.07098272608506317,
+   "total_change": -0.06531773804822916,
+   "k1_gib": 0.022375397384166718,
+   "k1_fits": true
+  },
+  "cavity2d_n360": {
+   "name": "cavity2d_n360",
+   "role": "E29 per card 32k (K=4); same size",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     2,
+     180,
+     180,
+     11,
+     5.0
+    ],
+    "fluid": 130321,
+    "total": 146689,
+    "columns": 78,
+    "fluid_columns": 73,
+    "K2": 0.0027700831024930483,
+    "K2_fluid_columns": [
+     37,
+     36
+    ],
+    "K4": 0.008310249307479145,
+    "K4_fluid_columns": [
+     19,
+     18,
+     18,
+     18
+    ],
+    "K8": null
+   },
+   "new": {
+    "lattice": [
+     2,
+     360,
+     360,
+     11,
+     5.0
+    ],
+    "fluid": 129600,
+    "wall": 12364,
+    "lid": 3960,
+    "total": 145924,
+    "columns": 78,
+    "fluid_columns": 72,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     36,
+     36
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     18,
+     18,
+     18,
+     18
+    ],
+    "K8": null
+   },
+   "fluid_change": -0.005532492844591452,
+   "total_change": -0.005215114971129364,
+   "k1_gib": 0.04756581038236618,
+   "k1_fits": true
+  },
+  "cavity2d_n520": {
+   "name": "cavity2d_n520",
+   "role": "E29 per card 130k (K=2), 32k (K=8)",
+   "old_yaml": "cases/cavity_2d_250k/case.yaml",
+   "old": {
+    "lattice": [
+     2,
+     250,
+     250,
+     11,
+     5.0
+    ],
+    "fluid": 251001,
+    "total": 273529,
+    "columns": 106,
+    "fluid_columns": 101,
+    "K2": 0.001996007984031989,
+    "K2_fluid_columns": [
+     51,
+     50
+    ],
+    "K4": 0.0059880239520957446,
+    "K4_fluid_columns": [
+     26,
+     25,
+     25,
+     25
+    ],
+    "K8": 0.03792415169660668,
+    "K8_fluid_columns": [
+     13,
+     13,
+     12,
+     13,
+     12,
+     13,
+     12,
+     13
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     520,
+     520,
+     11,
+     5.0
+    ],
+    "fluid": 270400,
+    "wall": 17644,
+    "lid": 5720,
+    "total": 293764,
+    "columns": 110,
+    "fluid_columns": 104,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     52,
+     52
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     26,
+     26,
+     26,
+     26
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     13,
+     13,
+     13,
+     13,
+     13,
+     13,
+     13,
+     13
+    ]
+   },
+   "fluid_change": 0.07728654467512075,
+   "total_change": 0.07397753071886348,
+   "k1_gib": 0.0957561656832695,
+   "k1_fits": true
+  },
+  "cavity2d_n720": {
+   "name": "cavity2d_n720",
+   "role": "E29 per card 130k (K=4); same size",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     2,
+     360,
+     360,
+     11,
+     5.0
+    ],
+    "fluid": 519841,
+    "total": 552049,
+    "columns": 150,
+    "fluid_columns": 145,
+    "K2": 0.001386962552011095,
+    "K2_fluid_columns": [
+     73,
+     72
+    ],
+    "K4": 0.004160887656033285,
+    "K4_fluid_columns": [
+     37,
+     36,
+     36,
+     36
+    ],
+    "K8": 0.009708737864077666,
+    "K8_fluid_columns": [
+     19,
+     18,
+     18,
+     18,
+     18,
+     18,
+     18,
+     18
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     720,
+     720,
+     11,
+     5.0
+    ],
+    "fluid": 518400,
+    "wall": 24244,
+    "lid": 7920,
+    "total": 550564,
+    "columns": 150,
+    "fluid_columns": 144,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     72,
+     72
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     36,
+     36,
+     36,
+     36
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     18,
+     18,
+     18,
+     18,
+     18,
+     18,
+     18,
+     18
+    ]
+   },
+   "fluid_change": -0.00277200143890155,
+   "total_change": -0.0026899786069715104,
+   "k1_gib": 0.1794634386897087,
+   "k1_fits": true
+  },
+  "cavity2d_n1000": {
+   "name": "cavity2d_n1000",
+   "role": "E29 per card 0.5M (K=2), 130k (K=8)",
+   "old_yaml": "cases/lid_driven_cavity_2d_gen/case.yaml",
+   "old": {
+    "lattice": [
+     2,
+     500,
+     500,
+     11,
+     5.0
+    ],
+    "fluid": 1002001,
+    "total": 1046529,
+    "columns": 206,
+    "fluid_columns": 201,
+    "K2": 0.0009990009990010762,
+    "K2_fluid_columns": [
+     101,
+     100
+    ],
+    "K4": 0.0029970029970030065,
+    "K4_fluid_columns": [
+     51,
+     50,
+     50,
+     50
+    ],
+    "K8": 0.006993006993007089,
+    "K8_fluid_columns": [
+     26,
+     25,
+     25,
+     25,
+     25,
+     25,
+     25,
+     25
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     1000,
+     1000,
+     11,
+     5.0
+    ],
+    "fluid": 1000000,
+    "wall": 33484,
+    "lid": 11000,
+    "total": 1044484,
+    "columns": 206,
+    "fluid_columns": 200,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     100,
+     100
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     50,
+     50,
+     50,
+     50
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     25,
+     25,
+     25,
+     25,
+     25,
+     25,
+     25,
+     25
+    ]
+   },
+   "fluid_change": -0.0019970039950060192,
+   "total_change": -0.001954078673405135,
+   "k1_gib": 0.3404630348086357,
+   "k1_fits": true
+  },
+  "cavity2d_n1440": {
+   "name": "cavity2d_n1440",
+   "role": "E29 per card 0.5M (K=4); weak 2M k1",
+   "old_yaml": "cases/cavity_weak_k1_2m/case.yaml",
+   "old": {
+    "lattice": [
+     2,
+     707,
+     707,
+     11,
+     5.0
+    ],
+    "fluid": 2002225,
+    "total": 2064969,
+    "columns": 288,
+    "fluid_columns": 284,
+    "K2": 0.0021201413427562876,
+    "K2_fluid_columns": [
+     142,
+     142
+    ],
+    "K4": 0.006360424028268641,
+    "K4_fluid_columns": [
+     72,
+     70,
+     71,
+     71
+    ],
+    "K8": 0.0176678445229681,
+    "K8_fluid_columns": [
+     36,
+     36,
+     35,
+     35,
+     36,
+     35,
+     35,
+     36
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     1440,
+     1440,
+     11,
+     5.0
+    ],
+    "fluid": 2073600,
+    "wall": 48004,
+    "lid": 15840,
+    "total": 2137444,
+    "columns": 294,
+    "fluid_columns": 288,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     144,
+     144
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     72,
+     72,
+     72,
+     72
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     36,
+     36,
+     36,
+     36,
+     36,
+     36,
+     36,
+     36
+    ]
+   },
+   "fluid_change": 0.0356478417760242,
+   "total_change": 0.03509737918583755,
+   "k1_gib": 0.6967274472117424,
+   "k1_fits": true
+  },
+  "cavity2d_n2000": {
+   "name": "cavity2d_n2000",
+   "role": "E29 per card 2M (K=2), 0.5M (K=8); strong 4M; weak4 k1",
+   "old_yaml": "cases/lid_driven_cavity_2d_4m/case.yaml",
+   "old": {
+    "lattice": [
+     2,
+     1000,
+     1000,
+     11,
+     5.0
+    ],
+    "fluid": 4004001,
+    "total": 4092529,
+    "columns": 406,
+    "fluid_columns": 401,
+    "K2": 0.0004997501249375258,
+    "K2_fluid_columns": [
+     201,
+     200
+    ],
+    "K4": 0.0014992503748125774,
+    "K4_fluid_columns": [
+     101,
+     100,
+     100,
+     100
+    ],
+    "K8": 0.0034982508745626806,
+    "K8_fluid_columns": [
+     51,
+     50,
+     50,
+     50,
+     50,
+     50,
+     50,
+     50
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     2000,
+     2000,
+     11,
+     5.0
+    ],
+    "fluid": 4000000,
+    "wall": 66484,
+    "lid": 22000,
+    "total": 4088484,
+    "columns": 406,
+    "fluid_columns": 400,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     200,
+     200
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     100,
+     100,
+     100,
+     100
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     50,
+     50,
+     50,
+     50,
+     50,
+     50,
+     50,
+     50
+    ]
+   },
+   "fluid_change": -0.0009992504996877427,
+   "total_change": -0.0009883863987280028,
+   "k1_gib": 1.3326941058039665,
+   "k1_fits": true
+  },
+  "cavity2d_n2840": {
+   "name": "cavity2d_n2840",
+   "role": "E29 per card 2M (K=4); strong 8M; weak8 k1",
+   "old_yaml": "cases/lid_driven_cavity_2d_8m/case.yaml",
+   "old": {
+    "lattice": [
+     2,
+     1414,
+     1414,
+     11,
+     5.0
+    ],
+    "fluid": 8003241,
+    "total": 8128201,
+    "columns": 571,
+    "fluid_columns": 567,
+    "K2": 0.0010604453870626251,
+    "K2_fluid_columns": [
+     284,
+     283
+    ],
+    "K4": 0.003888299752562663,
+    "K4_fluid_columns": [
+     142,
+     142,
+     141,
+     142
+    ],
+    "K8": 0.0067161541180629225,
+    "K8_fluid_columns": [
+     72,
+     70,
+     71,
+     71,
+     70,
+     71,
+     71,
+     71
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     2840,
+     2840,
+     11,
+     5.0
+    ],
+    "fluid": 8065600,
+    "wall": 94204,
+    "lid": 31240,
+    "total": 8191044,
+    "columns": 574,
+    "fluid_columns": 568,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     284,
+     284
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     142,
+     142,
+     142,
+     142
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     71,
+     71,
+     71,
+     71,
+     71,
+     71,
+     71,
+     71
+    ]
+   },
+   "fluid_change": 0.007791718380091295,
+   "total_change": 0.007731477112832286,
+   "k1_gib": 2.6699764654040337,
+   "k1_fits": true
+  },
+  "cavity2d_n4000": {
+   "name": "cavity2d_n4000",
+   "role": "E29 per card 8M (K=2), 2M (K=8); strong 16M; weak16 k1",
+   "old_yaml": "cases/lid_driven_cavity_2d_16m/case.yaml",
+   "old": {
+    "lattice": [
+     2,
+     2000,
+     2000,
+     11,
+     5.0
+    ],
+    "fluid": 16008001,
+    "total": 16184529,
+    "columns": 806,
+    "fluid_columns": 801,
+    "K2": 0.00024993751562107924,
+    "K2_fluid_columns": [
+     401,
+     400
+    ],
+    "K4": 0.0007498125468632377,
+    "K4_fluid_columns": [
+     201,
+     200,
+     200,
+     200
+    ],
+    "K8": 0.0017495626093475547,
+    "K8_fluid_columns": [
+     101,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     4000,
+     4000,
+     11,
+     5.0
+    ],
+    "fluid": 16000000,
+    "wall": 132484,
+    "lid": 44000,
+    "total": 16176484,
+    "columns": 806,
+    "fluid_columns": 800,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     400,
+     400
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     200,
+     200,
+     200,
+     200
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100
+    ]
+   },
+   "fluid_change": -0.0004998125624804395,
+   "total_change": -0.0004970796493367624,
+   "k1_gib": 5.272933654487133,
+   "k1_fits": true
+  },
+  "cavity2d_n5640": {
+   "name": "cavity2d_n5640",
+   "role": "E29 per card 8M (K=4); strong 32M, K sweep; weak32 k1",
+   "old_yaml": "cases/lid_driven_cavity_2d_32m/case.yaml",
+   "old": {
+    "lattice": [
+     2,
+     2828,
+     2828,
+     11,
+     5.0
+    ],
+    "fluid": 32001649,
+    "total": 32251041,
+    "columns": 1137,
+    "fluid_columns": 1133,
+    "K2": 0.0008838607035530632,
+    "K2_fluid_columns": [
+     566,
+     567
+    ],
+    "K4": 0.0012374049849743773,
+    "K4_fluid_columns": [
+     284,
+     282,
+     283,
+     284
+    ],
+    "K8": 0.004065759236344446,
+    "K8_fluid_columns": [
+     142,
+     142,
+     141,
+     141,
+     142,
+     141,
+     142,
+     142
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     5640,
+     5640,
+     11,
+     5.0
+    ],
+    "fluid": 31809600,
+    "wall": 186604,
+    "lid": 62040,
+    "total": 32058244,
+    "columns": 1134,
+    "fluid_columns": 1128,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     564,
+     564
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     282,
+     282,
+     282,
+     282
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     141,
+     141,
+     141,
+     141,
+     141,
+     141,
+     141,
+     141
+    ]
+   },
+   "fluid_change": -0.006001221999528794,
+   "total_change": -0.005978008585831418,
+   "k1_gib": 10.449798218905926,
+   "k1_fits": true
+  },
+  "cavity2d_n8000": {
+   "name": "cavity2d_n8000",
+   "role": "E29 per card 8M (K=8); strong 64M, K sweep",
+   "old_yaml": "cases/lid_driven_cavity_2d_64m/case.yaml",
+   "old": {
+    "lattice": [
+     2,
+     4000,
+     4000,
+     11,
+     5.0
+    ],
+    "fluid": 64016001,
+    "total": 64368529,
+    "columns": 1606,
+    "fluid_columns": 1601,
+    "K2": 0.00012498437695285247,
+    "K2_fluid_columns": [
+     801,
+     800
+    ],
+    "K4": 0.0003749531308585574,
+    "K4_fluid_columns": [
+     401,
+     400,
+     400,
+     400
+    ],
+    "K8": 0.0008748906386701893,
+    "K8_fluid_columns": [
+     201,
+     200,
+     200,
+     200,
+     200,
+     200,
+     200,
+     200
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     8000,
+     8000,
+     11,
+     5.0
+    ],
+    "fluid": 64000000,
+    "wall": 264484,
+    "lid": 88000,
+    "total": 64352484,
+    "columns": 1606,
+    "fluid_columns": 1600,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     800,
+     800
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     400,
+     400,
+     400,
+     400
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     200,
+     200,
+     200,
+     200,
+     200,
+     200,
+     200,
+     200
+    ]
+   },
+   "fluid_change": -0.00024995313281128695,
+   "total_change": -0.00024926777494016505,
+   "k1_gib": 20.976522378623486,
+   "k1_fits": true
+  },
+  "cavity2d_n11320": {
+   "name": "cavity2d_n11320",
+   "role": "strong 128M",
+   "old_yaml": "cases/lid_driven_cavity_2d_128m/case.yaml",
+   "old": {
+    "lattice": [
+     2,
+     5656,
+     5656,
+     11,
+     5.0
+    ],
+    "fluid": 127983969,
+    "total": 128482225,
+    "columns": 2268,
+    "fluid_columns": 2264,
+    "K2": 8.839388314330066e-05,
+    "K2_fluid_columns": [
+     1132,
+     1132
+    ],
+    "K4": 0.0006187571820031046,
+    "K4_fluid_columns": [
+     566,
+     566,
+     566,
+     566
+    ],
+    "K8": 0.0013259082471492878,
+    "K8_fluid_columns": [
+     284,
+     282,
+     283,
+     283,
+     283,
+     283,
+     283,
+     283
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     11320,
+     11320,
+     11,
+     5.0
+    ],
+    "fluid": 128142400,
+    "wall": 374044,
+    "lid": 124520,
+    "total": 128640964,
+    "columns": 2270,
+    "fluid_columns": 2264,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     1132,
+     1132
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     566,
+     566,
+     566,
+     566
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     283,
+     283,
+     283,
+     283,
+     283,
+     283,
+     283,
+     283
+    ]
+   },
+   "fluid_change": 0.0012378972244562192,
+   "total_change": 0.0012354938591701004,
+   "k1_gib": 41.93218182772398,
+   "k1_fits": false
+  },
+  "cavity2d_n9000": {
+   "name": "cavity2d_n9000",
+   "role": "strong top point whose K=1 reference fits (instead of 128M); same size",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     2,
+     4500,
+     4500,
+     11,
+     5.0
+    ],
+    "fluid": 81018001,
+    "total": 81414529,
+    "columns": 1804,
+    "fluid_columns": 1800,
+    "K2": 0.00011109876680359676,
+    "K2_fluid_columns": [
+     900,
+     900
+    ],
+    "K4": 0.0007776913676258435,
+    "K4_fluid_columns": [
+     450,
+     450,
+     450,
+     450
+    ],
+    "K8": 0.0016664815020552837,
+    "K8_fluid_columns": [
+     226,
+     224,
+     225,
+     225,
+     225,
+     225,
+     225,
+     225
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     9000,
+     9000,
+     11,
+     5.0
+    ],
+    "fluid": 81000000,
+    "wall": 297484,
+    "lid": 99000,
+    "total": 81396484,
+    "columns": 1806,
+    "fluid_columns": 1800,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     900,
+     900
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     450,
+     450,
+     450,
+     450
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     225,
+     225,
+     225,
+     225,
+     225,
+     225,
+     225,
+     225
+    ]
+   },
+   "fluid_change": -0.00022218519067140896,
+   "total_change": -0.0002216434857714722,
+   "k1_gib": 26.53223406523466,
+   "k1_fits": true
+  },
+  "cavity2d_n1440_k2": {
+   "name": "cavity2d_n1440_k2",
+   "role": "weak 2M k2",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     2,
+     707,
+     1415,
+     11,
+     5.0
+    ],
+    "fluid": 4005865,
+    "total": 4099761,
+    "columns": 572,
+    "fluid_columns": 567,
+    "K2": 0.00035323207347226493,
+    "K2_fluid_columns": [
+     284,
+     283
+    ],
+    "K4": 0.0031790886612503844,
+    "K4_fluid_columns": [
+     142,
+     142,
+     141,
+     142
+    ],
+    "K8": 0.006004945249028504,
+    "K8_fluid_columns": [
+     72,
+     70,
+     71,
+     71,
+     71,
+     70,
+     71,
+     71
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     1440,
+     2880,
+     11,
+     5.0
+    ],
+    "fluid": 4147200,
+    "wall": 63844,
+    "lid": 31680,
+    "total": 4242724,
+    "columns": 582,
+    "fluid_columns": 576,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     288,
+     288
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     144,
+     144,
+     144,
+     144
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     72,
+     72,
+     72,
+     72,
+     72,
+     72,
+     72,
+     72
+    ]
+   },
+   "fluid_change": 0.03528201774148654,
+   "total_change": 0.03487105711771976,
+   "k1_gib": 1.3829706236720085,
+   "k1_fits": true
+  },
+  "cavity2d_n1440_k4": {
+   "name": "cavity2d_n1440_k4",
+   "role": "weak 2M k4",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     2,
+     707,
+     2830,
+     11,
+     5.0
+    ],
+    "fluid": 8010315,
+    "total": 8166471,
+    "columns": 1138,
+    "fluid_columns": 1133,
+    "K2": 0.00017664723547072825,
+    "K2_fluid_columns": [
+     567,
+     566
+    ],
+    "K4": 0.0005299417064121847,
+    "K4_fluid_columns": [
+     284,
+     283,
+     283,
+     283
+    ],
+    "K8": 0.003356297473944503,
+    "K8_fluid_columns": [
+     142,
+     142,
+     141,
+     142,
+     141,
+     142,
+     141,
+     142
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     1440,
+     5760,
+     11,
+     5.0
+    ],
+    "fluid": 8294400,
+    "wall": 95524,
+    "lid": 63360,
+    "total": 8453284,
+    "columns": 1158,
+    "fluid_columns": 1152,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     576,
+     576
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     288,
+     288,
+     288,
+     288
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     144,
+     144,
+     144,
+     144,
+     144,
+     144,
+     144,
+     144
+    ]
+   },
+   "fluid_change": 0.03546489744785308,
+   "total_change": 0.03512080064938705,
+   "k1_gib": 2.7554569765925407,
+   "k1_fits": true
+  },
+  "cavity2d_n1440_k8": {
+   "name": "cavity2d_n1440_k8",
+   "role": "weak 2M k8",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     2,
+     707,
+     5660,
+     11,
+     5.0
+    ],
+    "fluid": 16019215,
+    "total": 16299891,
+    "columns": 2270,
+    "fluid_columns": 2265,
+    "K2": 8.833141948594303e-05,
+    "K2_fluid_columns": [
+     1133,
+     1132
+    ],
+    "K4": 0.0002649942584578291,
+    "K4_fluid_columns": [
+     567,
+     566,
+     566,
+     566
+    ],
+    "K8": 0.0006183199364013792,
+    "K8_fluid_columns": [
+     284,
+     283,
+     283,
+     283,
+     283,
+     283,
+     283,
+     283
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     1440,
+     11520,
+     11,
+     5.0
+    ],
+    "fluid": 16588800,
+    "wall": 158884,
+    "lid": 126720,
+    "total": 16874404,
+    "columns": 2310,
+    "fluid_columns": 2304,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     1152,
+     1152
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     576,
+     576,
+     576,
+     576
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     288,
+     288,
+     288,
+     288,
+     288,
+     288,
+     288,
+     288
+    ]
+   },
+   "fluid_change": 0.035556361532072644,
+   "total_change": 0.03524643201601774,
+   "k1_gib": 5.500429682433605,
+   "k1_fits": true
+  },
+  "cavity2d_n2000_k2": {
+   "name": "cavity2d_n2000_k2",
+   "role": "weak 4M k2",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     2,
+     1000,
+     2001,
+     11,
+     5.0
+    ],
+    "fluid": 8010003,
+    "total": 8142575,
+    "columns": 806,
+    "fluid_columns": 802,
+    "K2": 0.00024981264051970875,
+    "K2_fluid_columns": [
+     401,
+     401
+    ],
+    "K4": 0.0012490632025980997,
+    "K4_fluid_columns": [
+     201,
+     200,
+     200,
+     201
+    ],
+    "K8": 0.0032475643267548815,
+    "K8_fluid_columns": [
+     101,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     101
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     2000,
+     4000,
+     11,
+     5.0
+    ],
+    "fluid": 8000000,
+    "wall": 88484,
+    "lid": 44000,
+    "total": 8132484,
+    "columns": 806,
+    "fluid_columns": 800,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     400,
+     400
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     200,
+     200,
+     200,
+     200
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100,
+     100
+    ]
+   },
+   "fluid_change": -0.001248813514801439,
+   "total_change": -0.0012392885542964471,
+   "k1_gib": 2.650888077914715,
+   "k1_fits": true
+  },
+  "cavity2d_n2000_k4": {
+   "name": "cavity2d_n2000_k4",
+   "role": "weak 4M k4",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     2,
+     1000,
+     4002,
+     11,
+     5.0
+    ],
+    "fluid": 16018005,
+    "total": 16238621,
+    "columns": 1606,
+    "fluid_columns": 1602,
+    "K2": 0.0003747657713928376,
+    "K2_fluid_columns": [
+     801,
+     801
+    ],
+    "K4": 0.0018738288569644101,
+    "K4_fluid_columns": [
+     401,
+     400,
+     401,
+     400
+    ],
+    "K8": 0.004372267332916957,
+    "K8_fluid_columns": [
+     201,
+     200,
+     200,
+     200,
+     200,
+     201,
+     200,
+     200
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     2000,
+     8000,
+     11,
+     5.0
+    ],
+    "fluid": 16000000,
+    "wall": 132484,
+    "lid": 88000,
+    "total": 16220484,
+    "columns": 1606,
+    "fluid_columns": 1600,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     800,
+     800
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     400,
+     400,
+     400,
+     400
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     200,
+     200,
+     200,
+     200,
+     200,
+     200,
+     200,
+     200
+    ]
+   },
+   "fluid_change": -0.0011240475951905804,
+   "total_change": -0.0011169051854834633,
+   "k1_gib": 5.287276022136211,
+   "k1_fits": true
+  },
+  "cavity2d_n2000_k8": {
+   "name": "cavity2d_n2000_k8",
+   "role": "weak 4M k8",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     2,
+     1000,
+     8004,
+     11,
+     5.0
+    ],
+    "fluid": 32034009,
+    "total": 32430713,
+    "columns": 3207,
+    "fluid_columns": 3203,
+    "K2": 0.00018739459054284424,
+    "K2_fluid_columns": [
+     1602,
+     1601
+    ],
+    "K4": 0.0006871134986570215,
+    "K4_fluid_columns": [
+     801,
+     801,
+     800,
+     801
+    ],
+    "K8": 0.0019364107689425758,
+    "K8_fluid_columns": [
+     401,
+     400,
+     400,
+     401,
+     400,
+     400,
+     400,
+     401
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     2000,
+     16000,
+     11,
+     5.0
+    ],
+    "fluid": 32000000,
+    "wall": 220484,
+    "lid": 176000,
+    "total": 32396484,
+    "columns": 3206,
+    "fluid_columns": 3200,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     1600,
+     1600
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     800,
+     800,
+     800,
+     800
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     400,
+     400,
+     400,
+     400,
+     400,
+     400,
+     400,
+     400
+    ]
+   },
+   "fluid_change": -0.001061652945155922,
+   "total_change": -0.0010554501222344026,
+   "k1_gib": 10.560051910579205,
+   "k1_fits": true
+  },
+  "cavity2d_n2840_k2": {
+   "name": "cavity2d_n2840_k2",
+   "role": "weak 8M k2",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     2,
+     1414,
+     2829,
+     11,
+     5.0
+    ],
+    "fluid": 16009311,
+    "total": 16196531,
+    "columns": 1137,
+    "fluid_columns": 1133,
+    "K2": 0.0005301289980561563,
+    "K2_fluid_columns": [
+     567,
+     566
+    ],
+    "K4": 0.0008835483300937419,
+    "K4_fluid_columns": [
+     284,
+     283,
+     283,
+     283
+    ],
+    "K8": 0.0037109029863933163,
+    "K8_fluid_columns": [
+     142,
+     142,
+     141,
+     142,
+     141,
+     142,
+     141,
+     142
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     2840,
+     5680,
+     11,
+     5.0
+    ],
+    "fluid": 16131200,
+    "wall": 125444,
+    "lid": 62480,
+    "total": 16319124,
+    "columns": 1142,
+    "fluid_columns": 1136,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     568,
+     568
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     284,
+     284,
+     284,
+     284
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     142,
+     142,
+     142,
+     142,
+     142,
+     142,
+     142,
+     142
+    ]
+   },
+   "fluid_change": 0.007613631842119828,
+   "total_change": 0.0075690899489526675,
+   "k1_gib": 5.319429002702236,
+   "k1_fits": true
+  },
+  "cavity2d_n2840_k4": {
+   "name": "cavity2d_n2840_k4",
+   "role": "weak 8M k4",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     2,
+     1414,
+     5658,
+     11,
+     5.0
+    ],
+    "fluid": 32015793,
+    "total": 32327489,
+    "columns": 2269,
+    "fluid_columns": 2265,
+    "K2": 0.00044181320137837155,
+    "K2_fluid_columns": [
+     1132,
+     1133
+    ],
+    "K4": 0.0006185384819299422,
+    "K4_fluid_columns": [
+     567,
+     565,
+     566,
+     567
+    ],
+    "K8": 0.0009719890430326394,
+    "K8_fluid_columns": [
+     284,
+     283,
+     283,
+     282,
+     283,
+     283,
+     283,
+     284
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     2840,
+     11360,
+     11,
+     5.0
+    ],
+    "fluid": 32262400,
+    "wall": 187924,
+    "lid": 124960,
+    "total": 32575284,
+    "columns": 2278,
+    "fluid_columns": 2272,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     1136,
+     1136
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     568,
+     568,
+     568,
+     568
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     284,
+     284,
+     284,
+     284,
+     284,
+     284,
+     284,
+     284
+    ]
+   },
+   "fluid_change": 0.007702667243007166,
+   "total_change": 0.007665148381923448,
+   "k1_gib": 10.618334077298641,
+   "k1_fits": true
+  },
+  "cavity2d_n2840_k8": {
+   "name": "cavity2d_n2840_k8",
+   "role": "weak 8M k8",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     2,
+     1414,
+     11316,
+     11,
+     5.0
+    ],
+    "fluid": 64028757,
+    "total": 64589405,
+    "columns": 4532,
+    "fluid_columns": 4528,
+    "K2": 4.4183272213116354e-05,
+    "K2_fluid_columns": [
+     2264,
+     2264
+    ],
+    "K4": 0.0003092829054920365,
+    "K4_fluid_columns": [
+     1132,
+     1132,
+     1132,
+     1132
+    ],
+    "K8": 0.0006627490831971894,
+    "K8_fluid_columns": [
+     567,
+     565,
+     566,
+     566,
+     566,
+     566,
+     566,
+     566
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     2840,
+     22720,
+     11,
+     5.0
+    ],
+    "fluid": 64524800,
+    "wall": 312884,
+    "lid": 249920,
+    "total": 65087604,
+    "columns": 4550,
+    "fluid_columns": 4544,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     2272,
+     2272
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     1136,
+     1136,
+     1136,
+     1136
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     568,
+     568,
+     568,
+     568,
+     568,
+     568,
+     568,
+     568
+    ]
+   },
+   "fluid_change": 0.007747190844263896,
+   "total_change": 0.007713323880286449,
+   "k1_gib": 21.21614422649145,
+   "k1_fits": true
+  },
+  "cavity2d_n4000_k2": {
+   "name": "cavity2d_n4000_k2",
+   "role": "weak 16M k2",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     2,
+     2000,
+     4001,
+     11,
+     5.0
+    ],
+    "fluid": 32020003,
+    "total": 32284575,
+    "columns": 1606,
+    "fluid_columns": 1602,
+    "K2": 0.00012495314257154888,
+    "K2_fluid_columns": [
+     801,
+     801
+    ],
+    "K4": 0.0006247657128577444,
+    "K4_fluid_columns": [
+     401,
+     400,
+     400,
+     401
+    ],
+    "K8": 0.0016243908534299134,
+    "K8_fluid_columns": [
+     201,
+     200,
+     200,
+     200,
+     200,
+     200,
+     200,
+     201
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     4000,
+     8000,
+     11,
+     5.0
+    ],
+    "fluid": 32000000,
+    "wall": 176484,
+    "lid": 88000,
+    "total": 32264484,
+    "columns": 1606,
+    "fluid_columns": 1600,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     800,
+     800
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     400,
+     400,
+     400,
+     400
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     200,
+     200,
+     200,
+     200,
+     200,
+     200,
+     200,
+     200
+    ]
+   },
+   "fluid_change": -0.0006247032519016704,
+   "total_change": -0.0006223095704372961,
+   "k1_gib": 10.51702480763197,
+   "k1_fits": true
+  },
+  "cavity2d_n4000_k4": {
+   "name": "cavity2d_n4000_k4",
+   "role": "weak 16M k4",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     2,
+     2000,
+     8002,
+     11,
+     5.0
+    ],
+    "fluid": 64036005,
+    "total": 64476621,
+    "columns": 3206,
+    "fluid_columns": 3202,
+    "K2": 0.00018744142455484614,
+    "K2_fluid_columns": [
+     1601,
+     1601
+    ],
+    "K4": 0.0009372071227742307,
+    "K4_fluid_columns": [
+     801,
+     800,
+     801,
+     800
+    ],
+    "K8": 0.002186816619806242,
+    "K8_fluid_columns": [
+     401,
+     400,
+     400,
+     400,
+     400,
+     401,
+     400,
+     400
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     4000,
+     16000,
+     11,
+     5.0
+    ],
+    "fluid": 64000000,
+    "wall": 264484,
+    "lid": 176000,
+    "total": 64440484,
+    "columns": 3206,
+    "fluid_columns": 3200,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     1600,
+     1600
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     800,
+     800,
+     800,
+     800
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     400,
+     400,
+     400,
+     400,
+     400,
+     400,
+     400,
+     400
+    ]
+   },
+   "fluid_change": -0.0005622618088058084,
+   "total_change": -0.0005604667155246768,
+   "k1_gib": 21.005207113921642,
+   "k1_fits": true
+  },
+  "cavity2d_n4000_k8": {
+   "name": "cavity2d_n4000_k8",
+   "role": "weak 16M k8",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     2,
+     2000,
+     16004,
+     11,
+     5.0
+    ],
+    "fluid": 128068009,
+    "total": 128860713,
+    "columns": 6407,
+    "fluid_columns": 6403,
+    "K2": 9.372364022608437e-05,
+    "K2_fluid_columns": [
+     3202,
+     3201
+    ],
+    "K4": 0.0003436533474960868,
+    "K4_fluid_columns": [
+     1601,
+     1601,
+     1600,
+     1601
+    ],
+    "K8": 0.0009684776156706487,
+    "K8_fluid_columns": [
+     801,
+     800,
+     800,
+     801,
+     800,
+     800,
+     800,
+     801
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     4000,
+     32000,
+     11,
+     5.0
+    ],
+    "fluid": 128000000,
+    "wall": 440484,
+    "lid": 352000,
+    "total": 128792484,
+    "columns": 6406,
+    "fluid_columns": 6400,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     3200,
+     3200
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     1600,
+     1600,
+     1600,
+     1600
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     800,
+     800,
+     800,
+     800,
+     800,
+     800,
+     800,
+     800
+    ]
+   },
+   "fluid_change": -0.0005310381611383086,
+   "total_change": -0.0005294786782686911,
+   "k1_gib": 41.98157172650099,
+   "k1_fits": false
+  },
+  "cavity2d_n5640_k2": {
+   "name": "cavity2d_n5640_k2",
+   "role": "weak 32M k2",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     2,
+     2828,
+     5657,
+     11,
+     5.0
+    ],
+    "fluid": 64008955,
+    "total": 64382823,
+    "columns": 2268,
+    "fluid_columns": 2264,
+    "K2": 0.00026513477684497744,
+    "K2_fluid_columns": [
+     1132,
+     1132
+    ],
+    "K4": 0.0007954043305347103,
+    "K4_fluid_columns": [
+     567,
+     565,
+     566,
+     566
+    ],
+    "K8": 0.0011489173663279395,
+    "K8_fluid_columns": [
+     284,
+     283,
+     282,
+     283,
+     283,
+     283,
+     283,
+     283
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     5640,
+     11280,
+     11,
+     5.0
+    ],
+    "fluid": 63619200,
+    "wall": 248644,
+    "lid": 124080,
+    "total": 63991924,
+    "columns": 2262,
+    "fluid_columns": 2256,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     1128,
+     1128
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     564,
+     564,
+     564,
+     564
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     282,
+     282,
+     282,
+     282,
+     282,
+     282,
+     282,
+     282
+    ]
+   },
+   "fluid_change": -0.00608906988092528,
+   "total_change": -0.006071479655373246,
+   "k1_gib": 20.85899319499731,
+   "k1_fits": true
+  },
+  "cavity2d_n5640_k4": {
+   "name": "cavity2d_n5640_k4",
+   "role": "weak 32M k4",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     2,
+     2828,
+     11314,
+     11,
+     5.0
+    ],
+    "fluid": 128012253,
+    "total": 128635029,
+    "columns": 4531,
+    "fluid_columns": 4527,
+    "K2": 0.00013257324671878123,
+    "K2_fluid_columns": [
+     2264,
+     2263
+    ],
+    "K4": 0.0004861019046356052,
+    "K4_fluid_columns": [
+     1132,
+     1132,
+     1131,
+     1132
+    ],
+    "K8": 0.0008396305625524292,
+    "K8_fluid_columns": [
+     567,
+     565,
+     566,
+     566,
+     565,
+     566,
+     566,
+     566
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     5640,
+     22560,
+     11,
+     5.0
+    ],
+    "fluid": 127238400,
+    "wall": 372724,
+    "lid": 248160,
+    "total": 127859284,
+    "columns": 4518,
+    "fluid_columns": 4512,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     2256,
+     2256
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     1128,
+     1128,
+     1128,
+     1128
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     564,
+     564,
+     564,
+     564,
+     564,
+     564,
+     564,
+     564
+    ]
+   },
+   "fluid_change": -0.006045147881273527,
+   "total_change": -0.006030589070726622,
+   "k1_gib": 41.67738314718008,
+   "k1_fits": false
+  },
+  "cavity2d_n5640_k8": {
+   "name": "cavity2d_n5640_k8",
+   "role": "weak 32M k8",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     2,
+     2828,
+     22628,
+     11,
+     5.0
+    ],
+    "fluid": 256018849,
+    "total": 257139441,
+    "columns": 9057,
+    "fluid_columns": 9053,
+    "K2": 0.00011048014671755091,
+    "K2_fluid_columns": [
+     4526,
+     4527
+    ],
+    "K4": 0.0001546722054046601,
+    "K4_fluid_columns": [
+     2264,
+     2262,
+     2263,
+     2264
+    ],
+    "K8": 0.0005082086749010895,
+    "K8_fluid_columns": [
+     1132,
+     1132,
+     1131,
+     1131,
+     1132,
+     1131,
+     1132,
+     1132
+    ]
+   },
+   "new": {
+    "lattice": [
+     2,
+     5640,
+     45120,
+     11,
+     5.0
+    ],
+    "fluid": 254476800,
+    "wall": 620884,
+    "lid": 496320,
+    "total": 255594004,
+    "columns": 9030,
+    "fluid_columns": 9024,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     4512,
+     4512
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     2256,
+     2256,
+     2256,
+     2256
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     1128,
+     1128,
+     1128,
+     1128,
+     1128,
+     1128,
+     1128,
+     1128
+    ]
+   },
+   "fluid_change": -0.00602318542569491,
+   "total_change": -0.00601011262212392,
+   "k1_gib": 83.31416305154562,
+   "k1_fits": false
+  },
+  "cavity3d_n104_b9": {
+   "name": "cavity3d_n104_b9",
+   "role": "E29 per card 0.7M (K=2)",
+   "old_yaml": "cases/cavity3d_1m/case.yaml",
+   "old": {
+    "lattice": [
+     3,
+     50,
+     50,
+     9,
+     4.0
+    ],
+    "fluid": 1030301,
+    "total": 1685159,
+    "columns": 31,
+    "fluid_columns": 26,
+    "K2": 0.02970297029702973,
+    "K2_fluid_columns": [
+     13,
+     13
+    ],
+    "K4": null,
+    "K8": null
+   },
+   "new": {
+    "lattice": [
+     3,
+     104,
+     104,
+     9,
+     4.0
+    ],
+    "fluid": 1124864,
+    "wall": 593640,
+    "lid": 97344,
+    "total": 1815848,
+    "columns": 32,
+    "fluid_columns": 26,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     13,
+     13
+    ],
+    "K4": null,
+    "K8": null
+   },
+   "fluid_change": 0.09178191615848186,
+   "total_change": 0.07755291933876873,
+   "k1_gib": 0.5834433808922768,
+   "k1_fits": true
+  },
+  "cavity3d_n200_b9": {
+   "name": "cavity3d_n200_b9",
+   "role": "E29 per card 4.7M (K=2)",
+   "old_yaml": "cases/cavity3d_8m/case.yaml",
+   "old": {
+    "lattice": [
+     3,
+     100,
+     100,
+     9,
+     4.0
+    ],
+    "fluid": 8120601,
+    "total": 10503459,
+    "columns": 56,
+    "fluid_columns": 51,
+    "K2": 0.004975124378109541,
+    "K2_fluid_columns": [
+     26,
+     25
+    ],
+    "K4": 0.03482587064676612,
+    "K4_fluid_columns": [
+     13,
+     13,
+     12,
+     13
+    ],
+    "K8": null
+   },
+   "new": {
+    "lattice": [
+     3,
+     200,
+     200,
+     9,
+     4.0
+    ],
+    "fluid": 8000000,
+    "wall": 2000232,
+    "lid": 360000,
+    "total": 10360232,
+    "columns": 56,
+    "fluid_columns": 50,
+    "wall_columns": 3,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     25,
+     25
+    ],
+    "K4": 0.040000000000000036,
+    "K4_fluid_columns": [
+     12,
+     13,
+     12,
+     13
+    ],
+    "K8": null
+   },
+   "fluid_change": -0.014851240690190282,
+   "total_change": -0.013636174521174382,
+   "k1_gib": 3.3288076892495155,
+   "k1_fits": true
+  },
+  "cavity3d_n200_x96": {
+   "name": "cavity3d_n200_x96",
+   "role": "E29 narrow slab (K=2)",
+   "old_yaml": "cases/cavity3d_narrow/case.yaml",
+   "old": {
+    "lattice": [
+     3,
+     100,
+     45,
+     4,
+     4.0
+    ],
+    "fluid": 3676491,
+    "total": 4324419,
+    "columns": 26,
+    "fluid_columns": 24,
+    "K2": 0.01098901098901095,
+    "K2_fluid_columns": [
+     12,
+     12
+    ],
+    "K4": null,
+    "K8": null
+   },
+   "new": {
+    "lattice": [
+     3,
+     200,
+     96,
+     4,
+     4.0
+    ],
+    "fluid": 3840000,
+    "wall": 582656,
+    "lid": 76800,
+    "total": 4499456,
+    "columns": 28,
+    "fluid_columns": 24,
+    "wall_columns": 2,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     12,
+     12
+    ],
+    "K4": null,
+    "K8": null
+   },
+   "fluid_change": 0.04447420107923561,
+   "total_change": 0.04047642006937813,
+   "k1_gib": 1.4457035064697266,
+   "k1_fits": true
+  },
+  "cavity3d_n160": {
+   "name": "cavity3d_n160",
+   "role": "3-D weak 4M k1",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     3,
+     79,
+     79,
+     4,
+     4.0
+    ],
+    "fluid": 4019679,
+    "total": 4657463,
+    "columns": 43,
+    "fluid_columns": 41,
+    "K2": 0.018867924528301883,
+    "K2_fluid_columns": [
+     20,
+     21
+    ],
+    "K4": null,
+    "K8": null
+   },
+   "new": {
+    "lattice": [
+     3,
+     160,
+     160,
+     4,
+     4.0
+    ],
+    "fluid": 4096000,
+    "wall": 543232,
+    "lid": 102400,
+    "total": 4741632,
+    "columns": 44,
+    "fluid_columns": 40,
+    "wall_columns": 2,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     20,
+     20
+    ],
+    "K4": null,
+    "K8": null
+   },
+   "fluid_change": 0.018986839496387686,
+   "total_change": 0.018071855858006858,
+   "k1_gib": 1.5235161781311035,
+   "k1_fits": true
+  },
+  "cavity3d_n160_k2": {
+   "name": "cavity3d_n160_k2",
+   "role": "3-D weak 4M k2",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     3,
+     79,
+     159,
+     4,
+     4.0
+    ],
+    "fluid": 8064639,
+    "total": 9119703,
+    "columns": 83,
+    "fluid_columns": 81,
+    "K2": 0.00940438871473348,
+    "K2_fluid_columns": [
+     40,
+     41
+    ],
+    "K4": 0.01567398119122254,
+    "K4_fluid_columns": [
+     20,
+     20,
+     20,
+     21
+    ],
+    "K8": null
+   },
+   "new": {
+    "lattice": [
+     3,
+     160,
+     320,
+     4,
+     4.0
+    ],
+    "fluid": 8192000,
+    "wall": 860672,
+    "lid": 204800,
+    "total": 9257472,
+    "columns": 84,
+    "fluid_columns": 80,
+    "wall_columns": 2,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     40,
+     40
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     20,
+     20,
+     20,
+     20
+    ],
+    "K8": null
+   },
+   "fluid_change": 0.01579252338511372,
+   "total_change": 0.015106741962978454,
+   "k1_gib": 2.9744839668273926,
+   "k1_fits": true
+  },
+  "cavity3d_n160_k4": {
+   "name": "cavity3d_n160_k4",
+   "role": "3-D weak 4M k4",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     3,
+     79,
+     318,
+     4,
+     4.0
+    ],
+    "fluid": 16103997,
+    "total": 17988405,
+    "columns": 162,
+    "fluid_columns": 160,
+    "K2": 0.0015698587127157548,
+    "K2_fluid_columns": [
+     80,
+     80
+    ],
+    "K4": 0.0047095761381474865,
+    "K4_fluid_columns": [
+     40,
+     40,
+     40,
+     40
+    ],
+    "K8": 0.0047095761381474865,
+    "K8_fluid_columns": [
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20
+    ]
+   },
+   "new": {
+    "lattice": [
+     3,
+     160,
+     640,
+     4,
+     4.0
+    ],
+    "fluid": 16384000,
+    "wall": 1495552,
+    "lid": 409600,
+    "total": 18289152,
+    "columns": 164,
+    "fluid_columns": 160,
+    "wall_columns": 2,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     80,
+     80
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     40,
+     40,
+     40,
+     40
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20,
+     20
+    ]
+   },
+   "fluid_change": 0.017387174128261407,
+   "total_change": 0.01671893644822875,
+   "k1_gib": 5.876419544219971,
+   "k1_fits": true
+  },
+  "cavity3d_n160_k8": {
+   "name": "cavity3d_n160_k8",
+   "role": "3-D weak 4M k8; strong stretched 32M",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     3,
+     79,
+     636,
+     4,
+     4.0
+    ],
+    "fluid": 32182713,
+    "total": 35725809,
+    "columns": 321,
+    "fluid_columns": 319,
+    "K2": 0.002356637863315081,
+    "K2_fluid_columns": [
+     160,
+     159
+    ],
+    "K4": 0.0054988216810683,
+    "K4_fluid_columns": [
+     80,
+     80,
+     79,
+     80
+    ],
+    "K8": 0.0054988216810683,
+    "K8_fluid_columns": [
+     40,
+     40,
+     40,
+     40,
+     39,
+     40,
+     40,
+     40
+    ]
+   },
+   "new": {
+    "lattice": [
+     3,
+     160,
+     1280,
+     4,
+     4.0
+    ],
+    "fluid": 32768000,
+    "wall": 2765312,
+    "lid": 819200,
+    "total": 36352512,
+    "columns": 324,
+    "fluid_columns": 320,
+    "wall_columns": 2,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     160,
+     160
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     80,
+     80,
+     80,
+     80
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40,
+     40
+    ]
+   },
+   "fluid_change": 0.018186378506995338,
+   "total_change": 0.017542024030862358,
+   "k1_gib": 11.680290699005127,
+   "k1_fits": true
+  },
+  "cavity3d_n200": {
+   "name": "cavity3d_n200",
+   "role": "3-D weak 8M k1",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     3,
+     100,
+     100,
+     4,
+     4.0
+    ],
+    "fluid": 8120601,
+    "total": 9129329,
+    "columns": 53,
+    "fluid_columns": 51,
+    "K2": 0.014925373134328401,
+    "K2_fluid_columns": [
+     26,
+     25
+    ],
+    "K4": 0.03482587064676612,
+    "K4_fluid_columns": [
+     13,
+     13,
+     12,
+     13
+    ],
+    "K8": null
+   },
+   "new": {
+    "lattice": [
+     3,
+     200,
+     200,
+     4,
+     4.0
+    ],
+    "fluid": 8000000,
+    "wall": 838912,
+    "lid": 160000,
+    "total": 8998912,
+    "columns": 54,
+    "fluid_columns": 50,
+    "wall_columns": 2,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     25,
+     25
+    ],
+    "K4": 0.040000000000000036,
+    "K4_fluid_columns": [
+     12,
+     13,
+     12,
+     13
+    ],
+    "K8": null
+   },
+   "fluid_change": -0.014851240690190282,
+   "total_change": -0.014285496776378581,
+   "k1_gib": 2.891407012939453,
+   "k1_fits": true
+  },
+  "cavity3d_n200_k2": {
+   "name": "cavity3d_n200_k2",
+   "role": "3-D weak 8M k2",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     3,
+     100,
+     201,
+     4,
+     4.0
+    ],
+    "fluid": 16281603,
+    "total": 17952891,
+    "columns": 104,
+    "fluid_columns": 102,
+    "K2": 0.002481389578163684,
+    "K2_fluid_columns": [
+     51,
+     51
+    ],
+    "K4": 0.012406947890818865,
+    "K4_fluid_columns": [
+     26,
+     25,
+     25,
+     26
+    ],
+    "K8": 0.032258064516129004,
+    "K8_fluid_columns": [
+     13,
+     13,
+     12,
+     13,
+     12,
+     13,
+     13,
+     13
+    ]
+   },
+   "new": {
+    "lattice": [
+     3,
+     200,
+     400,
+     4,
+     4.0
+    ],
+    "fluid": 16000000,
+    "wall": 1331712,
+    "lid": 320000,
+    "total": 17651712,
+    "columns": 104,
+    "fluid_columns": 100,
+    "wall_columns": 2,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     50,
+     50
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     25,
+     25,
+     25,
+     25
+    ],
+    "K8": 0.040000000000000036,
+    "K8_fluid_columns": [
+     12,
+     13,
+     12,
+     13,
+     12,
+     13,
+     12,
+     13
+    ]
+   },
+   "fluid_change": -0.01729577855448261,
+   "total_change": -0.016776072444265377,
+   "k1_gib": 5.671606063842773,
+   "k1_fits": true
+  },
+  "cavity3d_n200_k4": {
+   "name": "cavity3d_n200_k4",
+   "role": "3-D weak 8M k4",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     3,
+     100,
+     402,
+     4,
+     4.0
+    ],
+    "fluid": 32522805,
+    "total": 35512653,
+    "columns": 204,
+    "fluid_columns": 202,
+    "K2": 0.001242236024844745,
+    "K2_fluid_columns": [
+     101,
+     101
+    ],
+    "K4": 0.008695652173912993,
+    "K4_fluid_columns": [
+     51,
+     50,
+     50,
+     51
+    ],
+    "K8": 0.03354037267080745,
+    "K8_fluid_columns": [
+     26,
+     25,
+     25,
+     25,
+     25,
+     25,
+     26,
+     25
+    ]
+   },
+   "new": {
+    "lattice": [
+     3,
+     200,
+     800,
+     4,
+     4.0
+    ],
+    "fluid": 32000000,
+    "wall": 2317312,
+    "lid": 640000,
+    "total": 34957312,
+    "columns": 204,
+    "fluid_columns": 200,
+    "wall_columns": 2,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     100,
+     100
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     50,
+     50,
+     50,
+     50
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     25,
+     25,
+     25,
+     25,
+     25,
+     25,
+     25,
+     25
+    ]
+   },
+   "fluid_change": -0.016075027968835975,
+   "total_change": -0.015637834773988835,
+   "k1_gib": 11.232004165649414,
+   "k1_fits": true
+  },
+  "cavity3d_n200_k8": {
+   "name": "cavity3d_n200_k8",
+   "role": "3-D weak 8M k8; strong stretched 64M",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     3,
+     100,
+     804,
+     4,
+     4.0
+    ],
+    "fluid": 65005209,
+    "total": 70632177,
+    "columns": 405,
+    "fluid_columns": 403,
+    "K2": 0.0018645121193288094,
+    "K2_fluid_columns": [
+     202,
+     201
+    ],
+    "K4": 0.004350528278433741,
+    "K4_fluid_columns": [
+     101,
+     101,
+     100,
+     101
+    ],
+    "K8": 0.01429459291485391,
+    "K8_fluid_columns": [
+     51,
+     50,
+     50,
+     51,
+     50,
+     50,
+     50,
+     51
+    ]
+   },
+   "new": {
+    "lattice": [
+     3,
+     200,
+     1600,
+     4,
+     4.0
+    ],
+    "fluid": 64000000,
+    "wall": 4288512,
+    "lid": 1280000,
+    "total": 69568512,
+    "columns": 404,
+    "fluid_columns": 400,
+    "wall_columns": 2,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     200,
+     200
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     100,
+     100,
+     100,
+     100
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     50,
+     50,
+     50,
+     50,
+     50,
+     50,
+     50,
+     50
+    ]
+   },
+   "fluid_change": -0.015463514623881958,
+   "total_change": -0.015059213026946683,
+   "k1_gib": 22.352800369262695,
+   "k1_fits": true
+  },
+  "cavity3d_n416": {
+   "name": "cavity3d_n416",
+   "role": "cube (401^3 before)",
+   "old_yaml": null,
+   "old": {
+    "lattice": [
+     3,
+     200,
+     200,
+     4,
+     4.0
+    ],
+    "fluid": 64481201,
+    "total": 68417929,
+    "columns": 103,
+    "fluid_columns": 101,
+    "K2": 0.007481296758104827,
+    "K2_fluid_columns": [
+     51,
+     50
+    ],
+    "K4": 0.0174563591022443,
+    "K4_fluid_columns": [
+     26,
+     25,
+     25,
+     25
+    ],
+    "K8": 0.03740648379052369,
+    "K8_fluid_columns": [
+     13,
+     13,
+     12,
+     13,
+     12,
+     13,
+     12,
+     13
+    ]
+   },
+   "new": {
+    "lattice": [
+     3,
+     416,
+     416,
+     4,
+     4.0
+    ],
+    "fluid": 71991296,
+    "wall": 3541504,
+    "lid": 692224,
+    "total": 76225024,
+    "columns": 108,
+    "fluid_columns": 104,
+    "wall_columns": 2,
+    "K2": 0.0,
+    "K2_fluid_columns": [
+     52,
+     52
+    ],
+    "K4": 0.0,
+    "K4_fluid_columns": [
+     26,
+     26,
+     26,
+     26
+    ],
+    "K8": 0.0,
+    "K8_fluid_columns": [
+     13,
+     13,
+     13,
+     13,
+     13,
+     13,
+     13,
+     13
+    ]
+   },
+   "fluid_change": 0.11646952729680082,
+   "total_change": 0.11410890557649012,
+   "k1_gib": 24.49157953262329,
+   "k1_fits": true
+  }
+ }
+}
