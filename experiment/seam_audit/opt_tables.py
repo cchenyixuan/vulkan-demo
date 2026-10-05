@@ -11,6 +11,7 @@ import argparse
 import json
 import math
 import pathlib
+import re
 import statistics
 
 NEWLINE = chr(10)
@@ -212,6 +213,12 @@ def main() -> int:
                                                     "E23 G1 without P (1b52dd2 build → E23 build, --counterbalance)"), "",
                   "## E23 host-byte formula", e23_formula_table(), "",
                   "## E23 install kernels", e23_install_table(), ""]
+    if (ROOT / E26_CAMPAIGN / "results.jsonl").exists() or (ROOT / "e26_invariant").exists():
+        parts += ["## E26 gates (band 2/2/3)", e26_gates_table(), "",
+                  "## E26 A/B worst entries vs E23", e26_ab_detail_table(), "",
+                  "## E26 band invariant + per-column A/B", e26_invariant_table(), "",
+                  "## E26 performance (2/3/4 → 2/2/3, --counterbalance)", e26_perf_table(), "",
+                  "## E26 kernels per sim", e26_kernel_table(), ""]
     if (ROOT / "perf_final" / "summary.json").exists():
         parts += ["## final", final_table(), "",
                   "## final phase C", phase_c_table("perf_final", ["l1x", "packed", "release", "release_compact"], "packed"), ""]
@@ -480,6 +487,221 @@ def e23_install_table(campaign: str = E23_CAMPAIGN, cases=("2d_16m", "3d_8m")) -
                     else:
                         cells.append("—")
                 lines.append(f"| {CASE_LABEL[case]} | {label} | s{index} ({direction}) | {len(chain)} | " + " | ".join(cells) + " |")
+    return NEWLINE.join(lines)
+
+
+# ---------------------------------------------------------------- E26: band widths 2/2/3
+E26_CAMPAIGN = "perf_band223"            # release set, V6_BAND_WIDTHS 2,3,4 ('release') vs 2,2,3 ('band223')
+# (label, opt_validate name, ab_restart directory); E23's final build ran the default 2/3/4 bands
+E26_GATE_RUNS = (("E23 最终 d2b5e98(band 2/3/4)", "e23_g1_32b_v2", "ab_e23_g1_32b_v2"),
+                 ("E26(band 2/2/3)", "e26_band223", "ab_e26_band223"))
+# _verify_cascade_force runs: (case label, slabs label, directory under e26_invariant, band columns = the column
+# distances the bands cover); the single-GPU run has no seam (no invariant) and the diagnostic band
+# (V6_FAKE_BAND_TEST=8) at columns 8-10, its column distances are measured from the domain's x faces
+E26_INVARIANT_RUNS = (("2-D 1M", "2", "cavity2d_1m_k2", range(0, 4)), ("2-D 1M", "4", "cavity2d_1m_k4", range(0, 4)),
+                      ("3-D 1M", "2", "cavity3d_1m_k2", range(0, 4)),
+                      ("2-D 1M 单卡假 band(第 8 列起)", "1", "fakeband_2d_1m_k1", range(8, 11)))
+
+
+def ab_worst(directory: str) -> dict:
+    """case -> (worst ratio, pass, where) of an ab_restart run; where = 'k, group, field' of the worst ratio."""
+    path = ROOT / directory / "result.json"
+    if not path.exists():
+        return {}
+    out = {}
+    for case in json.loads(path.read_text(encoding="utf-8")):
+        where, worst = "", -1.0
+        for step, step_result in case["steps"].items():
+            for group_name, group in step_result["groups"].items():
+                for field, entry in group["fields"].items():
+                    if entry["ratio"] > worst:
+                        worst, where = entry["ratio"], f"k = {step}, {group_name}, {field}"
+        out[case["case"]] = (case["worst_ratio"], case["pass"], where)
+    return out
+
+
+def k4_summary(name: str) -> str:
+    """K = 4 smoke of an opt_validate run: pass, drift, overflow and far-migration totals of its final line."""
+    path = ROOT / f"validate_{name}" / "verdict.json"
+    if not path.exists():
+        return "—"
+    entry = json.loads(path.read_text(encoding="utf-8")).get("k4")
+    if not entry:
+        return "—"
+    final = next((line for line in entry.get("log_tail", []) if "[chain_v6] final:" in line), "")
+    values = {key: re.search(rf"{key}=(\d+)", final) for key in ("drift", "overflow_total", "far_migration_total")}
+    detail = ", ".join(f"{key} {match.group(1)}" for key, match in values.items() if match)
+    return ("通过" if entry.get("pass") else "未过") + (f"({detail})" if detail else "")
+
+
+def e26_gates_table() -> str:
+    """Single step, repeated A/B (2-D 1M, 3-D 1M) and K = 4 of the release set with the 2/2/3 bands, next to the
+    E23 final build (default 2/3/4 bands, same release set)."""
+    lines = ["| 构建 | 单步(门槛 2.5) | A/B 2-D 1M(门槛 2.0) | A/B 3-D 1M(门槛 2.0) | K = 4 |", "|---|---|---|---|---|"]
+    for label, name, directory in E26_GATE_RUNS:
+        single = e23_gate_values(name).get("single")
+        ab = ab_worst(directory)
+
+        def ab_cell(case):
+            entry = ab.get(case)
+            return f"{entry[0]:.2f}{'' if entry[1] else ' ✗'}({entry[2]})" if entry else "—"
+        lines.append(f"| {label} | {f'{single[0]:.2f}' + ('' if single[1] else ' ✗') if single else '—'} | "
+                     f"{ab_cell('cavity2d_1m')} | {ab_cell('cavity3d_1m')} | {k4_summary(name)} |")
+    return NEWLINE.join(lines)
+
+
+def e26_ab_detail_table() -> str:
+    """The worst A/B entry of each case for E26 and the same entry (k, group, field) in E23's final run: test
+    median (base x test pairs) against the identical-pair and shuffled-order floors."""
+    def load(directory):
+        path = ROOT / directory / "result.json"
+        return {case["case"]: case for case in json.loads(path.read_text(encoding="utf-8"))} if path.exists() else {}
+    runs = [(label, load(directory)) for label, _name, directory in E26_GATE_RUNS]
+    current = runs[-1][1]
+    lines = ["| 算例 | 项(k、组、场) | 运行 | test 中位数 | 底:相同重跑 / 打乱顺序(中位数) | 比值 |", "|---|---|---|---|---|---|"]
+    for case_name, case in current.items():
+        worst, location = -1.0, None
+        for step, step_result in case["steps"].items():
+            for group_name, group in step_result["groups"].items():
+                for field, entry in group["fields"].items():
+                    if entry["ratio"] > worst:
+                        worst, location = entry["ratio"], (step, group_name, field)
+        step, group_name, field = location
+        for label, results in runs:
+            entry = (results.get(case_name, {}).get("steps", {}).get(step, {}).get("groups", {})
+                     .get(group_name, {}).get("fields", {}).get(field))
+            if not entry:
+                continue
+            n = results[case_name]["steps"][step]["groups"][group_name]["n"]
+            lines.append(f"| {case_name} | k = {step}, {group_name}(n = {n:,}), {field} | {label} | "
+                         f"{entry['test_median']:.3e} | {entry['identical_median']:.3e} / {entry['shuffled_median']:.3e} | "
+                         f"{entry['ratio']:.2f} |")
+    return NEWLINE.join(lines)
+
+
+def e26_invariant_table() -> str:
+    """_verify_cascade_force runs, A = release set (bands 2/3/4) x 2, B = release set + V6_BAND_WIDTHS=2,2,3 x 2:
+    the band invariant (voxel lists cover exactly the band particles, every run, sim and band width) and the
+    per-column acceleration A/B (max |delta a| per column distance to the seam, test A-B over the larger of the
+    A-A / B-B floors; PASS < 3)."""
+    lines = ["| 算例 | K | 步数 | band 宽度(A / B) | band 不变量 | 逐列 A/B 最差比值(列) | band 所在列的最大比值 | 结论 |",
+             "|---|---|---|---|---|---|---|---|"]
+    for case_label, slabs, directory, band_range in E26_INVARIANT_RUNS:
+        path = ROOT / "e26_invariant" / directory / "report.json"
+        if not path.exists():
+            continue
+        report = json.loads(path.read_text(encoding="utf-8"))
+        pairs = report["pairs"]
+        noise_a, noise_b = pairs["noise: legacy vs legacy"], pairs["noise: cascade vs cascade"]
+        test = pairs["TEST: legacy vs cascade"]
+        ratios = {}
+        for column in range(16):
+            key = str(column)
+
+            def column_max(pair):
+                values = [pair[sim]["accel_by_column"][key]["max"] for sim in pair if key in pair[sim]["accel_by_column"]]
+                return max(values) if values else None
+            floor = [column_max(noise_a), column_max(noise_b)]
+            measured = column_max(test)
+            if measured is None or None in floor:
+                continue
+            floor_value = max(floor)
+            ratios[column] = measured / floor_value if floor_value > 0 else (float("inf") if measured > 0 else 0.0)
+        worst_column = max(ratios, key=ratios.get) if ratios else None
+        widths = report.get("band_widths", {})
+        band_a = "/".join(map(str, widths.get("legacy_1", [])))
+        band_b = "/".join(map(str, widths.get("cascade_1", [])))
+        band_columns = max((ratios[column] for column in band_range if column in ratios), default=None)
+        if not report.get("cuts"):
+            invariant = "不适用(没有 seam)"
+        else:
+            invariant = "OK" if report.get("band_invariant_ok") else "违反"
+        lines.append(f"| {case_label} | {slabs} | {report['steps']} | {band_a} / {band_b} | {invariant} | "
+                     f"{f'{ratios[worst_column]:.2f}({worst_column})' if worst_column is not None else '—'} | "
+                     f"{fmt(band_columns, 2)}(列 {band_range.start}–{band_range.stop - 1}) | "
+                     f"{report.get('verdict', '—')} |")
+    return NEWLINE.join(lines)
+
+
+def e26_results(campaign: str = E26_CAMPAIGN) -> dict:
+    """(case, config) -> {trial: result} of the valid runs."""
+    out: dict = {}
+    for record in campaign_records(campaign):
+        if record.get("ok"):
+            out.setdefault((record["case"], record["config"]), {})[record["trial"]] = record["result"]
+    return out
+
+
+def anatomy_median(result: dict, key: str, sim=None):
+    """Per-frame median of one anatomy key: one sim, or the max over the sims (sim = None)."""
+    values = [entry.get(key, {}).get("median") for entry in result.get("anatomy", [])]
+    if sim is not None:
+        return values[sim] if sim < len(values) else None
+    values = [value for value in values if value is not None]
+    return max(values) if values else None
+
+
+def e26_perf_table(campaign: str = E26_CAMPAIGN, before: str = "release", after: str = "band223") -> str:
+    """fps (production depth-2 loop) and the depth-1 anatomy: phase B (T_B), phase C and the b -> c gap, per-frame
+    medians, max over the two sims, mean over the trials; fps ratio trial-wise (trial 2 ran the configurations in
+    reverse order, --counterbalance)."""
+    results = e26_results(campaign)
+    lines = ["| 算例 | fps 2/3/4 | fps 2/2/3 | 2/2/3 ÷ 2/3/4(逐试验) | 各试验比值(试验 2 倒序) | T_B µs | phase C µs | "
+             "b→c 间隙 µs | 有效 |", "|---|---|---|---|---|---|---|---|---|"]
+    for case in CASE_ORDER:
+        b, a = results.get((case, before)), results.get((case, after))
+        if not b or not a:
+            continue
+        trials = sorted(set(a) & set(b))
+        ratios = [a[trial]["fps"] / b[trial]["fps"] for trial in trials]
+        fps_b = [b[trial]["fps"] for trial in trials]
+        fps_a = [a[trial]["fps"] for trial in trials]
+
+        def spread(values):
+            return statistics.stdev(values) if len(values) > 1 else 0.0
+
+        def pair(key):
+            before_value = statistics.mean([anatomy_median(b[trial], key) for trial in trials])
+            after_value = statistics.mean([anatomy_median(a[trial], key) for trial in trials])
+            return f"{fmt(before_value)} → {fmt(after_value)}({100 * (after_value / before_value - 1):+.1f} %)"
+        valid = all(result["invariants"]["valid"] for result in list(a.values()) + list(b.values()))
+        lines.append(f"| {CASE_LABEL[case]} | {fmt(statistics.mean(fps_b))} ± {fmt(spread(fps_b))} | "
+                     f"{fmt(statistics.mean(fps_a))} ± {fmt(spread(fps_a))} | "
+                     f"{fmt(100 * statistics.mean(ratios), 2)} ± {fmt(100 * spread(ratios), 2)} % | "
+                     + " / ".join(f"{100 * ratio:.2f}" for ratio in ratios) + " | "
+                     f"{pair('phase_b_us')} | {pair('phase_c_us')} | "
+                     f"{fmt(statistics.mean([anatomy_median(b[t], 'b_to_c_gap_us') for t in trials]))} → "
+                     f"{fmt(statistics.mean([anatomy_median(a[t], 'b_to_c_gap_us') for t in trials]))} | "
+                     f"{'是' if valid else '**否**'} |")
+    return NEWLINE.join(lines)
+
+
+def e26_kernel_table(campaign: str = E26_CAMPAIGN, before: str = "release", after: str = "band223") -> str:
+    """Per sim: phase A, the phase B kernels (correction_interior, density_deep_interior, force_deep_interior, the
+    B time T_B), the phase C band kernels (correction / density band, density copy, force band, phase C) and the
+    b -> c gap; per-frame medians, mean over the trials, 2/3/4 → 2/2/3."""
+    results = e26_results(campaign)
+    keys = (("phase_a_us", "A"), ("correction_interior_us", "B:corr"), ("density_deep_interior_us", "B:dens"),
+            ("force_deep_interior_us", "B:force"), ("phase_b_us", "T_B"), ("b_to_c_gap_us", "b→c"),
+            ("correction_boundary_us", "C:corr band"), ("density_boundary_us", "C:dens band"),
+            ("density_copy_us", "C:copy"), ("force_us", "C:force band"), ("phase_c_us", "T_C"))
+    lines = ["| 算例 | sim | " + " | ".join(label + " µs" for _key, label in keys) + " |",
+             "|---|---|" + "---|" * len(keys)]
+    for case in CASE_ORDER:
+        b, a = results.get((case, before)), results.get((case, after))
+        if not b or not a:
+            continue
+        trials = sorted(set(a) & set(b))
+        for sim in (0, 1):
+            cells = []
+            for key, _label in keys:
+                before_values = [anatomy_median(b[trial], key, sim) for trial in trials]
+                after_values = [anatomy_median(a[trial], key, sim) for trial in trials]
+                if None in before_values or None in after_values:
+                    cells.append("—")
+                    continue
+                cells.append(f"{fmt(statistics.mean(before_values))} → {fmt(statistics.mean(after_values))}")
+            lines.append(f"| {CASE_LABEL[case]} | s{sim} | " + " | ".join(cells) + " |")
     return NEWLINE.join(lines)
 
 
