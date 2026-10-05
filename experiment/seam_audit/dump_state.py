@@ -35,6 +35,16 @@ frame N-1, dump. The pipeline drains and readbacks add no GPU work that changes
 state; a defrag boundary that coincides with a horizon runs AFTER the dump
 (read-only), and the one that coincides with the final horizon is skipped.
 
+Restart (--restart-snapshot, v6 only): instead of the case's initial condition
+the chain starts from a saved step-boundary state (single_step original's
+snapshot_N<step>.npz: the nine RESTART_FIELD_LAYOUT fields plus id, sorted by
+global id, the id also riding in extension_fields). The rows are split with
+partition_v6.restart_slab_rows under this run's cuts and loaded with
+ChainOrchestratorV6.restart_all (no bootstrap passes); horizons then count
+frames after the restart and every frame runs at --depth exactly as above. Two
+runs from the same snapshot differ only by the configuration under test plus
+the run-to-run noise (atomic order), which a second identical run measures.
+
 Usage (GPU — run only when the GPUs are free):
     .venv/Scripts/python.exe -m experiment.seam_audit.dump_state --version v5 \\
         --case cases/lid_driven_cavity_2d_gen/case.yaml --slabs 2 --device-map 0,1 \\
@@ -178,6 +188,10 @@ def parse_arguments(argument_list=None) -> argparse.Namespace:
                              "requests_N<horizon>.npz (frame, id) built from every test run's "
                              "window; the window then captures exactly those particles at "
                              "those frames instead of detecting crossings itself")
+    parser.add_argument("--restart-snapshot", default="",
+                        help="v6: start from this saved step-boundary state (single_step "
+                             "snapshot_N<step>.npz) instead of the case's initial condition; "
+                             "horizons count frames after the restart (module docstring)")
     parser.add_argument("--audit-slab-counts", default="",
                         help="comma-separated K values whose equal-weight cut lines the "
                              "window watches (a K=1 reference must name the K of the test "
@@ -854,6 +868,36 @@ def prepare(arguments, include_gpu_modules: bool):
         defrag_cadence, description
 
 
+def load_restart_snapshot(solver, global_case, chain, snapshot_file) -> tuple:
+    """(per-slab restart states, per-slab global ids, description) of a saved
+    step-boundary state split with this run's cuts. The snapshot holds every
+    particle of the case once, sorted by global id; the ids in extension_fields
+    must agree with the 'id' array (they are what the dumps decode)."""
+    restart_slab_rows = getattr(solver.partition_module, "restart_slab_rows", None)
+    if restart_slab_rows is None:
+        raise RuntimeError(f"solver {solver.version} has no restart support (restart_slab_rows)")
+    snapshot_path = pathlib.Path(snapshot_file)
+    with np.load(snapshot_path) as archive:
+        state = {name: archive[name] for name in archive.files if name != "id"}
+        ids = archive["id"].astype(np.int64)
+    initial_total = int(global_case.initial.positions.shape[0])
+    if ids.size != initial_total or not np.array_equal(ids, np.arange(initial_total)):
+        raise RuntimeError(f"{snapshot_path}: ids are not 0..{initial_total - 1} in order "
+                           f"({ids.size} rows)")
+    decoded, foreign = decode_global_ids(state["extension_fields"])
+    if foreign.any() or not np.array_equal(decoded, ids):
+        raise RuntimeError(f"{snapshot_path}: extension_fields do not carry the row ids")
+    rows_per_slab = restart_slab_rows(global_case, chain, state["position_voxel_id"][:, 0])
+    states = [{name: np.ascontiguousarray(values[rows]) for name, values in state.items()}
+              for rows in rows_per_slab]
+    ids_per_slab = [ids[rows] for rows in rows_per_slab]
+    description = {"snapshot": str(snapshot_path), "snapshot_bytes": snapshot_path.stat().st_size,
+                   "fields": sorted(state), "rows_per_slab": [int(rows.size) for rows in rows_per_slab]}
+    print(f"{LOG_PREFIX}   restart from {snapshot_path}: rows per slab "
+          f"{description['rows_per_slab']} (cuts {[int(cut) for cut in chain.cuts]})", flush=True)
+    return states, ids_per_slab, description
+
+
 def verify_bootstrap_ids(sims, indices_per_slab) -> None:
     """Right after bootstrap (no migration yet) every slab must own exactly
     the ids it was given — proves the injection reached the GPU intact."""
@@ -870,13 +914,20 @@ def verify_bootstrap_ids(sims, indices_per_slab) -> None:
 
 def run(arguments, summary: dict) -> int:
     if arguments.dry_run:
-        prepare(arguments, include_gpu_modules=False)
+        solver, global_case, chain = prepare(arguments, include_gpu_modules=False)[:3]
+        if arguments.restart_snapshot:
+            load_restart_snapshot(solver, global_case, chain, arguments.restart_snapshot)
         summary.update({"run_name": arguments.run_name, "dry_run": True, "valid": True})
         return EXIT_VALID
 
     (solver, global_case, chain, indices_per_slab, horizons, device_map,
      defrag_cadence, description) = prepare(arguments, include_gpu_modules=True)
     summary["run_name"] = arguments.run_name
+    restart_states = restart_ids_per_slab = None
+    if arguments.restart_snapshot:
+        restart_states, restart_ids_per_slab, description["restart"] = load_restart_snapshot(
+            solver, global_case, chain, arguments.restart_snapshot)
+        summary["restart"] = description["restart"]
     if os.environ.get(solver.env_prefix + "PER_SIM_PIPELINE", "0") not in ("", "0"):
         print(f"{LOG_PREFIX} WARNING: {solver.env_prefix}PER_SIM_PIPELINE is set; "
               f"run_frames always uses the default pipelined loop", file=sys.stderr)
@@ -922,9 +973,17 @@ def run(arguments, summary: dict) -> int:
 
     orchestrator = solver.Orchestrator(sims, defrag_cadence=defrag_cadence)
     bootstrap_start = time.perf_counter()
-    orchestrator.bootstrap_all()
-    bootstrap_seconds = time.perf_counter() - bootstrap_start
-    verify_bootstrap_ids(sims, indices_per_slab)
+    if restart_states is not None:
+        # restart_init uploads the state's own extension_fields (the snapshot's
+        # ids), so the initial-data injection above is not used
+        orchestrator.restart_all(restart_states)
+        bootstrap_seconds = time.perf_counter() - bootstrap_start
+        restart_states = None
+        verify_bootstrap_ids(sims, restart_ids_per_slab)
+    else:
+        orchestrator.bootstrap_all()
+        bootstrap_seconds = time.perf_counter() - bootstrap_start
+        verify_bootstrap_ids(sims, indices_per_slab)
 
     defrag_log: list = []
     frames_seconds = 0.0
