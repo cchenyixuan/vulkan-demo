@@ -90,12 +90,14 @@ RELEASE_POOL_DEFAULTS = {
 # The pre-E6b defaults, for tools that pin an old baseline (the seam_audit tools
 # name their switches on top of these). An unset V6_MIGRANT_POOL_FACTOR follows an
 # explicitly set V6_GHOST_POOL_FACTOR (the old rule), so it needs no entry.
+# V6_PHASE_A_NO_WAIT was 0 until E32 (2026-10-06), so the pinned baselines keep it.
 LEGACY_DEFAULTS = {
     "V6_KEEP_DEPARTED": "0", "V6_GHOST_LAYERS": "1", "V6_LEAN_TRANSPORT": "0",
     "V6_GHOST_POOL_FACTOR": "1", "V6_DEPARTED_FACE_FRACTION": "0.25",
     "V6_COMPACT_GHOST_LISTS": "0", "V6_PACKED_REPLICAS": "0", "V6_BAND_SLOT_LANES": "0",
     "V6_INIT_SEAM_CLAMP": "0", "V6_BAND_WIDTHS": "2,3,4",
     "V6_WORKER_COUNT_AWARE": "0", "V6_SPLIT_TRANSFER_QUEUES": "0",
+    "V6_PHASE_A_NO_WAIT": "0",
 }
 
 

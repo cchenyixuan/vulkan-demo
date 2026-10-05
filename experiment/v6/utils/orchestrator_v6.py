@@ -285,9 +285,10 @@ class DualGpuOrchestratorV6:
 
     def _submit_frame(self, n: int) -> None:
         """Submit all of frame n's work (no wait). The sync-scheme timelines
-        enforce the GPU-side ordering — phase_a(n) waits frame_done(n-1) etc. —
-        so it is safe to queue a frame before the previous one finished on the
-        GPU."""
+        and the compute queue's submission order enforce the GPU-side ordering
+        — phase_a(n) follows phase_c(n-1) on the same queue, phase_c(n) waits
+        upload_done(n) etc. — so it is safe to queue a frame before the
+        previous one finished on the GPU."""
         for w in self.workers:
             w.notify(n)
         for sim in self.sims:
@@ -326,7 +327,9 @@ class DualGpuOrchestratorV6:
         SAFETY (single-buffered state, validated drift=0 at depth 2 and 3):
         the sync-scheme timelines make worker(n)'s host-signal a prerequisite
         for frame n+1's readback: readback(n+1) ← phase_a(n+1) ←
-        frame_done(n) ← phase_c(n) ← upload_done(n) ← worker_done(n). The
+        phase_c(n) ← upload_done(n) ← worker_done(n), where phase_a(n+1)
+        follows phase_c(n) by submission order on the compute queue (since
+        E32; with V6_PHASE_A_NO_WAIT=0 also through a frame_done(n) wait). The
         chain holds in both schemes (aggregated: all on one timeline;
         per-direction: through main + the direction's transport timeline).
         So no staging buffer is reused before its reader finishes, and no

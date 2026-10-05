@@ -34,6 +34,9 @@ AFF=""; for p in $SYS; do n=$(cat $p/numa_node); AFF="$AFF$(cat /sys/devices/sys
 # worker affinity, the September 3-D ghost pool factor 1.0 (release default 0.5) and
 # the switch interval (read by the soak runner only).
 export V6_GHOST_POOL_FACTOR=1.0 V6_SWITCH_INTERVAL_MS=0.2
+# E32 (2026-10-06): phase A no-wait is the v6 code default (V6_PHASE_A_NO_WAIT=1, docs/perf_model/E32.md);
+# a paired =0 arm needs 'export V6_PHASE_A_NO_WAIT=0' (commits before E32 run 0).
+echo "phase A no-wait default on: $(grep -c 'V6_PHASE_A_NO_WAIT\", \"1\"' experiment/v6/utils/simulator_v6.py) (V6_PHASE_A_NO_WAIT=${V6_PHASE_A_NO_WAIT:-unset})"
 env | grep -E '^V6_' | sort | tr '\n' ' '; echo
 nvidia-smi --query-gpu=timestamp,index,utilization.gpu,power.draw,temperature.gpu,clocks.current.sm --format=csv -l 5 > "$SHM/telemetry.csv" 2>/dev/null &
 TELEPID=$!

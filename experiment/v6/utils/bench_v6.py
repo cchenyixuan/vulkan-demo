@@ -195,9 +195,11 @@ class BenchTimer:
         only the reset COMMAND has queue-type restrictions). Used for the
         transfer-pool timer: the simulator records this into phase_a_cmd,
         whose phase_a_done signal orders it before every same-frame transfer
-        write, and whose frame_done(N-1) wait orders it after every prior-
-        frame transfer write. No tick is written here — transfer labels are
-        allocated lazily by tick() inside the transfer cmds themselves."""
+        write; every prior-frame transfer write happens-before
+        upload_done(N-1), which C(N-1) waits on, and phase_a_cmd follows
+        C(N-1) on the compute queue (by submission order since E32, see
+        simulator_v6._record_phase_a_cmd). No tick is written here — transfer
+        labels are allocated lazily by tick() inside the transfer cmds."""
         vkCmdResetQueryPool(cmd, self.pool, 0, _MAX_TICKS)
 
     def record_defrag_reset_and_start(self, cmd, start_label: str = "defrag_start") -> None:

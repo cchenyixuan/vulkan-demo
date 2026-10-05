@@ -8,10 +8,11 @@
 
 ### 1.1 一步内的 kernel 顺序
 
-一帧三段 compute 命令缓冲(A / B / C;`V6_FAST_SUBMIT=1` 时在一次提交里)加每个方向一次 readback、一次 upload(transfer 队列)和一次主机拷贝(worker 线程);B 与传输并行,C 等 upload 完成。
+一帧三段 compute 命令缓冲(A / B / C;`V6_FAST_SUBMIT=1` 时在一次提交里)加每个方向一次 readback、一次 upload(transfer 队列)和一次主机拷贝(worker 线程);B 与传输并行,C 等 upload 完成。A 不等任何 semaphore(E32 起的默认,`V6_PHASE_A_NO_WAIT=1`):它的命令缓冲以同队列 compute→compute 屏障开头,按提交顺序已排在 C(n−1) 之后,而 C(n−1) 等过 upload_done(n−1),所以对本卡 frame_done(n−1) 的等待是多余的;设 `V6_PHASE_A_NO_WAIT=0` 恢复这个等待。frame_done 照旧由 C 发出(主机等帧、worker 与下一帧 readback 的顺序都用它)。
 
 | 步 | 队列 | 内容 | v6 改动 |
 |---|---|---|---|
+| A0 起点 | compute | 命令缓冲开头的同队列 compute→compute 屏障;按提交顺序排在 C(n−1) 之后 | E32:默认不再等 frame_done(n−1)(`V6_PHASE_A_NO_WAIT=0` 恢复) |
 | A1 predict | compute | own 流体粒子 kick + drift(读 aⁿ、shiftⁿ、v^{n−½}、xⁿ);换 voxel 的粒子追加进新 voxel 的 incoming 表(own 或 ghost voxel) | — |
 | A2 update_voxel | compute | own voxel:压缩 inside 表 + 追加 incoming | — |
 | A2b | compute | `departed_count` 清零(fill,前后 compute→clear / clear→compute 屏障) | KEEP=1 |
@@ -71,10 +72,11 @@ LAYERS=2:  [ G2 G1 | own 0 … own N−1 | G1 G2 ]
 | `V6_DIAG_GHOST_SELF` | `correction,density` | 仅诊断:LAYERS=2 时哪些 band kernel 把 G1 当 self;去掉 `density` 就回到缺陷 1(只对 `V6_PACKED_REPLICAS=0` 成立:打包格式不带 G1 的 P,展开时写 0,所以显式设 `V6_PACKED_REPLICAS=1` 时去掉 `density` 会被主机端拒绝,否则 C5 会读到 P = 0;未设时打包随之关闭) |
 | `V6_DIAG_POISON_G1` | 未设(`off`) | 仅诊断(E23):`pressure` = 展开时往每个 G1 replica 的 P 写 NaN(G1 的 Pⁿ 没人读,所以全场必须保持有限),`density` = 往 G1 的 ρ 写 NaN(阴性对照,必须出现 NaN);只作用于 `V6_PACKED_REPLICAS=1` 的展开路径,别的组合在主机端报错;spec 常量 99,为 0 时被折叠掉。用法见 `v6_opt.md`"G1 去 P" |
 | `V6_BAND_WIDTHS` | `2,2,3`(E6b 之前 `2,3,4`;未设且 `V6_BAND_COMPACT_DISPATCH=1` 时 `2,3,4`) | E26:correction / density / force 的 band 宽度(own 列数,= 各自分拆 pipeline 的 spec 82);主机端要求 c ≥ 2、d ≥ c、f ≥ d + 1;`V6_BAND_COMPACT_DISPATCH` 只支持 2/3/4,其他宽度一起开时报错。见 `v6_opt.md`"band 2/2/3" |
+| `V6_PHASE_A_NO_WAIT` | 1(E32 之前 0) | 1:phase A 不等本卡 frame_done(n−1),靠开头的屏障与同队列提交顺序排在 C(n−1) 之后(§1.1);0:恢复等待。`simulator_v6` 在 import 时读。E31:C→A 间隙每步 37 → 5.6 µs,2-D 1M K = 2 fps +2.0 %;E32:depth 2 多步审计(2-D 1M K = 2 / 4、3-D 1M K = 2)与 =0 无差别,见 `docs/perf_model/E32.md` |
 | 发布前优化(`v6_opt.md`) | | `V6_LEAN_TRANSPORT`、`V6_COMPACT_GHOST_LISTS`、`V6_INIT_SEAM_CLAMP`(默认 1)、`V6_PACKED_REPLICAS`(未设时在合法处开)、`V6_MIGRANT_POOL_FACTOR`(默认 2-D 0.05、3-D 0.02;未设而 `V6_GHOST_POOL_FACTOR` 显式设了时跟它);E6b 之前全部关、migrant 跟 ghost 因子 |
 | 继承自 v5(改名 `V6_`) | | `V6_GHOST_POOL_FACTOR`(默认 2-D 0.29、3-D 0.5;E6b 之前默认 1,生产 2-D 0.25、3-D 1.0)、`V6_WORKER_COUNT_AWARE`(默认 1;E6b 之前 0)、`V6_SPLIT_TRANSFER_QUEUES`(默认 1;E6b 之前 0)、`V6_CASCADE_FORCE`(1)、`V6_BAND_VOXEL_DISPATCH`(1)、`V6_BAND_SLOT_LANES`(默认 64;E6b 之前 0)等,语义不变 |
 
-E6b(2026-10-05)起默认就是 `v6_opt.md` 的推荐组合;E6b 之前的默认在 `partition_v6.LEGACY_DEFAULTS`,按旧默认定义配置的 seam_audit 与 v6 验证工具先钉住它,见 `v6_opt.md`"发布组合成为代码默认"。
+E6b(2026-10-05)起默认就是 `v6_opt.md` 的推荐组合;E6b 之前的默认在 `partition_v6.LEGACY_DEFAULTS`,按旧默认定义配置的 seam_audit 与 v6 验证工具先钉住它,见 `v6_opt.md`"发布组合成为代码默认"。E32(2026-10-06)起 `V6_PHASE_A_NO_WAIT` 也默认 1;`LEGACY_DEFAULTS` 钉 0(E32 之前的默认),钉旧默认的工具照旧跑 0。
 
 spec 常量:83 `GHOST_LAYERS`、84 `DEPARTED_POOL_SIZE`、85 `GHOST_SELF_LAYER`(按 pipeline,只有 correction / density 的 band 变体为 1)、86 `REPLICA_REGION_SIZE`。
 

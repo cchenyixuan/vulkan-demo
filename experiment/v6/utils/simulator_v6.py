@@ -119,17 +119,21 @@ _DIAG_GHOST_SELF_KERNELS = configured_ghost_self_kernels()
 # entry points instead of python-vulkan's per-call struct building. Same
 # semaphore ops, one vkQueueSubmit2 per queue per frame. Off by default.
 _FAST_SUBMIT = os.environ.get("V6_FAST_SUBMIT", "1") == "1"   # default ON since 2026-09-15 (validated: N56 probe29/30/31/32, local verifier)
-# V3.6 (2026-09-15, N56 c_to_a diagnosis): phase A's semaphore wait on its
-# OWN frame_done(n-1) is redundant — C(n-1) precedes A(n) in submission
-# order on the same queue and A opens with a compute->compute memory
-# barrier, which orders and makes visible everything earlier on that queue
-# (C's force writes, and transitively upload/readback of n-1 because C(n-1)
-# itself waited upload_done(n-1)). The wait is only satisfied at the very
-# end of C(n-1), so the GPU scheduler re-evaluates it late: measured
-# c_to_a gaps of 0-0.5 ms (mean ~0.25) on 64M K=8. With the wait dropped
-# the c->a boundary behaves like a->b (~3 us). The frame_done SIGNAL stays
-# (host and workers rely on it). Off by default until validated.
-_PHASE_A_NO_WAIT = os.environ.get("V6_PHASE_A_NO_WAIT", "0") == "1"
+# Phase A does not wait on its OWN frame_done(n-1) (V3.6, 2026-09-15; the
+# code default since E32, 2026-10-06; V6_PHASE_A_NO_WAIT=0 restores the wait).
+# The wait is redundant: A's command buffer opens with a same-queue
+# compute->compute barrier and is submitted after C(n-1) on the same queue,
+# so submission order already puts it after C(n-1) — C's force writes, and
+# through C(n-1)'s own upload_done(n-1) wait the readback / worker / upload
+# of n-1 as well. The semaphore was only satisfied at the very end of
+# C(n-1), and the GPU scheduler re-evaluated it late: E31 (2 x 5090) C->A
+# gap 37 -> 5.6 us per step at K = 2, +2.0 % (2-D 1M) / +4.2 % (2-D 10k)
+# fps. Validated at depth 1 (E31: single-step and repeated A/B gates) and at
+# depth 2 (E32: 300 / 2000-step restarts of 2-D 1M K = 2 / 4 and 3-D 1M
+# K = 2, six =0 and six =1 runs each: no difference beyond the run-to-run
+# spread). The frame_done SIGNAL stays (host, workers and the next frame's
+# readback fence rely on it). Read once at import.
+_PHASE_A_NO_WAIT = os.environ.get("V6_PHASE_A_NO_WAIT", "1") == "1"
 if _FAST_SUBMIT:
     from vulkan._vulkancache import ffi as _ffi
     from vulkan._vulkan import lib as _lib
@@ -2664,11 +2668,15 @@ class SphSimulatorV6:
         self._bench_reset_step(cmd, "a_start")
         # The TRANSFER pool's per-frame reset also lives here, on the
         # compute queue (2026-07-22 audit fix: vkCmdResetQueryPool is
-        # invalid on transfer-only queues). Ordering is guaranteed by the
-        # semaphore chain alone, at any pipelining depth: this cmd signals
-        # phase_a_done, which every readback cmd of frame N waits on; and
-        # frame N's transfer writes happen-before frame_done(N), which
-        # phase A of frame N+1 waits on before resetting again.
+        # invalid on transfer-only queues). This cmd signals phase_a_done,
+        # which every readback cmd of frame N waits on, so the reset precedes
+        # frame N's transfer writes. It follows frame N-1's transfer writes
+        # through the compute queue: they all happen-before upload_done(N-1),
+        # which C(N-1) waits on, and this cmd is submitted after C(N-1). With
+        # the default V6_PHASE_A_NO_WAIT=1 (no frame_done(N-1) wait) that
+        # second edge is queue order — the queue does not start A(N) before
+        # C(N-1)'s wait is satisfied — not a semaphore dependency on this
+        # reset; instrumentation only (no physics reads the pool).
         if self.bench_transfer is not None:
             self.bench_transfer.record_external_reset(cmd)
         self._record_compute_barrier(cmd)
@@ -3280,7 +3288,8 @@ class SphSimulatorV6:
 
     def submit_phase_a(self, frame_n: int) -> None:
         """Compute Q: predict + update_voxel + ghost_send. Signals
-        phase_a_done; waits for previous frame's frame_done."""
+        phase_a_done; waits for the previous frame's frame_done only with
+        V6_PHASE_A_NO_WAIT=0 (by default it follows C(n-1) by queue order)."""
         if self.phase_a_cmd is None:
             raise RuntimeError("phase_a_cmd not recorded; call prepare_step_cmd_buffers()")
         self.submit_with_timeline(

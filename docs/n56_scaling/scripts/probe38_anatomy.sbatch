@@ -21,6 +21,9 @@ AFF=""; for p in $SYS; do n=$(cat $p/numa_node); [ "$n" -lt 0 ] && n=0; AFF="$AF
 # worker affinity, the September 2-D ghost pool factor 0.25 (release default 0.29; v6 warns
 # below 1.2 (h/dx)^d slots per voxel) and the switch interval (read by the soak runner only).
 export V6_GHOST_POOL_FACTOR=0.25 V6_SWITCH_INTERVAL_MS=0.2
+# E32 (2026-10-06): phase A no-wait is the v6 code default (V6_PHASE_A_NO_WAIT=1, docs/perf_model/E32.md);
+# a paired =0 arm needs 'export V6_PHASE_A_NO_WAIT=0' (commits before E32 run 0).
+echo "phase A no-wait default on: $(grep -c 'V6_PHASE_A_NO_WAIT\", \"1\"' experiment/v6/utils/simulator_v6.py) (V6_PHASE_A_NO_WAIT=${V6_PHASE_A_NO_WAIT:-unset})"
 env | grep -E '^V6_' | sort | tr '\n' ' '; echo
 for SIZE in 4m 16m 128m; do
   L=2d${SIZE}_k8_anat; TA=$(date +%s)

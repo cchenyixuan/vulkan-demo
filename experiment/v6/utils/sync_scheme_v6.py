@@ -45,7 +45,12 @@ Host-signal safety invariant (both schemes, enforced by the worker's guard
 wait + assert): before host-signaling value v on semaphore S, wait S >= v-1.
 For the per-direction scheme the pending GPU signal below v is that
 direction's own readback (2N+1); the next frame's readback (2(N+1)+1) is
-fenced off by the frame_done -> phase_a chain, so no forward hazard exists.
+fenced off by the phase_c(N) -> phase_a(N+1) -> phase_a_done(N+1) chain
+(phase C waits upload_done(N), which follows worker_done(N)), so no forward
+hazard exists. Since E32 (2026-10-06) phase A(N+1) follows C(N) by
+submission order on the compute queue (its command buffer opens with a
+same-queue compute->compute barrier) instead of a frame_done(N) wait;
+phase_a_waits below is used only with V6_PHASE_A_NO_WAIT=0.
 """
 
 from __future__ import annotations
@@ -96,6 +101,11 @@ class FrameSyncScheme:
 
     # -- compute queue submit sites -------------------------------------------
     def phase_a_waits(self, frame_n: int) -> list:
+        """Phase A's wait on the sim's own frame_done(n - 1). Redundant and
+        unused by default (V6_PHASE_A_NO_WAIT=1, simulator_v6): A's command
+        buffer opens with a same-queue barrier and is submitted after
+        C(n - 1) on the same queue, so submission order already puts it
+        after C(n - 1). Kept for V6_PHASE_A_NO_WAIT=0."""
         raise NotImplementedError
 
     def phase_a_signals(self, frame_n: int) -> list:
@@ -224,6 +234,7 @@ class AggregatedTimelineScheme(FrameSyncScheme):
 
     # -- compute queue
     def phase_a_waits(self, frame_n: int) -> list:
+        """Only with V6_PHASE_A_NO_WAIT=0 (see FrameSyncScheme.phase_a_waits)."""
         wait_value = self.value_frame_done(frame_n - 1) if frame_n > 0 else 0
         return [(self.timeline, wait_value)]
 
@@ -347,6 +358,7 @@ class PerDirectionTimelineScheme(FrameSyncScheme):
 
     # -- compute queue
     def phase_a_waits(self, frame_n: int) -> list:
+        """Only with V6_PHASE_A_NO_WAIT=0 (see FrameSyncScheme.phase_a_waits)."""
         wait_value = self.value_frame_done(frame_n - 1) if frame_n > 0 else 0
         return [(self.main, wait_value)]
 
