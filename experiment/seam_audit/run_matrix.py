@@ -17,7 +17,9 @@ Matrix file (JSON):
                 "particles" ("fluid"), "far_bin_start" (8)
     }
 
-Every run's environment = os.environ + VK_LOADER_LAYERS_DISABLE=VK_LAYER_KHRONOS_validation
+Every run's environment = os.environ (v6: plus partition_v6.LEGACY_DEFAULTS, the
+pre-E6b defaults, for every V6_* the caller did not set)
++ VK_LOADER_LAYERS_DISABLE=VK_LAYER_KHRONOS_validation
 + the version's production switches (<P> = V5_ / V6_):
     <P>WORKER_COUNT_AWARE=1 <P>SPLIT_TRANSFER_QUEUES=1 <P>CASCADE_FORCE=1
     <P>BAND_VOXEL_DISPATCH=1 <P>GHOST_POOL_FACTOR=0.25 (2-D) / 1.0 (3-D)

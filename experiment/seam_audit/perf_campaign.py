@@ -66,12 +66,8 @@ ANATOMY_KEYS = (
 
 
 def production_environment(version: str, dimension: int) -> dict:
-    """v6 configurations name their switches on top of the pre-E6b defaults
-    (partition_v6.LEGACY_DEFAULTS), as in the 2026-10-02 campaign."""
-    from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS
     prefix = "V5_" if version == "v5" else "V6_"
     return {
-        **({} if version == "v5" else LEGACY_DEFAULTS),
         "VK_LOADER_LAYERS_DISABLE": "VK_LAYER_KHRONOS_validation",
         prefix + "WORKER_COUNT_AWARE": "1",
         prefix + "GHOST_POOL_FACTOR": "0.25" if dimension == 2 else "1.0",
@@ -241,6 +237,12 @@ def run_driver(args) -> int:
                     continue
                 version, config_env = CONFIGS[config_name]
                 environment = dict(os.environ)
+                if version != "v5":
+                    # v6 configurations name their switches on top of the pre-E6b
+                    # defaults (as in the 2026-10-02 campaign); caller-set V6_* are kept
+                    from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS
+                    for key, value in LEGACY_DEFAULTS.items():
+                        environment.setdefault(key, value)
                 environment.update(production_environment(version, dimension))
                 environment.update(config_env)
                 command = [sys.executable, str(pathlib.Path(__file__).resolve()), "--worker",

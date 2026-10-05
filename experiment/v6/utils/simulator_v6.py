@@ -89,7 +89,7 @@ from experiment.v6.utils.vulkan_context_v6 import VulkanContextV6
 # vkWaitSemaphores is deliberately never locked (it blocks for seconds).
 _SUBMIT_LOCK_SCOPE = os.environ.get("V6_SUBMIT_LOCK_SCOPE", "device")
 # V3.3 cascading force (2026-09-15, N56 K=8 hiding-window work): move
-# force_deep_interior (boundary band = 4 voxel columns by default, V6_BAND_WIDTHS;
+# force_deep_interior (boundary band = 3 voxel columns by default, V6_BAND_WIDTHS;
 # density source = scratch) into Phase B so the transfer chain hides behind correction +
 # density + force instead of correction + density only; Phase C then runs
 # force_boundary instead of force_all. Off by default until validated.
@@ -1319,7 +1319,7 @@ class SphSimulatorV6:
             (97, 'B', int(configured_init_seam_clamp())),
             # NEIGHBOR_X_RANGE (id=82) is NOT global anymore — Path A+ needs
             # different widths per kernel (correction / density / force =
-            # self.band_widths, V6_BAND_WIDTHS, default 2/3/4, for the
+            # self.band_widths, V6_BAND_WIDTHS, default 2/2/3, for the
             # cascading interior/boundary split). Each split-kernel
             # pipeline appends its own (82, 'I', width) via the helpers
             # below. Non-split kernels (predict / update_voxel / ghost_send /
@@ -1469,7 +1469,7 @@ class SphSimulatorV6:
         C while Path A+ wiring is pending); `<kernel>_interior` and
         `<kernel>_boundary` for correction's split; density and
         force use `_deep_interior` (historically the larger boundary band).
-        Band widths = self.band_widths (V6_BAND_WIDTHS, default 2/3/4 voxels
+        Band widths = self.band_widths (V6_BAND_WIDTHS, default 2/2/3 voxels
         for correction / density / force).
 
         ghost_send + install_migrations are always built for BOTH directions
@@ -2684,7 +2684,7 @@ class SphSimulatorV6:
     def _record_phase_b_cmd(self):
         """V5 Path A+ Phase B: correction_interior + density_deep_interior over
         own pid range. Both kernels skip their respective boundary bands
-        (self.band_widths, default correction 2 / density_deep 3 voxels) so
+        (self.band_widths, default correction 2 / density_deep 2 voxels) so
         they only touch particles whose inputs are all final for this frame.
 
         Runs in parallel with the transfer chain on the transfer queue
@@ -2808,7 +2808,7 @@ class SphSimulatorV6:
         # V3.4: with band-voxel dispatch the three boundary pipelines launch
         # only (band voxel, slot) threads; a slab without peers has no band
         # and skips the dispatch (the full-range path early-returned anyway).
-        # Band widths: self.band_widths (V6_BAND_WIDTHS, default 2/3/4).
+        # Band widths: self.band_widths (V6_BAND_WIDTHS, default 2/2/3).
         correction_band, density_band, force_band = self.band_widths
         compact = _BAND_COMPACT and self._band_compact_voxel_count() > 0
         if compact:

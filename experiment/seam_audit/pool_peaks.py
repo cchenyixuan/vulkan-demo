@@ -117,7 +117,8 @@ def run_worker(args) -> int:
             for sim in sims:
                 sim.submit_defrag_and_wait()
 
-            factor = float(os.environ.get("V6_GHOST_POOL_FACTOR", "1"))
+            from experiment.v6.utils.partition_v6 import configured_ghost_pool_factor
+            factor = configured_ghost_pool_factor(global_case)
             series = {}
             links = {}
             for worker in workers:

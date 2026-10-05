@@ -97,13 +97,13 @@ def main() -> int:
     parser.add_argument("--pool-safety", type=float, default=1.2)
     parser.add_argument("--out", required=True)
     arguments = parser.parse_args()
-    from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS
-    # pre-E6b defaults: the inventory's configurations name their switches on top of them
-    for key, value in LEGACY_DEFAULTS.items():
-        os.environ.setdefault(key, value)
     for key, value in PRODUCTION_SWITCHES.items():
         os.environ.setdefault(key, value)
     os.environ.setdefault("V6_GHOST_POOL_FACTOR", POOL_FACTOR_BY_DIMENSION[arguments.dimension])
+    # then the pre-E6b defaults for every other switch (caller > production > legacy)
+    from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS
+    for key, value in LEGACY_DEFAULTS.items():
+        os.environ.setdefault(key, value)
 
     from experiment.seam_audit.dump_state import run_frames
     from experiment.seam_audit.solver_adapter import load_solver

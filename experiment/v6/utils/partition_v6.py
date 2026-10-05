@@ -59,7 +59,8 @@ GHOST_THICKNESS = 1   # V5 v1.0: 1-voxel-thick ghost on the interior side (legac
 #   V6_DEPARTED_CAPACITY=<n> departed pool slots per slab (overrides the
 #                            face-fraction default below).
 #   V6_DEPARTED_FACE_FRACTION=<f>  default capacity = max(64, ceil(f x face
-#                            voxels x peer sides)); f = 0.25 by default. The
+#                            voxels x peer sides)); f = 0.8 (2-D) / 0.64 (3-D)
+#                            by default (0.25 before E6b). The
 #                            seam crossing rate per frame scales with the face
 #                            area, not with NY*NZ*MAX_INCOMING_PER_VOXEL.
 #   V6_LEAN_TRANSPORT=1      every ghost packet carries 4 fields (position +
@@ -69,7 +70,8 @@ GHOST_THICKNESS = 1   # V5 v1.0: 1-voxel-thick ghost on the interior side (legac
 #                            audit ids; forced on by experiment/seam_audit).
 #   V6_MIGRANT_POOL_FACTOR=<f> V6_GHOST_LAYERS=2: migrant region = max(64,
 #                            ceil(face x MAX_INCOMING x f)) slots per direction;
-#                            default f = V6_GHOST_POOL_FACTOR (the old sizing).
+#                            default 0.05 (2-D) / 0.02 (3-D); an explicitly set
+#                            V6_GHOST_POOL_FACTOR is followed (the old sizing).
 #   V6_COMPACT_GHOST_LISTS=1 ghost voxel lists travel as (count, first pid) and
 #                            are rebuilt on the receiver (expand_ghost_lists).
 # ============================================================================
@@ -293,7 +295,7 @@ def _ghost_pool_layout(global_case: CaseV6, ghost_layers: int) -> tuple[int, int
     ghost_layers = 2: [inner replicas R | outer replicas R | migrants M] with
       R = the V5 per-direction pool (one column's replicas + its migrant share,
           scaled by V6_GHOST_POOL_FACTOR exactly like V5), M = face x
-          MAX_INCOMING_PER_VOXEL x the same factor. Replicas only carry 4 fields
+          MAX_INCOMING_PER_VOXEL x V6_MIGRANT_POOL_FACTOR. Replicas only carry 4 fields
           over the link, migrants all 9 (simulator transport segments).
     """
     if ghost_layers == 1:
@@ -788,7 +790,7 @@ import sys as _sys
 from dataclasses import dataclass, field
 
 
-MINIMUM_OWN_COLUMNS_HARD = 12   # < 2 x force band (8 at the default V6_BAND_WIDTHS) -> force deep-interior empty; 12 = margin
+MINIMUM_OWN_COLUMNS_HARD = 12   # < 2 x force band (6 at the default V6_BAND_WIDTHS, 8 with 2,3,4) -> force deep-interior empty; 12 = margin
 MINIMUM_OWN_COLUMNS_WARN = 20   # below this Phase B's hiding budget is thin
 
 
@@ -1093,7 +1095,7 @@ def compute_chain_partition(
     sides. ``pool_safety`` sizes each slab's own pool as in the dual path
     (None = every slab gets the global pool). ``minimum_own_columns``
     guards the cascading-band floor (interior deep-interior work vanishes
-    below 2 x force_band = 8 own columns; the N=2 compatibility wrapper
+    below 2 x force_band = 6 own columns, 8 with bands 2,3,4; the N=2 compatibility wrapper
     passes 1 to reproduce legacy clamping).
     """
     _assert_degenerate_global(global_case)

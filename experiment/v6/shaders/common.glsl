@@ -271,7 +271,7 @@ layout(constant_id = 81) const uint TRAILING_GHOST_VOXEL_COUNT = 0u;
 // boundary band" → in_boundary_band() returns false for every own coord →
 // CORRECTION_MODE_INTERIOR processes everything / BOUNDARY processes nothing.
 // The simulator sets it per kernel for the split pipelines: correction /
-// density / force = V6_BAND_WIDTHS (default 2 / 3 / 4; needs c ≥ 2, d ≥ c,
+// density / force = V6_BAND_WIDTHS (default 2 / 2 / 3; needs c ≥ 2, d ≥ c,
 // f ≥ d + 1).
 layout(constant_id = 82) const uint NEIGHBOR_X_RANGE = 0u;
 

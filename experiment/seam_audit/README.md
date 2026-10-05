@@ -135,7 +135,9 @@ second: the running worker is killed and the attempt is recorded as `interrupted
 - `<P>BAND_VOXEL_DISPATCH=1`
 - `<P>GHOST_POOL_FACTOR=0.25` in 2-D, `1.0` in 3-D
 
-The configuration's own `env` is added on top. Every sidecar records the `V5_*`,
+The configuration's own `env` is added on top. For v6 every switch the caller did not set
+first gets its pre-E6b default (`partition_v6.LEGACY_DEFAULTS`), so the matrix files keep
+their meaning now that the release set is the code default. Every sidecar records the `V5_*`,
 `V6_*` and `VK_*` environment the run actually saw.
 
 **Device indices.** These use the V5/V6 discrete-first order: 0 and 1 are the two
