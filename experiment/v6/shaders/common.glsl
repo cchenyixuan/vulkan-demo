@@ -331,13 +331,17 @@ layout(constant_id = 95) const bool DELTA_DENSITY = false;
 layout(constant_id = 96) const float REFERENCE_DENSITY = 1000.0;
 // PACKED_REPLICAS (V6_PACKED_REPLICAS, needs V6_GHOST_LAYERS=2 and
 // COMPACT_GHOST_LISTS): the two-layer replicas travel in ghost_packed_words
-// with only what the receiver reads and cannot rebuild: inner (G1) x, y, z, rho,
-// v, P, material (36 B); outer (G2) x, y, z, rho, v, material (32 B). Dropped:
-// the voxel id (expand_ghost_lists knows the voxel it lists the replica in, the
-// same id the sender encoded), the mass (per material constant, from
-// MaterialParameters.particle_mass, bit-identical to the uploaded mass), and
-// G2's pressure (nothing reads it: G2 is only a neighbour of G1-as-self in
-// correction / density). expand_ghost_lists unpacks into the ghost SoA slots.
+// with only what the receiver reads and cannot rebuild, the same 32 B record
+// for both layers: inner (G1) and outer (G2) x, y, z, rho, v, material bits.
+// Dropped: the voxel id (expand_ghost_lists knows the voxel it lists the
+// replica in, the same id the sender encoded), the mass (per material constant,
+// from MaterialParameters.particle_mass, bit-identical to the uploaded mass) and
+// the pressure of both layers: G2 is only a neighbour of G1-as-self in
+// correction / density, which read rho only; G1's P^n is never read either --
+// correction / density read rho only, the density band recomputes G1 as self
+// (GHOST_SELF_LAYER) and the scratch -> primary copy publishes its
+// rho^{n+1}, P^{n+1} before force reads any pressure. expand_ghost_lists
+// unpacks into the ghost SoA slots and writes P = 0 for both layers.
 layout(constant_id = 98) const bool PACKED_REPLICAS = false;
 // INIT_SEAM_CLAMP (V6_INIT_SEAM_CLAMP): initialize_voxelization registers an
 // own particle whose voxel lands one column into a ghost column in the adjacent
@@ -606,10 +610,11 @@ layout(std430, set = 1, binding = 6) buffer BandCompactListBuffer {
 
 layout(std430, set = 1, binding = 7) buffer GhostPackedBuffer {
     // V6_PACKED_REPLICAS only: per direction d (0 leading, 1 trailing) and
-    // R = REPLICA_REGION_SIZE, in words: [d*17R, +4R) G1 x y z rho | [+4R, +4R)
-    // G1 vx vy vz P | [+8R, +R) G1 material | [+9R, +4R) G2 x y z rho |
-    // [+13R, +4R) G2 vx vy vz material-bits. Outbox in phase A, inbox in phase C
-    // (the same aliasing as the ghost SoA range). 4 B otherwise.
+    // R = REPLICA_REGION_SIZE, in words: [d*16R, +4R) G1 x y z rho | [+4R, +4R)
+    // G1 vx vy vz material-bits | [+8R, +4R) G2 x y z rho | [+12R, +4R) G2 vx vy
+    // vz material-bits (8 words per record and layer, helpers.glsl
+    // packed_layer_base). Outbox in phase A, inbox in phase C (the same aliasing
+    // as the ghost SoA range). 4 B otherwise.
     uint ghost_packed_words[];
 };
 

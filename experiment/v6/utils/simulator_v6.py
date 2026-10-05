@@ -52,6 +52,7 @@ from experiment.v6.utils.partition_v6 import (
     transported_particle_fields,
     configured_init_seam_clamp,
     configured_packed_replicas,
+    configured_ghost_self_kernels,
 )
 from experiment.v6.utils.sync_scheme_v6 import make_sync_scheme
 from experiment.v6.utils.vulkan_context_v6 import VulkanContextV6
@@ -109,9 +110,7 @@ _BAND_COMPACT = os.environ.get("V6_BAND_COMPACT_DISPATCH", "0") == "1"
 _FAKE_BAND_COLUMN = int(os.environ.get("V6_FAKE_BAND_TEST", "0"))
 # Diagnostic (V6_GHOST_LAYERS = 2 cost split): which band kernels recompute the
 # inner ghost column as self. Default both (the seam fix); see _ghost_self_layer.
-_DIAG_GHOST_SELF_KERNELS = tuple(
-    name.strip() for name in os.environ.get("V6_DIAG_GHOST_SELF", "correction,density").split(",")
-    if name.strip())
+_DIAG_GHOST_SELF_KERNELS = configured_ghost_self_kernels()
 # V3.5 fast submit (2026-09-15): pre-built cffi submit batches + raw cffi
 # entry points instead of python-vulkan's per-call struct building. Same
 # semaphore ops, one vkQueueSubmit2 per queue per frame. Off by default.
@@ -247,6 +246,10 @@ _GLOBAL_STATUS_FIELD_NAMES = (
 # material. Migrants still carry all 9 transported fields.
 _REPLICA_TRANSPORT_FIELDS = ("position_voxel_id", "velocity_mass",
                              "density_pressure", "material")
+# V6_PACKED_REPLICAS: words per packed replica record and layer (helpers.glsl
+# packed_layer_base: direction * 16 + layer * 8): x y z rho | vx vy vz material-bits,
+# the same record for G1 and G2.
+_PACKED_REPLICA_WORDS = 8
 
 
 # Path A+ (P2): buffer names that participate in cross-GPU transport and
@@ -682,9 +685,9 @@ class SphSimulatorV6:
             _BufferSpec("ghost_voxel_first_particle_id", 1, 5, 4 * voxel_capacity,                BSU | TRANSFER),
             # V6_BAND_COMPACT_DISPATCH: compacted band pid list + per-voxel offsets
             _BufferSpec("band_compact_list",            1, 6,  self._band_compact_list_bytes(), BSU | TRANSFER),
-            # V6_PACKED_REPLICAS: packed replica out/inbox, 17 R words per direction
+            # V6_PACKED_REPLICAS: packed replica out/inbox, 2 layers x 8 words x R per direction
             _BufferSpec("ghost_packed_words",           1, 7,
-                        max(4, 4 * 2 * 17 * case.capacities.replica_region_size)
+                        max(4, 4 * 2 * 2 * _PACKED_REPLICA_WORDS * case.capacities.replica_region_size)
                         if configured_packed_replicas() else 4,                       BSU | TRANSFER),
 
             # Set 3: global / pool-health / materials
@@ -928,18 +931,18 @@ class SphSimulatorV6:
                 staging_offset += stride * slot_count
 
         if configured_packed_replicas():
-            # V6_PACKED_REPLICAS: G1 (x y z rho | vx vy vz P | material) and G2
-            # (x y z rho | vx vy vz material) blocks of this direction's packed
-            # region (common.glsl GhostPackedBuffer); stride = bytes per replica
-            # of the block, live prefix = the layer's replica counter.
+            # V6_PACKED_REPLICAS: G1 and G2 blocks (x y z rho | vx vy vz
+            # material-bits, the same record for both layers) of this direction's
+            # packed region (common.glsl GhostPackedBuffer); stride = bytes per
+            # replica of the block, live prefix = the layer's replica counter.
             if not configured_compact_ghost_lists():
                 raise ValueError("V6_PACKED_REPLICAS=1 needs V6_COMPACT_GHOST_LISTS=1 "
                                  "(expand_ghost_lists unpacks the replicas)")
             region_bytes = 4 * replica_region
-            direction_base = (0 if direction == "leading" else 1) * 17 * region_bytes
+            direction_base = ((0 if direction == "leading" else 1)
+                              * 2 * _PACKED_REPLICA_WORDS * region_bytes)
             for word_offset, stride, count_key in ((0, 16, "inner"), (4, 16, "inner"),
-                                                    (8, 4, "inner"), (9, 16, "outer"),
-                                                    (13, 16, "outer")):
+                                                    (8, 16, "outer"), (12, 16, "outer")):
                 segment = _TransportSegment(
                     "ghost_packed_words", direction_base + word_offset * region_bytes,
                     staging_offset, stride * replica_region, stride=stride, region=count_key)

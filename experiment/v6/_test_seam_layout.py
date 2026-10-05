@@ -483,9 +483,10 @@ def check_compact_ghost_lists(failures: list, depth_count: int = 1) -> None:
 
 def check_packed_replicas(failures: list, depth_count: int = 1) -> None:
     """V6_PACKED_REPLICAS (two layers, compact lists): the 8 replica SoA segments
-    become 5 ghost_packed_words blocks (G1 16/16/4 B, G2 16/16 B per replica) at
-    direction base d * 68 R bytes, with the inner / outer count words; the
-    migrant region, voxel lists, count words and stamp are unchanged."""
+    become 4 ghost_packed_words blocks (G1 16/16 B, G2 16/16 B per replica: the
+    same 32 B record, no pressure) at direction base d * 64 R bytes, with the
+    inner / outer count words; the migrant region, voxel lists, count words and
+    stamp are unchanged."""
     import experiment.v6.utils.case_v6 as case_v6
     import experiment.v6.utils.partition_v6 as partition_v6
     import experiment.v6.utils.simulator_v6 as simulator_v6
@@ -509,9 +510,9 @@ def check_packed_replicas(failures: list, depth_count: int = 1) -> None:
             os.environ["V6_PACKED_REPLICAS"] = "0"
             if not plain:
                 continue
-            base = (0 if direction == "leading" else 1) * 68 * replica_region
+            base = (0 if direction == "leading" else 1) * 64 * replica_region
             expected_blocks = [("ghost_packed_words", base + 4 * replica_region * words, stride * replica_region, stride)
-                               for words, stride in ((0, 16), (4, 16), (8, 4), (9, 16), (13, 16))]
+                               for words, stride in ((0, 16), (4, 16), (8, 16), (12, 16))]
             replica_plain = [segment for segment in plain if segment.region in ("inner", "outer")]
             rest_plain = [key(segment) for segment in plain if segment.region not in ("inner", "outer")]
             blocks = [key(segment) for segment in packed if segment.buffer_name == "ghost_packed_words"]
@@ -522,12 +523,12 @@ def check_packed_replicas(failures: list, depth_count: int = 1) -> None:
             if rest_packed != rest_plain:
                 failures.append(f"{tag}: non-replica segments changed")
             regions = [segment.region for segment in packed if segment.buffer_name == "ghost_packed_words"]
-            if regions != ["inner", "inner", "inner", "outer", "outer"]:
+            if regions != ["inner", "inner", "outer", "outer"]:
                 failures.append(f"{tag}: block regions {regions}")
             plain_bytes = sum(segment.stride for segment in replica_plain)
             packed_bytes = sum(segment.stride for segment in packed if segment.buffer_name == "ghost_packed_words")
-            if (plain_bytes, packed_bytes) != (88, 68):
-                failures.append(f"{tag}: bytes per G1+G2 replica pair {plain_bytes} -> {packed_bytes}, expected 88 -> 68")
+            if (plain_bytes, packed_bytes) != (88, 64):
+                failures.append(f"{tag}: bytes per G1+G2 replica pair {plain_bytes} -> {packed_bytes}, expected 88 -> 64")
             offset = 0
             for segment in packed:
                 if segment.staging_offset != offset:

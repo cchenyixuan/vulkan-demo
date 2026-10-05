@@ -55,13 +55,13 @@ void main() {
     uint region_slot = particle_id - region_first_particle_id;
     uint packed_base = packed_layer_base(direction, layer);
     vec4 position_density = load_packed_vec4(packed_base + 4u * region_slot);
-    vec4 velocity_extra = load_packed_vec4(packed_base + 4u * REPLICA_REGION_SIZE + 4u * region_slot);
-    uint material_id = (layer == 0u)
-        ? ghost_packed_words[packed_base + 8u * REPLICA_REGION_SIZE + region_slot]
-        : floatBitsToUint(velocity_extra.w);
-    float pressure = (layer == 0u) ? velocity_extra.w : 0.0;
+    vec4 velocity_material = load_packed_vec4(packed_base + 4u * REPLICA_REGION_SIZE + 4u * region_slot);
+    uint material_id = floatBitsToUint(velocity_material.w);
+    // No pressure travels (common.glsl PACKED_REPLICAS): P = 0 for both layers.
+    float density = position_density.w;
+    float pressure = 0.0;
     position_voxel_id[particle_id] = vec4(position_density.xyz, float(voxel_id));
-    velocity_mass[particle_id]     = vec4(velocity_extra.xyz, material_parameters[material_id].particle_mass);
-    density_pressure[particle_id]  = vec2(position_density.w, pressure);
+    velocity_mass[particle_id]     = vec4(velocity_material.xyz, material_parameters[material_id].particle_mass);
+    density_pressure[particle_id]  = vec2(density, pressure);
     material[particle_id]          = material_id;
 }

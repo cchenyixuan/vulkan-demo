@@ -117,15 +117,29 @@ def configured_compact_ghost_lists() -> bool:
     return os.environ.get("V6_COMPACT_GHOST_LISTS", "0") == "1"
 
 
+def configured_ghost_self_kernels() -> tuple[str, ...]:
+    """V6_DIAG_GHOST_SELF (diagnostic, default "correction,density"): the band
+    kernels that recompute the inner ghost column (G1) as self."""
+    return tuple(name.strip() for name in
+                 os.environ.get("V6_DIAG_GHOST_SELF", "correction,density").split(",")
+                 if name.strip())
+
+
 def configured_packed_replicas() -> bool:
-    """V6_PACKED_REPLICAS=1: two-layer replicas travel packed (G1 36 B, G2 32 B;
-    common.glsl id 98). Needs V6_GHOST_LAYERS=2 and V6_COMPACT_GHOST_LISTS=1:
-    with one ghost layer there is no packed region and expand_ghost_lists
-    would unpack garbage over every inbound replica, so the combination is
-    rejected here (every reader of the switch goes through this function)."""
+    """V6_PACKED_REPLICAS=1: two-layer replicas travel packed, G1 and G2 the
+    same 32 B record (common.glsl id 98). Needs V6_GHOST_LAYERS=2 and
+    V6_COMPACT_GHOST_LISTS=1: with one ghost layer there is no packed region and
+    expand_ghost_lists would unpack garbage over every inbound replica, so the
+    combination is rejected here (every reader of the switch goes through this
+    function). No pressure travels: G1's P is rebuilt by the density band's
+    G1-as-self pass before force reads it, so V6_DIAG_GHOST_SELF must keep
+    'density' (without it force would read P = 0 at the seam)."""
     packed = os.environ.get("V6_PACKED_REPLICAS", "0") == "1"
     if packed and (configured_ghost_layers() != 2 or not configured_compact_ghost_lists()):
         raise ValueError("V6_PACKED_REPLICAS=1 needs V6_GHOST_LAYERS=2 and V6_COMPACT_GHOST_LISTS=1")
+    if packed and "density" not in configured_ghost_self_kernels():
+        raise ValueError("V6_PACKED_REPLICAS=1 ships no G1 pressure; V6_DIAG_GHOST_SELF must include "
+                         "'density' (the G1-as-self density pass rebuilds it before force)")
     return packed
 
 

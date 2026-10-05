@@ -127,10 +127,12 @@ bool in_own_grid(ivec3 coord) {
 // ============================================================================
 
 // ============================================================================
-// V6_PACKED_REPLICAS: word offsets in ghost_packed_words (see common.glsl).
+// V6_PACKED_REPLICAS: word offsets in ghost_packed_words (see common.glsl):
+// 8 words per record (x y z rho | vx vy vz material-bits) per layer, 2 layers
+// per direction -> 16 R words per direction.
 // ============================================================================
 uint packed_layer_base(uint direction, uint layer) {
-    return (direction * 17u + layer * 9u) * REPLICA_REGION_SIZE;
+    return (direction * 16u + layer * 8u) * REPLICA_REGION_SIZE;
 }
 
 void store_packed_vec4(uint word, vec4 value) {
