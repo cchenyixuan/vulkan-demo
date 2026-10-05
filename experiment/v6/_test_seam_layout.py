@@ -167,8 +167,24 @@ def check_v5_equivalence(failures: list) -> None:
             weights = [1.0] * slab_count
             chain_v5 = partition_v5.compute_chain_partition(
                 _synthetic_global_case(case_v5), weights, pool_safety=1.2)
-            chain_v6 = partition_v6.compute_chain_partition(
-                _synthetic_global_case(case_v6), weights, pool_safety=1.2)
+            # E31 moved v6's cuts to the column boundary nearest the target (partition_v6.nearest_cut);
+            # v5 keeps searchsorted-left, at most one column left of it. v6's own cuts are checked
+            # against the E31 rule, the layout comparison below runs at v5's cuts.
+            global_v6 = _synthetic_global_case(case_v6)
+            own_cuts = partition_v6.compute_chain_partition(global_v6, weights, pool_safety=1.2).cuts
+            rule_cuts = partition_v6.chain_cuts_from_counts(
+                partition_v6._bin_fluid_counts(global_v6), weights, partition_v6.MINIMUM_OWN_COLUMNS_HARD)
+            if list(own_cuts) != rule_cuts or any(cut_v6 - cut_v5 not in (0, 1)
+                                                   for cut_v5, cut_v6 in zip(chain_v5.cuts, own_cuts)):
+                failures.append(f"K={slab_count}: v6 cuts {list(own_cuts)} are not the E31 rule's {rule_cuts} "
+                                f"within one column right of v5's {list(chain_v5.cuts)}")
+            compute_chain_cuts = partition_v6.compute_chain_cuts
+            partition_v6.compute_chain_cuts = (lambda global_case, weights, minimum_own_columns,
+                                               cuts=list(chain_v5.cuts): list(cuts))
+            try:
+                chain_v6 = partition_v6.compute_chain_partition(global_v6, weights, pool_safety=1.2)
+            finally:
+                partition_v6.compute_chain_cuts = compute_chain_cuts
             if chain_v5.cuts != chain_v6.cuts:
                 failures.append(f"K={slab_count}: cuts differ {chain_v5.cuts} vs {chain_v6.cuts}")
             for index, (slab_v5, slab_v6) in enumerate(zip(chain_v5.slabs, chain_v6.slabs)):
@@ -859,16 +875,20 @@ def check_release_defaults(failures: list) -> None:
                 failures.append(f"LEGACY_DEFAULTS {key} = {got[key]}, expected {value}")
         for key in partition_v6.LEGACY_DEFAULTS:
             del os.environ[key]
+        # E32: phase A's frame_done wait was the default until E32; the pinned baselines keep it
+        if partition_v6.LEGACY_DEFAULTS.get("V6_PHASE_A_NO_WAIT") != "0":
+            failures.append("LEGACY_DEFAULTS does not pin V6_PHASE_A_NO_WAIT=0")
     finally:
         for key in [key for key in os.environ if key.startswith("V6_")]:
             del os.environ[key]
         os.environ.update(saved)
     # defaults read outside partition_v6 (simulator at import, transport worker and
     # Vulkan context at construction): checked in the source
-    sources = {"utils/simulator_v6.py": r'os\.environ\.get\("V6_BAND_SLOT_LANES", "64"\)',
-               "utils/transport_v6.py": r'os\.environ\.get\("V6_WORKER_COUNT_AWARE", "1"\)',
-               "utils/vulkan_context_v6.py": r'os\.environ\.get\("V6_SPLIT_TRANSFER_QUEUES", "1"\)'}
-    for relative, pattern in sources.items():
+    sources = (("utils/simulator_v6.py", r'os\.environ\.get\("V6_BAND_SLOT_LANES", "64"\)'),
+               ("utils/simulator_v6.py", r'os\.environ\.get\("V6_PHASE_A_NO_WAIT", "1"\) == "1"'),   # E32
+               ("utils/transport_v6.py", r'os\.environ\.get\("V6_WORKER_COUNT_AWARE", "1"\)'),
+               ("utils/vulkan_context_v6.py", r'os\.environ\.get\("V6_SPLIT_TRANSFER_QUEUES", "1"\)'))
+    for relative, pattern in sources:
         text = (pathlib.Path(__file__).resolve().parent / relative).read_text(encoding="utf-8")
         if not re.search(pattern, text):
             failures.append(f"{relative}: release default {pattern} not found")
@@ -896,7 +916,8 @@ def main() -> int:
     print("[seam_layout] ALL PASS (layers=1 == v5 partition + transport; layers=2 column/pid algebra, "
           "segment layout, install range; lean / compact / packed segments in 2-D and 3-D, packed allocation "
           "tiling; packed rejection + V6_DIAG_POISON_G1 parsing; packed shader layout + poison branches + spec ids; "
-          "V6_BAND_WIDTHS parsing / rejection / spec 82; release defaults (E6b) + LEGACY_DEFAULTS; "
+          "V6_BAND_WIDTHS parsing / rejection / spec 82; release defaults (E6b, phase A no-wait E32) + "
+          "LEGACY_DEFAULTS; "
           + ("SPIR-V current)" if spirv_checked else "SPIR-V check SKIPPED: no glslc)"))
     return 0
 
