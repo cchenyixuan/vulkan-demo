@@ -1,0 +1,48 @@
+{
+  "arguments": {
+    "sizes": "",
+    "case": [
+      "50k=logs/two_hop_experiment/cases/cavity_2d_50k/case.yaml",
+      "100k=logs/two_hop_experiment/cases/cavity_2d_100k/case.yaml",
+      "250k=logs/two_hop_experiment/cases/cavity_2d_250k/case.yaml",
+      "500k=logs/two_hop_experiment/cases/cavity_2d_500k/case.yaml",
+      "1m_gen=cases/lid_driven_cavity_2d_gen/case.yaml"
+    ],
+    "trials": 5,
+    "warmup": 2000,
+    "max_steps": 12000,
+    "depth": 2,
+    "weights": "1.0,1.0",
+    "pool_safety": 1.2,
+    "skip_instrumented": false,
+    "environment": [],
+    "group": "small_n",
+    "output_directory": "logs/two_hop_experiment/small_n_20260928",
+    "resume": false,
+    "run_timeout_seconds": 3600
+  },
+  "cases": [
+    [
+      "50k",
+      "logs/two_hop_experiment/cases/cavity_2d_50k/case.yaml"
+    ],
+    [
+      "100k",
+      "logs/two_hop_experiment/cases/cavity_2d_100k/case.yaml"
+    ],
+    [
+      "250k",
+      "logs/two_hop_experiment/cases/cavity_2d_250k/case.yaml"
+    ],
+    [
+      "500k",
+      "logs/two_hop_experiment/cases/cavity_2d_500k/case.yaml"
+    ],
+    [
+      "1m_gen",
+      "cases/lid_driven_cavity_2d_gen/case.yaml"
+    ]
+  ],
+  "extra_environment": [],
+  "started_unix_time": 1790591429.5
+}

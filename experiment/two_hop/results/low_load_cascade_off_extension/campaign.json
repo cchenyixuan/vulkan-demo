@@ -1,0 +1,74 @@
+{
+  "arguments": {
+    "sizes": "",
+    "case": [
+      "20k=logs/two_hop_experiment/cases/cavity_2d_20k/case.yaml",
+      "50k=logs/two_hop_experiment/cases/cavity_2d_50k/case.yaml",
+      "200k=logs/two_hop_experiment/cases/cavity_2d_200k/case.yaml",
+      "500k=logs/two_hop_experiment/cases/cavity_2d_500k/case.yaml"
+    ],
+    "trials": 5,
+    "warmup": 1000,
+    "max_steps": 3000,
+    "steps": [
+      "20k=3000:30000",
+      "50k=3000:21000",
+      "200k=3000:20000",
+      "500k=2000:15000"
+    ],
+    "depth": 2,
+    "loop_trace": true,
+    "switch_interval_ms": 0.2,
+    "minimum_own_columns": null,
+    "weights": "1.0,1.0",
+    "pool_safety": 1.2,
+    "skip_instrumented": false,
+    "environment": [
+      "V5_CASCADE_FORCE=0"
+    ],
+    "group": "low_load_cascade_off",
+    "output_directory": "logs/two_hop_experiment/low_load_cascade_off_extension_20260928",
+    "resume": false,
+    "run_timeout_seconds": 3600
+  },
+  "step_plan": {
+    "20k": [
+      3000,
+      30000
+    ],
+    "50k": [
+      3000,
+      21000
+    ],
+    "200k": [
+      3000,
+      20000
+    ],
+    "500k": [
+      2000,
+      15000
+    ]
+  },
+  "cases": [
+    [
+      "20k",
+      "logs/two_hop_experiment/cases/cavity_2d_20k/case.yaml"
+    ],
+    [
+      "50k",
+      "logs/two_hop_experiment/cases/cavity_2d_50k/case.yaml"
+    ],
+    [
+      "200k",
+      "logs/two_hop_experiment/cases/cavity_2d_200k/case.yaml"
+    ],
+    [
+      "500k",
+      "logs/two_hop_experiment/cases/cavity_2d_500k/case.yaml"
+    ]
+  ],
+  "extra_environment": [
+    "V5_CASCADE_FORCE=0"
+  ],
+  "started_unix_time": 1790599907.2
+}

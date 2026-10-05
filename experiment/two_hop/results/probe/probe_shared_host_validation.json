@@ -1,0 +1,199 @@
+{
+  "arguments": {
+    "device_a": 0,
+    "device_b": 1,
+    "sizes_mb": "1",
+    "rounds": 2,
+    "iterations": 20,
+    "validation": true,
+    "output": "logs/two_hop_experiment/probe_shared_host_validation.json"
+  },
+  "environment": {
+    "V5_SPLIT_TRANSFER_QUEUES": "1",
+    "V5_RECEIVER_CACHED": null,
+    "VK_LOADER_LAYERS_DISABLE": null
+  },
+  "devices": {
+    "a": {
+      "name": "NVIDIA GeForce RTX 5090",
+      "physical_device_index": 0,
+      "min_imported_host_pointer_alignment": 4096,
+      "host_pointer_memory_type_bits": "0xc",
+      "memory_types": [
+        {
+          "index": 0,
+          "flags": "(none)",
+          "heap_index": 1,
+          "heap_gigabytes": 15.6,
+          "host_pointer_importable": false
+        },
+        {
+          "index": 1,
+          "flags": "DEVICE_LOCAL",
+          "heap_index": 0,
+          "heap_gigabytes": 31.3,
+          "host_pointer_importable": false
+        },
+        {
+          "index": 2,
+          "flags": "HOST_VISIBLE|HOST_COHERENT",
+          "heap_index": 1,
+          "heap_gigabytes": 15.6,
+          "host_pointer_importable": true
+        },
+        {
+          "index": 3,
+          "flags": "HOST_VISIBLE|HOST_COHERENT|HOST_CACHED",
+          "heap_index": 1,
+          "heap_gigabytes": 15.6,
+          "host_pointer_importable": true
+        },
+        {
+          "index": 4,
+          "flags": "DEVICE_LOCAL|HOST_VISIBLE|HOST_COHERENT",
+          "heap_index": 0,
+          "heap_gigabytes": 31.3,
+          "host_pointer_importable": false
+        }
+      ],
+      "transfer_queue_family_index": 1,
+      "split_transfer_queues": true
+    },
+    "b": {
+      "name": "NVIDIA GeForce RTX 5090",
+      "physical_device_index": 1,
+      "min_imported_host_pointer_alignment": 4096,
+      "host_pointer_memory_type_bits": "0xc",
+      "memory_types": [
+        {
+          "index": 0,
+          "flags": "(none)",
+          "heap_index": 1,
+          "heap_gigabytes": 15.6,
+          "host_pointer_importable": false
+        },
+        {
+          "index": 1,
+          "flags": "DEVICE_LOCAL",
+          "heap_index": 0,
+          "heap_gigabytes": 31.3,
+          "host_pointer_importable": false
+        },
+        {
+          "index": 2,
+          "flags": "HOST_VISIBLE|HOST_COHERENT",
+          "heap_index": 1,
+          "heap_gigabytes": 15.6,
+          "host_pointer_importable": true
+        },
+        {
+          "index": 3,
+          "flags": "HOST_VISIBLE|HOST_COHERENT|HOST_CACHED",
+          "heap_index": 1,
+          "heap_gigabytes": 15.6,
+          "host_pointer_importable": true
+        },
+        {
+          "index": 4,
+          "flags": "DEVICE_LOCAL|HOST_VISIBLE|HOST_COHERENT",
+          "heap_index": 0,
+          "heap_gigabytes": 31.3,
+          "host_pointer_importable": false
+        }
+      ],
+      "transfer_queue_family_index": 1,
+      "split_transfer_queues": true
+    }
+  },
+  "sizes": {
+    "1048576": {
+      "aligned_bytes": 1048576,
+      "import": {
+        "a": {
+          "memory_type_index": 3,
+          "memory_type_flags": "HOST_VISIBLE|HOST_COHERENT|HOST_CACHED",
+          "host_pointer_type_bits": "0xc",
+          "buffer_type_bits": "0xf",
+          "v5_sender_staging": "type[3] HOST_VISIBLE|HOST_COHERENT|HOST_CACHED",
+          "v5_receiver_staging": "type[2] HOST_VISIBLE|HOST_COHERENT"
+        },
+        "b": {
+          "memory_type_index": 3,
+          "memory_type_flags": "HOST_VISIBLE|HOST_COHERENT|HOST_CACHED",
+          "host_pointer_type_bits": "0xc",
+          "buffer_type_bits": "0xf",
+          "v5_sender_staging": "type[3] HOST_VISIBLE|HOST_COHERENT|HOST_CACHED",
+          "v5_receiver_staging": "type[2] HOST_VISIBLE|HOST_COHERENT"
+        }
+      },
+      "correctness": {
+        "transfers_checked": 4,
+        "mismatched_transfers": 0
+      },
+      "timing": {
+        "a": {
+          "shared_block_readback": {
+            "median_us": 37.22,
+            "p10_us": 37.15,
+            "p90_us": 37.25,
+            "gigabytes_per_second": 28.18,
+            "samples": 18
+          },
+          "v5_sender_staging_readback": {
+            "median_us": 37.09,
+            "p10_us": 37.02,
+            "p90_us": 37.09,
+            "gigabytes_per_second": 28.27,
+            "samples": 18
+          },
+          "shared_block_upload": {
+            "median_us": 37.34,
+            "p10_us": 37.31,
+            "p90_us": 42.02,
+            "gigabytes_per_second": 28.08,
+            "samples": 18
+          },
+          "v5_receiver_staging_upload": {
+            "median_us": 37.34,
+            "p10_us": 37.31,
+            "p90_us": 37.98,
+            "gigabytes_per_second": 28.08,
+            "samples": 18
+          }
+        },
+        "b": {
+          "shared_block_readback": {
+            "median_us": 37.18,
+            "p10_us": 37.15,
+            "p90_us": 37.22,
+            "gigabytes_per_second": 28.2,
+            "samples": 18
+          },
+          "v5_sender_staging_readback": {
+            "median_us": 37.06,
+            "p10_us": 37.02,
+            "p90_us": 37.18,
+            "gigabytes_per_second": 28.3,
+            "samples": 18
+          },
+          "shared_block_upload": {
+            "median_us": 37.34,
+            "p10_us": 37.31,
+            "p90_us": 37.38,
+            "gigabytes_per_second": 28.08,
+            "samples": 18
+          },
+          "v5_receiver_staging_upload": {
+            "median_us": 37.34,
+            "p10_us": 37.31,
+            "p90_us": 37.38,
+            "gigabytes_per_second": 28.08,
+            "samples": 18
+          }
+        }
+      }
+    }
+  },
+  "verdict": "PASS",
+  "failure": null
+}

@@ -1,0 +1,38 @@
+{
+  "arguments": {
+    "sizes": "1m,2m,4m",
+    "case": [],
+    "trials": 3,
+    "warmup": 1000,
+    "max_steps": 3000,
+    "depth": 2,
+    "weights": "1.0,1.0",
+    "pool_safety": 1.2,
+    "skip_instrumented": false,
+    "environment": [
+      "V5_CASCADE_FORCE=0"
+    ],
+    "group": "cascade_force_off",
+    "output_directory": "logs/two_hop_experiment/cascade_force_off_20260928",
+    "resume": false,
+    "run_timeout_seconds": 3600
+  },
+  "cases": [
+    [
+      "1m",
+      "cases/lid_driven_cavity_2d/case.yaml"
+    ],
+    [
+      "2m",
+      "cases/lid_driven_cavity_2d_2m/case.yaml"
+    ],
+    [
+      "4m",
+      "cases/lid_driven_cavity_2d_4m/case.yaml"
+    ]
+  ],
+  "extra_environment": [
+    "V5_CASCADE_FORCE=0"
+  ],
+  "started_unix_time": 1790592601.4
+}

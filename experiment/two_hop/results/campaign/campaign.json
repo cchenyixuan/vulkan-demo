@@ -1,0 +1,41 @@
+{
+  "arguments": {
+    "sizes": "1m,2m,4m,8m,16m",
+    "case": [],
+    "trials": 3,
+    "warmup": 1000,
+    "max_steps": 3000,
+    "depth": 2,
+    "weights": "1.0,1.0",
+    "pool_safety": 1.2,
+    "skip_instrumented": false,
+    "environment": [],
+    "group": "campaign",
+    "output_directory": "logs/two_hop_experiment/campaign_20260928",
+    "run_timeout_seconds": 3600
+  },
+  "cases": [
+    [
+      "1m",
+      "cases/lid_driven_cavity_2d/case.yaml"
+    ],
+    [
+      "2m",
+      "cases/lid_driven_cavity_2d_2m/case.yaml"
+    ],
+    [
+      "4m",
+      "cases/lid_driven_cavity_2d_4m/case.yaml"
+    ],
+    [
+      "8m",
+      "cases/lid_driven_cavity_2d_8m/case.yaml"
+    ],
+    [
+      "16m",
+      "cases/lid_driven_cavity_2d_16m/case.yaml"
+    ]
+  ],
+  "extra_environment": [],
+  "started_unix_time": 1790590328.1
+}

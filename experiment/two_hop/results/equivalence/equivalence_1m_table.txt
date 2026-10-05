@@ -1,0 +1,11 @@
+metric                reference  |K1-K1_rerun|  |K1-K2_three|       envelope    |K1-K2_two|  |K2three-K2two|   verdict
+kinetic_energy     6.220267e+00   2.246788e-04   4.631078e-05   2.246788e-04   4.837852e-05     2.067743e-06   PASS
+momentum_x         1.236566e+01   2.657521e-04   5.297394e-04   5.297394e-04   1.424344e-04     3.873050e-04   PASS
+momentum_y         2.870190e-02   1.431992e-03   7.484917e-04   1.431992e-03   1.746151e-03     9.976594e-04   PASS
+mean_density       9.999992e+02   4.151419e-05   1.927030e-05   1.999998e-04   5.113747e-06     2.438405e-05   PASS
+max_speed          1.000000e+00   0.000000e+00   0.000000e+00   2.000000e-07   0.000000e+00     0.000000e+00   PASS
+center_x          -6.840560e-07   1.253154e-08   5.647258e-09   2.000000e-07   1.513493e-08     9.487674e-09   PASS
+center_y           8.119136e-07   2.030909e-08   1.870088e-08   2.000000e-07   4.335542e-09     1.436534e-08   PASS
+n (exact)        {'k1_reference': 1046529, 'k1_rerun': 1046529, 'k2_three_hop': 1046529, 'k2_two_hop': 1046529}   PASS
+stamp checks     {'stamp_errors_host': 0, 'overwrite_errors_host': 0, 'stamp_errors_gpu': 0}   PASS
+[equiv_two_hop] ALL PASS

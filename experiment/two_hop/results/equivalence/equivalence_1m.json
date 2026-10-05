@@ -1,0 +1,132 @@
+{
+  "case": "cases/lid_driven_cavity_2d/case.yaml",
+  "steps": 2000,
+  "depth": 2,
+  "environment": {
+    "V5_WORKER_COUNT_AWARE": "1",
+    "V5_GHOST_POOL_FACTOR": "0.25",
+    "V5_SPLIT_TRANSFER_QUEUES": "1",
+    "V5_CASCADE_FORCE": "1",
+    "V5_BAND_VOXEL_DISPATCH": "1"
+  },
+  "envelope_factor": 10.0,
+  "runs": {
+    "k1_reference": {
+      "n": 1046529,
+      "kinetic_energy": 6.220266683631775,
+      "momentum_x": 12.365660467683984,
+      "momentum_y": 0.02870190276553643,
+      "mean_density": 999.9991625081841,
+      "max_speed": 1.0,
+      "center_x": -6.840559871011252e-07,
+      "center_y": 8.119136333422314e-07
+    },
+    "k1_rerun": {
+      "n": 1046529,
+      "kinetic_energy": 6.2204913624347515,
+      "momentum_x": 12.365926219766529,
+      "momentum_y": 0.027269910538206096,
+      "mean_density": 999.9992040223713,
+      "max_speed": 1.0,
+      "center_x": -6.71524448370997e-07,
+      "center_y": 7.916045395490169e-07
+    },
+    "k2_three_hop": {
+      "n": 1046529,
+      "kinetic_energy": 6.220312994409371,
+      "momentum_x": 12.36619020707252,
+      "momentum_y": 0.029450394511034816,
+      "mean_density": 999.9991432378808,
+      "max_speed": 1.0,
+      "center_x": -6.897032454522877e-07,
+      "center_y": 7.932127544095131e-07
+    },
+    "k2_two_hop": {
+      "n": 1046529,
+      "kinetic_energy": 6.220315062152567,
+      "momentum_x": 12.36580290207403,
+      "momentum_y": 0.030448053903053565,
+      "mean_density": 999.9991676219311,
+      "max_speed": 1.0,
+      "center_x": -6.991909197796178e-07,
+      "center_y": 8.075780910004529e-07
+    }
+  },
+  "metrics": {
+    "kinetic_energy": {
+      "reference": 6.220266683631775,
+      "rerun_delta": 0.00022467880297671883,
+      "three_hop_delta": 4.6310777595870434e-05,
+      "envelope": 0.00022467880297671883,
+      "two_hop_delta": 4.8378520792091706e-05,
+      "three_hop_vs_two_hop": 2.0677431962212722e-06,
+      "pass": true
+    },
+    "momentum_x": {
+      "reference": 12.365660467683984,
+      "rerun_delta": 0.00026575208254442373,
+      "three_hop_delta": 0.0005297393885363988,
+      "envelope": 0.0005297393885363988,
+      "two_hop_delta": 0.0001424343900460201,
+      "three_hop_vs_two_hop": 0.0003873049984903787,
+      "pass": true
+    },
+    "momentum_y": {
+      "reference": 0.02870190276553643,
+      "rerun_delta": 0.001431992227330335,
+      "three_hop_delta": 0.0007484917454983857,
+      "envelope": 0.001431992227330335,
+      "two_hop_delta": 0.0017461511375171344,
+      "three_hop_vs_two_hop": 0.0009976593920187488,
+      "pass": true
+    },
+    "mean_density": {
+      "reference": 999.9991625081841,
+      "rerun_delta": 4.151418715991895e-05,
+      "three_hop_delta": 1.9270303255325416e-05,
+      "envelope": 0.00019999983250163682,
+      "two_hop_delta": 5.113746965434984e-06,
+      "three_hop_vs_two_hop": 2.43840502207604e-05,
+      "pass": true
+    },
+    "max_speed": {
+      "reference": 1.0,
+      "rerun_delta": 0.0,
+      "three_hop_delta": 0.0,
+      "envelope": 2e-07,
+      "two_hop_delta": 0.0,
+      "three_hop_vs_two_hop": 0.0,
+      "pass": true
+    },
+    "center_x": {
+      "reference": -6.840559871011252e-07,
+      "rerun_delta": 1.2531538730128148e-08,
+      "three_hop_delta": 5.647258351162503e-09,
+      "envelope": 2e-07,
+      "two_hop_delta": 1.513493267849261e-08,
+      "three_hop_vs_two_hop": 9.487674327330106e-09,
+      "pass": true
+    },
+    "center_y": {
+      "reference": 8.119136333422314e-07,
+      "rerun_delta": 2.030909379321448e-08,
+      "three_hop_delta": 1.8700878932718308e-08,
+      "envelope": 2e-07,
+      "two_hop_delta": 4.335542341778508e-09,
+      "three_hop_vs_two_hop": 1.43653365909398e-08,
+      "pass": true
+    }
+  },
+  "particle_counts": {
+    "k1_reference": 1046529,
+    "k1_rerun": 1046529,
+    "k2_three_hop": 1046529,
+    "k2_two_hop": 1046529
+  },
+  "error_counts": {
+    "stamp_errors_host": 0,
+    "overwrite_errors_host": 0,
+    "stamp_errors_gpu": 0
+  },
+  "all_pass": true
+}
