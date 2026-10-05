@@ -22,6 +22,7 @@
   - phase C:lanes 64 在所有算例 +0.3 … +3.8 %,推荐;它省的主要是 force band(与 (1,1) 共有),不减 (1,2) 多出的 correction / density 时间。压缩 band 表在 3-D 把 (1,2) 多出的 correction / density 时间减掉 34 % / 40 %,另外省下共有的 force band 时间,但 fps 不比 lanes 64 好,2-D 10k–4M 还变慢(16M 略快),不采纳。
   - 旁测:K = 1 链 depth 1 与单缓冲等速,depth 2 快 0.3–3.9 %。
   - δρ:去掉压力台阶,内部压力噪声小 2.2–3.4 倍;整体与壁面附近的噪声(由壁面与 lid 主导)没有可分辨的差别;流动量不变;吞吐 −1.2 %(单卡单缓冲测量);多卡门通过;只报告,等你决定。
+- **G1 去 P(E23,2026-10-05):** `V6_PACKED_REPLICAS` 的 G1 改成与 G2 同一格式,各 32 B(每对 68 → 64 B,每个方向 16 R 个字),packet 只带接收方读的量。毒化测试直接证明 G1 的 Pⁿ 没人读(阴性对照出现 NaN);字节 DMA −5.7 … −5.8 %、主机 −5.8 … −5.9 %,主机字节公式逐帧精确成立,fps 不变;单步、A/B、K = 4 通过,审计的密度判据在新数值参数下对两个构建都不可靠(见"G1 去 P")。
 - **途中发现并修复:**
   - 从保存的状态重启时,seam 列边上的粒子会在 bootstrap 静默丢失(继承自 v5,`V6_INIT_SEAM_CLAMP`)。
   - 验证审计确认了打包开关缺少配置校验、溢出时的连带损坏、δρ 的读回不一致,以及门工具的几处漏洞;全部修复并重新验证。文档对数据的审计又改正了本文的一批数与说法(上面的同等比较就是其中之一)。见"验证审计"。
@@ -36,11 +37,11 @@
 | `V6_MIGRANT_POOL_FACTOR` | 0.05 | 0.02 | (e) |
 | `V6_DEPARTED_FACE_FRACTION` | 0.8 | 0.64 | (e) |
 | `V6_COMPACT_GHOST_LISTS` | 1 | 1 | (a1) |
-| `V6_PACKED_REPLICAS` | 1 | 1 | (b)(c) |
+| `V6_PACKED_REPLICAS` | 1 | 1 | (b)(c);E23 起 G1 与 G2 同一格式,各 32 B(x y z ρ、vx vy vz material 位),每个方向 16 R 个字(见"G1 去 P") |
 | `V6_BAND_SLOT_LANES` | 64 | 64 | phase C |
 | `V6_INIT_SEAM_CLAMP` | 1 | 1 | 修复(对格点初始条件是空操作) |
 | 不变的生产开关 | `V6_WORKER_COUNT_AWARE=1`、`V6_SPLIT_TRANSFER_QUEUES=1`,代码默认开的 `V6_CASCADE_FORCE`、`V6_BAND_VOXEL_DISPATCH`、`V6_FAST_SUBMIT` | 同左 | |
-| 不采纳 / 只评估 | `V6_BAND_COMPACT_DISPATCH`、(f)、`V6_DELTA_DENSITY`(等你决定)、`V6_TRANSPORT_EXTENSION`(只给审计) | | 见文末 |
+| 不采纳 / 只评估 | `V6_BAND_COMPACT_DISPATCH`、(f)、`V6_DELTA_DENSITY`(等你决定)、`V6_TRANSPORT_EXTENSION`(只给审计)、`V6_DIAG_POISON_G1`(只用于诊断,E23) | | 见文末 |
 
 ## 方法
 
@@ -162,7 +163,7 @@ ghost_send 给每个 (y, z) face voxel 和每层用一次 atomicAdd 分配一段
 | 3-D 8M | 50,592.5 / 19,646.6 | 24,806.8 / 19,646.6 | 21,695.3 / 16,535.1 | 16,795.3 / 12,788.3 | 22.6 % / 22.7 % |
 | 3-D narrow | 45,317.1 / 17,843.2 | 22,220.1 / 17,843.2 | 19,433.0 / 15,056.1 | 15,044.0 / 11,644.3 | 22.6 % / 22.7 % |
 
-**实现:** 新 buffer `ghost_packed_words`(每个方向 17 R 个字:G1 的 x y z ρ、vx vy vz P、material 三块,G2 的 x y z ρ、vx vy vz material 两块,R = replica 区段槽数),与 ghost SoA 区间一样在 phase A 作 outbox、phase C 作 inbox。ghost_send 只往这里写;`expand_ghost_lists.comp` 在写回列表的同一个线程里解包到 ghost SoA 槽:voxel id = 这个线程正在展开的 voxel(与发送方编码的 `.w` 是同一个,`_test_seam_layout.py` 第 3 项的列代数),质量 = `MaterialParameters.particle_mass`(原 `reserved_material_0`,主机写入与上传每个粒子质量时完全相同的 float32(ρ₀ · V)),G2 的 P 写 0(没人读:G2 只作 G1 当 self 时 correction / density 的邻居)。所以解包后的 SoA 在所有会被读的字段上与 lean 路径逐位相同(G2 的 P 例外:lean 路径传发送方的值,这里是 0)。需要 `V6_GHOST_LAYERS=2` 与 `V6_COMPACT_GHOST_LISTS=1`;其他组合在主机端直接报错(验证审计之后加的,33f084e:LAYERS = 1 时没有打包区,展开 kernel 会从占位 buffer 解包、覆盖所有入站 replica)。
+**实现:** 新 buffer `ghost_packed_words`(现在每个方向 16 R 个字,R = replica 区段槽数:G1 与 G2 同一格式,各两块 x y z ρ、vx vy vz material 位;本节的测量是在 E23 之前的格式上做的:G1 多带 P、material 另占一块,共 17 R 个字,见"G1 去 P"),与 ghost SoA 区间一样在 phase A 作 outbox、phase C 作 inbox。ghost_send 只往这里写;`expand_ghost_lists.comp` 在写回列表的同一个线程里解包到 ghost SoA 槽:voxel id = 这个线程正在展开的 voxel(与发送方编码的 `.w` 是同一个,`_test_seam_layout.py` 第 3 项的列代数),质量 = `MaterialParameters.particle_mass`(原 `reserved_material_0`,主机写入与上传每个粒子质量时完全相同的 float32(ρ₀ · V)),material = 速度块 `.w` 的位,P 写 0(G2 的 P 没人读:G2 只作 G1 当 self 时 correction / density 的邻居;G1 的 P 在 C4 之前没人读:C3 把 G1 当 self 重算 Pⁿ⁺¹,C4 拷进 primary;E23 之前 G1 带着 Pⁿ)。所以解包后的 SoA 在所有会被读的字段上与 lean 路径逐位相同(P 例外:lean 路径传发送方的 Pⁿ,这里是 0)。需要 `V6_GHOST_LAYERS=2` 与 `V6_COMPACT_GHOST_LISTS=1`;其他组合在主机端直接报错(验证审计之后加的,33f084e:LAYERS = 1 时没有打包区,展开 kernel 会从占位 buffer 解包、覆盖所有入站 replica)。
 
 **(b)(c) packed replicas** (campaign `perf_packed_phase_c`, `a1` → `packed`, 3 interleaved trials; per link per frame)
 
@@ -509,13 +510,179 @@ Verdict: cavity2d_1m: pass, worst ratio 1.06; cavity3d_1m: pass, worst ratio 1.2
 - **池因子:** 发布值只对实测的 C + C_inc 与 h/Δx 有效(2-D C = 96 / C_inc = 16、h/Δx = 5;3-D C = 128 / 32、h/Δx = 4),其他算例要重测或接受警告提示的风险;溢出永远被计数、不会静默。
 - **(f) 探针**只测了"每个 face voxel 一个线程"的写法;墙钟是两次主机往返。
 
+## G1 去 P:G1 与 G2 同一打包格式(E23,2026-10-05)
+
+**改动。** `V6_PACKED_REPLICAS` 的 G1 原来是 [x y z ρ | vx vy vz P | material] 9 个字 = 36 B,G2 是 [x y z ρ | vx vy vz material 位] 8 个字 = 32 B。按 `v6_design.md` §3.1 的读者清单,G1 的 Pⁿ 没人读:C2 / C3 只读 ρ;C3 把 G1 当 self 重算 ρⁿ⁺¹、Pⁿ⁺¹;C4 把整个 inner replica 区段从 scratch 拷进 primary;C5 读到的是新值。起步(bootstrap)与重启走同样的顺序。所以 G1 改成与 G2 同一格式:每个方向 16 R 个字(原 17 R),每对 replica 68 → 64 B,G1 与 G2 都是 32 B。直接改格式,不加开关(旧格式没有用途了)。packet 里只剩接收方读、且不能自己重建的量:x、ρ、v、material(质量按 material 查 `MaterialParameters.particle_mass`,vid 由展开 kernel 正在展开的 voxel 给出,两层的 P 都在展开时写 0)。主机端另加一条检查:打包时 `V6_DIAG_GHOST_SELF` 必须含 `density`,否则 C5 会读到 P = 0(SphSimulatorV6 构造时也用自己导入时冻结的值再查一次)。
+
+**诊断开关 `V6_DIAG_POISON_G1`**(默认 `off`;spec 常量 99,只声明在 `expand_ghost_lists.comp`,为 0 时建管线时被折叠):`pressure` = 展开时往每个 G1 replica 的 P 写 quiet NaN(0x7FC00000);`density` = 往 G1 的 ρ 写 NaN(阴性对照)。只作用于打包的展开路径;`V6_PACKED_REPLICAS=0` 时设非 `off` 值、或设其他值,都在主机端报错(否则毒化会静默失效)。
+
+**途中发现并修复:** 第一版(d710fb8)的 ghost_send 在写第一个打包块之后才读 velocity 与 material。编译器不能把读提到对另一个 buffer 的写之前,每个 replica 多了一次串行访存:phase A 慢 2–11 %,2-D 1M fps −0.85 %(第一轮交错测量 `perf_g1_nop`)。d2b5e98 恢复"先读四个来源字段、再写两块"(SPIR-V 核对:读 x、ρ、v、material → 连续 8 个写),写入的值不变。下面的数都是最终构建 d2b5e98 的结果,另注明的除外。
+
+### 毒化测试
+
+`experiment/seam_audit/poison_g1.py`:发布组合(按维度取池值),K = 2,从静止起步(生产 depth-2 循环)。每个检查点把两个 sim 的整个 pool 读回(own、两层 replica、migrant、departed;set 0 的所有 float buffer,包括 scratch、L、∇ρ / ΣVW、extension),逐区域、分 live / dead 统计 NaN / inf,另查 drift(按读回的 own 槽位计)、所有 `overflow_*`、`far_migration_count`、帧戳、KCG 回退计数、live 行的 material 范围,以及 C4 覆盖的直接证据:live G1 行的 primary 与 scratch 逐位相同,live G2 行 P = 0。最后一个检查点存整池 dump。
+
+| 算例 | 模式 | 检查点(步) | 首次出现非有限值 | drift | overflow / far_migration | KCG 回退 | C4 覆盖核对 | 结论 |
+|---|---|---|---|---|---|---|---|---|
+| 2-D 1M | pressure | 0, 1, 2, 5, 10, 20, 50, 100, 200 | 无 | 0 | 0 / 0 | 0 | 0 行不一致 | 通过:全场有限 |
+| 2-D 1M | density | 0 | 0 | 0 | 0 / 0 | 15,345 | —(N = 0 即停) | 通过:出现 NaN(阴性对照) |
+| 3-D 1M | pressure | 0, 1, 2, 5, 10, 20, 50 | 无 | 0 | 0 / 0 | 0 | 0 行不一致 | 通过:全场有限 |
+| 3-D 1M | density | 0 | 0 | 0 | 0 / 0 | 141,610 | —(N = 0 即停) | 通过:出现 NaN(阴性对照) |
+
+- pressure:所有检查点、所有粒子的所有字段都有限;C4 覆盖核对在两种算例的所有检查点都是 0 行不一致。
+- density 阴性对照:起步之后(N = 0)就在 own 粒子的 ρ、v、a、δr、∇ρ / ΣVW 和 G1 的 scratch 出现 NaN,KCG 回退计数大增(NaN 行列式不过阈值)。这说明测试能抓到"被读"的字段。
+- 两轮(d710fb8、d2b5e98)结果相同。局限:从静止起步的这段时间里没有粒子越过 seam(migrant 与 departed 区段为空),迁移路径由下面的 A/B 检验覆盖;pressure 分支写的确实是 P,由 `_test_seam_layout.py` 的源码检查(毒化分支与解包写回的形式)与 SPIR-V 新鲜度检查保证。
+
+### 正确性门
+
+**数值参数变了。** f2b6d67(2026-10-05)把 KCG ξ 从 0.1 改成 0.001、ε² 从 0.01h² 改成 0.0025h²(算例与加载器);上面推荐组合的门数字 1.73 / 1.08 / 1.06 / 1.22 是旧参数下测的,单步与 A/B 的 N = 2000 快照也来自旧参数。所以同一天、用同样的工具,先跑了改动前构建 1b52dd2 的基线,再跑 E23 的两个构建;审计每个构建跑三次。
+
+| 构建 | 审计(每次) | 单步 | A/B 2-D 1M | A/B 3-D 1M | K = 4 |
+|---|---|---|---|---|---|
+| v6_opt.md 发布组合(旧数值参数) | 1.73(门槛 2) | 1.08 | 1.06 | 1.22 | 通过 |
+| 改动前构建 1b52dd2(今天的数值参数) | 2.23 ✗, 1.36, 1.95(门槛 2) | 1.05 | 1.10 | 1.23 | 通过 |
+| E23 第一版 d710fb8 | 1.29, 1.31, 1.43(门槛 2) | 1.12 | 1.09 | 4.67 ✗ | 通过 |
+| E23 最终 d2b5e98 | 5.06 ✗, 2.13 ✗, 1.28(门槛 2) | 1.04 | 1.06 | 1.22 | 通过 |
+
+- **单步、A/B、K = 4:** 最终构建单步 1.04(门槛 2.5),A/B 2-D 1.06、3-D 1.22(门槛 2.0),K = 4 drift 0、所有溢出为 0;与改动前构建(1.05 / 1.10 / 1.23)同级。
+- **第一版的 3-D A/B 4.67 来自底,不来自 E23:** 近 migrant 组(k = 5)的 test 中位数在三次 A/B 里同级,底(三个不开打包的 base run 之间的差)却在 7.5 × 10⁻⁹ 到 1.7 × 10⁻⁷ 之间变了 23 倍(base 组每次的配置完全相同)。
+
+| A/B 运行 | 场 | test 中位数 | 底(中位数) | 比值 |
+|---|---|---|---|---|
+| 改动前构建 1b52dd2(今天的数值参数) | velocity | 6.685e-08 | 8.941e-08 | 0.75 |
+| 改动前构建 1b52dd2(今天的数值参数) | acceleration | 4.407e-04 | 1.175e-03 | 0.38 |
+| E23 第一版 d710fb8 | velocity | 5.960e-08 | 7.538e-09 | 4.67 |
+| E23 第一版 d710fb8 | acceleration | 4.505e-04 | 1.254e-04 | 3.59 |
+| E23 最终 d2b5e98 | velocity | 2.980e-08 | 1.731e-07 | 0.17 |
+| E23 最终 d2b5e98 | acceleration | 2.102e-04 | 1.194e-03 | 0.18 |
+
+- **审计在新数值参数下不是可靠的判据。** 两个构建都有超过 2.0 的时候(改动前 2.23;E23 最终构建 5.06、2.13),也都有远低于 2.0 的时候。最差值都来自越界窗口各组的 density_rms,而且 control 组(离 seam 远的粒子)一样高。下表把密度差换成 ρ ≈ 1000 处 float32 的间隔(1 ULP = 2⁻¹⁴ = 6.1 × 10⁻⁵):两次 K = 1 参照之间的噪声只有 0.4–1.1 ULP(中位数 0 或 1 ULP,即大多数粒子逐位相同),K = 2 对 K = 1 是 0.6–2.1 ULP;比值是两个量化到个位 ULP 的数相除。各越界组的比值除以 control 组的比值在所有 18 组里是 0.73–1.12,即没有 seam 特有的增量;加速度的比值同样在 1 附近。E23 与改动前构建的 K = 2 对 K = 1 的 ULP 数在同一范围(0.55–2.12 对 0.58–2.14)。
+
+| 构建 | 审计 | 最差 | 对 | control:K2 − K1 rms(ULP) | K1 − K1 噪声 rms(ULP) | 噪声中位数(ULP) | control 比值 | density:越界 / 迁出 / 迁入 ÷ control | acceleration:越界 / 迁出 / 迁入 ÷ control |
+|---|---|---|---|---|---|---|---|---|---|
+| 1b52dd2 | 1 | 2.23 | B1 | 0.81 | 0.61 | 0 | 1.31 | 0.99 / 1.02 / 0.96 | 0.94 / 0.89 / 1.00 |
+| 1b52dd2 | 1 | 2.23 | B2 | 1.22 | 0.61 | 0 | 2.00 | 1.05 / 1.12 / 0.98 | 1.07 / 1.01 / 1.14 |
+| 1b52dd2 | 2 | 1.36 | B1 | 2.14 | 2.51 | 2 | 0.85 | 1.03 / 1.05 / 1.00 | 1.07 / 1.02 / 1.13 |
+| 1b52dd2 | 2 | 1.36 | B2 | 0.66 | 2.52 | 2 | 0.26 | 1.02 / 0.96 / 1.09 | 1.06 / 1.08 / 1.02 |
+| 1b52dd2 | 3 | 1.95 | B1 | 0.58 | 0.65 | 0 | 0.89 | 0.83 / 0.93 / 0.73 | 0.88 / 1.05 / 0.72 |
+| 1b52dd2 | 3 | 1.95 | B2 | 1.24 | 0.65 | 0 | 1.91 | 1.02 / 1.02 / 1.01 | 0.99 / 1.01 / 0.97 |
+| d710fb8 | 1 | 1.29 | B1 | 0.57 | 0.61 | 0 | 0.94 | 1.00 / 0.94 / 1.08 | 1.14 / 1.11 / 1.18 |
+| d710fb8 | 1 | 1.29 | B2 | 0.63 | 0.62 | 0 | 1.02 | 0.98 / 0.90 / 1.06 | 1.12 / 1.03 / 1.24 |
+| d710fb8 | 2 | 1.31 | B1 | 0.60 | 0.88 | 1 | 0.69 | 0.90 / 0.91 / 0.88 | 1.03 / 1.00 / 1.07 |
+| d710fb8 | 2 | 1.31 | B2 | 0.56 | 0.88 | 1 | 0.64 | 1.04 / 1.09 / 0.99 | 0.84 / 0.82 / 0.87 |
+| d710fb8 | 3 | 1.43 | B1 | 0.55 | 0.53 | 0 | 1.05 | 0.92 / 0.92 / 0.92 | 0.84 / 0.80 / 0.92 |
+| d710fb8 | 3 | 1.43 | B2 | 0.75 | 0.52 | 0 | 1.43 | 0.97 / 0.97 / 0.97 | 0.78 / 0.75 / 0.84 |
+| d2b5e98 | 1 | 5.06 | B1 | 0.97 | 0.42 | 0 | 2.28 | 0.95 / 0.93 / 0.97 | 1.04 / 1.16 / 0.92 |
+| d2b5e98 | 1 | 5.06 | B2 | 2.12 | 0.42 | 0 | 5.06 | 0.93 / 0.99 / 0.86 | 1.05 / 1.10 / 1.01 |
+| d2b5e98 | 2 | 2.13 | B1 | 1.03 | 0.88 | 1 | 1.17 | 1.06 / 1.08 / 1.04 | 1.12 / 1.09 / 1.18 |
+| d2b5e98 | 2 | 2.13 | B2 | 1.75 | 0.88 | 1 | 1.99 | 1.00 / 1.07 / 0.93 | 1.33 / 1.15 / 1.59 |
+| d2b5e98 | 3 | 1.28 | B1 | 0.73 | 1.14 | 1 | 0.64 | 0.97 / 0.90 / 1.05 | 0.99 / 0.99 / 0.99 |
+| d2b5e98 | 3 | 1.28 | B2 | 1.47 | 1.14 | 1 | 1.28 | 0.94 / 0.90 / 0.98 | 1.23 / 1.17 / 1.30 |
+
+  审计门要在新数值参数下有用,需要改判据(例如噪声对改用打乱上传顺序的 K = 1,像单步与 A/B 那样;或者给密度的噪声底设 1 ULP 的下限;或者用各组对 control 组的比值)。这是门工具的定义,本文没有改,等你决定。
+
+### 字节、传输与性能
+
+最终构建对改动前构建(git worktree,同一份 opt_campaign 测量代码,算例与材料文件相同),交错 3 次,`--counterbalance`(偶数次试验配置倒序),每条链路每帧:
+
+**G1 去 P(1b52dd2 → d2b5e98)** (campaign `perf_g1_nop_v2`, `base` → `release`, 3 interleaved trials; per link per frame)
+
+| case | fps before | fps after | after / before (trial-wise) | phase C µs | DMA KiB | host KiB | readback µs | host µs | upload µs | t_tr µs |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2-D 1M | 790.4 ± 3.2 | 785.9 ± 2.4 | 99.43 ± 0.45 % | 236.7 → 235.8 | 454.6 → 428.5 | 342.9 → 322.9 | 20.3 → 19.2 | 53.5 → 49.4 | 30.6 → 28.7 | 104.4 → 97.2 |
+| 2-D 4M | 245.2 ± 0.5 | 245.4 ± 0.3 | 100.07 ± 0.13 % | 337.7 → 329.9 | 904.8 → 852.8 | 685.4 → 645.5 | 39.5 → 37.2 | 95.4 → 90.0 | 53.6 → 50.9 | 188.4 → 178.2 |
+| 2-D 16M | 68.4 ± 0.1 | 68.2 ± 0.2 | 99.76 ± 0.27 % | 623.2 → 621.2 | 1,778.8 → 1,676.5 | 1,348.4 → 1,269.8 | 88.1 → 71.1 | 180.9 → 171.2 | 108.5 → 103.4 | 377.5 → 345.7 |
+| 3-D 8M | 22.8 ± 0.1 | 22.8 ± 0.0 | 100.08 ± 0.52 % | 6,965.0 → 6,977.2 | 16,795.3 → 15,815.3 | 12,788.7 → 12,039.3 | 989.9 → 916.7 | 1,720.9 → 1,624.6 | 1,060.0 → 1,007.2 | 3,770.8 → 3,548.4 |
+| 3-D narrow | 48.2 ± 0.0 | 48.2 ± 0.0 | 99.95 ± 0.11 % | 6,744.9 → 6,736.1 | 15,044.0 → 14,166.2 | 11,646.4 → 10,963.9 | 889.7 → 819.6 | 1,538.4 → 1,457.9 | 935.7 → 892.8 | 3,363.8 → 3,170.4 |
+
+- **字节与模型逐字吻合:** DMA −5.7 … −5.8 %、主机拷贝 −5.8 … −5.9 %(按 `opt_tables.byte_model_table` 的 E23 列;"后续选项"里的估计是 5.6–5.8 %)。
+- **t_tr** −5.4 … −8.4 %;**fps** 比值 99.43 ± 0.45 %, 100.07 ± 0.13 %, 99.76 ± 0.27 %, 100.08 ± 0.52 %, 99.95 ± 0.11 %(2-D 1M、4M、16M、3-D 8M、narrow),都在噪声内;**phase C** −2.3 … +0.2 %(`expand_ghost_lists` 每个 G1 少读一个字,−3 … −23 %)。传输在发布组合里本来就被 phase B 藏住,所以字节的减少不进 fps。
+- **残余:phase A 在 s1 上多 2–9 %。** s1(device 1,向 leading 方向发送)每次试验都慢一点,s0 不变;第一版两个 sim 都慢(读写顺序,见上)。两个方向执行同一段代码,只是写入地址不同,原因没有查明;fps 不受影响。
+
+| case | s0(trailing 发送)µs | s1(leading 发送)µs |
+|---|---|---|
+| 2-D 1M | 70.1 → 69.4(-1.1 %) | 70.3 → 76.2(+8.4 %) |
+| 2-D 4M | 208.8 → 210.3(+0.7 %) | 213.3 → 222.6(+4.4 %) |
+| 2-D 16M | 908.2 → 911.4(+0.3 %) | 911.7 → 933.2(+2.4 %) |
+| 3-D 8M | 560.8 → 556.6(-0.7 %) | 596.0 → 611.8(+2.7 %) |
+| 3-D narrow | 293.1 → 288.4(-1.6 %) | 328.0 → 336.2(+2.5 %) |
+
+### 主机字节公式
+
+在每次性能运行的 depth-1 解剖帧上,每帧读 sender staging 里的三个计数字(n0 = G1、n1 = G2、n_mig)和 worker 这一帧的 count-aware 拷贝字节(同一帧),核对 B_host = 32 (n0 + n1) + 44 n_mig + 16 NyNz + 16(16 NyNz = 两个 voxel 表,每个 4 B × 2 NyNz;最后 16 = 三个计数字加帧戳;44 B / migrant 是不带 `V6_TRANSPORT_EXTENSION` 的生产段表)。E23 构建在所有算例、两条链路、每一帧上实测 = 预测(差 0 B);改动前构建正好多 4 n0(G1 多带的 P)。按段表逐段算的模型(min(size, count × stride) + 不计数的段)在两个构建里都与实测逐字节相等。
+
+| case | build | link | frames | n0 | n1 | n_mig | NyNz | predicted B | measured B | measured − predicted | max per-frame difference | segment model − measured (max) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2-D 1M | d2b5e98 | s0 → s1 | 1200 | 5,111.8 | 5,115.5 | 0.06 | 206 | 330,588.0 | 330,588.0 | 0.0 | 0 | 0.0 (0) |
+| 2-D 1M | d2b5e98 | s1 → s0 | 1200 | 5,109.8 | 5,117.6 | 0.07 | 206 | 330,591.7 | 330,591.7 | 0.0 | 0 | 0.0 (0) |
+| 2-D 1M | 1b52dd2 | s0 → s1 | 1200 | 5,114.6 | 5,116.1 | 0.06 | 206 | 330,697.7 | 351,156.2 | 20,458.5 | 20,504 | 0.0 (0) |
+| 2-D 1M | 1b52dd2 | s1 → s0 | 1200 | 5,114.6 | 5,110.8 | 0.06 | 206 | 330,528.2 | 350,986.6 | 20,458.4 | 20,512 | 0.0 (0) |
+| 2-D 4M | d2b5e98 | s0 → s1 | 900 | 10,225.1 | 10,225.2 | 0.06 | 410 | 660,987.1 | 660,987.1 | 0.0 | 0 | 0.0 (0) |
+| 2-D 4M | d2b5e98 | s1 → s0 | 900 | 10,225.1 | 10,225.0 | 0.00 | 410 | 660,980.0 | 660,980.0 | 0.0 | 0 | 0.0 (0) |
+| 2-D 4M | 1b52dd2 | s0 → s1 | 900 | 10,224.9 | 10,225.1 | 0.06 | 410 | 660,979.9 | 701,879.6 | 40,899.7 | 40,904 | 0.0 (0) |
+| 2-D 4M | 1b52dd2 | s1 → s0 | 900 | 10,225.1 | 10,225.1 | 0.00 | 410 | 660,981.8 | 701,882.3 | 40,900.5 | 40,904 | 0.0 (0) |
+| 2-D 16M | d2b5e98 | s0 → s1 | 600 | 20,115.0 | 20,115.0 | 0.07 | 806 | 1,300,274.8 | 1,300,274.8 | 0.0 | 0 | 0.0 (0) |
+| 2-D 16M | d2b5e98 | s1 → s0 | 600 | 20,114.9 | 20,115.0 | 0.00 | 806 | 1,300,269.9 | 1,300,269.9 | 0.0 | 0 | 0.0 (0) |
+| 2-D 16M | 1b52dd2 | s0 → s1 | 600 | 20,115.0 | 20,115.0 | 0.07 | 806 | 1,300,274.9 | 1,380,734.9 | 80,460.0 | 80,460 | 0.0 (0) |
+| 2-D 16M | 1b52dd2 | s1 → s0 | 600 | 20,114.9 | 20,115.0 | 0.00 | 806 | 1,300,269.9 | 1,380,729.7 | 80,459.7 | 80,460 | 0.0 (0) |
+| 3-D 8M | d2b5e98 | s0 → s1 | 300 | 191,837.2 | 191,842.3 | 1.02 | 3,136 | 12,327,979.7 | 12,327,979.7 | 0.0 | 0 | 0.0 (0) |
+| 3-D 8M | d2b5e98 | s1 → s0 | 300 | 191,850.0 | 191,837.4 | 0.00 | 3,136 | 12,328,189.0 | 12,328,189.0 | 0.0 | 0 | 0.0 (0) |
+| 3-D 8M | 1b52dd2 | s0 → s1 | 300 | 191,848.0 | 191,839.5 | 0.98 | 3,136 | 12,328,237.1 | 13,095,629.1 | 767,392.1 | 767,448 | 0.0 (0) |
+| 3-D 8M | 1b52dd2 | s1 → s0 | 300 | 191,847.6 | 191,842.7 | 0.00 | 3,136 | 12,328,281.8 | 13,095,672.1 | 767,390.3 | 767,436 | 0.0 (0) |
+| 3-D narrow | d2b5e98 | s0 → s1 | 450 | 174,728.7 | 174,702.4 | 1.84 | 2,809 | 11,226,836.0 | 11,226,836.0 | 0.0 | 0 | 0.0 (0) |
+| 3-D narrow | d2b5e98 | s1 → s0 | 450 | 174,688.2 | 174,679.3 | 0.03 | 2,809 | 11,224,720.5 | 11,224,720.5 | 0.0 | 0 | 0.0 (0) |
+| 3-D narrow | 1b52dd2 | s0 → s1 | 450 | 174,720.7 | 174,699.7 | 1.81 | 2,809 | 11,226,493.7 | 11,925,376.6 | 698,882.8 | 699,012 | 0.0 (0) |
+| 3-D narrow | 1b52dd2 | s1 → s0 | 450 | 174,675.1 | 174,702.1 | 0.02 | 2,809 | 11,225,030.7 | 11,923,731.2 | 698,700.5 | 698,788 | 0.0 (0) |
+
+### install 三个 kernel
+
+bench 时间戳(depth 1,三次试验的解剖帧合并;计时分辨率 0.256 µs):`expand_ghost_lists`、`install_migrations_<dir>`、`append_departed` 与三者之和(= c_append_departed_end − c_start,含各自的屏障)。K = 2 时每个 sim 只有一个入站方向:s0 收 s1 发来的、进 trailing ghost,s1 收 s0 的、进 leading;`expand_ghost_lists` 与 `append_departed` 每个 sim 一次派发、覆盖所有入站方向,所以 K ≥ 3(集群的 64M K = 8,E7)要按方向拆开就得分开派发。
+
+| case | build | sim (inbound direction) | frames | expand_ghost_lists µs median / p95 | install_migrations µs | append_departed µs | sum µs |
+|---|---|---|---|---|---|---|---|
+| 2-D 16M | d2b5e98 | s0 (trailing) | 600 | 7.17 / 7.68 | 4.10 / 4.10 | 2.05 / 4.10 | 13.57 / 15.62 |
+| 2-D 16M | d2b5e98 | s1 (leading) | 600 | 6.91 / 7.42 | 4.10 / 6.14 | 4.10 / 4.10 | 14.85 / 15.62 |
+| 2-D 16M | 1b52dd2 | s0 (trailing) | 600 | 7.42 / 7.68 | 4.10 / 4.10 | 2.05 / 4.10 | 13.57 / 15.62 |
+| 2-D 16M | 1b52dd2 | s1 (leading) | 600 | 7.17 / 7.42 | 4.10 / 6.14 | 4.10 / 4.10 | 15.10 / 15.62 |
+| 3-D 8M | d2b5e98 | s0 (trailing) | 300 | 15.10 / 15.87 | 4.10 / 4.10 | 4.10 / 4.10 | 23.30 / 24.06 |
+| 3-D 8M | d2b5e98 | s1 (leading) | 300 | 15.10 / 15.62 | 6.14 / 6.14 | 4.10 / 4.10 | 24.06 / 25.86 |
+| 3-D 8M | 1b52dd2 | s0 (trailing) | 300 | 15.36 / 15.87 | 4.10 / 4.10 | 4.10 / 4.10 | 23.55 / 24.06 |
+| 3-D 8M | 1b52dd2 | s1 (leading) | 300 | 15.36 / 15.62 | 6.14 / 6.14 | 4.10 / 4.10 | 25.34 / 25.86 |
+
+### 复现
+
+```bash
+# CPU:段表(4 块、d · 64 R、块铺满 buffer)、打包配置拒绝、毒化开关解析、着色器源码与 spec id、SPIR-V 新鲜度
+.venv/Scripts/python.exe -m experiment.v6._test_seam_layout
+# 毒化测试(2-D 1M 200 步、3-D 1M 50 步;pressure + density 对照;--save 存整池 dump)
+.venv/Scripts/python.exe -m experiment.seam_audit.poison_g1 --out logs/seam_audit/opt/poison_g1_v2 --save
+# 正确性门(审计重复时只跑 --steps audit);A/B 用新的输出目录(已有结果会被跳过)
+REL="--env V6_LEAN_TRANSPORT=1 --env V6_GHOST_POOL_FACTOR=0.29 --env V6_MIGRANT_POOL_FACTOR=0.05 \
+     --env V6_DEPARTED_FACE_FRACTION=0.8 --env V6_COMPACT_GHOST_LISTS=1 --env V6_PACKED_REPLICAS=1 \
+     --env V6_BAND_SLOT_LANES=64 --env V6_INIT_SEAM_CLAMP=1"
+.venv/Scripts/python.exe -m experiment.seam_audit.opt_validate --name e23_g1_32b_v2 $REL
+.venv/Scripts/python.exe -m experiment.seam_audit.opt_validate --name e23_g1_32b_v2_audit2 --steps audit $REL
+.venv/Scripts/python.exe -m experiment.seam_audit.ab_restart --out logs/seam_audit/opt/ab_e23_g1_32b_v2
+# 改动前构建的门:在改动前的提交(1b52dd2)上跑同样的命令(名字 e23_pre_1b52dd2)
+# 性能:改动前构建放在 git worktree,配置用保留键 OPT_BUILD_ROOT 指过去(Git Bash 下设 MSYS_NO_PATHCONV=1)
+git worktree add --detach ../vulkan-demo-e23-base 1b52dd2
+RELEASE='release=@l2;V6_LEAN_TRANSPORT=1;V6_GHOST_POOL_FACTOR=d2:0.29|d3:0.5;V6_MIGRANT_POOL_FACTOR=d2:0.05|d3:0.02;V6_DEPARTED_FACE_FRACTION=d2:0.8|d3:0.64;V6_COMPACT_GHOST_LISTS=1;V6_PACKED_REPLICAS=1;V6_BAND_SLOT_LANES=64;V6_INIT_SEAM_CLAMP=1;V6_FAST_SUBMIT=1'
+.venv/Scripts/python.exe experiment/seam_audit/opt_campaign.py --out logs/seam_audit/opt/perf_g1_nop_v2 --define "$RELEASE" \
+    --define "base=@release;OPT_BUILD_ROOT=../vulkan-demo-e23-base" --configs base,release \
+    --cases 2d_1m,2d_4m,2d_16m,3d_8m,3d_narrow --trials 3 --counterbalance
+# 本节所有表(含公式核对、install 计时、审计诊断)
+.venv/Scripts/python.exe -m experiment.seam_audit.opt_tables --out logs/seam_audit/opt/tables.md
+```
+
+数据在 `logs/seam_audit/opt/`(不入库):`poison_g1{,_v2}`、`validate_e23_pre_1b52dd2{,_audit2,_audit3}`、`validate_e23_g1_32b{,_v2}{,_audit2,_audit3}`、`ab_e23_pre_1b52dd2`、`ab_e23_g1_32b{,_v2}`、`perf_g1_nop{,_v2}`(第一版 / 最终构建)。
+
 ## 未采用的项与原因
 
 - **`V6_BAND_COMPACT_DISPATCH`(压缩 band 映射):** 3-D 里把 (1,2) 多出的 correction / density 时间减掉 34 % / 40 %,另外省下 force band 的 0.43–0.45 ms(与 (1,1) 共有),phase C 净降 0.97–1.04 ms(depth-1 计时),但 fps 不比 lanes 64 好(3-D 低 0.2–0.5 %);2-D 10k–4M 的小 band 上反而比 `packed` 慢 0.1–2.3 %(建表 7–15 µs,加上表项按原子到达顺序排列、加载不如 interior 合并);唯一的例外是 2-D 16M,压缩表比 lanes 64 快 0.15–0.45 %(force band 110 对 170 µs;lanes 32 也把它降到 116 µs,lanes 64 没有,原因本文没有拆);代价:同一个 `band_compact.comp` 的两次派发(扫描与 scatter,外加两道屏障)、两块 buffer,三个 band kernel 都改成间接派发。开关保留、默认关闭;它在设计上逐位等价,2-D 门通过,3-D 的扫描路径只经过性能运行的不变量,没有做物理比较。
 - **`V6_BAND_SLOT_LANES=32`:** 2-D 与 64 持平(差 ≤ 0.7 %,噪声内);3-D 每个 voxel 约 64 个粒子要两遍,对 lanes 64:fps −2.3 %(8M)/ −3.6 %(narrow),correction / density band 慢 13.5–19 %(对不开 lanes:fps −0.35 … +0.08 %,band 慢 8–27 %)。
 - **(f) ghost_send 直接写 host-visible staging:** 不实现;kernel 慢 2.4–18 倍且在关键路径上(见上)。
 - **migrant 打包:** 它的 voxel id 是 install 的目标,接收方按位置重算会碰到 bootstrap 修复里的 float32 舍入歧义;(e) 之后它只占 DMA 的 0.4–3.6 %。
-- **G1 再去掉 P(多省 4 B / G1 replica):** 必要性表里 G1 的 P 在 C4 之前同样无人读,但你的规格只要求 G2 去 P;按规格做,作为后续选项记录(再省 4 / 68 B = 5.9 % 的 replica 字节,约为发布组合 DMA 的 5.6–5.8 %)。
+- **G1 再去掉 P:** 原为后续选项(再省 4 / 68 B = 5.9 % 的 replica 字节),已在 E23 实现,见"G1 去 P"。
 - **`V6_DELTA_DENSITY`:** 评估结果见上;改变的是数值性质(去掉压力台阶,内部压力噪声小 2.2–3.4 倍,壁面附近没有可分辨的差别,流动量不变,吞吐 −1.2 %),多卡门通过;是否作为发布默认由你决定。它改变了 GPU 上 `.x` 的含义:Python 端经过 `readback_buffers_batch` 的读者已经拿到 ρ,采纳前还要改渲染 vertex shader 的密度着色(只影响可视化)。
 - **`V6_TRANSPORT_EXTENSION`:** 只给审计用(全局 id);生产不传 `extension_fields`。
 - **2-D 池因子保持 0.25:** 不采纳——发展流峰值下只剩 11–12 % 余量(静止起步的 10k 16 %)。单看这一项,0.29 比 0.25 多 12 %(lean 阶段)/ 15–16 %(发布组合)的 2-D DMA;(e) 那一步的 +7–10 % 是它与 migrant 区段缩小的净值。fps 不变。
@@ -567,4 +734,6 @@ REL="--env V6_LEAN_TRANSPORT=1 --env V6_GHOST_POOL_FACTOR=0.29 --env V6_MIGRANT_
 | f61f237 | 六 `V6_DELTA_DENSITY`(评估开关)与评估工具 |
 | 33f084e | 验证审计的求解器修复:打包配置校验、溢出连带损坏、bootstrap 丢失计数、δρ 读回 / 重启 |
 | 245c164 | 验证审计的工具修复(门、campaign、pool_peaks);A/B 等价检验、(f) 探针、K = 1 旁测、表生成器 |
+| c47dbd9 / d710fb8 / d2b5e98 | E23:G1 与 G2 同一 32 B 格式(16 R);诊断开关 `V6_DIAG_POISON_G1`;ghost_send 先读后写、构造时复查 ghost-self |
+| 2b297d1 | `poison_g1.py`;opt_campaign 的 `OPT_BUILD_ROOT`、p95、install 之和、公式采样;opt_tables 的 E23 表;段表与着色器检查 |
 | (本文) | 本文;opt_campaign 与 partition_v6 的 docstring |

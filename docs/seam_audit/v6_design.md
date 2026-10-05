@@ -48,7 +48,7 @@ LAYERS=2:  [ G2 G1 | own 0 … own N−1 | G1 G2 ]
 - 发送方在 A3 把要发出的东西写进**自己的** ghost pid / ghost voxel 区(已按 Option B 平移成接收方坐标:pid 偏移 `GHOST_PID_OFFSET_TO_RECEIVER`,vid 偏移 `GHOST_VOXEL_ID_OFFSET_TO_RECEIVER`,纯 x 平移),传输把这段原样搬到接收方的 ghost 区。LAYERS=2 时同一个 vid 偏移对两列都成立;偏移目标改成接收方**最内** ghost 列(1 层时与 v5 相同)。
 - G1 replica 区段只放对方 column 0 的粒子,G2 只放 column 1;每层一个原子计数器(`replica_inner/outer_send_*`),计数随传输到接收方的 `*_recv_*`(诊断,同时是 count-aware 拷贝的上界)。
 - migrant 只来自 G1 列的 incoming 表(CFL 下一步最多越过一列);从 G2 列取到的 migrant 计入 `far_migration_count`,必须为 0。
-- R 与 v5 的整池 P 相同(同样乘 f),所以 LAYERS=2 的池是 v5 的 2 + C_inc/(C+C_inc) 倍槽数,但 replica 每槽只传 44 B(v5 140 B)。
+- R 与 v5 的整池 P 相同(同样乘 f),所以 LAYERS=2 的池是 v5 的 2 + C_inc/(C+C_inc) 倍槽数,但 replica 每槽只传 44 B(v5 140 B)。打包(`V6_PACKED_REPLICAS=1`,发布组合)时 G1、G2 各 32 B,见 §3.1 末。
 
 ### 1.3 departed 池
 
@@ -66,7 +66,8 @@ LAYERS=2:  [ G2 G1 | own 0 … own N−1 | G1 G2 ]
 | `V6_GHOST_LAYERS` | 1 | 2:两列 ghost、replica 4 字段、G1 as self、C4 覆盖 G1 与 departed;要求 KEEP=1 且 band-voxel 派发 |
 | `V6_DEPARTED_CAPACITY` | 未设 | departed 池每 slab 槽数(覆盖下面的面积比例) |
 | `V6_DEPARTED_FACE_FRACTION` | 0.25 | 容量 = max(64, ⌈fraction · face · 邻居侧数⌉) |
-| `V6_DIAG_GHOST_SELF` | `correction,density` | 仅诊断:LAYERS=2 时哪些 band kernel 把 G1 当 self;去掉 `density` 就回到缺陷 1 |
+| `V6_DIAG_GHOST_SELF` | `correction,density` | 仅诊断:LAYERS=2 时哪些 band kernel 把 G1 当 self;去掉 `density` 就回到缺陷 1(只对 `V6_PACKED_REPLICAS=0` 成立:打包格式不带 G1 的 P,展开时写 0,所以打包时去掉 `density` 会被主机端拒绝,否则 C5 会读到 P = 0) |
+| `V6_DIAG_POISON_G1` | 未设(`off`) | 仅诊断(E23):`pressure` = 展开时往每个 G1 replica 的 P 写 NaN(G1 的 Pⁿ 没人读,所以全场必须保持有限),`density` = 往 G1 的 ρ 写 NaN(阴性对照,必须出现 NaN);只作用于 `V6_PACKED_REPLICAS=1` 的展开路径,别的组合在主机端报错;spec 常量 99,为 0 时被折叠掉。用法见 `v6_opt.md`"G1 去 P" |
 | 继承自 v5(改名 `V6_`) | | `V6_GHOST_POOL_FACTOR`(默认 1;生产 2-D 0.25、3-D 1.0)、`V6_WORKER_COUNT_AWARE`(默认 0;生产 1)、`V6_SPLIT_TRANSFER_QUEUES`(默认 0;生产 1)、`V6_CASCADE_FORCE`(1)、`V6_BAND_VOXEL_DISPATCH`(1)、`V6_BAND_SLOT_LANES`(0)等,语义不变 |
 
 spec 常量:83 `GHOST_LAYERS`、84 `DEPARTED_POOL_SIZE`、85 `GHOST_SELF_LAYER`(按 pipeline,只有 correction / density 的 band 变体为 1)、86 `REPLICA_REGION_SIZE`。
@@ -350,7 +351,7 @@ face = 3,136 voxel,C = 128,C_inc = 32,f = 1.0;v5 池 501,760 槽/方向;(1,2) �
 | `velocity_mass.xyz`(12,v^{n+½}) | C3:漂移项 v_j − v_i;C5:粘性项 | C3 self 速度 | C3(G1 self 的漂移项) | C3 / C5;下一步 predict 的起点 | 连续方程与粘性错 |
 | `velocity_mass.w`(4,m) | C2 / C3:V_j = m_j/ρ_j(C5 用 self 的 m,V0 均匀质量) | — | C2 / C3 的 V_j | 全程;也是"槽已占用"的哨兵 | replica:本例所有材料 m 逐位相同(§4b),可由 self 质量代替;migrant:必须 |
 | `density_pressure.x`(4,ρⁿ) | C2(V_j、ρ_j − ρ_i)、C3(V_j、ψ_ij)、**C5(V_j、PST disorder,LAYERS=1 读到的是 ρⁿ = 缺陷 1)** | C2 / C3 的 ρ_iⁿ;C4 后换成 ρⁿ⁺¹ 供 C5 | C2 / C3 | C2 的 ρ_i、C3 的积分起点 | 必须 |
-| `density_pressure.y`(4,Pⁿ) | **只有 C5**(LAYERS=1,陈旧值 = 缺陷 1) | 无人读(C2 / C3 不读 P,C4 在 C5 前覆盖成 Pⁿ⁺¹) | **没人读** | 无人读(C3 / C4 在 C5 前覆盖) | LAYERS=1:C5 缺 P;其余:无后果 |
+| `density_pressure.y`(4,Pⁿ) | **只有 C5**(LAYERS=1,陈旧值 = 缺陷 1) | 无人读(C2 / C3 不读 P,C4 在 C5 前覆盖成 Pⁿ⁺¹;E23 的毒化测试直接验证,见 `v6_opt.md`"G1 去 P") | **没人读** | 无人读(C3 / C4 在 C5 前覆盖) | LAYERS=1:C5 缺 P;其余:无后果 |
 | `acceleration`(16) | 没人读(force 只写 self) | — | 没人读 | 无人读:C5 的 band(own 4 列)包含 column 0,在下一步 predict 之前就把 aⁿ⁺¹ 写好 | 无后果 |
 | `shift`(16) | 没人读 | — | 没人读 | 同上,C5 重写 δr | 无后果 |
 | `material`(4) | C3:self 是壁面时读邻居 material 跳过壁–壁对(上下壁面跨 seam);C2 / C5 不读 | C3 self 的 kind / EOS | C3(G1 self 为壁面时) | 全程 | 壁面密度 / 压力错 |
@@ -359,6 +360,8 @@ face = 3,136 voxel,C = 128,C_inc = 32,f = 1.0;v5 池 501,760 槽/方向;(1,2) �
 | `extension_fields`(16) | 没人读 | — | 没人读 | 没有物理;seam 审计的全局 id 靠它跟着 migrant 走 | 生产无后果;审计需要 migrant 带着它 |
 
 **必需的每粒子字节:** replica = 位置 16(含 .w)+ 速度质量 16 + ρP 8 + material 4 = **44 B**(LAYERS=2 的 replica 已经只传这 4 个字段;v5 的 replica 传 140 B,其中 96 B 是死的);若打包,G2 只需 xyz、v、m、ρ、material = 36 B,G1 再去掉 P(C4 前无人读)与 .w(可由派发得到)也是 36 B。migrant = 同样 44 B(其中 P 那 4 B 是死的),审计时再加 16 B 的 id,共 60 B;v5 / v6 现在传 140 B。
+
+**实现(`V6_PACKED_REPLICAS`,E23 之后):** 打包格式再去掉质量(接收方按 material 查 `MaterialParameters.particle_mass` 重建,与上传的质量逐位相同):G1 与 G2 是同一种记录 [x y z ρ | vx vy vz material-bits],各 8 个字 = **32 B**,每个方向 16 R 个字(R = replica 区段槽数,`helpers.glsl` 的 `packed_layer_base` = (方向 · 16 + 层 · 8) · R)。vid 由展开 kernel 正在展开的 voxel 给出;两层的 P 都不传,`expand_ghost_lists` 展开时写 0。packet 里只有接收方读、且不能自己重建的量。E23 之前 G1 多带 P、material 另占一块,共 36 B(每个方向 17 R 个字),见 `v6_opt.md` (b)(c) 与"G1 去 P"。
 
 ### 3.2 slot 数组、计数字、帧戳
 
@@ -383,7 +386,7 @@ face = 3,136 voxel,C = 128,C_inc = 32,f = 1.0;v5 池 501,760 槽/方向;(1,2) �
 
 **(b) replica 的 `velocity_mass.w`(质量)与 `position.w`(vid)。** 本组算例所有材料 ρ₀·V 逐位相同(三种材料都是 ρ₀ = 1000、同一个标定体积),force 早已对邻居用 self 的质量(V0 均匀),correction / density 读 m_j 但 m_j = m_i,用 self 质量代替结果逐位不变。vid:LAYERS=2 的 G2 没人读,G1 作 self 时可由 band 派发线程已知的 voxel 得到。**但两者都在 vec4 里:**传输段是按字段整段搬 SoA,去掉 `.w` 不省字节,必须改成打包格式(ghost_send 写紧凑记录,接收方展开或让 kernel 直接读)。打包后 LAYERS=2 的 replica 各省 4 B;精确(对均匀质量的算例)。**v5 / (1,1) 的混合池省不下来:**同一个槽也装 migrant,migrant 的质量是它的状态、也是“槽已占用”的哨兵,install 又靠 `.w` 区分 replica / migrant;除非 install 改为从 material 表写回质量、并把 replica 与 migrant 分区,否则仍是 44 B。多相 / 变质量算例会失去质量信息,需要改为按 material 查表。
 
-**(c) G2 是否需要全部 4 个字段。** 逐项见 §3.1:G2 只作为 G1(当 self)的 correction / density 邻居被读,需要 xyz、v、m、ρ、material;**`.w` 与 P 无人读**(G1 的 P 也在 C4 前无人读)。打包后 G2 每粒子 44 → 36 B(再去质量 32 B)。同样只有打包才省得下来。
+**(c) G2 是否需要全部 4 个字段。** 逐项见 §3.1:G2 只作为 G1(当 self)的 correction / density 邻居被读,需要 xyz、v、m、ρ、material;**`.w` 与 P 无人读**(G1 的 P 也在 C4 前无人读)。打包后 G2 每粒子 44 → 36 B(再去质量 32 B)。同样只有打包才省得下来。(实现:G1、G2 都是 32 B,见 §3.1 末与 `v6_opt.md`。)
 
 **(d) migrant 的全字段。** 逐项见 §3.1:migrant 在 C1 装进 own column 0,本帧 C2 重算 L、∇ρ、ΣVW,C3 / C4 重算 ρ、P,C5(band 含 column 0)重算 a、δr,都在下一步 predict 读它们之前。所以**必须带的只有 位置(含 `.w`)、v + m、ρ、material**;P、a、δr、L、∇ρ / ΣVW 是死的,`extension_fields` 只有审计需要。这与 `ghost_send.comp` 头注释("Acceleration and shift are needed for the migration's next-step predict on receiver")不一致:按当前 phase C 的顺序,C5 在下一步 predict 之前已经重写了它们。做法是**不改格式**,只把 migrant 区段(LAYERS=1 是整个混合池)的传输段从 9 个字段减到 4 个(审计时 5 个);每槽 140 → 44 B(60 B)。精确。对 v5 / (1,1) 的混合池,这一项就是把 replica 也降到 44 B,是整张表里最大的一项。
 
