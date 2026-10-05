@@ -495,12 +495,16 @@ E26_CAMPAIGN = "perf_band223"            # release set, V6_BAND_WIDTHS 2,3,4 ('r
 # (label, opt_validate name, ab_restart directory); E23's final build ran the default 2/3/4 bands
 E26_GATE_RUNS = (("E23 最终 d2b5e98(band 2/3/4)", "e23_g1_32b_v2", "ab_e23_g1_32b_v2"),
                  ("E26(band 2/2/3)", "e26_band223", "ab_e26_band223"))
-# _verify_cascade_force runs: (case label, slabs label, directory under e26_invariant, band columns = the column
-# distances the bands cover); the single-GPU run has no seam (no invariant) and the diagnostic band
-# (V6_FAKE_BAND_TEST=8) at columns 8-10, its column distances are measured from the domain's x faces
+# _verify_cascade_force runs: (case label, slabs label, directory under e26_invariant, band columns). Seam runs:
+# column distance to the nearest seam, bands 0-3. Single-GPU fake band (V6_FAKE_BAND_TEST=8, B = 2,2,3): no seam;
+# the verifier pools the distances from both x faces, so these rows are recomputed per GLOBAL column from the dumps
+# (correction / density band = global columns 8-9). Only the V6_CASCADE_FORCE=0 run is a valid equivalence test:
+# with cascade force the interior column left of the one-sided fake band reads the band's rho_{n+1} from scratch in
+# phase B before phase C writes it (real seams have ghosts on that side).
 E26_INVARIANT_RUNS = (("2-D 1M", "2", "cavity2d_1m_k2", range(0, 4)), ("2-D 1M", "4", "cavity2d_1m_k4", range(0, 4)),
                       ("3-D 1M", "2", "cavity3d_1m_k2", range(0, 4)),
-                      ("2-D 1M 单卡假 band(第 8 列起)", "1", "fakeband_2d_1m_k1", range(8, 11)))
+                      ("2-D 1M 单卡假 band,cascade 关", "1", "fakeband_2d_1m_k1", range(8, 10)),
+                      ("2-D 1M 单卡假 band,cascade 开(不是有效检验)", "1", "fakeband_2d_1m_k1_cascade", range(8, 10)))
 
 
 def ab_worst(directory: str) -> dict:
@@ -579,47 +583,84 @@ def e26_ab_detail_table() -> str:
     return NEWLINE.join(lines)
 
 
+def e26_column_ratios(report: dict) -> dict:
+    """column distance -> (A1-B1 ratio, A2-B2 ratio): each pair's max |delta a| (max over sims) over the larger of
+    the A-A / B-B floors (the verifier's rule; its own verdict uses the first pair only)."""
+    pairs = report["pairs"]
+
+    def column_max(pair, key):
+        values = [pair[sim]["accel_by_column"][key]["max"] for sim in pair if key in pair[sim]["accel_by_column"]]
+        return max(values) if values else None
+    ratios = {}
+    for column in range(16):
+        key = str(column)
+        floor = [column_max(pairs["noise: legacy vs legacy"], key), column_max(pairs["noise: cascade vs cascade"], key)]
+        tests = [column_max(pairs["TEST: legacy vs cascade"], key), column_max(pairs["TEST: legacy vs cascade (2nd pair)"], key)]
+        if None in floor or None in tests:
+            continue
+        floor_value = max(floor)
+        ratios[column] = tuple(test / floor_value if floor_value > 0 else (float("inf") if test > 0 else 0.0) for test in tests)
+    return ratios
+
+
+def e26_global_column_ratios(directory: str) -> dict:
+    """K = 1 runs: global column -> (A1-B1 ratio, A2-B2 ratio) from the four dumps (particles matched to legacy_1 by
+    position, 0.05 h, as the verifier does)."""
+    import numpy as np
+    from scipy.spatial import cKDTree
+    runs = {name: dict(np.load(ROOT / "e26_invariant" / directory / f"{name}.npz"))
+            for name in ("legacy_1", "legacy_2", "cascade_1", "cascade_2")}
+    h, origin = float(runs["legacy_1"]["h"]), float(runs["legacy_1"]["origin_x"])
+    reference = runs["legacy_1"]["s0_position"]
+    column = np.floor((reference[:, 0].astype(np.float64) - origin) / h).astype(int)
+    acceleration, matched = {}, np.ones(len(column), dtype=bool)
+    for name, run in runs.items():
+        distance, index = cKDTree(run["s0_position"]).query(reference, k=1)
+        matched &= distance <= 0.05 * h
+        acceleration[name] = run["s0_acceleration"][index].astype(np.float64)
+
+    def difference(a, b):
+        return np.linalg.norm(acceleration[a] - acceleration[b], axis=1)
+    noise_a, noise_b = difference("legacy_1", "legacy_2"), difference("cascade_1", "cascade_2")
+    tests = (difference("legacy_1", "cascade_1"), difference("legacy_2", "cascade_2"))
+    ratios = {}
+    for value in np.unique(column):
+        mask = (column == value) & matched
+        floor = max(noise_a[mask].max(), noise_b[mask].max())
+        if floor > 0:
+            ratios[int(value)] = tuple(float(test[mask].max() / floor) for test in tests)
+    return ratios
+
+
 def e26_invariant_table() -> str:
     """_verify_cascade_force runs, A = release set (bands 2/3/4) x 2, B = release set + V6_BAND_WIDTHS=2,2,3 x 2:
     the band invariant (voxel lists cover exactly the band particles, every run, sim and band width) and the
-    per-column acceleration A/B (max |delta a| per column distance to the seam, test A-B over the larger of the
-    A-A / B-B floors; PASS < 3)."""
-    lines = ["| 算例 | K | 步数 | band 宽度(A / B) | band 不变量 | 逐列 A/B 最差比值(列) | band 所在列的最大比值 | 结论 |",
-             "|---|---|---|---|---|---|---|---|"]
+    per-column acceleration A/B for BOTH A-B pairs (max |delta a| per column over the larger of the A-A / B-B
+    floors; PASS < 3). Single-GPU fake band rows: per global column (see E26_INVARIANT_RUNS)."""
+    lines = ["| 算例 | K | 步数 | band 宽度(A / B) | band 不变量 | 逐列最差比值(A1−B1 / A2−B2,列) | "
+             "band 列最大比值(A1−B1 / A2−B2) | 结论 |", "|---|---|---|---|---|---|---|---|"]
     for case_label, slabs, directory, band_range in E26_INVARIANT_RUNS:
         path = ROOT / "e26_invariant" / directory / "report.json"
         if not path.exists():
             continue
         report = json.loads(path.read_text(encoding="utf-8"))
-        pairs = report["pairs"]
-        noise_a, noise_b = pairs["noise: legacy vs legacy"], pairs["noise: cascade vs cascade"]
-        test = pairs["TEST: legacy vs cascade"]
-        ratios = {}
-        for column in range(16):
-            key = str(column)
-
-            def column_max(pair):
-                values = [pair[sim]["accel_by_column"][key]["max"] for sim in pair if key in pair[sim]["accel_by_column"]]
-                return max(values) if values else None
-            floor = [column_max(noise_a), column_max(noise_b)]
-            measured = column_max(test)
-            if measured is None or None in floor:
-                continue
-            floor_value = max(floor)
-            ratios[column] = measured / floor_value if floor_value > 0 else (float("inf") if measured > 0 else 0.0)
-        worst_column = max(ratios, key=ratios.get) if ratios else None
+        seam = bool(report.get("cuts"))
+        ratios = e26_column_ratios(report) if seam else e26_global_column_ratios(directory)
+        if not ratios:
+            continue
+        worst = [max(ratios, key=lambda column: ratios[column][index]) for index in (0, 1)]
+        band = [max((ratios[column][index] for column in band_range if column in ratios), default=None) for index in (0, 1)]
         widths = report.get("band_widths", {})
         band_a = "/".join(map(str, widths.get("legacy_1", [])))
         band_b = "/".join(map(str, widths.get("cascade_1", [])))
-        band_columns = max((ratios[column] for column in band_range if column in ratios), default=None)
-        if not report.get("cuts"):
-            invariant = "不适用(没有 seam)"
-        else:
-            invariant = "OK" if report.get("band_invariant_ok") else "违反"
+        invariant = ("成立" if report.get("band_invariant_ok") else "违反") if seam else "不适用(没有 seam)"
+        where = "列" if seam else "全局列"
+        verdict = "通过" if max(ratios[worst[0]][0], ratios[worst[1]][1]) < 3 else "未过"
+        if directory == "fakeband_2d_1m_k1_cascade":
+            verdict = "不作为证据"
         lines.append(f"| {case_label} | {slabs} | {report['steps']} | {band_a} / {band_b} | {invariant} | "
-                     f"{f'{ratios[worst_column]:.2f}({worst_column})' if worst_column is not None else '—'} | "
-                     f"{fmt(band_columns, 2)}(列 {band_range.start}–{band_range.stop - 1}) | "
-                     f"{report.get('verdict', '—')} |")
+                     f"{ratios[worst[0]][0]:.2f}({where} {worst[0]})/ {ratios[worst[1]][1]:.2f}({where} {worst[1]}) | "
+                     f"{fmt(band[0], 2)} / {fmt(band[1], 2)}({where} {band_range.start}–{band_range.stop - 1}) | {verdict} |")
     return NEWLINE.join(lines)
 
 
