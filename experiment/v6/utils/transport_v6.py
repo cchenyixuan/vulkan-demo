@@ -264,7 +264,7 @@ class GhostMigrationWorker:
                 #     readback_done(n) — sender_staging is now fully
                 #     populated and CPU-visible (host coherence barrier ran).
                 t_dequeue = _host_clock_ns()
-                self.last_activity = ("wait_source_timeline", frame_n, t_dequeue)
+                self.last_activity = ("wait_source_timeline", frame_n, time.perf_counter_ns())
                 source_semaphore, source_value = self.source.sync.source_readback_op(
                     self.source_direction, frame_n)
                 self.source.wait_semaphore(source_semaphore, source_value)
@@ -366,6 +366,7 @@ class GhostMigrationWorker:
                     f"={guard_value}. Without waiting dest's transfer-queue "
                     f"readback signal first, the host signal would race ahead "
                     f"and corrupt the timeline (Vulkan backwards-signal hazard).")
+                t_dest_signal = _host_clock_ns()
                 self.dest.host_signal_semaphore(signal_semaphore, signal_value)
                 t_signal = _host_clock_ns()
                 self.last_activity = ("done_frame", frame_n, time.perf_counter_ns())
@@ -382,7 +383,8 @@ class GhostMigrationWorker:
                     "wait_ns": t_wait,
                     "stamp_ns": t_stamp,
                     "copy_ns": t_copy,
-                    "signal_ns": t_signal,
+                    "dest_signal_ns": t_dest_signal,      # right before the worker_done host signal
+                    "signal_ns": t_signal,                # both host signals returned
                     "copy_bytes": self.last_copy_bytes,
                 }
         except BaseException as e:  # noqa: BLE001 — capture everything for diagnostics

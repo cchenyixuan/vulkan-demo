@@ -9,12 +9,17 @@ Modes:
             fps give eta); then the same two with --step-trace (time decomposition;
             the K = 1 traces give c_B = T_B / N).
 Production defaults (no V6_* set), depth 2, 3000 steps, warmup 1000 (steady =
-the last 2000). Before every timed run nvidia-smi must show no other python
-compute process (another session's run); otherwise the driver waits (5 s settle,
+the last 2000). Before every timed run nvidia-smi must show no python compute
+process on any GPU (another session's run) and no compute process at all on a
+GPU without a display (the desktop's GPU always lists explorer, browsers, ...,
+some as "[Insufficient Permissions]"); otherwise the driver waits (5 s settle,
 then 15 s slices) and logs it. Utilization, power and SM clock of both GPUs are
-logged with every check (GPU 0 drives the desktop, so it never reads 0 %). One
-line per run in OUT/results.jsonl, the bench log and the trace directory under
-OUT/runs/.
+logged with every check (GPU 0 drives the desktop, so it never reads 0 %); they
+are not sampled during the runs. One line per run in OUT/results.jsonl, the bench
+log and the trace directory under OUT/runs/. A run that fails is re-run on resume
+(both GPUs of a K = 1 pair); the analysis keeps the last successful record per run
+id. Records may carry "trial" (default 1) for repeated off sets; this driver runs
+one.
 
     .venv/Scripts/python.exe -m experiment.v6.analysis.step_trace_campaign --mode overhead --out logs/e29_step_trace/overhead
     .venv/Scripts/python.exe -m experiment.v6.analysis.step_trace_campaign --mode scan --out logs/e29_step_trace/scan
@@ -55,16 +60,22 @@ def environment() -> dict:
 
 
 def gpu_state() -> dict:
-    apps = subprocess.run(["nvidia-smi", "--query-compute-apps=pid,process_name", "--format=csv,noheader"],
+    apps = subprocess.run(["nvidia-smi", "--query-compute-apps=pid,process_name,gpu_uuid", "--format=csv,noheader"],
                           capture_output=True, text=True, errors="replace").stdout
-    gpus = subprocess.run(["nvidia-smi", "--query-gpu=index,utilization.gpu,memory.used,power.draw,clocks.sm",
-                           "--format=csv,noheader,nounits"], capture_output=True, text=True, errors="replace").stdout
-    python = [line.strip() for line in apps.splitlines() if "python" in line.lower()]
+    gpus = subprocess.run(["nvidia-smi", "--query-gpu=index,utilization.gpu,memory.used,power.draw,clocks.sm,uuid,"
+                           "display_active", "--format=csv,noheader,nounits"],
+                          capture_output=True, text=True, errors="replace").stdout
     rows = [[part.strip() for part in line.split(",")] for line in gpus.splitlines() if line.strip()]
+    headless = {row[5] for row in rows if len(row) > 6 and row[6].lower() != "enabled"}
+    app_rows = [[part.strip() for part in line.split(",")] for line in apps.splitlines() if line.strip()]
+    python = [", ".join(row[:2]) for row in app_rows if "python" in ",".join(row[:2]).lower()]
+    on_headless = [", ".join(row[:2]) for row in app_rows if len(row) > 2 and row[2] in headless]
     utilization = [float(row[1]) for row in rows if len(row) > 1 and row[1].replace(".", "").isdigit()]
-    # Only another python compute process (another session's solver run) blocks: GPU 0 drives the
-    # desktop, so its utilization alone never drops to 0 (logged with every check instead).
-    return {"python_compute": python, "gpus": rows, "utilization": utilization, "busy": bool(python)}
+    # A python compute process anywhere (another session's solver run) or any compute process on a GPU
+    # without a display blocks. GPU 0 drives the desktop: its utilization never drops to 0 and it always
+    # lists desktop apps, so those alone do not block (logged with every check instead).
+    return {"python_compute": python, "headless_compute": sorted(set(on_headless) - set(python)),
+            "gpus": [row[:5] for row in rows], "utilization": utilization, "busy": bool(python or on_headless)}
 
 
 def wait_for_idle_gpus(log) -> dict:
@@ -77,7 +88,8 @@ def wait_for_idle_gpus(log) -> dict:
         if not state["busy"]:
             state["waited_s"] = waited
             return state
-        log(f"GPU busy, waiting 15 s: python compute {state['python_compute']} gpus {state['gpus']}")
+        log(f"GPU busy, waiting 15 s: python compute {state['python_compute']} on a headless GPU "
+            f"{state['headless_compute']} gpus {state['gpus']}")
         time.sleep(15)
         waited += 15
 
@@ -86,7 +98,9 @@ def parse_log(text: str) -> dict:
     steady = re.search(r"STEADY \(post-warmup \d+\): (\d+) steps in ([\d.]+)s = ([\d.]+) fps", text)
     final = re.search(r"\[chain_v6\] final: total=([\d,]+) \(expected ([\d,]+)\) drift=(-?\d+) "
                       r"stamp_errors gpu=(\d+) host=(\d+) overflow_total=(\d+) far_migration_total=(\d+)", text)
-    return {"steady_fps": float(steady.group(3)) if steady else None,
+    return {"steady_fps": float(steady.group(3)) if steady else None,       # printed with 0.1 fps
+            "steady_steps": int(steady.group(1)) if steady else None,
+            "steady_s": float(steady.group(2)) if steady else None,         # 0.01 s
             "drift": int(final.group(3)) if final else None,
             "stamp_errors": (int(final.group(4)) + int(final.group(5))) if final else None,
             "overflow_total": int(final.group(6)) if final else None,

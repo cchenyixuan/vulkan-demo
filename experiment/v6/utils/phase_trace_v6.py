@@ -62,6 +62,7 @@ from vulkan._vulkan import lib as _lib
 from vulkan._vulkancache import ffi
 
 from experiment.v6.utils.bench_v6 import _MAX_TICKS, BenchTimer, split_parity_ticks
+from experiment.v6.utils.clock_map_v6 import CLOCK_FIT_VERSION, clock_to_host, fit_clock
 
 CALIBRATED_TIMESTAMPS_EXTENSION = "VK_KHR_calibrated_timestamps"
 
@@ -243,14 +244,19 @@ class PhaseTracer:
 # driver call does not hold the GIL) and in larger bursts at the start, at the
 # warmup boundary and at the end; each burst keeps the pair with the
 # smallest driver maxDeviation (on the 5090 / Windows driver >= ~12 us, and the
-# host stamp is biased by up to that much). Per device a robust least-squares
-# line (3-sigma clipping) plus the running median of its residuals (9 samples,
+# host stamp is biased by up to that much). Device ticks stay integers until an
+# integer per-device origin is subtracted (NVIDIA ticks are epoch ns ~1.8e18,
+# where float64 has a 256 ns grid). fit_clock keeps only pairs within 1 us of
+# the run's smallest maxDeviation (wider pairs sit late by up to their width),
+# fits a least-squares line plus the running median of its residuals (9 pairs,
 # interpolated in device time; the frequency ratio drifts by a few ppm over
-# minutes) maps every GPU tick (compute and transfer pools share the device
-# domain) to the host clock of the worker time points: QueryPerformanceCounter =
-# time.perf_counter_ns on Windows, CLOCK_MONOTONIC = perf_counter_ns on Linux,
-# CLOCK_MONOTONIC_RAW (time.clock_gettime_ns, also for the workers through
-# transport_v6.set_host_clock) when the driver offers only that domain.
+# minutes) and drops pairs off line + drift by more than 3 sigma. The map takes
+# every GPU tick (compute and transfer pools share the device domain) to the
+# host clock of the worker time points: QueryPerformanceCounter =
+# time.perf_counter_ns on Windows; on Linux (untested) CLOCK_MONOTONIC_RAW
+# (time.clock_gettime_ns, also for the workers through
+# transport_v6.set_host_clock) when offered, else CLOCK_MONOTONIC =
+# perf_counter_ns.
 # ============================================================================
 
 STEP_TRACE_BLOCK = 32              # timestamp slots per frame parity
@@ -277,7 +283,7 @@ STEP_LINK_TIMES = (
     "send_end",                       # sender's ghost_send for this link done (compute queue)
     "readback_start", "readback_copy_end", "readback_end",    # sender transfer queue
     "worker_dequeue", "worker_source_wait", "worker_dest_guard", "worker_upload_guard",
-    "worker_stamp", "worker_copy", "worker_signal",           # transport worker (host)
+    "worker_stamp", "worker_copy", "worker_dest_signal", "worker_signal",   # transport worker (host)
     "upload_start", "upload_end",                             # receiver transfer queue
     "receiver_b_start", "receiver_b_end", "receiver_c_start")
 # detail = "phases": only these compute ticks are written (a phase's last tick depends on the
@@ -288,7 +294,8 @@ PHASE_TICKS = ("a_start", "a_voxel_end", "a_ghost_leading_end", "a_ghost_trailin
                "c_start", "c_force_end", "defrag_start", "defrag_end")
 _WORKER_KEYS = (("worker_dequeue", "dequeue_ns"), ("worker_source_wait", "source_wait_ns"),
                 ("worker_dest_guard", "dest_guard_ns"), ("worker_upload_guard", "wait_ns"),
-                ("worker_stamp", "stamp_ns"), ("worker_copy", "copy_ns"), ("worker_signal", "signal_ns"))
+                ("worker_stamp", "stamp_ns"), ("worker_copy", "copy_ns"),
+                ("worker_dest_signal", "dest_signal_ns"), ("worker_signal", "signal_ns"))
 
 
 class StepTraceTimer(BenchTimer):
@@ -364,11 +371,11 @@ class StepTraceTimer(BenchTimer):
         return ffi.buffer(self._results, 16 * count)[:]
 
     def parse_block(self, raw: bytes) -> dict:
-        """{label: device ns} of the available slots."""
+        """{label: raw device tick (int)} of the available slots."""
         if not raw:
             return {}
         values = struct.unpack(f"<{len(raw) // 8}Q", raw)
-        return {label: values[2 * index] * self.ns_per_tick
+        return {label: values[2 * index]
                 for index, label in enumerate(self.block_labels[:len(values) // 2])
                 if values[2 * index + 1]}
 
@@ -379,11 +386,12 @@ def _git_provenance() -> dict:
     def git(*arguments):
         try:
             return subprocess.run(["git", *arguments], cwd=root, capture_output=True, text=True,
-                                  timeout=30).stdout.strip()
+                                  timeout=30).stdout
         except Exception:   # noqa: BLE001 — provenance is best effort
             return ""
-    return {"commit": git("rev-parse", "HEAD"),
-            "v6_dirty_files": [line[3:] for line in git("status", "--porcelain", "--", "experiment/v6").splitlines()]}
+    status = git("status", "--porcelain", "--", "experiment/v6")
+    return {"commit": git("rev-parse", "HEAD").strip(),
+            "v6_dirty_files": [line[3:] for line in status.splitlines() if len(line) > 3]}
 
 
 class StepTracer:
@@ -391,8 +399,10 @@ class StepTracer:
     timers and turns on step_trace_parity), then set ``orchestrator.on_frame_done
     = tracer.on_frame_done`` after bootstrap, call ``on_defrag(frame_n, warmup)``
     from the run's defrag hook (reads the voxel counts once, at the first
-    boundary >= warmup, while the pipeline is drained) and ``write(...)`` at the
-    end. Needs VK_KHR_calibrated_timestamps on every device and depth <= 2."""
+    boundary >= warmup, while the pipeline is drained), ``write(...)`` at the end
+    and ``close()`` before the sims are destroyed (also on errors). Needs
+    VK_KHR_calibrated_timestamps on every device, depth <= 2 and a loop that calls
+    on_frame_done for every frame (not V6_PER_SIM_PIPELINE=1)."""
 
     def __init__(self, sims, calibrate_ms: float = 500.0, detail: str = "phases"):
         if detail not in ("phases", "full"):
@@ -436,12 +446,16 @@ class StepTracer:
                                    f"{CALIBRATED_TIMESTAMPS_EXTENSION} on every device")
             self._get_calibrated.append(function)
         self.raw: dict[int, list] = {}           # frame -> [(compute raw, transfer raw) per sim]
-        self.host_read: dict[int, int] = {}
-        self.calibration: list[tuple] = []       # (sim, frame, device_ns, host_ns, max_deviation_ns)
+        self.host_read: dict[int, int] = {}      # frame -> host time of its first read
+        self.calibration: list[tuple] = []       # (sim, frame, device tick, host ns, max deviation ns)
         self.voxel_snapshot: Optional[dict] = None
         self.latest_frame = -1
         for index in range(len(self.sims)):
             self.calibrate(index, frame_n=-1, repeat=5, burst=8)
+        # integer origin per device: ticks are subtracted from it before any float conversion
+        self.origin_tick = [next(sample[2] for sample in self.calibration if sample[0] == index)
+                            for index in range(len(self.sims))]
+        self._closed = False
         self._stop = threading.Event()
         self._calibration_thread = threading.Thread(target=self._calibration_loop, name="step_trace_calibration",
                                                     daemon=True)
@@ -459,8 +473,8 @@ class StepTracer:
             function = vkGetInstanceProcAddr(sim.ctx.instance, "vkGetPhysicalDeviceCalibrateableTimeDomainsKHR")
             domains = {int(value) for value in function(sim.ctx.physical_device)}
             available = domains if available is None else available & domains
-        order = ((TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER,) if sys.platform == "win32"
-                 else (TIME_DOMAIN_CLOCK_MONOTONIC, TIME_DOMAIN_CLOCK_MONOTONIC_RAW))
+        order = ((TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER,) if sys.platform == "win32"     # RAW: not slewed by NTP
+                 else (TIME_DOMAIN_CLOCK_MONOTONIC_RAW, TIME_DOMAIN_CLOCK_MONOTONIC))
         for domain in order:
             if domain in available:
                 return domain
@@ -472,33 +486,36 @@ class StepTracer:
         return value
 
     def calibrate(self, sim_index: int, frame_n: int, repeat: int = 1, burst: int = 3) -> None:
-        """``repeat`` samples, each the smallest-maxDeviation pair of a ``burst``."""
+        """``repeat`` samples, each the smallest-maxDeviation pair of a ``burst``. The driver
+        reports maxDeviation in ns; the device value stays a raw integer tick."""
         sim = self.sims[sim_index]
-        ns_per_tick = self.compute_timers[sim_index].ns_per_tick
         stamps = ffi.new("uint64_t[2]")          # per call: the helper thread calibrates too
         for _ in range(repeat):
             best = None
             for _ in range(burst):
                 deviation = self._get_calibrated[sim_index](sim.ctx.device, 2, self._infos, stamps)
-                sample = (sim_index, frame_n, float(int(stamps[0])) * ns_per_tick,
-                          self._host_ns(int(stamps[1])), float(int(deviation)) * ns_per_tick)
+                sample = (sim_index, frame_n, int(stamps[0]), self._host_ns(int(stamps[1])), float(int(deviation)))
                 if best is None or sample[4] < best[4]:
                     best = sample
             self.calibration.append(best)
 
+    def device_ns(self, sim_index: int, tick: int) -> float:
+        """Device ns of a raw tick, relative to the device's origin tick."""
+        return float(tick - self.origin_tick[sim_index]) * self.compute_timers[sim_index].ns_per_tick
+
     # ---------------------------------------------------------------- capture
 
     def on_frame_done(self, frame_n: int, sim_index: Optional[int] = None) -> None:
-        """Every sim's frame ``frame_n`` is complete: copy both pools' parity
-        block raw (parsed in write())."""
+        """Every sim's frame ``frame_n`` (or sim ``sim_index``'s) is complete: copy both
+        pools' parity block raw (parsed in write())."""
         parity = frame_n % 2
         entry = self.raw.setdefault(frame_n, [None] * len(self.sims))
         for index in (range(len(self.sims)) if sim_index is None else (sim_index,)):
             if entry[index] is None:
                 entry[index] = (self.compute_timers[index].read_block_raw(parity),
                                 self.transfer_timers[index].read_block_raw(parity))
-        self.host_read[frame_n] = self.host_clock_ns()
-        self.latest_frame = frame_n
+        self.host_read.setdefault(frame_n, self.host_clock_ns())
+        self.latest_frame = max(self.latest_frame, frame_n)
 
     def on_defrag(self, frame_n: int, warmup: int) -> None:
         """At the first drained defrag boundary >= warmup: own particles and n_B
@@ -533,49 +550,37 @@ class StepTracer:
                 "own_column_particles": [int(value) for value in columns[first:last + 1]]})
         self.voxel_snapshot = {"frame": frame_n, "per_sim": per_sim}
 
+    def close(self) -> None:
+        """Stop the calibration thread and free the query pools (idempotent; call before the
+        sims are destroyed, also when the run failed)."""
+        if self._closed:
+            return
+        self._closed = True
+        self._stop.set()
+        if self._calibration_thread.is_alive():
+            self._calibration_thread.join()
+        from vulkan import vkDeviceWaitIdle
+        for sim, compute, transfer in zip(self.sims, self.compute_timers, self.transfer_timers):
+            try:
+                vkDeviceWaitIdle(sim.ctx.device)
+            except Exception:   # noqa: BLE001 — a lost device must not hide the original error
+                pass
+            compute.destroy()
+            transfer.destroy()
+            sim.bench = sim.bench_transfer = None
+
     # ----------------------------------------------------------------- output
 
     def _fits(self) -> list:
-        """Per device: host = host_center + intercept + slope (device - device_center)
-        + drift(device), least squares with iterative 3-sigma clipping; drift = the
-        running median (9 samples) of the kept residuals, interpolated linearly."""
         fits = []
         for index in range(len(self.sims)):
-            samples = np.array([(s[2], s[3], s[4]) for s in self.calibration if s[0] == index], dtype=np.float64)
-            device_center, host_center = samples[:, 0].mean(), samples[:, 1].mean()
-            x, y = samples[:, 0] - device_center, samples[:, 1] - host_center
-            kept = np.ones(len(samples), dtype=bool)
-            for _ in range(5):
-                slope, intercept = np.polyfit(x[kept], y[kept], 1)
-                residual = y - (slope * x + intercept)
-                sigma = float(np.sqrt(np.mean(residual[kept] ** 2)))
-                new_kept = np.abs(residual) <= max(3.0 * sigma, 1.0)
-                if new_kept.sum() < 5 or np.array_equal(new_kept, kept):
-                    break
-                kept = new_kept
-            order = np.argsort(x[kept])
-            knot_x, knot_residual = x[kept][order], residual[kept][order]
-            half = 4
-            drift = np.array([np.median(knot_residual[max(0, i - half):i + half + 1])
-                              for i in range(len(knot_residual))])
-            final = knot_residual - drift
-            fits.append({"device_center_ns": float(device_center), "host_center_ns": float(host_center),
-                         "slope": float(slope), "intercept_ns": float(intercept),
-                         "drift_knots_device_ns": [float(value) for value in knot_x],
-                         "drift_knots_ns": [float(value) for value in drift],
-                         "samples": int(len(samples)), "samples_kept": int(kept.sum()),
-                         "line_residual_rms_ns": float(np.sqrt(np.mean(residual[kept] ** 2))),
-                         "residual_rms_ns": float(np.sqrt(np.mean(final ** 2))),
-                         "residual_max_ns": float(np.max(np.abs(final))),
-                         "driver_max_deviation_min_ns": float(samples[kept, 2].min()),
-                         "driver_max_deviation_median_ns": float(np.median(samples[kept, 2]))})
+            samples = [sample for sample in self.calibration if sample[0] == index]
+            fit = fit_clock([self.device_ns(index, sample[2]) for sample in samples],
+                            [sample[3] for sample in samples], [sample[4] for sample in samples])
+            fit.update({"device_origin_tick": int(self.origin_tick[index]),
+                        "ns_per_tick": float(self.compute_timers[index].ns_per_tick)})
+            fits.append(fit)
         return fits
-
-    @staticmethod
-    def _to_host(fit: dict, device_ns: float) -> int:
-        x = device_ns - fit["device_center_ns"]
-        drift = float(np.interp(x, fit["drift_knots_device_ns"], fit["drift_knots_ns"]))
-        return int(round(fit["host_center_ns"] + fit["intercept_ns"] + fit["slope"] * x + drift))
 
     def write(self, out_dir, orchestrator, meta: dict) -> dict:
         out = pathlib.Path(out_dir)
@@ -586,30 +591,42 @@ class StepTracer:
         for index in range(len(self.sims)):
             self.calibrate(index, frame_n=last_frame, repeat=5, burst=8)
         fits = self._fits()
+
+        def host(index, tick):
+            return int(round(float(clock_to_host(fits[index], self.device_ns(index, tick)))))
         device_rows: dict[tuple[int, int], dict] = {}
         transfer_rows: dict[tuple[int, int], dict] = {}
+        missing: dict[tuple[int, int], int] = {}
         for frame_n, entry in self.raw.items():
             for index, captured in enumerate(entry):
                 if captured is None:
                     continue
                 compute = self.compute_timers[index].parse_block(captured[0])
                 transfer = self.transfer_timers[index].parse_block(captured[1])
-                row = {label: self._to_host(fits[index], value) for label, value in compute.items()}
+                missing[(frame_n, index)] = (len(self.compute_timers[index].block_labels) - len(compute)
+                                             + len(self.transfer_timers[index].block_labels) - len(transfer))
+                row = {label: host(index, tick) for label, tick in compute.items()}
                 for phase in ("a", "b", "c"):
                     ticks = [value for label, value in row.items() if label.startswith(phase + "_")]
                     if ticks:
                         row[phase + "_end"] = max(ticks)
                 device_rows[(frame_n, index)] = row
-                transfer_rows[(frame_n, index)] = {label: self._to_host(fits[index], value)
-                                                   for label, value in transfer.items()}
+                transfer_rows[(frame_n, index)] = {label: host(index, tick) for label, tick in transfer.items()}
+
+        def device_complete(key) -> bool:
+            # every tick this sim's cmds write was available (a missing last tick would
+            # otherwise shorten the phase silently)
+            return missing.get(key, 1) == 0 and all(
+                phase in device_rows[key] for phase in ("a_start", "a_end", "b_start", "b_end", "c_start", "c_end"))
         with open(out / "steps_device.csv", "w", newline="") as handle:
             writer = csv.writer(handle)
-            writer.writerow(["step", "sim", "device", "parity", "host_read"] + list(STEP_DEVICE_TIMES) + ["complete"])
+            writer.writerow(["step", "sim", "device", "parity", "host_read"] + list(STEP_DEVICE_TIMES)
+                            + ["missing_ticks", "complete"])
             for (frame_n, index), row in sorted(device_rows.items()):
-                complete = all(key in row for key in ("a_start", "a_end", "b_start", "b_end", "c_start", "c_end"))
                 writer.writerow([frame_n, index, meta.get("device_map", [None] * len(self.sims))[index],
                                  frame_n % 2, self.host_read.get(frame_n, "")]
-                                + [row.get(key, "") for key in STEP_DEVICE_TIMES] + [int(complete)])
+                                + [row.get(key, "") for key in STEP_DEVICE_TIMES]
+                                + [missing[(frame_n, index)], int(device_complete((frame_n, index)))])
         sim_index = {id(sim): index for index, sim in enumerate(self.sims)}
         links = []
         link_complete = 0
@@ -642,25 +659,24 @@ class StepTracer:
                     for column, key in _WORKER_KEYS:
                         values[column] = stamps.get(key)
                     copy_bytes = stamps.get("copy_bytes")
-                    complete = all(values[key] is not None for key in STEP_LINK_TIMES) and copy_bytes is not None
+                    complete = (all(values[key] is not None for key in STEP_LINK_TIMES) and copy_bytes is not None
+                                and missing.get((frame_n, sender), 1) == 0 and missing.get((frame_n, receiver), 1) == 0)
                     link_rows += 1
                     link_complete += int(complete)
                     writer.writerow([frame_n, worker.label, sender, receiver, send_direction, receive_direction]
                                     + ["" if values[key] is None else values[key] for key in STEP_LINK_TIMES]
                                     + ["" if copy_bytes is None else copy_bytes, worker.staging_bytes,
                                        int(complete)])
-        device_complete = sum(1 for row in device_rows.values()
-                              if all(key in row for key in ("a_start", "a_end", "b_start", "b_end",
-                                                            "c_start", "c_end")))
-        summary = {"steps": len(self.raw), "device_rows": len(device_rows), "device_rows_complete": device_complete,
+        device_complete_count = sum(1 for key in device_rows if device_complete(key))
+        summary = {"steps": len(self.raw), "device_rows": len(device_rows),
+                   "device_rows_complete": device_complete_count,
                    "link_rows": link_rows, "link_rows_complete": link_complete}
         run_meta = dict(meta)
         run_meta.update(_git_provenance())
         run_meta.update({
             "clock": {"time_domain": self.domain_name, "host_clock": self.host_clock_name,
                       "qpc_frequency": self._qpc_frequency, "calibrate_ms": self.calibrate_ms,
-                      "detail": self.detail,
-                      "fits": fits},
+                      "detail": self.detail, "fit_version": CLOCK_FIT_VERSION, "fits": fits},
             "slabs": self.voxel_snapshot,
             "links": links,
             "labels": {"compute": [timer.block_labels for timer in self.compute_timers],
@@ -672,9 +688,11 @@ class StepTracer:
             json.dump(run_meta, handle, indent=1)
         with open(out / "calibration.csv", "w", newline="") as handle:
             writer = csv.writer(handle)
-            writer.writerow(["sim", "frame", "device_ns", "host_ns", "max_deviation_ns"])
+            writer.writerow(["sim", "frame", "device_tick", "device_ns", "host_ns", "max_deviation_ns"])
             for sample in self.calibration:
-                writer.writerow([sample[0], sample[1], f"{sample[2]:.0f}", sample[3], f"{sample[4]:.0f}"])
-        print(f"[step_trace] wrote {out}: {summary}; clock {self.domain_name}, fit residual rms "
-              + "/".join(f"{fit['residual_rms_ns']:.0f}" for fit in fits) + " ns", flush=True)
+                writer.writerow([sample[0], sample[1], sample[2], f"{self.device_ns(sample[0], sample[2]):.1f}",
+                                 sample[3], f"{sample[4]:.0f}"])
+        print(f"[step_trace] wrote {out}: {summary}; clock {self.domain_name}, map residual rms / max "
+              + "; ".join(f"{fit['residual_rms_ns']:.0f} / {fit['residual_max_ns']:.0f}" for fit in fits)
+              + " ns", flush=True)
         return summary

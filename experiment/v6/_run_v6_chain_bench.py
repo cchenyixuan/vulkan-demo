@@ -18,6 +18,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import pathlib
 import sys
 
@@ -188,6 +189,7 @@ def main() -> int:
           f"depth={args.depth} pool_safety={pool_safety}")
 
     contexts, sims = [], []
+    step_tracer = None
     extra_device_extensions = None
     if args.phase_trace:
         from experiment.v6.utils.phase_trace_v6 import (
@@ -198,6 +200,9 @@ def main() -> int:
             raise SystemExit("--step-trace installs its own timers: drop --anatomy / --phase-trace")
         if args.depth > 2:
             raise SystemExit("--step-trace keeps two frames of timestamps: needs --depth <= 2")
+        if os.environ.get("V6_PER_SIM_PIPELINE", "0") == "1":
+            raise SystemExit("--step-trace needs on_frame_done every frame: V6_PER_SIM_PIPELINE=1 calls it "
+                             "only at drains (use 0 or 2)")
         from experiment.v6.utils.phase_trace_v6 import (
             CALIBRATED_TIMESTAMPS_EXTENSION, StepTracer)
         extra_device_extensions = [CALIBRATED_TIMESTAMPS_EXTENSION]
@@ -394,6 +399,8 @@ def main() -> int:
                 print("[chain_v6] *** VALIDATION FAILED ***")
                 return 1
     finally:
+        if step_tracer is not None:
+            step_tracer.close()
         for sim in sims:
             sim.destroy()
         for ctx in contexts:
