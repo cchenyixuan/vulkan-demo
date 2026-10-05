@@ -933,12 +933,14 @@ def nearest_cut(cumulative: np.ndarray, target: int) -> int:
     searchsorted(side="left") gives the first column k with cumulative[k] >=
     target, so the candidates are k (prefix cumulative[k - 1] < target) and
     k + 1 (prefix cumulative[k] >= target). The pre-E31 rule always took k:
-    the slab left of every cut came out short by up to a whole column, and by
-    exactly one column whenever the target fell on a column boundary
-    (cumulative[k] == target), which every case with a uniform fluid lattice
-    hits (E29, 2-D 1M: 102 / 104 own columns, n_B 1.8 % apart). A tie (target
-    in the middle of column k) keeps k, the pre-E31 choice, so cases that were
-    already exact or tied do not move.
+    the slab left of every cut came out short by up to a whole column (by
+    exactly one when the target falls on a column boundary). In all 9 E29
+    cases the target sat 70-90 % into column k (the generator lattice only
+    partly fills the first fluid voxel column, e.g. 1 of 5 lattice columns
+    in 2-D), so s0 was short by nearly one column (2-D 1M: 102 / 104 own
+    columns, n_B 1.8 % apart). A tie (target in the middle of column k) keeps
+    k, the pre-E31 choice, so cases that were already exact or tied do not
+    move.
     """
     k = int(np.searchsorted(cumulative, target, side="left"))
     if k >= len(cumulative):
