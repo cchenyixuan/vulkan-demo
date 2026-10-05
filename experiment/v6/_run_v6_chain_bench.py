@@ -13,6 +13,17 @@ Usage:
     # K=3 on 2 physical GPUs (first interior slab live):
     .venv/Scripts/python.exe experiment/v6/_run_v6_chain_bench.py \\
         --weights 1,1,1 --device-map 0,1,0 --max-steps 20000 --warmup 5000
+
+Slab weights (E32): --weights w0,w1,.. as given; --weights auto calibrates them
+in pilot chains before the timed chain is built (experiment/v6/
+weight_calibration.py: per-device busy time T_A + T_B + T_C from the phase
+timestamps, omega = fluid particles / busy, at most --calibrate-rounds pilots,
+the first one with equal weights or --calibrate-from),
+needs --device-map and saves the record to --weights-file when given;
+--calibrate-only stops after that. --weights-file alone reuses a saved
+calibration (slab count, device map and particle set checked, cuts
+recomputed). Pilot lines carry the "[calibrate]" prefix and end with
+"[calibrate] done"; the timed run's lines follow unchanged.
 """
 
 from __future__ import annotations
@@ -32,8 +43,21 @@ if str(_REPO_ROOT) not in sys.path:
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="V5 N-slab chain bench runner")
     p.add_argument("--case", default="cases/lid_driven_cavity_2d/case.yaml")
-    p.add_argument("--weights", default="1.0,1.0,1.0",
-                   help="K comma-separated slab weights (left to right)")
+    p.add_argument("--weights", default=None,
+                   help="K comma-separated slab weights (left to right; default 1,1,1), or 'auto': "
+                        "calibrate in a pilot (module docstring; needs --device-map)")
+    p.add_argument("--weights-file", default=None,
+                   help="with --weights auto: save the calibration here; alone: reuse a saved one")
+    p.add_argument("--calibrate-warmup", type=int, default=200,
+                   help="pilot warmup frames W (not measured)")
+    p.add_argument("--calibrate-steps", type=int, default=300,
+                   help="pilot measured frames M")
+    p.add_argument("--calibrate-rounds", type=int, default=2,
+                   help="at most this many pilots (another one only when the cuts changed)")
+    p.add_argument("--calibrate-from", default=None,
+                   help="with --weights auto: K comma-separated weights of the first pilot (default equal)")
+    p.add_argument("--calibrate-only", action="store_true",
+                   help="with --weights auto: calibrate, save --weights-file, exit")
     p.add_argument("--device-map", default=None,
                    help="K comma-separated physical device indices; default "
                         "round-robin over 0,1")
@@ -160,33 +184,87 @@ def seam_integrity_check(chain, sims, global_case) -> bool:
 def main() -> int:
     args = parse_args()
 
+    from experiment.v6 import weight_calibration
     from experiment.v6.utils.case_loader_v6 import load_case_v6
     from experiment.v6.utils.orchestrator_v6 import ChainOrchestratorV6
     from experiment.v6.utils.partition_v6 import compute_chain_partition
     from experiment.v6.utils.simulator_v6 import SphSimulatorV6
     from experiment.v6.utils.vulkan_context_v6 import VulkanContextV6
 
-    weights = [float(w) for w in args.weights.split(",")]
-    slab_count = len(weights)
-    if args.device_map is not None:
-        device_map = [int(d) for d in args.device_map.split(",")]
-        if len(device_map) != slab_count:
-            sys.exit(f"--device-map needs {slab_count} entries")
-    else:
-        device_map = [index % 2 for index in range(slab_count)]
     pool_safety = None if args.pool_safety == 0 else args.pool_safety
-
     global_case = load_case_v6(args.case)
     expected_total = int(global_case.initial.positions.shape[0])
-    chain = compute_chain_partition(global_case, weights, pool_safety)
     defrag_cadence = (args.defrag_cadence if args.defrag_cadence is not None
                       else global_case.numerics.defrag_cadence)
     if args.no_defrag:
         defrag_cadence = args.max_steps + 1
+    requested_map = (None if args.device_map is None
+                     else [int(d) for d in args.device_map.split(",")])
+
+    # Slab weights: given, calibrated in pilot chains (--weights auto), or a saved calibration.
+    calibration = None
+    weights_file_sha256 = None
+    if args.weights == "auto":
+        if requested_map is None:
+            sys.exit("--weights auto needs --device-map (one entry per slab)")
+        device_map = requested_map
+        slab_count = len(device_map)
+        if args.calibrate_only and not args.weights_file:
+            print("[calibrate] WARNING: --calibrate-only without --weights-file keeps nothing")
+        if slab_count == 1:
+            weights, weights_source = [1.0], "auto (K=1, nothing to calibrate)"
+        else:
+            if os.environ.get("V6_PER_SIM_PIPELINE", "0") == "1":
+                sys.exit("--weights auto reads the phase ticks every frame: V6_PER_SIM_PIPELINE=1 calls "
+                         "on_frame_done only at drains (use 0 or 2)")
+            initial_weights = None
+            if args.calibrate_from:
+                initial_weights = [float(w) for w in args.calibrate_from.split(",")]
+                if len(initial_weights) != slab_count:
+                    sys.exit(f"--calibrate-from needs {slab_count} weights")
+            calibration = weight_calibration.calibrate(
+                global_case, args.case, device_map,
+                {"warmup": args.calibrate_warmup, "steps": args.calibrate_steps,
+                 "rounds": args.calibrate_rounds, "depth": args.depth, "pool_safety": pool_safety,
+                 "sync_scheme": args.sync_scheme, "validation": args.validation,
+                 "defrag_cadence": defrag_cadence},
+                initial_weights=initial_weights)
+            weights, weights_source = calibration["weights"], "auto"
+            if args.weights_file:
+                weights_file_sha256 = weight_calibration.write_weights_file(args.weights_file, calibration)
+                print(f"[calibrate] wrote {args.weights_file} (sha256 {weights_file_sha256[:16]})")
+        print("[calibrate] done", flush=True)
+        if args.calibrate_only:
+            return 0
+    elif args.weights_file:
+        if args.weights is not None:
+            sys.exit("--weights-file reuses a calibration: drop --weights (or pass --weights auto)")
+        calibration = weight_calibration.read_weights_file(args.weights_file, global_case, args.case,
+                                                           requested_map)
+        weights, device_map = calibration["weights"], calibration["device_map"]
+        slab_count = len(weights)
+        weights_source = "file"
+        weights_file_sha256 = weight_calibration.file_digest(args.weights_file)
+    else:
+        weights = [float(w) for w in (args.weights or "1.0,1.0,1.0").split(",")]
+        slab_count = len(weights)
+        weights_source = "given"
+        if requested_map is not None:
+            device_map = requested_map
+            if len(device_map) != slab_count:
+                sys.exit(f"--device-map needs {slab_count} entries")
+        else:
+            device_map = [index % 2 for index in range(slab_count)]
+
+    chain = compute_chain_partition(global_case, weights, pool_safety)
+    if calibration is not None and [int(cut) for cut in chain.cuts] != calibration["cuts"]:
+        raise SystemExit(f"cuts {list(chain.cuts)} differ from the calibration's {calibration['cuts']}")
 
     print(f"[chain_v6] K={slab_count} weights={weights} "
           f"device_map={device_map} sync={args.sync_scheme} "
           f"depth={args.depth} pool_safety={pool_safety}")
+    print(f"[chain_v6] weights source={weights_source} cuts={[int(cut) for cut in chain.cuts]}"
+          + (f" file={args.weights_file} sha256={weights_file_sha256[:16]}" if weights_file_sha256 else ""))
 
     contexts, sims = [], []
     step_tracer = None
@@ -300,7 +378,9 @@ def main() -> int:
                     "case": args.case, "K": slab_count, "weights": weights, "device_map": device_map,
                     "depth": args.depth, "sync_scheme": args.sync_scheme, "pool_safety": pool_safety,
                     "max_steps": args.max_steps, "warmup": args.warmup, "defrag_cadence": defrag_cadence,
-                    "result": result,
+                    "result": result, "weights_source": weights_source, "weights_file": args.weights_file,
+                    "weights_file_sha256": weights_file_sha256,
+                    "weight_calibration": weight_calibration.json_ready(calibration),
                     "partition": [{"own_global_first_column": g.own_global_first_column,
                                    "own_global_last_column": g.own_global_last_column,
                                    "own_particle_count": g.own_particle_count,
