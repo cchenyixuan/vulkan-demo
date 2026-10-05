@@ -1,0 +1,4 @@
+# 2-D lid-driven cavity, aligned lattice (E32): fluid 11520 x 1440 = 16,588,800, wall 158,884, lid 126,720 = 16,874,404 particles,
+# h/dx = 5, border 11; 2304 whole fluid voxel columns + 3 wall columns per side = 2310 columns.
+# The particle files (.obj, incl. frame.obj) are git-ignored; rebuild them without touching case.yaml:
+.venv/Scripts/python.exe utils/geometry/_demo_cavity_case_aligned.py --dimension 2 --n 1440 --n-x 11520 --border 11 --out cases/aligned/cavity2d_n1440_k8 --objs-only
