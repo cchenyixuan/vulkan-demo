@@ -53,6 +53,7 @@ from experiment.v6.utils.partition_v6 import (
     configured_init_seam_clamp,
     configured_packed_replicas,
     configured_ghost_self_kernels,
+    configured_diagnostic_poison_inner_replica,
 )
 from experiment.v6.utils.sync_scheme_v6 import make_sync_scheme
 from experiment.v6.utils.vulkan_context_v6 import VulkanContextV6
@@ -1302,6 +1303,7 @@ class SphSimulatorV6:
             (95, 'B', int(configured_delta_density())),
             (96, 'f', self.reference_density()),
             (98, 'B', int(configured_packed_replicas())),
+            (99, 'I', configured_diagnostic_poison_inner_replica()),   # V6_DIAG_POISON_G1
             (97, 'B', int(configured_init_seam_clamp())),
             # NEIGHBOR_X_RANGE (id=82) is NOT global anymore — Path A+ needs
             # different widths per kernel (correction=2, density=3, force=4

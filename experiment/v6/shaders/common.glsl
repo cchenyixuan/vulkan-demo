@@ -47,7 +47,9 @@
 //   80 - 81  : multi-GPU leading/trailing ghost voxel counts
 //   82       : V4 boundary-band thickness (NEIGHBOR_X_RANGE)
 //   83 - 88  : reserved for multi-GPU ghost grid parameters
-//   89 - 127 : reserved
+//   89 - 127 : reserved (90 - 98 in use: ghost_send / install_migrations
+//              locals, V6_DELTA_DENSITY, PACKED_REPLICAS, INIT_SEAM_CLAMP ...;
+//              99 = V6_DIAG_POISON_G1, local to expand_ghost_lists.comp)
 //
 // Per-material parameters (rest_density, viscosity, eos_constant, radius,
 // volume, rotor_angular_velocity) are NOT spec constants — they live in

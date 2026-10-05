@@ -143,6 +143,24 @@ def configured_packed_replicas() -> bool:
     return packed
 
 
+DIAGNOSTIC_POISON_VALUES = {"": 0, "0": 0, "off": 0, "pressure": 1, "density": 2}
+
+
+def configured_diagnostic_poison_inner_replica() -> int:
+    """V6_DIAG_POISON_G1=off|pressure|density (diagnostic only, spec 99, declared in
+    expand_ghost_lists.comp): the unpack writes a quiet NaN into the inner (G1) replica's
+    pressure (nothing may read it) or density (negative control: it is read). Only the
+    packed unpack path can poison, so a non-off value needs V6_PACKED_REPLICAS=1 (without
+    it the poison would be a silent no-op)."""
+    text = os.environ.get("V6_DIAG_POISON_G1", "off").strip().lower()
+    if text not in DIAGNOSTIC_POISON_VALUES:
+        raise ValueError(f"V6_DIAG_POISON_G1={text!r}: expected off, pressure or density")
+    value = DIAGNOSTIC_POISON_VALUES[text]
+    if value and not configured_packed_replicas():
+        raise ValueError("V6_DIAG_POISON_G1 needs V6_PACKED_REPLICAS=1 (it poisons the packed unpack)")
+    return value
+
+
 def configured_delta_density() -> bool:
     """V6_DELTA_DENSITY=1 (evaluation): density_pressure.x stores rho - rho_ref
     (common.glsl ids 95 / 96)."""

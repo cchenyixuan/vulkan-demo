@@ -28,6 +28,14 @@
 
 layout(local_size_x_id = 51) in;
 
+// V6_DIAG_POISON_G1 (diagnostic only, spec 99, default off): write a quiet NaN
+// into the unpacked inner (G1) replica's pressure (1: nothing may read G1's P^n)
+// or density (2: negative control, G1's rho^n is read). Folded away when 0.
+layout(constant_id = 99) const uint DIAGNOSTIC_POISON_INNER_REPLICA = 0u;
+const uint DIAGNOSTIC_POISON_PRESSURE = 1u;
+const uint DIAGNOSTIC_POISON_DENSITY  = 2u;
+const uint QUIET_NAN_BITS             = 0x7FC00000u;
+
 void main() {
     uint thread_id = gl_GlobalInvocationID.x;
     uint voxel_ordinal = thread_id / MAX_PARTICLES_PER_VOXEL;
@@ -60,6 +68,12 @@ void main() {
     // No pressure travels (common.glsl PACKED_REPLICAS): P = 0 for both layers.
     float density = position_density.w;
     float pressure = 0.0;
+    if (layer == 0u && DIAGNOSTIC_POISON_INNER_REPLICA == DIAGNOSTIC_POISON_PRESSURE) {
+        pressure = uintBitsToFloat(QUIET_NAN_BITS);
+    }
+    if (layer == 0u && DIAGNOSTIC_POISON_INNER_REPLICA == DIAGNOSTIC_POISON_DENSITY) {
+        density = uintBitsToFloat(QUIET_NAN_BITS);
+    }
     position_voxel_id[particle_id] = vec4(position_density.xyz, float(voxel_id));
     velocity_mass[particle_id]     = vec4(velocity_material.xyz, material_parameters[material_id].particle_mass);
     density_pressure[particle_id]  = vec2(density, pressure);
