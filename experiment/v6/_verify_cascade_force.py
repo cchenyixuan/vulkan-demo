@@ -243,7 +243,13 @@ def main() -> int:
     dumps = {}
     for name, run_env in runs:
         path = out_dir / f"{name}.npz"
-        env = dict(os.environ, V6_CASCADE_FORCE="0", V6_BAND_VOXEL_DISPATCH="0",
+        env = dict(os.environ)
+        # A / B name their switches on top of the pre-E6b defaults
+        # (partition_v6.LEGACY_DEFAULTS); caller-set variables are kept
+        from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS
+        for key, value in LEGACY_DEFAULTS.items():
+            env.setdefault(key, value)
+        env.update(V6_CASCADE_FORCE="0", V6_BAND_VOXEL_DISPATCH="0",
                    VK_LOADER_LAYERS_DISABLE="VK_LAYER_KHRONOS_validation")
         env.update(run_env)
         cascade = env["V6_CASCADE_FORCE"]

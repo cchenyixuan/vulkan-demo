@@ -66,8 +66,12 @@ ANATOMY_KEYS = (
 
 
 def production_environment(version: str, dimension: int) -> dict:
+    """v6 configurations name their switches on top of the pre-E6b defaults
+    (partition_v6.LEGACY_DEFAULTS), as in the 2026-10-02 campaign."""
+    from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS
     prefix = "V5_" if version == "v5" else "V6_"
     return {
+        **({} if version == "v5" else LEGACY_DEFAULTS),
         "VK_LOADER_LAYERS_DISABLE": "VK_LAYER_KHRONOS_validation",
         prefix + "WORKER_COUNT_AWARE": "1",
         prefix + "GHOST_POOL_FACTOR": "0.25" if dimension == 2 else "1.0",

@@ -119,7 +119,9 @@ def run_driver(args) -> int:
                 done.add(record["run_id"])
     case_names = args.cases.split(",") if args.cases else list(CASES)
     forms = args.forms.split(",") if args.forms else list(FORMS)
+    from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS
     environment = {key: value for key, value in os.environ.items() if not key.startswith("V6_")}
+    environment.update(LEGACY_DEFAULTS)   # pre-E6b defaults, as measured
     environment["VK_LOADER_LAYERS_DISABLE"] = "VK_LAYER_KHRONOS_validation"
     for trial in range(1, args.trials + 1):
         for case_name in case_names:

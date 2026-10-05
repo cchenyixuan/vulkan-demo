@@ -95,7 +95,12 @@ def run(command, environment, log_path, timeout):
 
 
 def base_environment():
+    """Caller's environment without V6_* plus the pre-E6b defaults
+    (partition_v6.LEGACY_DEFAULTS): every gate step runs (1,2) production + ONLY
+    the switch set under test (--env overrides)."""
+    from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS
     environment = {key: value for key, value in os.environ.items() if not key.startswith("V6_")}
+    environment.update(LEGACY_DEFAULTS)
     environment["VK_LOADER_LAYERS_DISABLE"] = "VK_LAYER_KHRONOS_validation"
     environment["PYTHONUNBUFFERED"] = "1"
     environment["PYTHONIOENCODING"] = "utf-8"

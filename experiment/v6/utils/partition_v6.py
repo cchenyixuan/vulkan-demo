@@ -77,9 +77,60 @@ GHOST_THICKNESS = 1   # V5 v1.0: 1-voxel-thick ghost on the interior side (legac
 DEPARTED_CAPACITY_FLOOR = 64
 MIGRANT_REGION_FLOOR = 64      # V6_GHOST_LAYERS = 2 migrant region, slots per direction
 
+# E6b (2026-10-05): the code defaults are the recommended release set of
+# docs/seam_audit/v6_opt.md; every switch keeps its old value as an option.
+# Pool factors per dimension (2-D: C = 96 / C_inc = 16, h/dx = 5; 3-D: 128 / 32,
+# h/dx = 4; other capacities need their own factors, see v6_opt.md (e)).
+RELEASE_POOL_DEFAULTS = {
+    2: {"V6_GHOST_POOL_FACTOR": 0.29, "V6_MIGRANT_POOL_FACTOR": 0.05, "V6_DEPARTED_FACE_FRACTION": 0.8},
+    3: {"V6_GHOST_POOL_FACTOR": 0.5, "V6_MIGRANT_POOL_FACTOR": 0.02, "V6_DEPARTED_FACE_FRACTION": 0.64},
+}
+# The pre-E6b defaults, for tools that pin an old baseline (the seam_audit tools
+# name their switches on top of these). An unset V6_MIGRANT_POOL_FACTOR follows an
+# explicitly set V6_GHOST_POOL_FACTOR (the old rule), so it needs no entry.
+LEGACY_DEFAULTS = {
+    "V6_KEEP_DEPARTED": "0", "V6_GHOST_LAYERS": "1", "V6_LEAN_TRANSPORT": "0",
+    "V6_GHOST_POOL_FACTOR": "1", "V6_DEPARTED_FACE_FRACTION": "0.25",
+    "V6_COMPACT_GHOST_LISTS": "0", "V6_PACKED_REPLICAS": "0", "V6_BAND_SLOT_LANES": "0",
+    "V6_INIT_SEAM_CLAMP": "0", "V6_BAND_WIDTHS": "2,3,4",
+    "V6_WORKER_COUNT_AWARE": "0", "V6_SPLIT_TRANSFER_QUEUES": "0",
+}
+
+
+def _release_pool_default(global_case: CaseV6, name: str) -> float:
+    dimension = 3 if int(global_case.physics.dimension) == 3 else 2
+    return RELEASE_POOL_DEFAULTS[dimension][name]
+
+
+def configured_ghost_pool_factor(global_case: CaseV6) -> float:
+    """V6_GHOST_POOL_FACTOR (default 0.29 in 2-D, 0.5 in 3-D; before E6b 1)."""
+    text = os.environ.get("V6_GHOST_POOL_FACTOR")
+    return float(text) if text is not None else _release_pool_default(global_case, "V6_GHOST_POOL_FACTOR")
+
+
+def configured_migrant_pool_factor(global_case: CaseV6) -> float:
+    """V6_MIGRANT_POOL_FACTOR (default 0.05 in 2-D, 0.02 in 3-D). Unset while
+    V6_GHOST_POOL_FACTOR is set: the ghost factor, as before E6b."""
+    text = os.environ.get("V6_MIGRANT_POOL_FACTOR")
+    if text is not None:
+        return float(text)
+    if os.environ.get("V6_GHOST_POOL_FACTOR") is not None:
+        return configured_ghost_pool_factor(global_case)
+    return _release_pool_default(global_case, "V6_MIGRANT_POOL_FACTOR")
+
+
+def configured_departed_face_fraction(global_case: CaseV6) -> float:
+    """V6_DEPARTED_FACE_FRACTION (default 0.8 in 2-D, 0.64 in 3-D; before E6b 0.25)."""
+    text = os.environ.get("V6_DEPARTED_FACE_FRACTION")
+    return float(text) if text is not None else _release_pool_default(global_case, "V6_DEPARTED_FACE_FRACTION")
+
 
 def configured_ghost_layers() -> int:
-    layers = int(os.environ.get("V6_GHOST_LAYERS", "1"))
+    """V6_GHOST_LAYERS (default 2; 1 when V6_KEEP_DEPARTED=0 or V6_BAND_VOXEL_DISPATCH=0
+    is set without a layer count: the v5 seam (0,1), or a run without the band-voxel
+    dispatch that two layers need)."""
+    two_layers = configured_keep_departed() and os.environ.get("V6_BAND_VOXEL_DISPATCH", "1") == "1"
+    layers = int(os.environ.get("V6_GHOST_LAYERS", "2" if two_layers else "1"))
     if layers not in (1, 2):
         raise ValueError(f"V6_GHOST_LAYERS={layers}: only 1 or 2 are supported")
     if layers == 2 and not configured_keep_departed():
@@ -90,12 +141,13 @@ def configured_ghost_layers() -> int:
 
 
 def configured_keep_departed() -> bool:
-    return os.environ.get("V6_KEEP_DEPARTED", "0") == "1"
+    """V6_KEEP_DEPARTED (default 1)."""
+    return os.environ.get("V6_KEEP_DEPARTED", "1") == "1"
 
 
 def configured_lean_transport() -> bool:
-    """V6_LEAN_TRANSPORT=1: ghost packets carry 4 fields (common.glsl id 87)."""
-    return os.environ.get("V6_LEAN_TRANSPORT", "0") == "1"
+    """V6_LEAN_TRANSPORT=1 (default): ghost packets carry 4 fields (common.glsl id 87)."""
+    return os.environ.get("V6_LEAN_TRANSPORT", "1") == "1"
 
 
 def configured_transport_extension() -> bool:
@@ -105,16 +157,16 @@ def configured_transport_extension() -> bool:
 
 
 def configured_init_seam_clamp() -> bool:
-    """V6_INIT_SEAM_CLAMP=1: initialize_voxelization keeps an own particle that
+    """V6_INIT_SEAM_CLAMP=1 (default): initialize_voxelization keeps an own particle that
     lands one column into a ghost column in the adjacent own column (common.glsl
     id 97) instead of losing it at the bootstrap."""
-    return os.environ.get("V6_INIT_SEAM_CLAMP", "0") == "1"
+    return os.environ.get("V6_INIT_SEAM_CLAMP", "1") == "1"
 
 
 def configured_compact_ghost_lists() -> bool:
-    """V6_COMPACT_GHOST_LISTS=1: the transport ships one first-pid word per
+    """V6_COMPACT_GHOST_LISTS=1 (default): the transport ships one first-pid word per
     ghost voxel instead of the inside_particle_index rows (common.glsl id 89)."""
-    return os.environ.get("V6_COMPACT_GHOST_LISTS", "0") == "1"
+    return os.environ.get("V6_COMPACT_GHOST_LISTS", "1") == "1"
 
 
 def configured_ghost_self_kernels() -> tuple[str, ...]:
@@ -133,8 +185,14 @@ def configured_packed_replicas() -> bool:
     combination is rejected here (every reader of the switch goes through this
     function). No pressure travels: G1's P is rebuilt by the density band's
     G1-as-self pass before force reads it, so V6_DIAG_GHOST_SELF must keep
-    'density' (without it force would read P = 0 at the seam)."""
-    packed = os.environ.get("V6_PACKED_REPLICAS", "0") == "1"
+    'density' (without it force would read P = 0 at the seam).
+    Unset (E6b): on wherever it is valid, i.e. with two ghost layers, compact
+    lists and the density G1 pass; off otherwise."""
+    text = os.environ.get("V6_PACKED_REPLICAS")
+    if text is None:
+        return (configured_ghost_layers() == 2 and configured_compact_ghost_lists()
+                and "density" in configured_ghost_self_kernels())
+    packed = text == "1"
     if packed and (configured_ghost_layers() != 2 or not configured_compact_ghost_lists()):
         raise ValueError("V6_PACKED_REPLICAS=1 needs V6_GHOST_LAYERS=2 and V6_COMPACT_GHOST_LISTS=1")
     if packed and "density" not in configured_ghost_self_kernels():
@@ -167,11 +225,13 @@ def configured_delta_density() -> bool:
     return os.environ.get("V6_DELTA_DENSITY", "0") == "1"
 
 
-DEFAULT_BAND_WIDTHS = (2, 3, 4)
+RELEASE_BAND_WIDTHS = (2, 2, 3)            # the code default (E6b)
+COMPACT_DISPATCH_BAND_WIDTHS = (2, 3, 4)   # the only widths V6_BAND_COMPACT_DISPATCH supports
 
 
 def configured_band_widths() -> tuple[int, int, int]:
-    """V6_BAND_WIDTHS="c,d,f" (default "2,3,4"): boundary band widths in own voxel
+    """V6_BAND_WIDTHS="c,d,f" (default "2,2,3"; "2,3,4" with V6_BAND_COMPACT_DISPATCH=1,
+    the only widths its band list supports): boundary band widths in own voxel
     columns of correction / density / force = NEIGHBOR_X_RANGE (spec 82) of each
     kernel's split pipelines. Phase B runs the interior variants (every column from
     the band on), phase C the bands. In phase B own columns 0 and 1 lack inputs
@@ -179,7 +239,9 @@ def configured_band_widths() -> tuple[int, int, int]:
     column's correction is final from column 2 on: c >= 2. Density reads its own L
     and the neighbours' r, v, m, rho_n and material only: d >= c. Force reads the
     neighbours' rho_{n+1} / P_{n+1}: f >= d + 1. Anything else is rejected."""
-    text = os.environ.get("V6_BAND_WIDTHS", "2,3,4")
+    default = (COMPACT_DISPATCH_BAND_WIDTHS if os.environ.get("V6_BAND_COMPACT_DISPATCH", "0") == "1"
+               else RELEASE_BAND_WIDTHS)
+    text = os.environ.get("V6_BAND_WIDTHS", ",".join(map(str, default)))
     try:
         widths = tuple(int(part) for part in text.split(","))
     except ValueError:
@@ -219,7 +281,7 @@ def _departed_pool_size(global_case: CaseV6, peer_side_count: int) -> int:
         return max(1, int(override))
     face_voxel_count = (global_case.grid.grid_dimension_y
                         * global_case.grid.grid_dimension_z)
-    fraction = float(os.environ.get("V6_DEPARTED_FACE_FRACTION", "0.25"))
+    fraction = configured_departed_face_fraction(global_case)
     return max(DEPARTED_CAPACITY_FLOOR,
                int(math.ceil(fraction * face_voxel_count * peer_side_count)))
 
@@ -237,12 +299,12 @@ def _ghost_pool_layout(global_case: CaseV6, ghost_layers: int) -> tuple[int, int
     if ghost_layers == 1:
         return _ghost_pool_size(global_case), 0
     voxel_per_x = global_case.grid.grid_dimension_y * global_case.grid.grid_dimension_z
-    factor = float(os.environ.get("V6_GHOST_POOL_FACTOR", "1"))
-    # V6_MIGRANT_POOL_FACTOR (default = the ghost pool factor): the migrant
-    # region's own scale. A frame's migrants are a few per seam row (measured
-    # in docs/seam_audit/v6_opt.md), far below one column's replicas, so the
-    # shared factor over-sizes this region ~100x; every slot is DMA'd.
-    migrant_factor = float(os.environ.get("V6_MIGRANT_POOL_FACTOR", str(factor)))
+    factor = configured_ghost_pool_factor(global_case)
+    # V6_MIGRANT_POOL_FACTOR: the migrant region's own scale. A frame's migrants
+    # are a few per seam row (measured in docs/seam_audit/v6_opt.md), far below
+    # one column's replicas, so the ghost factor over-sizes this region ~100x;
+    # every slot is DMA'd.
+    migrant_factor = configured_migrant_pool_factor(global_case)
     replica_region = int(math.ceil(
         voxel_per_x * (global_case.capacities.max_particles_per_voxel
                        + global_case.capacities.max_incoming_per_voxel) * factor))
@@ -300,7 +362,7 @@ def _ghost_pool_size(case: CaseV6) -> int:
     # ~10x the live ghost count and every readback/upload DMA moves the full
     # pool. V6_GHOST_POOL_FACTOR=<0..1> scales the pool (overflow_ghost is
     # reported per interval if the bound is ever exceeded).
-    factor = float(os.environ.get("V6_GHOST_POOL_FACTOR", "1"))
+    factor = configured_ghost_pool_factor(case)
     if factor != 1.0:
         pool = int(math.ceil(pool * factor))
         print(f"[partition_v6] V6_GHOST_POOL_FACTOR={factor}: ghost pool per direction {pool:,}")

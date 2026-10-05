@@ -15,6 +15,9 @@ import subprocess
 import sys
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
+from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS  # noqa: E402
 OUT = REPO / "logs" / "seam_audit" / "opt" / "delta_density" / "perf.jsonl"
 CASES = [("1m", "cases/lid_driven_cavity_2d_gen/case.yaml", 1000, 6000),
          ("4m", "cases/lid_driven_cavity_2d_4m/case.yaml", 500, 3000)]
@@ -23,6 +26,7 @@ for trial in (1, 2, 3):
     for name, case, warmup, steps in CASES:
         for variant in ("baseline", "delta"):
             environment = {k: v for k, v in os.environ.items() if not k.startswith("V6_")}
+            environment.update(LEGACY_DEFAULTS)   # pre-E6b defaults, as measured
             environment["VK_LOADER_LAYERS_DISABLE"] = "VK_LAYER_KHRONOS_validation"
             if variant == "delta":
                 environment["V6_DELTA_DENSITY"] = "1"

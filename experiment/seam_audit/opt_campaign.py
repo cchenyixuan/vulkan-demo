@@ -88,7 +88,13 @@ FORMULA_MIGRANT_BYTES = 44
 
 
 def production_environment(dimension: int) -> dict:
+    """The pre-E6b defaults (partition_v6.LEGACY_DEFAULTS) plus the production
+    switches: every preset and --define names its switches on top of these (so
+    'l2' stays the (1,2) seam with every optimisation off, 'release' the set it
+    lists)."""
+    from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS
     return {
+        **LEGACY_DEFAULTS,
         "VK_LOADER_LAYERS_DISABLE": "VK_LAYER_KHRONOS_validation",
         "V6_WORKER_COUNT_AWARE": "1",
         "V6_GHOST_POOL_FACTOR": "0.25" if dimension == 2 else "1.0",

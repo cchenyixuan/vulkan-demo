@@ -1006,8 +1006,10 @@ def run_long_campaign(arguments) -> int:
     root = pathlib.Path(arguments.out).resolve()
     case_names = [item for item in arguments.cases.split(",") if item]
     cases = [case for case in CASES if not case_names or case["name"] in case_names]
+    from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS
     base_environment = {key: value for key, value in os.environ.items()
                         if not key.startswith("V6_")}
+    base_environment.update(LEGACY_DEFAULTS)   # pre-E6b defaults: the restarts name their seam switches on top
     base_environment["VK_LOADER_LAYERS_DISABLE"] = "VK_LAYER_KHRONOS_validation"
     base_environment["PYTHONUNBUFFERED"] = "1"
     steps = ",".join(str(step) for step in LONG_STEPS)
@@ -1063,8 +1065,10 @@ def run_campaign(arguments) -> int:
     cases = [case for case in CASES if not case_names or case["name"] in case_names]
     runs = [run for run in RESTART_RUNS
             if not arguments.runs or run[0] in arguments.runs.split(",")]
+    from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS
     base_environment = {key: value for key, value in os.environ.items()
                         if not key.startswith("V6_")}
+    base_environment.update(LEGACY_DEFAULTS)   # pre-E6b defaults: the restarts name their seam switches on top
     base_environment["VK_LOADER_LAYERS_DISABLE"] = "VK_LAYER_KHRONOS_validation"
     base_environment["PYTHONUNBUFFERED"] = "1"
     python = sys.executable

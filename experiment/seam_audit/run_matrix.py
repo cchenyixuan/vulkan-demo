@@ -296,6 +296,13 @@ def run_environment(run: PlannedRun) -> tuple[dict, dict]:
     overrides[prefix + "GHOST_POOL_FACTOR"] = GHOST_POOL_FACTOR_BY_DIMENSION[run.dimension]
     overrides.update(run.environment)
     environment = dict(os.environ)
+    if prefix == "V6_":
+        # the matrix configurations name their switches on top of the pre-E6b
+        # defaults (partition_v6.LEGACY_DEFAULTS); variables the caller set
+        # (opt_validate passes its own) are kept
+        from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS
+        for key, value in LEGACY_DEFAULTS.items():
+            environment.setdefault(key, value)
     environment.update(overrides)
     return environment, overrides
 

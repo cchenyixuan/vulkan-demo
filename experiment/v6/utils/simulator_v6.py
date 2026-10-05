@@ -55,7 +55,7 @@ from experiment.v6.utils.partition_v6 import (
     configured_ghost_self_kernels,
     configured_diagnostic_poison_inner_replica,
     configured_band_widths,
-    DEFAULT_BAND_WIDTHS,
+    COMPACT_DISPATCH_BAND_WIDTHS,
 )
 from experiment.v6.utils.sync_scheme_v6 import make_sync_scheme
 from experiment.v6.utils.vulkan_context_v6 import VulkanContextV6
@@ -100,7 +100,8 @@ _CASCADE_FORCE = os.environ.get("V6_CASCADE_FORCE", "1") == "1"   # default ON s
 # default until validated.
 _BAND_VOXEL_DISPATCH = os.environ.get("V6_BAND_VOXEL_DISPATCH", "1") == "1"   # default ON since the 2026-09-17 freeze
 # V3.8: lanes per band voxel for the band-dispatch pipelines (spec const 58); 0 = one thread per slot.
-_BAND_SLOT_LANES = int(os.environ.get("V6_BAND_SLOT_LANES", "0"))
+# Default 64 since E6b (the release set; v6_opt.md "phase C").
+_BAND_SLOT_LANES = int(os.environ.get("V6_BAND_SLOT_LANES", "64"))
 # V6_BAND_COMPACT_DISPATCH (port of exp/band-compact): phase C band kernels over
 # a compacted pid list, one thread per particle, indirect dispatch (needs
 # V6_BAND_VOXEL_DISPATCH=1 for the band definition). Bit-identical results.
@@ -1405,10 +1406,10 @@ class SphSimulatorV6:
     def _configured_band_widths(self) -> tuple[int, int, int]:
         """V6_BAND_WIDTHS (partition_v6.configured_band_widths checks c >= 2,
         d >= c, f >= d + 1). V6_BAND_COMPACT_DISPATCH builds its band list for
-        the default 2/3/4 bands only (band_compact.comp), so other widths are
-        rejected with it."""
+        the 2/3/4 bands only (band_compact.comp), so other widths are rejected
+        with it (unset, V6_BAND_WIDTHS then defaults to 2,3,4)."""
         widths = configured_band_widths()
-        if _BAND_COMPACT and widths != DEFAULT_BAND_WIDTHS:
+        if _BAND_COMPACT and widths != COMPACT_DISPATCH_BAND_WIDTHS:
             raise ValueError("V6_BAND_COMPACT_DISPATCH=1 builds its band list for the 2/3/4 bands only; "
                              f"V6_BAND_WIDTHS={','.join(map(str, widths))} is not supported with it")
         return widths

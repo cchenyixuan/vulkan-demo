@@ -249,7 +249,9 @@ def run_worker(args) -> int:
 def run_driver(args) -> int:
     out_dir = pathlib.Path(args.out).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
+    from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS
     base = {key: value for key, value in os.environ.items() if not key.startswith("V6_")}
+    base.update(LEGACY_DEFAULTS)          # pre-E6b defaults, as measured
     base["VK_LOADER_LAYERS_DISABLE"] = "VK_LAYER_KHRONOS_validation"
     for scenario, duration in (("developed", args.developed_time), ("rest", args.rest_time)):
         if scenario not in args.scenarios.split(","):

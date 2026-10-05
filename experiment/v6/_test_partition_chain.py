@@ -447,6 +447,13 @@ def test_gpu_interior_construction(global_case: CaseV6) -> None:
 # ---------------------------------------------------------------------------
 
 def main() -> int:
+    # The M2 chain algebra is checked on the one-layer ghost (golden = the legacy dual
+    # partition): the pre-E6b defaults, whatever the caller's environment says.
+    import os
+    from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS
+    for key in [key for key in os.environ if key.startswith("V6_")]:
+        del os.environ[key]
+    os.environ.update(LEGACY_DEFAULTS)
     parser = argparse.ArgumentParser()
     parser.add_argument("--quick", action="store_true",
                         help="skip 8M golden (1M only)")

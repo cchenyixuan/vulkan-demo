@@ -73,6 +73,8 @@ def run_restarts(args, out_dir: pathlib.Path, case_name: str, extra: dict) -> di
     case_path, dimension, steps, step1_window, window, _h = CASES[case_name]
     base = {key: value for key, value in os.environ.items() if not key.startswith("V6_")}
     base.update({"VK_LOADER_LAYERS_DISABLE": "VK_LAYER_KHRONOS_validation", "PYTHONIOENCODING": "utf-8"})
+    from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS
+    base.update(LEGACY_DEFAULTS)          # pre-E6b defaults: the base keeps every release switch off
     base.update(PRODUCTION)
     base["V6_GHOST_POOL_FACTOR"] = PRODUCTION_FACTOR[dimension]
     base.update(SEAM_L2)

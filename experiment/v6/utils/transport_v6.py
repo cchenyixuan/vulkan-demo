@@ -94,7 +94,7 @@ class GhostMigrationWorker:
         # the sender's ghost count (segment 12) and copies only count*stride
         # bytes of each SoA segment; the voxel-indexed segments (10, 11) and
         # the count/stamp words (12, 13) are copied in full.
-        self._count_aware = os.environ.get("V6_WORKER_COUNT_AWARE", "0") == "1"
+        self._count_aware = os.environ.get("V6_WORKER_COUNT_AWARE", "1") == "1"   # default on since E6b
         # V6: (staging_offset, size, stride, count_staging_offset or None).
         # Each per-particle segment names the staging word that holds its live
         # slot count (the sender's allocation counter for that region): the V5

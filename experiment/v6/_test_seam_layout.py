@@ -99,6 +99,12 @@ def _synthetic_global_case(case_module, column_count=48, row_count=14,
 
 def _set_switches(ghost_layers: int, keep_departed: int, lean: int = 0,
                   extension: int = 0) -> None:
+    """The pre-E6b defaults (partition_v6.LEGACY_DEFAULTS) for every switch, then
+    the named ones: each check turns its switches on one at a time on top of them."""
+    from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS
+    os.environ.update(LEGACY_DEFAULTS)
+    os.environ.pop("V6_MIGRANT_POOL_FACTOR", None)
+    os.environ.pop("V6_BAND_COMPACT_DISPATCH", None)
     os.environ["V6_GHOST_LAYERS"] = str(ghost_layers)
     os.environ["V6_KEEP_DEPARTED"] = str(keep_departed)
     os.environ["V6_LEAN_TRANSPORT"] = str(lean)
@@ -728,7 +734,7 @@ def check_band_widths(failures: list) -> None:
     if parse is None:
         failures.append("partition_v6.configured_band_widths is missing")
         return
-    for text, expected in ((None, (2, 3, 4)), ("2,3,4", (2, 3, 4)), ("2,2,3", (2, 2, 3)), (" 3, 3, 5 ", (3, 3, 5))):
+    for text, expected in ((None, (2, 2, 3)), ("2,3,4", (2, 3, 4)), ("2,2,3", (2, 2, 3)), (" 3, 3, 5 ", (3, 3, 5))):
         if text is None:
             os.environ.pop("V6_BAND_WIDTHS", None)
         else:
@@ -746,6 +752,12 @@ def check_band_widths(failures: list) -> None:
             failures.append(f"V6_BAND_WIDTHS={text!r} accepted")
         except ValueError:
             pass
+    # unset with V6_BAND_COMPACT_DISPATCH=1: the compact list's 2/3/4
+    os.environ.pop("V6_BAND_WIDTHS", None)
+    os.environ["V6_BAND_COMPACT_DISPATCH"] = "1"
+    if parse() != (2, 3, 4):
+        failures.append(f"V6_BAND_WIDTHS unset with V6_BAND_COMPACT_DISPATCH=1 parsed as {parse()}")
+    os.environ.pop("V6_BAND_COMPACT_DISPATCH", None)
     _set_switches(2, 1)
     slab = partition_v6.compute_chain_partition(_synthetic_global_case(case_v6), [1.0, 1.0],
                                                 pool_safety=1.2).slabs[0]
@@ -783,8 +795,88 @@ def check_band_widths(failures: list) -> None:
             failures.append(f"simulator_v6.py: literal band width at a {label}")
 
 
+def check_release_defaults(failures: list) -> None:
+    """E6b: with no V6_* variable set the configuration is the recommended release
+    set (v6_opt.md), per dimension for the pool factors; dependent switches follow
+    an old value chosen alone; LEGACY_DEFAULTS restores every pre-E6b value."""
+    import re
+    import experiment.v6.utils.case_v6 as case_v6
+    import experiment.v6.utils.partition_v6 as partition_v6
+    saved = {key: value for key, value in os.environ.items() if key.startswith("V6_")}
+    for key in saved:
+        del os.environ[key]
+    try:
+        case_2d = _synthetic_global_case(case_v6)
+        case_3d = _synthetic_global_case(case_v6, depth_count=3)
+        expected = {"keep_departed": True, "ghost_layers": 2, "lean": True, "compact": True, "packed": True,
+                    "clamp": True, "band_widths": (2, 2, 3),
+                    "pools_2d": (0.29, 0.05, 0.8), "pools_3d": (0.5, 0.02, 0.64)}
+
+        def current():
+            return {"keep_departed": partition_v6.configured_keep_departed(),
+                    "ghost_layers": partition_v6.configured_ghost_layers(),
+                    "lean": partition_v6.configured_lean_transport(),
+                    "compact": partition_v6.configured_compact_ghost_lists(),
+                    "packed": partition_v6.configured_packed_replicas(),
+                    "clamp": partition_v6.configured_init_seam_clamp(),
+                    "band_widths": partition_v6.configured_band_widths(),
+                    "pools_2d": tuple(function(case_2d) for function in (
+                        partition_v6.configured_ghost_pool_factor, partition_v6.configured_migrant_pool_factor,
+                        partition_v6.configured_departed_face_fraction)),
+                    "pools_3d": tuple(function(case_3d) for function in (
+                        partition_v6.configured_ghost_pool_factor, partition_v6.configured_migrant_pool_factor,
+                        partition_v6.configured_departed_face_fraction))}
+        if case_3d.physics.dimension != 3 or case_2d.physics.dimension != 2:
+            failures.append("synthetic cases do not have dimension 2 / 3")
+        got = current()
+        for key, value in expected.items():
+            if got[key] != value:
+                failures.append(f"release default {key} = {got[key]}, expected {value}")
+        # an old value chosen alone: the dependent switches follow, nothing raises
+        for name, value, checks in (("V6_KEEP_DEPARTED", "0", {"ghost_layers": 1, "packed": False}),
+                                    ("V6_BAND_VOXEL_DISPATCH", "0", {"ghost_layers": 1, "packed": False}),
+                                    ("V6_GHOST_LAYERS", "1", {"packed": False}),
+                                    ("V6_COMPACT_GHOST_LISTS", "0", {"packed": False})):
+            os.environ[name] = value
+            try:
+                got = current()
+                for key, wanted in checks.items():
+                    if got[key] != wanted:
+                        failures.append(f"{name}={value}: {key} = {got[key]}, expected {wanted}")
+            except ValueError as error:
+                failures.append(f"{name}={value} alone raised: {error}")
+            del os.environ[name]
+        os.environ["V6_GHOST_POOL_FACTOR"] = "0.25"
+        if partition_v6.configured_migrant_pool_factor(case_2d) != 0.25:
+            failures.append("V6_MIGRANT_POOL_FACTOR unset does not follow an explicit V6_GHOST_POOL_FACTOR")
+        del os.environ["V6_GHOST_POOL_FACTOR"]
+        os.environ.update(partition_v6.LEGACY_DEFAULTS)
+        legacy = {"keep_departed": False, "ghost_layers": 1, "lean": False, "compact": False, "packed": False,
+                  "clamp": False, "band_widths": (2, 3, 4), "pools_2d": (1.0, 1.0, 0.25), "pools_3d": (1.0, 1.0, 0.25)}
+        got = current()
+        for key, value in legacy.items():
+            if got[key] != value:
+                failures.append(f"LEGACY_DEFAULTS {key} = {got[key]}, expected {value}")
+        for key in partition_v6.LEGACY_DEFAULTS:
+            del os.environ[key]
+    finally:
+        for key in [key for key in os.environ if key.startswith("V6_")]:
+            del os.environ[key]
+        os.environ.update(saved)
+    # defaults read outside partition_v6 (simulator at import, transport worker and
+    # Vulkan context at construction): checked in the source
+    sources = {"utils/simulator_v6.py": r'os\.environ\.get\("V6_BAND_SLOT_LANES", "64"\)',
+               "utils/transport_v6.py": r'os\.environ\.get\("V6_WORKER_COUNT_AWARE", "1"\)',
+               "utils/vulkan_context_v6.py": r'os\.environ\.get\("V6_SPLIT_TRANSFER_QUEUES", "1"\)'}
+    for relative, pattern in sources.items():
+        text = (pathlib.Path(__file__).resolve().parent / relative).read_text(encoding="utf-8")
+        if not re.search(pattern, text):
+            failures.append(f"{relative}: release default {pattern} not found")
+
+
 def main() -> int:
     failures: list = []
+    check_release_defaults(failures)
     check_v5_equivalence(failures)
     check_two_layer_algebra(failures)
     for depth_count in (1, 3):            # 2-D and a 3-D case with NZ = 3
@@ -804,7 +896,7 @@ def main() -> int:
     print("[seam_layout] ALL PASS (layers=1 == v5 partition + transport; layers=2 column/pid algebra, "
           "segment layout, install range; lean / compact / packed segments in 2-D and 3-D, packed allocation "
           "tiling; packed rejection + V6_DIAG_POISON_G1 parsing; packed shader layout + poison branches + spec ids; "
-          "V6_BAND_WIDTHS parsing / rejection / spec 82; "
+          "V6_BAND_WIDTHS parsing / rejection / spec 82; release defaults (E6b) + LEGACY_DEFAULTS; "
           + ("SPIR-V current)" if spirv_checked else "SPIR-V check SKIPPED: no glslc)"))
     return 0
 

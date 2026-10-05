@@ -357,7 +357,7 @@ class VulkanContextV6:
         # and every link's chain latency is carried into the next frame.
         # V6_SPLIT_TRANSFER_QUEUES=1 requests a second queue on the transfer
         # family for uploads (5090 transfer-only families expose 2 queues).
-        split_transfer = (os.environ.get("V6_SPLIT_TRANSFER_QUEUES", "0") == "1"
+        split_transfer = (os.environ.get("V6_SPLIT_TRANSFER_QUEUES", "1") == "1"   # default on since E6b
                           and transfer_queue_family_index != compute_queue_family_index
                           and vkGetPhysicalDeviceQueueFamilyProperties(physical_device)[
                               transfer_queue_family_index].queueCount >= 2)

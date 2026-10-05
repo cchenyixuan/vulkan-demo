@@ -41,6 +41,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from experiment.seam_audit.ab_restart import PRODUCTION, RELEASE, SEAM_L2  # noqa: E402
+from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS  # noqa: E402
 
 # name: (case yaml, dimension, horizons incl. 0 = after the bootstrap)
 CASES = {
@@ -77,6 +78,7 @@ def run_environment(dimension: int, mode: str) -> dict:
     environment = {key: item for key, item in os.environ.items() if not key.startswith("V6_")}
     environment.update({"VK_LOADER_LAYERS_DISABLE": "VK_LAYER_KHRONOS_validation",
                         "PYTHONIOENCODING": "utf-8", "PYTHONUNBUFFERED": "1"})
+    environment.update(LEGACY_DEFAULTS)   # pre-E6b defaults: the E23 release set had the 2/3/4 bands
     environment.update(SEAM_L2)
     environment.update(PRODUCTION)
     environment.update(RELEASE[dimension])
