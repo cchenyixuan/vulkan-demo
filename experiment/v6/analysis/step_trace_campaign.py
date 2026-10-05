@@ -4,15 +4,17 @@ step_trace_campaign.py — E29 local runs with the step trace (docs/perf_model/E
 Modes:
   overhead  2-D 1M and 2-D 16M, K = 2, the trace off / on in 3 alternating pairs
             (trial 1 off -> on, trial 2 on -> off, trial 3 off -> on).
-  scan      every case: K = 1 references on GPU 0 and GPU 1 at the same time (two
-            processes), then K = 2 on GPUs 0,1; all with --step-trace (the K = 1
-            traces give c_B = T_B / N).
+  scan      every case, in this order: K = 1 references on GPU 0 and GPU 1 at the same
+            time (two processes) and K = 2 on GPUs 0,1, both without the trace (their
+            fps give eta); then the same two with --step-trace (time decomposition;
+            the K = 1 traces give c_B = T_B / N).
 Production defaults (no V6_* set), depth 2, 3000 steps, warmup 1000 (steady =
 the last 2000). Before every timed run nvidia-smi must show no other python
 compute process (another session's run); otherwise the driver waits (5 s settle,
 then 15 s slices) and logs it. Utilization, power and SM clock of both GPUs are
-logged with every check (GPU 0 drives the desktop, so it never reads 0 %). One line per run in OUT/results.jsonl, the bench log
-and the trace directory under OUT/runs/.
+logged with every check (GPU 0 drives the desktop, so it never reads 0 %). One
+line per run in OUT/results.jsonl, the bench log and the trace directory under
+OUT/runs/.
 
     .venv/Scripts/python.exe -m experiment.v6.analysis.step_trace_campaign --mode overhead --out logs/e29_step_trace/overhead
     .venv/Scripts/python.exe -m experiment.v6.analysis.step_trace_campaign --mode scan --out logs/e29_step_trace/scan
@@ -165,32 +167,39 @@ def main() -> int:
         names = arguments.cases.split(",") if arguments.cases else list(CASES)
         for name in names:
             case_path, dimension = CASES[name]
-            if f"{name}/k1" not in done:
-                state = wait_for_idle_gpus(log)
-                log(f"start {name}/k1 (GPU 0 and GPU 1 at once): gpu check {json.dumps(state)}")
-                pending = []
-                for gpu in (0, 1):
-                    stem = f"{name}__k1__g{gpu}"
-                    process, handle = launch(command(case_path, "1", str(gpu), runs / stem), runs / f"{stem}.log")
-                    pending.append((process, handle, stem, gpu))
-                records = []
-                for process, handle, stem, gpu in pending:
-                    records.append(finish(process, handle, runs / f"{stem}.log",
-                                          {"run_id": f"{name}/k1/g{gpu}", "case": name, "case_path": case_path,
-                                           "dimension": dimension, "kind": "k1", "gpu": gpu, "gpu_check": state,
-                                           "trace_dir": f"runs/{stem}", "log": f"runs/{stem}.log"}, results))
-                if all(record["rc"] == 0 for record in records):
-                    with open(results, "a", encoding="utf-8") as stream:
-                        stream.write(json.dumps({"run_id": f"{name}/k1", "rc": 0, "marker": True}) + "\n")
-            if f"{name}/k2" not in done:
-                state = wait_for_idle_gpus(log)
-                log(f"start {name}/k2: gpu check {json.dumps(state)}")
-                stem = f"{name}__k2"
-                process, handle = launch(command(case_path, "1,1", "0,1", runs / stem), runs / f"{stem}.log")
-                finish(process, handle, runs / f"{stem}.log",
-                       {"run_id": f"{name}/k2", "case": name, "case_path": case_path, "dimension": dimension,
-                        "kind": "k2", "gpu_check": state, "trace_dir": f"runs/{stem}", "log": f"runs/{stem}.log"},
-                       results)
+            # trace off first (fps for eta), then trace on (time decomposition, c_B)
+            for trace in (False, True):
+                tag = "on" if trace else "off"
+                if f"{name}/k1/{tag}" not in done:
+                    state = wait_for_idle_gpus(log)
+                    log(f"start {name}/k1/{tag} (GPU 0 and GPU 1 at once): gpu check {json.dumps(state)}")
+                    pending = []
+                    for gpu in (0, 1):
+                        stem = f"{name}__k1__{tag}__g{gpu}"
+                        process, handle = launch(command(case_path, "1", str(gpu), runs / stem if trace else None),
+                                                 runs / f"{stem}.log")
+                        pending.append((process, handle, stem, gpu))
+                    records = []
+                    for process, handle, stem, gpu in pending:
+                        records.append(finish(process, handle, runs / f"{stem}.log",
+                                              {"run_id": f"{name}/k1/{tag}/g{gpu}", "case": name,
+                                               "case_path": case_path, "dimension": dimension, "kind": "k1",
+                                               "trace": trace, "gpu": gpu, "gpu_check": state,
+                                               "trace_dir": f"runs/{stem}" if trace else None,
+                                               "log": f"runs/{stem}.log"}, results))
+                    if all(record["rc"] == 0 for record in records):
+                        with open(results, "a", encoding="utf-8") as stream:
+                            stream.write(json.dumps({"run_id": f"{name}/k1/{tag}", "rc": 0, "marker": True}) + "\n")
+                if f"{name}/k2/{tag}" not in done:
+                    state = wait_for_idle_gpus(log)
+                    log(f"start {name}/k2/{tag}: gpu check {json.dumps(state)}")
+                    stem = f"{name}__k2__{tag}"
+                    process, handle = launch(command(case_path, "1,1", "0,1", runs / stem if trace else None),
+                                             runs / f"{stem}.log")
+                    finish(process, handle, runs / f"{stem}.log",
+                           {"run_id": f"{name}/k2/{tag}", "case": name, "case_path": case_path,
+                            "dimension": dimension, "kind": "k2", "trace": trace, "gpu_check": state,
+                            "trace_dir": f"runs/{stem}" if trace else None, "log": f"runs/{stem}.log"}, results)
     log("done")
     return 0
 
