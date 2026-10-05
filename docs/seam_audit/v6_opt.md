@@ -23,6 +23,7 @@
   - 旁测:K = 1 链 depth 1 与单缓冲等速,depth 2 快 0.3–3.9 %。
   - δρ:去掉压力台阶,内部压力噪声小 2.2–3.4 倍;整体与壁面附近的噪声(由壁面与 lid 主导)没有可分辨的差别;流动量不变;吞吐 −1.2 %(单卡单缓冲测量);多卡门通过;只报告,等你决定。
 - **G1 去 P(E23,2026-10-05):** `V6_PACKED_REPLICAS` 的 G1 改成与 G2 同一格式,各 32 B(每对 68 → 64 B,每个方向 16 R 个字),packet 只带接收方读的量。毒化测试直接证明 G1 的 Pⁿ 没人读(阴性对照出现 NaN);字节 DMA −5.7 … −5.8 %、主机 −5.8 … −5.9 %,主机字节公式逐帧精确成立,fps 不变;单步、A/B、K = 4 通过,审计的密度判据在新数值参数下对两个构建都不可靠(见"G1 去 P")。
+- **band 2/2/3(E26,2026-10-05):** 新开关 `V6_BAND_WIDTHS`(代码默认仍是 `2,3,4`),density 与 force 的 band 各窄一列;density.comp 删掉读邻居 L、∇ρ 的死代码(重编的 SPIR-V 只差 id 编号)。发布组合 + 2,2,3:单步 1.07、A/B 1.11 / 1.38、K = 4 drift 0,band 不变量在 2-D K = 2 / K = 4、3-D K = 2 都成立。本机 K = 2 的传输已被 phase B 藏住,fps 2-D 1M −0.39 %、2-D 16M +0.27 %、3-D 8M −0.39 %;phase C −0.8 / −10.3 / −13.8 %,phase B +0.1 / +0.3 / +3.1 %(同一列从 C 挪到 B;只有 2-D 16M 的计算总量减少)。列入推荐组合;它缩短的是传输之后的 phase C,要在传输暴露时才会变成 fps(本次没测,见"band 2/2/3")。
 - **途中发现并修复:**
   - 从保存的状态重启时,seam 列边上的粒子会在 bootstrap 静默丢失(继承自 v5,`V6_INIT_SEAM_CLAMP`)。
   - 验证审计确认了打包开关缺少配置校验、溢出时的连带损坏、δρ 的读回不一致,以及门工具的几处漏洞;全部修复并重新验证。文档对数据的审计又改正了本文的一批数与说法(上面的同等比较就是其中之一)。见"验证审计"。
@@ -40,6 +41,7 @@
 | `V6_PACKED_REPLICAS` | 1 | 1 | (b)(c);E23 起 G1 与 G2 同一格式,各 32 B(x y z ρ、vx vy vz material 位),每个方向 16 R 个字(见"G1 去 P") |
 | `V6_BAND_SLOT_LANES` | 64 | 64 | phase C |
 | `V6_INIT_SEAM_CLAMP` | 1 | 1 | 修复(对格点初始条件是空操作) |
+| `V6_BAND_WIDTHS` | 2,2,3 | 2,2,3 | E26:correction / density / force 的 band 宽度(代码默认 2,3,4);phase C −1 … −14 %、phase B +0.1 … +3 %,本机 K = 2 fps −0.4 … +0.3 %(传输已藏住),见"band 2/2/3" |
 | 不变的生产开关 | `V6_WORKER_COUNT_AWARE=1`、`V6_SPLIT_TRANSFER_QUEUES=1`,代码默认开的 `V6_CASCADE_FORCE`、`V6_BAND_VOXEL_DISPATCH`、`V6_FAST_SUBMIT` | 同左 | |
 | 不采纳 / 只评估 | `V6_BAND_COMPACT_DISPATCH`、(f)、`V6_DELTA_DENSITY`(等你决定)、`V6_TRANSPORT_EXTENSION`(只给审计)、`V6_DIAG_POISON_G1`(只用于诊断,E23) | | 见文末 |
 
@@ -676,6 +678,105 @@ RELEASE='release=@l2;V6_LEAN_TRANSPORT=1;V6_GHOST_POOL_FACTOR=d2:0.29|d3:0.5;V6_
 
 数据在 `logs/seam_audit/opt/`(不入库):`poison_g1{,_v2}`、`validate_e23_pre_1b52dd2{,_audit2,_audit3}`、`validate_e23_g1_32b{,_v2}{,_audit2,_audit3}`、`ab_e23_pre_1b52dd2`、`ab_e23_g1_32b{,_v2}`、`perf_g1_nop{,_v2}`(第一版 / 最终构建)。
 
+## band 2/2/3:density 与 force 的 band 各窄一列(E26,2026-10-05)
+
+**依据。** phase B 时 own column 0、1 缺输入(本帧的 migrant 落在 column 0,ghost 在 phase C 才上传),column 2 起 correction 的 L 是最终值。density 只读自己的 L,以及邻居的 r、v、m、ρⁿ、material,这些从 column 2 起在 phase B 都已是最终值;density.comp 读邻居 L、∇ρ 的代码只喂给被注释掉的 ψ 第二项,编译后已被删掉。force 读邻居的 ρⁿ⁺¹,density band 为 2 时 phase B 从 column 2 起就有。所以 correction / density / force 的 band 可以是 2 / 2 / 3;原来 density 多出的一列是给 ψ 第二项(读邻居的 L、∇ρ)留的,force 的一列跟着它。
+
+**改动。**
+
+- 新开关 `V6_BAND_WIDTHS="c,d,f"`,代码默认仍是 `2,3,4`。主机端校验 c ≥ 2、d ≥ c、f ≥ d + 1,格式不对也报错(`partition_v6.configured_band_widths`);每个 sim 构造时读一次。
+- 跟着开关走的地方:三个 kernel 分拆 pipeline 的 spec 82;phase C 三个 band 派发的线程数;单卡分拆路径(`V6_FAKE_BAND_TEST`)的 `dispatch_boundary`;bootstrap 里 G1-as-self 的 correction / density band 派发(原来同样写死了 2 / 3);建管线时打印的 band。
+- `V6_BAND_COMPACT_DISPATCH` 的压缩表只按 2/3/4 建,宽度不是 2/3/4 时主机端拒绝,不适配。
+- density.comp:从源码删掉读邻居 L、∇ρ 的死代码(连同只喂给 ψ 第二项的自身 ∇ρ),ψ 的完整公式留作注释,并写明恢复它需要什么(ghost 的 L、∇ρ 要新鲜;density band 要回到 ≥ correction band + 1)。重编后的 `density.comp.spv` 与原来的只差 SPIR-V id 编号:按出现顺序重编号后逐行相同,11 个 descriptor 绑定(set, binding)、存储类、spec id 与 2389 条指令都不变;其余 `.spv` 逐字节不变(force / common / band_compact 只改了注释)。
+- 工具:`_verify_cascade_force.py` 的 band 不变量按该次运行自己的宽度查(宽度存进 dump),逐列表与图标出 A、B 两边的 force band 边,`--a-env` / `--b-env` 接受带逗号的值;`_test_seam_layout.py` 加了开关解析 / 拒绝、压缩派发拒绝、spec 82 的检查,并确认 simulator 的 spec 82 与 band 派发处没有残留的字面宽度(在改动前的源码上这条检查命中 14 处)。
+
+### 正确性(发布组合 + `V6_BAND_WIDTHS=2,2,3`)
+
+不跑审计(新数值参数下它的密度判据不可靠,见"G1 去 P")。对照是 E23 最终构建 d2b5e98 的同一组门(同一发布组合,band 2/3/4)。
+
+| 构建 | 单步(门槛 2.5) | A/B 2-D 1M(门槛 2.0) | A/B 3-D 1M(门槛 2.0) | K = 4 |
+|---|---|---|---|---|
+| E23 最终 d2b5e98(band 2/3/4) | 1.04 | 1.06(k = 100,近 migrant 组,速度) | 1.22(k = 5,近 migrant 组,kernel_sum) | 通过(drift 0,溢出 0,far_migration 0) |
+| E26(band 2/2/3) | 1.07 | 1.11(k = 5,全部粒子,加速度) | 1.38(k = 5,近 migrant 组,kernel_sum) | 通过(drift 0,溢出 0,far_migration 0) |
+
+两项 A/B 的最差项都是底在变,test 本身没变:3-D 的最差项(416 个粒子)test 中位数与 E23 那次完全相同(2.75 × 2⁻²³),只是这次打乱顺序的底从 2.25 降到 2.0 × 2⁻²³(kernel_sum ≈ 1,差的是几个 float32 ULP);2-D 的 test 中位数两次接近,底这次较低。
+
+| 算例 | 项(k、组、场) | 运行 | test 中位数 | 底:相同重跑 / 打乱顺序(中位数) | 比值 |
+|---|---|---|---|---|---|
+| 2-D 1M | k = 5,全部(n = 120,120),加速度 | E23 最终(2/3/4) | 7.985e-04 | 9.077e-04 / 8.916e-04 | 0.88 |
+| 2-D 1M | 同上 | E26(2/2/3) | 8.300e-04 | 7.500e-04 / 6.512e-04 | 1.11 |
+| 3-D 1M | k = 5,近 migrant(n = 416),kernel_sum | E23 最终(2/3/4) | 3.278e-07 | 2.384e-07 / 2.682e-07 | 1.22 |
+| 3-D 1M | 同上 | E26(2/2/3) | 3.278e-07 | 2.384e-07 / 2.384e-07 | 1.38 |
+
+**band 不变量**(`_verify_cascade_force.py`,A = 发布组合两次,B = 发布组合 + 2,2,3 两次):每次运行、每个 sim、该次运行用到的每个 band 宽度,band voxel 表里的粒子数都等于按坐标数出的 band 粒子数。K = 4 的中间两块 slab 两侧都有 band。同一工具顺带给出逐列加速度 A/B(每列 max |Δa|,A−B 对 A−A / B−B 中较大的底;< 3 为通过)。单卡那一行用的是诊断开关 `V6_FAKE_BAND_TEST=8`,在单卡区域内部放一个假 band(第 8 列起;单卡分拆路径的 `dispatch_boundary` 也跟开关走),对普通单卡路径比较;没有 seam,不变量不适用。
+
+| 算例 | K | 步数 | band 宽度(A / B) | band 不变量 | 逐列 A/B 最差比值(列) | band 所在列的最大比值 | 结论 |
+|---|---|---|---|---|---|---|---|
+| 2-D 1M | 2 | 300 | 2/3/4 / 2/2/3 | 成立 | 1.41(8) | 0.83(列 0–3) | 通过 |
+| 2-D 1M | 4 | 300 | 2/3/4 / 2/2/3 | 成立 | 1.42(0) | 1.42(列 0–3) | 通过 |
+| 3-D 1M | 2 | 200 | 2/3/4 / 2/2/3 | 成立 | 1.10(4) | 1.06(列 0–3) | 通过 |
+| 2-D 1M 单卡假 band | 1 | 300 | — / 2/2/3 + 假 band | 不适用 | 1.13(15) | 0.98(列 8–10) | 通过 |
+
+### 性能
+
+2/2/3 对 2/3/4,都在发布组合上,交错 3 次,`--counterbalance`(第 2 次试验配置倒序)。T_B、phase C、b→c 间隙是 depth-1 解剖帧的每帧中位数,两个 sim 取大,三次试验取平均。
+
+| 算例 | fps 2/3/4 | fps 2/2/3 | 2/2/3 ÷ 2/3/4(逐试验) | 各次试验 | T_B µs | phase C µs | b→c 间隙 µs |
+|---|---|---|---|---|---|---|---|
+| 2-D 1M | 788.0 ± 0.9 | 784.9 ± 0.6 | 99.61 ± 0.03 % | 99.64 / 99.57 / 99.61 | 902.8 → 903.4(+0.1 %) | 234.9 → 233.0(−0.8 %) | 6.7 → 7.0 |
+| 2-D 16M | 68.2 ± 0.1 | 68.4 ± 0.1 | 100.27 ± 0.18 % | 100.47 / 100.23 / 100.13 | 13,113 → 13,156(+0.3 %) | 621.3 → 557.1(−10.3 %) | 7.6 → 7.0 |
+| 3-D 8M | 22.8 ± 0.1 | 22.7 ± 0.0 | 99.61 ± 0.30 % | 99.44 / 99.96 / 99.44 | 37,194 → 38,353(+3.1 %) | 6,978 → 6,013(−13.8 %) | 8.2 → 8.6 |
+
+各 kernel(每个 sim,2/3/4 → 2/2/3,µs):
+
+| 算例 | sim | B:density | B:force | T_B | C:density band | C:force band | T_C |
+|---|---|---|---|---|---|---|---|
+| 2-D 1M | s0 | 279.6 → 281.3 | 336.0 → 339.7 | 881.9 → 888.3 | 71.4 → 69.4 | 72.6 → 71.7 | 234.9 → 233.0 |
+| 2-D 1M | s1 | 289.2 → 286.8 | 342.0 → 345.7 | 902.8 → 903.4 | 71.7 → 70.3 | 73.6 → 72.2 | 229.1 → 226.2 |
+| 2-D 16M | s0 | 3,894.8 → 3,911.7 | 5,080.9 → 5,099.9 | 12,803.7 → 12,846.0 | 83.0 → 77.6 | 167.1 → 108.1 | 621.3 → 557.1 |
+| 2-D 16M | s1 | 4,011.9 → 4,025.7 | 5,177.3 → 5,198.2 | 13,113.1 → 13,155.8 | 88.1 → 77.8 | 169.9 → 108.3 | 498.7 → 427.6 |
+| 3-D 8M | s0 | 10,638.8 → 11,066.7 | 11,729.2 → 12,286.5 | 33,597.6 → 34,574.0 | 2,356.7 → 1,899.3 | 2,483.3 → 2,002.6 | 6,815.7 → 5,866.8 |
+| 3-D 8M | s1 | 11,784.1 → 12,271.0 | 12,799.6 → 13,438.1 | 37,194.4 → 38,353.1 | 2,420.1 → 1,951.1 | 2,543.7 → 2,037.4 | 6,978.4 → 6,013.4 |
+
+- **三个算例的传输都已被 phase B 藏住**(b→c 间隙 7–9 µs,两种宽度相同),帧时间 ≈ A + B + C。2/2/3 只是把每个 seam 侧一列的 density 与 force 从 phase C 的 band kernel 挪到 phase B 的 interior kernel,fps 取决于同一列在两边的单价。
+- **2-D 1M 慢 0.39 %**(三次试验都慢,含倒序的一次,标准差 0.03 %):band kernel 是单批的小派发(每个约 70 µs,3 列与 4 列几乎一样),少一列只省 1–2 µs;B 多一列 force 约 +3.7 µs。
+- **2-D 16M 快 0.27 %:** force band 167 → 108 µs(−35 %,比少掉的四分之一多),C −64 µs、B +43 µs。前面记录过 lanes 64 时 16M 的 force band 偏慢(170 µs;压缩表 110 µs、lanes 32 为 116 µs,见"未采用的项与原因");推测是派发线程数从两批降到一批,没有验证。
+- **3-D 8M 慢 0.39 %:** 同一列放在 B 里比在 C 的 band kernel 里贵:s1(较慢的 sim)density +487 对 −469 µs、force +638 对 −506 µs,B 共 +1.16 ms、C −0.97 ms,净多 0.19 ms;s0 净多 0.03 ms。(lanes 64 时 3-D 的 band kernel 每个 voxel 的线程正好对上约 64 个粒子;band 只碰几列数据,可能留在 L2 里,interior 要扫整个 slab——都没有验证。)
+- **结论:** 在传输被藏住的配置上 2/2/3 不带来 fps(−0.4 … +0.3 %)。它缩短传输之后的 phase C(−1 … −14 %)、加长藏传输的 phase B(+0.1 … +3 %);只有传输链暴露(b→c 间隙 > 0)时,缩短的 phase C 才会直接变成 fps。本次三个算例都不是这种情况,没有测。
+
+### 复现
+
+```bash
+# CPU:开关解析 / 拒绝、压缩派发拒绝、spec 82、simulator 里没有残留的字面宽度、SPIR-V 新鲜度
+.venv/Scripts/python.exe -m experiment.v6._test_seam_layout
+# band 不变量 + 逐列 A/B(A = 发布组合两次,B = 发布组合 + 2,2,3 两次;值里的逗号可以直接写)
+COMMON="V6_WORKER_COUNT_AWARE=1,V6_SPLIT_TRANSFER_QUEUES=1,V6_CASCADE_FORCE=1,V6_BAND_VOXEL_DISPATCH=1,V6_KEEP_DEPARTED=1,V6_GHOST_LAYERS=2,V6_LEAN_TRANSPORT=1,V6_COMPACT_GHOST_LISTS=1,V6_PACKED_REPLICAS=1,V6_BAND_SLOT_LANES=64,V6_INIT_SEAM_CLAMP=1,V6_FAST_SUBMIT=1"
+REL2D="$COMMON,V6_GHOST_POOL_FACTOR=0.29,V6_MIGRANT_POOL_FACTOR=0.05,V6_DEPARTED_FACE_FRACTION=0.8"
+REL3D="$COMMON,V6_GHOST_POOL_FACTOR=0.5,V6_MIGRANT_POOL_FACTOR=0.02,V6_DEPARTED_FACE_FRACTION=0.64"
+.venv/Scripts/python.exe experiment/v6/_verify_cascade_force.py --case cases/lid_driven_cavity_2d_gen/case.yaml --steps 300 \
+    --slabs 2 --a-env "$REL2D" --b-env "$REL2D,V6_BAND_WIDTHS=2,2,3" --out logs/seam_audit/opt/e26_invariant/cavity2d_1m_k2
+#   --slabs 4 → cavity2d_1m_k4;3-D:--case cases/cavity3d_1m/case.yaml --steps 200,"$REL3D" → cavity3d_1m_k2
+.venv/Scripts/python.exe experiment/v6/_verify_cascade_force.py --case cases/lid_driven_cavity_2d_gen/case.yaml --steps 300 \
+    --slabs 1 --device-map 0 --a-env "V6_BAND_VOXEL_DISPATCH=1,V6_BAND_SLOT_LANES=64" \
+    --b-env "V6_BAND_VOXEL_DISPATCH=1,V6_BAND_SLOT_LANES=64,V6_FAKE_BAND_TEST=8,V6_BAND_WIDTHS=2,2,3" \
+    --out logs/seam_audit/opt/e26_invariant/fakeband_2d_1m_k1
+# 单步 + K = 4 冒烟;重复 A/B(测试组 = 发布组合 + 2,2,3)
+REL="--env V6_LEAN_TRANSPORT=1 --env V6_GHOST_POOL_FACTOR=0.29 --env V6_MIGRANT_POOL_FACTOR=0.05 \
+     --env V6_DEPARTED_FACE_FRACTION=0.8 --env V6_COMPACT_GHOST_LISTS=1 --env V6_PACKED_REPLICAS=1 \
+     --env V6_BAND_SLOT_LANES=64 --env V6_INIT_SEAM_CLAMP=1"
+.venv/Scripts/python.exe -m experiment.seam_audit.opt_validate --name e26_band223 --steps single,k4 $REL --env V6_BAND_WIDTHS=2,2,3
+.venv/Scripts/python.exe -m experiment.seam_audit.ab_restart --out logs/seam_audit/opt/ab_e26_band223 --env V6_BAND_WIDTHS=2,2,3
+# 性能:2/2/3 对 2/3/4(发布组合),交错 3 次,--counterbalance
+RELEASE='release=@l2;V6_LEAN_TRANSPORT=1;V6_GHOST_POOL_FACTOR=d2:0.29|d3:0.5;V6_MIGRANT_POOL_FACTOR=d2:0.05|d3:0.02;V6_DEPARTED_FACE_FRACTION=d2:0.8|d3:0.64;V6_COMPACT_GHOST_LISTS=1;V6_PACKED_REPLICAS=1;V6_BAND_SLOT_LANES=64;V6_INIT_SEAM_CLAMP=1;V6_FAST_SUBMIT=1'
+.venv/Scripts/python.exe experiment/seam_audit/opt_campaign.py --out logs/seam_audit/opt/perf_band223 --define "$RELEASE" \
+    --define "band223=@release;V6_BAND_WIDTHS=2,2,3" --configs release,band223 \
+    --cases 2d_1m,2d_16m,3d_8m --trials 3 --counterbalance
+# 本节所有表(E26 gates / A/B 最差项 / 不变量 / 性能 / 各 kernel)
+.venv/Scripts/python.exe -m experiment.seam_audit.opt_tables --out logs/seam_audit/opt/tables.md
+```
+
+数据在 `logs/seam_audit/opt/`(不入库):`e26_invariant/{cavity2d_1m_k2,cavity2d_1m_k4,cavity3d_1m_k2,fakeband_2d_1m_k1}`、`validate_e26_band223`、`ab_e26_band223`、`perf_band223`、`e26_logs`。
+
 ## 未采用的项与原因
 
 - **`V6_BAND_COMPACT_DISPATCH`(压缩 band 映射):** 3-D 里把 (1,2) 多出的 correction / density 时间减掉 34 % / 40 %,另外省下 force band 的 0.43–0.45 ms(与 (1,1) 共有),phase C 净降 0.97–1.04 ms(depth-1 计时),但 fps 不比 lanes 64 好(3-D 低 0.2–0.5 %);2-D 10k–4M 的小 band 上反而比 `packed` 慢 0.1–2.3 %(建表 7–15 µs,加上表项按原子到达顺序排列、加载不如 interior 合并);唯一的例外是 2-D 16M,压缩表比 lanes 64 快 0.15–0.45 %(force band 110 对 170 µs;lanes 32 也把它降到 116 µs,lanes 64 没有,原因本文没有拆);代价:同一个 `band_compact.comp` 的两次派发(扫描与 scatter,外加两道屏障)、两块 buffer,三个 band kernel 都改成间接派发。开关保留、默认关闭;它在设计上逐位等价,2-D 门通过,3-D 的扫描路径只经过性能运行的不变量,没有做物理比较。
@@ -736,4 +837,7 @@ REL="--env V6_LEAN_TRANSPORT=1 --env V6_GHOST_POOL_FACTOR=0.29 --env V6_MIGRANT_
 | 245c164 | 验证审计的工具修复(门、campaign、pool_peaks);A/B 等价检验、(f) 探针、K = 1 旁测、表生成器 |
 | c47dbd9 / d710fb8 / d2b5e98 | E23:G1 与 G2 同一 32 B 格式(16 R);诊断开关 `V6_DIAG_POISON_G1`;ghost_send 先读后写、构造时复查 ghost-self |
 | 2b297d1 | `poison_g1.py`;opt_campaign 的 `OPT_BUILD_ROOT`、p95、install 之和、公式采样;opt_tables 的 E23 表;段表与着色器检查 |
-| (本文) | 本文;opt_campaign 与 partition_v6 的 docstring |
+| 7b0dbd3 | E23 文档:本文"G1 去 P"与 `v6_design.md`(opt_campaign 与 partition_v6 的 docstring 在 2b297d1 / c47dbd9) |
+| 751c6c6 / 55ae508 | E26:`V6_BAND_WIDTHS`(spec 82、phase C 与 bootstrap 的 band 派发、单卡分拆路径;压缩派发只接受 2/3/4);density.comp 删掉读邻居 L、∇ρ 的死代码 |
+| 6c2d14a / 21ce20d / d58b95d | band 不变量与 force band 边跟开关走、`--a-env` / `--b-env` 的逗号值、开关检查;opt_tables 的 E26 表 |
+| (本文,E26) | 本文"band 2/2/3"与推荐组合;`v6_design.md` 的阶段表与开关表 |

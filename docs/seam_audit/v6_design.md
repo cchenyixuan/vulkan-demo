@@ -23,9 +23,11 @@
 | C1 install_migrations_\<dir\> | compute | 只扫 migrant 区段(LAYERS=1 是整个混合池):`.w` 落在 own 范围的槽从 own 尾部分配 pid,登记进 own column 0 的 inside 表 | LAYERS=2:跳过两个 replica 区段 |
 | C1b append_departed | compute | 每个 departed 槽一个线程,按 `.w`(本卡 ghost vid)CAS 追加进 ghost voxel 的 inside 表(不超过 C) | KEEP=1,新 kernel |
 | C2 correction band | compute | own 每侧 2 列;LAYERS=2 时再加 G1 列当作 self(spec 85 `GHOST_SELF_LAYER`=1) | LAYERS=2:G1 as self |
-| C3 density band | compute | own 每侧 3 列(+ G1 as self),写 scratch | 同上 |
+| C3 density band | compute | own 每侧 3 列(+ G1 as self),写 scratch;`V6_BAND_WIDTHS=2,2,3`(E26,推荐)时 2 列 | 同上 |
 | C4 scratch→primary | compute 队列上的 copy | own 区间;LAYERS=2 时再加每个方向的 G1 replica 区段与 departed 池 | LAYERS=2:G1 与 departed 拿到 ρⁿ⁺¹, Pⁿ⁺¹ |
-| C5 force band | compute | own 每侧 4 列;读邻居的 ρ, P(LAYERS=1:ghost 为 ρⁿ, Pⁿ = 缺陷 1;LAYERS=2:G1 为 ρⁿ⁺¹, Pⁿ⁺¹) | — |
+| C5 force band | compute | own 每侧 4 列(`V6_BAND_WIDTHS=2,2,3` 时 3 列);读邻居的 ρ, P(LAYERS=1:ghost 为 ρⁿ, Pⁿ = 缺陷 1;LAYERS=2:G1 为 ρⁿ⁺¹, Pⁿ⁺¹) | — |
+
+band 宽度(C2 / C3 / C5 = 2 / 3 / 4 列)由 `V6_BAND_WIDTHS` 给出,B1–B3 处理 band 之外的列。phase B 时 own column 0、1 缺输入(本帧的 migrant 落在 column 0,ghost 在 phase C 才到),column 2 起 L 已是最终值;density 只读自己的 L 与邻居的 r、v、m、ρⁿ、material,所以 density band 只需 ≥ correction band;force 读邻居的 ρⁿ⁺¹,所以 force band ≥ density band + 1。2/3/4 里 density 多出的一列来自 density.comp 读邻居 L、∇ρ 的代码,它只喂给被注释掉的 ψ 第二项(E26 已从源码删掉)。见 `v6_opt.md`"band 2/2/3"。
 
 C5 之后,下一帧的 A1 才读 a、shift;C1 安装的 migrant 在 own column 0,本帧 C2 / C3 / C5 都会重算它的 L、∇ρ / kernel_sum、ρ、P、a、shift(§3 用到这一点)。
 
@@ -68,6 +70,7 @@ LAYERS=2:  [ G2 G1 | own 0 … own N−1 | G1 G2 ]
 | `V6_DEPARTED_FACE_FRACTION` | 0.25 | 容量 = max(64, ⌈fraction · face · 邻居侧数⌉) |
 | `V6_DIAG_GHOST_SELF` | `correction,density` | 仅诊断:LAYERS=2 时哪些 band kernel 把 G1 当 self;去掉 `density` 就回到缺陷 1(只对 `V6_PACKED_REPLICAS=0` 成立:打包格式不带 G1 的 P,展开时写 0,所以打包时去掉 `density` 会被主机端拒绝,否则 C5 会读到 P = 0) |
 | `V6_DIAG_POISON_G1` | 未设(`off`) | 仅诊断(E23):`pressure` = 展开时往每个 G1 replica 的 P 写 NaN(G1 的 Pⁿ 没人读,所以全场必须保持有限),`density` = 往 G1 的 ρ 写 NaN(阴性对照,必须出现 NaN);只作用于 `V6_PACKED_REPLICAS=1` 的展开路径,别的组合在主机端报错;spec 常量 99,为 0 时被折叠掉。用法见 `v6_opt.md`"G1 去 P" |
+| `V6_BAND_WIDTHS` | `2,3,4` | E26:correction / density / force 的 band 宽度(own 列数,= 各自分拆 pipeline 的 spec 82);主机端要求 c ≥ 2、d ≥ c、f ≥ d + 1;`V6_BAND_COMPACT_DISPATCH` 只支持 2/3/4,其他宽度一起开时报错。推荐 `2,2,3`,见 `v6_opt.md`"band 2/2/3" |
 | 继承自 v5(改名 `V6_`) | | `V6_GHOST_POOL_FACTOR`(默认 1;生产 2-D 0.25、3-D 1.0)、`V6_WORKER_COUNT_AWARE`(默认 0;生产 1)、`V6_SPLIT_TRANSFER_QUEUES`(默认 0;生产 1)、`V6_CASCADE_FORCE`(1)、`V6_BAND_VOXEL_DISPATCH`(1)、`V6_BAND_SLOT_LANES`(0)等,语义不变 |
 
 spec 常量:83 `GHOST_LAYERS`、84 `DEPARTED_POOL_SIZE`、85 `GHOST_SELF_LAYER`(按 pipeline,只有 correction / density 的 band 变体为 1)、86 `REPLICA_REGION_SIZE`。
@@ -352,7 +355,7 @@ face = 3,136 voxel,C = 128,C_inc = 32,f = 1.0;v5 池 501,760 槽/方向;(1,2) �
 | `velocity_mass.w`(4,m) | C2 / C3:V_j = m_j/ρ_j(C5 用 self 的 m,V0 均匀质量) | — | C2 / C3 的 V_j | 全程;也是"槽已占用"的哨兵 | replica:本例所有材料 m 逐位相同(§4b),可由 self 质量代替;migrant:必须 |
 | `density_pressure.x`(4,ρⁿ) | C2(V_j、ρ_j − ρ_i)、C3(V_j、ψ_ij)、**C5(V_j、PST disorder,LAYERS=1 读到的是 ρⁿ = 缺陷 1)** | C2 / C3 的 ρ_iⁿ;C4 后换成 ρⁿ⁺¹ 供 C5 | C2 / C3 | C2 的 ρ_i、C3 的积分起点 | 必须 |
 | `density_pressure.y`(4,Pⁿ) | **只有 C5**(LAYERS=1,陈旧值 = 缺陷 1) | 无人读(C2 / C3 不读 P,C4 在 C5 前覆盖成 Pⁿ⁺¹;E23 的毒化测试直接验证,见 `v6_opt.md`"G1 去 P") | **没人读** | 无人读(C3 / C4 在 C5 前覆盖) | LAYERS=1:C5 缺 P;其余:无后果 |
-| `acceleration`(16) | 没人读(force 只写 self) | — | 没人读 | 无人读:C5 的 band(own 4 列)包含 column 0,在下一步 predict 之前就把 aⁿ⁺¹ 写好 | 无后果 |
+| `acceleration`(16) | 没人读(force 只写 self) | — | 没人读 | 无人读:C5 的 band(own 4 列,`V6_BAND_WIDTHS=2,2,3` 时 3 列)包含 column 0,在下一步 predict 之前就把 aⁿ⁺¹ 写好 | 无后果 |
 | `shift`(16) | 没人读 | — | 没人读 | 同上,C5 重写 δr | 无后果 |
 | `material`(4) | C3:self 是壁面时读邻居 material 跳过壁–壁对(上下壁面跨 seam);C2 / C5 不读 | C3 self 的 kind / EOS | C3(G1 self 为壁面时) | 全程 | 壁面密度 / 压力错 |
 | `correction_inverse`(32) | 源码里 C3 读邻居 L,但只喂给 ψ_ij 被注释掉的第二项;编译后的 `density.comp.spv` 里这次加载已被删掉(绑定 7 只剩 self 的 2 个 vec4 × 3 个内联入口 = 6 次访问) | — | 同左 | C2 在 column 0 重算 | 无后果 |
