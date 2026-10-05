@@ -64,6 +64,17 @@ def parse_args() -> argparse.Namespace:
                         "utils/phase_trace_v6.py (inter-GPU phase offset study, "
                         "2026-09-16). Attaches compute BenchTimers if --anatomy is off.")
     p.add_argument("--phase-trace-calibrate-every", type=int, default=100)
+    p.add_argument("--step-trace", default=None, metavar="DIR",
+                   help="E29: record EVERY step of the depth-2 loop on one host clock — per sim "
+                        "phase A/B/C, per link readback / worker / upload time points and bytes "
+                        "-> DIR/steps_device.csv, steps_link.csv, run_meta.json (utils/"
+                        "phase_trace_v6.StepTracer). Off by default; excludes --anatomy / "
+                        "--phase-trace; needs --depth <= 2.")
+    p.add_argument("--step-trace-calibrate-ms", type=float, default=500.0,
+                   help="period of the step trace's clock-calibration thread (ms)")
+    p.add_argument("--step-trace-detail", choices=("phases", "full"), default="phases",
+                   help="phases (default): phase starts / ends, both ghost_send ends and every transfer "
+                        "tick; full: also the per-kernel ticks inside the phases")
     return p.parse_args()
 
 
@@ -182,6 +193,14 @@ def main() -> int:
         from experiment.v6.utils.phase_trace_v6 import (
             CALIBRATED_TIMESTAMPS_EXTENSION, PhaseTracer)
         extra_device_extensions = [CALIBRATED_TIMESTAMPS_EXTENSION]
+    if args.step_trace:
+        if args.anatomy or args.phase_trace:
+            raise SystemExit("--step-trace installs its own timers: drop --anatomy / --phase-trace")
+        if args.depth > 2:
+            raise SystemExit("--step-trace keeps two frames of timestamps: needs --depth <= 2")
+        from experiment.v6.utils.phase_trace_v6 import (
+            CALIBRATED_TIMESTAMPS_EXTENSION, StepTracer)
+        extra_device_extensions = [CALIBRATED_TIMESTAMPS_EXTENSION]
     try:
         for index in range(slab_count):
             ctx = VulkanContextV6.create(
@@ -193,6 +212,9 @@ def main() -> int:
             sims.append(SphSimulatorV6(ctx, chain.slabs[index],
                                        sync_scheme=args.sync_scheme))
 
+        step_tracer = (StepTracer(sims, calibrate_ms=args.step_trace_calibrate_ms,
+                                  detail=args.step_trace_detail)
+                       if args.step_trace else None)
         anatomy_timers = []
         phase_timers = []
         if args.anatomy or args.phase_trace:
@@ -210,6 +232,8 @@ def main() -> int:
                     anatomy_timers.append((bench, bench_transfer))
 
         def on_defrag(frame_n: int, report: list) -> None:
+            if step_tracer is not None:
+                step_tracer.on_defrag(frame_n, args.warmup)
             migrations = "/".join(str(r["interval_migration"]) for r in report)
             drops = sum(r["overflow_install_tail"] for r in report)
             if drops:
@@ -259,11 +283,24 @@ def main() -> int:
                 tracer = PhaseTracer(sims, phase_timers,
                                      calibrate_every=args.phase_trace_calibrate_every)
                 orch.on_frame_done = tracer.on_frame_done
+            if step_tracer is not None:
+                orch.on_frame_done = step_tracer.on_frame_done
             result = orch.run_pipelined(
                 args.max_steps, depth=args.depth, warmup=args.warmup,
                 on_defrag=on_defrag)
             if tracer is not None:
                 tracer.write(args.phase_trace)
+            if step_tracer is not None:
+                step_tracer.write(args.step_trace, orch, meta={
+                    "case": args.case, "K": slab_count, "weights": weights, "device_map": device_map,
+                    "depth": args.depth, "sync_scheme": args.sync_scheme, "pool_safety": pool_safety,
+                    "max_steps": args.max_steps, "warmup": args.warmup, "defrag_cadence": defrag_cadence,
+                    "result": result,
+                    "partition": [{"own_global_first_column": g.own_global_first_column,
+                                   "own_global_last_column": g.own_global_last_column,
+                                   "own_particle_count": g.own_particle_count,
+                                   "has_leading_peer": g.has_leading_peer,
+                                   "has_trailing_peer": g.has_trailing_peer} for g in chain.geometry]})
             print(f"[chain_v6] TOTAL: {result['frame_count']} steps in "
                   f"{result['elapsed_s']:.2f}s = {result['fps']:.1f} fps")
             if "steady_fps" in result:

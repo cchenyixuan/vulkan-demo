@@ -437,6 +437,16 @@ class SphSimulatorV6:
         # _transport_segments have entries.
         self.transfer_readback_cmds: dict[str, Any] = {}
         self.transfer_upload_cmds: dict[str, Any] = {}
+        # E29 step trace (phase_trace_v6.StepTracer): phase A / B and the transfer
+        # cmds are ALSO recorded once per frame parity (each parity writes its own
+        # timestamp slots), so frame n's ticks survive until the host reads them
+        # before submitting frame n + 2 at depth 2. Off by default: the cmds and
+        # submits are then exactly the ones above.
+        self.step_trace_parity: bool = False
+        self.phase_a_cmd_odd: Any = None
+        self.phase_b_cmd_odd: Any = None
+        self.transfer_readback_cmds_odd: dict[str, Any] = {}
+        self.transfer_upload_cmds_odd: dict[str, Any] = {}
         # Single-GPU baseline path: one combined cmd buffer replacing the
         # 3-submit phase A/B/C pattern. Used only when this sim has no peer
         # (see prepare_step_single_cmd_buffer()). Cannot coexist with the
@@ -486,18 +496,21 @@ class SphSimulatorV6:
         cmd_pool = self.ctx.command_pool
         for cmd in (self.phase_a_cmd, self.phase_b_cmd,
                     self.phase_c_cmd, self.phase_c_cmd_odd,
+                    self.phase_a_cmd_odd, self.phase_b_cmd_odd,
                     self.defrag_cmd, self.step_single_cmd):
             if cmd is not None:
                 vkFreeCommandBuffers(device, cmd_pool, 1, [cmd])
 
         # Path A+ transfer queue cmd buffers (P4)
         transfer_pool = self.ctx.transfer_command_pool
-        for cmd in list(self.transfer_readback_cmds.values()):
-            vkFreeCommandBuffers(device, transfer_pool, 1, [cmd])
-        for cmd in list(self.transfer_upload_cmds.values()):
-            vkFreeCommandBuffers(device, transfer_pool, 1, [cmd])
+        for cmds in (self.transfer_readback_cmds, self.transfer_upload_cmds,
+                     self.transfer_readback_cmds_odd, self.transfer_upload_cmds_odd):
+            for cmd in list(cmds.values()):
+                vkFreeCommandBuffers(device, transfer_pool, 1, [cmd])
         self.transfer_readback_cmds = {}
         self.transfer_upload_cmds = {}
+        self.transfer_readback_cmds_odd = {}
+        self.transfer_upload_cmds_odd = {}
 
         self.sync.destroy(device)
 
@@ -1865,6 +1878,10 @@ class SphSimulatorV6:
                        if (self.phase_c_cmd_odd is not None and frame_n % 2 == 1)
                        else self.phase_c_cmd)
         infos[2].pCommandBufferInfos[0].commandBuffer = phase_c_cmd
+        if self.phase_a_cmd_odd is not None:   # E29 step trace
+            odd = frame_n % 2 == 1
+            infos[0].pCommandBufferInfos[0].commandBuffer = self.phase_a_cmd_odd if odd else self.phase_a_cmd
+            infos[1].pCommandBufferInfos[0].commandBuffer = self.phase_b_cmd_odd if odd else self.phase_b_cmd
         self._fast_queue_submit(self.ctx.compute_queue, 3, infos)
 
     def submit_transfer_readback_fast(self, frame_n: int) -> None:
@@ -1875,6 +1892,10 @@ class SphSimulatorV6:
         for i, d in enumerate(self._fast_readback_dirs):
             self._fast_set_values(self._fast_readback[i], s.readback_waits(d, frame_n),
                                   s.readback_signals(d, frame_n, i == last))
+            if self.transfer_readback_cmds_odd:   # E29 step trace
+                self._fast_readback[i].pCommandBufferInfos[0].commandBuffer = (
+                    self.transfer_readback_cmds_odd[d] if frame_n % 2 == 1
+                    else self.transfer_readback_cmds[d])
         self._fast_queue_submit(self.ctx.transfer_queue, last + 1, self._fast_readback)
 
     def submit_transfer_upload_fast(self, frame_n: int) -> None:
@@ -1885,8 +1906,19 @@ class SphSimulatorV6:
         for i, d in enumerate(self._fast_upload_dirs):
             self._fast_set_values(self._fast_upload[i], s.upload_waits(d, frame_n),
                                   s.upload_signals(d, frame_n, i == last))
+            if self.transfer_upload_cmds_odd:   # E29 step trace
+                self._fast_upload[i].pCommandBufferInfos[0].commandBuffer = (
+                    self.transfer_upload_cmds_odd[d] if frame_n % 2 == 1
+                    else self.transfer_upload_cmds[d])
         queue = getattr(self.ctx, "transfer_queue_upload", None) or self.ctx.transfer_queue
         self._fast_queue_submit(queue, last + 1, self._fast_upload)
+
+    def _set_step_trace_parity(self, parity: int) -> None:
+        """E29: frame-parity timers (phase_trace_v6.StepTraceTimer) place the
+        ticks of the cmd being recorded in this parity's slot block."""
+        for timer in (self.bench, self.bench_transfer):
+            if timer is not None and hasattr(timer, "set_recording_parity"):
+                timer.set_recording_parity(parity)
 
     def _bench_reset_step(self, cmd, start_label: str) -> None:
         """First action of phase_a_cmd: reset step query slots + first tick."""
@@ -2930,10 +2962,12 @@ class SphSimulatorV6:
         device = self.ctx.device
         pool = self.ctx.command_pool
         for old in (self.phase_a_cmd, self.phase_b_cmd, self.phase_c_cmd,
-                    self.phase_c_cmd_odd):
+                    self.phase_c_cmd_odd, self.phase_a_cmd_odd, self.phase_b_cmd_odd):
             if old is not None:
                 vkFreeCommandBuffers(device, pool, 1, [old])
         self.phase_c_cmd_odd = None
+        self.phase_a_cmd_odd = None
+        self.phase_b_cmd_odd = None
         if self.bench is not None and os.environ.get("V6_BENCH_PARITY", "1") == "1":
             self.bench.enable_parity_regions()
         for direction, old in list(self.transfer_readback_cmds.items()):
@@ -2942,13 +2976,24 @@ class SphSimulatorV6:
         for direction, old in list(self.transfer_upload_cmds.items()):
             vkFreeCommandBuffers(
                 device, self.ctx.transfer_command_pool, 1, [old])
+        for old in (list(self.transfer_readback_cmds_odd.values())
+                    + list(self.transfer_upload_cmds_odd.values())):
+            vkFreeCommandBuffers(device, self.ctx.transfer_command_pool, 1, [old])
         self.transfer_readback_cmds = {}
         self.transfer_upload_cmds = {}
+        self.transfer_readback_cmds_odd = {}
+        self.transfer_upload_cmds_odd = {}
         self._fast_ready = False
 
+        self._set_step_trace_parity(0)
         self.phase_a_cmd = self._record_phase_a_cmd()
         self.phase_b_cmd = self._record_phase_b_cmd()
         self.phase_c_cmd = self._record_phase_c_cmd(0)
+        if self.step_trace_parity:
+            # E29: identical work, odd-frame timestamp slots.
+            self._set_step_trace_parity(1)
+            self.phase_a_cmd_odd = self._record_phase_a_cmd()
+            self.phase_b_cmd_odd = self._record_phase_b_cmd()
         if self.bench is not None and self.bench.parity_regions:
             # Identical work; only the timestamp slots differ (odd region).
             self.phase_c_cmd_odd = self._record_phase_c_cmd(1)
@@ -2956,10 +3001,18 @@ class SphSimulatorV6:
         # (Transfer-pool reset is recorded inside phase_a_cmd above —
         # compute queue — not in the transfer cmds; see _bench_tick_transfer.)
         for direction in self._transport_segments:
+            self._set_step_trace_parity(0)
             self.transfer_readback_cmds[direction] = (
                 self._record_transfer_readback_cmd(direction))
             self.transfer_upload_cmds[direction] = (
                 self._record_transfer_upload_cmd(direction))
+            if self.step_trace_parity:
+                self._set_step_trace_parity(1)
+                self.transfer_readback_cmds_odd[direction] = (
+                    self._record_transfer_readback_cmd(direction))
+                self.transfer_upload_cmds_odd[direction] = (
+                    self._record_transfer_upload_cmd(direction))
+        self._set_step_trace_parity(0)
 
         n_dir = len(self._transport_segments)
         print(f"[SimV6] step cmd buffers recorded "
@@ -3231,7 +3284,8 @@ class SphSimulatorV6:
         if self.phase_a_cmd is None:
             raise RuntimeError("phase_a_cmd not recorded; call prepare_step_cmd_buffers()")
         self.submit_with_timeline(
-            self.phase_a_cmd,
+            (self.phase_a_cmd_odd if (self.phase_a_cmd_odd is not None and frame_n % 2 == 1)
+             else self.phase_a_cmd),
             waits=[] if _PHASE_A_NO_WAIT else self.sync.phase_a_waits(frame_n),
             signals=self.sync.phase_a_signals(frame_n),
         )
@@ -3243,7 +3297,9 @@ class SphSimulatorV6:
         Runs in parallel with transfer Q's readback + worker memcpy + upload."""
         if self.phase_b_cmd is None:
             raise RuntimeError("phase_b_cmd not recorded; call prepare_step_cmd_buffers()")
-        self.submit_with_timeline(self.phase_b_cmd, waits=[], signals=[])
+        self.submit_with_timeline(
+            (self.phase_b_cmd_odd if (self.phase_b_cmd_odd is not None and frame_n % 2 == 1)
+             else self.phase_b_cmd), waits=[], signals=[])
 
     def submit_phase_c(self, frame_n: int) -> None:
         """Compute Q: install + correction_boundary + density_boundary + copy
@@ -3275,7 +3331,9 @@ class SphSimulatorV6:
         for index, direction in enumerate(directions):
             is_last = index == len(directions) - 1
             self.submit_with_timeline(
-                self.transfer_readback_cmds[direction],
+                (self.transfer_readback_cmds_odd[direction]
+                 if (self.transfer_readback_cmds_odd and frame_n % 2 == 1)
+                 else self.transfer_readback_cmds[direction]),
                 waits=self.sync.readback_waits(direction, frame_n),
                 signals=self.sync.readback_signals(direction, frame_n, is_last),
                 wait_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
@@ -3296,7 +3354,9 @@ class SphSimulatorV6:
         for index, direction in enumerate(directions):
             is_last = index == len(directions) - 1
             self.submit_with_timeline(
-                self.transfer_upload_cmds[direction],
+                (self.transfer_upload_cmds_odd[direction]
+                 if (self.transfer_upload_cmds_odd and frame_n % 2 == 1)
+                 else self.transfer_upload_cmds[direction]),
                 waits=self.sync.upload_waits(direction, frame_n),
                 signals=self.sync.upload_signals(direction, frame_n, is_last),
                 wait_stage=VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,

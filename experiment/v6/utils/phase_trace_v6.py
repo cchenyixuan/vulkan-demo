@@ -23,23 +23,45 @@ falls back to c_end(n-1) (+ the measured c_to_a gap) for phase A start.
 Usage (chain bench): ``--phase-trace DIR`` creates compute BenchTimers if
 ``--anatomy`` is off, requests VK_KHR_calibrated_timestamps on every device
 and writes DIR/phase_trace.csv + DIR/calibration.csv at the end.
+
+E29 (2026-10-05): ``StepTracer`` (``--step-trace DIR``) records EVERY step of
+the depth-2 production loop instead: per-frame-parity timestamp slots for
+phase A/B/C and both transfer queues, the transport workers' host time points
+and bytes, all on one host clock -> DIR/steps_device.csv, steps_link.csv,
+run_meta.json, calibration.csv (field spec: docs/perf_model/E29_local.md;
+analysis: experiment/v6/analysis/step_trace_model.py).
 """
 from __future__ import annotations
 
 import csv
+import ctypes
+import json
+import os
 import pathlib
+import struct
+import subprocess
+import sys
+import threading
 import time
 from typing import Optional
 
+import numpy as np
 from vulkan import (
+    VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+    VK_QUERY_RESULT_64_BIT,
+    VK_QUERY_RESULT_WITH_AVAILABILITY_BIT,
     VK_TIME_DOMAIN_DEVICE_KHR,
     VK_TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER_KHR,
     VkCalibratedTimestampInfoKHR,
+    vkCmdResetQueryPool,
+    vkCmdWriteTimestamp,
     vkGetDeviceProcAddr,
+    vkGetInstanceProcAddr,
 )
+from vulkan._vulkan import lib as _lib
 from vulkan._vulkancache import ffi
 
-from experiment.v6.utils.bench_v6 import split_parity_ticks
+from experiment.v6.utils.bench_v6 import _MAX_TICKS, BenchTimer, split_parity_ticks
 
 CALIBRATED_TIMESTAMPS_EXTENSION = "VK_KHR_calibrated_timestamps"
 
@@ -200,4 +222,459 @@ class PhaseTracer:
                    "rows_with_a_start": complete, "calibration_samples": len(self.calibration),
                    "max_deviation_ns": max(s[5] for s in self.calibration) if self.calibration else None}
         print(f"[phase_trace] wrote {out / 'phase_trace.csv'}: {summary}", flush=True)
+        return summary
+
+
+# ============================================================================
+# E29 step trace (docs/perf_model/E29_local.md): EVERY step of the production
+# depth-2 loop — every sim's phase A/B/C, both transfer queues' DMAs and the
+# transport workers' host time points — on ONE host clock.
+#
+# Slot layout: per-frame labels own one slot per frame parity (block 0 = even
+# frames, block 1 = odd), defrag ticks live after both blocks. simulator_v6
+# records phase A / B / C and the transfer cmds once per parity
+# (step_trace_parity); phase A of parity p resets block p of the compute pool
+# (its first action) and of the transfer pool (record_external_reset, compute
+# queue). Frame n's block therefore survives until phase A of frame n + 2,
+# which the depth-2 loop submits only after on_frame_done(n) has read it.
+#
+# Clock: VK_KHR_calibrated_timestamps pairs (device tick, host time) are
+# sampled by a helper thread every ``calibrate_ms`` (off the main loop; the
+# driver call does not hold the GIL) and in larger bursts at the start, at the
+# warmup boundary and at the end; each burst keeps the pair with the
+# smallest driver maxDeviation (on the 5090 / Windows driver >= ~12 us, and the
+# host stamp is biased by up to that much). Per device a robust least-squares
+# line (3-sigma clipping) plus the running median of its residuals (9 samples,
+# interpolated in device time; the frequency ratio drifts by a few ppm over
+# minutes) maps every GPU tick (compute and transfer pools share the device
+# domain) to the host clock of the worker time points: QueryPerformanceCounter =
+# time.perf_counter_ns on Windows, CLOCK_MONOTONIC = perf_counter_ns on Linux,
+# CLOCK_MONOTONIC_RAW (time.clock_gettime_ns, also for the workers through
+# transport_v6.set_host_clock) when the driver offers only that domain.
+# ============================================================================
+
+STEP_TRACE_BLOCK = 32              # timestamp slots per frame parity
+STEP_TRACE_DEFRAG_BASE = 64        # defrag ticks after the two parity blocks
+TIME_DOMAIN_DEVICE = 0             # VkTimeDomainKHR
+TIME_DOMAIN_CLOCK_MONOTONIC = 1
+TIME_DOMAIN_CLOCK_MONOTONIC_RAW = 2
+TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER = 3
+TIME_DOMAIN_NAMES = {TIME_DOMAIN_CLOCK_MONOTONIC: "CLOCK_MONOTONIC",
+                     TIME_DOMAIN_CLOCK_MONOTONIC_RAW: "CLOCK_MONOTONIC_RAW",
+                     TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER: "QUERY_PERFORMANCE_COUNTER"}
+
+# steps_device.csv: one row per step and sim, host ns. *_end = the phase's last
+# tick present (queue order); a phase whose cmd has no tick of a label leaves
+# that column empty (e.g. no install on a slab without that peer).
+STEP_DEVICE_TIMES = (
+    "a_start", "a_predict_end", "a_voxel_end", "a_ghost_leading_end", "a_ghost_trailing_end", "a_end",
+    "b_start", "b_correction_interior_end", "b_density_deep_interior_end", "b_force_deep_interior_end", "b_end",
+    "c_start", "c_expand_end", "c_install_leading_end", "c_install_trailing_end", "c_append_departed_end",
+    "c_band_compact_end", "c_correction_boundary_end", "c_density_boundary_end", "c_density_end",
+    "c_force_end", "c_end")
+# steps_link.csv: one row per step and directed link (sender -> receiver), host ns.
+STEP_LINK_TIMES = (
+    "send_end",                       # sender's ghost_send for this link done (compute queue)
+    "readback_start", "readback_copy_end", "readback_end",    # sender transfer queue
+    "worker_dequeue", "worker_source_wait", "worker_dest_guard", "worker_upload_guard",
+    "worker_stamp", "worker_copy", "worker_signal",           # transport worker (host)
+    "upload_start", "upload_end",                             # receiver transfer queue
+    "receiver_b_start", "receiver_b_end", "receiver_c_start")
+# detail = "phases": only these compute ticks are written (a phase's last tick depends on the
+# configuration: a_voxel_end without peers, b_density_deep_interior_end without cascade force).
+# Transfer ticks are always written. "full" writes every tick the simulator records.
+PHASE_TICKS = ("a_start", "a_voxel_end", "a_ghost_leading_end", "a_ghost_trailing_end",
+               "b_start", "b_density_deep_interior_end", "b_force_deep_interior_end",
+               "c_start", "c_force_end", "defrag_start", "defrag_end")
+_WORKER_KEYS = (("worker_dequeue", "dequeue_ns"), ("worker_source_wait", "source_wait_ns"),
+                ("worker_dest_guard", "dest_guard_ns"), ("worker_upload_guard", "wait_ns"),
+                ("worker_stamp", "stamp_ns"), ("worker_copy", "copy_ns"), ("worker_signal", "signal_ns"))
+
+
+class StepTraceTimer(BenchTimer):
+    """BenchTimer whose per-frame labels own one slot per frame parity (see the
+    section comment). Labels keep their plain names; the parity of the cmd
+    being recorded is set by the simulator (set_recording_parity) and by phase
+    C's begin_phase_c_region."""
+
+    def __init__(self, ctx, label: str, queue_family_index=None, keep_labels=None):
+        super().__init__(ctx, label, queue_family_index)
+        self.keep_labels = None if keep_labels is None else frozenset(keep_labels)
+        self.parity_regions = True        # the simulator records the odd-frame phase C cmd
+        self.recording_parity = 0
+        self.block_labels: list[str] = []
+        self.defrag_labels: list[str] = []
+        self._results = ffi.new(f"uint64_t[{2 * STEP_TRACE_BLOCK}]")
+
+    def enable_parity_regions(self) -> None:
+        return
+
+    def set_recording_parity(self, parity: int) -> None:
+        self.recording_parity = int(parity)
+
+    def begin_phase_c_region(self, cmd, parity: int) -> None:
+        self.recording_parity = int(parity)   # block already reset by this parity's phase A
+
+    def end_phase_c_region(self) -> None:
+        return
+
+    def _slot(self, label: str) -> int:
+        if label.startswith("defrag"):
+            if label not in self.defrag_labels:
+                self.defrag_labels.append(label)
+            slot = STEP_TRACE_DEFRAG_BASE + self.defrag_labels.index(label)
+        else:
+            if label not in self.block_labels:
+                if len(self.block_labels) >= STEP_TRACE_BLOCK:
+                    raise RuntimeError(f"StepTraceTimer({self.label}): parity block full: {self.block_labels}")
+                self.block_labels.append(label)
+            slot = self.recording_parity * STEP_TRACE_BLOCK + self.block_labels.index(label)
+        if slot >= _MAX_TICKS:
+            raise RuntimeError(f"StepTraceTimer({self.label}): slot {slot} >= {_MAX_TICKS}")
+        return slot
+
+    def tick(self, cmd, label: str) -> None:
+        if self.keep_labels is not None and label not in self.keep_labels:
+            return
+        slot = self._slot(label)
+        self.label_to_slot.setdefault(label, slot)
+        vkCmdWriteTimestamp(cmd, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, self.pool, slot)
+
+    def record_step_reset_and_start(self, cmd, start_label: str = "a_start") -> None:
+        vkCmdResetQueryPool(cmd, self.pool, self.recording_parity * STEP_TRACE_BLOCK, STEP_TRACE_BLOCK)
+        self.tick(cmd, start_label)
+
+    def record_external_reset(self, cmd) -> None:
+        vkCmdResetQueryPool(cmd, self.pool, self.recording_parity * STEP_TRACE_BLOCK, STEP_TRACE_BLOCK)
+
+    def record_defrag_reset_and_start(self, cmd, start_label: str = "defrag_start") -> None:
+        vkCmdResetQueryPool(cmd, self.pool, STEP_TRACE_DEFRAG_BASE, _MAX_TICKS - STEP_TRACE_DEFRAG_BASE)
+        self.tick(cmd, start_label)
+
+    def read_block_raw(self, parity: int) -> bytes:
+        """The parity block as raw (value, availability) uint64 pairs; parsed later. Raw
+        cffi call (as the fast submit path): this runs once per step on the main loop.
+        VK_NOT_READY only means some slot is unavailable; its availability word says so."""
+        count = len(self.block_labels)
+        if count == 0:
+            return b""
+        _lib.vkGetQueryPoolResults(self.ctx.device, self.pool, parity * STEP_TRACE_BLOCK, count,
+                                   16 * count, self._results, 16,
+                                   VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WITH_AVAILABILITY_BIT)
+        return ffi.buffer(self._results, 16 * count)[:]
+
+    def parse_block(self, raw: bytes) -> dict:
+        """{label: device ns} of the available slots."""
+        if not raw:
+            return {}
+        values = struct.unpack(f"<{len(raw) // 8}Q", raw)
+        return {label: values[2 * index] * self.ns_per_tick
+                for index, label in enumerate(self.block_labels[:len(values) // 2])
+                if values[2 * index + 1]}
+
+
+def _git_provenance() -> dict:
+    root = pathlib.Path(__file__).resolve().parents[3]
+
+    def git(*arguments):
+        try:
+            return subprocess.run(["git", *arguments], cwd=root, capture_output=True, text=True,
+                                  timeout=30).stdout.strip()
+        except Exception:   # noqa: BLE001 — provenance is best effort
+            return ""
+    return {"commit": git("rev-parse", "HEAD"),
+            "v6_dirty_files": [line[3:] for line in git("status", "--porcelain", "--", "experiment/v6").splitlines()]}
+
+
+class StepTracer:
+    """Attach to the sims BEFORE prepare_step_cmd_buffers (it installs the
+    timers and turns on step_trace_parity), then set ``orchestrator.on_frame_done
+    = tracer.on_frame_done`` after bootstrap, call ``on_defrag(frame_n, warmup)``
+    from the run's defrag hook (reads the voxel counts once, at the first
+    boundary >= warmup, while the pipeline is drained) and ``write(...)`` at the
+    end. Needs VK_KHR_calibrated_timestamps on every device and depth <= 2."""
+
+    def __init__(self, sims, calibrate_ms: float = 500.0, detail: str = "phases"):
+        if detail not in ("phases", "full"):
+            raise ValueError(f"step trace detail {detail!r}: 'phases' or 'full'")
+        self.sims = list(sims)
+        self.calibrate_ms = float(calibrate_ms)
+        self.detail = detail
+        self.compute_timers, self.transfer_timers = [], []
+        for index, sim in enumerate(self.sims):
+            compute = StepTraceTimer(sim.ctx, f"s{index}",
+                                     keep_labels=PHASE_TICKS if detail == "phases" else None)
+            transfer = StepTraceTimer(sim.ctx, f"s{index}_transfer",
+                                      queue_family_index=sim.ctx.transfer_queue_family_index)
+            sim.bench, sim.bench_transfer = compute, transfer
+            sim.step_trace_parity = True
+            self.compute_timers.append(compute)
+            self.transfer_timers.append(transfer)
+        self.domain = self._choose_domain()
+        self.domain_name = TIME_DOMAIN_NAMES[self.domain]
+        if self.domain == TIME_DOMAIN_CLOCK_MONOTONIC_RAW:
+            from experiment.v6.utils import transport_v6
+
+            def raw_clock_ns():
+                return time.clock_gettime_ns(time.CLOCK_MONOTONIC_RAW)
+            self.host_clock_ns, self.host_clock_name = raw_clock_ns, "clock_gettime_ns(CLOCK_MONOTONIC_RAW)"
+            transport_v6.set_host_clock(raw_clock_ns)
+        else:
+            self.host_clock_ns, self.host_clock_name = time.perf_counter_ns, "time.perf_counter_ns"
+        self._qpc_frequency = None
+        if self.domain == TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER:
+            frequency = ctypes.c_int64()
+            ctypes.windll.kernel32.QueryPerformanceFrequency(ctypes.byref(frequency))
+            self._qpc_frequency = int(frequency.value)
+        self._infos = [VkCalibratedTimestampInfoKHR(timeDomain=VK_TIME_DOMAIN_DEVICE_KHR),
+                       VkCalibratedTimestampInfoKHR(timeDomain=self.domain)]
+        self._get_calibrated = []
+        for sim in self.sims:
+            function = vkGetDeviceProcAddr(sim.ctx.device, "vkGetCalibratedTimestampsKHR")
+            if function is None:
+                raise RuntimeError(f"vkGetCalibratedTimestampsKHR unavailable — enable "
+                                   f"{CALIBRATED_TIMESTAMPS_EXTENSION} on every device")
+            self._get_calibrated.append(function)
+        self.raw: dict[int, list] = {}           # frame -> [(compute raw, transfer raw) per sim]
+        self.host_read: dict[int, int] = {}
+        self.calibration: list[tuple] = []       # (sim, frame, device_ns, host_ns, max_deviation_ns)
+        self.voxel_snapshot: Optional[dict] = None
+        self.latest_frame = -1
+        for index in range(len(self.sims)):
+            self.calibrate(index, frame_n=-1, repeat=5, burst=8)
+        self._stop = threading.Event()
+        self._calibration_thread = threading.Thread(target=self._calibration_loop, name="step_trace_calibration",
+                                                    daemon=True)
+        self._calibration_thread.start()
+
+    def _calibration_loop(self) -> None:
+        while not self._stop.wait(self.calibrate_ms / 1000.0):
+            for index in range(len(self.sims)):
+                self.calibrate(index, frame_n=self.latest_frame)
+
+    def _choose_domain(self) -> int:
+        """The host domain every device can calibrate against (see section comment)."""
+        available = None
+        for sim in self.sims:
+            function = vkGetInstanceProcAddr(sim.ctx.instance, "vkGetPhysicalDeviceCalibrateableTimeDomainsKHR")
+            domains = {int(value) for value in function(sim.ctx.physical_device)}
+            available = domains if available is None else available & domains
+        order = ((TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER,) if sys.platform == "win32"
+                 else (TIME_DOMAIN_CLOCK_MONOTONIC, TIME_DOMAIN_CLOCK_MONOTONIC_RAW))
+        for domain in order:
+            if domain in available:
+                return domain
+        raise RuntimeError(f"no usable host time domain: devices offer {sorted(available)}")
+
+    def _host_ns(self, value: int) -> int:
+        if self._qpc_frequency is not None:
+            return value * 1_000_000_000 // self._qpc_frequency
+        return value
+
+    def calibrate(self, sim_index: int, frame_n: int, repeat: int = 1, burst: int = 3) -> None:
+        """``repeat`` samples, each the smallest-maxDeviation pair of a ``burst``."""
+        sim = self.sims[sim_index]
+        ns_per_tick = self.compute_timers[sim_index].ns_per_tick
+        stamps = ffi.new("uint64_t[2]")          # per call: the helper thread calibrates too
+        for _ in range(repeat):
+            best = None
+            for _ in range(burst):
+                deviation = self._get_calibrated[sim_index](sim.ctx.device, 2, self._infos, stamps)
+                sample = (sim_index, frame_n, float(int(stamps[0])) * ns_per_tick,
+                          self._host_ns(int(stamps[1])), float(int(deviation)) * ns_per_tick)
+                if best is None or sample[4] < best[4]:
+                    best = sample
+            self.calibration.append(best)
+
+    # ---------------------------------------------------------------- capture
+
+    def on_frame_done(self, frame_n: int, sim_index: Optional[int] = None) -> None:
+        """Every sim's frame ``frame_n`` is complete: copy both pools' parity
+        block raw (parsed in write())."""
+        parity = frame_n % 2
+        entry = self.raw.setdefault(frame_n, [None] * len(self.sims))
+        for index in (range(len(self.sims)) if sim_index is None else (sim_index,)):
+            if entry[index] is None:
+                entry[index] = (self.compute_timers[index].read_block_raw(parity),
+                                self.transfer_timers[index].read_block_raw(parity))
+        self.host_read[frame_n] = self.host_clock_ns()
+        self.latest_frame = frame_n
+
+    def on_defrag(self, frame_n: int, warmup: int) -> None:
+        """At the first drained defrag boundary >= warmup: own particles and n_B
+        (own particles outside the force band = phase B's force sweep) per sim
+        from the voxel counts (inside_particle_count, vid = 1 + x * NY * NZ + yz)."""
+        if self.voxel_snapshot is not None or frame_n < warmup:
+            return
+        for index in range(len(self.sims)):          # drained: a cheap moment for a big burst
+            self.calibrate(index, frame_n, repeat=3, burst=8)
+        per_sim = []
+        for sim in self.sims:
+            grid = sim.case.grid
+            face = grid.grid_dimension_y * grid.grid_dimension_z
+            leading = sim.case.ghost_grid.leading_ghost_voxel_count // face
+            trailing = sim.case.ghost_grid.trailing_ghost_voxel_count // face
+            raw = sim.readback_buffers_batch(["inside_particle_count"])["inside_particle_count"]
+            counts = np.frombuffer(raw, dtype=np.uint32)[1:1 + grid.grid_dimension_x * face]
+            columns = counts.reshape(grid.grid_dimension_x, face).sum(axis=1).astype(np.int64)
+            first, last = leading, grid.grid_dimension_x - 1 - trailing     # own columns (local x)
+            correction_band, density_band, force_band = sim.band_widths
+
+            def outside(band):
+                return [x for x in range(first, last + 1)
+                        if not ((leading > 0 and x < first + band) or (trailing > 0 and x > last - band))]
+            per_sim.append({
+                "own_columns": last - first + 1, "leading_peer": leading > 0, "trailing_peer": trailing > 0,
+                "band_widths": [correction_band, density_band, force_band],
+                "own_particles": int(columns[first:last + 1].sum()),
+                "n_B": int(columns[outside(force_band)].sum()),
+                "n_correction_interior": int(columns[outside(correction_band)].sum()),
+                "n_density_deep_interior": int(columns[outside(density_band)].sum()),
+                "own_column_particles": [int(value) for value in columns[first:last + 1]]})
+        self.voxel_snapshot = {"frame": frame_n, "per_sim": per_sim}
+
+    # ----------------------------------------------------------------- output
+
+    def _fits(self) -> list:
+        """Per device: host = host_center + intercept + slope (device - device_center)
+        + drift(device), least squares with iterative 3-sigma clipping; drift = the
+        running median (9 samples) of the kept residuals, interpolated linearly."""
+        fits = []
+        for index in range(len(self.sims)):
+            samples = np.array([(s[2], s[3], s[4]) for s in self.calibration if s[0] == index], dtype=np.float64)
+            device_center, host_center = samples[:, 0].mean(), samples[:, 1].mean()
+            x, y = samples[:, 0] - device_center, samples[:, 1] - host_center
+            kept = np.ones(len(samples), dtype=bool)
+            for _ in range(5):
+                slope, intercept = np.polyfit(x[kept], y[kept], 1)
+                residual = y - (slope * x + intercept)
+                sigma = float(np.sqrt(np.mean(residual[kept] ** 2)))
+                new_kept = np.abs(residual) <= max(3.0 * sigma, 1.0)
+                if new_kept.sum() < 5 or np.array_equal(new_kept, kept):
+                    break
+                kept = new_kept
+            order = np.argsort(x[kept])
+            knot_x, knot_residual = x[kept][order], residual[kept][order]
+            half = 4
+            drift = np.array([np.median(knot_residual[max(0, i - half):i + half + 1])
+                              for i in range(len(knot_residual))])
+            final = knot_residual - drift
+            fits.append({"device_center_ns": float(device_center), "host_center_ns": float(host_center),
+                         "slope": float(slope), "intercept_ns": float(intercept),
+                         "drift_knots_device_ns": [float(value) for value in knot_x],
+                         "drift_knots_ns": [float(value) for value in drift],
+                         "samples": int(len(samples)), "samples_kept": int(kept.sum()),
+                         "line_residual_rms_ns": float(np.sqrt(np.mean(residual[kept] ** 2))),
+                         "residual_rms_ns": float(np.sqrt(np.mean(final ** 2))),
+                         "residual_max_ns": float(np.max(np.abs(final))),
+                         "driver_max_deviation_min_ns": float(samples[kept, 2].min()),
+                         "driver_max_deviation_median_ns": float(np.median(samples[kept, 2]))})
+        return fits
+
+    @staticmethod
+    def _to_host(fit: dict, device_ns: float) -> int:
+        x = device_ns - fit["device_center_ns"]
+        drift = float(np.interp(x, fit["drift_knots_device_ns"], fit["drift_knots_ns"]))
+        return int(round(fit["host_center_ns"] + fit["intercept_ns"] + fit["slope"] * x + drift))
+
+    def write(self, out_dir, orchestrator, meta: dict) -> dict:
+        out = pathlib.Path(out_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        self._stop.set()
+        self._calibration_thread.join()
+        last_frame = max(self.raw) if self.raw else -1
+        for index in range(len(self.sims)):
+            self.calibrate(index, frame_n=last_frame, repeat=5, burst=8)
+        fits = self._fits()
+        device_rows: dict[tuple[int, int], dict] = {}
+        transfer_rows: dict[tuple[int, int], dict] = {}
+        for frame_n, entry in self.raw.items():
+            for index, captured in enumerate(entry):
+                if captured is None:
+                    continue
+                compute = self.compute_timers[index].parse_block(captured[0])
+                transfer = self.transfer_timers[index].parse_block(captured[1])
+                row = {label: self._to_host(fits[index], value) for label, value in compute.items()}
+                for phase in ("a", "b", "c"):
+                    ticks = [value for label, value in row.items() if label.startswith(phase + "_")]
+                    if ticks:
+                        row[phase + "_end"] = max(ticks)
+                device_rows[(frame_n, index)] = row
+                transfer_rows[(frame_n, index)] = {label: self._to_host(fits[index], value)
+                                                   for label, value in transfer.items()}
+        with open(out / "steps_device.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["step", "sim", "device", "parity", "host_read"] + list(STEP_DEVICE_TIMES) + ["complete"])
+            for (frame_n, index), row in sorted(device_rows.items()):
+                complete = all(key in row for key in ("a_start", "a_end", "b_start", "b_end", "c_start", "c_end"))
+                writer.writerow([frame_n, index, meta.get("device_map", [None] * len(self.sims))[index],
+                                 frame_n % 2, self.host_read.get(frame_n, "")]
+                                + [row.get(key, "") for key in STEP_DEVICE_TIMES] + [int(complete)])
+        sim_index = {id(sim): index for index, sim in enumerate(self.sims)}
+        links = []
+        link_complete = 0
+        link_rows = 0
+        with open(out / "steps_link.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["step", "link", "sender", "receiver", "sender_direction", "receiver_direction"]
+                            + list(STEP_LINK_TIMES) + ["host_copy_bytes", "dma_bytes", "complete"])
+            for worker in getattr(orchestrator, "workers", []):
+                sender, receiver = sim_index[id(worker.source)], sim_index[id(worker.dest)]
+                send_direction, receive_direction = worker.source_direction, worker.dest_direction
+                links.append({"link": worker.label, "sender": sender, "receiver": receiver,
+                              "sender_direction": send_direction, "receiver_direction": receive_direction,
+                              "dma_bytes": int(worker.staging_bytes)})
+                for frame_n in sorted(self.raw):
+                    sender_row = device_rows.get((frame_n, sender), {})
+                    receiver_row = device_rows.get((frame_n, receiver), {})
+                    sender_transfer = transfer_rows.get((frame_n, sender), {})
+                    receiver_transfer = transfer_rows.get((frame_n, receiver), {})
+                    stamps = worker.timestamps.get(frame_n, {})
+                    values = {"send_end": sender_row.get(f"a_ghost_{send_direction}_end"),
+                              "readback_start": sender_transfer.get(f"t_rb_{send_direction}_start"),
+                              "readback_copy_end": sender_transfer.get(f"t_rb_{send_direction}_copy_end"),
+                              "readback_end": sender_transfer.get(f"t_rb_{send_direction}_end"),
+                              "upload_start": receiver_transfer.get(f"t_up_{receive_direction}_start"),
+                              "upload_end": receiver_transfer.get(f"t_up_{receive_direction}_end"),
+                              "receiver_b_start": receiver_row.get("b_start"),
+                              "receiver_b_end": receiver_row.get("b_end"),
+                              "receiver_c_start": receiver_row.get("c_start")}
+                    for column, key in _WORKER_KEYS:
+                        values[column] = stamps.get(key)
+                    copy_bytes = stamps.get("copy_bytes")
+                    complete = all(values[key] is not None for key in STEP_LINK_TIMES) and copy_bytes is not None
+                    link_rows += 1
+                    link_complete += int(complete)
+                    writer.writerow([frame_n, worker.label, sender, receiver, send_direction, receive_direction]
+                                    + ["" if values[key] is None else values[key] for key in STEP_LINK_TIMES]
+                                    + ["" if copy_bytes is None else copy_bytes, worker.staging_bytes,
+                                       int(complete)])
+        device_complete = sum(1 for row in device_rows.values()
+                              if all(key in row for key in ("a_start", "a_end", "b_start", "b_end",
+                                                            "c_start", "c_end")))
+        summary = {"steps": len(self.raw), "device_rows": len(device_rows), "device_rows_complete": device_complete,
+                   "link_rows": link_rows, "link_rows_complete": link_complete}
+        run_meta = dict(meta)
+        run_meta.update(_git_provenance())
+        run_meta.update({
+            "clock": {"time_domain": self.domain_name, "host_clock": self.host_clock_name,
+                      "qpc_frequency": self._qpc_frequency, "calibrate_ms": self.calibrate_ms,
+                      "detail": self.detail,
+                      "fits": fits},
+            "slabs": self.voxel_snapshot,
+            "links": links,
+            "labels": {"compute": [timer.block_labels for timer in self.compute_timers],
+                       "transfer": [timer.block_labels for timer in self.transfer_timers]},
+            "records": summary,
+            "switches_env": {key: value for key, value in sorted(os.environ.items()) if key.startswith("V6_")},
+        })
+        with open(out / "run_meta.json", "w", encoding="utf-8") as handle:
+            json.dump(run_meta, handle, indent=1)
+        with open(out / "calibration.csv", "w", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(["sim", "frame", "device_ns", "host_ns", "max_deviation_ns"])
+            for sample in self.calibration:
+                writer.writerow([sample[0], sample[1], f"{sample[2]:.0f}", sample[3], f"{sample[4]:.0f}"])
+        print(f"[step_trace] wrote {out}: {summary}; clock {self.domain_name}, fit residual rms "
+              + "/".join(f"{fit['residual_rms_ns']:.0f}" for fit in fits) + " ns", flush=True)
         return summary

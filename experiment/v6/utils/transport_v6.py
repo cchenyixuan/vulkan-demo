@@ -35,6 +35,18 @@ if TYPE_CHECKING:
 
 _STOP_SENTINEL = -1   # frame_n value that means "stop the worker thread"
 
+# E29 step trace: host clock of the per-frame time points below.
+# perf_counter_ns = QueryPerformanceCounter (Windows) / CLOCK_MONOTONIC (Linux),
+# the domains VK_KHR_calibrated_timestamps maps GPU ticks onto;
+# phase_trace_v6 switches it to CLOCK_MONOTONIC_RAW when the driver offers
+# only that domain.
+_host_clock_ns = time.perf_counter_ns
+
+
+def set_host_clock(clock_ns) -> None:
+    global _host_clock_ns
+    _host_clock_ns = clock_ns
+
 
 class GhostMigrationWorker:
     """One pathway (source → dest) persistent worker thread.
@@ -251,12 +263,12 @@ class GhostMigrationWorker:
                 # 1a. Wait for source GPU's transfer queue to signal
                 #     readback_done(n) — sender_staging is now fully
                 #     populated and CPU-visible (host coherence barrier ran).
-                t_dequeue = time.perf_counter_ns()
+                t_dequeue = _host_clock_ns()
                 self.last_activity = ("wait_source_timeline", frame_n, t_dequeue)
                 source_semaphore, source_value = self.source.sync.source_readback_op(
                     self.source_direction, frame_n)
                 self.source.wait_semaphore(source_semaphore, source_value)
-                t_source_wait = time.perf_counter_ns()
+                t_source_wait = _host_clock_ns()
                 # 1b. Wait for DEST sim's readback_done(n) on the SAME
                 #     semaphore we are about to host-signal. Critical for
                 #     timeline monotonicity: our host_signal of worker_done
@@ -269,7 +281,7 @@ class GhostMigrationWorker:
                 guard_semaphore, guard_value = self.dest.sync.dest_guard_op(
                     self.dest_direction, frame_n)
                 self.dest.wait_semaphore(guard_semaphore, guard_value)
-                t_dest_guard = time.perf_counter_ns()
+                t_dest_guard = _host_clock_ns()
                 # 1c. Wait until dest's upload of frame n-1 has finished
                 #     READING receiver_staging before we overwrite it.
                 #     Transfer-queue FIFO completion order is NOT a spec
@@ -280,7 +292,7 @@ class GhostMigrationWorker:
                             self.dest_direction, frame_n)):
                     self.dest.wait_semaphore(upload_guard_semaphore,
                                              upload_guard_value)
-                t_wait = time.perf_counter_ns()
+                t_wait = _host_clock_ns()
 
                 # 1c-bis. Host-side frame-stamp check: the LAST 4 bytes of the
                 # sender staging carry the sender GPU's frame_stamp (segment
@@ -298,6 +310,7 @@ class GhostMigrationWorker:
                         print(f"[worker {self.label}] *** STALE READBACK at "
                               f"frame {frame_n}: stamp={stamp} expected="
                               f"{self._stamp_base + frame_n} ***", flush=True)
+                t_stamp = _host_clock_ns()
 
                 for region, count_offset in self._region_words:
                     self.region_counts[region].append(struct.unpack_from(
@@ -324,7 +337,7 @@ class GhostMigrationWorker:
                     self.last_copy_bytes = self._source_view.nbytes
                 self.total_copy_bytes += self.last_copy_bytes
                 self.copy_frame_count += 1
-                t_copy = time.perf_counter_ns()
+                t_copy = _host_clock_ns()
 
                 # 2b. Consumed-ack on the SOURCE: sender_staging(frame_n) has
                 # been fully read — the source's readback(frame_n+1) waits
@@ -354,21 +367,23 @@ class GhostMigrationWorker:
                     f"readback signal first, the host signal would race ahead "
                     f"and corrupt the timeline (Vulkan backwards-signal hazard).")
                 self.dest.host_signal_semaphore(signal_semaphore, signal_value)
-                t_signal = time.perf_counter_ns()
+                t_signal = _host_clock_ns()
                 self.last_activity = ("done_frame", frame_n, time.perf_counter_ns())
                 self.last_completed_frame = frame_n
 
                 self.timestamps[frame_n] = {
-                    # Segment boundaries (perf_counter_ns) — diff neighbours
+                    # Segment boundaries (host clock, ns) — diff neighbours
                     # for per-exchange accounting: dequeue -> source-readback
-                    # wait -> dest guard wait -> upload guard wait -> memcpy
-                    # -> host signals.
+                    # wait -> dest guard wait -> upload guard wait -> frame
+                    # stamp check -> count words + memcpy -> host signals.
                     "dequeue_ns": t_dequeue,
                     "source_wait_ns": t_source_wait,
                     "dest_guard_ns": t_dest_guard,
                     "wait_ns": t_wait,
+                    "stamp_ns": t_stamp,
                     "copy_ns": t_copy,
                     "signal_ns": t_signal,
+                    "copy_bytes": self.last_copy_bytes,
                 }
         except BaseException as e:  # noqa: BLE001 — capture everything for diagnostics
             self.last_error = e
