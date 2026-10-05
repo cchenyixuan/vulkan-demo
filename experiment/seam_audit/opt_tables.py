@@ -204,6 +204,14 @@ def main() -> int:
               "## delta density noise by region (final states)", delta_density_noise_split("delta_density"), "",
               delta_density_noise_split("delta_density_dense"), ""]
     parts += ["## delta density perf", delta_density_perf_table(), ""]
+    if (ROOT / E23_CAMPAIGN / "summary.json").exists():
+        parts += ["## E23 gates", e23_gates_table(), "",
+                  "## E23 audit diagnostics", e23_audit_diagnostics_table(), "",
+                  "## E23 A/B 3-D detail", e23_ab_detail_table(), "",
+                  "## E23 G1 without P", step_table(E23_CAMPAIGN, "base", "release",
+                                                    "E23 G1 without P (1b52dd2 build → E23 build, --counterbalance)"), "",
+                  "## E23 host-byte formula", e23_formula_table(), "",
+                  "## E23 install kernels", e23_install_table(), ""]
     if (ROOT / "perf_final" / "summary.json").exists():
         parts += ["## final", final_table(), "",
                   "## final phase C", phase_c_table("perf_final", ["l1x", "packed", "release", "release_compact"], "packed"), ""]
@@ -224,8 +232,9 @@ def byte_model_table() -> str:
     """Per link per frame (KiB) of the (1,2) staging layout for each step, from the
     segment formulas and the measured live counts; packing on top of (d)(e)(a1)."""
     latest = pool_results()
-    lines = ["| case | lean (d) DMA / host | + pools (e) | + compact lists (a1) | + packed (b)(c) | packing saves DMA / host |",
-             "|---|---|---|---|---|---|"]
+    lines = ["| case | lean (d) DMA / host | + pools (e) | + compact lists (a1) | + packed (b)(c) | packing saves DMA / host | "
+             "+ G1 without P (E23) | E23 saves DMA / host |",
+             "|---|---|---|---|---|---|---|---|"]
     for case, (job, dimension, ppv, incoming) in CASE_GEOMETRY.items():
         link = latest[job]["links"]["s0_to_s1"]
         face = link["face_voxels"]
@@ -239,9 +248,11 @@ def byte_model_table() -> str:
             if migrant_factor is not None:
                 migrant_slots = max(64, migrant_slots)
             lists = ghost_voxels * 4 + (ghost_voxels * 4 if compact else ghost_voxels * ppv * 4)
-            pair = 68 if packed else 88
+            # packed: the (b)(c) format G1 36 B + G2 32 B; packed == "e23": G1 and G2 32 B (G1 without P)
+            pair = 64 if packed == "e23" else (68 if packed else 88)
             dma = replica_slots * pair + migrant_slots * 44 + lists + 16
-            host = ((live_inner * 36 + live_outer * 32) if packed else (live_inner + live_outer) * 44) \
+            inner_bytes = 32 if packed == "e23" else 36
+            host = ((live_inner * inner_bytes + live_outer * 32) if packed else (live_inner + live_outer) * 44) \
                 + live_migrant * 44 + lists + 16
             return dma / 1024, host / 1024
         release = RELEASE_POOLS[dimension]
@@ -249,10 +260,227 @@ def byte_model_table() -> str:
         pools = sizes(release[0], release[1], False, False)
         compact = sizes(release[0], release[1], True, False)
         packed = sizes(release[0], release[1], True, True)
+        e23 = sizes(release[0], release[1], True, "e23")
         lines.append(f"| {CASE_LABEL[case]} | {fmt(lean[0])} / {fmt(lean[1])} | {fmt(pools[0])} / {fmt(pools[1])} | "
                      f"{fmt(compact[0])} / {fmt(compact[1])} | {fmt(packed[0])} / {fmt(packed[1])} | "
-                     f"{100 * (1 - packed[0] / compact[0]):.1f} % / {100 * (1 - packed[1] / compact[1]):.1f} % |")
+                     f"{100 * (1 - packed[0] / compact[0]):.1f} % / {100 * (1 - packed[1] / compact[1]):.1f} % | "
+                     f"{fmt(e23[0])} / {fmt(e23[1])} | "
+                     f"{100 * (1 - e23[0] / packed[0]):.1f} % / {100 * (1 - e23[1] / packed[1]):.1f} % |")
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------- E23: G1 drops P (G1 and G2 32 B)
+E23_CAMPAIGN = "perf_g1_nop_v2"         # the final E23 build d2b5e98 (perf_g1_nop: first build d710fb8)
+# opt_validate / ab_restart runs of the E23 work: (label, validate name prefix, ab_restart directory)
+E23_GATE_RUNS = (("改动前构建 1b52dd2(今天的数值参数)", "e23_pre_1b52dd2", "ab_e23_pre_1b52dd2"),
+                 ("E23 第一版 d710fb8", "e23_g1_32b", "ab_e23_g1_32b"),
+                 ("E23 最终 d2b5e98", "e23_g1_32b_v2", "ab_e23_g1_32b_v2"))
+DENSITY_ULP = 2.0 ** -14                 # float32 spacing of rho in [512, 1024)
+E23_LINK_LABEL = {"s0_to_s1": "s0 → s1", "s1_to_s0": "s1 → s0"}
+# at K = 2 each sim has one inbound direction: s0 receives from s1 into its trailing ghosts, s1 from s0 into its leading
+E23_INBOUND = {0: "trailing", 1: "leading"}
+
+
+def campaign_records(campaign: str) -> list:
+    path = ROOT / campaign / "results.jsonl"
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line] if path.exists() else []
+
+
+def e23_build_labels(campaign: str = E23_CAMPAIGN) -> dict:
+    """config -> 'build <head>' from the build provenance the worker records (opt_campaign build_provenance)."""
+    labels = {}
+    for record in campaign_records(campaign):
+        build = (record.get("result") or {}).get("build") or {}
+        if build.get("head"):
+            labels.setdefault(record["config"], f"{build['head']}" + ("+dirty" if build.get("experiment_v6_dirty") else ""))
+    return labels
+
+
+def e23_gate_values(name: str) -> dict:
+    """audit / single worst and K = 4 of an opt_validate run (absent steps -> None)."""
+    path = ROOT / f"validate_{name}" / "verdict.json"
+    if not path.exists():
+        return {}
+    verdict = json.loads(path.read_text(encoding="utf-8"))
+    return {step: (verdict[step].get("worst"), verdict[step].get("pass")) for step in ("audit", "single", "k4")
+            if verdict.get(step)}
+
+
+def e23_ab_values(directory: str) -> dict:
+    path = ROOT / directory / "result.json"
+    if not path.exists():
+        return {}
+    return {case["case"]: (case["worst_ratio"], case["pass"]) for case in json.loads(path.read_text(encoding="utf-8"))}
+
+
+def e23_gates_table() -> str:
+    """Worst ratios of the gates: the v6_opt.md release numbers (old numerics xi 0.1 / eps^2 0.01 h^2), the
+    pre-change build with today's numerics (same day, same tools) and the E23 build; the audit three times each."""
+    def audits(prefix: str) -> list:
+        values = []
+        for name in (prefix, prefix + "_audit2", prefix + "_audit3"):
+            entry = e23_gate_values(name).get("audit")
+            if entry:
+                values.append(entry)
+        return values
+
+    def show(entries: list, threshold: float) -> str:
+        return ", ".join(f"{value:.2f}{'' if passed else ' ✗'}" for value, passed in entries) + f"(门槛 {threshold:g})"
+    release = e23_gate_values("release_final")
+    rows = [("v6_opt.md 发布组合(旧数值参数)", [release.get("audit")] if release.get("audit") else [],
+             release.get("single"), release.get("k4"), e23_ab_values("ab_release_final"))]
+    rows += [(label, audits(prefix), e23_gate_values(prefix).get("single"), e23_gate_values(prefix).get("k4"),
+              e23_ab_values(ab_directory)) for label, prefix, ab_directory in E23_GATE_RUNS]
+    lines = ["| 构建 | 审计(每次) | 单步 | A/B 2-D 1M | A/B 3-D 1M | K = 4 |", "|---|---|---|---|---|---|"]
+    for label, audit, single, k4, ab in rows:
+        def ab_cell(case):
+            entry = ab.get(case)
+            return f"{entry[0]:.2f}{'' if entry[1] else ' ✗'}" if entry else "—"
+        lines.append(f"| {label} | {show(audit, 2.0) if audit else '—'} | "
+                     f"{f'{single[0]:.2f}' + ('' if single[1] else ' ✗') if single else '—'} | "
+                     f"{ab_cell('cavity2d_1m')} | {ab_cell('cavity3d_1m')} | "
+                     f"{('通过' if k4[1] else '未过') if k4 else '—'} |")
+    return NEWLINE.join(lines)
+
+
+def e23_audit_windows(prefix: str) -> list:
+    """(repeat 1-3, worst, window_report) of the three audits of one build."""
+    out = []
+    for repeat, name in enumerate((prefix, prefix + "_audit2", prefix + "_audit3"), start=1):
+        verdict_path = ROOT / f"validate_{name}" / "verdict.json"
+        reports = sorted((ROOT / f"validate_{name}" / "audit" / "analysis" / "cavity2d_1m").glob("*/window_report.json"))
+        if verdict_path.exists() and reports:
+            out.append((repeat, json.loads(verdict_path.read_text(encoding="utf-8"))["audit"]["worst"],
+                        json.loads(reports[0].read_text(encoding="utf-8"))))
+    return out
+
+
+def e23_audit_diagnostics_table() -> str:
+    """The audit's worst value is a crossing-window density_rms ratio. Per audit and pair: the control group's
+    density difference rms in float32 ULP of rho ~ 1000 (K = 2 vs K = 1, and the noise pair K = 1 vs K = 1) and its
+    ratio, and each crossing group's density / acceleration ratio divided by the control group's (particles far from
+    the seam): ~1 = the elevation is global, not a seam effect."""
+    groups = ("flagged", "departed", "arrived")
+    lines = ["| 构建 | 审计 | 最差 | 对 | control:K2 − K1 rms(ULP) | K1 − K1 噪声 rms(ULP) | 噪声中位数(ULP) | control 比值 | "
+             "density:越界 / 迁出 / 迁入 ÷ control | acceleration:越界 / 迁出 / 迁入 ÷ control |",
+             "|---|---|---|---|---|---|---|---|---|---|"]
+    for label, prefix, _ab in (("1b52dd2", "e23_pre_1b52dd2", None), ("d710fb8", "e23_g1_32b", None),
+                               ("d2b5e98", "e23_g1_32b_v2", None)):
+        for repeat, worst, report in e23_audit_windows(prefix):
+            for index, pair in enumerate(report["pairs"]):
+                statistics = pair["statistics"]
+                density = statistics["control"]["density"]
+                control = density["ratio"]["rms"]
+                control_acceleration = statistics["control"]["acceleration"]["ratio"]["rms"]
+                lines.append(
+                    f"| {label} | {repeat} | {worst:.2f} | B{index + 1} | "
+                    f"{density['test']['rms'] / DENSITY_ULP:.2f} | {density['noise']['rms'] / DENSITY_ULP:.2f} | "
+                    f"{density['noise']['p50'] / DENSITY_ULP:.0f} | {control:.2f} | "
+                    + " / ".join(f"{statistics[g]['density']['ratio']['rms'] / control:.2f}" for g in groups) + " | "
+                    + " / ".join(f"{statistics[g]['acceleration']['ratio']['rms'] / control_acceleration:.2f}"
+                                 for g in groups) + " |")
+    return NEWLINE.join(lines)
+
+
+def e23_ab_detail_table(field_group=("near migrants", "5")) -> str:
+    """ab_restart, 3-D 1M, k = 5, near-migrant group (p90): test medians (base x test pairs) and floors (base x
+    base) of every A/B run of the E23 work; the base runs never use packed replicas, so the floor is the same
+    configuration in every run."""
+    group, step = field_group
+    lines = ["| A/B 运行 | 场 | test 中位数 | 底(中位数) | 比值 |", "|---|---|---|---|---|"]
+    for label, _prefix, directory in E23_GATE_RUNS:
+        path = ROOT / directory / "result.json"
+        if not path.exists():
+            continue
+        cases = {case["case"]: case for case in json.loads(path.read_text(encoding="utf-8"))}
+        case = cases.get("cavity3d_1m")
+        if not case:
+            continue
+        for field in ("velocity", "acceleration"):
+            entry = case["steps"][step]["groups"][group]["fields"][field]
+            lines.append(f"| {label} | {field} | {entry['test_median']:.3e} | {entry['floor_median']:.3e} | {entry['ratio']:.2f} |")
+    return NEWLINE.join(lines)
+
+
+def e23_formula_table(campaign: str = E23_CAMPAIGN) -> str:
+    """Host bytes per link and frame on the depth-1 anatomy frames of every trial: B_host = 32 (n0 + n1) + 44 n_mig
+    + 16 NyNz + 16 from the count words of the same frame, against the worker's measured count-aware copy (frame
+    means pooled over the trials, weighted by frames). The pre-change build (base, G1 36 B) must come out 4 n0 above
+    the formula; the segment model (min(size, count x stride) per segment) is exact in both builds."""
+    totals: dict = {}
+    for record in campaign_records(campaign):
+        if not record.get("ok"):
+            continue
+        for link, values in record["result"].get("links", {}).items():
+            formula = values.get("formula")
+            if not formula or not formula.get("frames"):
+                continue
+            key = (record["case"], record["config"], link)
+            entry = totals.setdefault(key, {"frames": 0, "n0": 0.0, "n1": 0.0, "n_mig": 0.0, "measured": 0.0,
+                                            "predicted": 0.0, "segment": 0.0, "max": 0, "max_segment": 0,
+                                            "voxels": formula["cross_section_voxels"]})
+            frames = formula["frames"]
+            entry["frames"] += frames
+            for name, field in (("n0", "n0_mean"), ("n1", "n1_mean"), ("n_mig", "n_mig_mean"),
+                                ("measured", "measured_mean"), ("predicted", "predicted_mean"),
+                                ("segment", "segment_model_mean")):
+                entry[name] += formula[field] * frames
+            entry["max"] = max(entry["max"], formula["max_abs_difference"])
+            entry["max_segment"] = max(entry["max_segment"], formula["max_abs_segment_difference"])
+    lines = ["| case | build | link | frames | n0 | n1 | n_mig | NyNz | predicted B | measured B | measured − predicted | "
+             "max per-frame difference | segment model − measured (max) |",
+             "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    labels = e23_build_labels(campaign)
+    for case in CASE_ORDER:
+        for config, label in (("release", labels.get("release", "E23")), ("base", labels.get("base", "base"))):
+            for link in ("s0_to_s1", "s1_to_s0"):
+                entry = totals.get((case, config, link))
+                if not entry:
+                    continue
+                frames = entry["frames"]
+                mean = {name: entry[name] / frames for name in ("n0", "n1", "n_mig", "measured", "predicted", "segment")}
+                lines.append(f"| {CASE_LABEL[case]} | {label} | {E23_LINK_LABEL[link]} | {frames} | {fmt(mean['n0'])} | "
+                             f"{fmt(mean['n1'])} | {fmt(mean['n_mig'], 2)} | {entry['voxels']:,} | {fmt(mean['predicted'])} | "
+                             f"{fmt(mean['measured'])} | {fmt(mean['measured'] - mean['predicted'])} | {entry['max']:,} | "
+                             f"{fmt(mean['segment'] - mean['measured'])} ({entry['max_segment']}) |")
+    return NEWLINE.join(lines)
+
+
+def e23_install_table(campaign: str = E23_CAMPAIGN, cases=("2d_16m", "3d_8m")) -> str:
+    """GPU time per step of the three install kernels (bench timestamps, depth-1 anatomy frames pooled over the
+    three trials): expand_ghost_lists, install_migrations_<dir>, append_departed and their sum (c_append_departed_end
+    - c_start), median and p95 per sim = per inbound direction at K = 2."""
+    def quantiles(values):
+        ordered = sorted(values)
+        return statistics.median(ordered), ordered[int(0.95 * (len(ordered) - 1))]
+    pooled: dict = {}
+    for record in campaign_records(campaign):
+        if not record.get("ok") or record["case"] not in cases:
+            continue
+        for index, series in enumerate(record["result"].get("anatomy_series", [])):
+            for key, values in series.items():
+                pooled.setdefault((record["case"], record["config"], index, key), []).extend(values)
+    lines = ["| case | build | sim (inbound direction) | frames | expand_ghost_lists µs median / p95 | "
+             "install_migrations µs | append_departed µs | sum µs |", "|---|---|---|---|---|---|---|---|"]
+    labels = e23_build_labels(campaign)
+    for case in cases:
+        for config, label in (("release", labels.get("release", "E23")), ("base", labels.get("base", "base"))):
+            for index, direction in E23_INBOUND.items():
+                expand = pooled.get((case, config, index, "expand_lists_us"))
+                install = pooled.get((case, config, index, f"install_{direction}_us"))
+                append = pooled.get((case, config, index, "append_departed_us"))
+                chain = pooled.get((case, config, index, "install_chain_us"))
+                if not expand or not chain:
+                    continue
+                cells = []
+                for values in (expand, install, append, chain):
+                    if values:
+                        median, p95 = quantiles(values)
+                        cells.append(f"{median:.2f} / {p95:.2f}")
+                    else:
+                        cells.append("—")
+                lines.append(f"| {CASE_LABEL[case]} | {label} | s{index} ({direction}) | {len(chain)} | " + " | ".join(cells) + " |")
+    return NEWLINE.join(lines)
 
 
 def direct_staging_table() -> str:

@@ -486,7 +486,8 @@ def check_packed_replicas(failures: list, depth_count: int = 1) -> None:
     become 4 ghost_packed_words blocks (G1 16/16 B, G2 16/16 B per replica: the
     same 32 B record, no pressure) at direction base d * 64 R bytes, with the
     inner / outer count words; the migrant region, voxel lists, count words and
-    stamp are unchanged."""
+    stamp are unchanged; the blocks of both directions tile the
+    ghost_packed_words allocation exactly (2 x 64 R bytes)."""
     import experiment.v6.utils.case_v6 as case_v6
     import experiment.v6.utils.partition_v6 as partition_v6
     import experiment.v6.utils.simulator_v6 as simulator_v6
@@ -500,6 +501,7 @@ def check_packed_replicas(failures: list, depth_count: int = 1) -> None:
         _synthetic_global_case(case_v6, depth_count=depth_count), [1.0, 1.0, 1.0], pool_safety=1.2)
     for index, slab in enumerate(chain.slabs):
         replica_region = slab.capacities.replica_region_size
+        covered: list = []
         for direction in ("leading", "trailing"):
             os.environ["V6_PACKED_REPLICAS"] = "0"
             plain, _ = simulator_v6.SphSimulatorV6._compute_transport_segments(
@@ -529,6 +531,8 @@ def check_packed_replicas(failures: list, depth_count: int = 1) -> None:
             packed_bytes = sum(segment.stride for segment in packed if segment.buffer_name == "ghost_packed_words")
             if (plain_bytes, packed_bytes) != (88, 64):
                 failures.append(f"{tag}: bytes per G1+G2 replica pair {plain_bytes} -> {packed_bytes}, expected 88 -> 64")
+            covered.extend((segment.device_offset, segment.device_offset + segment.size)
+                           for segment in packed if segment.buffer_name == "ghost_packed_words")
             offset = 0
             for segment in packed:
                 if segment.staging_offset != offset:
@@ -536,13 +540,124 @@ def check_packed_replicas(failures: list, depth_count: int = 1) -> None:
                 offset = segment.staging_offset + segment.size
             if offset != total:
                 failures.append(f"{tag}: staging total")
+        # the blocks lie inside the allocation, never overlap, and a slab with both
+        # peers covers it exactly (the shader's packed_layer_base addresses the same
+        # words: see check_packed_shader_layout)
+        os.environ["V6_PACKED_REPLICAS"] = "1"
+        specs = {spec.name: spec for spec in simulator_v6.SphSimulatorV6._build_buffer_specs(
+            _fake_simulator(simulator_v6.SphSimulatorV6, slab))}
+        os.environ["V6_PACKED_REPLICAS"] = "0"
+        allocation = specs["ghost_packed_words"].size
+        if allocation != 2 * 64 * replica_region:
+            failures.append(f"packed slab {index}: ghost_packed_words {allocation} B, expected {2 * 64 * replica_region}")
+        covered.sort()
+        if any(first[1] > second[0] for first, second in zip(covered, covered[1:])):
+            failures.append(f"packed slab {index}: overlapping packed blocks {covered}")
+        if covered and covered[-1][1] > allocation:
+            failures.append(f"packed slab {index}: packed block beyond the allocation")
+        both_peers = slab.transport.has_leading_peer and slab.transport.has_trailing_peer
+        if both_peers and sum(end - start for start, end in covered) != allocation:
+            failures.append(f"packed slab {index}: blocks do not tile the allocation")
     os.environ.pop("V6_COMPACT_GHOST_LISTS", None)
     os.environ.pop("V6_PACKED_REPLICAS", None)
 
 
+def check_packed_shader_layout(failures: list) -> None:
+    """The GLSL side of the packed format agrees with the segment table: the
+    packed_layer_base word formula (16 words per direction, 8 per layer), both
+    layers written / read as [x y z rho | vx vy vz material-bits] (no separate G1
+    material word, no pressure), and every specialization constant id names one
+    constant across the v6 shaders (V6_DIAG_POISON_G1 is id 99)."""
+    import re
+    shader_directory = pathlib.Path(__file__).resolve().parent / "shaders"
+    helpers = (shader_directory / "helpers.glsl").read_text(encoding="utf-8")
+    match = re.search(r"uint packed_layer_base\(uint direction, uint layer\) \{\s*return "
+                      r"\(direction \* (\d+)u \+ layer \* (\d+)u\) \* REPLICA_REGION_SIZE;", helpers)
+    if not match or (int(match.group(1)), int(match.group(2))) != (16, 8):
+        failures.append(f"packed_layer_base is not (direction * 16u + layer * 8u) * R: "
+                        f"{match.groups() if match else 'not found'}")
+    sender = (shader_directory / "ghost_send.comp").read_text(encoding="utf-8")
+    expander = (shader_directory / "expand_ghost_lists.comp").read_text(encoding="utf-8")
+    for name, text in (("ghost_send.comp", sender), ("expand_ghost_lists.comp", expander)):
+        if "8u * REPLICA_REGION_SIZE" in text:
+            failures.append(f"{name}: still addresses the old separate G1 material block (8 R)")
+    if "uintBitsToFloat(material[source_particle_id])" not in sender:
+        failures.append("ghost_send.comp: the packed record does not carry the material bits")
+    # the packed branch of ghost_send writes exactly the two vec4 blocks of the record (no extra G1 word) and reads
+    # no pressure (.y of density_pressure or of any local holding it)
+    start = sender.find("if (PACKED_REPLICAS) {")
+    stop = sender.find("} else {", start)
+    branch = sender[start:stop] if start >= 0 and stop > start else ""
+    if not branch:
+        failures.append("ghost_send.comp: PACKED_REPLICAS branch not found")
+    else:
+        if branch.count("store_packed_vec4(") != 2 or "ghost_packed_words[" in branch:
+            failures.append(f"ghost_send.comp: the packed branch stores {branch.count('store_packed_vec4(')} vec4 "
+                            "blocks and / or single words; expected the two blocks of the 32 B record")
+        if re.search(r"pressure\w*(\[[^\]]*\])?\.y", branch):
+            failures.append("ghost_send.comp: the packed branch still reads a pressure (.y)")
+    if "floatBitsToUint(velocity_material.w)" not in expander:
+        failures.append("expand_ghost_lists.comp: material is not read from the record's .w bits")
+    # V6_DIAG_POISON_G1: the pressure branch writes the NaN into P, the density branch into rho, both for layer 0
+    # (G1) only, and the unpacked SoA row is written from those two values
+    poison_checks = (
+        (r"layer == 0u && DIAGNOSTIC_POISON_INNER_REPLICA == DIAGNOSTIC_POISON_PRESSURE\)\s*\{\s*"
+         r"pressure = uintBitsToFloat\(QUIET_NAN_BITS\);", "pressure poison"),
+        (r"layer == 0u && DIAGNOSTIC_POISON_INNER_REPLICA == DIAGNOSTIC_POISON_DENSITY\)\s*\{\s*"
+         r"density = uintBitsToFloat\(QUIET_NAN_BITS\);", "density poison"),
+        (r"density_pressure\[particle_id\]\s*=\s*vec2\(density, pressure\);", "unpacked density / pressure store"),
+        (r"QUIET_NAN_BITS\s*=\s*0x7FC00000u;", "quiet NaN bits"),
+    )
+    for pattern, label in poison_checks:
+        if not re.search(pattern, expander):
+            failures.append(f"expand_ghost_lists.comp: {label} not found")
+    names_by_id: dict = {}
+    for path in sorted(shader_directory.glob("*.comp")) + sorted(shader_directory.glob("*.glsl")):
+        for constant_id, name in re.findall(r"constant_id\s*=\s*(\d+)\)\s*const\s+\w+\s+(\w+)",
+                                            path.read_text(encoding="utf-8")):
+            names_by_id.setdefault(int(constant_id), set()).add(name)
+    for constant_id, names in sorted(names_by_id.items()):
+        if len(names) > 1:
+            failures.append(f"spec constant id {constant_id} names {sorted(names)}")
+    if names_by_id.get(99) != {"DIAGNOSTIC_POISON_INNER_REPLICA"}:
+        failures.append(f"spec constant 99 is {names_by_id.get(99)}, expected DIAGNOSTIC_POISON_INNER_REPLICA")
+
+
+def check_spirv_current(failures: list) -> bool:
+    """Every tracked SPIR-V file equals a fresh glslc build of its source (the
+    compile_shaders_v6 flags; glslc output is deterministic): catches a commit
+    whose shader edit was not recompiled. Skipped when glslc is absent."""
+    import subprocess
+    import tempfile
+    from experiment.v6 import compile_shaders_v6
+    if not os.path.isfile(compile_shaders_v6.GLSLC):
+        print(f"[seam_layout] glslc not found ({compile_shaders_v6.GLSLC}): SPIR-V freshness check skipped")
+        return False
+    shader_directory = pathlib.Path(compile_shaders_v6.V6_SHADER_DIR)
+    with tempfile.TemporaryDirectory() as temporary:
+        for source in sorted(shader_directory.glob("*.comp")):
+            if source.name.startswith("_"):
+                continue
+            output = pathlib.Path(temporary) / f"{source.name}.spv"
+            result = subprocess.run([compile_shaders_v6.GLSLC, "--target-env=vulkan1.2", "-O", "-I",
+                                     str(shader_directory), str(source), "-o", str(output)],
+                                    capture_output=True, text=True)
+            tracked = shader_directory / "spv" / f"{source.name}.spv"
+            if result.returncode != 0:
+                failures.append(f"{source.name}: glslc failed: {result.stderr.strip()[:200]}")
+            elif not tracked.exists() or tracked.read_bytes() != output.read_bytes():
+                failures.append(f"{source.name}: tracked SPIR-V is stale (run compile_shaders_v6.py)")
+    return True
+
+
 def check_packed_rejection(failures: list) -> None:
-    """V6_PACKED_REPLICAS=1 without two ghost layers or without compact lists is rejected."""
+    """V6_PACKED_REPLICAS=1 without two ghost layers, without compact lists, or
+    with V6_DIAG_GHOST_SELF lacking 'density' (no G1 pressure travels) is
+    rejected; V6_DIAG_POISON_G1 parses off / pressure / density into spec 99 of
+    the global entries, and rejects other values and a run without packing."""
+    import experiment.v6.utils.case_v6 as case_v6
     import experiment.v6.utils.partition_v6 as partition_v6
+    import experiment.v6.utils.simulator_v6 as simulator_v6
     for ghost_layers, keep_departed, compact in ((1, 1, 1), (2, 1, 0)):
         _set_switches(ghost_layers, keep_departed, lean=1)
         os.environ["V6_COMPACT_GHOST_LISTS"] = str(compact)
@@ -552,6 +667,46 @@ def check_packed_rejection(failures: list) -> None:
             failures.append(f"packed accepted with layers={ghost_layers} compact={compact}")
         except ValueError:
             pass
+    _set_switches(2, 1, lean=1)
+    os.environ["V6_COMPACT_GHOST_LISTS"] = "1"
+    os.environ["V6_PACKED_REPLICAS"] = "1"
+    os.environ["V6_DIAG_GHOST_SELF"] = "correction"
+    try:
+        partition_v6.configured_packed_replicas()
+        failures.append("packed accepted with V6_DIAG_GHOST_SELF=correction (force would read G1 P = 0)")
+    except ValueError:
+        pass
+    os.environ.pop("V6_DIAG_GHOST_SELF", None)
+    slab = partition_v6.compute_chain_partition(_synthetic_global_case(case_v6), [1.0, 1.0],
+                                                pool_safety=1.2).slabs[0]
+    fake = _fake_simulator(simulator_v6.SphSimulatorV6, slab)
+    for text, expected in (("off", 0), ("", 0), ("0", 0), ("pressure", 1), ("Density", 2), (None, 0)):
+        if text is None:
+            os.environ.pop("V6_DIAG_POISON_G1", None)
+        else:
+            os.environ["V6_DIAG_POISON_G1"] = text
+        try:
+            entries = simulator_v6.SphSimulatorV6._global_entries(fake)
+        except ValueError as error:
+            failures.append(f"V6_DIAG_POISON_G1={text!r}: {error}")
+            continue
+        identifiers = [entry[0] for entry in entries]
+        if len(identifiers) != len(set(identifiers)):
+            failures.append(f"global spec entries repeat an id: {sorted(identifiers)}")
+        if (99, "I", expected) not in entries:
+            failures.append(f"V6_DIAG_POISON_G1={text!r}: spec 99 entry missing or != {expected}")
+    parse_poison = getattr(partition_v6, "configured_diagnostic_poison_inner_replica", None)
+    if parse_poison is None:
+        failures.append("partition_v6.configured_diagnostic_poison_inner_replica is missing")
+    for text, packed in ((("nan", "1"), ("pressure", "0")) if parse_poison else ()):
+        os.environ["V6_DIAG_POISON_G1"] = text
+        os.environ["V6_PACKED_REPLICAS"] = packed
+        try:
+            parse_poison()
+            failures.append(f"V6_DIAG_POISON_G1={text} accepted with V6_PACKED_REPLICAS={packed}")
+        except ValueError:
+            pass
+    os.environ.pop("V6_DIAG_POISON_G1", None)
     os.environ.pop("V6_COMPACT_GHOST_LISTS", None)
     os.environ.pop("V6_PACKED_REPLICAS", None)
 
@@ -565,6 +720,8 @@ def main() -> int:
         check_compact_ghost_lists(failures, depth_count)
         check_packed_replicas(failures, depth_count)
     check_packed_rejection(failures)
+    check_packed_shader_layout(failures)
+    spirv_checked = check_spirv_current(failures)
     _set_switches(1, 0)
     if failures:
         print(f"[seam_layout] {len(failures)} FAILURE(S):")
@@ -572,7 +729,9 @@ def main() -> int:
             print("  - " + failure)
         return 1
     print("[seam_layout] ALL PASS (layers=1 == v5 partition + transport; layers=2 column/pid algebra, "
-          "segment layout, install range; lean / compact / packed segments in 2-D and 3-D; packed rejection)")
+          "segment layout, install range; lean / compact / packed segments in 2-D and 3-D, packed allocation "
+          "tiling; packed rejection + V6_DIAG_POISON_G1 parsing; packed shader layout + poison branches + spec ids; "
+          + ("SPIR-V current)" if spirv_checked else "SPIR-V check SKIPPED: no glslc)"))
     return 0
 
 

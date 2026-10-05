@@ -75,8 +75,16 @@ ANATOMY_KEYS = (
     "install_leading_us", "install_trailing_us", "append_departed_us", "expand_lists_us",
     "band_compact_us", "correction_boundary_us", "density_boundary_us", "density_copy_us",
     "force_us", "readback_leading_dma_us", "readback_trailing_dma_us",
-    "upload_leading_dma_us", "upload_trailing_dma_us",
+    "upload_leading_dma_us", "upload_trailing_dma_us", "install_chain_us",
 )
+# per-frame series kept in the result (E23 install timing: pooled over trials, median / p95 per direction)
+INSTALL_KEYS = ("expand_lists_us", "install_leading_us", "install_trailing_us", "append_departed_us",
+                "install_chain_us")
+# host bytes per link and frame predicted from the count words (E23 formula; packed replicas 32 B for both
+# layers, 44 B per migrant without V6_TRANSPORT_EXTENSION, the two voxel lists 2 x 4 B x 2 NyNz, three count
+# words and the frame stamp 16 B)
+FORMULA_REPLICA_BYTES = 32
+FORMULA_MIGRANT_BYTES = 44
 
 
 def production_environment(dimension: int) -> dict:
@@ -123,13 +131,37 @@ def parse_definitions(definitions) -> dict:
 
 
 # --------------------------------------------------------------------------- worker
+def build_provenance(root: pathlib.Path, solver_file: pathlib.Path) -> dict:
+    def git(*arguments):
+        try:
+            completed = subprocess.run(["git", "-C", str(root), *arguments], capture_output=True, text=True)
+        except OSError:
+            return None
+        return completed.stdout.strip() if completed.returncode == 0 else None
+    status = git("status", "--porcelain", "--", "experiment/v6")
+    return {"root": str(root), "solver_file": str(solver_file), "head": git("rev-parse", "--short", "HEAD"),
+            "experiment_v6_dirty": None if status is None else bool(status)}     # None: git failed
+
+
 def run_worker(args) -> int:
+    build_root = pathlib.Path(args.build_root).resolve() if args.build_root else _REPO_ROOT
+    if args.build_root:
+        # the solver of another tree (OPT_BUILD_ROOT, e.g. a git worktree of the pre-change build): its
+        # experiment package first on sys.path, before the first experiment.* import of this process; the
+        # cases and the measurement code stay those of this tree (cwd = this tree's root)
+        sys.path.insert(0, str(build_root))
     from experiment.v6.utils.bench_v6 import BenchTimer, compute_durations, split_parity_ticks
     from experiment.v6.utils.case_loader_v6 import load_case_v6
     from experiment.v6.utils.orchestrator_v6 import ChainOrchestratorV6
     from experiment.v6.utils.partition_v6 import compute_chain_partition
     from experiment.v6.utils.simulator_v6 import SphSimulatorV6
     from experiment.v6.utils.vulkan_context_v6 import VulkanContextV6
+    import experiment.v6.utils.simulator_v6 as simulator_module
+    import struct
+
+    solver_file = pathlib.Path(simulator_module.__file__).resolve()
+    if build_root not in solver_file.parents:
+        raise RuntimeError(f"the solver resolved to {solver_file}, not under the build root {build_root}")
 
     global_case = load_case_v6(args.case)
     expected_total = int(global_case.initial.positions.shape[0])
@@ -140,7 +172,8 @@ def run_worker(args) -> int:
     result = {"case": args.case, "cuts": list(chain.cuts),
               "own_columns": [g.own_column_count for g in chain.geometry],
               "switches": {key: value for key, value in sorted(os.environ.items())
-                           if key.startswith("V6_")}}
+                           if key.startswith("V6_")},
+              "build": build_provenance(build_root, solver_file)}
     try:
         for index in range(2):
             contexts.append(VulkanContextV6.create(device_index=device_map[index],
@@ -176,15 +209,62 @@ def run_worker(args) -> int:
                 timers.append((bench, bench_transfer))
             per_sim_samples = [dict() for _ in sims]
             host_copy_us = {worker.label: [] for worker in workers}
+            # host-byte formula on the same frames: after a depth-1 step the sender staging still holds this
+            # frame's count words (the next readback comes with the next step) and worker.last_copy_bytes is
+            # this frame's count-aware copy
+            formula = {}
+            for worker in workers:
+                segments = worker.source._transport_segments[worker.source_direction]
+                offsets = {}
+                for segment in segments:
+                    region = getattr(segment, "region", None)
+                    if region in ("inner", "outer", "migrant") and region not in offsets:
+                        offsets[region] = segment.count_staging_offset
+                grid = worker.source.case.grid
+                formula[worker.label] = {"segments": segments, "offsets": offsets,
+                                         "cross_section_voxels": grid.grid_dimension_y * grid.grid_dimension_z,
+                                         "frames": 0, "n0": 0, "n1": 0, "n_mig": 0, "measured": 0,
+                                         "predicted": 0, "segment_model": 0, "max_abs_difference": 0,
+                                         "max_abs_segment_difference": 0}
             for _ in range(args.anatomy_frames):
                 record = orchestrator.step()
                 frame_n = record["frame_n"]
+                for worker in workers:
+                    plan = formula[worker.label]
+                    view = worker.source.sender_staging_view(worker.source_direction)
+
+                    def word(offset):
+                        return struct.unpack_from("<I", view, offset)[0]
+                    n0 = word(plan["offsets"]["inner"]) if "inner" in plan["offsets"] else 0
+                    n1 = word(plan["offsets"]["outer"]) if "outer" in plan["offsets"] else 0
+                    n_mig = word(plan["offsets"]["migrant"]) if "migrant" in plan["offsets"] else 0
+                    predicted = (FORMULA_REPLICA_BYTES * (n0 + n1) + FORMULA_MIGRANT_BYTES * n_mig
+                                 + 16 * plan["cross_section_voxels"] + 16)
+                    segment_model = sum(min(segment.size, word(segment.count_staging_offset) * segment.stride)
+                                        if segment.count_staging_offset is not None else segment.size
+                                        for segment in plan["segments"])
+                    measured = worker.last_copy_bytes
+                    plan["frames"] += 1
+                    plan["n0"] += n0
+                    plan["n1"] += n1
+                    plan["n_mig"] += n_mig
+                    plan["measured"] += measured
+                    plan["predicted"] += predicted
+                    plan["segment_model"] += segment_model
+                    plan["max_abs_difference"] = max(plan["max_abs_difference"], abs(measured - predicted))
+                    plan["max_abs_segment_difference"] = max(plan["max_abs_segment_difference"],
+                                                             abs(measured - segment_model))
                 for index, (bench, bench_transfer) in enumerate(timers):
                     ticks = bench.read_frame(include_defrag=False)
                     ticks.update(bench_transfer.read_frame(include_defrag=False))
                     if bench.parity_regions:
                         ticks, _previous = split_parity_ticks(ticks, frame_n % 2)
                     durations = compute_durations(ticks)
+                    if durations.get("expand_lists_us") is not None and durations.get("append_departed_us") is not None:
+                        # = c_append_departed_end - c_start: expand + install of every inbound direction + append
+                        durations["install_chain_us"] = (durations["expand_lists_us"] + durations["append_departed_us"]
+                                                         + sum(durations.get(f"install_{direction}_us") or 0.0
+                                                               for direction in ("leading", "trailing")))
                     for key in ANATOMY_KEYS:
                         if durations.get(key) is not None:
                             per_sim_samples[index].setdefault(key, []).append(durations[key])
@@ -194,9 +274,12 @@ def run_worker(args) -> int:
                         host_copy_us[worker.label].append((stamps["copy_ns"] - stamps["wait_ns"]) / 1000.0)
             result["anatomy"] = [
                 {key: {"median": statistics.median(values),
-                       "p90": sorted(values)[int(0.9 * (len(values) - 1))], "n": len(values)}
+                       "p90": sorted(values)[int(0.9 * (len(values) - 1))],
+                       "p95": sorted(values)[int(0.95 * (len(values) - 1))], "n": len(values)}
                  for key, values in samples.items()}
                 for samples in per_sim_samples]
+            result["anatomy_series"] = [{key: samples[key] for key in INSTALL_KEYS if key in samples}
+                                        for samples in per_sim_samples]
             # t_tr per link: s0 -> s1 = s0 readback trailing + worker + s1 upload leading
             def median_of(index, key):
                 entry = result["anatomy"][index].get(key)
@@ -212,6 +295,18 @@ def run_worker(args) -> int:
                     "host_copy_us": statistics.median(copies) if copies else None,
                     "upload_dma_us": median_of(destination, f"upload_{destination_direction}_dma_us"),
                 })
+                plan = formula[worker.label]
+                frames = plan["frames"]
+                links[worker.label]["formula"] = {
+                    "frames": frames, "cross_section_voxels": plan["cross_section_voxels"],
+                    "n0_mean": plan["n0"] / frames if frames else None,
+                    "n1_mean": plan["n1"] / frames if frames else None,
+                    "n_mig_mean": plan["n_mig"] / frames if frames else None,
+                    "measured_mean": plan["measured"] / frames if frames else None,
+                    "predicted_mean": plan["predicted"] / frames if frames else None,
+                    "segment_model_mean": plan["segment_model"] / frames if frames else None,
+                    "max_abs_difference": plan["max_abs_difference"],
+                    "max_abs_segment_difference": plan["max_abs_segment_difference"]}
             result["links"] = links
 
             # ---- 4. invariants + pool peaks ------------------------------------
@@ -281,14 +376,20 @@ def run_driver(args, configs: dict) -> int:
                 run_id = f"{case_name}/{config_name}/t{trial}"
                 if run_id in done:
                     continue
+                config = dict(configs[config_name])
+                # OPT_BUILD_ROOT (reserved key, not an environment variable): run this configuration's
+                # solver from another tree (e.g. a git worktree of the pre-change build)
+                build_root = config.pop("OPT_BUILD_ROOT", None)
                 environment = {key: value for key, value in os.environ.items()
-                               if not key.startswith("V6_")}
+                               if not key.startswith("V6_") and key != "OPT_BUILD_ROOT"}
                 environment.update(production_environment(dimension))
-                environment.update(resolve_by_dimension(configs[config_name], dimension))
+                environment.update(resolve_by_dimension(config, dimension))
                 command = [sys.executable, str(pathlib.Path(__file__).resolve()), "--worker",
                            "--case", case_path, "--device-map", args.device_map,
                            "--warmup", str(warmup), "--steps", str(steps),
                            "--anatomy-frames", str(anatomy_frames)]
+                if build_root:
+                    command += ["--build-root", str(pathlib.Path(build_root).resolve())]
                 log_path = out_dir / "logs" / (run_id.replace("/", "__") + ".log")
                 started = time.time()
                 print(f"[opt_perf] {run_id} ...", flush=True)
@@ -304,7 +405,7 @@ def run_driver(args, configs: dict) -> int:
                 result_line = [line for line in output.splitlines() if line.startswith(RESULT_PREFIX)]
                 record = {"run_id": run_id, "case": case_name, "config": config_name, "trial": trial,
                           "return_code": return_code, "wall_s": round(time.time() - started, 1),
-                          "ok": bool(result_line)}
+                          "ok": bool(result_line), "build_root": build_root}
                 if result_line:
                     record["result"] = json.loads(result_line[-1][len(RESULT_PREFIX):])
                     print(f"[opt_perf]   fps={record['result']['fps']:.1f} "
@@ -422,6 +523,9 @@ def parse_args():
     parser.add_argument("--warmup", type=int, default=1000)
     parser.add_argument("--steps", type=int, default=4000)
     parser.add_argument("--anatomy-frames", type=int, default=300)
+    parser.add_argument("--build-root", default=None,
+                        help="worker: import the solver from this tree (set per configuration with the reserved key "
+                             "OPT_BUILD_ROOT=<path> in --define)")
     parser.add_argument("--out", default="logs/seam_audit/opt/perf")
     parser.add_argument("--cases", default=None)
     parser.add_argument("--configs", default="l2")
