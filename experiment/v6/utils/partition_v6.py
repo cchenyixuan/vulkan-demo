@@ -374,9 +374,12 @@ def _ghost_pool_size(case: CaseV6) -> int:
 def compute_k_split(global_case: CaseV6, weights: list[float]) -> int:
     """Pick K_split_voxel_x so fluid particle count is split per weights.
 
-    Same algorithm as V1's partition.compute_partition: bin fluid particles
-    by global x_index, cumsum, searchsorted for target fraction. Returns
-    the voxel column where GPU 0's own range ends (and GPU 1's own begins).
+    Bin fluid particles by global x_index, cumsum, then the column boundary
+    nearest the target (nearest_cut; V1's partition.compute_partition took
+    searchsorted(side="left") as is, E31 changed both this and
+    compute_chain_cuts). Returns the voxel column where GPU 0's own range
+    ends (and GPU 1's own begins). Only legacy_dual_gpu_partition (the golden
+    reference of _test_partition_chain.py) calls it.
     """
     if len(weights) != 2:
         raise NotImplementedError("V5 v1.0 supports exactly 2 GPUs")
@@ -405,7 +408,7 @@ def compute_k_split(global_case: CaseV6, weights: list[float]) -> int:
     fraction_gpu0 = weights[0] / sum(weights)
     target = max(1, int(fluid_total * fraction_gpu0))
     cumsum = np.cumsum(fluid_counts)
-    k = int(np.searchsorted(cumsum, target, side="left"))
+    k = nearest_cut(cumsum, target)
     # Clamp so each side owns ≥ 1 column
     return max(1, min(k, grid_nx - 1))
 
@@ -680,7 +683,9 @@ def legacy_dual_gpu_partition(
     ``_test_partition_chain.py``. Production entry points go through
     ``compute_chain_partition`` / ``compute_dual_gpu_partition`` (below); this
     body is the pre-M2 code that months of GPU runs validated (50k drift=0,
-    the 12 h soak). Do not modify.
+    the 12 h soak). Do not modify. (E31, 2026-10-06: its cut comes from
+    compute_k_split, whose rule changed together with compute_chain_cuts to
+    the nearest column boundary, so the golden equality still holds.)
 
     Returns (slab_case_gpu0, slab_case_gpu1, k_split_voxel_x).
 
@@ -921,25 +926,46 @@ def _bin_fluid_counts(global_case: CaseV6) -> np.ndarray:
     return np.bincount(x_indices, minlength=grid_nx).astype(np.int64)
 
 
-def compute_chain_cuts(global_case: CaseV6, weights: list[float],
-                       minimum_own_columns: int) -> list[int]:
-    """N-1 monotonic cut columns from N weights.
+def nearest_cut(cumulative: np.ndarray, target: int) -> int:
+    """Cut column c (the slab on the left owns columns [.., c)) whose prefix
+    fluid count cumulative[c - 1] lies nearest ``target``.
 
-    Degenerates EXACTLY to the legacy compute_k_split for N=2 with
-    minimum_own_columns=1: same target formula, same searchsorted side,
-    same clamp.
+    searchsorted(side="left") gives the first column k with cumulative[k] >=
+    target, so the candidates are k (prefix cumulative[k - 1] < target) and
+    k + 1 (prefix cumulative[k] >= target). The pre-E31 rule always took k:
+    the slab left of every cut came out short by up to a whole column, and by
+    exactly one column whenever the target fell on a column boundary
+    (cumulative[k] == target), which every case with a uniform fluid lattice
+    hits (E29, 2-D 1M: 102 / 104 own columns, n_B 1.8 % apart). A tie (target
+    in the middle of column k) keeps k, the pre-E31 choice, so cases that were
+    already exact or tied do not move.
+    """
+    k = int(np.searchsorted(cumulative, target, side="left"))
+    if k >= len(cumulative):
+        return k
+    below = int(cumulative[k - 1]) if k > 0 else 0
+    above = int(cumulative[k])
+    return k + 1 if above - target < target - below else k
+
+
+def chain_cuts_from_counts(fluid_counts: np.ndarray, weights: list[float],
+                           minimum_own_columns: int) -> list[int]:
+    """N-1 monotonic cut columns from a per-column fluid histogram and N
+    weights: per cut the column boundary nearest its target (nearest_cut),
+    then monotonicity and the per-slab minimum width. Pure function (no
+    case), tested in _test_chain_cuts.py.
     """
     if any(weight <= 0 for weight in weights):
         raise ValueError(f"weights must be positive, got {weights}")
     slab_count = len(weights)
-    grid_nx = global_case.grid.grid_dimension_x
+    grid_nx = len(fluid_counts)
     if grid_nx < slab_count * minimum_own_columns:
         raise ValueError(
             f"grid has {grid_nx} columns; {slab_count} slabs need at least "
             f"{slab_count * minimum_own_columns} (minimum_own_columns="
             f"{minimum_own_columns})")
 
-    fluid_counts = _bin_fluid_counts(global_case)
+    fluid_counts = np.asarray(fluid_counts, dtype=np.int64)
     fluid_total = int(fluid_counts.sum())
     if fluid_total == 0:
         raise ValueError("global case has no fluid particles")
@@ -951,7 +977,7 @@ def compute_chain_cuts(global_case: CaseV6, weights: list[float],
     for weight in weights[:-1]:
         cumulative_weight += weight
         target = max(1, int(fluid_total * (cumulative_weight / weight_total)))
-        cuts.append(int(np.searchsorted(cumulative, target, side="left")))
+        cuts.append(nearest_cut(cumulative, target))
 
     # Enforce monotonicity + per-slab minimum width (leaving room for the
     # slabs still to come on the right).
@@ -964,6 +990,19 @@ def compute_chain_cuts(global_case: CaseV6, weights: list[float],
                 f"minimum_own_columns={minimum_own_columns}")
         cuts[j] = max(low, min(cuts[j], high))
     return cuts
+
+
+def compute_chain_cuts(global_case: CaseV6, weights: list[float],
+                       minimum_own_columns: int) -> list[int]:
+    """N-1 monotonic cut columns from N weights (chain_cuts_from_counts on
+    the case's per-column fluid histogram).
+
+    Degenerates EXACTLY to the legacy compute_k_split for N=2 with
+    minimum_own_columns=1: same target formula, same nearest-boundary rule,
+    same clamp.
+    """
+    return chain_cuts_from_counts(_bin_fluid_counts(global_case), weights,
+                                  minimum_own_columns)
 
 
 def _sized_pool(particle_count: int, pool_safety: float, workgroup: int,
