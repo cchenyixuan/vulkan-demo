@@ -3,10 +3,16 @@ _verify_cascade_force.py — per-particle A/B of V3.3 cascading force (V6_CASCAD
 against the legacy force_all path, on a K=2 chain.
 
 The cascade moves force_deep_interior into Phase B (reading this frame's rho/P from
-density_pressure_scratch) and leaves force_boundary (4-column band) in Phase C. If the
-band arithmetic or the data-dependency argument were wrong, the error would appear as a
-LOCALIZED difference at the band edge (columns 3..4 from the seam), far above the
-run-to-run floating-point floor (atomicAdd slot ordering -> neighbour sum order).
+density_pressure_scratch) and leaves force_boundary (f-column band, V6_BAND_WIDTHS
+"c,d,f", default f = 4) in Phase C. If the band arithmetic or the data-dependency
+argument were wrong, the error would appear as a LOCALIZED difference at a band edge
+(columns f-1..f from the seam for force), far above the run-to-run floating-point floor
+(atomicAdd slot ordering -> neighbour sum order). The same A/B compares two band-width
+sets (--a-env / --b-env with V6_BAND_WIDTHS).
+
+Band invariant (every run, every sim, every band width the run's boundary kernels use):
+the particles reachable through the band voxels' lists are exactly the own alive
+particles whose voxel column lies in the band.
 
 So we run the SAME case four times (legacy x2, cascade x2), match particles across runs
 by position (KD-tree), and compare per-particle acceleration / shift / velocity / density
@@ -95,7 +101,7 @@ def dump_state(args) -> None:
                 # Band invariant (V3.4 band-voxel dispatch): the particles reachable
                 # through the band voxels' lists must be exactly the own alive
                 # particles whose voxel column lies in the band, for every band
-                # width the boundary kernels use (2 / 3 / 4 columns).
+                # width the boundary kernels use (sim.band_widths, V6_BAND_WIDTHS).
                 grid, ghost = sim.case.grid, sim.case.ghost_grid
                 face = grid.grid_dimension_y * grid.grid_dimension_z
                 leading_x = ghost.leading_ghost_voxel_count // face
@@ -106,7 +112,8 @@ def dump_state(args) -> None:
                 own_alive = (velocity_mass_all := np.frombuffer(raw["velocity_mass"], np.float32)
                              .reshape(pool, 4))[own_slice, 3] > 0
                 own_x = (own_vid - 1) // face
-                for band in (2, 3, 4):
+                saved["band_widths"] = np.array(sim.band_widths, dtype=np.int64)
+                for band in sorted(set(sim.band_widths)):
                     columns = []
                     if leading_x > 0:
                         columns += list(range(leading_x, leading_x + band))
@@ -241,12 +248,16 @@ def main() -> int:
             return 1
         dumps[name] = dict(np.load(path))
 
+    def band_widths(dump) -> tuple:
+        """The run's V6_BAND_WIDTHS (dumps from before the switch: the 2/3/4 bands)."""
+        return tuple(int(width) for width in dump["band_widths"]) if "band_widths" in dump else (2, 3, 4)
+
     # band invariant: voxel-list reach == coordinate membership, every run, every sim, every band width
     invariant_ok = True
     for name, dump in dumps.items():
         for sim in range(int(dump["slabs"])):
             parts = []
-            for band in (2, 3, 4):
+            for band in sorted(set(band_widths(dump))):
                 lc, cc = int(dump[f"s{sim}_band{band}_list_count"]), int(dump[f"s{sim}_band{band}_coordinate_count"])
                 parts.append(f"band{band}: lists {lc} / coords {cc}")
                 invariant_ok &= (lc == cc)
@@ -276,8 +287,11 @@ def main() -> int:
                 f"{f}: max {r[f]['max']:.3e} (p99.9 {r[f]['p999']:.2e}, scale {r[f]['scale']:.2e})"
                 for f in FIELDS))
     # column table: acceleration max diff per column distance, noise vs test, both sims
+    force_bands = sorted({band_widths(dumps["legacy_1"])[2], band_widths(dumps["cascade_1"])[2]})
     print("\n[verify] max |delta acceleration| by voxel-column distance to the NEAREST seam "
-          "(all sims, both sides; force band = distance 0..3, band edge between 3 and 4):")
+          "(all sims, both sides; " + "; ".join(
+              f"force band {band} = distance 0..{band - 1}, band edge between {band - 1} and {band}"
+              for band in force_bands) + "):")
     print(f"{'dist':>5s} {'n':>7s} {'noise L-L':>12s} {'noise C-C':>12s} {'TEST L-C':>12s} {'TEST ratio':>11s}")
     noise_ll = report["pairs"]["noise: legacy vs legacy"]
     noise_cc = report["pairs"]["noise: cascade vs cascade"]
@@ -305,6 +319,7 @@ def main() -> int:
     worst = max(rows, key=lambda r: r[5]) if rows else None
     verdict = "PASS" if (invariant_ok and worst is not None and worst[5] < 3.0) else "FAIL"
     report["band_invariant_ok"] = bool(invariant_ok)
+    report["band_widths"] = {name: list(band_widths(dump)) for name, dump in dumps.items()}
     report["verdict"] = verdict
     report["worst_column_ratio"] = worst[5] if worst else None
     print(f"\n[verify] worst test/noise ratio over columns: {worst[5]:.2f} at column {worst[0]} -> {verdict}"
@@ -319,11 +334,13 @@ def main() -> int:
         fig, ax = plt.subplots(figsize=(9, 4))
         ax.plot(cols, [max(r[2], r[3]) for r in rows], "o-", color="#2a78d6", label="run-to-run noise floor (max of L-L, C-C)")
         ax.plot(cols, [r[4] for r in rows], "s-", color="#eb6834", label="TEST: legacy vs cascade")
-        ax.axvline(3.5, color="#888", linestyle="--", linewidth=1)
+        for band in force_bands:
+            ax.axvline(band - 0.5, color="#888", linestyle="--", linewidth=1)
         ax.set_yscale("log"); ax.set_xlabel("voxel-column distance to the nearest seam (0 = seam column)")
         ax.set_ylabel("max |delta acceleration| in column (m/s^2)")
         ax.set_title(f"Cascading force A/B, {pathlib.Path(args.case).parent.name}, K={slabs}, "
-                     f"{args.steps} steps; dashed = force band edge", fontsize=9)
+                     f"{args.steps} steps; dashed = force band edge"
+                     + ("s" if len(force_bands) > 1 else ""), fontsize=9)
         ax.grid(alpha=0.3); ax.legend(fontsize=8)
         fig.tight_layout(); fig.savefig(out_dir / "accel_diff_by_column.png", dpi=140)
         print(f"[verify] figure: {out_dir / 'accel_diff_by_column.png'}")

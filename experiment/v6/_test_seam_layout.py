@@ -19,6 +19,9 @@ _test_seam_layout.py — CPU-only checks of the V6 seam layout (no Vulkan device
    the partition is unchanged, the particle segments are the full layout's
    segments restricted to the 4 read fields (+ extension_fields), same device
    ranges, count words and stamp; 44 (60) B per migrant slot.
+6. V6_BAND_WIDTHS: parsing and rejection (c >= 2, d >= c, f >= d + 1; non-default
+   widths with V6_BAND_COMPACT_DISPATCH), spec 82 of the split pipelines, no
+   literal band width left in the simulator's spec entries and band dispatches.
 
 Usage:
     .venv/Scripts/python.exe experiment/v6/_test_seam_layout.py
@@ -711,6 +714,75 @@ def check_packed_rejection(failures: list) -> None:
     os.environ.pop("V6_PACKED_REPLICAS", None)
 
 
+def check_band_widths(failures: list) -> None:
+    """V6_BAND_WIDTHS="c,d,f": parsing (default 2,3,4), rejection of c < 2, d < c,
+    f < d + 1 and malformed values, rejection of non-default widths with
+    V6_BAND_COMPACT_DISPATCH, spec 82 of the correction / density / force split
+    pipelines, and no literal band width left at a spec 82 entry or a band
+    dispatch site of the simulator source."""
+    import re
+    import experiment.v6.utils.case_v6 as case_v6
+    import experiment.v6.utils.partition_v6 as partition_v6
+    import experiment.v6.utils.simulator_v6 as simulator_v6
+    parse = getattr(partition_v6, "configured_band_widths", None)
+    if parse is None:
+        failures.append("partition_v6.configured_band_widths is missing")
+        return
+    for text, expected in ((None, (2, 3, 4)), ("2,3,4", (2, 3, 4)), ("2,2,3", (2, 2, 3)), (" 3, 3, 5 ", (3, 3, 5))):
+        if text is None:
+            os.environ.pop("V6_BAND_WIDTHS", None)
+        else:
+            os.environ["V6_BAND_WIDTHS"] = text
+        try:
+            widths = parse()
+            if widths != expected:
+                failures.append(f"V6_BAND_WIDTHS={text!r} parsed as {widths}, expected {expected}")
+        except ValueError as error:
+            failures.append(f"V6_BAND_WIDTHS={text!r} rejected: {error}")
+    for text in ("1,2,3", "3,2,4", "2,2,2", "2,3,3", "2,3", "2,3,4,5", "a,b,c", ""):
+        os.environ["V6_BAND_WIDTHS"] = text
+        try:
+            parse()
+            failures.append(f"V6_BAND_WIDTHS={text!r} accepted")
+        except ValueError:
+            pass
+    _set_switches(2, 1)
+    slab = partition_v6.compute_chain_partition(_synthetic_global_case(case_v6), [1.0, 1.0],
+                                                pool_safety=1.2).slabs[0]
+    fake = _fake_simulator(simulator_v6.SphSimulatorV6, slab)
+    compact = simulator_v6._BAND_COMPACT
+    try:
+        for text, expected in (("2,3,4", (2, 3, 4)), ("2,2,3", (2, 2, 3))):
+            os.environ["V6_BAND_WIDTHS"] = text
+            simulator_v6._BAND_COMPACT = False
+            fake.band_widths = simulator_v6.SphSimulatorV6._configured_band_widths(fake)
+            for band_dispatch in (0, 1):
+                entries = (simulator_v6.SphSimulatorV6._correction_mode_entries(fake, 2, band_dispatch)
+                           + simulator_v6.SphSimulatorV6._density_mode_entries(fake, 2, band_dispatch)
+                           + simulator_v6.SphSimulatorV6._force_mode_entries(fake, 2, 1, band_dispatch))
+                ranges = tuple(entry[2] for entry in entries if entry[0] == 82)
+                if ranges != expected:
+                    failures.append(f"V6_BAND_WIDTHS={text}: spec 82 of correction / density / force = {ranges}")
+            simulator_v6._BAND_COMPACT = True
+            try:
+                simulator_v6.SphSimulatorV6._configured_band_widths(fake)
+                if expected != (2, 3, 4):
+                    failures.append(f"V6_BAND_WIDTHS={text} accepted with V6_BAND_COMPACT_DISPATCH=1")
+            except ValueError as error:
+                if expected == (2, 3, 4):
+                    failures.append(f"default band widths rejected with V6_BAND_COMPACT_DISPATCH=1: {error}")
+    finally:
+        simulator_v6._BAND_COMPACT = compact
+        os.environ.pop("V6_BAND_WIDTHS", None)
+    source = pathlib.Path(simulator_v6.__file__).read_text(encoding="utf-8")
+    for pattern, label in ((r"\(82, 'I', \d", "spec 82 entry"),
+                           (r"_per_band_dispatch_count\(\s*\d", "band dispatch size"),
+                           (r"_band_thread_count\(\s*\d", "band thread count"),
+                           (r"dispatch_boundary\(\"\w+\", \d", "single-GPU band dispatch")):
+        if re.search(pattern, source):
+            failures.append(f"simulator_v6.py: literal band width at a {label}")
+
+
 def main() -> int:
     failures: list = []
     check_v5_equivalence(failures)
@@ -721,6 +793,7 @@ def main() -> int:
         check_packed_replicas(failures, depth_count)
     check_packed_rejection(failures)
     check_packed_shader_layout(failures)
+    check_band_widths(failures)
     spirv_checked = check_spirv_current(failures)
     _set_switches(1, 0)
     if failures:
@@ -731,6 +804,7 @@ def main() -> int:
     print("[seam_layout] ALL PASS (layers=1 == v5 partition + transport; layers=2 column/pid algebra, "
           "segment layout, install range; lean / compact / packed segments in 2-D and 3-D, packed allocation "
           "tiling; packed rejection + V6_DIAG_POISON_G1 parsing; packed shader layout + poison branches + spec ids; "
+          "V6_BAND_WIDTHS parsing / rejection / spec 82; "
           + ("SPIR-V current)" if spirv_checked else "SPIR-V check SKIPPED: no glslc)"))
     return 0
 
