@@ -371,6 +371,12 @@ class SphSimulatorV6:
         self._spec_keepalive: list = []
 
         self._check_workgroup_limit()
+        # V6_PACKED_REPLICAS ships no G1 pressure: the G1-as-self density pass and the C4 copy of the G1 region must
+        # run. partition_v6.configured_packed_replicas() checks V6_DIAG_GHOST_SELF at call time, this module froze it
+        # at import (_DIAG_GHOST_SELF_KERNELS): both must allow it.
+        if configured_packed_replicas() and self.ghost_layers() >= 2 and "density" not in _DIAG_GHOST_SELF_KERNELS:
+            raise ValueError("V6_PACKED_REPLICAS=1 ships no G1 pressure, but this process imported simulator_v6 with "
+                             f"V6_DIAG_GHOST_SELF={','.join(_DIAG_GHOST_SELF_KERNELS)!r} (no 'density')")
 
         # Buffer allocation
         self._buffer_specs = self._build_buffer_specs()

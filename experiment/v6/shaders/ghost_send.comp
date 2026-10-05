@@ -215,12 +215,17 @@ void send_two_layers(uint y, uint z) {
                 // travels (expand_ghost_lists writes P = 0).
                 uint packed_base = packed_layer_base(GHOST_DIRECTION, layer_index);
                 uint region_slot = base_slot + slot_index;
-                store_packed_vec4(packed_base + 4u * region_slot,
-                                  vec4(position_voxel_id[source_particle_id].xyz,
-                                       density_pressure[source_particle_id].x));
+                // every source field is loaded before the first packed store: the
+                // compiler cannot move a load past a store to another buffer, and a
+                // load after the store costs one more serial memory round trip per
+                // replica in this per-(y, z) loop
+                vec4 source_position_density = vec4(position_voxel_id[source_particle_id].xyz,
+                                                    density_pressure[source_particle_id].x);
+                vec4 source_velocity_material = vec4(velocity_mass[source_particle_id].xyz,
+                                                     uintBitsToFloat(material[source_particle_id]));
+                store_packed_vec4(packed_base + 4u * region_slot, source_position_density);
                 store_packed_vec4(packed_base + 4u * REPLICA_REGION_SIZE + 4u * region_slot,
-                                  vec4(velocity_mass[source_particle_id].xyz,
-                                       uintBitsToFloat(material[source_particle_id])));
+                                  source_velocity_material);
             } else {
                 position_voxel_id[my_destination_particle_id] = vec4(position_voxel_id[source_particle_id].xyz,
                                                                      float(peer_replica_voxel_id));

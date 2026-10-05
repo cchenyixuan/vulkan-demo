@@ -43,13 +43,17 @@
 //   48       : V4 density    interior/boundary mode (DENSITY_MODE) — Path A+
 //   49       : V4 force      interior/boundary mode (FORCE_MODE)   — Path A+
 //   50 - 53  : capacities + workgroup size + pool size
-//   54 - 79  : reserved
+//   54 - 62  : ghost pool sizes, force density source, band dispatch / lanes /
+//              fake band column, band compaction (60 - 62 local to band_compact.comp)
+//   63 - 79  : reserved
 //   80 - 81  : multi-GPU leading/trailing ghost voxel counts
 //   82       : V4 boundary-band thickness (NEIGHBOR_X_RANGE)
-//   83 - 88  : reserved for multi-GPU ghost grid parameters
-//   89 - 127 : reserved (90 - 98 in use: ghost_send / install_migrations
-//              locals, V6_DELTA_DENSITY, PACKED_REPLICAS, INIT_SEAM_CLAMP ...;
-//              99 = V6_DIAG_POISON_G1, local to expand_ghost_lists.comp)
+//   83 - 89  : ghost layers, departed pool, ghost-self layer, replica region,
+//              lean transport, transport extension, compact ghost lists
+//   90 - 94  : ghost_send / install_migrations locals (direction, voxel columns)
+//   95 - 98  : V6_DELTA_DENSITY, reference density, INIT_SEAM_CLAMP, PACKED_REPLICAS
+//   99       : V6_DIAG_POISON_G1 (diagnostic, local to expand_ghost_lists.comp)
+//   100 - 127: reserved
 //
 // Per-material parameters (rest_density, viscosity, eos_constant, radius,
 // volume, rotor_angular_velocity) are NOT spec constants — they live in
