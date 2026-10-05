@@ -6,13 +6,14 @@
 // ============================================================================
 // density.comp - δ-plus WCSPH density + pressure update (stage 4 of leapfrog).
 //
-// Consumes correction outputs (M^-1, ∇ρ) and current-step density
+// Consumes self's correction output (M^-1) and current-step density
 // (density_pressure, the canonical buffer). Runs a 27-voxel neighbor loop per particle to
 // compute:
 //   density_drift     = Σ_j  -ρ_i · V_j · (v_j - v_i) · ∇W̃_ij
 //   density_diffusion = Σ_j   δ · h · c₀ · D_ij           (Antuono δ-SPH)
 //   D_ij              = 2 · ψ_ij · (-x_ij · ∇W̃_ij) / (r² + ε_h²) · V_j
-//   ψ_ij              = (ρ_j - ρ_i) - 0.5 · (M_i·∇ρ_i + M_j·∇ρ_j) · (-x_ij)
+//   ψ_ij              = ρ_j - ρ_i   (linear form; the full δ-plus ψ_ij is
+//                                    written out at the diffusion block)
 //
 //   ∇W̃_ij = M_i · ∇W_ij   (KCG-corrected gradient, using self's correction)
 //   x_ij   = r_i - r_j
@@ -46,14 +47,12 @@
 //                                              ghost_send time)
 //   density_gradient_kernel_sum              : own = step t, ghost = step t-1
 //
-// Self uses its own correction (step t fresh) for `corrected_gradient`.
-// Neighbor's correction is read inside the if (USE_KCG_CORRECTION) branch
-// and currently flows ONLY into the ψ_ij second term, which is commented
-// out — so neighbor's stale ghost correction is effectively dead code.
-// As long as the ψ_ij second term stays commented, USE_KCG_CORRECTION can
-// be toggled freely without introducing ghost-staleness mismatch.
-// Uncommenting the second term turns ghost staleness into a real ~1e-4
-// error and motivates Option D (V1.0a/V1.1).
+// Self uses its own correction (step t fresh) for `corrected_gradient`. No
+// neighbour's correction output (M_j^-1, ∇ρ_j) and no ∇ρ at all is read: the
+// only consumer would be the second term of the full ψ_ij, which is not
+// implemented (see the diffusion block). So ghost staleness of the correction
+// outputs cannot enter this kernel, and in phase B a column's density needs
+// only its own L plus its neighbours' r, v, m, ρ_n and material.
 // ============================================================================
 
 layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
@@ -80,11 +79,13 @@ void process_particle(uint self_particle_id) {
     // --- V4 Path A+ interior/boundary early-return ---------------------------
     // Density's deep-interior pipeline runs in Phase B concurrently with
     // transfer DMA (readback + worker memcpy + upload). To stay correct it
-    // skips any particle whose neighbor reach touches an OWN voxel column
-    // that correction_boundary owns (those columns' correction is still
-    // pre-install_migrations, so reading them would mix in stale data).
-    // NEIGHBOR_X_RANGE for density variants must therefore be ≥ correction's
-    // band (2) + 1 = 3 voxels (simulator overrides to 3 at pipeline build).
+    // skips every particle whose inputs are not final yet: its own L (final
+    // outside correction's band) and its neighbours' r, v, m, ρ_n, material
+    // (final from own column 2 on: this frame's migrants land in column 0 and
+    // the ghosts arrive in Phase C). No neighbour correction output is read,
+    // so NEIGHBOR_X_RANGE for density variants must be ≥ correction's band
+    // (simulator: V6_BAND_WIDTHS; the default 3 = correction's 2 + 1 dates
+    // from the commented-out ψ_ij term that read the neighbours' M_j, ∇ρ_j).
     // Default DENSITY_MODE = ALL preserves V1 single-pipeline behavior.
     ivec3 self_voxel_coord = own_coord_of(self_voxel_id);
     bool self_in_boundary_band = in_boundary_band(self_voxel_coord);
@@ -95,23 +96,17 @@ void process_particle(uint self_particle_id) {
     float self_stored_density = density_pressure[self_particle_id].x;   // ρ_n (V6_DELTA_DENSITY: ρ_n - ρ_ref)
     float self_density  = density_from_stored(self_stored_density);
 
-    // KCG correction matrix and density gradient from correction.comp output.
-    // When USE_KCG_CORRECTION is false (ablation), substitute identity / zero
+    // KCG correction matrix from correction.comp output (self only).
+    // When USE_KCG_CORRECTION is false (ablation), substitute identity
     // — reduces this kernel to plain δ-SPH (Antuono 2012) without the kernel
     // gradient correction. The branch is on a spec constant, so glslc -O
     // dead-code-eliminates one side at compile time (no runtime cost).
     mat3 self_correction_matrix;
-    vec3 self_density_gradient;
     if (USE_KCG_CORRECTION) {
         self_correction_matrix = unpack_correction_inverse(self_particle_id);
-        self_density_gradient  = density_gradient_kernel_sum[self_particle_id].xyz;
     } else {
         self_correction_matrix = mat3(1.0);
-        self_density_gradient  = vec3(0.0);
     }
-
-    // Corrected self density gradient (loop-invariant)
-    vec3 self_corrected_density_gradient = self_correction_matrix * self_density_gradient;
 
     // (self_voxel_coord already decoded above for boundary-band check)
 
@@ -168,18 +163,6 @@ void process_particle(uint self_particle_id) {
                     float neighbor_stored_density = density_pressure[neighbor_particle_id].x;
                     float neighbor_volume   = neighbor_mass / density_from_stored(neighbor_stored_density);
 
-                    // Read neighbor correction matrix and density gradient
-                    // (or identity / zero when KCG ablated; spec-const DCE'd).
-                    mat3 neighbor_correction_matrix;
-                    vec3 neighbor_density_gradient;
-                    if (USE_KCG_CORRECTION) {
-                        neighbor_correction_matrix = unpack_correction_inverse(neighbor_particle_id);
-                        neighbor_density_gradient  = density_gradient_kernel_sum[neighbor_particle_id].xyz;
-                    } else {
-                        neighbor_correction_matrix = mat3(1.0);
-                        neighbor_density_gradient  = vec3(0.0);
-                    }
-
                     // --- Kernel gradient: raw then M_i-corrected ------------
                     vec3 raw_gradient        = evaluate_kernel_gradient(position_difference_neighbor_to_self, distance);
                     vec3 corrected_gradient  = self_correction_matrix * raw_gradient;
@@ -194,25 +177,20 @@ void process_particle(uint self_particle_id) {
                         // density-gradient projection term that improves accuracy near
                         // sharp density jumps:
                         //   ψ_ij = (ρ_j - ρ_i) - 0.5 · (M_i·∇ρ_i + M_j·∇ρ_j) · (-x_ij)
-                        // The second term is intentionally commented out for V0 to keep
-                        // the operator simple while validating the rest of the pipeline.
-                        // The supporting computations below (corrected gradient sums) are
-                        // also kept so the second term can be restored by uncommenting.
-                        //
-                        // V1 STALENESS NOTE: while the second term stays commented out,
-                        // neighbor_correction_matrix and neighbor_density_gradient flow
-                        // only into corrected_density_gradient_sum, which is dead code
-                        // (glslc -O should DCE the entire chain). This shields V1 from
-                        // the fact that ghost neighbours' correction_inverse and
-                        // density_gradient_kernel_sum are 1 step stale under Option B
-                        // single sync. UNCOMMENTING the second term turns those reads
-                        // live and exposes the staleness as a ~1e-4 error in ψ_ij —
-                        // would require Option D double sync (V1.0a/V1.1) or accepting
-                        // the bias.
-                        vec3 neighbor_corrected_density_gradient = neighbor_correction_matrix * neighbor_density_gradient;
-                        vec3 corrected_density_gradient_sum = self_corrected_density_gradient + neighbor_corrected_density_gradient;
+                        // with M = unpack_correction_inverse() and ∇ρ =
+                        // density_gradient_kernel_sum.xyz (correction.comp outputs) of
+                        // self AND neighbour. The second term is not implemented: it was
+                        // commented out since V0 and its inputs were dead code (compiled
+                        // away by glslc -O); E26 (2026-10-05) removed them from the
+                        // source. Restoring it reads every neighbour's M_j and ∇ρ_j:
+                        //   - ghost neighbours' M_j / ∇ρ_j are one step stale under the
+                        //     single sync (a ~1e-4 error in ψ_ij) unless they are
+                        //     transported fresh (Option D double sync, V1.0a/V1.1);
+                        //   - in Phase B a column's density then needs its neighbours'
+                        //     final L, so density's band must again be ≥ correction's
+                        //     band + 1 (V6_BAND_WIDTHS 2,3,4; 2,2,3 would be wrong).
                         vec3 position_difference_self_to_neighbor = -position_difference_neighbor_to_self; // -x_ij
-                        float psi_ij = (neighbor_stored_density - self_stored_density);// - 0.5 * dot(corrected_density_gradient_sum, position_difference_self_to_neighbor);
+                        float psi_ij = neighbor_stored_density - self_stored_density;
 
                         // --- D_ij = 2·ψ_ij · (-x_ij · ∇W̃_ij) / (r² + ε_h²) · V_j ---
                         float dot_xji_gradient = dot(position_difference_self_to_neighbor, corrected_gradient);
