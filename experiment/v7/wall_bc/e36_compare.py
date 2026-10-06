@@ -134,8 +134,9 @@ def checkpoint_states(run: dict, window: tuple[float, float]) -> list[tuple[floa
 
 def corner_pressure(run: dict, window: tuple[float, float], support: float) -> dict:
     """Wall pressure near the two top corners (checkpoints in the window): wall / lid particles within 2 h of the
-    corner of the wall-row frame (|x| = y = 0.5 + dx), minus the mean fluid pressure, / (rho U^2 / 2); the fluid
-    particles within 2 h of the corner likewise. Also the mean fluid density / pressure."""
+    corner of the wall-row frame (|x| = y = 0.5 + dx) that have a fluid particle within h, minus the mean fluid
+    pressure, / (rho U^2 / 2); the fluid particles within 2 h of the corner likewise. Also the mean fluid density /
+    pressure."""
     spacing = run["spacing"]
     fluid_groups = run["meta"]["fluid_groups"]
     per_state = []
@@ -147,10 +148,14 @@ def corner_pressure(run: dict, window: tuple[float, float], support: float) -> d
         mean_pressure = float(pressure[fluid].mean())
         entry = {"time": time_value, "fluid_density_mean": float(density[fluid].mean()),
                  "fluid_pressure_mean": mean_pressure}
+        # wall particles that are some fluid particle's neighbour (a fluid particle within h): the only ones whose
+        # pressure enters the fluid's force (the deeper layers keep p = 0 under the Adami condition)
+        distance_to_fluid, _ = sampling.cKDTree(positions[fluid]).query(positions, k=1)
+        interacting = ~fluid & (distance_to_fluid < support)
         for corner, sign in (("top_left", -1.0), ("top_right", 1.0)):
             corner_point = np.array([sign * (0.5 + spacing), 0.5 + spacing])
             near = np.linalg.norm(positions - corner_point, axis=1) < 2.0 * support
-            for kind, mask in (("wall", near & ~fluid), ("fluid", near & fluid)):
+            for kind, mask in (("wall", near & interacting), ("fluid", near & fluid)):
                 values = (pressure[mask] - mean_pressure) / DYNAMIC_PRESSURE
                 entry[f"{corner}_{kind}"] = {"particles": int(mask.sum()), "mean": float(values.mean()),
                                              "min": float(values.min()), "max": float(values.max())}
@@ -278,7 +283,7 @@ def tables(results: list[dict], timing: dict | None) -> str:
         row(f"u:底壁行上方 {factor:g}h", [f"{item['near_wall']['bottom'][factor]:.4f}" for item in results])
     for corner, text in (("top_left", "左上角"), ("top_right", "右上角")):
         for kind, kind_text in (("wall", "壁粒子"), ("fluid", "流体")):
-            row(f"{text} 2h 内{kind_text}压力 (p − p̄_f)/(ρU²/2):均值 [min, max]", [
+            row(f"{text} 2h 内{kind_text}压力 (p − p̄_f)/(ρU²/2):均值 [min, max]" + ("(有流体邻居者)" if kind == "wall" else ""), [
                 "; ".join(f"{entry[f'{corner}_{kind}']['mean']:+.2f} [{entry[f'{corner}_{kind}']['min']:+.2f}, {entry[f'{corner}_{kind}']['max']:+.2f}]"
                           for entry in item["corners"]["checkpoints"]) for item in results])
     row("fps(运行中位数;GPU)", [f"{item['fps']['median']:.0f}({gpu_label(item)})" for item in results])
@@ -329,10 +334,12 @@ def timing_summary(directory: pathlib.Path) -> dict:
     return result
 
 
-STYLES = [("#969696", "--"), ("#08519c", "-"), ("#d95f0e", "-")]
+STYLES = [("#969696", "--"), ("#08519c", "-"), ("#d95f0e", "-"), ("#31a354", "-."), ("#756bb1", ":")]
+DIAGNOSTIC_STYLES = [("#08519c", "-"), ("#31a354", "-."), ("#756bb1", ":"), ("#d95f0e", "-")]
 
 
 def figures(results: list[dict], out: pathlib.Path) -> None:
+    styles = STYLES if len(results) <= 3 else DIAGNOSTIC_STYLES
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -342,7 +349,7 @@ def figures(results: list[dict], out: pathlib.Path) -> None:
 
     figure, axes = plt.subplots(1, 2, figsize=(6.8, 3.3))
     insets = [axes[0].inset_axes([0.55, 0.09, 0.40, 0.42]), axes[1].inset_axes([0.15, 0.06, 0.34, 0.40])]
-    for item, (color, style) in zip(results, STYLES):
+    for item, (color, style) in zip(results, styles):
         dense = np.array(item["profiles"]["dense"])
         u, v = np.array(item["profiles"]["u"]), np.array(item["profiles"]["v"])
         for axis, inset, x_data, y_data in ((axes[0], insets[0], u, dense), (axes[1], insets[1], dense, v)):
@@ -378,7 +385,7 @@ def figures(results: list[dict], out: pathlib.Path) -> None:
 
     figure, axes = plt.subplots(1, 2, figsize=(6.8, 2.9))
     support = 0.02
-    for item, (color, style) in zip(results, STYLES):
+    for item, (color, style) in zip(results, styles):
         for axis, key in ((axes[0], "lid_curve"), (axes[1], "bottom_curve")):
             curve = item["near_wall"][key]
             axis.plot(curve["u"], curve["y"], style, color=color, lw=0.9, label=item["figure_label"])
@@ -402,7 +409,7 @@ def figures(results: list[dict], out: pathlib.Path) -> None:
     plt.close(figure)
 
     figure, axis = plt.subplots(1, 1, figsize=(4.6, 2.8))
-    for item, (color, style) in zip(results, STYLES):
+    for item, (color, style) in zip(results, styles):
         track = item["density_track"]
         axis.plot(track["time"], track["min"], style, color=color, lw=0.6, label=item["figure_label"] + " (min / max)")
         axis.plot(track["time"], track["max"], style, color=color, lw=0.6)
