@@ -1,0 +1,263 @@
+{
+ "labels": {
+  "neither": "v6 K=1",
+  "no_slip": "诊断 2:只换无滑移",
+  "pressure": "诊断 4:只换压力",
+  "both": "adami_rho0(诊断 3)"
+ },
+ "window": [
+  80.01,
+  99.96000000000001
+ ],
+ "case": "cases\\lid_driven_cavity_2d_n250_xi0p001_eps0p0025\\case.yaml",
+ "deviation_percent": {
+  "neither": {
+   "psi_min": -8.642095995882432,
+   "u_min": -8.708735618654128,
+   "v_max": -9.31760665716272,
+   "v_min": -8.16510386168414
+  },
+  "no_slip": {
+   "psi_min": -2.971409496311315,
+   "u_min": -2.3263135402386546,
+   "v_max": -2.353261325776033,
+   "v_min": -2.399469498102075
+  },
+  "pressure": {
+   "psi_min": -1.8598350426950854,
+   "u_min": -2.175306013026745,
+   "v_max": -2.302430951601469,
+   "v_min": -1.9692855263169349
+  },
+  "both": {
+   "psi_min": 3.7342323220060827,
+   "u_min": 4.161750521227587,
+   "v_max": 4.620922276410986,
+   "v_min": 3.782049972336527
+  }
+ },
+ "noise_percentage_points": {
+  "neither": {
+   "psi_min": 0.0035202707595848332,
+   "u_min": 0.009742988896957759,
+   "v_max": 0.009031846207722422,
+   "v_min": 0.008428680343942854
+  },
+  "no_slip": {
+   "psi_min": 0.003014359639519195,
+   "u_min": 0.011480906645763699,
+   "v_max": 0.007272459472906793,
+   "v_min": 0.010969592799909701
+  },
+  "pressure": {
+   "psi_min": 0.016020515957844438,
+   "u_min": 0.01096779175359837,
+   "v_max": 0.010665106160813839,
+   "v_min": 0.011659993964678084
+  },
+  "both": {
+   "psi_min": 0.0032139512654795073,
+   "u_min": 0.010586714715715841,
+   "v_max": 0.009151872478081004,
+   "v_min": 0.012619482931615363
+  }
+ },
+ "effects_percentage_points": {
+  "psi_min": {
+   "no_slip_at_pressure_off": 5.670686499571117,
+   "no_slip_at_pressure_on": 5.594067364701168,
+   "pressure_at_no_slip_off": 6.782260953187347,
+   "pressure_at_no_slip_on": 6.705641818317398,
+   "main_no_slip": 5.632376932136142,
+   "main_pressure": 6.743951385752372,
+   "interaction": -0.07661913486994898
+  },
+  "u_min": {
+   "no_slip_at_pressure_off": 6.382422078415473,
+   "no_slip_at_pressure_on": 6.337056534254332,
+   "pressure_at_no_slip_off": 6.533429605627383,
+   "pressure_at_no_slip_on": 6.4880640614662415,
+   "main_no_slip": 6.359739306334903,
+   "main_pressure": 6.510746833546812,
+   "interaction": -0.04536554416114136
+  },
+  "v_max": {
+   "no_slip_at_pressure_off": 6.964345331386687,
+   "no_slip_at_pressure_on": 6.923353228012455,
+   "pressure_at_no_slip_off": 7.015175705561251,
+   "pressure_at_no_slip_on": 6.9741836021870185,
+   "main_no_slip": 6.94384927969957,
+   "main_pressure": 6.994679653874135,
+   "interaction": -0.04099210337423198
+  },
+  "v_min": {
+   "no_slip_at_pressure_off": 5.765634363582064,
+   "no_slip_at_pressure_on": 5.751335498653462,
+   "pressure_at_no_slip_off": 6.195818335367204,
+   "pressure_at_no_slip_on": 6.181519470438602,
+   "main_no_slip": 5.7584849311177635,
+   "main_pressure": 6.1886689029029025,
+   "interaction": -0.014298864928602661
+  }
+ },
+ "effect_noise_percentage_points": {
+  "psi_min": {
+   "no_slip_at_pressure_off": 0.004634508631683651,
+   "no_slip_at_pressure_on": 0.016339718917179256,
+   "pressure_at_no_slip_off": 0.01640272043827902,
+   "pressure_at_no_slip_on": 0.0044063416541661425,
+   "main_no_slip": 0.00849212995292665,
+   "main_pressure": 0.00849212995292665,
+   "interaction": 0.0169842599058533
+  },
+  "u_min": {
+   "no_slip_at_pressure_off": 0.015057790344369363,
+   "no_slip_at_pressure_on": 0.015243719507464533,
+   "pressure_at_no_slip_off": 0.01467031998957564,
+   "pressure_at_no_slip_on": 0.01561696980469308,
+   "main_no_slip": 0.010713403223033728,
+   "main_pressure": 0.010713403223033728,
+   "interaction": 0.021426806446067457
+  },
+  "v_max": {
+   "no_slip_at_pressure_off": 0.011595814447679889,
+   "no_slip_at_pressure_on": 0.01405351412553052,
+   "pressure_at_no_slip_off": 0.01397564793994823,
+   "pressure_at_no_slip_on": 0.011689543902142987,
+   "main_no_slip": 0.009109941986389205,
+   "main_pressure": 0.009109941986389205,
+   "interaction": 0.01821988397277841
+  },
+  "v_min": {
+   "no_slip_at_pressure_off": 0.013833821544902168,
+   "no_slip_at_pressure_on": 0.017181583417067846,
+   "pressure_at_no_slip_off": 0.014387428943237147,
+   "pressure_at_no_slip_on": 0.016720745068840748,
+   "main_no_slip": 0.011029295390616077,
+   "main_pressure": 0.011029295390616077,
+   "interaction": 0.022058590781232155
+  }
+ },
+ "cells": {
+  "neither": {
+   "git": {
+    "head": "0cd95d8",
+    "dirty": false
+   },
+   "fps": 2824.9827918313704,
+   "mean_velocity": {
+    "u": 9.229746022343568e-05,
+    "v": 0.0003669546001269497
+   },
+   "fluid_density_range_window": [
+    998.8411254882812,
+    1001.3787841796875
+   ],
+   "t_steady_online": 70.56
+  },
+  "no_slip": {
+   "git": {
+    "head": "13e06e5",
+    "dirty": false
+   },
+   "fps": 2299.768896150576,
+   "mean_velocity": {
+    "u": 0.000231428791919931,
+    "v": 0.00038419139820654514
+   },
+   "fluid_density_range_window": [
+    998.7761840820312,
+    1001.52587890625
+   ],
+   "t_steady_online": 70.56
+  },
+  "pressure": {
+   "git": {
+    "head": "945aa0d",
+    "dirty": false
+   },
+   "fps": 2448.6599952774245,
+   "mean_velocity": {
+    "u": -0.0033270813797780427,
+    "v": 0.0009045435743791635
+   },
+   "fluid_density_range_window": [
+    999.6956787109375,
+    1000.40185546875
+   ],
+   "t_steady_online": 80.64
+  },
+  "both": {
+   "git": {
+    "head": "13e06e5",
+    "dirty": false
+   },
+   "fps": 2263.355657667874,
+   "mean_velocity": {
+    "u": -0.0028864636342181642,
+    "v": 0.0008121747929638406
+   },
+   "fluid_density_range_window": [
+    999.6268920898438,
+    1000.5013427734375
+   ],
+   "t_steady_online": 80.64
+  }
+ },
+ "checkpoint_psi_min": {
+  "deviation_percent": {
+   "neither": {
+    "stored": -8.634714356479003,
+    "transport": -8.693846192467177,
+    "states": [
+     80.64,
+     90.72
+    ]
+   },
+   "no_slip": {
+    "stored": -2.977208612312359,
+    "transport": -2.9715187381108423,
+    "states": [
+     80.64,
+     90.72
+    ]
+   },
+   "pressure": {
+    "stored": -1.8648948661820006,
+    "transport": -2.785250213696131,
+    "states": [
+     80.64,
+     90.72
+    ]
+   },
+   "both": {
+    "stored": 3.7536154145464713,
+    "transport": 2.990809405574187,
+    "states": [
+     80.64,
+     90.72
+    ]
+   }
+  },
+  "effects_percentage_points": {
+   "stored": {
+    "no_slip_at_pressure_off": 5.657505744166644,
+    "no_slip_at_pressure_on": 5.618510280728472,
+    "pressure_at_no_slip_off": 6.769819490297003,
+    "pressure_at_no_slip_on": 6.73082402685883,
+    "main_no_slip": 5.638008012447559,
+    "main_pressure": 6.7503217585779165,
+    "interaction": -0.03899546343817217
+   },
+   "transport": {
+    "no_slip_at_pressure_off": 5.722327454356335,
+    "no_slip_at_pressure_on": 5.776059619270319,
+    "pressure_at_no_slip_off": 5.9085959787710465,
+    "pressure_at_no_slip_on": 5.9623281436850295,
+    "main_no_slip": 5.749193536813326,
+    "main_pressure": 5.935462061228038,
+    "interaction": 0.053732164913983915
+   }
+  }
+ }
+}

@@ -1,0 +1,62 @@
+{
+ "v6 K=1": {
+  "predict": 28.928,
+  "update_voxel": 22.528,
+  "correction": 532.224,
+  "density": 555.008,
+  "wall_pass": 0.0,
+  "force": 692.224,
+  "phase_c": 39.68,
+  "kernels": 1870.592,
+  "wall_share": 0.0,
+  "fps": 461.27149483223945,
+  "frames": 19,
+  "steps": 21000,
+  "case": "cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025/case.yaml"
+ },
+ "v7 K=1 WALL_BC=2(\u53ea\u6362\u65e0\u6ed1\u79fb)": {
+  "predict": 28.928,
+  "update_voxel": 22.528,
+  "correction": 529.664,
+  "density": 550.912,
+  "wall_pass": 61.44,
+  "force": 787.456,
+  "phase_c": 39.68,
+  "kernels": 2020.608,
+  "wall_share": 3.040668947168377,
+  "fps": 434.2353292347872,
+  "frames": 19,
+  "steps": 21000,
+  "case": "cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025/case.yaml"
+ },
+ "v7 K=1 WALL_BC=3(adami_rho0)": {
+  "predict": 29.184,
+  "update_voxel": 22.528,
+  "correction": 530.432,
+  "density": 538.624,
+  "wall_pass": 63.488,
+  "force": 791.552,
+  "phase_c": 39.68,
+  "kernels": 2015.488,
+  "wall_share": 3.1500063508192557,
+  "fps": 435.32487297119377,
+  "frames": 19,
+  "steps": 21000,
+  "case": "cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025/case.yaml"
+ },
+ "v7 K=1 WALL_BC=4(\u53ea\u6362\u538b\u529b)": {
+  "predict": 29.184,
+  "update_voxel": 22.528,
+  "correction": 531.712,
+  "density": 542.72,
+  "wall_pass": 61.44,
+  "force": 696.32,
+  "phase_c": 39.68,
+  "kernels": 1923.584,
+  "wall_share": 3.194037796113921,
+  "fps": 453.1148425076862,
+  "frames": 19,
+  "steps": 21000,
+  "case": "cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025/case.yaml"
+ }
+}
