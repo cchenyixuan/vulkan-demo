@@ -72,7 +72,7 @@ void process_particle(uint self_particle_id) {
     // E36 WALL_BC = 1: walls no longer integrate density; wall_extrapolate.comp writes their rho_w, p_w (scratch
     // and primary) after this kernel. A fluid particle's wall neighbours below enter with that stored rho_w (of
     // the previous step's wall pass) and their stored, prescribed velocity.
-    // (also WALL_BC = 3, the rho0-held diagnostic; WALL_BC = 2 keeps the v6 wall integration)
+    // (also WALL_BC = 3, adami_rho0; WALL_BC = 2 keeps the v6 wall integration)
     if (WALL_BC_WALL_PASS_DENSITY && self_params.kind == MATERIAL_BOUNDARY) return;
 
     // --- Read self state -----------------------------------------------------

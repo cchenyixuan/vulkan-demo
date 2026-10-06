@@ -120,10 +120,10 @@ void main() {
         dummy_velocity = wall_velocity;
     }
 
-    // Diagnostics: WALL_BC = 2 keeps the wall's v6 rho / P (density.comp wrote them), WALL_BC = 3 stores rho0
+    // WALL_BC = 2 (diagnostic) keeps the wall's v6 rho / P (density.comp wrote them), WALL_BC = 3 (adami_rho0) stores rho0
     // with p_w.
     if (WALL_BC_WALL_PASS_DENSITY) {
-        if (WALL_BC == WALL_BC_DIAGNOSTIC_ADAMI_REST_DENSITY) {
+        if (WALL_BC == WALL_BC_ADAMI_RHO0) {
             wall_stored_density = stored_rest_density(self_params.rest_density);
         }
         vec2 wall_density_pressure = vec2(wall_stored_density, wall_pressure);

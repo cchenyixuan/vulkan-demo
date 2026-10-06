@@ -140,12 +140,13 @@ _PHASE_A_NO_WAIT = os.environ.get("V7_PHASE_A_NO_WAIT", "1") == "1"
 # every force dispatch; once more before the bootstrap passes and after a
 # restart's voxelization). v7 runs one slab only (SphSimulatorV7 refuses a
 # peer). Read once at import.
-# Diagnostics (not the specified condition, common.glsl): 2 = v6 wall density /
-# pressure + the Adami dummy velocity only, 3 = Adami with the wall density held
-# at rho0.
+# 2 = no-slip only (diagnostic: v6 wall density / pressure + the Adami dummy
+# velocity), 3 = adami_rho0 (Adami p_w and dummy velocity, walls store rho0; the
+# v7 candidate wall since the E36 decision of 2026-10-06; common.glsl).
 _WALL_BC = int(os.environ.get("V7_WALL_BC", "0"))
 if _WALL_BC not in (0, 1, 2, 3):
-    raise ValueError(f"V7_WALL_BC={_WALL_BC}: expected 0 (v6 walls), 1 (Adami) or the diagnostics 2, 3")
+    raise ValueError(f"V7_WALL_BC={_WALL_BC}: expected 0 (v6 walls), 1 (Adami), 2 (no-slip only, diagnostic) "
+                     "or 3 (adami_rho0)")
 # V7_FAKE_BAND_TEST moves part of the density pass into phase C (density_
 # boundary_band, after phase B's wall pass), so the wall pass would read band
 # fluid density before this step's band density exists (E36 review); refused.

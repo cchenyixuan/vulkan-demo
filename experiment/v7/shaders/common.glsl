@@ -372,19 +372,20 @@ layout(constant_id = 97) const bool INIT_SEAM_CLAMP = false;
 //       longer integrate density. Continuity, delta term and KCG read the wall's stored rho_w (V_w = m / rho_w)
 //       and stored, prescribed velocity; correction and density run before the wall pass, so they see the
 //       rho_w of the previous step's pass.
-//   Diagnostics (E36, not the specified condition): one ingredient of the Adami condition at a time.
-//   2 = no-slip only: the v6 wall density / pressure (walls integrate as with 0), plus the Adami dummy velocity
-//       in the viscous term (wall_extrapolate.comp writes wall_dummy_velocity only).
-//   3 = Adami with the wall density held at rho0: as 1 (p_w, dummy velocity, walls do not integrate), but the
-//       wall pass stores rho0 instead of EOS^-1(p_w), so continuity, delta term, KCG and V_w see rho0 as in v6.
+//   2 = no-slip only (E36 diagnostic): the v6 wall density / pressure (walls integrate as with 0), plus the
+//       Adami dummy velocity in the viscous term (wall_extrapolate.comp writes wall_dummy_velocity only).
+//   3 = adami_rho0, the v7 candidate wall (E36 decision, 2026-10-06): as 1 (p_w, dummy velocity, walls do not
+//       integrate), but the wall pass stores rho0 instead of EOS^-1(p_w), so continuity, delta term, KCG and V_w
+//       see rho0 as in v6. Without a drift EOS^-1(p_w) and rho0 differ by p_w / (rho0 c0^2) ~ Ma^2 ~ 1e-4; with
+//       1 the mean fluid density drifts (no rho0 reference in the delta term), with 3 it does not.
 layout(constant_id = 100) const uint WALL_BC = 0u;
 const uint WALL_BC_V6    = 0u;
 const uint WALL_BC_ADAMI = 1u;
-const uint WALL_BC_DIAGNOSTIC_NO_SLIP_ONLY       = 2u;
-const uint WALL_BC_DIAGNOSTIC_ADAMI_REST_DENSITY = 3u;
+const uint WALL_BC_DIAGNOSTIC_NO_SLIP_ONLY = 2u;
+const uint WALL_BC_ADAMI_RHO0              = 3u;
 // walls skip the density pass and take rho, P from the wall pass (1, 3); a wall neighbour's viscous velocity is
 // the dummy velocity (1, 2, 3)
-const bool WALL_BC_WALL_PASS_DENSITY = (WALL_BC == WALL_BC_ADAMI || WALL_BC == WALL_BC_DIAGNOSTIC_ADAMI_REST_DENSITY);
+const bool WALL_BC_WALL_PASS_DENSITY = (WALL_BC == WALL_BC_ADAMI || WALL_BC == WALL_BC_ADAMI_RHO0);
 const bool WALL_BC_DUMMY_VELOCITY    = (WALL_BC != WALL_BC_V6);
 // Lower bound of the base 1 + p_w / B of the inverse Tait EOS (helpers.glsl stored_density_from_pressure):
 // guards the pow against a non-positive base. A floored evaluation is counted in wall_density_floor_count.
