@@ -146,6 +146,12 @@ _PHASE_A_NO_WAIT = os.environ.get("V7_PHASE_A_NO_WAIT", "1") == "1"
 _WALL_BC = int(os.environ.get("V7_WALL_BC", "0"))
 if _WALL_BC not in (0, 1, 2, 3):
     raise ValueError(f"V7_WALL_BC={_WALL_BC}: expected 0 (v6 walls), 1 (Adami) or the diagnostics 2, 3")
+# V7_FAKE_BAND_TEST moves part of the density pass into phase C (density_
+# boundary_band, after phase B's wall pass), so the wall pass would read band
+# fluid density before this step's band density exists (E36 review); refused.
+if _WALL_BC != 0 and _FAKE_BAND_COLUMN > 0:
+    raise ValueError("V7_FAKE_BAND_TEST is not supported with V7_WALL_BC != 0: the phase B wall pass would read the "
+                     "fake band's fluid density before density_boundary_band writes it")
 if _FAST_SUBMIT:
     from vulkan._vulkancache import ffi as _ffi
     from vulkan._vulkan import lib as _lib

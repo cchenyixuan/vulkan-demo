@@ -630,6 +630,11 @@ def main() -> int:
                     handle.write(json.dumps(row) + "\n")
                 add_to_window(step, kinetic_energy, profile)
                 last["wall"], last["step"] = time.perf_counter(), step
+                if solver != "v6":
+                    # v7 runs: the fluid density of the last sample goes into the segment record, so a drift of the
+                    # mean density (E36, WALL_BC = 1) is visible there (no v6 output changes)
+                    last["fluid_density"] = {"time": row["time"], "min": row["density_min"], "max": row["density_max"],
+                                             "mean": float(light["density"][fluid].mean())}
                 if step % window_steps == 0 and steady.get("steady_time") is None:
                     index = step // window_steps - 1
                     current, previous = window_sums.get(index), window_sums.get(index - 1)
@@ -694,7 +699,8 @@ def main() -> int:
         if solver == "v7":
             # diagnostic, not an invariant (cumulative inverse-EOS floor hits of the wall pass)
             failure["diagnostics"] = {"wall_density_floor_count": sum(
-                sim.readback_global_status().get("wall_density_floor_count", 0) for sim in sims)}
+                sim.readback_global_status().get("wall_density_floor_count", 0) for sim in sims),
+                "last_sample_fluid_density": last.get("fluid_density")}
         status = "complete" if all(value == 0 for value in totals.values()) else "invalid"
         if status == "invalid":
             failure["invariant_violation"] = True
