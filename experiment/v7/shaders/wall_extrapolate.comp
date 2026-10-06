@@ -1,0 +1,126 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "common.glsl"
+#include "helpers.glsl"
+
+// ============================================================================
+// wall_extrapolate.comp - E36 wall boundary condition of Adami, Hu & Adams
+// (2012), WALL_BC = 1 only; v7 runs one slab, so every neighbour is local.
+//
+// One thread per own pool slot; only wall particles (MATERIAL_BOUNDARY) work.
+// For wall particle w, over its FLUID neighbours f within the support radius h
+// (Wendland C4 and the 9 / 27-voxel loop of correction / density / force):
+//
+//   u~_w    = sum_f u_f W_wf / sum_f W_wf
+//   p_w     = [sum_f p_f W_wf + (g - a_w) . sum_f rho_f r_wf W_wf] / sum_f W_wf
+//             r_wf = r_w - r_f, g = (GRAVITY_X, GRAVITY_Y, GRAVITY_Z), a_w = 0
+//             (the walls do not move; the lid slides at constant speed)
+//   rho_w   = EOS^-1(p_w)   (helpers.glsl stored_density_from_pressure; the base
+//             1 + p_w / B floored at WALL_PRESSURE_BASE_FLOOR, counted)
+//   u_dummy = 2 u_w - u~_w  (u_w = the wall's stored, prescribed velocity)
+//
+// sum_f W_wf = 0 (no fluid neighbour): p_w = 0, rho_w = rho0, u_dummy = u_w.
+//
+// u_f is the fluid's stored velocity (the half-step v^{n+1/2} that density and
+// force use); rho_f, p_f this step's (density's output). They are read from
+// FORCE_DENSITY_SOURCE: scratch in phase B before the scratch -> primary copy
+// (the cascading force_deep_interior_scratch reads scratch), primary after the
+// copy (bootstrap, non-cascading phase C, single-cmd path, restart).
+//
+// Writes (rho_w stored, p_w) to BOTH density_pressure and
+// density_pressure_scratch, whichever force reads, and the phase C copy (own
+// range) then copies the same values; (u_dummy, sum_f W_wf) to
+// wall_dummy_velocity. The wall's position and stored velocity are not touched.
+// correction and density of the NEXT step read this rho_w from primary.
+// ============================================================================
+
+layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
+
+vec2 read_density_pressure(uint particle_id) {
+    if (FORCE_DENSITY_SOURCE == FORCE_DENSITY_SOURCE_SCRATCH) {
+        return density_pressure_scratch[particle_id];
+    }
+    return density_pressure[particle_id];
+}
+
+void main() {
+    uint self_particle_id = gl_GlobalInvocationID.x + own_first_pid();
+    if (self_particle_id > own_last_pid()) return;
+
+    uint self_group_id = material[self_particle_id];
+    MaterialParameters self_params = material_parameters[self_group_id];
+    if (self_params.kind != MATERIAL_BOUNDARY) return;
+
+    vec4 self_position_voxel_id = position_voxel_id[self_particle_id];
+    vec3 self_position          = self_position_voxel_id.xyz;
+    uint self_voxel_id          = uint(round(self_position_voxel_id.w));
+    if (self_voxel_id == VOXEL_ID_DEAD) return;
+    ivec3 self_voxel_coord = own_coord_of(self_voxel_id);
+
+    float kernel_weight_sum           = 0.0;          // sum_f W_wf
+    vec3  velocity_weighted_sum       = vec3(0.0);    // sum_f u_f W_wf
+    float pressure_weighted_sum       = 0.0;          // sum_f p_f W_wf
+    vec3  density_offset_weighted_sum = vec3(0.0);    // sum_f rho_f r_wf W_wf
+
+    int neighbor_z_range = int(NEIGHBOR_Z_RANGE);
+    // Same nesting as correction / density / force (innermost = y, the fastest
+    // axis of the x-slowest voxel id).
+    for (int delta_x = -1; delta_x <= 1; delta_x++) {
+        for (int delta_z = -neighbor_z_range; delta_z <= neighbor_z_range; delta_z++) {
+            for (int delta_y = -1; delta_y <= 1; delta_y++) {
+                ivec3 neighbor_coord = self_voxel_coord + ivec3(delta_x, delta_y, delta_z);
+                if (!in_own_grid(neighbor_coord)) continue;
+
+                uint neighbor_voxel_id = own_voxel_id_of(neighbor_coord);
+                uint neighbor_voxel_particle_count = inside_particle_count[neighbor_voxel_id];
+
+                for (uint slot_index = 0u; slot_index < neighbor_voxel_particle_count; slot_index++) {
+                    uint neighbor_particle_id = inside_particle_index[neighbor_voxel_id * MAX_PARTICLES_PER_VOXEL + slot_index];
+                    if (neighbor_particle_id == INSIDE_SLOT_EMPTY) break;
+
+                    // fluid neighbours only (the wall itself and other walls are skipped here)
+                    uint neighbor_group_id = material[neighbor_particle_id];
+                    if (material_parameters[neighbor_group_id].kind != MATERIAL_FLUID) continue;
+
+                    vec3  neighbor_position = position_voxel_id[neighbor_particle_id].xyz;
+                    vec3  position_difference_neighbor_to_self = self_position - neighbor_position; // r_wf = r_w - r_f
+                    float distance = length(position_difference_neighbor_to_self);
+                    if (distance >= SMOOTHING_LENGTH || distance < 1e-12) continue;
+
+                    float kernel_value = evaluate_kernel(distance);
+                    vec2  neighbor_density_pressure = read_density_pressure(neighbor_particle_id);
+                    float neighbor_density = density_from_stored(neighbor_density_pressure.x);
+
+                    kernel_weight_sum           += kernel_value;
+                    velocity_weighted_sum       += velocity_mass[neighbor_particle_id].xyz * kernel_value;
+                    pressure_weighted_sum       += neighbor_density_pressure.y * kernel_value;
+                    density_offset_weighted_sum += neighbor_density * kernel_value * position_difference_neighbor_to_self;
+                }
+            }
+        }
+    }
+
+    vec3 wall_velocity = velocity_mass[self_particle_id].xyz;   // prescribed: 0, or the lid speed
+    float wall_pressure;
+    float wall_stored_density;
+    vec3  dummy_velocity;
+    if (kernel_weight_sum > 0.0) {
+        vec3 body_acceleration = vec3(GRAVITY_X, GRAVITY_Y, GRAVITY_Z);    // g - a_w, a_w = 0
+        wall_pressure = (pressure_weighted_sum + dot(body_acceleration, density_offset_weighted_sum))
+                      / kernel_weight_sum;
+        bool floored;
+        wall_stored_density = stored_density_from_pressure(wall_pressure, self_params.rest_density,
+                                                           self_params.eos_constant, floored);
+        if (floored) atomicAdd(wall_density_floor_count, 1u);
+        dummy_velocity = 2.0 * wall_velocity - velocity_weighted_sum / kernel_weight_sum;
+    } else {
+        wall_pressure = 0.0;
+        wall_stored_density = stored_rest_density(self_params.rest_density);
+        dummy_velocity = wall_velocity;
+    }
+
+    vec2 wall_density_pressure = vec2(wall_stored_density, wall_pressure);
+    density_pressure[self_particle_id]         = wall_density_pressure;
+    density_pressure_scratch[self_particle_id] = wall_density_pressure;
+    wall_dummy_velocity[self_particle_id]      = vec4(dummy_velocity, kernel_weight_sum);
+}

@@ -53,7 +53,8 @@
 //   90 - 94  : ghost_send / install_migrations locals (direction, voxel columns)
 //   95 - 98  : V7_DELTA_DENSITY, reference density, INIT_SEAM_CLAMP, PACKED_REPLICAS
 //   99       : V7_DIAG_POISON_G1 (diagnostic, local to expand_ghost_lists.comp)
-//   100 - 127: reserved
+//   100      : WALL_BC (V7_WALL_BC, E36 wall boundary condition)
+//   101 - 127: reserved
 //
 // Per-material parameters (rest_density, viscosity, eos_constant, radius,
 // volume, rotor_angular_velocity) are NOT spec constants — they live in
@@ -360,6 +361,24 @@ layout(constant_id = 98) const bool PACKED_REPLICAS = false;
 // bootstrap defrag. Lattice initial conditions never sit on a column edge.
 layout(constant_id = 97) const bool INIT_SEAM_CLAMP = false;
 
+// WALL_BC (V7_WALL_BC, E36; v7 runs one slab only): the wall boundary condition.
+//   0 = the v6 walls: a wall particle integrates its density from its fluid neighbours (density.comp skips
+//       wall-wall pairs), stores rho0 and the pressure EOS(rho0 + dt * drho/dt); force uses its stored
+//       velocity (0, or the lid speed) in the viscous term.
+//   1 = Adami, Hu & Adams (2012): wall_extrapolate.comp, after density and the scratch -> primary copy and
+//       before force, sets every wall particle's pressure to the Shepard average of its fluid neighbours'
+//       pressure (+ the body-force term), its density to EOS^-1 of that pressure and a dummy velocity
+//       2 u_w - (Shepard average of the fluid velocity) for the viscous term (wall_dummy_velocity). Walls no
+//       longer integrate density. Continuity, delta term and KCG read the wall's stored rho_w (V_w = m / rho_w)
+//       and stored, prescribed velocity; correction and density run before the wall pass, so they see the
+//       rho_w of the previous step's pass.
+layout(constant_id = 100) const uint WALL_BC = 0u;
+const uint WALL_BC_V6    = 0u;
+const uint WALL_BC_ADAMI = 1u;
+// Lower bound of the base 1 + p_w / B of the inverse Tait EOS (helpers.glsl stored_density_from_pressure):
+// guards the pow against a non-positive base. A floored evaluation is counted in wall_density_floor_count.
+const float WALL_PRESSURE_BASE_FLOOR = 1.0e-3;
+
 // ============================================================================
 // Scalar constants (compile-time, shared by all shaders)
 // ============================================================================
@@ -518,7 +537,14 @@ layout(std430, set = 0, binding = 9) buffer ExtensionFieldsBuffer {
     vec4 extension_fields[];
 };
 
-// binding 10 reserved for GlobalIdBuffer (FTLE / Lagrangian tracking)
+layout(std430, set = 0, binding = 10) buffer WallDummyVelocityBuffer {
+    // WALL_BC = 1 only (E36): per wall particle, written by wall_extrapolate.comp every step before force reads
+    // it: (u_dummy = 2 u_w - u~_w, Sigma_f W_wf). Fluid slots are never written. Transient: defrag does not
+    // permute it (it is recomputed before every read); not part of the restart state.
+    vec4 wall_dummy_velocity[];
+};
+
+// binding 11 reserved for GlobalIdBuffer (FTLE / Lagrangian tracking; was binding 10)
 
 // ============================================================================
 // Descriptor set 1 — Voxel cell structures (own + ghost merged in V1)
@@ -726,7 +752,9 @@ layout(std430, set = 3, binding = 0) buffer GlobalStatusBuffer {
     //   round). Both were silent losses.
     uint  initialization_seam_clamp_count;
     uint  overflow_initialization_outside;
-    uint  status_reserved_2;
+    // wall_density_floor_count (WALL_BC = 1, cumulative, diagnostic): wall-pass evaluations whose inverse-EOS
+    //   base 1 + p_w / B was raised to WALL_PRESSURE_BASE_FLOOR (was status_reserved_2).
+    uint  wall_density_floor_count;
     uint  status_reserved_3;
     uint  status_reserved_4;
     uint  status_reserved_5;

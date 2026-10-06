@@ -441,6 +441,9 @@ class ChainOrchestratorV7:
         slab_count = len(self.sims)
         if slab_count < 1:
             raise ValueError("need at least one sim")
+        if slab_count != 1:
+            # E36: v7 is the single-slab wall-boundary experiment
+            raise ValueError(f"v7 supports K = 1 only, got {slab_count} slabs")
         self.defrag_cadence = defrag_cadence
 
         for index, sim in enumerate(self.sims):

@@ -182,6 +182,42 @@ float tait_pressure(float stored_density, float rest_density, float eos_constant
     return eos_constant * x * series;
 }
 
+// Inverse Tait EOS (E36 wall pass): the STORED density whose tait_pressure is ``pressure``,
+// rho = rho0 (1 + P / B)^(1 / gamma). The base 1 + P / B is raised to WALL_PRESSURE_BASE_FLOOR when it falls
+// below it (``floored``). Off: rho0 * base^(1 / gamma). On (DELTA_DENSITY): rho - REFERENCE_DENSITY
+// = rho0 ((1 + y)^(1 / gamma) - 1) + (rho0 - REFERENCE_DENSITY) with y = P / B, the bracket as the binomial
+// series sum_k C(1 / gamma, k) y^k, k = 1..8, by Horner for |y| < 0.1 (truncation < 1e-9 relative), by pow
+// otherwise.
+float stored_density_from_pressure(float pressure, float rest_density, float eos_constant, out bool floored) {
+    float pressure_ratio = pressure / eos_constant;
+    float base = 1.0 + pressure_ratio;
+    floored = base < WALL_PRESSURE_BASE_FLOOR;
+    if (floored) {
+        base = WALL_PRESSURE_BASE_FLOOR;
+        pressure_ratio = base - 1.0;
+    }
+    float exponent = 1.0 / POWER_PARAMETER;
+    if (!DELTA_DENSITY) {
+        return rest_density * pow(base, exponent);
+    }
+    float bracket;
+    if (abs(pressure_ratio) < 0.1) {
+        float coefficient[9];
+        coefficient[0] = 1.0;
+        for (int order = 1; order <= 8; order++) {
+            coefficient[order] = coefficient[order - 1] * (exponent - float(order - 1)) / float(order);
+        }
+        float series = coefficient[8];
+        for (int order = 7; order >= 1; order--) {
+            series = coefficient[order] + pressure_ratio * series;
+        }
+        bracket = pressure_ratio * series;
+    } else {
+        bracket = pow(base, exponent) - 1.0;
+    }
+    return rest_density * bracket + (rest_density - REFERENCE_DENSITY);
+}
+
 uint extended_voxel_count() {
     return GRID_DIMENSION_X * GRID_DIMENSION_Y * GRID_DIMENSION_Z;
 }

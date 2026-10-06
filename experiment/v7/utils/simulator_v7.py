@@ -134,6 +134,15 @@ _FAST_SUBMIT = os.environ.get("V7_FAST_SUBMIT", "1") == "1"   # default ON since
 # spread). The frame_done SIGNAL stays (host, workers and the next frame's
 # readback fence rely on it). Read once at import.
 _PHASE_A_NO_WAIT = os.environ.get("V7_PHASE_A_NO_WAIT", "1") == "1"
+# E36 wall boundary condition (spec const 100 WALL_BC, common.glsl): 0 = the v6
+# walls (default: v7 then reproduces v6 bit for bit), 1 = Adami et al. 2012
+# (wall_extrapolate.comp after density + the scratch -> primary copy, before
+# every force dispatch; once more before the bootstrap passes and after a
+# restart's voxelization). v7 runs one slab only (SphSimulatorV7 refuses a
+# peer). Read once at import.
+_WALL_BC = int(os.environ.get("V7_WALL_BC", "0"))
+if _WALL_BC not in (0, 1):
+    raise ValueError(f"V7_WALL_BC={_WALL_BC}: expected 0 (v6 walls) or 1 (Adami)")
 if _FAST_SUBMIT:
     from vulkan._vulkancache import ffi as _ffi
     from vulkan._vulkan import lib as _lib
@@ -247,6 +256,7 @@ _GLOBAL_STATUS_FIELD_NAMES = (
     "replica_inner_recv_leading_count", "replica_inner_recv_trailing_count",
     "replica_outer_recv_leading_count", "replica_outer_recv_trailing_count",
     "initialization_seam_clamp_count", "overflow_initialization_outside",
+    "wall_density_floor_count",                       # E36, was status_reserved_2
 )
 # Replicas of the two-layer ghost (V7_GHOST_LAYERS = 2) carry only what the
 # neighbour sweeps read (correction / density / force, incl. the inner layer
@@ -371,6 +381,11 @@ class SphSimulatorV7:
                  *, sync_scheme: str = "aggregated") -> None:
         self.ctx = ctx
         self.case = case
+        # E36: v7 is the single-slab wall-boundary experiment (wall_extrapolate.comp reads only local
+        # neighbours; the ghost transport does not carry wall_dummy_velocity).
+        if case.transport.has_leading_peer or case.transport.has_trailing_peer:
+            raise ValueError("v7 supports K = 1 only (one slab, no peer); this slab has a "
+                             f"{'leading' if case.transport.has_leading_peer else 'trailing'} peer")
 
         # Keep-alive bag for cffi cdata referenced by VkSpecializationInfo.
         # Python GC would otherwise free the cdata before pipeline creation.
@@ -704,6 +719,9 @@ class SphSimulatorV7:
             _BufferSpec("correction_inverse",           0, 7, 32 * pool_capacity, BSU | TRANSFER),
             _BufferSpec("density_gradient_kernel_sum",  0, 8, 16 * pool_capacity, BSU | TRANSFER),
             _BufferSpec("extension_fields",             0, 9, 16 * pool_capacity, BSU | TRANSFER),
+            # E36 WALL_BC = 1: wall dummy velocity + fluid kernel sum (wall_extrapolate.comp); transient,
+            # not in DEFRAG_SET0_BINDINGS / the transport / the restart state
+            _BufferSpec("wall_dummy_velocity",          0, 10, 16 * pool_capacity, BSU | TRANSFER),
 
             # Set 1: voxel cells
             _BufferSpec("inside_particle_count",        1, 0,  4 * voxel_capacity,                BSU | TRANSFER),
@@ -1224,7 +1242,7 @@ class SphSimulatorV7:
             "bootstrap_half_kick", "initialize_voxelization",
             "predict", "update_voxel", "ghost_send", "install_migrations",
             "correction", "density", "force", "defrag", "append_departed",
-            "expand_ghost_lists", "band_compact",
+            "expand_ghost_lists", "band_compact", "wall_extrapolate",
         ):
             spv_path = shader_dir / f"{shader_name}.comp.spv"
             if not spv_path.exists():
@@ -1334,6 +1352,7 @@ class SphSimulatorV7:
             (98, 'B', int(configured_packed_replicas())),
             (99, 'I', configured_diagnostic_poison_inner_replica()),   # V7_DIAG_POISON_G1
             (97, 'B', int(configured_init_seam_clamp())),
+            (100, 'I', _WALL_BC),                                        # E36 WALL_BC (V7_WALL_BC)
             # NEIGHBOR_X_RANGE (id=82) is NOT global anymore — Path A+ needs
             # different widths per kernel (correction / density / force =
             # self.band_widths, V7_BAND_WIDTHS, default 2/2/3, for the
@@ -1549,6 +1568,13 @@ class SphSimulatorV7:
             shader=self.shader_modules["force"],
             entries=self._global_entries() + self._force_mode_entries(1, density_source=1),
         )
+        # E36 WALL_BC = 1: the wall pass, reading the fluid rho/P from primary (after the scratch -> primary
+        # copy) or from scratch (phase B, before the copy, in front of force_deep_interior_scratch).
+        if _WALL_BC == 1:
+            for key, source in (("wall_extrapolate", 0), ("wall_extrapolate_scratch", 1)):
+                pipelines[key] = self._create_pipeline(
+                    shader=self.shader_modules["wall_extrapolate"],
+                    entries=self._global_entries() + [(56, 'I', source)])
         # V3.4: band-voxel dispatch variants of the three Phase C boundary
         # pipelines (thread = (band voxel, slot); see helpers.glsl).
         pipelines["correction_boundary_band"] = self._create_pipeline(
@@ -2115,6 +2141,22 @@ class SphSimulatorV7:
         # transfer→compute (force will read primary)
         self._record_transfer_to_compute_barrier(cmd)
 
+    def _record_wall_extrapolate(self, cmd, density_source: str = "primary",
+                                 tick: Optional[str] = None) -> None:
+        """E36 WALL_BC = 1: wall_extrapolate.comp over the own pid range, then a
+        compute barrier (force, or the next pass, reads the walls' rho_w, p_w and
+        dummy velocity). ``density_source`` = where the fluid's rho/P of this
+        step are: "primary" after the scratch -> primary copy, "scratch" in phase
+        B before it. Records nothing with WALL_BC = 0 (the v6 recording)."""
+        if _WALL_BC != 1:
+            return
+        self._bind_pipeline_and_sets(
+            cmd, "wall_extrapolate_scratch" if density_source == "scratch" else "wall_extrapolate")
+        vkCmdDispatch(cmd, self._per_own_particle_dispatch_count(), 1, 1)
+        if tick:
+            self._bench_tick(cmd, tick)
+        self._record_compute_barrier(cmd)
+
     def _ghost_self_density_copy_regions(self, density_stride: int) -> list:
         """V7_GHOST_LAYERS = 2: density_boundary recomputed the inner ghost
         column as self -- the inner replica region of every peer direction and
@@ -2330,6 +2372,12 @@ class SphSimulatorV7:
             self._record_compute_barrier(cmd)
         self._record_expand_ghost_lists(cmd)
 
+        # E36 WALL_BC = 1: the wall pass once before step 0, on the initial state (the bootstrap correction and
+        # density read its rho_w as every step's do), and again after density + copy below, before force.
+        if _WALL_BC == 1:
+            self._record_compute_barrier(cmd)
+            self._record_wall_extrapolate(cmd)
+
         self._bind_pipeline_and_sets(cmd, "correction_all")
         vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_compute_barrier(cmd)
@@ -2351,6 +2399,7 @@ class SphSimulatorV7:
             vkCmdDispatch(cmd, self._per_band_dispatch_count(
                 self.band_widths[1], self._ghost_self_layer(2, 1, "density")), 1, 1)
         self._record_density_scratch_to_primary_copy(cmd)
+        self._record_wall_extrapolate(cmd)
 
         self._bind_pipeline_and_sets(cmd, "force_all")
         vkCmdDispatch(cmd, per_p, 1, 1)
@@ -2478,6 +2527,9 @@ class SphSimulatorV7:
         self._bind_pipeline_and_sets(cmd, "initialize_voxelization")
         vkCmdDispatch(cmd, self._per_own_particle_dispatch_count(), 1, 1)
         self._record_compute_barrier(cmd)
+        # E36 WALL_BC = 1: the wall pass once before the first step, from the
+        # restored fluid state (the dummy velocity is not part of the state).
+        self._record_wall_extrapolate(cmd)
         vkEndCommandBuffer(cmd)
         self.ctx.submit_and_wait(cmd)
         vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
@@ -2780,6 +2832,10 @@ class SphSimulatorV7:
             # Phase C's install_migrations (migrants land in column 0) or
             # density_boundary (columns below band_widths[1]), so it is
             # safe here and widens the transfer-hiding window to B + force.
+            # E36 WALL_BC = 1: the wall pass reads the fluid's rho/P of this
+            # frame from scratch too and writes rho_w, p_w to scratch (read by
+            # the force below) and primary.
+            self._record_wall_extrapolate(cmd, "scratch", tick="b_wall_extrapolate_end")
             self._bind_pipeline_and_sets(cmd, "force_deep_interior_scratch")
             vkCmdDispatch(cmd, per_p, 1, 1)
             self._record_compute_barrier(cmd)
@@ -2898,6 +2954,10 @@ class SphSimulatorV7:
         self._bench_tick(cmd, "c_density_boundary_end")   # kernel vs copy split
         self._record_density_scratch_to_primary_copy(cmd)
         self._bench_tick(cmd, "c_density_end")
+        if not _CASCADE_FORCE:
+            # E36 WALL_BC = 1 without cascading force: force_all below is the
+            # first force of the frame (with it, phase B ran the wall pass).
+            self._record_wall_extrapolate(cmd, "primary", tick="c_wall_extrapolate_end")
 
         # V3.3: with cascading force, Phase B already covered the deep
         # interior; only the force boundary band (incl. this frame's
@@ -3116,6 +3176,7 @@ class SphSimulatorV7:
         self._record_density_scratch_to_primary_copy(cmd)
         self._bench_tick(cmd, "density_end")
         self._record_compute_barrier(cmd)
+        self._record_wall_extrapolate(cmd, "primary", tick="wall_extrapolate_end")
 
         if use_split:
             self._bind_pipeline_and_sets(cmd, "force_deep_interior")

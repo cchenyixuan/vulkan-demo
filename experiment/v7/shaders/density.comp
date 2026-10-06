@@ -69,6 +69,10 @@ void process_particle(uint self_particle_id) {
     uint self_group_id = material[self_particle_id];
     MaterialParameters self_params = material_parameters[self_group_id];
     if (self_params.kind == MATERIAL_INLET) return;
+    // E36 WALL_BC = 1: walls no longer integrate density; wall_extrapolate.comp writes their rho_w, p_w (scratch
+    // and primary) after this kernel. A fluid particle's wall neighbours below enter with that stored rho_w (of
+    // the previous step's wall pass) and their stored, prescribed velocity.
+    if (WALL_BC == WALL_BC_ADAMI && self_params.kind == MATERIAL_BOUNDARY) return;
 
     // --- Read self state -----------------------------------------------------
     vec4  self_position_voxel_id = position_voxel_id[self_particle_id];

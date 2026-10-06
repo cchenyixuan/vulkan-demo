@@ -21,6 +21,11 @@ or at --t-max. The release switches arrive through the environment (cavity_campa
 runner refuses to start if they do not match --expect. A fresh run keeps a copy of its case.yaml in the run
 directory: the analysis reads the run's numerics (xi, epsilon_squared_factor) from that copy, not from cases/.
 
+--solver v7 (E36, branch v7-wall-bc) runs experiment/v7 instead (one slab only, --slabs 1): the same release
+switches under the V7_ prefix plus V7_WALL_BC = --wall-bc (0 = the v6 walls, 1 = Adami et al. 2012), checked the
+same way; meta.json then records "solver" and "wall_bc", the physics hash covers experiment/v7, and every segment
+record carries the v7 diagnostics (wall_density_floor_count). The default --solver v6 runs exactly as before.
+
     .venv/Scripts/python.exe -m experiment.validation.cavity_runner --case cases/lid_driven_cavity_2d_n250/case.yaml \
         --run-dir logs/validation/cavity_re1000/n250_k2_float32 --slabs 2 --device-map 0,1 --expect release
 """
@@ -75,10 +80,28 @@ def step_of(path: pathlib.Path) -> int | None:
     return int(match.group(1)) if match else None
 
 
-def check_environment(expect: str) -> dict:
-    """The V6_* environment must be exactly the expected set (read before any v6 import)."""
-    wanted = EXPECTED[expect]
-    actual = {key: value for key, value in os.environ.items() if key.startswith("V6_")}
+SOLVERS = ("v6", "v7")
+
+
+def expected_environment(expect: str, solver: str = "v6", wall_bc: int | None = None) -> dict:
+    """The --expect switch set under the solver's prefix; v7 adds V7_WALL_BC."""
+    if solver == "v6":
+        return dict(EXPECTED[expect])
+    wanted = {"V7_" + key[len("V6_"):]: value for key, value in EXPECTED[expect].items()}
+    wanted["V7_WALL_BC"] = str(wall_bc)
+    return wanted
+
+
+def check_environment(expect: str, solver: str = "v6", wall_bc: int | None = None) -> dict:
+    """The V6_* (v7: V7_*) environment must be exactly the expected set (read before any solver import); a v7 run
+    also refuses any V6_* switch (it would be silently ignored)."""
+    wanted = expected_environment(expect, solver, wall_bc)
+    prefix = solver.upper() + "_"
+    actual = {key: value for key, value in os.environ.items() if key.startswith(prefix)}
+    if solver == "v7":
+        stray = sorted(key for key in os.environ if key.startswith("V6_"))
+        if stray:
+            sys.exit(f"[cavity] --solver v7 reads V7_* switches only; unset {stray}")
     if actual != wanted:
         missing = {key: value for key, value in wanted.items() if actual.get(key) != value}
         extra = {key: value for key, value in actual.items() if key not in wanted}
@@ -202,12 +225,13 @@ def file_hash(paths: list[pathlib.Path]) -> str:
     return digest.hexdigest()[:16]
 
 
-def code_hashes(case_path: pathlib.Path) -> dict:
-    """physics = the v6 solver (python + SPIR-V) + the case files + the material library; sampling = the
-    sampling / reference code and the reference CSV. A resume refuses to continue under different hashes."""
+def code_hashes(case_path: pathlib.Path, solver: str = "v6") -> dict:
+    """physics = the solver (experiment/<solver>: python + SPIR-V) + the case files + the material library;
+    sampling = the sampling / reference code and the reference CSV. A resume refuses to continue under different
+    hashes."""
     case_directory = case_path.parent
-    physics = (list((_REPO_ROOT / "experiment" / "v6" / "utils").glob("*.py"))
-               + list((_REPO_ROOT / "experiment" / "v6" / "shaders" / "spv").glob("*.spv"))
+    physics = (list((_REPO_ROOT / "experiment" / solver / "utils").glob("*.py"))
+               + list((_REPO_ROOT / "experiment" / solver / "shaders" / "spv").glob("*.spv"))
                + [case_path] + list(case_directory.glob("*.obj")) + [_REPO_ROOT / "materials" / "standard.yaml"])
     validation = _REPO_ROOT / "experiment" / "validation"
     sampling_files = [validation / "cavity_sampling.py", validation / "cavity_reference.py",
@@ -253,10 +277,10 @@ def atomic_write_text(path: pathlib.Path, text_value: str) -> None:
     os.replace(temporary, path)
 
 
-def git_state() -> dict:
+def git_state(solver: str = "v6") -> dict:
     head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
                           cwd=_REPO_ROOT).stdout.strip()
-    dirty = subprocess.run(["git", "status", "--porcelain", "experiment/v6", "experiment/validation"],
+    dirty = subprocess.run(["git", "status", "--porcelain", f"experiment/{solver}", "experiment/validation"],
                            capture_output=True, text=True, cwd=_REPO_ROOT).stdout.strip()
     return {"head": head, "dirty": bool(dirty)}
 
@@ -281,8 +305,17 @@ def main() -> int:
     parser.add_argument("--pool-safety", type=float, default=1.2)
     parser.add_argument("--require-uuid", default=None,
                         help="comma-separated Vulkan deviceUUIDs the slabs' GPUs must have (e.g. the headless 5090)")
+    parser.add_argument("--solver", choices=SOLVERS, default="v6",
+                        help="experiment/v6 (default) or experiment/v7 (E36 wall boundary experiment, K = 1 only)")
+    parser.add_argument("--wall-bc", type=int, choices=(0, 1), default=None,
+                        help="--solver v7 only (required there): V7_WALL_BC, 0 = v6 walls, 1 = Adami et al. 2012")
     arguments = parser.parse_args()
-    environment = check_environment(arguments.expect)
+    solver = arguments.solver
+    if (solver == "v7") != (arguments.wall_bc is not None):
+        sys.exit("[cavity] --wall-bc is required with --solver v7 and not accepted with --solver v6")
+    if solver == "v7" and arguments.slabs != 1:
+        sys.exit(f"[cavity] --solver v7 runs one slab only (--slabs 1), got --slabs {arguments.slabs}")
+    environment = check_environment(arguments.expect, solver, arguments.wall_bc)
     if arguments.t_end + arguments.average_span > arguments.t_max:
         sys.exit(f"[cavity] --t-end {arguments.t_end} + --average-span {arguments.average_span} exceeds --t-max {arguments.t_max}")
 
@@ -292,12 +325,22 @@ def main() -> int:
     except Exception:
         pass
 
-    from experiment.v6.utils.case_loader_v6 import load_case_v6
-    from experiment.v6.utils.case_v6 import KIND_FLUID
-    from experiment.v6.utils.orchestrator_v6 import ChainOrchestratorV6
-    from experiment.v6.utils.partition_v6 import compute_chain_partition, restart_slab_rows
-    from experiment.v6.utils.simulator_v6 import SphSimulatorV6
-    from experiment.v6.utils.vulkan_context_v6 import VulkanContextV6
+    if solver == "v6":
+        from experiment.v6.utils.case_loader_v6 import load_case_v6
+        from experiment.v6.utils.case_v6 import KIND_FLUID
+        from experiment.v6.utils.orchestrator_v6 import ChainOrchestratorV6
+        from experiment.v6.utils.partition_v6 import compute_chain_partition, restart_slab_rows
+        from experiment.v6.utils.simulator_v6 import SphSimulatorV6
+        from experiment.v6.utils.vulkan_context_v6 import VulkanContextV6
+    else:
+        from experiment.v7.utils.case_loader_v7 import load_case_v7 as load_case_v6
+        from experiment.v7.utils.case_v7 import KIND_FLUID
+        from experiment.v7.utils.orchestrator_v7 import ChainOrchestratorV7 as ChainOrchestratorV6
+        from experiment.v7.utils.partition_v7 import compute_chain_partition, restart_slab_rows
+        from experiment.v7.utils.simulator_v7 import SphSimulatorV7 as SphSimulatorV6
+        from experiment.v7.utils.vulkan_context_v7 import VulkanContextV7 as VulkanContextV6
+    # v7 only: meta.json / resume record the solver; a v6 run's meta stays as before
+    solver_record = {} if solver == "v6" else {"solver": solver, "wall_bc": arguments.wall_bc}
 
     run_dir = pathlib.Path(arguments.run_dir).resolve()
     for sub in ("samples", "snapshots", "checkpoints"):
@@ -369,7 +412,10 @@ def main() -> int:
                    "slabs": arguments.slabs, "expect": arguments.expect, "dt": dt, "spacing": spacing,
                    "support_radius": support, "sample_steps": sample_steps, "window_steps": window_steps,
                    "defrag_cadence": cadence, "environment": environment}
-        hashes = code_hashes(pathlib.Path(arguments.case).resolve())
+        current["solver"], current["wall_bc"] = solver, arguments.wall_bc
+        stored.setdefault("solver", "v6")
+        stored.setdefault("wall_bc", None)
+        hashes = code_hashes(pathlib.Path(arguments.case).resolve(), solver)
         for key in ("physics", "sampling"):
             if stored.get("code_hashes", {}).get(key, hashes[key]) != hashes[key]:
                 current[f"code_hash_{key}"] = hashes[key]
@@ -388,8 +434,8 @@ def main() -> int:
                 "steady_tol": arguments.steady_tol, "average_span": arguments.average_span,
                 "frames": {name: frame.half_width for name, frame in frames.items()},
                 "dense_reference": "linspace(0, 1, 1001) in the wall frame",
-                "fluid_groups": fluid_groups.tolist(), "git": git_state(),
-                "code_hashes": code_hashes(pathlib.Path(arguments.case).resolve())}
+                "fluid_groups": fluid_groups.tolist(), "git": git_state(solver),
+                "code_hashes": code_hashes(pathlib.Path(arguments.case).resolve(), solver), **solver_record}
         meta_path.write_text(json.dumps(meta, indent=1), encoding="utf-8")
         (run_dir / "case.yaml").write_bytes(pathlib.Path(arguments.case).read_bytes())
         np.savez(run_dir / "points.npz", **{name: points for name, (_, points) in point_sets.items()},
@@ -481,7 +527,8 @@ def main() -> int:
         log.flush()
 
     say(f"segment {segment_index}: case {arguments.case} K={arguments.slabs} devices {device_map} expect "
-        f"{arguments.expect}; start step {start_step} (t = {start_step * dt:.3f}); dt {dt:.3e}; "
+        f"{arguments.expect}{'' if solver == 'v6' else f' solver {solver} V7_WALL_BC={arguments.wall_bc}'}; "
+        f"start step {start_step} (t = {start_step * dt:.3f}); dt {dt:.3e}; "
         f"sample/snapshot/checkpoint/window every {sample_steps}/{snapshot_steps}/{checkpoint_steps}/{window_steps} steps")
     status = "error"
     failure: dict = {}
@@ -643,6 +690,10 @@ def main() -> int:
             totals["stamp_gpu"] += status_values.get("stamp_error_count", 0)
         totals["stamp_host"] = sum(getattr(worker, "stamp_error_count", 0) for worker in orchestrator.workers)
         totals["drift"] = alive_total - expected_total
+        if solver == "v7":
+            # diagnostic, not an invariant (cumulative inverse-EOS floor hits of the wall pass)
+            failure["diagnostics"] = {"wall_density_floor_count": sum(
+                sim.readback_global_status().get("wall_density_floor_count", 0) for sim in sims)}
         status = "complete" if all(value == 0 for value in totals.values()) else "invalid"
         if status == "invalid":
             failure["invariant_violation"] = True
@@ -655,8 +706,10 @@ def main() -> int:
         record = {"segment": segment_index, "start_step": start_step, "status": status, "totals": totals,
                   "error": failure.get("error"), "invariant_violation": failure.get("invariant_violation", False),
                   "device_uuids": failure.get("device_uuids"),
-                  "code_hashes": code_hashes(pathlib.Path(arguments.case).resolve()),
-                  "wall_s": time.perf_counter() - wall_start, "git": git_state()}
+                  "code_hashes": code_hashes(pathlib.Path(arguments.case).resolve(), solver),
+                  "wall_s": time.perf_counter() - wall_start, "git": git_state(solver)}
+        if solver != "v6":
+            record.update(solver_record, diagnostics=failure.get("diagnostics"))
         with open(segments_path, "a", encoding="utf-8") as handle:
             handle.write(json.dumps(record) + "\n")
         if failure.get("error"):
