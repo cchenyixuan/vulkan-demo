@@ -1,0 +1,417 @@
+// ============================================================================
+// ghost_send.comp — V1.0a sync packer with replica + migration packing.
+//
+// Per-(y, z) thread (NY*NZ threads). Each thread reads TWO sources from this
+// GPU's set 0/1 and packs both into the same ghost-pid range:
+//
+//   (a) own boundary voxel's inside_particle_index → REPLICAS
+//       Receiver treats these as ghost neighbours. Set 1 ghost voxel
+//       inside_particle_count + inside_particle_index are written
+//       (peer-frame pid values).
+//
+//   (b) sender's ghost voxel's incoming_particle_index → MIGRATIONS
+//       predict.comp earlier this step atomic-appended own pids that drifted
+//       from own boundary into ghost range. ghost_send picks them up here.
+//       Receiver's install_migrations.comp installs them as own particles.
+//       Sender marks the source own pid dead (zero pos + vel slots).
+//       Reset incoming_particle_count[sender_ghost_vid] = 0.
+//       NOT written to set 1 (migrations don't appear in any ghost voxel
+//       inside list — install_migrations registers them in receiver's OWN
+//       voxel inside list).
+//
+// Voxel_id encoding for .w (Option B convention):
+//
+//   GHOST_VOXEL_ID_OFFSET_TO_RECEIVER works for both replica and migration.
+//   The two cases share the same source-to-destination column shift (replica
+//   source is one voxel-column inside of migration source on sender side, and
+//   replica destination is one voxel-column outside of migration destination
+//   on receiver side; the two ±1-column shifts cancel).
+//
+//   peer_replica_vid   = own_boundary_vid + GHOST_VOXEL_ID_OFFSET_TO_RECEIVER
+//                          → peer's ghost voxel (receiver classifies as replica)
+//
+//   peer_migration_vid = sender_ghost_vid + GHOST_VOXEL_ID_OFFSET_TO_RECEIVER
+//                          → peer's own boundary voxel (receiver classifies as
+//                             migration via is_own_voxel)
+//
+// All packets write 10 SoA fields: position_voxel_id (.w overridden),
+// velocity_mass, density_pressure, acceleration, shift, material,
+// correction_inverse [×2], density_gradient_kernel_sum, extension_fields.
+// Acceleration and shift are needed for the migration's next-step predict on
+// receiver. extension_fields is currently dormant (V0/V1.0a writes nothing)
+// but is shipped so future passive transport / temperature scalars survive
+// migrations across GPUs without losing per-particle history.
+//
+// One atomicAdd per thread for the entire (replica + migration) batch —
+// allocated as one contiguous slot range.
+// ============================================================================
+//
+// Per-pipeline spec consts (host computes per-direction at pipeline creation):
+//
+//   GHOST_DIRECTION (id=90)
+//     0 = leading send (write into MY leading ghost slots / voxel range)
+//     1 = trailing send
+//
+//   BOUNDARY_VOXEL_X_LOCAL (id=91)
+//     My own's outermost column on send side, in extended-grid local x.
+//       leading send → own_first_x_local
+//       trailing send → own_last_x_local
+//
+//   GHOST_VOXEL_X_LOCAL (id=92)
+//     My ghost column adjacent to my boundary on send side.
+//       leading send → leading_ghost_first_x_local (= 0)
+//       trailing send → trailing_ghost_first_x_local (= extended_nx - 1)
+//
+//   GHOST_PID_OFFSET_TO_RECEIVER (id=93)
+//     Signed int. peer.dest_first_pid - my.dest_first_pid (per-direction).
+//
+//   GHOST_VOXEL_ID_OFFSET_TO_RECEIVER (id=94)
+//     Signed int. Option B: add to particle's CURRENT voxel_id in sender frame
+//     to get destination voxel_id in peer frame.
+//     Host formula:
+//       offset = (peer.ghost_first_x_local - my.own_boundary_first_x_local) * NY*NZ
+//       For trailing send: peer.ghost = peer.leading_ghost (x_local=0),
+//                           my.own_boundary = my.own_last_x_local
+//       For leading send:  peer.ghost = peer.trailing_ghost (x_local=peer.extended_nx-1),
+//                           my.own_boundary = my.own_first_x_local
+//     Same offset value handles both replicas and migrations on this pipeline.
+// ============================================================================
+
+// ============================================================================
+// V7 additions (all off by default -> the V5 kernel below, unchanged):
+//
+// DEPARTED_POOL_SIZE > 0 (V7_KEEP_DEPARTED): every outgoing migrant is ALSO
+//   copied (all 10 fields, position.w = the ghost voxel id it moved into, in
+//   THIS GPU's frame) into the departed pool before its own slot is killed.
+//   append_departed.comp re-registers it in this GPU's ghost voxel list after
+//   the inbound upload, so the seam column still sees it this step (in V5 it
+//   was in neither the own lists — killed here — nor the ghost lists — the
+//   peer packed its replicas before installing it).
+//
+// GHOST_LAYERS = 2: the ghost is two columns deep. Per (y, z) thread and
+//   layer l (0 = inner = the seam column, 1 = outer = the column behind it):
+//     source own column   trailing: boundary - l     leading: boundary + l
+//     outbox ghost column trailing: boundary + 2 - l leading: boundary - 2 + l
+//   (the transport copies this GPU's ghost columns to the peer's ghost
+//   columns in x order, so the outbox column must sit where the peer expects
+//   that layer: the peer's inner ghost column is the one adjacent to ITS own
+//   columns). Replicas go to the layer's own region [l * R, (l + 1) * R) of
+//   the direction's ghost pool (R = REPLICA_REGION_SIZE) with their own
+//   atomic counter, and only the 4 fields the neighbour sweeps read are
+//   written (position_voxel_id, velocity_mass, density_pressure, material).
+//   Migrants come from BOTH ghost columns' incoming lists (the outer one only
+//   for a two-column jump, counted in far_migration_count) and go to the
+//   migrant region [2R, pool) with all 10 fields; ghost_send_<dir>_count is
+//   their counter and becomes the receiver's install count, exactly as before.
+//   The same GHOST_VOXEL_ID_OFFSET_TO_RECEIVER translates every column (it is
+//   a pure x translation, see partition_v7.derive_link_voxel_id_offset).
+//
+// LEAN_TRANSPORT (V7_LEAN_TRANSPORT): every packet above (replica, migrant,
+//   departed copy) writes the four fields only (+ extension_fields with
+//   TRANSPORT_EXTENSION); the "10 SoA fields" comments below then describe the
+//   V5 layout. The V5 header's claim that acceleration and shift are needed for
+//   the migrant's next predict is stale: C5 force rewrites both (and C2 the
+//   correction / gradient fields) for the installed migrant first.
+// ============================================================================
+
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+
+#include "common.glsl"
+#include "helpers.glsl"
+
+layout(constant_id = 90) const uint GHOST_DIRECTION                   = 0u;
+layout(constant_id = 91) const uint BOUNDARY_VOXEL_X_LOCAL            = 0u;
+layout(constant_id = 92) const uint GHOST_VOXEL_X_LOCAL               = 0u;
+layout(constant_id = 93) const int  GHOST_PID_OFFSET_TO_RECEIVER      = 0;
+layout(constant_id = 94) const int  GHOST_VOXEL_ID_OFFSET_TO_RECEIVER = 0;
+
+layout(local_size_x_id = 51) in;
+
+// The fields a receiver recomputes before reading them (see LEAN_TRANSPORT in
+// common.glsl). V5 / LEAN_TRANSPORT off: copied with every packet. Lean: not
+// written at all (the staging and the receiver keep whatever was there; nothing
+// reads it), except extension_fields when TRANSPORT_EXTENSION.
+void copy_recomputed_fields(uint destination_particle_id, uint source_particle_id) {
+    if (!LEAN_TRANSPORT) {
+        acceleration[destination_particle_id]                 = acceleration[source_particle_id];
+        shift[destination_particle_id]                        = shift[source_particle_id];
+        correction_inverse[destination_particle_id * 2u + 0u] = correction_inverse[source_particle_id * 2u + 0u];
+        correction_inverse[destination_particle_id * 2u + 1u] = correction_inverse[source_particle_id * 2u + 1u];
+        density_gradient_kernel_sum[destination_particle_id]  = density_gradient_kernel_sum[source_particle_id];
+    }
+    if (!LEAN_TRANSPORT || TRANSPORT_EXTENSION) {
+        extension_fields[destination_particle_id] = extension_fields[source_particle_id];
+    }
+}
+
+// V7_KEEP_DEPARTED: keep a sender-side copy of an outgoing migrant. Must run
+// BEFORE the source slot is killed. ghost_voxel_id is the voxel (in THIS GPU's
+// extended grid) the particle drifted into.
+void store_departed(uint source_particle_id, uint ghost_voxel_id) {
+    uint departed_slot = atomicAdd(departed_count, 1u);
+    atomicMax(peak_departed_count, departed_slot + 1u);
+    if (departed_slot >= DEPARTED_POOL_SIZE) {
+        atomicAdd(overflow_departed_count, 1u);
+        return;
+    }
+    uint departed_particle_id = departed_first_pid() + departed_slot;
+    position_voxel_id[departed_particle_id] = vec4(position_voxel_id[source_particle_id].xyz,
+                                                   float(ghost_voxel_id));
+    velocity_mass[departed_particle_id]                = velocity_mass[source_particle_id];
+    density_pressure[departed_particle_id]             = density_pressure[source_particle_id];
+    material[departed_particle_id]                     = material[source_particle_id];
+    copy_recomputed_fields(departed_particle_id, source_particle_id);
+}
+
+// GHOST_LAYERS = 2 path (see header). One (y, z) face voxel per thread.
+void send_two_layers(uint y, uint z) {
+    bool trailing_send = (GHOST_DIRECTION == 1u);
+    int  boundary_x    = int(BOUNDARY_VOXEL_X_LOCAL);
+    int  inward_step   = trailing_send ? -1 : 1;          // own boundary -> own interior
+    uint first_ghost_particle_id = trailing_send ? trailing_ghost_first_pid()
+                                                 : leading_ghost_first_pid();
+    uint direction_pool_size = trailing_send ? TRAILING_GHOST_POOL_SIZE
+                                             : LEADING_GHOST_POOL_SIZE;
+
+    // ---- replicas: layer 0 = inner (seam column), layer 1 = outer ---------
+    for (uint layer_index = 0u; layer_index < 2u; layer_index++) {
+        int source_x = boundary_x + inward_step * int(layer_index);
+        int outbox_x = trailing_send ? boundary_x + 2 - int(layer_index)
+                                     : boundary_x - 2 + int(layer_index);
+        uint source_voxel_id = own_voxel_id_of(ivec3(source_x, int(y), int(z)));
+        uint outbox_voxel_id = own_voxel_id_of(ivec3(outbox_x, int(y), int(z)));
+        uint replica_count   = inside_particle_count[source_voxel_id];
+
+        uint base_slot;
+        if (layer_index == 0u) {
+            base_slot = trailing_send ? atomicAdd(replica_inner_send_trailing_count, replica_count)
+                                      : atomicAdd(replica_inner_send_leading_count,  replica_count);
+        } else {
+            base_slot = trailing_send ? atomicAdd(replica_outer_send_trailing_count, replica_count)
+                                      : atomicAdd(replica_outer_send_leading_count,  replica_count);
+        }
+        if (base_slot + replica_count > REPLICA_REGION_SIZE) {
+            // Region full: the peer sees an empty ghost voxel (logged).
+            inside_particle_count[outbox_voxel_id] = 0u;
+            atomicAdd(overflow_ghost_count, replica_count);
+            continue;
+        }
+        inside_particle_count[outbox_voxel_id] = replica_count;
+        uint region_first_particle_id = first_ghost_particle_id + layer_index * REPLICA_REGION_SIZE;
+        uint peer_replica_voxel_id = uint(int(source_voxel_id) + GHOST_VOXEL_ID_OFFSET_TO_RECEIVER);
+        if (COMPACT_GHOST_LISTS) {
+            ghost_voxel_first_particle_id[outbox_voxel_id] =
+                uint(int(region_first_particle_id + base_slot) + GHOST_PID_OFFSET_TO_RECEIVER);
+        }
+        for (uint slot_index = 0u; slot_index < replica_count; slot_index++) {
+            uint source_particle_id = inside_particle_index[source_voxel_id * MAX_PARTICLES_PER_VOXEL + slot_index];
+            uint my_destination_particle_id   = region_first_particle_id + base_slot + slot_index;
+            uint peer_destination_particle_id = uint(int(my_destination_particle_id) + GHOST_PID_OFFSET_TO_RECEIVER);
+            if (PACKED_REPLICAS) {
+                // V7_PACKED_REPLICAS: one 32 B record per replica for both layers,
+                // [x y z rho | vx vy vz material-bits], into this direction's packed
+                // region (common.glsl); no SoA ghost slot is written and no pressure
+                // travels (expand_ghost_lists writes P = 0).
+                uint packed_base = packed_layer_base(GHOST_DIRECTION, layer_index);
+                uint region_slot = base_slot + slot_index;
+                // every source field is loaded before the first packed store: the
+                // compiler cannot move a load past a store to another buffer, and a
+                // load after the store costs one more serial memory round trip per
+                // replica in this per-(y, z) loop
+                vec4 source_position_density = vec4(position_voxel_id[source_particle_id].xyz,
+                                                    density_pressure[source_particle_id].x);
+                vec4 source_velocity_material = vec4(velocity_mass[source_particle_id].xyz,
+                                                     uintBitsToFloat(material[source_particle_id]));
+                store_packed_vec4(packed_base + 4u * region_slot, source_position_density);
+                store_packed_vec4(packed_base + 4u * REPLICA_REGION_SIZE + 4u * region_slot,
+                                  source_velocity_material);
+            } else {
+                position_voxel_id[my_destination_particle_id] = vec4(position_voxel_id[source_particle_id].xyz,
+                                                                     float(peer_replica_voxel_id));
+                velocity_mass[my_destination_particle_id]    = velocity_mass[source_particle_id];
+                density_pressure[my_destination_particle_id] = density_pressure[source_particle_id];
+                material[my_destination_particle_id]         = material[source_particle_id];
+            }
+            if (!COMPACT_GHOST_LISTS) {
+                inside_particle_index[outbox_voxel_id * MAX_PARTICLES_PER_VOXEL + slot_index] = peer_destination_particle_id;
+            }
+        }
+    }
+
+    // ---- migrants: inner ghost column (normal) and outer (two-column jump) --
+    uint migrant_region_first_particle_id = first_ghost_particle_id + migrant_region_offset();
+    uint migrant_region_size = direction_pool_size - migrant_region_offset();
+    for (uint layer_index = 0u; layer_index < 2u; layer_index++) {
+        int ghost_x = boundary_x - inward_step * int(layer_index + 1u);
+        uint ghost_voxel_id = own_voxel_id_of(ivec3(ghost_x, int(y), int(z)));
+        uint migration_count = min(incoming_particle_count[ghost_voxel_id], MAX_INCOMING_PER_VOXEL);
+        if (migration_count == 0u) {
+            incoming_particle_count[ghost_voxel_id] = 0u;
+            continue;
+        }
+        if (layer_index == 1u) atomicAdd(far_migration_count, migration_count);
+        uint base_slot = trailing_send ? atomicAdd(ghost_send_trailing_count, migration_count)
+                                       : atomicAdd(ghost_send_leading_count,  migration_count);
+        if (base_slot + migration_count > migrant_region_size) {
+            atomicAdd(overflow_ghost_count, migration_count);
+            // V7: the reserved slots that still fall inside the region would ship
+            // stale records; mark them dead so the receiver's install skips them.
+            for (uint slot_index = base_slot; slot_index < min(base_slot + migration_count, migrant_region_size);
+                 slot_index++) {
+                position_voxel_id[migrant_region_first_particle_id + slot_index] = vec4(0.0);
+            }
+            incoming_particle_count[ghost_voxel_id] = 0u;
+            continue;
+        }
+        uint peer_migration_voxel_id = uint(int(ghost_voxel_id) + GHOST_VOXEL_ID_OFFSET_TO_RECEIVER);
+        for (uint slot_index = 0u; slot_index < migration_count; slot_index++) {
+            uint source_particle_id = incoming_particle_index[ghost_voxel_id * MAX_INCOMING_PER_VOXEL + slot_index];
+            uint my_destination_particle_id = migrant_region_first_particle_id + base_slot + slot_index;
+            position_voxel_id[my_destination_particle_id] = vec4(position_voxel_id[source_particle_id].xyz,
+                                                                 float(peer_migration_voxel_id));
+            velocity_mass[my_destination_particle_id]                = velocity_mass[source_particle_id];
+            density_pressure[my_destination_particle_id]             = density_pressure[source_particle_id];
+            material[my_destination_particle_id]                     = material[source_particle_id];
+            copy_recomputed_fields(my_destination_particle_id, source_particle_id);
+            if (DEPARTED_POOL_SIZE > 0u) store_departed(source_particle_id, ghost_voxel_id);
+            position_voxel_id[source_particle_id] = vec4(0.0);
+            velocity_mass[source_particle_id]     = vec4(0.0);
+        }
+        incoming_particle_count[ghost_voxel_id] = 0u;
+    }
+}
+
+void main() {
+    uint thread_id = gl_GlobalInvocationID.x;
+    uint num_ghost_voxels = GRID_DIMENSION_Y * GRID_DIMENSION_Z;
+    if (thread_id >= num_ghost_voxels) return;
+
+    uint y = thread_id % GRID_DIMENSION_Y;
+    uint z = thread_id / GRID_DIMENSION_Y;
+
+    if (GHOST_LAYERS >= 2u) {
+        send_two_layers(y, z);
+        return;
+    }
+
+    // Two sources for this (y, z):
+    //   (a) own boundary voxel — replicas live in its inside_particle_index
+    //   (b) sender's ghost voxel — migrations sit in its incoming_particle_index
+    ivec3 own_boundary_coord = ivec3(int(BOUNDARY_VOXEL_X_LOCAL), int(y), int(z));
+    ivec3 sender_ghost_coord = ivec3(int(GHOST_VOXEL_X_LOCAL),    int(y), int(z));
+
+    uint own_boundary_vid = own_voxel_id_of(own_boundary_coord);
+    uint sender_ghost_vid = own_voxel_id_of(sender_ghost_coord);
+
+    // Option B: SAME offset for replica and migration; only the source vid differs.
+    uint peer_replica_vid   = uint(int(own_boundary_vid) + GHOST_VOXEL_ID_OFFSET_TO_RECEIVER);
+    uint peer_migration_vid = uint(int(sender_ghost_vid) + GHOST_VOXEL_ID_OFFSET_TO_RECEIVER);
+
+    // Source counts. update_voxel guarantees replica_count <= MAX_PARTICLES_PER_VOXEL.
+    // predict's incoming overflow path may push count past MAX_INCOMING, so clamp.
+    uint replica_count = inside_particle_count[own_boundary_vid];
+    uint migration_count = min(incoming_particle_count[sender_ghost_vid],
+                               MAX_INCOMING_PER_VOXEL);
+    uint total_count = replica_count + migration_count;
+
+    // Per-direction pool capacity + atomic counter.
+    uint dir_pool_size = (GHOST_DIRECTION == 0u)
+        ? LEADING_GHOST_POOL_SIZE
+        : TRAILING_GHOST_POOL_SIZE;
+
+    // Allocate `total_count` consecutive ghost-pid slots in one shot.
+    uint base_slot = (GHOST_DIRECTION == 0u)
+        ? atomicAdd(ghost_send_leading_count,  total_count)
+        : atomicAdd(ghost_send_trailing_count, total_count);
+
+    // Overflow: log + write empty inside count + reset incoming. Receiver sees
+    // an empty ghost voxel; migrations are lost (logged via overflow counter).
+    if (base_slot + total_count > dir_pool_size) {
+        inside_particle_count[sender_ghost_vid] = 0u;
+        atomicAdd(overflow_ghost_count, total_count);
+        // V7: mark the reserved in-pool slots dead (stale records otherwise).
+        uint overflow_first_pid = (GHOST_DIRECTION == 0u) ? leading_ghost_first_pid()
+                                                          : trailing_ghost_first_pid();
+        for (uint slot_index = base_slot; slot_index < min(base_slot + total_count, dir_pool_size); slot_index++) {
+            position_voxel_id[overflow_first_pid + slot_index] = vec4(0.0);
+        }
+        incoming_particle_count[sender_ghost_vid] = 0u;
+        return;
+    }
+
+    // Set 1 ghost voxel inside_particle_count: replicas only (migrations don't
+    // belong in any ghost voxel's inside list — they go to receiver's OWN voxel
+    // inside list via install_migrations.comp).
+    inside_particle_count[sender_ghost_vid] = replica_count;
+
+    uint my_first_dst_pid = (GHOST_DIRECTION == 0u)
+        ? leading_ghost_first_pid()
+        : trailing_ghost_first_pid();
+    if (COMPACT_GHOST_LISTS) {
+        ghost_voxel_first_particle_id[sender_ghost_vid] =
+            uint(int(my_first_dst_pid + base_slot) + GHOST_PID_OFFSET_TO_RECEIVER);
+    }
+
+    // ========================================================================
+    // (a) Pack REPLICAS: walk own_boundary's inside_particle_index.
+    //     Slots [base_slot, base_slot + replica_count) in MY ghost-pid range.
+    // ========================================================================
+    for (uint k = 0u; k < replica_count; k++) {
+        uint src_pid = inside_particle_index[own_boundary_vid * MAX_PARTICLES_PER_VOXEL + k];
+
+        uint my_dst_pid   = my_first_dst_pid + base_slot + k;
+        uint peer_dst_pid = uint(int(my_dst_pid) + GHOST_PID_OFFSET_TO_RECEIVER);
+
+        // 10 SoA fields. .w of position_voxel_id = peer_replica_vid (in peer's
+        // ghost voxel range; install_migrations classifies as replica).
+        position_voxel_id[my_dst_pid] = vec4(position_voxel_id[src_pid].xyz,
+                                             float(peer_replica_vid));
+        velocity_mass[my_dst_pid]                = velocity_mass[src_pid];
+        density_pressure[my_dst_pid]             = density_pressure[src_pid];
+        material[my_dst_pid]                     = material[src_pid];
+        copy_recomputed_fields(my_dst_pid, src_pid);
+
+        // Set 1 inside_particle_index entry — points to peer's ghost-pid slot
+        // after transport. install_migrations leaves replica slots intact.
+        // (V7_COMPACT_GHOST_LISTS: the receiver rebuilds it as first + k.)
+        if (!COMPACT_GHOST_LISTS) {
+            inside_particle_index[sender_ghost_vid * MAX_PARTICLES_PER_VOXEL + k] = peer_dst_pid;
+        }
+    }
+
+    // ========================================================================
+    // (b) Pack MIGRATIONS: walk sender_ghost's incoming_particle_index.
+    //     Slots [base_slot + replica_count, base_slot + total_count) in MY
+    //     ghost-pid range.
+    // ========================================================================
+    for (uint k = 0u; k < migration_count; k++) {
+        uint src_pid = incoming_particle_index[sender_ghost_vid * MAX_INCOMING_PER_VOXEL + k];
+
+        uint my_dst_pid = my_first_dst_pid + base_slot + replica_count + k;
+        // Note: we don't compute peer_dst_pid for migrations — install_migrations
+        // on receiver allocates its own_pid via end-allocate counter (independent
+        // of sender's pid).
+
+        // 10 SoA fields. .w of position_voxel_id = peer_migration_vid (in peer's
+        // OWN voxel range; install_migrations classifies as migration arrival).
+        position_voxel_id[my_dst_pid] = vec4(position_voxel_id[src_pid].xyz,
+                                             float(peer_migration_vid));
+        velocity_mass[my_dst_pid]                = velocity_mass[src_pid];
+        density_pressure[my_dst_pid]             = density_pressure[src_pid];
+        material[my_dst_pid]                     = material[src_pid];
+        copy_recomputed_fields(my_dst_pid, src_pid);
+
+        // V7_KEEP_DEPARTED: keep a local copy for this step's seam sweeps.
+        if (DEPARTED_POOL_SIZE > 0u) store_departed(src_pid, sender_ghost_vid);
+
+        // Mark the migrating own pid dead in own SoA. .w == 0 is the dead
+        // sentinel for hot kernels; mass == 0 marks the slot unallocated.
+        // Other fields' values are immaterial once voxel_id == 0.
+        position_voxel_id[src_pid] = vec4(0.0);
+        velocity_mass[src_pid]     = vec4(0.0);
+    }
+
+    // Reset ghost voxel's incoming_particle_count for next step's predict.
+    incoming_particle_count[sender_ghost_vid] = 0u;
+}
