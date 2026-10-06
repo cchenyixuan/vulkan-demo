@@ -350,14 +350,19 @@ def pair_label(first: str, second: str) -> str:
     return "within_0" if first[1] == second[1] == "0" else ("within_1" if first[1] == second[1] == "1" else "cross")
 
 
-def permutation_tests(run_names, distances: dict) -> dict:
+def permutation_tests(run_names, distances: dict, test_runs=None) -> dict:
     """Exact over every relabelling that keeps the arm sizes. distances: {(first, second): d > 0}.
     cross: mean log d of the cross pairs minus mean log d of the within pairs (a systematic =1 difference);
     one: mean log d of every pair with an =1 run minus mean log d of the within-=0 pairs (any extra
-    difference, systematic or random). One-sided p = fraction of relabellings with a statistic >= observed."""
+    difference, systematic or random). One-sided p = fraction of relabellings with a statistic >= observed.
+    test_runs: the runs of the tested arm (default: the =1 runs, name[1] == "1"; E33 passes its K > 1 arm)."""
     import itertools
     names = list(run_names)
-    ones = [name for name in names if name[1] == "1"]
+    if test_runs is None:
+        ones = [name for name in names if name[1] == "1"]
+    else:
+        selected = set(test_runs)
+        ones = [name for name in names if name in selected]
     logs = {pair: math.log(value) for pair, value in distances.items() if value > 0}
 
     def statistics(arm_one) -> tuple:

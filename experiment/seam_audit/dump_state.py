@@ -192,6 +192,10 @@ def parse_arguments(argument_list=None) -> argparse.Namespace:
                         help="v6: start from this saved step-boundary state (single_step "
                              "snapshot_N<step>.npz) instead of the case's initial condition; "
                              "horizons count frames after the restart (module docstring)")
+    parser.add_argument("--shuffle-seed", type=int, default=0,
+                        help="with --restart-snapshot: upload the rows in the order of this seed's "
+                             "permutation (a different particle layout, hence summation order; same "
+                             "physics). 0 = snapshot order")
     parser.add_argument("--audit-slab-counts", default="",
                         help="comma-separated K values whose equal-weight cut lines the "
                              "window watches (a K=1 reference must name the K of the test "
@@ -868,11 +872,14 @@ def prepare(arguments, include_gpu_modules: bool):
         defrag_cadence, description
 
 
-def load_restart_snapshot(solver, global_case, chain, snapshot_file) -> tuple:
+def load_restart_snapshot(solver, global_case, chain, snapshot_file, shuffle_seed: int = 0) -> tuple:
     """(per-slab restart states, per-slab global ids, description) of a saved
     step-boundary state split with this run's cuts. The snapshot holds every
     particle of the case once, sorted by global id; the ids in extension_fields
-    must agree with the 'id' array (they are what the dumps decode)."""
+    must agree with the 'id' array (they are what the dumps decode). A nonzero
+    shuffle_seed permutes the rows first (as single_step restart --shuffle-seed):
+    the upload order, hence the particle layout and the summation order, changes;
+    the state and the dumps (sorted by id) do not."""
     restart_slab_rows = getattr(solver.partition_module, "restart_slab_rows", None)
     if restart_slab_rows is None:
         raise RuntimeError(f"solver {solver.version} has no restart support (restart_slab_rows)")
@@ -887,12 +894,17 @@ def load_restart_snapshot(solver, global_case, chain, snapshot_file) -> tuple:
     decoded, foreign = decode_global_ids(state["extension_fields"])
     if foreign.any() or not np.array_equal(decoded, ids):
         raise RuntimeError(f"{snapshot_path}: extension_fields do not carry the row ids")
+    if shuffle_seed:
+        order = np.random.default_rng(int(shuffle_seed)).permutation(ids.size)
+        state = {name: values[order] for name, values in state.items()}
+        ids = ids[order]
     rows_per_slab = restart_slab_rows(global_case, chain, state["position_voxel_id"][:, 0])
     states = [{name: np.ascontiguousarray(values[rows]) for name, values in state.items()}
               for rows in rows_per_slab]
     ids_per_slab = [ids[rows] for rows in rows_per_slab]
     description = {"snapshot": str(snapshot_path), "snapshot_bytes": snapshot_path.stat().st_size,
-                   "fields": sorted(state), "rows_per_slab": [int(rows.size) for rows in rows_per_slab]}
+                   "fields": sorted(state), "rows_per_slab": [int(rows.size) for rows in rows_per_slab],
+                   "shuffle_seed": int(shuffle_seed)}
     print(f"{LOG_PREFIX}   restart from {snapshot_path}: rows per slab "
           f"{description['rows_per_slab']} (cuts {[int(cut) for cut in chain.cuts]})", flush=True)
     return states, ids_per_slab, description
@@ -916,7 +928,8 @@ def run(arguments, summary: dict) -> int:
     if arguments.dry_run:
         solver, global_case, chain = prepare(arguments, include_gpu_modules=False)[:3]
         if arguments.restart_snapshot:
-            load_restart_snapshot(solver, global_case, chain, arguments.restart_snapshot)
+            load_restart_snapshot(solver, global_case, chain, arguments.restart_snapshot,
+                                  arguments.shuffle_seed)
         summary.update({"run_name": arguments.run_name, "dry_run": True, "valid": True})
         return EXIT_VALID
 
@@ -926,7 +939,7 @@ def run(arguments, summary: dict) -> int:
     restart_states = restart_ids_per_slab = None
     if arguments.restart_snapshot:
         restart_states, restart_ids_per_slab, description["restart"] = load_restart_snapshot(
-            solver, global_case, chain, arguments.restart_snapshot)
+            solver, global_case, chain, arguments.restart_snapshot, arguments.shuffle_seed)
         summary["restart"] = description["restart"]
     if os.environ.get(solver.env_prefix + "PER_SIM_PIPELINE", "0") not in ("", "0"):
         print(f"{LOG_PREFIX} WARNING: {solver.env_prefix}PER_SIM_PIPELINE is set; "
