@@ -2,7 +2,7 @@
 
 - **N56（8 × RTX 5090 / 节点，驱动 580.82.07）**：部署 `347be6f`（E6b 之后的 HEAD，发布组合是代码默认）。作业 1665986（K = 2）、1666242（K = 3）、1665987（K = 4），2026-10-05/06。
 - **N32-H（4 × A100-PCIE-40GB / 节点，Kunpeng-920 aarch64，驱动 535.104.12）**：部署 `c411b11`（E32 HEAD：phase A no-wait 默认、nearest-column 切点、`--weights auto / --weights-file`）。step trace 那一次用的是 `a6bce2b` = `c411b11` + 本次修复（见第 6 节）。作业 1550014（失败）、1550133 / 1550137 / 1550139（诊断）、1550151（绕过验证）、1550154（计划）、1550194（step trace + P2P），2026-10-06；合计约 1.6 GPU·h。
-- 本报告与脚本的提交见文末。
+- 提交：修复 `a6bce2b`（step trace 在缺 KHR 时用 EXT）；报告、脚本与数据 `14c84f7`；均已 push。Artifact：https://claude.ai/artifact/1fs2JeXbqeJgJBH5Udbpzy
 
 这不是测量 campaign：N56 部分不算 η，不做参照，不做多次试验，数据不进论文（E30 的约定）。A100 那一节按用户补充的计划给出单次的 η / η_min，只作示意。
 
