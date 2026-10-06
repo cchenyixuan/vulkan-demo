@@ -28,10 +28,18 @@ density, pressure and kernel sum (fluid particles). Per (case, horizon, X, field
 across / within-K=1, and the exact permutation tests of nowait_audit over the 924 relabellings (cross: across vs
 within pairs, a systematic difference; one: pairs with an X run vs within-K=1, any extra difference). Card swap:
 the within-K=1 pairs split into GPU 0 x GPU 0, GPU 1 x GPU 1 and GPU 0 x GPU 1 (cross test over the 20 relabellings
-of the six K = 1 runs; with 3 + 3 runs its smallest possible p is 0.1). Sensitivity: the velocity tests at d = 0
-again after adding a synthetic seam defect to the X runs (the same in every X run, or different in each), of rms
-f times the within-K=1 median. Writes OUT/ensemble.json, and with --docs the tables (e33_tables.md), the summary
-(e33_summary.json) and the figure (fig_decomposition.png) there.
+of the six K = 1 runs; with 3 + 3 runs its smallest possible p is 0.1), and the same split of the control arm,
+which alternates the GPUs the same way. Sensitivity: the velocity tests at d = 0 again after adding a synthetic
+seam defect to the X runs (the same in every X run, or different in each), of rms f times the within-K=1 median.
+Because the 30 tests of a configuration (6 fields x 5 bins) are strongly dependent, their p < 0.05 count is judged
+against the joint permutation null (every relabelling applied to all 30 at once), also with the d = 0 velocity test
+replaced by each synthetic defect (how the configuration-level verdict reacts to a seam defect); each ratio also
+gets its chance range (2.5-97.5 % over the relabellings), and each test the between-group term D^2 / s_1^2 of the
+squared distances (group offset over K = 1 run-to-run scatter, unmoved by a tighter or wider arm) with its
+permutation p. Diagnostics: the 10 trio splits of every arm's six runs, the within-arm medians in the two columns
+at each cut, and the audit gate's one-pair floor among the K = 1 runs. Writes
+OUT/ensemble.json, and with --docs the tables (e33_tables.md), the summary (e33_summary.json) and the figure
+(fig_decomposition.png) there.
 
 Usage (GPU, then CPU):
   .venv/Scripts/python.exe -m experiment.seam_audit.decomposition_audit run --out logs/e33/decomposition
@@ -57,6 +65,7 @@ if str(_REPOSITORY_ROOT) not in sys.path:
 
 from experiment.seam_audit.dump_state import dump_file_paths  # noqa: E402
 from experiment.seam_audit.nowait_audit import (  # noqa: E402
+    AUDIT_LIMIT,
     RUN_TIMEOUT_SECONDS,
     STALL_MARKERS,
     bin_masks,
@@ -89,6 +98,7 @@ FIGURE_BINS = (("0", 0, 0), ("1", 1, 1), ("2", 2, 2), ("3", 3, 3), ("4–7", 4, 
 LID_VELOCITY = 1.0           # m/s, the U of the cavity
 IDENTICAL_FIELDS = ("velocity", "density")   # share of particles bit-identical in both runs of a pair
 IDENTICAL_BINS = ("d0", "all")
+TRIO_BINS = ("d0", "all")         # the 3 + 3 splits of each arm's six runs
 SENSITIVITY_FACTORS = (0.5, 1.0, 2.0)
 
 
@@ -217,7 +227,12 @@ def class_of(first: str, second: str, test_runs: set) -> str:
 
 
 def card_of(name: str) -> str:
-    return name[2:4] if name.startswith("k1g") else ""
+    """The GPU of a K = 1 run: k1 and k1s alternate GPU 0 / GPU 1 from trial to trial."""
+    if name.startswith("k1g"):
+        return name[2:4]
+    if name.startswith("k1s_t"):
+        return f"g{(int(name.split('_t')[1]) - 1) % 2}"
+    return ""
 
 
 def pair_rms(values: dict, first: str, second: str, masks: dict) -> dict:
@@ -246,24 +261,136 @@ def class_medians(pairs: dict, classify) -> dict:
                     "pairs": len(items)} for label, items in groups.items()}
 
 
+def relabelling_statistics(run_names, test_runs, distances: dict) -> dict:
+    """The statistics of nowait_audit.permutation_tests under every relabelling (each choice of len(test_runs) of
+    the runs as the tested arm, in itertools.combinations order), vectorised: cross, one, the across / within-K=1
+    and within-X / within-K=1 median ratios (within-K=1 = the pairs of the runs NOT chosen), and the between-group
+    term of the squared distances, between = (mean across d^2 - (mean within-X d^2 + mean within-K=1 d^2) / 2) /
+    (mean within-K=1 d^2 / 2): with run-to-run scatter s_X, s_1 and a group offset D, the means are s_X^2 + s_1^2 + D^2,
+    2 s_X^2 and 2 s_1^2, so between = D^2 / s_1^2, an offset estimate that a tighter or wider X arm alone does not
+    move (the cross statistic, a difference of mean logs, also rises a little when only the scatter differs).
+    'observed' indexes the actual labelling."""
+    names = list(run_names)
+    index = {name: position for position, name in enumerate(names)}
+    pairs = [pair for pair, value in distances.items() if value > 0]
+    values = np.array([distances[pair] for pair in pairs])
+    logs = np.log(values)
+    choices = list(itertools.combinations(range(len(names)), len(test_runs)))
+    member = np.zeros((len(choices), len(names)), dtype=bool)
+    for row, choice in enumerate(choices):
+        member[row, list(choice)] = True
+    first = member[:, [index[pair[0]] for pair in pairs]]
+    second = member[:, [index[pair[1]] for pair in pairs]]
+    cross = first != second
+    with_one = first | second
+
+    within_x = first & second
+    within_k1 = ~with_one
+
+    def mean_log(mask):
+        return (mask * logs).sum(axis=1) / mask.sum(axis=1)
+
+    def mean_square(mask):
+        return (mask * values * values).sum(axis=1) / mask.sum(axis=1)
+    ratio = np.array([np.median(values[cross[row]]) / np.median(values[within_k1[row]]) for row in range(len(choices))])
+    within_ratio = np.array([np.median(values[within_x[row]]) / np.median(values[within_k1[row]])
+                             for row in range(len(choices))])
+    square_k1 = mean_square(within_k1)
+    between = (mean_square(cross) - (mean_square(within_x) + square_k1) / 2) / (square_k1 / 2)
+    return {"cross": mean_log(cross) - mean_log(~cross), "one": mean_log(with_one) - mean_log(within_k1), "ratio": ratio,
+            "within_ratio": within_ratio, "between": between,
+            "observed": choices.index(tuple(sorted(index[name] for name in test_runs)))}
+
+
+def relabelled_p(statistic: np.ndarray) -> np.ndarray:
+    """The one-sided p of every relabelling against all of them (as permutation_tests, tolerance 1e-12)."""
+    ordered = np.sort(statistic)
+    return (statistic.size - np.searchsorted(ordered, statistic - 1e-12, side="left")) / statistic.size
+
+
 def summarize(run_names, test_runs, distances: dict) -> dict:
-    """Class medians, ratios and the permutation tests of one (field, bin)."""
+    """Class medians, ratios and the permutation tests of one (field, bin); ratio_null_95 = the 2.5-97.5 % range of
+    the across / within-K=1 median ratio over the relabellings (what chance alone gives with these runs)."""
     groups = {"within_k1": [], "within_x": [], "cross": []}
     for (first, second), value in distances.items():
         groups[class_of(first, second, test_runs)].append(value)
     median = {label: float(np.median(items)) for label, items in groups.items() if items}
     tests = permutation_tests(run_names, distances, test_runs=test_runs)
+    relabelled = relabelling_statistics(run_names, test_runs, distances)
+    for kind in ("cross", "one"):      # the vectorised statistics must reproduce the reference test exactly
+        if relabelled_p(relabelled[kind])[relabelled["observed"]] != tests[f"{kind}_p"]:
+            raise ValueError(f"relabelling_statistics disagrees with permutation_tests ({kind})")
     return {"median": median, "range": {label: [float(min(items)), float(max(items))] for label, items in groups.items() if items},
             "cross_over_within_k1": median["cross"] / median["within_k1"] if median.get("within_k1") else None,
             "within_x_over_within_k1": median["within_x"] / median["within_k1"] if median.get("within_k1") else None,
+            "ratio_null_95": [float(value) for value in np.percentile(relabelled["ratio"], (2.5, 97.5))],
+            "within_ratio_null_95": [float(value) for value in np.percentile(relabelled["within_ratio"], (2.5, 97.5))],
+            "between": float(relabelled["between"][relabelled["observed"]]),
+            "between_p": float(relabelled_p(relabelled["between"])[relabelled["observed"]]),
             "cross_p": tests["cross_p"], "one_p": tests["one_p"], "cross_statistic": tests["cross_statistic"],
             "one_statistic": tests["one_statistic"], "relabellings": tests["relabellings"]}
 
 
-def sensitivity(values: dict, k1_runs, x_runs, mask: np.ndarray, within_k1_median: float, seed: int) -> list:
+def joint_null(run_names, test_runs, tests: dict, scenarios: dict = None) -> dict:
+    """How many of a configuration's tests (every field x bin) reach p < 0.05, against the joint permutation null:
+    each relabelling is applied to all tests at once, which keeps their dependence (density and pressure are almost
+    the same test, in 2-D the far bin is almost every particle). tests: {(field, bin): distances}.
+    P = share of relabellings with at least the observed count; P(0) = share with none; p_none_both = share with
+    none of the tests significant in either statistic. scenarios: {name: {(field, bin): distances}} recompute the
+    verdict with those tests replaced (the synthetic seam defects of sensitivity)."""
+    statistics = {key: relabelling_statistics(run_names, test_runs, distances) for key, distances in tests.items()}
+    out = joint_counts(statistics)
+    if scenarios:
+        out["scenarios"] = {}
+        for name, replacement in scenarios.items():
+            changed = dict(statistics)
+            for key, distances in replacement.items():
+                changed[key] = relabelling_statistics(run_names, test_runs, distances)
+            out["scenarios"][name] = joint_counts(changed)
+    return out
+
+
+def joint_counts(statistics: dict) -> dict:
+    out = {}
+    observed = next(iter(statistics.values()))["observed"]
+    total = 0
+    for kind in ("cross", "one"):
+        counts = np.sum([relabelled_p(item[kind]) < 0.05 for item in statistics.values()], axis=0)
+        total = total + counts
+        out[kind] = {"count": int(counts[observed]), "tests": len(statistics),
+                     "p_at_least": float(np.mean(counts >= counts[observed])), "p_none": float(np.mean(counts == 0)),
+                     "null_mean_count": float(np.mean(counts))}
+    out["p_none_both"] = float(np.mean(total == 0))
+    return out
+
+
+def trio_splits(runs, distances: dict) -> dict:
+    """The 10 ways to split 6 runs into two trios: the median of each trio's 3 within pairs and their ratio
+    (larger / smaller). 'parity' = trials 1, 3, 5 against 2, 4, 6, for K = 1 the GPU 0 / GPU 1 split."""
+    def distance(first, second):
+        return distances.get((first, second), distances.get((second, first)))
+    odd = {name for name in runs if int(name.split("_t")[1]) % 2 == 1}
+    rows, parity = [], None
+    for trio in itertools.combinations(runs[1:], 2):
+        first_trio = [runs[0], *trio]
+        second_trio = [name for name in runs if name not in first_trio]
+        medians = [float(np.median([distance(*pair) for pair in itertools.combinations(group, 2)]))
+                   for group in (first_trio, second_trio)]
+        rows.append({"trios": [first_trio, second_trio], "medians": medians, "ratio": max(medians) / min(medians)})
+        if odd in (set(first_trio), set(second_trio)):
+            odd_median, even_median = medians if set(first_trio) == odd else medians[::-1]
+            parity = {"odd": odd_median, "even": even_median, "ratio": rows[-1]["ratio"]}
+            rows[-1]["parity"] = True
+    return {"splits": sorted(rows, key=lambda row: row["ratio"]), "parity": parity,
+            "other_ratios": sorted(row["ratio"] for row in rows if not row.get("parity"))}
+
+
+def sensitivity(values: dict, k1_runs, x_runs, mask: np.ndarray, within_k1_median: float, seed: int) -> tuple:
     """Velocity at d = 0 with a synthetic defect of per-particle rms f * within-K=1 median added to every X run:
-    'systematic' (the same vectors in every X run) or 'random' (independent in each)."""
-    rows = []
+    'systematic' (the same vectors in every X run) or 'random' (independent in each). One draw per kind (the
+    generator is re-seeded), f scales it. Returns the rows and {scenario name: perturbed distances}, so that the
+    configuration-level verdict can be recomputed with this one test replaced (joint_null scenarios)."""
+    rows, perturbed_distances = [], {}
     run_names = list(k1_runs) + list(x_runs)
     selected = {name: values[name][mask] for name in run_names}
     dimension = next(iter(selected.values())).shape[1]
@@ -283,8 +410,38 @@ def sensitivity(values: dict, k1_runs, x_runs, mask: np.ndarray, within_k1_media
             entry = summarize(run_names, set(x_runs), distances)
             rows.append({"kind": kind, "factor": factor, "cross_over_within_k1": entry["cross_over_within_k1"],
                          "within_x_over_within_k1": entry["within_x_over_within_k1"], "cross_p": entry["cross_p"],
-                         "one_p": entry["one_p"]})
-    return rows
+                         "one_p": entry["one_p"], "between": entry["between"], "between_p": entry["between_p"]})
+            perturbed_distances[scenario_name(kind, factor)] = distances
+    return rows, perturbed_distances
+
+
+def scenario_name(kind: str, factor: float) -> str:
+    return f"{kind}_{factor:g}"
+
+
+def gate_null(runs, distances: dict, limit: float = AUDIT_LIMIT) -> dict:
+    """The audit gate's primary ratio d(B1, A1) / d(A1, A2) over every ordered triple of distinct K = 1 runs
+    (6 x 5 x 4 = 120): how often identical settings fail a one-pair floor (E32 part 1 did this for K > 1 runs)."""
+    def distance(first, second):
+        return distances.get((first, second), distances.get((second, first)))
+    ratios = np.array([distance(test, first) / distance(first, second)
+                       for first, second, test in itertools.permutations(runs, 3)])
+    return {"triples": int(ratios.size), "fail_fraction": float(np.mean(ratios > limit)),
+            "median_ratio": float(np.median(ratios))}
+
+
+def card_split(runs, distances: dict) -> dict:
+    """Pairs of six K = 1 runs by GPU (g0xg0, g1xg1, g0xg1): medians, across / same, and the cross test of the
+    GPU 1 runs against the GPU 0 runs over the 20 relabellings (with 3 + 3 runs the smallest possible p is 0.1)."""
+    groups = {}
+    for (first, second), value in distances.items():
+        groups.setdefault("x".join(sorted((card_of(first), card_of(second)))), []).append(value)
+    tests = permutation_tests(runs, distances, test_runs=[name for name in runs if card_of(name) == "g1"])
+    median = {key: float(np.median(items)) for key, items in groups.items()}
+    same = float(np.median(groups.get("g0xg0", []) + groups.get("g1xg1", [])))
+    return {"median": median, "pairs": {key: len(items) for key, items in groups.items()},
+            "across_over_same": median.get("g0xg1", float("nan")) / same if same else None,
+            "cross_p": tests["cross_p"], "relabellings": tests["relabellings"]}
 
 
 def analyze_case(case_name: str, out_directory: pathlib.Path) -> dict:
@@ -316,10 +473,17 @@ def analyze_case(case_name: str, out_directory: pathlib.Path) -> dict:
             distance = seam_distance(reference_x, sidecar["origin_x"], sidecar["smoothing_length"], cuts[arm])[fluid]
             masks[arm] = bin_masks(distance)
             fine[arm] = figure_masks(distance)
+        # the two columns on either side of every cut of any arm (d = 0 of that cut alone): is a column pair
+        # noisier for every arm, seam or not?
+        column_masks = {cut: seam_distance(reference_x, sidecar["origin_x"], sidecar["smoothing_length"], [cut])[fluid] == 0
+                        for cut in sorted({cut for arm in arms for cut in cuts[arm]})}
         entry = {"k1_runs": k1_runs, "x_runs": x_runs, "cuts": cuts, "fluid": int(fluid.sum()),
                  "bin_counts": {arm: {label: int(mask.sum()) for label, mask in masks[arm].items()} for arm in arms},
                  "fields": {}, "figure": {}, "cards": {}, "sensitivity": {}, "invariants": {}, "identical": {},
-                 "cards_identical": {}}
+                 "cards_identical": {}, "cards_control": {}, "joint": {}, "trios": {}, "seam_columns": {},
+                 "gate_null": {}}
+        joint_inputs = {arm: {} for arm in arms}
+        defect_inputs = {arm: {} for arm in arms}
         for name in k1_runs + [name for arm in arms for name in x_runs[arm]]:
             invariants = json.loads(dump_file_paths(dump_directory, name, horizon)["json"].read_text(encoding="utf-8"))["invariants"]
             entry["invariants"][name] = {"valid": invariants["valid"], "far_migration_count": invariants.get("far_migration_count", 0),
@@ -373,6 +537,7 @@ def analyze_case(case_name: str, out_directory: pathlib.Path) -> dict:
                 for label in TABLE_BINS:
                     distances = {pair: bins[label] for pair, bins in table[arm].items() if bins[label]}
                     per_bin[label] = summarize(run_names, set(x_runs[arm]), distances)
+                    joint_inputs[arm][(field, label)] = distances
                     per_bin[label]["pairs"] = {f"{first}-{second}": value for (first, second), value in distances.items()}
                 entry["fields"][field][arm] = per_bin
                 if field == "velocity":
@@ -385,24 +550,40 @@ def analyze_case(case_name: str, out_directory: pathlib.Path) -> dict:
                                                            for (first, second), value in distances.items()}
                     entry["figure"][arm] = figure_bins
                     seed = 1000 * HORIZONS.index(horizon) + 10 * arms.index(arm) + (0 if case_name.startswith("cavity2d") else 5)
-                    entry["sensitivity"][arm] = sensitivity(values, k1_runs, x_runs[arm], masks[arm]["d0"],
+                    entry["sensitivity"][arm], defect_inputs[arm] = sensitivity(values, k1_runs, x_runs[arm], masks[arm]["d0"],
                                                             per_bin["d0"]["median"]["within_k1"], seed)
-            # card swap: the within-K=1 pairs at the K = 2 (equal) arm's virtual seams
-            entry["cards"][field] = {}
-            for label in TABLE_BINS:
-                distances = {pair: bins[label] for pair, bins in table["k2"].items()
-                             if pair[0] in k1_runs and pair[1] in k1_runs and bins[label]}
-                groups = {}
-                for (first, second), value in distances.items():
-                    key = "x".join(sorted((card_of(first), card_of(second))))
-                    groups.setdefault(key, []).append(value)
-                tests = permutation_tests(k1_runs, distances, test_runs=[name for name in k1_runs if card_of(name) == "g1"])
-                median = {key: float(np.median(items)) for key, items in groups.items()}
-                same = float(np.median(groups.get("g0xg0", []) + groups.get("g1xg1", [])))
-                entry["cards"][field][label] = {"median": median, "pairs": {key: len(items) for key, items in groups.items()},
-                                                "across_over_same": median.get("g0xg1", float("nan")) / same if same else None,
-                                                "cross_p": tests["cross_p"], "relabellings": tests["relabellings"]}
+            # card swap: the within-K=1 pairs at the K = 2 (equal) arm's virtual seams; the control arm alternates the
+            # GPUs the same way (binned at the same cuts)
+            entry["cards"][field] = {label: card_split(k1_runs, {pair: bins[label] for pair, bins in table["k2"].items()
+                                                                 if pair[0] in k1_runs and pair[1] in k1_runs and bins[label]})
+                                     for label in TABLE_BINS}
+            entry["gate_null"][field] = {label: gate_null(k1_runs, {pair: bins[label] for pair, bins in table["k2"].items()
+                                                                    if pair[0] in k1_runs and pair[1] in k1_runs})
+                                         for label in ("d0", "all")}
+            if "k1s" in arms:
+                control = x_runs["k1s"]
+                entry["cards_control"][field] = {label: card_split(control, {pair: bins[label] for pair, bins in table["k1s"].items()
+                                                                             if pair[0] in control and pair[1] in control and bins[label]})
+                                                 for label in TABLE_BINS}
+            if field == "velocity":
+                for arm, runs, source in [("k1", k1_runs, "k2")] + [(arm, x_runs[arm], arm) for arm in arms]:
+                    if len(runs) == TRIALS:
+                        entry["trios"][arm] = {label: trio_splits(runs, {pair: bins[label] for pair, bins in table[source].items()
+                                                                         if pair[0] in runs and pair[1] in runs})
+                                               for label in TRIO_BINS}
+                for cut, mask in column_masks.items():
+                    within = {}
+                    for arm, runs in [("k1", k1_runs)] + [(arm, x_runs[arm]) for arm in arms]:
+                        distances = {f"{first}-{second}": pair_rms(values, first, second, {"band": mask})["band"]
+                                     for first, second in itertools.combinations(runs, 2)}
+                        within[arm] = {"median": float(np.median(list(distances.values()))),
+                                       "range": [min(distances.values()), max(distances.values())], "pairs": distances}
+                    entry["seam_columns"][str(cut)] = {"columns": [cut - 1, cut], "fluid": int(mask.sum()), "within": within}
             del values
+        for arm in arms:
+            entry["joint"][arm] = joint_null(k1_runs + x_runs[arm], x_runs[arm], joint_inputs[arm],
+                                             {name: {("velocity", "d0"): distances}
+                                              for name, distances in defect_inputs[arm].items()})
         result[str(horizon)] = entry
         print(f"[decomposition_audit] {case_name} N={horizon}: {len(k1_runs)} K = 1 runs, "
               + ", ".join(f"{arm} {len(x_runs[arm])} (cuts {cuts[arm]})" for arm in arms), flush=True)
@@ -436,7 +617,12 @@ def markdown_tables(results: dict) -> str:
                     cells.append(" / ".join(f"{bins[label]['cross_over_within_k1']:.2f}" for label in TABLE_BINS))
                 lines.append(f"| {CASES[case_name]['label']} | {horizon} | {ARM_LABELS[arm]} | " + " | ".join(cells) + " |")
     lines += ["", "## permutation tests: p < 0.05 counts (6 fields x 5 bins = 30 tests per row and statistic)", "",
-              "| 算例 | N | 臂 | 交叉 p < 0.05 | 含 K>1 p < 0.05 | 最小 p 交叉 | 最小 p 含 K>1 |", "|---|---|---|---|---|---|---|"]
+              "P = the joint permutation null: each of the 924 relabellings applied to all 30 tests at once (keeps their "
+              "dependence: ρ and p are almost the same test, in 2-D the ≥ 8 bin is almost every particle); P(≥) = share of "
+              "relabellings with at least the observed count, P(0) = share with none, null mean = expected count; "
+              "P(0, both) = share with none of the 60 tests of both statistics significant.", "",
+              "| 算例 | N | 臂 | 交叉 p < 0.05 | 含 K>1 p < 0.05 | 最小 p 交叉 | 最小 p 含 K>1 | 交叉 P(≥) / P(0) / null mean | "
+              "含 K>1 P(≥) / P(0) / null mean | P(0, both) |", "|---|---|---|---|---|---|---|---|---|---|"]
     total_tests = total_cross = total_one = 0
     for case_name, horizons in results.items():
         for horizon, entry in horizons.items():
@@ -447,10 +633,14 @@ def markdown_tables(results: dict) -> str:
                 total_tests += len(items)
                 total_cross += cross
                 total_one += one
+                joint = entry["joint"][arm]
                 lines.append(f"| {CASES[case_name]['label']} | {horizon} | {ARM_LABELS[arm]} | {cross} | {one} | "
-                             f"{min(item['cross_p'] for item in items):.3f} | {min(item['one_p'] for item in items):.3f} |")
+                             f"{min(item['cross_p'] for item in items):.3f} | {min(item['one_p'] for item in items):.3f} | "
+                             + " | ".join(f"{joint[kind]['p_at_least']:.3f} / {joint[kind]['p_none']:.2f} / "
+                                          f"{joint[kind]['null_mean_count']:.1f}" for kind in ("cross", "one"))
+                             + f" | {joint['p_none_both']:.2f} |")
     lines.append(f"| 合计 | | | {total_cross} / {total_tests} | {total_one} / {total_tests} | 机会期望 "
-                 f"{0.05 * total_tests:.0f} | |")
+                 f"{0.05 * total_tests:.0f}(检验独立时) | | | | |")
     lines += ["", "## card swap: within-K=1 velocity medians (pairs at the K = 2 virtual seams)", "",
               "| 算例 | N | 箱 | GPU 0 x GPU 0 | GPU 1 x GPU 1 | GPU 0 x GPU 1 | 跨卡 / 同卡 | p 交叉(20 种重标,最小 0.1) |",
               "|---|---|---|---|---|---|---|---|"]
@@ -462,6 +652,61 @@ def markdown_tables(results: dict) -> str:
                 lines.append(f"| {CASES[case_name]['label']} | {horizon} | {TABLE_BIN_LABELS[label]} | "
                              f"{median.get('g0xg0', float('nan')):.3g} | {median.get('g1xg1', float('nan')):.3g} | "
                              f"{median.get('g0xg1', float('nan')):.3g} | {item['across_over_same']:.2f} | {item['cross_p']:.2f} |")
+    for title, key in (("card swap, K = 1, every field (pairs at the K = 2 virtual seams)", "cards"),
+                       ("card swap, control: the six shuffled K = 1 runs (GPU 0 in trials 1 / 3 / 5, GPU 1 in 2 / 4 / 6, "
+                        "binned at the same K = 2 cuts)", "cards_control")):
+        lines += ["", f"## {title}", "",
+                  "| 算例 | N | 场 | 箱 | GPU 0 x GPU 0 | GPU 1 x GPU 1 | GPU 0 x GPU 1 | 跨卡 / 同卡 | p 交叉 |",
+                  "|---|---|---|---|---|---|---|---|---|"]
+        for case_name, horizons in results.items():
+            for horizon, entry in horizons.items():
+                for field in FIELDS:
+                    for label in TABLE_BINS:
+                        item = entry[key].get(field, {}).get(label)
+                        if not item:
+                            continue
+                        median = item["median"]
+                        lines.append(f"| {CASES[case_name]['label']} | {horizon} | {field} | {TABLE_BIN_LABELS[label]} | "
+                                     f"{median.get('g0xg0', float('nan')):.3g} | {median.get('g1xg1', float('nan')):.3g} | "
+                                     f"{median.get('g0xg1', float('nan')):.3g} | {item['across_over_same']:.2f} | "
+                                     f"{item['cross_p']:.2f} |")
+    lines += ["", "## trios: the 10 splits of each arm's six runs into 3 + 3 (velocity; median of each trio's 3 pairs)", "",
+              "奇 / 偶 = trials 1, 3, 5 / 2, 4, 6 (K = 1 and the control: GPU 0 / GPU 1); the other 9 splits are arbitrary.", "",
+              "| 算例 | N | 臂 | 箱 | 奇三次 | 偶三次 | 奇偶比 | 另外 9 种分法的比 | 10 种里 ≥ 奇偶比的个数 |",
+              "|---|---|---|---|---|---|---|---|---|"]
+    for case_name, horizons in results.items():
+        for horizon, entry in horizons.items():
+            for arm, bins in entry["trios"].items():
+                for label in TRIO_BINS:
+                    item = bins[label]
+                    parity, others = item["parity"], item["other_ratios"]
+                    lines.append(f"| {CASES[case_name]['label']} | {horizon} | {ARM_LABELS.get(arm, 'K = 1')} | "
+                                 f"{TABLE_BIN_LABELS[label]} | {parity['odd']:.3g} | {parity['even']:.3g} | {parity['ratio']:.2f} | "
+                                 f"{others[0]:.2f}–{others[-1]:.2f} | "
+                                 f"{1 + sum(value >= parity['ratio'] for value in others)} |")
+    seam_arms = ("k1", "k2", "k2s", "k4", "k1s")
+    lines += ["", "## seam columns: within-arm velocity medians in the two columns on either side of each cut", "",
+              "Each arm's own 15 pairs in the d = 0 band of that one cut, seam or not (median, range): is a column pair "
+              "noisier for every arm?", "",
+              "| 算例 | N | 切点 | 列 | 流体粒子 | " + " | ".join(ARM_LABELS.get(arm, "K = 1") for arm in seam_arms) + " |",
+              "|---|---|---|---|---|" + "---|" * len(seam_arms)]
+    for case_name, horizons in results.items():
+        for horizon, entry in horizons.items():
+            for cut, item in entry["seam_columns"].items():
+                cells = []
+                for arm in seam_arms:
+                    within = item["within"].get(arm)
+                    cells.append(f"{within['median']:.3g} ({within['range'][0]:.2g}–{within['range'][1]:.2g})" if within else "—")
+                lines.append(f"| {CASES[case_name]['label']} | {horizon} | {cut} | {item['columns'][0]}, {item['columns'][1]} | "
+                             f"{item['fluid']} | " + " | ".join(cells) + " |")
+    lines += ["", f"## the audit gate's one-pair floor among the six K = 1 runs (ratio > {AUDIT_LIMIT:g}, 120 ordered triples, "
+              "pairs at the K = 2 virtual seams)", "",
+              "| 算例 | N | 箱 | " + " | ".join(FIELDS) + " |", "|---|---|---|" + "---|" * len(FIELDS)]
+    for case_name, horizons in results.items():
+        for horizon, entry in horizons.items():
+            for label in ("d0", "all"):
+                lines.append(f"| {CASES[case_name]['label']} | {horizon} | {TABLE_BIN_LABELS[label]} | "
+                             + " | ".join(f"{entry['gate_null'][field][label]['fail_fraction']:.0%}" for field in FIELDS) + " |")
     lines += ["", "## bit-identical share of fluid particles per pair (median of the class; velocity / density)", "",
               "| 算例 | N | 臂 | 箱 | K=1 内 | K>1 内 | 跨 K |", "|---|---|---|---|---|---|---|"]
     for case_name, horizons in results.items():
@@ -492,17 +737,28 @@ def markdown_tables(results: dict) -> str:
                              f"{bins['d0']['median']['within_k1'] / LID_VELOCITY:.2g} | "
                              f"{bins['d0']['median']['cross'] / LID_VELOCITY:.2g} | {bins['all']['median']['cross'] / LID_VELOCITY:.2g} |")
     lines += ["", "## sensitivity: velocity at d = 0 with a synthetic seam defect in the K > 1 runs", "",
-              "| 算例 | N | 臂 | 缺陷 | f | 跨 K / K=1 内 | K>1 内 / K=1 内 | p 交叉 | p 含 K>1 |", "|---|---|---|---|---|---|---|---|---|"]
+              "联合 = the configuration's 30 tests with the d = 0 velocity test replaced by the perturbed one: p < 0.05 count "
+              "and P(≥) under the joint permutation null (cross / one).", "",
+              "| 算例 | N | 臂 | 缺陷 | f | 跨 K / K=1 内 | K>1 内 / K=1 内 | 组间项 (p) | p 交叉 | p 含 K>1 | 联合 交叉 个数 P(≥) | "
+              "联合 含 K>1 个数 P(≥) |", "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for case_name, horizons in results.items():
         for horizon, entry in horizons.items():
             for arm, rows in entry["sensitivity"].items():
                 for row in rows:
+                    joint = entry["joint"][arm]["scenarios"][scenario_name(row["kind"], row["factor"])]
                     lines.append(f"| {CASES[case_name]['label']} | {horizon} | {ARM_LABELS[arm]} | {row['kind']} | {row['factor']:g} | "
                                  f"{row['cross_over_within_k1']:.2f} | {row['within_x_over_within_k1']:.2f} | "
-                                 f"{row['cross_p']:.3f} | {row['one_p']:.3f} |")
+                                 f"{row['between']:+.3f} ({row['between_p']:.3f}) | {row['cross_p']:.3f} | {row['one_p']:.3f} | "
+                                 f"{joint['cross']['count']} {joint['cross']['p_at_least']:.3f} | "
+                                 f"{joint['one']['count']} {joint['one']['p_at_least']:.3f} |")
     lines += ["", "## every field and bin (class medians: within K=1 / within K>1 / across; p cross / p one)", "",
-              "| 算例 | N | 臂 | 场 | 箱 | K=1 内 | K>1 内 | 跨 K | 跨 / K=1 内 | p 交叉 | p 含 K>1 |",
-              "|---|---|---|---|---|---|---|---|---|---|---|"]
+              "机会 95 % = the 2.5–97.5 % range of the ratio over the 924 relabellings of the same 12 runs. 组间项 = "
+              "(mean across d² − (mean within-K>1 d² + mean within-K=1 d²) / 2) / (mean within-K=1 d² / 2) = D² / s₁², the "
+              "group offset in units of the K = 1 run-to-run scatter (unmoved by a tighter or wider K > 1 arm), with its "
+              "one-sided permutation p.", "",
+              "| 算例 | N | 臂 | 场 | 箱 | K=1 内 | K>1 内 | 跨 K | 跨 / K=1 内 | 机会 95 % | K>1 内 / K=1 内 | 机会 95 % | "
+              "组间项 (p) | p 交叉 | p 含 K>1 |",
+              "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for case_name, horizons in results.items():
         for horizon, entry in horizons.items():
             for field in FIELDS:
@@ -512,7 +768,11 @@ def markdown_tables(results: dict) -> str:
                         median = item["median"]
                         lines.append(f"| {CASES[case_name]['label']} | {horizon} | {ARM_LABELS[arm]} | {field} | "
                                      f"{TABLE_BIN_LABELS[label]} | {median['within_k1']:.3g} | {median['within_x']:.3g} | "
-                                     f"{median['cross']:.3g} | {item['cross_over_within_k1']:.2f} | {item['cross_p']:.3f} | "
+                                     f"{median['cross']:.3g} | {item['cross_over_within_k1']:.2f} | "
+                                     f"{item['ratio_null_95'][0]:.2f}–{item['ratio_null_95'][1]:.2f} | "
+                                     f"{item['within_x_over_within_k1']:.2f} | "
+                                     f"{item['within_ratio_null_95'][0]:.2f}–{item['within_ratio_null_95'][1]:.2f} | "
+                                     f"{item['between']:+.3f} ({item['between_p']:.3f}) | {item['cross_p']:.3f} | "
                                      f"{item['one_p']:.3f} |")
     return "\n".join(lines) + "\n"
 
@@ -555,8 +815,13 @@ def figure(results: dict, path: pathlib.Path) -> None:
                 axis.set_xlabel("column distance to the nearest seam", fontsize=7)
             if column == 0:
                 axis.set_ylabel(f"N = {horizon}: rms |Δv| between two runs (m/s)", fontsize=7)
+            joint = entry["joint"][arm]
+            counts = (f"p < 0.05: × {joint['cross']['count']}/{joint['cross']['tests']} (P {joint['cross']['p_at_least']:.3f}), "
+                      f"+ {joint['one']['count']}/{joint['one']['tests']} (P {joint['one']['p_at_least']:.3f})")
             if row == 0:
-                axis.set_title(f"{CASES[case_name]['label']}, {ARM_LABELS[arm]}\ncuts {entry['cuts'][arm]}", fontsize=8)
+                axis.set_title(f"{CASES[case_name]['label']}, {ARM_LABELS[arm]}\ncuts {entry['cuts'][arm]}\n{counts}", fontsize=7)
+            else:
+                axis.set_title(counts, fontsize=7)
             axis.grid(alpha=0.3, which="both")
             axis.tick_params(labelsize=7)
         low, high = axes[row][0].get_ylim()          # the row shares y: headroom for the p labels
@@ -565,8 +830,9 @@ def figure(results: dict, path: pathlib.Path) -> None:
                for marker, color, label in styles.values()]
     figure_handle.legend(handles=handles, loc="lower center", ncol=3, fontsize=8, frameon=False)
     figure_handle.suptitle("E33: id-matched velocity difference of every pair of runs (6 K = 1 + 6 K > 1 per column); "
-                           "p of the exact permutation tests at the top of each bin (× cross, + pairs with a K > 1 run)",
-                           fontsize=8.5)
+                           "p of the exact permutation tests at the top of each bin (× cross, + pairs with a K > 1 run);\n"
+                           "panel titles: tests with p < 0.05 of the 30 (6 fields × 5 bins) and P of that count under the "
+                           "joint permutation null", fontsize=8.5)
     figure_handle.tight_layout(rect=(0, 0.04, 1, 0.97))
     figure_handle.savefig(path, dpi=160)
     plt.close(figure_handle)
