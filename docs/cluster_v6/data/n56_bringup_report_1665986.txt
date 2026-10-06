@@ -1,0 +1,112 @@
+
+===== CASE STAGE (check only; nothing is generated) =====
+case yaml: /data/run01/scxm138/vulkan-demo-v6/cases/lid_driven_cavity_2d_n1000/case.yaml (symlink=False)
+  frame.obj: 360 B -> /data/run01/scxm138/vulkan-demo/cases/lid_driven_cavity_2d/frame.obj
+  domain.obj: 30,059,049 B -> /data/run01/scxm138/vulkan-demo/cases/lid_driven_cavity_2d/domain.obj
+  wall.obj: 1,011,017 B -> /data/run01/scxm138/vulkan-demo/cases/lid_driven_cavity_2d/wall.obj
+  wall_top.obj: 324,837 B -> /data/run01/scxm138/vulkan-demo/cases/lid_driven_cavity_2d/wall_top.obj
+CASE STAGE: PASS
+
+BRINGUP: ALL PASS — report: /dev/shm/scxm138/e30_smoke_k2_1665986/bringup/bringup_report.txt
+
+===== CASE STAGE (check only; nothing is generated) =====
+case yaml: /data/run01/scxm138/vulkan-demo-v6/cases/lid_driven_cavity_2d_16m/case.yaml (symlink=False)
+  frame.obj: 360 B -> /data/run01/scxm138/vulkan-demo/cases/lid_driven_cavity_2d_16m/frame.obj
+  domain.obj: 480,236,050 B -> /data/run01/scxm138/vulkan-demo/cases/lid_driven_cavity_2d_16m/domain.obj
+  wall.obj: 3,997,518 B -> /data/run01/scxm138/vulkan-demo/cases/lid_driven_cavity_2d_16m/wall.obj
+  wall_top.obj: 1,298,337 B -> /data/run01/scxm138/vulkan-demo/cases/lid_driven_cavity_2d_16m/wall_top.obj
+CASE STAGE: PASS
+
+BRINGUP: ALL PASS — report: /dev/shm/scxm138/e30_smoke_k2_1665986/bringup/bringup_report.txt
+
+===== CASE STAGE (check only; nothing is generated) =====
+case yaml: /data/run01/scxm138/vulkan-demo-v6/cases/cavity3d_weak4_k2_8m_b4/case.yaml (symlink=False)
+  frame.obj: 362 B -> /data/run01/scxm138/vulkan-demo/cases/cavity3d_weak4_k2_8m/frame.obj
+  domain.obj: 245,908,148 B -> /data/run01/scxm138/vulkan-demo/cases/cavity3d_weak4_k2_8m/domain.obj
+  wall.obj: 26,088,715 B -> /data/run01/scxm138/vulkan-demo/cases/cavity3d_weak4_k2_8m/wall.obj
+  wall_top.obj: 6,085,583 B -> /data/run01/scxm138/vulkan-demo/cases/cavity3d_weak4_k2_8m/wall_top.obj
+CASE STAGE: PASS
+
+BRINGUP: ALL PASS — report: /dev/shm/scxm138/e30_smoke_k2_1665986/bringup/bringup_report.txt
+
+===== ENV STAGE 2026-10-05T22:35:42 =====
+python   : 3.13.15  (/dev/shm/scxm138/env/venv/bin/python)
+platform : Linux-5.15.0-119-generic-x86_64-with-glibc2.35  host=wqd10nbj04g1
+COMMIT   : 347be6fd38a091390b73d8aa6ea57be47e59cfe6 tarball_sha256=4b7d3a4e6082572053188cf693026dab5943c817753f1d147ef66b7db0ecc275 deployed=2026-10-05T21:30:40+08:00
+V6_* in environment: V6_WORKER_AFFINITY
+import numpy     : OK (2.5.3)
+import yaml      : OK (6.0.3)
+import vulkan    : OK (1.3.275.1)
+import cffi      : OK (2.1.1)
+import experiment.v6.utils.vulkan_context_v6: OK
+import experiment.v6.utils.simulator_v6: OK
+import experiment.v6.utils.orchestrator_v6: OK
+import experiment.v6.utils.partition_v6: OK
+import experiment.v6.utils.case_loader_v6: OK
+import experiment.v6.utils.case_v6: OK
+import experiment.v6.utils.transport_v6: OK
+import experiment.v6.utils.bench_v6: OK
+import experiment.v6.utils.sync_scheme_v6: OK
+import experiment.v6.utils.phase_trace_v6: OK
+libvulkan (find_library): libvulkan.so.1  LD_LIBRARY_PATH=/dev/shm/scxm138/env/vulkan_loader:
+ICDs /usr/share/vulkan/icd.d: ['intel_hasvk_icd.x86_64.json', 'intel_icd.x86_64.json', 'lvp_icd.x86_64.json', 'radeon_icd.x86_64.json', 'virtio_icd.x86_64.json']
+ICDs /etc/vulkan/icd.d: ['nvidia_icd.json']
+Vulkan loader instance version: 1.4.357
+index, name, uuid, pci.bus_id, driver_version, memory.total [MiB], power.limit [W]
+0, NVIDIA GeForce RTX 5090, GPU-725d2e31-1c1c-960c-1eb5-61c5ebd18c8d, 00000000:5A:00.0, 580.82.07, 32607 MiB, 575.00 W
+1, NVIDIA GeForce RTX 5090, GPU-bfc8e985-9585-8ce2-318b-7da6d4b05840, 00000000:A8:00.0, 580.82.07, 32607 MiB, 575.00 W
+[4mGPU0	GPU1	NIC0	CPU Affinity	NUMA Affinity	GPU NUMA ID[0m
+GPU0	 X 	SYS	NODE	12-15,76-79	0		N/A
+GPU1	SYS	 X 	SYS	36-37,40-41	1		N/A
+NIC0	NODE	SYS	 X 				
+
+Legend:
+
+  X    = Self
+  SYS  = Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g., QPI/UPI)
+  NODE = Connection traversing PCIe as well as the interconnect between PCIe Host Bridges within a NUMA node
+  PHB  = Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)
+  PXB  = Connection traversing multiple PCIe bridges (without traversing the PCIe Host Bridge)
+  PIX  = Connection traversing at most a single PCIe bridge
+  NV#  = Connection traversing a bonded set of # NVLinks
+
+NIC Legend:
+
+  NIC0: mlx5_bond_0
+spv bootstrap_half_kick.comp.spv ec24be0f2d0b48f85b35d4177190b1ca5d6da008114f43798c1db18d98a0aabe
+spv initialize_voxelization.comp.spv 62f42d33a26a70871521e30aa448dd3f620342e912120cc2e3d3bc4a6e3bdafa
+spv predict.comp.spv 099b129f66ea93c40d2a3751a1aa809d74c4f5b6c0f0759a9f7fb9f5c725442b
+spv update_voxel.comp.spv 024e04287997e22a6e37212b18f161b19a093571918d15337a2a69f4f2ba25ee
+spv ghost_send.comp.spv de0feb09c6618201e572ebc39b5982f8577d6e87b7131090faca73f4fae40cd5
+spv install_migrations.comp.spv d7f17d7808d77f9e885d7fe6c6a5ccfc49495dccb887e68369790f3a94360e64
+spv correction.comp.spv ee9ff135900b69f881c6fc9ad0dfc5c87ed14de015497e8060dceae90ebdabc7
+spv density.comp.spv ba4d4657c15d304ae5389cd908224a128317f41ab85f9af79c3bc57142a469fc
+spv force.comp.spv 4614f26d6c3da85de415ce488fc989551abff8b74fe710cb50ba2219edb0bf75
+spv defrag.comp.spv 52d7d9b3a09cf4ce33e8f2981c6e699b0ff213beabf1935e46e1ff8ad7969c42
+spv append_departed.comp.spv 7823e926e76ae19ac340ee12864e1e8e4ff6e0a08fe68b3298edd54a0b08d870
+spv expand_ghost_lists.comp.spv 728d4e4742a0f156bac518fae4243b177d130bdf5696858357a298412b02c251
+spv band_compact.comp.spv e22c63cb3b498b7ac784a62cd0ad10af0a33f85db222dba9165448e2d9a8f25a
+NVIDIA discrete devices: 2
+VulkanContextV6[0]: OK — NVIDIA GeForce RTX 5090 (compute qf 0, transfer qf 1, transfer queues 2 (split))
+VulkanContextV6[1]: OK — NVIDIA GeForce RTX 5090 (compute qf 0, transfer qf 1, transfer queues 2 (split))
+ENV STAGE: PASS
+
+===== CASE STAGE (check only; nothing is generated) =====
+case yaml: /data/run01/scxm138/vulkan-demo-v6/cases/lid_driven_cavity_2d_n1000/case.yaml (symlink=False)
+  frame.obj: 360 B -> /data/run01/scxm138/vulkan-demo/cases/lid_driven_cavity_2d/frame.obj
+  domain.obj: 30,059,049 B -> /data/run01/scxm138/vulkan-demo/cases/lid_driven_cavity_2d/domain.obj
+  wall.obj: 1,011,017 B -> /data/run01/scxm138/vulkan-demo/cases/lid_driven_cavity_2d/wall.obj
+  wall_top.obj: 324,837 B -> /data/run01/scxm138/vulkan-demo/cases/lid_driven_cavity_2d/wall_top.obj
+CASE STAGE: PASS
+
+===== K1 STAGE (chain bench, weights 1, devices 0, 300 steps) =====
+  $ /dev/shm/scxm138/env/venv/bin/python -u /data/run01/scxm138/vulkan-demo-v6/docs/cluster_v6/scripts/run_chain_v6.py -- --case cases/lid_driven_cavity_2d_n1000/case.yaml --weights 1 --device-map 0 --sync-scheme per-direction --depth 2 --pool-safety 1.2 --max-steps 300 --warmup 100 --defrag-cadence 100   > /dev/shm/scxm138/e30_smoke_k2_1665986/bringup/bringup_k1.log
+RESULT label=bringup_k1 status=pass rc=0 steady_fps=555.1 total_fps=454.4 drift=0 overflow_total=0 far_migration=0 stamps=0+0 alive=1046529->1046529 clamp=0 nan=False fields=OK columns=[206] tq2=1 pins=0/skip0 wall=13.9s
+K1 STAGE: PASS (rc=0)
+
+===== K2 STAGE (chain bench, weights 1,1, devices 0,1, 300 steps) =====
+  $ /dev/shm/scxm138/env/venv/bin/python -u /data/run01/scxm138/vulkan-demo-v6/docs/cluster_v6/scripts/run_chain_v6.py -- --case cases/lid_driven_cavity_2d_n1000/case.yaml --weights 1,1 --device-map 0,1 --sync-scheme per-direction --depth 2 --pool-safety 1.2 --max-steps 300 --warmup 100 --defrag-cadence 100   > /dev/shm/scxm138/e30_smoke_k2_1665986/bringup/bringup_k2.log
+RESULT label=bringup_k2 status=pass rc=0 steady_fps=723.4 total_fps=705.9 drift=0 overflow_total=0 far_migration=0 stamps=0+0 alive=1046529->1046529 clamp=0 nan=False fields=OK columns=[102, 104] tq2=2 pins=2/skip0 wall=23.1s
+K2 STAGE: PASS (rc=0)
+
+BRINGUP: ALL PASS — report: /dev/shm/scxm138/e30_smoke_k2_1665986/bringup/bringup_report.txt

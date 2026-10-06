@@ -1,0 +1,383 @@
+{
+ "format": "e32_slab_weights_v1",
+ "case": "cases/lid_driven_cavity_2d_16m/case.yaml",
+ "case_sha256": "d9383fe1439bd41e1c8bdbb9e907c2a5e0315462afda11ef2af874a0d5dcdeaf",
+ "particle_count": 16184529,
+ "grid_nx": 806,
+ "fluid_histogram_sha256": "0d19e3ba3bc00ab195f499da2f37754556773a7d4b889429c2b90dc34b7778c6",
+ "slab_count": 4,
+ "device_map": [
+  0,
+  1,
+  2,
+  3
+ ],
+ "devices": [
+  {
+   "device_index": 0,
+   "name": "NVIDIA A100-PCIE-40GB",
+   "uuid": "bbb2dff1a0c91e4a491fa7b156cd35b9"
+  },
+  {
+   "device_index": 1,
+   "name": "NVIDIA A100-PCIE-40GB",
+   "uuid": "8b538ef7c913c7a195609903e0de4966"
+  },
+  {
+   "device_index": 2,
+   "name": "NVIDIA A100-PCIE-40GB",
+   "uuid": "473134286c15ef420614786da0b5f309"
+  },
+  {
+   "device_index": 3,
+   "name": "NVIDIA A100-PCIE-40GB",
+   "uuid": "d014515e45f218ffe5b2dcd72de68abb"
+  }
+ ],
+ "host": "paraai-n32-h-01-agent-92",
+ "settings": {
+  "warmup": 200,
+  "steps": 300,
+  "rounds": 2,
+  "depth": 2,
+  "pool_safety": 1.2,
+  "sync_scheme": "per-direction",
+  "defrag_cadence": 1000
+ },
+ "band_widths": [
+  2,
+  2,
+  3
+ ],
+ "environment": {
+  "V6_WORKER_AFFINITY": "0-31;0-31;64-95;64-95",
+  "VK_LOADER_LAYERS_DISABLE": "VK_LAYER_KHRONOS_validation"
+ },
+ "commit": "",
+ "v6_dirty_files": [],
+ "timestamp": "2026-10-06 15:55:05",
+ "seconds": 72.40595827996731,
+ "rounds": [
+  {
+   "round": 1,
+   "weights": [
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "cuts": [
+    203,
+    403,
+    603
+   ],
+   "own_columns": [
+    203,
+    200,
+    200,
+    203
+   ],
+   "fluid": [
+    4005001,
+    4001000,
+    4001000,
+    4001000
+   ],
+   "all": [
+    4071276,
+    4023000,
+    4023000,
+    4067253
+   ],
+   "busy_us": [
+    21047.728000000003,
+    20911.456,
+    20780.448,
+    20738.944
+   ],
+   "omega": [
+    0.9922513693897178,
+    0.9977197741460435,
+    1.004009786381166,
+    1.006019070083073
+   ],
+   "next_cuts": [
+    201,
+    401,
+    602
+   ],
+   "changed": true,
+   "statistics": {
+    "per_sim": [
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 21047.728000000003,
+      "busy_p95_us": 21071.3584,
+      "busy_mean_us": 21055.62122666667,
+      "a_p50_us": 815.248,
+      "b_p50_us": 19315.712,
+      "c_p50_us": 916.736
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 20911.456,
+      "busy_p95_us": 20968.7808,
+      "busy_mean_us": 20921.434026666666,
+      "a_p50_us": 918.88,
+      "b_p50_us": 18812.528,
+      "c_p50_us": 1178.08
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 20780.448,
+      "busy_p95_us": 20800.488000000005,
+      "busy_mean_us": 20781.28170666667,
+      "a_p50_us": 918.176,
+      "b_p50_us": 18689.296000000002,
+      "c_p50_us": 1175.088
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 20738.944,
+      "busy_p95_us": 20940.416,
+      "busy_mean_us": 20759.106133333335,
+      "a_p50_us": 816.544,
+      "b_p50_us": 19114.096,
+      "c_p50_us": 809.12
+     }
+    ],
+    "per_device": {
+     "0": {
+      "sims": [
+       0
+      ],
+      "busy_us": 21047.728000000003,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "1": {
+      "sims": [
+       1
+      ],
+      "busy_us": 20911.456,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "2": {
+      "sims": [
+       2
+      ],
+      "busy_us": 20780.448,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "3": {
+      "sims": [
+       3
+      ],
+      "busy_us": 20738.944,
+      "method": "median of T_A + T_B + T_C"
+     }
+    }
+   },
+   "invariants": {
+    "drift": 0,
+    "overflow_total": 0,
+    "stamp_errors_gpu": 0,
+    "stamp_errors_host": 0,
+    "far_migration_total": 0
+   },
+   "devices": [
+    {
+     "device_index": 0,
+     "name": "NVIDIA A100-PCIE-40GB",
+     "uuid": "bbb2dff1a0c91e4a491fa7b156cd35b9"
+    },
+    {
+     "device_index": 1,
+     "name": "NVIDIA A100-PCIE-40GB",
+     "uuid": "8b538ef7c913c7a195609903e0de4966"
+    },
+    {
+     "device_index": 2,
+     "name": "NVIDIA A100-PCIE-40GB",
+     "uuid": "473134286c15ef420614786da0b5f309"
+    },
+    {
+     "device_index": 3,
+     "name": "NVIDIA A100-PCIE-40GB",
+     "uuid": "d014515e45f218ffe5b2dcd72de68abb"
+    }
+   ],
+   "pilot_steady_fps": 47.28515861840447,
+   "seconds": 33.82025910913944
+  },
+  {
+   "round": 2,
+   "weights": [
+    0.9922513693897178,
+    0.9977197741460435,
+    1.004009786381166,
+    1.006019070083073
+   ],
+   "cuts": [
+    201,
+    401,
+    602
+   ],
+   "own_columns": [
+    201,
+    200,
+    201,
+    204
+   ],
+   "fluid": [
+    3964991,
+    4001000,
+    4021005,
+    4021005
+   ],
+   "all": [
+    4031046,
+    4023000,
+    4043115,
+    4087368
+   ],
+   "busy_us": [
+    20798.623999999996,
+    20889.664,
+    20873.952,
+    20840.384
+   ],
+   "omega": [
+    0.993234456880376,
+    0.997886786963472,
+    1.0036310943014068,
+    1.0052476618547452
+   ],
+   "next_cuts": [
+    201,
+    401,
+    602
+   ],
+   "changed": false,
+   "statistics": {
+    "per_sim": [
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 20798.623999999996,
+      "busy_p95_us": 20817.7056,
+      "busy_mean_us": 20799.506666666668,
+      "a_p50_us": 806.08,
+      "b_p50_us": 19076.352,
+      "c_p50_us": 916.72
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 20889.664,
+      "busy_p95_us": 20913.414399999998,
+      "busy_mean_us": 20893.510826666665,
+      "a_p50_us": 917.808,
+      "b_p50_us": 18795.264,
+      "c_p50_us": 1176.416
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 20873.952,
+      "busy_p95_us": 20893.702400000002,
+      "busy_mean_us": 20874.496,
+      "a_p50_us": 927.168,
+      "b_p50_us": 18766.464,
+      "c_p50_us": 1179.568
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 20840.384,
+      "busy_p95_us": 21040.920000000002,
+      "busy_mean_us": 20907.293759999997,
+      "a_p50_us": 823.168,
+      "b_p50_us": 19205.136,
+      "c_p50_us": 814.688
+     }
+    ],
+    "per_device": {
+     "0": {
+      "sims": [
+       0
+      ],
+      "busy_us": 20798.623999999996,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "1": {
+      "sims": [
+       1
+      ],
+      "busy_us": 20889.664,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "2": {
+      "sims": [
+       2
+      ],
+      "busy_us": 20873.952,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "3": {
+      "sims": [
+       3
+      ],
+      "busy_us": 20840.384,
+      "method": "median of T_A + T_B + T_C"
+     }
+    }
+   },
+   "invariants": {
+    "drift": 0,
+    "overflow_total": 0,
+    "stamp_errors_gpu": 0,
+    "stamp_errors_host": 0,
+    "far_migration_total": 0
+   },
+   "devices": [
+    {
+     "device_index": 0,
+     "name": "NVIDIA A100-PCIE-40GB",
+     "uuid": "bbb2dff1a0c91e4a491fa7b156cd35b9"
+    },
+    {
+     "device_index": 1,
+     "name": "NVIDIA A100-PCIE-40GB",
+     "uuid": "8b538ef7c913c7a195609903e0de4966"
+    },
+    {
+     "device_index": 2,
+     "name": "NVIDIA A100-PCIE-40GB",
+     "uuid": "473134286c15ef420614786da0b5f309"
+    },
+    {
+     "device_index": 3,
+     "name": "NVIDIA A100-PCIE-40GB",
+     "uuid": "d014515e45f218ffe5b2dcd72de68abb"
+    }
+   ],
+   "pilot_steady_fps": 47.66925340101214,
+   "seconds": 38.52016273885965
+  }
+ ],
+ "weights": [
+  0.993234456880376,
+  0.997886786963472,
+  1.0036310943014068,
+  1.0052476618547452
+ ],
+ "cuts": [
+  201,
+  401,
+  602
+ ]
+}

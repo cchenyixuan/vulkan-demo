@@ -1,0 +1,396 @@
+{
+ "case": "cases/lid_driven_cavity_2d_n1000/case.yaml",
+ "K": 2,
+ "steady_fps": 801.1549971139174,
+ "dest_signal": false,
+ "coverage": {
+  "expected_steps": 600,
+  "recorded_steps": 600,
+  "complete_steps": 600,
+  "coverage": 1.0,
+  "steady_coverage": 1.0,
+  "device_rows_missing_ticks": 0
+ },
+ "links": {
+  "s0_to_s1": {
+   "sender": 0,
+   "receiver": 1,
+   "steps": 400,
+   "host_copy_bytes_p50": 330672.0,
+   "dma_bytes": 438796.0,
+   "exposed_fraction": 0.2375,
+   "exposure_mean_us": 65.54557000000001,
+   "phase_offset_ratio_p5": -0.7489813170924651,
+   "phase_offset_ratio_p95": 0.061179381655220744,
+   "t_tr_p50": 231.10399999999998,
+   "t_tr_p95": 320.9051999999997,
+   "t_chain_p50": 218.508,
+   "t_chain_p95": 267.8039999999997,
+   "T_B_p50": 870.408,
+   "T_B_p95": 880.904,
+   "phase_offset_p50": -413.244,
+   "phase_offset_p95": 53.11659999999999,
+   "phase_offset_ratio_p50": -0.47421345933157566,
+   "phase_offset_abs_ratio_p50": 0.4793086999481302,
+   "phase_offset_abs_ratio_p95": 0.749205651342718,
+   "exposure_p50": 0.0,
+   "exposure_p95": 19.980999999999987,
+   "b_to_c_wait_p50": 2.048,
+   "b_to_c_wait_p95": 29.184,
+   "upload_end_after_b_start_p50": 665.864,
+   "upload_end_after_b_start_p95": 888.3408,
+   "signal_return_after_upload_start_p50": 3.844,
+   "signal_return_after_upload_start_p95": 12.614199999999986,
+   "r_p50": 0.2661357041530886,
+   "r_p95": 0.3675195099526561,
+   "r_chain_p50": 0.2515068047329693,
+   "r_chain_p95": 0.3028352767919937,
+   "r_receiver_p50": 0.7602407326143323,
+   "r_receiver_p95": 1.0230001853478836,
+   "readback_start_delay_p50": 4.864,
+   "readback_start_delay_p95": 10.24,
+   "readback_dma_p50": 15.104,
+   "readback_dma_p95": 16.64,
+   "readback_barrier_p50": 0.768,
+   "readback_barrier_p95": 1.28,
+   "readback_to_worker_p50": 102.49000000000001,
+   "readback_to_worker_p95": 132.30360000000002,
+   "wait_receiver_readback_p50": 7.786,
+   "wait_receiver_readback_p95": 57.48079999999991,
+   "wait_receiver_previous_upload_p50": 4.1259999999999994,
+   "wait_receiver_previous_upload_p95": 8.059399999999993,
+   "stamp_check_p50": 1.088,
+   "stamp_check_p95": 1.4965999999999995,
+   "memcpy_p50": 48.998000000000005,
+   "memcpy_p95": 112.46019999999999,
+   "copy_to_upload_p50": 21.51,
+   "copy_to_upload_p95": 47.36739999999997,
+   "upload_dma_p50": 21.504,
+   "upload_dma_p95": 22.528,
+   "group_readback_p50": 21.504,
+   "group_readback_p95": 26.88,
+   "group_readback_to_worker_p50": 102.49000000000001,
+   "group_readback_to_worker_p95": 132.30360000000002,
+   "group_host_p50": 62.142,
+   "group_host_p95": 156.80379999999994,
+   "group_copy_to_upload_p50": 21.51,
+   "group_copy_to_upload_p95": 47.36739999999997,
+   "group_upload_p50": 21.504,
+   "group_upload_p95": 22.528,
+   "chain_readback_p50": 21.504,
+   "chain_readback_p95": 26.88,
+   "chain_host_p50": 153.15200000000002,
+   "chain_host_p95": 185.00459999999995,
+   "chain_upload_p50": 43.074,
+   "chain_upload_p95": 68.60259999999997,
+   "host_wait_sender_readback_p50": 1089.258,
+   "host_wait_sender_readback_p95": 1109.0226,
+   "host_wait_receiver_readback_p50": 7.786,
+   "host_wait_receiver_readback_p95": 57.48079999999991,
+   "host_wait_receiver_previous_upload_p50": 4.1259999999999994,
+   "host_wait_receiver_previous_upload_p95": 8.059399999999993,
+   "host_stamp_check_p50": 1.088,
+   "host_stamp_check_p95": 1.4965999999999995,
+   "host_memcpy_p50": 48.998000000000005,
+   "host_memcpy_p95": 112.46019999999999,
+   "host_signal_p50": 24.104,
+   "host_signal_p95": 57.79279999999999
+  },
+  "s1_to_s0": {
+   "sender": 1,
+   "receiver": 0,
+   "steps": 400,
+   "host_copy_bytes_p50": 330672.0,
+   "dma_bytes": 438796.0,
+   "exposed_fraction": 0.03,
+   "exposure_mean_us": 60.658339999999995,
+   "phase_offset_ratio_p5": -0.055891400439735006,
+   "phase_offset_ratio_p95": 0.7530319189976479,
+   "t_tr_p50": 576.902,
+   "t_tr_p95": 816.9611999999998,
+   "t_chain_p50": 129.23600000000002,
+   "t_chain_p95": 243.6769999999999,
+   "T_B_p50": 870.404,
+   "T_B_p95": 880.1487999999999,
+   "phase_offset_p50": 417.212,
+   "phase_offset_p95": 653.3924,
+   "phase_offset_ratio_p50": 0.4788490892008865,
+   "phase_offset_abs_ratio_p50": 0.48434752985437945,
+   "phase_offset_abs_ratio_p95": 0.7531259146206999,
+   "exposure_p50": 0.0,
+   "exposure_p95": 0.0,
+   "b_to_c_wait_p50": 2.048,
+   "b_to_c_wait_p95": 2.304,
+   "upload_end_after_b_start_p50": 131.584,
+   "upload_end_after_b_start_p95": 341.54619999999994,
+   "signal_return_after_upload_start_p50": 1.6280000000000001,
+   "signal_return_after_upload_start_p95": 14.578399999999943,
+   "r_p50": 0.6612450534549457,
+   "r_p95": 0.9425087990504012,
+   "r_chain_p50": 0.14852682668853018,
+   "r_chain_p95": 0.28115092175494977,
+   "r_receiver_p50": 0.15151423627980198,
+   "r_receiver_p95": 0.39021793150257383,
+   "readback_start_delay_p50": 6.4,
+   "readback_start_delay_p95": 10.752,
+   "readback_dma_p50": 16.128,
+   "readback_dma_p95": 17.664,
+   "readback_barrier_p50": 0.768,
+   "readback_barrier_p95": 1.024,
+   "readback_to_worker_p50": 14.668,
+   "readback_to_worker_p95": 109.7794,
+   "wait_receiver_readback_p50": 412.264,
+   "wait_receiver_readback_p95": 651.4679999999998,
+   "wait_receiver_previous_upload_p50": 4.577999999999999,
+   "wait_receiver_previous_upload_p95": 8.3642,
+   "stamp_check_p50": 1.128,
+   "stamp_check_p95": 1.4973999999999987,
+   "memcpy_p50": 46.513999999999996,
+   "memcpy_p95": 111.76579999999994,
+   "copy_to_upload_p50": 21.304000000000002,
+   "copy_to_upload_p95": 48.794599999999924,
+   "upload_dma_p50": 20.48,
+   "upload_dma_p95": 21.504,
+   "group_readback_p50": 23.808,
+   "group_readback_p95": 27.904,
+   "group_readback_to_worker_p50": 14.668,
+   "group_readback_to_worker_p95": 109.7794,
+   "group_host_p50": 470.29200000000003,
+   "group_host_p95": 707.2786,
+   "group_copy_to_upload_p50": 21.304000000000002,
+   "group_copy_to_upload_p95": 48.794599999999924,
+   "group_upload_p50": 20.48,
+   "group_upload_p95": 21.504,
+   "chain_readback_p50": 23.808,
+   "chain_readback_p95": 27.904,
+   "chain_host_p50": 63.20999999999998,
+   "chain_host_p95": 161.16159999999985,
+   "chain_upload_p50": 41.858000000000004,
+   "chain_upload_p95": 69.50499999999994,
+   "host_wait_sender_readback_p50": 650.2,
+   "host_wait_sender_readback_p95": 1076.9172,
+   "host_wait_receiver_readback_p50": 412.264,
+   "host_wait_receiver_readback_p95": 651.4679999999998,
+   "host_wait_receiver_previous_upload_p50": 4.577999999999999,
+   "host_wait_receiver_previous_upload_p95": 8.3642,
+   "host_stamp_check_p50": 1.128,
+   "host_stamp_check_p95": 1.4973999999999987,
+   "host_memcpy_p50": 46.513999999999996,
+   "host_memcpy_p95": 111.76579999999994,
+   "host_signal_p50": 21.25,
+   "host_signal_p95": 57.33879999999995
+  }
+ },
+ "sims": [
+  {
+   "sim": 0,
+   "T_B_p50_us": 870.404,
+   "T_B_p95_us": 880.1487999999999,
+   "phase_a_p50_us": 69.376,
+   "phase_c_p50_us": 234.24,
+   "c_to_a_gap_p50_us": 6.4,
+   "c_to_a_gap_p95_us": 6.924799999999988
+  },
+  {
+   "sim": 1,
+   "T_B_p50_us": 870.408,
+   "T_B_p95_us": 880.904,
+   "phase_a_p50_us": 73.728,
+   "phase_c_p50_us": 220.928,
+   "c_to_a_gap_p50_us": 6.656,
+   "c_to_a_gap_p95_us": 7.424
+  }
+ ],
+ "r_worst_p50": 0.6659288033966357,
+ "r_worst_p95": 0.9484723959595089,
+ "r_chain_worst_p50": 0.25285052625005044,
+ "r_chain_worst_p95": 0.3491026573535267,
+ "r_receiver_worst_p50": 0.7696672749580442,
+ "r_receiver_worst_p95": 1.0306138371110658,
+ "exposed_steps_fraction": 0.2475,
+ "exposure_mean_us": 93.78380999999999,
+ "exposure_mean_when_exposed_us": 378.92448484848484,
+ "checks": {
+  "causal": {
+   "chains": 800,
+   "chain": [
+    "send_end",
+    "readback_start",
+    "readback_end",
+    "worker_source_wait",
+    "worker_copy",
+    "upload_start",
+    "upload_end",
+    "receiver_c_start"
+   ],
+   "pairs": [
+    {
+     "pair": "send_end <= readback_start",
+     "domains": "sender/sender",
+     "negative_fraction": 0.0,
+     "violation_fraction": 0.0,
+     "min_gap_us": 2.816,
+     "p50_gap_us": 6.018
+    },
+    {
+     "pair": "readback_start <= readback_end",
+     "domains": "sender/sender",
+     "negative_fraction": 0.0,
+     "violation_fraction": 0.0,
+     "min_gap_us": 14.08,
+     "p50_gap_us": 16.64
+    },
+    {
+     "pair": "readback_end <= worker_source_wait",
+     "domains": "sender/host",
+     "negative_fraction": 0.0,
+     "violation_fraction": 0.0,
+     "min_gap_us": 1.168,
+     "p50_gap_us": 26.246
+    },
+    {
+     "pair": "worker_source_wait <= worker_copy",
+     "domains": "host/host",
+     "negative_fraction": 0.0,
+     "violation_fraction": 0.0,
+     "min_gap_us": 57.204,
+     "p50_gap_us": 117.538
+    },
+    {
+     "pair": "worker_copy <= upload_start",
+     "domains": "host/receiver",
+     "negative_fraction": 0.0,
+     "violation_fraction": 0.0,
+     "min_gap_us": 16.64,
+     "p50_gap_us": 21.34
+    },
+    {
+     "pair": "upload_start <= upload_end",
+     "domains": "receiver/receiver",
+     "negative_fraction": 0.0,
+     "violation_fraction": 0.0,
+     "min_gap_us": 19.712,
+     "p50_gap_us": 20.992
+    },
+    {
+     "pair": "upload_end <= receiver_c_start",
+     "domains": "receiver/receiver",
+     "negative_fraction": 0.0,
+     "violation_fraction": 0.0,
+     "min_gap_us": 2.816,
+     "p50_gap_us": 611.588
+    }
+   ],
+   "links": {
+    "s0_to_s1": {
+     "send_end <= readback_start": {
+      "min_gap_us": 3.072,
+      "tolerance_us": 0.0,
+      "margin_us": null
+     },
+     "readback_start <= readback_end": {
+      "min_gap_us": 14.592,
+      "tolerance_us": 0.0,
+      "margin_us": null
+     },
+     "readback_end <= worker_source_wait": {
+      "min_gap_us": 1.876,
+      "tolerance_us": 0.2995483838021755,
+      "margin_us": 1.5764516161978244
+     },
+     "worker_source_wait <= worker_copy": {
+      "min_gap_us": 59.576,
+      "tolerance_us": 0.0,
+      "margin_us": null
+     },
+     "worker_copy <= upload_start": {
+      "min_gap_us": 18.124,
+      "tolerance_us": 0.28121512442827223,
+      "margin_us": 17.842784875571727
+     },
+     "upload_start <= upload_end": {
+      "min_gap_us": 20.48,
+      "tolerance_us": 0.0,
+      "margin_us": null
+     },
+     "upload_end <= receiver_c_start": {
+      "min_gap_us": 2.816,
+      "tolerance_us": 0.0,
+      "margin_us": null
+     }
+    },
+    "s1_to_s0": {
+     "send_end <= readback_start": {
+      "min_gap_us": 2.816,
+      "tolerance_us": 0.0,
+      "margin_us": null
+     },
+     "readback_start <= readback_end": {
+      "min_gap_us": 14.08,
+      "tolerance_us": 0.0,
+      "margin_us": null
+     },
+     "readback_end <= worker_source_wait": {
+      "min_gap_us": 1.168,
+      "tolerance_us": 0.28121512442827223,
+      "margin_us": 0.8867848755717278
+     },
+     "worker_source_wait <= worker_copy": {
+      "min_gap_us": 57.204,
+      "tolerance_us": 0.0,
+      "margin_us": null
+     },
+     "worker_copy <= upload_start": {
+      "min_gap_us": 16.64,
+      "tolerance_us": 0.2995483838021755,
+      "margin_us": 16.340451616197825
+     },
+     "upload_start <= upload_end": {
+      "min_gap_us": 19.712,
+      "tolerance_us": 0.0,
+      "margin_us": null
+     },
+     "upload_end <= receiver_c_start": {
+      "min_gap_us": 3.84,
+      "tolerance_us": 0.0,
+      "margin_us": null
+     }
+    }
+   },
+   "signal_return_after_upload_start_fraction": 0.7175,
+   "chains_with_violation_fraction": 0.0,
+   "clock_fit_residual_max_ns": [
+    171.54838380217552,
+    153.21512442827225
+   ],
+   "clock_fit_residual_rms_ns": [
+    91.88294255125811,
+    84.51604598221931
+   ],
+   "clock_fit_samples_kept": [
+    12,
+    12
+   ],
+   "clock_fit_samples": [
+    12,
+    12
+   ],
+   "clock_fit_version_1_residual_max_ns": [
+    171.54838380217552,
+    153.21512442827225
+   ],
+   "clock_fit_version_1_residual_rms_ns": [
+    91.88294253398972,
+    84.51604598221707
+   ],
+   "device_tick_quantum_ns": [
+    256.0,
+    256.0
+   ],
+   "driver_max_deviation_min_ns": [
+    1760.0,
+    1920.0
+   ]
+  }
+ }
+}

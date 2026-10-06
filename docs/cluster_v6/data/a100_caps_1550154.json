@@ -1,0 +1,446 @@
+{
+ "host": {
+  "hostname": "paraai-n32-h-01-agent-92",
+  "platform": "linux",
+  "python": "3.13.15",
+  "has_clock_monotonic_raw": true,
+  "clocksource": "arch_sys_counter",
+  "clock_perf_counter": {
+   "implementation": "clock_gettime(CLOCK_MONOTONIC)",
+   "resolution": 1e-09
+  },
+  "clock_monotonic": {
+   "implementation": "clock_gettime(CLOCK_MONOTONIC)",
+   "resolution": 1e-09
+  },
+  "job_cpu_count": 128,
+  "job_cpus": "0-127",
+  "python_vulkan": "1.3.275.1",
+  "vulkan_loader": "1.4.357"
+ },
+ "devices": [
+  {
+   "v6_index": 0,
+   "raw_index": 0,
+   "name": "NVIDIA A100-PCIE-40GB",
+   "device_type": 2,
+   "vendor_id": "0x10de",
+   "is_nvidia_discrete": true,
+   "api_version": "1.3.242",
+   "driver_version_raw": 2245657344,
+   "driver_version_nvidia": "535.104.12",
+   "driver_name": "NVIDIA",
+   "driver_info": "535.104.12",
+   "conformance": "1.3.5.0",
+   "device_uuid": "bbb2dff1a0c91e4a491fa7b156cd35b9",
+   "timestamp_period_ns": 1.0,
+   "timestamp_compute_and_graphics": 1,
+   "extensions": {
+    "VK_KHR_calibrated_timestamps": false,
+    "VK_EXT_calibrated_timestamps": true,
+    "VK_EXT_pci_bus_info": true,
+    "VK_EXT_memory_budget": true
+   },
+   "pci_bus_id": "0000:01:00.0",
+   "heaps": [
+    {
+     "index": 0,
+     "gib": 40.0,
+     "device_local": true
+    },
+    {
+     "index": 1,
+     "gib": 382.37,
+     "device_local": false
+    }
+   ],
+   "heap_budget_gib": [
+    39.38,
+    382.37
+   ],
+   "queue_families": [
+    {
+     "index": 0,
+     "flags_hex": "0xf",
+     "flags": "graphics+compute+transfer+sparse",
+     "count": 16,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 1,
+     "flags_hex": "0xc",
+     "flags": "transfer+sparse",
+     "count": 2,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    },
+    {
+     "index": 2,
+     "flags_hex": "0xe",
+     "flags": "compute+transfer+sparse",
+     "count": 8,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 3,
+     "flags_hex": "0x2c",
+     "flags": "transfer+sparse+video_decode",
+     "count": 5,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    }
+   ],
+   "v6_compute_family": 0,
+   "v6_transfer_family": 1,
+   "v6_transfer_queue_count": 2,
+   "v6_split_transfer_possible": true,
+   "calibrateable_domains": {
+    "KHR": "extension not supported",
+    "EXT": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ]
+   },
+   "nvidia_smi_index": 0,
+   "numa": {
+    "sysfs_present": true,
+    "numa_node": 0,
+    "local_cpulist": "0-31",
+    "current_link_speed": "16.0 GT/s PCIe",
+    "current_link_width": "16",
+    "node_cpulist": "0-31"
+   },
+   "live_sample": "skipped: KHR calibrated timestamps not supported"
+  },
+  {
+   "v6_index": 1,
+   "raw_index": 1,
+   "name": "NVIDIA A100-PCIE-40GB",
+   "device_type": 2,
+   "vendor_id": "0x10de",
+   "is_nvidia_discrete": true,
+   "api_version": "1.3.242",
+   "driver_version_raw": 2245657344,
+   "driver_version_nvidia": "535.104.12",
+   "driver_name": "NVIDIA",
+   "driver_info": "535.104.12",
+   "conformance": "1.3.5.0",
+   "device_uuid": "8b538ef7c913c7a195609903e0de4966",
+   "timestamp_period_ns": 1.0,
+   "timestamp_compute_and_graphics": 1,
+   "extensions": {
+    "VK_KHR_calibrated_timestamps": false,
+    "VK_EXT_calibrated_timestamps": true,
+    "VK_EXT_pci_bus_info": true,
+    "VK_EXT_memory_budget": true
+   },
+   "pci_bus_id": "0000:02:00.0",
+   "heaps": [
+    {
+     "index": 0,
+     "gib": 40.0,
+     "device_local": true
+    },
+    {
+     "index": 1,
+     "gib": 382.37,
+     "device_local": false
+    }
+   ],
+   "heap_budget_gib": [
+    39.39,
+    382.37
+   ],
+   "queue_families": [
+    {
+     "index": 0,
+     "flags_hex": "0xf",
+     "flags": "graphics+compute+transfer+sparse",
+     "count": 16,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 1,
+     "flags_hex": "0xc",
+     "flags": "transfer+sparse",
+     "count": 2,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    },
+    {
+     "index": 2,
+     "flags_hex": "0xe",
+     "flags": "compute+transfer+sparse",
+     "count": 8,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 3,
+     "flags_hex": "0x2c",
+     "flags": "transfer+sparse+video_decode",
+     "count": 5,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    }
+   ],
+   "v6_compute_family": 0,
+   "v6_transfer_family": 1,
+   "v6_transfer_queue_count": 2,
+   "v6_split_transfer_possible": true,
+   "calibrateable_domains": {
+    "KHR": "extension not supported",
+    "EXT": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ]
+   },
+   "nvidia_smi_index": 1,
+   "numa": {
+    "sysfs_present": true,
+    "numa_node": 0,
+    "local_cpulist": "0-31",
+    "current_link_speed": "16.0 GT/s PCIe",
+    "current_link_width": "16",
+    "node_cpulist": "0-31"
+   },
+   "live_sample": "skipped: KHR calibrated timestamps not supported"
+  },
+  {
+   "v6_index": 2,
+   "raw_index": 2,
+   "name": "NVIDIA A100-PCIE-40GB",
+   "device_type": 2,
+   "vendor_id": "0x10de",
+   "is_nvidia_discrete": true,
+   "api_version": "1.3.242",
+   "driver_version_raw": 2245657344,
+   "driver_version_nvidia": "535.104.12",
+   "driver_name": "NVIDIA",
+   "driver_info": "535.104.12",
+   "conformance": "1.3.5.0",
+   "device_uuid": "473134286c15ef420614786da0b5f309",
+   "timestamp_period_ns": 1.0,
+   "timestamp_compute_and_graphics": 1,
+   "extensions": {
+    "VK_KHR_calibrated_timestamps": false,
+    "VK_EXT_calibrated_timestamps": true,
+    "VK_EXT_pci_bus_info": true,
+    "VK_EXT_memory_budget": true
+   },
+   "pci_bus_id": "0000:81:00.0",
+   "heaps": [
+    {
+     "index": 0,
+     "gib": 40.0,
+     "device_local": true
+    },
+    {
+     "index": 1,
+     "gib": 382.37,
+     "device_local": false
+    }
+   ],
+   "heap_budget_gib": [
+    39.39,
+    382.37
+   ],
+   "queue_families": [
+    {
+     "index": 0,
+     "flags_hex": "0xf",
+     "flags": "graphics+compute+transfer+sparse",
+     "count": 16,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 1,
+     "flags_hex": "0xc",
+     "flags": "transfer+sparse",
+     "count": 2,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    },
+    {
+     "index": 2,
+     "flags_hex": "0xe",
+     "flags": "compute+transfer+sparse",
+     "count": 8,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 3,
+     "flags_hex": "0x2c",
+     "flags": "transfer+sparse+video_decode",
+     "count": 5,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    }
+   ],
+   "v6_compute_family": 0,
+   "v6_transfer_family": 1,
+   "v6_transfer_queue_count": 2,
+   "v6_split_transfer_possible": true,
+   "calibrateable_domains": {
+    "KHR": "extension not supported",
+    "EXT": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ]
+   },
+   "nvidia_smi_index": 2,
+   "numa": {
+    "sysfs_present": true,
+    "numa_node": 2,
+    "local_cpulist": "64-95",
+    "current_link_speed": "16.0 GT/s PCIe",
+    "current_link_width": "16",
+    "node_cpulist": "64-95"
+   },
+   "live_sample": "skipped: KHR calibrated timestamps not supported"
+  },
+  {
+   "v6_index": 3,
+   "raw_index": 3,
+   "name": "NVIDIA A100-PCIE-40GB",
+   "device_type": 2,
+   "vendor_id": "0x10de",
+   "is_nvidia_discrete": true,
+   "api_version": "1.3.242",
+   "driver_version_raw": 2245657344,
+   "driver_version_nvidia": "535.104.12",
+   "driver_name": "NVIDIA",
+   "driver_info": "535.104.12",
+   "conformance": "1.3.5.0",
+   "device_uuid": "d014515e45f218ffe5b2dcd72de68abb",
+   "timestamp_period_ns": 1.0,
+   "timestamp_compute_and_graphics": 1,
+   "extensions": {
+    "VK_KHR_calibrated_timestamps": false,
+    "VK_EXT_calibrated_timestamps": true,
+    "VK_EXT_pci_bus_info": true,
+    "VK_EXT_memory_budget": true
+   },
+   "pci_bus_id": "0000:82:00.0",
+   "heaps": [
+    {
+     "index": 0,
+     "gib": 40.0,
+     "device_local": true
+    },
+    {
+     "index": 1,
+     "gib": 382.37,
+     "device_local": false
+    }
+   ],
+   "heap_budget_gib": [
+    39.39,
+    382.37
+   ],
+   "queue_families": [
+    {
+     "index": 0,
+     "flags_hex": "0xf",
+     "flags": "graphics+compute+transfer+sparse",
+     "count": 16,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 1,
+     "flags_hex": "0xc",
+     "flags": "transfer+sparse",
+     "count": 2,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    },
+    {
+     "index": 2,
+     "flags_hex": "0xe",
+     "flags": "compute+transfer+sparse",
+     "count": 8,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 3,
+     "flags_hex": "0x2c",
+     "flags": "transfer+sparse+video_decode",
+     "count": 5,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    }
+   ],
+   "v6_compute_family": 0,
+   "v6_transfer_family": 1,
+   "v6_transfer_queue_count": 2,
+   "v6_split_transfer_possible": true,
+   "calibrateable_domains": {
+    "KHR": "extension not supported",
+    "EXT": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ]
+   },
+   "nvidia_smi_index": 3,
+   "numa": {
+    "sysfs_present": true,
+    "numa_node": 2,
+    "local_cpulist": "64-95",
+    "current_link_speed": "16.0 GT/s PCIe",
+    "current_link_width": "16",
+    "node_cpulist": "64-95"
+   },
+   "live_sample": "skipped: KHR calibrated timestamps not supported"
+  }
+ ],
+ "nvidia_smi": [
+  {
+   "index": 0,
+   "uuid": "bbb2dff1a0c91e4a491fa7b156cd35b9",
+   "pci_bus_id": "0000:01:00.0",
+   "name": "NVIDIA A100-PCIE-40GB",
+   "driver_version": "535.104.12",
+   "memory_total": "40960 MiB",
+   "power_limit": "250.00 W"
+  },
+  {
+   "index": 1,
+   "uuid": "8b538ef7c913c7a195609903e0de4966",
+   "pci_bus_id": "0000:02:00.0",
+   "name": "NVIDIA A100-PCIE-40GB",
+   "driver_version": "535.104.12",
+   "memory_total": "40960 MiB",
+   "power_limit": "250.00 W"
+  },
+  {
+   "index": 2,
+   "uuid": "473134286c15ef420614786da0b5f309",
+   "pci_bus_id": "0000:81:00.0",
+   "name": "NVIDIA A100-PCIE-40GB",
+   "driver_version": "535.104.12",
+   "memory_total": "40960 MiB",
+   "power_limit": "250.00 W"
+  },
+  {
+   "index": 3,
+   "uuid": "d014515e45f218ffe5b2dcd72de68abb",
+   "pci_bus_id": "0000:82:00.0",
+   "name": "NVIDIA A100-PCIE-40GB",
+   "driver_version": "535.104.12",
+   "memory_total": "40960 MiB",
+   "power_limit": "250.00 W"
+  }
+ ],
+ "v6_index_equals_nvidia_smi_index": true
+}

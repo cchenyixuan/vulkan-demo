@@ -1,0 +1,7 @@
+Fatal Python error: Bus error
+  File "/home/bingxing2/home/scx6633/e30/env/lib/python3.13/site-packages/vulkan/_vulkan.py", line 11024 in _callApi
+  File "/home/bingxing2/home/scx6633/e30/env/lib/python3.13/site-packages/vulkan/_vulkan.py", line 12680 in vkCmdBindDescriptorSets
+  File "/home/bingxing2/home/scx6633/e30/vulkan-demo-v6/experiment/v6/utils/simulator_v6.py", line 2085 in _bind_pipeline_and_sets
+  File "/home/bingxing2/home/scx6633/e30/vulkan-demo-v6/experiment/v6/utils/simulator_v6.py", line 2294 in _record_bootstrap_init_cmd
+  File "/home/bingxing2/home/scx6633/e30/vulkan-demo-v6/experiment/v6/utils/simulator_v6.py", line 2372 in bootstrap_init
+  File "/home/bingxing2/home/scx6633/e30/vulkan-demo-v6/experiment/v6/utils/orchestrator_v6.py", line 507 in bootstrap_all

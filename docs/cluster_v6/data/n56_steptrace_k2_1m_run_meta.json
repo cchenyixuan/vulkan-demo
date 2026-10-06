@@ -1,0 +1,204 @@
+{
+ "case": "cases/lid_driven_cavity_2d_n1000/case.yaml",
+ "K": 2,
+ "weights": [
+  1.0,
+  1.0
+ ],
+ "device_map": [
+  0,
+  1
+ ],
+ "depth": 2,
+ "sync_scheme": "per-direction",
+ "pool_safety": 1.2,
+ "max_steps": 600,
+ "warmup": 200,
+ "defrag_cadence": 1000,
+ "result": {
+  "frame_count": 600,
+  "elapsed_s": 0.7402010038495064,
+  "fps": 810.5906326519772,
+  "steady_frames": 400,
+  "steady_s": 0.4992791675031185,
+  "steady_fps": 801.1549971139174
+ },
+ "partition": [
+  {
+   "own_global_first_column": 0,
+   "own_global_last_column": 101,
+   "own_particle_count": 518661,
+   "has_leading_peer": false,
+   "has_trailing_peer": true
+  },
+  {
+   "own_global_first_column": 102,
+   "own_global_last_column": 205,
+   "own_particle_count": 527868,
+   "has_leading_peer": true,
+   "has_trailing_peer": false
+  }
+ ],
+ "commit": "",
+ "v6_dirty_files": [],
+ "clock": {
+  "time_domain": "CLOCK_MONOTONIC",
+  "host_clock": "time.perf_counter_ns",
+  "qpc_frequency": null,
+  "calibrate_ms": 500.0,
+  "detail": "phases",
+  "fits": [
+   {
+    "device_center_ns": 1.79121106764605e+18,
+    "host_center_ns": 2.671503111867256e+16,
+    "slope": 1.000006448732443,
+    "intercept_ns": 91.00055033716889,
+    "drift_knots_device_ns": [
+     -677929984.0,
+     -677871360.0,
+     -677770496.0,
+     -677680384.0,
+     -677644800.0,
+     -176339712.0,
+     325198336.0,
+     647855104.0,
+     647938304.0,
+     648007680.0,
+     648080128.0,
+     648156160.0
+    ],
+    "drift_knots_ns": [
+     -21.050543904304504,
+     17.868993759155273,
+     -21.050543904304504,
+     17.868993759155273,
+     -21.050543904304504,
+     -21.381312370300293,
+     -69.82869970798492,
+     -21.381312370300293,
+     -21.2159281373024,
+     -21.381312370300293,
+     -45.60500603914261,
+     -21.381312370300293
+    ],
+    "samples": 12,
+    "samples_kept": 12,
+    "line_residual_rms_ns": 93.8159597124746,
+    "residual_rms_ns": 91.88294253398972,
+    "residual_max_ns": 171.54838380217552,
+    "driver_max_deviation_min_ns": 1760.0,
+    "driver_max_deviation_median_ns": 1760.0
+   },
+   {
+    "device_center_ns": 1.7912109806812058e+18,
+    "host_center_ns": 2.67150311190353e+16,
+    "slope": 1.000009057371749,
+    "intercept_ns": -275.3358453714874,
+    "drift_knots_device_ns": [
+     -677940224.0,
+     -677867264.0,
+     -677793792.0,
+     -677717760.0,
+     -677620992.0,
+     -176160000.0,
+     325012992.0,
+     647894528.0,
+     647940096.0,
+     648022784.0,
+     648075520.0,
+     648157440.0
+    ],
+    "drift_knots_ns": [
+     16.801074862480164,
+     32.24677628278732,
+     16.801074862480164,
+     32.24677628278732,
+     47.69247770309448,
+     16.801074862480164,
+     16.801074862480164,
+     15.572353541851044,
+     16.186714202165604,
+     15.572353541851044,
+     -19.476353615522385,
+     -54.52506077289581
+    ],
+    "samples": 12,
+    "samples_kept": 12,
+    "line_residual_rms_ns": 86.85796981157138,
+    "residual_rms_ns": 84.51604598221707,
+    "residual_max_ns": 153.21512442827225,
+    "driver_max_deviation_min_ns": 1920.0,
+    "driver_max_deviation_median_ns": 1968.0
+   }
+  ]
+ },
+ "slabs": null,
+ "links": [
+  {
+   "link": "s0_to_s1",
+   "sender": 0,
+   "receiver": 1,
+   "sender_direction": "trailing",
+   "receiver_direction": "leading",
+   "dma_bytes": 438796
+  },
+  {
+   "link": "s1_to_s0",
+   "sender": 1,
+   "receiver": 0,
+   "sender_direction": "leading",
+   "receiver_direction": "trailing",
+   "dma_bytes": 438796
+  }
+ ],
+ "labels": {
+  "compute": [
+   [
+    "a_start",
+    "a_voxel_end",
+    "a_ghost_trailing_end",
+    "b_start",
+    "b_density_deep_interior_end",
+    "b_force_deep_interior_end",
+    "c_start",
+    "c_force_end"
+   ],
+   [
+    "a_start",
+    "a_voxel_end",
+    "a_ghost_leading_end",
+    "b_start",
+    "b_density_deep_interior_end",
+    "b_force_deep_interior_end",
+    "c_start",
+    "c_force_end"
+   ]
+  ],
+  "transfer": [
+   [
+    "t_rb_trailing_start",
+    "t_rb_trailing_copy_end",
+    "t_rb_trailing_end",
+    "t_up_trailing_start",
+    "t_up_trailing_end"
+   ],
+   [
+    "t_rb_leading_start",
+    "t_rb_leading_copy_end",
+    "t_rb_leading_end",
+    "t_up_leading_start",
+    "t_up_leading_end"
+   ]
+  ]
+ },
+ "records": {
+  "steps": 600,
+  "device_rows": 1200,
+  "device_rows_complete": 1200,
+  "link_rows": 1200,
+  "link_rows_complete": 1200
+ },
+ "switches_env": {
+  "V6_WORKER_AFFINITY": "0-31,64-95;32-63,96-127"
+ }
+}
