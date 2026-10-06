@@ -270,7 +270,7 @@ def tables(results: list[dict], timing: dict | None) -> str:
         f"({item['stream']['vortices']['primary']['x']:.4f}, {item['stream']['vortices']['primary']['y']:.4f})"
         f"(Δ {item['stream']['vortices']['primary']['x'] - x_ref:+.4f}, {item['stream']['vortices']['primary']['y'] - y_ref:+.4f})"
         for item in results])
-    row("lid 行上的 ψ:均值 / 最大 |ψ|", [f"{item['stream']['psi_top_mean']:+.2e} / {item['stream']['psi_top_max_abs']:.2e}"
+    row("lid 行上的 ψ:均值 / 最大绝对值", [f"{item['stream']['psi_top_mean']:+.2e} / {item['stream']['psi_top_max_abs']:.2e}"
                                              for item in results])
     for name, text in (("BR1", "右下二次涡 BR1"), ("BL1", "左下二次涡 BL1")):
         ghia = GHIA_VORTICES[name]
