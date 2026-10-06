@@ -307,8 +307,9 @@ def main() -> int:
                         help="comma-separated Vulkan deviceUUIDs the slabs' GPUs must have (e.g. the headless 5090)")
     parser.add_argument("--solver", choices=SOLVERS, default="v6",
                         help="experiment/v6 (default) or experiment/v7 (E36 wall boundary experiment, K = 1 only)")
-    parser.add_argument("--wall-bc", type=int, choices=(0, 1), default=None,
-                        help="--solver v7 only (required there): V7_WALL_BC, 0 = v6 walls, 1 = Adami et al. 2012")
+    parser.add_argument("--wall-bc", type=int, choices=(0, 1, 2, 3), default=None,
+                        help="--solver v7 only (required there): V7_WALL_BC, 0 = v6 walls, 1 = Adami et al. 2012; "
+                             "diagnostics: 2 = no-slip only, 3 = Adami with the wall density held at rho0")
     arguments = parser.parse_args()
     solver = arguments.solver
     if (solver == "v7") != (arguments.wall_bc is not None):

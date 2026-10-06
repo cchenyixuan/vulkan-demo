@@ -140,9 +140,12 @@ _PHASE_A_NO_WAIT = os.environ.get("V7_PHASE_A_NO_WAIT", "1") == "1"
 # every force dispatch; once more before the bootstrap passes and after a
 # restart's voxelization). v7 runs one slab only (SphSimulatorV7 refuses a
 # peer). Read once at import.
+# Diagnostics (not the specified condition, common.glsl): 2 = v6 wall density /
+# pressure + the Adami dummy velocity only, 3 = Adami with the wall density held
+# at rho0.
 _WALL_BC = int(os.environ.get("V7_WALL_BC", "0"))
-if _WALL_BC not in (0, 1):
-    raise ValueError(f"V7_WALL_BC={_WALL_BC}: expected 0 (v6 walls) or 1 (Adami)")
+if _WALL_BC not in (0, 1, 2, 3):
+    raise ValueError(f"V7_WALL_BC={_WALL_BC}: expected 0 (v6 walls), 1 (Adami) or the diagnostics 2, 3")
 if _FAST_SUBMIT:
     from vulkan._vulkancache import ffi as _ffi
     from vulkan._vulkan import lib as _lib
@@ -1570,7 +1573,7 @@ class SphSimulatorV7:
         )
         # E36 WALL_BC = 1: the wall pass, reading the fluid rho/P from primary (after the scratch -> primary
         # copy) or from scratch (phase B, before the copy, in front of force_deep_interior_scratch).
-        if _WALL_BC == 1:
+        if _WALL_BC != 0:
             for key, source in (("wall_extrapolate", 0), ("wall_extrapolate_scratch", 1)):
                 pipelines[key] = self._create_pipeline(
                     shader=self.shader_modules["wall_extrapolate"],
@@ -2148,7 +2151,7 @@ class SphSimulatorV7:
         dummy velocity). ``density_source`` = where the fluid's rho/P of this
         step are: "primary" after the scratch -> primary copy, "scratch" in phase
         B before it. Records nothing with WALL_BC = 0 (the v6 recording)."""
-        if _WALL_BC != 1:
+        if _WALL_BC == 0:
             return
         self._bind_pipeline_and_sets(
             cmd, "wall_extrapolate_scratch" if density_source == "scratch" else "wall_extrapolate")
@@ -2374,7 +2377,7 @@ class SphSimulatorV7:
 
         # E36 WALL_BC = 1: the wall pass once before step 0, on the initial state (the bootstrap correction and
         # density read its rho_w as every step's do), and again after density + copy below, before force.
-        if _WALL_BC == 1:
+        if _WALL_BC != 0:
             self._record_compute_barrier(cmd)
             self._record_wall_extrapolate(cmd)
 

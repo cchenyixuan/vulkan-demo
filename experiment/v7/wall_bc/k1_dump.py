@@ -130,7 +130,7 @@ def read_state(sim, solver: str) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--solver", choices=("v6", "v7"), required=True)
-    parser.add_argument("--wall-bc", type=int, choices=(0, 1), default=None, help="v7 only: V7_WALL_BC")
+    parser.add_argument("--wall-bc", type=int, choices=(0, 1, 2, 3), default=None, help="v7 only: V7_WALL_BC")
     parser.add_argument("--case", required=True)
     parser.add_argument("--device", type=int, required=True)
     parser.add_argument("--steps", type=int, required=True)
