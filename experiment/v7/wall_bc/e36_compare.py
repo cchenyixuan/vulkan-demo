@@ -201,6 +201,7 @@ def analyse(label: str, run_dir: pathlib.Path, t_stop: float, average_span: floa
         "stream": stream,
         "errors": {line: {key: analysis["errors"][("wall", "mls", line)][key] for key in ("L2", "L2_relative", "Linf", "Linf_at")}
                    for line in ("u", "v")},
+        "errors_ghia": ghia_errors(analysis),
         "extrema": {name: {key: entry[key] for key in ("value", "position_wall")}
                     for name, entry in analysis["extrema"].items()},
         "mean_velocity": {"u": float(np.mean([row["mean_u"] for row in rows])),
@@ -230,6 +231,21 @@ def gpu_label(item: dict) -> str:
     """GPU0 = the display 5090 (uuid fb83...), GPU1 = the headless one (ae13...)."""
     names = ["GPU0" if uuid.startswith("fb83") else "GPU1" for uuid in (item["fps"]["device_uuids"] or [])]
     return "+".join(names) + (f", K={item['slabs']}" if item["slabs"] > 1 else "")
+
+
+def ghia_errors(analysis: dict) -> dict:
+    """rms / max of (time-averaged dense MLS line - Ghia 1982) at Ghia's tabulated points without the two wall points
+    (linear interpolation of the 1001-point line, wall-row frame), for orientation next to the Marchi errors."""
+    ghia = cavity_reference.ghia1982()
+    dense = analysis["dense_reference"]
+    result = {}
+    for line in ("u", "v"):
+        coordinates, values = ghia[line]
+        inside = (coordinates > 0.0) & (coordinates < 1.0)
+        error = np.interp(coordinates[inside], dense, analysis["statistics"][f"{line}_dense_mls"]["mean"]) - values[inside]
+        result[line] = {"L2": float(np.sqrt(np.mean(error ** 2))), "Linf": float(np.abs(error).max()),
+                        "points": int(inside.sum())}
+    return result
 
 
 def deficit(value: float, reference: float) -> float:
@@ -266,6 +282,9 @@ def tables(results: list[dict], timing: dict | None) -> str:
         row(f"{text}:L2 / 相对 L2 / L∞", [
             f"{item['errors'][line]['L2']:.4f} / {100 * item['errors'][line]['L2_relative']:.2f} % / {item['errors'][line]['Linf']:.4f}"
             for item in results])
+    row("参考:相对 Ghia 1982 的 L2 / L∞(u;v,内部表列点)", [
+        f"{item['errors_ghia']['u']['L2']:.4f} / {item['errors_ghia']['u']['Linf']:.4f};"
+        f"{item['errors_ghia']['v']['L2']:.4f} / {item['errors_ghia']['v']['Linf']:.4f}" for item in results])
     for name, text in (("u_min", "u_min"), ("v_max", "v_max"), ("v_min", "v_min")):
         value_key, position_key = {"u_min": ("u_min", "y_at_u_min"), "v_max": ("v_max", "x_at_v_max"),
                                    "v_min": ("v_min", "x_at_v_min")}[name]
