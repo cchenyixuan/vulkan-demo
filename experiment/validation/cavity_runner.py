@@ -22,7 +22,8 @@ runner refuses to start if they do not match --expect. A fresh run keeps a copy 
 directory: the analysis reads the run's numerics (xi, epsilon_squared_factor) from that copy, not from cases/.
 
 --solver v7 (E36, branch v7-wall-bc) runs experiment/v7 instead (one slab only, --slabs 1): the same release
-switches under the V7_ prefix plus V7_WALL_BC = --wall-bc (0 = the v6 walls, 1 = Adami et al. 2012), checked the
+switches under the V7_ prefix plus V7_WALL_BC = --wall-bc (0 = the v6 walls, 1 = Adami et al. 2012, 2 = no-slip only,
+3 = adami_rho0, 4 = pressure only; common.glsl), checked the
 same way; meta.json then records "solver" and "wall_bc", the physics hash covers experiment/v7, and every segment
 record carries the v7 diagnostics (wall_density_floor_count). The default --solver v6 runs exactly as before.
 
@@ -307,9 +308,10 @@ def main() -> int:
                         help="comma-separated Vulkan deviceUUIDs the slabs' GPUs must have (e.g. the headless 5090)")
     parser.add_argument("--solver", choices=SOLVERS, default="v6",
                         help="experiment/v6 (default) or experiment/v7 (E36 wall boundary experiment, K = 1 only)")
-    parser.add_argument("--wall-bc", type=int, choices=(0, 1, 2, 3), default=None,
+    parser.add_argument("--wall-bc", type=int, choices=(0, 1, 2, 3, 4), default=None,
                         help="--solver v7 only (required there): V7_WALL_BC, 0 = v6 walls, 1 = Adami et al. 2012; "
-                             "2 = no-slip only (diagnostic), 3 = adami_rho0 (Adami p_w and dummy velocity, walls store rho0; the v7 candidate)")
+                             "2 = no-slip only (diagnostic), 3 = adami_rho0 (Adami p_w and dummy velocity, walls store rho0; the v7 candidate), "
+                             "4 = pressure only (diagnostic: the wall pass of 3, viscous term with the stored wall velocity)")
     arguments = parser.parse_args()
     solver = arguments.solver
     if (solver == "v7") != (arguments.wall_bc is not None):

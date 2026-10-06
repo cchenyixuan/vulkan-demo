@@ -142,11 +142,13 @@ _PHASE_A_NO_WAIT = os.environ.get("V7_PHASE_A_NO_WAIT", "1") == "1"
 # peer). Read once at import.
 # 2 = no-slip only (diagnostic: v6 wall density / pressure + the Adami dummy
 # velocity), 3 = adami_rho0 (Adami p_w and dummy velocity, walls store rho0; the
-# v7 candidate wall since the E36 decision of 2026-10-06; common.glsl).
+# v7 candidate wall since the E36 decision of 2026-10-06; common.glsl),
+# 4 = pressure only (diagnostic: the wall pass of 3, the viscous term keeps the
+# walls' stored velocity as 0).
 _WALL_BC = int(os.environ.get("V7_WALL_BC", "0"))
-if _WALL_BC not in (0, 1, 2, 3):
-    raise ValueError(f"V7_WALL_BC={_WALL_BC}: expected 0 (v6 walls), 1 (Adami), 2 (no-slip only, diagnostic) "
-                     "or 3 (adami_rho0)")
+if _WALL_BC not in (0, 1, 2, 3, 4):
+    raise ValueError(f"V7_WALL_BC={_WALL_BC}: expected 0 (v6 walls), 1 (Adami), 2 (no-slip only, diagnostic), "
+                     "3 (adami_rho0) or 4 (pressure only, diagnostic)")
 # V7_FAKE_BAND_TEST moves part of the density pass into phase C (density_
 # boundary_band, after phase B's wall pass), so the wall pass would read band
 # fluid density before this step's band density exists (E36 review); refused.
@@ -729,7 +731,7 @@ class SphSimulatorV7:
             _BufferSpec("correction_inverse",           0, 7, 32 * pool_capacity, BSU | TRANSFER),
             _BufferSpec("density_gradient_kernel_sum",  0, 8, 16 * pool_capacity, BSU | TRANSFER),
             _BufferSpec("extension_fields",             0, 9, 16 * pool_capacity, BSU | TRANSFER),
-            # E36 WALL_BC = 1: wall dummy velocity + fluid kernel sum (wall_extrapolate.comp); transient,
+            # E36 WALL_BC != 0: wall dummy velocity + fluid kernel sum (wall_extrapolate.comp); transient,
             # not in DEFRAG_SET0_BINDINGS / the transport / the restart state
             _BufferSpec("wall_dummy_velocity",          0, 10, 16 * pool_capacity, BSU | TRANSFER),
 
@@ -1578,7 +1580,7 @@ class SphSimulatorV7:
             shader=self.shader_modules["force"],
             entries=self._global_entries() + self._force_mode_entries(1, density_source=1),
         )
-        # E36 WALL_BC = 1: the wall pass, reading the fluid rho/P from primary (after the scratch -> primary
+        # E36 WALL_BC != 0: the wall pass, reading the fluid rho/P from primary (after the scratch -> primary
         # copy) or from scratch (phase B, before the copy, in front of force_deep_interior_scratch).
         if _WALL_BC != 0:
             for key, source in (("wall_extrapolate", 0), ("wall_extrapolate_scratch", 1)):
@@ -2153,9 +2155,9 @@ class SphSimulatorV7:
 
     def _record_wall_extrapolate(self, cmd, density_source: str = "primary",
                                  tick: Optional[str] = None) -> None:
-        """E36 WALL_BC = 1: wall_extrapolate.comp over the own pid range, then a
+        """E36 WALL_BC != 0: wall_extrapolate.comp over the own pid range, then a
         compute barrier (force, or the next pass, reads the walls' rho_w, p_w and
-        dummy velocity). ``density_source`` = where the fluid's rho/P of this
+        dummy velocity; which of them each mode stores or reads: common.glsl). ``density_source`` = where the fluid's rho/P of this
         step are: "primary" after the scratch -> primary copy, "scratch" in phase
         B before it. Records nothing with WALL_BC = 0 (the v6 recording)."""
         if _WALL_BC == 0:

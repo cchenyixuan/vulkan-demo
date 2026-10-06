@@ -378,15 +378,23 @@ layout(constant_id = 97) const bool INIT_SEAM_CLAMP = false;
 //       integrate), but the wall pass stores rho0 instead of EOS^-1(p_w), so continuity, delta term, KCG and V_w
 //       see rho0 as in v6. Without a drift EOS^-1(p_w) and rho0 differ by p_w / (rho0 c0^2) ~ Ma^2 ~ 1e-4; with
 //       1 the mean fluid density drifts (no rho0 reference in the delta term), with 3 it does not.
+//   4 = pressure only (E36 diagnostic; with 0, 2 and 3 the 2 x 2 of no-slip x wall pressure): the wall pass of 3
+//       (Adami p_w, walls store rho0 and do not integrate), but the viscous term keeps the wall's stored velocity
+//       as with 0 (the pass still writes wall_dummy_velocity; force does not read it).
 layout(constant_id = 100) const uint WALL_BC = 0u;
 const uint WALL_BC_V6    = 0u;
 const uint WALL_BC_ADAMI = 1u;
-const uint WALL_BC_DIAGNOSTIC_NO_SLIP_ONLY = 2u;
-const uint WALL_BC_ADAMI_RHO0              = 3u;
-// walls skip the density pass and take rho, P from the wall pass (1, 3); a wall neighbour's viscous velocity is
-// the dummy velocity (1, 2, 3)
-const bool WALL_BC_WALL_PASS_DENSITY = (WALL_BC == WALL_BC_ADAMI || WALL_BC == WALL_BC_ADAMI_RHO0);
-const bool WALL_BC_DUMMY_VELOCITY    = (WALL_BC != WALL_BC_V6);
+const uint WALL_BC_DIAGNOSTIC_NO_SLIP_ONLY  = 2u;
+const uint WALL_BC_ADAMI_RHO0               = 3u;
+const uint WALL_BC_DIAGNOSTIC_PRESSURE_ONLY = 4u;
+// walls skip the density pass and take rho, P from the wall pass (1, 3, 4); a wall neighbour's viscous velocity is
+// the dummy velocity (1, 2, 3); the wall pass stores rho0 instead of EOS^-1(p_w) (3, 4)
+const bool WALL_BC_WALL_PASS_DENSITY = (WALL_BC == WALL_BC_ADAMI || WALL_BC == WALL_BC_ADAMI_RHO0
+                                        || WALL_BC == WALL_BC_DIAGNOSTIC_PRESSURE_ONLY);
+const bool WALL_BC_DUMMY_VELOCITY    = (WALL_BC == WALL_BC_ADAMI || WALL_BC == WALL_BC_DIAGNOSTIC_NO_SLIP_ONLY
+                                        || WALL_BC == WALL_BC_ADAMI_RHO0);
+const bool WALL_BC_WALL_STORES_REST_DENSITY = (WALL_BC == WALL_BC_ADAMI_RHO0
+                                               || WALL_BC == WALL_BC_DIAGNOSTIC_PRESSURE_ONLY);
 // Lower bound of the base 1 + p_w / B of the inverse Tait EOS (helpers.glsl stored_density_from_pressure):
 // guards the pow against a non-positive base. A floored evaluation is counted in wall_density_floor_count.
 const float WALL_PRESSURE_BASE_FLOOR = 1.0e-3;
@@ -550,9 +558,10 @@ layout(std430, set = 0, binding = 9) buffer ExtensionFieldsBuffer {
 };
 
 layout(std430, set = 0, binding = 10) buffer WallDummyVelocityBuffer {
-    // WALL_BC = 1 only (E36): per wall particle, written by wall_extrapolate.comp every step before force reads
-    // it: (u_dummy = 2 u_w - u~_w, Sigma_f W_wf). Fluid slots are never written. Transient: defrag does not
-    // permute it (it is recomputed before every read); not part of the restart state.
+    // WALL_BC != 0 only (E36): per wall particle, written by wall_extrapolate.comp every step before force:
+    // (u_dummy = 2 u_w - u~_w, Sigma_f W_wf). Force reads it with WALL_BC = 1, 2, 3 (not 4). Fluid slots are
+    // never written. Transient: defrag does not permute it (it is recomputed before every read); not part of
+    // the restart state.
     vec4 wall_dummy_velocity[];
 };
 
@@ -764,8 +773,9 @@ layout(std430, set = 3, binding = 0) buffer GlobalStatusBuffer {
     //   round). Both were silent losses.
     uint  initialization_seam_clamp_count;
     uint  overflow_initialization_outside;
-    // wall_density_floor_count (WALL_BC = 1, cumulative, diagnostic): wall-pass evaluations whose inverse-EOS
-    //   base 1 + p_w / B was raised to WALL_PRESSURE_BASE_FLOOR (was status_reserved_2).
+    // wall_density_floor_count (WALL_BC != 0, cumulative, diagnostic): wall-pass evaluations whose inverse-EOS
+    //   base 1 + p_w / B was raised to WALL_PRESSURE_BASE_FLOOR (was status_reserved_2). Only WALL_BC = 1
+    //   stores that density; 3 and 4 store rho0, 2 stores nothing of the pass's rho / P.
     uint  wall_density_floor_count;
     uint  status_reserved_3;
     uint  status_reserved_4;

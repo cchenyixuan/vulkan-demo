@@ -73,7 +73,12 @@ def stream_function_field(run: dict, window: tuple[float, float]) -> dict:
     xx, yy = np.meshgrid(axis, axis)
     points = np.stack([xx.ravel(), yy.ravel()], axis=1)
     total = np.zeros(points.shape[0])
+    halves = [np.zeros(points.shape[0]), np.zeros(points.shape[0])]
+    half_counts = [0, 0]
+    middle = 0.5 * (window[0] + window[1])
     for path in selected:
+        part = 0 if int(path.stem[1:]) * dt < middle else 1
+        half_counts[part] += 1
         with np.load(path) as archive:
             particles = sampling.ParticleSet(archive["positions"].astype(np.float64),
                                              archive["velocities"].astype(np.float64),
@@ -81,7 +86,9 @@ def stream_function_field(run: dict, window: tuple[float, float]) -> dict:
         tree = sampling.cKDTree(particles.positions)
         for start in range(0, points.shape[0], 40000):
             chunk = slice(start, start + 40000)
-            total[chunk] += sampling.interpolate(particles, points[chunk], support, tree=tree)["mls"][:, 0]
+            sampled = sampling.interpolate(particles, points[chunk], support, tree=tree)["mls"][:, 0]
+            total[chunk] += sampled
+            halves[part][chunk] += sampled
     u_grid = (total / len(selected)).reshape(GRID_POINTS, GRID_POINTS)
     psi = sampling.stream_function(u_grid, axis + half)
     length = 1.0 + 2.0 * spacing
@@ -90,6 +97,19 @@ def stream_function_field(run: dict, window: tuple[float, float]) -> dict:
     interior = (np.abs(xx) < 0.3) & (np.abs(yy) < 0.3)       # stream_function_minimum's primary search box
     x_min, y_min, psi_min = sampling.refine_grid_minimum(axis, axis, np.where(interior, psi, np.nan))
     vortices["primary"] = {"psi": psi_min / length, "x": (x_min + half) / length, "y": (y_min + half) / length}
+    # the primary minimum of each half window's average (first / second half of the snapshots by time): half their
+    # difference is the noise scale of psi_min (a standard error of the mean of two halves)
+    half_minima = []
+    for part in (0, 1):
+        if half_counts[part] == 0:
+            half_minima.append(None)
+            continue
+        psi_part = sampling.stream_function((halves[part] / half_counts[part]).reshape(GRID_POINTS, GRID_POINTS),
+                                            axis + half)
+        half_minima.append(float(sampling.refine_grid_minimum(axis, axis, np.where(interior, psi_part, np.nan))[2]
+                                 / length))
+    vortices["primary"]["psi_halves"] = half_minima
+    vortices["primary"]["half_counts"] = half_counts
     for name, ((x0, x1), (y0, y1)) in SECONDARY_WINDOWS.items():
         box = ((reference[None, :] > x0) & (reference[None, :] < x1)
                & (reference[:, None] > y0) & (reference[:, None] < y1))
@@ -197,12 +217,13 @@ def analyse(label: str, run_dir: pathlib.Path, t_stop: float, average_span: floa
     result = {
         "label": label, "run": str(run_dir), "slabs": run["slabs"], "solver": run["meta"].get("solver", "v6"),
         "wall_bc": run["meta"].get("wall_bc"), "git": run["meta"].get("git"), "window": window,
+        "case": run["meta"].get("case"), "dt": float(run["meta"]["dt"]),
         "samples_in_window": analysis["samples_in_window"], "t_steady_online": analysis["t_steady_online"],
         "stream": stream,
         "errors": {line: {key: analysis["errors"][("wall", "mls", line)][key] for key in ("L2", "L2_relative", "Linf", "Linf_at")}
                    for line in ("u", "v")},
         "errors_ghia": ghia_errors(analysis),
-        "extrema": {name: {key: entry[key] for key in ("value", "position_wall")}
+        "extrema": {name: {key: entry[key] for key in ("value", "position_wall", "sem")}
                     for name, entry in analysis["extrema"].items()},
         "mean_velocity": {"u": float(np.mean([row["mean_u"] for row in rows])),
                           "v": float(np.mean([row["mean_v"] for row in rows]))},
@@ -313,7 +334,9 @@ def tables(results: list[dict], timing: dict | None) -> str:
 
 
 def timing_table(timing: dict) -> str:
-    lines = ["| 配置(GPU1,21 000 步,最后一帧 GPU 时间戳中位数) | 每步内核 µs | 壁面 pass µs(占比) | force µs | density µs | fps |",
+    steps = sorted({entry.get("steps", 21000) for entry in timing.values()})
+    lines = [f"| 配置(GPU1,{'/'.join(f'{value:,}'.replace(',', ' ') for value in steps)} 步,最后一帧 GPU 时间戳中位数) "
+             "| 每步内核 µs | 壁面 pass µs(占比) | force µs | density µs | fps |",
              "|---|---|---|---|---|---|"]
     for label, entry in timing.items():
         lines.append(f"| {label} | {entry['kernels']:.1f} | {entry['wall_pass']:.1f}({entry['wall_share']:.1f} %) | "
@@ -323,7 +346,9 @@ def timing_table(timing: dict) -> str:
 
 def timing_summary(directory: pathlib.Path) -> dict:
     result = {}
-    for name, label in (("v6", "v6 K=1"), ("v7_bc0", "v7 K=1 WALL_BC=0"), ("v7_bc1", "v7 K=1 WALL_BC=1 (Adami)")):
+    for name, label in (("v6", "v6 K=1"), ("v7_bc0", "v7 K=1 WALL_BC=0"), ("v7_bc1", "v7 K=1 WALL_BC=1 (Adami)"),
+                        ("v7_bc2", "v7 K=1 WALL_BC=2(只换无滑移)"), ("v7_bc3", "v7 K=1 WALL_BC=3(adami_rho0)"),
+                        ("v7_bc4", "v7 K=1 WALL_BC=4(只换压力)")):
         monitor = directory / f"{name}.monitor.jsonl"
         if not monitor.exists():
             continue
@@ -347,18 +372,21 @@ def timing_summary(directory: pathlib.Path) -> dict:
         medians = {key: float(np.median(values)) for key, values in parts.items()}
         kernels = sum(medians.values())
         with np.load(directory / f"{name}.npz") as archive:
-            fps = json.loads(str(archive["meta"]))["fps"]
+            dump_meta = json.loads(str(archive["meta"]))
         result[label] = {**medians, "kernels": kernels, "wall_share": 100.0 * medians["wall_pass"] / kernels,
-                         "fps": fps, "frames": len(rows)}
+                         "fps": dump_meta["fps"], "frames": len(rows), "steps": dump_meta["steps"],
+                         "case": dump_meta["case"]}
     return result
 
 
 STYLES = [("#969696", "--"), ("#08519c", "-"), ("#d95f0e", "-"), ("#31a354", "-."), ("#756bb1", ":")]
-DIAGNOSTIC_STYLES = [("#08519c", "-"), ("#31a354", "-."), ("#756bb1", ":"), ("#d95f0e", "-")]
+DIAGNOSTIC_STYLES = [("#08519c", "-"), ("#31a354", "-."), ("#756bb1", ":"), ("#d95f0e", "-"), ("#e7298a", "--")]
 
 
 def figures(results: list[dict], out: pathlib.Path) -> None:
     styles = STYLES if len(results) <= 3 else DIAGNOSTIC_STYLES
+    if len(results) > len(styles):
+        raise SystemExit(f"figures: {len(results)} runs, only {len(styles)} line styles")
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -445,7 +473,9 @@ def figures(results: list[dict], out: pathlib.Path) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--run", action="append", required=True, help="table label[|figure label]::run directory (repeat, in table order)")
+    parser.add_argument("--run", action="append", default=[],
+                        help="table label[|figure label]::run directory (repeat, in table order); none with --timing: "
+                             "only the timing table (e36_timing.md, e36_timing.json)")
     parser.add_argument("--t-stop", type=float, default=100.0)
     parser.add_argument("--average-span", type=float, default=20.0)
     parser.add_argument("--timing", default=None, help="directory of the same-GPU timing dumps (k1_dump --timestamps)")
@@ -455,6 +485,14 @@ def main() -> int:
     if not out.is_absolute():
         out = _REPO_ROOT / out
     out.mkdir(parents=True, exist_ok=True)
+    if not arguments.run:
+        if not arguments.timing:
+            parser.error("--run is required without --timing")
+        timing = timing_summary(pathlib.Path(arguments.timing))
+        (out / "e36_timing.json").write_text(json.dumps(timing, indent=1), encoding="utf-8")
+        (out / "e36_timing.md").write_text(timing_table(timing), encoding="utf-8")
+        print(timing_table(timing))
+        return 0
     results = []
     for entry in arguments.run:
         label, path = entry.rsplit("::", 1)

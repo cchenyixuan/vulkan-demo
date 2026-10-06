@@ -5,7 +5,7 @@
 
 // ============================================================================
 // wall_extrapolate.comp - E36 wall boundary condition of Adami, Hu & Adams
-// (2012), WALL_BC = 1 (and the diagnostics 2, 3: see common.glsl); v7 runs one
+// (2012), WALL_BC = 1 (and the modes 2, 3, 4: see common.glsl); v7 runs one
 // slab, so every neighbour is local.
 //
 // One thread per own pool slot; only wall particles (MATERIAL_BOUNDARY) work.
@@ -120,10 +120,10 @@ void main() {
         dummy_velocity = wall_velocity;
     }
 
-    // WALL_BC = 2 (diagnostic) keeps the wall's v6 rho / P (density.comp wrote them), WALL_BC = 3 (adami_rho0) stores rho0
-    // with p_w.
+    // WALL_BC = 2 (diagnostic) keeps the wall's v6 rho / P (density.comp wrote them), WALL_BC = 3 (adami_rho0) and
+    // 4 (pressure only, diagnostic) store rho0 with p_w.
     if (WALL_BC_WALL_PASS_DENSITY) {
-        if (WALL_BC == WALL_BC_ADAMI_RHO0) {
+        if (WALL_BC_WALL_STORES_REST_DENSITY) {
             wall_stored_density = stored_rest_density(self_params.rest_density);
         }
         vec2 wall_density_pressure = vec2(wall_stored_density, wall_pressure);

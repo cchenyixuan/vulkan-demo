@@ -216,7 +216,8 @@ void process_particle(uint self_particle_id) {
 
                     // ==== Viscosity (Morris) ================================
                     // E36 WALL_BC = 1: a wall neighbour enters with its no-slip dummy velocity
-                    // 2 u_w - u~_w (wall_extrapolate.comp, this step), not its stored velocity.
+                    // 2 u_w - u~_w (wall_extrapolate.comp, this step), not its stored velocity
+                    // (also 2 and 3; 4 keeps the stored velocity, as 0).
                     vec3 viscous_neighbor_velocity = neighbor_velocity;
                     if (WALL_BC_DUMMY_VELOCITY
                             && material_parameters[material[neighbor_particle_id]].kind == MATERIAL_BOUNDARY) {

@@ -1,5 +1,6 @@
 """density_budget.py - where the fluid's mean density changes: density.comp's right-hand side recomputed in float64
-from a k1_dump.py state (v6, or v7 with either wall condition) and split by term and neighbour kind.
+from a k1_dump.py state (v6, or v7 with any WALL_BC: the fluid's continuity and delta term read the walls' stored
+density and stored velocity in every mode) and split by term and neighbour kind.
 
 For every fluid particle i (the state's positions, stored half-step velocities, densities, masses and the dumped
 KCG inverse M_i^-1 of the last correction pass), over its neighbours j within the support radius h:
