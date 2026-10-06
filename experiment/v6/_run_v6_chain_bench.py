@@ -282,8 +282,8 @@ def main() -> int:
             raise SystemExit("--step-trace needs on_frame_done every frame: V6_PER_SIM_PIPELINE=1 calls it "
                              "only at drains (use 0 or 2)")
         from experiment.v6.utils.phase_trace_v6 import (
-            CALIBRATED_TIMESTAMPS_EXTENSION, StepTracer)
-        extra_device_extensions = [CALIBRATED_TIMESTAMPS_EXTENSION]
+            CALIBRATED_TIMESTAMPS_EXTENSION_CHOICES, StepTracer)
+        extra_device_extensions = [CALIBRATED_TIMESTAMPS_EXTENSION_CHOICES]   # KHR, else EXT
     try:
         for index in range(slab_count):
             ctx = VulkanContextV6.create(

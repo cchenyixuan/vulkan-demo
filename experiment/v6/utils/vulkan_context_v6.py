@@ -155,6 +155,26 @@ def _find_transfer_queue_family(
     return compute_queue_family_index
 
 
+def _resolve_device_extensions(physical_device, requested_extensions: Optional[list]) -> list:
+    """Device extension names to enable. An entry may be a tuple of alternatives in order of
+    preference (E30: ("VK_KHR_calibrated_timestamps", "VK_EXT_calibrated_timestamps") — the A100
+    driver 535 on N32-H offers only the EXT one): the first one the device offers is enabled; if it
+    offers none, the first name is requested and vkCreateDevice reports it missing."""
+    if not requested_extensions:
+        return []
+    offered_names = None
+    resolved = []
+    for request in requested_extensions:
+        if isinstance(request, str):
+            resolved.append(request)
+            continue
+        if offered_names is None:
+            offered_names = {properties.extensionName
+                             for properties in vkEnumerateDeviceExtensionProperties(physical_device, None)}
+        resolved.append(next((name for name in request if name in offered_names), request[0]))
+    return resolved
+
+
 def _select_physical_device(instance, requested_device_index: Optional[int]):
     physical_devices = vkEnumeratePhysicalDevices(instance)
     if not physical_devices:
@@ -259,6 +279,9 @@ class VulkanContextV6:
     # (two identical 5090s share a name). Used to key the per-physical-GPU
     # driver submit lock in simulator_v6.
     physical_device_index: int = -1
+
+    # Device extensions passed to vkCreateDevice, alternatives resolved (_resolve_device_extensions).
+    enabled_device_extensions: tuple = ()
 
     _validation_enabled: bool = False
     _debug_messenger: Optional[object] = None
@@ -392,7 +415,7 @@ class VulkanContextV6:
             pNext=features_1_2,
         )
 
-        device_extension_list = list(extra_device_extensions) if extra_device_extensions else []
+        device_extension_list = _resolve_device_extensions(physical_device, extra_device_extensions)
         device_create_info = VkDeviceCreateInfo(
             pNext=features_2,
             queueCreateInfoCount=len(queue_create_infos),
@@ -447,6 +470,7 @@ class VulkanContextV6:
             transfer_command_pool=transfer_command_pool,
             device_name=device_name,
             physical_device_index=physical_device_index,
+            enabled_device_extensions=tuple(device_extension_list),
             _validation_enabled=validation_active,
             _debug_messenger=debug_messenger,
             _memory_properties=memory_properties,

@@ -65,6 +65,22 @@ from experiment.v6.utils.bench_v6 import _MAX_TICKS, BenchTimer, split_parity_ti
 from experiment.v6.utils.clock_map_v6 import CLOCK_FIT_VERSION, clock_to_host, fit_clock
 
 CALIBRATED_TIMESTAMPS_EXTENSION = "VK_KHR_calibrated_timestamps"
+# --step-trace requests either name (the context enables the first the device offers): drivers older
+# than the KHR promotion offer only the EXT one (A100 driver 535 on N32-H, E30). Same functions and
+# structures; python-vulkan 1.3.275.1 has no VkCalibratedTimestampInfoEXT and fills
+# VkCalibratedTimestampInfoKHR with sType 1000543000, so the EXT path passes the spec value
+# 1000184000 (VK_STRUCTURE_TYPE_CALIBRATED_TIMESTAMP_INFO_EXT) explicitly.
+CALIBRATED_TIMESTAMPS_EXTENSION_CHOICES = ("VK_KHR_calibrated_timestamps", "VK_EXT_calibrated_timestamps")
+CALIBRATED_TIMESTAMP_INFO_STRUCTURE_TYPE_EXT = 1000184000
+
+
+def calibrated_timestamps_suffix(ctx) -> str:
+    """'KHR' or 'EXT': the calibrated-timestamps extension the context enabled (KHR when neither,
+    so the lookup fails with the KHR name as before)."""
+    enabled = getattr(ctx, "enabled_device_extensions", ())
+    if "VK_KHR_calibrated_timestamps" not in enabled and "VK_EXT_calibrated_timestamps" in enabled:
+        return "EXT"
+    return "KHR"
 
 _A_END_LABELS = ("a_ghost_trailing_end", "a_ghost_leading_end", "a_voxel_end", "a_predict_end")
 _B_END_LABELS = ("b_force_deep_interior_end", "b_density_deep_interior_end",
@@ -402,7 +418,8 @@ class StepTracer:
     boundary >= warmup, while the pipeline is drained), ``write(...)`` at the end
     and ``close()`` before the sims are destroyed (also on errors). Needs
     VK_KHR_calibrated_timestamps on every device, depth <= 2 and a loop that calls
-    on_frame_done for every frame (not V6_PER_SIM_PIPELINE=1)."""
+    on_frame_done for every frame (not V6_PER_SIM_PIPELINE=1). VK_EXT_calibrated_timestamps
+    serves where the KHR name is missing (CALIBRATED_TIMESTAMPS_EXTENSION_CHOICES)."""
 
     def __init__(self, sims, calibrate_ms: float = 500.0, detail: str = "phases"):
         if detail not in ("phases", "full"):
@@ -420,6 +437,7 @@ class StepTracer:
             sim.step_trace_parity = True
             self.compute_timers.append(compute)
             self.transfer_timers.append(transfer)
+        self.extension_suffixes = [calibrated_timestamps_suffix(sim.ctx) for sim in self.sims]
         self.domain = self._choose_domain()
         self.domain_name = TIME_DOMAIN_NAMES[self.domain]
         if self.domain == TIME_DOMAIN_CLOCK_MONOTONIC_RAW:
@@ -436,14 +454,19 @@ class StepTracer:
             frequency = ctypes.c_int64()
             ctypes.windll.kernel32.QueryPerformanceFrequency(ctypes.byref(frequency))
             self._qpc_frequency = int(frequency.value)
-        self._infos = [VkCalibratedTimestampInfoKHR(timeDomain=VK_TIME_DOMAIN_DEVICE_KHR),
-                       VkCalibratedTimestampInfoKHR(timeDomain=self.domain)]
+        infos_khr = [VkCalibratedTimestampInfoKHR(timeDomain=VK_TIME_DOMAIN_DEVICE_KHR),
+                     VkCalibratedTimestampInfoKHR(timeDomain=self.domain)]
+        infos_ext = [VkCalibratedTimestampInfoKHR(sType=CALIBRATED_TIMESTAMP_INFO_STRUCTURE_TYPE_EXT,
+                                                  timeDomain=VK_TIME_DOMAIN_DEVICE_KHR),
+                     VkCalibratedTimestampInfoKHR(sType=CALIBRATED_TIMESTAMP_INFO_STRUCTURE_TYPE_EXT,
+                                                  timeDomain=self.domain)]
+        self._infos = [infos_ext if suffix == "EXT" else infos_khr for suffix in self.extension_suffixes]
         self._get_calibrated = []
-        for sim in self.sims:
-            function = vkGetDeviceProcAddr(sim.ctx.device, "vkGetCalibratedTimestampsKHR")
+        for sim, suffix in zip(self.sims, self.extension_suffixes):
+            function = vkGetDeviceProcAddr(sim.ctx.device, f"vkGetCalibratedTimestamps{suffix}")
             if function is None:
-                raise RuntimeError(f"vkGetCalibratedTimestampsKHR unavailable — enable "
-                                   f"{CALIBRATED_TIMESTAMPS_EXTENSION} on every device")
+                raise RuntimeError(f"vkGetCalibratedTimestamps{suffix} unavailable — enable "
+                                   f"{' or '.join(CALIBRATED_TIMESTAMPS_EXTENSION_CHOICES)} on every device")
             self._get_calibrated.append(function)
         self.raw: dict[int, list] = {}           # frame -> [(compute raw, transfer raw) per sim]
         self.host_read: dict[int, int] = {}      # frame -> host time of its first read
@@ -469,8 +492,9 @@ class StepTracer:
     def _choose_domain(self) -> int:
         """The host domain every device can calibrate against (see section comment)."""
         available = None
-        for sim in self.sims:
-            function = vkGetInstanceProcAddr(sim.ctx.instance, "vkGetPhysicalDeviceCalibrateableTimeDomainsKHR")
+        for sim, suffix in zip(self.sims, self.extension_suffixes):
+            function = vkGetInstanceProcAddr(sim.ctx.instance,
+                                             f"vkGetPhysicalDeviceCalibrateableTimeDomains{suffix}")
             domains = {int(value) for value in function(sim.ctx.physical_device)}
             available = domains if available is None else available & domains
         order = ((TIME_DOMAIN_QUERY_PERFORMANCE_COUNTER,) if sys.platform == "win32"     # RAW: not slewed by NTP
@@ -493,7 +517,7 @@ class StepTracer:
         for _ in range(repeat):
             best = None
             for _ in range(burst):
-                deviation = self._get_calibrated[sim_index](sim.ctx.device, 2, self._infos, stamps)
+                deviation = self._get_calibrated[sim_index](sim.ctx.device, 2, self._infos[sim_index], stamps)
                 sample = (sim_index, frame_n, int(stamps[0]), self._host_ns(int(stamps[1])), float(int(deviation)))
                 if best is None or sample[4] < best[4]:
                     best = sample
@@ -675,6 +699,7 @@ class StepTracer:
         run_meta.update(_git_provenance())
         run_meta.update({
             "clock": {"time_domain": self.domain_name, "host_clock": self.host_clock_name,
+                      "extensions": [f"VK_{suffix}_calibrated_timestamps" for suffix in self.extension_suffixes],
                       "qpc_frequency": self._qpc_frequency, "calibrate_ms": self.calibrate_ms,
                       "detail": self.detail, "fit_version": CLOCK_FIT_VERSION, "fits": fits},
             "slabs": self.voxel_snapshot,
