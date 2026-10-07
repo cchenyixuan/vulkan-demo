@@ -87,6 +87,8 @@ differs from the one at N-1):
 | `run_matrix.py` | Sequential campaign: subprocess runs, timeouts, resume, analysis, summary. |
 | `matrix_v5_baseline.json` | V5 K=2 and K=4 against V5 K=1: 2-D 1M, 2-D 4M and 3-D 1M (K=2 only for 3-D), N = 300 and 2000, two trials each. |
 | `matrix_v6.json` | V6 `KEEP_DEPARTED` / `GHOST_LAYERS` variants (keep0_layers1, keep1_layers1, keep1_layers2) at K=2 and K=4, against the same V5 K=1 reference. |
+| `canonical_dump.py` | E37 bit-identity harness: a K-slab run from the initial state with canonical voxel lists, the full per-particle state dumped by global id, `--compare` bit for bit; `--repo` runs another checkout (e.g. v6-rc1); `--monitor --timestamps` is the E36 section 8.3 timing method. |
+| `wall_option_timing.py` | E37 timing tables of the wall option (simple / adami, K = 1) from `canonical_dump --monitor --timestamps` runs and chain-bench logs. |
 
 ## How to run
 

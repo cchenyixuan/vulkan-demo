@@ -40,6 +40,7 @@ from experiment.v6.utils.case_v6 import (
     NumericsConstants,
     PhysicsConstants,
     TransportConfig,
+    WALL_BOUNDARY_CHOICES,
 )
 
 
@@ -369,7 +370,13 @@ def load_case_v6(case_yaml_path: str | pathlib.Path) -> CaseV6:
         use_pst=bool(nm.get("use_pst", True)),
         use_prefix_sum_defrag=bool(nm.get("use_prefix_sum_defrag", False)),
         defrag_cadence=int(nm.get("defrag_cadence", 1000)),
+        # E37 wall boundary option: simple (the v6 walls, default) or adami (Adami et al. 2012 wall pressure +
+        # no-slip, walls store rho0; one GPU only). Optional key.
+        wall_boundary=str(nm.get("wall_boundary", "simple")),
     )
+    if numerics.wall_boundary not in WALL_BOUNDARY_CHOICES:
+        raise ValueError(f"numerics.wall_boundary: {numerics.wall_boundary!r}, expected one of "
+                         f"{', '.join(WALL_BOUNDARY_CHOICES)}")
 
     # --- Capacities -------------------------------------------------------
     caps = case_data["capacities"]

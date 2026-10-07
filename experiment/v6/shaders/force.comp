@@ -2,6 +2,7 @@
 #extension GL_GOOGLE_include_directive : enable
 #include "common.glsl"
 #include "helpers.glsl"
+#include "wall_boundary.glsl"
 
 // ============================================================================
 // force.comp - δ-plus WCSPH acceleration + particle shifting (stage 5).
@@ -215,9 +216,16 @@ void process_particle(uint self_particle_id) {
                                 * kernel_gradient_corrected;
 
                     // ==== Viscosity (Morris) ================================
+                    // wall_boundary adami: a wall neighbour enters with its no-slip dummy velocity
+                    // 2 u_w - u~_w (wall_extrapolate.comp, this step), not its stored velocity.
+                    vec3 viscous_neighbor_velocity = neighbor_velocity;
+                    if (WALL_ADAMI
+                            && material_parameters[material[neighbor_particle_id]].kind == MATERIAL_BOUNDARY) {
+                        viscous_neighbor_velocity = wall_dummy_velocity[neighbor_particle_id].xyz;
+                    }
                     a_viscosity +=
                         morris_coefficient * viscosity_uniform * neighbor_volume_dynamic
-                        * dot(self_velocity - neighbor_velocity,
+                        * dot(self_velocity - viscous_neighbor_velocity,
                               position_difference_neighbor_to_self)
                         / (distance * distance + EPS_H_SQUARED)
                         * kernel_gradient_corrected;

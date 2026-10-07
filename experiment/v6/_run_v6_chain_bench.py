@@ -217,6 +217,13 @@ def vulkan_device_counts() -> tuple[int, int]:
     return discrete, len(devices)
 
 
+def refuse_adami_chain(global_case, slab_count: int) -> None:
+    """E37: wall_boundary adami (case.yaml numerics) runs one slab only in this release."""
+    if global_case.numerics.wall_boundary == "adami" and slab_count > 1:
+        sys.exit(f"wall_boundary adami (case.yaml numerics) supports one GPU (K = 1) only in this release; "
+                 f"got K = {slab_count}")
+
+
 def main() -> int:
     args = parse_args()
     if not 0.001 <= args.switch_interval_ms <= 1000.0:       # also rejects nan / inf; CPython keeps whole us
@@ -252,6 +259,7 @@ def main() -> int:
             sys.exit("--weights auto needs --device-map (one entry per slab)")
         device_map = requested_map
         slab_count = len(device_map)
+        refuse_adami_chain(global_case, slab_count)
         if args.calibrate_only and not args.weights_file:
             print("[calibrate] WARNING: --calibrate-only without --weights-file keeps nothing")
         if slab_count == 1:
@@ -293,6 +301,7 @@ def main() -> int:
         weights = [float(w) for w in (args.weights or "1.0,1.0,1.0").split(",")]
         slab_count = len(weights)
         weights_source = "given"
+        refuse_adami_chain(global_case, slab_count)
         if requested_map is not None:
             device_map = requested_map
             if len(device_map) != slab_count:
@@ -305,6 +314,7 @@ def main() -> int:
                   + (f"the {discrete} discrete GPU(s) of {device_count} Vulkan devices" if discrete > 0
                      else f"all {device_count} Vulkan devices (none is discrete)"))
 
+    refuse_adami_chain(global_case, slab_count)
     chain = compute_chain_partition(global_case, weights, pool_safety)
     if calibration is not None and [int(cut) for cut in chain.cuts] != calibration["cuts"]:
         raise SystemExit(f"cuts {list(chain.cuts)} differ from the calibration's {calibration['cuts']}")
@@ -389,6 +399,7 @@ def main() -> int:
                         durations["c_to_a_gap_us"] = (ticks["a_start"] - previous_c_end) / 1000.0
                     keys = ("phase_a_us", "phase_b_us", "phase_c_us",
                             "correction_interior_us", "density_deep_interior_us",
+                            "wall_extrapolate_us",
                             "force_deep_interior_us", "install_leading_us",
                             "install_trailing_us", "correction_boundary_us",
                             "density_us", "density_boundary_us", "density_copy_us",

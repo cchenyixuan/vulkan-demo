@@ -124,7 +124,8 @@ def _comparable(value):
     return value
 
 
-V6_ONLY_FIELDS = {"departed_pool_size", "replica_region_size", "ghost_layers"}
+V6_ONLY_FIELDS = {"departed_pool_size", "replica_region_size", "ghost_layers",
+                  "wall_boundary"}          # E37 numerics option (v6 only)
 
 
 def _strip_v6_only(tree):

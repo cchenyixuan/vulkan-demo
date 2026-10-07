@@ -53,7 +53,8 @@
 //   90 - 94  : ghost_send / install_migrations locals (direction, voxel columns)
 //   95 - 98  : V6_DELTA_DENSITY, reference density, INIT_SEAM_CLAMP, PACKED_REPLICAS
 //   99       : V6_DIAG_POISON_G1 (diagnostic, local to expand_ghost_lists.comp)
-//   100 - 127: reserved
+//   100      : WALL_BOUNDARY (case.yaml numerics.wall_boundary; declared in wall_boundary.glsl)
+//   101 - 127: reserved
 //
 // Per-material parameters (rest_density, viscosity, eos_constant, radius,
 // volume, rotor_angular_velocity) are NOT spec constants — they live in
@@ -518,7 +519,8 @@ layout(std430, set = 0, binding = 9) buffer ExtensionFieldsBuffer {
     vec4 extension_fields[];
 };
 
-// binding 10 reserved for GlobalIdBuffer (FTLE / Lagrangian tracking)
+// binding 10: WallDummyVelocityBuffer (wall_boundary.glsl, wall_boundary adami)
+// binding 11 reserved for GlobalIdBuffer (FTLE / Lagrangian tracking; was binding 10)
 
 // ============================================================================
 // Descriptor set 1 — Voxel cell structures (own + ghost merged in V1)

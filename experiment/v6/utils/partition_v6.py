@@ -1145,6 +1145,11 @@ def compute_chain_partition(
     slab_count = len(weights)
     if slab_count < 1:
         raise ValueError("need at least one weight")
+    # E37: wall_boundary adami runs one slab only in this release. Every multi-slab entry point partitions
+    # first, so this stops them before any Vulkan context, thread or file (SphSimulatorV6 checks again).
+    if slab_count > 1 and global_case.numerics.wall_boundary == "adami":
+        raise ValueError("wall_boundary adami (case.yaml numerics) supports one GPU (K = 1) only in this "
+                         f"release; got K = {slab_count}")
     grid_nx = global_case.grid.grid_dimension_x
     ghost_layers = configured_ghost_layers()
 

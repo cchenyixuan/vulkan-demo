@@ -62,6 +62,9 @@ class PhysicsConstants:
     calibrate_volume: bool = True    # CPU-only; True → partition-of-unity calibrated V; False → (2·r)^dim
 
 
+WALL_BOUNDARY_CHOICES = ("simple", "adami")     # case.yaml numerics.wall_boundary (E37)
+
+
 @dataclass
 class NumericsConstants:
     """Spec const ids 14-16, 40-46 + ablation toggles."""
@@ -76,6 +79,9 @@ class NumericsConstants:
     use_pst: bool = True
     use_prefix_sum_defrag: bool = False
     defrag_cadence: int = 1000
+    # E37: "simple" (the v6 walls) or "adami" (Adami et al. 2012 wall pressure + no-slip, walls store rho0;
+    # one GPU only). Spec const 100 WALL_BOUNDARY, shaders/wall_boundary.glsl.
+    wall_boundary: str = "simple"
 
 
 @dataclass

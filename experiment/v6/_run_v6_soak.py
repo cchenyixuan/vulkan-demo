@@ -190,6 +190,9 @@ def main() -> int:
     else:
         device_map = [index % 2 for index in range(slab_count)]
     global_case = load_case_v6(args.case)
+    if global_case.numerics.wall_boundary == "adami" and slab_count > 1:
+        raise SystemExit(f"wall_boundary adami (case.yaml numerics) supports one GPU (K = 1) only in this "
+                         f"release; got K = {slab_count}")
     expected_total = int(global_case.initial.positions.shape[0])
     chain = compute_chain_partition(
         global_case, weights, pool_safety=args.pool_safety)

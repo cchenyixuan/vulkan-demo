@@ -57,7 +57,7 @@ CONFIGS = {
 
 ANATOMY_KEYS = (
     "phase_a_us", "phase_b_us", "phase_c_us", "b_to_c_gap_us", "a_to_b_gap_us",
-    "correction_interior_us", "density_deep_interior_us", "force_deep_interior_us",
+    "correction_interior_us", "density_deep_interior_us", "wall_extrapolate_us", "force_deep_interior_us",
     "install_leading_us", "install_trailing_us", "append_departed_us",
     "correction_boundary_us", "density_boundary_us", "density_copy_us", "force_us",
     "readback_leading_dma_us", "readback_trailing_dma_us",

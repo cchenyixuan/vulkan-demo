@@ -371,6 +371,19 @@ class SphSimulatorV6:
                  *, sync_scheme: str = "aggregated") -> None:
         self.ctx = ctx
         self.case = case
+        # E37 wall boundary option (case.yaml numerics.wall_boundary, shaders/wall_boundary.glsl): simple = the v6
+        # walls (default), adami = Adami et al. 2012 wall pressure + no-slip with the walls storing rho0 (E36's
+        # adami_rho0, v7-wall-bc WALL_BC = 3). adami runs one slab only: wall_extrapolate.comp reads local
+        # neighbours and the ghost transport does not carry wall_dummy_velocity.
+        self.wall_boundary = case.numerics.wall_boundary
+        if self._wall_adami and (case.transport.has_leading_peer or case.transport.has_trailing_peer):
+            raise ValueError("wall_boundary adami supports one GPU (K = 1) only in this release; this slab has a "
+                             f"{'leading' if case.transport.has_leading_peer else 'trailing'} peer")
+        # V6_FAKE_BAND_TEST moves part of the density pass into phase C (density_boundary_band, after phase B's
+        # wall pass), so the wall pass would read band fluid density before this step's band density exists.
+        if self._wall_adami and _FAKE_BAND_COLUMN > 0:
+            raise ValueError("V6_FAKE_BAND_TEST is not supported with wall_boundary adami: the phase B wall pass "
+                             "would read the fake band's fluid density before density_boundary_band writes it")
 
         # Keep-alive bag for cffi cdata referenced by VkSpecializationInfo.
         # Python GC would otherwise free the cdata before pipeline creation.
@@ -488,7 +501,13 @@ class SphSimulatorV6:
         print(f"[SimV6] init complete on {ctx.device_name} "
               f"(own={case.capacities.own_pool_size}, "
               f"ghost L={case.capacities.leading_ghost_pool_size} "
-              f"T={case.capacities.trailing_ghost_pool_size})")
+              f"T={case.capacities.trailing_ghost_pool_size}, wall_boundary={self.wall_boundary})")
+
+    @property
+    def _wall_adami(self) -> bool:
+        """E37: case.yaml numerics.wall_boundary == adami. Read from the case (not stored by __init__): the CPU
+        tests call _build_buffer_specs / _global_entries on simulators built with object.__new__ + .case."""
+        return self.case.numerics.wall_boundary == "adami"
 
     def destroy(self) -> None:
         if self._destroyed:
@@ -704,6 +723,11 @@ class SphSimulatorV6:
             _BufferSpec("correction_inverse",           0, 7, 32 * pool_capacity, BSU | TRANSFER),
             _BufferSpec("density_gradient_kernel_sum",  0, 8, 16 * pool_capacity, BSU | TRANSFER),
             _BufferSpec("extension_fields",             0, 9, 16 * pool_capacity, BSU | TRANSFER),
+            # E37 wall_boundary adami: wall dummy velocity + fluid kernel sum (wall_extrapolate.comp); transient,
+            # not in DEFRAG_SET0_BINDINGS / the transport / the restart state. simple: a 16-byte stub (binding 10
+            # is declared by force.comp, never read).
+            _BufferSpec("wall_dummy_velocity",          0, 10, 16 * pool_capacity if self._wall_adami else 16,
+                        BSU | TRANSFER),
 
             # Set 1: voxel cells
             _BufferSpec("inside_particle_count",        1, 0,  4 * voxel_capacity,                BSU | TRANSFER),
@@ -1225,6 +1249,9 @@ class SphSimulatorV6:
             "predict", "update_voxel", "ghost_send", "install_migrations",
             "correction", "density", "force", "defrag", "append_departed",
             "expand_ghost_lists", "band_compact",
+            # E37: the wall pass only with wall_boundary adami (simple creates no wall pipeline, so it needs no
+            # wall_extrapolate.comp.spv, e.g. in a V6_SPV_DIR A/B against a pre-E37 build)
+            *(("wall_extrapolate",) if self._wall_adami else ()),
         ):
             spv_path = shader_dir / f"{shader_name}.comp.spv"
             if not spv_path.exists():
@@ -1334,6 +1361,7 @@ class SphSimulatorV6:
             (98, 'B', int(configured_packed_replicas())),
             (99, 'I', configured_diagnostic_poison_inner_replica()),   # V6_DIAG_POISON_G1
             (97, 'B', int(configured_init_seam_clamp())),
+            (100, 'I', 1 if self._wall_adami else 0),                    # E37 WALL_BOUNDARY (case.yaml)
             # NEIGHBOR_X_RANGE (id=82) is NOT global anymore — Path A+ needs
             # different widths per kernel (correction / density / force =
             # self.band_widths, V6_BAND_WIDTHS, default 2/2/3, for the
@@ -1549,6 +1577,13 @@ class SphSimulatorV6:
             shader=self.shader_modules["force"],
             entries=self._global_entries() + self._force_mode_entries(1, density_source=1),
         )
+        # E37 wall_boundary adami: the wall pass, reading the fluid rho/P from primary (after the scratch -> primary
+        # copy) or from scratch (phase B, before the copy, in front of force_deep_interior_scratch).
+        if self._wall_adami:
+            for key, source in (("wall_extrapolate", 0), ("wall_extrapolate_scratch", 1)):
+                pipelines[key] = self._create_pipeline(
+                    shader=self.shader_modules["wall_extrapolate"],
+                    entries=self._global_entries() + [(56, 'I', source)])
         # V3.4: band-voxel dispatch variants of the three Phase C boundary
         # pipelines (thread = (band voxel, slot); see helpers.glsl).
         pipelines["correction_boundary_band"] = self._create_pipeline(
@@ -2115,6 +2150,21 @@ class SphSimulatorV6:
         # transfer→compute (force will read primary)
         self._record_transfer_to_compute_barrier(cmd)
 
+    def _record_wall_extrapolate(self, cmd, density_source: str = "primary",
+                                 tick: Optional[str] = None) -> None:
+        """E37 wall_boundary adami: wall_extrapolate.comp over the own pid range, then a compute barrier
+        (force, or the next pass, reads the walls' (rho0, p_w) and dummy velocity). ``density_source`` = where
+        the fluid's rho/P of this step are: "primary" after the scratch -> primary copy, "scratch" in phase B
+        before it. Records nothing with simple (the v6 recording)."""
+        if not self._wall_adami:
+            return
+        self._bind_pipeline_and_sets(
+            cmd, "wall_extrapolate_scratch" if density_source == "scratch" else "wall_extrapolate")
+        vkCmdDispatch(cmd, self._per_own_particle_dispatch_count(), 1, 1)
+        if tick:
+            self._bench_tick(cmd, tick)
+        self._record_compute_barrier(cmd)
+
     def _ghost_self_density_copy_regions(self, density_stride: int) -> list:
         """V6_GHOST_LAYERS = 2: density_boundary recomputed the inner ghost
         column as self -- the inner replica region of every peer direction and
@@ -2330,6 +2380,12 @@ class SphSimulatorV6:
             self._record_compute_barrier(cmd)
         self._record_expand_ghost_lists(cmd)
 
+        # E37 wall_boundary adami: the wall pass once before step 0, on the initial state (the bootstrap correction
+        # and density read its (rho0, p_w) as every step's do), and again after density + copy below, before force.
+        if self._wall_adami:
+            self._record_compute_barrier(cmd)
+            self._record_wall_extrapolate(cmd)
+
         self._bind_pipeline_and_sets(cmd, "correction_all")
         vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_compute_barrier(cmd)
@@ -2351,6 +2407,7 @@ class SphSimulatorV6:
             vkCmdDispatch(cmd, self._per_band_dispatch_count(
                 self.band_widths[1], self._ghost_self_layer(2, 1, "density")), 1, 1)
         self._record_density_scratch_to_primary_copy(cmd)
+        self._record_wall_extrapolate(cmd)
 
         self._bind_pipeline_and_sets(cmd, "force_all")
         vkCmdDispatch(cmd, per_p, 1, 1)
@@ -2478,6 +2535,9 @@ class SphSimulatorV6:
         self._bind_pipeline_and_sets(cmd, "initialize_voxelization")
         vkCmdDispatch(cmd, self._per_own_particle_dispatch_count(), 1, 1)
         self._record_compute_barrier(cmd)
+        # E37 wall_boundary adami: the wall pass once before the first step, from the restored fluid state (the
+        # dummy velocity is not part of the state).
+        self._record_wall_extrapolate(cmd)
         vkEndCommandBuffer(cmd)
         self.ctx.submit_and_wait(cmd)
         vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
@@ -2780,6 +2840,9 @@ class SphSimulatorV6:
             # Phase C's install_migrations (migrants land in column 0) or
             # density_boundary (columns below band_widths[1]), so it is
             # safe here and widens the transfer-hiding window to B + force.
+            # E37 wall_boundary adami: the wall pass reads the fluid's rho/P of this frame from scratch too and
+            # writes (rho0, p_w) to scratch (read by the force below) and primary.
+            self._record_wall_extrapolate(cmd, "scratch", tick="b_wall_extrapolate_end")
             self._bind_pipeline_and_sets(cmd, "force_deep_interior_scratch")
             vkCmdDispatch(cmd, per_p, 1, 1)
             self._record_compute_barrier(cmd)
@@ -2898,6 +2961,10 @@ class SphSimulatorV6:
         self._bench_tick(cmd, "c_density_boundary_end")   # kernel vs copy split
         self._record_density_scratch_to_primary_copy(cmd)
         self._bench_tick(cmd, "c_density_end")
+        if not _CASCADE_FORCE:
+            # E37 wall_boundary adami without cascading force: force_all below is the first force of the frame
+            # (with it, phase B ran the wall pass).
+            self._record_wall_extrapolate(cmd, "primary", tick="c_wall_extrapolate_end")
 
         # V3.3: with cascading force, Phase B already covered the deep
         # interior; only the force boundary band (incl. this frame's
@@ -3116,6 +3183,7 @@ class SphSimulatorV6:
         self._record_density_scratch_to_primary_copy(cmd)
         self._bench_tick(cmd, "density_end")
         self._record_compute_barrier(cmd)
+        self._record_wall_extrapolate(cmd, "primary", tick="wall_extrapolate_end")
 
         if use_split:
             self._bind_pipeline_and_sets(cmd, "force_deep_interior")

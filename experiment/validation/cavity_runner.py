@@ -317,6 +317,9 @@ def main() -> int:
                                  or (run_dir / "checkpoints" / "manifest.jsonl").exists()):
         sys.exit(f"[cavity] {run_dir} already holds a run; pass --resume or use a new --run-dir")
     global_case = load_case_v6(arguments.case)
+    if global_case.numerics.wall_boundary == "adami" and arguments.slabs != 1:
+        sys.exit(f"[cavity] {arguments.case}: wall_boundary adami supports one GPU (K = 1) only in this release; "
+                 "run it with --slabs 1")
     expected_total = int(global_case.initial.positions.shape[0])
     dt = float(global_case.physics.timestep)
     support = float(global_case.physics.smoothing_length)
@@ -386,6 +389,7 @@ def main() -> int:
                 "sample_steps": sample_steps, "snapshot_steps": snapshot_steps, "checkpoint_steps": checkpoint_steps,
                 "window_steps": window_steps, "t_end": arguments.t_end, "t_max": arguments.t_max,
                 "steady_tol": arguments.steady_tol, "average_span": arguments.average_span,
+                "wall_boundary": global_case.numerics.wall_boundary,
                 "frames": {name: frame.half_width for name, frame in frames.items()},
                 "dense_reference": "linspace(0, 1, 1001) in the wall frame",
                 "fluid_groups": fluid_groups.tolist(), "git": git_state(),

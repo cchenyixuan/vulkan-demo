@@ -290,10 +290,11 @@ TIME_DOMAIN_NAMES = {TIME_DOMAIN_CLOCK_MONOTONIC: "CLOCK_MONOTONIC",
 # that column empty (e.g. no install on a slab without that peer).
 STEP_DEVICE_TIMES = (
     "a_start", "a_predict_end", "a_voxel_end", "a_ghost_leading_end", "a_ghost_trailing_end", "a_end",
-    "b_start", "b_correction_interior_end", "b_density_deep_interior_end", "b_force_deep_interior_end", "b_end",
+    "b_start", "b_correction_interior_end", "b_density_deep_interior_end", "b_wall_extrapolate_end",
+    "b_force_deep_interior_end", "b_end",
     "c_start", "c_expand_end", "c_install_leading_end", "c_install_trailing_end", "c_append_departed_end",
     "c_band_compact_end", "c_correction_boundary_end", "c_density_boundary_end", "c_density_end",
-    "c_force_end", "c_end")
+    "c_wall_extrapolate_end", "c_force_end", "c_end")       # *_wall_extrapolate_end: E37 adami only
 # steps_link.csv: one row per step and directed link (sender -> receiver), host ns.
 STEP_LINK_TIMES = (
     "send_end",                       # sender's ghost_send for this link done (compute queue)

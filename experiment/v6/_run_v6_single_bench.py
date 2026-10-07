@@ -76,6 +76,7 @@ _KERNEL_KEYS = [
     "force_us",
     "step_total_us",
     "defrag_us",
+    "wall_extrapolate_us",     # E37 wall_boundary adami only (last: the earlier columns keep their places)
 ]
 
 
