@@ -20,10 +20,21 @@ weight_calibration.py: per-device busy time T_A + T_B + T_C from the phase
 timestamps, omega = fluid particles / busy, at most --calibrate-rounds pilots,
 the first one with equal weights or --calibrate-from),
 needs --device-map and saves the record to --weights-file when given;
---calibrate-only stops after that. --weights-file alone reuses a saved
-calibration (slab count, device map and particle set checked, cuts
-recomputed). Pilot lines carry the "[calibrate]" prefix and end with
-"[calibrate] done"; the timed run's lines follow unchanged.
+--calibrate-only stops after that. --weights-file with --device-map reuses a
+saved calibration (slab count, device map and particle set checked, cuts
+recomputed); without --device-map it is refused. Pilot lines carry the
+"[calibrate]" prefix and end with "[calibrate] done"; the timed run's lines
+follow unchanged.
+
+Without --device-map the K slabs go round-robin over the discrete GPUs in
+VulkanContextV6's discrete-first order (all devices when none is discrete):
+0,1,0,1 for K = 4 on a two-GPU host, 0..7 on an eight-GPU node.
+
+--switch-interval-ms (default 0.2) is applied with sys.setswitchinterval at
+the start of main and printed in the header (switchinterval_s): the GIL switch
+interval the transport worker threads run under. docs/cluster_v6/scripts/
+run_chain_v6.py forwards its own value here, so the bench is the only place
+that sets it.
 """
 
 from __future__ import annotations
@@ -47,7 +58,8 @@ def parse_args() -> argparse.Namespace:
                    help="K comma-separated slab weights (left to right; default 1,1,1), or 'auto': "
                         "calibrate in a pilot (module docstring; needs --device-map)")
     p.add_argument("--weights-file", default=None,
-                   help="with --weights auto: save the calibration here; alone: reuse a saved one")
+                   help="with --weights auto: save the calibration here; without --weights: reuse a saved one "
+                        "(needs --device-map, checked against the file's)")
     p.add_argument("--calibrate-warmup", type=int, default=200,
                    help="pilot warmup frames W (not measured)")
     p.add_argument("--calibrate-steps", type=int, default=300,
@@ -59,8 +71,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--calibrate-only", action="store_true",
                    help="with --weights auto: calibrate, save --weights-file, exit")
     p.add_argument("--device-map", default=None,
-                   help="K comma-separated physical device indices; default "
-                        "round-robin over 0,1")
+                   help="K comma-separated physical device indices; default round-robin over the "
+                        "discrete GPUs (VulkanContextV6's discrete-first order; all devices when "
+                        "none is discrete)")
+    p.add_argument("--switch-interval-ms", type=float, default=0.2,
+                   help="sys.setswitchinterval for this process, in ms (default 0.2): the GIL switch "
+                        "interval of the transport worker threads; printed as switchinterval_s")
     p.add_argument("--sync-scheme", default="per-direction",
                    choices=["aggregated", "per-direction"],
                    help="interior slabs require per-direction")
@@ -181,8 +197,35 @@ def seam_integrity_check(chain, sims, global_case) -> bool:
     return all_ok
 
 
+def vulkan_device_counts() -> tuple[int, int]:
+    """(discrete GPUs, all devices) from a short-lived Vulkan instance. VulkanContextV6 orders the
+    discrete GPUs first, so they are device indices 0..discrete-1."""
+    from vulkan import (VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU, VkApplicationInfo, VkInstanceCreateInfo,
+                        vkCreateInstance, vkDestroyInstance, vkEnumeratePhysicalDevices,
+                        vkGetPhysicalDeviceProperties)
+    from experiment.v6.utils.vulkan_context_v6 import TARGET_API_VERSION
+    application_info = VkApplicationInfo(pApplicationName="chain_v6_device_count", apiVersion=TARGET_API_VERSION)
+    instance = vkCreateInstance(VkInstanceCreateInfo(pApplicationInfo=application_info), None)
+    try:
+        devices = vkEnumeratePhysicalDevices(instance)
+        discrete = sum(1 for device in devices
+                       if vkGetPhysicalDeviceProperties(device).deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+    finally:
+        vkDestroyInstance(instance, None)
+    if len(devices) == 0:
+        raise SystemExit("no Vulkan physical device found")
+    return discrete, len(devices)
+
+
 def main() -> int:
     args = parse_args()
+    if not 0.001 <= args.switch_interval_ms <= 1000.0:       # also rejects nan / inf; CPython keeps whole us
+        sys.exit(f"--switch-interval-ms must be in [0.001, 1000] ms, got {args.switch_interval_ms}")
+    sys.setswitchinterval(args.switch_interval_ms / 1000.0)
+    print(f"[chain_v6] switchinterval_s={sys.getswitchinterval():.6g}", flush=True)
+    if args.weights_file and args.weights is None and args.device_map is None:
+        sys.exit("--weights-file needs --device-map: the run's device map is checked against the file's, "
+                 "never taken from it")
 
     from experiment.v6 import weight_calibration
     from experiment.v6.utils.case_loader_v6 import load_case_v6
@@ -231,6 +274,7 @@ def main() -> int:
                 initial_weights=initial_weights)
             weights, weights_source = calibration["weights"], "auto"
             if args.weights_file:
+                calibration["switch_interval_s"] = sys.getswitchinterval()   # the pilots ran under it
                 weights_file_sha256 = weight_calibration.write_weights_file(args.weights_file, calibration)
                 print(f"[calibrate] wrote {args.weights_file} (sha256 {weights_file_sha256[:16]})")
         print("[calibrate] done", flush=True)
@@ -254,7 +298,12 @@ def main() -> int:
             if len(device_map) != slab_count:
                 sys.exit(f"--device-map needs {slab_count} entries")
         else:
-            device_map = [index % 2 for index in range(slab_count)]
+            discrete, device_count = vulkan_device_counts()
+            rotation = discrete if discrete > 0 else device_count
+            device_map = [index % rotation for index in range(slab_count)]
+            print(f"[chain_v6] default device map: round-robin over "
+                  + (f"the {discrete} discrete GPU(s) of {device_count} Vulkan devices" if discrete > 0
+                     else f"all {device_count} Vulkan devices (none is discrete)"))
 
     chain = compute_chain_partition(global_case, weights, pool_safety)
     if calibration is not None and [int(cut) for cut in chain.cuts] != calibration["cuts"]:
@@ -262,7 +311,8 @@ def main() -> int:
 
     print(f"[chain_v6] K={slab_count} weights={weights} "
           f"device_map={device_map} sync={args.sync_scheme} "
-          f"depth={args.depth} pool_safety={pool_safety}")
+          f"depth={args.depth} pool_safety={pool_safety} "
+          f"switchinterval_s={sys.getswitchinterval():.6g}")
     print(f"[chain_v6] weights source={weights_source} cuts={[int(cut) for cut in chain.cuts]}"
           + (f" file={args.weights_file} sha256={weights_file_sha256[:16]}" if weights_file_sha256 else ""))
 
@@ -377,6 +427,7 @@ def main() -> int:
                 step_tracer.write(args.step_trace, orch, meta={
                     "case": args.case, "K": slab_count, "weights": weights, "device_map": device_map,
                     "depth": args.depth, "sync_scheme": args.sync_scheme, "pool_safety": pool_safety,
+                    "switch_interval_s": sys.getswitchinterval(),
                     "max_steps": args.max_steps, "warmup": args.warmup, "defrag_cadence": defrag_cadence,
                     "result": result, "weights_source": weights_source, "weights_file": args.weights_file,
                     "weights_file_sha256": weights_file_sha256,

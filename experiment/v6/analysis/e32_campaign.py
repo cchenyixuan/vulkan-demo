@@ -154,13 +154,14 @@ def main() -> int:
                         run_one(f"eta/{name}/t{trial}/equal", name, ["--weights", "1,1", "--device-map", "0,1"],
                                 {**fields, "kind": "k2", "arm": "equal"})
                     else:
-                        run_one(f"eta/{name}/t{trial}/auto", name, ["--weights-file", weights_file(name, 2)],
+                        run_one(f"eta/{name}/t{trial}/auto", name, ["--weights-file", weights_file(name, 2),
+                                                                    "--device-map", "0,1"],
                                 {**fields, "kind": "k2", "arm": "auto", "weights_file": weights_file(name, 2)})
     if "trace" in modes:
         for name in ETA_CASES:
             for arm in ("equal", "auto"):
                 weighting = (["--weights", "1,1", "--device-map", "0,1"] if arm == "equal"
-                             else ["--weights-file", weights_file(name, 2)])
+                             else ["--weights-file", weights_file(name, 2), "--device-map", "0,1"])
                 run_one(f"trace/{name}/{arm}", name, weighting,
                         {"mode": "trace", "trial": 1, "trace": True, "kind": "k2", "arm": arm}, trace=True)
     if "k3" in modes:
@@ -168,7 +169,7 @@ def main() -> int:
         for trial in (1, 2):
             for arm in ("equal", "auto"):
                 weighting = (["--weights", "1,1,1", "--device-map", K3_MAP] if arm == "equal"
-                             else ["--weights-file", weights_file(K3_CASE, 3)])
+                             else ["--weights-file", weights_file(K3_CASE, 3), "--device-map", K3_MAP])
                 run_one(f"k3/{K3_CASE}/t{trial}/{arm}", K3_CASE, weighting,
                         {"mode": "k3", "trial": trial, "trace": False, "kind": "k3", "arm": arm})
     if "tracecost" in modes:
@@ -186,7 +187,7 @@ def main() -> int:
         for trial, order in ((1, ("equal", "auto")), (2, ("auto", "equal")), (3, ("equal", "auto"))):
             for arm in order:
                 weighting = (["--weights", "1,1", "--device-map", "0,1"] if arm == "equal"
-                             else ["--weights-file", matched_file])
+                             else ["--weights-file", matched_file, "--device-map", "0,1"])
                 run_one(f"matched/3d_8m/t{trial}/{arm}", "3d_8m", weighting,
                         {"mode": "matched", "trial": trial, "trace": False, "kind": "k2", "arm": arm})
     log("campaign finished")

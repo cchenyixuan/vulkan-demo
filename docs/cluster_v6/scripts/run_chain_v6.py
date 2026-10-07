@@ -1,10 +1,13 @@
 """
 run_chain_v6.py — E30 harness around experiment/v6/_run_v6_chain_bench.py.
 
-Runs the chain bench inside this process (runpy), so the GIL switch interval
-set here applies to its transport worker threads, after printing
+Runs the chain bench inside this process (runpy) and forwards its own
+--switch-interval-ms to it: the bench sets the GIL switch interval at the start
+of its main (it then applies to the transport worker threads), so this value
+is the only one; passing --switch-interval-ms after "--" as well is refused.
+Before the run it prints
 
-  - the switch interval in effect,
+  - the switch interval forwarded to the bench,
   - the effective v6 configuration, resolved by v6's own functions from the
     environment of this process (partition_v6.configured_*, the simulator
     module switches, the transfer-queue and worker defaults),
@@ -45,7 +48,8 @@ def parse_arguments(argument_list: list[str]) -> tuple[argparse.Namespace, list[
         own_arguments, bench_arguments = argument_list, []
     parser = argparse.ArgumentParser(description="E30 harness for the v6 chain bench")
     parser.add_argument("--switch-interval-ms", type=float, default=0.2,
-                        help="sys.setswitchinterval for this process (v5 jobs used 0.2 ms)")
+                        help="forwarded to the chain bench, which applies it with sys.setswitchinterval "
+                             "(default 0.2 ms, as the v5 jobs)")
     parser.add_argument("--config-only", action="store_true",
                         help="print the effective configuration and exit (no Vulkan work)")
     parser.add_argument("--case", action="append", default=[],
@@ -179,10 +183,14 @@ def install_clamp_count_recorder() -> dict:
 
 def main() -> int:
     arguments, bench_arguments = parse_arguments(sys.argv[1:])
+    # any spelling argparse would take for the bench's --switch-interval-ms (it accepts unique prefixes, "--sw")
+    if any(len(argument.split("=", 1)[0]) >= 4 and "--switch-interval-ms".startswith(argument.split("=", 1)[0])
+           for argument in bench_arguments):
+        sys.exit("pass --switch-interval-ms before '--' only: this script forwards its own value to the bench")
     os.chdir(_REPOSITORY_ROOT)
-    sys.setswitchinterval(arguments.switch_interval_ms / 1000.0)
-    print(f"[e30] switchinterval_s={sys.getswitchinterval()} pid={os.getpid()} "
-          f"cwd={os.getcwd()}", flush=True)
+    # The bench applies it (sys.setswitchinterval at the start of its main) and prints it in its header.
+    print(f"[e30] switchinterval_s={arguments.switch_interval_ms / 1000.0:.6g} (forwarded to the bench) "
+          f"pid={os.getpid()} cwd={os.getcwd()}", flush=True)
     if arguments.config_only:
         print_effective_configuration(arguments.case)
         return 0
@@ -191,12 +199,16 @@ def main() -> int:
     if arguments.obj_cache:
         install_obj_cache(arguments.obj_cache)
     recorded = install_clamp_count_recorder()
-    sys.argv = [str(CHAIN_BENCH_PATH)] + bench_arguments
+    # forwarded last: argparse keeps the last occurrence, so this value wins even past the refusal above
+    sys.argv = ([str(CHAIN_BENCH_PATH)] + bench_arguments
+                + ["--switch-interval-ms", repr(arguments.switch_interval_ms)])
     exit_code = 0
     try:
         runpy.run_path(str(CHAIN_BENCH_PATH), run_name="__main__")
     except SystemExit as exit_request:
         code = exit_request.code
+        if isinstance(code, str):
+            print(code, file=sys.stderr, flush=True)          # sys.exit("message"): show why the bench stopped
         exit_code = code if isinstance(code, int) else (0 if code is None else 1)
     finally:
         for slab_index, (device_index, clamp_count, outside_count) in enumerate(recorded.values()):
