@@ -8,11 +8,14 @@ and the noise scale of the difference: E36 section 8.2's per-run scale (e36_fact
 difference of the two half-window minima, extrema = the sem) of the two runs in quadrature. The comparison tool lives
 on branch v7-wall-bc only (experiment/v7/wall_bc/e36_compare.py and e36_factorial.py, 9c7c847); pass that checkout.
 
-    # in a v7-wall-bc checkout:
-    .venv/Scripts/python.exe -m experiment.v7.wall_bc.e36_compare --out OUT \\
-        --run "E36 adami_rho0=<logs/e36/runs/n250_k1_v7_diag3_rho0>" --run "E37 release adami=<release run dir>"
+    # in a v7-wall-bc checkout (no .venv there: use this checkout's interpreter); --run is "label::run directory";
+    # give OUT and the run directories as absolute paths (a relative OUT lands in the v7 checkout); the labels may be
+    # non-ASCII, so set PYTHONIOENCODING=utf-8 when redirecting the output
+    <this checkout>/.venv/Scripts/python.exe -m experiment.v7.wall_bc.e36_compare --out <absolute OUT> \\
+        --run "E36 adami_rho0::<abs>/logs/e36/runs/n250_k1_v7_diag3_rho0" --run "E37 release adami::<abs release run dir>"
     # here:
-    .venv/Scripts/python.exe experiment/seam_audit/wall_option_reproduction.py OUT/e36_summary.json --v7-checkout <path>
+    .venv/Scripts/python.exe experiment/seam_audit/wall_option_reproduction.py <absolute OUT>/e36_summary.json \\
+        --v7-checkout <path>
 """
 from __future__ import annotations
 

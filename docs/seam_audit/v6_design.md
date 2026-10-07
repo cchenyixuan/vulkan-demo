@@ -21,6 +21,7 @@
 | T2 worker | 主机线程 | 帧戳检查;count-aware 时只拷每个逐粒子段的 live 前缀(count × stride),voxel 表、计数字、帧戳整段 | 每个区段用自己的计数 |
 | T3 upload | transfer | host → device,整段 | — |
 | B1–B3 | compute | correction_interior → density_deep_interior(写 scratch)→ force_deep_interior_scratch(V6_CASCADE_FORCE=1);都不碰 band,与 T1–T3 并行 | — |
+| B2b wall_extrapolate | compute | 只在 case.yaml `wall_boundary: adami`(K = 1):density_deep_interior 之后、force_deep_interior_scratch 之前,读 scratch 的流体 ρ、P,写壁粒子的 (ρ0, p_w) 与 `wall_dummy_velocity`;`V6_CASCADE_FORCE=0` 时改在 C 里 force_all 之前(读 primary);bootstrap 两次、重启一次 | E37 |
 | C1 install_migrations_\<dir\> | compute | 只扫 migrant 区段(LAYERS=1 是整个混合池):`.w` 落在 own 范围的槽从 own 尾部分配 pid,登记进 own column 0 的 inside 表 | LAYERS=2:跳过两个 replica 区段 |
 | C1b append_departed | compute | 每个 departed 槽一个线程,按 `.w`(本卡 ghost vid)CAS 追加进 ghost voxel 的 inside 表(不超过 C) | KEEP=1,新 kernel |
 | C2 correction band | compute | own 每侧 2 列;LAYERS=2 时再加 G1 列当作 self(spec 85 `GHOST_SELF_LAYER`=1) | LAYERS=2:G1 as self |
@@ -79,6 +80,8 @@ LAYERS=2:  [ G2 G1 | own 0 … own N−1 | G1 G2 ]
 E6b(2026-10-05)起默认就是 `v6_opt.md` 的推荐组合;E6b 之前的默认在 `partition_v6.LEGACY_DEFAULTS`,按旧默认定义配置的 seam_audit 与 v6 验证工具先钉住它,见 `v6_opt.md`"发布组合成为代码默认"。E32(2026-10-06)起 `V6_PHASE_A_NO_WAIT` 也默认 1;`LEGACY_DEFAULTS` 钉 0(E32 之前的默认),钉旧默认的工具照旧跑 0。
 
 spec 常量:83 `GHOST_LAYERS`、84 `DEPARTED_POOL_SIZE`、85 `GHOST_SELF_LAYER`(按 pipeline,只有 correction / density 的 band 变体为 1)、86 `REPLICA_REGION_SIZE`。
+
+壁面不是开关(E37):case.yaml 的 `numerics.wall_boundary`,`simple`(默认,v6 的壁面)或 `adami`(Adami 2012 的壁面压力与无滑移,壁粒子存 ρ0;只支持 K = 1)。spec 常量 100 `WALL_BOUNDARY` 与 set 0 binding 10 `wall_dummy_velocity` 在 `shaders/wall_boundary.glsl`(density、force 与 wall_extrapolate include 它)。见 `v6_opt.md`"壁面选项"。
 
 ### 1.5 新增不变量
 

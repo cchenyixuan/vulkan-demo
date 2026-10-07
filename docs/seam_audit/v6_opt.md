@@ -1,6 +1,6 @@
 # v6 发布前优化:链路字节、pool 容量、phase C(2026-10-03)
 
-接 [`v6.md`](v6.md)(seam 修复与审计)、[`v6_single_step.md`](v6_single_step.md)(单步测试)、[`v6_design.md`](v6_design.md)(设计与字节清单)。目标:在保持 seam 精确性(K = 2 与 K = 1 的差在噪声底内,单步测试也在噪声底内)的前提下,把 (1,2) = (`V6_KEEP_DEPARTED=1`, `V6_GHOST_LAYERS=2`) 调到发布状态:链路字节与 phase C 时间尽量小。每一项都是新的 `V6_*` 开关,验证时代码默认关闭;每项单独验证、单独提交。E6b(2026-10-05)起推荐组合就是 v6 的代码默认,集群脚本也改成了 v6(见"发布组合成为代码默认");v5 没有改动。
+接 [`v6.md`](v6.md)(seam 修复与审计)、[`v6_single_step.md`](v6_single_step.md)(单步测试)、[`v6_design.md`](v6_design.md)(设计与字节清单)。目标:在保持 seam 精确性(K = 2 与 K = 1 的差在噪声底内,单步测试也在噪声底内)的前提下,把 (1,2) = (`V6_KEEP_DEPARTED=1`, `V6_GHOST_LAYERS=2`) 调到发布状态:链路字节与 phase C 时间尽量小。每一项都是新的 `V6_*` 开关,验证时代码默认关闭;每项单独验证、单独提交。E6b(2026-10-05)起推荐组合就是 v6 的代码默认,集群脚本也改成了 v6(见"发布组合成为代码默认");v5 没有改动。例外:E23 的 G1 格式直接改、不加开关;E37(2026-10-07)的壁面选项不是优化,也不是 `V6_*` 开关,而是 case.yaml 的 `numerics.wall_boundary`(选壁面模型;`adami` 只支持 K = 1,见"壁面选项")。
 
 ## 结论(TL;DR)
 
@@ -26,6 +26,7 @@
 - **band 2/2/3(E26,2026-10-05):** 新开关 `V6_BAND_WIDTHS`(当时代码默认仍是 `2,3,4`,E6b 起是 `2,2,3`),density 与 force 的 band 各窄一列;density.comp 删掉读邻居 L、∇ρ 的死代码(重编的 SPIR-V 只差 id 编号)。发布组合 + 2,2,3:单步 1.07、A/B 1.11 / 1.38、K = 4 drift 0,band 不变量在 2-D K = 2 / K = 4、3-D K = 2 都成立。本机 K = 2 的传输已被 phase B 藏住,fps 2-D 1M −0.39 %、2-D 16M +0.27 %、3-D 8M −0.39 %;phase C −0.8 / −10.3 / −13.8 %,phase B +0.1 / +0.3 / +3.1 %(同一列从 C 挪到 B;只有 2-D 16M 的计算总量减少)。列入推荐组合;它缩短的是传输之后的 phase C,要在传输暴露时才会变成 fps(本次没测,见"band 2/2/3")。
 - **审计门(E14,2026-10-05):** 两边都开 `V6_DELTA_DENSITY` 并让 dump 存精确的 ρ 之后,发布组合 + 2,2,3 的三次审计为 1.57 / 1.47 / 1.33,control 噪声 2.7–2.9 × 10⁻⁶ kg/m³(原来被 ρ ≈ 1000 的 float32 间隔 6.1 × 10⁻⁵ 量化掉),各组 ÷ control 0.66–1.37;审计门以后默认开 δρ(见"审计门的密度量化")。
 - **代码默认(E6b,2026-10-05):** 推荐组合成为 v6 的代码默认(池因子按维度取),旧值都还能显式选。不设任何环境变量时 2-D 1M K = 2 与 K = 4 冒烟 drift 0、溢出 0、帧戳错误 0;K = 2 fps 与显式设置发布组合差 +0.08 %(交错 2 次,逐次 +0.55 / −0.40 %,先跑的快)。seam_audit 工具先钉住 E6b 之前的默认(`partition_v6.LEGACY_DEFAULTS`),本文的命令含义不变;集群脚本改用 v6 与 `V6_*`,与新默认不同的三个 export 保留(见"发布组合成为代码默认")。
+- **壁面选项(E37,2026-10-07):** case.yaml 的 `numerics.wall_boundary` 选壁面:`simple`(默认,即 v6 的壁面)或 `adami`(Adami 2012 的壁面压力与无滑移,壁粒子存 ρ0,即 E36 的 adami_rho0)。adami 只支持单卡(K = 1),多于一个 slab 时报错退出,只在 2-D 方腔上验证过;精度测试用 adami,效率测试用 simple。默认路径与 v6-rc1 逐位相同(K = 1 与 K = 2 各 200 步;K = 2 另有粒子越过切口的 999 步),本机 2-D 1M K = 2 的 fps 差 +0.10 %;adami 与 v7-wall-bc 的 `WALL_BC=3` 逐位相同;用新算例把 250² 跑到 t = 100,ψ_min 与三个中线极值与 E36 的差都在噪声尺度内(≤ 0.8 σ)。代价(K = 1,同一张卡,生产 fps):250² −16.4 %(每步时间 +19.6 %)、1000² −6.8 %(+7.3 %);壁面 pass 57 / 64 µs,其余主要是 force(+23 % / +14 %)。见"壁面选项"。
 - **途中发现并修复:**
   - 从保存的状态重启时,seam 列边上的粒子会在 bootstrap 静默丢失(继承自 v5,`V6_INIT_SEAM_CLAMP`)。
   - 验证审计确认了打包开关缺少配置校验、溢出时的连带损坏、δρ 的读回不一致,以及门工具的几处漏洞;全部修复并重新验证。文档对数据的审计又改正了本文的一批数与说法(上面的同等比较就是其中之一)。见"验证审计"。
@@ -47,6 +48,7 @@ E6b 起这就是 v6 的代码默认:不设变量即得到下表(池因子按算�
 | `V6_INIT_SEAM_CLAMP` | 1 | 1 | 修复(对格点初始条件是空操作) |
 | `V6_BAND_WIDTHS` | 2,2,3 | 2,2,3 | E26:correction / density / force 的 band 宽度(E6b 之前的代码默认 2,3,4);phase C −1 … −14 %、phase B +0.1 … +3 %,本机 K = 2 fps −0.4 … +0.3 %(传输已藏住),见"band 2/2/3" |
 | `V6_PHASE_A_NO_WAIT` | 1 | 1 | E31 (c) + E32 depth 2 审计;E32 起代码默认(之前 0),phase A 不等本卡 frame_done(n−1),=0 恢复等待(`docs/perf_model/E32.md`) |
+| `numerics.wall_boundary`(case.yaml 的键,不是环境变量) | simple | simple | E37:默认 v6 壁面;`adami`(Adami 2012 壁面压力与无滑移,壁粒子存 ρ0)只支持 K = 1,多于一个 slab 时报错退出,只在 2-D(方腔 250²–1000²)验证过;精度测试用 adami,效率测试用 simple(见"壁面选项") |
 | 不变的生产开关 | `V6_WORKER_COUNT_AWARE=1`、`V6_SPLIT_TRANSFER_QUEUES=1`(E6b 起也是代码默认),一直默认开的 `V6_CASCADE_FORCE`、`V6_BAND_VOXEL_DISPATCH`、`V6_FAST_SUBMIT` | 同左 | |
 | 不采纳 / 只评估 | `V6_BAND_COMPACT_DISPATCH`、(f)、`V6_DELTA_DENSITY`(等你决定)、`V6_TRANSPORT_EXTENSION`(只给审计)、`V6_DIAG_POISON_G1`(只用于诊断,E23) | | 见文末 |
 
@@ -902,7 +904,7 @@ lanes 由 `simulator_v6` 在 import 时读(cascade force、band-voxel 派发与 
 - `V6_MIGRANT_POOL_FACTOR`:显式设了 `V6_GHOST_POOL_FACTOR` 就跟它(E6b 之前的规则),否则取发布值。
 - 池因子的发布值只对实测的容量有效(2-D C = 96 / C_inc = 16、h/Δx = 5;3-D C = 128 / 32、h/Δx = 4),其他算例按 (e) 的条件重定(`partition_v6` 的槽数警告照旧)。
 
-**工具。** `partition_v6.LEGACY_DEFAULTS` 是 E6b 之前的默认。按"旧默认 + 指定开关"定义配置的工具先钉住它(优先级:调用方设的变量 > 工具自己的生产开关与配置 > 旧默认),所以本文、`v6.md`、`v6_single_step.md` 里的命令含义不变:`opt_validate`、`ab_restart`、`single_step`、`run_matrix`(v6)、`opt_campaign`、`perf_campaign`(v6)、`pool_peaks`(经 `opt_campaign`)、`link_inventory`、`poison_g1`、`k1_chain_vs_single`、`delta_density_eval` / `_perf`、`_verify_cascade_force`;`v6.md` 的"单次 v6 运行"直接调用 chain bench,命令里补上了当时的默认。CPU 测试:`_test_seam_layout` 的逐项检查钉旧默认,新增一项检查新默认(2-D / 3-D)、单独选旧值、migrant 规则与 LEGACY 往返;`_test_partition_chain` 照旧按一层 ghost 检查 M2 链代数。其余 runner 不钉,从此跑发布组合,例如 `_run_v6_chain_bench.py`、`_run_v6_dual_pipeline.py`(dual 路径,`_run_scaling_campaign.py` 用它)、`_run_v6_single_bench.py`、`_run_v6_equivalence.py`、`_run_v6_soak.py`、`_run_scaling_campaign.py`、`_run_weak_scaling_campaign.py`、`_run_single_ceiling.py`、viewer 与 `experiment/validation/` 的运行器。E32 起 `LEGACY_DEFAULTS` 还钉 `V6_PHASE_A_NO_WAIT=0`(E32 之前的默认),上面钉旧默认的工具照旧跑 0;不钉的 runner 从 E32 起跑 1。其中 `cavity_runner.py`(工作区里有别的 session 未提交的改动,本次没动)显式设了发布组合但没设 `V6_BAND_WIDTHS`,而且只接受与它的清单完全相同的 `V6_*` 环境,所以它的新运行用 2,2,3,要回到 2,3,4 得改它的清单;它按 `experiment/v6/utils/*.py` 的哈希校验续算,63c5e43 之前开始的运行不能再续算。
+**工具。** `partition_v6.LEGACY_DEFAULTS` 是 E6b 之前的默认。按"旧默认 + 指定开关"定义配置的工具先钉住它(优先级:调用方设的变量 > 工具自己的生产开关与配置 > 旧默认),所以本文、`v6.md`、`v6_single_step.md` 里的命令含义不变:`opt_validate`、`ab_restart`、`single_step`、`run_matrix`(v6)、`opt_campaign`、`perf_campaign`(v6)、`pool_peaks`(经 `opt_campaign`)、`link_inventory`、`poison_g1`、`k1_chain_vs_single`、`delta_density_eval` / `_perf`、`_verify_cascade_force`;`v6.md` 的"单次 v6 运行"直接调用 chain bench,命令里补上了当时的默认。CPU 测试:`_test_seam_layout` 的逐项检查钉旧默认,新增一项检查新默认(2-D / 3-D)、单独选旧值、migrant 规则与 LEGACY 往返;`_test_partition_chain` 照旧按一层 ghost 检查 M2 链代数。其余 runner 不钉,从此跑发布组合,例如 `_run_v6_chain_bench.py`、`_run_v6_dual_pipeline.py`(dual 路径,`_run_scaling_campaign.py` 用它)、`_run_v6_single_bench.py`、`_run_v6_equivalence.py`、`_run_v6_soak.py`、`_run_scaling_campaign.py`、`_run_weak_scaling_campaign.py`、`_run_single_ceiling.py`、viewer 与 `experiment/validation/` 的运行器。E32 起 `LEGACY_DEFAULTS` 还钉 `V6_PHASE_A_NO_WAIT=0`(E32 之前的默认),上面钉旧默认的工具照旧跑 0;不钉的 runner 从 E32 起跑 1。其中 `cavity_runner.py`(工作区里有别的 session 未提交的改动,本次没动)显式设了发布组合但没设 `V6_BAND_WIDTHS`,而且只接受与它的清单完全相同的 `V6_*` 环境,所以它的新运行用 2,2,3,要回到 2,3,4 得改它的清单;它按物理哈希(`experiment/v6/utils/*.py`、`shaders/spv/*.spv`、case.yaml 与同目录的 `*.obj`、`materials/standard.yaml`)与采样哈希校验续算,63c5e43 之前开始的运行不能再续算(E37 又改了 utils 与 SPIR-V:在 v6-rc1 上开始的运行不能在 v6-rc2 上续算,见"壁面选项"的已知限制)。
 
 **集群脚本(`docs/n56_scaling/scripts/probe34–38`)。** runner 换成 `experiment/v6/_run_v6_chain_bench.py`,`V5_*` 改成 `V6_*`,日志解析改成 `[chain_v6]`;去掉现在是代码默认的 export(`FAST_SUBMIT=1`、`CASCADE_FORCE=1`、`BAND_VOXEL_DISPATCH=1`、`WORKER_COUNT_AWARE=1`、`SPLIT_TRANSFER_QUEUES=1`,以及本来就是默认的 `FAKE_BAND_TEST=0`、`PHASE_A_NO_WAIT=0`、`PER_SIM_PIPELINE=0`、`RECEIVER_CACHED=0`、`LOOP_TRACE=0`、`BENCH_PARITY=1`;E32 起 `PHASE_A_NO_WAIT` 的代码默认是 1,脚本不 export 它,所以在 E32 之后的提交上跑 1,要 0 得 export `V6_PHASE_A_NO_WAIT=0`),也去掉 probe37/38 的 `BAND_SLOT_LANES=0`:它在原脚本里钉的是 v5 的默认值(probe34–36 不 export,同样跑 0),保留它会让 probe38 的解剖与 probe34 的计时用不同的 phase C;现在五个脚本都跑 lanes 64。保留的 export:按节点算的 `V6_WORKER_AFFINITY`;原协议有意选的池因子 `V6_GHOST_POOL_FACTOR=0.25`(2-D,probe34/35/36/38;发布值 0.29)与 `1.0`(3-D,probe37;发布值 0.5);`V6_SWITCH_INTERVAL_MS=0.2`(chain bench 不读它,0.2 ms 的切换间隔来自 `python -c` 里的 `setswitchinterval`;只有 soak runner 读,v5 时也一样)。池因子改不改成发布值等你决定;保留时 migrant 区段跟 ghost 因子取同一值,departed 池取发布值;2-D 的 0.25 每 voxel 只有 28 个槽,低于 1.2 (h/Δx)^d = 30,`partition_v6` 每次运行都会打印溢出风险警告(发展流余量 11–12 %,见 (e);溢出照样计数,bench 遇到溢出返回 1)。probe36 / probe37 期望的提交改成 63c5e43(probe37 不一致就退出),probe34/35 的表头补打印 commit。部署:63c5e43 的树里还是旧的 v5 版脚本,要先 checkout 63c5e43,再把本提交的脚本拷到 `~/run`(九月的做法也是脚本晚于它要求的提交),不要直接 sbatch 树里的旧副本。数值也与九月不同:v6 读 case.yaml 的 ξ 与 `epsilon_squared_factor`(缺省 0.0025),库里的 2-D strong 算例自 f2b6d67 起是 ξ 0.001、ε² 0.0025 h²,九月在集群上生成的 weak / 3-D 算例(未入库)是 ξ 0.1、没有 ε 键(于是取 0.0025),而九月的 v5 一律是 ξ 0.1、ε² 0.01 h²;要与九月的数据逐项比较,得先统一这两项。N56 的脚本只有这 5 个;`remote/` 里 3090 集群的归档脚本调用 v5 runner、不 export 开关,没改。本机按脚本的确切环境冒烟过:2-D 1M 的 K = 1 参照与 K = 2 `--anatomy` depth 2(因子 0.25)、3-D 1M 的 K = 1 与 K = 2(因子 1.0),都是 rc 0、drift 0、溢出 0,`[anatomy]` 行可解析;没有在集群上跑过。
 
@@ -943,6 +945,199 @@ env V6_KEEP_DEPARTED=1 V6_GHOST_LAYERS=2 V6_LEAN_TRANSPORT=1 V6_GHOST_POOL_FACTO
 ```
 
 数据在 `logs/e6b_defaults_20261005/`(不入库):每次运行的日志与 `results.jsonl`。
+
+## 壁面选项 `numerics.wall_boundary`(E37,2026-10-07)
+
+**选项。** 发布版提供两种壁面,由 case.yaml 的 `numerics.wall_boundary` 选:
+
+| 值 | 壁面 | 用途 |
+|---|---|---|
+| `simple`(默认,键缺省时即此) | v6 的壁面,与 v6-rc1 逐位相同 | 效率测试;多卡 |
+| `adami` | Adami et al. 2012 的壁面压力与无滑移,壁粒子存 ρ0(E36 的 adami_rho0,即 v7-wall-bc 分支的 `WALL_BC=3`;E36 的报告是该分支上的 `docs/wall_bc/E36.md`,9c7c847) | 精度测试,只在 K = 1;只在 2-D 方腔上验证过 |
+
+其他值(包括大小写不同、空值)在读 case 时报错并列出可选值。只有 v6 读这个键:v5 的 loader 静默忽略它(按 v5 的壁面跑),V0 的 loader 遇到未知键报错。
+
+**只支持单卡。** `adami` 在 slab 数大于 1 时报错退出,提示这一版只支持单卡("wall_boundary adami ... supports one GPU (K = 1) only in this release"):
+
+- chain bench(给定权重、`--weights auto`、`--weights-file` 三条权重路径;给定权重而不带 `--device-map` 时,在为默认设备映射开临时 Vulkan instance 之前)、soak runner(在 meta.json、nvidia-smi 采样与 context 之前)、`cavity_runner`(`--slabs` ≠ 1,提示用 `--slabs 1`)各自先用自己的消息退出。
+- `partition_v6.compute_chain_partition` 对 adami 且 slab 数 > 1 报错。各入口都先分区、再建这条链的 Vulkan context 与线程,所以多 slab 的运行在建它们之前就停下;但分区不一定是入口的第一步:`_run_v6_equivalence.py` 的配置以 1,1,2 开头,两次 K = 1 照常跑完,到 K = 2 才停;有的入口停下时已经建了(空的)输出目录,见下面的拒绝测试。
+- `SphSimulatorV6` 构造时再查一次:有相邻 slab 即报错;`V6_FAKE_BAND_TEST` 与 adami 一起也报错(假 band 把部分 density 挪到 phase C,phase B 的壁面 pass 会读到还没算的 band 流体密度)。
+
+限制的原因:壁面 pass 只读本 slab 的邻居,ghost 传输不带 `wall_dummy_velocity`。
+
+**为什么放在 case.yaml 而不是环境变量。** 两种壁面是两个物理模型,同一几何上结果不同(E36:250² 的 ψ_min 偏差 −8.64 % 对 +3.73 %);它属于算例。放在 case.yaml 里:
+
+- 算例目录本身就记下了用的是哪种壁面,新算例 `_adami` 与主序列只差这一行;
+- `cavity_runner` 把 case.yaml 拷进运行目录,它的物理哈希也覆盖 case.yaml,换壁面后续算会被拒绝;
+- `V6_*` 环境变量是实现层的开关(字节布局、派发、调度、存储方式),不选物理模型;`cavity_runner --expect` 按清单核对 `V6_*` 环境(δρ 已有第二份清单 `release_delta`),壁面若做成环境变量,还得再开一份清单,而且算例目录记不下用的是哪种壁面。
+
+**实现**(从 v7-wall-bc 9c7c847 移植 `WALL_BC` 的 0 与 3;模式 1(规定的 Adami,壁密度取 EOS⁻¹(p_w),E36 里流体平均密度会漂)与诊断模式 2、4 留在 v7 分支):
+
+- `shaders/wall_boundary.glsl`:spec constant 100 `WALL_BOUNDARY`(0 = simple,1 = adami)与 set 0 binding 10 `wall_dummy_velocity`。rc1 已有的模块里只有 density 与 force include 它(另外是新的 wall_extrapolate.comp),所以其余 11 个模块的 SPIR-V 与 rc1 逐字节相同;`common.glsl` 只改了注释(spec id 与 binding 登记表)。
+- `shaders/wall_extrapolate.comp`(新):对每个壁粒子,在流体邻居上做 Shepard 平均,得到壁压 p_w 与虚拟速度 2u_w − ũ,写回壁粒子的 (ρ0, p_w)(primary 与 scratch 两份)与 `wall_dummy_velocity`。与 v7 的 mode 3 相比去掉了 EOS 反算与密度下限计数:mode 3 里反算的密度随即被 ρ0 覆盖,下限计数只是 global status 里的诊断计数,不进任何粒子状态。
+- density:adami 时壁粒子直接返回,保持 ρ0。force:粘性项对壁邻居用虚拟速度;每对邻居多读一次材料(判断邻居是不是壁)保持原样,不做性能优化。
+- 记录位置:bootstrap(correction 之前一次;density 与拷贝之后、force 之前再一次);每步在 phase B 的 density_deep_interior 之后、force_deep_interior 之前(读 scratch);`V6_CASCADE_FORCE=0` 时在 phase C 的 force_all 之前(读 primary);单缓冲路径在 density 之后;重启在体素化之后。
+- simple 不加载 `wall_extrapolate` 模块、不建它的管线,binding 10 是 16 B 的占位;adami 时 `wall_dummy_velocity` 每个池槽 16 B,不进 defrag、传输与重启状态(每步重算)。
+- 计时工具:`bench_v6.compute_durations` 把壁面 pass 记成 `wall_extrapolate_us`,不再算进 force;step trace 多两列(只有 adami 有值);bench 与 campaign 的键表加了这一项。
+
+**新算例。** `cases/lid_driven_cavity_2d_n{250,500,1000}_xi0p001_eps0p0025_adami/`:主序列的 case.yaml 加一行 `wall_boundary: adami`,其余逐字相同(含沿用的头注释),用来复现论文 §6.1(E36 的 adami_rho0 结果)。粒子 OBJ 引用 `cases/lid_driven_cavity_2d_n{N}/`,与主序列一样不入库(`*.obj` 被忽略),干净的 checkout 要先生成。
+
+### 测试(提交 d62a1c0)
+
+工具:新的 `experiment/seam_audit/canonical_dump.py`。它从初始状态跑 K 个 slab,把每个粒子的全部状态按全局 id 合并、排序后存下;`--compare` 逐字段、逐位比较(按 uint32 看,−0.0 与 0.0 算不同),每个字段打印逐位相同的粒子数 / 粒子总数。两次运行要逐位相同,原子操作的顺序就不能进到算术里:`--canonical-lists` 在初次体素化之后把每个 voxel 列表按 pid 排序,用排好的列表打包 bootstrap 的 ghost,跳过 bootstrap 的 defrag(E36 的 k1_dump 推广到 K 个 slab),运行必须在第一次 defrag 之前结束。之后的列表追加(粒子换 voxel、install、departed 重新登记)仍是原子操作,同一步两个粒子进同一个 voxel 时顺序可能对调,所以先让同一构建跑两次比较(自检),再看跨构建的比较。`--repo` 让同一个工具跑另一个 checkout(这里是 v6-rc1 的 worktree)。每个 dump 记下 simulator 模块路径、`utils/*.py` / SPIR-V / cavity_runner / 工具本身的 sha256(工作区里的字节)、读入的初始状态与材料的哈希;`--compare` 遇到只在一边的字段、alive ≠ expected、溢出或传输错误(GPU 与主机的帧戳错误、far migration)、步数或 canonical 设置不同、两边都设但取值不同的开关,都判失败。开关是发布组合(`cavity_runner.RELEASE_ENVIRONMENT`)。
+
+**默认路径不变**(250² 主序列算例,74,529 个粒子;K = 1 在 GPU 1,K = 2 在 GPU 0、1):
+
+| 比较 | K | 步数 | 结果 |
+|---|---|---|---|
+| E37 simple 对 rc1 | 1 | 200 | 逐位相同(10 个字段 × 74,529 个粒子) |
+| rc1 对 rc1(自检) | 2 | 200 | 逐位相同 |
+| E37 simple 对 rc1 | 2 | 200 | 逐位相同 |
+| rc1 对 rc1(自检;有粒子越过切口,两边都开 `--transport-extension`) | 2 | 999 | 逐位相同(3 个粒子迁移) |
+| E37 simple 对 rc1(同上) | 2 | 999 | 逐位相同 |
+
+- 200 步里没有粒子越过切口(K = 2 的 install 计数与 pool-health 峰值都是 0),所以 200 步的 K = 2 结果只覆盖 replica(ghost)路径。补做的 999 步(defrag 周期 1000 之前)有 3 个粒子从 slab 0 越过切口到 slab 1:两边都开 `--transport-extension`(`V6_TRANSPORT_EXTENSION=1`,spec 88 只多拷一份 `extension_fields`,让迁移的粒子带着全局 id;没有物理 kernel 读它),迁移、install、departed 路径与 band kernel 的 migrant / departed 线程都跑到了。
+- rc1 自己跑两次逐位相同。200 步里没有粒子换 voxel(最大位移 0.17 Δx),也没有粒子越过切口,上面说的原子追加一次都没发生,所以 200 步的结果与原子顺序无关;999 步里末态换了 voxel 的粒子有 230 个(进了 71 个 voxel),另有 3 个越过切口,这一对相同只说明这次剩下的原子追加没有让结果不同(一对运行,不是保证)。没有 canonical 列表时,rc1 的两次 K = 2 运行不同(E37 第一轮,提交前的构建,200 步:10 个字段里 8 个不逐位相同,例如 `correction_inverse` 有 71,679 / 74,529 个粒子不同,`density_pressure` 有 5,827 个,密度只差 1–2 ulp)。
+- 逐位对照覆盖的是链路径(phase A/B/C)、2-D 250²、K ≤ 2、第一次 defrag 之前;defrag、单缓冲路径与重启路径没有与 rc1 逐位比较。simple 在这些路径上记录的命令与 rc1 相同(壁面 pass 只在 adami 时记录),density 与 force 的 SPIR-V 见下一条。
+- **SPIR-V:** 与 rc1 相比只有 `density.comp.spv`、`force.comp.spv` 变了,另加新的 `wall_extrapolate.comp.spv`;其余 11 个逐字节相同。复查时把 density 与 force 的 spec 100 冻结为 0,与 rc1 的逐字节相同;冻结为 1,与 v7 的 `WALL_BC=3` 构建相同(只在复查的临时目录里做,没有留下脚本)。d62a1c0 里的 `spv/MANIFEST.txt` 仍是 rc1 的,本文的提交按 E34 的方法重新生成(14 个文件都与新编译的逐字节相同;新鲜度检查的正、反对照都通过)。
+- **CPU 测试:** `_test_seam_layout`(ALL PASS,SPIR-V 与新编译的逐字节相同;`wall_boundary` 记作 v6 独有的 numerics 字段,不进与 v5 的分区比较)、`_test_chain_cuts`(6,772 项)、`_test_weight_calibration`(37 项)、`_test_partition_chain`(2,950 项)都通过。
+
+**fps 与 rc1 交替**(2-D 1M = `cases/lid_driven_cavity_2d`,K = 2,GPU 0、1,chain bench 默认 20,000 步、warmup 5,000,验证层关;同一命令在 v6-rc1 的 checkout 与本 checkout 里交替跑,每轮 rc1 先;开跑前 nvidia-smi 没有列出 python 计算进程):
+
+| 轮次 | rc1(fb162fd) | E37(d62a1c0) | E37 ÷ rc1 |
+|---|---|---|---|
+| 1 | 781.3 | 782.3 | +0.13 % |
+| 2 | 783.0 | 783.7 | +0.09 % |
+| 3 | 782.3 | 782.9 | +0.08 % |
+| 平均 ± 标准差 | 782.2 ± 0.9 | 783.0 ± 0.7 | +0.10 % |
+
+steady fps(warmup 之后 15,000 步),drift 0,溢出 0。差 +0.10 %,在 ±1 % 之内。绝对值比 E37 第一轮(同一命令,当时的 E37 是提交前的工作树:rc1 792.5 / E37 792.8)低约 1.3 %(rc1 −1.30 %、E37 −1.24 %);原因没有查,两个构建一样低,不影响交替比较。
+
+**adami 路径:**
+
+- 与 v7-wall-bc 的 `WALL_BC=3` 构建逐位相同:250²,K = 1,canonical 列表,200 步,与 E36 存下的 dump(`logs/e36/equivalence/v7bc3c_m4.npz`)比,11 个字段(含 `wall_dummy_velocity`)全部相同。
+- 阴性对照:同一算例 simple 与 adami 不同(10 个共有字段里 8 个不同,`extension_fields` 与 `material` 相同;比较时 `--ignore wall_dummy_velocity`,它只在 adami 的 dump 里)。
+- 默认路径以外的三条 adami 记录路径(移植自 v7,v7 也没有跑过):
+  - `V6_CASCADE_FORCE=0`(壁面 pass 在 phase C 的 force_all 之前,读 primary):K = 1 canonical 200 步,与默认(phase B,读 scratch)逐位相同,adami 11 个字段;simple 的同样对照 10 个字段也相同。K = 1 时 band 为空,phase B 的 force 与 phase C 的 force_all 正是这里比的两条路径。
+  - 单缓冲路径(`_run_v6_single_bench.py`,壁面 pass 在 density 之后):250² 3,000 步跑完,粒子数守恒(74,529),`wall_extrapolate_us` 有值;只是冒烟,不是计时。
+  - 重启路径(`cavity_runner --resume`,体素化之后补一次壁面 pass):250² 先跑 3,000 步,从第 3,000 步的检查点续跑到 6,000 步,与不中断的 6,000 步比。运行间本来就不逐位可复现(原子顺序),所以拿不中断运行之间的差作尺度。续跑与对照都在 GPU 1;第二次不中断运行(对照 2)是脚本之外补跑的,当时 GPU 1 在跑下面的复现,所以在 GPU 0,不在 `status.txt` 里。adami 第 4,000 / 5,000 / 6,000 步的动能相对差:续跑对对照 1.9 × 10⁻⁴ / 5.5 × 10⁻⁴ / 1.6 × 10⁻³,续跑对对照 2 6.3 × 10⁻⁴ / 1.0 × 10⁻³ / 9.3 × 10⁻⁴,两次对照之间 4.4 / 4.9 / 6.2 × 10⁻⁴;中线剖面的最大差依次 4.1 / 6.1 / 8.2 × 10⁻⁴、2.2 / 5.3 / 3.7 × 10⁻⁴、3.3 / 7.7 / 6.1 × 10⁻⁴。第 6,000 步续跑对对照的动能差是两次对照之间的 2.5 倍,但不重启也有这样的比值:第 3,000 步的采样在重启之前,那时续跑那次与对照的差已是两次对照之间的 4.2 倍(1.3 × 10⁻⁴ 对 3.0 × 10⁻⁵)。三者两两之间的差同一量级,看不出重启带来的额外差;simple 的同样对照也一样。尺度只来自一对不中断运行,这个冒烟只能排除使轨迹偏离超过运行间差的重启错误,不是逐位等价。另外,adami 下重启后那次壁面 pass 的输出(p_w、虚拟速度)在本步自己的壁面 pass 之前没有人读(correction / density 只读壁的 ρ = ρ0),所以它本身测不出来;这里验证的是续算路径整体。各次运行溢出、far migration、帧戳错误与 drift 都是 0。
+
+**拒绝**(都没有建 Vulkan 设备):chain bench 的给定权重(带 `--device-map` 的 K = 2;不带 `--device-map` 的 K = 3,停在为默认设备映射开 Vulkan instance 之前)与 `--weights auto`(K = 2)、soak runner(默认 K = 2)、`cavity_runner --slabs 2` 都以退出码 1 打印 "... supports one GPU (K = 1) only in this release";chain bench 的第三条路径 `--weights-file` 没有实测(代码上它在读完权重文件之后、`compute_chain_partition` 之前,由同一个 `refuse_adami_chain` 拒绝;读权重文件不碰 Vulkan)。`canonical_dump` 与 `_run_v6_snapshot_movie.py` 的 K = 2 在分区时以 ValueError 停下;后者在建 simulator 之前就启动了非 daemon 的渲染线程,复查时发现若只靠 simulator 的检查,它报错后会挂住,现在在启动线程之前退出。拒绝时留下的东西:`cavity_runner` 已建了运行目录的 `samples/`、`snapshots/`、`checkpoints/` 并写了 `runner.pid`,soak runner 建了输出目录,`_run_v6_snapshot_movie.py` 建了 `frames/` 与 `snaps/`(目录都是空的);`canonical_dump` 与 chain bench 不留文件。`wall_boundary: Adami` 在读 case 时报错并列出 simple、adami;adami 的 K = 1 照常分区。simulator 的两道后备检查(有相邻 slab、`V6_FAKE_BAND_TEST`)在入口检查之后到不了,只在复查时用 CPU 上的 vulkan 桩验证过。
+
+### 计时:选项的代价
+
+同一张卡(GPU 1,无显示),K = 1,250² 与 1000²,simple 与 adami 各一次 21,000 步的运行(固定顺序,不交替、不重复;逐帧 a_start → c_force_end 的四分位距为中位数的 0.8–2.4 %)。方法同 E36 第 8.3 节:`canonical_dump --monitor --timestamps`,每个 defrag 边界(每 1,000 步)排空后读回状态并做 E36 k1_dump 的统计,取边界前最后一帧的 GPU 时间戳,step ≥ 3000 的帧取中位数。fps(E36 方法)是总步数 / 整个步进循环的时间(从第 0 步算起,不去掉 warmup),含每帧的 GPU 时间戳与每 1,000 步一次的监视(状态读回、统计、时间戳读回);排空与 defrag 在生产 fps 里同样有。另用 chain bench(K = 1,不开监视与时间戳,20,000 步、warmup 5,000,交替 3 次,第 2 次倒序)给出生产配置的 fps。四次计时运行粒子数守恒、无溢出;12 次生产运行 drift 0、溢出 0。这次跑时 GPU 0 空闲(E36 计时时 GPU 0 在跑 1000²)。
+
+时间戳读回时转成 float64 的纪元纳秒,分辨率 256 ns;update_voxel、density、壁面 pass、force 的逐帧值都是 1.024 µs 的整数倍(250² 的壁面 pass 只有 57.344 / 59.392 / 61.440 µs 三个值),表中 0.1 µs 一位不是有效数字。
+
+每帧各 kernel 的 GPU 时间(µs;step ≥ 3000 的 19 个 defrag 边界前最后一帧取中位数;phase_c = c_start → c_force_end):
+
+| 算例 | 壁面 | predict | update_voxel | correction | density | wall_pass | force | phase_c | 内核和 | a_start→c_force_end | 帧数 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| n250 | simple | 4.6 | 10.2 | 95.5 | 110.6 | 0.0 | 96.3 | 6.9 | 324.1 | 335.4 | 19 |
+| n250 | adami | 4.6 | 10.2 | 97.0 | 98.3 | 57.3 | 118.8 | 6.9 | 393.2 | 404.2 | 19 |
+| n1000 | simple | 28.9 | 22.5 | 531.5 | 553.0 | 0.0 | 692.2 | 39.9 | 1868.0 | 1877.8 | 19 |
+| n1000 | adami | 28.9 | 22.5 | 534.8 | 540.7 | 63.5 | 787.5 | 39.9 | 2017.8 | 2030.1 | 19 |
+
+| 算例 | 壁面 | 内核和 µs | 壁面 pass µs(占比) | fps(E36 方法,监视 + 时间戳) | fps(生产:chain bench K = 1,3 次,均值 ± 标准差(各次)) |
+|---|---|---|---|---|---|
+| n250 | simple | 324.1 | 0.0(0.0 %) | 2820.9 | 2994.2 ± 11.3(2981.2, 3000.7, 3000.8) |
+| n250 | adami | 393.2 | 57.3(14.6 %) | 2362.5 | 2504.2 ± 9.9(2492.8, 2509.0, 2510.8) |
+| n1000 | simple | 1868.0 | 0.0(0.0 %) | 466.5 | 537.0 ± 0.2(536.8, 537.1, 537.0) |
+| n1000 | adami | 2017.8 | 63.5(3.1 %) | 438.0 | 500.4 ± 0.2(500.5, 500.2, 500.4) |
+
+- **代价(adami ÷ simple):**
+
+| 算例 | 内核和 | 每帧 GPU 时间(a_start → c_force_end) | fps(E36 方法) | fps(生产,3 次的均值;逐次比值) |
+|---|---|---|---|---|
+| 250² | +21.3 % | +20.5 % | −16.3 %(每步时间 +19.4 %) | −16.4 %(每步时间 +19.6 %;−16.38 / −16.39 / −16.33 %) |
+| 1000² | +8.0 % | +8.1 % | −6.1 %(每步时间 +6.5 %) | −6.8 %(每步时间 +7.3 %;−6.76 / −6.87 / −6.82 %) |
+
+- **论文写总代价用生产 fps:** 250² 每步多 19.6 %(fps −16.4 %),1000² 多 7.3 %(fps −6.8 %);3 次交替,逐次比值的离散不到 0.1 个百分点。GPU 时间只用来拆分各 kernel:两个算例都是 GPU 受限,生产的每步时间不长于带时间戳的帧(simple 334 对 335 µs、1,862 对 1,878 µs;adami 399 对 404 µs、1,999 对 2,030 µs),带时间戳的帧多出的部分 adami 比 simple 大,所以 GPU 时间的比值比生产高约 1 个百分点(+20.5 对 +19.6 %,+8.1 对 +7.3 %);它来自每种配置一次运行。E36 方法的 fps 比生产每步多 20.5 / 24.0 µs(250²,simple / adami)和 281 / 284 µs(1000²),主要是监视,另有每帧时间戳;1000² 上这部分与壁面基本无关,比值因此被稀释(−6.1 % 对 −6.8 %)。
+- **壁面 pass 本身 57 / 64 µs,几乎不随分辨率变:** 它对每个 own 池槽派发一个线程(85,760 → 1,203,584 个),非壁线程读完材料就返回;干活的只有壁粒子(11,528 → 44,528 个,×3.9,∝ √N),用时却只多约 11 %,所以在这两个规模上它不受总工作量限制(推测是延迟受限:线程少,填不满 GPU,用时由单个壁线程的 3 × 3 voxel 邻居循环决定,两种分辨率每个 voxel 都约 5 Δx 宽;没有单独验证)。其余 kernel 随 N 增长,所以它占内核时间从 14.6 % 降到 3.1 %。
+- **force 慢 23 % / 14 %:** 每对邻居多读一次材料、壁邻居的虚拟速度(按要求不做优化);**density 快 11 % / 2 %:** 壁粒子跳过 density。
+- **代价随分辨率下降,但不会趋于 0:** 250² 每步多约 20 % 的时间,1000² 多 7–8 %。下降主要来自壁面 pass 的占比;1000² 上多出的 150 µs 里 force 占 95 µs(+13.8 %,随 N 增长),单这一项就是内核时间的 +5 %,所以不能由这两个点外推说更高分辨率上代价趋于 0。
+- **与 E36 第 8.3 节一致:** E36 用同一方法、同一张卡测了 adami_rho0(v7 `WALL_BC=3`)与 v6 K = 1:250² 内核和 391.2 对 324.1 µs、壁面 pass 57.3 µs(14.7 %)、fps 2347 对 2794(−16.0 %);1000² 2015.5 对 1870.6 µs、63.5 µs(3.2 %)、435 对 461(−5.6 %)。本节的内核和与它差 ≤ 0.52 %(最大是 250² adami:393.2 对 391.2 µs,差的 2.0 µs 全在 force)、各 kernel ≤ 1.8 %(simple 250² 的七项中位数与 v6 落在同一个计时格点上)。E36 方法的 fps 高 0.6–1.1 %(E36 日志里是 2794.3 / 2347.2 / 461.3 / 435.3),每帧 GPU 时间只差 −0.3 … +0.5 %,差别在主机侧;E36 计时时 GPU 0 在跑 1000²,这次 GPU 0 空闲,这可能是原因,没有单独验证。
+
+### 复现 E36 的 adami_rho0 250²(到 t = 100)
+
+发布版(提交 d62a1c0)+ 新算例 `cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami`,K = 1,GPU 1,`cavity_runner --expect release`(停步规则同主序列:t ≥ 100 且稳态后再平均 20)。与 E36 的 adami_rho0 250²(`logs/e36/runs/n250_k1_v7_diag3_rho0`,v7 13e06e5)用 E36 的比较工具(`e36_compare`,v7-wall-bc 分支)比,平均窗口相同;噪声尺度按 E36 第 8.2 节(ψ_min 取前后两个半窗口之差的一半,极值取 sem),两次运行的尺度按平方和合成:
+
+| 量(相对 Marchi 2021 的偏差) | E36 adami_rho0(v7 13e06e5) | E37 发布版 adami(d62a1c0) | 差(百分点) | 噪声尺度(百分点) |
+|---|---|---|---|---|
+| ψ_min | +3.734 % | +3.741 % | +0.006 | 0.008(0.8 σ) |
+| u_min | +4.162 % | +4.163 % | +0.001 | 0.016(0.1 σ) |
+| v_max | +4.621 % | +4.610 % | −0.011 | 0.015(0.7 σ) |
+| v_min | +3.782 % | +3.778 % | −0.004 | 0.017(0.3 σ) |
+
+- 四个量的差都小于噪声尺度(0.1–0.8 σ)。两次运行都在 t = 80.64 判稳、在 t = 100.65 停(3,355,000 步),平均窗口都是 80.01–99.96(96 个样本);不变量(溢出、far migration、帧戳、drift)全为 0。
+- 竖直 / 水平中线的相对 L2:E36 3.45 / 3.83 %,E37 3.47 / 3.84 %;主涡涡心 (0.5300, 0.5647) 对 (0.5300, 0.5646)。完整对照表(二次涡、近壁速度、密度等)在 `logs/e37/A/repro_compare/e36_tables.md`,本表由 `wall_option_reproduction.py` 从同一份 `e36_summary.json` 算出。
+- 运行间本来就不逐位相同(见上),所以只能按噪声尺度比。E36 的运行在 GPU 0,这次在 GPU 1。
+
+### 已知限制
+
+- 只支持 K = 1(上面)。`_run_v6_soak_supervisor.py` 把任何启动失败都当成驱动卡死重试(最多 64 次、每次冷却 300 s),对 adami 的拒绝也一样(rc1 起就是如此,其他配置错误同样);adami 的 soak 只用 K = 1。
+- adami 只在 2-D 方腔上验证过(E36、E37);3-D 算例不拒绝,但 `wall_extrapolate.comp` 的 z 方向邻居循环与重力项没有跑过。adami 与 `V6_DELTA_DENSITY`(`--expect release_delta`)一起也没有跑过:壁面 pass 按 δρ 的存储换算(spec 95 / 96),未验证。
+- `_run_v6_snapshot_movie.py` 在建 context 与 simulator 之前就启动非 daemon 的渲染线程,而且这两步不在 try 里:adami 的拒绝现在在那之前退出,但别的构建错误仍会让它挂住(rc1 起如此)。
+- `partition_v6.py` 里拒绝处的注释与 d62a1c0 的提交说明写"在建任何 context、线程或文件之前",文件那半句不对(见上面的拒绝测试);改注释会改变 `cavity_runner` 的物理哈希,留到下次改 `utils` 时一起改。
+- `experiment/validation/cavity_analysis.py` 给运行贴的标签只看存储方式与数值后缀,不看壁面;adami 的运行要按 meta.json 的 `wall_boundary`(或运行目录里的 case.yaml)区分。那个文件在主工作区里有别的 session 未提交的改动,本次没动;上面的复现用 E36 的比较工具。
+- `cavity_runner` 续算时核对物理哈希(`experiment/v6/utils/*.py`、`shaders/spv/*.spv`、case.yaml 与同目录的 `*.obj`、`materials/standard.yaml`)与采样哈希。E37 改了 utils 与 SPIR-V:在 v6-rc1 上开始的运行不能在 v6-rc2 上续算;在 d62a1c0 上开始的可以(本文的提交只改文档、MANIFEST.txt 与一个 seam_audit 工具的 docstring,都不在哈希里)。
+- 主工作区的分支停在 1580ab3,`experiment/validation/cavity_runner.py` 上有别的 session 未提交的改动;E37 对它的 4 行改动与那些改动三方合并无冲突(复查时用 `git merge-file` 两种顺序都试过,行尾统一后),更新前要先 stash 再合并。
+
+### 复现
+
+```bash
+# CPU:布局回归(含 SPIR-V 新鲜度)、链切口、权重标定、分区
+.venv/Scripts/python.exe -m experiment.v6._test_seam_layout
+.venv/Scripts/python.exe -m experiment.v6._test_chain_cuts
+.venv/Scripts/python.exe -m experiment.v6._test_weight_calibration
+.venv/Scripts/python.exe -m experiment.v6._test_partition_chain
+# 逐位等价(按路径运行;--repo 指向 v6-rc1 的 checkout:相对的 --case 在 --repo 的 checkout 里解析,--out 在当前目录,
+# 所以那个 checkout 也要有 cases/lid_driven_cavity_2d_n250/*.obj)
+H=experiment/seam_audit/canonical_dump.py
+C=cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025/case.yaml
+CA=cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml
+.venv/Scripts/python.exe $H --repo <v6-rc1 的 checkout> --case $C --device-map 1 --steps 200 --canonical-lists --out logs/e37/A/equivalence/rc1_k1.npz
+.venv/Scripts/python.exe $H --case $C --device-map 1 --steps 200 --canonical-lists --out logs/e37/A/equivalence/e37_k1_simple.npz
+.venv/Scripts/python.exe $H --case $CA --device-map 1 --steps 200 --canonical-lists --out logs/e37/A/equivalence/e37_k1_adami.npz
+#   K = 2:--device-map 0,1;越过切口的补充:--steps 999 --transport-extension(两边都加);rc1 跑两次做自检
+#   cascade 关:--env V6_CASCADE_FORCE=0;simple 对 adami 的阴性对照比较时加 --ignore wall_dummy_velocity
+.venv/Scripts/python.exe -m experiment.seam_audit.canonical_dump --compare A.npz B.npz
+# fps 与 rc1 交替(同一命令在 v6-rc1 的 checkout 与本 checkout 里交替跑,每轮 rc1 先,各 3 次)
+.venv/Scripts/python.exe experiment/v6/_run_v6_chain_bench.py --case cases/lid_driven_cavity_2d/case.yaml --weights 1,1 --device-map 0,1
+# 单缓冲冒烟
+.venv/Scripts/python.exe experiment/v6/_run_v6_single_bench.py --case $CA --device 1 --max-steps 3000
+# 拒绝(都应以退出码 1 或 ValueError 停下,不建 Vulkan 设备)
+.venv/Scripts/python.exe experiment/v6/_run_v6_chain_bench.py --case $CA --weights 1,1 --device-map 0,1   # 另:--weights 1,1,1;--weights auto --device-map 0,1
+.venv/Scripts/python.exe experiment/v6/_run_v6_soak.py --case $CA --hours 0.01 --out-dir <目录>
+.venv/Scripts/python.exe $H --case $CA --device-map 0,1 --steps 10 --out <文件>
+.venv/Scripts/python.exe experiment/v6/_run_v6_snapshot_movie.py --case $CA --out-dir <目录>
+# 计时(E36 第 8.3 节方法)与生产 fps,然后出表
+.venv/Scripts/python.exe $H --case <算例> --device-map 1 --steps 21000 --monitor --timestamps --out logs/e37/A/timing/n250_adami.npz
+.venv/Scripts/python.exe experiment/v6/_run_v6_chain_bench.py --case <算例> --weights 1 --device-map 1 > logs/e37/A/bench/n250_adami_r1.out
+.venv/Scripts/python.exe experiment/seam_audit/wall_option_timing.py logs/e37/A
+# cavity_runner(复现、重启冒烟、--slabs 2 的拒绝):先 unset 所有 V6_*,再 export
+#   VK_LOADER_LAYERS_DISABLE=VK_LAYER_KHRONOS_validation 与 cavity_runner.RELEASE_ENVIRONMENT 的 12 个变量
+#   (V6_KEEP_DEPARTED=1 V6_GHOST_LAYERS=2 V6_LEAN_TRANSPORT=1 V6_COMPACT_GHOST_LISTS=1 V6_PACKED_REPLICAS=1
+#    V6_BAND_SLOT_LANES=64 V6_GHOST_POOL_FACTOR=0.29 V6_MIGRANT_POOL_FACTOR=0.05 V6_DEPARTED_FACE_FRACTION=0.8
+#    V6_INIT_SEAM_CLAMP=1 V6_WORKER_COUNT_AWARE=1 V6_SPLIT_TRANSFER_QUEUES=1);--expect release 要求 V6_* 与它完全相同
+.venv/Scripts/python.exe -m experiment.validation.cavity_runner --case $CA --run-dir logs/e37/A/runs/n250_k1_release_adami \
+    --slabs 1 --device-map 1 --expect release --require-uuid <GPU 的 deviceUUID>
+#   重启冒烟:同样的命令加 --sample-time 0.03 --snapshot-time 0.03 --checkpoint-time 0.03,先 --max-steps 3000,
+#   再同一 run-dir 加 --resume --max-steps 3000;另在新的 run-dir 跑两次不中断的 --max-steps 6000,比较各自
+#   samples.jsonl 的动能与 samples/s*.npz 的中线剖面(logs/e37/A/scripts/restart_compare2.py)
+# 与 E36 比较:在 v7-wall-bc 的 checkout 里跑(v7 的工作区没有 .venv,用本仓库的解释器);--run 的格式是 "标签::运行目录",
+#   --out 与运行目录都写绝对路径(相对的 --out 会落在 v7 的 checkout 里,logs/ 在本仓库);标签含中文,输出重定向时设
+#   PYTHONIOENCODING=utf-8
+L=<本仓库>/logs
+PYTHONIOENCODING=utf-8 <本仓库>/.venv/Scripts/python.exe -m experiment.v7.wall_bc.e36_compare --out $L/e37/A/repro_compare \
+    --run "E36 adami_rho0(v7 13e06e5)::$L/e36/runs/n250_k1_v7_diag3_rho0" --run "E37 发布版 adami(d62a1c0)::$L/e37/A/runs/n250_k1_release_adami"
+#   回到本仓库:
+PYTHONIOENCODING=utf-8 .venv/Scripts/python.exe experiment/seam_audit/wall_option_reproduction.py $L/e37/A/repro_compare/e36_summary.json \
+    --v7-checkout <v7-wall-bc 的 checkout>
+```
+
+数据在 `logs/e37/A/`(不入库):`equivalence/`(dump、比较输出)、`fps/`、`timing/` 与 `timing_tables.md`、`bench/`、`smoke/`(单缓冲 bench;重启的续跑、两次不中断对照与 `restart_compare2.txt`)、`refusal/`(每条拒绝的输出,退出码汇总在 `summary.txt`)、`runs/`、`repro_compare/` 与 `repro_table.md`、`scripts/`(GPU 测试脚本、拒绝脚本、重启比较脚本、MANIFEST 生成脚本的副本),以及 `status.txt`(GPU 测试脚本每一步的时间、退出码与开跑前的 GPU 状态;不含重启的第二次不中断对照与拒绝,见上)。"E37 第一轮"(提交前的工作树)的数据在 `logs/e37/{equivalence,fps,timing,runs}/`。
 
 ## 未采用的项与原因
 
@@ -988,7 +1183,7 @@ REL="--env V6_LEAN_TRANSPORT=1 --env V6_GHOST_POOL_FACTOR=0.29 --env V6_MIGRANT_
 
 数据都在 `logs/seam_audit/opt/`(不入库):`perf_*` 与 `smoke_fixed`(results.jsonl、summary.md / .json)、`validate_*`(verdict.json 与各步日志)、`ab_*`(A/B 的 result.json 与 table.md,`ab_release_final` 是最终设计)、`pool_peaks` 与 `pool_peaks_rerun`(含逐帧序列 npz)、`k1_chain_vs_single`、`direct_staging` / `direct_staging_v2`、`delta_density*`。
 
-## 提交(分支 v4-multigpu-orchestration,均已 push,未打 tag)
+## 提交(分支 v4-multigpu-orchestration,均已 push;附注标签 v6-rc1 = fb162fd(E34)、v6-rc2 = 下表"(本文,E37)"的文档提交(d62a1c0 的子提交);本表只列本文各项与两个 rc 的提交,中间的 E29–E33、E30 见各自的文档)
 
 | 提交 | 内容 |
 |---|---|
@@ -1013,3 +1208,6 @@ REL="--env V6_LEAN_TRANSPORT=1 --env V6_GHOST_POOL_FACTOR=0.29 --env V6_MIGRANT_
 | 63c5e43 | E6b:发布组合成为代码默认、`LEGACY_DEFAULTS` 与工具钉值、CPU 测试 |
 | f08a59b | E6b 核对后的修复:`link_inventory` 的钉值顺序、`perf_campaign` 保留调用方的 `V6_*`、`pool_peaks` 记录实际因子、过时的默认值注释 |
 | (本文,E6b) | 本文"发布组合成为代码默认";`v6_design.md` 的开关表;`v6.md` 单次运行命令补上当时的默认;集群脚本 probe34–38 改用 v6 |
+| fb162fd | E34:入口修复(chain bench 自己设 0.2 ms 的切换间隔、`--weights-file` 必须带 `--device-map`、默认设备映射只轮转独立显卡)与 SPIR-V MANIFEST;附注标签 v6-rc1 |
+| d62a1c0 | E37:壁面选项 `numerics.wall_boundary`(simple / adami)、`wall_extrapolate.comp`、K = 1 限制与各入口的拒绝、三个 `_adami` 算例、计时工具认识壁面 pass;`canonical_dump.py`、`wall_option_timing.py`、`wall_option_reproduction.py` |
+| (本文,E37) | 本文"壁面选项"与上面各处的条目;`v6_design.md` 的 kernel 顺序与开关两处;重新生成的 SPIR-V MANIFEST(14 个文件);`wall_option_reproduction.py` 的 docstring(e36_compare 的 `--run` 用 "::");附注标签 v6-rc2 |
