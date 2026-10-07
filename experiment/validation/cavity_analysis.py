@@ -43,6 +43,8 @@ GRID_POINTS = 513
 # float32_xi0.001). Since 2026-10-05 the case defaults are xi 0.001 + epsilon_squared_factor 0.0025 (the main
 # series, label float32_xi0.001_eps0.0025); the labels keep naming what each run used.
 BASELINE_NUMERICS = {"xi": 0.1, "epsilon_factor": 0.01}
+# support radius of every case in the comparison; a run with another h/dx gets the suffix _h<ratio>dx
+BASELINE_SUPPORT_OVER_SPACING = 5.0
 # frames by the physical half width of the benchmark's unit square (dx = particle spacing): wall = centre lines of
 # the innermost wall / lid rows, mid = half way between those rows and the outermost fluid rows (the usual SPH wall
 # position), fluid = the fluid lattice. The wall-frame Reynolds number is U (1 + 2 dx) / nu, etc.
@@ -75,8 +77,12 @@ def load_run(run_id: str, root: pathlib.Path | None = None) -> dict | None:
     spacing = float(meta["spacing"])
     xi, epsilon_factor = run_numerics(directory, meta)
     storage = "delta" if meta["expect"] == "release_delta" else "float32"
+    support_over_spacing = float(meta["support_radius"]) / spacing
+    kernel_suffix = ("" if abs(support_over_spacing - BASELINE_SUPPORT_OVER_SPACING) < 1e-6
+                     else f"_h{support_over_spacing:.6g}dx")
     run.update({"case": pathlib.Path(meta["case"]).parent.name, "slabs": int(meta["slabs"]),
-                "variant": storage + numerics_suffix(xi, epsilon_factor), "storage": storage, "xi": xi,
+                "variant": storage + numerics_suffix(xi, epsilon_factor) + kernel_suffix, "storage": storage, "xi": xi,
+                "support_over_spacing": support_over_spacing, "initial_state": meta.get("initial_state"),
                 "epsilon_factor": epsilon_factor, "spacing": spacing, "resolution": int(round(1.0 / spacing))})
     return run
 
@@ -579,10 +585,14 @@ def main() -> int:
     parser.add_argument("--from-cache", action="store_true",
                         help="redo only the figures and tables from the analyses cached by the last full run")
     arguments = parser.parse_args()
-    # *_long = a finished run continued past its stop time (time-convergence check, long_run_convergence.py);
-    # it repeats its parent's case and settings, so it stays out of the comparison tables
+    # *_long = a finished run continued past its stop time (time-convergence check), and runs started from another
+    # run's state (meta initial_state, e.g. the 4 dx continuation): no start-up from rest, analysed by
+    # long_run_convergence.py, so they stay out of the comparison tables
+    def continuation(path: pathlib.Path) -> bool:
+        return (path.name.endswith("_long")
+                or json.loads((path / "meta.json").read_text(encoding="utf-8")).get("initial_state") is not None)
     run_ids = arguments.runs.split(",") if arguments.runs else sorted(
-        path.name for path in LOGS.iterdir() if (path / "result.json").exists() and not path.name.endswith("_long"))
+        path.name for path in LOGS.iterdir() if (path / "result.json").exists() and not continuation(path))
     analyses = list(np.load(LOGS / "analysis_cache.npy", allow_pickle=True)) if arguments.from_cache else []
     for run_id in [] if arguments.from_cache else run_ids:
         run = load_run(run_id)

@@ -20,6 +20,11 @@ mean profiles and mean kinetic energy changed by less than --steady-tol relative
 or at --t-max. The release switches arrive through the environment (cavity_campaign.py builds it); this
 runner refuses to start if they do not match --expect. A fresh run keeps a copy of its case.yaml in the run
 directory: the analysis reads the run's numerics (xi, epsilon_squared_factor) from that copy, not from cases/.
+--initial-state <checkpoint.npz of another run> starts a fresh run from that state instead of from rest (same
+particles, e.g. a different support radius h): masses are recalibrated for this case and the fluid's half-step
+velocity re-staggered to this dt (load_initial_state); steps and t count from the switch (absolute time =
+meta.json initial_state.source_time + t). A retry before the run's own first checkpoint starts from that state
+again (never from rest); after it, --resume uses the run's own checkpoints.
 
     .venv/Scripts/python.exe -m experiment.validation.cavity_runner --case cases/lid_driven_cavity_2d_n250/case.yaml \
         --run-dir logs/validation/cavity_re1000/n250_k2_float32 --slabs 2 --device-map 0,1 --expect release
@@ -38,6 +43,7 @@ import sys
 import time
 
 import numpy as np
+import yaml
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
@@ -173,6 +179,66 @@ def read_restart_state(sim) -> dict:
     return {name: values[alive] for name, values in rows.items()}
 
 
+def load_initial_state(path: pathlib.Path, global_case, expected_total: int, layout: dict, dt: float,
+                       fluid_groups: np.ndarray) -> tuple[dict, float, dict]:
+    """Rows of another run's checkpoint as the initial state of a fresh run (--initial-state), for the same
+    particles under a different case (e.g. another support radius h). Particle masses are replaced by this
+    case's calibrated ones, float32(rest_density * volume) as the simulator's bootstrap and the packed
+    replicas use (the calibrated volume depends on h); the fluid's stored half-step velocity v_{n-1/2} is
+    re-staggered to this case's dt, v += a_n (dt_source - dt) / 2 (walls and lid do not move). Positions,
+    density, a_n and shift_n are kept; restart_init rebuilds the voxel ids and lists on this case's grid.
+    Returns (rows, stored density offset, provenance for meta.json)."""
+    payload = path.read_bytes()
+    digest = hashlib.sha256(payload).hexdigest()
+    del payload
+    with np.load(path) as archive:
+        rows = {name: np.array(archive[name]) for name in archive.files if not name.startswith("_")}
+        stored_offset = float(archive["_stored_density_offset"])
+    if set(rows) != set(layout):
+        sys.exit(f"[cavity] --initial-state {path}: fields {sorted(rows)} differ from {sorted(layout)}")
+    count = int(rows["position_voxel_id"].shape[0])
+    for name, (component_count, element_type) in layout.items():
+        shape = (count,) if component_count == 1 else (count, component_count)
+        if rows[name].shape != shape or rows[name].dtype != element_type:
+            sys.exit(f"[cavity] --initial-state {path}: {name} is {rows[name].dtype} {rows[name].shape}, "
+                     f"expected {np.dtype(element_type)} {shape}")
+    if count != expected_total:
+        sys.exit(f"[cavity] --initial-state {path}: {count} rows, the case has {expected_total} particles")
+    material_count = len(global_case.materials)
+    material = rows["material"].astype(np.int64)
+    if (material.max() >= material_count
+            or not np.array_equal(np.bincount(material, minlength=material_count),
+                                  np.bincount(global_case.initial.material_group, minlength=material_count))):
+        sys.exit(f"[cavity] --initial-state {path}: particles per material differ from the case")
+    mass_before = {}
+    for group in range(material_count):
+        values = np.unique(rows["velocity_mass"][material == group, 3])
+        if values.size != 1:
+            sys.exit(f"[cavity] --initial-state {path}: material {group} has {values.size} different masses")
+        mass_before[group] = float(values[0])
+    source_dir = path.parent.parent
+    source_meta = json.loads((source_dir / "meta.json").read_text(encoding="utf-8"))
+    source_step = step_of(path)
+    if source_step is None:
+        sys.exit(f"[cavity] --initial-state {path}: not a c<step>.npz checkpoint")
+    source_dt = float(source_meta["dt"])
+    mass_after = np.array([material_entry.rest_density * material_entry.volume
+                           for material_entry in global_case.materials], dtype=np.float32)
+    rows["velocity_mass"][:, 3] = mass_after[material]
+    restagger = 0.5 * (source_dt - dt)
+    fluid = np.isin(rows["material"], fluid_groups)
+    rows["velocity_mass"][fluid, :3] += (rows["acceleration"][fluid, :3].astype(np.float64)
+                                         * restagger).astype(np.float32)
+    provenance = {"file": str(path.relative_to(_REPO_ROOT)).replace("\\", "/"), "sha256": digest, "rows": count,
+                  "stored_density_offset": stored_offset, "source_run": source_dir.name, "source_step": source_step,
+                  "source_time": source_step * source_dt, "source_dt": source_dt,
+                  "source_support_radius": float(source_meta["support_radius"]), "source_case": source_meta["case"],
+                  "source_code_hashes": source_meta.get("code_hashes"),
+                  "mass_before": mass_before, "mass_after": {group: float(value) for group, value in enumerate(mass_after)},
+                  "velocity_restagger_time": restagger}
+    return rows, stored_offset, provenance
+
+
 def atomic_savez(path: pathlib.Path, **arrays) -> None:
     """Write to <name>.tmp (fsynced), then rename; a crash leaves at most a .tmp file, never a torn .npz."""
     temporary = path.with_name(path.name + ".tmp")
@@ -206,9 +272,15 @@ def code_hashes(case_path: pathlib.Path) -> dict:
     """physics = the v6 solver (python + SPIR-V) + the case files + the material library; sampling = the
     sampling / reference code and the reference CSV. A resume refuses to continue under different hashes."""
     case_directory = case_path.parent
+    standard_library = _REPO_ROOT / "materials" / "standard.yaml"
     physics = (list((_REPO_ROOT / "experiment" / "v6" / "utils").glob("*.py"))
                + list((_REPO_ROOT / "experiment" / "v6" / "shaders" / "spv").glob("*.spv"))
-               + [case_path] + list(case_directory.glob("*.obj")) + [_REPO_ROOT / "materials" / "standard.yaml"])
+               + [case_path] + list(case_directory.glob("*.obj")) + [standard_library])
+    # a case with its own material library (e.g. a corrected viscosity): hash that file too (the cases that use
+    # materials/standard.yaml keep their hashes)
+    library = (case_directory / yaml.safe_load(case_path.read_text(encoding="utf-8"))["material_library"]).resolve()
+    if library != standard_library.resolve():
+        physics.append(library)
     validation = _REPO_ROOT / "experiment" / "validation"
     sampling_files = [validation / "cavity_sampling.py", validation / "cavity_reference.py",
                       _REPO_ROOT / "docs" / "validation" / "data" / "marchi2021_re1000.csv"]
@@ -277,6 +349,13 @@ def main() -> int:
     parser.add_argument("--snapshot-time", type=float, default=1.0)
     parser.add_argument("--checkpoint-time", type=float, default=10.0)
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--viscosity-factor", type=float, default=1.0,
+                        help="the case's nu is the target nu times this factor (an operator correction: the discrete "
+                             "viscous operator delivers nu_eff = nu / factor); the Re check uses nu / factor")
+    parser.add_argument("--initial-state", default=None,
+                        help="start a FRESH run (step 0 = the switch) from another run's checkpoint c<step>.npz "
+                             "(same particles, e.g. another h): masses recalibrated for this case, fluid half-step "
+                             "velocity re-staggered to this dt; recorded in meta.json")
     parser.add_argument("--max-steps", type=int, default=None, help="stop after this many steps (calibration)")
     parser.add_argument("--pool-safety", type=float, default=1.2)
     parser.add_argument("--require-uuid", default=None,
@@ -332,9 +411,10 @@ def main() -> int:
                  if np.linalg.norm(material.initial_velocity) > 0]
     if len(set(fluid_viscosity)) != 1 or len(set(lid_speed)) != 1:
         sys.exit(f"[cavity] expected one fluid viscosity and one lid speed: {fluid_viscosity}, {lid_speed}")
-    reynolds = lid_speed[0] * 1.0 / fluid_viscosity[0]
+    reynolds = lid_speed[0] * 1.0 * arguments.viscosity_factor / fluid_viscosity[0]
     if abs(reynolds - 1000.0) > 1e-6:
-        sys.exit(f"[cavity] nominal Re = U L / nu = {reynolds} (expected 1000; L = 1 is the fluid box)")
+        sys.exit(f"[cavity] nominal Re = U L factor / nu = {reynolds} (expected 1000; L = 1 is the fluid box, factor = "
+                 f"--viscosity-factor {arguments.viscosity_factor})")
     cadence = int(global_case.numerics.defrag_cadence)
 
     def snap(time_value: float) -> int:
@@ -366,6 +446,8 @@ def main() -> int:
         sys.exit("--device-map needs one entry per slab")
 
     meta_path = run_dir / "meta.json"
+    initial_path = pathlib.Path(arguments.initial_state).resolve() if arguments.initial_state else None
+    initial = None
     if meta_path.exists():
         stored = json.loads(meta_path.read_text(encoding="utf-8"))
         current = {"case": str(pathlib.Path(arguments.case).resolve().relative_to(_REPO_ROOT)),
@@ -378,13 +460,25 @@ def main() -> int:
                 current[f"code_hash_{key}"] = hashes[key]
                 stored[f"code_hash_{key}"] = stored["code_hashes"][key]
         mismatch = {key: (stored.get(key), value) for key, value in current.items() if stored.get(key) != value}
+        recorded = stored.get("initial_state")
+        if recorded is not None:
+            recorded_path = (_REPO_ROOT / recorded["file"]).resolve()
+            if initial_path is not None and initial_path != recorded_path:
+                mismatch["initial_state"] = (recorded["file"], str(initial_path))
+            initial_path = recorded_path
+        elif initial_path is not None:
+            mismatch["initial_state"] = (None, str(initial_path))
         if mismatch:
             sys.exit(f"[cavity] {run_dir} was started with different settings: {mismatch}")
     else:
+        if initial_path is not None:
+            initial = load_initial_state(initial_path, global_case, expected_total, SphSimulatorV6.RESTART_FIELD_LAYOUT,
+                                         dt, fluid_groups)
         meta = {"case": str(pathlib.Path(arguments.case).resolve().relative_to(_REPO_ROOT)),
                 "slabs": arguments.slabs, "device_map": device_map, "expect": arguments.expect,
                 "environment": environment, "expected_total": expected_total, "dt": dt, "support_radius": support,
                 "spacing": spacing, "reynolds_nominal": reynolds, "defrag_cadence": cadence,
+                "viscosity_factor": arguments.viscosity_factor, "fluid_viscosity": fluid_viscosity[0],
                 "cuts": list(getattr(chain, "cuts", [])), "pool_safety": arguments.pool_safety,
                 "sample_steps": sample_steps, "snapshot_steps": snapshot_steps, "checkpoint_steps": checkpoint_steps,
                 "window_steps": window_steps, "t_end": arguments.t_end, "t_max": arguments.t_max,
@@ -393,7 +487,8 @@ def main() -> int:
                 "frames": {name: frame.half_width for name, frame in frames.items()},
                 "dense_reference": "linspace(0, 1, 1001) in the wall frame",
                 "fluid_groups": fluid_groups.tolist(), "git": git_state(),
-                "code_hashes": code_hashes(pathlib.Path(arguments.case).resolve())}
+                "code_hashes": code_hashes(pathlib.Path(arguments.case).resolve()),
+                "initial_state": initial[2] if initial is not None else None}
         meta_path.write_text(json.dumps(meta, indent=1), encoding="utf-8")
         (run_dir / "case.yaml").write_bytes(pathlib.Path(arguments.case).read_bytes())
         np.savez(run_dir / "points.npz", **{name: points for name, (_, points) in point_sets.items()},
@@ -425,6 +520,20 @@ def main() -> int:
             break
         if state is None:
             sys.exit(f"[cavity] --resume: no usable checkpoint in {manifest_path.parent}")
+    initial_sha256 = None
+    if state is None and initial_path is not None:
+        # a run started from another run's state: until it has a checkpoint of its own, every launch (the
+        # campaign retries with --resume) starts from that state again, never from rest
+        if initial is None:
+            initial = load_initial_state(initial_path, global_case, expected_total, SphSimulatorV6.RESTART_FIELD_LAYOUT,
+                                         dt, fluid_groups)
+            recorded_sha256 = json.loads(meta_path.read_text(encoding="utf-8"))["initial_state"]["sha256"]
+            if initial[2]["sha256"] != recorded_sha256:
+                sys.exit(f"[cavity] {initial_path} changed since the run started (sha256 {initial[2]['sha256']} "
+                         f"!= {recorded_sha256})")
+        state, stored_offset, provenance = initial
+        initial_sha256 = provenance["sha256"]
+        initial = None
     samples_path = run_dir / "samples.jsonl"
     previous_rows = []
     if samples_path.exists():
@@ -487,6 +596,11 @@ def main() -> int:
     say(f"segment {segment_index}: case {arguments.case} K={arguments.slabs} devices {device_map} expect "
         f"{arguments.expect}; start step {start_step} (t = {start_step * dt:.3f}); dt {dt:.3e}; "
         f"sample/snapshot/checkpoint/window every {sample_steps}/{snapshot_steps}/{checkpoint_steps}/{window_steps} steps")
+    if initial_sha256 is not None:
+        say(f"initial state {provenance['file']} (source t = {provenance['source_time']:.4f}, dt "
+            f"{provenance['source_dt']:.3e}, support {provenance['source_support_radius']}); masses "
+            f"{provenance['mass_before']} -> {provenance['mass_after']}; fluid v re-staggered by a * "
+            f"{provenance['velocity_restagger_time']:.3e}")
     status = "error"
     failure: dict = {}
     wall_start = time.perf_counter()
@@ -504,8 +618,8 @@ def main() -> int:
                 raise RuntimeError(f"device uuids {uuids} differ from --require-uuid {wanted}")
         orchestrator = ChainOrchestratorV6(sims, defrag_cadence=cadence)
         if state is None:
-            if start_step != 0:
-                raise RuntimeError("no checkpoint to resume from")
+            if start_step != 0 or initial_path is not None:
+                raise RuntimeError("no checkpoint or initial state to start from")
             orchestrator.bootstrap_all()
         else:
             rows_per_slab = restart_slab_rows(global_case, chain, state["position_voxel_id"][:, 0])
@@ -656,7 +770,8 @@ def main() -> int:
         failure["invariant_violation"] = isinstance(error, InvariantViolation)
         say(f"segment {segment_index} failed: {error!r}")
     finally:
-        record = {"segment": segment_index, "start_step": start_step, "status": status, "totals": totals,
+        record = {"segment": segment_index, "start_step": start_step, "initial_state": initial_sha256,
+                  "status": status, "totals": totals,
                   "error": failure.get("error"), "invariant_violation": failure.get("invariant_violation", False),
                   "device_uuids": failure.get("device_uuids"),
                   "code_hashes": code_hashes(pathlib.Path(arguments.case).resolve()),
