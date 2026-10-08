@@ -22,6 +22,10 @@ _test_seam_layout.py — CPU-only checks of the V6 seam layout (no Vulkan device
 6. V7_BAND_WIDTHS: parsing and rejection (c >= 2, d >= c, f >= d + 1; non-default
    widths with V7_BAND_COMPACT_DISPATCH), spec 82 of the split pipelines, no
    literal band width left in the simulator's spec entries and band dispatches.
+7. V7_DENSITY_COPY_COMPUTE (E39 B9): the density scratch -> primary copy records
+   experiment/v6's stream with 0; with 1 the compute pass's regions (spec
+   constants) are the same slots and its emulated index mapping writes exactly
+   the copied bytes; phase C / bootstrap / single-cmd differ only in the copy.
 
 Usage:
     .venv/Scripts/python.exe experiment/v7/_test_seam_layout.py
@@ -812,6 +816,254 @@ def check_band_widths(failures: list) -> None:
             failures.append(f"simulator_v7.py: literal band width at a {label}")
 
 
+def _emulate_density_scratch_copy(entries: list, group_count: int, local_size: int) -> np.ndarray:
+    """density_scratch_copy.comp's index mapping, invocation for invocation, over the whole launch: the slot every
+    invocation copies (invocations past the last region copy none and are dropped)."""
+    constants = {identifier: value for identifier, _, value in entries}
+    regions = [(constants[101 + 2 * region_index], constants[102 + 2 * region_index]) for region_index in range(4)]
+    remaining = np.arange(group_count * local_size, dtype=np.int64)    # gl_GlobalInvocationID.x
+    slots = np.full(remaining.shape, -1, dtype=np.int64)
+    active = np.ones(remaining.shape, dtype=bool)
+    for first_slot, slot_count in regions:
+        hit = active & (remaining < slot_count)
+        slots[hit] = first_slot + remaining[hit]
+        active &= ~hit
+        remaining = np.where(active, remaining - slot_count, remaining)
+    return slots[slots >= 0]
+
+
+def check_density_copy(failures: list) -> None:
+    """E39 B9 (V7_DENSITY_COPY_COMPUTE): command streams recorded on the CPU (simulator_v7's vkCmd* entry points
+    replaced by recorders, simulators built with object.__new__) for 2-D and 3-D chains of K = 1, 2, 3 (edge and
+    interior slabs) with one / two ghost layers, keep-departed 0 / 1, V7_DIAG_GHOST_SELF without density and the
+    release defaults, plus adami at K = 1:
+      - switch 0: the copy records experiment/v6's stream (compute -> transfer barrier, one vkCmdCopyBuffer over
+        the same regions, transfer -> compute barrier);
+      - switch 1: compute -> compute barrier, density_scratch_copy bound, one dispatch of ceil(slots / 256) groups
+        (the shader's fixed local size, _DENSITY_COPY_LOCAL_SIZE), compute -> compute barrier; the spec constants
+        hold the switch-0 regions in slots, in order, and density_scratch_copy.comp's index mapping emulated over
+        every launched invocation writes exactly the switch-0 bytes, each slot once;
+      - phase C, the bootstrap compute cmd and (K = 1) the single-cmd step differ between the two values only
+        inside the copy, and phase C's c_density_boundary_end / c_density_end ticks bracket it;
+    and the shader declares the region constants 101-108, its local size and uvec2 views of bindings 1 / 2, without
+    a float type."""
+    import re
+    from types import SimpleNamespace
+    import experiment.v6.utils.simulator_v6 as simulator_v6
+    import experiment.v7.utils.case_v7 as case_v7
+    import experiment.v7.utils.partition_v7 as partition_v7
+    import experiment.v7.utils.simulator_v7 as simulator_v7
+    import vulkan
+
+    compute_stage = vulkan.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
+    storage_access = vulkan.VK_ACCESS_2_SHADER_STORAGE_READ_BIT | vulkan.VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
+    compute_barrier = ("barrier", compute_stage, storage_access, compute_stage, storage_access)
+    events: list = []
+
+    def record_barrier(cmd, info):
+        for index in range(info.memoryBarrierCount):
+            barrier = info.pMemoryBarriers[index]
+            events.append(("barrier", int(barrier.srcStageMask), int(barrier.srcAccessMask),
+                           int(barrier.dstStageMask), int(barrier.dstAccessMask)))
+        if info.bufferMemoryBarrierCount or info.imageMemoryBarrierCount:
+            events.append(("barrier_other", int(info.bufferMemoryBarrierCount), int(info.imageMemoryBarrierCount)))
+
+    def record_copy(cmd, source, destination, count, regions):
+        events.append(("copy", source, destination,
+                       tuple((int(regions[index].srcOffset), int(regions[index].dstOffset), int(regions[index].size))
+                             for index in range(count))))
+
+    recorders = {
+        "vkCmdPipelineBarrier2": record_barrier,
+        "vkCmdCopyBuffer": record_copy,
+        "vkCmdDispatch": lambda cmd, group_count_x, group_count_y, group_count_z:
+            events.append(("dispatch", int(group_count_x), int(group_count_y), int(group_count_z))),
+        "vkCmdDispatchIndirect": lambda cmd, buffer, offset: events.append(("dispatch_indirect", buffer, int(offset))),
+        "vkCmdBindPipeline": lambda cmd, point, pipeline: events.append(("bind", pipeline)),
+        "vkCmdBindDescriptorSets": lambda cmd, point, layout, first, count, sets, *rest:
+            events.append(("sets", layout, int(first), int(count))),
+        "vkCmdFillBuffer": lambda cmd, buffer, offset, size, value:
+            events.append(("fill", buffer, int(offset), int(size), int(value))),
+        "vkBeginCommandBuffer": lambda cmd, info: events.append(("begin",)),
+        "vkEndCommandBuffer": lambda cmd: events.append(("end",)),
+    }
+
+    class PipelineNames(dict):
+        def __missing__(self, key):
+            return f"pipeline:{key}"
+
+    class TickRecorder:
+        parity_regions = False
+
+        def tick(self, cmd, label):
+            events.append(("tick", label))
+
+        def begin_phase_c_region(self, cmd, parity):
+            events.append(("phase_c_region", parity))
+
+        def end_phase_c_region(self):
+            pass
+
+        def record_step_reset_and_start(self, cmd, label):
+            events.append(("tick", label))
+
+    def fake(module, class_name, slab, bench: bool):
+        simulator = object.__new__(getattr(module, class_name))
+        simulator.case = slab
+        simulator.band_widths = simulator._configured_band_widths()
+        simulator.buffers = {name: SimpleNamespace(handle=f"buffer:{name}", size=0)
+                             for name in ("density_pressure", "density_pressure_scratch", "band_compact_meta",
+                                          "global_status")}
+        simulator.pipelines = PipelineNames()
+        simulator.pipeline_layout = "pipeline_layout"
+        simulator.descriptor_sets = ["set0", "set1", "set2", "set3"]
+        simulator._transport_segments = {direction: [] for direction in ("leading", "trailing")
+                                         if getattr(slab.transport, f"has_{direction}_peer")}
+        simulator.staging_buffers = {f"receiver_staging_{direction}": SimpleNamespace(handle=f"staging:{direction}")
+                                     for direction in simulator._transport_segments}
+        simulator._recv_status_overrides = {direction: {} for direction in simulator._transport_segments}
+        simulator.bench = TickRecorder() if bench else None
+        simulator.bench_transfer = None
+        simulator.step_single_use_split = False
+        simulator._allocate_oneshot_cmd = lambda: "cmd"
+        return simulator
+
+    def capture(function) -> list:
+        events.clear()
+        function()
+        return list(events)
+
+    def copy_section(stream: list, section: list):
+        """Start of the one occurrence of section in stream (None when absent or repeated)."""
+        starts = [index for index in range(len(stream) - len(section) + 1)
+                  if stream[index:index + len(section)] == section]
+        return starts[0] if len(starts) == 1 else None
+
+    saved_functions = {(module, name): getattr(module, name) for module in (simulator_v6, simulator_v7)
+                       for name in recorders}
+    saved_environment = {key: value for key, value in os.environ.items() if key.startswith("V7_")}
+    saved_switch = simulator_v7._DENSITY_COPY_COMPUTE
+    saved_self_kernels = (simulator_v6._DIAG_GHOST_SELF_KERNELS, simulator_v7._DIAG_GHOST_SELF_KERNELS)
+    for (module, name) in saved_functions:
+        setattr(module, name, recorders[name])
+    configurations = [("legacy layers=1 keep=0", (1, 0), None), ("legacy layers=1 keep=1", (1, 1), None),
+                      ("legacy layers=2 keep=1", (2, 1), None), ("release defaults", None, None),
+                      ("release, V7_DIAG_GHOST_SELF=correction", None, ("correction",))]
+    region_counts: set = set()
+    try:
+        for label, switches, self_kernels in configurations:
+            if switches is None:
+                for key in [key for key in os.environ if key.startswith("V7_")]:
+                    del os.environ[key]
+            else:
+                _set_switches(*switches)
+            kernels = self_kernels or saved_self_kernels[1]
+            simulator_v6._DIAG_GHOST_SELF_KERNELS = simulator_v7._DIAG_GHOST_SELF_KERNELS = kernels
+            for depth_count in (1, 3):
+                for slab_count in (1, 2, 3):
+                    chain = partition_v7.compute_chain_partition(
+                        _synthetic_global_case(case_v7, depth_count=depth_count), [1.0] * slab_count,
+                        pool_safety=1.2)
+                    slabs = list(chain.slabs)
+                    if slab_count == 1:       # E37 adami: one slab only
+                        slabs.append(dataclasses.replace(slabs[0], numerics=dataclasses.replace(
+                            slabs[0].numerics, wall_boundary="adami")))
+                    for index, slab in enumerate(slabs):
+                        tag = (f"density copy {label} {'3-D' if depth_count > 1 else '2-D'} K={slab_count} "
+                               f"slab {index}{' adami' if slab.numerics.wall_boundary == 'adami' else ''}")
+                        reference = fake(simulator_v6, "SphSimulatorV6", slab, bench=False)
+                        simulator = fake(simulator_v7, "SphSimulatorV7", slab, bench=False)
+                        v6_stream = capture(lambda: reference._record_density_scratch_to_primary_copy("cmd"))
+                        simulator_v7._DENSITY_COPY_COMPUTE = False
+                        transfer_stream = capture(lambda: simulator._record_density_scratch_to_primary_copy("cmd"))
+                        simulator_v7._DENSITY_COPY_COMPUTE = True
+                        compute_stream = capture(lambda: simulator._record_density_scratch_to_primary_copy("cmd"))
+                        if transfer_stream != v6_stream:
+                            failures.append(f"{tag}: switch 0 does not record experiment/v6's copy")
+                        copies = [event for event in v6_stream if event[0] == "copy"]
+                        if len(copies) != 1:
+                            failures.append(f"{tag}: v6 records {len(copies)} copies")
+                            continue
+                        byte_regions = copies[0][3]
+                        if any(source != destination for source, destination, _ in byte_regions):
+                            failures.append(f"{tag}: v6 copy region with source != destination offset")
+                        expected_slots = np.concatenate([np.arange(offset // 8, (offset + size) // 8)
+                                                         for offset, _, size in byte_regions])
+                        slot_regions = simulator._density_copy_slot_regions()
+                        region_counts.add(len(slot_regions))
+                        if slot_regions != [(offset // 8, size // 8) for offset, _, size in byte_regions]:
+                            failures.append(f"{tag}: slot regions {slot_regions} != v6 byte regions {byte_regions}")
+                        entries = simulator._density_scratch_copy_entries()
+                        groups = simulator._density_scratch_copy_group_count()
+                        workgroup = simulator_v7._DENSITY_COPY_LOCAL_SIZE
+                        if groups != -(-expected_slots.size // workgroup):
+                            failures.append(f"{tag}: {groups} groups for {expected_slots.size} slots")
+                        expected_stream = [compute_barrier, ("bind", "pipeline:density_scratch_copy"),
+                                           ("sets", "pipeline_layout", 0, 4), ("dispatch", groups, 1, 1),
+                                           compute_barrier]
+                        if compute_stream != expected_stream:
+                            failures.append(f"{tag}: switch 1 stream {compute_stream}")
+                        written = _emulate_density_scratch_copy(entries, groups, workgroup)
+                        if written.size != np.unique(written).size:
+                            failures.append(f"{tag}: the copy pass writes a slot twice")
+                        if not np.array_equal(np.sort(written), np.sort(expected_slots)):
+                            failures.append(f"{tag}: the copy pass writes {written.size} slots, v6 copies "
+                                            f"{expected_slots.size} (or different ones)")
+                        # whole cmds: the two switch values differ only inside the copy
+                        recordings = [("phase C", lambda simulator: simulator._record_phase_c_cmd(0)),
+                                      ("bootstrap", lambda simulator: simulator._record_bootstrap_compute_cmd())]
+                        if slab_count == 1:
+                            recordings.append(("single cmd", lambda simulator: simulator._record_step_single_cmd()))
+                        for name, record in recordings:
+                            timed = fake(simulator_v7, "SphSimulatorV7", slab, bench=True)
+                            simulator_v7._DENSITY_COPY_COMPUTE = False
+                            stream_off = capture(lambda: record(timed))
+                            simulator_v7._DENSITY_COPY_COMPUTE = True
+                            stream_on = capture(lambda: record(timed))
+                            start = copy_section(stream_off, transfer_stream)
+                            if start is None:
+                                failures.append(f"{tag} {name}: the copy is not recorded exactly once")
+                                continue
+                            if stream_on != (stream_off[:start] + compute_stream
+                                             + stream_off[start + len(transfer_stream):]):
+                                failures.append(f"{tag} {name}: switch 1 changes more than the copy")
+                            if name == "phase C" and (
+                                    stream_on[start - 1] != ("tick", "c_density_boundary_end")
+                                    or stream_on[start + len(compute_stream)] != ("tick", "c_density_end")):
+                                failures.append(f"{tag}: the step trace ticks do not bracket the copy")
+        # one region (own range: K = 1, one ghost layer, no density self pass), three (an edge slab: own, one inner
+        # replica region, departed pool), four (an interior slab); two ghost layers need the departed pool
+        if not {1, 3, 4} <= region_counts:
+            failures.append(f"density copy: the layouts exercised {sorted(region_counts)} region counts, "
+                            "expected 1, 3 and 4")
+    finally:
+        for (module, name), function in saved_functions.items():
+            setattr(module, name, function)
+        simulator_v7._DENSITY_COPY_COMPUTE = saved_switch
+        simulator_v6._DIAG_GHOST_SELF_KERNELS, simulator_v7._DIAG_GHOST_SELF_KERNELS = saved_self_kernels
+        for key in [key for key in os.environ if key.startswith("V7_")]:
+            del os.environ[key]
+        os.environ.update(saved_environment)
+    shader = (pathlib.Path(__file__).resolve().parent / "shaders" / "density_scratch_copy.comp").read_text(
+        encoding="utf-8")
+    code = re.sub(r"//[^\n]*", "", shader)
+    declared = re.findall(r"constant_id\s*=\s*(\d+)\)\s*const\s+uint\s+COPY_REGION_(\d)_(FIRST_SLOT|SLOT_COUNT)",
+                          code)
+    expected_declared = [(str(101 + 2 * region + (kind == "SLOT_COUNT")), str(region), kind)
+                         for region in range(4) for kind in ("FIRST_SLOT", "SLOT_COUNT")]
+    if sorted(declared) != sorted(expected_declared):
+        failures.append(f"density_scratch_copy.comp: region constants {declared}")
+    local_size = re.findall(r"layout\(local_size_x = (\d+), local_size_y = 1, local_size_z = 1\) in;", code)
+    if local_size != [str(simulator_v7._DENSITY_COPY_LOCAL_SIZE)]:
+        failures.append(f"density_scratch_copy.comp: local_size_x {local_size} != "
+                        f"simulator_v7._DENSITY_COPY_LOCAL_SIZE {simulator_v7._DENSITY_COPY_LOCAL_SIZE}")
+    for binding, qualifier in ((1, "writeonly"), (2, "readonly")):
+        if not re.search(rf"binding = {binding}\) restrict {qualifier} buffer \w+ \{{\s*uvec2 \w+\[\];", code):
+            failures.append(f"density_scratch_copy.comp: binding {binding} is not a restrict {qualifier} uvec2[]")
+    if re.search(r"\b(float|vec[234]|double)\b", code):
+        failures.append("density_scratch_copy.comp: a floating-point type touches the copied words")
+
+
 def check_release_defaults(failures: list) -> None:
     """E6b: with no V7_* variable set the configuration is the recommended release
     set (v6_opt.md), per dimension for the pool factors; dependent switches follow
@@ -907,6 +1159,7 @@ def main() -> int:
     check_packed_rejection(failures)
     check_packed_shader_layout(failures)
     check_band_widths(failures)
+    check_density_copy(failures)
     spirv_checked = check_spirv_current(failures)
     _set_switches(1, 0)
     if failures:
@@ -917,8 +1170,8 @@ def main() -> int:
     print("[seam_layout] ALL PASS (layers=1 == v5 partition + transport; layers=2 column/pid algebra, "
           "segment layout, install range; lean / compact / packed segments in 2-D and 3-D, packed allocation "
           "tiling; packed rejection + V7_DIAG_POISON_G1 parsing; packed shader layout + poison branches + spec ids; "
-          "V7_BAND_WIDTHS parsing / rejection / spec 82; release defaults (E6b, phase A no-wait E32) + "
-          "LEGACY_DEFAULTS; "
+          "V7_BAND_WIDTHS parsing / rejection / spec 82; density copy pass regions + streams (E39 B9); "
+          "release defaults (E6b, phase A no-wait E32) + LEGACY_DEFAULTS; "
           + ("SPIR-V current)" if spirv_checked else "SPIR-V check SKIPPED: no glslc)"))
     return 0
 

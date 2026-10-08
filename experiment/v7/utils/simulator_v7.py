@@ -134,6 +134,24 @@ _FAST_SUBMIT = os.environ.get("V7_FAST_SUBMIT", "1") == "1"   # default ON since
 # spread). The frame_done SIGNAL stays (host, workers and the next frame's
 # readback fence rely on it). Read once at import.
 _PHASE_A_NO_WAIT = os.environ.get("V7_PHASE_A_NO_WAIT", "1") == "1"
+# E39 B9 (audit H05): the density scratch -> primary copy as a compute pass
+# (density_scratch_copy.comp: raw 32-bit words, one slot per invocation) over
+# the same slot regions as the v6 vkCmdCopyBuffer, between compute -> compute
+# barriers. The v6 copy started at byte own_first_pid * 8, 8 (mod 16) for
+# K = 1 and slab 0, where NVIDIA's copy runs at about half bandwidth; E39
+# step trace at 2-D 1M K = 1: 38.5 -> 7.9 us per step (+1.5 % fps).
+# Bit-identical (a bit copy). Also closes the v6 recording's K = 1
+# synchronization-validation report (WRITE_AFTER_WRITE between consecutive
+# frames' copies: the compute -> transfer barrier grants TRANSFER_READ only).
+# 0 = the v6 recording (vkCmdCopyBuffer between compute -> transfer /
+# transfer -> compute barriers). Read once at import.
+_DENSITY_COPY_COMPUTE = os.environ.get("V7_DENSITY_COPY_COMPUTE", "1") == "1"
+# Regions density_scratch_copy.comp takes (spec constants 101-108): the own
+# range, two inner replica regions, the departed pool.
+_DENSITY_COPY_REGION_LIMIT = 4
+# density_scratch_copy.comp's fixed local_size_x (the shader comment has the
+# measurement behind 256).
+_DENSITY_COPY_LOCAL_SIZE = 256
 if _FAST_SUBMIT:
     from vulkan._vulkancache import ffi as _ffi
     from vulkan._vulkan import lib as _lib
@@ -153,6 +171,13 @@ class _NoOpLock:
 
 
 _NO_OP_LOCK = _NoOpLock()
+
+
+def configured_v7_switches() -> dict[str, int]:
+    """E39: the v7 performance switches (one per audit item, each default 1)
+    with the values this process runs (module constants read at import), for
+    the run headers and the step trace's run_meta."""
+    return {"V7_DENSITY_COPY_COMPUTE": int(_DENSITY_COPY_COMPUTE)}
 
 
 def _driver_submit_lock_for(physical_device_index: int):
@@ -1252,6 +1277,8 @@ class SphSimulatorV7:
             # E37: the wall pass only with wall_boundary adami (simple creates no wall pipeline, so it needs no
             # wall_extrapolate.comp.spv, e.g. in a V7_SPV_DIR A/B against a pre-E37 build)
             *(("wall_extrapolate",) if self._wall_adami else ()),
+            # E39 B9: the density copy pass only with V7_DENSITY_COPY_COMPUTE=1 (likewise for a pre-B9 V7_SPV_DIR)
+            *(("density_scratch_copy",) if _DENSITY_COPY_COMPUTE else ()),
         ):
             spv_path = shader_dir / f"{shader_name}.comp.spv"
             if not spv_path.exists():
@@ -1584,6 +1611,11 @@ class SphSimulatorV7:
                 pipelines[key] = self._create_pipeline(
                     shader=self.shader_modules["wall_extrapolate"],
                     entries=self._global_entries() + [(56, 'I', source)])
+        # E39 B9: the density scratch -> primary copy pass (its own spec constants only: the slab's regions).
+        if _DENSITY_COPY_COMPUTE:
+            pipelines["density_scratch_copy"] = self._create_pipeline(
+                shader=self.shader_modules["density_scratch_copy"],
+                entries=self._density_scratch_copy_entries())
         # V3.4: band-voxel dispatch variants of the three Phase C boundary
         # pipelines (thread = (band voxel, slot); see helpers.glsl).
         pipelines["correction_boundary_band"] = self._create_pipeline(
@@ -1635,6 +1667,12 @@ class SphSimulatorV7:
         if self._transport_segments:
             cascade_note += (f" (seam: ghost_layers={self.ghost_layers()}, departed pool="
                              f"{self.departed_pool_size()})")
+        if _DENSITY_COPY_COMPUTE:
+            copy_regions = self._density_copy_slot_regions()
+            cascade_note += (f" (V7_DENSITY_COPY_COMPUTE=1: density copy pass over {len(copy_regions)} "
+                             f"region(s), {sum(slot_count for _, slot_count in copy_regions):,} slots)")
+        else:
+            cascade_note += " (V7_DENSITY_COPY_COMPUTE=0: density copy by vkCmdCopyBuffer)"
         print(f"[SimV7] compute pipelines: {len(pipelines)}{cascade_note}")
         return pipelines
 
@@ -2125,16 +2163,66 @@ class SphSimulatorV7:
 
     def _record_density_scratch_to_primary_copy(self, cmd) -> None:
         """After density.comp writes density_pressure_scratch, copy that back
-        to density_pressure (primary) inside the same submit. Force.comp's
-        next dispatch reads primary.
+        to density_pressure (primary) inside the same submit, over the regions
+        of _density_copy_buffer_regions. Force.comp's next dispatch reads
+        primary.
 
-        Copy ONLY the own pid range. The ghost-pid range of primary holds
+        E39 B9 (V7_DENSITY_COPY_COMPUTE, default 1): the copy is the compute
+        pass density_scratch_copy.comp (a bit copy of 32-bit words over the
+        same slots, _density_copy_slot_regions) between two compute -> compute
+        barriers; 0 records the v6 vkCmdCopyBuffer
+        (_record_density_scratch_to_primary_transfer_copy).
+
+        Before the pass, the barrier orders the copy after every earlier
+        compute access of this queue: the density (and adami wall) passes'
+        scratch writes it reads; the correction / density reads of primary
+        (rho_n) and the writes to primary (expand_ghost_lists,
+        install_migrations, the wall pass) its writes follow. The transfer
+        queue's upload into the ghost regions is behind phase C's semaphore
+        wait (second scope COMPUTE_SHADER, which holds this dispatch).
+        After it, every reader / writer of the two buffers is a compute
+        shader of this queue (force, the wall pass, the next frame's
+        ghost_send / correction / density: primary read and written, scratch
+        overwritten) or ordered behind one: the next frame's readback and
+        upload on the transfer queue through phase_a_done (signalled at
+        COMPUTE_SHADER by the next phase A, queued after this cmd), defrag's
+        vkCmdCopyBuffer into primary through its compute -> transfer barrier
+        (source access SHADER_STORAGE_WRITE), host readbacks through the
+        fence / semaphore wait after the frame, as for every field a kernel
+        writes. The step trace keeps bracketing the copy: the caller's
+        c_density_boundary_end / c_density_end ticks (BOTTOM_OF_PIPE) sit
+        before and after this recording."""
+        if not _DENSITY_COPY_COMPUTE:
+            self._record_density_scratch_to_primary_transfer_copy(cmd)
+            return
+        # compute→compute (density wrote scratch; correction / density read primary)
+        self._record_compute_barrier(cmd)
+        self._bind_pipeline_and_sets(cmd, "density_scratch_copy")
+        vkCmdDispatch(cmd, self._density_scratch_copy_group_count(), 1, 1)
+        # compute→compute (force will read primary; the next density writes scratch)
+        self._record_compute_barrier(cmd)
+
+    def _record_density_scratch_to_primary_transfer_copy(self, cmd) -> None:
+        """V7_DENSITY_COPY_COMPUTE=0: the v6 recording of the copy."""
+        scratch = self.buffers["density_pressure_scratch"]
+        primary = self.buffers["density_pressure"]
+        regions = self._density_copy_buffer_regions()
+        # compute→transfer (density wrote scratch)
+        self._record_compute_to_transfer_barrier(cmd)
+        vkCmdCopyBuffer(cmd, scratch.handle, primary.handle, len(regions), regions)
+        # transfer→compute (force will read primary)
+        self._record_transfer_to_compute_barrier(cmd)
+
+    def _density_copy_buffer_regions(self) -> list:
+        """VkBufferCopy regions (source offset = destination offset) of the
+        scratch -> primary copy, in recording order.
+
+        Copy ONLY the own pid range (+ the V7_GHOST_LAYERS = 2 self regions,
+        _ghost_self_density_copy_regions). The ghost-pid range of primary holds
         ρ values uploaded from the peer GPU this step; density.comp doesn't
         dispatch on ghost pids so scratch's ghost range is stale zero — a
         full-buffer copy would zero out the uploaded ghost density and make
         force.comp read ρ=0 for ghost neighbours (→ NaN pressure)."""
-        scratch = self.buffers["density_pressure_scratch"]
-        primary = self.buffers["density_pressure"]
         density_stride = 8  # vec2 floats
         own_first = self.own_first_pid()
         own_pool = self.case.capacities.own_pool_size
@@ -2144,11 +2232,43 @@ class SphSimulatorV7:
                                 dstOffset=own_byte_offset,
                                 size=own_byte_size)]
         regions += self._ghost_self_density_copy_regions(density_stride)
-        # compute→transfer (density wrote scratch)
-        self._record_compute_to_transfer_barrier(cmd)
-        vkCmdCopyBuffer(cmd, scratch.handle, primary.handle, len(regions), regions)
-        # transfer→compute (force will read primary)
-        self._record_transfer_to_compute_barrier(cmd)
+        return regions
+
+    def _density_copy_slot_regions(self) -> list[tuple[int, int]]:
+        """E39 B9: (first slot, slot count) of every region of
+        _density_copy_buffer_regions, same order, one slot = one (rho, P) vec2
+        = 8 bytes; the spec constants of density_scratch_copy.comp."""
+        density_stride = 8
+        slot_regions = []
+        for region in self._density_copy_buffer_regions():
+            byte_offset, byte_size = int(region.srcOffset), int(region.size)
+            if (int(region.dstOffset) != byte_offset or byte_offset % density_stride
+                    or byte_size % density_stride or byte_size <= 0):
+                raise ValueError(f"density copy region (src {byte_offset}, dst {int(region.dstOffset)}, "
+                                 f"{byte_size} B) is not a slot range at equal offsets")
+            slot_regions.append((byte_offset // density_stride, byte_size // density_stride))
+        if len(slot_regions) > _DENSITY_COPY_REGION_LIMIT:
+            raise ValueError(f"{len(slot_regions)} density copy regions; density_scratch_copy.comp "
+                             f"takes {_DENSITY_COPY_REGION_LIMIT}")
+        return slot_regions
+
+    def _density_scratch_copy_entries(self) -> list[tuple[int, str, Any]]:
+        """Spec constants of density_scratch_copy.comp: ids 101 + 2 r /
+        102 + 2 r = first slot / slot count of region r (slot count 0:
+        unused)."""
+        slot_regions = self._density_copy_slot_regions()
+        slot_regions += [(0, 0)] * (_DENSITY_COPY_REGION_LIMIT - len(slot_regions))
+        entries = []
+        for region_index, (first_slot, slot_count) in enumerate(slot_regions):
+            entries.append((101 + 2 * region_index, 'I', first_slot))
+            entries.append((102 + 2 * region_index, 'I', slot_count))
+        return entries
+
+    def _density_scratch_copy_group_count(self) -> int:
+        """Workgroups of the copy pass: one invocation per copied slot,
+        _DENSITY_COPY_LOCAL_SIZE invocations per workgroup."""
+        slot_total = sum(slot_count for _, slot_count in self._density_copy_slot_regions())
+        return (slot_total + _DENSITY_COPY_LOCAL_SIZE - 1) // _DENSITY_COPY_LOCAL_SIZE
 
     def _record_wall_extrapolate(self, cmd, density_source: str = "primary",
                                  tick: Optional[str] = None) -> None:
