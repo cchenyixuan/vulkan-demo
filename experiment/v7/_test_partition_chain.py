@@ -116,8 +116,21 @@ def test_golden(global_case: CaseV7, tag: str, weight_sets, pool_safeties) -> No
             label = f"{tag} w={weights} safety={pool_safety}"
             check(legacy[2] == wrapped[2], f"{label}: k_split differs "
                                            f"{legacy[2]} vs {wrapped[2]}")
+            # E39 B3: chain_own_particle_counts is chain metadata the legacy
+            # partition predates (it keeps the default ()): every other field
+            # must match, the wrapped slabs carry both slabs' particle counts
+            counts = tuple(int(wrapped[slot].initial.positions.shape[0])
+                           for slot in (0, 1))
             for slot in (0, 1):
-                diffs = deep_diff(legacy[slot], wrapped[slot], f"slab{slot}")
+                check(legacy[slot].chain_own_particle_counts == ()
+                      and wrapped[slot].chain_own_particle_counts == counts,
+                      f"{label}: slab{slot} chain counts legacy "
+                      f"{legacy[slot].chain_own_particle_counts} wrapped "
+                      f"{wrapped[slot].chain_own_particle_counts} vs {counts}")
+                diffs = deep_diff(
+                    dataclasses.replace(legacy[slot],
+                                        chain_own_particle_counts=counts),
+                    wrapped[slot], f"slab{slot}")
                 check(not diffs, f"{label}: slab{slot} diffs: {diffs[:5]}")
 
 
@@ -166,6 +179,13 @@ def verify_chain(global_case: CaseV7, chain: ChainPartition, label: str,
         check(chain.slabs[index].initial.positions.shape[0]
               == geometry.own_particle_count,
               f"{label}: slab{index} initial array count")
+    # E39 B3: every slab carries every slab's count (V7_BAND_OVERLAP=auto
+    # decides once per chain from them)
+    chain_counts = tuple(g.own_particle_count for g in chain.geometry)
+    for index, case in enumerate(chain.slabs):
+        check(case.chain_own_particle_counts == chain_counts,
+              f"{label}: slab{index} chain counts "
+              f"{case.chain_own_particle_counts} vs {chain_counts}")
 
     # --- per-slab geometry + aliasing + particle-membership oracle ---------
     for index, (geometry, case) in enumerate(zip(chain.geometry, chain.slabs)):
@@ -386,7 +406,16 @@ def test_min_width_paths(global_case: CaseV7, tag: str) -> None:
 def test_degenerate_and_isolate(global_case: CaseV7, tag: str) -> None:
     print(f"[layer 3] N=1 degenerate + isolate_slab — {tag}")
     chain_single = compute_chain_partition(global_case, [1.0])
-    diffs = deep_diff(global_case, chain_single.slabs[0], "N1")
+    # E39 B3: the one slab of an N=1 chain carries its own count as the
+    # chain's (chain metadata); every other field is the global case's
+    single_counts = (int(global_case.initial.positions.shape[0]),)
+    check(global_case.chain_own_particle_counts == ()
+          and chain_single.slabs[0].chain_own_particle_counts == single_counts,
+          f"{tag}: N=1 chain counts {chain_single.slabs[0].chain_own_particle_counts} "
+          f"(global {global_case.chain_own_particle_counts}) vs {single_counts}")
+    diffs = deep_diff(dataclasses.replace(global_case,
+                                          chain_own_particle_counts=single_counts),
+                      chain_single.slabs[0], "N1")
     check(not diffs, f"{tag}: N=1 != global case: {diffs[:5]}")
 
     chain = compute_chain_partition(global_case, [1.0] * 4, pool_safety=1.05)
@@ -411,6 +440,9 @@ def test_degenerate_and_isolate(global_case: CaseV7, tag: str) -> None:
         check(np.array_equal(isolated.initial.positions,
                              chain.slabs[index].initial.positions),
               f"{tag}: isolated slab{index} particle set differs")
+        check(isolated.chain_own_particle_counts == (),
+              f"{tag}: isolated slab{index} carries chain counts "
+              f"{isolated.chain_own_particle_counts}")
 
 
 # ---------------------------------------------------------------------------

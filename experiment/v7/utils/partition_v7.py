@@ -1024,12 +1024,15 @@ def _build_chain_slab_case(
     ghost_pool_per_direction: int,
     replica_region_size: int = 0,
     departed_pool_size: int = 0,
+    chain_own_particle_counts: tuple[int, ...] = (),
 ) -> CaseV7:
     """General slab builder: endpoint OR interior (both-sided) slabs.
 
     V6: ``replica_region_size`` > 0 selects the split ghost-pool layout of
     V7_GHOST_LAYERS = 2; ``departed_pool_size`` sizes the V7_KEEP_DEPARTED
-    pool. Both 0 reproduce V5 exactly."""
+    pool. Both 0 reproduce V5 exactly. E39 B3: ``chain_own_particle_counts``
+    (every slab's initial own particle count, compute_chain_partition) goes
+    to CaseV7.chain_own_particle_counts unchanged."""
     h = global_case.physics.smoothing_length
     ny = global_case.grid.grid_dimension_y
     nz = global_case.grid.grid_dimension_z
@@ -1110,6 +1113,7 @@ def _build_chain_slab_case(
         transport=transport,
         materials=list(global_case.materials),
         initial=initial,
+        chain_own_particle_counts=tuple(chain_own_particle_counts),
     )
 
 
@@ -1190,6 +1194,9 @@ def compute_chain_partition(
     # Pass 2: build cases with neighbor geometry in hand.
     ghost_pool_per_direction, replica_region_size = _ghost_pool_layout(
         global_case, ghost_layers)
+    # E39 B3: every slab carries every slab's initial own particle count (V7_BAND_OVERLAP=auto decides once per
+    # chain from them, simulator_v7.band_overlap_chain_verdict)
+    chain_own_particle_counts = tuple(slab_geometry.own_particle_count for slab_geometry in geometry)
     slabs = []
     links: list[LinkSpec] = []
     for index, slab_geometry in enumerate(geometry):
@@ -1199,7 +1206,8 @@ def compute_chain_partition(
         case = _build_chain_slab_case(
             global_case, slab_geometry, left, right, ghost_pool_per_direction,
             replica_region_size=replica_region_size,
-            departed_pool_size=_departed_pool_size(global_case, peer_side_count))
+            departed_pool_size=_departed_pool_size(global_case, peer_side_count),
+            chain_own_particle_counts=chain_own_particle_counts)
         slabs.append(case)
         if case.transport.trailing is not None:
             links.append(LinkSpec(

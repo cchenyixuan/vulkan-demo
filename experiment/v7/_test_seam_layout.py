@@ -44,6 +44,16 @@ _test_seam_layout.py — CPU-only checks of the V6 seam layout (no Vulkan device
    slab's streams are switch 0's with every correction / density pair replaced by one fused dispatch (phase B, phase
    C band, bootstrap, single-cmd step and its split path), its fused pipelines carry correction's spec entries (B4's
    variant for the interior / peerless full-domain one); the tick-label consumers; the shader text.
+11. V7_BAND_OVERLAP (E39 B3): parsing; switch 0 = the B1 build (its SPIR-V files and its simulator_v7.py from git:
+   command streams, buffers, modules, pipelines, B4 off and on); switch 1: a slab resolves on exactly when it is 2-D
+   with peers, fuses, cascades force, dispatches the band by voxels and copies density by compute (else the switch-0
+   build, with the reason); an on slab's streams are switch 0's with force_deep moved into the plan's phase B segment
+   and phase C pairs, the segments tile its dispatch exactly once (read back from the streams), every pair is alone
+   between two barriers, no vkCmdDispatchBase; the FORCE_SEGMENT pipelines; layouts; the fusion decision rewritten
+   after construction (the B1 separate recording) and the force_deep recording invariant; the auto rule (one verdict
+   per chain from every slab's count: all slabs or none, at its thresholds, chains that straddle one, the chain
+   counts compute_chain_partition hands every slab, the run-metadata record); the tick-label consumers;
+   force.comp's FORCE_SEGMENT block.
 
 Usage:
     .venv/Scripts/python.exe experiment/v7/_test_seam_layout.py
@@ -147,7 +157,8 @@ def _comparable(value):
 
 
 V7_ONLY_FIELDS = {"departed_pool_size", "replica_region_size", "ghost_layers",
-                  "wall_boundary"}          # E37 numerics option (v6 only)
+                  "wall_boundary",          # E37 numerics option (v6 only)
+                  "chain_own_particle_counts"}      # E39 B3 chain metadata of a slab case (v7 only)
 
 
 def _strip_v7_only(tree):
@@ -2152,6 +2163,8 @@ def check_deep_wall_skip(failures: list) -> None:
 
 
 B4_COMMIT = "bf91694"    # E39 B4: the build V7_FUSED_CORRECTION_DENSITY=0 must reproduce (E39 B1)
+# SPIR-V files the items after B1 add (check_band_overlap checks them); check_fused_correction_density ignores them
+LATER_ITEM_SPIRV_AFTER_B1 = frozenset({"force_segment.comp.spv"})     # E39 B3
 
 
 def check_fused_correction_density(failures: list) -> None:
@@ -2237,7 +2250,8 @@ def check_fused_correction_density(failures: list) -> None:
         if not current.exists() or current.read_bytes() != blob:
             failures.append(f"{pathlib.Path(path).name}: differs from {B4_COMMIT} (switch 0 must run the B4 SPIR-V)")
     new_spv = sorted(path.name for path in spv_directory.glob("*.spv")
-                     if f"experiment/v7/shaders/spv/{path.name}" not in committed_spv)
+                     if f"experiment/v7/shaders/spv/{path.name}" not in committed_spv
+                     and path.name not in LATER_ITEM_SPIRV_AFTER_B1)
     if new_spv != ["correction_density.comp.spv", "correction_density_deep_wall_skip.comp.spv"]:
         failures.append(f"SPIR-V files beside {B4_COMMIT}'s: {new_spv}")
     if ("correction_density_deep_wall_skip", "correction_density.comp", ("DEEP_WALL_SKIP",)) \
@@ -2763,6 +2777,782 @@ def check_fused_correction_density(failures: list) -> None:
         failures.append("correction_density.comp: B4's decision is not behind #ifdef DEEP_WALL_SKIP with a return")
 
 
+B1_COMMIT = "f646bf6"    # E39 B1: the build V7_BAND_OVERLAP=0 must reproduce (E39 B3)
+
+
+def check_band_overlap(failures: list) -> None:
+    """E39 B3 (V7_BAND_OVERLAP, force.comp's FORCE_SEGMENT variant):
+      - parsing: 0 / 1 / auto (case and blanks ignored) parse, everything else is refused; the registry reports the
+        switch; the source's default;
+      - V7_BAND_OVERLAP=0 is the B1 build (B1_COMMIT): every tracked SPIR-V file of that commit is byte-identical
+        here and force_segment.comp.spv (SHADER_VARIANTS: force.comp -DFORCE_SEGMENT) is the only new file;
+        simulator_v7.py of that commit, loaded from git, and this one record the same command streams (phase A, B,
+        C (both parities), bootstrap init / compute, defrag, transfer readback / upload, the K = 1 single-cmd step and
+        its split path), the same buffer specs, shader modules and pipelines, with B4 off and on - 2-D / 3-D chains
+        of K = 1..4 (edge and interior slabs), one / two ghost layers, the release defaults, band widths 2,3,4 /
+        3,3,5, the compact band dispatch, a fake band at K = 1, V7_DIAG_GHOST_SELF naming one kernel / none, cascade
+        force off, the band-voxel dispatch off, the transfer density copy, adami at K = 1;
+      - V7_BAND_OVERLAP=1: a slab resolves on exactly when it is 2-D, has a peer, fuses (B1), cascades force, uses
+        the band-voxel dispatch and the compute density copy; every other slab records, builds and loads exactly
+        the switch-0 streams / pipelines / modules / buffers and states its reason. An on slab: the switch-0
+        buffers, the switch-0 modules + force_segment (only when a segment starts at workgroup g > 0), the switch-0
+        pipelines + force_deep_interior_scratch_from_<g> for each such segment (force_segment, the switch-0
+        force_deep_interior_scratch entries + 115 = g x workgroup size); phase A, the bootstrap, defrag and the
+        transfer cmds unchanged; phase B = switch 0's with the force_deep dispatch replaced by the plan's phase B
+        segment (nothing for 0 workgroups); phase C = switch 0's with each partner dispatch replaced by the pair
+        {partner, its segment}, band kernel first unless the layout says force_deep first; and, read from the
+        recorded streams alone: the force_deep dispatches of phase B + C tile [0, per-own-particle workgroups)
+        exactly once (each segment's first thread from its pipeline's spec 115), a pair is the only work between
+        two barriers (the last one: between a barrier and the end of phase C), no vkCmdDispatchBase, every segment
+        after install_migrations / append_departed; the default layout and layout overrides (part of force_deep
+        kept in phase B, the copy as a partner, force_deep first, single partners);
+      - an on slab whose fusion decision is rewritten after construction (fused_single_step.py's separate step)
+        records the B1 separate path (the B1 commit's simulator rewritten the same way; this tree built with
+        V7_FUSED_CORRECTION_DENSITY=0), force_deep whole in phase B, and the B3 streams again when rewritten back;
+        the recording invariant raises for phase B / C recorded from different fusion states, for the plan-only
+        gate of B3's first review exactly when it drops a segment, and for a phase C without a phase B;
+      - auto, one verdict per chain: compute_chain_partition gives every slab the chain's initial own particle
+        counts (= each slab's initial particles, in chain order; the global case and isolate_slab carry none); on
+        for both slabs of a two-slab chain when the smallest / largest chain count equals the minimum / maximum,
+        off for every slab one particle beyond either, for a chain that straddles a threshold (the per-slab rule's
+        mixed chain), for a chain of three slabs or more at every threshold, on a 3-D chain and for a slab case
+        without chain counts, with the reason (the chain verdict as every slab states it); 1 and 0 ignore the
+        counts; band_overlap_record (run metadata) reports the chain verdict, that every slab resolved it alike,
+        and each slab's resolution; layout validation refuses unknown / repeated /
+        unordered partners and a phase B fraction outside [0, 1);
+      - tick consumers: every phase B / C tick of an on slab is a steps_device.csv column; compute_durations,
+        weight_calibration and step_trace_model read a B3 tick stream (phase B ends at
+        b_correction_density_interior_end);
+      - force.comp: the FORCE_SEGMENT block only declares spec constant 115 and offsets main()'s thread id by it."""
+    import contextlib
+    import hashlib
+    import io
+    import math
+    import re
+    import subprocess
+    from types import SimpleNamespace
+    import experiment.v7.utils.bench_v7 as bench_v7
+    import experiment.v7.utils.case_v7 as case_v7
+    import experiment.v7.utils.partition_v7 as partition_v7
+    import experiment.v7.utils.phase_trace_v7 as phase_trace_v7
+    import experiment.v7.utils.simulator_v7 as simulator_v7
+    import experiment.v7.weight_calibration as weight_calibration
+    from experiment.v7.analysis import step_trace_model
+    from experiment.v7 import compile_shaders_v7
+    import vulkan
+
+    # ---- parsing / registry / default
+    for text, expected in (("0", "0"), ("1", "1"), ("auto", "auto"), (" AUTO ", "auto"), ("Auto\n", "auto"),
+                           (" 1 ", "1")):
+        try:
+            if simulator_v7._parse_band_overlap(text) != expected:
+                failures.append(f"V7_BAND_OVERLAP={text!r} parsed as {simulator_v7._parse_band_overlap(text)!r}")
+        except ValueError as error:
+            failures.append(f"V7_BAND_OVERLAP={text!r} refused: {error}")
+    for text in ("", "2", "on", "off", "true", "yes", "-1", "1.0", "01", "autos", "0 1"):
+        try:
+            simulator_v7._parse_band_overlap(text)
+            failures.append(f"V7_BAND_OVERLAP={text!r} accepted")
+        except ValueError:
+            pass
+    expected_registry = (simulator_v7._BAND_OVERLAP if simulator_v7._BAND_OVERLAP == "auto"
+                         else int(simulator_v7._BAND_OVERLAP))
+    if simulator_v7.configured_v7_switches().get("V7_BAND_OVERLAP") != expected_registry:
+        failures.append("configured_v7_switches() does not report V7_BAND_OVERLAP")
+    source = pathlib.Path(simulator_v7.__file__).read_text(encoding="utf-8")
+    if not re.search(r'_parse_band_overlap\(os\.environ\.get\("V7_BAND_OVERLAP", "auto"\)\)', source):
+        failures.append("simulator_v7.py: default V7_BAND_OVERLAP=auto not found")
+
+    # ---- the B1 build: SPIR-V and simulator
+    spv_directory = pathlib.Path(__file__).resolve().parent / "shaders" / "spv"
+    listing = subprocess.run(["git", "ls-tree", "--name-only", B1_COMMIT, "experiment/v7/shaders/spv/"],
+                             cwd=_REPO_ROOT, capture_output=True, text=True)
+    committed_spv = [line for line in listing.stdout.split() if line.endswith(".spv")]
+    if listing.returncode != 0 or not committed_spv:
+        failures.append(f"git: the SPIR-V files of {B1_COMMIT} are not listed (switch-0 identity unchecked)")
+    for path in committed_spv:
+        blob = subprocess.run(["git", "show", f"{B1_COMMIT}:{path}"], cwd=_REPO_ROOT, capture_output=True).stdout
+        current = spv_directory / pathlib.Path(path).name
+        if not current.exists() or current.read_bytes() != blob:
+            failures.append(f"{pathlib.Path(path).name}: differs from {B1_COMMIT} (switch 0 must run the B1 SPIR-V)")
+    new_spv = sorted(path.name for path in spv_directory.glob("*.spv")
+                     if f"experiment/v7/shaders/spv/{path.name}" not in committed_spv)
+    if new_spv != ["force_segment.comp.spv"]:
+        failures.append(f"SPIR-V files beside {B1_COMMIT}'s: {new_spv}")
+    if ("force_segment", "force.comp", ("FORCE_SEGMENT",)) not in compile_shaders_v7.SHADER_VARIANTS:
+        failures.append("compile_shaders_v7.SHADER_VARIANTS lacks force_segment")
+    reference_module = _load_committed_simulator(B1_COMMIT)
+    if reference_module is None:
+        failures.append(f"git: simulator_v7.py of {B1_COMMIT} not loadable (switch-0 recording unchecked)")
+        return
+    for name, value in vars(simulator_v7).items():
+        if re.fullmatch(r"_[A-Z][A-Z0-9_]*", name) and name in vars(reference_module) \
+                and isinstance(value, (bool, int, float, str, tuple, frozenset)):
+            setattr(reference_module, name, value)
+
+    compute_stage = vulkan.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
+    storage_access = vulkan.VK_ACCESS_2_SHADER_STORAGE_READ_BIT | vulkan.VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
+    compute_barrier = ("barrier", compute_stage, storage_access, compute_stage, storage_access)
+    sets = ("sets", "pipeline_layout", 0, 4)
+    events: list = []
+
+    def record_barrier(cmd, info):
+        for index in range(info.memoryBarrierCount):
+            barrier = info.pMemoryBarriers[index]
+            events.append(("barrier", int(barrier.srcStageMask), int(barrier.srcAccessMask),
+                           int(barrier.dstStageMask), int(barrier.dstAccessMask)))
+        if info.bufferMemoryBarrierCount or info.imageMemoryBarrierCount:
+            events.append(("barrier_other", int(info.bufferMemoryBarrierCount), int(info.imageMemoryBarrierCount)))
+
+    def record_copy(cmd, source_buffer, destination_buffer, count, regions):
+        events.append(("copy", source_buffer, destination_buffer,
+                       tuple((int(regions[index].srcOffset), int(regions[index].dstOffset), int(regions[index].size))
+                             for index in range(count))))
+
+    recorders = {
+        "vkCmdPipelineBarrier2": record_barrier,
+        "vkCmdCopyBuffer": record_copy,
+        "vkCmdDispatch": lambda cmd, group_count_x, group_count_y, group_count_z:
+            events.append(("dispatch", int(group_count_x), int(group_count_y), int(group_count_z))),
+        "vkCmdDispatchBase": lambda cmd, base_x, base_y, base_z, group_count_x, group_count_y, group_count_z:
+            events.append(("dispatch_base", int(base_x), int(group_count_x))),
+        "vkCmdDispatchIndirect": lambda cmd, buffer, offset: events.append(("dispatch_indirect", buffer, int(offset))),
+        "vkCmdBindPipeline": lambda cmd, point, pipeline: events.append(("bind", pipeline)),
+        "vkCmdBindDescriptorSets": lambda cmd, point, layout, first, count, descriptor_sets, *rest:
+            events.append(("sets", layout, int(first), int(count))),
+        "vkCmdFillBuffer": lambda cmd, buffer, offset, size, value:
+            events.append(("fill", buffer, int(offset), int(size), int(value))),
+        "vkBeginCommandBuffer": lambda cmd, info: events.append(("begin",)),
+        "vkEndCommandBuffer": lambda cmd: events.append(("end",)),
+        "VkShaderModuleCreateInfo": lambda codeSize, pCode: pCode,
+        "vkCreateShaderModule": lambda device, code, allocator: "module:" + hashlib.sha256(code).hexdigest()[:16],
+    }
+
+    class PipelineNames(dict):
+        def __missing__(self, key):
+            return f"pipeline:{key}"
+
+    class TickRecorder:
+        parity_regions = False
+
+        def tick(self, cmd, label):
+            events.append(("tick", label))
+
+        def record_step_reset_and_start(self, cmd, label):
+            events.append(("tick", label))
+
+        def record_defrag_reset_and_start(self, cmd, label):
+            events.append(("tick", label))
+
+        def begin_phase_c_region(self, cmd, parity):
+            events.append(("phase_c_region", parity))
+
+        def end_phase_c_region(self):
+            pass
+
+    def fake(module, slab):
+        simulator = object.__new__(module.SphSimulatorV7)
+        simulator.case = slab
+        simulator.band_widths = simulator._configured_band_widths()
+        specs = simulator._build_buffer_specs()
+        simulator._buffer_specs = specs
+        simulator.buffers = {spec.name: SimpleNamespace(handle=f"buffer:{spec.name}", size=spec.size) for spec in specs}
+        simulator.scratch_buffers = {spec.name: SimpleNamespace(handle=f"scratch:{spec.name}", size=spec.size)
+                                     for spec in specs if spec.set_index == 0}
+        simulator.pipelines = PipelineNames()
+        simulator.pipeline_layout = "pipeline_layout"
+        simulator.defrag_pipeline_layout = "defrag_pipeline_layout"
+        simulator.defrag_set4 = "set4"
+        simulator.descriptor_sets = ["set0", "set1", "set2", "set3"]
+        simulator._transport_segments = {direction: [] for direction in ("leading", "trailing")
+                                         if getattr(slab.transport, f"has_{direction}_peer")}
+        simulator.staging_buffers = {f"{role}_staging_{direction}": SimpleNamespace(handle=f"{role}:{direction}")
+                                     for role in ("sender", "receiver") for direction in simulator._transport_segments}
+        simulator._recv_status_overrides = {direction: {} for direction in simulator._transport_segments}
+        simulator.bench = TickRecorder()
+        simulator.bench_transfer = None
+        simulator.step_single_use_split = False
+        simulator._allocate_oneshot_cmd = lambda: "cmd"
+        simulator._allocate_transfer_oneshot_cmd = lambda: "transfer_cmd"
+        simulator.ctx = SimpleNamespace(device="device")
+        simulator._spec_keepalive = []
+        simulator._create_pipeline = lambda shader, entries: ("pipeline", shader, tuple(entries))
+        with contextlib.redirect_stdout(io.StringIO()):
+            simulator.shader_modules = simulator._load_shader_modules()
+            simulator.built_pipelines = simulator._build_compute_pipelines()
+        return simulator
+
+    def capture(function) -> list:
+        events.clear()
+        function()
+        return list(events)
+
+    def recordings(simulator) -> dict:
+        result = {"phase A": capture(simulator._record_phase_a_cmd),
+                  "phase B": capture(simulator._record_phase_b_cmd),
+                  "phase C even": capture(lambda: simulator._record_phase_c_cmd(0)),
+                  "phase C odd": capture(lambda: simulator._record_phase_c_cmd(1)),
+                  "bootstrap init": capture(simulator._record_bootstrap_init_cmd),
+                  "bootstrap compute": capture(simulator._record_bootstrap_compute_cmd),
+                  "defrag": capture(simulator._record_defrag_cmd)}
+        for direction in simulator._transport_segments:
+            result[f"readback {direction}"] = capture(lambda: simulator._record_transfer_readback_cmd(direction))
+            result[f"upload {direction}"] = capture(lambda: simulator._record_transfer_upload_cmd(direction))
+        if not simulator._transport_segments:
+            result["single"] = capture(simulator._record_step_single_cmd)
+            simulator.step_single_use_split = True
+            result["single split"] = capture(simulator._record_step_single_cmd)
+            simulator.step_single_use_split = False
+        return result
+
+    def spec_tuples(simulator) -> list:
+        return [(spec.name, spec.set_index, spec.binding, spec.size, spec.usage) for spec in simulator._buffer_specs]
+
+    def bind(key: str) -> list:
+        return [("bind", f"pipeline:{key}"), sets]
+
+    def replace_once(stream: list, old: list, new: list, tag: str):
+        starts = [index for index in range(len(stream) - len(old) + 1) if stream[index:index + len(old)] == old]
+        if len(starts) != 1:
+            failures.append(f"{tag}: the switch-0 segment occurs {len(starts)} times")
+            return None
+        return stream[:starts[0]] + new + stream[starts[0] + len(old):]
+
+    def segment_key(first_group: int) -> str:
+        return "force_deep_interior_scratch" if first_group == 0 else f"force_deep_interior_scratch_from_{first_group}"
+
+    def expected_on_streams(off_streams: dict, simulator, tag: str) -> dict:
+        """The streams an on slab must record: switch 0's with the force_deep dispatch replaced by the plan's phase B
+        segment and every partner dispatch by its pair (the expected value of every site)."""
+        slab, plan = simulator.case, simulator.band_overlap_plan
+        per_particle = ("dispatch", math.ceil(slab.capacities.own_pool_size / slab.capacities.workgroup_size), 1, 1)
+        expected = dict(off_streams)
+        expected["phase B"] = replace_once(
+            off_streams["phase B"],
+            bind("force_deep_interior_scratch") + [per_particle, compute_barrier, ("tick", "b_force_deep_interior_end")],
+            (bind("force_deep_interior_scratch") + [("dispatch", plan.phase_b_groups, 1, 1), compute_barrier,
+                                                   ("tick", "b_force_deep_interior_end")]
+             if plan.phase_b_groups > 0 else []), f"{tag} phase B")
+        correction_band, _, force_band = simulator.band_widths
+        partners = {"correction_density": bind("correction_density_boundary_band") + [(
+                        "dispatch", simulator._per_band_dispatch_count(
+                            correction_band, simulator._ghost_self_layer(2, 1, "correction")), 1, 1)],
+                    "copy": bind("density_scratch_copy") + [("dispatch", simulator._density_scratch_copy_group_count(),
+                                                            1, 1)],
+                    "force": bind("force_boundary_band") + [("dispatch", simulator._per_band_dispatch_count(force_band),
+                                                            1, 1)]}
+        for name in ("phase C even", "phase C odd"):
+            stream = off_streams[name]
+            for partner, first_group, group_count in plan.segments:
+                segment = bind(segment_key(first_group)) + [("dispatch", group_count, 1, 1)]
+                pair = segment + partners[partner] if plan.force_deep_first else partners[partner] + segment
+                stream = replace_once(stream, partners[partner], pair, f"{tag} {name} {partner}") if stream else None
+            expected[name] = stream
+        return expected
+
+    def first_thread_of(simulator, key: str) -> Optional[int]:
+        if key == "pipeline:force_deep_interior_scratch":
+            return 0
+        if not key.startswith("pipeline:force_deep_interior_scratch_from_"):
+            return None
+        built = simulator.built_pipelines.get(key[len("pipeline:"):])
+        values = [value for constant, _, value in built[2] if constant == 115] if built else []
+        return values[0] if len(values) == 1 else -1
+
+    def read_streams(simulator, streams: dict, tag: str) -> None:
+        """The plan read back from the recorded streams alone (independent of expected_on_streams)."""
+        slab, plan = simulator.case, simulator.band_overlap_plan
+        workgroup = slab.capacities.workgroup_size
+        group_total = math.ceil(slab.capacities.own_pool_size / workgroup)
+        for name in ("phase B", "phase C even", "phase C odd"):
+            if any(event[0] == "dispatch_base" for event in streams[name]):
+                failures.append(f"{tag} {name}: vkCmdDispatchBase recorded")
+        for parity in ("phase C even", "phase C odd"):
+            covered = [0] * group_total
+            bound = None
+            for name in ("phase B", parity):
+                for event in streams[name]:
+                    if event[0] == "bind":
+                        bound = event[1]
+                    elif event[0] == "dispatch" and bound is not None:
+                        first_thread = first_thread_of(simulator, bound)
+                        if first_thread is None:
+                            continue
+                        if first_thread < 0 or first_thread % workgroup:
+                            failures.append(f"{tag} {parity}: segment pipeline {bound} has first thread {first_thread}")
+                            continue
+                        for group in range(first_thread // workgroup, first_thread // workgroup + event[1]):
+                            if group < group_total:
+                                covered[group] += 1
+                            else:
+                                failures.append(f"{tag} {parity}: force_deep workgroup {group} >= {group_total}")
+            if covered != [1] * group_total:
+                wrong = [group for group, count in enumerate(covered) if count != 1]
+                failures.append(f"{tag} {parity}: force_deep workgroups not covered exactly once: {wrong[:8]} ... "
+                                f"({len(wrong)} of {group_total})")
+            # phase C: work between barriers; every group with a force_deep segment = exactly {partner, segment}
+            groups, current, bound = [], [], None
+            for event in streams[parity]:
+                if event[0] in ("barrier", "barrier_other"):
+                    groups.append(current)
+                    current = []
+                elif event[0] == "bind":
+                    bound = event[1]
+                elif event[0] in ("dispatch", "dispatch_indirect"):
+                    current.append(bound)
+            groups.append(current)
+            partners = {"pipeline:correction_density_boundary_band": "correction_density",
+                        "pipeline:density_scratch_copy": "copy", "pipeline:force_boundary_band": "force"}
+            install_group = max(index for index, group in enumerate(groups)
+                                if any(key and key.startswith(("pipeline:install_migrations", "pipeline:append_departed",
+                                                               "pipeline:expand_ghost_lists")) for key in group))
+            paired = []
+            for index, group in enumerate(groups):
+                segments = [key for key in group if first_thread_of(simulator, key) is not None]
+                if not segments:
+                    continue
+                others = [key for key in group if key not in segments]
+                if len(segments) != 1 or len(others) != 1 or others[0] not in partners:
+                    failures.append(f"{tag} {parity}: barrier group {index} holds {group}")
+                    continue
+                if index <= install_group:
+                    failures.append(f"{tag} {parity}: a force_deep segment before install / append_departed's barrier")
+                if (group.index(segments[0]) == 0) != plan.force_deep_first:
+                    failures.append(f"{tag} {parity}: pair order {group}, force_deep_first {plan.force_deep_first}")
+                paired.append(partners[others[0]])
+            if paired != [partner for partner, _, _ in plan.segments]:
+                failures.append(f"{tag} {parity}: pairs {paired} vs plan {plan.segments}")
+
+    def raises_runtime_error(record) -> bool:
+        try:
+            record()
+        except RuntimeError:
+            return True
+        return False
+
+    def check_fusion_rewritten(simulator, slab, b3_streams: dict, tag: str) -> None:
+        """An on slab whose fusion decision is rewritten after construction (seam_audit/fused_single_step.py records
+        its separate step that way) records the B1 separate path - the B1 commit's simulator rewritten the same way,
+        and this tree's slab built with V7_FUSED_CORRECTION_DENSITY=0 -, force_deep whole in phase B; rewritten back,
+        the B3 streams. The recording invariant (_check_force_deep_recorded_once) raises for phase B and phase C
+        recorded from different fusion states (both ways), for the gate of B3's first review (the plan alone,
+        whatever the fusion state) exactly when the plan has a segment next to correction_density_boundary_band
+        (the separate phase C has no such partner: those workgroups would be dropped), and for a phase C recorded
+        without a phase B."""
+        fused_resolution = simulator.fused_correction_density_resolution
+        separate = (False, "_test_seam_layout: the separate kernels after construction")
+        reference = fake(reference_module, slab)
+        reference.fused_correction_density_resolution = separate
+        try:
+            simulator.fused_correction_density_resolution = separate
+            if simulator._band_overlap_active():
+                failures.append(f"{tag}: the layout stays on with fusion turned off after construction")
+            separate_streams, reference_streams = recordings(simulator), recordings(reference)
+            for name, stream in reference_streams.items():
+                if separate_streams.get(name) != stream:
+                    failures.append(f"{tag} {name}: fusion turned off after construction does not record the "
+                                    f"{B1_COMMIT} separate stream")
+            if set(separate_streams) != set(reference_streams):
+                failures.append(f"{tag}: separate recordings {sorted(separate_streams)} vs {sorted(reference_streams)}")
+            if simulator._force_deep_phase_b_groups != simulator._per_own_particle_dispatch_count():
+                failures.append(f"{tag}: fusion turned off after construction: force_deep not whole in phase B "
+                                f"({simulator._force_deep_phase_b_groups} workgroups)")
+            simulator_v7._FUSED_CORRECTION_DENSITY = 0
+            unfused = fake(simulator_v7, slab)
+            simulator_v7._FUSED_CORRECTION_DENSITY = 1
+            if unfused._band_overlap_active() or recordings(unfused) != separate_streams:
+                failures.append(f"{tag}: fusion turned off after construction does not record what "
+                                "V7_FUSED_CORRECTION_DENSITY=0 records")
+            simulator.fused_correction_density_resolution = fused_resolution
+            if not simulator._band_overlap_active() or recordings(simulator) != b3_streams:
+                failures.append(f"{tag}: fusion turned back on does not record the B3 streams")
+            # the invariant: phase B and phase C from different fusion states
+            simulator._record_phase_b_cmd()
+            simulator.fused_correction_density_resolution = separate
+            if not raises_runtime_error(lambda: simulator._record_phase_c_cmd(0)):
+                failures.append(f"{tag}: phase B with the layout + phase C without it recorded without an error")
+            simulator._record_phase_b_cmd()
+            simulator.fused_correction_density_resolution = fused_resolution
+            if not raises_runtime_error(lambda: simulator._record_phase_c_cmd(0)):
+                failures.append(f"{tag}: phase B without the layout + phase C with it recorded without an error")
+            # the gate of B3's first review (the plan alone): the separate phase C drops the correction_density segment
+            simulator.fused_correction_density_resolution = separate
+            simulator._band_overlap_active = lambda: simulator.band_overlap_resolution[0]
+            dropped = any(partner == "correction_density" for partner, _, _ in simulator.band_overlap_plan.segments)
+            simulator._record_phase_b_cmd()
+            if raises_runtime_error(lambda: simulator._record_phase_c_cmd(0)) != dropped:
+                failures.append(f"{tag}: the plan-only gate with fusion off: the invariant "
+                                f"{'missed the dropped' if dropped else 'raised without a dropped'} "
+                                f"correction_density segment ({simulator.band_overlap_plan.segments})")
+            del simulator._band_overlap_active
+            # a phase C recorded without a phase B on a slab with the layout
+            lonely = fake(simulator_v7, slab)
+            if not lonely._band_overlap_active() or not raises_runtime_error(lambda: lonely._record_phase_c_cmd(0)):
+                failures.append(f"{tag}: phase C without a phase B on a B3 slab recorded without an error")
+        finally:
+            simulator.fused_correction_density_resolution = fused_resolution
+            simulator.__dict__.pop("_band_overlap_active", None)
+            simulator_v7._FUSED_CORRECTION_DENSITY = 1
+
+    module_constants = ("_FUSED_CORRECTION_DENSITY", "_DEEP_WALL_SKIP", "_DEEP_WALL_CHECK", "_DEEP_WALL_RECORD_DECISIONS",
+                        "_BAND_COMPACT", "_FAKE_BAND_COLUMN", "_DIAG_GHOST_SELF_KERNELS", "_CASCADE_FORCE",
+                        "_BAND_VOXEL_DISPATCH", "_DENSITY_COPY_COMPUTE", "_BAND_OVERLAP", "_BAND_OVERLAP_LAYOUT_OVERRIDE",
+                        "_BAND_OVERLAP_AUTO_MINIMUM_OWN_PARTICLES", "_BAND_OVERLAP_AUTO_MAXIMUM_OWN_PARTICLES")
+    saved_functions = {(module, name): getattr(module, name) for module in (simulator_v7, reference_module)
+                       for name in recorders if hasattr(module, name)}
+    saved_environment = {key: value for key, value in os.environ.items() if key.startswith("V7_")}
+    saved_constants = {(module, name): getattr(module, name) for module in (simulator_v7, reference_module)
+                       for name in module_constants if hasattr(module, name)}
+    for (module, name) in saved_functions:
+        setattr(module, name, recorders[name])
+    # (label, (layers, keep departed) or None = release, V7_BAND_WIDTHS, compact, fake band column,
+    #  V7_DIAG_GHOST_SELF kernels or None = default, cascade force, band-voxel dispatch, compute copy, slab counts)
+    configurations = [
+        ("release defaults", None, None, False, 0, None, True, True, True, (1, 2, 3, 4)),
+        ("legacy layers=1 keep=0, band widths 2,2,3", (1, 0), "2,2,3", False, 0, None, True, True, True, (1, 2, 3)),
+        ("legacy layers=2 keep=1, band widths 2,2,3", (2, 1), "2,2,3", False, 0, None, True, True, True, (2, 3)),
+        ("legacy layers=1 keep=0 (band widths 2,3,4)", (1, 0), None, False, 0, None, True, True, True, (1, 2, 3)),
+        ("release, band widths 2,3,4", None, "2,3,4", False, 0, None, True, True, True, (2, 3)),
+        ("release, band widths 3,3,5", None, "3,3,5", False, 0, None, True, True, True, (2, 3)),
+        ("release, compact band dispatch", None, "2,3,4", True, 0, None, True, True, True, (2, 3)),
+        ("release, fake band 5", None, None, False, 5, None, True, True, True, (1,)),
+        ("release, V7_DIAG_GHOST_SELF=correction", None, None, False, 0, ("correction",), True, True, True, (2, 3)),
+        ("release, V7_DIAG_GHOST_SELF=(none)", None, None, False, 0, (), True, True, True, (2,)),
+        ("release, cascade force off", None, None, False, 0, None, False, True, True, (2, 3)),
+        ("release, band-voxel dispatch off", (1, 0), "2,2,3", False, 0, None, True, False, True, (2, 3)),
+        ("release, transfer density copy", None, None, False, 0, None, True, True, False, (2, 3)),
+    ]
+    layouts = [None,
+               {"phase_b_fraction": 0.5, "pairs": ("correction_density", "force"), "force_deep_first": False},
+               {"phase_b_fraction": 0.75, "pairs": ("correction_density", "copy", "force"), "force_deep_first": True},
+               {"phase_b_fraction": 0.0, "pairs": ("force",), "force_deep_first": False},
+               {"phase_b_fraction": 0.3, "pairs": ("correction_density",), "force_deep_first": True}]
+    exercised = set()
+    try:
+        for (label, switches, widths, compact, fake_column, self_kernels, cascade, band_voxel, compute_copy,
+             slab_counts) in configurations:
+            for key in [key for key in os.environ if key.startswith("V7_")]:
+                del os.environ[key]
+            if switches is not None:
+                _set_switches(*switches)
+            if widths is not None:
+                os.environ["V7_BAND_WIDTHS"] = widths
+            if not band_voxel:
+                os.environ["V7_BAND_VOXEL_DISPATCH"] = "0"
+            if self_kernels is not None:      # the packed-replica default follows the variable
+                os.environ["V7_DIAG_GHOST_SELF"] = ",".join(self_kernels)
+            kernels = saved_constants[(simulator_v7, "_DIAG_GHOST_SELF_KERNELS")] if self_kernels is None \
+                else self_kernels
+            for module in (simulator_v7, reference_module):
+                module._FUSED_CORRECTION_DENSITY = 1
+                module._BAND_COMPACT = compact
+                module._FAKE_BAND_COLUMN = fake_column
+                module._DIAG_GHOST_SELF_KERNELS = kernels
+                module._CASCADE_FORCE = cascade
+                module._BAND_VOXEL_DISPATCH = band_voxel
+                module._DENSITY_COPY_COMPUTE = compute_copy
+            for depth_count in (1, 3):
+                for slab_count in slab_counts:
+                    chain = partition_v7.compute_chain_partition(
+                        _thick_wall_case(case_v7, depth_count, 3), [1.0] * slab_count, pool_safety=1.2)
+                    slabs = list(chain.slabs)
+                    if slab_count == 1 and not fake_column:       # E37 adami: one slab only
+                        slabs.append(dataclasses.replace(slabs[0], numerics=dataclasses.replace(
+                            slabs[0].numerics, wall_boundary="adami")))
+                    for index, slab in enumerate(slabs):
+                        peers = bool(slab.transport.has_leading_peer or slab.transport.has_trailing_peer)
+                        for deep_wall in ("0", "1"):
+                            tag = (f"band overlap {label} {'3-D' if depth_count > 1 else '2-D'} K={slab_count} slab "
+                                   f"{index}{' adami' if slab.numerics.wall_boundary == 'adami' else ''} B4={deep_wall}")
+                            for module in (simulator_v7, reference_module):
+                                module._DEEP_WALL_SKIP = deep_wall
+                                module._DEEP_WALL_CHECK, module._DEEP_WALL_RECORD_DECISIONS = 0, False
+                            simulator_v7._BAND_OVERLAP = "0"
+                            simulator_v7._BAND_OVERLAP_LAYOUT_OVERRIDE = None
+                            reference = fake(reference_module, slab)
+                            off = fake(simulator_v7, slab)
+                            if off._band_overlap_active() or off.band_overlap_resolution[1] != "V7_BAND_OVERLAP=0":
+                                failures.append(f"{tag}: switch 0 resolves {off.band_overlap_resolution}")
+                            reference_streams, off_streams = recordings(reference), recordings(off)
+                            for name, stream in reference_streams.items():
+                                if off_streams.get(name) != stream:
+                                    failures.append(f"{tag} {name}: switch 0 does not record the {B1_COMMIT} stream")
+                            if set(off_streams) != set(reference_streams):
+                                failures.append(f"{tag}: recordings {sorted(off_streams)} vs {sorted(reference_streams)}")
+                            if spec_tuples(off) != spec_tuples(reference):
+                                failures.append(f"{tag}: switch 0 buffer specs differ from {B1_COMMIT}")
+                            if off.shader_modules != reference.shader_modules:
+                                failures.append(f"{tag}: switch 0 shader modules differ from {B1_COMMIT}")
+                            if off.built_pipelines != reference.built_pipelines:
+                                failures.append(f"{tag}: switch 0 pipelines differ from {B1_COMMIT}")
+                            # ---- switch 1 (the default layout and, on a 2-D slab with peers, the overrides)
+                            simulator_v7._BAND_OVERLAP = "1"
+                            legal = (depth_count == 1 and peers and off._fused_correction_density_active() and cascade
+                                     and band_voxel and compute_copy and slab.numerics.wall_boundary != "adami")
+                            for layout in (layouts if legal and deep_wall == "0" else layouts[:1]):
+                                simulator_v7._BAND_OVERLAP_LAYOUT_OVERRIDE = layout
+                                layout_tag = f"{tag} layout {layout}"
+                                on = fake(simulator_v7, slab)
+                                active, reason = on.band_overlap_resolution
+                                if active != legal:
+                                    failures.append(f"{layout_tag}: resolved {active} ({reason}), legal {legal}")
+                                exercised.add((active, depth_count > 1, slab_count, peers))
+                                on_streams = recordings(on)
+                                if not active:
+                                    if reason.startswith("forced") or not reason:
+                                        failures.append(f"{layout_tag}: off without a reason ({reason})")
+                                    if on_streams != off_streams or on.built_pipelines != off.built_pipelines \
+                                            or on.shader_modules != off.shader_modules \
+                                            or spec_tuples(on) != spec_tuples(off):
+                                        failures.append(f"{layout_tag}: the off slab is not the switch-0 build")
+                                    continue
+                                if not reason.startswith("forced (V7_BAND_OVERLAP=1)"):
+                                    failures.append(f"{layout_tag}: reason {reason}")
+                                expected = expected_on_streams(off_streams, on, layout_tag)
+                                for name, stream in on_streams.items():
+                                    if stream != expected.get(name):
+                                        failures.append(f"{layout_tag} {name}: not switch 0's stream with the force_deep "
+                                                        "dispatch moved into the plan's segments / pairs")
+                                read_streams(on, on_streams, layout_tag)
+                                # the documented split: round(fraction x populated workgroups) in phase B, the rest
+                                # of the populated ones in equal shares (the last segment also takes the empty tail)
+                                used = layout or {"phase_b_fraction": 0.0, "pairs": ("correction_density", "force"),
+                                                  "force_deep_first": False}
+                                workgroup = slab.capacities.workgroup_size
+                                group_total = math.ceil(slab.capacities.own_pool_size / workgroup)
+                                populated = min(group_total, max(1, math.ceil(slab.initial.positions.shape[0]
+                                                                              / workgroup)))
+                                phase_b = min(int(round(used["phase_b_fraction"] * populated)), group_total - 1)
+                                count = len(used["pairs"])
+                                bounds = ([phase_b + max(0, populated - phase_b) * share // count
+                                           for share in range(count)] + [group_total])
+                                wanted_segments = tuple((partner, bounds[share], bounds[share + 1] - bounds[share])
+                                                        for share, partner in enumerate(used["pairs"])
+                                                        if bounds[share + 1] > bounds[share])
+                                if (on.band_overlap_plan.phase_b_groups, on.band_overlap_plan.segments) != \
+                                        (phase_b, wanted_segments):
+                                    failures.append(f"{layout_tag}: plan {on.band_overlap_plan} vs the documented "
+                                                    f"split {phase_b}, {wanted_segments}")
+                                if layout is None and (on.band_overlap_plan.phase_b_groups != 0
+                                                       or [segment[0] for segment in on.band_overlap_plan.segments]
+                                                       != ["correction_density", "force"]
+                                                       or on.band_overlap_plan.force_deep_first):
+                                    failures.append(f"{layout_tag}: default layout {on.band_overlap_plan}")
+                                if spec_tuples(on) != spec_tuples(off):
+                                    failures.append(f"{layout_tag}: the on slab changes the buffer specs")
+                                segment_starts = sorted({first for _, first, _ in on.band_overlap_plan.segments
+                                                         if first > 0})
+                                new_modules = {key: value for key, value in on.shader_modules.items()
+                                               if key not in off.shader_modules}
+                                if set(new_modules) != ({"force_segment"} if segment_starts else set()) or \
+                                        any(on.shader_modules[key] != value for key, value in off.shader_modules.items()):
+                                    failures.append(f"{layout_tag}: shader modules {sorted(new_modules)}")
+                                wanted_pipelines = dict(off.built_pipelines)
+                                base_entries = off.built_pipelines["force_deep_interior_scratch"][2]
+                                for first in segment_starts:
+                                    wanted_pipelines[f"force_deep_interior_scratch_from_{first}"] = (
+                                        "pipeline", on.shader_modules.get("force_segment"),
+                                        base_entries + ((115, "I", first * slab.capacities.workgroup_size),))
+                                if on.built_pipelines != wanted_pipelines:
+                                    failures.append(f"{layout_tag}: pipelines "
+                                                    f"{sorted(set(on.built_pipelines) ^ set(wanted_pipelines))}")
+                                for name, stream in on_streams.items():
+                                    for event in stream:
+                                        if event[0] == "tick" and event[1].startswith(("b_", "c_")) and \
+                                                event[1] not in phase_trace_v7.STEP_DEVICE_TIMES:
+                                            failures.append(f"{layout_tag} {name}: tick {event[1]} is no column")
+                                check_fusion_rewritten(on, slab, on_streams, layout_tag)
+                            simulator_v7._BAND_OVERLAP_LAYOUT_OVERRIDE = None
+                            # ---- auto: one verdict per chain at its thresholds (2-D slabs with peers); the chain's
+                            # smallest / largest count decides, so this slab's own count alone (the per-slab rule)
+                            # turns it on only when every slab has that count; a chain of three slabs or more is off
+                            # at every threshold
+                            if legal and deep_wall == "0":
+                                own = int(slab.initial.positions.shape[0])
+                                counts = tuple(slab.chain_own_particle_counts)
+                                if counts != tuple(int(member.initial.positions.shape[0]) for member in chain.slabs):
+                                    failures.append(f"{tag}: chain counts {counts} are not the chain's slab particle "
+                                                    "counts")
+                                smallest, largest = min(counts), max(counts)
+                                simulator_v7._BAND_OVERLAP = "auto"
+                                for minimum, maximum, in_window in ((smallest, largest, True),
+                                                                    (smallest + 1, largest + 10, False),
+                                                                    (smallest - 10, largest - 1, False),
+                                                                    (1, 10 ** 9, True), (own, own, smallest == largest)):
+                                    wanted = in_window and slab_count == 2
+                                    simulator_v7._BAND_OVERLAP_AUTO_MINIMUM_OWN_PARTICLES = minimum
+                                    simulator_v7._BAND_OVERLAP_AUTO_MAXIMUM_OWN_PARTICLES = maximum
+                                    automatic = fake(simulator_v7, slab)
+                                    active, reason = automatic.band_overlap_resolution
+                                    chain_active, chain_reason = automatic.band_overlap_chain_verdict
+                                    if active != wanted or chain_active != wanted \
+                                            or not reason.startswith(chain_reason) \
+                                            or not chain_reason.startswith(f"auto: 2-D chain of {slab_count} slabs") \
+                                            or (slab_count > 2 and not ("more than two slabs" in chain_reason
+                                                                        and chain_reason.endswith("off on every slab"))):
+                                        failures.append(f"{tag}: auto [{minimum}, {maximum}] for chain counts {counts} "
+                                                        f"resolved {active} ({reason}; chain {chain_reason})")
+                                    if active and recordings(automatic) != expected_on_streams(
+                                            off_streams, automatic, f"{tag} auto"):
+                                        failures.append(f"{tag}: auto on records other streams than forced on")
+                                for module_name in ("_BAND_OVERLAP_AUTO_MINIMUM_OWN_PARTICLES",
+                                                    "_BAND_OVERLAP_AUTO_MAXIMUM_OWN_PARTICLES"):
+                                    setattr(simulator_v7, module_name, saved_constants[(simulator_v7, module_name)])
+                            elif depth_count > 1 and peers and deep_wall == "0":
+                                simulator_v7._BAND_OVERLAP = "auto"
+                                simulator_v7._BAND_OVERLAP_AUTO_MINIMUM_OWN_PARTICLES = 1
+                                simulator_v7._BAND_OVERLAP_AUTO_MAXIMUM_OWN_PARTICLES = 10 ** 9
+                                automatic = fake(simulator_v7, slab)
+                                if automatic._band_overlap_active() or automatic.band_overlap_chain_verdict != (
+                                        False, "auto: 3-D chain (band kernels throughput-bound)"):
+                                    failures.append(f"{tag}: auto on a 3-D slab ({automatic.band_overlap_resolution}, "
+                                                    f"chain {automatic.band_overlap_chain_verdict})")
+                                for module_name in ("_BAND_OVERLAP_AUTO_MINIMUM_OWN_PARTICLES",
+                                                    "_BAND_OVERLAP_AUTO_MAXIMUM_OWN_PARTICLES"):
+                                    setattr(simulator_v7, module_name, saved_constants[(simulator_v7, module_name)])
+        for slab_count in (2, 3, 4):
+            if (True, False, slab_count, True) not in exercised:
+                failures.append(f"band overlap: no on slab 2-D K={slab_count}")
+        if not any(not entry[0] and entry[3] for entry in exercised):
+            failures.append("band overlap: no off slab with peers exercised")
+        # ---- auto on chains of unequal slabs (release defaults): one verdict, the same on every slab, also where the
+        # per-slab rule mixed B3 and B1 slabs (thresholds between the slabs' counts); 1 / 0 ignore the counts
+        for key in [key for key in os.environ if key.startswith("V7_")]:
+            del os.environ[key]
+        simulator_v7._FUSED_CORRECTION_DENSITY = 1
+        simulator_v7._BAND_COMPACT, simulator_v7._FAKE_BAND_COLUMN = False, 0
+        simulator_v7._DIAG_GHOST_SELF_KERNELS = saved_constants[(simulator_v7, "_DIAG_GHOST_SELF_KERNELS")]
+        simulator_v7._CASCADE_FORCE = simulator_v7._BAND_VOXEL_DISPATCH = simulator_v7._DENSITY_COPY_COMPUTE = True
+        simulator_v7._DEEP_WALL_SKIP, simulator_v7._DEEP_WALL_CHECK = "0", 0
+        simulator_v7._DEEP_WALL_RECORD_DECISIONS = False
+        simulator_v7._BAND_OVERLAP_LAYOUT_OVERRIDE = None
+        global_case = _thick_wall_case(case_v7, 1, 3, column_count=96)      # room for unequal K = 4 slabs (>= 12 columns)
+        if global_case.chain_own_particle_counts != ():
+            failures.append(f"band overlap: the global case carries chain counts {global_case.chain_own_particle_counts}")
+        mixed_settings = 0
+        for weights in ([1.0, 2.0], [2.0, 1.0], [0.5, 1.0, 0.5], [1.0, 1.0, 2.0], [0.4, 1.0, 1.0, 0.4]):
+            chain = partition_v7.compute_chain_partition(global_case, weights, pool_safety=1.2)
+            counts = tuple(int(member.initial.positions.shape[0]) for member in chain.slabs)
+            chain_tag = f"band overlap chain rule, weights {weights} (own particles {counts})"
+            if any(tuple(member.chain_own_particle_counts) != counts for member in chain.slabs) \
+                    or counts != tuple(geometry.own_particle_count for geometry in chain.geometry):
+                failures.append(f"{chain_tag}: slab chain counts "
+                                f"{[member.chain_own_particle_counts for member in chain.slabs]}")
+            if partition_v7.isolate_slab(global_case, chain, 0).chain_own_particle_counts != ():
+                failures.append(f"{chain_tag}: isolate_slab carries chain counts")
+            distinct = sorted(set(counts))
+            if len(distinct) < 2:
+                failures.append(f"{chain_tag}: equal slab counts, no chain straddles a threshold")
+                continue
+            # auto turns on only a chain of two slabs (a chain of three slabs or more is off at every threshold)
+            settings = [(distinct[0], distinct[-1], len(counts) == 2), (distinct[0] + 1, 10 ** 9, False),
+                        (1, distinct[-1] - 1, False)] + [(value, value, False) for value in distinct]
+            for overlap, minimum, maximum, wanted in ([("auto",) + setting for setting in settings]
+                                                      + [("1", 10 ** 9, 10 ** 9, True), ("0", 1, 10 ** 9, False)]):
+                simulator_v7._BAND_OVERLAP = overlap
+                simulator_v7._BAND_OVERLAP_AUTO_MINIMUM_OWN_PARTICLES = minimum
+                simulator_v7._BAND_OVERLAP_AUTO_MAXIMUM_OWN_PARTICLES = maximum
+                setting_tag = f"{chain_tag} V7_BAND_OVERLAP={overlap} [{minimum}, {maximum}]"
+                simulators = [fake(simulator_v7, member) for member in chain.slabs]
+                per_slab_rule = [minimum <= count <= maximum for count in counts]
+                mixed_settings += int(overlap == "auto" and len(set(per_slab_rule)) > 1)
+                verdicts = {simulator.band_overlap_chain_verdict for simulator in simulators}
+                resolutions = [simulator.band_overlap_resolution for simulator in simulators]
+                if len(verdicts) != 1 or {active for active, _ in resolutions} != {wanted} \
+                        or next(iter(verdicts))[0] != wanted:
+                    failures.append(f"{setting_tag}: chain verdicts {verdicts}, slabs {resolutions}")
+                    continue
+                verdict = next(iter(verdicts))
+                if any(not reason.startswith(verdict[1]) for _, reason in resolutions) or \
+                        (overlap == "auto" and not wanted and not verdict[1].endswith("off on every slab")):
+                    failures.append(f"{setting_tag}: reasons {resolutions} vs the chain verdict {verdict}")
+                record = simulator_v7.band_overlap_record(simulators)
+                if record != {"chain": {"verdict": wanted, "reason": verdict[1], "every_slab_alike": True},
+                              "slabs": [[active, reason] for active, reason in resolutions]}:
+                    failures.append(f"{setting_tag}: band_overlap_record {record}")
+            # a slab case without chain counts (not built by compute_chain_partition): auto off, forced on
+            bare = dataclasses.replace(chain.slabs[0], chain_own_particle_counts=())
+            for overlap, wanted in (("auto", False), ("1", True)):
+                simulator_v7._BAND_OVERLAP = overlap
+                simulator_v7._BAND_OVERLAP_AUTO_MINIMUM_OWN_PARTICLES = 1
+                simulator_v7._BAND_OVERLAP_AUTO_MAXIMUM_OWN_PARTICLES = 10 ** 9
+                resolution = fake(simulator_v7, bare).band_overlap_resolution
+                if resolution[0] != wanted or (overlap == "auto" and "no chain" not in resolution[1]):
+                    failures.append(f"{chain_tag}: slab case without chain counts, V7_BAND_OVERLAP={overlap}: "
+                                    f"{resolution}")
+        if mixed_settings == 0:
+            failures.append("band overlap chain rule: no threshold setting where the per-slab rule mixed slabs")
+        if simulator_v7.band_overlap_record([]) is not None or \
+                simulator_v7.band_overlap_record([SimpleNamespace()]) is not None:
+            failures.append("band_overlap_record: a record for simulators without the switch")
+        # ---- layout validation
+        slab = partition_v7.compute_chain_partition(_thick_wall_case(case_v7, 1, 3), [1.0, 1.0], pool_safety=1.2).slabs[0]
+        probe = object.__new__(simulator_v7.SphSimulatorV7)
+        probe.case = slab
+        for bad in ({"phase_b_fraction": 0.0, "pairs": ("force", "correction_density"), "force_deep_first": False},
+                    {"phase_b_fraction": 0.0, "pairs": ("force", "force"), "force_deep_first": False},
+                    {"phase_b_fraction": 0.0, "pairs": ("install",), "force_deep_first": False},
+                    {"phase_b_fraction": 0.0, "pairs": (), "force_deep_first": False},
+                    {"phase_b_fraction": 1.0, "pairs": ("force",), "force_deep_first": False},
+                    {"phase_b_fraction": -0.1, "pairs": ("force",), "force_deep_first": False}):
+            try:
+                probe._band_overlap_plan(bad)
+                failures.append(f"layout {bad} accepted")
+            except ValueError:
+                pass
+    finally:
+        for (module, name), function in saved_functions.items():
+            setattr(module, name, function)
+        for (module, name), value in saved_constants.items():
+            setattr(module, name, value)
+        for key in [key for key in os.environ if key.startswith("V7_")]:
+            del os.environ[key]
+        os.environ.update(saved_environment)
+
+    # ---- tick label consumers (an on slab's phase B ends at the fused interior kernel)
+    def ticks_of(sequence: list) -> dict:
+        return {label: 1000.0 * (index + 1) for index, label in enumerate(sequence)}
+    overlap_dual = ticks_of(["a_start", "a_predict_end", "a_voxel_end", "a_ghost_trailing_end", "b_start",
+                             "b_correction_density_interior_end", "c_start", "c_expand_end", "c_install_trailing_end",
+                             "c_append_departed_end", "c_correction_density_boundary_end", "c_density_end",
+                             "c_force_end"])
+    durations = bench_v7.compute_durations(overlap_dual)
+    for key, value in {"correction_density_interior_us": 1.0, "phase_b_us": 1.0, "b_to_c_gap_us": 1.0,
+                       "correction_density_boundary_us": 1.0, "density_copy_us": 1.0, "force_us": 1.0,
+                       "phase_c_us": 6.0}.items():
+        if durations.get(key) != value:
+            failures.append(f"compute_durations (B3): {key} = {durations.get(key)}, expected {value}")
+    if "force_deep_interior_us" in durations:
+        failures.append("compute_durations (B3, no phase B segment): force_deep_interior_us reported")
+    intervals = weight_calibration.phase_intervals({key: int(value) for key, value in overlap_dual.items()})
+    if intervals is None or intervals["B"] != (5000, 6000):
+        failures.append(f"weight_calibration.phase_intervals (B3): {intervals}")
+    steps = np.arange(4.0)
+    table = {"sim": np.zeros(4), "complete": np.ones(4), "step": steps, "a_start": 100.0 * steps,
+             "a_end": 100.0 * steps + 10, "b_start": 100.0 * steps + 20,
+             "b_correction_density_interior_end": 100.0 * steps + 50, "b_density_deep_interior_end": np.full(4, np.nan),
+             "b_end": 100.0 * steps + 50, "c_start": 100.0 * steps + 60, "c_end": 100.0 * steps + 95}
+    with np.errstate(all="ignore"):
+        split = step_trace_model.cycle_components({"meta": {"warmup": 0}, "device": table})
+    if not split or abs(split[0].get("b_correction_density", -1) - 0.030) > 1e-12 or \
+            abs(split[0].get("b_force", -1)) > 1e-12 or abs(split[0].get("c", -1) - 0.035) > 1e-12:
+        failures.append(f"step_trace_model.cycle_components (B3): {split}")
+
+    # ---- force.comp: the FORCE_SEGMENT block
+    force_text = (pathlib.Path(__file__).resolve().parent / "shaders" / "force.comp").read_text(encoding="utf-8")
+    blocks = re.findall(r"#ifdef FORCE_SEGMENT\n(.*?)#endif", force_text, re.S)
+    declaration = [fragment for fragment in _glsl_fragments(blocks[0])] if blocks else []
+    if len(blocks) != 2 or declaration != ["layout(constant_id = 115) const uint FORCE_SEGMENT_FIRST_THREAD = 0u"]:
+        failures.append(f"force.comp: FORCE_SEGMENT blocks {blocks!r}")
+    main_body = _glsl_function_body(force_text, "void main() {")
+    if not re.search(r"#ifdef FORCE_SEGMENT\s+uint thread_id = gl_GlobalInvocationID\.x \+ FORCE_SEGMENT_FIRST_THREAD;"
+                     r"\s+#else\s+uint thread_id = gl_GlobalInvocationID\.x;\s+#endif", main_body):
+        failures.append("force.comp: main()'s thread id is not gl_GlobalInvocationID.x (+ 115 with FORCE_SEGMENT)")
+    stripped = re.sub(r"//[^\n]*", "", force_text)
+    if stripped.count("FORCE_SEGMENT_FIRST_THREAD") != 2 or re.search(r"gl_(WorkGroupID|NumWorkGroups)", stripped):
+        failures.append("force.comp: FORCE_SEGMENT_FIRST_THREAD used beyond main()'s thread id, or a workgroup id read")
+
+
 def check_release_defaults(failures: list) -> None:
     """E6b: with no V7_* variable set the configuration is the recommended release
     set (v6_opt.md), per dimension for the pool factors; dependent switches follow
@@ -2847,21 +3637,30 @@ def check_release_defaults(failures: list) -> None:
 
 
 def main() -> int:
+    import experiment.v7.utils.simulator_v7 as simulator_v7
     failures: list = []
-    check_release_defaults(failures)
-    check_v5_equivalence(failures)
-    check_two_layer_algebra(failures)
-    for depth_count in (1, 3):            # 2-D and a 3-D case with NZ = 3
-        check_lean_transport(failures, depth_count)
-        check_compact_ghost_lists(failures, depth_count)
-        check_packed_replicas(failures, depth_count)
-    check_packed_rejection(failures)
-    check_packed_shader_layout(failures)
-    check_band_widths(failures)
-    check_density_copy(failures)
-    check_ghost_send_lanes(failures)
-    check_deep_wall_skip(failures)
-    check_fused_correction_density(failures)
+    # E39 B3: the checks of the earlier items record their streams with V7_BAND_OVERLAP off whatever the process
+    # environment says (check_band_overlap sets the switch itself)
+    band_overlap = simulator_v7._BAND_OVERLAP
+    simulator_v7._BAND_OVERLAP = "0"
+    try:
+        check_release_defaults(failures)
+        check_v5_equivalence(failures)
+        check_two_layer_algebra(failures)
+        for depth_count in (1, 3):            # 2-D and a 3-D case with NZ = 3
+            check_lean_transport(failures, depth_count)
+            check_compact_ghost_lists(failures, depth_count)
+            check_packed_replicas(failures, depth_count)
+        check_packed_rejection(failures)
+        check_packed_shader_layout(failures)
+        check_band_widths(failures)
+        check_density_copy(failures)
+        check_ghost_send_lanes(failures)
+        check_deep_wall_skip(failures)
+        check_fused_correction_density(failures)
+    finally:
+        simulator_v7._BAND_OVERLAP = band_overlap
+    check_band_overlap(failures)
     spirv_checked = check_spirv_current(failures)
     _set_switches(1, 0)
     if failures:
@@ -2878,6 +3677,10 @@ def main() -> int:
           "count, AUTO rule, shader text (E39 B4); "
           "fused correction + density: switch 0 = the B4 build, fallback = switch 0, fused streams / pipelines / "
           "modules at every site, tick-label consumers, shader text (E39 B1); "
+          "band overlap: switch 0 = the B1 build, off slabs = switch 0, on streams / pairs / segment tiling / "
+          "pipelines / modules, layouts, fusion rewritten after construction = the B1 separate path, force_deep "
+          "recording invariant, auto = one verdict per chain (thresholds, straddling chains, chain counts, run "
+          "metadata), tick consumers, force.comp FORCE_SEGMENT (E39 B3); "
           "release defaults (E6b, phase A no-wait E32) + LEGACY_DEFAULTS; "
           + ("SPIR-V current)" if spirv_checked else "SPIR-V check SKIPPED: no glslc)"))
     return 0

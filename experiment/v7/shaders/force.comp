@@ -70,6 +70,19 @@ vec2 read_density_pressure(uint particle_id) {
     return density_pressure[particle_id];
 }
 
+#ifdef FORCE_SEGMENT
+// E39 B3 (V7_BAND_OVERLAP; compile_shaders_v7.py variant force_segment): one
+// workgroup segment of force_deep_interior_scratch's per-own-particle dispatch
+// as a dispatch of its own, thread t here = thread FORCE_SEGMENT_FIRST_THREAD + t
+// of the full dispatch (the same particle, the same code). vkCmdDispatchBase
+// would need no variant, but in this build on the RTX 5090 (driver 576.88) the
+// base dispatch (146, 205) of this kernel was observed to run only workgroups
+// [146, 205), with or without a barrier around it; an isolated probe with a
+// simple kernel did not reproduce it and the cause is not located
+// (logs/e39/b3/diag); a base-0 dispatch runs them all.
+layout(constant_id = 115) const uint FORCE_SEGMENT_FIRST_THREAD = 0u;
+#endif
+
 void process_particle(uint self_particle_id) {
     // 0-based → 1-based particle_id
 
@@ -315,7 +328,11 @@ void process_particle(uint self_particle_id) {
 // particles than MAX_PARTICLES_PER_VOXEL.
 // ---------------------------------------------------------------------------
 void main() {
+#ifdef FORCE_SEGMENT
+    uint thread_id = gl_GlobalInvocationID.x + FORCE_SEGMENT_FIRST_THREAD;
+#else
     uint thread_id = gl_GlobalInvocationID.x;
+#endif
     if (BAND_VOXEL_DISPATCH == 2u) {
         // V7_BAND_COMPACT_DISPATCH: thread = entry of the compacted band list
         uint self_particle_id;

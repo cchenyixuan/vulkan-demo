@@ -254,5 +254,12 @@ class CaseV7:
     transport: TransportConfig
     materials: list[MaterialParameter]
     initial: InitialParticles
+    # E39 B3: the initial own particle count of every slab of the chain this case
+    # is a slab of, left to right; partition_v7.compute_chain_partition gives every
+    # slab it builds the same tuple. Empty for a case that is no chain slab (the
+    # loader's global case, isolate_slab, legacy_dual_gpu_partition).
+    # V7_BAND_OVERLAP=auto decides from it once for the whole chain
+    # (simulator_v7.band_overlap_chain_verdict).
+    chain_own_particle_counts: tuple[int, ...] = ()
 
 

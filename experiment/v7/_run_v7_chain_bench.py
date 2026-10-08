@@ -238,7 +238,7 @@ def main() -> int:
     from experiment.v7.utils.case_loader_v7 import load_case_v7
     from experiment.v7.utils.orchestrator_v7 import ChainOrchestratorV7
     from experiment.v7.utils.partition_v7 import compute_chain_partition
-    from experiment.v7.utils.simulator_v7 import SphSimulatorV7, configured_v7_switches
+    from experiment.v7.utils.simulator_v7 import SphSimulatorV7, band_overlap_record, configured_v7_switches
     from experiment.v7.utils.vulkan_context_v7 import VulkanContextV7
 
     pool_safety = None if args.pool_safety == 0 else args.pool_safety
@@ -443,6 +443,8 @@ def main() -> int:
                     "case": args.case, "K": slab_count, "weights": weights, "device_map": device_map,
                     "depth": args.depth, "sync_scheme": args.sync_scheme, "pool_safety": pool_safety,
                     "switch_interval_s": sys.getswitchinterval(), "v7_switches": configured_v7_switches(),
+                    # E39 B3: V7_BAND_OVERLAP's chain verdict + each slab's resolution
+                    "band_overlap": band_overlap_record(sims),
                     "max_steps": args.max_steps, "warmup": args.warmup, "defrag_cadence": defrag_cadence,
                     "result": result, "weights_source": weights_source, "weights_file": args.weights_file,
                     "weights_file_sha256": weights_file_sha256,

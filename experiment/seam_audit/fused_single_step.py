@@ -31,6 +31,10 @@ Method (one process, so that both steps see the same device state, voxel lists a
   ULP distance: |ordered(a) - ordered(b)| on the float32 bit patterns (+0 and -0 at distance 0; bit-identical rows are
   counted separately); per row the largest over the field's components; relative difference |a - b| / max(|a|, |b|)
   per component, maximum over the components of the row.
+  E39 B3 (V7_BAND_OVERLAP): a slab records the B3 layout only while it fuses, so on a slab that resolves it on step A
+  records B1's separate kernels with force_deep whole in phase B and step B the B3 layout; the JSON keeps every slab's
+  band_overlap_resolution, the chain verdict (band_overlap_chain) and, per step, whether its recording used the layout
+  (band_overlap_recorded).
 
 Usage (from the worktree root, by path):
     .venv/Scripts/python.exe experiment/seam_audit/fused_single_step.py --case cases/lid_driven_cavity_2d_gen/case.yaml \\
@@ -381,6 +385,8 @@ def main() -> int:
         del states
         saved = [sim.readback_buffers_batch(list(sim.buffers), density="stored") for sim in sims]
         steps, statuses = {}, {}
+        # E39 B3: per step, whether each slab's recording used the V7_BAND_OVERLAP layout (only while it fuses)
+        band_overlap_recorded = {}
         frame = 0
         for label, fused in (("separate", False), ("fused", True)):
             for sim, saved_buffers, resolution in zip(sims, saved, resolutions):
@@ -388,6 +394,7 @@ def main() -> int:
                 sim.fused_correction_density_resolution = ((True, resolution[1]) if fused
                                                            else (False, "fused_single_step: the separate kernels"))
             run_one_step(sims, orchestrator, frame, arguments.path, arguments.stall_timeout)
+            band_overlap_recorded[label] = [bool(sim._band_overlap_active()) for sim in sims]
             frame += 1
             steps[label] = [sim.readback_buffers_batch(list(sim.buffers), density="stored") for sim in sims]
             statuses[label] = [global_status(sim, buffers) for sim, buffers in zip(sims, steps[label])]
@@ -448,6 +455,9 @@ def main() -> int:
             "environment": {key: value for key, value in os.environ.items() if key.startswith("V7_")},
             "switches": simulator_v7.configured_v7_switches(),
             "resolutions": [list(resolution) for resolution in resolutions],
+            "band_overlap": [list(sim.band_overlap_resolution) for sim in sims],
+            "band_overlap_chain": simulator_v7.band_overlap_record(sims)["chain"],
+            "band_overlap_recorded": band_overlap_recorded,
             "band_widths": [list(sim.band_widths) for sim in sims],
             "invariant_problems": problems, "global_status_differences": status_differences,
             "input_differences": input_differences, "deep_wall": deep_wall,
@@ -461,6 +471,8 @@ def main() -> int:
         table = markdown_table(document)
         out.with_suffix(".md").write_text(table + "\n", encoding="utf-8")
         print(table)
+        print(f"{LOG_PREFIX} band overlap per slab {document['band_overlap']}, recorded per step "
+              f"{band_overlap_recorded}", flush=True)
         print(f"{LOG_PREFIX} inputs {'identical' if not input_differences else input_differences}; global status "
               f"{'identical' if not status_differences else status_differences}; deep walls {deep_wall}; invariants "
               f"{problems}; L / kernel sum / gradient {'bit-identical' if bit_identical else 'DIFFERENT'} -> "

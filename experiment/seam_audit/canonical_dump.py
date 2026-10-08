@@ -210,6 +210,10 @@ def compare(first_path: str, second_path: str, ignore=(), no_mask: bool = False)
             print(f"        {meta.get('solver')} switches {meta['solver_switches']}")
         if meta.get("fused_correction_density"):
             print(f"        fused correction + density per slab {meta['fused_correction_density']}")
+        if meta.get("band_overlap"):
+            print(f"        band overlap per slab {meta['band_overlap']}")
+        if meta.get("band_overlap_chain"):
+            print(f"        band overlap chain verdict {meta['band_overlap_chain']}")
         problems += [f"{label.strip()}: {problem}" for problem in _invariant_problems(meta)]
         if meta.get("dropped_fields"):
             print(f"        not dumped (not moved by the final defrag): {meta['dropped_fields']}")
@@ -588,6 +592,12 @@ def main() -> int:
     # the switch says 1); None for a solver without the switch
     fused_resolution = ([list(sim.fused_correction_density_resolution) for sim in sims]
                         if all(hasattr(sim, "fused_correction_density_resolution") for sim in sims) else None)
+    # E39 B3: whether each slab recorded the V7_BAND_OVERLAP layout ([on, reason with the plan] per slab) and the chain
+    # verdict auto decides once for every slab ({verdict, reason, every_slab_alike}; a verdict, the slabs' state is
+    # per slab); None for a solver without the switch
+    band_overlap_record = getattr(solver_module("simulator"), "band_overlap_record", lambda simulators: None)(sims)
+    band_overlap_resolution = band_overlap_record["slabs"] if band_overlap_record else None
+    band_overlap_chain = band_overlap_record["chain"] if band_overlap_record else None
     rows: dict = {}
     for sim in sims:
         fields = DUMPED_FIELDS
@@ -659,6 +669,7 @@ def main() -> int:
             "alive": int(ids.size), "expected": total, "overflow": overflow, "transport_errors": transport_errors,
             "crossings": crossings, "status": status, "pool_health": pool_health, "deep_wall": deep_wall,
             "fused_correction_density": fused_resolution,
+            "band_overlap": band_overlap_resolution, "band_overlap_chain": band_overlap_chain,
             "fps": result.get("fps"),
             "elapsed_s": result.get("elapsed_s"), "dt": float(global_case.physics.timestep),
             "device_names": [context.device_name for context in contexts]}
@@ -672,6 +683,11 @@ def main() -> int:
           f"fps {fps if fps is None else round(fps)}, buffers {meta['device_local_buffers']}, "
           f"code {meta['code_sha256']}, invariants {'ok' if not problems else problems}"
           + (f", switches {solver_switches}" if solver_switches else "")
+          + (f", band overlap on {sum(1 for active, _ in band_overlap_resolution if active)}/{len(sims)} slab(s)"
+             if band_overlap_resolution else "")
+          + (f" (chain verdict {'on' if band_overlap_chain['verdict'] else 'off'}"
+             f"{'' if band_overlap_chain['every_slab_alike'] else ', NOT alike on every slab'})"
+             if band_overlap_chain else "")
           + (f", deep walls {deep_wall['resolution']} {deep_wall.get('cpu_check', 'not recorded')}"
              if deep_wall else "") + f" -> {out}", flush=True)
     orchestrator.destroy()

@@ -302,6 +302,99 @@ def _parse_fused_correction_density(text: str) -> int:
 
 
 _FUSED_CORRECTION_DENSITY = _parse_fused_correction_density(os.environ.get("V7_FUSED_CORRECTION_DENSITY", "1"))
+# E39 B3 (audit H03): phase C's band kernels run concurrently with phase B's
+# cascade force, by command order in the one compute queue (no second queue).
+# Every compute barrier is global, so a dispatch overlaps only a neighbour
+# recorded with no barrier between them; the band chain must follow phase C's
+# upload_done wait and the barriers after install / append_departed, so the
+# overlap partner has to move there: force_deep_interior_scratch (phase B) is
+# split into workgroup segments, each a base-0 dispatch of a pipeline whose
+# thread t is thread first + t of the full dispatch (force.comp's FORCE_SEGMENT
+# variant, spec constant 115; the same particles, the same code), and the
+# segments are recorded next to the latency-bound band kernels, the barrier
+# after each pair serving both (vkCmdDispatchBase would need no variant, but in
+# this build on the RTX 5090 / driver 576.88 force_deep's base dispatch (146,
+# 205) was observed to run only workgroups [146, 205), with or without a
+# barrier around it, deterministically; an isolated probe with a simple kernel
+# did not reproduce it, the cause is not located: logs/e39/b3/diag) - phase B:
+# correction_density_interior [-> the first
+# segment of force_deep] ; phase C: expand -> install -> append_departed ->
+# {correction_density_boundary_band, segment} -> density copy ->
+# {force_boundary_band, segment}. force_deep reads scratch rho / P of own
+# columns >= the density band (>= 2), its own L / kernel sum (columns >= the
+# force band, written by phase B) and the lists of columns >= 2; it writes
+# acceleration / shift of columns >= the force band: no element a phase C kernel
+# writes or reads-after-it-writes (_resolve_band_overlap has the table; install
+# and the ghost kernels stay ordered before it by the barriers). Bit-identical:
+# no kernel's inputs, spec constants or summation order change. The cost is the
+# transfer-hiding window: phase B shrinks to correction_density_interior (+ the
+# segments kept there), so the rule turns it on only where that still covers
+# the transfer chain. V7_BAND_OVERLAP: 0 = the B1 build command for command;
+# 1 = forced on wherever legal (a 2-D slab with peers that fuses and cascades
+# force); auto = the rule below, one verdict for the whole chain (every slab
+# or none, band_overlap_chain_verdict). Read once at import. A slab
+# records the layout only while it fuses at recording time (a tool that turns
+# fusion off after construction gets the B1 separate recording), and every
+# phase C recording checks that phase B + C dispatch force_deep's workgroups
+# exactly once (_check_force_deep_recorded_once raises otherwise).
+_BAND_OVERLAP_ACCEPTED = ("0", "1", "auto")
+
+
+def _parse_band_overlap(text: str) -> str:
+    """V7_BAND_OVERLAP: one of _BAND_OVERLAP_ACCEPTED (case and surrounding blanks ignored)."""
+    value = text.strip().lower()
+    if value not in _BAND_OVERLAP_ACCEPTED:
+        raise ValueError(f"V7_BAND_OVERLAP={text!r}: accepted values are {', '.join(_BAND_OVERLAP_ACCEPTED)} "
+                         "(0 = off, the B1 build; 1 = forced on wherever legal (2-D, peers, fused, cascade force); "
+                         "auto = one verdict per chain, all slabs or none: on for a 2-D chain of two slabs whose own "
+                         "particle counts both lie in the measured window)")
+    return value
+
+
+_BAND_OVERLAP = _parse_band_overlap(os.environ.get("V7_BAND_OVERLAP", "auto"))
+# The AUTO rule (band_overlap_chain_verdict), one verdict per chain: on for
+# both slabs of a 2-D chain of two slabs whose initial own particle counts both
+# lie in [minimum, maximum], off for every slab otherwise (chains of three slabs
+# or more included). E39 B3 chain bench, 2-D, two RTX 5090, V7_BAND_OVERLAP 0
+# vs 1 (the default layout), interleaved off on on off, paired on - off (mean
+# +- std; own particles per slab): K = 2 62k (37k) -3.8 % (+-1.5 %), 250k
+# (137k) -4.7 % (+-0.4 %), 1M (523k) +5.7 % (+-0.3 %), 2M (1.03M) +2.5 %
+# (+-0.06 %), 4M (2.09M) +0.3 % (+-0.4 %, noise), 16M (8.1M) -1.4 % (+-0.3 %);
+# the B3 review repeated it (three interleaved rounds, +- SE): 1M +6.34 +-
+# 0.09 %, 2M +2.74 +- 0.11 %, 1M with both slabs on GPU 1 +5.56 +- 0.65 %, 4M
+# +0.01 +- 0.12 %. Below: phase B without force_deep no longer covers the
+# transfer chain (step trace 250k K = 2: phase B 237 -> 114-126 us against a
+# 185-192 us chain, the receiver waits for the upload in 100 % of the steps,
+# B -> C 94-100 us); above: the pairs hide little (4M K = 2: pair 743 / 768 us
+# against 671 + 80 serial) and cost at 16M.
+# Two slabs only: chains of three slabs or more ran on this rig only with GPUs
+# shared between slabs (device maps 0,1,0 / 0,1,0,1), and there the sign of
+# the effect changes with the size and the weights in ways the slab counts do
+# not tell apart (every slab on; one or two pairs, or three rounds +- SE):
+# K = 3 1M -5.6 %, -4.3 % (1,1,1), -4.17 +- 0.74 % (0.75,1,0.75), +2.59 +-
+# 0.14 % (0.5,1,0.5); 2M +3.7 %, +4.38 +- 0.13 % (1,1,1), +4.80 +- 0.24 %
+# (0.5,1,0.5); 4M +1.3 %, +0.56 +- 0.62 %, -0.56 +- 0.08 % (1,1,1, three
+# sessions); K = 4 (0,1,0,1) 62k +17.5 %, 2M -7.32 +- 0.28 %, 4M -1.10 +-
+# 0.11 % (step trace 2M K = 4: phase B 595-634 -> 290-308 us, the end slabs'
+# B -> C upload wait 5-9 -> ~1050 us). V7_BAND_OVERLAP=1 forces it there.
+# All slabs or none (E39 B3 review): a B3 slab that waits for the uploads of B1
+# neighbours has lost the force_deep phase B ran during that wait and runs it
+# in phase C, on the path to their next uploads. Decided per slab, 1M K = 3
+# (0,1,0) with GPU-balanced weights turned on the middle slab only and lost
+# against B1: 0.5,1,0.5 (268k / 512k / 267k) -2.10 +- 0.29 %, 0.75,1,0.75
+# (319k / 409k / 318k) -2.1 % (E39 B3 fix 2 and review: three rounds of
+# interleaved arms each, +- SE). Two-slab chains that straddle a threshold run
+# B1 (1M K = 2 0.7,1.3 = 370k / 676k: +0.04 +- 0.19 %; 2M K = 2 0.5,1.5 =
+# 527k / 1.54M: -0.07 +- 0.41 %) although both slabs on gain there (+2.76 +-
+# 0.19 %, +0.99 +- 0.27 %): the rule keeps to the measured window. (A mixed
+# chain loses only where its B3 slab waits: the per-slab rule's 1M K = 2
+# 0.7,1.3, its larger slab on - the one the other waits for - gained +3.29 +-
+# 0.03 %; 2M K = 2 0.5,1.5, its smaller slab on, -0.17 +- 0.24 %.)
+_BAND_OVERLAP_AUTO_MINIMUM_OWN_PARTICLES = 400_000
+_BAND_OVERLAP_AUTO_MAXIMUM_OWN_PARTICLES = 1_500_000
+# Test hook, not a switch (logs/e39/b3/tools/variant_bench.py sets it before building the simulators): replace
+# the layout of every slab that resolves on, a dict with _band_overlap_layout's keys. Production runs never set it.
+_BAND_OVERLAP_LAYOUT_OVERRIDE: Optional[dict] = None
 if _FAST_SUBMIT:
     from vulkan._vulkancache import ffi as _ffi
     from vulkan._vulkan import lib as _lib
@@ -330,12 +423,74 @@ def configured_v7_switches() -> dict[str, int | str]:
     trace's run_meta. V7_DEEP_WALL_SKIP reads "auto" for its default (each
     slab prints what the rule decided); V7_DEEP_WALL_CHECK is its debug
     companion; V7_FUSED_CORRECTION_DENSITY = 1 fuses where a slab allows it
-    (each slab prints whether it does and, if not, why)."""
+    (each slab prints whether it does and, if not, why); V7_BAND_OVERLAP reads
+    "auto" for the rule (one verdict per chain; each slab prints it with its
+    decision and layout)."""
     return {"V7_DENSITY_COPY_COMPUTE": int(_DENSITY_COPY_COMPUTE),
             "V7_GHOST_SEND_LANES": _GHOST_SEND_LANES,
             "V7_DEEP_WALL_SKIP": _DEEP_WALL_SKIP if _DEEP_WALL_SKIP == "auto" else int(_DEEP_WALL_SKIP),
             "V7_DEEP_WALL_CHECK": _DEEP_WALL_CHECK,
-            "V7_FUSED_CORRECTION_DENSITY": _FUSED_CORRECTION_DENSITY}
+            "V7_FUSED_CORRECTION_DENSITY": _FUSED_CORRECTION_DENSITY,
+            "V7_BAND_OVERLAP": _BAND_OVERLAP if _BAND_OVERLAP == "auto" else int(_BAND_OVERLAP)}
+
+
+def band_overlap_chain_verdict(case: CaseV7) -> tuple[bool, str]:
+    """E39 B3: (on, reason) of V7_BAND_OVERLAP for the whole chain that ``case``
+    is a slab of. It reads only what compute_chain_partition gives every slab of
+    a chain alike - the physics and case.chain_own_particle_counts - so every
+    slab gets the same verdict, and _resolve_band_overlap turns a slab on only
+    where this verdict is on and the slab is legal. 0: off; 1: on (forced, the
+    legality still decides per slab). auto: on iff the chain is 2-D, has
+    exactly two slabs and both slabs' initial own particle counts lie in
+    [_BAND_OVERLAP_AUTO_MINIMUM_OWN_PARTICLES, _BAND_OVERLAP_AUTO_MAXIMUM_OWN_PARTICLES]
+    (the measurements are at those constants; three slabs or more: off, see the
+    AUTO rule); a case that carries no chain counts (not built by
+    compute_chain_partition) is off."""
+    if _BAND_OVERLAP == "0":
+        return False, "V7_BAND_OVERLAP=0"
+    if _BAND_OVERLAP == "1":
+        return True, "forced (V7_BAND_OVERLAP=1)"
+    counts = tuple(int(count) for count in case.chain_own_particle_counts)
+    dimension = int(case.physics.dimension)
+    if not counts:
+        return False, "auto: no chain on this slab case (not built by partition_v7.compute_chain_partition)"
+    if len(counts) < 2:
+        return False, "auto: a chain of one slab (K = 1)"
+    if dimension != 2:
+        return False, f"auto: {dimension}-D chain (band kernels throughput-bound)"
+    minimum, maximum = _BAND_OVERLAP_AUTO_MINIMUM_OWN_PARTICLES, _BAND_OVERLAP_AUTO_MAXIMUM_OWN_PARTICLES
+    chain = f"2-D chain of {len(counts)} slabs, own particles {' / '.join(f'{count:,}' for count in counts)}"
+    if len(counts) > 2:
+        return False, (f"auto: {chain}: more than two slabs (measured only with GPUs shared between slabs, where "
+                       "the sign changes with size and weights; V7_BAND_OVERLAP=1 forces it) - off on every slab")
+    below = [index for index, count in enumerate(counts) if count < minimum]
+    above = [index for index, count in enumerate(counts) if count > maximum]
+    if below or above:
+        outside = ([f"slab {', '.join(map(str, below))} < {minimum:,} (phase B without force_deep would expose the "
+                    "transfer chain)"] if below else []) \
+            + ([f"slab {', '.join(map(str, above))} > {maximum:,} (the pairs hide nothing measurable)"]
+               if above else [])
+        return False, f"auto: {chain}: {'; '.join(outside)} - off on every slab"
+    return True, f"auto: {chain}, all in [{minimum:,}, {maximum:,}]"
+
+
+def band_overlap_record(simulators) -> Optional[dict]:
+    """E39 B3: V7_BAND_OVERLAP of a chain's simulators for run metadata (the
+    chain bench's step-trace run_meta, canonical_dump's and fused_single_step's
+    meta): {"chain": {"verdict", "reason", "every_slab_alike"} = the chain
+    verdict (band_overlap_chain_verdict as slab 0 resolved it - a verdict, not
+    the slabs' state: 1 says on also where no slab is legal; every_slab_alike:
+    every slab resolved the same), "slabs": [[active, reason], ...] = each
+    slab's band_overlap_resolution}; None for simulators without the switch."""
+    if not simulators or not all(hasattr(simulator, "_band_overlap_active") for simulator in simulators):
+        return None
+    for simulator in simulators:
+        simulator._band_overlap_active()            # resolves once (normally done in __init__)
+    verdicts = [tuple(simulator.band_overlap_chain_verdict) for simulator in simulators]
+    return {"chain": {"verdict": bool(verdicts[0][0]), "reason": verdicts[0][1],
+                      "every_slab_alike": all(verdict == verdicts[0] for verdict in verdicts)},
+            "slabs": [[bool(simulator.band_overlap_resolution[0]), simulator.band_overlap_resolution[1]]
+                      for simulator in simulators]}
 
 
 def deep_wall_candidate_count(case: CaseV7, skip_band_width: int) -> int:
@@ -568,6 +723,20 @@ class _BufferSpec:
     usage: int
 
 
+@dataclass(frozen=True)
+class _BandOverlapPlan:
+    """E39 B3: where force_deep_interior_scratch's workgroups run on a slab that resolves V7_BAND_OVERLAP on.
+    Its per-own-particle dispatch (group_count workgroups, base 0) becomes the segment [0, phase_b_groups) in phase
+    B (none when 0) and one (partner, first group, group count) segment per phase C pair, in recording order; the
+    segments tile [0, group_count) exactly once. partner = the dispatch recorded next to the segment with no
+    barrier between them: "correction_density" (correction_density_boundary_band), "copy" (the density copy pass)
+    or "force" (force_boundary_band). force_deep_first: the segment is recorded before its partner."""
+    group_count: int
+    phase_b_groups: int
+    segments: tuple
+    force_deep_first: bool
+
+
 # ============================================================================
 # SphSimulatorV7
 # ============================================================================
@@ -637,6 +806,11 @@ class SphSimulatorV7:
             print(f"[SimV7] V7_FUSED_CORRECTION_DENSITY=1: "
                   f"{'fused' if self._fused_correction_density_active() else 'separate kernels'} "
                   f"({self.fused_correction_density_resolution[1]})")
+        # E39 B3: V7_BAND_OVERLAP resolved for this slab (the FORCE_SEGMENT module / pipelines and the phase B / C
+        # recordings follow it).
+        if _BAND_OVERLAP != "0":
+            print(f"[SimV7] V7_BAND_OVERLAP={_BAND_OVERLAP}: "
+                  f"{'on' if self._band_overlap_active() else 'off'} ({self.band_overlap_resolution[1]})")
 
         # Buffer allocation
         self._buffer_specs = self._build_buffer_specs()
@@ -1530,6 +1704,9 @@ class SphSimulatorV7:
             *(("correction_density",) if self._fused_correction_density_active() else ()),
             *(("correction_density_deep_wall_skip",)
               if self._fused_correction_density_active() and self._deep_wall_skip_active() else ()),
+            # E39 B3: force.comp's FORCE_SEGMENT variant only on a slab whose V7_BAND_OVERLAP plan has a force_deep
+            # segment that does not start at workgroup 0 (likewise for a pre-B3 V7_SPV_DIR)
+            *(("force_segment",) if self._force_deep_segment_first_groups() else ()),
         ):
             spv_path = shader_dir / f"{shader_name}.comp.spv"
             if not spv_path.exists():
@@ -1903,6 +2080,149 @@ class SphSimulatorV7:
             keys += ("correction_density_all",)
         return keys
 
+    # ----- E39 B3: the band chain overlapped with the cascade force (V7_BAND_OVERLAP) ------------------------------
+
+    def _band_overlap_active(self) -> bool:
+        """Does this slab record the B3 layout now: V7_BAND_OVERLAP resolved once per simulator (__init__; a CPU
+        test's object.__new__ simulator on first use) into band_overlap_chain_verdict = (on, reason) of the whole
+        chain (band_overlap_chain_verdict), band_overlap_resolution = (active, reason) of this slab and
+        band_overlap_plan (a _BandOverlapPlan, None when off), and correction + density fused at recording time.
+        The plan is made for the fused phase B / C only (phase B ends with correction_density_interior, phase C
+        pairs the fused band kernel); a caller that turns fused_correction_density_resolution off after
+        construction (seam_audit/fused_single_step.py records the separate kernels that way) gets the B1 separate
+        recording, force_deep whole in phase B, at every site that asks here. _record_phase_c_cmd checks that
+        phase B + phase C recorded force_deep's workgroups exactly once (_check_force_deep_recorded_once)."""
+        resolution = self.__dict__.get("band_overlap_resolution")
+        if resolution is None:
+            self.band_overlap_chain_verdict = band_overlap_chain_verdict(self.case)
+            plan, reason = self._resolve_band_overlap()
+            self.band_overlap_plan = plan
+            resolution = self.band_overlap_resolution = (plan is not None, reason)
+        return resolution[0] and self._fused_correction_density_active()
+
+    def _resolve_band_overlap(self) -> tuple[Optional[_BandOverlapPlan], str]:
+        """(plan or None, reason) of V7_BAND_OVERLAP for this slab: on iff the slab is legal and the chain verdict
+        (band_overlap_chain_verdict: 1 = on, auto = the rule over every slab of the chain) is on.
+
+        Legal (1 and auto) only on a 2-D slab with peers whose phase B ends with force_deep_interior_scratch and
+        whose phase C band pass is the fused band-voxel dispatch followed by the compute density copy: fused
+        correction + density (B1; its fallbacks - V7_BAND_WIDTHS c != d, V7_BAND_COMPACT_DISPATCH, a
+        V7_DIAG_GHOST_SELF naming one kernel - keep the B1 recording), V7_CASCADE_FORCE=1, V7_BAND_VOXEL_DISPATCH=1,
+        V7_DENSITY_COPY_COMPUTE=1, wall_boundary simple (adami runs without peers anyway). 3-D band kernels are
+        throughput-bound (nothing idle to fill) and K = 1 has no band chain: off. Every one of these tests gives
+        the same answer on every slab of a chain built by compute_chain_partition (module switches, the band widths
+        and ghost layers of the process, the case's dimension and wall option; every slab of a chain of K >= 2 has a
+        peer and band voxels on that side), so with the chain verdict a chain runs the B3 layout on every slab or
+        on none: a B3 slab waiting for the upload of a B1 neighbour has lost phase B's force_deep, which hid that
+        wait (E39 B3 review, 2-D 1M K = 3: mixed chains ran 2 % slower than B1, see _BAND_OVERLAP_AUTO_*).
+
+        Why the moved segments may run next to the band kernels (bands c / d / f = V7_BAND_WIDTHS, f >= d + 1 >= c
+        + 1; columns are own voxel columns counted from a peer side, G1 the inner ghost column; every set below is
+        decided per particle by the voxel id in position_voxel_id.w, which nothing in phase B / C rewrites for a
+        particle that exists before install_migrations):
+          force_deep_interior_scratch (self = own pids, returns unless fluid, alive and at column >= f):
+            reads  position_voxel_id / velocity_mass / material of self and of the neighbours (columns >= f - 1),
+                   density_pressure_scratch of self and neighbours (columns >= f - 1 >= d: correction_density_
+                   interior's, phase B), correction_inverse / density_gradient_kernel_sum.w of self (columns >= f
+                   >= c: phase B), inside_particle_count / _index of columns >= f - 1 >= 2 (update_voxel, phase A);
+            writes acceleration / shift of self (columns >= f).
+          correction_density_boundary_band (self = the band voxels' particles: columns < c, G1, departed copies):
+            reads the same three fields + density_pressure (primary, rho_n) of G2 .. column c; writes
+            correction_inverse, density_gradient_kernel_sum and density_pressure_scratch of self only.
+          density copy pass: density_pressure_scratch -> density_pressure over the own range, G1 regions and the
+            departed pool; no acceleration / shift, no read of what force_deep writes.
+          force_boundary_band (self = columns < f): reads density_pressure (primary, after the copy) of G1 ..
+            column f, its own L / kernel sum (columns < f); writes acceleration / shift of columns < f.
+        So a segment and its partner write disjoint elements (acceleration / shift at columns >= f vs < f; L, kernel
+        sum, scratch at columns < c / G1 / departed vs none) and neither reads an element the other writes (force_
+        deep's scratch at columns >= d and L at >= f vs the band's writes at < c and G1; force_deep reads no primary
+        rho and no acceleration / shift). install_migrations (own tail slots, lists of column 0 - column 1 for a far
+        migration -, primary rho), expand_ghost_lists and append_departed (ghost lists and ghost SoA) are never
+        paired: the global barriers after them order every segment behind them; a new migrant's tail slot then
+        reads as column 0 / 1 < f (force_deep returns without a write) where phase B read it dead (also no write).
+        Everything after a moved segment: the next barrier (pair 1, the copy), the end of phase C, whose
+        frame_done signal (COMPUTE_SHADER) covers it, and phase A(n + 1), which opens with a global compute barrier
+        and is queued after C(n) (V7_PHASE_A_NO_WAIT=1 adds no semaphore: queue order alone orders A(n + 1) after
+        C(n)); readback(n + 1) waits phase_a_done(n + 1), upload(n + 1) through the worker on the receiver's
+        readback_done(n + 1)."""
+        if _BAND_OVERLAP == "0":
+            return None, "V7_BAND_OVERLAP=0"
+        ghost_grid = self.case.ghost_grid
+        dimension = int(self.case.physics.dimension)
+        if ghost_grid.leading_ghost_voxel_count == 0 and ghost_grid.trailing_ghost_voxel_count == 0:
+            return None, "no peer (K = 1): no band chain"
+        if dimension != 2:
+            return None, f"{dimension}-D slab: band kernels throughput-bound"
+        if self._wall_adami:
+            return None, "wall_boundary adami"
+        if not _CASCADE_FORCE:
+            return None, "fallback: V7_CASCADE_FORCE=0 (no force_deep_interior to move)"
+        if not self._fused_correction_density_active():
+            return None, ("fallback: separate correction / density kernels "
+                          f"({self.fused_correction_density_resolution[1]})")
+        if not _BAND_VOXEL_DISPATCH:
+            return None, "fallback: V7_BAND_VOXEL_DISPATCH=0 (band kernels over the own pool)"
+        if not _DENSITY_COPY_COMPUTE:
+            return None, "fallback: V7_DENSITY_COPY_COMPUTE=0 (transfer copy between the band kernels)"
+        correction_band, _, force_band = self.__dict__.get("band_widths") or self._configured_band_widths()
+        if self._per_band_dispatch_count(correction_band, self._ghost_self_layer(2, 1, "correction")) <= 0 \
+                or self._per_band_dispatch_count(force_band) <= 0:
+            return None, "no band workgroups"
+        chain_active, verdict = band_overlap_chain_verdict(self.case)
+        if not chain_active:
+            return None, verdict
+        plan = self._band_overlap_plan(self._band_overlap_layout())
+        partners = {"correction_density": "correction_density_boundary_band", "copy": "the density copy",
+                    "force": "force_boundary_band"}
+        segments = ", ".join(f"{count:,} next to {partners[partner]}" for partner, _, count in plan.segments)
+        return plan, (f"{verdict}; force_deep_interior {plan.group_count:,} workgroups: phase B "
+                      f"{plan.phase_b_groups:,}, phase C {segments}, "
+                      f"{'force_deep' if plan.force_deep_first else 'band kernel'} recorded first")
+
+    def _band_overlap_layout(self) -> dict:
+        """The layout of a slab that resolves on (_BAND_OVERLAP_LAYOUT_OVERRIDE replaces it in measurements):
+        phase_b_fraction = the share of force_deep's populated workgroups (the first ceil(initial own particles /
+        workgroup size)) kept in phase B, pairs = the phase C partners in recording order (each gets an equal
+        share of the rest; the last also the empty tail), force_deep_first = the order inside a pair.
+
+        The default - all of force_deep in phase C, half next to each band kernel, the band kernel recorded first -
+        is the fastest of the measured layouts (E39 B3 step traces, 2-D 1M K = 2, period s0 / s1 in us: B1 865 /
+        872; this layout 802 / 809; half kept in phase B 818 / 828, three quarters 835 / 841; force_deep recorded
+        first 912 / 916, 941 / 953 and 968 / 977 for the full, half and three-quarter moves (a segment recorded
+        first holds the SMs and the band kernel starts only in its tail: the pair is slower than the two kernels in
+        a row); the copy as a third partner 876 / 885 (the copy pass grows 4 -> 135 us). The band kernel recorded
+        first takes its few workgroups' slots at once and runs beside the segment: pair 1 = 207 us for
+        correction_density_boundary_band (70 us alone) + half of force_deep (~170 us), pair 2 = 213 us for
+        force_boundary_band (72) + the other half; 2M: full 1397 / 1410 vs half 1425 / 1440 (B1 1447 / 1453). At
+        250k / 62k every layout that moves a share of force_deep loses or ties (the transfer window); at 4M / 16M
+        keeping 80-95 % in phase B does not help either (4M: 2981 / 3017 us against B1 2949), so the rule switches
+        those sizes off instead."""
+        if _BAND_OVERLAP_LAYOUT_OVERRIDE is not None:
+            return dict(_BAND_OVERLAP_LAYOUT_OVERRIDE)
+        return {"phase_b_fraction": 0.0, "pairs": ("correction_density", "force"), "force_deep_first": False}
+
+    def _band_overlap_plan(self, layout: dict) -> _BandOverlapPlan:
+        """The workgroup segments of a layout: [0, phase_b_groups) in phase B, then one consecutive segment per
+        pair (empty ones dropped) up to the full per-own-particle dispatch."""
+        pairs = tuple(layout["pairs"])
+        order = ("correction_density", "copy", "force")
+        if not pairs or len(set(pairs)) != len(pairs) or any(pair not in order for pair in pairs) \
+                or list(pairs) != sorted(pairs, key=order.index):
+            raise ValueError(f"V7_BAND_OVERLAP layout pairs {pairs!r}: a non-empty subset of {order} in that order")
+        fraction = float(layout["phase_b_fraction"])
+        if not 0.0 <= fraction < 1.0:
+            raise ValueError(f"V7_BAND_OVERLAP layout phase_b_fraction {fraction!r}: [0, 1)")
+        group_count = self._per_own_particle_dispatch_count()
+        workgroup = self.case.capacities.workgroup_size
+        populated = min(group_count, max(1, -(-int(self.case.initial.positions.shape[0]) // workgroup)))
+        phase_b_groups = min(int(round(fraction * populated)), group_count - 1)
+        rest = max(0, populated - phase_b_groups)
+        bounds = [phase_b_groups + rest * index // len(pairs) for index in range(len(pairs))] + [group_count]
+        segments = tuple((pair, bounds[index], bounds[index + 1] - bounds[index])
+                         for index, pair in enumerate(pairs) if bounds[index + 1] > bounds[index])
+        return _BandOverlapPlan(group_count=group_count, phase_b_groups=phase_b_groups, segments=segments,
+                                force_deep_first=bool(layout["force_deep_first"]))
+
     def _build_compute_pipelines(self) -> dict[str, object]:
         """Build the compute pipelines:
 
@@ -2024,6 +2344,14 @@ class SphSimulatorV7:
             shader=self.shader_modules["force"],
             entries=self._global_entries() + self._force_mode_entries(1, density_source=1),
         )
+        # E39 B3: on a slab that resolves V7_BAND_OVERLAP on, every force_deep segment that does not start at
+        # workgroup 0 gets force.comp's FORCE_SEGMENT variant with the same spec constants + 115 = its first thread.
+        for first_group in self._force_deep_segment_first_groups():
+            pipelines[self._force_deep_segment_pipeline_key(first_group)] = self._create_pipeline(
+                shader=self.shader_modules["force_segment"],
+                entries=(self._global_entries() + self._force_mode_entries(1, density_source=1)
+                         + [(115, 'I', first_group * self.case.capacities.workgroup_size)]),
+            )
         # E37 wall_boundary adami: the wall pass, reading the fluid rho/P from primary (after the scratch -> primary
         # copy) or from scratch (phase B, before the copy, in front of force_deep_interior_scratch).
         if self._wall_adami:
@@ -2130,6 +2458,11 @@ class SphSimulatorV7:
                              f"_boundary_band replace correction + density at band {self.band_widths[0]}"
                              + (f"; deep-wall skip in {', '.join(fused_deep_wall_keys)}" if fused_deep_wall_keys
                                 else "") + ")")
+        if self._band_overlap_active():
+            plan = self.band_overlap_plan
+            cascade_note += (f" (V7_BAND_OVERLAP: force_deep_interior_scratch {plan.phase_b_groups:,} of "
+                             f"{plan.group_count:,} workgroups in phase B, {len(plan.segments)} phase C segment(s), "
+                             f"{len(self._force_deep_segment_first_groups())} force_segment pipeline(s))")
         print(f"[SimV7] compute pipelines: {len(pipelines)}{cascade_note}")
         return pipelines
 
@@ -2649,7 +2982,7 @@ class SphSimulatorV7:
 
     # ----- Density scratch copy-back (inside step cmd) ---------------------
 
-    def _record_density_scratch_to_primary_copy(self, cmd) -> None:
+    def _record_density_scratch_to_primary_copy(self, cmd, overlap_pair: bool = False) -> None:
         """After density.comp writes density_pressure_scratch, copy that back
         to density_pressure (primary) inside the same submit, over the regions
         of _density_copy_buffer_regions. Force.comp's next dispatch reads
@@ -2679,16 +3012,99 @@ class SphSimulatorV7:
         fence / semaphore wait after the frame, as for every field a kernel
         writes. The step trace keeps bracketing the copy: the caller's
         c_density_boundary_end / c_density_end ticks (BOTTOM_OF_PIPE) sit
-        before and after this recording."""
+        before and after this recording.
+
+        E39 B3: phase C passes overlap_pair=True, which records the force_deep
+        segment its V7_BAND_OVERLAP plan pairs with the copy (if any) between
+        the copy dispatch and the closing barrier (_record_band_overlap_pair);
+        every other call site and every slab without such a segment record
+        the copy as above."""
         if not _DENSITY_COPY_COMPUTE:
             self._record_density_scratch_to_primary_transfer_copy(cmd)
             return
         # compute→compute (density wrote scratch; correction / density read primary)
         self._record_compute_barrier(cmd)
-        self._bind_pipeline_and_sets(cmd, "density_scratch_copy")
-        vkCmdDispatch(cmd, self._density_scratch_copy_group_count(), 1, 1)
+
+        def record_copy() -> None:
+            self._bind_pipeline_and_sets(cmd, "density_scratch_copy")
+            vkCmdDispatch(cmd, self._density_scratch_copy_group_count(), 1, 1)
+        if overlap_pair:
+            self._record_band_overlap_pair(cmd, "copy", record_copy)
+        else:
+            record_copy()
         # compute→compute (force will read primary; the next density writes scratch)
         self._record_compute_barrier(cmd)
+
+    def _force_deep_segment_first_groups(self) -> tuple[int, ...]:
+        """E39 B3: the first workgroups of this slab's force_deep segments that do not start at 0 (each needs a
+        FORCE_SEGMENT pipeline); empty when V7_BAND_OVERLAP is off for the slab."""
+        if not self._band_overlap_active():
+            return ()
+        return tuple(sorted({first for _, first, _ in self.band_overlap_plan.segments if first > 0}))
+
+    @staticmethod
+    def _force_deep_segment_pipeline_key(first_group: int) -> str:
+        """E39 B3: the pipeline of the force_deep segment starting at ``first_group`` (0: the plain
+        force_deep_interior_scratch)."""
+        return "force_deep_interior_scratch" if first_group == 0 else f"force_deep_interior_scratch_from_{first_group}"
+
+    def _record_force_deep_segment(self, cmd, first_group: int, group_count: int) -> None:
+        """E39 B3: force_deep_interior_scratch over workgroups [first_group, first_group + group_count) of its
+        per-own-particle dispatch, as a base-0 dispatch of group_count workgroups: from workgroup 0 the plain
+        pipeline, otherwise its FORCE_SEGMENT pipeline, whose thread t runs force.comp's main() as thread
+        first_group * workgroup size + t (spec constant 115), so the segments of a plan run exactly the threads of
+        the one dispatch. Phase B's whole dispatch (B1, a slab without the B3 layout) is the segment (0, all).
+        Every call adds group_count to the current phase recording's count (_check_force_deep_recorded_once)."""
+        self._bind_pipeline_and_sets(cmd, self._force_deep_segment_pipeline_key(first_group))
+        vkCmdDispatch(cmd, group_count, 1, 1)
+        self._force_deep_recorded_groups = self.__dict__.get("_force_deep_recorded_groups", 0) + group_count
+
+    def _check_force_deep_recorded_once(self) -> None:
+        """E39 B3 recording invariant, at the end of every phase C recording: with cascading force the phase B
+        recording (the last one of this simulator) + this phase C recording dispatch force_deep_interior_scratch's
+        per-own-particle workgroups exactly once in all - whole in phase B (B1) or as the plan's segments (B3) -
+        or the step would leave last step's acceleration / shift on the particles of a dropped segment (or run a
+        segment twice) without any other sign. The counts are workgroups (_record_force_deep_segment); the
+        segments' disjointness is _band_overlap_plan's and the CPU test's. Raises RuntimeError. A phase C recorded
+        without a phase B (CPU tests of phase C alone) is checked only on a slab that records the B3 layout, where
+        it raises."""
+        if not _CASCADE_FORCE:
+            return
+        phase_b_groups = self.__dict__.get("_force_deep_phase_b_groups")
+        phase_c_groups = self.__dict__.get("_force_deep_recorded_groups", 0)
+        band_overlap = self._band_overlap_active()
+        if phase_b_groups is None and phase_c_groups == 0 and not band_overlap:
+            return
+        expected = self._per_own_particle_dispatch_count()
+        if phase_b_groups is None or phase_b_groups + phase_c_groups != expected:
+            phase_b_text = ("no phase B recording" if phase_b_groups is None
+                            else f"{phase_b_groups:,} workgroups in phase B")
+            raise RuntimeError(
+                f"force_deep_interior_scratch recorded with {phase_b_text} + {phase_c_groups:,} workgroups in phase "
+                f"C, its dispatch has {expected:,}: V7_BAND_OVERLAP {'on' if band_overlap else 'off'} at this phase C "
+                f"recording (resolution {self.__dict__.get('band_overlap_resolution')}, fused correction + density "
+                f"{self._fused_correction_density_active()}); phase B and phase C must be recorded from one state "
+                "(prepare_step_cmd_buffers)")
+
+    def _record_band_overlap_pair(self, cmd, partner: str, record_partner) -> None:
+        """E39 B3: record_partner() (bind + dispatch of a phase C band kernel / the density copy pass) and, on a
+        slab that resolves V7_BAND_OVERLAP on, the force_deep segment its plan pairs with ``partner``, with NO
+        barrier between the two: the caller's next barrier (or the end of phase C: the frame_done signal and phase
+        A(n + 1)'s opening barrier) serves both (_resolve_band_overlap has the dependency table). Without a
+        segment for ``partner``: record_partner() alone, the B1 recording."""
+        segment = None
+        if self._band_overlap_active():
+            segment = next((item for item in self.band_overlap_plan.segments if item[0] == partner), None)
+        if segment is None:
+            record_partner()
+            return
+        _, first_group, group_count = segment
+        if self.band_overlap_plan.force_deep_first:
+            self._record_force_deep_segment(cmd, first_group, group_count)
+            record_partner()
+        else:
+            record_partner()
+            self._record_force_deep_segment(cmd, first_group, group_count)
 
     def _record_density_scratch_to_primary_transfer_copy(self, cmd) -> None:
         """V7_DENSITY_COPY_COMPUTE=0: the v6 recording of the copy."""
@@ -3428,6 +3844,8 @@ class SphSimulatorV7:
         cmd = self._allocate_oneshot_cmd()
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
+        # E39 B3: force_deep workgroups of this recording (_record_force_deep_segment counts; phase C checks the sum)
+        self._force_deep_recorded_groups = 0
         self._bench_tick(cmd, "b_start")
         # Entry: cross-submit memory visibility (Phase A writes → here reads)
         self._record_compute_barrier(cmd)
@@ -3465,7 +3883,16 @@ class SphSimulatorV7:
             self._record_compute_barrier(cmd)
             self._bench_tick(cmd, "b_density_deep_interior_end")
 
-        if _CASCADE_FORCE:
+        if _CASCADE_FORCE and self._band_overlap_active():
+            # E39 B3 (V7_BAND_OVERLAP): only the plan's phase B segment of force_deep_interior_scratch (none when it
+            # has 0 workgroups); the other segments run in phase C next to the band kernels. Phase B then ends with
+            # correction_density_interior's exit barrier above.
+            phase_b_groups = self.band_overlap_plan.phase_b_groups
+            if phase_b_groups > 0:
+                self._record_force_deep_segment(cmd, 0, phase_b_groups)
+                self._record_compute_barrier(cmd)
+                self._bench_tick(cmd, "b_force_deep_interior_end")
+        elif _CASCADE_FORCE:
             # V3.3 cascading force: force on the deep interior (band =
             # band_widths[2] voxel columns) reads rho/P from SCRATCH (this
             # frame's values for columns >= band_widths[1], all written by
@@ -3478,12 +3905,13 @@ class SphSimulatorV7:
             # E37 wall_boundary adami: the wall pass reads the fluid's rho/P of this frame from scratch too and
             # writes (rho0, p_w) to scratch (read by the force below) and primary.
             self._record_wall_extrapolate(cmd, "scratch", tick="b_wall_extrapolate_end")
-            self._bind_pipeline_and_sets(cmd, "force_deep_interior_scratch")
-            vkCmdDispatch(cmd, per_p, 1, 1)
+            # bind force_deep_interior_scratch + dispatch per_p (E39 B3: counted as the segment (0, all))
+            self._record_force_deep_segment(cmd, 0, per_p)
             self._record_compute_barrier(cmd)
             self._bench_tick(cmd, "b_force_deep_interior_end")
 
         vkEndCommandBuffer(cmd)
+        self._force_deep_phase_b_groups = self._force_deep_recorded_groups
         return cmd
 
     def _record_phase_c_cmd(self, parity: int = 0):
@@ -3502,6 +3930,8 @@ class SphSimulatorV7:
         cmd = self._allocate_oneshot_cmd()
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT))
+        # E39 B3: force_deep workgroups of this recording (the plan's phase C segments; checked at the end)
+        self._force_deep_recorded_groups = 0
         if self.bench is not None:
             self.bench.begin_phase_c_region(cmd, parity)
         self._bench_tick(cmd, "c_start")
@@ -3557,8 +3987,11 @@ class SphSimulatorV7:
                 per_band_fused = self._per_band_dispatch_count(
                     correction_band, self._ghost_self_layer(2, 1, "correction"))
                 if per_band_fused > 0:
-                    self._bind_pipeline_and_sets(cmd, "correction_density_boundary_band")
-                    vkCmdDispatch(cmd, per_band_fused, 1, 1)
+                    def record_band() -> None:
+                        self._bind_pipeline_and_sets(cmd, "correction_density_boundary_band")
+                        vkCmdDispatch(cmd, per_band_fused, 1, 1)
+                    # E39 B3: + the force_deep segment of V7_BAND_OVERLAP's plan, no barrier between them
+                    self._record_band_overlap_pair(cmd, "correction_density", record_band)
             else:
                 self._bind_pipeline_and_sets(cmd, "correction_density_boundary")
                 vkCmdDispatch(cmd, per_p, 1, 1)
@@ -3609,7 +4042,8 @@ class SphSimulatorV7:
                 self._bind_pipeline_and_sets(cmd, "density_boundary")
                 vkCmdDispatch(cmd, per_p, 1, 1)
             self._bench_tick(cmd, "c_density_boundary_end")   # kernel vs copy split
-        self._record_density_scratch_to_primary_copy(cmd)
+        # E39 B3: a V7_BAND_OVERLAP plan may pair a force_deep segment with the copy pass
+        self._record_density_scratch_to_primary_copy(cmd, overlap_pair=True)
         self._bench_tick(cmd, "c_density_end")
         if not _CASCADE_FORCE:
             # E37 wall_boundary adami without cascading force: force_all below is the first force of the frame
@@ -3626,13 +4060,19 @@ class SphSimulatorV7:
         elif _CASCADE_FORCE and _BAND_VOXEL_DISPATCH:
             per_band_force = self._per_band_dispatch_count(force_band)
             if per_band_force > 0:
-                self._bind_pipeline_and_sets(cmd, "force_boundary_band")
-                vkCmdDispatch(cmd, per_band_force, 1, 1)
+                def record_band() -> None:
+                    self._bind_pipeline_and_sets(cmd, "force_boundary_band")
+                    vkCmdDispatch(cmd, per_band_force, 1, 1)
+                # E39 B3: + the force_deep segment of V7_BAND_OVERLAP's plan, no barrier between them (the end of
+                # phase C closes the pair)
+                self._record_band_overlap_pair(cmd, "force", record_band)
         else:
             self._bind_pipeline_and_sets(
                 cmd, "force_boundary" if _CASCADE_FORCE else "force_all")
             vkCmdDispatch(cmd, per_p, 1, 1)
         self._bench_tick(cmd, "c_force_end")
+        # E39 B3: phase B + this recording dispatch force_deep's workgroups exactly once (raises otherwise)
+        self._check_force_deep_recorded_once()
 
         vkEndCommandBuffer(cmd)
         if self.bench is not None:

@@ -58,6 +58,8 @@ SHADER_VARIANTS = (
     ("density_deep_wall_skip", "density.comp", ("DEEP_WALL_SKIP",)),
     # E39 B1: the fused correction + density kernel with B4's deep-wall skip
     ("correction_density_deep_wall_skip", "correction_density.comp", ("DEEP_WALL_SKIP",)),
+    # E39 B3: a workgroup segment of force_deep_interior_scratch (spec constant 115 = its first thread)
+    ("force_segment", "force.comp", ("FORCE_SEGMENT",)),
 )
 
 
