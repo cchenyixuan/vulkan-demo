@@ -60,6 +60,8 @@ ANATOMY_KEYS = (
     "correction_interior_us", "density_deep_interior_us", "wall_extrapolate_us", "force_deep_interior_us",
     "install_leading_us", "install_trailing_us", "append_departed_us",
     "correction_boundary_us", "density_boundary_us", "density_copy_us", "force_us",
+    # v7 E39 B1 (V7_FUSED_CORRECTION_DENSITY): one fused kernel per site instead of correction + density
+    "correction_density_interior_us", "correction_density_boundary_us",
     "readback_leading_dma_us", "readback_trailing_dma_us",
     "upload_leading_dma_us", "upload_trailing_dma_us",
 )
@@ -286,6 +288,14 @@ def _mean_std(values):
     return statistics.mean(values), statistics.stdev(values)
 
 
+def correction_band_cell(row: dict, fmt) -> str:
+    """The correction band column: v7 E39 B1's fused band kernel (correction + density; the density column is
+    then empty) when the run has no separate correction band kernel."""
+    if row.get("correction_boundary_us") is None and row.get("correction_density_boundary_us") is not None:
+        return f"{fmt(row['correction_density_boundary_us'])} (fused, + density)"
+    return fmt(row.get("correction_boundary_us"))
+
+
 def summarize(out_dir: pathlib.Path) -> None:
     records = [json.loads(line) for line in (out_dir / "results.jsonl").read_text(encoding="utf-8").splitlines()]
     records = [record for record in records if record.get("ok")]
@@ -338,6 +348,7 @@ def summarize(out_dir: pathlib.Path) -> None:
                    "phase_c_us": anatomy_max("phase_c_us"),
                    "correction_boundary_us": anatomy_max("correction_boundary_us"),
                    "density_boundary_us": anatomy_max("density_boundary_us"),
+                   "correction_density_boundary_us": anatomy_max("correction_density_boundary_us"),
                    "force_band_us": anatomy_max("force_us"),
                    "append_departed_us": anatomy_max("append_departed_us"),
                    "b_to_c_gap_us": anatomy_max("b_to_c_gap_us"),
@@ -349,7 +360,7 @@ def summarize(out_dir: pathlib.Path) -> None:
             lines.append(
                 f"| {case_name} | {config_name} | {len(results)} | {'yes' if valid else '**NO**'} | "
                 f"{fmt(fps_mean)} ± {fmt(fps_std)} | {fmt(100 * ratio, 2) + ' %' if ratio else '—'} | "
-                f"{fmt(row['phase_c_us'])} | {fmt(row['correction_boundary_us'])} | {fmt(row['density_boundary_us'])} | "
+                f"{fmt(row['phase_c_us'])} | {correction_band_cell(row, fmt)} | {fmt(row['density_boundary_us'])} | "
                 f"{fmt(row['force_band_us'])} | {fmt(row['append_departed_us'])} | {fmt(row['b_to_c_gap_us'])} | "
                 f"{fmt(host_copy / 1024 if host_copy else None)} | {fmt(dma / 1024 if dma else None)} |")
     (out_dir / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")

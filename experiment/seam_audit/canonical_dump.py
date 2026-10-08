@@ -208,6 +208,8 @@ def compare(first_path: str, second_path: str, ignore=(), no_mask: bool = False)
                   f"initial {str(meta.get('initial_sha256'))[:16]}; materials {str(meta.get('materials_sha256'))[:16]}")
         if meta.get("solver_switches"):
             print(f"        {meta.get('solver')} switches {meta['solver_switches']}")
+        if meta.get("fused_correction_density"):
+            print(f"        fused correction + density per slab {meta['fused_correction_density']}")
         problems += [f"{label.strip()}: {problem}" for problem in _invariant_problems(meta)]
         if meta.get("dropped_fields"):
             print(f"        not dumped (not moved by the final defrag): {meta['dropped_fields']}")
@@ -582,6 +584,10 @@ def main() -> int:
     deep_wall_recorded = (deep_wall_active and not final_defrag
                           and all(sim.buffers["deep_wall_skip_record"].size > 16
                                   for sim, (active, _) in zip(sims, deep_wall_resolution) if active))
+    # E39 B1: whether each slab ran the fused kernel (a slab that falls back records the separate kernels although
+    # the switch says 1); None for a solver without the switch
+    fused_resolution = ([list(sim.fused_correction_density_resolution) for sim in sims]
+                        if all(hasattr(sim, "fused_correction_density_resolution") for sim in sims) else None)
     rows: dict = {}
     for sim in sims:
         fields = DUMPED_FIELDS
@@ -652,6 +658,7 @@ def main() -> int:
             "wall_boundary": wall_boundary, "environment": environment, "cuts": [int(cut) for cut in chain.cuts],
             "alive": int(ids.size), "expected": total, "overflow": overflow, "transport_errors": transport_errors,
             "crossings": crossings, "status": status, "pool_health": pool_health, "deep_wall": deep_wall,
+            "fused_correction_density": fused_resolution,
             "fps": result.get("fps"),
             "elapsed_s": result.get("elapsed_s"), "dt": float(global_case.physics.timestep),
             "device_names": [context.device_name for context in contexts]}

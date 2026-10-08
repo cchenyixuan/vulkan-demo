@@ -290,10 +290,13 @@ def cycle_components(run: dict) -> list:
                  "period": next_a - rows["a_start"]}
         entry = {"sim": sim, **{key: float(np.median(value[steady]) / 1e3) for key, value in parts.items()}}
         entry["period_mean"] = float(np.mean(parts["period"][steady]) / 1e3)
-        if "b_density_deep_interior_end" in rows:     # phase B split: correction + density | force
-            entry["b_correction_density"] = float(np.nanmedian(
-                (rows["b_density_deep_interior_end"] - rows["b_start"])[steady]) / 1e3)
-            entry["b_force"] = float(np.nanmedian((rows["b_end"] - rows["b_density_deep_interior_end"])[steady]) / 1e3)
+        # phase B split: correction + density | force (E39 B1 V7_FUSED_CORRECTION_DENSITY: the fused kernel's end;
+        # a run fills one of the two columns, older traces have the second only)
+        split = next((label for label in ("b_correction_density_interior_end", "b_density_deep_interior_end")
+                      if label in rows and np.isfinite(rows[label][steady]).any()), None)
+        if split is not None:
+            entry["b_correction_density"] = float(np.nanmedian((rows[split] - rows["b_start"])[steady]) / 1e3)
+            entry["b_force"] = float(np.nanmedian((rows["b_end"] - rows[split])[steady]) / 1e3)
         out.append(entry)
     return out
 

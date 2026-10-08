@@ -400,10 +400,13 @@ def main() -> int:
                         durations["c_to_a_gap_us"] = (ticks["a_start"] - previous_c_end) / 1000.0
                     keys = ("phase_a_us", "phase_b_us", "phase_c_us",
                             "correction_interior_us", "density_deep_interior_us",
+                            "correction_density_interior_us",       # E39 B1 (fused)
                             "wall_extrapolate_us",
                             "force_deep_interior_us", "install_leading_us",
                             "install_trailing_us", "correction_boundary_us",
-                            "density_us", "density_boundary_us", "density_copy_us",
+                            "density_us", "density_boundary_us",
+                            "correction_density_boundary_us",       # E39 B1 (fused)
+                            "density_copy_us",
                             "force_us", "force_boundary_us",
                             "a_to_b_gap_us", "b_to_c_gap_us", "c_to_a_gap_us",
                             "readback_leading_dma_us", "readback_trailing_dma_us",

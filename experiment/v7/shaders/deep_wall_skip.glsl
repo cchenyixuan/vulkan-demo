@@ -55,8 +55,10 @@
 // Which pipelines skip (simulator_v7, spec constant 111 on the variant
 // modules): correction_interior / density_deep_interior (phase B, every K;
 // K = 1: the whole domain) and correction_all / density_all on a slab without
-// peers (bootstrap, single-cmd step). Band / boundary / compact pipelines use
-// correction.comp / density.comp unchanged and never skip. Correction and
+// peers (bootstrap, single-cmd step); with E39 B1 (V7_FUSED_CORRECTION_DENSITY)
+// their fused counterparts correction_density_interior / correction_density_all
+// (correction_density.comp's DEEP_WALL_SKIP variant). Band / boundary / compact
+// pipelines use the plain modules and never skip. Correction and
 // density take the same decision: both test the band of width
 // DEEP_WALL_SKIP_BAND_WIDTH = density's band (V7_BAND_WIDTHS d >= c), so
 // correction_interior never skips a particle that density_boundary computes in

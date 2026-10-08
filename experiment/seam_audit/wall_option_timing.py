@@ -38,11 +38,18 @@ for resolution in ("n250", "n1000"):
             wall_pass = "b_wall_extrapolate_end" in ticks
             parts["predict"].append(span("a_predict_end", "a_start"))
             parts["update_voxel"].append(span("a_voxel_end", "a_predict_end"))
-            parts["correction"].append(span("b_correction_interior_end", "b_start"))
-            parts["density"].append(span("b_density_deep_interior_end", "b_correction_interior_end"))
-            parts["wall_pass"].append(span("b_wall_extrapolate_end", "b_density_deep_interior_end") if wall_pass else 0.0)
+            if "b_correction_density_interior_end" in ticks:
+                # v7 E39 B1 (V7_FUSED_CORRECTION_DENSITY): one fused kernel; its time is listed under correction
+                density_end = "b_correction_density_interior_end"
+                parts["correction"].append(span(density_end, "b_start"))
+                parts["density"].append(0.0)
+            else:
+                density_end = "b_density_deep_interior_end"
+                parts["correction"].append(span("b_correction_interior_end", "b_start"))
+                parts["density"].append(span(density_end, "b_correction_interior_end"))
+            parts["wall_pass"].append(span("b_wall_extrapolate_end", density_end) if wall_pass else 0.0)
             parts["force"].append(span("b_force_deep_interior_end",
-                                       "b_wall_extrapolate_end" if wall_pass else "b_density_deep_interior_end"))
+                                       "b_wall_extrapolate_end" if wall_pass else density_end))
             parts["phase_c"].append(span("c_force_end", "c_start"))
             step.append(span("c_force_end", "a_start"))
         with np.load(root / "timing" / f"{resolution}_{wall}.npz") as archive:
@@ -89,8 +96,9 @@ for resolution in ("n250", "n1000"):
     if simple["bench"] and adami["bench"]:
         ratio = statistics.mean(adami["bench"]) / statistics.mean(simple["bench"])
         line += f", fps(生产) {100 * (ratio - 1):+.1f} %(每步时间 {100 * (1 / ratio - 1):+.1f} %)"
+    density_ratio = (f"{100 * (adami['medians']['density'] / simple['medians']['density'] - 1):+.1f} %"
+                     if simple['medians']['density'] > 0 else "(fused: in correction)")
     line += (f"; force {100 * (adami['medians']['force'] / simple['medians']['force'] - 1):+.1f} %, density "
-             f"{100 * (adami['medians']['density'] / simple['medians']['density'] - 1):+.1f} %, 壁面 pass "
-             f"{adami['medians']['wall_pass']:.1f} µs")
+             f"{density_ratio}, 壁面 pass {adami['medians']['wall_pass']:.1f} µs")
     print(line)
 print("invariants:", {f"{key[0]}_{key[1]}": item["alive_ok"] for key, item in results.items()})

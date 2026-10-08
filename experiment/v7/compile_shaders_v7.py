@@ -56,6 +56,8 @@ V7_SPV_DIR = V7_SHADER_DIR + "/spv"
 SHADER_VARIANTS = (
     ("correction_deep_wall_skip", "correction.comp", ("DEEP_WALL_SKIP",)),
     ("density_deep_wall_skip", "density.comp", ("DEEP_WALL_SKIP",)),
+    # E39 B1: the fused correction + density kernel with B4's deep-wall skip
+    ("correction_density_deep_wall_skip", "correction_density.comp", ("DEEP_WALL_SKIP",)),
 )
 
 

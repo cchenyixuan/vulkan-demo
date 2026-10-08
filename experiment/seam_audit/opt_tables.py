@@ -87,6 +87,13 @@ def step_table(campaign: str, before: str, after: str, title: str) -> str:
     return "\n".join(lines)
 
 
+def correction_band_cell(row: dict) -> str:
+    """v7 E39 B1: a run with the fused band kernel (correction + density) has no correction band entry."""
+    if row.get("correction_boundary_us") is None and row.get("correction_density_boundary_us") is not None:
+        return f"{fmt(row['correction_density_boundary_us'])} (fused, + density)"
+    return fmt(row.get("correction_boundary_us"))
+
+
 def phase_c_table(campaign: str, configs: list, reference: str) -> str:
     summary = load_summary(campaign)
     header = "| case | config | fps | vs " + reference + " (trial-wise) | phase C µs | correction band | density band | force band | list build |"
@@ -99,7 +106,7 @@ def phase_c_table(campaign: str, configs: list, reference: str) -> str:
             ratio, ratio_std = trial_ratio(campaign, case, config, reference)
             lines.append(f"| {CASE_LABEL[case]} | {config} | {fmt(row['fps_mean'])} ± {fmt(row['fps_std'])} | "
                          f"{fmt(100 * ratio, 2)} ± {fmt(100 * ratio_std, 2)} % | {fmt(row['phase_c_us'])} | "
-                         f"{fmt(row['correction_boundary_us'])} | {fmt(row['density_boundary_us'])} | "
+                         f"{correction_band_cell(row)} | {fmt(row['density_boundary_us'])} | "
                          f"{fmt(row['force_band_us'])} | {fmt(row.get('band_compact_us'))} |")
     return "\n".join(lines)
 
@@ -729,7 +736,10 @@ def e26_kernel_table(campaign: str = E26_CAMPAIGN, before: str = "release", afte
     keys = (("phase_a_us", "A"), ("correction_interior_us", "B:corr"), ("density_deep_interior_us", "B:dens"),
             ("force_deep_interior_us", "B:force"), ("phase_b_us", "T_B"), ("b_to_c_gap_us", "b→c"),
             ("correction_boundary_us", "C:corr band"), ("density_boundary_us", "C:dens band"),
-            ("density_copy_us", "C:copy"), ("force_us", "C:force band"), ("phase_c_us", "T_C"))
+            ("density_copy_us", "C:copy"), ("force_us", "C:force band"), ("phase_c_us", "T_C"),
+            # v7 E39 B1: the fused kernels (correction + density), "—" for runs without them
+            ("correction_density_interior_us", "B:corr+dens"),
+            ("correction_density_boundary_us", "C:corr+dens band"))
     lines = ["| 算例 | sim | " + " | ".join(label + " µs" for _key, label in keys) + " |",
              "|---|---|" + "---|" * len(keys)]
     for case in CASE_ORDER:

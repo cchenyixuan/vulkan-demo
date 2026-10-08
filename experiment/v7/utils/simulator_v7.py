@@ -261,6 +261,47 @@ _DEEP_WALL_RECORD_DECISIONS = False
 # 11 wall layers only, in latency-bound kernels). Below 1 % the 3-D gain
 # (~0.3-0.35 % fps per 1 % of candidates) is below the run-to-run spread.
 _DEEP_WALL_AUTO_MINIMUM_CANDIDATE_FRACTION = 0.01
+# E39 B1 (audit H01): correction and density in one neighbour traversal
+# (shaders/correction_density.comp has the algebra). density reads one
+# correction output, the self L_i, so the fused kernel accumulates correction's
+# sums and the symmetric part of S_i = sum_j q_j (x) grad W_ij in one loop and
+# contracts S_i with the L_i it has just written: L, the kernel sum and grad rho
+# keep their bits, rho_{n+1} / P_{n+1} move by summation rounding. Every site
+# where correction and density run back to back takes one fused dispatch: phase
+# B (correction_interior + density_deep_interior), phase C's band (the band /
+# boundary pipelines, the inner ghost column as self), the bootstrap (_all, and
+# the band pass of the inner ghost column) and the single-cmd step (_all, or the
+# split path). A slab whose correction and density particle sets differ keeps
+# the separate kernels, recorded as before (_resolve_fused_correction_density):
+# different band widths (V7_BAND_WIDTHS c != d, e.g. 2,3,4 and the compact band
+# dispatch, which supports 2,3,4 only) or a V7_DIAG_GHOST_SELF that walks the
+# inner ghost column in one band kernel only. B4 runs inside the fused interior
+# and peerless full-domain kernels (their DEEP_WALL_SKIP variant). E39 B1 chain
+# bench, interleaved 0 / 1 / 1 / 0, two RTX 5090: K = 1 2-D 1M 554.9 -> 729.4
+# fps (+31.5 %), 3-D 1M 81.9 -> 106.1 (+29.5 %); K = 2 2-D 62k 1779 -> 2319
+# (+30.4 %), 2-D 1M 832 -> 1102 (+32.4 %), 2-D 16M 69.1 -> 90.6 (+31.1 %), 3-D
+# 8M (4-layer walls) 25.2 -> 32.7 (+29.8 %); K = 2 62k anatomy: phase B 261 ->
+# 179 us, phase C 212 -> 150 us (band: correction 61 + density 69 -> 67 us).
+# Registers (VK_KHR_pipeline_executable_properties): correction / density 40,
+# fused 56 (2-D) / 64 (3-D); the variants with fewer registers (a 9 / 4-entry S,
+# or a 3-entry gradient in 2-D: 48 / 56 + 2-5 KB shared memory) ran 1-3 % slower.
+# B4 still pays on top: cavity3d_1m K = 1 +5.3 %, cavity3d_8m K = 1 +3.2 %.
+# V7_FUSED_CORRECTION_DENSITY: 0 = the previous build command for command; 1 =
+# fused wherever the slab allows it (default). Read once at import.
+_FUSED_CORRECTION_DENSITY_ACCEPTED = ("0", "1")
+
+
+def _parse_fused_correction_density(text: str) -> int:
+    """V7_FUSED_CORRECTION_DENSITY: 0 or 1 (surrounding blanks ignored)."""
+    value = text.strip()
+    if value not in _FUSED_CORRECTION_DENSITY_ACCEPTED:
+        raise ValueError(f"V7_FUSED_CORRECTION_DENSITY={text!r}: accepted values are 0, 1 (1 = correction and "
+                         "density in one neighbour traversal where the slab's bands allow it; 0 = the separate "
+                         "kernels, the previous build)")
+    return int(value)
+
+
+_FUSED_CORRECTION_DENSITY = _parse_fused_correction_density(os.environ.get("V7_FUSED_CORRECTION_DENSITY", "1"))
 if _FAST_SUBMIT:
     from vulkan._vulkancache import ffi as _ffi
     from vulkan._vulkan import lib as _lib
@@ -288,11 +329,13 @@ def configured_v7_switches() -> dict[str, int | str]:
     (module constants read at import), for the run headers and the step
     trace's run_meta. V7_DEEP_WALL_SKIP reads "auto" for its default (each
     slab prints what the rule decided); V7_DEEP_WALL_CHECK is its debug
-    companion."""
+    companion; V7_FUSED_CORRECTION_DENSITY = 1 fuses where a slab allows it
+    (each slab prints whether it does and, if not, why)."""
     return {"V7_DENSITY_COPY_COMPUTE": int(_DENSITY_COPY_COMPUTE),
             "V7_GHOST_SEND_LANES": _GHOST_SEND_LANES,
             "V7_DEEP_WALL_SKIP": _DEEP_WALL_SKIP if _DEEP_WALL_SKIP == "auto" else int(_DEEP_WALL_SKIP),
-            "V7_DEEP_WALL_CHECK": _DEEP_WALL_CHECK}
+            "V7_DEEP_WALL_CHECK": _DEEP_WALL_CHECK,
+            "V7_FUSED_CORRECTION_DENSITY": _FUSED_CORRECTION_DENSITY}
 
 
 def deep_wall_candidate_count(case: CaseV7, skip_band_width: int) -> int:
@@ -589,6 +632,11 @@ class SphSimulatorV7:
             print(f"[SimV7] V7_DEEP_WALL_SKIP={_DEEP_WALL_SKIP}: "
                   f"{'on' if self._deep_wall_skip_active() else 'off'} ({self.deep_wall_skip_resolution[1]})"
                   + (f", V7_DEEP_WALL_CHECK=1" if _DEEP_WALL_CHECK else ""))
+        # E39 B1: V7_FUSED_CORRECTION_DENSITY resolved for this slab (modules, pipelines and recordings follow it).
+        if _FUSED_CORRECTION_DENSITY:
+            print(f"[SimV7] V7_FUSED_CORRECTION_DENSITY=1: "
+                  f"{'fused' if self._fused_correction_density_active() else 'separate kernels'} "
+                  f"({self.fused_correction_density_resolution[1]})")
 
         # Buffer allocation
         self._buffer_specs = self._build_buffer_specs()
@@ -1477,6 +1525,11 @@ class SphSimulatorV7:
             # E39 B4: the marker and the DEEP_WALL_SKIP variants only on a slab that skips deep walls
             *(("deep_wall_marker", "correction_deep_wall_skip", "density_deep_wall_skip")
               if self._deep_wall_skip_active() else ()),
+            # E39 B1: the fused kernel only on a slab that fuses (likewise for a pre-B1 V7_SPV_DIR), its
+            # DEEP_WALL_SKIP variant when that slab also skips deep walls
+            *(("correction_density",) if self._fused_correction_density_active() else ()),
+            *(("correction_density_deep_wall_skip",)
+              if self._fused_correction_density_active() and self._deep_wall_skip_active() else ()),
         ):
             spv_path = shader_dir / f"{shader_name}.comp.spv"
             if not spv_path.exists():
@@ -1799,6 +1852,57 @@ class SphSimulatorV7:
         if tick:
             self._bench_tick(cmd, tick)
 
+    # ----- E39 B1: correction + density in one traversal (V7_FUSED_CORRECTION_DENSITY, correction_density.comp) --
+
+    def _fused_correction_density_active(self) -> bool:
+        """Does this slab run correction_density.comp: V7_FUSED_CORRECTION_DENSITY resolved once per simulator
+        (__init__; a CPU test's object.__new__ simulator on first use) into fused_correction_density_resolution =
+        (active, reason)."""
+        resolution = self.__dict__.get("fused_correction_density_resolution")
+        if resolution is None:
+            resolution = self.fused_correction_density_resolution = self._resolve_fused_correction_density()
+        return resolution[0]
+
+    def _resolve_fused_correction_density(self) -> tuple[bool, str]:
+        """(active, reason) of V7_FUSED_CORRECTION_DENSITY for this slab. The fused kernel takes correction's and
+        density's place only where the two compute the same particles at every site: one band width (spec 82 of
+        the split pipelines: V7_BAND_WIDTHS c == d; the compact band dispatch supports 2,3,4 only) and one inner
+        ghost self layer (spec 85 of the band pipelines: V7_DIAG_GHOST_SELF naming both kernels or neither).
+        Otherwise the whole slab keeps the separate kernels and records exactly what
+        V7_FUSED_CORRECTION_DENSITY=0 records."""
+        if not _FUSED_CORRECTION_DENSITY:
+            return False, "V7_FUSED_CORRECTION_DENSITY=0"
+        correction_band, density_band, force_band = (self.__dict__.get("band_widths")
+                                                     or self._configured_band_widths())
+        if correction_band != density_band:
+            return False, (f"fallback: correction band {correction_band} != density band {density_band}, "
+                           f"V7_BAND_WIDTHS={correction_band},{density_band},{force_band}"
+                           + (" (V7_BAND_COMPACT_DISPATCH supports 2,3,4 only)" if _BAND_COMPACT else ""))
+        if _BAND_COMPACT:
+            # unreachable while the compact list serves 2,3,4 only; the fused band pass has no compact dispatch
+            return False, "fallback: V7_BAND_COMPACT_DISPATCH=1 (the fused band pass has no compact-list dispatch)"
+        correction_layer = self._ghost_self_layer(2, 1, "correction")
+        density_layer = self._ghost_self_layer(2, 1, "density")
+        if correction_layer != density_layer:
+            return False, (f"fallback: V7_DIAG_GHOST_SELF={','.join(_DIAG_GHOST_SELF_KERNELS)} walks the inner "
+                           f"ghost column as self in the {'correction' if correction_layer else 'density'} band "
+                           "kernel only")
+        # the band pipelines' self layer acts only where the slab has ghost columns (none without peers)
+        has_ghost_columns = not self._deep_wall_skips_full_domain()
+        return True, (f"one neighbour traversal for correction + density, band {correction_band}"
+                      + (", inner ghost column as self" if correction_layer and has_ghost_columns else ""))
+
+    def _fused_deep_wall_skip_pipeline_keys(self) -> tuple[str, ...]:
+        """The fused pipelines built from correction_density.comp's DEEP_WALL_SKIP variant (B4's
+        _deep_wall_skip_pipeline_keys for the fused kernel): the interior one and, on a slab without peers, the
+        full-domain one; empty when the slab does not skip deep walls."""
+        if not self._deep_wall_skip_active():
+            return ()
+        keys = ("correction_density_interior",)
+        if self._deep_wall_skips_full_domain():
+            keys += ("correction_density_all",)
+        return keys
+
     def _build_compute_pipelines(self) -> dict[str, object]:
         """Build the compute pipelines:
 
@@ -1825,7 +1929,12 @@ class SphSimulatorV7:
 
         ghost_send + install_migrations are always built for BOTH directions
         even if this GPU has no peer on that side; phase A/C cmd recording
-        skips dispatch on the unused direction (cf. V1)."""
+        skips dispatch on the unused direction (cf. V1).
+
+        E39 B1: a slab that fuses correction and density also builds
+        correction_density_all / _interior / _boundary / _boundary_band
+        (correction_density.comp); the recordings then bind those instead of
+        the correction / density pairs."""
         pipelines: dict[str, object] = {}
 
         # Pipelines that only need global spec consts (and the shared 4-set
@@ -1964,6 +2073,25 @@ class SphSimulatorV7:
             pipelines["band_compact_scatter"] = self._create_pipeline(
                 shader=self.shader_modules["band_compact"], entries=compact_entries + [(60, 'I', 1)])
 
+        # E39 B1: on a slab that fuses, correction_density.comp with correction's spec constants (the slab's
+        # correction and density bands and inner-ghost self layers agree) for every mode / dispatch the
+        # recordings bind; the interior pipeline (and the full-domain one without peers) from its DEEP_WALL_SKIP
+        # variant with B4's spec constants when the slab skips deep walls. The separate correction / density
+        # pipelines above stay built: experiment/seam_audit/fused_single_step.py records both on one slab.
+        fused_deep_wall_keys = self._fused_deep_wall_skip_pipeline_keys()
+        if self._fused_correction_density_active():
+            for key, mode, band_dispatch in (("correction_density_all", 0, 0), ("correction_density_interior", 1, 0),
+                                             ("correction_density_boundary", 2, 0),
+                                             ("correction_density_boundary_band", 2, 1)):
+                entries = self._global_entries() + self._correction_mode_entries(mode, band_dispatch)
+                if key in fused_deep_wall_keys:
+                    pipelines[key] = self._create_pipeline(
+                        shader=self.shader_modules["correction_density_deep_wall_skip"],
+                        entries=entries + self._deep_wall_skip_entries())
+                    continue
+                pipelines[key] = self._create_pipeline(shader=self.shader_modules["correction_density"],
+                                                       entries=entries)
+
         cascade_note = (" (V7_CASCADE_FORCE=1: force_deep_interior in Phase B)"
                         if _CASCADE_FORCE else "")
         ghost_self = 1 if self.ghost_layers() >= 2 else 0
@@ -1997,6 +2125,11 @@ class SphSimulatorV7:
                              f"{self.band_widths[1]}, marker 2 x {self._per_extended_voxel_dispatch_count():,} "
                              f"workgroups{', check' if _DEEP_WALL_CHECK else ''}"
                              f"{', record' if self._deep_wall_record() else ''})")
+        if self._fused_correction_density_active():
+            cascade_note += (f" (V7_FUSED_CORRECTION_DENSITY: correction_density_all / _interior / _boundary / "
+                             f"_boundary_band replace correction + density at band {self.band_widths[0]}"
+                             + (f"; deep-wall skip in {', '.join(fused_deep_wall_keys)}" if fused_deep_wall_keys
+                                else "") + ")")
         print(f"[SimV7] compute pipelines: {len(pipelines)}{cascade_note}")
         return pipelines
 
@@ -2865,26 +2998,38 @@ class SphSimulatorV7:
             self._record_compute_barrier(cmd)
             self._record_deep_wall_marker(cmd)
 
-        self._bind_pipeline_and_sets(cmd, "correction_all")
-        vkCmdDispatch(cmd, per_p, 1, 1)
-        self._record_compute_barrier(cmd)
         ghost_self = 1 if (self.ghost_layers() >= 2 and self._transport_segments) else 0
-        if ghost_self:
-            # V7_GHOST_LAYERS = 2: the band pipeline re-runs the own band
-            # (same inputs, same result) plus the inner ghost column as self,
-            # so the bootstrap force reads this step's rho/P at the seam too.
-            self._bind_pipeline_and_sets(cmd, "correction_boundary_band")
-            vkCmdDispatch(cmd, self._per_band_dispatch_count(
-                self.band_widths[0], self._ghost_self_layer(2, 1, "correction")), 1, 1)
+        if self._fused_correction_density_active():
+            # E39 B1: correction_all + density_all in one traversal, then (two ghost layers) the band pass of both
+            # (the own band again, same inputs, same result, plus the inner ghost column as self) in one; the
+            # barrier orders the pass's rewrite of the own band after the first one's.
+            self._bind_pipeline_and_sets(cmd, "correction_density_all")
+            vkCmdDispatch(cmd, per_p, 1, 1)
+            if ghost_self:
+                self._record_compute_barrier(cmd)
+                self._bind_pipeline_and_sets(cmd, "correction_density_boundary_band")
+                vkCmdDispatch(cmd, self._per_band_dispatch_count(
+                    self.band_widths[0], self._ghost_self_layer(2, 1, "correction")), 1, 1)
+        else:
+            self._bind_pipeline_and_sets(cmd, "correction_all")
+            vkCmdDispatch(cmd, per_p, 1, 1)
             self._record_compute_barrier(cmd)
+            if ghost_self:
+                # V7_GHOST_LAYERS = 2: the band pipeline re-runs the own band
+                # (same inputs, same result) plus the inner ghost column as self,
+                # so the bootstrap force reads this step's rho/P at the seam too.
+                self._bind_pipeline_and_sets(cmd, "correction_boundary_band")
+                vkCmdDispatch(cmd, self._per_band_dispatch_count(
+                    self.band_widths[0], self._ghost_self_layer(2, 1, "correction")), 1, 1)
+                self._record_compute_barrier(cmd)
 
-        self._bind_pipeline_and_sets(cmd, "density_all")
-        vkCmdDispatch(cmd, per_p, 1, 1)
-        if ghost_self:
-            self._record_compute_barrier(cmd)
-            self._bind_pipeline_and_sets(cmd, "density_boundary_band")
-            vkCmdDispatch(cmd, self._per_band_dispatch_count(
-                self.band_widths[1], self._ghost_self_layer(2, 1, "density")), 1, 1)
+            self._bind_pipeline_and_sets(cmd, "density_all")
+            vkCmdDispatch(cmd, per_p, 1, 1)
+            if ghost_self:
+                self._record_compute_barrier(cmd)
+                self._bind_pipeline_and_sets(cmd, "density_boundary_band")
+                vkCmdDispatch(cmd, self._per_band_dispatch_count(
+                    self.band_widths[1], self._ghost_self_layer(2, 1, "density")), 1, 1)
         self._record_density_scratch_to_primary_copy(cmd)
         self._record_wall_extrapolate(cmd)
 
@@ -3293,23 +3438,32 @@ class SphSimulatorV7:
 
         per_p = self._per_own_particle_dispatch_count()
 
-        self._bind_pipeline_and_sets(cmd, "correction_interior")
-        vkCmdDispatch(cmd, per_p, 1, 1)
-        # Barrier between correction_interior and density_deep_interior:
-        # density reads correction_inverse just written.
-        self._record_compute_barrier(cmd)
-        self._bench_tick(cmd, "b_correction_interior_end")
+        if self._fused_correction_density_active():
+            # E39 B1: correction_interior + density_deep_interior in one traversal (one band width, so the same
+            # particles; a particle's density reads only its own L, computed in the same invocation). Exit
+            # barrier: phase C's band pass and force read L / scratch.
+            self._bind_pipeline_and_sets(cmd, "correction_density_interior")
+            vkCmdDispatch(cmd, per_p, 1, 1)
+            self._record_compute_barrier(cmd)
+            self._bench_tick(cmd, "b_correction_density_interior_end")
+        else:
+            self._bind_pipeline_and_sets(cmd, "correction_interior")
+            vkCmdDispatch(cmd, per_p, 1, 1)
+            # Barrier between correction_interior and density_deep_interior:
+            # density reads correction_inverse just written.
+            self._record_compute_barrier(cmd)
+            self._bench_tick(cmd, "b_correction_interior_end")
 
-        # Path A+ P5: density_deep_interior in Phase B. Boundary band =
-        # band_widths[1] voxels (>= correction's: density reads its own L and
-        # no neighbour correction output). Writes to scratch;
-        # scratch→primary copy happens in Phase C after density_boundary.
-        self._bind_pipeline_and_sets(cmd, "density_deep_interior")
-        vkCmdDispatch(cmd, per_p, 1, 1)
-        # Exit barrier — Phase C's density_boundary reads scratch, force_all
-        # reads primary (after copy). Cross-submit visibility required.
-        self._record_compute_barrier(cmd)
-        self._bench_tick(cmd, "b_density_deep_interior_end")
+            # Path A+ P5: density_deep_interior in Phase B. Boundary band =
+            # band_widths[1] voxels (>= correction's: density reads its own L and
+            # no neighbour correction output). Writes to scratch;
+            # scratch→primary copy happens in Phase C after density_boundary.
+            self._bind_pipeline_and_sets(cmd, "density_deep_interior")
+            vkCmdDispatch(cmd, per_p, 1, 1)
+            # Exit barrier — Phase C's density_boundary reads scratch, force_all
+            # reads primary (after copy). Cross-submit visibility required.
+            self._record_compute_barrier(cmd)
+            self._bench_tick(cmd, "b_density_deep_interior_end")
 
         if _CASCADE_FORCE:
             # V3.3 cascading force: force on the deep interior (band =
@@ -3395,51 +3549,66 @@ class SphSimulatorV7:
         # Band widths: self.band_widths (V7_BAND_WIDTHS, default 2/2/3).
         correction_band, density_band, force_band = self.band_widths
         compact = _BAND_COMPACT and self._band_compact_voxel_count() > 0
-        if compact:
-            # V7_BAND_COMPACT_DISPATCH: scan (1 workgroup) + scatter build the
-            # band pid list; the band kernels then run one thread per entry.
-            self._bind_pipeline_and_sets(cmd, "band_compact_scan")
-            vkCmdDispatch(cmd, 1, 1, 1)
+        if self._fused_correction_density_active():
+            # E39 B1: the correction and density band passes in one traversal (one band width and inner-ghost self
+            # layer; a slab with the compact band dispatch never fuses: its widths are 2,3,4). No barrier before
+            # the tick: the density copy below opens with one.
+            if _BAND_VOXEL_DISPATCH:
+                per_band_fused = self._per_band_dispatch_count(
+                    correction_band, self._ghost_self_layer(2, 1, "correction"))
+                if per_band_fused > 0:
+                    self._bind_pipeline_and_sets(cmd, "correction_density_boundary_band")
+                    vkCmdDispatch(cmd, per_band_fused, 1, 1)
+            else:
+                self._bind_pipeline_and_sets(cmd, "correction_density_boundary")
+                vkCmdDispatch(cmd, per_p, 1, 1)
+            self._bench_tick(cmd, "c_correction_density_boundary_end")
+        else:
+            if compact:
+                # V7_BAND_COMPACT_DISPATCH: scan (1 workgroup) + scatter build the
+                # band pid list; the band kernels then run one thread per entry.
+                self._bind_pipeline_and_sets(cmd, "band_compact_scan")
+                vkCmdDispatch(cmd, 1, 1, 1)
+                self._record_compute_barrier(cmd)
+                self._bind_pipeline_and_sets(cmd, "band_compact_scatter")
+                scatter_threads = (self._band_compact_voxel_count()
+                                   * self.case.capacities.max_particles_per_voxel)
+                # band_compact.comp has a fixed local size of 1024 (the scan's)
+                vkCmdDispatch(cmd, (scatter_threads + 1023) // 1024, 1, 1)
+                self._record_indirect_barrier(cmd)
+                self._bench_tick(cmd, "c_band_compact_end")
+                self._bind_pipeline_and_sets(cmd, "correction_boundary_compact")
+                vkCmdDispatchIndirect(cmd, self.buffers["band_compact_meta"].handle, 0)
+            elif _BAND_VOXEL_DISPATCH:
+                per_band_correction = self._per_band_dispatch_count(
+                    correction_band, self._ghost_self_layer(2, 1, "correction"))
+                if per_band_correction > 0:
+                    self._bind_pipeline_and_sets(cmd, "correction_boundary_band")
+                    vkCmdDispatch(cmd, per_band_correction, 1, 1)
+            else:
+                self._bind_pipeline_and_sets(cmd, "correction_boundary")
+                vkCmdDispatch(cmd, per_p, 1, 1)
             self._record_compute_barrier(cmd)
-            self._bind_pipeline_and_sets(cmd, "band_compact_scatter")
-            scatter_threads = (self._band_compact_voxel_count()
-                               * self.case.capacities.max_particles_per_voxel)
-            # band_compact.comp has a fixed local size of 1024 (the scan's)
-            vkCmdDispatch(cmd, (scatter_threads + 1023) // 1024, 1, 1)
-            self._record_indirect_barrier(cmd)
-            self._bench_tick(cmd, "c_band_compact_end")
-            self._bind_pipeline_and_sets(cmd, "correction_boundary_compact")
-            vkCmdDispatchIndirect(cmd, self.buffers["band_compact_meta"].handle, 0)
-        elif _BAND_VOXEL_DISPATCH:
-            per_band_correction = self._per_band_dispatch_count(
-                correction_band, self._ghost_self_layer(2, 1, "correction"))
-            if per_band_correction > 0:
-                self._bind_pipeline_and_sets(cmd, "correction_boundary_band")
-                vkCmdDispatch(cmd, per_band_correction, 1, 1)
-        else:
-            self._bind_pipeline_and_sets(cmd, "correction_boundary")
-            vkCmdDispatch(cmd, per_p, 1, 1)
-        self._record_compute_barrier(cmd)
-        self._bench_tick(cmd, "c_correction_boundary_end")
+            self._bench_tick(cmd, "c_correction_boundary_end")
 
-        # Path A+ P5: density_boundary covers only the density boundary band;
-        # density_deep_interior in Phase B already wrote scratch[deep_interior
-        # pids]. Together they cover the full own pid range. The scratch→primary
-        # copy below transfers the union to primary in one shot, so force_all
-        # below reads fresh ρ_{n+1} for every neighbor.
-        if compact:
-            self._bind_pipeline_and_sets(cmd, "density_boundary_compact")
-            vkCmdDispatchIndirect(cmd, self.buffers["band_compact_meta"].handle, 16)
-        elif _BAND_VOXEL_DISPATCH:
-            per_band_density = self._per_band_dispatch_count(
-                density_band, self._ghost_self_layer(2, 1, "density"))
-            if per_band_density > 0:
-                self._bind_pipeline_and_sets(cmd, "density_boundary_band")
-                vkCmdDispatch(cmd, per_band_density, 1, 1)
-        else:
-            self._bind_pipeline_and_sets(cmd, "density_boundary")
-            vkCmdDispatch(cmd, per_p, 1, 1)
-        self._bench_tick(cmd, "c_density_boundary_end")   # kernel vs copy split
+            # Path A+ P5: density_boundary covers only the density boundary band;
+            # density_deep_interior in Phase B already wrote scratch[deep_interior
+            # pids]. Together they cover the full own pid range. The scratch→primary
+            # copy below transfers the union to primary in one shot, so force_all
+            # below reads fresh ρ_{n+1} for every neighbor.
+            if compact:
+                self._bind_pipeline_and_sets(cmd, "density_boundary_compact")
+                vkCmdDispatchIndirect(cmd, self.buffers["band_compact_meta"].handle, 16)
+            elif _BAND_VOXEL_DISPATCH:
+                per_band_density = self._per_band_dispatch_count(
+                    density_band, self._ghost_self_layer(2, 1, "density"))
+                if per_band_density > 0:
+                    self._bind_pipeline_and_sets(cmd, "density_boundary_band")
+                    vkCmdDispatch(cmd, per_band_density, 1, 1)
+            else:
+                self._bind_pipeline_and_sets(cmd, "density_boundary")
+                vkCmdDispatch(cmd, per_p, 1, 1)
+            self._bench_tick(cmd, "c_density_boundary_end")   # kernel vs copy split
         self._record_density_scratch_to_primary_copy(cmd)
         self._bench_tick(cmd, "c_density_end")
         if not _CASCADE_FORCE:
@@ -3631,38 +3800,52 @@ class SphSimulatorV7:
                 self._bind_pipeline_and_sets(cmd, name)
                 vkCmdDispatch(cmd, per_p, 1, 1)
 
-        if use_split:
-            # P3.C validation: substitute _all variants with their split
-            # equivalents. In single-GPU mode in_boundary_band always returns
-            # false (LEADING/TRAILING_GHOST_VOXEL_COUNT = 0), so:
-            #   _interior / _deep_interior cover ALL particles (identical to _all)
-            #   _boundary covers ZERO particles (every thread early-returns)
-            # Output must therefore be bit-identical to the non-split path —
-            # any divergence in alive count or per-buffer state proves a
-            # shader-side bug. (With a fake band the boundary pipelines cover
-            # the band and the interior ones the rest; still equivalent.)
-            self._bind_pipeline_and_sets(cmd, "correction_interior")
-            vkCmdDispatch(cmd, per_p, 1, 1)
-            self._bench_tick(cmd, "correction_interior_end")
-            self._record_compute_barrier(cmd)
-            dispatch_boundary("correction_boundary", correction_band)
+        if self._fused_correction_density_active():
+            # E39 B1: correction + density in one traversal (the split path: interior, then the boundary pass);
+            # the density copy below opens with a barrier.
+            if use_split:
+                self._bind_pipeline_and_sets(cmd, "correction_density_interior")
+                vkCmdDispatch(cmd, per_p, 1, 1)
+                self._bench_tick(cmd, "correction_density_interior_end")
+                self._record_compute_barrier(cmd)
+                dispatch_boundary("correction_density_boundary", correction_band)
+            else:
+                self._bind_pipeline_and_sets(cmd, "correction_density_all")
+                vkCmdDispatch(cmd, per_p, 1, 1)
+            self._bench_tick(cmd, "correction_density_end")
         else:
-            self._bind_pipeline_and_sets(cmd, "correction_all")
-            vkCmdDispatch(cmd, per_p, 1, 1)
-        self._bench_tick(cmd, "correction_end")
-        self._record_compute_barrier(cmd)
+            if use_split:
+                # P3.C validation: substitute _all variants with their split
+                # equivalents. In single-GPU mode in_boundary_band always returns
+                # false (LEADING/TRAILING_GHOST_VOXEL_COUNT = 0), so:
+                #   _interior / _deep_interior cover ALL particles (identical to _all)
+                #   _boundary covers ZERO particles (every thread early-returns)
+                # Output must therefore be bit-identical to the non-split path —
+                # any divergence in alive count or per-buffer state proves a
+                # shader-side bug. (With a fake band the boundary pipelines cover
+                # the band and the interior ones the rest; still equivalent.)
+                self._bind_pipeline_and_sets(cmd, "correction_interior")
+                vkCmdDispatch(cmd, per_p, 1, 1)
+                self._bench_tick(cmd, "correction_interior_end")
+                self._record_compute_barrier(cmd)
+                dispatch_boundary("correction_boundary", correction_band)
+            else:
+                self._bind_pipeline_and_sets(cmd, "correction_all")
+                vkCmdDispatch(cmd, per_p, 1, 1)
+            self._bench_tick(cmd, "correction_end")
+            self._record_compute_barrier(cmd)
 
-        if use_split:
-            self._bind_pipeline_and_sets(cmd, "density_deep_interior")
-            vkCmdDispatch(cmd, per_p, 1, 1)
-            self._bench_tick(cmd, "density_deep_interior_end")
-            self._record_compute_barrier(cmd)
-            dispatch_boundary("density_boundary", density_band)
-            self._bench_tick(cmd, "density_boundary_end")
-            self._record_compute_barrier(cmd)
-        else:
-            self._bind_pipeline_and_sets(cmd, "density_all")
-            vkCmdDispatch(cmd, per_p, 1, 1)
+            if use_split:
+                self._bind_pipeline_and_sets(cmd, "density_deep_interior")
+                vkCmdDispatch(cmd, per_p, 1, 1)
+                self._bench_tick(cmd, "density_deep_interior_end")
+                self._record_compute_barrier(cmd)
+                dispatch_boundary("density_boundary", density_band)
+                self._bench_tick(cmd, "density_boundary_end")
+                self._record_compute_barrier(cmd)
+            else:
+                self._bind_pipeline_and_sets(cmd, "density_all")
+                vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_density_scratch_to_primary_copy(cmd)
         self._bench_tick(cmd, "density_end")
         self._record_compute_barrier(cmd)

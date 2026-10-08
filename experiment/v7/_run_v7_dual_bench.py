@@ -124,6 +124,10 @@ _PER_GPU_KEYS = [
     "readback_trailing_sched_gap_us",
     "upload_trailing_dma_us",
     "upload_trailing_to_c_gap_us",
+    # E39 B1 (V7_FUSED_CORRECTION_DENSITY): the fused kernels in place of correction_interior +
+    # density_deep_interior / correction_boundary + density (last: the earlier columns keep their places)
+    "correction_density_interior_us",
+    "correction_density_boundary_us",
 ]
 
 _WORKER_KEYS = [

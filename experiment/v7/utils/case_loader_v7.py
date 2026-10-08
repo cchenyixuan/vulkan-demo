@@ -402,6 +402,14 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
         lattice=lattice, calibrate_volume=calibrate_volume,
     )
     material_name_to_group = {name: idx for idx, name in enumerate(used_material_names)}
+    # E39 B1: in 2-D every particle stays on z = 0 (positions are flattened below); the fused correction + density
+    # kernel drops the z terms of its 2-D accumulators, which is exact only if nothing ever moves a particle in z.
+    if dimension == 2:
+        moving_in_z = [name for name, material in zip(used_material_names, materials)
+                       if material.initial_velocity[2] != 0.0]
+        if gravity[2] != 0.0 or moving_in_z:
+            raise ValueError(f"2-D case with motion in z: physics.gravity z = {gravity[2]}, initial_velocity z != 0 "
+                             f"for {moving_in_z}; a 2-D case keeps every particle on z = 0")
 
     # Load each source's OBJ; concatenate with material group tagging.
     all_positions_list: list[np.ndarray] = []

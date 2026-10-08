@@ -37,14 +37,19 @@ from experiment.v7.analysis.e31_campaign import CASES           # noqa: E402
 
 E29_SCAN = _REPO_ROOT / "logs/e29_step_trace/scan"
 E29_SUMMARY = _REPO_ROOT / "docs/perf_model/e29/e29_summary.json"
+# E39 B1 (V7_FUSED_CORRECTION_DENSITY): a fused run has c_correction_density_boundary_end /
+# b_correction_density_interior_end in place of the correction / density pairs (segments() keeps the present ones)
 PHASE_C_ORDER = ("c_start", "c_expand_end", "c_install_leading_end", "c_install_trailing_end",
                  "c_append_departed_end", "c_band_compact_end", "c_correction_boundary_end",
-                 "c_density_boundary_end", "c_density_end", "c_force_end")
-PHASE_B_ORDER = ("b_start", "b_correction_interior_end", "b_density_deep_interior_end", "b_force_deep_interior_end")
+                 "c_density_boundary_end", "c_correction_density_boundary_end", "c_density_end", "c_force_end")
+PHASE_B_ORDER = ("b_start", "b_correction_interior_end", "b_density_deep_interior_end",
+                 "b_correction_density_interior_end", "b_force_deep_interior_end")
 SEGMENT_NAMES = {"c_expand_end": "expand_ghost_lists", "c_install_leading_end": "install_migrations leading",
                  "c_install_trailing_end": "install_migrations trailing", "c_append_departed_end": "append_departed",
                  "c_band_compact_end": "band_compact", "c_correction_boundary_end": "correction_boundary",
                  "c_density_boundary_end": "density_boundary", "c_density_end": "density copy (scratch -> primary)",
+                 "c_correction_density_boundary_end": "correction_density_boundary (fused)",
+                 "b_correction_density_interior_end": "correction_density_interior (fused)",
                  "c_force_end": "force_boundary",
                  "b_correction_interior_end": "correction_interior", "b_density_deep_interior_end": "density_deep_interior",
                  "b_force_deep_interior_end": "force_deep_interior"}
@@ -175,6 +180,9 @@ def dispatch_sizes(case_path: str, slab_count: int) -> list:
                                       if slab.capacities.departed_pool_size > 0 and sim._transport_segments else 0),
             "c_correction_boundary_end": sim._per_band_dispatch_count(correction_band, sim._ghost_self_layer(2, 1, "correction")),
             "c_density_boundary_end": sim._per_band_dispatch_count(density_band, sim._ghost_self_layer(2, 1, "density")),
+            # E39 B1: the fused band kernel takes correction's band and self layer (equal to density's when it runs)
+            "c_correction_density_boundary_end": sim._per_band_dispatch_count(
+                correction_band, sim._ghost_self_layer(2, 1, "correction")),
             "c_force_end": sim._per_band_dispatch_count(force_band),
         }
         out.append({"slab": index, "workgroup": workgroup, "lanes": _BAND_SLOT_LANES,
@@ -334,9 +342,10 @@ def figures(result: dict, out: pathlib.Path) -> list:
     # 3. phase C segments (K = 2 s0, and the K = 1 run), stacked
     phasec = result["phasec"]
     segment_order = ["c_expand_end", "c_install_leading_end", "c_install_trailing_end", "c_append_departed_end",
-                     "c_correction_boundary_end", "c_density_boundary_end", "c_density_end", "c_force_end"]
+                     "c_correction_boundary_end", "c_density_boundary_end", "c_correction_density_boundary_end",
+                     "c_density_end", "c_force_end"]
     colors = dict(zip(segment_order, ["#9e9e9e", "#bdbdbd", "#bdbdbd", "#e0e0e0", "tab:green", "tab:olive",
-                                      "tab:purple", "tab:red"]))
+                                      "tab:cyan", "tab:purple", "tab:red"]))
     bars = []
     for name in ("2d_10k", "2d_1m", "3d_narrow", "3d_8m"):
         for kind in ("k1", "k2"):

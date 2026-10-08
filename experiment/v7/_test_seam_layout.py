@@ -38,6 +38,12 @@ _test_seam_layout.py — CPU-only checks of the V6 seam layout (no Vulkan device
    (phase B start, single-cmd step, K = 1 bootstrap), the variant pipelines (spec 111-113), the marker pipelines and
    the two buffers; the band rule (correction and density skip the same columns, never one a density band kernel
    computes); the CPU candidate count vs a particle-by-particle reference, the AUTO rule; the shader text.
+10. V7_FUSED_CORRECTION_DENSITY (E39 B1): parsing; switch 0 = the B4 build (its SPIR-V files and its simulator_v7.py
+   from git: command streams, buffers, modules, pipelines, B4 off and on); switch 1: a slab fuses exactly when its
+   correction and density pipelines take the same particles (else the switch-0 build, with the reason); a fused
+   slab's streams are switch 0's with every correction / density pair replaced by one fused dispatch (phase B, phase
+   C band, bootstrap, single-cmd step and its split path), its fused pipelines carry correction's spec entries (B4's
+   variant for the interior / peerless full-domain one); the tick-label consumers; the shader text.
 
 Usage:
     .venv/Scripts/python.exe experiment/v7/_test_seam_layout.py
@@ -1045,8 +1051,11 @@ def check_density_copy(failures: list) -> None:
                             if stream_on != (stream_off[:start] + compute_stream
                                              + stream_off[start + len(transfer_stream):]):
                                 failures.append(f"{tag} {name}: switch 1 changes more than the copy")
+                            # E39 B1: on a fused slab the fused band kernel's tick precedes the copy
+                            before_copy = ("c_correction_density_boundary_end"
+                                           if timed._fused_correction_density_active() else "c_density_boundary_end")
                             if name == "phase C" and (
-                                    stream_on[start - 1] != ("tick", "c_density_boundary_end")
+                                    stream_on[start - 1] != ("tick", before_copy)
                                     or stream_on[start + len(compute_stream)] != ("tick", "c_density_end")):
                                 failures.append(f"{tag}: the step trace ticks do not bracket the copy")
         # one region (own range: K = 1, one ghost layer, no density self pass), three (an edge slab: own, one inner
@@ -1869,10 +1878,13 @@ def check_deep_wall_skip(failures: list) -> None:
     saved_environment = {key: value for key, value in os.environ.items() if key.startswith("V7_")}
     saved_constants = {name: getattr(simulator_v7, name) for name in
                        ("_DEEP_WALL_SKIP", "_DEEP_WALL_CHECK", "_DEEP_WALL_RECORD_DECISIONS", "_BAND_COMPACT",
-                        "_FAKE_BAND_COLUMN")}
+                        "_FAKE_BAND_COLUMN", "_FUSED_CORRECTION_DENSITY")}
     saved_reference = {name: getattr(reference_module, name) for name in ("_BAND_COMPACT", "_FAKE_BAND_COLUMN")}
     for (module, name) in saved_functions:
         setattr(module, name, recorders[name])
+    # E39 B1: the B6 build records the separate correction / density kernels (check_fused_correction_density
+    # covers B4 inside the fused kernel)
+    simulator_v7._FUSED_CORRECTION_DENSITY = 0
     configurations = [("legacy layers=1 keep=0", (1, 0), None, False, 0),
                       ("legacy layers=2 keep=1", (2, 1), None, False, 0),
                       ("release defaults", None, None, False, 0),
@@ -2139,6 +2151,618 @@ def check_deep_wall_skip(failures: list) -> None:
             failures.append(f"deep_wall_marker.comp: {fragment!r} missing")
 
 
+B4_COMMIT = "bf91694"    # E39 B4: the build V7_FUSED_CORRECTION_DENSITY=0 must reproduce (E39 B1)
+
+
+def check_fused_correction_density(failures: list) -> None:
+    """E39 B1 (V7_FUSED_CORRECTION_DENSITY, shaders/correction_density.comp):
+      - parsing: 0 / 1 (blanks ignored) parse, everything else is refused; the registry reports the switch;
+      - V7_FUSED_CORRECTION_DENSITY=0 is the B4 build (B4_COMMIT): every tracked SPIR-V file of that commit is
+        byte-identical here; simulator_v7.py of that commit, loaded from git, and this one record the same command
+        streams (phase A, B, C (both parities), bootstrap init / compute, defrag, transfer readback / upload, K = 1
+        single-cmd step and its split variant), the same buffer specs, shader modules and pipelines (module, spec
+        entries), with B4 off and forced on - 2-D and 3-D chains of K = 1..3 (edge and interior slabs), one / two
+        ghost layers, the release defaults, band widths 2,3,4 and 3,3,5, the compact band dispatch, a fake band at
+        K = 1, V7_DIAG_GHOST_SELF naming one kernel / none, cascade force off, the band-voxel dispatch off, adami at
+        K = 1;
+      - V7_FUSED_CORRECTION_DENSITY=1: a slab fuses exactly when its correction and density pipelines take the same
+        particles (spec 82, 57, 58, 59, 85 equal in every mode) and the compact dispatch is off; otherwise
+        (2,3,4, the compact dispatch, V7_DIAG_GHOST_SELF naming one kernel) it records, builds and loads exactly the
+        switch-0 streams / pipelines / modules and gives the reason. A fused slab: the switch-0 buffer specs; the
+        switch-0 modules + correction_density (+ its DEEP_WALL_SKIP variant with B4); the switch-0 pipelines +
+        correction_density_all / _interior / _boundary / _boundary_band with correction's spec entries of that mode
+        and dispatch (the interior one, and the full-domain one without peers, from the variant with B4's 111-113);
+        the switch-0 streams with every correction / density pair replaced by one fused dispatch: phase B (+ tick
+        b_correction_density_interior_end), phase C's band (correction's dispatch size, tick
+        c_correction_density_boundary_end before the density copy), the bootstrap (_all, + the band pass with two
+        ghost layers and a peer, a barrier between them), the single-cmd step (_all + tick correction_density_end;
+        the split path: interior, barrier, boundary pass);
+      - tick labels: every phase B / C tick of a fused recording is a steps_device.csv column (phase_trace_v7), the
+        phase-end tuples and weight_calibration's phase B end know the fused labels, compute_durations turns fused
+        tick streams into the fused keys and the phase / gap keys, step_trace_model splits phase B at the fused
+        kernel's end;
+      - the shader text: correction.comp's epilogue verbatim, its neighbour loop header and per-pair correction
+        statements, density.comp's pair conditions and epilogue, B4's decision with both kernels' records and the
+        zero-sum density epilogue, correction.comp's main(), no spec constant of its own; the B4 variant is a
+        compile_shaders_v7 variant."""
+    import contextlib
+    import hashlib
+    import io
+    import math
+    import re
+    import subprocess
+    from types import SimpleNamespace
+    import experiment.v7.utils.bench_v7 as bench_v7
+    import experiment.v7.utils.case_v7 as case_v7
+    import experiment.v7.utils.partition_v7 as partition_v7
+    import experiment.v7.utils.phase_trace_v7 as phase_trace_v7
+    import experiment.v7.utils.simulator_v7 as simulator_v7
+    import experiment.v7.weight_calibration as weight_calibration
+    from experiment.v7.analysis import step_trace_model
+    from experiment.v7 import compile_shaders_v7
+    import vulkan
+
+    # ---- parsing / registry
+    for text, expected in (("0", 0), ("1", 1), (" 1 ", 1), ("0\n", 0)):
+        try:
+            if simulator_v7._parse_fused_correction_density(text) != expected:
+                failures.append(f"V7_FUSED_CORRECTION_DENSITY={text!r} parsed as "
+                                f"{simulator_v7._parse_fused_correction_density(text)!r}")
+        except ValueError as error:
+            failures.append(f"V7_FUSED_CORRECTION_DENSITY={text!r} refused: {error}")
+    for text in ("", "2", "on", "off", "true", "yes", "-1", "1.0", "01", "auto"):
+        try:
+            simulator_v7._parse_fused_correction_density(text)
+            failures.append(f"V7_FUSED_CORRECTION_DENSITY={text!r} accepted")
+        except ValueError:
+            pass
+    if simulator_v7.configured_v7_switches().get("V7_FUSED_CORRECTION_DENSITY") != \
+            simulator_v7._FUSED_CORRECTION_DENSITY:
+        failures.append("configured_v7_switches() does not report V7_FUSED_CORRECTION_DENSITY")
+    source = pathlib.Path(simulator_v7.__file__).read_text(encoding="utf-8")
+    if not re.search(r'_parse_fused_correction_density\(os\.environ\.get\("V7_FUSED_CORRECTION_DENSITY", "1"\)\)',
+                     source):
+        failures.append("simulator_v7.py: default V7_FUSED_CORRECTION_DENSITY=1 not found")
+
+    # ---- the B4 build: SPIR-V and simulator
+    spv_directory = pathlib.Path(__file__).resolve().parent / "shaders" / "spv"
+    listing = subprocess.run(["git", "ls-tree", "--name-only", B4_COMMIT, "experiment/v7/shaders/spv/"],
+                             cwd=_REPO_ROOT, capture_output=True, text=True)
+    committed_spv = [line for line in listing.stdout.split() if line.endswith(".spv")]
+    if listing.returncode != 0 or not committed_spv:
+        failures.append(f"git: the SPIR-V files of {B4_COMMIT} are not listed (switch-0 identity unchecked)")
+    for path in committed_spv:
+        blob = subprocess.run(["git", "show", f"{B4_COMMIT}:{path}"], cwd=_REPO_ROOT, capture_output=True).stdout
+        current = spv_directory / pathlib.Path(path).name
+        if not current.exists() or current.read_bytes() != blob:
+            failures.append(f"{pathlib.Path(path).name}: differs from {B4_COMMIT} (switch 0 must run the B4 SPIR-V)")
+    new_spv = sorted(path.name for path in spv_directory.glob("*.spv")
+                     if f"experiment/v7/shaders/spv/{path.name}" not in committed_spv)
+    if new_spv != ["correction_density.comp.spv", "correction_density_deep_wall_skip.comp.spv"]:
+        failures.append(f"SPIR-V files beside {B4_COMMIT}'s: {new_spv}")
+    if ("correction_density_deep_wall_skip", "correction_density.comp", ("DEEP_WALL_SKIP",)) \
+            not in compile_shaders_v7.SHADER_VARIANTS:
+        failures.append("compile_shaders_v7.SHADER_VARIANTS lacks correction_density_deep_wall_skip")
+    reference_module = _load_committed_simulator(B4_COMMIT)
+    if reference_module is None:
+        failures.append(f"git: simulator_v7.py of {B4_COMMIT} not loadable (switch-0 recording unchecked)")
+        return
+    # both modules froze their switches at import: run the B4 module with this module's values
+    for name, value in vars(simulator_v7).items():
+        if re.fullmatch(r"_[A-Z][A-Z0-9_]*", name) and name in vars(reference_module) \
+                and isinstance(value, (bool, int, float, str, tuple, frozenset)):
+            setattr(reference_module, name, value)
+
+    compute_stage = vulkan.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
+    storage_access = vulkan.VK_ACCESS_2_SHADER_STORAGE_READ_BIT | vulkan.VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
+    compute_barrier = ("barrier", compute_stage, storage_access, compute_stage, storage_access)
+    sets = ("sets", "pipeline_layout", 0, 4)
+    events: list = []
+
+    def record_barrier(cmd, info):
+        for index in range(info.memoryBarrierCount):
+            barrier = info.pMemoryBarriers[index]
+            events.append(("barrier", int(barrier.srcStageMask), int(barrier.srcAccessMask),
+                           int(barrier.dstStageMask), int(barrier.dstAccessMask)))
+        if info.bufferMemoryBarrierCount or info.imageMemoryBarrierCount:
+            events.append(("barrier_other", int(info.bufferMemoryBarrierCount), int(info.imageMemoryBarrierCount)))
+
+    def record_copy(cmd, source_buffer, destination_buffer, count, regions):
+        events.append(("copy", source_buffer, destination_buffer,
+                       tuple((int(regions[index].srcOffset), int(regions[index].dstOffset), int(regions[index].size))
+                             for index in range(count))))
+
+    recorders = {
+        "vkCmdPipelineBarrier2": record_barrier,
+        "vkCmdCopyBuffer": record_copy,
+        "vkCmdDispatch": lambda cmd, group_count_x, group_count_y, group_count_z:
+            events.append(("dispatch", int(group_count_x), int(group_count_y), int(group_count_z))),
+        "vkCmdDispatchIndirect": lambda cmd, buffer, offset: events.append(("dispatch_indirect", buffer, int(offset))),
+        "vkCmdBindPipeline": lambda cmd, point, pipeline: events.append(("bind", pipeline)),
+        "vkCmdBindDescriptorSets": lambda cmd, point, layout, first, count, descriptor_sets, *rest:
+            events.append(("sets", layout, int(first), int(count))),
+        "vkCmdFillBuffer": lambda cmd, buffer, offset, size, value:
+            events.append(("fill", buffer, int(offset), int(size), int(value))),
+        "vkBeginCommandBuffer": lambda cmd, info: events.append(("begin",)),
+        "vkEndCommandBuffer": lambda cmd: events.append(("end",)),
+        "VkShaderModuleCreateInfo": lambda codeSize, pCode: pCode,
+        "vkCreateShaderModule": lambda device, code, allocator: "module:" + hashlib.sha256(code).hexdigest()[:16],
+    }
+
+    class PipelineNames(dict):
+        def __missing__(self, key):
+            return f"pipeline:{key}"
+
+    class TickRecorder:
+        parity_regions = False
+
+        def tick(self, cmd, label):
+            events.append(("tick", label))
+
+        def record_step_reset_and_start(self, cmd, label):
+            events.append(("tick", label))
+
+        def record_defrag_reset_and_start(self, cmd, label):
+            events.append(("tick", label))
+
+        def begin_phase_c_region(self, cmd, parity):
+            events.append(("phase_c_region", parity))
+
+        def end_phase_c_region(self):
+            pass
+
+    def fake(module, slab):
+        simulator = object.__new__(module.SphSimulatorV7)
+        simulator.case = slab
+        simulator.band_widths = simulator._configured_band_widths()
+        specs = simulator._build_buffer_specs()
+        simulator._buffer_specs = specs
+        simulator.buffers = {spec.name: SimpleNamespace(handle=f"buffer:{spec.name}", size=spec.size) for spec in specs}
+        simulator.scratch_buffers = {spec.name: SimpleNamespace(handle=f"scratch:{spec.name}", size=spec.size)
+                                     for spec in specs if spec.set_index == 0}
+        simulator.pipelines = PipelineNames()
+        simulator.pipeline_layout = "pipeline_layout"
+        simulator.defrag_pipeline_layout = "defrag_pipeline_layout"
+        simulator.defrag_set4 = "set4"
+        simulator.descriptor_sets = ["set0", "set1", "set2", "set3"]
+        simulator._transport_segments = {direction: [] for direction in ("leading", "trailing")
+                                         if getattr(slab.transport, f"has_{direction}_peer")}
+        simulator.staging_buffers = {f"{role}_staging_{direction}": SimpleNamespace(handle=f"{role}:{direction}")
+                                     for role in ("sender", "receiver") for direction in simulator._transport_segments}
+        simulator._recv_status_overrides = {direction: {} for direction in simulator._transport_segments}
+        simulator.bench = TickRecorder()
+        simulator.bench_transfer = None
+        simulator.step_single_use_split = False
+        simulator._allocate_oneshot_cmd = lambda: "cmd"
+        simulator._allocate_transfer_oneshot_cmd = lambda: "transfer_cmd"
+        simulator.ctx = SimpleNamespace(device="device")
+        simulator._spec_keepalive = []
+        simulator._create_pipeline = lambda shader, entries: ("pipeline", shader, tuple(entries))
+        with contextlib.redirect_stdout(io.StringIO()):
+            simulator.shader_modules = simulator._load_shader_modules()
+            simulator.built_pipelines = simulator._build_compute_pipelines()
+        return simulator
+
+    def capture(function) -> list:
+        events.clear()
+        function()
+        return list(events)
+
+    def recordings(simulator) -> dict:
+        result = {"phase A": capture(simulator._record_phase_a_cmd),
+                  "phase B": capture(simulator._record_phase_b_cmd),
+                  "phase C even": capture(lambda: simulator._record_phase_c_cmd(0)),
+                  "phase C odd": capture(lambda: simulator._record_phase_c_cmd(1)),
+                  "bootstrap init": capture(simulator._record_bootstrap_init_cmd),
+                  "bootstrap compute": capture(simulator._record_bootstrap_compute_cmd),
+                  "defrag": capture(simulator._record_defrag_cmd)}
+        for direction in simulator._transport_segments:
+            result[f"readback {direction}"] = capture(lambda: simulator._record_transfer_readback_cmd(direction))
+            result[f"upload {direction}"] = capture(lambda: simulator._record_transfer_upload_cmd(direction))
+        if not simulator._transport_segments:
+            result["single"] = capture(simulator._record_step_single_cmd)
+            simulator.step_single_use_split = True
+            result["single split"] = capture(simulator._record_step_single_cmd)
+            simulator.step_single_use_split = False
+        return result
+
+    def spec_tuples(simulator) -> list:
+        return [(spec.name, spec.set_index, spec.binding, spec.size, spec.usage) for spec in simulator._buffer_specs]
+
+    def replace_once(stream: list, old: list, new: list, tag: str):
+        """stream with the one occurrence of the segment old replaced by new (None + a failure otherwise)."""
+        starts = [index for index in range(len(stream) - len(old) + 1) if stream[index:index + len(old)] == old]
+        if len(starts) != 1:
+            failures.append(f"{tag}: the separate correction / density segment occurs {len(starts)} times")
+            return None
+        return stream[:starts[0]] + new + stream[starts[0] + len(old):]
+
+    def bind(key: str) -> list:
+        return [("bind", f"pipeline:{key}"), sets]
+
+    def fused_streams(off_streams: dict, simulator, tag: str) -> dict:
+        """The streams a fused slab must record: the switch-0 streams with each correction / density pair
+        replaced by the fused dispatch (the expected value of every site; the rest unchanged)."""
+        slab = simulator.case
+        per_particle = ("dispatch", math.ceil(slab.capacities.own_pool_size / slab.capacities.workgroup_size), 1, 1)
+        correction_band, density_band, _ = simulator.band_widths
+        expected = dict(off_streams)
+        expected["phase B"] = replace_once(
+            off_streams["phase B"],
+            bind("correction_interior") + [per_particle, compute_barrier, ("tick", "b_correction_interior_end")]
+            + bind("density_deep_interior") + [per_particle, compute_barrier, ("tick", "b_density_deep_interior_end")],
+            bind("correction_density_interior") + [per_particle, compute_barrier,
+                                                   ("tick", "b_correction_density_interior_end")], f"{tag} phase B")
+        if simulator_v7._BAND_VOXEL_DISPATCH:
+            correction_groups = simulator._per_band_dispatch_count(
+                correction_band, simulator._ghost_self_layer(2, 1, "correction"))
+            density_groups = simulator._per_band_dispatch_count(
+                density_band, simulator._ghost_self_layer(2, 1, "density"))
+            if correction_groups != density_groups:
+                failures.append(f"{tag}: fused slab with band dispatches {correction_groups} / {density_groups}")
+            correction_part = (bind("correction_boundary_band") + [("dispatch", correction_groups, 1, 1)]
+                               if correction_groups > 0 else [])
+            density_part = (bind("density_boundary_band") + [("dispatch", density_groups, 1, 1)]
+                            if density_groups > 0 else [])
+            fused_part = (bind("correction_density_boundary_band") + [("dispatch", correction_groups, 1, 1)]
+                          if correction_groups > 0 else [])
+        else:
+            correction_part = bind("correction_boundary") + [per_particle]
+            density_part = bind("density_boundary") + [per_particle]
+            fused_part = bind("correction_density_boundary") + [per_particle]
+        for name in ("phase C even", "phase C odd"):
+            expected[name] = replace_once(
+                off_streams[name],
+                correction_part + [compute_barrier, ("tick", "c_correction_boundary_end")] + density_part
+                + [("tick", "c_density_boundary_end")],
+                fused_part + [("tick", "c_correction_density_boundary_end")], f"{tag} {name}")
+        ghost_self = slab.ghost_grid.ghost_layers >= 2 and bool(simulator._transport_segments)
+        band_dispatch = ("dispatch", simulator._per_band_dispatch_count(
+            correction_band, simulator._ghost_self_layer(2, 1, "correction")), 1, 1)
+        old = bind("correction_all") + [per_particle, compute_barrier]
+        new = bind("correction_density_all") + [per_particle]
+        if ghost_self:
+            old += bind("correction_boundary_band") + [band_dispatch, compute_barrier]
+            new += [compute_barrier] + bind("correction_density_boundary_band") + [band_dispatch]
+        old += bind("density_all") + [per_particle]
+        if ghost_self:
+            old += [compute_barrier] + bind("density_boundary_band") + [band_dispatch]
+        expected["bootstrap compute"] = replace_once(off_streams["bootstrap compute"], old, new,
+                                                     f"{tag} bootstrap compute")
+        if not simulator._transport_segments:
+            def boundary(name: str, band_range: int) -> list:
+                if simulator_v7._BAND_VOXEL_DISPATCH and simulator._band_thread_count(band_range) > 0:
+                    return bind(name + "_band") + [("dispatch", simulator._per_band_dispatch_count(band_range), 1, 1)]
+                return bind(name) + [per_particle]
+            split_old = (bind("correction_interior") + [per_particle, ("tick", "correction_interior_end"),
+                                                        compute_barrier]
+                         + boundary("correction_boundary", correction_band)
+                         + [("tick", "correction_end"), compute_barrier]
+                         + bind("density_deep_interior") + [per_particle, ("tick", "density_deep_interior_end"),
+                                                            compute_barrier]
+                         + boundary("density_boundary", density_band)
+                         + [("tick", "density_boundary_end"), compute_barrier])
+            split_new = (bind("correction_density_interior") + [per_particle, ("tick", "correction_density_interior_end"),
+                                                                compute_barrier]
+                         + boundary("correction_density_boundary", correction_band)
+                         + [("tick", "correction_density_end")])
+            # a fake band (V7_FAKE_BAND_TEST) makes the plain single-cmd step take the split path too
+            if simulator._fake_band_column() > 0:
+                expected["single"] = replace_once(off_streams["single"], split_old, split_new, f"{tag} single")
+            else:
+                expected["single"] = replace_once(
+                    off_streams["single"],
+                    bind("correction_all") + [per_particle, ("tick", "correction_end"), compute_barrier]
+                    + bind("density_all") + [per_particle],
+                    bind("correction_density_all") + [per_particle, ("tick", "correction_density_end")],
+                    f"{tag} single")
+            expected["single split"] = replace_once(off_streams["single split"], split_old, split_new,
+                                                    f"{tag} single split")
+        return expected
+
+    def same_particle_sets(simulator) -> bool:
+        """correction's and density's pipelines take the same particles in every mode / dispatch (the spec
+        constants that decide it: 82 band, 57 dispatch, 58 lanes, 59 fake band, 85 inner ghost column)."""
+        for mode, band_dispatch in ((0, 0), (1, 0), (2, 0), (2, 1), (2, 2)):
+            correction = {key: value for key, _, value in simulator._correction_mode_entries(mode, band_dispatch)}
+            density = {key: value for key, _, value in simulator._density_mode_entries(mode, band_dispatch)}
+            if any(correction[key] != density[key] for key in (82, 57, 58, 59, 85)):
+                return False
+        return True
+
+    module_constants = ("_FUSED_CORRECTION_DENSITY", "_DEEP_WALL_SKIP", "_DEEP_WALL_CHECK", "_DEEP_WALL_RECORD_DECISIONS",
+                        "_BAND_COMPACT", "_FAKE_BAND_COLUMN", "_DIAG_GHOST_SELF_KERNELS", "_CASCADE_FORCE",
+                        "_BAND_VOXEL_DISPATCH")
+    saved_functions = {(module, name): getattr(module, name) for module in (simulator_v7, reference_module)
+                       for name in recorders}
+    saved_environment = {key: value for key, value in os.environ.items() if key.startswith("V7_")}
+    saved_constants = {(module, name): getattr(module, name) for module in (simulator_v7, reference_module)
+                       for name in module_constants if hasattr(module, name)}
+    for (module, name) in saved_functions:
+        setattr(module, name, recorders[name])
+    # (label, (layers, keep departed) or None = release, V7_BAND_WIDTHS, compact, fake band column,
+    #  V7_DIAG_GHOST_SELF kernels or None = default, cascade force, band-voxel dispatch, expected fused)
+    configurations = [
+        ("legacy layers=1 keep=0, band widths 2,2,3", (1, 0), "2,2,3", False, 0, None, True, True, True),
+        ("legacy layers=2 keep=1, band widths 2,2,3", (2, 1), "2,2,3", False, 0, None, True, True, True),
+        ("legacy layers=1 keep=0 (band widths 2,3,4)", (1, 0), None, False, 0, None, True, True, False),
+        ("release defaults", None, None, False, 0, None, True, True, True),
+        ("release, band widths 2,3,4", None, "2,3,4", False, 0, None, True, True, False),
+        ("release, band widths 3,3,5", None, "3,3,5", False, 0, None, True, True, True),
+        ("release, compact band dispatch", None, "2,3,4", True, 0, None, True, True, False),
+        ("release, fake band 5", None, None, False, 5, None, True, True, True),
+        ("release, V7_DIAG_GHOST_SELF=correction", None, None, False, 0, ("correction",), True, True, None),
+        ("release, V7_DIAG_GHOST_SELF=density", None, None, False, 0, ("density",), True, True, None),
+        ("release, V7_DIAG_GHOST_SELF=(none)", None, None, False, 0, (), True, True, True),
+        ("release, cascade force off", None, None, False, 0, None, False, True, True),
+        ("release, band-voxel dispatch off", (1, 0), "2,2,3", False, 0, None, True, False, True),
+    ]
+    exercised = set()
+    try:
+        for (label, switches, widths, compact, fake_column, self_kernels, cascade, band_voxel,
+             expected_fused) in configurations:
+            for key in [key for key in os.environ if key.startswith("V7_")]:
+                del os.environ[key]
+            if switches is not None:
+                _set_switches(*switches)
+            if widths is not None:
+                os.environ["V7_BAND_WIDTHS"] = widths
+            if not band_voxel:
+                os.environ["V7_BAND_VOXEL_DISPATCH"] = "0"
+            if self_kernels is not None:      # the packed-replica default follows the variable
+                os.environ["V7_DIAG_GHOST_SELF"] = ",".join(self_kernels)
+            kernels = saved_constants[(simulator_v7, "_DIAG_GHOST_SELF_KERNELS")] if self_kernels is None \
+                else self_kernels
+            for module in (simulator_v7, reference_module):
+                module._BAND_COMPACT = compact
+                module._FAKE_BAND_COLUMN = fake_column
+                module._DIAG_GHOST_SELF_KERNELS = kernels
+                module._CASCADE_FORCE = cascade
+                module._BAND_VOXEL_DISPATCH = band_voxel
+            for depth_count in (1, 3):
+                for slab_count in ((1,) if fake_column else (1, 2, 3)):
+                    chain = partition_v7.compute_chain_partition(
+                        _thick_wall_case(case_v7, depth_count, 3), [1.0] * slab_count, pool_safety=1.2)
+                    slabs = list(chain.slabs)
+                    if slab_count == 1 and not fake_column:       # E37 adami: one slab only
+                        slabs.append(dataclasses.replace(slabs[0], numerics=dataclasses.replace(
+                            slabs[0].numerics, wall_boundary="adami")))
+                    for index, slab in enumerate(slabs):
+                        peers = bool(slab.transport.has_leading_peer or slab.transport.has_trailing_peer)
+                        for deep_wall in ("0", "1"):
+                            tag = (f"fused {label} {'3-D' if depth_count > 1 else '2-D'} K={slab_count} slab {index}"
+                                   f"{' adami' if slab.numerics.wall_boundary == 'adami' else ''} B4={deep_wall}")
+                            for module in (simulator_v7, reference_module):
+                                module._DEEP_WALL_SKIP = deep_wall
+                                module._DEEP_WALL_CHECK, module._DEEP_WALL_RECORD_DECISIONS = 0, False
+                            simulator_v7._FUSED_CORRECTION_DENSITY = 0
+                            reference = fake(reference_module, slab)
+                            off = fake(simulator_v7, slab)
+                            if off._fused_correction_density_active() or \
+                                    off.fused_correction_density_resolution[1] != "V7_FUSED_CORRECTION_DENSITY=0":
+                                failures.append(f"{tag}: switch 0 resolves {off.fused_correction_density_resolution}")
+                            reference_streams, off_streams = recordings(reference), recordings(off)
+                            for name, stream in reference_streams.items():
+                                if off_streams.get(name) != stream:
+                                    failures.append(f"{tag} {name}: switch 0 does not record the {B4_COMMIT} stream")
+                            if set(off_streams) != set(reference_streams):
+                                failures.append(f"{tag}: recordings {sorted(off_streams)} vs {sorted(reference_streams)}")
+                            if spec_tuples(off) != spec_tuples(reference):
+                                failures.append(f"{tag}: switch 0 buffer specs differ from {B4_COMMIT}")
+                            if off.shader_modules != reference.shader_modules:
+                                failures.append(f"{tag}: switch 0 shader modules differ from {B4_COMMIT}")
+                            if off.built_pipelines != reference.built_pipelines:
+                                failures.append(f"{tag}: switch 0 pipelines differ from {B4_COMMIT}")
+                            # ---- switch 1
+                            simulator_v7._FUSED_CORRECTION_DENSITY = 1
+                            on = fake(simulator_v7, slab)
+                            active, reason = on.fused_correction_density_resolution
+                            rule = same_particle_sets(on) and not compact
+                            if active != rule or (expected_fused is not None and active != expected_fused):
+                                failures.append(f"{tag}: resolved {active} ({reason}), rule {rule}, "
+                                                f"configuration {expected_fused}")
+                            exercised.add((active, depth_count > 1, slab_count, peers, deep_wall))
+                            on_streams = recordings(on)
+                            if not active:
+                                if not reason.startswith("fallback"):
+                                    failures.append(f"{tag}: fallback without a reason ({reason})")
+                                if on_streams != off_streams or on.built_pipelines != off.built_pipelines \
+                                        or on.shader_modules != off.shader_modules or spec_tuples(on) != spec_tuples(off):
+                                    failures.append(f"{tag}: the fallback is not the switch-0 build")
+                                continue
+                            expected = fused_streams(off_streams, on, tag)
+                            for name, stream in on_streams.items():
+                                if stream != expected.get(name):
+                                    failures.append(f"{tag} {name}: the fused stream is not the switch-0 stream with "
+                                                    "each correction / density pair replaced by its fused dispatch")
+                            if spec_tuples(on) != spec_tuples(off):
+                                failures.append(f"{tag}: the fused slab changes the buffer specs")
+                            variant = on._deep_wall_skip_active()
+                            wanted_modules = {"correction_density"} | ({"correction_density_deep_wall_skip"}
+                                                                       if variant else set())
+                            new_modules = {key: value for key, value in on.shader_modules.items()
+                                           if key not in off.shader_modules}
+                            if set(new_modules) != wanted_modules or \
+                                    any(on.shader_modules[key] != value for key, value in off.shader_modules.items()):
+                                failures.append(f"{tag}: shader modules {sorted(new_modules)}")
+                            fused_keys = {"correction_density_all": (0, 0), "correction_density_interior": (1, 0),
+                                          "correction_density_boundary": (2, 0),
+                                          "correction_density_boundary_band": (2, 1)}
+                            variant_keys = set()
+                            if variant:
+                                variant_keys = {"correction_density_interior"} | (
+                                    {"correction_density_all"} if not peers else set())
+                            b4_entries = ((111, "I", on.band_widths[1]), (112, "B", 0), (113, "B", False))
+                            for key, (mode, band_dispatch) in fused_keys.items():
+                                entries = tuple(on._global_entries() + on._correction_mode_entries(mode, band_dispatch))
+                                wanted = (("pipeline", on.shader_modules.get("correction_density_deep_wall_skip"),
+                                           entries + b4_entries) if key in variant_keys
+                                          else ("pipeline", on.shader_modules.get("correction_density"), entries))
+                                if on.built_pipelines.get(key) != wanted:
+                                    failures.append(f"{tag}: pipeline {key} {on.built_pipelines.get(key)} != {wanted}")
+                            if {key: value for key, value in on.built_pipelines.items() if key not in fused_keys} \
+                                    != off.built_pipelines:
+                                failures.append(f"{tag}: the fused slab changes a separate pipeline "
+                                                f"{sorted(set(on.built_pipelines) ^ set(off.built_pipelines))}")
+                            # ---- the tick labels the fused streams carry reach the step trace columns
+                            for name, stream in on_streams.items():
+                                for event in stream:
+                                    if event[0] == "tick" and event[1].startswith(("b_", "c_")) and \
+                                            event[1] not in phase_trace_v7.STEP_DEVICE_TIMES:
+                                        failures.append(f"{tag} {name}: tick {event[1]} is no steps_device.csv column")
+        for three_d in (False, True):
+            for slab_count, peers in ((1, False), (2, True), (3, True)):
+                for deep_wall in ("0", "1"):
+                    if (True, three_d, slab_count, peers, deep_wall) not in exercised:
+                        failures.append(f"fused: no fused slab 3-D={three_d} K={slab_count} B4={deep_wall}")
+        if not any(not entry[0] for entry in exercised):
+            failures.append("fused: no fallback slab exercised")
+    finally:
+        for (module, name), function in saved_functions.items():
+            setattr(module, name, function)
+        for (module, name), value in saved_constants.items():
+            setattr(module, name, value)
+        for key in [key for key in os.environ if key.startswith("V7_")]:
+            del os.environ[key]
+        os.environ.update(saved_environment)
+
+    # ---- tick label consumers
+    for label in ("b_correction_density_interior_end",):
+        if label not in phase_trace_v7._B_END_LABELS or label not in phase_trace_v7.PHASE_TICKS:
+            failures.append(f"phase_trace_v7: {label} not a phase B end label / phase tick")
+        if label not in weight_calibration.PHASE_LABELS["B"][1]:
+            failures.append(f"weight_calibration: {label} does not end phase B")
+    if phase_trace_v7._B_END_LABELS.index("b_correction_density_interior_end") > \
+            phase_trace_v7._B_END_LABELS.index("b_correction_interior_end"):
+        failures.append("phase_trace_v7._B_END_LABELS: the fused label after correction_interior's")
+
+    def ticks_of(sequence: list) -> dict:
+        return {label: 1000.0 * (index + 1) for index, label in enumerate(sequence)}
+    fused_dual = ticks_of(["a_start", "a_predict_end", "a_voxel_end", "a_ghost_trailing_end", "b_start",
+                           "b_deep_wall_marker_end", "b_correction_density_interior_end", "b_force_deep_interior_end",
+                           "c_start", "c_expand_end", "c_install_trailing_end", "c_append_departed_end",
+                           "c_correction_density_boundary_end", "c_density_end", "c_force_end"])
+    durations = bench_v7.compute_durations(fused_dual)
+    wanted = {"deep_wall_marker_us": 1.0, "correction_density_interior_us": 1.0, "force_deep_interior_us": 1.0,
+              "phase_b_us": 3.0, "b_to_c_gap_us": 1.0, "correction_density_boundary_us": 1.0, "density_copy_us": 1.0,
+              "force_us": 1.0, "phase_c_us": 6.0}
+    for key, value in wanted.items():
+        if durations.get(key) != value:
+            failures.append(f"compute_durations (fused, phases): {key} = {durations.get(key)}, expected {value}")
+    for key in ("correction_interior_us", "density_deep_interior_us", "correction_boundary_us", "density_us",
+                "density_boundary_us"):
+        if key in durations:
+            failures.append(f"compute_durations (fused, phases): {key} reported")
+    no_cascade = ticks_of(["a_start", "a_voxel_end", "b_start", "b_correction_density_interior_end", "c_start",
+                           "c_correction_density_boundary_end", "c_density_end", "c_wall_extrapolate_end",
+                           "c_force_end"])
+    durations = bench_v7.compute_durations(no_cascade)
+    for key, value in {"phase_b_us": 1.0, "b_to_c_gap_us": 1.0, "wall_extrapolate_us": 1.0, "force_us": 1.0}.items():
+        if durations.get(key) != value:
+            failures.append(f"compute_durations (fused, cascade off): {key} = {durations.get(key)}, expected {value}")
+    adami_cascade = ticks_of(["a_start", "a_voxel_end", "b_start", "b_correction_density_interior_end",
+                              "b_wall_extrapolate_end", "b_force_deep_interior_end", "c_start", "c_force_end"])
+    durations = bench_v7.compute_durations(adami_cascade)
+    for key, value in {"wall_extrapolate_us": 1.0, "force_deep_interior_us": 1.0, "phase_b_us": 3.0}.items():
+        if durations.get(key) != value:
+            failures.append(f"compute_durations (fused, adami): {key} = {durations.get(key)}, expected {value}")
+    for sequence, wanted in (
+            (["step_start", "predict_end", "voxel_end", "deep_wall_marker_end", "correction_density_end",
+              "density_end", "wall_extrapolate_end", "force_end"],
+             {"correction_density_us": 1.0, "density_copy_us": 1.0, "wall_extrapolate_us": 1.0, "force_us": 1.0,
+              "step_total_us": 7.0}),
+            (["step_start", "predict_end", "voxel_end", "correction_density_interior_end", "correction_density_end",
+              "density_end", "force_deep_interior_end", "force_end"],
+             {"correction_density_interior_us": 1.0, "correction_density_boundary_us": 1.0,
+              "correction_density_us": 2.0, "density_copy_us": 1.0})):
+        durations = bench_v7.compute_durations(ticks_of(sequence))
+        for key, value in wanted.items():
+            if durations.get(key) != value:
+                failures.append(f"compute_durations (fused, single {sequence[3]}): {key} = {durations.get(key)}, "
+                                f"expected {value}")
+    if weight_calibration.phase_intervals({key: int(value) for key, value in no_cascade.items()}) is None:
+        failures.append("weight_calibration.phase_intervals: no phase B end in a fused stream without cascade")
+    # step_trace_model splits phase B at the fused kernel's end (a fused table also has the other column, empty)
+    steps = np.arange(4.0)
+    table = {"sim": np.zeros(4), "complete": np.ones(4), "step": steps, "a_start": 100.0 * steps,
+             "a_end": 100.0 * steps + 10, "b_start": 100.0 * steps + 20,
+             "b_correction_density_interior_end": 100.0 * steps + 50, "b_density_deep_interior_end": np.full(4, np.nan),
+             "b_end": 100.0 * steps + 60, "c_start": 100.0 * steps + 70, "c_end": 100.0 * steps + 90}
+    with np.errstate(all="ignore"):
+        split = step_trace_model.cycle_components({"meta": {"warmup": 0}, "device": table})
+    if not split or abs(split[0].get("b_correction_density", -1) - 0.030) > 1e-12 or \
+            abs(split[0].get("b_force", -1) - 0.010) > 1e-12:
+        failures.append(f"step_trace_model.cycle_components (fused): {split}")
+
+    # ---- shader text
+    shader_directory = pathlib.Path(__file__).resolve().parent / "shaders"
+    fused_text = (shader_directory / "correction_density.comp").read_text(encoding="utf-8")
+    correction_text = (shader_directory / "correction.comp").read_text(encoding="utf-8")
+    density_text = (shader_directory / "density.comp").read_text(encoding="utf-8")
+    fused = _glsl_fragments(fused_text)
+    correction = _glsl_fragments(correction_text)
+    density = _glsl_fragments(density_text)
+
+    def block(fragments: list, first: str, last: str) -> list:
+        return fragments[fragments.index(first):fragments.index(last) + 1]
+
+    epilogue = block(correction, "correction_matrix[0][0] += REGULARIZATION_XI",
+                     "density_gradient_kernel_sum[self_particle_id] = vec4(density_gradient, kernel_sum)")
+    if not any(fused[index:index + len(epilogue)] == epilogue for index in range(len(fused))):
+        failures.append("correction_density.comp: correction.comp's epilogue (regularise .. store) is not verbatim")
+    def contains(fragments: list, part: list) -> bool:
+        return any(fragments[index:index + len(part)] == part for index in range(len(fragments)))
+
+    self_part = block(correction, "self_position_voxel_id = position_voxel_id[self_particle_id]",
+                      "if (CORRECTION_MODE == CORRECTION_MODE_BOUNDARY && !self_in_boundary_band) return")
+    if not contains(fused, self_part):
+        failures.append("correction_density.comp: correction.comp's self reads and returns are not verbatim")
+    loop = block(correction, "neighbor_z_range = int(NEIGHBOR_Z_RANGE)",
+                 "if (distance >= SMOOTHING_LENGTH || distance < 1e-12) continue")
+    if not any(fused[index:index + len(loop)] == loop for index in range(len(fused))):
+        failures.append("correction_density.comp: correction.comp's loop head (voxels, slots, distance) is not verbatim")
+    for fragment in ("float neighbor_stored_density = density_pressure[neighbor_particle_id].x",
+                     "float neighbor_volume = neighbor_mass / density_from_stored(neighbor_stored_density)",
+                     "vec3 kernel_gradient_value = evaluate_kernel_gradient( position_difference_neighbor_to_self, "
+                     "distance)",
+                     "float kernel_value = evaluate_kernel(distance)",
+                     "vec3 position_difference_self_to_neighbor = -position_difference_neighbor_to_self",
+                     "correction_matrix += neighbor_volume * outerProduct(position_difference_self_to_neighbor, "
+                     "kernel_gradient_value)",
+                     "density_gradient += neighbor_volume * (neighbor_stored_density - self_stored_density) * "
+                     "kernel_gradient_value",
+                     "kernel_sum += neighbor_volume * kernel_value"):
+        if fragment not in correction or fragment not in fused:
+            failures.append(f"correction_density.comp: correction.comp's {fragment!r} missing")
+    for fragment in ("density_gradient.xy += neighbor_volume * (neighbor_stored_density - self_stored_density) * "
+                     "kernel_gradient_value.xy",
+                     "density_active = (self_params.kind != MATERIAL_INLET) && !(WALL_ADAMI && self_is_boundary)",
+                     "if (!density_active) continue",
+                     "if (self_is_boundary && material_parameters[material[neighbor_particle_id]].kind == "
+                     "MATERIAL_BOUNDARY) continue",
+                     "if (!density_active) return",
+                     "deep_wall_on_skip(self_particle_id, self_position, self_voxel_coord, DEEP_WALL_KERNEL_CORRECTION)",
+                     "deep_wall_on_skip(self_particle_id, self_position, self_voxel_coord, DEEP_WALL_KERNEL_DENSITY)",
+                     "store_density(self_particle_id, self_stored_density, 0.0, self_params)",
+                     "float new_stored_density = self_stored_density + TIMESTEP * density_rate"):
+        if fragment not in fused:
+            failures.append(f"correction_density.comp: {fragment!r} missing")
+    density_epilogue = block(density, "float new_pressure = tait_pressure(new_stored_density, "
+                             "self_params.rest_density, self_params.eos_constant)",
+                             "density_pressure_scratch[self_particle_id] = vec2(density_to_store, new_pressure)")
+    if not any(fused[index:index + len(density_epilogue)] == density_epilogue for index in range(len(fused))):
+        failures.append("correction_density.comp: density.comp's epilogue (EOS, wall rho0, store) is not verbatim")
+    if _glsl_fragments(_glsl_function_body(fused_text, "void main() {")) != \
+            _glsl_fragments(_glsl_function_body(correction_text, "void main() {")):
+        failures.append("correction_density.comp: main() is not correction.comp's")
+    if re.search(r"constant_id\s*=", re.sub(r"//[^\n]*", "", fused_text)):
+        failures.append("correction_density.comp: declares a spec constant of its own")
+    skip_block = re.search(r"#ifdef DEEP_WALL_SKIP(.*?)#endif", fused_text.split("void process_particle")[1], re.S)
+    if skip_block is None or "return;" not in skip_block.group(1) or \
+            "deep_wall_voxel_skippable(self_voxel_coord, self_voxel_id) && self_is_boundary" not in skip_block.group(1):
+        failures.append("correction_density.comp: B4's decision is not behind #ifdef DEEP_WALL_SKIP with a return")
+
+
 def check_release_defaults(failures: list) -> None:
     """E6b: with no V7_* variable set the configuration is the recommended release
     set (v6_opt.md), per dimension for the pool factors; dependent switches follow
@@ -2237,6 +2861,7 @@ def main() -> int:
     check_density_copy(failures)
     check_ghost_send_lanes(failures)
     check_deep_wall_skip(failures)
+    check_fused_correction_density(failures)
     spirv_checked = check_spirv_current(failures)
     _set_switches(1, 0)
     if failures:
@@ -2251,6 +2876,8 @@ def main() -> int:
           "ghost_send lane groups: streams, emulated mapping, shader text, old statements (E39 B6); "
           "deep-wall skip: switch 0 = the B6 build, marker placement, variant pipelines, band rule, candidate "
           "count, AUTO rule, shader text (E39 B4); "
+          "fused correction + density: switch 0 = the B4 build, fallback = switch 0, fused streams / pipelines / "
+          "modules at every site, tick-label consumers, shader text (E39 B1); "
           "release defaults (E6b, phase A no-wait E32) + LEGACY_DEFAULTS; "
           + ("SPIR-V current)" if spirv_checked else "SPIR-V check SKIPPED: no glslc)"))
     return 0

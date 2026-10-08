@@ -8,7 +8,8 @@ and sim, only the phase start / end timestamps (phase_trace_v7.PHASE_TICKS,
 compute pool, no transfer timers, no clock calibration):
 
     T_A = a_start -> last of a_voxel_end / a_ghost_leading_end / a_ghost_trailing_end
-    T_B = b_start -> last of b_density_deep_interior_end / b_force_deep_interior_end
+    T_B = b_start -> last of b_density_deep_interior_end / b_correction_density_interior_end
+          (E39 B1, the fused kernel) / b_force_deep_interior_end
     T_C = c_start -> c_force_end
 
 a_start follows C(n - 1) and phase A's wait, c_start follows the upload_done
@@ -61,7 +62,7 @@ LOG_PREFIX = "[calibrate]"
 # phase -> (start label, end labels: the phase ends at the last one present)
 PHASE_LABELS = {
     "A": ("a_start", ("a_voxel_end", "a_ghost_leading_end", "a_ghost_trailing_end")),
-    "B": ("b_start", ("b_density_deep_interior_end", "b_force_deep_interior_end")),
+    "B": ("b_start", ("b_density_deep_interior_end", "b_correction_density_interior_end", "b_force_deep_interior_end")),
     "C": ("c_start", ("c_force_end",)),
 }
 

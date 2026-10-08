@@ -367,6 +367,10 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
         deep_wall_marker_us = deep_wall_marker_end - voxel_end   (E39 B4 V7_DEEP_WALL_SKIP only)
         correction_us    = correction_end - (deep_wall_marker_end OR voxel_end)
         density_us       = density_end    - correction_end
+        correction_density_us = correction_density_end - (deep_wall_marker_end OR voxel_end)
+        density_copy_us  = density_end    - correction_density_end
+                           (E39 B1 V7_FUSED_CORRECTION_DENSITY: one fused kernel, then the copy;
+                           no correction_end / correction_us / density_us then)
         wall_extrapolate_us = wall_extrapolate_end - density_end   (E37 wall_boundary adami only)
         force_us         = force_end      - (wall_extrapolate_end OR density_end)
         step_total_us    = force_end      - step_start
@@ -383,10 +387,15 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
         deep_wall_marker_us    = b_deep_wall_marker_end - b_start   (E39 B4 V7_DEEP_WALL_SKIP only)
         correction_interior_us = b_correction_interior_end - (b_deep_wall_marker_end OR b_start)
         density_deep_interior_us = b_density_deep_interior_end - b_correction_interior_end
-        wall_extrapolate_us    = b_wall_extrapolate_end - b_density_deep_interior_end
+        correction_density_interior_us = b_correction_density_interior_end
+                                 - (b_deep_wall_marker_end OR b_start)
+                                 (E39 B1: the fused kernel in place of the two above)
+        wall_extrapolate_us    = b_wall_extrapolate_end
+                                 - (b_correction_density_interior_end OR b_density_deep_interior_end)
                                  (E37 wall_boundary adami with cascading force)
         force_deep_interior_us = b_force_deep_interior_end
-                                 - (b_wall_extrapolate_end OR b_density_deep_interior_end)
+                                 - (b_wall_extrapolate_end OR b_correction_density_interior_end
+                                    OR b_density_deep_interior_end)
         phase_b_us             = (last B tick) - b_start
         a_to_b_gap_us          = b_start - (last A tick)
                                  (cross-submit GPU idle; usually ~0 in steady state)
@@ -398,11 +407,17 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
         correction_boundary_us = c_correction_boundary_end
                                  - (last install OR c_start)
         density_us            = c_density_end - c_correction_boundary_end
+        correction_density_boundary_us = c_correction_density_boundary_end
+                                 - (last install OR c_start)
+        density_copy_us       = c_density_end - (c_density_boundary_end
+                                                 OR c_correction_density_boundary_end)
+                                (E39 B1: the fused band kernel; no correction_boundary_us /
+                                density_us / density_boundary_us then)
         wall_extrapolate_us   = c_wall_extrapolate_end - c_density_end
                                 (E37 wall_boundary adami without cascading force)
         force_us              = c_force_end - (c_wall_extrapolate_end OR c_density_end)
         phase_c_us            = c_force_end - c_start
-        b_to_c_gap_us         = c_start - b_correction_interior_end
+        b_to_c_gap_us         = c_start - (last B tick)
                                 ← KEY KPI: sync-hiding efficiency
 
     Defrag:
@@ -433,6 +448,10 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
             out["correction_us"] = v
         if (v := diff_us("density_end", "correction_end")) is not None:
             out["density_us"] = v
+        # E39 B1 (V7_FUSED_CORRECTION_DENSITY): the fused kernel, then the density copy.
+        if (v := diff_us("correction_density_end", correction_start)) is not None:
+            out["correction_density_us"] = v
+            out["density_copy_us"] = diff_us("density_end", "correction_density_end")
         # E37 wall_boundary adami: the wall pass between density and force.
         force_start = "density_end"
         if (v := diff_us("wall_extrapolate_end", "density_end")) is not None:
@@ -451,6 +470,11 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
             out["density_deep_interior_us"] = v
             out["density_boundary_us"] = diff_us("density_boundary_end", "density_deep_interior_end")
             out["density_copy_us"] = diff_us("density_end", "density_boundary_end")
+        # E39 B1: the fused split path (interior, then the boundary pass)
+        if (v := diff_us("correction_density_interior_end", correction_start)) is not None:
+            out["correction_density_interior_us"] = v
+            out["correction_density_boundary_us"] = diff_us("correction_density_end",
+                                                            "correction_density_interior_end")
         if (v := diff_us("force_deep_interior_end", force_start)) is not None:
             out["force_deep_interior_us"] = v
             out["force_boundary_us"] = diff_us("force_end", "force_deep_interior_end")
@@ -511,9 +535,14 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
     if (v := diff_us("b_density_deep_interior_end", "b_correction_interior_end")) is not None:
         out["density_deep_interior_us"] = v
         last_b_label = "b_density_deep_interior_end"
+    # E39 B1 (V7_FUSED_CORRECTION_DENSITY): one fused kernel in place of the two above.
+    density_interior_end = "b_density_deep_interior_end"
+    if (v := diff_us("b_correction_density_interior_end", correction_interior_start)) is not None:
+        out["correction_density_interior_us"] = v
+        density_interior_end = last_b_label = "b_correction_density_interior_end"
     # E37 wall_boundary adami: the wall pass between density_deep_interior and force_deep_interior_scratch.
-    force_deep_interior_start = "b_density_deep_interior_end"
-    if (v := diff_us("b_wall_extrapolate_end", "b_density_deep_interior_end")) is not None:
+    force_deep_interior_start = density_interior_end
+    if (v := diff_us("b_wall_extrapolate_end", density_interior_end)) is not None:
         out["wall_extrapolate_us"] = v
         force_deep_interior_start = last_b_label = "b_wall_extrapolate_end"
     # V3.3 cascading force: force_deep_interior_scratch appended to Phase B.
@@ -567,6 +596,10 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
     if (v := diff_us("c_density_boundary_end", "c_correction_boundary_end")) is not None:
         out["density_boundary_us"] = v
         out["density_copy_us"] = diff_us("c_density_end", "c_density_boundary_end")
+    # E39 B1 (V7_FUSED_CORRECTION_DENSITY): the fused band kernel, then the density copy.
+    if (v := diff_us("c_correction_density_boundary_end", last_c_label)) is not None:
+        out["correction_density_boundary_us"] = v
+        out["density_copy_us"] = diff_us("c_density_end", "c_correction_density_boundary_end")
     # E37 wall_boundary adami without cascading force: the wall pass between density and force_all.
     force_start = "c_density_end"
     if (v := diff_us("c_wall_extrapolate_end", "c_density_end")) is not None:

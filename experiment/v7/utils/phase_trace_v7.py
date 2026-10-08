@@ -84,7 +84,7 @@ def calibrated_timestamps_suffix(ctx) -> str:
 
 _A_END_LABELS = ("a_ghost_trailing_end", "a_ghost_leading_end", "a_voxel_end", "a_predict_end")
 _B_END_LABELS = ("b_force_deep_interior_end", "b_density_deep_interior_end",
-                 "b_correction_interior_end")
+                 "b_correction_density_interior_end", "b_correction_interior_end")   # fused: E39 B1
 _FIELDS = ("a_start", "a_end", "b_start", "b_end", "c_start", "c_end", "prev_c_end")
 
 
@@ -291,11 +291,14 @@ TIME_DOMAIN_NAMES = {TIME_DOMAIN_CLOCK_MONOTONIC: "CLOCK_MONOTONIC",
 STEP_DEVICE_TIMES = (
     "a_start", "a_predict_end", "a_voxel_end", "a_ghost_leading_end", "a_ghost_trailing_end", "a_end",
     "b_start", "b_deep_wall_marker_end", "b_correction_interior_end", "b_density_deep_interior_end",
-    "b_wall_extrapolate_end", "b_force_deep_interior_end", "b_end",
+    "b_correction_density_interior_end", "b_wall_extrapolate_end", "b_force_deep_interior_end", "b_end",
     "c_start", "c_expand_end", "c_install_leading_end", "c_install_trailing_end", "c_append_departed_end",
-    "c_band_compact_end", "c_correction_boundary_end", "c_density_boundary_end", "c_density_end",
+    "c_band_compact_end", "c_correction_boundary_end", "c_density_boundary_end",
+    "c_correction_density_boundary_end", "c_density_end",
     "c_wall_extrapolate_end", "c_force_end", "c_end")       # *_wall_extrapolate_end: E37 adami only;
-# b_deep_wall_marker_end: E39 B4 V7_DEEP_WALL_SKIP only (the deep-wall marker at the start of phase B)
+# b_deep_wall_marker_end: E39 B4 V7_DEEP_WALL_SKIP only (the deep-wall marker at the start of phase B);
+# b_correction_density_interior_end / c_correction_density_boundary_end: E39 B1 V7_FUSED_CORRECTION_DENSITY
+# (the fused kernel's end, in place of the correction / density pairs' two ticks)
 # steps_link.csv: one row per step and directed link (sender -> receiver), host ns.
 STEP_LINK_TIMES = (
     "send_end",                       # sender's ghost_send for this link done (compute queue)
@@ -305,10 +308,12 @@ STEP_LINK_TIMES = (
     "upload_start", "upload_end",                             # receiver transfer queue
     "receiver_b_start", "receiver_b_end", "receiver_c_start")
 # detail = "phases": only these compute ticks are written (a phase's last tick depends on the
-# configuration: a_voxel_end without peers, b_density_deep_interior_end without cascade force).
+# configuration: a_voxel_end without peers, b_density_deep_interior_end (E39 B1 fused:
+# b_correction_density_interior_end) without cascade force).
 # Transfer ticks are always written. "full" writes every tick the simulator records.
 PHASE_TICKS = ("a_start", "a_voxel_end", "a_ghost_leading_end", "a_ghost_trailing_end",
-               "b_start", "b_density_deep_interior_end", "b_force_deep_interior_end",
+               "b_start", "b_density_deep_interior_end", "b_correction_density_interior_end",
+               "b_force_deep_interior_end",
                "c_start", "c_force_end", "defrag_start", "defrag_end")
 _WORKER_KEYS = (("worker_dequeue", "dequeue_ns"), ("worker_source_wait", "source_wait_ns"),
                 ("worker_dest_guard", "dest_guard_ns"), ("worker_upload_guard", "wait_ns"),

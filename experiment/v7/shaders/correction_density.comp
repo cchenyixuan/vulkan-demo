@@ -1,0 +1,333 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "common.glsl"
+#include "helpers.glsl"
+#include "wall_boundary.glsl"
+#ifdef DEEP_WALL_SKIP
+#include "deep_wall_skip.glsl"
+#endif
+
+// ============================================================================
+// correction_density.comp - E39 B1 (audit H01, V7_FUSED_CORRECTION_DENSITY):
+// correction.comp and density.comp in ONE neighbour traversal.
+//
+// Writes everything both kernels write for a particle: correction_inverse
+// (packed symmetric M^-1, 2 vec4), density_gradient_kernel_sum (grad rho,
+// kernel sum) and density_pressure_scratch = (rho_{n+1}, P_{n+1}).
+//
+// Why one traversal is the same computation:
+//   - density.comp reads ONE correction output, the self L_i =
+//     unpack_correction_inverse(self) (no neighbour L_j, no kernel sum, no grad
+//     rho: the full delta-plus psi_ij term that would read them is not
+//     implemented), and otherwise the neighbours' r, v, m, rho_n and material,
+//     which correction reads too (velocity and material besides) and neither
+//     kernel writes. So the density of a particle only waits for its own L_i.
+//   - Its per-pair terms are linear in L_i:
+//       drift_j     = -rho_i V_j (v_j - v_i) . (L_i grad W_ij)
+//       diffusion_j =  delta h c0 2 psi_ij V_j / (r^2 + eps^2) (r_j - r_i) . (L_i grad W_ij)
+//     both are q_j^T L_i grad W_ij with
+//       q_j = V_j ( -rho_i (v_j - v_i) + (2 delta h c0 psi_ij / (r^2 + eps^2)) (r_j - r_i) ),
+//     so sum_j (drift_j + diffusion_j) = L_i : S_i, S_i = sum_j q_j (x) grad W_ij.
+//     L_i is symmetric, so only the symmetric part of S_i enters:
+//       L : S = sum_a L_aa S_aa + sum_{a<b} L_ab (S_ab + S_ba),
+//     6 accumulators in 3-D, 3 in 2-D (every z term is exactly 0 in 2-D: z = 0,
+//     grad W_z = +-0, v_z = 0).
+//
+// The correction half is correction.comp's code: the same self reads and
+// returns, neighbour order (y innermost), expressions, regularisation,
+// determinant threshold, Frobenius cap and fallback count, so L, kernel sum and
+// grad rho keep their bits. The one specialisation: in 2-D grad rho's z
+// component is not accumulated and stored as 0, the value correction.comp
+// accumulates there (+0 from +-0 terms: z = 0 for every 2-D particle). The
+// density half takes density.comp's pair set and conditions (no INLET self, no
+// wall self with wall_boundary adami: correction only; a wall self skips wall
+// neighbours, here after the support test, which leaves the pair set
+// unchanged) and its epilogue (V7_DELTA_DENSITY storage, Tait EOS, a wall
+// stores rho0), and contracts S_i with exactly the six entries written to
+// correction_inverse (identity when USE_KCG_CORRECTION is off). rho_{n+1} and
+// P_{n+1} differ from density.comp by summation rounding only (L_i applied
+// once to the sum instead of to every pair).
+//
+// Pipelines (simulator_v7, a slab whose correction and density band widths and
+// inner-ghost self layers agree; any other slab keeps correction.comp +
+// density.comp): spec constants of correction's pipelines (CORRECTION_MODE 47,
+// NEIGHBOR_X_RANGE 82 = both bands, BAND_VOXEL_DISPATCH 57, BAND_SLOT_LANES
+// 58, FAKE_BAND_COLUMN 59, GHOST_SELF_LAYER 85): correction_density_all (the
+// bootstrap, the single-cmd step), _interior (phase B), _boundary and
+// _boundary_band (phase C, the bootstrap's inner ghost column, the split
+// single-cmd step).
+//
+// E39 B4 (DEEP_WALL_SKIP variant, compile_shaders_v7.py): the interior and the
+// peerless full-domain pipeline take correction_deep_wall_skip's decision
+// (deep_wall_skip.glsl): a deep wall writes no correction output and its
+// density epilogue runs on zero sums (the scratch value of the full loop, whose
+// pairs are all wall-wall); the decision is recorded per kernel as by the two
+// separate variants (V7_DEEP_WALL_CHECK, canonical_dump's mask). Band
+// pipelines never skip.
+// ============================================================================
+
+layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
+
+// density.comp's epilogue: forward integration, Tait EOS, a wall stores rho0.
+void store_density(uint self_particle_id, float self_stored_density, float density_rate,
+                   MaterialParameters self_params) {
+    float new_stored_density = self_stored_density + TIMESTEP * density_rate;
+    float new_pressure  = tait_pressure(new_stored_density, self_params.rest_density,
+                                        self_params.eos_constant);
+    float density_to_store = (self_params.kind == MATERIAL_BOUNDARY)
+        ? stored_rest_density(self_params.rest_density)
+        : new_stored_density;
+    density_pressure_scratch[self_particle_id] = vec2(density_to_store, new_pressure);
+}
+
+void process_particle(uint self_particle_id) {
+    // --- correction.comp: self position / voxel id, dead return ---------------
+    vec4 self_position_voxel_id = position_voxel_id[self_particle_id];
+    vec3 self_position          = self_position_voxel_id.xyz;
+    uint self_voxel_id          = uint(round(self_position_voxel_id.w));
+    if (self_voxel_id == VOXEL_ID_DEAD) return;
+
+    float self_stored_density = density_pressure[self_particle_id].x;   // rho_n (V7_DELTA_DENSITY: rho_n - rho_ref)
+
+    // --- the mode's band test (correction's and density's: one band width) ----
+    ivec3 self_voxel_coord = own_coord_of(self_voxel_id);
+    bool self_in_boundary_band = in_boundary_band(self_voxel_coord);
+    if (CORRECTION_MODE == CORRECTION_MODE_INTERIOR &&  self_in_boundary_band) return;
+    if (CORRECTION_MODE == CORRECTION_MODE_BOUNDARY && !self_in_boundary_band) return;
+
+    // --- density.comp's self returns: such a particle runs correction only ----
+    MaterialParameters self_params = material_parameters[material[self_particle_id]];
+    bool self_is_boundary = (self_params.kind == MATERIAL_BOUNDARY);
+    bool density_active = (self_params.kind != MATERIAL_INLET) && !(WALL_ADAMI && self_is_boundary);
+
+#ifdef DEEP_WALL_SKIP
+    // E39 B4: correction_deep_wall_skip's and density_deep_wall_skip's decision
+    // (one band width 111 for both). No correction output; density's loop would
+    // only take wall-wall `continue`s, so its epilogue runs on zero sums.
+    if (deep_wall_voxel_skippable(self_voxel_coord, self_voxel_id) && self_is_boundary) {
+        deep_wall_on_skip(self_particle_id, self_position, self_voxel_coord, DEEP_WALL_KERNEL_CORRECTION);
+        if (density_active) {
+            deep_wall_on_skip(self_particle_id, self_position, self_voxel_coord, DEEP_WALL_KERNEL_DENSITY);
+            store_density(self_particle_id, self_stored_density, 0.0, self_params);
+        }
+        return;
+    }
+#endif
+
+    vec3  self_velocity = velocity_mass[self_particle_id].xyz;
+    float self_density  = density_from_stored(self_stored_density);
+    // 2 delta h c0 (spec constants: folded at pipeline creation)
+    float diffusion_coefficient = 2.0 * DELTA_COEFFICIENT * SMOOTHING_LENGTH * SPEED_OF_SOUND;
+
+    // --- Accumulators: correction.comp's, then the symmetric part of S --------
+    mat3  correction_matrix = mat3(0.0);
+    vec3  density_gradient  = vec3(0.0);
+    float kernel_sum        = 0.0;
+    vec3  density_rate_diagonal     = vec3(0.0);   // (S_xx, S_yy, S_zz)
+    vec3  density_rate_off_diagonal = vec3(0.0);   // (S_xy + S_yx, S_xz + S_zx, S_yz + S_zy)
+
+    int neighbor_z_range = int(NEIGHBOR_Z_RANGE);
+
+    // ------------------------------------------------------------------------
+    // 27-voxel neighbor loop (9 in 2D), correction.comp's / density.comp's
+    // order: the innermost loop follows the fastest-varying axis of the
+    // x-slowest voxel_id encoding (y).
+    // ------------------------------------------------------------------------
+    for (int delta_x = -1; delta_x <= 1; delta_x++) {
+        for (int delta_z = -neighbor_z_range; delta_z <= neighbor_z_range; delta_z++) {
+            for (int delta_y = -1; delta_y <= 1; delta_y++) {
+                ivec3 neighbor_coord = self_voxel_coord + ivec3(delta_x, delta_y, delta_z);
+                if (!in_own_grid(neighbor_coord)) continue;
+
+                uint neighbor_voxel_id = own_voxel_id_of(neighbor_coord);
+                uint neighbor_voxel_particle_count = inside_particle_count[neighbor_voxel_id];
+
+                for (uint slot_index = 0u; slot_index < neighbor_voxel_particle_count; slot_index++) {
+                    uint neighbor_particle_id = inside_particle_index[neighbor_voxel_id * MAX_PARTICLES_PER_VOXEL + slot_index];
+                    if (neighbor_particle_id == INSIDE_SLOT_EMPTY) break;
+                    if (neighbor_particle_id == self_particle_id) continue;
+
+                    // --- Distance (Wendland C4 support radius = h) ----------
+                    // Neighbor is guaranteed non-inlet / non-dead by InsideParticleIndexBuffer invariants.
+                    vec3 neighbor_position = position_voxel_id[neighbor_particle_id].xyz;
+                    vec3 position_difference_neighbor_to_self = self_position - neighbor_position; // x_ij = r_i - r_j
+                    float distance = length(position_difference_neighbor_to_self);
+                    if (distance >= SMOOTHING_LENGTH || distance < 1e-12) continue;
+
+                    // --- Read neighbor velocity / mass / density / volume ----
+                    vec4  neighbor_velocity_mass  = velocity_mass[neighbor_particle_id];
+                    float neighbor_mass           = neighbor_velocity_mass.w;
+                    float neighbor_stored_density = density_pressure[neighbor_particle_id].x;
+                    float neighbor_volume  = neighbor_mass / density_from_stored(neighbor_stored_density);
+
+                    // --- Evaluate kernel and gradient -----------------------
+                    vec3  kernel_gradient_value = evaluate_kernel_gradient(
+                                                      position_difference_neighbor_to_self,
+                                                      distance);
+                    float kernel_value          = evaluate_kernel(distance);
+
+                    // ---- KCG correction matrix: M_i = Σ V_j · (r_j - r_i) ⊗ ∇W_ij
+                    vec3 position_difference_self_to_neighbor = -position_difference_neighbor_to_self; // = r_j - r_i
+                    correction_matrix += neighbor_volume * outerProduct(position_difference_self_to_neighbor, kernel_gradient_value);
+
+                    // ---- Density gradient: ∇ρ_i = Σ V_j · (ρ_j - ρ_i) · ∇W_ij (2-D: xy)
+                    if (DIMENSION == 2u) {
+                        density_gradient.xy += neighbor_volume
+                                             * (neighbor_stored_density - self_stored_density)
+                                             * kernel_gradient_value.xy;
+                    } else {
+                        density_gradient += neighbor_volume
+                                          * (neighbor_stored_density - self_stored_density)
+                                          * kernel_gradient_value;
+                    }
+
+                    // ---- Kernel sum: Σ V_j · W_ij
+                    kernel_sum += neighbor_volume * kernel_value;
+
+                    // ---- Density: density.comp's pairs (a wall self skips wall neighbours)
+                    if (!density_active) continue;
+                    if (self_is_boundary
+                            && material_parameters[material[neighbor_particle_id]].kind == MATERIAL_BOUNDARY) continue;
+
+                    // q_j = -ρ_i V_j (v_j - v_i) + 2 δ h c₀ ψ_ij V_j / (r² + ε²) (r_j - r_i),  ψ_ij = ρ_j - ρ_i
+                    vec3 rate_vector = (-self_density * neighbor_volume)
+                                     * (neighbor_velocity_mass.xyz - self_velocity);
+                    if (USE_DENSITY_DIFFUSION) {
+                        float psi_ij = neighbor_stored_density - self_stored_density;
+                        rate_vector += (diffusion_coefficient * psi_ij * neighbor_volume
+                                        / (distance * distance + EPS_H_SQUARED))
+                                     * position_difference_self_to_neighbor;
+                    }
+                    // S += q_j ⊗ ∇W_ij, symmetric part
+                    if (DIMENSION == 2u) {
+                        density_rate_diagonal.xy    += rate_vector.xy * kernel_gradient_value.xy;
+                        density_rate_off_diagonal.x += rate_vector.x * kernel_gradient_value.y
+                                                     + rate_vector.y * kernel_gradient_value.x;
+                    } else {
+                        density_rate_diagonal     += rate_vector * kernel_gradient_value;
+                        density_rate_off_diagonal += rate_vector.xxy * kernel_gradient_value.yzz
+                                                   + rate_vector.yzz * kernel_gradient_value.xxy;
+                    }
+                }
+            }
+        }
+    }
+
+    // ========================================================================
+    // correction.comp's epilogue: regularize, threshold / invert / Frobenius
+    // cap, store.
+    // ========================================================================
+    correction_matrix[0][0] += REGULARIZATION_XI;
+    correction_matrix[1][1] += REGULARIZATION_XI;
+
+    if (DIMENSION == 2u) {
+        correction_matrix[0][2] = 0.0;
+        correction_matrix[1][2] = 0.0;
+        correction_matrix[2][0] = 0.0;
+        correction_matrix[2][1] = 0.0;
+        correction_matrix[2][2] = 1.0;
+    } else {
+        correction_matrix[2][2] += REGULARIZATION_XI;
+    }
+
+    mat3  correction_matrix_inverse;
+    float correction_matrix_determinant = determinant(correction_matrix);
+
+    if (abs(correction_matrix_determinant) > REGULARIZATION_DETERMINANT_THRESHOLD) {
+        correction_matrix_inverse = inverse(correction_matrix);
+
+        float frobenius_squared = 0.0;
+        for (int row_index = 0; row_index < 3; row_index++) {
+            for (int column_index = 0; column_index < 3; column_index++) {
+                float element = correction_matrix_inverse[row_index][column_index];
+                frobenius_squared += element * element;
+            }
+        }
+        float frobenius = sqrt(frobenius_squared);
+
+        if (frobenius > REGULARIZATION_MAX_FROBENIUS_NORM) {
+            correction_matrix_inverse *= (REGULARIZATION_MAX_FROBENIUS_NORM / frobenius);
+        }
+    } else {
+        correction_matrix_inverse = mat3(1.0);
+        atomicAdd(correction_fallback_count, 1u);
+    }
+
+    //   correction_inverse[pid * 2]     = (m00, m11, m22, m01)
+    //   correction_inverse[pid * 2 + 1] = (m02, m12, _, _)
+    correction_inverse[self_particle_id * 2u] = vec4(
+        correction_matrix_inverse[0][0],
+        correction_matrix_inverse[1][1],
+        correction_matrix_inverse[2][2],
+        correction_matrix_inverse[0][1]);
+    correction_inverse[self_particle_id * 2u + 1u] = vec4(
+        correction_matrix_inverse[0][2],
+        correction_matrix_inverse[1][2],
+        0.0,
+        0.0);
+
+    density_gradient_kernel_sum[self_particle_id] = vec4(density_gradient, kernel_sum);
+
+    if (!density_active) return;
+
+    // ========================================================================
+    // Density: L_i : S_i with the six stored entries of L_i (density.comp's
+    // unpack_correction_inverse: L_yx = m01, L_zx = m02, L_zy = m12), the
+    // identity without KCG; then density.comp's epilogue.
+    // ========================================================================
+    float inverse_xx = correction_matrix_inverse[0][0];
+    float inverse_yy = correction_matrix_inverse[1][1];
+    float inverse_zz = correction_matrix_inverse[2][2];
+    float inverse_xy = correction_matrix_inverse[0][1];
+    float inverse_xz = correction_matrix_inverse[0][2];
+    float inverse_yz = correction_matrix_inverse[1][2];
+    if (!USE_KCG_CORRECTION) {
+        inverse_xx = 1.0; inverse_yy = 1.0; inverse_zz = 1.0;
+        inverse_xy = 0.0; inverse_xz = 0.0; inverse_yz = 0.0;
+    }
+    float density_rate = inverse_xx * density_rate_diagonal.x
+                       + inverse_yy * density_rate_diagonal.y
+                       + inverse_xy * density_rate_off_diagonal.x;
+    if (DIMENSION != 2u) {
+        density_rate += inverse_zz * density_rate_diagonal.z
+                      + inverse_xz * density_rate_off_diagonal.y
+                      + inverse_yz * density_rate_off_diagonal.z;
+    }
+    store_density(self_particle_id, self_stored_density, density_rate, self_params);
+}
+
+
+// ---------------------------------------------------------------------------
+// Entry point: correction.comp's (the thread -> self pid mappings of
+// BAND_VOXEL_DISPATCH 0 / 1 / 2 at width NEIGHBOR_X_RANGE).
+// ---------------------------------------------------------------------------
+void main() {
+    uint thread_id = gl_GlobalInvocationID.x;
+    if (BAND_VOXEL_DISPATCH == 2u) {
+        // V7_BAND_COMPACT_DISPATCH: thread = entry of the compacted band list
+        uint self_particle_id;
+        if (compact_thread_particle(thread_id, NEIGHBOR_X_RANGE, self_particle_id)) {
+            process_particle(self_particle_id);
+        }
+        return;
+    }
+    if (BAND_VOXEL_DISPATCH == 1u) {
+        if (BAND_SLOT_LANES == 0u) {
+            uint self_particle_id;
+            if (band_thread_particle(thread_id, NEIGHBOR_X_RANGE, self_particle_id)) {
+                process_particle(self_particle_id);
+            }
+            return;
+        }
+        uint voxel_id;
+        if (!band_thread_voxel(thread_id / BAND_SLOT_LANES, NEIGHBOR_X_RANGE, voxel_id)) return;
+        uint count = inside_particle_count[voxel_id];
+        for (uint slot = thread_id % BAND_SLOT_LANES; slot < count; slot += BAND_SLOT_LANES) {
+            process_particle(inside_particle_index[voxel_id * MAX_PARTICLES_PER_VOXEL + slot]);
+        }
+        return;
+    }
+    uint self_particle_id = thread_id + own_first_pid();
+    if (self_particle_id > own_last_pid()) return;
+    process_particle(self_particle_id);
+}

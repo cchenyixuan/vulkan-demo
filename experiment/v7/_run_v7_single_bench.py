@@ -77,6 +77,8 @@ _KERNEL_KEYS = [
     "step_total_us",
     "defrag_us",
     "wall_extrapolate_us",     # E37 wall_boundary adami only (last: the earlier columns keep their places)
+    "correction_density_us",   # E39 B1 V7_FUSED_CORRECTION_DENSITY: the fused kernel (no correction / density then)
+    "density_copy_us",         # E39 B1: the density copy after it
 ]
 
 
