@@ -367,8 +367,13 @@ def main() -> int:
             sim._record_compute_barrier(cmd)
             sim._record_reset_ghost_send_count(cmd, direction)
             sim._record_transfer_to_compute_barrier(cmd)
-            sim._bind_pipeline_and_sets(cmd, f"ghost_send_{direction}")
-            vkCmdDispatch(cmd, sim._per_yz_face_dispatch_count(), 1, 1)
+            if hasattr(sim, "_record_ghost_send_dispatch"):
+                # E39 B6 (v7): the solver binds and sizes its own ghost_send (the lane-group kernel's geometry with
+                # V7_GHOST_SEND_LANES > 0, exactly the two commands below with 0)
+                sim._record_ghost_send_dispatch(cmd, direction)
+            else:
+                sim._bind_pipeline_and_sets(cmd, f"ghost_send_{direction}")
+                vkCmdDispatch(cmd, sim._per_yz_face_dispatch_count(), 1, 1)
             sim._record_compute_to_transfer_barrier(cmd)
             sim._record_readback_for_direction(cmd, direction)
             sim._record_compute_to_host_barrier(cmd)

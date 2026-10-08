@@ -152,6 +152,46 @@ _DENSITY_COPY_REGION_LIMIT = 4
 # density_scratch_copy.comp's fixed local_size_x (the shader comment has the
 # measurement behind 256).
 _DENSITY_COPY_LOCAL_SIZE = 256
+# E39 B6 (audit H04): ghost_send with one lane group per (face voxel, layer)
+# (ghost_send_lanes.comp). ghost_send.comp gives every (y, z) face voxel ONE
+# thread that copies both layers' replicas one after another, a dependent load
+# chain per replica (206 threads = 2 workgroups at 2-D 1M). Here the group
+# leader does the pair's one atomicAdd and the overflow handling, broadcasts
+# the base slot through shared memory, the group's lanes copy slot k to
+# base + k with the same record expressions, and the leader then sends the
+# voxel's migrants serially as before; the bootstrap ghost round and the
+# single-layer (V7_GHOST_LAYERS = 1) pool take the same kernel. Bit-identical:
+# in-voxel order and record bits are unchanged, the voxels' block placement is
+# atomic arrival order as before (nothing sums in it). E39 step trace, K = 2,
+# a_voxel_end -> a_ghost_end (counter fills + barriers + dispatch), s0 / s1:
+# 2-D 62k 28.7 / 34.8 -> 4.1 / 4.1 us, 2-D 1M 43.0 / 51.2 -> 6.2 / 6.2 us,
+# 3-D 8M 145.4 / 176.1 -> 12.3 / 12.3 us at the default 32 lanes (the shader
+# comment has the lanes / local size table). V7_GHOST_SEND_LANES = lanes per
+# group, one of _GHOST_SEND_LANES_ACCEPTED (the validated values); 0 =
+# ghost_send.comp with its dispatch, command for command. Read once at import.
+_GHOST_SEND_LANES_ACCEPTED = (0, 4, 8, 16, 32)
+# ghost_send_lanes.comp's workgroup size (spec constant 110, a multiple of the
+# lanes; the shader comment has the measurement behind it) and its shared
+# arrays' entries (one per group of a workgroup).
+_GHOST_SEND_LOCAL_SIZE = 64
+_GHOST_SEND_MAXIMUM_GROUPS_PER_WORKGROUP = 256
+
+
+def _parse_ghost_send_lanes(text: str) -> int:
+    """V7_GHOST_SEND_LANES: lanes per ghost_send lane group, one of
+    _GHOST_SEND_LANES_ACCEPTED (0 = ghost_send.comp)."""
+    try:
+        lanes = int(text.strip())
+    except ValueError:
+        lanes = None
+    if lanes not in _GHOST_SEND_LANES_ACCEPTED:
+        raise ValueError(f"V7_GHOST_SEND_LANES={text!r}: accepted values are "
+                         f"{', '.join(map(str, _GHOST_SEND_LANES_ACCEPTED))} "
+                         "(lanes per (face voxel, layer) group; 0 = the one-thread-per-face-voxel ghost_send.comp)")
+    return lanes
+
+
+_GHOST_SEND_LANES = _parse_ghost_send_lanes(os.environ.get("V7_GHOST_SEND_LANES", "32"))
 if _FAST_SUBMIT:
     from vulkan._vulkancache import ffi as _ffi
     from vulkan._vulkan import lib as _lib
@@ -174,10 +214,12 @@ _NO_OP_LOCK = _NoOpLock()
 
 
 def configured_v7_switches() -> dict[str, int]:
-    """E39: the v7 performance switches (one per audit item, each default 1)
-    with the values this process runs (module constants read at import), for
-    the run headers and the step trace's run_meta."""
-    return {"V7_DENSITY_COPY_COMPUTE": int(_DENSITY_COPY_COMPUTE)}
+    """E39: the v7 performance switches (one per audit item, each on by
+    default; 0 = the previous build) with the values this process runs
+    (module constants read at import), for the run headers and the step
+    trace's run_meta."""
+    return {"V7_DENSITY_COPY_COMPUTE": int(_DENSITY_COPY_COMPUTE),
+            "V7_GHOST_SEND_LANES": _GHOST_SEND_LANES}
 
 
 def _driver_submit_lock_for(physical_device_index: int):
@@ -718,6 +760,25 @@ class SphSimulatorV7:
         if wg > max_x:
             raise RuntimeError(
                 f"WORKGROUP_SIZE {wg} > device limit {max_x} on {self.ctx.device_name}")
+        if _GHOST_SEND_LANES:
+            local_size = _GHOST_SEND_LOCAL_SIZE
+            if local_size > min(max_x, props.limits.maxComputeWorkGroupInvocations):
+                raise RuntimeError(
+                    f"ghost_send_lanes.comp local size {local_size} > device limit "
+                    f"{min(max_x, props.limits.maxComputeWorkGroupInvocations)} on {self.ctx.device_name}")
+            self._ghost_send_groups_per_workgroup()
+
+    @staticmethod
+    def _ghost_send_groups_per_workgroup() -> int:
+        """E39 B6: lane groups per workgroup of ghost_send_lanes.comp (local size
+        / lanes); the local size must be a multiple of the lanes and the groups
+        must fit the shader's shared arrays."""
+        local_size, lanes = _GHOST_SEND_LOCAL_SIZE, _GHOST_SEND_LANES
+        if lanes <= 0 or local_size % lanes or local_size // lanes > _GHOST_SEND_MAXIMUM_GROUPS_PER_WORKGROUP:
+            raise ValueError(f"ghost_send_lanes.comp: local size {local_size} with {lanes} lanes per group "
+                             f"(needs lanes > 0 dividing the local size, at most "
+                             f"{_GHOST_SEND_MAXIMUM_GROUPS_PER_WORKGROUP} groups per workgroup)")
+        return local_size // lanes
 
     # ========================================================================
     # Section 2: Buffer specs + allocation
@@ -1271,7 +1332,10 @@ class SphSimulatorV7:
         modules: dict[str, object] = {}
         for shader_name in (
             "bootstrap_half_kick", "initialize_voxelization",
-            "predict", "update_voxel", "ghost_send", "install_migrations",
+            # E39 B6: the lane-group ghost_send with V7_GHOST_SEND_LANES > 0, ghost_send.comp with 0 (so a pre-B6
+            # V7_SPV_DIR runs with 0)
+            "predict", "update_voxel", "ghost_send_lanes" if _GHOST_SEND_LANES else "ghost_send",
+            "install_migrations",
             "correction", "density", "force", "defrag", "append_departed",
             "expand_ghost_lists", "band_compact",
             # E37: the wall pass only with wall_boundary adami (simple creates no wall pipeline, so it needs no
@@ -1520,6 +1584,13 @@ class SphSimulatorV7:
             (94, 'i', spec.ghost_voxel_id_offset_to_receiver),
         ]
 
+    def _ghost_send_lanes_entries(self) -> list[tuple[int, str, Any]]:
+        """E39 B6: ghost_send_lanes.comp's own spec constants: 109 = lanes per
+        (face voxel, layer) group (V7_GHOST_SEND_LANES), 110 = its workgroup
+        size (_GHOST_SEND_LOCAL_SIZE, local_size_x_id)."""
+        self._ghost_send_groups_per_workgroup()
+        return [(109, 'I', _GHOST_SEND_LANES), (110, 'I', _GHOST_SEND_LOCAL_SIZE)]
+
     def _build_compute_pipelines(self) -> dict[str, object]:
         """Build the compute pipelines:
 
@@ -1565,8 +1636,16 @@ class SphSimulatorV7:
                 entries=self._global_entries(),
             )
 
-        # ghost_send per direction
+        # ghost_send per direction (E39 B6: ghost_send_lanes_<direction> with V7_GHOST_SEND_LANES > 0 — no
+        # ghost_send_<direction> pipeline then, so a recording that binds the old kernel fails loudly)
         for direction, dir_name in ((0, "leading"), (1, "trailing")):
+            if _GHOST_SEND_LANES:
+                pipelines[self._ghost_send_pipeline_key(dir_name)] = self._create_pipeline(
+                    shader=self.shader_modules["ghost_send_lanes"],
+                    entries=(self._global_entries() + self._ghost_direction_entries(direction)
+                             + self._ghost_send_lanes_entries()),
+                )
+                continue
             pipelines[f"ghost_send_{dir_name}"] = self._create_pipeline(
                 shader=self.shader_modules["ghost_send"],
                 entries=self._global_entries() + self._ghost_direction_entries(direction),
@@ -1673,6 +1752,14 @@ class SphSimulatorV7:
                              f"region(s), {sum(slot_count for _, slot_count in copy_regions):,} slots)")
         else:
             cascade_note += " (V7_DENSITY_COPY_COMPUTE=0: density copy by vkCmdCopyBuffer)"
+        if self._transport_segments:
+            if _GHOST_SEND_LANES:
+                cascade_note += (f" (V7_GHOST_SEND_LANES={_GHOST_SEND_LANES}: ghost_send over "
+                                 f"{self._ghost_send_group_total():,} lane groups, local size {_GHOST_SEND_LOCAL_SIZE}, "
+                                 f"{self._ghost_send_group_count():,} workgroups per direction)")
+            else:
+                cascade_note += (f" (V7_GHOST_SEND_LANES=0: ghost_send one thread per face voxel, "
+                                 f"{self._ghost_send_group_count():,} workgroups per direction)")
         print(f"[SimV7] compute pipelines: {len(pipelines)}{cascade_note}")
         return pipelines
 
@@ -1796,6 +1883,37 @@ class SphSimulatorV7:
         wg = self.case.capacities.workgroup_size
         face = self.case.grid.grid_dimension_y * self.case.grid.grid_dimension_z
         return (face + wg - 1) // wg
+
+    def _ghost_send_group_total(self) -> int:
+        """E39 B6: lane groups of ghost_send_lanes.comp = face voxels x layers
+        (2 with V7_GHOST_LAYERS = 2, else 1: the shader's GHOST_LAYERS >= 2u
+        test on spec constant 83), one per (face voxel, layer) pair."""
+        face = self.case.grid.grid_dimension_y * self.case.grid.grid_dimension_z
+        layer_count = 2 if self.case.ghost_grid.ghost_layers >= 2 else 1
+        return face * layer_count
+
+    def _ghost_send_group_count(self) -> int:
+        """Workgroups of one ghost_send dispatch (one direction): with
+        V7_GHOST_SEND_LANES = 0 ghost_send.comp's ceil(NY*NZ / WORKGROUP_SIZE)
+        (_per_yz_face_dispatch_count); with L > 0 ghost_send_lanes.comp's
+        ceil(groups / (local size / L)) — the shader's tail invocations past the
+        last group only take part in its barrier."""
+        if not _GHOST_SEND_LANES:
+            return self._per_yz_face_dispatch_count()
+        groups_per_workgroup = self._ghost_send_groups_per_workgroup()
+        return (self._ghost_send_group_total() + groups_per_workgroup - 1) // groups_per_workgroup
+
+    @staticmethod
+    def _ghost_send_pipeline_key(direction: str) -> str:
+        return f"ghost_send_lanes_{direction}" if _GHOST_SEND_LANES else f"ghost_send_{direction}"
+
+    def _record_ghost_send_dispatch(self, cmd, direction: str) -> None:
+        """Bind this direction's ghost_send pipeline and dispatch it: phase A,
+        the bootstrap ghost round and experiment/seam_audit/canonical_dump.py's
+        canonical bootstrap. V7_GHOST_SEND_LANES = 0 records exactly the v6
+        pair (bind ghost_send_<direction>, dispatch per (y, z) face voxel)."""
+        self._bind_pipeline_and_sets(cmd, self._ghost_send_pipeline_key(direction))
+        vkCmdDispatch(cmd, self._ghost_send_group_count(), 1, 1)
 
     def _per_ghost_pid_dispatch_count(self, direction: str) -> int:
         """install_migrations threads: the direction's migrant slots (the whole
@@ -2459,7 +2577,6 @@ class SphSimulatorV7:
         self._record_compute_barrier(cmd)
 
         per_p = self._per_own_particle_dispatch_count()
-        per_yz = self._per_yz_face_dispatch_count()
 
         self._bind_pipeline_and_sets(cmd, "initialize_voxelization")
         vkCmdDispatch(cmd, per_p, 1, 1)
@@ -2470,8 +2587,7 @@ class SphSimulatorV7:
             self._record_compute_barrier(cmd)
             self._record_reset_ghost_send_count(cmd, direction)
             self._record_transfer_to_compute_barrier(cmd)
-            self._bind_pipeline_and_sets(cmd, f"ghost_send_{direction}")
-            vkCmdDispatch(cmd, per_yz, 1, 1)
+            self._record_ghost_send_dispatch(cmd, direction)
             self._record_compute_to_transfer_barrier(cmd)
             self._record_readback_for_direction(cmd, direction)
             self._record_compute_to_host_barrier(cmd)
@@ -2863,7 +2979,6 @@ class SphSimulatorV7:
 
         per_p = self._per_own_particle_dispatch_count()
         per_v = self._per_extended_voxel_dispatch_count()
-        per_yz = self._per_yz_face_dispatch_count()
 
         self._bind_pipeline_and_sets(cmd, "predict")
         vkCmdDispatch(cmd, per_p, 1, 1)
@@ -2894,8 +3009,7 @@ class SphSimulatorV7:
             self._record_compute_barrier(cmd)
             self._record_reset_ghost_send_count(cmd, direction)
             self._record_transfer_to_compute_barrier(cmd)
-            self._bind_pipeline_and_sets(cmd, f"ghost_send_{direction}")
-            vkCmdDispatch(cmd, per_yz, 1, 1)
+            self._record_ghost_send_dispatch(cmd, direction)
             self._bench_tick(cmd, f"a_ghost_{direction}_end")
 
         vkEndCommandBuffer(cmd)

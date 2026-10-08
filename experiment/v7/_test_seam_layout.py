@@ -26,6 +26,13 @@ _test_seam_layout.py — CPU-only checks of the V6 seam layout (no Vulkan device
    experiment/v6's stream with 0; with 1 the compute pass's regions (spec
    constants) are the same slots and its emulated index mapping writes exactly
    the copied bytes; phase C / bootstrap / single-cmd differ only in the copy.
+8. V7_GHOST_SEND_LANES (E39 B6): parsing; phase A and the bootstrap ghost round
+   record experiment/v6's streams with 0 and differ only in the ghost_send bind /
+   dispatch with every accepted lane count; ghost_send_lanes.comp's group mapping
+   emulated over the launch (2-D / 3-D, both directions, one / two layers) owns
+   every (face voxel, layer) pair once with one leader and copies every slot
+   once; its index expressions, single top-level barrier and spec constants; the
+   record / allocation statements are ghost_send.comp's.
 
 Usage:
     .venv/Scripts/python.exe experiment/v7/_test_seam_layout.py
@@ -1064,6 +1071,459 @@ def check_density_copy(failures: list) -> None:
         failures.append("density_scratch_copy.comp: a floating-point type touches the copied words")
 
 
+def _glsl_fragments(text: str) -> list:
+    """Code fragments of GLSL source: comments removed, whitespace collapsed, split at ';', '{' and '}' (statements,
+    conditions, loop-header parts), a leading scalar type keyword removed (a declaration and an assignment of the same
+    expression compare equal)."""
+    import re
+    code = re.sub(r"/\*.*?\*/", " ", text, flags=re.S)
+    code = re.sub(r"//[^\n]*", " ", code)
+    code = re.sub(r"\s+", " ", code)
+    fragments = []
+    for piece in re.split(r"[;{}]", code):
+        piece = re.sub(r"^(uint|int|bool|ivec3|vec4|vec2) ", "", piece.strip())
+        if piece:
+            fragments.append(piece)
+    return fragments
+
+
+def _glsl_function_body(text: str, signature: str) -> str:
+    """The body of the function whose definition starts with signature (balanced braces)."""
+    start = text.index(signature)
+    opening = text.index("{", start)
+    depth = 0
+    for index in range(opening, len(text)):
+        depth += {"{": 1, "}": -1}.get(text[index], 0)
+        if depth == 0:
+            return text[opening + 1:index]
+    raise ValueError(f"unbalanced function {signature!r}")
+
+
+def _emulate_ghost_send_lanes(face_voxel_count: int, layer_count: int, lanes: int, local_size: int,
+                              group_count: int) -> dict:
+    """ghost_send_lanes.comp's main() index mapping, invocation for invocation, over a launch of group_count
+    workgroups of local_size invocations: per invocation its workgroup, group slot in the workgroup, lane, group
+    index, whether the group is active (a real (face voxel, layer) pair) and the pair."""
+    invocation = np.arange(group_count * local_size, dtype=np.int64)
+    workgroup = invocation // local_size                          # gl_WorkGroupID.x
+    local_invocation = invocation % local_size                    # gl_LocalInvocationID.x
+    groups_per_workgroup = local_size // lanes
+    group_in_workgroup = local_invocation // lanes
+    lane = local_invocation % lanes
+    group_index = workgroup * groups_per_workgroup + group_in_workgroup
+    active = group_index < layer_count * face_voxel_count
+    return {"workgroup": workgroup, "group_in_workgroup": group_in_workgroup, "lane": lane,
+            "group_index": group_index, "active": active, "layer": group_index // face_voxel_count,
+            "face_voxel": group_index % face_voxel_count}
+
+
+def check_ghost_send_lanes(failures: list) -> None:
+    """E39 B6 (V7_GHOST_SEND_LANES): ghost_send_lanes.comp, one lane group per (face voxel, layer).
+      - parsing: the accepted values parse, everything else is refused; the default (32) is one of them and
+        configured_v7_switches() reports the switch;
+      - command streams recorded on the CPU (phase A and the bootstrap ghost round, simulators built with
+        object.__new__, 2-D and 3-D chains of K = 1..4 — edge and interior slabs, both directions — with one / two
+        ghost layers, keep-departed 0 / 1 and the release defaults): switch 0 records experiment/v6's streams
+        command for command; every accepted L > 0 records the same stream except that each ghost_send bind +
+        dispatch becomes ghost_send_lanes_<direction> + the lane-group workgroup count;
+      - the shader's index mapping, emulated invocation for invocation over that launch (every accepted L, the
+        default local size and the measured ones, the slabs' faces with one and two layers): every (face voxel,
+        layer) pair is owned by exactly one group of L lanes in one workgroup with one leader, the groups fit the
+        shared arrays, only the last workgroup has tail invocations (the count is minimal), the lane loop copies
+        every slot of a block exactly once, the pairs' source / outbox voxels are the old kernel's columns per
+        direction (each voxel once);
+      - the shader text: the index expressions emulated above, one barrier at the top level of main() with no
+        return before it, spec constants 109 / 110 = the host's entries, the shared array bound;
+      - the record and allocation statements are ghost_send.comp's: copy_recomputed_fields, store_departed and the
+        two-layer migrant loop fragment for fragment, every fragment of the two-layer replica part and of the V5
+        single-layer body (its identifiers spelled out) present at least as often in the matching section of the new
+        kernel."""
+    import collections
+    import math
+    import re
+    from types import SimpleNamespace
+    import experiment.v6.utils.simulator_v6 as simulator_v6
+    import experiment.v7.utils.case_v7 as case_v7
+    import experiment.v7.utils.partition_v7 as partition_v7
+    import experiment.v7.utils.simulator_v7 as simulator_v7
+    import vulkan
+
+    accepted = simulator_v7._GHOST_SEND_LANES_ACCEPTED
+    lane_values = [lanes for lanes in accepted if lanes > 0]
+    # ---- parsing / registry
+    for text, expected in (("0", 0), ("4", 4), (" 8 ", 8), ("16", 16), ("32", 32)):
+        try:
+            if simulator_v7._parse_ghost_send_lanes(text) != expected:
+                failures.append(f"V7_GHOST_SEND_LANES={text!r} parsed as {simulator_v7._parse_ghost_send_lanes(text)}")
+        except ValueError as error:
+            failures.append(f"V7_GHOST_SEND_LANES={text!r} refused: {error}")
+    for text in ("", "x", "1", "2", "6", "64", "-8", "8.0", "0x8"):
+        if text.strip() in {str(value) for value in accepted}:
+            continue
+        try:
+            simulator_v7._parse_ghost_send_lanes(text)
+            failures.append(f"V7_GHOST_SEND_LANES={text!r} accepted")
+        except ValueError:
+            pass
+    if set(accepted) != {0, 4, 8, 16, 32}:
+        failures.append(f"V7_GHOST_SEND_LANES accepted set {accepted}: this check validates 0, 4, 8, 16, 32")
+    source = pathlib.Path(simulator_v7.__file__).read_text(encoding="utf-8")
+    default_match = re.search(r'_parse_ghost_send_lanes\(os\.environ\.get\("V7_GHOST_SEND_LANES", "(\d+)"\)\)', source)
+    if not default_match or int(default_match.group(1)) not in lane_values:
+        failures.append(f"V7_GHOST_SEND_LANES default {default_match.group(1) if default_match else None} is not an "
+                        "accepted lane count")
+    if simulator_v7.configured_v7_switches().get("V7_GHOST_SEND_LANES") != simulator_v7._GHOST_SEND_LANES:
+        failures.append("configured_v7_switches() does not report V7_GHOST_SEND_LANES")
+
+    # ---- shader text
+    shader_directory = pathlib.Path(__file__).resolve().parent / "shaders"
+    old_shader = (shader_directory / "ghost_send.comp").read_text(encoding="utf-8")
+    new_shader = (shader_directory / "ghost_send_lanes.comp").read_text(encoding="utf-8")
+    new_code = re.sub(r"//[^\n]*", "", new_shader)
+    main_body = _glsl_function_body(new_code, "void main() {")
+    mapping_patterns = (
+        r"uint face_voxel_count\s*=\s*GRID_DIMENSION_Y \* GRID_DIMENSION_Z;",
+        r"uint layer_count\s*=\s*\(GHOST_LAYERS >= 2u\) \? 2u : 1u;",
+        r"uint groups_per_workgroup\s*=\s*gl_WorkGroupSize\.x / GHOST_SEND_LANES;",
+        r"uint group_in_workgroup\s*=\s*gl_LocalInvocationID\.x / GHOST_SEND_LANES;",
+        r"uint lane_index\s*=\s*gl_LocalInvocationID\.x % GHOST_SEND_LANES;",
+        r"uint group_index\s*=\s*gl_WorkGroupID\.x \* groups_per_workgroup \+ group_in_workgroup;",
+        r"bool group_active\s*=\s*group_index < layer_count \* face_voxel_count;",
+        r"uint layer_index\s*=\s*group_index / face_voxel_count;",
+        r"uint face_voxel_index\s*=\s*group_index % face_voxel_count;",
+        r"uint y\s*=\s*face_voxel_index % GRID_DIMENSION_Y;",
+        r"uint z\s*=\s*face_voxel_index / GRID_DIMENSION_Y;",
+        r"bool group_leader\s*=\s*\(lane_index == 0u\);",
+        r"for \(uint slot_index = lane_index; slot_index < copy_count; slot_index \+= GHOST_SEND_LANES\)",
+        r"if \(group_active && group_leader\)",
+        r"if \(layer_index == 0u\) send_migrants_two_layers\(y, z\);",
+    )
+    for pattern in mapping_patterns:
+        if not re.search(pattern, main_body):
+            failures.append(f"ghost_send_lanes.comp main(): {pattern!r} not found (the emulation mirrors it)")
+    if new_code.count("barrier();") != 1 or main_body.count("barrier();") != 1:
+        failures.append("ghost_send_lanes.comp: expected exactly one barrier(), in main()")
+    else:
+        before_barrier = main_body[:main_body.index("barrier();")]
+        if "return" in before_barrier:
+            failures.append("ghost_send_lanes.comp: a return before the barrier")
+        depth = sum({"{": 1, "}": -1}.get(character, 0) for character in before_barrier)
+        if depth != 0:
+            failures.append("ghost_send_lanes.comp: the barrier is not at the top level of main()")
+    if not re.search(r"layout\(local_size_x_id = 110\) in;", new_code):
+        failures.append("ghost_send_lanes.comp: local size is not spec constant 110")
+    if not re.search(r"layout\(constant_id = 109\) const uint GHOST_SEND_LANES\b", new_code):
+        failures.append("ghost_send_lanes.comp: GHOST_SEND_LANES is not spec constant 109")
+    bound = re.search(r"const uint GHOST_SEND_MAXIMUM_GROUPS_PER_WORKGROUP = (\d+)u;", new_code)
+    if not bound or int(bound.group(1)) != simulator_v7._GHOST_SEND_MAXIMUM_GROUPS_PER_WORKGROUP:
+        failures.append(f"ghost_send_lanes.comp: shared array bound {bound.group(1) if bound else None} != "
+                        f"simulator {simulator_v7._GHOST_SEND_MAXIMUM_GROUPS_PER_WORKGROUP}")
+    for name in ("shared_copy_count", "shared_base_slot"):
+        if not re.search(rf"shared uint {name}\[GHOST_SEND_MAXIMUM_GROUPS_PER_WORKGROUP\];", new_code):
+            failures.append(f"ghost_send_lanes.comp: {name} is not sized by the bound")
+
+    # ---- the old kernel's statements
+    for signature in ("void copy_recomputed_fields(", "void store_departed("):
+        if (_glsl_fragments(_glsl_function_body(old_shader, signature))
+                != _glsl_fragments(_glsl_function_body(new_shader, signature))):
+            failures.append(f"ghost_send_lanes.comp: {signature}...) differs from ghost_send.comp")
+    old_two_layers = _glsl_function_body(old_shader, "void send_two_layers(")
+    migrant_anchor = "uint migrant_region_first_particle_id"
+    new_migrants = _glsl_function_body(new_shader, "void send_migrants_two_layers(")
+    if (_glsl_fragments(old_two_layers[old_two_layers.index(migrant_anchor):])
+            != _glsl_fragments(new_migrants[new_migrants.index(migrant_anchor):])):
+        failures.append("ghost_send_lanes.comp: the two-layer migrant loop differs from ghost_send.comp's")
+    new_two_layer_section = new_shader[new_shader.index("// ---- GHOST_LAYERS = 2"):
+                                       new_shader.index("// ---- GHOST_LAYERS = 1")]
+    new_single_layer_section = new_shader[new_shader.index("// ---- GHOST_LAYERS = 1"):
+                                          new_shader.index("void main() {")]
+
+    def missing_fragments(old_text: str, new_text: str, allowed: dict) -> dict:
+        """Fragments of old_text that new_text holds fewer times than old_text (as a multiset), beyond allowed."""
+        shortfall = collections.Counter(_glsl_fragments(old_text)) - collections.Counter(_glsl_fragments(new_text))
+        return dict(shortfall - collections.Counter(allowed))
+
+    # every statement of send_two_layers at least as often in the new two-layer section; allowed: the replica part's
+    # loop over the layers (-> one group per layer), its loop over the slots (-> main()'s lane loop) and its
+    # overflow continue (-> return base_slot)
+    replica_loops = {"for (uint layer_index = 0u": 1, "layer_index < 2u": 1, "layer_index++)": 1,
+                     "for (uint slot_index = 0u": 1, "slot_index < replica_count": 1, "slot_index++)": 1}
+    missing = missing_fragments(old_two_layers, new_two_layer_section, {**replica_loops, "continue": 1})
+    if missing:
+        failures.append(f"ghost_send_lanes.comp: two-layer statements of ghost_send.comp missing: {missing}")
+    old_main = _glsl_function_body(old_shader, "void main() {")
+    single_layer_part = old_main[old_main.index("// Two sources for this (y, z):"):]
+    renames = {"src_pid": "source_particle_id", "my_dst_pid": "my_destination_particle_id",
+               "peer_dst_pid": "peer_destination_particle_id", "own_boundary_vid": "own_boundary_voxel_id",
+               "sender_ghost_vid": "sender_ghost_voxel_id", "peer_replica_vid": "peer_replica_voxel_id",
+               "peer_migration_vid": "peer_migration_voxel_id",
+               "my_first_dst_pid": "my_first_destination_particle_id", "dir_pool_size": "direction_pool_size",
+               "overflow_first_pid": "overflow_first_particle_id", "k": "slot_index"}
+    renamed = re.sub(r"\b(" + "|".join(renames) + r")\b", lambda match: renames[match.group(1)], single_layer_part)
+    # allowed: the overflow exit (-> "return false", no migrations) and the replica loop over the slots (-> main()'s
+    # lane loop)
+    missing = missing_fragments(renamed, new_single_layer_section,
+                                {"return": 1, "for (uint slot_index = 0u": 1, "slot_index < replica_count": 1,
+                                 "slot_index++)": 1})
+    if missing:
+        failures.append(f"ghost_send_lanes.comp: single-layer statements of ghost_send.comp missing: {missing}")
+
+    # ---- command streams + the emulated mapping
+    compute_stage = vulkan.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
+    events: list = []
+
+    def record_barrier(cmd, info):
+        for index in range(info.memoryBarrierCount):
+            barrier = info.pMemoryBarriers[index]
+            events.append(("barrier", int(barrier.srcStageMask), int(barrier.srcAccessMask),
+                           int(barrier.dstStageMask), int(barrier.dstAccessMask)))
+
+    recorders = {
+        "vkCmdPipelineBarrier2": record_barrier,
+        "vkCmdCopyBuffer": lambda cmd, source, destination, count, regions: events.append(
+            ("copy", source, destination, int(count))),
+        "vkCmdDispatch": lambda cmd, group_count_x, group_count_y, group_count_z:
+            events.append(("dispatch", int(group_count_x), int(group_count_y), int(group_count_z))),
+        "vkCmdBindPipeline": lambda cmd, point, pipeline: events.append(("bind", pipeline)),
+        "vkCmdBindDescriptorSets": lambda cmd, point, layout, first, count, sets, *rest:
+            events.append(("sets", layout, int(first), int(count))),
+        "vkCmdFillBuffer": lambda cmd, buffer, offset, size, value:
+            events.append(("fill", buffer, int(offset), int(size), int(value))),
+        "vkBeginCommandBuffer": lambda cmd, info: events.append(("begin",)),
+        "vkEndCommandBuffer": lambda cmd: events.append(("end",)),
+    }
+
+    class PipelineNames(dict):
+        def __missing__(self, key):
+            return f"pipeline:{key}"
+
+    class TickRecorder:
+        def tick(self, cmd, label):
+            events.append(("tick", label))
+
+        def record_step_reset_and_start(self, cmd, label):
+            events.append(("tick", label))
+
+    def fake(module, class_name, slab, bench: bool):
+        simulator = object.__new__(getattr(module, class_name))
+        simulator.case = slab
+        simulator.buffers = {"global_status": SimpleNamespace(handle="buffer:global_status", size=0)}
+        simulator.pipelines = PipelineNames()
+        simulator.pipeline_layout = "pipeline_layout"
+        simulator.descriptor_sets = ["set0", "set1", "set2", "set3"]
+        simulator._transport_segments = {direction: [] for direction in ("leading", "trailing")
+                                         if getattr(slab.transport, f"has_{direction}_peer")}
+        simulator.staging_buffers = {f"sender_staging_{direction}": SimpleNamespace(handle=f"staging:{direction}")
+                                     for direction in simulator._transport_segments}
+        simulator.bench = TickRecorder() if bench else None
+        simulator.bench_transfer = None
+        simulator._allocate_oneshot_cmd = lambda: "cmd"
+        return simulator
+
+    def capture(function) -> list:
+        events.clear()
+        function()
+        return list(events)
+
+    def lane_stream(stream: list, slab, lanes: int, groups: int) -> list:
+        """stream with every ghost_send bind + dispatch replaced by the lane kernel's."""
+        face = slab.grid.grid_dimension_y * slab.grid.grid_dimension_z
+        old_dispatch = ("dispatch", (face + slab.capacities.workgroup_size - 1) // slab.capacities.workgroup_size,
+                        1, 1)
+        result, index, replaced = [], 0, 0
+        while index < len(stream):
+            event = stream[index]
+            if event[0] == "bind" and str(event[1]).startswith("pipeline:ghost_send_"):
+                direction = str(event[1])[len("pipeline:ghost_send_"):]
+                if stream[index + 2] != old_dispatch:
+                    failures.append(f"switch 0 ghost_send dispatch {stream[index + 2]} != {old_dispatch}")
+                result += [("bind", f"pipeline:ghost_send_lanes_{direction}"), stream[index + 1],
+                           ("dispatch", groups, 1, 1)]
+                index += 3
+                replaced += 1
+                continue
+            result.append(event)
+            index += 1
+        expected_replaced = len([direction for direction in ("leading", "trailing")
+                                 if getattr(slab.transport, f"has_{direction}_peer")])
+        if replaced != expected_replaced:
+            failures.append(f"{replaced} ghost_send dispatches in a stream of a slab with {expected_replaced} peer(s)")
+        return result
+
+    def check_mapping(tag: str, slab, lanes: int, local_size: int, groups: int) -> None:
+        face_y, face_z = slab.grid.grid_dimension_y, slab.grid.grid_dimension_z
+        face = face_y * face_z
+        layer_count = 2 if slab.ghost_grid.ghost_layers >= 2 else 1
+        pairs = layer_count * face
+        groups_per_workgroup = local_size // lanes
+        if groups != math.ceil(pairs / groups_per_workgroup):
+            failures.append(f"{tag}: {groups} workgroups for {pairs} pairs of {groups_per_workgroup} per workgroup")
+        mapping = _emulate_ghost_send_lanes(face, layer_count, lanes, local_size, groups)
+        active = mapping["active"]
+        if np.any(mapping["group_in_workgroup"] >= simulator_v7._GHOST_SEND_MAXIMUM_GROUPS_PER_WORKGROUP):
+            failures.append(f"{tag}: a group outside the shared arrays")
+        if np.any(~active & (mapping["workgroup"] < groups - 1)):
+            failures.append(f"{tag}: tail invocations before the last workgroup")
+        if not np.any(active[-local_size:]):
+            failures.append(f"{tag}: the last workgroup has no pair (count not minimal)")
+        pair = mapping["group_index"][active]
+        counts = np.bincount(pair, minlength=pairs)
+        if counts.size != pairs or np.any(counts != lanes):
+            failures.append(f"{tag}: pairs owned by {sorted(set(counts.tolist()))} invocations, expected {lanes}")
+        lane_sets = np.zeros((pairs, lanes), dtype=np.int64)
+        np.add.at(lane_sets, (pair, mapping["lane"][active]), 1)
+        if np.any(lane_sets != 1):
+            failures.append(f"{tag}: a pair without exactly one invocation per lane (one leader)")
+        first_workgroup = np.full(pairs, np.iinfo(np.int64).max, dtype=np.int64)
+        last_workgroup = np.full(pairs, -1, dtype=np.int64)
+        np.minimum.at(first_workgroup, pair, mapping["workgroup"][active])
+        np.maximum.at(last_workgroup, pair, mapping["workgroup"][active])
+        if np.any(first_workgroup != last_workgroup):
+            failures.append(f"{tag}: a group spans two workgroups")
+        layer = mapping["layer"][active]
+        face_voxel = mapping["face_voxel"][active]
+        leaders = mapping["lane"][active] == 0
+        leader_layer = layer[leaders]
+        y, z = face_voxel[leaders] % face_y, face_voxel[leaders] // face_y
+        for layer_index in range(layer_count):
+            on_layer = leader_layer == layer_index
+            covered = np.zeros((face_y, face_z), dtype=np.int64)
+            np.add.at(covered, (y[on_layer], z[on_layer]), 1)
+            if np.any(covered != 1):
+                failures.append(f"{tag}: layer {layer_index} does not cover the (y, z) face exactly once")
+        # the voxels every pair reads and writes, per direction (ghost_send.comp's column algebra), each voxel once
+        for direction in ("leading", "trailing"):
+            spec = getattr(slab.transport, direction)
+            if spec is None:
+                continue
+            trailing_send = direction == "trailing"
+            boundary_x, inward_step = spec.boundary_voxel_x_local, (-1 if trailing_send else 1)
+
+            def voxel_ids(column):
+                return 1 + y + z * face_y + column * face
+
+            if layer_count == 2:
+                source_columns = boundary_x + inward_step * leader_layer
+                outbox_columns = (boundary_x + 2 - leader_layer) if trailing_send else (boundary_x - 2 + leader_layer)
+                sources, outboxes = voxel_ids(source_columns), voxel_ids(outbox_columns)
+                expected_sources = {1 + yz + (boundary_x + inward_step * layer_index) * face
+                                    for layer_index in range(2) for yz in range(face)}
+                ghost_columns = (range(boundary_x + 1, boundary_x + 3) if trailing_send
+                                 else range(boundary_x - 2, boundary_x))
+                expected_outboxes = {1 + yz + column * face for column in ghost_columns for yz in range(face)}
+                migrant_leaders = int(np.sum(leader_layer == 0))
+                if migrant_leaders != face:
+                    failures.append(f"{tag}: {migrant_leaders} leaders send migrants, expected one per face voxel")
+            else:
+                sources = voxel_ids(np.full(y.shape, boundary_x))
+                outboxes = voxel_ids(np.full(y.shape, spec.ghost_voxel_x_local))
+                expected_sources = {1 + yz + boundary_x * face for yz in range(face)}
+                expected_outboxes = {1 + yz + spec.ghost_voxel_x_local * face for yz in range(face)}
+            for name, values, expected in (("source", sources, expected_sources),
+                                           ("outbox", outboxes, expected_outboxes)):
+                if len(set(values.tolist())) != values.size or set(values.tolist()) != expected:
+                    failures.append(f"{tag} {direction}: the pairs' {name} voxels are not the old kernel's columns, "
+                                    "each once")
+
+    # the lane loop: slots lane, lane + L, ... below the copy count cover the block exactly once
+    for lanes in lane_values:
+        for copy_count in range(0, 129):
+            slots = [slot for lane in range(lanes) for slot in range(lane, copy_count, lanes)]
+            if sorted(slots) != list(range(copy_count)):
+                failures.append(f"lanes {lanes}: the lane loop does not copy slots 0..{copy_count - 1} exactly once")
+                break
+
+    saved_functions = {(module, name): getattr(module, name) for module in (simulator_v6, simulator_v7)
+                       for name in recorders}
+    saved_environment = {key: value for key, value in os.environ.items() if key.startswith("V7_")}
+    saved_lanes, saved_local_size = simulator_v7._GHOST_SEND_LANES, simulator_v7._GHOST_SEND_LOCAL_SIZE
+    for (module, name) in saved_functions:
+        setattr(module, name, recorders[name])
+    configurations = [("legacy layers=1 keep=0", (1, 0)), ("legacy layers=1 keep=1", (1, 1)),
+                      ("legacy layers=2 keep=1", (2, 1)), ("release defaults", None)]
+    exercised = set()
+    try:
+        for label, switches in configurations:
+            if switches is None:
+                for key in [key for key in os.environ if key.startswith("V7_")]:
+                    del os.environ[key]
+            else:
+                _set_switches(*switches)
+            for depth_count in (1, 3):
+                for slab_count in (1, 2, 3, 4):
+                    chain = partition_v7.compute_chain_partition(
+                        _synthetic_global_case(case_v7, depth_count=depth_count), [1.0] * slab_count,
+                        pool_safety=1.2)
+                    for index, slab in enumerate(chain.slabs):
+                        tag = (f"ghost_send lanes {label} {'3-D' if depth_count > 1 else '2-D'} K={slab_count} "
+                               f"slab {index}")
+                        peers = (slab.transport.has_leading_peer, slab.transport.has_trailing_peer)
+                        exercised.add((slab.ghost_grid.ghost_layers >= 2, depth_count > 1, peers))
+                        for bench in (False, True):
+                            recordings = [("phase A", lambda simulator: simulator._record_phase_a_cmd())]
+                            if not bench:
+                                recordings.append(("bootstrap ghost round",
+                                                   lambda simulator: simulator._record_bootstrap_init_cmd()))
+                            for name, record in recordings:
+                                reference = fake(simulator_v6, "SphSimulatorV6", slab, bench)
+                                simulator = fake(simulator_v7, "SphSimulatorV7", slab, bench)
+                                v6_stream = capture(lambda: record(reference))
+                                simulator_v7._GHOST_SEND_LANES = 0
+                                off_stream = capture(lambda: record(simulator))
+                                if off_stream != v6_stream:
+                                    failures.append(f"{tag} {name}: switch 0 does not record experiment/v6's stream")
+                                for lanes in lane_values:
+                                    simulator_v7._GHOST_SEND_LANES = lanes
+                                    groups = simulator._ghost_send_group_count()
+                                    on_stream = capture(lambda: record(simulator))
+                                    if on_stream != lane_stream(off_stream, slab, lanes, groups):
+                                        failures.append(f"{tag} {name} lanes {lanes}: the stream differs from switch "
+                                                        "0 in more than the ghost_send bind / dispatch")
+                                    entries = simulator._ghost_send_lanes_entries()
+                                    if entries != [(109, "I", lanes), (110, "I", simulator_v7._GHOST_SEND_LOCAL_SIZE)]:
+                                        failures.append(f"{tag} lanes {lanes}: spec entries {entries}")
+                                    if not bench and name == "phase A" and any(peers):
+                                        check_mapping(f"{tag} lanes {lanes}", slab, lanes,
+                                                      simulator_v7._GHOST_SEND_LOCAL_SIZE, groups)
+                                simulator_v7._GHOST_SEND_LANES = saved_lanes
+                        # the measured local sizes (simulator_v7 module constant; the wrapper of the E39 B6 table)
+                        if any(peers):
+                            for local_size in (32, 128, 256, 512, 1024):
+                                for lanes in lane_values:
+                                    if local_size % lanes or local_size // lanes > \
+                                            simulator_v7._GHOST_SEND_MAXIMUM_GROUPS_PER_WORKGROUP:
+                                        continue
+                                    simulator_v7._GHOST_SEND_LANES = lanes
+                                    simulator_v7._GHOST_SEND_LOCAL_SIZE = local_size
+                                    simulator = fake(simulator_v7, "SphSimulatorV7", slab, False)
+                                    check_mapping(f"{tag} lanes {lanes} local {local_size}", slab, lanes, local_size,
+                                                  simulator._ghost_send_group_count())
+                            simulator_v7._GHOST_SEND_LANES = saved_lanes
+                            simulator_v7._GHOST_SEND_LOCAL_SIZE = saved_local_size
+        # one and two layers, 2-D and 3-D, edge slabs of both sides and interior slabs (both directions)
+        for layers in (False, True):
+            for three_d in (False, True):
+                for peers in ((False, True), (True, False), (True, True)):
+                    if (layers, three_d, peers) not in exercised:
+                        failures.append(f"ghost_send lanes: no slab with two layers={layers} 3-D={three_d} "
+                                        f"peers={peers}")
+        # a local size the lanes do not divide, or too many groups for the shared arrays, is refused
+        for lanes, local_size in ((32, 48), (4, 2048)):
+            simulator_v7._GHOST_SEND_LANES, simulator_v7._GHOST_SEND_LOCAL_SIZE = lanes, local_size
+            try:
+                simulator_v7.SphSimulatorV7._ghost_send_groups_per_workgroup()
+                failures.append(f"lanes {lanes} with local size {local_size} accepted")
+            except ValueError:
+                pass
+    finally:
+        for (module, name), function in saved_functions.items():
+            setattr(module, name, function)
+        simulator_v7._GHOST_SEND_LANES, simulator_v7._GHOST_SEND_LOCAL_SIZE = saved_lanes, saved_local_size
+        for key in [key for key in os.environ if key.startswith("V7_")]:
+            del os.environ[key]
+        os.environ.update(saved_environment)
+
+
 def check_release_defaults(failures: list) -> None:
     """E6b: with no V7_* variable set the configuration is the recommended release
     set (v6_opt.md), per dimension for the pool factors; dependent switches follow
@@ -1160,6 +1620,7 @@ def main() -> int:
     check_packed_shader_layout(failures)
     check_band_widths(failures)
     check_density_copy(failures)
+    check_ghost_send_lanes(failures)
     spirv_checked = check_spirv_current(failures)
     _set_switches(1, 0)
     if failures:
@@ -1171,6 +1632,7 @@ def main() -> int:
           "segment layout, install range; lean / compact / packed segments in 2-D and 3-D, packed allocation "
           "tiling; packed rejection + V7_DIAG_POISON_G1 parsing; packed shader layout + poison branches + spec ids; "
           "V7_BAND_WIDTHS parsing / rejection / spec 82; density copy pass regions + streams (E39 B9); "
+          "ghost_send lane groups: streams, emulated mapping, shader text, old statements (E39 B6); "
           "release defaults (E6b, phase A no-wait E32) + LEGACY_DEFAULTS; "
           + ("SPIR-V current)" if spirv_checked else "SPIR-V check SKIPPED: no glslc)"))
     return 0
