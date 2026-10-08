@@ -1,0 +1,81 @@
+// ============================================================================
+// expand_ghost_lists.comp — V7_COMPACT_GHOST_LISTS (COMPACT_GHOST_LISTS = 1).
+//
+// ghost_send packs the replicas of one sender voxel into CONSECUTIVE slots of
+// the direction's ghost pool (one atomicAdd per (y, z) thread and layer), so
+// the voxel's inside list on the receiver is always
+//     inside_particle_index[v * MAX + k] = first + k,   k < inside_particle_count[v]
+// with first = the receiver-frame pid of the voxel's first replica. Instead of
+// the MAX_PARTICLES_PER_VOXEL-wide index array, the transport then carries one
+// uint per ghost voxel (ghost_voxel_first_particle_id, written by ghost_send)
+// next to inside_particle_count, and this kernel rebuilds the index entries on
+// the receiver at the start of phase C: after the upload, before
+// append_departed (which appends to the same lists) and before every seam
+// sweep. The rebuilt lists are bit-for-bit the ones the sender would have
+// shipped, in the same order; slots >= count are not written (nothing reads
+// them: every list walk is bounded by inside_particle_count).
+//
+// One thread per (inbound ghost voxel, slot): the leading ghost range
+// [1, M] then the trailing range [T - N + 1, T] (M / N = 0 on a side without a
+// peer). Consecutive threads write consecutive slots of one voxel.
+// ============================================================================
+
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+
+#include "common.glsl"
+#include "helpers.glsl"
+
+layout(local_size_x_id = 51) in;
+
+// V7_DIAG_POISON_G1 (diagnostic only, spec 99, default off): write a quiet NaN
+// into the unpacked inner (G1) replica's pressure (1: nothing may read G1's P^n)
+// or density (2: negative control, G1's rho^n is read). Folded away when 0.
+layout(constant_id = 99) const uint DIAGNOSTIC_POISON_INNER_REPLICA = 0u;
+const uint DIAGNOSTIC_POISON_PRESSURE = 1u;
+const uint DIAGNOSTIC_POISON_DENSITY  = 2u;
+const uint QUIET_NAN_BITS             = 0x7FC00000u;
+
+void main() {
+    uint thread_id = gl_GlobalInvocationID.x;
+    uint voxel_ordinal = thread_id / MAX_PARTICLES_PER_VOXEL;
+    uint slot_index = thread_id % MAX_PARTICLES_PER_VOXEL;
+    if (voxel_ordinal >= LEADING_GHOST_VOXEL_COUNT + TRAILING_GHOST_VOXEL_COUNT) return;
+    uint voxel_id = (voxel_ordinal < LEADING_GHOST_VOXEL_COUNT)
+        ? 1u + voxel_ordinal
+        : extended_voxel_count() - TRAILING_GHOST_VOXEL_COUNT + 1u
+              + (voxel_ordinal - LEADING_GHOST_VOXEL_COUNT);
+    if (slot_index >= inside_particle_count[voxel_id]) return;
+    uint particle_id = ghost_voxel_first_particle_id[voxel_id] + slot_index;
+    inside_particle_index[voxel_id * MAX_PARTICLES_PER_VOXEL + slot_index] = particle_id;
+    if (!PACKED_REPLICAS || REPLICA_REGION_SIZE == 0u) return;   // (host rejects layers < 2 too)
+
+    // V7_PACKED_REPLICAS: unpack the replica into its ghost SoA slot. Leading
+    // ghost columns are x = 0 (outer) and 1 (inner, next to own); trailing ghost
+    // columns are own_last + 1 (inner) and own_last + 2 (outer).
+    uint face = GRID_DIMENSION_Y * GRID_DIMENSION_Z;
+    bool leading = voxel_ordinal < LEADING_GHOST_VOXEL_COUNT;
+    uint column = (leading ? voxel_ordinal : voxel_ordinal - LEADING_GHOST_VOXEL_COUNT) / face;
+    uint layer = leading ? 1u - column : column;
+    uint direction = leading ? 0u : 1u;
+    uint region_first_particle_id = (leading ? leading_ghost_first_pid() : trailing_ghost_first_pid())
+                                  + layer * REPLICA_REGION_SIZE;
+    uint region_slot = particle_id - region_first_particle_id;
+    uint packed_base = packed_layer_base(direction, layer);
+    vec4 position_density = load_packed_vec4(packed_base + 4u * region_slot);
+    vec4 velocity_material = load_packed_vec4(packed_base + 4u * REPLICA_REGION_SIZE + 4u * region_slot);
+    uint material_id = floatBitsToUint(velocity_material.w);
+    // No pressure travels (common.glsl PACKED_REPLICAS): P = 0 for both layers.
+    float density = position_density.w;
+    float pressure = 0.0;
+    if (layer == 0u && DIAGNOSTIC_POISON_INNER_REPLICA == DIAGNOSTIC_POISON_PRESSURE) {
+        pressure = uintBitsToFloat(QUIET_NAN_BITS);
+    }
+    if (layer == 0u && DIAGNOSTIC_POISON_INNER_REPLICA == DIAGNOSTIC_POISON_DENSITY) {
+        density = uintBitsToFloat(QUIET_NAN_BITS);
+    }
+    position_voxel_id[particle_id] = vec4(position_density.xyz, float(voxel_id));
+    velocity_mass[particle_id]     = vec4(velocity_material.xyz, material_parameters[material_id].particle_mass);
+    density_pressure[particle_id]  = vec2(density, pressure);
+    material[particle_id]          = material_id;
+}

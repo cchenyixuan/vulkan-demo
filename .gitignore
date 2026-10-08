@@ -14,3 +14,5 @@ logs/
 !experiment/v5/shaders/spv/*.spv
 # V6 likewise, so the cluster can run v6 without glslc
 !experiment/v6/shaders/spv/*.spv
+# V7 likewise (E39 v7-perf)
+!experiment/v7/shaders/spv/*.spv
