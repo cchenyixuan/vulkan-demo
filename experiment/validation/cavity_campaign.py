@@ -11,6 +11,29 @@ runs each case for a few sample intervals and records the throughput (logs/.../c
 prints and records the wall-clock estimate of every run before starting it (campaign.jsonl), holds a lock
 file, waits for idle GPUs, watches the runner's heartbeat (a stalled process tree is killed) and resumes a
 failed or killed segment from its newest checkpoint (at most --retries times).
+
+--solver v7 (E39) drives experiment/v7 the same way: the inherited V7_* variables are dropped instead and the V7_*
+release combination added (cavity_runner.expected_environments), every runner gets --solver v7, and the runs,
+calibration, estimates, log and lock live in logs/validation/cavity_re1000_v7/ (the same run ids as v6). A run
+directory started with the other solver stops the campaign (the runner refuses to resume it). v7 is calibrated on
+its own (calibration.json of its directory):
+
+    .venv/Scripts/python.exe -m experiment.validation.cavity_campaign calibrate --solver v7 \
+        --runs n250_k2_float32_xi0p001_eps0p0025,n500_k2_float32_xi0p001_eps0p0025
+    .venv/Scripts/python.exe -m experiment.validation.cavity_campaign plan --solver v7 \
+        --runs n250_k2_float32_xi0p001_eps0p0025,n500_k2_float32_xi0p001_eps0p0025
+    .venv/Scripts/python.exe -m experiment.validation.cavity_campaign run --solver v7 \
+        --runs n250_k2_float32_xi0p001_eps0p0025,n500_k2_float32_xi0p001_eps0p0025
+    # a run outside RUNS (e.g. an adami case: K = 1 only): the runner under the same environment, started from the
+    # repository root (no heartbeat watchdog, no retries, no idle-GPU wait)
+    .venv/Scripts/python.exe -c "import subprocess, sys; from experiment.validation import cavity_campaign; \
+sys.exit(subprocess.call([sys.executable] + sys.argv[1:], env=cavity_campaign.environment('release', 'v7')))" \
+        -m experiment.validation.cavity_runner --solver v7 --expect release --slabs 1 --device-map 1 \
+        --require-uuid ae137c668a40f5acaab90a83f7cda175 \
+        --case cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml \
+        --run-dir logs/validation/cavity_re1000_v7/n250_k1_float32_xi0p001_eps0p0025_adami
+
+In a worktree without its own .venv (e.g. vulkan-demo-v7-perf) the runners are started with this interpreter.
 """
 from __future__ import annotations
 
@@ -26,10 +49,12 @@ _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from experiment.validation.cavity_runner import EXPECTED  # noqa: E402
+from experiment.validation.cavity_runner import SOLVERS, expected_environments, switch_prefix  # noqa: E402
 
 ROOT = _REPO_ROOT / "logs" / "validation" / "cavity_re1000"
 PYTHON = _REPO_ROOT / ".venv" / "Scripts" / "python.exe"
+if not PYTHON.exists():                 # a worktree without its own .venv: the interpreter running the campaign
+    PYTHON = pathlib.Path(sys.executable)
 CASES = {"n250": "cases/lid_driven_cavity_2d_n250/case.yaml", "n500": "cases/lid_driven_cavity_2d_n500/case.yaml",
          "n1000": "cases/lid_driven_cavity_2d_n1000/case.yaml", "n2000": "cases/lid_driven_cavity_2d_n2000/case.yaml",
          # 2026-10-04 (user decision): KCG regularization xi 0.1 -> 0.001, plus one 250^2 control with
@@ -78,12 +103,25 @@ HEARTBEAT_TIMEOUT_S = 600
 BOOT_TIMEOUT_S = 900
 
 
-def environment(expect: str) -> dict:
-    env = {key: value for key, value in os.environ.items() if not key.startswith("V6_")}
-    env.update(EXPECTED[expect])
+def campaign_root(solver: str) -> pathlib.Path:
+    """Run directories, calibration, estimates, log and lock of one solver: ROOT for v6, ROOT_<solver> otherwise."""
+    return ROOT if solver == "v6" else ROOT.with_name(f"{ROOT.name}_{solver}")
+
+
+def environment(expect: str, solver: str = "v6") -> dict:
+    env = {key: value for key, value in os.environ.items() if not key.startswith(switch_prefix(solver))}
+    env.update(expected_environments(solver)[expect])
     env["VK_LOADER_LAYERS_DISABLE"] = "VK_LAYER_KHRONOS_validation"
     env["PYTHONIOENCODING"] = "utf-8"
     return env
+
+
+def run_solver(run_dir: pathlib.Path) -> str | None:
+    """The solver a run directory was started with (meta.json; v6 if it predates --solver), None before a run."""
+    meta_path = run_dir / "meta.json"
+    if not meta_path.exists():
+        return None
+    return json.loads(meta_path.read_text(encoding="utf-8")).get("solver", "v6")
 
 
 SOLVER_MARKERS = ("experiment.validation", "experiment.v6", "experiment.v5", "experiment.seam_audit", "_run_")
@@ -153,14 +191,14 @@ def estimate(run: dict, calibration: dict, t_end: float, t_max: float, start_ste
             "hours": steps_end / fps / 3600 if fps else None, "hours_max": steps_max / fps / 3600 if fps else None}
 
 
-def run_segments(run: dict, run_dir: pathlib.Path, extra: list[str], retries: int, log) -> int:
-    env = environment(run["expect"])
+def run_segments(run: dict, run_dir: pathlib.Path, extra: list[str], retries: int, log, solver: str = "v6") -> int:
+    env = environment(run["expect"], solver)
     attempt = 0
     while True:
         resume = attempt > 0 or (run_dir / "checkpoints" / "manifest.jsonl").exists()
         command = [str(PYTHON), "-m", "experiment.validation.cavity_runner", "--case", CASES[run["case"]],
                    "--run-dir", str(run_dir), "--slabs", str(run["slabs"]), "--device-map", run["devices"],
-                   "--expect", run["expect"]] + (["--resume"] if resume else []) + extra
+                   "--expect", run["expect"], "--solver", solver] + (["--resume"] if resume else []) + extra
         if run.get("require_uuid"):
             command += ["--require-uuid", run["require_uuid"]]
         log(f"launch {run['id']} attempt {attempt}: {' '.join(command[2:])}")
@@ -202,12 +240,15 @@ def main() -> int:
     parser.add_argument("--t-end", type=float, default=100.0)
     parser.add_argument("--average-span", type=float, default=20.0)
     parser.add_argument("--retries", type=int, default=3)
+    parser.add_argument("--solver", choices=SOLVERS, default="v6",
+                        help="passed to every cavity_runner; v7 (E39) runs live in logs/validation/cavity_re1000_v7")
     arguments = parser.parse_args()
-    ROOT.mkdir(parents=True, exist_ok=True)
+    root = campaign_root(arguments.solver)
+    root.mkdir(parents=True, exist_ok=True)
     selected = [run for run in RUNS if arguments.runs is None or run["id"] in arguments.runs.split(",")]
-    calibration_path = ROOT / "calibration.json"
+    calibration_path = root / "calibration.json"
     calibration = json.loads(calibration_path.read_text(encoding="utf-8")) if calibration_path.exists() else {}
-    campaign_log = open(ROOT / "campaign.log", "a", encoding="utf-8")
+    campaign_log = open(root / "campaign.log", "a", encoding="utf-8")
 
     def log(message: str) -> None:
         line = f"[campaign {time.strftime('%Y-%m-%d %H:%M:%S')}] {message}"
@@ -217,7 +258,7 @@ def main() -> int:
 
     if arguments.command == "status":
         for run in selected:
-            run_dir = ROOT / run["id"]
+            run_dir = root / run["id"]
             rows = (run_dir / "samples.jsonl").read_text(encoding="utf-8").splitlines() if (run_dir / "samples.jsonl").exists() else []
             last = json.loads(rows[-1]) if rows else {}
             result = (run_dir / "result.json").exists()
@@ -236,7 +277,7 @@ def main() -> int:
         print(f"total (calibrated runs only): {total:.1f} h to t_end, at most {total_max:.1f} h (t_max)")
         return 0
 
-    lock = ROOT / "campaign.lock"
+    lock = root / "campaign.lock"
     if lock.exists():
         other = lock.read_text(encoding="utf-8").strip()
         sys.exit(f"[campaign] lock file {lock} exists (pid {other}); remove it only if that process is gone")
@@ -249,9 +290,10 @@ def main() -> int:
                 if run["expect"] != "release" or key in calibration:
                     continue
                 wait_for_idle_gpus(log)
-                run_dir = ROOT / "calibration" / run["id"]
+                run_dir = root / "calibration" / run["id"]
                 run_dir.mkdir(parents=True, exist_ok=True)
-                code = run_segments(run, run_dir, ["--max-steps", str(CALIBRATION_STEPS[case])], 0, log)
+                code = run_segments(run, run_dir, ["--max-steps", str(CALIBRATION_STEPS[case])], 0, log,
+                                    arguments.solver)
                 rows = [json.loads(line) for line in (run_dir / "samples.jsonl").read_text(encoding="utf-8").splitlines()]
                 rates = sorted(row["fps"] for row in rows[1:]) if len(rows) > 1 else []
                 calibration[key] = {"fps": rates[len(rates) // 2] if rates else None, "samples": len(rows),
@@ -260,7 +302,11 @@ def main() -> int:
                 log(f"calibrated {key}: {calibration[key]['fps']} steps/s over {len(rows)} samples (exit {code})")
             return 0
         for run in selected:
-            run_dir = ROOT / run["id"]
+            run_dir = root / run["id"]
+            started_with = run_solver(run_dir)
+            if started_with not in (None, arguments.solver):
+                log(f"{run['id']}: {run_dir} holds a {started_with} run, not {arguments.solver}; stopping the campaign")
+                return 1
             if (run_dir / "result.json").exists():
                 log(f"{run['id']}: complete, skipped")
                 continue
@@ -271,7 +317,7 @@ def main() -> int:
                 steps = [json.loads(line)["step"] for line in manifest.read_text(encoding="utf-8").splitlines() if line.strip()]
                 start_step = max(steps) if steps else 0
             entry = estimate(run, calibration, arguments.t_end, t_max, start_step)
-            with open(ROOT / "campaign.jsonl", "a", encoding="utf-8") as handle:
+            with open(root / "campaign.jsonl", "a", encoding="utf-8") as handle:
                 handle.write(json.dumps(dict(entry, logged=time.strftime("%Y-%m-%d %H:%M:%S"))) + "\n")
             log(f"{run['id']}: estimate from step {start_step:,}: {entry['steps_to_t_end']:,} steps to t = {arguments.t_end:g} "
                 f"at {entry['fps']} steps/s -> {entry['hours'] if entry['hours'] is None else round(entry['hours'], 2)} h "
@@ -279,7 +325,8 @@ def main() -> int:
             wait_for_idle_gpus(log)
             run_dir.mkdir(parents=True, exist_ok=True)
             code = run_segments(run, run_dir, ["--t-end", str(arguments.t_end), "--t-max", str(t_max),
-                                               "--average-span", str(arguments.average_span)], arguments.retries, log)
+                                               "--average-span", str(arguments.average_span)], arguments.retries, log,
+                                arguments.solver)
             if code != 0:
                 log(f"{run['id']}: FAILED (exit {code}); stopping the campaign")
                 return code

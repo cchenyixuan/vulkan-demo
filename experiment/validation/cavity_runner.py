@@ -1,7 +1,7 @@
-"""cavity_runner.py - one segment of a lid-driven cavity validation run with the v6 solver.
+"""cavity_runner.py - one segment of a lid-driven cavity validation run with the v6 (default) or v7 solver.
 
 Runs the case from rest (or resumes from the newest checkpoint) with ChainOrchestratorV6 (K = 1 or 2,
-production depth-2 loop) and does all I/O in the drained on_defrag hook:
+production depth-2 loop; --solver v7: ChainOrchestratorV7) and does all I/O in the drained on_defrag hook:
   every sample (default: the defrag boundary nearest 0.2 time units):
       cached readback of every alive own particle (position, velocity / mass, density, material);
       checks: alive total = expected (drift 0), every GPU overflow_* counter, far_migration and the GPU
@@ -21,8 +21,18 @@ or at --t-max. The release switches arrive through the environment (cavity_campa
 runner refuses to start if they do not match --expect. A fresh run keeps a copy of its case.yaml in the run
 directory: the analysis reads the run's numerics (xi, epsilon_squared_factor) from that copy, not from cases/.
 
+--solver v7 (E39) runs experiment/v7, the fork of v6-rc2 (modules *_v7, classes *V7): the release switches are the
+same names with the V7_ prefix (expected_environments; V6_* variables are then not looked at), the physics hash
+covers experiment/v7 (utils/*.py, shaders/spv/*.spv) and meta.json records the solver. A run directory keeps its
+solver: --resume with another --solver is refused (runs started before E39 have no solver in meta.json: v6).
+
     .venv/Scripts/python.exe -m experiment.validation.cavity_runner --case cases/lid_driven_cavity_2d_n250/case.yaml \
         --run-dir logs/validation/cavity_re1000/n250_k2_float32 --slabs 2 --device-map 0,1 --expect release
+    # v7: the same with the V7_* release set in the environment (cavity_campaign.environment('release', 'v7'))
+    .venv/Scripts/python.exe -m experiment.validation.cavity_runner --solver v7 \
+        --case cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml \
+        --run-dir logs/validation/cavity_re1000_v7/n250_k1_float32_xi0p001_eps0p0025_adami --slabs 1 --device-map 1 \
+        --expect release --require-uuid ae137c668a40f5acaab90a83f7cda175
 """
 from __future__ import annotations
 
@@ -53,6 +63,7 @@ RELEASE_ENVIRONMENT = {
 }
 EXPECTED = {"release": dict(RELEASE_ENVIRONMENT),
             "release_delta": dict(RELEASE_ENVIRONMENT, V6_DELTA_DENSITY="1")}
+SOLVERS = ("v6", "v7")
 DENSE_POINTS = 1001
 FRAMES = ("wall", "fluid")
 
@@ -75,14 +86,30 @@ def step_of(path: pathlib.Path) -> int | None:
     return int(match.group(1)) if match else None
 
 
-def check_environment(expect: str) -> dict:
-    """The V6_* environment must be exactly the expected set (read before any v6 import)."""
-    wanted = EXPECTED[expect]
-    actual = {key: value for key, value in os.environ.items() if key.startswith("V6_")}
+def switch_prefix(solver: str) -> str:
+    """The solver's environment switch prefix: V6_ (experiment/v6) or V7_ (experiment/v7)."""
+    return solver.upper() + "_"
+
+
+def expected_environments(solver: str) -> dict:
+    """EXPECTED with the solver's switch prefix (v7 = the v6-rc2 fork with V6_* renamed V7_*: the same switch
+    names and values). EXPECTED itself stays in V6_* names (canonical_dump maps RELEASE_ENVIRONMENT the same way)."""
+    prefix = switch_prefix(solver)
+    return {expect: {prefix + key[len("V6_"):]: value for key, value in environment.items()}
+            for expect, environment in EXPECTED.items()}
+
+
+def check_environment(expect: str, solver: str = "v6") -> dict:
+    """The solver's switch environment (V6_* or V7_*) must be exactly the expected set (read before any solver
+    import); the other solver's variables are not looked at (that solver is not imported)."""
+    wanted = expected_environments(solver)[expect]
+    prefix = switch_prefix(solver)
+    actual = {key: value for key, value in os.environ.items() if key.startswith(prefix)}
     if actual != wanted:
         missing = {key: value for key, value in wanted.items() if actual.get(key) != value}
         extra = {key: value for key, value in actual.items() if key not in wanted}
-        sys.exit(f"[cavity] environment does not match --expect {expect}: wrong/missing {missing}, extra {extra}")
+        sys.exit(f"[cavity] environment does not match --expect {expect} (--solver {solver}): wrong/missing {missing}, "
+                 f"extra {extra}")
     if os.environ.get("VK_LOADER_LAYERS_DISABLE", "") != "VK_LAYER_KHRONOS_validation":
         sys.exit("[cavity] set VK_LOADER_LAYERS_DISABLE=VK_LAYER_KHRONOS_validation")
     return actual
@@ -202,12 +229,14 @@ def file_hash(paths: list[pathlib.Path]) -> str:
     return digest.hexdigest()[:16]
 
 
-def code_hashes(case_path: pathlib.Path) -> dict:
-    """physics = the v6 solver (python + SPIR-V) + the case files + the material library; sampling = the
-    sampling / reference code and the reference CSV. A resume refuses to continue under different hashes."""
+def code_hashes(case_path: pathlib.Path, solver: str = "v6") -> dict:
+    """physics = the solver experiment/<solver> (python + SPIR-V) + the case files + the material library;
+    sampling = the sampling / reference code and the reference CSV. A resume refuses to continue under different
+    hashes. The file list and the hashed relative paths of v6 are those of the runner before --solver existed."""
     case_directory = case_path.parent
-    physics = (list((_REPO_ROOT / "experiment" / "v6" / "utils").glob("*.py"))
-               + list((_REPO_ROOT / "experiment" / "v6" / "shaders" / "spv").glob("*.spv"))
+    solver_directory = _REPO_ROOT / "experiment" / solver
+    physics = (list((solver_directory / "utils").glob("*.py"))
+               + list((solver_directory / "shaders" / "spv").glob("*.spv"))
                + [case_path] + list(case_directory.glob("*.obj")) + [_REPO_ROOT / "materials" / "standard.yaml"])
     validation = _REPO_ROOT / "experiment" / "validation"
     sampling_files = [validation / "cavity_sampling.py", validation / "cavity_reference.py",
@@ -217,7 +246,7 @@ def code_hashes(case_path: pathlib.Path) -> dict:
 
 
 def device_uuid(ctx) -> str:
-    # core in Vulkan 1.1 (the v6 instance is 1.3); python-vulkan's vkGetInstanceProcAddr only resolves extensions
+    # core in Vulkan 1.1 (the v6 / v7 instance is 1.3); python-vulkan's vkGetInstanceProcAddr only resolves extensions
     from vulkan import VkPhysicalDeviceIDProperties, VkPhysicalDeviceProperties2, vkGetPhysicalDeviceProperties2
     id_properties = VkPhysicalDeviceIDProperties()
     vkGetPhysicalDeviceProperties2(ctx.physical_device, VkPhysicalDeviceProperties2(pNext=id_properties))
@@ -253,10 +282,10 @@ def atomic_write_text(path: pathlib.Path, text_value: str) -> None:
     os.replace(temporary, path)
 
 
-def git_state() -> dict:
+def git_state(solver: str = "v6") -> dict:
     head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
                           cwd=_REPO_ROOT).stdout.strip()
-    dirty = subprocess.run(["git", "status", "--porcelain", "experiment/v6", "experiment/validation"],
+    dirty = subprocess.run(["git", "status", "--porcelain", f"experiment/{solver}", "experiment/validation"],
                            capture_output=True, text=True, cwd=_REPO_ROOT).stdout.strip()
     return {"head": head, "dirty": bool(dirty)}
 
@@ -281,8 +310,10 @@ def main() -> int:
     parser.add_argument("--pool-safety", type=float, default=1.2)
     parser.add_argument("--require-uuid", default=None,
                         help="comma-separated Vulkan deviceUUIDs the slabs' GPUs must have (e.g. the headless 5090)")
+    parser.add_argument("--solver", choices=SOLVERS, default="v6",
+                        help="experiment/v6 (default) or experiment/v7 (E39: V7_* switches, the same release set)")
     arguments = parser.parse_args()
-    environment = check_environment(arguments.expect)
+    environment = check_environment(arguments.expect, arguments.solver)
     if arguments.t_end + arguments.average_span > arguments.t_max:
         sys.exit(f"[cavity] --t-end {arguments.t_end} + --average-span {arguments.average_span} exceeds --t-max {arguments.t_max}")
 
@@ -292,12 +323,20 @@ def main() -> int:
     except Exception:
         pass
 
-    from experiment.v6.utils.case_loader_v6 import load_case_v6
-    from experiment.v6.utils.case_v6 import KIND_FLUID
-    from experiment.v6.utils.orchestrator_v6 import ChainOrchestratorV6
-    from experiment.v6.utils.partition_v6 import compute_chain_partition, restart_slab_rows
-    from experiment.v6.utils.simulator_v6 import SphSimulatorV6
-    from experiment.v6.utils.vulkan_context_v6 import VulkanContextV6
+    if arguments.solver == "v7":
+        from experiment.v7.utils.case_loader_v7 import load_case_v7 as load_case
+        from experiment.v7.utils.case_v7 import KIND_FLUID
+        from experiment.v7.utils.orchestrator_v7 import ChainOrchestratorV7 as ChainOrchestrator
+        from experiment.v7.utils.partition_v7 import compute_chain_partition, restart_slab_rows
+        from experiment.v7.utils.simulator_v7 import SphSimulatorV7 as SphSimulator
+        from experiment.v7.utils.vulkan_context_v7 import VulkanContextV7 as VulkanContext
+    else:
+        from experiment.v6.utils.case_loader_v6 import load_case_v6 as load_case
+        from experiment.v6.utils.case_v6 import KIND_FLUID
+        from experiment.v6.utils.orchestrator_v6 import ChainOrchestratorV6 as ChainOrchestrator
+        from experiment.v6.utils.partition_v6 import compute_chain_partition, restart_slab_rows
+        from experiment.v6.utils.simulator_v6 import SphSimulatorV6 as SphSimulator
+        from experiment.v6.utils.vulkan_context_v6 import VulkanContextV6 as VulkanContext
 
     run_dir = pathlib.Path(arguments.run_dir).resolve()
     for sub in ("samples", "snapshots", "checkpoints"):
@@ -316,7 +355,7 @@ def main() -> int:
     if not arguments.resume and ((run_dir / "samples.jsonl").exists()
                                  or (run_dir / "checkpoints" / "manifest.jsonl").exists()):
         sys.exit(f"[cavity] {run_dir} already holds a run; pass --resume or use a new --run-dir")
-    global_case = load_case_v6(arguments.case)
+    global_case = load_case(arguments.case)
     if global_case.numerics.wall_boundary == "adami" and arguments.slabs != 1:
         sys.exit(f"[cavity] {arguments.case}: wall_boundary adami supports one GPU (K = 1) only in this release; "
                  "run it with --slabs 1")
@@ -372,16 +411,20 @@ def main() -> int:
                    "slabs": arguments.slabs, "expect": arguments.expect, "dt": dt, "spacing": spacing,
                    "support_radius": support, "sample_steps": sample_steps, "window_steps": window_steps,
                    "defrag_cadence": cadence, "environment": environment}
-        hashes = code_hashes(pathlib.Path(arguments.case).resolve())
+        hashes = code_hashes(pathlib.Path(arguments.case).resolve(), arguments.solver)
         for key in ("physics", "sampling"):
             if stored.get("code_hashes", {}).get(key, hashes[key]) != hashes[key]:
                 current[f"code_hash_{key}"] = hashes[key]
                 stored[f"code_hash_{key}"] = stored["code_hashes"][key]
         mismatch = {key: (stored.get(key), value) for key, value in current.items() if stored.get(key) != value}
+        stored_solver = stored.get("solver", "v6")             # runs started before E39 carry no solver: v6
+        if stored_solver != arguments.solver:
+            mismatch["solver"] = (stored_solver, arguments.solver)
         if mismatch:
             sys.exit(f"[cavity] {run_dir} was started with different settings: {mismatch}")
     else:
         meta = {"case": str(pathlib.Path(arguments.case).resolve().relative_to(_REPO_ROOT)),
+                "solver": arguments.solver,
                 "slabs": arguments.slabs, "device_map": device_map, "expect": arguments.expect,
                 "environment": environment, "expected_total": expected_total, "dt": dt, "support_radius": support,
                 "spacing": spacing, "reynolds_nominal": reynolds, "defrag_cadence": cadence,
@@ -392,8 +435,8 @@ def main() -> int:
                 "wall_boundary": global_case.numerics.wall_boundary,
                 "frames": {name: frame.half_width for name, frame in frames.items()},
                 "dense_reference": "linspace(0, 1, 1001) in the wall frame",
-                "fluid_groups": fluid_groups.tolist(), "git": git_state(),
-                "code_hashes": code_hashes(pathlib.Path(arguments.case).resolve())}
+                "fluid_groups": fluid_groups.tolist(), "git": git_state(arguments.solver),
+                "code_hashes": code_hashes(pathlib.Path(arguments.case).resolve(), arguments.solver)}
         meta_path.write_text(json.dumps(meta, indent=1), encoding="utf-8")
         (run_dir / "case.yaml").write_bytes(pathlib.Path(arguments.case).read_bytes())
         np.savez(run_dir / "points.npz", **{name: points for name, (_, points) in point_sets.items()},
@@ -484,17 +527,17 @@ def main() -> int:
         log.write(line + "\n")
         log.flush()
 
-    say(f"segment {segment_index}: case {arguments.case} K={arguments.slabs} devices {device_map} expect "
-        f"{arguments.expect}; start step {start_step} (t = {start_step * dt:.3f}); dt {dt:.3e}; "
+    say(f"segment {segment_index}: solver {arguments.solver}, case {arguments.case} K={arguments.slabs} devices "
+        f"{device_map} expect {arguments.expect}; start step {start_step} (t = {start_step * dt:.3f}); dt {dt:.3e}; "
         f"sample/snapshot/checkpoint/window every {sample_steps}/{snapshot_steps}/{checkpoint_steps}/{window_steps} steps")
     status = "error"
     failure: dict = {}
     wall_start = time.perf_counter()
     try:
         for index in range(arguments.slabs):
-            contexts.append(VulkanContextV6.create(device_index=device_map[index], enable_validation=False,
-                                                   application_name=f"cavity_s{index}"))
-            sims.append(SphSimulatorV6(contexts[-1], chain.slabs[index], sync_scheme="per-direction"))
+            contexts.append(VulkanContext.create(device_index=device_map[index], enable_validation=False,
+                                                 application_name=f"cavity_s{index}"))
+            sims.append(SphSimulator(contexts[-1], chain.slabs[index], sync_scheme="per-direction"))
         uuids = [device_uuid(ctx) for ctx in contexts]
         failure["device_uuids"] = uuids
         say(f"device uuids {uuids}")
@@ -502,7 +545,7 @@ def main() -> int:
             wanted = [item.replace("-", "").lower() for item in arguments.require_uuid.split(",")]
             if wanted != uuids:
                 raise RuntimeError(f"device uuids {uuids} differ from --require-uuid {wanted}")
-        orchestrator = ChainOrchestratorV6(sims, defrag_cadence=cadence)
+        orchestrator = ChainOrchestrator(sims, defrag_cadence=cadence)
         if state is None:
             if start_step != 0:
                 raise RuntimeError("no checkpoint to resume from")
@@ -658,9 +701,9 @@ def main() -> int:
     finally:
         record = {"segment": segment_index, "start_step": start_step, "status": status, "totals": totals,
                   "error": failure.get("error"), "invariant_violation": failure.get("invariant_violation", False),
-                  "device_uuids": failure.get("device_uuids"),
-                  "code_hashes": code_hashes(pathlib.Path(arguments.case).resolve()),
-                  "wall_s": time.perf_counter() - wall_start, "git": git_state()}
+                  "device_uuids": failure.get("device_uuids"), "solver": arguments.solver,
+                  "code_hashes": code_hashes(pathlib.Path(arguments.case).resolve(), arguments.solver),
+                  "wall_s": time.perf_counter() - wall_start, "git": git_state(arguments.solver)}
         with open(segments_path, "a", encoding="utf-8") as handle:
             handle.write(json.dumps(record) + "\n")
         if failure.get("error"):
