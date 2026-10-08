@@ -46,6 +46,10 @@ both sides' provenance.
         --canonical-lists --out logs/e37/equivalence/k1_a.npz [--repo ../vulkan-demo-e34] [--transport-extension]
     (by path: with -m, experiment/ would already be imported from this checkout, and --repo is refused)
     .venv/Scripts/python.exe -m experiment.seam_audit.canonical_dump --compare A.npz B.npz [--ignore FIELD ...]
+
+--solver v7 (E39) runs experiment/v7 instead (modules *_v7, classes *V7, switches V7_*): the release set and --env
+use the V7_ prefix, and the dump's meta records the solver. Dumps of the two solvers compare directly (--compare
+strips the V6_ / V7_ prefixes).
 """
 from __future__ import annotations
 
@@ -222,6 +226,8 @@ def main() -> int:
     parser.add_argument("--timestamps", action="store_true", help="with --monitor: per-kernel GPU timestamps")
     parser.add_argument("--repo", default=str(pathlib.Path(__file__).resolve().parents[2]),
                         help="checkout whose experiment/v6 runs (default: this one)")
+    parser.add_argument("--solver", choices=("v6", "v7"), default="v6",
+                        help="solver directory experiment/<solver> (E39: v7 = the v7-perf fork, V7_* switches)")
     arguments = parser.parse_args()
     if arguments.compare:
         return compare(*arguments.compare, ignore=tuple(arguments.ignore))
@@ -230,11 +236,13 @@ def main() -> int:
     device_map = [int(device) for device in arguments.device_map.split(",")]
     if (arguments.monitor or arguments.timestamps) and (len(device_map) != 1 or arguments.canonical_lists):
         parser.error("--monitor / --timestamps: K = 1 and the normal bootstrap (the E36 timing method)")
+    solver = arguments.solver
+    prefix = solver.upper() + "_"
     overrides = {}
     for item in arguments.env:
         key, separator, value = item.partition("=")
-        if not separator or not key.startswith("V6_"):
-            parser.error(f"--env takes V6_X=VALUE, got {item!r}")
+        if not separator or not key.startswith(prefix):
+            parser.error(f"--env takes {prefix}X=VALUE with --solver {solver}, got {item!r}")
         overrides[key] = value
 
     harness = pathlib.Path(__file__).resolve()
@@ -247,32 +255,37 @@ def main() -> int:
     sys.path.insert(0, str(repo))
     os.chdir(repo)
     from experiment.validation.cavity_runner import RELEASE_ENVIRONMENT          # noqa: E402 (repo first)
-    for key in [key for key in os.environ if key.startswith("V6_")]:
+    for key in [key for key in os.environ if key.startswith(("V6_", "V7_"))]:
         del os.environ[key]
-    os.environ.update(RELEASE_ENVIRONMENT)
+    os.environ.update({prefix + key[len("V6_"):]: value for key, value in RELEASE_ENVIRONMENT.items()})
     if arguments.transport_extension:
-        os.environ["V6_TRANSPORT_EXTENSION"] = "1"
+        os.environ[prefix + "TRANSPORT_EXTENSION"] = "1"
     os.environ.update(overrides)
     os.environ["VK_LOADER_LAYERS_DISABLE"] = "VK_LAYER_KHRONOS_validation"
-    environment = {key: value for key, value in os.environ.items() if key.startswith("V6_")}
+    environment = {key: value for key, value in os.environ.items() if key.startswith(prefix)}
     from vulkan import (VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, VkCommandBufferBeginInfo,  # noqa: E402
                         vkBeginCommandBuffer, vkCmdDispatch, vkEndCommandBuffer, vkFreeCommandBuffers)
-    from experiment.v6.utils.case_loader_v6 import load_case_v6                    # noqa: E402
-    from experiment.v6.utils.case_v6 import KIND_FLUID                             # noqa: E402
-    from experiment.v6.utils.orchestrator_v6 import ChainOrchestratorV6            # noqa: E402
-    from experiment.v6.utils.partition_v6 import compute_chain_partition           # noqa: E402
-    from experiment.v6.utils.simulator_v6 import SphSimulatorV6                    # noqa: E402
-    from experiment.v6.utils.vulkan_context_v6 import VulkanContextV6              # noqa: E402
+    import importlib                                                              # noqa: E402
+
+    def solver_module(name):
+        return importlib.import_module(f"experiment.{solver}.utils.{name}_{solver}")
+
+    load_case_v6 = getattr(solver_module("case_loader"), f"load_case_{solver}")
+    KIND_FLUID = solver_module("case").KIND_FLUID
+    ChainOrchestratorV6 = getattr(solver_module("orchestrator"), f"ChainOrchestrator{solver.upper()}")
+    compute_chain_partition = solver_module("partition").compute_chain_partition
+    SphSimulatorV6 = getattr(solver_module("simulator"), f"SphSimulator{solver.upper()}")
+    VulkanContextV6 = getattr(solver_module("vulkan_context"), f"VulkanContext{solver.upper()}")
 
     simulator_module = pathlib.Path(sys.modules[SphSimulatorV6.__module__].__file__).resolve()
     if repo not in simulator_module.parents:
         sys.exit(f"the solver was imported from {simulator_module}, not from {repo}")
     utils_directory = simulator_module.parent
-    shader_directory = utils_directory.parent / "shaders" / "spv"        # the simulator's default (V6_SPV_DIR unset)
-    if "V6_SPV_DIR" in environment:
-        shader_directory = pathlib.Path(environment["V6_SPV_DIR"]).resolve()
+    shader_directory = utils_directory.parent / "shaders" / "spv"        # the simulator's default (<prefix>SPV_DIR unset)
+    if prefix + "SPV_DIR" in environment:
+        shader_directory = pathlib.Path(environment[prefix + "SPV_DIR"]).resolve()
     cavity_runner_file = pathlib.Path(sys.modules["experiment.validation.cavity_runner"].__file__).resolve()
-    code = {"experiment/v6/utils": sha256_files(list(utils_directory.glob("*.py")), utils_directory),
+    code = {f"experiment/{solver}/utils": sha256_files(list(utils_directory.glob("*.py")), utils_directory),
             "spv": sha256_files(list(shader_directory.glob("*.spv")), shader_directory),
             "cavity_runner": hashlib.sha256(cavity_runner_file.read_bytes()).hexdigest(),
             "harness": hashlib.sha256(harness.read_bytes()).hexdigest()}
@@ -328,7 +341,7 @@ def main() -> int:
     orchestrator = ChainOrchestratorV6(sims, defrag_cadence=defrag_cadence)
     bench = None
     if arguments.timestamps:
-        from experiment.v6.utils import bench_v6                                  # noqa: E402
+        bench_v6 = solver_module("bench")
         bench = bench_v6.BenchTimer(contexts[0], label="canonical_dump")
         sims[0].bench = bench            # before bootstrap_all records the step command buffers
 
@@ -469,7 +482,7 @@ def main() -> int:
     state = {name: np.concatenate(parts) for name, parts in rows.items()}
     extension = state["extension_fields"].astype(np.float64)
     ids = np.rint(extension[:, 2]).astype(np.int64) * GLOBAL_ID_LOW_BASE + np.rint(extension[:, 3]).astype(np.int64)
-    if crossed and environment.get("V6_TRANSPORT_EXTENSION") != "1":
+    if crossed and environment.get(prefix + "TRANSPORT_EXTENSION") != "1":
         raise RuntimeError(f"particles crossed a cut ({crossings}): the migrants' global ids were not transported; "
                            "rerun with --transport-extension")
     if np.any(extension[:, :2] != 0) or len(np.unique(ids)) != ids.size:
@@ -479,11 +492,11 @@ def main() -> int:
     state["global_id"] = ids[order]
     head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
                           cwd=repo).stdout.strip()
-    dirty = bool(subprocess.run(["git", "status", "--porcelain", "experiment/v6"], capture_output=True, text=True,
-                                cwd=repo).stdout.strip())
+    dirty = bool(subprocess.run(["git", "status", "--porcelain", f"experiment/{solver}"], capture_output=True,
+                                text=True, cwd=repo).stdout.strip())
     overflow = {f"slab{index}.{key}": value for index, record in enumerate(status)
                 for key, value in record.items() if key.startswith("overflow_") and value}
-    meta = {"repo": str(repo), "repo_head": head, "repo_dirty_v6": dirty, "case": arguments.case,
+    meta = {"repo": str(repo), "repo_head": head, "repo_dirty_v6": dirty, "solver": solver, "case": arguments.case,
             "case_path": str(case_path), "case_sha256": case_sha256, **loaded_case,
             "simulator_module": str(simulator_module),
             "code_sha256": {key: value[:16] for key, value in code.items()}, "code_sha256_full": code,
@@ -499,7 +512,7 @@ def main() -> int:
     np.savez(out, meta=json.dumps(meta), **state)
     problems = _invariant_problems(meta)
     fps = meta["fps"]
-    print(f"[canonical_dump] {head}{' (dirty)' if dirty else ''} K={len(sims)} wall={wall_boundary} "
+    print(f"[canonical_dump] {solver} {head}{' (dirty)' if dirty else ''} K={len(sims)} wall={wall_boundary} "
           f"{arguments.steps} steps: alive {meta['alive']}/{total}, crossings {crossings}, "
           f"fps {fps if fps is None else round(fps)}, buffers {meta['device_local_buffers']}, "
           f"code {meta['code_sha256']}, invariants {'ok' if not problems else problems} -> {out}", flush=True)

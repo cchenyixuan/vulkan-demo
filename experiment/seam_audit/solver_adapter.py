@@ -21,7 +21,7 @@ from __future__ import annotations
 import importlib
 from types import SimpleNamespace
 
-SUPPORTED_VERSIONS = ("v5", "v6")
+SUPPORTED_VERSIONS = ("v5", "v6", "v7")
 
 
 def _check_version(version: str) -> None:
