@@ -2,6 +2,9 @@
 #extension GL_GOOGLE_include_directive : enable
 #include "common.glsl"
 #include "helpers.glsl"
+#ifdef DEEP_WALL_SKIP
+#include "deep_wall_skip.glsl"
+#endif
 
 // ============================================================================
 // correction.comp - δ-plus WCSPH KCG correction matrix + density gradient +
@@ -69,6 +72,19 @@ void process_particle(uint self_particle_id) {
     bool self_in_boundary_band = in_boundary_band(self_voxel_coord);
     if (CORRECTION_MODE == CORRECTION_MODE_INTERIOR &&  self_in_boundary_band) return;
     if (CORRECTION_MODE == CORRECTION_MODE_BOUNDARY && !self_in_boundary_band) return;
+
+#ifdef DEEP_WALL_SKIP
+    // E39 B4 (V7_DEEP_WALL_SKIP, deep_wall_skip.glsl): no particle density
+    // counts for a wall lies in this wall's 3^d voxels, so its density skips
+    // its loop this step too and nothing reads the L / gradient / kernel sum
+    // written here: keep the previous ones. The material is read only in a
+    // deep voxel (where every listed particle is a wall).
+    if (deep_wall_voxel_skippable(self_voxel_coord, self_voxel_id)
+            && material_parameters[material[self_particle_id]].kind == MATERIAL_BOUNDARY) {
+        deep_wall_on_skip(self_particle_id, self_position, self_voxel_coord, DEEP_WALL_KERNEL_CORRECTION);
+        return;
+    }
+#endif
 
     // --- Accumulators --------------------------------------------------------
     mat3  correction_matrix = mat3(0.0);

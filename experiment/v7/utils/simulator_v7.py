@@ -40,6 +40,7 @@ from vulkan._vulkancache import ffi
 
 from experiment.v7.utils.case_v7 import (
     CaseV7,
+    KIND_BOUNDARY,
     KIND_FLUID,
 )
 import threading
@@ -192,6 +193,74 @@ def _parse_ghost_send_lanes(text: str) -> int:
 
 
 _GHOST_SEND_LANES = _parse_ghost_send_lanes(os.environ.get("V7_GHOST_SEND_LANES", "32"))
+# E39 B4 (audit H06): deep walls skip correction and the density neighbour loop
+# (shaders/deep_wall_skip.glsl has the consumers and the criterion). A wall
+# particle whose 3^d voxels (the voxels its loops visit) list no particle of a
+# kind density counts for a wall (every kind but BOUNDARY) has a dead L /
+# kernel sum and a no-op density loop; deep_wall_marker.comp marks such voxels
+# every step from that step's lists (phase B start / single-cmd step / K = 1
+# bootstrap, two dispatches), correction_interior / density_deep_interior (and
+# correction_all / density_all on a slab without peers) built from the
+# DEEP_WALL_SKIP variants of correction.comp / density.comp return / skip the
+# loop for them; density's epilogue still stores the same scratch value. Every
+# output another kernel reads is bit-identical; only a skipped wall's own L and
+# density gradient / kernel sum keep their previous values (canonical_dump
+# masks exactly those rows of those two fields).
+# V7_DEEP_WALL_SKIP: 0 = the previous build command for command (no marker, no
+# extra buffer, the old pipelines); 1 = forced on (every slab); auto (default) =
+# _resolve_deep_wall_skip's per-slab rule. Read once at import.
+_DEEP_WALL_SKIP_ACCEPTED = ("0", "1", "auto")
+
+
+def _parse_deep_wall_skip(text: str) -> str:
+    """V7_DEEP_WALL_SKIP: one of _DEEP_WALL_SKIP_ACCEPTED (case and surrounding blanks ignored)."""
+    value = text.strip().lower()
+    if value not in _DEEP_WALL_SKIP_ACCEPTED:
+        raise ValueError(f"V7_DEEP_WALL_SKIP={text!r}: accepted values are "
+                         f"{', '.join(_DEEP_WALL_SKIP_ACCEPTED)} (0 = off, the previous build; 1 = forced on; "
+                         "auto = per-slab rule from the dimension and the initial deep-wall candidates)")
+    return value
+
+
+def _parse_deep_wall_check(text: str) -> int:
+    """V7_DEEP_WALL_CHECK (debug): 0 or 1."""
+    value = text.strip()
+    if value not in ("0", "1"):
+        raise ValueError(f"V7_DEEP_WALL_CHECK={text!r}: accepted values are 0, 1 (1 = every skipped wall also "
+                         "runs density's neighbour test into overflow_deep_wall_skip_count)")
+    return int(value)
+
+
+_DEEP_WALL_SKIP = _parse_deep_wall_skip(os.environ.get("V7_DEEP_WALL_SKIP", "auto"))
+# V7_DEEP_WALL_CHECK=1 (debug, needs the skip on a slab to do anything): every
+# skipped wall also walks density's neighbour test and adds the neighbours its
+# sums would count to global_status.overflow_deep_wall_skip_count (an
+# overflow_* invariant: the chain bench, canonical_dump and cavity_runner fail
+# on it), and the decisions are recorded as with _DEEP_WALL_RECORD_DECISIONS.
+# Outputs are those of 0. Read once at import.
+_DEEP_WALL_CHECK = _parse_deep_wall_check(os.environ.get("V7_DEEP_WALL_CHECK", "0"))
+# Test hook, not a switch (experiment/seam_audit/canonical_dump.py sets it before
+# building the simulators): record every skip decision (frame_stamp + 1 per
+# skipped particle and kernel, deep_wall_skip_record) so a dump can name the
+# rows whose L / kernel sum were kept. Production runs never record.
+_DEEP_WALL_RECORD_DECISIONS = False
+# The AUTO rule (_resolve_deep_wall_skip): on for a 3-D slab whose initial state
+# has deep-wall candidates (walls the marker skips at step 0) of at least this
+# fraction of its particles. E39 B4 chain bench, interleaved 0 / 1 / 1 / 0,
+# two RTX 5090: 3-D 9-layer walls gain - cavity3d_1m K = 1 (16.6 % candidates)
+# 77.7 / 77.5 -> 81.8 / 81.9 fps (+5.5 %), K = 2 121.5 -> 126.1 fps (+3.8 %,
+# step trace: marker 23.8 us, correction_interior -7 / -11 %,
+# density_deep_interior -4 / -6 %, phase A and the readback start unchanged),
+# cavity3d_8m K = 1 (9.3 %) 12.3 / 12.3 -> 12.7 / 12.7 fps (+3.2 %); 3-D
+# 4-layer walls have no candidates (cavity3d_weak4_k2_8m_b4 K = 2, forced on:
+# 25.7 / 25.6 -> 25.9 / 25.9 fps, the marker's cost is below the noise); 2-D
+# loses although it has candidates - n250 62k (5.8 %) K = 1 3016 -> 2914 fps
+# (-3.3 %), K = 2 -2.0 %, 2-D 1M (1.6 %) K = 1 -0.4 %, K = 2 -0.7 %: the marker
+# costs 13.5 us per step at 62k K = 1 and correction / density gain nothing
+# measurable there (step trace; the voxel criterion reaches the outermost 2 of
+# 11 wall layers only, in latency-bound kernels). Below 1 % the 3-D gain
+# (~0.3-0.35 % fps per 1 % of candidates) is below the run-to-run spread.
+_DEEP_WALL_AUTO_MINIMUM_CANDIDATE_FRACTION = 0.01
 if _FAST_SUBMIT:
     from vulkan._vulkancache import ffi as _ffi
     from vulkan._vulkan import lib as _lib
@@ -213,13 +282,59 @@ class _NoOpLock:
 _NO_OP_LOCK = _NoOpLock()
 
 
-def configured_v7_switches() -> dict[str, int]:
+def configured_v7_switches() -> dict[str, int | str]:
     """E39: the v7 performance switches (one per audit item, each on by
     default; 0 = the previous build) with the values this process runs
     (module constants read at import), for the run headers and the step
-    trace's run_meta."""
+    trace's run_meta. V7_DEEP_WALL_SKIP reads "auto" for its default (each
+    slab prints what the rule decided); V7_DEEP_WALL_CHECK is its debug
+    companion."""
     return {"V7_DENSITY_COPY_COMPUTE": int(_DENSITY_COPY_COMPUTE),
-            "V7_GHOST_SEND_LANES": _GHOST_SEND_LANES}
+            "V7_GHOST_SEND_LANES": _GHOST_SEND_LANES,
+            "V7_DEEP_WALL_SKIP": _DEEP_WALL_SKIP if _DEEP_WALL_SKIP == "auto" else int(_DEEP_WALL_SKIP),
+            "V7_DEEP_WALL_CHECK": _DEEP_WALL_CHECK}
+
+
+def deep_wall_candidate_count(case: CaseV7, skip_band_width: int) -> int:
+    """E39 B4: the walls deep_wall_marker.comp + the skip decision would skip on
+    the slab's initial particles (case.initial; the AUTO rule's input): bin with
+    initialize_voxelization's float32 formula, presence = a non-BOUNDARY
+    particle in an own voxel, deep = every in-grid 3^d neighbour own and without
+    presence (z only in 3-D), skip = BOUNDARY in a deep voxel outside the band of
+    width skip_band_width (the diagnostic fake band is ignored)."""
+    grid, physics = case.grid, case.physics
+    dimensions = np.array([grid.grid_dimension_x, grid.grid_dimension_y, grid.grid_dimension_z])
+    origin = np.array([grid.origin_x, grid.origin_y, grid.origin_z], dtype=np.float32)
+    smoothing_length = np.float32(physics.smoothing_length)
+    positions = np.asarray(case.initial.positions, dtype=np.float32)
+    if positions.shape[0] == 0:
+        return 0
+    coordinates = np.floor((positions - origin) / smoothing_length).astype(np.int32)
+    kinds = np.array([material.kind for material in case.materials])[np.asarray(case.initial.material_group)]
+    inside = np.all((coordinates >= 0) & (coordinates < dimensions), axis=1)
+    face = int(dimensions[1] * dimensions[2])
+    leading_x = case.ghost_grid.leading_ghost_voxel_count // face
+    trailing_x = case.ghost_grid.trailing_ghost_voxel_count // face
+    own = np.zeros(dimensions, dtype=bool)
+    own[leading_x:int(dimensions[0]) - trailing_x] = True
+    present = np.zeros(dimensions, dtype=bool)
+    present[tuple(coordinates[inside & (kinds != KIND_BOUNDARY)].T)] = True
+    blocked = np.pad(present | ~own, 1, constant_values=False)      # outside the grid: not visited
+    neighborhood_blocked = np.zeros(dimensions, dtype=bool)
+    z_range = int(physics.neighbor_z_range)
+    for delta_x in (-1, 0, 1):
+        for delta_y in (-1, 0, 1):
+            for delta_z in range(-z_range, z_range + 1):
+                neighborhood_blocked |= blocked[1 + delta_x:1 + delta_x + dimensions[0],
+                                                 1 + delta_y:1 + delta_y + dimensions[1],
+                                                 1 + delta_z:1 + delta_z + dimensions[2]]
+    deep = own & ~neighborhood_blocked
+    column = coordinates[:, 0]
+    own_last_x = int(dimensions[0]) - 1 - trailing_x
+    in_band = (((leading_x > 0) & (column < leading_x + skip_band_width))
+               | ((trailing_x > 0) & (column > own_last_x - skip_band_width)))
+    walls = np.flatnonzero(inside & (kinds == KIND_BOUNDARY) & ~in_band)
+    return int(deep[tuple(coordinates[walls].T)].sum())
 
 
 def _driver_submit_lock_for(physical_device_index: int):
@@ -314,6 +429,8 @@ _GLOBAL_STATUS_FIELD_NAMES = (
     "replica_inner_recv_leading_count", "replica_inner_recv_trailing_count",
     "replica_outer_recv_leading_count", "replica_outer_recv_trailing_count",
     "initialization_seam_clamp_count", "overflow_initialization_outside",
+    # E39 B4 (V7_DEEP_WALL_CHECK=1): field [34], was status_reserved_2 (never written before)
+    "overflow_deep_wall_skip_count",
 )
 # Replicas of the two-layer ghost (V7_GHOST_LAYERS = 2) carry only what the
 # neighbour sweeps read (correction / density / force, incl. the inner layer
@@ -467,6 +584,11 @@ class SphSimulatorV7:
         # V7_BAND_WIDTHS: boundary band widths (own voxel columns) of correction / density / force, read once
         # here; every spec 82 and band dispatch of this sim uses these values.
         self.band_widths = self._configured_band_widths()
+        # E39 B4: V7_DEEP_WALL_SKIP resolved for this slab (buffers, pipelines and recordings follow it).
+        if _DEEP_WALL_SKIP != "0":
+            print(f"[SimV7] V7_DEEP_WALL_SKIP={_DEEP_WALL_SKIP}: "
+                  f"{'on' if self._deep_wall_skip_active() else 'off'} ({self.deep_wall_skip_resolution[1]})"
+                  + (f", V7_DEEP_WALL_CHECK=1" if _DEEP_WALL_CHECK else ""))
 
         # Buffer allocation
         self._buffer_specs = self._build_buffer_specs()
@@ -797,6 +919,15 @@ class SphSimulatorV7:
                     | VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
         VERT = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
 
+        # E39 B4 (only on a slab that skips deep walls, so V7_DEEP_WALL_SKIP=0 keeps the old layouts): set 1 binding 8
+        # = per-voxel presence | deep marker (deep_wall_marker.comp), set 3 binding 10 = the decision record (two
+        # stamps per particle; a 16-byte stub unless recording). Not in DEFRAG_SET0_BINDINGS / the transport.
+        deep_wall_specs = [
+            _BufferSpec("deep_wall_voxel_flag",         1, 8,  4 * 2 * voxel_capacity, BSU | TRANSFER),
+            _BufferSpec("deep_wall_skip_record",        3, 10,
+                        8 * pool_capacity if self._deep_wall_record() else 16, BSU | TRANSFER),
+        ] if self._deep_wall_skip_active() else []
+
         return [
             # Set 0: particle SoA
             _BufferSpec("position_voxel_id",            0, 0, 16 * pool_capacity, BSU | TRANSFER | VERT),
@@ -843,7 +974,7 @@ class SphSimulatorV7:
             # V7_BAND_COMPACT_DISPATCH: indirect dispatch sizes + list column starts
             _BufferSpec("band_compact_meta",            3, 9, 128,
                         BSU | TRANSFER | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT),
-        ]
+        ] + deep_wall_specs
 
     def _allocate_buffer(
         self,
@@ -1343,6 +1474,9 @@ class SphSimulatorV7:
             *(("wall_extrapolate",) if self._wall_adami else ()),
             # E39 B9: the density copy pass only with V7_DENSITY_COPY_COMPUTE=1 (likewise for a pre-B9 V7_SPV_DIR)
             *(("density_scratch_copy",) if _DENSITY_COPY_COMPUTE else ()),
+            # E39 B4: the marker and the DEEP_WALL_SKIP variants only on a slab that skips deep walls
+            *(("deep_wall_marker", "correction_deep_wall_skip", "density_deep_wall_skip")
+              if self._deep_wall_skip_active() else ()),
         ):
             spv_path = shader_dir / f"{shader_name}.comp.spv"
             if not spv_path.exists():
@@ -1591,6 +1725,80 @@ class SphSimulatorV7:
         self._ghost_send_groups_per_workgroup()
         return [(109, 'I', _GHOST_SEND_LANES), (110, 'I', _GHOST_SEND_LOCAL_SIZE)]
 
+    # ----- E39 B4: deep-wall skip (V7_DEEP_WALL_SKIP, shaders/deep_wall_skip.glsl) ----
+
+    def _deep_wall_skip_active(self) -> bool:
+        """Does this slab skip deep walls: V7_DEEP_WALL_SKIP resolved once per simulator (__init__; a CPU test's
+        object.__new__ simulator on first use) into deep_wall_skip_resolution = (active, reason)."""
+        resolution = self.__dict__.get("deep_wall_skip_resolution")
+        if resolution is None:
+            resolution = self.deep_wall_skip_resolution = self._resolve_deep_wall_skip()
+        return resolution[0]
+
+    def _resolve_deep_wall_skip(self) -> tuple[bool, str]:
+        """(active, reason) of V7_DEEP_WALL_SKIP for this slab. 0: off; 1: on. auto: on iff the slab is 3-D and
+        its initial particles hold deep-wall candidates (deep_wall_candidate_count, the walls the marker skips at
+        step 0) of at least _DEEP_WALL_AUTO_MINIMUM_CANDIDATE_FRACTION of the slab's particles (the measurements
+        behind the rule are at that constant). The rule reads case.initial, the state a bootstrap starts from; a
+        restart decides from the case's initial state too (the walls do not move). It only picks the cheaper of two
+        equal results: the marker is rebuilt every step, so any slab may run either way."""
+        if _DEEP_WALL_SKIP == "0":
+            return False, "V7_DEEP_WALL_SKIP=0"
+        if _DEEP_WALL_SKIP == "1":
+            return True, "forced (V7_DEEP_WALL_SKIP=1)"
+        dimension = int(self.case.physics.dimension)
+        if dimension != 3:
+            return False, f"auto: {dimension}-D slab"
+        band_widths = self.__dict__.get("band_widths") or self._configured_band_widths()
+        candidates = deep_wall_candidate_count(self.case, band_widths[1])
+        particles = int(self.case.initial.positions.shape[0])
+        fraction = candidates / particles if particles else 0.0
+        verdict = fraction >= _DEEP_WALL_AUTO_MINIMUM_CANDIDATE_FRACTION
+        return verdict, (f"auto: 3-D, {candidates:,} deep-wall candidates at the initial state = "
+                         f"{100.0 * fraction:.2f} % of {particles:,} particles "
+                         f"{'>=' if verdict else '<'} {100.0 * _DEEP_WALL_AUTO_MINIMUM_CANDIDATE_FRACTION:g} %")
+
+    def _deep_wall_skips_full_domain(self) -> bool:
+        """The full-domain pipelines correction_all / density_all skip too only on a slab without ghost columns
+        (their lists are then all this slab's own, final after update_voxel); with a peer they serve the bootstrap
+        after the ghost round and stay the plain kernels."""
+        ghost_grid = self.case.ghost_grid
+        return ghost_grid.leading_ghost_voxel_count == 0 and ghost_grid.trailing_ghost_voxel_count == 0
+
+    def _deep_wall_skip_pipeline_keys(self) -> tuple[str, ...]:
+        """The pipelines built from the DEEP_WALL_SKIP variants (empty when the slab does not skip)."""
+        if not self._deep_wall_skip_active():
+            return ()
+        keys = ("correction_interior", "density_deep_interior")
+        if self._deep_wall_skips_full_domain():
+            keys += ("correction_all", "density_all")
+        return keys
+
+    @staticmethod
+    def _deep_wall_record() -> bool:
+        """Record the skip decisions (spec 113): V7_DEEP_WALL_CHECK=1 or the canonical_dump hook."""
+        return bool(_DEEP_WALL_CHECK or _DEEP_WALL_RECORD_DECISIONS)
+
+    def _deep_wall_skip_entries(self) -> list[tuple[int, str, Any]]:
+        """Spec constants of the variant pipelines (deep_wall_skip.glsl): 111 = density's band width (both
+        kernels skip only outside it: correction_interior's set outside band c then equals density_deep_interior's
+        outside band d >= c), 112 = V7_DEEP_WALL_CHECK, 113 = record."""
+        return [(111, 'I', self.band_widths[1]), (112, 'B', _DEEP_WALL_CHECK), (113, 'B', self._deep_wall_record())]
+
+    def _record_deep_wall_marker(self, cmd, tick: Optional[str] = None) -> None:
+        """deep_wall_marker.comp's two passes over the extended voxels (presence, then deep), each followed by a
+        compute barrier; the caller has already ordered this step's update_voxel (or the bootstrap lists) before
+        it. Records nothing when the slab does not skip."""
+        if not self._deep_wall_skip_active():
+            return
+        per_v = self._per_extended_voxel_dispatch_count()
+        for pipeline_key in ("deep_wall_marker_presence", "deep_wall_marker_deep"):
+            self._bind_pipeline_and_sets(cmd, pipeline_key)
+            vkCmdDispatch(cmd, per_v, 1, 1)
+            self._record_compute_barrier(cmd)
+        if tick:
+            self._bench_tick(cmd, tick)
+
     def _build_compute_pipelines(self) -> dict[str, object]:
         """Build the compute pipelines:
 
@@ -1658,19 +1866,43 @@ class SphSimulatorV7:
                 entries=self._global_entries() + self._ghost_direction_entries(direction),
             )
 
+        # E39 B4: on a slab that skips deep walls these keys come from the DEEP_WALL_SKIP variants of
+        # correction.comp / density.comp (same spec constants + 111-113); every other pipeline is unchanged.
+        deep_wall_keys = self._deep_wall_skip_pipeline_keys()
+
         # correction × 3 modes (V5 #1 — boundary band = band_widths[0] voxels)
         for mode, mode_name in ((0, "all"), (1, "interior"), (2, "boundary")):
-            pipelines[f"correction_{mode_name}"] = self._create_pipeline(
+            key = f"correction_{mode_name}"
+            if key in deep_wall_keys:
+                pipelines[key] = self._create_pipeline(
+                    shader=self.shader_modules["correction_deep_wall_skip"],
+                    entries=(self._global_entries() + self._correction_mode_entries(mode)
+                             + self._deep_wall_skip_entries()))
+                continue
+            pipelines[key] = self._create_pipeline(
                 shader=self.shader_modules["correction"],
                 entries=self._global_entries() + self._correction_mode_entries(mode),
             )
 
         # density × 3 modes (Path A+ — boundary band = band_widths[1] voxels)
         for mode, mode_name in ((0, "all"), (1, "deep_interior"), (2, "boundary")):
-            pipelines[f"density_{mode_name}"] = self._create_pipeline(
+            key = f"density_{mode_name}"
+            if key in deep_wall_keys:
+                pipelines[key] = self._create_pipeline(
+                    shader=self.shader_modules["density_deep_wall_skip"],
+                    entries=(self._global_entries() + self._density_mode_entries(mode)
+                             + self._deep_wall_skip_entries()))
+                continue
+            pipelines[key] = self._create_pipeline(
                 shader=self.shader_modules["density"],
                 entries=self._global_entries() + self._density_mode_entries(mode),
             )
+        # E39 B4: the marker's two passes (spec 114 = pass).
+        if deep_wall_keys:
+            for key, marker_pass in (("deep_wall_marker_presence", 0), ("deep_wall_marker_deep", 1)):
+                pipelines[key] = self._create_pipeline(
+                    shader=self.shader_modules["deep_wall_marker"],
+                    entries=self._global_entries() + [(114, 'I', marker_pass)])
 
         # force × 3 modes (Path A+ — boundary band = band_widths[2] voxels)
         for mode, mode_name in ((0, "all"), (1, "deep_interior"), (2, "boundary")):
@@ -1760,6 +1992,11 @@ class SphSimulatorV7:
             else:
                 cascade_note += (f" (V7_GHOST_SEND_LANES=0: ghost_send one thread per face voxel, "
                                  f"{self._ghost_send_group_count():,} workgroups per direction)")
+        if deep_wall_keys:
+            cascade_note += (f" (V7_DEEP_WALL_SKIP: {', '.join(deep_wall_keys)} skip deep walls outside band "
+                             f"{self.band_widths[1]}, marker 2 x {self._per_extended_voxel_dispatch_count():,} "
+                             f"workgroups{', check' if _DEEP_WALL_CHECK else ''}"
+                             f"{', record' if self._deep_wall_record() else ''})")
         print(f"[SimV7] compute pipelines: {len(pipelines)}{cascade_note}")
         return pipelines
 
@@ -2622,6 +2859,12 @@ class SphSimulatorV7:
             self._record_compute_barrier(cmd)
             self._record_wall_extrapolate(cmd)
 
+        # E39 B4 (V7_DEEP_WALL_SKIP): on a slab without peers correction_all / density_all skip deep walls, so the
+        # marker of the bootstrap lists goes first (the barrier orders it after the voxelization submit).
+        if self._deep_wall_skip_active() and self._deep_wall_skips_full_domain():
+            self._record_compute_barrier(cmd)
+            self._record_deep_wall_marker(cmd)
+
         self._bind_pipeline_and_sets(cmd, "correction_all")
         vkCmdDispatch(cmd, per_p, 1, 1)
         self._record_compute_barrier(cmd)
@@ -3043,6 +3286,10 @@ class SphSimulatorV7:
         self._bench_tick(cmd, "b_start")
         # Entry: cross-submit memory visibility (Phase A writes → here reads)
         self._record_compute_barrier(cmd)
+        # E39 B4 (V7_DEEP_WALL_SKIP): the deep-wall marker of this step's lists (update_voxel, phase A), for the
+        # two interior kernels below. Here rather than in phase A: the transfer chain starts at phase_a_done, and
+        # the marker reads only own voxels' lists (the upload writes the ghost range).
+        self._record_deep_wall_marker(cmd, tick="b_deep_wall_marker_end")
 
         per_p = self._per_own_particle_dispatch_count()
 
@@ -3365,6 +3612,8 @@ class SphSimulatorV7:
         vkCmdDispatch(cmd, per_v, 1, 1)
         self._bench_tick(cmd, "voxel_end")
         self._record_compute_barrier(cmd)
+        # E39 B4 (V7_DEEP_WALL_SKIP): the deep-wall marker of the lists just rebuilt, for correction / density.
+        self._record_deep_wall_marker(cmd, tick="deep_wall_marker_end")
 
         # V7_FAKE_BAND_TEST (diagnostic): a non-empty band inside a single-GPU
         # domain forces the split path, with the boundary pipelines dispatched

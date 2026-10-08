@@ -33,6 +33,11 @@ _test_seam_layout.py — CPU-only checks of the V6 seam layout (no Vulkan device
    every (face voxel, layer) pair once with one leader and copies every slot
    once; its index expressions, single top-level barrier and spec constants; the
    record / allocation statements are ghost_send.comp's.
+9. V7_DEEP_WALL_SKIP / V7_DEEP_WALL_CHECK (E39 B4): parsing; switch 0 = the B6 build (its SPIR-V files and its
+   simulator_v7.py from git: command streams, buffers, modules, pipelines); switch 1 adds only the deep-wall marker
+   (phase B start, single-cmd step, K = 1 bootstrap), the variant pipelines (spec 111-113), the marker pipelines and
+   the two buffers; the band rule (correction and density skip the same columns, never one a density band kernel
+   computes); the CPU candidate count vs a particle-by-particle reference, the AUTO rule; the shader text.
 
 Usage:
     .venv/Scripts/python.exe experiment/v7/_test_seam_layout.py
@@ -671,19 +676,25 @@ def check_spirv_current(failures: list) -> bool:
         print(f"[seam_layout] glslc not found ({compile_shaders_v7.GLSLC}): SPIR-V freshness check skipped")
         return False
     shader_directory = pathlib.Path(compile_shaders_v7.V7_SHADER_DIR)
+    # every compiled source, and (E39 B4) every preprocessor variant of compile_shaders_v7.SHADER_VARIANTS
+    builds = [(source.name, source, ()) for source in sorted(shader_directory.glob("*.comp"))
+              if not source.name.startswith("_")]
+    builds += [(f"{variant}.comp", shader_directory / source_name, macros)
+               for variant, source_name, macros in compile_shaders_v7.SHADER_VARIANTS]
     with tempfile.TemporaryDirectory() as temporary:
-        for source in sorted(shader_directory.glob("*.comp")):
-            if source.name.startswith("_"):
-                continue
-            output = pathlib.Path(temporary) / f"{source.name}.spv"
-            result = subprocess.run([compile_shaders_v7.GLSLC, "--target-env=vulkan1.2", "-O", "-I",
-                                     str(shader_directory), str(source), "-o", str(output)],
+        for name, source, macros in builds:
+            output = pathlib.Path(temporary) / f"{name}.spv"
+            result = subprocess.run(compile_shaders_v7.glslc_command(str(source), str(output), macros),
                                     capture_output=True, text=True)
-            tracked = shader_directory / "spv" / f"{source.name}.spv"
+            tracked = shader_directory / "spv" / f"{name}.spv"
             if result.returncode != 0:
-                failures.append(f"{source.name}: glslc failed: {result.stderr.strip()[:200]}")
+                failures.append(f"{name}: glslc failed: {result.stderr.strip()[:200]}")
             elif not tracked.exists() or tracked.read_bytes() != output.read_bytes():
-                failures.append(f"{source.name}: tracked SPIR-V is stale (run compile_shaders_v7.py)")
+                failures.append(f"{name}: tracked SPIR-V is stale (run compile_shaders_v7.py)")
+    built = {f"{name}.spv" for name, _, _ in builds}
+    stray = sorted(path.name for path in (shader_directory / "spv").glob("*.spv") if path.name not in built)
+    if stray:
+        failures.append(f"SPIR-V files without a source or variant: {stray}")
     return True
 
 
@@ -1524,6 +1535,610 @@ def check_ghost_send_lanes(failures: list) -> None:
         os.environ.update(saved_environment)
 
 
+B6_COMMIT = "3d6e1c9"    # E39 B6: the build V7_DEEP_WALL_SKIP=0 must reproduce (E39 B4)
+
+
+def _load_committed_simulator(commit: str):
+    """experiment/v7/utils/simulator_v7.py of a commit as a module of its own (its __file__, hence its spv directory,
+    is this tree's); None when git or the commit is not available."""
+    import subprocess
+    import types
+    relative = "experiment/v7/utils/simulator_v7.py"
+    try:
+        result = subprocess.run(["git", "show", f"{commit}:{relative}"], cwd=_REPO_ROOT, capture_output=True)
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    name = f"experiment.v7.utils._simulator_v7_{commit}"
+    module = types.ModuleType(name)
+    module.__file__ = str(_REPO_ROOT / relative)
+    sys.modules[name] = module
+    exec(compile(result.stdout.decode("utf-8"), f"{commit}:{relative}", "exec"), module.__dict__)
+    return module
+
+
+def _thick_wall_case(case_module, depth_count: int, wall_rows: int, **size):
+    """_synthetic_global_case with walls in the lowest wall_rows voxel rows (y < wall_rows * h): rows 0 ..
+    wall_rows - 2 then have no fluid within their 3^d voxels."""
+    case = _synthetic_global_case(case_module, depth_count=depth_count, **size)
+    walls = case.initial.positions[:, 1] < wall_rows * case.physics.smoothing_length
+    initial = dataclasses.replace(case.initial, material_group=np.where(walls, 1, 0).astype(np.uint32))
+    return dataclasses.replace(case, initial=initial)
+
+
+def _brute_force_deep_wall_candidates(slab, skip_band_width: int) -> int:
+    """deep_wall_candidate_count spelled out particle by particle (the reference of check_deep_wall_skip)."""
+    grid = slab.grid
+    dimensions = (grid.grid_dimension_x, grid.grid_dimension_y, grid.grid_dimension_z)
+    origin = np.array([grid.origin_x, grid.origin_y, grid.origin_z], dtype=np.float32)
+    coordinates = np.floor((np.asarray(slab.initial.positions, dtype=np.float32) - origin)
+                           / np.float32(slab.physics.smoothing_length)).astype(np.int64)
+    kinds = [slab.materials[group].kind for group in slab.initial.material_group]
+    face = dimensions[1] * dimensions[2]
+    leading_x = slab.ghost_grid.leading_ghost_voxel_count // face
+    trailing_x = slab.ghost_grid.trailing_ghost_voxel_count // face
+    own_last_x = dimensions[0] - 1 - trailing_x
+    present = set()
+    for coordinate, kind in zip(map(tuple, coordinates), kinds):
+        if kind != 1:
+            present.add(coordinate)
+    z_range = slab.physics.neighbor_z_range
+    count = 0
+    for coordinate, kind in zip(map(tuple, coordinates), kinds):
+        x = coordinate[0]
+        if kind != 1 or (leading_x > 0 and x < leading_x + skip_band_width) \
+                or (trailing_x > 0 and x > own_last_x - skip_band_width):
+            continue
+        deep = True
+        for delta_x in (-1, 0, 1):
+            for delta_y in (-1, 0, 1):
+                for delta_z in range(-z_range, z_range + 1):
+                    neighbour = (x + delta_x, coordinate[1] + delta_y, coordinate[2] + delta_z)
+                    if not all(0 <= value < limit for value, limit in zip(neighbour, dimensions)):
+                        continue
+                    own = leading_x <= neighbour[0] <= own_last_x
+                    if not own or neighbour in present:
+                        deep = False
+        count += deep
+    return count
+
+
+def check_deep_wall_skip(failures: list) -> None:
+    """E39 B4 (V7_DEEP_WALL_SKIP / V7_DEEP_WALL_CHECK, shaders/deep_wall_skip.glsl):
+      - parsing: 0 / 1 / auto and 0 / 1 parse (case and blanks ignored for auto), everything else is refused; the
+        registry reports both switches;
+      - V7_DEEP_WALL_SKIP=0 is the B6 build (B6_COMMIT): every tracked SPIR-V file of that commit is byte-identical
+        here; simulator_v7.py of that commit, loaded from git, and this one record the same command streams (phase
+        A, B, C (both parities), bootstrap init / compute, defrag, transfer readback / upload, K = 1 single-cmd step
+        and its split variant), the same buffer specs, shader modules and pipelines (module, spec entries) — 2-D and
+        3-D chains of K = 1..3 (edge and interior slabs), one / two ghost layers, the release defaults, band widths
+        2,3,4, the compact band dispatch, adami at K = 1;
+      - V7_DEEP_WALL_SKIP=1 (and check / record on and off): the same streams except deep_wall_marker.comp's two
+        passes (ceil(extended voxels / workgroup) groups each, a compute barrier after each) inserted at the start of
+        phase B (after the entry barrier, + tick b_deep_wall_marker_end), after update_voxel's barrier in the
+        single-cmd step (+ tick deep_wall_marker_end) and, on a slab without peers only, in front of the bootstrap's
+        correction_all (after a compute barrier); the DEEP_WALL_SKIP variants exactly for correction_interior /
+        density_deep_interior (+ correction_all / density_all without peers) with the switch-0 spec entries + 111 =
+        density's band width, 112 = check, 113 = record; the two marker pipelines (114 = pass); the two B4 buffers;
+        every other pipeline / buffer / module unchanged; auto resolves as _resolve_deep_wall_skip says;
+      - the band rule, emulated column by column with the pipelines' own spec constants: correction_interior may skip
+        exactly where density_deep_interior may, and never where a density band kernel runs (2,2,3 / 2,3,4 / 3,3,5,
+        the compact dispatch's 2,3,4, a fake band at K = 1);
+      - deep_wall_candidate_count against a particle-by-particle reference and the AUTO rule on synthetic slabs
+        (2-D off, 3-D without deep walls off, 3-D with a thick wall on);
+      - the shader text: the variants' code sits behind #ifdef DEEP_WALL_SKIP after the band returns, density's loop is
+        guarded and its epilogue unchanged, the band test is helpers.glsl's at width 111, the check walks density's
+        voxels / conditions, the marker's two passes, spec ids 111-114."""
+    import contextlib
+    import hashlib
+    import io
+    import math
+    import re
+    import subprocess
+    from types import SimpleNamespace
+    import experiment.v7.utils.case_v7 as case_v7
+    import experiment.v7.utils.partition_v7 as partition_v7
+    import experiment.v7.utils.simulator_v7 as simulator_v7
+    import vulkan
+
+    # ---- parsing / registry
+    for text, expected in (("0", "0"), ("1", "1"), ("auto", "auto"), (" AUTO ", "auto"), ("Auto", "auto")):
+        try:
+            if simulator_v7._parse_deep_wall_skip(text) != expected:
+                failures.append(f"V7_DEEP_WALL_SKIP={text!r} parsed as {simulator_v7._parse_deep_wall_skip(text)!r}")
+        except ValueError as error:
+            failures.append(f"V7_DEEP_WALL_SKIP={text!r} refused: {error}")
+    for text in ("", "2", "on", "off", "true", "yes", "-1", "1.0", "autos"):
+        try:
+            simulator_v7._parse_deep_wall_skip(text)
+            failures.append(f"V7_DEEP_WALL_SKIP={text!r} accepted")
+        except ValueError:
+            pass
+    for text, expected in (("0", 0), ("1", 1), (" 1 ", 1)):
+        try:
+            if simulator_v7._parse_deep_wall_check(text) != expected:
+                failures.append(f"V7_DEEP_WALL_CHECK={text!r} parsed as {simulator_v7._parse_deep_wall_check(text)}")
+        except ValueError as error:
+            failures.append(f"V7_DEEP_WALL_CHECK={text!r} refused: {error}")
+    for text in ("", "2", "on", "auto", "true"):
+        try:
+            simulator_v7._parse_deep_wall_check(text)
+            failures.append(f"V7_DEEP_WALL_CHECK={text!r} accepted")
+        except ValueError:
+            pass
+    registry = simulator_v7.configured_v7_switches()
+    expected_skip = (simulator_v7._DEEP_WALL_SKIP if simulator_v7._DEEP_WALL_SKIP == "auto"
+                     else int(simulator_v7._DEEP_WALL_SKIP))
+    if registry.get("V7_DEEP_WALL_SKIP") != expected_skip or \
+            registry.get("V7_DEEP_WALL_CHECK") != simulator_v7._DEEP_WALL_CHECK:
+        failures.append(f"configured_v7_switches() does not report the B4 switches: {registry}")
+    source = pathlib.Path(simulator_v7.__file__).read_text(encoding="utf-8")
+    for pattern in (r'_parse_deep_wall_skip\(os\.environ\.get\("V7_DEEP_WALL_SKIP", "auto"\)\)',
+                    r'_parse_deep_wall_check\(os\.environ\.get\("V7_DEEP_WALL_CHECK", "0"\)\)'):
+        if not re.search(pattern, source):
+            failures.append(f"simulator_v7.py: default {pattern} not found")
+
+    # ---- the B6 build: SPIR-V and simulator
+    spv_directory = pathlib.Path(__file__).resolve().parent / "shaders" / "spv"
+    listing = subprocess.run(["git", "ls-tree", "--name-only", B6_COMMIT, "experiment/v7/shaders/spv/"],
+                             cwd=_REPO_ROOT, capture_output=True, text=True)
+    committed_spv = [line for line in listing.stdout.split() if line.endswith(".spv")]
+    if listing.returncode != 0 or not committed_spv:
+        failures.append(f"git: the SPIR-V files of {B6_COMMIT} are not listed (switch-0 identity unchecked)")
+    for path in committed_spv:
+        blob = subprocess.run(["git", "show", f"{B6_COMMIT}:{path}"], cwd=_REPO_ROOT, capture_output=True).stdout
+        current = spv_directory / pathlib.Path(path).name
+        if not current.exists() or current.read_bytes() != blob:
+            failures.append(f"{pathlib.Path(path).name}: differs from {B6_COMMIT} (switch 0 must run the B6 SPIR-V)")
+    reference_module = _load_committed_simulator(B6_COMMIT)
+    if reference_module is None:
+        failures.append(f"git: simulator_v7.py of {B6_COMMIT} not loadable (switch-0 recording unchecked)")
+        return
+    # both modules froze their switches at import, possibly under different environments (earlier checks set
+    # LEGACY_DEFAULTS): run the B6 module with this module's values
+    for name, value in vars(simulator_v7).items():
+        if re.fullmatch(r"_[A-Z][A-Z0-9_]*", name) and name in vars(reference_module) \
+                and isinstance(value, (bool, int, float, str, tuple, frozenset)):
+            setattr(reference_module, name, value)
+
+    compute_stage = vulkan.VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT
+    storage_access = vulkan.VK_ACCESS_2_SHADER_STORAGE_READ_BIT | vulkan.VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
+    compute_barrier = ("barrier", compute_stage, storage_access, compute_stage, storage_access)
+    events: list = []
+
+    def record_barrier(cmd, info):
+        for index in range(info.memoryBarrierCount):
+            barrier = info.pMemoryBarriers[index]
+            events.append(("barrier", int(barrier.srcStageMask), int(barrier.srcAccessMask),
+                           int(barrier.dstStageMask), int(barrier.dstAccessMask)))
+        if info.bufferMemoryBarrierCount or info.imageMemoryBarrierCount:
+            events.append(("barrier_other", int(info.bufferMemoryBarrierCount), int(info.imageMemoryBarrierCount)))
+
+    def record_copy(cmd, source_buffer, destination_buffer, count, regions):
+        events.append(("copy", source_buffer, destination_buffer,
+                       tuple((int(regions[index].srcOffset), int(regions[index].dstOffset), int(regions[index].size))
+                             for index in range(count))))
+
+    recorders = {
+        "vkCmdPipelineBarrier2": record_barrier,
+        "vkCmdCopyBuffer": record_copy,
+        "vkCmdDispatch": lambda cmd, group_count_x, group_count_y, group_count_z:
+            events.append(("dispatch", int(group_count_x), int(group_count_y), int(group_count_z))),
+        "vkCmdDispatchIndirect": lambda cmd, buffer, offset: events.append(("dispatch_indirect", buffer, int(offset))),
+        "vkCmdBindPipeline": lambda cmd, point, pipeline: events.append(("bind", pipeline)),
+        "vkCmdBindDescriptorSets": lambda cmd, point, layout, first, count, sets, *rest:
+            events.append(("sets", layout, int(first), int(count))),
+        "vkCmdFillBuffer": lambda cmd, buffer, offset, size, value:
+            events.append(("fill", buffer, int(offset), int(size), int(value))),
+        "vkBeginCommandBuffer": lambda cmd, info: events.append(("begin",)),
+        "vkEndCommandBuffer": lambda cmd: events.append(("end",)),
+        # shader modules by content: the module of a pipeline is the sha256 of its SPIR-V
+        "VkShaderModuleCreateInfo": lambda codeSize, pCode: pCode,
+        "vkCreateShaderModule": lambda device, code, allocator: "module:" + hashlib.sha256(code).hexdigest()[:16],
+    }
+
+    class PipelineNames(dict):
+        def __missing__(self, key):
+            return f"pipeline:{key}"
+
+    class TickRecorder:
+        parity_regions = False
+
+        def tick(self, cmd, label):
+            events.append(("tick", label))
+
+        def record_step_reset_and_start(self, cmd, label):
+            events.append(("tick", label))
+
+        def record_defrag_reset_and_start(self, cmd, label):
+            events.append(("tick", label))
+
+        def begin_phase_c_region(self, cmd, parity):
+            events.append(("phase_c_region", parity))
+
+        def end_phase_c_region(self):
+            pass
+
+    def fake(module, slab):
+        simulator = object.__new__(module.SphSimulatorV7)
+        simulator.case = slab
+        simulator.band_widths = simulator._configured_band_widths()
+        specs = simulator._build_buffer_specs()
+        simulator._buffer_specs = specs
+        simulator.buffers = {spec.name: SimpleNamespace(handle=f"buffer:{spec.name}", size=spec.size) for spec in specs}
+        simulator.scratch_buffers = {spec.name: SimpleNamespace(handle=f"scratch:{spec.name}", size=spec.size)
+                                     for spec in specs if spec.set_index == 0}
+        simulator.pipelines = PipelineNames()
+        simulator.pipeline_layout = "pipeline_layout"
+        simulator.defrag_pipeline_layout = "defrag_pipeline_layout"
+        simulator.defrag_set4 = "set4"
+        simulator.descriptor_sets = ["set0", "set1", "set2", "set3"]
+        simulator._transport_segments = {direction: [] for direction in ("leading", "trailing")
+                                         if getattr(slab.transport, f"has_{direction}_peer")}
+        simulator.staging_buffers = {f"{role}_staging_{direction}": SimpleNamespace(handle=f"{role}:{direction}")
+                                     for role in ("sender", "receiver") for direction in simulator._transport_segments}
+        simulator._recv_status_overrides = {direction: {} for direction in simulator._transport_segments}
+        simulator.bench = TickRecorder()
+        simulator.bench_transfer = None
+        simulator.step_single_use_split = False
+        simulator._allocate_oneshot_cmd = lambda: "cmd"
+        simulator._allocate_transfer_oneshot_cmd = lambda: "transfer_cmd"
+        simulator.ctx = SimpleNamespace(device="device")
+        simulator._spec_keepalive = []
+        simulator._create_pipeline = lambda shader, entries: ("pipeline", shader, tuple(entries))
+        with contextlib.redirect_stdout(io.StringIO()):
+            simulator.shader_modules = simulator._load_shader_modules()
+            simulator.built_pipelines = simulator._build_compute_pipelines()
+        return simulator
+
+    def capture(function) -> list:
+        events.clear()
+        function()
+        return list(events)
+
+    def spec_tuples(simulator) -> list:
+        return [(spec.name, spec.set_index, spec.binding, spec.size, spec.usage) for spec in simulator._buffer_specs]
+
+    def recordings(simulator) -> dict:
+        result = {"phase A": capture(simulator._record_phase_a_cmd),
+                  "phase B": capture(simulator._record_phase_b_cmd),
+                  "phase C even": capture(lambda: simulator._record_phase_c_cmd(0)),
+                  "phase C odd": capture(lambda: simulator._record_phase_c_cmd(1)),
+                  "bootstrap init": capture(simulator._record_bootstrap_init_cmd),
+                  "bootstrap compute": capture(simulator._record_bootstrap_compute_cmd),
+                  "defrag": capture(simulator._record_defrag_cmd)}
+        for direction in simulator._transport_segments:
+            result[f"readback {direction}"] = capture(lambda: simulator._record_transfer_readback_cmd(direction))
+            result[f"upload {direction}"] = capture(lambda: simulator._record_transfer_upload_cmd(direction))
+        if not simulator._transport_segments:
+            result["single"] = capture(simulator._record_step_single_cmd)
+            simulator.step_single_use_split = True
+            result["single split"] = capture(simulator._record_step_single_cmd)
+            simulator.step_single_use_split = False
+        return result
+
+    def insert_before(stream: list, anchor, block: list, tag: str, name: str):
+        """stream with block inserted before the first occurrence of anchor (None when absent)."""
+        if anchor not in stream:
+            failures.append(f"{tag} {name}: {anchor} not recorded")
+            return None
+        index = stream.index(anchor)
+        return stream[:index] + block + stream[index:]
+
+    def in_band(column: int, width: int, leading_x: int, trailing_x: int, own_last_x: int, fake_column: int) -> bool:
+        """helpers.glsl in_boundary_band (deep_wall_skip.glsl deep_wall_in_skip_band at width 111)."""
+        if fake_column > 0:
+            return fake_column <= column < fake_column + width
+        return (leading_x > 0 and column < leading_x + width) or (trailing_x > 0 and column > own_last_x - width)
+
+    def check_band_rule(tag: str, simulator) -> None:
+        pipelines = simulator.built_pipelines
+        constants = {key: dict((identifier, value) for identifier, _, value in pipelines[key][2])
+                     for key in ("correction_interior", "density_deep_interior", "correction_all", "density_all")}
+        case = simulator.case
+        face = case.grid.grid_dimension_y * case.grid.grid_dimension_z
+        leading_x = case.ghost_grid.leading_ghost_voxel_count // face
+        trailing_x = case.ghost_grid.trailing_ghost_voxel_count // face
+        own_last_x = case.grid.grid_dimension_x - 1 - trailing_x
+        density_width = constants["density_deep_interior"][82]
+        for column in range(leading_x, own_last_x + 1):
+            fake_column = constants["correction_interior"].get(59, 0)
+            arguments = (leading_x, trailing_x, own_last_x, fake_column)
+            correction_runs = not in_band(column, constants["correction_interior"][82], *arguments)
+            correction_skips = correction_runs and 111 in constants["correction_interior"] and \
+                not in_band(column, constants["correction_interior"][111], *arguments)
+            density_runs = not in_band(column, density_width, *arguments)
+            density_skips = density_runs and 111 in constants["density_deep_interior"] and \
+                not in_band(column, constants["density_deep_interior"][111], *arguments)
+            density_band_runs = in_band(column, density_width, *arguments)
+            if correction_skips != density_skips:
+                failures.append(f"{tag} column {column}: correction_interior may skip {correction_skips}, "
+                                f"density_deep_interior {density_skips}")
+            if correction_skips and density_band_runs:
+                failures.append(f"{tag} column {column}: correction_interior may skip a particle density's band "
+                                "kernel computes (stale L)")
+            if 111 in constants["correction_all"]:
+                for key in ("correction_all", "density_all"):
+                    if in_band(column, constants[key][111], *arguments) != in_band(
+                            column, constants["correction_all"][111], *arguments):
+                        failures.append(f"{tag} column {column}: correction_all / density_all decide differently")
+
+    saved_functions = {(module, name): getattr(module, name) for module in (simulator_v7, reference_module)
+                       for name in recorders}
+    saved_environment = {key: value for key, value in os.environ.items() if key.startswith("V7_")}
+    saved_constants = {name: getattr(simulator_v7, name) for name in
+                       ("_DEEP_WALL_SKIP", "_DEEP_WALL_CHECK", "_DEEP_WALL_RECORD_DECISIONS", "_BAND_COMPACT",
+                        "_FAKE_BAND_COLUMN")}
+    saved_reference = {name: getattr(reference_module, name) for name in ("_BAND_COMPACT", "_FAKE_BAND_COLUMN")}
+    for (module, name) in saved_functions:
+        setattr(module, name, recorders[name])
+    configurations = [("legacy layers=1 keep=0", (1, 0), None, False, 0),
+                      ("legacy layers=2 keep=1", (2, 1), None, False, 0),
+                      ("release defaults", None, None, False, 0),
+                      ("release, band widths 2,3,4", None, "2,3,4", False, 0),
+                      ("release, compact band dispatch", None, "2,3,4", True, 0),
+                      ("release, fake band 5", None, "2,3,4", False, 5)]
+    exercised = set()
+    try:
+        for label, switches, widths, compact, fake_column in configurations:
+            for key in [key for key in os.environ if key.startswith("V7_")]:
+                del os.environ[key]
+            if switches is not None:
+                _set_switches(*switches)
+            if widths is not None:
+                os.environ["V7_BAND_WIDTHS"] = widths
+            for module in (simulator_v7, reference_module):
+                module._BAND_COMPACT = compact
+                module._FAKE_BAND_COLUMN = fake_column
+            for depth_count in (1, 3):
+                for slab_count in ((1,) if fake_column else (1, 2, 3)):
+                    chain = partition_v7.compute_chain_partition(
+                        _thick_wall_case(case_v7, depth_count, 3), [1.0] * slab_count, pool_safety=1.2)
+                    slabs = list(chain.slabs)
+                    if slab_count == 1 and not fake_column:       # E37 adami: one slab only
+                        slabs.append(dataclasses.replace(slabs[0], numerics=dataclasses.replace(
+                            slabs[0].numerics, wall_boundary="adami")))
+                    for index, slab in enumerate(slabs):
+                        tag = (f"deep wall {label} {'3-D' if depth_count > 1 else '2-D'} K={slab_count} slab {index}"
+                               f"{' adami' if slab.numerics.wall_boundary == 'adami' else ''}")
+                        peers = bool(slab.transport.has_leading_peer or slab.transport.has_trailing_peer)
+                        exercised.add((depth_count > 1, slab_count, peers))
+                        simulator_v7._DEEP_WALL_SKIP = "0"
+                        simulator_v7._DEEP_WALL_CHECK, simulator_v7._DEEP_WALL_RECORD_DECISIONS = 0, False
+                        reference = fake(reference_module, slab)
+                        off = fake(simulator_v7, slab)
+                        if off._deep_wall_skip_active():
+                            failures.append(f"{tag}: switch 0 resolves on")
+                        reference_streams, off_streams = recordings(reference), recordings(off)
+                        for name, stream in reference_streams.items():
+                            if off_streams.get(name) != stream:
+                                failures.append(f"{tag} {name}: switch 0 does not record the {B6_COMMIT} stream")
+                        if set(off_streams) != set(reference_streams):
+                            failures.append(f"{tag}: recordings {sorted(off_streams)} vs {sorted(reference_streams)}")
+                        if spec_tuples(off) != spec_tuples(reference):
+                            failures.append(f"{tag}: switch 0 buffer specs differ from {B6_COMMIT}")
+                        if off.shader_modules != reference.shader_modules:
+                            failures.append(f"{tag}: switch 0 shader modules differ from {B6_COMMIT}")
+                        if off.built_pipelines != reference.built_pipelines:
+                            failures.append(f"{tag}: switch 0 pipelines differ from {B6_COMMIT}")
+                        per_v = math.ceil(slab.grid.total_voxel_count() / slab.capacities.workgroup_size)
+                        marker = [("bind", "pipeline:deep_wall_marker_presence"), ("sets", "pipeline_layout", 0, 4),
+                                  ("dispatch", per_v, 1, 1), compute_barrier,
+                                  ("bind", "pipeline:deep_wall_marker_deep"), ("sets", "pipeline_layout", 0, 4),
+                                  ("dispatch", per_v, 1, 1), compute_barrier]
+                        for check, record in ((0, False), (1, False), (0, True)):
+                            simulator_v7._DEEP_WALL_SKIP = "1"
+                            simulator_v7._DEEP_WALL_CHECK, simulator_v7._DEEP_WALL_RECORD_DECISIONS = check, record
+                            on = fake(simulator_v7, slab)
+                            sub = f"{tag} check={check} record={record}"
+                            if not on._deep_wall_skip_active():
+                                failures.append(f"{sub}: switch 1 resolves off")
+                                continue
+                            on_streams = recordings(on)
+                            expected = dict(off_streams)
+                            expected["phase B"] = insert_before(
+                                off_streams["phase B"], ("bind", "pipeline:correction_interior"),
+                                marker + [("tick", "b_deep_wall_marker_end")], sub, "phase B")
+                            if not peers:
+                                for name in ("single", "single split"):
+                                    # the split path (or a fake band) binds correction_interior
+                                    correction = ("correction_all" if ("bind", "pipeline:correction_all")
+                                                  in off_streams[name] else "correction_interior")
+                                    expected[name] = insert_before(
+                                        off_streams[name], ("bind", f"pipeline:{correction}"),
+                                        marker + [("tick", "deep_wall_marker_end")], sub, name)
+                                expected["bootstrap compute"] = insert_before(
+                                    off_streams["bootstrap compute"], ("bind", "pipeline:correction_all"),
+                                    [compute_barrier] + marker, sub, "bootstrap compute")
+                            for name, stream in on_streams.items():
+                                if stream != expected.get(name):
+                                    failures.append(f"{sub} {name}: switch 1 differs from switch 0 in more than the "
+                                                    "marker (or the marker is misplaced)")
+                            # the marker follows a compute barrier (update_voxel / the phase B entry barrier); in the
+                            # single-cmd step right after update_voxel's
+                            for name in ("phase B", "single") if not peers else ("phase B",):
+                                stream = on_streams[name]
+                                if stream.count(marker[0]) != 1:
+                                    failures.append(f"{sub} {name}: {stream.count(marker[0])} markers recorded")
+                                    continue
+                                start = stream.index(marker[0])
+                                if stream[start - 1] != compute_barrier:
+                                    failures.append(f"{sub} {name}: the marker does not follow a compute barrier")
+                                if name == "single" and stream[start - 2:start] != [("tick", "voxel_end"),
+                                                                                     compute_barrier]:
+                                    failures.append(f"{sub} single: the marker is not right after update_voxel")
+                            # pipelines / modules / buffers
+                            skip_keys = {"correction_interior", "density_deep_interior"}
+                            if not peers:
+                                skip_keys |= {"correction_all", "density_all"}
+                            variant = {key: on.shader_modules[f"{key.split('_')[0]}_deep_wall_skip"]
+                                       for key in skip_keys}
+                            b4_entries = ((111, "I", on.band_widths[1]), (112, "B", check), (113, "B", record or check))
+                            for key, pipeline in off.built_pipelines.items():
+                                wanted = (("pipeline", variant[key], pipeline[2] + b4_entries) if key in skip_keys
+                                          else pipeline)
+                                if on.built_pipelines.get(key) != wanted:
+                                    failures.append(f"{sub}: pipeline {key} {on.built_pipelines.get(key)} != {wanted}")
+                            for key, marker_pass in (("deep_wall_marker_presence", 0), ("deep_wall_marker_deep", 1)):
+                                wanted = ("pipeline", on.shader_modules.get("deep_wall_marker"),
+                                          tuple(on._global_entries()) + ((114, "I", marker_pass),))
+                                if on.built_pipelines.get(key) != wanted:
+                                    failures.append(f"{sub}: pipeline {key} {on.built_pipelines.get(key)}")
+                            if set(on.built_pipelines) != set(off.built_pipelines) | {"deep_wall_marker_presence",
+                                                                                         "deep_wall_marker_deep"}:
+                                failures.append(f"{sub}: pipeline keys {sorted(set(on.built_pipelines) ^ set(off.built_pipelines))}")
+                            new_modules = {key: value for key, value in on.shader_modules.items()
+                                           if key not in off.shader_modules}
+                            if set(new_modules) != {"deep_wall_marker", "correction_deep_wall_skip",
+                                                    "density_deep_wall_skip"} or \
+                                    any(on.shader_modules[key] != value for key, value in off.shader_modules.items()):
+                                failures.append(f"{sub}: shader modules {sorted(new_modules)}")
+                            on_specs, off_specs = spec_tuples(on), spec_tuples(off)
+                            voxel_capacity = 1 + slab.grid.total_voxel_count()
+                            pool_capacity = slab.capacities.total_pool_capacity()
+                            usage = vulkan.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | vulkan.VK_BUFFER_USAGE_TRANSFER_DST_BIT \
+                                | vulkan.VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+                            wanted_specs = off_specs + [
+                                ("deep_wall_voxel_flag", 1, 8, 8 * voxel_capacity, usage),
+                                ("deep_wall_skip_record", 3, 10, 8 * pool_capacity if (record or check) else 16, usage)]
+                            if on_specs != wanted_specs:
+                                failures.append(f"{sub}: buffer specs {on_specs[len(off_specs):]}")
+                            check_band_rule(sub, on)
+                        # auto: the per-slab rule, and the streams of the value it picked
+                        simulator_v7._DEEP_WALL_SKIP = "auto"
+                        simulator_v7._DEEP_WALL_CHECK, simulator_v7._DEEP_WALL_RECORD_DECISIONS = 0, False
+                        automatic = fake(simulator_v7, slab)
+                        active, reason = automatic.deep_wall_skip_resolution
+                        candidates = simulator_v7.deep_wall_candidate_count(slab, automatic.band_widths[1])
+                        particles = slab.initial.positions.shape[0]
+                        wanted_active = (slab.physics.dimension == 3 and candidates >= particles
+                                         * simulator_v7._DEEP_WALL_AUTO_MINIMUM_CANDIDATE_FRACTION)
+                        if active != wanted_active or not reason.startswith("auto"):
+                            failures.append(f"{tag}: auto resolved {active} ({reason}), expected {wanted_active}")
+                        exercised.add(("auto", active))
+        for three_d in (False, True):
+            for slab_count, peers in ((1, False), (2, True), (3, True)):
+                if (three_d, slab_count, peers) not in exercised:
+                    failures.append(f"deep wall: no slab 3-D={three_d} K={slab_count} peers={peers}")
+        if ("auto", True) not in exercised or ("auto", False) not in exercised:
+            failures.append(f"deep wall: auto did not resolve both ways on the synthetic slabs ({exercised})")
+        # deep_wall_candidate_count against the particle-by-particle reference (small slabs, one / two ghost layers,
+        # band widths 2 and 3, 2-D and 3-D, edge and interior slabs)
+        for switches in ((1, 0), (2, 1)):
+            _set_switches(*switches)
+            for depth_count in (1, 3):
+                for slab_count in (1, 2, 3):
+                    small = _thick_wall_case(case_v7, depth_count, 3, column_count=40, row_count=8,
+                                             particles_per_voxel_side=2)
+                    for index, slab in enumerate(partition_v7.compute_chain_partition(
+                            small, [1.0] * slab_count, pool_safety=1.2).slabs):
+                        for band_width in (2, 3):
+                            counted = simulator_v7.deep_wall_candidate_count(slab, band_width)
+                            reference_count = _brute_force_deep_wall_candidates(slab, band_width)
+                            if counted != reference_count or (depth_count == 3 and slab_count == 1 and counted == 0):
+                                failures.append(f"deep_wall_candidate_count layers={switches[0]} depth={depth_count} "
+                                                f"K={slab_count} slab {index} band {band_width}: {counted} vs the "
+                                                f"reference {reference_count}")
+        # a 3-D slab without deep walls (walls only in the fluid's voxel row): no candidates, auto off
+        thin = partition_v7.compute_chain_partition(_synthetic_global_case(case_v7, depth_count=3), [1.0],
+                                                    pool_safety=1.2).slabs[0]
+        simulator_v7._DEEP_WALL_SKIP = "auto"
+        automatic = _fake_simulator(simulator_v7.SphSimulatorV7, thin)
+        if simulator_v7.deep_wall_candidate_count(thin, 2) != 0 or automatic._deep_wall_skip_active():
+            failures.append(f"deep wall: the thin-wall 3-D slab resolves {automatic.deep_wall_skip_resolution}")
+    finally:
+        for (module, name), function in saved_functions.items():
+            setattr(module, name, function)
+        for name, value in saved_constants.items():
+            setattr(simulator_v7, name, value)
+        for name, value in saved_reference.items():
+            setattr(reference_module, name, value)
+        for key in [key for key in os.environ if key.startswith("V7_")]:
+            del os.environ[key]
+        os.environ.update(saved_environment)
+
+    # ---- shader text
+    shader_directory = pathlib.Path(__file__).resolve().parent / "shaders"
+
+    def code(name: str) -> str:
+        text = (shader_directory / name).read_text(encoding="utf-8")
+        return re.sub(r"//[^\n]*", "", text)
+
+    skip_header = code("deep_wall_skip.glsl")
+    helpers = code("helpers.glsl")
+    band = _glsl_fragments(_glsl_function_body(helpers, "bool in_boundary_band(ivec3 coord) {"))
+    skip_band = _glsl_fragments(_glsl_function_body(skip_header, "bool deep_wall_in_skip_band(ivec3 coord) {"))
+    if [fragment.replace("NEIGHBOR_X_RANGE", "DEEP_WALL_SKIP_BAND_WIDTH") for fragment in band] != skip_band:
+        failures.append("deep_wall_skip.glsl: deep_wall_in_skip_band is not helpers.glsl in_boundary_band at width 111")
+    for identifier, name in ((111, "uint DEEP_WALL_SKIP_BAND_WIDTH"), (112, "bool DEEP_WALL_CHECK"),
+                             (113, "bool DEEP_WALL_RECORD")):
+        if len(re.findall(rf"layout\(constant_id = {identifier}\) const {name} =", skip_header)) != 1:
+            failures.append(f"deep_wall_skip.glsl: spec constant {identifier} ({name}) not declared once")
+    marker = code("deep_wall_marker.comp")
+    if len(re.findall(r"layout\(constant_id = 114\) const uint DEEP_WALL_MARKER_PASS =", marker)) != 1:
+        failures.append("deep_wall_marker.comp: spec constant 114 not declared once")
+    for name in ("correction.comp", "density.comp", "force.comp", "wall_extrapolate.comp", "common.glsl",
+                 "helpers.glsl", "wall_boundary.glsl", "deep_wall_marker.comp"):
+        if re.search(r"constant_id = 11[1-4]\)", code(name)) and name != "deep_wall_marker.comp":
+            failures.append(f"{name}: declares one of B4's spec ids 111-114")
+    density = (shader_directory / "density.comp").read_text(encoding="utf-8")
+    correction = (shader_directory / "correction.comp").read_text(encoding="utf-8")
+    loop_header = ("for (int delta_x = -1; delta_x <= 1; delta_x++) {\n"
+                   "        for (int delta_z = -neighbor_z_range; delta_z <= neighbor_z_range; delta_z++) {\n"
+                   "            for (int delta_y = -1; delta_y <= 1; delta_y++) {")
+    for name, text in (("density.comp", density), ("correction.comp", correction),
+                       ("deep_wall_skip.glsl", (shader_directory / "deep_wall_skip.glsl").read_text(encoding="utf-8")),
+                       ("deep_wall_marker.comp", (shader_directory / "deep_wall_marker.comp").read_text(
+                           encoding="utf-8"))):
+        if loop_header not in text:
+            failures.append(f"{name}: the 3^d voxel loop is not correction / density's")
+    guard = "#ifdef DEEP_WALL_SKIP\n    if (!deep_wall_skip)\n#endif\n    " + loop_header
+    if density.replace("\r\n", "\n").count(guard) != 1:
+        failures.append("density.comp: the neighbour loop is not guarded by `if (!deep_wall_skip)` under the macro")
+    density_lines = density.replace("\r\n", "\n")
+    order = [density_lines.find(text) for text in (
+        "if (DENSITY_MODE == PIPELINE_MODE_BOUNDARY && !self_in_boundary_band) return;",
+        "bool deep_wall_skip = deep_wall_voxel_skippable(self_voxel_coord, self_voxel_id)\n"
+        "                       && self_params.kind == MATERIAL_BOUNDARY;",
+        guard,
+        "float new_stored_density = self_stored_density + TIMESTEP * (density_drift + density_diffusion);",
+        "density_pressure_scratch[self_particle_id] = vec2(density_to_store, new_pressure);")]
+    if -1 in order or order != sorted(order):
+        failures.append(f"density.comp: decision / guard / epilogue out of place {order}")
+    correction_lines = correction.replace("\r\n", "\n")
+    band_return = "if (CORRECTION_MODE == CORRECTION_MODE_BOUNDARY && !self_in_boundary_band) return;"
+    skip_block = ("#ifdef DEEP_WALL_SKIP\n"
+                  "    // E39 B4 (V7_DEEP_WALL_SKIP, deep_wall_skip.glsl): no particle density\n")
+    order = [correction_lines.find(text) for text in (
+        band_return, skip_block,
+        "if (deep_wall_voxel_skippable(self_voxel_coord, self_voxel_id)\n"
+        "            && material_parameters[material[self_particle_id]].kind == MATERIAL_BOUNDARY) {\n"
+        "        deep_wall_on_skip(self_particle_id, self_position, self_voxel_coord, DEEP_WALL_KERNEL_CORRECTION);\n"
+        "        return;\n    }\n#endif",
+        "mat3  correction_matrix = mat3(0.0);")]
+    if -1 in order or order != sorted(order) or correction_lines.count("#ifdef DEEP_WALL_SKIP") != 2 \
+            or correction_lines[order[0] + len(band_return):order[1]].strip():
+        failures.append(f"correction.comp: the skip is not behind #ifdef DEEP_WALL_SKIP after the band returns {order}")
+    check_body = _glsl_fragments(_glsl_function_body(
+        skip_header, "void deep_wall_check(uint self_particle_id, vec3 self_position, ivec3 self_voxel_coord) {"))
+    for fragment in ("if (!in_own_grid(neighbor_coord)) continue", "if (neighbor_particle_id == INSIDE_SLOT_EMPTY) break",
+                     "if (neighbor_particle_id == self_particle_id) continue",
+                     "if (material_parameters[material[neighbor_particle_id]].kind == MATERIAL_BOUNDARY) continue",
+                     "if (distance >= SMOOTHING_LENGTH || distance < 1e-12) continue"):
+        if fragment not in check_body:
+            failures.append(f"deep_wall_skip.glsl deep_wall_check: {fragment!r} missing (density's test)")
+    marker_body = _glsl_fragments(_glsl_function_body(marker, "void main() {"))
+    for fragment in ("if (!is_own_voxel(voxel_id)) return",
+                     "if (material_parameters[material[particle_id]].kind != MATERIAL_BOUNDARY)",
+                     "if (!in_own_grid(neighbor_coord)) continue",
+                     "if (!is_own_voxel(neighbor_voxel_id) || deep_wall_voxel_flag[neighbor_voxel_id] != 0u)",
+                     "deep_wall_voxel_flag[voxel_id] = present",
+                     "deep_wall_voxel_flag[deep_wall_deep_flag_index(voxel_id)] = deep"):
+        if fragment not in marker_body:
+            failures.append(f"deep_wall_marker.comp: {fragment!r} missing")
+
+
 def check_release_defaults(failures: list) -> None:
     """E6b: with no V7_* variable set the configuration is the recommended release
     set (v6_opt.md), per dimension for the pool factors; dependent switches follow
@@ -1621,6 +2236,7 @@ def main() -> int:
     check_band_widths(failures)
     check_density_copy(failures)
     check_ghost_send_lanes(failures)
+    check_deep_wall_skip(failures)
     spirv_checked = check_spirv_current(failures)
     _set_switches(1, 0)
     if failures:
@@ -1633,6 +2249,8 @@ def main() -> int:
           "tiling; packed rejection + V7_DIAG_POISON_G1 parsing; packed shader layout + poison branches + spec ids; "
           "V7_BAND_WIDTHS parsing / rejection / spec 82; density copy pass regions + streams (E39 B9); "
           "ghost_send lane groups: streams, emulated mapping, shader text, old statements (E39 B6); "
+          "deep-wall skip: switch 0 = the B6 build, marker placement, variant pipelines, band rule, candidate "
+          "count, AUTO rule, shader text (E39 B4); "
           "release defaults (E6b, phase A no-wait E32) + LEGACY_DEFAULTS; "
           + ("SPIR-V current)" if spirv_checked else "SPIR-V check SKIPPED: no glslc)"))
     return 0

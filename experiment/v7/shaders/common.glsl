@@ -54,7 +54,9 @@
 //   95 - 98  : V7_DELTA_DENSITY, reference density, INIT_SEAM_CLAMP, PACKED_REPLICAS
 //   99       : V7_DIAG_POISON_G1 (diagnostic, local to expand_ghost_lists.comp)
 //   100      : WALL_BOUNDARY (case.yaml numerics.wall_boundary; declared in wall_boundary.glsl)
-//   101 - 127: reserved
+//   101 - 108: density_scratch_copy.comp regions (local), 109 - 110: ghost_send_lanes.comp (local)
+//   111 - 114: V7_DEEP_WALL_SKIP (E39 B4; declared in deep_wall_skip.glsl / deep_wall_marker.comp)
+//   115 - 127: reserved
 //
 // Per-material parameters (rest_density, viscosity, eos_constant, radius,
 // volume, rotor_angular_velocity) are NOT spec constants — they live in
@@ -628,6 +630,8 @@ layout(std430, set = 1, binding = 7) buffer GhostPackedBuffer {
     uint ghost_packed_words[];
 };
 
+// binding 8: DeepWallVoxelFlagBuffer (deep_wall_skip.glsl, V7_DEEP_WALL_SKIP only)
+
 // ============================================================================
 // Descriptor set 2 — UNUSED in V1 merged-buffer scheme.
 //
@@ -728,7 +732,11 @@ layout(std430, set = 3, binding = 0) buffer GlobalStatusBuffer {
     //   round). Both were silent losses.
     uint  initialization_seam_clamp_count;
     uint  overflow_initialization_outside;
-    uint  status_reserved_2;
+    // overflow_deep_wall_skip_count (cumulative, must be 0; V7_DEEP_WALL_CHECK=1
+    //   only, deep_wall_skip.glsl): neighbours a skipped deep wall's density
+    //   would have counted (listed, non-BOUNDARY, 1e-12 <= r < h), summed over
+    //   the correction and density passes that skipped it. 0 otherwise.
+    uint  overflow_deep_wall_skip_count;
     uint  status_reserved_3;
     uint  status_reserved_4;
     uint  status_reserved_5;
@@ -815,6 +823,8 @@ layout(std430, set = 3, binding = 9) buffer BandCompactMetaBuffer {
     uint  band_compact_column_start[BAND_COMPACT_MAX_COLUMNS + 1u];
     uint  band_compact_total;
 };
+
+// binding 10: DeepWallSkipRecordBuffer (deep_wall_skip.glsl, V7_DEEP_WALL_SKIP only)
 
 layout(std430, set = 3, binding = 8) buffer DefragScratchCounterBuffer {
     // Single uint, atomic-incremented by defrag.comp when USE_PREFIX_SUM_DEFRAG=false.

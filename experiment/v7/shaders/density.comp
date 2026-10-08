@@ -3,6 +3,9 @@
 #include "common.glsl"
 #include "helpers.glsl"
 #include "wall_boundary.glsl"
+#ifdef DEEP_WALL_SKIP
+#include "deep_wall_skip.glsl"
+#endif
 
 // ============================================================================
 // density.comp - δ-plus WCSPH density + pressure update (stage 4 of leapfrog).
@@ -97,6 +100,18 @@ void process_particle(uint self_particle_id) {
     if (DENSITY_MODE == PIPELINE_MODE_INTERIOR &&  self_in_boundary_band) return;
     if (DENSITY_MODE == PIPELINE_MODE_BOUNDARY && !self_in_boundary_band) return;
 
+#ifdef DEEP_WALL_SKIP
+    // E39 B4 (V7_DEEP_WALL_SKIP, deep_wall_skip.glsl): every particle listed in
+    // this wall's 3^d voxels is a wall, so the loop below would only take its
+    // wall-wall `continue`: skip it. drift and diffusion stay 0 and the
+    // epilogue writes the same scratch value as the full loop.
+    bool deep_wall_skip = deep_wall_voxel_skippable(self_voxel_coord, self_voxel_id)
+                       && self_params.kind == MATERIAL_BOUNDARY;
+    if (deep_wall_skip) {
+        deep_wall_on_skip(self_particle_id, self_position, self_voxel_coord, DEEP_WALL_KERNEL_DENSITY);
+    }
+#endif
+
     vec3  self_velocity = velocity_mass[self_particle_id].xyz;
     float self_stored_density = density_pressure[self_particle_id].x;   // ρ_n (V7_DELTA_DENSITY: ρ_n - ρ_ref)
     float self_density  = density_from_stored(self_stored_density);
@@ -128,6 +143,9 @@ void process_particle(uint self_particle_id) {
     // voxel_id encoding (y), so consecutive neighbor voxels are adjacent
     // in memory. Measured 2026-09-23 on RTX 5090: with dx innermost,
     // density and force ran 5-7% slower than the x-fastest V0 layout.
+#ifdef DEEP_WALL_SKIP
+    if (!deep_wall_skip)
+#endif
     for (int delta_x = -1; delta_x <= 1; delta_x++) {
         for (int delta_z = -neighbor_z_range; delta_z <= neighbor_z_range; delta_z++) {
             for (int delta_y = -1; delta_y <= 1; delta_y++) {

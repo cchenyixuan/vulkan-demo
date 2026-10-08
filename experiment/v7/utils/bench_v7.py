@@ -364,7 +364,8 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
     SINGLE mode:
         predict_us       = predict_end    - step_start
         update_voxel_us  = voxel_end      - predict_end
-        correction_us    = correction_end - voxel_end
+        deep_wall_marker_us = deep_wall_marker_end - voxel_end   (E39 B4 V7_DEEP_WALL_SKIP only)
+        correction_us    = correction_end - (deep_wall_marker_end OR voxel_end)
         density_us       = density_end    - correction_end
         wall_extrapolate_us = wall_extrapolate_end - density_end   (E37 wall_boundary adami only)
         force_us         = force_end      - (wall_extrapolate_end OR density_end)
@@ -379,7 +380,8 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
         phase_a_us            = (last A tick) - a_start
 
     Phase B:
-        correction_interior_us = b_correction_interior_end - b_start
+        deep_wall_marker_us    = b_deep_wall_marker_end - b_start   (E39 B4 V7_DEEP_WALL_SKIP only)
+        correction_interior_us = b_correction_interior_end - (b_deep_wall_marker_end OR b_start)
         density_deep_interior_us = b_density_deep_interior_end - b_correction_interior_end
         wall_extrapolate_us    = b_wall_extrapolate_end - b_density_deep_interior_end
                                  (E37 wall_boundary adami with cascading force)
@@ -422,7 +424,12 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
             out["predict_us"] = v
         if (v := diff_us("voxel_end", "predict_end")) is not None:
             out["update_voxel_us"] = v
-        if (v := diff_us("correction_end", "voxel_end")) is not None:
+        # E39 B4 (V7_DEEP_WALL_SKIP): the deep-wall marker between update_voxel and correction.
+        correction_start = "voxel_end"
+        if (v := diff_us("deep_wall_marker_end", "voxel_end")) is not None:
+            out["deep_wall_marker_us"] = v
+            correction_start = "deep_wall_marker_end"
+        if (v := diff_us("correction_end", correction_start)) is not None:
             out["correction_us"] = v
         if (v := diff_us("density_end", "correction_end")) is not None:
             out["density_us"] = v
@@ -437,7 +444,7 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
             out["step_total_us"] = v
         # single-GPU split path (P3.C validation / V7_FAKE_BAND_TEST): one tick
         # per kernel -> interior vs boundary(band) durations, copy separated.
-        if (v := diff_us("correction_interior_end", "voxel_end")) is not None:
+        if (v := diff_us("correction_interior_end", correction_start)) is not None:
             out["correction_interior_us"] = v
             out["correction_boundary_us"] = diff_us("correction_end", "correction_interior_end")
         if (v := diff_us("density_deep_interior_end", "correction_end")) is not None:
@@ -489,7 +496,12 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
     # --- Phase B + A→B gap ---
     if (v := diff_us("b_start", last_a_label)) is not None:
         out["a_to_b_gap_us"] = v
-    if (v := diff_us("b_correction_interior_end", "b_start")) is not None:
+    # E39 B4 (V7_DEEP_WALL_SKIP): the deep-wall marker opens phase B.
+    correction_interior_start = "b_start"
+    if (v := diff_us("b_deep_wall_marker_end", "b_start")) is not None:
+        out["deep_wall_marker_us"] = v
+        correction_interior_start = "b_deep_wall_marker_end"
+    if (v := diff_us("b_correction_interior_end", correction_interior_start)) is not None:
         out["correction_interior_us"] = v
     # Path A+ P5: density_deep_interior added to Phase B. phase_b_us is the
     # total Phase B GPU time (= last Phase B tick - b_start).

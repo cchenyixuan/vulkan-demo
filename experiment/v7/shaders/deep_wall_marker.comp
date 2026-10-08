@@ -1,0 +1,66 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "common.glsl"
+#include "helpers.glsl"
+#include "deep_wall_skip.glsl"
+
+// ============================================================================
+// deep_wall_marker.comp - E39 B4 (V7_DEEP_WALL_SKIP): the per-voxel deep-wall
+// marker of deep_wall_skip.glsl, rebuilt every step from that step's voxel
+// lists (after update_voxel) in two dispatches with a compute barrier between
+// them, one thread per voxel of the extended grid like update_voxel (ghost
+// voxels and padding threads return):
+//
+//   pass 0 (DEEP_WALL_MARKER_PASS = 0): presence[v] = 1 iff own voxel v's
+//          inside list (the entries the neighbour loops read: count, stop at an
+//          empty slot) holds a particle whose kind is not MATERIAL_BOUNDARY;
+//   pass 1 (DEEP_WALL_MARKER_PASS = 1): deep[v] = 1 iff every in-grid voxel of
+//          v's 3^d neighbourhood (in_own_grid, the loops' test) is an own voxel
+//          with presence 0; a ghost voxel counts as present (its lists are
+//          another slab's, not this step's in phase B).
+//
+// Both passes write every own voxel each step: no clear pass, nothing stale
+// after a restart or a defrag (which reorders pids, not voxel membership).
+// ============================================================================
+
+layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
+
+layout(constant_id = 114) const uint DEEP_WALL_MARKER_PASS = 0u;
+
+void main() {
+    uint voxel_id = gl_GlobalInvocationID.x + 1u;
+    // padding threads and ghost voxels (as update_voxel)
+    if (!is_own_voxel(voxel_id)) return;
+
+    if (DEEP_WALL_MARKER_PASS == 0u) {
+        uint present = 0u;
+        uint particle_count = inside_particle_count[voxel_id];
+        for (uint slot_index = 0u; slot_index < particle_count; slot_index++) {
+            uint particle_id = inside_particle_index[voxel_id * MAX_PARTICLES_PER_VOXEL + slot_index];
+            if (particle_id == INSIDE_SLOT_EMPTY) break;
+            if (material_parameters[material[particle_id]].kind != MATERIAL_BOUNDARY) {
+                present = 1u;
+                break;
+            }
+        }
+        deep_wall_voxel_flag[voxel_id] = present;
+        return;
+    }
+
+    ivec3 voxel_coord = own_coord_of(voxel_id);
+    uint deep = 1u;
+    int neighbor_z_range = int(NEIGHBOR_Z_RANGE);
+    for (int delta_x = -1; delta_x <= 1; delta_x++) {
+        for (int delta_z = -neighbor_z_range; delta_z <= neighbor_z_range; delta_z++) {
+            for (int delta_y = -1; delta_y <= 1; delta_y++) {
+                ivec3 neighbor_coord = voxel_coord + ivec3(delta_x, delta_y, delta_z);
+                if (!in_own_grid(neighbor_coord)) continue;
+                uint neighbor_voxel_id = own_voxel_id_of(neighbor_coord);
+                if (!is_own_voxel(neighbor_voxel_id) || deep_wall_voxel_flag[neighbor_voxel_id] != 0u) {
+                    deep = 0u;
+                }
+            }
+        }
+    }
+    deep_wall_voxel_flag[deep_wall_deep_flag_index(voxel_id)] = deep;
+}

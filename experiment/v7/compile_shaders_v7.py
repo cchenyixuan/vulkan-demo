@@ -49,15 +49,25 @@ V7_SHADER_DIR = os.path.dirname(os.path.abspath(__file__)) + "/shaders"
 V7_SPV_DIR = V7_SHADER_DIR + "/spv"
 
 
-def _run_glslc(source: str, output: str) -> None:
-    command = [
-        GLSLC,
-        "--target-env=vulkan1.2",
-        "-O",
-        "-I", V7_SHADER_DIR,
-        source,
-        "-o", output,
-    ]
+# E39 B4: (output name, source, preprocessor macros): a source compiled a
+# second time with -D<macro> into spv/<output name>.comp.spv. The variant's code
+# sits in the source behind #ifdef, so the plain build of the source (no macro)
+# is the same SPIR-V as before.
+SHADER_VARIANTS = (
+    ("correction_deep_wall_skip", "correction.comp", ("DEEP_WALL_SKIP",)),
+    ("density_deep_wall_skip", "density.comp", ("DEEP_WALL_SKIP",)),
+)
+
+
+def glslc_command(source: str, output: str, macros=()) -> list:
+    """The glslc invocation of every build (this script and the SPIR-V
+    freshness check of _test_seam_layout.py)."""
+    return [GLSLC, "--target-env=vulkan1.2", "-O", *(f"-D{macro}" for macro in macros),
+            "-I", V7_SHADER_DIR, source, "-o", output]
+
+
+def _run_glslc(source: str, output: str, macros=()) -> None:
+    command = glslc_command(source, output, macros)
     result = subprocess.run(command, capture_output=True, text=True)
     if result.returncode != 0:
         print(f"ERROR compiling {os.path.basename(source)}:\n{result.stderr}",
@@ -87,6 +97,11 @@ def compile_v7_shaders() -> None:
         output = os.path.join(V7_SPV_DIR, f"{name}.spv")
         print(f"[v4] {name}")
         _run_glslc(source, output)
+        n_compiled += 1
+    for variant_name, source_name, macros in SHADER_VARIANTS:
+        output = os.path.join(V7_SPV_DIR, f"{variant_name}.comp.spv")
+        print(f"[v4] {variant_name} ({source_name} -D{' -D'.join(macros)})")
+        _run_glslc(os.path.join(V7_SHADER_DIR, source_name), output, macros)
         n_compiled += 1
 
     # Render shaders (.vert / .frag) live in shaders/render/
