@@ -13,6 +13,7 @@
 #   --calibrate-only --weights-file, then --weights-file), one --step-trace run, last an OPAQUE_FD probe.
 #   Every run in a timeout (2-D 6 min, 3-D 10 min); a timeout is recorded and skipped. Only V6_WORKER_AFFINITY
 #   is exported; GIL 0.2 ms in run_chain_v6.py; parsed .obj arrays cached on /dev/shm (--obj-cache).
+#   E30_SOLVER=v7 (E39): the same plan on experiment/v7 (V7_WORKER_AFFINITY, see e30_lib.sh).
 export E30_REPO=${E30_REPO:-$HOME/e30/vulkan-demo-v6}
 export E30_ENV_SCRIPT=${E30_ENV_SCRIPT:-$HOME/e30/tools/env.sh}
 export E30_SHM_BASE=${E30_SHM_BASE:-/dev/shm/$USER}
@@ -46,7 +47,7 @@ else
     EXPECTED_DEVICES=$(nvidia-smi -L | wc -l); MAP2=0,1; MAP4=0,1,2,3
 fi
 
-e30_step s0_env 600 -- $PY -u remote/bringup_check_v6.py --stage env --log-dir "$SHM/bringup" \
+e30_step s0_env 600 -- $PY -u remote/bringup_check_v6.py $E30_SOLVER_ARGS --stage env --log-dir "$SHM/bringup" \
     --expected-devices "$EXPECTED_DEVICES"
 e30_step s1_caps 300 --optional -- $PY -u docs/cluster_v6/scripts/caps_v6.py --out "$SHM/caps.json" --live-sample
 
@@ -59,7 +60,7 @@ e30_run k2_3d8m 600 -- --case $C3D --weights 1,1 --device-map $MAP2 $COMMON $WIN
 e30_run k4_3d8m 600 -- --case $C3D --weights 1,1,1,1 --device-map $MAP4 $COMMON $WINDOW_3D
 
 # 2-D 16M K=4: pilot weight calibration (E32), then the timed run on the calibrated weights
-e30_step k4_2d16m_calibrate 360 --optional -- $PY -u docs/cluster_v6/scripts/run_chain_v6.py $E30_WRAPPER_ARGS -- \
+e30_step k4_2d16m_calibrate 360 --optional -- $PY -u docs/cluster_v6/scripts/run_chain_v6.py $E30_SOLVER_ARGS $E30_WRAPPER_ARGS -- \
     --case $C16 --weights auto --calibrate-only --weights-file "$SHM/weights_2d16m_k4.json" --device-map $MAP4 $COMMON
 if [ -s "$SHM/weights_2d16m_k4.json" ]; then
     e30_run k4_2d16m_weighted 360 --optional -- --case $C16 --weights-file "$SHM/weights_2d16m_k4.json" \

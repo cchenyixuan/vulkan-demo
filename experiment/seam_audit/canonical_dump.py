@@ -154,6 +154,8 @@ def compare(first_path: str, second_path: str, ignore=()) -> int:
         if "code_sha256" in meta:
             print(f"        simulator {meta.get('simulator_module')}; code {meta['code_sha256']}; "
                   f"initial {str(meta.get('initial_sha256'))[:16]}; materials {str(meta.get('materials_sha256'))[:16]}")
+        if meta.get("solver_switches"):
+            print(f"        {meta.get('solver')} switches {meta['solver_switches']}")
         problems += [f"{label.strip()}: {problem}" for problem in _invariant_problems(meta)]
         if meta.get("dropped_fields"):
             print(f"        not dumped (not moved by the final defrag): {meta['dropped_fields']}")
@@ -496,7 +498,11 @@ def main() -> int:
                                 text=True, cwd=repo).stdout.strip())
     overflow = {f"slab{index}.{key}": value for index, record in enumerate(status)
                 for key, value in record.items() if key.startswith("overflow_") and value}
-    meta = {"repo": str(repo), "repo_head": head, "repo_dirty_v6": dirty, "solver": solver, "case": arguments.case,
+    # E39: the solver's own switch registry (v7: configured_v7_switches, defaults included), so a dump names its build
+    switches_function = getattr(solver_module("simulator"), f"configured_{solver}_switches", None)
+    solver_switches = switches_function() if switches_function else {}
+    meta = {"repo": str(repo), "repo_head": head, "repo_dirty_v6": dirty, "solver": solver,
+            "solver_switches": solver_switches, "case": arguments.case,
             "case_path": str(case_path), "case_sha256": case_sha256, **loaded_case,
             "simulator_module": str(simulator_module),
             "code_sha256": {key: value[:16] for key, value in code.items()}, "code_sha256_full": code,
@@ -515,7 +521,8 @@ def main() -> int:
     print(f"[canonical_dump] {solver} {head}{' (dirty)' if dirty else ''} K={len(sims)} wall={wall_boundary} "
           f"{arguments.steps} steps: alive {meta['alive']}/{total}, crossings {crossings}, "
           f"fps {fps if fps is None else round(fps)}, buffers {meta['device_local_buffers']}, "
-          f"code {meta['code_sha256']}, invariants {'ok' if not problems else problems} -> {out}", flush=True)
+          f"code {meta['code_sha256']}, invariants {'ok' if not problems else problems}"
+          + (f", switches {solver_switches}" if solver_switches else "") + f" -> {out}", flush=True)
     orchestrator.destroy()
     for sim in sims:
         sim.destroy()

@@ -37,7 +37,7 @@ e30_run k4_2d16m_steptrace 360 -- --case $C16 --weights 1,1,1,1 --device-map $MA
     --max-steps 2000 --warmup 500 --step-trace "$TRACE"
 if [ -s "$TRACE/run_meta.json" ]; then
     e30_step k4_2d16m_steptrace_model 300 --optional -- bash -c \
-        "$PY -m experiment.v6.analysis.step_trace_model --run '$TRACE' > '$TRACE/model.json'"
+        "$PY -m experiment.$E30_SOLVER.analysis.step_trace_model --run '$TRACE' > '$TRACE/model.json'"
 fi
 # plan item 4 again: in job 1550154 the OPAQUE_FD import on GPU 1 went through, then the probe's own read-back
 # line failed (python-vulkan's vkMapMemory already returns a buffer); fixed probe, same check.

@@ -17,10 +17,10 @@ Matrix file (JSON):
                 "particles" ("fluid"), "far_bin_start" (8)
     }
 
-Every run's environment = os.environ (v6: plus partition_v6.LEGACY_DEFAULTS, the
-pre-E6b defaults, for every V6_* the caller did not set)
+Every run's environment = os.environ (v6 / v7: plus partition_<version>.LEGACY_DEFAULTS,
+the pre-E6b defaults, for every <P>* the caller did not set)
 + VK_LOADER_LAYERS_DISABLE=VK_LAYER_KHRONOS_validation
-+ the version's production switches (<P> = V5_ / V6_):
++ the version's production switches (<P> = V5_ / V6_ / V7_):
     <P>WORKER_COUNT_AWARE=1 <P>SPLIT_TRANSFER_QUEUES=1 <P>CASCADE_FORCE=1
     <P>BAND_VOXEL_DISPATCH=1 <P>GHOST_POOL_FACTOR=0.25 (2-D) / 1.0 (3-D)
 + the configuration's own "env".
@@ -61,6 +61,7 @@ import argparse
 import dataclasses
 import datetime
 import hashlib
+import importlib
 import json
 import os
 import pathlib
@@ -298,12 +299,12 @@ def run_environment(run: PlannedRun) -> tuple[dict, dict]:
     overrides[prefix + "GHOST_POOL_FACTOR"] = GHOST_POOL_FACTOR_BY_DIMENSION[run.dimension]
     overrides.update(run.environment)
     environment = dict(os.environ)
-    if prefix == "V6_":
+    if run.version in ("v6", "v7"):
         # the matrix configurations name their switches on top of the pre-E6b
-        # defaults (partition_v6.LEGACY_DEFAULTS); variables the caller set
-        # (opt_validate passes its own) are kept
-        from experiment.v6.utils.partition_v6 import LEGACY_DEFAULTS
-        for key, value in LEGACY_DEFAULTS.items():
+        # defaults (partition_<version>.LEGACY_DEFAULTS, in the version's own
+        # prefix); variables the caller set (opt_validate passes its own) are kept
+        partition_module = importlib.import_module(f"experiment.{run.version}.utils.partition_{run.version}")
+        for key, value in partition_module.LEGACY_DEFAULTS.items():
             environment.setdefault(key, value)
     environment.update(overrides)
     return environment, overrides

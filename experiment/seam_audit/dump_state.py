@@ -8,7 +8,7 @@ campaign driver is run_matrix.py.
 
 Global particle id (no solver change): this process monkeypatches the
 simulator's ``_build_initial_data`` so the initial upload also fills the
-``extension_fields`` buffer (vec4 per pool slot, unused by the V5/V6 physics):
+``extension_fields`` buffer (vec4 per pool slot, unused by the V5/V6/V7 physics):
 
     own slot own_first_pid() + k  ->  z = float(global_id // 2**20)
                                       w = float(global_id %  2**20)
@@ -35,15 +35,21 @@ frame N-1, dump. The pipeline drains and readbacks add no GPU work that changes
 state; a defrag boundary that coincides with a horizon runs AFTER the dump
 (read-only), and the one that coincides with the final horizon is skipped.
 
-Restart (--restart-snapshot, v6 only): instead of the case's initial condition
+Restart (--restart-snapshot, v6 and v7): instead of the case's initial condition
 the chain starts from a saved step-boundary state (single_step original's
 snapshot_N<step>.npz: the nine RESTART_FIELD_LAYOUT fields plus id, sorted by
 global id, the id also riding in extension_fields). The rows are split with
-partition_v6.restart_slab_rows under this run's cuts and loaded with
-ChainOrchestratorV6.restart_all (no bootstrap passes); horizons then count
+partition_<version>.restart_slab_rows under this run's cuts and loaded with
+ChainOrchestrator<V>.restart_all (no bootstrap passes); horizons then count
 frames after the restart and every frame runs at --depth exactly as above. Two
 runs from the same snapshot differ only by the configuration under test plus
 the run-to-run noise (atomic order), which a second identical run measures.
+
+--version v7 (E39) drives experiment/v7: every switch this worker sets or
+reads is named with the version's prefix (V7_TRANSPORT_EXTENSION=1 below, the
+V7_DELTA_DENSITY offset through the simulator, <prefix>PER_SIM_PIPELINE), and
+the dump's "environment" records the V5_ / V6_ / V7_ / VK_ variables. v5 and
+v6 runs set exactly what they set before.
 
 Usage (GPU — run only when the GPUs are free):
     .venv/Scripts/python.exe -m experiment.seam_audit.dump_state --version v5 \\
@@ -87,6 +93,7 @@ if str(_REPOSITORY_ROOT) not in sys.path:
 
 from experiment.seam_audit.solver_adapter import (  # noqa: E402
     SUPPORTED_VERSIONS,
+    environment_prefix,
     load_solver,
 )
 
@@ -96,12 +103,15 @@ DUMP_FORMAT_VERSION = 1
 
 
 
-def enable_audit_transport() -> None:
-    """Audit mode: the global ids ride in extension_fields, so a v6 build with
-    lean ghost packets (V6_LEAN_TRANSPORT=1) must still carry that field across
-    the link. Called first thing by the audit workers (dump_state, single_step);
-    the physics does not read extension_fields."""
-    os.environ["V6_TRANSPORT_EXTENSION"] = "1"
+def enable_audit_transport(version: str = "v6") -> None:
+    """Audit mode: the global ids ride in extension_fields, so a v6 / v7 build
+    with lean ghost packets (<prefix>LEAN_TRANSPORT=1) must still carry that
+    field across the link: sets <prefix>TRANSPORT_EXTENSION=1 for the version
+    (v5 has no such switch and keeps the V6_ name it always got, a no-op there).
+    Called first thing by the audit workers (dump_state, single_step), before
+    the solver import; the physics does not read extension_fields."""
+    prefix = "V6_" if version == "v5" else environment_prefix(version)
+    os.environ[prefix + "TRANSPORT_EXTENSION"] = "1"
 
 # Global id encoding inside extension_fields (z = high part, w = low part).
 GLOBAL_ID_LOW_BASE = 2 ** 20
@@ -133,7 +143,7 @@ STATE_BUFFER_NAMES = (
     "shift", "density_gradient_kernel_sum", "extension_fields", "material",
 )
 OWNERSHIP_BUFFER_NAMES = ("position_voxel_id", "velocity_mass", "extension_fields")
-RECORDED_ENVIRONMENT_PREFIXES = ("V5_", "V6_", "VK_")
+RECORDED_ENVIRONMENT_PREFIXES = ("V5_", "V6_", "V7_", "VK_")
 # Recorded and warned about when non-zero, but NOT part of 'valid' (the validity
 # rule is: every overflow_* counter + stamp errors). v6: migrants found in the
 # outer ghost column, a two-column jump that CFL should make impossible.
@@ -156,7 +166,7 @@ def parse_arguments(argument_list=None) -> argparse.Namespace:
                         help="K comma-separated slab weights (default: all 1.0)")
     parser.add_argument("--device-map", default="0,1",
                         help="comma-separated physical device indices, cycled over "
-                             "the sims (discrete-first order of the V5/V6 context)")
+                             "the sims (discrete-first order of the V5/V6/V7 context)")
     parser.add_argument("--horizons", default="300,2000",
                         help="comma-separated frame counts at which to dump")
     parser.add_argument("--depth", type=int, default=2, help="frames in flight")
@@ -189,7 +199,7 @@ def parse_arguments(argument_list=None) -> argparse.Namespace:
                              "window; the window then captures exactly those particles at "
                              "those frames instead of detecting crossings itself")
     parser.add_argument("--restart-snapshot", default="",
-                        help="v6: start from this saved step-boundary state (single_step "
+                        help="v6 / v7: start from this saved step-boundary state (single_step "
                              "snapshot_N<step>.npz) instead of the case's initial condition; "
                              "horizons count frames after the restart (module docstring)")
     parser.add_argument("--shuffle-seed", type=int, default=0,
@@ -517,14 +527,14 @@ def read_own_slots(sim, buffer_names) -> tuple[dict, np.ndarray]:
     (copies, so the raw bytes can be freed) and the alive mask
     (mass > 0 and voxel id > 0.5).
 
-    V6_DELTA_DENSITY (stored density offset rho_ref != 0): density_pressure .x
-    is read in its stored form (rho - rho_ref) and arrays["density_exact"] =
-    float64(stored) + rho_ref is added. That rho is exact; the float32 rho of
-    the default readback is quantised at the float32 spacing of rho ~ 1000
-    (6.1e-5), the resolution the switch exists to remove. density_pressure
-    keeps the float32 rho as before."""
+    <prefix>DELTA_DENSITY (V6_ / V7_; stored density offset rho_ref != 0):
+    density_pressure .x is read in its stored form (rho - rho_ref) and
+    arrays["density_exact"] = float64(stored) + rho_ref is added. That rho is
+    exact; the float32 rho of the default readback is quantised at the float32
+    spacing of rho ~ 1000 (6.1e-5), the resolution the switch exists to remove.
+    density_pressure keeps the float32 rho as before."""
     offset = 0.0
-    if hasattr(sim, "stored_density_offset"):          # v6 (v5 has no delta density)
+    if hasattr(sim, "stored_density_offset"):          # v6 / v7 (v5 has no delta density)
         offset = float(sim.stored_density_offset())
     if offset != 0.0:
         raw = sim.readback_buffers_batch(list(buffer_names), density="stored")
@@ -607,7 +617,7 @@ def collect_state(sims, dimension: int, initial_total: int,
             "velocity": arrays["velocity_mass"][selected_slots, :dimension],
             "acceleration": arrays["acceleration"][selected_slots, :dimension],
             "shift": arrays["shift"][selected_slots, :dimension],
-            # float64 under V6_DELTA_DENSITY (see read_own_slots), float32 otherwise
+            # float64 under <prefix>DELTA_DENSITY (see read_own_slots), float32 otherwise
             "density": (arrays["density_exact"][selected_slots] if exact_density
                         else density_pressure[:, 0]),
             "pressure": density_pressure[:, 1],
@@ -628,7 +638,7 @@ def collect_state(sims, dimension: int, initial_total: int,
     for name in ("position", "velocity", "acceleration", "shift",
                  "density", "pressure", "kernel_sum"):
         if name == "density" and exact_density:
-            continue                     # keep the exact float64 rho of V6_DELTA_DENSITY
+            continue                     # keep the exact float64 rho of <prefix>DELTA_DENSITY
         state[name] = state[name].astype(np.float32, copy=False)
 
     crossed = state["crossed_last_step"]
@@ -1194,8 +1204,8 @@ def run(arguments, summary: dict) -> int:
 
 
 def main(argument_list=None) -> int:
-    enable_audit_transport()
     arguments = parse_arguments(argument_list)
+    enable_audit_transport(arguments.version)        # before the solver import (prepare)
     summary = {
         "run_name": arguments.run_name,
         "version": arguments.version,

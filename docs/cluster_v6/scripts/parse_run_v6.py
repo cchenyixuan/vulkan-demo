@@ -14,11 +14,20 @@ Classification (the E30 stop rule):
                       band (rho 1000 +-5 %, vmax <= 1.001) failed -> recorded,
                       not a hard failure
   hard_failure        anything else (drift, overflow, far migration, stamp
-                      errors, seam FAIL, NaN, crash, timeout, missing final line)
+                      errors, seam FAIL, NaN, crash, timeout, missing final line,
+                      a log of another solver than --solver)
+
+Solver (E39): the runner tags carry the solver ([chain_v6] / [chain_v7],
+[partition_*], [case_loader_*], [SimV6] / [SimV7]). --solver names the one the
+run was started with (e30_lib.sh passes it for E30_SOLVER=v7); without it the
+solver is read from the log (run_chain_v6.py's "[e30] solver=" line or the
+first runner tag; v6 when there is none). Every row records "solver" and
+"solver_in_log", and v7 rows also the bench's own switch line
+("[chain_v7] v7 switches: ...") as "solver_switches".
 
 Usage:
     python parse_run_v6.py --log RUN.log --label LABEL --rc RC --start EPOCH --end EPOCH
-                           [--telemetry telemetry.csv] [--results results.jsonl]
+                           [--telemetry telemetry.csv] [--results results.jsonl] [--solver v7]
 """
 
 from __future__ import annotations
@@ -32,40 +41,54 @@ import re
 import sys
 
 NUMBER = r"[-+]?\d[\d,]*"
+SOLVERS = ("v6", "v7")
+# the first solver-tagged line of a run log: run_chain_v6.py's "[e30] solver=v7" (non-default solvers),
+# else the first runner tag ([chain_v6] switchinterval_s=..., or a loader / partition line)
+SOLVER_PATTERN = re.compile(r"\[(?:e30\] solver=|chain_|case_loader_|partition_)(v\d+)\b")
 
 
 def to_int(text: str) -> int:
     return int(text.replace(",", ""))
 
 
-def parse_log(text: str) -> dict:
-    row: dict = {}
+def log_solver(text: str):
+    """The solver a run log was written by (None when it carries no solver tag)."""
+    match = SOLVER_PATTERN.search(text)
+    return match.group(1) if match else None
+
+
+def parse_log(text: str, solver: str = "v6") -> dict:
+    row: dict = {"solver": solver}
     lines = text.splitlines()
+    chain = rf"\[chain_{solver}\]"
+    partition = rf"\[partition_{solver}\]"
+    case_loader = rf"\[case_loader_{solver}\]"
+    simulator = rf"\[Sim{solver.upper()}\]"
 
     match = re.search(r"\[e30\] switchinterval_s=([\d.e-]+)", text)
     row["switch_interval_s"] = float(match.group(1)) if match else None
     row["config_lines"] = [line for line in lines if line.startswith("[e30-config]")]
-    match = re.search(r"\[case_loader_v6\] total loaded: (" + NUMBER + r") particles", text)
+    match = re.search(case_loader + r" total loaded: (" + NUMBER + r") particles", text)
     row["loaded_particles"] = to_int(match.group(1)) if match else None
-    match = re.search(r"\[partition_v6\] chain N=(\d+): columns (.*?) of (\d+); particles (.*)", text)
+    match = re.search(partition + r" chain N=(\d+): columns (.*?) of (\d+); particles (.*)", text)
     if match:
         row["slab_count"] = int(match.group(1))
         row["grid_columns"] = int(match.group(3))
         row["own_columns"] = [int(end) - int(start) for start, end in
                               re.findall(r"\[(\d+),(\d+)\)", match.group(2))]
         row["own_particles"] = [to_int(value) for value in re.findall(NUMBER, match.group(4))]
-    match = re.search(r"\[chain_v6\] K=(\d+) weights=\[([^\]]*)\] device_map=\[([^\]]*)\]", text)
+    match = re.search(chain + r" K=(\d+) weights=\[([^\]]*)\] device_map=\[([^\]]*)\]", text)
     if match:
         row["weights"] = [float(value) for value in match.group(2).split(",") if value.strip()]
         row["device_map"] = [int(value) for value in match.group(3).split(",") if value.strip()]
-    match = re.search(r"\[chain_v6\] weights source=(\S+) cuts=\[([^\]]*)\]", text)   # E32 runner line
+    match = re.search(chain + r" weights source=(\S+) cuts=\[([^\]]*)\]", text)   # E32 runner line
     if match:
         row["weights_source"] = match.group(1)
         row["cuts"] = [int(value) for value in match.group(2).split(",") if value.strip()]
     row["obj_cache_hits"] = len(re.findall(r"\[e30\] obj cache hit", text))
-    match = re.search(r"\[partition_v6\] seam: (.*)", text)
+    match = re.search(partition + r" seam: (.*)", text)
     row["seam_layout"] = match.group(1).strip() if match else None
-    row["partition_warnings"] = len(re.findall(r"\[partition_v6\] WARN", text))
+    row["partition_warnings"] = len(re.findall(partition + r" WARN", text))
     row["replica_region_warning"] = "WARNING: replica region" in text
     row["transfer_queues_split"] = len(re.findall(r"transfer queues: 2 \(readback \+ upload split\)", text))
     row["transfer_queues_shared"] = len(re.findall(r"transfer queues: 1", text))
@@ -74,27 +97,27 @@ def parse_log(text: str) -> dict:
     row["worker_pins"] = re.findall(r"\[worker (\S+)\] pinned to dest device (\d+) cpus ([0-9,\-]+)", text)
     row["worker_pin_skipped"] = len(re.findall(r"affinity pin skipped", text))
     row["device_local_mb"] = [float(value) for value in
-                              re.findall(r"\[SimV6\] device-local buffers: \d+, ([\d.]+) MB", text)]
+                              re.findall(simulator + r" device-local buffers: \d+, ([\d.]+) MB", text)]
     row["defrag_scratch_mb"] = [float(value) for value in
-                                re.findall(r"\[SimV6\] defrag scratch buffers: \d+, ([\d.]+) MB", text)]
-    bootstrap_alive = [to_int(value) for value in re.findall(r"\[SimV6\] bootstrap done: alive=(" + NUMBER + ")", text)]
+                                re.findall(simulator + r" defrag scratch buffers: \d+, ([\d.]+) MB", text)]
+    bootstrap_alive = [to_int(value) for value in re.findall(simulator + r" bootstrap done: alive=(" + NUMBER + ")", text)]
     row["alive_start"] = sum(bootstrap_alive) if bootstrap_alive else None
 
-    match = re.search(r"\[chain_v6\] TOTAL: (\d+) steps in ([\d.]+)s = ([\d.]+) fps", text)
+    match = re.search(chain + r" TOTAL: (\d+) steps in ([\d.]+)s = ([\d.]+) fps", text)
     row["total_steps"], row["loop_seconds"], row["total_fps"] = (
         (int(match.group(1)), float(match.group(2)), float(match.group(3))) if match else (None, None, None))
-    match = re.search(r"\[chain_v6\] STEADY \(post-warmup (\d+)\): (\d+) steps in ([\d.]+)s = ([\d.]+) fps", text)
+    match = re.search(chain + r" STEADY \(post-warmup (\d+)\): (\d+) steps in ([\d.]+)s = ([\d.]+) fps", text)
     row["steady_fps"] = float(match.group(4)) if match else None
     row["steady_steps"] = int(match.group(2)) if match else None
 
     simulators = []
-    for match in re.finditer(r"\[chain_v6\] sim(\d+) seam: ghost_layers=(\d+) departed peak/frame=(\d+) "
+    for match in re.finditer(chain + r" sim(\d+) seam: ghost_layers=(\d+) departed peak/frame=(\d+) "
                              r"capacity=(\d+) far_migration=(\d+)(.*)", text):
         counters = {name: int(value) for name, value in re.findall(r"(overflow_\w+)=(\d+)", match.group(6))}
         simulators.append({"sim": int(match.group(1)), "ghost_layers": int(match.group(2)),
                            "departed_peak": int(match.group(3)), "departed_capacity": int(match.group(4)),
                            "far_migration": int(match.group(5)), "overflow": counters})
-    for match in re.finditer(r"\[chain_v6\] sim(\d+) \(dev(\d+)\): alive=(" + NUMBER + r") pool_used=([\d.]+)% "
+    for match in re.finditer(chain + r" sim(\d+) \(dev(\d+)\): alive=(" + NUMBER + r") pool_used=([\d.]+)% "
                              r"peak_migration=(\d+) drops=(\d+) stamp_err=(\d+)", text):
         index = int(match.group(1))
         target = next((entry for entry in simulators if entry["sim"] == index), None)
@@ -122,7 +145,7 @@ def parse_log(text: str) -> dict:
             overflow_sums[name] = overflow_sums.get(name, 0) + value
     row["overflow_by_counter"] = overflow_sums
 
-    match = re.search(r"\[chain_v6\] final: total=(" + NUMBER + r") \(expected (" + NUMBER + r")\) drift=(-?\d+) "
+    match = re.search(chain + r" final: total=(" + NUMBER + r") \(expected (" + NUMBER + r")\) drift=(-?\d+) "
                       r"stamp_errors gpu=(\d+) host=(\d+) overflow_total=(\d+) far_migration_total=(\d+)", text)
     row["final_line"] = bool(match)
     if match:
@@ -130,12 +153,12 @@ def parse_log(text: str) -> dict:
                     "drift": int(match.group(3)), "stamp_errors_gpu": int(match.group(4)),
                     "stamp_errors_host": int(match.group(5)), "overflow_total": int(match.group(6)),
                     "far_migration_total": int(match.group(7))})
-    seam_lines = re.findall(r"\[chain_v6\] seam (\d+) \(col (\d+)\): L_overshoot=(\S+)dx R_overshoot=(\S+)dx "
+    seam_lines = re.findall(chain + r" seam (\d+) \(col (\d+)\): L_overshoot=(\S+)dx R_overshoot=(\S+)dx "
                             r"dup=(\d+) (OK|\*\*\* FAIL \*\*\*)", text)
     row["seam_checks"] = [{"seam": int(seam), "column": int(column), "left_overshoot_dx": float(left),
                            "right_overshoot_dx": float(right), "duplicates": int(duplicates),
                            "ok": verdict == "OK"} for seam, column, left, right, duplicates, verdict in seam_lines]
-    match = re.search(r"\[chain_v6\] fields: rho\[(\S+),(\S+)\] vmax=(\S+) (OK|\*\*\* FAIL \*\*\*)", text)
+    match = re.search(chain + r" fields: rho\[(\S+),(\S+)\] vmax=(\S+) (OK|\*\*\* FAIL \*\*\*)", text)
     if match:
         values = [match.group(1), match.group(2), match.group(3)]
         row["fields"] = {"rho_min": values[0], "rho_max": values[1], "vmax": values[2],
@@ -145,6 +168,9 @@ def parse_log(text: str) -> dict:
         row["fields"] = None
         row["nan_seen"] = None                       # no field check ran (e.g. --no-seam-check)
     row["validation_failed_line"] = "*** VALIDATION FAILED ***" in text
+    if solver != "v6":                   # the v7 bench prints its own switch registry (E39)
+        match = re.search(chain + rf" {solver} switches: (.*)", text)
+        row["solver_switches"] = dict(re.findall(r"(\S+?)=(\S+)", match.group(1))) if match else None
 
     worker_copy = {}
     for match in re.finditer(r"\[worker (\S+)\] us p50/p90/max: (.*)", text):
@@ -168,6 +194,8 @@ def parse_log(text: str) -> dict:
 
 def classify(row: dict, return_code: int) -> tuple[str, list[str]]:
     reasons = []
+    if row.get("solver_in_log") and row["solver_in_log"] != row["solver"]:
+        reasons.append(f"solver mismatch: run as {row['solver']}, log of {row['solver_in_log']}")
     if return_code in (124, 137):
         reasons.append(f"timeout/killed rc={return_code}")
     if return_code not in (0, 1, 124, 137):
@@ -251,11 +279,16 @@ def main() -> int:
     parser.add_argument("--telemetry", default=None)
     parser.add_argument("--results", default=None, help="append the JSON row here")
     parser.add_argument("--node", default=None)
+    parser.add_argument("--solver", choices=SOLVERS, default=None,
+                        help="the solver the run was started with (run_chain_v6.py --solver); default: read from "
+                             "the log (v6 when it names none). A log of another solver is a hard failure")
     arguments = parser.parse_args()
 
     text = pathlib.Path(arguments.log).read_text(encoding="utf-8", errors="replace")
     row = {"label": arguments.label, "rc": arguments.rc, "node": arguments.node}
-    row.update(parse_log(text))
+    solver_in_log = log_solver(text)
+    row.update(parse_log(text, arguments.solver or solver_in_log or "v6"))
+    row["solver_in_log"] = solver_in_log
     if arguments.start is not None and arguments.end is not None:
         row["wall_seconds"] = round(arguments.end - arguments.start, 1)
         if arguments.telemetry:
@@ -278,6 +311,7 @@ def main() -> int:
           f"columns={row.get('own_columns')} tq2={row['transfer_queues_split']} "
           f"pins={len(row['worker_pins'])}/skip{row['worker_pin_skipped']} "
           f"wall={row.get('wall_seconds')}s{vram}"
+          + (f" solver={row['solver']}" if row["solver"] != "v6" else "")
           + (f" reasons={';'.join(row['reasons'])}" if row["reasons"] else ""), flush=True)
     return 0 if row["status"] in ("pass", "threshold_only") else 3
 

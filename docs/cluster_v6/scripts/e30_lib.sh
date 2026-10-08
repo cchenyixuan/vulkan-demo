@@ -11,11 +11,24 @@
 # V6_WORKER_AFFINITY is exported (one NUMA-node cpulist per GPU, in nvidia-smi order = the
 # v6 discrete-first Vulkan order; caps_v6.py checks that equality); the GIL switch interval
 # (0.2 ms) is set inside run_chain_v6.py; two transfer queues are the code default.
+#
+# Solver (E39): E30_SOLVER=v6 (default) | v7 is the one switch. v7 runs experiment/v7 (the
+# checkout must carry it: E30_SOLVER=v7 deploy_v6.sh SHA): every inherited V5_* / V6_* / V7_*
+# variable is unset, V7_WORKER_AFFINITY is exported instead of V6_WORKER_AFFINITY (same cpulists,
+# same discrete-first order), the configuration print, every run and its parse get --solver v7
+# (E30_SOLVER_ARGS, also for the job scripts' direct calls: bring-up, calibration), and the
+# environment listing is env | grep ^V7_. Unset or v6: everything as before.
 
 e30_prelude() {   # NAME
     E30_NAME=$1
     E30_LOCAL=${E30_LOCAL:-0}
     E30_DRY=${E30_DRY:-0}
+    E30_SOLVER=${E30_SOLVER:-v6}
+    case "$E30_SOLVER" in
+        v6) E30_SOLVER_ARGS=""; E30_SOLVER_PREFIX=V6_; E30_INHERITED_PATTERN='^V[56]_' ;;
+        v7) E30_SOLVER_ARGS="--solver v7"; E30_SOLVER_PREFIX=V7_; E30_INHERITED_PATTERN='^V[567]_' ;;
+        *) echo "ABORT: E30_SOLVER=$E30_SOLVER (expected v6 or v7)"; exit 2 ;;
+    esac
     E30_JOB=${SLURM_JOB_ID:-local$(date +%Y%m%d_%H%M%S)}
     if [ "$E30_LOCAL" = 1 ]; then
         E30_REPO=${E30_REPO:?E30_REPO must name the checkout in local mode}
@@ -37,7 +50,7 @@ e30_prelude() {   # NAME
     cd "$E30_REPO" || { echo "ABORT: no checkout at $E30_REPO"; exit 2; }
     E30_T0=$(date +%s)
     E30_RESULTS=$SHM/results.jsonl
-    echo "=== E30 $E30_NAME job $E30_JOB node $(hostname) $(date) local=$E30_LOCAL dry=$E30_DRY ==="
+    echo "=== E30 $E30_NAME job $E30_JOB node $(hostname) $(date) local=$E30_LOCAL dry=$E30_DRY$([ "$E30_SOLVER" != v6 ] && echo " solver=$E30_SOLVER") ==="
 
     # provenance: deployed commit and manifests (archive deploy: there is no .git)
     if [ -f COMMIT ]; then echo "COMMIT: $(cat COMMIT)"; else echo "COMMIT: none (git $(git rev-parse HEAD 2>/dev/null || echo -))"; fi
@@ -57,9 +70,9 @@ e30_prelude() {   # NAME
         fi
     done
 
-    # environment: nothing V5_/V6_ inherited from the submit shell; only the worker affinity
+    # environment: nothing V5_/V6_ (v7: also V7_) inherited from the submit shell; only the worker affinity
     local variable
-    for variable in $(compgen -e | grep -E '^V[56]_'); do unset "$variable"; done
+    for variable in $(compgen -e | grep -E "$E30_INHERITED_PATTERN"); do unset "$variable"; done
     CPUL=()
     if [ "$E30_LOCAL" != 1 ]; then
         local bus device_path node affinity="" count=0
@@ -72,17 +85,17 @@ e30_prelude() {   # NAME
             count=$((count + 1))
         done
         [ "$count" -ge 1 ] || { echo "ABORT: no GPU visible"; exit 2; }
-        export V6_WORKER_AFFINITY="${affinity%;}"
+        export "${E30_SOLVER_PREFIX}WORKER_AFFINITY=${affinity%;}"
     fi
-    echo "--- env | grep ^V6_"; env | grep '^V6_' | sort || echo "(none)"
+    echo "--- env | grep ^$E30_SOLVER_PREFIX"; env | grep "^$E30_SOLVER_PREFIX" | sort || echo "(none)"
     echo "--- host"
     echo "job cpus: $(taskset -cp $$ 2>/dev/null || echo n/a)"
     nvidia-smi --query-gpu=index,name,pci.bus_id,uuid,driver_version,memory.total,power.limit --format=csv,noheader
     echo "--- nvidia-smi topo -m"; nvidia-smi topo -m 2>&1 | head -16
     local index
     for index in "${!CPUL[@]}"; do echo "gpu$index numa cpulist ${CPUL[$index]}"; done
-    echo "--- effective configuration (v6 resolvers, this environment)"
-    $PY -u docs/cluster_v6/scripts/run_chain_v6.py --config-only ${E30_CONFIG_CASES:-} || { echo "ABORT: config print failed"; exit 2; }
+    echo "--- effective configuration ($E30_SOLVER resolvers, this environment)"
+    $PY -u docs/cluster_v6/scripts/run_chain_v6.py $E30_SOLVER_ARGS --config-only ${E30_CONFIG_CASES:-} || { echo "ABORT: config print failed"; exit 2; }
     # telemetry every second, with memory.used for the per-run VRAM peak
     nvidia-smi --query-gpu=timestamp,index,pci.bus_id,memory.used,memory.total,utilization.gpu,power.draw,temperature.gpu,clocks.current.sm \
         --format=csv -l 1 > "$SHM/telemetry.csv" 2>/dev/null &
@@ -155,14 +168,14 @@ e30_run() {       # LABEL TIMEOUT_S [--optional] -- CHAIN BENCH ARGUMENTS ...   
     local log="$SHM/$label.log"
     echo; echo "=== RUN $label ($(date +%T)) timeout ${limit}s ${E30_PREFIX:-}$([ "$optional" = 1 ] && echo ' (optional)') ==="
     echo "args: $*"
-    if [ "$E30_DRY" = 1 ]; then echo "DRY: ${E30_PREFIX:-} $PY -u docs/cluster_v6/scripts/run_chain_v6.py -- $*"; return 0; fi
+    if [ "$E30_DRY" = 1 ]; then echo "DRY: ${E30_PREFIX:-} $PY -u docs/cluster_v6/scripts/run_chain_v6.py ${E30_SOLVER_ARGS:+$E30_SOLVER_ARGS }-- $*"; return 0; fi
     local start end return_code verdict
     start=$(date +%s.%N)
-    timeout -k 30 "$limit" ${E30_PREFIX:-} $PY -u docs/cluster_v6/scripts/run_chain_v6.py ${E30_WRAPPER_ARGS:-} \
+    timeout -k 30 "$limit" ${E30_PREFIX:-} $PY -u docs/cluster_v6/scripts/run_chain_v6.py ${E30_SOLVER_ARGS:-} ${E30_WRAPPER_ARGS:-} \
         -- "$@" > "$log" 2>&1
     return_code=$?
     end=$(date +%s.%N)
-    $PY docs/cluster_v6/scripts/parse_run_v6.py --log "$log" --label "$label" --rc "$return_code" \
+    $PY docs/cluster_v6/scripts/parse_run_v6.py ${E30_SOLVER_ARGS:-} --log "$log" --label "$label" --rc "$return_code" \
         --start "$start" --end "$end" --telemetry "$SHM/telemetry.csv" --results "$E30_RESULTS" --node "$(hostname)"
     verdict=$?
     grep -aE "Traceback|Error|VALIDATION FAILED|STALL|DIED|STALE" "$log" | head -5

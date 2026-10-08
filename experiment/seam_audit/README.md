@@ -81,14 +81,15 @@ differs from the one at N-1):
 
 | file | role |
 |---|---|
-| `solver_adapter.py` | `load_solver("v5" or "v6")` returns load_case, compute_chain_partition, Simulator, Orchestrator, Context and env_prefix. Set the environment before calling it, because the solvers read their switches at import time. |
-| `dump_state.py` | GPU worker. One process runs one configuration and writes one dump per horizon. |
+| `solver_adapter.py` | `load_solver("v5", "v6" or "v7")` returns load_case, compute_chain_partition, Simulator, Orchestrator, Context and env_prefix. Set the environment before calling it, because the solvers read their switches at import time. |
+| `dump_state.py` | GPU worker. One process runs one configuration and writes one dump per horizon. `--version v7` (E39) names every switch it sets with the V7_ prefix (`V7_TRANSPORT_EXTENSION=1`); v5 / v6 runs set what they always set. |
 | `analyze.py` | CPU analysis. Importable `analyze(...)`, a CLI, and `--self-test`. |
 | `run_matrix.py` | Sequential campaign: subprocess runs, timeouts, resume, analysis, summary. |
 | `matrix_v5_baseline.json` | V5 K=2 and K=4 against V5 K=1: 2-D 1M, 2-D 4M and 3-D 1M (K=2 only for 3-D), N = 300 and 2000, two trials each. |
 | `matrix_v6.json` | V6 `KEEP_DEPARTED` / `GHOST_LAYERS` variants (keep0_layers1, keep1_layers1, keep1_layers2) at K=2 and K=4, against the same V5 K=1 reference. |
 | `canonical_dump.py` | E37 bit-identity harness: a K-slab run from the initial state with canonical voxel lists, the full per-particle state dumped by global id, `--compare` bit for bit; `--repo` runs another checkout (e.g. v6-rc1); `--monitor --timestamps` is the E36 section 8.3 timing method. |
 | `wall_option_timing.py` | E37 timing tables of the wall option (simple / adami, K = 1) from `canonical_dump --monitor --timestamps` runs and chain-bench logs. |
+| `e39_ensemble.py` | E39 accuracy B: E33's ensemble test at K = 1 with the solver as the arm (v6-rc2 vs v7, 6 restarts each from the N = 2000 snapshots of 2-D 1M and 3-D 1M). `run` (GPU; `--dry-run [--preflight]` plans, estimates and checks on the CPU), `analyze` (all-fluid and near-wall bins, E33's permutation tests and joint null, between term, family-wise min-p, resolving power), `selftest` (synthetic dumps with known offsets). |
 
 ## How to run
 

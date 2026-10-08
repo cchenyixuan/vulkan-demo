@@ -14,6 +14,7 @@
 #   Other clusters (N32-H A100 portability smoke): sbatch -p gpu -o ... with E30_REPO, E30_ENV_SCRIPT,
 #   E30_SHM_BASE, E30_LOG_BASE exported (see e30_lib.sh).
 #   Only V6_WORKER_AFFINITY is exported; GIL 0.2 ms in run_chain_v6.py; stop at the first hard failure.
+#   E30_SOLVER=v7 (E39): the same plan on experiment/v7 (bring-up and runs; V7_WORKER_AFFINITY, see e30_lib.sh).
 E30_PLAN=${E30_PLAN:-k2}
 E30_CONFIG_CASES="--case cases/lid_driven_cavity_2d_n1000/case.yaml --case cases/lid_driven_cavity_2d_16m/case.yaml --case cases/cavity3d_weak4_k2_8m_b4/case.yaml"
 source "${E30_REPO:-$HOME/run/vulkan-demo-v6}/docs/cluster_v6/scripts/e30_lib.sh" || { echo "ABORT: no e30_lib.sh"; exit 2; }
@@ -31,13 +32,13 @@ fi
 
 for case_path in $C1M $C16 $C3D; do
     e30_step "s0_case_$(basename "$(dirname "$case_path")")" 120 -- \
-        $PY -u remote/bringup_check_v6.py --stage case --case "$case_path" --log-dir "$SHM/bringup"
+        $PY -u remote/bringup_check_v6.py $E30_SOLVER_ARGS --stage case --case "$case_path" --log-dir "$SHM/bringup"
 done
 
 case "$E30_PLAN" in
 k2)
     [ "$EXPECTED_DEVICES" -ge 2 ] || e30_fail "plan k2 needs 2 GPUs, $EXPECTED_DEVICES visible"
-    e30_step s0_bringup 900 -- $PY -u remote/bringup_check_v6.py --stage all --case $C1M \
+    e30_step s0_bringup 900 -- $PY -u remote/bringup_check_v6.py $E30_SOLVER_ARGS --stage all --case $C1M \
         --log-dir "$SHM/bringup" --expected-devices "$EXPECTED_DEVICES" --timeout 300
     e30_step s1_caps 300 --optional -- $PY -u docs/cluster_v6/scripts/caps_v6.py --out "$SHM/caps.json" --live-sample
     e30_run k2_2d16m 480 -- --case $C16 --weights 1,1 --device-map 0,1 $COMMON --max-steps 1500 --warmup 500
@@ -57,7 +58,7 @@ k[3-8])
         MAP=$(seq -s, 0 $((K - 1)))
     fi
     # E30_BRINGUP=all: full S0 (contexts + 1M K=1 / K=2 300 steps) instead of the env stage only
-    e30_step s0_bringup_${E30_BRINGUP:-env} 900 -- $PY -u remote/bringup_check_v6.py --stage "${E30_BRINGUP:-env}" \
+    e30_step s0_bringup_${E30_BRINGUP:-env} 900 -- $PY -u remote/bringup_check_v6.py $E30_SOLVER_ARGS --stage "${E30_BRINGUP:-env}" \
         --case $C1M --log-dir "$SHM/bringup" --expected-devices "$EXPECTED_DEVICES" --timeout 300
     e30_step s1_caps 300 --optional -- $PY -u docs/cluster_v6/scripts/caps_v6.py --out "$SHM/caps.json" --live-sample
     if [ "${E30_SINGLE:-0}" = 1 ]; then       # single-GPU magnitude references on GPU 0 (taskset to its NUMA cpulist)

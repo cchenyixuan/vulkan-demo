@@ -6,6 +6,8 @@ One row per run with the S2-S4 record fields: completion, steady fps, drift,
 all overflow counters (sum; the non-zero ones are named), far_migration, frame
 stamp errors (GPU + host), alive start -> end, initialization seam clamp count,
 NaN, wall clock, per-card VRAM peak (nvidia-smi samples inside the run window).
+A run of another solver than v6 (E39: parse_run_v6.py's "solver", e.g. v7)
+carries it after the case name, "case · v7"; v6 rows are printed as before.
 
 Usage:
     python docs/cluster_v6/scripts/report_tables_v6.py JOB_LABEL=RESULTS.jsonl [...]
@@ -25,6 +27,12 @@ def case_name(row: dict) -> str:
         if match:
             return match.group(1)
     return "?"
+
+
+def case_text(row: dict) -> str:
+    """The case, with the solver after it when the run was not v6 (rows from before E39 carry no solver)."""
+    solver = row.get("solver") or "v6"
+    return case_name(row) + (f" · {solver}" if solver != "v6" else "")
 
 
 def vram_text(row: dict) -> str:
@@ -57,7 +65,7 @@ def table(groups: list[tuple[str, list[dict]]]) -> str:
             warmup = steps - steady if isinstance(steps, int) and isinstance(steady, int) else "?"
             alive = f"{row.get('alive_start'):,} → {row.get('alive_end'):,}" if row.get("alive_start") else "-"
             lines.append(
-                f"| {job_label} | {row.get('label')} | {case_name(row)} | {row.get('slab_count')} | "
+                f"| {job_label} | {row.get('label')} | {case_text(row)} | {row.get('slab_count')} | "
                 f"{steps} / {warmup} | {row.get('steady_fps')} | {row.get('drift')} | {overflow_text(row)} | "
                 f"{row.get('far_migration_total')} | "
                 f"{row.get('stamp_errors_gpu')}+{row.get('stamp_errors_host')} | {alive} | "

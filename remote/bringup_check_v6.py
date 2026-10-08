@@ -20,6 +20,10 @@ Port of remote/bringup_check.py (v5) with the E30 changes:
 Stages: env, case, k1, k2, all (env -> case -> k1 -> k2, stop at the first
 hard failure).
 
+--solver v7 (E39; e30_lib.sh passes it as $E30_SOLVER_ARGS when E30_SOLVER=v7)
+checks experiment/v7 instead: its runtime modules and SPIR-V, VulkanContextV7,
+the V7_* environment, and the chain stages run with --solver v7. Default v6.
+
     python remote/bringup_check_v6.py --stage all --log-dir /dev/shm/scxm138/e30_<job>/bringup
 """
 
@@ -28,6 +32,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import hashlib
+import importlib
 import os
 import pathlib
 import platform
@@ -41,11 +46,17 @@ if str(_REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPOSITORY_ROOT))
 
 SCRIPTS_DIRECTORY = _REPOSITORY_ROOT / "docs" / "cluster_v6" / "scripts"
-RUNTIME_MODULES = ("experiment.v6.utils.vulkan_context_v6", "experiment.v6.utils.simulator_v6",
-                   "experiment.v6.utils.orchestrator_v6", "experiment.v6.utils.partition_v6",
-                   "experiment.v6.utils.case_loader_v6", "experiment.v6.utils.case_v6",
-                   "experiment.v6.utils.transport_v6", "experiment.v6.utils.bench_v6",
-                   "experiment.v6.utils.sync_scheme_v6", "experiment.v6.utils.phase_trace_v6")
+SOLVERS = ("v6", "v7")
+RUNTIME_MODULE_NAMES = ("vulkan_context", "simulator", "orchestrator", "partition", "case_loader", "case",
+                        "transport", "bench", "sync_scheme", "phase_trace")
+
+
+def runtime_modules(solver: str) -> tuple[str, ...]:
+    """experiment.<solver>.utils.<name>_<solver> of every runtime module, in the v6 order."""
+    return tuple(f"experiment.{solver}.utils.{name}_{solver}" for name in RUNTIME_MODULE_NAMES)
+
+
+RUNTIME_MODULES = runtime_modules("v6")
 SHADER_MODULES = ("bootstrap_half_kick", "initialize_voxelization", "predict", "update_voxel", "ghost_send",
                   "install_migrations", "correction", "density", "force", "defrag", "append_departed",
                   "expand_ghost_lists", "band_compact")
@@ -121,8 +132,10 @@ def stage_environment(report: Report, arguments: argparse.Namespace) -> bool:
     elif (_REPOSITORY_ROOT / ".git").exists():
         code, output = run_captured(["git", "-C", str(_REPOSITORY_ROOT), "rev-parse", "HEAD"])
         report.log(f"git HEAD : {output.strip()}")
-    variables = sorted(name for name in os.environ if name.startswith("V6_"))
-    report.log(f"V6_* in environment: {', '.join(variables) if variables else 'none'}")
+    solver = arguments.solver
+    prefix = solver.upper() + "_"
+    variables = sorted(name for name in os.environ if name.startswith(prefix))
+    report.log(f"{prefix}* in environment: {', '.join(variables) if variables else 'none'}")
 
     ok = True
     for module_name in ("numpy", "yaml", "vulkan", "cffi"):
@@ -132,7 +145,7 @@ def stage_environment(report: Report, arguments: argparse.Namespace) -> bool:
         except Exception as error:                                     # noqa: BLE001
             report.log(f"import {module_name:<10}: FAIL — {error!r}")
             ok = False
-    for module_name in RUNTIME_MODULES:
+    for module_name in runtime_modules(solver):
         try:
             __import__(module_name)
             report.log(f"import {module_name}: OK")
@@ -167,7 +180,7 @@ def stage_environment(report: Report, arguments: argparse.Namespace) -> bool:
     else:
         report.log("nvidia-smi: not on PATH")
 
-    shader_directory = _REPOSITORY_ROOT / "experiment" / "v6" / "shaders" / "spv"
+    shader_directory = _REPOSITORY_ROOT / "experiment" / solver / "shaders" / "spv"
     missing = []
     for name in SHADER_MODULES:
         path = shader_directory / f"{name}.comp.spv"
@@ -179,17 +192,19 @@ def stage_environment(report: Report, arguments: argparse.Namespace) -> bool:
         report.log(f"SPIR-V missing: {missing}")
         ok = False
 
+    context_class_name = f"VulkanContext{solver.upper()}"
     try:
-        from experiment.v6.utils.vulkan_context_v6 import VulkanContextV6
+        context_class = getattr(importlib.import_module(f"experiment.{solver}.utils.vulkan_context_{solver}"),
+                                context_class_name)
         device_count = count_nvidia_discrete_devices()
         report.log(f"NVIDIA discrete devices: {device_count}")
         if device_count == 0:
             ok = False
         for device_index in range(device_count):
-            context = VulkanContextV6.create(device_index=device_index, enable_validation=False,
-                                             application_name="bringup_v6")
+            context = context_class.create(device_index=device_index, enable_validation=False,
+                                           application_name=f"bringup_{solver}")
             split = context.transfer_queue_upload is not context.transfer_queue
-            report.log(f"VulkanContextV6[{device_index}]: OK — {context.device_name} "
+            report.log(f"{context_class_name}[{device_index}]: OK — {context.device_name} "
                        f"(compute qf {context.compute_queue_family_index}, "
                        f"transfer qf {context.transfer_queue_family_index}, "
                        f"transfer queues {'2 (split)' if split else '1 (shared)'})")
@@ -200,7 +215,7 @@ def stage_environment(report: Report, arguments: argparse.Namespace) -> bool:
             report.log(f"device count {device_count} != expected {arguments.expected_devices}")
             ok = False
     except Exception as error:                                         # noqa: BLE001
-        report.log(f"VulkanContextV6 enumeration: FAIL — {error!r}")
+        report.log(f"{context_class_name} enumeration: FAIL — {error!r}")
         ok = False
 
     report.log(f"ENV STAGE: {'PASS' if ok else 'FAIL'}")
@@ -241,7 +256,8 @@ def stage_case(report: Report, arguments: argparse.Namespace) -> bool:
 def chain_stage(report: Report, arguments: argparse.Namespace, label: str, weights: str, device_map: str) -> bool:
     report.log(f"\n===== {label.upper()} STAGE (chain bench, weights {weights}, devices {device_map}, "
                f"{arguments.steps} steps) =====")
-    command = [sys.executable, "-u", str(SCRIPTS_DIRECTORY / "run_chain_v6.py"), "--",
+    solver_arguments = ["--solver", arguments.solver] if arguments.solver != "v6" else []
+    command = [sys.executable, "-u", str(SCRIPTS_DIRECTORY / "run_chain_v6.py"), *solver_arguments, "--",
                "--case", arguments.case, "--weights", weights, "--device-map", device_map,
                "--sync-scheme", "per-direction", "--depth", "2", "--pool-safety", "1.2",
                "--max-steps", str(arguments.steps), "--warmup", str(arguments.warmup),
@@ -249,7 +265,8 @@ def chain_stage(report: Report, arguments: argparse.Namespace, label: str, weigh
     start = time.time()
     return_code, log_path = run_streamed(report, command, f"bringup_{label}.log", arguments.timeout)
     end = time.time()
-    parse_command = [sys.executable, str(SCRIPTS_DIRECTORY / "parse_run_v6.py"), "--log", str(log_path),
+    parse_command = [sys.executable, str(SCRIPTS_DIRECTORY / "parse_run_v6.py"), *solver_arguments,
+                     "--log", str(log_path),
                      "--label", f"bringup_{label}", "--rc", str(return_code), "--start", str(start),
                      "--end", str(end), "--results", str(report.log_directory / "bringup_results.jsonl"),
                      "--node", platform.node()]
@@ -272,6 +289,8 @@ def main() -> int:
     parser.add_argument("--timeout", type=int, default=300, help="seconds per chain stage")
     parser.add_argument("--expected-devices", type=int, default=None,
                         help="fail the env stage unless exactly this many NVIDIA discrete devices are visible")
+    parser.add_argument("--solver", choices=SOLVERS, default="v6",
+                        help="solver directory experiment/<solver> to check (E39: v7; default v6)")
     arguments = parser.parse_args()
     os.chdir(_REPOSITORY_ROOT)
     report = Report(pathlib.Path(arguments.log_dir))

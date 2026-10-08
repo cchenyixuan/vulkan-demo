@@ -9,6 +9,8 @@
 #   TARBALL=<path> deploy_v6.sh SHA   uses an uploaded archive instead of the download (gh-proxy ran at
 #   ~85 KB/s on 2026-10-05): git -c core.autocrlf=false archive --format=tar.gz --prefix=vulkan-demo-SHA/
 #   SHA <paths> on the dev box; git get-tar-commit-id still identifies the commit.
+#   E30_SOLVER=v7 deploy_v6.sh SHA   also extracts experiment/v7 (E39; the commit must carry it), next to
+#   experiment/v6 so that one deployment runs either solver (e30_lib.sh's E30_SOLVER).
 set -u
 SHA=${1:?full 40-character commit sha}
 DEST=${DEST:-$HOME/run/vulkan-demo-v6}
@@ -26,6 +28,11 @@ ARCHIVE_COMMIT=$(gzip -dc vd.tar.gz | git get-tar-commit-id)
 [ "$ARCHIVE_COMMIT" = "$SHA" ] || { echo "ABORT: archive commit $ARCHIVE_COMMIT != $SHA"; exit 2; }
 TOP=$(tar tzf vd.tar.gz | head -1 | cut -d/ -f1)
 MEMBERS="$TOP/experiment/__init__.py $TOP/experiment/v6 $TOP/materials"
+case "${E30_SOLVER:-v6}" in
+    v6) ;;
+    v7) MEMBERS="$MEMBERS $TOP/experiment/v7" ;;
+    *) echo "ABORT: E30_SOLVER=$E30_SOLVER (expected v6 or v7)"; exit 2 ;;
+esac
 for case_name in $CASES; do MEMBERS="$MEMBERS $TOP/cases/$case_name/case.yaml"; done
 if [ -e "$DEST/COMMIT" ] && [ "${UPDATE:-0}" != 1 ]; then
     echo "ABORT: $DEST already deployed ($(cat "$DEST/COMMIT")); UPDATE=1 to overwrite"; exit 2
