@@ -6,10 +6,12 @@ local efficiency), every run's invariants, switch provenance and GPU clocks reco
 Builds (BUILDS): v6 = experiment/v6 (v6-rc2) with its code defaults; the v7 builds up to b1 set all five E39 switches
 explicitly, each adding one switch to the previous build (0 = that build command for command): b9
 V7_DENSITY_COPY_COMPUTE=1 (lanes 0, deep-wall 0, fused 0, overlap 0), b6 + V7_GHOST_SEND_LANES=32, b4 +
-V7_DEEP_WALL_SKIP=auto, b1 + V7_FUSED_CORRECTION_DENSITY=1; b3 = the code defaults (V7_BAND_OVERLAP=auto, B3's rule:
-one verdict per chain; BAND_OVERLAP_VALUE_IN_B3 would force a value). A build whose added switch does not occur in
-experiment/v7/utils/*.py is left out of the plan, loudly (it would run the previous build under a new name); a v7 run
-whose "v7 switches" header prints a set switch with another value is invalid.
+V7_DEEP_WALL_SKIP=auto, b1 + V7_FUSED_CORRECTION_DENSITY=1; b3 = b1 + V7_BAND_OVERLAP=auto (B3's rule: one verdict
+per chain; BAND_OVERLAP_VALUE_IN_B3, 1 or auto). In the E39 campaign b3 set nothing and ran the code defaults of
+22701d4 (auto); since v7-rc1 the code default is 0, i.e. the b1 build. A
+build whose added switch does not occur in experiment/v7/utils/*.py is left out of the plan, loudly (it would run the
+previous build under a new name); a v7 run whose "v7 switches" header prints a set switch with another value is
+invalid.
 
 Configurations (CONFIGURATIONS; chain bench --weights 1,..,1 --device-map M --max-steps N --warmup W, everything else
 the runner's defaults: depth 2, pool safety 1.2, per-direction sync, switch interval 0.2 ms, seam check, no validation):
@@ -130,15 +132,22 @@ LEDGER_SCHEMA = "e39_perf_campaign/1"
 
 # ----------------------------------------------------------------------------- builds
 
-# B3 (band overlap, 22701d4): its switch and the value build b3 forces (None = b3 sets nothing: the code default auto,
-# the release build). b3 stays out of the plan while the name does not occur in experiment/v7.
+# B3 (band overlap, 22701d4): its switch, simulator_v7's default (auto in 22701d4..8f8cbd9, 0 = off since v7-rc1; the
+# selftest compares it with simulator_v7.py) and the value build b3 sets: 1 or auto (0 would be the b1 build under
+# another name, refused here). b3 stays out of the plan while the name does not occur in experiment/v7.
 BAND_OVERLAP_SWITCH = "V7_BAND_OVERLAP"
-BAND_OVERLAP_VALUE_IN_B3 = None
+BAND_OVERLAP_CODE_DEFAULT = "0"
+BAND_OVERLAP_VALUE_IN_B3 = "auto"
+if BAND_OVERLAP_VALUE_IN_B3 not in ("1", "auto"):
+    raise SystemExit(f"{LOG_PREFIX} BAND_OVERLAP_VALUE_IN_B3={BAND_OVERLAP_VALUE_IN_B3!r}: b3 must set 1 or auto "
+                     "(0 is the b1 build under another name)")
+B1_SWITCHES = {"V7_DENSITY_COPY_COMPUTE": "1", "V7_GHOST_SEND_LANES": "32", "V7_DEEP_WALL_SKIP": "auto",
+               "V7_FUSED_CORRECTION_DENSITY": "1", BAND_OVERLAP_SWITCH: "0"}
 
 # The incremental chain, in order. solver: the experiment/<solver> runner; adds: the switch this build turns on (the
 # one the skip rule and the availability check look at); switches: the build's complete switch environment. Every v7
-# build up to b1 pins all five switches (a later default change cannot leak into an earlier build); b3 = the code
-# defaults plus the overlap value.
+# build pins all five switches (a later default change cannot leak into a build); b3 = b1 + the overlap value (in
+# the E39 campaign b3 set nothing and ran the code defaults of 22701d4, the same five values).
 BUILDS = {
     "v6": {"solver": "v6", "adds": None, "label": "v6-rc2 (experiment/v6, code defaults)",
            "switches": {}},
@@ -152,12 +161,10 @@ BUILDS = {
            "switches": {"V7_DENSITY_COPY_COMPUTE": "1", "V7_GHOST_SEND_LANES": "32", "V7_DEEP_WALL_SKIP": "auto",
                         "V7_FUSED_CORRECTION_DENSITY": "0", BAND_OVERLAP_SWITCH: "0"}},
     "b1": {"solver": "v7", "adds": "V7_FUSED_CORRECTION_DENSITY", "label": "+B1 fused correction + density",
-           "switches": {"V7_DENSITY_COPY_COMPUTE": "1", "V7_GHOST_SEND_LANES": "32", "V7_DEEP_WALL_SKIP": "auto",
-                        "V7_FUSED_CORRECTION_DENSITY": "1", BAND_OVERLAP_SWITCH: "0"}},
+           "switches": dict(B1_SWITCHES)},
     "b3": {"solver": "v7", "adds": BAND_OVERLAP_SWITCH,
-           "label": ("+B3 band overlap (code defaults: V7_BAND_OVERLAP=auto)" if BAND_OVERLAP_VALUE_IN_B3 is None
-                     else f"+B3 band overlap (code defaults + V7_BAND_OVERLAP={BAND_OVERLAP_VALUE_IN_B3})"),
-           "switches": ({} if BAND_OVERLAP_VALUE_IN_B3 is None else {BAND_OVERLAP_SWITCH: BAND_OVERLAP_VALUE_IN_B3})},
+           "label": f"+B3 band overlap (b1 + V7_BAND_OVERLAP={BAND_OVERLAP_VALUE_IN_B3})",
+           "switches": {**B1_SWITCHES, BAND_OVERLAP_SWITCH: BAND_OVERLAP_VALUE_IN_B3}},
 }
 CHAIN = tuple(BUILDS)
 REFERENCE_BUILD = "v6"
@@ -541,12 +548,12 @@ def deep_wall_probe_main(case_path: str, weight_texts: list) -> int:
         print(f"{LOG_PREFIX} simulator_v7 reads V7_DEEP_WALL_SKIP={simulator_v7._DEEP_WALL_SKIP!r}, expected auto",
               flush=True)
         return 2
-    # E39 B3: V7_BAND_OVERLAP=auto's chain verdict on the same partition (absent in a checkout before B3)
+    # E39 B3: V7_BAND_OVERLAP=auto's chain verdict on the same partition (absent in a checkout before B3). The probe
+    # evaluates the auto rule whatever the code default is (auto in 22701d4..8f8cbd9, 0 since v7-rc1): it sets the
+    # module's value, as the CPU tests do.
     chain_verdict = getattr(simulator_v7, "band_overlap_chain_verdict", None)
-    if chain_verdict is not None and simulator_v7._BAND_OVERLAP != "auto":
-        print(f"{LOG_PREFIX} simulator_v7 reads V7_BAND_OVERLAP={simulator_v7._BAND_OVERLAP!r}, expected auto",
-              flush=True)
-        return 2
+    if chain_verdict is not None:
+        simulator_v7._BAND_OVERLAP = "auto"
     started = time.time()
     case = load_case_v7(case_path)
     results = []
@@ -794,8 +801,8 @@ def inert_reason(build_name: str, configuration_name: str, deep_wall: dict,
         if case_dimension(CONFIGURATIONS[configuration_name]["case"]) == 3:
             return "B3 inert in 3-D: overlap acts on 2-D slabs with peers only (off there under every value)"
         resolution = (band_overlap or {}).get(configuration_name)
-        if resolution is not None and not any(resolution["active"]) \
-                and normalized_switch(BUILDS["b3"]["switches"].get(BAND_OVERLAP_SWITCH, "auto")) == "auto":
+        b3_value = normalized_switch(BUILDS["b3"]["switches"].get(BAND_OVERLAP_SWITCH, BAND_OVERLAP_CODE_DEFAULT))
+        if resolution is not None and not any(resolution["active"]) and b3_value == "auto":
             return f"B3 inert: V7_BAND_OVERLAP=auto resolves off on every slab ({resolution['reasons'][0]})"
     return None
 
@@ -2451,6 +2458,12 @@ REAL_LOG_EXPECTATIONS = (
       "switches": {"V7_DENSITY_COPY_COMPUTE": "1", "V7_GHOST_SEND_LANES": "32"},
       "provenance": [("b6", "2d_1m_k2", "0,1", True), ("b9", "2d_1m_k2", "0,1", False),
                      ("b6", "2d_1m_k1", "0", False)]}),
+    ("logs/e39/perf_campaign/runs/t1__2d_1m_k2__b1__a1__dev01.log",   # E39 campaign: b1 = overlap 0
+     {"version": 7, "slabs": 2, "ok": True,
+      "provenance": [("b1", "2d_1m_k2", "0,1", True), ("b3", "2d_1m_k2", "0,1", False)]}),
+    ("logs/e39/perf_campaign/runs/t1__2d_1m_k2__b3__a1__dev01.log",   # E39 campaign: b3 printed overlap auto
+     {"version": 7, "slabs": 2, "ok": True,
+      "provenance": [("b3", "2d_1m_k2", "0,1", True), ("b1", "2d_1m_k2", "0,1", False)]}),
     ("logs/e39/b6/overflow/chain_two_layer_on.log",
      {"version": 7, "drift": -141, "ok": False, "overflow_total": 24750,
       "sim_overflow": {"0": {"overflow_ghost_count": 12715}, "1": {"overflow_ghost_count": 12035}},
@@ -2721,6 +2734,15 @@ def selftest_nvidia(test: SelfTest) -> None:
 def selftest_plan(test: SelfTest) -> None:
     """The plan rules on a synthetic deep-wall resolution: every 3-D configuration's auto rule on except
     3d_8m_walls4 (as the probe finds), 2-D off."""
+    simulator_source = (_REPOSITORY_ROOT / "experiment" / "v7" / "utils" / "simulator_v7.py").read_text(
+        encoding="utf-8", errors="replace")
+    default = re.search(r'_parse_band_overlap\(os\.environ\.get\("V7_BAND_OVERLAP", "(\w+)"\)\)', simulator_source)
+    test.check(default is not None and default.group(1) == BAND_OVERLAP_CODE_DEFAULT,
+               f"BAND_OVERLAP_CODE_DEFAULT {BAND_OVERLAP_CODE_DEFAULT!r} is simulator_v7's default "
+               f"{default.group(1) if default else None!r}")
+    b3_expected = {**BUILDS["b1"]["switches"], BAND_OVERLAP_SWITCH: BAND_OVERLAP_VALUE_IN_B3}
+    test.check(BAND_OVERLAP_VALUE_IN_B3 in ("1", "auto") and BUILDS["b3"]["switches"] == b3_expected,
+               "b3 = b1 + V7_BAND_OVERLAP=1 or auto")
     deep_wall = {}
     for name in CONFIGURATIONS:
         slabs = slab_count(name)

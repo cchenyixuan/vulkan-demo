@@ -1,14 +1,14 @@
 # v7 性能优化(E39,2026-10-08/09):B9、B6、B4、B1、B3
 
-接 [`v6_opt.md`](v6_opt.md)(v6 的发布组合)和 v6-rc2 审计的 B 部分(性能项)。v7 = v6-rc2 加上五项性能优化。每项一个 `V7_*` 开关、一个单独的提交;开关为 0 时就是前一个构建,录制逐条相同,SPIR-V 逐字节相同。`experiment/v6` 保持 v6-rc2 原样,没有改动。代码在分支 `v7-perf`;`v7-wall-bc` 分支上那个旧的 `experiment/v7`(E36 壁面研究)与这里无关,两者不合并、不混用。没有打标签:v7 是否作为发布版本,看完报告再定。
+接 [`v6_opt.md`](v6_opt.md)(v6 的发布组合)和 v6-rc2 审计的 B 部分(性能项)。v7 = v6-rc2 加上五项性能优化。每项一个 `V7_*` 开关、一个单独的提交;开关为 0 时就是前一个构建,录制逐条相同,SPIR-V 逐字节相同。`experiment/v6` 保持 v6-rc2 原样,没有改动。代码在分支 `v7-perf`;`v7-wall-bc` 分支上那个旧的 `experiment/v7`(E36 壁面研究)与这里无关,两者不合并、不混用。看完报告后的决定(2026-10-09):B3 默认关(`V7_BAND_OVERLAP=0`),其余默认不变;附注标签 `v7-rc1` 打在本文档所在的提交上。
 
-完整报告(所有表格、方法、日志位置):https://claude.ai/artifact/BSS2eB9iVoiHaGc2H4UHB6(私有,需要分享才能被他人打开)。
+完整报告(所有表格、方法、日志位置):https://claude.ai/artifact/BSS2eB9iVoiHaGc2H4UHB6(私有,需要分享才能被他人打开)。报告写的是 E39 时的状态(B3 默认 auto、没有标签),页首有 v7-rc1 的说明;v7-rc1 的默认与相应数字以本文为准。
 
 ## 结论(TL;DR)
 
-- **速度。** v7 默认对 v6-rc2(chain bench,两张 RTX 5090,3 次试验;每次试验里一个配置的各构建与 v6-rc2 紧挨着各跑一次,顺序每次轮换,按试验配对):
+- **速度。** v7-rc1 默认对 v6-rc2(chain bench,两张 RTX 5090,3 次试验;每次试验里一个配置的各构建与 v6-rc2 紧挨着各跑一次,顺序每次轮换,按试验配对。测量时 B3 的默认是 auto,它只在 2-D 1M K = 2 上开启;所以除这一格外,v7-rc1 默认与测量的构建相同,这一格用 B3 关的 B1 构建):
   - 2-D 62k(n250):K = 1 +42.2 %,K = 2 +42.0 %。
-  - 2-D 1M:K = 1 +33.4 %,K = 2 +47.4 %。
+  - 2-D 1M:K = 1 +33.4 %,K = 2 +38.6 %(开 B3 为 +47.4 %)。
   - 2-D 16M:K = 1 +32.5 %,K = 2 +32.2 %。
   - 3-D 8M(4 层壁):K = 1 +29.0 %,K = 2 +31.3 %,K = 4(0,1,0,1)+36.2 %。
   - 3-D 1M(9 层壁):K = 1 +36.8 %,K = 2 +43.0 %。
@@ -18,9 +18,9 @@
   - B9:2-D +0.8 到 +1.5 %;62k K = 1 与 adami 250² 的 +0.4 % 和 3-D 的 −0.2 到 +0.4 % 在噪声内。
   - B6:只在 K ≥ 2 起作用,+0.6 到 +5.6 %;2-D 16M +0.1 ± 0.6 %,在噪声内。
   - B4:只在 3-D 1M 9 层壁上开启,K = 1 +5.4 %,K = 2 +3.3 %。
-  - B3:只在 2-D 1M K = 2 上开启,+6.3 %。
+  - B3:v7-rc1 默认关。设 `V7_BAND_OVERLAP=auto` 时,本次性能活动的 13 个配置里只有 2-D 1M K = 2 开启(auto 的窗口见"与规格不同的地方"),+6.3 %。
 - **η**(K = 2 对两张卡同时跑的 K = 1):
-  - 2-D 1M:73.8 → 81.6 %。
+  - 2-D 1M:73.8 → 76.7 %(开 B3 为 81.6 %)。
   - 3-D 8M:95.5 → 97.1 %。
   - 3-D 1M:71.6 → 74.8 %。
   - K = 4 3-D 8M:77.7 → 82.0 %。
@@ -35,10 +35,10 @@
     - 最大的 3.9 σ(250² adami 的 L2(u),−0.025 pp)主要来自参照运行偏高:v7 对另一次参照(E36 的 adami_rho0)只差 0.5 σ。
     - 极值与 L2 的差逐量都比同一个量与 Marchi 2021 的偏差小 100 倍以上。
     - 每个比较只有一对运行,与运行间差异同量级的变化分辨不了。
-- **不变量与验证层。** 本次所有运行的 drift、overflow 计数器、远迁移、帧戳都是 0。验证层在 K = 2 2-D 1M 与 K = 4 3-D 8M 上各跑 2000 步,都是 0 条消息。
+- **不变量与验证层。** 本次所有运行的 drift、overflow 计数器、远迁移、帧戳都是 0。验证层在 K = 2 2-D 1M 与 K = 4 3-D 8M 上各跑 2000 步(E39 时的默认与 v7-rc1 默认各一次),都是 0 条消息。
 - **与规格不同的地方。**
   - B4 默认 auto:2-D 关;3-D 只在深壁候选 ≥ 1 % 的 slab 上开。
-  - B3 的 auto 只开启 2-D、恰好 2 个 slab、每个 slab 40 万–150 万粒子的链。
+  - B3 默认关(看完报告后的决定,v7-rc1)。设 `V7_BAND_OVERLAP=auto` 时,只开启 2-D、恰好 2 个 slab、每个 slab 40 万–150 万粒子的链。
   - B1 的 compact band 派发总是回退到分开的 kernel。
 
 ## v7 相对 v6 的改动
@@ -66,7 +66,7 @@ SPIR-V 14/14 与 v6-rc2 逐字节相同。门 0(canonical lists)上 v7 与 `expe
 - `cavity_runner` / `cavity_campaign --solver v7` 与 `e39_compare`(51faaf8)。
 - `dump_state --version v7` 与 `e39_ensemble`(3b756d1)。
 - `fused_single_step`(B1)。
-- `e39_perf_campaign`(性能活动,本文的提交)。
+- `e39_perf_campaign`(性能活动,8f8cbd9;v7-rc1 的提交里 b3 构建改为 b1 加 `V7_BAND_OVERLAP=auto`,并拒绝等于 b1 的 b3)。
 
 ## 开关与默认值
 
@@ -77,9 +77,9 @@ SPIR-V 14/14 与 v6-rc2 逐字节相同。门 0(canonical lists)上 v7 与 `expe
 | `V7_DEEP_WALL_SKIP` | B4 | 0, 1, auto | auto | B6 构建 | auto:3-D 且初始状态深壁候选 ≥ 1 % 的 slab;2-D 关 |
 | `V7_DEEP_WALL_CHECK` | B4 调试 | 0, 1 | 0 | — | 被跳过的墙仍做一次邻居测试,计入 `overflow_deep_wall_skip_count` |
 | `V7_FUSED_CORRECTION_DENSITY` | B1 | 0, 1 | 1 | B4 构建 | 以下情况整个 slab 回退到分开的 kernel:correction 与 density 的 band 宽不同(`V7_BAND_WIDTHS` c ≠ d;`V7_BAND_COMPACT_DISPATCH` 只支持 2,3,4,所以总是回退);`V7_DIAG_GHOST_SELF` 只点名其中一个 kernel |
-| `V7_BAND_OVERLAP` | B3 | 0, 1, auto | auto | B1 构建 | auto:每条链判定一次,全开或全关,2-D、恰好 2 个 slab、两个 slab 的初始自有粒子数都在 [400 000, 1 500 000] 内时开。1:每个合法 slab 都开(合法 = 2-D、有 peer、B1 融合生效、`V7_CASCADE_FORCE=1`、`V7_BAND_VOXEL_DISPATCH=1`、`V7_DENSITY_COPY_COMPUTE=1`、simple 壁)。K = 1 与 3-D 在任何取值下都关 |
+| `V7_BAND_OVERLAP` | B3 | 0, 1, auto | 0(v7-rc1;E39 时为 auto) | B1 构建 | 默认关。auto:每条链判定一次,全开或全关,2-D、恰好 2 个 slab、两个 slab 的初始自有粒子数都在 [400 000, 1 500 000] 内时开。1:每个合法 slab 都开(合法 = 2-D、有 peer、B1 融合生效、`V7_CASCADE_FORCE=1`、`V7_BAND_VOXEL_DISPATCH=1`、`V7_DENSITY_COPY_COMPUTE=1`、simple 壁)。K = 1 与 3-D 在任何取值下都关 |
 
-每个开关在 import 时读一次,解析器严格,不认识的值直接报错。每个 slab 在构造时打印自己的判定:`[SimV7] V7_X=值: on/off(原因)`。
+每个开关在 import 时读一次,解析器严格,不认识的值直接报错。B4、B1、B3 的开关不为 0 时,每个 slab 在构造时打印自己的判定:`[SimV7] V7_X=值: on/off(原因)`;为 0 时不打印。v7-rc1 起 B3 默认 0,所以默认运行里没有 `V7_BAND_OVERLAP` 这一行;B3 的状态看运行表头的开关表(`V7_BAND_OVERLAP=0`)或 `band_overlap_record`(`canonical_dump` 的 meta、step trace 的 run_meta)。
 
 ## 逐项
 
@@ -196,7 +196,7 @@ band kernel 先录。测过的其他布局都更慢:
 - 每次录 phase C 都检查 phase B + C 恰好把 force_deep 的全部 workgroup 派发了一次,否则抛错。
 - slab 只在录制时 correction + density 融合生效才用 B3 布局。所以 `fused_single_step` 的分开一步录的是 B1 的分开路径。这是第一轮评审抓到的:旧版本会静默丢掉半个 force_deep。
 
-**选择规则(auto,默认)。** 一条链判定一次,全开或全关:2-D、恰好 2 个 slab、两个 slab 的初始自有粒子数都在 [400 000, 1 500 000] 内时开,否则全关。
+**选择规则(`auto`;v7-rc1 起默认是 0,即关)。** 一条链判定一次,全开或全关:2-D、恰好 2 个 slab、两个 slab 的初始自有粒子数都在 [400 000, 1 500 000] 内时开,否则全关。
 
 - `compute_chain_partition` 把整条链的粒子数交给每个 slab,新字段是 `CaseV7.chain_own_particle_counts`;链外的 case 这个字段为空,auto 下为关。
 - 每个 slab 打印判定;`band_overlap_record` 写进 step trace 的 run_meta、`canonical_dump` 的 meta 和 `fused_single_step` 的 JSON。
@@ -241,7 +241,7 @@ band kernel 先录。测过的其他布局都更慢:
 
 **B3。** 标签不变,含义变了。B3 开启的 slab 上:
 
-- phase B 在 `b_correction_density_interior_end` 结束(默认布局没有 `b_force_deep_interior_end`);
+- phase B 在 `b_correction_density_interior_end` 结束(B3 的默认布局把 force_deep 全部移到 phase C,所以没有 `b_force_deep_interior_end`;B3 关的 slab,包括 v7-rc1 的默认运行,录的是 B1,仍有这个标签);
 - `c_correction_density_boundary` 与 `c_force` 两段各含 force_deep 的一段。
 
 所以 phase B / phase C 的时长不能与 B1 逐 kernel 对比,只能比 phase 与周期。run_meta 的 `band_overlap` 记录哪些 slab 跑了 B3。
@@ -250,9 +250,9 @@ band kernel 先录。测过的其他布局都更慢:
 
 日志都在 worktree 的 `logs/e39/` 下(被 gitignore);v7 方腔运行在 `logs/validation/cavity_re1000_v7/`。本节所有运行都在本机两张 RTX 5090 上,驱动 576.88,验证层关(验证层与 syncval 两项除外)。
 
-### 逐位门(最终代码,`logs/e39/final/bitwise`)
+### 逐位门(E39 时的代码 22701d4,`logs/e39/final/bitwise`)
 
-**构建的设置。** 每个构建 = 最终代码 + 开关。该构建新增的开关不设(取代码默认),在前一个构建里设为 0,所以 `canonical_dump --compare` 不会看到同一开关被设成两个值。
+**构建的设置。** 每个构建 = 22701d4 的代码 + 开关。该构建新增的开关不设(取当时的代码默认),在前一个构建里设为 0,所以 `canonical_dump --compare` 不会看到同一开关被设成两个值。B3 例外:五个标准算例上 B1 不设 `V7_BAND_OVERLAP`(当时为 auto,这些算例上关),B3 设 1;2-D 1M K = 2 一对是 B1 设 0、B3 不设(当时为 auto)。v7-rc1 起 B3 的代码默认是 0,用 v7-rc1 的代码复现时,B3 构建要显式设 `V7_BAND_OVERLAP=1` 或 `=auto`,否则比的是 B1 对 B1。
 
 **算例。** 全部用 canonical lists:
 
@@ -275,7 +275,7 @@ band kernel 先录。测过的其他布局都更慢:
 - 3-D 的 200 步里没有粒子越过切口(K = 2 的 migration_install_count 为 0)。3-D 的跨切口门只在各项提交时做过,用 444 / 445 步(B4、B1 的门与 B6 评审)。
 - 最终表没有 adami 算例;各项提交时的门含 adami K = 1 200 步。
 - B3 在这五个算例上 auto 都关(n250 每个 slab 3.7 万粒子;K = 1;3-D),所以这一行的 B3 用 `V7_BAND_OVERLAP=1` 强制。强制只在 n250 K = 2 上真正开启;K = 1 与 3-D 在任何取值下都关,那三格比较的是同一种录制。
-- auto 真正开启的情形另比一对:2-D 1M K = 2 200 步,B1(`V7_BAND_OVERLAP=0`)对 v7 默认(两个 slab 都开),逐位相同。
+- auto 真正开启的情形另比一对:2-D 1M K = 2 200 步,B1(`V7_BAND_OVERLAP=0`)对当时的默认 auto(两个 slab 都开),逐位相同。改成 v7-rc1 的默认后又比一次:代码默认(两个 slab 都关)对 `V7_BAND_OVERLAP=auto`(都开),逐位相同(`logs/e39/rc1`)。
 - B1 的单步检验见 B1 一节:12 种配置,评审另跑 7 种。
 
 ### 自复现(既有限制,`logs/e39/final/selfrepro`、`adami_determinism`)
@@ -447,8 +447,9 @@ v7 内部中位数大,是因为 6 次 v7 运行里有 3 次不在主族,v6 只�
 - 每次运行前检查两张卡空闲(GPU 0 带桌面),运行中每秒记录 SM 时钟、功耗和温度。
 - 开关不起作用的构建不跑,沿用前一个构建的结果:K = 1 的 B6、B3;2-D 的 B4;没有深壁候选的 3-D 8M 的 B4;auto 关的 B3。
 - 144 个单元全部有效,没有不变量或来源违规。
+- 测量时 B3 的代码默认是 auto(22701d4)。下面标"v7 默认"的列都是那时的默认。v7-rc1 改为 0,只影响 auto 开启的配置,这里只有 2-D 1M K = 2;它的 v7-rc1 默认就是 B1 构建:1 115.5 ± 9.2 fps,对 v6-rc2 +38.6 % ± 0.3,η 76.7 % ± 0.4(η_min 76.9 %)。
 
-**v7 默认对 v6-rc2**(fps,3 次试验的均值 ± 标准差;变化是逐次配对比值的均值 ± 标准差):
+**v7 默认(测量时,B3 auto)对 v6-rc2**(fps,3 次试验的均值 ± 标准差;变化是逐次配对比值的均值 ± 标准差):
 
 | 算例 | K | v6-rc2 | v7 默认 | 变化 |
 |---|---|---|---|---|
@@ -456,6 +457,7 @@ v7 内部中位数大,是因为 6 次 v7 运行里有 3 次不在主族,v6 只�
 | 2-D 62k(n250) | 2 | 1 718.2 ± 32.4 | 2 439.5 ± 35.0 | +42.0 % ± 0.7 |
 | 2-D 1M | 1 | 545.1 ± 1.9 | 727.2 ± 2.7 | +33.4 % ± 0.1 |
 | 2-D 1M | 2 | 804.7 ± 5.8 | 1 186.3 ± 6.5 | +47.4 % ± 0.5 |
+| 2-D 1M,v7-rc1 默认(B3 关 = B1 构建) | 2 | 804.7 ± 5.8 | 1 115.5 ± 9.2 | +38.6 % ± 0.3 |
 | 2-D 16M | 1 | 35.8 ± 0.1 | 47.4 ± 0.1 | +32.5 % ± 0.6 |
 | 2-D 16M | 2 | 68.5 ± 0.1 | 90.5 ± 0.0 | +32.2 % ± 0.1 |
 | 3-D 8M(4 层壁) | 1 | 13.1 ± 0.0 | 16.9 ± 0.1 | +29.0 % ± 0.8 |
@@ -490,6 +492,7 @@ v7 内部中位数大,是因为 6 次 v7 运行里有 3 次不在主族,v6 只�
 |---|---|---|---|---|
 | 2-D 62k | 2 | 28.7 % ± 0.4 | 28.6 % ± 0.3 | 28.8 → 28.7 % |
 | 2-D 1M | 2 | 73.8 % ± 0.3 | 81.6 % ± 0.2 | 74.2 → 81.7 % |
+| 2-D 1M,v7-rc1 默认(B3 关) | 2 | 73.8 % ± 0.3 | 76.7 % ± 0.4 | 74.2 → 76.9 % |
 | 2-D 16M | 2 | 95.7 % ± 0.2 | 95.5 % ± 0.2 | 95.9 → 95.8 % |
 | 3-D 8M | 2 | 95.5 % ± 0.4 | 97.1 % ± 0.6 | 95.9 → 97.5 % |
 | 3-D 8M | 4(0,1,0,1) | 77.7 % ± 0.1 | 82.0 % ± 0.6 | 78.1 → 82.3 % |
@@ -506,7 +509,7 @@ v7 内部中位数大,是因为 6 次 v7 运行里有 3 次不在主族,v6 只�
 | 3-D 8M | 4 | 77.7 | 78.1(+0.4) | 79.3(+1.2) | = | 82.0(+2.7) | = |
 | 3-D 1M | 2 | 71.6 | 71.7(+0.1) | 72.8(+1.1) | 71.4(−1.4) | 74.8(+3.4) | = |
 
-- B6 在 K ≥ 2 的配置上提高 η +0.6 到 +2.9 个百分点,2-D 16M 除外(+0.1)。B3 在 2-D 1M 上 +4.9 个百分点。
+- B6 在 K ≥ 2 的配置上提高 η +0.6 到 +2.9 个百分点,2-D 16M 除外(+0.1)。B3 开启时在 2-D 1M 上 +4.9 个百分点(v7-rc1 默认关)。
 - B1 对 K ≥ 2 与 K = 1 的加速不同,所以它也改变 η:3-D 1M +3.4、K = 4 +2.7、3-D 8M K = 2 +0.6、2-D 1M +0.5、2-D 62k −1.8 个百分点。
 - B4 只在 3-D 1M 起作用。它对 K = 1 的加速(+5.4 %)大于对 K = 2 的(+3.3 %),所以 η 降 1.4 个百分点。
 - B9 在 −0.5 到 +0.5 个百分点之间。
@@ -525,7 +528,7 @@ v7 内部中位数大,是因为 6 次 v7 运行里有 3 次不在主族,v6 只�
   原因没有逐一确认:2-D 16M 与 3-D 8M 的 K = 2 和它们的 K = 1 参照都在 600 W 上限,时钟仍高 0–67 MHz。
 - **对 η 的影响。** η 没有按时钟校正。K = 4 的 η 两边都可能偏高,v6-rc2 偏得更多,所以 77.7 → 82.0 % 的提升可能被低估。v7 的 K = 1 参照本身时钟就更高。
 
-**step trace**(各一条,v6-rc2 对 v7 默认;µs,稳态完整步的中位数,s0 / s1):
+**step trace**(各一条,v6-rc2 对测量时的 v7 默认;2-D 1M K = 2 的 v7 一列是 B3 开。v7-rc1 默认(= B1 构建)在这次 trace 里没有另测;B3 开发时有一条同样录制的 B1 trace(`logs/e39/b3/traces/b1_1m`,f646bf6,1 108 fps,周期约 865 / 872 µs),不与这里的 v6-rc2 配对;µs,稳态完整步的中位数,s0 / s1):
 
 | 量 | 2-D 1M K = 2:v6-rc2(803.6 fps) | v7 默认(1 181.8 fps,B3 开) | 3-D 8M K = 2:v6-rc2(25.1 fps) | v7 默认(32.9 fps) |
 |---|---|---|---|---|
@@ -545,11 +548,11 @@ v7 内部中位数大,是因为 6 次 v7 运行里有 3 次不在主族,v6 只�
 
 ### 不变量与验证层
 
-- 不变量(drift、每个 overflow 计数器、远迁移、GPU / 主机帧戳)在本次每一次运行里都是 0。覆盖:逐位门 37 个 dump、自复现 28 个 dump 与 2 次 syncval 运行、集合检验 24 次与复核 12 次、性能活动 144 个单元(210 个进程)、方腔运行。
-- Khronos 验证层(默认设置),最终代码默认值,2000 步(`logs/e39/final/validation_layer`):
-  - K = 2 2-D 1M(0,1;B3 两个 slab 都开):0 条消息。
-  - K = 4 3-D 8M(0,1,0,1):0 条消息。
-  - 两次都是 drift 0、无溢出。
+- 不变量(drift、每个 overflow 计数器、远迁移、GPU / 主机帧戳)在本次每一次运行里都是 0。覆盖:逐位门 37 个 dump 与 v7-rc1 复核的 2 个 dump(`logs/e39/rc1`)、自复现 28 个 dump 与 2 次 syncval 运行、集合检验 24 次与复核 12 次、性能活动 144 个单元(210 个进程)、方腔运行、验证层 4 次运行(见下)。
+- Khronos 验证层(默认设置),2000 步:
+  - E39 时的代码默认(`logs/e39/final/validation_layer`):K = 2 2-D 1M(0,1;B3 两个 slab 都开)0 条消息;K = 4 3-D 8M(0,1,0,1)0 条消息。
+  - v7-rc1 的代码默认(`logs/e39/rc1/validation_layer`):K = 2 2-D 1M(B3 关)0 条消息;K = 4 3-D 8M 0 条消息。
+  - 四次都是 drift 0、无溢出。
 - 同步验证(shader 访问启发式)在每项的评审里都跑过;B3 的结果见 B3 一节的"验证的边界"。
 
 ## 已知限制与后续
@@ -563,6 +566,7 @@ v7 内部中位数大,是因为 6 次 v7 运行里有 3 次不在主族,v6 只�
   - restart 路径只有代码层面的核对;
   - 调试计数器是 uint32,长跑可能回绕。
 - **B3:**
+  - v7-rc1 默认关;下面几条在设 `V7_BAND_OVERLAP=auto` 或 1 时才相关。
   - 没有竞争只由逐元素依赖分析保证:逐位门抓不到漏掉的屏障,见 B3 一节。以后改动 phase C 的录制,要重做依赖表,并用按 buffer 名映射的 syncval 比较。
   - `vkCmdDispatchBase` 的异常未定位。
   - auto 窗口只在本机标定(两张 5090,K = 2,等权重)。跨阈值的链和 K ≥ 3 按 B1 跑;集群上 K ≥ 3 用不同的 GPU,可能有收益,需要实测。
@@ -612,11 +616,12 @@ python -m experiment.validation.e39_compare --v7 <v7 运行目录> --v6 <v6 运�
 #   共同窗口:加 --window-end common;各次调用见 logs/e39/final/run_compare*.sh
 
 # 性能活动(144 个单元,约 1.8 h)、汇总、step trace(约 2 min)
-python -m experiment.seam_audit.e39_perf_campaign run --out logs/e39/perf_campaign
+python -m experiment.seam_audit.e39_perf_campaign run --out logs/e39/perf_campaign   # b3 构建显式设 V7_BAND_OVERLAP=auto(v7-rc1 起代码默认为 0)
 python -m experiment.seam_audit.e39_perf_campaign summarize --out logs/e39/perf_campaign
 python -m experiment.seam_audit.e39_perf_campaign trace --out logs/e39/perf_trace
 
-# 验证层(不设 VK_LOADER_LAYERS_DISABLE)
+# 验证层(不设 VK_LOADER_LAYERS_DISABLE)。下面两条是 v7-rc1 的默认(logs/e39/rc1/validation_layer);
+# 复现 E39 时的默认(logs/e39/final/validation_layer,2-D 1M K = 2 上 B3 两个 slab 都开):第一条前加 V7_BAND_OVERLAP=auto
 python experiment/v7/_run_v7_chain_bench.py --validation --case cases/lid_driven_cavity_2d_gen/case.yaml \
     --weights 1,1 --device-map 0,1 --max-steps 2000 --warmup 200
 python experiment/v7/_run_v7_chain_bench.py --validation --case cases/cavity3d_weak4_k2_8m_b4/case.yaml \
@@ -627,7 +632,7 @@ python experiment/v7/compile_shaders_v7.py
 python experiment/v7/_test_seam_layout.py
 ```
 
-## 提交(分支 `v7-perf`,从 v6-rc2 = c3514e5 开出;没有打标签)
+## 提交(分支 `v7-perf`,从 v6-rc2 = c3514e5 开出;附注标签 `v7-rc1` 在最后一个提交上)
 
 | 提交 | 内容 |
 |---|---|
@@ -641,4 +646,5 @@ python experiment/v7/_test_seam_layout.py
 | f646bf6 | B1 |
 | 22701d4 | B3 |
 | ee736f0 | `V7_DENSITY_COPY_COMPUTE` 严格解析(只认 0 / 1,其他值报错;报告复核发现)|
-| 本文 | 本文档、SPIR-V MANIFEST(22 个文件)、`e39_perf_campaign.py`、`e39_pooled_ensemble.py`、`bringup_check_v6.py` 的按求解器清单 |
+| 8f8cbd9 | 本文档、SPIR-V MANIFEST(22 个文件)、`e39_perf_campaign.py`、`e39_pooled_ensemble.py`、`bringup_check_v6.py` 的按求解器清单 |
+| 本提交(`v7-rc1`) | B3 默认关:`simulator_v7` 的 `V7_BAND_OVERLAP` 默认 0、`_test_seam_layout` 的默认检查、`e39_perf_campaign` 的 b3 构建显式设 auto(规划探针按 auto 规则判定);本文档 |

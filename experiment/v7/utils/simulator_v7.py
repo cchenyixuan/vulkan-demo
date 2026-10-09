@@ -345,7 +345,9 @@ _FUSED_CORRECTION_DENSITY = _parse_fused_correction_density(os.environ.get("V7_F
 # the transfer chain. V7_BAND_OVERLAP: 0 = the B1 build command for command;
 # 1 = forced on wherever legal (a 2-D slab with peers that fuses and cascades
 # force); auto = the rule below, one verdict for the whole chain (every slab
-# or none, band_overlap_chain_verdict). Read once at import. A slab
+# or none, band_overlap_chain_verdict). Default 0 since v7-rc1 (decided after
+# the E39 report: B3 off unless asked for; 1 and auto stay selectable, auto is
+# the measured rule). Read once at import. A slab
 # records the layout only while it fuses at recording time (a tool that turns
 # fusion off after construction gets the B1 separate recording), and every
 # phase C recording checks that phase B + C dispatch force_deep's workgroups
@@ -364,7 +366,7 @@ def _parse_band_overlap(text: str) -> str:
     return value
 
 
-_BAND_OVERLAP = _parse_band_overlap(os.environ.get("V7_BAND_OVERLAP", "auto"))
+_BAND_OVERLAP = _parse_band_overlap(os.environ.get("V7_BAND_OVERLAP", "0"))
 # The AUTO rule (band_overlap_chain_verdict), one verdict per chain: on for
 # both slabs of a 2-D chain of two slabs whose initial own particle counts both
 # lie in [minimum, maximum], off for every slab otherwise (chains of three slabs
@@ -407,6 +409,7 @@ _BAND_OVERLAP_AUTO_MINIMUM_OWN_PARTICLES = 400_000
 _BAND_OVERLAP_AUTO_MAXIMUM_OWN_PARTICLES = 1_500_000
 # Test hook, not a switch (logs/e39/b3/tools/variant_bench.py sets it before building the simulators): replace
 # the layout of every slab that resolves on, a dict with _band_overlap_layout's keys. Production runs never set it.
+# It acts only on slabs that resolve on, so since v7-rc1 (default 0) a user of it also sets V7_BAND_OVERLAP=1 or auto.
 _BAND_OVERLAP_LAYOUT_OVERRIDE: Optional[dict] = None
 if _FAST_SUBMIT:
     from vulkan._vulkancache import ffi as _ffi
@@ -431,14 +434,15 @@ _NO_OP_LOCK = _NoOpLock()
 
 def configured_v7_switches() -> dict[str, int | str]:
     """E39: the v7 performance switches (one per audit item, each on by
-    default; 0 = the previous build) with the values this process runs
-    (module constants read at import), for the run headers and the step
-    trace's run_meta. V7_DEEP_WALL_SKIP reads "auto" for its default (each
-    slab prints what the rule decided); V7_DEEP_WALL_CHECK is its debug
-    companion; V7_FUSED_CORRECTION_DENSITY = 1 fuses where a slab allows it
-    (each slab prints whether it does and, if not, why); V7_BAND_OVERLAP reads
-    "auto" for the rule (one verdict per chain; each slab prints it with its
-    decision and layout)."""
+    default except V7_BAND_OVERLAP, off by default since v7-rc1; 0 = the
+    previous build) with the values this process runs (module constants read
+    at import), for the run headers and the step trace's run_meta.
+    V7_DEEP_WALL_SKIP reads "auto" for its default (each slab prints what the
+    rule decided); V7_DEEP_WALL_CHECK is its debug companion;
+    V7_FUSED_CORRECTION_DENSITY = 1 fuses where a slab allows it (each slab
+    prints whether it does and, if not, why); V7_BAND_OVERLAP reads 0 (the
+    default), 1 or "auto" for the rule (one verdict per chain; when it is not
+    0, each slab prints it with its decision and layout)."""
     return {"V7_DENSITY_COPY_COMPUTE": int(_DENSITY_COPY_COMPUTE),
             "V7_GHOST_SEND_LANES": _GHOST_SEND_LANES,
             "V7_DEEP_WALL_SKIP": _DEEP_WALL_SKIP if _DEEP_WALL_SKIP == "auto" else int(_DEEP_WALL_SKIP),

@@ -2880,8 +2880,9 @@ def check_band_overlap(failures: list) -> None:
     if simulator_v7.configured_v7_switches().get("V7_BAND_OVERLAP") != expected_registry:
         failures.append("configured_v7_switches() does not report V7_BAND_OVERLAP")
     source = pathlib.Path(simulator_v7.__file__).read_text(encoding="utf-8")
-    if not re.search(r'_parse_band_overlap\(os\.environ\.get\("V7_BAND_OVERLAP", "auto"\)\)', source):
-        failures.append("simulator_v7.py: default V7_BAND_OVERLAP=auto not found")
+    # default 0 since v7-rc1 (B3 off unless asked for; 1 and auto stay selectable)
+    if not re.search(r'_parse_band_overlap\(os\.environ\.get\("V7_BAND_OVERLAP", "0"\)\)', source):
+        failures.append("simulator_v7.py: default V7_BAND_OVERLAP=0 not found")
 
     # ---- the B1 build: SPIR-V and simulator
     spv_directory = pathlib.Path(__file__).resolve().parent / "shaders" / "spv"
