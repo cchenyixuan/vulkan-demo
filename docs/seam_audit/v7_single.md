@@ -4,6 +4,8 @@
 
 分支 `v7-single`(从 `v7-rc1` 开出,worktree `vulkan-demo-v7-single`),`experiment/v7` 一个文件都没有改。
 
+报告页(本文档 + 全部表与图,`experiment/v7_single/_build_artifact.py` 生成):https://claude.ai/artifact/G45wmgPDKcyeC3aoLcqbbm
+
 ## 结论(TL;DR)
 
 - **v7_single 就是 v7 的 kernel 加一个纯单卡的 host**:SPIR-V 从 `experiment/v7/shaders/spv` 读、按 `MANIFEST.txt` 校验;host 侧只有一条 compute 队列、EXCLUSIVE 缓冲、一个 fence 环,没有 ghost / 迁移 / timeline / 阶段 / worker。清单(第 1–11 节)逐项列出 v7 单卡模式多出的东西,每一项都是不执行或不改数据的;spec constant 逐个相同(第 6 节);命令流逐条相同(唯一差别是 v7 defrag 里对 `migration_install_count` 的一次 fill,S 没有这个字段)。
@@ -503,4 +505,5 @@ python -m experiment.validation.e39_compare --v7 logs/validation/cavity_re1000_v
 | 457913c | 测量 B(逐 kernel 成本,融合 / 不融合);1000² adami 精度运行从这个提交启动 |
 | 425588d | 文档:提交表、论文用数字(§3.6 / §5.1、表 2 LaTeX 行);报告构建脚本读交错的 B 结果 |
 | 3aafe6d | 精度验证结果:4 张图(PDF + PNG)、剖面 / 稠密 CSV、汇总 JSON、LaTeX 行与图注、运行镜像;`field` 图例移到底部中央 |
-| (本提交) | 文档:结论、精度一节、§6.2 数字、方腔表 LaTeX 行、与 E36 的交叉检查;报告页构建脚本(页面契约、结论卡、判定标签) |
+| 48399c5 | 文档:结论、精度一节、§6.2 数字、方腔表 LaTeX 行、与 E36 的交叉检查;报告页构建脚本(页面契约、结论卡、判定标签) |
+| (本提交) | 报告页链接 |
