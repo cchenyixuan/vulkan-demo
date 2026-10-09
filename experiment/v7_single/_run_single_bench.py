@@ -84,6 +84,9 @@ def main() -> int:
         total = arguments.warmup + arguments.measure
         epoch_start = epoch_end = None
         t_start = None
+        if arguments.warmup == 0:                 # the queue is empty here: the window opens now
+            t_start = time.perf_counter()
+            epoch_start = time.time()
         for frame in range(1, total + 1):
             sim.submit_step(with_defrag=bool(cadence) and frame % cadence == 0)
             if frame == arguments.warmup:

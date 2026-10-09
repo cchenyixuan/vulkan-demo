@@ -131,6 +131,8 @@ def candidate_pairs_single(adapter) -> dict:
     sim = adapter.sim
     grid = sim.case.grid
     dimensions = (grid.grid_dimension_x, grid.grid_dimension_y, grid.grid_dimension_z)
+    if int(getattr(grid, "voxel_order", 0)) != 0:
+        raise RuntimeError("candidate_pairs_single assumes voxel_order 0 (x slowest, y fastest)")
     raw = sim.readback_buffers_batch(["inside_particle_count"])["inside_particle_count"]
     counts = np.frombuffer(raw, dtype=np.uint32)[1:1 + grid.total_voxel_count()].astype(np.int64)
     # voxel id - 1 = y + z * NY + x * NY * NZ (x slowest): reshape to (x, z, y)

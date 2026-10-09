@@ -58,7 +58,7 @@ def normalize(events: list, specs: dict) -> list:
             shader, constants = specs[key]
             out.append(("bind", shader, tuple(sorted((identifier, fmt, value) for identifier, (fmt, value) in constants.items()))))
         elif event[0] == "sets":
-            out.append(("sets", int(event[2]), int(event[3])))
+            out.append(("sets", event[1], int(event[2]), int(event[3]), tuple(event[4])))
         else:
             out.append(tuple(event))
     return out
@@ -113,7 +113,9 @@ def capture_single(simulator_single, case, setting: dict) -> tuple[dict[str, lis
                          ("defrag", simulator.record_defrag), ("restart", simulator.record_restart_init)):
         events: list = []
         with recording(simulator_single, events):
-            simulator_single.vkBeginCommandBuffer("cmd", None)
+            flags = (simulator_single.VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT if name in ("step", "defrag")
+                     else simulator_single.VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)
+            simulator_single.vkBeginCommandBuffer("cmd", simulator_single.VkCommandBufferBeginInfo(flags=flags))
             record("cmd")
             simulator_single.vkEndCommandBuffer("cmd")
         streams[name] = normalize(events, specs)
@@ -124,6 +126,69 @@ def capture_single(simulator_single, case, setting: dict) -> tuple[dict[str, lis
                  "deep_wall": list(simulator.deep_wall_skip_resolution),
                  "fused": list(simulator.fused_correction_density_resolution)}
     return streams, inventory
+
+
+def compare_payloads(simulator_v7, simulator_single, case, setting: dict) -> dict:
+    """The initial upload (every payload buffer, byte for byte), the material parameters and a restart payload of
+    a synthetic 3-row state, v7 vs v7_single, on the CPU."""
+    from experiment.v7_single.utils.switches import Switches
+    with v7_switch_values(simulator_v7, fused=setting["fused"], copy_compute=setting["copy_compute"],
+                          deep_wall=setting["deep_wall"]):
+        v7 = fake_v7_simulator(simulator_v7, case)
+        v7_initial = v7._build_initial_data()
+        v7_materials = v7._material_parameters_payload()
+    single = fake_single_simulator(simulator_single, case, Switches(
+        fused_correction_density=setting["fused"], density_copy_compute=setting["copy_compute"],
+        deep_wall_skip=setting["deep_wall"]))
+    single_initial = single._build_initial_data()
+    report = {"initial_keys_equal": sorted(v7_initial) == sorted(single_initial),
+              "initial_bytes_equal": {name: v7_initial.get(name) == single_initial.get(name)
+                                      for name in sorted(set(v7_initial) | set(single_initial))},
+              "material_parameters_equal": v7_materials == single._material_parameters_payload()}
+    # a restart payload: both restart_init paths build the full-pool arrays from the state rows; compare the bytes
+    # each side uploads by stubbing the upload
+    rows = 3
+    state = {}
+    for name, (components, dtype) in simulator_v7.SphSimulatorV7.RESTART_FIELD_LAYOUT.items():
+        shape = (rows,) if components == 1 else (rows, components)
+        values = (np.arange(np.prod(shape), dtype=np.float64).reshape(shape) * 0.25 + 1.0).astype(dtype)
+        state[name] = values
+    captured = {}
+    for label, simulator in (("v7", v7), ("v7_single", single)):
+        simulator._upload_initial_state = lambda payload=None, label=label: captured.__setitem__(label, payload)
+        simulator._submit_recording = lambda record: None
+        simulator.readback_global_status = lambda rows=rows: {"alive_particle_count": rows, "overflow_inside_count": 0}
+        pool_capacity = case.capacities.total_pool_capacity()
+        positions = np.zeros((pool_capacity, 4), dtype=np.float32)
+        positions[1:1 + rows, 3] = 1.0                       # every row placed in voxel 1
+        simulator.readback_buffer_by_name = lambda name, positions=positions: positions.tobytes()
+        if label == "v7":
+            simulator._allocate_oneshot_cmd = lambda: "cmd"
+            events: list = []
+            with recording(simulator_v7, events):
+                simulator.restart_init(state)
+        else:
+            simulator.restart_init(state)
+    report["restart_payload_equal"] = {name: captured["v7"].get(name) == captured["v7_single"].get(name)
+                                       for name in sorted(set(captured["v7"]) | set(captured["v7_single"]))}
+    report["all_equal"] = (report["initial_keys_equal"] and all(report["initial_bytes_equal"].values())
+                           and report["material_parameters_equal"] and all(report["restart_payload_equal"].values()))
+    return report
+
+
+def compare_buffer_tables(v7_inventory: dict, single_inventory: dict) -> dict:
+    """Same (name, set, binding) list in the same order; sizes equal except the two ghost-only stubs."""
+    allowed_stubs = {"ghost_voxel_first_particle_id", "band_compact_meta"}
+    v7_rows = [(name, set_index, binding) for name, set_index, binding, _, _ in v7_inventory["buffers"]]
+    single_rows = [(name, set_index, binding) for name, set_index, binding, _, _ in single_inventory["buffers"]]
+    v7_sizes = {name: size for name, _, _, size, _ in v7_inventory["buffers"]}
+    single_sizes = {name: size for name, _, _, size, _ in single_inventory["buffers"]}
+    size_differences = {name: (v7_sizes[name], single_sizes.get(name)) for name in v7_sizes
+                        if single_sizes.get(name) != v7_sizes[name]}
+    return {"bindings_equal": v7_rows == single_rows,
+            "size_differences": size_differences,
+            "sizes_equal_outside_stubs": set(size_differences) <= allowed_stubs,
+            "scratch_bytes_equal": v7_inventory["scratch_bytes"] == single_inventory["scratch_bytes"]}
 
 
 def describe(event) -> str:
@@ -190,7 +255,29 @@ def main() -> int:
             for name in RECORDINGS:
                 results[name] = compare_streams(v7_streams[name], single_streams[name])
                 report["all_identical"] &= results[name]["identical"]
-            case_report[setting_name] = {"recordings": results, "v7": v7_inventory, "v7_single": single_inventory}
+            buffers = compare_buffer_tables(v7_inventory, single_inventory)
+            payloads = compare_payloads(simulator_v7, simulator_single, case, setting)
+            report["all_identical"] &= (buffers["bindings_equal"] and buffers["sizes_equal_outside_stubs"]
+                                        and buffers["scratch_bytes_equal"] and payloads["all_equal"])
+            case_report[setting_name] = {"recordings": results, "v7": v7_inventory, "v7_single": single_inventory,
+                                         "buffers": buffers, "payloads": payloads}
+            # the v7 side again under the release environment the GPU reference V runs with (canonical_dump's
+            # RELEASE_ENVIRONMENT): the single-mode pipelines must not move
+            from experiment.validation.cavity_runner import RELEASE_ENVIRONMENT
+            release = {"V7_" + key[len("V6_"):]: value for key, value in RELEASE_ENVIRONMENT.items()}
+            saved_environment = dict(os.environ)
+            try:
+                os.environ.update(release)
+                import importlib
+                import experiment.v7.utils.partition_v7 as partition_v7
+                importlib.reload(partition_v7)              # the switches partition_v7 reads at call time
+                v7_release_streams, _ = capture_v7(simulator_v7, case, setting)
+            finally:
+                os.environ.clear()
+                os.environ.update(saved_environment)
+            release_same = all(v7_release_streams[name] == v7_streams[name] for name in RECORDINGS)
+            case_report[setting_name]["v7_release_environment_same_streams"] = release_same
+            report["all_identical"] &= release_same
             verdicts = " ".join(f"{name}={'identical' if results[name]['identical'] else 'DIFFERENT'}"
                                 f"{'(+allowed fill)' if results[name]['allowed_v7_only'] else ''}"
                                 for name in RECORDINGS)
@@ -198,7 +285,11 @@ def main() -> int:
             print(f"[compare] {case_path} [{setting_name}] deep_wall={'on' if v7_inventory['deep_wall'][0] else 'off'}: "
                   f"{verdicts}; step = {counts['dispatches']} dispatches, {counts['barriers']} barriers, "
                   f"{counts['binds']} binds; pipelines built v7 {v7_inventory['pipeline_count']} / "
-                  f"v7_single {single_inventory['pipeline_count']}", flush=True)
+                  f"v7_single {single_inventory['pipeline_count']}; buffers bindings "
+                  f"{'equal' if buffers['bindings_equal'] else 'DIFFERENT'}, sizes "
+                  f"{'equal outside the stubs' if buffers['sizes_equal_outside_stubs'] else 'DIFFERENT'} "
+                  f"{buffers['size_differences']}; payloads {'equal' if payloads['all_equal'] else 'DIFFERENT'}; "
+                  f"v7 under the release environment: {'same streams' if release_same else 'DIFFERENT'}", flush=True)
             for name in RECORDINGS:
                 for difference in results[name]["differences"]:
                     print(f"    DIFFERENT in {name} at {difference['position']}: v7 {difference['v7']} | "

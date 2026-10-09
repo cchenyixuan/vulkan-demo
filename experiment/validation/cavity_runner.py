@@ -252,6 +252,10 @@ def code_hashes(case_path: pathlib.Path, solver: str = "v6") -> dict:
     physics = (list((solver_directory / "utils").glob("*.py"))
                + list(shader_directory.glob("*.spv"))
                + [case_path] + list(case_directory.glob("*.obj")) + [_REPO_ROOT / "materials" / "standard.yaml"])
+    if solver == "v7_single":
+        # dt, grid, origin and kernel coefficients come through v7's case loader
+        physics += [_REPO_ROOT / "experiment" / "v7" / "utils" / "case_loader_v7.py",
+                    _REPO_ROOT / "experiment" / "v7" / "utils" / "case_v7.py"]
     validation = _REPO_ROOT / "experiment" / "validation"
     sampling_files = [validation / "cavity_sampling.py", validation / "cavity_reference.py",
                       _REPO_ROOT / "docs" / "validation" / "data" / "marchi2021_re1000.csv"]

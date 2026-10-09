@@ -234,8 +234,11 @@ def validation_runs(out: pathlib.Path, device: int) -> dict:
                   "message_counts": result.get("validation") if result else None, "message_lines": messages,
                   "drift": result.get("drift") if result else None, "overflow": result.get("overflow") if result else None,
                   "fps": result.get("fps") if result else None, "when": time.strftime("%Y-%m-%d %H:%M:%S")}
-        print(f" rc {rc} layer {record['validation_enabled']} messages {record['message_counts']} drift {record['drift']}",
-              flush=True)
+        counts = record["message_counts"] or {}
+        record["passed"] = bool(rc == 0 and record["validation_enabled"] is True and sum(counts.values()) == 0
+                                and messages == 0 and record["drift"] == 0 and not record["overflow"])
+        print(f" rc {rc} layer {record['validation_enabled']} messages {record['message_counts']} drift {record['drift']} "
+              f"-> {'PASS' if record['passed'] else 'FAIL'}", flush=True)
         append(out, record)
         results[tag] = record
     return results
@@ -301,10 +304,25 @@ def write_summary(out: pathlib.Path, summary: dict) -> None:
     validation = summary.get("validation")
     if validation:
         lines += ["## 4. Validation layer (default settings, 2000 steps, v7_single)", "",
-                  "| case | layer loaded | messages | drift | overflow | fps |", "|---|---|---|---|---|---|"]
+                  "| case | layer loaded | messages | drift | overflow | fps | verdict |", "|---|---|---|---|---|---|---|"]
         for tag, record in validation.items():
             lines.append(f"| {tag} | {record.get('validation_enabled')} | {record.get('message_counts')} "
-                         f"(stderr lines {record.get('message_lines')}) | {record.get('drift')} | {record.get('overflow')} | {record.get('fps')} |")
+                         f"(stderr lines {record.get('message_lines')}) | {record.get('drift')} | {record.get('overflow')} | "
+                         f"{record.get('fps')} | {'PASS' if record.get('passed') else 'FAIL'} |")
+        lines.append("")
+    verdicts = []
+    if cpu:
+        verdicts.append(("1 CPU streams", bool(cpu.get("all_identical"))))
+    if gpu:
+        verdicts.append(("2 S = V bitwise", all(entry.get("comparisons", {}).get("S_vs_V", {}).get("verdict") == "BIT-IDENTICAL"
+                                                 for entry in gpu.values())))
+        verdicts.append(("3 invariants", all(record.get("drift") == 0 and not record.get("overflow")
+                                              for entry in gpu.values() for record in entry.get("invariants", {}).values())))
+    if validation:
+        verdicts.append(("4 validation layer", all(record.get("passed") for record in validation.values())))
+    if verdicts:
+        lines += ["## Verdict", ""] + [f"- {name}: **{'PASS' if ok else 'FAIL'}**" for name, ok in verdicts]
+        lines.append(f"- overall: **{'PASS' if all(ok for _, ok in verdicts) else 'FAIL'}**")
         lines.append("")
     (out / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))

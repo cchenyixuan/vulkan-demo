@@ -51,10 +51,11 @@ def _recorders(events: list) -> dict[str, Any]:
         "vkCmdDispatchIndirect": lambda cmd, buffer, offset: events.append(("dispatch_indirect", buffer, int(offset))),
         "vkCmdBindPipeline": lambda cmd, point, pipeline: events.append(("bind", pipeline)),
         "vkCmdBindDescriptorSets": lambda cmd, point, layout, first, count, sets, *rest:
-            events.append(("sets", layout, int(first), int(count))),
+            events.append(("sets", layout, int(first), int(count), tuple(sets))),
         "vkCmdFillBuffer": lambda cmd, buffer, offset, size, value:
             events.append(("fill", buffer, int(offset), int(size), int(value))),
-        "vkBeginCommandBuffer": lambda cmd, info: events.append(("begin",)),
+        "vkBeginCommandBuffer": lambda cmd, info: events.append(("begin", int(getattr(info, "flags", 0) or 0)
+                                                                 if info is not None else None)),
         "vkEndCommandBuffer": lambda cmd: events.append(("end",)),
         "vkFreeCommandBuffers": lambda device, pool, count, cmds: None,
     }

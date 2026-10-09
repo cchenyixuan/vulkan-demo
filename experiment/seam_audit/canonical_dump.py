@@ -440,6 +440,11 @@ def main() -> int:
             shader_directory = pathlib.Path(environment[prefix + "SPV_DIR"]).resolve()
     cavity_runner_file = pathlib.Path(sys.modules["experiment.validation.cavity_runner"].__file__).resolve()
     code = {f"experiment/{solver}/utils": sha256_files(list(utils_directory.glob("*.py")), utils_directory),
+            # v7_single derives dt, grid, origin and kernel coefficients through v7's case loader
+            **({"experiment/v7/utils/case_loader": sha256_files(
+                [simulator_module.parents[2] / "v7" / "utils" / "case_loader_v7.py",
+                 simulator_module.parents[2] / "v7" / "utils" / "case_v7.py"], simulator_module.parents[2])}
+               if solver == "v7_single" else {}),
             "spv": sha256_files(list(shader_directory.glob("*.spv")), shader_directory),
             "cavity_runner": hashlib.sha256(cavity_runner_file.read_bytes()).hexdigest(),
             "harness": hashlib.sha256(harness.read_bytes()).hexdigest()}
@@ -631,14 +636,23 @@ def main() -> int:
         if record["alive"] != total or overflow:
             raise RuntimeError(f"invariant violation at step {frame}: {record}")
 
+    def check_boundary(frame: int, report=None) -> None:
+        """Every overflow_* counter at a defrag boundary of the single modes (the chain's per-defrag report)."""
+        status_now = sims[0].readback_global_status() if report is None else report[0]
+        bad = {key: value for key, value in status_now.items() if key.startswith("overflow_") and value}
+        if bad:
+            raise RuntimeError(f"invariant violation at step {frame}: {bad}")
+
     if solver == "v7_single":
-        result = run_steps_single(sims[0], arguments.steps, depth=arguments.depth, defrag_cadence=defrag_cadence)
+        result = run_steps_single(sims[0], arguments.steps, depth=arguments.depth, defrag_cadence=defrag_cadence,
+                                  on_defrag=check_boundary)
     elif single_mode:
         # v7's single-GPU mode: one submit + one fence wait per step, the defrag (drained) at the cadence
         started = time.perf_counter()
         for frame in range(1, arguments.steps + 1):
             sims[0].submit_step_single_and_wait()
             if frame % defrag_cadence == 0:
+                check_boundary(frame)
                 sims[0].submit_defrag_and_wait()
         elapsed = time.perf_counter() - started
         result = {"frame_count": arguments.steps, "elapsed_s": elapsed, "fps": arguments.steps / elapsed}

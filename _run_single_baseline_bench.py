@@ -504,8 +504,12 @@ class V7ChainAdapter:
         self.defrag_cmd = None
 
     def run_timed(self, warmup: int, measure: int, in_flight: int) -> dict:
+        """The orchestrator's steady window opens right after frame ``warmup`` + 1 is submitted, i.e. after the
+        boundary drain + defrag that frame ``warmup`` (a cadence multiple in the campaign) triggers; it closes after
+        the final drain. The ring adapters drain at frame ``warmup`` and open there, so both windows hold the
+        same defrags (the chain's window has measure - 1 frames, from the submission of frame warmup + 1)."""
         epoch_before = time.time()
-        result = self.orchestrator.run_pipelined(warmup + measure, depth=in_flight, warmup=warmup)
+        result = self.orchestrator.run_pipelined(warmup + measure, depth=in_flight, warmup=warmup + 1)
         epoch_end = time.time()
         steady_s = result["steady_s"]
         return {"measure_seconds": steady_s, "fps": result["steady_fps"],

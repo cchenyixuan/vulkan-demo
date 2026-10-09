@@ -655,8 +655,11 @@ class SphSimulatorSingle:
         mark("density_end")
         self._record_compute_barrier(cmd)          # v7 records this second barrier after the copy too
         if self.wall_adami:
-            self._record_wall_extrapolate(cmd)
+            # the wall pass inline so the tick sits before its barrier, where v7's BenchTimer puts it
+            self._bind(cmd, "wall_extrapolate")
+            vkCmdDispatch(cmd, per_particle, 1, 1)
             mark("wall_extrapolate_end")
+            self._record_compute_barrier(cmd)
         self._bind(cmd, "force_all")
         vkCmdDispatch(cmd, per_particle, 1, 1)
         mark("force_end")
@@ -919,13 +922,22 @@ class SphSimulatorSingle:
         after the submission ``in_flight`` steps back has completed: at most ``in_flight`` steps are queued."""
         if not self._fences:
             raise RuntimeError("call prepare_step() first")
-        fence = self._fences[self._submitted_count % len(self._fences)]
+        slot = self._submitted_count % len(self._fences)
+        fence = self._fences[slot]
         vkWaitForFences(self.ctx.device, 1, [fence], VK_TRUE, UINT64_MAX)
         vkResetFences(self.ctx.device, 1, [fence])
         command_buffers = [self.step_cmd] + ([self.defrag_cmd] if with_defrag else [])
-        vkQueueSubmit(self.ctx.compute_queue, 1, VkSubmitInfo(
-            sType=VK_STRUCTURE_TYPE_SUBMIT_INFO, commandBufferCount=len(command_buffers),
-            pCommandBuffers=command_buffers), fence)
+        try:
+            vkQueueSubmit(self.ctx.compute_queue, 1, VkSubmitInfo(
+                sType=VK_STRUCTURE_TYPE_SUBMIT_INFO, commandBufferCount=len(command_buffers),
+                pCommandBuffers=command_buffers), fence)
+        except Exception:
+            # a refused submission leaves the slot's fence unsignaled and every later drain would block forever:
+            # replace it by a signaled fence before re-raising
+            vkDestroyFence(self.ctx.device, fence, None)
+            self._fences[slot] = vkCreateFence(self.ctx.device, VkFenceCreateInfo(
+                sType=VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, flags=VK_FENCE_CREATE_SIGNALED_BIT), None)
+            raise
         self._submitted_count += 1
 
     def drain(self) -> None:

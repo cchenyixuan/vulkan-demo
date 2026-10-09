@@ -112,28 +112,55 @@ def start_telemetry(csv_path: pathlib.Path):
     return process, handle
 
 
+def solver_processes(own_pid: int) -> list[str] | None:
+    """Python processes (other than this one) whose command line names a solver module or runner, or None when
+    the query fails. nvidia-smi's utilization reading is not usable as an idle test on this WDDM rig (it reads
+    0 % while a solver runs and can stay at 100 % after a killed process), so the idle check is process-based."""
+    try:
+        completed = subprocess.run(
+            ["powershell", "-NoProfile", "-Command",
+             "Get-CimInstance Win32_Process -Filter \"Name like 'python%'\" | ForEach-Object { \"$($_.ProcessId)|$($_.CommandLine)\" }"],
+            capture_output=True, text=True, timeout=60)
+    except Exception:
+        return None
+    if completed.returncode != 0:
+        return None
+    markers = ("experiment.", "experiment/", "experiment\\", "_run_", "utils.sph", "utils/sph")
+    busy = []
+    for line in completed.stdout.splitlines():
+        pid, _, command_line = line.partition("|")
+        if not pid.strip().isdigit() or int(pid) == own_pid or not command_line:
+            continue
+        if any(marker in command_line for marker in markers):
+            busy.append(f"{pid.strip()}: {command_line[:140]}")
+    return busy
+
+
 def wait_until_idle(gpu_index: int, log) -> None:
-    """Block until nvidia-smi reports 0 % utilization on the card twice in a row (one second apart)."""
+    """Block until no other solver process exists (two consecutive checks); the nvidia-smi reading is logged only."""
     quiet = 0
     waited = 0
     while quiet < 2:
-        try:
-            completed = subprocess.run(
-                ["nvidia-smi", "--query-gpu=index,utilization.gpu,memory.used", "--format=csv,noheader,nounits"],
-                capture_output=True, text=True, timeout=30)
-            rows = [line.split(",") for line in completed.stdout.strip().splitlines() if line.strip()]
-            utilization = next(int(row[1]) for row in rows if int(row[0]) == gpu_index)
-        except Exception as error:          # nvidia-smi missing or busy: do not block the campaign forever
-            log(f"[campaign] idle check skipped ({error!r})")
+        busy = solver_processes(os.getpid())
+        if busy is None:
+            log("[campaign] idle check skipped (process query failed)")
             return
-        if utilization == 0:
+        if not busy:
             quiet += 1
         else:
             quiet = 0
             waited += 1
             if waited % 30 == 1:
-                log(f"[campaign] card {gpu_index} busy ({utilization} %), waiting")
+                log(f"[campaign] solver processes still running on this host, waiting: {busy}")
         time.sleep(1.0)
+    try:
+        completed = subprocess.run(
+            ["nvidia-smi", "--query-gpu=index,utilization.gpu,memory.used", "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=30)
+        reading = next((line for line in completed.stdout.splitlines() if line.strip().startswith(f"{gpu_index},")), "")
+        log(f"[campaign] idle check: no other solver process; nvidia-smi index {gpu_index}: {reading.strip()}")
+    except Exception:
+        pass
 
 
 def resolve_device_indices(solvers: list[str]) -> dict[str, int]:
