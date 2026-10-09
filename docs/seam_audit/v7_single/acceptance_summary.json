@@ -1,0 +1,4336 @@
+{
+ "cpu": {
+  "rc": 0,
+  "all_identical": true,
+  "cases": {
+   "cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025/case.yaml": {
+    "default": {
+     "step": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 23
+       },
+       "v7_single": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 23
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 4,
+        "barriers": 3,
+        "binds": 4,
+        "fills": 0,
+        "copies": 0,
+        "events": 17
+       },
+       "v7_single": {
+        "dispatches": 4,
+        "barriers": 3,
+        "binds": 4,
+        "fills": 0,
+        "copies": 0,
+        "events": 17
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "unfused": {
+     "step": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 6,
+        "barriers": 7,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 27
+       },
+       "v7_single": {
+        "dispatches": 6,
+        "barriers": 7,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 27
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 5,
+        "barriers": 4,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 21
+       },
+       "v7_single": {
+        "dispatches": 5,
+        "barriers": 4,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 21
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "transfer_copy": {
+     "step": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 4,
+        "barriers": 6,
+        "binds": 4,
+        "fills": 0,
+        "copies": 1,
+        "events": 21
+       },
+       "v7_single": {
+        "dispatches": 4,
+        "barriers": 6,
+        "binds": 4,
+        "fills": 0,
+        "copies": 1,
+        "events": 21
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 3,
+        "barriers": 3,
+        "binds": 3,
+        "fills": 0,
+        "copies": 1,
+        "events": 15
+       },
+       "v7_single": {
+        "dispatches": 3,
+        "barriers": 3,
+        "binds": 3,
+        "fills": 0,
+        "copies": 1,
+        "events": 15
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    }
+   },
+   "cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml": {
+    "default": {
+     "step": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 6,
+        "barriers": 7,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 27
+       },
+       "v7_single": {
+        "dispatches": 6,
+        "barriers": 7,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 27
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 6,
+        "barriers": 6,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 26
+       },
+       "v7_single": {
+        "dispatches": 6,
+        "barriers": 6,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 26
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 2,
+        "barriers": 3,
+        "binds": 2,
+        "fills": 0,
+        "copies": 0,
+        "events": 11
+       },
+       "v7_single": {
+        "dispatches": 2,
+        "barriers": 3,
+        "binds": 2,
+        "fills": 0,
+        "copies": 0,
+        "events": 11
+       }
+      }
+     }
+    },
+    "unfused": {
+     "step": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 7,
+        "barriers": 8,
+        "binds": 7,
+        "fills": 0,
+        "copies": 0,
+        "events": 31
+       },
+       "v7_single": {
+        "dispatches": 7,
+        "barriers": 8,
+        "binds": 7,
+        "fills": 0,
+        "copies": 0,
+        "events": 31
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 7,
+        "barriers": 7,
+        "binds": 7,
+        "fills": 0,
+        "copies": 0,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 7,
+        "barriers": 7,
+        "binds": 7,
+        "fills": 0,
+        "copies": 0,
+        "events": 30
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 2,
+        "barriers": 3,
+        "binds": 2,
+        "fills": 0,
+        "copies": 0,
+        "events": 11
+       },
+       "v7_single": {
+        "dispatches": 2,
+        "barriers": 3,
+        "binds": 2,
+        "fills": 0,
+        "copies": 0,
+        "events": 11
+       }
+      }
+     }
+    },
+    "transfer_copy": {
+     "step": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 5,
+        "barriers": 7,
+        "binds": 5,
+        "fills": 0,
+        "copies": 1,
+        "events": 25
+       },
+       "v7_single": {
+        "dispatches": 5,
+        "barriers": 7,
+        "binds": 5,
+        "fills": 0,
+        "copies": 1,
+        "events": 25
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 1,
+        "events": 24
+       },
+       "v7_single": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 1,
+        "events": 24
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 2,
+        "barriers": 3,
+        "binds": 2,
+        "fills": 0,
+        "copies": 0,
+        "events": 11
+       },
+       "v7_single": {
+        "dispatches": 2,
+        "barriers": 3,
+        "binds": 2,
+        "fills": 0,
+        "copies": 0,
+        "events": 11
+       }
+      }
+     }
+    }
+   },
+   "cases/lid_driven_cavity_2d_gen/case.yaml": {
+    "default": {
+     "step": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 23
+       },
+       "v7_single": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 23
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 4,
+        "barriers": 3,
+        "binds": 4,
+        "fills": 0,
+        "copies": 0,
+        "events": 17
+       },
+       "v7_single": {
+        "dispatches": 4,
+        "barriers": 3,
+        "binds": 4,
+        "fills": 0,
+        "copies": 0,
+        "events": 17
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "unfused": {
+     "step": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 6,
+        "barriers": 7,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 27
+       },
+       "v7_single": {
+        "dispatches": 6,
+        "barriers": 7,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 27
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 5,
+        "barriers": 4,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 21
+       },
+       "v7_single": {
+        "dispatches": 5,
+        "barriers": 4,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 21
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "transfer_copy": {
+     "step": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 4,
+        "barriers": 6,
+        "binds": 4,
+        "fills": 0,
+        "copies": 1,
+        "events": 21
+       },
+       "v7_single": {
+        "dispatches": 4,
+        "barriers": 6,
+        "binds": 4,
+        "fills": 0,
+        "copies": 1,
+        "events": 21
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 3,
+        "barriers": 3,
+        "binds": 3,
+        "fills": 0,
+        "copies": 1,
+        "events": 15
+       },
+       "v7_single": {
+        "dispatches": 3,
+        "barriers": 3,
+        "binds": 3,
+        "fills": 0,
+        "copies": 1,
+        "events": 15
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    }
+   },
+   "cases/cavity3d_8m_b4/case.yaml": {
+    "default": {
+     "step": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 23
+       },
+       "v7_single": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 23
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 4,
+        "barriers": 3,
+        "binds": 4,
+        "fills": 0,
+        "copies": 0,
+        "events": 17
+       },
+       "v7_single": {
+        "dispatches": 4,
+        "barriers": 3,
+        "binds": 4,
+        "fills": 0,
+        "copies": 0,
+        "events": 17
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "unfused": {
+     "step": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 6,
+        "barriers": 7,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 27
+       },
+       "v7_single": {
+        "dispatches": 6,
+        "barriers": 7,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 27
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 5,
+        "barriers": 4,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 21
+       },
+       "v7_single": {
+        "dispatches": 5,
+        "barriers": 4,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 21
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "transfer_copy": {
+     "step": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 4,
+        "barriers": 6,
+        "binds": 4,
+        "fills": 0,
+        "copies": 1,
+        "events": 21
+       },
+       "v7_single": {
+        "dispatches": 4,
+        "barriers": 6,
+        "binds": 4,
+        "fills": 0,
+        "copies": 1,
+        "events": 21
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 3,
+        "barriers": 3,
+        "binds": 3,
+        "fills": 0,
+        "copies": 1,
+        "events": 15
+       },
+       "v7_single": {
+        "dispatches": 3,
+        "barriers": 3,
+        "binds": 3,
+        "fills": 0,
+        "copies": 1,
+        "events": 15
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    }
+   },
+   "cases/cavity3d_1m/case.yaml": {
+    "default": {
+     "step": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 7,
+        "barriers": 8,
+        "binds": 7,
+        "fills": 0,
+        "copies": 0,
+        "events": 31
+       },
+       "v7_single": {
+        "dispatches": 7,
+        "barriers": 8,
+        "binds": 7,
+        "fills": 0,
+        "copies": 0,
+        "events": 31
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 6,
+        "barriers": 6,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 26
+       },
+       "v7_single": {
+        "dispatches": 6,
+        "barriers": 6,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 26
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "unfused": {
+     "step": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 8,
+        "barriers": 9,
+        "binds": 8,
+        "fills": 0,
+        "copies": 0,
+        "events": 35
+       },
+       "v7_single": {
+        "dispatches": 8,
+        "barriers": 9,
+        "binds": 8,
+        "fills": 0,
+        "copies": 0,
+        "events": 35
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 7,
+        "barriers": 7,
+        "binds": 7,
+        "fills": 0,
+        "copies": 0,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 7,
+        "barriers": 7,
+        "binds": 7,
+        "fills": 0,
+        "copies": 0,
+        "events": 30
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "transfer_copy": {
+     "step": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 6,
+        "barriers": 8,
+        "binds": 6,
+        "fills": 0,
+        "copies": 1,
+        "events": 29
+       },
+       "v7_single": {
+        "dispatches": 6,
+        "barriers": 8,
+        "binds": 6,
+        "fills": 0,
+        "copies": 1,
+        "events": 29
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 1,
+        "events": 24
+       },
+       "v7_single": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 1,
+        "events": 24
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed": [],
+      "step_counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "gpu": {
+  "n250_200/default": {
+   "case": "cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025/case.yaml",
+   "steps": 200,
+   "setting": "default",
+   "dumps": {
+    "S": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\n250_200_default_S.npz",
+    "V": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\n250_200_default_V.npz",
+    "C": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\n250_200_default_C.npz"
+   },
+   "invariants": {
+    "S": {
+     "alive": 74529,
+     "expected": 74529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 4502.597983175084,
+     "head": "70ac490",
+     "dirty": true,
+     "solver": "v7_single",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_FUSED_CORRECTION_DENSITY": 1
+     },
+     "deep_wall": null
+    },
+    "V": {
+     "alive": 74529,
+     "expected": 74529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 3412.532522993573,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 1,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    },
+    "C": {
+     "alive": 74529,
+     "expected": 74529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 4311.013751385407,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "chain",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 1,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    }
+   },
+   "comparisons": {
+    "S_vs_V": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    },
+    "S_vs_C": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    }
+   }
+  },
+  "n250_200/unfused": {
+   "case": "cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025/case.yaml",
+   "steps": 200,
+   "setting": "unfused",
+   "dumps": {
+    "S": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\n250_200_unfused_S.npz",
+    "V": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\n250_200_unfused_V.npz",
+    "C": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\n250_200_unfused_C.npz"
+   },
+   "invariants": {
+    "S": {
+     "alive": 74529,
+     "expected": 74529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 3132.243310195688,
+     "head": "70ac490",
+     "dirty": true,
+     "solver": "v7_single",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_FUSED_CORRECTION_DENSITY": 0
+     },
+     "deep_wall": null
+    },
+    "V": {
+     "alive": 74529,
+     "expected": 74529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 2523.6624956994583,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 0,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    },
+    "C": {
+     "alive": 74529,
+     "expected": 74529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 3018.471532065179,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "chain",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 0,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    }
+   },
+   "comparisons": {
+    "S_vs_V": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    },
+    "S_vs_C": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    }
+   }
+  },
+  "n250_999/default": {
+   "case": "cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025/case.yaml",
+   "steps": 999,
+   "setting": "default",
+   "dumps": {
+    "S": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\n250_999_default_S.npz",
+    "V": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\n250_999_default_V.npz",
+    "C": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\n250_999_default_C.npz"
+   },
+   "invariants": {
+    "S": {
+     "alive": 74529,
+     "expected": 74529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 4418.768312632691,
+     "head": "70ac490",
+     "dirty": true,
+     "solver": "v7_single",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_FUSED_CORRECTION_DENSITY": 1
+     },
+     "deep_wall": null
+    },
+    "V": {
+     "alive": 74529,
+     "expected": 74529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 3226.23669923818,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 1,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    },
+    "C": {
+     "alive": 74529,
+     "expected": 74529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 4217.877217428548,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "chain",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 1,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    }
+   },
+   "comparisons": {
+    "S_vs_V": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    },
+    "S_vs_C": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    }
+   }
+  },
+  "n250_999/unfused": {
+   "case": "cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025/case.yaml",
+   "steps": 999,
+   "setting": "unfused",
+   "dumps": {
+    "S": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\n250_999_unfused_S.npz",
+    "V": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\n250_999_unfused_V.npz",
+    "C": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\n250_999_unfused_C.npz"
+   },
+   "invariants": {
+    "S": {
+     "alive": 74529,
+     "expected": 74529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 3064.001752020169,
+     "head": "70ac490",
+     "dirty": true,
+     "solver": "v7_single",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_FUSED_CORRECTION_DENSITY": 0
+     },
+     "deep_wall": null
+    },
+    "V": {
+     "alive": 74529,
+     "expected": 74529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 2505.5880361789323,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 0,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    },
+    "C": {
+     "alive": 74529,
+     "expected": 74529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 2951.136100293522,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "chain",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 0,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    }
+   },
+   "comparisons": {
+    "S_vs_V": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    },
+    "S_vs_C": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    }
+   }
+  },
+  "cavity2d_1m_200/default": {
+   "case": "cases/lid_driven_cavity_2d_gen/case.yaml",
+   "steps": 200,
+   "setting": "default",
+   "dumps": {
+    "S": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\cavity2d_1m_200_default_S.npz",
+    "V": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\cavity2d_1m_200_default_V.npz",
+    "C": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\cavity2d_1m_200_default_C.npz"
+   },
+   "invariants": {
+    "S": {
+     "alive": 1046529,
+     "expected": 1046529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 753.1305756417039,
+     "head": "70ac490",
+     "dirty": true,
+     "solver": "v7_single",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_FUSED_CORRECTION_DENSITY": 1
+     },
+     "deep_wall": null
+    },
+    "V": {
+     "alive": 1046529,
+     "expected": 1046529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 706.7142802323601,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 1,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    },
+    "C": {
+     "alive": 1046529,
+     "expected": 1046529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 741.5314334961129,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "chain",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 1,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    }
+   },
+   "comparisons": {
+    "S_vs_V": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    },
+    "S_vs_C": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    }
+   }
+  },
+  "cavity2d_1m_200/unfused": {
+   "case": "cases/lid_driven_cavity_2d_gen/case.yaml",
+   "steps": 200,
+   "setting": "unfused",
+   "dumps": {
+    "S": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\cavity2d_1m_200_unfused_S.npz",
+    "V": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\cavity2d_1m_200_unfused_V.npz",
+    "C": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\cavity2d_1m_200_unfused_C.npz"
+   },
+   "invariants": {
+    "S": {
+     "alive": 1046529,
+     "expected": 1046529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 434.2836546229226,
+     "head": "70ac490",
+     "dirty": true,
+     "solver": "v7_single",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_FUSED_CORRECTION_DENSITY": 0
+     },
+     "deep_wall": null
+    },
+    "V": {
+     "alive": 1046529,
+     "expected": 1046529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 417.6682872711835,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 0,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    },
+    "C": {
+     "alive": 1046529,
+     "expected": 1046529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 431.1231230433869,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "chain",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 0,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    }
+   },
+   "comparisons": {
+    "S_vs_V": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    },
+    "S_vs_C": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 1046529,
+       "rows": 1046529,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    }
+   }
+  },
+  "cavity3d_8m_b4_200/default": {
+   "case": "cases/cavity3d_8m_b4/case.yaml",
+   "steps": 200,
+   "setting": "default",
+   "dumps": {
+    "S": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\cavity3d_8m_b4_200_default_S.npz",
+    "V": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\cavity3d_8m_b4_200_default_V.npz",
+    "C": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\cavity3d_8m_b4_200_default_C.npz"
+   },
+   "invariants": {
+    "S": {
+     "alive": 9129329,
+     "expected": 9129329,
+     "drift": 0,
+     "overflow": {},
+     "fps": 15.358364749122243,
+     "head": "70ac490",
+     "dirty": true,
+     "solver": "v7_single",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_FUSED_CORRECTION_DENSITY": 1
+     },
+     "deep_wall": null
+    },
+    "V": {
+     "alive": 9129329,
+     "expected": 9129329,
+     "drift": 0,
+     "overflow": {},
+     "fps": 15.351538605121409,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 1,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    },
+    "C": {
+     "alive": 9129329,
+     "expected": 9129329,
+     "drift": 0,
+     "overflow": {},
+     "fps": 15.389114806321867,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "chain",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 1,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    }
+   },
+   "comparisons": {
+    "S_vs_V": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    },
+    "S_vs_C": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    }
+   }
+  },
+  "cavity3d_8m_b4_200/unfused": {
+   "case": "cases/cavity3d_8m_b4/case.yaml",
+   "steps": 200,
+   "setting": "unfused",
+   "dumps": {
+    "S": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\cavity3d_8m_b4_200_unfused_S.npz",
+    "V": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\cavity3d_8m_b4_200_unfused_V.npz",
+    "C": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\cavity3d_8m_b4_200_unfused_C.npz"
+   },
+   "invariants": {
+    "S": {
+     "alive": 9129329,
+     "expected": 9129329,
+     "drift": 0,
+     "overflow": {},
+     "fps": 6.811309547347169,
+     "head": "70ac490",
+     "dirty": true,
+     "solver": "v7_single",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_FUSED_CORRECTION_DENSITY": 0
+     },
+     "deep_wall": null
+    },
+    "V": {
+     "alive": 9129329,
+     "expected": 9129329,
+     "drift": 0,
+     "overflow": {},
+     "fps": 6.797293542084499,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 0,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    },
+    "C": {
+     "alive": 9129329,
+     "expected": 9129329,
+     "drift": 0,
+     "overflow": {},
+     "fps": 6.804543849803883,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "chain",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 0,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    }
+   },
+   "comparisons": {
+    "S_vs_V": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    },
+    "S_vs_C": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 9129329,
+       "rows": 9129329,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    }
+   }
+  },
+  "cavity3d_1m_200/default": {
+   "case": "cases/cavity3d_1m/case.yaml",
+   "steps": 200,
+   "setting": "default",
+   "dumps": {
+    "S": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\cavity3d_1m_200_default_S.npz",
+    "V": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\cavity3d_1m_200_default_V.npz",
+    "C": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\cavity3d_1m_200_default_C.npz"
+   },
+   "invariants": {
+    "S": {
+     "alive": 1685159,
+     "expected": 1685159,
+     "drift": 0,
+     "overflow": {},
+     "fps": 102.59171813629247,
+     "head": "70ac490",
+     "dirty": true,
+     "solver": "v7_single",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_FUSED_CORRECTION_DENSITY": 1
+     },
+     "deep_wall": [
+      [
+       true,
+       "auto: 3-D, 280,231 deep-wall candidates at the initial state = 16.63 % of 1,685,159 particles >= 1 %"
+      ]
+     ]
+    },
+    "V": {
+     "alive": 1685159,
+     "expected": 1685159,
+     "drift": 0,
+     "overflow": {},
+     "fps": 101.14177942651934,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 1,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": [
+      [
+       true,
+       "auto: 3-D, 280,231 deep-wall candidates at the initial state = 16.63 % of 1,685,159 particles >= 1 %"
+      ]
+     ]
+    },
+    "C": {
+     "alive": 1685159,
+     "expected": 1685159,
+     "drift": 0,
+     "overflow": {},
+     "fps": 102.29443866888371,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "chain",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 1,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": [
+      [
+       true,
+       "auto: 3-D, 280,231 deep-wall candidates at the initial state = 16.63 % of 1,685,159 particles >= 1 %"
+      ]
+     ]
+    }
+   },
+   "comparisons": {
+    "S_vs_V": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 1404928,
+       "rows": 1404928,
+       "max_abs_diff": null
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 1404928,
+       "rows": 1404928,
+       "max_abs_diff": null
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": "BIT-IDENTICAL (10 fields; correction_inverse, density_gradient_kernel_sum: 280231 deep-wall rows masked)",
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    },
+    "S_vs_C": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 1404928,
+       "rows": 1404928,
+       "max_abs_diff": null
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 1404928,
+       "rows": 1404928,
+       "max_abs_diff": null
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": "BIT-IDENTICAL (10 fields; correction_inverse, density_gradient_kernel_sum: 280231 deep-wall rows masked)",
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    }
+   }
+  },
+  "cavity3d_1m_200/unfused": {
+   "case": "cases/cavity3d_1m/case.yaml",
+   "steps": 200,
+   "setting": "unfused",
+   "dumps": {
+    "S": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\cavity3d_1m_200_unfused_S.npz",
+    "V": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\cavity3d_1m_200_unfused_V.npz",
+    "C": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\cavity3d_1m_200_unfused_C.npz"
+   },
+   "invariants": {
+    "S": {
+     "alive": 1685159,
+     "expected": 1685159,
+     "drift": 0,
+     "overflow": {},
+     "fps": 50.273056851532424,
+     "head": "70ac490",
+     "dirty": true,
+     "solver": "v7_single",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_FUSED_CORRECTION_DENSITY": 0
+     },
+     "deep_wall": [
+      [
+       true,
+       "auto: 3-D, 280,231 deep-wall candidates at the initial state = 16.63 % of 1,685,159 particles >= 1 %"
+      ]
+     ]
+    },
+    "V": {
+     "alive": 1685159,
+     "expected": 1685159,
+     "drift": 0,
+     "overflow": {},
+     "fps": 48.86075052795262,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 0,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": [
+      [
+       true,
+       "auto: 3-D, 280,231 deep-wall candidates at the initial state = 16.63 % of 1,685,159 particles >= 1 %"
+      ]
+     ]
+    },
+    "C": {
+     "alive": 1685159,
+     "expected": 1685159,
+     "drift": 0,
+     "overflow": {},
+     "fps": 49.18811329830748,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "chain",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 0,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": [
+      [
+       true,
+       "auto: 3-D, 280,231 deep-wall candidates at the initial state = 16.63 % of 1,685,159 particles >= 1 %"
+      ]
+     ]
+    }
+   },
+   "comparisons": {
+    "S_vs_V": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 1404928,
+       "rows": 1404928,
+       "max_abs_diff": null
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 1404928,
+       "rows": 1404928,
+       "max_abs_diff": null
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": "BIT-IDENTICAL (10 fields; correction_inverse, density_gradient_kernel_sum: 280231 deep-wall rows masked)",
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    },
+    "S_vs_C": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 1404928,
+       "rows": 1404928,
+       "max_abs_diff": null
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 1404928,
+       "rows": 1404928,
+       "max_abs_diff": null
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 1685159,
+       "rows": 1685159,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": "BIT-IDENTICAL (10 fields; correction_inverse, density_gradient_kernel_sum: 280231 deep-wall rows masked)",
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    }
+   }
+  },
+  "n250_adami_200/default": {
+   "case": "cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml",
+   "steps": 200,
+   "setting": "default",
+   "dumps": {
+    "S": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\n250_adami_200_default_S.npz",
+    "V": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\n250_adami_200_default_V.npz",
+    "C": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\n250_adami_200_default_C.npz"
+   },
+   "invariants": {
+    "S": {
+     "alive": 74529,
+     "expected": 74529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 3294.6161182638575,
+     "head": "70ac490",
+     "dirty": true,
+     "solver": "v7_single",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_FUSED_CORRECTION_DENSITY": 1
+     },
+     "deep_wall": null
+    },
+    "V": {
+     "alive": 74529,
+     "expected": 74529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 2689.4661593825226,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 1,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    },
+    "C": {
+     "alive": 74529,
+     "expected": 74529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 3184.9162404772596,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "chain",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 1,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    }
+   },
+   "comparisons": {
+    "S_vs_V": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "wall_dummy_velocity": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    },
+    "S_vs_C": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "wall_dummy_velocity": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    }
+   }
+  },
+  "n250_adami_200/unfused": {
+   "case": "cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml",
+   "steps": 200,
+   "setting": "unfused",
+   "dumps": {
+    "S": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\n250_adami_200_unfused_S.npz",
+    "V": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\n250_adami_200_unfused_V.npz",
+    "C": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\acceptance\\gpu\\n250_adami_200_unfused_C.npz"
+   },
+   "invariants": {
+    "S": {
+     "alive": 74529,
+     "expected": 74529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 2453.229184174736,
+     "head": "70ac490",
+     "dirty": true,
+     "solver": "v7_single",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_FUSED_CORRECTION_DENSITY": 0
+     },
+     "deep_wall": null
+    },
+    "V": {
+     "alive": 74529,
+     "expected": 74529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 2119.793778178727,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "single",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 0,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    },
+    "C": {
+     "alive": 74529,
+     "expected": 74529,
+     "drift": 0,
+     "overflow": {},
+     "fps": 2388.031187735748,
+     "head": "70ac490",
+     "dirty": false,
+     "solver": "v7",
+     "mode": "chain",
+     "switches": {
+      "V7_DENSITY_COPY_COMPUTE": 1,
+      "V7_GHOST_SEND_LANES": 32,
+      "V7_DEEP_WALL_SKIP": "auto",
+      "V7_DEEP_WALL_CHECK": 0,
+      "V7_FUSED_CORRECTION_DENSITY": 0,
+      "V7_BAND_OVERLAP": 0
+     },
+     "deep_wall": null
+    }
+   },
+   "comparisons": {
+    "S_vs_V": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "wall_dummy_velocity": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    },
+    "S_vs_C": {
+     "verdict": "BIT-IDENTICAL",
+     "fields": {
+      "acceleration": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "correction_inverse": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_gradient_kernel_sum": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "density_pressure_scratch": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "extension_fields": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "material": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "position_voxel_id": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "shift": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "velocity_mass": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      },
+      "wall_dummy_velocity": {
+       "identical": true,
+       "equal_rows": 74529,
+       "rows": 74529,
+       "max_abs_diff": 0.0
+      }
+     },
+     "masked": null,
+     "rc": 0,
+     "no_mask_verdict": "BIT-IDENTICAL"
+    }
+   }
+  }
+ },
+ "validation": {
+  "cavity2d_1m": {
+   "id": "validation/cavity2d_1m",
+   "rc": 0,
+   "command": [
+    "experiment/v7_single/_run_single_bench.py",
+    "--case",
+    "cases/lid_driven_cavity_2d_gen/case.yaml",
+    "--device",
+    "1",
+    "--warmup",
+    "200",
+    "--measure",
+    "1800",
+    "--in-flight",
+    "2",
+    "--validation",
+    "--tag",
+    "acceptance_validation"
+   ],
+   "steps": 2000,
+   "validation_enabled": true,
+   "message_counts": {
+    "ERROR": 0,
+    "WARNING": 0,
+    "INFO": 0,
+    "VERBOSE": 0
+   },
+   "message_lines": 0,
+   "drift": 0,
+   "overflow": {},
+   "fps": 710.9165,
+   "when": "2026-10-09 17:23:08"
+  },
+  "cavity3d_8m_b4": {
+   "id": "validation/cavity3d_8m_b4",
+   "rc": 0,
+   "command": [
+    "experiment/v7_single/_run_single_bench.py",
+    "--case",
+    "cases/cavity3d_8m_b4/case.yaml",
+    "--device",
+    "1",
+    "--warmup",
+    "200",
+    "--measure",
+    "1800",
+    "--in-flight",
+    "2",
+    "--validation",
+    "--tag",
+    "acceptance_validation"
+   ],
+   "steps": 2000,
+   "validation_enabled": true,
+   "message_counts": {
+    "ERROR": 0,
+    "WARNING": 0,
+    "INFO": 0,
+    "VERBOSE": 0
+   },
+   "message_lines": 0,
+   "drift": 0,
+   "overflow": {},
+   "fps": 14.7398,
+   "when": "2026-10-09 17:25:32"
+  }
+ }
+}

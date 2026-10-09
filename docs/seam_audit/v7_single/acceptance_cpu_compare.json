@@ -1,0 +1,7986 @@
+{
+ "cases": {
+  "cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025/case.yaml": {
+   "default": {
+    "recordings": {
+     "step": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 23
+       },
+       "v7_single": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 23
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 4,
+        "barriers": 3,
+        "binds": 4,
+        "fills": 0,
+        "copies": 0,
+        "events": 17
+       },
+       "v7_single": {
+        "dispatches": 4,
+        "barriers": 3,
+        "binds": 4,
+        "fills": 0,
+        "copies": 0,
+        "events": 17
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed_v7_only": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "v7": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       686088,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       686088,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "material",
+       0,
+       6,
+       343044,
+       "CONCURRENT"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       2744352,
+       "CONCURRENT"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       12548,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       1204608,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       200768,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       12548,
+       "CONCURRENT"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "CONCURRENT"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "CONCURRENT"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       128,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 12006540,
+     "pipelines": [
+      "append_departed",
+      "bootstrap_half_kick",
+      "correction_all",
+      "correction_boundary",
+      "correction_boundary_band",
+      "correction_density_all",
+      "correction_density_boundary",
+      "correction_density_boundary_band",
+      "correction_density_interior",
+      "correction_interior",
+      "defrag",
+      "density_all",
+      "density_boundary",
+      "density_boundary_band",
+      "density_deep_interior",
+      "density_scratch_copy",
+      "expand_ghost_lists",
+      "force_all",
+      "force_boundary",
+      "force_boundary_band",
+      "force_deep_interior",
+      "force_deep_interior_scratch",
+      "ghost_send_lanes_leading",
+      "ghost_send_lanes_trailing",
+      "initialize_voxelization",
+      "install_migrations_leading",
+      "install_migrations_trailing",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 29,
+     "deep_wall": [
+      false,
+      "auto: 2-D slab"
+     ],
+     "fused": [
+      true,
+      "one neighbour traversal for correction + density, band 2"
+     ]
+    },
+    "v7_single": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       686088,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       686088,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "material",
+       0,
+       6,
+       343044,
+       "EXCLUSIVE"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       2744352,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       1204608,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       200768,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "EXCLUSIVE"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       16,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 12006540,
+     "pipelines": [
+      "bootstrap_half_kick",
+      "correction_density_all",
+      "defrag",
+      "density_scratch_copy",
+      "force_all",
+      "initialize_voxelization",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 8,
+     "deep_wall": [
+      false,
+      "auto: 2-D slab"
+     ],
+     "fused": [
+      true,
+      ""
+     ]
+    }
+   },
+   "unfused": {
+    "recordings": {
+     "step": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 6,
+        "barriers": 7,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 27
+       },
+       "v7_single": {
+        "dispatches": 6,
+        "barriers": 7,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 27
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 5,
+        "barriers": 4,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 21
+       },
+       "v7_single": {
+        "dispatches": 5,
+        "barriers": 4,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 21
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed_v7_only": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "v7": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       686088,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       686088,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "material",
+       0,
+       6,
+       343044,
+       "CONCURRENT"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       2744352,
+       "CONCURRENT"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       12548,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       1204608,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       200768,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       12548,
+       "CONCURRENT"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "CONCURRENT"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "CONCURRENT"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       128,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 12006540,
+     "pipelines": [
+      "append_departed",
+      "bootstrap_half_kick",
+      "correction_all",
+      "correction_boundary",
+      "correction_boundary_band",
+      "correction_interior",
+      "defrag",
+      "density_all",
+      "density_boundary",
+      "density_boundary_band",
+      "density_deep_interior",
+      "density_scratch_copy",
+      "expand_ghost_lists",
+      "force_all",
+      "force_boundary",
+      "force_boundary_band",
+      "force_deep_interior",
+      "force_deep_interior_scratch",
+      "ghost_send_lanes_leading",
+      "ghost_send_lanes_trailing",
+      "initialize_voxelization",
+      "install_migrations_leading",
+      "install_migrations_trailing",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 25,
+     "deep_wall": [
+      false,
+      "auto: 2-D slab"
+     ],
+     "fused": [
+      false,
+      "V7_FUSED_CORRECTION_DENSITY=0"
+     ]
+    },
+    "v7_single": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       686088,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       686088,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "material",
+       0,
+       6,
+       343044,
+       "EXCLUSIVE"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       2744352,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       1204608,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       200768,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "EXCLUSIVE"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       16,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 12006540,
+     "pipelines": [
+      "bootstrap_half_kick",
+      "correction_all",
+      "defrag",
+      "density_all",
+      "density_scratch_copy",
+      "force_all",
+      "initialize_voxelization",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 9,
+     "deep_wall": [
+      false,
+      "auto: 2-D slab"
+     ],
+     "fused": [
+      false,
+      ""
+     ]
+    }
+   },
+   "transfer_copy": {
+    "recordings": {
+     "step": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 4,
+        "barriers": 6,
+        "binds": 4,
+        "fills": 0,
+        "copies": 1,
+        "events": 21
+       },
+       "v7_single": {
+        "dispatches": 4,
+        "barriers": 6,
+        "binds": 4,
+        "fills": 0,
+        "copies": 1,
+        "events": 21
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 3,
+        "barriers": 3,
+        "binds": 3,
+        "fills": 0,
+        "copies": 1,
+        "events": 15
+       },
+       "v7_single": {
+        "dispatches": 3,
+        "barriers": 3,
+        "binds": 3,
+        "fills": 0,
+        "copies": 1,
+        "events": 15
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed_v7_only": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "v7": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       686088,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       686088,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "material",
+       0,
+       6,
+       343044,
+       "CONCURRENT"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       2744352,
+       "CONCURRENT"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       12548,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       1204608,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       200768,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       12548,
+       "CONCURRENT"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "CONCURRENT"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "CONCURRENT"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       128,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 12006540,
+     "pipelines": [
+      "append_departed",
+      "bootstrap_half_kick",
+      "correction_all",
+      "correction_boundary",
+      "correction_boundary_band",
+      "correction_density_all",
+      "correction_density_boundary",
+      "correction_density_boundary_band",
+      "correction_density_interior",
+      "correction_interior",
+      "defrag",
+      "density_all",
+      "density_boundary",
+      "density_boundary_band",
+      "density_deep_interior",
+      "expand_ghost_lists",
+      "force_all",
+      "force_boundary",
+      "force_boundary_band",
+      "force_deep_interior",
+      "force_deep_interior_scratch",
+      "ghost_send_lanes_leading",
+      "ghost_send_lanes_trailing",
+      "initialize_voxelization",
+      "install_migrations_leading",
+      "install_migrations_trailing",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 28,
+     "deep_wall": [
+      false,
+      "auto: 2-D slab"
+     ],
+     "fused": [
+      true,
+      "one neighbour traversal for correction + density, band 2"
+     ]
+    },
+    "v7_single": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       686088,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       686088,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "material",
+       0,
+       6,
+       343044,
+       "EXCLUSIVE"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       2744352,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       1204608,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       200768,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "EXCLUSIVE"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       16,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 12006540,
+     "pipelines": [
+      "bootstrap_half_kick",
+      "correction_density_all",
+      "defrag",
+      "force_all",
+      "initialize_voxelization",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 7,
+     "deep_wall": [
+      false,
+      "auto: 2-D slab"
+     ],
+     "fused": [
+      true,
+      ""
+     ]
+    }
+   }
+  },
+  "cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml": {
+   "default": {
+    "recordings": {
+     "step": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 6,
+        "barriers": 7,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 27
+       },
+       "v7_single": {
+        "dispatches": 6,
+        "barriers": 7,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 27
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 6,
+        "barriers": 6,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 26
+       },
+       "v7_single": {
+        "dispatches": 6,
+        "barriers": 6,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 26
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed_v7_only": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 2,
+        "barriers": 3,
+        "binds": 2,
+        "fills": 0,
+        "copies": 0,
+        "events": 11
+       },
+       "v7_single": {
+        "dispatches": 2,
+        "barriers": 3,
+        "binds": 2,
+        "fills": 0,
+        "copies": 0,
+        "events": 11
+       }
+      }
+     }
+    },
+    "v7": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       686088,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       686088,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "material",
+       0,
+       6,
+       343044,
+       "CONCURRENT"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       2744352,
+       "CONCURRENT"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       12548,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       1204608,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       200768,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       12548,
+       "CONCURRENT"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "CONCURRENT"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "CONCURRENT"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       128,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 12006540,
+     "pipelines": [
+      "append_departed",
+      "bootstrap_half_kick",
+      "correction_all",
+      "correction_boundary",
+      "correction_boundary_band",
+      "correction_density_all",
+      "correction_density_boundary",
+      "correction_density_boundary_band",
+      "correction_density_interior",
+      "correction_interior",
+      "defrag",
+      "density_all",
+      "density_boundary",
+      "density_boundary_band",
+      "density_deep_interior",
+      "density_scratch_copy",
+      "expand_ghost_lists",
+      "force_all",
+      "force_boundary",
+      "force_boundary_band",
+      "force_deep_interior",
+      "force_deep_interior_scratch",
+      "ghost_send_lanes_leading",
+      "ghost_send_lanes_trailing",
+      "initialize_voxelization",
+      "install_migrations_leading",
+      "install_migrations_trailing",
+      "predict",
+      "update_voxel",
+      "wall_extrapolate",
+      "wall_extrapolate_scratch"
+     ],
+     "pipeline_count": 31,
+     "deep_wall": [
+      false,
+      "auto: 2-D slab"
+     ],
+     "fused": [
+      true,
+      "one neighbour traversal for correction + density, band 2"
+     ]
+    },
+    "v7_single": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       686088,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       686088,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "material",
+       0,
+       6,
+       343044,
+       "EXCLUSIVE"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       2744352,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       1204608,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       200768,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "EXCLUSIVE"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       16,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 12006540,
+     "pipelines": [
+      "bootstrap_half_kick",
+      "correction_density_all",
+      "defrag",
+      "density_scratch_copy",
+      "force_all",
+      "initialize_voxelization",
+      "predict",
+      "update_voxel",
+      "wall_extrapolate"
+     ],
+     "pipeline_count": 9,
+     "deep_wall": [
+      false,
+      "auto: 2-D slab"
+     ],
+     "fused": [
+      true,
+      ""
+     ]
+    }
+   },
+   "unfused": {
+    "recordings": {
+     "step": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 7,
+        "barriers": 8,
+        "binds": 7,
+        "fills": 0,
+        "copies": 0,
+        "events": 31
+       },
+       "v7_single": {
+        "dispatches": 7,
+        "barriers": 8,
+        "binds": 7,
+        "fills": 0,
+        "copies": 0,
+        "events": 31
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 7,
+        "barriers": 7,
+        "binds": 7,
+        "fills": 0,
+        "copies": 0,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 7,
+        "barriers": 7,
+        "binds": 7,
+        "fills": 0,
+        "copies": 0,
+        "events": 30
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed_v7_only": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 2,
+        "barriers": 3,
+        "binds": 2,
+        "fills": 0,
+        "copies": 0,
+        "events": 11
+       },
+       "v7_single": {
+        "dispatches": 2,
+        "barriers": 3,
+        "binds": 2,
+        "fills": 0,
+        "copies": 0,
+        "events": 11
+       }
+      }
+     }
+    },
+    "v7": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       686088,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       686088,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "material",
+       0,
+       6,
+       343044,
+       "CONCURRENT"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       2744352,
+       "CONCURRENT"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       12548,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       1204608,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       200768,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       12548,
+       "CONCURRENT"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "CONCURRENT"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "CONCURRENT"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       128,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 12006540,
+     "pipelines": [
+      "append_departed",
+      "bootstrap_half_kick",
+      "correction_all",
+      "correction_boundary",
+      "correction_boundary_band",
+      "correction_interior",
+      "defrag",
+      "density_all",
+      "density_boundary",
+      "density_boundary_band",
+      "density_deep_interior",
+      "density_scratch_copy",
+      "expand_ghost_lists",
+      "force_all",
+      "force_boundary",
+      "force_boundary_band",
+      "force_deep_interior",
+      "force_deep_interior_scratch",
+      "ghost_send_lanes_leading",
+      "ghost_send_lanes_trailing",
+      "initialize_voxelization",
+      "install_migrations_leading",
+      "install_migrations_trailing",
+      "predict",
+      "update_voxel",
+      "wall_extrapolate",
+      "wall_extrapolate_scratch"
+     ],
+     "pipeline_count": 27,
+     "deep_wall": [
+      false,
+      "auto: 2-D slab"
+     ],
+     "fused": [
+      false,
+      "V7_FUSED_CORRECTION_DENSITY=0"
+     ]
+    },
+    "v7_single": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       686088,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       686088,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "material",
+       0,
+       6,
+       343044,
+       "EXCLUSIVE"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       2744352,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       1204608,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       200768,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "EXCLUSIVE"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       16,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 12006540,
+     "pipelines": [
+      "bootstrap_half_kick",
+      "correction_all",
+      "defrag",
+      "density_all",
+      "density_scratch_copy",
+      "force_all",
+      "initialize_voxelization",
+      "predict",
+      "update_voxel",
+      "wall_extrapolate"
+     ],
+     "pipeline_count": 10,
+     "deep_wall": [
+      false,
+      "auto: 2-D slab"
+     ],
+     "fused": [
+      false,
+      ""
+     ]
+    }
+   },
+   "transfer_copy": {
+    "recordings": {
+     "step": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 5,
+        "barriers": 7,
+        "binds": 5,
+        "fills": 0,
+        "copies": 1,
+        "events": 25
+       },
+       "v7_single": {
+        "dispatches": 5,
+        "barriers": 7,
+        "binds": 5,
+        "fills": 0,
+        "copies": 1,
+        "events": 25
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 1,
+        "events": 24
+       },
+       "v7_single": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 1,
+        "events": 24
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed_v7_only": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 2,
+        "barriers": 3,
+        "binds": 2,
+        "fills": 0,
+        "copies": 0,
+        "events": 11
+       },
+       "v7_single": {
+        "dispatches": 2,
+        "barriers": 3,
+        "binds": 2,
+        "fills": 0,
+        "copies": 0,
+        "events": 11
+       }
+      }
+     }
+    },
+    "v7": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       686088,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       686088,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "material",
+       0,
+       6,
+       343044,
+       "CONCURRENT"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       2744352,
+       "CONCURRENT"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       1372176,
+       "CONCURRENT"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       12548,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       1204608,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       200768,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       12548,
+       "CONCURRENT"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "CONCURRENT"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "CONCURRENT"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       128,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 12006540,
+     "pipelines": [
+      "append_departed",
+      "bootstrap_half_kick",
+      "correction_all",
+      "correction_boundary",
+      "correction_boundary_band",
+      "correction_density_all",
+      "correction_density_boundary",
+      "correction_density_boundary_band",
+      "correction_density_interior",
+      "correction_interior",
+      "defrag",
+      "density_all",
+      "density_boundary",
+      "density_boundary_band",
+      "density_deep_interior",
+      "expand_ghost_lists",
+      "force_all",
+      "force_boundary",
+      "force_boundary_band",
+      "force_deep_interior",
+      "force_deep_interior_scratch",
+      "ghost_send_lanes_leading",
+      "ghost_send_lanes_trailing",
+      "initialize_voxelization",
+      "install_migrations_leading",
+      "install_migrations_trailing",
+      "predict",
+      "update_voxel",
+      "wall_extrapolate",
+      "wall_extrapolate_scratch"
+     ],
+     "pipeline_count": 30,
+     "deep_wall": [
+      false,
+      "auto: 2-D slab"
+     ],
+     "fused": [
+      true,
+      "one neighbour traversal for correction + density, band 2"
+     ]
+    },
+    "v7_single": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       686088,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       686088,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "material",
+       0,
+       6,
+       343044,
+       "EXCLUSIVE"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       2744352,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       1372176,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       1204608,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       200768,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       12548,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "EXCLUSIVE"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       16,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 12006540,
+     "pipelines": [
+      "bootstrap_half_kick",
+      "correction_density_all",
+      "defrag",
+      "force_all",
+      "initialize_voxelization",
+      "predict",
+      "update_voxel",
+      "wall_extrapolate"
+     ],
+     "pipeline_count": 8,
+     "deep_wall": [
+      false,
+      "auto: 2-D slab"
+     ],
+     "fused": [
+      true,
+      ""
+     ]
+    }
+   }
+  },
+  "cases/lid_driven_cavity_2d_gen/case.yaml": {
+   "default": {
+    "recordings": {
+     "step": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 23
+       },
+       "v7_single": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 23
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 4,
+        "barriers": 3,
+        "binds": 4,
+        "fills": 0,
+        "copies": 0,
+        "events": 17
+       },
+       "v7_single": {
+        "dispatches": 4,
+        "barriers": 3,
+        "binds": 4,
+        "fills": 0,
+        "copies": 0,
+        "events": 17
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed_v7_only": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "v7": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       19257360,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       9628680,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       9628680,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       19257360,
+       "CONCURRENT"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       19257360,
+       "CONCURRENT"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       19257360,
+       "CONCURRENT"
+      ],
+      [
+       "material",
+       0,
+       6,
+       4814340,
+       "CONCURRENT"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       38514720,
+       "CONCURRENT"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       19257360,
+       "CONCURRENT"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       19257360,
+       "CONCURRENT"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       169748,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       169748,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       16295808,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       2715968,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       169748,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       169748,
+       "CONCURRENT"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "CONCURRENT"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "CONCURRENT"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       128,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 168501900,
+     "pipelines": [
+      "append_departed",
+      "bootstrap_half_kick",
+      "correction_all",
+      "correction_boundary",
+      "correction_boundary_band",
+      "correction_density_all",
+      "correction_density_boundary",
+      "correction_density_boundary_band",
+      "correction_density_interior",
+      "correction_interior",
+      "defrag",
+      "density_all",
+      "density_boundary",
+      "density_boundary_band",
+      "density_deep_interior",
+      "density_scratch_copy",
+      "expand_ghost_lists",
+      "force_all",
+      "force_boundary",
+      "force_boundary_band",
+      "force_deep_interior",
+      "force_deep_interior_scratch",
+      "ghost_send_lanes_leading",
+      "ghost_send_lanes_trailing",
+      "initialize_voxelization",
+      "install_migrations_leading",
+      "install_migrations_trailing",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 29,
+     "deep_wall": [
+      false,
+      "auto: 2-D slab"
+     ],
+     "fused": [
+      true,
+      "one neighbour traversal for correction + density, band 2"
+     ]
+    },
+    "v7_single": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       19257360,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       9628680,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       9628680,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       19257360,
+       "EXCLUSIVE"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       19257360,
+       "EXCLUSIVE"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       19257360,
+       "EXCLUSIVE"
+      ],
+      [
+       "material",
+       0,
+       6,
+       4814340,
+       "EXCLUSIVE"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       38514720,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       19257360,
+       "EXCLUSIVE"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       19257360,
+       "EXCLUSIVE"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       169748,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       169748,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       16295808,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       2715968,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       169748,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "EXCLUSIVE"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       16,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 168501900,
+     "pipelines": [
+      "bootstrap_half_kick",
+      "correction_density_all",
+      "defrag",
+      "density_scratch_copy",
+      "force_all",
+      "initialize_voxelization",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 8,
+     "deep_wall": [
+      false,
+      "auto: 2-D slab"
+     ],
+     "fused": [
+      true,
+      ""
+     ]
+    }
+   },
+   "unfused": {
+    "recordings": {
+     "step": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 6,
+        "barriers": 7,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 27
+       },
+       "v7_single": {
+        "dispatches": 6,
+        "barriers": 7,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 27
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 5,
+        "barriers": 4,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 21
+       },
+       "v7_single": {
+        "dispatches": 5,
+        "barriers": 4,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 21
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed_v7_only": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "v7": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       19257360,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       9628680,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       9628680,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       19257360,
+       "CONCURRENT"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       19257360,
+       "CONCURRENT"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       19257360,
+       "CONCURRENT"
+      ],
+      [
+       "material",
+       0,
+       6,
+       4814340,
+       "CONCURRENT"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       38514720,
+       "CONCURRENT"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       19257360,
+       "CONCURRENT"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       19257360,
+       "CONCURRENT"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       169748,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       169748,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       16295808,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       2715968,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       169748,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       169748,
+       "CONCURRENT"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "CONCURRENT"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "CONCURRENT"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       128,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 168501900,
+     "pipelines": [
+      "append_departed",
+      "bootstrap_half_kick",
+      "correction_all",
+      "correction_boundary",
+      "correction_boundary_band",
+      "correction_interior",
+      "defrag",
+      "density_all",
+      "density_boundary",
+      "density_boundary_band",
+      "density_deep_interior",
+      "density_scratch_copy",
+      "expand_ghost_lists",
+      "force_all",
+      "force_boundary",
+      "force_boundary_band",
+      "force_deep_interior",
+      "force_deep_interior_scratch",
+      "ghost_send_lanes_leading",
+      "ghost_send_lanes_trailing",
+      "initialize_voxelization",
+      "install_migrations_leading",
+      "install_migrations_trailing",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 25,
+     "deep_wall": [
+      false,
+      "auto: 2-D slab"
+     ],
+     "fused": [
+      false,
+      "V7_FUSED_CORRECTION_DENSITY=0"
+     ]
+    },
+    "v7_single": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       19257360,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       9628680,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       9628680,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       19257360,
+       "EXCLUSIVE"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       19257360,
+       "EXCLUSIVE"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       19257360,
+       "EXCLUSIVE"
+      ],
+      [
+       "material",
+       0,
+       6,
+       4814340,
+       "EXCLUSIVE"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       38514720,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       19257360,
+       "EXCLUSIVE"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       19257360,
+       "EXCLUSIVE"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       169748,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       169748,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       16295808,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       2715968,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       169748,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "EXCLUSIVE"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       16,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 168501900,
+     "pipelines": [
+      "bootstrap_half_kick",
+      "correction_all",
+      "defrag",
+      "density_all",
+      "density_scratch_copy",
+      "force_all",
+      "initialize_voxelization",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 9,
+     "deep_wall": [
+      false,
+      "auto: 2-D slab"
+     ],
+     "fused": [
+      false,
+      ""
+     ]
+    }
+   },
+   "transfer_copy": {
+    "recordings": {
+     "step": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 4,
+        "barriers": 6,
+        "binds": 4,
+        "fills": 0,
+        "copies": 1,
+        "events": 21
+       },
+       "v7_single": {
+        "dispatches": 4,
+        "barriers": 6,
+        "binds": 4,
+        "fills": 0,
+        "copies": 1,
+        "events": 21
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 3,
+        "barriers": 3,
+        "binds": 3,
+        "fills": 0,
+        "copies": 1,
+        "events": 15
+       },
+       "v7_single": {
+        "dispatches": 3,
+        "barriers": 3,
+        "binds": 3,
+        "fills": 0,
+        "copies": 1,
+        "events": 15
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed_v7_only": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "v7": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       19257360,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       9628680,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       9628680,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       19257360,
+       "CONCURRENT"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       19257360,
+       "CONCURRENT"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       19257360,
+       "CONCURRENT"
+      ],
+      [
+       "material",
+       0,
+       6,
+       4814340,
+       "CONCURRENT"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       38514720,
+       "CONCURRENT"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       19257360,
+       "CONCURRENT"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       19257360,
+       "CONCURRENT"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       169748,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       169748,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       16295808,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       2715968,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       169748,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       169748,
+       "CONCURRENT"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "CONCURRENT"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "CONCURRENT"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       128,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 168501900,
+     "pipelines": [
+      "append_departed",
+      "bootstrap_half_kick",
+      "correction_all",
+      "correction_boundary",
+      "correction_boundary_band",
+      "correction_density_all",
+      "correction_density_boundary",
+      "correction_density_boundary_band",
+      "correction_density_interior",
+      "correction_interior",
+      "defrag",
+      "density_all",
+      "density_boundary",
+      "density_boundary_band",
+      "density_deep_interior",
+      "expand_ghost_lists",
+      "force_all",
+      "force_boundary",
+      "force_boundary_band",
+      "force_deep_interior",
+      "force_deep_interior_scratch",
+      "ghost_send_lanes_leading",
+      "ghost_send_lanes_trailing",
+      "initialize_voxelization",
+      "install_migrations_leading",
+      "install_migrations_trailing",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 28,
+     "deep_wall": [
+      false,
+      "auto: 2-D slab"
+     ],
+     "fused": [
+      true,
+      "one neighbour traversal for correction + density, band 2"
+     ]
+    },
+    "v7_single": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       19257360,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       9628680,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       9628680,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       19257360,
+       "EXCLUSIVE"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       19257360,
+       "EXCLUSIVE"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       19257360,
+       "EXCLUSIVE"
+      ],
+      [
+       "material",
+       0,
+       6,
+       4814340,
+       "EXCLUSIVE"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       38514720,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       19257360,
+       "EXCLUSIVE"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       19257360,
+       "EXCLUSIVE"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       169748,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       169748,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       16295808,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       2715968,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       169748,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "EXCLUSIVE"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       16,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 168501900,
+     "pipelines": [
+      "bootstrap_half_kick",
+      "correction_density_all",
+      "defrag",
+      "force_all",
+      "initialize_voxelization",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 7,
+     "deep_wall": [
+      false,
+      "auto: 2-D slab"
+     ],
+     "fused": [
+      true,
+      ""
+     ]
+    }
+   }
+  },
+  "cases/cavity3d_8m_b4/case.yaml": {
+   "default": {
+    "recordings": {
+     "step": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 23
+       },
+       "v7_single": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 23
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 4,
+        "barriers": 3,
+        "binds": 4,
+        "fills": 0,
+        "copies": 0,
+        "events": 17
+       },
+       "v7_single": {
+        "dispatches": 4,
+        "barriers": 3,
+        "binds": 4,
+        "fills": 0,
+        "copies": 0,
+        "events": 17
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed_v7_only": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "v7": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       167981072,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       83990536,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       83990536,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       167981072,
+       "CONCURRENT"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       167981072,
+       "CONCURRENT"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       167981072,
+       "CONCURRENT"
+      ],
+      [
+       "material",
+       0,
+       6,
+       41995268,
+       "CONCURRENT"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       335962144,
+       "CONCURRENT"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       167981072,
+       "CONCURRENT"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       167981072,
+       "CONCURRENT"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       595512,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       595512,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       76225536,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       19056384,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       595512,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       595512,
+       "CONCURRENT"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "CONCURRENT"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "CONCURRENT"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       128,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 1469834380,
+     "pipelines": [
+      "append_departed",
+      "bootstrap_half_kick",
+      "correction_all",
+      "correction_boundary",
+      "correction_boundary_band",
+      "correction_density_all",
+      "correction_density_boundary",
+      "correction_density_boundary_band",
+      "correction_density_interior",
+      "correction_interior",
+      "defrag",
+      "density_all",
+      "density_boundary",
+      "density_boundary_band",
+      "density_deep_interior",
+      "density_scratch_copy",
+      "expand_ghost_lists",
+      "force_all",
+      "force_boundary",
+      "force_boundary_band",
+      "force_deep_interior",
+      "force_deep_interior_scratch",
+      "ghost_send_lanes_leading",
+      "ghost_send_lanes_trailing",
+      "initialize_voxelization",
+      "install_migrations_leading",
+      "install_migrations_trailing",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 29,
+     "deep_wall": [
+      false,
+      "auto: 3-D, 0 deep-wall candidates at the initial state = 0.00 % of 9,129,329 particles < 1 %"
+     ],
+     "fused": [
+      true,
+      "one neighbour traversal for correction + density, band 2"
+     ]
+    },
+    "v7_single": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       167981072,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       83990536,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       83990536,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       167981072,
+       "EXCLUSIVE"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       167981072,
+       "EXCLUSIVE"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       167981072,
+       "EXCLUSIVE"
+      ],
+      [
+       "material",
+       0,
+       6,
+       41995268,
+       "EXCLUSIVE"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       335962144,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       167981072,
+       "EXCLUSIVE"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       167981072,
+       "EXCLUSIVE"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       595512,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       595512,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       76225536,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       19056384,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       595512,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "EXCLUSIVE"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       16,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 1469834380,
+     "pipelines": [
+      "bootstrap_half_kick",
+      "correction_density_all",
+      "defrag",
+      "density_scratch_copy",
+      "force_all",
+      "initialize_voxelization",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 8,
+     "deep_wall": [
+      false,
+      "auto: 3-D, 0 deep-wall candidates at the initial state = 0.00 % of 9,129,329 particles < 1 %"
+     ],
+     "fused": [
+      true,
+      ""
+     ]
+    }
+   },
+   "unfused": {
+    "recordings": {
+     "step": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 6,
+        "barriers": 7,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 27
+       },
+       "v7_single": {
+        "dispatches": 6,
+        "barriers": 7,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 27
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 5,
+        "barriers": 4,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 21
+       },
+       "v7_single": {
+        "dispatches": 5,
+        "barriers": 4,
+        "binds": 5,
+        "fills": 0,
+        "copies": 0,
+        "events": 21
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed_v7_only": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "v7": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       167981072,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       83990536,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       83990536,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       167981072,
+       "CONCURRENT"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       167981072,
+       "CONCURRENT"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       167981072,
+       "CONCURRENT"
+      ],
+      [
+       "material",
+       0,
+       6,
+       41995268,
+       "CONCURRENT"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       335962144,
+       "CONCURRENT"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       167981072,
+       "CONCURRENT"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       167981072,
+       "CONCURRENT"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       595512,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       595512,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       76225536,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       19056384,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       595512,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       595512,
+       "CONCURRENT"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "CONCURRENT"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "CONCURRENT"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       128,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 1469834380,
+     "pipelines": [
+      "append_departed",
+      "bootstrap_half_kick",
+      "correction_all",
+      "correction_boundary",
+      "correction_boundary_band",
+      "correction_interior",
+      "defrag",
+      "density_all",
+      "density_boundary",
+      "density_boundary_band",
+      "density_deep_interior",
+      "density_scratch_copy",
+      "expand_ghost_lists",
+      "force_all",
+      "force_boundary",
+      "force_boundary_band",
+      "force_deep_interior",
+      "force_deep_interior_scratch",
+      "ghost_send_lanes_leading",
+      "ghost_send_lanes_trailing",
+      "initialize_voxelization",
+      "install_migrations_leading",
+      "install_migrations_trailing",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 25,
+     "deep_wall": [
+      false,
+      "auto: 3-D, 0 deep-wall candidates at the initial state = 0.00 % of 9,129,329 particles < 1 %"
+     ],
+     "fused": [
+      false,
+      "V7_FUSED_CORRECTION_DENSITY=0"
+     ]
+    },
+    "v7_single": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       167981072,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       83990536,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       83990536,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       167981072,
+       "EXCLUSIVE"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       167981072,
+       "EXCLUSIVE"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       167981072,
+       "EXCLUSIVE"
+      ],
+      [
+       "material",
+       0,
+       6,
+       41995268,
+       "EXCLUSIVE"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       335962144,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       167981072,
+       "EXCLUSIVE"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       167981072,
+       "EXCLUSIVE"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       595512,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       595512,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       76225536,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       19056384,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       595512,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "EXCLUSIVE"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       16,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 1469834380,
+     "pipelines": [
+      "bootstrap_half_kick",
+      "correction_all",
+      "defrag",
+      "density_all",
+      "density_scratch_copy",
+      "force_all",
+      "initialize_voxelization",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 9,
+     "deep_wall": [
+      false,
+      "auto: 3-D, 0 deep-wall candidates at the initial state = 0.00 % of 9,129,329 particles < 1 %"
+     ],
+     "fused": [
+      false,
+      ""
+     ]
+    }
+   },
+   "transfer_copy": {
+    "recordings": {
+     "step": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 4,
+        "barriers": 6,
+        "binds": 4,
+        "fills": 0,
+        "copies": 1,
+        "events": 21
+       },
+       "v7_single": {
+        "dispatches": 4,
+        "barriers": 6,
+        "binds": 4,
+        "fills": 0,
+        "copies": 1,
+        "events": 21
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 3,
+        "barriers": 3,
+        "binds": 3,
+        "fills": 0,
+        "copies": 1,
+        "events": 15
+       },
+       "v7_single": {
+        "dispatches": 3,
+        "barriers": 3,
+        "binds": 3,
+        "fills": 0,
+        "copies": 1,
+        "events": 15
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed_v7_only": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "v7": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       167981072,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       83990536,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       83990536,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       167981072,
+       "CONCURRENT"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       167981072,
+       "CONCURRENT"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       167981072,
+       "CONCURRENT"
+      ],
+      [
+       "material",
+       0,
+       6,
+       41995268,
+       "CONCURRENT"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       335962144,
+       "CONCURRENT"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       167981072,
+       "CONCURRENT"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       167981072,
+       "CONCURRENT"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       595512,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       595512,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       76225536,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       19056384,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       595512,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       595512,
+       "CONCURRENT"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "CONCURRENT"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "CONCURRENT"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       128,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 1469834380,
+     "pipelines": [
+      "append_departed",
+      "bootstrap_half_kick",
+      "correction_all",
+      "correction_boundary",
+      "correction_boundary_band",
+      "correction_density_all",
+      "correction_density_boundary",
+      "correction_density_boundary_band",
+      "correction_density_interior",
+      "correction_interior",
+      "defrag",
+      "density_all",
+      "density_boundary",
+      "density_boundary_band",
+      "density_deep_interior",
+      "expand_ghost_lists",
+      "force_all",
+      "force_boundary",
+      "force_boundary_band",
+      "force_deep_interior",
+      "force_deep_interior_scratch",
+      "ghost_send_lanes_leading",
+      "ghost_send_lanes_trailing",
+      "initialize_voxelization",
+      "install_migrations_leading",
+      "install_migrations_trailing",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 28,
+     "deep_wall": [
+      false,
+      "auto: 3-D, 0 deep-wall candidates at the initial state = 0.00 % of 9,129,329 particles < 1 %"
+     ],
+     "fused": [
+      true,
+      "one neighbour traversal for correction + density, band 2"
+     ]
+    },
+    "v7_single": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       167981072,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       83990536,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       83990536,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       167981072,
+       "EXCLUSIVE"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       167981072,
+       "EXCLUSIVE"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       167981072,
+       "EXCLUSIVE"
+      ],
+      [
+       "material",
+       0,
+       6,
+       41995268,
+       "EXCLUSIVE"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       335962144,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       167981072,
+       "EXCLUSIVE"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       167981072,
+       "EXCLUSIVE"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       595512,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       595512,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       76225536,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       19056384,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       595512,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "EXCLUSIVE"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       16,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 1469834380,
+     "pipelines": [
+      "bootstrap_half_kick",
+      "correction_density_all",
+      "defrag",
+      "force_all",
+      "initialize_voxelization",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 7,
+     "deep_wall": [
+      false,
+      "auto: 3-D, 0 deep-wall candidates at the initial state = 0.00 % of 9,129,329 particles < 1 %"
+     ],
+     "fused": [
+      true,
+      ""
+     ]
+    }
+   }
+  },
+  "cases/cavity3d_1m/case.yaml": {
+   "default": {
+    "recordings": {
+     "step": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 7,
+        "barriers": 8,
+        "binds": 7,
+        "fills": 0,
+        "copies": 0,
+        "events": 31
+       },
+       "v7_single": {
+        "dispatches": 7,
+        "barriers": 8,
+        "binds": 7,
+        "fills": 0,
+        "copies": 0,
+        "events": 31
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 6,
+        "barriers": 6,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 26
+       },
+       "v7_single": {
+        "dispatches": 6,
+        "barriers": 6,
+        "binds": 6,
+        "fills": 0,
+        "copies": 0,
+        "events": 26
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed_v7_only": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "v7": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       31008784,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       15504392,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       15504392,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       31008784,
+       "CONCURRENT"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       31008784,
+       "CONCURRENT"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       31008784,
+       "CONCURRENT"
+      ],
+      [
+       "material",
+       0,
+       6,
+       7752196,
+       "CONCURRENT"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       62017568,
+       "CONCURRENT"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       31008784,
+       "CONCURRENT"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       31008784,
+       "CONCURRENT"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       119168,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       119168,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       15253504,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       3813376,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       119168,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       119168,
+       "CONCURRENT"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "CONCURRENT"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "CONCURRENT"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       128,
+       "EXCLUSIVE"
+      ],
+      [
+       "deep_wall_voxel_flag",
+       1,
+       8,
+       238336,
+       "EXCLUSIVE"
+      ],
+      [
+       "deep_wall_skip_record",
+       3,
+       10,
+       16,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 271326860,
+     "pipelines": [
+      "append_departed",
+      "bootstrap_half_kick",
+      "correction_all",
+      "correction_boundary",
+      "correction_boundary_band",
+      "correction_density_all",
+      "correction_density_boundary",
+      "correction_density_boundary_band",
+      "correction_density_interior",
+      "correction_interior",
+      "deep_wall_marker_deep",
+      "deep_wall_marker_presence",
+      "defrag",
+      "density_all",
+      "density_boundary",
+      "density_boundary_band",
+      "density_deep_interior",
+      "density_scratch_copy",
+      "expand_ghost_lists",
+      "force_all",
+      "force_boundary",
+      "force_boundary_band",
+      "force_deep_interior",
+      "force_deep_interior_scratch",
+      "ghost_send_lanes_leading",
+      "ghost_send_lanes_trailing",
+      "initialize_voxelization",
+      "install_migrations_leading",
+      "install_migrations_trailing",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 31,
+     "deep_wall": [
+      true,
+      "auto: 3-D, 280,231 deep-wall candidates at the initial state = 16.63 % of 1,685,159 particles >= 1 %"
+     ],
+     "fused": [
+      true,
+      "one neighbour traversal for correction + density, band 2"
+     ]
+    },
+    "v7_single": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       31008784,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       15504392,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       15504392,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       31008784,
+       "EXCLUSIVE"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       31008784,
+       "EXCLUSIVE"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       31008784,
+       "EXCLUSIVE"
+      ],
+      [
+       "material",
+       0,
+       6,
+       7752196,
+       "EXCLUSIVE"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       62017568,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       31008784,
+       "EXCLUSIVE"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       31008784,
+       "EXCLUSIVE"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       119168,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       119168,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       15253504,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       3813376,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       119168,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "EXCLUSIVE"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "deep_wall_voxel_flag",
+       1,
+       8,
+       238336,
+       "EXCLUSIVE"
+      ],
+      [
+       "deep_wall_skip_record",
+       3,
+       10,
+       16,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 271326860,
+     "pipelines": [
+      "bootstrap_half_kick",
+      "correction_density_all",
+      "deep_wall_marker_deep",
+      "deep_wall_marker_presence",
+      "defrag",
+      "density_scratch_copy",
+      "force_all",
+      "initialize_voxelization",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 10,
+     "deep_wall": [
+      true,
+      "auto: 3-D, 280,231 deep-wall candidates at the initial state = 16.63 % of 1,685,159 particles >= 1 %"
+     ],
+     "fused": [
+      true,
+      ""
+     ]
+    }
+   },
+   "unfused": {
+    "recordings": {
+     "step": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 8,
+        "barriers": 9,
+        "binds": 8,
+        "fills": 0,
+        "copies": 0,
+        "events": 35
+       },
+       "v7_single": {
+        "dispatches": 8,
+        "barriers": 9,
+        "binds": 8,
+        "fills": 0,
+        "copies": 0,
+        "events": 35
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 7,
+        "barriers": 7,
+        "binds": 7,
+        "fills": 0,
+        "copies": 0,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 7,
+        "barriers": 7,
+        "binds": 7,
+        "fills": 0,
+        "copies": 0,
+        "events": 30
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed_v7_only": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "v7": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       31008784,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       15504392,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       15504392,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       31008784,
+       "CONCURRENT"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       31008784,
+       "CONCURRENT"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       31008784,
+       "CONCURRENT"
+      ],
+      [
+       "material",
+       0,
+       6,
+       7752196,
+       "CONCURRENT"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       62017568,
+       "CONCURRENT"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       31008784,
+       "CONCURRENT"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       31008784,
+       "CONCURRENT"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       119168,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       119168,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       15253504,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       3813376,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       119168,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       119168,
+       "CONCURRENT"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "CONCURRENT"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "CONCURRENT"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       128,
+       "EXCLUSIVE"
+      ],
+      [
+       "deep_wall_voxel_flag",
+       1,
+       8,
+       238336,
+       "EXCLUSIVE"
+      ],
+      [
+       "deep_wall_skip_record",
+       3,
+       10,
+       16,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 271326860,
+     "pipelines": [
+      "append_departed",
+      "bootstrap_half_kick",
+      "correction_all",
+      "correction_boundary",
+      "correction_boundary_band",
+      "correction_interior",
+      "deep_wall_marker_deep",
+      "deep_wall_marker_presence",
+      "defrag",
+      "density_all",
+      "density_boundary",
+      "density_boundary_band",
+      "density_deep_interior",
+      "density_scratch_copy",
+      "expand_ghost_lists",
+      "force_all",
+      "force_boundary",
+      "force_boundary_band",
+      "force_deep_interior",
+      "force_deep_interior_scratch",
+      "ghost_send_lanes_leading",
+      "ghost_send_lanes_trailing",
+      "initialize_voxelization",
+      "install_migrations_leading",
+      "install_migrations_trailing",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 27,
+     "deep_wall": [
+      true,
+      "auto: 3-D, 280,231 deep-wall candidates at the initial state = 16.63 % of 1,685,159 particles >= 1 %"
+     ],
+     "fused": [
+      false,
+      "V7_FUSED_CORRECTION_DENSITY=0"
+     ]
+    },
+    "v7_single": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       31008784,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       15504392,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       15504392,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       31008784,
+       "EXCLUSIVE"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       31008784,
+       "EXCLUSIVE"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       31008784,
+       "EXCLUSIVE"
+      ],
+      [
+       "material",
+       0,
+       6,
+       7752196,
+       "EXCLUSIVE"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       62017568,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       31008784,
+       "EXCLUSIVE"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       31008784,
+       "EXCLUSIVE"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       119168,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       119168,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       15253504,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       3813376,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       119168,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "EXCLUSIVE"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "deep_wall_voxel_flag",
+       1,
+       8,
+       238336,
+       "EXCLUSIVE"
+      ],
+      [
+       "deep_wall_skip_record",
+       3,
+       10,
+       16,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 271326860,
+     "pipelines": [
+      "bootstrap_half_kick",
+      "correction_all",
+      "deep_wall_marker_deep",
+      "deep_wall_marker_presence",
+      "defrag",
+      "density_all",
+      "density_scratch_copy",
+      "force_all",
+      "initialize_voxelization",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 11,
+     "deep_wall": [
+      true,
+      "auto: 3-D, 280,231 deep-wall candidates at the initial state = 16.63 % of 1,685,159 particles >= 1 %"
+     ],
+     "fused": [
+      false,
+      ""
+     ]
+    }
+   },
+   "transfer_copy": {
+    "recordings": {
+     "step": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 6,
+        "barriers": 8,
+        "binds": 6,
+        "fills": 0,
+        "copies": 1,
+        "events": 29
+       },
+       "v7_single": {
+        "dispatches": 6,
+        "barriers": 8,
+        "binds": 6,
+        "fills": 0,
+        "copies": 1,
+        "events": 29
+       }
+      }
+     },
+     "bootstrap_init": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 1,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 6
+       }
+      }
+     },
+     "bootstrap_compute": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 1,
+        "events": 24
+       },
+       "v7_single": {
+        "dispatches": 5,
+        "barriers": 6,
+        "binds": 5,
+        "fills": 0,
+        "copies": 1,
+        "events": 24
+       }
+      }
+     },
+     "defrag": {
+      "identical": true,
+      "allowed_v7_only": [
+       "fill buffer:global_status 48 4 0"
+      ],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 11,
+        "copies": 10,
+        "events": 30
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 4,
+        "binds": 1,
+        "fills": 10,
+        "copies": 10,
+        "events": 29
+       }
+      }
+     },
+     "restart": {
+      "identical": true,
+      "allowed_v7_only": [],
+      "differences": [],
+      "counts": {
+       "v7": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       },
+       "v7_single": {
+        "dispatches": 1,
+        "barriers": 2,
+        "binds": 1,
+        "fills": 0,
+        "copies": 0,
+        "events": 7
+       }
+      }
+     }
+    },
+    "v7": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       31008784,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       15504392,
+       "CONCURRENT"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       15504392,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       31008784,
+       "CONCURRENT"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       31008784,
+       "CONCURRENT"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       31008784,
+       "CONCURRENT"
+      ],
+      [
+       "material",
+       0,
+       6,
+       7752196,
+       "CONCURRENT"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       62017568,
+       "CONCURRENT"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       31008784,
+       "CONCURRENT"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       31008784,
+       "CONCURRENT"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       119168,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       119168,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       15253504,
+       "CONCURRENT"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       3813376,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       119168,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       119168,
+       "CONCURRENT"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "CONCURRENT"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "CONCURRENT"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       128,
+       "EXCLUSIVE"
+      ],
+      [
+       "deep_wall_voxel_flag",
+       1,
+       8,
+       238336,
+       "EXCLUSIVE"
+      ],
+      [
+       "deep_wall_skip_record",
+       3,
+       10,
+       16,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 271326860,
+     "pipelines": [
+      "append_departed",
+      "bootstrap_half_kick",
+      "correction_all",
+      "correction_boundary",
+      "correction_boundary_band",
+      "correction_density_all",
+      "correction_density_boundary",
+      "correction_density_boundary_band",
+      "correction_density_interior",
+      "correction_interior",
+      "deep_wall_marker_deep",
+      "deep_wall_marker_presence",
+      "defrag",
+      "density_all",
+      "density_boundary",
+      "density_boundary_band",
+      "density_deep_interior",
+      "expand_ghost_lists",
+      "force_all",
+      "force_boundary",
+      "force_boundary_band",
+      "force_deep_interior",
+      "force_deep_interior_scratch",
+      "ghost_send_lanes_leading",
+      "ghost_send_lanes_trailing",
+      "initialize_voxelization",
+      "install_migrations_leading",
+      "install_migrations_trailing",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 30,
+     "deep_wall": [
+      true,
+      "auto: 3-D, 280,231 deep-wall candidates at the initial state = 16.63 % of 1,685,159 particles >= 1 %"
+     ],
+     "fused": [
+      true,
+      "one neighbour traversal for correction + density, band 2"
+     ]
+    },
+    "v7_single": {
+     "buffers": [
+      [
+       "position_voxel_id",
+       0,
+       0,
+       31008784,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure",
+       0,
+       1,
+       15504392,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_pressure_scratch",
+       0,
+       2,
+       15504392,
+       "EXCLUSIVE"
+      ],
+      [
+       "velocity_mass",
+       0,
+       3,
+       31008784,
+       "EXCLUSIVE"
+      ],
+      [
+       "acceleration",
+       0,
+       4,
+       31008784,
+       "EXCLUSIVE"
+      ],
+      [
+       "shift",
+       0,
+       5,
+       31008784,
+       "EXCLUSIVE"
+      ],
+      [
+       "material",
+       0,
+       6,
+       7752196,
+       "EXCLUSIVE"
+      ],
+      [
+       "correction_inverse",
+       0,
+       7,
+       62017568,
+       "EXCLUSIVE"
+      ],
+      [
+       "density_gradient_kernel_sum",
+       0,
+       8,
+       31008784,
+       "EXCLUSIVE"
+      ],
+      [
+       "extension_fields",
+       0,
+       9,
+       31008784,
+       "EXCLUSIVE"
+      ],
+      [
+       "wall_dummy_velocity",
+       0,
+       10,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_count",
+       1,
+       0,
+       119168,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_count",
+       1,
+       1,
+       119168,
+       "EXCLUSIVE"
+      ],
+      [
+       "inside_particle_index",
+       1,
+       2,
+       15253504,
+       "EXCLUSIVE"
+      ],
+      [
+       "incoming_particle_index",
+       1,
+       3,
+       3813376,
+       "EXCLUSIVE"
+      ],
+      [
+       "voxel_base_offset",
+       1,
+       4,
+       119168,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_voxel_first_particle_id",
+       1,
+       5,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_list",
+       1,
+       6,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "ghost_packed_words",
+       1,
+       7,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "global_status",
+       3,
+       0,
+       160,
+       "EXCLUSIVE"
+      ],
+      [
+       "pool_health",
+       3,
+       1,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "material_parameters",
+       3,
+       7,
+       144,
+       "EXCLUSIVE"
+      ],
+      [
+       "defrag_scratch_counter",
+       3,
+       8,
+       4,
+       "EXCLUSIVE"
+      ],
+      [
+       "band_compact_meta",
+       3,
+       9,
+       16,
+       "EXCLUSIVE"
+      ],
+      [
+       "deep_wall_voxel_flag",
+       1,
+       8,
+       238336,
+       "EXCLUSIVE"
+      ],
+      [
+       "deep_wall_skip_record",
+       3,
+       10,
+       16,
+       "EXCLUSIVE"
+      ]
+     ],
+     "scratch_bytes": 271326860,
+     "pipelines": [
+      "bootstrap_half_kick",
+      "correction_density_all",
+      "deep_wall_marker_deep",
+      "deep_wall_marker_presence",
+      "defrag",
+      "force_all",
+      "initialize_voxelization",
+      "predict",
+      "update_voxel"
+     ],
+     "pipeline_count": 9,
+     "deep_wall": [
+      true,
+      "auto: 3-D, 280,231 deep-wall candidates at the initial state = 16.63 % of 1,685,159 particles >= 1 %"
+     ],
+     "fused": [
+      true,
+      ""
+     ]
+    }
+   }
+  }
+ },
+ "all_identical": true,
+ "started": "2026-10-09 17:15:23"
+}
