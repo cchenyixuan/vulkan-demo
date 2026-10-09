@@ -11,6 +11,12 @@
 #   SHA <paths> on the dev box; git get-tar-commit-id still identifies the commit.
 #   E30_SOLVER=v7 deploy_v6.sh SHA   also extracts experiment/v7 (E39; the commit must carry it), next to
 #   experiment/v6 so that one deployment runs either solver (e30_lib.sh's E30_SOLVER).
+#   E30_DEPLOY_ALL=1 TARBALL=<path> deploy_v6.sh SHA   (E7) extracts every member of the archive instead of
+#   the fixed list above: the archive is then a git archive of an explicit path list (E7: experiment/v7, the
+#   seam_audit tools, materials, cases/aligned and the aligned generator at tag v7-rc1), and that list is
+#   what gets deployed. The archive's commit is checked the same way.
+# Particle files (*.obj) generated in the deployment later are not part of the commit and stay out of
+# MANIFEST.sha256 (also on an UPDATE=1 redeploy).
 set -u
 SHA=${1:?full 40-character commit sha}
 DEST=${DEST:-$HOME/run/vulkan-demo-v6}
@@ -34,6 +40,10 @@ case "${E30_SOLVER:-v6}" in
     *) echo "ABORT: E30_SOLVER=$E30_SOLVER (expected v6 or v7)"; exit 2 ;;
 esac
 for case_name in $CASES; do MEMBERS="$MEMBERS $TOP/cases/$case_name/case.yaml"; done
+if [ "${E30_DEPLOY_ALL:-0}" = 1 ]; then
+    [ -n "${TARBALL:-}" ] || { echo "ABORT: E30_DEPLOY_ALL=1 needs TARBALL (a subset archive, not the full download)"; exit 2; }
+    MEMBERS=$TOP
+fi
 if [ -e "$DEST/COMMIT" ] && [ "${UPDATE:-0}" != 1 ]; then
     echo "ABORT: $DEST already deployed ($(cat "$DEST/COMMIT")); UPDATE=1 to overwrite"; exit 2
 fi
@@ -42,7 +52,7 @@ tar xzf vd.tar.gz -C "$DEST" --strip-components=1 $MEMBERS || { echo "ABORT: ext
 echo "$SHA tarball_sha256=$(sha256sum vd.tar.gz | cut -d' ' -f1) deployed=$(date -Is)" > "$DEST/COMMIT"
 cd "$DEST" || exit 2
 find . -type f ! -name MANIFEST.sha256 ! -name COMMIT ! -name SCRIPTS.sha256 ! -path './docs/*' ! -path './remote/*' \
-    | sort | xargs sha256sum > MANIFEST.sha256
+    ! -name '*.obj' | sort | xargs sha256sum > MANIFEST.sha256
 cp "$STAGE/vd.tar.gz" "$HOME/run/tools/vulkan-demo-$SHA.tar.gz" 2>/dev/null
 echo "deployed $(wc -l < MANIFEST.sha256) files to $DEST"
 cat COMMIT
