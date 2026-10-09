@@ -60,6 +60,16 @@ RUNTIME_MODULES = runtime_modules("v6")
 SHADER_MODULES = ("bootstrap_half_kick", "initialize_voxelization", "predict", "update_voxel", "ghost_send",
                   "install_migrations", "correction", "density", "force", "defrag", "append_departed",
                   "expand_ghost_lists", "band_compact")
+# The SPIR-V checked per solver. v6 keeps the list above unchanged (its output does not change; it predates E37's
+# wall_extrapolate); v7 = every file of experiment/v7/shaders/spv/MANIFEST.txt: + E37's wall_extrapolate and the
+# E39 modules (B9 density_scratch_copy, B6 ghost_send_lanes, B4 deep_wall_marker / correction_deep_wall_skip /
+# density_deep_wall_skip, B1 correction_density / correction_density_deep_wall_skip, B3 force_segment).
+SHADER_MODULES_BY_SOLVER = {
+    "v6": SHADER_MODULES,
+    "v7": SHADER_MODULES + ("wall_extrapolate", "density_scratch_copy", "ghost_send_lanes", "deep_wall_marker",
+                            "correction_deep_wall_skip", "density_deep_wall_skip", "correction_density",
+                            "correction_density_deep_wall_skip", "force_segment"),
+}
 NVIDIA_VENDOR_ID = 0x10DE
 
 
@@ -182,7 +192,7 @@ def stage_environment(report: Report, arguments: argparse.Namespace) -> bool:
 
     shader_directory = _REPOSITORY_ROOT / "experiment" / solver / "shaders" / "spv"
     missing = []
-    for name in SHADER_MODULES:
+    for name in SHADER_MODULES_BY_SOLVER[solver]:
         path = shader_directory / f"{name}.comp.spv"
         if not path.exists():
             missing.append(name)

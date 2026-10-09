@@ -1,34 +1,45 @@
-SPIR-V manifest of experiment/v6/shaders/spv (E37, v6-rc2)
+SPIR-V manifest of experiment/v7/shaders/spv (E39, branch v7-perf: v6-rc2 + B9 / B6 / B4 / B1 / B3)
 
-compiler: glslc of the Vulkan SDK 1.4.350.0 (C:/VulkanSDK/1.4.350.0/Bin/glslc.exe); glslc --version:
+compiler: C:\VulkanSDK\1.4.350.0/Bin/glslc.exe; glslc --version:
   shaderc v2026.2 v2026.2
   spirv-tools v2026.2 v2022.4-1193-gc1cb30bb
   glslang 11.1.0-1412-g5ed4003a
   Target: SPIR-V 1.0
-  ('Target: SPIR-V 1.0' is glslc's default; with --target-env=vulkan1.2 every file below is SPIR-V 1.5, read from its header)
-flags: glslc --target-env=vulkan1.2 -O -I experiment/v6/shaders experiment/v6/shaders/<name>.comp -o experiment/v6/shaders/spv/<name>.comp.spv
-  (experiment/v6/compile_shaders_v6.py; sources whose name starts with '_' are not compiled; glslc output is
-  deterministic, _test_seam_layout.py check_spirv_current compares every file with a fresh build)
-sources: experiment/v6/shaders/*.comp, common.glsl, helpers.glsl, wall_boundary.glsl at commit d62a1c02dc90d1bb4cc439ef8961f87b652333a6
-  (last change to a shader source: d62a1c02dc90d1bb4cc439ef8961f87b652333a6 2026-10-07 E37: wall option numerics.wall_boundary (simple default | adami, one GPU only)); the commit that adds this manifest changes no source
-check: every file below byte-identical to a fresh build with the compiler above (14 of 14)
-scope: the tracked compute SPIR-V only. compile_shaders_v6.py also writes spv/render/*.spv from
-  shaders/render/*.vert / *.frag; those are not tracked and not covered here. This manifest describes the
-  SPIR-V of the commit that adds it; nothing checks it automatically, so regenerate it with any shader change
-  (_test_seam_layout.py keeps checking that the tracked files equal a fresh build).
+  ('Target: SPIR-V 1.0' is glslc's default; with --target-env=vulkan1.2 every file below is SPIR-V 1.5)
+flags: glslc --target-env=vulkan1.2 -O [-D<macro>] -I experiment/v7/shaders experiment/v7/shaders/<source> -o experiment/v7/shaders/spv/<name>.comp.spv
+  (experiment/v7/compile_shaders_v7.py: every *.comp whose name does not start with '_', plus the -D variants of
+  SHADER_VARIANTS; glslc output is deterministic, _test_seam_layout.py check_spirv_current compares every file
+  with a fresh build)
+sources: experiment/v7/shaders/*.comp, *.glsl at the commit that adds this manifest (parent ee736f0);
+  last change to a shader source before it: 22701d4a07d801fc7026f0cfa85c79950a448ef1 2026-10-09 E39 B3: phase C band kernels overlapped with the cascade force by single-queue reordering (V7_BAND_OVERLAP, default auto)
+check: every file below byte-identical to a fresh build with the compiler above (22 of 22)
+new in v7 (not in v6-rc2): density_scratch_copy (B9), ghost_send_lanes (B6), deep_wall_marker,
+  correction_deep_wall_skip, density_deep_wall_skip (B4), correction_density, correction_density_deep_wall_skip (B1),
+  force_segment (B3: force.comp -DFORCE_SEGMENT);
+  every file v6-rc2 has is byte-identical to v6-rc2's (experiment/v6/shaders/spv/MANIFEST.txt)
+scope: the tracked compute SPIR-V only (spv/render/*.spv from shaders/render are not tracked). Nothing checks this
+  manifest automatically; regenerate it with any shader change.
 
-sha256                                                            bytes  file
-7823e926e76ae19ac340ee12864e1e8e4ff6e0a08fe68b3298edd54a0b08d870    3720  append_departed.comp.spv
-e22c63cb3b498b7ac784a62cd0ad10af0a33f85db222dba9165448e2d9a8f25a   10936  band_compact.comp.spv
-ec24be0f2d0b48f85b35d4177190b1ca5d6da008114f43798c1db18d98a0aabe    2676  bootstrap_half_kick.comp.spv
-ee9ff135900b69f881c6fc9ad0dfc5c87ed14de015497e8060dceae90ebdabc7   37504  correction.comp.spv
-52d7d9b3a09cf4ce33e8f2981c6e699b0ff213beabf1935e46e1ff8ad7969c42    5968  defrag.comp.spv
-949bc2d1a5d85ca789fbaea61da51f9e75b2226dd701f4115dd1b55bacec6e7e   38844  density.comp.spv
-728d4e4742a0f156bac518fae4243b177d130bdf5696858357a298412b02c251    4984  expand_ghost_lists.comp.spv
-3a635216025f245f7f11a3f5edc9d7120640e6df51c9b63021072cedd580f715   46776  force.comp.spv
-de0feb09c6618201e572ebc39b5982f8577d6e87b7131090faca73f4fae40cd5   18744  ghost_send.comp.spv
-62f42d33a26a70871521e30aa448dd3f620342e912120cc2e3d3bc4a6e3bdafa    6704  initialize_voxelization.comp.spv
-d7f17d7808d77f9e885d7fe6c6a5ccfc49495dccb887e68369790f3a94360e64    7600  install_migrations.comp.spv
-099b129f66ea93c40d2a3751a1aa809d74c4f5b6c0f0759a9f7fb9f5c725442b    6392  predict.comp.spv
-024e04287997e22a6e37212b18f161b19a093571918d15337a2a69f4f2ba25ee    4916  update_voxel.comp.spv
-23c0d0a2410d2131914cf23368dc0b3f80cb973515fbaa6511ff45149a75820c    8216  wall_extrapolate.comp.spv
+sha256                                                             bytes  file  (source)
+7823e926e76ae19ac340ee12864e1e8e4ff6e0a08fe68b3298edd54a0b08d870    3720  append_departed.comp.spv  (append_departed.comp)
+e22c63cb3b498b7ac784a62cd0ad10af0a33f85db222dba9165448e2d9a8f25a   10936  band_compact.comp.spv  (band_compact.comp)
+ec24be0f2d0b48f85b35d4177190b1ca5d6da008114f43798c1db18d98a0aabe    2676  bootstrap_half_kick.comp.spv  (bootstrap_half_kick.comp)
+ee9ff135900b69f881c6fc9ad0dfc5c87ed14de015497e8060dceae90ebdabc7   37504  correction.comp.spv  (correction.comp)
+e3de58bdc5e00f892dfa2f100789015c8f0aab4dae92eec6d8257866ab4515d5   53920  correction_deep_wall_skip.comp.spv  (correction.comp -DDEEP_WALL_SKIP)
+7871141dcdec3681b4fe0ab9b90cd703418183926f5ce453fea5ad63ca3ed143   57868  correction_density.comp.spv  (correction_density.comp)
+f5faeac0e14610d9944a6d92b5d974f259e8ff45f32c60c2fdcd409053e34a87   89468  correction_density_deep_wall_skip.comp.spv  (correction_density.comp -DDEEP_WALL_SKIP)
+4c9b4096d57aab44946b91a35b74a4ca8a1821761befdd99a58acf8366ea3a8e    4980  deep_wall_marker.comp.spv  (deep_wall_marker.comp)
+52d7d9b3a09cf4ce33e8f2981c6e699b0ff213beabf1935e46e1ff8ad7969c42    5968  defrag.comp.spv  (defrag.comp)
+949bc2d1a5d85ca789fbaea61da51f9e75b2226dd701f4115dd1b55bacec6e7e   38844  density.comp.spv  (density.comp)
+8c99cc51d910658432fcc351b58f480aa4f90e9509d0e6daac5f14a722379695   55972  density_deep_wall_skip.comp.spv  (density.comp -DDEEP_WALL_SKIP)
+50e9e5f6fb22a5996b208b8c53a60bf709c005ace3a804d32382f68cfe7a098b    1888  density_scratch_copy.comp.spv  (density_scratch_copy.comp)
+728d4e4742a0f156bac518fae4243b177d130bdf5696858357a298412b02c251    4984  expand_ghost_lists.comp.spv  (expand_ghost_lists.comp)
+3a635216025f245f7f11a3f5edc9d7120640e6df51c9b63021072cedd580f715   46776  force.comp.spv  (force.comp)
+faa772d587f1235af0fc03d5442a4fbf3f4cf0cb673d168043722a3ddfce750e   46828  force_segment.comp.spv  (force.comp -DFORCE_SEGMENT)
+de0feb09c6618201e572ebc39b5982f8577d6e87b7131090faca73f4fae40cd5   18744  ghost_send.comp.spv  (ghost_send.comp)
+ec7da52efc61aed95aaa162162e07538d0e5dc969104125818df3b31bc46d314   21272  ghost_send_lanes.comp.spv  (ghost_send_lanes.comp)
+62f42d33a26a70871521e30aa448dd3f620342e912120cc2e3d3bc4a6e3bdafa    6704  initialize_voxelization.comp.spv  (initialize_voxelization.comp)
+d7f17d7808d77f9e885d7fe6c6a5ccfc49495dccb887e68369790f3a94360e64    7600  install_migrations.comp.spv  (install_migrations.comp)
+099b129f66ea93c40d2a3751a1aa809d74c4f5b6c0f0759a9f7fb9f5c725442b    6392  predict.comp.spv  (predict.comp)
+024e04287997e22a6e37212b18f161b19a093571918d15337a2a69f4f2ba25ee    4916  update_voxel.comp.spv  (update_voxel.comp)
+23c0d0a2410d2131914cf23368dc0b3f80cb973515fbaa6511ff45149a75820c    8216  wall_extrapolate.comp.spv  (wall_extrapolate.comp)
