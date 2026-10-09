@@ -9,6 +9,15 @@ Solvers (``--solver``):
       own, so this script is its benchmark entry point.
   v5  the multi-GPU solver experiment/v5/SphSimulatorV5 in single-GPU mode
       (one sim, no peer, combined step command buffer, no ghost flow).
+  v7         v7-rc1's single-GPU mode (experiment/v7/SphSimulatorV7, the single-command
+             step on the loader's degenerate case), the build "V" of docs/seam_audit/v7_single.md.
+  v7x        the same with V7_CONCURRENT_BUFFERS=0 (every buffer EXCLUSIVE), the build "Vx".
+  v7_single  the pure single-GPU build experiment/v7_single ("S"); N in flight through its
+             own fence ring (the solver's, not this script's FenceRing).
+  v7_chain   v7's chain with one slab (compute_chain_partition + ChainOrchestratorV7, the
+             production depth-N loop with three submits per step, the build "C"); --in-flight is
+             the pipeline depth and fps is the orchestrator's steady window (the post-warmup
+             frames over the wall time from the warmup-th submission to the final drain).
 
 Frames in flight (``--in-flight``):
   1   the solver's native loop: one submit + one fence wait per step
@@ -319,7 +328,210 @@ class V5Adapter:
         self.ctx.destroy()
 
 
-ADAPTERS = {"v0": V0Adapter, "v5": V5Adapter}
+class V7Adapter:
+    """experiment/v7/SphSimulatorV7 in single-GPU mode (the loader's degenerate case, the single-command step)."""
+
+    name = "v7"
+    native_step_includes_defrag = False
+    concurrent_buffers = True
+
+    def __init__(self, case_path: str, device_index: int):
+        import os
+        if not self.concurrent_buffers:
+            os.environ["V7_CONCURRENT_BUFFERS"] = "0"      # read when the buffers are allocated
+        from experiment.v7.utils.case_loader_v7 import load_case_v7
+        from experiment.v7.utils.simulator_v7 import SphSimulatorV7, configured_v7_switches
+        from experiment.v7.utils.vulkan_context_v7 import VulkanContextV7
+
+        t0 = time.perf_counter()
+        self.case = load_case_v7(case_path)
+        self.load_seconds = time.perf_counter() - t0
+        self.expected_particle_count = int(self.case.initial.positions.shape[0])
+
+        t0 = time.perf_counter()
+        self.ctx = VulkanContextV7.create(
+            application_name=f"sph_{self.name}_single_baseline_bench",
+            enable_validation=False,
+            device_index=device_index,
+        )
+        self.sim = SphSimulatorV7(self.ctx, self.case)   # sim.bench stays None
+        self.sim.bootstrap()
+        self.sim.prepare_step_single_cmd_buffer()
+        if self.sim.defrag_cmd is None:
+            self.sim.defrag_cmd = self.sim._record_defrag_cmd()
+        self.setup_seconds = time.perf_counter() - t0
+        self.switches = configured_v7_switches()
+
+        self.defrag_cadence = int(self.case.numerics.defrag_cadence)
+        self.device = self.ctx.device
+        self.queue = self.ctx.compute_queue
+        self.physical_device = self.ctx.physical_device
+        self.step_cmd = self.sim.step_single_cmd
+        self.defrag_cmd = self.sim.defrag_cmd
+
+    def native_step(self) -> None:
+        self.sim.submit_step_single_and_wait()
+
+    def native_defrag(self) -> None:
+        self.sim.submit_defrag_and_wait()
+
+    def readback_status(self) -> dict:
+        return self.sim.readback_global_status()
+
+    def destroy(self) -> None:
+        self.sim.destroy()
+        self.ctx.destroy()
+
+
+class V7ExclusiveAdapter(V7Adapter):
+    """V7Adapter with V7_CONCURRENT_BUFFERS=0: the 14 transport buffers EXCLUSIVE instead of CONCURRENT."""
+
+    name = "v7x"
+    concurrent_buffers = False
+
+
+class V7SingleAdapter:
+    """experiment/v7_single/SphSimulatorSingle: its own fence ring gives the N steps in flight."""
+
+    name = "v7_single"
+    native_step_includes_defrag = False
+
+    def __init__(self, case_path: str, device_index: int):
+        from experiment.v7.utils.case_loader_v7 import load_case_v7
+        from experiment.v7_single.utils.simulator_single import SphSimulatorSingle
+        from experiment.v7_single.utils.vulkan_context_single import VulkanContextSingle
+
+        t0 = time.perf_counter()
+        self.case = load_case_v7(case_path)
+        self.load_seconds = time.perf_counter() - t0
+        self.expected_particle_count = int(self.case.initial.positions.shape[0])
+
+        t0 = time.perf_counter()
+        self.ctx = VulkanContextSingle.create(
+            application_name="sph_v7_single_baseline_bench",
+            enable_validation=False,
+            device_index=device_index,
+        )
+        self.sim = SphSimulatorSingle(self.ctx, self.case)
+        self.sim.bootstrap()
+        self.sim.prepare_step(in_flight=1)
+        self.setup_seconds = time.perf_counter() - t0
+        self.switches = self.sim.switches.table()
+
+        self.defrag_cadence = int(self.case.numerics.defrag_cadence)
+        self.device = self.ctx.device
+        self.queue = self.ctx.compute_queue
+        self.physical_device = self.ctx.physical_device
+        self.step_cmd = self.sim.step_cmd
+        self.defrag_cmd = self.sim.defrag_cmd
+
+    def run_timed(self, warmup: int, measure: int, in_flight: int) -> dict:
+        """The solver's own ring: ``in_flight`` persistent fences, the defrag appended to the step's submission
+        at the cadence; the window's ends are drained as in the generic loop."""
+        if warmup < 1:
+            raise ValueError("--warmup must be >= 1 so t_start is defined")
+        self.sim.prepare_step(in_flight=in_flight)
+        cadence = self.defrag_cadence
+        total = warmup + measure
+        t_start = epoch_start = None
+        for frame in range(1, total + 1):
+            self.sim.submit_step(with_defrag=bool(cadence) and frame % cadence == 0)
+            if frame == warmup:
+                self.sim.drain()
+                t_start = time.perf_counter()
+                epoch_start = time.time()
+        self.sim.drain()
+        t_end = time.perf_counter()
+        epoch_end = time.time()
+        elapsed = t_end - t_start
+        return {"measure_seconds": elapsed, "fps": measure / elapsed, "us_per_step": elapsed / measure * 1e6,
+                "epoch_start": epoch_start, "epoch_end": epoch_end}
+
+    def native_step(self) -> None:
+        self.sim.step_and_wait()
+
+    def native_defrag(self) -> None:
+        self.sim.submit_defrag_and_wait()
+
+    def readback_status(self) -> dict:
+        return self.sim.readback_global_status()
+
+    def destroy(self) -> None:
+        self.sim.destroy()
+        self.ctx.destroy()
+
+
+class V7ChainAdapter:
+    """v7's chain with one slab: compute_chain_partition(pool_safety 1.2) + ChainOrchestratorV7, the production
+    pipelined loop (three submits per step on the timeline scheme) at depth = --in-flight."""
+
+    name = "v7_chain"
+    native_step_includes_defrag = True
+
+    def __init__(self, case_path: str, device_index: int):
+        import sys as _sys
+        _sys.setswitchinterval(0.2 / 1000.0)         # as experiment/v7/_run_v7_chain_bench.py
+        from experiment.v7.utils.case_loader_v7 import load_case_v7
+        from experiment.v7.utils.orchestrator_v7 import ChainOrchestratorV7
+        from experiment.v7.utils.partition_v7 import compute_chain_partition
+        from experiment.v7.utils.simulator_v7 import SphSimulatorV7, configured_v7_switches
+        from experiment.v7.utils.vulkan_context_v7 import VulkanContextV7
+
+        t0 = time.perf_counter()
+        self.case = load_case_v7(case_path)
+        self.load_seconds = time.perf_counter() - t0
+        self.expected_particle_count = int(self.case.initial.positions.shape[0])
+        self.defrag_cadence = int(self.case.numerics.defrag_cadence)
+
+        t0 = time.perf_counter()
+        self.chain = compute_chain_partition(self.case, [1.0], 1.2)
+        self.ctx = VulkanContextV7.create(
+            application_name="sph_v7_chain_single_baseline_bench",
+            enable_validation=False,
+            device_index=device_index,
+        )
+        self.sim = SphSimulatorV7(self.ctx, self.chain.slabs[0], sync_scheme="per-direction")
+        self.orchestrator = ChainOrchestratorV7([self.sim], defrag_cadence=self.defrag_cadence)
+        self.orchestrator.bootstrap_all()            # ends with one defrag, as in production
+        self.setup_seconds = time.perf_counter() - t0
+        self.switches = configured_v7_switches()
+        self.own_pool_size = int(self.chain.slabs[0].capacities.own_pool_size)
+
+        self.device = self.ctx.device
+        self.queue = self.ctx.compute_queue
+        self.physical_device = self.ctx.physical_device
+        self.step_cmd = None
+        self.defrag_cmd = None
+
+    def run_timed(self, warmup: int, measure: int, in_flight: int) -> dict:
+        epoch_before = time.time()
+        result = self.orchestrator.run_pipelined(warmup + measure, depth=in_flight, warmup=warmup)
+        epoch_end = time.time()
+        steady_s = result["steady_s"]
+        return {"measure_seconds": steady_s, "fps": result["steady_fps"],
+                "us_per_step": steady_s / result["steady_frames"] * 1e6,
+                "epoch_start": epoch_end - steady_s, "epoch_end": epoch_end,
+                "steady_frames": result["steady_frames"], "total_fps": result["fps"],
+                "setup_epoch": epoch_before}
+
+    def native_step(self) -> None:
+        raise RuntimeError("the chain adapter runs through run_timed")
+
+    def native_defrag(self) -> None:
+        raise RuntimeError("the chain adapter runs through run_timed")
+
+    def readback_status(self) -> dict:
+        self.sim.submit_defrag_and_wait()
+        return self.sim.readback_global_status()
+
+    def destroy(self) -> None:
+        self.orchestrator.destroy()
+        self.sim.destroy()
+        self.ctx.destroy()
+
+
+ADAPTERS = {"v0": V0Adapter, "v5": V5Adapter, "v7": V7Adapter, "v7x": V7ExclusiveAdapter,
+            "v7_single": V7SingleAdapter, "v7_chain": V7ChainAdapter}
 
 
 # ============================================================================
@@ -330,6 +542,8 @@ ADAPTERS = {"v0": V0Adapter, "v5": V5Adapter}
 def run_timed(adapter, warmup: int, measure: int, in_flight: int) -> dict:
     if warmup < 1:
         raise ValueError("--warmup must be >= 1 so t_start is defined")
+    if hasattr(adapter, "run_timed"):            # the solver's own loop (v7_single's ring, the chain orchestrator)
+        return adapter.run_timed(warmup, measure, in_flight)
     total = warmup + measure
     cadence = adapter.defrag_cadence
     t_start = t_end = None
@@ -454,8 +668,7 @@ def main() -> int:
         status = adapter.readback_status()
         alive = int(status["alive_particle_count"])
         drift = alive - adapter.expected_particle_count
-        overflow = (int(status.get("overflow_inside_count", 0))
-                    + int(status.get("overflow_incoming_count", 0)))
+        overflow = sum(int(value) for key, value in status.items() if key.startswith("overflow_"))
 
         result = {
             "status": "ok" if (drift == 0 and overflow == 0) else "bad_state",
@@ -473,6 +686,10 @@ def main() -> int:
             "overflow_inside": int(status.get("overflow_inside_count", 0)),
             "overflow_incoming": int(status.get("overflow_incoming_count", 0)),
             "correction_fallback": int(status.get("correction_fallback_count", 0)),
+            "overflow_all": {key: int(value) for key, value in status.items()
+                             if key.startswith("overflow_") and value},
+            "switches": getattr(adapter, "switches", None),
+            "own_pool_size": getattr(adapter, "own_pool_size", None),
             "warmup": args.warmup,
             "measure": args.measure,
             "defrag_cadence": adapter.defrag_cadence,

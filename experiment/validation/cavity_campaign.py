@@ -34,6 +34,11 @@ sys.exit(subprocess.call([sys.executable] + sys.argv[1:], env=cavity_campaign.en
         --run-dir logs/validation/cavity_re1000_v7/n250_k1_float32_xi0p001_eps0p0025_adami
 
 In a worktree without its own .venv (e.g. vulkan-demo-v7-perf) the runners are started with this interpreter.
+
+--solver v7_single (docs/seam_audit/v7_single.md, the 1000^2 adami accuracy run): the pure single-GPU build; its
+runs live in logs/validation/cavity_re1000_v7_single/, the environment carries no V7_* variable at all (the build
+refuses any but its three kernel switches), and only K = 1 runs exist. The run id of that validation:
+n1000_k1_float32_xi0p001_eps0p0025_adami (case numerics.wall_boundary adami, the headless 5090 by UUID).
 """
 from __future__ import annotations
 
@@ -65,7 +70,9 @@ CASES = {"n250": "cases/lid_driven_cavity_2d_n250/case.yaml", "n500": "cases/lid
          "n1000_xi0p001": "cases/lid_driven_cavity_2d_n1000_xi0p001/case.yaml",
          # 2026-10-04 (user decision): xi 0.001 + epsilon_squared_factor 0.0025 becomes the main series
          "n500_xi0p001_eps0p0025": "cases/lid_driven_cavity_2d_n500_xi0p001_eps0p0025/case.yaml",
-         "n1000_xi0p001_eps0p0025": "cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025/case.yaml"}
+         "n1000_xi0p001_eps0p0025": "cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025/case.yaml",
+         # E37 wall option (numerics.wall_boundary adami, K = 1 only): the v7_single accuracy validation
+         "n1000_xi0p001_eps0p0025_adami": "cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_adami/case.yaml"}
 # "size" (default: "case") selects the time step, the calibration entry and the calibration length; the numerics
 # variants cost the same as their base case. Runs execute in this order.
 RUNS = [
@@ -96,6 +103,9 @@ RUNS = [
     # directory is a copy of n1000_k2_float32_xi0p001_eps0p0025 resumed from its t = 99.2 checkpoint (run --t-end 300)
     {"id": "n1000_k2_float32_xi0p001_eps0p0025_long", "case": "n1000_xi0p001_eps0p0025", "size": "n1000", "slabs": 2,
      "devices": "0,1", "expect": "release"},
+    # v7_single accuracy validation (docs/seam_audit/v7_single.md): adami walls, K = 1, the headless 5090
+    {"id": "n1000_k1_float32_xi0p001_eps0p0025_adami", "case": "n1000_xi0p001_eps0p0025_adami", "size": "n1000",
+     "slabs": 1, "devices": "1", "expect": "release", "require_uuid": "ae137c668a40f5acaab90a83f7cda175"},
 ]
 DT = {"n250": 3.0e-5, "n500": 1.5e-5, "n1000": 7.5e-6, "n2000": 3.75e-6}       # 0.15 * h / c0, h = 5 dx, c0 = 100
 CALIBRATION_STEPS = {"n250": 42000, "n500": 52000, "n1000": 108000, "n2000": 159000}   # about 1.2-1.6 time units
@@ -124,7 +134,8 @@ def run_solver(run_dir: pathlib.Path) -> str | None:
     return json.loads(meta_path.read_text(encoding="utf-8")).get("solver", "v6")
 
 
-SOLVER_MARKERS = ("experiment.validation", "experiment.v6", "experiment.v5", "experiment.seam_audit", "_run_")
+SOLVER_MARKERS = ("experiment.validation", "experiment.v6", "experiment.v5", "experiment.v7", "experiment.seam_audit",
+                  "_run_")
 
 
 def command_line(pid: str) -> str:

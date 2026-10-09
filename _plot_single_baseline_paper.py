@@ -17,6 +17,11 @@ Serif typography (Times / STIX fallback), vector PDF with embedded TrueType
 Usage:
     .venv/Scripts/python.exe _plot_single_baseline_paper.py
         --dir logs/single_baseline_20260923_v5fix --out-dir manuscripts/fig
+
+v7_single (docs/seam_audit/v7_single.md, measurement C): Figure A redrawn from the v7_single campaign's
+S data, written under another name (the old single_gpu_v0_throughput stays):
+    .venv/Scripts/python.exe _plot_single_baseline_paper.py --dir logs/v7_single/throughput \
+        --solver v7_single --figure-a-name single_gpu_throughput --no-figure-b
 """
 
 from __future__ import annotations
@@ -76,7 +81,7 @@ def tidy(ax) -> None:
     ax.tick_params(length=2.5, width=0.6)
 
 
-def figure_a(rows, sizes, n_values, out: pathlib.Path, width: float, height: float) -> None:
+def figure_a(rows, sizes, n_values, out: pathlib.Path, width: float, height: float, solver: str = "v0") -> None:
     import matplotlib.pyplot as plt
     from matplotlib import ticker
     style = {1: dict(color=COLOR_V0, linestyle=(0, (4, 2)), marker="o", markerfacecolor="white"),
@@ -87,13 +92,13 @@ def figure_a(rows, sizes, n_values, out: pathlib.Path, width: float, height: flo
     for depth in (1, 2):
         xs, tps, fps = [], [], []
         for tag in sizes:
-            row = rows.get((tag, "v0", depth))
+            row = rows.get((tag, solver, depth))
             if row:
                 xs.append(n_values[tag]); tps.append(row["mparticle_steps_per_s"]); fps.append(row["fps_mean"])
         label = f"{depth} frame{'s' if depth > 1 else ''} in flight"
         ax_tp.plot(xs, tps, linewidth=1.0, markersize=4, markeredgewidth=0.9, label=label, **style[depth])
         ax_fps.plot(xs, fps, linewidth=1.0, markersize=4, markeredgewidth=0.9, label=label, **style[depth])
-    tp_all = [rows[(t, "v0", d)]["mparticle_steps_per_s"] for t in sizes for d in (1, 2) if (t, "v0", d) in rows]
+    tp_all = [rows[(t, solver, d)]["mparticle_steps_per_s"] for t in sizes for d in (1, 2) if (t, solver, d) in rows]
     ax_tp.set_ylim(min(tp_all) * 0.97, max(tp_all) * 1.02)
     ax_tp.yaxis.set_major_locator(ticker.MultipleLocator(20))
     ax_tp.set_ylabel("throughput (M particle-steps / s)")
@@ -152,6 +157,10 @@ def main() -> int:
     parser.add_argument("--out-dir", default="manuscripts/fig")
     parser.add_argument("--font-size", type=float, default=9.0)
     parser.add_argument("--width", type=float, default=3.5, help="inches (single column)")
+    parser.add_argument("--solver", default="v0", help="the solver whose rows Figure A plots (v0, v7_single, ...)")
+    parser.add_argument("--figure-a-name", default="single_gpu_v0_throughput")
+    parser.add_argument("--no-figure-b", action="store_true", help="skip the V5 / V0 ratio figure")
+    parser.add_argument("--sizes", default=None, help="comma-separated size tags to plot (default: the 2-D curve)")
     args = parser.parse_args()
 
     import matplotlib
@@ -160,15 +169,17 @@ def main() -> int:
 
     ok, failed = load_results(_REPO / args.dir / "results.jsonl")
     rows = aggregate(ok, [])
-    sizes = [tag for tag in CURVE_SIZES if any(k[0] == tag for k in rows)]   # excludes 1m_orig
+    wanted = args.sizes.split(",") if args.sizes else [tag for tag in CURVE_SIZES if tag != "3d_8m"]
+    sizes = [tag for tag in wanted if any(k[0] == tag and k[1] == args.solver for k in rows)]   # excludes 1m_orig
     n_values = {tag: next(rows[k]["particles"] for k in rows if k[0] == tag) for tag in sizes}
 
     out_dir = _REPO / args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
-    figure_a(rows, sizes, n_values, out_dir / "single_gpu_v0_throughput", args.width, args.width * 1.25)
-    figure_b(rows, sizes, n_values, out_dir / "v5_single_vs_v0", args.width, args.width * 0.72)
-    print(f"[paper_fig] {len(ok)} ok runs ({len(failed)} failed) -> "
-          f"{out_dir / 'single_gpu_v0_throughput.pdf'}, {out_dir / 'v5_single_vs_v0.pdf'} (+ .png)")
+    figure_a(rows, sizes, n_values, out_dir / args.figure_a_name, args.width, args.width * 1.25, solver=args.solver)
+    if not args.no_figure_b:
+        figure_b(rows, sizes, n_values, out_dir / "v5_single_vs_v0", args.width, args.width * 0.72)
+    print(f"[paper_fig] {len(ok)} ok runs ({len(failed)} failed) -> {out_dir / (args.figure_a_name + '.pdf')}"
+          + ("" if args.no_figure_b else f", {out_dir / 'v5_single_vs_v0.pdf'}") + " (+ .png)")
     return 0
 
 

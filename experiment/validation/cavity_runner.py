@@ -26,6 +26,11 @@ same names with the V7_ prefix (expected_environments; V6_* variables are then n
 covers experiment/v7 (utils/*.py, shaders/spv/*.spv) and meta.json records the solver. A run directory keeps its
 solver: --resume with another --solver is refused (runs started before E39 have no solver in meta.json: v6).
 
+--solver v7_single runs the pure single-GPU build experiment/v7_single (the v7 kernels, one GPU, no chain): K = 1
+only, no release set (the build refuses every V7_* variable but its three kernel switches, so --expect release
+means an environment without any V7_* name), the production loop is its own fence ring at depth 2 with the same
+drained defrag boundary, and the physics hash covers experiment/v7_single/utils/*.py + experiment/v7/shaders/spv.
+
     .venv/Scripts/python.exe -m experiment.validation.cavity_runner --case cases/lid_driven_cavity_2d_n250/case.yaml \
         --run-dir logs/validation/cavity_re1000/n250_k2_float32 --slabs 2 --device-map 0,1 --expect release
     # v7: the same with the V7_* release set in the environment (cavity_campaign.environment('release', 'v7'))
@@ -63,7 +68,7 @@ RELEASE_ENVIRONMENT = {
 }
 EXPECTED = {"release": dict(RELEASE_ENVIRONMENT),
             "release_delta": dict(RELEASE_ENVIRONMENT, V6_DELTA_DENSITY="1")}
-SOLVERS = ("v6", "v7")
+SOLVERS = ("v6", "v7", "v7_single")
 DENSE_POINTS = 1001
 FRAMES = ("wall", "fluid")
 
@@ -87,13 +92,17 @@ def step_of(path: pathlib.Path) -> int | None:
 
 
 def switch_prefix(solver: str) -> str:
-    """The solver's environment switch prefix: V6_ (experiment/v6) or V7_ (experiment/v7)."""
-    return solver.upper() + "_"
+    """The solver's environment switch prefix: V6_ (experiment/v6) or V7_ (experiment/v7 and v7_single)."""
+    return "V7_" if solver == "v7_single" else solver.upper() + "_"
 
 
 def expected_environments(solver: str) -> dict:
     """EXPECTED with the solver's switch prefix (v7 = the v6-rc2 fork with V6_* renamed V7_*: the same switch
-    names and values). EXPECTED itself stays in V6_* names (canonical_dump maps RELEASE_ENVIRONMENT the same way)."""
+    names and values). EXPECTED itself stays in V6_* names (canonical_dump maps RELEASE_ENVIRONMENT the same way).
+    v7_single has no release set: 'release' is an environment without any V7_* name (its three kernel switches at
+    their defaults); 'release_delta' does not exist for it (no delta-density storage)."""
+    if solver == "v7_single":
+        return {"release": {}}
     prefix = switch_prefix(solver)
     return {expect: {prefix + key[len("V6_"):]: value for key, value in environment.items()}
             for expect, environment in EXPECTED.items()}
@@ -102,7 +111,10 @@ def expected_environments(solver: str) -> dict:
 def check_environment(expect: str, solver: str = "v6") -> dict:
     """The solver's switch environment (V6_* or V7_*) must be exactly the expected set (read before any solver
     import); the other solver's variables are not looked at (that solver is not imported)."""
-    wanted = expected_environments(solver)[expect]
+    environments = expected_environments(solver)
+    if expect not in environments:
+        sys.exit(f"[cavity] --expect {expect} does not exist for --solver {solver} (choices: {sorted(environments)})")
+    wanted = environments[expect]
     prefix = switch_prefix(solver)
     actual = {key: value for key, value in os.environ.items() if key.startswith(prefix)}
     if actual != wanted:
@@ -235,8 +247,10 @@ def code_hashes(case_path: pathlib.Path, solver: str = "v6") -> dict:
     hashes. The file list and the hashed relative paths of v6 are those of the runner before --solver existed."""
     case_directory = case_path.parent
     solver_directory = _REPO_ROOT / "experiment" / solver
+    # v7_single's kernels are experiment/v7's SPIR-V (the build loads them after a manifest check)
+    shader_directory = (_REPO_ROOT / "experiment" / "v7" if solver == "v7_single" else solver_directory) / "shaders" / "spv"
     physics = (list((solver_directory / "utils").glob("*.py"))
-               + list((solver_directory / "shaders" / "spv").glob("*.spv"))
+               + list(shader_directory.glob("*.spv"))
                + [case_path] + list(case_directory.glob("*.obj")) + [_REPO_ROOT / "materials" / "standard.yaml"])
     validation = _REPO_ROOT / "experiment" / "validation"
     sampling_files = [validation / "cavity_sampling.py", validation / "cavity_reference.py",
@@ -323,7 +337,23 @@ def main() -> int:
     except Exception:
         pass
 
-    if arguments.solver == "v7":
+    if arguments.solver == "v7_single":
+        from types import SimpleNamespace
+        from experiment.v7.utils.case_loader_v7 import load_case_v7 as load_case
+        from experiment.v7.utils.case_v7 import KIND_FLUID
+        from experiment.v7_single.utils.runner_single import SingleRunner as ChainOrchestrator
+        from experiment.v7_single.utils.simulator_single import SphSimulatorSingle as SphSimulator
+        from experiment.v7_single.utils.vulkan_context_single import VulkanContextSingle as VulkanContext
+        if arguments.slabs != 1:
+            sys.exit("[cavity] --solver v7_single runs one GPU: --slabs 1")
+
+        def compute_chain_partition(global_case, weights, pool_safety):
+            # no partitioner: the loader's degenerate case is the one slab (own pool = the case's pool_size)
+            return SimpleNamespace(slabs=[global_case], cuts=[])
+
+        def restart_slab_rows(global_case, chain, positions_x):
+            return [np.arange(int(np.asarray(positions_x).shape[0]))]
+    elif arguments.solver == "v7":
         from experiment.v7.utils.case_loader_v7 import load_case_v7 as load_case
         from experiment.v7.utils.case_v7 import KIND_FLUID
         from experiment.v7.utils.orchestrator_v7 import ChainOrchestratorV7 as ChainOrchestrator
@@ -537,7 +567,10 @@ def main() -> int:
         for index in range(arguments.slabs):
             contexts.append(VulkanContext.create(device_index=device_map[index], enable_validation=False,
                                                  application_name=f"cavity_s{index}"))
-            sims.append(SphSimulator(contexts[-1], chain.slabs[index], sync_scheme="per-direction"))
+            if arguments.solver == "v7_single":
+                sims.append(SphSimulator(contexts[-1], chain.slabs[index]))
+            else:
+                sims.append(SphSimulator(contexts[-1], chain.slabs[index], sync_scheme="per-direction"))
         uuids = [device_uuid(ctx) for ctx in contexts]
         failure["device_uuids"] = uuids
         say(f"device uuids {uuids}")
@@ -545,7 +578,8 @@ def main() -> int:
             wanted = [item.replace("-", "").lower() for item in arguments.require_uuid.split(",")]
             if wanted != uuids:
                 raise RuntimeError(f"device uuids {uuids} differ from --require-uuid {wanted}")
-        orchestrator = ChainOrchestrator(sims, defrag_cadence=cadence)
+        orchestrator = (ChainOrchestrator(sims[0], defrag_cadence=cadence) if arguments.solver == "v7_single"
+                        else ChainOrchestrator(sims, defrag_cadence=cadence))
         if state is None:
             if start_step != 0:
                 raise RuntimeError("no checkpoint to resume from")

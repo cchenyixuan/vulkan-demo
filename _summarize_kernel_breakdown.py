@@ -24,10 +24,15 @@ STAGE_LABEL = {
     "predict": "predict", "update_voxel": "update\\_voxel", "correction": "correction",
     "density_kernel": "density (kernel)", "density_copy": "density (scratch$\\to$primary copy)",
     "force": "force",
+    # v7_single (measurement B of docs/seam_audit/v7_single.md)
+    "correction_density": "correction + density (fused)", "deep_wall_marker": "deep-wall marker",
+    "wall_extrapolate": "wall extrapolation (adami)",
 }
 DISPATCH = {
     "predict": "per particle", "update_voxel": "per voxel", "correction": "per particle",
     "density_kernel": "per particle", "density_copy": "buffer copy", "force": "per particle",
+    "correction_density": "per particle", "deep_wall_marker": "per voxel (2 passes)",
+    "wall_extrapolate": "per particle",
 }
 
 
@@ -39,13 +44,26 @@ def load(path: pathlib.Path) -> list[dict]:
     return records
 
 
+def stages_of(records: list[dict]) -> list[str]:
+    """The stage list of the records (their own, v7_single's tick labels; the fixed STAGES for v0 / v5)."""
+    return list(records[0].get("stages") or STAGES)
+
+
 def summarize_dimension(records: list[dict]) -> dict:
     """Mean over runs of each run's mean / p50; std over runs of the frame total."""
     runs = len(records)
     particles = records[0]["alive"]
     out = {"runs": runs, "particles": particles, "drift_ok": all(r["drift"] == 0 for r in records),
-           "cpu_fps": statistics.fmean(r["cpu_fps"] for r in records), "stages": {}}
-    for stage in STAGES + ["gpu_frame"]:
+           "cpu_fps": statistics.fmean(r["cpu_fps"] for r in records), "stages": {},
+           "stage_names": stages_of(records), "switches": records[0].get("switches")}
+    if all(r.get("candidates") for r in records):
+        out["candidates_per_particle"] = statistics.fmean(r["candidates"]["candidates_per_particle"] for r in records)
+        out["candidate_pairs"] = statistics.fmean(r["candidates"]["candidate_pairs"] for r in records)
+    if all(r.get("production") for r in records):
+        out["production_us_per_step"] = statistics.fmean(r["production"]["us_per_step"] for r in records)
+        out["timed_us_per_step"] = statistics.fmean(r["timed_us_per_step"] for r in records)
+        # the copy of the density stage includes the scratch->primary copy's own cost (v7_single: 'density_copy')
+    for stage in stages_of(records) + ["gpu_frame"]:
         means = [r["mean_us"][stage] for r in records]
         p50s = [r["p50_us"][stage] for r in records]
         out["stages"][stage] = {
@@ -94,12 +112,20 @@ def main() -> int:
         f" {dim}-D µs/step | {dim}-D ns/particle | {dim}-D % |" for dim in dims)
     lines.append(head)
     lines.append("|" + "---|" * (2 + 3 * len(dims)))
-    for stage in STAGES + ["gpu_frame"]:
+    stage_names = []
+    for dim in dims:
+        for stage in summary[dim]["stage_names"]:
+            if stage not in stage_names:
+                stage_names.append(stage)
+    for stage in stage_names + ["gpu_frame"]:
         label = "step total" if stage == "gpu_frame" else stage
-        dispatch = "" if stage == "gpu_frame" else DISPATCH[stage]
+        dispatch = "" if stage == "gpu_frame" else DISPATCH.get(stage, "")
         cells = []
         for dim in dims:
-            s = summary[dim]["stages"][stage]
+            s = summary[dim]["stages"].get(stage)
+            if s is None:
+                cells.append(" – | – | – |")
+                continue
             total = summary[dim]["stages"]["gpu_frame"]["mean_us"]
             cells.append(f" {s['mean_us']:.1f} ({s['p50_us']:.1f}) | "
                          f"{ns_per_particle(s['mean_us'], summary[dim]['particles']):.2f} | "
@@ -118,18 +144,38 @@ def main() -> int:
             delta = 100.0 * (frame["mean_us"] - args.reference_2d_us) / args.reference_2d_us
             lines.append(f"- 2-D step total vs reference {args.reference_2d_us:.0f} µs: {delta:+.2f}% "
                          f"(limit ±1%): **{'ok' if abs(delta) <= 1.0 else 'FAIL'}**")
+        if s.get("production_us_per_step"):
+            lines.append(f"- {dim}-D: timed GPU frame {frame['mean_us']:.1f} µs vs the production step's wall time "
+                         f"{s['production_us_per_step']:.1f} µs/step (one fence per step, no timestamps): "
+                         f"{frame['mean_us'] - s['production_us_per_step']:+.1f} µs "
+                         f"({100 * (frame['mean_us'] / s['production_us_per_step'] - 1):+.2f} %); the timed loop's "
+                         f"own wall time {s['timed_us_per_step']:.1f} µs/step.")
+        if s.get("switches"):
+            lines.append(f"- {dim}-D switches: {s['switches']}")
+        if s.get("candidate_pairs"):
+            lines.append(f"- {dim}-D candidates (particles listed in the 3^d voxels around each particle's voxel, "
+                         f"from the end-of-run lists): {s['candidate_pairs']:,.0f} pairs per step = "
+                         f"{s['candidates_per_particle']:.1f} per particle; ps per candidate of the neighbour "
+                         f"kernels: " + ", ".join(
+                             f"{stage} {1e6 * s['stages'][stage]['mean_us'] / s['candidate_pairs']:.2f}"
+                             for stage in s["stage_names"]
+                             if stage in ("correction", "density_kernel", "correction_density", "force",
+                                          "wall_extrapolate") and stage in s["stages"]))
 
     lines.append("\n## LaTeX rows\n")
     lines.append("```latex")
     lines.append("% columns: kernel & dispatch & " + " & ".join(
         f"{dim}-D $\\mu$s/step & {dim}-D ns/particle & {dim}-D \\%" for dim in dims) + " \\\\")
     lines.append("% " + "; ".join(f"{dim}-D: {summary[dim]['particles']:,} particles" for dim in dims))
-    for stage in STAGES + ["gpu_frame"]:
-        label = "\\textbf{step total}" if stage == "gpu_frame" else STAGE_LABEL[stage]
-        dispatch = "" if stage == "gpu_frame" else DISPATCH[stage]
+    for stage in stage_names + ["gpu_frame"]:
+        label = "\\textbf{step total}" if stage == "gpu_frame" else STAGE_LABEL.get(stage, stage)
+        dispatch = "" if stage == "gpu_frame" else DISPATCH.get(stage, "")
         cells = []
         for dim in dims:
-            s = summary[dim]["stages"][stage]
+            s = summary[dim]["stages"].get(stage)
+            if s is None:
+                cells.append("-- & -- & --")
+                continue
             total = summary[dim]["stages"]["gpu_frame"]["mean_us"]
             cells.append(f"{s['mean_us']:.0f} & {ns_per_particle(s['mean_us'], summary[dim]['particles']):.2f} & "
                          f"{100 * s['mean_us'] / total:.1f}")

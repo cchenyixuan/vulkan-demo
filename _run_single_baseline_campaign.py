@@ -18,6 +18,13 @@ Outputs (logs/single_baseline_<date>/):
 Usage:
     .venv/Scripts/python.exe _run_single_baseline_campaign.py [--out DIR]
         [--trials 3] [--sizes 1m,2m,...] [--configs v0:1,v0:2,v5:1,v5:2]
+
+v7_single (docs/seam_audit/v7_single.md, measurement A): the same campaign over the builds
+S = v7_single, V = v7 (single mode), Vx = v7x (V7_CONCURRENT_BUFFERS=0) at 1 and 2 in flight and
+C = v7_chain (K = 1, depth 2); every trial rotates the config order by one; the card must be idle
+before every run (--idle-check, nvidia-smi utilization of --telemetry-index):
+    .venv/Scripts/python.exe _run_single_baseline_campaign.py --out logs/v7_single/throughput \
+        --sizes 1m,2m,4m,8m,16m,32m,3d_8m --configs v7_single:1,v7_single:2,v7:1,v7:2,v7x:1,v7x:2,v7_chain:2
 """
 
 from __future__ import annotations
@@ -54,6 +61,8 @@ SIZES = [
     ("14m",     "cases/lid_driven_cavity_2d_14m/case.yaml", 2000),
     ("16m",     "cases/lid_driven_cavity_2d_16m/case.yaml", 2000),
     ("32m",     "cases/lid_driven_cavity_2d_32m/case.yaml", 2000),
+    # v7_single measurement A: the 3-D case (10.5M particles, 4-layer walls)
+    ("3d_8m",   "cases/cavity3d_8m_b4/case.yaml",            2000),
 ]
 CONFIGS = [("v0", 1), ("v0", 2), ("v5", 1), ("v5", 2)]
 TRIALS = 3
@@ -72,6 +81,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--warmup", type=int, default=WARMUP_STEPS)
     parser.add_argument("--obj-cache", type=str, default="logs/_obj_npy_cache")
     parser.add_argument("--no-telemetry", action="store_true")
+    parser.add_argument("--telemetry-index", type=int, default=1,
+                        help="nvidia-smi index of the measured card (the headless 5090 is 1)")
+    parser.add_argument("--idle-check", action="store_true",
+                        help="before every run wait until the card's utilization reads 0 %% twice in a row")
     return parser.parse_args()
 
 
@@ -97,6 +110,30 @@ def start_telemetry(csv_path: pathlib.Path):
          "--format=csv", "-l", "1"],
         stdout=handle, stderr=subprocess.STDOUT)
     return process, handle
+
+
+def wait_until_idle(gpu_index: int, log) -> None:
+    """Block until nvidia-smi reports 0 % utilization on the card twice in a row (one second apart)."""
+    quiet = 0
+    waited = 0
+    while quiet < 2:
+        try:
+            completed = subprocess.run(
+                ["nvidia-smi", "--query-gpu=index,utilization.gpu,memory.used", "--format=csv,noheader,nounits"],
+                capture_output=True, text=True, timeout=30)
+            rows = [line.split(",") for line in completed.stdout.strip().splitlines() if line.strip()]
+            utilization = next(int(row[1]) for row in rows if int(row[0]) == gpu_index)
+        except Exception as error:          # nvidia-smi missing or busy: do not block the campaign forever
+            log(f"[campaign] idle check skipped ({error!r})")
+            return
+        if utilization == 0:
+            quiet += 1
+        else:
+            quiet = 0
+            waited += 1
+            if waited % 30 == 1:
+                log(f"[campaign] card {gpu_index} busy ({utilization} %), waiting")
+        time.sleep(1.0)
 
 
 def resolve_device_indices(solvers: list[str]) -> dict[str, int]:
@@ -201,6 +238,8 @@ def main() -> int:
                     # Short pause so the previous process has fully exited
                     # (VRAM released) before the next one allocates.
                     time.sleep(1.0)
+                    if args.idle_check:
+                        wait_until_idle(args.telemetry_index, lambda message: print(message, flush=True))
                     record = run_one(size, case, solver, in_flight, trial,
                                      args.warmup, measure, args.obj_cache, run_log,
                                      device_indices[solver])
