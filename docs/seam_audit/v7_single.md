@@ -251,19 +251,93 @@ v7_single 在 Khronos 验证层(默认设置,实例层 + debug messenger 计数)
 
 ## 测量
 
-待做(A 吞吐与开销、B 逐 kernel、C 图)。
+通用条件:本机两张 RTX 5090、驱动 576.88;所有运行都在无头的那张卡上(nvidia-smi 序号 1,PCI 03:00.0,Vulkan deviceUUID `ae137c668a40f5acaab90a83f7cda175`;每个 runner 用 UUID 解析 discrete-first 序号,再用 `--expect-gpu "RTX 5090"` 复核);验证层关(`VK_LOADER_LAYERS_DISABLE=VK_LAYER_KHRONOS_validation`);1 Hz 的 nvidia-smi 遥测记 SM 时钟、功耗、温度到各活动目录的 `telemetry.csv`;每次运行前检查本机没有其他求解器进程(nvidia-smi 的利用率在这台 WDDM 机器上不可用:求解器满载时它读 0 %,杀掉进程后反而停在 100 %,所以空闲检查按进程命令行判定)。
+
+### A. 吞吐与开销(§3 图 1、§5.1)
+
+`_run_single_baseline_campaign.py --out logs/v7_single/throughput_r2 --sizes 1m,2m,4m,8m,16m,32m,3d_8m --configs v7_single:1,v7_single:2,v7:1,v7:2,v7x:1,v7x:2,v7_chain:2 --trials 3 --warmup 1000 --idle-check`,汇总 `_summarize_v7_single_campaign.py`。
+
+- 构建:S = `v7_single`;V = `v7`(`SphSimulatorV7` 单卡模式,`_run_single_baseline_bench.py` 的 `V7Adapter`);Vx = `v7x`(V 加 `V7_CONCURRENT_BUFFERS=0`);C = `v7_chain`(`compute_chain_partition` 一个 slab、pool_safety 1.2,`ChainOrchestratorV7.bootstrap_all`(末尾一次 defrag)+ `run_pipelined(depth=2)`,即 `_run_v7_chain_bench.py` K = 1 的生产循环,三批提交)。
+- 算例:`lid_driven_cavity_2d_gen`(1M)、`_2m`、`_4m`、`_8m`、`_16m`、`_32m`、`cavity3d_8m_b4`。
+- 在飞深度:S、V、Vx 各测 1 与 2;C 只有生产的 depth 2。S 的 N 在飞用它自己的 fence 环(`SphSimulatorSingle.submit_step`,defrag 在周期帧并入同一次提交);V、Vx 的 depth 1 是 `submit_step_single_and_wait`(每步建销一个 fence),depth 2 是 bench 脚本外挂的 `FenceRing`(E5 给 V5 用的同一段代码);C 的 fps 是 orchestrator 的稳态窗口。
+- 窗口:预热 1000 步,计时 10000(1M)/ 6000(2M)/ 4000(4M)/ 2000(8M、16M、32M、3-D 8M)步,都是 defrag 周期的整数倍。fence 环的两端都在队列排空时取时间,所以任何在飞深度下都精确;C 的窗口从第 1001 帧提交后打开(第 1000 帧触发的排空 + defrag 已经过去,窗口里的 defrag 次数与环的相同,长度 = 计时步数 − 1 帧)、到最后一次排空关闭,末端含 depth − 1 帧在飞的尾巴(≤ 0.05 %)。
+- 重复:3 次试验;每次试验里同一尺寸的 7 个构建紧挨着跑,顺序每次轮换一位;比值按同一试验配对再取均值 ± 标准差。每次运行结束读回 alive(drift 必须 0)和所有 overflow 计数。
+- 先验(v5 时代):单卡模式是 V0 的 100.1–102.0 %,链式 K = 1 对单卡模式 99.91 ± 0.59 %,CONCURRENT ≤ 1.2 %。任何比值偏离 1 超过 2 % 先定位原因。
+
+结果:待填。
+
+### B. 逐 kernel 成本(§3 表 2)
+
+`experiment/v7_single/_run_kernel_breakdown_campaign.py run`(每个单元一个 `_run_kernel_breakdown.py --solver v7_single` 子进程),`summarize` 调 `_summarize_kernel_breakdown.py`。
+
+- 算例 `lid_driven_cavity_2d_8m`(8 128 201 个粒子)与 `cavity3d_8m_b4`(10 503 459);融合(默认)与不融合(`V7_FUSED_CORRECTION_DENSITY=0`)各 3 次,交错(第 1 次的四个单元、第 2 次的四个 …)。
+- 计时命令:S 的生产录制函数 `record_step(cmd, tick=...)` 本身在每个阶段末尾调用回调,回调写一个 BOTTOM_OF_PIPE 时间戳,所以计时步的屏障与生产步逐条相同(只多了 `vkCmdWriteTimestamp`);每步一次提交 + fence(1 在飞),预热 1000 + 计时 2000 步,defrag 帧剔除。阶段:融合 = predict、update_voxel、correction_density、density_copy、force;不融合 = predict、update_voxel、correction、density_kernel、density_copy、force(3-D B4 开或 adami 时各加 deep_wall_marker / wall_extrapolate,这两个算例都没有)。`step_start` 在开头那道屏障之后(E5 的计时器也是这样放),`density_copy` 是拷贝 pass 加它前后两道屏障。
+- 计时步与生产步的差:计时 2000 步之后,同一进程再跑 2000 步不带时间戳的生产步(同样 1 在飞),报告计时步的 GPU 帧长、计时循环与生产循环各自的每步墙钟。
+- 每候选 ps:仓库里没有找到 E5 对"候选"的定义,这里取邻居循环实际访问的候选数——运行结束时读回体素列表,候选对数 = Σ_v count(v) · Σ_{v' ∈ 3^d 邻域} count(v'),每个 kernel 的 ps/候选 = µs/步 × 10⁶ / 候选对数(2-D 8M 约 218 个候选 / 粒子,与 `docs/sph_v4_summary.md` 里"9 体素 × 25 ≈ 225 候选"的说法一致)。若论文用的是别的定义,改汇总脚本即可,原始数据都在 `results.jsonl`。
+- 输出:每个 kernel 的 µs/步、ns/粒子、占比、ps/候选;表 2 的 LaTeX 行(`summary_fused.md`、`summary_unfused.md`)。
+
+结果:待填。
+
+### C. 图
+
+`_plot_single_baseline_paper.py --dir logs/v7_single/throughput_r2 --solver v7_single --figure-a-name single_gpu_throughput --no-figure-b`:用 A 里 S 的数据(1M–32M 二维曲线,1 与 2 在飞)重画 E5 的图 A,输出 `manuscripts/fig/single_gpu_throughput.pdf` 与 `.png`;旧的 `single_gpu_v0_throughput` 不动。
+
+结果:待填。
 
 ## 精度验证:1000² 方腔 Re = 1000(adami)
 
-待做。
+只验证精度,不计时,结果不进任何性能表。生产设置:默认开关(融合、compute 拷贝、B4 auto = 2-D 关)、不开计时器、不用 canonical lists;算例 `cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_adami`(`numerics.wall_boundary: adami`,ξ = 0.001、ε² = 0.0025 h²、h = 5 Δx、11 层壁;1 046 529 个粒子;只支持一张卡),Δt = 0.15 h / c0 = 7.5 × 10⁻⁶。
+
+工具与方法沿用 `docs/validation/cavity_re1000.md`:`experiment/validation/cavity_campaign.py run --solver v7_single --runs n1000_k1_float32_xi0p001_eps0p0025_adami`(runner `cavity_runner.py --solver v7_single`,`SingleRunner` 代替链式 orchestrator:depth 2 的 fence 环,排空的 defrag 边界上取样、查不变量、存检查点,每 0.2 个时间单位一个样本,每 10 个时间单位一个检查点,中断后 `--resume` 从最新检查点续跑,段记在 `segments.jsonl`)。稳态判据:相邻两个约 10 个时间单位的窗口,56 个参考点上窗口平均速度的相对 L2 变化 < 10⁻³ 且流体动能相对变化 < 10⁻³;t_s 为第一个满足的窗口终点;停在 t_stop = max(100, t_s + 20),上限 200。时间平均取最后 20 个时间单位,标准误差按积分自相关时间;插值线性 MLS(Wendland C4,支撑半径 h);参考 Marchi et al. 2021 的 T_c(`docs/validation/data/marchi2021_re1000.csv`),Ghia 1982 只画;相对 L2 = √(Σ e_i² / 28) / rms(T_c);ψ_min 及位置按 513 × 513 网格积分(`cavity_analysis.stream_function_minimum`)。报告脚本 `experiment/validation/cavity_v7_single_report.py`(图、CSV、LaTeX 行、英文图注);与 E36 的 adami_rho0 1000² 运行(`v7-wall-bc` 分支,`../vulkan-demo/logs/e36/runs/n1000_k1_v7_adami_rho0`)的交叉检查用 `experiment.validation.e39_compare`。
+
+验收:u 与 v 的相对 L2 都 < 1 %;所有不变量 0;从干净的提交运行,记录提交、physics 哈希、GPU 与驱动。稳态之后误差不随时间下降,所以不为了凑 1 % 延长运行或改参数。
+
+结果:待填。
 
 ## 已知限制
 
-待填。
+- S 相对 V 省掉的都是不执行或不改数据的东西(清单第 11 节),所以 S 与 V 的吞吐差只能来自 host 侧(每步的 fence 建销、CONCURRENT 共享模式、未用的队列与对象);两者的 kernel 时间相同。
+- defrag 开头的 compute → compute 屏障后面接 transfer 阶段的 fill,与 v7 相同(形式上第二作用域不含 TRANSFER;这些缓冲的前一次写在 1000 帧之前的 defrag 里)。去掉时间步里拷贝之后那道相邻的多余屏障、把 pool 缩到 ceil(N / 128) × 128、把 voxel_base_offset / pool_health / band_compact_meta 做成 stub,对 V 和 S 都有利,都没有实施(规格:不调参,只记录)。
+- S 的两种起点:`SingleRunner.bootstrap_all`(方腔 runner)像链一样在 bootstrap 后 defrag 一次;bench 与 canonical_dump 的单卡模式像 V 一样不 defrag。两种起点各自与对应的参照一致,互相之间不逐位可比。
+- `V7_DELTA_DENSITY`、`V7_DEEP_WALL_CHECK`、`V7_SPV_DIR`、`V7_BAND_WIDTHS` 等在 S 里没有对应物,设了就退出;S 没有渲染、没有 step trace、没有 `step_single_use_split` 这类验证路径。
+- 每候选 ps 的"候选"定义是本文自己定的(测量 B),E5 的定义没有在仓库里找到。
+- adami K = 1 在 999 步上本来就不能自复现(`v7_perf.md`),所以逐位门只做 200 步;1000² 的精度运行是生产路径(原子追加的列表顺序),同一设置重跑是同一流动的另一个实现。
 
 ## 复现
 
-待填。
+在 worktree 根目录执行;`python` = `vulkan-demo/.venv/Scripts/python.exe`;每次运行前确认无头卡空闲。
+
+```bash
+# CPU 测试与命令流比对(不碰 GPU)
+python experiment/v7_single/_test_single_cpu.py
+python experiment/v7_single/_compare_recordings.py --inventory --out logs/v7_single/acceptance/cpu_compare.json \
+    --case cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025/case.yaml --case cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml \
+    --case cases/lid_driven_cavity_2d_gen/case.yaml --case cases/cavity3d_8m_b4/case.yaml --case cases/cavity3d_1m/case.yaml
+
+# 验收全套(GPU 逐位 36 个 dump + 验证层 2 次 + CPU 比对),约 40 min
+python experiment/v7_single/_run_acceptance.py all --out logs/v7_single/acceptance --device 1
+# 单个逐位比较
+python experiment/seam_audit/canonical_dump.py --solver v7_single --case cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025/case.yaml --device-map 1 --steps 200 --canonical-lists --out S.npz
+python experiment/seam_audit/canonical_dump.py --solver v7 --v7-mode single --case ... --device-map 1 --steps 200 --canonical-lists --out V.npz
+python -m experiment.seam_audit.canonical_dump --compare S.npz V.npz [--no-mask]
+
+# 吞吐 runner 与测量 A / B / C
+python experiment/v7_single/_run_single_bench.py --case cases/lid_driven_cavity_2d_gen/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --warmup 1000 --measure 10000 --in-flight 2
+python _run_single_baseline_campaign.py --out logs/v7_single/throughput_r2 --sizes 1m,2m,4m,8m,16m,32m,3d_8m \
+    --configs v7_single:1,v7_single:2,v7:1,v7:2,v7x:1,v7x:2,v7_chain:2 --trials 3 --warmup 1000 --idle-check
+python _summarize_v7_single_campaign.py --dir logs/v7_single/throughput_r2
+python experiment/v7_single/_run_kernel_breakdown_campaign.py run --out logs/v7_single/kernel_breakdown
+python experiment/v7_single/_run_kernel_breakdown_campaign.py summarize --out logs/v7_single/kernel_breakdown
+python _plot_single_baseline_paper.py --dir logs/v7_single/throughput_r2 --solver v7_single --figure-a-name single_gpu_throughput --no-figure-b
+
+# 1000^2 adami 精度运行(约 6-11 h)与报告
+python -m experiment.validation.cavity_campaign calibrate --solver v7_single --runs n1000_k1_float32_xi0p001_eps0p0025_adami
+python -m experiment.validation.cavity_campaign run --solver v7_single --runs n1000_k1_float32_xi0p001_eps0p0025_adami
+python -m experiment.validation.cavity_v7_single_report --run-root logs/validation/cavity_re1000_v7_single \
+    --run n1000_k1_float32_xi0p001_eps0p0025_adami --id-suffix _v7single --prefix cavity_re1000
+python -m experiment.validation.e39_compare --v7 logs/validation/cavity_re1000_v7_single/n1000_k1_float32_xi0p001_eps0p0025_adami \
+    --v6 ../vulkan-demo/logs/e36/runs/n1000_k1_v7_adami_rho0 --out logs/v7_single/cavity/vs_e36_adami_rho0
+```
 
 ## 提交(分支 `v7-single`,从 `v7-rc1` = d0c8dcb 开出)
 
