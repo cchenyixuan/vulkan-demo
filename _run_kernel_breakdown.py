@@ -24,8 +24,12 @@ solver's own production recording (SphSimulatorSingle.record_step with a tick ca
 barriers are the production step's; the stages are the recording's tick labels (fused: predict,
 update_voxel, correction_density, density_copy, force; unfused: predict, update_voxel, correction,
 density_kernel, density_copy, force; plus deep_wall_marker / wall_extrapolate where the case has them).
-After the timed loop the production step (no timestamps) runs the same number of steps, and the
-result reports the timed GPU frame against the production step's wall time per step.
+The production step (no timestamps) is interleaved with the timed one after the warmup - odd frames
+timed, even frames production, 2 x --measure frames in all - so both see the same flow state (the step
+cost of a case drifts between defrags and with the developing flow: on cavity3d_8m_b4 by ~8 % between
+frames 1100 and 2900, experiment/v7_single/_probe_loop_variants.py); the result reports the timed GPU
+frame, the timed frames' wall time per step (submit + fence) and the production frames' wall time per
+step (one fence, no timestamps), defrag frames excluded from all three.
 """
 
 from __future__ import annotations
@@ -207,19 +211,36 @@ def main() -> int:
     samples["gpu_frame"] = []
     cadence = adapter.defrag_cadence
     data = ffi.new(f"uint64_t[{query_count}]")
-    total = args.warmup + args.measure
+    interleave = args.solver == "v7_single"
+    total = args.warmup + (2 * args.measure if interleave else args.measure)
     t_start = None
     production = None
+    timed_wall: list[float] = []
+    production_wall: list[float] = []
     try:
         for frame in range(1, total + 1):
-            adapter.sim.ctx.submit_and_wait(cmd)
             defrag_frame = bool(cadence) and frame % cadence == 0
+            measured = frame > args.warmup
+            production_frame = interleave and measured and frame % 2 == 0
+            if production_frame:
+                t_frame = time.perf_counter()
+                adapter.sim.step_and_wait()
+                wall = time.perf_counter() - t_frame
+                if defrag_frame:
+                    adapter.sim.submit_defrag_and_wait()
+                elif measured:
+                    production_wall.append(wall * 1e6)
+                continue
+            t_frame = time.perf_counter()
+            adapter.sim.ctx.submit_and_wait(cmd)
+            wall = time.perf_counter() - t_frame
             if defrag_frame:
                 adapter.sim.ctx.submit_and_wait(adapter.defrag_cmd)
             if frame == args.warmup:
                 t_start = time.perf_counter()
-            if frame <= args.warmup or defrag_frame:
+            if not measured or defrag_frame:
                 continue
+            timed_wall.append(wall * 1e6)
             vkGetQueryPoolResults(device, pool, 0, query_count, query_count * 8, data, 8,
                                   VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT)
             ticks = [int(data[i]) for i in range(query_count)]
@@ -227,16 +248,10 @@ def main() -> int:
                 samples[stage].append((ticks[slot] - ticks[slot - 1]) * ns_per_tick / 1000.0)
             samples["gpu_frame"].append((ticks[-1] - ticks[0]) * ns_per_tick / 1000.0)
         elapsed = time.perf_counter() - t_start
-        if args.solver == "v7_single":
-            # the production step (no timestamps), the same number of steps, one fence per step
-            t_production = time.perf_counter()
-            for frame in range(1, args.measure + 1):
-                adapter.sim.step_and_wait()
-                if bool(cadence) and (total + frame) % cadence == 0:
-                    adapter.sim.submit_defrag_and_wait()
-            production_elapsed = time.perf_counter() - t_production
-            production = {"steps": args.measure, "cpu_fps": args.measure / production_elapsed,
-                          "us_per_step": production_elapsed / args.measure * 1e6}
+        if interleave:
+            production = {"steps": len(production_wall), "interleaved": True,
+                          "us_per_step": statistics.fmean(production_wall),
+                          "cpu_fps": 1e6 / statistics.fmean(production_wall)}
         status = adapter.readback_status()
         alive = int(status["alive_particle_count"])
         candidates = candidate_pairs_single(adapter) if args.solver == "v7_single" else None
@@ -256,7 +271,9 @@ def main() -> int:
             "candidates": candidates,
             "switches": getattr(adapter, "switches", None),
             "production": production,
-            "timed_us_per_step": elapsed / args.measure * 1e6,
+            "frames_total": total,
+            "timed_us_per_step": (statistics.fmean(timed_wall) if timed_wall else elapsed / args.measure * 1e6),
+            "timed_wall_frames": len(timed_wall),
             "mean_us": {key: round(statistics.fmean(values), 2) for key, values in samples.items()},
             "p50_us": {key: round(statistics.median(values), 2) for key, values in samples.items()},
             "std_us": {key: round(statistics.pstdev(values), 2) for key, values in samples.items()},

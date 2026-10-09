@@ -145,11 +145,13 @@ def main() -> int:
             lines.append(f"- 2-D step total vs reference {args.reference_2d_us:.0f} µs: {delta:+.2f}% "
                          f"(limit ±1%): **{'ok' if abs(delta) <= 1.0 else 'FAIL'}**")
         if s.get("production_us_per_step"):
-            lines.append(f"- {dim}-D: timed GPU frame {frame['mean_us']:.1f} µs vs the production step's wall time "
-                         f"{s['production_us_per_step']:.1f} µs/step (one fence per step, no timestamps): "
-                         f"{frame['mean_us'] - s['production_us_per_step']:+.1f} µs "
-                         f"({100 * (frame['mean_us'] / s['production_us_per_step'] - 1):+.2f} %); the timed loop's "
-                         f"own wall time {s['timed_us_per_step']:.1f} µs/step.")
+            lines.append(f"- {dim}-D: timed GPU frame {frame['mean_us']:.1f} µs; the timed frames' wall time "
+                         f"{s['timed_us_per_step']:.1f} µs/step (submit + fence, fresh fence per step: "
+                         f"{s['timed_us_per_step'] - frame['mean_us']:+.1f} µs = the exposed host round trip); the "
+                         f"production frames' wall time {s['production_us_per_step']:.1f} µs/step (interleaved, one "
+                         f"persistent fence, no timestamps): {s['production_us_per_step'] - frame['mean_us']:+.1f} µs "
+                         f"({100 * (s['production_us_per_step'] / frame['mean_us'] - 1):+.2f} %) over the GPU frame, "
+                         f"{s['production_us_per_step'] - s['timed_us_per_step']:+.1f} µs against the timed frames.")
         if s.get("switches"):
             lines.append(f"- {dim}-D switches: {s['switches']}")
         if s.get("candidate_pairs"):
