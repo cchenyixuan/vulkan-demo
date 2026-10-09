@@ -355,6 +355,30 @@ depth 1 相对 depth 2 的损失(fps_d1 / fps_d2 − 1):S −4.00 / −2.23 / �
 
 结果:待填。
 
+## 论文用数字
+
+- §3.6 吞吐范围(S,一张 RTX 5090,2-D 方腔 1M–32M):2 在飞 732–790 M 粒子·步 / 秒(1 在飞 722–788);fps 734.6(1M)→ 24.50(32M);3-D 8M(`cavity3d_8m_b4`,9.13 M 粒子)149 M 粒子·步 / 秒,16.3 fps。
+- §3.6 depth-1 损失(1 在飞相对 2 在飞):1M −4.00 %,32M −0.34 %(2M −2.23、4M −1.38、8M −0.90、16M −0.52 %;3-D 8M −0.22 %)。
+- §3.6 每候选 ps(融合,默认):correction + density 2.50(2-D 8M)/ 2.09(3-D 8M),force 2.79 / 2.06;不融合:correction 2.12 / 1.60,density 2.17 / 1.72,force 2.80 / 2.06。候选 = 粒子所在体素的 3^d 邻域里列出的粒子数(2-D 224.4 / 粒子,3-D 1649 / 粒子)。
+- §3.6 融合省下的步长:23.5 %(2-D 8M:13 815 → 10 572 µs),22.7 %(3-D 8M:81 875 → 63 319 µs)。
+- §5.1 链式 K = 1 对纯单卡(C/S,2 在飞,n = 3):1M 98.55 ± 0.11 %,2M 99.20 ± 0.16 %,4M–32M 99.85–100.02 %,3-D 8M 99.89 ± 0.16 %。
+- §6.2(1000² adami,v7_single):待填 —— u、v 的相对 L2,极值与 ψ_min 的偏差,t_s。
+- 表 2 的 LaTeX 行(`docs/seam_audit/v7_single/kernel_breakdown_fused.md`,不融合的在 `_unfused.md`):
+
+```latex
+% columns: kernel & dispatch & 2-D $\mu$s/step & 2-D ns/particle & 2-D \% & 3-D $\mu$s/step & 3-D ns/particle & 3-D \% \\
+% 2-D: 8,128,201 particles; 3-D: 9,129,329 particles
+predict & per particle & 497 & 0.06 & 4.7 & 498 & 0.05 & 0.8 \\
+update\_voxel & per voxel & 331 & 0.04 & 3.1 & 318 & 0.03 & 0.5 \\
+correction + density (fused) & per particle & 4565 & 0.56 & 43.2 & 31410 & 3.44 & 49.6 \\
+density (scratch$\to$primary copy) & buffer copy & 82 & 0.01 & 0.8 & 78 & 0.01 & 0.1 \\
+force & per particle & 5097 & 0.63 & 48.2 & 31014 & 3.40 & 49.0 \\
+\midrule
+\textbf{step total} &  & 10572 & 1.30 & 100.0 & 63319 & 6.94 & 100.0 \\
+```
+
+- 方腔表的 LaTeX 行:待填(`docs/validation/data/cavity_re1000_tables_v7single.md`)。
+
 ## 已知限制
 
 - S 相对 V 省掉的都是不执行或不改数据的东西(清单第 11 节),所以 S 与 V 的吞吐差只能来自 host 侧(每步的 fence 建销、CONCURRENT 共享模式、未用的队列与对象);两者的 kernel 时间相同。
@@ -404,4 +428,18 @@ python -m experiment.validation.e39_compare --v7 logs/validation/cavity_re1000_v
 
 | 提交 | 内容 |
 |---|---|
-| (本提交) | 本文档的清单 |
+| 9218f15 | 清单(本文档第一版) |
+| d1cc2e0 | 脚手架:单队列上下文、SPIR-V 清单校验、纯单卡模拟器(录制、fence 环、读回)、运行循环、吞吐 runner |
+| 77d48f5 | 开关:三个 kernel 开关按 v7 的解析器读取,其余 `V7_*` 拒绝;CPU 测试 |
+| 70ac490 | 验收工具 adapter:`canonical_dump --solver v7_single / --v7-mode single`,CPU 命令流比对,v7 加载器的 OBJ 缓存 |
+| 8f2e59f | 测量与验证工具 adapter:基线 bench 的 v7 / v7x / v7_single / v7_chain 构建、campaign 的 3-D 算例与空闲检查、汇总、逐 kernel 计时、吞吐图、cavity_runner / campaign 的 `--solver v7_single` |
+| 3e9769f | 验收:CPU 命令流、GPU 逐位、不变量、验证层 |
+| 24a1886 | 评审修正(验收 5)+ 方腔报告脚本 |
+| 65f4b49 | 文档:验收一节,清单更正 |
+| 6278655 | campaign 空闲检查忽略自身的启动器 / 解释器 |
+| f0c0e3a | 逐 kernel 计时活动脚本(测量 B 的驱动) |
+| e77744a | 文档:测量与精度验证的方法、已知限制、复现命令 |
+| 8e5ae46 | 测量 A(吞吐与开销)与图 C |
+| 1c0f57a | 逐 kernel 计时与生产步交错,循环探针 |
+| 457913c | 测量 B(逐 kernel 成本,融合 / 不融合);1000² adami 精度运行从这个提交启动 |
+| (待填) | 精度验证结果、文档结论、报告 |

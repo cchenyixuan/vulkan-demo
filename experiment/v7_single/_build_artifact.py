@@ -124,7 +124,7 @@ def main() -> int:
     parser.add_argument("--out", required=True)
     parser.add_argument("--doc", default="docs/seam_audit/v7_single.md")
     parser.add_argument("--throughput", default="logs/v7_single/throughput_r2")
-    parser.add_argument("--breakdown", default="logs/v7_single/kernel_breakdown")
+    parser.add_argument("--breakdown", default="logs/v7_single/kernel_breakdown_v2")
     parser.add_argument("--cavity-tables", default="docs/validation/data/cavity_re1000_tables_v7single.md")
     parser.add_argument("--figures", default="manuscripts/fig")
     arguments = parser.parse_args()
