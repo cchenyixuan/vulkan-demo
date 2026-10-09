@@ -62,7 +62,7 @@ V 的 `_allocate_buffers` 把 `_CONCURRENT_BUFFER_NAMES` 里存在的 14 个缓�
 | 1.7 | ghost_packed_words | 4 | CONCURRENT | 4,EXCLUSIVE | replica_region_size = 0 时 V 也是 4 B |
 | 1.8 | deep_wall_voxel_flag | 8 B × (体素数 + 1),只在 B4 开启的 slab 上 | EXCLUSIVE | 同规则 | |
 | 3.0 | global_status | 160 | CONCURRENT | 160,EXCLUSIVE | 40 uint,读回 drift 与所有 overflow 计数 |
-| 3.1 | pool_health | 16 | EXCLUSIVE | 16 | 只有 install_migrations 写;S 保留(描述符布局),不读 |
+| 3.1 | pool_health | 16 | EXCLUSIVE | 16 | 只有 install_migrations 写;S 保留(描述符布局);S 的 `readback_pool_health` 只给 canonical_dump 的元数据(恒 0),生产路径不读 |
 | 3.7 | material_parameters | 48 B × 材料数 | EXCLUSIVE | 同 | |
 | 3.8 | defrag_scratch_counter | 4 | EXCLUSIVE | 同 | |
 | 3.9 | band_compact_meta | 128 | EXCLUSIVE | **16 B stub** | 只有 compact band 派发用(indirect) |
@@ -181,7 +181,7 @@ S 的录制逐条相同,包括第 7 步那道多余的相邻屏障(去掉它对 
 
 ### 8. 读回与状态块
 
-两边都读同一个 160 B 的 `GlobalStatusBuffer`(40 个 uint,`_GLOBAL_STATUS_FIELD_NAMES`):alive_particle_count 给 drift,所有 `overflow_*` 字段(overflow_inside / incoming / ghost / install_tail / install_inside / departed / initialization_outside / deep_wall_skip)给不变量。V 另有 `readback_pool_health`(install 的水位,单卡恒 0);S 不读 pool_health。多缓冲批读回(`readback_buffers_batch`)两边同一套实现方式(一次性 staging + 一条命令 + fence)。
+两边都读同一个 160 B 的 `GlobalStatusBuffer`(40 个 uint,`_GLOBAL_STATUS_FIELD_NAMES`):alive_particle_count 给 drift,所有 `overflow_*` 字段(overflow_inside / incoming / ghost / install_tail / install_inside / departed / initialization_outside / deep_wall_skip)给不变量。V 另有 `readback_pool_health`(install 的水位,单卡恒 0);S 保留同名方法只为 canonical_dump 的元数据(恒 0),生产 runner 不调用它。多缓冲批读回(`readback_buffers_batch`)两边同一套实现方式(一次性 staging + 一条命令 + fence)。
 
 ### 9. 开关与环境变量
 
@@ -193,7 +193,7 @@ S 只读这三个:`V7_DENSITY_COPY_COMPUTE`(0 / 1,默认 1)、`V7_FUSED_CORRECTI
 
 | 项 | V | S |
 |---|---|---|
-| GPU 时间戳 | `bench_v7.BenchTimer` 挂在 `sim.bench` 上,单卡录制在每个 kernel 后 tick;parity 区域、defrag 区域 | 没有 BenchTimer;录制函数接受一个可选的 tick 回调(`record_step(cmd, tick=...)`),`_run_kernel_breakdown.py` 用它在同一条生产录制里插时间戳(屏障结构因此与生产步相同) |
+| GPU 时间戳 | `bench_v7.BenchTimer` 挂在 `sim.bench` 上,单卡录制在每个 kernel 后 tick(`step_start` 在开头那道屏障之前,`wall_extrapolate_end` 在壁面 kernel 的屏障之前);parity 区域、defrag 区域 | 没有 BenchTimer;录制函数接受一个可选的 tick 回调(`record_step(cmd, tick=...)`),`_run_kernel_breakdown.py` 用它在同一条生产录制里插时间戳(屏障结构因此与生产步相同)。tick 位置与 V 相同,只有 `step_start` 放在开头那道屏障之后(E5 的计时器也是这样放;同步循环里这道屏障前面没有在飞的工作,差别在 1 µs 以内) |
 | step trace / phase trace | 链式路径的工具 | 无 |
 | `step_single_use_split` / `V7_FAKE_BAND_TEST` | 单卡的验证 / 诊断路径(拆成 interior + boundary 流水线) | 无 |
 | 深壁记录钩子 | `simulator_v7._DEEP_WALL_RECORD_DECISIONS` | `simulator_single._DEEP_WALL_RECORD_DECISIONS`,同样的 spec 113 与记录缓冲 |
@@ -204,13 +204,50 @@ S 只读这三个:`V7_DENSITY_COPY_COMPUTE`(0 / 1,默认 1)、`V7_FUSED_CORRECTI
 
 ## 验收
 
-待做。计划:
+全部通过(2026-10-09,`experiment/v7_single/_run_acceptance.py all`,日志 `logs/v7_single/acceptance/`,汇总镜像在 `docs/seam_audit/v7_single/acceptance_summary.{json,md}`、`acceptance_cpu_compare.json`、`acceptance_runs.jsonl`)。本机两张 RTX 5090、驱动 576.88,GPU 运行都在无头的那张卡(UUID `ae137c66…`,discrete-first 序号 1)上,验证层关(第 4 项除外)。
 
-1. CPU 侧(`experiment/v7_single/_compare_recordings.py`):把两边的录制函数在 CPU 上跑一遍(vkCmd* 换成记录器,流水线换成 (SPIR-V 文件, spec constant) 记录),逐条比较时间步、bootstrap 两条命令、defrag、restart 的命令流,以及每条绑定的 SPIR-V 与 spec constant;算例 5 个,默认开关与 `V7_FUSED_CORRECTION_DENSITY=0` 各一次;允许的差别只有第 7 节列出的那条 fill。
-2. GPU 逐位(`experiment/seam_audit/canonical_dump.py --solver v7_single` 与 `--solver v7 --v7-mode single`):n250 200 / 999 步,2-D 1M 200 步,cavity3d_8m_b4 200 步,cavity3d_1m 200 步,n250 adami 200 步;S 对 V 必须逐位;S 对 C(`--solver v7`,链式)只报告。
-3. 不变量:所有运行 drift 0、overflow 0。
-4. 验证层 2000 步:2-D 1M 与 cavity3d_8m_b4,0 条消息。
-5. 独立子 agent 评审 host 代码与本清单。
+### 1. CPU 侧:命令流逐条比对
+
+`experiment/v7_single/_compare_recordings.py`:两边的模拟器在 CPU 上用 `object.__new__` 建起(`_v7_cpu_fake.py`),把模块里的 vkCmd* / vkBegin / vkEnd 换成记录器,`_create_pipeline` 换成返回 (SPIR-V 文件名, spec constant) 的函数,然后各自跑五条录制:时间步、bootstrap 的两条命令、defrag、restart 的体素化。比较的元素:绑定的 SPIR-V 文件及其全部 spec constant、描述符集绑定(布局、first、count、集合)、派发的工作组数、每道屏障的 stage / access 掩码、fill(缓冲、偏移、长度、值)、copy(源、目标、区域)、`vkBeginCommandBuffer` 的标志。另外比较两边的缓冲表(name / set / binding 顺序相同,大小除两个 stub 外相同,9 个 defrag 孪生相同)、初始上传的每个载荷、material_parameters 的 48 B 行、以及一个合成 3 行状态的 restart 载荷,逐字节;v7 一侧再在 canonical_dump 的发布环境(`RELEASE_ENVIRONMENT` 的 `V7_*`)下录一遍,命令流不变。
+
+| 算例 | 默认(融合 + compute 拷贝) | `V7_FUSED_CORRECTION_DENSITY=0` | `V7_DENSITY_COPY_COMPUTE=0` |
+|---|---|---|---|
+| n250(62k) | 5 条录制逐条相同 | 同 | 同 |
+| n250 adami | 同 | 同 | 同 |
+| 2-D 1M | 同 | 同 | 同 |
+| cavity3d_8m_b4(10.5M,B4 关) | 同 | 同 | 同 |
+| cavity3d_1m(1.69M,B4 开:280 231 个候选 = 16.63 %) | 同 | 同 | 同 |
+
+每一格里唯一的差别是 defrag 中 V 多出的 `fill global_status[48] = 0`(migration_install_count,第 7 节),工具把它列为允许项;缓冲表、载荷、发布环境三项在 n250 / n250 adami / cavity3d_1m 上也都相同(`logs/v7_single/acceptance/cpu_compare_small_v2.json`;五算例的完整重跑见测量后的 `cpu_compare.json`)。时间步的派发数:2-D 融合 5 次(predict、update_voxel、correction_density_all、density_scratch_copy、force_all)、6 道屏障;不融合 6 次、7 道;adami 各加 1;3-D B4 开各加 2(marker 两趟)。
+
+### 2–3. GPU 逐位(canonical lists)与不变量
+
+`canonical_dump.py`:`--solver v7_single`(S)、`--solver v7 --v7-mode single`(V,`SphSimulatorV7` 的单命令步)、`--solver v7`(C,链式 K = 1),都用 `--canonical-lists`(初始体素化后按 pid 排序列表、没有 bootstrap defrag),同一张卡,dump 后 `--compare`。每个算例跑默认开关与 `V7_FUSED_CORRECTION_DENSITY=0` 各一次,共 36 个 dump。
+
+| 算例 | 步数 | S 对 V(必须) | S 对 C(只报告) | drift / overflow(S / V / C) |
+|---|---|---|---|---|
+| n250 | 200 | 逐位(默认、不融合;`--no-mask` 也逐位) | 逐位 | 0 / 0 |
+| n250 | 999 | 逐位 | 逐位 | 0 / 0 |
+| 2-D 1M | 200 | 逐位 | 逐位 | 0 / 0 |
+| cavity3d_8m_b4 | 200 | 逐位 | 逐位 | 0 / 0 |
+| cavity3d_1m(B4 开) | 200 | 逐位(含不屏蔽深壁行) | 逐位 | 0 / 0 |
+| n250 adami | 200 | 逐位 | 逐位 | 0 / 0 |
+
+10 个场(position_voxel_id、velocity_mass、density_pressure、density_pressure_scratch、acceleration、shift、material、correction_inverse、density_gradient_kernel_sum、extension_fields;adami 另加 wall_dummy_velocity)全部逐位相同,所以 S 对 C 的 ULP 统计没有可报的差别:在这 6 个算例上 v7_single、v7 单卡模式与 v7 链式 K = 1 是同一组比特。每个 dump 的 alive = 粒子数,所有 `overflow_*` 计数、far_migration、stamp 计数都是 0。
+
+### 4. 验证层
+
+v7_single 在 Khronos 验证层(默认设置,实例层 + debug messenger 计数)下各跑 2000 步、2 步在飞:2-D 1M(710.9 fps)与 cavity3d_8m_b4(14.7 fps),层已加载,消息 0 条(ERROR / WARNING / INFO / VERBOSE 都是 0,stderr 也没有一行),drift 0,overflow 0。
+
+### 5. 独立评审
+
+一个只读的子 agent 评审了 host 代码、工具 adapter 与本清单(读 `experiment/v7_single`、改过的 adapter、对照 `simulator_v7.py` / `vulkan_context_v7.py` / `case_loader_v7.py` 与 shader 源码)。结论:**没有 blocker**,找不到让 S 与 V 产生不同比特的路径。它核实的内容:`global_entries()` 与 `_global_entries()` 的每个 id、格式、取值(含 83 = 加载器默认 1、98 在未设 `V7_PACKED_REPLICAS` 时解析为 1);发布环境下这些单卡流水线的常数不变(`V7_BAND_SLOT_LANES=64` 只进 band_dispatch = 1 的流水线);两个 stub 缓冲只被 ghost_send / ghost_send_lanes / expand_ghost_lists 和 `BAND_VOXEL_DISPATCH == 2` 的分支触及,S 绑定的任何流水线都到不了;fence 环的等待关系;两边的队列族都是第一个有 COMPUTE 位的族。它提出的 10 项应改与备注都已处理(提交 24a1886):
+
+- 物理哈希:`cavity_runner.code_hashes` 与 canonical_dump 的代码摘要原来没有覆盖 v7 的 case 加载器(dt、网格、原点、核系数都由它算出),现在把 `experiment/v7/utils/case_loader_v7.py`、`case_v7.py` 纳入。
+- CPU 比对工具:补上缓冲表断言、载荷逐字节比较、begin 标志、描述符集身份、发布环境下的 v7 录制(本节第 1 项的表就是补后的结果)。
+- 链式 adapter 的稳态窗口:`run_pipelined` 在提交第 warmup 帧时就打开窗口,而 warmup = 1000 正好是 defrag 周期,窗口会比 fence 环的多含一次 defrag;改为从第 warmup + 1 帧提交后打开(窗口 2000 − 1 帧),与环的窗口含同样的 defrag。
+- 壁面 kernel 的 tick 放回屏障之前(与 V 的 BenchTimer 一致);`vkQueueSubmit` 失败时重建该槽的 fence;standalone runner 的 `--warmup 0`;验收 4 由脚本强制判定(层未加载或有消息即 FAIL);canonical_dump 的单卡模式在每个 defrag 边界检查 overflow;候选对数计算断言 `voxel_order = 0`。
+- 备注(不改):defrag 开头的 compute → compute 屏障后面接 transfer 阶段的 fill,与 v7 相同(v7 自己注明第二作用域形式上不含 TRANSFER;前一次写在 1000 帧之前的 defrag 里,实际无害);S 有两种起点(`SingleRunner.bootstrap_all` 像链一样在 bootstrap 后 defrag 一次,bench 与 canonical_dump 的单卡模式像 V 一样不 defrag),两种起点的 dump 之间不逐位可比,但各自与对应的 V / C 起点一致。
 
 ## 测量
 
