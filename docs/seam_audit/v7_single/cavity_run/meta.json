@@ -1,0 +1,44 @@
+{
+ "case": "cases\\lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_adami\\case.yaml",
+ "solver": "v7_single",
+ "slabs": 1,
+ "device_map": [
+  1
+ ],
+ "expect": "release",
+ "environment": {},
+ "expected_total": 1046529,
+ "dt": 7.5e-06,
+ "support_radius": 0.005,
+ "spacing": 0.001,
+ "reynolds_nominal": 1000.0,
+ "defrag_cadence": 1000,
+ "cuts": [],
+ "pool_safety": 1.2,
+ "sample_steps": 27000,
+ "snapshot_steps": 133000,
+ "checkpoint_steps": 1323000,
+ "window_steps": 1323000,
+ "t_end": 100.0,
+ "t_max": 200.0,
+ "steady_tol": 0.001,
+ "average_span": 20.0,
+ "wall_boundary": "adami",
+ "frames": {
+  "wall": 0.501,
+  "fluid": 0.5
+ },
+ "dense_reference": "linspace(0, 1, 1001) in the wall frame",
+ "fluid_groups": [
+  0
+ ],
+ "git": {
+  "head": "457913c",
+  "dirty": false
+ },
+ "code_hashes": {
+  "physics": "ab13a3dce97ee068",
+  "sampling": "890a9478e0656200",
+  "runner": "28e35159378f6feb"
+ }
+}

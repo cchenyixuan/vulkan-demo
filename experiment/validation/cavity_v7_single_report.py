@@ -159,7 +159,7 @@ def field_figure(grid: dict, path: pathlib.Path) -> None:
     axes[0].plot(grid["x_psi_min"], grid["y_psi_min"], "o", color=SPH_COLOR, ms=5, mew=0, label="SPH primary vortex")
     axes[0].plot(reference["x_at_psi_min"][0], reference["y_at_psi_min"][0], "*", mfc="none", mec=MARCHI_COLOR, ms=9,
                  mew=0.8, label="Marchi et al. (2021)")
-    axes[0].legend(frameon=False, loc="lower left", fontsize=7)
+    axes[0].legend(frameon=False, loc="lower center", fontsize=7)
     clip = 5.0
     omega = np.clip(grid["vorticity"], -clip, clip)
     image = axes[1].imshow(omega, origin="lower", extent=[0, 1, 0, 1], cmap="RdBu_r",

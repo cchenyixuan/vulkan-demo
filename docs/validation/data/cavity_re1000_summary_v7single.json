@@ -1,0 +1,200 @@
+{
+ "extrema": {
+  "u_min": {
+   "value": -0.39041754574260884,
+   "sem": 1.060733118053453e-05,
+   "position": 0.16919162575560712,
+   "reference_value": -0.3885697938,
+   "reference_position": 0.1716967913,
+   "deviation_percent": 0.4755263975974122,
+   "position_error": -0.0025051655443928955
+  },
+  "v_max": {
+   "value": 0.37928412409329143,
+   "sem": 9.163035922712992e-06,
+   "position": 0.15630822176847334,
+   "reference_value": 0.3769447085,
+   "reference_position": 0.157836525,
+   "deviation_percent": 0.6206256622094026,
+   "position_error": -0.0015283032315266676
+  },
+  "v_min": {
+   "value": -0.5294626964315343,
+   "sem": 1.207211078067767e-05,
+   "position": 0.91019048967451,
+   "reference_value": -0.5270772755,
+   "reference_position": 0.90924699426,
+   "deviation_percent": 0.45257518060731977,
+   "position_error": 0.0009434954145099983
+  },
+  "psi_min": {
+   "value": -0.11910176671185774,
+   "position": [
+    0.530389614155308,
+    0.5644981660482006
+   ],
+   "reference_value": -0.1189366115,
+   "reference_position": [
+    0.5307901107,
+    0.56524055787
+   ],
+   "deviation_percent": 0.13885985969739845,
+   "position_error": [
+    -0.00040049654469198614,
+    -0.0007423918217994707
+   ],
+   "snapshots": 20,
+   "sem": null
+  }
+ },
+ "errors": {
+  "u": {
+   "L2": 0.0021539931119768144,
+   "Linf": 0.005375120995294913,
+   "L2_relative": 0.006789168735040491,
+   "Linf_at": 0.1015625
+  },
+  "v": {
+   "L2": 0.0022159295756424605,
+   "Linf": 0.005128125469867573,
+   "L2_relative": 0.006974219780833232,
+   "Linf_at": 0.9375
+  }
+ },
+ "t_steady_online": 79.38,
+ "t_steady_sliding": 71.685,
+ "window": [
+  79.9875,
+  99.8325
+ ],
+ "samples_in_window": 99,
+ "kinetic_energy_window": {
+  "mean": [
+   50.58061421195097
+  ],
+  "std": [
+   0.004216020937988184
+  ],
+  "n": 99,
+  "tau": [
+   29.27493074272654
+  ],
+  "sem": [
+   0.0022926254013305425
+  ]
+ },
+ "invariants": {
+  "drift": 0,
+  "overflow": 0,
+  "far_migration": 0,
+  "stamp_gpu": 0,
+  "stamp_host": 0,
+  "segments": 1,
+  "complete": true
+ },
+ "wall_hours": 6.2404857952221455,
+ "grid_psi_min": {
+  "psi_min": -0.11910176671185774,
+  "x": 0.530389614155308,
+  "y": 0.5644981660482006,
+  "snapshots": 20
+ },
+ "run": {
+  "root": "logs/validation/cavity_re1000_v7_single",
+  "id": "n1000_k1_float32_xi0p001_eps0p0025_adami",
+  "meta": {
+   "case": "cases\\lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_adami\\case.yaml",
+   "solver": "v7_single",
+   "slabs": 1,
+   "device_map": [
+    1
+   ],
+   "expect": "release",
+   "environment": {},
+   "expected_total": 1046529,
+   "dt": 7.5e-06,
+   "support_radius": 0.005,
+   "spacing": 0.001,
+   "reynolds_nominal": 1000.0,
+   "defrag_cadence": 1000,
+   "cuts": [],
+   "pool_safety": 1.2,
+   "sample_steps": 27000,
+   "snapshot_steps": 133000,
+   "checkpoint_steps": 1323000,
+   "window_steps": 1323000,
+   "t_end": 100.0,
+   "t_max": 200.0,
+   "steady_tol": 0.001,
+   "average_span": 20.0,
+   "wall_boundary": "adami",
+   "frames": {
+    "wall": 0.501,
+    "fluid": 0.5
+   },
+   "dense_reference": "linspace(0, 1, 1001) in the wall frame",
+   "fluid_groups": [
+    0
+   ],
+   "git": {
+    "head": "457913c",
+    "dirty": false
+   },
+   "code_hashes": {
+    "physics": "ab13a3dce97ee068",
+    "sampling": "890a9478e0656200",
+    "runner": "28e35159378f6feb"
+   }
+  },
+  "result": {
+   "status": "complete",
+   "segments_with_invariant_violation": [],
+   "segments": [
+    {
+     "segment": 0,
+     "start_step": 0,
+     "status": "complete",
+     "error": null
+    }
+   ],
+   "steady": {
+    "steady_time": 79.38,
+    "decided_at_step": 10584000,
+    "profile_change": 0.00041126864046003647,
+    "kinetic_energy_change": 0.0005614818995221549
+   },
+   "stop_step": 13334000,
+   "dt": 7.5e-06
+  },
+  "segments": [
+   {
+    "segment": 0,
+    "start_step": 0,
+    "status": "complete",
+    "totals": {
+     "overflow": 0,
+     "far_migration": 0,
+     "stamp_gpu": 0,
+     "stamp_host": 0,
+     "drift": 0
+    },
+    "error": null,
+    "invariant_violation": false,
+    "device_uuids": [
+     "ae137c668a40f5acaab90a83f7cda175"
+    ],
+    "solver": "v7_single",
+    "code_hashes": {
+     "physics": "ab13a3dce97ee068",
+     "sampling": "890a9478e0656200",
+     "runner": "28e35159378f6feb"
+    },
+    "wall_s": 22465.748862799723,
+    "git": {
+     "head": "425588d",
+     "dirty": false
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,20 @@
+{
+ "status": "complete",
+ "segments_with_invariant_violation": [],
+ "segments": [
+  {
+   "segment": 0,
+   "start_step": 0,
+   "status": "complete",
+   "error": null
+  }
+ ],
+ "steady": {
+  "steady_time": 79.38,
+  "decided_at_step": 10584000,
+  "profile_change": 0.00041126864046003647,
+  "kinetic_energy_change": 0.0005614818995221549
+ },
+ "stop_step": 13334000,
+ "dt": 7.5e-06
+}

@@ -1,0 +1,11 @@
+[cavity 22:47:56] segment 0: solver v7_single, case cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_adami/case.yaml K=1 devices [1] expect release; start step 0 (t = 0.000); dt 7.500e-06; sample/snapshot/checkpoint/window every 27000/133000/1323000/1323000 steps
+[cavity 22:47:56] device uuids ['ae137c668a40f5acaab90a83f7cda175']
+[cavity 00:00:53] window ending t = 19.84: profile change 5.73e-01, KE change 4.68e-01
+[cavity 00:38:10] window ending t = 29.77: profile change 1.85e-01, KE change 1.57e-01
+[cavity 01:15:28] window ending t = 39.69: profile change 2.97e-02, KE change 3.29e-02
+[cavity 01:52:47] window ending t = 49.61: profile change 4.75e-03, KE change 7.34e-03
+[cavity 02:30:05] window ending t = 59.54: profile change 1.50e-03, KE change 2.47e-03
+[cavity 03:07:25] window ending t = 69.46: profile change 7.23e-04, KE change 1.13e-03
+[cavity 03:44:45] window ending t = 79.38: profile change 4.11e-04, KE change 5.61e-04
+[cavity 03:44:45] steady at t = 79.38; stop at t = 100.00
+[cavity 05:02:21] segment 0 end at step 13334000: {'overflow': 0, 'far_migration': 0, 'stamp_gpu': 0, 'stamp_host': 0, 'drift': 0} -> complete
