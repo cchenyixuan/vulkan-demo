@@ -32,6 +32,18 @@ runs ("pool_regions") and the counts of Khronos validation messages
 ("validation_messages", "validation_unavailable") are recorded too; none of
 them enters the classification.
 
+E7 full campaign (recorded, not part of the verdict either): the start barrier
+("barrier": parties, arrival / release epochs, wait, status), the stage epochs,
+the --defrag-log lines ("defrag_reports" per frame and slab, "defrag_times"),
+the full anatomy durations paired with the bench's [anatomy] lines
+("anatomy_frames": frame, slab, every duration, install_sum), the host loop
+lines of V7_LOOP_TRACE=1 anatomy runs ("loop_intervals"), the pool demand per
+1000 frames ("pool_series"), and with --telemetry the loop window's clocks per
+GPU ("telemetry_loop": SM clock median / min, power median, temperature max,
+utilization median; window = the stage epochs loop_start .. loop_end). The row
+is appended to --results with a single write (concurrent reference processes
+share the file).
+
 Usage:
     python parse_run_v6.py --log RUN.log --label LABEL --rc RC --start EPOCH --end EPOCH
                            [--telemetry telemetry.csv] [--results results.jsonl] [--solver v7]
@@ -210,9 +222,10 @@ def parse_log(text: str, solver: str = "v6") -> dict:
     # the ghost-pool region peaks with V*_POOL_PEAKS=1 (E15), and the Khronos validation layer's messages
     # (VulkanContext messenger on stderr: "[Vulkan <ESC>[91mERROR<ESC>[0m] ...", WARNING alike).
     stages = {}
-    for match in re.finditer(r"\[e30\] stage (\w+): t=([\d.]+)s VmRSS=(\S+) VmHWM=(\S+)", text):
+    for match in re.finditer(r"\[e30\] stage (\w+): t=([\d.]+)s VmRSS=(\S+) VmHWM=(\S+)(?: epoch=([\d.]+))?", text):
         stages[match.group(1)] = {"seconds": float(match.group(2)),
-                                  "vm_rss": match.group(3), "vm_hwm": match.group(4)}
+                                  "vm_rss": match.group(3), "vm_hwm": match.group(4),
+                                  "epoch": float(match.group(5)) if match.group(5) else None}
     row["stages"] = stages
     row["build_seconds"] = stages.get("loop_start", {}).get("seconds")
     row["pool_regions"] = [
@@ -226,7 +239,45 @@ def parse_log(text: str, solver: str = "v6") -> dict:
         "error": len(re.findall(r"\[Vulkan (?:\x1b\[\d+m)?ERROR", text)),
         "warning": len(re.findall(r"\[Vulkan (?:\x1b\[\d+m)?WARNING", text))}
     row["validation_unavailable"] = "validation layer requested but not available" in text
+
+    # E7 full campaign lines (recorded only)
+    match = re.search(r"\[e30\] barrier dir=(\S+) parties=(\d+) arrived_epoch=([\d.]+) released_epoch=([\d.]+) "
+                      r"waited=([\d.]+)s seen=(\d+) status=(\w+)", text)
+    row["barrier"] = ({"directory": match.group(1), "parties": int(match.group(2)),
+                       "arrived_epoch": float(match.group(3)), "released_epoch": float(match.group(4)),
+                       "waited_seconds": float(match.group(5)), "seen": int(match.group(6)),
+                       "status": match.group(7)} if match else None)
+    row["defrag_reports"] = [
+        {"frame": int(frame), "sim": int(sim), **{name: number_or_text(value)
+                                                  for name, value in re.findall(r"(\w+)=(\S+)", fields)}}
+        for frame, sim, fields in re.findall(r"\[e30\] defrag f(\d+) sim(\d+): (.*)", text)]
+    row["defrag_times"] = [
+        {"sim": int(sim), "wall_ms": float(wall), "gpu_us": float(gpu) if gpu else None}
+        for sim, wall, gpu in re.findall(r"\[e30\] defrag_time sim(\d+): wall_ms=([\d.]+)(?: gpu_us=([\d.]+))?",
+                                         text)]
+    anatomy_full = [dict((name, number_or_text(value)) for name, value in re.findall(r"(\w+)=(\S+)", fields))
+                    for fields in re.findall(r"\[e30\] anatomy_all call=\d+: (.*)", text)]
+    anatomy_heads = re.findall(r"^\[anatomy\] f(\d+) s(\d+):", text, flags=re.MULTILINE)
+    row["anatomy_frames"] = [{"frame": int(frame), "sim": int(sim), **durations}
+                             for (frame, sim), durations in zip(anatomy_heads, anatomy_full)]
+    row["anatomy_unpaired"] = len(anatomy_full) - len(anatomy_heads)
+    row["loop_intervals"] = [
+        {"frame": int(frame), **{name: number_or_text(value) for name, value in re.findall(r"(\w+)=(\S+)", fields)}}
+        for frame, fields in re.findall(r"^\[loop\] f(\d+): (.*)", text, flags=re.MULTILINE)]
+    row["pool_series"] = [
+        {"link": link, "region": region, "capacity": None if capacity == "None" else int(capacity),
+         "window": int(window), "peaks": [int(value) for value in peaks.split(",") if value]}
+        for link, region, capacity, window, peaks in re.findall(
+            r"\[e30\] pool_series (\S+) (\w+): capacity=(\d+|None) window=(\d+) peaks=([\d,]*)", text)]
     return row
+
+
+def number_or_text(value: str):
+    try:
+        number = float(value)
+    except ValueError:
+        return value
+    return int(number) if number.is_integer() and "." not in value and "e" not in value.lower() else number
 
 
 def classify(row: dict, return_code: int) -> tuple[str, list[str]]:
@@ -306,6 +357,63 @@ def telemetry_peaks(telemetry_path: str, start_epoch: float, end_epoch: float) -
     return peaks
 
 
+def telemetry_window(telemetry_path: str, start_epoch: float, end_epoch: float) -> dict:
+    """Per-GPU SM clock median / min [MHz], power median [W], temperature max [C] and utilization median [%]
+    between start and end (local time stamps): the clocks covariate of the efficiency rule."""
+    samples: dict = {}
+    path = pathlib.Path(telemetry_path)
+    if not path.exists():
+        return {}
+    with path.open(encoding="utf-8", errors="replace") as handle:
+        header = None
+        for record in csv.reader(handle):
+            if not record:
+                continue
+            if header is None or record[0].strip().startswith("timestamp"):
+                header = [name.strip() for name in record]
+                continue
+            values = dict(zip(header, (value.strip() for value in record)))
+            try:
+                stamp = datetime.datetime.strptime(values["timestamp"], "%Y/%m/%d %H:%M:%S.%f").timestamp()
+            except (KeyError, ValueError):
+                continue
+            if not (start_epoch <= stamp <= end_epoch) or values.get("index") is None:
+                continue
+            entry = samples.setdefault(values["index"], {"clock": [], "power": [], "temperature": [], "utilization": []})
+            for key_prefix, name in (("clocks.current.sm", "clock"), ("power.draw", "power"),
+                                     ("temperature.gpu", "temperature"), ("utilization.gpu", "utilization")):
+                key = next((key for key in values if key.startswith(key_prefix)), None)
+                if key is None:
+                    continue
+                try:
+                    entry[name].append(float(values[key].split()[0]))
+                except (ValueError, IndexError):
+                    pass
+
+    def median(values):
+        ordered = sorted(values)
+        return ordered[len(ordered) // 2] if ordered else None
+
+    return {index: {"sm_clock_median": median(entry["clock"]), "sm_clock_min": min(entry["clock"], default=None),
+                    "power_median": median(entry["power"]), "temperature_max": max(entry["temperature"], default=None),
+                    "utilization_median": median(entry["utilization"]), "samples": len(entry["clock"])}
+            for index, entry in samples.items()}
+
+
+def append_row(results_path: str, row: dict) -> None:
+    """One os.write of the whole line on an O_APPEND descriptor: rows of processes that finish together (a
+    reference set) never interleave, whatever their length."""
+    import os
+    data = (json.dumps(row) + "\n").encode("utf-8")
+    descriptor = os.open(results_path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+    try:
+        written = 0
+        while written < len(data):
+            written += os.write(descriptor, data[written:])
+    finally:
+        os.close(descriptor)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="E30 run-log parser")
     parser.add_argument("--log", required=True)
@@ -330,10 +438,13 @@ def main() -> int:
         row["wall_seconds"] = round(arguments.end - arguments.start, 1)
         if arguments.telemetry:
             row["telemetry_peaks"] = telemetry_peaks(arguments.telemetry, arguments.start, arguments.end)
+            loop_start = (row.get("stages") or {}).get("loop_start", {}).get("epoch")
+            loop_end = (row.get("stages") or {}).get("loop_end", {}).get("epoch")
+            if loop_start and loop_end and loop_end > loop_start:
+                row["telemetry_loop"] = telemetry_window(arguments.telemetry, loop_start, loop_end)
     row["status"], row["reasons"] = classify(row, arguments.rc)
     if arguments.results:
-        with open(arguments.results, "a", encoding="utf-8") as handle:
-            handle.write(json.dumps(row) + "\n")
+        append_row(arguments.results, row)
     vram = ""
     if row.get("telemetry_peaks"):
         vram = " vram_peak_mib=" + "/".join(f"{index}:{entry['memory_used_peak_mib']:.0f}"
@@ -354,6 +465,8 @@ def main() -> int:
           + (f" vk_messages={row['validation_messages']['error']}E/{row['validation_messages']['warning']}W"
              if any(row["validation_messages"].values()) else "")
           + (" vk_layer=unavailable" if row["validation_unavailable"] else "")
+          + (f" barrier={row['barrier']['status']}/{row['barrier']['waited_seconds']:.1f}s"
+             if row.get("barrier") else "")
           + (f" reasons={';'.join(row['reasons'])}" if row["reasons"] else ""), flush=True)
     return 0 if row["status"] in ("pass", "threshold_only") else 3
 

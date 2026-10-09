@@ -53,6 +53,23 @@ bench prints pool_used only to 0.1 %):
   [e30] sim<i> (dev<d>) pool_health: peak_tail_high_water=... own_pool_size=... free_margin=...
       peak_migration_count=... peak_departed_count=... departed_pool_size=...
 
+E7 full campaign (solvers other than v6):
+  --barrier DIR --barrier-parties N   a start barrier for processes launched together (a K = 1
+      reference set, the K = 2 pairs of a pair reference, a pre-check group): after its bootstrap
+      each process writes a token into DIR (node-local) and waits until N tokens are there (or
+      --barrier-timeout seconds passed), then starts its loop, so that the timed windows coincide:
+        [e30] barrier dir=... parties=N arrived_epoch=... released_epoch=... waited=...s seen=n status=ok|timeout
+      (not with --weights auto: its pilot chains would take the barrier);
+  the stage lines end with epoch=<seconds since 1970> (aligns runs with the telemetry);
+  --defrag-log   every in-loop defrag's report, one line per slab, and every defrag's duration:
+        [e30] defrag f<frame> sim<i>: interval_migration=... alive=... overflow_install_tail=... ...
+        [e30] defrag_time sim<i>: wall_ms=... [gpu_us=...]   (gpu_us with --anatomy timers attached)
+  with --anatomy in the bench arguments every duration the anatomy computes (the bench prints a fixed
+  subset) and the install sum c_start .. c_append_departed_end, one line before each [anatomy] line:
+        [e30] anatomy_all call=<n>: predict=... expand_lists=... install_leading=... ... install_sum=...
+  with <PREFIX>POOL_PEAKS=1 the region demand per 1000 recorded frames as well (E15 developed flow):
+        [e30] pool_series <link> <region>: capacity=C window=1000 peaks=p1,p2,...
+
 Usage (from the checkout root):
     python docs/cluster_v6/scripts/run_chain_v6.py [--switch-interval-ms 0.2] [--solver v7] -- <chain bench arguments>
     python docs/cluster_v6/scripts/run_chain_v6.py --config-only [--solver v7] [--case CASE.yaml ...]
@@ -112,6 +129,14 @@ def parse_arguments(argument_list: list[str]) -> tuple[argparse.Namespace, list[
                         help="cache parsed .obj vertex arrays as .npy files in DIR (node-local); later runs "
                              "of the same files skip the pure-Python parse. Harness only: the loader's "
                              "result is the same array")
+    parser.add_argument("--barrier", default=None, metavar="DIR",
+                        help="E7: hold the loop after the bootstrap until --barrier-parties processes reached it "
+                             "(token files in DIR)")
+    parser.add_argument("--barrier-parties", type=int, default=0)
+    parser.add_argument("--barrier-timeout", type=float, default=1800.0,
+                        help="seconds a process waits at the barrier before it starts anyway (status=timeout)")
+    parser.add_argument("--defrag-log", action="store_true",
+                        help="E7: print every in-loop defrag's per-slab report and each defrag's duration")
     parser.add_argument("--solver", choices=SOLVERS, default="v6",
                         help="solver directory experiment/<solver>: its chain bench, its configuration "
                              "resolvers and its environment prefix (E39: v7 = the v7-perf fork, V7_* "
@@ -329,17 +354,44 @@ def host_memory_text() -> str:
 
 
 def report_stage(stage: str, started: float) -> None:
-    print(f"[e30] stage {stage}: t={time.perf_counter() - started:.2f}s {host_memory_text()}", flush=True)
+    print(f"[e30] stage {stage}: t={time.perf_counter() - started:.2f}s {host_memory_text()} "
+          f"epoch={time.time():.3f}", flush=True)
 
 
-def install_stage_reporter(solver: str, started: float) -> None:
+def barrier_wait(directory: str, parties: int, timeout_seconds: float) -> None:
+    """E7 start barrier: write this process's token into DIRECTORY, wait until PARTIES tokens are there (or the
+    timeout passed), print one line. The token names carry host and pid; the directory is fresh per group."""
+    import socket
+    path = pathlib.Path(directory)
+    path.mkdir(parents=True, exist_ok=True)
+    arrived = time.time()
+    token = path / f"{socket.gethostname()}_{os.getpid()}.ready"
+    temporary = path / f".{token.name}.tmp"
+    temporary.write_text(f"{arrived:.6f}\n", encoding="utf-8")
+    os.replace(temporary, token)
+    status, seen = "timeout", 0
+    while True:
+        seen = sum(1 for _ in path.glob("*.ready"))
+        if seen >= parties:
+            status = "ok"
+            break
+        if time.time() - arrived > timeout_seconds:
+            break
+        time.sleep(0.02)
+    released = time.time()
+    print(f"[e30] barrier dir={directory} parties={parties} arrived_epoch={arrived:.3f} "
+          f"released_epoch={released:.3f} waited={released - arrived:.2f}s seen={seen} status={status}", flush=True)
+
+
+def install_stage_reporter(solver: str, started: float, barrier=None) -> None:
     """E7: wrap ChainOrchestrator<V>.bootstrap_all and run_pipelined so that the start and end of the bootstrap
     and of the timed loop are reported (report_stage). With --weights auto the pilot chains report too; the
-    timed chain's lines come last."""
+    timed chain's lines come last. BARRIER = (directory, parties, timeout): the first loop waits there first."""
     orchestrator_module = solver_module(solver, "orchestrator")
     chain_class = getattr(orchestrator_module, f"ChainOrchestrator{solver.upper()}")
     original_bootstrap = chain_class.bootstrap_all
     original_run = chain_class.run_pipelined
+    barrier_passed: list = []
 
     def bootstrap_all_reporting(orchestrator, *arguments, **keyword_arguments):
         report_stage("bootstrap_start", started)
@@ -348,6 +400,9 @@ def install_stage_reporter(solver: str, started: float) -> None:
         return result
 
     def run_pipelined_reporting(orchestrator, *arguments, **keyword_arguments):
+        if barrier is not None and not barrier_passed:
+            barrier_passed.append(True)
+            barrier_wait(*barrier)
         report_stage("loop_start", started)
         try:
             return original_run(orchestrator, *arguments, **keyword_arguments)
@@ -426,6 +481,95 @@ def print_pool_peaks(workers: list) -> None:
                   f"frame_of_peak={counts.index(peak)} p999={ordered[rank - 1]} "
                   f"mean={sum(counts) / len(counts):.1f} last={counts[-1]} frames={len(counts)} "
                   f"occupancy={occupancy}", flush=True)
+            window = 1000
+            print(f"[e30] pool_series {worker.label} {region}: capacity={capacity} window={window} peaks="
+                  + ",".join(str(max(counts[start:start + window])) for start in range(0, len(counts), window)),
+                  flush=True)
+
+
+def report_value_text(value) -> str:
+    if isinstance(value, float):
+        return f"{value:.6g}"
+    return str(value)
+
+
+def install_defrag_log(solver: str) -> None:
+    """E7 --defrag-log: wrap ChainOrchestrator<V>.run_pipelined so that its on_defrag callback first prints the
+    report the orchestrator collected at that defrag (one line per slab: the interval's migration count, alive,
+    the never-reset pool watermarks, the overflow counters), and SphSimulator<V>.submit_defrag_and_wait so that
+    each defrag's wall time is printed (and its GPU time, defrag_end - defrag_start, when a BenchTimer is
+    attached, i.e. with --anatomy). Slab index = order of the first defrag call (the bootstrap's, in slab order)."""
+    orchestrator_module = solver_module(solver, "orchestrator")
+    chain_class = getattr(orchestrator_module, f"ChainOrchestrator{solver.upper()}")
+    simulator_class = getattr(solver_module(solver, "simulator"), f"SphSimulator{solver.upper()}")
+    original_run = chain_class.run_pipelined
+    original_defrag = simulator_class.submit_defrag_and_wait
+    slab_order: dict = {}
+
+    def run_pipelined_logging(orchestrator, *arguments, **keyword_arguments):
+        callback = keyword_arguments.get("on_defrag")
+
+        def on_defrag_logging(frame_n, report):
+            for index, entry in enumerate(report or []):
+                print(f"[e30] defrag f{frame_n} sim{index}: "
+                      + " ".join(f"{name}={report_value_text(value)}" for name, value in entry.items()), flush=True)
+            if callback is not None:
+                return callback(frame_n, report)
+            return None
+
+        keyword_arguments["on_defrag"] = on_defrag_logging
+        return original_run(orchestrator, *arguments, **keyword_arguments)
+
+    def submit_defrag_and_wait_timed(simulator, *arguments, **keyword_arguments):
+        index = slab_order.setdefault(id(simulator), len(slab_order))
+        started = time.perf_counter()
+        result = original_defrag(simulator, *arguments, **keyword_arguments)
+        wall_ms = (time.perf_counter() - started) * 1e3
+        gpu_text = ""
+        bench = getattr(simulator, "bench", None)
+        if bench is not None and hasattr(bench, "read_frame"):
+            try:
+                ticks = bench.read_frame(include_defrag=True)
+                if "defrag_start" in ticks and "defrag_end" in ticks:
+                    gpu_text = f" gpu_us={(ticks['defrag_end'] - ticks['defrag_start']) / 1000.0:.1f}"
+            except Exception as error:                                # noqa: BLE001
+                gpu_text = f" gpu_us=unreadable({type(error).__name__})"
+        print(f"[e30] defrag_time sim{index}: wall_ms={wall_ms:.3f}{gpu_text}", flush=True)
+        return result
+
+    chain_class.run_pipelined = run_pipelined_logging
+    simulator_class.submit_defrag_and_wait = submit_defrag_and_wait_timed
+
+
+INSTALL_END_LABELS = ("c_append_departed_end", "c_install_trailing_end", "c_install_leading_end", "c_expand_end")
+
+
+def install_anatomy_full(solver: str) -> None:
+    """E7 (--anatomy in the bench arguments): wrap bench_<solver>.compute_durations so that every duration it
+    computes is printed (the bench's [anatomy] line keeps a fixed subset: no expand_lists / append_departed /
+    band_compact / ghost sends ...), plus install_sum = the last install tick - c_start (expand_ghost_lists +
+    install_migrations per direction + append_departed with their barriers, v6_opt.md "install 三个 kernel").
+    The bench imports compute_durations inside its main, after this module attribute is replaced; it computes
+    one frame per slab in slab order and prints its [anatomy] line right after, so call n pairs with the n-th
+    [anatomy] line."""
+    bench_module = solver_module(solver, "bench")
+    original_compute = bench_module.compute_durations
+    calls = [0]
+
+    def compute_durations_printing(ticks):
+        durations = original_compute(ticks)
+        calls[0] += 1
+        install_text = ""
+        last = next((label for label in INSTALL_END_LABELS if label in ticks), None)
+        if last is not None and "c_start" in ticks:
+            install_text = f" install_sum={(ticks[last] - ticks['c_start']) / 1000.0:.3f} install_last={last}"
+        print(f"[e30] anatomy_all call={calls[0]}: "
+              + " ".join(f"{name[:-3] if name.endswith('_us') else name}={value:.3f}"
+                         for name, value in durations.items() if isinstance(value, (int, float)))
+              + install_text, flush=True)
+        return durations
+
+    bench_module.compute_durations = compute_durations_printing
 
 
 def main() -> int:
@@ -436,6 +580,15 @@ def main() -> int:
         sys.exit("pass --switch-interval-ms before '--' only: this script forwards its own value to the bench")
     if any(argument.split("=", 1)[0] == "--solver" for argument in bench_arguments):
         sys.exit("pass --solver before '--': it selects the bench, the bench itself has no such option")
+    if arguments.barrier is not None:
+        if arguments.solver == "v6" or arguments.barrier_parties < 1:
+            sys.exit("--barrier needs --barrier-parties >= 1 and a solver other than v6 (the stage reporter holds it)")
+        if "--weights=auto" in bench_arguments or any(
+                argument == "--weights" and index + 1 < len(bench_arguments) and bench_arguments[index + 1] == "auto"
+                for index, argument in enumerate(bench_arguments)):
+            sys.exit("--barrier with --weights auto: the first pilot chain would take the barrier")
+    if arguments.defrag_log and arguments.solver == "v6":
+        sys.exit("--defrag-log is an E7 option (solvers other than v6)")
     chain_bench = chain_bench_path(arguments.solver)
     if not chain_bench.exists():
         sys.exit(f"--solver {arguments.solver}: no chain bench at {chain_bench} (experiment/{arguments.solver} "
@@ -460,8 +613,14 @@ def main() -> int:
     bench_started = time.perf_counter()
     pool_health = None
     if arguments.solver != "v6":
-        install_stage_reporter(arguments.solver, bench_started)
+        barrier = ((arguments.barrier, arguments.barrier_parties, arguments.barrier_timeout)
+                   if arguments.barrier is not None else None)
+        install_stage_reporter(arguments.solver, bench_started, barrier)
         pool_health = install_pool_health_recorder(arguments.solver)
+        if arguments.defrag_log:
+            install_defrag_log(arguments.solver)
+        if "--anatomy" in bench_arguments:
+            install_anatomy_full(arguments.solver)
     # forwarded last: argparse keeps the last occurrence, so this value wins even past the refusal above
     sys.argv = ([str(chain_bench)] + bench_arguments
                 + ["--switch-interval-ms", repr(arguments.switch_interval_ms)])
