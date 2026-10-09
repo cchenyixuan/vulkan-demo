@@ -86,6 +86,9 @@ def install_obj_cache(cache_dir: pathlib.Path) -> None:
     v0_case_module.load_obj_vertices = cached(v0_case_module.load_obj_vertices)
     import experiment.v5.utils.case_loader_v5 as v5_loader_module
     v5_loader_module._parse_obj_vertices = cached(v5_loader_module._parse_obj_vertices)
+    # v7 (and v7_single, which uses v7's loader) parse OBJ files the same way
+    import experiment.v7.utils.case_loader_v7 as v7_loader_module
+    v7_loader_module._parse_obj_vertices = cached(v7_loader_module._parse_obj_vertices)
 
 
 # ============================================================================

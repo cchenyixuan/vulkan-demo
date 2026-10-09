@@ -51,6 +51,14 @@ both sides' provenance.
 use the V7_ prefix, and the dump's meta records the solver. Dumps of the two solvers compare directly (--compare
 strips the V6_ / V7_ prefixes).
 
+--solver v7_single (the pure single-GPU build, experiment/v7_single: the v7 kernels, one GPU, no chain) and
+--solver v7 --v7-mode single (SphSimulatorV7's single-command step on the loader's degenerate case, i.e. v7's
+single-GPU mode) run K = 1 without the chain orchestrator: the same canonical bootstrap (sorted lists, no ghost
+round, no bootstrap defrag), the single-command step with --depth steps in flight (v7_single's fence ring; v7's
+single mode submits and waits every step), the same dump. v7_single reads no release set (it refuses every V7_*
+variable but its three kernel switches), so --env takes only those three for it; --transport-extension, --monitor
+and --timestamps are chain-only. meta records mode = chain | single.
+
 E39 B4 (v7 V7_DEEP_WALL_SKIP): a skipped deep wall keeps its previous correction_inverse and
 density_gradient_kernel_sum (nothing reads them). The harness sets simulator_v7._DEEP_WALL_RECORD_DECISIONS (unless
 --no-deep-wall-record) so every slab that skips records its GPU decisions, and the dump carries per particle
@@ -76,6 +84,7 @@ import pathlib
 import subprocess
 import sys
 import time
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -200,6 +209,7 @@ def compare(first_path: str, second_path: str, ignore=(), no_mask: bool = False)
     for label, path, meta in (("first ", first_path, first_meta), ("second", second_path, second_meta)):
         print(f"{label}: {path}")
         print(f"        repo={meta.get('repo')} head={meta.get('repo_head')} dirty_v6={meta.get('repo_dirty_v6')} "
+              f"{meta.get('solver', 'v6')} {meta.get('mode', 'chain')} "
               f"K={meta.get('slabs', 1)} wall={meta.get('wall_boundary', meta.get('wall_bc'))} "
               f"steps={meta.get('steps')} canonical={meta.get('canonical_lists')} "
               f"alive={meta.get('alive')}/{meta.get('expected')} crossings={meta.get('crossings')}")
@@ -333,8 +343,12 @@ def main() -> int:
     parser.add_argument("--timestamps", action="store_true", help="with --monitor: per-kernel GPU timestamps")
     parser.add_argument("--repo", default=str(pathlib.Path(__file__).resolve().parents[2]),
                         help="checkout whose experiment/v6 runs (default: this one)")
-    parser.add_argument("--solver", choices=("v6", "v7"), default="v6",
-                        help="solver directory experiment/<solver> (E39: v7 = the v7-perf fork, V7_* switches)")
+    parser.add_argument("--solver", choices=("v6", "v7", "v7_single"), default="v6",
+                        help="solver directory experiment/<solver> (E39: v7 = the v7-perf fork, V7_* switches; "
+                             "v7_single = the pure single-GPU build of the v7 kernels)")
+    parser.add_argument("--v7-mode", choices=("chain", "single"), default="chain",
+                        help="with --solver v7: chain (K slabs, ChainOrchestratorV7) or single (SphSimulatorV7's "
+                             "single-command step on the loader's degenerate case, K = 1)")
     parser.add_argument("--no-deep-wall-record", action="store_true",
                         help="E39 B4: do not record the deep-wall skip decisions (the production specialisation; "
                              "the dump then has no skip data)")
@@ -350,7 +364,12 @@ def main() -> int:
     if (arguments.monitor or arguments.timestamps) and (len(device_map) != 1 or arguments.canonical_lists):
         parser.error("--monitor / --timestamps: K = 1 and the normal bootstrap (the E36 timing method)")
     solver = arguments.solver
-    prefix = solver.upper() + "_"
+    prefix = "V7_" if solver == "v7_single" else solver.upper() + "_"
+    single_mode = solver == "v7_single" or (solver == "v7" and arguments.v7_mode == "single")
+    if single_mode and len(device_map) != 1:
+        parser.error("--solver v7_single / --v7-mode single: K = 1 (one --device-map entry)")
+    if single_mode and (arguments.monitor or arguments.timestamps or arguments.transport_extension):
+        parser.error("--monitor / --timestamps / --transport-extension are chain-only")
     overrides = {}
     for item in arguments.env:
         key, separator, value = item.partition("=")
@@ -370,7 +389,8 @@ def main() -> int:
     from experiment.validation.cavity_runner import RELEASE_ENVIRONMENT          # noqa: E402 (repo first)
     for key in [key for key in os.environ if key.startswith(("V6_", "V7_"))]:
         del os.environ[key]
-    os.environ.update({prefix + key[len("V6_"):]: value for key, value in RELEASE_ENVIRONMENT.items()})
+    if solver != "v7_single":        # v7_single has no release set: it refuses every V7_* name but its three switches
+        os.environ.update({prefix + key[len("V6_"):]: value for key, value in RELEASE_ENVIRONMENT.items()})
     if arguments.transport_extension:
         os.environ[prefix + "TRANSPORT_EXTENSION"] = "1"
     os.environ.update(overrides)
@@ -381,14 +401,29 @@ def main() -> int:
     import importlib                                                              # noqa: E402
 
     def solver_module(name):
+        if solver == "v7_single":
+            # the pure single-GPU build takes v7's case loader; its own modules are *_single
+            if name in ("case_loader", "case"):
+                return importlib.import_module(f"experiment.v7.utils.{name}_v7")
+            if name in ("spirv_manifest", "switches"):
+                return importlib.import_module(f"experiment.v7_single.utils.{name}")
+            return importlib.import_module(f"experiment.v7_single.utils.{name}_single")
         return importlib.import_module(f"experiment.{solver}.utils.{name}_{solver}")
 
-    load_case_v6 = getattr(solver_module("case_loader"), f"load_case_{solver}")
-    KIND_FLUID = solver_module("case").KIND_FLUID
-    ChainOrchestratorV6 = getattr(solver_module("orchestrator"), f"ChainOrchestrator{solver.upper()}")
-    compute_chain_partition = solver_module("partition").compute_chain_partition
-    SphSimulatorV6 = getattr(solver_module("simulator"), f"SphSimulator{solver.upper()}")
-    VulkanContextV6 = getattr(solver_module("vulkan_context"), f"VulkanContext{solver.upper()}")
+    if solver == "v7_single":
+        load_case_v6 = solver_module("case_loader").load_case_v7
+        KIND_FLUID = solver_module("case").KIND_FLUID
+        ChainOrchestratorV6 = compute_chain_partition = None
+        SphSimulatorV6 = solver_module("simulator").SphSimulatorSingle
+        VulkanContextV6 = solver_module("vulkan_context").VulkanContextSingle
+        from experiment.v7_single.utils.runner_single import run_steps as run_steps_single
+    else:
+        load_case_v6 = getattr(solver_module("case_loader"), f"load_case_{solver}")
+        KIND_FLUID = solver_module("case").KIND_FLUID
+        ChainOrchestratorV6 = getattr(solver_module("orchestrator"), f"ChainOrchestrator{solver.upper()}")
+        compute_chain_partition = solver_module("partition").compute_chain_partition
+        SphSimulatorV6 = getattr(solver_module("simulator"), f"SphSimulator{solver.upper()}")
+        VulkanContextV6 = getattr(solver_module("vulkan_context"), f"VulkanContext{solver.upper()}")
 
     # E39 B4: record the deep-wall skip decisions (a test hook of simulator_v7, read when the simulators are built)
     if hasattr(sys.modules[SphSimulatorV6.__module__], "_DEEP_WALL_RECORD_DECISIONS"):
@@ -397,9 +432,12 @@ def main() -> int:
     if repo not in simulator_module.parents:
         sys.exit(f"the solver was imported from {simulator_module}, not from {repo}")
     utils_directory = simulator_module.parent
-    shader_directory = utils_directory.parent / "shaders" / "spv"        # the simulator's default (<prefix>SPV_DIR unset)
-    if prefix + "SPV_DIR" in environment:
-        shader_directory = pathlib.Path(environment[prefix + "SPV_DIR"]).resolve()
+    if solver == "v7_single":
+        shader_directory = pathlib.Path(solver_module("spirv_manifest").V7_SHADER_DIRECTORY).resolve()   # v7's kernels
+    else:
+        shader_directory = utils_directory.parent / "shaders" / "spv"    # the simulator's default (<prefix>SPV_DIR unset)
+        if prefix + "SPV_DIR" in environment:
+            shader_directory = pathlib.Path(environment[prefix + "SPV_DIR"]).resolve()
     cavity_runner_file = pathlib.Path(sys.modules["experiment.validation.cavity_runner"].__file__).resolve()
     code = {f"experiment/{solver}/utils": sha256_files(list(utils_directory.glob("*.py")), utils_directory),
             "spv": sha256_files(list(shader_directory.glob("*.spv")), shader_directory),
@@ -436,7 +474,11 @@ def main() -> int:
         sys.exit(f"--canonical-lists: the run must end before the first defrag (steps < {defrag_cadence})")
     final_defrag = not arguments.canonical_lists and arguments.steps % defrag_cadence == 0
     wall_boundary = getattr(global_case.numerics, "wall_boundary", "simple")      # rc1 has no wall option
-    chain = compute_chain_partition(global_case, [1.0] * len(device_map), 1.2)
+    if single_mode:
+        # K = 1 without the partitioner: the loader's degenerate case is the one slab (own pool = the case's pool_size)
+        chain = SimpleNamespace(slabs=[global_case], cuts=[])
+    else:
+        chain = compute_chain_partition(global_case, [1.0] * len(device_map), 1.2)
     global_positions = np.ascontiguousarray(global_case.initial.positions)
     row_of = {row.tobytes(): index for index, row in enumerate(global_positions)}
     if len(row_of) != global_positions.shape[0]:
@@ -453,8 +495,11 @@ def main() -> int:
         context = VulkanContextV6.create(device_index=device_map[index], enable_validation=False,
                                          application_name=f"canonical_dump_s{index}")
         contexts.append(context)
-        sims.append(SphSimulatorV6(context, slab, sync_scheme="per-direction"))
-    orchestrator = ChainOrchestratorV6(sims, defrag_cadence=defrag_cadence)
+        if single_mode:
+            sims.append(SphSimulatorV6(context, slab))      # v7_single, or v7's single-GPU mode (default sync scheme, unused)
+        else:
+            sims.append(SphSimulatorV6(context, slab, sync_scheme="per-direction"))
+    orchestrator = None if single_mode else ChainOrchestratorV6(sims, defrag_cadence=defrag_cadence)
     bench = None
     if arguments.timestamps:
         bench_v6 = solver_module("bench")
@@ -470,6 +515,9 @@ def main() -> int:
         vkFreeCommandBuffers(sim.ctx.device, sim.ctx.command_pool, 1, [cmd])
 
     def record_voxelization(sim, cmd) -> None:          # the first half of _record_bootstrap_init_cmd
+        if solver == "v7_single":
+            sim.record_bootstrap_init(cmd)                # the same two commands (barrier, initialize_voxelization)
+            return
         sim._record_compute_barrier(cmd)
         sim._bind_pipeline_and_sets(cmd, "initialize_voxelization")
         vkCmdDispatch(cmd, sim._per_own_particle_dispatch_count(), 1, 1)
@@ -502,14 +550,21 @@ def main() -> int:
             rows[voxel, :counts[voxel]] = np.sort(rows[voxel, :counts[voxel]])
         sim._staging_upload(sim.buffers["inside_particle_index"], index.tobytes())
 
+    def prepare_single_step(sim) -> None:
+        if solver == "v7_single":
+            sim.prepare_step(in_flight=arguments.depth)
+        else:
+            sim.prepare_step_single_cmd_buffer()
+
     if arguments.canonical_lists:
         # ChainOrchestratorV6.bootstrap_all with the lists sorted between the voxelization and the ghost round and
-        # without its closing defrag
+        # without its closing defrag (the single modes: no ghost round, the same sorted lists, no bootstrap defrag)
         for sim in sims:
             sim._upload_initial_state()
             submit(sim, lambda cmd, sim=sim: record_voxelization(sim, cmd))
             sort_voxel_lists(sim)
-            submit(sim, lambda cmd, sim=sim: record_ghost_send(sim, cmd))
+            if not single_mode:
+                submit(sim, lambda cmd, sim=sim: record_ghost_send(sim, cmd))
         for index in range(len(sims) - 1):
             left, right = sims[index], sims[index + 1]
             right.receiver_staging_view("leading")[:] = left.sender_staging_view("trailing")
@@ -517,7 +572,15 @@ def main() -> int:
         for sim in sims:
             sim.bootstrap_compute()
         for sim in sims:
-            sim.prepare_step_cmd_buffers()
+            if single_mode:
+                prepare_single_step(sim)
+            else:
+                sim.prepare_step_cmd_buffers()
+    elif single_mode:
+        # the single-GPU runners' start: bootstrap + the step command buffer, no bootstrap defrag
+        for sim in sims:
+            sim.bootstrap()
+            prepare_single_step(sim)
     else:
         orchestrator.bootstrap_all()
 
@@ -568,7 +631,19 @@ def main() -> int:
         if record["alive"] != total or overflow:
             raise RuntimeError(f"invariant violation at step {frame}: {record}")
 
-    result = orchestrator.run_pipelined(arguments.steps, depth=arguments.depth, on_defrag=on_defrag)
+    if solver == "v7_single":
+        result = run_steps_single(sims[0], arguments.steps, depth=arguments.depth, defrag_cadence=defrag_cadence)
+    elif single_mode:
+        # v7's single-GPU mode: one submit + one fence wait per step, the defrag (drained) at the cadence
+        started = time.perf_counter()
+        for frame in range(1, arguments.steps + 1):
+            sims[0].submit_step_single_and_wait()
+            if frame % defrag_cadence == 0:
+                sims[0].submit_defrag_and_wait()
+        elapsed = time.perf_counter() - started
+        result = {"frame_count": arguments.steps, "elapsed_s": elapsed, "fps": arguments.steps / elapsed}
+    else:
+        result = orchestrator.run_pipelined(arguments.steps, depth=arguments.depth, on_defrag=on_defrag)
 
     status = [sim.readback_global_status() for sim in sims]
     pool_health = [sim.readback_pool_health() for sim in sims]
@@ -581,6 +656,8 @@ def main() -> int:
     transport_errors = {key: [int(record.get(key, 0)) for record in status] for key in TRANSPORT_ERROR_COUNTERS}
     transport_errors["host_stamp_error_count"] = [int(getattr(worker, "stamp_error_count", 0))
                                                   for worker in getattr(orchestrator, "workers", ())]
+    if single_mode:
+        transport_errors["host_stamp_error_count"] = []
     # E39 B4: the slabs that skip deep walls record their decisions (a final defrag moves the rows, not the record)
     deep_wall_resolution = [list(getattr(sim, "deep_wall_skip_resolution", (False, "no V7_DEEP_WALL_SKIP")))
                             for sim in sims]
@@ -656,7 +733,10 @@ def main() -> int:
     # E39: the solver's own switch registry (v7: configured_v7_switches, defaults included), so a dump names its build
     switches_function = getattr(solver_module("simulator"), f"configured_{solver}_switches", None)
     solver_switches = switches_function() if switches_function else {}
+    if solver == "v7_single":
+        solver_switches = sims[0].switches.table()
     meta = {"repo": str(repo), "repo_head": head, "repo_dirty_v6": dirty, "solver": solver,
+            "mode": "single" if single_mode else "chain",
             "solver_switches": solver_switches, "case": arguments.case,
             "case_path": str(case_path), "case_sha256": case_sha256, **loaded_case,
             "simulator_module": str(simulator_module),
@@ -678,7 +758,8 @@ def main() -> int:
     if deep_wall and deep_wall.get("cpu_check"):
         problems += _deep_wall_cpu_problems(deep_wall["cpu_check"], wall_boundary)
     fps = meta["fps"]
-    print(f"[canonical_dump] {solver} {head}{' (dirty)' if dirty else ''} K={len(sims)} wall={wall_boundary} "
+    print(f"[canonical_dump] {solver} {'single' if single_mode else 'chain'} {head}{' (dirty)' if dirty else ''} "
+          f"K={len(sims)} wall={wall_boundary} "
           f"{arguments.steps} steps: alive {meta['alive']}/{total}, crossings {crossings}, "
           f"fps {fps if fps is None else round(fps)}, buffers {meta['device_local_buffers']}, "
           f"code {meta['code_sha256']}, invariants {'ok' if not problems else problems}"
@@ -690,7 +771,8 @@ def main() -> int:
              if band_overlap_chain else "")
           + (f", deep walls {deep_wall['resolution']} {deep_wall.get('cpu_check', 'not recorded')}"
              if deep_wall else "") + f" -> {out}", flush=True)
-    orchestrator.destroy()
+    if orchestrator is not None:
+        orchestrator.destroy()
     for sim in sims:
         sim.destroy()
     for context in contexts:
