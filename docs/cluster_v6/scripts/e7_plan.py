@@ -13,13 +13,27 @@ The job list follows the user's E7 rules (2026-10-09) and the E7 notes of E29 / 
   - node A runs K <= 4 (GPUs 0-3, whole node), node B runs K = 8, in parallel;
   - windows: 2-D 3000 steps (warmup 1000), 3-D 1500 steps (warmup 500), as probe34-37.
 
-Time model (per run): setup + steps x step time, step time from the K = 1 cost per particle-step of the
-dimension (v7 on N56, from the smoke when given with --smoke, else the defaults below) divided by an
-efficiency, with a floor per K for transport / dispatch-bound small loads; setup = a + b x million
-particles (cached .obj). Calibration = rounds x (setup + warmup + steps of the pilot) at the K run's speed.
-The numbers are planning estimates, printed with their inputs; the measured smoke rates replace the defaults.
+Time model per run = construction + bootstrap + timed loop + post-run checks, every term measured in the E7
+smoke (job 1679191, wqd10nbj04g2, v7-rc1):
+  - construction (case load from the node-local .obj cache, partition, contexts, simulators): the first run of
+    a configuration compiles its pipelines (~17 s per simulator: every slab's specialization constants are
+    new), a repeat hits the driver's shader disk cache (~1.2 s per simulator); plus case load ~0.35 s per
+    million particles. With the protocol only the calibration pilots and the first K = 1 reference set of a
+    case are cold: pilot 1 runs the equal weights (the equal arm and the trace then hit the cache), the last
+    pilot normally the calibrated cuts (the calibrated arm hits; when round 2 still moves the cuts, the
+    calibrated arm's first run is cold too, and the step trace's extra device extension may change the key:
+    both unmodelled, at most ~1 h over the campaign);
+  - bootstrap (upload, ghost round, defrag, command recording): ~0.5 s per million particles + 2 s;
+  - loop: steps / fps, fps from the K = 1 cost per particle-step (2-D 1.258 ns: 32M K = 1 at 24.8 fps; 3-D
+    6.0 ns: cube K = 2 at 4.2 fps), an efficiency per K and a per-K floor for light loads (2-D 16M K = 8 ran
+    110 / 146 fps, 2M per card);
+  - post-run: defrag, readbacks and (default) the seam check: 2-D ~0.42 s per million particles + 8 s, 3-D
+    (0.26 + 0.16 K) s per million (cube: 43 / 71 / 118 s at K = 2 / 4 / 8). Decided 2026-10-09: the timing
+    runs use --no-seam-check (~0.1 s per million + 1 s per slab, estimate); the seam check runs on the traced
+    run of every point.
+The numbers are planning estimates; the measured inputs are listed above.
 
-Usage: python docs/cluster_v6/scripts/e7_plan.py [--smoke RESULTS.jsonl] [--trials 3] [--traces 1] [--markdown]
+Usage: python docs/cluster_v6/scripts/e7_plan.py [--trials 3] [--traces 1] [--seam-check] [--markdown] [--json OUT]
 """
 
 from __future__ import annotations
@@ -115,17 +129,21 @@ def campaign_points() -> list[Point]:
 
 @dataclasses.dataclass
 class Model:
-    cost_2d: float = 1.30e-9        # s per particle-step, K = 1, v7 on a 5090 (E39 local 2-D 1M/16M scaled)
-    cost_3d: float = 6.7e-9         # s per particle-step, K = 1, 3-D
-    floor_k1: float = 0.0012        # s per step: dispatch-bound small K = 1 runs (2-D 1M: ~720 fps)
-    floor: dict = dataclasses.field(default_factory=lambda: {2: 0.0015, 4: 0.0035, 8: 0.0075})
-    efficiency: dict = dataclasses.field(default_factory=lambda: {2: 0.95, 4: 0.92, 8: 0.90})
-    setup_fixed: float = 8.0        # s per run: imports, contexts, pipelines, bootstrap, post-run checks
-    setup_per_million: float = 0.6  # s per million particles with the .obj cache (load, partition, upload)
+    cost_2d: float = 1.258e-9       # s per particle-step, K = 1 (smoke: 32M K = 1 references, 24.8 fps mean)
+    cost_3d: float = 6.0e-9         # s per particle-step, K = 1 (smoke: cube 76.2M K = 2 at 4.2 fps, eta ~0.96)
+    floor_k1: float = 0.0014        # s per step, dispatch-bound K = 1 (1M aligned K = 1: 651-721 fps)
+    floor: dict = dataclasses.field(default_factory=lambda: {2: 0.0018, 4: 0.0045, 8: 0.0080})
+    efficiency: dict = dataclasses.field(default_factory=lambda: {2: 0.95, 4: 0.90, 8: 0.87})
+    cold_per_simulator: float = 17.0      # s: pipeline compilation of a new configuration
+    warm_per_simulator: float = 1.2       # s: driver shader disk cache hit
+    load_per_million: float = 0.35        # s per million particles: .npy load + partition
+    bootstrap_fixed: float = 2.0
+    bootstrap_per_million: float = 0.5
+    seam_check: bool = True
     calibration_rounds: int = 2
     pilot_steps: int = 500          # 200 warmup + 300 measured
-    run_overhead: float = 10.0      # s per run: parse, sync, telemetry window
-    job_overhead: float = 600.0     # s per job: prelude, bring-up env stage, cache stage-in
+    run_overhead: float = 10.0      # s per run: process start, parse, sync, telemetry window
+    job_overhead: float = 600.0     # s per job: prelude, bring-up env stage, cache stage-in (~120 MB/s)
 
     def steps(self, point: Point) -> tuple[int, int]:
         return (1500, 500) if point.dimension == 3 else (3000, 1000)
@@ -137,83 +155,95 @@ class Model:
             return max(self.floor_k1, cost * per_card)
         return max(self.floor[slabs], cost * per_card / self.efficiency[slabs])
 
-    def setup(self, case: str) -> float:
-        return self.setup_fixed + self.setup_per_million * PARTICLES[case] / 1e6
+    def setup(self, case: str, slabs: int, cold: bool) -> float:
+        """Construction + bootstrap + post-run checks of one run (a K = 1 reference set is one process per
+        card, in parallel: one simulator's construction)."""
+        millions = PARTICLES[case] / 1e6
+        construction = ((self.cold_per_simulator if cold else self.warm_per_simulator) * slabs
+                        + self.load_per_million * millions)
+        bootstrap = self.bootstrap_fixed + self.bootstrap_per_million * millions
+        if not self.seam_check:
+            post = 0.1 * millions + 1.0 * slabs
+        elif case.startswith("cavity3d"):
+            post = (0.26 + 0.16 * slabs) * millions
+        else:
+            post = 0.42 * millions + 8.0
+        return construction + bootstrap + post + self.run_overhead
 
 
 def point_seconds(point: Point, model: Model, trials: int, traces: int) -> dict:
     steps, _ = model.steps(point)
-    run = model.setup(point.case) + steps * model.step_time(point.case, point.slabs) + model.run_overhead
-    reference = 0.0
+    loop = steps * model.step_time(point.case, point.slabs)
+    run_warm = model.setup(point.case, point.slabs, cold=False) + loop
+    references_first = references_later = 0.0
     for kind in point.references:
-        if kind == "pairs":
-            reference += model.setup(point.case) + steps * model.step_time(point.case, 2) + model.run_overhead
+        if kind == "pairs":                                   # 4 simultaneous K = 2 pairs of the case
+            loop_reference = steps * model.step_time(point.case, 2)
+            references_first += model.setup(point.case, 2, cold=True) + loop_reference
+            references_later += model.setup(point.case, 2, cold=False) + loop_reference
         else:
             reference_case = point.case if kind == "same" else kind
-            reference += model.setup(reference_case) + steps * model.step_time(reference_case, 1) + model.run_overhead
-    calibration = model.calibration_rounds * (model.setup(point.case)
-                                              + model.pilot_steps * model.step_time(point.case, point.slabs)) + 20.0
-    total = calibration + trials * (reference + 2 * run) + traces * run
-    return {"run": run, "reference": reference, "calibration": calibration, "total": total}
-
-
-def apply_smoke(model: Model, path: pathlib.Path) -> list[str]:
-    """Replace the K = 1 costs and the setup slope by the smoke's measurements where it has them."""
-    notes = []
-    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
-    k1 = [row for row in rows if row["label"].startswith("k1_w32_") and row.get("steady_fps")]
-    if k1:
-        fps = sum(row["steady_fps"] for row in k1) / len(k1)
-        model.cost_2d = 1.0 / (fps * PARTICLES["cavity2d_n5640"])
-        notes.append(f"cost_2d from {len(k1)} K=1 n5640 references: {fps:.2f} fps -> {model.cost_2d * 1e9:.3f} ns")
-    builds = [(row.get("loaded_particles"), row.get("build_seconds")) for row in rows
-              if row.get("build_seconds") and row.get("loaded_particles")]
-    if len(builds) >= 3:
-        x = [count / 1e6 for count, _ in builds]
-        y = [seconds for _, seconds in builds]
-        mean_x, mean_y = sum(x) / len(x), sum(y) / len(y)
-        slope = sum((a - mean_x) * (b - mean_y) for a, b in zip(x, y)) / max(sum((a - mean_x) ** 2 for a in x), 1e-9)
-        model.setup_per_million = max(slope, 0.05)
-        model.setup_fixed = max(mean_y - slope * mean_x, 2.0)
-        notes.append(f"setup from {len(builds)} runs: {model.setup_fixed:.1f} s + {model.setup_per_million:.3f} s/M")
-    for row in rows:
-        if row["label"] in ("k2_cube", "k4_cube", "k8_cube") and row.get("steady_fps"):
-            slabs = int(row["label"][1])
-            if slabs == 2:
-                model.cost_3d = 2.0 / (row["steady_fps"] * PARTICLES["cavity3d_n416"]) * model.efficiency[2]
-                notes.append(f"cost_3d from the K=2 cube: {row['steady_fps']} fps -> {model.cost_3d * 1e9:.2f} ns")
-    return notes
+            loop_reference = steps * model.step_time(reference_case, 1)
+            references_first += model.setup(reference_case, 1, cold=True) + loop_reference
+            references_later += model.setup(reference_case, 1, cold=False) + loop_reference
+    pilot = (model.setup(point.case, point.slabs, cold=True)
+             + model.pilot_steps * model.step_time(point.case, point.slabs))
+    calibration = model.calibration_rounds * pilot + 20.0
+    trials_total = references_first + (trials - 1) * references_later + trials * 2 * run_warm
+    traced = dataclasses.replace(model, seam_check=True).setup(point.case, point.slabs, cold=False) + loop
+    total = calibration + trials_total + traces * traced
+    return {"run": run_warm, "reference": references_later, "reference_first": references_first,
+            "calibration": calibration, "traced": traced, "total": total}
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="E7 job list and node-hour budget")
-    parser.add_argument("--smoke", default=None, help="results.jsonl of the smoke job (measured rates)")
     parser.add_argument("--trials", type=int, default=3)
     parser.add_argument("--traces", type=int, default=1, help="step-traced runs per point")
+    parser.add_argument("--seam-check", action="store_true",
+                        help="timing runs with the post-run seam check (decided: off; the traced run keeps it)")
     parser.add_argument("--markdown", action="store_true")
+    parser.add_argument("--json", default=None, help="write points, totals and the model inputs as JSON")
     arguments = parser.parse_args()
-    model = Model()
-    notes = apply_smoke(model, pathlib.Path(arguments.smoke)) if arguments.smoke else ["defaults (no smoke data)"]
+    model = Model(seam_check=arguments.seam_check)
+    records = []
     points = campaign_points()
     totals: dict = {"A": 0.0, "B": 0.0}
-    lines = ["| node | family | case | K | particles | reference | run (min) | reference set (min) | "
+    by_family: dict = {}
+    lines = ["| node | family | case | K | particles | reference per trial | run (min) | reference set (min) | "
              "calibration (min) | point total (h) |", "|---|---|---|---|---|---|---|---|---|---|"]
     for point in sorted(points, key=lambda item: (item.node, item.family, item.case, item.slabs)):
         seconds = point_seconds(point, model, arguments.trials, arguments.traces)
         totals[point.node] += seconds["total"]
+        family = point.family.split("+")[0]
+        by_family[(point.node, family)] = by_family.get((point.node, family), 0.0) + seconds["total"]
         reference = " + ".join({"same": "K=1 of the case", "pairs": "4 x K=2 pairs"}.get(kind, f"K=1 {kind}")
                                for kind in point.references)
-        lines.append(f"| {point.node} | {point.family} | {point.case} | {point.slabs} | {PARTICLES[point.case] / 1e6:.1f}M | "
-                     f"{reference} | {seconds['run'] / 60:.1f} | {seconds['reference'] / 60:.1f} | "
-                     f"{seconds['calibration'] / 60:.1f} | {seconds['total'] / 3600:.2f} |")
+        lines.append(f"| {point.node} | {point.family} | {point.case} | {point.slabs} | "
+                     f"{PARTICLES[point.case] / 1e6:.1f}M | {reference} | {seconds['run'] / 60:.1f} | "
+                     f"{seconds['reference'] / 60:.1f} | {seconds['calibration'] / 60:.1f} | "
+                     f"{seconds['total'] / 3600:.2f} |")
+        records.append({"node": point.node, "family": point.family, "case": point.case, "slabs": point.slabs,
+                        "particles": PARTICLES[point.case], "dimension": point.dimension,
+                        "references": point.references, "window": list(model.steps(point)),
+                        "fps_estimate": 1.0 / model.step_time(point.case, point.slabs),
+                        **{name: round(value, 1) for name, value in seconds.items()}})
     for node in totals:
         totals[node] += 2 * model.job_overhead         # two jobs per node
-    summary = [f"model: {notes}",
-               f"points: node A {sum(p.node == 'A' for p in points)}, node B {sum(p.node == 'B' for p in points)}; "
-               f"trials {arguments.trials}, traced runs per point {arguments.traces}",
-               f"node A {totals['A'] / 3600:.1f} h, node B {totals['B'] / 3600:.1f} h, "
-               f"total {(totals['A'] + totals['B']) / 3600:.1f} node-h = {8 * (totals['A'] + totals['B']) / 3600:.0f} GPU-h"]
+    summary = [f"seam check on timing runs: {model.seam_check}; trials {arguments.trials}; traced runs per point "
+               f"{arguments.traces}",
+               f"points: node A {sum(p.node == 'A' for p in points)}, node B {sum(p.node == 'B' for p in points)}",
+               f"node A {totals['A'] / 3600:.1f} h, node B {totals['B'] / 3600:.1f} h, total "
+               f"{(totals['A'] + totals['B']) / 3600:.1f} node-h = {8 * (totals['A'] + totals['B']) / 3600:.0f} GPU-h",
+               "by family (h): " + ", ".join(f"{node}/{family} {value / 3600:.2f}"
+                                            for (node, family), value in sorted(by_family.items()))]
     print("\n".join(summary + [""] + (lines if arguments.markdown else [])))
+    if arguments.json:
+        pathlib.Path(arguments.json).write_text(json.dumps({
+            "model": dataclasses.asdict(model), "trials": arguments.trials, "traces": arguments.traces,
+            "totals_hours": {node: value / 3600 for node, value in totals.items()},
+            "by_family_hours": {f"{node}/{family}": value / 3600 for (node, family), value in by_family.items()},
+            "points": records}, indent=1), encoding="utf-8")
     return 0
 
 

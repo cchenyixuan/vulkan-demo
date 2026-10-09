@@ -1,0 +1,1700 @@
+{
+ "tool": "experiment/seam_audit/fused_single_step.py",
+ "case": "cases/aligned/cavity2d_n1000/case.yaml",
+ "state": "/dev/shm/scxm138/e7_smoke_1679191_fss_states/state_2d_N2000.npz",
+ "particles": 1044484,
+ "device_map": [
+  0,
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7
+ ],
+ "path": "chain",
+ "slabs": 8,
+ "cuts": [
+  28,
+  53,
+  78,
+  103,
+  128,
+  153,
+  178
+ ],
+ "environment": {
+  "V7_WORKER_AFFINITY": "0-31,64-95;0-31,64-95;0-31,64-95;0-31,64-95;32-63,96-127;32-63,96-127;32-63,96-127;32-63,96-127"
+ },
+ "switches": {
+  "V7_DENSITY_COPY_COMPUTE": 1,
+  "V7_GHOST_SEND_LANES": 32,
+  "V7_DEEP_WALL_SKIP": "auto",
+  "V7_DEEP_WALL_CHECK": 0,
+  "V7_FUSED_CORRECTION_DENSITY": 1,
+  "V7_BAND_OVERLAP": 0
+ },
+ "resolutions": [
+  [
+   true,
+   "one neighbour traversal for correction + density, band 2, inner ghost column as self"
+  ],
+  [
+   true,
+   "one neighbour traversal for correction + density, band 2, inner ghost column as self"
+  ],
+  [
+   true,
+   "one neighbour traversal for correction + density, band 2, inner ghost column as self"
+  ],
+  [
+   true,
+   "one neighbour traversal for correction + density, band 2, inner ghost column as self"
+  ],
+  [
+   true,
+   "one neighbour traversal for correction + density, band 2, inner ghost column as self"
+  ],
+  [
+   true,
+   "one neighbour traversal for correction + density, band 2, inner ghost column as self"
+  ],
+  [
+   true,
+   "one neighbour traversal for correction + density, band 2, inner ghost column as self"
+  ],
+  [
+   true,
+   "one neighbour traversal for correction + density, band 2, inner ghost column as self"
+  ]
+ ],
+ "band_overlap": [
+  [
+   false,
+   "V7_BAND_OVERLAP=0"
+  ],
+  [
+   false,
+   "V7_BAND_OVERLAP=0"
+  ],
+  [
+   false,
+   "V7_BAND_OVERLAP=0"
+  ],
+  [
+   false,
+   "V7_BAND_OVERLAP=0"
+  ],
+  [
+   false,
+   "V7_BAND_OVERLAP=0"
+  ],
+  [
+   false,
+   "V7_BAND_OVERLAP=0"
+  ],
+  [
+   false,
+   "V7_BAND_OVERLAP=0"
+  ],
+  [
+   false,
+   "V7_BAND_OVERLAP=0"
+  ]
+ ],
+ "band_overlap_chain": {
+  "verdict": false,
+  "reason": "V7_BAND_OVERLAP=0",
+  "every_slab_alike": true
+ },
+ "band_overlap_recorded": {
+  "separate": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ],
+  "fused": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false
+  ]
+ },
+ "band_widths": [
+  [
+   2,
+   2,
+   3
+  ],
+  [
+   2,
+   2,
+   3
+  ],
+  [
+   2,
+   2,
+   3
+  ],
+  [
+   2,
+   2,
+   3
+  ],
+  [
+   2,
+   2,
+   3
+  ],
+  [
+   2,
+   2,
+   3
+  ],
+  [
+   2,
+   2,
+   3
+  ],
+  [
+   2,
+   2,
+   3
+  ]
+ ],
+ "invariant_problems": {
+  "separate": [],
+  "fused": []
+ },
+ "global_status_differences": [],
+ "input_differences": [],
+ "deep_wall": [
+  {
+   "active": false,
+   "skipped": {
+    "correction": 0,
+    "density": 0
+   },
+   "same_rows_in_both_steps": true
+  },
+  {
+   "active": false,
+   "skipped": {
+    "correction": 0,
+    "density": 0
+   },
+   "same_rows_in_both_steps": true
+  },
+  {
+   "active": false,
+   "skipped": {
+    "correction": 0,
+    "density": 0
+   },
+   "same_rows_in_both_steps": true
+  },
+  {
+   "active": false,
+   "skipped": {
+    "correction": 0,
+    "density": 0
+   },
+   "same_rows_in_both_steps": true
+  },
+  {
+   "active": false,
+   "skipped": {
+    "correction": 0,
+    "density": 0
+   },
+   "same_rows_in_both_steps": true
+  },
+  {
+   "active": false,
+   "skipped": {
+    "correction": 0,
+    "density": 0
+   },
+   "same_rows_in_both_steps": true
+  },
+  {
+   "active": false,
+   "skipped": {
+    "correction": 0,
+    "density": 0
+   },
+   "same_rows_in_both_steps": true
+  },
+  {
+   "active": false,
+   "skipped": {
+    "correction": 0,
+    "density": 0
+   },
+   "same_rows_in_both_steps": true
+  }
+ ],
+ "rows_left_out_of_correction_fields": {
+  "interior_fluid": 0,
+  "interior_wall": 0,
+  "band_fluid": 0,
+  "band_wall": 0,
+  "ghost_self_fluid": 0,
+  "ghost_self_wall": 0
+ },
+ "statistics": {
+  "interior_fluid": {
+   "correction_inverse": {
+    "rows": 860001,
+    "bit_identical": 860001,
+    "max_ulp": 0,
+    "ulp_0": 860001,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.884974479675293,
+      0.8849814534187317,
+      1.0,
+      -1.4021371619321599e-08,
+      0.0,
+      0.0
+     ],
+     [
+      0.884974479675293,
+      0.8849814534187317,
+      1.0,
+      -1.4021371619321599e-08,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "kernel_sum": {
+    "rows": 860001,
+    "bit_identical": 860001,
+    "max_ulp": 0,
+    "ulp_0": 860001,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      1.0000026226043701
+     ],
+     [
+      1.0000026226043701
+     ]
+    ]
+   },
+   "density_gradient": {
+    "rows": 860001,
+    "bit_identical": 860001,
+    "max_ulp": 0,
+    "ulp_0": 860001,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      -0.008782182820141315,
+      -0.004507754929363728,
+      0.0
+     ],
+     [
+      -0.008782182820141315,
+      -0.004507754929363728,
+      0.0
+     ]
+    ]
+   },
+   "scratch_density": {
+    "rows": 860001,
+    "bit_identical": 860000,
+    "max_ulp": 1,
+    "ulp_0": 860000,
+    "ulp_1": 1,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 6.103515625e-05,
+    "max_rel": 6.103363636940681e-08,
+    "non_finite_rows": 0,
+    "worst_row": 854694,
+    "worst_values": [
+     [
+      1000.0248413085938
+     ],
+     [
+      1000.02490234375
+     ]
+    ]
+   },
+   "scratch_pressure": {
+    "rows": 860001,
+    "bit_identical": 860001,
+    "max_ulp": 0,
+    "ulp_0": 860001,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      -1.2772423028945923
+     ],
+     [
+      -1.2772423028945923
+     ]
+    ]
+   },
+   "primary_density": {
+    "rows": 860001,
+    "bit_identical": 860000,
+    "max_ulp": 1,
+    "ulp_0": 860000,
+    "ulp_1": 1,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 6.103515625e-05,
+    "max_rel": 6.103363636940681e-08,
+    "non_finite_rows": 0,
+    "worst_row": 854694,
+    "worst_values": [
+     [
+      1000.0248413085938
+     ],
+     [
+      1000.02490234375
+     ]
+    ]
+   },
+   "primary_pressure": {
+    "rows": 860001,
+    "bit_identical": 860001,
+    "max_ulp": 0,
+    "ulp_0": 860001,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      -1.2772423028945923
+     ],
+     [
+      -1.2772423028945923
+     ]
+    ]
+   },
+   "acceleration": {
+    "rows": 860001,
+    "bit_identical": 860001,
+    "max_ulp": 0,
+    "ulp_0": 860001,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.03258228302001953,
+      0.04057926684617996,
+      0.0
+     ],
+     [
+      0.03258228302001953,
+      0.04057926684617996,
+      0.0
+     ]
+    ]
+   },
+   "shift": {
+    "rows": 860001,
+    "bit_identical": 860001,
+    "max_ulp": 0,
+    "ulp_0": 860001,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      -1.2432086471392267e-09,
+      -1.7809040700478285e-11,
+      0.0
+     ],
+     [
+      -1.2432086471392267e-09,
+      -1.7809040700478285e-11,
+      0.0
+     ]
+    ]
+   }
+  },
+  "interior_wall": {
+   "correction_inverse": {
+    "rows": 41404,
+    "bit_identical": 41404,
+    "max_ulp": 0,
+    "ulp_0": 41404,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      3.193223476409912,
+      3.193223476409912,
+      1.0,
+      -1.3311134576797485,
+      0.0,
+      0.0
+     ],
+     [
+      3.193223476409912,
+      3.193223476409912,
+      1.0,
+      -1.3311134576797485,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "kernel_sum": {
+    "rows": 41404,
+    "bit_identical": 41404,
+    "max_ulp": 0,
+    "ulp_0": 41404,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.3770330250263214
+     ],
+     [
+      0.3770330250263214
+     ]
+    ]
+   },
+   "density_gradient": {
+    "rows": 41404,
+    "bit_identical": 41404,
+    "max_ulp": 0,
+    "ulp_0": 41404,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "scratch_density": {
+    "rows": 41404,
+    "bit_identical": 41404,
+    "max_ulp": 0,
+    "ulp_0": 41404,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      1000.0
+     ],
+     [
+      1000.0
+     ]
+    ]
+   },
+   "scratch_pressure": {
+    "rows": 41404,
+    "bit_identical": 41404,
+    "max_ulp": 0,
+    "ulp_0": 41404,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.0
+     ],
+     [
+      0.0
+     ]
+    ]
+   },
+   "primary_density": {
+    "rows": 41404,
+    "bit_identical": 41404,
+    "max_ulp": 0,
+    "ulp_0": 41404,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      1000.0
+     ],
+     [
+      1000.0
+     ]
+    ]
+   },
+   "primary_pressure": {
+    "rows": 41404,
+    "bit_identical": 41404,
+    "max_ulp": 0,
+    "ulp_0": 41404,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.0
+     ],
+     [
+      0.0
+     ]
+    ]
+   },
+   "acceleration": {
+    "rows": 41404,
+    "bit_identical": 41404,
+    "max_ulp": 0,
+    "ulp_0": 41404,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "shift": {
+    "rows": 41404,
+    "bit_identical": 41404,
+    "max_ulp": 0,
+    "ulp_0": 41404,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   }
+  },
+  "band_fluid": {
+   "correction_inverse": {
+    "rows": 139999,
+    "bit_identical": 139999,
+    "max_ulp": 0,
+    "ulp_0": 139999,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.8849766850471497,
+      0.8849763870239258,
+      1.0,
+      7.144428160188454e-09,
+      0.0,
+      0.0
+     ],
+     [
+      0.8849766850471497,
+      0.8849763870239258,
+      1.0,
+      7.144428160188454e-09,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "kernel_sum": {
+    "rows": 139999,
+    "bit_identical": 139999,
+    "max_ulp": 0,
+    "ulp_0": 139999,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.9999998807907104
+     ],
+     [
+      0.9999998807907104
+     ]
+    ]
+   },
+   "density_gradient": {
+    "rows": 139999,
+    "bit_identical": 139999,
+    "max_ulp": 0,
+    "ulp_0": 139999,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      -0.0018109872471541166,
+      -0.0052291532047092915,
+      0.0
+     ],
+     [
+      -0.0018109872471541166,
+      -0.0052291532047092915,
+      0.0
+     ]
+    ]
+   },
+   "scratch_density": {
+    "rows": 139999,
+    "bit_identical": 139999,
+    "max_ulp": 0,
+    "ulp_0": 139999,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      999.999755859375
+     ],
+     [
+      999.999755859375
+     ]
+    ]
+   },
+   "scratch_pressure": {
+    "rows": 139999,
+    "bit_identical": 139999,
+    "max_ulp": 0,
+    "ulp_0": 139999,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      -1.2772423028945923
+     ],
+     [
+      -1.2772423028945923
+     ]
+    ]
+   },
+   "primary_density": {
+    "rows": 139999,
+    "bit_identical": 139999,
+    "max_ulp": 0,
+    "ulp_0": 139999,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      999.999755859375
+     ],
+     [
+      999.999755859375
+     ]
+    ]
+   },
+   "primary_pressure": {
+    "rows": 139999,
+    "bit_identical": 139999,
+    "max_ulp": 0,
+    "ulp_0": 139999,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      -1.2772423028945923
+     ],
+     [
+      -1.2772423028945923
+     ]
+    ]
+   },
+   "acceleration": {
+    "rows": 139999,
+    "bit_identical": 139999,
+    "max_ulp": 0,
+    "ulp_0": 139999,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.049818623811006546,
+      -0.026719477027654648,
+      0.0
+     ],
+     [
+      0.049818623811006546,
+      -0.026719477027654648,
+      0.0
+     ]
+    ]
+   },
+   "shift": {
+    "rows": 139999,
+    "bit_identical": 139999,
+    "max_ulp": 0,
+    "ulp_0": 139999,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      -4.414272058994584e-09,
+      -1.2237817426097308e-09,
+      0.0
+     ],
+     [
+      -4.414272058994584e-09,
+      -1.2237817426097308e-09,
+      0.0
+     ]
+    ]
+   }
+  },
+  "band_wall": {
+   "correction_inverse": {
+    "rows": 3080,
+    "bit_identical": 3080,
+    "max_ulp": 0,
+    "ulp_0": 3080,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      1.3208913803100586,
+      1.7684235572814941,
+      1.0,
+      4.1778918102863827e-07,
+      0.0,
+      0.0
+     ],
+     [
+      1.3208913803100586,
+      1.7684235572814941,
+      1.0,
+      4.1778918102863827e-07,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "kernel_sum": {
+    "rows": 3080,
+    "bit_identical": 3080,
+    "max_ulp": 0,
+    "ulp_0": 3080,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.6270325779914856
+     ],
+     [
+      0.6270325779914856
+     ]
+    ]
+   },
+   "density_gradient": {
+    "rows": 3080,
+    "bit_identical": 3080,
+    "max_ulp": 0,
+    "ulp_0": 3080,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "scratch_density": {
+    "rows": 3080,
+    "bit_identical": 3080,
+    "max_ulp": 0,
+    "ulp_0": 3080,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      1000.0
+     ],
+     [
+      1000.0
+     ]
+    ]
+   },
+   "scratch_pressure": {
+    "rows": 3080,
+    "bit_identical": 3080,
+    "max_ulp": 0,
+    "ulp_0": 3080,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.0
+     ],
+     [
+      0.0
+     ]
+    ]
+   },
+   "primary_density": {
+    "rows": 3080,
+    "bit_identical": 3080,
+    "max_ulp": 0,
+    "ulp_0": 3080,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      1000.0
+     ],
+     [
+      1000.0
+     ]
+    ]
+   },
+   "primary_pressure": {
+    "rows": 3080,
+    "bit_identical": 3080,
+    "max_ulp": 0,
+    "ulp_0": 3080,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.0
+     ],
+     [
+      0.0
+     ]
+    ]
+   },
+   "acceleration": {
+    "rows": 3080,
+    "bit_identical": 3080,
+    "max_ulp": 0,
+    "ulp_0": 3080,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "shift": {
+    "rows": 3080,
+    "bit_identical": 3080,
+    "max_ulp": 0,
+    "ulp_0": 3080,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   }
+  },
+  "ghost_self_fluid": {
+   "correction_inverse": {
+    "rows": 70000,
+    "bit_identical": 70000,
+    "max_ulp": 0,
+    "ulp_0": 70000,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.8849766254425049,
+      0.8849766254425049,
+      1.0,
+      1.2761200984812149e-08,
+      0.0,
+      0.0
+     ],
+     [
+      0.8849766254425049,
+      0.8849766254425049,
+      1.0,
+      1.2761200984812149e-08,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "kernel_sum": {
+    "rows": 70000,
+    "bit_identical": 70000,
+    "max_ulp": 0,
+    "ulp_0": 70000,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.9999999403953552
+     ],
+     [
+      0.9999999403953552
+     ]
+    ]
+   },
+   "density_gradient": {
+    "rows": 70000,
+    "bit_identical": 70000,
+    "max_ulp": 0,
+    "ulp_0": 70000,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      -0.0024842002894729376,
+      -0.010482988320291042,
+      0.0
+     ],
+     [
+      -0.0024842002894729376,
+      -0.010482988320291042,
+      0.0
+     ]
+    ]
+   },
+   "scratch_density": {
+    "rows": 70000,
+    "bit_identical": 70000,
+    "max_ulp": 0,
+    "ulp_0": 70000,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      999.999755859375
+     ],
+     [
+      999.999755859375
+     ]
+    ]
+   },
+   "scratch_pressure": {
+    "rows": 70000,
+    "bit_identical": 70000,
+    "max_ulp": 0,
+    "ulp_0": 70000,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      -1.2772423028945923
+     ],
+     [
+      -1.2772423028945923
+     ]
+    ]
+   },
+   "primary_density": {
+    "rows": 70000,
+    "bit_identical": 70000,
+    "max_ulp": 0,
+    "ulp_0": 70000,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      999.999755859375
+     ],
+     [
+      999.999755859375
+     ]
+    ]
+   },
+   "primary_pressure": {
+    "rows": 70000,
+    "bit_identical": 70000,
+    "max_ulp": 0,
+    "ulp_0": 70000,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      -1.2772423028945923
+     ],
+     [
+      -1.2772423028945923
+     ]
+    ]
+   },
+   "acceleration": {
+    "rows": 70000,
+    "bit_identical": 70000,
+    "max_ulp": 0,
+    "ulp_0": 70000,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "shift": {
+    "rows": 70000,
+    "bit_identical": 70000,
+    "max_ulp": 0,
+    "ulp_0": 70000,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   }
+  },
+  "ghost_self_wall": {
+   "correction_inverse": {
+    "rows": 1540,
+    "bit_identical": 1540,
+    "max_ulp": 0,
+    "ulp_0": 1540,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      1.320892095565796,
+      1.7684235572814941,
+      1.0,
+      2.5884392584885063e-07,
+      0.0,
+      0.0
+     ],
+     [
+      1.320892095565796,
+      1.7684235572814941,
+      1.0,
+      2.5884392584885063e-07,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "kernel_sum": {
+    "rows": 1540,
+    "bit_identical": 1540,
+    "max_ulp": 0,
+    "ulp_0": 1540,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.627032458782196
+     ],
+     [
+      0.627032458782196
+     ]
+    ]
+   },
+   "density_gradient": {
+    "rows": 1540,
+    "bit_identical": 1540,
+    "max_ulp": 0,
+    "ulp_0": 1540,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "scratch_density": {
+    "rows": 1540,
+    "bit_identical": 1540,
+    "max_ulp": 0,
+    "ulp_0": 1540,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      1000.0
+     ],
+     [
+      1000.0
+     ]
+    ]
+   },
+   "scratch_pressure": {
+    "rows": 1540,
+    "bit_identical": 1540,
+    "max_ulp": 0,
+    "ulp_0": 1540,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.0
+     ],
+     [
+      0.0
+     ]
+    ]
+   },
+   "primary_density": {
+    "rows": 1540,
+    "bit_identical": 1540,
+    "max_ulp": 0,
+    "ulp_0": 1540,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      1000.0
+     ],
+     [
+      1000.0
+     ]
+    ]
+   },
+   "primary_pressure": {
+    "rows": 1540,
+    "bit_identical": 1540,
+    "max_ulp": 0,
+    "ulp_0": 1540,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.0
+     ],
+     [
+      0.0
+     ]
+    ]
+   },
+   "acceleration": {
+    "rows": 1540,
+    "bit_identical": 1540,
+    "max_ulp": 0,
+    "ulp_0": 1540,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   },
+   "shift": {
+    "rows": 1540,
+    "bit_identical": 1540,
+    "max_ulp": 0,
+    "ulp_0": 1540,
+    "ulp_1": 0,
+    "ulp_2": 0,
+    "ulp_3_or_more": 0,
+    "ulp_p50": 0.0,
+    "ulp_p99": 0.0,
+    "ulp_p99_9": 0.0,
+    "max_abs": 0.0,
+    "max_rel": 0.0,
+    "non_finite_rows": 0,
+    "worst_row": 0,
+    "worst_values": [
+     [
+      0.0,
+      0.0,
+      0.0
+     ],
+     [
+      0.0,
+      0.0,
+      0.0
+     ]
+    ]
+   }
+  }
+ },
+ "bit_identical_correction_fields": true,
+ "verdict": "PASS",
+ "wall_s": 169.0852497788146
+}

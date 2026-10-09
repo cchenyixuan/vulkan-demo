@@ -1,0 +1,1074 @@
+{
+ "host": {
+  "hostname": "wqd10nbj04g2",
+  "platform": "linux",
+  "python": "3.13.15",
+  "has_clock_monotonic_raw": true,
+  "clocksource": "tsc",
+  "clock_perf_counter": {
+   "implementation": "clock_gettime(CLOCK_MONOTONIC)",
+   "resolution": 1e-09
+  },
+  "clock_monotonic": {
+   "implementation": "clock_gettime(CLOCK_MONOTONIC)",
+   "resolution": 1e-09
+  },
+  "job_cpu_count": 64,
+  "job_cpus": "0-15,32-47,64-79,96-111",
+  "python_vulkan": "1.3.275.1",
+  "vulkan_loader": "1.4.357"
+ },
+ "devices": [
+  {
+   "v6_index": 0,
+   "raw_index": 0,
+   "name": "NVIDIA GeForce RTX 5090",
+   "device_type": 2,
+   "vendor_id": "0x10de",
+   "is_nvidia_discrete": true,
+   "api_version": "1.4.312",
+   "driver_version_raw": 2434040256,
+   "driver_version_nvidia": "580.82.7",
+   "driver_name": "NVIDIA",
+   "driver_info": "580.82.07",
+   "conformance": "1.4.1.3",
+   "device_uuid": "76a531f7ad5f9cfdba815e307f741158",
+   "timestamp_period_ns": 1.0,
+   "timestamp_compute_and_graphics": 1,
+   "extensions": {
+    "VK_KHR_calibrated_timestamps": true,
+    "VK_EXT_calibrated_timestamps": true,
+    "VK_EXT_pci_bus_info": true,
+    "VK_EXT_memory_budget": true
+   },
+   "pci_bus_id": "0000:16:00.0",
+   "heaps": [
+    {
+     "index": 0,
+     "gib": 31.84,
+     "device_local": true
+    },
+    {
+     "index": 1,
+     "gib": 755.53,
+     "device_local": false
+    }
+   ],
+   "heap_budget_gib": [
+    31.34,
+    755.53
+   ],
+   "queue_families": [
+    {
+     "index": 0,
+     "flags_hex": "0xf",
+     "flags": "graphics+compute+transfer+sparse",
+     "count": 16,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 1,
+     "flags_hex": "0xc",
+     "flags": "transfer+sparse",
+     "count": 2,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    },
+    {
+     "index": 2,
+     "flags_hex": "0xe",
+     "flags": "compute+transfer+sparse",
+     "count": 8,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 3,
+     "flags_hex": "0x2c",
+     "flags": "transfer+sparse+video_decode",
+     "count": 2,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    },
+    {
+     "index": 4,
+     "flags_hex": "0x4c",
+     "flags": "transfer+sparse+video_encode",
+     "count": 2,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    },
+    {
+     "index": 5,
+     "flags_hex": "0x10c",
+     "flags": "transfer+sparse+optical_flow",
+     "count": 1,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    }
+   ],
+   "v6_compute_family": 0,
+   "v6_transfer_family": 1,
+   "v6_transfer_queue_count": 2,
+   "v6_split_transfer_possible": true,
+   "calibrateable_domains": {
+    "KHR": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ],
+    "EXT": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ]
+   },
+   "nvidia_smi_index": 0,
+   "numa": {
+    "sysfs_present": true,
+    "numa_node": 0,
+    "local_cpulist": "0-31,64-95",
+    "current_link_speed": "5.0 GT/s PCIe",
+    "current_link_width": "16",
+    "node_cpulist": "0-31,64-95"
+   }
+  },
+  {
+   "v6_index": 1,
+   "raw_index": 1,
+   "name": "NVIDIA GeForce RTX 5090",
+   "device_type": 2,
+   "vendor_id": "0x10de",
+   "is_nvidia_discrete": true,
+   "api_version": "1.4.312",
+   "driver_version_raw": 2434040256,
+   "driver_version_nvidia": "580.82.7",
+   "driver_name": "NVIDIA",
+   "driver_info": "580.82.07",
+   "conformance": "1.4.1.3",
+   "device_uuid": "2ddb5cab4a0cfab47c848c08c3e615eb",
+   "timestamp_period_ns": 1.0,
+   "timestamp_compute_and_graphics": 1,
+   "extensions": {
+    "VK_KHR_calibrated_timestamps": true,
+    "VK_EXT_calibrated_timestamps": true,
+    "VK_EXT_pci_bus_info": true,
+    "VK_EXT_memory_budget": true
+   },
+   "pci_bus_id": "0000:27:00.0",
+   "heaps": [
+    {
+     "index": 0,
+     "gib": 31.84,
+     "device_local": true
+    },
+    {
+     "index": 1,
+     "gib": 755.53,
+     "device_local": false
+    }
+   ],
+   "heap_budget_gib": [
+    31.36,
+    755.53
+   ],
+   "queue_families": [
+    {
+     "index": 0,
+     "flags_hex": "0xf",
+     "flags": "graphics+compute+transfer+sparse",
+     "count": 16,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 1,
+     "flags_hex": "0xc",
+     "flags": "transfer+sparse",
+     "count": 2,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    },
+    {
+     "index": 2,
+     "flags_hex": "0xe",
+     "flags": "compute+transfer+sparse",
+     "count": 8,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 3,
+     "flags_hex": "0x2c",
+     "flags": "transfer+sparse+video_decode",
+     "count": 2,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    },
+    {
+     "index": 4,
+     "flags_hex": "0x4c",
+     "flags": "transfer+sparse+video_encode",
+     "count": 2,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    },
+    {
+     "index": 5,
+     "flags_hex": "0x10c",
+     "flags": "transfer+sparse+optical_flow",
+     "count": 1,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    }
+   ],
+   "v6_compute_family": 0,
+   "v6_transfer_family": 1,
+   "v6_transfer_queue_count": 2,
+   "v6_split_transfer_possible": true,
+   "calibrateable_domains": {
+    "KHR": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ],
+    "EXT": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ]
+   },
+   "nvidia_smi_index": 1,
+   "numa": {
+    "sysfs_present": true,
+    "numa_node": 0,
+    "local_cpulist": "0-31,64-95",
+    "current_link_speed": "2.5 GT/s PCIe",
+    "current_link_width": "16",
+    "node_cpulist": "0-31,64-95"
+   }
+  },
+  {
+   "v6_index": 2,
+   "raw_index": 2,
+   "name": "NVIDIA GeForce RTX 5090",
+   "device_type": 2,
+   "vendor_id": "0x10de",
+   "is_nvidia_discrete": true,
+   "api_version": "1.4.312",
+   "driver_version_raw": 2434040256,
+   "driver_version_nvidia": "580.82.7",
+   "driver_name": "NVIDIA",
+   "driver_info": "580.82.07",
+   "conformance": "1.4.1.3",
+   "device_uuid": "302e1aac0ecfd605940ffb6e1d99be06",
+   "timestamp_period_ns": 1.0,
+   "timestamp_compute_and_graphics": 1,
+   "extensions": {
+    "VK_KHR_calibrated_timestamps": true,
+    "VK_EXT_calibrated_timestamps": true,
+    "VK_EXT_pci_bus_info": true,
+    "VK_EXT_memory_budget": true
+   },
+   "pci_bus_id": "0000:38:00.0",
+   "heaps": [
+    {
+     "index": 0,
+     "gib": 31.84,
+     "device_local": true
+    },
+    {
+     "index": 1,
+     "gib": 755.53,
+     "device_local": false
+    }
+   ],
+   "heap_budget_gib": [
+    31.36,
+    755.53
+   ],
+   "queue_families": [
+    {
+     "index": 0,
+     "flags_hex": "0xf",
+     "flags": "graphics+compute+transfer+sparse",
+     "count": 16,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 1,
+     "flags_hex": "0xc",
+     "flags": "transfer+sparse",
+     "count": 2,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    },
+    {
+     "index": 2,
+     "flags_hex": "0xe",
+     "flags": "compute+transfer+sparse",
+     "count": 8,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 3,
+     "flags_hex": "0x2c",
+     "flags": "transfer+sparse+video_decode",
+     "count": 2,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    },
+    {
+     "index": 4,
+     "flags_hex": "0x4c",
+     "flags": "transfer+sparse+video_encode",
+     "count": 2,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    },
+    {
+     "index": 5,
+     "flags_hex": "0x10c",
+     "flags": "transfer+sparse+optical_flow",
+     "count": 1,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    }
+   ],
+   "v6_compute_family": 0,
+   "v6_transfer_family": 1,
+   "v6_transfer_queue_count": 2,
+   "v6_split_transfer_possible": true,
+   "calibrateable_domains": {
+    "KHR": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ],
+    "EXT": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ]
+   },
+   "nvidia_smi_index": 2,
+   "numa": {
+    "sysfs_present": true,
+    "numa_node": 0,
+    "local_cpulist": "0-31,64-95",
+    "current_link_speed": "2.5 GT/s PCIe",
+    "current_link_width": "16",
+    "node_cpulist": "0-31,64-95"
+   }
+  },
+  {
+   "v6_index": 3,
+   "raw_index": 3,
+   "name": "NVIDIA GeForce RTX 5090",
+   "device_type": 2,
+   "vendor_id": "0x10de",
+   "is_nvidia_discrete": true,
+   "api_version": "1.4.312",
+   "driver_version_raw": 2434040256,
+   "driver_version_nvidia": "580.82.7",
+   "driver_name": "NVIDIA",
+   "driver_info": "580.82.07",
+   "conformance": "1.4.1.3",
+   "device_uuid": "820c4c444727bd6119500061ecbbb534",
+   "timestamp_period_ns": 1.0,
+   "timestamp_compute_and_graphics": 1,
+   "extensions": {
+    "VK_KHR_calibrated_timestamps": true,
+    "VK_EXT_calibrated_timestamps": true,
+    "VK_EXT_pci_bus_info": true,
+    "VK_EXT_memory_budget": true
+   },
+   "pci_bus_id": "0000:5a:00.0",
+   "heaps": [
+    {
+     "index": 0,
+     "gib": 31.84,
+     "device_local": true
+    },
+    {
+     "index": 1,
+     "gib": 755.53,
+     "device_local": false
+    }
+   ],
+   "heap_budget_gib": [
+    31.36,
+    755.53
+   ],
+   "queue_families": [
+    {
+     "index": 0,
+     "flags_hex": "0xf",
+     "flags": "graphics+compute+transfer+sparse",
+     "count": 16,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 1,
+     "flags_hex": "0xc",
+     "flags": "transfer+sparse",
+     "count": 2,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    },
+    {
+     "index": 2,
+     "flags_hex": "0xe",
+     "flags": "compute+transfer+sparse",
+     "count": 8,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 3,
+     "flags_hex": "0x2c",
+     "flags": "transfer+sparse+video_decode",
+     "count": 2,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    },
+    {
+     "index": 4,
+     "flags_hex": "0x4c",
+     "flags": "transfer+sparse+video_encode",
+     "count": 2,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    },
+    {
+     "index": 5,
+     "flags_hex": "0x10c",
+     "flags": "transfer+sparse+optical_flow",
+     "count": 1,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    }
+   ],
+   "v6_compute_family": 0,
+   "v6_transfer_family": 1,
+   "v6_transfer_queue_count": 2,
+   "v6_split_transfer_possible": true,
+   "calibrateable_domains": {
+    "KHR": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ],
+    "EXT": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ]
+   },
+   "nvidia_smi_index": 3,
+   "numa": {
+    "sysfs_present": true,
+    "numa_node": 0,
+    "local_cpulist": "0-31,64-95",
+    "current_link_speed": "2.5 GT/s PCIe",
+    "current_link_width": "16",
+    "node_cpulist": "0-31,64-95"
+   }
+  },
+  {
+   "v6_index": 4,
+   "raw_index": 4,
+   "name": "NVIDIA GeForce RTX 5090",
+   "device_type": 2,
+   "vendor_id": "0x10de",
+   "is_nvidia_discrete": true,
+   "api_version": "1.4.312",
+   "driver_version_raw": 2434040256,
+   "driver_version_nvidia": "580.82.7",
+   "driver_name": "NVIDIA",
+   "driver_info": "580.82.07",
+   "conformance": "1.4.1.3",
+   "device_uuid": "1be6966ac0f686b856d28dcb47cab48e",
+   "timestamp_period_ns": 1.0,
+   "timestamp_compute_and_graphics": 1,
+   "extensions": {
+    "VK_KHR_calibrated_timestamps": true,
+    "VK_EXT_calibrated_timestamps": true,
+    "VK_EXT_pci_bus_info": true,
+    "VK_EXT_memory_budget": true
+   },
+   "pci_bus_id": "0000:98:00.0",
+   "heaps": [
+    {
+     "index": 0,
+     "gib": 31.84,
+     "device_local": true
+    },
+    {
+     "index": 1,
+     "gib": 755.53,
+     "device_local": false
+    }
+   ],
+   "heap_budget_gib": [
+    31.36,
+    755.53
+   ],
+   "queue_families": [
+    {
+     "index": 0,
+     "flags_hex": "0xf",
+     "flags": "graphics+compute+transfer+sparse",
+     "count": 16,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 1,
+     "flags_hex": "0xc",
+     "flags": "transfer+sparse",
+     "count": 2,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    },
+    {
+     "index": 2,
+     "flags_hex": "0xe",
+     "flags": "compute+transfer+sparse",
+     "count": 8,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 3,
+     "flags_hex": "0x2c",
+     "flags": "transfer+sparse+video_decode",
+     "count": 2,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    },
+    {
+     "index": 4,
+     "flags_hex": "0x4c",
+     "flags": "transfer+sparse+video_encode",
+     "count": 2,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    },
+    {
+     "index": 5,
+     "flags_hex": "0x10c",
+     "flags": "transfer+sparse+optical_flow",
+     "count": 1,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    }
+   ],
+   "v6_compute_family": 0,
+   "v6_transfer_family": 1,
+   "v6_transfer_queue_count": 2,
+   "v6_split_transfer_possible": true,
+   "calibrateable_domains": {
+    "KHR": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ],
+    "EXT": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ]
+   },
+   "nvidia_smi_index": 4,
+   "numa": {
+    "sysfs_present": true,
+    "numa_node": 1,
+    "local_cpulist": "32-63,96-127",
+    "current_link_speed": "2.5 GT/s PCIe",
+    "current_link_width": "16",
+    "node_cpulist": "32-63,96-127"
+   }
+  },
+  {
+   "v6_index": 5,
+   "raw_index": 5,
+   "name": "NVIDIA GeForce RTX 5090",
+   "device_type": 2,
+   "vendor_id": "0x10de",
+   "is_nvidia_discrete": true,
+   "api_version": "1.4.312",
+   "driver_version_raw": 2434040256,
+   "driver_version_nvidia": "580.82.7",
+   "driver_name": "NVIDIA",
+   "driver_info": "580.82.07",
+   "conformance": "1.4.1.3",
+   "device_uuid": "18f23ae660fea37b39677d45ee090499",
+   "timestamp_period_ns": 1.0,
+   "timestamp_compute_and_graphics": 1,
+   "extensions": {
+    "VK_KHR_calibrated_timestamps": true,
+    "VK_EXT_calibrated_timestamps": true,
+    "VK_EXT_pci_bus_info": true,
+    "VK_EXT_memory_budget": true
+   },
+   "pci_bus_id": "0000:a8:00.0",
+   "heaps": [
+    {
+     "index": 0,
+     "gib": 31.84,
+     "device_local": true
+    },
+    {
+     "index": 1,
+     "gib": 755.53,
+     "device_local": false
+    }
+   ],
+   "heap_budget_gib": [
+    31.36,
+    755.53
+   ],
+   "queue_families": [
+    {
+     "index": 0,
+     "flags_hex": "0xf",
+     "flags": "graphics+compute+transfer+sparse",
+     "count": 16,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 1,
+     "flags_hex": "0xc",
+     "flags": "transfer+sparse",
+     "count": 2,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    },
+    {
+     "index": 2,
+     "flags_hex": "0xe",
+     "flags": "compute+transfer+sparse",
+     "count": 8,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 3,
+     "flags_hex": "0x2c",
+     "flags": "transfer+sparse+video_decode",
+     "count": 2,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    },
+    {
+     "index": 4,
+     "flags_hex": "0x4c",
+     "flags": "transfer+sparse+video_encode",
+     "count": 2,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    },
+    {
+     "index": 5,
+     "flags_hex": "0x10c",
+     "flags": "transfer+sparse+optical_flow",
+     "count": 1,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    }
+   ],
+   "v6_compute_family": 0,
+   "v6_transfer_family": 1,
+   "v6_transfer_queue_count": 2,
+   "v6_split_transfer_possible": true,
+   "calibrateable_domains": {
+    "KHR": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ],
+    "EXT": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ]
+   },
+   "nvidia_smi_index": 5,
+   "numa": {
+    "sysfs_present": true,
+    "numa_node": 1,
+    "local_cpulist": "32-63,96-127",
+    "current_link_speed": "2.5 GT/s PCIe",
+    "current_link_width": "16",
+    "node_cpulist": "32-63,96-127"
+   }
+  },
+  {
+   "v6_index": 6,
+   "raw_index": 6,
+   "name": "NVIDIA GeForce RTX 5090",
+   "device_type": 2,
+   "vendor_id": "0x10de",
+   "is_nvidia_discrete": true,
+   "api_version": "1.4.312",
+   "driver_version_raw": 2434040256,
+   "driver_version_nvidia": "580.82.7",
+   "driver_name": "NVIDIA",
+   "driver_info": "580.82.07",
+   "conformance": "1.4.1.3",
+   "device_uuid": "cf97bf7a915c69aa070077108b70b967",
+   "timestamp_period_ns": 1.0,
+   "timestamp_compute_and_graphics": 1,
+   "extensions": {
+    "VK_KHR_calibrated_timestamps": true,
+    "VK_EXT_calibrated_timestamps": true,
+    "VK_EXT_pci_bus_info": true,
+    "VK_EXT_memory_budget": true
+   },
+   "pci_bus_id": "0000:b8:00.0",
+   "heaps": [
+    {
+     "index": 0,
+     "gib": 31.84,
+     "device_local": true
+    },
+    {
+     "index": 1,
+     "gib": 755.53,
+     "device_local": false
+    }
+   ],
+   "heap_budget_gib": [
+    31.36,
+    755.53
+   ],
+   "queue_families": [
+    {
+     "index": 0,
+     "flags_hex": "0xf",
+     "flags": "graphics+compute+transfer+sparse",
+     "count": 16,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 1,
+     "flags_hex": "0xc",
+     "flags": "transfer+sparse",
+     "count": 2,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    },
+    {
+     "index": 2,
+     "flags_hex": "0xe",
+     "flags": "compute+transfer+sparse",
+     "count": 8,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 3,
+     "flags_hex": "0x2c",
+     "flags": "transfer+sparse+video_decode",
+     "count": 2,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    },
+    {
+     "index": 4,
+     "flags_hex": "0x4c",
+     "flags": "transfer+sparse+video_encode",
+     "count": 2,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    },
+    {
+     "index": 5,
+     "flags_hex": "0x10c",
+     "flags": "transfer+sparse+optical_flow",
+     "count": 1,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    }
+   ],
+   "v6_compute_family": 0,
+   "v6_transfer_family": 1,
+   "v6_transfer_queue_count": 2,
+   "v6_split_transfer_possible": true,
+   "calibrateable_domains": {
+    "KHR": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ],
+    "EXT": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ]
+   },
+   "nvidia_smi_index": 6,
+   "numa": {
+    "sysfs_present": true,
+    "numa_node": 1,
+    "local_cpulist": "32-63,96-127",
+    "current_link_speed": "5.0 GT/s PCIe",
+    "current_link_width": "16",
+    "node_cpulist": "32-63,96-127"
+   }
+  },
+  {
+   "v6_index": 7,
+   "raw_index": 7,
+   "name": "NVIDIA GeForce RTX 5090",
+   "device_type": 2,
+   "vendor_id": "0x10de",
+   "is_nvidia_discrete": true,
+   "api_version": "1.4.312",
+   "driver_version_raw": 2434040256,
+   "driver_version_nvidia": "580.82.7",
+   "driver_name": "NVIDIA",
+   "driver_info": "580.82.07",
+   "conformance": "1.4.1.3",
+   "device_uuid": "a6cf2f4ee67c906f7305651f11b20451",
+   "timestamp_period_ns": 1.0,
+   "timestamp_compute_and_graphics": 1,
+   "extensions": {
+    "VK_KHR_calibrated_timestamps": true,
+    "VK_EXT_calibrated_timestamps": true,
+    "VK_EXT_pci_bus_info": true,
+    "VK_EXT_memory_budget": true
+   },
+   "pci_bus_id": "0000:d8:00.0",
+   "heaps": [
+    {
+     "index": 0,
+     "gib": 31.84,
+     "device_local": true
+    },
+    {
+     "index": 1,
+     "gib": 755.53,
+     "device_local": false
+    }
+   ],
+   "heap_budget_gib": [
+    31.36,
+    755.53
+   ],
+   "queue_families": [
+    {
+     "index": 0,
+     "flags_hex": "0xf",
+     "flags": "graphics+compute+transfer+sparse",
+     "count": 16,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 1,
+     "flags_hex": "0xc",
+     "flags": "transfer+sparse",
+     "count": 2,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    },
+    {
+     "index": 2,
+     "flags_hex": "0xe",
+     "flags": "compute+transfer+sparse",
+     "count": 8,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    },
+    {
+     "index": 3,
+     "flags_hex": "0x2c",
+     "flags": "transfer+sparse+video_decode",
+     "count": 2,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    },
+    {
+     "index": 4,
+     "flags_hex": "0x4c",
+     "flags": "transfer+sparse+video_encode",
+     "count": 2,
+     "timestamp_valid_bits": 32,
+     "transfer_only": true
+    },
+    {
+     "index": 5,
+     "flags_hex": "0x10c",
+     "flags": "transfer+sparse+optical_flow",
+     "count": 1,
+     "timestamp_valid_bits": 64,
+     "transfer_only": true
+    }
+   ],
+   "v6_compute_family": 0,
+   "v6_transfer_family": 1,
+   "v6_transfer_queue_count": 2,
+   "v6_split_transfer_possible": true,
+   "calibrateable_domains": {
+    "KHR": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ],
+    "EXT": [
+     "DEVICE",
+     "CLOCK_MONOTONIC",
+     "CLOCK_MONOTONIC_RAW"
+    ]
+   },
+   "nvidia_smi_index": 7,
+   "numa": {
+    "sysfs_present": true,
+    "numa_node": 1,
+    "local_cpulist": "32-63,96-127",
+    "current_link_speed": "2.5 GT/s PCIe",
+    "current_link_width": "16",
+    "node_cpulist": "32-63,96-127"
+   }
+  },
+  {
+   "v6_index": 8,
+   "raw_index": 8,
+   "name": "llvmpipe (LLVM 15.0.7, 256 bits)",
+   "device_type": 4,
+   "vendor_id": "0x10005",
+   "is_nvidia_discrete": false,
+   "api_version": "1.3.255",
+   "driver_version_raw": 1,
+   "driver_version_nvidia": "0.0.0",
+   "driver_name": "llvmpipe",
+   "driver_info": "Mesa 23.2.1-1ubuntu3.1~22.04.3 (LLVM 15.0.7)",
+   "conformance": "1.3.1.1",
+   "device_uuid": "6d65736132332e322e312d3175627500",
+   "timestamp_period_ns": 1.0,
+   "timestamp_compute_and_graphics": 1,
+   "extensions": {
+    "VK_KHR_calibrated_timestamps": false,
+    "VK_EXT_calibrated_timestamps": true,
+    "VK_EXT_pci_bus_info": false,
+    "VK_EXT_memory_budget": true
+   },
+   "heaps": [
+    {
+     "index": 0,
+     "gib": 1007.37,
+     "device_local": true
+    }
+   ],
+   "heap_budget_gib": [
+    1007.37
+   ],
+   "queue_families": [
+    {
+     "index": 0,
+     "flags_hex": "0x7",
+     "flags": "graphics+compute+transfer",
+     "count": 1,
+     "timestamp_valid_bits": 64,
+     "transfer_only": false
+    }
+   ],
+   "v6_compute_family": 0,
+   "v6_transfer_family": null,
+   "v6_transfer_queue_count": null,
+   "v6_split_transfer_possible": false,
+   "calibrateable_domains": {
+    "KHR": "extension not supported",
+    "EXT": [
+     "DEVICE",
+     "CLOCK_MONOTONIC"
+    ]
+   },
+   "nvidia_smi_index": null,
+   "numa": {}
+  }
+ ],
+ "nvidia_smi": [
+  {
+   "index": 0,
+   "uuid": "76a531f7ad5f9cfdba815e307f741158",
+   "pci_bus_id": "0000:16:00.0",
+   "name": "NVIDIA GeForce RTX 5090",
+   "driver_version": "580.82.07",
+   "memory_total": "32607 MiB",
+   "power_limit": "575.00 W"
+  },
+  {
+   "index": 1,
+   "uuid": "2ddb5cab4a0cfab47c848c08c3e615eb",
+   "pci_bus_id": "0000:27:00.0",
+   "name": "NVIDIA GeForce RTX 5090",
+   "driver_version": "580.82.07",
+   "memory_total": "32607 MiB",
+   "power_limit": "575.00 W"
+  },
+  {
+   "index": 2,
+   "uuid": "302e1aac0ecfd605940ffb6e1d99be06",
+   "pci_bus_id": "0000:38:00.0",
+   "name": "NVIDIA GeForce RTX 5090",
+   "driver_version": "580.82.07",
+   "memory_total": "32607 MiB",
+   "power_limit": "575.00 W"
+  },
+  {
+   "index": 3,
+   "uuid": "820c4c444727bd6119500061ecbbb534",
+   "pci_bus_id": "0000:5a:00.0",
+   "name": "NVIDIA GeForce RTX 5090",
+   "driver_version": "580.82.07",
+   "memory_total": "32607 MiB",
+   "power_limit": "575.00 W"
+  },
+  {
+   "index": 4,
+   "uuid": "1be6966ac0f686b856d28dcb47cab48e",
+   "pci_bus_id": "0000:98:00.0",
+   "name": "NVIDIA GeForce RTX 5090",
+   "driver_version": "580.82.07",
+   "memory_total": "32607 MiB",
+   "power_limit": "575.00 W"
+  },
+  {
+   "index": 5,
+   "uuid": "18f23ae660fea37b39677d45ee090499",
+   "pci_bus_id": "0000:a8:00.0",
+   "name": "NVIDIA GeForce RTX 5090",
+   "driver_version": "580.82.07",
+   "memory_total": "32607 MiB",
+   "power_limit": "575.00 W"
+  },
+  {
+   "index": 6,
+   "uuid": "cf97bf7a915c69aa070077108b70b967",
+   "pci_bus_id": "0000:b8:00.0",
+   "name": "NVIDIA GeForce RTX 5090",
+   "driver_version": "580.82.07",
+   "memory_total": "32607 MiB",
+   "power_limit": "575.00 W"
+  },
+  {
+   "index": 7,
+   "uuid": "a6cf2f4ee67c906f7305651f11b20451",
+   "pci_bus_id": "0000:d8:00.0",
+   "name": "NVIDIA GeForce RTX 5090",
+   "driver_version": "580.82.07",
+   "memory_total": "32607 MiB",
+   "power_limit": "575.00 W"
+  }
+ ],
+ "v6_index_equals_nvidia_smi_index": true
+}
