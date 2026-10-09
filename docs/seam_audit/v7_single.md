@@ -6,7 +6,12 @@
 
 ## 结论(TL;DR)
 
-待填(验收与测量完成后)。
+- **v7_single 就是 v7 的 kernel 加一个纯单卡的 host**:SPIR-V 从 `experiment/v7/shaders/spv` 读、按 `MANIFEST.txt` 校验;host 侧只有一条 compute 队列、EXCLUSIVE 缓冲、一个 fence 环,没有 ghost / 迁移 / timeline / 阶段 / worker。清单(第 1–11 节)逐项列出 v7 单卡模式多出的东西,每一项都是不执行或不改数据的;spec constant 逐个相同(第 6 节);命令流逐条相同(唯一差别是 v7 defrag 里对 `migration_install_count` 的一次 fill,S 没有这个字段)。
+- **验收全部通过**:CPU 命令流 5 算例 × 3 开关一致;GPU 逐位 6 算例 × 2 开关,S ≡ V(v7 单卡模式)≡ C(v7 链式 K = 1),含 no-mask;drift / overflow 全 0;Khronos 验证层 2000 步 0 条消息;独立评审无阻断项,10 条修正已落地。
+- **吞吐(一张 RTX 5090,2-D 方腔 1M–32M,3 次配对)**:S 2 在飞 732–790 M 粒子·步 / 秒;V/S 在 depth 2 为 99.8–100.2 %,depth 1 为 99.1–100.1 %(S 略快,V 每步建销一个 fence);CONCURRENT 共享模式 ≤ 0.2 %;链式 K = 1 对 S 在 1M 为 98.55 %、4M 起 99.85–100.02 %;depth-1 损失 1M −4.0 % → 32M −0.3 %。没有任何比值离 1 超过 2 %。
+- **逐 kernel(8M,交错计时)**:融合 correction + density 省下步长 23.5 %(2-D)/ 22.7 %(3-D);每候选 2.50 / 2.79 ps(2-D 融合核 / force),2.09 / 2.06 ps(3-D)。
+- **精度(1000² 方腔 Re = 1000,adami 壁,生产设置,干净提交 457913c)**:u、v 的相对 L2 = **0.68 % / 0.70 %**(< 1 %),u_min / v_max / v_min 偏差 +0.48 / +0.62 / +0.45 %,ψ_min +0.14 %,位置误差 ≤ 0.0025;t_s = 79.38,平均窗口 (80.0, 99.8],不变量全 0,一段跑完 6.24 h 无续跑。与 E36 的 adami_rho0 1000² 运行(v7-wall-bc 分支)一致(见精度一节)。
+- 没有合并;`experiment/v7` 一个文件未改;没有调任何参数。两条只记录不实施的改动(对 v7 和 v7_single 都有利)在"已知限制"。
 
 ## 清单:v7 单卡模式相对 v7_single 多出的 host 侧内容
 
@@ -353,7 +358,48 @@ depth 1 相对 depth 2 的损失(fps_d1 / fps_d2 − 1):S −4.00 / −2.23 / �
 
 验收:u 与 v 的相对 L2 都 < 1 %;所有不变量 0;从干净的提交运行,记录提交、physics 哈希、GPU 与驱动。稳态之后误差不随时间下降,所以不为了凑 1 % 延长运行或改参数。
 
-结果:待填。
+**结果(2026-10-09 22:47 → 10-10 05:02,通过)**
+
+| 项 | 值 |
+|---|---|
+| 提交 / 工作树 | 457913c,干净(`meta.json` 的 `git.dirty = false`) |
+| 哈希 | physics ab13a3dce97ee068,sampling 890a9478e0656200,runner 28e35159378f6feb |
+| GPU / 驱动 | 无头 RTX 5090(uuid ae137c668a40f5acaab90a83f7cda175,设备索引 1),驱动 576.88,全程 600 W 功耗墙、2827 MHz、68 °C |
+| 步数 / 时长 | 13 334 000 步(Δt = 7.5 × 10⁻⁶),6.24 h,593 步/s,**一段跑完,无中断无续跑** |
+| 不变量 | drift 0,overflow 0,far_migration 0,stamp_gpu 0,stamp_host 0;alive 1 046 529 每个样本守恒 |
+| 稳态 | 窗口判据在 t = 19.8 / 29.8 / 39.7 / 49.6 / 59.5 / 69.5 / 79.4 的变化:profile 5.7e-1、1.9e-1、3.0e-2、4.8e-3、1.5e-3、7.2e-4、4.1e-4;KE 4.7e-1、1.6e-1、3.3e-2、7.3e-3、2.5e-3、1.1e-3、5.6e-4 → **t_s = 79.38**(滑动重算 71.7),停在 t = 100 |
+| 时间平均 | (80.0, 99.8],99 个样本,20 个快照;KE 均值 50.581,积分自相关时间 29 个样本,标准误差 0.0023 |
+
+与 Marchi et al. 2021 T_c 的比较(壁面行坐标系):
+
+| 量 | SPH | Marchi | 偏差 | 标准误差 | 位置 SPH | 位置 Marchi | Δ位置 |
+|---|---|---|---|---|---|---|---|
+| u_min / U | −0.39042 | −0.38857 | +0.48 % | 1.1e-5 | 0.1692 | 0.1717 | −0.0025 |
+| v_max / U | 0.37928 | 0.37694 | +0.62 % | 9.2e-6 | 0.1563 | 0.1578 | −0.0015 |
+| v_min / U | −0.52946 | −0.52708 | +0.45 % | 1.2e-5 | 0.9102 | 0.9092 | +0.0009 |
+| ψ_min / (UL) | −0.11910 | −0.11894 | +0.14 % | – | (0.5304, 0.5645) | (0.5308, 0.5652) | (−0.0004, −0.0007) |
+
+| 剖面 | 相对 L2 | L2 | L∞ | L∞ 位置 |
+|---|---|---|---|---|
+| u(0.5, y) | **0.68 %** | 0.00215 | 0.00538 | y = 0.1016 |
+| v(x, 0.5) | **0.70 %** | 0.00222 | 0.00513 | x = 0.9375 |
+
+读法:两条剖面都在 1 % 以内,验收通过。三个速度极值都比参考值深 0.45–0.62 %、ψ_min 深 0.14 %,位置误差 ≤ 2.5 Δx;逐点误差(补充图)在 y < 0.2 的下壁区与 x > 0.9 的右壁区最大(5 × 10⁻³),中部 < 1 × 10⁻³,与 E36 对 adami 壁的描述一致(残差来自壁面处理,原因未定)。
+
+与 E36 的交叉检查(`e39_compare`,同一算例的 adami_rho0 运行,`v7-wall-bc` 分支 `V7_WALL_BC=3`,`logs/v7_single/cavity/vs_e36_adami_rho0.{md,json}`):两次运行都在 t_s = 79.38 判定稳态、用同一平均窗口 (79.99, 99.83];每个量的差都在噪声尺度内(|差| / 合成噪声:ψ_min 0.7、u_min 0.4、v_max 1.3、v_min 0.0、u 相对 L2 1.0、v 相对 L2 0.8;56 点剖面距离 4.2 × 10⁻⁵ 对噪声底 6.3 × 10⁻⁵;逐点最大 |Δ| / 合成标准误差 1.8;动能 0.5);相对 L2 为 0.677 / 0.695 %(E36)对 0.679 / 0.697 %(本次);极值与涡心位置差 ≤ 0.02 Δx。即 v7_single 的生产路径复现了 E36 的 adami_rho0 结果(两者 kernel 相同:E37 起发布版的 adami 与 `WALL_BC=3` 逐位相同),差别只是同一流动两次实现之间的噪声。镜像 `docs/seam_audit/v7_single/vs_e36_adami_rho0.{md,json}`。
+
+图(`manuscripts/fig/`,PDF + PNG,双栏宽):
+
+- `cavity_re1000_profiles`:时间平均的 u(0.5, y) 与 v(x, 0.5),1001 点 MLS 实线,Marchi T_c 空心圆,Ghia 空心方,u_min / v_min 附近插图,两条相对 L2 标在图上。
+- `cavity_re1000_field`:(a) 时间平均流函数等值线(Ghia 的等值线值),SPH 主涡心实心圆、Marchi 位置空心星;(b) 涡量 ω_z L / U。
+- `cavity_re1000_steady`(补充):KE 历史 + 窗口判据;`cavity_re1000_errors`(补充):28 + 28 个参考点的逐点误差 ū − T_c,误差棒 ± 2 标准误差。
+- 英文图注草稿在 `docs/validation/data/cavity_re1000_tables_v7single.md`。
+
+数据:`docs/validation/data/profile_n1000_k1_float32_xi0p001_eps0p0025_adami_v7single.csv`(参考点上的时间平均与标准误差)、`dense_..._v7single.csv`(1001 点)、`cavity_re1000_summary_v7single.json`、`cavity_re1000_tables_v7single.md`;运行的 `meta.json`、`result.json`、`steady.json`、`windows.jsonl`、`samples.jsonl`、`run.log`、`case.yaml`、校准镜像在 `docs/seam_audit/v7_single/cavity_run/`。
+
+![cavity_re1000_profiles](../../manuscripts/fig/cavity_re1000_profiles.png)
+
+![cavity_re1000_field](../../manuscripts/fig/cavity_re1000_field.png)
 
 ## 论文用数字
 
@@ -362,7 +408,7 @@ depth 1 相对 depth 2 的损失(fps_d1 / fps_d2 − 1):S −4.00 / −2.23 / �
 - §3.6 每候选 ps(融合,默认):correction + density 2.50(2-D 8M)/ 2.09(3-D 8M),force 2.79 / 2.06;不融合:correction 2.12 / 1.60,density 2.17 / 1.72,force 2.80 / 2.06。候选 = 粒子所在体素的 3^d 邻域里列出的粒子数(2-D 224.4 / 粒子,3-D 1649 / 粒子)。
 - §3.6 融合省下的步长:23.5 %(2-D 8M:13 815 → 10 572 µs),22.7 %(3-D 8M:81 875 → 63 319 µs)。
 - §5.1 链式 K = 1 对纯单卡(C/S,2 在飞,n = 3):1M 98.55 ± 0.11 %,2M 99.20 ± 0.16 %,4M–32M 99.85–100.02 %,3-D 8M 99.89 ± 0.16 %。
-- §6.2(1000² adami,v7_single):待填 —— u、v 的相对 L2,极值与 ψ_min 的偏差,t_s。
+- §6.2(1000² adami,v7_single,生产设置,干净提交 457913c):u、v 的相对 L2 = 0.68 % / 0.70 %(L∞ 0.0054 / 0.0051);u_min / v_max / v_min 偏差 +0.48 / +0.62 / +0.45 %,位置误差 −0.0025 / −0.0015 / +0.0009;ψ_min 偏差 +0.14 %,涡心 (0.5304, 0.5645) 对 (0.5308, 0.5652);t_s = 79.38,平均 (80.0, 99.8](99 个样本),不变量全 0,13 334 000 步 6.24 h。
 - 表 2 的 LaTeX 行(`docs/seam_audit/v7_single/kernel_breakdown_fused.md`,不融合的在 `_unfused.md`):
 
 ```latex
@@ -377,7 +423,20 @@ force & per particle & 5097 & 0.63 & 48.2 & 31014 & 3.40 & 49.0 \\
 \textbf{step total} &  & 10572 & 1.30 & 100.0 & 63319 & 6.94 & 100.0 \\
 ```
 
-- 方腔表的 LaTeX 行:待填(`docs/validation/data/cavity_re1000_tables_v7single.md`)。
+- 方腔表的 LaTeX 行(`docs/validation/data/cavity_re1000_tables_v7single.md`):
+
+```latex
+% v7_single, Re = 1000, 1000^2, adami walls: extrema and errors against Marchi et al. 2021 Tc (wall-row frame)
+% columns: quantity & SPH & Marchi 2021 & deviation (%) & std. error & position SPH & position Marchi & dx \\
+$u_{\min}/U$ & -0.39042 & -0.38857 & +0.48 & 1.1e-05 & 0.1692 & 0.1717 & -0.0025 \\
+$v_{\max}/U$ & 0.37928 & 0.37694 & +0.62 & 9.2e-06 & 0.1563 & 0.1578 & -0.0015 \\
+$v_{\min}/U$ & -0.52946 & -0.52708 & +0.45 & 1.2e-05 & 0.9102 & 0.9092 & +0.0009 \\
+$\psi_{\min}/(UL)$ & -0.11910 & -0.11894 & +0.14 & -- & (0.5304, 0.5645) & (0.5308, 0.5652) & (-0.0004, -0.0007) \\
+% errors: line & rel. L2 (%) & L2 & Linf & at \\
+$u(0.5, y)$ & 0.68 & 0.00215 & 0.00538 & $y = 0.1016$ \\
+$v(x, 0.5)$ & 0.70 & 0.00222 & 0.00513 & $x = 0.9375$ \\
+% steady state t_s = 79.38 (sliding 71.685), average window (79.99, 99.83], 99 samples, 20 snapshots; invariants drift 0 overflow 0 far_migration 0 stamp 0/0; 1 segment(s), 6.24 h
+```
 
 ## 已知限制
 
@@ -442,4 +501,6 @@ python -m experiment.validation.e39_compare --v7 logs/validation/cavity_re1000_v
 | 8e5ae46 | 测量 A(吞吐与开销)与图 C |
 | 1c0f57a | 逐 kernel 计时与生产步交错,循环探针 |
 | 457913c | 测量 B(逐 kernel 成本,融合 / 不融合);1000² adami 精度运行从这个提交启动 |
-| (待填) | 精度验证结果、文档结论、报告 |
+| 425588d | 文档:提交表、论文用数字(§3.6 / §5.1、表 2 LaTeX 行);报告构建脚本读交错的 B 结果 |
+| 3aafe6d | 精度验证结果:4 张图(PDF + PNG)、剖面 / 稠密 CSV、汇总 JSON、LaTeX 行与图注、运行镜像;`field` 图例移到底部中央 |
+| (本提交) | 文档:结论、精度一节、§6.2 数字、方腔表 LaTeX 行、与 E36 的交叉检查;报告页构建脚本(页面契约、结论卡、判定标签) |
