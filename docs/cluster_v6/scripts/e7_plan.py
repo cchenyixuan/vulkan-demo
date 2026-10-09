@@ -56,8 +56,11 @@ Job overhead 300 s (prelude, configuration print, provenance, bring-up, device c
 The numbers are planning estimates; the timeouts of the generated scripts are 2 x the estimate + 600 s
 (minimum 900 s), the job time limit 2 x the job estimate + 1 h.
 
+After a batch, e7_refit.py fits the model's fields to the batch's measurements; --model-json FILE plans with them.
+
 Usage:
     python docs/cluster_v6/scripts/e7_plan.py [--markdown] [--json OUT] [--emit-jobs DIR [--batch N ...]]
+        [--model-json FILE]
 """
 
 from __future__ import annotations
@@ -203,12 +206,20 @@ class Model:
     floor_k1: float = 0.0014        # s per step, dispatch-bound K = 1 (1M aligned K = 1: 651-721 fps)
     floor: dict = dataclasses.field(default_factory=lambda: {2: 0.0018, 4: 0.0045, 8: 0.0080})
     efficiency: dict = dataclasses.field(default_factory=lambda: {2: 0.95, 4: 0.90, 8: 0.87})
+    efficiency_3d: dict = None      # per K for the 3-D cases; None = the 2-D values (the plan)
     cold_per_simulator: float = 17.0      # s: pipeline compilation of a configuration new to the job
     warm_per_simulator: float = 1.2       # s: driver shader disk cache hit
     load_per_million: float = 0.35        # s per million particles: .npy load + partition
     bootstrap_fixed: float = 2.0
     bootstrap_per_million: float = 0.5
+    post_per_million: float = 0.1         # post-run checks without the seam check: s per million + s per slab
+    post_per_slab: float = 1.0
+    seam_2d_per_million: float = 0.42     # with the seam check, 2-D: s per million + fixed
+    seam_2d_fixed: float = 8.0
+    seam_3d_per_million: float = 0.26     # with the seam check, 3-D: (this + per slab x K) s per million
+    seam_3d_per_million_per_slab: float = 0.16
     calibration_rounds: int = 2
+    calibration_fixed: float = 20.0       # s per calibration besides its pilots
     pilot_steps: int = 500          # 200 warmup + 300 measured
     run_overhead: float = 10.0      # s per run: process start, parse, sync, telemetry window
     trace_write: float = 15.0       # s: a step trace's CSV files
@@ -221,11 +232,13 @@ class Model:
         return (1500, 500) if case.startswith("cavity3d") else (3000, 1000)
 
     def step_time(self, case: str, slabs: int) -> float:
-        cost = self.cost_3d if case.startswith("cavity3d") else self.cost_2d
+        three_dimensional = case.startswith("cavity3d")
+        cost = self.cost_3d if three_dimensional else self.cost_2d
         per_card = PARTICLES[case] / slabs
         if slabs == 1:
             return max(self.floor_k1, cost * per_card)
-        return max(self.floor[slabs], cost * per_card / self.efficiency[slabs])
+        efficiency = (self.efficiency_3d or self.efficiency) if three_dimensional else self.efficiency
+        return max(self.floor[slabs], cost * per_card / efficiency[slabs])
 
     def setup(self, case: str, slabs: int, cold: bool, seam_check: bool = False) -> float:
         """Construction + bootstrap + post-run checks + per-run overhead of one run (a reference set is one
@@ -235,15 +248,29 @@ class Model:
                         + self.load_per_million * millions)
         bootstrap = self.bootstrap_fixed + self.bootstrap_per_million * millions
         if not seam_check:
-            post = 0.1 * millions + 1.0 * slabs
+            post = self.post_per_million * millions + self.post_per_slab * slabs
         elif case.startswith("cavity3d"):
-            post = (0.26 + 0.16 * slabs) * millions
+            post = (self.seam_3d_per_million + self.seam_3d_per_million_per_slab * slabs) * millions
         else:
-            post = 0.42 * millions + 8.0
+            post = self.seam_2d_per_million * millions + self.seam_2d_fixed
         return construction + bootstrap + post + self.run_overhead
 
     def run(self, case: str, slabs: int, steps: int, cold: bool, seam_check: bool = False) -> float:
         return self.setup(case, slabs, cold, seam_check) + steps * self.step_time(case, slabs)
+
+
+def load_model(path) -> Model:
+    """Model() with the fields of a JSON object replaced (e7_refit.py --out-model); per-K tables get int keys."""
+    model = Model()
+    if not path:
+        return model
+    overrides = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+    unknown = sorted(set(overrides) - {field.name for field in dataclasses.fields(Model)})
+    if unknown:
+        raise SystemExit(f"{path}: not fields of the model: {', '.join(unknown)}")
+    for name, value in overrides.items():
+        setattr(model, name, {int(key): item for key, item in value.items()} if isinstance(value, dict) else value)
+    return model
 
 
 def reference_spec(point: Point, kind: str) -> tuple[str, int]:
@@ -267,7 +294,7 @@ def point_seconds(point: Point, model: Model) -> dict:
         reference_runs[kind] = first
     pilot = model.setup(point.case, point.slabs, cold=True) + model.pilot_steps * model.step_time(point.case,
                                                                                                  point.slabs)
-    calibration = model.calibration_rounds * pilot + 20.0
+    calibration = model.calibration_rounds * pilot + model.calibration_fixed
     trials_total = references_first + (point.trials - 1) * references_later + point.trials * 2 * run_warm
     traced = model.run(point.case, point.slabs, steps, cold=True, seam_check=True) + model.trace_write
     total = calibration + trials_total + point.traces * traced
@@ -443,8 +470,10 @@ def main() -> int:
     parser.add_argument("--emit-jobs", default=None, metavar="DIR", help="write one sbatch script per batch and line")
     parser.add_argument("--batch", type=int, action="append", default=None,
                         help="with --emit-jobs: only these batches (default all)")
+    parser.add_argument("--model-json", default=None, metavar="FILE",
+                        help="replace model fields (a JSON object, e.g. e7_refit.py --out-model); default the plan's")
     arguments = parser.parse_args()
-    model = Model()
+    model = load_model(arguments.model_json)
     points = campaign_points()
     jobs = build_jobs(points, model)
 
