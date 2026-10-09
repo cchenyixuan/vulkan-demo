@@ -26,10 +26,11 @@ first runner tag; v6 when there is none). Every row records "solver" and
 ("[chain_v7] v7 switches: ...") as "solver_switches".
 
 E7: run_chain_v6.py's build stages with host memory ("stages", "build_seconds"
-= time to the first timed frame), the ghost-pool region peaks of
-V*_POOL_PEAKS=1 runs ("pool_regions") and the counts of Khronos validation
-messages ("validation_messages", "validation_unavailable") are recorded too;
-none of them enters the classification.
+= time to the first timed frame), each simulator's raw pool-health watermarks
+("simulators[i].pool_health"), the ghost-pool region peaks of V*_POOL_PEAKS=1
+runs ("pool_regions") and the counts of Khronos validation messages
+("validation_messages", "validation_unavailable") are recorded too; none of
+them enters the classification.
 
 Usage:
     python parse_run_v6.py --log RUN.log --label LABEL --rc RC --start EPOCH --end EPOCH
@@ -141,6 +142,14 @@ def parse_log(text: str, solver: str = "v6") -> dict:
             target = {"sim": index}
             simulators.append(target)
         target["init_clamp_count"] = None if match.group(3) == "None" else int(match.group(3))
+    for match in re.finditer(r"\[e30\] sim(\d+) \(dev(-?\d+)\) pool_health: (.*)", text):     # E7 (E15)
+        index = int(match.group(1))
+        target = next((entry for entry in simulators if entry["sim"] == index), None)
+        if target is None:
+            target = {"sim": index}
+            simulators.append(target)
+        target["pool_health"] = {name: (None if value == "None" else int(value))
+                                 for name, value in re.findall(r"(\w+)=(-?\d+|None)", match.group(3))}
     row["simulators"] = sorted(simulators, key=lambda entry: entry["sim"])
     clamp_counts = [entry.get("init_clamp_count") for entry in row["simulators"]]
     row["init_clamp_total"] = (sum(value for value in clamp_counts if value is not None)
@@ -340,7 +349,8 @@ def main() -> int:
           f"pins={len(row['worker_pins'])}/skip{row['worker_pin_skipped']} "
           f"wall={row.get('wall_seconds')}s{vram}"
           + (f" solver={row['solver']}" if row["solver"] != "v6" else "")
-          + (f" build={row['build_seconds']}s" if row.get("build_seconds") is not None else "")
+          + (f" build={row['build_seconds']}s cache_hits={row['obj_cache_hits']}"
+             if row.get("build_seconds") is not None else "")
           + (f" vk_messages={row['validation_messages']['error']}E/{row['validation_messages']['warning']}W"
              if any(row["validation_messages"].values()) else "")
           + (" vk_layer=unavailable" if row["validation_unavailable"] else "")

@@ -8,12 +8,14 @@ Sampling mode writes one CSV row per interval:
     tmpfs pages this job wrote, e.g. /dev/shm obj caches, are charged there too), empty when unreadable,
   - node memory in use = MemTotal - MemAvailable (/proc/meminfo, the whole node, other tenants included),
   - /dev/shm used bytes,
-  - the summed resident set (VmRSS) of this user's processes whose command line matches --match, their
-    count, and the largest high-water mark (VmHWM) among them.
+  - the summed resident set (VmRSS) of this user's python processes whose command line matches --match
+    (python only: the `timeout` / `taskset` parents carry the same command line), their count, and the
+    largest high-water mark (VmHWM) among them.
 
-Every matched process's VmHWM is also kept per pid (the last value read before it exits) and written to
-<out>.hwm.csv at the end, so a short-lived process's peak is not lost between samples. SIGTERM / SIGINT stop
-the sampler cleanly.
+Every matched process's VmHWM is also kept per pid (the last value read before it exits) with the times it was
+first and last seen, in <out>.hwm.csv, rewritten after every sample, so a short-lived process's peak is not
+lost between samples and windows cut while the sampler runs can use it. SIGTERM / SIGINT stop the sampler
+cleanly.
 
 Summary mode reads a CSV (and its .hwm.csv) and prints the peaks inside a time window:
 
@@ -103,6 +105,8 @@ def matched_processes(pattern: re.Pattern, own_pid: int) -> dict[int, tuple[int,
             values[name] = rest.split()
         if not values.get("Uid") or int(values["Uid"][0]) != user_id:
             continue
+        if not (values.get("Name") or [""])[0].startswith("python"):
+            continue
         if not pattern.search(command.replace("\0", " ")):
             continue
         resident = int(values.get("VmRSS", ["0"])[0]) * 1024
@@ -135,9 +139,12 @@ def sample(arguments: argparse.Namespace) -> int:
             started = time.time()
             processes = matched_processes(pattern, os.getpid())
             for process_id, (_, high_water) in processes.items():
-                command = (read_text(f"/proc/{process_id}/cmdline") or "").replace("\0", " ").strip()[:300]
-                previous = high_water_by_process.get(process_id, (0, command))
-                high_water_by_process[process_id] = (max(previous[0], high_water), previous[1] or command)
+                record = high_water_by_process.get(process_id)
+                if record is None:
+                    command = (read_text(f"/proc/{process_id}/cmdline") or "").replace("\0", " ").strip()[:300]
+                    record = high_water_by_process[process_id] = [0, command, started, started]
+                record[0] = max(record[0], high_water)
+                record[3] = started
             cgroup_text = read_text(cgroup_file) if cgroup_file else None
             writer.writerow([f"{started:.3f}",
                              cgroup_text.strip() if cgroup_text else "",
@@ -147,13 +154,22 @@ def sample(arguments: argparse.Namespace) -> int:
                              len(processes),
                              max((high_water for _, high_water in processes.values()), default=0)])
             handle.flush()
+            write_high_water_file(arguments.out + ".hwm.csv", high_water_by_process)
             time.sleep(max(0.0, arguments.interval - (time.time() - started)))
-    with open(arguments.out + ".hwm.csv", "w", newline="", encoding="utf-8") as handle:
+    write_high_water_file(arguments.out + ".hwm.csv", high_water_by_process)
+    return 0
+
+
+def write_high_water_file(path: str, high_water_by_process: dict) -> None:
+    """<out>.hwm.csv, rewritten after every sample (temporary file + rename) so that windows cut while the
+    sampler runs can read every process seen so far: pid, VmHWM, first and last sample time, command."""
+    temporary = path + ".tmp"
+    with open(temporary, "w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
         writer.writerow(["pid", "hwm_bytes", "first_seen", "last_seen", "command"])
         for process_id, (high_water, command, first_seen, last_seen) in sorted(high_water_by_process.items()):
             writer.writerow([process_id, high_water, f"{first_seen:.3f}", f"{last_seen:.3f}", command])
-    return 0
+    os.replace(temporary, path)
 
 
 def summarize(arguments: argparse.Namespace) -> int:

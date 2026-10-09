@@ -76,7 +76,7 @@ e30_prelude() {   # NAME
     CPUL=()
     if [ "$E30_LOCAL" != 1 ]; then
         local bus device_path node affinity="" count=0
-        for bus in $(nvidia-smi --query-gpu=pci.bus_id --format=csv,noheader | sed 's/^0000//' | tr 'A-Z' 'a-z'); do
+        for bus in $(timeout 60 nvidia-smi --query-gpu=pci.bus_id --format=csv,noheader | sed 's/^0000//' | tr 'A-Z' 'a-z'); do
             device_path=/sys/bus/pci/devices/$bus
             [ -d "$device_path" ] || { echo "ABORT: no sysfs entry for GPU bus $bus"; exit 2; }
             node=$(cat "$device_path/numa_node" 2>/dev/null || echo 0); [ "$node" -lt 0 ] && node=0
@@ -90,20 +90,20 @@ e30_prelude() {   # NAME
     echo "--- env | grep ^$E30_SOLVER_PREFIX"; env | grep "^$E30_SOLVER_PREFIX" | sort || echo "(none)"
     echo "--- host"
     echo "job cpus: $(taskset -cp $$ 2>/dev/null || echo n/a)"
-    nvidia-smi --query-gpu=index,name,pci.bus_id,uuid,driver_version,memory.total,power.limit --format=csv,noheader
-    echo "--- nvidia-smi topo -m"; nvidia-smi topo -m 2>&1 | head -16
+    timeout 60 nvidia-smi --query-gpu=index,name,pci.bus_id,uuid,driver_version,memory.total,power.limit --format=csv,noheader
+    echo "--- nvidia-smi topo -m"; timeout 60 nvidia-smi topo -m 2>&1 | head -16
     local index
     for index in "${!CPUL[@]}"; do echo "gpu$index numa cpulist ${CPUL[$index]}"; done
     echo "--- effective configuration ($E30_SOLVER resolvers, this environment)"
-    $PY -u docs/cluster_v6/scripts/run_chain_v6.py $E30_SOLVER_ARGS --config-only ${E30_CONFIG_CASES:-} || { echo "ABORT: config print failed"; exit 2; }
+    timeout 300 $PY -u docs/cluster_v6/scripts/run_chain_v6.py $E30_SOLVER_ARGS --config-only ${E30_CONFIG_CASES:-}         || { echo "ABORT: config print failed"; exit 2; }
     # telemetry every second, with memory.used for the per-run VRAM peak
     nvidia-smi --query-gpu=timestamp,index,pci.bus_id,memory.used,memory.total,utilization.gpu,power.draw,temperature.gpu,clocks.current.sm \
         --format=csv -l 1 > "$SHM/telemetry.csv" 2>/dev/null &
     TELEPID=$!
 }
 
-e30_sync() {      # copy the node-local logs to ~/run/logs (cluster only)
-    [ "$E30_LOCAL" = 1 ] || cp -r "$SHM"/. "$LOG"/ 2>/dev/null
+e30_sync() {      # copy the node-local logs to ~/run/logs (cluster only): new or changed files, bounded in time
+    [ "$E30_LOCAL" = 1 ] || timeout 300 cp -ru "$SHM"/. "$LOG"/ 2>/dev/null
     return 0
 }
 

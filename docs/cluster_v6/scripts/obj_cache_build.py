@@ -19,11 +19,13 @@ This script fills such a DIR before the jobs run, so that no billed run parses t
     peak resident set (ru_maxrss).
 
 --check only looks the cache files up (run_chain_v6.obj_cache_file, no parse, no load) and exits 1 when one
-is missing: the job's stage-in check.
+is missing: the job's stage-in check. With --stage-to DIR it also copies every cache file it found to DIR
+under the same name (the key depends only on the .obj, so the copies are hits from any directory): a job
+reads the shared cache from ~/run once and its runs load node-local copies.
 
 Usage (from the checkout root):
     python docs/cluster_v6/scripts/obj_cache_build.py --solver v7 --obj-cache DIR --case CASE.yaml [--case ...]
-        [--chunk 10000000] [--verify] [--check]
+        [--chunk 10000000] [--verify] [--check [--stage-to DIR]]
 """
 
 from __future__ import annotations
@@ -101,10 +103,18 @@ def main() -> int:
     parser.add_argument("--verify", action="store_true",
                         help="also run the solver's own parser on each file and require identical arrays")
     parser.add_argument("--check", action="store_true", help="only report whether every cache file exists")
+    parser.add_argument("--stage-to", default=None, metavar="DIR",
+                        help="with --check: copy the cache files found to DIR (same names)")
     arguments = parser.parse_args()
 
     if arguments.check:
+        import shutil
         directory = pathlib.Path(arguments.obj_cache)
+        stage = pathlib.Path(arguments.stage_to) if arguments.stage_to else None
+        if stage is not None:
+            stage.mkdir(parents=True, exist_ok=True)
+        copied_bytes = 0
+        started = time.time()
         missing = 0
         for case_text in arguments.case:
             for obj_path in case_obj_paths(pathlib.Path(case_text)):
@@ -115,7 +125,15 @@ def main() -> int:
                 target = run_chain_v6.obj_cache_file(directory, obj_path)
                 state = f"cached {target.name} ({target.stat().st_size:,} B)" if target.exists() else "NOT CACHED"
                 missing += 0 if target.exists() else 1
+                if stage is not None and target.exists() and not (stage / target.name).exists():
+                    shutil.copyfile(target, stage / target.name)
+                    copied_bytes += target.stat().st_size
+                    state += " -> staged"
                 print(f"[obj_cache] check {pathlib.Path(case_text).parent.name}/{obj_path.name}: {state}", flush=True)
+        if stage is not None:
+            elapsed = time.time() - started
+            print(f"[obj_cache] staged {copied_bytes:,} B to {stage} in {elapsed:.1f} s "
+                  f"({copied_bytes / max(elapsed, 1e-9) / 1e6:.0f} MB/s)", flush=True)
         print(f"[obj_cache] check: {missing} missing", flush=True)
         return 1 if missing else 0
 

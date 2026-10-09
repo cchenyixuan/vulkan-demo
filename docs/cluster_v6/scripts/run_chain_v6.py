@@ -48,6 +48,10 @@ timed in stages, each line with this process's host memory from
 for bootstrap_start (case loaded, chain partitioned, contexts and simulators
 built), bootstrap_end, loop_start (= the chain build time: everything before
 the first timed frame), loop_end and exit (after the bench's post-run checks).
+After the run each simulator's last pool-health readback is printed raw (the
+bench prints pool_used only to 0.1 %):
+  [e30] sim<i> (dev<d>) pool_health: peak_tail_high_water=... own_pool_size=... free_margin=...
+      peak_migration_count=... peak_departed_count=... departed_pool_size=...
 
 Usage (from the checkout root):
     python docs/cluster_v6/scripts/run_chain_v6.py [--switch-interval-ms 0.2] [--solver v7] -- <chain bench arguments>
@@ -354,6 +358,39 @@ def install_stage_reporter(solver: str, started: float) -> None:
     chain_class.run_pipelined = run_pipelined_reporting
 
 
+def install_pool_health_recorder(solver: str) -> dict:
+    """E7 (E15): wrap SphSimulator<V>.readback_pool_health so that each simulator's last pool-health readback
+    (the bench reads it once per slab after the run, in slab order) is kept with its device index; the bench
+    prints the tail's high-water mark only as pool_used to 0.1 % of the own pool, too coarse for the free
+    margin of large slabs."""
+    simulator_module = solver_module(solver, "simulator")
+    simulator_class = getattr(simulator_module, f"SphSimulator{solver.upper()}")
+    original_readback = simulator_class.readback_pool_health
+    recorded: dict = {}
+
+    def readback_pool_health_recording(simulator, *arguments, **keyword_arguments):
+        health = original_readback(simulator, *arguments, **keyword_arguments)
+        device_index = getattr(getattr(simulator, "ctx", None), "physical_device_index", -1)
+        recorded[id(simulator)] = (device_index, dict(health))
+        return health
+
+    simulator_class.readback_pool_health = readback_pool_health_recording
+    return recorded
+
+
+def print_pool_health(recorded: dict) -> None:
+    """[e30] sim<i> (dev<d>) pool_health: the raw watermarks (never reset, survive defrag; common.glsl
+    PoolHealthBuffer): peak_tail_high_water (largest alive + install-tail occupancy ever demanded, the quantity
+    the install overflow guard checks), own_pool_size, free_margin (own pool - that peak), peak_migration_count
+    (deepest migrant install tail in any one defrag interval), peak_departed_count (most migrants sent away in
+    one frame), departed_pool_size."""
+    names = ("peak_tail_high_water", "own_pool_size", "free_margin", "peak_migration_count",
+             "peak_departed_count", "departed_pool_size")
+    for slab_index, (device_index, health) in enumerate(recorded.values()):
+        print(f"[e30] sim{slab_index} (dev{device_index}) pool_health: "
+              + " ".join(f"{name}={health.get(name)}" for name in names), flush=True)
+
+
 def install_pool_peak_recorder(solver: str = "v6") -> list:
     """E7 (E15): wrap transport_<solver>.GhostMigrationWorker.__init__ so that every worker the bench constructs is
     kept here (construction order = the orchestrator's link order); their region_counts / region_capacity are
@@ -421,8 +458,10 @@ def main() -> int:
     pool_peak_workers = (install_pool_peak_recorder(arguments.solver)
                          if os.environ.get(arguments.solver.upper() + "_POOL_PEAKS", "0") == "1" else None)
     bench_started = time.perf_counter()
+    pool_health = None
     if arguments.solver != "v6":
         install_stage_reporter(arguments.solver, bench_started)
+        pool_health = install_pool_health_recorder(arguments.solver)
     # forwarded last: argparse keeps the last occurrence, so this value wins even past the refusal above
     sys.argv = ([str(chain_bench)] + bench_arguments
                 + ["--switch-interval-ms", repr(arguments.switch_interval_ms)])
@@ -439,6 +478,8 @@ def main() -> int:
             print(f"[e30] sim{slab_index} (dev{device_index}): "
                   f"initialization_seam_clamp_count={clamp_count} "
                   f"overflow_initialization_outside={outside_count}", flush=True)
+        if pool_health is not None:
+            print_pool_health(pool_health)
         if pool_peak_workers is not None:
             print_pool_peaks(pool_peak_workers)
         if arguments.solver != "v6":
