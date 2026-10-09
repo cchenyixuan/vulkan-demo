@@ -42,7 +42,9 @@
 # case, point, line, host (e7_full_summary.py groups by it).
 # E30_DRY=1 prints every command instead of running it (e30_lib.sh).
 
-E7_EXPECTED_TREE=82dd6a740fa2a97a44e6a31d75392f75e486163b      # git rev-parse v7-rc1:experiment/v7 (d0c8dcb)
+# git rev-parse v7-rc1:experiment/v7 (d0c8dcb); overridable only for a local pre-run from a CRLF worktree
+E7_EXPECTED_TREE=${E7_EXPECTED_TREE:-82dd6a740fa2a97a44e6a31d75392f75e486163b}
+E7_EXPECTED_DEVICES=${E7_EXPECTED_DEVICES:-8}                   # the local pre-run rig has 2
 E7_SHADER_CACHE_SIZE=17179869184                               # 16 GiB (the driver's default cap is 1 GiB)
 
 e7_short() {        # CASE -> 2d_n4000 / 3d_n416_k8 (labels)
@@ -156,7 +158,7 @@ e7_job_begin() {    # JOB LINE CASE...
         [ "${#CPUL[@]}" -gt 0 ] || CPUL=(cpus_gpu0 cpus_gpu1 cpus_gpu2 cpus_gpu3 cpus_gpu4 cpus_gpu5 cpus_gpu6 cpus_gpu7)
     else
         DEVICES=$(timeout 60 nvidia-smi -L | wc -l)
-        [ "$DEVICES" -eq 8 ] || e30_fail "expected 8 GPUs, $DEVICES visible"
+        [ "$DEVICES" -eq "$E7_EXPECTED_DEVICES" ] || e30_fail "expected $E7_EXPECTED_DEVICES GPUs, $DEVICES visible"
         $PY -u docs/cluster_v6/scripts/host_memory_sampler.py --out "$SHM/host_memory.csv" --interval 1 &
         E7_MEMPID=$!
     fi
@@ -179,7 +181,7 @@ e7_provenance() {   # user item 14: harness commit, experiment/v7 tree hash, dri
     local tree driver harness
     harness=$(head -c 40 SCRIPTS_COMMIT 2>/dev/null || echo none)
     tree=$(timeout 300 $PY docs/cluster_v6/scripts/tree_hash.py experiment/v7 2>&1 | tail -1)
-    driver=$(timeout 60 nvidia-smi --query-gpu=driver_version --format=csv,noheader | sort -u | tr '\n' ' ' | sed 's/ $//')
+    driver=$(timeout 60 nvidia-smi --query-gpu=driver_version --format=csv,noheader | tr -d '\r' | sort -u | tr '\n' ' ' | sed 's/ $//')
     echo "PROVENANCE host=$(hostname) slurm_job=$E30_JOB job=$E7_JOB line=$E7_LINE harness=$harness experiment_v7_tree=$tree (v7-rc1 $E7_EXPECTED_TREE) driver=$driver"
     printf '{"host": "%s", "slurm_job": "%s", "job": "%s", "line": "%s", "harness_commit": "%s", "experiment_v7_tree": "%s", "expected_tree": "%s", "tree_match": %s, "driver": "%s", "commit": "%s", "time": "%s"}\n' \
         "$(hostname)" "$E30_JOB" "$E7_JOB" "$E7_LINE" "$harness" "$tree" "$E7_EXPECTED_TREE" \
@@ -223,7 +225,8 @@ e7_group() {        # LABEL KIND CASE PARTIES STEPS WARMUP TIMEOUT ROLE FAMILY T
         fi
         e7_index "${label}_$suffix" "$role" "$family" "$case_name" "$slabs" "$trial" "$reference_kind" "$case_name" "$point"
         (
-            E30_PREFIX="taskset -c ${CPUL[$gpu]}"
+            E30_PREFIX=""
+            [ -n "${CPUL[$gpu]:-}" ] && E30_PREFIX="taskset -c ${CPUL[$gpu]}"      # local pre-run: no cpulists
             # a member still missing after half the run timeout has failed: the others start anyway (status timeout)
             E30_WRAPPER_ARGS="--obj-cache $NODE_CACHE --barrier $barrier --barrier-parties $parties --barrier-timeout $((limit / 2))"
             e30_run "${label}_$suffix" "$limit" --optional -- --case "$yaml" --weights "$weights" --device-map "$map" \
@@ -371,7 +374,7 @@ e7_extra() {        # KIND LABEL CASE K STEPS WARMUP TIMEOUT
     local kind=$1 label=$2 case_name=$3 slabs=$4 steps=$5 warmup=$6 limit=$7
     local yaml=cases/aligned/$case_name/case.yaml map pin=""
     map=$(e7_device_map "$slabs")
-    [ "$slabs" -eq 1 ] && pin="taskset -c ${CPUL[0]} "
+    [ "$slabs" -eq 1 ] && [ -n "${CPUL[0]:-}" ] && pin="taskset -c ${CPUL[0]} "
     echo; echo "##### EXTRA $kind $label case=$case_name K=$slabs steps=$steps host=$(hostname) ($(date +%T))"
     e7_index "$label" "$kind" extra "$case_name" "$slabs" 0 - - "$label"
     case "$kind" in

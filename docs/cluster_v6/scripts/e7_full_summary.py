@@ -9,7 +9,8 @@ JobID, JobName, Start, End, Elapsed, NodeList, State); --plan takes the JSON of 
 node-hour comparison.
 
 Definitions (user, 2026-10-10):
-  fps of a run = the bench's steady window: steady_steps / steady_seconds;
+  fps of a run = the bench's steady window (steady_steps / steady_seconds or the printed steady fps, whichever
+  print is finer for the run, see precise_fps);
   per trial and arm, against the reference set of the same trial: strong eta = fps_K / (K mean fps_1), weak (F3,
   F4: the reference is the per-card case) eta = fps_K / mean fps_1, pairs (n11320, or a K = 1 reference the
   pre-check found too large) eta = fps_K / ((K / 2) mean fps_pair), flagged; eta_min the same with the slowest
@@ -78,8 +79,14 @@ def load_job(directory: pathlib.Path) -> dict:
         except json.JSONDecodeError:
             weights[path.stem] = None
     provenance_path = directory / "provenance.json"
+    provenance = {}
+    if provenance_path.exists():
+        try:        # strict=False: a stray control character (a \r from a Windows nvidia-smi) must not stop the report
+            provenance = json.loads(provenance_path.read_text(encoding="utf-8"), strict=False)
+        except json.JSONDecodeError:
+            provenance = {"unreadable": provenance_path.read_text(encoding="utf-8", errors="replace")[:500]}
     return {"directory": directory, "name": directory.name, "rows": rows, "index": index, "weights": weights,
-            "provenance": json.loads(provenance_path.read_text(encoding="utf-8")) if provenance_path.exists() else {},
+            "provenance": provenance,
             "shader_cache": read_json_lines(directory / "shader_cache.jsonl"),
             "prechecks": read_json_lines(directory / "prechecks.jsonl"),
             "memory_windows": {entry["label"]: entry for entry in read_json_lines(directory / "memory_windows.jsonl")},
@@ -99,12 +106,24 @@ def read_sacct(path: pathlib.Path) -> list:
 # ----------------------------------------------------------------------------- numbers
 
 def precise_fps(row: dict):
+    """The steady window's fps from whichever of the bench's two prints is finer for this run: the seconds carry
+    2 decimals (relative error <= 0.005 s / seconds, coarse for fast runs: 0.25 % at 1000 fps over 2000 steps),
+    the fps 1 decimal (<= 0.05 / fps, coarse for slow runs: 0.3 % at 15 fps); the finer one is <= 0.04 % here."""
     if not row:
         return None
-    steps, seconds = row.get("steady_steps"), row.get("steady_seconds")
+    steps, seconds, printed = row.get("steady_steps"), row.get("steady_seconds"), row.get("steady_fps")
+    candidates = []
     if steps and seconds:
-        return steps / seconds
-    return row.get("steady_fps")
+        candidates.append((0.005 / seconds, steps / seconds))
+    if printed:
+        candidates.append((0.05 / printed, printed))
+    return min(candidates)[1] if candidates else None
+
+
+def precise_steady_seconds(row: dict):
+    fps = precise_fps(row)
+    steps = (row or {}).get("steady_steps")
+    return steps / fps if steps and fps else (row or {}).get("steady_seconds")
 
 
 def describe(values: list) -> dict:
@@ -144,9 +163,10 @@ def stage(row: dict, name: str, key: str = "seconds"):
 
 def steady_start_epoch(row: dict):
     start = stage(row, "loop_start", "epoch")
-    if start is None or row.get("loop_seconds") is None or row.get("steady_seconds") is None:
+    steady_seconds = precise_steady_seconds(row)
+    if start is None or row.get("loop_seconds") is None or steady_seconds is None:
         return None
-    return start + row["loop_seconds"] - row["steady_seconds"]
+    return start + row["loop_seconds"] - steady_seconds
 
 
 def gpu_means(row: dict, gpus) -> dict:
@@ -397,9 +417,11 @@ def precheck_table(job: dict) -> list:
 
 
 def soak_table(job: dict) -> list:
+    """The extras (soak, selftest, anatomy, fulltrace): invariants, pool series, per-defrag watermarks, the host
+    loop's [loop] intervals (V7_LOOP_TRACE=1), the sampled anatomy frames (mean per simulator) and the defrag times."""
     out = []
     for entry in job["index"]:
-        if entry["role"] not in ("soak", "selftest"):
+        if entry["role"] not in ("soak", "selftest", "anatomy", "fulltrace"):
             continue
         row = job["rows"].get(entry["label"])
         if not row:
@@ -422,6 +444,18 @@ def soak_table(job: dict) -> list:
             frame["interval_migration_max"] = max(frame["interval_migration_max"],
                                                   int(report.get("interval_migration", 0) or 0))
             frame["overflow_install_tail"] += int(report.get("overflow_install_tail", 0) or 0)
+        anatomy: dict = {}          # sim -> item -> values over the sampled frames (GPU µs)
+        for frame_entry in row.get("anatomy_frames", []):
+            items = anatomy.setdefault(frame_entry.get("sim", 0), {})
+            for key, value in frame_entry.items():
+                if key not in ("frame", "sim") and isinstance(value, (int, float)):
+                    items.setdefault(key, []).append(float(value))
+        defrag_time: dict = {}      # sim -> wall ms / GPU µs of every submit_defrag_and_wait (bootstrap included)
+        for timing in row.get("defrag_times", []):
+            bucket = defrag_time.setdefault(timing.get("sim", 0), {"wall_ms": [], "gpu_us": []})
+            bucket["wall_ms"].append(float(timing["wall_ms"]))
+            if timing.get("gpu_us") is not None:
+                bucket["gpu_us"].append(float(timing["gpu_us"]))
         out.append({"label": entry["label"], "role": entry["role"], "status": row["status"],
                     "reasons": row.get("reasons"), "steps": row.get("total_steps"), "fps": precise_fps(row),
                     "drift": row.get("drift"), "overflow_total": row.get("overflow_total"),
@@ -432,7 +466,13 @@ def soak_table(job: dict) -> list:
                     "regions": regions, "defrags": dict(sorted(defrags.items())),
                     "pool_health": [entry_sim.get("pool_health") for entry_sim in row.get("simulators", [])],
                     "anatomy_frames": len(row.get("anatomy_frames", [])), "loop_intervals": len(row.get("loop_intervals", [])),
-                    "defrag_times": len(row.get("defrag_times", []))})
+                    "defrag_times": len(row.get("defrag_times", [])),
+                    "loop": row.get("loop_intervals", []),
+                    "anatomy": {sim: {key: {"mean": statistics.fmean(values), "n": len(values)}
+                                      for key, values in items.items()} for sim, items in sorted(anatomy.items())},
+                    "defrag_time": {sim: {name: {"mean": statistics.fmean(values), "max": max(values), "n": len(values)}
+                                          for name, values in bucket.items() if values}
+                                    for sim, bucket in sorted(defrag_time.items())}})
     return out
 
 
@@ -630,6 +670,29 @@ def report(jobs: list, plan: dict, trace_root_override=None) -> tuple:
                 lines.append("- own pool watermark per defrag (max over slabs: used fraction / interval migration): "
                              + ", ".join(f"f{frame}: {entry['used_fraction_max']:.4f}/{entry['interval_migration_max']}"
                                          for frame, entry in soak["defrags"].items()))
+            for loop in soak.get("loop") or []:
+                lines.append(f"- host loop f{loop.get('frame')} ({loop.get('frames')} frames, V7_LOOP_TRACE): period p50 "
+                             f"{loop.get('period_ms_p50')} ms (max {loop.get('period_ms_max')}); in _submit_frame p50 "
+                             f"{loop.get('submit_ms_p50')} / mean {loop.get('submit_ms_mean')} / max {loop.get('submit_ms_max')} "
+                             f"ms; blocked in frame waits p50 {loop.get('wait_ms_p50')} / mean {loop.get('wait_ms_mean')} ms; "
+                             f"cpu share {loop.get('cpu_share')}")
+            for sim, timings in (soak.get("defrag_time") or {}).items():
+                parts = [f"{name} mean {fmt(values['mean'], 1)} (max {fmt(values['max'], 1)}, n={values['n']})"
+                         for name, values in timings.items()]
+                lines.append(f"- defrag sim{sim} (every call, bootstrap included): " + "; ".join(parts))
+            anatomy = soak.get("anatomy") or {}
+            if anatomy:
+                simulators = list(anatomy)
+                items = []
+                for values in anatomy.values():
+                    items += [key for key in values if key not in items]
+                lines += ["", f"GPU µs per frame, mean over the sampled frames (n = "
+                          f"{max(value['n'] for values in anatomy.values() for value in values.values())} per simulator):", "",
+                          "| item | " + " | ".join(f"sim{sim}" for sim in simulators) + " |",
+                          "|---|" + "---|" * len(simulators)]
+                for key in items:
+                    lines.append(f"| {key} | " + " | ".join(fmt(anatomy[sim][key]["mean"], 1) if key in anatomy[sim] else "-"
+                                                           for sim in simulators) + " |")
             lines.append("")
     hours = node_hours(jobs, plan)
     data["node_hours"] = hours
