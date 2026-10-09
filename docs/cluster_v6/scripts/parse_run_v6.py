@@ -25,6 +25,12 @@ first runner tag; v6 when there is none). Every row records "solver" and
 "solver_in_log", and v7 rows also the bench's own switch line
 ("[chain_v7] v7 switches: ...") as "solver_switches".
 
+E7: run_chain_v6.py's build stages with host memory ("stages", "build_seconds"
+= time to the first timed frame), the ghost-pool region peaks of
+V*_POOL_PEAKS=1 runs ("pool_regions") and the counts of Khronos validation
+messages ("validation_messages", "validation_unavailable") are recorded too;
+none of them enters the classification.
+
 Usage:
     python parse_run_v6.py --log RUN.log --label LABEL --rc RC --start EPOCH --end EPOCH
                            [--telemetry telemetry.csv] [--results results.jsonl] [--solver v7]
@@ -189,6 +195,28 @@ def parse_log(text: str, solver: str = "v6") -> dict:
     error_patterns = ("Traceback (most recent call last)", "OutOfDeviceMemory", "VkError", "STALL AUTOPSY",
                       "DIED", "STALE READBACK", "Segmentation fault", "out of range", "MemoryError")
     row["errors"] = sorted({pattern for pattern in error_patterns if pattern in text})
+
+    # E7 lines of run_chain_v6.py (recorded, not part of the verdict): the build stages with this process's host
+    # memory (solvers other than v6; the last line of a stage wins, i.e. the timed chain's after any pilots),
+    # the ghost-pool region peaks with V*_POOL_PEAKS=1 (E15), and the Khronos validation layer's messages
+    # (VulkanContext messenger on stderr: "[Vulkan <ESC>[91mERROR<ESC>[0m] ...", WARNING alike).
+    stages = {}
+    for match in re.finditer(r"\[e30\] stage (\w+): t=([\d.]+)s VmRSS=(\S+) VmHWM=(\S+)", text):
+        stages[match.group(1)] = {"seconds": float(match.group(2)),
+                                  "vm_rss": match.group(3), "vm_hwm": match.group(4)}
+    row["stages"] = stages
+    row["build_seconds"] = stages.get("loop_start", {}).get("seconds")
+    row["pool_regions"] = [
+        {"link": link, "region": region, "capacity": None if capacity == "None" else int(capacity),
+         "peak": int(peak), "frame_of_peak": int(frame), "p999": int(p999), "mean": float(mean),
+         "last": int(last), "frames": int(frames), "occupancy": occupancy}
+        for link, region, capacity, peak, frame, p999, mean, last, frames, occupancy in re.findall(
+            r"\[e30\] pool (\S+) (\w+): capacity=(\d+|None) peak=(\d+) frame_of_peak=(\d+) p999=(\d+) "
+            r"mean=([\d.]+) last=(\d+) frames=(\d+) occupancy=(\S+)", text)]
+    row["validation_messages"] = {
+        "error": len(re.findall(r"\[Vulkan (?:\x1b\[\d+m)?ERROR", text)),
+        "warning": len(re.findall(r"\[Vulkan (?:\x1b\[\d+m)?WARNING", text))}
+    row["validation_unavailable"] = "validation layer requested but not available" in text
     return row
 
 
@@ -312,6 +340,10 @@ def main() -> int:
           f"pins={len(row['worker_pins'])}/skip{row['worker_pin_skipped']} "
           f"wall={row.get('wall_seconds')}s{vram}"
           + (f" solver={row['solver']}" if row["solver"] != "v6" else "")
+          + (f" build={row['build_seconds']}s" if row.get("build_seconds") is not None else "")
+          + (f" vk_messages={row['validation_messages']['error']}E/{row['validation_messages']['warning']}W"
+             if any(row["validation_messages"].values()) else "")
+          + (" vk_layer=unavailable" if row["validation_unavailable"] else "")
           + (f" reasons={';'.join(row['reasons'])}" if row["reasons"] else ""), flush=True)
     return 0 if row["status"] in ("pass", "threshold_only") else 3
 

@@ -30,6 +30,25 @@ module-level constant of partition_v7 / simulator_v7 assigned from a V7_*
 variable, read from the module source), each as v7 resolves it. With the
 default everything printed is the v6 output, unchanged.
 
+E7 (E15): with <PREFIX>POOL_PEAKS=1 in the environment the transport workers
+record every frame's demand of each ghost-pool region of their link (the
+sender's allocation counter: inner / outer replicas and migrants, or one mixed
+region with a single ghost layer), but nothing prints it. Then this script
+collects the workers as they are constructed and, after the run, prints one
+line per link and region:
+  [e30] pool <link> <region>: capacity=C peak=P frame_of_peak=F p999=Q mean=M last=L frames=N occupancy=P/C
+(frames counted from the first recorded frame; the departed pool and the
+install tail are printed by the bench itself on every run). Without the
+switch nothing is installed and the output is unchanged.
+
+E7, solvers other than v6 (the v6 output stays as it was): the chain build is
+timed in stages, each line with this process's host memory from
+/proc/self/status (n/a where there is none):
+  [e30] stage <name>: t=<seconds since the bench started>s VmRSS=<GiB>GiB VmHWM=<GiB>GiB
+for bootstrap_start (case loaded, chain partitioned, contexts and simulators
+built), bootstrap_end, loop_start (= the chain build time: everything before
+the first timed frame), loop_end and exit (after the bench's post-run checks).
+
 Usage (from the checkout root):
     python docs/cluster_v6/scripts/run_chain_v6.py [--switch-interval-ms 0.2] [--solver v7] -- <chain bench arguments>
     python docs/cluster_v6/scripts/run_chain_v6.py --config-only [--solver v7] [--case CASE.yaml ...]
@@ -43,6 +62,7 @@ import os
 import pathlib
 import runpy
 import sys
+import time
 import types
 
 _REPOSITORY_ROOT = pathlib.Path(__file__).resolve().parents[3]
@@ -95,9 +115,17 @@ def parse_arguments(argument_list: list[str]) -> tuple[argparse.Namespace, list[
     return parser.parse_args(own_arguments), bench_arguments
 
 
+def obj_cache_file(directory: pathlib.Path, path) -> pathlib.Path:
+    """The cache file of one .obj: DIR/<stem>_<key>.npy, key = sha1(resolved path | size | mtime_ns)[:20]."""
+    import hashlib
+    resolved = pathlib.Path(path).resolve()
+    status = resolved.stat()
+    key = hashlib.sha1(f"{resolved}|{status.st_size}|{status.st_mtime_ns}".encode()).hexdigest()[:20]
+    return directory / f"{resolved.stem}_{key}.npy"
+
+
 def install_obj_cache(cache_directory: str, solver: str = "v6") -> None:
     """Wrap case_loader_<solver>._parse_obj_vertices with a .npy cache keyed by resolved path, size and mtime."""
-    import hashlib
     import numpy as np
     case_loader = solver_module(solver, "case_loader")
     original_parser = case_loader._parse_obj_vertices
@@ -106,15 +134,13 @@ def install_obj_cache(cache_directory: str, solver: str = "v6") -> None:
 
     def parse_obj_vertices_cached(path):
         resolved = pathlib.Path(path).resolve()
-        status = resolved.stat()
-        key = hashlib.sha1(f"{resolved}|{status.st_size}|{status.st_mtime_ns}".encode()).hexdigest()[:20]
-        target = directory / f"{resolved.stem}_{key}.npy"
+        target = obj_cache_file(directory, resolved)
         if target.exists():
             vertices = np.load(target)
             print(f"[e30] obj cache hit {resolved.name} ({vertices.shape[0]:,} vertices)", flush=True)
             return vertices
         vertices = original_parser(path)
-        temporary = directory / f"{resolved.stem}_{key}.{os.getpid()}.tmp.npy"
+        temporary = directory / f"{target.stem}.{os.getpid()}.tmp.npy"
         np.save(temporary, vertices)
         os.replace(temporary, target)
         return vertices
@@ -283,6 +309,88 @@ def install_clamp_count_recorder(solver: str = "v6") -> dict:
     return recorded
 
 
+def host_memory_text() -> str:
+    """VmRSS and VmHWM (peak) of this process in GiB from /proc/self/status (Linux); n/a elsewhere."""
+    values = {}
+    try:
+        with open("/proc/self/status", encoding="utf-8") as handle:
+            for line in handle:
+                name, _, rest = line.partition(":")
+                if name in ("VmRSS", "VmHWM"):
+                    values[name] = int(rest.split()[0]) / 1024 ** 2          # kB -> GiB
+    except OSError:
+        pass
+    return " ".join(f"{name}={values[name]:.2f}GiB" if name in values else f"{name}=n/a"
+                    for name in ("VmRSS", "VmHWM"))
+
+
+def report_stage(stage: str, started: float) -> None:
+    print(f"[e30] stage {stage}: t={time.perf_counter() - started:.2f}s {host_memory_text()}", flush=True)
+
+
+def install_stage_reporter(solver: str, started: float) -> None:
+    """E7: wrap ChainOrchestrator<V>.bootstrap_all and run_pipelined so that the start and end of the bootstrap
+    and of the timed loop are reported (report_stage). With --weights auto the pilot chains report too; the
+    timed chain's lines come last."""
+    orchestrator_module = solver_module(solver, "orchestrator")
+    chain_class = getattr(orchestrator_module, f"ChainOrchestrator{solver.upper()}")
+    original_bootstrap = chain_class.bootstrap_all
+    original_run = chain_class.run_pipelined
+
+    def bootstrap_all_reporting(orchestrator, *arguments, **keyword_arguments):
+        report_stage("bootstrap_start", started)
+        result = original_bootstrap(orchestrator, *arguments, **keyword_arguments)
+        report_stage("bootstrap_end", started)
+        return result
+
+    def run_pipelined_reporting(orchestrator, *arguments, **keyword_arguments):
+        report_stage("loop_start", started)
+        try:
+            return original_run(orchestrator, *arguments, **keyword_arguments)
+        finally:
+            report_stage("loop_end", started)
+
+    chain_class.bootstrap_all = bootstrap_all_reporting
+    chain_class.run_pipelined = run_pipelined_reporting
+
+
+def install_pool_peak_recorder(solver: str = "v6") -> list:
+    """E7 (E15): wrap transport_<solver>.GhostMigrationWorker.__init__ so that every worker the bench constructs is
+    kept here (construction order = the orchestrator's link order); their region_counts / region_capacity are
+    read after the run by print_pool_peaks."""
+    transport = solver_module(solver, "transport")
+    worker_class = transport.GhostMigrationWorker
+    original_initializer = worker_class.__init__
+    constructed_workers: list = []
+
+    def initializer_recording(worker, *arguments, **keyword_arguments):
+        original_initializer(worker, *arguments, **keyword_arguments)
+        constructed_workers.append(worker)
+
+    worker_class.__init__ = initializer_recording
+    return constructed_workers
+
+
+def print_pool_peaks(workers: list) -> None:
+    """One line per link and recorded region: capacity (slots), peak demand, the recorded frame of the peak, the
+    99.9th percentile (nearest rank), mean, last value, number of frames and peak / capacity."""
+    for worker in workers:
+        capacities = getattr(worker, "region_capacity", {}) or {}
+        for region, counts in (getattr(worker, "region_counts", {}) or {}).items():
+            capacity = capacities.get(region)
+            if not counts:
+                print(f"[e30] pool {worker.label} {region}: capacity={capacity} frames=0", flush=True)
+                continue
+            peak = max(counts)
+            ordered = sorted(counts)
+            rank = max(1, -(-999 * len(ordered) // 1000))          # nearest rank: ceil(0.999 n)
+            occupancy = f"{peak / capacity:.4f}" if capacity else "n/a"
+            print(f"[e30] pool {worker.label} {region}: capacity={capacity} peak={peak} "
+                  f"frame_of_peak={counts.index(peak)} p999={ordered[rank - 1]} "
+                  f"mean={sum(counts) / len(counts):.1f} last={counts[-1]} frames={len(counts)} "
+                  f"occupancy={occupancy}", flush=True)
+
+
 def main() -> int:
     arguments, bench_arguments = parse_arguments(sys.argv[1:])
     # any spelling argparse would take for the bench's --switch-interval-ms (it accepts unique prefixes, "--sw")
@@ -310,6 +418,11 @@ def main() -> int:
     if arguments.obj_cache:
         install_obj_cache(arguments.obj_cache, arguments.solver)
     recorded = install_clamp_count_recorder(arguments.solver)
+    pool_peak_workers = (install_pool_peak_recorder(arguments.solver)
+                         if os.environ.get(arguments.solver.upper() + "_POOL_PEAKS", "0") == "1" else None)
+    bench_started = time.perf_counter()
+    if arguments.solver != "v6":
+        install_stage_reporter(arguments.solver, bench_started)
     # forwarded last: argparse keeps the last occurrence, so this value wins even past the refusal above
     sys.argv = ([str(chain_bench)] + bench_arguments
                 + ["--switch-interval-ms", repr(arguments.switch_interval_ms)])
@@ -326,6 +439,10 @@ def main() -> int:
             print(f"[e30] sim{slab_index} (dev{device_index}): "
                   f"initialization_seam_clamp_count={clamp_count} "
                   f"overflow_initialization_outside={outside_count}", flush=True)
+        if pool_peak_workers is not None:
+            print_pool_peaks(pool_peak_workers)
+        if arguments.solver != "v6":
+            report_stage("exit", bench_started)
         sys.stdout.flush()
     return exit_code
 
