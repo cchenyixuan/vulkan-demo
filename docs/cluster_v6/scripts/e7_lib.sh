@@ -224,7 +224,8 @@ e7_group() {        # LABEL KIND CASE PARTIES STEPS WARMUP TIMEOUT ROLE FAMILY T
         e7_index "${label}_$suffix" "$role" "$family" "$case_name" "$slabs" "$trial" "$reference_kind" "$case_name" "$point"
         (
             E30_PREFIX="taskset -c ${CPUL[$gpu]}"
-            E30_WRAPPER_ARGS="--obj-cache $NODE_CACHE --barrier $barrier --barrier-parties $parties"
+            # a member still missing after half the run timeout has failed: the others start anyway (status timeout)
+            E30_WRAPPER_ARGS="--obj-cache $NODE_CACHE --barrier $barrier --barrier-parties $parties --barrier-timeout $((limit / 2))"
             e30_run "${label}_$suffix" "$limit" --optional -- --case "$yaml" --weights "$weights" --device-map "$map" \
                 $COMMON --max-steps "$steps" --warmup "$warmup" --no-seam-check
         ) &

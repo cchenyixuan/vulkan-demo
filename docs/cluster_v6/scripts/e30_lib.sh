@@ -168,7 +168,7 @@ e30_run() {       # LABEL TIMEOUT_S [--optional] -- CHAIN BENCH ARGUMENTS ...   
     local log="$SHM/$label.log"
     echo; echo "=== RUN $label ($(date +%T)) timeout ${limit}s ${E30_PREFIX:-}$([ "$optional" = 1 ] && echo ' (optional)') ==="
     echo "args: $*"
-    if [ "$E30_DRY" = 1 ]; then echo "DRY: ${E30_PREFIX:-} $PY -u docs/cluster_v6/scripts/run_chain_v6.py ${E30_SOLVER_ARGS:+$E30_SOLVER_ARGS }-- $*"; return 0; fi
+    if [ "$E30_DRY" = 1 ]; then echo "DRY: ${E30_PREFIX:-} $PY -u docs/cluster_v6/scripts/run_chain_v6.py ${E30_SOLVER_ARGS:+$E30_SOLVER_ARGS }${E30_WRAPPER_ARGS:+$E30_WRAPPER_ARGS }-- $*"; return 0; fi
     local start end return_code verdict
     start=$(date +%s.%N)
     timeout -k 30 "$limit" ${E30_PREFIX:-} $PY -u docs/cluster_v6/scripts/run_chain_v6.py ${E30_SOLVER_ARGS:-} ${E30_WRAPPER_ARGS:-} \

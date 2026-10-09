@@ -128,6 +128,7 @@ def parse_log(text: str, solver: str = "v6") -> dict:
     match = re.search(chain + r" STEADY \(post-warmup (\d+)\): (\d+) steps in ([\d.]+)s = ([\d.]+) fps", text)
     row["steady_fps"] = float(match.group(4)) if match else None
     row["steady_steps"] = int(match.group(2)) if match else None
+    row["steady_seconds"] = float(match.group(3)) if match else None
 
     simulators = []
     for match in re.finditer(chain + r" sim(\d+) seam: ghost_layers=(\d+) departed peak/frame=(\d+) "

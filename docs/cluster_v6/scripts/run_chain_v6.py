@@ -45,9 +45,12 @@ E7, solvers other than v6 (the v6 output stays as it was): the chain build is
 timed in stages, each line with this process's host memory from
 /proc/self/status (n/a where there is none):
   [e30] stage <name>: t=<seconds since the bench started>s VmRSS=<GiB>GiB VmHWM=<GiB>GiB
-for bootstrap_start (case loaded, chain partitioned, contexts and simulators
-built), bootstrap_end, loop_start (= the chain build time: everything before
-the first timed frame), loop_end and exit (after the bench's post-run checks).
+for case_loaded (load_case_<solver> returned: the read-in, bench imports
+included), partition_done (compute_chain_partition returned), bootstrap_start
+(contexts and simulators built), bootstrap_end, loop_start (= the chain build
+time: everything before the first timed frame), loop_end and exit (after the
+bench's post-run checks). With --weights auto the pilots report too (the last
+line of a stage is the timed chain's).
 After the run each simulator's last pool-health readback is printed raw (the
 bench prints pool_used only to 0.1 %):
   [e30] sim<i> (dev<d>) pool_health: peak_tail_high_water=... own_pool_size=... free_margin=...
@@ -411,6 +414,27 @@ def install_stage_reporter(solver: str, started: float, barrier=None) -> None:
 
     chain_class.bootstrap_all = bootstrap_all_reporting
     chain_class.run_pipelined = run_pipelined_reporting
+
+    # the read-in and the partition (the bench and the calibration import both inside their functions, after
+    # these module attributes are replaced)
+    case_loader = solver_module(solver, "case_loader")
+    partition = solver_module(solver, "partition")
+    loader_name = f"load_case_{solver}"
+    original_load = getattr(case_loader, loader_name)
+    original_partition = partition.compute_chain_partition
+
+    def load_case_reporting(*arguments, **keyword_arguments):
+        result = original_load(*arguments, **keyword_arguments)
+        report_stage("case_loaded", started)
+        return result
+
+    def compute_chain_partition_reporting(*arguments, **keyword_arguments):
+        result = original_partition(*arguments, **keyword_arguments)
+        report_stage("partition_done", started)
+        return result
+
+    setattr(case_loader, loader_name, load_case_reporting)
+    partition.compute_chain_partition = compute_chain_partition_reporting
 
 
 def install_pool_health_recorder(solver: str) -> dict:

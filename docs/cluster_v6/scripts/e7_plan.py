@@ -17,20 +17,23 @@ Protocol (user, 2026-10-09 and 2026-10-10):
     case, eta = fps_K / fps_1; n11320 (128M) = 4 simultaneous K = 2 pairs of the case, eta = fps_K /
     ((K / 2) fps_pair), reported separately; a K = 1 reference that the pre-check finds too large for one card
     switches to K = 2 pairs the same way (at K = 2 there is then no reference: the pair is the point itself);
-  - line A (K <= 4, GPUs 0-3 of a whole node) and line B (K = 8), one job at a time per line (job names
-    e7_A / e7_B, --dependency=singleton), the two lines in parallel (hp5090: 16 GPUs = two nodes);
-  - pre-checks at the start of each line (before its first point): the large K = 1 references (2-D n8000
-    64.4M, n9000 81.4M; 3-D n160_k8 36.4M, n200_k8 69.6M, n416 76.2M) and n11320's K = 2 pairs (64.3M per
-    card), each at the line's real concurrency (A: 4 processes, B: 8; the pairs: 4), build + bootstrap +
-    50 steps, per-card VRAM peak and host memory peak;
-  - line B also: --anatomy of n8000 (64.4M) at K = 1 and K = 8 (untimed; V7_LOOP_TRACE=1 records the host
-    loop's submit / wait time per step, which the step trace does not: it has GPU ticks and transport-worker
-    times only) and one full-detail step trace of each (every kernel's ticks, every step); at the end the soak
-    and E15 developed-flow runs with V7_POOL_PEAKS=1 (the v7 name of the pool-peak switch): n8000 K = 8,
-    17,000 steps, and the cube K = 8 for about one hour, both with the per-defrag pool log;
-  - cross-node repeats: each line's last job re-runs one light and one heavy point of the other line
-    (3 trials with references, calibrated on that node, no traces); the job skips a repeat that lands on the
-    node of the original point (then it is resubmitted with --exclude).
+  - line A (K <= 4, GPUs 0-3 of a whole node) and line B (K = 8), the two lines in parallel (hp5090: 16 GPUs =
+    two nodes);
+  - batches (user, 2026-10-10): one job per line and batch, a batch starts after the previous one is reported
+    and approved. Batch 0 (preparation, no paper data) runs at the start of batch 1's jobs: on line B a
+    3-minute self-test of every E7 output path on the 1M case (anatomy durations, defrag log, host loop lines,
+    pool series), then on both lines the pre-checks of the large K = 1 references (2-D n8000 64.4M, n9000
+    81.4M; 3-D n160_k8 36.4M, n200_k8 69.6M, n416 76.2M) and of n11320's K = 2 pairs (64.3M per card), each at
+    the line's real concurrency (A: 4 processes, B: 8; the pairs: 4), build + bootstrap + 50 steps, per-card
+    VRAM peak and host memory peak (a reference that does not fit becomes K = 2 pairs, see above). Batch 1 =
+    representative points of every reference kind and load (BATCH_ONE) + the n8000 K = 8 soak (17,000 steps,
+    V7_POOL_PEAKS=1, the v7 name of V6_POOL_PEAKS); batch 2 = the rest of F1, F2, F3 (2-D main results);
+    batch 3 = the rest of F4, F5 + F6 (3-D main results); batch 4 = F7, F8, the n8000 --anatomy at K = 1 and
+    K = 8 (V7_LOOP_TRACE=1: the host loop's submit / wait time per step, which the step trace does not have),
+    the cube K = 8 soak (~1 h, V7_POOL_PEAKS=1, E15 developed flow) and the cross-node repeats: each line's job
+    re-runs one light and one heavy point of the other line (3 trials with references, calibrated on that
+    node, no traces) and skips a repeat that lands on the node of the original point (then it is resubmitted
+    with --exclude).
 
 Time model per run = construction + bootstrap + loop + post-run checks + 10 s, every term measured in the E7
 smoke (job 1679191, wqd10nbj04g2, v7-rc1):
@@ -48,12 +51,13 @@ smoke (job 1679191, wqd10nbj04g2, v7-rc1):
   - post-run: without the seam check ~0.1 s per million + 1 s per slab (estimate); with it 2-D ~0.42 s per
     million + 8 s, 3-D (0.26 + 0.16 K) s per million (cube 43 / 71 / 118 s at K = 2 / 4 / 8); a step trace
     writes its CSV files in ~15 s more (estimate).
-Job overhead 600 s (prelude, configuration print, bring-up, device check, cache stage-in at ~120 MB/s).
+Job overhead 300 s (prelude, configuration print, provenance, bring-up, device check, cache stage-in at
+~120 MB/s; the smoke's took 157 s with 4.6 GB staged).
 The numbers are planning estimates; the timeouts of the generated scripts are 2 x the estimate + 600 s
 (minimum 900 s), the job time limit 2 x the job estimate + 1 h.
 
 Usage:
-    python docs/cluster_v6/scripts/e7_plan.py [--markdown] [--json OUT] [--emit-jobs DIR]
+    python docs/cluster_v6/scripts/e7_plan.py [--markdown] [--json OUT] [--emit-jobs DIR [--batch N ...]]
 """
 
 from __future__ import annotations
@@ -92,13 +96,17 @@ PRECHECK_STEPS = 50
 CROSS = {"A": [("cavity2d_n4000", 8), ("cavity2d_n8000", 8)],          # line B points, re-run in line A's last job
          "B": [("cavity2d_n2840", 4), ("cavity2d_n8000", 4)]}          # line A points, re-run in line B's last job
 CROSS_TRIALS = 3
-# the jobs of each line: groups of the points' first family, in this order; extras by name
-JOBS = {
-    "A": [("A1", ["precheck", "F2", "F7"]), ("A2", ["F3"]), ("A3", ["F4", "F8"]), ("A4", ["F5"]),
-          ("A5", ["cross"])],
-    "B": [("B1", ["selftest", "precheck", "F1"]), ("B2", ["F7", "F3"]), ("B3", ["F4", "F5", "F6"]),
-          ("B4", ["cross", "anatomy", "soak"])],
-}
+# batch 1: representative points (user 2026-10-10): every reference kind (K = 1 at 4 and 8 cards, weak, pairs,
+# weak + strong) and both loads (5-trial light points)
+BATCH_ONE = {"A": [("cavity2d_n8000", 4), ("cavity2d_n2840_k4", 4), ("cavity3d_n160_k8", 4), ("cavity2d_n1440_k2", 2)],
+             "B": [("cavity2d_n8000", 8), ("cavity2d_n4000", 8), ("cavity2d_n11320", 8), ("cavity3d_n160_k8", 8)]}
+# batches 2-4: the points not in batch 1 whose first family is one of these
+BATCH_FAMILIES = {2: ("F1", "F2", "F3"), 3: ("F4", "F5", "F6"), 4: ("F7", "F8")}
+# extras per batch and line: (before the points, after the points); batch 0 runs at the start of batch 1
+BATCH_EXTRAS = {1: {"A": (["precheck"], []), "B": (["selftest", "precheck"], ["soak_2d"])},
+                2: {"A": ([], []), "B": ([], [])},
+                3: {"A": ([], []), "B": ([], [])},
+                4: {"A": ([], ["cross"]), "B": ([], ["anatomy", "cross", "soak_3d"])}}
 
 
 @dataclasses.dataclass
@@ -204,9 +212,8 @@ class Model:
     pilot_steps: int = 500          # 200 warmup + 300 measured
     run_overhead: float = 10.0      # s per run: process start, parse, sync, telemetry window
     trace_write: float = 15.0       # s: a step trace's CSV files
-    job_overhead: float = 600.0     # s per job: prelude, bring-up, device check, cache stage-in (~120 MB/s)
+    job_overhead: float = 300.0     # s per job: prelude, bring-up, device check, cache stage-in (smoke: 157 s)
     anatomy_steps: int = 3000       # three anatomy frames per simulator at the default defrag cadence (1000)
-    full_trace_steps: int = 1500    # one in-loop defrag at step 1000
     soak_steps: int = 17000
     cube_soak_seconds: float = 3600.0
 
@@ -274,29 +281,22 @@ def precheck_seconds(case: str, kind: str, model: Model) -> float:
 
 
 def extras(model: Model) -> dict:
-    """Line B's self-test, anatomy and soak items: label, kind, case, K, steps, warmup, estimated seconds (the
-    self-test runs every E7 output path once on the 1M case before the pre-checks: anatomy_all, defrag log,
-    [loop] lines, pool series, stage epochs, loop-window clocks)."""
+    """The extra items by group: label, kind, case, K, steps, warmup, estimated seconds. selftest runs every E7
+    output path once on the 1M case before the pre-checks (anatomy durations, defrag log, [loop] lines, pool
+    series, stage epochs, loop-window clocks)."""
     cube_steps = int(round(model.cube_soak_seconds / model.step_time("cavity3d_n416", 8), -3))
     items = {
-        "selftest": [
-            ("selftest_2d_n1000_K8", "selftest", "cavity2d_n1000", 8, 1000)],
-        "anatomy": [
-            ("anatomy_2d_n8000_K1", "anatomy", "cavity2d_n8000", 1, model.anatomy_steps),
-            ("anatomy_2d_n8000_K8", "anatomy", "cavity2d_n8000", 8, model.anatomy_steps),
-            ("fulltrace_2d_n8000_K1", "fulltrace", "cavity2d_n8000", 1, model.full_trace_steps),
-            ("fulltrace_2d_n8000_K8", "fulltrace", "cavity2d_n8000", 8, model.full_trace_steps)],
-        "soak": [
-            ("soak_2d_n8000_K8", "soak", "cavity2d_n8000", 8, model.soak_steps),
-            ("soak_3d_n416_K8", "soak", "cavity3d_n416", 8, cube_steps)],
+        "selftest": [("selftest_2d_n1000_K8", "selftest", "cavity2d_n1000", 8, 1000)],
+        "soak_2d": [("soak_2d_n8000_K8", "soak", "cavity2d_n8000", 8, model.soak_steps)],
+        "anatomy": [("anatomy_2d_n8000_K1", "anatomy", "cavity2d_n8000", 1, model.anatomy_steps),
+                    ("anatomy_2d_n8000_K8", "anatomy", "cavity2d_n8000", 8, model.anatomy_steps)],
+        "soak_3d": [("soak_3d_n416_K8", "soak", "cavity3d_n416", 8, cube_steps)],
     }
     out = {}
     for group, entries in items.items():
         out[group] = []
         for label, kind, case, slabs, steps in entries:
             seconds = model.run(case, slabs, steps, cold=True, seam_check=kind == "soak")
-            if kind == "fulltrace":
-                seconds += 2 * model.trace_write
             warmup = 200 if kind == "selftest" else model.window(case)[1]
             out[group].append({"label": label, "kind": kind, "case": case, "slabs": slabs, "steps": steps,
                                "warmup": warmup, "seconds": seconds})
@@ -307,39 +307,60 @@ def timeout(seconds: float) -> int:
     return int(max(900, math.ceil((2.0 * seconds + 600) / 60.0) * 60))
 
 
+def batch_points(points: list[Point]) -> dict:
+    """Batch -> line -> points (every point in exactly one batch)."""
+    by_key = {(point.case, point.slabs): point for point in points}
+    batches = {batch: {"A": [], "B": []} for batch in (1, 2, 3, 4)}
+    first = set()
+    for line, keys in BATCH_ONE.items():
+        for key in keys:
+            point = by_key[key]
+            if point.line != line:
+                raise SystemExit(f"batch 1: {key} is a line {point.line} point")
+            batches[1][line].append(point)
+            first.add(key)
+    for point in points:
+        if (point.case, point.slabs) in first:
+            continue
+        batch = next(batch for batch, families in BATCH_FAMILIES.items() if point.family.split("+")[0] in families)
+        batches[batch][point.line].append(point)
+    return batches
+
+
 def build_jobs(points: list[Point], model: Model) -> dict:
-    """Line -> [(job name, [items])], each item a dict with its kind, arguments and estimated seconds."""
+    """(batch, line) -> [items], each item a dict with its kind, arguments and estimated seconds."""
     crosses = cross_points(points)
     extra_items = extras(model)
+    batches = batch_points(points)
     jobs = {}
-    for line, job_list in JOBS.items():
-        line_points = [point for point in points if point.line == line]
-        assigned = set()
-        jobs[line] = []
-        for job_name, groups in job_list:
+    for batch, lines in batches.items():
+        for line in ("A", "B"):
+            before, after = BATCH_EXTRAS[batch][line]
             items = []
-            for group in groups:
-                if group == "precheck":
-                    for case, kind, parties in PRECHECKS[line]:
-                        items.append({"kind": "precheck", "case": case, "reference_kind": kind, "parties": parties,
-                                      "steps": PRECHECK_STEPS, "seconds": precheck_seconds(case, kind, model)})
-                elif group == "cross":
-                    for point in crosses[line]:
-                        items.append({"kind": "cross", "point": point, "seconds": point_seconds(point, model)["total"],
-                                      "original_line": "B" if line == "A" else "A"})
-                elif group in extra_items:
-                    for entry in extra_items[group]:
-                        items.append(dict(entry))
-                else:
-                    for point in line_points:
-                        if point.family.split("+")[0] == group and id(point) not in assigned:
-                            assigned.add(id(point))
-                            items.append({"kind": "point", "point": point,
-                                          "seconds": point_seconds(point, model)["total"]})
-            jobs[line].append((job_name, items))
-        missing = [point for point in line_points if id(point) not in assigned]
-        if missing:
-            raise SystemExit(f"line {line}: points in no job: {[(p.case, p.slabs) for p in missing]}")
+
+            def add_groups(groups):
+                for group in groups:
+                    if group == "precheck":
+                        for case, kind, parties in PRECHECKS[line]:
+                            items.append({"kind": "precheck", "case": case, "reference_kind": kind,
+                                          "parties": parties, "steps": PRECHECK_STEPS,
+                                          "seconds": precheck_seconds(case, kind, model)})
+                    elif group == "cross":
+                        for point in crosses[line]:
+                            items.append({"kind": "cross", "point": point,
+                                          "seconds": point_seconds(point, model)["total"],
+                                          "original_line": "B" if line == "A" else "A"})
+                    else:
+                        items.extend(dict(entry) for entry in extra_items[group])
+
+            add_groups(before)
+            for point in lines[line]:
+                items.append({"kind": "point", "point": point, "seconds": point_seconds(point, model)["total"]})
+            add_groups(after)
+            jobs[(batch, line)] = items
+    assigned = sum(1 for items in jobs.values() for item in items if item["kind"] == "point")
+    if assigned != len(points):
+        raise SystemExit(f"{assigned} points in the batches, {len(points)} in the campaign")
     return jobs
 
 
@@ -375,115 +396,121 @@ def emit_item(item: dict, model: Model) -> list[str]:
             f"{item['warmup']} {timeout(item['seconds'])}"]
 
 
-def emit_jobs(jobs: dict, model: Model, directory: pathlib.Path) -> list[pathlib.Path]:
+def job_name(batch: int, line: str) -> str:
+    return f"b{batch}{line}"
+
+
+def emit_jobs(jobs: dict, model: Model, directory: pathlib.Path, batches) -> list[pathlib.Path]:
     directory.mkdir(parents=True, exist_ok=True)
     written = []
-    for line, job_list in jobs.items():
-        for job_name, items in job_list:
-            estimate = model.job_overhead + sum(item["seconds"] for item in items)
-            limit = int(math.ceil((2.0 * estimate + 3600) / 3600.0))
-            body = [
-                "#!/bin/bash",
-                "#SBATCH -p hp_5090",
-                "#SBATCH -A hp5090",
-                "#SBATCH -N 1",
-                "#SBATCH --gpus=8",
-                f"#SBATCH --time={limit:02d}:00:00",
-                f"#SBATCH -J e7_{line}",
-                "#SBATCH --dependency=singleton",
-                f"#SBATCH -o /data/run01/scxm138/logs/e7_{job_name}_%j.out",
-                f"# E7 full campaign, job {job_name} of line {line} (generated by docs/cluster_v6/scripts/e7_plan.py "
-                "--emit-jobs; do not edit by hand).",
-                f"# Estimate {estimate / 3600:.2f} h ({len(items)} items); the protocol is e7_lib.sh's, the model "
-                "e7_plan.py's.",
-                'source "${E30_REPO:-$HOME/run/vulkan-demo-v7rc1}/docs/cluster_v6/scripts/e7_lib.sh" '
-                '|| { echo "ABORT: no e7_lib.sh"; exit 2; }',
-                f"e7_job_begin {job_name} {line} {' '.join(job_cases(items))}",
-            ]
-            for item in items:
-                body += emit_item(item, model)
-            body.append("e7_job_end")
-            path = directory / f"e7_{job_name}.sbatch"
-            path.write_text("\n".join(body) + "\n", encoding="utf-8", newline="\n")
-            written.append(path)
+    for (batch, line), items in jobs.items():
+        if batch not in batches or not items:
+            continue
+        name = job_name(batch, line)
+        estimate = model.job_overhead + sum(item["seconds"] for item in items)
+        limit = int(math.ceil((2.0 * estimate + 3600) / 3600.0))
+        content = ", ".join(sorted({(item["point"].family if "point" in item else item["kind"]) for item in items}))
+        body = [
+            "#!/bin/bash",
+            "#SBATCH -p hp_5090",
+            "#SBATCH -A hp5090",
+            "#SBATCH -N 1",
+            "#SBATCH --gpus=8",
+            f"#SBATCH --time={limit:02d}:00:00",
+            f"#SBATCH -J e7_{line}",
+            "#SBATCH --dependency=singleton",
+            f"#SBATCH -o /data/run01/scxm138/logs/e7_{name}_%j.out",
+            f"# E7 full campaign, batch {batch}, line {line} (generated by docs/cluster_v6/scripts/e7_plan.py "
+            "--emit-jobs; do not edit by hand).",
+            f"# Estimate {estimate / 3600:.2f} h, {len(items)} items: {content}. The protocol is e7_lib.sh's.",
+            'source "${E30_REPO:-$HOME/run/vulkan-demo-v7rc1}/docs/cluster_v6/scripts/e7_lib.sh" '
+            '|| { echo "ABORT: no e7_lib.sh"; exit 2; }',
+            f"e7_job_begin {name} {line} {' '.join(job_cases(items))}",
+        ]
+        for item in items:
+            body += emit_item(item, model)
+        body.append("e7_job_end")
+        path = directory / f"e7_{name}.sbatch"
+        path.write_text("\n".join(body) + "\n", encoding="utf-8", newline="\n")
+        written.append(path)
     return written
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="E7 job list, node-hour budget and job scripts")
+    parser = argparse.ArgumentParser(description="E7 batches: job list, node-hour budget and job scripts")
     parser.add_argument("--markdown", action="store_true")
     parser.add_argument("--json", default=None, help="write points, jobs, totals and the model inputs as JSON")
-    parser.add_argument("--emit-jobs", default=None, metavar="DIR", help="write one sbatch script per job")
+    parser.add_argument("--emit-jobs", default=None, metavar="DIR", help="write one sbatch script per batch and line")
+    parser.add_argument("--batch", type=int, action="append", default=None,
+                        help="with --emit-jobs: only these batches (default all)")
     arguments = parser.parse_args()
     model = Model()
     points = campaign_points()
     jobs = build_jobs(points, model)
 
-    lines = ["| line | job | family | case | K | particles | per card | trials | references | run (min) | "
+    lines = ["| batch | line | family | case | K | particles | per card | trials | references | run (min) | "
              "reference set (min) | calibration (min) | traced run (min) | point total (h) |",
              "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
-    job_rows, records, by_family = [], [], {}
-    totals = {"A": 0.0, "B": 0.0}
-    for line, job_list in jobs.items():
-        for job_name, items in job_list:
-            estimate = model.job_overhead + sum(item["seconds"] for item in items)
-            totals[line] += estimate
-            job_rows.append(f"| {line} | {job_name} | {len(items)} | {estimate / 3600:.2f} | "
-                            + ", ".join(sorted({(item["point"].family.split("+")[0] if "point" in item
-                                                 else item["kind"]) for item in items})) + " |")
-            for item in items:
-                if "point" in item:
-                    point = item["point"]
-                    seconds = point_seconds(point, model)
-                    family = ("X" if point.cross else "") + point.family.split("+")[0]
-                    by_family[(line, family)] = by_family.get((line, family), 0.0) + seconds["total"]
-                    reference = " + ".join({"same": "K=1 of the case", "pairs": "K=2 pairs"}.get(kind, f"K=1 {kind}")
-                                           for kind in point.references)
-                    lines.append(f"| {line} | {job_name} | {'cross ' if point.cross else ''}{point.family} | "
-                                 f"{point.case} | {point.slabs} | {PARTICLES[point.case] / 1e6:.1f}M | "
-                                 f"{point.per_card / 1e6:.2f}M | {point.trials} | {reference} | "
-                                 f"{seconds['run'] / 60:.1f} | {seconds['reference'] / 60:.1f} | "
-                                 f"{seconds['calibration'] / 60:.1f} | {seconds['traced'] / 60:.1f} | "
-                                 f"{seconds['total'] / 3600:.2f} |")
-                    records.append({"line": line, "job": job_name, "family": point.family, "case": point.case,
-                                    "slabs": point.slabs, "particles": PARTICLES[point.case],
-                                    "per_card": point.per_card, "dimension": point.dimension,
-                                    "trials": point.trials, "traces": point.traces, "cross": point.cross,
-                                    "references": point.references, "window": list(model.window(point.case)),
-                                    "fps_estimate": 1.0 / model.step_time(point.case, point.slabs),
-                                    **{name: round(value, 1) for name, value in seconds.items()
-                                       if not isinstance(value, dict)}})
-                else:
-                    family = item["kind"]
-                    by_family[(line, family)] = by_family.get((line, family), 0.0) + item["seconds"]
-                    records.append({"line": line, "job": job_name, "kind": item["kind"], "case": item["case"],
-                                    "slabs": item.get("slabs", item.get("parties")),
-                                    "steps": item.get("steps"), "seconds": round(item["seconds"], 1),
-                                    **({"label": item["label"]} if "label" in item else {}),
-                                    **({"reference_kind": item["reference_kind"], "parties": item["parties"]}
-                                       if item["kind"] == "precheck" else {})})
+    job_rows, records = [], []
+    totals: dict = {}
+    for (batch, line), items in jobs.items():
+        estimate = model.job_overhead + sum(item["seconds"] for item in items)
+        totals[(batch, line)] = estimate
+        point_count = sum(1 for item in items if item["kind"] == "point")
+        content = ", ".join(sorted({(item["point"].family.split("+")[0] + (" (cross)" if item["kind"] == "cross" else "")
+                                     if "point" in item else item["kind"]) for item in items}))
+        job_rows.append(f"| {batch} | {line} | e7_{job_name(batch, line)} | {point_count} | {len(items)} | "
+                        f"{estimate / 3600:.2f} | {content} |")
+        for item in items:
+            if "point" in item:
+                point = item["point"]
+                seconds = point_seconds(point, model)
+                reference = " + ".join({"same": "K=1 of the case", "pairs": "K=2 pairs"}.get(kind, f"K=1 {kind}")
+                                       for kind in point.references)
+                lines.append(f"| {batch} | {line} | {'cross ' if point.cross else ''}{point.family} | "
+                             f"{point.case} | {point.slabs} | {PARTICLES[point.case] / 1e6:.1f}M | "
+                             f"{point.per_card / 1e6:.2f}M | {point.trials} | {reference} | "
+                             f"{seconds['run'] / 60:.1f} | {seconds['reference'] / 60:.1f} | "
+                             f"{seconds['calibration'] / 60:.1f} | {seconds['traced'] / 60:.1f} | "
+                             f"{seconds['total'] / 3600:.2f} |")
+                records.append({"batch": batch, "line": line, "job": job_name(batch, line), "family": point.family,
+                                "case": point.case, "slabs": point.slabs, "particles": PARTICLES[point.case],
+                                "per_card": point.per_card, "dimension": point.dimension, "trials": point.trials,
+                                "traces": point.traces, "cross": point.cross, "references": point.references,
+                                "window": list(model.window(point.case)),
+                                "fps_estimate": 1.0 / model.step_time(point.case, point.slabs),
+                                **{name: round(value, 1) for name, value in seconds.items()
+                                   if not isinstance(value, dict)}})
+            else:
+                records.append({"batch": batch, "line": line, "job": job_name(batch, line), "kind": item["kind"],
+                                "case": item["case"], "slabs": item.get("slabs", item.get("parties")),
+                                "steps": item.get("steps"), "seconds": round(item["seconds"], 1),
+                                **({"label": item["label"]} if "label" in item else {}),
+                                **({"reference_kind": item["reference_kind"], "parties": item["parties"]}
+                                   if item["kind"] == "precheck" else {})})
+    batch_totals = {}
+    for (batch, line), value in totals.items():
+        batch_totals.setdefault(batch, {})[line] = value
+    total = sum(totals.values())
     summary = [f"points: {len(points)} (line A {sum(p.line == 'A' for p in points)}, line B "
                f"{sum(p.line == 'B' for p in points)}); 5 trials: {sum(p.trials == 5 for p in points)} points "
                f"(<= {LIGHT_PER_CARD / 1e6:.1f}M per card), 3 trials: {sum(p.trials == 3 for p in points)}; "
                "2 traced runs per point; timing runs without the seam check",
-               f"line A {totals['A'] / 3600:.1f} h, line B {totals['B'] / 3600:.1f} h, total "
-               f"{(totals['A'] + totals['B']) / 3600:.1f} node-h = {8 * (totals['A'] + totals['B']) / 3600:.0f} GPU-h; "
-               f"wall with both lines in parallel ~{max(totals.values()) / 3600:.1f} h (queue not included)",
-               "by family (h): " + ", ".join(f"{line}/{family} {value / 3600:.2f}"
-                                            for (line, family), value in sorted(by_family.items())),
-               "", "| line | job | items | estimate (h) | content |", "|---|---|---|---|---|"] + job_rows
+               "batches (node-h; wall = the longer line): " + "; ".join(
+                   f"{batch}: A {values['A'] / 3600:.1f} + B {values['B'] / 3600:.1f} = "
+                   f"{(values['A'] + values['B']) / 3600:.1f} (wall {max(values.values()) / 3600:.1f} h)"
+                   for batch, values in sorted(batch_totals.items())),
+               f"total {total / 3600:.1f} node-h = {8 * total / 3600:.0f} GPU-h (queue not included)",
+               "", "| batch | line | job | points | items | estimate (h) | content |", "|---|---|---|---|---|---|---|"] + job_rows
     print("\n".join(summary + [""] + (lines if arguments.markdown else [])))
     if arguments.json:
         pathlib.Path(arguments.json).write_text(json.dumps({
             "model": dataclasses.asdict(model), "light_per_card": LIGHT_PER_CARD,
-            "totals_hours": {line: value / 3600 for line, value in totals.items()},
-            "total_node_hours": (totals["A"] + totals["B"]) / 3600,
-            "by_family_hours": {f"{line}/{family}": value / 3600 for (line, family), value in by_family.items()},
-            "jobs": {line: [(name, model.job_overhead / 3600 + sum(item["seconds"] for item in items) / 3600)
-                            for name, items in job_list] for line, job_list in jobs.items()},
-            "records": records}, indent=1), encoding="utf-8")
+            "batches_hours": {str(batch): {line: value / 3600 for line, value in values.items()}
+                              for batch, values in batch_totals.items()},
+            "total_node_hours": total / 3600, "records": records}, indent=1), encoding="utf-8")
     if arguments.emit_jobs:
-        for path in emit_jobs(jobs, model, pathlib.Path(arguments.emit_jobs)):
+        for path in emit_jobs(jobs, model, pathlib.Path(arguments.emit_jobs), set(arguments.batch or (1, 2, 3, 4))):
             print(f"wrote {path}")
     return 0
 
