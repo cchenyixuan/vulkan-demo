@@ -974,6 +974,26 @@ def check_density_copy(failures: list) -> None:
                   if stream[index:index + len(section)] == section]
         return starts[0] if len(starts) == 1 else None
 
+    # ---- parsing / registry (strict like the other E39 switches: anything but 0 / 1 is refused)
+    for text, expected in (("0", False), ("1", True), (" 1 ", True), ("0\n", False)):
+        try:
+            if simulator_v7._parse_density_copy_compute(text) is not expected:
+                failures.append(f"V7_DENSITY_COPY_COMPUTE={text!r} parsed as "
+                                f"{simulator_v7._parse_density_copy_compute(text)!r}")
+        except ValueError as error:
+            failures.append(f"V7_DENSITY_COPY_COMPUTE={text!r} refused: {error}")
+    for text in ("", "2", "on", "off", "true", "yes", "-1", "1.0", "01", "auto"):
+        try:
+            simulator_v7._parse_density_copy_compute(text)
+            failures.append(f"V7_DENSITY_COPY_COMPUTE={text!r} accepted")
+        except ValueError:
+            pass
+    if simulator_v7.configured_v7_switches().get("V7_DENSITY_COPY_COMPUTE") != int(simulator_v7._DENSITY_COPY_COMPUTE):
+        failures.append("configured_v7_switches() does not report V7_DENSITY_COPY_COMPUTE")
+    if not re.search(r'_parse_density_copy_compute\(os\.environ\.get\("V7_DENSITY_COPY_COMPUTE", "1"\)\)',
+                     pathlib.Path(simulator_v7.__file__).read_text(encoding="utf-8")):
+        failures.append("simulator_v7.py: default V7_DENSITY_COPY_COMPUTE=1 not found")
+
     saved_functions = {(module, name): getattr(module, name) for module in (simulator_v6, simulator_v7)
                        for name in recorders}
     saved_environment = {key: value for key, value in os.environ.items() if key.startswith("V7_")}

@@ -146,7 +146,20 @@ _PHASE_A_NO_WAIT = os.environ.get("V7_PHASE_A_NO_WAIT", "1") == "1"
 # frames' copies: the compute -> transfer barrier grants TRANSFER_READ only).
 # 0 = the v6 recording (vkCmdCopyBuffer between compute -> transfer /
 # transfer -> compute barriers). Read once at import.
-_DENSITY_COPY_COMPUTE = os.environ.get("V7_DENSITY_COPY_COMPUTE", "1") == "1"
+_DENSITY_COPY_COMPUTE_ACCEPTED = ("0", "1")
+
+
+def _parse_density_copy_compute(text: str) -> bool:
+    """V7_DENSITY_COPY_COMPUTE: 0 or 1 (surrounding blanks ignored); any other value is refused, like the other
+    E39 switches (before, any value but "1" silently selected the v6 copy)."""
+    value = text.strip()
+    if value not in _DENSITY_COPY_COMPUTE_ACCEPTED:
+        raise ValueError(f"V7_DENSITY_COPY_COMPUTE={text!r}: accepted values are 0, 1 (1 = the density scratch -> "
+                         "primary copy as a compute pass; 0 = the v6 vkCmdCopyBuffer recording, the previous build)")
+    return value == "1"
+
+
+_DENSITY_COPY_COMPUTE = _parse_density_copy_compute(os.environ.get("V7_DENSITY_COPY_COMPUTE", "1"))
 # Regions density_scratch_copy.comp takes (spec constants 101-108): the own
 # range, two inner replica regions, the departed pool.
 _DENSITY_COPY_REGION_LIMIT = 4
