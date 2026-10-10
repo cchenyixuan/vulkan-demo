@@ -203,6 +203,38 @@ def chips_html(root: pathlib.Path, cavity_summary: pathlib.Path, throughput_summ
     return '<div class="chips">' + "".join(chips) + "</div>"
 
 
+def section3_chips_html(root: pathlib.Path, section3_summary: pathlib.Path, memory_json: pathlib.Path) -> str:
+    """Chips of "§3 补测": neighbours / candidates per particle, the GPU idle fraction at 2 in flight, memory."""
+    chips: list[str] = []
+    try:
+        summary = json.loads((root / section3_summary).read_text(encoding="utf-8"))
+        sizes = summary["sizes"]
+        eight = sizes["8m"]
+        chips.append(f'<span class="chip"><span class="label">2-D 8M 每粒子 邻居 / 候选</span>'
+                     f'<b>{eight["end"]["neighbors_f32_all"]:.1f} / {eight["candidates_per_particle"]:.0f}</b></span>')
+        if "3d_8m" in sizes:
+            three = sizes["3d_8m"]
+            chips.append(f'<span class="chip"><span class="label">3-D 8M 每粒子 邻居 / 候选</span>'
+                         f'<b>{three["end"]["neighbors_f32_all"]:.1f} / {three["candidates_per_particle"]:.0f}</b></span>')
+        idle = [sizes[s]["a"]["2"]["idle_vs_amortized"] for s in ("1m", "2m", "4m", "8m", "16m", "32m") if s in sizes]
+        if idle:
+            chips.append(f'<span class="chip"><span class="label">2 在飞 GPU 空闲(2-D)</span>'
+                         f'<b>{100 * min(idle):+.2f} … {100 * max(idle):+.2f} %</b></span>')
+        dip = summary.get("dip_4m", {})
+        if "ps_per_candidate_step_4m_vs_neighbours_pct" in dip:
+            chips.append(f'<span class="chip"><span class="label">4M 每候选 ps 对 2M / 8M</span>'
+                         f'<b>{dip["ps_per_candidate_step_4m_vs_neighbours_pct"]:+.2f} %</b></span>')
+    except (OSError, KeyError, ValueError, TypeError):
+        chips.append('<span class="chip"><span class="label">§3 补测</span><b>无汇总</b></span>')
+    try:
+        memory = {m["size"]: m for m in json.loads((root / memory_json).read_text(encoding="utf-8"))}
+        chips.append(f'<span class="chip"><span class="label">device-local B / 粒子</span>'
+                     f'<b>2-D {memory["8m"]["device_local_bytes_per_particle"]:.0f} · 3-D {memory["3d_8m"]["device_local_bytes_per_particle"]:.0f}</b></span>')
+    except (OSError, KeyError, ValueError, TypeError):
+        pass
+    return '<div class="chips">' + "".join(chips) + "</div>" if chips else ""
+
+
 def split_tldr(text: str) -> tuple[str, str, str]:
     """(before, the TL;DR section without its header, after) of the report's Markdown."""
     match = re.search(r"^## 结论.*$", text, flags=re.MULTILINE)
@@ -225,6 +257,11 @@ def main() -> int:
     parser.add_argument("--cavity-tables", default="docs/validation/data/cavity_re1000_tables_v7single.md")
     parser.add_argument("--cavity-summary", default="docs/validation/data/cavity_re1000_summary_v7single.json")
     parser.add_argument("--figures", default="manuscripts/fig")
+    parser.add_argument("--section3", default="logs/v7_single/section3",
+                        help="the §3 补测 campaign directory (summary.json, table2.md, sizes.md)")
+    parser.add_argument("--memory-json", default="docs/seam_audit/v7_single/memory.json")
+    parser.add_argument("--memory-md", default="docs/seam_audit/v7_single/memory.md")
+    parser.add_argument("--platform-md", default="docs/seam_audit/v7_single/platform.md")
     arguments = parser.parse_args()
     root = _REPOSITORY_ROOT
     doc_path = root / arguments.doc
@@ -235,6 +272,7 @@ def main() -> int:
     body.append('<p class="meta">报告页由 experiment/v7_single/_build_artifact.py 从 docs/seam_audit/v7_single.md 与各汇总文件生成;'
                 "表与图都来自仓库里的数据文件。</p>")
     body.append(chips_html(root, pathlib.Path(arguments.cavity_summary), pathlib.Path(arguments.throughput_summary)))
+    body.append(section3_chips_html(root, pathlib.Path(arguments.section3) / "summary.json", pathlib.Path(arguments.memory_json)))
     opening = re.sub(r"^# .*$", "", before, count=1, flags=re.MULTILINE)
     body.append(render_markdown(opening, image_root))
     if tldr.strip():
@@ -243,7 +281,10 @@ def main() -> int:
     figures = root / arguments.figures
     body.append("<h2>附:图</h2>")
     body.append(figure_html(figures / "single_gpu_throughput.png",
-                            "Figure C: v7_single throughput (M particle-steps/s) and fps, 1 and 2 frames in flight, 1M–32M, one RTX 5090."))
+                            "Figure 1 (single panel, §3 补测 item 4): v7_single throughput (M particle-steps/s), 1 and 2 frames in "
+                            "flight, 1M–32M, one RTX 5090."))
+    body.append(figure_html(figures / "single_gpu_throughput_two_panel.png",
+                            "The earlier two-panel version (measurement C): throughput and fps; kept under the _two_panel name."))
     for name, caption in (("cavity_re1000_profiles", "Centre-line profiles of the 1000² adami run against Marchi et al. 2021 Tc and Ghia 1982."),
                           ("cavity_re1000_field", "Time-averaged stream function (a) and vorticity (b) of the 1000² adami run."),
                           ("cavity_re1000_steady", "Supplementary: kinetic energy and the window criterion."),
@@ -260,7 +301,16 @@ def main() -> int:
     cavity = root / arguments.cavity_tables
     if cavity.exists():
         body.append("<h2>附:方腔表与图注(原始)</h2>" + render_markdown(cavity.read_text(encoding="utf-8")))
-    page = "<title>v7_single 报告</title>\n<style>" + STYLE + "</style>\n<main>\n" + "\n".join(body) + "\n</main>\n"
+    section3 = root / arguments.section3
+    for name, title in (("table2.md", "附:§3 补测 表 2 汇总(原始)"), ("sizes.md", "附:§3 补测 各尺寸汇总(原始)")):
+        path = section3 / name
+        if path.exists():
+            body.append(f"<h2>{title}</h2>" + render_markdown(path.read_text(encoding="utf-8")))
+    for path, title in ((root / arguments.memory_md, "附:内存清单(原始)"), (root / arguments.platform_md, "附:平台记录(原始)")):
+        if path.exists():
+            body.append(f"<h2>{title}</h2>" + render_markdown(re.sub(r"^# .*$", "", path.read_text(encoding="utf-8"), count=1,
+                                                                        flags=re.MULTILINE)))
+    page ="<title>v7_single 报告</title>\n<style>" + STYLE + "</style>\n<main>\n" + "\n".join(body) + "\n</main>\n"
     out = pathlib.Path(arguments.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(page, encoding="utf-8")

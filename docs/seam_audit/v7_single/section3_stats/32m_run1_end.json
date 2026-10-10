@@ -1,0 +1,86 @@
+{
+ "particles": 32251041,
+ "fluid_particles": 32001649,
+ "dimension": 2,
+ "h": 0.000884,
+ "dx": 0.000176,
+ "h_over_dx": 5.022727272727273,
+ "step": 3000,
+ "grid_origin": [
+  -0.5024929958267212,
+  -0.5024929958267212,
+  -0.000442
+ ],
+ "candidates": {
+  "candidate_pairs": 7245935523,
+  "listed_particles": 32251041,
+  "candidates_per_particle": 224.67291902298595,
+  "candidates_per_fluid_particle": 225.00035182562,
+  "candidates_per_wall_particle": 182.6571782575223,
+  "fluid_particles": 32001649,
+  "wall_particles": 249392,
+  "grid_dimensions": [
+   1137,
+   1137,
+   1
+  ],
+  "total_voxels": 1292769,
+  "occupied_voxels": 1292769,
+  "mean_particles_per_voxel": 24.947257398653587,
+  "max_particles_per_voxel": 30,
+  "stencil": "9 voxels"
+ },
+ "cpu_binning_vs_gpu_voxel_ids_mismatch": 58,
+ "candidates_gpu_lists": {
+  "candidate_pairs": 7245935515,
+  "listed_particles": 32251041,
+  "candidates_per_particle": 224.67291877493196,
+  "candidates_per_fluid_particle": 225.00035157563286,
+  "candidates_per_wall_particle": 182.6571782575223,
+  "fluid_particles": 32001649,
+  "wall_particles": 249392,
+  "grid_dimensions": [
+   1137,
+   1137,
+   1
+  ],
+  "total_voxels": 1292769,
+  "occupied_voxels": 1292769,
+  "mean_particles_per_voxel": 24.947257398653587,
+  "max_particles_per_voxel": 30,
+  "stencil": "9 voxels"
+ },
+ "neighbors": {
+  "h": 0.000884,
+  "radii": {
+   "lo": 0.0008839911600000001,
+   "strict": 0.0008839999999999999,
+   "hi": 0.00088400884
+  },
+  "particles": 32251041,
+  "fluid_particles": 32001649,
+  "shell_pairs": 95443458,
+  "ambiguous_pairs_2ulp": 22754,
+  "seconds": 99.7003766996786,
+  "neighbors_lo_all": 70.97096047225266,
+  "neighbors_lo_fluid": 71.01453000125088,
+  "neighbors_lo_wall": 65.38017658946558,
+  "neighbors_lo_max": 84,
+  "neighbors_strict_all": 73.19360165769533,
+  "neighbors_strict_fluid": 73.23612973818943,
+  "neighbors_strict_wall": 67.73645505870276,
+  "neighbors_strict_max": 84,
+  "neighbors_hi_all": 73.930352015614,
+  "neighbors_hi_fluid": 73.97599101846284,
+  "neighbors_hi_wall": 68.07401600692886,
+  "neighbors_hi_max": 84,
+  "neighbors_f32_all": 73.19349028144549,
+  "neighbors_f32_fluid": 73.23609449000581,
+  "neighbors_f32_wall": 67.72657503047411,
+  "neighbors_f32_max": 84
+ },
+ "ratio_candidates_to_neighbors_f32_all": 3.069575151547875,
+ "ratio_candidates_to_neighbors_f32_fluid": 3.0722603846157406,
+ "source": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-single\\logs\\v7_single\\section3\\runs\\32m_run1_state.npz",
+ "seconds": 102.49042579997331
+}

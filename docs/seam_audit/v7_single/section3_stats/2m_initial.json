@@ -1,0 +1,66 @@
+{
+ "particles": 2064969,
+ "fluid_particles": 2002225,
+ "dimension": 2,
+ "h": 0.003536,
+ "dx": 0.000708,
+ "h_over_dx": 4.994350282485876,
+ "step": null,
+ "grid_origin": [
+  -0.5099719833068848,
+  -0.5099719833068848,
+  -0.001768
+ ],
+ "candidates": {
+  "candidate_pairs": 462207001,
+  "listed_particles": 2064969,
+  "candidates_per_particle": 223.83241637041525,
+  "candidates_per_fluid_particle": 225.0,
+  "candidates_per_wall_particle": 186.57363253856943,
+  "fluid_particles": 2002225,
+  "wall_particles": 62744,
+  "grid_dimensions": [
+   288,
+   288,
+   1
+  ],
+  "total_voxels": 82944,
+  "occupied_voxels": 82944,
+  "mean_particles_per_voxel": 24.89594184027778,
+  "max_particles_per_voxel": 25,
+  "stencil": "9 voxels"
+ },
+ "neighbors": {
+  "h": 0.003536,
+  "radii": {
+   "lo": 0.0035359646400000004,
+   "strict": 0.0035359999999999996,
+   "hi": 0.00353603536
+  },
+  "particles": 2064969,
+  "fluid_particles": 2002225,
+  "shell_pairs": 7656336,
+  "ambiguous_pairs_2ulp": 252912,
+  "seconds": 6.134027899708599,
+  "neighbors_lo_all": 71.42435746008778,
+  "neighbors_lo_fluid": 71.62144913783416,
+  "neighbors_lo_wall": 65.13496111181945,
+  "neighbors_lo_max": 74,
+  "neighbors_strict_all": 72.74934006273217,
+  "neighbors_strict_fluid": 72.93310991521932,
+  "neighbors_strict_wall": 66.88505673849292,
+  "neighbors_strict_max": 78,
+  "neighbors_hi_all": 75.13208188597504,
+  "neighbors_hi_fluid": 75.3472441908377,
+  "neighbors_hi_wall": 68.2660334055846,
+  "neighbors_hi_max": 78,
+  "neighbors_f32_all": 72.64913129446495,
+  "neighbors_f32_fluid": 72.83134313076702,
+  "neighbors_f32_wall": 66.83456585490246,
+  "neighbors_f32_max": 78
+ },
+ "ratio_candidates_to_neighbors_f32_all": 3.0810060957668846,
+ "ratio_candidates_to_neighbors_f32_fluid": 3.0893292685268428,
+ "source": "cases/lid_driven_cavity_2d_2m/case.yaml",
+ "seconds": 6.505770199932158
+}
