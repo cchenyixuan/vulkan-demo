@@ -1,0 +1,24 @@
+== 02_e7_b1B_1681466/2d_n8000_K8_C: socket-0 memcpy median 176 us, signal->upload latency 6.6 us, step period p50 10748 us
+   receiver s3 (cross link from s4, trailing, second on its queue): extra memcpy p50 141 us; phase C start later because of it: mean 8.6 us, p50 0.0, p90 16.8 us = 0.08 % of the step period
+   receiver s4 (cross link from s3, leading, first on its queue): extra memcpy p50 111 us; phase C start later because of it: mean 4.1 us, p50 0.0, p90 0.0 us = 0.04 % of the step period
+== 02_e7_b1B_1681466/2d_n8000_K8_E: socket-0 memcpy median 175 us, signal->upload latency 6.3 us, step period p50 10915 us
+   receiver s3 (cross link from s4, trailing, second on its queue): extra memcpy p50 83 us; phase C start later because of it: mean 24.0 us, p50 0.9, p90 79.9 us = 0.22 % of the step period
+   receiver s4 (cross link from s3, leading, first on its queue): extra memcpy p50 99 us; phase C start later because of it: mean 20.0 us, p50 0.0, p90 98.2 us = 0.18 % of the step period
+== 02_e7_b1B_1681466/2d_n11320_K8_C: socket-0 memcpy median 259 us, signal->upload latency 6.8 us, step period p50 20515 us
+   receiver s3 (cross link from s4, trailing, second on its queue): extra memcpy p50 180 us; phase C start later because of it: mean 0.4 us, p50 0.0, p90 0.0 us = 0.00 % of the step period
+   receiver s4 (cross link from s3, leading, first on its queue): extra memcpy p50 103 us; phase C start later because of it: mean 0.8 us, p50 0.0, p90 0.0 us = 0.00 % of the step period
+== 02_e7_b1B_1681466/2d_n11320_K8_E: socket-0 memcpy median 254 us, signal->upload latency 6.7 us, step period p50 20640 us
+   receiver s3 (cross link from s4, trailing, second on its queue): extra memcpy p50 134 us; phase C start later because of it: mean 19.9 us, p50 0.4, p90 41.2 us = 0.10 % of the step period
+   receiver s4 (cross link from s3, leading, first on its queue): extra memcpy p50 103 us; phase C start later because of it: mean 0.0 us, p50 0.0, p90 0.0 us = 0.00 % of the step period
+== 02_e7_b1B_1681466/3d_n160_k8_K8_C: socket-0 memcpy median 562 us, signal->upload latency 6.7 us, step period p50 31602 us
+   receiver s3 (cross link from s4, trailing, second on its queue): extra memcpy p50 176 us; phase C start later because of it: mean 0.0 us, p50 0.0, p90 0.0 us = 0.00 % of the step period
+   receiver s4 (cross link from s3, leading, first on its queue): extra memcpy p50 124 us; phase C start later because of it: mean 3.2 us, p50 1.6, p90 9.0 us = 0.01 % of the step period
+== 02_e7_b1B_1681466/3d_n160_k8_K8_E: socket-0 memcpy median 474 us, signal->upload latency 6.7 us, step period p50 31706 us
+   receiver s3 (cross link from s4, trailing, second on its queue): extra memcpy p50 335 us; phase C start later because of it: mean 0.0 us, p50 0.0, p90 0.0 us = 0.00 % of the step period
+   receiver s4 (cross link from s3, leading, first on its queue): extra memcpy p50 263 us; phase C start later because of it: mean 0.0 us, p50 0.0, p90 0.0 us = 0.00 % of the step period
+== 02_e7_b1B_1681466/2d_n4000_K8_C: socket-0 memcpy median 509 us, signal->upload latency 8.3 us, step period p50 10290 us
+   receiver s3 (cross link from s4, trailing, second on its queue): extra memcpy p50 38 us; phase C start later because of it: mean 4.5 us, p50 0.0, p90 0.0 us = 0.04 % of the step period
+   receiver s4 (cross link from s3, leading, first on its queue): extra memcpy p50 45 us; phase C start later because of it: mean 2.1 us, p50 0.0, p90 0.0 us = 0.02 % of the step period
+== 02_e7_b1B_1681466/2d_n4000_K8_E: socket-0 memcpy median 415 us, signal->upload latency 7.8 us, step period p50 8535 us
+   receiver s3 (cross link from s4, trailing, second on its queue): extra memcpy p50 0 us; phase C start later because of it: mean 10.1 us, p50 0.0, p90 0.0 us = 0.12 % of the step period
+   receiver s4 (cross link from s3, leading, first on its queue): extra memcpy p50 3 us; phase C start later because of it: mean 8.6 us, p50 0.0, p90 3.4 us = 0.10 % of the step period
