@@ -1,0 +1,8 @@
+2-D 2M K=2: ta rc1 663.8 rc2 669.3; tb rc1 665.6 rc2 670.2; tc rc1 665.6 rc2 662.9
+   rc1: mean 665.0 SD 1.04 fps over 3 runs
+   rc2: mean 667.5 SD 3.98 fps over 3 runs
+   rc2 vs rc1 per trial: +0.83 %, +0.69 %, -0.41 %; mean +0.37 % (SE 0.39)
+2-D 1M K=2: ta rc1 1093.3 rc2 1095.3; tb rc1 1092.1 rc2 1088.8; tc rc1 1085.9 rc2 1091.1
+   rc1: mean 1090.4 SD 3.97 fps over 3 runs
+   rc2: mean 1091.7 SD 3.30 fps over 3 runs
+   rc2 vs rc1 per trial: +0.18 %, -0.30 %, +0.48 %; mean +0.12 % (SE 0.23)

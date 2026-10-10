@@ -1,0 +1,104 @@
+### start Sat Oct 10 17:45:43 TST 2026
+=== rc1__k2_n250_200 (17:45:43)
+rc=0 [canonical_dump] v7  K=2 wall=simple 200 steps: alive 74529/74529, crossings {'migration_install_count': [0, 0], 'peak_migration_count': [0, 0], 'peak_departed_
+=== rc2__k2_n250_200 (17:45:45)
+rc=0 [canonical_dump] v7 d0c8dcb (dirty) K=2 wall=simple 200 steps: alive 74529/74529, crossings {'migration_install_count': [0, 0], 'peak_migration_count': [0, 0], 
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 2 relays for 2 workers
+[worker s0_to_s1] dest guard: precheck 125, relay 75, fallback 0, blocking 0 (relay slept 75, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 124, relay 76, fallback 0, blocking 0 (relay slept 76, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+=== rc2b__k2_n250_200 (17:45:46)
+rc=0 [canonical_dump] v7 d0c8dcb (dirty) K=2 wall=simple 200 steps: alive 74529/74529, crossings {'migration_install_count': [0, 0], 'peak_migration_count': [0, 0], 
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 2 relays for 2 workers
+[worker s0_to_s1] dest guard: precheck 134, relay 66, fallback 0, blocking 0 (relay slept 66, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 106, relay 94, fallback 0, blocking 0 (relay slept 94, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+=== rc2zero__k2_n250_200 (17:45:48)
+rc=0 [canonical_dump] v7 d0c8dcb (dirty) K=2 wall=simple 200 steps: alive 74529/74529, crossings {'migration_install_count': [0, 0], 'peak_migration_count': [0, 0], 
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=zero_wait, 2 relays for 2 workers
+[worker s0_to_s1] dest guard: precheck 138, relay 62, fallback 0, blocking 0 (relay slept 62, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=zero_wait)
+[worker s1_to_s0] dest guard: precheck 123, relay 77, fallback 0, blocking 0 (relay slept 77, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=zero_wait)
+=== rc2none__k2_n250_200 (17:45:49)
+rc=0 [canonical_dump] v7 d0c8dcb (dirty) K=2 wall=simple 200 steps: alive 74529/74529, crossings {'migration_install_count': [0, 0], 'peak_migration_count': [0, 0], 
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=none, 2 relays for 2 workers
+[worker s0_to_s1] dest guard: precheck 0, relay 200, fallback 0, blocking 0 (relay slept 88, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=none)
+[worker s1_to_s0] dest guard: precheck 0, relay 200, fallback 0, blocking 0 (relay slept 112, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=none)
+=== rc2wait__k2_n250_200 (17:45:51)
+rc=0 [canonical_dump] v7 d0c8dcb (dirty) K=2 wall=simple 200 steps: alive 74529/74529, crossings {'migration_install_count': [0, 0], 'peak_migration_count': [0, 0], 
+[transport_v7] dest guard: V7_DEST_GUARD=wait (rc1 blocking vkWaitSemaphores), no relays for 2 workers
+[worker s0_to_s1] dest guard: precheck 0, relay 0, fallback 0, blocking 200 (relay slept 0, released 0; no relay, V7_DEST_GUARD=wait)
+[worker s1_to_s0] dest guard: precheck 0, relay 0, fallback 0, blocking 200 (relay slept 0, released 0; no relay, V7_DEST_GUARD=wait)
+=== rc1__k2_cross999 (17:45:52)
+rc=0 [canonical_dump] v7  K=2 wall=simple 999 steps: alive 74529/74529, crossings {'migration_install_count': [0, 3], 'peak_migration_count': [0, 3], 'peak_departed_
+=== rc2__k2_cross999 (17:45:54)
+rc=0 [canonical_dump] v7 d0c8dcb (dirty) K=2 wall=simple 999 steps: alive 74529/74529, crossings {'migration_install_count': [0, 3], 'peak_migration_count': [0, 3], 
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 2 relays for 2 workers
+[worker s0_to_s1] dest guard: precheck 668, relay 331, fallback 0, blocking 0 (relay slept 331, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 613, relay 386, fallback 0, blocking 0 (relay slept 385, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+=== rc1__k2_3d1m_200 (17:45:56)
+rc=0 [canonical_dump] v7  K=2 wall=simple 200 steps: alive 1685159/1685159, crossings {'migration_install_count': [0, 0], 'peak_migration_count': [0, 0], 'peak_depar
+=== rc2__k2_3d1m_200 (17:46:07)
+rc=0 [canonical_dump] v7 d0c8dcb (dirty) K=2 wall=simple 200 steps: alive 1685159/1685159, crossings {'migration_install_count': [0, 0], 'peak_migration_count': [0, 
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 2 relays for 2 workers
+[worker s0_to_s1] dest guard: precheck 168, relay 32, fallback 0, blocking 0 (relay slept 32, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 33, relay 167, fallback 0, blocking 0 (relay slept 167, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+=== rc1__k3_n250_300 (17:46:16)
+rc=0 [canonical_dump] v7  K=3 wall=simple 300 steps: alive 74529/74529, crossings {'migration_install_count': [0, 0, 0], 'peak_migration_count': [0, 0, 0], 'peak_dep
+=== rc2__k3_n250_300 (17:46:17)
+rc=0 [canonical_dump] v7 d0c8dcb (dirty) K=3 wall=simple 300 steps: alive 74529/74529, crossings {'migration_install_count': [0, 0, 0], 'peak_migration_count': [0, 0
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 4 relays for 4 workers
+[worker s0_to_s1] dest guard: precheck 233, relay 67, fallback 0, blocking 0 (relay slept 67, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 86, relay 214, fallback 0, blocking 0 (relay slept 214, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s2] dest guard: precheck 113, relay 187, fallback 0, blocking 0 (relay slept 187, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s2_to_s1] dest guard: precheck 219, relay 81, fallback 0, blocking 0 (relay slept 81, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+=== rc1__k4_n250_300 (17:46:19)
+rc=0 [canonical_dump] v7  K=4 wall=simple 300 steps: alive 74529/74529, crossings {'migration_install_count': [0, 0, 0, 0], 'peak_migration_count': [0, 0, 0, 0], 'pe
+=== rc2__k4_n250_300 (17:46:20)
+rc=0 [canonical_dump] v7 d0c8dcb (dirty) K=4 wall=simple 300 steps: alive 74529/74529, crossings {'migration_install_count': [0, 0, 0, 0], 'peak_migration_count': [0
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 6 relays for 6 workers
+[worker s0_to_s1] dest guard: precheck 178, relay 122, fallback 0, blocking 0 (relay slept 122, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 130, relay 170, fallback 0, blocking 0 (relay slept 169, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s2] dest guard: precheck 207, relay 93, fallback 0, blocking 0 (relay slept 92, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s2_to_s1] dest guard: precheck 103, relay 197, fallback 0, blocking 0 (relay slept 197, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s2_to_s3] dest guard: precheck 243, relay 57, fallback 0, blocking 0 (relay slept 57, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s3_to_s2] dest guard: precheck 77, relay 223, fallback 0, blocking 0 (relay slept 223, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+=== rc1__k4_2d1m_300 (17:46:22)
+rc=0 [canonical_dump] v7  K=4 wall=simple 300 steps: alive 1046529/1046529, crossings {'migration_install_count': [0, 0, 0, 0], 'peak_migration_count': [0, 0, 0, 0],
+=== rc2__k4_2d1m_300 (17:46:28)
+rc=0 [canonical_dump] v7 d0c8dcb (dirty) K=4 wall=simple 300 steps: alive 1046529/1046529, crossings {'migration_install_count': [0, 0, 0, 0], 'peak_migration_count'
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 6 relays for 6 workers
+[worker s0_to_s1] dest guard: precheck 67, relay 233, fallback 0, blocking 0 (relay slept 233, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 246, relay 54, fallback 0, blocking 0 (relay slept 54, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s2] dest guard: precheck 134, relay 166, fallback 0, blocking 0 (relay slept 166, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s2_to_s1] dest guard: precheck 186, relay 114, fallback 0, blocking 0 (relay slept 113, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s2_to_s3] dest guard: precheck 228, relay 72, fallback 0, blocking 0 (relay slept 71, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s3_to_s2] dest guard: precheck 87, relay 213, fallback 0, blocking 0 (relay slept 213, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+### dumps done Sat Oct 10 17:46:33 TST 2026
+=== compare rc1_rc2__k2_n250_200: BIT-IDENTICAL (10 fields)
+=== compare rc2_rc2b__k2_n250_200: BIT-IDENTICAL (10 fields)
+=== compare rc1_rc2zero__k2_n250_200: BIT-IDENTICAL (10 fields)
+=== compare rc1_rc2none__k2_n250_200: BIT-IDENTICAL (10 fields)
+=== compare rc1_rc2wait__k2_n250_200: BIT-IDENTICAL (10 fields)
+=== compare rc1_rc2__k2_cross999: BIT-IDENTICAL (10 fields)
+=== compare rc1_rc2__k2_3d1m_200: BIT-IDENTICAL (10 fields; correction_inverse, density_gradient_kernel_sum: 254359 deep-wall rows masked)
+=== compare rc1_rc2__k3_n250_300: BIT-IDENTICAL (10 fields)
+=== compare rc1_rc2__k4_n250_300: BIT-IDENTICAL (10 fields)
+=== compare rc1_rc2__k4_2d1m_300: BIT-IDENTICAL (10 fields)
+### validation Sat Oct 10 17:46:35 TST 2026
+=== validation k2_2d1m: rc=0 3 s; validation messages 0
+[chain_v7] v7 switches: V7_DENSITY_COPY_COMPUTE=1 V7_GHOST_SEND_LANES=32 V7_DEEP_WALL_SKIP=auto V7_DEEP_WALL_CHECK=0 V7_FUSED_CORRECTION_DENSITY=1 V7_BAND_OVERLAP=0 V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 2 relays for 2 workers
+[chain_v7] STEADY (post-warmup 200): 1800 steps in 1.62s = 1110.7 fps
+[chain_v7] final: total=1,046,529 (expected 1,046,529) drift=0 stamp_errors gpu=0 host=0 overflow_total=0 far_migration_total=0
+[worker s0_to_s1] dest guard: precheck 1629, relay 371, fallback 0, blocking 0 (relay slept 371, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 609, relay 1391, fallback 0, blocking 0 (relay slept 1391, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+=== validation k4_2d1m: rc=0 6 s; validation messages 0
+[chain_v7] v7 switches: V7_DENSITY_COPY_COMPUTE=1 V7_GHOST_SEND_LANES=32 V7_DEEP_WALL_SKIP=auto V7_DEEP_WALL_CHECK=0 V7_FUSED_CORRECTION_DENSITY=1 V7_BAND_OVERLAP=0 V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 6 relays for 6 workers
+[chain_v7] STEADY (post-warmup 200): 1800 steps in 2.67s = 673.5 fps
+[chain_v7] final: total=1,046,529 (expected 1,046,529) drift=0 stamp_errors gpu=0 host=0 overflow_total=0 far_migration_total=0
+[worker s0_to_s1] dest guard: precheck 582, relay 1418, fallback 0, blocking 0 (relay slept 1418, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 1601, relay 399, fallback 0, blocking 0 (relay slept 399, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s2] dest guard: precheck 1107, relay 893, fallback 0, blocking 0 (relay slept 893, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s2_to_s1] dest guard: precheck 1369, relay 631, fallback 0, blocking 0 (relay slept 631, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s2_to_s3] dest guard: precheck 1720, relay 280, fallback 0, blocking 0 (relay slept 280, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s3_to_s2] dest guard: precheck 488, relay 1512, fallback 0, blocking 0 (relay slept 1512, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+### end Sat Oct 10 17:46:45 TST 2026

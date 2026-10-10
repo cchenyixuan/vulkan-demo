@@ -16,7 +16,10 @@ Per trace directory, the steady part (the last two thirds of the steps):
      quantiles and a 250 µs histogram, and how long before the signal the wait began;
   3. shared waits: per blocked dest guard, was the reverse link's source wait asleep over the same signal (two threads
      on one semaphore value) or alone, which began first, and the late share of each class; the reverse source waits'
-     own late count;
+     own late count. A run of rc2's transport with V7_DEST_GUARD=relay (run_meta.json v7_switches) has dest guards
+     that do not sleep in the driver (pre-check, the relay of the reverse worker's source wait, a zero-timeout wait):
+     the section then says so, prints the run's dest guard outcomes (run_meta.json dest_guard) and 'shared' means a
+     timing overlap only; the counts stay. Traces without the key (rc1) print as before;
   4. cost: per receiving sim the gap between its phase B end and phase C start on steps with and without a late
      inbound dest guard, the step period on those steps and the fps if every step were clean.
 
@@ -27,6 +30,7 @@ Usage:
 from __future__ import annotations
 
 import csv
+import json
 import pathlib
 import statistics
 import sys
@@ -134,7 +138,35 @@ def report_durations(guards) -> None:
                                                                 for fraction in (0.5, 0.9, 0.99)))
 
 
-def report_shared(guards) -> None:
+def load_run_meta(directory: pathlib.Path) -> dict:
+    """The trace's run_meta.json ({} when absent or unreadable)."""
+    try:
+        return json.loads((directory / "run_meta.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def relay_mode_lines(meta: dict) -> list:
+    """The note of section 3 for a run whose dest guards use the relay (V7_DEST_GUARD=relay in run_meta's
+    v7_switches, rc2's transport); [] otherwise (rc1 traces carry no such key: their output stays as before)."""
+    if str((meta.get("v7_switches") or {}).get("V7_DEST_GUARD", "")).strip().lower() != "relay":
+        return []
+    outcomes = meta.get("dest_guard") or {}
+    sleepers = sum(int(entry.get("blocking") or 0) + int(entry.get("fallback") or 0) for entry in outcomes.values())
+    lines = ["     V7_DEST_GUARD=relay: the dest guards of this run do not sleep in the driver (pre-check, else the relay "
+             "of the reverse worker's source wait, then a zero-timeout wait)"
+             + (f", except {sleepers} blocking / fallback waits (below)" if sleepers else "")
+             + "; 'shared' below means a timing overlap only, not two threads asleep on one semaphore value"]
+    if not outcomes:
+        lines.append("     dest guard outcomes: not in run_meta.json")
+    for label, entry in sorted(outcomes.items()):
+        lines.append(f"     dest guard outcomes {label}: precheck {entry.get('precheck')}, relay {entry.get('relay')}, "
+                     f"fallback {entry.get('fallback')}, blocking {entry.get('blocking')} (relay slept "
+                     f"{entry.get('relay_slept')}, released {entry.get('released')}; {entry.get('mode')})")
+    return lines
+
+
+def report_shared(guards, meta=None) -> None:
     classes = {}
     reverse_asleep = reverse_late = 0
     for _, reverse, signal, guard_start, wake in guards:
@@ -151,6 +183,8 @@ def report_shared(guards) -> None:
         counts[0] += 1
         counts[1] += (wake - signal) > LATE_NANOSECONDS
     print("  3. shared waits (reverse link's source wait asleep over the same signal)")
+    for line in relay_mode_lines(meta or {}):
+        print(line)
     for (sharing, order), (count, late) in sorted(classes.items()):
         print(f"     {sharing:6s} {order:13s}: blocked dest guards {count:6d}, late {late:6d} "
               f"({100.0 * late / max(count, 1):5.1f} %)")
@@ -197,7 +231,7 @@ def main() -> int:
         guards = blocked_dest_guards(link_rows, steady_steps, by_step_and_link)
         report_latency(link_rows, device_rows, steady_steps, by_step_and_link)
         report_durations(guards)
-        report_shared(guards)
+        report_shared(guards, load_run_meta(directory))
         report_cost(device_rows, steady_steps, guards)
     return 0
 

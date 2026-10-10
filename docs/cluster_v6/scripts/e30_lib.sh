@@ -18,8 +18,25 @@
 # same discrete-first order), the configuration print, every run and its parse get --solver v7
 # (E30_SOLVER_ARGS, also for the job scripts' direct calls: bring-up, calibration), and the
 # environment listing is env | grep ^V7_. Unset or v6: everything as before.
+#
+# Second deployment (E7 validation, rc2 against v7-rc1): E30_RUN_REPO=DIR before an e30_run call runs
+# DIR's docs/cluster_v6/scripts/run_chain_v6.py instead of the job's (that copy imports DIR's own
+# experiment/<solver>, its SPIR-V and its bench, and chdirs into DIR); the parse stays the job's. Such a
+# run passes the job's wrapper options only: never a wrapper option the other deployment's
+# run_chain_v6.py does not know. Run identity for parse_run_v6.py (one row per run): --expect-root
+# (E30_RUN_REPO, else E30_REPO; the root the process prints must resolve to it, else hard failure),
+# --solver-tag / --solver-tree from E30_RUN_TAG / E30_RUN_TREE with E30_RUN_REPO, else from the job's
+# E30_SOLVER_TAG / E30_SOLVER_TREE (set by the job script's provenance check; unset = not recorded).
+# E30_RUN_REPO / E30_RUN_TAG / E30_RUN_TREE are per-call variables only (prefix assignments on one e30_run, e.g.
+# e7_lib.sh e7_pair_run): e30_prelude unsets them first, so a value left in the submit shell (sbatch
+# --export=ALL) never reaches a run of the job.
 
 e30_prelude() {   # NAME
+    local inherited_name inherited_run=""
+    for inherited_name in E30_RUN_REPO E30_RUN_TAG E30_RUN_TREE; do
+        [ -n "${!inherited_name+set}" ] && inherited_run="$inherited_run $inherited_name=${!inherited_name}"
+        unset "$inherited_name"
+    done
     E30_NAME=$1
     E30_LOCAL=${E30_LOCAL:-0}
     E30_DRY=${E30_DRY:-0}
@@ -51,6 +68,7 @@ e30_prelude() {   # NAME
     E30_T0=$(date +%s)
     E30_RESULTS=$SHM/results.jsonl
     echo "=== E30 $E30_NAME job $E30_JOB node $(hostname) $(date) local=$E30_LOCAL dry=$E30_DRY$([ "$E30_SOLVER" != v6 ] && echo " solver=$E30_SOLVER") ==="
+    [ -n "$inherited_run" ] && echo "--- unset the per-call variables inherited from the submit shell:$inherited_run"
 
     # provenance: deployed commit and manifests (archive deploy: there is no .git)
     if [ -f COMMIT ]; then echo "COMMIT: $(cat COMMIT)"; else echo "COMMIT: none (git $(git rev-parse HEAD 2>/dev/null || echo -))"; fi
@@ -166,17 +184,28 @@ e30_run() {       # LABEL TIMEOUT_S [--optional] -- CHAIN BENCH ARGUMENTS ...   
     if [ "${1:-}" = "--optional" ]; then optional=1; shift; fi
     [ "${1:-}" = "--" ] && shift
     local log="$SHM/$label.log"
-    echo; echo "=== RUN $label ($(date +%T)) timeout ${limit}s ${E30_PREFIX:-}$([ "$optional" = 1 ] && echo ' (optional)') ==="
+    # the deployment whose wrapper (and so whose solver) runs: E30_RUN_REPO for this call, else the job's
+    local runner=${E30_RUN_REPO:+$E30_RUN_REPO/}docs/cluster_v6/scripts/run_chain_v6.py solver_tag solver_tree
+    if [ -n "${E30_RUN_REPO:-}" ]; then
+        solver_tag=${E30_RUN_TAG:-}; solver_tree=${E30_RUN_TREE:-}
+    else
+        solver_tag=${E30_SOLVER_TAG:-}; solver_tree=${E30_SOLVER_TREE:-}
+    fi
+    local identity=(--expect-root "${E30_RUN_REPO:-$E30_REPO}")
+    [ -n "$solver_tag" ] && identity+=(--solver-tag "$solver_tag")
+    [ -n "$solver_tree" ] && identity+=(--solver-tree "$solver_tree")
+    echo; echo "=== RUN $label ($(date +%T)) timeout ${limit}s ${E30_PREFIX:-}$([ "$optional" = 1 ] && echo ' (optional)')$([ -n "$solver_tag" ] && echo " solver=$solver_tag") ==="
     echo "args: $*"
-    if [ "$E30_DRY" = 1 ]; then echo "DRY: ${E30_PREFIX:-} $PY -u docs/cluster_v6/scripts/run_chain_v6.py ${E30_SOLVER_ARGS:+$E30_SOLVER_ARGS }${E30_WRAPPER_ARGS:+$E30_WRAPPER_ARGS }-- $*"; return 0; fi
+    if [ "$E30_DRY" = 1 ]; then echo "DRY: ${E30_PREFIX:-} $PY -u $runner ${E30_SOLVER_ARGS:+$E30_SOLVER_ARGS }${E30_WRAPPER_ARGS:+$E30_WRAPPER_ARGS }-- $*"; return 0; fi
     local start end return_code verdict
     start=$(date +%s.%N)
-    timeout -k 30 "$limit" ${E30_PREFIX:-} $PY -u docs/cluster_v6/scripts/run_chain_v6.py ${E30_SOLVER_ARGS:-} ${E30_WRAPPER_ARGS:-} \
+    timeout -k 30 "$limit" ${E30_PREFIX:-} $PY -u "$runner" ${E30_SOLVER_ARGS:-} ${E30_WRAPPER_ARGS:-} \
         -- "$@" > "$log" 2>&1
     return_code=$?
     end=$(date +%s.%N)
     $PY docs/cluster_v6/scripts/parse_run_v6.py ${E30_SOLVER_ARGS:-} --log "$log" --label "$label" --rc "$return_code" \
-        --start "$start" --end "$end" --telemetry "$SHM/telemetry.csv" --results "$E30_RESULTS" --node "$(hostname)"
+        --start "$start" --end "$end" --telemetry "$SHM/telemetry.csv" --results "$E30_RESULTS" --node "$(hostname)" \
+        "${identity[@]}"
     verdict=$?
     grep -aE "Traceback|Error|VALIDATION FAILED|STALL|DIED|STALE" "$log" | head -5
     e30_sync

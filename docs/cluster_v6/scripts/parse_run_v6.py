@@ -15,7 +15,8 @@ Classification (the E30 stop rule):
                       not a hard failure
   hard_failure        anything else (drift, overflow, far migration, stamp
                       errors, seam FAIL, NaN, crash, timeout, missing final line,
-                      a log of another solver than --solver)
+                      a log of another solver than --solver, a process whose
+                      repository root is not --expect-root)
 
 Solver (E39): the runner tags carry the solver ([chain_v6] / [chain_v7],
 [partition_*], [case_loader_*], [SimV6] / [SimV7]). --solver names the one the
@@ -44,9 +45,34 @@ utilization median; window = the stage epochs loop_start .. loop_end). The row
 is appended to --results with a single write (concurrent reference processes
 share the file).
 
+Run identity (E7 validation job: two deployments, rc2 and v7-rc1, in one job):
+"repository_root" is the root the process printed itself (run_chain_v6.py's
+"[e30] switchinterval_s=... cwd=<root>" line, after its chdir into the
+checkout it belongs to); with --expect-root DIR it must be DIR resolved (or the
+same directory), else hard failure ("expected_root", "root_match"; a log that
+printed no root, e.g. a process that died before the wrapper's header, is a
+hard failure too, its reason listed after the rc / final-line reasons).
+--solver-tag / --solver-tree (the tag and the experiment/<solver> tree hash of
+the deployment the job ran this process from, e30_lib.sh) are copied into the
+row as "solver_tag" / "solver_tree" (null without them). The "[e30] loop_trace"
+line of run_chain_v6.py --loop-trace is recorded as "loop_trace" (directory,
+rows, segments, error).
+
+Dest guards (E7 B2, rc2's transport; rc1 prints none): every transport worker
+prints one line when it stops, "[worker s0_to_s1] dest guard: precheck P,
+relay R, fallback F, blocking B (relay slept S, released L; <mode>)" with
+<mode> "V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter" or "no relay,
+V7_DEST_GUARD=wait". Recorded as "dest_guard" {worker: {precheck, relay,
+fallback, blocking, relay_slept, released, relay_attached, mode, switches}}
+(null without such lines; the last line of a worker wins), with the sums
+"dest_guard_fallback" and "dest_guard_released" (null without lines). Not part
+of the verdict (a fallback or a released relay ends in rc1's blocking wait,
+correctness kept), but the RESULT line shows either sum when it is > 0.
+
 Usage:
     python parse_run_v6.py --log RUN.log --label LABEL --rc RC --start EPOCH --end EPOCH
                            [--telemetry telemetry.csv] [--results results.jsonl] [--solver v7]
+                           [--expect-root DIR] [--solver-tag TAG] [--solver-tree SHA]
 """
 
 from __future__ import annotations
@@ -86,6 +112,8 @@ def parse_log(text: str, solver: str = "v6") -> dict:
 
     match = re.search(r"\[e30\] switchinterval_s=([\d.e-]+)", text)
     row["switch_interval_s"] = float(match.group(1)) if match else None
+    match = re.search(r"^\[e30\] switchinterval_s=\S+ .*? cwd=(.+?)\s*$", text, flags=re.MULTILINE)
+    row["repository_root"] = match.group(1) if match else None
     row["config_lines"] = [line for line in lines if line.startswith("[e30-config]")]
     match = re.search(case_loader + r" total loaded: (" + NUMBER + r") particles", text)
     row["loaded_particles"] = to_int(match.group(1)) if match else None
@@ -205,6 +233,21 @@ def parse_log(text: str, solver: str = "v6") -> dict:
         segments = dict(re.findall(r"(\w+)=([\d/]+)", match.group(2)))
         worker_copy[match.group(1)] = segments
     row["worker_segments_us"] = worker_copy
+    # E7 B2 (rc2's transport): each worker prints how its dest guards completed when it stops; the last line of a
+    # worker wins (the timed chain's, after any pilot chain). Recorded, not part of the verdict: a fallback or a
+    # released relay ends in rc1's blocking wait (correctness kept), so the sums only show (RESULT line when > 0)
+    dest_guards = {}
+    for match in re.finditer(r"\[worker ([^\]\s]+)\] dest guard: precheck (\d+), relay (\d+), fallback (\d+), "
+                             r"blocking (\d+) \(relay slept (\d+), released (\d+); ([^)]*)\)", text):
+        mode = match.group(8).strip()
+        dest_guards[match.group(1)] = {
+            "precheck": int(match.group(2)), "relay": int(match.group(3)), "fallback": int(match.group(4)),
+            "blocking": int(match.group(5)), "relay_slept": int(match.group(6)), "released": int(match.group(7)),
+            "relay_attached": not mode.startswith("no relay"), "mode": mode,
+            "switches": dict(re.findall(r"(V7_\w+)=(\w+)", mode))}
+    row["dest_guard"] = dest_guards or None
+    row["dest_guard_fallback"] = sum(entry["fallback"] for entry in dest_guards.values()) if dest_guards else None
+    row["dest_guard_released"] = sum(entry["released"] for entry in dest_guards.values()) if dest_guards else None
     link_bytes = {}
     for match in re.finditer(r"\[link (\S+)\] bytes/frame: host_copy=([\d.]+) KiB dma=([\d.]+) KiB over (\d+) frames",
                              text):
@@ -270,7 +313,29 @@ def parse_log(text: str, solver: str = "v6") -> dict:
          "window": int(window), "peaks": [int(value) for value in peaks.split(",") if value]}
         for link, region, capacity, window, peaks in re.findall(
             r"\[e30\] pool_series (\S+) (\w+): capacity=(\d+|None) window=(\d+) peaks=([\d,]*)", text)]
+    match = re.search(r"^\[e30\] loop_trace dir=(\S+) rows=(\d+) segments=(\d+)(?: error=(.*?))?\s*$", text,
+                      flags=re.MULTILINE)
+    row["loop_trace"] = ({"directory": match.group(1), "rows": int(match.group(2)), "segments": int(match.group(3)),
+                          "error": match.group(4)} if match else None)
     return row
+
+
+def root_check(logged_root, expected_root) -> tuple:
+    """(expected root resolved, match): match None without --expect-root; False when the log names no root or
+    another one than EXPECTED_ROOT (resolved paths compared, then whether both name the same directory)."""
+    if expected_root is None:
+        return None, None
+    import os
+    expected = pathlib.Path(expected_root).resolve()
+    if logged_root is None:
+        return str(expected), False
+    logged = pathlib.Path(logged_root)
+    try:
+        if logged.resolve() == expected:
+            return str(expected), True
+        return str(expected), os.path.samefile(logged, expected)
+    except OSError:
+        return str(expected), False
 
 
 def number_or_text(value: str):
@@ -285,6 +350,8 @@ def classify(row: dict, return_code: int) -> tuple[str, list[str]]:
     reasons = []
     if row.get("solver_in_log") and row["solver_in_log"] != row["solver"]:
         reasons.append(f"solver mismatch: run as {row['solver']}, log of {row['solver_in_log']}")
+    if row.get("root_match") is False and row.get("repository_root") is not None:
+        reasons.append(f"repository root {row['repository_root']} is not the expected {row.get('expected_root')}")
     if return_code in (124, 137):
         reasons.append(f"timeout/killed rc={return_code}")
     if return_code not in (0, 1, 124, 137):
@@ -302,6 +369,10 @@ def classify(row: dict, return_code: int) -> tuple[str, list[str]]:
             reasons.append(f"far_migration_total={row['far_migration_total']}")
         if row["stamp_errors_gpu"] or row["stamp_errors_host"]:
             reasons.append(f"stamp_errors gpu={row['stamp_errors_gpu']} host={row['stamp_errors_host']}")
+    # a process that died before the wrapper's header (argparse, import, an early kill) printed no root: still a hard
+    # failure, listed after the rc / final-line reasons, which name the cause
+    if row.get("root_match") is False and row.get("repository_root") is None:
+        reasons.append(f"no repository root printed (expected {row.get('expected_root')})")
     if any(not seam["ok"] for seam in row["seam_checks"]):
         reasons.append("seam check FAIL")
     if row["nan_seen"]:
@@ -428,6 +499,13 @@ def main() -> int:
     parser.add_argument("--solver", choices=SOLVERS, default=None,
                         help="the solver the run was started with (run_chain_v6.py --solver); default: read from "
                              "the log (v6 when it names none). A log of another solver is a hard failure")
+    parser.add_argument("--expect-root", default=None, metavar="DIR",
+                        help="the checkout whose run_chain_v6.py the run executed: the root the process printed "
+                             "must resolve to it (else hard failure)")
+    parser.add_argument("--solver-tag", default=None,
+                        help="the tag of the code the run executed (e.g. rc1, rc2), copied into the row")
+    parser.add_argument("--solver-tree", default=None,
+                        help="the experiment/<solver> tree hash of that checkout, copied into the row")
     arguments = parser.parse_args()
 
     text = pathlib.Path(arguments.log).read_text(encoding="utf-8", errors="replace")
@@ -435,6 +513,9 @@ def main() -> int:
     solver_in_log = log_solver(text)
     row.update(parse_log(text, arguments.solver or solver_in_log or "v6"))
     row["solver_in_log"] = solver_in_log
+    row["solver_tag"] = arguments.solver_tag
+    row["solver_tree"] = arguments.solver_tree
+    row["expected_root"], row["root_match"] = root_check(row["repository_root"], arguments.expect_root)
     if arguments.start is not None and arguments.end is not None:
         row["wall_seconds"] = round(arguments.end - arguments.start, 1)
         if arguments.telemetry:
@@ -468,6 +549,11 @@ def main() -> int:
           + (" vk_layer=unavailable" if row["validation_unavailable"] else "")
           + (f" barrier={row['barrier']['status']}/{row['barrier']['waited_seconds']:.1f}s"
              if row.get("barrier") else "")
+          + (f" loop_trace_rows={row['loop_trace']['rows']}" if row.get("loop_trace") else "")
+          + (f" dest_guard_fallback={row['dest_guard_fallback']}" if row.get("dest_guard_fallback") else "")
+          + (f" dest_guard_released={row['dest_guard_released']}" if row.get("dest_guard_released") else "")
+          + (f" solver_tag={row['solver_tag']}" if row.get("solver_tag") else "")
+          + (f" root={row['repository_root']}" if row.get("repository_root") else "")
           + (f" reasons={';'.join(row['reasons'])}" if row["reasons"] else ""), flush=True)
     return 0 if row["status"] in ("pass", "threshold_only") else 3
 

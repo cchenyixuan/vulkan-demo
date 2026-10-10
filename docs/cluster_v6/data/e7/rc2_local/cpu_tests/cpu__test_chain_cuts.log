@@ -1,0 +1,8 @@
+[4] nearest_cut
+[1] symmetric uniform fluid with walls, K = 2 / 4 / 8
+[2] non-uniform counts, random weights, K = 2..8
+  400 trials
+[3] minimum width
+
+6772 checks passed, 0 failed
+ALL PASS

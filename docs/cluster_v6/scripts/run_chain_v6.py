@@ -72,6 +72,15 @@ E7 full campaign (solvers other than v6):
         [e30] anatomy_all call=<n>: predict=... expand_lists=... install_leading=... ... install_sum=...
   with <PREFIX>POOL_PEAKS=1 the region demand per 1000 recorded frames as well (E15 developed flow):
         [e30] pool_series <link> <region>: capacity=C window=1000 peaks=p1,p2,...
+  --loop-trace DIR   (item 11; needs <PREFIX>LOOP_TRACE=1, with which the orchestrator's legacy loop records
+      per frame its start on perf_counter, the time in _submit_frame and the time blocked in frame_done waits)
+      keeps every row, also those the bench's --anatomy [loop] lines reset at each defrag, and writes at exit
+      (never during the loop) DIR/loop_trace.csv (frame, segment, t_loop_ns, submit_us, wait_us, waited_frame,
+      after_defrag; the timed chain's rows, --weights auto pilots excluded) and DIR/loop_trace_meta.json (the
+      clock, clock pairs perf_counter / CLOCK_MONOTONIC_RAW / CLOCK_MONOTONIC / wall around the loop, depth,
+      warmup, defrag cadence, K, row and segment counts, repository root and experiment tree):
+        [e30] loop_trace dir=DIR rows=N segments=M
+      Without the option nothing is installed: the run is the same as before.
 
 Usage (from the checkout root):
     python docs/cluster_v6/scripts/run_chain_v6.py [--switch-interval-ms 0.2] [--solver v7] -- <chain bench arguments>
@@ -140,6 +149,10 @@ def parse_arguments(argument_list: list[str]) -> tuple[argparse.Namespace, list[
                         help="seconds a process waits at the barrier before it starts anyway (status=timeout)")
     parser.add_argument("--defrag-log", action="store_true",
                         help="E7: print every in-loop defrag's per-slab report and each defrag's duration")
+    parser.add_argument("--loop-trace", default=None, metavar="DIR",
+                        help="E7 (item 11), with <PREFIX>LOOP_TRACE=1: write every row of the host loop trace "
+                             "(the rows the --anatomy [loop] lines reset included) to DIR/loop_trace.csv and "
+                             "DIR/loop_trace_meta.json at exit")
     parser.add_argument("--solver", choices=SOLVERS, default="v6",
                         help="solver directory experiment/<solver>: its chain bench, its configuration "
                              "resolvers and its environment prefix (E39: v7 = the v7-perf fork, V7_* "
@@ -565,6 +578,190 @@ def install_defrag_log(solver: str) -> None:
     simulator_class.submit_defrag_and_wait = submit_defrag_and_wait_timed
 
 
+LOOP_TRACE_COLUMNS = ("frame", "segment", "t_loop_ns", "submit_us", "wait_us", "waited_frame", "after_defrag")
+LOOP_TRACE_RECORD = "_e30_loop_trace_record"       # the orchestrator attribute holding its loop trace record
+
+
+def clock_pair_sample(event: str) -> dict:
+    """One reading of each host clock a loop trace may have to be mapped onto, between two perf_counter_ns
+    readings: perf_counter (the loop rows' clock; CLOCK_MONOTONIC on Linux), CLOCK_MONOTONIC_RAW (the host clock
+    of the cluster step traces), CLOCK_MONOTONIC and the wall clock, where the platform has them."""
+    sample = {"event": event, "perf_counter_ns": time.perf_counter_ns()}
+    clock_gettime_ns = getattr(time, "clock_gettime_ns", None)
+    for name in ("CLOCK_MONOTONIC_RAW", "CLOCK_MONOTONIC"):
+        clock_identifier = getattr(time, name, None)
+        if clock_gettime_ns is None or clock_identifier is None:
+            continue
+        try:
+            sample[f"{name.lower()}_ns"] = clock_gettime_ns(clock_identifier)
+        except OSError:
+            pass
+    sample["time_ns"] = time.time_ns()
+    sample["perf_counter_ns_after"] = time.perf_counter_ns()
+    return sample
+
+
+def install_loop_trace_dump(solver: str) -> dict:
+    """E7 --loop-trace (item 11): keep every row of ChainOrchestrator<V>'s host loop trace (<PREFIX>LOOP_TRACE=1:
+    one tuple per frame, loop start on perf_counter, seconds in _submit_frame, seconds blocked in frame_done
+    waits) for write_loop_trace at exit; nothing in the solver changes and nothing is written during the run.
+      - loop_trace_stats: the bench's --anatomy [loop] line calls it at every defrag and it deletes the rows
+        (reset=True); its wrapper copies the rows before the call and keeps the ones the call dropped (one
+        segment per call). The copy (<= one defrag interval of tuples) happens inside on_defrag, with the pipeline
+        drained.
+      - run_pipelined: its wrapper records the call's parameters (bound to the solver's own signature), a clock
+        pair before and after the call and the rows still held when it returns.
+    Each orchestrator gets its own record (--weights auto pilot chains come first, the timed chain last), held in
+    an attribute of the instance and in the returned dict's "chains" list. Install it before the stage reporter
+    and the defrag log: its run_pipelined wrapper is then the innermost one, next to the loop."""
+    import inspect
+    orchestrator_module = solver_module(solver, "orchestrator")
+    chain_class = getattr(orchestrator_module, f"ChainOrchestrator{solver.upper()}")
+    original_run = chain_class.run_pipelined
+    original_stats = chain_class.loop_trace_stats
+    signature = inspect.signature(original_run)
+    recorder: dict = {"solver": solver, "chains": []}
+
+    def chain_record(orchestrator) -> dict:
+        record = getattr(orchestrator, LOOP_TRACE_RECORD, None)
+        if record is None:
+            record = {"segments": [], "remainder": [], "clock_pairs": [], "parameters": {}, "calls": 0,
+                      "running": False, "defrag_cadence": getattr(orchestrator, "defrag_cadence", None),
+                      "slab_count": len(getattr(orchestrator, "sims", None) or ())}
+            setattr(orchestrator, LOOP_TRACE_RECORD, record)
+            recorder["chains"].append(record)
+        return record
+
+    def run_pipelined_keeping(orchestrator, *arguments, **keyword_arguments):
+        record = chain_record(orchestrator)
+        try:
+            bound = signature.bind(orchestrator, *arguments, **keyword_arguments)
+            bound.apply_defaults()
+            record["parameters"] = {name: value for name, value in bound.arguments.items()
+                                    if name in ("max_steps", "depth", "warmup", "stall_timeout_s")}
+        except TypeError:
+            record["parameters"] = {}
+        record["clock_pairs"].append(clock_pair_sample(f"run_pipelined_start_{record['calls']}"))
+        record["running"] = True
+        try:
+            return original_run(orchestrator, *arguments, **keyword_arguments)
+        finally:
+            record["running"] = False
+            record["clock_pairs"].append(clock_pair_sample(f"run_pipelined_end_{record['calls']}"))
+            record["calls"] += 1
+            record["remainder"] = list(getattr(orchestrator, "_loop_trace_rows", None) or [])
+
+    def loop_trace_stats_keeping(orchestrator, *arguments, **keyword_arguments):
+        rows = getattr(orchestrator, "_loop_trace_rows", None)
+        before = list(rows) if rows else []
+        result = original_stats(orchestrator, *arguments, **keyword_arguments)
+        dropped = len(before) - len(getattr(orchestrator, "_loop_trace_rows", None) or [])
+        record = chain_record(orchestrator)
+        if dropped > 0 and record["running"]:   # after the loop the rows are in the remainder already
+            record["segments"].append(before[:dropped])
+        return result
+
+    chain_class.run_pipelined = run_pipelined_keeping
+    chain_class.loop_trace_stats = loop_trace_stats_keeping
+    return recorder
+
+
+def loop_trace_table(record: dict) -> list[tuple]:
+    """One chain's rows in loop order as LOOP_TRACE_COLUMNS: row i = submitted frame i; segment = the reset that
+    dropped the row (the rows still held at the end form the last segment); t_loop_ns = the loop start on
+    perf_counter in ns; submit_us / wait_us; waited_frame = the frame whose frame_done the iteration waited for
+    (the legacy loop's bookkeeping: frame + 1 - depth, empty when it waited for none, i.e. the first depth - 1
+    frames and the first frame after each drain, or when the depth is unknown); after_defrag = 1 on the first
+    frame after a drain + defrag (they lie in the gap before its t_loop)."""
+    segments = list(record["segments"]) + ([record["remainder"]] if record["remainder"] else [])
+    depth = record["parameters"].get("depth")
+    depth = max(1, int(depth)) if depth is not None else None
+    cadence = record.get("defrag_cadence") or 0
+    table = []
+    frame = next_wait = 0
+    for segment_index, rows in enumerate(segments):
+        for t_loop, submit_seconds, wait_seconds in rows:
+            submitted = frame + 1
+            waited_frame = ""
+            while depth is not None and submitted - next_wait >= depth:
+                waited_frame = next_wait
+                next_wait += 1
+            table.append((frame, segment_index, int(round(t_loop * 1e9)), f"{submit_seconds * 1e6:.3f}",
+                          f"{wait_seconds * 1e6:.3f}", waited_frame,
+                          int(bool(cadence) and frame > 0 and frame % cadence == 0)))
+            if cadence and submitted % cadence == 0:
+                next_wait = submitted           # the drain before the defrag waits every outstanding frame
+            frame += 1
+    return table
+
+
+def experiment_tree_text(solver: str) -> str:
+    """git tree hash of this checkout's experiment/<solver> (tree_hash.py next to this script), or why not."""
+    try:
+        import importlib.util
+        specification = importlib.util.spec_from_file_location(
+            "e30_tree_hash", pathlib.Path(__file__).resolve().parent / "tree_hash.py")
+        module = importlib.util.module_from_spec(specification)
+        specification.loader.exec_module(module)
+        sha, _ = module.tree_sha(str(_REPOSITORY_ROOT / "experiment" / solver), "", [])
+        return sha or "empty"
+    except Exception as error:                                        # noqa: BLE001
+        return f"unavailable ({type(error).__name__}: {error})"
+
+
+def write_loop_trace(recorder: dict, directory: str, bench_arguments: list[str]) -> None:
+    """--loop-trace DIR, at exit: DIR/loop_trace.csv (the last chain that ran its loop: the timed one) and
+    DIR/loop_trace_meta.json, then the line parse_run_v6.py records:
+      [e30] loop_trace dir=DIR rows=N segments=M [error=...]"""
+    import csv
+    import json
+    import platform
+    rows = segments = 0
+    try:
+        chains = recorder["chains"]
+        record = chains[-1] if chains else None
+        table = loop_trace_table(record) if record is not None else []
+        rows = len(table)
+        segments = len(record["segments"]) + (1 if record["remainder"] else 0) if record is not None else 0
+        path = pathlib.Path(directory)
+        path.mkdir(parents=True, exist_ok=True)
+        with open(path / "loop_trace.csv", "w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(LOOP_TRACE_COLUMNS)
+            writer.writerows(table)
+        clock = time.get_clock_info("perf_counter")
+        solver = recorder["solver"]
+        prefix = solver.upper() + "_"
+        parameters = dict(record["parameters"]) if record is not None else {}
+        meta = {
+            "columns": list(LOOP_TRACE_COLUMNS),
+            "row_clock": {"name": "perf_counter", "implementation": clock.implementation,
+                          "monotonic": clock.monotonic, "adjustable": clock.adjustable,
+                          "resolution": clock.resolution},
+            "clock_pairs": (record["clock_pairs"] if record is not None else []) + [clock_pair_sample("write")],
+            "parameters": parameters,
+            "defrag_cadence": record.get("defrag_cadence") if record is not None else None,
+            "slab_count": record.get("slab_count") if record is not None else None,
+            "run_pipelined_calls": record.get("calls") if record is not None else 0,
+            "rows": rows, "segments": segments,
+            "segment_rows": (([len(segment) for segment in record["segments"]]
+                              + ([len(record["remainder"])] if record["remainder"] else []))
+                             if record is not None else []),
+            "complete": record is not None and rows == parameters.get("max_steps"),
+            "chains": len(chains), "chain_rows": [sum(len(segment) for segment in chain["segments"])
+                                                  + len(chain["remainder"]) for chain in chains],
+            "environment": {name: os.environ.get(prefix + name, "") for name in ("LOOP_TRACE", "PER_SIM_PIPELINE")},
+            "solver": solver, "repository_root": str(_REPOSITORY_ROOT),
+            "experiment_tree": experiment_tree_text(solver),
+            "host": platform.node(), "pid": os.getpid(), "bench_arguments": bench_arguments,
+        }
+        (path / "loop_trace_meta.json").write_text(json.dumps(meta, indent=1, default=str), encoding="utf-8")
+        print(f"[e30] loop_trace dir={directory} rows={rows} segments={segments}", flush=True)
+    except Exception as error:                                        # noqa: BLE001
+        print(f"[e30] loop_trace dir={directory} rows={rows} segments={segments} "
+              f"error={type(error).__name__}: {error}", flush=True)
+
+
 INSTALL_END_LABELS = ("c_append_departed_end", "c_install_trailing_end", "c_install_leading_end", "c_expand_end")
 
 
@@ -613,6 +810,13 @@ def main() -> int:
             sys.exit("--barrier with --weights auto: the first pilot chain would take the barrier")
     if arguments.defrag_log and arguments.solver == "v6":
         sys.exit("--defrag-log is an E7 option (solvers other than v6)")
+    if arguments.loop_trace is not None:
+        if arguments.solver == "v6":
+            sys.exit("--loop-trace is an E7 option (solvers other than v6)")
+        loop_trace_variable = arguments.solver.upper() + "_LOOP_TRACE"
+        if os.environ.get(loop_trace_variable, "0") != "1":
+            sys.exit(f"--loop-trace needs {loop_trace_variable}=1 in the environment (the orchestrator records "
+                     f"the loop rows only then)")
     chain_bench = chain_bench_path(arguments.solver)
     if not chain_bench.exists():
         sys.exit(f"--solver {arguments.solver}: no chain bench at {chain_bench} (experiment/{arguments.solver} "
@@ -636,6 +840,8 @@ def main() -> int:
                          if os.environ.get(arguments.solver.upper() + "_POOL_PEAKS", "0") == "1" else None)
     bench_started = time.perf_counter()
     pool_health = None
+    # first: its run_pipelined wrapper is then the innermost one (install_loop_trace_dump)
+    loop_trace = install_loop_trace_dump(arguments.solver) if arguments.loop_trace is not None else None
     if arguments.solver != "v6":
         barrier = ((arguments.barrier, arguments.barrier_parties, arguments.barrier_timeout)
                    if arguments.barrier is not None else None)
@@ -667,6 +873,8 @@ def main() -> int:
             print_pool_peaks(pool_peak_workers)
         if arguments.solver != "v6":
             report_stage("exit", bench_started)
+        if loop_trace is not None:          # after the exit stamp: the files are not part of the run's post time
+            write_loop_trace(loop_trace, arguments.loop_trace, bench_arguments)
         sys.stdout.flush()
     return exit_code
 

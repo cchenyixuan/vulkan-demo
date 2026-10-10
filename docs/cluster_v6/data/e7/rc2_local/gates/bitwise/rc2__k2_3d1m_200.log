@@ -1,0 +1,89 @@
+[partition_v7] WARN slab 0: only 15 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[case_loader_v7] loading cavity3d_1m
+  - domain.obj: 1,030,301 particles (stick_water)
+  - wall.obj: 563,049 particles (stick_wall)
+  - wall_top.obj: 91,809 particles (stick_lid)
+[case_loader_v7] total loaded: 1,685,159 particles
+[case_loader_v7] grid: dim=(31, 31, 31) origin=(-0.6160000157356262, -0.6160000157356262, -0.6160000157356262)
+[partition_v7] chain N=2: columns [0,15), [15,31) of 31; particles 821,338, 863,821
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=154,376 (replica regions 2 x 76,880 + migrants 616) departed pool/slab=616/616
+[VulkanContextV7] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV7] selected: [0] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV7] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV7] transfer queues: 2 (readback + upload split)
+[SimV7] V7_DEEP_WALL_SKIP=auto: on (auto: 3-D, 105,938 deep-wall candidates at the initial state = 12.90 % of 821,338 particles >= 1 %)
+[SimV7] V7_FUSED_CORRECTION_DENSITY=1: fused (one neighbour traversal for correction + density, band 2, inner ghost column as self)
+[SimV7] device-local buffers: 26, 189.44 MB (14 CONCURRENT for transfer queue)
+[SimV7] defrag scratch buffers: 9, 152.30 MB
+[SimV7] host staging buffers: 2, 9693.0 KB (persistent-mapped)
+  sender   type[3]=HOST_VISIBLE|HOST_COHERENT|HOST_CACHED [host RAM]
+  receiver type[2]=HOST_VISIBLE|HOST_COHERENT [host RAM]
+[SimV7] compute pipelines: 30 (V7_CASCADE_FORCE=1: force_deep_interior in Phase B) (V7_BAND_VOXEL_DISPATCH=1, lanes=64, bands 2/2/3: boundary kernels over band voxels: 184,512/184,512/184,512 threads vs 985,728) (seam: ghost_layers=2, departed pool=616) (V7_DENSITY_COPY_COMPUTE=1: density copy pass over 3 region(s), 1,063,224 slots) (V7_GHOST_SEND_LANES=32: ghost_send over 1,922 lane groups, local size 64, 961 workgroups per direction) (V7_DEEP_WALL_SKIP: correction_interior, density_deep_interior skip deep walls outside band 2, marker 2 x 128 workgroups, record) (V7_FUSED_CORRECTION_DENSITY: correction_density_all / _interior / _boundary / _boundary_band replace correction + density at band 2; deep-wall skip in correction_density_interior)
+[SimV7] init complete on NVIDIA GeForce RTX 5090 (own=985728, ghost L=0 T=154376, wall_boundary=simple)
+[VulkanContextV7] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV7] selected: [1] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV7] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV7] transfer queues: 2 (readback + upload split)
+[SimV7] V7_DEEP_WALL_SKIP=auto: on (auto: 3-D, 148,421 deep-wall candidates at the initial state = 17.18 % of 863,821 particles >= 1 %)
+[SimV7] V7_FUSED_CORRECTION_DENSITY=1: fused (one neighbour traversal for correction + density, band 2, inner ghost column as self)
+[SimV7] device-local buffers: 26, 197.63 MB (14 CONCURRENT for transfer queue)
+[SimV7] defrag scratch buffers: 9, 159.10 MB
+[SimV7] host staging buffers: 2, 9693.0 KB (persistent-mapped)
+  sender   type[3]=HOST_VISIBLE|HOST_COHERENT|HOST_CACHED [host RAM]
+  receiver type[2]=HOST_VISIBLE|HOST_COHERENT [host RAM]
+[SimV7] compute pipelines: 30 (V7_CASCADE_FORCE=1: force_deep_interior in Phase B) (V7_BAND_VOXEL_DISPATCH=1, lanes=64, bands 2/2/3: boundary kernels over band voxels: 184,512/184,512/184,512 threads vs 1,036,672) (seam: ghost_layers=2, departed pool=616) (V7_DENSITY_COPY_COMPUTE=1: density copy pass over 3 region(s), 1,114,168 slots) (V7_GHOST_SEND_LANES=32: ghost_send over 1,922 lane groups, local size 64, 961 workgroups per direction) (V7_DEEP_WALL_SKIP: correction_interior, density_deep_interior skip deep walls outside band 2, marker 2 x 136 workgroups, record) (V7_FUSED_CORRECTION_DENSITY: correction_density_all / _interior / _boundary / _boundary_band replace correction + density at band 2; deep-wall skip in correction_density_interior)
+[SimV7] init complete on NVIDIA GeForce RTX 5090 (own=1036672, ghost L=154376 T=0, wall_boundary=simple)
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 2 relays for 2 workers
+[ChainOrchV7] N=2, 2 workers started (s0_to_s1, s1_to_s0)
+[SimV7] uploaded initial state (6 payload buffers)
+[SimV7] uploaded initial state (6 payload buffers)
+[SimV7] bootstrap done: alive=821338 overflow_inside=0 overflow_incoming=0
+[SimV7] bootstrap done: alive=863821 overflow_inside=0 overflow_incoming=0
+[SimV7] step cmd buffers recorded (phase A/B/C + 1 readback + 1 upload on transfer Q)
+[SimV7] V7_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 1 readback, 1 upload), raw waits/signals
+[SimV7] step cmd buffers recorded (phase A/B/C + 1 readback + 1 upload on transfer Q)
+[SimV7] V7_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 1 readback, 1 upload), raw waits/signals
+[canonical_dump] v7 d0c8dcb (dirty) K=2 wall=simple 200 steps: alive 1685159/1685159, crossings {'migration_install_count': [0, 0], 'peak_migration_count': [0, 0], 'peak_departed_count': [0, 0]}, fps 163, buffers 26, code {'experiment/v7/utils': '7518e76f961b90cd', 'spv': 'f39a0e4e50b68c4b', 'cavity_runner': '13df7f18003567c5', 'harness': '85f240913dc0fd1a'}, invariants ok, switches {'V7_DENSITY_COPY_COMPUTE': 1, 'V7_GHOST_SEND_LANES': 32, 'V7_DEEP_WALL_SKIP': 'auto', 'V7_DEEP_WALL_CHECK': 0, 'V7_FUSED_CORRECTION_DENSITY': 1, 'V7_BAND_OVERLAP': 0, 'V7_DEST_GUARD': 'relay', 'V7_DEST_GUARD_PRECHECK': 'counter'}, band overlap on 0/2 slab(s) (chain verdict off), deep walls [[True, 'auto: 3-D, 105,938 deep-wall candidates at the initial state = 12.90 % of 821,338 particles >= 1 %'], [True, 'auto: 3-D, 148,421 deep-wall candidates at the initial state = 17.18 % of 863,821 particles >= 1 %']] {'skipped_correction': 254359, 'skipped_density': 254359, 'skipped_not_boundary': 0, 'skipped_with_other_kind_within_h': 0, 'density_rows_equal_correction_rows': True} -> C:\Users\cchen\AppData\Local\Temp\claude\C--Users-cchen-PycharmProjects-vulkan-demo\4f9257e4-cae2-4304-9c80-7006d6fe4db6\scratchpad\e7\rc2_work\ffix\gates\bitwise\rc2__k2_3d1m_200.npz
+[worker s0_to_s1] dest guard: precheck 168, relay 32, fallback 0, blocking 0 (relay slept 32, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 33, relay 167, fallback 0, blocking 0 (relay slept 167, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)

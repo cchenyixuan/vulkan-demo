@@ -1,0 +1,26 @@
+first : C:/Users/cchen/AppData/Local/Temp/claude/C--Users-cchen-PycharmProjects-vulkan-demo/4f9257e4-cae2-4304-9c80-7006d6fe4db6/scratchpad/e7/rc2_work/ffix/gates/bitwise/rc1__k2_n250_200.npz
+        repo=C:\Users\cchen\AppData\Local\Temp\claude\C--Users-cchen-PycharmProjects-vulkan-demo\4f9257e4-cae2-4304-9c80-7006d6fe4db6\scratchpad\e7\rc2_work\rc1_tree head= dirty_v6=False K=2 wall=simple steps=200 canonical=True alive=74529/74529 crossings={'migration_install_count': [0, 0], 'peak_migration_count': [0, 0], 'peak_departed_count': [0, 0]}
+        simulator C:\Users\cchen\AppData\Local\Temp\claude\C--Users-cchen-PycharmProjects-vulkan-demo\4f9257e4-cae2-4304-9c80-7006d6fe4db6\scratchpad\e7\rc2_work\rc1_tree\experiment\v7\utils\simulator_v7.py; code {'experiment/v7/utils': '72a144b90727dbef', 'spv': 'f39a0e4e50b68c4b', 'cavity_runner': '13df7f18003567c5', 'harness': '85f240913dc0fd1a'}; initial b1ceab50ccc6220c; materials bef0af809afcb15f
+        v7 switches {'V7_DENSITY_COPY_COMPUTE': 1, 'V7_GHOST_SEND_LANES': 32, 'V7_DEEP_WALL_SKIP': 'auto', 'V7_DEEP_WALL_CHECK': 0, 'V7_FUSED_CORRECTION_DENSITY': 1, 'V7_BAND_OVERLAP': 0}
+        fused correction + density per slab [[True, 'one neighbour traversal for correction + density, band 2, inner ghost column as self'], [True, 'one neighbour traversal for correction + density, band 2, inner ghost column as self']]
+        band overlap per slab [[False, 'V7_BAND_OVERLAP=0'], [False, 'V7_BAND_OVERLAP=0']]
+        band overlap chain verdict {'verdict': False, 'reason': 'V7_BAND_OVERLAP=0', 'every_slab_alike': True}
+second: C:/Users/cchen/AppData/Local/Temp/claude/C--Users-cchen-PycharmProjects-vulkan-demo/4f9257e4-cae2-4304-9c80-7006d6fe4db6/scratchpad/e7/rc2_work/ffix/gates/bitwise/rc2none__k2_n250_200.npz
+        repo=C:\Users\cchen\PycharmProjects\vulkan-demo-v7-wake head=d0c8dcb dirty_v6=True K=2 wall=simple steps=200 canonical=True alive=74529/74529 crossings={'migration_install_count': [0, 0], 'peak_migration_count': [0, 0], 'peak_departed_count': [0, 0]}
+        simulator C:\Users\cchen\PycharmProjects\vulkan-demo-v7-wake\experiment\v7\utils\simulator_v7.py; code {'experiment/v7/utils': '7518e76f961b90cd', 'spv': 'f39a0e4e50b68c4b', 'cavity_runner': '13df7f18003567c5', 'harness': '85f240913dc0fd1a'}; initial b1ceab50ccc6220c; materials bef0af809afcb15f
+        v7 switches {'V7_DENSITY_COPY_COMPUTE': 1, 'V7_GHOST_SEND_LANES': 32, 'V7_DEEP_WALL_SKIP': 'auto', 'V7_DEEP_WALL_CHECK': 0, 'V7_FUSED_CORRECTION_DENSITY': 1, 'V7_BAND_OVERLAP': 0, 'V7_DEST_GUARD': 'relay', 'V7_DEST_GUARD_PRECHECK': 'none'}
+        fused correction + density per slab [[True, 'one neighbour traversal for correction + density, band 2, inner ghost column as self'], [True, 'one neighbour traversal for correction + density, band 2, inner ghost column as self']]
+        band overlap per slab [[False, 'V7_BAND_OVERLAP=0'], [False, 'V7_BAND_OVERLAP=0']]
+        band overlap chain verdict {'verdict': False, 'reason': 'V7_BAND_OVERLAP=0', 'every_slab_alike': True}
+  switch DEST_GUARD_PRECHECK set in the second run only (none)
+  acceleration                   identical 74529 / 74529   max |diff| 0.000e+00
+  correction_inverse             identical 74529 / 74529   max |diff| 0.000e+00
+  density_gradient_kernel_sum    identical 74529 / 74529   max |diff| 0.000e+00
+  density_pressure               identical 74529 / 74529   max |diff| 0.000e+00
+  density_pressure_scratch       identical 74529 / 74529   max |diff| 0.000e+00
+  extension_fields               identical 74529 / 74529   max |diff| 0.000e+00
+  material                       identical 74529 / 74529   max |diff| 0.000e+00
+  position_voxel_id              identical 74529 / 74529   max |diff| 0.000e+00
+  shift                          identical 74529 / 74529   max |diff| 0.000e+00
+  velocity_mass                  identical 74529 / 74529   max |diff| 0.000e+00
+BIT-IDENTICAL (10 fields)

@@ -1,0 +1,16 @@
+[1] relay: initial -1, monotonic publish, waits, bounded rounds, abort
+[2] switches: parsing, defaults, registry
+[3] wiring: one relay per (sim, direction), publisher / consumer, wait mode, missing publisher
+[4] protocol: K = 2 x 10000 frames per pre-check and rc1, K = 3 interior
+  K=2 relay/counter: 10000 frames in 2.8 s; guard precheck/relay/fallback/blocking: s0_to_s1 7080/2920/0/0 slept 2916, s1_to_s0 5167/4833/0/0 slept 4830; dest guards asleep 0, shared transport values 0, zero-timeout calls on a pending value 0
+  K=2 relay/zero_wait: 10000 frames in 2.9 s; guard precheck/relay/fallback/blocking: s0_to_s1 7335/2665/0/0 slept 2663, s1_to_s0 5887/4113/0/0 slept 4110; dest guards asleep 0, shared transport values 0, zero-timeout calls on a pending value 6778
+  K=2 relay/none: 10000 frames in 2.9 s; guard precheck/relay/fallback/blocking: s0_to_s1 0/10000/0/0 slept 4027, s1_to_s0 0/10000/0/0 slept 5549; dest guards asleep 0, shared transport values 0, zero-timeout calls on a pending value 0
+  K=2 wait (rc1): 10000 frames in 3.0 s; guard precheck/relay/fallback/blocking: s0_to_s1 0/0/0/10000 slept 0, s1_to_s0 0/0/0/10000 slept 0; dest guards asleep 7011, shared transport values 7010, zero-timeout calls on a pending value 0
+  K=3 relay/counter: 3000 frames in 1.8 s; guard precheck/relay/fallback/blocking: s0_to_s1 1359/1641/0/0 slept 1637, s1_to_s0 2361/639/0/0 slept 635, s1_to_s2 2607/393/0/0 slept 392, s2_to_s1 872/2128/0/0 slept 2123; dest guards asleep 0, shared transport values 0, zero-timeout calls on a pending value 0
+  K=3 relay/zero_wait: 3000 frames in 1.8 s; guard precheck/relay/fallback/blocking: s0_to_s1 1445/1555/0/0 slept 1552, s1_to_s0 2490/510/0/0 slept 509, s1_to_s2 2677/323/0/0 slept 322, s2_to_s1 941/2059/0/0 slept 2056; dest guards asleep 0, shared transport values 0, zero-timeout calls on a pending value 4447
+  K=3 relay/none: 3000 frames in 1.8 s; guard precheck/relay/fallback/blocking: s0_to_s1 0/3000/0/0 slept 1948, s1_to_s0 0/3000/0/0 slept 916, s1_to_s2 0/3000/0/0 slept 541, s2_to_s1 0/3000/0/0 slept 2335; dest guards asleep 0, shared transport values 0, zero-timeout calls on a pending value 0
+[5] negative controls: relay starting at 0; no dest guard at all
+[6] abort and stop: a dying worker wakes its partner; stop() drains like rc1; release after the join timeout
+
+392 checks passed, 0 failed (20 s)
+ALL PASS

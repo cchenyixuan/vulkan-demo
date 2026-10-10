@@ -1,0 +1,32 @@
+== /trace_rc1: 2000 steady steps
+  1. wake-up latency of blocked waits (µs after the signal)
+     s0_to_s1 source blocked  1990/2000: p50      25 p90      38 p99      83 | late     0 (median nan)
+     s0_to_s1 dest   blocked   932/2000: p50      26 p90      34 p99      86 | late     0 (median nan)
+     s1_to_s0 source blocked  1990/2000: p50      24 p90      34 p99      74 | late     0 (median nan)
+     s1_to_s0 dest   blocked  1017/2000: p50      28 p90      49 p99     112 | late     0 (median nan)
+     late wake-ups in total 0; step period p50 1429 µs, p90 1635, mean 1503 -> 665.6 fps
+  2. dest guard wait durations (host clock): blocked 1949, late 0
+     on time: p50 524 p90 964 p99 1678 µs
+  3. shared waits (reverse link's source wait asleep over the same signal)
+     shared reverse first: blocked dest guards   1949, late      0 (  0.0 %)
+     reverse source waits asleep over the same signal 1949, late 0
+  4. cost: steps 2000, with a late inbound dest guard 0
+     sim 0: phase B end -> phase C start, mean µs: clean      27 (n 2000) | late     nan (n 0)
+     sim 1: phase B end -> phase C start, mean µs: clean      43 (n 2000) | late     nan (n 0)
+     step period mean µs: all 1503, clean steps 1503, late steps nan; fps if every step were clean 665.6 vs 665.6 (+0.0 % period)
+== /trace_rc2: 2000 steady steps
+  1. wake-up latency of blocked waits (µs after the signal)
+     s0_to_s1 source blocked  1991/2000: p50      24 p90      37 p99      73 | late     0 (median nan)
+     s0_to_s1 dest   blocked  1020/2000: p50      44 p90      71 p99     121 | late     0 (median nan)
+     s1_to_s0 source blocked  1992/2000: p50      24 p90      33 p99      58 | late     0 (median nan)
+     s1_to_s0 dest   blocked   925/2000: p50      53 p90     106 p99     199 | late     0 (median nan)
+     late wake-ups in total 0; step period p50 1425 µs, p90 1589, mean 1497 -> 668.2 fps
+  2. dest guard wait durations (host clock): blocked 1945, late 0
+     on time: p50 533 p90 968 p99 1678 µs
+  3. shared waits (reverse link's source wait asleep over the same signal)
+     shared reverse first: blocked dest guards   1945, late      0 (  0.0 %)
+     reverse source waits asleep over the same signal 1945, late 0
+  4. cost: steps 2000, with a late inbound dest guard 0
+     sim 0: phase B end -> phase C start, mean µs: clean      29 (n 2000) | late     nan (n 0)
+     sim 1: phase B end -> phase C start, mean µs: clean      45 (n 2000) | late     nan (n 0)
+     step period mean µs: all 1497, clean steps 1497, late steps nan; fps if every step were clean 668.2 vs 668.2 (+0.0 % period)

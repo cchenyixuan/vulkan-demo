@@ -1,0 +1,81 @@
+### start Sat Oct 10 17:47:01 TST 2026
+=== trace_rc1 (17:47:01) GPU 0, 847 MHz, 45, 34.18 W;1, 28 MHz, 45, 6.99 W;
+rc=0 8 s
+[step_trace] wrote C:\Users\cchen\AppData\Local\Temp\claude\C--Users-cchen-PycharmProjects-vulkan-demo\4f9257e4-cae2-4304-9c80-7006d6fe4db6\scratchpad\e7\rc2_work\ffix\trace\trace_rc1: {'steps': 3000, 'device_rows': 6000, 'device_rows_compl
+[chain_v7] STEADY (post-warmup 1000): 2000 steps in 3.03s = 661.1 fps
+[chain_v7] final: total=2,064,969 (expected 2,064,969) drift=0 stamp_errors gpu=0 host=0 overflow_total=0 far_migration_total=0
+=== trace_rc2 (17:47:09) GPU 0, 2970 MHz, 50, 100.33 W;1, 2970 MHz, 50, 92.73 W;
+rc=0 8 s
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 2 relays for 2 workers
+[step_trace] wrote C:\Users\cchen\AppData\Local\Temp\claude\C--Users-cchen-PycharmProjects-vulkan-demo\4f9257e4-cae2-4304-9c80-7006d6fe4db6\scratchpad\e7\rc2_work\ffix\trace\trace_rc2: {'steps': 3000, 'device_rows': 6000, 'device_rows_compl
+[chain_v7] STEADY (post-warmup 1000): 2000 steps in 3.01s = 664.2 fps
+[chain_v7] final: total=2,064,969 (expected 2,064,969) drift=0 stamp_errors gpu=0 host=0 overflow_total=0 far_migration_total=0
+[worker s0_to_s1] dest guard: precheck 1599, relay 1401, fallback 0, blocking 0 (relay slept 1401, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 1451, relay 1549, fallback 0, blocking 0 (relay slept 1549, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+=== time2m_rc1_a (17:47:17) GPU 0, 2970 MHz, 51, 99.98 W;1, 2970 MHz, 50, 93.73 W;
+rc=0 8 s
+[chain_v7] STEADY (post-warmup 1000): 2000 steps in 3.01s = 663.8 fps
+[chain_v7] final: total=2,064,969 (expected 2,064,969) drift=0 stamp_errors gpu=0 host=0 overflow_total=0 far_migration_total=0
+=== time2m_rc2_a (17:47:25) GPU 0, 2970 MHz, 52, 275.34 W;1, 2970 MHz, 51, 219.47 W;
+rc=0 7 s
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 2 relays for 2 workers
+[chain_v7] STEADY (post-warmup 1000): 2000 steps in 2.99s = 669.3 fps
+[chain_v7] final: total=2,064,969 (expected 2,064,969) drift=0 stamp_errors gpu=0 host=0 overflow_total=0 far_migration_total=0
+[worker s0_to_s1] dest guard: precheck 1166, relay 1834, fallback 0, blocking 0 (relay slept 1834, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 1878, relay 1122, fallback 0, blocking 0 (relay slept 1122, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+=== time2m_rc2_b (17:47:32) GPU 0, 2962 MHz, 52, 262.67 W;1, 2970 MHz, 51, 237.51 W;
+rc=0 8 s
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 2 relays for 2 workers
+[chain_v7] STEADY (post-warmup 1000): 2000 steps in 2.98s = 670.2 fps
+[chain_v7] final: total=2,064,969 (expected 2,064,969) drift=0 stamp_errors gpu=0 host=0 overflow_total=0 far_migration_total=0
+[worker s0_to_s1] dest guard: precheck 1324, relay 1676, fallback 0, blocking 0 (relay slept 1676, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 1728, relay 1272, fallback 0, blocking 0 (relay slept 1272, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+=== time2m_rc1_b (17:47:40) GPU 0, 2962 MHz, 52, 305.70 W;1, 2910 MHz, 51, 305.80 W;
+rc=0 7 s
+[chain_v7] STEADY (post-warmup 1000): 2000 steps in 3.00s = 665.6 fps
+[chain_v7] final: total=2,064,969 (expected 2,064,969) drift=0 stamp_errors gpu=0 host=0 overflow_total=0 far_migration_total=0
+=== time2m_rc1_c (17:47:47) GPU 0, 2962 MHz, 52, 351.16 W;1, 2962 MHz, 52, 304.18 W;
+rc=0 7 s
+[chain_v7] STEADY (post-warmup 1000): 2000 steps in 3.00s = 665.6 fps
+[chain_v7] final: total=2,064,969 (expected 2,064,969) drift=0 stamp_errors gpu=0 host=0 overflow_total=0 far_migration_total=0
+=== time2m_rc2_c (17:47:55) GPU 0, 2932 MHz, 53, 377.15 W;1, 2962 MHz, 52, 356.24 W;
+rc=0 8 s
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 2 relays for 2 workers
+[chain_v7] STEADY (post-warmup 1000): 2000 steps in 3.02s = 662.9 fps
+[chain_v7] final: total=2,064,969 (expected 2,064,969) drift=0 stamp_errors gpu=0 host=0 overflow_total=0 far_migration_total=0
+[worker s0_to_s1] dest guard: precheck 1611, relay 1389, fallback 0, blocking 0 (relay slept 1389, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 1444, relay 1556, fallback 0, blocking 0 (relay slept 1556, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+=== time1m_rc1_a (17:48:03) GPU 0, 2970 MHz, 51, 221.85 W;1, 2970 MHz, 52, 199.27 W;
+rc=0 7 s
+[chain_v7] STEADY (post-warmup 1000): 5000 steps in 4.57s = 1093.3 fps
+[chain_v7] final: total=1,046,529 (expected 1,046,529) drift=0 stamp_errors gpu=0 host=0 overflow_total=0 far_migration_total=0
+=== time1m_rc2_a (17:48:10) GPU 0, 2962 MHz, 52, 267.18 W;1, 2887 MHz, 55, 448.92 W;
+rc=0 7 s
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 2 relays for 2 workers
+[chain_v7] STEADY (post-warmup 1000): 5000 steps in 4.57s = 1095.3 fps
+[chain_v7] final: total=1,046,529 (expected 1,046,529) drift=0 stamp_errors gpu=0 host=0 overflow_total=0 far_migration_total=0
+[worker s0_to_s1] dest guard: precheck 3097, relay 2903, fallback 0, blocking 0 (relay slept 2902, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 3313, relay 2687, fallback 0, blocking 0 (relay slept 2687, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+=== time1m_rc2_b (17:48:18) GPU 0, 2872 MHz, 55, 438.20 W;1, 2932 MHz, 54, 413.19 W;
+rc=0 7 s
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 2 relays for 2 workers
+[chain_v7] STEADY (post-warmup 1000): 5000 steps in 4.59s = 1088.8 fps
+[chain_v7] final: total=1,046,529 (expected 1,046,529) drift=0 stamp_errors gpu=0 host=0 overflow_total=0 far_migration_total=0
+[worker s0_to_s1] dest guard: precheck 3848, relay 2152, fallback 0, blocking 0 (relay slept 2152, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 2472, relay 3528, fallback 0, blocking 0 (relay slept 3528, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+=== time1m_rc1_b (17:48:25) GPU 0, 2887 MHz, 54, 405.95 W;1, 2955 MHz, 53, 369.82 W;
+rc=0 7 s
+[chain_v7] STEADY (post-warmup 1000): 5000 steps in 4.58s = 1092.1 fps
+[chain_v7] final: total=1,046,529 (expected 1,046,529) drift=0 stamp_errors gpu=0 host=0 overflow_total=0 far_migration_total=0
+=== time1m_rc1_c (17:48:32) GPU 0, 2917 MHz, 53, 379.09 W;1, 2955 MHz, 53, 339.02 W;
+rc=0 8 s
+[chain_v7] STEADY (post-warmup 1000): 5000 steps in 4.60s = 1085.9 fps
+[chain_v7] final: total=1,046,529 (expected 1,046,529) drift=0 stamp_errors gpu=0 host=0 overflow_total=0 far_migration_total=0
+=== time1m_rc2_c (17:48:40) GPU 0, 2925 MHz, 53, 364.05 W;1, 2955 MHz, 53, 340.87 W;
+rc=0 7 s
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 2 relays for 2 workers
+[chain_v7] STEADY (post-warmup 1000): 5000 steps in 4.58s = 1091.1 fps
+[chain_v7] final: total=1,046,529 (expected 1,046,529) drift=0 stamp_errors gpu=0 host=0 overflow_total=0 far_migration_total=0
+[worker s0_to_s1] dest guard: precheck 4574, relay 1426, fallback 0, blocking 0 (relay slept 1426, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 1688, relay 4312, fallback 0, blocking 0 (relay slept 4312, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+### end Sat Oct 10 17:48:47 TST 2026

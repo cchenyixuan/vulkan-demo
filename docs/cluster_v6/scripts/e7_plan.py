@@ -58,9 +58,21 @@ The numbers are planning estimates; the timeouts of the generated scripts are 2 
 
 After a batch, e7_refit.py fits the model's fields to the batch's measurements; --model-json FILE plans with them.
 
+Job scripts of another deployment (default: the batch jobs source e7_lib.sh from ~/run/vulkan-demo-v7rc1 and
+check v7-rc1's tree): --source-repo DIR changes the source line's default deployment; --solver-tag TAG with
+--expected-tree SHA (git rev-parse <commit>:experiment/v7) and --expect-commit PREFIX are exported by every
+emitted batch job (E7_SOLVER_TAG, E7_EXPECTED_TREE, E30_EXPECT_COMMIT; without them no export line is written).
+
+Validation job (--emit-validation DIR: e7_v1.sbatch, job e7_V, line V; user item 7): the job's deployment
+(VALIDATION source repo, tag rc2, --validation-tree / --validation-commit, placeholders until rc2 exists) under
+the full protocol at two batch-1 points (same labels as batch 1: they replace those points), and A/B points of
+the two solvers (e7_pair_point: one calibration by the job's solver, then trials x (the reference sets + one K run
+per solver back to back, the order alternating); no traces) against v7-rc1 (E7_RC1_REPO, read only).
+
 Usage:
     python docs/cluster_v6/scripts/e7_plan.py [--markdown] [--json OUT] [--emit-jobs DIR [--batch N ...]]
-        [--model-json FILE]
+        [--model-json FILE] [--source-repo DIR] [--solver-tag TAG --expected-tree SHA] [--expect-commit PREFIX]
+        [--emit-validation DIR [--validation-tree SHA] [--validation-commit PREFIX]]
 """
 
 from __future__ import annotations
@@ -110,6 +122,17 @@ BATCH_EXTRAS = {1: {"A": (["precheck"], []), "B": (["selftest", "precheck"], ["s
                 2: {"A": ([], []), "B": ([], [])},
                 3: {"A": ([], []), "B": ([], [])},
                 4: {"A": ([], ["cross"]), "B": ([], ["anatomy", "cross", "soak_3d"])}}
+SOURCE_REPOSITORY = "$HOME/run/vulkan-demo-v7rc1"      # the batch jobs' source line default (--source-repo)
+# validation job (user item 7): rc2 (the job's deployment) under the full protocol at two batch-1 points (their
+# labels, so they replace them), and A/B points of rc2 against v7-rc1 (read only), arm C, no traces; the 3-D point
+# with the per-card reference only (keeps the job small)
+VALIDATION = {"job": "v1", "line": "V", "source_repository": "$HOME/run/vulkan-demo-v7rc2",
+              "rc1_repository": "$HOME/run/vulkan-demo-v7rc1", "solver_tag": "rc2",
+              "points": [("F3", "cavity2d_n1440_k2", 2, ["cavity2d_n1440"]), ("F1+F7", "cavity2d_n4000", 8, ["same"])],
+              "pairs": [("F1+F7", "cavity2d_n8000", 8, ["same"]), ("F4", "cavity3d_n160_k8", 8, ["cavity3d_n160"])],
+              "pair_trials": 3, "pair_arm": "C"}
+PLACEHOLDER_TREE = "PLACEHOLDER_TREE"           # rc2's tree and commit are not known yet: the job stops at its start
+PLACEHOLDER_COMMIT = "PLACEHOLDER_COMMIT"
 
 
 @dataclasses.dataclass
@@ -280,9 +303,9 @@ def reference_spec(point: Point, kind: str) -> tuple[str, int]:
     return (point.case if kind == "same" else kind), 1
 
 
-def point_seconds(point: Point, model: Model) -> dict:
+def reference_seconds(point: Point, model: Model) -> tuple[float, float, dict]:
+    """(the first trial's reference sets, a later trial's, {kind: one cold reference run}) of a point."""
     steps, _ = model.window(point.case)
-    run_warm = model.run(point.case, point.slabs, steps, cold=False)
     references_first = references_later = 0.0
     reference_runs = {}
     for kind in point.references:
@@ -292,14 +315,38 @@ def point_seconds(point: Point, model: Model) -> dict:
         references_first += first
         references_later += later
         reference_runs[kind] = first
+    return references_first, references_later, reference_runs
+
+
+def calibration_seconds(point: Point, model: Model) -> float:
     pilot = model.setup(point.case, point.slabs, cold=True) + model.pilot_steps * model.step_time(point.case,
                                                                                                  point.slabs)
-    calibration = model.calibration_rounds * pilot + model.calibration_fixed
+    return model.calibration_rounds * pilot + model.calibration_fixed
+
+
+def point_seconds(point: Point, model: Model) -> dict:
+    steps, _ = model.window(point.case)
+    run_warm = model.run(point.case, point.slabs, steps, cold=False)
+    references_first, references_later, reference_runs = reference_seconds(point, model)
+    calibration = calibration_seconds(point, model)
     trials_total = references_first + (point.trials - 1) * references_later + point.trials * 2 * run_warm
     traced = model.run(point.case, point.slabs, steps, cold=True, seam_check=True) + model.trace_write
     total = calibration + trials_total + point.traces * traced
     return {"run": run_warm, "reference": references_later, "reference_first": references_first,
             "reference_runs": reference_runs, "calibration": calibration, "traced": traced, "total": total}
+
+
+def pair_seconds(point: Point, model: Model, trials: int, arm: str) -> dict:
+    """An e7_pair_point: one calibration (arm C) by the job's solver, then TRIALS x (the reference sets + one K run
+    per solver); no traces. Every K run counts warm (the rc1 half's pipelines are new to the job only if its
+    SPIR-V differs from rc2's: one simulator construction more, inside the timeout margin)."""
+    steps, _ = model.window(point.case)
+    run_warm = model.run(point.case, point.slabs, steps, cold=False)
+    references_first, references_later, reference_runs = reference_seconds(point, model)
+    calibration = calibration_seconds(point, model) if arm == "C" else 0.0
+    total = calibration + references_first + (trials - 1) * references_later + trials * 2 * run_warm
+    return {"run": run_warm, "reference": references_later, "reference_first": references_first,
+            "reference_runs": reference_runs, "calibration": calibration, "total": total}
 
 
 def precheck_seconds(case: str, kind: str, model: Model) -> float:
@@ -394,7 +441,7 @@ def build_jobs(points: list[Point], model: Model) -> dict:
 def job_cases(items: list[dict]) -> list[str]:
     cases = {BRINGUP_CASE}
     for item in items:
-        if item["kind"] in ("point", "cross"):
+        if item["kind"] in ("point", "cross", "pair"):
             point = item["point"]
             cases.add(point.case)
             for kind in point.references:
@@ -408,6 +455,13 @@ def emit_item(item: dict, model: Model) -> list[str]:
     if item["kind"] == "precheck":
         return [f"e7_precheck {item['case']} {item['reference_kind']} {item['parties']} {item['steps']} "
                 f"{timeout(item['seconds'])}"]
+    if item["kind"] == "pair":
+        point = item["point"]
+        seconds = pair_seconds(point, model, item["trials"], item["arm"])
+        steps, warmup = model.window(point.case)
+        references = " ".join(f"{kind}:{timeout(seconds['reference_runs'][kind])}" for kind in point.references)
+        return [f"e7_pair_point {point.family} {point.case} {point.slabs} {item['trials']} {steps} {warmup} "
+                f"{timeout(seconds['calibration'])} {timeout(seconds['run'])} {item['arm']} {references}"]
     if item["kind"] in ("point", "cross"):
         point = item["point"]
         seconds = point_seconds(point, model)
@@ -427,40 +481,94 @@ def job_name(batch: int, line: str) -> str:
     return f"b{batch}{line}"
 
 
-def emit_jobs(jobs: dict, model: Model, directory: pathlib.Path, batches) -> list[pathlib.Path]:
+def job_estimate(items: list[dict], model: Model) -> tuple[float, int]:
+    """(estimated seconds, time limit in hours = 2 x the estimate + 1 h, rounded up) of one job."""
+    estimate = model.job_overhead + sum(item["seconds"] for item in items)
+    return estimate, int(math.ceil((2.0 * estimate + 3600) / 3600.0))
+
+
+def job_script(name: str, line: str, items: list[dict], model: Model, description: str, source_repository: str,
+               exports: list[tuple[str, str]], content: str = None) -> str:
+    """One sbatch script: job e7_<line> (singleton per line), output e7_<name>_<id>.out, the EXPORTS as
+    `export VARIABLE=${VARIABLE:-VALUE}` before the source line (a value set at submission wins), the source line
+    defaulting to SOURCE_REPOSITORY, e7_job_begin, one line per item, e7_job_end."""
+    estimate, limit = job_estimate(items, model)
+    if content is None:
+        content = ", ".join(sorted({(item["point"].family if "point" in item else item["kind"]) for item in items}))
+    body = [
+        "#!/bin/bash",
+        "#SBATCH -p hp_5090",
+        "#SBATCH -A hp5090",
+        "#SBATCH -N 1",
+        "#SBATCH --gpus=8",
+        f"#SBATCH --time={limit:02d}:00:00",
+        f"#SBATCH -J e7_{line}",
+        "#SBATCH --dependency=singleton",
+        f"#SBATCH -o /data/run01/scxm138/logs/e7_{name}_%j.out",
+        f"# {description}; do not edit by hand).",
+        f"# Estimate {estimate / 3600:.2f} h, {len(items)} items: {content}. The protocol is e7_lib.sh's.",
+    ]
+    body += [f"export {variable}=${{{variable}:-{value}}}" for variable, value in exports]
+    body += [
+        'source "${E30_REPO:-' + source_repository + '}/docs/cluster_v6/scripts/e7_lib.sh" '
+        '|| { echo "ABORT: no e7_lib.sh"; exit 2; }',
+        f"e7_job_begin {name} {line} {' '.join(job_cases(items))}",
+    ]
+    for item in items:
+        body += emit_item(item, model)
+    body.append("e7_job_end")
+    return "\n".join(body) + "\n"
+
+
+def emit_jobs(jobs: dict, model: Model, directory: pathlib.Path, batches, source_repository: str = SOURCE_REPOSITORY,
+              exports: list = ()) -> list[pathlib.Path]:
     directory.mkdir(parents=True, exist_ok=True)
     written = []
     for (batch, line), items in jobs.items():
         if batch not in batches or not items:
             continue
         name = job_name(batch, line)
-        estimate = model.job_overhead + sum(item["seconds"] for item in items)
-        limit = int(math.ceil((2.0 * estimate + 3600) / 3600.0))
-        content = ", ".join(sorted({(item["point"].family if "point" in item else item["kind"]) for item in items}))
-        body = [
-            "#!/bin/bash",
-            "#SBATCH -p hp_5090",
-            "#SBATCH -A hp5090",
-            "#SBATCH -N 1",
-            "#SBATCH --gpus=8",
-            f"#SBATCH --time={limit:02d}:00:00",
-            f"#SBATCH -J e7_{line}",
-            "#SBATCH --dependency=singleton",
-            f"#SBATCH -o /data/run01/scxm138/logs/e7_{name}_%j.out",
-            f"# E7 full campaign, batch {batch}, line {line} (generated by docs/cluster_v6/scripts/e7_plan.py "
-            "--emit-jobs; do not edit by hand).",
-            f"# Estimate {estimate / 3600:.2f} h, {len(items)} items: {content}. The protocol is e7_lib.sh's.",
-            'source "${E30_REPO:-$HOME/run/vulkan-demo-v7rc1}/docs/cluster_v6/scripts/e7_lib.sh" '
-            '|| { echo "ABORT: no e7_lib.sh"; exit 2; }',
-            f"e7_job_begin {name} {line} {' '.join(job_cases(items))}",
-        ]
-        for item in items:
-            body += emit_item(item, model)
-        body.append("e7_job_end")
+        description = (f"E7 full campaign, batch {batch}, line {line} (generated by docs/cluster_v6/scripts/e7_plan.py "
+                       "--emit-jobs")
         path = directory / f"e7_{name}.sbatch"
-        path.write_text("\n".join(body) + "\n", encoding="utf-8", newline="\n")
+        path.write_text(job_script(name, line, items, model, description, source_repository, list(exports)),
+                        encoding="utf-8", newline="\n")
         written.append(path)
     return written
+
+
+def validation_items(model: Model) -> list[dict]:
+    """The validation job's items: the full-protocol points (rc2), then the A/B pair points."""
+    items = []
+    for family, case, slabs, references in VALIDATION["points"]:
+        point = Point(family, case, slabs, list(references))
+        items.append({"kind": "point", "point": point, "seconds": point_seconds(point, model)["total"]})
+    for family, case, slabs, references in VALIDATION["pairs"]:
+        point = Point(family, case, slabs, list(references))
+        trials, arm = VALIDATION["pair_trials"], VALIDATION["pair_arm"]
+        items.append({"kind": "pair", "point": point, "trials": trials, "arm": arm,
+                      "seconds": pair_seconds(point, model, trials, arm)["total"]})
+    return items
+
+
+def emit_validation(model: Model, directory: pathlib.Path, tree: str, commit: str) -> tuple[pathlib.Path, list[dict]]:
+    """docs/cluster_v6/e7_jobs/e7_v1.sbatch: job e7_V (line V: no pre-checks, no refmode of another line), run from
+    the rc2 deployment (its tree TREE and COMMIT prefix exported: the job stops unless both match), v7-rc1 at
+    E7_RC1_REPO (read only)."""
+    items = validation_items(model)
+    name, line = VALIDATION["job"], VALIDATION["line"]
+    content = ", ".join(f"{item['point'].family} {item['point'].case} K={item['point'].slabs}"
+                        + (f" A/B rc1-{VALIDATION['solver_tag']}" if item["kind"] == "pair" else "")
+                        for item in items)
+    description = (f"E7 validation job {name}, line {line}: {VALIDATION['solver_tag']} (this deployment) against "
+                   "v7-rc1 (E7_RC1_REPO, read only) (generated by docs/cluster_v6/scripts/e7_plan.py --emit-validation")
+    exports = [("E30_EXPECT_COMMIT", commit), ("E7_SOLVER_TAG", VALIDATION["solver_tag"]),
+               ("E7_EXPECTED_TREE", tree), ("E7_RC1_REPO", VALIDATION["rc1_repository"])]
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"e7_{name}.sbatch"
+    path.write_text(job_script(name, line, items, model, description, VALIDATION["source_repository"], exports,
+                               content), encoding="utf-8", newline="\n")
+    return path, items
 
 
 def main() -> int:
@@ -472,7 +580,24 @@ def main() -> int:
                         help="with --emit-jobs: only these batches (default all)")
     parser.add_argument("--model-json", default=None, metavar="FILE",
                         help="replace model fields (a JSON object, e.g. e7_refit.py --out-model); default the plan's")
+    parser.add_argument("--source-repo", default=SOURCE_REPOSITORY, metavar="DIR",
+                        help=f"with --emit-jobs: the source line's default deployment (default {SOURCE_REPOSITORY})")
+    parser.add_argument("--solver-tag", default=None,
+                        help="with --emit-jobs and --expected-tree: exported as E7_SOLVER_TAG (e.g. rc2)")
+    parser.add_argument("--expected-tree", default=None, metavar="SHA",
+                        help="with --emit-jobs and --solver-tag: exported as E7_EXPECTED_TREE (git rev-parse "
+                             "<commit>:experiment/v7)")
+    parser.add_argument("--expect-commit", default=None, metavar="PREFIX",
+                        help="with --emit-jobs: exported as E30_EXPECT_COMMIT (the deployment's COMMIT prefix)")
+    parser.add_argument("--emit-validation", default=None, metavar="DIR",
+                        help="write the validation job e7_v1.sbatch (job e7_V, line V) into DIR")
+    parser.add_argument("--validation-tree", default=PLACEHOLDER_TREE, metavar="SHA",
+                        help="the validation job's expected experiment/v7 tree (git rev-parse <rc2>:experiment/v7)")
+    parser.add_argument("--validation-commit", default=PLACEHOLDER_COMMIT, metavar="PREFIX",
+                        help="the validation job's expected COMMIT prefix (the rc2 commit)")
     arguments = parser.parse_args()
+    if (arguments.solver_tag is None) != (arguments.expected_tree is None):
+        parser.error("--solver-tag and --expected-tree go together (the tag names the tree's solver)")
     model = load_model(arguments.model_json)
     points = campaign_points()
     jobs = build_jobs(points, model)
@@ -539,8 +664,35 @@ def main() -> int:
                               for batch, values in batch_totals.items()},
             "total_node_hours": total / 3600, "records": records}, indent=1), encoding="utf-8")
     if arguments.emit_jobs:
-        for path in emit_jobs(jobs, model, pathlib.Path(arguments.emit_jobs), set(arguments.batch or (1, 2, 3, 4))):
+        exports = []
+        if arguments.expect_commit:
+            exports.append(("E30_EXPECT_COMMIT", arguments.expect_commit))
+        if arguments.solver_tag:
+            exports += [("E7_SOLVER_TAG", arguments.solver_tag), ("E7_EXPECTED_TREE", arguments.expected_tree)]
+        for path in emit_jobs(jobs, model, pathlib.Path(arguments.emit_jobs), set(arguments.batch or (1, 2, 3, 4)),
+                              arguments.source_repo, exports):
             print(f"wrote {path}")
+    if arguments.emit_validation:
+        path, items = emit_validation(model, pathlib.Path(arguments.emit_validation), arguments.validation_tree,
+                                      arguments.validation_commit)
+        estimate, limit = job_estimate(items, model)
+        print(f"\nvalidation job e7_{VALIDATION['job']} (line {VALIDATION['line']}, job name e7_{VALIDATION['line']}): "
+              f"estimate {estimate / 3600:.2f} h = {estimate:.0f} s (job overhead {model.job_overhead:.0f} s), "
+              f"time limit {limit} h; tree {arguments.validation_tree}, commit {arguments.validation_commit}")
+        for item in items:
+            point = item["point"]
+            if item["kind"] == "pair":
+                seconds = pair_seconds(point, model, item["trials"], item["arm"])
+                text = (f"e7_pair_point ab_{point.case.replace('cavity', '')}_K{point.slabs}: {item['trials']} trials "
+                        f"x (reference sets + rc1 + {VALIDATION['solver_tag']}), arm {item['arm']}")
+            else:
+                seconds = point_seconds(point, model)
+                text = (f"e7_point {point.case.replace('cavity', '')}_K{point.slabs}: {point.trials} trials "
+                        f"x (reference sets + E + C) + {point.traces} traced runs")
+            print(f"  {text}: {seconds['total'] / 60:.1f} min (calibration {seconds['calibration'] / 60:.1f}, "
+                  f"run {seconds['run'] / 60:.1f}, reference set {seconds['reference'] / 60:.1f} / first "
+                  f"{seconds['reference_first'] / 60:.1f} min)")
+        print(f"wrote {path}")
     return 0
 
 

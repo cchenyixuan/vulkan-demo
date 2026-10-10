@@ -1,0 +1,1006 @@
+[partition_v5] WARN slab 0: only 15 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v5] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v5] WARN slab 2: only 17 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 15 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 17 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v5] WARN slab 0: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v5] WARN slab 1: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v5] WARN slab 2: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v5] WARN slab 3: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 3: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 3: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v5] WARN slab 0: only 15 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v5] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v5] WARN slab 2: only 17 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 15 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 17 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v5] WARN slab 0: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v5] WARN slab 1: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v5] WARN slab 2: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v5] WARN slab 3: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 3: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 3: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 3: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v5] chain N=2: columns [0,23), [23,48) of 48; particles 5,152, 5,600
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=2: columns [0,23), [23,48) of 48; particles 5,152, 5,600
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0
+[partition_v5] chain N=3: columns [0,15), [15,31), [31,48) of 48; particles 3,360, 3,584, 3,808
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=3: columns [0,15), [15,31), [31,48) of 48; particles 3,360, 3,584, 3,808
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v5] chain N=4: columns [0,12), [12,24), [24,36), [36,48) of 48; particles 2,688, 2,688, 2,688, 2,688
+[partition_v7] chain N=4: columns [0,12), [12,24), [24,36), [36,48) of 48; particles 2,688, 2,688, 2,688, 2,688
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0/0
+[partition_v7] chain N=4: columns [0,12), [12,24), [24,36), [36,48) of 48; particles 2,688, 2,688, 2,688, 2,688
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0/0
+[partition_v5] chain N=2: columns [0,23), [23,48) of 48; particles 5,152, 5,600
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=64/64
+[partition_v7] chain N=2: columns [0,23), [23,48) of 48; particles 5,152, 5,600
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=64/64
+[partition_v5] chain N=3: columns [0,15), [15,31), [31,48) of 48; particles 3,360, 3,584, 3,808
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,15), [15,31), [31,48) of 48; particles 3,360, 3,584, 3,808
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=64/64/64
+[partition_v5] chain N=4: columns [0,12), [12,24), [24,36), [36,48) of 48; particles 2,688, 2,688, 2,688, 2,688
+[partition_v7] chain N=4: columns [0,12), [12,24), [24,36), [36,48) of 48; particles 2,688, 2,688, 2,688, 2,688
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=64/64/64/64
+[partition_v7] chain N=4: columns [0,12), [12,24), [24,36), [36,48) of 48; particles 2,688, 2,688, 2,688, 2,688
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=64/64/64/64
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64/64
+[partition_v7] chain N=4: columns [0,12), [12,24), [24,36), [36,48) of 48; particles 2,688, 2,688, 2,688, 2,688
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=10,080 (replica regions 2 x 4,704 + migrants 672) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=10,080 (replica regions 2 x 4,704 + migrants 672) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=10,080 (replica regions 2 x 4,704 + migrants 672) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=10,080 (replica regions 2 x 4,704 + migrants 672) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=10,080 (replica regions 2 x 4,704 + migrants 672) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=10,080 (replica regions 2 x 4,704 + migrants 672) departed pool/slab=64/64/64
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=10,080 (replica regions 2 x 4,704 + migrants 672) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=10,080 (replica regions 2 x 4,704 + migrants 672) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 3: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 3: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 3: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 3: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 3: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 3: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 3: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 3: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=4: columns [0,12), [12,24), [24,36), [36,48) of 48; particles 2,688, 2,688, 2,688, 2,688
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0/0
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=4: columns [0,12), [12,24), [24,36), [36,48) of 48; particles 32,256, 32,256, 32,256, 32,256
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0/0/0
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=64/64/64
+[partition_v7] chain N=4: columns [0,12), [12,24), [24,36), [36,48) of 48; particles 2,688, 2,688, 2,688, 2,688
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=64/64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=64/64/64
+[partition_v7] chain N=4: columns [0,12), [12,24), [24,36), [36,48) of 48; particles 32,256, 32,256, 32,256, 32,256
+[partition_v7] seam: ghost_layers=1 keep_departed=1 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=64/64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64/64
+[partition_v7] chain N=4: columns [0,12), [12,24), [24,36), [36,48) of 48; particles 2,688, 2,688, 2,688, 2,688
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=10,080 (replica regions 2 x 4,704 + migrants 672) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=10,080 (replica regions 2 x 4,704 + migrants 672) departed pool/slab=64/64/64
+[partition_v7] chain N=4: columns [0,12), [12,24), [24,36), [36,48) of 48; particles 32,256, 32,256, 32,256, 32,256
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=10,080 (replica regions 2 x 4,704 + migrants 672) departed pool/slab=64/64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=4: columns [0,12), [12,24), [24,36), [36,48) of 48; particles 2,688, 2,688, 2,688, 2,688
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=4: columns [0,12), [12,24), [24,36), [36,48) of 48; particles 32,256, 32,256, 32,256, 32,256
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 13 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 14 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 13 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 13 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 14 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 13 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 13 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 14 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 13 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 13 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 14 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 13 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=10,080 (replica regions 2 x 4,704 + migrants 672) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=10,080 (replica regions 2 x 4,704 + migrants 672) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=1: columns [0,40) of 40; particles 1,280
+[partition_v7] chain N=2: columns [0,20), [20,40) of 40; particles 640, 640
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=896 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,13), [13,27), [27,40) of 40; particles 416, 448, 416
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=896 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=1: columns [0,40) of 40; particles 7,680
+[partition_v7] chain N=2: columns [0,20), [20,40) of 40; particles 3,840, 3,840
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=2,688 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,13), [13,27), [27,40) of 40; particles 2,496, 2,688, 2,496
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=2,688 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=1: columns [0,40) of 40; particles 1,280
+[partition_v7] chain N=2: columns [0,20), [20,40) of 40; particles 640, 640
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=1,920 (replica regions 2 x 896 + migrants 128) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,13), [13,27), [27,40) of 40; particles 416, 448, 416
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=1,920 (replica regions 2 x 896 + migrants 128) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,40) of 40; particles 7,680
+[partition_v7] chain N=2: columns [0,20), [20,40) of 40; particles 3,840, 3,840
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=5,760 (replica regions 2 x 2,688 + migrants 384) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,13), [13,27), [27,40) of 40; particles 2,496, 2,688, 2,496
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=5,760 (replica regions 2 x 2,688 + migrants 384) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=10,080 (replica regions 2 x 4,704 + migrants 672) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=10,080 (replica regions 2 x 4,704 + migrants 672) departed pool/slab=64/64/64[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 3: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 3: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=4: columns [0,12), [12,24), [24,36), [36,48) of 48; particles 2,688, 2,688, 2,688, 2,688
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=4: columns [0,12), [12,24), [24,36), [36,48) of 48; particles 32,256, 32,256, 32,256, 32,256
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=3,360 (replica regions 2 x 1,568 + migrants 224) departed pool/slab=64/64/64
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=10,080 (replica regions 2 x 4,704 + migrants 672) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=10,080 (replica regions 2 x 4,704 + migrants 672) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 16 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARNING: replica region 56.0 slots per voxel (V7_GHOST_POOL_FACTOR=0.5) < 1.2 x (h/dx)^d = 76.8; expect overflow_ghost_count > 0
+[partition_v7] WARN slab 0: only 14 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 3: only 14 own columns — Phase B hiding budget is thin (warn threshold 20)
+
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=1: columns [0,48) of 48; particles 10,752
+[partition_v7] chain N=1: columns [0,48) of 48; particles 129,024
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=1,568 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=4,704 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 3,584, 3,584, 3,584
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 64,512, 64,512
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,16), [16,32), [32,48) of 48; particles 43,008, 43,008, 43,008
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=4,768 (replica regions 2 x 2,352 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=2: columns [0,32), [32,96) of 96; particles 7,168, 14,336
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=2: columns [0,64), [64,96) of 96; particles 14,336, 7,168
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[partition_v7] chain N=3: columns [0,24), [24,72), [72,96) of 96; particles 5,376, 10,752, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=3: columns [0,24), [24,48), [48,96) of 96; particles 5,376, 5,376, 10,752
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64
+[partition_v7] chain N=4: columns [0,14), [14,48), [48,82), [82,96) of 96; particles 3,136, 7,616, 7,616, 3,136
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64/64/64
+[partition_v7] chain N=2: columns [0,24), [24,48) of 48; particles 5,376, 5,376
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=974 (replica regions 2 x 455 + migrants 64) departed pool/slab=64/64
+[seam_layout] ALL PASS (layers=1 == v5 partition + transport; layers=2 column/pid algebra, segment layout, install range; lean / compact / packed segments in 2-D and 3-D, packed allocation tiling; packed rejection + V7_DIAG_POISON_G1 parsing; packed shader layout + poison branches + spec ids; V7_BAND_WIDTHS parsing / rejection / spec 82; density copy pass regions + streams (E39 B9); ghost_send lane groups: streams, emulated mapping, shader text, old statements (E39 B6); deep-wall skip: switch 0 = the B6 build, marker placement, variant pipelines, band rule, candidate count, AUTO rule, shader text (E39 B4); fused correction + density: switch 0 = the B4 build, fallback = switch 0, fused streams / pipelines / modules at every site, tick-label consumers, shader text (E39 B1); band overlap: switch 0 = the B1 build, off slabs = switch 0, on streams / pairs / segment tiling / pipelines / modules, layouts, fusion rewritten after construction = the B1 separate path, force_deep recording invariant, auto = one verdict per chain (thresholds, straddling chains, chain counts, run metadata), tick consumers, force.comp FORCE_SEGMENT (E39 B3); release defaults (E6b, phase A no-wait E32) + LEGACY_DEFAULTS; SPIR-V current)

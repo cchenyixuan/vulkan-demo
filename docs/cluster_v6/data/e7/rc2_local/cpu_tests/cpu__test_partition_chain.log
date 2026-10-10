@@ -1,0 +1,211 @@
+loading 1M case ...
+[case_loader_v7] loading lid_driven_cavity_2d
+  - domain.obj: 1,002,001 particles (water)
+  - wall.obj: 33,517 particles (wall)
+  - wall_top.obj: 11,011 particles (lid)
+[case_loader_v7] total loaded: 1,046,529 particles
+[case_loader_v7] grid: dim=(205, 205, 1) origin=(-0.5135599994659423, -0.5135599994659423, -0.0025)
+[layer 1] golden N=2 equality — 1M
+[partition_v7] K_split = 103 / 205 (GPU 0 owns 103 cols, GPU 1 owns 102)
+  slab 0: own_x [0, 103) + trailing ghost; 524,799 particles, pool=1,200,000
+  slab 1: own_x [103, 205) + leading ghost; 521,730 particles, pool=1,200,000
+[partition_v7] chain N=2: columns [0,103), [103,205) of 205; particles 524,799, 521,730
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 103 / 205 (GPU 0 owns 103 cols, GPU 1 owns 102)
+[partition_v7] pool_safety=1.05: slot0 own_pool 1,200,000->551,040 (n=524,799); slot1 own_pool 1,200,000->547,840 (n=521,730)
+  slab 0: own_x [0, 103) + trailing ghost; 524,799 particles, pool=551,040
+  slab 1: own_x [103, 205) + leading ghost; 521,730 particles, pool=547,840
+[partition_v7] chain N=2: columns [0,103), [103,205) of 205; particles 524,799, 521,730
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 103 / 205 (GPU 0 owns 103 cols, GPU 1 owns 102)
+[partition_v7] pool_safety=1.2: slot0 own_pool 1,200,000->629,760 (n=524,799); slot1 own_pool 1,200,000->626,176 (n=521,730)
+  slab 0: own_x [0, 103) + trailing ghost; 524,799 particles, pool=629,760
+  slab 1: own_x [103, 205) + leading ghost; 521,730 particles, pool=626,176
+[partition_v7] chain N=2: columns [0,103), [103,205) of 205; particles 524,799, 521,730
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 103 / 205 (GPU 0 owns 103 cols, GPU 1 owns 102)
+[partition_v7] pool_safety=1.5: slot0 own_pool 1,200,000->787,200 (n=524,799); slot1 own_pool 1,200,000->782,720 (n=521,730)
+  slab 0: own_x [0, 103) + trailing ghost; 524,799 particles, pool=787,200
+  slab 1: own_x [103, 205) + leading ghost; 521,730 particles, pool=782,720
+[partition_v7] chain N=2: columns [0,103), [103,205) of 205; particles 524,799, 521,730
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 155 / 205 (GPU 0 owns 155 cols, GPU 1 owns 50)
+  slab 0: own_x [0, 155) + trailing ghost; 790,779 particles, pool=1,200,000
+  slab 1: own_x [155, 205) + leading ghost; 255,750 particles, pool=1,200,000
+[partition_v7] chain N=2: columns [0,155), [155,205) of 205; particles 790,779, 255,750
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 155 / 205 (GPU 0 owns 155 cols, GPU 1 owns 50)
+[partition_v7] pool_safety=1.05: slot0 own_pool 1,200,000->830,336 (n=790,779); slot1 own_pool 1,200,000->268,544 (n=255,750)
+  slab 0: own_x [0, 155) + trailing ghost; 790,779 particles, pool=830,336
+  slab 1: own_x [155, 205) + leading ghost; 255,750 particles, pool=268,544
+[partition_v7] chain N=2: columns [0,155), [155,205) of 205; particles 790,779, 255,750
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 155 / 205 (GPU 0 owns 155 cols, GPU 1 owns 50)
+[partition_v7] pool_safety=1.2: slot0 own_pool 1,200,000->948,992 (n=790,779); slot1 own_pool 1,200,000->306,944 (n=255,750)
+  slab 0: own_x [0, 155) + trailing ghost; 790,779 particles, pool=948,992
+  slab 1: own_x [155, 205) + leading ghost; 255,750 particles, pool=306,944
+[partition_v7] chain N=2: columns [0,155), [155,205) of 205; particles 790,779, 255,750
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 155 / 205 (GPU 0 owns 155 cols, GPU 1 owns 50)
+[partition_v7] pool_safety=1.5: slot0 own_pool 1,200,000->1,186,176 (n=790,779); slot1 own_pool 1,200,000->383,744 (n=255,750)
+  slab 0: own_x [0, 155) + trailing ghost; 790,779 particles, pool=1,186,176
+  slab 1: own_x [155, 205) + leading ghost; 255,750 particles, pool=383,744
+[partition_v7] chain N=2: columns [0,155), [155,205) of 205; particles 790,779, 255,750
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 147 / 205 (GPU 0 owns 147 cols, GPU 1 owns 58)
+  slab 0: own_x [0, 147) + trailing ghost; 749,859 particles, pool=1,200,000
+  slab 1: own_x [147, 205) + leading ghost; 296,670 particles, pool=1,200,000
+[partition_v7] chain N=2: columns [0,147), [147,205) of 205; particles 749,859, 296,670
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 147 / 205 (GPU 0 owns 147 cols, GPU 1 owns 58)
+[partition_v7] pool_safety=1.05: slot0 own_pool 1,200,000->787,456 (n=749,859); slot1 own_pool 1,200,000->311,552 (n=296,670)
+  slab 0: own_x [0, 147) + trailing ghost; 749,859 particles, pool=787,456
+  slab 1: own_x [147, 205) + leading ghost; 296,670 particles, pool=311,552
+[partition_v7] chain N=2: columns [0,147), [147,205) of 205; particles 749,859, 296,670
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 147 / 205 (GPU 0 owns 147 cols, GPU 1 owns 58)
+[partition_v7] pool_safety=1.2: slot0 own_pool 1,200,000->899,840 (n=749,859); slot1 own_pool 1,200,000->356,096 (n=296,670)
+  slab 0: own_x [0, 147) + trailing ghost; 749,859 particles, pool=899,840
+  slab 1: own_x [147, 205) + leading ghost; 296,670 particles, pool=356,096
+[partition_v7] chain N=2: columns [0,147), [147,205) of 205; particles 749,859, 296,670
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 147 / 205 (GPU 0 owns 147 cols, GPU 1 owns 58)
+[partition_v7] pool_safety=1.5: slot0 own_pool 1,200,000->1,124,864 (n=749,859); slot1 own_pool 1,200,000->445,056 (n=296,670)
+  slab 0: own_x [0, 147) + trailing ghost; 749,859 particles, pool=1,124,864
+  slab 1: own_x [147, 205) + leading ghost; 296,670 particles, pool=445,056
+[partition_v7] chain N=2: columns [0,147), [147,205) of 205; particles 749,859, 296,670
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 50 / 205 (GPU 0 owns 50 cols, GPU 1 owns 155)
+  slab 0: own_x [0, 50) + trailing ghost; 253,704 particles, pool=1,200,000
+  slab 1: own_x [50, 205) + leading ghost; 792,825 particles, pool=1,200,000
+[partition_v7] chain N=2: columns [0,50), [50,205) of 205; particles 253,704, 792,825
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 50 / 205 (GPU 0 owns 50 cols, GPU 1 owns 155)
+[partition_v7] pool_safety=1.05: slot0 own_pool 1,200,000->266,496 (n=253,704); slot1 own_pool 1,200,000->832,512 (n=792,825)
+  slab 0: own_x [0, 50) + trailing ghost; 253,704 particles, pool=266,496
+  slab 1: own_x [50, 205) + leading ghost; 792,825 particles, pool=832,512
+[partition_v7] chain N=2: columns [0,50), [50,205) of 205; particles 253,704, 792,825
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 50 / 205 (GPU 0 owns 50 cols, GPU 1 owns 155)
+[partition_v7] pool_safety=1.2: slot0 own_pool 1,200,000->304,512 (n=253,704); slot1 own_pool 1,200,000->951,424 (n=792,825)
+  slab 0: own_x [0, 50) + trailing ghost; 253,704 particles, pool=304,512
+  slab 1: own_x [50, 205) + leading ghost; 792,825 particles, pool=951,424
+[partition_v7] chain N=2: columns [0,50), [50,205) of 205; particles 253,704, 792,825[partition_v7] WARN slab 1: only 2 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 2 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 2 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 2 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 1: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+[partition_v7] WARN slab 2: only 12 own columns — Phase B hiding budget is thin (warn threshold 20)
+
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 50 / 205 (GPU 0 owns 50 cols, GPU 1 owns 155)
+[partition_v7] pool_safety=1.5: slot0 own_pool 1,200,000->380,672 (n=253,704); slot1 own_pool 1,200,000->1,189,248 (n=792,825)
+  slab 0: own_x [0, 50) + trailing ghost; 253,704 particles, pool=380,672
+  slab 1: own_x [50, 205) + leading ghost; 792,825 particles, pool=1,189,248
+[partition_v7] chain N=2: columns [0,50), [50,205) of 205; particles 253,704, 792,825
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 203 / 205 (GPU 0 owns 203 cols, GPU 1 owns 2)
+  slab 0: own_x [0, 203) + trailing ghost; 1,036,299 particles, pool=1,200,000
+  slab 1: own_x [203, 205) + leading ghost; 10,230 particles, pool=1,200,000
+[partition_v7] chain N=2: columns [0,203), [203,205) of 205; particles 1,036,299, 10,230
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 203 / 205 (GPU 0 owns 203 cols, GPU 1 owns 2)
+[partition_v7] pool_safety=1.05: slot0 own_pool 1,200,000->1,088,128 (n=1,036,299); slot1 own_pool 1,200,000->10,752 (n=10,230)
+  slab 0: own_x [0, 203) + trailing ghost; 1,036,299 particles, pool=1,088,128
+  slab 1: own_x [203, 205) + leading ghost; 10,230 particles, pool=10,752
+[partition_v7] chain N=2: columns [0,203), [203,205) of 205; particles 1,036,299, 10,230
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 203 / 205 (GPU 0 owns 203 cols, GPU 1 owns 2)
+[partition_v7] pool_safety=1.2: slot0 own_pool 1,200,000->1,200,000 (n=1,036,299); slot1 own_pool 1,200,000->12,288 (n=10,230)
+  slab 0: own_x [0, 203) + trailing ghost; 1,036,299 particles, pool=1,200,000
+  slab 1: own_x [203, 205) + leading ghost; 10,230 particles, pool=12,288
+[partition_v7] chain N=2: columns [0,203), [203,205) of 205; particles 1,036,299, 10,230
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 203 / 205 (GPU 0 owns 203 cols, GPU 1 owns 2)
+[partition_v7] pool_safety=1.5: slot0 own_pool 1,200,000->1,200,000 (n=1,036,299); slot1 own_pool 1,200,000->15,360 (n=10,230)
+  slab 0: own_x [0, 203) + trailing ghost; 1,036,299 particles, pool=1,200,000
+  slab 1: own_x [203, 205) + leading ghost; 10,230 particles, pool=15,360
+[partition_v7] chain N=2: columns [0,203), [203,205) of 205; particles 1,036,299, 10,230
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0
+[layer 2] chain invariants — 1M
+[partition_v7] chain N=3: columns [0,69), [69,136), [136,205) of 205; particles 350,889, 342,705, 352,935
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=3: columns [0,69), [69,136), [136,205) of 205; particles 350,889, 342,705, 352,935
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=3: columns [0,69), [69,136), [136,205) of 205; particles 350,889, 342,705, 352,935
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=4: columns [0,53), [53,103), [103,153), [153,205) of 205; particles 269,049, 255,750, 255,750, 265,980
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0/0
+[partition_v7] chain N=4: columns [0,53), [53,103), [103,153), [153,205) of 205; particles 269,049, 255,750, 255,750, 265,980
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0/0
+[partition_v7] chain N=4: columns [0,53), [53,103), [103,153), [153,205) of 205; particles 269,049, 255,750, 255,750, 265,980
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0/0
+[partition_v7] chain N=5: columns [0,43), [43,83), [83,123), [123,163), [163,205) of 205; particles 217,899, 204,600, 204,600, 204,600, 214,830
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0/0/0
+[partition_v7] chain N=5: columns [0,43), [43,83), [83,123), [123,163), [163,205) of 205; particles 217,899, 204,600, 204,600, 204,600, 214,830
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0/0/0
+[partition_v7] chain N=5: columns [0,43), [43,83), [83,123), [123,163), [163,205) of 205; particles 217,899, 204,600, 204,600, 204,600, 214,830
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0/0/0
+[partition_v7] chain N=8: columns [0,28), [28,53), [53,78), [78,103), [103,128), [128,153), [153,178), [178,205) of 205; particles 141,174, 127,875, 127,875, 127,875, 127,875, 127,875, 127,875, 138,105
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0/0/0/0/0/0
+[partition_v7] chain N=8: columns [0,28), [28,53), [53,78), [78,103), [103,128), [128,153), [153,178), [178,205) of 205; particles 141,174, 127,875, 127,875, 127,875, 127,875, 127,875, 127,875, 138,105
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0/0/0/0/0/0
+[partition_v7] chain N=8: columns [0,28), [28,53), [53,78), [78,103), [103,128), [128,153), [153,178), [178,205) of 205; particles 141,174, 127,875, 127,875, 127,875, 127,875, 127,875, 127,875, 138,105
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0/0/0/0/0/0
+[partition_v7] chain N=3: columns [0,69), [69,103), [103,205) of 205; particles 350,889, 173,910, 521,730
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=3: columns [0,69), [69,103), [103,205) of 205; particles 350,889, 173,910, 521,730
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=3: columns [0,69), [69,103), [103,205) of 205; particles 350,889, 173,910, 521,730
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0
+[partition_v7] chain N=4: columns [0,29), [29,136), [136,176), [176,205) of 205; particles 146,289, 547,305, 204,600, 148,335
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0/0
+[partition_v7] chain N=4: columns [0,29), [29,136), [136,176), [176,205) of 205; particles 146,289, 547,305, 204,600, 148,335
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0/0
+[partition_v7] chain N=4: columns [0,29), [29,136), [136,176), [176,205) of 205; particles 146,289, 547,305, 204,600, 148,335
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0/0
+[layer 2] min-width rejection — 1M
+[partition_v7] chain N=3: columns [0,181), [181,193), [193,205) of 205; particles 923,769, 61,380, 61,380
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0
+[layer 3] N=1 degenerate + isolate_slab — 1M
+[partition_v7] chain N=1: columns [0,205) of 205; particles 1,046,529
+[partition_v7] chain N=4: columns [0,53), [53,103), [103,153), [153,205) of 205; particles 269,049, 255,750, 255,750, 265,980
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=22,960 (V5 mixed layout) departed pool/slab=0/0/0/0
+loading 8M case ...
+[case_loader_v7] loading lid_driven_cavity_2d_8m
+  - domain.obj: 8,003,241 particles (stick_water)
+  - wall.obj: 93,841 particles (stick_wall)
+  - wall_top.obj: 31,119 particles (stick_lid)
+[case_loader_v7] total loaded: 8,128,201 particles
+[case_loader_v7] grid: dim=(571, 571, 1) origin=(-0.5049859916534424, -0.5049859916534424, -0.000884)
+[layer 1] golden N=2 equality — 8M
+[partition_v7] K_split = 286 / 571 (GPU 0 owns 286 cols, GPU 1 owns 285)
+  slab 0: own_x [0, 286) + trailing ghost; 4,068,377 particles, pool=9,347,456
+  slab 1: own_x [286, 571) + leading ghost; 4,059,824 particles, pool=9,347,456
+[partition_v7] chain N=2: columns [0,286), [286,571) of 571; particles 4,068,377, 4,059,824
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=63,952 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 286 / 571 (GPU 0 owns 286 cols, GPU 1 owns 285)
+[partition_v7] pool_safety=1.2: slot0 own_pool 9,347,456->4,882,176 (n=4,068,377); slot1 own_pool 9,347,456->4,871,808 (n=4,059,824)
+  slab 0: own_x [0, 286) + trailing ghost; 4,068,377 particles, pool=4,882,176
+  slab 1: own_x [286, 571) + leading ghost; 4,059,824 particles, pool=4,871,808
+[partition_v7] chain N=2: columns [0,286), [286,571) of 571; particles 4,068,377, 4,059,824
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=63,952 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 138 / 571 (GPU 0 owns 138 cols, GPU 1 owns 433)
+  slab 0: own_x [0, 138) + trailing ghost; 1,958,637 particles, pool=9,347,456
+  slab 1: own_x [138, 571) + leading ghost; 6,169,564 particles, pool=9,347,456
+[partition_v7] chain N=2: columns [0,138), [138,571) of 571; particles 1,958,637, 6,169,564
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=63,952 (V5 mixed layout) departed pool/slab=0/0
+[partition_v7] K_split = 138 / 571 (GPU 0 owns 138 cols, GPU 1 owns 433)
+[partition_v7] pool_safety=1.2: slot0 own_pool 9,347,456->2,350,464 (n=1,958,637); slot1 own_pool 9,347,456->7,403,520 (n=6,169,564)
+  slab 0: own_x [0, 138) + trailing ghost; 1,958,637 particles, pool=2,350,464
+  slab 1: own_x [138, 571) + leading ghost; 6,169,564 particles, pool=7,403,520
+[partition_v7] chain N=2: columns [0,138), [138,571) of 571; particles 1,958,637, 6,169,564
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=63,952 (V5 mixed layout) departed pool/slab=0/0
+[layer 2] chain invariants — 8M
+[partition_v7] chain N=4: columns [0,144), [144,286), [286,427), [427,571) of 571; particles 2,044,167, 2,024,210, 2,009,955, 2,049,869
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=63,952 (V5 mixed layout) departed pool/slab=0/0/0/0
+[partition_v7] chain N=4: columns [0,78), [78,380), [380,493), [493,571) of 571; particles 1,103,337, 4,305,010, 1,610,815, 1,109,039
+[partition_v7] seam: ghost_layers=1 keep_departed=0 ghost pool/direction=63,952 (V5 mixed layout) departed pool/slab=0/0/0/0
+
+3095 checks passed, 0 failed
+ALL PASS
