@@ -6,7 +6,8 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 1M | 1,046,529 | 5 | 206 × 206 × 1 | 42,436 / 42,436 | 24.7 / 25 | 24.7 / 30 | 223.2 | 223.3 | 73.52 / 73.82 | 73.86 / 74.18 | 3.02 | 1314 (1316) | 5.62 | 2.58 | 2.83 | 1418 / 1361 | +7.73% | +3.42% |
 | 2M | 2,064,969 | 4.99 | 288 × 288 × 1 | 82,944 / 82,944 | 24.9 / 25 | 24.9 / 30 | 223.8 | 223.8 | 72.65 / 72.83 | 71.45 / 71.60 | 3.13 | 2599 (2605) | 5.62 | 2.51 | 2.81 | 2751 / 2689 | +5.61% | +3.25% |
-| 4M | 4,182,025 | 5 | 410 × 410 × 1 | 168,100 / 168,100 | 24.9 / 25 | 24.9 / 30 | 224.1 | 224.1 | 73.90 / 74.01 | 74.26 / 74.39 | 3.02 | 5664 (5676) | 6.04 | 2.69 | 2.94 | 5795 / 5715 | +2.09% | +0.69% |
+| 4M(旧手工) | 4,182,025 | 5 | 410 × 410 × 1 | 168,100 / 168,100 | 24.9 / 25 | 24.9 / 30 | 224.1 | 224.1 | 73.90 / 74.01 | 74.26 / 74.39 | 3.02 | 5664 (5676) | 6.04 | 2.69 | 2.94 | 5795 / 5715 | +2.09% | +0.69% |
+| 4M gen | 4,182,025 | 5.01 | 410 × 410 × 1 | 168,100 / 168,100 | 24.9 / 36 | 24.9 / 36 | 224.3 | 224.3 | 77.44 / 77.60 | 78.49 / 78.67 | 2.86 | 5662 (5675) | 6.04 | 2.65 | 2.96 | 5806 / 5710 | +2.32% | +0.63% |
 | 8M | 8,128,201 | 4.99 | 571 × 571 × 1 | 326,041 / 326,041 | 24.9 / 25 | 24.9 / 30 | 224.4 | 224.4 | 74.88 / 74.98 | 70.99 / 71.04 | 3.16 | 10502 (10526) | 5.76 | 2.48 | 2.78 | 10685 / 10589 | +1.51% | +0.60% |
 | 16M | 16,184,529 | 5 | 806 × 806 × 1 | 649,636 / 649,636 | 24.9 / 25 | 24.9 / 31 | 224.6 | 224.6 | 75.16 / 75.23 | 75.12 / 75.19 | 2.99 | 20962 (21012) | 5.77 | 2.49 | 2.79 | 21175 / 21065 | +0.78% | +0.25% |
 | 32M | 32,251,041 | 5.02 | 1137 × 1137 × 1 | 1,292,769 / 1,292,769 | 24.9 / 25 | 24.9 / 30 | 224.7 | 224.7 | 74.46 / 74.52 | 73.19 / 73.24 | 3.07 | 40655 (40753) | 5.61 | 2.41 | 2.71 | 40952 / 40815 | +0.49% | +0.15% |
@@ -14,20 +15,33 @@
 
 ## 4M 凹陷
 
-- criterion: 4M ps/candidate (whole step, fused kernel, force) against the mean of 2M and 8M; the run-to-run spread of the step is the yardstick
+- criterion: the 4M point's ps/candidate (whole step, fused kernel, force) against the mean of 2M and 8M; the run-to-run spread of the step is the yardstick
+- step_spread_pct_8m_runs: 0.1418
 - ps_per_candidate_step_2m_4m_8m: [5.622232430891988, 6.043356996961092, 5.75867874430283]
 - ps_per_candidate_step_4m_vs_neighbours_pct: 6.202
 - ps_per_candidate_correction_density_2m_4m_8m: [2.506387877254629, 2.6850863551504602, 2.483957345956354]
 - ps_per_candidate_correction_density_4m_vs_neighbours_pct: 7.611
 - ps_per_candidate_force_2m_4m_8m: [2.8053829524271294, 2.9421508151100433, 2.775618543440808]
 - ps_per_candidate_force_4m_vs_neighbours_pct: 5.435
-- step_spread_pct_8m_runs: 0.1418
 - candidates_per_particle_2m_4m_8m: [223.83627599252097, 224.09190308522784, 224.3701436927228]
 - candidates_4m_vs_neighbours_pct: -0.005045
 - gpu_throughput_mps_2m_4m_8m: [794.6222697677283, 738.4066261975642, 773.9485348377729]
 - gpu_throughput_4m_vs_neighbours_pct: -5.85
 - a_throughput_d2_2m_4m_8m: [767.8657435445999, 731.7250110266666, 767.5896417753667]
 - a_throughput_d2_4m_vs_neighbours_pct: -4.69
+- ps_per_candidate_step_2m_4m_gen_8m: [5.622232430891988, 6.035552297356662, 5.75867874430283]
+- ps_per_candidate_step_4m_gen_vs_neighbours_pct: 6.064
+- ps_per_candidate_correction_density_2m_4m_gen_8m: [2.506387877254629, 2.6489263599527204, 2.483957345956354]
+- ps_per_candidate_correction_density_4m_gen_vs_neighbours_pct: 6.162
+- ps_per_candidate_force_2m_4m_gen_8m: [2.8053829524271294, 2.964559492264598, 2.775618543440808]
+- ps_per_candidate_force_4m_gen_vs_neighbours_pct: 6.238
+- candidates_per_particle_2m_4m_gen_8m: [223.83627599252097, 224.3281962685541, 224.3701436927228]
+- candidates_4m_gen_vs_neighbours_pct: 0.1004
+- gpu_throughput_mps_2m_4m_gen_8m: [794.6222697677283, 738.5826785559753, 773.9485348377729]
+- gpu_throughput_4m_gen_vs_neighbours_pct: -5.827
+- a_throughput_d2_2m_4m_gen_8m: [767.8657435445999, 732.3590060166667, 767.5896417753667]
+- a_throughput_d2_4m_gen_vs_neighbours_pct: -4.607
 - grid_2m: {'dimensions': [288, 288, 1], 'total_voxels': 82944, 'end_occupied_voxels': 82944.0, 'end_mean_per_voxel': 24.89594184027778, 'end_max_per_voxel': 30, 'fluid_particles': 2002225, 'wall_particles': 62744, 'h_over_dx': 4.994350282485876}
 - grid_4m: {'dimensions': [410, 410, 1], 'total_voxels': 168100, 'end_occupied_voxels': 168100.0, 'end_mean_per_voxel': 24.87819750148721, 'end_max_per_voxel': 30, 'fluid_particles': 4004001, 'wall_particles': 178024, 'h_over_dx': 5.0}
+- grid_4m_gen: {'dimensions': [410, 410, 1], 'total_voxels': 168100, 'end_occupied_voxels': 168100.0, 'end_mean_per_voxel': 24.87819750148721, 'end_max_per_voxel': 36, 'fluid_particles': 4092529, 'wall_particles': 89496, 'h_over_dx': 5.006072874493928}
 - grid_8m: {'dimensions': [571, 571, 1], 'total_voxels': 326041, 'end_occupied_voxels': 326041.0, 'end_mean_per_voxel': 24.929996534178215, 'end_max_per_voxel': 30, 'fluid_particles': 8003241, 'wall_particles': 124960, 'h_over_dx': 4.994350282485876}

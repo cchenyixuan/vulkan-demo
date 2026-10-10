@@ -221,9 +221,10 @@ def section3_chips_html(root: pathlib.Path, section3_summary: pathlib.Path, memo
             chips.append(f'<span class="chip"><span class="label">2 在飞 GPU 空闲(2-D)</span>'
                          f'<b>{100 * min(idle):+.2f} … {100 * max(idle):+.2f} %</b></span>')
         dip = summary.get("dip_4m", {})
-        if "ps_per_candidate_step_4m_vs_neighbours_pct" in dip:
-            chips.append(f'<span class="chip"><span class="label">4M 每候选 ps 对 2M / 8M</span>'
-                         f'<b>{dip["ps_per_candidate_step_4m_vs_neighbours_pct"]:+.2f} %</b></span>')
+        for point, label in (("4m", "4M(旧手工)每候选 ps 对 2M / 8M"), ("4m_gen", "4M gen 每候选 ps 对 2M / 8M")):
+            key = f"ps_per_candidate_step_{point}_vs_neighbours_pct"
+            if key in dip:
+                chips.append(f'<span class="chip"><span class="label">{label}</span><b>{dip[key]:+.2f} %</b></span>')
     except (OSError, KeyError, ValueError, TypeError):
         chips.append('<span class="chip"><span class="label">§3 补测</span><b>无汇总</b></span>')
     try:
@@ -281,8 +282,11 @@ def main() -> int:
     figures = root / arguments.figures
     body.append("<h2>附:图</h2>")
     body.append(figure_html(figures / "single_gpu_throughput.png",
-                            "Figure 1 (single panel, §3 补测 item 4): v7_single throughput (M particle-steps/s), 1 and 2 frames in "
-                            "flight, 1M–32M, one RTX 5090."))
+                            "Figure 1 (single panel): v7_single throughput (M particle-steps/s), 1 and 2 frames in flight, 1M–32M, "
+                            "one RTX 5090; the 4M point is the generator-built case lid_driven_cavity_2d_4m_gen."))
+    body.append(figure_html(figures / "single_gpu_throughput_old_4m.png",
+                            "The previous single-panel version with the hand-made 4M case (kept as _old_4m); the two curves are "
+                            "indistinguishable at 4M (732.4 vs 731.7 M particle-steps/s at 2 in flight)."))
     body.append(figure_html(figures / "single_gpu_throughput_two_panel.png",
                             "The earlier two-panel version (measurement C): throughput and fps; kept under the _two_panel name."))
     for name, caption in (("cavity_re1000_profiles", "Centre-line profiles of the 1000² adami run against Marchi et al. 2021 Tc and Ghia 1982."),
