@@ -310,6 +310,12 @@ def main() -> int:
         path = section3 / name
         if path.exists():
             body.append(f"<h2>{title}</h2>" + render_markdown(path.read_text(encoding="utf-8")))
+    stride = root / "docs/seam_audit/v7_single/stride_summary.md"
+    if stride.exists():
+        body.append("<h2>附:§3 补测第 8 项 列步长检验(原始)</h2>"
+                    + render_markdown(re.sub(r"^# .*$", "", stride.read_text(encoding="utf-8"), count=1, flags=re.MULTILINE))
+                    + figure_html(root / "docs/seam_audit/v7_single/stride_scatter.png",
+                                  "ps per candidate (whole step) against the voxel-column stride; dotted lines every 32 KiB."))
     for path, title in ((root / arguments.memory_md, "附:内存清单(原始)"), (root / arguments.platform_md, "附:平台记录(原始)")):
         if path.exists():
             text = re.sub(r"^# .*$", "", path.read_text(encoding="utf-8"), count=1, flags=re.MULTILINE)

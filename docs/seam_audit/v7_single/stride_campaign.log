@@ -1,0 +1,17 @@
+[18:22:35] breakdown: commit 3b2ecbfc118275cb6a9ee23471c359512e1578da (v7-rc1-25-g3b2ecbf)
+[18:22:37] breakdown 2m: cases/lid_driven_cavity_2d_2m/case.yaml
+[18:22:47]   gpu frame 2602 us, grid [288, 288, 1], candidates/particle 223.8, drift 0 overflow 0 (9.7 s)
+[18:22:50] breakdown 4m_gen_n406: cases/lid_driven_cavity_2d_4m_gen_n406/case.yaml
+[18:23:09]   gpu frame 5432 us, grid [406, 406, 1], candidates/particle 224.1, drift 0 overflow 0 (18.9 s)
+[18:23:11] breakdown 4m_gen: cases/lid_driven_cavity_2d_4m_gen/case.yaml
+[18:23:31]   gpu frame 5657 us, grid [410, 410, 1], candidates/particle 224.3, drift 0 overflow 0 (19.8 s)
+[18:23:34] breakdown 4m_gen_n414: cases/lid_driven_cavity_2d_4m_gen_n414/case.yaml
+[18:23:53]   gpu frame 5422 us, grid [414, 414, 1], candidates/particle 224.2, drift 0 overflow 0 (19.1 s)
+[18:23:55] breakdown 6m: cases/lid_driven_cavity_2d_6m/case.yaml
+[18:24:22]   gpu frame 7821 us, grid [495, 495, 1], candidates/particle 224.3, drift 0 overflow 0 (26.9 s)
+[18:24:25] breakdown 8m: cases/lid_driven_cavity_2d_8m/case.yaml
+[18:25:01]   gpu frame 10527 us, grid [571, 571, 1], candidates/particle 224.4, drift 0 overflow 0 (36.1 s)
+[18:25:04] breakdown 10m: cases/lid_driven_cavity_2d_10m/case.yaml
+[18:25:47]   gpu frame 12754 us, grid [638, 638, 1], candidates/particle 224.4, drift 0 overflow 0 (43.5 s)
+[18:25:50] breakdown 14m: cases/lid_driven_cavity_2d_14m/case.yaml
+[18:26:54]   gpu frame 18871 us, grid [754, 754, 1], candidates/particle 224.7, drift 0 overflow 0 (63.9 s)

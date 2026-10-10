@@ -1,0 +1,630 @@
+{
+ "rows": {
+  "2m/v7_single/2": {
+   "size": "2m",
+   "solver": "v7_single",
+   "in_flight": 2,
+   "particles": 2064969,
+   "n": 3,
+   "fps_mean": 372.58466666666664,
+   "fps_std": 0.6739974357023367,
+   "fps_min": 372.1349,
+   "fps_max": 373.3596,
+   "mparticle_steps_per_s": 769.3757865419999,
+   "mparticle_steps_per_s_std": 1.3917838108048186,
+   "sm_mhz": 2766.3333333333335,
+   "power_w": 600.009375,
+   "temp_c": 67.66666666666667,
+   "drift_max_abs": 0,
+   "overflow": false,
+   "by_trial": {
+    "1": 373.3596,
+    "2": 372.2595,
+    "3": 372.1349
+   }
+  },
+  "4m_gen/v7_single/2": {
+   "size": "4m_gen",
+   "solver": "v7_single",
+   "in_flight": 2,
+   "particles": 4182025,
+   "n": 3,
+   "fps_mean": 175.0227,
+   "fps_std": 0.08417737225644378,
+   "fps_min": 174.9316,
+   "fps_max": 175.0976,
+   "mparticle_steps_per_s": 731.9493069675,
+   "mparticle_steps_per_s_std": 0.35203187521075435,
+   "sm_mhz": 2755.9710144927535,
+   "power_w": 599.9278194993412,
+   "temp_c": 68.33333333333333,
+   "drift_max_abs": 0,
+   "overflow": false,
+   "by_trial": {
+    "1": 175.0389,
+    "2": 174.9316,
+    "3": 175.0976
+   }
+  },
+  "4m_gen_n406/v7_single/2": {
+   "size": "4m_gen_n406",
+   "solver": "v7_single",
+   "in_flight": 2,
+   "particles": 4092529,
+   "n": 3,
+   "fps_mean": 182.07236666666665,
+   "fps_std": 0.2596927671948718,
+   "fps_min": 181.8477,
+   "fps_max": 182.3567,
+   "mparticle_steps_per_s": 745.1364406819666,
+   "mparticle_steps_per_s_std": 1.0628001808352614,
+   "sm_mhz": 2759.3059163059165,
+   "power_w": 599.9628282828284,
+   "temp_c": 68.0,
+   "drift_max_abs": 0,
+   "overflow": false,
+   "by_trial": {
+    "1": 181.8477,
+    "2": 182.0127,
+    "3": 182.3567
+   }
+  },
+  "4m_gen_n414/v7_single/2": {
+   "size": "4m_gen_n414",
+   "solver": "v7_single",
+   "in_flight": 2,
+   "particles": 4272489,
+   "n": 3,
+   "fps_mean": 181.11173333333332,
+   "fps_std": 0.21083193148414792,
+   "fps_min": 180.9203,
+   "fps_max": 181.3377,
+   "mparticle_steps_per_s": 773.7978884375999,
+   "mparticle_steps_per_s_std": 0.9007771081147756,
+   "sm_mhz": 2764.0454545454545,
+   "power_w": 599.9010606060606,
+   "temp_c": 68.0,
+   "drift_max_abs": 0,
+   "overflow": false,
+   "by_trial": {
+    "1": 181.3377,
+    "2": 181.0772,
+    "3": 180.9203
+   }
+  },
+  "6m/v7_single/2": {
+   "size": "6m",
+   "solver": "v7_single",
+   "in_flight": 2,
+   "particles": 6105841,
+   "n": 3,
+   "fps_mean": 126.60806666666667,
+   "fps_std": 0.11898455081788466,
+   "fps_min": 126.4789,
+   "fps_max": 126.7132,
+   "mparticle_steps_per_s": 773.0487243840666,
+   "mparticle_steps_per_s_std": 0.7265007487504237,
+   "sm_mhz": 2762.9263285024153,
+   "power_w": 599.8554649758454,
+   "temp_c": 68.33333333333333,
+   "drift_max_abs": 0,
+   "overflow": false,
+   "by_trial": {
+    "1": 126.6321,
+    "2": 126.7132,
+    "3": 126.4789
+   }
+  },
+  "8m/v7_single/2": {
+   "size": "8m",
+   "solver": "v7_single",
+   "in_flight": 2,
+   "particles": 8128201,
+   "n": 3,
+   "fps_mean": 94.44536666666666,
+   "fps_std": 0.08231508569717277,
+   "fps_min": 94.3587,
+   "fps_max": 94.5225,
+   "mparticle_steps_per_s": 767.6709237853665,
+   "mparticle_steps_per_s_std": 0.6690735618788455,
+   "sm_mhz": 2765.6190476190477,
+   "power_w": 599.985873015873,
+   "temp_c": 68.33333333333333,
+   "drift_max_abs": 0,
+   "overflow": false,
+   "by_trial": {
+    "1": 94.4549,
+    "2": 94.5225,
+    "3": 94.3587
+   }
+  },
+  "10m/v7_single/2": {
+   "size": "10m",
+   "solver": "v7_single",
+   "in_flight": 2,
+   "particles": 10144225,
+   "n": 3,
+   "fps_mean": 77.97576666666667,
+   "fps_std": 0.06822245475892764,
+   "fps_min": 77.9027,
+   "fps_max": 78.0378,
+   "mparticle_steps_per_s": 791.0037216141667,
+   "mparticle_steps_per_s_std": 0.6920639311268828,
+   "sm_mhz": 2765.16,
+   "power_w": 599.8262666666666,
+   "temp_c": 68.66666666666667,
+   "drift_max_abs": 0,
+   "overflow": false,
+   "by_trial": {
+    "1": 78.0378,
+    "2": 77.9027,
+    "3": 77.9868
+   }
+  },
+  "14m/v7_single/2": {
+   "size": "14m",
+   "solver": "v7_single",
+   "in_flight": 2,
+   "particles": 14160169,
+   "n": 3,
+   "fps_mean": 52.75043333333334,
+   "fps_std": 0.04235614870751748,
+   "fps_min": 52.719,
+   "fps_max": 52.7986,
+   "mparticle_steps_per_s": 746.9550508232335,
+   "mparticle_steps_per_s_std": 0.5997702238875791,
+   "sm_mhz": 2759.1612138454243,
+   "power_w": 599.9233926031294,
+   "temp_c": 69.0,
+   "drift_max_abs": 0,
+   "overflow": false,
+   "by_trial": {
+    "1": 52.7986,
+    "2": 52.719,
+    "3": 52.7337
+   }
+  }
+ },
+ "ratios": {
+  "2m|V/S d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "2m|V/S d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "2m|Vx/S d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "2m|Vx/S d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "2m|C/S": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "2m|Vx/V d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "2m|Vx/V d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen|V/S d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen|V/S d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen|Vx/S d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen|Vx/S d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen|C/S": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen|Vx/V d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen|Vx/V d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n406|V/S d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n406|V/S d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n406|Vx/S d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n406|Vx/S d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n406|C/S": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n406|Vx/V d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n406|Vx/V d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n414|V/S d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n414|V/S d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n414|Vx/S d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n414|Vx/S d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n414|C/S": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n414|Vx/V d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n414|Vx/V d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "6m|V/S d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "6m|V/S d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "6m|Vx/S d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "6m|Vx/S d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "6m|C/S": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "6m|Vx/V d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "6m|Vx/V d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "8m|V/S d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "8m|V/S d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "8m|Vx/S d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "8m|Vx/S d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "8m|C/S": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "8m|Vx/V d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "8m|Vx/V d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "10m|V/S d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "10m|V/S d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "10m|Vx/S d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "10m|Vx/S d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "10m|C/S": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "10m|Vx/V d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "10m|Vx/V d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "14m|V/S d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "14m|V/S d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "14m|Vx/S d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "14m|Vx/S d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "14m|C/S": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "14m|Vx/V d1": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "14m|Vx/V d2": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  }
+ },
+ "depth1_loss": {
+  "2m|S": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "2m|V": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "2m|Vx": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen|S": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen|V": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen|Vx": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n406|S": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n406|V": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n406|Vx": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n414|S": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n414|V": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "4m_gen_n414|Vx": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "6m|S": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "6m|V": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "6m|Vx": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "8m|S": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "8m|V": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "8m|Vx": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "10m|S": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "10m|V": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "10m|Vx": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "14m|S": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "14m|V": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  },
+  "14m|Vx": {
+   "mean": NaN,
+   "std": NaN,
+   "n": 0
+  }
+ },
+ "paper": {
+  "S_fps_range": {
+   "2m": {
+    "2": 372.58466666666664
+   },
+   "4m_gen": {
+    "2": 175.0227
+   },
+   "4m_gen_n406": {
+    "2": 182.07236666666665
+   },
+   "4m_gen_n414": {
+    "2": 181.11173333333332
+   },
+   "6m": {
+    "2": 126.60806666666667
+   },
+   "8m": {
+    "2": 94.44536666666666
+   },
+   "10m": {
+    "2": 77.97576666666667
+   },
+   "14m": {
+    "2": 52.75043333333334
+   }
+  },
+  "S_mparticle_steps_per_s_range": [
+   731.9493069675,
+   791.0037216141667
+  ],
+  "depth1_loss_S": {},
+  "C_over_S": {},
+  "V_over_S_d2": {},
+  "Vx_over_S_d2": {}
+ },
+ "ok_runs": 24,
+ "failed_runs": 0
+}
