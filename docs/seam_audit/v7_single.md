@@ -13,7 +13,7 @@
 - **吞吐(一张 RTX 5090,2-D 方腔 1M–32M,3 次配对)**:S 2 在飞 732–790 M 粒子·步 / 秒;V/S 在 depth 2 为 99.8–100.2 %,depth 1 为 99.1–100.1 %(S 略快,V 每步建销一个 fence);CONCURRENT 共享模式 ≤ 0.2 %;链式 K = 1 对 S 在 1M 为 98.55 %、4M 起 99.85–100.02 %;depth-1 损失 1M −4.0 % → 32M −0.3 %。没有任何比值离 1 超过 2 %。
 - **逐 kernel(8M,交错计时)**:融合 correction + density 省下步长 23.5 %(2-D)/ 22.7 %(3-D);每候选 2.50 / 2.79 ps(2-D 融合核 / force),2.09 / 2.06 ps(3-D)。
 - **精度(1000² 方腔 Re = 1000,adami 壁,生产设置,干净提交 457913c)**:u、v 的相对 L2 = **0.68 % / 0.70 %**(< 1 %),u_min / v_max / v_min 偏差 +0.48 / +0.62 / +0.45 %,ψ_min +0.14 %,位置误差 ≤ 0.0025;t_s = 79.38,平均窗口 (80.0, 99.8],不变量全 0,一段跑完 6.24 h 无续跑。与 E36 的 adami_rho0 1000² 运行(v7-wall-bc 分支)一致(见精度一节)。
-- **§3 补测(2026-10-10,提交 f06af58)**:表 2 重测(融合核,第 1001–3000 步连续计时,3 次):2-D 8M 步长 10 502 ± 15 µs(融合核 4530、force 5062),3-D 8M 61 060 ± 43(30 354 / 29 813);每粒子候选 224 / 1649,邻居(r < h,float32)71.0 / 259.5,候选 / 邻居 3.16 / 6.35;每候选 2.48 / 2.78 ps(2-D)、2.02 / 1.98(3-D)。2 在飞时 GPU 空闲 1M 3.4 % → 32M 0.15 %。4M 的凹陷不是候选数(各尺寸都是 224 / 粒子)也不是邻居数,而是那个旧的手工算例本身(每候选代价 +6 %);内存 350 B / 粒子(2-D)、342(3-D),其中池槽 288 B(SoA 148 + 孪生 140);平台记录在 `platform.md`;Nsight 因驱动不开放性能计数器未做。
+- **§3 补测(2026-10-10,提交 f06af58)**:表 2 重测(融合核,第 1001–3000 步连续计时,3 次):2-D 8M 步长 10 502 ± 15 µs(融合核 4530、force 5062),3-D 8M 61 060 ± 43(30 354 / 29 813);每粒子候选 224 / 1649,邻居(r < h,float32)71.0 / 259.5,候选 / 邻居 3.16 / 6.35;每候选 2.48 / 2.78 ps(2-D)、2.02 / 1.98(3-D)。2 在飞时 GPU 空闲 1M 3.4 % → 32M 0.15 %。4M 的凹陷不是候选数(各尺寸都是 224 / 粒子)也不是邻居数;用生成器重做 4M 算例(第 7 项,提交 db85ea3)后凹陷一样深(732.4 对 731.7 M 粒子·步 / 秒,每候选代价同样 +6 %),所以它是这个尺寸(4 182 025 个粒子、410² 网格)本身的效应,原因未定(列步长 ≈ 160 KiB 是一个未验证的候选);内存 350 B / 粒子(2-D)、342(3-D),其中池槽 288 B(SoA 148 + 孪生 140);平台记录在 `platform.md`;Nsight 因驱动不开放性能计数器未做。
 - 没有合并;`experiment/v7` 一个文件未改;没有调任何参数。两条只记录不实施的改动(对 v7 和 v7_single 都有利)在"已知限制"。
 
 ## 清单:v7 单卡模式相对 v7_single 多出的 host 侧内容
@@ -272,31 +272,33 @@ v7_single 在 Khronos 验证层(默认设置,实例层 + debug messenger 计数)
 - 重复:3 次试验;每次试验里同一尺寸的 7 个构建紧挨着跑,顺序每次轮换一位;比值按同一试验配对再取均值 ± 标准差。每次运行结束读回 alive(drift 必须 0)和所有 overflow 计数。
 - 先验(v5 时代):单卡模式是 V0 的 100.1–102.0 %,链式 K = 1 对单卡模式 99.91 ± 0.59 %,CONCURRENT ≤ 1.2 %。任何比值偏离 1 超过 2 % 先定位原因。
 
-**结果**(2026-10-09,147 次运行全部有效:drift 0、overflow 0;`logs/v7_single/throughput_r2/`,镜像 `docs/seam_audit/v7_single/throughput_summary.{md,json,csv}`、`throughput_results.jsonl`;3 次试验的均值 ± 标准差):
+**结果**(2026-10-09,147 次运行全部有效:drift 0、overflow 0;`logs/v7_single/throughput_r2/`;2026-10-10 加上生成器重做的 4M 算例的 9 次运行(§3 补测第 7 项)合并为 `logs/v7_single/throughput_r3/`,镜像 `docs/seam_audit/v7_single/throughput_summary.{md,json,csv}`、`throughput_results.jsonl` 是 r3 的;3 次试验的均值 ± 标准差):
 
 | 算例 | 粒子 | S d1 | S d2 | V d1 | V d2 | Vx d1 | Vx d2 | C d2 |
 |---|---|---|---|---|---|---|---|---|
 | 1M | 1 046 529 | 705.2 ± 0.2 | 734.6 ± 0.1 | 698.9 ± 1.1 | 733.3 ± 0.3 | 699.9 ± 1.7 | 733.0 ± 0.4 | 723.9 ± 0.8 |
 | 2M | 2 064 969 | 363.6 ± 0.2 | 371.9 ± 0.5 | 361.7 ± 0.2 | 371.7 ± 0.2 | 361.1 ± 0.3 | 371.5 ± 0.3 | 368.9 ± 0.4 |
 | 4M | 4 182 025 | 172.56 ± 0.02 | 174.97 ± 0.18 | 172.37 ± 0.09 | 175.36 ± 0.03 | 172.40 ± 0.09 | 175.25 ± 0.08 | 174.86 ± 0.13 |
+| 4M gen(§3 补测第 7 项,db85ea3) | 4 182 025 | 172.23 ± 0.16 | 175.12 ± 0.22 | – | – | – | – | 174.68 ± 0.21 |
 | 8M | 8 128 201 | 93.59 ± 0.08 | 94.44 ± 0.05 | 93.53 ± 0.06 | 94.57 ± 0.07 | 93.59 ± 0.05 | 94.54 ± 0.05 | 94.46 ± 0.12 |
 | 16M | 16 184 529 | 47.23 ± 0.01 | 47.47 ± 0.02 | 47.29 ± 0.01 | 47.58 ± 0.02 | 47.28 ± 0.01 | 47.57 ± 0.01 | 47.43 ± 0.01 |
 | 32M | 32 251 041 | 24.42 ± 0.00 | 24.50 ± 0.00 | 24.40 ± 0.00 | 24.50 ± 0.01 | 24.41 ± 0.00 | 24.49 ± 0.00 | 24.46 ± 0.01 |
 | 3-D 8M | 9 129 329 | 16.30 ± 0.02 | 16.34 ± 0.01 | 16.28 ± 0.01 | 16.33 ± 0.04 | 16.28 ± 0.02 | 16.34 ± 0.02 | 16.32 ± 0.03 |
 
-百万粒子·步 / 秒(S):d1 738 / 751 / 722 / 761 / 764 / 788(1M → 32M),d2 769 / 768 / 732 / 768 / 768 / 790;3-D 8M 148.8 / 149.1。逐次配对的比值(均值 ± 标准差,n = 3):
+百万粒子·步 / 秒(S):d1 738 / 751 / 722 / 761 / 764 / 788(1M → 32M),d2 769 / 768 / 732 / 768 / 768 / 790;3-D 8M 148.8 / 149.1;生成器重做的 4M(§3 补测第 7 项)d1 720.3、d2 732.4。逐次配对的比值(均值 ± 标准差,n = 3):
 
 | 算例 | V/S d1 | V/S d2 | Vx/S d1 | Vx/S d2 | C/S | Vx/V d1 | Vx/V d2 |
 |---|---|---|---|---|---|---|---|
 | 1M | 99.10 ± 0.14 % | 99.82 ± 0.03 % | 99.24 ± 0.21 % | 99.78 ± 0.05 % | 98.55 ± 0.11 % | 100.15 ± 0.14 % | 99.95 ± 0.07 % |
 | 2M | 99.48 ± 0.08 % | 99.96 ± 0.11 % | 99.33 ± 0.06 % | 99.89 ± 0.22 % | 99.20 ± 0.16 % | 99.85 ± 0.07 % | 99.93 ± 0.14 % |
 | 4M | 99.89 ± 0.04 % | 100.23 ± 0.12 % | 99.91 ± 0.05 % | 100.16 ± 0.08 % | 99.94 ± 0.12 % | 100.02 ± 0.02 % | 99.93 ± 0.05 % |
+| 4M gen | – | – | – | – | 99.75 ± 0.08 % | – | – |
 | 8M | 99.94 ± 0.06 % | 100.15 ± 0.06 % | 100.00 ± 0.14 % | 100.11 ± 0.08 % | 100.02 ± 0.14 % | 100.06 ± 0.12 % | 99.96 ± 0.12 % |
 | 16M | 100.13 ± 0.01 % | 100.23 ± 0.06 % | 100.12 ± 0.01 % | 100.20 ± 0.06 % | 99.91 ± 0.05 % | 99.99 ± 0.03 % | 99.97 ± 0.05 % |
 | 32M | 99.91 ± 0.01 % | 99.98 ± 0.03 % | 99.95 ± 0.02 % | 99.97 ± 0.00 % | 99.85 ± 0.02 % | 100.04 ± 0.01 % | 99.99 ± 0.03 % |
 | 3-D 8M | 99.86 ± 0.16 % | 99.96 ± 0.25 % | 99.86 ± 0.15 % | 100.01 ± 0.17 % | 99.89 ± 0.16 % | 100.01 ± 0.11 % | 100.05 ± 0.27 % |
 
-depth 1 相对 depth 2 的损失(fps_d1 / fps_d2 − 1):S −4.00 / −2.23 / −1.38 / −0.90 / −0.52 / −0.34 %(1M → 32M),3-D 8M −0.22 %;V −4.70 / −2.70 / −1.71 / −1.10 / −0.61 / −0.40 %;Vx −4.51 / −2.78 / −1.63 / −1.01 / −0.59 / −0.35 %。协变量:每个窗口都在 600 W 功耗墙上,SM 2765–2830 MHz,≤ 70 °C,同一尺寸内各构建的时钟差 ≤ 7 MHz(`throughput_summary.md` 的协变量表)。
+depth 1 相对 depth 2 的损失(fps_d1 / fps_d2 − 1):S −4.00 / −2.23 / −1.38 / −0.90 / −0.52 / −0.34 %(1M → 32M),3-D 8M −0.22 %,4M gen −1.65 ± 0.16 %;V −4.70 / −2.70 / −1.71 / −1.10 / −0.61 / −0.40 %;Vx −4.51 / −2.78 / −1.63 / −1.01 / −0.59 / −0.35 %。协变量:每个窗口都在 600 W 功耗墙上,SM 2765–2830 MHz,≤ 70 °C,同一尺寸内各构建的时钟差 ≤ 7 MHz(`throughput_summary.md` 的协变量表)。
 
 读法:
 
@@ -493,16 +495,14 @@ depth 1 相对 depth 2 的损失(fps_d1 / fps_d2 − 1):S −4.00 / −2.23 / �
 
 - **候选数解释不了 4M 的凹陷。** 2-D 各尺寸的候选数都是 223–225 / 粒子(体素边长 = h,每体素 24.9 个粒子,9 × 24.9 = 224),初始与窗末相同,4M 与 2M / 8M 的均值差 −0.005 %。凹陷在每候选的代价里:4M 整步 6.04 ps / 候选,对 2M / 8M 的均值 5.69 高 **+6.2 %**(融合核 +7.6 %,force +5.4 %;其余尺寸的整步 ps/候选在 5.61–5.77,散布 ±1.5 %,8M 的 3 次运行散布 0.14 %),与图 1 里 4M 低 4.7 %(A,2 在飞)/ GPU 侧低 5.9 % 的量相当。
 - 邻居数也解释不了:4M 窗末 74.3 / 粒子,比 2M / 8M(71.5 / 71.0)多 4 %,但 16M 的 75.1、1M 的 73.9 一样多,它们的 ps/候选却与 8M 相同(5.77 / 5.62 对 5.76)。
-- 4M 与其他算例的差别在算例本身:`cases/lid_driven_cavity_2d_4m` 是旧的手工"V0 4M benchmark"算例(case.yaml 没有生成器的注释块),其余六个由 `utils/geometry/_demo_cavity_case.py` 生成;4M 的壁是 22 层(178 024 个壁粒子 = 4.3 %;生成器算例 11 层,1.5–3.0 %),腔体外缘 ±0.511(其余 ±0.504–0.508),h = 0.0025 使 h / Δx 恰为 5(壁粒子的邻居数 71.3 对 66.6–68.6),网格 410 × 410。E5 的 V0 曲线在同一算例、同一位置有同样的凹陷(`docs/single_gpu_baseline_v0_vs_v5.md`),所以这是算例的性质,不是本构建的:每候选代价高 6–8 % 的直接原因(壁厚、粒子排布、体素列表的内存布局?)没有继续查——按规格只报告可能的原因,不再做实验。如果要去掉这个点的异常,最直接的做法是用生成器重做 4M 算例(未做)。
+- **(第 7 项推翻了这一条的结论:用生成器重做的 4M 算例凹陷一样深,见下。)** 4M 与其他算例的差别在算例本身:`cases/lid_driven_cavity_2d_4m` 是旧的手工"V0 4M benchmark"算例(case.yaml 没有生成器的注释块),其余六个由 `utils/geometry/_demo_cavity_case.py` 生成;4M 的壁是 22 层(178 024 个壁粒子 = 4.3 %;生成器算例 11 层,1.5–3.0 %),腔体外缘 ±0.511(其余 ±0.504–0.508),h = 0.0025 使 h / Δx 恰为 5(壁粒子的邻居数 71.3 对 66.6–68.6),网格 410 × 410。E5 的 V0 曲线在同一算例、同一位置有同样的凹陷(`docs/single_gpu_baseline_v0_vs_v5.md`),所以这是算例的性质,不是本构建的:每候选代价高 6–8 % 的直接原因(壁厚、粒子排布、体素列表的内存布局?)没有继续查——按规格只报告可能的原因,不再做实验。如果要去掉这个点的异常,最直接的做法是用生成器重做 4M 算例(未做)。
 - GPU 空闲:1 在飞时 1M 7.7 % → 32M 0.5 %(A 的 depth-1 损失同一件事的另一种算法:1M −4.0 % → 32M −0.3 %);2 在飞时 1M 3.4 %、2M 3.3 %、4M 0.7 %、8M 0.6 %、16M 0.25 %、32M 0.15 %、3-D 0.2 %——每步约 50–120 µs 的队列间隙(提交、fence 信号、命令缓冲切换)没有被第二帧盖住,≥ 8M 的数在跨活动的分辨率(±0.3 %)之内。GPU 侧吞吐(N / GPU 步长)738–797 M 粒子·步 / 秒(2-D)、149.5(3-D)。
 
 英文图注草稿(图 1,不含对凹陷的解释——第 3 项没有解释它):*Fig. 1. Throughput of the single-GPU solver on one RTX 5090 for the 2-D lid-driven cavity at 1M–32M particles (fluid + wall), with one and two frames in flight: mean of three interleaved trials, trial-to-trial spread ≤ 0.15 %, 2000 timed steps after 1000 warm-up steps with the defragmentation at its 1000-step cadence inside the window. The 4M point is an older, separately constructed case (22-layer walls, h/Δx exactly 5) whose per-candidate kernel cost is 6–8 % above its neighbours' at identical candidate counts (Sec. 3.5).*
 
 ### 4. 图 1 重画
 
-`_plot_single_baseline_paper.py --dir logs/v7_single/throughput_r2 --solver v7_single --figure-a-name single_gpu_throughput --no-figure-b --single-panel --font-size 8`:测量 A 里 S 的 1 与 2 在飞数据,单面板吞吐(M particle-steps/s)对粒子数(对数轴,1M–32M),去掉 fps 面板,无标题;宽 3.5 in(双栏终稿的单栏宽度,bbox 裁切后 3.31 × 2.31 in),字号 8 pt(刻度 7.5、图例 7),按 1 : 1 放入单栏时全部 ≥ 7 pt。输出 `manuscripts/fig/single_gpu_throughput.{pdf,png}`;原来的两面板版本改名为 `single_gpu_throughput_two_panel.{pdf,png}`(git mv)。
-
-![single_gpu_throughput](../../manuscripts/fig/single_gpu_throughput.png)
+`_plot_single_baseline_paper.py --dir logs/v7_single/throughput_r2 --solver v7_single --figure-a-name single_gpu_throughput --no-figure-b --single-panel --font-size 8`:测量 A 里 S 的 1 与 2 在飞数据,单面板吞吐(M particle-steps/s)对粒子数(对数轴,1M–32M),去掉 fps 面板,无标题;宽 3.5 in(双栏终稿的单栏宽度,bbox 裁切后 3.31 × 2.31 in),字号 8 pt(刻度 7.5、图例 7),按 1 : 1 放入单栏时全部 ≥ 7 pt。输出 `manuscripts/fig/single_gpu_throughput.{pdf,png}`;原来的两面板版本改名为 `single_gpu_throughput_two_panel.{pdf,png}`(git mv)。第 7 项之后 4M 点换成生成器算例,这一版改名 `single_gpu_throughput_old_4m.{pdf,png}`;当前的图在第 7 项。
 
 ### 5. 内存
 
@@ -524,23 +524,43 @@ depth 1 相对 depth 2 的损失(fps_d1 / fps_d2 − 1):S −4.00 / −2.23 / �
 
 Nsight Graphics 2026.3.1 的命令行 `ngfx.exe --activity "GPU Trace Profiler" --exe python.exe --args "experiment/v7_single/_run_single_bench.py --case cases/lid_driven_cavity_2d_8m/case.yaml --gpu-uuid … --warmup 1000 --measure 200 --in-flight 1" --start-after-submits 1105 --limit-to-submits 1 --architecture "Blackwell GB20x" --metric-set-id 0 --multi-pass-metrics --auto-export` 能注入并识别被测进程(Vulkan,以 submit 为帧),但启动采集时驱动拒绝:`TARGET ERROR: GPU Performance Counters unavailable. Please enable access to GPU performance counters.` 这需要在 NVIDIA 控制面板(开发者 → 管理 GPU 性能计数器)以管理员身份向所有用户开放计数器并重启——系统设置改动,没有自行做。开放后用上面的命令即可(GPU Trace 默认把时钟锁到基频,`--set-gpu-clocks unaltered` 保持加速时钟;Blackwell 只有 Top-Level Triage 一个指标集,含 SM 吞吐、L1 / L2 命中率、DRAM 吞吐,占用率要 `--multi-pass-metrics`)。
 
+### 7. 用生成器重做 4M 算例,补测图 1 的 4M 点(2026-10-10,提交 db85ea3)
+
+第 3 项把凹陷归到旧手工算例上,这一项检验它:用 `utils/geometry/_demo_cavity_case.py --half 1011 --out cases/lid_driven_cavity_2d_4m_gen` 生成与 1M / 2M / 8M / 16M / 32M 同一族的 4M 算例(旧算例 `lid_driven_cavity_2d_4m` 不动,其他文档引用它)。
+
+- 算例:2023² = 4 092 529 流体 + 67 243 壁(11 层)+ 22 253 盖板 = **4 182 025 个粒子**(与旧手工 4M 的总数恰好相同:旧的是 2001² 流体 + 22 层壁),h = 0.002473,Δx = 0.000495(h / Δx = 5.006),pool 4 809 344(ceil(1.15 N / 128) × 128),max_per_voxel 96;`case.yaml` 与 8M 的 diff 只有 h、particle_radius、pool_size 三个值(以及注释里的粒子数)。网格 410 × 410——与旧 4M 相同(22 层 × 0.0005 与 11 层 × 0.000495 的外缘在 h 不同时恰好落在同一个体素数上),168 100 个体素全部占用,每体素 24.9 个粒子,最大 36(h / Δx = 5.006 使个别体素装下 6 × 6 个格点)。
+- 测量 A 的协议补测这一点(`_run_single_baseline_campaign.py --out logs/v7_single/throughput_4m_gen --sizes 4m_gen --configs v7_single:1,v7_single:2,v7_chain:2 --trials 3 --warmup 1000 --idle-check`,从干净提交 db85ea3 运行,9 次运行 drift / overflow 全 0,SM 2757–2773 MHz、600 W、68 °C;与 r2 合并为 `logs/v7_single/throughput_r3`(156 次运行),镜像 `throughput_summary.{md,json,csv}`、`throughput_results.jsonl` 已换成 r3 的):
+
+| 算例 | 粒子 | S d1 | S d2 | C d2 | C/S | depth-1 损失 | M 粒子·步 / 秒 S d1 / d2 |
+|---|---|---|---|---|---|---|---|
+| 4M gen(db85ea3) | 4 182 025 | 172.23 ± 0.16 | 175.12 ± 0.22 | 174.68 ± 0.21 | 99.75 ± 0.08 % | −1.65 ± 0.16 % | 720.3 ± 0.7 / 732.4 ± 0.9 |
+| 4M 旧手工(r2) | 4 182 025 | 172.56 ± 0.02 | 174.97 ± 0.18 | 174.86 ± 0.13 | 99.94 ± 0.12 % | −1.38 ± 0.09 % | 721.7 ± 0.1 / 731.7 ± 0.7 |
+
+- §3 补测第 3 项的量(`_run_section3_campaign.py run`,同一提交,1 次运行 + CPU 统计;`section3_sizes.md` 里的 "4M gen" 行):GPU 步长 5662 µs(摊销 5675;旧 5664 / 5676),计时帧墙钟 5791;候选 224.3 / 粒子(流体 225.2,壁 182.8;旧 224.1);邻居(r < h,float32)窗末 78.5 / 粒子(流体 78.7、壁 70.1;double 区间 78.3–78.6;初始 77.4;旧 74.3),候选 / 邻居 2.86;ps/候选 整步 6.04、融合核 2.65、force 2.96(旧 6.04 / 2.69 / 2.94);GPU 空闲 1 在飞 +2.3 %、2 在飞 +0.63 %(旧 +2.1 / +0.7 %);GPU 侧吞吐 738.6 M 粒子·步 / 秒(旧 738.4)。
+
+**判断:4M gen 的 ps/候选与 2M / 8M 不一致——整步 +6.1 %、融合核 +6.2 %、force +6.2 %(对 2M / 8M 的均值),与旧手工算例的 +6.2 / +7.6 / +5.4 % 相同;吞吐也相同(732.4 对 731.7 M 粒子·步 / 秒,差 0.1 %,在 3 次试验的散布内)。** 所以第 3 项"差别在算例本身(壁厚、h / Δx、外缘)"的说法不成立:两个 4M 算例的 h、Δx、壁厚(11 对 22 层)、壁粒子占比(2.1 % 对 4.3 %)、邻居数(78.5 对 74.3)都不同,凹陷一样深。两者相同的只有粒子数 4 182 025 和网格 410 × 410。可能的原因(都没有验证,本项不做新实验):网格的列长 410——按 x 最慢的体素编码,一列 410 个体素 × 24.9 个粒子 × 16 B = 164 000 B ≈ 160 KiB,与 5 × 2¹⁵ 只差 0.1 %,邻居循环同时访问的三列在内存里以近乎"整"的大步长相隔,其他尺寸的列步长分别是 80 / 112 / 223 / 315 / 444 KiB(1M / 2M / 8M / 16M / 32M);或者粒子数本身(dispatch 的波数等)。E5 的 V0 / V5(旧 kernel)在同一个 4M 点低 3–4 %,在 14M(生成器算例)也低 2–3 %,说明这类尺寸相关的起伏在这一族算例上本来就有。要分开"网格列长"和"粒子数"只需再生成一个 h 略不同的 4M 算例(如 `--half 1000` 或 `--half 1022`,网格 406 或 414),未做。
+
+- 图 1 用 r3 重画(`_plot_single_baseline_paper.py --dir logs/v7_single/throughput_r3 … --single-panel --exclude-sizes 4m`):4M 点换成 4M gen,其余点不变;前一版(旧 4M 点)改名 `manuscripts/fig/single_gpu_throughput_old_4m.{pdf,png}`,两面板版仍是 `_two_panel`。两版肉眼无差别。图注草稿改为:*Fig. 1. Throughput of the single-GPU solver on one RTX 5090 for the 2-D lid-driven cavity at 1M–32M particles (fluid + wall), with one and two frames in flight: mean of three interleaved trials, trial-to-trial spread ≤ 0.15 %, 2000–10000 timed steps after 1000 warm-up steps with the defragmentation at its 1000-step cadence inside the window. All cases come from the same generator (11-layer walls, h/Δx = 5). The lower throughput at 4M is a property of that size: a second, independently constructed 4M case (22-layer walls) gives the same value, with identical candidate counts per particle and a 6 % higher per-candidate cost of both neighbour kernels (Sec. 3.5).*
+
+![single_gpu_throughput](../../manuscripts/fig/single_gpu_throughput.png)
+
 ## 论文用数字
 
 - §3.6 吞吐范围(S,一张 RTX 5090,2-D 方腔 1M–32M):2 在飞 732–790 M 粒子·步 / 秒(1 在飞 722–788);fps 734.6(1M)→ 24.50(32M);3-D 8M(`cavity3d_8m_b4`,9.13 M 粒子)149 M 粒子·步 / 秒,16.3 fps。
-- §3.6 depth-1 损失(1 在飞相对 2 在飞):1M −4.00 %,32M −0.34 %(2M −2.23、4M −1.38、8M −0.90、16M −0.52 %;3-D 8M −0.22 %)。
+- §3.6 depth-1 损失(1 在飞相对 2 在飞):1M −4.00 %,32M −0.34 %(2M −2.23、4M −1.65(生成器算例;旧手工 −1.38)、8M −0.90、16M −0.52 %;3-D 8M −0.22 %)。
 - §3.6 每候选 ps(融合,默认):correction + density 2.50(2-D 8M)/ 2.09(3-D 8M),force 2.79 / 2.06;不融合:correction 2.12 / 1.60,density 2.17 / 1.72,force 2.80 / 2.06。候选 = 粒子所在体素的 3^d 邻域里列出的粒子数(2-D 224.4 / 粒子,3-D 1649 / 粒子)。
 - §3.6 融合省下的步长:23.5 %(2-D 8M:13 815 → 10 572 µs),22.7 %(3-D 8M:81 875 → 63 319 µs)。
-- §5.1 链式 K = 1 对纯单卡(C/S,2 在飞,n = 3):1M 98.55 ± 0.11 %,2M 99.20 ± 0.16 %,4M–32M 99.85–100.02 %,3-D 8M 99.89 ± 0.16 %。
+- §5.1 链式 K = 1 对纯单卡(C/S,2 在飞,n = 3):1M 98.55 ± 0.11 %,2M 99.20 ± 0.16 %,4M 99.75 ± 0.08 %(生成器算例,§3 补测第 7 项;旧手工 99.94 ± 0.12 %),8M–32M 99.85–100.02 %,3-D 8M 99.89 ± 0.16 %。
 - §6.2(1000² adami,v7_single,生产设置,干净提交 457913c):u、v 的相对 L2 = 0.68 % / 0.70 %(L∞ 0.0054 / 0.0051);u_min / v_max / v_min 偏差 +0.48 / +0.62 / +0.45 %,位置误差 −0.0025 / −0.0015 / +0.0009;ψ_min 偏差 +0.14 %,涡心 (0.5304, 0.5645) 对 (0.5308, 0.5652);t_s = 79.38,平均 (80.0, 99.8](99 个样本),不变量全 0,13 334 000 步 6.24 h。
 - **§3.5(补测,2026-10-10)**:
   - 平台一句话:见"§3 补测"第 1 项(英文草稿)。
   - 表 2 图注要用的事实:2-D 8M `lid_driven_cavity_2d_8m` 8 128 201 个粒子(流体 8 003 241),h / Δx = 5(精确 4.994),每粒子候选 224(流体 225)、邻居 71.0(流体 71.0);3-D 8M `cavity3d_8m_b4` 9 129 329(流体 8 120 601),h / Δx = 4,候选 1649(流体 1713)、邻居 259(流体 266);3 次运行,步长散布 0.14 % / 0.07 %。
-  - 2-D 吞吐范围:S 2 在飞 732–790 M 粒子·步 / 秒(1M–32M),3 次试验的散布 ≤ 0.14 %(fps 标准差 / 均值;1 在飞 ≤ 0.09 %);GPU 侧(时间戳,N / GPU 步长)738–797。3-D 8M:149.1(2 在飞)/ 148.8(1 在飞)M 粒子·步 / 秒,GPU 侧 149.5。
-  - 1 在飞的损失:−4.00 %(1M)、−2.23、−1.38、−0.90、−0.52、−0.34 %(32M),3-D −0.22 %(A);GPU 空闲比例 1 在飞 7.7 / 5.6 / 2.1 / 1.5 / 0.8 / 0.5 %,3-D 0.4 %。
-  - 2 在飞时 GPU 的空闲比例:1M 3.4 %、2M 3.3 %、4M 0.7 %、8M 0.6 %、16M 0.25 %、32M 0.15 %、3-D 8M 0.2 %(≥ 8M 在 ±0.3 % 的分辨率内)。
+  - 2-D 吞吐范围(图 1 的六个点,4M 为生成器算例):S 2 在飞 732–790 M 粒子·步 / 秒(1M–32M;1 在飞 720–788),3 次试验的散布 ≤ 0.14 %(fps 标准差 / 均值;1 在飞 ≤ 0.10 %);GPU 侧(时间戳,N / GPU 步长)739–797。3-D 8M:149.1(2 在飞)/ 148.8(1 在飞)M 粒子·步 / 秒,GPU 侧 149.5。
+  - 1 在飞的损失:−4.00 %(1M)、−2.23、−1.65(4M 生成器算例)、−0.90、−0.52、−0.34 %(32M),3-D −0.22 %(A);GPU 空闲比例 1 在飞 7.7 / 5.6 / 2.3 / 1.5 / 0.8 / 0.5 %,3-D 0.4 %。
+  - 2 在飞时 GPU 的空闲比例:1M 3.4 %、2M 3.3 %、4M 0.63 %(生成器算例;旧手工 0.69 %)、8M 0.6 %、16M 0.25 %、32M 0.15 %、3-D 8M 0.2 %(≥ 4M 在 ±0.3 % 的分辨率内)。
   - ps/候选(融合核 / force / 整步):2-D 8M 2.48 / 2.78 / 5.76;3-D 8M 2.02 / 1.98 / 4.06;2-D 各尺寸整步 5.61–5.77(4M 6.04)。
   - 每粒子内存(device-local):2-D 350 B(1M 349.9、8M 349.7、32M 349.6),3-D 342 B;池槽 288 B(SoA 148 + defrag 孪生 140)× 1.15 = 331 B / 粒子,体素列表 18.5 B / 粒子(2-D)、10.6(3-D)。
-  - 4M 凹陷:候选数不能解释(各尺寸 223–225 / 粒子,4M 与邻居差 −0.005 %),邻居数也不能(16M 的邻居数一样多而代价不高);4M 的每候选代价比 2M / 8M 高 6.2 %(融合核 7.6 %、force 5.4 %),该算例是旧的手工 V0 benchmark 算例(22 层壁、4.3 % 壁粒子、h / Δx 恰为 5、网格 410²),E5 的 V0 在同一点有同样的凹陷。
+  - 4M 凹陷:候选数不能解释(各尺寸 223–225 / 粒子),邻居数也不能(16M 的邻居数一样多而代价不高);用生成器重做的 4M 算例(第 7 项)凹陷一样深——每候选代价比 2M / 8M 高 6.1 %(融合核 6.2 %、force 6.2 %;旧手工算例 6.2 / 7.6 / 5.4 %),吞吐 732.4 对 731.7 M 粒子·步 / 秒。它是这个尺寸本身的效应(两个算例只有粒子数 4 182 025 与网格 410² 相同),原因未定;E5 的 V0 / V5 在 4M(与 14M)也低 2–4 %。
 - 表 2 的 LaTeX 行(§3 补测,融合核,第 1001–3000 步连续计时,3 次;`docs/seam_audit/v7_single/section3_table2.md`):
 
 ```latex
@@ -593,6 +613,7 @@ $v(x, 0.5)$ & 0.70 & 0.00222 & 0.00513 & $x = 0.9375$ \\
 - S 的两种起点:`SingleRunner.bootstrap_all`(方腔 runner)像链一样在 bootstrap 后 defrag 一次;bench 与 canonical_dump 的单卡模式像 V 一样不 defrag。两种起点各自与对应的参照一致,互相之间不逐位可比。
 - `V7_DELTA_DENSITY`、`V7_DEEP_WALL_CHECK`、`V7_SPV_DIR`、`V7_BAND_WIDTHS` 等在 S 里没有对应物,设了就退出;S 没有渲染、没有 step trace、没有 `step_single_use_split` 这类验证路径。
 - 每候选 ps 的"候选"定义是本文自己定的(测量 B),E5 的定义没有在仓库里找到。
+- 图 1 在 4M 处低 4.6 % 的原因未定:两个独立构造的 4M 算例(旧手工与生成器)给出相同的吞吐与相同的每候选代价(+6 %),候选数、邻居数都排除;共同点只有粒子数与 410² 网格(§3 补测第 7 项)。
 - adami K = 1 在 999 步上本来就不能自复现(`v7_perf.md`),所以逐位门只做 200 步;1000² 的精度运行是生产路径(原子追加的列表顺序),同一设置重跑是同一流动的另一个实现。
 
 ## 复现
@@ -639,6 +660,16 @@ python experiment/v7_single/_run_section3_campaign.py summarize --out logs/v7_si
 python experiment/v7_single/_neighbor_stats.py --case cases/lid_driven_cavity_2d_8m/case.yaml --out initial.json   # 单个状态
 python _plot_single_baseline_paper.py --dir logs/v7_single/throughput_r2 --solver v7_single --figure-a-name single_gpu_throughput --no-figure-b --single-panel --font-size 8
 python experiment/v7_single/_build_artifact.py --out logs/v7_single/report/v7_single_report.html
+
+# 生成器重做 4M(§3 补测第 7 项):算例、测量 A 的补测、合并、§3 第 3 项、图 1
+python utils/geometry/_demo_cavity_case.py --half 1011 --out cases/lid_driven_cavity_2d_4m_gen
+python _run_single_baseline_campaign.py --out logs/v7_single/throughput_4m_gen --sizes 4m_gen --configs v7_single:1,v7_single:2,v7_chain:2 --trials 3 --warmup 1000 --idle-check
+mkdir -p logs/v7_single/throughput_r3 && cat logs/v7_single/throughput_r2/results.jsonl logs/v7_single/throughput_4m_gen/results.jsonl > logs/v7_single/throughput_r3/results.jsonl \
+    && cat logs/v7_single/throughput_r2/telemetry.csv logs/v7_single/throughput_4m_gen/telemetry.csv > logs/v7_single/throughput_r3/telemetry.csv
+python _summarize_v7_single_campaign.py --dir logs/v7_single/throughput_r3
+python experiment/v7_single/_run_section3_campaign.py run --out logs/v7_single/section3          # 只补 4m_gen(其余已做)
+python experiment/v7_single/_summarize_section3.py --dir logs/v7_single/section3 --throughput-summary logs/v7_single/throughput_r3/summary.json
+python _plot_single_baseline_paper.py --dir logs/v7_single/throughput_r3 --solver v7_single --figure-a-name single_gpu_throughput --no-figure-b --single-panel --font-size 8 --exclude-sizes 4m
 ```
 
 ## 提交(分支 `v7-single`,从 `v7-rc1` = d0c8dcb 开出)
@@ -665,4 +696,7 @@ python experiment/v7_single/_build_artifact.py --out logs/v7_single/report/v7_si
 | 5174642 | 报告页链接、提交表 |
 | f06af58 | §3 补测的工具(连续计时模式、邻居 / 候选统计、各尺寸活动、内存清单、平台记录、单面板图)、文档更正(cavity3d_8m_b4 粒子数)、`platform.{json,md}`、`memory.{json,md}`;**§3 补测的 11 次 GPU 运行从这个提交启动** |
 | 4dd6ceb | §3 补测的测量镜像(`section3_*`、`section3_stats/`)、图 1 单面板与两面板改名、报告页构建脚本 |
-| (本提交) | 文档:"§3 补测"一节、§3.5 用数、复现命令;报告页重新生成 |
+| 51f2eae | 文档:"§3 补测"一节、§3.5 用数、复现命令;报告页重新生成 |
+| db85ea3 | 生成器重做的 4M 算例 `cases/lid_driven_cavity_2d_4m_gen`(case.yaml、预览图)与补测工具改动;**4M 补测的 10 次 GPU 运行从这个提交启动** |
+| f3c647a | 4M 补测的数据镜像(测量 A 的 r3 汇总、§3 第 3 项的 4M gen 行)、图 1 重画(旧版改名 `_old_4m`)、报告页构建脚本 |
+| (本提交) | 文档:"§3 补测"第 7 项、测量 A 表与 §3.5 / §5.1 用数的 4M 行、复现命令;报告页重新生成 |
