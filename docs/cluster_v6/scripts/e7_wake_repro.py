@@ -19,6 +19,8 @@ Wait methods (the candidate fixes are measured in the same program):
   timeout:<ms>      vkWaitSemaphores with that timeout in a loop (B1)
   relay_event       waiter 0 waits on the semaphore, then sets a per-iteration threading.Event the others wait on (B2)
   relay_condition   the same with a threading.Condition and a host counter (B2)
+  zeropoll / counterpoll  waiter 0 sleeps (infinite); the others poll every 100 us with a zero-timeout
+                    vkWaitSemaphores / vkGetSemaphoreCounterValue (can a non-blocking check steal the sleeper's wake?)
 Patterns: same (all waiters on one value), mixed (the solver's transport timeline: the GPU signals odd values, waiter 0
 host-signals the next even value after it wakes), split (each waiter on its own semaphore, both signalled by one
 submit), distinct (waiter k waits its own value of one semaphore; one GPU signal reaches all of them), cowait (a
@@ -96,6 +98,9 @@ def case_list(selection: str) -> list:
          "pattern": "distinct", "load": True},
     ]
     fixes = []
+    for poll in ("zeropoll", "counterpoll"):
+        fixes.append({"name": f"gpu_w2_{poll}_load", "signal": "gpu", "waiters": 2, "method": poll, "pattern": "same",
+                      "load": True})
     for waiters in (2, 4):
         for timeout_ms in ("0.1", "0.2", "0.5"):
             fixes.append({"name": f"gpu_w{waiters}_timeout{timeout_ms}_load", "signal": "gpu", "waiters": waiters,
@@ -360,6 +365,29 @@ def wait_timeout_loop(device, semaphore, value, clock, timeout_ns):
             raise RuntimeError(f"vkWaitSemaphores: VkResult {result}")
 
 
+def wait_poll(device, semaphore, value, clock, use_counter: bool):
+    """Non-blocking checks every 100 us until the value is reached: zero-timeout vkWaitSemaphores, or
+    vkGetSemaphoreCounterValue. Returns (calls, ns in Python between the calls)."""
+    info, _keep_semaphores, _keep_values = wait_info(semaphore, value)
+    counter = ffi.new("uint64_t *")
+    calls = 0
+    while True:
+        calls += 1
+        if use_counter:
+            result = lib.vkGetSemaphoreCounterValue(device, semaphore, counter)
+            if result != VK_SUCCESS_CODE:
+                raise RuntimeError(f"vkGetSemaphoreCounterValue: VkResult {result}")
+            if counter[0] >= value:
+                return calls, 0
+        else:
+            result = lib.vkWaitSemaphores(device, info, 0)
+            if result == VK_SUCCESS_CODE:
+                return calls, 0
+            if result != VK_TIMEOUT_CODE:
+                raise RuntimeError(f"vkWaitSemaphores: VkResult {result}")
+        time.sleep(0.0001)
+
+
 def signal_host(device, semaphore, value):
     info = ffi.new("VkSemaphoreSignalInfo*")
     info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO
@@ -445,7 +473,7 @@ def run_case(device: Device, case: dict, iterations: int, pre_signal_us: tuple, 
                         time.sleep(0.00005)
                 t_start = clock()
                 calls, python_ns = 1, 0
-                if method == "infinite" or (method.startswith("relay") and index == 0):
+                if method == "infinite" or (method.startswith("relay") and index == 0)                         or (method in ("zeropoll", "counterpoll") and index == 0):
                     calls, python_ns = wait_infinite(device.device, semaphore, value, clock)
                     if method == "relay_event":
                         events[iteration].set()
@@ -455,6 +483,8 @@ def run_case(device: Device, case: dict, iterations: int, pre_signal_us: tuple, 
                             condition.notify_all()
                 elif timeout_ns is not None:
                     calls, python_ns = wait_timeout_loop(device.device, semaphore, value, clock, timeout_ns)
+                elif method in ("zeropoll", "counterpoll"):
+                    calls, python_ns = wait_poll(device.device, semaphore, value, clock, method == "counterpoll")
                 elif method == "relay_event":
                     events[iteration].wait()
                 elif method == "relay_condition":
