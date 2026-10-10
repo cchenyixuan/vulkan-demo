@@ -71,6 +71,11 @@ DEVICE_HOST_COLUMNS = ("step", "sim", "device", "parity", "host_read", "missing_
 # instrument stamped worker_signal only after both host signals had returned and the thread had the GIL
 # back, when the upload had sometimes already started (0.1-2.4 % of steps): there copy -> upload start is
 # one hop. The fixed instrument splits it at worker_dest_signal.
+# E7 B2 (V7_DEST_GUARD=relay, the default since rc2): worker_dest_guard is stamped when the dest guard
+# completed - on the counter pre-check, or on the reverse worker's relay and then a zero-timeout wait - so
+# wait_receiver_readback also holds the relay handoff (the reverse worker's source-wait return -> this
+# worker's wake on the relay), not only the wait for the receiver's readback. With V7_DEST_GUARD=wait (and in
+# rc1) it is the blocking vkWaitSemaphores, as before.
 HOPS_HEAD = (("readback_start_delay", "send_end", "readback_start"),
              ("readback_dma", "readback_start", "readback_copy_end"),
              ("readback_barrier", "readback_copy_end", "readback_end"),

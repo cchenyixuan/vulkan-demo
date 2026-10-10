@@ -51,6 +51,14 @@ hazard exists. Since E32 (2026-10-06) phase A(N+1) follows C(N) by
 submission order on the compute queue (its command buffer opens with a
 same-queue compute->compute barrier) instead of a frame_done(N) wait;
 phase_a_waits below is used only with V7_PHASE_A_NO_WAIT=0.
+
+The guard's (S, v-1) is the dest sim's own readback_done of that direction,
+i.e. the same pair the reverse worker waits as its source_readback_op. Since
+E7 B2 (2026-10-10, transport_v7.DestGuardRelay, default V7_DEST_GUARD=relay)
+only that source wait sleeps on it: the guard completes on the counter
+already reached or on the reverse worker's published observation, then a
+zero-timeout host wait. Semaphores,
+values and every wait / signal below are unchanged.
 """
 
 from __future__ import annotations
@@ -141,7 +149,12 @@ class FrameSyncScheme:
     def dest_guard_op(self, direction: str, frame_n: int) -> SemaphoreOp:
         """Worker waits this on the DEST sim before host-signaling, so the
         host signal never lands behind a pending lower GPU signal on the same
-        semaphore (Vulkan backwards-signal hazard)."""
+        semaphore (Vulkan backwards-signal hazard). Both schemes return
+        source_readback_op(direction, frame_n) of the same sim here; the E7
+        B2 dest guard relay relies on that to let the reverse worker's
+        source wait stand in for a second blocking wait on the value
+        (transport_v7.connect_dest_guard_relays checks it and keeps the
+        blocking wait where it does not hold)."""
         raise NotImplementedError
 
     def dest_upload_guard_ops(self, direction: str, frame_n: int) -> list:

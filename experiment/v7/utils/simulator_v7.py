@@ -59,6 +59,7 @@ from experiment.v7.utils.partition_v7 import (
     COMPACT_DISPATCH_BAND_WIDTHS,
 )
 from experiment.v7.utils.sync_scheme_v7 import make_sync_scheme
+from experiment.v7.utils.transport_v7 import configured_dest_guard_switches
 from experiment.v7.utils.vulkan_context_v7 import VulkanContextV7
 
 # Serialization of driver-entry calls that MUTATE queue/semaphore state
@@ -442,13 +443,17 @@ def configured_v7_switches() -> dict[str, int | str]:
     V7_FUSED_CORRECTION_DENSITY = 1 fuses where a slab allows it (each slab
     prints whether it does and, if not, why); V7_BAND_OVERLAP reads 0 (the
     default), 1 or "auto" for the rule (one verdict per chain; when it is not
-    0, each slab prints it with its decision and layout)."""
+    0, each slab prints it with its decision and layout). E7 B2 adds the
+    transport worker's dest guard switches V7_DEST_GUARD (relay | wait) and
+    V7_DEST_GUARD_PRECHECK (counter | zero_wait | none), read at import of
+    transport_v7 (transport_v7.configured_dest_guard_switches)."""
     return {"V7_DENSITY_COPY_COMPUTE": int(_DENSITY_COPY_COMPUTE),
             "V7_GHOST_SEND_LANES": _GHOST_SEND_LANES,
             "V7_DEEP_WALL_SKIP": _DEEP_WALL_SKIP if _DEEP_WALL_SKIP == "auto" else int(_DEEP_WALL_SKIP),
             "V7_DEEP_WALL_CHECK": _DEEP_WALL_CHECK,
             "V7_FUSED_CORRECTION_DENSITY": _FUSED_CORRECTION_DENSITY,
-            "V7_BAND_OVERLAP": _BAND_OVERLAP if _BAND_OVERLAP == "auto" else int(_BAND_OVERLAP)}
+            "V7_BAND_OVERLAP": _BAND_OVERLAP if _BAND_OVERLAP == "auto" else int(_BAND_OVERLAP),
+            **configured_dest_guard_switches()}
 
 
 def band_overlap_chain_verdict(case: CaseV7) -> tuple[bool, str]:

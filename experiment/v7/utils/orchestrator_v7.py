@@ -25,7 +25,7 @@ import os
 import time
 from typing import TYPE_CHECKING, Any, Optional
 
-from experiment.v7.utils.transport_v7 import GhostMigrationWorker
+from experiment.v7.utils.transport_v7 import GhostMigrationWorker, connect_dest_guard_relays
 
 if TYPE_CHECKING:
     from experiment.v7.utils.simulator_v7 import SphSimulatorV7
@@ -67,6 +67,11 @@ class DualGpuOrchestratorV7:
             source_direction="leading", dest_direction="trailing",
             label="b_to_a")
         self.workers = (self.worker_a_to_b, self.worker_b_to_a)
+        # E7 B2: each worker's dest guard reads the reverse worker's source
+        # observation (transport_v7.DestGuardRelay; V7_DEST_GUARD=wait: none).
+        # step() / run_pipelined notify BEFORE submitting; a relay wait of
+        # frame n needs only the readback(n) the same call submits next.
+        self.dest_guard_relays = connect_dest_guard_relays(self.workers)
 
         self._frame_count = 0
         self._records: list[dict] = []
@@ -83,6 +88,11 @@ class DualGpuOrchestratorV7:
         for w in self.workers:
             w.stop()
         self._destroyed = True
+
+    def dest_guard_record(self) -> dict:
+        """E7 B2: how each worker's dest guards completed so far, by worker
+        label (transport_v7.GhostMigrationWorker.dest_guard_record)."""
+        return {worker.label: worker.dest_guard_record() for worker in self.workers}
 
     def __enter__(self) -> "DualGpuOrchestratorV7":
         return self
@@ -470,6 +480,14 @@ class ChainOrchestratorV7:
                 label=f"s{index + 1}_to_s{index}",
                 queue_depth=worker_queue_depth))
         self.workers = tuple(workers)
+        # E7 B2: one dest guard relay per (sim, peer direction), shared by
+        # the two workers of its link (transport_v7.DestGuardRelay;
+        # V7_DEST_GUARD=wait: none). Created with the workers: timelines start
+        # at 0 and every loop at frame 0 (bootstrap is fence-only). Every
+        # run loop (legacy, V7_PER_SIM_PIPELINE=1 / 2) notifies a link's
+        # workers only after both endpoints submitted the frame, so a relay
+        # wait never needs work the main thread has yet to submit.
+        self.dest_guard_relays = connect_dest_guard_relays(self.workers)
 
         self._frame_count = 0
         self._records: list[dict] = []
@@ -486,6 +504,11 @@ class ChainOrchestratorV7:
         for worker in self.workers:
             worker.stop()
         self._destroyed = True
+
+    def dest_guard_record(self) -> dict:
+        """E7 B2: how each worker's dest guards completed so far, by worker
+        label (transport_v7.GhostMigrationWorker.dest_guard_record)."""
+        return {worker.label: worker.dest_guard_record() for worker in self.workers}
 
     def __enter__(self) -> "ChainOrchestratorV7":
         return self

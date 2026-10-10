@@ -445,6 +445,9 @@ def main() -> int:
                     "switch_interval_s": sys.getswitchinterval(), "v7_switches": configured_v7_switches(),
                     # E39 B3: V7_BAND_OVERLAP's chain verdict + each slab's resolution
                     "band_overlap": band_overlap_record(sims),
+                    # E7 B2: how each worker's dest guards completed (counts
+                    # after the drained run; the stop() lines repeat them)
+                    "dest_guard": orch.dest_guard_record(),
                     "max_steps": args.max_steps, "warmup": args.warmup, "defrag_cadence": defrag_cadence,
                     "result": result, "weights_source": weights_source, "weights_file": args.weights_file,
                     "weights_file_sha256": weights_file_sha256,
