@@ -21,7 +21,9 @@ Wait methods (the candidate fixes are measured in the same program):
   relay_condition   the same with a threading.Condition and a host counter (B2)
 Patterns: same (all waiters on one value), mixed (the solver's transport timeline: the GPU signals odd values, waiter 0
 host-signals the next even value after it wakes), split (each waiter on its own semaphore, both signalled by one
-submit). --stagger-us delays waiter k's start by k x stagger (the solver's reverse worker usually waits first).
+submit), distinct (waiter k waits its own value of one semaphore; one GPU signal reaches all of them), cowait (a
+compute-queue batch also waits the value on the GPU, as the upload would under a GPU-side dest guard). --stagger-us
+delays waiter k's start by k x stagger (the solver's reverse worker usually waits first).
 A load thread (--load-duty) emulates the orchestrator's main loop: Python work in 1 ms windows with that duty cycle;
 its work units per busy second, against the case without waiters, is the GIL cost of the waiters.
 
@@ -84,6 +86,14 @@ def case_list(selection: str) -> list:
          "pattern": "same", "load": True},
         {"name": "gpu_w2_infinite_longwait_load", "signal": "gpu", "waiters": 2, "method": "infinite", "pattern": "same",
          "load": True, "pre_signal_us": (5000.0, 25000.0), "iterations": 1000},
+        {"name": "gpu_w1_infinite_cowait_load", "signal": "gpu", "waiters": 1, "method": "infinite", "pattern": "cowait",
+         "load": True},
+        {"name": "gpu_w2_infinite_cowait_load", "signal": "gpu", "waiters": 2, "method": "infinite", "pattern": "cowait",
+         "load": True},
+        {"name": "gpu_w2_infinite_distinct_load", "signal": "gpu", "waiters": 2, "method": "infinite",
+         "pattern": "distinct", "load": True},
+        {"name": "gpu_w4_infinite_distinct_load", "signal": "gpu", "waiters": 4, "method": "infinite",
+         "pattern": "distinct", "load": True},
     ]
     fixes = []
     for waiters in (2, 4):
@@ -245,6 +255,18 @@ class Device:
                                signalSemaphoreInfoCount=len(infos), pSignalSemaphoreInfos=infos)
         vkQueueSubmit2(self.queues[queue_name], 1, [submit], VK_NULL_HANDLE)
 
+    def submit_wait_signal(self, queue_name: str, waits: list, signals: list) -> None:
+        """A batch without command buffers: wait every (semaphore, value) on the GPU, then signal."""
+        wait_infos = [VkSemaphoreSubmitInfo(semaphore=semaphore, value=value,
+                                            stageMask=VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT) for semaphore, value in waits]
+        signal_infos = [VkSemaphoreSubmitInfo(semaphore=semaphore, value=value,
+                                              stageMask=VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT)
+                        for semaphore, value in signals]
+        submit = VkSubmitInfo2(waitSemaphoreInfoCount=len(wait_infos), pWaitSemaphoreInfos=wait_infos,
+                               commandBufferInfoCount=0, pCommandBufferInfos=None,
+                               signalSemaphoreInfoCount=len(signal_infos), pSignalSemaphoreInfos=signal_infos)
+        vkQueueSubmit2(self.queues[queue_name], 1, [submit], VK_NULL_HANDLE)
+
     def read_timestamp(self, slot: int) -> int:
         data = ffi.new("uint64_t[1]")                  # python-vulkan takes pData as a cdata array
         vkGetQueryPoolResults(self.device, self.query_pool, slot, 1, 8, data, 8,
@@ -387,7 +409,19 @@ def run_case(device: Device, case: dict, iterations: int, pre_signal_us: tuple, 
     pre_signal_us = case.get("pre_signal_us", pre_signal_us)
     iterations = min(iterations, case.get("iterations", iterations))
     delays = [random_generator.uniform(*pre_signal_us) / 1e6 for _ in range(iterations)]
-    value_of = (lambda iteration: 2 * iteration + 1) if pattern == "mixed" else (lambda iteration: iteration + 1)
+    if pattern == "mixed":
+        def value_of(iteration):
+            return 2 * iteration + 1
+    elif pattern == "distinct":
+        def value_of(iteration):                       # the signal reaches every waiter's own value
+            return (iteration + 1) * waiters
+    else:
+        def value_of(iteration):
+            return iteration + 1
+
+    def target_of(iteration, index):
+        return iteration * waiters + index + 1 if pattern == "distinct" else value_of(iteration)
+    gpu_waiter_semaphore = device.timeline() if pattern == "cowait" else None
     timeout_ns = int(float(method.split(":")[1]) * 1e6) if method.startswith("timeout:") else None
     start_barrier = threading.Barrier(waiters + 1)
     end_barrier = threading.Barrier(waiters + 1)
@@ -403,7 +437,7 @@ def run_case(device: Device, case: dict, iterations: int, pre_signal_us: tuple, 
             cpu_start = time.thread_time_ns()
             for iteration in range(iterations):
                 start_barrier.wait()
-                value = value_of(iteration)
+                value = target_of(iteration, index)
                 semaphore = semaphores[index % len(semaphores)]
                 if stagger_ns:
                     target = clock() + stagger_ns * index
@@ -452,6 +486,8 @@ def run_case(device: Device, case: dict, iterations: int, pre_signal_us: tuple, 
         for iteration in range(iterations):
             value = value_of(iteration)
             slot = iteration % QUERY_RING
+            if gpu_waiter_semaphore is not None:          # pending on the GPU before the signal, like an upload
+                device.submit_wait_signal("compute", [(semaphores[0], value)], [(gpu_waiter_semaphore, iteration + 1)])
             start_barrier.wait()
             time.sleep(delays[iteration])
             t_signal_host = clock()
@@ -461,6 +497,8 @@ def run_case(device: Device, case: dict, iterations: int, pre_signal_us: tuple, 
             else:
                 device.submit_signal(queue_name, slot, [(semaphore, value) for semaphore in semaphores])
             end_barrier.wait()
+            if gpu_waiter_semaphore is not None:
+                wait_infinite(device.device, gpu_waiter_semaphore, iteration + 1, clock)
             gpu_ns = device.read_timestamp(slot) * device.timestamp_period_ns if case["signal"] == "gpu" else None
             signals.append((t_signal_host, gpu_ns))
     except threading.BrokenBarrierError:
@@ -483,7 +521,7 @@ def run_case(device: Device, case: dict, iterations: int, pre_signal_us: tuple, 
             rows.append({"case": case["name"], "iteration": iteration, "waiter": index, "t_start": t_start,
                          "t_wake": t_wake, "t_signal": round(t_signal), "t_signal_host_call": t_signal_host,
                          "calls": calls, "python_ns": python_ns})
-    for semaphore in semaphores:
+    for semaphore in semaphores + ([gpu_waiter_semaphore] if gpu_waiter_semaphore is not None else []):
         vkDestroySemaphore(device.device, semaphore, None)
     load_rate = (load.units / (load.busy_ns / 1e9)) if load is not None and load.busy_ns > 0 else None
     return rows, {"wall_s": wall_ns / 1e9, "thread_cpu_s": [value / 1e9 for value in thread_cpu],
