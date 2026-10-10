@@ -308,8 +308,9 @@ def main() -> int:
             body.append(f"<h2>{title}</h2>" + render_markdown(path.read_text(encoding="utf-8")))
     for path, title in ((root / arguments.memory_md, "附:内存清单(原始)"), (root / arguments.platform_md, "附:平台记录(原始)")):
         if path.exists():
-            body.append(f"<h2>{title}</h2>" + render_markdown(re.sub(r"^# .*$", "", path.read_text(encoding="utf-8"), count=1,
-                                                                        flags=re.MULTILINE)))
+            text = re.sub(r"^# .*$", "", path.read_text(encoding="utf-8"), count=1, flags=re.MULTILINE)
+            text = re.sub(r"^## ", "### ", text, flags=re.MULTILINE)       # the file's own sections under this h2
+            body.append(f"<h2>{title}</h2>" + render_markdown(text))
     page ="<title>v7_single 报告</title>\n<style>" + STYLE + "</style>\n<main>\n" + "\n".join(body) + "\n</main>\n"
     out = pathlib.Path(arguments.out)
     out.parent.mkdir(parents=True, exist_ok=True)
