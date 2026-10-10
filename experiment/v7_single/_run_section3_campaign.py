@@ -44,6 +44,7 @@ SIZES = [("8m", "cases/lid_driven_cavity_2d_8m/case.yaml", 3),
          ("1m", "cases/lid_driven_cavity_2d_gen/case.yaml", 1),
          ("2m", "cases/lid_driven_cavity_2d_2m/case.yaml", 1),
          ("4m", "cases/lid_driven_cavity_2d_4m/case.yaml", 1),
+         ("4m_gen", "cases/lid_driven_cavity_2d_4m_gen/case.yaml", 1),     # generator-built 4M (follow-up)
          ("16m", "cases/lid_driven_cavity_2d_16m/case.yaml", 1),
          ("32m", "cases/lid_driven_cavity_2d_32m/case.yaml", 1)]
 

@@ -41,7 +41,12 @@ COLOR_V0 = "#2a78d6"
 INK = "#000000"
 INK_2 = "#333333"
 GRID = "#d9d9d9"
-LABELED = ("1m", "2m", "4m", "8m", "16m", "32m")
+LABELED = ("1m", "2m", "4m", "4m_gen", "8m", "16m", "32m")
+
+
+def size_label(tag: str) -> str:
+    """Tick label of a size tag: 4m -> 4M, 4m_gen -> 4M (the generator-built 4M replaces the hand-made one)."""
+    return tag.upper().replace("_GEN", "")
 
 
 def setup_style(font_size: float) -> None:
@@ -70,7 +75,7 @@ def log_size_axis(ax, sizes: list[str], n_values: dict[str, int]) -> None:
     ax.set_xscale("log")
     labeled = [tag for tag in sizes if tag in LABELED]
     ax.set_xticks([n_values[tag] for tag in labeled])
-    ax.set_xticklabels([tag.upper() for tag in labeled])
+    ax.set_xticklabels([size_label(tag) for tag in labeled])
     ax.set_xticks([n_values[tag] for tag in sizes if tag not in labeled], minor=True)
     ax.xaxis.set_minor_formatter(ticker.NullFormatter())
 
@@ -194,6 +199,8 @@ def main() -> int:
     parser.add_argument("--sizes", default=None, help="comma-separated size tags to plot (default: the 2-D curve)")
     parser.add_argument("--single-panel", action="store_true",
                         help="Figure A as one throughput panel (no fps panel), height = 0.66 x width")
+    parser.add_argument("--exclude-sizes", default="",
+                        help="comma-separated size tags to leave out (e.g. 4m when 4m_gen replaces it)")
     args = parser.parse_args()
 
     import matplotlib
@@ -203,6 +210,8 @@ def main() -> int:
     ok, failed = load_results(_REPO / args.dir / "results.jsonl")
     rows = aggregate(ok, [])
     wanted = args.sizes.split(",") if args.sizes else [tag for tag in CURVE_SIZES if tag != "3d_8m"]
+    excluded = {tag for tag in args.exclude_sizes.split(",") if tag}
+    wanted = [tag for tag in wanted if tag not in excluded]
     sizes = [tag for tag in wanted if any(k[0] == tag and k[1] == args.solver for k in rows)]   # excludes 1m_orig
     n_values = {tag: next(rows[k]["particles"] for k in rows if k[0] == tag) for tag in sizes}
 

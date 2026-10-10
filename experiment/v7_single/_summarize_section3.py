@@ -28,8 +28,9 @@ if str(_REPOSITORY_ROOT) not in sys.path:
 
 from _summarize_kernel_breakdown import DISPATCH, STAGE_LABEL  # noqa: E402
 
-SIZE_ORDER = ["1m", "2m", "4m", "8m", "16m", "32m", "3d_8m"]
-SIZE_LABEL = {"1m": "1M", "2m": "2M", "4m": "4M", "8m": "8M", "16m": "16M", "32m": "32M", "3d_8m": "3-D 8M"}
+SIZE_ORDER = ["1m", "2m", "4m", "4m_gen", "8m", "16m", "32m", "3d_8m"]
+SIZE_LABEL = {"1m": "1M", "2m": "2M", "4m": "4M(旧手工)", "4m_gen": "4M gen", "8m": "8M", "16m": "16M", "32m": "32M",
+              "3d_8m": "3-D 8M"}
 TABLE2_SIZES = ["8m", "3d_8m"]
 B_TAG_OF_SIZE = {"8m": "cavity2d_8m", "3d_8m": "cavity3d_8m_b4"}
 NEIGHBOR_KERNELS = ("correction_density", "correction", "density_kernel", "force", "wall_extrapolate")
@@ -333,31 +334,37 @@ def sizes_markdown(summary: dict, dip: dict) -> str:
 
 
 def dip_analysis(summary: dict) -> dict:
-    """Is 4M's ps per candidate the same as its neighbours' (2M, 8M)? Plus the candidate-count part of the dip."""
-    needed = ("2m", "4m", "8m")
-    if any(s not in summary for s in needed):
+    """Is the 4M point's ps per candidate the same as its neighbours' (2M, 8M)? For the hand-made 4m and, when
+    present, the generator-built 4m_gen; plus the candidate-count part of the dip and the grids."""
+    if any(s not in summary for s in ("2m", "8m")):
         return {"status": "sizes missing"}
-    two, four, eight = (summary[s] for s in needed)
-    out = {"criterion": "4M ps/candidate (whole step, fused kernel, force) against the mean of 2M and 8M; "
-                        "the run-to-run spread of the step is the yardstick"}
-    for name, getter in (("step", lambda d: d["step_ps_per_candidate"]),
-                         ("correction_density", lambda d: d["stages"]["correction_density"]["ps_per_candidate"]),
-                         ("force", lambda d: d["stages"]["force"]["ps_per_candidate"])):
-        reference = 0.5 * (getter(two) + getter(eight))
-        out[f"ps_per_candidate_{name}_2m_4m_8m"] = [getter(two), getter(four), getter(eight)]
-        out[f"ps_per_candidate_{name}_4m_vs_neighbours_pct"] = 100.0 * (getter(four) / reference - 1)
-    out["step_spread_pct_8m_runs"] = eight["gpu_frame_spread_pct"]
-    cand = [two["candidates_per_particle"], four["candidates_per_particle"], eight["candidates_per_particle"]]
-    out["candidates_per_particle_2m_4m_8m"] = cand
-    out["candidates_4m_vs_neighbours_pct"] = 100.0 * (cand[1] / (0.5 * (cand[0] + cand[2])) - 1)
-    gpu_tp = [two["gpu_throughput_mps"], four["gpu_throughput_mps"], eight["gpu_throughput_mps"]]
-    out["gpu_throughput_mps_2m_4m_8m"] = gpu_tp
-    out["gpu_throughput_4m_vs_neighbours_pct"] = 100.0 * (gpu_tp[1] / (0.5 * (gpu_tp[0] + gpu_tp[2])) - 1)
-    a2 = [summary[s]["a"].get("2", {}).get("mparticle_steps_per_s") for s in needed]
-    if all(a2):
-        out["a_throughput_d2_2m_4m_8m"] = a2
-        out["a_throughput_d2_4m_vs_neighbours_pct"] = 100.0 * (a2[1] / (0.5 * (a2[0] + a2[2])) - 1)
-    for s in needed:
+    two, eight = summary["2m"], summary["8m"]
+    out = {"criterion": "the 4M point's ps/candidate (whole step, fused kernel, force) against the mean of 2M and 8M; "
+                        "the run-to-run spread of the step is the yardstick",
+           "step_spread_pct_8m_runs": eight["gpu_frame_spread_pct"]}
+    for point in ("4m", "4m_gen"):
+        if point not in summary:
+            continue
+        four = summary[point]
+        for name, getter in (("step", lambda d: d["step_ps_per_candidate"]),
+                             ("correction_density", lambda d: d["stages"]["correction_density"]["ps_per_candidate"]),
+                             ("force", lambda d: d["stages"]["force"]["ps_per_candidate"])):
+            reference = 0.5 * (getter(two) + getter(eight))
+            out[f"ps_per_candidate_{name}_2m_{point}_8m"] = [getter(two), getter(four), getter(eight)]
+            out[f"ps_per_candidate_{name}_{point}_vs_neighbours_pct"] = 100.0 * (getter(four) / reference - 1)
+        cand = [two["candidates_per_particle"], four["candidates_per_particle"], eight["candidates_per_particle"]]
+        out[f"candidates_per_particle_2m_{point}_8m"] = cand
+        out[f"candidates_{point}_vs_neighbours_pct"] = 100.0 * (cand[1] / (0.5 * (cand[0] + cand[2])) - 1)
+        gpu_tp = [two["gpu_throughput_mps"], four["gpu_throughput_mps"], eight["gpu_throughput_mps"]]
+        out[f"gpu_throughput_mps_2m_{point}_8m"] = gpu_tp
+        out[f"gpu_throughput_{point}_vs_neighbours_pct"] = 100.0 * (gpu_tp[1] / (0.5 * (gpu_tp[0] + gpu_tp[2])) - 1)
+        a2 = [summary[s]["a"].get("2", {}).get("mparticle_steps_per_s") for s in ("2m", point, "8m")]
+        if all(a2):
+            out[f"a_throughput_d2_2m_{point}_8m"] = a2
+            out[f"a_throughput_d2_{point}_vs_neighbours_pct"] = 100.0 * (a2[1] / (0.5 * (a2[0] + a2[2])) - 1)
+    for s in ("2m", "4m", "4m_gen", "8m"):
+        if s not in summary:
+            continue
         d = summary[s]
         out[f"grid_{s}"] = {"dimensions": d["grid_dimensions"], "total_voxels": d["total_voxels"],
                             "end_occupied_voxels": d["end_occupied_voxels"], "end_mean_per_voxel": d["end_mean_per_voxel"],
