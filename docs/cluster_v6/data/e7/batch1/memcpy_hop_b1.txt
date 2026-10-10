@@ -1,0 +1,200 @@
+== 02_e7_b1B_1681466/2d_n11320_K8_C: steady steps from 1000, device map [0, 1, 2, 3, 4, 5, 6, 7]
+   s0_to_s1  GPU 0->1 socket 0 internal  memcpy p50     261 p95     651 us,  3.666 MB,  14.0 GB/s at p50; receiver T_B p50   17817 us
+   s1_to_s0  GPU 1->0 socket 0 internal  memcpy p50     261 p95     634 us,  3.666 MB,  14.0 GB/s at p50; receiver T_B p50   18038 us
+   s1_to_s2  GPU 1->2 socket 0 internal  memcpy p50     253 p95     509 us,  3.666 MB,  14.5 GB/s at p50; receiver T_B p50   17799 us
+   s2_to_s1  GPU 2->1 socket 0 internal  memcpy p50     235 p95     592 us,  3.666 MB,  15.6 GB/s at p50; receiver T_B p50   17817 us
+   s2_to_s3  GPU 2->3 socket 0 internal  memcpy p50     263 p95     577 us,  3.666 MB,  13.9 GB/s at p50; receiver T_B p50   17747 us
+   s3_to_s2  GPU 3->2 socket 0 internal  memcpy p50     279 p95     612 us,  3.666 MB,  13.1 GB/s at p50; receiver T_B p50   17799 us
+   s3_to_s4  GPU 3->4 cross-socket       memcpy p50     361 p95     496 us,  3.666 MB,  10.1 GB/s at p50; receiver T_B p50   17821 us
+   s4_to_s3  GPU 4->3 cross-socket       memcpy p50     439 p95     782 us,  3.666 MB,   8.4 GB/s at p50; receiver T_B p50   17747 us
+   s4_to_s5  GPU 4->5 socket 1 internal  memcpy p50     258 p95     509 us,  3.666 MB,  14.2 GB/s at p50; receiver T_B p50   17747 us
+   s5_to_s4  GPU 5->4 socket 1 internal  memcpy p50     268 p95     560 us,  3.666 MB,  13.7 GB/s at p50; receiver T_B p50   17821 us
+   s5_to_s6  GPU 5->6 socket 1 internal  memcpy p50     216 p95     290 us,  3.666 MB,  17.0 GB/s at p50; receiver T_B p50   17835 us
+   s6_to_s5  GPU 6->5 socket 1 internal  memcpy p50     222 p95     296 us,  3.666 MB,  16.5 GB/s at p50; receiver T_B p50   17747 us
+   s6_to_s7  GPU 6->7 socket 1 internal  memcpy p50     248 p95     438 us,  3.666 MB,  14.8 GB/s at p50; receiver T_B p50   18236 us
+   s7_to_s6  GPU 7->6 socket 1 internal  memcpy p50     284 p95     562 us,  3.666 MB,  12.9 GB/s at p50; receiver T_B p50   17835 us
+   socket 0 internal : 6 links, median of link p50    261 us (1.00 x socket 0), GB/s  13.1- 15.6
+   socket 1 internal : 6 links, median of link p50    253 us (0.97 x socket 0), GB/s  12.9- 17.0
+   cross-socket      : 2 links, median of link p50    400 us (1.53 x socket 0), GB/s   8.4- 10.1; extra over socket 0 +100..+178 us = 0.56..1.00 % of the receiver's T_B
+== 02_e7_b1B_1681466/2d_n11320_K8_E: steady steps from 1000, device map [0, 1, 2, 3, 4, 5, 6, 7]
+   s0_to_s1  GPU 0->1 socket 0 internal  memcpy p50     229 p95     325 us,  3.666 MB,  16.0 GB/s at p50; receiver T_B p50   17416 us
+   s1_to_s0  GPU 1->0 socket 0 internal  memcpy p50     237 p95     335 us,  3.666 MB,  15.5 GB/s at p50; receiver T_B p50   18026 us
+   s1_to_s2  GPU 1->2 socket 0 internal  memcpy p50     297 p95     432 us,  3.666 MB,  12.3 GB/s at p50; receiver T_B p50   18048 us
+   s2_to_s1  GPU 2->1 socket 0 internal  memcpy p50     297 p95     493 us,  3.666 MB,  12.4 GB/s at p50; receiver T_B p50   17416 us
+   s2_to_s3  GPU 2->3 socket 0 internal  memcpy p50     298 p95     477 us,  3.666 MB,  12.3 GB/s at p50; receiver T_B p50   17870 us
+   s3_to_s2  GPU 3->2 socket 0 internal  memcpy p50     238 p95     448 us,  3.666 MB,  15.4 GB/s at p50; receiver T_B p50   18048 us
+   s3_to_s4  GPU 3->4 cross-socket       memcpy p50     357 p95     561 us,  3.666 MB,  10.3 GB/s at p50; receiver T_B p50   18041 us
+   s4_to_s3  GPU 4->3 cross-socket       memcpy p50     388 p95     536 us,  3.666 MB,   9.4 GB/s at p50; receiver T_B p50   17870 us
+   s4_to_s5  GPU 4->5 socket 1 internal  memcpy p50     229 p95     385 us,  3.666 MB,  16.0 GB/s at p50; receiver T_B p50   17813 us
+   s5_to_s4  GPU 5->4 socket 1 internal  memcpy p50     240 p95     471 us,  3.666 MB,  15.3 GB/s at p50; receiver T_B p50   18041 us
+   s5_to_s6  GPU 5->6 socket 1 internal  memcpy p50     230 p95     374 us,  3.666 MB,  16.0 GB/s at p50; receiver T_B p50   17792 us
+   s6_to_s5  GPU 6->5 socket 1 internal  memcpy p50     290 p95     463 us,  3.666 MB,  12.6 GB/s at p50; receiver T_B p50   17813 us
+   s6_to_s7  GPU 6->7 socket 1 internal  memcpy p50     243 p95     435 us,  3.666 MB,  15.1 GB/s at p50; receiver T_B p50   17887 us
+   s7_to_s6  GPU 7->6 socket 1 internal  memcpy p50     280 p95     468 us,  3.666 MB,  13.1 GB/s at p50; receiver T_B p50   17792 us
+   socket 0 internal : 6 links, median of link p50    267 us (1.00 x socket 0), GB/s  12.3- 16.0
+   socket 1 internal : 6 links, median of link p50    241 us (0.90 x socket 0), GB/s  12.6- 16.0
+   cross-socket      : 2 links, median of link p50    372 us (1.39 x socket 0), GB/s   9.4- 10.3; extra over socket 0 +90..+121 us = 0.50..0.68 % of the receiver's T_B
+== 02_e7_b1B_1681466/2d_n4000_K8_C: steady steps from 1000, device map [0, 1, 2, 3, 4, 5, 6, 7]
+   s0_to_s1  GPU 0->1 socket 0 internal  memcpy p50     579 p95     995 us,  1.300 MB,   2.2 GB/s at p50; receiver T_B p50    2273 us
+   s1_to_s0  GPU 1->0 socket 0 internal  memcpy p50     576 p95     946 us,  1.300 MB,   2.3 GB/s at p50; receiver T_B p50    2382 us
+   s1_to_s2  GPU 1->2 socket 0 internal  memcpy p50     511 p95     903 us,  1.300 MB,   2.5 GB/s at p50; receiver T_B p50    2251 us
+   s2_to_s1  GPU 2->1 socket 0 internal  memcpy p50     476 p95     844 us,  1.300 MB,   2.7 GB/s at p50; receiver T_B p50    2273 us
+   s2_to_s3  GPU 2->3 socket 0 internal  memcpy p50     459 p95     866 us,  1.300 MB,   2.8 GB/s at p50; receiver T_B p50    2266 us
+   s3_to_s2  GPU 3->2 socket 0 internal  memcpy p50     466 p95     830 us,  1.300 MB,   2.8 GB/s at p50; receiver T_B p50    2251 us
+   s3_to_s4  GPU 3->4 cross-socket       memcpy p50     554 p95     960 us,  1.300 MB,   2.3 GB/s at p50; receiver T_B p50    2251 us
+   s4_to_s3  GPU 4->3 cross-socket       memcpy p50     547 p95     911 us,  1.300 MB,   2.4 GB/s at p50; receiver T_B p50    2266 us
+   s4_to_s5  GPU 4->5 socket 1 internal  memcpy p50     176 p95     620 us,  1.300 MB,   7.4 GB/s at p50; receiver T_B p50    2237 us
+   s5_to_s4  GPU 5->4 socket 1 internal  memcpy p50     159 p95     621 us,  1.300 MB,   8.2 GB/s at p50; receiver T_B p50    2251 us
+   s5_to_s6  GPU 5->6 socket 1 internal  memcpy p50     392 p95     941 us,  1.300 MB,   3.3 GB/s at p50; receiver T_B p50    2262 us
+   s6_to_s5  GPU 6->5 socket 1 internal  memcpy p50     350 p95     911 us,  1.300 MB,   3.7 GB/s at p50; receiver T_B p50    2237 us
+   s6_to_s7  GPU 6->7 socket 1 internal  memcpy p50     379 p95     867 us,  1.300 MB,   3.4 GB/s at p50; receiver T_B p50    2405 us
+   s7_to_s6  GPU 7->6 socket 1 internal  memcpy p50      84 p95     723 us,  1.300 MB,  15.5 GB/s at p50; receiver T_B p50    2262 us
+   socket 0 internal : 6 links, median of link p50    494 us (1.00 x socket 0), GB/s   2.2-  2.8
+   socket 1 internal : 6 links, median of link p50    263 us (0.53 x socket 0), GB/s   3.3- 15.5
+   cross-socket      : 2 links, median of link p50    550 us (1.11 x socket 0), GB/s   2.3-  2.4; extra over socket 0 +53..+60 us = 2.35..2.68 % of the receiver's T_B
+== 02_e7_b1B_1681466/2d_n4000_K8_E: steady steps from 1000, device map [0, 1, 2, 3, 4, 5, 6, 7]
+   s0_to_s1  GPU 0->1 socket 0 internal  memcpy p50     435 p95     916 us,  1.300 MB,   3.0 GB/s at p50; receiver T_B p50    2294 us
+   s1_to_s0  GPU 1->0 socket 0 internal  memcpy p50     424 p95     891 us,  1.300 MB,   3.1 GB/s at p50; receiver T_B p50    2352 us
+   s1_to_s2  GPU 1->2 socket 0 internal  memcpy p50     382 p95     844 us,  1.300 MB,   3.4 GB/s at p50; receiver T_B p50    2297 us
+   s2_to_s1  GPU 2->1 socket 0 internal  memcpy p50     370 p95     814 us,  1.300 MB,   3.5 GB/s at p50; receiver T_B p50    2294 us
+   s2_to_s3  GPU 2->3 socket 0 internal  memcpy p50     429 p95     816 us,  1.300 MB,   3.0 GB/s at p50; receiver T_B p50    2245 us
+   s3_to_s2  GPU 3->2 socket 0 internal  memcpy p50     442 p95     837 us,  1.300 MB,   2.9 GB/s at p50; receiver T_B p50    2297 us
+   s3_to_s4  GPU 3->4 cross-socket       memcpy p50     418 p95     849 us,  1.300 MB,   3.1 GB/s at p50; receiver T_B p50    2271 us
+   s4_to_s3  GPU 4->3 cross-socket       memcpy p50     165 p95     873 us,  1.300 MB,   7.9 GB/s at p50; receiver T_B p50    2245 us
+   s4_to_s5  GPU 4->5 socket 1 internal  memcpy p50      98 p95     625 us,  1.300 MB,  13.2 GB/s at p50; receiver T_B p50    2271 us
+   s5_to_s4  GPU 5->4 socket 1 internal  memcpy p50     103 p95     644 us,  1.300 MB,  12.7 GB/s at p50; receiver T_B p50    2271 us
+   s5_to_s6  GPU 5->6 socket 1 internal  memcpy p50     363 p95     940 us,  1.300 MB,   3.6 GB/s at p50; receiver T_B p50    2300 us
+   s6_to_s5  GPU 6->5 socket 1 internal  memcpy p50     306 p95     885 us,  1.300 MB,   4.2 GB/s at p50; receiver T_B p50    2271 us
+   s6_to_s7  GPU 6->7 socket 1 internal  memcpy p50     250 p95     612 us,  1.300 MB,   5.2 GB/s at p50; receiver T_B p50    2374 us
+   s7_to_s6  GPU 7->6 socket 1 internal  memcpy p50     335 p95     811 us,  1.300 MB,   3.9 GB/s at p50; receiver T_B p50    2300 us
+   socket 0 internal : 6 links, median of link p50    427 us (1.00 x socket 0), GB/s   2.9-  3.5
+   socket 1 internal : 6 links, median of link p50    278 us (0.65 x socket 0), GB/s   3.6- 13.2
+   cross-socket      : 2 links, median of link p50    292 us (0.68 x socket 0), GB/s   3.1-  7.9; extra over socket 0 -261..-8 us = -11.64..-0.36 % of the receiver's T_B
+== 02_e7_b1B_1681466/2d_n8000_K8_C: steady steps from 1000, device map [0, 1, 2, 3, 4, 5, 6, 7]
+   s0_to_s1  GPU 0->1 socket 0 internal  memcpy p50     181 p95     389 us,  2.593 MB,  14.3 GB/s at p50; receiver T_B p50    9177 us
+   s1_to_s0  GPU 1->0 socket 0 internal  memcpy p50     178 p95     384 us,  2.593 MB,  14.6 GB/s at p50; receiver T_B p50    9399 us
+   s1_to_s2  GPU 1->2 socket 0 internal  memcpy p50     177 p95     377 us,  2.593 MB,  14.7 GB/s at p50; receiver T_B p50    9192 us
+   s2_to_s1  GPU 2->1 socket 0 internal  memcpy p50     157 p95     292 us,  2.593 MB,  16.5 GB/s at p50; receiver T_B p50    9177 us
+   s2_to_s3  GPU 2->3 socket 0 internal  memcpy p50     181 p95     385 us,  2.593 MB,  14.3 GB/s at p50; receiver T_B p50    9192 us
+   s3_to_s2  GPU 3->2 socket 0 internal  memcpy p50     183 p95     437 us,  2.593 MB,  14.2 GB/s at p50; receiver T_B p50    9192 us
+   s3_to_s4  GPU 3->4 cross-socket       memcpy p50     287 p95     474 us,  2.593 MB,   9.0 GB/s at p50; receiver T_B p50    9197 us
+   s4_to_s3  GPU 4->3 cross-socket       memcpy p50     317 p95     502 us,  2.593 MB,   8.2 GB/s at p50; receiver T_B p50    9192 us
+   s4_to_s5  GPU 4->5 socket 1 internal  memcpy p50     174 p95     318 us,  2.593 MB,  14.9 GB/s at p50; receiver T_B p50    9160 us
+   s5_to_s4  GPU 5->4 socket 1 internal  memcpy p50     166 p95     304 us,  2.593 MB,  15.6 GB/s at p50; receiver T_B p50    9197 us
+   s5_to_s6  GPU 5->6 socket 1 internal  memcpy p50     189 p95     394 us,  2.593 MB,  13.7 GB/s at p50; receiver T_B p50    9184 us
+   s6_to_s5  GPU 6->5 socket 1 internal  memcpy p50     181 p95     401 us,  2.593 MB,  14.3 GB/s at p50; receiver T_B p50    9160 us
+   s6_to_s7  GPU 6->7 socket 1 internal  memcpy p50     171 p95     381 us,  2.593 MB,  15.2 GB/s at p50; receiver T_B p50    9399 us
+   s7_to_s6  GPU 7->6 socket 1 internal  memcpy p50     165 p95     402 us,  2.593 MB,  15.7 GB/s at p50; receiver T_B p50    9184 us
+   socket 0 internal : 6 links, median of link p50    180 us (1.00 x socket 0), GB/s  14.2- 16.5
+   socket 1 internal : 6 links, median of link p50    173 us (0.96 x socket 0), GB/s  13.7- 15.7
+   cross-socket      : 2 links, median of link p50    302 us (1.68 x socket 0), GB/s   8.2-  9.0; extra over socket 0 +107..+138 us = 1.16..1.50 % of the receiver's T_B
+== 02_e7_b1B_1681466/2d_n8000_K8_E: steady steps from 1000, device map [0, 1, 2, 3, 4, 5, 6, 7]
+   s0_to_s1  GPU 0->1 socket 0 internal  memcpy p50     174 p95     339 us,  2.593 MB,  14.9 GB/s at p50; receiver T_B p50    8955 us
+   s1_to_s0  GPU 1->0 socket 0 internal  memcpy p50     172 p95     334 us,  2.593 MB,  15.1 GB/s at p50; receiver T_B p50    9346 us
+   s1_to_s2  GPU 1->2 socket 0 internal  memcpy p50     183 p95     312 us,  2.593 MB,  14.1 GB/s at p50; receiver T_B p50    9385 us
+   s2_to_s1  GPU 2->1 socket 0 internal  memcpy p50     185 p95     295 us,  2.593 MB,  14.0 GB/s at p50; receiver T_B p50    8955 us
+   s2_to_s3  GPU 2->3 socket 0 internal  memcpy p50     179 p95     305 us,  2.593 MB,  14.5 GB/s at p50; receiver T_B p50    9151 us
+   s3_to_s2  GPU 3->2 socket 0 internal  memcpy p50     171 p95     300 us,  2.593 MB,  15.2 GB/s at p50; receiver T_B p50    9385 us
+   s3_to_s4  GPU 3->4 cross-socket       memcpy p50     274 p95     365 us,  2.593 MB,   9.5 GB/s at p50; receiver T_B p50    9256 us
+   s4_to_s3  GPU 4->3 cross-socket       memcpy p50     259 p95     387 us,  2.593 MB,  10.0 GB/s at p50; receiver T_B p50    9151 us
+   s4_to_s5  GPU 4->5 socket 1 internal  memcpy p50     188 p95     361 us,  2.593 MB,  13.8 GB/s at p50; receiver T_B p50    9284 us
+   s5_to_s4  GPU 5->4 socket 1 internal  memcpy p50     187 p95     378 us,  2.593 MB,  13.9 GB/s at p50; receiver T_B p50    9256 us
+   s5_to_s6  GPU 5->6 socket 1 internal  memcpy p50     177 p95     350 us,  2.593 MB,  14.6 GB/s at p50; receiver T_B p50    9168 us
+   s6_to_s5  GPU 6->5 socket 1 internal  memcpy p50     182 p95     373 us,  2.593 MB,  14.3 GB/s at p50; receiver T_B p50    9284 us
+   s6_to_s7  GPU 6->7 socket 1 internal  memcpy p50     161 p95     258 us,  2.593 MB,  16.1 GB/s at p50; receiver T_B p50    9280 us
+   s7_to_s6  GPU 7->6 socket 1 internal  memcpy p50     168 p95     312 us,  2.593 MB,  15.4 GB/s at p50; receiver T_B p50    9168 us
+   socket 0 internal : 6 links, median of link p50    177 us (1.00 x socket 0), GB/s  14.0- 15.2
+   socket 1 internal : 6 links, median of link p50    180 us (1.02 x socket 0), GB/s  13.8- 16.1
+   cross-socket      : 2 links, median of link p50    266 us (1.51 x socket 0), GB/s   9.5- 10.0; extra over socket 0 +82..+97 us = 0.90..1.05 % of the receiver's T_B
+== 02_e7_b1B_1681466/3d_n160_k8_K8_C: steady steps from 500, device map [0, 1, 2, 3, 4, 5, 6, 7]
+   s0_to_s1  GPU 0->1 socket 0 internal  memcpy p50     656 p95     795 us,  7.256 MB,  11.1 GB/s at p50; receiver T_B p50   26577 us
+   s1_to_s0  GPU 1->0 socket 0 internal  memcpy p50     605 p95     876 us,  7.256 MB,  12.0 GB/s at p50; receiver T_B p50   27544 us
+   s1_to_s2  GPU 1->2 socket 0 internal  memcpy p50     499 p95     656 us,  7.256 MB,  14.5 GB/s at p50; receiver T_B p50   26109 us
+   s2_to_s1  GPU 2->1 socket 0 internal  memcpy p50     583 p95     833 us,  7.256 MB,  12.4 GB/s at p50; receiver T_B p50   26577 us
+   s2_to_s3  GPU 2->3 socket 0 internal  memcpy p50     525 p95     699 us,  7.256 MB,  13.8 GB/s at p50; receiver T_B p50   25247 us
+   s3_to_s2  GPU 3->2 socket 0 internal  memcpy p50     549 p95     862 us,  7.256 MB,  13.2 GB/s at p50; receiver T_B p50   26109 us
+   s3_to_s4  GPU 3->4 cross-socket       memcpy p50     686 p95     723 us,  7.256 MB,  10.6 GB/s at p50; receiver T_B p50   25403 us
+   s4_to_s3  GPU 4->3 cross-socket       memcpy p50     738 p95     770 us,  7.256 MB,   9.8 GB/s at p50; receiver T_B p50   25247 us
+   s4_to_s5  GPU 4->5 socket 1 internal  memcpy p50     514 p95     639 us,  7.256 MB,  14.1 GB/s at p50; receiver T_B p50   26612 us
+   s5_to_s4  GPU 5->4 socket 1 internal  memcpy p50     524 p95     674 us,  7.256 MB,  13.9 GB/s at p50; receiver T_B p50   25403 us
+   s5_to_s6  GPU 5->6 socket 1 internal  memcpy p50     535 p95     688 us,  7.256 MB,  13.6 GB/s at p50; receiver T_B p50   25869 us
+   s6_to_s5  GPU 6->5 socket 1 internal  memcpy p50     527 p95     686 us,  7.256 MB,  13.8 GB/s at p50; receiver T_B p50   26612 us
+   s6_to_s7  GPU 6->7 socket 1 internal  memcpy p50     431 p95     456 us,  7.256 MB,  16.8 GB/s at p50; receiver T_B p50   27650 us
+   s7_to_s6  GPU 7->6 socket 1 internal  memcpy p50     434 p95     470 us,  7.256 MB,  16.7 GB/s at p50; receiver T_B p50   25869 us
+   socket 0 internal : 6 links, median of link p50    566 us (1.00 x socket 0), GB/s  11.1- 14.5
+   socket 1 internal : 6 links, median of link p50    519 us (0.92 x socket 0), GB/s  13.6- 16.8
+   cross-socket      : 2 links, median of link p50    712 us (1.26 x socket 0), GB/s   9.8- 10.6; extra over socket 0 +120..+172 us = 0.47..0.68 % of the receiver's T_B
+== 02_e7_b1B_1681466/3d_n160_k8_K8_E: steady steps from 500, device map [0, 1, 2, 3, 4, 5, 6, 7]
+   s0_to_s1  GPU 0->1 socket 0 internal  memcpy p50     489 p95     688 us,  7.256 MB,  14.8 GB/s at p50; receiver T_B p50   25875 us
+   s1_to_s0  GPU 1->0 socket 0 internal  memcpy p50     590 p95     752 us,  7.256 MB,  12.3 GB/s at p50; receiver T_B p50   28392 us
+   s1_to_s2  GPU 1->2 socket 0 internal  memcpy p50     446 p95     603 us,  7.256 MB,  16.3 GB/s at p50; receiver T_B p50   26095 us
+   s2_to_s1  GPU 2->1 socket 0 internal  memcpy p50     431 p95     529 us,  7.256 MB,  16.8 GB/s at p50; receiver T_B p50   25875 us
+   s2_to_s3  GPU 2->3 socket 0 internal  memcpy p50     493 p95     619 us,  7.256 MB,  14.7 GB/s at p50; receiver T_B p50   25435 us
+   s3_to_s2  GPU 3->2 socket 0 internal  memcpy p50     507 p95     668 us,  7.256 MB,  14.3 GB/s at p50; receiver T_B p50   26095 us
+   s3_to_s4  GPU 3->4 cross-socket       memcpy p50     737 p95     934 us,  7.256 MB,   9.8 GB/s at p50; receiver T_B p50   25749 us
+   s4_to_s3  GPU 4->3 cross-socket       memcpy p50     809 p95     997 us,  7.256 MB,   9.0 GB/s at p50; receiver T_B p50   25435 us
+   s4_to_s5  GPU 4->5 socket 1 internal  memcpy p50     478 p95     628 us,  7.256 MB,  15.2 GB/s at p50; receiver T_B p50   25992 us
+   s5_to_s4  GPU 5->4 socket 1 internal  memcpy p50     474 p95     794 us,  7.256 MB,  15.3 GB/s at p50; receiver T_B p50   25749 us
+   s5_to_s6  GPU 5->6 socket 1 internal  memcpy p50     451 p95     561 us,  7.256 MB,  16.1 GB/s at p50; receiver T_B p50   25888 us
+   s6_to_s5  GPU 6->5 socket 1 internal  memcpy p50     440 p95     859 us,  7.256 MB,  16.5 GB/s at p50; receiver T_B p50   25992 us
+   s6_to_s7  GPU 6->7 socket 1 internal  memcpy p50     465 p95     836 us,  7.256 MB,  15.6 GB/s at p50; receiver T_B p50   28355 us
+   s7_to_s6  GPU 7->6 socket 1 internal  memcpy p50     499 p95     789 us,  7.256 MB,  14.6 GB/s at p50; receiver T_B p50   25888 us
+   socket 0 internal : 6 links, median of link p50    491 us (1.00 x socket 0), GB/s  12.3- 16.8
+   socket 1 internal : 6 links, median of link p50    469 us (0.96 x socket 0), GB/s  14.6- 16.5
+   cross-socket      : 2 links, median of link p50    773 us (1.57 x socket 0), GB/s   9.0-  9.8; extra over socket 0 +246..+318 us = 0.95..1.25 % of the receiver's T_B
+== 01_e7_b1A_1681465/2d_n1440_k2_K2_C: steady steps from 1000, device map [0, 1]
+   s0_to_s1  GPU 0->1 socket 0 internal  memcpy p50      41 p95      50 us,  0.473 MB,  11.7 GB/s at p50; receiver T_B p50    2393 us
+   s1_to_s0  GPU 1->0 socket 0 internal  memcpy p50      41 p95      51 us,  0.473 MB,  11.6 GB/s at p50; receiver T_B p50    2409 us
+   socket 0 internal : 2 links, median of link p50     41 us (1.00 x socket 0), GB/s  11.6- 11.7
+== 01_e7_b1A_1681465/2d_n1440_k2_K2_E: steady steps from 1000, device map [0, 1]
+   s0_to_s1  GPU 0->1 socket 0 internal  memcpy p50      41 p95      46 us,  0.473 MB,  11.5 GB/s at p50; receiver T_B p50    2407 us
+   s1_to_s0  GPU 1->0 socket 0 internal  memcpy p50      40 p95      45 us,  0.473 MB,  11.8 GB/s at p50; receiver T_B p50    2396 us
+   socket 0 internal : 2 links, median of link p50     41 us (1.00 x socket 0), GB/s  11.5- 11.8
+== 01_e7_b1A_1681465/2d_n2840_k4_K4_C: steady steps from 1000, device map [0, 1, 2, 3]
+   s0_to_s1  GPU 0->1 socket 0 internal  memcpy p50      79 p95     152 us,  0.925 MB,  11.7 GB/s at p50; receiver T_B p50    9459 us
+   s1_to_s0  GPU 1->0 socket 0 internal  memcpy p50      72 p95     136 us,  0.925 MB,  12.8 GB/s at p50; receiver T_B p50    9501 us
+   s1_to_s2  GPU 1->2 socket 0 internal  memcpy p50      81 p95     124 us,  0.925 MB,  11.4 GB/s at p50; receiver T_B p50    9397 us
+   s2_to_s1  GPU 2->1 socket 0 internal  memcpy p50      73 p95     130 us,  0.925 MB,  12.7 GB/s at p50; receiver T_B p50    9459 us
+   s2_to_s3  GPU 2->3 socket 0 internal  memcpy p50      64 p95     130 us,  0.925 MB,  14.4 GB/s at p50; receiver T_B p50    9609 us
+   s3_to_s2  GPU 3->2 socket 0 internal  memcpy p50      72 p95     135 us,  0.925 MB,  12.9 GB/s at p50; receiver T_B p50    9397 us
+   socket 0 internal : 6 links, median of link p50     73 us (1.00 x socket 0), GB/s  11.4- 14.4
+== 01_e7_b1A_1681465/2d_n2840_k4_K4_E: steady steps from 1000, device map [0, 1, 2, 3]
+   s0_to_s1  GPU 0->1 socket 0 internal  memcpy p50      79 p95      96 us,  0.925 MB,  11.8 GB/s at p50; receiver T_B p50    9406 us
+   s1_to_s0  GPU 1->0 socket 0 internal  memcpy p50      73 p95      88 us,  0.925 MB,  12.6 GB/s at p50; receiver T_B p50    9106 us
+   s1_to_s2  GPU 1->2 socket 0 internal  memcpy p50      98 p95     136 us,  0.925 MB,   9.4 GB/s at p50; receiver T_B p50    9596 us
+   s2_to_s1  GPU 2->1 socket 0 internal  memcpy p50      92 p95     128 us,  0.925 MB,  10.0 GB/s at p50; receiver T_B p50    9406 us
+   s2_to_s3  GPU 2->3 socket 0 internal  memcpy p50      79 p95     126 us,  0.925 MB,  11.7 GB/s at p50; receiver T_B p50    9572 us
+   s3_to_s2  GPU 3->2 socket 0 internal  memcpy p50      68 p95     122 us,  0.925 MB,  13.6 GB/s at p50; receiver T_B p50    9596 us
+   socket 0 internal : 6 links, median of link p50     79 us (1.00 x socket 0), GB/s   9.4- 13.6
+== 01_e7_b1A_1681465/2d_n8000_K4_C: steady steps from 1000, device map [0, 1, 2, 3]
+   s0_to_s1  GPU 0->1 socket 0 internal  memcpy p50     161 p95     248 us,  2.593 MB,  16.1 GB/s at p50; receiver T_B p50   18379 us
+   s1_to_s0  GPU 1->0 socket 0 internal  memcpy p50     161 p95     258 us,  2.593 MB,  16.1 GB/s at p50; receiver T_B p50   18587 us
+   s1_to_s2  GPU 1->2 socket 0 internal  memcpy p50     150 p95     173 us,  2.593 MB,  17.2 GB/s at p50; receiver T_B p50   18323 us
+   s2_to_s1  GPU 2->1 socket 0 internal  memcpy p50     159 p95     174 us,  2.593 MB,  16.3 GB/s at p50; receiver T_B p50   18379 us
+   s2_to_s3  GPU 2->3 socket 0 internal  memcpy p50     155 p95     181 us,  2.593 MB,  16.7 GB/s at p50; receiver T_B p50   18658 us
+   s3_to_s2  GPU 3->2 socket 0 internal  memcpy p50     154 p95     186 us,  2.593 MB,  16.9 GB/s at p50; receiver T_B p50   18323 us
+   socket 0 internal : 6 links, median of link p50    157 us (1.00 x socket 0), GB/s  16.1- 17.2
+== 01_e7_b1A_1681465/2d_n8000_K4_E: steady steps from 1000, device map [0, 1, 2, 3]
+   s0_to_s1  GPU 0->1 socket 0 internal  memcpy p50     165 p95     177 us,  2.593 MB,  15.7 GB/s at p50; receiver T_B p50   18321 us
+   s1_to_s0  GPU 1->0 socket 0 internal  memcpy p50     167 p95     179 us,  2.593 MB,  15.5 GB/s at p50; receiver T_B p50   17907 us
+   s1_to_s2  GPU 1->2 socket 0 internal  memcpy p50     175 p95     209 us,  2.593 MB,  14.8 GB/s at p50; receiver T_B p50   18752 us
+   s2_to_s1  GPU 2->1 socket 0 internal  memcpy p50     174 p95     209 us,  2.593 MB,  14.9 GB/s at p50; receiver T_B p50   18321 us
+   s2_to_s3  GPU 2->3 socket 0 internal  memcpy p50     153 p95     171 us,  2.593 MB,  16.9 GB/s at p50; receiver T_B p50   18611 us
+   s3_to_s2  GPU 3->2 socket 0 internal  memcpy p50     159 p95     174 us,  2.593 MB,  16.3 GB/s at p50; receiver T_B p50   18752 us
+   socket 0 internal : 6 links, median of link p50    166 us (1.00 x socket 0), GB/s  14.8- 16.9
+== 01_e7_b1A_1681465/3d_n160_k8_K4_C: steady steps from 500, device map [0, 1, 2, 3]
+   s0_to_s1  GPU 0->1 socket 0 internal  memcpy p50     427 p95     460 us,  7.256 MB,  17.0 GB/s at p50; receiver T_B p50   55574 us
+   s1_to_s0  GPU 1->0 socket 0 internal  memcpy p50     432 p95     472 us,  7.256 MB,  16.8 GB/s at p50; receiver T_B p50   58701 us
+   s1_to_s2  GPU 1->2 socket 0 internal  memcpy p50     439 p95     478 us,  7.256 MB,  16.5 GB/s at p50; receiver T_B p50   56548 us
+   s2_to_s1  GPU 2->1 socket 0 internal  memcpy p50     453 p95     483 us,  7.256 MB,  16.0 GB/s at p50; receiver T_B p50   55574 us
+   s2_to_s3  GPU 2->3 socket 0 internal  memcpy p50     431 p95     476 us,  7.256 MB,  16.8 GB/s at p50; receiver T_B p50   58221 us
+   s3_to_s2  GPU 3->2 socket 0 internal  memcpy p50     451 p95     475 us,  7.256 MB,  16.1 GB/s at p50; receiver T_B p50   56548 us
+   socket 0 internal : 6 links, median of link p50    436 us (1.00 x socket 0), GB/s  16.0- 17.0
+== 01_e7_b1A_1681465/3d_n160_k8_K4_E: steady steps from 500, device map [0, 1, 2, 3]
+   s0_to_s1  GPU 0->1 socket 0 internal  memcpy p50     434 p95     481 us,  7.256 MB,  16.7 GB/s at p50; receiver T_B p50   56556 us
+   s1_to_s0  GPU 1->0 socket 0 internal  memcpy p50     447 p95     488 us,  7.256 MB,  16.2 GB/s at p50; receiver T_B p50   57090 us
+   s1_to_s2  GPU 1->2 socket 0 internal  memcpy p50     426 p95     468 us,  7.256 MB,  17.0 GB/s at p50; receiver T_B p50   57280 us
+   s2_to_s1  GPU 2->1 socket 0 internal  memcpy p50     450 p95     471 us,  7.256 MB,  16.1 GB/s at p50; receiver T_B p50   56556 us
+   s2_to_s3  GPU 2->3 socket 0 internal  memcpy p50     460 p95     482 us,  7.256 MB,  15.8 GB/s at p50; receiver T_B p50   58970 us
+   s3_to_s2  GPU 3->2 socket 0 internal  memcpy p50     453 p95     477 us,  7.256 MB,  16.0 GB/s at p50; receiver T_B p50   57280 us
+   socket 0 internal : 6 links, median of link p50    449 us (1.00 x socket 0), GB/s  15.8- 17.0
