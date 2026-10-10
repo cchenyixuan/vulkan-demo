@@ -56,6 +56,8 @@ SIZES = [
     ("2m",      "cases/lid_driven_cavity_2d_2m/case.yaml",  6000),
     ("4m",      "cases/lid_driven_cavity_2d_4m/case.yaml",  4000),
     ("4m_gen",  "cases/lid_driven_cavity_2d_4m_gen/case.yaml", 4000),   # generator-built 4M (v7_single §3 补测 follow-up)
+    ("4m_gen_n406", "cases/lid_driven_cavity_2d_4m_gen_n406/case.yaml", 4000),   # --half 1000: 4 092 529 particles, grid 406^2 (stride test)
+    ("4m_gen_n414", "cases/lid_driven_cavity_2d_4m_gen_n414/case.yaml", 4000),   # --half 1022: 4 272 489 particles, grid 414^2 (stride test)
     ("6m",      "cases/lid_driven_cavity_2d_6m/case.yaml",  3000),
     ("8m",      "cases/lid_driven_cavity_2d_8m/case.yaml",  2000),
     ("10m",     "cases/lid_driven_cavity_2d_10m/case.yaml", 2000),
