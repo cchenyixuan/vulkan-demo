@@ -1,0 +1,40 @@
+{
+ "cost_2d": 1.3005052843049434e-09,
+ "cost_3d": 6.336236131357305e-09,
+ "floor_k1": 0.0014,
+ "floor": {
+  "2": 0.004687887061375782,
+  "4": 0.0045,
+  "8": 0.006779244143331603
+ },
+ "efficiency": {
+  "2": 1.033559479499499,
+  "4": 0.9670847003539155,
+  "8": 0.9542656257479943
+ },
+ "efficiency_3d": {
+  "2": 0.95,
+  "4": 0.8995090463857082,
+  "8": 0.8923252313409988
+ },
+ "cold_per_simulator": 1.9398181818181819,
+ "warm_per_simulator": 0.9993529411764707,
+ "load_per_million": 0.4314077108134601,
+ "bootstrap_fixed": 0.5120310502602763,
+ "bootstrap_per_million": 0.5847701000961165,
+ "post_per_million": 0.030552515141876173,
+ "post_per_slab": 0.0,
+ "seam_2d_per_million": 0.24098260527808044,
+ "seam_2d_fixed": 4.590144862439628,
+ "seam_3d_per_million": 0.0,
+ "seam_3d_per_million_per_slab": 0.05333469140843351,
+ "calibration_rounds": 2,
+ "calibration_fixed": -12.601213490741193,
+ "pilot_steps": 500,
+ "run_overhead": 4.565521648270468,
+ "trace_write": 15.0,
+ "job_overhead": 210.0,
+ "anatomy_steps": 3000,
+ "soak_steps": 17000,
+ "cube_soak_seconds": 3600.0
+}

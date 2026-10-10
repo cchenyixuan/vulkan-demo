@@ -1,0 +1,656 @@
+{
+ "format": "e32_slab_weights_v1",
+ "case": "cases/aligned/cavity2d_n8000/case.yaml",
+ "case_sha256": "a854b18e4dd41c81b095cdee54f9bad1f375a8dc2db62ee2c21a47bc786764e3",
+ "particle_count": 64352484,
+ "grid_nx": 1606,
+ "fluid_histogram_sha256": "81597c4ab781b8b1bc35db841641487798aef6de9e73e4688da8dd1ec3274aab",
+ "slab_count": 8,
+ "device_map": [
+  0,
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7
+ ],
+ "devices": [
+  {
+   "device_index": 0,
+   "name": "NVIDIA GeForce RTX 5090",
+   "uuid": "e463aac7fb22031eb2e74a0aa4049e75"
+  },
+  {
+   "device_index": 1,
+   "name": "NVIDIA GeForce RTX 5090",
+   "uuid": "efc478926d0c6541a589536bdcda5fa7"
+  },
+  {
+   "device_index": 2,
+   "name": "NVIDIA GeForce RTX 5090",
+   "uuid": "55d4f248af2b1d1b241ff97fc5e7c977"
+  },
+  {
+   "device_index": 3,
+   "name": "NVIDIA GeForce RTX 5090",
+   "uuid": "6bd12a55ffb6459e1edfa1b2ca082472"
+  },
+  {
+   "device_index": 4,
+   "name": "NVIDIA GeForce RTX 5090",
+   "uuid": "8750ba2e3a362d0a8613668e60d7a81a"
+  },
+  {
+   "device_index": 5,
+   "name": "NVIDIA GeForce RTX 5090",
+   "uuid": "f818fa7d4b103c0e35bafb3837b9efe6"
+  },
+  {
+   "device_index": 6,
+   "name": "NVIDIA GeForce RTX 5090",
+   "uuid": "0b1a6be5ce8d8a21a45d24d029f8901c"
+  },
+  {
+   "device_index": 7,
+   "name": "NVIDIA GeForce RTX 5090",
+   "uuid": "65161efffe333a74165f3a736de4278c"
+  }
+ ],
+ "host": "wqd10nbj02g1",
+ "settings": {
+  "warmup": 200,
+  "steps": 300,
+  "rounds": 2,
+  "depth": 2,
+  "pool_safety": 1.2,
+  "sync_scheme": "per-direction",
+  "defrag_cadence": 1000
+ },
+ "band_widths": [
+  2,
+  2,
+  3
+ ],
+ "environment": {
+  "V7_WORKER_AFFINITY": "0-31,64-95;0-31,64-95;0-31,64-95;0-31,64-95;32-63,96-127;32-63,96-127;32-63,96-127;32-63,96-127",
+  "VK_LOADER_LAYERS_DISABLE": "VK_LAYER_KHRONOS_validation"
+ },
+ "commit": "",
+ "v7_dirty_files": [],
+ "timestamp": "2026-10-10 10:30:40",
+ "seconds": 154.3746346468106,
+ "rounds": [
+  {
+   "round": 1,
+   "weights": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "cuts": [
+    203,
+    403,
+    603,
+    803,
+    1003,
+    1203,
+    1403
+   ],
+   "own_columns": [
+    203,
+    200,
+    200,
+    200,
+    200,
+    200,
+    200,
+    203
+   ],
+   "fluid": [
+    8000000,
+    8000000,
+    8000000,
+    8000000,
+    8000000,
+    8000000,
+    8000000,
+    8000000
+   ],
+   "all": [
+    8110242,
+    8022000,
+    8022000,
+    8022000,
+    8022000,
+    8022000,
+    8022000,
+    8110242
+   ],
+   "busy_us": [
+    10513.456,
+    10467.824,
+    10796.703999999998,
+    10581.28,
+    10620.16,
+    10704.687999999998,
+    10567.423999999999,
+    10433.968
+   ],
+   "omega": [
+    1.0067560466431071,
+    1.0111447612336868,
+    0.9803441308677405,
+    1.0003029311308513,
+    0.996640860318136,
+    0.9887710318242118,
+    1.0016145277331785,
+    1.014425710249088
+   ],
+   "next_cuts": [
+    204,
+    407,
+    603,
+    803,
+    1002,
+    1200,
+    1400
+   ],
+   "changed": true,
+   "statistics": {
+    "per_sim": [
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 10513.456,
+      "busy_p95_us": 10580.488,
+      "busy_mean_us": 10513.888640000001,
+      "a_p50_us": 859.024,
+      "b_p50_us": 9216.655999999999,
+      "c_p50_us": 439.008
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 10467.824,
+      "busy_p95_us": 10483.297599999998,
+      "busy_mean_us": 10467.01088,
+      "a_p50_us": 860.704,
+      "b_p50_us": 8933.488000000001,
+      "c_p50_us": 672.752
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 10796.703999999998,
+      "busy_p95_us": 10855.388799999999,
+      "busy_mean_us": 10795.748160000001,
+      "a_p50_us": 863.36,
+      "b_p50_us": 9247.68,
+      "c_p50_us": 684.64
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 10581.28,
+      "busy_p95_us": 10682.4992,
+      "busy_mean_us": 10579.220693333335,
+      "a_p50_us": 862.0160000000001,
+      "b_p50_us": 9051.279999999999,
+      "c_p50_us": 665.04
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 10620.16,
+      "busy_p95_us": 10691.7984,
+      "busy_mean_us": 10624.91616,
+      "a_p50_us": 863.04,
+      "b_p50_us": 9079.808,
+      "c_p50_us": 676.896
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 10704.687999999998,
+      "busy_p95_us": 10794.6672,
+      "busy_mean_us": 10694.82496,
+      "a_p50_us": 861.664,
+      "b_p50_us": 9167.456,
+      "c_p50_us": 676.96
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 10567.423999999999,
+      "busy_p95_us": 10632.9408,
+      "busy_mean_us": 10572.596693333335,
+      "a_p50_us": 862.24,
+      "b_p50_us": 9022.207999999999,
+      "c_p50_us": 680.64
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 10433.968,
+      "busy_p95_us": 10518.9648,
+      "busy_mean_us": 10440.49472,
+      "a_p50_us": 858.752,
+      "b_p50_us": 9136.351999999999,
+      "c_p50_us": 439.92
+     }
+    ],
+    "per_device": {
+     "0": {
+      "sims": [
+       0
+      ],
+      "busy_us": 10513.456,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "1": {
+      "sims": [
+       1
+      ],
+      "busy_us": 10467.824,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "2": {
+      "sims": [
+       2
+      ],
+      "busy_us": 10796.703999999998,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "3": {
+      "sims": [
+       3
+      ],
+      "busy_us": 10581.28,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "4": {
+      "sims": [
+       4
+      ],
+      "busy_us": 10620.16,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "5": {
+      "sims": [
+       5
+      ],
+      "busy_us": 10704.687999999998,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "6": {
+      "sims": [
+       6
+      ],
+      "busy_us": 10567.423999999999,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "7": {
+      "sims": [
+       7
+      ],
+      "busy_us": 10433.968,
+      "method": "median of T_A + T_B + T_C"
+     }
+    }
+   },
+   "invariants": {
+    "drift": 0,
+    "overflow_total": 0,
+    "stamp_errors_gpu": 0,
+    "stamp_errors_host": 0,
+    "far_migration_total": 0
+   },
+   "devices": [
+    {
+     "device_index": 0,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "e463aac7fb22031eb2e74a0aa4049e75"
+    },
+    {
+     "device_index": 1,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "efc478926d0c6541a589536bdcda5fa7"
+    },
+    {
+     "device_index": 2,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "55d4f248af2b1d1b241ff97fc5e7c977"
+    },
+    {
+     "device_index": 3,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "6bd12a55ffb6459e1edfa1b2ca082472"
+    },
+    {
+     "device_index": 4,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "8750ba2e3a362d0a8613668e60d7a81a"
+    },
+    {
+     "device_index": 5,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "f818fa7d4b103c0e35bafb3837b9efe6"
+    },
+    {
+     "device_index": 6,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "0b1a6be5ce8d8a21a45d24d029f8901c"
+    },
+    {
+     "device_index": 7,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "65161efffe333a74165f3a736de4278c"
+    }
+   ],
+   "pilot_steady_fps": 89.84379629849587,
+   "seconds": 78.25436671916395
+  },
+  {
+   "round": 2,
+   "weights": [
+    1.0067560466431071,
+    1.0111447612336868,
+    0.9803441308677405,
+    1.0003029311308513,
+    0.996640860318136,
+    0.9887710318242118,
+    1.0016145277331785,
+    1.014425710249088
+   ],
+   "cuts": [
+    204,
+    407,
+    603,
+    803,
+    1002,
+    1200,
+    1400
+   ],
+   "own_columns": [
+    204,
+    203,
+    196,
+    200,
+    199,
+    198,
+    200,
+    206
+   ],
+   "fluid": [
+    8040000,
+    8120000,
+    7840000,
+    8000000,
+    7960000,
+    7920000,
+    8000000,
+    8120000
+   ],
+   "all": [
+    8150352,
+    8142330,
+    7861560,
+    8022000,
+    7981890,
+    7941780,
+    8022000,
+    8230572
+   ],
+   "busy_us": [
+    10650.672,
+    10614.448,
+    10654.96,
+    10649.984,
+    10640.768,
+    10646.768,
+    10646.08,
+    10696.736
+   ],
+   "omega": [
+    1.0049392507074923,
+    1.0184023343647706,
+    0.9795463928776612,
+    1.0000041500738563,
+    0.9958659052832528,
+    0.9903031526786313,
+    1.0003708593416702,
+    1.0105679546726656
+   ],
+   "next_cuts": [
+    204,
+    408,
+    604,
+    804,
+    1003,
+    1201,
+    1401
+   ],
+   "changed": true,
+   "statistics": {
+    "per_sim": [
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 10650.672,
+      "busy_p95_us": 10681.84,
+      "busy_mean_us": 10640.707626666668,
+      "a_p50_us": 864.528,
+      "b_p50_us": 9347.92,
+      "c_p50_us": 439.04
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 10614.448,
+      "busy_p95_us": 10640.8016,
+      "busy_mean_us": 10617.706346666668,
+      "a_p50_us": 868.816,
+      "b_p50_us": 9064.56,
+      "c_p50_us": 680.736
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 10654.96,
+      "busy_p95_us": 10690.465600000001,
+      "busy_mean_us": 10641.726933333333,
+      "a_p50_us": 850.576,
+      "b_p50_us": 9119.728,
+      "c_p50_us": 684.736
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 10649.984,
+      "busy_p95_us": 10729.872,
+      "busy_mean_us": 10649.054613333332,
+      "a_p50_us": 861.952,
+      "b_p50_us": 9120.880000000001,
+      "c_p50_us": 666.528
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 10640.768,
+      "busy_p95_us": 10685.625600000003,
+      "busy_mean_us": 10640.863573333332,
+      "a_p50_us": 859.152,
+      "b_p50_us": 9106.48,
+      "c_p50_us": 676.432
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 10646.768,
+      "busy_p95_us": 10700.576,
+      "busy_mean_us": 10639.250346666666,
+      "a_p50_us": 855.2,
+      "b_p50_us": 9113.488,
+      "c_p50_us": 678.56
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 10646.08,
+      "busy_p95_us": 10673.055999999999,
+      "busy_mean_us": 10641.762346666666,
+      "a_p50_us": 862.688,
+      "b_p50_us": 9101.664,
+      "c_p50_us": 682.688
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 10696.736,
+      "busy_p95_us": 10776.207999999999,
+      "busy_mean_us": 10708.3488,
+      "a_p50_us": 868.688,
+      "b_p50_us": 9385.328000000001,
+      "c_p50_us": 443.392
+     }
+    ],
+    "per_device": {
+     "0": {
+      "sims": [
+       0
+      ],
+      "busy_us": 10650.672,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "1": {
+      "sims": [
+       1
+      ],
+      "busy_us": 10614.448,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "2": {
+      "sims": [
+       2
+      ],
+      "busy_us": 10654.96,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "3": {
+      "sims": [
+       3
+      ],
+      "busy_us": 10649.984,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "4": {
+      "sims": [
+       4
+      ],
+      "busy_us": 10640.768,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "5": {
+      "sims": [
+       5
+      ],
+      "busy_us": 10646.768,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "6": {
+      "sims": [
+       6
+      ],
+      "busy_us": 10646.08,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "7": {
+      "sims": [
+       7
+      ],
+      "busy_us": 10696.736,
+      "method": "median of T_A + T_B + T_C"
+     }
+    }
+   },
+   "invariants": {
+    "drift": 0,
+    "overflow_total": 0,
+    "stamp_errors_gpu": 0,
+    "stamp_errors_host": 0,
+    "far_migration_total": 0
+   },
+   "devices": [
+    {
+     "device_index": 0,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "e463aac7fb22031eb2e74a0aa4049e75"
+    },
+    {
+     "device_index": 1,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "efc478926d0c6541a589536bdcda5fa7"
+    },
+    {
+     "device_index": 2,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "55d4f248af2b1d1b241ff97fc5e7c977"
+    },
+    {
+     "device_index": 3,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "6bd12a55ffb6459e1edfa1b2ca082472"
+    },
+    {
+     "device_index": 4,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "8750ba2e3a362d0a8613668e60d7a81a"
+    },
+    {
+     "device_index": 5,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "f818fa7d4b103c0e35bafb3837b9efe6"
+    },
+    {
+     "device_index": 6,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "0b1a6be5ce8d8a21a45d24d029f8901c"
+    },
+    {
+     "device_index": 7,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "65161efffe333a74165f3a736de4278c"
+    }
+   ],
+   "pilot_steady_fps": 92.24997371553785,
+   "seconds": 76.05395239125937
+  }
+ ],
+ "weights": [
+  1.0049392507074923,
+  1.0184023343647706,
+  0.9795463928776612,
+  1.0000041500738563,
+  0.9958659052832528,
+  0.9903031526786313,
+  1.0003708593416702,
+  1.0105679546726656
+ ],
+ "cuts": [
+  204,
+  408,
+  604,
+  804,
+  1003,
+  1201,
+  1401
+ ],
+ "switch_interval_s": 0.00019999999999999998
+}

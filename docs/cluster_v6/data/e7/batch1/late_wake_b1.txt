@@ -1,0 +1,616 @@
+== 01_e7_b1A_1681465/2d_n1440_k2_K2_C: 2000 steady steps
+  1. wake-up latency of blocked waits (µs after the signal)
+     s0_to_s1 source blocked  1937/2000: p50      87 p90      94 p99    3936 | late    16 (median 6233)
+     s0_to_s1 dest   blocked   730/2000: p50      12 p90    7893 p99    9864 | late    78 (median 8348)
+     s1_to_s0 source blocked  1925/2000: p50      12 p90      93 p99    3548 | late    13 (median 6114)
+     s1_to_s0 dest   blocked  1186/2000: p50      12 p90    7878 p99   10023 | late   146 (median 8350)
+     late wake-ups in total 253; step period p50 2761 µs, p90 8361, mean 3738 -> 267.6 fps
+  2. dest guard wait durations (host clock): blocked 1916, late 224
+     late: p01 10058 p10 10059 p50 10062 p90 12005 p99 12219 µs; began before the signal by p50 2134 p90 2189 µs
+     late, by 250 µs bin: 10.00 ms: 180, 10.25 ms: 10, 10.50 ms: 3, 10.75 ms: 3, 11.50 ms: 1, 11.75 ms: 4, 12.00 ms: 23
+     on time: p50 1912 p90 2199 p99 2216 µs
+  3. shared waits (reverse link's source wait asleep over the same signal)
+     alone  -            : blocked dest guards      2, late      0 (  0.0 %)
+     shared guard first  : blocked dest guards      9, late      7 ( 77.8 %)
+     shared reverse first: blocked dest guards   1905, late    217 ( 11.4 %)
+     reverse source waits asleep over the same signal 1914, late 29
+  4. cost: steps 2000, with a late inbound dest guard 224
+     sim 0: phase B end -> phase C start, mean µs: clean     509 (n 1854) | late    6882 (n 146)
+     sim 1: phase B end -> phase C start, mean µs: clean     740 (n 1922) | late    6895 (n 78)
+     step period mean µs: all 3738, clean steps 3209, late steps 7928; fps if every step were clean 311.6 vs 267.6 (-14.1 % period)
+== 01_e7_b1A_1681465/2d_n1440_k2_K2_E: 2000 steady steps
+  1. wake-up latency of blocked waits (µs after the signal)
+     s0_to_s1 source blocked  1944/2000: p50      13 p90      93 p99    3340 | late    11 (median 5801)
+     s0_to_s1 dest   blocked  1066/2000: p50      12 p90      13 p99    9863 | late    52 (median 9672)
+     s1_to_s0 source blocked  1917/2000: p50      88 p90      95 p99    5798 | late    23 (median 6381)
+     s1_to_s0 dest   blocked   872/2000: p50      13 p90    9855 p99    9865 | late   170 (median 9855)
+     late wake-ups in total 256; step period p50 2762 µs, p90 8422, mean 3771 -> 265.2 fps
+  2. dest guard wait durations (host clock): blocked 1938, late 222
+     late: p01 10058 p10 10060 p50 10243 p90 12012 p99 12069 µs; began before the signal by p50 2099 p90 2176 µs
+     late, by 250 µs bin: 10.00 ms: 116, 10.25 ms: 13, 10.50 ms: 3, 10.75 ms: 3, 11.00 ms: 1, 11.25 ms: 2, 11.50 ms: 4, 11.75 ms: 51, 12.00 ms: 29
+     on time: p50 2112 p90 2211 p99 2234 µs
+  3. shared waits (reverse link's source wait asleep over the same signal)
+     alone  -            : blocked dest guards      4, late      0 (  0.0 %)
+     shared guard first  : blocked dest guards      7, late      5 ( 71.4 %)
+     shared reverse first: blocked dest guards   1927, late    217 ( 11.3 %)
+     reverse source waits asleep over the same signal 1934, late 34
+  4. cost: steps 2000, with a late inbound dest guard 222
+     sim 0: phase B end -> phase C start, mean µs: clean     418 (n 1830) | late    7328 (n 170)
+     sim 1: phase B end -> phase C start, mean µs: clean     818 (n 1948) | late    6940 (n 52)
+     step period mean µs: all 3771, clean steps 3181, late steps 8493; fps if every step were clean 314.4 vs 265.2 (-15.6 % period)
+== 01_e7_b1A_1681465/2d_n2840_k4_K4_C: 2000 steady steps
+  1. wake-up latency of blocked waits (µs after the signal)
+     s0_to_s1 source blocked  1970/2000: p50      14 p90      33 p99      59 | late     0 (median nan)
+     s0_to_s1 dest   blocked  1381/2000: p50      35 p90      41 p99      88 | late     0 (median nan)
+     s1_to_s0 source blocked  1976/2000: p50      78 p90      89 p99     119 | late     0 (median nan)
+     s1_to_s0 dest   blocked     2/2000: p50      26 p90      26 p99      26 | late     0 (median nan)
+     s1_to_s2 source blocked  1977/2000: p50      12 p90      38 p99     189 | late     0 (median nan)
+     s1_to_s2 dest   blocked  1883/2000: p50      32 p90      86 p99    3902 | late    13 (median 6899)
+     s2_to_s1 source blocked  1983/2000: p50      83 p90     105 p99    2396 | late     3 (median 6700)
+     s2_to_s1 dest   blocked   104/2000: p50      13 p90    9951 p99   10035 | late    38 (median 9075)
+     s2_to_s3 source blocked  1922/2000: p50      13 p90     179 p99     960 | late     3 (median 6871)
+     s2_to_s3 dest   blocked  1324/2000: p50    1052 p90    9142 p99   10024 | late   636 (median 9138)
+     s3_to_s2 source blocked  1962/2000: p50      17 p90     196 p99    2626 | late     2 (median 6285)
+     s3_to_s2 dest   blocked   664/2000: p50    8689 p90    9458 p99   10031 | late   338 (median 9090)
+     late wake-ups in total 1033; step period p50 10723 µs, p90 11040, mean 10908 -> 91.7 fps
+  2. dest guard wait durations (host clock): blocked 5358, late 1025
+     late: p01 9146 p10 10495 p50 14706 p90 18156 p99 18286 µs; began before the signal by p50 5564 p90 9015 µs
+     late, by 250 µs bin: 6.00 ms: 1, 6.50 ms: 1, 8.75 ms: 2, 9.00 ms: 8, 10.00 ms: 37, 10.25 ms: 55, 10.50 ms: 56, 10.75 ms: 8, 11.00 ms: 21, 11.25 ms: 94, 11.50 ms: 50, 11.75 ms: 9, 12.00 ms: 19, 12.25 ms: 18, 12.50 ms: 19, 12.75 ms: 24, 13.00 ms: 11, 13.25 ms: 10, 13.50 ms: 11, 13.75 ms: 14, 14.00 ms: 17, 14.25 ms: 17, 14.50 ms: 13, 14.75 ms: 19, 15.00 ms: 12, 15.25 ms: 22, 15.50 ms: 39, 15.75 ms: 25, 16.00 ms: 32, 16.25 ms: 32, 16.50 ms: 35, 16.75 ms: 30, 17.00 ms: 26, 17.25 ms: 31, 17.50 ms: 20, 17.75 ms: 33, 18.00 ms: 120, 18.25 ms: 25, 18.50 ms: 3, 18.75 ms: 2, 19.00 ms: 4
+     on time: p50 2458 p90 7152 p99 10060 µs
+  3. shared waits (reverse link's source wait asleep over the same signal)
+     alone  -            : blocked dest guards      2, late      0 (  0.0 %)
+     shared guard first  : blocked dest guards     25, late      4 ( 16.0 %)
+     shared reverse first: blocked dest guards   5331, late   1021 ( 19.2 %)
+     reverse source waits asleep over the same signal 5356, late 8
+  4. cost: steps 2000, with a late inbound dest guard 1009
+     sim 0: phase B end -> phase C start, mean µs: clean      23 (n 2000) | late     nan (n 0)
+     sim 1: phase B end -> phase C start, mean µs: clean      50 (n 1962) | late     463 (n 38)
+     sim 2: phase B end -> phase C start, mean µs: clean     171 (n 1649) | late     364 (n 351)
+     sim 3: phase B end -> phase C start, mean µs: clean      58 (n 1364) | late     259 (n 636)
+     step period mean µs: all 10908, clean steps 10924, late steps 10892; fps if every step were clean 91.5 vs 91.7 (+0.1 % period)
+== 01_e7_b1A_1681465/2d_n2840_k4_K4_E: 2000 steady steps
+  1. wake-up latency of blocked waits (µs after the signal)
+     s0_to_s1 source blocked  1964/2000: p50      12 p90      17 p99      57 | late     0 (median nan)
+     s0_to_s1 dest   blocked  1973/2000: p50      35 p90      79 p99      86 | late     0 (median nan)
+     s1_to_s0 source blocked  1976/2000: p50      70 p90      80 p99      87 | late     0 (median nan)
+     s1_to_s0 dest   blocked     0/2000: p50     nan p90     nan p99     nan | late     0 (median nan)
+     s1_to_s2 source blocked  1967/2000: p50      12 p90      37 p99      45 | late     0 (median nan)
+     s1_to_s2 dest   blocked  1996/2000: p50      60 p90      94 p99     104 | late     0 (median nan)
+     s2_to_s1 source blocked  1997/2000: p50      47 p90      94 p99     103 | late     0 (median nan)
+     s2_to_s1 dest   blocked     1/2000: p50      14 p90      14 p99      14 | late     0 (median nan)
+     s2_to_s3 source blocked  1993/2000: p50      31 p90     200 p99    2830 | late     4 (median 7681)
+     s2_to_s3 dest   blocked    65/2000: p50      21 p90    9139 p99   10026 | late    31 (median 9135)
+     s3_to_s2 source blocked  1869/2000: p50      14 p90      17 p99     124 | late     0 (median nan)
+     s3_to_s2 dest   blocked  1921/2000: p50     793 p90    9086 p99    9974 | late   917 (median 9076)
+     late wake-ups in total 952; step period p50 10885 µs, p90 11484, mean 11072 -> 90.3 fps
+  2. dest guard wait durations (host clock): blocked 5956, late 948
+     late: p01 10059 p10 11338 p50 17142 p90 18469 p99 19407 µs; began before the signal by p50 8016 p90 9389 µs
+     late, by 250 µs bin: 10.00 ms: 27, 10.25 ms: 12, 10.50 ms: 28, 10.75 ms: 9, 11.00 ms: 7, 11.25 ms: 55, 11.50 ms: 88, 11.75 ms: 7, 12.00 ms: 7, 12.25 ms: 3, 12.50 ms: 6, 12.75 ms: 2, 13.00 ms: 3, 13.25 ms: 4, 13.50 ms: 8, 13.75 ms: 3, 14.00 ms: 8, 14.25 ms: 10, 14.50 ms: 10, 14.75 ms: 7, 15.00 ms: 11, 15.25 ms: 17, 15.50 ms: 15, 15.75 ms: 17, 16.00 ms: 15, 16.25 ms: 25, 16.50 ms: 25, 16.75 ms: 33, 17.00 ms: 26, 17.25 ms: 27, 17.50 ms: 27, 17.75 ms: 32, 18.00 ms: 34, 18.25 ms: 288, 18.50 ms: 36, 19.00 ms: 3, 19.25 ms: 11, 19.50 ms: 2
+     on time: p50 3918 p90 9361 p99 10063 µs
+  3. shared waits (reverse link's source wait asleep over the same signal)
+     alone  -            : blocked dest guards      2, late      0 (  0.0 %)
+     shared guard first  : blocked dest guards     50, late      4 (  8.0 %)
+     shared reverse first: blocked dest guards   5904, late    944 ( 16.0 %)
+     reverse source waits asleep over the same signal 5954, late 4
+  4. cost: steps 2000, with a late inbound dest guard 948
+     sim 0: phase B end -> phase C start, mean µs: clean      34 (n 2000) | late     nan (n 0)
+     sim 1: phase B end -> phase C start, mean µs: clean     345 (n 2000) | late     nan (n 0)
+     sim 2: phase B end -> phase C start, mean µs: clean       2 (n 1083) | late     334 (n 917)
+     sim 3: phase B end -> phase C start, mean µs: clean     314 (n 1969) | late     403 (n 31)
+     step period mean µs: all 11072, clean steps 11196, late steps 10934; fps if every step were clean 89.3 vs 90.3 (+1.1 % period)
+== 01_e7_b1A_1681465/2d_n8000_K4_C: 2000 steady steps
+  1. wake-up latency of blocked waits (µs after the signal)
+     s0_to_s1 source blocked  1998/2000: p50     209 p90     241 p99    3483 | late    10 (median 6283)
+     s0_to_s1 dest   blocked    36/2000: p50      16 p90      18 p99      25 | late     0 (median nan)
+     s1_to_s0 source blocked  1995/2000: p50      16 p90      25 p99     125 | late     0 (median nan)
+     s1_to_s0 dest   blocked  1892/2000: p50      14 p90    8285 p99   10047 | late   500 (median 8281)
+     s1_to_s2 source blocked  1995/2000: p50      12 p90     224 p99    3366 | late     6 (median 7080)
+     s1_to_s2 dest   blocked   860/2000: p50      15 p90      19 p99    2185 | late     0 (median nan)
+     s2_to_s1 source blocked  1999/2000: p50      16 p90     198 p99    1597 | late     0 (median nan)
+     s2_to_s1 dest   blocked  1137/2000: p50      14 p90    8213 p99    9867 | late   199 (median 8217)
+     s2_to_s3 source blocked  1904/2000: p50      12 p90      15 p99      31 | late     1 (median 7617)
+     s2_to_s3 dest   blocked  1985/2000: p50      16 p90    8321 p99    9963 | late   861 (median 8317)
+     s3_to_s2 source blocked  2000/2000: p50     203 p90     246 p99    3473 | late     8 (median 6687)
+     s3_to_s2 dest   blocked    15/2000: p50      13 p90      21 p99      23 | late     0 (median nan)
+     late wake-ups in total 1585; step period p50 20817 µs, p90 20983, mean 20921 -> 47.8 fps
+  2. dest guard wait durations (host clock): blocked 5925, late 1560
+     late: p01 10059 p10 10061 p50 18035 p90 24351 p99 26060 µs; began before the signal by p50 9298 p90 16016 µs
+     late, by 250 µs bin: 10.00 ms: 256, 10.25 ms: 15, 10.50 ms: 12, 10.75 ms: 18, 11.00 ms: 11, 11.25 ms: 25, 11.50 ms: 26, 11.75 ms: 22, 12.00 ms: 23, 12.25 ms: 16, 12.50 ms: 22, 12.75 ms: 21, 13.00 ms: 29, 13.25 ms: 20, 13.50 ms: 38, 13.75 ms: 36, 14.00 ms: 36, 14.25 ms: 17, 14.50 ms: 19, 14.75 ms: 13, 15.00 ms: 16, 15.25 ms: 25, 15.50 ms: 14, 15.75 ms: 7, 16.00 ms: 6, 16.25 ms: 9, 16.50 ms: 10, 16.75 ms: 1, 17.00 ms: 7, 17.25 ms: 3, 17.50 ms: 5, 17.75 ms: 2, 18.00 ms: 7, 18.25 ms: 5, 18.50 ms: 11, 18.75 ms: 18, 19.00 ms: 15, 19.25 ms: 8, 19.50 ms: 10, 19.75 ms: 8, 20.00 ms: 26, 20.25 ms: 17, 20.50 ms: 46, 20.75 ms: 27, 21.00 ms: 26, 21.25 ms: 33, 21.50 ms: 32, 21.75 ms: 32, 22.00 ms: 35, 22.25 ms: 41, 22.50 ms: 30, 22.75 ms: 33, 23.00 ms: 28, 23.25 ms: 30, 23.50 ms: 29, 23.75 ms: 31, 24.00 ms: 37, 24.25 ms: 30, 24.50 ms: 23, 24.75 ms: 21, 25.00 ms: 21, 25.25 ms: 16, 25.50 ms: 11, 25.75 ms: 15, 26.00 ms: 24, 26.25 ms: 2, 26.50 ms: 1, 27.25 ms: 1
+     on time: p50 5814 p90 12256 p99 15307 µs
+  3. shared waits (reverse link's source wait asleep over the same signal)
+     shared guard first  : blocked dest guards      6, late      1 ( 16.7 %)
+     shared reverse first: blocked dest guards   5919, late   1559 ( 26.3 %)
+     reverse source waits asleep over the same signal 5925, late 25
+  4. cost: steps 2000, with a late inbound dest guard 1235
+     sim 0: phase B end -> phase C start, mean µs: clean       2 (n 1500) | late       2 (n 500)
+     sim 1: phase B end -> phase C start, mean µs: clean       2 (n 1801) | late       2 (n 199)
+     sim 2: phase B end -> phase C start, mean µs: clean     107 (n 2000) | late     nan (n 0)
+     sim 3: phase B end -> phase C start, mean µs: clean       2 (n 1139) | late       2 (n 861)
+     step period mean µs: all 20921, clean steps 21103, late steps 20808; fps if every step were clean 47.4 vs 47.8 (+0.9 % period)
+== 01_e7_b1A_1681465/2d_n8000_K4_E: 2000 steady steps
+  1. wake-up latency of blocked waits (µs after the signal)
+     s0_to_s1 source blocked  1971/2000: p50      15 p90      17 p99      25 | late     0 (median nan)
+     s0_to_s1 dest   blocked  1991/2000: p50      15 p90     121 p99     136 | late     0 (median nan)
+     s1_to_s0 source blocked  1992/2000: p50     124 p90     131 p99     138 | late     0 (median nan)
+     s1_to_s0 dest   blocked     0/2000: p50     nan p90     nan p99     nan | late     0 (median nan)
+     s1_to_s2 source blocked  1984/2000: p50      12 p90      13 p99      21 | late     0 (median nan)
+     s1_to_s2 dest   blocked  1998/2000: p50      37 p90     150 p99     158 | late     0 (median nan)
+     s2_to_s1 source blocked  2000/2000: p50     129 p90     148 p99     156 | late     0 (median nan)
+     s2_to_s1 dest   blocked     2/2000: p50      14 p90      14 p99      14 | late     0 (median nan)
+     s2_to_s3 source blocked  2000/2000: p50     220 p90     287 p99    4247 | late    12 (median 6330)
+     s2_to_s3 dest   blocked     0/2000: p50     nan p90     nan p99     nan | late     0 (median nan)
+     s3_to_s2 source blocked  1927/2000: p50      13 p90      16 p99      27 | late     0 (median nan)
+     s3_to_s2 dest   blocked  2000/2000: p50      13 p90    8203 p99    9965 | late   617 (median 8197)
+     late wake-ups in total 629; step period p50 21168 µs, p90 21317, mean 21263 -> 47.0 fps
+  2. dest guard wait durations (host clock): blocked 5991, late 617
+     late: p01 11355 p10 19344 p50 25675 p90 26690 p99 28296 µs; began before the signal by p50 17281 p90 18475 µs
+     late, by 250 µs bin: 10.00 ms: 5, 10.75 ms: 1, 11.25 ms: 1, 12.00 ms: 1, 12.25 ms: 1, 13.00 ms: 1, 13.50 ms: 1, 14.00 ms: 1, 14.25 ms: 1, 14.75 ms: 2, 15.25 ms: 1, 15.75 ms: 1, 16.00 ms: 1, 16.25 ms: 1, 16.50 ms: 1, 16.75 ms: 2, 17.25 ms: 2, 18.00 ms: 2, 18.25 ms: 3, 18.50 ms: 1, 18.75 ms: 4, 19.00 ms: 15, 19.25 ms: 16, 19.50 ms: 4, 19.75 ms: 4, 20.00 ms: 11, 20.25 ms: 2, 20.50 ms: 4, 20.75 ms: 2, 21.00 ms: 7, 21.50 ms: 6, 21.75 ms: 2, 22.00 ms: 7, 22.25 ms: 5, 22.50 ms: 36, 22.75 ms: 15, 23.00 ms: 6, 23.25 ms: 8, 23.50 ms: 12, 23.75 ms: 10, 24.00 ms: 6, 24.25 ms: 12, 24.50 ms: 13, 24.75 ms: 17, 25.00 ms: 23, 25.25 ms: 22, 25.50 ms: 13, 25.75 ms: 22, 26.00 ms: 26, 26.25 ms: 66, 26.50 ms: 152, 26.75 ms: 18, 27.00 ms: 1, 27.25 ms: 2, 27.50 ms: 3, 27.75 ms: 3, 28.00 ms: 2, 28.25 ms: 7, 28.50 ms: 3
+     on time: p50 12835 p90 18325 p99 18530 µs
+  3. shared waits (reverse link's source wait asleep over the same signal)
+     shared guard first  : blocked dest guards     33, late      3 (  9.1 %)
+     shared reverse first: blocked dest guards   5958, late    614 ( 10.3 %)
+     reverse source waits asleep over the same signal 5991, late 12
+  4. cost: steps 2000, with a late inbound dest guard 617
+     sim 0: phase B end -> phase C start, mean µs: clean       4 (n 2000) | late     nan (n 0)
+     sim 1: phase B end -> phase C start, mean µs: clean     437 (n 2000) | late     nan (n 0)
+     sim 2: phase B end -> phase C start, mean µs: clean       2 (n 1383) | late       2 (n 617)
+     sim 3: phase B end -> phase C start, mean µs: clean     371 (n 2000) | late     nan (n 0)
+     step period mean µs: all 21263, clean steps 21306, late steps 21166; fps if every step were clean 46.9 vs 47.0 (+0.2 % period)
+== 01_e7_b1A_1681465/3d_n160_k8_K4_C: 1000 steady steps
+  1. wake-up latency of blocked waits (µs after the signal)
+     s0_to_s1 source blocked   997/1000: p50     483 p90     531 p99    5240 | late    10 (median 5788)
+     s0_to_s1 dest   blocked     0/1000: p50     nan p90     nan p99     nan | late     0 (median nan)
+     s1_to_s0 source blocked   983/1000: p50      15 p90      18 p99      22 | late     0 (median nan)
+     s1_to_s0 dest   blocked   992/1000: p50      13 p90    8959 p99    9855 | late   223 (median 8957)
+     s1_to_s2 source blocked   996/1000: p50      12 p90      13 p99      22 | late     0 (median nan)
+     s1_to_s2 dest   blocked   999/1000: p50      16 p90     254 p99     265 | late     0 (median nan)
+     s2_to_s1 source blocked  1000/1000: p50     230 p90     246 p99     262 | late     0 (median nan)
+     s2_to_s1 dest   blocked     1/1000: p50      13 p90      13 p99      13 | late     0 (median nan)
+     s2_to_s3 source blocked   998/1000: p50      12 p90     537 p99    2806 | late     3 (median 5525)
+     s2_to_s3 dest   blocked   488/1000: p50      17 p90    2999 p99    9849 | late    30 (median 8981)
+     s3_to_s2 source blocked   971/1000: p50      16 p90     529 p99    4204 | late     6 (median 5593)
+     s3_to_s2 dest   blocked   512/1000: p50    7967 p90    9654 p99    9857 | late   265 (median 8778)
+     late wake-ups in total 537; step period p50 62624 µs, p90 65470, mean 63452 -> 15.8 fps
+  2. dest guard wait durations (host clock): blocked 2992, late 518
+     late: p01 11921 p10 50808 p50 60340 p90 65179 p99 66506 µs; began before the signal by p50 51689 p90 55693 µs
+     late, by 250 µs bin: 10.00 ms: 5, 11.75 ms: 1, 12.00 ms: 1, 14.00 ms: 1, 15.75 ms: 1, 16.25 ms: 1, 17.00 ms: 1, 17.25 ms: 1, 17.50 ms: 1, 18.50 ms: 1, 19.00 ms: 1, 20.00 ms: 2, 22.00 ms: 1, 27.50 ms: 1, 27.75 ms: 1, 28.75 ms: 1, 29.00 ms: 2, 30.00 ms: 4, 34.25 ms: 2, 36.00 ms: 1, 37.25 ms: 1, 38.25 ms: 1, 38.75 ms: 2, 39.25 ms: 1, 40.00 ms: 1, 40.25 ms: 1, 41.75 ms: 1, 42.25 ms: 1, 43.25 ms: 1, 43.50 ms: 1, 44.00 ms: 1, 45.00 ms: 1, 48.25 ms: 3, 48.75 ms: 1, 49.00 ms: 1, 50.25 ms: 3, 50.75 ms: 2, 51.25 ms: 1, 52.00 ms: 1, 52.50 ms: 1, 53.00 ms: 1, 53.50 ms: 3, 54.00 ms: 1, 54.25 ms: 2, 54.50 ms: 1, 54.75 ms: 1, 55.00 ms: 1, 55.25 ms: 2, 55.75 ms: 1, 56.00 ms: 2, 56.25 ms: 1, 56.50 ms: 1, 56.75 ms: 5, 57.25 ms: 3, 57.50 ms: 2, 57.75 ms: 2, 58.00 ms: 3, 58.25 ms: 1, 58.50 ms: 8, 58.75 ms: 10, 59.00 ms: 7, 59.25 ms: 6, 59.50 ms: 27, 59.75 ms: 50, 60.00 ms: 22, 60.25 ms: 56, 60.50 ms: 14, 60.75 ms: 8, 61.00 ms: 10, 61.25 ms: 8, 61.50 ms: 13, 61.75 ms: 8, 62.00 ms: 11, 62.25 ms: 10, 62.50 ms: 5, 62.75 ms: 7, 63.00 ms: 9, 63.25 ms: 8, 63.50 ms: 19, 63.75 ms: 18, 64.00 ms: 13, 64.25 ms: 17, 64.50 ms: 4, 64.75 ms: 4, 65.00 ms: 6, 65.25 ms: 7, 65.50 ms: 10, 65.75 ms: 21, 66.00 ms: 3, 66.25 ms: 4, 66.50 ms: 3, 66.75 ms: 1, 67.25 ms: 2
+     on time: p50 50258 p90 55617 p99 60332 µs
+  3. shared waits (reverse link's source wait asleep over the same signal)
+     shared guard first  : blocked dest guards      3, late      1 ( 33.3 %)
+     shared reverse first: blocked dest guards   2989, late    517 ( 17.3 %)
+     reverse source waits asleep over the same signal 2992, late 19
+  4. cost: steps 1000, with a late inbound dest guard 432
+     sim 0: phase B end -> phase C start, mean µs: clean       2 (n 777) | late       2 (n 223)
+     sim 1: phase B end -> phase C start, mean µs: clean     691 (n 1000) | late     nan (n 0)
+     sim 2: phase B end -> phase C start, mean µs: clean     184 (n 735) | late       2 (n 265)
+     sim 3: phase B end -> phase C start, mean µs: clean     136 (n 970) | late       2 (n 30)
+     step period mean µs: all 63452, clean steps 64107, late steps 62593; fps if every step were clean 15.6 vs 15.8 (+1.0 % period)
+== 01_e7_b1A_1681465/3d_n160_k8_K4_E: 1000 steady steps
+  1. wake-up latency of blocked waits (µs after the signal)
+     s0_to_s1 source blocked   993/1000: p50      12 p90     524 p99    1725 | late     3 (median 6554)
+     s0_to_s1 dest   blocked   727/1000: p50     239 p90     245 p99     249 | late     0 (median nan)
+     s1_to_s0 source blocked   996/1000: p50      15 p90      32 p99      44 | late     0 (median nan)
+     s1_to_s0 dest   blocked   170/1000: p50      12 p90      12 p99   10051 | late     2 (median 10052)
+     s1_to_s2 source blocked   994/1000: p50      12 p90      18 p99      22 | late     0 (median nan)
+     s1_to_s2 dest   blocked   999/1000: p50     231 p90     243 p99     255 | late     0 (median nan)
+     s2_to_s1 source blocked  1000/1000: p50      22 p90     240 p99     259 | late     0 (median nan)
+     s2_to_s1 dest   blocked     1/1000: p50      12 p90      12 p99      12 | late     0 (median nan)
+     s2_to_s3 source blocked   999/1000: p50      13 p90     526 p99     703 | late     0 (median nan)
+     s2_to_s3 dest   blocked   496/1000: p50      19 p90    2751 p99    9851 | late    30 (median 8988)
+     s3_to_s2 source blocked   958/1000: p50      17 p90     557 p99    4500 | late     5 (median 6679)
+     s3_to_s2 dest   blocked   504/1000: p50    8778 p90    9646 p99    9860 | late   381 (median 9634)
+     late wake-ups in total 421; step period p50 62924 µs, p90 66217, mean 64199 -> 15.6 fps
+  2. dest guard wait durations (host clock): blocked 2897, late 413
+     late: p01 29736 p10 60112 p50 61567 p90 65867 p99 66396 µs; began before the signal by p50 52142 p90 57021 µs
+     late, by 250 µs bin: 10.00 ms: 4, 29.50 ms: 1, 31.75 ms: 1, 34.25 ms: 1, 43.00 ms: 1, 43.25 ms: 1, 45.00 ms: 1, 50.25 ms: 1, 51.00 ms: 1, 52.75 ms: 1, 53.25 ms: 2, 54.75 ms: 2, 55.25 ms: 2, 56.75 ms: 1, 57.75 ms: 1, 58.00 ms: 1, 58.25 ms: 1, 58.50 ms: 2, 58.75 ms: 1, 59.25 ms: 2, 59.50 ms: 7, 59.75 ms: 1, 60.00 ms: 12, 60.25 ms: 34, 60.50 ms: 11, 60.75 ms: 8, 61.00 ms: 29, 61.25 ms: 67, 61.50 ms: 36, 61.75 ms: 20, 62.00 ms: 34, 62.25 ms: 23, 62.50 ms: 13, 62.75 ms: 6, 63.00 ms: 5, 63.25 ms: 5, 63.50 ms: 5, 63.75 ms: 3, 64.00 ms: 3, 64.25 ms: 4, 64.50 ms: 6, 65.00 ms: 1, 65.25 ms: 4, 65.50 ms: 1, 65.75 ms: 26, 66.00 ms: 6, 66.25 ms: 12, 66.50 ms: 1, 66.75 ms: 1, 69.00 ms: 1
+     on time: p50 14144 p90 56115 p99 60334 µs
+  3. shared waits (reverse link's source wait asleep over the same signal)
+     shared guard first  : blocked dest guards      5, late      0 (  0.0 %)
+     shared reverse first: blocked dest guards   2892, late    413 ( 14.3 %)
+     reverse source waits asleep over the same signal 2897, late 8
+  4. cost: steps 1000, with a late inbound dest guard 413
+     sim 0: phase B end -> phase C start, mean µs: clean       2 (n 998) | late       2 (n 2)
+     sim 1: phase B end -> phase C start, mean µs: clean     336 (n 1000) | late     nan (n 0)
+     sim 2: phase B end -> phase C start, mean µs: clean     213 (n 619) | late       2 (n 381)
+     sim 3: phase B end -> phase C start, mean µs: clean     167 (n 970) | late       2 (n 30)
+     step period mean µs: all 64199, clean steps 65414, late steps 62476; fps if every step were clean 15.3 vs 15.6 (+1.9 % period)
+== 02_e7_b1B_1681466/2d_n11320_K8_C: 2000 steady steps
+  1. wake-up latency of blocked waits (µs after the signal)
+     s0_to_s1 source blocked  1979/2000: p50      19 p90      33 p99      68 | late     0 (median nan)
+     s0_to_s1 dest   blocked  1896/2000: p50      18 p90      56 p99     139 | late     0 (median nan)
+     s1_to_s0 source blocked  1981/2000: p50     161 p90     220 p99     332 | late     0 (median nan)
+     s1_to_s0 dest   blocked     0/2000: p50     nan p90     nan p99     nan | late     0 (median nan)
+     s1_to_s2 source blocked  1983/2000: p50      18 p90     743 p99    1015 | late     0 (median nan)
+     s1_to_s2 dest   blocked   597/2000: p50     157 p90     177 p99     273 | late     0 (median nan)
+     s2_to_s1 source blocked  1982/2000: p50      21 p90      51 p99     160 | late     0 (median nan)
+     s2_to_s1 dest   blocked  1373/2000: p50     178 p90    9854 p99    9958 | late   461 (median 8399)
+     s2_to_s3 source blocked  1982/2000: p50     345 p90     684 p99    1176 | late     0 (median nan)
+     s2_to_s3 dest   blocked   137/2000: p50      20 p90     135 p99     187 | late     0 (median nan)
+     s3_to_s2 source blocked  1981/2000: p50      49 p90     113 p99     228 | late     0 (median nan)
+     s3_to_s2 dest   blocked  1741/2000: p50      16 p90    9864 p99   10050 | late   277 (median 9965)
+     s3_to_s4 source blocked  1982/2000: p50     553 p90     934 p99    1653 | late     0 (median nan)
+     s3_to_s4 dest   blocked   259/2000: p50      18 p90     161 p99     185 | late     0 (median nan)
+     s4_to_s3 source blocked  1982/2000: p50      25 p90      65 p99     162 | late     0 (median nan)
+     s4_to_s3 dest   blocked  1712/2000: p50      28 p90     143 p99    9905 | late    70 (median 9859)
+     s4_to_s5 source blocked  1982/2000: p50     351 p90     718 p99    1292 | late     0 (median nan)
+     s4_to_s5 dest   blocked   327/2000: p50      16 p90     141 p99     162 | late     0 (median nan)
+     s5_to_s4 source blocked  1983/2000: p50      27 p90     144 p99     205 | late     0 (median nan)
+     s5_to_s4 dest   blocked  1622/2000: p50      18 p90     169 p99    9993 | late   126 (median 9964)
+     s5_to_s6 source blocked  1983/2000: p50      25 p90      93 p99     230 | late     0 (median nan)
+     s5_to_s6 dest   blocked  1979/2000: p50      15 p90     152 p99    5389 | late    48 (median 5350)
+     s6_to_s5 source blocked  1984/2000: p50     141 p90     272 p99     389 | late     0 (median nan)
+     s6_to_s5 dest   blocked     2/2000: p50     124 p90     124 p99     124 | late     0 (median nan)
+     s6_to_s7 source blocked  1957/2000: p50      13 p90      17 p99      87 | late     0 (median nan)
+     s6_to_s7 dest   blocked  1978/2000: p50      17 p90    8286 p99    9949 | late   571 (median 8280)
+     s7_to_s6 source blocked  1998/2000: p50     281 p90     522 p99     843 | late     0 (median nan)
+     s7_to_s6 dest   blocked     8/2000: p50      35 p90   10022 p99   10022 | late     1 (median 10022)
+     late wake-ups in total 1554; step period p50 20524 µs, p90 20713, mean 20720 -> 48.3 fps
+  2. dest guard wait durations (host clock): blocked 13631, late 1554
+     late: p01 8399 p10 10064 p50 10863 p90 24754 p99 27143 µs; began before the signal by p50 3825 p90 16391 µs
+     late, by 250 µs bin: 7.50 ms: 1, 8.25 ms: 38, 8.50 ms: 1, 9.75 ms: 1, 10.00 ms: 677, 10.25 ms: 27, 10.50 ms: 21, 10.75 ms: 18, 11.00 ms: 9, 11.25 ms: 10, 11.50 ms: 16, 11.75 ms: 11, 12.00 ms: 9, 12.25 ms: 6, 12.50 ms: 7, 12.75 ms: 11, 13.00 ms: 7, 13.25 ms: 7, 13.50 ms: 14, 13.75 ms: 6, 14.00 ms: 12, 14.25 ms: 17, 14.50 ms: 15, 14.75 ms: 4, 15.00 ms: 7, 15.25 ms: 8, 15.50 ms: 10, 15.75 ms: 7, 16.00 ms: 15, 16.25 ms: 10, 16.50 ms: 12, 16.75 ms: 8, 17.00 ms: 15, 17.25 ms: 17, 17.50 ms: 14, 17.75 ms: 8, 18.00 ms: 5, 18.25 ms: 22, 18.50 ms: 73, 18.75 ms: 2, 19.00 ms: 2, 19.25 ms: 1, 19.50 ms: 5, 19.75 ms: 48, 20.00 ms: 58, 20.25 ms: 3, 20.50 ms: 2, 20.75 ms: 1, 21.25 ms: 1, 21.50 ms: 2, 21.75 ms: 9, 22.00 ms: 1, 22.25 ms: 1, 22.50 ms: 3, 22.75 ms: 1, 23.00 ms: 1, 23.25 ms: 1, 23.50 ms: 6, 23.75 ms: 5, 24.00 ms: 6, 24.25 ms: 22, 24.50 ms: 40, 24.75 ms: 41, 25.00 ms: 10, 25.25 ms: 18, 25.50 ms: 10, 25.75 ms: 2, 26.00 ms: 8, 26.25 ms: 13, 26.50 ms: 8, 26.75 ms: 12, 27.00 ms: 34, 27.25 ms: 1
+     on time: p50 2155 p90 11872 p99 17010 µs
+  3. shared waits (reverse link's source wait asleep over the same signal)
+     alone  -            : blocked dest guards      1, late      0 (  0.0 %)
+     shared guard first  : blocked dest guards     12, late      1 (  8.3 %)
+     shared reverse first: blocked dest guards  13618, late   1553 ( 11.4 %)
+     reverse source waits asleep over the same signal 13630, late 0
+  4. cost: steps 2000, with a late inbound dest guard 1163
+     sim 0: phase B end -> phase C start, mean µs: clean       5 (n 2000) | late     nan (n 0)
+     sim 1: phase B end -> phase C start, mean µs: clean       5 (n 1539) | late       2 (n 461)
+     sim 2: phase B end -> phase C start, mean µs: clean       5 (n 1723) | late       2 (n 277)
+     sim 3: phase B end -> phase C start, mean µs: clean       6 (n 1930) | late       2 (n 70)
+     sim 4: phase B end -> phase C start, mean µs: clean       6 (n 1874) | late       2 (n 126)
+     sim 5: phase B end -> phase C start, mean µs: clean       5 (n 2000) | late     nan (n 0)
+     sim 6: phase B end -> phase C start, mean µs: clean      84 (n 1951) | late     224 (n 49)
+     sim 7: phase B end -> phase C start, mean µs: clean       2 (n 1429) | late       2 (n 571)
+     step period mean µs: all 20720, clean steps 21013, late steps 20508; fps if every step were clean 47.6 vs 48.3 (+1.4 % period)
+== 02_e7_b1B_1681466/2d_n11320_K8_E: 2000 steady steps
+  1. wake-up latency of blocked waits (µs after the signal)
+     s0_to_s1 source blocked  1972/2000: p50      17 p90      60 p99     299 | late     0 (median nan)
+     s0_to_s1 dest   blocked  1785/2000: p50      17 p90     152 p99     170 | late     0 (median nan)
+     s1_to_s0 source blocked  1978/2000: p50     152 p90     160 p99     184 | late     0 (median nan)
+     s1_to_s0 dest   blocked   129/2000: p50      13 p90    8281 p99    8337 | late    26 (median 8281)
+     s1_to_s2 source blocked  1978/2000: p50      12 p90      25 p99      71 | late     0 (median nan)
+     s1_to_s2 dest   blocked  1996/2000: p50      19 p90     177 p99     222 | late     0 (median nan)
+     s2_to_s1 source blocked  1998/2000: p50     165 p90     212 p99     258 | late     0 (median nan)
+     s2_to_s1 dest   blocked     2/2000: p50    9945 p90    9945 p99    9945 | late     1 (median 9945)
+     s2_to_s3 source blocked  1998/2000: p50      41 p90     483 p99     784 | late     0 (median nan)
+     s2_to_s3 dest   blocked     0/2000: p50     nan p90     nan p99     nan | late     0 (median nan)
+     s3_to_s2 source blocked  1944/2000: p50      19 p90      26 p99      44 | late     0 (median nan)
+     s3_to_s2 dest   blocked  1998/2000: p50    3175 p90    9744 p99    9947 | late   868 (median 8133)
+     s3_to_s4 source blocked  1983/2000: p50      15 p90     434 p99     551 | late     0 (median nan)
+     s3_to_s4 dest   blocked  1013/2000: p50     162 p90     182 p99     259 | late     0 (median nan)
+     s4_to_s3 source blocked  1978/2000: p50      19 p90      48 p99     139 | late     0 (median nan)
+     s4_to_s3 dest   blocked   970/2000: p50    4367 p90    8721 p99    9976 | late   471 (median 7333)
+     s4_to_s5 source blocked  1986/2000: p50     308 p90     573 p99    1142 | late     0 (median nan)
+     s4_to_s5 dest   blocked    11/2000: p50      15 p90      16 p99      17 | late     0 (median nan)
+     s5_to_s4 source blocked  1965/2000: p50      23 p90      75 p99     161 | late     0 (median nan)
+     s5_to_s4 dest   blocked  1956/2000: p50      15 p90    8191 p99    9953 | late   397 (median 8191)
+     s5_to_s6 source blocked  1976/2000: p50     400 p90     602 p99    1265 | late     0 (median nan)
+     s5_to_s6 dest   blocked   198/2000: p50      15 p90     156 p99     164 | late     0 (median nan)
+     s6_to_s5 source blocked  1977/2000: p50      31 p90     129 p99     181 | late     0 (median nan)
+     s6_to_s5 dest   blocked  1701/2000: p50      16 p90      56 p99     180 | late     9 (median 9968)
+     s6_to_s7 source blocked  1978/2000: p50     388 p90     609 p99    1248 | late     0 (median nan)
+     s6_to_s7 dest   blocked    24/2000: p50      12 p90      62 p99    8706 | late     2 (median 8577)
+     s7_to_s6 source blocked  1977/2000: p50      24 p90      88 p99     281 | late     0 (median nan)
+     s7_to_s6 dest   blocked  1902/2000: p50      29 p90    9967 p99   10043 | late   442 (median 9960)
+     late wake-ups in total 2216; step period p50 20652 µs, p90 20823, mean 20847 -> 48.0 fps
+  2. dest guard wait durations (host clock): blocked 13685, late 2216
+     late: p01 10061 p10 10063 p50 16100 p90 24628 p99 26978 µs; began before the signal by p50 7598 p90 16309 µs
+     late, by 250 µs bin: 10.00 ms: 957, 10.25 ms: 11, 10.50 ms: 7, 10.75 ms: 12, 11.00 ms: 13, 11.25 ms: 5, 11.50 ms: 6, 11.75 ms: 5, 12.00 ms: 9, 12.25 ms: 7, 12.50 ms: 6, 12.75 ms: 8, 13.00 ms: 8, 13.25 ms: 10, 13.50 ms: 5, 13.75 ms: 7, 14.00 ms: 5, 14.25 ms: 6, 14.50 ms: 2, 14.75 ms: 7, 15.00 ms: 1, 15.25 ms: 2, 15.50 ms: 2, 15.75 ms: 6, 16.00 ms: 6, 16.25 ms: 9, 16.50 ms: 7, 16.75 ms: 3, 17.00 ms: 15, 17.25 ms: 12, 17.50 ms: 5, 17.75 ms: 5, 18.00 ms: 5, 18.25 ms: 34, 18.50 ms: 77, 18.75 ms: 6, 19.00 ms: 2, 19.25 ms: 5, 19.50 ms: 7, 19.75 ms: 5, 20.00 ms: 523, 20.25 ms: 65, 20.50 ms: 3, 20.75 ms: 2, 21.00 ms: 4, 21.25 ms: 4, 21.50 ms: 2, 21.75 ms: 12, 22.00 ms: 25, 22.50 ms: 8, 22.75 ms: 4, 23.00 ms: 4, 23.25 ms: 5, 23.50 ms: 1, 23.75 ms: 7, 24.00 ms: 4, 24.25 ms: 5, 24.50 ms: 11, 24.75 ms: 35, 25.00 ms: 43, 25.25 ms: 32, 25.50 ms: 7, 25.75 ms: 3, 26.00 ms: 5, 26.25 ms: 8, 26.50 ms: 25, 26.75 ms: 38, 27.00 ms: 16, 27.25 ms: 5
+     on time: p50 3414 p90 17210 p99 20119 µs
+  3. shared waits (reverse link's source wait asleep over the same signal)
+     alone  -            : blocked dest guards      4, late      0 (  0.0 %)
+     shared guard first  : blocked dest guards     32, late      3 (  9.4 %)
+     shared reverse first: blocked dest guards  13649, late   2213 ( 16.2 %)
+     reverse source waits asleep over the same signal 13681, late 0
+  4. cost: steps 2000, with a late inbound dest guard 1534
+     sim 0: phase B end -> phase C start, mean µs: clean       3 (n 1974) | late       2 (n 26)
+     sim 1: phase B end -> phase C start, mean µs: clean     624 (n 1999) | late       2 (n 1)
+     sim 2: phase B end -> phase C start, mean µs: clean       2 (n 1132) | late       2 (n 868)
+     sim 3: phase B end -> phase C start, mean µs: clean     184 (n 1529) | late     178 (n 471)
+     sim 4: phase B end -> phase C start, mean µs: clean       2 (n 1603) | late       2 (n 397)
+     sim 5: phase B end -> phase C start, mean µs: clean      48 (n 1991) | late       2 (n 9)
+     sim 6: phase B end -> phase C start, mean µs: clean       4 (n 1558) | late       2 (n 442)
+     sim 7: phase B end -> phase C start, mean µs: clean       3 (n 1998) | late       2 (n 2)
+     step period mean µs: all 20847, clean steps 20633, late steps 20913; fps if every step were clean 48.5 vs 48.0 (-1.0 % period)
+== 02_e7_b1B_1681466/2d_n4000_K8_C: 2000 steady steps
+  1. wake-up latency of blocked waits (µs after the signal)
+     s0_to_s1 source blocked   159/2000: p50      16 p90     107 p99     524 | late     0 (median nan)
+     s0_to_s1 dest   blocked   253/2000: p50      40 p90     144 p99     403 | late     0 (median nan)
+     s1_to_s0 source blocked   250/2000: p50     113 p90     249 p99     663 | late     0 (median nan)
+     s1_to_s0 dest   blocked     5/2000: p50      33 p90    9990 p99    9990 | late     2 (median 9955)
+     s1_to_s2 source blocked   255/2000: p50      31 p90     612 p99    1292 | late     0 (median nan)
+     s1_to_s2 dest   blocked   116/2000: p50      91 p90     187 p99     515 | late     0 (median nan)
+     s2_to_s1 source blocked   259/2000: p50      37 p90     220 p99     573 | late     0 (median nan)
+     s2_to_s1 dest   blocked   156/2000: p50    9443 p90    9777 p99   10032 | late   102 (median 9449)
+     s2_to_s3 source blocked   273/2000: p50     135 p90     855 p99    1180 | late     0 (median nan)
+     s2_to_s3 dest   blocked   113/2000: p50      52 p90     125 p99     246 | late     0 (median nan)
+     s3_to_s2 source blocked   286/2000: p50      28 p90     197 p99     491 | late     0 (median nan)
+     s3_to_s2 dest   blocked   236/2000: p50      17 p90    1876 p99   10012 | late    18 (median 9681)
+     s3_to_s4 source blocked   315/2000: p50     185 p90     804 p99    1217 | late     0 (median nan)
+     s3_to_s4 dest   blocked   246/2000: p50      97 p90     185 p99     343 | late     0 (median nan)
+     s4_to_s3 source blocked   335/2000: p50      42 p90     181 p99     400 | late     0 (median nan)
+     s4_to_s3 dest   blocked   184/2000: p50      14 p90     241 p99   10031 | late     8 (median 9985)
+     s4_to_s5 source blocked   336/2000: p50      78 p90     818 p99    1307 | late     0 (median nan)
+     s4_to_s5 dest   blocked  1603/2000: p50      68 p90     185 p99     376 | late     0 (median nan)
+     s5_to_s4 source blocked  1763/2000: p50      91 p90     199 p99     391 | late     0 (median nan)
+     s5_to_s4 dest   blocked   181/2000: p50      55 p90    9814 p99   10030 | late    42 (median 9803)
+     s5_to_s6 source blocked  1651/2000: p50      20 p90     173 p99     707 | late     0 (median nan)
+     s5_to_s6 dest   blocked  1556/2000: p50     107 p90     266 p99     573 | late     1 (median 10040)
+     s6_to_s5 source blocked  1735/2000: p50      43 p90     256 p99     557 | late     0 (median nan)
+     s6_to_s5 dest   blocked   223/2000: p50      47 p90    9778 p99    9946 | late   100 (median 9750)
+     s6_to_s7 source blocked  1746/2000: p50      42 p90     836 p99    1411 | late     0 (median nan)
+     s6_to_s7 dest   blocked    30/2000: p50      21 p90    9822 p99    9829 | late     3 (median 9826)
+     s7_to_s6 source blocked  1566/2000: p50      14 p90      17 p99     637 | late     0 (median nan)
+     s7_to_s6 dest   blocked  1712/2000: p50    9751 p90   10018 p99   10029 | late  1260 (median 9758)
+     late wake-ups in total 1536; step period p50 10300 µs, p90 10857, mean 8707 -> 114.8 fps
+  2. dest guard wait durations (host clock): blocked 6614, late 1536
+     late: p01 10059 p10 10060 p50 10415 p90 10677 p99 11015 µs; began before the signal by p50 656 p90 731 µs
+     late, by 250 µs bin: 10.00 ms: 587, 10.25 ms: 449, 10.50 ms: 443, 10.75 ms: 41, 11.00 ms: 7, 11.25 ms: 4, 11.50 ms: 1, 11.75 ms: 2, 17.00 ms: 1, 19.25 ms: 1
+     on time: p50 1189 p90 9408 p99 10142 µs
+  3. shared waits (reverse link's source wait asleep over the same signal)
+     alone  -            : blocked dest guards    113, late      0 (  0.0 %)
+     shared guard first  : blocked dest guards   1083, late     20 (  1.8 %)
+     shared reverse first: blocked dest guards   5418, late   1516 ( 28.0 %)
+     reverse source waits asleep over the same signal 6501, late 0
+  4. cost: steps 2000, with a late inbound dest guard 1501
+     sim 0: phase B end -> phase C start, mean µs: clean     531 (n 1998) | late    7957 (n 2)
+     sim 1: phase B end -> phase C start, mean µs: clean     211 (n 1898) | late    7571 (n 102)
+     sim 2: phase B end -> phase C start, mean µs: clean     536 (n 1982) | late    7988 (n 18)
+     sim 3: phase B end -> phase C start, mean µs: clean     690 (n 1992) | late    8489 (n 8)
+     sim 4: phase B end -> phase C start, mean µs: clean     573 (n 1958) | late    7756 (n 42)
+     sim 5: phase B end -> phase C start, mean µs: clean    5343 (n 1900) | late    7686 (n 100)
+     sim 6: phase B end -> phase C start, mean µs: clean    1494 (n 740) | late    7789 (n 1260)
+     sim 7: phase B end -> phase C start, mean µs: clean    5320 (n 1997) | late    7674 (n 3)
+     step period mean µs: all 8707, clean steps 6743, late steps 9359; fps if every step were clean 148.3 vs 114.8 (-22.6 % period)
+== 02_e7_b1B_1681466/2d_n4000_K8_E: 2000 steady steps
+  1. wake-up latency of blocked waits (µs after the signal)
+     s0_to_s1 source blocked    70/2000: p50      14 p90      48 p99     164 | late     0 (median nan)
+     s0_to_s1 dest   blocked   422/2000: p50      71 p90     156 p99     455 | late     1 (median 10042)
+     s1_to_s0 source blocked   426/2000: p50      98 p90     197 p99     414 | late     0 (median nan)
+     s1_to_s0 dest   blocked     0/2000: p50     nan p90     nan p99     nan | late     0 (median nan)
+     s1_to_s2 source blocked   455/2000: p50      16 p90     397 p99    1137 | late     0 (median nan)
+     s1_to_s2 dest   blocked   876/2000: p50      93 p90     144 p99     379 | late     0 (median nan)
+     s2_to_s1 source blocked   975/2000: p50      39 p90     208 p99     561 | late     0 (median nan)
+     s2_to_s1 dest   blocked    85/2000: p50      95 p90     630 p99   10014 | late     8 (median 9925)
+     s2_to_s3 source blocked   994/2000: p50      30 p90     750 p99    1098 | late     0 (median nan)
+     s2_to_s3 dest   blocked   667/2000: p50      92 p90     277 p99     553 | late     0 (median nan)
+     s3_to_s2 source blocked  1035/2000: p50      50 p90     133 p99     433 | late     0 (median nan)
+     s3_to_s2 dest   blocked   414/2000: p50     162 p90    9933 p99   10014 | late   157 (median 9747)
+     s3_to_s4 source blocked  1048/2000: p50     102 p90     297 p99     762 | late     0 (median nan)
+     s3_to_s4 dest   blocked   399/2000: p50      30 p90      52 p99     267 | late     0 (median nan)
+     s4_to_s3 source blocked  1141/2000: p50      59 p90     144 p99     357 | late     0 (median nan)
+     s4_to_s3 dest   blocked   867/2000: p50    9423 p90    9446 p99    9865 | late   521 (median 9432)
+     s4_to_s5 source blocked  1176/2000: p50      14 p90     624 p99    1046 | late     0 (median nan)
+     s4_to_s5 dest   blocked   975/2000: p50      37 p90      97 p99     230 | late     0 (median nan)
+     s5_to_s4 source blocked  1552/2000: p50      34 p90     102 p99     323 | late     0 (median nan)
+     s5_to_s4 dest   blocked   883/2000: p50    1660 p90    9234 p99   10022 | late   230 (median 8270)
+     s5_to_s6 source blocked  1609/2000: p50      19 p90     174 p99     980 | late     0 (median nan)
+     s5_to_s6 dest   blocked   786/2000: p50     100 p90     408 p99     674 | late     0 (median nan)
+     s6_to_s5 source blocked  1209/2000: p50      44 p90     382 p99     666 | late     0 (median nan)
+     s6_to_s5 dest   blocked   821/2000: p50      84 p90    9444 p99   10024 | late   330 (median 9435)
+     s6_to_s7 source blocked  1286/2000: p50     562 p90    1211 p99    1352 | late     0 (median nan)
+     s6_to_s7 dest   blocked     7/2000: p50      13 p90      45 p99      45 | late     0 (median nan)
+     s7_to_s6 source blocked   851/2000: p50      14 p90      25 p99     226 | late     0 (median nan)
+     s7_to_s6 dest   blocked  1304/2000: p50     105 p90    9563 p99   10028 | late   179 (median 9939)
+     late wake-ups in total 1426; step period p50 8547 µs, p90 10643, mean 6825 -> 146.5 fps
+  2. dest guard wait durations (host clock): blocked 8506, late 1426
+     late: p01 10058 p10 10059 p50 10061 p90 10683 p99 11914 µs; began before the signal by p50 634 p90 2570 µs
+     late, by 250 µs bin: 10.00 ms: 1138, 10.25 ms: 60, 10.50 ms: 94, 10.75 ms: 89, 11.00 ms: 24, 11.25 ms: 5, 11.50 ms: 1, 11.75 ms: 1, 14.00 ms: 1, 14.50 ms: 1, 15.50 ms: 1, 16.00 ms: 1, 17.25 ms: 1, 17.75 ms: 1, 18.00 ms: 1, 18.75 ms: 3, 19.00 ms: 2, 19.50 ms: 1, 19.75 ms: 1
+     on time: p50 1237 p90 9263 p99 10111 µs
+  3. shared waits (reverse link's source wait asleep over the same signal)
+     alone  -            : blocked dest guards    179, late      0 (  0.0 %)
+     shared guard first  : blocked dest guards   1361, late    109 (  8.0 %)
+     shared reverse first: blocked dest guards   6966, late   1317 ( 18.9 %)
+     reverse source waits asleep over the same signal 8327, late 0
+  4. cost: steps 2000, with a late inbound dest guard 1048
+     sim 0: phase B end -> phase C start, mean µs: clean     194 (n 2000) | late     nan (n 0)
+     sim 1: phase B end -> phase C start, mean µs: clean     719 (n 1991) | late    8052 (n 9)
+     sim 2: phase B end -> phase C start, mean µs: clean    2267 (n 1843) | late    7744 (n 157)
+     sim 3: phase B end -> phase C start, mean µs: clean    1224 (n 1479) | late    7598 (n 521)
+     sim 4: phase B end -> phase C start, mean µs: clean    2957 (n 1770) | late    7795 (n 230)
+     sim 5: phase B end -> phase C start, mean µs: clean    2578 (n 1670) | late    7718 (n 330)
+     sim 6: phase B end -> phase C start, mean µs: clean    1417 (n 1821) | late    8228 (n 179)
+     sim 7: phase B end -> phase C start, mean µs: clean    1410 (n 2000) | late     nan (n 0)
+     step period mean µs: all 6825, clean steps 4863, late steps 8606; fps if every step were clean 205.6 vs 146.5 (-28.8 % period)
+== 02_e7_b1B_1681466/2d_n8000_K8_C: 2000 steady steps
+  1. wake-up latency of blocked waits (µs after the signal)
+     s0_to_s1 source blocked  1974/2000: p50      22 p90      33 p99      73 | late     0 (median nan)
+     s0_to_s1 dest   blocked  1967/2000: p50      19 p90     134 p99     208 | late     0 (median nan)
+     s1_to_s0 source blocked  1980/2000: p50     125 p90     150 p99     279 | late     0 (median nan)
+     s1_to_s0 dest   blocked     1/2000: p50     161 p90     161 p99     161 | late     0 (median nan)
+     s1_to_s2 source blocked  1980/2000: p50      13 p90     228 p99     500 | late     0 (median nan)
+     s1_to_s2 dest   blocked    48/2000: p50      18 p90     120 p99     156 | late     0 (median nan)
+     s2_to_s1 source blocked  1932/2000: p50      16 p90      33 p99     142 | late     0 (median nan)
+     s2_to_s1 dest   blocked  1926/2000: p50    8469 p90    8953 p99    9971 | late  1624 (median 8591)
+     s2_to_s3 source blocked  1979/2000: p50      15 p90     238 p99     759 | late     0 (median nan)
+     s2_to_s3 dest   blocked   935/2000: p50      18 p90     107 p99     154 | late     0 (median nan)
+     s3_to_s2 source blocked  1952/2000: p50      42 p90     131 p99     250 | late     0 (median nan)
+     s3_to_s2 dest   blocked   962/2000: p50      46 p90    8429 p99    9997 | late   365 (median 7096)
+     s3_to_s4 source blocked  1979/2000: p50      92 p90     502 p99    1000 | late     0 (median nan)
+     s3_to_s4 dest   blocked   568/2000: p50      16 p90      22 p99      90 | late     0 (median nan)
+     s4_to_s3 source blocked  1967/2000: p50      25 p90     139 p99     212 | late     0 (median nan)
+     s4_to_s3 dest   blocked  1321/2000: p50      17 p90    8737 p99    9999 | late   342 (median 8689)
+     s4_to_s5 source blocked  1979/2000: p50     216 p90     307 p99     885 | late     0 (median nan)
+     s4_to_s5 dest   blocked   553/2000: p50      17 p90      39 p99     179 | late     0 (median nan)
+     s5_to_s4 source blocked  1972/2000: p50      43 p90     136 p99     208 | late     0 (median nan)
+     s5_to_s4 dest   blocked  1399/2000: p50      13 p90      34 p99    9966 | late    97 (median 9000)
+     s5_to_s6 source blocked  1978/2000: p50      13 p90      43 p99     477 | late     0 (median nan)
+     s5_to_s6 dest   blocked  1845/2000: p50      18 p90     152 p99    4606 | late    12 (median 6256)
+     s6_to_s5 source blocked  1972/2000: p50     130 p90     222 p99     323 | late     0 (median nan)
+     s6_to_s5 dest   blocked   127/2000: p50      16 p90    9002 p99    9998 | late    19 (median 9849)
+     s6_to_s7 source blocked  1960/2000: p50      16 p90     355 p99     791 | late     0 (median nan)
+     s6_to_s7 dest   blocked   874/2000: p50      16 p90    9096 p99    9964 | late   304 (median 9090)
+     s7_to_s6 source blocked  1964/2000: p50      16 p90     239 p99     543 | late     0 (median nan)
+     s7_to_s6 dest   blocked  1101/2000: p50      20 p90    9845 p99    9969 | late   348 (median 8989)
+     late wake-ups in total 3111; step period p50 10736 µs, p90 11032, mean 10980 -> 91.1 fps
+  2. dest guard wait durations (host clock): blocked 13627, late 3111
+     late: p01 10058 p10 10059 p50 10064 p90 14594 p99 18397 µs; began before the signal by p50 1726 p90 5361 µs
+     late, by 250 µs bin: 7.50 ms: 1, 8.50 ms: 1, 8.75 ms: 1, 9.00 ms: 5, 9.50 ms: 1, 9.75 ms: 1, 10.00 ms: 2333, 10.25 ms: 62, 10.50 ms: 99, 10.75 ms: 27, 11.00 ms: 11, 11.25 ms: 27, 11.50 ms: 49, 11.75 ms: 8, 12.00 ms: 10, 12.25 ms: 9, 12.50 ms: 10, 12.75 ms: 26, 13.00 ms: 29, 13.25 ms: 12, 13.50 ms: 11, 13.75 ms: 29, 14.00 ms: 13, 14.25 ms: 15, 14.50 ms: 20, 14.75 ms: 24, 15.00 ms: 29, 15.25 ms: 13, 15.50 ms: 17, 15.75 ms: 11, 16.00 ms: 8, 16.25 ms: 8, 16.50 ms: 27, 16.75 ms: 12, 17.00 ms: 14, 17.25 ms: 10, 17.50 ms: 27, 17.75 ms: 36, 18.00 ms: 24, 18.25 ms: 20, 18.50 ms: 21
+     on time: p50 2410 p90 8507 p99 10063 µs
+  3. shared waits (reverse link's source wait asleep over the same signal)
+     alone  -            : blocked dest guards      1, late      0 (  0.0 %)
+     shared guard first  : blocked dest guards      7, late      1 ( 14.3 %)
+     shared reverse first: blocked dest guards  13619, late   3110 ( 22.8 %)
+     reverse source waits asleep over the same signal 13626, late 0
+  4. cost: steps 2000, with a late inbound dest guard 1833
+     sim 0: phase B end -> phase C start, mean µs: clean      90 (n 2000) | late     nan (n 0)
+     sim 1: phase B end -> phase C start, mean µs: clean     155 (n 376) | late     132 (n 1624)
+     sim 2: phase B end -> phase C start, mean µs: clean      93 (n 1635) | late     219 (n 365)
+     sim 3: phase B end -> phase C start, mean µs: clean      70 (n 1658) | late     375 (n 342)
+     sim 4: phase B end -> phase C start, mean µs: clean      71 (n 1903) | late     535 (n 97)
+     sim 5: phase B end -> phase C start, mean µs: clean     140 (n 1981) | late    1088 (n 19)
+     sim 6: phase B end -> phase C start, mean µs: clean      42 (n 1640) | late     572 (n 360)
+     sim 7: phase B end -> phase C start, mean µs: clean     106 (n 1696) | late     212 (n 304)
+     step period mean µs: all 10980, clean steps 11491, late steps 10934; fps if every step were clean 87.0 vs 91.1 (+4.6 % period)
+== 02_e7_b1B_1681466/2d_n8000_K8_E: 2000 steady steps
+  1. wake-up latency of blocked waits (µs after the signal)
+     s0_to_s1 source blocked  1970/2000: p50      18 p90      52 p99     249 | late     0 (median nan)
+     s0_to_s1 dest   blocked  1762/2000: p50      16 p90      36 p99     134 | late     0 (median nan)
+     s1_to_s0 source blocked  1974/2000: p50     128 p90     140 p99     223 | late     0 (median nan)
+     s1_to_s0 dest   blocked    79/2000: p50      13 p90    8857 p99   10004 | late     9 (median 9885)
+     s1_to_s2 source blocked  1973/2000: p50      13 p90      23 p99     183 | late     0 (median nan)
+     s1_to_s2 dest   blocked  1475/2000: p50     127 p90     150 p99     184 | late     0 (median nan)
+     s2_to_s1 source blocked  1974/2000: p50      17 p90     127 p99     160 | late     0 (median nan)
+     s2_to_s1 dest   blocked   504/2000: p50    9016 p90    9889 p99    9974 | late   491 (median 9017)
+     s2_to_s3 source blocked  1980/2000: p50     234 p90     365 p99     841 | late     0 (median nan)
+     s2_to_s3 dest   blocked     3/2000: p50      22 p90      32 p99      32 | late     0 (median nan)
+     s3_to_s2 source blocked  1944/2000: p50      20 p90      42 p99     178 | late     0 (median nan)
+     s3_to_s2 dest   blocked  1976/2000: p50      17 p90    9039 p99    9981 | late   581 (median 9034)
+     s3_to_s4 source blocked  1979/2000: p50      16 p90     300 p99     517 | late     0 (median nan)
+     s3_to_s4 dest   blocked   378/2000: p50      16 p90      20 p99     108 | late     0 (median nan)
+     s4_to_s3 source blocked  1952/2000: p50      21 p90     122 p99     161 | late     0 (median nan)
+     s4_to_s3 dest   blocked  1591/2000: p50    5849 p90    8770 p99    9657 | late   809 (median 8612)
+     s4_to_s5 source blocked  1976/2000: p50      24 p90     231 p99     493 | late     0 (median nan)
+     s4_to_s5 dest   blocked  1652/2000: p50      17 p90     144 p99     234 | late     0 (median nan)
+     s5_to_s4 source blocked  1972/2000: p50     130 p90     150 p99     230 | late     0 (median nan)
+     s5_to_s4 dest   blocked   314/2000: p50      15 p90    9041 p99    9995 | late    48 (median 9376)
+     s5_to_s6 source blocked  1977/2000: p50      16 p90     359 p99     667 | late     0 (median nan)
+     s5_to_s6 dest   blocked   212/2000: p50      17 p90     123 p99     162 | late     0 (median nan)
+     s6_to_s5 source blocked  1930/2000: p50      19 p90     128 p99     195 | late     0 (median nan)
+     s6_to_s5 dest   blocked  1746/2000: p50    7082 p90    9024 p99    9980 | late   989 (median 8430)
+     s6_to_s7 source blocked  1976/2000: p50     223 p90     384 p99    1126 | late     0 (median nan)
+     s6_to_s7 dest   blocked    93/2000: p50      13 p90    9954 p99    9982 | late    29 (median 9098)
+     s7_to_s6 source blocked  1969/2000: p50      16 p90      71 p99     247 | late     0 (median nan)
+     s7_to_s6 dest   blocked  1857/2000: p50      15 p90    8005 p99    9969 | late   223 (median 8986)
+     late wake-ups in total 3179; step period p50 10937 µs, p90 11305, mean 11129 -> 89.9 fps
+  2. dest guard wait durations (host clock): blocked 13642, late 3179
+     late: p01 10059 p10 10061 p50 10075 p90 17529 p99 18281 µs; began before the signal by p50 1746 p90 8439 µs
+     late, by 250 µs bin: 10.00 ms: 2009, 10.25 ms: 140, 10.50 ms: 134, 10.75 ms: 64, 11.00 ms: 50, 11.25 ms: 26, 11.50 ms: 87, 11.75 ms: 24, 12.00 ms: 16, 12.25 ms: 16, 12.50 ms: 11, 12.75 ms: 10, 13.00 ms: 4, 13.25 ms: 14, 13.50 ms: 5, 13.75 ms: 8, 14.00 ms: 11, 14.25 ms: 10, 14.50 ms: 8, 14.75 ms: 10, 15.00 ms: 8, 15.25 ms: 8, 15.50 ms: 10, 15.75 ms: 11, 16.00 ms: 8, 16.25 ms: 12, 16.50 ms: 21, 16.75 ms: 19, 17.00 ms: 16, 17.25 ms: 61, 17.50 ms: 277, 17.75 ms: 4, 18.00 ms: 20, 18.25 ms: 40, 18.50 ms: 1, 19.00 ms: 1, 19.25 ms: 4, 20.00 ms: 1
+     on time: p50 2045 p90 9030 p99 10112 µs
+  3. shared waits (reverse link's source wait asleep over the same signal)
+     alone  -            : blocked dest guards      5, late      0 (  0.0 %)
+     shared guard first  : blocked dest guards      9, late      2 ( 22.2 %)
+     shared reverse first: blocked dest guards  13628, late   3177 ( 23.3 %)
+     reverse source waits asleep over the same signal 13637, late 0
+  4. cost: steps 2000, with a late inbound dest guard 1643
+     sim 0: phase B end -> phase C start, mean µs: clean     109 (n 1991) | late     661 (n 9)
+     sim 1: phase B end -> phase C start, mean µs: clean     487 (n 1509) | late     480 (n 491)
+     sim 2: phase B end -> phase C start, mean µs: clean      15 (n 1419) | late     270 (n 581)
+     sim 3: phase B end -> phase C start, mean µs: clean     378 (n 1191) | late     195 (n 809)
+     sim 4: phase B end -> phase C start, mean µs: clean     173 (n 1952) | late     789 (n 48)
+     sim 5: phase B end -> phase C start, mean µs: clean      79 (n 1011) | late     237 (n 989)
+     sim 6: phase B end -> phase C start, mean µs: clean      78 (n 1777) | late     858 (n 223)
+     sim 7: phase B end -> phase C start, mean µs: clean      91 (n 1971) | late     538 (n 29)
+     step period mean µs: all 11129, clean steps 11343, late steps 11083; fps if every step were clean 88.2 vs 89.9 (+1.9 % period)
+== 02_e7_b1B_1681466/3d_n160_k8_K8_C: 1000 steady steps
+  1. wake-up latency of blocked waits (µs after the signal)
+     s0_to_s1 source blocked   984/1000: p50      18 p90      24 p99      49 | late     0 (median nan)
+     s0_to_s1 dest   blocked   941/1000: p50      20 p90      42 p99     116 | late     0 (median nan)
+     s1_to_s0 source blocked   987/1000: p50     327 p90     409 p99     502 | late     0 (median nan)
+     s1_to_s0 dest   blocked     0/1000: p50     nan p90     nan p99     nan | late     0 (median nan)
+     s1_to_s2 source blocked   991/1000: p50     719 p90     942 p99    1192 | late     0 (median nan)
+     s1_to_s2 dest   blocked     0/1000: p50     nan p90     nan p99     nan | late     0 (median nan)
+     s2_to_s1 source blocked   989/1000: p50      21 p90      52 p99     115 | late     0 (median nan)
+     s2_to_s1 dest   blocked   991/1000: p50      27 p90    9800 p99    9889 | late   228 (median 9787)
+     s2_to_s3 source blocked   992/1000: p50     656 p90     967 p99    1244 | late     0 (median nan)
+     s2_to_s3 dest   blocked     0/1000: p50     nan p90     nan p99     nan | late     0 (median nan)
+     s3_to_s2 source blocked   989/1000: p50      35 p90      64 p99     145 | late     0 (median nan)
+     s3_to_s2 dest   blocked   992/1000: p50      18 p90    9842 p99    9936 | late   306 (median 9829)
+     s3_to_s4 source blocked   991/1000: p50      32 p90     112 p99     226 | late     0 (median nan)
+     s3_to_s4 dest   blocked   990/1000: p50      17 p90     242 p99     249 | late     0 (median nan)
+     s4_to_s3 source blocked   991/1000: p50     225 p90     241 p99     251 | late     0 (median nan)
+     s4_to_s3 dest   blocked     2/1000: p50     118 p90     118 p99     118 | late     0 (median nan)
+     s4_to_s5 source blocked   991/1000: p50      14 p90      43 p99      56 | late     0 (median nan)
+     s4_to_s5 dest   blocked   999/1000: p50      19 p90     236 p99     302 | late     0 (median nan)
+     s5_to_s4 source blocked  1000/1000: p50     222 p90     267 p99     308 | late     0 (median nan)
+     s5_to_s4 dest   blocked     1/1000: p50     189 p90     189 p99     189 | late     0 (median nan)
+     s5_to_s6 source blocked  1000/1000: p50     549 p90     778 p99    1161 | late     0 (median nan)
+     s5_to_s6 dest   blocked     0/1000: p50     nan p90     nan p99     nan | late     0 (median nan)
+     s6_to_s5 source blocked   991/1000: p50      16 p90      23 p99      38 | late     0 (median nan)
+     s6_to_s5 dest   blocked  1000/1000: p50      15 p90      66 p99    9848 | late    32 (median 9837)
+     s6_to_s7 source blocked   996/1000: p50     494 p90     528 p99     965 | late     0 (median nan)
+     s6_to_s7 dest   blocked     0/1000: p50     nan p90     nan p99     nan | late     0 (median nan)
+     s7_to_s6 source blocked   986/1000: p50      17 p90      43 p99     112 | late     0 (median nan)
+     s7_to_s6 dest   blocked   994/1000: p50      15 p90    9205 p99    9882 | late   116 (median 9249)
+     late wake-ups in total 682; step period p50 31517 µs, p90 33517, mean 32340 -> 30.9 fps
+  2. dest guard wait durations (host clock): blocked 6910, late 682
+     late: p01 10063 p10 10067 p50 10077 p90 20119 p99 36217 µs; began before the signal by p50 273 p90 10855 µs
+     late, by 250 µs bin: 10.00 ms: 430, 10.50 ms: 1, 10.75 ms: 1, 11.25 ms: 1, 11.50 ms: 1, 12.00 ms: 1, 12.25 ms: 1, 12.50 ms: 1, 12.75 ms: 2, 13.25 ms: 3, 13.50 ms: 1, 14.00 ms: 3, 14.25 ms: 3, 14.50 ms: 4, 14.75 ms: 5, 15.00 ms: 10, 15.25 ms: 4, 15.50 ms: 9, 15.75 ms: 11, 16.00 ms: 17, 16.25 ms: 19, 16.50 ms: 32, 16.75 ms: 12, 17.00 ms: 9, 17.25 ms: 7, 17.50 ms: 6, 17.75 ms: 4, 18.00 ms: 1, 18.25 ms: 3, 18.75 ms: 1, 19.00 ms: 3, 19.50 ms: 3, 20.00 ms: 15, 20.25 ms: 1, 20.75 ms: 3, 21.00 ms: 2, 21.50 ms: 3, 21.75 ms: 1, 22.00 ms: 5, 22.25 ms: 1, 23.75 ms: 1, 24.00 ms: 1, 24.50 ms: 1, 26.25 ms: 1, 29.25 ms: 1, 30.00 ms: 4, 30.25 ms: 1, 31.00 ms: 1, 31.25 ms: 1, 32.25 ms: 1, 32.50 ms: 2, 33.50 ms: 1, 34.00 ms: 1, 34.75 ms: 1, 35.00 ms: 2, 35.25 ms: 1, 35.50 ms: 2, 35.75 ms: 4, 36.00 ms: 9, 36.25 ms: 3, 36.50 ms: 3
+     on time: p50 6227 p90 26309 p99 27155 µs
+  3. shared waits (reverse link's source wait asleep over the same signal)
+     alone  -            : blocked dest guards      2, late      0 (  0.0 %)
+     shared guard first  : blocked dest guards     12, late      2 ( 16.7 %)
+     shared reverse first: blocked dest guards   6896, late    680 (  9.9 %)
+     reverse source waits asleep over the same signal 6908, late 0
+  4. cost: steps 1000, with a late inbound dest guard 500
+     sim 0: phase B end -> phase C start, mean µs: clean      12 (n 1000) | late     nan (n 0)
+     sim 1: phase B end -> phase C start, mean µs: clean       2 (n 772) | late       2 (n 228)
+     sim 2: phase B end -> phase C start, mean µs: clean       2 (n 694) | late       2 (n 306)
+     sim 3: phase B end -> phase C start, mean µs: clean      16 (n 1000) | late     nan (n 0)
+     sim 4: phase B end -> phase C start, mean µs: clean    1379 (n 1000) | late     nan (n 0)
+     sim 5: phase B end -> phase C start, mean µs: clean       2 (n 968) | late       2 (n 32)
+     sim 6: phase B end -> phase C start, mean µs: clean     920 (n 884) | late     921 (n 116)
+     sim 7: phase B end -> phase C start, mean µs: clean       2 (n 1000) | late     nan (n 0)
+     step period mean µs: all 32340, clean steps 31935, late steps 32747; fps if every step were clean 31.3 vs 30.9 (-1.3 % period)
+== 02_e7_b1B_1681466/3d_n160_k8_K8_E: 1000 steady steps
+  1. wake-up latency of blocked waits (µs after the signal)
+     s0_to_s1 source blocked   994/1000: p50     597 p90     755 p99    1156 | late     0 (median nan)
+     s0_to_s1 dest   blocked    22/1000: p50      18 p90      24 p99      30 | late     0 (median nan)
+     s1_to_s0 source blocked   991/1000: p50      18 p90      39 p99     322 | late     0 (median nan)
+     s1_to_s0 dest   blocked   933/1000: p50      15 p90    6304 p99    9849 | late   102 (median 9424)
+     s1_to_s2 source blocked   991/1000: p50     491 p90     559 p99     887 | late     0 (median nan)
+     s1_to_s2 dest   blocked    58/1000: p50      18 p90     256 p99     264 | late     0 (median nan)
+     s2_to_s1 source blocked   990/1000: p50      23 p90      84 p99     270 | late     0 (median nan)
+     s2_to_s1 dest   blocked   933/1000: p50      15 p90    9886 p99    9977 | late   390 (median 9863)
+     s2_to_s3 source blocked   992/1000: p50     634 p90     800 p99    1278 | late     0 (median nan)
+     s2_to_s3 dest   blocked     0/1000: p50     nan p90     nan p99     nan | late     0 (median nan)
+     s3_to_s2 source blocked   989/1000: p50      36 p90      69 p99     159 | late     0 (median nan)
+     s3_to_s2 dest   blocked   993/1000: p50      22 p90    9808 p99    9901 | late   122 (median 9851)
+     s3_to_s4 source blocked   990/1000: p50     906 p90    1079 p99    1666 | late     0 (median nan)
+     s3_to_s4 dest   blocked    50/1000: p50      16 p90      20 p99      27 | late     0 (median nan)
+     s4_to_s3 source blocked   988/1000: p50      29 p90     111 p99     249 | late     0 (median nan)
+     s4_to_s3 dest   blocked   940/1000: p50      19 p90    9807 p99    9858 | late   175 (median 9810)
+     s4_to_s5 source blocked   991/1000: p50     568 p90     757 p99     981 | late     0 (median nan)
+     s4_to_s5 dest   blocked    64/1000: p50      19 p90     255 p99     268 | late     0 (median nan)
+     s5_to_s4 source blocked   989/1000: p50      27 p90      81 p99     260 | late     0 (median nan)
+     s5_to_s4 dest   blocked   927/1000: p50      24 p90    9917 p99    9977 | late   260 (median 9910)
+     s5_to_s6 source blocked   992/1000: p50     105 p90     979 p99    1223 | late     0 (median nan)
+     s5_to_s6 dest   blocked   502/1000: p50      16 p90    4324 p99    4668 | late     0 (median nan)
+     s6_to_s5 source blocked   991/1000: p50      36 p90     272 p99     526 | late     0 (median nan)
+     s6_to_s5 dest   blocked   490/1000: p50      23 p90      58 p99     103 | late     0 (median nan)
+     s6_to_s7 source blocked   988/1000: p50      16 p90     738 p99     896 | late     0 (median nan)
+     s6_to_s7 dest   blocked   592/1000: p50      16 p90    9459 p99    9888 | late   244 (median 9455)
+     s7_to_s6 source blocked   996/1000: p50      28 p90     576 p99     751 | late     0 (median nan)
+     s7_to_s6 dest   blocked   406/1000: p50      35 p90    9906 p99    9968 | late   132 (median 9898)
+     late wake-ups in total 1425; step period p50 32281 µs, p90 33705, mean 32249 -> 31.0 fps
+  2. dest guard wait durations (host clock): blocked 6910, late 1425
+     late: p01 10061 p10 10063 p50 10069 p90 29819 p99 33930 µs; began before the signal by p50 210 p90 20359 µs
+     late, by 250 µs bin: 10.00 ms: 1111, 10.25 ms: 3, 10.50 ms: 2, 10.75 ms: 1, 11.00 ms: 4, 11.25 ms: 5, 11.50 ms: 2, 12.00 ms: 1, 12.50 ms: 2, 12.75 ms: 3, 13.00 ms: 2, 13.25 ms: 1, 13.75 ms: 3, 14.00 ms: 2, 14.25 ms: 2, 14.50 ms: 3, 14.75 ms: 3, 15.00 ms: 4, 15.25 ms: 5, 15.50 ms: 5, 15.75 ms: 4, 16.00 ms: 3, 16.25 ms: 3, 16.50 ms: 2, 16.75 ms: 3, 17.00 ms: 1, 17.25 ms: 1, 19.25 ms: 1, 19.50 ms: 2, 20.00 ms: 8, 22.25 ms: 1, 23.25 ms: 1, 23.75 ms: 1, 24.25 ms: 1, 26.25 ms: 1, 26.75 ms: 1, 27.75 ms: 1, 28.50 ms: 1, 29.25 ms: 2, 29.50 ms: 5, 29.75 ms: 127, 30.00 ms: 33, 30.25 ms: 1, 30.50 ms: 1, 32.50 ms: 1, 33.00 ms: 5, 33.25 ms: 15, 33.50 ms: 7, 33.75 ms: 19, 34.00 ms: 7, 34.25 ms: 2
+     on time: p50 318 p90 23953 p99 26381 µs
+  3. shared waits (reverse link's source wait asleep over the same signal)
+     alone  -            : blocked dest guards      3, late      0 (  0.0 %)
+     shared guard first  : blocked dest guards     14, late      3 ( 21.4 %)
+     shared reverse first: blocked dest guards   6893, late   1422 ( 20.6 %)
+     reverse source waits asleep over the same signal 6907, late 0
+  4. cost: steps 1000, with a late inbound dest guard 781
+     sim 0: phase B end -> phase C start, mean µs: clean       2 (n 898) | late       2 (n 102)
+     sim 1: phase B end -> phase C start, mean µs: clean     894 (n 610) | late       2 (n 390)
+     sim 2: phase B end -> phase C start, mean µs: clean       2 (n 878) | late       2 (n 122)
+     sim 3: phase B end -> phase C start, mean µs: clean       2 (n 825) | late       2 (n 175)
+     sim 4: phase B end -> phase C start, mean µs: clean       2 (n 740) | late       2 (n 260)
+     sim 5: phase B end -> phase C start, mean µs: clean       2 (n 1000) | late     nan (n 0)
+     sim 6: phase B end -> phase C start, mean µs: clean     250 (n 868) | late       2 (n 132)
+     sim 7: phase B end -> phase C start, mean µs: clean       2 (n 756) | late       2 (n 244)
+     step period mean µs: all 32249, clean steps 32913, late steps 32062; fps if every step were clean 30.4 vs 31.0 (+2.1 % period)
