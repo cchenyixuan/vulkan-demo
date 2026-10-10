@@ -30,6 +30,14 @@ cost of a case drifts between defrags and with the developing flow: on cavity3d_
 frames 1100 and 2900, experiment/v7_single/_probe_loop_variants.py); the result reports the timed GPU
 frame, the timed frames' wall time per step (submit + fence) and the production frames' wall time per
 step (one fence, no timestamps), defrag frames excluded from all three.
+
+--interleave 0 ("§3 补测", Table 2 and the per-size GPU step): no production frames, every frame after the
+warmup is timed (frames warmup+1 .. warmup+measure, the throughput campaign's window); the record then also
+carries the GPU frame of every measured frame including the defrag frames, the defrag commands' wall time and
+'gpu_step_amortized_us' = (sum of all GPU frames + defrag wall) / measure, the GPU-side cost per step of that
+window. --dump-state writes the end state (positions, fluid mask, voxel ids) for _neighbor_stats.py; the
+candidate record also carries per-fluid / per-wall candidates and the voxel occupancy. --expect-gpu refuses any
+other device name.
 """
 
 from __future__ import annotations
@@ -126,34 +134,50 @@ def record_timed_step_single(adapter, pool):
     return cmd, stages
 
 
-def candidate_pairs_single(adapter) -> dict:
+def candidate_pairs_single(adapter, dump_state: str | None = None, step: int | None = None) -> dict:
     """v7_single: the neighbour loops' candidate count from the voxel lists at the end of the run: every alive
     particle visits the particles listed in the 3^d voxels around its own (z only in 3-D), so
     candidates = sum over voxels v of count(v) * sum over the stencil of count(v'); per particle = candidates /
-    alive. 'ps per candidate' of a neighbour kernel = its microseconds per step * 1e6 / candidates."""
+    alive. 'ps per candidate' of a neighbour kernel = its microseconds per step * 1e6 / candidates.
+    The statistics come from experiment/v7_single/_neighbor_stats.py (per fluid / wall particle too, occupied
+    voxels, mean and max per voxel); ``dump_state`` writes the read-back float32 positions, the fluid mask and the
+    GPU voxel ids to an .npz for the neighbour count (_neighbor_stats.py --state)."""
     import numpy as np
+    from experiment.v7_single._neighbor_stats import KIND_FLUID, candidate_statistics, kinds_of
     sim = adapter.sim
-    grid = sim.case.grid
+    case = sim.case
+    grid = case.grid
     dimensions = (grid.grid_dimension_x, grid.grid_dimension_y, grid.grid_dimension_z)
     if int(getattr(grid, "voxel_order", 0)) != 0:
         raise RuntimeError("candidate_pairs_single assumes voxel_order 0 (x slowest, y fastest)")
-    raw = sim.readback_buffers_batch(["inside_particle_count"])["inside_particle_count"]
-    counts = np.frombuffer(raw, dtype=np.uint32)[1:1 + grid.total_voxel_count()].astype(np.int64)
-    # voxel id - 1 = y + z * NY + x * NY * NZ (x slowest): reshape to (x, z, y)
-    field = counts.reshape(dimensions[0], dimensions[2], dimensions[1])
-    padded = np.pad(field, 1)
-    z_range = int(sim.case.physics.neighbor_z_range)
-    stencil = np.zeros_like(field)
-    for dx in (-1, 0, 1):
-        for dz in range(-z_range, z_range + 1):
-            for dy in (-1, 0, 1):
-                stencil += padded[1 + dx:1 + dx + dimensions[0], 1 + dz:1 + dz + dimensions[2], 1 + dy:1 + dy + dimensions[1]]
-    candidates = int((field * stencil).sum())
-    alive = int(counts.sum())
-    return {"candidate_pairs": candidates, "listed_particles": alive,
-            "candidates_per_particle": candidates / alive if alive else None,
-            "mean_particles_per_voxel": float(counts[counts > 0].mean()) if alive else None,
-            "stencil": f"{3 ** (2 + z_range)} voxels"}
+    raw = sim.readback_buffers_batch(["inside_particle_count", "position_voxel_id", "velocity_mass", "material"])
+    counts = np.frombuffer(raw["inside_particle_count"], dtype=np.uint32)[1:1 + grid.total_voxel_count()].astype(np.int64)
+    capacity = case.capacities.total_pool_capacity()
+    first, stop = sim.own_first_pid(), sim.own_first_pid() + case.capacities.own_pool_size
+    position = np.frombuffer(raw["position_voxel_id"], np.float32)[:capacity * 4].reshape(capacity, 4)[first:stop]
+    velocity = np.frombuffer(raw["velocity_mass"], np.float32)[:capacity * 4].reshape(capacity, 4)[first:stop]
+    material = np.frombuffer(raw["material"], np.uint32)[:capacity][first:stop]
+    alive = (velocity[:, 3] > 0) & (position[:, 3] > 0.5)
+    kinds = kinds_of(case)[material[alive].astype(np.int64)]
+    fluid_mask = kinds == KIND_FLUID
+    voxel_linear = np.rint(position[alive, 3]).astype(np.int64) - 1
+    if voxel_linear.min() < 0 or voxel_linear.max() >= counts.size:
+        raise RuntimeError("voxel ids outside the grid")
+    if not np.array_equal(np.bincount(voxel_linear, minlength=counts.size), counts):
+        raise RuntimeError("the voxel lists' counts differ from the particles' voxel ids")
+    result = candidate_statistics(counts, dimensions, int(case.physics.neighbor_z_range), voxel_linear, fluid_mask)
+    result["alive_rows"] = int(alive.sum())
+    if dump_state:
+        path = pathlib.Path(dump_state)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        dx = 2.0 * min(float(m.radius) for m in case.materials if float(m.radius) > 0)
+        np.savez(path, positions=np.ascontiguousarray(position[alive, :3]), fluid_mask=fluid_mask,
+                 voxel_linear=voxel_linear, origin=np.array([grid.origin_x, grid.origin_y, grid.origin_z]),
+                 dims=np.array(dimensions), h=float(case.physics.smoothing_length),
+                 z_range=int(case.physics.neighbor_z_range), dimension=int(case.physics.dimension), dx=dx,
+                 step=int(step if step is not None else -1))
+        result["state_dump"] = str(path)
+    return result
 
 
 def case_dimension(adapter) -> int:
@@ -172,6 +196,13 @@ def main() -> int:
     parser.add_argument("--obj-cache", type=str, default="logs/_obj_npy_cache")
     parser.add_argument("--tag", type=str, default="")
     parser.add_argument("--run", type=int, default=0, help="independent run index")
+    parser.add_argument("--expect-gpu", type=str, default=None, help="abort unless the device name contains this")
+    parser.add_argument("--interleave", type=int, default=None, choices=(0, 1),
+                        help="v7_single: 1 (default) = timed and production frames interleaved after the warmup "
+                             "(2 x --measure frames); 0 = every measured frame timed (frames warmup+1 .. "
+                             "warmup+measure, continuous, the throughput campaign's window)")
+    parser.add_argument("--dump-state", type=str, default=None,
+                        help="v7_single: write the final positions / fluid mask / voxel ids to this .npz")
     args = parser.parse_args()
 
     install_obj_cache(pathlib.Path(args.obj_cache))
@@ -191,6 +222,10 @@ def main() -> int:
     adapter = ADAPTERS[args.solver](args.case, device_index)
     device = adapter.device
     properties = vkGetPhysicalDeviceProperties(adapter.physical_device)
+    if args.expect_gpu and args.expect_gpu not in str(properties.deviceName):
+        adapter.destroy()
+        raise SystemExit(f"selected device '{properties.deviceName}' does not contain '{args.expect_gpu}'; "
+                         f"refusing to measure")
     ns_per_tick = float(properties.limits.timestampPeriod)
     stages = list(STAGES)
     query_count = QUERY_COUNT
@@ -211,12 +246,15 @@ def main() -> int:
     samples["gpu_frame"] = []
     cadence = adapter.defrag_cadence
     data = ffi.new(f"uint64_t[{query_count}]")
-    interleave = args.solver == "v7_single"
+    interleave = args.solver == "v7_single" and args.interleave != 0
     total = args.warmup + (2 * args.measure if interleave else args.measure)
     t_start = None
+    epoch_start = epoch_end = None
     production = None
     timed_wall: list[float] = []
     production_wall: list[float] = []
+    gpu_frame_all: list[float] = []        # every measured timed frame, defrag frames included
+    defrag_wall: list[float] = []          # the defrag command's submit + wait on the measured defrag frames
     try:
         for frame in range(1, total + 1):
             defrag_frame = bool(cadence) and frame % cadence == 0
@@ -235,26 +273,41 @@ def main() -> int:
             adapter.sim.ctx.submit_and_wait(cmd)
             wall = time.perf_counter() - t_frame
             if defrag_frame:
+                t_defrag = time.perf_counter()
                 adapter.sim.ctx.submit_and_wait(adapter.defrag_cmd)
+                if measured:
+                    defrag_wall.append((time.perf_counter() - t_defrag) * 1e6)
             if frame == args.warmup:
                 t_start = time.perf_counter()
-            if not measured or defrag_frame:
+                epoch_start = time.time()
+            if not measured:
                 continue
-            timed_wall.append(wall * 1e6)
             vkGetQueryPoolResults(device, pool, 0, query_count, query_count * 8, data, 8,
                                   VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT)
             ticks = [int(data[i]) for i in range(query_count)]
+            frame_us = (ticks[-1] - ticks[0]) * ns_per_tick / 1000.0
+            gpu_frame_all.append(frame_us)
+            if defrag_frame:
+                continue
+            timed_wall.append(wall * 1e6)
             for slot, stage in enumerate(stages, start=1):
                 samples[stage].append((ticks[slot] - ticks[slot - 1]) * ns_per_tick / 1000.0)
-            samples["gpu_frame"].append((ticks[-1] - ticks[0]) * ns_per_tick / 1000.0)
+            samples["gpu_frame"].append(frame_us)
         elapsed = time.perf_counter() - t_start
+        epoch_end = time.time()
         if interleave:
             production = {"steps": len(production_wall), "interleaved": True,
                           "us_per_step": statistics.fmean(production_wall),
                           "cpu_fps": 1e6 / statistics.fmean(production_wall)}
         status = adapter.readback_status()
         alive = int(status["alive_particle_count"])
-        candidates = candidate_pairs_single(adapter) if args.solver == "v7_single" else None
+        candidates = (candidate_pairs_single(adapter, args.dump_state, step=total)
+                      if args.solver == "v7_single" else None)
+        # the GPU time of the whole window per step: every timed frame's GPU frame (defrag frames included) plus
+        # the defrag commands' wall time, over the measured steps (only meaningful without interleaving, where
+        # the window is the throughput campaign's: frames warmup+1 .. warmup+measure)
+        amortized = ((sum(gpu_frame_all) + sum(defrag_wall)) / args.measure
+                     if (not interleave and gpu_frame_all) else None)
         result = {
             "solver": args.solver, "case": args.case, "tag": args.tag, "run": args.run,
             "device": device_index, "gpu": str(properties.deviceName),
@@ -263,9 +316,11 @@ def main() -> int:
             "drift": alive - adapter.expected_particle_count,
             "overflow": int(status.get("overflow_inside_count", 0))
                         + int(status.get("overflow_incoming_count", 0)),
-            "warmup": args.warmup, "measure": args.measure,
+            "overflow_all": {key: int(value) for key, value in status.items() if key.startswith("overflow_") and value},
+            "warmup": args.warmup, "measure": args.measure, "interleave": interleave,
             "frames_timed": len(samples["gpu_frame"]),
             "cpu_fps": args.measure / elapsed,
+            "epoch_start": epoch_start, "epoch_end": epoch_end,
             "timestamp_period_ns": ns_per_tick,
             "stages": stages,
             "candidates": candidates,
@@ -274,6 +329,10 @@ def main() -> int:
             "frames_total": total,
             "timed_us_per_step": (statistics.fmean(timed_wall) if timed_wall else elapsed / args.measure * 1e6),
             "timed_wall_frames": len(timed_wall),
+            "gpu_frame_all_mean_us": statistics.fmean(gpu_frame_all) if gpu_frame_all else None,
+            "gpu_frame_all_frames": len(gpu_frame_all),
+            "defrag_wall_us": [round(value, 1) for value in defrag_wall],
+            "gpu_step_amortized_us": amortized,
             "mean_us": {key: round(statistics.fmean(values), 2) for key, values in samples.items()},
             "p50_us": {key: round(statistics.median(values), 2) for key, values in samples.items()},
             "std_us": {key: round(statistics.pstdev(values), 2) for key, values in samples.items()},

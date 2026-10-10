@@ -122,6 +122,37 @@ def figure_a(rows, sizes, n_values, out: pathlib.Path, width: float, height: flo
     plt.close(fig)
 
 
+def figure_a_single_panel(rows, sizes, n_values, out: pathlib.Path, width: float, height: float,
+                          solver: str = "v7_single") -> None:
+    """Figure 1 of Sec. 3 (v7_single, "§3 补测" item 4): one panel, particle throughput against the particle count
+    at 1 and 2 frames in flight, no title; single-column width, every label >= 7 pt at scale 1."""
+    import matplotlib.pyplot as plt
+    from matplotlib import ticker
+    style = {1: dict(color=COLOR_V0, linestyle=(0, (4, 2)), marker="o", markerfacecolor="white"),
+             2: dict(color=COLOR_V0, linestyle="-", marker="o")}
+    fig, ax = plt.subplots(figsize=(width, height))
+    for depth in (1, 2):
+        xs, tps = [], []
+        for tag in sizes:
+            row = rows.get((tag, solver, depth))
+            if row:
+                xs.append(n_values[tag]); tps.append(row["mparticle_steps_per_s"])
+        label = f"{depth} frame{'s' if depth > 1 else ''} in flight"
+        ax.plot(xs, tps, linewidth=1.0, markersize=4, markeredgewidth=0.9, label=label, **style[depth])
+    tp_all = [rows[(t, solver, d)]["mparticle_steps_per_s"] for t in sizes for d in (1, 2) if (t, solver, d) in rows]
+    ax.set_ylim(min(tp_all) * 0.97, max(tp_all) * 1.02)
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(20))
+    ax.set_ylabel("throughput (M particle-steps / s)")
+    ax.set_xlabel("particles (fluid + wall)")
+    ax.grid(True, axis="y")
+    ax.legend(frameon=False, loc="lower right", handlelength=2.6)
+    log_size_axis(ax, sizes, n_values)
+    tidy(ax)
+    fig.savefig(out.with_suffix(".pdf"), bbox_inches="tight")
+    fig.savefig(out.with_suffix(".png"), dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+
 def figure_b(rows, sizes, n_values, out: pathlib.Path, width: float, height: float) -> None:
     import matplotlib.pyplot as plt
     style = {1: dict(color=INK_2, linestyle=(0, (4, 2)), marker="o", markerfacecolor="white"),
@@ -161,6 +192,8 @@ def main() -> int:
     parser.add_argument("--figure-a-name", default="single_gpu_v0_throughput")
     parser.add_argument("--no-figure-b", action="store_true", help="skip the V5 / V0 ratio figure")
     parser.add_argument("--sizes", default=None, help="comma-separated size tags to plot (default: the 2-D curve)")
+    parser.add_argument("--single-panel", action="store_true",
+                        help="Figure A as one throughput panel (no fps panel), height = 0.66 x width")
     args = parser.parse_args()
 
     import matplotlib
@@ -175,7 +208,11 @@ def main() -> int:
 
     out_dir = _REPO / args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
-    figure_a(rows, sizes, n_values, out_dir / args.figure_a_name, args.width, args.width * 1.25, solver=args.solver)
+    if args.single_panel:
+        figure_a_single_panel(rows, sizes, n_values, out_dir / args.figure_a_name, args.width, args.width * 0.66,
+                              solver=args.solver)
+    else:
+        figure_a(rows, sizes, n_values, out_dir / args.figure_a_name, args.width, args.width * 1.25, solver=args.solver)
     if not args.no_figure_b:
         figure_b(rows, sizes, n_values, out_dir / "v5_single_vs_v0", args.width, args.width * 0.72)
     print(f"[paper_fig] {len(ok)} ok runs ({len(failed)} failed) -> {out_dir / (args.figure_a_name + '.pdf')}"

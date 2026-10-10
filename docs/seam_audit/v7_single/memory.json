@@ -1,0 +1,1002 @@
+[
+ {
+  "case": "cases/lid_driven_cavity_2d_gen/case.yaml",
+  "size": "1m",
+  "particles": 1046529,
+  "dimension": 2,
+  "pool_capacity": 1203585,
+  "own_pool_size": 1203584,
+  "pool_over_particles": 1.1500732421175142,
+  "voxels": 42437,
+  "max_particles_per_voxel": 96,
+  "max_incoming_per_voxel": 16,
+  "soa_bytes_per_slot": 148,
+  "twin_bytes_per_slot": 140,
+  "slot_bytes": 288,
+  "soa_bytes": 178130580,
+  "twin_bytes": 168501900,
+  "voxel_list_bytes": 19521020,
+  "voxel_list_bytes_per_voxel": 460.0,
+  "voxel_list_bytes_per_particle": 18.653109469493916,
+  "fixed_bytes": 368,
+  "device_local_bytes": 366153868,
+  "device_local_bytes_per_particle": 349.87455483794525,
+  "device_local_bytes_per_slot": 304.2193679715184,
+  "slot_bytes_per_particle": 331.2210937298441,
+  "buffer_count": 24,
+  "twin_count": 9,
+  "switches": {
+   "V7_DENSITY_COPY_COMPUTE": 1,
+   "V7_DEEP_WALL_SKIP": "auto",
+   "V7_FUSED_CORRECTION_DENSITY": 1
+  },
+  "rows": [
+   {
+    "name": "position_voxel_id",
+    "set": 0,
+    "binding": 0,
+    "bytes": 19257360,
+    "twin_bytes": 19257360,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "density_pressure",
+    "set": 0,
+    "binding": 1,
+    "bytes": 9628680,
+    "twin_bytes": 9628680,
+    "kind": "soa",
+    "per": "8 B/slot + twin 8 B/slot"
+   },
+   {
+    "name": "density_pressure_scratch",
+    "set": 0,
+    "binding": 2,
+    "bytes": 9628680,
+    "twin_bytes": 0,
+    "kind": "soa",
+    "per": "8 B/slot"
+   },
+   {
+    "name": "velocity_mass",
+    "set": 0,
+    "binding": 3,
+    "bytes": 19257360,
+    "twin_bytes": 19257360,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "acceleration",
+    "set": 0,
+    "binding": 4,
+    "bytes": 19257360,
+    "twin_bytes": 19257360,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "shift",
+    "set": 0,
+    "binding": 5,
+    "bytes": 19257360,
+    "twin_bytes": 19257360,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "material",
+    "set": 0,
+    "binding": 6,
+    "bytes": 4814340,
+    "twin_bytes": 4814340,
+    "kind": "soa",
+    "per": "4 B/slot + twin 4 B/slot"
+   },
+   {
+    "name": "correction_inverse",
+    "set": 0,
+    "binding": 7,
+    "bytes": 38514720,
+    "twin_bytes": 38514720,
+    "kind": "soa",
+    "per": "32 B/slot + twin 32 B/slot"
+   },
+   {
+    "name": "density_gradient_kernel_sum",
+    "set": 0,
+    "binding": 8,
+    "bytes": 19257360,
+    "twin_bytes": 19257360,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "extension_fields",
+    "set": 0,
+    "binding": 9,
+    "bytes": 19257360,
+    "twin_bytes": 19257360,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "wall_dummy_velocity",
+    "set": 0,
+    "binding": 10,
+    "bytes": 16,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "16 B"
+   },
+   {
+    "name": "inside_particle_count",
+    "set": 1,
+    "binding": 0,
+    "bytes": 169748,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "4 B/voxel"
+   },
+   {
+    "name": "incoming_particle_count",
+    "set": 1,
+    "binding": 1,
+    "bytes": 169748,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "4 B/voxel"
+   },
+   {
+    "name": "inside_particle_index",
+    "set": 1,
+    "binding": 2,
+    "bytes": 16295808,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "384 B/voxel"
+   },
+   {
+    "name": "incoming_particle_index",
+    "set": 1,
+    "binding": 3,
+    "bytes": 2715968,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "64 B/voxel"
+   },
+   {
+    "name": "voxel_base_offset",
+    "set": 1,
+    "binding": 4,
+    "bytes": 169748,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "4 B/voxel"
+   },
+   {
+    "name": "ghost_voxel_first_particle_id",
+    "set": 1,
+    "binding": 5,
+    "bytes": 4,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "4 B"
+   },
+   {
+    "name": "band_compact_list",
+    "set": 1,
+    "binding": 6,
+    "bytes": 4,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "4 B"
+   },
+   {
+    "name": "ghost_packed_words",
+    "set": 1,
+    "binding": 7,
+    "bytes": 4,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "4 B"
+   },
+   {
+    "name": "global_status",
+    "set": 3,
+    "binding": 0,
+    "bytes": 160,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "160 B"
+   },
+   {
+    "name": "pool_health",
+    "set": 3,
+    "binding": 1,
+    "bytes": 16,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "16 B"
+   },
+   {
+    "name": "material_parameters",
+    "set": 3,
+    "binding": 7,
+    "bytes": 144,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "144 B"
+   },
+   {
+    "name": "defrag_scratch_counter",
+    "set": 3,
+    "binding": 8,
+    "bytes": 4,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "4 B"
+   },
+   {
+    "name": "band_compact_meta",
+    "set": 3,
+    "binding": 9,
+    "bytes": 16,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "16 B"
+   }
+  ]
+ },
+ {
+  "case": "cases/lid_driven_cavity_2d_8m/case.yaml",
+  "size": "8m",
+  "particles": 8128201,
+  "dimension": 2,
+  "pool_capacity": 9347457,
+  "own_pool_size": 9347456,
+  "pool_over_particles": 1.1500031802855268,
+  "voxels": 326042,
+  "max_particles_per_voxel": 96,
+  "max_incoming_per_voxel": 16,
+  "soa_bytes_per_slot": 148,
+  "twin_bytes_per_slot": 140,
+  "slot_bytes": 288,
+  "soa_bytes": 1383423636,
+  "twin_bytes": 1308643980,
+  "voxel_list_bytes": 149979320,
+  "voxel_list_bytes_per_voxel": 460.0,
+  "voxel_list_bytes_per_particle": 18.451723819329764,
+  "fixed_bytes": 368,
+  "device_local_bytes": 2842047304,
+  "device_local_bytes_per_particle": 349.6526850160325,
+  "device_local_bytes_per_slot": 304.044972231485,
+  "slot_bytes_per_particle": 331.20091592223173,
+  "buffer_count": 24,
+  "twin_count": 9,
+  "switches": {
+   "V7_DENSITY_COPY_COMPUTE": 1,
+   "V7_DEEP_WALL_SKIP": "auto",
+   "V7_FUSED_CORRECTION_DENSITY": 1
+  },
+  "rows": [
+   {
+    "name": "position_voxel_id",
+    "set": 0,
+    "binding": 0,
+    "bytes": 149559312,
+    "twin_bytes": 149559312,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "density_pressure",
+    "set": 0,
+    "binding": 1,
+    "bytes": 74779656,
+    "twin_bytes": 74779656,
+    "kind": "soa",
+    "per": "8 B/slot + twin 8 B/slot"
+   },
+   {
+    "name": "density_pressure_scratch",
+    "set": 0,
+    "binding": 2,
+    "bytes": 74779656,
+    "twin_bytes": 0,
+    "kind": "soa",
+    "per": "8 B/slot"
+   },
+   {
+    "name": "velocity_mass",
+    "set": 0,
+    "binding": 3,
+    "bytes": 149559312,
+    "twin_bytes": 149559312,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "acceleration",
+    "set": 0,
+    "binding": 4,
+    "bytes": 149559312,
+    "twin_bytes": 149559312,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "shift",
+    "set": 0,
+    "binding": 5,
+    "bytes": 149559312,
+    "twin_bytes": 149559312,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "material",
+    "set": 0,
+    "binding": 6,
+    "bytes": 37389828,
+    "twin_bytes": 37389828,
+    "kind": "soa",
+    "per": "4 B/slot + twin 4 B/slot"
+   },
+   {
+    "name": "correction_inverse",
+    "set": 0,
+    "binding": 7,
+    "bytes": 299118624,
+    "twin_bytes": 299118624,
+    "kind": "soa",
+    "per": "32 B/slot + twin 32 B/slot"
+   },
+   {
+    "name": "density_gradient_kernel_sum",
+    "set": 0,
+    "binding": 8,
+    "bytes": 149559312,
+    "twin_bytes": 149559312,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "extension_fields",
+    "set": 0,
+    "binding": 9,
+    "bytes": 149559312,
+    "twin_bytes": 149559312,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "wall_dummy_velocity",
+    "set": 0,
+    "binding": 10,
+    "bytes": 16,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "16 B"
+   },
+   {
+    "name": "inside_particle_count",
+    "set": 1,
+    "binding": 0,
+    "bytes": 1304168,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "4 B/voxel"
+   },
+   {
+    "name": "incoming_particle_count",
+    "set": 1,
+    "binding": 1,
+    "bytes": 1304168,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "4 B/voxel"
+   },
+   {
+    "name": "inside_particle_index",
+    "set": 1,
+    "binding": 2,
+    "bytes": 125200128,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "384 B/voxel"
+   },
+   {
+    "name": "incoming_particle_index",
+    "set": 1,
+    "binding": 3,
+    "bytes": 20866688,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "64 B/voxel"
+   },
+   {
+    "name": "voxel_base_offset",
+    "set": 1,
+    "binding": 4,
+    "bytes": 1304168,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "4 B/voxel"
+   },
+   {
+    "name": "ghost_voxel_first_particle_id",
+    "set": 1,
+    "binding": 5,
+    "bytes": 4,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "4 B"
+   },
+   {
+    "name": "band_compact_list",
+    "set": 1,
+    "binding": 6,
+    "bytes": 4,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "4 B"
+   },
+   {
+    "name": "ghost_packed_words",
+    "set": 1,
+    "binding": 7,
+    "bytes": 4,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "4 B"
+   },
+   {
+    "name": "global_status",
+    "set": 3,
+    "binding": 0,
+    "bytes": 160,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "160 B"
+   },
+   {
+    "name": "pool_health",
+    "set": 3,
+    "binding": 1,
+    "bytes": 16,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "16 B"
+   },
+   {
+    "name": "material_parameters",
+    "set": 3,
+    "binding": 7,
+    "bytes": 144,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "144 B"
+   },
+   {
+    "name": "defrag_scratch_counter",
+    "set": 3,
+    "binding": 8,
+    "bytes": 4,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "4 B"
+   },
+   {
+    "name": "band_compact_meta",
+    "set": 3,
+    "binding": 9,
+    "bytes": 16,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "16 B"
+   }
+  ]
+ },
+ {
+  "case": "cases/lid_driven_cavity_2d_32m/case.yaml",
+  "size": "32m",
+  "particles": 32251041,
+  "dimension": 2,
+  "pool_capacity": 37088769,
+  "own_pool_size": 37088768,
+  "pool_over_particles": 1.1500022278350643,
+  "voxels": 1292770,
+  "max_particles_per_voxel": 96,
+  "max_incoming_per_voxel": 16,
+  "soa_bytes_per_slot": 148,
+  "twin_bytes_per_slot": 140,
+  "slot_bytes": 288,
+  "soa_bytes": 5489137812,
+  "twin_bytes": 5192427660,
+  "voxel_list_bytes": 594674200,
+  "voxel_list_bytes_per_voxel": 460.0,
+  "voxel_list_bytes_per_particle": 18.438914886499322,
+  "fixed_bytes": 368,
+  "device_local_bytes": 11276240040,
+  "device_local_bytes_per_particle": 349.6395679134822,
+  "device_local_bytes_per_slot": 304.0338178924191,
+  "slot_bytes_per_particle": 331.2006416164985,
+  "buffer_count": 24,
+  "twin_count": 9,
+  "switches": {
+   "V7_DENSITY_COPY_COMPUTE": 1,
+   "V7_DEEP_WALL_SKIP": "auto",
+   "V7_FUSED_CORRECTION_DENSITY": 1
+  },
+  "rows": [
+   {
+    "name": "position_voxel_id",
+    "set": 0,
+    "binding": 0,
+    "bytes": 593420304,
+    "twin_bytes": 593420304,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "density_pressure",
+    "set": 0,
+    "binding": 1,
+    "bytes": 296710152,
+    "twin_bytes": 296710152,
+    "kind": "soa",
+    "per": "8 B/slot + twin 8 B/slot"
+   },
+   {
+    "name": "density_pressure_scratch",
+    "set": 0,
+    "binding": 2,
+    "bytes": 296710152,
+    "twin_bytes": 0,
+    "kind": "soa",
+    "per": "8 B/slot"
+   },
+   {
+    "name": "velocity_mass",
+    "set": 0,
+    "binding": 3,
+    "bytes": 593420304,
+    "twin_bytes": 593420304,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "acceleration",
+    "set": 0,
+    "binding": 4,
+    "bytes": 593420304,
+    "twin_bytes": 593420304,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "shift",
+    "set": 0,
+    "binding": 5,
+    "bytes": 593420304,
+    "twin_bytes": 593420304,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "material",
+    "set": 0,
+    "binding": 6,
+    "bytes": 148355076,
+    "twin_bytes": 148355076,
+    "kind": "soa",
+    "per": "4 B/slot + twin 4 B/slot"
+   },
+   {
+    "name": "correction_inverse",
+    "set": 0,
+    "binding": 7,
+    "bytes": 1186840608,
+    "twin_bytes": 1186840608,
+    "kind": "soa",
+    "per": "32 B/slot + twin 32 B/slot"
+   },
+   {
+    "name": "density_gradient_kernel_sum",
+    "set": 0,
+    "binding": 8,
+    "bytes": 593420304,
+    "twin_bytes": 593420304,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "extension_fields",
+    "set": 0,
+    "binding": 9,
+    "bytes": 593420304,
+    "twin_bytes": 593420304,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "wall_dummy_velocity",
+    "set": 0,
+    "binding": 10,
+    "bytes": 16,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "16 B"
+   },
+   {
+    "name": "inside_particle_count",
+    "set": 1,
+    "binding": 0,
+    "bytes": 5171080,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "4 B/voxel"
+   },
+   {
+    "name": "incoming_particle_count",
+    "set": 1,
+    "binding": 1,
+    "bytes": 5171080,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "4 B/voxel"
+   },
+   {
+    "name": "inside_particle_index",
+    "set": 1,
+    "binding": 2,
+    "bytes": 496423680,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "384 B/voxel"
+   },
+   {
+    "name": "incoming_particle_index",
+    "set": 1,
+    "binding": 3,
+    "bytes": 82737280,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "64 B/voxel"
+   },
+   {
+    "name": "voxel_base_offset",
+    "set": 1,
+    "binding": 4,
+    "bytes": 5171080,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "4 B/voxel"
+   },
+   {
+    "name": "ghost_voxel_first_particle_id",
+    "set": 1,
+    "binding": 5,
+    "bytes": 4,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "4 B"
+   },
+   {
+    "name": "band_compact_list",
+    "set": 1,
+    "binding": 6,
+    "bytes": 4,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "4 B"
+   },
+   {
+    "name": "ghost_packed_words",
+    "set": 1,
+    "binding": 7,
+    "bytes": 4,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "4 B"
+   },
+   {
+    "name": "global_status",
+    "set": 3,
+    "binding": 0,
+    "bytes": 160,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "160 B"
+   },
+   {
+    "name": "pool_health",
+    "set": 3,
+    "binding": 1,
+    "bytes": 16,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "16 B"
+   },
+   {
+    "name": "material_parameters",
+    "set": 3,
+    "binding": 7,
+    "bytes": 144,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "144 B"
+   },
+   {
+    "name": "defrag_scratch_counter",
+    "set": 3,
+    "binding": 8,
+    "bytes": 4,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "4 B"
+   },
+   {
+    "name": "band_compact_meta",
+    "set": 3,
+    "binding": 9,
+    "bytes": 16,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "16 B"
+   }
+  ]
+ },
+ {
+  "case": "cases/cavity3d_8m_b4/case.yaml",
+  "size": "3d_8m",
+  "particles": 9129329,
+  "dimension": 3,
+  "pool_capacity": 10498817,
+  "own_pool_size": 10498816,
+  "pool_over_particles": 1.1500097104617437,
+  "voxels": 148878,
+  "max_particles_per_voxel": 128,
+  "max_incoming_per_voxel": 32,
+  "soa_bytes_per_slot": 148,
+  "twin_bytes_per_slot": 140,
+  "slot_bytes": 288,
+  "soa_bytes": 1553824916,
+  "twin_bytes": 1469834380,
+  "voxel_list_bytes": 97068456,
+  "voxel_list_bytes_per_voxel": 652.0,
+  "voxel_list_bytes_per_particle": 10.632594794206671,
+  "fixed_bytes": 368,
+  "device_local_bytes": 3120728120,
+  "device_local_bytes_per_particle": 341.83543171683266,
+  "device_local_bytes_per_slot": 297.24569158601395,
+  "slot_bytes_per_particle": 331.2027966129822,
+  "buffer_count": 24,
+  "twin_count": 9,
+  "switches": {
+   "V7_DENSITY_COPY_COMPUTE": 1,
+   "V7_DEEP_WALL_SKIP": "auto",
+   "V7_FUSED_CORRECTION_DENSITY": 1
+  },
+  "rows": [
+   {
+    "name": "position_voxel_id",
+    "set": 0,
+    "binding": 0,
+    "bytes": 167981072,
+    "twin_bytes": 167981072,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "density_pressure",
+    "set": 0,
+    "binding": 1,
+    "bytes": 83990536,
+    "twin_bytes": 83990536,
+    "kind": "soa",
+    "per": "8 B/slot + twin 8 B/slot"
+   },
+   {
+    "name": "density_pressure_scratch",
+    "set": 0,
+    "binding": 2,
+    "bytes": 83990536,
+    "twin_bytes": 0,
+    "kind": "soa",
+    "per": "8 B/slot"
+   },
+   {
+    "name": "velocity_mass",
+    "set": 0,
+    "binding": 3,
+    "bytes": 167981072,
+    "twin_bytes": 167981072,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "acceleration",
+    "set": 0,
+    "binding": 4,
+    "bytes": 167981072,
+    "twin_bytes": 167981072,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "shift",
+    "set": 0,
+    "binding": 5,
+    "bytes": 167981072,
+    "twin_bytes": 167981072,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "material",
+    "set": 0,
+    "binding": 6,
+    "bytes": 41995268,
+    "twin_bytes": 41995268,
+    "kind": "soa",
+    "per": "4 B/slot + twin 4 B/slot"
+   },
+   {
+    "name": "correction_inverse",
+    "set": 0,
+    "binding": 7,
+    "bytes": 335962144,
+    "twin_bytes": 335962144,
+    "kind": "soa",
+    "per": "32 B/slot + twin 32 B/slot"
+   },
+   {
+    "name": "density_gradient_kernel_sum",
+    "set": 0,
+    "binding": 8,
+    "bytes": 167981072,
+    "twin_bytes": 167981072,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "extension_fields",
+    "set": 0,
+    "binding": 9,
+    "bytes": 167981072,
+    "twin_bytes": 167981072,
+    "kind": "soa",
+    "per": "16 B/slot + twin 16 B/slot"
+   },
+   {
+    "name": "wall_dummy_velocity",
+    "set": 0,
+    "binding": 10,
+    "bytes": 16,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "16 B"
+   },
+   {
+    "name": "inside_particle_count",
+    "set": 1,
+    "binding": 0,
+    "bytes": 595512,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "4 B/voxel"
+   },
+   {
+    "name": "incoming_particle_count",
+    "set": 1,
+    "binding": 1,
+    "bytes": 595512,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "4 B/voxel"
+   },
+   {
+    "name": "inside_particle_index",
+    "set": 1,
+    "binding": 2,
+    "bytes": 76225536,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "512 B/voxel"
+   },
+   {
+    "name": "incoming_particle_index",
+    "set": 1,
+    "binding": 3,
+    "bytes": 19056384,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "128 B/voxel"
+   },
+   {
+    "name": "voxel_base_offset",
+    "set": 1,
+    "binding": 4,
+    "bytes": 595512,
+    "twin_bytes": 0,
+    "kind": "voxel_lists",
+    "per": "4 B/voxel"
+   },
+   {
+    "name": "ghost_voxel_first_particle_id",
+    "set": 1,
+    "binding": 5,
+    "bytes": 4,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "4 B"
+   },
+   {
+    "name": "band_compact_list",
+    "set": 1,
+    "binding": 6,
+    "bytes": 4,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "4 B"
+   },
+   {
+    "name": "ghost_packed_words",
+    "set": 1,
+    "binding": 7,
+    "bytes": 4,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "4 B"
+   },
+   {
+    "name": "global_status",
+    "set": 3,
+    "binding": 0,
+    "bytes": 160,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "160 B"
+   },
+   {
+    "name": "pool_health",
+    "set": 3,
+    "binding": 1,
+    "bytes": 16,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "16 B"
+   },
+   {
+    "name": "material_parameters",
+    "set": 3,
+    "binding": 7,
+    "bytes": 144,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "144 B"
+   },
+   {
+    "name": "defrag_scratch_counter",
+    "set": 3,
+    "binding": 8,
+    "bytes": 4,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "4 B"
+   },
+   {
+    "name": "band_compact_meta",
+    "set": 3,
+    "binding": 9,
+    "bytes": 16,
+    "twin_bytes": 0,
+    "kind": "fixed",
+    "per": "16 B"
+   }
+  ]
+ }
+]

@@ -222,7 +222,7 @@ S 只读这三个:`V7_DENSITY_COPY_COMPUTE`(0 / 1,默认 1)、`V7_FUSED_CORRECTI
 | n250(62k) | 5 条录制逐条相同 | 同 | 同 |
 | n250 adami | 同 | 同 | 同 |
 | 2-D 1M | 同 | 同 | 同 |
-| cavity3d_8m_b4(10.5M,B4 关) | 同 | 同 | 同 |
+| cavity3d_8m_b4(9.13M,B4 关) | 同 | 同 | 同 |
 | cavity3d_1m(1.69M,B4 开:280 231 个候选 = 16.63 %) | 同 | 同 | 同 |
 
 每一格里唯一的差别是 defrag 中 V 多出的 `fill global_status[48] = 0`(migration_install_count,第 7 节),工具把它列为允许项;缓冲表、载荷、发布环境三项在 n250 / n250 adami / cavity3d_1m 上也都相同(`logs/v7_single/acceptance/cpu_compare_small_v2.json`;五算例的完整重跑见测量后的 `cpu_compare.json`)。时间步的派发数:2-D 融合 5 次(predict、update_voxel、correction_density_all、density_scratch_copy、force_all)、6 道屏障;不融合 6 次、7 道;adami 各加 1;3-D B4 开各加 2(marker 两趟)。
@@ -309,7 +309,7 @@ depth 1 相对 depth 2 的损失(fps_d1 / fps_d2 − 1):S −4.00 / −2.23 / �
 
 `experiment/v7_single/_run_kernel_breakdown_campaign.py run`(每个单元一个 `_run_kernel_breakdown.py --solver v7_single` 子进程),`summarize` 调 `_summarize_kernel_breakdown.py`。
 
-- 算例 `lid_driven_cavity_2d_8m`(8 128 201 个粒子)与 `cavity3d_8m_b4`(10 503 459);融合(默认)与不融合(`V7_FUSED_CORRECTION_DENSITY=0`)各 3 次,交错(第 1 次的四个单元、第 2 次的四个 …)。
+- 算例 `lid_driven_cavity_2d_8m`(8 128 201 个粒子)与 `cavity3d_8m_b4`(9 129 329);融合(默认)与不融合(`V7_FUSED_CORRECTION_DENSITY=0`)各 3 次,交错(第 1 次的四个单元、第 2 次的四个 …)。
 - 计时命令:S 的生产录制函数 `record_step(cmd, tick=...)` 本身在每个阶段末尾调用回调,回调写一个 BOTTOM_OF_PIPE 时间戳,所以计时步的屏障与生产步逐条相同(只多了 `vkCmdWriteTimestamp`);每步一次提交 + fence(1 在飞),预热 1000 + 计时 2000 步,defrag 帧剔除。阶段:融合 = predict、update_voxel、correction_density、density_copy、force;不融合 = predict、update_voxel、correction、density_kernel、density_copy、force(3-D B4 开或 adami 时各加 deep_wall_marker / wall_extrapolate,这两个算例都没有)。`step_start` 在开头那道屏障之后(E5 的计时器也是这样放),`density_copy` 是拷贝 pass 加它前后两道屏障。
 - 计时步与生产步的差:预热之后计时帧与生产帧交错(奇数帧提交带时间戳的命令,偶数帧提交生产命令 `step_cmd`,各 2000 帧,窗口 = 第 1001–5000 帧;defrag 帧不计入任何一侧),报告计时步的 GPU 帧长、计时帧的每步墙钟(提交 + 每步新建的 fence)与生产帧的每步墙钟(持久 fence、无时间戳)。先按"先计时 2000 步再生产 2000 步"做过一轮(`logs/v7_single/kernel_breakdown/`),3-D 上生产段读数比计时段慢 7 %;`experiment/v7_single/_probe_loop_variants.py` 查明三种 1 在飞的 host 循环本身等价(排序后 59–64 ms / 步,三者在同一段里相差 < 1 ms),慢的是流动本身:3-D 8M 每步的 GPU 代价随流动发展在 defrag 之间持续上升(第 1100 帧 59.1 ms → 第 2900 帧 63.9 ms,见探针日志),先后两段比的是两个流动状态。所以改为交错,两侧看同一个状态。
 - 每候选 ps:仓库里没有找到 E5 对"候选"的定义,这里取邻居循环实际访问的候选数——运行结束时读回体素列表,候选对数 = Σ_v count(v) · Σ_{v' ∈ 3^d 邻域} count(v'),每个 kernel 的 ps/候选 = µs/步 × 10⁶ / 候选对数(2-D 8M 约 218 个候选 / 粒子,与 `docs/sph_v4_summary.md` 里"9 体素 × 25 ≈ 225 候选"的说法一致)。若论文用的是别的定义,改汇总脚本即可,原始数据都在 `results.jsonl`。
