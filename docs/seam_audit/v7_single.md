@@ -574,6 +574,15 @@ Nsight Graphics 2026.3.1 的命令行 `ngfx.exe --activity "GPU Trace Profiler" 
 - 4m_gen 的 1 帧在飞重测(机器空闲,3 次交错):S d1 171.83 ± 0.03 fps(718.6 M/s),S d2 174.78 ± 0.16(731.0),depth-1 损失 **−1.69 ± 0.11 %**,与第 7 项(另一个会话的 CPU 测试在跑时)的 −1.65 ± 0.16 % 一致;与旧手工 4M 的 −1.38 ± 0.09 % 差 0.3 个百分点是真实的(两者 d2 相同 174.8–175.1,生成器算例的 d1 低 0.4 %),量级在 §3.6 的 depth-1 损失曲线上看不出。
 - 图注:解释不了,不写解释;论文里若要提一句,可用 *The lower throughput at 4M is specific to that grid size: a 6 % higher per-candidate cost of both neighbour kernels at a column length of 410 voxels that is absent at 414 voxels and is not explained by candidate or neighbour counts; its cause was not identified.*
 
+## §5.1 图:链式 K = 1 / 纯单卡吞吐比(2026-10-12)
+
+专门为 §5.1 的图重测(`experiment/v7_single/_run_reference_ratio_campaign.py`,详见 [`v7_single/reference_ratio.md`](v7_single/reference_ratio.md)):fig:baseline 的全部 2-D 算例(1M、2M、4M gen、6M、8M、10M、14M、16M、32M),S 与 C 交替各三次,2 在飞,预热 1000 步,计时步数同 fig:baseline,54 次运行 drift / overflow 全 0,SM 2755–2811 MHz、600 W、≤ 69 °C。
+
+- 最差 chain/single = 98.57 %(98.54–98.63 %),在 1M;比值随 N 上升:1M 98.57、2M 99.10、4M 99.94、6M 99.81、8M 99.88、10M 99.76、14M 99.98、16M 99.90、32M 99.87 %。
+- 4M 以上最差 99.76 %(99.67–99.87 %),在 10M。
+- 与 2026-10-10 测量 A 的 C/S(1M 98.55、2M 99.20、4M 99.75、8M 100.02、16M 99.91、32M 99.85 %)一致到 0.2 个百分点。
+- 输出:`manuscripts/fig/reference_ratio.{pdf,png}`(样式同 single_gpu_throughput,误差棒 = 三次逐次比值的 min / max,虚线 100 %)、`manuscripts/bench/reference_ratio.csv`(每行一次试验)、镜像 `docs/seam_audit/v7_single/reference_ratio.{csv,md}`、`reference_ratio_summary.{md,json}`。3-D 按指示不进图(3-D 1M 三次 99.64 %,记录在案)。逐位检查按指示跳过(1M 在第一轮里做过一次:BIT-IDENTICAL)。
+
 ## 论文用数字
 
 - §3.6 吞吐范围(S,一张 RTX 5090,2-D 方腔 1M–32M):2 在飞 732–790 M 粒子·步 / 秒(1 在飞 722–788);fps 734.6(1M)→ 24.50(32M);3-D 8M(`cavity3d_8m_b4`,9.13 M 粒子)149 M 粒子·步 / 秒,16.3 fps。

@@ -164,8 +164,10 @@ def main() -> int:
     parser.add_argument("--width", type=float, default=3.5)
     parser.add_argument("--height", type=float, default=2.4)
     parser.add_argument("--font-size", type=float, default=8.0)
+    parser.add_argument("--dims", default="2,3", help="dimensions to include (the 2-D series alone: 2)")
     arguments = parser.parse_args()
-    records = load_records(_REPOSITORY_ROOT / arguments.runs)
+    dims = {int(d) for d in arguments.dims.split(",") if d.strip()}
+    records = [r for r in load_records(_REPOSITORY_ROOT / arguments.runs) if DIMENSION.get(r["size"], 2) in dims]
     rows = rows_of(records)
     ratios = ratios_of(rows)
     write_csv(rows, _REPOSITORY_ROOT / arguments.csv)
