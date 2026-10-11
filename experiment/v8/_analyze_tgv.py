@@ -43,6 +43,7 @@ SERIES = {
     "support": ["re100_n200", "re100_n200_hdx4", "re100_n210_hdx3p5"],
     "initial": ["re100_n200", "re100_n200_uniform"],
     "repeats": ["re100_n200", "re100_n200_r2", "re100_n200_r3"],
+    "diagnostics": ["re100_n200", "re100_n200_eps0", "re100_n200_eps0p01", "re100_n200_cfl0p015"],
 }
 LABELS = {
     "re100_n200": "default (δ+, PST, KCG; Ma 0.1; h/dx 5; ρ(p₀))", "re100_n200_nopst": "no PST",
@@ -50,6 +51,8 @@ LABELS = {
     "re100_n200_ma0p05": "Ma 0.05 (c₀ = 20)", "re100_n200_ma0p02": "Ma 0.02 (c₀ = 50)", "re100_n200_ma0p01": "Ma 0.01 (c₀ = 100)",
     "re100_n200_hdx4": "h/dx = 4", "re100_n210_hdx3p5": "h/dx = 3.5 (210²)", "re100_n200_uniform": "ρ₀ everywhere at t = 0",
     "re100_n200_r2": "repeat 2", "re100_n200_r3": "repeat 3",
+    "re100_n200_eps0": "ε² = 10⁻⁸ h² (→ 0)", "re100_n200_eps0p01": "ε² = 0.01 h² (the pre-2026-10-05 value)",
+    "re100_n200_cfl0p015": "CFL 0.015 (dt / 10 at Ma 0.1)",
 }
 ERROR_TIMES = (0.5, 1.0, 2.0)
 FIT_WINDOW = (0.1, 2.0)
@@ -284,13 +287,14 @@ def figure_convergence(summaries: dict, convergence: dict, out: pathlib.Path, wi
                 linestyle=(0, (4, 2)), markerfacecolor="white", label=f"Re {series[2:]}: velocity vs $\\nu_\\mathrm{{eff}}$", **style)
         ax.plot(sides, [100 * v for v in conv["pressure_t1"]["values"]], marker="^", markersize=3.5, linewidth=0.9,
                 linestyle=(0, (1, 1.5)), label=f"Re {series[2:]}: pressure", **style)
-    # slope guides
+    # slope guides anchored below the Re 100 shape error at 100^2
     x_guide = np.array([100.0, 400.0])
-    base = 100 * convergence["re100"]["shape_t1"]["values"][1] if convergence.get("re100") else 1.0
+    conv = convergence.get("re100")
+    base = 100 * conv["shape_t1"]["values"][conv["runs"].index("re100_n100")] * 0.6 if conv and "re100_n100" in conv["runs"] else 0.2
     for order, text in ((1, "1st"), (2, "2nd")):
-        ax.plot(x_guide, base * (x_guide / x_guide[0]) ** (-order) * 0.55, color="#888888", linewidth=0.6)
-        ax.annotate(text, (x_guide[1], base * (x_guide[1] / x_guide[0]) ** (-order) * 0.55), fontsize=7, color="#555555",
-                    xytext=(3, -2), textcoords="offset points")
+        y_guide = base * (x_guide / x_guide[0]) ** (-order)
+        ax.plot(x_guide, y_guide, color="#888888", linewidth=0.6)
+        ax.annotate(text, (x_guide[1], y_guide[1]), fontsize=7, color="#555555", xytext=(3, -2), textcoords="offset points")
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xlabel("$L/\\Delta x$")
@@ -437,7 +441,7 @@ def write_outputs(summaries: dict, convergence: dict, out: pathlib.Path) -> None
             f"{key} {conv[key]['order']:.2f}" for key in ("velocity_relative_t1", "shape_t1", "pressure_t1")), ""]
     for key, title in (("ablation", "Ablations (Re 100, 200²)"), ("mach", "Mach number (Re 100, 200²)"),
                        ("support", "Kernel support h/dx (Re 100)"), ("initial", "Initial density (Re 100, 200²)"),
-                       ("repeats", "Repeats (Re 100, 200²)")):
+                       ("repeats", "Repeats (Re 100, 200²)"), ("diagnostics", "Diagnostics: ε² and dt (Re 100, 200²)")):
         lines += [f"## {title}", ""] + series_table(summaries, SERIES[key], "variant") + [""]
     lines += ["## Every run", "", "| run | particles | dt | steps | steps/s | wall s | drift | overflow | KCG fallback | commit |",
               "|---|---|---|---|---|---|---|---|---|---|"]

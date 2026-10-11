@@ -59,6 +59,10 @@ _add("re100_n200_uniform", "re100_n200_uniform", ["--side", "200", "--reynolds",
 _add("re100_n200_hdx4", "re100_n200_hdx4", ["--side", "200", "--reynolds", "100", "--hdx", "4"])
 _add("re100_n210_hdx3p5", "re100_n210_hdx3p5", ["--side", "210", "--reynolds", "100", "--hdx", "3.5"])
 # G. run-to-run repeats of the 200^2 point (atomic list order is the one source of noise)
+# H. diagnostics of the viscosity deficit at Re = 100, 200^2: eps^2 -> 0 and the old 0.01 h^2, and dt / 10 at Ma 0.1
+_add("re100_n200_eps0", "re100_n200_eps0", ["--side", "200", "--reynolds", "100", "--epsilon-squared-factor", "1e-8"])
+_add("re100_n200_eps0p01", "re100_n200_eps0p01", ["--side", "200", "--reynolds", "100", "--epsilon-squared-factor", "0.01"])
+_add("re100_n200_cfl0p015", "re100_n200_cfl0p015", ["--side", "200", "--reynolds", "100", "--cfl", "0.015"])
 _add("re100_n200_r2", "re100_n200", ["--side", "200", "--reynolds", "100"], ["--tag", "repeat2"])
 _add("re100_n200_r3", "re100_n200", ["--side", "200", "--reynolds", "100"], ["--tag", "repeat3"])
 

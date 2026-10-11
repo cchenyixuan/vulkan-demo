@@ -67,7 +67,7 @@ numerics:
     xi: 0.001
     det_threshold: 1.0e-4
     frobenius_max: 10.0
-  epsilon_squared_factor: 0.0025
+  epsilon_squared_factor: {epsilon_squared_factor:g}
   use_pst: {use_pst}
   pst_main: 0.1
   pst_anti: 0.0005
@@ -164,7 +164,8 @@ def build(arguments: argparse.Namespace, command_line: str) -> pathlib.Path:
         density_from_pressure="true" if not arguments.uniform_density else "false",
         origin_offset=float(arguments.origin_offset),
         use_delta="false" if arguments.no_delta else "true", use_kcg="false" if arguments.no_kcg else "true",
-        use_pst="false" if arguments.no_pst else "true", pool_size=pool_size, max_per_voxel=max_per_voxel),
+        use_pst="false" if arguments.no_pst else "true", pool_size=pool_size, max_per_voxel=max_per_voxel,
+        epsilon_squared_factor=float(arguments.epsilon_squared_factor)),
         encoding="utf-8")
     print(f"[tgv] {out_dir}: {side}x{side} = {count:,} particles, dx={dx:.6g} h={h:.6g} grid {voxels}^2, "
           f"Re={float(arguments.reynolds):g} nu={viscosity:.6g} c0={speed_of_sound:g} dt={timestep:.6g}"
@@ -180,6 +181,8 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--mach", type=float, default=0.1, help="U0 / c0 (0.1 -> c0 = 10 U0)")
     result.add_argument("--hdx", type=float, default=5.0, help="support radius over spacing")
     result.add_argument("--cfl", type=float, default=0.15)
+    result.add_argument("--epsilon-squared-factor", type=float, default=0.0025,
+                        help="eps^2 = this * h^2 in the viscous and delta-diffusion denominators (case default 0.0025)")
     result.add_argument("--viscous-factor", type=float, default=0.0125,
                         help="dt <= this * h^2 / nu (support radius h); the cfl is lowered when this limit binds")
     result.add_argument("--length", type=float, default=1.0)
