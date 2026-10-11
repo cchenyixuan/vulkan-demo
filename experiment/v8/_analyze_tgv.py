@@ -489,6 +489,42 @@ def write_outputs(summaries: dict, convergence: dict, out: pathlib.Path, title: 
                              s["correction_fallback"], s["commit"]])
 
 
+def load_set(runs_root: pathlib.Path) -> tuple[dict, dict]:
+    """{run name: loaded run} and {run name: summary} of every finished run under the root."""
+    runs = {}
+    if runs_root.exists():
+        for run_dir in sorted(runs_root.iterdir()):
+            if run_dir.is_dir():
+                loaded = load_run(run_dir)
+                if loaded and loaded["result"].get("status") == "ok":
+                    runs[run_dir.name] = loaded
+    return runs, {name: summarize_run(run) for name, run in runs.items()}
+
+
+def comparison_table(first: dict, second: dict, label_a: str, label_b: str, names: list[str]) -> list[str]:
+    """Run by run, the key numbers of two sets side by side (a / b)."""
+    def pair(getter, digits: int = 4) -> str:
+        values = []
+        for source in (first, second):
+            s = source.get(name)
+            try:
+                values.append(fmt(getter(s), digits) if s else "—")
+            except (KeyError, TypeError):
+                values.append("—")
+        return " / ".join(values)
+    lines = [f"| run | N | ν_eff/ν ({label_a} / {label_b}) | v rel L2 t=1 | v rel L2 t=2 | shape t=1 | p err t=1 | kernel sum t=1 min | max | "
+             f"mean ρ dev t=1 | steps/s |", "|---|---|---|---|---|---|---|---|---|---|---|"]
+    for name in names:
+        side = (first.get(name) or second.get(name))["side"]
+        lines.append(f"| {name} | {side}² | {pair(lambda s: s['viscosity_ratio'])} | {pair(lambda s: s['errors']['1']['velocity_relative'], 3)} | "
+                     f"{pair(lambda s: s['errors']['2']['velocity_relative'], 3)} | "
+                     f"{pair(lambda s: s['snapshot_errors']['t1']['velocity_relative_effective'], 3)} | "
+                     f"{pair(lambda s: s['errors']['1']['pressure_centered_relative'], 3)} | "
+                     f"{pair(lambda s: s['errors']['1']['kernel_sum_min'])} | {pair(lambda s: s['errors']['1']['kernel_sum_max'])} | "
+                     f"{pair(lambda s: s['errors']['1']['density_mean_deviation'], 2)} | {pair(lambda s: s['steps_per_second'], 4)} |")
+    return lines
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--runs", default="logs/v8/tgv")
@@ -498,18 +534,22 @@ def main() -> int:
     parser.add_argument("--font-size", type=float, default=8.0)
     parser.add_argument("--figure-suffix", default="", help="appended to every figure name (a second run set)")
     parser.add_argument("--title", default="Taylor–Green campaign summary", help="summary.md title")
+    parser.add_argument("--compare", default=None, help="a second run root: <out>/comparison.md, run by run")
+    parser.add_argument("--compare-labels", default="A,B", help="labels of --runs and --compare in the comparison")
     arguments = parser.parse_args()
-    runs_root = _REPOSITORY_ROOT / arguments.runs
-    runs = {}
-    for run_dir in sorted(runs_root.iterdir()):
-        if run_dir.is_dir():
-            loaded = load_run(run_dir)
-            if loaded and loaded["result"].get("status") == "ok":
-                runs[run_dir.name] = loaded
-    summaries = {name: summarize_run(run) for name, run in runs.items()}
+    runs, summaries = load_set(_REPOSITORY_ROOT / arguments.runs)
     convergence = {series: convergence_rows(summaries, SERIES[series]) for series in ("re100", "re1000")}
     out = _REPOSITORY_ROOT / arguments.out
     write_outputs(summaries, convergence, out, arguments.title)
+    if arguments.compare:
+        _other_runs, other = load_set(_REPOSITORY_ROOT / arguments.compare)
+        label_a, label_b = (arguments.compare_labels.split(",") + ["B"])[:2]
+        lines = [f"# {label_a} ({arguments.runs}) against {label_b} ({arguments.compare}), run by run", ""]
+        for series in ("re100", "re1000"):
+            names = [n for n in SERIES[series] if n in summaries or n in other]
+            if names:
+                lines += [f"## {series}", ""] + comparison_table(summaries, other, label_a, label_b, names) + [""]
+        (out / "comparison.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     figures = _REPOSITORY_ROOT / arguments.figures
     figures.mkdir(parents=True, exist_ok=True)
     setup_figures(arguments.font_size)

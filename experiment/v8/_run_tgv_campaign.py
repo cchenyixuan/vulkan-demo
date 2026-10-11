@@ -92,6 +92,9 @@ RUNS_V3.append(("re100_n3200", "re100_n3200", ["--side", "3200", "--reynolds", "
                 ["--t-end", "1", "--snapshot-times", "0,0.5,1"]))
 for side in (100, 200, 400, 800, 1600, 3200):
     RUNS_V3.append((f"re1000_n{side}", f"re1000_n{side}", ["--side", str(side), "--reynolds", "1000", "--delta-density"], []))
+# position-precision diagnostic: the same 1600^2 in the box [-L/2, L/2)^2 (half the float32 ULP of the positions)
+RUNS_V3.append(("re100_n1600_center", "re100_n1600_center",
+                ["--side", "1600", "--reynolds", "100", "--delta-density", "--center"], []))
 SETS = {"v1": (RUNS, "cases/tgv_2d", "logs/v8/tgv"), "v2": (RUNS_V2, "cases/tgv_2d_eps1e-4", "logs/v8/tgv_eps1e-4"),
         "v3": (RUNS_V3, "cases/tgv_2d_eps1e-4_delta", "logs/v8/tgv_eps1e-4_delta")}
 

@@ -103,9 +103,10 @@ tgv_fluid:
 """
 
 
-def write_frame_obj(path: pathlib.Path, length: float, z_half: float) -> None:
-    vertices = [(0.0, 0.0, -z_half), (0.0, length, -z_half), (length, 0.0, -z_half), (length, length, -z_half),
-                (0.0, 0.0, z_half), (0.0, length, z_half), (length, 0.0, z_half), (length, length, z_half)]
+def write_frame_obj(path: pathlib.Path, length: float, z_half: float, low: float = 0.0) -> None:
+    high = low + length
+    vertices = [(low, low, -z_half), (low, high, -z_half), (high, low, -z_half), (high, high, -z_half),
+                (low, low, z_half), (low, high, z_half), (high, low, z_half), (high, high, z_half)]
     faces = [(1, 2, 4), (1, 4, 3), (5, 7, 8), (5, 8, 6), (1, 5, 6), (1, 6, 2),
              (3, 4, 8), (3, 8, 7), (1, 3, 7), (1, 7, 5), (2, 6, 8), (2, 8, 4)]
     with path.open("w", encoding="utf-8") as handle:
@@ -151,11 +152,14 @@ def build(arguments: argparse.Namespace, command_line: str) -> pathlib.Path:
 
     out_dir = (_REPOSITORY_ROOT / arguments.out).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
+    # --center: the box [-L/2, L/2)^2 instead of [0, L)^2 (same physics; the float32 ULP of a position is half as
+    # large at |x| <= L/2 as at x -> L, a diagnostic of the position-precision limit at 1600^2 and up)
+    low = -0.5 * length if arguments.center else 0.0
     index = np.arange(side, dtype=np.float64) + 0.5
-    x, y = np.meshgrid(index * dx, index * dx, indexing="ij")
+    x, y = np.meshgrid(index * dx + low, index * dx + low, indexing="ij")
     points = np.column_stack([x.ravel(), y.ravel(), np.zeros(count)])
-    np.savetxt(out_dir / "domain.obj", points, fmt="v %.9g %.9g %.9g", header=f"# {count} particles", comments="")
-    write_frame_obj(out_dir / "frame.obj", length, 0.5 * dx)
+    np.savetxt(out_dir / "domain.obj", points, fmt="v %.10g %.10g %.9g", header=f"# {count} particles", comments="")
+    write_frame_obj(out_dir / "frame.obj", length, 0.5 * dx, low)
     (out_dir / "materials.yaml").write_text(
         MATERIALS_YAML.format(rest_density=float(arguments.rest_density), viscosity=viscosity), encoding="utf-8")
     (out_dir / "case.yaml").write_text(CASE_YAML.format(
@@ -195,6 +199,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--rest-density", type=float, default=1.0)
     result.add_argument("--t-end", type=float, default=2.0, help="recorded in time.total (informational)")
     result.add_argument("--uniform-density", action="store_true", help="rho0 everywhere instead of rho(p(x, 0))")
+    result.add_argument("--center", action="store_true", help="box [-L/2, L/2)^2 instead of [0, L)^2 (position-precision diagnostic)")
     result.add_argument("--delta-density", action="store_true",
                         help="numerics.delta_density: store rho - rho0 on the GPU (float32 resolution of the density "
                              "increment at small dt; needed from ~800^2 up under the viscous dt limit)")
