@@ -139,6 +139,9 @@ def solver_processes(own_pid: int) -> list[str] | None:
         # the campaign itself appears twice (the venv launcher python.exe and the interpreter it spawns)
         if "_run_single_baseline_campaign.py" in command_line:
             continue
+        # the drivers that launch this campaign per case (they wait for the card themselves)
+        if "_run_reference_ratio_campaign" in command_line or "_run_section3_campaign" in command_line:
+            continue
         if any(marker in command_line for marker in markers):
             busy.append(f"{pid.strip()}: {command_line[:140]}")
     return busy
