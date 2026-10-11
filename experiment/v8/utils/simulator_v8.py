@@ -33,31 +33,43 @@ class SphSimulatorV8(SphSimulatorSingle):
             raise ValueError("periodic axes with V7_DEEP_WALL_SKIP on: deep_wall_marker.comp does not wrap "
                              "(no walls in a periodic run; set V7_DEEP_WALL_SKIP=0)")
         print(f"[SimV8] periodic={case_v8.periodic} domain_length={case_v8.domain_length} "
-              f"initial_density={'per particle' if case_v8.initial_density is not None else 'rest density'}")
+              f"initial_density={'per particle' if case_v8.initial_density is not None else 'rest density'} "
+              f"delta_density={case_v8.delta_density} (rho_ref {self.reference_density():g})")
+
+    def stored_density_offset(self) -> float:
+        """What to add to a stored density to get rho: rho_ref with numerics.delta_density, 0 otherwise."""
+        return self.reference_density() if self.case_v8.delta_density else 0.0
 
     def global_entries(self) -> list[tuple[int, str, Any]]:
-        entries = super().global_entries()
-        entries += [(116, "B", int(self.case_v8.periodic[0])), (117, "B", int(self.case_v8.periodic[1])),
+        entries = [entry for entry in super().global_entries() if entry[0] != 95]
+        entries += [(95, "B", int(self.case_v8.delta_density)),
+                    (116, "B", int(self.case_v8.periodic[0])), (117, "B", int(self.case_v8.periodic[1])),
                     (118, "f", float(self.case_v8.domain_length[0])), (119, "f", float(self.case_v8.domain_length[1]))]
         return entries
 
     def _build_initial_data(self) -> dict[str, bytes]:
+        """v7_single's payload, then the stored density column: the per-particle initial density (or every material's
+        rho0) minus the stored offset, computed in float64 and cast once."""
         data = super()._build_initial_data()
+        case = self.case
+        pool_capacity = case.capacities.total_pool_capacity()
+        own_first = self.own_first_pid()
+        count = int(case.initial.positions.shape[0])
         initial_density = self.case_v8.initial_density
-        if initial_density is not None:
-            case = self.case
-            pool_capacity = case.capacities.total_pool_capacity()
-            own_first = self.own_first_pid()
-            count = int(case.initial.positions.shape[0])
-            if initial_density.shape != (count,):
-                raise ValueError(f"initial_density shape {initial_density.shape}, expected ({count},)")
-            density_pressure = np.frombuffer(data["density_pressure"], dtype=np.float32).reshape(pool_capacity, 2).copy()
-            density_pressure[own_first:own_first + count, 0] = initial_density.astype(np.float32)
-            data["density_pressure"] = density_pressure.tobytes()
+        if initial_density is None:
+            rest = np.array([material.rest_density for material in case.materials], dtype=np.float64)
+            initial_density = rest[np.asarray(case.initial.material_group)]
+        if initial_density.shape != (count,):
+            raise ValueError(f"initial_density shape {initial_density.shape}, expected ({count},)")
+        density_pressure = np.frombuffer(data["density_pressure"], dtype=np.float32).reshape(pool_capacity, 2).copy()
+        density_pressure[own_first:own_first + count, 0] = (
+            np.asarray(initial_density, dtype=np.float64) - self.stored_density_offset()).astype(np.float32)
+        data["density_pressure"] = density_pressure.tobytes()
         return data
 
     def resolution_record(self) -> dict:
         record = super().resolution_record()
         record.update({"periodic": list(self.case_v8.periodic), "domain_length": list(self.case_v8.domain_length),
-                       "initial_field": self.case_v8.field, "build": "v8"})
+                       "initial_field": self.case_v8.field, "build": "v8", "delta_density": self.case_v8.delta_density,
+                       "stored_density_offset": self.stored_density_offset()})
         return record

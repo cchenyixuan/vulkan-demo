@@ -42,6 +42,9 @@ numerics:
   use_pst: true
   pst_main: 0.1
   pst_anti: 0.0005
+  # v8 (case_loader_v8): store rho - rho0 on the GPU (the v7 kernels' DELTA_DENSITY) so the per-step density
+  # increment keeps its float32 resolution at small dt
+  delta_density: false
   defrag_enabled: true
   defrag_cadence: 1000
   use_prefix_sum_defrag: false

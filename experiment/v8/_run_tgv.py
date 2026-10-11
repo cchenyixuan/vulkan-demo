@@ -95,7 +95,7 @@ class Sampler:
         mass = state["velocity_mass"][fluid, 3].astype(np.float64)
         velocity = (state["velocity_mass"][fluid, :3].astype(np.float64)
                     + 0.5 * self.dt * state["acceleration"][fluid, :3].astype(np.float64))[:, :2]
-        density = state["density_pressure"][fluid, 0].astype(np.float64)
+        density = state["density_pressure"][fluid, 0].astype(np.float64) + self.sim.stored_density_offset()   # delta_density
         pressure_value = state["density_pressure"][fluid, 1].astype(np.float64)
         kernel_sum = state["density_gradient_kernel_sum"][fluid, 3].astype(np.float64)
         keywords = self.analytic_keywords()

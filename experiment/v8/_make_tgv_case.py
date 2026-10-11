@@ -71,6 +71,9 @@ numerics:
   use_pst: {use_pst}
   pst_main: 0.1
   pst_anti: 0.0005
+  # v8 (case_loader_v8): store rho - rho0 on the GPU (the v7 kernels' DELTA_DENSITY) so the per-step density
+  # increment keeps its float32 resolution at small dt
+  delta_density: {delta_density}
   defrag_enabled: true
   defrag_cadence: 1000
   use_prefix_sum_defrag: false
@@ -165,7 +168,8 @@ def build(arguments: argparse.Namespace, command_line: str) -> pathlib.Path:
         origin_offset=float(arguments.origin_offset),
         use_delta="false" if arguments.no_delta else "true", use_kcg="false" if arguments.no_kcg else "true",
         use_pst="false" if arguments.no_pst else "true", pool_size=pool_size, max_per_voxel=max_per_voxel,
-        epsilon_squared_factor=float(arguments.epsilon_squared_factor)),
+        epsilon_squared_factor=float(arguments.epsilon_squared_factor),
+        delta_density="true" if arguments.delta_density else "false"),
         encoding="utf-8")
     print(f"[tgv] {out_dir}: {side}x{side} = {count:,} particles, dx={dx:.6g} h={h:.6g} grid {voxels}^2, "
           f"Re={float(arguments.reynolds):g} nu={viscosity:.6g} c0={speed_of_sound:g} dt={timestep:.6g}"
@@ -191,6 +195,9 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--rest-density", type=float, default=1.0)
     result.add_argument("--t-end", type=float, default=2.0, help="recorded in time.total (informational)")
     result.add_argument("--uniform-density", action="store_true", help="rho0 everywhere instead of rho(p(x, 0))")
+    result.add_argument("--delta-density", action="store_true",
+                        help="numerics.delta_density: store rho - rho0 on the GPU (float32 resolution of the density "
+                             "increment at small dt; needed from ~800^2 up under the viscous dt limit)")
     result.add_argument("--origin-offset", type=float, default=0.25,
                         help="field origin at this fraction of L from the box corner (0.25: the fastest streams "
                              "cross the periodic edges; 0: nothing crosses)")

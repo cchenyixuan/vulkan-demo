@@ -42,8 +42,13 @@ class CaseV8:
     case: CaseV7
     periodic: tuple[bool, bool]
     domain_length: tuple[float, float]         # spec 118 / 119 (the span on a periodic axis, 1.0 otherwise)
-    initial_density: Optional[np.ndarray]      # (N,) float32 stored density at upload, None = every material's rho0
+    initial_density: Optional[np.ndarray]      # (N,) float64 density at upload, None = every material's rho0
     field: dict                                # the initial field's description (run metadata)
+    # numerics.delta_density (default false): the v7 kernels' DELTA_DENSITY storage (spec 95 / 96): density_pressure.x
+    # holds rho - rho_ref (rho_ref = the first fluid's rho0) so the per-step increment dt drho/dt keeps its float32
+    # resolution. With rho0 = 1 the ULP of rho is 1.2e-7 while the TGV's increments are ~1e-7 at 800^2 and ~2e-8 at
+    # 1600^2 (dt ~ dx^2 under the viscous limit): without it the continuity equation stops integrating.
+    delta_density: bool = False
 
     @property
     def any_periodic(self) -> bool:
@@ -112,7 +117,7 @@ def _taylor_green_initial_state(case: CaseV7, spec: dict, periodic: tuple[bool, 
         initial_density = rest_of_each[np.asarray(case.initial.material_group)].copy()
         # Tait: p = B ((rho / rho0)^gamma - 1)  ->  rho = rho0 (1 + p / B)^(1 / gamma)
         initial_density[fluid] = rest_density * np.power(1.0 + field_pressure / eos_constant, 1.0 / gamma)
-        initial_density = initial_density.astype(np.float32)
+        # kept in float64: the simulator subtracts rho_ref (delta_density) before the float32 cast
     speed_of_sound = float(case.physics.speed_of_sound)
     description = {
         "type": "taylor_green", "amplitude": amplitude, "vortex_pairs": vortex_pairs, "wavenumber": k,
@@ -175,4 +180,6 @@ def load_case_v8(case_yaml_path: str | pathlib.Path) -> CaseV8:
         print(f"[case_loader_v8] initial field taylor_green: U0={field['amplitude']} k={field['wavenumber']:.6f} "
               f"Re={field['reynolds']:.6g} Ma={field['mach']:.4g} density_from_pressure={field['density_from_pressure']} "
               f"(momentum balance residual {field['momentum_balance_residual']:.2e})")
-    return CaseV8(case=case, periodic=periodic, domain_length=lengths, initial_density=initial_density, field=field)
+    delta_density = bool(data.get("numerics", {}).get("delta_density", False))
+    return CaseV8(case=case, periodic=periodic, domain_length=lengths, initial_density=initial_density, field=field,
+                  delta_density=delta_density)

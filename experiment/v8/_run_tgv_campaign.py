@@ -81,7 +81,19 @@ RUNS_V2.append(("re100_n3200", "re100_n3200", ["--side", "3200", "--reynolds", "
                 ["--t-end", "1", "--snapshot-times", "0,0.5,1"]))
 for side in (100, 200, 400, 800, 1600, 3200):
     RUNS_V2.append((f"re1000_n{side}", f"re1000_n{side}", ["--side", str(side), "--reynolds", "1000"], []))
-SETS = {"v1": (RUNS, "cases/tgv_2d", "logs/v8/tgv"), "v2": (RUNS_V2, "cases/tgv_2d_eps1e-4", "logs/v8/tgv_eps1e-4")}
+# ---- set v3 (2026-10-11): v2 + numerics.delta_density (rho - rho0 stored): v2's 1600^2 came out worse than its 800^2
+# (nu_eff/nu 0.9952 vs 0.9961, velocity error 0.44 vs 0.37 %) because under the viscous dt limit (dt ~ dx^2) the
+# per-step density increment (~2e-8 at 1600^2) is below the float32 ULP of rho = 1 (1.2e-7). v2 keeps 50^2-1600^2
+# as the without-delta reference; its 3200^2 run was stopped.
+RUNS_V3: list[tuple[str, str, list[str], list[str]]] = []
+for side in (50, 100, 200, 400, 800, 1600):
+    RUNS_V3.append((f"re100_n{side}", f"re100_n{side}", ["--side", str(side), "--reynolds", "100", "--delta-density"], []))
+RUNS_V3.append(("re100_n3200", "re100_n3200", ["--side", "3200", "--reynolds", "100", "--delta-density", "--t-end", "1"],
+                ["--t-end", "1", "--snapshot-times", "0,0.5,1"]))
+for side in (100, 200, 400, 800, 1600, 3200):
+    RUNS_V3.append((f"re1000_n{side}", f"re1000_n{side}", ["--side", str(side), "--reynolds", "1000", "--delta-density"], []))
+SETS = {"v1": (RUNS, "cases/tgv_2d", "logs/v8/tgv"), "v2": (RUNS_V2, "cases/tgv_2d_eps1e-4", "logs/v8/tgv_eps1e-4"),
+        "v3": (RUNS_V3, "cases/tgv_2d_eps1e-4_delta", "logs/v8/tgv_eps1e-4_delta")}
 
 
 def log_line(out: pathlib.Path, message: str) -> None:
