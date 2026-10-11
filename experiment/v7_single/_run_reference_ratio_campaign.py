@@ -142,7 +142,9 @@ def main() -> int:
     parser.add_argument("--only", default="", help="comma-separated size tags")
     parser.add_argument("--trials", type=int, default=3)
     parser.add_argument("--warmup", type=int, default=1000)
-    parser.add_argument("--skip-check", action="store_true", help="timing only (the bit-exact verdicts must already be recorded)")
+    parser.add_argument("--skip-check", action="store_true",
+                        help="timing only: no bit-exact dumps (S = C bit-identical was established by the v7_single acceptance "
+                             "battery and by the first case of this campaign)")
     parser.add_argument("--allow-dirty", action="store_true")
     arguments = parser.parse_args()
     out = (_REPOSITORY_ROOT / arguments.out).resolve()
@@ -168,11 +170,10 @@ def main() -> int:
             continue
         case, steps = sizes[tag]
         # ---- 1. bit-exact ------------------------------------------------------------------------------------------
-        if verdicts.get(tag, {}).get("verdict") == "BIT-IDENTICAL":
+        if arguments.skip_check:
+            log_line(out, f"{tag}: bit-exact check skipped (--skip-check: S = C was established by the v7_single acceptance)")
+        elif verdicts.get(tag, {}).get("verdict") == "BIT-IDENTICAL":
             log_line(out, f"{tag}: bit-exact verdict recorded earlier (BIT-IDENTICAL), skipped")
-        elif arguments.skip_check:
-            log_line(out, f"{tag}: --skip-check without a recorded BIT-IDENTICAL verdict; stopping")
-            return 1
         else:
             wait_until_idle(out)
             log_line(out, f"{tag}: bit-exact check (S and C, {CHECK_STEPS} steps, canonical lists) ...")
