@@ -1,0 +1,114 @@
+{
+ "case": "logs/v8/smoke/cavity_250/case.yaml",
+ "steps": 999,
+ "protocol": "canonical lists, no bootstrap defrag",
+ "status_v7_single": {
+  "alive": 74529,
+  "overflow": {}
+ },
+ "status_v8": {
+  "alive": 74529,
+  "overflow": {}
+ },
+ "status_v7_single_control": {
+  "alive": 74529,
+  "overflow": {}
+ },
+ "v7_vs_v8": {
+  "alive": [
+   74529,
+   74529
+  ],
+  "same_ids": true,
+  "position_voxel_id": {
+   "bitwise": true,
+   "max_abs_difference": 0.0,
+   "differing_rows": 0
+  },
+  "velocity_mass": {
+   "bitwise": true,
+   "max_abs_difference": 0.0,
+   "differing_rows": 0
+  },
+  "density_pressure": {
+   "bitwise": true,
+   "max_abs_difference": 0.0,
+   "differing_rows": 0
+  },
+  "acceleration": {
+   "bitwise": true,
+   "max_abs_difference": 0.0,
+   "differing_rows": 0
+  },
+  "shift": {
+   "bitwise": true,
+   "max_abs_difference": 0.0,
+   "differing_rows": 0
+  },
+  "correction_inverse": {
+   "bitwise": true,
+   "max_abs_difference": 0.0,
+   "differing_rows": 0
+  },
+  "density_gradient_kernel_sum": {
+   "bitwise": true,
+   "max_abs_difference": 0.0,
+   "differing_rows": 0
+  },
+  "extension_fields": {
+   "bitwise": true,
+   "max_abs_difference": 0.0,
+   "differing_rows": 0
+  },
+  "bitwise": true
+ },
+ "v7_vs_v7": {
+  "alive": [
+   74529,
+   74529
+  ],
+  "same_ids": true,
+  "position_voxel_id": {
+   "bitwise": true,
+   "max_abs_difference": 0.0,
+   "differing_rows": 0
+  },
+  "velocity_mass": {
+   "bitwise": true,
+   "max_abs_difference": 0.0,
+   "differing_rows": 0
+  },
+  "density_pressure": {
+   "bitwise": true,
+   "max_abs_difference": 0.0,
+   "differing_rows": 0
+  },
+  "acceleration": {
+   "bitwise": true,
+   "max_abs_difference": 0.0,
+   "differing_rows": 0
+  },
+  "shift": {
+   "bitwise": true,
+   "max_abs_difference": 0.0,
+   "differing_rows": 0
+  },
+  "correction_inverse": {
+   "bitwise": true,
+   "max_abs_difference": 0.0,
+   "differing_rows": 0
+  },
+  "density_gradient_kernel_sum": {
+   "bitwise": true,
+   "max_abs_difference": 0.0,
+   "differing_rows": 0
+  },
+  "extension_fields": {
+   "bitwise": true,
+   "max_abs_difference": 0.0,
+   "differing_rows": 0
+  },
+  "bitwise": true
+ },
+ "verdict": "PASS"
+}

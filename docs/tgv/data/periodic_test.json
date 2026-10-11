@@ -1,0 +1,47 @@
+{
+ "case": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v8\\logs\\v8\\smoke\\re100_n100\\case.yaml",
+ "steps": 400,
+ "checks": {
+  "control_kernel_sum": {
+   "min": 0.37703680992126465,
+   "max": 1.000002384185791,
+   "mean": 0.9804978847414255
+  },
+  "periodic_kernel_sum": {
+   "gpu_min": 0.995164155960083,
+   "gpu_max": 1.0050327777862549,
+   "cpu_min": 0.9951638937467591,
+   "cpu_max": 1.0050327380686133,
+   "max_abs_difference": 7.072060661528212e-07,
+   "mean_abs_difference": 1.2352281816478961e-07,
+   "alive": 10000
+  },
+  "correction_inverse": {
+   "diagonal_mean": 0.8849594583719969,
+   "diagonal_min": 0.8805899024009705,
+   "diagonal_max": 0.8892348408699036,
+   "max_off_diagonal": 9.341562190456898e-07,
+   "max_anisotropy": 9.256601333618164e-05
+  },
+  "steps": {
+   "drift": 0,
+   "overflow": {},
+   "alive": 10000,
+   "outside_box": 0,
+   "momentum": [
+    1.5329829164566247e-06,
+    -6.121041755275696e-06,
+    0.0
+   ],
+   "momentum_scale": 0.7248412716697022,
+   "kinetic_ratio": 0.6268446838697987,
+   "expected_ratio": 0.622668495820663,
+   "time": 0.3,
+   "edge_crossings_x": 1687,
+   "correction_fallback": 0,
+   "max_speed": 0.7919745263004607
+  }
+ },
+ "failures": [],
+ "verdict": "PASS"
+}

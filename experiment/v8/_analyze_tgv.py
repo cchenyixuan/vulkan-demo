@@ -360,6 +360,7 @@ def figure_ablation(runs: dict, summaries: dict, out: pathlib.Path, width: float
     axes[0].set_ylabel("$E_k(t)/E_k(0)$")
     axes[0].legend(frameon=False, ncol=2, handlelength=1.8, loc="lower left", fontsize=6.5)
     axes[1].set_yscale("log")
+    axes[1].set_ylim(0.03, 80)
     axes[1].set_ylabel("rel. $L_2$ velocity error (%)")
     axes[1].set_xlabel("$t\\,U_0/L$")
     for ax in axes:
