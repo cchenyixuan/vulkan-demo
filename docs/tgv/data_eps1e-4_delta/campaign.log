@@ -1,0 +1,33 @@
+[2026-10-11 17:56:27] campaign start: set v3 (cases/tgv_2d_eps1e-4_delta), commit 9ed7b16 (13 runs), tracked dirty: ['M docs/tgv/v8_tgv.md', ' M experiment/v8/_make_tgv_case.py', ' M experiment/v8/_run_tgv.py', ' M experiment/v8/_run_tgv_campaign.py', ' M experiment/v8/utils/case_loader_v8.py', ' M experiment/v8/utils/simulator_v8.py']
+[2026-10-11 17:58:16] campaign start: set v3 (cases/tgv_2d_eps1e-4_delta), commit de01ad1 (13 runs), tracked dirty: none
+[2026-10-11 17:58:50] re100_n50: start (--case cases/tgv_2d_eps1e-4_delta/re100_n50/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re100_n50)
+[2026-10-11 17:58:51] re100_n50: rc 0 status ok drift 0 overflow {} steps 1333 (2210.13 steps/s, 1 s)
+[2026-10-11 17:58:54] re100_n100: start (--case cases/tgv_2d_eps1e-4_delta/re100_n100/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re100_n100)
+[2026-10-11 17:58:56] re100_n100: rc 0 status ok drift 0 overflow {} steps 2667 (1937.07 steps/s, 2 s)
+[2026-10-11 17:58:59] re100_n200: start (--case cases/tgv_2d_eps1e-4_delta/re100_n200/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re100_n200)
+[2026-10-11 17:59:03] re100_n200: rc 0 status ok drift 0 overflow {} steps 5333 (1499.26 steps/s, 4 s)
+[2026-10-11 17:59:06] re100_n400: start (--case cases/tgv_2d_eps1e-4_delta/re100_n400/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re100_n400)
+[2026-10-11 17:59:21] re100_n400: rc 0 status ok drift 0 overflow {} steps 10667 (758.45 steps/s, 15 s)
+[2026-10-11 17:59:23] re100_n800: start (--case cases/tgv_2d_eps1e-4_delta/re100_n800/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re100_n800)
+[2026-10-11 18:00:51] re100_n800: rc 0 status ok drift 0 overflow {} steps 40960 (481.62 steps/s, 87 s)
+[2026-10-11 18:00:53] re100_n1600: start (--case cases/tgv_2d_eps1e-4_delta/re100_n1600/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re100_n1600)
+[2026-10-11 18:15:33] re100_n1600: rc 0 status ok drift 0 overflow {} steps 163840 (187.9 steps/s, 880 s)
+[2026-10-11 18:15:36] re100_n3200: start (--case cases/tgv_2d_eps1e-4_delta/re100_n3200/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re100_n3200 --t-end 1 --snapshot-times 0,0.5,1)
+[2026-10-11 19:54:15] re100_n3200: rc 0 status ok drift 0 overflow {} steps 327679 (55.65 steps/s, 5920 s)
+[2026-10-11 19:54:18] re1000_n100: start (--case cases/tgv_2d_eps1e-4_delta/re1000_n100/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re1000_n100)
+[2026-10-11 19:54:20] re1000_n100: rc 0 status ok drift 0 overflow {} steps 2667 (2011.17 steps/s, 2 s)
+[2026-10-11 19:54:22] re1000_n200: start (--case cases/tgv_2d_eps1e-4_delta/re1000_n200/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re1000_n200)
+[2026-10-11 19:54:27] re1000_n200: rc 0 status ok drift 0 overflow {} steps 5333 (1382.63 steps/s, 4 s)
+[2026-10-11 19:54:30] re1000_n400: start (--case cases/tgv_2d_eps1e-4_delta/re1000_n400/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re1000_n400)
+[2026-10-11 19:54:46] re1000_n400: rc 0 status ok drift 0 overflow {} steps 10667 (698.21 steps/s, 16 s)
+[2026-10-11 19:54:48] re1000_n800: start (--case cases/tgv_2d_eps1e-4_delta/re1000_n800/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re1000_n800)
+[2026-10-11 19:55:57] re1000_n800: rc 0 status ok drift 0 overflow {} steps 21333 (324.93 steps/s, 68 s)
+[2026-10-11 19:55:59] re1000_n1600: start (--case cases/tgv_2d_eps1e-4_delta/re1000_n1600/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re1000_n1600)
+[2026-10-11 20:02:11] re1000_n1600: rc 0 status ok drift 0 overflow {} steps 42667 (117.31 steps/s, 372 s)
+[2026-10-11 20:02:13] re1000_n3200: start (--case cases/tgv_2d_eps1e-4_delta/re1000_n3200/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re1000_n3200)
+[2026-10-11 20:39:19] re1000_n3200: rc 0 status ok drift 0 overflow {} steps 85333 (38.86 steps/s, 2226 s)
+[2026-10-11 20:39:19] campaign done
+[2026-10-11 20:39:33] campaign start: set v3 (cases/tgv_2d_eps1e-4_delta), commit ddbb4fb (1 runs), tracked dirty: none
+[2026-10-11 20:39:39] re100_n1600_center: start (--case cases/tgv_2d_eps1e-4_delta/re100_n1600_center/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re100_n1600_center)
+[2026-10-11 20:54:26] re100_n1600_center: rc 0 status ok drift 0 overflow {} steps 163840 (186.45 steps/s, 887 s)
+[2026-10-11 20:54:26] campaign done

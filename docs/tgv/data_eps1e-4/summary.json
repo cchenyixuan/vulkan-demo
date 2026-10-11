@@ -1,0 +1,863 @@
+{
+ "runs": {
+  "re100_n100": {
+   "name": "re100_n100",
+   "case": "cases/tgv_2d_eps1e-4/re100_n100/case.yaml",
+   "particles": 10000,
+   "side": 100,
+   "reynolds": 100.0,
+   "mach": 0.1,
+   "speed_of_sound": 10.0,
+   "smoothing_length": 0.05,
+   "timestep": 0.00075,
+   "steps": 2667,
+   "steps_per_second": 1866.16,
+   "wall_seconds": 1.46,
+   "drift": 0,
+   "overflow": {},
+   "correction_fallback": 0,
+   "density_from_pressure": true,
+   "commit": "9ed7b16",
+   "viscosity_fit": {
+    "ratio": 0.9918865940665118,
+    "intercept": -0.0058334439172542385,
+    "rms": 0.0005679329241215248,
+    "points": 96,
+    "window": [
+     0.1,
+     2.0
+    ]
+   },
+   "viscosity_ratio": 0.9918865940665118,
+   "viscosity_ratio_t1": 0.9952358727074324,
+   "viscosity_ratio_t2": 0.994151103280102,
+   "t_end": 2.00025,
+   "kinetic_energy_0": 0.28232740080698937,
+   "kinetic_energy_lattice_0": 0.25000000002179296,
+   "kinetic_energy_exact_0": 0.25,
+   "errors": {
+    "0.5": {
+     "time": 0.50025,
+     "energy_ratio": 0.45415245746563226,
+     "energy_ratio_exact": 0.45386152600581725,
+     "velocity_relative": 0.0023070088501255556,
+     "velocity_l2": 0.001099027338840011,
+     "velocity_linf": 0.0053824594734031474,
+     "max_speed_ratio": 1.0007592602206077,
+     "pressure_l2": 0.0030643454357859616,
+     "pressure_l2_centered": 0.001248065737474048,
+     "pressure_centered_relative": 0.005499764425760342,
+     "pressure_offset": -0.0027986684092199303,
+     "density_max_deviation": 0.0023224949836730957,
+     "density_mean_deviation": -3.229243755340576e-05,
+     "kernel_sum_min": 0.9923917651176453,
+     "kernel_sum_max": 1.0044361352920532
+    },
+    "1": {
+     "time": 0.99975,
+     "energy_ratio": 0.20779139887630343,
+     "energy_ratio_exact": 0.20623439443029012,
+     "velocity_relative": 0.004303564996428616,
+     "velocity_l2": 0.0013819759851268704,
+     "velocity_linf": 0.0038625959904687902,
+     "max_speed_ratio": 1.0041820785482172,
+     "pressure_l2": 0.0027429857057663506,
+     "pressure_l2_centered": 0.0009403406435151211,
+     "pressure_centered_relative": 0.009119144710199815,
+     "pressure_offset": -0.0025767673655555504,
+     "density_max_deviation": 0.0010734796524047852,
+     "density_mean_deviation": -2.681584358215332e-05,
+     "kernel_sum_min": 0.9935004115104675,
+     "kernel_sum_max": 1.0033740997314453
+    },
+    "2": {
+     "time": 2.00025,
+     "energy_ratio": 0.04327442485422046,
+     "energy_ratio_exact": 0.04248228164184409,
+     "velocity_relative": 0.009493981502920211,
+     "velocity_l2": 0.001383709905848388,
+     "velocity_linf": 0.002288557596189112,
+     "max_speed_ratio": 1.009466793077668,
+     "pressure_l2": 0.0018189270695679115,
+     "pressure_l2_centered": 0.0003276196678597131,
+     "pressure_centered_relative": 0.0154238263670384,
+     "pressure_offset": -0.001789178872454736,
+     "density_max_deviation": 0.0002352595329284668,
+     "density_mean_deviation": -1.8017303943634032e-05,
+     "kernel_sum_min": 0.9949052333831787,
+     "kernel_sum_max": 1.0026863813400269
+    }
+   },
+   "snapshot_errors": {
+    "t0p5": {
+     "time": 0.50025,
+     "velocity_relative": 0.002307009032287886,
+     "velocity_relative_effective": 0.003698947515030634,
+     "velocity_relative_fitted_amplitude": 0.002288844258337145,
+     "amplitude_ratio": 1.0002889336189071,
+     "pressure_centered_relative": 0.005499764502159052
+    },
+    "t1": {
+     "time": 0.99975,
+     "velocity_relative": 0.004303565219389393,
+     "velocity_relative_effective": 0.003385583060489862,
+     "velocity_relative_fitted_amplitude": 0.0021108754558740467,
+     "amplitude_ratio": 1.003750317107569,
+     "pressure_centered_relative": 0.00911914479338489
+    },
+    "t2": {
+     "time": 2.00025,
+     "velocity_relative": 0.009493981170385463,
+     "velocity_relative_effective": 0.004143103573450323,
+     "velocity_relative_fitted_amplitude": 0.0020948894429566713,
+     "amplitude_ratio": 1.0092599739030637,
+     "pressure_centered_relative": 0.015423825888955165
+    }
+   },
+   "support_over_spacing": 5.0
+  },
+  "re100_n1600": {
+   "name": "re100_n1600",
+   "case": "cases/tgv_2d_eps1e-4/re100_n1600/case.yaml",
+   "particles": 2560000,
+   "side": 1600,
+   "reynolds": 100.0,
+   "mach": 0.1,
+   "speed_of_sound": 10.0,
+   "smoothing_length": 0.003125,
+   "timestep": 1.220703125e-05,
+   "steps": 163840,
+   "steps_per_second": 187.77,
+   "wall_seconds": 878.14,
+   "drift": 0,
+   "overflow": {},
+   "correction_fallback": 0,
+   "density_from_pressure": true,
+   "commit": "9ed7b16",
+   "viscosity_fit": {
+    "ratio": 0.9952218127048479,
+    "intercept": 0.0005507981746544037,
+    "rms": 0.00014466140920868582,
+    "points": 98,
+    "window": [
+     0.1,
+     2.0
+    ]
+   },
+   "viscosity_ratio": 0.9952218127048479,
+   "viscosity_ratio_t1": 0.994767035964608,
+   "viscosity_ratio_t2": 0.9951192491497547,
+   "t_end": 2.0,
+   "kinetic_energy_0": 0.28232740075637225,
+   "kinetic_energy_lattice_0": 0.2499999999769717,
+   "kinetic_energy_exact_0": 0.25,
+   "errors": {
+    "0.5": {
+     "time": 0.5,
+     "energy_ratio": 0.4560075456600766,
+     "energy_ratio_exact": 0.45404073872724504,
+     "velocity_relative": 0.002397192868264947,
+     "velocity_l2": 0.001142004554003693,
+     "velocity_linf": 0.0024097981013370033,
+     "max_speed_ratio": 1.0033837294919405,
+     "pressure_l2": 0.0008234725950695397,
+     "pressure_l2_centered": 0.0008026672077527173,
+     "pressure_centered_relative": 0.0035356616236804335,
+     "pressure_offset": -0.00018393604439863865,
+     "density_max_deviation": 0.002299189567565918,
+     "density_mean_deviation": -6.5742209320887926e-06,
+     "kernel_sum_min": 0.992831289768219,
+     "kernel_sum_max": 1.008363962173462
+    },
+    "1": {
+     "time": 1.0,
+     "energy_ratio": 0.20786360935965986,
+     "energy_ratio_exact": 0.20615299242398238,
+     "velocity_relative": 0.004355765158677717,
+     "velocity_l2": 0.0013982342167646374,
+     "velocity_linf": 0.0023227716423206615,
+     "max_speed_ratio": 1.0050328068255643,
+     "pressure_l2": 0.006126047256173219,
+     "pressure_l2_centered": 0.000642191411386053,
+     "pressure_centered_relative": 0.006230240985930457,
+     "pressure_offset": -0.0060922939174016715,
+     "density_max_deviation": 0.001105964183807373,
+     "density_mean_deviation": -6.245387292001396e-05,
+     "kernel_sum_min": 0.992154061794281,
+     "kernel_sum_max": 1.0087859630584717
+    },
+    "2": {
+     "time": 2.0,
+     "energy_ratio": 0.043159243665034396,
+     "energy_ratio_exact": 0.04249905628536254,
+     "velocity_relative": 0.008067027237224899,
+     "velocity_l2": 0.0011757126342599026,
+     "velocity_linf": 0.001880713399690701,
+     "max_speed_ratio": 1.0091200945052738,
+     "pressure_l2": 0.005248017085255536,
+     "pressure_l2_centered": 0.00027631399868957953,
+     "pressure_centered_relative": 0.013003300441979329,
+     "pressure_offset": -0.005240737915719712,
+     "density_max_deviation": 0.0002696514129638672,
+     "density_mean_deviation": -5.275176707655191e-05,
+     "kernel_sum_min": 0.9898866415023804,
+     "kernel_sum_max": 1.0125991106033325
+    }
+   },
+   "snapshot_errors": {
+    "t0p5": {
+     "time": 0.5,
+     "velocity_relative": 0.002397192880244843,
+     "velocity_relative_effective": 0.0007425147426015548,
+     "velocity_relative_fitted_amplitude": 0.0006062473497073956,
+     "amplitude_ratio": 1.0023192666634242,
+     "pressure_centered_relative": 0.003535661606296226
+    },
+    "t1": {
+     "time": 1.0,
+     "velocity_relative": 0.004355765176657737,
+     "velocity_relative_effective": 0.0009117380961049669,
+     "velocity_relative_fitted_amplitude": 0.0007605674771801282,
+     "amplitude_ratio": 1.0042888491914312,
+     "pressure_centered_relative": 0.006230240975340755
+    },
+    "t2": {
+     "time": 2.0,
+     "velocity_relative": 0.008067027240198725,
+     "velocity_relative_effective": 0.001471377875662542,
+     "velocity_relative_fitted_amplitude": 0.0014371328471892869,
+     "amplitude_ratio": 1.0079379832245752,
+     "pressure_centered_relative": 0.013003300451779626
+    }
+   },
+   "support_over_spacing": 5.0
+  },
+  "re100_n200": {
+   "name": "re100_n200",
+   "case": "cases/tgv_2d_eps1e-4/re100_n200/case.yaml",
+   "particles": 40000,
+   "side": 200,
+   "reynolds": 100.0,
+   "mach": 0.1,
+   "speed_of_sound": 10.0,
+   "smoothing_length": 0.025,
+   "timestep": 0.000375,
+   "steps": 5333,
+   "steps_per_second": 1490.25,
+   "wall_seconds": 3.66,
+   "drift": 0,
+   "overflow": {},
+   "correction_fallback": 0,
+   "density_from_pressure": true,
+   "commit": "9ed7b16",
+   "viscosity_fit": {
+    "ratio": 0.9936847193078376,
+    "intercept": -0.0012140205648539213,
+    "rms": 0.0007843354488673933,
+    "points": 98,
+    "window": [
+     0.1,
+     1.999875
+    ]
+   },
+   "viscosity_ratio": 0.9936847193078376,
+   "viscosity_ratio_t1": 0.9939065184221157,
+   "viscosity_ratio_t2": 0.9944932167904137,
+   "t_end": 1.999875,
+   "kinetic_energy_0": 0.2823274004548628,
+   "kinetic_energy_lattice_0": 0.249999999709986,
+   "kinetic_energy_exact_0": 0.25,
+   "errors": {
+    "0.5": {
+     "time": 0.499875,
+     "energy_ratio": 0.45590091442353026,
+     "energy_ratio_exact": 0.4541303716228305,
+     "velocity_relative": 0.0022475437283208752,
+     "velocity_l2": 0.0010710047276138613,
+     "velocity_linf": 0.0029995572642123078,
+     "max_speed_ratio": 1.0026747032375027,
+     "pressure_l2": 0.0020926946932858406,
+     "pressure_l2_centered": 0.0009530968962010822,
+     "pressure_centered_relative": 0.004197459389448891,
+     "pressure_offset": -0.0018630559266319896,
+     "density_max_deviation": 0.0023171305656433105,
+     "density_mean_deviation": -2.2903700172901155e-05,
+     "kernel_sum_min": 0.9925227761268616,
+     "kernel_sum_max": 1.0042835474014282
+    },
+    "1": {
+     "time": 1.000125,
+     "energy_ratio": 0.2081054299286488,
+     "energy_ratio_exact": 0.2061123034703268,
+     "velocity_relative": 0.004929811147468769,
+     "velocity_l2": 0.0015826129403520067,
+     "velocity_linf": 0.0028932850324413185,
+     "max_speed_ratio": 1.0054674962292889,
+     "pressure_l2": 0.0018308897309082218,
+     "pressure_l2_centered": 0.0007073611675853746,
+     "pressure_centered_relative": 0.006863842242073731,
+     "pressure_offset": -0.00168872655730211,
+     "density_max_deviation": 0.0010620951652526855,
+     "density_mean_deviation": -1.791693866252899e-05,
+     "kernel_sum_min": 0.9942783117294312,
+     "kernel_sum_max": 1.0036554336547852
+    },
+    "2": {
+     "time": 1.999875,
+     "energy_ratio": 0.04325315171311987,
+     "energy_ratio_exact": 0.042507446090835024,
+     "velocity_relative": 0.008781382942761718,
+     "velocity_l2": 0.0012802343484259475,
+     "velocity_linf": 0.001950851498973324,
+     "max_speed_ratio": 1.008988757988008,
+     "pressure_l2": 0.0011539270331558822,
+     "pressure_l2_centered": 0.00023825154604810737,
+     "pressure_centered_relative": 0.011209873467297132,
+     "pressure_offset": -0.0011290632394395023,
+     "density_max_deviation": 0.00022786855697631836,
+     "density_mean_deviation": -1.140974760055542e-05,
+     "kernel_sum_min": 0.9950359463691711,
+     "kernel_sum_max": 1.0024762153625488
+    }
+   },
+   "snapshot_errors": {
+    "t0p5": {
+     "time": 0.499875,
+     "velocity_relative": 0.0022475436097609174,
+     "velocity_relative_effective": 0.0012829829485295015,
+     "velocity_relative_fitted_amplitude": 0.001154358225110013,
+     "amplitude_ratio": 1.0019284473977523,
+     "pressure_centered_relative": 0.004197459482856204
+    },
+    "t1": {
+     "time": 1.000125,
+     "velocity_relative": 0.004929811120767186,
+     "velocity_relative_effective": 0.001111352794490968,
+     "velocity_relative_fitted_amplitude": 0.001099950679347886,
+     "amplitude_ratio": 1.0048055328725796,
+     "pressure_centered_relative": 0.006863842241435083
+    },
+    "t2": {
+     "time": 1.999875,
+     "velocity_relative": 0.008781382869207637,
+     "velocity_relative_effective": 0.001696340357644042,
+     "velocity_relative_fitted_amplitude": 0.001103990595896083,
+     "amplitude_ratio": 1.008711709927436,
+     "pressure_centered_relative": 0.011209873581762134
+    }
+   },
+   "support_over_spacing": 5.0
+  },
+  "re100_n400": {
+   "name": "re100_n400",
+   "case": "cases/tgv_2d_eps1e-4/re100_n400/case.yaml",
+   "particles": 160000,
+   "side": 400,
+   "reynolds": 100.0,
+   "mach": 0.1,
+   "speed_of_sound": 10.0,
+   "smoothing_length": 0.0125,
+   "timestep": 0.0001875,
+   "steps": 10667,
+   "steps_per_second": 755.3,
+   "wall_seconds": 14.45,
+   "drift": 0,
+   "overflow": {},
+   "correction_fallback": 0,
+   "density_from_pressure": true,
+   "commit": "9ed7b16",
+   "viscosity_fit": {
+    "ratio": 0.9948370360004775,
+    "intercept": 0.00010607189646312187,
+    "rms": 0.0006972687180758167,
+    "points": 97,
+    "window": [
+     0.1,
+     2.0
+    ]
+   },
+   "viscosity_ratio": 0.9948370360004775,
+   "viscosity_ratio_t1": 0.9943086660898022,
+   "viscosity_ratio_t2": 0.995225644188765,
+   "t_end": 2.0000625,
+   "kinetic_energy_0": 0.28232740080841867,
+   "kinetic_energy_lattice_0": 0.2500000000230586,
+   "kinetic_energy_exact_0": 0.25,
+   "errors": {
+    "0.5": {
+     "time": 0.5000625,
+     "energy_ratio": 0.4559698864511708,
+     "energy_ratio_exact": 0.4539959289138249,
+     "velocity_relative": 0.0023375141401530183,
+     "velocity_l2": 0.0011136440325924721,
+     "velocity_linf": 0.0023471441594818863,
+     "max_speed_ratio": 1.003078314076587,
+     "pressure_l2": 0.001600048830418221,
+     "pressure_l2_centered": 0.0007189801876824541,
+     "pressure_centered_relative": 0.003167342004156725,
+     "pressure_offset": -0.0014294137782471595,
+     "density_max_deviation": 0.0023092031478881836,
+     "density_mean_deviation": -1.8566427007317544e-05,
+     "kernel_sum_min": 0.9916434288024902,
+     "kernel_sum_max": 1.0046840906143188
+    },
+    "1": {
+     "time": 0.9999375,
+     "energy_ratio": 0.20803453579883407,
+     "energy_ratio_exact": 0.20617333991288744,
+     "velocity_relative": 0.004557572287984837,
+     "velocity_l2": 0.0014632972234719084,
+     "velocity_linf": 0.002377397531996535,
+     "max_speed_ratio": 1.0050581825874918,
+     "pressure_l2": 0.0014986976421140113,
+     "pressure_l2_centered": 0.0005988274751247581,
+     "pressure_centered_relative": 0.005808970988953036,
+     "pressure_offset": -0.001373863267401019,
+     "density_max_deviation": 0.0010578036308288574,
+     "density_mean_deviation": -1.4755012840032577e-05,
+     "kernel_sum_min": 0.9944431185722351,
+     "kernel_sum_max": 1.0032308101654053
+    },
+    "2": {
+     "time": 2.0000625,
+     "energy_ratio": 0.0431405058556676,
+     "energy_ratio_exact": 0.042494862003615894,
+     "velocity_relative": 0.007588977283775902,
+     "velocity_l2": 0.0011062236873678685,
+     "velocity_linf": 0.001721086310446541,
+     "max_speed_ratio": 1.0079652845104348,
+     "pressure_l2": 0.0012223850709790548,
+     "pressure_l2_centered": 0.00019526161301695343,
+     "pressure_centered_relative": 0.009189892792231615,
+     "pressure_offset": -0.0012066889260428663,
+     "density_max_deviation": 0.0002281665802001953,
+     "density_mean_deviation": -1.218242086470127e-05,
+     "kernel_sum_min": 0.9960598945617676,
+     "kernel_sum_max": 1.0026462078094482
+    }
+   },
+   "snapshot_errors": {
+    "t0p5": {
+     "time": 0.5000625,
+     "velocity_relative": 0.0023375142300503748,
+     "velocity_relative_effective": 0.0007658715431877766,
+     "velocity_relative_fitted_amplitude": 0.0007473983061853518,
+     "amplitude_ratio": 1.0022148066614494,
+     "pressure_centered_relative": 0.003167341963578405
+    },
+    "t1": {
+     "time": 0.9999375,
+     "velocity_relative": 0.0045575724460995126,
+     "velocity_relative_effective": 0.0007867843334376565,
+     "velocity_relative_fitted_amplitude": 0.0006665836881941664,
+     "amplitude_ratio": 1.0045085621641583,
+     "pressure_centered_relative": 0.0058089709916959555
+    },
+    "t2": {
+     "time": 2.0000625,
+     "velocity_relative": 0.007588977377835593,
+     "velocity_relative_effective": 0.0009667744776222295,
+     "velocity_relative_fitted_amplitude": 0.000740449043403258,
+     "amplitude_ratio": 1.0075527685556638,
+     "pressure_centered_relative": 0.009189892802287618
+    }
+   },
+   "support_over_spacing": 5.0
+  },
+  "re100_n50": {
+   "name": "re100_n50",
+   "case": "cases/tgv_2d_eps1e-4/re100_n50/case.yaml",
+   "particles": 2500,
+   "side": 50,
+   "reynolds": 100.0,
+   "mach": 0.1,
+   "speed_of_sound": 10.0,
+   "smoothing_length": 0.1,
+   "timestep": 0.0015,
+   "steps": 1333,
+   "steps_per_second": 2175.22,
+   "wall_seconds": 0.63,
+   "drift": 0,
+   "overflow": {},
+   "correction_fallback": 0,
+   "density_from_pressure": true,
+   "commit": "9ed7b16",
+   "viscosity_fit": {
+    "ratio": 0.9879608303701566,
+    "intercept": -0.015711433555056963,
+    "rms": 0.0007567927448961763,
+    "points": 100,
+    "window": [
+     0.1,
+     1.9995
+    ]
+   },
+   "viscosity_ratio": 0.9879608303701566,
+   "viscosity_ratio_t1": 0.9979014366826501,
+   "viscosity_ratio_t2": 0.992954857033814,
+   "t_end": 1.9995,
+   "kinetic_energy_0": 0.2823274000670055,
+   "kinetic_energy_lattice_0": 0.24999999936653963,
+   "kinetic_energy_exact_0": 0.25,
+   "errors": {
+    "0.5": {
+     "time": 0.4995,
+     "energy_ratio": 0.4513536367877106,
+     "energy_ratio_exact": 0.45439937649098466,
+     "velocity_relative": 0.007170540249458576,
+     "velocity_l2": 0.003418063249118942,
+     "velocity_linf": 0.012036986022632526,
+     "max_speed_ratio": 0.9942003218438943,
+     "pressure_l2": 0.004255654292044859,
+     "pressure_l2_centered": 0.004151387209150631,
+     "pressure_centered_relative": 0.018271975816555704,
+     "pressure_offset": -0.0009362572793310441,
+     "density_max_deviation": 0.0023496150970458984,
+     "density_mean_deviation": -1.387782096862793e-05,
+     "kernel_sum_min": 0.9933856725692749,
+     "kernel_sum_max": 1.0055757761001587
+    },
+    "1": {
+     "time": 1.0005,
+     "energy_ratio": 0.20667439457471726,
+     "energy_ratio_exact": 0.20599028478832912,
+     "velocity_relative": 0.00499007627902457,
+     "velocity_l2": 0.001601490693289255,
+     "velocity_linf": 0.00839949299203474,
+     "max_speed_ratio": 1.001758195445379,
+     "pressure_l2": 0.0023545747194115125,
+     "pressure_l2_centered": 0.0021841994386705083,
+     "pressure_centered_relative": 0.02120681993245401,
+     "pressure_offset": -0.0008793718902735275,
+     "density_max_deviation": 0.001073002815246582,
+     "density_mean_deviation": -9.89217758178711e-06,
+     "kernel_sum_min": 0.9937939047813416,
+     "kernel_sum_max": 1.004056692123413
+    },
+    "2": {
+     "time": 1.9995,
+     "energy_ratio": 0.04348936233003968,
+     "energy_ratio_exact": 0.042532625446028496,
+     "velocity_relative": 0.011863931099114638,
+     "velocity_l2": 0.0017301632345853456,
+     "velocity_linf": 0.0033462711503183746,
+     "max_speed_ratio": 1.0109019210426513,
+     "pressure_l2": 0.0006642852265706867,
+     "pressure_l2_centered": 0.0006632326994329516,
+     "pressure_centered_relative": 0.031187009618042813,
+     "pressure_offset": 3.7379789230929405e-05,
+     "density_max_deviation": 0.00023567676544189453,
+     "density_mean_deviation": 2.4154186248779294e-07,
+     "kernel_sum_min": 0.9949746131896973,
+     "kernel_sum_max": 1.0027767419815063
+    }
+   },
+   "snapshot_errors": {
+    "t0p5": {
+     "time": 0.4995,
+     "velocity_relative": 0.0071705401884615185,
+     "velocity_relative_effective": 0.01028279656099204,
+     "velocity_relative_fitted_amplitude": 0.006295441302876109,
+     "amplitude_ratio": 0.9965672073473071,
+     "pressure_centered_relative": 0.018271975683099632
+    },
+    "t1": {
+     "time": 1.0005,
+     "velocity_relative": 0.004990076082613321,
+     "velocity_relative_effective": 0.009138132522334919,
+     "velocity_relative_fitted_amplitude": 0.004717175432842222,
+     "amplitude_ratio": 1.001627610286911,
+     "pressure_centered_relative": 0.02120681995915832
+    },
+    "t2": {
+     "time": 1.9995,
+     "velocity_relative": 0.01186393159318514,
+     "velocity_relative_effective": 0.008838187432462705,
+     "velocity_relative_fitted_amplitude": 0.004060021635229103,
+     "amplitude_ratio": 1.011147604997005,
+     "pressure_centered_relative": 0.031187009280992547
+    }
+   },
+   "support_over_spacing": 5.0
+  },
+  "re100_n800": {
+   "name": "re100_n800",
+   "case": "cases/tgv_2d_eps1e-4/re100_n800/case.yaml",
+   "particles": 640000,
+   "side": 800,
+   "reynolds": 100.0,
+   "mach": 0.1,
+   "speed_of_sound": 10.0,
+   "smoothing_length": 0.00625,
+   "timestep": 4.8828125e-05,
+   "steps": 40960,
+   "steps_per_second": 480.08,
+   "wall_seconds": 86.61,
+   "drift": 0,
+   "overflow": {},
+   "correction_fallback": 0,
+   "density_from_pressure": true,
+   "commit": "9ed7b16",
+   "viscosity_fit": {
+    "ratio": 0.9961184515252076,
+    "intercept": 0.0005489385053594114,
+    "rms": 0.0005863369926750088,
+    "points": 98,
+    "window": [
+     0.1,
+     2.0
+    ]
+   },
+   "viscosity_ratio": 0.9961184515252076,
+   "viscosity_ratio_t1": 0.9953700745808772,
+   "viscosity_ratio_t2": 0.9962673990907344,
+   "t_end": 2.0,
+   "kinetic_energy_0": 0.2823274007448082,
+   "kinetic_energy_lattice_0": 0.24999999996673175,
+   "kinetic_energy_exact_0": 0.25,
+   "errors": {
+    "0.5": {
+     "time": 0.5,
+     "energy_ratio": 0.4557451027620666,
+     "energy_ratio_exact": 0.45404073872724504,
+     "velocity_relative": 0.002079437215214642,
+     "velocity_l2": 0.0009906806480627125,
+     "velocity_linf": 0.0021695493236020395,
+     "max_speed_ratio": 1.0030189273923618,
+     "pressure_l2": 0.0018032556994747161,
+     "pressure_l2_centered": 0.000741666084621169,
+     "pressure_centered_relative": 0.0032669583205251038,
+     "pressure_offset": -0.0016436734884431128,
+     "density_max_deviation": 0.00231248140335083,
+     "density_mean_deviation": -2.066239481791854e-05,
+     "kernel_sum_min": 0.994057834148407,
+     "kernel_sum_max": 1.0050816535949707
+    },
+    "1": {
+     "time": 1.0,
+     "energy_ratio": 0.20766575913529242,
+     "energy_ratio_exact": 0.20615299242398238,
+     "velocity_relative": 0.0037424499318581194,
+     "velocity_l2": 0.0012014821582197978,
+     "velocity_linf": 0.002042717322581326,
+     "max_speed_ratio": 1.0041046727713874,
+     "pressure_l2": 0.0019630842153699458,
+     "pressure_l2_centered": 0.0004891822601432923,
+     "pressure_centered_relative": 0.0047458176996744315,
+     "pressure_offset": -0.001901157634967636,
+     "density_max_deviation": 0.0010616183280944824,
+     "density_mean_deviation": -2.0031271874904634e-05,
+     "kernel_sum_min": 0.9950662851333618,
+     "kernel_sum_max": 1.0035831928253174
+    },
+    "2": {
+     "time": 2.0,
+     "energy_ratio": 0.043003024259180254,
+     "energy_ratio_exact": 0.04249905628536254,
+     "velocity_relative": 0.00594826032273746,
+     "velocity_l2": 0.000867090794191492,
+     "velocity_linf": 0.0013616768833074149,
+     "max_speed_ratio": 1.0063290988927198,
+     "pressure_l2": 0.0005316094136827788,
+     "pressure_l2_centered": 0.00016803555523698437,
+     "pressure_centered_relative": 0.007907731132131465,
+     "pressure_offset": -0.0005043536664805226,
+     "density_max_deviation": 0.00022071599960327148,
+     "density_mean_deviation": -5.170024465769529e-06,
+     "kernel_sum_min": 0.9958496689796448,
+     "kernel_sum_max": 1.002280831336975
+    }
+   },
+   "snapshot_errors": {
+    "t0p5": {
+     "time": 0.5,
+     "velocity_relative": 0.0020794371841007745,
+     "velocity_relative_effective": 0.0007798733394730566,
+     "velocity_relative_fitted_amplitude": 0.0006425025681994986,
+     "amplitude_ratio": 1.0019776879057316,
+     "pressure_centered_relative": 0.003266958329595574
+    },
+    "t1": {
+     "time": 1.0,
+     "velocity_relative": 0.0037424499668505624,
+     "velocity_relative_effective": 0.0008240284845713642,
+     "velocity_relative_fitted_amplitude": 0.0005285342483975469,
+     "amplitude_ratio": 1.0037049403912413,
+     "pressure_centered_relative": 0.004745817689022184
+    },
+    "t2": {
+     "time": 2.0,
+     "velocity_relative": 0.0059482603943750625,
+     "velocity_relative_effective": 0.0006966397115462668,
+     "velocity_relative_fitted_amplitude": 0.0006597262232116531,
+     "amplitude_ratio": 1.0059115618096828,
+     "pressure_centered_relative": 0.007907731162594854
+    }
+   },
+   "support_over_spacing": 5.0
+  }
+ },
+ "convergence": {
+  "re100": {
+   "runs": [
+    "re100_n50",
+    "re100_n100",
+    "re100_n200",
+    "re100_n400",
+    "re100_n800",
+    "re100_n1600"
+   ],
+   "dx": [
+    0.02,
+    0.01,
+    0.005,
+    0.0025,
+    0.00125,
+    0.000625
+   ],
+   "velocity_relative_t1": {
+    "values": [
+     0.00499007627902457,
+     0.004303564996428616,
+     0.004929811147468769,
+     0.004557572287984837,
+     0.0037424499318581194,
+     0.004355765158677717
+    ],
+    "order": 0.04853122994094147
+   },
+   "velocity_relative_t2": {
+    "values": [
+     0.011863931099114638,
+     0.009493981502920211,
+     0.008781382942761718,
+     0.007588977283775902,
+     0.00594826032273746,
+     0.008067027237224899
+    ],
+    "order": 0.1433298428709004
+   },
+   "shape_t1": {
+    "values": [
+     0.009138132522334919,
+     0.003385583060489862,
+     0.001111352794490968,
+     0.0007867843334376565,
+     0.0008240284845713642,
+     0.0009117380961049669
+    ],
+    "order": 0.6640066096869138
+   },
+   "shape_t2": {
+    "values": [
+     0.008838187432462705,
+     0.004143103573450323,
+     0.001696340357644042,
+     0.0009667744776222295,
+     0.0006966397115462668,
+     0.001471377875662542
+    ],
+    "order": 0.6131648510706721
+   },
+   "fitted_amplitude_t1": {
+    "values": [
+     0.004717175432842222,
+     0.0021108754558740467,
+     0.001099950679347886,
+     0.0006665836881941664,
+     0.0005285342483975469,
+     0.0007605674771801282
+    ],
+    "order": 0.5679935489969582
+   },
+   "pressure_t1": {
+    "values": [
+     0.02120681993245401,
+     0.009119144710199815,
+     0.006863842242073731,
+     0.005808970988953036,
+     0.0047458176996744315,
+     0.006230240985930457
+    ],
+    "order": 0.3400943257713725
+   },
+   "viscosity_deficit": {
+    "values": [
+     0.012039169629843416,
+     0.008113405933488194,
+     0.006315280692162362,
+     0.005162963999522541,
+     0.0038815484747923845,
+     0.004778187295152114
+    ],
+    "order": 0.28993360897729853
+   }
+  },
+  "re1000": {}
+ },
+ "series": {
+  "re100": [
+   "re100_n50",
+   "re100_n100",
+   "re100_n200",
+   "re100_n400",
+   "re100_n800",
+   "re100_n1600",
+   "re100_n3200"
+  ],
+  "re1000": [
+   "re1000_n100",
+   "re1000_n200",
+   "re1000_n400",
+   "re1000_n800",
+   "re1000_n1600",
+   "re1000_n3200"
+  ],
+  "ablation": [
+   "re100_n200",
+   "re100_n200_nopst",
+   "re100_n200_nodelta",
+   "re100_n200_nokcg",
+   "re100_n200_vanilla"
+  ],
+  "mach": [
+   "re100_n200",
+   "re100_n200_ma0p05",
+   "re100_n200_ma0p02",
+   "re100_n200_ma0p01"
+  ],
+  "support": [
+   "re100_n200",
+   "re100_n200_hdx4",
+   "re100_n210_hdx3p5"
+  ],
+  "initial": [
+   "re100_n200",
+   "re100_n200_uniform"
+  ],
+  "repeats": [
+   "re100_n200",
+   "re100_n200_r2",
+   "re100_n200_r3"
+  ],
+  "diagnostics": [
+   "re100_n200",
+   "re100_n200_eps0",
+   "re100_n200_eps0p01",
+   "re100_n200_cfl0p015"
+  ],
+  "epsilon": [
+   "re100_n200_eps0",
+   "re100_n200_eps1e-5",
+   "re100_n200_eps1e-4",
+   "re100_n200_eps4e-4",
+   "re100_n200_eps1e-3",
+   "re100_n200",
+   "re100_n200_eps0p01"
+  ]
+ },
+ "fit_window": [
+  0.1,
+  2.0
+ ]
+}

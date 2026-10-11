@@ -1,0 +1,14 @@
+{"run": "re100_n50", "case": "re100_n50", "rc": 0, "wall_s": 1.2, "status": "ok", "drift": 0, "overflow": {}, "steps": 1333, "steps_per_second": 2210.13, "commit": "de01ad1"}
+{"run": "re100_n100", "case": "re100_n100", "rc": 0, "wall_s": 2.1, "status": "ok", "drift": 0, "overflow": {}, "steps": 2667, "steps_per_second": 1937.07, "commit": "de01ad1"}
+{"run": "re100_n200", "case": "re100_n200", "rc": 0, "wall_s": 4.4, "status": "ok", "drift": 0, "overflow": {}, "steps": 5333, "steps_per_second": 1499.26, "commit": "de01ad1"}
+{"run": "re100_n400", "case": "re100_n400", "rc": 0, "wall_s": 15.1, "status": "ok", "drift": 0, "overflow": {}, "steps": 10667, "steps_per_second": 758.45, "commit": "de01ad1"}
+{"run": "re100_n800", "case": "re100_n800", "rc": 0, "wall_s": 87.4, "status": "ok", "drift": 0, "overflow": {}, "steps": 40960, "steps_per_second": 481.62, "commit": "de01ad1"}
+{"run": "re100_n1600", "case": "re100_n1600", "rc": 0, "wall_s": 879.8, "status": "ok", "drift": 0, "overflow": {}, "steps": 163840, "steps_per_second": 187.9, "commit": "de01ad1"}
+{"run": "re100_n3200", "case": "re100_n3200", "rc": 0, "wall_s": 5919.5, "status": "ok", "drift": 0, "overflow": {}, "steps": 327679, "steps_per_second": 55.65, "commit": "de01ad1"}
+{"run": "re1000_n100", "case": "re1000_n100", "rc": 0, "wall_s": 1.8, "status": "ok", "drift": 0, "overflow": {}, "steps": 2667, "steps_per_second": 2011.17, "commit": "de01ad1"}
+{"run": "re1000_n200", "case": "re1000_n200", "rc": 0, "wall_s": 4.5, "status": "ok", "drift": 0, "overflow": {}, "steps": 5333, "steps_per_second": 1382.63, "commit": "de01ad1"}
+{"run": "re1000_n400", "case": "re1000_n400", "rc": 0, "wall_s": 16.3, "status": "ok", "drift": 0, "overflow": {}, "steps": 10667, "steps_per_second": 698.21, "commit": "de01ad1"}
+{"run": "re1000_n800", "case": "re1000_n800", "rc": 0, "wall_s": 68.2, "status": "ok", "drift": 0, "overflow": {}, "steps": 21333, "steps_per_second": 324.93, "commit": "de01ad1"}
+{"run": "re1000_n1600", "case": "re1000_n1600", "rc": 0, "wall_s": 371.5, "status": "ok", "drift": 0, "overflow": {}, "steps": 42667, "steps_per_second": 117.31, "commit": "de01ad1"}
+{"run": "re1000_n3200", "case": "re1000_n3200", "rc": 0, "wall_s": 2226.0, "status": "ok", "drift": 0, "overflow": {}, "steps": 85333, "steps_per_second": 38.86, "commit": "de01ad1"}
+{"run": "re100_n1600_center", "case": "re100_n1600_center", "rc": 0, "wall_s": 886.9, "status": "ok", "drift": 0, "overflow": {}, "steps": 163840, "steps_per_second": 186.45, "commit": "ddbb4fb"}

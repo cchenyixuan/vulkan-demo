@@ -95,13 +95,27 @@ def main() -> int:
             ("tgv_ablation", "Ablations at Re 100, 200²: δ+ default, no PST, no δ diffusion, no KCG, vanilla WCSPH: (a) energy "
                              "decay, (b) relative L2 velocity error."),
             ("tgv_fields", "200² default run at t = 1: speed, pressure (mean removed), velocity error, and the particles "
-                           "across the periodic edge x = L (the right part drawn at x + L), coloured by speed.")):
+                           "across the periodic edge x = L (the right part drawn at x + L), coloured by speed."),
+            ("tgv_energy_eps1e-4_delta", "Set v3 (ε² = 10⁻⁴ h², delta density), Re 100, 50²–3200²: (a) energy decay, (b) relative "
+                                         "L2 velocity error; the 3200² run ends at t = 1 (float32 position precision, §6.2)."),
+            ("tgv_convergence_eps1e-4_delta", "Set v3: errors at t = 1 against L/dx, Re 100 and Re 1000, up to 3200² (10.24 M particles)."),
+            ("tgv_viscosity_eps1e-4_delta", "Set v3: ν_eff/ν from the energy decay against L/dx."),
+            ("tgv_energy_eps1e-4", "Set v2 (ε² = 10⁻⁴ h², no delta density), Re 100, 50²–1600²: the 1600² curve shows the "
+                                   "float32 density quantisation that delta density removes.")):
         body.append(figure_html(figures / f"{name}.png", caption))
-    summary_md = data / "summary.md"
-    if summary_md.exists():
-        text = re.sub(r"^# .*$", "", summary_md.read_text(encoding="utf-8"), count=1, flags=re.MULTILINE)
-        text = re.sub(r"^## ", "### ", text, flags=re.MULTILINE)
-        body.append("<h2>附:活动汇总(原始,_analyze_tgv.py)</h2>" + render_markdown(text))
+    for directory, title in ((data, "附:第一轮活动汇总(原始,_analyze_tgv.py)"),
+                             (data.parent / "data_eps1e-4_delta", "附:v3 汇总(ε² 1e-4 h² + delta density,原始)"),
+                             (data.parent / "data_eps1e-4", "附:v2 汇总(ε² 1e-4 h²,无 delta,原始)")):
+        summary_md = directory / "summary.md"
+        if summary_md.exists():
+            text = re.sub(r"^# .*$", "", summary_md.read_text(encoding="utf-8"), count=1, flags=re.MULTILINE)
+            text = re.sub(r"^## ", "### ", text, flags=re.MULTILINE)
+            body.append(f"<h2>{title}</h2>" + render_markdown(text))
+        comparison = directory / "comparison.md"
+        if comparison.exists():
+            text = re.sub(r"^# (.*)$", r"### \1", comparison.read_text(encoding="utf-8"), count=1, flags=re.MULTILINE)
+            text = re.sub(r"^## ", "#### ", text, flags=re.MULTILINE)
+            body.append(render_markdown(text))
     for path, title in ((root / arguments.periodic_test, "附:周期域验收(原始 JSON)"),
                         (root / arguments.equivalence_test, "附:方腔等价验收(原始 JSON)")):
         if path.exists():
