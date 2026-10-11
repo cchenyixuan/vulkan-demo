@@ -63,6 +63,9 @@ _add("re100_n210_hdx3p5", "re100_n210_hdx3p5", ["--side", "210", "--reynolds", "
 _add("re100_n200_eps0", "re100_n200_eps0", ["--side", "200", "--reynolds", "100", "--epsilon-squared-factor", "1e-8"])
 _add("re100_n200_eps0p01", "re100_n200_eps0p01", ["--side", "200", "--reynolds", "100", "--epsilon-squared-factor", "0.01"])
 _add("re100_n200_cfl0p015", "re100_n200_cfl0p015", ["--side", "200", "--reynolds", "100", "--cfl", "0.015"])
+# I. eps^2 sweep at Re = 100, 200^2 (the default 0.0025 h^2 is re100_n200, 1e-8 is re100_n200_eps0, 0.01 is _eps0p01)
+for factor, label in ((1e-5, "eps1e-5"), (1e-4, "eps1e-4"), (4e-4, "eps4e-4"), (1e-3, "eps1e-3")):
+    _add(f"re100_n200_{label}", f"re100_n200_{label}", ["--side", "200", "--reynolds", "100", "--epsilon-squared-factor", str(factor)])
 _add("re100_n200_r2", "re100_n200", ["--side", "200", "--reynolds", "100"], ["--tag", "repeat2"])
 _add("re100_n200_r3", "re100_n200", ["--side", "200", "--reynolds", "100"], ["--tag", "repeat3"])
 
