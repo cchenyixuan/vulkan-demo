@@ -46,6 +46,7 @@ SERIES = {
     "diagnostics": ["re100_n200", "re100_n200_eps0", "re100_n200_eps0p01", "re100_n200_cfl0p015"],
     "epsilon": ["re100_n200_eps0", "re100_n200_eps1e-5", "re100_n200_eps1e-4", "re100_n200_eps4e-4", "re100_n200_eps1e-3",
                 "re100_n200", "re100_n200_eps0p01"],
+    "mach400": ["re100_n400", "re100_n400_ma0p05", "re100_n400_ma0p02", "re100_n400_ma0p01"],
 }
 LABELS = {
     "re100_n200": "default (δ+, PST, KCG; Ma 0.1; h/dx 5; ρ(p₀))", "re100_n200_nopst": "no PST",
@@ -57,6 +58,8 @@ LABELS = {
     "re100_n200_cfl0p015": "CFL 0.015 (dt / 10 at Ma 0.1)",
     "re100_n200_eps1e-5": "ε² = 10⁻⁵ h²", "re100_n200_eps1e-4": "ε² = 10⁻⁴ h²", "re100_n200_eps4e-4": "ε² = 4·10⁻⁴ h²",
     "re100_n200_eps1e-3": "ε² = 10⁻³ h²",
+    "re100_n400": "Ma 0.1 (c₀ = 10), 400²", "re100_n400_ma0p05": "Ma 0.05 (c₀ = 20), 400²",
+    "re100_n400_ma0p02": "Ma 0.02 (c₀ = 50), 400²", "re100_n400_ma0p01": "Ma 0.01 (c₀ = 100), 400²",
 }
 ERROR_TIMES = (0.5, 1.0, 2.0)
 FIT_WINDOW = (0.1, 2.0)
@@ -459,7 +462,7 @@ def write_outputs(summaries: dict, convergence: dict, out: pathlib.Path, title: 
     for key, title in (("ablation", "Ablations (Re 100, 200²)"), ("mach", "Mach number (Re 100, 200²)"),
                        ("support", "Kernel support h/dx (Re 100)"), ("initial", "Initial density (Re 100, 200²)"),
                        ("repeats", "Repeats (Re 100, 200²)"), ("diagnostics", "Diagnostics: ε² and dt (Re 100, 200²)"),
-                       ("epsilon", "ε² sweep (Re 100, 200²)")):
+                       ("epsilon", "ε² sweep (Re 100, 200²)"), ("mach400", "Mach number (Re 100, 400²)")):
         lines += [f"## {title}", ""] + series_table(summaries, SERIES[key], "variant") + [""]
     lines += ["## Every run", "", "| run | particles | dt | steps | steps/s | wall s | drift | overflow | KCG fallback | commit |",
               "|---|---|---|---|---|---|---|---|---|---|"]
@@ -536,8 +539,13 @@ def main() -> int:
     parser.add_argument("--title", default="Taylor–Green campaign summary", help="summary.md title")
     parser.add_argument("--compare", default=None, help="a second run root: <out>/comparison.md, run by run")
     parser.add_argument("--compare-labels", default="A,B", help="labels of --runs and --compare in the comparison")
+    parser.add_argument("--exclude-runs", default="", help="comma-separated run names left out of the series and figures "
+                                                           "(the paper's convergence figure without the float32-limited 3200²)")
     arguments = parser.parse_args()
     runs, summaries = load_set(_REPOSITORY_ROOT / arguments.runs)
+    for name in [n.strip() for n in arguments.exclude_runs.split(",") if n.strip()]:
+        runs.pop(name, None)
+        summaries.pop(name, None)
     convergence = {series: convergence_rows(summaries, SERIES[series]) for series in ("re100", "re1000")}
     out = _REPOSITORY_ROOT / arguments.out
     write_outputs(summaries, convergence, out, arguments.title)

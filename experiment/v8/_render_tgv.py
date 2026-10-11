@@ -14,6 +14,7 @@ _render_tgv.py — pictures of the Taylor–Green runs from their particle snaps
 from __future__ import annotations
 
 import argparse
+import math
 import pathlib
 import sys
 
@@ -52,6 +53,51 @@ def fill_nan(image: np.ndarray) -> np.ndarray:
     return image[tuple(index)]
 
 
+def wendland_c4_gradient_scalar(distance: np.ndarray, h: float) -> np.ndarray:
+    """dW/dr of the 2-D Wendland C4 with support h (helpers.glsl): gradient = this * (x_ij / r)."""
+    q = distance / h
+    inside = q < 1.0
+    one_minus = np.where(inside, 1.0 - q, 0.0)
+    return (9.0 / (math.pi * h * h) / h) * one_minus ** 5 * q * ((-280.0 / 3.0) * q - 56.0 / 3.0) * inside
+
+
+def sph_vorticity(position: np.ndarray, velocity: np.ndarray, density: np.ndarray, h: float, dx: float,
+                  box: float = 1.0, xi: float = 0.001, block: int = 100_000) -> np.ndarray:
+    """omega_i = sum_j V_j (v_j - v_i) x (L_i grad W_ij) with the solver's kernel, calibrated volume (V_j = m / rho_j,
+    m = rho0 V_lattice), KCG matrix L_i = (M_i + xi I)^-1 and the minimum-image periodic box: the vorticity the
+    solver's own operators see on the particles (float64, blocks of `block` particles against a periodic cKDTree)."""
+    from scipy.spatial import cKDTree
+    from experiment.v7.utils.case_loader_v7 import _calibrate_particle_volume
+    points = position[:, :2].astype(np.float64)
+    mass = _calibrate_particle_volume(h, 0.5 * dx, 2, "grid")       # rho0 = 1
+    volume = mass / density.astype(np.float64)
+    tree = cKDTree(points, boxsize=box)
+    omega = np.zeros(points.shape[0])
+    for start in range(0, points.shape[0], block):
+        stop = min(start + block, points.shape[0])
+        block_tree = cKDTree(points[start:stop], boxsize=box)
+        pairs = block_tree.sparse_distance_matrix(tree, h * (1 + 1e-9), output_type="ndarray")
+        i = pairs["i"] + start
+        j = pairs["j"]
+        keep = (i != j) & (pairs["v"] > 1e-12)
+        i, j, distance = i[keep], j[keep], pairs["v"][keep]
+        difference = points[i] - points[j]                             # x_ij = r_i - r_j
+        difference -= box * np.round(difference / box)
+        gradient = (wendland_c4_gradient_scalar(distance, h) / distance)[:, None] * difference
+        weighted = gradient * volume[j][:, None]
+        # M_i = sum_j V_j (r_j - r_i) (x) grad W_ij, then L_i = (M_i + xi I)^-1
+        matrix = np.zeros((stop - start, 2, 2))
+        np.add.at(matrix, i - start, (-difference)[:, :, None] * weighted[:, None, :])
+        matrix += xi * np.eye(2)[None]
+        inverse = np.linalg.inv(matrix)
+        corrected = np.einsum("nab,nb->na", inverse[i - start], gradient)
+        relative = velocity[j] - velocity[i]
+        # curl: d v_y / d x - d v_x / d y with grad v = sum_j V_j (v_j - v_i) (x) L grad W
+        contribution = volume[j] * (relative[:, 1] * corrected[:, 0] - relative[:, 0] * corrected[:, 1])
+        np.add.at(omega, i, contribution)
+    return omega
+
+
 def render_fields(run_dir: pathlib.Path, time_label: str, out: pathlib.Path, pixels: int, dpi: int) -> None:
     import matplotlib
     matplotlib.use("Agg")
@@ -62,22 +108,28 @@ def render_fields(run_dir: pathlib.Path, time_label: str, out: pathlib.Path, pix
     speed = np.sqrt((velocity ** 2).sum(axis=1))
     pressure = snapshot["pressure"].astype(np.float64)
     pressure -= pressure.mean()
-    error = np.sqrt(((velocity - snapshot["exact_velocity"].astype(np.float64)) ** 2).sum(axis=1))
-    u = fill_nan(bin_mean(position, velocity[:, 0], pixels))
-    v = fill_nan(bin_mean(position, velocity[:, 1], pixels))
-    spacing = 1.0 / pixels
-    vorticity = np.gradient(v, spacing, axis=1) - np.gradient(u, spacing, axis=0)      # dv/dx - du/dy
-    exact_vorticity = fill_nan(bin_mean(position, snapshot["exact_vorticity"].astype(np.float64), pixels))
+    side = int(round(np.sqrt(position.shape[0])))
+    dx = 1.0 / side
+    h = 5.0 * dx
+    exact_velocity = snapshot["exact_velocity"].astype(np.float64)
+    amplitude = float(np.sqrt((exact_velocity ** 2).sum(axis=1)).max())      # U0 F(t): the instantaneous amplitude
+    error = np.sqrt(((velocity - exact_velocity) ** 2).sum(axis=1)) / amplitude
+    vorticity_particles = sph_vorticity(position, velocity, snapshot["density"], h, dx)
+    exact_vorticity = snapshot["exact_vorticity"].astype(np.float64)
+    vorticity_scale = float(np.abs(exact_vorticity).max())
     panels = [
         (fill_nan(bin_mean(position, speed, pixels)), "speed $|v|/U_0$", "viridis", None),
         (fill_nan(bin_mean(position, pressure, pixels)), "pressure $p/(\\rho_0 U_0^2)$ (mean removed)", "RdBu_r", "sym"),
-        (vorticity, "vorticity $\\omega L/U_0$ (SPH)", "RdBu_r", "sym"),
-        (vorticity - exact_vorticity, "vorticity error (SPH − exact)", "RdBu_r", "sym"),
-        (fill_nan(bin_mean(position, error, pixels)), "velocity error $|v-u|/U_0$", "magma", None),
+        (fill_nan(bin_mean(position, vorticity_particles, pixels)), "vorticity $\\omega L/U_0$ (SPH gradient on the particles)", "RdBu_r", "sym"),
+        (fill_nan(bin_mean(position, (vorticity_particles - exact_vorticity) / vorticity_scale, pixels)),
+         "vorticity error (SPH − exact) / max|ω_exact|", "RdBu_r", "sym"),
+        (fill_nan(bin_mean(position, error, pixels)), "velocity error $|v-u| / (U_0 F(t))$ (relative to the amplitude)", "magma", None),
         (fill_nan(bin_mean(position, snapshot["kernel_sum"].astype(np.float64), pixels)), "kernel sum $\\sum_j V_j W_{ij}$", "coolwarm", "ks"),
     ]
     fig, axes = plt.subplots(2, 3, figsize=(16.5, 11))
     time_value = float(snapshot["time"])
+    relative_l2 = float(np.sqrt(((velocity - exact_velocity) ** 2).sum() / (exact_velocity ** 2).sum()))
+    vorticity_l2 = float(np.sqrt(((vorticity_particles - exact_vorticity) ** 2).mean()) / vorticity_scale)
     for ax, (image, title, cmap, kind) in zip(axes.ravel(), panels):
         if kind == "sym":
             limit = float(np.nanpercentile(np.abs(image), 99.5))
@@ -92,7 +144,9 @@ def render_fields(run_dir: pathlib.Path, time_label: str, out: pathlib.Path, pix
         ax.set_xticks([0, 0.5, 1]); ax.set_yticks([0, 0.5, 1])
         fig.colorbar(im, ax=ax, fraction=0.046, pad=0.03)
     particles = position.shape[0]
-    fig.suptitle(f"{run_dir.name}: {particles:,} particles, t = {time_value:g}, {pixels}² pixels (mean per pixel)", fontsize=13)
+    fig.suptitle(f"{run_dir.name}: {particles:,} particles, t = {time_value:.2f}, {pixels}² pixels (mean per pixel); "
+                 f"relative L2 velocity error {100 * relative_l2:.2f} %, vorticity rms error {100 * vorticity_l2:.2f} % of max|ω|",
+                 fontsize=12)
     fig.tight_layout()
     fig.savefig(out, dpi=dpi)
     plt.close(fig)
