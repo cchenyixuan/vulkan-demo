@@ -36,14 +36,16 @@ if str(_REPOSITORY_ROOT) not in sys.path:
 from experiment.v8.utils import taylor_green   # noqa: E402
 
 SERIES = {
-    "re100": ["re100_n50", "re100_n100", "re100_n200", "re100_n400", "re100_n800"],
-    "re1000": ["re1000_n100", "re1000_n200", "re1000_n400", "re1000_n800"],
+    "re100": ["re100_n50", "re100_n100", "re100_n200", "re100_n400", "re100_n800", "re100_n1600", "re100_n3200"],
+    "re1000": ["re1000_n100", "re1000_n200", "re1000_n400", "re1000_n800", "re1000_n1600", "re1000_n3200"],
     "ablation": ["re100_n200", "re100_n200_nopst", "re100_n200_nodelta", "re100_n200_nokcg", "re100_n200_vanilla"],
     "mach": ["re100_n200", "re100_n200_ma0p05", "re100_n200_ma0p02", "re100_n200_ma0p01"],
     "support": ["re100_n200", "re100_n200_hdx4", "re100_n210_hdx3p5"],
     "initial": ["re100_n200", "re100_n200_uniform"],
     "repeats": ["re100_n200", "re100_n200_r2", "re100_n200_r3"],
     "diagnostics": ["re100_n200", "re100_n200_eps0", "re100_n200_eps0p01", "re100_n200_cfl0p015"],
+    "epsilon": ["re100_n200_eps0", "re100_n200_eps1e-5", "re100_n200_eps1e-4", "re100_n200_eps4e-4", "re100_n200_eps1e-3",
+                "re100_n200", "re100_n200_eps0p01"],
 }
 LABELS = {
     "re100_n200": "default (δ+, PST, KCG; Ma 0.1; h/dx 5; ρ(p₀))", "re100_n200_nopst": "no PST",
@@ -53,6 +55,8 @@ LABELS = {
     "re100_n200_r2": "repeat 2", "re100_n200_r3": "repeat 3",
     "re100_n200_eps0": "ε² = 10⁻⁸ h² (→ 0)", "re100_n200_eps0p01": "ε² = 0.01 h² (the pre-2026-10-05 value)",
     "re100_n200_cfl0p015": "CFL 0.015 (dt / 10 at Ma 0.1)",
+    "re100_n200_eps1e-5": "ε² = 10⁻⁵ h²", "re100_n200_eps1e-4": "ε² = 10⁻⁴ h²", "re100_n200_eps4e-4": "ε² = 4·10⁻⁴ h²",
+    "re100_n200_eps1e-3": "ε² = 10⁻³ h²",
 }
 ERROR_TIMES = (0.5, 1.0, 2.0)
 FIT_WINDOW = (0.1, 2.0)
@@ -70,8 +74,10 @@ def load_run(run_dir: pathlib.Path) -> dict | None:
     return {"name": run_dir.name, "result": result, "rows": rows, "snapshots": snapshots, "dir": run_dir}
 
 
-def row_at(rows: list[dict], time_value: float) -> dict:
-    return min(rows, key=lambda row: abs(row["time"] - time_value))
+def row_at(rows: list[dict], time_value: float) -> dict | None:
+    """The sample nearest to the time, or None when the run has none within 0.02 of it (a run that ended earlier)."""
+    row = min(rows, key=lambda row: abs(row["time"] - time_value))
+    return row if abs(row["time"] - time_value) <= 0.02 else None
 
 
 def fit_viscosity(rows: list[dict], field: dict, window: tuple[float, float]) -> dict:
@@ -94,6 +100,10 @@ def instantaneous_viscosity(row: dict, e0: float) -> float:
     if row["time"] <= 0 or row["kinetic_energy"] <= 0:
         return float("nan")
     return math.log(row["kinetic_energy"] / e0) / math.log(row["decay_factor_exact"] ** 2)
+
+
+def instantaneous_or_nan(row: dict | None, e0: float) -> float:
+    return instantaneous_viscosity(row, e0) if row is not None else float("nan")
 
 
 def snapshot_errors(path: pathlib.Path, field: dict, viscosity_ratio: float) -> dict:
@@ -127,7 +137,7 @@ def summarize_run(run: dict) -> dict:
     result, rows = run["result"], run["rows"]
     field = result["field"]
     e0 = rows[0]["kinetic_energy"]
-    fit = fit_viscosity(rows, field, FIT_WINDOW)
+    fit = fit_viscosity(rows, field, (FIT_WINDOW[0], min(FIT_WINDOW[1], rows[-1]["time"])))
     summary = {
         "name": run["name"], "case": result["case"], "particles": result["particles"], "side": int(round(math.sqrt(result["particles"]))),
         "reynolds": field["reynolds"], "mach": field["mach"], "speed_of_sound": field["speed_of_sound"],
@@ -136,14 +146,18 @@ def summarize_run(run: dict) -> dict:
         "drift": result["drift"], "overflow": result["overflow"], "correction_fallback": result["correction_fallback"],
         "density_from_pressure": field["density_from_pressure"], "commit": result["git"]["short"],
         "viscosity_fit": fit, "viscosity_ratio": fit["ratio"],
-        "viscosity_ratio_t1": instantaneous_viscosity(row_at(rows, 1.0), e0),
-        "viscosity_ratio_t2": instantaneous_viscosity(row_at(rows, 2.0), e0),
+        "viscosity_ratio_t1": instantaneous_or_nan(row_at(rows, 1.0), e0),
+        "viscosity_ratio_t2": instantaneous_or_nan(row_at(rows, 2.0), e0),
+        "t_end": rows[-1]["time"],
         "kinetic_energy_0": e0, "kinetic_energy_lattice_0": rows[0]["kinetic_energy_lattice"],
         "kinetic_energy_exact_0": rows[0]["kinetic_energy_exact"],
         "errors": {}, "snapshot_errors": {},
     }
     for time_value in ERROR_TIMES:
         row = row_at(rows, time_value)
+        if row is None:
+            summary["errors"][f"{time_value:g}"] = None
+            continue
         summary["errors"][f"{time_value:g}"] = {
             "time": row["time"], "energy_ratio": row["kinetic_energy"] / e0, "energy_ratio_exact": row["decay_factor_exact"] ** 2,
             "velocity_relative": row["velocity_l2_relative"], "velocity_l2": row["velocity_l2"], "velocity_linf": row["velocity_linf"],
@@ -170,9 +184,10 @@ def summarize_run(run: dict) -> dict:
 
 
 def log_slope(x: list[float], y: list[float]) -> float:
-    if len(x) < 2 or any(v <= 0 for v in x) or any(v <= 0 for v in y):
+    pairs = [(a, b) for a, b in zip(x, y) if a > 0 and b is not None and not (isinstance(b, float) and math.isnan(b)) and b > 0]
+    if len(pairs) < 2:
         return float("nan")
-    slope, _ = np.polyfit(np.log(x), np.log(y), 1)
+    slope, _ = np.polyfit(np.log([p[0] for p in pairs]), np.log([p[1] for p in pairs]), 1)
     return float(slope)
 
 
@@ -195,13 +210,13 @@ def series_table(summaries: dict[str, dict], names: list[str], label_column: str
         s = summaries.get(name)
         if not s:
             continue
-        e1, e2 = s["errors"]["1"], s["errors"]["2"]
+        e1, e2 = s["errors"]["1"] or {}, s["errors"]["2"] or {}
         shape1 = s["snapshot_errors"].get("t1", {}).get("velocity_relative_effective")
         shape2 = s["snapshot_errors"].get("t2", {}).get("velocity_relative_effective")
         lines.append(f"| {LABELS.get(name, name) if use_labels else name} | {s['side']}² | {fmt(s['viscosity_ratio'], 4)} | {fmt(s['viscosity_ratio_t1'], 4)} | "
-                     f"{fmt(s['viscosity_ratio_t2'], 4)} | {fmt(e1['energy_ratio'], 4)} ({fmt(e1['energy_ratio_exact'], 4)}) | "
-                     f"{fmt(e1['velocity_relative'])} | {fmt(e2['velocity_relative'])} | {fmt(shape1)} | {fmt(shape2)} | "
-                     f"{fmt(e1['pressure_centered_relative'])} | {fmt(e1['density_max_deviation'], 2)} | {fmt(s['steps_per_second'], 4)} |")
+                     f"{fmt(s['viscosity_ratio_t2'], 4)} | {fmt(e1.get('energy_ratio'), 4)} ({fmt(e1.get('energy_ratio_exact'), 4)}) | "
+                     f"{fmt(e1.get('velocity_relative'))} | {fmt(e2.get('velocity_relative'))} | {fmt(shape1)} | {fmt(shape2)} | "
+                     f"{fmt(e1.get('pressure_centered_relative'))} | {fmt(e1.get('density_max_deviation'), 2)} | {fmt(s['steps_per_second'], 4)} |")
     return lines
 
 
@@ -211,12 +226,13 @@ def convergence_rows(summaries: dict[str, dict], names: list[str]) -> dict:
         return {}
     dx = [1.0 / s["side"] for s in present]
     out = {"runs": [s["name"] for s in present], "dx": dx}
-    for key, getter in (("velocity_relative_t1", lambda s: s["errors"]["1"]["velocity_relative"]),
-                        ("velocity_relative_t2", lambda s: s["errors"]["2"]["velocity_relative"]),
+    nan = float("nan")
+    for key, getter in (("velocity_relative_t1", lambda s: (s["errors"]["1"] or {}).get("velocity_relative", nan)),
+                        ("velocity_relative_t2", lambda s: (s["errors"]["2"] or {}).get("velocity_relative", nan)),
                         ("shape_t1", lambda s: s["snapshot_errors"].get("t1", {}).get("velocity_relative_effective", float("nan"))),
                         ("shape_t2", lambda s: s["snapshot_errors"].get("t2", {}).get("velocity_relative_effective", float("nan"))),
                         ("fitted_amplitude_t1", lambda s: s["snapshot_errors"].get("t1", {}).get("velocity_relative_fitted_amplitude", float("nan"))),
-                        ("pressure_t1", lambda s: s["errors"]["1"]["pressure_centered_relative"]),
+                        ("pressure_t1", lambda s: (s["errors"]["1"] or {}).get("pressure_centered_relative", nan)),
                         ("viscosity_deficit", lambda s: abs(1.0 - s["viscosity_ratio"]))):
         values = [getter(s) for s in present]
         out[key] = {"values": values, "order": log_slope(dx, values)}
@@ -237,7 +253,7 @@ def save(fig, out: pathlib.Path) -> None:
     fig.savefig(out.with_suffix(".png"), dpi=300, bbox_inches="tight")
 
 
-PALETTE = ["#1b4f9c", "#2a78d6", "#4ea1e8", "#7fc1f0", "#b3dcf7", "#c0392b"]
+PALETTE = ["#0b2e5c", "#1b4f9c", "#2a78d6", "#4ea1e8", "#7fc1f0", "#b3dcf7", "#d9ecfa", "#c0392b"]
 
 
 def figure_energy(runs: dict, summaries: dict, out: pathlib.Path, width: float, height: float) -> None:
@@ -245,7 +261,7 @@ def figure_energy(runs: dict, summaries: dict, out: pathlib.Path, width: float, 
     from _plot_single_baseline_paper import tidy
     names = [n for n in SERIES["re100"] if n in runs]
     fig, axes = plt.subplots(2, 1, figsize=(width, height), sharex=True)
-    colors = PALETTE[:len(names)][::-1]
+    colors = PALETTE[:7][7 - len(names):][::-1]
     for color, name in zip(colors, names):
         rows = runs[name]["rows"]
         e0 = rows[0]["kinetic_energy"]
@@ -275,7 +291,7 @@ def figure_convergence(summaries: dict, convergence: dict, out: pathlib.Path, wi
     from matplotlib import ticker
     from _plot_single_baseline_paper import tidy
     fig, ax = plt.subplots(figsize=(width, height))
-    styles = {"re100": dict(color=PALETTE[1]), "re1000": dict(color=PALETTE[5])}
+    styles = {"re100": dict(color=PALETTE[2]), "re1000": dict(color=PALETTE[7])}
     for series, style in styles.items():
         conv = convergence.get(series)
         if not conv:
@@ -301,7 +317,7 @@ def figure_convergence(summaries: dict, convergence: dict, out: pathlib.Path, wi
     ax.set_ylabel("rel. $L_2$ error at $t=1$ (%)")
     ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda v, _: f"{int(v)}"))
     ax.xaxis.set_minor_formatter(ticker.NullFormatter())
-    ax.set_xticks([50, 100, 200, 400, 800])
+    ax.set_xticks(sorted({summaries[n]["side"] for s in ("re100", "re1000") for n in SERIES[s] if n in summaries}))
     ax.grid(True, axis="y")
     ax.legend(frameon=False, fontsize=6.5, handlelength=2.4, loc="best")
     tidy(ax)
@@ -314,7 +330,7 @@ def figure_viscosity(summaries: dict, out: pathlib.Path, width: float, height: f
     from matplotlib import ticker
     from _plot_single_baseline_paper import tidy
     fig, ax = plt.subplots(figsize=(width, height))
-    for series, color, label in (("re100", PALETTE[1], "Re 100"), ("re1000", PALETTE[5], "Re 1000")):
+    for series, color, label in (("re100", PALETTE[2], "Re 100"), ("re1000", PALETTE[7], "Re 1000")):
         names = [n for n in SERIES[series] if n in summaries]
         ax.plot([summaries[n]["side"] for n in names], [summaries[n]["viscosity_ratio"] for n in names], marker="o",
                 markersize=3.5, linewidth=0.9, color=color, label=f"{label}, $h/\\Delta x = 5$")
@@ -326,7 +342,7 @@ def figure_viscosity(summaries: dict, out: pathlib.Path, width: float, height: f
                     linestyle="none", color="#333333", markerfacecolor="white", label=f"Re 100, {label}")
     ax.axhline(1.0, color="black", linewidth=0.6, linestyle=(0, (3, 2)))
     ax.set_xscale("log")
-    ax.set_xticks([50, 100, 200, 400, 800])
+    ax.set_xticks(sorted({summaries[n]["side"] for s in ("re100", "re1000") for n in SERIES[s] if n in summaries}))
     ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda v, _: f"{int(v)}"))
     ax.xaxis.set_minor_formatter(ticker.NullFormatter())
     ax.set_xlabel("$L/\\Delta x$")
@@ -344,7 +360,7 @@ def figure_ablation(runs: dict, summaries: dict, out: pathlib.Path, width: float
     names = [n for n in SERIES["ablation"] if n in runs]
     short = {"re100_n200": "δ+ (default)", "re100_n200_nopst": "no PST", "re100_n200_nodelta": "no δ",
              "re100_n200_nokcg": "no KCG", "re100_n200_vanilla": "vanilla"}
-    colors = {"re100_n200": PALETTE[1], "re100_n200_nopst": "#c0392b", "re100_n200_nodelta": "#2e8b57",
+    colors = {"re100_n200": PALETTE[2], "re100_n200_nopst": "#c0392b", "re100_n200_nodelta": "#2e8b57",
               "re100_n200_nokcg": "#8e44ad", "re100_n200_vanilla": "#777777"}
     fig, axes = plt.subplots(2, 1, figsize=(width, height), sharex=True)
     for name in names:
@@ -424,12 +440,12 @@ def figure_fields(run: dict, out: pathlib.Path, width: float) -> None:
 
 # ------------------------------------------------------------------------------------------------------- report
 
-def write_outputs(summaries: dict, convergence: dict, out: pathlib.Path) -> None:
+def write_outputs(summaries: dict, convergence: dict, out: pathlib.Path, title: str = "Taylor–Green campaign summary") -> None:
     out.mkdir(parents=True, exist_ok=True)
     (out / "summary.json").write_text(json.dumps({"runs": summaries, "convergence": convergence,
                                                    "series": SERIES, "fit_window": FIT_WINDOW}, indent=1, default=float),
                                       encoding="utf-8")
-    lines = ["# Taylor–Green campaign summary (generated by experiment/v8/_analyze_tgv.py)", ""]
+    lines = [f"# {title} (generated by experiment/v8/_analyze_tgv.py)", ""]
     lines += ["## Re = 100, h/dx = 5, Ma = 0.1: resolution series", ""] + series_table(summaries, SERIES["re100"]) + [""]
     conv = convergence.get("re100", {})
     if conv:
@@ -442,7 +458,8 @@ def write_outputs(summaries: dict, convergence: dict, out: pathlib.Path) -> None
             f"{key} {conv[key]['order']:.2f}" for key in ("velocity_relative_t1", "shape_t1", "pressure_t1")), ""]
     for key, title in (("ablation", "Ablations (Re 100, 200²)"), ("mach", "Mach number (Re 100, 200²)"),
                        ("support", "Kernel support h/dx (Re 100)"), ("initial", "Initial density (Re 100, 200²)"),
-                       ("repeats", "Repeats (Re 100, 200²)"), ("diagnostics", "Diagnostics: ε² and dt (Re 100, 200²)")):
+                       ("repeats", "Repeats (Re 100, 200²)"), ("diagnostics", "Diagnostics: ε² and dt (Re 100, 200²)"),
+                       ("epsilon", "ε² sweep (Re 100, 200²)")):
         lines += [f"## {title}", ""] + series_table(summaries, SERIES[key], "variant") + [""]
     lines += ["## Every run", "", "| run | particles | dt | steps | steps/s | wall s | drift | overflow | KCG fallback | commit |",
               "|---|---|---|---|---|---|---|---|---|---|"]
@@ -459,16 +476,16 @@ def write_outputs(summaries: dict, convergence: dict, out: pathlib.Path) -> None
                          "pressure_centered_relative_t1", "pressure_l2_centered_t1", "pressure_offset_t1",
                          "density_max_deviation_t1", "kernel_sum_min_t1", "drift", "overflow", "correction_fallback", "commit"])
         for name, s in summaries.items():
-            e05, e1, e2 = s["errors"]["0.5"], s["errors"]["1"], s["errors"]["2"]
+            e05, e1, e2 = s["errors"]["0.5"] or {}, s["errors"]["1"] or {}, s["errors"]["2"] or {}
             s1 = s["snapshot_errors"].get("t1", {})
             s2 = s["snapshot_errors"].get("t2", {})
             writer.writerow([name, s["side"], s["particles"], s["reynolds"], s["mach"], s.get("support_over_spacing"), s["timestep"],
                              s["steps"], s["steps_per_second"], s["viscosity_ratio"], s["viscosity_ratio_t1"], s["viscosity_ratio_t2"],
-                             e1["energy_ratio"], e1["energy_ratio_exact"], e05["velocity_relative"], e1["velocity_relative"],
-                             e2["velocity_relative"], e1["velocity_l2"], e1["velocity_linf"], s1.get("velocity_relative_effective"),
+                             e1.get("energy_ratio"), e1.get("energy_ratio_exact"), e05.get("velocity_relative"), e1.get("velocity_relative"),
+                             e2.get("velocity_relative"), e1.get("velocity_l2"), e1.get("velocity_linf"), s1.get("velocity_relative_effective"),
                              s2.get("velocity_relative_effective"), s1.get("velocity_relative_fitted_amplitude"), s1.get("amplitude_ratio"),
-                             e1["pressure_centered_relative"], e1["pressure_l2_centered"], e1["pressure_offset"],
-                             e1["density_max_deviation"], e1["kernel_sum_min"], s["drift"], json.dumps(s["overflow"]),
+                             e1.get("pressure_centered_relative"), e1.get("pressure_l2_centered"), e1.get("pressure_offset"),
+                             e1.get("density_max_deviation"), e1.get("kernel_sum_min"), s["drift"], json.dumps(s["overflow"]),
                              s["correction_fallback"], s["commit"]])
 
 
@@ -479,6 +496,8 @@ def main() -> int:
     parser.add_argument("--figures", default="manuscripts/fig")
     parser.add_argument("--width", type=float, default=3.5)
     parser.add_argument("--font-size", type=float, default=8.0)
+    parser.add_argument("--figure-suffix", default="", help="appended to every figure name (a second run set)")
+    parser.add_argument("--title", default="Taylor–Green campaign summary", help="summary.md title")
     arguments = parser.parse_args()
     runs_root = _REPOSITORY_ROOT / arguments.runs
     runs = {}
@@ -490,20 +509,21 @@ def main() -> int:
     summaries = {name: summarize_run(run) for name, run in runs.items()}
     convergence = {series: convergence_rows(summaries, SERIES[series]) for series in ("re100", "re1000")}
     out = _REPOSITORY_ROOT / arguments.out
-    write_outputs(summaries, convergence, out)
+    write_outputs(summaries, convergence, out, arguments.title)
     figures = _REPOSITORY_ROOT / arguments.figures
     figures.mkdir(parents=True, exist_ok=True)
     setup_figures(arguments.font_size)
     width = arguments.width
+    suffix = arguments.figure_suffix
     if any(n in runs for n in SERIES["re100"]):
-        figure_energy(runs, summaries, figures / "tgv_energy", width, width * 1.25)
+        figure_energy(runs, summaries, figures / f"tgv_energy{suffix}", width, width * 1.25)
     if convergence.get("re100"):
-        figure_convergence(summaries, convergence, figures / "tgv_convergence", width, width * 0.8)
-        figure_viscosity(summaries, figures / "tgv_viscosity", width, width * 0.75)
+        figure_convergence(summaries, convergence, figures / f"tgv_convergence{suffix}", width, width * 0.8)
+        figure_viscosity(summaries, figures / f"tgv_viscosity{suffix}", width, width * 0.75)
     if len([n for n in SERIES["ablation"] if n in runs]) >= 2:
-        figure_ablation(runs, summaries, figures / "tgv_ablation", width, width * 1.25)
+        figure_ablation(runs, summaries, figures / f"tgv_ablation{suffix}", width, width * 1.25)
     if "re100_n200" in runs:
-        figure_fields(runs["re100_n200"], figures / "tgv_fields", width * 2.0)
+        figure_fields(runs["re100_n200"], figures / f"tgv_fields{suffix}", width * 2.0)
     print(f"[analyze] {len(runs)} runs -> {out} ; figures in {figures}")
     for series in ("re100", "re1000"):
         conv = convergence.get(series)

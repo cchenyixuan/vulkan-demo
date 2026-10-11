@@ -36,7 +36,9 @@ RUNS: list[tuple[str, str, list[str], list[str]]] = []
 
 
 def _add(run_name: str, case_name: str, generator: list[str], run: list[str] | None = None) -> None:
-    RUNS.append((run_name, case_name, generator, run or []))
+    # set v1 (2026-10-11, the first campaign): every case at the cavity eps^2 = 0.0025 h^2, stated explicitly since the
+    # generator default became 1e-4 h^2
+    RUNS.append((run_name, case_name, ["--epsilon-squared-factor", "0.0025"] + generator if "--epsilon-squared-factor" not in generator else generator, run or []))
 
 
 # A. Re = 100 resolution series (the convergence study): L/dx = 50 ... 800 (2.5 k ... 640 k particles)
@@ -68,6 +70,18 @@ for factor, label in ((1e-5, "eps1e-5"), (1e-4, "eps1e-4"), (4e-4, "eps4e-4"), (
     _add(f"re100_n200_{label}", f"re100_n200_{label}", ["--side", "200", "--reynolds", "100", "--epsilon-squared-factor", str(factor)])
 _add("re100_n200_r2", "re100_n200", ["--side", "200", "--reynolds", "100"], ["--tag", "repeat2"])
 _add("re100_n200_r3", "re100_n200", ["--side", "200", "--reynolds", "100"], ["--tag", "repeat3"])
+
+
+# ---- set v2 (2026-10-11, after the eps^2 sweep): the v8 default eps^2 = 1e-4 h^2, resolution up to 3200^2 ----------
+RUNS_V2: list[tuple[str, str, list[str], list[str]]] = []
+for side in (50, 100, 200, 400, 800, 1600):
+    RUNS_V2.append((f"re100_n{side}", f"re100_n{side}", ["--side", str(side), "--reynolds", "100"], []))
+# 3200^2 (10.24 M particles) at Re 100 runs 655 k viscous-limited steps to t = 2; to t = 1 (snapshots 0, 0.5, 1)
+RUNS_V2.append(("re100_n3200", "re100_n3200", ["--side", "3200", "--reynolds", "100", "--t-end", "1"],
+                ["--t-end", "1", "--snapshot-times", "0,0.5,1"]))
+for side in (100, 200, 400, 800, 1600, 3200):
+    RUNS_V2.append((f"re1000_n{side}", f"re1000_n{side}", ["--side", str(side), "--reynolds", "1000"], []))
+SETS = {"v1": (RUNS, "cases/tgv_2d", "logs/v8/tgv"), "v2": (RUNS_V2, "cases/tgv_2d_eps1e-4", "logs/v8/tgv_eps1e-4")}
 
 
 def log_line(out: pathlib.Path, message: str) -> None:
@@ -107,9 +121,9 @@ def wait_until_idle(out: pathlib.Path) -> None:
         time.sleep(1.0)
 
 
-def generate_case(case_name: str, generator: list[str]) -> pathlib.Path:
-    case_dir = _REPOSITORY_ROOT / CASE_ROOT / case_name
-    arguments = case_parser().parse_args(generator + ["--out", f"{CASE_ROOT}/{case_name}"])
+def generate_case(case_name: str, generator: list[str], case_root: str = CASE_ROOT) -> pathlib.Path:
+    case_dir = _REPOSITORY_ROOT / case_root / case_name
+    arguments = case_parser().parse_args(generator + ["--out", f"{case_root}/{case_name}"])
     build_case(arguments, " ".join(generator))
     return case_dir
 
@@ -126,7 +140,8 @@ def finished(run_dir: pathlib.Path) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--out", default="logs/v8/tgv")
+    parser.add_argument("--set", choices=sorted(SETS), default="v1", help="run set: v1 (eps^2 0.0025 h^2) or v2 (1e-4 h^2, up to 3200^2)")
+    parser.add_argument("--out", default=None, help="default: the set's log directory")
     parser.add_argument("--gpu-uuid", default=HEADLESS_5090_UUID)
     parser.add_argument("--only", default="", help="comma-separated run names")
     parser.add_argument("--t-end", type=float, default=2.0)
@@ -135,19 +150,20 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true", help="generate the cases and list the runs only")
     parser.add_argument("--allow-dirty", action="store_true")
     arguments = parser.parse_args()
-    out = (_REPOSITORY_ROOT / arguments.out).resolve()
+    runs, case_root, default_out = SETS[arguments.set]
+    out = (_REPOSITORY_ROOT / (arguments.out or default_out)).resolve()
     out.mkdir(parents=True, exist_ok=True)
     only = {name.strip() for name in arguments.only.split(",") if name.strip()}
-    selected = [entry for entry in RUNS if not only or entry[0] in only]
+    selected = [entry for entry in runs if not only or entry[0] in only]
     state = git_state()
-    log_line(out, f"campaign start: commit {state['short']} ({len(selected)} runs), tracked dirty: {state['tracked_dirty'] or 'none'}")
+    log_line(out, f"campaign start: set {arguments.set} ({case_root}), commit {state['short']} ({len(selected)} runs), tracked dirty: {state['tracked_dirty'] or 'none'}")
     if state["tracked_dirty"] and not arguments.allow_dirty:
         log_line(out, "refusing to measure from a dirty tracked tree (commit first, or --allow-dirty)")
         return 2
     generated: set[str] = set()
     for _run_name, case_name, generator, _run in selected:
         if case_name not in generated:
-            generate_case(case_name, generator)
+            generate_case(case_name, generator, case_root)
             generated.add(case_name)
     if arguments.dry_run:
         for run_name, case_name, generator, run in selected:
@@ -162,7 +178,7 @@ def main() -> int:
             log_line(out, f"{run_name}: finished earlier, skipped")
             continue
         wait_until_idle(out)
-        command = [PYTHON, "experiment/v8/_run_tgv.py", "--case", f"{CASE_ROOT}/{case_name}/case.yaml",
+        command = [PYTHON, "experiment/v8/_run_tgv.py", "--case", f"{case_root}/{case_name}/case.yaml",
                    "--gpu-uuid", arguments.gpu_uuid, "--t-end", str(arguments.t_end), "--sample-dt", str(arguments.sample_dt),
                    "--in-flight", str(arguments.in_flight), "--out", str(run_dir.relative_to(_REPOSITORY_ROOT)), *run]
         log_line(out, f"{run_name}: start ({' '.join(command[2:])})")

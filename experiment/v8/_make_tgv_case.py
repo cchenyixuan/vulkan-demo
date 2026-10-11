@@ -4,8 +4,8 @@ _make_tgv_case.py — write a two-dimensional Taylor–Green vortex case for exp
 Box [0, L)^2, doubly periodic, N x N fluid particles on a square lattice at ((i + 1/2) dx, (j + 1/2) dx),
 dx = L / N, support radius h = (h/dx) dx (the project's h/dx = 5), no walls. U0, rho0 and L are 1 by default;
 Re = U0 L / nu sets the material's kinematic viscosity, Ma = U0 / c0 the speed of sound (0.1 -> c0 = 10 U0, the
-usual SPH choice). The numerics block is the cavity cases' (delta 0.1, KCG xi 0.001, eps^2 0.0025 h^2, PST
-0.1 / 0.0005, CFL 0.15); --no-pst / --no-delta / --no-kcg switch the ablation toggles off.
+usual SPH choice). The numerics block is the cavity cases' (delta 0.1, KCG xi 0.001, PST 0.1 / 0.0005, CFL 0.15) except
+eps^2 = 1e-4 h^2 (v8 default since 2026-10-11; the cavity's 0.0025 h^2 costs 2.4 % of the viscosity on the TGV, --epsilon-squared-factor); --no-pst / --no-delta / --no-kcg switch the ablation toggles off.
 
     .venv/Scripts/python.exe experiment/v8/_make_tgv_case.py --side 200 --reynolds 100 --out cases/tgv_2d/re100_n200
 
@@ -181,8 +181,9 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--mach", type=float, default=0.1, help="U0 / c0 (0.1 -> c0 = 10 U0)")
     result.add_argument("--hdx", type=float, default=5.0, help="support radius over spacing")
     result.add_argument("--cfl", type=float, default=0.15)
-    result.add_argument("--epsilon-squared-factor", type=float, default=0.0025,
-                        help="eps^2 = this * h^2 in the viscous and delta-diffusion denominators (case default 0.0025)")
+    result.add_argument("--epsilon-squared-factor", type=float, default=1e-4,
+                        help="eps^2 = this * h^2 in the viscous and delta-diffusion denominators. v8 default 1e-4 (eps = 0.01 h = "
+                             "0.05 dx at h/dx 5; costs 0.07 %% of nu_eff on the TGV); the cavity cases use 0.0025 (2.4 %%)")
     result.add_argument("--viscous-factor", type=float, default=0.0125,
                         help="dt <= this * h^2 / nu (support radius h); the cfl is lowered when this limit binds")
     result.add_argument("--length", type=float, default=1.0)
