@@ -1,0 +1,80 @@
+#version 460
+// ============================================================================
+// density_scratch_copy.comp — the density scratch -> primary copy as a compute
+// pass (E39 B9, audit H05; V7_DENSITY_COPY_COMPUTE = 1, the default):
+//
+//     density_pressure[slot] = density_pressure_scratch[slot]
+//
+// for every slot of up to four regions, (first slot, slot count) each, given
+// as specialization constants: SphSimulatorV7._density_copy_slot_regions, the
+// byte ranges the vkCmdCopyBuffer of V7_DENSITY_COPY_COMPUTE = 0 copies (the
+// own pid range; with V7_GHOST_LAYERS = 2 also the inner replica region of
+// every peer direction and the departed pool, which density_boundary
+// recomputed as self). The regions are fixed per slab. A region with slot
+// count 0 is unused.
+//
+// Bit-exact like vkCmdCopyBuffer: both buffers are viewed as raw 32-bit words
+// (uint; one slot = the uvec2 of the (rho, P) vec2's bits), so no
+// floating-point operation touches the data (NaN payloads, signed zeros and
+// denormals are moved unchanged).
+//
+// One invocation per slot; invocation t indexes the concatenation of the
+// regions in order (region 0 first); invocations past the last region return.
+// The simulator records it between two compute -> compute barriers
+// (_record_density_scratch_to_primary_copy).
+//
+// Standalone on purpose: common.glsl declares bindings 1 and 2 as vec2[]; this
+// pass needs the uint view only. Spec constant ids 101-108 are its own.
+//
+// Fixed local size 256 (= simulator_v7._DENSITY_COPY_LOCAL_SIZE), not
+// WORKGROUP_SIZE: E39 step traces of 2-D 1M K = 1 (an L2-resident copy) gave
+// 8.0 us per copy at 256 and 512 against 9.4 us at 128 and 1024; at 2-D 16M
+// (DRAM-bound) 256 and 128 both give 160 us. One uint word per invocation
+// instead of the uvec2: 13.5 us at 1M.
+// ============================================================================
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(constant_id = 101) const uint COPY_REGION_0_FIRST_SLOT = 0u;
+layout(constant_id = 102) const uint COPY_REGION_0_SLOT_COUNT = 0u;
+layout(constant_id = 103) const uint COPY_REGION_1_FIRST_SLOT = 0u;
+layout(constant_id = 104) const uint COPY_REGION_1_SLOT_COUNT = 0u;
+layout(constant_id = 105) const uint COPY_REGION_2_FIRST_SLOT = 0u;
+layout(constant_id = 106) const uint COPY_REGION_2_SLOT_COUNT = 0u;
+layout(constant_id = 107) const uint COPY_REGION_3_FIRST_SLOT = 0u;
+layout(constant_id = 108) const uint COPY_REGION_3_SLOT_COUNT = 0u;
+
+// set 0 binding 1 = density_pressure (primary), binding 2 = density_pressure_scratch;
+// common.glsl's vec2 stride (8 B) = one uvec2 here.
+layout(std430, set = 0, binding = 1) restrict writeonly buffer DensityPressureWords {
+    uvec2 density_pressure_words[];
+};
+layout(std430, set = 0, binding = 2) restrict readonly buffer DensityPressureScratchWords {
+    uvec2 density_pressure_scratch_words[];
+};
+
+void copy_slot(uint slot_index) {
+    density_pressure_words[slot_index] = density_pressure_scratch_words[slot_index];
+}
+
+void main() {
+    uint concatenated_index = gl_GlobalInvocationID.x;
+    if (concatenated_index < COPY_REGION_0_SLOT_COUNT) {
+        copy_slot(COPY_REGION_0_FIRST_SLOT + concatenated_index);
+        return;
+    }
+    concatenated_index -= COPY_REGION_0_SLOT_COUNT;
+    if (concatenated_index < COPY_REGION_1_SLOT_COUNT) {
+        copy_slot(COPY_REGION_1_FIRST_SLOT + concatenated_index);
+        return;
+    }
+    concatenated_index -= COPY_REGION_1_SLOT_COUNT;
+    if (concatenated_index < COPY_REGION_2_SLOT_COUNT) {
+        copy_slot(COPY_REGION_2_FIRST_SLOT + concatenated_index);
+        return;
+    }
+    concatenated_index -= COPY_REGION_2_SLOT_COUNT;
+    if (concatenated_index < COPY_REGION_3_SLOT_COUNT) {
+        copy_slot(COPY_REGION_3_FIRST_SLOT + concatenated_index);
+    }
+}

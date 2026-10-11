@@ -1,0 +1,31 @@
+SPIR-V manifest of experiment/v8/shaders/spv (v8: the v7 kernels + the periodic domain, experiment/v8/README.md)
+
+compiler: C:\VulkanSDK\1.4.350.0/Bin/glslc.exe; glslc --version:
+  shaderc v2026.2 v2026.2
+  spirv-tools v2026.2 v2022.4-1193-gc1cb30bb
+  glslang 11.1.0-1412-g5ed4003a
+  
+  Target: SPIR-V 1.0
+flags: glslc --target-env=vulkan1.2 -O [-D<macro>] -I experiment/v8/shaders experiment/v8/shaders/<source> -o experiment/v8/shaders/spv/<name>.comp.spv
+  (experiment/v8/compile_shaders_v8.py: every *.comp whose name does not start with '_', plus the -D variants of
+  SHADER_VARIANTS)
+sources: experiment/v8/shaders/*.comp, *.glsl at commit 5897fd2
+scope: the compute SPIR-V of experiment/v8. Regenerate with any shader change (experiment/v7_single's
+  spirv_manifest.verify_directory refuses a file whose size or sha256 differs).
+
+sha256                                                             bytes  file  (source)
+6a405b9c7f5d3675a6deb4a905d74c955f89a67bfc0fac2a903d8b6c7eaefd79    2676  bootstrap_half_kick.comp.spv  (bootstrap_half_kick.comp)
+51f0bdf93b5254f12448933d8918642a0bdc5bc95e727377a0bd836229b28b45   42664  correction.comp.spv  (correction.comp)
+18b5d43045f2fc7624f03957597bf0a423f2cb99dc2a968d11a5a410d70107c2   63028  correction_density.comp.spv  (correction_density.comp)
+feabbebb6763d25dc41fd51c58f10ef513c8a0a4060dbc57b42f0366ce5abd36    4980  deep_wall_marker.comp.spv  (deep_wall_marker.comp)
+ed58cd5c1e1f932d76fa562d6995fe1b1ece9a7b0ed4f3baead0e23276db7739    5968  defrag.comp.spv  (defrag.comp)
+b585124c464ca9799d0600608b59719d28b89797549d878993fe40f3a1a9fd5b   44004  density.comp.spv  (density.comp)
+50e9e5f6fb22a5996b208b8c53a60bf709c005ace3a804d32382f68cfe7a098b    1888  density_scratch_copy.comp.spv  (density_scratch_copy.comp)
+29367fdc8cc9ab1a2445a59e6cb42704774f880b93c0ee68e19d8925c97040fb   51936  force.comp.spv  (force.comp)
+137caa6629cffca9190652d812199c99415634ab296408035fe24a2c047a7898    7168  initialize_voxelization.comp.spv  (initialize_voxelization.comp)
+e6ae9e38f0882b54741e468b6cfb2a79a44568b511d2a35861e89231830541cf    7680  predict.comp.spv  (predict.comp)
+338395cfcef8e962a7118498c5c15da577c822cea4d7d2221fcfa41a2aef9575    4916  update_voxel.comp.spv  (update_voxel.comp)
+ae0f75c8d0a674b4e9197314d6937f09c6f05dac853330a2674c84f402d7a03f    9704  wall_extrapolate.comp.spv  (wall_extrapolate.comp)
+d8a0db7fc6182abe7bcbfd577c900823c015c7e4ece2ca646b02a7c24a540131   59080  correction_deep_wall_skip.comp.spv  (correction.comp -DDEEP_WALL_SKIP)
+704bd7cf6ce59333532550ff6ad4ece1f3697575a0d78823173f59c8e7ec19e6   61132  density_deep_wall_skip.comp.spv  (density.comp -DDEEP_WALL_SKIP)
+b9711fcea5a3d9f860fbb5510b31fab5b01ceb7a88f3ac9de46bd5cae78a7b05   94628  correction_density_deep_wall_skip.comp.spv  (correction_density.comp -DDEEP_WALL_SKIP)
