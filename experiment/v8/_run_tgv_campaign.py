@@ -95,6 +95,18 @@ for side in (100, 200, 400, 800, 1600, 3200):
 # position-precision diagnostic: the same 1600^2 in the box [-L/2, L/2)^2 (half the float32 ULP of the positions)
 RUNS_V3.append(("re100_n1600_center", "re100_n1600_center",
                 ["--side", "1600", "--reynolds", "100", "--delta-density", "--center"], []))
+# the paper's variants under the new default (2026-10-11 evening): Mach at 400^2 (is the remaining 0.4 % compressibility?),
+# the ablations and the kernel support at 200^2 (one parameter set for every table)
+for mach, label in ((0.05, "ma0p05"), (0.02, "ma0p02"), (0.01, "ma0p01")):
+    RUNS_V3.append((f"re100_n400_{label}", f"re100_n400_{label}",
+                    ["--side", "400", "--reynolds", "100", "--delta-density", "--mach", str(mach)], []))
+RUNS_V3.append(("re100_n200_nopst", "re100_n200_nopst", ["--side", "200", "--reynolds", "100", "--delta-density", "--no-pst"], []))
+RUNS_V3.append(("re100_n200_nodelta", "re100_n200_nodelta", ["--side", "200", "--reynolds", "100", "--delta-density", "--no-delta"], []))
+RUNS_V3.append(("re100_n200_nokcg", "re100_n200_nokcg", ["--side", "200", "--reynolds", "100", "--delta-density", "--no-kcg"], []))
+RUNS_V3.append(("re100_n200_vanilla", "re100_n200_vanilla",
+                ["--side", "200", "--reynolds", "100", "--delta-density", "--no-pst", "--no-delta", "--no-kcg"], []))
+RUNS_V3.append(("re100_n200_hdx4", "re100_n200_hdx4", ["--side", "200", "--reynolds", "100", "--delta-density", "--hdx", "4"], []))
+RUNS_V3.append(("re100_n210_hdx3p5", "re100_n210_hdx3p5", ["--side", "210", "--reynolds", "100", "--delta-density", "--hdx", "3.5"], []))
 SETS = {"v1": (RUNS, "cases/tgv_2d", "logs/v8/tgv"), "v2": (RUNS_V2, "cases/tgv_2d_eps1e-4", "logs/v8/tgv_eps1e-4"),
         "v3": (RUNS_V3, "cases/tgv_2d_eps1e-4_delta", "logs/v8/tgv_eps1e-4_delta")}
 
