@@ -66,6 +66,8 @@ SIZES = [
     ("32m",     "cases/lid_driven_cavity_2d_32m/case.yaml", 2000),
     # v7_single measurement A: the 3-D case (10.5M particles, 4-layer walls)
     ("3d_8m",   "cases/cavity3d_8m_b4/case.yaml",            2000),
+    # 2026-10-12 reference ratio (Sec. 5.1): the smaller 3-D case that is built (1 046 529 fluid + walls)
+    ("3d_1m",   "cases/cavity3d_1m/case.yaml",               3000),
 ]
 CONFIGS = [("v0", 1), ("v0", 2), ("v5", 1), ("v5", 2)]
 TRIALS = 3
