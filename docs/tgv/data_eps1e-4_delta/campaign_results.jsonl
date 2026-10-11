@@ -12,3 +12,12 @@
 {"run": "re1000_n1600", "case": "re1000_n1600", "rc": 0, "wall_s": 371.5, "status": "ok", "drift": 0, "overflow": {}, "steps": 42667, "steps_per_second": 117.31, "commit": "de01ad1"}
 {"run": "re1000_n3200", "case": "re1000_n3200", "rc": 0, "wall_s": 2226.0, "status": "ok", "drift": 0, "overflow": {}, "steps": 85333, "steps_per_second": 38.86, "commit": "de01ad1"}
 {"run": "re100_n1600_center", "case": "re100_n1600_center", "rc": 0, "wall_s": 886.9, "status": "ok", "drift": 0, "overflow": {}, "steps": 163840, "steps_per_second": 186.45, "commit": "ddbb4fb"}
+{"run": "re100_n400_ma0p05", "case": "re100_n400_ma0p05", "rc": 0, "wall_s": 19.1, "status": "ok", "drift": 0, "overflow": {}, "steps": 21333, "steps_per_second": 1178.0, "commit": "4a0d919"}
+{"run": "re100_n400_ma0p02", "case": "re100_n400_ma0p02", "rc": 0, "wall_s": 29.7, "status": "ok", "drift": 0, "overflow": {}, "steps": 53333, "steps_per_second": 1862.48, "commit": "4a0d919"}
+{"run": "re100_n400_ma0p01", "case": "re100_n400_ma0p01", "rc": 0, "wall_s": 46.5, "status": "ok", "drift": 0, "overflow": {}, "steps": 106667, "steps_per_second": 2347.76, "commit": "4a0d919"}
+{"run": "re100_n200_nopst", "case": "re100_n200_nopst", "rc": 1, "wall_s": 3.4, "status": "bad_state", "drift": -39983, "overflow": {"overflow_incoming_count": 8969}, "steps": 5333, "steps_per_second": 1942.14, "commit": "4a0d919"}
+{"run": "re100_n200_nodelta", "case": "re100_n200_nodelta", "rc": 0, "wall_s": 4.7, "status": "ok", "drift": 0, "overflow": {}, "steps": 5333, "steps_per_second": 1377.45, "commit": "ba8e154"}
+{"run": "re100_n200_nokcg", "case": "re100_n200_nokcg", "rc": 0, "wall_s": 4.4, "status": "ok", "drift": 0, "overflow": {}, "steps": 5333, "steps_per_second": 1469.78, "commit": "ba8e154"}
+{"run": "re100_n200_hdx4", "case": "re100_n200_hdx4", "rc": 0, "wall_s": 4.4, "status": "ok", "drift": 0, "overflow": {}, "steps": 6667, "steps_per_second": 1849.82, "commit": "ba8e154"}
+{"run": "re100_n210_hdx3p5", "case": "re100_n210_hdx3p5", "rc": 0, "wall_s": 4.7, "status": "ok", "drift": 0, "overflow": {}, "steps": 8000, "steps_per_second": 2069.24, "commit": "ba8e154"}
+{"run": "re100_n200_vanilla", "case": "re100_n200_vanilla", "rc": 0, "wall_s": 4.3, "status": "ok", "drift": 0, "overflow": {}, "steps": 5333, "steps_per_second": 1510.45, "commit": "ba8e154"}

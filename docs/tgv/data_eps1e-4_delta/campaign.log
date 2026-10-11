@@ -31,3 +31,39 @@
 [2026-10-11 20:39:39] re100_n1600_center: start (--case cases/tgv_2d_eps1e-4_delta/re100_n1600_center/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re100_n1600_center)
 [2026-10-11 20:54:26] re100_n1600_center: rc 0 status ok drift 0 overflow {} steps 163840 (186.45 steps/s, 887 s)
 [2026-10-11 20:54:26] campaign done
+[2026-10-11 21:38:08] campaign start: set v3 (cases/tgv_2d_eps1e-4_delta), commit 4a0d919 (9 runs), tracked dirty: none
+[2026-10-11 21:38:11] re100_n400_ma0p05: start (--case cases/tgv_2d_eps1e-4_delta/re100_n400_ma0p05/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re100_n400_ma0p05)
+[2026-10-11 21:38:30] re100_n400_ma0p05: rc 0 status ok drift 0 overflow {} steps 21333 (1178.0 steps/s, 19 s)
+[2026-10-11 21:38:33] re100_n400_ma0p02: start (--case cases/tgv_2d_eps1e-4_delta/re100_n400_ma0p02/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re100_n400_ma0p02)
+[2026-10-11 21:39:02] re100_n400_ma0p02: rc 0 status ok drift 0 overflow {} steps 53333 (1862.48 steps/s, 30 s)
+[2026-10-11 21:39:05] re100_n400_ma0p01: start (--case cases/tgv_2d_eps1e-4_delta/re100_n400_ma0p01/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re100_n400_ma0p01)
+[2026-10-11 21:39:51] re100_n400_ma0p01: rc 0 status ok drift 0 overflow {} steps 106667 (2347.76 steps/s, 46 s)
+[2026-10-11 21:39:54] re100_n200_nopst: start (--case cases/tgv_2d_eps1e-4_delta/re100_n200_nopst/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re100_n200_nopst)
+[2026-10-11 21:39:57] re100_n200_nopst: rc 1 status bad_state drift -39983 overflow {'overflow_incoming_count': 8969} steps 5333 (1942.14 steps/s, 3 s)
+[2026-10-11 21:39:57] re100_n200_nopst: stopping the campaign (see C:\Users\cchen\PycharmProjects\vulkan-demo-v8\logs\v8\tgv_eps1e-4_delta\re100_n200_nopst\run.log)
+[2026-10-11 21:40:37] campaign start: set v3 (cases/tgv_2d_eps1e-4_delta), commit 4a0d919 (4 runs), tracked dirty: ['M experiment/v8/_analyze_tgv.py', ' M experiment/v8/_render_tgv.py']
+[2026-10-11 21:40:37] refusing to measure from a dirty tracked tree (commit first, or --allow-dirty)
+[2026-10-11 21:40:37] campaign start: set v3 (cases/tgv_2d_eps1e-4_delta), commit 4a0d919 (1 runs), tracked dirty: ['M experiment/v8/_analyze_tgv.py', ' M experiment/v8/_render_tgv.py']
+[2026-10-11 21:40:37] refusing to measure from a dirty tracked tree (commit first, or --allow-dirty)
+[2026-10-11 21:42:33] campaign start: set v3 (cases/tgv_2d_eps1e-4_delta), commit 887412d (4 runs), tracked dirty: ['M docs/tgv/data_eps1e-4_delta/runs.csv', ' M docs/tgv/data_eps1e-4_delta/summary.json', ' M docs/tgv/data_eps1e-4_delta/summary.md', ' M docs/tgv/v8_tgv.md', ' M manuscripts/fig/tgv_convergence_eps1e-4_delta.pdf', ' M manuscripts/fig/tgv_energy_eps1e-4_delta.pdf', ' M manuscripts/fig/tgv_fields_eps1e-4_delta.pdf', ' M manuscripts/fig/tgv_viscosity_eps1e-4_delta.pdf']
+[2026-10-11 21:42:33] refusing to measure from a dirty tracked tree (commit first, or --allow-dirty)
+[2026-10-11 21:42:33] campaign start: set v3 (cases/tgv_2d_eps1e-4_delta), commit 887412d (1 runs), tracked dirty: ['M docs/tgv/data_eps1e-4_delta/runs.csv', ' M docs/tgv/data_eps1e-4_delta/summary.json', ' M docs/tgv/data_eps1e-4_delta/summary.md', ' M docs/tgv/v8_tgv.md', ' M manuscripts/fig/tgv_convergence_eps1e-4_delta.pdf', ' M manuscripts/fig/tgv_energy_eps1e-4_delta.pdf', ' M manuscripts/fig/tgv_fields_eps1e-4_delta.pdf', ' M manuscripts/fig/tgv_viscosity_eps1e-4_delta.pdf']
+[2026-10-11 21:42:33] refusing to measure from a dirty tracked tree (commit first, or --allow-dirty)
+[2026-10-11 21:43:00] campaign start: set v3 (cases/tgv_2d_eps1e-4_delta), commit a158ab2 (4 runs), tracked dirty: ['M docs/tgv/data_eps1e-4_delta/runs.csv', ' M docs/tgv/data_eps1e-4_delta/summary.json', ' M docs/tgv/data_eps1e-4_delta/summary.md', ' M manuscripts/fig/tgv_convergence_eps1e-4_delta.pdf', ' M manuscripts/fig/tgv_energy_eps1e-4_delta.pdf', ' M manuscripts/fig/tgv_fields_eps1e-4_delta.pdf', ' M manuscripts/fig/tgv_viscosity_eps1e-4_delta.pdf']
+[2026-10-11 21:43:00] refusing to measure from a dirty tracked tree (commit first, or --allow-dirty)
+[2026-10-11 21:43:00] campaign start: set v3 (cases/tgv_2d_eps1e-4_delta), commit a158ab2 (1 runs), tracked dirty: ['M docs/tgv/data_eps1e-4_delta/runs.csv', ' M docs/tgv/data_eps1e-4_delta/summary.json', ' M docs/tgv/data_eps1e-4_delta/summary.md', ' M manuscripts/fig/tgv_convergence_eps1e-4_delta.pdf', ' M manuscripts/fig/tgv_energy_eps1e-4_delta.pdf', ' M manuscripts/fig/tgv_fields_eps1e-4_delta.pdf', ' M manuscripts/fig/tgv_viscosity_eps1e-4_delta.pdf']
+[2026-10-11 21:43:00] refusing to measure from a dirty tracked tree (commit first, or --allow-dirty)
+[2026-10-11 21:43:10] campaign start: set v3 (cases/tgv_2d_eps1e-4_delta), commit ba8e154 (4 runs), tracked dirty: none
+[2026-10-11 21:43:13] re100_n200_nodelta: start (--case cases/tgv_2d_eps1e-4_delta/re100_n200_nodelta/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re100_n200_nodelta)
+[2026-10-11 21:43:17] re100_n200_nodelta: rc 0 status ok drift 0 overflow {} steps 5333 (1377.45 steps/s, 5 s)
+[2026-10-11 21:43:20] re100_n200_nokcg: start (--case cases/tgv_2d_eps1e-4_delta/re100_n200_nokcg/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re100_n200_nokcg)
+[2026-10-11 21:43:25] re100_n200_nokcg: rc 0 status ok drift 0 overflow {} steps 5333 (1469.78 steps/s, 4 s)
+[2026-10-11 21:43:27] re100_n200_hdx4: start (--case cases/tgv_2d_eps1e-4_delta/re100_n200_hdx4/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re100_n200_hdx4)
+[2026-10-11 21:43:32] re100_n200_hdx4: rc 0 status ok drift 0 overflow {} steps 6667 (1849.82 steps/s, 4 s)
+[2026-10-11 21:43:34] re100_n210_hdx3p5: start (--case cases/tgv_2d_eps1e-4_delta/re100_n210_hdx3p5/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re100_n210_hdx3p5)
+[2026-10-11 21:43:39] re100_n210_hdx3p5: rc 0 status ok drift 0 overflow {} steps 8000 (2069.24 steps/s, 5 s)
+[2026-10-11 21:43:39] campaign done
+[2026-10-11 21:43:39] campaign start: set v3 (cases/tgv_2d_eps1e-4_delta), commit ba8e154 (1 runs), tracked dirty: none
+[2026-10-11 21:43:42] re100_n200_vanilla: start (--case cases/tgv_2d_eps1e-4_delta/re100_n200_vanilla/case.yaml --gpu-uuid ae137c668a40f5acaab90a83f7cda175 --t-end 2.0 --sample-dt 0.02 --in-flight 2 --out logs\v8\tgv_eps1e-4_delta\re100_n200_vanilla)
+[2026-10-11 21:43:46] re100_n200_vanilla: rc 0 status ok drift 0 overflow {} steps 5333 (1510.45 steps/s, 4 s)
+[2026-10-11 21:43:46] campaign done

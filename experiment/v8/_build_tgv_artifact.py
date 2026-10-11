@@ -96,6 +96,9 @@ def main() -> int:
                              "decay, (b) relative L2 velocity error."),
             ("tgv_fields", "200² default run at t = 1: speed, pressure (mean removed), velocity error, and the particles "
                            "across the periodic edge x = L (the right part drawn at x + L), coloured by speed."),
+            ("tgv_convergence_paper", "Paper version: set v3 without the float32-limited 3200² at Re 100 (Re 1000 to 3200²); "
+                                      "errors at t = 1 against L/dx."),
+            ("tgv_energy_paper", "Paper version of the energy / error histories (set v3, Re 100, 50²–1600²)."),
             ("tgv_energy_eps1e-4_delta", "Set v3 (ε² = 10⁻⁴ h², delta density), Re 100, 50²–3200²: (a) energy decay, (b) relative "
                                          "L2 velocity error; the 3200² run ends at t = 1 (float32 position precision, §6.2)."),
             ("tgv_convergence_eps1e-4_delta", "Set v3: errors at t = 1 against L/dx, Re 100 and Re 1000, up to 3200² (10.24 M particles)."),
