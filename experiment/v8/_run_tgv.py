@@ -188,7 +188,7 @@ def main() -> int:
         last_print = step_start
         for frame in range(1, total_steps + 1):
             sim.submit_step(with_defrag=bool(cadence) and frame % cadence == 0)
-            if frame % sample_every == 0 or frame == total_steps:
+            if frame % sample_every == 0 or frame == total_steps or frame in sampler.snapshot_steps:
                 sim.drain()
                 row = sampler.sample(frame)
                 now = time.perf_counter()
