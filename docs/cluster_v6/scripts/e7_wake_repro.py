@@ -701,6 +701,7 @@ def main() -> int:
     sys.setswitchinterval(args.switch_interval_ms / 1000.0)
     low, high = (float(value) for value in args.pre_signal_us.split(":"))
     os.makedirs(args.out, exist_ok=True)
+    print(f"[repro] opening device {args.device} (instance, physical devices, logical device)", flush=True)
     device = Device(args.device, args.copy_bytes)
     env = environment(device)
     with open(os.path.join(args.out, "environment.json"), "w", encoding="utf-8") as handle:
