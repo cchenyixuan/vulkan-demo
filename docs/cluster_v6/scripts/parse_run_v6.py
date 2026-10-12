@@ -301,6 +301,28 @@ def parse_log(text: str, solver: str = "v6") -> dict:
         {"sim": int(sim), "wall_ms": float(wall), "gpu_us": float(gpu) if gpu else None}
         for sim, wall, gpu in re.findall(r"\[e30\] defrag_time sim(\d+): wall_ms=([\d.]+)(?: gpu_us=([\d.]+))?",
                                          text)]
+    # E7 (user 2026-10-12): the defrag events of the timed chain = the last run_pipelined call (the wrapper's
+    # install_defrag_events lines; pilot chains of --weights auto come first)
+    events = [{"call": int(call), "frame": int(frame), "drain_ms": float(drain), "idle_ms": float(idle),
+               "wall_ms": float(wall), "final": final == "1", "at_s": float(at)}
+              for call, frame, drain, idle, wall, final, at in re.findall(
+                  r"\[e30\] defrag_event call=(\d+) f(\d+) drain_ms=([\d.]+) idle_ms=([\d.]+) wall_ms=([\d.]+) "
+                  r"final=([01]) at_s=([\d.]+)", text)]
+    summaries = re.findall(r"\[e30\] defrag_events call=(\d+) n=(\d+) in_window=(\d+) wall_ms=([\d.]+) "
+                           r"in_window_ms=([\d.]+) steady_frames=(\S+) steady_s=(\S+) steady_fps=(\S+) "
+                           r"steady_fps_nodefrag=(\S+)", text)
+    if summaries:
+        call, count, in_window, wall, in_window_ms, frames, seconds, fps, nodefrag = summaries[-1]
+        row["defrag_events"] = [event for event in events if event["call"] == int(call)]
+        row["defrag_events_summary"] = {
+            "call": int(call), "n": int(count), "in_window": int(in_window), "wall_ms": float(wall),
+            "in_window_ms": float(in_window_ms), "steady_frames": int(frames) if frames != "-" else None,
+            "steady_s": float(seconds) if seconds != "-" else None, "steady_fps": float(fps) if fps != "-" else None}
+        row["steady_fps_nodefrag"] = float(nodefrag) if nodefrag != "-" else None
+    else:
+        row["defrag_events"] = None
+        row["defrag_events_summary"] = None
+        row["steady_fps_nodefrag"] = None
     anatomy_full = [dict((name, number_or_text(value)) for name, value in re.findall(r"(\w+)=(\S+)", fields))
                     for fields in re.findall(r"\[e30\] anatomy_all call=\d+: (.*)", text)]
     anatomy_heads = re.findall(r"^\[anatomy\] f(\d+) s(\d+):", text, flags=re.MULTILINE)
@@ -558,6 +580,9 @@ def main() -> int:
           + (f" barrier={row['barrier']['status']}/{row['barrier']['waited_seconds']:.1f}s"
              if row.get("barrier") else "")
           + (f" loop_trace_rows={row['loop_trace']['rows']}" if row.get("loop_trace") else "")
+          + (f" defrag_ms={row['defrag_events_summary']['in_window_ms']:.0f}/{row['defrag_events_summary']['in_window']}"
+             f" fps_nodefrag={row['steady_fps_nodefrag']:.2f}"
+             if row.get("defrag_events_summary") and row.get("steady_fps_nodefrag") is not None else "")
           + (f" dest_guard_fallback={row['dest_guard_fallback']}" if row.get("dest_guard_fallback") else "")
           + (f" dest_guard_released={row['dest_guard_released']}" if row.get("dest_guard_released") else "")
           + (f" solver_tag={row['solver_tag']}" if row.get("solver_tag") else "")

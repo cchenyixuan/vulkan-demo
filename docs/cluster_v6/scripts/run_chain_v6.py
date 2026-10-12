@@ -64,6 +64,14 @@ E7 full campaign (solvers other than v6):
         [e30] barrier dir=... parties=N arrived_epoch=... released_epoch=... waited=...s seen=n status=ok|timeout
       (not with --weights auto: its pilot chains would take the barrier);
   the stage lines end with epoch=<seconds since 1970> (aligns runs with the telemetry);
+  every run (solvers other than v6; E7, user 2026-10-12: eta without the defrag events): each in-loop defrag
+      event of the legacy loop on the host clock, printed after the loop returns (install_defrag_events):
+        [e30] defrag_event call=<c> f<frame> drain_ms=... idle_ms=... wall_ms=... final=<0|1> at_s=...
+        [e30] defrag_events call=<c> n=... in_window=... wall_ms=... in_window_ms=... steady_frames=...
+              steady_s=... steady_fps=... steady_fps_nodefrag=...
+      (start = the drain's first wait for a frame the depth would not yet require, end = the next submit;
+      in_window = the events at frames >= warmup, all inside the bench's steady window; nodefrag =
+      steady_frames / (steady_s - in_window_ms / 1e3); the last call = the timed chain);
   --defrag-log   every in-loop defrag's report, one line per slab, and every defrag's duration:
         [e30] defrag f<frame> sim<i>: interval_migration=... alive=... overflow_install_tail=... ...
         [e30] defrag_time sim<i>: wall_ms=... [gpu_us=...]   (gpu_us with --anatomy timers attached)
@@ -530,6 +538,112 @@ def report_value_text(value) -> str:
     return str(value)
 
 
+def install_defrag_events(solver: str) -> dict:
+    """E7 (user, 2026-10-12: eta without the defrag events): every in-loop defrag event of ChainOrchestrator<V>'s
+    legacy run_pipelined loop, timed on the host clock and printed after the call returns (nothing is printed
+    inside the loop). An event starts at the first frame_done wait of the drain before the defrag (a wait for a frame
+    the pipeline depth would not yet require: frame > _frame_count - depth; with depth 1 at the report readback)
+    and ends at the next frame's submit (the run's last event, at max_steps, when the loop returns):
+      drain_ms = start -> the report readback (the GPUs finish the frames in flight), idle_ms = the report
+      readback -> end (the readbacks, every slab's defrag one after the other, the submit), wall_ms = start -> end.
+        [e30] defrag_event call=<c> f<frame> drain_ms=... idle_ms=... wall_ms=... final=<0|1> at_s=<start - loop start>
+        [e30] defrag_events call=<c> n=<events> in_window=<events at frames >= warmup> wall_ms=<sum>
+              in_window_ms=<sum> steady_frames=<f> steady_s=<s> steady_fps=<f / s>
+              steady_fps_nodefrag=<f / (s - in_window_ms / 1e3)>
+    The loop's steady window opens right before the defrag block of frame `warmup` and closes after the one of
+    frame max_steps, so every event at a frame >= warmup lies inside it. Call c = the c-th run_pipelined of the
+    process (--weights auto pilots first, the timed chain last). Install it before every other run_pipelined
+    wrapper (it binds the call's depth / warmup / max_steps by the original signature). Nothing in the solver
+    changes; the wrappers add a few perf_counter calls per frame."""
+    import inspect
+    orchestrator_module = solver_module(solver, "orchestrator")
+    chain_class = getattr(orchestrator_module, f"ChainOrchestrator{solver.upper()}")
+    original_run = chain_class.run_pipelined
+    original_wait = chain_class._wait_frame
+    original_submit = chain_class._submit_frame
+    original_report = chain_class._collect_defrag_report
+    signature = inspect.signature(original_run)
+    recorder: dict = {"calls": 0, "runs": []}
+    state: dict = {"running": False, "depth": None, "event": None, "events": [], "t_start": None}
+
+    def wait_frame_timed(orchestrator, frame_n, *arguments, **keyword_arguments):
+        if state["running"] and state["event"] is None and state["depth"] is not None \
+                and frame_n > getattr(orchestrator, "_frame_count", 0) - state["depth"]:
+            state["event"] = {"frame": getattr(orchestrator, "_frame_count", None), "start": time.perf_counter(),
+                              "report": None}
+        return original_wait(orchestrator, frame_n, *arguments, **keyword_arguments)
+
+    def collect_defrag_report_timed(orchestrator, *arguments, **keyword_arguments):
+        if state["running"]:
+            now = time.perf_counter()
+            if state["event"] is None:
+                state["event"] = {"frame": None, "start": now, "report": None}
+            state["event"]["report"] = now
+            state["event"]["frame"] = getattr(orchestrator, "_frame_count", state["event"]["frame"])
+        return original_report(orchestrator, *arguments, **keyword_arguments)
+
+    def submit_frame_timed(orchestrator, frame_n, *arguments, **keyword_arguments):
+        event = state["event"]
+        if state["running"] and event is not None:
+            if event["report"] is not None:
+                event["end"] = time.perf_counter()
+                event["final"] = False
+                state["events"].append(event)
+            state["event"] = None                   # a drain without a defrag (none in the legacy loop): dropped
+        return original_submit(orchestrator, frame_n, *arguments, **keyword_arguments)
+
+    def run_pipelined_timed(orchestrator, *arguments, **keyword_arguments):
+        try:
+            bound = signature.bind(orchestrator, *arguments, **keyword_arguments)
+            bound.apply_defaults()
+            parameters = {name: bound.arguments.get(name) for name in ("max_steps", "depth", "warmup")}
+        except TypeError:
+            parameters = {"max_steps": None, "depth": None, "warmup": None}
+        state.update({"running": True, "depth": max(1, int(parameters["depth"])) if parameters["depth"] else None,
+                      "event": None, "events": [], "t_start": time.perf_counter()})
+        call = recorder["calls"]
+        recorder["calls"] += 1
+        try:
+            result = original_run(orchestrator, *arguments, **keyword_arguments)
+        finally:
+            state["running"] = False
+            event = state["event"]
+            if event is not None and event["report"] is not None:
+                event["end"] = time.perf_counter()
+                event["final"] = True
+                state["events"].append(event)
+            state["event"] = None
+        warmup = parameters["warmup"] or 0
+        rows = [{"frame": event["frame"], "drain_ms": (event["report"] - event["start"]) * 1e3,
+                 "idle_ms": (event["end"] - event["report"]) * 1e3, "wall_ms": (event["end"] - event["start"]) * 1e3,
+                 "final": event["final"], "at_s": event["start"] - state["t_start"],
+                 "in_window": event["frame"] is not None and event["frame"] >= warmup} for event in state["events"]]
+        in_window_ms = sum(row["wall_ms"] for row in rows if row["in_window"])
+        steady_frames = result.get("steady_frames") if isinstance(result, dict) else None
+        steady_s = result.get("steady_s") if isinstance(result, dict) else None
+        nodefrag = (steady_frames / (steady_s - in_window_ms / 1e3)
+                    if steady_frames and steady_s and steady_s * 1e3 > in_window_ms else None)
+        for row in rows:
+            print(f"[e30] defrag_event call={call} f{row['frame']} drain_ms={row['drain_ms']:.3f} "
+                  f"idle_ms={row['idle_ms']:.3f} wall_ms={row['wall_ms']:.3f} final={int(row['final'])} "
+                  f"at_s={row['at_s']:.3f}", flush=True)
+        print(f"[e30] defrag_events call={call} n={len(rows)} in_window={sum(row['in_window'] for row in rows)} "
+              f"wall_ms={sum(row['wall_ms'] for row in rows):.3f} in_window_ms={in_window_ms:.3f} "
+              f"steady_frames={steady_frames if steady_frames is not None else '-'} "
+              f"steady_s={f'{steady_s:.6f}' if steady_s is not None else '-'} "
+              f"steady_fps={f'{steady_frames / steady_s:.4f}' if steady_frames and steady_s else '-'} "
+              f"steady_fps_nodefrag={f'{nodefrag:.4f}' if nodefrag is not None else '-'}", flush=True)
+        recorder["runs"].append({"call": call, "parameters": parameters, "events": rows,
+                                 "steady_fps_nodefrag": nodefrag})
+        return result
+
+    chain_class._wait_frame = wait_frame_timed
+    chain_class._submit_frame = submit_frame_timed
+    chain_class._collect_defrag_report = collect_defrag_report_timed
+    chain_class.run_pipelined = run_pipelined_timed
+    return recorder
+
+
 def install_defrag_log(solver: str) -> None:
     """E7 --defrag-log: wrap ChainOrchestrator<V>.run_pipelined so that its on_defrag callback first prints the
     report the orchestrator collected at that defrag (one line per slab: the interval's migration count, alive,
@@ -840,7 +954,10 @@ def main() -> int:
                          if os.environ.get(arguments.solver.upper() + "_POOL_PEAKS", "0") == "1" else None)
     bench_started = time.perf_counter()
     pool_health = None
-    # first: its run_pipelined wrapper is then the innermost one (install_loop_trace_dump)
+    # first of all: the defrag event timer binds the loop's parameters by the original run_pipelined signature
+    if arguments.solver != "v6":
+        install_defrag_events(arguments.solver)
+    # then the loop trace: its run_pipelined wrapper is the next one, next to the loop (install_loop_trace_dump)
     loop_trace = install_loop_trace_dump(arguments.solver) if arguments.loop_trace is not None else None
     if arguments.solver != "v6":
         barrier = ((arguments.barrier, arguments.barrier_parties, arguments.barrier_timeout)
