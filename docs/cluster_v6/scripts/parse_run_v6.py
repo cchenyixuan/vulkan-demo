@@ -234,8 +234,9 @@ def parse_log(text: str, solver: str = "v6") -> dict:
         worker_copy[match.group(1)] = segments
     row["worker_segments_us"] = worker_copy
     # E7 B2 (rc2's transport): each worker prints how its dest guards completed when it stops; the last line of a
-    # worker wins (the timed chain's, after any pilot chain). Recorded, not part of the verdict: a fallback or a
-    # released relay ends in rc1's blocking wait (correctness kept), so the sums only show (RESULT line when > 0)
+    # worker wins (the timed chain's, after any pilot chain). A fallback or a released relay ends in rc1's blocking
+    # wait (correctness kept); the sums show on the RESULT line when > 0 and, in relay mode, make the run a hard
+    # failure (user stop rule of 2026-10-12 for the rc2 batches: fallback and blocking must both be 0; classify)
     dest_guards = {}
     for match in re.finditer(r"\[worker ([^\]\s]+)\] dest guard: precheck (\d+), relay (\d+), fallback (\d+), "
                              r"blocking (\d+) \(relay slept (\d+), released (\d+); ([^)]*)\)", text):
@@ -248,6 +249,7 @@ def parse_log(text: str, solver: str = "v6") -> dict:
     row["dest_guard"] = dest_guards or None
     row["dest_guard_fallback"] = sum(entry["fallback"] for entry in dest_guards.values()) if dest_guards else None
     row["dest_guard_released"] = sum(entry["released"] for entry in dest_guards.values()) if dest_guards else None
+    row["dest_guard_blocking"] = sum(entry["blocking"] for entry in dest_guards.values()) if dest_guards else None
     link_bytes = {}
     for match in re.finditer(r"\[link (\S+)\] bytes/frame: host_copy=([\d.]+) KiB dma=([\d.]+) KiB over (\d+) frames",
                              text):
@@ -377,6 +379,12 @@ def classify(row: dict, return_code: int) -> tuple[str, list[str]]:
         reasons.append("seam check FAIL")
     if row["nan_seen"]:
         reasons.append("NaN/inf in fields")
+    # user stop rule (2026-10-12, batches 2 and 4 on rc2): in relay mode no dest guard may have slept in the driver
+    slept = {name: entry for name, entry in (row.get("dest_guard") or {}).items()
+             if entry["switches"].get("V7_DEST_GUARD") == "relay" and (entry["fallback"] or entry["blocking"])}
+    if slept:
+        reasons.append("dest guard in relay mode: " + ",".join(
+            f"{name} fallback={entry['fallback']} blocking={entry['blocking']}" for name, entry in sorted(slept.items())))
     if reasons:
         return "hard_failure", reasons
     if return_code == 1:

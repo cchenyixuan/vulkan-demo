@@ -63,6 +63,18 @@ check v7-rc1's tree): --source-repo DIR changes the source line's default deploy
 --expected-tree SHA (git rev-parse <commit>:experiment/v7) and --expect-commit PREFIX are exported by every
 emitted batch job (E7_SOLVER_TAG, E7_EXPECTED_TREE, E30_EXPECT_COMMIT; without them no export line is written).
 
+Revision of 2026-10-12 (--revision; user, after the batch-3 report: batches 2 and 4 on v7-rc2, E7_ARMS=C exported):
+  - the calibrated arm only (R C / C R alternating), 3 trials at every point, one traced run (arm C) per strong
+    point and none per weak point, cross repeats without traces;
+  - batch 2 = F1 K = 8 n2000, n2840, n5640, n11320 (n9000 dropped; n4000 and n8000 K = 8 keep the validation job's
+    rc2 values), F2 n5640 and n8000 at K = 2 and 4 (n8000 K = 4 re-measured: batch 1 was rc1), F3 at 2M / 8M / 32M
+    per card only (n1440_k4, n1440_k8, n2840_k2 / k4 / k8, n5640_k2 / k4 / k8; n2840_k4 re-measured; n1440_k2 keeps
+    the validation job's value; n2000_k* and n4000_k* dropped);
+  - batch 4 = one line-B job: F7 K = 8 n520 and n1000 (F7 K = 2 / 4, F8 and the cube soak dropped), the n8000
+    anatomy at K = 1 and K = 8 plus the 3-D anatomy 3d_n200 K = 1, 3d_n200_k8 K = 1 and K = 8 (per-kernel time per
+    particle, cube against stretched; ANATOMY_STEPS_3D steps), the cross repeat of 2d_n8000 K = 8 only (submit with
+    --exclude=<the validation job's node>).
+
 Validation job (--emit-validation DIR: e7_v1.sbatch, job e7_V, line V; user item 7): the job's deployment
 (VALIDATION source repo, tag rc2, --validation-tree / --validation-commit, placeholders until rc2 exists) under
 the full protocol at two batch-1 points (same labels as batch 1: they replace those points), and A/B points of
@@ -72,7 +84,7 @@ per solver back to back, the order alternating); no traces) against v7-rc1 (E7_R
 Usage:
     python docs/cluster_v6/scripts/e7_plan.py [--markdown] [--json OUT] [--emit-jobs DIR [--batch N ...]]
         [--model-json FILE] [--source-repo DIR] [--solver-tag TAG --expected-tree SHA] [--expect-commit PREFIX]
-        [--emit-validation DIR [--validation-tree SHA] [--validation-commit PREFIX]]
+        [--emit-validation DIR [--validation-tree SHA] [--validation-commit PREFIX]] [--revision]
 """
 
 from __future__ import annotations
@@ -133,6 +145,20 @@ VALIDATION = {"job": "v1", "line": "V", "source_repository": "$HOME/run/vulkan-d
               "pair_trials": 3, "pair_arm": "C"}
 PLACEHOLDER_TREE = "PLACEHOLDER_TREE"           # rc2's tree and commit are not known yet: the job stops at its start
 PLACEHOLDER_COMMIT = "PLACEHOLDER_COMMIT"
+# revision of 2026-10-12 (docstring): the arm, the trials, the traces per point kind, the batch 2 / 4 point lists
+# (case, K), batch 4's extras and cross repeat
+REVISION = {
+    "arms": "C", "trials": 3, "traces_strong": 1, "traces_weak": 0,
+    "batches": {2: {"A": [("cavity2d_n5640", 2), ("cavity2d_n5640", 4), ("cavity2d_n8000", 2), ("cavity2d_n8000", 4),
+                          ("cavity2d_n1440_k4", 4), ("cavity2d_n2840_k2", 2), ("cavity2d_n2840_k4", 4),
+                          ("cavity2d_n5640_k2", 2), ("cavity2d_n5640_k4", 4)],
+                    "B": [("cavity2d_n2000", 8), ("cavity2d_n2840", 8), ("cavity2d_n5640", 8), ("cavity2d_n11320", 8),
+                          ("cavity2d_n1440_k8", 8), ("cavity2d_n2840_k8", 8), ("cavity2d_n5640_k8", 8)]},
+                4: {"A": [], "B": [("cavity2d_n520", 8), ("cavity2d_n1000", 8)]}},
+    "extras": {2: {"A": ([], []), "B": ([], [])}, 4: {"A": ([], []), "B": ([], ["anatomy", "anatomy_3d", "cross"])}},
+    "cross": {"A": [], "B": [("cavity2d_n8000", 8)]},
+}
+ARMS = "EC"                                     # the timed arms per trial (--revision: REVISION["arms"])
 
 
 @dataclasses.dataclass
@@ -142,10 +168,17 @@ class Point:
     slabs: int
     references: list        # "same" = K = 1 of the case; "pairs" = K = 2 pairs of the case; else a k1 case (weak)
     cross: bool = False
+    trials_fixed: int = None        # --revision: the trials and traces set by the revision instead of the rules
+    traces_fixed: int = None
 
     @property
     def line(self) -> str:
         return "B" if self.slabs == 8 else "A"
+
+    @property
+    def strong(self) -> bool:
+        """A strong-scaling point (the reference is the case itself, K = 1 or pairs), else weak (per-card case)."""
+        return any(kind in ("same", "pairs") for kind in self.references)
 
     @property
     def dimension(self) -> int:
@@ -157,12 +190,16 @@ class Point:
 
     @property
     def trials(self) -> int:
+        if self.trials_fixed is not None:
+            return self.trials_fixed
         if self.cross:
             return CROSS_TRIALS
         return 5 if self.per_card <= LIGHT_PER_CARD else 3
 
     @property
     def traces(self) -> int:
+        if self.traces_fixed is not None:
+            return self.traces_fixed
         return 0 if self.cross else 2
 
 
@@ -215,11 +252,34 @@ def campaign_points() -> list[Point]:
     return points
 
 
-def cross_points(points: list[Point]) -> dict:
-    """Line -> the other line's points it re-runs (copies with cross=True)."""
+def cross_points(points: list[Point], revision: bool = False) -> dict:
+    """Line -> the points it re-runs (copies with cross=True): the other line's (CROSS), or the revision's (its own
+    line's point on another node, 0 traces, the revision's trials)."""
     by_key = {(point.case, point.slabs): point for point in points}
-    return {line: [dataclasses.replace(by_key[key], references=list(by_key[key].references), cross=True)
-                   for key in keys] for line, keys in CROSS.items()}
+    table = REVISION["cross"] if revision else CROSS
+    return {line: [dataclasses.replace(by_key[key], references=list(by_key[key].references), cross=True,
+                                       trials_fixed=REVISION["trials"] if revision else None,
+                                       traces_fixed=0 if revision else None)
+                   for key in keys] for line, keys in table.items()}
+
+
+def revised_batches(points: list[Point], batches: dict) -> dict:
+    """--revision: batches 2 and 4 replaced by REVISION's point lists (copies of the campaign's points with the
+    revision's trials and traces: one traced run at a strong point, none at a weak one); batches 1 and 3 are done."""
+    by_key = {(point.case, point.slabs): point for point in points}
+    out = dict(batches)
+    for batch, lines in REVISION["batches"].items():
+        out[batch] = {}
+        for line, keys in lines.items():
+            out[batch][line] = []
+            for key in keys:
+                point = by_key[key]
+                if point.line != line:
+                    raise SystemExit(f"revision batch {batch}: {key} is a line {point.line} point")
+                out[batch][line].append(dataclasses.replace(
+                    point, references=list(point.references), trials_fixed=REVISION["trials"],
+                    traces_fixed=REVISION["traces_strong"] if point.strong else REVISION["traces_weak"]))
+    return out
 
 
 @dataclasses.dataclass
@@ -248,6 +308,7 @@ class Model:
     trace_write: float = 15.0       # s: a step trace's CSV files
     job_overhead: float = 300.0     # s per job: prelude, bring-up, device check, cache stage-in (smoke: 157 s)
     anatomy_steps: int = 3000       # three anatomy frames per simulator at the default defrag cadence (1000)
+    anatomy_steps_3d: int = 2000    # the 3-D anatomy runs of the revision (two frames; 69.6M at K = 1 is ~2.4 fps)
     soak_steps: int = 17000
     cube_soak_seconds: float = 3600.0
 
@@ -329,7 +390,7 @@ def point_seconds(point: Point, model: Model) -> dict:
     run_warm = model.run(point.case, point.slabs, steps, cold=False)
     references_first, references_later, reference_runs = reference_seconds(point, model)
     calibration = calibration_seconds(point, model)
-    trials_total = references_first + (point.trials - 1) * references_later + point.trials * 2 * run_warm
+    trials_total = references_first + (point.trials - 1) * references_later + point.trials * len(ARMS) * run_warm
     traced = model.run(point.case, point.slabs, steps, cold=True, seam_check=True) + model.trace_write
     total = calibration + trials_total + point.traces * traced
     return {"run": run_warm, "reference": references_later, "reference_first": references_first,
@@ -364,6 +425,11 @@ def extras(model: Model) -> dict:
         "soak_2d": [("soak_2d_n8000_K8", "soak", "cavity2d_n8000", 8, model.soak_steps)],
         "anatomy": [("anatomy_2d_n8000_K1", "anatomy", "cavity2d_n8000", 1, model.anatomy_steps),
                     ("anatomy_2d_n8000_K8", "anatomy", "cavity2d_n8000", 8, model.anatomy_steps)],
+        # revision of 2026-10-12: per-kernel time per particle of the cube K = 1 (per-card case), the stretched
+        # K = 1 (the strong reference, one card) and the stretched K = 8
+        "anatomy_3d": [("anatomy_3d_n200_K1", "anatomy", "cavity3d_n200", 1, model.anatomy_steps_3d),
+                       ("anatomy_3d_n200_k8_K1", "anatomy", "cavity3d_n200_k8", 1, model.anatomy_steps_3d),
+                       ("anatomy_3d_n200_k8_K8", "anatomy", "cavity3d_n200_k8", 8, model.anatomy_steps_3d)],
         "soak_3d": [("soak_3d_n416_K8", "soak", "cavity3d_n416", 8, cube_steps)],
     }
     out = {}
@@ -401,15 +467,18 @@ def batch_points(points: list[Point]) -> dict:
     return batches
 
 
-def build_jobs(points: list[Point], model: Model) -> dict:
+def build_jobs(points: list[Point], model: Model, revision: bool = False) -> dict:
     """(batch, line) -> [items], each item a dict with its kind, arguments and estimated seconds."""
-    crosses = cross_points(points)
+    crosses = cross_points(points, revision)
     extra_items = extras(model)
     batches = batch_points(points)
+    if revision:          # batches 1 and 3 are done: only the revised batches are planned and emitted
+        batches = {batch: lines for batch, lines in revised_batches(points, batches).items()
+                   if batch in REVISION["batches"]}
     jobs = {}
     for batch, lines in batches.items():
         for line in ("A", "B"):
-            before, after = BATCH_EXTRAS[batch][line]
+            before, after = (REVISION["extras"].get(batch) or BATCH_EXTRAS[batch])[line] if revision else BATCH_EXTRAS[batch][line]
             items = []
 
             def add_groups(groups):
@@ -423,7 +492,7 @@ def build_jobs(points: list[Point], model: Model) -> dict:
                         for point in crosses[line]:
                             items.append({"kind": "cross", "point": point,
                                           "seconds": point_seconds(point, model)["total"],
-                                          "original_line": "B" if line == "A" else "A"})
+                                          "original_line": point.line})
                     else:
                         items.extend(dict(entry) for entry in extra_items[group])
 
@@ -431,9 +500,10 @@ def build_jobs(points: list[Point], model: Model) -> dict:
             for point in lines[line]:
                 items.append({"kind": "point", "point": point, "seconds": point_seconds(point, model)["total"]})
             add_groups(after)
-            jobs[(batch, line)] = items
+            if items:               # a line without items has no job (the revision's batch 4 line A)
+                jobs[(batch, line)] = items
     assigned = sum(1 for items in jobs.values() for item in items if item["kind"] == "point")
-    if assigned != len(points):
+    if assigned != len(points) and not revision:
         raise SystemExit(f"{assigned} points in the batches, {len(points)} in the campaign")
     return jobs
 
@@ -595,12 +665,18 @@ def main() -> int:
                         help="the validation job's expected experiment/v7 tree (git rev-parse <rc2>:experiment/v7)")
     parser.add_argument("--validation-commit", default=PLACEHOLDER_COMMIT, metavar="PREFIX",
                         help="the validation job's expected COMMIT prefix (the rc2 commit)")
+    parser.add_argument("--revision", action="store_true",
+                        help="the revision of 2026-10-12 (docstring): arm C only, 3 trials, the trimmed batches 2 and 4; "
+                             "emitted jobs export E7_ARMS=C")
     arguments = parser.parse_args()
     if (arguments.solver_tag is None) != (arguments.expected_tree is None):
         parser.error("--solver-tag and --expected-tree go together (the tag names the tree's solver)")
+    global ARMS
+    if arguments.revision:
+        ARMS = REVISION["arms"]
     model = load_model(arguments.model_json)
     points = campaign_points()
-    jobs = build_jobs(points, model)
+    jobs = build_jobs(points, model, arguments.revision)
 
     lines = ["| batch | line | family | case | K | particles | per card | trials | references | run (min) | "
              "reference set (min) | calibration (min) | traced run (min) | point total (h) |",
@@ -646,13 +722,15 @@ def main() -> int:
     for (batch, line), value in totals.items():
         batch_totals.setdefault(batch, {})[line] = value
     total = sum(totals.values())
-    summary = [f"points: {len(points)} (line A {sum(p.line == 'A' for p in points)}, line B "
-               f"{sum(p.line == 'B' for p in points)}); 5 trials: {sum(p.trials == 5 for p in points)} points "
-               f"(<= {LIGHT_PER_CARD / 1e6:.1f}M per card), 3 trials: {sum(p.trials == 3 for p in points)}; "
-               "2 traced runs per point; timing runs without the seam check",
+    planned = [item["point"] for items in jobs.values() for item in items if item["kind"] == "point"]
+    summary = [f"points: {len(planned)} planned of {len(points)} in the campaign (line A {sum(p.line == 'A' for p in planned)}, "
+               f"line B {sum(p.line == 'B' for p in planned)}); 5 trials: {sum(p.trials == 5 for p in planned)} points "
+               f"(<= {LIGHT_PER_CARD / 1e6:.1f}M per card), 3 trials: {sum(p.trials == 3 for p in planned)}; arms {ARMS}; "
+               f"traced runs per point {sorted({p.traces for p in planned})}; timing runs without the seam check"
+               + (" (revision of 2026-10-12)" if arguments.revision else ""),
                "batches (node-h; wall = the longer line): " + "; ".join(
-                   f"{batch}: A {values['A'] / 3600:.1f} + B {values['B'] / 3600:.1f} = "
-                   f"{(values['A'] + values['B']) / 3600:.1f} (wall {max(values.values()) / 3600:.1f} h)"
+                   f"{batch}: A {values.get('A', 0.0) / 3600:.1f} + B {values.get('B', 0.0) / 3600:.1f} = "
+                   f"{sum(values.values()) / 3600:.1f} (wall {max(values.values()) / 3600:.1f} h)"
                    for batch, values in sorted(batch_totals.items())),
                f"total {total / 3600:.1f} node-h = {8 * total / 3600:.0f} GPU-h (queue not included)",
                "", "| batch | line | job | points | items | estimate (h) | content |", "|---|---|---|---|---|---|---|"] + job_rows
@@ -669,6 +747,8 @@ def main() -> int:
             exports.append(("E30_EXPECT_COMMIT", arguments.expect_commit))
         if arguments.solver_tag:
             exports += [("E7_SOLVER_TAG", arguments.solver_tag), ("E7_EXPECTED_TREE", arguments.expected_tree)]
+        if arguments.revision:
+            exports.append(("E7_ARMS", REVISION["arms"]))
         for path in emit_jobs(jobs, model, pathlib.Path(arguments.emit_jobs), set(arguments.batch or (1, 2, 3, 4)),
                               arguments.source_repo, exports):
             print(f"wrote {path}")

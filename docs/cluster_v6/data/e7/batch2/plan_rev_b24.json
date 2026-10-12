@@ -1,0 +1,643 @@
+{
+ "model": {
+  "cost_2d": 1.3005052843049434e-09,
+  "cost_3d": 6.178588886851932e-09,
+  "floor_k1": 0.0014,
+  "floor": {
+   "2": 0.004687887061375782,
+   "4": 0.0045,
+   "8": 0.006779244143331603
+  },
+  "efficiency": {
+   "2": 1.033559479499499,
+   "4": 0.9670847003539155,
+   "8": 0.9542656257479943
+  },
+  "efficiency_3d": {
+   "2": 0.9288316782483018,
+   "4": 0.8938248404995566,
+   "8": 0.8814459036186169
+  },
+  "cold_per_simulator": 2.1992011834319527,
+  "warm_per_simulator": 1.461063432835821,
+  "load_per_million": 0.3864451596708547,
+  "bootstrap_fixed": 0.3189054734206671,
+  "bootstrap_per_million": 0.546985424716854,
+  "post_per_million": 0.0416387426221166,
+  "post_per_slab": 0.0,
+  "seam_2d_per_million": 0.24098260527808044,
+  "seam_2d_fixed": 4.590144862439628,
+  "seam_3d_per_million": 0.0,
+  "seam_3d_per_million_per_slab": 0.0929304342172713,
+  "calibration_rounds": 2,
+  "calibration_fixed": -10.39242240137382,
+  "pilot_steps": 500,
+  "run_overhead": 2.7203588433158186,
+  "trace_write": 15.0,
+  "job_overhead": 165.5,
+  "anatomy_steps": 3000,
+  "anatomy_steps_3d": 2000,
+  "soak_steps": 17000,
+  "cube_soak_seconds": 3600.0
+ },
+ "light_per_card": 4200000.0,
+ "batches_hours": {
+  "2": {
+   "A": 2.6140373026497596,
+   "B": 1.995997198130997
+  },
+  "4": {
+   "B": 1.0543882056845981
+  }
+ },
+ "total_node_hours": 5.664422706465355,
+ "records": [
+  {
+   "batch": 2,
+   "line": "A",
+   "job": "b2A",
+   "family": "F2",
+   "case": "cavity2d_n5640",
+   "slabs": 2,
+   "particles": 32058244,
+   "per_card": 16029122.0,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "same"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 49.58081016252461,
+   "run": 97.7,
+   "reference": 160.8,
+   "reference_first": 161.6,
+   "calibration": 87.2,
+   "traced": 125.2,
+   "total": 988.8
+  },
+  {
+   "batch": 2,
+   "line": "A",
+   "job": "b2A",
+   "family": "F2+F7",
+   "case": "cavity2d_n5640",
+   "slabs": 4,
+   "particles": 32058244,
+   "per_card": 8014561.0,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "same"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 92.7839062780377,
+   "run": 72.5,
+   "reference": 160.8,
+   "reference_first": 161.6,
+   "calibration": 86.6,
+   "traced": 101.4,
+   "total": 888.7
+  },
+  {
+   "batch": 2,
+   "line": "A",
+   "job": "b2A",
+   "family": "F2",
+   "case": "cavity2d_n8000",
+   "slabs": 2,
+   "particles": 64352484,
+   "per_card": 32176242.0,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "same"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 24.699492717451175,
+   "run": 190.2,
+   "reference": 318.3,
+   "reference_first": 319.1,
+   "calibration": 170.5,
+   "traced": 224.1,
+   "total": 1920.7
+  },
+  {
+   "batch": 2,
+   "line": "A",
+   "job": "b2A",
+   "family": "F2",
+   "case": "cavity2d_n8000",
+   "slabs": 4,
+   "particles": 64352484,
+   "per_card": 16088121.0,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "same"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 46.22182271525781,
+   "run": 136.5,
+   "reference": 318.3,
+   "reference_first": 319.1,
+   "calibration": 160.4,
+   "traced": 171.9,
+   "total": 1697.6
+  },
+  {
+   "batch": 2,
+   "line": "A",
+   "job": "b2A",
+   "family": "F3",
+   "case": "cavity2d_n1440_k4",
+   "slabs": 4,
+   "particles": 8453284,
+   "per_card": 2113321.0,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 0,
+   "cross": false,
+   "references": [
+    "cavity2d_n1440"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 222.22222222222223,
+   "run": 30.6,
+   "reference": 14.9,
+   "reference_first": 15.7,
+   "calibration": 34.3,
+   "traced": 54.9,
+   "total": 171.7
+  },
+  {
+   "batch": 2,
+   "line": "A",
+   "job": "b2A",
+   "family": "F3",
+   "case": "cavity2d_n2840_k2",
+   "slabs": 2,
+   "particles": 16319124,
+   "per_card": 8159562.0,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 0,
+   "cross": false,
+   "references": [
+    "cavity2d_n2840"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 97.39945047956576,
+   "run": 52.7,
+   "reference": 44.4,
+   "reference_first": 45.2,
+   "calibration": 46.6,
+   "traced": 77.0,
+   "total": 338.7
+  },
+  {
+   "batch": 2,
+   "line": "A",
+   "job": "b2A",
+   "family": "F3",
+   "case": "cavity2d_n2840_k4",
+   "slabs": 4,
+   "particles": 32575284,
+   "per_card": 8143821.0,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 0,
+   "cross": false,
+   "references": [
+    "cavity2d_n2840"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 91.3112256130895,
+   "run": 73.5,
+   "reference": 44.4,
+   "reference_first": 45.2,
+   "calibration": 87.8,
+   "traced": 102.5,
+   "total": 442.3
+  },
+  {
+   "batch": 2,
+   "line": "A",
+   "job": "b2A",
+   "family": "F3",
+   "case": "cavity2d_n5640_k2",
+   "slabs": 2,
+   "particles": 63991924,
+   "per_card": 31995962.0,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 0,
+   "cross": false,
+   "references": [
+    "cavity2d_n5640"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 24.83866104585156,
+   "run": 189.1,
+   "reference": 160.8,
+   "reference_first": 161.6,
+   "calibration": 169.5,
+   "traced": 223.0,
+   "total": 1220.2
+  },
+  {
+   "batch": 2,
+   "line": "A",
+   "job": "b2A",
+   "family": "F3",
+   "case": "cavity2d_n5640_k4",
+   "slabs": 4,
+   "particles": 127859284,
+   "per_card": 31964821.0,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 0,
+   "cross": false,
+   "references": [
+    "cavity2d_n5640"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 23.263771027643674,
+   "run": 262.5,
+   "reference": 160.8,
+   "reference_first": 161.6,
+   "calibration": 305.6,
+   "traced": 310.5,
+   "total": 1576.4
+  },
+  {
+   "batch": 2,
+   "line": "B",
+   "job": "b2B",
+   "family": "F1+F7",
+   "case": "cavity2d_n2000",
+   "slabs": 8,
+   "particles": 4088484,
+   "per_card": 511060.5,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "same"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 147.50907016435588,
+   "run": 39.1,
+   "reference": 24.4,
+   "reference_first": 25.2,
+   "calibration": 45.6,
+   "traced": 65.4,
+   "total": 302.2
+  },
+  {
+   "batch": 2,
+   "line": "B",
+   "job": "b2B",
+   "family": "F1",
+   "case": "cavity2d_n2840",
+   "slabs": 8,
+   "particles": 8191044,
+   "per_card": 1023880.5,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "same"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 147.50907016435588,
+   "run": 43.1,
+   "reference": 44.4,
+   "reference_first": 45.2,
+   "calibration": 53.6,
+   "traced": 70.2,
+   "total": 387.0
+  },
+  {
+   "batch": 2,
+   "line": "B",
+   "job": "b2B",
+   "family": "F1",
+   "case": "cavity2d_n5640",
+   "slabs": 8,
+   "particles": 32058244,
+   "per_card": 4007280.5,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "same"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 147.50907016435588,
+   "run": 66.3,
+   "reference": 160.8,
+   "reference_first": 161.6,
+   "calibration": 100.2,
+   "traced": 98.2,
+   "total": 880.6
+  },
+  {
+   "batch": 2,
+   "line": "B",
+   "job": "b2B",
+   "family": "F1",
+   "case": "cavity2d_n11320",
+   "slabs": 8,
+   "particles": 128640964,
+   "per_card": 16080120.5,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "pairs"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 45.63182727909043,
+   "run": 205.9,
+   "reference": 374.2,
+   "reference_first": 375.7,
+   "calibration": 303.7,
+   "traced": 257.0,
+   "total": 2302.5
+  },
+  {
+   "batch": 2,
+   "line": "B",
+   "job": "b2B",
+   "family": "F3",
+   "case": "cavity2d_n1440_k8",
+   "slabs": 8,
+   "particles": 16874404,
+   "per_card": 2109300.5,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 0,
+   "cross": false,
+   "references": [
+    "cavity2d_n1440"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 147.50907016435588,
+   "run": 51.5,
+   "reference": 14.9,
+   "reference_first": 15.7,
+   "calibration": 70.6,
+   "traced": 80.4,
+   "total": 270.6
+  },
+  {
+   "batch": 2,
+   "line": "B",
+   "job": "b2B",
+   "family": "F3",
+   "case": "cavity2d_n2840_k8",
+   "slabs": 8,
+   "particles": 65087604,
+   "per_card": 8135950.5,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 0,
+   "cross": false,
+   "references": [
+    "cavity2d_n2840"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 90.1880218276846,
+   "run": 111.5,
+   "reference": 44.4,
+   "reference_first": 45.2,
+   "calibration": 168.9,
+   "traced": 149.9,
+   "total": 637.3
+  },
+  {
+   "batch": 2,
+   "line": "B",
+   "job": "b2B",
+   "family": "F3",
+   "case": "cavity2d_n5640_k8",
+   "slabs": 8,
+   "particles": 255594004,
+   "per_card": 31949250.5,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 0,
+   "cross": false,
+   "references": [
+    "cavity2d_n5640"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 22.966588254799944,
+   "run": 394.6,
+   "reference": 160.8,
+   "reference_first": 161.6,
+   "calibration": 572.9,
+   "traced": 471.0,
+   "total": 2239.8
+  },
+  {
+   "batch": 4,
+   "line": "B",
+   "job": "b4B",
+   "family": "F7",
+   "case": "cavity2d_n520",
+   "slabs": 8,
+   "particles": 293764,
+   "per_card": 36720.5,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "same"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 147.50907016435588,
+   "run": 35.4,
+   "reference": 9.0,
+   "reference_first": 9.7,
+   "calibration": 38.2,
+   "traced": 60.9,
+   "total": 232.9
+  },
+  {
+   "batch": 4,
+   "line": "B",
+   "job": "b4B",
+   "family": "F7",
+   "case": "cavity2d_n1000",
+   "slabs": 8,
+   "particles": 1044484,
+   "per_card": 130560.5,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "same"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 147.50907016435588,
+   "run": 36.1,
+   "reference": 9.7,
+   "reference_first": 10.5,
+   "calibration": 39.7,
+   "traced": 61.8,
+   "total": 239.6
+  },
+  {
+   "batch": 4,
+   "line": "B",
+   "job": "b4B",
+   "kind": "anatomy",
+   "case": "cavity2d_n8000",
+   "slabs": 1,
+   "steps": 3000,
+   "seconds": 319.1,
+   "label": "anatomy_2d_n8000_K1"
+  },
+  {
+   "batch": 4,
+   "line": "B",
+   "job": "b4B",
+   "kind": "anatomy",
+   "case": "cavity2d_n8000",
+   "slabs": 8,
+   "steps": 3000,
+   "seconds": 116.3,
+   "label": "anatomy_2d_n8000_K8"
+  },
+  {
+   "batch": 4,
+   "line": "B",
+   "job": "b4B",
+   "kind": "anatomy",
+   "case": "cavity3d_n200",
+   "slabs": 1,
+   "steps": 2000,
+   "seconds": 125.2,
+   "label": "anatomy_3d_n200_K1"
+  },
+  {
+   "batch": 4,
+   "line": "B",
+   "job": "b4B",
+   "kind": "anatomy",
+   "case": "cavity3d_n200_k8",
+   "slabs": 1,
+   "steps": 2000,
+   "seconds": 932.7,
+   "label": "anatomy_3d_n200_k8_K1"
+  },
+  {
+   "batch": 4,
+   "line": "B",
+   "job": "b4B",
+   "kind": "anatomy",
+   "case": "cavity3d_n200_k8",
+   "slabs": 8,
+   "steps": 2000,
+   "seconds": 210.4,
+   "label": "anatomy_3d_n200_k8_K8"
+  },
+  {
+   "batch": 4,
+   "line": "B",
+   "job": "b4B",
+   "family": "F1+F7",
+   "case": "cavity2d_n8000",
+   "slabs": 8,
+   "particles": 64352484,
+   "per_card": 8044060.5,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 0,
+   "cross": true,
+   "references": [
+    "same"
+   ],
+   "window": [
+    3000,
+    1000
+   ],
+   "fps_estimate": 91.21826983809498,
+   "run": 110.4,
+   "reference": 318.3,
+   "reference_first": 319.1,
+   "calibration": 167.3,
+   "traced": 148.7,
+   "total": 1454.1
+  }
+ ]
+}

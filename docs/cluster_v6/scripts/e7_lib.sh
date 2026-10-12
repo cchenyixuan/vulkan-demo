@@ -24,6 +24,11 @@
 #       trials in rotated order (R E C / E C R / C R E, continued), R = every reference set of the point
 #       (REF = same | pairs | <per-card case>), E = equal weights, C = --weights-file + --device-map, both
 #       timed without the seam check; then TRACES step-traced runs (E29, with the seam check), one per arm.
+#       E7_ARMS (default EC; the rc2 batches 2 and 4 export C, user 2026-10-12) limits the arms: C = R C / C R
+#       alternating, no equal-weight runs, the traced runs E then C of the arms given (C + TRACES=1 = arm C).
+#       Before the bring-up the node's GPUs are checked with nvidia-smi (e7_gpu_health: E7_EXPECTED_DEVICES GPUs
+#       listed without an error, else the job stops at once). A run of rc2's relay mode whose dest guards fell
+#       back to or took a blocking wait is a hard failure (parse_run_v6: the job stops; user stop rule).
 #   e7_cross ORIGINAL_LINE <e7_point arguments>
 #       user item 13: the same point on this node, labels x_*; skipped (recorded) when this node is the one
 #       the original point ran on (its points.tsv record: a job of another solver than rc1 looks up
@@ -97,12 +102,39 @@ e7_ones() {         # K -> 1,1,...,1
     echo "${text%,}"
 }
 
-e7_rotation() {     # TRIAL (1-based) -> R E C / E C R / C R E, continued past trial 3
+e7_rotation() {     # TRIAL (1-based) -> R E C / E C R / C R E, continued past trial 3; with E7_ARMS=C (user
+    # 2026-10-12: batches 2 and 4 run the calibrated arm only) R C / C R alternating, E7_ARMS=E likewise
+    case "${E7_ARMS:-EC}" in
+        C|E) if [ $(( $1 % 2 )) -eq 1 ]; then echo "R $E7_ARMS"; else echo "$E7_ARMS R"; fi; return 0 ;;
+        EC) ;;
+        *) echo "ABORT: E7_ARMS='$E7_ARMS' (EC, E or C)"; exit 2 ;;
+    esac
     case $(( ($1 - 1) % 3 )) in
         0) echo "R E C" ;;
         1) echo "E C R" ;;
         2) echo "C R E" ;;
     esac
+}
+
+e7_trace_arms() {   # TRACES -> the arms of the traced runs, in order: E then C, those in E7_ARMS, the first TRACES
+    local arms="" arm
+    for arm in E C; do
+        case "${E7_ARMS:-EC}" in *$arm*) arms="$arms $arm" ;; esac
+    done
+    echo $arms | tr ' ' '\n' | head -n "$1" | tr '\n' ' '
+}
+
+e7_gpu_health() {   # before any Vulkan process (user, 2026-10-12): nvidia-smi must list E7_EXPECTED_DEVICES GPUs
+    # without an error; a node resumed with a lost GPU (batch 3: wqd10nah10g2) hangs the bring-up otherwise
+    local smi healthy
+    smi=$(timeout 60 nvidia-smi --query-gpu=index,pci.bus_id,name --format=csv,noheader 2>&1)
+    healthy=$(echo "$smi" | grep -c -E '^[0-9]+, ')
+    if [ "$healthy" -ne "$E7_EXPECTED_DEVICES" ] || echo "$smi" | grep -q -i -E 'lost|unable|unknown error|fallen|failed'; then
+        echo "$smi"
+        e30_fail "GPU health: nvidia-smi sees $healthy healthy GPUs of $E7_EXPECTED_DEVICES on $(hostname)"
+    fi
+    echo "GPU health: $healthy GPUs listed without an error on $(hostname)"
+    DEVICES=$healthy
 }
 
 e7_pair_order() {   # TRIAL (1-based) -> R rc1 <job tag> / R <job tag> rc1, alternating
@@ -234,8 +266,7 @@ e7_job_begin() {    # JOB LINE CASE...
         DEVICES=8
         [ "${#CPUL[@]}" -gt 0 ] || CPUL=(cpus_gpu0 cpus_gpu1 cpus_gpu2 cpus_gpu3 cpus_gpu4 cpus_gpu5 cpus_gpu6 cpus_gpu7)
     else
-        DEVICES=$(timeout 60 nvidia-smi -L | wc -l)
-        [ "$DEVICES" -eq "$E7_EXPECTED_DEVICES" ] || e30_fail "expected $E7_EXPECTED_DEVICES GPUs, $DEVICES visible"
+        e7_gpu_health
         $PY -u docs/cluster_v6/scripts/host_memory_sampler.py --out "$SHM/host_memory.csv" --interval 1 &
         E7_MEMPID=$!
     fi
@@ -530,7 +561,7 @@ e7_point() {        # FAMILY CASE K TRIALS STEPS WARMUP T_CAL T_RUN T_TRACE TRAC
     map=$(e7_device_map "$slabs")
     weights_file=$SHM/weights/$base.json
     started=$(date +%s)
-    echo; echo "##### POINT $base family=$family case=$case_name K=$slabs trials=$trials traces=$traces references=${references[*]} host=$(hostname) ($(date +%T))"
+    echo; echo "##### POINT $base family=$family case=$case_name K=$slabs trials=$trials arms=${E7_ARMS:-EC} traces=$traces ($(e7_trace_arms "$traces")) references=${references[*]} host=$(hostname) ($(date +%T))"
     e7_calibrate "$base" "$family" "$case_name" "$slabs" "$yaml" "$map" "$weights_file" "$t_cal"
     for trial in $(seq 1 "$trials"); do
         for item in $(e7_rotation "$trial"); do
@@ -550,16 +581,19 @@ e7_point() {        # FAMILY CASE K TRIALS STEPS WARMUP T_CAL T_RUN T_TRACE TRAC
             esac
         done
     done
-    if [ "$traces" -ge 1 ]; then
-        e7_index "${base}_trace_E" trace_equal "$family" "$case_name" "$slabs" 0 - - "$base"
-        e30_run "${base}_trace_E" "$t_trace" -- --case "$yaml" --weights "$(e7_ones "$slabs")" --device-map "$map" \
-            $COMMON --max-steps "$steps" --warmup "$warmup" --step-trace "$SHM/traces/${base}_E"
-    fi
-    if [ "$traces" -ge 2 ]; then
-        e7_index "${base}_trace_C" trace_calibrated "$family" "$case_name" "$slabs" 0 - - "$base"
-        e30_run "${base}_trace_C" "$t_trace" -- --case "$yaml" --weights-file "$weights_file" --device-map "$map" \
-            $COMMON --max-steps "$steps" --warmup "$warmup" --step-trace "$SHM/traces/${base}_C"
-    fi
+    # the traced runs: E then C of the arms in E7_ARMS, the first TRACES of them (EC + 2 = both; C + 1 = arm C)
+    for item in $(e7_trace_arms "$traces"); do
+        case "$item" in
+            E)
+                e7_index "${base}_trace_E" trace_equal "$family" "$case_name" "$slabs" 0 - - "$base"
+                e30_run "${base}_trace_E" "$t_trace" -- --case "$yaml" --weights "$(e7_ones "$slabs")" --device-map "$map" \
+                    $COMMON --max-steps "$steps" --warmup "$warmup" --step-trace "$SHM/traces/${base}_E" ;;
+            C)
+                e7_index "${base}_trace_C" trace_calibrated "$family" "$case_name" "$slabs" 0 - - "$base"
+                e30_run "${base}_trace_C" "$t_trace" -- --case "$yaml" --weights-file "$weights_file" --device-map "$map" \
+                    $COMMON --max-steps "$steps" --warmup "$warmup" --step-trace "$SHM/traces/${base}_C" ;;
+        esac
+    done
     # the shared record for e7_cross: <base> for an rc1 job, <base>@<tag> for any other solver (e7_point_record)
     e7_state_append points.tsv "$(printf '%s\t%s\t%s\t%s\t%s\t%s' "$(e7_point_record "$base")" "$E7_JOB" "$E30_JOB" "$(hostname)" "$(date -Is)" "$(( $(date +%s) - started ))")"
     echo "##### POINT $base done in $(( $(date +%s) - started )) s"
