@@ -255,6 +255,11 @@ def same_load_rows(rows: list, k1: dict, tolerance: float) -> list:
             continue
         case, size = best
         runs = k1[case]
+        # the user's supplement (2026-10-13): a case measured again under the event-timed protocol (defrag event
+        # lines) is referenced by those runs only, so the no-defrag columns exist and old-window runs drop out
+        timed = [run for run in runs if summary.nodefrag_fps(run["row"]) is not None]
+        if timed:
+            runs = timed
         fps_1 = [summary.precise_fps(run["row"]) for run in runs]
         fps_1_nodefrag = [summary.nodefrag_fps(run["row"]) for run in runs]
         mean_1 = statistics.fmean(fps_1)

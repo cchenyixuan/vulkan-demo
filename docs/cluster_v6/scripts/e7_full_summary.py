@@ -92,8 +92,8 @@ FIGURE_REFERENCE_MARKERS = {"strong": "o", "weak": "s", "pairs": "D"}
 FIGURE_ZOOM_STANDARD_DEVIATION = 0.01   # the eta-r figure's lower panel: the rows whose eta std over the trials is at
                                         # most this
 ETA_R_COLUMNS = ("job", "point", "arm", "solver", "K", "reference", "trials", "eta_mean", "eta_std", "eta_trial_min",
-                 "eta_trial_max", "eta_min_mean", "r_chain_p50", "r_chain_p95", "r_own_p50", "r_own_p95", "r_p50",
-                 "r_p95", "trace_status")
+                 "eta_trial_max", "eta_min_mean", "eta_nodefrag_mean", "eta_nodefrag_std", "eta_min_nodefrag_mean",
+                 "r_chain_p50", "r_chain_p95", "r_own_p50", "r_own_p95", "r_p50", "r_p95", "trace_status")
 FIGURE_RATIOS = {"r_chain": "r_chain = t_chain / T_B (the chain without the receiver's two waits)",
                  "r_own": "r_own = t_own / T_B (r_chain without the transfer queues' idle waits)"}
 # two-sided 95 % quantiles of Student's t by degrees of freedom (above 30: 1.96; between the listed ones: the next
@@ -1466,6 +1466,7 @@ def eta_r_rows(data: dict) -> list:
                                  "eta_trial_min": eta.get("min"), "eta_trial_max": eta.get("max"),
                                  "eta_min_mean": eta_min.get("mean"),
                                  "eta_nodefrag_mean": (without.get("eta") or {}).get("mean"),
+                                 "eta_nodefrag_std": (without.get("eta") or {}).get("std"),
                                  "eta_min_nodefrag_mean": (without.get("eta_min") or {}).get("mean"),
                                  "r_chain_p50": trace.get("r_chain_p50"), "r_chain_p95": trace.get("r_chain_p95"),
                                  "r_own_p50": trace.get("r_own_p50"), "r_own_p95": trace.get("r_own_p95"),
@@ -1474,15 +1475,19 @@ def eta_r_rows(data: dict) -> list:
     return rows
 
 
-def eta_r_figure(data: dict, path: pathlib.Path, ratio: str = "r_chain", write_csv: bool = True) -> list:
+def eta_r_figure(data: dict, path: pathlib.Path, ratio: str = "r_chain", write_csv: bool = True,
+                 eta_key: str = "eta_mean", slabs: int = None) -> list:
     """The eta-r figure (PNG at path) and its numbers (eta_r_rows, CSV next to it with the same name; all ratios).
     Per point, arm and reference with a traced run that passed: x = the ratio's p50 of the trace (filled marker;
     ratio r_chain, the main one, or r_own) with a line to its p95, y = eta mean +- std over the trials of the SAME
     arm's timing runs; r p50 as an open marker at the same eta. Color = arm, marker shape = reference kind, the
     number = the point (key in the legend; a pair point's solver after it); log x. Upper panel all rows, lower panel
     the eta band of the rows with eta std <= FIGURE_ZOOM_STANDARD_DEVIATION (the reproducible points), when that is
-    a narrower band. Returns the paths written."""
+    a narrower band. eta_key "eta_nodefrag_mean" draws the eta without the defrag events (rows without it are left
+    out); slabs keeps the points of that K only. Returns the paths written."""
     rows = eta_r_rows(data)
+    std_key = "eta_nodefrag_std" if eta_key == "eta_nodefrag_mean" else "eta_std"
+    eta_text = "eta without the defrag events" if eta_key == "eta_nodefrag_mean" else "eta"
     csv_path = path.with_suffix(".csv")
     if write_csv:
         with open(csv_path, "w", newline="", encoding="utf-8") as handle:
@@ -1500,16 +1505,17 @@ def eta_r_figure(data: dict, path: pathlib.Path, ratio: str = "r_chain", write_c
     def finite(value):
         return isinstance(value, (int, float)) and math.isfinite(value)
     plotted = [row for row in rows if finite(row[p50]) and row[p50] > 0
-               and finite(row["eta_mean"]) and row["trace_status"] in ("pass", "threshold_only")]
+               and finite(row[eta_key]) and row["trace_status"] in ("pass", "threshold_only")
+               and (slabs is None or row["K"] == slabs)]
     numbers, solvers, jobs = {}, {}, {}
     for row in plotted:
         numbers.setdefault((row["job"], row["point"]), len(numbers) + 1)
         solvers.setdefault((row["job"], row["point"]), set()).add(row["solver"])
         jobs.setdefault(row["point"], set()).add(row["job"])
-    reproducible = [row["eta_mean"] for row in plotted
-                    if finite(row["eta_std"]) and row["eta_std"] <= FIGURE_ZOOM_STANDARD_DEVIATION]
-    everything = [value for row in plotted for value in (row["eta_mean"] - (row["eta_std"] or 0.0),
-                                                         row["eta_mean"] + (row["eta_std"] or 0.0))]
+    reproducible = [row[eta_key] for row in plotted
+                    if finite(row[std_key]) and row[std_key] <= FIGURE_ZOOM_STANDARD_DEVIATION]
+    everything = [value for row in plotted for value in (row[eta_key] - (row[std_key] or 0.0),
+                                                         row[eta_key] + (row[std_key] or 0.0))]
     zoom = None
     if len(reproducible) >= 2 and everything:
         zoom = (min(reproducible) - 0.01, max(reproducible) + 0.01)
@@ -1522,11 +1528,11 @@ def eta_r_figure(data: dict, path: pathlib.Path, ratio: str = "r_chain", write_c
         for row in plotted:
             color = FIGURE_ARM_COLORS.get(row["arm"], muted)
             marker = FIGURE_REFERENCE_MARKERS.get(row["reference"].split(":")[0], "o")
-            eta = row["eta_mean"]
+            eta = row[eta_key]
             if finite(row[p95]):
                 axis.plot([row[p50], row[p95]], [eta, eta], "-", color=color, lw=1.5, alpha=0.5,
                           solid_capstyle="round", zorder=2)
-            axis.errorbar(row[p50], eta, yerr=row["eta_std"] or 0.0, fmt="none", ecolor=color,
+            axis.errorbar(row[p50], eta, yerr=row[std_key] or 0.0, fmt="none", ecolor=color,
                           elinewidth=1.2, capsize=2.5, zorder=3)
             axis.plot(row[p50], eta, marker, color=color, ms=8, mec="white", mew=1.5, zorder=4)
             if finite(row["r_p50"]) and row["r_p50"] > 0:
@@ -1543,7 +1549,7 @@ def eta_r_figure(data: dict, path: pathlib.Path, ratio: str = "r_chain", write_c
             axis.set_ylim(*zoom)
             axis.set_title(f"zoom: the eta band of the rows whose eta std over the trials is at most "
                            f"{FIGURE_ZOOM_STANDARD_DEVIATION}", loc="left", fontsize=9, color=secondary)
-        axis.set_ylabel("eta: mean ± std over the trials\nof the traced run's arm", color=ink)
+        axis.set_ylabel(f"{eta_text}: mean ± std over the trials\nof the traced run's arm", color=ink)
         axis.grid(True, which="major", color=hairline, lw=0.8)
         axis.set_axisbelow(True)
         for spine in axis.spines.values():
@@ -1561,8 +1567,8 @@ def eta_r_figure(data: dict, path: pathlib.Path, ratio: str = "r_chain", write_c
     axes[-1].set_xlabel(f"transport ratio per step on the worse link, p50 (filled) with a line to p95:\n"
                         f"{FIGURE_RATIOS[ratio]};\nopen marker: r = t_tr / T_B p50 (contains the receiver's two waits)",
                         color=ink)
-    axes[0].set_title(f"E7: efficiency against the transport ratio {ratio} (eta and r of the same arm)", loc="left",
-                      fontsize=11, color=ink)
+    axes[0].set_title(f"E7: {eta_text} against the transport ratio {ratio} (eta and r of the same arm"
+                      + (f"; K = {slabs} points" if slabs else "") + ")", loc="left", fontsize=11, color=ink)
 
     def header(text):
         return Line2D([], [], ls="", marker="", label=text)
@@ -1608,6 +1614,10 @@ def main() -> int:
     parser.add_argument("--json", default=None)
     parser.add_argument("--figure", default=None,
                         help="eta-r figure (PNG); its numbers go to a CSV of the same name next to it")
+    parser.add_argument("--figure-eta", choices=("with", "nodefrag"), default="with",
+                        help="the figure's y: eta with the defrag events (default) or without them (rows without "
+                             "the event timing are left out)")
+    parser.add_argument("--figure-slabs", type=int, default=None, help="the figure keeps the points of this K only")
     arguments = parser.parse_args()
     plan = json.loads(pathlib.Path(arguments.plan).read_text(encoding="utf-8")) if arguments.plan else {}
     jobs = [load_job(pathlib.Path(directory)) for directory in arguments.directories]
@@ -1623,9 +1633,10 @@ def main() -> int:
     if arguments.figure:
         try:
             figure_path = pathlib.Path(arguments.figure)
-            written = eta_r_figure(jsonable(data), figure_path)
+            eta_key = "eta_nodefrag_mean" if arguments.figure_eta == "nodefrag" else "eta_mean"
+            written = eta_r_figure(jsonable(data), figure_path, eta_key=eta_key, slabs=arguments.figure_slabs)
             written += eta_r_figure(jsonable(data), figure_path.with_name(figure_path.stem + "_own" + figure_path.suffix),
-                                    ratio="r_own", write_csv=False)
+                                    ratio="r_own", write_csv=False, eta_key=eta_key, slabs=arguments.figure_slabs)
             for path in written:
                 print(f"wrote {path}", file=sys.stderr)
         except Exception as error:                                     # noqa: BLE001
