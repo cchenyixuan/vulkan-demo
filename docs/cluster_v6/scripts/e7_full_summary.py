@@ -186,6 +186,37 @@ def precise_steady_seconds(row: dict):
     return steps / fps if steps and fps else (row or {}).get("steady_seconds")
 
 
+def nodefrag_fps(row: dict):
+    """The steady window's fps without the defrag events (user 2026-10-12): steady_frames / (steady_s - the wall time
+    of the events at frames >= warmup), as the wrapper prints it (run_chain_v6 install_defrag_events, harness b8e73dd
+    and later); None for runs without the lines (batches 1 and 3, the validation job)."""
+    return (row or {}).get("steady_fps_nodefrag")
+
+
+def defrag_event_stats(rows: list) -> dict:
+    """Over the runs with defrag event lines: runs, events per run, wall / drain / idle ms per event (mean, min,
+    max over every event of every run), the events inside the steady window per run and their share of it."""
+    walls, drains, idles, per_run, shares, in_window = [], [], [], [], [], []
+    for row in rows:
+        events = (row or {}).get("defrag_events")
+        summary = (row or {}).get("defrag_events_summary")
+        if not events or not summary:
+            continue
+        per_run.append(len(events))
+        walls += [event["wall_ms"] for event in events]
+        drains += [event["drain_ms"] for event in events]
+        idles += [event["idle_ms"] for event in events]
+        in_window.append(summary["in_window"])
+        if summary.get("steady_s"):
+            shares.append(summary["in_window_ms"] / (summary["steady_s"] * 1e3))
+    if not walls:
+        return {"runs": 0}
+    return {"runs": len(per_run), "events_per_run": statistics.fmean(per_run), "in_window_per_run": statistics.fmean(in_window),
+            "wall_ms_mean": statistics.fmean(walls), "wall_ms_min": min(walls), "wall_ms_max": max(walls),
+            "drain_ms_mean": statistics.fmean(drains), "idle_ms_mean": statistics.fmean(idles),
+            "window_share_mean": statistics.fmean(shares) if shares else None}
+
+
 def describe(values: list, absolute_gap=None, mode_rule: bool = True) -> dict:
     """n, mean, std (sample), median, min / max and the values (None and non-finite dropped). With mode_rule and
     n >= 3 the two-modes test: the largest gap G between the sorted values (the upper one on a tie) splits
@@ -353,6 +384,20 @@ def efficiency(fps_k, slabs: int, group: dict, point_case: str):
     return (fps_k / (factor * statistics.fmean(fps_values)), fps_k / (factor * min(fps_values)), kind)
 
 
+def efficiency_nodefrag(fps_k_nodefrag, slabs: int, group: dict, point_case: str):
+    """(eta, eta_min, type) without the defrag events: the K run's and every member's steady fps without them (the
+    same definition on both sides); None unless every passing member has the lines."""
+    members = [member["row"] for member in group.get("members", [])
+               if member["row"] and member["row"].get("status") in ("pass", "threshold_only")]
+    fps_values = [nodefrag_fps(row) for row in members]
+    if fps_k_nodefrag is None or not fps_values or any(value is None for value in fps_values) \
+            or len(fps_values) != len(group.get("members", [])):
+        return None
+    kind = reference_type(group, point_case)
+    factor = {"strong": slabs, "weak": 1, "pairs": slabs / 2}[kind]
+    return (fps_k_nodefrag / (factor * statistics.fmean(fps_values)), fps_k_nodefrag / (factor * min(fps_values)), kind)
+
+
 def solver_pairs(point: dict) -> list:
     """The arms to compare on a point with two or more solver tags: per arm (E, C) every other solver against the
     baseline (BASELINE_SOLVER when the point has it, else the first tag), when both have runs."""
@@ -448,13 +493,20 @@ def analyze_point(point: dict) -> dict:
     deltas = [{"fps": [], "fps_trials": [], "fps_signs": [], "eta": {}, "eta_min": {}, "leads": [],
                "position": {"fps": {"first": [], "second": [], "trials": []}, "eta": {}, "eta_min": {}}}
               for _ in pairs]
+    arms_nodefrag = {arm: [] for arm in point["arms"]}
+    etas_nodefrag: dict = {}
+    reference_rows: dict = {}       # reference case -> its members' rows (the defrag event table)
     for trial_number, trial in sorted(point["trials"].items()):
         fps = {}
+        fps_nodefrag = {}
         for arm in point["arms"]:
             run = trial.get(arm)
-            value = precise_fps(run["row"]) if run and run["row"] and run["row"].get("status") == "pass" else None
+            passing = run and run["row"] and run["row"].get("status") == "pass"
+            value = precise_fps(run["row"]) if passing else None
             fps[arm] = value
             arms[arm].append(value)
+            fps_nodefrag[arm] = nodefrag_fps(run["row"]) if passing else None
+            arms_nodefrag[arm].append(fps_nodefrag[arm])
         for arm in point["arms"]:
             name, solver = split_arm(arm)
             calibrated = arm_key("C", solver, True)
@@ -483,6 +535,8 @@ def analyze_point(point: dict) -> dict:
             if group.get("skipped"):
                 continue
             results = {}
+            reference_rows.setdefault(group["case"], []).extend(
+                member["row"] for member in group.get("members", []) if member["row"])
             for arm in point["arms"]:
                 result = efficiency(fps.get(arm), point["slabs"], group, point["case"])
                 if result is None:
@@ -493,6 +547,11 @@ def analyze_point(point: dict) -> dict:
                 bucket[arm]["eta"].append(eta)
                 bucket[arm]["eta_min"].append(eta_min)
                 results[arm] = (key, eta, eta_min)
+                without = efficiency_nodefrag(fps_nodefrag.get(arm), point["slabs"], group, point["case"])
+                if without is not None:
+                    bucket = etas_nodefrag.setdefault(key, {name: {"eta": [], "eta_min": []} for name in point["arms"]})
+                    bucket[arm]["eta"].append(without[0])
+                    bucket[arm]["eta_min"].append(without[1])
             for pair, delta, sign in zip(pairs, deltas, signs):     # both solvers against this one reference set
                 if pair["baseline_arm"] in results and pair["solver_arm"] in results:
                     key, eta, eta_min = results[pair["baseline_arm"]]
@@ -510,6 +569,14 @@ def analyze_point(point: dict) -> dict:
     out["fps"] = {arm: describe(values) for arm, values in arms.items()}
     out["eta"] = {key: {arm: {name: describe(values) for name, values in measures.items()}
                         for arm, measures in bucket.items()} for key, bucket in etas.items()}
+    # without the defrag events (user 2026-10-12): the same quantities from steady_fps_nodefrag on both sides
+    out["fps_nodefrag"] = {arm: describe(values) for arm, values in arms_nodefrag.items()}
+    out["eta_nodefrag"] = {key: {arm: {name: describe(values) for name, values in measures.items()}
+                                 for arm, measures in bucket.items()} for key, bucket in etas_nodefrag.items()}
+    out["defrag_events"] = {
+        "references": {case: defrag_event_stats(rows) for case, rows in reference_rows.items()},
+        "arms": {arm: defrag_event_stats([trial[arm]["row"] for _, trial in sorted(point["trials"].items())
+                                          if trial.get(arm) and trial[arm]["row"]]) for arm in point["arms"]}}
     out["arm_difference"] = describe(differences.get("", []), ARM_DIFFERENCE_MODE_GAP)
     out["arm_difference_by_solver"] = {solver: describe(values, ARM_DIFFERENCE_MODE_GAP)
                                        for solver, values in sorted(differences.items()) if solver}
@@ -1149,6 +1216,42 @@ def report(jobs: list, plan: dict, trace_root_override=None) -> tuple:
                     lines.append(f"| {item['point']} | {item['family']} | {item['slabs']} | {arm} | "
                                  f"{text_of(item['fps'][arm], 2)} | {'<br>'.join(eta_texts) or '-'} | "
                                  f"{'<br>'.join(eta_min_texts) or '-'} |")
+            without = [item for item in analyzed if any((item.get("fps_nodefrag") or {}).get(arm, {}).get("n")
+                                                        for arm in item["arms"])]
+            if without:
+                lines += ["", "Without the defrag events (user 2026-10-12): fps = steady_frames / (steady_s - the wall "
+                          "time of the events in the window), the same on the K run and on every K = 1 member; eta from "
+                          "these. The defrag event table lists the events themselves.", "",
+                          "| point | K | arm | fps without defrag | eta without defrag (type: reference) | eta_min without defrag |",
+                          "|---|---|---|---|---|---|"]
+                for item in without:
+                    for arm in item["arms"]:
+                        eta_texts = [f"{key}: {text_of(values[arm]['eta'], 3)}" for key, values in item["eta_nodefrag"].items()
+                                     if values.get(arm, {}).get("eta", {}).get("n")]
+                        eta_min_texts = [f"{key}: {text_of(values[arm]['eta_min'], 3)}" for key, values in item["eta_nodefrag"].items()
+                                         if values.get(arm, {}).get("eta_min", {}).get("n")]
+                        lines.append(f"| {item['point']} | {item['slabs']} | {arm} | {text_of(item['fps_nodefrag'][arm], 2)} | "
+                                     f"{'<br>'.join(eta_texts) or '-'} | {'<br>'.join(eta_min_texts) or '-'} |")
+                lines += ["", "### Defrag events (wall time per event: the drain before the defrag, the readbacks, every "
+                          "slab's defrag, up to the next submit)", "",
+                          "| point | runs | events per run | wall ms per event (mean; min–max) | drain ms | idle ms | "
+                          "share of the steady window |", "|---|---|---|---|---|---|---|"]
+                for item in without:
+                    entries = [(f"{item['point']} K=1 {case.replace('cavity', '')}", stats)
+                               for case, stats in item["defrag_events"]["references"].items()]
+                    entries += [(f"{item['point']} K={item['slabs']} {arm}", stats)
+                                for arm, stats in item["defrag_events"]["arms"].items()]
+                    for label, stats in entries:
+                        if not stats.get("runs"):
+                            continue
+                        share = stats.get("window_share_mean")
+                        lines.append(f"| {label} | {stats['runs']} | {stats['events_per_run']:.1f} ({stats['in_window_per_run']:.1f} in the window) | "
+                                     f"{stats['wall_ms_mean']:.1f}; {stats['wall_ms_min']:.1f}–{stats['wall_ms_max']:.1f} | "
+                                     f"{stats['drain_ms_mean']:.1f} | {stats['idle_ms_mean']:.1f} | "
+                                     f"{100 * share:.2f} % |" if share is not None else
+                                     f"| {label} | {stats['runs']} | {stats['events_per_run']:.1f} | {stats['wall_ms_mean']:.1f}; "
+                                     f"{stats['wall_ms_min']:.1f}–{stats['wall_ms_max']:.1f} | {stats['drain_ms_mean']:.1f} | "
+                                     f"{stats['idle_ms_mean']:.1f} | - |")
             lines += ["", "### Points: calibration, arm difference, traces", "",
                       "r_chain = t_chain / T_B is the main ratio (t_chain: the transport chain without the receiver's "
                       "two waits); r_own = t_own / T_B also leaves out the transfer queues' idle waits (t_own: "
@@ -1355,12 +1458,15 @@ def eta_r_rows(data: dict) -> list:
                     eta_min = (values.get(arm) or {}).get("eta_min") or {}
                     if not eta.get("n"):
                         continue
+                    without = ((item.get("eta_nodefrag") or {}).get(reference) or {}).get(arm) or {}
                     rows.append({"job": job.get("name"), "point": item["point"], "arm": name,
                                  "solver": solver or (solvers[0] if len(solvers) == 1 else ""),
                                  "K": item.get("slabs"), "reference": reference, "trials": eta["n"],
                                  "eta_mean": eta.get("mean"), "eta_std": eta.get("std"),
                                  "eta_trial_min": eta.get("min"), "eta_trial_max": eta.get("max"),
                                  "eta_min_mean": eta_min.get("mean"),
+                                 "eta_nodefrag_mean": (without.get("eta") or {}).get("mean"),
+                                 "eta_min_nodefrag_mean": (without.get("eta_min") or {}).get("mean"),
                                  "r_chain_p50": trace.get("r_chain_p50"), "r_chain_p95": trace.get("r_chain_p95"),
                                  "r_own_p50": trace.get("r_own_p50"), "r_own_p95": trace.get("r_own_p95"),
                                  "r_p50": trace.get("r_p50"), "r_p95": trace.get("r_p95"),
