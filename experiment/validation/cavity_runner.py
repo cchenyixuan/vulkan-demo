@@ -356,9 +356,9 @@ def main() -> int:
                                  or (run_dir / "checkpoints" / "manifest.jsonl").exists()):
         sys.exit(f"[cavity] {run_dir} already holds a run; pass --resume or use a new --run-dir")
     global_case = load_case(arguments.case)
-    if global_case.numerics.wall_boundary == "adami" and arguments.slabs != 1:
-        sys.exit(f"[cavity] {arguments.case}: wall_boundary adami supports one GPU (K = 1) only in this release; "
-                 "run it with --slabs 1")
+    if global_case.numerics.wall_boundary == "adami" and arguments.slabs != 1 and arguments.solver != "v7":
+        sys.exit(f"[cavity] {arguments.case}: wall_boundary adami with K > 1 needs --solver v7 (E40, v7-rc3); "
+                 "the v6 solver runs it with --slabs 1 only")
     expected_total = int(global_case.initial.positions.shape[0])
     dt = float(global_case.physics.timestep)
     support = float(global_case.physics.smoothing_length)

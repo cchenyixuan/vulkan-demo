@@ -174,11 +174,13 @@ void send_two_layers(uint y, uint z) {
     uint direction_pool_size = trailing_send ? TRAILING_GHOST_POOL_SIZE
                                              : LEADING_GHOST_POOL_SIZE;
 
-    // ---- replicas: layer 0 = inner (seam column), layer 1 = outer ---------
-    for (uint layer_index = 0u; layer_index < 2u; layer_index++) {
+    // ---- replicas: layer 0 = inner (seam column), layer 1 = outer, E40: layer 2 = third (GHOST_LAYERS = 3)
+    // The outbox column of layer l is the ghost column the peer reads that layer from, GHOST_LAYERS - l columns
+    // beyond the boundary (the transport copies this GPU's ghost columns to the peer's in x order).
+    for (uint layer_index = 0u; layer_index < GHOST_LAYERS; layer_index++) {
         int source_x = boundary_x + inward_step * int(layer_index);
-        int outbox_x = trailing_send ? boundary_x + 2 - int(layer_index)
-                                     : boundary_x - 2 + int(layer_index);
+        int outbox_x = trailing_send ? boundary_x + int(GHOST_LAYERS) - int(layer_index)
+                                     : boundary_x - int(GHOST_LAYERS) + int(layer_index);
         uint source_voxel_id = own_voxel_id_of(ivec3(source_x, int(y), int(z)));
         uint outbox_voxel_id = own_voxel_id_of(ivec3(outbox_x, int(y), int(z)));
         uint replica_count   = inside_particle_count[source_voxel_id];
@@ -187,9 +189,12 @@ void send_two_layers(uint y, uint z) {
         if (layer_index == 0u) {
             base_slot = trailing_send ? atomicAdd(replica_inner_send_trailing_count, replica_count)
                                       : atomicAdd(replica_inner_send_leading_count,  replica_count);
-        } else {
+        } else if (layer_index == 1u) {
             base_slot = trailing_send ? atomicAdd(replica_outer_send_trailing_count, replica_count)
                                       : atomicAdd(replica_outer_send_leading_count,  replica_count);
+        } else {
+            base_slot = trailing_send ? atomicAdd(replica_third_send_trailing_count, replica_count)
+                                      : atomicAdd(replica_third_send_leading_count,  replica_count);
         }
         if (base_slot + replica_count > REPLICA_REGION_SIZE) {
             // Region full: the peer sees an empty ghost voxel (logged).
@@ -239,10 +244,10 @@ void send_two_layers(uint y, uint z) {
         }
     }
 
-    // ---- migrants: inner ghost column (normal) and outer (two-column jump) --
+    // ---- migrants: inner ghost column (normal) and the outer ones (a multi-column jump, far_migration_count)
     uint migrant_region_first_particle_id = first_ghost_particle_id + migrant_region_offset();
     uint migrant_region_size = direction_pool_size - migrant_region_offset();
-    for (uint layer_index = 0u; layer_index < 2u; layer_index++) {
+    for (uint layer_index = 0u; layer_index < GHOST_LAYERS; layer_index++) {
         int ghost_x = boundary_x - inward_step * int(layer_index + 1u);
         uint ghost_voxel_id = own_voxel_id_of(ivec3(ghost_x, int(y), int(z)));
         uint migration_count = min(incoming_particle_count[ghost_voxel_id], MAX_INCOMING_PER_VOXEL);
@@ -250,7 +255,7 @@ void send_two_layers(uint y, uint z) {
             incoming_particle_count[ghost_voxel_id] = 0u;
             continue;
         }
-        if (layer_index == 1u) atomicAdd(far_migration_count, migration_count);
+        if (layer_index >= 1u) atomicAdd(far_migration_count, migration_count);
         uint base_slot = trailing_send ? atomicAdd(ghost_send_trailing_count, migration_count)
                                        : atomicAdd(ghost_send_leading_count,  migration_count);
         if (base_slot + migration_count > migrant_region_size) {

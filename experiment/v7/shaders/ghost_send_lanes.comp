@@ -159,8 +159,8 @@ uint replica_source_voxel_id(uint layer_index, uint y, uint z) {
 uint replica_outbox_voxel_id(uint layer_index, uint y, uint z) {
     bool trailing_send = (GHOST_DIRECTION == 1u);
     int  boundary_x    = int(BOUNDARY_VOXEL_X_LOCAL);
-    int outbox_x = trailing_send ? boundary_x + 2 - int(layer_index)
-                                 : boundary_x - 2 + int(layer_index);
+    int outbox_x = trailing_send ? boundary_x + int(GHOST_LAYERS) - int(layer_index)
+                                 : boundary_x - int(GHOST_LAYERS) + int(layer_index);
     uint outbox_voxel_id = own_voxel_id_of(ivec3(outbox_x, int(y), int(z)));
     return outbox_voxel_id;
 }
@@ -185,9 +185,12 @@ uint allocate_replica_block(uint layer_index, uint y, uint z, out uint copy_coun
     if (layer_index == 0u) {
         base_slot = trailing_send ? atomicAdd(replica_inner_send_trailing_count, replica_count)
                                   : atomicAdd(replica_inner_send_leading_count,  replica_count);
-    } else {
+    } else if (layer_index == 1u) {
         base_slot = trailing_send ? atomicAdd(replica_outer_send_trailing_count, replica_count)
                                   : atomicAdd(replica_outer_send_leading_count,  replica_count);
+    } else {
+        base_slot = trailing_send ? atomicAdd(replica_third_send_trailing_count, replica_count)
+                                  : atomicAdd(replica_third_send_leading_count,  replica_count);
     }
     copy_count = 0u;
     if (base_slot + replica_count > REPLICA_REGION_SIZE) {
@@ -254,10 +257,10 @@ void send_migrants_two_layers(uint y, uint z) {
     uint direction_pool_size = trailing_send ? TRAILING_GHOST_POOL_SIZE
                                              : LEADING_GHOST_POOL_SIZE;
 
-    // ---- migrants: inner ghost column (normal) and outer (two-column jump) --
+    // ---- migrants: inner ghost column (normal) and the outer ones (a multi-column jump, far_migration_count)
     uint migrant_region_first_particle_id = first_ghost_particle_id + migrant_region_offset();
     uint migrant_region_size = direction_pool_size - migrant_region_offset();
-    for (uint layer_index = 0u; layer_index < 2u; layer_index++) {
+    for (uint layer_index = 0u; layer_index < GHOST_LAYERS; layer_index++) {
         int ghost_x = boundary_x - inward_step * int(layer_index + 1u);
         uint ghost_voxel_id = own_voxel_id_of(ivec3(ghost_x, int(y), int(z)));
         uint migration_count = min(incoming_particle_count[ghost_voxel_id], MAX_INCOMING_PER_VOXEL);
@@ -265,7 +268,7 @@ void send_migrants_two_layers(uint y, uint z) {
             incoming_particle_count[ghost_voxel_id] = 0u;
             continue;
         }
-        if (layer_index == 1u) atomicAdd(far_migration_count, migration_count);
+        if (layer_index >= 1u) atomicAdd(far_migration_count, migration_count);
         uint base_slot = trailing_send ? atomicAdd(ghost_send_trailing_count, migration_count)
                                        : atomicAdd(ghost_send_leading_count,  migration_count);
         if (base_slot + migration_count > migrant_region_size) {
@@ -439,7 +442,7 @@ void send_single_layer_migrations(uint y, uint z, uint base_slot, uint replica_c
 
 void main() {
     uint face_voxel_count     = GRID_DIMENSION_Y * GRID_DIMENSION_Z;
-    uint layer_count          = (GHOST_LAYERS >= 2u) ? 2u : 1u;
+    uint layer_count          = (GHOST_LAYERS >= 2u) ? GHOST_LAYERS : 1u;
     uint groups_per_workgroup = gl_WorkGroupSize.x / GHOST_SEND_LANES;
     uint group_in_workgroup   = gl_LocalInvocationID.x / GHOST_SEND_LANES;
     uint lane_index           = gl_LocalInvocationID.x % GHOST_SEND_LANES;

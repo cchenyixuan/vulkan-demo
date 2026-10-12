@@ -18,9 +18,11 @@
 //       the viscous term. Walls do not integrate density. Continuity, delta
 //       term, KCG and the wall volume see rho0 and the wall's stored,
 //       prescribed velocity, as with simple.
-//       One slab only (K = 1): the wall pass reads local neighbours and the
-//       ghost transport does not carry wall_dummy_velocity; SphSimulatorV6
-//       refuses an adami slab with a peer.
+//       E40: on a slab with a peer the wall pass is split like density (an
+//       interior pass in phase B, a band pass in phase C that also computes
+//       the inner ghost column's walls as self from a three-layer ghost); the
+//       transport still carries no wall_dummy_velocity. See
+//       wall_extrapolate.comp and partition_v7 (GHOST_LAYERS = 3).
 // ============================================================================
 
 layout(constant_id = 100) const uint WALL_BOUNDARY = 0u;

@@ -600,10 +600,12 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
     if (v := diff_us("c_correction_density_boundary_end", last_c_label)) is not None:
         out["correction_density_boundary_us"] = v
         out["density_copy_us"] = diff_us("c_density_end", "c_correction_density_boundary_end")
-    # E37 wall_boundary adami without cascading force: the wall pass between density and force_all.
+    # E37 wall_boundary adami without cascading force: the wall pass between density and force_all. E40: on a slab
+    # with a peer the phase C tick closes the wall BAND pass (own band + inner ghost column); with cascading force
+    # phase B's tick already gave wall_extrapolate_us (the interior pass), so the band pass gets its own key.
     force_start = "c_density_end"
     if (v := diff_us("c_wall_extrapolate_end", "c_density_end")) is not None:
-        out["wall_extrapolate_us"] = v
+        out["wall_extrapolate_band_us" if "wall_extrapolate_us" in out else "wall_extrapolate_us"] = v
         force_start = "c_wall_extrapolate_end"
     if (v := diff_us("c_force_end", force_start)) is not None:
         out["force_us"] = v

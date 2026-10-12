@@ -630,10 +630,12 @@ def check_packed_shader_layout(failures: list) -> None:
     import re
     shader_directory = pathlib.Path(__file__).resolve().parent / "shaders"
     helpers = (shader_directory / "helpers.glsl").read_text(encoding="utf-8")
+    # E40: 8 GHOST_LAYERS words per direction (16 with two layers, 24 with the adami chain's three), 8 per layer
     match = re.search(r"uint packed_layer_base\(uint direction, uint layer\) \{\s*return "
-                      r"\(direction \* (\d+)u \+ layer \* (\d+)u\) \* REPLICA_REGION_SIZE;", helpers)
-    if not match or (int(match.group(1)), int(match.group(2))) != (16, 8):
-        failures.append(f"packed_layer_base is not (direction * 16u + layer * 8u) * R: "
+                      r"\(direction \* \((\d+)u \* GHOST_LAYERS\) \+ layer \* (\d+)u\) \* REPLICA_REGION_SIZE;",
+                      helpers)
+    if not match or (int(match.group(1)), int(match.group(2))) != (8, 8):
+        failures.append(f"packed_layer_base is not (direction * (8u * GHOST_LAYERS) + layer * 8u) * R: "
                         f"{match.groups() if match else 'not found'}")
     sender = (shader_directory / "ghost_send.comp").read_text(encoding="utf-8")
     expander = (shader_directory / "expand_ghost_lists.comp").read_text(encoding="utf-8")
@@ -1234,7 +1236,7 @@ def check_ghost_send_lanes(failures: list) -> None:
     main_body = _glsl_function_body(new_code, "void main() {")
     mapping_patterns = (
         r"uint face_voxel_count\s*=\s*GRID_DIMENSION_Y \* GRID_DIMENSION_Z;",
-        r"uint layer_count\s*=\s*\(GHOST_LAYERS >= 2u\) \? 2u : 1u;",
+        r"uint layer_count\s*=\s*\(GHOST_LAYERS >= 2u\) \? GHOST_LAYERS : 1u;",      # E40: 3 with the adami chain
         r"uint groups_per_workgroup\s*=\s*gl_WorkGroupSize\.x / GHOST_SEND_LANES;",
         r"uint group_in_workgroup\s*=\s*gl_LocalInvocationID\.x / GHOST_SEND_LANES;",
         r"uint lane_index\s*=\s*gl_LocalInvocationID\.x % GHOST_SEND_LANES;",
@@ -1297,7 +1299,7 @@ def check_ghost_send_lanes(failures: list) -> None:
     # every statement of send_two_layers at least as often in the new two-layer section; allowed: the replica part's
     # loop over the layers (-> one group per layer), its loop over the slots (-> main()'s lane loop) and its
     # overflow continue (-> return base_slot)
-    replica_loops = {"for (uint layer_index = 0u": 1, "layer_index < 2u": 1, "layer_index++)": 1,
+    replica_loops = {"for (uint layer_index = 0u": 1, "layer_index < GHOST_LAYERS": 1, "layer_index++)": 1,
                      "for (uint slot_index = 0u": 1, "slot_index < replica_count": 1, "slot_index++)": 1}
     missing = missing_fragments(old_two_layers, new_two_layer_section, {**replica_loops, "continue": 1})
     if missing:
@@ -1576,6 +1578,14 @@ def check_ghost_send_lanes(failures: list) -> None:
 
 
 B6_COMMIT = "3d6e1c9"    # E39 B6: the build V7_DEEP_WALL_SKIP=0 must reproduce (E39 B4)
+# E40 (v7-rc3): the four modules the adami chain changed in every build (the three-layer ghost: ghost_send,
+# ghost_send_lanes, expand_ghost_lists and, through helpers.glsl's migrant_region_offset, install_migrations). The
+# switch-0 SPIR-V pins of the E39 items below skip them; the E40 build's identity with rc2 on the default paths is the
+# GPU bit-exact gate (canonical_dump against the rc2 checkout, docs/seam_audit/v7_adami_chain.md). The split wall pass
+# is a new module (wall_extrapolate_band.comp.spv); wall_extrapolate.comp.spv stays rc2's and keeps its pins.
+E40_CHANGED_SPIRV = frozenset({"expand_ghost_lists.comp.spv", "ghost_send.comp.spv", "ghost_send_lanes.comp.spv",
+                               "install_migrations.comp.spv"})
+E40_ADDED_SPIRV = frozenset({"wall_extrapolate_band.comp.spv"})
 
 
 def _load_committed_simulator(commit: str):
@@ -1727,6 +1737,8 @@ def check_deep_wall_skip(failures: list) -> None:
     if listing.returncode != 0 or not committed_spv:
         failures.append(f"git: the SPIR-V files of {B6_COMMIT} are not listed (switch-0 identity unchecked)")
     for path in committed_spv:
+        if pathlib.Path(path).name in E40_CHANGED_SPIRV:
+            continue
         blob = subprocess.run(["git", "show", f"{B6_COMMIT}:{path}"], cwd=_REPO_ROOT, capture_output=True).stdout
         current = spv_directory / pathlib.Path(path).name
         if not current.exists() or current.read_bytes() != blob:
@@ -2265,13 +2277,15 @@ def check_fused_correction_density(failures: list) -> None:
     if listing.returncode != 0 or not committed_spv:
         failures.append(f"git: the SPIR-V files of {B4_COMMIT} are not listed (switch-0 identity unchecked)")
     for path in committed_spv:
+        if pathlib.Path(path).name in E40_CHANGED_SPIRV:
+            continue
         blob = subprocess.run(["git", "show", f"{B4_COMMIT}:{path}"], cwd=_REPO_ROOT, capture_output=True).stdout
         current = spv_directory / pathlib.Path(path).name
         if not current.exists() or current.read_bytes() != blob:
             failures.append(f"{pathlib.Path(path).name}: differs from {B4_COMMIT} (switch 0 must run the B4 SPIR-V)")
     new_spv = sorted(path.name for path in spv_directory.glob("*.spv")
                      if f"experiment/v7/shaders/spv/{path.name}" not in committed_spv
-                     and path.name not in LATER_ITEM_SPIRV_AFTER_B1)
+                     and path.name not in LATER_ITEM_SPIRV_AFTER_B1 and path.name not in E40_ADDED_SPIRV)
     if new_spv != ["correction_density.comp.spv", "correction_density_deep_wall_skip.comp.spv"]:
         failures.append(f"SPIR-V files beside {B4_COMMIT}'s: {new_spv}")
     if ("correction_density_deep_wall_skip", "correction_density.comp", ("DEEP_WALL_SKIP",)) \
@@ -2892,12 +2906,15 @@ def check_band_overlap(failures: list) -> None:
     if listing.returncode != 0 or not committed_spv:
         failures.append(f"git: the SPIR-V files of {B1_COMMIT} are not listed (switch-0 identity unchecked)")
     for path in committed_spv:
+        if pathlib.Path(path).name in E40_CHANGED_SPIRV:
+            continue
         blob = subprocess.run(["git", "show", f"{B1_COMMIT}:{path}"], cwd=_REPO_ROOT, capture_output=True).stdout
         current = spv_directory / pathlib.Path(path).name
         if not current.exists() or current.read_bytes() != blob:
             failures.append(f"{pathlib.Path(path).name}: differs from {B1_COMMIT} (switch 0 must run the B1 SPIR-V)")
     new_spv = sorted(path.name for path in spv_directory.glob("*.spv")
-                     if f"experiment/v7/shaders/spv/{path.name}" not in committed_spv)
+                     if f"experiment/v7/shaders/spv/{path.name}" not in committed_spv
+                     and path.name not in E40_ADDED_SPIRV)
     if new_spv != ["force_segment.comp.spv"]:
         failures.append(f"SPIR-V files beside {B1_COMMIT}'s: {new_spv}")
     if ("force_segment", "force.comp", ("FORCE_SEGMENT",)) not in compile_shaders_v7.SHADER_VARIANTS:
@@ -3657,6 +3674,458 @@ def check_release_defaults(failures: list) -> None:
             failures.append(f"{relative}: release default {pattern} not found")
 
 
+def check_adami_chain(failures: list) -> None:
+    """E40: wall_boundary adami on a chain of K > 1 slabs (the three-layer ghost + the split wall pass), CPU only:
+      - partition: an adami chain gets ghost_layers 3 (chain_ghost_layers); the simple chain and a K = 1 adami
+        chain keep the configured 2; the ghost pool is 3 R + M with the simple chain's R and M, the own / departed
+        pools and the cuts are the simple chain's; every peer side is three ghost columns thick; every link's
+        voxel-id offset maps the sender's boundary column onto the receiver's innermost ghost column; V7_GHOST_
+        LAYERS=1 with an adami chain is refused; configured_band_widths(wall_pass=True) defaults to 2,2,4 and refuses
+        a force band below density + 2;
+      - a fake simulator per slab (release defaults; 2-D K = 2 / 3, 3-D K = 2): band widths 2,2,4 and wall band 3;
+        the two split wall pipelines with the mode / band / source / self-layer entries; self layer 2 on the fused
+        band pipeline, force band 4; the transport segments: inner / outer / third / migrant regions tiling the
+        pool (packed blocks per layer), four count words then the stamp, contiguous staging; install threads = the
+        migrant region; ghost_send lane groups = 3 x face; the density copy covers own + [inner | outer] per
+        direction + the departed pool; the streams: phase A zeroes three replica counters per direction, phase B
+        binds the interior wall pass (no full pass) before force_deep_interior_scratch, phase C binds the wall band
+        pass between the density copy and the force band (dispatched at width 4), the bootstrap binds the own pass
+        and the band pass twice; the simple K = 2 slab records no wall pass and keeps 2,2,3 / self layer 1 /
+        2 x face lane groups;
+      - the lane-group mapping emulated with three layers (every pair once, one leader, each layer tiles the face);
+      - shader text: the GHOST_LAYERS forms of migrant_region_offset, the outbox column and the expand layer, the
+        third-layer counters in both ghost_send kernels, the four counters at GlobalStatus fields 35-38 = the
+        simulator's names and offsets, the wall kernel's band test and band-dispatch entry."""
+    import contextlib
+    import hashlib
+    import io
+    import math
+    import re
+    import subprocess
+    from types import SimpleNamespace
+    import experiment.v7.utils.case_v7 as case_v7
+    import experiment.v7.utils.partition_v7 as partition_v7
+    import experiment.v7.utils.simulator_v7 as simulator_v7
+
+    def adami(global_case):
+        return dataclasses.replace(global_case, numerics=dataclasses.replace(global_case.numerics,
+                                                                              wall_boundary="adami"))
+
+    saved_environment = {key: value for key, value in os.environ.items() if key.startswith("V7_")}
+    for key in list(saved_environment):
+        del os.environ[key]
+    events: list = []
+
+    def record_barrier(cmd, info):
+        for index in range(info.memoryBarrierCount):
+            barrier = info.pMemoryBarriers[index]
+            events.append(("barrier", int(barrier.srcStageMask), int(barrier.srcAccessMask),
+                           int(barrier.dstStageMask), int(barrier.dstAccessMask)))
+
+    recorders = {
+        "vkCmdPipelineBarrier2": record_barrier,
+        "vkCmdCopyBuffer": lambda cmd, source_buffer, destination_buffer, count, regions: events.append(
+            ("copy", source_buffer, destination_buffer, int(count))),
+        "vkCmdDispatch": lambda cmd, group_count_x, group_count_y, group_count_z:
+            events.append(("dispatch", int(group_count_x), int(group_count_y), int(group_count_z))),
+        "vkCmdDispatchIndirect": lambda cmd, buffer, offset: events.append(("dispatch_indirect", buffer, int(offset))),
+        "vkCmdBindPipeline": lambda cmd, point, pipeline: events.append(("bind", pipeline)),
+        "vkCmdBindDescriptorSets": lambda cmd, point, layout, first, count, descriptor_sets, *rest:
+            events.append(("sets", layout, int(first), int(count))),
+        "vkCmdFillBuffer": lambda cmd, buffer, offset, size, value:
+            events.append(("fill", buffer, int(offset), int(size), int(value))),
+        "vkBeginCommandBuffer": lambda cmd, info: events.append(("begin",)),
+        "vkEndCommandBuffer": lambda cmd: events.append(("end",)),
+        "VkShaderModuleCreateInfo": lambda codeSize, pCode: pCode,
+        "vkCreateShaderModule": lambda device, code, allocator: "module:" + hashlib.sha256(code).hexdigest()[:16],
+    }
+
+    class PipelineNames(dict):
+        def __missing__(self, key):
+            return f"pipeline:{key}"
+
+    class TickRecorder:
+        parity_regions = False
+
+        def tick(self, cmd, label):
+            events.append(("tick", label))
+
+        def record_step_reset_and_start(self, cmd, label):
+            events.append(("tick", label))
+
+        def record_defrag_reset_and_start(self, cmd, label):
+            events.append(("tick", label))
+
+        def begin_phase_c_region(self, cmd, parity):
+            events.append(("phase_c_region", parity))
+
+        def end_phase_c_region(self):
+            pass
+
+    def fake(slab):
+        simulator = object.__new__(simulator_v7.SphSimulatorV7)
+        simulator.case = slab
+        simulator.band_widths = simulator._configured_band_widths()
+        specs = simulator._build_buffer_specs()
+        simulator._buffer_specs = specs
+        simulator.buffers = {spec.name: SimpleNamespace(handle=f"buffer:{spec.name}", size=spec.size) for spec in specs}
+        simulator.scratch_buffers = {spec.name: SimpleNamespace(handle=f"scratch:{spec.name}", size=spec.size)
+                                     for spec in specs if spec.set_index == 0}
+        simulator.pipelines = PipelineNames()
+        simulator.pipeline_layout = "pipeline_layout"
+        simulator.defrag_pipeline_layout = "defrag_pipeline_layout"
+        simulator.defrag_set4 = "set4"
+        simulator.descriptor_sets = ["set0", "set1", "set2", "set3"]
+        simulator._transport_segments = {direction: [] for direction in ("leading", "trailing")
+                                         if getattr(slab.transport, f"has_{direction}_peer")}
+        simulator.staging_buffers = {f"{role}_staging_{direction}": SimpleNamespace(handle=f"{role}:{direction}")
+                                     for role in ("sender", "receiver") for direction in simulator._transport_segments}
+        simulator._recv_status_overrides = {direction: {} for direction in simulator._transport_segments}
+        simulator.bench = TickRecorder()
+        simulator.bench_transfer = None
+        simulator.step_single_use_split = False
+        simulator._allocate_oneshot_cmd = lambda: "cmd"
+        simulator._allocate_transfer_oneshot_cmd = lambda: "transfer_cmd"
+        simulator.ctx = SimpleNamespace(device="device")
+        simulator._spec_keepalive = []
+        simulator._create_pipeline = lambda shader, entries: ("pipeline", shader, tuple(entries))
+        with contextlib.redirect_stdout(io.StringIO()):
+            simulator.shader_modules = simulator._load_shader_modules()
+            simulator.built_pipelines = simulator._build_compute_pipelines()
+        return simulator
+
+    def capture(function) -> list:
+        events.clear()
+        function()
+        return list(events)
+
+    def entries_of(simulator, key: str) -> dict:
+        if key not in simulator.built_pipelines:
+            return {}
+        return {identifier: value for identifier, _, value in simulator.built_pipelines[key][2]}
+
+    def binds(stream: list) -> list:
+        return [str(event[1])[len("pipeline:"):] for event in stream if event[0] == "bind"]
+
+    def first_index(stream: list, event) -> int:
+        return stream.index(event) if event in stream else -1
+
+    saved_functions = {name: getattr(simulator_v7, name) for name in recorders}
+    for name, recorder in recorders.items():
+        setattr(simulator_v7, name, recorder)
+    try:
+        # ---- partition
+        for depth_count, slab_counts in ((1, (1, 2, 3)), (3, (2,))):
+            for slab_count in slab_counts:
+                global_case = _synthetic_global_case(case_v7, depth_count=depth_count)
+                with contextlib.redirect_stdout(io.StringIO()):
+                    simple = partition_v7.compute_chain_partition(global_case, [1.0] * slab_count, pool_safety=1.2)
+                    chain = partition_v7.compute_chain_partition(adami(global_case), [1.0] * slab_count,
+                                                                 pool_safety=1.2)
+                tag = f"adami chain {'3-D' if depth_count > 1 else '2-D'} K={slab_count}"
+                expected_layers = 3 if slab_count > 1 else partition_v7.configured_ghost_layers()
+                face = global_case.grid.grid_dimension_y * global_case.grid.grid_dimension_z
+                if list(chain.cuts) != list(simple.cuts):
+                    failures.append(f"{tag}: cuts {chain.cuts} differ from the simple chain's {simple.cuts}")
+                for index, (slab, simple_slab) in enumerate(zip(chain.slabs, simple.slabs)):
+                    layers = slab.ghost_grid.ghost_layers
+                    if layers != expected_layers or simple_slab.ghost_grid.ghost_layers != 2:
+                        failures.append(f"{tag} slab {index}: ghost layers {layers} (simple "
+                                        f"{simple_slab.ghost_grid.ghost_layers}), expected {expected_layers} / 2")
+                    region = slab.capacities.replica_region_size
+                    if region != simple_slab.capacities.replica_region_size:
+                        failures.append(f"{tag} slab {index}: replica region {region} != the simple chain's")
+                    if slab.capacities.departed_pool_size != simple_slab.capacities.departed_pool_size \
+                            or slab.capacities.own_pool_size != simple_slab.capacities.own_pool_size:
+                        failures.append(f"{tag} slab {index}: departed / own pool differ from the simple chain's")
+                    simple_pool = max(simple_slab.capacities.leading_ghost_pool_size,
+                                      simple_slab.capacities.trailing_ghost_pool_size)
+                    migrant = simple_pool - 2 * region
+                    geometry = chain.geometry[index]
+                    for side in ("leading", "trailing"):
+                        has_peer = getattr(slab.transport, f"has_{side}_peer")
+                        pool = getattr(slab.capacities, f"{side}_ghost_pool_size")
+                        voxels = getattr(slab.ghost_grid, f"{side}_ghost_voxel_count")
+                        if has_peer != getattr(simple_slab.transport, f"has_{side}_peer"):
+                            failures.append(f"{tag} slab {index}: {side} peer differs from the simple chain")
+                        if slab_count > 1 and has_peer and (pool != 3 * region + migrant or voxels != 3 * face
+                                                            or getattr(geometry, f"{side}_thickness") != 3):
+                            failures.append(f"{tag} slab {index} {side}: pool {pool} != 3 x {region} + {migrant}, "
+                                            f"ghost voxels {voxels} != 3 x {face} or thickness != 3")
+                        if not has_peer and (pool or voxels):
+                            failures.append(f"{tag} slab {index} {side}: pool {pool} / voxels {voxels} without a peer")
+                    if slab.grid.grid_dimension_x != (geometry.own_column_count + geometry.leading_thickness
+                                                      + geometry.trailing_thickness):
+                        failures.append(f"{tag} slab {index}: extended grid {slab.grid.grid_dimension_x} != own + ghost")
+                for link in chain.links:
+                    sender, receiver = chain.geometry[link.sender_index], chain.geometry[link.receiver_index]
+                    if link.direction == "trailing":
+                        sender_boundary = sender.leading_thickness + sender.own_column_count - 1
+                        receiver_inner = receiver.leading_thickness - 1
+                    else:
+                        sender_boundary = sender.leading_thickness
+                        receiver_inner = receiver.leading_thickness + receiver.own_column_count
+                    if link.ghost_voxel_id_offset_to_receiver != (receiver_inner - sender_boundary) * face:
+                        failures.append(f"{tag} link {link.sender_index}->{link.receiver_index}: voxel id offset "
+                                        f"{link.ghost_voxel_id_offset_to_receiver} does not map the boundary column "
+                                        "onto the receiver's innermost ghost column")
+        os.environ["V7_GHOST_LAYERS"] = "1"
+        os.environ["V7_KEEP_DEPARTED"] = "0"
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                partition_v7.compute_chain_partition(adami(_synthetic_global_case(case_v7)), [1.0, 1.0],
+                                                     pool_safety=1.2)
+            failures.append("adami chain accepted with V7_GHOST_LAYERS=1")
+        except ValueError:
+            pass
+        del os.environ["V7_GHOST_LAYERS"], os.environ["V7_KEEP_DEPARTED"]
+        if partition_v7.configured_band_widths(wall_pass=True) != (2, 2, 4) \
+                or partition_v7.configured_band_widths() != (2, 2, 3):
+            failures.append("configured_band_widths: wall_pass default is not 2,2,4 (or the plain default not 2,2,3)")
+        os.environ["V7_BAND_WIDTHS"] = "2,2,3"
+        try:
+            partition_v7.configured_band_widths(wall_pass=True)
+            failures.append("configured_band_widths(wall_pass=True) accepted 2,2,3")
+        except ValueError:
+            pass
+        del os.environ["V7_BAND_WIDTHS"]
+
+        # ---- the slabs' simulators: pipelines, segments, dispatch counts, streams
+        lanes = simulator_v7._BAND_SLOT_LANES
+        workgroup = 128
+        for depth_count, slab_count in ((1, 2), (1, 3), (3, 2)):
+            global_case = _synthetic_global_case(case_v7, depth_count=depth_count)
+            with contextlib.redirect_stdout(io.StringIO()):
+                chain = partition_v7.compute_chain_partition(adami(global_case), [1.0] * slab_count, pool_safety=1.2)
+            face = global_case.grid.grid_dimension_y * global_case.grid.grid_dimension_z
+            for index, slab in enumerate(chain.slabs):
+                tag = f"adami chain {'3-D' if depth_count > 1 else '2-D'} K={slab_count} slab {index}"
+                simulator = fake(slab)
+                sides = int(slab.transport.has_leading_peer) + int(slab.transport.has_trailing_peer)
+                region = slab.capacities.replica_region_size
+                per_particle = math.ceil(slab.capacities.own_pool_size / workgroup)
+                if simulator.band_widths != (2, 2, 4) or simulator.wall_band_width() != 3:
+                    failures.append(f"{tag}: band widths {simulator.band_widths}, wall band "
+                                    f"{simulator.wall_band_width()} (expected 2,2,4 and 3)")
+                interior = entries_of(simulator, "wall_extrapolate_interior")
+                band = entries_of(simulator, "wall_extrapolate_boundary_band")
+                expected_interior = {47: 1, 82: 3, 56: 1, 57: 0, 58: 0, 85: 0}
+                expected_band = {47: 2, 82: 3, 56: 0, 57: 1, 58: lanes, 85: 1}
+                if {key: interior.get(key) for key in expected_interior} != expected_interior:
+                    failures.append(f"{tag}: wall_extrapolate_interior entries {interior}")
+                if {key: band.get(key) for key in expected_band} != expected_band:
+                    failures.append(f"{tag}: wall_extrapolate_boundary_band entries {band}")
+                for key in ("wall_extrapolate", "wall_extrapolate_scratch"):
+                    if 47 in entries_of(simulator, key) or key not in simulator.built_pipelines \
+                            or simulator.built_pipelines[key][1] != simulator.shader_modules["wall_extrapolate"]:
+                        failures.append(f"{tag}: the E37 pipeline {key} is missing, carries a mode entry or does not "
+                                        "use the E37 module")
+                for key in ("wall_extrapolate_interior", "wall_extrapolate_boundary_band"):
+                    if simulator.built_pipelines[key][1] != simulator.shader_modules["wall_extrapolate_band"]:
+                        failures.append(f"{tag}: {key} does not use the wall_extrapolate_band module")
+                fused = entries_of(simulator, "correction_density_boundary_band")
+                if fused.get(85) != 2 or fused.get(82) != 2:
+                    failures.append(f"{tag}: correction_density_boundary_band self layer / band {fused.get(85)} / "
+                                    f"{fused.get(82)}, expected 2 / 2")
+                if entries_of(simulator, "force_boundary_band").get(82) != 4 \
+                        or entries_of(simulator, "force_deep_interior_scratch").get(82) != 4:
+                    failures.append(f"{tag}: force band entries are not 4")
+                if simulator._ghost_send_group_total() != 3 * face:
+                    failures.append(f"{tag}: ghost_send lane groups {simulator._ghost_send_group_total()} != 3 x {face}")
+                expected_threads = sides * 4 * face * lanes
+                if simulator._band_thread_count(2, 2) != expected_threads \
+                        or simulator._band_thread_count(3, 1) != expected_threads \
+                        or simulator._band_thread_count(4) != expected_threads:
+                    failures.append(f"{tag}: band thread counts {simulator._band_thread_count(2, 2)} / "
+                                    f"{simulator._band_thread_count(3, 1)} / {simulator._band_thread_count(4)}, "
+                                    f"expected {expected_threads} each (4 columns per side)")
+                for direction in simulator._transport_segments:
+                    segments, total = simulator._compute_transport_segments(direction)
+                    pool = getattr(slab.capacities, f"{direction}_ghost_pool_size")
+                    migrant = pool - 3 * region
+                    pid_first = 1 if direction == "leading" else (slab.capacities.leading_ghost_pool_size
+                                                                  + slab.capacities.own_pool_size + 1)
+                    regions = [getattr(segment, "region", None) for segment in segments]
+                    if [key for key in dict.fromkeys(regions) if key] != ["inner", "outer", "third", "migrant"]:
+                        failures.append(f"{tag} {direction}: regions {regions}")
+                    region_bytes = 4 * region
+                    direction_base = (0 if direction == "leading" else 1) * 3 * 8 * region_bytes
+                    packed = [segment for segment in segments if segment.buffer_name == "ghost_packed_words"]
+                    expected_packed = [(direction_base + (layer * 8 + word) * region_bytes, 16 * region)
+                                       for layer in range(3) for word in (0, 4)]
+                    if [(segment.device_offset, segment.size) for segment in packed] != expected_packed:
+                        failures.append(f"{tag} {direction}: packed blocks "
+                                        f"{[(s.device_offset, s.size) for s in packed]} != {expected_packed}")
+                    migrants = [segment for segment in segments if getattr(segment, "region", None) == "migrant"]
+                    if not migrants or any(segment.device_offset != segment.stride * (pid_first + 3 * region)
+                                           or segment.size != segment.stride * migrant for segment in migrants):
+                        failures.append(f"{tag} {direction}: migrant segments do not start after 3 R or size != M")
+                    status = [segment for segment in segments if segment.buffer_name == "global_status"]
+                    send_offset = (simulator_v7._OFFSET_GHOST_SEND_LEADING if direction == "leading"
+                                   else simulator_v7._OFFSET_GHOST_SEND_TRAILING)
+                    expected_status = [send_offset, simulator_v7._OFFSET_REPLICA_INNER_SEND[direction],
+                                       simulator_v7._OFFSET_REPLICA_OUTER_SEND[direction],
+                                       simulator_v7._OFFSET_REPLICA_THIRD_SEND[direction],
+                                       simulator_v7._OFFSET_FRAME_STAMP]
+                    if [segment.device_offset for segment in status] != expected_status \
+                            or segments[-1] is not status[-1]:
+                        failures.append(f"{tag} {direction}: count words {[s.device_offset for s in status]} != "
+                                        f"{expected_status} (the stamp last)")
+                    overrides = simulator._recv_status_overrides[direction]
+                    if overrides.get(simulator_v7._OFFSET_REPLICA_THIRD_SEND[direction]) \
+                            != simulator_v7._OFFSET_REPLICA_THIRD_RECV[direction]:
+                        failures.append(f"{tag} {direction}: the third counter has no recv override")
+                    offset = 0
+                    for segment in segments:
+                        if segment.staging_offset != offset:
+                            failures.append(f"{tag} {direction}: staging gap before {segment.buffer_name}")
+                            break
+                        offset += segment.size
+                    if offset != total:
+                        failures.append(f"{tag} {direction}: staging total {total} != {offset}")
+                    if simulator._per_ghost_pid_dispatch_count(direction) != math.ceil(migrant / workgroup):
+                        failures.append(f"{tag} {direction}: install threads cover "
+                                        f"{simulator._per_ghost_pid_dispatch_count(direction) * workgroup}, "
+                                        f"the migrant region has {migrant}")
+                expected_copy = [(simulator.own_first_pid(), slab.capacities.own_pool_size)]
+                if slab.transport.has_leading_peer:
+                    expected_copy.append((1, 2 * region))
+                if slab.transport.has_trailing_peer:
+                    expected_copy.append((slab.capacities.leading_ghost_pool_size + slab.capacities.own_pool_size + 1,
+                                          2 * region))
+                expected_copy.append((simulator.departed_first_pid(), slab.capacities.departed_pool_size))
+                if simulator._density_copy_slot_regions() != expected_copy:
+                    failures.append(f"{tag}: density copy regions {simulator._density_copy_slot_regions()} != "
+                                    f"{expected_copy}")
+                # streams
+                phase_a = capture(simulator._record_phase_a_cmd)
+                fills = [event[2] for event in phase_a if event[0] == "fill"]
+                for direction in simulator._transport_segments:
+                    for key in ("inner", "outer", "third"):
+                        if simulator_v7._OFFSET_REPLICA_SEND[key][direction] not in fills:
+                            failures.append(f"{tag}: phase A does not zero the {key} {direction} counter")
+                phase_b = capture(simulator._record_phase_b_cmd)
+                phase_b_binds = binds(phase_b)
+                if ("wall_extrapolate_interior" not in phase_b_binds or "wall_extrapolate" in phase_b_binds
+                        or "wall_extrapolate_scratch" in phase_b_binds
+                        or phase_b_binds.index("wall_extrapolate_interior")
+                        > phase_b_binds.index("force_deep_interior_scratch")):
+                    failures.append(f"{tag}: phase B binds {phase_b_binds}")
+                wall_interior_index = first_index(phase_b, ("bind", "pipeline:wall_extrapolate_interior"))
+                if wall_interior_index >= 0 and phase_b[wall_interior_index + 2] != ("dispatch", per_particle, 1, 1):
+                    failures.append(f"{tag}: the interior wall pass is not dispatched per own particle")
+                phase_c = capture(lambda: simulator._record_phase_c_cmd(0))
+                order = [first_index(phase_c, event) for event in (
+                    ("bind", "pipeline:density_scratch_copy"), ("tick", "c_density_end"),
+                    ("bind", "pipeline:wall_extrapolate_boundary_band"), ("tick", "c_wall_extrapolate_end"),
+                    ("bind", "pipeline:force_boundary_band"))]
+                if min(order) < 0 or order != sorted(order):
+                    failures.append(f"{tag}: phase C order {order} (copy, c_density_end, wall band, its tick, force band)")
+                else:
+                    wall_groups = simulator._per_band_dispatch_count(3, 1)
+                    if phase_c[order[2] + 2] != ("dispatch", wall_groups, 1, 1):
+                        failures.append(f"{tag}: wall band dispatch {phase_c[order[2] + 2]} != {wall_groups} groups")
+                    if phase_c[order[4] + 2] != ("dispatch", simulator._per_band_dispatch_count(4), 1, 1):
+                        failures.append(f"{tag}: force band dispatch {phase_c[order[4] + 2]} is not at width 4")
+                bootstrap = capture(simulator._record_bootstrap_compute_cmd)
+                bootstrap_binds = binds(bootstrap)
+                if bootstrap_binds.count("wall_extrapolate") != 2 \
+                        or bootstrap_binds.count("wall_extrapolate_boundary_band") != 2 \
+                        or bootstrap_binds.index("correction_density_all") < bootstrap_binds.index("wall_extrapolate") \
+                        or bootstrap_binds.index("force_all") < len(bootstrap_binds) - 1 \
+                        - bootstrap_binds[::-1].index("wall_extrapolate_boundary_band"):
+                    failures.append(f"{tag}: bootstrap binds {bootstrap_binds}")
+                fused_index = first_index(bootstrap, ("bind", "pipeline:correction_density_boundary_band"))
+                if fused_index < 0 or bootstrap[fused_index + 2] != ("dispatch", simulator._per_band_dispatch_count(2, 2), 1, 1):
+                    failures.append(f"{tag}: the bootstrap's fused band pass is not dispatched with self layer 2")
+        # the simple K = 2 slab: no wall pass, rc2's widths / self layer / lane groups
+        global_case = _synthetic_global_case(case_v7)
+        with contextlib.redirect_stdout(io.StringIO()):
+            simple = partition_v7.compute_chain_partition(global_case, [1.0, 1.0], pool_safety=1.2)
+        face = global_case.grid.grid_dimension_y * global_case.grid.grid_dimension_z
+        for index, slab in enumerate(simple.slabs):
+            simulator = fake(slab)
+            tag = f"simple chain 2-D K=2 slab {index}"
+            if simulator.band_widths != (2, 2, 3) or simulator._ghost_self_layer(2, 1, "correction") != 1 \
+                    or simulator._ghost_send_group_total() != 2 * face or simulator._wall_pass_split:
+                failures.append(f"{tag}: widths {simulator.band_widths}, self layer "
+                                f"{simulator._ghost_self_layer(2, 1, 'correction')}, lane groups "
+                                f"{simulator._ghost_send_group_total()}, split {simulator._wall_pass_split}")
+            for name, stream in (("phase B", capture(simulator._record_phase_b_cmd)),
+                                 ("phase C", capture(lambda: simulator._record_phase_c_cmd(0))),
+                                 ("bootstrap", capture(simulator._record_bootstrap_compute_cmd))):
+                if any(key.startswith("wall_extrapolate") for key in binds(stream)):
+                    failures.append(f"{tag}: {name} binds a wall pass")
+            if any(key in simulator.built_pipelines for key in ("wall_extrapolate", "wall_extrapolate_interior",
+                                                                 "wall_extrapolate_boundary_band")):
+                failures.append(f"{tag}: wall pipelines built")
+        # ---- the lane-group mapping with three layers
+        for lanes_count in (4, 8, 16, 32):
+            local_size = simulator_v7._GHOST_SEND_LOCAL_SIZE
+            groups_per_workgroup = local_size // lanes_count
+            pairs = 3 * face
+            groups = math.ceil(pairs / groups_per_workgroup)
+            mapping = _emulate_ghost_send_lanes(face, 3, lanes_count, local_size, groups)
+            active = mapping["active"]
+            counts = np.bincount(mapping["group_index"][active], minlength=pairs)
+            if counts.size != pairs or np.any(counts != lanes_count):
+                failures.append(f"lanes {lanes_count}, three layers: pairs owned by {sorted(set(counts.tolist()))} "
+                                f"invocations, expected {lanes_count}")
+            leaders = active & (mapping["lane"] == 0)
+            for layer in range(3):
+                on_layer = mapping["face_voxel"][leaders & (mapping["layer"] == layer)]
+                if np.bincount(on_layer, minlength=face).tolist() != [1] * face:
+                    failures.append(f"lanes {lanes_count}, three layers: layer {layer} does not tile the face once")
+        # ---- shader text
+        shader_directory = pathlib.Path(__file__).resolve().parent / "shaders"
+        texts = {name: (shader_directory / name).read_text(encoding="utf-8")
+                 for name in ("helpers.glsl", "common.glsl", "ghost_send.comp", "ghost_send_lanes.comp",
+                              "expand_ghost_lists.comp", "wall_extrapolate_band.comp")}
+        # the K = 1 kernel is rc2's source byte for byte (its SPIR-V keeps the E39 pins)
+        rc2_wall = subprocess.run(["git", "show", "v7-rc2:experiment/v7/shaders/wall_extrapolate.comp"],
+                                  cwd=_REPO_ROOT, capture_output=True).stdout
+        if rc2_wall and rc2_wall != (shader_directory / "wall_extrapolate.comp").read_bytes().replace(b"\r\n", b"\n") \
+                and rc2_wall.replace(b"\r\n", b"\n") != (shader_directory / "wall_extrapolate.comp").read_bytes().replace(b"\r\n", b"\n"):
+            failures.append("wall_extrapolate.comp differs from v7-rc2's (the K = 1 kernel must stay rc2's)")
+        if "return (GHOST_LAYERS >= 2u) ? GHOST_LAYERS * REPLICA_REGION_SIZE : 0u;" not in texts["helpers.glsl"]:
+            failures.append("helpers.glsl: migrant_region_offset is not GHOST_LAYERS * REPLICA_REGION_SIZE")
+        if "uint layer = leading ? GHOST_LAYERS - 1u - column : column;" not in texts["expand_ghost_lists.comp"]:
+            failures.append("expand_ghost_lists.comp: the layer of a leading column is not GHOST_LAYERS - 1 - column")
+        for name in ("ghost_send.comp", "ghost_send_lanes.comp"):
+            text = texts[name]
+            for fragment in ("boundary_x + int(GHOST_LAYERS) - int(layer_index)",
+                             "boundary_x - int(GHOST_LAYERS) + int(layer_index)",
+                             "layer_index < GHOST_LAYERS", "replica_third_send_trailing_count",
+                             "replica_third_send_leading_count", "if (layer_index >= 1u) atomicAdd(far_migration_count"):
+                if fragment not in text:
+                    failures.append(f"{name}: {fragment!r} not found")
+        struct = re.search(r"buffer GlobalStatusBuffer \{(.*?)\};", texts["common.glsl"], flags=re.S)
+        fields = re.findall(r"^\s*(?:uint|float)\s+(\w+);", struct.group(1) if struct else "", flags=re.M)
+        expected_fields = {35: "replica_third_send_leading_count", 36: "replica_third_send_trailing_count",
+                           37: "replica_third_recv_leading_count", 38: "replica_third_recv_trailing_count"}
+        if len(fields) != 40 or any(fields[index] != name for index, name in expected_fields.items()):
+            failures.append(f"common.glsl: GlobalStatus fields 35-38 are {fields[35:39] if len(fields) >= 39 else fields}")
+        for index, name in expected_fields.items():
+            if simulator_v7._GLOBAL_STATUS_FIELD_NAMES[index] != name:
+                failures.append(f"simulator_v7._GLOBAL_STATUS_FIELD_NAMES[{index}] != {name}")
+        if (simulator_v7._OFFSET_REPLICA_THIRD_SEND != {"leading": 140, "trailing": 144}
+                or simulator_v7._OFFSET_REPLICA_THIRD_RECV != {"leading": 148, "trailing": 152}):
+            failures.append("simulator_v7: the third counters' offsets are not fields 35-38")
+        wall_text = texts["wall_extrapolate_band.comp"]
+        for fragment in ("if (CORRECTION_MODE == CORRECTION_MODE_INTERIOR &&  self_in_boundary_band) return;",
+                         "if (CORRECTION_MODE == CORRECTION_MODE_BOUNDARY && !self_in_boundary_band) return;",
+                         "band_thread_voxel(thread_id / BAND_SLOT_LANES, NEIGHBOR_X_RANGE, voxel_id)",
+                         "band_thread_particle(thread_id, NEIGHBOR_X_RANGE, self_particle_id)"):
+            if fragment not in wall_text:
+                failures.append(f"wall_extrapolate.comp: {fragment!r} not found")
+    finally:
+        for name, function in saved_functions.items():
+            setattr(simulator_v7, name, function)
+        for key in [key for key in os.environ if key.startswith("V7_")]:
+            del os.environ[key]
+        os.environ.update(saved_environment)
+
+
 def main() -> int:
     import experiment.v7.utils.simulator_v7 as simulator_v7
     failures: list = []
@@ -3679,6 +4148,7 @@ def main() -> int:
         check_ghost_send_lanes(failures)
         check_deep_wall_skip(failures)
         check_fused_correction_density(failures)
+        check_adami_chain(failures)
     finally:
         simulator_v7._BAND_OVERLAP = band_overlap
     check_band_overlap(failures)
@@ -3703,6 +4173,8 @@ def main() -> int:
           "recording invariant, auto = one verdict per chain (thresholds, straddling chains, chain counts, run "
           "metadata), tick consumers, force.comp FORCE_SEGMENT (E39 B3); "
           "release defaults (E6b, phase A no-wait E32) + LEGACY_DEFAULTS; "
+          + "E40 adami chain: three-layer ghost partition / pool / links, split wall pipelines and bands, "
+          "segments, copy regions, phase A / B / C / bootstrap streams, lane groups with three layers, shader text; "
           + ("SPIR-V current)" if spirv_checked else "SPIR-V check SKIPPED: no glslc)"))
     return 0
 

@@ -51,12 +51,15 @@ void main() {
     if (!PACKED_REPLICAS || REPLICA_REGION_SIZE == 0u) return;   // (host rejects layers < 2 too)
 
     // V7_PACKED_REPLICAS: unpack the replica into its ghost SoA slot. Leading
-    // ghost columns are x = 0 (outer) and 1 (inner, next to own); trailing ghost
-    // columns are own_last + 1 (inner) and own_last + 2 (outer).
+    // ghost columns are x = 0 .. GHOST_LAYERS - 1, outermost first (two layers:
+    // 0 = outer, 1 = inner, next to own); trailing ghost columns are
+    // own_last + 1 (inner) .. own_last + GHOST_LAYERS (outermost). Layer l of
+    // the sender (0 = inner) sits GHOST_LAYERS - 1 - l from the left on the
+    // leading side and l from own on the trailing side (E40: three layers).
     uint face = GRID_DIMENSION_Y * GRID_DIMENSION_Z;
     bool leading = voxel_ordinal < LEADING_GHOST_VOXEL_COUNT;
     uint column = (leading ? voxel_ordinal : voxel_ordinal - LEADING_GHOST_VOXEL_COUNT) / face;
-    uint layer = leading ? 1u - column : column;
+    uint layer = leading ? GHOST_LAYERS - 1u - column : column;
     uint direction = leading ? 0u : 1u;
     uint region_first_particle_id = (leading ? leading_ghost_first_pid() : trailing_ghost_first_pid())
                                   + layer * REPLICA_REGION_SIZE;

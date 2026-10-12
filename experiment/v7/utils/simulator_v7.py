@@ -56,6 +56,7 @@ from experiment.v7.utils.partition_v7 import (
     configured_ghost_self_kernels,
     configured_diagnostic_poison_inner_replica,
     configured_band_widths,
+    ADAMI_CHAIN_GHOST_LAYERS,
     COMPACT_DISPATCH_BAND_WIDTHS,
 )
 from experiment.v7.utils.sync_scheme_v7 import make_sync_scheme
@@ -633,6 +634,15 @@ _OFFSET_REPLICA_INNER_SEND = {"leading": 96,  "trailing": 100}   # [24], [25]
 _OFFSET_REPLICA_OUTER_SEND = {"leading": 104, "trailing": 108}   # [26], [27]
 _OFFSET_REPLICA_INNER_RECV = {"leading": 112, "trailing": 116}   # [28], [29]
 _OFFSET_REPLICA_OUTER_RECV = {"leading": 120, "trailing": 124}   # [30], [31]
+# E40 (GHOST_LAYERS = 3, the adami chain): the third replica layer's counters, fields [35]-[38] (were reserved)
+_OFFSET_REPLICA_THIRD_SEND = {"leading": 140, "trailing": 144}   # [35], [36]
+_OFFSET_REPLICA_THIRD_RECV = {"leading": 148, "trailing": 152}   # [37], [38]
+# the replica layers in pool order (inner = the peer's seam column) and their counters
+_REPLICA_LAYER_KEYS = ("inner", "outer", "third")
+_OFFSET_REPLICA_SEND = {"inner": _OFFSET_REPLICA_INNER_SEND, "outer": _OFFSET_REPLICA_OUTER_SEND,
+                        "third": _OFFSET_REPLICA_THIRD_SEND}
+_OFFSET_REPLICA_RECV = {"inner": _OFFSET_REPLICA_INNER_RECV, "outer": _OFFSET_REPLICA_OUTER_RECV,
+                        "third": _OFFSET_REPLICA_THIRD_RECV}
 _GLOBAL_STATUS_FIELD_NAMES = (
     "alive_particle_count", "maximum_velocity", "overflow_inside_count",
     "overflow_incoming_count", "first_overflow_voxel_inside",
@@ -651,6 +661,9 @@ _GLOBAL_STATUS_FIELD_NAMES = (
     "initialization_seam_clamp_count", "overflow_initialization_outside",
     # E39 B4 (V7_DEEP_WALL_CHECK=1): field [34], was status_reserved_2 (never written before)
     "overflow_deep_wall_skip_count",
+    # E40 (GHOST_LAYERS = 3): fields [35]-[38], were status_reserved_3..6 (never written before)
+    "replica_third_send_leading_count", "replica_third_send_trailing_count",
+    "replica_third_recv_leading_count", "replica_third_recv_trailing_count",
 )
 # Replicas of the two-layer ghost (V7_GHOST_LAYERS = 2) carry only what the
 # neighbour sweeps read (correction / density / force, incl. the inner layer
@@ -794,9 +807,20 @@ class SphSimulatorV7:
         # adami_rho0, v7-wall-bc WALL_BC = 3). adami runs one slab only: wall_extrapolate.comp reads local
         # neighbours and the ghost transport does not carry wall_dummy_velocity.
         self.wall_boundary = case.numerics.wall_boundary
-        if self._wall_adami and (case.transport.has_leading_peer or case.transport.has_trailing_peer):
-            raise ValueError("wall_boundary adami supports one GPU (K = 1) only in this release; this slab has a "
-                             f"{'leading' if case.transport.has_leading_peer else 'trailing'} peer")
+        # E40: an adami slab with a peer runs the wall pass split like density (wall_extrapolate.comp: the interior
+        # pass in phase B, the band pass + the inner ghost column as self in phase C). It needs the three-layer
+        # ghost of partition_v7.chain_ghost_layers, the band-voxel dispatch (no compact list: that list holds one
+        # inner ghost column) and both band kernels recomputing the inner AND outer ghost columns as self.
+        if self._wall_pass_split:
+            if case.ghost_grid.ghost_layers != ADAMI_CHAIN_GHOST_LAYERS:
+                raise ValueError(f"wall_boundary adami with a peer needs ghost_layers = {ADAMI_CHAIN_GHOST_LAYERS} "
+                                 f"(partition_v7.chain_ghost_layers); this slab has {case.ghost_grid.ghost_layers}")
+            if _BAND_COMPACT or not _BAND_VOXEL_DISPATCH:
+                raise ValueError("wall_boundary adami with a peer needs V7_BAND_VOXEL_DISPATCH=1 and "
+                                 "V7_BAND_COMPACT_DISPATCH=0 (the wall band pass is a band-voxel dispatch)")
+            if not {"correction", "density"} <= set(_DIAG_GHOST_SELF_KERNELS):
+                raise ValueError("wall_boundary adami with a peer needs V7_DIAG_GHOST_SELF=correction,density "
+                                 "(the inner ghost column's wall pass reads the outer column's recomputed density)")
         # V7_FAKE_BAND_TEST moves part of the density pass into phase C (density_boundary_band, after phase B's
         # wall pass), so the wall pass would read band fluid density before this step's band density exists.
         if self._wall_adami and _FAKE_BAND_COLUMN > 0:
@@ -941,6 +965,20 @@ class SphSimulatorV7:
         """E37: case.yaml numerics.wall_boundary == adami. Read from the case (not stored by __init__): the CPU
         tests call _build_buffer_specs / _global_entries on simulators built with object.__new__ + .case."""
         return self.case.numerics.wall_boundary == "adami"
+
+    @property
+    def _wall_pass_split(self) -> bool:
+        """E40: adami on a slab with a peer: the wall pass is split (the interior in phase B, the wall band + the
+        inner ghost column as self in phase C). Read from the case, as _wall_adami."""
+        transport = self.case.transport
+        return self._wall_adami and (transport.has_leading_peer or transport.has_trailing_peer)
+
+    def wall_band_width(self) -> int:
+        """E40: the wall pass band of a split adami slab = the density band + 1 (a wall in column c reads the
+        fluid of column c - 1, whose rho_{n+1} is final in phase B from the density band on); force's band is
+        one more (partition_v7.configured_band_widths(wall_pass=True))."""
+        widths = self.__dict__.get("band_widths") or self._configured_band_widths()
+        return widths[1] + 1
 
     def destroy(self) -> None:
         if self._destroyed:
@@ -1200,9 +1238,11 @@ class SphSimulatorV7:
             _BufferSpec("ghost_voxel_first_particle_id", 1, 5, 4 * voxel_capacity,                BSU | TRANSFER),
             # V7_BAND_COMPACT_DISPATCH: compacted band pid list + per-voxel offsets
             _BufferSpec("band_compact_list",            1, 6,  self._band_compact_list_bytes(), BSU | TRANSFER),
-            # V7_PACKED_REPLICAS: packed replica out/inbox, 2 layers x 8 words x R per direction
+            # V7_PACKED_REPLICAS: packed replica out/inbox, ghost_layers (2; E40 adami chain: 3) layers x 8 words x R
+            # per direction
             _BufferSpec("ghost_packed_words",           1, 7,
-                        max(4, 4 * 2 * 2 * _PACKED_REPLICA_WORDS * case.capacities.replica_region_size)
+                        max(4, 4 * 2 * case.ghost_grid.ghost_layers * _PACKED_REPLICA_WORDS
+                            * case.capacities.replica_region_size)
                         if configured_packed_replicas() else 4,                       BSU | TRANSFER),
 
             # Set 3: global / pool-health / materials
@@ -1425,10 +1465,12 @@ class SphSimulatorV7:
         case = self.case
         cap_inside = case.capacities.max_particles_per_voxel
         replica_region = case.capacities.replica_region_size
-        migrant_region = pool_size - 2 * replica_region
+        layer_count = case.ghost_grid.ghost_layers            # 2, or 3 with the adami chain (E40)
+        layer_keys = _REPLICA_LAYER_KEYS[:layer_count]
+        migrant_region = pool_size - layer_count * replica_region
         if migrant_region <= 0:
             raise ValueError(f"{direction}: ghost pool {pool_size} leaves no migrant "
-                             f"region after 2 x {replica_region} replica slots")
+                             f"region after {layer_count} x {replica_region} replica slots")
         segments: list[_TransportSegment] = []
         staging_offset = 0
         counted_segments: list[tuple[_TransportSegment, str]] = []
@@ -1455,19 +1497,21 @@ class SphSimulatorV7:
                                  "(expand_ghost_lists unpacks the replicas)")
             region_bytes = 4 * replica_region
             direction_base = ((0 if direction == "leading" else 1)
-                              * 2 * _PACKED_REPLICA_WORDS * region_bytes)
-            for word_offset, stride, count_key in ((0, 16, "inner"), (4, 16, "inner"),
-                                                    (8, 16, "outer"), (12, 16, "outer")):
-                segment = _TransportSegment(
-                    "ghost_packed_words", direction_base + word_offset * region_bytes,
-                    staging_offset, stride * replica_region, stride=stride, region=count_key)
-                segments.append(segment)
-                counted_segments.append((segment, count_key))
-                staging_offset += stride * replica_region
+                              * layer_count * _PACKED_REPLICA_WORDS * region_bytes)
+            for layer_index, count_key in enumerate(layer_keys):
+                for word_offset, stride in ((0, 16), (4, 16)):
+                    segment = _TransportSegment(
+                        "ghost_packed_words",
+                        direction_base + (layer_index * _PACKED_REPLICA_WORDS + word_offset) * region_bytes,
+                        staging_offset, stride * replica_region, stride=stride, region=count_key)
+                    segments.append(segment)
+                    counted_segments.append((segment, count_key))
+                    staging_offset += stride * replica_region
         else:
-            add_particle_segments(_REPLICA_TRANSPORT_FIELDS, 0, replica_region, "inner")
-            add_particle_segments(_REPLICA_TRANSPORT_FIELDS, replica_region, replica_region, "outer")
-        add_particle_segments(transported_particle_fields(), 2 * replica_region,
+            for layer_index, count_key in enumerate(layer_keys):
+                add_particle_segments(_REPLICA_TRANSPORT_FIELDS, layer_index * replica_region, replica_region,
+                                      count_key)
+        add_particle_segments(transported_particle_fields(), layer_count * replica_region,
                               migrant_region, "migrant")
 
         size = 4 * ghost_voxel_count
@@ -1477,11 +1521,9 @@ class SphSimulatorV7:
         segments.append(self._ghost_list_segment(ghost_voxel_count, vid_first, staging_offset))
         staging_offset += segments[-1].size
 
-        count_words = (
-            ("migrant", send_count_offset, recv_count_offset),
-            ("inner", _OFFSET_REPLICA_INNER_SEND[direction], _OFFSET_REPLICA_INNER_RECV[direction]),
-            ("outer", _OFFSET_REPLICA_OUTER_SEND[direction], _OFFSET_REPLICA_OUTER_RECV[direction]),
-        )
+        count_words = (("migrant", send_count_offset, recv_count_offset),) + tuple(
+            (key, _OFFSET_REPLICA_SEND[key][direction], _OFFSET_REPLICA_RECV[key][direction])
+            for key in layer_keys)
         count_staging_offsets: dict[str, int] = {}
         overrides: dict[int, int] = {}
         for key, send_offset, recv_offset in count_words:
@@ -1716,6 +1758,9 @@ class SphSimulatorV7:
             # E37: the wall pass only with wall_boundary adami (simple creates no wall pipeline, so it needs no
             # wall_extrapolate.comp.spv, e.g. in a V7_SPV_DIR A/B against a pre-E37 build)
             *(("wall_extrapolate",) if self._wall_adami else ()),
+            # E40: the split wall pass (interior + band variants) only on an adami slab with a peer; the E37 module
+            # above stays the K = 1 kernel (rc2's SPIR-V byte for byte)
+            *(("wall_extrapolate_band",) if self._wall_pass_split else ()),
             # E39 B9: the density copy pass only with V7_DENSITY_COPY_COMPUTE=1 (likewise for a pre-B9 V7_SPV_DIR)
             *(("density_scratch_copy",) if _DENSITY_COPY_COMPUTE else ()),
             # E39 B4: the marker and the DEEP_WALL_SKIP variants only on a slab that skips deep walls
@@ -1886,10 +1931,13 @@ class SphSimulatorV7:
         inner-column self pass from the kernels it does not name, to time each
         kernel's share; without "density" the inner column keeps the uploaded
         rho_n (the density copy then skips it), i.e. V5's defect (1) returns."""
-        if self.case.ghost_grid.ghost_layers >= 2 and band_dispatch in (1, 2) and mode == 2:
+        layers = self.case.ghost_grid.ghost_layers
+        if layers >= 2 and band_dispatch in (1, 2) and mode == 2:
             if kernel and kernel not in _DIAG_GHOST_SELF_KERNELS:
                 return 0
-            return 1
+            # E40: the three-layer ghost recomputes the inner AND the outer ghost column as self (the inner
+            # column's wall pass reads the outer column's rho_{n+1}); the compact list (2) holds one inner column
+            return layers - 1 if band_dispatch == 1 else 1
         return 0
 
     def _ghost_self_density(self) -> bool:
@@ -1925,12 +1973,23 @@ class SphSimulatorV7:
                 (57, 'I', band_dispatch), (58, 'I', _BAND_SLOT_LANES if band_dispatch == 1 else 0),
                 (59, 'I', self._fake_band_column())]
 
+    def _wall_mode_entries(self, mode: int, density_source: int = 0,
+                           band_dispatch: int = 0) -> list[tuple[int, str, Any]]:
+        """E40: the split variants of wall_extrapolate.comp take correction's spec constants as the pass mode
+        (CORRECTION_MODE 47), the wall band (NEIGHBOR_X_RANGE 82 = wall_band_width), FORCE_DENSITY_SOURCE (56:
+        0 primary, 1 scratch), the band dispatch (57 / 58 / 59) and, for the band variant, GHOST_SELF_LAYER (85)
+        = 1: the inner ghost column's walls as self. The E37 pipelines (mode 0, no peer) keep their entries."""
+        return [(47, 'I', mode), (82, 'I', self.wall_band_width()), (56, 'I', density_source),
+                (57, 'I', band_dispatch), (58, 'I', _BAND_SLOT_LANES if band_dispatch == 1 else 0),
+                (59, 'I', self._fake_band_column()),
+                (85, 'I', 1 if (mode == 2 and band_dispatch == 1 and self.ghost_layers() >= 2) else 0)]
+
     def _configured_band_widths(self) -> tuple[int, int, int]:
         """V7_BAND_WIDTHS (partition_v7.configured_band_widths checks c >= 2,
         d >= c, f >= d + 1). V7_BAND_COMPACT_DISPATCH builds its band list for
         the 2/3/4 bands only (band_compact.comp), so other widths are rejected
         with it (unset, V7_BAND_WIDTHS then defaults to 2,3,4)."""
-        widths = configured_band_widths()
+        widths = configured_band_widths(wall_pass=self._wall_pass_split)
         if _BAND_COMPACT and widths != COMPACT_DISPATCH_BAND_WIDTHS:
             raise ValueError("V7_BAND_COMPACT_DISPATCH=1 builds its band list for the 2/3/4 bands only; "
                              f"V7_BAND_WIDTHS={','.join(map(str, widths))} is not supported with it")
@@ -2381,6 +2440,16 @@ class SphSimulatorV7:
                 pipelines[key] = self._create_pipeline(
                     shader=self.shader_modules["wall_extrapolate"],
                     entries=self._global_entries() + [(56, 'I', source)])
+        if self._wall_pass_split:
+            # E40: the split wall pass of a slab with a peer: the interior variant (phase B, reads scratch, skips
+            # the wall band) and the band-voxel dispatch over the wall band + the inner ghost column as self
+            # (phase C after the density copy, reads primary).
+            pipelines["wall_extrapolate_interior"] = self._create_pipeline(
+                shader=self.shader_modules["wall_extrapolate_band"],
+                entries=self._global_entries() + self._wall_mode_entries(1, density_source=1))
+            pipelines["wall_extrapolate_boundary_band"] = self._create_pipeline(
+                shader=self.shader_modules["wall_extrapolate_band"],
+                entries=self._global_entries() + self._wall_mode_entries(2, density_source=0, band_dispatch=1))
         # E39 B9: the density scratch -> primary copy pass (its own spec constants only: the slab's regions).
         if _DENSITY_COPY_COMPUTE:
             pipelines["density_scratch_copy"] = self._create_pipeline(
@@ -2444,7 +2513,7 @@ class SphSimulatorV7:
 
         cascade_note = (" (V7_CASCADE_FORCE=1: force_deep_interior in Phase B)"
                         if _CASCADE_FORCE else "")
-        ghost_self = 1 if self.ghost_layers() >= 2 else 0
+        ghost_self = self._ghost_self_layer(2, 1)          # E40: 2 with the three-layer ghost
         correction_band, density_band, force_band = self.band_widths
         if _BAND_VOXEL_DISPATCH:
             cascade_note += (f" (V7_BAND_VOXEL_DISPATCH=1, lanes={_BAND_SLOT_LANES or 'slots'}, bands "
@@ -2456,6 +2525,10 @@ class SphSimulatorV7:
         if self._transport_segments:
             cascade_note += (f" (seam: ghost_layers={self.ghost_layers()}, departed pool="
                              f"{self.departed_pool_size()})")
+        if self._wall_pass_split:
+            cascade_note += (f" (E40 adami chain: wall pass split, wall band {self.wall_band_width()} + the inner "
+                             f"ghost column as self, {self._band_thread_count(self.wall_band_width(), 1):,} band "
+                             f"threads; correction_density band self layers {self.ghost_layers() - 1})")
         if _DENSITY_COPY_COMPUTE:
             copy_regions = self._density_copy_slot_regions()
             cascade_note += (f" (V7_DENSITY_COPY_COMPUTE=1: density copy pass over {len(copy_regions)} "
@@ -2614,7 +2687,8 @@ class SphSimulatorV7:
         (2 with V7_GHOST_LAYERS = 2, else 1: the shader's GHOST_LAYERS >= 2u
         test on spec constant 83), one per (face voxel, layer) pair."""
         face = self.case.grid.grid_dimension_y * self.case.grid.grid_dimension_z
-        layer_count = 2 if self.case.ghost_grid.ghost_layers >= 2 else 1
+        layers = self.case.ghost_grid.ghost_layers
+        layer_count = layers if layers >= 2 else 1           # E40: 3 with the adami chain
         return face * layer_count
 
     def _ghost_send_group_count(self) -> int:
@@ -2651,7 +2725,7 @@ class SphSimulatorV7:
         else:
             raise ValueError(direction)
         if pool > 0:
-            pool -= 2 * self.case.capacities.replica_region_size
+            pool -= self.case.ghost_grid.ghost_layers * self.case.capacities.replica_region_size
         return (pool + wg - 1) // wg if pool > 0 else 0
 
     def _per_expand_dispatch_count(self) -> int:
@@ -2948,12 +3022,11 @@ class SphSimulatorV7:
         vkCmdFillBuffer(
             cmd, self.buffers["global_status"].handle, offset, 4, 0)
         if self.case.capacities.replica_region_size > 0:
-            # V7_GHOST_LAYERS = 2: the inner / outer replica allocation counters.
+            # V7_GHOST_LAYERS = 2: the inner / outer replica allocation counters (E40: + the third layer's).
             self._record_compute_to_clear_barrier(cmd)
-            for counter_offset in (_OFFSET_REPLICA_INNER_SEND[direction],
-                                   _OFFSET_REPLICA_OUTER_SEND[direction]):
+            for key in _REPLICA_LAYER_KEYS[:self.case.ghost_grid.ghost_layers]:
                 vkCmdFillBuffer(
-                    cmd, self.buffers["global_status"].handle, counter_offset, 4, 0)
+                    cmd, self.buffers["global_status"].handle, _OFFSET_REPLICA_SEND[key][direction], 4, 0)
 
     def _record_reset_departed_count(self, cmd) -> None:
         """V7_KEEP_DEPARTED: zero the departed-pool allocation counter before
@@ -3197,16 +3270,36 @@ class SphSimulatorV7:
         return (slot_total + _DENSITY_COPY_LOCAL_SIZE - 1) // _DENSITY_COPY_LOCAL_SIZE
 
     def _record_wall_extrapolate(self, cmd, density_source: str = "primary",
-                                 tick: Optional[str] = None) -> None:
+                                 tick: Optional[str] = None, scope: str = "all") -> None:
         """E37 wall_boundary adami: wall_extrapolate.comp over the own pid range, then a compute barrier
         (force, or the next pass, reads the walls' (rho0, p_w) and dummy velocity). ``density_source`` = where
         the fluid's rho/P of this step are: "primary" after the scratch -> primary copy, "scratch" in phase B
-        before it. Records nothing with simple (the v6 recording)."""
+        before it. Records nothing with simple (the v6 recording).
+        E40: ``scope`` "interior" (a slab with a peer, phase B) binds wall_extrapolate_interior instead: every own
+        wall from the wall band on, reading scratch; the band's walls run in phase C's band pass."""
         if not self._wall_adami:
             return
-        self._bind_pipeline_and_sets(
-            cmd, "wall_extrapolate_scratch" if density_source == "scratch" else "wall_extrapolate")
+        if scope == "interior":
+            self._bind_pipeline_and_sets(cmd, "wall_extrapolate_interior")
+        else:
+            self._bind_pipeline_and_sets(
+                cmd, "wall_extrapolate_scratch" if density_source == "scratch" else "wall_extrapolate")
         vkCmdDispatch(cmd, self._per_own_particle_dispatch_count(), 1, 1)
+        if tick:
+            self._bench_tick(cmd, tick)
+        self._record_compute_barrier(cmd)
+
+    def _record_wall_band_pass(self, cmd, tick: Optional[str] = None) -> None:
+        """E40 (adami on a slab with a peer): wall_extrapolate_boundary_band over the wall band's voxels + the
+        inner ghost column (as self), reading this step's fluid rho/P from primary - after the density copy, which
+        published the own range and the inner / outer ghost columns' rho_{n+1}, P_{n+1} - then a compute barrier
+        (force reads the walls' (rho0, p_w) and dummy velocity). Records nothing on any other slab."""
+        if not self._wall_pass_split:
+            return
+        groups = self._per_band_dispatch_count(self.wall_band_width(), 1)
+        if groups > 0:
+            self._bind_pipeline_and_sets(cmd, "wall_extrapolate_boundary_band")
+            vkCmdDispatch(cmd, groups, 1, 1)
         if tick:
             self._bench_tick(cmd, tick)
         self._record_compute_barrier(cmd)
@@ -3229,10 +3322,13 @@ class SphSimulatorV7:
         if capacities.trailing_ghost_pool_size > 0:
             first_slots.append(capacities.leading_ghost_pool_size
                                + capacities.own_pool_size + 1)
+        # E40: with the three-layer ghost the outer column is recomputed as self too; its region follows the inner
+        # one, so one copy covers [inner R | outer R] per direction
+        self_layer_count = self.ghost_layers() - 1
         for first_slot in first_slots:
             regions.append(VkBufferCopy(srcOffset=first_slot * density_stride,
                                         dstOffset=first_slot * density_stride,
-                                        size=capacities.replica_region_size * density_stride))
+                                        size=self_layer_count * capacities.replica_region_size * density_stride))
         if capacities.departed_pool_size > 0:
             departed_offset = self.departed_first_pid() * density_stride
             regions.append(VkBufferCopy(srcOffset=departed_offset, dstOffset=departed_offset,
@@ -3429,6 +3525,7 @@ class SphSimulatorV7:
         if self._wall_adami:
             self._record_compute_barrier(cmd)
             self._record_wall_extrapolate(cmd)
+            self._record_wall_band_pass(cmd)          # E40: + the inner ghost column's walls
 
         # E39 B4 (V7_DEEP_WALL_SKIP): on a slab without peers correction_all / density_all skip deep walls, so the
         # marker of the bootstrap lists goes first (the barrier orders it after the voxelization submit).
@@ -3470,6 +3567,7 @@ class SphSimulatorV7:
                     self.band_widths[1], self._ghost_self_layer(2, 1, "density")), 1, 1)
         self._record_density_scratch_to_primary_copy(cmd)
         self._record_wall_extrapolate(cmd)
+        self._record_wall_band_pass(cmd)              # E40: + the inner ghost column's walls (this step's rho/P)
 
         self._bind_pipeline_and_sets(cmd, "force_all")
         vkCmdDispatch(cmd, per_p, 1, 1)
@@ -3926,7 +4024,10 @@ class SphSimulatorV7:
             # safe here and widens the transfer-hiding window to B + force.
             # E37 wall_boundary adami: the wall pass reads the fluid's rho/P of this frame from scratch too and
             # writes (rho0, p_w) to scratch (read by the force below) and primary.
-            self._record_wall_extrapolate(cmd, "scratch", tick="b_wall_extrapolate_end")
+            # E40: with a peer only the walls from the wall band on (the band's walls read band fluid whose
+            # rho_{n+1} phase C computes: they run in phase C's wall band pass).
+            self._record_wall_extrapolate(cmd, "scratch", tick="b_wall_extrapolate_end",
+                                          scope="interior" if self._wall_pass_split else "all")
             # bind force_deep_interior_scratch + dispatch per_p (E39 B3: counted as the segment (0, all))
             self._record_force_deep_segment(cmd, 0, per_p)
             self._record_compute_barrier(cmd)
@@ -4069,8 +4170,16 @@ class SphSimulatorV7:
         self._bench_tick(cmd, "c_density_end")
         if not _CASCADE_FORCE:
             # E37 wall_boundary adami without cascading force: force_all below is the first force of the frame
-            # (with it, phase B ran the wall pass).
-            self._record_wall_extrapolate(cmd, "primary", tick="c_wall_extrapolate_end")
+            # (with it, phase B ran the wall pass). E40 (a peer): + the band pass for the inner ghost column's
+            # walls (the own band is then computed twice, same inputs, same values).
+            self._record_wall_extrapolate(cmd, "primary",
+                                          tick=None if self._wall_pass_split else "c_wall_extrapolate_end")
+            self._record_wall_band_pass(cmd, tick="c_wall_extrapolate_end")
+        else:
+            # E40 (adami with a peer, cascading force): the wall band pass - the own wall band (its fluid
+            # neighbours' rho_{n+1} came from the band density pass and the copy) and the inner ghost column as
+            # self - before the force band reads the walls' p_w / dummy velocity. Nothing on any other slab.
+            self._record_wall_band_pass(cmd, tick="c_wall_extrapolate_end")
 
         # V3.3: with cascading force, Phase B already covered the deep
         # interior; only the force boundary band (incl. this frame's

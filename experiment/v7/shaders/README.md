@@ -54,6 +54,8 @@ Multi-GPU ghost handling and inlet/outlet kernels are deferred (V0+ work). `defr
 | `density.comp` | Stage 4 — continuity equation + EOS. |
 | `correction_density.comp` | E39 B1 (`V7_FUSED_CORRECTION_DENSITY`, default 1): stages 3 + 4 in one neighbour traversal (correction.comp's code, then density's rate as L_i : S_i with the L_i just written); every site where correction and density run back to back, on slabs whose two kernels take the same particles. B4 variant `correction_density_deep_wall_skip` (`-DDEEP_WALL_SKIP`). |
 | `force.comp` | Stage 5 — pressure + viscosity + gravity + PST shift. |
+| `wall_extrapolate.comp` | E37 (`numerics.wall_boundary: adami`): the Adami wall pass between density and force (wall pressure + dummy velocity from the fluid neighbours); every slab without a peer (K = 1), the kernel of v7-rc2 byte for byte. |
+| `wall_extrapolate_band.comp` | E40: the same computation with the interior / boundary-band modes and the band-voxel dispatch, for an adami slab with a peer (three-layer ghost, `partition_v7.chain_ghost_layers`): the interior pass in phase B, the band pass + the inner ghost column as self in phase C. |
 | `_test_common.comp` | Smoke test: empty kernel including `common.glsl`, used to detect regressions in bindings/spec constants. |
 
 Compiled `.spv` artifacts coexist alongside source. Build via

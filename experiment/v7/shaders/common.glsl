@@ -284,6 +284,11 @@ layout(constant_id = 82) const uint NEIGHBOR_X_RANGE = 0u;
 // adjacent to own) + the column behind it ("outer" layer). LEADING/TRAILING_
 // GHOST_VOXEL_COUNT already carry the thickness; this constant selects the
 // ghost_send / install pool layout (see REPLICA_REGION_SIZE).
+// E40 (wall_boundary adami on a slab with a peer): 3 = one more column behind
+// the outer layer ("third" layer, the peer's column 2), so the receiver can
+// recompute the outer column's density as self (GHOST_SELF_LAYER = 2) and
+// then the inner column's wall extrapolation from this step's fluid density.
+// The partition chooses 3 itself for an adami chain; simple keeps 2.
 layout(constant_id = 83) const uint GHOST_LAYERS = 1u;
 // DEPARTED_POOL_SIZE (V7_KEEP_DEPARTED): slots of the departed pool that
 // follows the trailing ghost pool in the pid space. ghost_send copies every
@@ -296,9 +301,13 @@ layout(constant_id = 84) const uint DEPARTED_POOL_SIZE = 0u;
 // i.e. the peer's seam column is recomputed here as SELF (its correction and
 // rho_{n+1}/P_{n+1}); the density copy then publishes those values so force
 // reads this step's rho/P for every ghost neighbour. 0 = own columns only.
+// E40 (GHOST_LAYERS = 3): 2 = the inner AND the outer ghost column as self
+// (correction_density band); the adami wall band pass (wall_extrapolate.comp
+// in phase C) walks the inner column only (1).
 layout(constant_id = 85) const uint GHOST_SELF_LAYER = 0u;
-// REPLICA_REGION_SIZE (V7_GHOST_LAYERS = 2): ghost pool per direction is
-// [inner replicas R | outer replicas R | migrants], R = this value. Replicas
+// REPLICA_REGION_SIZE (V7_GHOST_LAYERS >= 2): ghost pool per direction is
+// [inner replicas R | outer replicas R | (third replicas R) | migrants], R =
+// this value (GHOST_LAYERS regions, E40: three with the adami chain). Replicas
 // travel with 4 fields, migrants with all 9. 0 = the V5 mixed pool (replicas
 // and migrants interleaved per (y, z) thread, all fields).
 layout(constant_id = 86) const uint REPLICA_REGION_SIZE = 0u;
@@ -737,10 +746,15 @@ layout(std430, set = 3, binding = 0) buffer GlobalStatusBuffer {
     //   would have counted (listed, non-BOUNDARY, 1e-12 <= r < h), summed over
     //   the correction and density passes that skipped it. 0 otherwise.
     uint  overflow_deep_wall_skip_count;
-    uint  status_reserved_3;
-    uint  status_reserved_4;
-    uint  status_reserved_5;
-    uint  status_reserved_6;
+    // E40 (GHOST_LAYERS = 3, the adami chain): the third replica layer's
+    //   allocation counters (fields [35], [36], were status_reserved_3 / _4;
+    //   zeroed per frame in phase A like the inner / outer ones, transported as
+    //   the count-aware copy's bound) and the receiver's diagnostic recv slots
+    //   ([37], [38], were status_reserved_5 / _6). 0 with two layers.
+    uint  replica_third_send_leading_count;
+    uint  replica_third_send_trailing_count;
+    uint  replica_third_recv_leading_count;
+    uint  replica_third_recv_trailing_count;
     uint  status_reserved_7;              // total 40 uint = 160 B
 };
 

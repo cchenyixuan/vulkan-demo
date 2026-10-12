@@ -128,11 +128,12 @@ bool in_own_grid(ivec3 coord) {
 
 // ============================================================================
 // V7_PACKED_REPLICAS: word offsets in ghost_packed_words (see common.glsl):
-// 8 words per record (x y z rho | vx vy vz material-bits) per layer, 2 layers
-// per direction -> 16 R words per direction.
+// 8 words per record (x y z rho | vx vy vz material-bits) per layer,
+// GHOST_LAYERS layers per direction -> 8 GHOST_LAYERS R words per direction
+// (16 R with two layers, 24 R with the adami chain's three).
 // ============================================================================
 uint packed_layer_base(uint direction, uint layer) {
-    return (direction * 16u + layer * 8u) * REPLICA_REGION_SIZE;
+    return (direction * (8u * GHOST_LAYERS) + layer * 8u) * REPLICA_REGION_SIZE;
 }
 
 void store_packed_vec4(uint word, vec4 value) {
@@ -260,7 +261,10 @@ bool in_boundary_band(ivec3 coord) {
 // walks ONE more column outward — the inner ghost column (the peer's seam
 // column) — so its particles are processed as self. Per side the band is
 // then columns [leading_x - 1, leading_x + range) / [own_last_x - range + 1,
-// own_last_x + 1]. GHOST_SELF_LAYER = 0 reproduces V5 exactly.
+// own_last_x + 1]. GHOST_SELF_LAYER = 0 reproduces V5 exactly. E40
+// (GHOST_LAYERS = 3): GHOST_SELF_LAYER = 2 walks the inner and the outer ghost
+// column (columns [leading_x - 2, ...)); the formulas below hold for any
+// GHOST_SELF_LAYER <= the ghost thickness.
 uint band_voxel_count(uint range) {
     uint face = GRID_DIMENSION_Y * GRID_DIMENSION_Z;
     if (FAKE_BAND_COLUMN > 0u) return range * face;
@@ -385,11 +389,12 @@ uint departed_first_pid() {
     return LEADING_GHOST_POOL_SIZE + OWN_POOL_SIZE + TRAILING_GHOST_POOL_SIZE + 1u;
 }
 
-// V6 ghost pool layout (GHOST_LAYERS = 2): [inner replicas | outer replicas |
-// migrants]; with the V5 mixed pool (REPLICA_REGION_SIZE = 0) migrants start
-// at offset 0 interleaved with the replicas.
+// V6 ghost pool layout (GHOST_LAYERS >= 2): [inner replicas | outer replicas |
+// (third replicas, GHOST_LAYERS = 3) | migrants], one region per layer; with
+// the V5 mixed pool (REPLICA_REGION_SIZE = 0) migrants start at offset 0
+// interleaved with the replicas.
 uint migrant_region_offset() {
-    return (GHOST_LAYERS >= 2u) ? 2u * REPLICA_REGION_SIZE : 0u;
+    return (GHOST_LAYERS >= 2u) ? GHOST_LAYERS * REPLICA_REGION_SIZE : 0u;
 }
 
 // ============================================================================

@@ -65,7 +65,9 @@ CASES = {"n250": "cases/lid_driven_cavity_2d_n250/case.yaml", "n500": "cases/lid
          "n1000_xi0p001": "cases/lid_driven_cavity_2d_n1000_xi0p001/case.yaml",
          # 2026-10-04 (user decision): xi 0.001 + epsilon_squared_factor 0.0025 becomes the main series
          "n500_xi0p001_eps0p0025": "cases/lid_driven_cavity_2d_n500_xi0p001_eps0p0025/case.yaml",
-         "n1000_xi0p001_eps0p0025": "cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025/case.yaml"}
+         "n1000_xi0p001_eps0p0025": "cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025/case.yaml",
+         # E40 (2026-10-13): the main-series numerics with wall_boundary adami (E37's case), K = 1 and K = 2 on v7-rc3
+         "n1000_xi0p001_eps0p0025_adami": "cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_adami/case.yaml"}
 # "size" (default: "case") selects the time step, the calibration entry and the calibration length; the numerics
 # variants cost the same as their base case. Runs execute in this order.
 RUNS = [
@@ -96,9 +98,18 @@ RUNS = [
     # directory is a copy of n1000_k2_float32_xi0p001_eps0p0025 resumed from its t = 99.2 checkpoint (run --t-end 300)
     {"id": "n1000_k2_float32_xi0p001_eps0p0025_long", "case": "n1000_xi0p001_eps0p0025", "size": "n1000", "slabs": 2,
      "devices": "0,1", "expect": "release"},
+    # E40 (2026-10-13, --solver v7 on v7-rc3): the adami walls at K = 2 (the three-layer ghost + split wall pass) and
+    # K = 1 (the headless 5090), same case, same tag; the adami walls cost ~7 % at 1000^2, so they get their own
+    # calibration entries (size n1000_adami)
+    {"id": "n1000_k2_float32_xi0p001_eps0p0025_adami", "case": "n1000_xi0p001_eps0p0025_adami", "size": "n1000_adami",
+     "slabs": 2, "devices": "0,1", "expect": "release"},
+    {"id": "n1000_k1_float32_xi0p001_eps0p0025_adami", "case": "n1000_xi0p001_eps0p0025_adami", "size": "n1000_adami",
+     "slabs": 1, "devices": "1", "expect": "release", "require_uuid": "ae137c668a40f5acaab90a83f7cda175"},
 ]
-DT = {"n250": 3.0e-5, "n500": 1.5e-5, "n1000": 7.5e-6, "n2000": 3.75e-6}       # 0.15 * h / c0, h = 5 dx, c0 = 100
-CALIBRATION_STEPS = {"n250": 42000, "n500": 52000, "n1000": 108000, "n2000": 159000}   # about 1.2-1.6 time units
+DT = {"n250": 3.0e-5, "n500": 1.5e-5, "n1000": 7.5e-6, "n2000": 3.75e-6,       # 0.15 * h / c0, h = 5 dx, c0 = 100
+      "n1000_adami": 7.5e-6}
+CALIBRATION_STEPS = {"n250": 42000, "n500": 52000, "n1000": 108000, "n2000": 159000,   # about 1.2-1.6 time units
+                     "n1000_adami": 108000}
 HEARTBEAT_TIMEOUT_S = 600
 BOOT_TIMEOUT_S = 900
 

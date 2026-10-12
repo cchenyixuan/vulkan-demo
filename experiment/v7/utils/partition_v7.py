@@ -231,9 +231,10 @@ def configured_delta_density() -> bool:
 
 RELEASE_BAND_WIDTHS = (2, 2, 3)            # the code default (E6b)
 COMPACT_DISPATCH_BAND_WIDTHS = (2, 3, 4)   # the only widths V7_BAND_COMPACT_DISPATCH supports
+ADAMI_CHAIN_BAND_WIDTHS = (2, 2, 4)        # E40: a wall_boundary adami slab with a peer (wall pass band = d + 1 = 3)
 
 
-def configured_band_widths() -> tuple[int, int, int]:
+def configured_band_widths(wall_pass: bool = False) -> tuple[int, int, int]:
     """V7_BAND_WIDTHS="c,d,f" (default "2,2,3"; "2,3,4" with V7_BAND_COMPACT_DISPATCH=1,
     the only widths its band list supports): boundary band widths in own voxel
     columns of correction / density / force = NEIGHBOR_X_RANGE (spec 82) of each
@@ -242,9 +243,14 @@ def configured_band_widths() -> tuple[int, int, int]:
     (this frame's migrants land in column 0 and the ghosts arrive in phase C), so a
     column's correction is final from column 2 on: c >= 2. Density reads its own L
     and the neighbours' r, v, m, rho_n and material only: d >= c. Force reads the
-    neighbours' rho_{n+1} / P_{n+1}: f >= d + 1. Anything else is rejected."""
+    neighbours' rho_{n+1} / P_{n+1}: f >= d + 1. Anything else is rejected.
+
+    ``wall_pass`` (E40, a wall_boundary adami slab with a peer): the wall pass sits
+    between density and force and reads the neighbours' rho_{n+1} / P_{n+1}, so its
+    band is d + 1 and force, which reads the walls' p_w, needs f >= d + 2; unset,
+    the default is then "2,2,4" (ADAMI_CHAIN_BAND_WIDTHS)."""
     default = (COMPACT_DISPATCH_BAND_WIDTHS if os.environ.get("V7_BAND_COMPACT_DISPATCH", "0") == "1"
-               else RELEASE_BAND_WIDTHS)
+               else ADAMI_CHAIN_BAND_WIDTHS if wall_pass else RELEASE_BAND_WIDTHS)
     text = os.environ.get("V7_BAND_WIDTHS", ",".join(map(str, default)))
     try:
         widths = tuple(int(part) for part in text.split(","))
@@ -256,6 +262,9 @@ def configured_band_widths() -> tuple[int, int, int]:
     if correction < 2 or density < correction or force < density + 1:
         raise ValueError(f"V7_BAND_WIDTHS={text!r}: needs correction >= 2, density >= correction and "
                          "force >= density + 1")
+    if wall_pass and force < density + 2:
+        raise ValueError(f"V7_BAND_WIDTHS={text!r}: a wall_boundary adami slab with a peer runs the wall pass "
+                         "at band density + 1 and needs force >= density + 2 (default 2,2,4)")
     return widths
 
 
@@ -299,6 +308,8 @@ def _ghost_pool_layout(global_case: CaseV7, ghost_layers: int) -> tuple[int, int
           scaled by V7_GHOST_POOL_FACTOR exactly like V5), M = face x
           MAX_INCOMING_PER_VOXEL x V7_MIGRANT_POOL_FACTOR. Replicas only carry 4 fields
           over the link, migrants all 9 (simulator transport segments).
+    ghost_layers = 3 (E40, the adami chain): one more replica region of the same
+      size, [inner R | outer R | third R | migrants M].
     """
     if ghost_layers == 1:
         return _ghost_pool_size(global_case), 0
@@ -315,7 +326,30 @@ def _ghost_pool_layout(global_case: CaseV7, ghost_layers: int) -> tuple[int, int
     migrant_region = max(MIGRANT_REGION_FLOOR, int(math.ceil(
         voxel_per_x * global_case.capacities.max_incoming_per_voxel * migrant_factor)))
     _warn_if_replica_region_tight(global_case, replica_region / voxel_per_x, factor)
-    return 2 * replica_region + migrant_region, replica_region
+    return ghost_layers * replica_region + migrant_region, replica_region
+
+
+ADAMI_CHAIN_GHOST_LAYERS = 3    # E40: the ghost thickness of a wall_boundary adami chain (K > 1)
+
+
+def chain_ghost_layers(global_case: CaseV7, slab_count: int) -> int:
+    """The ghost thickness of a chain of ``slab_count`` slabs: configured_ghost_layers(), or
+    ADAMI_CHAIN_GHOST_LAYERS (3) for a wall_boundary adami chain with more than one slab (E40).
+
+    An adami wall takes its pressure and dummy velocity from this step's fluid density of its
+    neighbours. The receiver computes the inner ghost column's walls itself (the wall band pass
+    of phase C), which needs the outer ghost column's rho_{n+1}: the correction_density band
+    pass recomputes that column as self too (GHOST_SELF_LAYER = 2), and that needs the column
+    behind it, the third layer. Both passes then see exactly the single-slab inputs. simple
+    walls and a one-slab chain keep the configured thickness, so their layout is rc2's."""
+    layers = configured_ghost_layers()
+    if slab_count > 1 and global_case.numerics.wall_boundary == "adami":
+        if layers != 2:
+            raise ValueError("wall_boundary adami with K > 1 needs the two-layer seam it extends "
+                             "(V7_KEEP_DEPARTED=1, V7_BAND_VOXEL_DISPATCH=1, V7_GHOST_LAYERS unset or 2); "
+                             f"configured ghost layers = {layers}")
+        return ADAMI_CHAIN_GHOST_LAYERS
+    return layers
 
 
 def _warn_if_replica_region_tight(global_case: CaseV7, slots_per_voxel: float, factor: float) -> None:
@@ -1149,13 +1183,9 @@ def compute_chain_partition(
     slab_count = len(weights)
     if slab_count < 1:
         raise ValueError("need at least one weight")
-    # E37: wall_boundary adami runs one slab only in this release. Every multi-slab entry point partitions
-    # first, so this stops them before any Vulkan context, thread or file (SphSimulatorV7 checks again).
-    if slab_count > 1 and global_case.numerics.wall_boundary == "adami":
-        raise ValueError("wall_boundary adami (case.yaml numerics) supports one GPU (K = 1) only in this "
-                         f"release; got K = {slab_count}")
     grid_nx = global_case.grid.grid_dimension_x
-    ghost_layers = configured_ghost_layers()
+    # E40: an adami chain (K > 1) gets the three-layer ghost (chain_ghost_layers); everything else rc2's thickness.
+    ghost_layers = chain_ghost_layers(global_case, slab_count)
 
     cuts = compute_chain_cuts(global_case, weights, minimum_own_columns)
     boundaries = [0] + cuts + [grid_nx]   # slab i owns [boundaries[i], boundaries[i+1])
@@ -1236,8 +1266,8 @@ def compute_chain_partition(
         print(f"[partition_v7] seam: ghost_layers={ghost_layers} "
               f"keep_departed={int(configured_keep_departed())} ghost pool/direction="
               f"{ghost_pool_per_direction:,}"
-              + (f" (replica regions 2 x {replica_region_size:,} + migrants "
-                 f"{ghost_pool_per_direction - 2 * replica_region_size:,})"
+              + (f" (replica regions {ghost_layers} x {replica_region_size:,} + migrants "
+                 f"{ghost_pool_per_direction - ghost_layers * replica_region_size:,})"
                  if replica_region_size else " (V5 mixed layout)")
               + " departed pool/slab="
               + "/".join(str(s.capacities.departed_pool_size) for s in slabs))
