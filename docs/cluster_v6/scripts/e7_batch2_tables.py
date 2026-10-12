@@ -200,6 +200,8 @@ def table_points(rows: list) -> list:
     lines = ["| point | job | node | case | K | arm | trials | window | fps | η (no defrag) | η_min (no defrag) | η (with defrag) | η_min (with defrag) | r_own p50 / p95 | SM clock K / ref | ns/particle K | ns/particle K=1 ref |",
              "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for row in sorted(rows, key=sort_key):
+        if not row["fps"]["n"]:                      # an arm the plan lists but the job did not run
+            continue
         trace = row["trace"] or {}
         r_own = "-"
         if trace.get("r_own_p50") is not None:
@@ -448,6 +450,9 @@ def trace_rows(traces: list) -> list:
     from experiment.v7.analysis import step_trace_model
     out = []
     for trace in traces:
+        if not (pathlib.Path(trace) / "run_meta.json").exists():      # anatomy / loop-trace dirs are not step traces
+            print(f"--trace {trace}: no run_meta.json, skipped", file=sys.stderr)
+            continue
         run = step_trace_model.load_run(trace)
         out.append({"trace": str(trace), "case": pathlib.Path(run["meta"]["case"]).parent.name,
                     "warmup": run["meta"]["warmup"], "slabs": item0.slab_timings(run)})
