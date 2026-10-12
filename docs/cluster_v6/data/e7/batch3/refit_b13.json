@@ -1,0 +1,7747 @@
+{
+ "fields": {
+  "cost_2d": 1.3005052843049434e-09,
+  "cost_3d": 6.178588886851932e-09,
+  "floor_k1": 0.0014,
+  "floor": {
+   "2": 0.004687887061375782,
+   "4": 0.0045,
+   "8": 0.006779244143331603
+  },
+  "efficiency": {
+   "2": 1.033559479499499,
+   "4": 0.9670847003539155,
+   "8": 0.9542656257479943
+  },
+  "efficiency_3d": {
+   "2": 0.9288316782483018,
+   "4": 0.8938248404995566,
+   "8": 0.8814459036186169
+  },
+  "cold_per_simulator": 2.1992011834319527,
+  "warm_per_simulator": 1.461063432835821,
+  "load_per_million": 0.3864451596708547,
+  "bootstrap_fixed": 0.3189054734206671,
+  "bootstrap_per_million": 0.546985424716854,
+  "post_per_million": 0.0416387426221166,
+  "post_per_slab": 0.0,
+  "seam_2d_per_million": 0.24098260527808044,
+  "seam_2d_fixed": 4.590144862439628,
+  "seam_3d_per_million": 0.0,
+  "seam_3d_per_million_per_slab": 0.0929304342172713,
+  "calibration_rounds": 2,
+  "calibration_fixed": -10.39242240137382,
+  "pilot_steps": 500,
+  "run_overhead": 2.7203588433158186,
+  "trace_write": 15.0,
+  "job_overhead": 165.5,
+  "anatomy_steps": 3000,
+  "soak_steps": 17000,
+  "cube_soak_seconds": 3600.0
+ },
+ "notes": {
+  "cost_2d": "98 K = 1 reference runs (2d_n1440, 2d_n2840, 2d_n4000, 2d_n8000)",
+  "cost_3d": "174 K = 1 reference runs (3d_n160, 3d_n160_k8, 3d_n200, 3d_n200_k8, 3d_n416)",
+  "efficiency": "K=2: 12 runs (2d_n11320); K=4: 12 runs (2d_n2840_k4, 2d_n8000); K=8: 12 runs (2d_n11320, 2d_n8000)",
+  "efficiency_3d": "K=2: 18 runs (3d_n160_k8, 3d_n200_k2, 3d_n200_k8); K=4: 18 runs (3d_n160_k8, 3d_n200_k4, 3d_n200_k8); K=8: 18 runs (3d_n160_k8, 3d_n200_k8, 3d_n416)",
+  "floor": "K=2: 10 runs (2d_n1440_k2); K=8: 10 runs (2d_n4000)",
+  "load_per_million": "194 groups (intercept 0.00 s -> run_overhead)",
+  "cold_per_simulator": "86 groups (calibration pilots 28)",
+  "warm_per_simulator": "136 groups",
+  "bootstrap_fixed": "222 groups and pilots",
+  "bootstrap_per_million": "222 groups and pilots",
+  "post_per_million": "163 groups without the seam check",
+  "post_per_slab": "163 groups without the seam check",
+  "seam_2d_per_million": "13 seam-checked groups, 0.57 x the plan's terms",
+  "seam_2d_fixed": "13 seam-checked groups, 0.57 x the plan's terms",
+  "seam_3d_per_million": "least squares over 18 3-D seam-checked groups (trace write 15.0 s off)",
+  "seam_3d_per_million_per_slab": "least squares over 18 3-D seam-checked groups (trace write 15.0 s off)",
+  "run_overhead": "194 groups, std 16.5 s; outside the bench 5.5 s, read-in intercept 0.0 s",
+  "calibration_rounds": "15 calibrations, pilots 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1",
+  "calibration_fixed": "15 calibrations, pilots 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1",
+  "job_overhead": "4 jobs: 187 s, 233 s, 127 s, 115 s"
+ },
+ "items": [
+  {
+   "job": "b1A",
+   "label": "pre_2d_n8000_k1_x4",
+   "plan": 95.18263104360001,
+   "refit": 72.17113604046646,
+   "refit_as_run": 72.17113604046646,
+   "measured": 74
+  },
+  {
+   "job": "b1A",
+   "label": "pre_3d_n160_k8_k1_x4",
+   "plan": 75.44063999999999,
+   "refit": 51.91504624374261,
+   "refit_as_run": 51.91504624374261,
+   "measured": 57
+  },
+  {
+   "job": "b1A",
+   "label": "pre_3d_n200_k8_k1_x4",
+   "plan": 116.96064000000001,
+   "refit": 94.56434943298467,
+   "refit_as_run": 94.56434943298467,
+   "measured": 96
+  },
+  {
+   "job": "b1A",
+   "label": "2d_n8000_K4",
+   "plan": 2703.928041508,
+   "refit": 2279.1414196798123,
+   "refit_as_run": 2279.1414196798123,
+   "measured": 2162
+  },
+  {
+   "job": "b1A",
+   "label": "2d_n2840_k4_K4",
+   "plan": 1308.178155828,
+   "refit": 867.9132122984049,
+   "refit_as_run": 867.9132122984049,
+   "measured": 841
+  },
+  {
+   "job": "b1A",
+   "label": "3d_n160_k8_K4",
+   "plan": 2837.4731263999997,
+   "refit": 2446.709311574631,
+   "refit_as_run": 2446.7093115746316,
+   "measured": 2445
+  },
+  {
+   "job": "b1A",
+   "label": "2d_n1440_k2_K2",
+   "plan": 718.3678057894737,
+   "refit": 426.5700047937886,
+   "refit_as_run": 426.57000479378866,
+   "measured": 452
+  },
+  {
+   "job": "b1B",
+   "label": "selftest_2d_n1000_K8",
+   "plan": 164.9922598,
+   "refit": 28.43056223847624,
+   "refit_as_run": 28.43056223847624,
+   "measured": 26
+  },
+  {
+   "job": "b1B",
+   "label": "pre_2d_n8000_k1_x8",
+   "plan": 95.18263104360001,
+   "refit": 72.17113604046646,
+   "refit_as_run": 72.17113604046646,
+   "measured": 118
+  },
+  {
+   "job": "b1B",
+   "label": "pre_2d_n9000_k1_x8",
+   "plan": 112.4464986436,
+   "refit": 89.89850825330659,
+   "refit_as_run": 89.89850825330659,
+   "measured": 143
+  },
+  {
+   "job": "b1B",
+   "label": "pre_3d_n160_k8_k1_x8",
+   "plan": 75.44063999999999,
+   "refit": 51.91504624374261,
+   "refit_as_run": 51.91504624374261,
+   "measured": 76
+  },
+  {
+   "job": "b1B",
+   "label": "pre_3d_n200_k8_k1_x8",
+   "plan": 116.96064000000001,
+   "refit": 94.56434943298467,
+   "refit_as_run": 94.56434943298467,
+   "measured": 145
+  },
+  {
+   "job": "b1B",
+   "label": "pre_3d_n416_k1_x8",
+   "plan": 125.28128000000001,
+   "refit": 103.11130266247731,
+   "refit_as_run": 103.11130266247731,
+   "measured": 161
+  },
+  {
+   "job": "b1B",
+   "label": "pre_2d_n11320_pairs_x4",
+   "plan": 174.46760876610526,
+   "refit": 136.91817765261203,
+   "refit_as_run": 136.91817765261203,
+   "measured": 165
+  },
+  {
+   "job": "b1B",
+   "label": "2d_n8000_K8",
+   "plan": 2765.325755059724,
+   "refit": 2082.5920053197983,
+   "refit_as_run": 2082.5920053197983,
+   "measured": 2159
+  },
+  {
+   "job": "b1B",
+   "label": "2d_n4000_K8",
+   "plan": 1960.38873904,
+   "refit": 1154.3729734958904,
+   "refit_as_run": 1154.3729734958906,
+   "measured": 1115
+  },
+  {
+   "job": "b1B",
+   "label": "2d_n11320_K8",
+   "plan": 3951.2979708853845,
+   "refit": 3177.234895410693,
+   "refit_as_run": 3177.234895410693,
+   "measured": 3428
+  },
+  {
+   "job": "b1B",
+   "label": "3d_n160_k8_K8",
+   "plan": 3036.5031383393107,
+   "refit": 2301.3242876973027,
+   "refit_as_run": 2301.324287697303,
+   "measured": 2365
+  },
+  {
+   "job": "b1B",
+   "label": "soak_2d_n8000_K8",
+   "plan": 435.4636062351724,
+   "refit": 287.16559920719396,
+   "refit_as_run": 287.16559920719396,
+   "measured": 309
+  },
+  {
+   "job": "b3A2",
+   "label": "3d_n200_k2_K2",
+   "plan": 1572.703660193684,
+   "refit": 1316.3247584576561,
+   "refit_as_run": 1316.3247584576561,
+   "measured": 1407
+  },
+  {
+   "job": "b3A2",
+   "label": "3d_n200_k4_K4",
+   "plan": 1975.2521130666667,
+   "refit": 1560.295026131246,
+   "refit_as_run": 1560.295026131246,
+   "measured": 1668
+  },
+  {
+   "job": "b3A2",
+   "label": "3d_n160_k8_K2",
+   "plan": 3352.5360408252627,
+   "refit": 3153.194814941129,
+   "refit_as_run": 3049.8566958805036,
+   "measured": 3085
+  },
+  {
+   "job": "b3A2",
+   "label": "3d_n200_k8_K2",
+   "plan": 6055.0772113515795,
+   "refit": 5943.538092157196,
+   "refit_as_run": 5943.538092157195,
+   "measured": 5676
+  },
+  {
+   "job": "b3A2",
+   "label": "3d_n200_k8_K4",
+   "plan": 4917.348326400001,
+   "refit": 4559.427339462301,
+   "refit_as_run": 4559.4273394623,
+   "measured": 4580
+  },
+  {
+   "job": "b3B",
+   "label": "3d_n200_k8_K8",
+   "plan": 4938.54290220138,
+   "refit": 4201.6872235851615,
+   "refit_as_run": 4201.6872235851615,
+   "measured": 3918
+  },
+  {
+   "job": "b3B",
+   "label": "3d_n416_K8",
+   "plan": 4967.22872214069,
+   "refit": 4265.539310962745,
+   "refit_as_run": 4137.187540607161,
+   "measured": 3955
+  }
+ ],
+ "budgets": [
+  {
+   "batch": 1,
+   "plan": {
+    "A": 2.265425289046965,
+    "B": 3.698264102170249
+   },
+   "refit": {
+    "A": 1.7790234666843974,
+    "B": 2.7069996787930397
+   }
+  },
+  {
+   "batch": 2,
+   "plan": {
+    "A": 5.656029731013099,
+    "B": 6.3717492347549936
+   },
+   "refit": {
+    "A": 4.419046483220646,
+    "B": 4.416061123665052
+   }
+  },
+  {
+   "batch": 3,
+   "plan": {
+    "A": 5.691151131646004,
+    "B": 2.8349365623172416
+   },
+   "refit": {
+    "A": 5.088345556504496,
+    "B": 2.397979592929974
+   }
+  },
+  {
+   "batch": 4,
+   "plan": {
+    "A": 3.905219787331036,
+    "B": 2.899311163227663
+   },
+   "refit": {
+    "A": 2.4337287359919326,
+    "B": 2.159415224884668
+   }
+  }
+ ],
+ "groups": [
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "pre_2d_n8000_k1_x4",
+   "role": "precheck",
+   "case": "cavity2d_n8000",
+   "point": "pre_2d_n8000_k1_x4",
+   "trial": 0,
+   "start": 36786,
+   "duration": 74,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "pre_2d_n8000_k1_x4_g0",
+     "status": "pass",
+     "fps": 12.307692307692308
+    },
+    {
+     "label": "pre_2d_n8000_k1_x4_g1",
+     "status": "pass",
+     "fps": 12.232415902140673
+    },
+    {
+     "label": "pre_2d_n8000_k1_x4_g2",
+     "status": "pass",
+     "fps": 11.976047904191617
+    },
+    {
+     "label": "pre_2d_n8000_k1_x4_g3",
+     "status": "pass",
+     "fps": 12.084592145015106
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 50,
+   "read_in": 10.6,
+   "construction": 7.070000000000002,
+   "bootstrap": 45.21,
+   "loop": 3.960000000000001,
+   "post": 2.69100022315979,
+   "in_bench": 69.52999997138977,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "pre_3d_n160_k8_k1_x4",
+   "role": "precheck",
+   "case": "cavity3d_n160_k8",
+   "point": "pre_3d_n160_k8_k1_x4",
+   "trial": 0,
+   "start": 36860,
+   "duration": 57,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "pre_3d_n160_k8_k1_x4_g0",
+     "status": "pass",
+     "fps": 4.587155963302752
+    },
+    {
+     "label": "pre_3d_n160_k8_k1_x4_g1",
+     "status": "pass",
+     "fps": 4.566210045662101
+    },
+    {
+     "label": "pre_3d_n160_k8_k1_x4_g2",
+     "status": "pass",
+     "fps": 4.46927374301676
+    },
+    {
+     "label": "pre_3d_n160_k8_k1_x4_g3",
+     "status": "pass",
+     "fps": 4.535147392290249
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 50,
+   "read_in": 5.77,
+   "construction": 8.71,
+   "bootstrap": 22.76,
+   "loop": 10.899999999999999,
+   "post": 1.8450000286102295,
+   "in_bench": 50.73400020599365,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "pre_3d_n200_k8_k1_x4",
+   "role": "precheck",
+   "case": "cavity3d_n200_k8",
+   "point": "pre_3d_n200_k8_k1_x4",
+   "trial": 0,
+   "start": 36918,
+   "duration": 95,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "pre_3d_n200_k8_k1_x4_g0",
+     "status": "pass",
+     "fps": 2.5031289111389237
+    },
+    {
+     "label": "pre_3d_n200_k8_k1_x4_g1",
+     "status": "pass",
+     "fps": 2.4968789013732833
+    },
+    {
+     "label": "pre_3d_n200_k8_k1_x4_g2",
+     "status": "pass",
+     "fps": 2.4434941967012827
+    },
+    {
+     "label": "pre_3d_n200_k8_k1_x4_g3",
+     "status": "pass",
+     "fps": 2.4752475247524752
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 50,
+   "read_in": 11.11,
+   "construction": 13.25,
+   "bootstrap": 43.099999999999994,
+   "loop": 19.470000000000013,
+   "post": 2.7789998054504395,
+   "in_bench": 89.70600008964539,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "cal_2d_n8000_K4",
+   "role": "calibration",
+   "case": "cavity2d_n8000",
+   "slabs": 4,
+   "point": "2d_n8000_K4",
+   "start": 37013,
+   "duration": 166,
+   "pilot_count": 2,
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "pilots": 2
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n8000_K4_t1_R1_2d_n8000",
+   "role": "reference",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K4",
+   "trial": 1,
+   "start": 37179,
+   "duration": 312,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K4_t1_R1_2d_n8000_g0",
+     "status": "pass",
+     "fps": 12.190661952944044
+    },
+    {
+     "label": "2d_n8000_K4_t1_R1_2d_n8000_g1",
+     "status": "pass",
+     "fps": 11.982505541908813
+    },
+    {
+     "label": "2d_n8000_K4_t1_R1_2d_n8000_g2",
+     "status": "pass",
+     "fps": 11.77301624676242
+    },
+    {
+     "label": "2d_n8000_K4_t1_R1_2d_n8000_g3",
+     "status": "pass",
+     "fps": 11.816140848398913
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 10.54,
+   "construction": 4.770000000000001,
+   "bootstrap": 39.64,
+   "loop": 252.73000000000002,
+   "post": 1.4019999504089355,
+   "in_bench": 309.8120000362396,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n8000_K4_t1_E",
+   "role": "equal",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K4",
+   "trial": 1,
+   "start": 37491,
+   "duration": 123,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K4_t1_E",
+     "status": "pass",
+     "fps": 46.44681839294008
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 3000,
+   "read_in": 15.92,
+   "construction": 2.99,
+   "bootstrap": 34.0,
+   "loop": 63.89,
+   "post": 1.3960001468658447,
+   "in_bench": 118.20000004768372,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n8000_K4_t1_C",
+   "role": "calibrated",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K4",
+   "trial": 1,
+   "start": 37614,
+   "duration": 127,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K4_t1_C",
+     "status": "pass",
+     "fps": 47.28132387706856
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 3000,
+   "read_in": 17.47,
+   "construction": 8.05,
+   "bootstrap": 33.55,
+   "loop": 62.839999999999996,
+   "post": 1.3959999084472656,
+   "in_bench": 123.30999994277954,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n8000_K4_t2_E",
+   "role": "equal",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K4",
+   "trial": 2,
+   "start": 37741,
+   "duration": 123,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K4_t2_E",
+     "status": "pass",
+     "fps": 46.52244708071645
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 3000,
+   "read_in": 15.82,
+   "construction": 2.879999999999999,
+   "bootstrap": 33.39,
+   "loop": 63.879999999999995,
+   "post": 1.4100000858306885,
+   "in_bench": 117.38000011444092,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n8000_K4_t2_C",
+   "role": "calibrated",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K4",
+   "trial": 2,
+   "start": 37864,
+   "duration": 120,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K4_t2_C",
+     "status": "pass",
+     "fps": 47.203209818267645
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 3000,
+   "read_in": 17.48,
+   "construction": 2.9899999999999984,
+   "bootstrap": 33.03,
+   "loop": 62.97,
+   "post": 1.3650000095367432,
+   "in_bench": 117.82999992370605,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n8000_K4_t2_R1_2d_n8000",
+   "role": "reference",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K4",
+   "trial": 2,
+   "start": 37984,
+   "duration": 311,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K4_t2_R1_2d_n8000_g0",
+     "status": "pass",
+     "fps": 12.22792858889704
+    },
+    {
+     "label": "2d_n8000_K4_t2_R1_2d_n8000_g1",
+     "status": "pass",
+     "fps": 11.987532965715655
+    },
+    {
+     "label": "2d_n8000_K4_t2_R1_2d_n8000_g2",
+     "status": "pass",
+     "fps": 11.782032400589102
+    },
+    {
+     "label": "2d_n8000_K4_t2_R1_2d_n8000_g3",
+     "status": "pass",
+     "fps": 11.832919181161992
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 10.58,
+   "construction": 3.4399999999999995,
+   "bootstrap": 38.489999999999995,
+   "loop": 251.6,
+   "post": 2.616999864578247,
+   "in_bench": 307.3289999961853,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n8000_K4_t3_C",
+   "role": "calibrated",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K4",
+   "trial": 3,
+   "start": 38295,
+   "duration": 127,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K4_t3_C",
+     "status": "pass",
+     "fps": 47.19207173194903
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 3000,
+   "read_in": 17.42,
+   "construction": 2.9499999999999993,
+   "bootstrap": 33.519999999999996,
+   "loop": 62.95,
+   "post": 1.4500000476837158,
+   "in_bench": 118.28999996185303,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n8000_K4_t3_R1_2d_n8000",
+   "role": "reference",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K4",
+   "trial": 3,
+   "start": 38422,
+   "duration": 318,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K4_t3_R1_2d_n8000_g0",
+     "status": "pass",
+     "fps": 12.252649635483674
+    },
+    {
+     "label": "2d_n8000_K4_t3_R1_2d_n8000_g1",
+     "status": "pass",
+     "fps": 12.011290613176387
+    },
+    {
+     "label": "2d_n8000_K4_t3_R1_2d_n8000_g2",
+     "status": "pass",
+     "fps": 11.810558639423645
+    },
+    {
+     "label": "2d_n8000_K4_t3_R1_2d_n8000_g3",
+     "status": "pass",
+     "fps": 11.847639357857947
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 10.52,
+   "construction": 3.59,
+   "bootstrap": 35.8,
+   "loop": 251.19000000000003,
+   "post": 2.4780001640319824,
+   "in_bench": 309.8950002193451,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n8000_K4_t3_E",
+   "role": "equal",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K4",
+   "trial": 3,
+   "start": 38740,
+   "duration": 125,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K4_t3_E",
+     "status": "pass",
+     "fps": 46.554934823091244
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 3000,
+   "read_in": 15.84,
+   "construction": 3.1099999999999994,
+   "bootstrap": 33.019999999999996,
+   "loop": 63.84,
+   "post": 1.3920001983642578,
+   "in_bench": 117.20000004768372,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n8000_K4_trace_E",
+   "role": "trace_equal",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K4",
+   "trial": 0,
+   "start": 38865,
+   "duration": 153,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K4_trace_E",
+     "status": "pass",
+     "fps": 46.49000464900046
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 4,
+   "steps": 3000,
+   "read_in": 15.93,
+   "construction": 2.9800000000000004,
+   "bootstrap": 34.0,
+   "loop": 63.91,
+   "post": 31.55299997329712,
+   "in_bench": 148.36999988555908,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n8000_K4_trace_C",
+   "role": "trace_calibrated",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K4",
+   "trial": 0,
+   "start": 39018,
+   "duration": 156,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K4_trace_C",
+     "status": "pass",
+     "fps": 47.22550177095631
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 4,
+   "steps": 3000,
+   "read_in": 17.54,
+   "construction": 3.16,
+   "bootstrap": 33.25,
+   "loop": 62.89,
+   "post": 31.18999981880188,
+   "in_bench": 148.02999997138977,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "cal_2d_n2840_k4_K4",
+   "role": "calibration",
+   "case": "cavity2d_n2840_k4",
+   "slabs": 4,
+   "point": "2d_n2840_k4_K4",
+   "start": 39176,
+   "duration": 91,
+   "pilot_count": 2,
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "pilots": 2
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n2840_k4_K4_t1_R1_2d_n2840",
+   "role": "reference",
+   "case": "cavity2d_n2840",
+   "point": "2d_n2840_k4_K4",
+   "trial": 1,
+   "start": 39267,
+   "duration": 50,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "2d_n2840_k4_K4_t1_R1_2d_n2840_g0",
+     "status": "pass",
+     "fps": 93.50163627863488
+    },
+    {
+     "label": "2d_n2840_k4_K4_t1_R1_2d_n2840_g1",
+     "status": "pass",
+     "fps": 92.80742459396751
+    },
+    {
+     "label": "2d_n2840_k4_K4_t1_R1_2d_n2840_g2",
+     "status": "pass",
+     "fps": 90.82652134423252
+    },
+    {
+     "label": "2d_n2840_k4_K4_t1_R1_2d_n2840_g3",
+     "status": "pass",
+     "fps": 91.70105456212747
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 1.55,
+   "construction": 5.7,
+   "bootstrap": 6.1,
+   "loop": 31.92,
+   "post": 1.7590000629425049,
+   "in_bench": 47.03999996185303,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n2840_k4_K4_t1_E",
+   "role": "equal",
+   "case": "cavity2d_n2840_k4",
+   "point": "2d_n2840_k4_K4",
+   "trial": 1,
+   "start": 39317,
+   "duration": 68,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n2840_k4_K4_t1_E",
+     "status": "pass",
+     "fps": 89.76660682226212
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 3000,
+   "read_in": 7.88,
+   "construction": 2.6900000000000004,
+   "bootstrap": 18.73,
+   "loop": 33.17999999999999,
+   "post": 1.2030000686645508,
+   "in_bench": 63.6800000667572,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n2840_k4_K4_t1_C",
+   "role": "calibrated",
+   "case": "cavity2d_n2840_k4",
+   "point": "2d_n2840_k4_K4",
+   "trial": 1,
+   "start": 39385,
+   "duration": 73,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n2840_k4_K4_t1_C",
+     "status": "pass",
+     "fps": 90.21199819576003
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 3000,
+   "read_in": 8.67,
+   "construction": 7.639999999999999,
+   "bootstrap": 18.7,
+   "loop": 32.92000000000001,
+   "post": 1.2369999885559082,
+   "in_bench": 69.17000007629395,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n2840_k4_K4_t2_E",
+   "role": "equal",
+   "case": "cavity2d_n2840_k4",
+   "point": "2d_n2840_k4_K4",
+   "trial": 2,
+   "start": 39458,
+   "duration": 68,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n2840_k4_K4_t2_E",
+     "status": "pass",
+     "fps": 89.88764044943821
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 3000,
+   "read_in": 7.89,
+   "construction": 2.6900000000000004,
+   "bootstrap": 18.840000000000003,
+   "loop": 33.15,
+   "post": 1.2049999237060547,
+   "in_bench": 63.77999997138977,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n2840_k4_K4_t2_C",
+   "role": "calibrated",
+   "case": "cavity2d_n2840_k4",
+   "point": "2d_n2840_k4_K4",
+   "trial": 2,
+   "start": 39526,
+   "duration": 67,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n2840_k4_K4_t2_C",
+     "status": "pass",
+     "fps": 90.25270758122744
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 3000,
+   "read_in": 8.67,
+   "construction": 2.8200000000000003,
+   "bootstrap": 18.82,
+   "loop": 32.97,
+   "post": 1.2249999046325684,
+   "in_bench": 64.5,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n2840_k4_K4_t2_R1_2d_n2840",
+   "role": "reference",
+   "case": "cavity2d_n2840",
+   "point": "2d_n2840_k4_K4",
+   "trial": 2,
+   "start": 39593,
+   "duration": 52,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "2d_n2840_k4_K4_t2_R1_2d_n2840_g0",
+     "status": "pass",
+     "fps": 93.15323707498835
+    },
+    {
+     "label": "2d_n2840_k4_K4_t2_R1_2d_n2840_g1",
+     "status": "pass",
+     "fps": 91.91176470588235
+    },
+    {
+     "label": "2d_n2840_k4_K4_t2_R1_2d_n2840_g2",
+     "status": "pass",
+     "fps": 90.57971014492755
+    },
+    {
+     "label": "2d_n2840_k4_K4_t2_R1_2d_n2840_g3",
+     "status": "pass",
+     "fps": 90.99181073703366
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 1.34,
+   "construction": 3.1000000000000005,
+   "bootstrap": 5.31,
+   "loop": 32.82,
+   "post": 1.127000093460083,
+   "in_bench": 45.15700006484985,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n2840_k4_K4_t3_C",
+   "role": "calibrated",
+   "case": "cavity2d_n2840_k4",
+   "point": "2d_n2840_k4_K4",
+   "trial": 3,
+   "start": 39645,
+   "duration": 71,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n2840_k4_K4_t3_C",
+     "status": "pass",
+     "fps": 90.49773755656108
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 3000,
+   "read_in": 8.71,
+   "construction": 2.76,
+   "bootstrap": 18.659999999999997,
+   "loop": 32.870000000000005,
+   "post": 1.2339999675750732,
+   "in_bench": 64.23000001907349,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n2840_k4_K4_t3_R1_2d_n2840",
+   "role": "reference",
+   "case": "cavity2d_n2840",
+   "point": "2d_n2840_k4_K4",
+   "trial": 3,
+   "start": 39716,
+   "duration": 58,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "2d_n2840_k4_K4_t3_R1_2d_n2840_g0",
+     "status": "pass",
+     "fps": 93.28358208955224
+    },
+    {
+     "label": "2d_n2840_k4_K4_t3_R1_2d_n2840_g1",
+     "status": "pass",
+     "fps": 92.08103130755065
+    },
+    {
+     "label": "2d_n2840_k4_K4_t3_R1_2d_n2840_g2",
+     "status": "pass",
+     "fps": 90.33423667570008
+    },
+    {
+     "label": "2d_n2840_k4_K4_t3_R1_2d_n2840_g3",
+     "status": "pass",
+     "fps": 91.03322712790168
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 1.35,
+   "construction": 5.48,
+   "bootstrap": 6.18,
+   "loop": 32.010000000000005,
+   "post": 1.938999891281128,
+   "in_bench": 46.97500014305115,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n2840_k4_K4_t3_E",
+   "role": "equal",
+   "case": "cavity2d_n2840_k4",
+   "point": "2d_n2840_k4_K4",
+   "trial": 3,
+   "start": 39774,
+   "duration": 69,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n2840_k4_K4_t3_E",
+     "status": "pass",
+     "fps": 89.60573476702508
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 3000,
+   "read_in": 7.91,
+   "construction": 2.91,
+   "bootstrap": 18.45,
+   "loop": 33.209999999999994,
+   "post": 1.2200000286102295,
+   "in_bench": 63.700000047683716,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n2840_k4_K4_trace_E",
+   "role": "trace_equal",
+   "case": "cavity2d_n2840_k4",
+   "point": "2d_n2840_k4_K4",
+   "trial": 0,
+   "start": 39843,
+   "duration": 85,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n2840_k4_K4_trace_E",
+     "status": "pass",
+     "fps": 89.16629514043692
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 4,
+   "steps": 3000,
+   "read_in": 7.95,
+   "construction": 2.87,
+   "bootstrap": 18.48,
+   "loop": 33.400000000000006,
+   "post": 17.153000116348267,
+   "in_bench": 79.84999990463257,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n2840_k4_K4_trace_C",
+   "role": "trace_calibrated",
+   "case": "cavity2d_n2840_k4",
+   "point": "2d_n2840_k4_K4",
+   "trial": 0,
+   "start": 39928,
+   "duration": 88,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n2840_k4_K4_trace_C",
+     "status": "pass",
+     "fps": 90.57971014492755
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 4,
+   "steps": 3000,
+   "read_in": 8.68,
+   "construction": 3.3599999999999994,
+   "bootstrap": 18.82,
+   "loop": 32.9,
+   "post": 17.421000003814697,
+   "in_bench": 81.1800000667572,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "cal_3d_n160_k8_K4",
+   "role": "calibration",
+   "case": "cavity3d_n160_k8",
+   "slabs": 4,
+   "point": "3d_n160_k8_K4",
+   "start": 40018,
+   "duration": 147,
+   "pilot_count": 2,
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "pilots": 2
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "3d_n160_k8_K4_t1_R1_3d_n160_k8",
+   "role": "reference",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K4",
+   "trial": 1,
+   "start": 40165,
+   "duration": 386,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K4_t1_R1_3d_n160_k8_g0",
+     "status": "pass",
+     "fps": 4.441088955011769
+    },
+    {
+     "label": "3d_n160_k8_K4_t1_R1_3d_n160_k8_g1",
+     "status": "pass",
+     "fps": 4.366049598323437
+    },
+    {
+     "label": "3d_n160_k8_K4_t1_R1_3d_n160_k8_g2",
+     "status": "pass",
+     "fps": 4.279722673970727
+    },
+    {
+     "label": "3d_n160_k8_K4_t1_R1_3d_n160_k8_g3",
+     "status": "pass",
+     "fps": 4.307188697936857
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 6.03,
+   "construction": 6.61,
+   "bootstrap": 23.08,
+   "loop": 332.86,
+   "post": 13.061000108718872,
+   "in_bench": 381.6419999599457,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "3d_n160_k8_K4_t1_E",
+   "role": "equal",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K4",
+   "trial": 1,
+   "start": 40551,
+   "duration": 135,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K4_t1_E",
+     "status": "pass",
+     "fps": 15.537600994406464
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 8.73,
+   "construction": 6.4,
+   "bootstrap": 20.449999999999996,
+   "loop": 95.16000000000001,
+   "post": 1.2130000591278076,
+   "in_bench": 131.95000004768372,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "3d_n160_k8_K4_t1_C",
+   "role": "calibrated",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K4",
+   "trial": 1,
+   "start": 40686,
+   "duration": 138,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K4_t1_C",
+     "status": "pass",
+     "fps": 15.644555694618273
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 9.58,
+   "construction": 8.549999999999999,
+   "bootstrap": 20.250000000000004,
+   "loop": 94.30000000000001,
+   "post": 1.2360000610351562,
+   "in_bench": 133.92000007629395,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "3d_n160_k8_K4_t2_E",
+   "role": "equal",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K4",
+   "trial": 2,
+   "start": 40824,
+   "duration": 137,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K4_t2_E",
+     "status": "pass",
+     "fps": 15.620118712902219
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 8.76,
+   "construction": 5.950000000000001,
+   "bootstrap": 20.57,
+   "loop": 94.60999999999999,
+   "post": 1.239999771118164,
+   "in_bench": 131.13000011444092,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "3d_n160_k8_K4_t2_C",
+   "role": "calibrated",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K4",
+   "trial": 2,
+   "start": 40961,
+   "duration": 135,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K4_t2_C",
+     "status": "pass",
+     "fps": 15.65680288085173
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 9.57,
+   "construction": 5.73,
+   "bootstrap": 20.44,
+   "loop": 94.23999999999998,
+   "post": 1.253000020980835,
+   "in_bench": 131.2300000190735,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "3d_n160_k8_K4_t2_R1_3d_n160_k8",
+   "role": "reference",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K4",
+   "trial": 2,
+   "start": 41096,
+   "duration": 386,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K4_t2_R1_3d_n160_k8_g0",
+     "status": "pass",
+     "fps": 4.423995752964077
+    },
+    {
+     "label": "3d_n160_k8_K4_t2_R1_3d_n160_k8_g1",
+     "status": "pass",
+     "fps": 4.365287235900122
+    },
+    {
+     "label": "3d_n160_k8_K4_t2_R1_3d_n160_k8_g2",
+     "status": "pass",
+     "fps": 4.287061647946498
+    },
+    {
+     "label": "3d_n160_k8_K4_t2_R1_3d_n160_k8_g3",
+     "status": "pass",
+     "fps": 4.296086265412209
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 5.88,
+   "construction": 6.97,
+   "bootstrap": 22.97,
+   "loop": 334.07,
+   "post": 11.579999923706055,
+   "in_bench": 381.47499990463257,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "3d_n160_k8_K4_t3_C",
+   "role": "calibrated",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K4",
+   "trial": 3,
+   "start": 41482,
+   "duration": 136,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K4_t3_C",
+     "status": "pass",
+     "fps": 15.681354869060685
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 9.53,
+   "construction": 5.98,
+   "bootstrap": 20.550000000000004,
+   "loop": 94.12,
+   "post": 1.2290000915527344,
+   "in_bench": 131.4100000858307,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "3d_n160_k8_K4_t3_R1_3d_n160_k8",
+   "role": "reference",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K4",
+   "trial": 3,
+   "start": 41618,
+   "duration": 389,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K4_t3_R1_3d_n160_k8_g0",
+     "status": "pass",
+     "fps": 4.439117503440316
+    },
+    {
+     "label": "3d_n160_k8_K4_t3_R1_3d_n160_k8_g1",
+     "status": "pass",
+     "fps": 4.3729228616407205
+    },
+    {
+     "label": "3d_n160_k8_K4_t3_R1_3d_n160_k8_g2",
+     "status": "pass",
+     "fps": 4.288164665523157
+    },
+    {
+     "label": "3d_n160_k8_K4_t3_R1_3d_n160_k8_g3",
+     "status": "pass",
+     "fps": 4.3045930007317805
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 5.84,
+   "construction": 5.9399999999999995,
+   "bootstrap": 22.759999999999998,
+   "loop": 344.34999999999997,
+   "post": 1.3700001239776611,
+   "in_bench": 381.67700028419495,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "3d_n160_k8_K4_t3_E",
+   "role": "equal",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K4",
+   "trial": 3,
+   "start": 42007,
+   "duration": 137,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K4_t3_E",
+     "status": "pass",
+     "fps": 15.583606046439145
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 8.7,
+   "construction": 6.050000000000001,
+   "bootstrap": 20.5,
+   "loop": 94.80000000000001,
+   "post": 1.2209999561309814,
+   "in_bench": 131.2699999809265,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "3d_n160_k8_K4_trace_E",
+   "role": "trace_equal",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K4",
+   "trial": 0,
+   "start": 42144,
+   "duration": 157,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K4_trace_E",
+     "status": "pass",
+     "fps": 15.55935895441108
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 8.67,
+   "construction": 5.859999999999999,
+   "bootstrap": 20.39,
+   "loop": 94.85000000000001,
+   "post": 22.41599988937378,
+   "in_bench": 152.19000005722046,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "3d_n160_k8_K4_trace_C",
+   "role": "trace_calibrated",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K4",
+   "trial": 0,
+   "start": 42301,
+   "duration": 159,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K4_trace_C",
+     "status": "pass",
+     "fps": 15.728216420257944
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 9.46,
+   "construction": 6.43,
+   "bootstrap": 20.6,
+   "loop": 93.87,
+   "post": 22.631999969482422,
+   "in_bench": 152.99000000953674,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "cal_2d_n1440_k2_K2",
+   "role": "calibration",
+   "case": "cavity2d_n1440_k2",
+   "slabs": 2,
+   "point": "2d_n1440_k2_K2",
+   "start": 42462,
+   "duration": 30,
+   "pilot_count": 2,
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "pilots": 2
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n1440_k2_K2_t1_R1_2d_n1440",
+   "role": "reference",
+   "case": "cavity2d_n1440",
+   "point": "2d_n1440_k2_K2",
+   "trial": 1,
+   "start": 42492,
+   "duration": 21,
+   "members": 2,
+   "member_runs": [
+    {
+     "label": "2d_n1440_k2_K2_t1_R1_2d_n1440_g0",
+     "status": "pass",
+     "fps": 366.1
+    },
+    {
+     "label": "2d_n1440_k2_K2_t1_R1_2d_n1440_g1",
+     "status": "pass",
+     "fps": 359.7
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 0.35,
+   "construction": 4.11,
+   "bootstrap": 1.2599999999999998,
+   "loop": 8.16,
+   "post": 1.3970000743865967,
+   "in_bench": 15.292999982833862,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n1440_k2_K2_t1_E",
+   "role": "equal",
+   "case": "cavity2d_n1440_k2",
+   "point": "2d_n1440_k2_K2",
+   "trial": 1,
+   "start": 42513,
+   "duration": 32,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n1440_k2_K2_t1_E",
+     "status": "pass",
+     "fps": 132.71400132714
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 3000,
+   "read_in": 0.7,
+   "construction": 2.58,
+   "bootstrap": 2.2900000000000005,
+   "loop": 20.58,
+   "post": 1.1429998874664307,
+   "in_bench": 27.289999961853027,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n1440_k2_K2_t1_C",
+   "role": "calibrated",
+   "case": "cavity2d_n1440_k2",
+   "point": "2d_n1440_k2_K2",
+   "trial": 1,
+   "start": 42545,
+   "duration": 24,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n1440_k2_K2_t1_C",
+     "status": "pass",
+     "fps": 274.8
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 3000,
+   "read_in": 0.76,
+   "construction": 2.5700000000000003,
+   "bootstrap": 2.25,
+   "loop": 10.430000000000001,
+   "post": 1.128999948501587,
+   "in_bench": 17.140000104904175,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n1440_k2_K2_t2_E",
+   "role": "equal",
+   "case": "cavity2d_n1440_k2",
+   "point": "2d_n1440_k2_K2",
+   "trial": 2,
+   "start": 42569,
+   "duration": 24,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n1440_k2_K2_t2_E",
+     "status": "pass",
+     "fps": 255.4
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 3000,
+   "read_in": 0.7,
+   "construction": 2.6399999999999997,
+   "bootstrap": 2.2,
+   "loop": 11.560000000000002,
+   "post": 1.1659998893737793,
+   "in_bench": 18.259999990463257,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n1440_k2_K2_t2_C",
+   "role": "calibrated",
+   "case": "cavity2d_n1440_k2",
+   "point": "2d_n1440_k2_K2",
+   "trial": 2,
+   "start": 42593,
+   "duration": 22,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n1440_k2_K2_t2_C",
+     "status": "pass",
+     "fps": 286.6
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 3000,
+   "read_in": 0.76,
+   "construction": 2.63,
+   "bootstrap": 2.1599999999999997,
+   "loop": 10.59,
+   "post": 1.180999994277954,
+   "in_bench": 17.319999933242798,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n1440_k2_K2_t2_R1_2d_n1440",
+   "role": "reference",
+   "case": "cavity2d_n1440",
+   "point": "2d_n1440_k2_K2",
+   "trial": 2,
+   "start": 42615,
+   "duration": 19,
+   "members": 2,
+   "member_runs": [
+    {
+     "label": "2d_n1440_k2_K2_t2_R1_2d_n1440_g0",
+     "status": "pass",
+     "fps": 363.3
+    },
+    {
+     "label": "2d_n1440_k2_K2_t2_R1_2d_n1440_g1",
+     "status": "pass",
+     "fps": 359.9
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 0.32,
+   "construction": 3.21,
+   "bootstrap": 1.2799999999999998,
+   "loop": 8.19,
+   "post": 1.3939998149871826,
+   "in_bench": 14.424000024795532,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n1440_k2_K2_t3_C",
+   "role": "calibrated",
+   "case": "cavity2d_n1440_k2",
+   "point": "2d_n1440_k2_K2",
+   "trial": 3,
+   "start": 42634,
+   "duration": 32,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n1440_k2_K2_t3_C",
+     "status": "pass",
+     "fps": 161.2
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 3000,
+   "read_in": 0.77,
+   "construction": 2.33,
+   "bootstrap": 2.23,
+   "loop": 19.409999999999997,
+   "post": 1.2609999179840088,
+   "in_bench": 26.0,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n1440_k2_K2_t3_R1_2d_n1440",
+   "role": "reference",
+   "case": "cavity2d_n1440",
+   "point": "2d_n1440_k2_K2",
+   "trial": 3,
+   "start": 42666,
+   "duration": 25,
+   "members": 2,
+   "member_runs": [
+    {
+     "label": "2d_n1440_k2_K2_t3_R1_2d_n1440_g0",
+     "status": "pass",
+     "fps": 365.5
+    },
+    {
+     "label": "2d_n1440_k2_K2_t3_R1_2d_n1440_g1",
+     "status": "pass",
+     "fps": 359.9
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 0.32,
+   "construction": 3.46,
+   "bootstrap": 1.2100000000000004,
+   "loop": 8.28,
+   "post": 1.3270001411437988,
+   "in_bench": 14.608000040054321,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n1440_k2_K2_t3_E",
+   "role": "equal",
+   "case": "cavity2d_n1440_k2",
+   "point": "2d_n1440_k2_K2",
+   "trial": 3,
+   "start": 42691,
+   "duration": 26,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n1440_k2_K2_t3_E",
+     "status": "pass",
+     "fps": 213.7
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 3000,
+   "read_in": 0.7,
+   "construction": 2.37,
+   "bootstrap": 2.1700000000000004,
+   "loop": 13.790000000000001,
+   "post": 1.1180000305175781,
+   "in_bench": 20.15000009536743,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n1440_k2_K2_t4_R1_2d_n1440",
+   "role": "reference",
+   "case": "cavity2d_n1440",
+   "point": "2d_n1440_k2_K2",
+   "trial": 4,
+   "start": 42717,
+   "duration": 21,
+   "members": 2,
+   "member_runs": [
+    {
+     "label": "2d_n1440_k2_K2_t4_R1_2d_n1440_g0",
+     "status": "pass",
+     "fps": 365.7
+    },
+    {
+     "label": "2d_n1440_k2_K2_t4_R1_2d_n1440_g1",
+     "status": "pass",
+     "fps": 357.1
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 0.31,
+   "construction": 2.9499999999999997,
+   "bootstrap": 1.2599999999999998,
+   "loop": 8.16,
+   "post": 1.3619999885559082,
+   "in_bench": 14.04200005531311,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n1440_k2_K2_t4_E",
+   "role": "equal",
+   "case": "cavity2d_n1440_k2",
+   "point": "2d_n1440_k2_K2",
+   "trial": 4,
+   "start": 42738,
+   "duration": 25,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n1440_k2_K2_t4_E",
+     "status": "pass",
+     "fps": 196.0
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 3000,
+   "read_in": 0.7,
+   "construction": 2.59,
+   "bootstrap": 2.37,
+   "loop": 15.239999999999998,
+   "post": 1.1670000553131104,
+   "in_bench": 22.05999994277954,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n1440_k2_K2_t4_C",
+   "role": "calibrated",
+   "case": "cavity2d_n1440_k2",
+   "point": "2d_n1440_k2_K2",
+   "trial": 4,
+   "start": 42763,
+   "duration": 22,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n1440_k2_K2_t4_C",
+     "status": "pass",
+     "fps": 252.4
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 3000,
+   "read_in": 0.76,
+   "construction": 2.2800000000000002,
+   "bootstrap": 2.17,
+   "loop": 11.5,
+   "post": 1.1970000267028809,
+   "in_bench": 17.91000008583069,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n1440_k2_K2_t5_E",
+   "role": "equal",
+   "case": "cavity2d_n1440_k2",
+   "point": "2d_n1440_k2_K2",
+   "trial": 5,
+   "start": 42785,
+   "duration": 27,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n1440_k2_K2_t5_E",
+     "status": "pass",
+     "fps": 201.1
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 3000,
+   "read_in": 0.7,
+   "construction": 2.6100000000000003,
+   "bootstrap": 2.1700000000000004,
+   "loop": 16.58,
+   "post": 1.2059998512268066,
+   "in_bench": 23.269999980926514,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n1440_k2_K2_t5_C",
+   "role": "calibrated",
+   "case": "cavity2d_n1440_k2",
+   "point": "2d_n1440_k2_K2",
+   "trial": 5,
+   "start": 42812,
+   "duration": 24,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n1440_k2_K2_t5_C",
+     "status": "pass",
+     "fps": 295.8
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 3000,
+   "read_in": 0.76,
+   "construction": 2.5300000000000002,
+   "bootstrap": 2.2699999999999996,
+   "loop": 10.91,
+   "post": 1.1719999313354492,
+   "in_bench": 17.640000104904175,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n1440_k2_K2_t5_R1_2d_n1440",
+   "role": "reference",
+   "case": "cavity2d_n1440",
+   "point": "2d_n1440_k2_K2",
+   "trial": 5,
+   "start": 42836,
+   "duration": 19,
+   "members": 2,
+   "member_runs": [
+    {
+     "label": "2d_n1440_k2_K2_t5_R1_2d_n1440_g0",
+     "status": "pass",
+     "fps": 363.1
+    },
+    {
+     "label": "2d_n1440_k2_K2_t5_R1_2d_n1440_g1",
+     "status": "pass",
+     "fps": 360.7
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 0.32,
+   "construction": 3.37,
+   "bootstrap": 1.23,
+   "loop": 8.26,
+   "post": 1.369999885559082,
+   "in_bench": 14.559999942779541,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n1440_k2_K2_trace_E",
+   "role": "trace_equal",
+   "case": "cavity2d_n1440_k2",
+   "point": "2d_n1440_k2_K2",
+   "trial": 0,
+   "start": 42855,
+   "duration": 26,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n1440_k2_K2_trace_E",
+     "status": "pass",
+     "fps": 263.7
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 2,
+   "steps": 3000,
+   "read_in": 0.71,
+   "construction": 2.4,
+   "bootstrap": 2.1999999999999997,
+   "loop": 10.96,
+   "post": 3.5269999504089355,
+   "in_bench": 19.799999952316284,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b1A_1681465",
+   "group": "2d_n1440_k2_K2_trace_C",
+   "role": "trace_calibrated",
+   "case": "cavity2d_n1440_k2",
+   "point": "2d_n1440_k2_K2",
+   "trial": 0,
+   "start": 42881,
+   "duration": 28,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n1440_k2_K2_trace_C",
+     "status": "pass",
+     "fps": 265.9
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 2,
+   "steps": 3000,
+   "read_in": 0.76,
+   "construction": 2.59,
+   "bootstrap": 2.27,
+   "loop": 11.27,
+   "post": 3.5350000858306885,
+   "in_bench": 20.430000066757202,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "selftest_2d_n1000_K8",
+   "role": "selftest",
+   "case": "cavity2d_n1000",
+   "point": "selftest_2d_n1000_K8",
+   "trial": 0,
+   "start": 36847,
+   "duration": 26,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "selftest_2d_n1000_K8",
+     "status": "pass",
+     "fps": 222.9
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1000,
+   "read_in": 0.28,
+   "construction": 14.32,
+   "bootstrap": 0.870000000000001,
+   "loop": 4.589999999999998,
+   "post": 1.7350001335144043,
+   "in_bench": 21.799999952316284,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "pre_2d_n8000_k1_x8",
+   "role": "precheck",
+   "case": "cavity2d_n8000",
+   "point": "pre_2d_n8000_k1_x8",
+   "trial": 0,
+   "start": 36874,
+   "duration": 117,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "pre_2d_n8000_k1_x8_g0",
+     "status": "pass",
+     "fps": 12.121212121212121
+    },
+    {
+     "label": "pre_2d_n8000_k1_x8_g1",
+     "status": "pass",
+     "fps": 12.345679012345679
+    },
+    {
+     "label": "pre_2d_n8000_k1_x8_g2",
+     "status": "pass",
+     "fps": 12.084592145015106
+    },
+    {
+     "label": "pre_2d_n8000_k1_x8_g3",
+     "status": "pass",
+     "fps": 12.1580547112462
+    },
+    {
+     "label": "pre_2d_n8000_k1_x8_g4",
+     "status": "pass",
+     "fps": 12.1580547112462
+    },
+    {
+     "label": "pre_2d_n8000_k1_x8_g5",
+     "status": "pass",
+     "fps": 12.1580547112462
+    },
+    {
+     "label": "pre_2d_n8000_k1_x8_g6",
+     "status": "pass",
+     "fps": 12.195121951219512
+    },
+    {
+     "label": "pre_2d_n8000_k1_x8_g7",
+     "status": "pass",
+     "fps": 12.195121951219512
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 50,
+   "read_in": 44.01,
+   "construction": 16.18,
+   "bootstrap": 40.769999999999996,
+   "loop": 4.0,
+   "post": 3.250999927520752,
+   "in_bench": 109.78600001335144,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "pre_2d_n9000_k1_x8",
+   "role": "precheck",
+   "case": "cavity2d_n9000",
+   "point": "pre_2d_n9000_k1_x8",
+   "trial": 0,
+   "start": 36991,
+   "duration": 143,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "pre_2d_n9000_k1_x8_g0",
+     "status": "pass",
+     "fps": 9.66183574879227
+    },
+    {
+     "label": "pre_2d_n9000_k1_x8_g1",
+     "status": "pass",
+     "fps": 9.876543209876544
+    },
+    {
+     "label": "pre_2d_n9000_k1_x8_g2",
+     "status": "pass",
+     "fps": 9.615384615384615
+    },
+    {
+     "label": "pre_2d_n9000_k1_x8_g3",
+     "status": "pass",
+     "fps": 9.7323600973236
+    },
+    {
+     "label": "pre_2d_n9000_k1_x8_g4",
+     "status": "pass",
+     "fps": 9.70873786407767
+    },
+    {
+     "label": "pre_2d_n9000_k1_x8_g5",
+     "status": "pass",
+     "fps": 9.70873786407767
+    },
+    {
+     "label": "pre_2d_n9000_k1_x8_g6",
+     "status": "pass",
+     "fps": 9.7323600973236
+    },
+    {
+     "label": "pre_2d_n9000_k1_x8_g7",
+     "status": "pass",
+     "fps": 9.7323600973236
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 50,
+   "read_in": 51.05,
+   "construction": 9.380000000000003,
+   "bootstrap": 53.13,
+   "loop": 5.0,
+   "post": 3.939000129699707,
+   "in_bench": 124.47100019454956,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "pre_3d_n160_k8_k1_x8",
+   "role": "precheck",
+   "case": "cavity3d_n160_k8",
+   "point": "pre_3d_n160_k8_k1_x8",
+   "trial": 0,
+   "start": 37135,
+   "duration": 75,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "pre_3d_n160_k8_k1_x8_g0",
+     "status": "pass",
+     "fps": 4.530011325028313
+    },
+    {
+     "label": "pre_3d_n160_k8_k1_x8_g1",
+     "status": "pass",
+     "fps": 4.581901489117984
+    },
+    {
+     "label": "pre_3d_n160_k8_k1_x8_g2",
+     "status": "pass",
+     "fps": 4.499437570303712
+    },
+    {
+     "label": "pre_3d_n160_k8_k1_x8_g3",
+     "status": "pass",
+     "fps": 4.535147392290249
+    },
+    {
+     "label": "pre_3d_n160_k8_k1_x8_g4",
+     "status": "pass",
+     "fps": 4.524886877828054
+    },
+    {
+     "label": "pre_3d_n160_k8_k1_x8_g5",
+     "status": "pass",
+     "fps": 4.540295119182747
+    },
+    {
+     "label": "pre_3d_n160_k8_k1_x8_g6",
+     "status": "pass",
+     "fps": 4.540295119182747
+    },
+    {
+     "label": "pre_3d_n160_k8_k1_x8_g7",
+     "status": "pass",
+     "fps": 4.540295119182747
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 50,
+   "read_in": 16.73,
+   "construction": 12.7,
+   "bootstrap": 24.96,
+   "loop": 10.739999999999995,
+   "post": 2.125999927520752,
+   "in_bench": 68.46399998664856,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "pre_3d_n200_k8_k1_x8",
+   "role": "precheck",
+   "case": "cavity3d_n200_k8",
+   "point": "pre_3d_n200_k8_k1_x8",
+   "trial": 0,
+   "start": 37211,
+   "duration": 144,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "pre_3d_n200_k8_k1_x8_g0",
+     "status": "pass",
+     "fps": 2.484472049689441
+    },
+    {
+     "label": "pre_3d_n200_k8_k1_x8_g1",
+     "status": "pass",
+     "fps": 2.5268477574226154
+    },
+    {
+     "label": "pre_3d_n200_k8_k1_x8_g2",
+     "status": "pass",
+     "fps": 2.476780185758514
+    },
+    {
+     "label": "pre_3d_n200_k8_k1_x8_g3",
+     "status": "pass",
+     "fps": 2.4875621890547266
+    },
+    {
+     "label": "pre_3d_n200_k8_k1_x8_g4",
+     "status": "pass",
+     "fps": 2.4860161591050343
+    },
+    {
+     "label": "pre_3d_n200_k8_k1_x8_g5",
+     "status": "pass",
+     "fps": 2.4922118380062304
+    },
+    {
+     "label": "pre_3d_n200_k8_k1_x8_g6",
+     "status": "pass",
+     "fps": 2.4860161591050343
+    },
+    {
+     "label": "pre_3d_n200_k8_k1_x8_g7",
+     "status": "pass",
+     "fps": 2.4906600249066004
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 50,
+   "read_in": 39.04,
+   "construction": 26.380000000000003,
+   "bootstrap": 43.14,
+   "loop": 19.560000000000002,
+   "post": 3.389000177383423,
+   "in_bench": 134.1210000514984,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "pre_3d_n416_k1_x8",
+   "role": "precheck",
+   "case": "cavity3d_n416",
+   "point": "pre_3d_n416_k1_x8",
+   "trial": 0,
+   "start": 37356,
+   "duration": 160,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "pre_3d_n416_k1_x8_g0",
+     "status": "pass",
+     "fps": 2.2701475595913734
+    },
+    {
+     "label": "pre_3d_n416_k1_x8_g1",
+     "status": "pass",
+     "fps": 2.306805074971165
+    },
+    {
+     "label": "pre_3d_n416_k1_x8_g2",
+     "status": "pass",
+     "fps": 2.2560631697687534
+    },
+    {
+     "label": "pre_3d_n416_k1_x8_g3",
+     "status": "pass",
+     "fps": 2.2727272727272725
+    },
+    {
+     "label": "pre_3d_n416_k1_x8_g4",
+     "status": "pass",
+     "fps": 2.26628895184136
+    },
+    {
+     "label": "pre_3d_n416_k1_x8_g5",
+     "status": "pass",
+     "fps": 2.274019329164298
+    },
+    {
+     "label": "pre_3d_n416_k1_x8_g6",
+     "status": "pass",
+     "fps": 2.274019329164298
+    },
+    {
+     "label": "pre_3d_n416_k1_x8_g7",
+     "status": "pass",
+     "fps": 2.2701475595913734
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 50,
+   "read_in": 42.06,
+   "construction": 28.599999999999994,
+   "bootstrap": 53.81,
+   "loop": 21.5,
+   "post": 3.623999834060669,
+   "in_bench": 152.05099987983704,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "pre_2d_n11320_pairs_x4",
+   "role": "precheck",
+   "case": "cavity2d_n11320",
+   "point": "pre_2d_n11320_pairs_x4",
+   "trial": 0,
+   "start": 37517,
+   "duration": 164,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "pre_2d_n11320_pairs_x4_p0",
+     "status": "pass",
+     "fps": 12.779552715654953
+    },
+    {
+     "label": "pre_2d_n11320_pairs_x4_p1",
+     "status": "pass",
+     "fps": 12.578616352201257
+    },
+    {
+     "label": "pre_2d_n11320_pairs_x4_p2",
+     "status": "pass",
+     "fps": 12.578616352201257
+    },
+    {
+     "label": "pre_2d_n11320_pairs_x4_p3",
+     "status": "pass",
+     "fps": 12.578616352201257
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 50,
+   "read_in": 64.85,
+   "construction": 6.920000000000002,
+   "bootstrap": 79.56000000000002,
+   "loop": 3.869999999999976,
+   "post": 3.366999864578247,
+   "in_bench": 158.6600000858307,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "cal_2d_n8000_K8",
+   "role": "calibration",
+   "case": "cavity2d_n8000",
+   "slabs": 8,
+   "point": "2d_n8000_K8",
+   "start": 37682,
+   "duration": 163,
+   "pilot_count": 2,
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "pilots": 2
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n8000_K8_t1_R1_2d_n8000",
+   "role": "reference",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K8",
+   "trial": 1,
+   "start": 37845,
+   "duration": 338,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K8_t1_R1_2d_n8000_g0",
+     "status": "pass",
+     "fps": 11.973180076628353
+    },
+    {
+     "label": "2d_n8000_K8_t1_R1_2d_n8000_g1",
+     "status": "pass",
+     "fps": 12.192891544229713
+    },
+    {
+     "label": "2d_n8000_K8_t1_R1_2d_n8000_g2",
+     "status": "pass",
+     "fps": 11.932462263588091
+    },
+    {
+     "label": "2d_n8000_K8_t1_R1_2d_n8000_g3",
+     "status": "pass",
+     "fps": 12.091167402212683
+    },
+    {
+     "label": "2d_n8000_K8_t1_R1_2d_n8000_g4",
+     "status": "pass",
+     "fps": 11.990407673860911
+    },
+    {
+     "label": "2d_n8000_K8_t1_R1_2d_n8000_g5",
+     "status": "pass",
+     "fps": 12.040939193257074
+    },
+    {
+     "label": "2d_n8000_K8_t1_R1_2d_n8000_g6",
+     "status": "pass",
+     "fps": 12.030075187969924
+    },
+    {
+     "label": "2d_n8000_K8_t1_R1_2d_n8000_g7",
+     "status": "pass",
+     "fps": 12.093360744951022
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 28.51,
+   "construction": 4.169999999999998,
+   "bootstrap": 41.49,
+   "loop": 247.45,
+   "post": 3.368000030517578,
+   "in_bench": 328.03400015830994,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n8000_K8_t1_E",
+   "role": "equal",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K8",
+   "trial": 1,
+   "start": 38183,
+   "duration": 118,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K8_t1_E",
+     "status": "pass",
+     "fps": 87.527352297593
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 23.07,
+   "construction": 3.2699999999999996,
+   "bootstrap": 37.34,
+   "loop": 33.919999999999995,
+   "post": 1.2369999885559082,
+   "in_bench": 98.82999992370605,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n8000_K8_t1_C",
+   "role": "calibrated",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K8",
+   "trial": 1,
+   "start": 38301,
+   "duration": 122,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K8_t1_C",
+     "status": "pass",
+     "fps": 88.9284126278346
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 24.69,
+   "construction": 11.819999999999997,
+   "bootstrap": 37.54,
+   "loop": 33.39,
+   "post": 1.2120001316070557,
+   "in_bench": 108.65000009536743,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n8000_K8_t2_E",
+   "role": "equal",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K8",
+   "trial": 2,
+   "start": 38423,
+   "duration": 105,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K8_t2_E",
+     "status": "pass",
+     "fps": 87.68084173608067
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 23.08,
+   "construction": 3.280000000000001,
+   "bootstrap": 37.160000000000004,
+   "loop": 33.79999999999999,
+   "post": 1.2390000820159912,
+   "in_bench": 98.55999994277954,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n8000_K8_t2_C",
+   "role": "calibrated",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K8",
+   "trial": 2,
+   "start": 38528,
+   "duration": 105,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K8_t2_C",
+     "status": "pass",
+     "fps": 88.9284126278346
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 24.69,
+   "construction": 3.379999999999999,
+   "bootstrap": 37.54,
+   "loop": 33.41,
+   "post": 1.2109999656677246,
+   "in_bench": 100.23000001907349,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n8000_K8_t2_R1_2d_n8000",
+   "role": "reference",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K8",
+   "trial": 2,
+   "start": 38633,
+   "duration": 357,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K8_t2_R1_2d_n8000_g0",
+     "status": "pass",
+     "fps": 11.94885888397658
+    },
+    {
+     "label": "2d_n8000_K8_t2_R1_2d_n8000_g1",
+     "status": "pass",
+     "fps": 12.160272390101538
+    },
+    {
+     "label": "2d_n8000_K8_t2_R1_2d_n8000_g2",
+     "status": "pass",
+     "fps": 11.920371915603766
+    },
+    {
+     "label": "2d_n8000_K8_t2_R1_2d_n8000_g3",
+     "status": "pass",
+     "fps": 12.084592145015106
+    },
+    {
+     "label": "2d_n8000_K8_t2_R1_2d_n8000_g4",
+     "status": "pass",
+     "fps": 11.96029183112068
+    },
+    {
+     "label": "2d_n8000_K8_t2_R1_2d_n8000_g5",
+     "status": "pass",
+     "fps": 12.006964039142703
+    },
+    {
+     "label": "2d_n8000_K8_t2_R1_2d_n8000_g6",
+     "status": "pass",
+     "fps": 11.99616122840691
+    },
+    {
+     "label": "2d_n8000_K8_t2_R1_2d_n8000_g7",
+     "status": "pass",
+     "fps": 12.068549360366884
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 31.91,
+   "construction": 1.129999999999999,
+   "bootstrap": 40.46,
+   "loop": 247.07999999999998,
+   "post": 4.093000173568726,
+   "in_bench": 347.6910002231598,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n8000_K8_t3_C",
+   "role": "calibrated",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K8",
+   "trial": 3,
+   "start": 38990,
+   "duration": 103,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K8_t3_C",
+     "status": "pass",
+     "fps": 88.53474988933156
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 24.77,
+   "construction": 3.289999999999999,
+   "bootstrap": 36.89999999999999,
+   "loop": 33.540000000000006,
+   "post": 1.2179999351501465,
+   "in_bench": 99.71000003814697,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n8000_K8_t3_R1_2d_n8000",
+   "role": "reference",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K8",
+   "trial": 3,
+   "start": 39093,
+   "duration": 356,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K8_t3_R1_2d_n8000_g0",
+     "status": "pass",
+     "fps": 11.966016513102788
+    },
+    {
+     "label": "2d_n8000_K8_t3_R1_2d_n8000_g1",
+     "status": "pass",
+     "fps": 12.186205215695832
+    },
+    {
+     "label": "2d_n8000_K8_t3_R1_2d_n8000_g2",
+     "status": "pass",
+     "fps": 11.943150603129105
+    },
+    {
+     "label": "2d_n8000_K8_t3_R1_2d_n8000_g3",
+     "status": "pass",
+     "fps": 12.089705615668258
+    },
+    {
+     "label": "2d_n8000_K8_t3_R1_2d_n8000_g4",
+     "status": "pass",
+     "fps": 11.971746677840297
+    },
+    {
+     "label": "2d_n8000_K8_t3_R1_2d_n8000_g5",
+     "status": "pass",
+     "fps": 12.027181430031872
+    },
+    {
+     "label": "2d_n8000_K8_t3_R1_2d_n8000_g6",
+     "status": "pass",
+     "fps": 12.006964039142703
+    },
+    {
+     "label": "2d_n8000_K8_t3_R1_2d_n8000_g7",
+     "status": "pass",
+     "fps": 12.091167402212683
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 28.32,
+   "construction": 12.0,
+   "bootstrap": 42.169999999999995,
+   "loop": 247.82999999999998,
+   "post": 4.115999937057495,
+   "in_bench": 350.289999961853,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n8000_K8_t3_E",
+   "role": "equal",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K8",
+   "trial": 3,
+   "start": 39449,
+   "duration": 104,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K8_t3_E",
+     "status": "pass",
+     "fps": 87.68084173608067
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 23.17,
+   "construction": 3.3699999999999974,
+   "bootstrap": 37.42,
+   "loop": 33.88,
+   "post": 1.2090001106262207,
+   "in_bench": 99.04999995231628,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n8000_K8_trace_E",
+   "role": "trace_equal",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K8",
+   "trial": 0,
+   "start": 39553,
+   "duration": 143,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K8_trace_E",
+     "status": "pass",
+     "fps": 87.87346221441125
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 23.12,
+   "construction": 3.2699999999999996,
+   "bootstrap": 37.35,
+   "loop": 33.77,
+   "post": 35.37400007247925,
+   "in_bench": 132.88000011444092,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n8000_K8_trace_C",
+   "role": "trace_calibrated",
+   "case": "cavity2d_n8000",
+   "point": "2d_n8000_K8",
+   "trial": 0,
+   "start": 39696,
+   "duration": 143,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n8000_K8_trace_C",
+     "status": "pass",
+     "fps": 88.9679715302491
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 24.7,
+   "construction": 4.609999999999999,
+   "bootstrap": 37.47,
+   "loop": 33.47,
+   "post": 34.938000202178955,
+   "in_bench": 135.19000005722046,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "cal_2d_n4000_K8",
+   "role": "calibration",
+   "case": "cavity2d_n4000",
+   "slabs": 8,
+   "point": "2d_n4000_K8",
+   "start": 39841,
+   "duration": 71,
+   "pilot_count": 2,
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "pilots": 2
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n4000_K8_t1_R1_2d_n4000",
+   "role": "reference",
+   "case": "cavity2d_n4000",
+   "point": "2d_n4000_K8",
+   "trial": 1,
+   "start": 39912,
+   "duration": 91,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "2d_n4000_K8_t1_R1_2d_n4000_g0",
+     "status": "pass",
+     "fps": 46.707146193367585
+    },
+    {
+     "label": "2d_n4000_K8_t1_R1_2d_n4000_g1",
+     "status": "pass",
+     "fps": 47.562425683709876
+    },
+    {
+     "label": "2d_n4000_K8_t1_R1_2d_n4000_g2",
+     "status": "pass",
+     "fps": 46.62004662004662
+    },
+    {
+     "label": "2d_n4000_K8_t1_R1_2d_n4000_g3",
+     "status": "pass",
+     "fps": 47.14757190004715
+    },
+    {
+     "label": "2d_n4000_K8_t1_R1_2d_n4000_g4",
+     "status": "pass",
+     "fps": 46.66355576294914
+    },
+    {
+     "label": "2d_n4000_K8_t1_R1_2d_n4000_g5",
+     "status": "pass",
+     "fps": 46.90431519699813
+    },
+    {
+     "label": "2d_n4000_K8_t1_R1_2d_n4000_g6",
+     "status": "pass",
+     "fps": 46.893317702227435
+    },
+    {
+     "label": "2d_n4000_K8_t1_R1_2d_n4000_g7",
+     "status": "pass",
+     "fps": 47.1253534401508
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 2.68,
+   "construction": 5.209999999999999,
+   "bootstrap": 14.02,
+   "loop": 62.59,
+   "post": 2.057000160217285,
+   "in_bench": 86.7940001487732,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n4000_K8_t1_E",
+   "role": "equal",
+   "case": "cavity2d_n4000",
+   "point": "2d_n4000_K8",
+   "trial": 1,
+   "start": 40003,
+   "duration": 46,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n4000_K8_t1_E",
+     "status": "pass",
+     "fps": 140.4494382022472
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 5.26,
+   "construction": 3.120000000000001,
+   "bootstrap": 10.58,
+   "loop": 21.93,
+   "post": 1.193000078201294,
+   "in_bench": 42.08999991416931,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n4000_K8_t1_C",
+   "role": "calibrated",
+   "case": "cavity2d_n4000",
+   "point": "2d_n4000_K8",
+   "trial": 1,
+   "start": 40049,
+   "duration": 46,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n4000_K8_t1_C",
+     "status": "pass",
+     "fps": 174.8
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 5.6,
+   "construction": 6.950000000000001,
+   "bootstrap": 11.11,
+   "loop": 17.419999999999998,
+   "post": 0.9350001811981201,
+   "in_bench": 42.00999999046326,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n4000_K8_t2_E",
+   "role": "equal",
+   "case": "cavity2d_n4000",
+   "point": "2d_n4000_K8",
+   "trial": 2,
+   "start": 40095,
+   "duration": 41,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n4000_K8_t2_E",
+     "status": "pass",
+     "fps": 195.8
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 5.25,
+   "construction": 3.0999999999999996,
+   "bootstrap": 10.62,
+   "loop": 15.939999999999998,
+   "post": 0.9360001087188721,
+   "in_bench": 35.84999990463257,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n4000_K8_t2_C",
+   "role": "calibrated",
+   "case": "cavity2d_n4000",
+   "point": "2d_n4000_K8",
+   "trial": 2,
+   "start": 40136,
+   "duration": 46,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n4000_K8_t2_C",
+     "status": "pass",
+     "fps": 157.6
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 5.6,
+   "construction": 3.0999999999999996,
+   "bootstrap": 10.690000000000001,
+   "loop": 20.119999999999997,
+   "post": 1.1529998779296875,
+   "in_bench": 40.66000008583069,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n4000_K8_t2_R1_2d_n4000",
+   "role": "reference",
+   "case": "cavity2d_n4000",
+   "point": "2d_n4000_K8",
+   "trial": 2,
+   "start": 40182,
+   "duration": 95,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "2d_n4000_K8_t2_R1_2d_n4000_g0",
+     "status": "pass",
+     "fps": 46.56577415599534
+    },
+    {
+     "label": "2d_n4000_K8_t2_R1_2d_n4000_g1",
+     "status": "pass",
+     "fps": 47.51722499406034
+    },
+    {
+     "label": "2d_n4000_K8_t2_R1_2d_n4000_g2",
+     "status": "pass",
+     "fps": 46.57661853749418
+    },
+    {
+     "label": "2d_n4000_K8_t2_R1_2d_n4000_g3",
+     "status": "pass",
+     "fps": 47.05882352941177
+    },
+    {
+     "label": "2d_n4000_K8_t2_R1_2d_n4000_g4",
+     "status": "pass",
+     "fps": 46.62004662004662
+    },
+    {
+     "label": "2d_n4000_K8_t2_R1_2d_n4000_g5",
+     "status": "pass",
+     "fps": 46.81647940074907
+    },
+    {
+     "label": "2d_n4000_K8_t2_R1_2d_n4000_g6",
+     "status": "pass",
+     "fps": 46.838407494145194
+    },
+    {
+     "label": "2d_n4000_K8_t2_R1_2d_n4000_g7",
+     "status": "pass",
+     "fps": 47.06989879971758
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 2.68,
+   "construction": 2.36,
+   "bootstrap": 10.07,
+   "loop": 63.269999999999996,
+   "post": 1.5160000324249268,
+   "in_bench": 86.03999996185303,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n4000_K8_t3_C",
+   "role": "calibrated",
+   "case": "cavity2d_n4000",
+   "point": "2d_n4000_K8",
+   "trial": 3,
+   "start": 40277,
+   "duration": 43,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n4000_K8_t3_C",
+     "status": "pass",
+     "fps": 144.4
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 5.54,
+   "construction": 3.170000000000001,
+   "bootstrap": 10.79,
+   "loop": 20.03,
+   "post": 1.126999855041504,
+   "in_bench": 40.66000008583069,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n4000_K8_t3_R1_2d_n4000",
+   "role": "reference",
+   "case": "cavity2d_n4000",
+   "point": "2d_n4000_K8",
+   "trial": 3,
+   "start": 40320,
+   "duration": 92,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "2d_n4000_K8_t3_R1_2d_n4000_g0",
+     "status": "pass",
+     "fps": 46.45760743321719
+    },
+    {
+     "label": "2d_n4000_K8_t3_R1_2d_n4000_g1",
+     "status": "pass",
+     "fps": 47.359696897939855
+    },
+    {
+     "label": "2d_n4000_K8_t3_R1_2d_n4000_g2",
+     "status": "pass",
+     "fps": 46.44681839294008
+    },
+    {
+     "label": "2d_n4000_K8_t3_R1_2d_n4000_g3",
+     "status": "pass",
+     "fps": 46.98144233027954
+    },
+    {
+     "label": "2d_n4000_K8_t3_R1_2d_n4000_g4",
+     "status": "pass",
+     "fps": 46.64179104477612
+    },
+    {
+     "label": "2d_n4000_K8_t3_R1_2d_n4000_g5",
+     "status": "pass",
+     "fps": 46.79457182966776
+    },
+    {
+     "label": "2d_n4000_K8_t3_R1_2d_n4000_g6",
+     "status": "pass",
+     "fps": 46.79457182966776
+    },
+    {
+     "label": "2d_n4000_K8_t3_R1_2d_n4000_g7",
+     "status": "pass",
+     "fps": 47.05882352941177
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 2.83,
+   "construction": 3.75,
+   "bootstrap": 13.97,
+   "loop": 64.10000000000001,
+   "post": 0.6840000152587891,
+   "in_bench": 85.35800004005432,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n4000_K8_t3_E",
+   "role": "equal",
+   "case": "cavity2d_n4000",
+   "point": "2d_n4000_K8",
+   "trial": 3,
+   "start": 40412,
+   "duration": 44,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n4000_K8_t3_E",
+     "status": "pass",
+     "fps": 144.7
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 5.25,
+   "construction": 3.08,
+   "bootstrap": 10.520000000000001,
+   "loop": 21.479999999999997,
+   "post": 0.9219999313354492,
+   "in_bench": 41.25999999046326,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n4000_K8_t4_R1_2d_n4000",
+   "role": "reference",
+   "case": "cavity2d_n4000",
+   "point": "2d_n4000_K8",
+   "trial": 4,
+   "start": 40456,
+   "duration": 94,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "2d_n4000_K8_t4_R1_2d_n4000_g0",
+     "status": "pass",
+     "fps": 46.45760743321719
+    },
+    {
+     "label": "2d_n4000_K8_t4_R1_2d_n4000_g1",
+     "status": "pass",
+     "fps": 47.4158368895211
+    },
+    {
+     "label": "2d_n4000_K8_t4_R1_2d_n4000_g2",
+     "status": "pass",
+     "fps": 46.3821892393321
+    },
+    {
+     "label": "2d_n4000_K8_t4_R1_2d_n4000_g3",
+     "status": "pass",
+     "fps": 46.98144233027954
+    },
+    {
+     "label": "2d_n4000_K8_t4_R1_2d_n4000_g4",
+     "status": "pass",
+     "fps": 46.57661853749418
+    },
+    {
+     "label": "2d_n4000_K8_t4_R1_2d_n4000_g5",
+     "status": "pass",
+     "fps": 46.76174888940846
+    },
+    {
+     "label": "2d_n4000_K8_t4_R1_2d_n4000_g6",
+     "status": "pass",
+     "fps": 46.73989249824726
+    },
+    {
+     "label": "2d_n4000_K8_t4_R1_2d_n4000_g7",
+     "status": "pass",
+     "fps": 47.00352526439483
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 2.68,
+   "construction": 2.44,
+   "bootstrap": 11.809999999999999,
+   "loop": 63.449999999999996,
+   "post": 1.49399995803833,
+   "in_bench": 85.14000010490417,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n4000_K8_t4_E",
+   "role": "equal",
+   "case": "cavity2d_n4000",
+   "point": "2d_n4000_K8",
+   "trial": 4,
+   "start": 40550,
+   "duration": 45,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n4000_K8_t4_E",
+     "status": "pass",
+     "fps": 145.9
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 5.2,
+   "construction": 3.13,
+   "bootstrap": 10.680000000000001,
+   "loop": 22.59,
+   "post": 0.9260001182556152,
+   "in_bench": 42.519999980926514,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n4000_K8_t4_C",
+   "role": "calibrated",
+   "case": "cavity2d_n4000",
+   "point": "2d_n4000_K8",
+   "trial": 4,
+   "start": 40595,
+   "duration": 45,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n4000_K8_t4_C",
+     "status": "pass",
+     "fps": 158.1
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 5.57,
+   "construction": 3.1500000000000004,
+   "bootstrap": 10.749999999999998,
+   "loop": 20.590000000000003,
+   "post": 0.9259998798370361,
+   "in_bench": 40.99000000953674,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n4000_K8_t5_E",
+   "role": "equal",
+   "case": "cavity2d_n4000",
+   "point": "2d_n4000_K8",
+   "trial": 5,
+   "start": 40640,
+   "duration": 44,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n4000_K8_t5_E",
+     "status": "pass",
+     "fps": 145.9
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 5.22,
+   "construction": 3.1399999999999997,
+   "bootstrap": 10.740000000000002,
+   "loop": 21.07,
+   "post": 0.9300000667572021,
+   "in_bench": 41.09999990463257,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n4000_K8_t5_C",
+   "role": "calibrated",
+   "case": "cavity2d_n4000",
+   "point": "2d_n4000_K8",
+   "trial": 5,
+   "start": 40684,
+   "duration": 54,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n4000_K8_t5_C",
+     "status": "pass",
+     "fps": 103.84215991692626
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 5.56,
+   "construction": 3.1399999999999997,
+   "bootstrap": 10.64,
+   "loop": 29.580000000000002,
+   "post": 1.2660000324249268,
+   "in_bench": 50.19000005722046,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n4000_K8_t5_R1_2d_n4000",
+   "role": "reference",
+   "case": "cavity2d_n4000",
+   "point": "2d_n4000_K8",
+   "trial": 5,
+   "start": 40738,
+   "duration": 91,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "2d_n4000_K8_t5_R1_2d_n4000_g0",
+     "status": "pass",
+     "fps": 46.64179104477612
+    },
+    {
+     "label": "2d_n4000_K8_t5_R1_2d_n4000_g1",
+     "status": "pass",
+     "fps": 47.53981459472308
+    },
+    {
+     "label": "2d_n4000_K8_t5_R1_2d_n4000_g2",
+     "status": "pass",
+     "fps": 46.51162790697674
+    },
+    {
+     "label": "2d_n4000_K8_t5_R1_2d_n4000_g3",
+     "status": "pass",
+     "fps": 47.09206498704968
+    },
+    {
+     "label": "2d_n4000_K8_t5_R1_2d_n4000_g4",
+     "status": "pass",
+     "fps": 46.73989249824726
+    },
+    {
+     "label": "2d_n4000_K8_t5_R1_2d_n4000_g5",
+     "status": "pass",
+     "fps": 46.849379245725
+    },
+    {
+     "label": "2d_n4000_K8_t5_R1_2d_n4000_g6",
+     "status": "pass",
+     "fps": 46.882325363338026
+    },
+    {
+     "label": "2d_n4000_K8_t5_R1_2d_n4000_g7",
+     "status": "pass",
+     "fps": 47.13646005185011
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 3000,
+   "read_in": 2.68,
+   "construction": 3.86,
+   "bootstrap": 12.490000000000002,
+   "loop": 63.28,
+   "post": 1.4650001525878906,
+   "in_bench": 85.34100008010864,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n4000_K8_trace_E",
+   "role": "trace_equal",
+   "case": "cavity2d_n4000",
+   "point": "2d_n4000_K8",
+   "trial": 0,
+   "start": 40829,
+   "duration": 58,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n4000_K8_trace_E",
+     "status": "pass",
+     "fps": 144.8
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 5.25,
+   "construction": 3.1799999999999997,
+   "bootstrap": 10.740000000000002,
+   "loop": 19.259999999999998,
+   "post": 13.292999982833862,
+   "in_bench": 51.730000019073486,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n4000_K8_trace_C",
+   "role": "trace_calibrated",
+   "case": "cavity2d_n4000",
+   "point": "2d_n4000_K8",
+   "trial": 0,
+   "start": 40887,
+   "duration": 67,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n4000_K8_trace_C",
+     "status": "pass",
+     "fps": 113.7656427758817
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 5.62,
+   "construction": 4.03,
+   "bootstrap": 10.67,
+   "loop": 27.6,
+   "post": 13.69700002670288,
+   "in_bench": 61.609999895095825,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "cal_2d_n11320_K8",
+   "role": "calibration",
+   "case": "cavity2d_n11320",
+   "slabs": 8,
+   "point": "2d_n11320_K8",
+   "start": 40955,
+   "duration": 333,
+   "pilot_count": 2,
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "pilots": 2
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n11320_K8_t1_RP_2d_n11320",
+   "role": "reference",
+   "case": "cavity2d_n11320",
+   "point": "2d_n11320_K8",
+   "trial": 1,
+   "start": 41288,
+   "duration": 396,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "2d_n11320_K8_t1_RP_2d_n11320_p0",
+     "status": "pass",
+     "fps": 12.363996043521267
+    },
+    {
+     "label": "2d_n11320_K8_t1_RP_2d_n11320_p1",
+     "status": "pass",
+     "fps": 12.317546344768122
+    },
+    {
+     "label": "2d_n11320_K8_t1_RP_2d_n11320_p2",
+     "status": "pass",
+     "fps": 12.373940481346285
+    },
+    {
+     "label": "2d_n11320_K8_t1_RP_2d_n11320_p3",
+     "status": "pass",
+     "fps": 12.410797393732548
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 3000,
+   "read_in": 63.76,
+   "construction": 2.490000000000002,
+   "bootstrap": 79.08000000000001,
+   "loop": 239.72,
+   "post": 3.371999979019165,
+   "in_bench": 389.0840001106262,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n11320_K8_t1_E",
+   "role": "equal",
+   "case": "cavity2d_n11320",
+   "point": "2d_n11320_K8",
+   "trial": 1,
+   "start": 41684,
+   "duration": 215,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n11320_K8_t1_E",
+     "status": "pass",
+     "fps": 47.01457451810061
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 66.64,
+   "construction": 3.5600000000000023,
+   "bootstrap": 75.48,
+   "loop": 62.859999999999985,
+   "post": 1.754000186920166,
+   "in_bench": 210.29999995231628,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n11320_K8_t1_C",
+   "role": "calibrated",
+   "case": "cavity2d_n11320",
+   "point": "2d_n11320_K8",
+   "trial": 1,
+   "start": 41899,
+   "duration": 222,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n11320_K8_t1_C",
+     "status": "pass",
+     "fps": 47.29250413809411
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 69.03,
+   "construction": 8.519999999999996,
+   "bootstrap": 74.76,
+   "loop": 62.49000000000001,
+   "post": 1.7680001258850098,
+   "in_bench": 216.5699999332428,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n11320_K8_t2_E",
+   "role": "equal",
+   "case": "cavity2d_n11320",
+   "point": "2d_n11320_K8",
+   "trial": 2,
+   "start": 42121,
+   "duration": 213,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n11320_K8_t2_E",
+     "status": "pass",
+     "fps": 47.01457451810061
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 66.6,
+   "construction": 3.5500000000000114,
+   "bootstrap": 74.37,
+   "loop": 62.97,
+   "post": 1.754000186920166,
+   "in_bench": 209.24000000953674,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n11320_K8_t2_C",
+   "role": "calibrated",
+   "case": "cavity2d_n11320",
+   "point": "2d_n11320_K8",
+   "trial": 2,
+   "start": 42334,
+   "duration": 217,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n11320_K8_t2_C",
+     "status": "pass",
+     "fps": 47.29250413809411
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 68.82,
+   "construction": 3.5400000000000063,
+   "bootstrap": 74.51,
+   "loop": 62.49000000000001,
+   "post": 1.8050000667572021,
+   "in_bench": 211.17000007629395,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n11320_K8_t2_RP_2d_n11320",
+   "role": "reference",
+   "case": "cavity2d_n11320",
+   "point": "2d_n11320_K8",
+   "trial": 2,
+   "start": 42551,
+   "duration": 394,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "2d_n11320_K8_t2_RP_2d_n11320_p0",
+     "status": "pass",
+     "fps": 12.350253180190194
+    },
+    {
+     "label": "2d_n11320_K8_t2_RP_2d_n11320_p1",
+     "status": "pass",
+     "fps": 12.304663467454166
+    },
+    {
+     "label": "2d_n11320_K8_t2_RP_2d_n11320_p2",
+     "status": "pass",
+     "fps": 12.364760432766616
+    },
+    {
+     "label": "2d_n11320_K8_t2_RP_2d_n11320_p3",
+     "status": "pass",
+     "fps": 12.40079365079365
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 3000,
+   "read_in": 60.52,
+   "construction": 5.490000000000002,
+   "bootstrap": 79.17999999999999,
+   "loop": 240.66000000000003,
+   "post": 2.8349997997283936,
+   "in_bench": 389.3269999027252,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n11320_K8_t3_C",
+   "role": "calibrated",
+   "case": "cavity2d_n11320",
+   "point": "2d_n11320_K8",
+   "trial": 3,
+   "start": 42945,
+   "duration": 219,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n11320_K8_t3_C",
+     "status": "pass",
+     "fps": 47.214353163361665
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 69.01,
+   "construction": 3.530000000000001,
+   "bootstrap": 75.40999999999998,
+   "loop": 62.610000000000014,
+   "post": 1.8569998741149902,
+   "in_bench": 212.42000007629395,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n11320_K8_t3_RP_2d_n11320",
+   "role": "reference",
+   "case": "cavity2d_n11320",
+   "point": "2d_n11320_K8",
+   "trial": 3,
+   "start": 43164,
+   "duration": 398,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "2d_n11320_K8_t3_RP_2d_n11320_p0",
+     "status": "pass",
+     "fps": 12.345679012345679
+    },
+    {
+     "label": "2d_n11320_K8_t3_RP_2d_n11320_p1",
+     "status": "pass",
+     "fps": 12.292562999385373
+    },
+    {
+     "label": "2d_n11320_K8_t3_RP_2d_n11320_p2",
+     "status": "pass",
+     "fps": 12.346441138341872
+    },
+    {
+     "label": "2d_n11320_K8_t3_RP_2d_n11320_p3",
+     "status": "pass",
+     "fps": 12.39925604463732
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 3000,
+   "read_in": 62.77,
+   "construction": 2.499999999999993,
+   "bootstrap": 80.17999999999999,
+   "loop": 239.96,
+   "post": 3.7230000495910645,
+   "in_bench": 389.39800000190735,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n11320_K8_t3_E",
+   "role": "equal",
+   "case": "cavity2d_n11320",
+   "point": "2d_n11320_K8",
+   "trial": 3,
+   "start": 43562,
+   "duration": 216,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n11320_K8_t3_E",
+     "status": "pass",
+     "fps": 46.98144233027954
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 66.63,
+   "construction": 3.6099999999999994,
+   "bootstrap": 75.00000000000001,
+   "loop": 62.92999999999998,
+   "post": 1.7779998779296875,
+   "in_bench": 209.95000004768372,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n11320_K8_trace_E",
+   "role": "trace_equal",
+   "case": "cavity2d_n11320",
+   "point": "2d_n11320_K8",
+   "trial": 0,
+   "start": 43778,
+   "duration": 301,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n11320_K8_trace_E",
+     "status": "pass",
+     "fps": 46.860356138706656
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 66.5,
+   "construction": 3.5799999999999983,
+   "bootstrap": 75.3,
+   "loop": 63.05000000000001,
+   "post": 85.10800004005432,
+   "in_bench": 293.5499999523163,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "2d_n11320_K8_trace_C",
+   "role": "trace_calibrated",
+   "case": "cavity2d_n11320",
+   "point": "2d_n11320_K8",
+   "trial": 0,
+   "start": 44079,
+   "duration": 305,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "2d_n11320_K8_trace_C",
+     "status": "pass",
+     "fps": 47.13646005185011
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 8,
+   "steps": 3000,
+   "read_in": 69.37,
+   "construction": 3.8299999999999983,
+   "bootstrap": 74.89,
+   "loop": 62.639999999999986,
+   "post": 84.5640001296997,
+   "in_bench": 295.2999999523163,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "cal_3d_n160_k8_K8",
+   "role": "calibration",
+   "case": "cavity3d_n160_k8",
+   "slabs": 8,
+   "point": "3d_n160_k8_K8",
+   "start": 44384,
+   "duration": 133,
+   "pilot_count": 2,
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "pilots": 2
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "3d_n160_k8_K8_t1_R1_3d_n160",
+   "role": "reference",
+   "case": "cavity3d_n160",
+   "point": "3d_n160_k8_K8",
+   "trial": 1,
+   "start": 44517,
+   "duration": 68,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K8_t1_R1_3d_n160_g0",
+     "status": "pass",
+     "fps": 32.0
+    },
+    {
+     "label": "3d_n160_k8_K8_t1_R1_3d_n160_g1",
+     "status": "pass",
+     "fps": 32.552083333333336
+    },
+    {
+     "label": "3d_n160_k8_K8_t1_R1_3d_n160_g2",
+     "status": "pass",
+     "fps": 31.735956839098698
+    },
+    {
+     "label": "3d_n160_k8_K8_t1_R1_3d_n160_g3",
+     "status": "pass",
+     "fps": 32.32062055591467
+    },
+    {
+     "label": "3d_n160_k8_K8_t1_R1_3d_n160_g4",
+     "status": "pass",
+     "fps": 31.97953309881676
+    },
+    {
+     "label": "3d_n160_k8_K8_t1_R1_3d_n160_g5",
+     "status": "pass",
+     "fps": 32.21649484536083
+    },
+    {
+     "label": "3d_n160_k8_K8_t1_R1_3d_n160_g6",
+     "status": "pass",
+     "fps": 32.14400514304082
+    },
+    {
+     "label": "3d_n160_k8_K8_t1_R1_3d_n160_g7",
+     "status": "pass",
+     "fps": 32.22687721559781
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 0.71,
+   "construction": 4.54,
+   "bootstrap": 4.76,
+   "loop": 45.78,
+   "post": 1.1129999160766602,
+   "in_bench": 58.80199980735779,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "3d_n160_k8_K8_t1_R1_3d_n160_k8",
+   "role": "reference",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K8",
+   "trial": 1,
+   "start": 44585,
+   "duration": 396,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K8_t1_R1_3d_n160_k8_g0",
+     "status": "pass",
+     "fps": 4.330129037845328
+    },
+    {
+     "label": "3d_n160_k8_K8_t1_R1_3d_n160_k8_g1",
+     "status": "pass",
+     "fps": 4.408199250606128
+    },
+    {
+     "label": "3d_n160_k8_K8_t1_R1_3d_n160_k8_g2",
+     "status": "pass",
+     "fps": 4.326756663205261
+    },
+    {
+     "label": "3d_n160_k8_K8_t1_R1_3d_n160_k8_g3",
+     "status": "pass",
+     "fps": 4.390393818325504
+    },
+    {
+     "label": "3d_n160_k8_K8_t1_R1_3d_n160_k8_g4",
+     "status": "pass",
+     "fps": 4.339147791373774
+    },
+    {
+     "label": "3d_n160_k8_K8_t1_R1_3d_n160_k8_g5",
+     "status": "pass",
+     "fps": 4.368910830529949
+    },
+    {
+     "label": "3d_n160_k8_K8_t1_R1_3d_n160_k8_g6",
+     "status": "pass",
+     "fps": 4.362240446693422
+    },
+    {
+     "label": "3d_n160_k8_K8_t1_R1_3d_n160_k8_g7",
+     "status": "pass",
+     "fps": 4.369292611526194
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 11.18,
+   "construction": 10.350000000000001,
+   "bootstrap": 23.740000000000002,
+   "loop": 338.16,
+   "post": 4.273000001907349,
+   "in_bench": 391.6099998950958,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "3d_n160_k8_K8_t1_E",
+   "role": "equal",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K8",
+   "trial": 1,
+   "start": 44981,
+   "duration": 95,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K8_t1_E",
+     "status": "pass",
+     "fps": 31.036623215394165
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 12.68,
+   "construction": 6.309999999999999,
+   "bootstrap": 22.63,
+   "loop": 47.39000000000001,
+   "post": 1.0510001182556152,
+   "in_bench": 90.05999994277954,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "3d_n160_k8_K8_t1_C",
+   "role": "calibrated",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K8",
+   "trial": 1,
+   "start": 45076,
+   "duration": 99,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K8_t1_C",
+     "status": "pass",
+     "fps": 30.998140111593305
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 13.39,
+   "construction": 9.849999999999998,
+   "bootstrap": 22.750000000000004,
+   "loop": 47.54,
+   "post": 1.054999828338623,
+   "in_bench": 94.58999991416931,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "3d_n160_k8_K8_t2_E",
+   "role": "equal",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K8",
+   "trial": 2,
+   "start": 45175,
+   "duration": 93,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K8_t2_E",
+     "status": "pass",
+     "fps": 30.998140111593305
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 12.64,
+   "construction": 6.02,
+   "bootstrap": 22.349999999999998,
+   "loop": 47.410000000000004,
+   "post": 1.0530002117156982,
+   "in_bench": 89.47000002861023,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "3d_n160_k8_K8_t2_C",
+   "role": "calibrated",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K8",
+   "trial": 2,
+   "start": 45268,
+   "duration": 96,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K8_t2_C",
+     "status": "pass",
+     "fps": 30.94059405940594
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 13.39,
+   "construction": 6.07,
+   "bootstrap": 22.58,
+   "loop": 47.57,
+   "post": 1.0469999313354492,
+   "in_bench": 90.66000008583069,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "3d_n160_k8_K8_t2_R1_3d_n160",
+   "role": "reference",
+   "case": "cavity3d_n160",
+   "point": "3d_n160_k8_K8",
+   "trial": 2,
+   "start": 45364,
+   "duration": 72,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K8_t2_R1_3d_n160_g0",
+     "status": "pass",
+     "fps": 31.746031746031747
+    },
+    {
+     "label": "3d_n160_k8_K8_t2_R1_3d_n160_g1",
+     "status": "pass",
+     "fps": 32.21649484536083
+    },
+    {
+     "label": "3d_n160_k8_K8_t2_R1_3d_n160_g2",
+     "status": "pass",
+     "fps": 31.71582619727244
+    },
+    {
+     "label": "3d_n160_k8_K8_t2_R1_3d_n160_g3",
+     "status": "pass",
+     "fps": 31.97953309881676
+    },
+    {
+     "label": "3d_n160_k8_K8_t2_R1_3d_n160_g4",
+     "status": "pass",
+     "fps": 31.746031746031747
+    },
+    {
+     "label": "3d_n160_k8_K8_t2_R1_3d_n160_g5",
+     "status": "pass",
+     "fps": 32.05128205128205
+    },
+    {
+     "label": "3d_n160_k8_K8_t2_R1_3d_n160_g6",
+     "status": "pass",
+     "fps": 31.948881789137378
+    },
+    {
+     "label": "3d_n160_k8_K8_t2_R1_3d_n160_g7",
+     "status": "pass",
+     "fps": 32.1646831778707
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 0.75,
+   "construction": 3.66,
+   "bootstrap": 2.83,
+   "loop": 46.06,
+   "post": 1.0899999141693115,
+   "in_bench": 56.83500003814697,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "3d_n160_k8_K8_t2_R1_3d_n160_k8",
+   "role": "reference",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K8",
+   "trial": 2,
+   "start": 45436,
+   "duration": 394,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K8_t2_R1_3d_n160_k8_g0",
+     "status": "pass",
+     "fps": 4.330316546139523
+    },
+    {
+     "label": "3d_n160_k8_K8_t2_R1_3d_n160_k8_g1",
+     "status": "pass",
+     "fps": 4.403734366742998
+    },
+    {
+     "label": "3d_n160_k8_K8_t2_R1_3d_n160_k8_g2",
+     "status": "pass",
+     "fps": 4.307930900788351
+    },
+    {
+     "label": "3d_n160_k8_K8_t2_R1_3d_n160_k8_g3",
+     "status": "pass",
+     "fps": 4.378283712784588
+    },
+    {
+     "label": "3d_n160_k8_K8_t2_R1_3d_n160_k8_g4",
+     "status": "pass",
+     "fps": 4.3383947939262475
+    },
+    {
+     "label": "3d_n160_k8_K8_t2_R1_3d_n160_k8_g5",
+     "status": "pass",
+     "fps": 4.372158097236796
+    },
+    {
+     "label": "3d_n160_k8_K8_t2_R1_3d_n160_k8_g6",
+     "status": "pass",
+     "fps": 4.360718646432932
+    },
+    {
+     "label": "3d_n160_k8_K8_t2_R1_3d_n160_k8_g7",
+     "status": "pass",
+     "fps": 4.369483527047103
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 12.19,
+   "construction": 8.230000000000002,
+   "bootstrap": 22.86,
+   "loop": 338.75,
+   "post": 5.0950000286102295,
+   "in_bench": 388.952999830246,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "3d_n160_k8_K8_t3_C",
+   "role": "calibrated",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K8",
+   "trial": 3,
+   "start": 45830,
+   "duration": 99,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K8_t3_C",
+     "status": "pass",
+     "fps": 30.902348578491967
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 13.35,
+   "construction": 6.229999999999999,
+   "bootstrap": 22.800000000000004,
+   "loop": 47.63,
+   "post": 1.059999942779541,
+   "in_bench": 91.0699999332428,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "3d_n160_k8_K8_t3_R1_3d_n160",
+   "role": "reference",
+   "case": "cavity3d_n160",
+   "point": "3d_n160_k8_K8",
+   "trial": 3,
+   "start": 45929,
+   "duration": 70,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K8_t3_R1_3d_n160_g0",
+     "status": "pass",
+     "fps": 31.79650238473768
+    },
+    {
+     "label": "3d_n160_k8_K8_t3_R1_3d_n160_g1",
+     "status": "pass",
+     "fps": 32.31017770597738
+    },
+    {
+     "label": "3d_n160_k8_K8_t3_R1_3d_n160_g2",
+     "status": "pass",
+     "fps": 31.746031746031747
+    },
+    {
+     "label": "3d_n160_k8_K8_t3_R1_3d_n160_g3",
+     "status": "pass",
+     "fps": 32.1853878339234
+    },
+    {
+     "label": "3d_n160_k8_K8_t3_R1_3d_n160_g4",
+     "status": "pass",
+     "fps": 31.776294884016526
+    },
+    {
+     "label": "3d_n160_k8_K8_t3_R1_3d_n160_g5",
+     "status": "pass",
+     "fps": 32.0
+    },
+    {
+     "label": "3d_n160_k8_K8_t3_R1_3d_n160_g6",
+     "status": "pass",
+     "fps": 31.826861871419478
+    },
+    {
+     "label": "3d_n160_k8_K8_t3_R1_3d_n160_g7",
+     "status": "pass",
+     "fps": 32.26847370119393
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 0.69,
+   "construction": 4.380000000000001,
+   "bootstrap": 4.299999999999999,
+   "loop": 46.35,
+   "post": 0.7159998416900635,
+   "in_bench": 58.7279999256134,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "3d_n160_k8_K8_t3_R1_3d_n160_k8",
+   "role": "reference",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K8",
+   "trial": 3,
+   "start": 45999,
+   "duration": 396,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K8_t3_R1_3d_n160_k8_g0",
+     "status": "pass",
+     "fps": 4.344426101312017
+    },
+    {
+     "label": "3d_n160_k8_K8_t3_R1_3d_n160_k8_g1",
+     "status": "pass",
+     "fps": 4.413257425305618
+    },
+    {
+     "label": "3d_n160_k8_K8_t3_R1_3d_n160_k8_g2",
+     "status": "pass",
+     "fps": 4.320587599913589
+    },
+    {
+     "label": "3d_n160_k8_K8_t3_R1_3d_n160_k8_g3",
+     "status": "pass",
+     "fps": 4.401602183194683
+    },
+    {
+     "label": "3d_n160_k8_K8_t3_R1_3d_n160_k8_g4",
+     "status": "pass",
+     "fps": 4.344237369129849
+    },
+    {
+     "label": "3d_n160_k8_K8_t3_R1_3d_n160_k8_g5",
+     "status": "pass",
+     "fps": 4.366812227074236
+    },
+    {
+     "label": "3d_n160_k8_K8_t3_R1_3d_n160_k8_g6",
+     "status": "pass",
+     "fps": 4.3597680603391895
+    },
+    {
+     "label": "3d_n160_k8_K8_t3_R1_3d_n160_k8_g7",
+     "status": "pass",
+     "fps": 4.364334657181513
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 10.91,
+   "construction": 9.64,
+   "bootstrap": 24.59,
+   "loop": 338.5,
+   "post": 4.259000062942505,
+   "in_bench": 390.26399993896484,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "3d_n160_k8_K8_t3_E",
+   "role": "equal",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K8",
+   "trial": 3,
+   "start": 46395,
+   "duration": 95,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K8_t3_E",
+     "status": "pass",
+     "fps": 31.07520198881293
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 12.63,
+   "construction": 6.279999999999999,
+   "bootstrap": 22.389999999999997,
+   "loop": 47.3,
+   "post": 1.051999807357788,
+   "in_bench": 89.65000009536743,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "3d_n160_k8_K8_trace_E",
+   "role": "trace_equal",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K8",
+   "trial": 0,
+   "start": 46490,
+   "duration": 126,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K8_trace_E",
+     "status": "pass",
+     "fps": 30.998140111593305
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 12.62,
+   "construction": 6.040000000000001,
+   "bootstrap": 22.52,
+   "loop": 47.35,
+   "post": 30.593000173568726,
+   "in_bench": 119.11999988555908,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "3d_n160_k8_K8_trace_C",
+   "role": "trace_calibrated",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K8",
+   "trial": 0,
+   "start": 46616,
+   "duration": 131,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K8_trace_C",
+     "status": "pass",
+     "fps": 30.892801977139328
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 13.45,
+   "construction": 7.280000000000001,
+   "bootstrap": 22.7,
+   "loop": 47.73,
+   "post": 30.66000008583069,
+   "in_bench": 121.8199999332428,
+   "pilots": 0
+  },
+  {
+   "job": "02_e7_b1B_1681466",
+   "group": "soak_2d_n8000_K8",
+   "role": "soak",
+   "case": "cavity2d_n8000",
+   "point": "soak_2d_n8000_K8",
+   "trial": 0,
+   "start": 46749,
+   "duration": 308,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "soak_2d_n8000_K8",
+     "status": "pass",
+     "fps": 86.94707097054668
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": false,
+   "slabs": 8,
+   "steps": 17000,
+   "read_in": 22.99,
+   "construction": 4.680000000000003,
+   "bootstrap": 37.61,
+   "loop": 195.07000000000002,
+   "post": 33.39999985694885,
+   "in_bench": 293.75,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "cal_3d_n200_k2_K2",
+   "role": "calibration",
+   "case": "cavity3d_n200_k2",
+   "slabs": 2,
+   "point": "3d_n200_k2_K2",
+   "start": 36563,
+   "duration": 112,
+   "pilot_count": 2,
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "pilots": 2
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k2_K2_t1_R1_3d_n200",
+   "role": "reference",
+   "case": "cavity3d_n200",
+   "point": "3d_n200_k2_K2",
+   "trial": 1,
+   "start": 36675,
+   "duration": 104,
+   "members": 2,
+   "member_runs": [
+    {
+     "label": "3d_n200_k2_K2_t1_R1_3d_n200_g0",
+     "status": "pass",
+     "fps": 16.661112962345882
+    },
+    {
+     "label": "3d_n200_k2_K2_t1_R1_3d_n200_g1",
+     "status": "pass",
+     "fps": 16.78697330871244
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 1.4,
+   "construction": 4.619999999999999,
+   "bootstrap": 5.49,
+   "loop": 87.99,
+   "post": 1.690999984741211,
+   "in_bench": 101.19400000572205,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k2_K2_t1_E",
+   "role": "equal",
+   "case": "cavity3d_n200_k2",
+   "point": "3d_n200_k2_K2",
+   "trial": 1,
+   "start": 36779,
+   "duration": 125,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k2_K2_t1_E",
+     "status": "pass",
+     "fps": 16.450074025333116
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 15.87,
+   "construction": 4.090000000000002,
+   "bootstrap": 10.079999999999998,
+   "loop": 89.72,
+   "post": 1.2569999694824219,
+   "in_bench": 121.01999998092651,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k2_K2_t1_C",
+   "role": "calibrated",
+   "case": "cavity3d_n200_k2",
+   "point": "3d_n200_k2_K2",
+   "trial": 1,
+   "start": 36904,
+   "duration": 111,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k2_K2_t1_C",
+     "status": "pass",
+     "fps": 16.597510373443985
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 3.58,
+   "construction": 4.0,
+   "bootstrap": 10.049999999999999,
+   "loop": 88.88000000000001,
+   "post": 1.2360000610351562,
+   "in_bench": 107.74000000953674,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k2_K2_t2_E",
+   "role": "equal",
+   "case": "cavity3d_n200_k2",
+   "point": "3d_n200_k2_K2",
+   "trial": 2,
+   "start": 37015,
+   "duration": 124,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k2_K2_t2_E",
+     "status": "pass",
+     "fps": 16.4446637066272
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 15.87,
+   "construction": 4.1,
+   "bootstrap": 10.100000000000001,
+   "loop": 89.73,
+   "post": 1.2229998111724854,
+   "in_bench": 121.03999996185303,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k2_K2_t2_C",
+   "role": "calibrated",
+   "case": "cavity3d_n200_k2",
+   "point": "3d_n200_k2_K2",
+   "trial": 2,
+   "start": 37139,
+   "duration": 123,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k2_K2_t2_C",
+     "status": "pass",
+     "fps": 16.655562958027982
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 16.23,
+   "construction": 4.009999999999998,
+   "bootstrap": 10.010000000000002,
+   "loop": 88.52,
+   "post": 1.248000144958496,
+   "in_bench": 120.01999998092651,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k2_K2_t2_R1_3d_n200",
+   "role": "reference",
+   "case": "cavity3d_n200",
+   "point": "3d_n200_k2_K2",
+   "trial": 2,
+   "start": 37262,
+   "duration": 104,
+   "members": 2,
+   "member_runs": [
+    {
+     "label": "3d_n200_k2_K2_t2_R1_3d_n200_g0",
+     "status": "pass",
+     "fps": 16.619577862722288
+    },
+    {
+     "label": "3d_n200_k2_K2_t2_R1_3d_n200_g1",
+     "status": "pass",
+     "fps": 16.761649346295677
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 1.4,
+   "construction": 3.89,
+   "bootstrap": 5.430000000000001,
+   "loop": 88.17,
+   "post": 1.875999927520752,
+   "in_bench": 100.78999996185303,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k2_K2_t3_C",
+   "role": "calibrated",
+   "case": "cavity3d_n200_k2",
+   "point": "3d_n200_k2_K2",
+   "trial": 3,
+   "start": 37366,
+   "duration": 117,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k2_K2_t3_C",
+     "status": "pass",
+     "fps": 16.71402306535183
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 12.13,
+   "construction": 4.01,
+   "bootstrap": 9.86,
+   "loop": 88.18,
+   "post": 1.2909998893737793,
+   "in_bench": 115.47000002861023,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k2_K2_t3_R1_3d_n200",
+   "role": "reference",
+   "case": "cavity3d_n200",
+   "point": "3d_n200_k2_K2",
+   "trial": 3,
+   "start": 37483,
+   "duration": 104,
+   "members": 2,
+   "member_runs": [
+    {
+     "label": "3d_n200_k2_K2_t3_R1_3d_n200_g0",
+     "status": "pass",
+     "fps": 16.578249336870027
+    },
+    {
+     "label": "3d_n200_k2_K2_t3_R1_3d_n200_g1",
+     "status": "pass",
+     "fps": 16.778523489932887
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 1.36,
+   "construction": 3.9299999999999997,
+   "bootstrap": 5.54,
+   "loop": 89.25,
+   "post": 1.127000093460083,
+   "in_bench": 101.22300004959106,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k2_K2_t3_E",
+   "role": "equal",
+   "case": "cavity3d_n200_k2",
+   "point": "3d_n200_k2_K2",
+   "trial": 3,
+   "start": 37587,
+   "duration": 126,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k2_K2_t3_E",
+     "status": "pass",
+     "fps": 16.423057973394645
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 17.6,
+   "construction": 3.9899999999999984,
+   "bootstrap": 10.120000000000001,
+   "loop": 89.85999999999999,
+   "post": 1.2390000820159912,
+   "in_bench": 122.80999994277954,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k2_K2_trace_E",
+   "role": "trace_equal",
+   "case": "cavity3d_n200_k2",
+   "point": "3d_n200_k2_K2",
+   "trial": 0,
+   "start": 37713,
+   "duration": 132,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k2_K2_trace_E",
+     "status": "pass",
+     "fps": 16.423057973394645
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 11.74,
+   "construction": 3.99,
+   "bootstrap": 10.099999999999998,
+   "loop": 89.89,
+   "post": 11.47000002861023,
+   "in_bench": 127.19000005722046,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k2_K2_trace_C",
+   "role": "trace_calibrated",
+   "case": "cavity3d_n200_k2",
+   "point": "3d_n200_k2_K2",
+   "trial": 0,
+   "start": 37845,
+   "duration": 125,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k2_K2_trace_C",
+     "status": "pass",
+     "fps": 16.661112962345882
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 3.57,
+   "construction": 4.25,
+   "bootstrap": 10.18,
+   "loop": 88.46,
+   "post": 11.53600001335144,
+   "in_bench": 118.0,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "cal_3d_n200_k4_K4",
+   "role": "calibration",
+   "case": "cavity3d_n200_k4",
+   "slabs": 4,
+   "point": "3d_n200_k4_K4",
+   "start": 37970,
+   "duration": 154,
+   "pilot_count": 2,
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "pilots": 2
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k4_K4_t1_R1_3d_n200",
+   "role": "reference",
+   "case": "cavity3d_n200",
+   "point": "3d_n200_k4_K4",
+   "trial": 1,
+   "start": 38124,
+   "duration": 108,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "3d_n200_k4_K4_t1_R1_3d_n200_g0",
+     "status": "pass",
+     "fps": 16.69170422300117
+    },
+    {
+     "label": "3d_n200_k4_K4_t1_R1_3d_n200_g1",
+     "status": "pass",
+     "fps": 16.79261125104954
+    },
+    {
+     "label": "3d_n200_k4_K4_t1_R1_3d_n200_g2",
+     "status": "pass",
+     "fps": 16.71402306535183
+    },
+    {
+     "label": "3d_n200_k4_K4_t1_R1_3d_n200_g3",
+     "status": "pass",
+     "fps": 16.742005692281936
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 1.4,
+   "construction": 4.43,
+   "bootstrap": 5.539999999999999,
+   "loop": 88.19999999999999,
+   "post": 1.4249999523162842,
+   "in_bench": 101.99000000953674,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k4_K4_t1_E",
+   "role": "equal",
+   "case": "cavity3d_n200_k4",
+   "point": "3d_n200_k4_K4",
+   "trial": 1,
+   "start": 38232,
+   "duration": 154,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k4_K4_t1_E",
+     "status": "pass",
+     "fps": 16.477179106936894
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 33.41,
+   "construction": 5.800000000000004,
+   "bootstrap": 19.6,
+   "loop": 89.6,
+   "post": 1.2589998245239258,
+   "in_bench": 149.67000007629395,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k4_K4_t1_C",
+   "role": "calibrated",
+   "case": "cavity3d_n200_k4",
+   "point": "3d_n200_k4_K4",
+   "trial": 1,
+   "start": 38386,
+   "duration": 146,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k4_K4_t1_C",
+     "status": "pass",
+     "fps": 16.466326362588507
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 24.25,
+   "construction": 7.18,
+   "bootstrap": 19.9,
+   "loop": 89.67999999999999,
+   "post": 1.2239999771118164,
+   "in_bench": 142.2300000190735,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k4_K4_t2_E",
+   "role": "equal",
+   "case": "cavity3d_n200_k4",
+   "point": "3d_n200_k4_K4",
+   "trial": 2,
+   "start": 38532,
+   "duration": 136,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k4_K4_t2_E",
+     "status": "pass",
+     "fps": 16.412276382734284
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 14.82,
+   "construction": 5.84,
+   "bootstrap": 19.860000000000003,
+   "loop": 90.01999999999998,
+   "post": 1.2690000534057617,
+   "in_bench": 131.80999994277954,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k4_K4_t2_C",
+   "role": "calibrated",
+   "case": "cavity3d_n200_k4",
+   "point": "3d_n200_k4_K4",
+   "trial": 2,
+   "start": 38668,
+   "duration": 140,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k4_K4_t2_C",
+     "status": "pass",
+     "fps": 16.477179106936894
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 17.24,
+   "construction": 5.670000000000002,
+   "bootstrap": 19.73,
+   "loop": 89.74999999999999,
+   "post": 1.2119998931884766,
+   "in_bench": 133.59999990463257,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k4_K4_t2_R1_3d_n200",
+   "role": "reference",
+   "case": "cavity3d_n200",
+   "point": "3d_n200_k4_K4",
+   "trial": 2,
+   "start": 38808,
+   "duration": 111,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "3d_n200_k4_K4_t2_R1_3d_n200_g0",
+     "status": "pass",
+     "fps": 16.600265604249667
+    },
+    {
+     "label": "3d_n200_k4_K4_t2_R1_3d_n200_g1",
+     "status": "pass",
+     "fps": 16.75041876046901
+    },
+    {
+     "label": "3d_n200_k4_K4_t2_R1_3d_n200_g2",
+     "status": "pass",
+     "fps": 16.672224074691563
+    },
+    {
+     "label": "3d_n200_k4_K4_t2_R1_3d_n200_g3",
+     "status": "pass",
+     "fps": 16.747613465081226
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 1.41,
+   "construction": 5.97,
+   "bootstrap": 6.5200000000000005,
+   "loop": 89.02,
+   "post": 0.9210000038146973,
+   "in_bench": 103.87999987602234,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k4_K4_t3_C",
+   "role": "calibrated",
+   "case": "cavity3d_n200_k4",
+   "point": "3d_n200_k4_K4",
+   "trial": 3,
+   "start": 38919,
+   "duration": 138,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k4_K4_t3_C",
+     "status": "pass",
+     "fps": 16.471750947125678
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 17.75,
+   "construction": 6.02,
+   "bootstrap": 19.48,
+   "loop": 89.69,
+   "post": 1.2619998455047607,
+   "in_bench": 134.20000004768372,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k4_K4_t3_R1_3d_n200",
+   "role": "reference",
+   "case": "cavity3d_n200",
+   "point": "3d_n200_k4_K4",
+   "trial": 3,
+   "start": 39057,
+   "duration": 105,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "3d_n200_k4_K4_t3_R1_3d_n200_g0",
+     "status": "pass",
+     "fps": 16.62510390689942
+    },
+    {
+     "label": "3d_n200_k4_K4_t3_R1_3d_n200_g1",
+     "status": "pass",
+     "fps": 16.77570877369569
+    },
+    {
+     "label": "3d_n200_k4_K4_t3_R1_3d_n200_g2",
+     "status": "pass",
+     "fps": 16.666666666666668
+    },
+    {
+     "label": "3d_n200_k4_K4_t3_R1_3d_n200_g3",
+     "status": "pass",
+     "fps": 16.70285618840822
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 1.39,
+   "construction": 3.7200000000000006,
+   "bootstrap": 5.88,
+   "loop": 88.43,
+   "post": 1.3450000286102295,
+   "in_bench": 102.38000011444092,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k4_K4_t3_E",
+   "role": "equal",
+   "case": "cavity3d_n200_k4",
+   "point": "3d_n200_k4_K4",
+   "trial": 3,
+   "start": 39162,
+   "duration": 141,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k4_K4_t3_E",
+     "status": "pass",
+     "fps": 16.44195988161789
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 21.82,
+   "construction": 5.789999999999999,
+   "bootstrap": 19.82,
+   "loop": 89.72999999999999,
+   "post": 1.2339999675750732,
+   "in_bench": 138.40000009536743,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k4_K4_trace_E",
+   "role": "trace_equal",
+   "case": "cavity3d_n200_k4",
+   "point": "3d_n200_k4_K4",
+   "trial": 0,
+   "start": 39303,
+   "duration": 168,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k4_K4_trace_E",
+     "status": "pass",
+     "fps": 16.377333770062233
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 16.43,
+   "construction": 5.649999999999999,
+   "bootstrap": 20.270000000000003,
+   "loop": 90.22,
+   "post": 24.683000087738037,
+   "in_bench": 157.25,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k4_K4_trace_C",
+   "role": "trace_calibrated",
+   "case": "cavity3d_n200_k4",
+   "point": "3d_n200_k4_K4",
+   "trial": 0,
+   "start": 39471,
+   "duration": 166,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k4_K4_trace_C",
+     "status": "pass",
+     "fps": 16.485328058028355
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 18.56,
+   "construction": 6.300000000000001,
+   "bootstrap": 19.730000000000004,
+   "loop": 89.57,
+   "post": 24.667999982833862,
+   "in_bench": 158.82999992370605,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "cal_3d_n160_k8_K2",
+   "role": "calibration",
+   "case": "cavity3d_n160_k8",
+   "slabs": 2,
+   "point": "3d_n160_k8_K2",
+   "start": 39638,
+   "duration": 107,
+   "pilot_count": 1,
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "pilots": 1
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n160_k8_K2_t1_R1_3d_n160_k8",
+   "role": "reference",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K2",
+   "trial": 1,
+   "start": 39745,
+   "duration": 382,
+   "members": 2,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K2_t1_R1_3d_n160_k8_g0",
+     "status": "pass",
+     "fps": 4.315367021965218
+    },
+    {
+     "label": "3d_n160_k8_K2_t1_R1_3d_n160_k8_g1",
+     "status": "pass",
+     "fps": 4.347070074769605
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 5.74,
+   "construction": 7.4399999999999995,
+   "bootstrap": 19.72,
+   "loop": 340.05,
+   "post": 3.757999897003174,
+   "in_bench": 376.72000002861023,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n160_k8_K2_t1_E",
+   "role": "equal",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K2",
+   "trial": 1,
+   "start": 40127,
+   "duration": 218,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K2_t1_E",
+     "status": "pass",
+     "fps": 8.108984755108661
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 6.72,
+   "construction": 5.81,
+   "bootstrap": 19.020000000000003,
+   "loop": 182.28,
+   "post": 1.378000020980835,
+   "in_bench": 215.21000003814697,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n160_k8_K2_t1_C",
+   "role": "calibrated",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K2",
+   "trial": 1,
+   "start": 40345,
+   "duration": 221,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K2_t1_C",
+     "status": "pass",
+     "fps": 8.096510404015868
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 7.41,
+   "construction": 5.720000000000001,
+   "bootstrap": 19.08,
+   "loop": 182.54999999999998,
+   "post": 1.430999994277954,
+   "in_bench": 216.19000005722046,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n160_k8_K2_t2_E",
+   "role": "equal",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K2",
+   "trial": 2,
+   "start": 40566,
+   "duration": 238,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K2_t2_E",
+     "status": "pass",
+     "fps": 8.093234056328908
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 26.5,
+   "construction": 5.840000000000003,
+   "bootstrap": 19.08,
+   "loop": 182.74,
+   "post": 1.3959999084472656,
+   "in_bench": 235.55999994277954,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n160_k8_K2_t2_C",
+   "role": "calibrated",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K2",
+   "trial": 2,
+   "start": 40804,
+   "duration": 227,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K2_t2_C",
+     "status": "pass",
+     "fps": 8.103727714748784
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 14.79,
+   "construction": 5.550000000000001,
+   "bootstrap": 18.849999999999998,
+   "loop": 182.56,
+   "post": 1.437999963760376,
+   "in_bench": 223.19000005722046,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n160_k8_K2_t2_R1_3d_n160_k8",
+   "role": "reference",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K2",
+   "trial": 2,
+   "start": 41031,
+   "duration": 381,
+   "members": 2,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K2_t2_R1_3d_n160_k8_g0",
+     "status": "pass",
+     "fps": 4.314808422506041
+    },
+    {
+     "label": "3d_n160_k8_K2_t2_R1_3d_n160_k8_g1",
+     "status": "pass",
+     "fps": 4.3431053203040175
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 5.85,
+   "construction": 6.73,
+   "bootstrap": 20.03,
+   "loop": 340.6,
+   "post": 3.4070000648498535,
+   "in_bench": 376.6380000114441,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n160_k8_K2_t3_C",
+   "role": "calibrated",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K2",
+   "trial": 3,
+   "start": 41412,
+   "duration": 234,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K2_t3_C",
+     "status": "pass",
+     "fps": 8.101101749837978
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 20.98,
+   "construction": 5.759999999999998,
+   "bootstrap": 18.76,
+   "loop": 182.43,
+   "post": 1.4200000762939453,
+   "in_bench": 229.34999990463257,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n160_k8_K2_t3_R1_3d_n160_k8",
+   "role": "reference",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K2",
+   "trial": 3,
+   "start": 41646,
+   "duration": 381,
+   "members": 2,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K2_t3_R1_3d_n160_k8_g0",
+     "status": "pass",
+     "fps": 4.3140638481449525
+    },
+    {
+     "label": "3d_n160_k8_K2_t3_R1_3d_n160_k8_g1",
+     "status": "pass",
+     "fps": 4.337265787647467
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 5.71,
+   "construction": 7.12,
+   "bootstrap": 20.130000000000003,
+   "loop": 341.1,
+   "post": 3.0380001068115234,
+   "in_bench": 377.1300001144409,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n160_k8_K2_t3_E",
+   "role": "equal",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K2",
+   "trial": 3,
+   "start": 42027,
+   "duration": 220,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K2_t3_E",
+     "status": "pass",
+     "fps": 8.095854922279793
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 6.62,
+   "construction": 5.739999999999999,
+   "bootstrap": 18.84,
+   "loop": 182.67000000000002,
+   "post": 1.9019999504089355,
+   "in_bench": 215.7699999809265,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n160_k8_K2_trace_E",
+   "role": "trace_equal",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K2",
+   "trial": 0,
+   "start": 42247,
+   "duration": 236,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K2_trace_E",
+     "status": "pass",
+     "fps": 8.08865162177465
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 6.61,
+   "construction": 5.78,
+   "bootstrap": 19.46,
+   "loop": 182.8,
+   "post": 18.503000020980835,
+   "in_bench": 233.1600000858307,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n160_k8_K2_trace_C",
+   "role": "trace_calibrated",
+   "case": "cavity3d_n160_k8",
+   "point": "3d_n160_k8_K2",
+   "trial": 0,
+   "start": 42483,
+   "duration": 238,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n160_k8_K2_trace_C",
+     "status": "pass",
+     "fps": 8.113590263691684
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 7.45,
+   "construction": 5.839999999999999,
+   "bootstrap": 18.910000000000004,
+   "loop": 182.27999999999997,
+   "post": 18.6010000705719,
+   "in_bench": 233.0899999141693,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "cal_3d_n200_k8_K2",
+   "role": "calibration",
+   "case": "cavity3d_n200_k8",
+   "slabs": 2,
+   "point": "3d_n200_k8_K2",
+   "start": 42725,
+   "duration": 336,
+   "pilot_count": 2,
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "pilots": 2
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K2_t1_R1_3d_n200_k8",
+   "role": "reference",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K2",
+   "trial": 1,
+   "start": 43061,
+   "duration": 691,
+   "members": 2,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K2_t1_R1_3d_n200_k8_g0",
+     "status": "pass",
+     "fps": 2.3583793217301072
+    },
+    {
+     "label": "3d_n200_k8_K2_t1_R1_3d_n200_k8_g1",
+     "status": "pass",
+     "fps": 2.3792529145848205
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 10.9,
+   "construction": 11.08,
+   "bootstrap": 37.5,
+   "loop": 626.12,
+   "post": 1.5910000801086426,
+   "in_bench": 687.1900000572205,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K2_t1_E",
+   "role": "equal",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K2",
+   "trial": 1,
+   "start": 43752,
+   "duration": 392,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K2_t1_E",
+     "status": "pass",
+     "fps": 4.501260352898812
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 12.78,
+   "construction": 8.56,
+   "bootstrap": 35.47,
+   "loop": 328.28,
+   "post": 1.5879998207092285,
+   "in_bench": 386.6800000667572,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K2_t1_C",
+   "role": "calibrated",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K2",
+   "trial": 1,
+   "start": 44144,
+   "duration": 389,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K2_t1_C",
+     "status": "pass",
+     "fps": 4.570592805886924
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 14.57,
+   "construction": 11.280000000000001,
+   "bootstrap": 35.589999999999996,
+   "loop": 323.25,
+   "post": 1.6089999675750732,
+   "in_bench": 386.2999999523163,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K2_t2_E",
+   "role": "equal",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K2",
+   "trial": 2,
+   "start": 44533,
+   "duration": 392,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K2_t2_E",
+     "status": "pass",
+     "fps": 4.5004500450045
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 12.85,
+   "construction": 8.6,
+   "bootstrap": 35.78,
+   "loop": 328.26,
+   "post": 1.625,
+   "in_bench": 387.1199998855591,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K2_t2_C",
+   "role": "calibrated",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K2",
+   "trial": 2,
+   "start": 44925,
+   "duration": 388,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K2_t2_C",
+     "status": "pass",
+     "fps": 4.569130951293063
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 14.36,
+   "construction": 8.71,
+   "bootstrap": 35.7,
+   "loop": 323.37,
+   "post": 1.6559998989105225,
+   "in_bench": 383.7999999523163,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K2_t2_R1_3d_n200_k8",
+   "role": "reference",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K2",
+   "trial": 2,
+   "start": 45313,
+   "duration": 690,
+   "members": 2,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K2_t2_R1_3d_n200_k8_g0",
+     "status": "pass",
+     "fps": 2.3594365665479082
+    },
+    {
+     "label": "3d_n200_k8_K2_t2_R1_3d_n200_k8_g1",
+     "status": "pass",
+     "fps": 2.38038562247084
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 10.9,
+   "construction": 10.200000000000001,
+   "bootstrap": 37.17,
+   "loop": 625.75,
+   "post": 1.5290000438690186,
+   "in_bench": 685.5660002231598,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K2_t3_C",
+   "role": "calibrated",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K2",
+   "trial": 3,
+   "start": 46003,
+   "duration": 413,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K2_t3_C",
+     "status": "pass",
+     "fps": 4.560379423568041
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 38.5,
+   "construction": 8.770000000000003,
+   "bootstrap": 35.87,
+   "loop": 324.14,
+   "post": 1.6040000915527344,
+   "in_bench": 408.8900001049042,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K2_t3_R1_3d_n200_k8",
+   "role": "reference",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K2",
+   "trial": 3,
+   "start": 46416,
+   "duration": 689,
+   "members": 2,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K2_t3_R1_3d_n200_k8_g0",
+     "status": "pass",
+     "fps": 2.3625023625023625
+    },
+    {
+     "label": "3d_n200_k8_K2_t3_R1_3d_n200_k8_g1",
+     "status": "pass",
+     "fps": 2.384301757230395
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 11.19,
+   "construction": 9.65,
+   "bootstrap": 37.400000000000006,
+   "loop": 619.24,
+   "post": 7.101000070571899,
+   "in_bench": 684.5999999046326,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K2_t3_E",
+   "role": "equal",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K2",
+   "trial": 3,
+   "start": 47105,
+   "duration": 404,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K2_t3_E",
+     "status": "pass",
+     "fps": 4.503693028283192
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 27.57,
+   "construction": 8.560000000000002,
+   "bootstrap": 35.82999999999999,
+   "loop": 327.79,
+   "post": 1.6019999980926514,
+   "in_bench": 401.3599998950958,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K2_trace_E",
+   "role": "trace_equal",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K2",
+   "trial": 0,
+   "start": 47509,
+   "duration": 441,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K2_trace_E",
+     "status": "pass",
+     "fps": 4.505722267279445
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 30.51,
+   "construction": 8.649999999999995,
+   "bootstrap": 35.57000000000001,
+   "loop": 327.81,
+   "post": 32.87100005149841,
+   "in_bench": 435.4100000858307,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K2_trace_C",
+   "role": "trace_calibrated",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K2",
+   "trial": 0,
+   "start": 47950,
+   "duration": 448,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K2_trace_C",
+     "status": "pass",
+     "fps": 4.570592805886924
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 2,
+   "steps": 1500,
+   "read_in": 39.72,
+   "construction": 8.5,
+   "bootstrap": 35.53,
+   "loop": 322.9,
+   "post": 32.75999999046326,
+   "in_bench": 439.4100000858307,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "cal_3d_n200_k8_K4",
+   "role": "calibration",
+   "case": "cavity3d_n200_k8",
+   "slabs": 4,
+   "point": "3d_n200_k8_K4",
+   "start": 48398,
+   "duration": 267,
+   "pilot_count": 2,
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "pilots": 2
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K4_t1_R1_3d_n200_k8",
+   "role": "reference",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K4",
+   "trial": 1,
+   "start": 48665,
+   "duration": 722,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K4_t1_R1_3d_n200_k8_g0",
+     "status": "pass",
+     "fps": 2.3529411764705883
+    },
+    {
+     "label": "3d_n200_k8_K4_t1_R1_3d_n200_k8_g1",
+     "status": "pass",
+     "fps": 2.3729859281934456
+    },
+    {
+     "label": "3d_n200_k8_K4_t1_R1_3d_n200_k8_g2",
+     "status": "pass",
+     "fps": 2.362669816893089
+    },
+    {
+     "label": "3d_n200_k8_K4_t1_R1_3d_n200_k8_g3",
+     "status": "pass",
+     "fps": 2.368938478667709
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 15.69,
+   "construction": 20.190000000000005,
+   "bootstrap": 48.68999999999999,
+   "loop": 622.8499999999999,
+   "post": 6.147000074386597,
+   "in_bench": 714.0,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K4_t1_E",
+   "role": "equal",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K4",
+   "trial": 1,
+   "start": 49387,
+   "duration": 259,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K4_t1_E",
+     "status": "pass",
+     "fps": 8.493290300662476
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 33.98,
+   "construction": 8.760000000000005,
+   "bootstrap": 36.57,
+   "loop": 173.8,
+   "post": 1.4589998722076416,
+   "in_bench": 254.55999994277954,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K4_t1_C",
+   "role": "calibrated",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K4",
+   "trial": 1,
+   "start": 49646,
+   "duration": 248,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K4_t1_C",
+     "status": "pass",
+     "fps": 8.580008580008581
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 20.04,
+   "construction": 11.400000000000002,
+   "bootstrap": 36.17,
+   "loop": 172.13,
+   "post": 1.4789998531341553,
+   "in_bench": 241.22000002861023,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K4_t2_E",
+   "role": "equal",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K4",
+   "trial": 2,
+   "start": 49894,
+   "duration": 261,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K4_t2_E",
+     "status": "pass",
+     "fps": 8.475294516484448
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 34.76,
+   "construction": 8.770000000000003,
+   "bootstrap": 36.620000000000005,
+   "loop": 174.34,
+   "post": 1.505000114440918,
+   "in_bench": 255.99000000953674,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K4_t2_C",
+   "role": "calibrated",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K4",
+   "trial": 2,
+   "start": 50155,
+   "duration": 270,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K4_t2_C",
+     "status": "pass",
+     "fps": 8.523695874531198
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 46.21,
+   "construction": 8.769999999999996,
+   "bootstrap": 35.970000000000006,
+   "loop": 173.43,
+   "post": 1.4730000495910645,
+   "in_bench": 265.84999990463257,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K4_t2_R1_3d_n200_k8",
+   "role": "reference",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K4",
+   "trial": 2,
+   "start": 50425,
+   "duration": 702,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K4_t2_R1_3d_n200_k8_g0",
+     "status": "pass",
+     "fps": 2.3565453045834803
+    },
+    {
+     "label": "3d_n200_k8_K4_t2_R1_3d_n200_k8_g1",
+     "status": "pass",
+     "fps": 2.368657918423421
+    },
+    {
+     "label": "3d_n200_k8_K4_t2_R1_3d_n200_k8_g2",
+     "status": "pass",
+     "fps": 2.355046865432622
+    },
+    {
+     "label": "3d_n200_k8_K4_t2_R1_3d_n200_k8_g3",
+     "status": "pass",
+     "fps": 2.35754532380885
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 11.57,
+   "construction": 13.21,
+   "bootstrap": 45.28,
+   "loop": 626.3499999999999,
+   "post": 2.2200000286102295,
+   "in_bench": 698.6330001354218,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K4_t3_C",
+   "role": "calibrated",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K4",
+   "trial": 3,
+   "start": 51127,
+   "duration": 267,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K4_t3_C",
+     "status": "pass",
+     "fps": 8.565310492505354
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 42.23,
+   "construction": 8.900000000000006,
+   "bootstrap": 36.12,
+   "loop": 172.27999999999997,
+   "post": 1.4619998931884766,
+   "in_bench": 260.99000000953674,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K4_t3_R1_3d_n200_k8",
+   "role": "reference",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K4",
+   "trial": 3,
+   "start": 51394,
+   "duration": 708,
+   "members": 4,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K4_t3_R1_3d_n200_k8_g0",
+     "status": "pass",
+     "fps": 2.352553697038135
+    },
+    {
+     "label": "3d_n200_k8_K4_t3_R1_3d_n200_k8_g1",
+     "status": "pass",
+     "fps": 2.3731548720869524
+    },
+    {
+     "label": "3d_n200_k8_K4_t3_R1_3d_n200_k8_g2",
+     "status": "pass",
+     "fps": 2.3612193336639042
+    },
+    {
+     "label": "3d_n200_k8_K4_t3_R1_3d_n200_k8_g3",
+     "status": "pass",
+     "fps": 2.3616096731532212
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 11.13,
+   "construction": 13.319999999999999,
+   "bootstrap": 47.22,
+   "loop": 625.36,
+   "post": 4.019999980926514,
+   "in_bench": 701.2510001659393,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K4_t3_E",
+   "role": "equal",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K4",
+   "trial": 3,
+   "start": 52102,
+   "duration": 259,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K4_t3_E",
+     "status": "pass",
+     "fps": 8.489685032685287
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 33.42,
+   "construction": 8.949999999999996,
+   "bootstrap": 36.1,
+   "loop": 173.96,
+   "post": 1.510000228881836,
+   "in_bench": 253.94000005722046,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K4_trace_E",
+   "role": "trace_equal",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K4",
+   "trial": 0,
+   "start": 52361,
+   "duration": 307,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K4_trace_E",
+     "status": "pass",
+     "fps": 8.505571149102662
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 42.87,
+   "construction": 8.840000000000003,
+   "bootstrap": 36.089999999999996,
+   "loop": 173.65999999999997,
+   "post": 39.651000022888184,
+   "in_bench": 301.1099998950958,
+   "pilots": 0
+  },
+  {
+   "job": "01_e7_b3A2_1689810",
+   "group": "3d_n200_k8_K4_trace_C",
+   "role": "trace_calibrated",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K4",
+   "trial": 0,
+   "start": 52668,
+   "duration": 305,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K4_trace_C",
+     "status": "pass",
+     "fps": 8.555051758063136
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 4,
+   "steps": 1500,
+   "read_in": 42.35,
+   "construction": 8.93,
+   "bootstrap": 36.56,
+   "loop": 172.63000000000002,
+   "post": 39.146000146865845,
+   "in_bench": 299.6199998855591,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "cal_3d_n200_k8_K8",
+   "role": "calibration",
+   "case": "cavity3d_n200_k8",
+   "slabs": 8,
+   "point": "3d_n200_k8_K8",
+   "start": 33309,
+   "duration": 187,
+   "pilot_count": 2,
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "pilots": 2
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n200_k8_K8_t1_R1_3d_n200",
+   "role": "reference",
+   "case": "cavity3d_n200",
+   "point": "3d_n200_k8_K8",
+   "trial": 1,
+   "start": 33496,
+   "duration": 108,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K8_t1_R1_3d_n200_g0",
+     "status": "pass",
+     "fps": 17.032873445750297
+    },
+    {
+     "label": "3d_n200_k8_K8_t1_R1_3d_n200_g1",
+     "status": "pass",
+     "fps": 16.5016501650165
+    },
+    {
+     "label": "3d_n200_k8_K8_t1_R1_3d_n200_g2",
+     "status": "pass",
+     "fps": 16.73360107095047
+    },
+    {
+     "label": "3d_n200_k8_K8_t1_R1_3d_n200_g3",
+     "status": "pass",
+     "fps": 16.966406515100104
+    },
+    {
+     "label": "3d_n200_k8_K8_t1_R1_3d_n200_g4",
+     "status": "pass",
+     "fps": 16.914749661705006
+    },
+    {
+     "label": "3d_n200_k8_K8_t1_R1_3d_n200_g5",
+     "status": "pass",
+     "fps": 16.849199663016005
+    },
+    {
+     "label": "3d_n200_k8_K8_t1_R1_3d_n200_g6",
+     "status": "pass",
+     "fps": 16.661112962345882
+    },
+    {
+     "label": "3d_n200_k8_K8_t1_R1_3d_n200_g7",
+     "status": "pass",
+     "fps": 16.70564650851988
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 1.1,
+   "construction": 4.51,
+   "bootstrap": 4.509999999999999,
+   "loop": 88.64,
+   "post": 1.5439999103546143,
+   "in_bench": 104.12299990653992,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n200_k8_K8_t1_R1_3d_n200_k8",
+   "role": "reference",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K8",
+   "trial": 1,
+   "start": 33604,
+   "duration": 704,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K8_t1_R1_3d_n200_k8_g0",
+     "status": "pass",
+     "fps": 2.3559901048415597
+    },
+    {
+     "label": "3d_n200_k8_K8_t1_R1_3d_n200_k8_g1",
+     "status": "pass",
+     "fps": 2.308136180034622
+    },
+    {
+     "label": "3d_n200_k8_K8_t1_R1_3d_n200_k8_g2",
+     "status": "pass",
+     "fps": 2.344171218265782
+    },
+    {
+     "label": "3d_n200_k8_K8_t1_R1_3d_n200_k8_g3",
+     "status": "pass",
+     "fps": 2.389657562071355
+    },
+    {
+     "label": "3d_n200_k8_K8_t1_R1_3d_n200_k8_g4",
+     "status": "pass",
+     "fps": 2.392458969328676
+    },
+    {
+     "label": "3d_n200_k8_K8_t1_R1_3d_n200_k8_g5",
+     "status": "pass",
+     "fps": 2.3829381627546766
+    },
+    {
+     "label": "3d_n200_k8_K8_t1_R1_3d_n200_k8_g6",
+     "status": "pass",
+     "fps": 2.3485204321277595
+    },
+    {
+     "label": "3d_n200_k8_K8_t1_R1_3d_n200_k8_g7",
+     "status": "pass",
+     "fps": 2.359882005899705
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 18.5,
+   "construction": 10.420000000000002,
+   "bootstrap": 31.4,
+   "loop": 628.7199999999999,
+   "post": 11.443000078201294,
+   "in_bench": 700.4900000095367,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n200_k8_K8_t1_E",
+   "role": "equal",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K8",
+   "trial": 1,
+   "start": 34308,
+   "duration": 150,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K8_t1_E",
+     "status": "pass",
+     "fps": 16.504373659019638
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 20.05,
+   "construction": 9.14,
+   "bootstrap": 28.23,
+   "loop": 89.33,
+   "post": 1.2770001888275146,
+   "in_bench": 148.02999997138977,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n200_k8_K8_t1_C",
+   "role": "calibrated",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K8",
+   "trial": 1,
+   "start": 34458,
+   "duration": 154,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K8_t1_C",
+     "status": "pass",
+     "fps": 16.477179106936894
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 21.34,
+   "construction": 10.77,
+   "bootstrap": 28.22,
+   "loop": 89.52,
+   "post": 1.2709999084472656,
+   "in_bench": 151.11999988555908,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n200_k8_K8_t2_E",
+   "role": "equal",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K8",
+   "trial": 2,
+   "start": 34612,
+   "duration": 149,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K8_t2_E",
+     "status": "pass",
+     "fps": 16.42845408247084
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 19.67,
+   "construction": 7.969999999999999,
+   "bootstrap": 28.22,
+   "loop": 89.85000000000001,
+   "post": 1.2940001487731934,
+   "in_bench": 147.00999999046326,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n200_k8_K8_t2_C",
+   "role": "calibrated",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K8",
+   "trial": 2,
+   "start": 34761,
+   "duration": 153,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K8_t2_C",
+     "status": "pass",
+     "fps": 16.531658125309967
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 21.11,
+   "construction": 7.960000000000001,
+   "bootstrap": 28.049999999999997,
+   "loop": 89.25999999999999,
+   "post": 1.2730000019073486,
+   "in_bench": 147.65000009536743,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n200_k8_K8_t2_R1_3d_n200",
+   "role": "reference",
+   "case": "cavity3d_n200",
+   "point": "3d_n200_k8_K8",
+   "trial": 2,
+   "start": 34914,
+   "duration": 108,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K8_t2_R1_3d_n200_g0",
+     "status": "pass",
+     "fps": 16.960651289009498
+    },
+    {
+     "label": "3d_n200_k8_K8_t2_R1_3d_n200_g1",
+     "status": "pass",
+     "fps": 16.43115346697338
+    },
+    {
+     "label": "3d_n200_k8_K8_t2_R1_3d_n200_g2",
+     "status": "pass",
+     "fps": 16.644474034620508
+    },
+    {
+     "label": "3d_n200_k8_K8_t2_R1_3d_n200_g3",
+     "status": "pass",
+     "fps": 16.889039013680122
+    },
+    {
+     "label": "3d_n200_k8_K8_t2_R1_3d_n200_g4",
+     "status": "pass",
+     "fps": 16.82935038707506
+    },
+    {
+     "label": "3d_n200_k8_K8_t2_R1_3d_n200_g5",
+     "status": "pass",
+     "fps": 16.758840288252053
+    },
+    {
+     "label": "3d_n200_k8_K8_t2_R1_3d_n200_g6",
+     "status": "pass",
+     "fps": 16.61405549094534
+    },
+    {
+     "label": "3d_n200_k8_K8_t2_R1_3d_n200_g7",
+     "status": "pass",
+     "fps": 16.61405549094534
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 1.15,
+   "construction": 4.5600000000000005,
+   "bootstrap": 4.31,
+   "loop": 88.23,
+   "post": 2.4630000591278076,
+   "in_bench": 105.00500011444092,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n200_k8_K8_t2_R1_3d_n200_k8",
+   "role": "reference",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K8",
+   "trial": 2,
+   "start": 35022,
+   "duration": 702,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K8_t2_R1_3d_n200_k8_g0",
+     "status": "pass",
+     "fps": 2.3523323375126437
+    },
+    {
+     "label": "3d_n200_k8_K8_t2_R1_3d_n200_k8_g1",
+     "status": "pass",
+     "fps": 2.308242734805992
+    },
+    {
+     "label": "3d_n200_k8_K8_t2_R1_3d_n200_k8_g2",
+     "status": "pass",
+     "fps": 2.344336084021005
+    },
+    {
+     "label": "3d_n200_k8_K8_t2_R1_3d_n200_k8_g3",
+     "status": "pass",
+     "fps": 2.396242691459791
+    },
+    {
+     "label": "3d_n200_k8_K8_t2_R1_3d_n200_k8_g4",
+     "status": "pass",
+     "fps": 2.3963575365444525
+    },
+    {
+     "label": "3d_n200_k8_K8_t2_R1_3d_n200_k8_g5",
+     "status": "pass",
+     "fps": 2.377951632463796
+    },
+    {
+     "label": "3d_n200_k8_K8_t2_R1_3d_n200_k8_g6",
+     "status": "pass",
+     "fps": 2.3495688541152697
+    },
+    {
+     "label": "3d_n200_k8_K8_t2_R1_3d_n200_k8_g7",
+     "status": "pass",
+     "fps": 2.355546133371022
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 8.8,
+   "construction": 9.989999999999998,
+   "bootstrap": 37.28,
+   "loop": 626.16,
+   "post": 13.828999996185303,
+   "in_bench": 698.172000169754,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n200_k8_K8_t3_C",
+   "role": "calibrated",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K8",
+   "trial": 3,
+   "start": 35724,
+   "duration": 152,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K8_t3_C",
+     "status": "pass",
+     "fps": 16.49892756970797
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 21.25,
+   "construction": 9.129999999999999,
+   "bootstrap": 28.2,
+   "loop": 89.42,
+   "post": 1.2750000953674316,
+   "in_bench": 149.2699999809265,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n200_k8_K8_t3_R1_3d_n200",
+   "role": "reference",
+   "case": "cavity3d_n200",
+   "point": "3d_n200_k8_K8",
+   "trial": 3,
+   "start": 35876,
+   "duration": 104,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K8_t3_R1_3d_n200_g0",
+     "status": "pass",
+     "fps": 17.003910899506884
+    },
+    {
+     "label": "3d_n200_k8_K8_t3_R1_3d_n200_g1",
+     "status": "pass",
+     "fps": 16.474464579901152
+    },
+    {
+     "label": "3d_n200_k8_K8_t3_R1_3d_n200_g2",
+     "status": "pass",
+     "fps": 16.70285618840822
+    },
+    {
+     "label": "3d_n200_k8_K8_t3_R1_3d_n200_g3",
+     "status": "pass",
+     "fps": 16.91188905800778
+    },
+    {
+     "label": "3d_n200_k8_K8_t3_R1_3d_n200_g4",
+     "status": "pass",
+     "fps": 16.818028927009752
+    },
+    {
+     "label": "3d_n200_k8_K8_t3_R1_3d_n200_g5",
+     "status": "pass",
+     "fps": 16.76727028839705
+    },
+    {
+     "label": "3d_n200_k8_K8_t3_R1_3d_n200_g6",
+     "status": "pass",
+     "fps": 16.67500416875104
+    },
+    {
+     "label": "3d_n200_k8_K8_t3_R1_3d_n200_g7",
+     "status": "pass",
+     "fps": 16.658337497917707
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 1.13,
+   "construction": 3.46,
+   "bootstrap": 4.25,
+   "loop": 88.67999999999999,
+   "post": 1.7989997863769531,
+   "in_bench": 101.95899987220764,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n200_k8_K8_t3_R1_3d_n200_k8",
+   "role": "reference",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K8",
+   "trial": 3,
+   "start": 35980,
+   "duration": 702,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K8_t3_R1_3d_n200_k8_g0",
+     "status": "pass",
+     "fps": 2.3634515846942876
+    },
+    {
+     "label": "3d_n200_k8_K8_t3_R1_3d_n200_k8_g1",
+     "status": "pass",
+     "fps": 2.310482659827638
+    },
+    {
+     "label": "3d_n200_k8_K8_t3_R1_3d_n200_k8_g2",
+     "status": "pass",
+     "fps": 2.344995779007598
+    },
+    {
+     "label": "3d_n200_k8_K8_t3_R1_3d_n200_k8_g3",
+     "status": "pass",
+     "fps": 2.396644697423607
+    },
+    {
+     "label": "3d_n200_k8_K8_t3_R1_3d_n200_k8_g4",
+     "status": "pass",
+     "fps": 2.380498952580461
+    },
+    {
+     "label": "3d_n200_k8_K8_t3_R1_3d_n200_k8_g5",
+     "status": "pass",
+     "fps": 2.3778950872687497
+    },
+    {
+     "label": "3d_n200_k8_K8_t3_R1_3d_n200_k8_g6",
+     "status": "pass",
+     "fps": 2.3551023291962037
+    },
+    {
+     "label": "3d_n200_k8_K8_t3_R1_3d_n200_k8_g7",
+     "status": "pass",
+     "fps": 2.356156637293247
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 8.8,
+   "construction": 10.82,
+   "bootstrap": 37.41,
+   "loop": 626.15,
+   "post": 12.680000066757202,
+   "in_bench": 697.7170000076294,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n200_k8_K8_t3_E",
+   "role": "equal",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K8",
+   "trial": 3,
+   "start": 36682,
+   "duration": 153,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K8_t3_E",
+     "status": "pass",
+     "fps": 16.512549537648614
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 19.76,
+   "construction": 9.04,
+   "bootstrap": 28.139999999999997,
+   "loop": 89.4,
+   "post": 1.2669999599456787,
+   "in_bench": 147.59999990463257,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n200_k8_K8_trace_E",
+   "role": "trace_equal",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K8",
+   "trial": 0,
+   "start": 36835,
+   "duration": 194,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K8_trace_E",
+     "status": "pass",
+     "fps": 16.458196181698487
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 19.73,
+   "construction": 7.91,
+   "bootstrap": 28.229999999999997,
+   "loop": 89.66999999999999,
+   "post": 43.33099985122681,
+   "in_bench": 188.86999988555908,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n200_k8_K8_trace_C",
+   "role": "trace_calibrated",
+   "case": "cavity3d_n200_k8",
+   "point": "3d_n200_k8_K8",
+   "trial": 0,
+   "start": 37029,
+   "duration": 196,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n200_k8_K8_trace_C",
+     "status": "pass",
+     "fps": 16.526194017517767
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 21.03,
+   "construction": 9.299999999999997,
+   "bootstrap": 28.340000000000003,
+   "loop": 89.26,
+   "post": 43.48699998855591,
+   "in_bench": 191.42000007629395,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "cal_3d_n416_K8",
+   "role": "calibration",
+   "case": "cavity3d_n416",
+   "slabs": 8,
+   "point": "3d_n416_K8",
+   "start": 37226,
+   "duration": 108,
+   "pilot_count": 1,
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "pilots": 1
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n416_K8_t1_R1_3d_n416",
+   "role": "reference",
+   "case": "cavity3d_n416",
+   "point": "3d_n416_K8",
+   "trial": 1,
+   "start": 37334,
+   "duration": 769,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "3d_n416_K8_t1_R1_3d_n416_g0",
+     "status": "pass",
+     "fps": 2.1584752530812232
+    },
+    {
+     "label": "3d_n416_K8_t1_R1_3d_n416_g1",
+     "status": "pass",
+     "fps": 2.102253615876219
+    },
+    {
+     "label": "3d_n416_K8_t1_R1_3d_n416_g2",
+     "status": "pass",
+     "fps": 2.1386257191128983
+    },
+    {
+     "label": "3d_n416_K8_t1_R1_3d_n416_g3",
+     "status": "pass",
+     "fps": 2.191828862002455
+    },
+    {
+     "label": "3d_n416_K8_t1_R1_3d_n416_g4",
+     "status": "pass",
+     "fps": 2.1832154396995893
+    },
+    {
+     "label": "3d_n416_K8_t1_R1_3d_n416_g5",
+     "status": "pass",
+     "fps": 2.1749532385053723
+    },
+    {
+     "label": "3d_n416_K8_t1_R1_3d_n416_g6",
+     "status": "pass",
+     "fps": 2.1472129176329124
+    },
+    {
+     "label": "3d_n416_K8_t1_R1_3d_n416_g7",
+     "status": "pass",
+     "fps": 2.145784606141236
+    }
+   ],
+   "cold": true,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 9.55,
+   "construction": 11.25,
+   "bootstrap": 39.42999999999999,
+   "loop": 686.5699999999999,
+   "post": 15.182999849319458,
+   "in_bench": 764.3269999027252,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n416_K8_t1_E",
+   "role": "equal",
+   "case": "cavity3d_n416",
+   "point": "3d_n416_K8",
+   "trial": 1,
+   "start": 38103,
+   "duration": 167,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n416_K8_t1_E",
+     "status": "pass",
+     "fps": 15.051173991571343
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 21.91,
+   "construction": 10.030000000000001,
+   "bootstrap": 32.36,
+   "loop": 97.64,
+   "post": 1.5220000743865967,
+   "in_bench": 163.47000002861023,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n416_K8_t1_C",
+   "role": "calibrated",
+   "case": "cavity3d_n416",
+   "point": "3d_n416_K8",
+   "trial": 1,
+   "start": 38270,
+   "duration": 168,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n416_K8_t1_C",
+     "status": "pass",
+     "fps": 15.05797319680771
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 23.32,
+   "construction": 8.759999999999998,
+   "bootstrap": 32.230000000000004,
+   "loop": 97.57,
+   "post": 1.5239999294281006,
+   "in_bench": 163.4100000858307,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n416_K8_t2_E",
+   "role": "equal",
+   "case": "cavity3d_n416",
+   "point": "3d_n416_K8",
+   "trial": 2,
+   "start": 38438,
+   "duration": 166,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n416_K8_t2_E",
+     "status": "pass",
+     "fps": 15.110305228165608
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 21.79,
+   "construction": 8.810000000000002,
+   "bootstrap": 32.3,
+   "loop": 97.29999999999998,
+   "post": 1.5369999408721924,
+   "in_bench": 161.74000000953674,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n416_K8_t2_C",
+   "role": "calibrated",
+   "case": "cavity3d_n416",
+   "point": "3d_n416_K8",
+   "trial": 2,
+   "start": 38604,
+   "duration": 167,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n416_K8_t2_C",
+     "status": "pass",
+     "fps": 15.09433962264151
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 23.24,
+   "construction": 8.820000000000004,
+   "bootstrap": 32.209999999999994,
+   "loop": 97.34000000000002,
+   "post": 1.5399999618530273,
+   "in_bench": 163.15000009536743,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n416_K8_t2_R1_3d_n416",
+   "role": "reference",
+   "case": "cavity3d_n416",
+   "point": "3d_n416_K8",
+   "trial": 2,
+   "start": 38771,
+   "duration": 765,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "3d_n416_K8_t2_R1_3d_n416_g0",
+     "status": "pass",
+     "fps": 2.155915833045878
+    },
+    {
+     "label": "3d_n416_K8_t2_R1_3d_n416_g1",
+     "status": "pass",
+     "fps": 2.1052631578947367
+    },
+    {
+     "label": "3d_n416_K8_t2_R1_3d_n416_g2",
+     "status": "pass",
+     "fps": 2.1410983834707205
+    },
+    {
+     "label": "3d_n416_K8_t2_R1_3d_n416_g3",
+     "status": "pass",
+     "fps": 2.1880880486630785
+    },
+    {
+     "label": "3d_n416_K8_t2_R1_3d_n416_g4",
+     "status": "pass",
+     "fps": 2.1825483434458075
+    },
+    {
+     "label": "3d_n416_K8_t2_R1_3d_n416_g5",
+     "status": "pass",
+     "fps": 2.1712226154547625
+    },
+    {
+     "label": "3d_n416_K8_t2_R1_3d_n416_g6",
+     "status": "pass",
+     "fps": 2.1491972748178556
+    },
+    {
+     "label": "3d_n416_K8_t2_R1_3d_n416_g7",
+     "status": "pass",
+     "fps": 2.1519722825970002
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 9.66,
+   "construction": 11.04,
+   "bootstrap": 36.45,
+   "loop": 686.39,
+   "post": 15.046000003814697,
+   "in_bench": 761.4300000667572,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n416_K8_t3_C",
+   "role": "calibrated",
+   "case": "cavity3d_n416",
+   "point": "3d_n416_K8",
+   "trial": 3,
+   "start": 39536,
+   "duration": 170,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n416_K8_t3_C",
+     "status": "pass",
+     "fps": 15.119443604475356
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 23.44,
+   "construction": 9.940000000000001,
+   "bootstrap": 32.24,
+   "loop": 97.28,
+   "post": 1.5320000648498535,
+   "in_bench": 164.4300000667572,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n416_K8_t3_R1_3d_n416",
+   "role": "reference",
+   "case": "cavity3d_n416",
+   "point": "3d_n416_K8",
+   "trial": 3,
+   "start": 39706,
+   "duration": 769,
+   "members": 8,
+   "member_runs": [
+    {
+     "label": "3d_n416_K8_t3_R1_3d_n416_g0",
+     "status": "pass",
+     "fps": 2.1595007234327426
+    },
+    {
+     "label": "3d_n416_K8_t3_R1_3d_n416_g1",
+     "status": "pass",
+     "fps": 2.1026956558307752
+    },
+    {
+     "label": "3d_n416_K8_t3_R1_3d_n416_g2",
+     "status": "pass",
+     "fps": 2.137163129661687
+    },
+    {
+     "label": "3d_n416_K8_t3_R1_3d_n416_g3",
+     "status": "pass",
+     "fps": 2.1888064438461705
+    },
+    {
+     "label": "3d_n416_K8_t3_R1_3d_n416_g4",
+     "status": "pass",
+     "fps": 2.184407697852727
+    },
+    {
+     "label": "3d_n416_K8_t3_R1_3d_n416_g5",
+     "status": "pass",
+     "fps": 2.1708926710663428
+    },
+    {
+     "label": "3d_n416_K8_t3_R1_3d_n416_g6",
+     "status": "pass",
+     "fps": 2.1486892995272884
+    },
+    {
+     "label": "3d_n416_K8_t3_R1_3d_n416_g7",
+     "status": "pass",
+     "fps": 2.1441283046377495
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 1,
+   "steps": 1500,
+   "read_in": 9.78,
+   "construction": 10.340000000000002,
+   "bootstrap": 39.92999999999999,
+   "loop": 679.95,
+   "post": 22.009000062942505,
+   "in_bench": 764.228000164032,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n416_K8_t3_E",
+   "role": "equal",
+   "case": "cavity3d_n416",
+   "point": "3d_n416_K8",
+   "trial": 3,
+   "start": 40475,
+   "duration": 168,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n416_K8_t3_E",
+     "status": "pass",
+     "fps": 15.080681646810435
+    }
+   ],
+   "cold": false,
+   "seam": false,
+   "traced": false,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 22.02,
+   "construction": 10.080000000000002,
+   "bootstrap": 32.01,
+   "loop": 97.42999999999999,
+   "post": 1.5329999923706055,
+   "in_bench": 163.07999992370605,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n416_K8_trace_E",
+   "role": "trace_equal",
+   "case": "cavity3d_n416",
+   "point": "3d_n416_K8",
+   "trial": 0,
+   "start": 40643,
+   "duration": 266,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n416_K8_trace_E",
+     "status": "pass",
+     "fps": 15.078407720144755
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 21.82,
+   "construction": 8.809999999999999,
+   "bootstrap": 32.39,
+   "loop": 97.39999999999998,
+   "post": 100.82500004768372,
+   "in_bench": 261.24000000953674,
+   "pilots": 0
+  },
+  {
+   "job": "04_e7_b3B_1683994",
+   "group": "3d_n416_K8_trace_C",
+   "role": "trace_calibrated",
+   "case": "cavity3d_n416",
+   "point": "3d_n416_K8",
+   "trial": 0,
+   "start": 40909,
+   "duration": 268,
+   "members": 1,
+   "member_runs": [
+    {
+     "label": "3d_n416_K8_trace_C",
+     "status": "pass",
+     "fps": 15.16300227445034
+    }
+   ],
+   "cold": true,
+   "seam": true,
+   "traced": true,
+   "slabs": 8,
+   "steps": 1500,
+   "read_in": 23.33,
+   "construction": 10.020000000000003,
+   "bootstrap": 32.279999999999994,
+   "loop": 96.9,
+   "post": 100.9689998626709,
+   "in_bench": 263.5,
+   "pilots": 0
+  }
+ ]
+}

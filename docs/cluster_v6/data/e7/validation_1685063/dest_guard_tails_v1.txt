@@ -1,0 +1,15 @@
+# dest guard tails of the rc1 / rc2 pairs (job 1685063): per run, over its 14 workers, the longest dest guard wait
+# (worker_segments_us.dest_guard max, us) - median, largest, and how many workers exceeded 12 ms; source results_1685063.jsonl
+label	steady_fps	workers	max_median_ms	max_largest_ms	workers_over_12ms	p90_largest_ms
+ab_2d_n8000_K8_t1_C_rc1	88.3	14	18.0	19.0	7	11.6
+ab_2d_n8000_K8_t1_C_rc2	89.3	14	8.2	10.1	0	9.0
+ab_2d_n8000_K8_t2_C_rc2	89.2	14	8.0	9.4	0	8.7
+ab_2d_n8000_K8_t2_C_rc1	88.5	14	18.3	110.3	8	15.6
+ab_2d_n8000_K8_t3_C_rc1	88.6	14	11.5	69.7	6	14.9
+ab_2d_n8000_K8_t3_C_rc2	89.2	14	7.6	9.3	0	9.0
+ab_3d_n160_k8_K8_t1_C_rc1	30.8	14	19.6	37.2	11	30.2
+ab_3d_n160_k8_K8_t1_C_rc2	30.8	14	10.3	27.3	6	26.7
+ab_3d_n160_k8_K8_t2_C_rc2	30.8	14	23.0	65.8	8	26.9
+ab_3d_n160_k8_K8_t2_C_rc1	30.9	14	20.3	74.2	11	30.2
+ab_3d_n160_k8_K8_t3_C_rc1	30.7	14	17.5	37.0	10	30.2
+ab_3d_n160_k8_K8_t3_C_rc2	30.7	14	18.4	27.9	8	26.8

@@ -1,0 +1,389 @@
+slurmstepd: error: Unable to create TMPDIR [/dev/shm/scxm138/tmp]: No such file or directory
+slurmstepd: error: Setting TMPDIR to /tmp
+=== host wqd10nah09g5 job 1691733 2026-10-12T11:26:22+08:00
+054d6a6f9071e04e2131f65f380144b42cd3d84fd3de940fa18159e994ba36a0  /data/home/scxm138/run/e7_wake_repro/e7_wake_repro.py
+a0933909aab5c22f0b29d78a8bf7641570a606c67eaa15725bcbc19c3b293629  /var/spool/slurmd/job1691733/slurm_script
+=== GPU health
+0, 00000000:16:00.0
+1, 00000000:27:00.0
+2, 00000000:38:00.0
+3, 00000000:5A:00.0
+4, 00000000:98:00.0
+5, 00000000:A8:00.0
+6, 00000000:B8:00.0
+7, 00000000:D8:00.0
+=== kernel
+Linux wqd10nah09g5 5.15.0-176-generic #186-Ubuntu SMP Fri Mar 13 11:01:42 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+CONFIG_NO_HZ_COMMON=y
+# CONFIG_HZ_PERIODIC is not set
+CONFIG_NO_HZ_IDLE=y
+CONFIG_NO_HZ=y
+CONFIG_HIGH_RES_TIMERS=y
+CONFIG_PREEMPT_VOLUNTARY=y
+CONFIG_FUTEX=y
+CONFIG_FUTEX_PI=y
+# CONFIG_HZ_100 is not set
+CONFIG_HZ_250=y
+# CONFIG_HZ_300 is not set
+# CONFIG_HZ_1000 is not set
+CONFIG_HZ=250
+CONFIG_PREEMPT_NOTIFIERS=y
+CLK_TCK 100
+clocksource tsc
+cmdline BOOT_IMAGE=/vmlinuz-5.15.0-176-generic root=UUID=9bf0da33-9a2f-4d42-abc2-9d46f95df6b4 ro
+timer_migration 1
+=== driver
+NVRM version: NVIDIA UNIX Open Kernel Module for x86_64  580.82.07  Release Build  (dvs-builder@U22-I3-B07-03-2)  Wed Aug 27 18:20:54 UTC 2025
+GCC version:  gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04.2) 
+index, name, uuid, driver_version, pci.bus_id, persistence_mode, compute_mode
+0, NVIDIA GeForce RTX 5090, GPU-87b9f16d-fc46-0373-9089-13092e4c97d6, 580.82.07, 00000000:16:00.0, Enabled, Default
+1, NVIDIA GeForce RTX 5090, GPU-b534f517-08c7-cbaf-730d-2b3af9f8c4c0, 580.82.07, 00000000:27:00.0, Enabled, Default
+2, NVIDIA GeForce RTX 5090, GPU-684bcf60-03ca-538d-8d0c-cae7b2c973a6, 580.82.07, 00000000:38:00.0, Enabled, Default
+3, NVIDIA GeForce RTX 5090, GPU-5d3de7a1-82d7-14fa-7619-59548deb4e4f, 580.82.07, 00000000:5A:00.0, Enabled, Default
+4, NVIDIA GeForce RTX 5090, GPU-17cfcb62-34a4-fe5e-6523-45c6ee5cd02c, 580.82.07, 00000000:98:00.0, Enabled, Default
+5, NVIDIA GeForce RTX 5090, GPU-00f007df-efec-4060-bf56-d5645c29b26a, 580.82.07, 00000000:A8:00.0, Enabled, Default
+6, NVIDIA GeForce RTX 5090, GPU-d7fb0cd1-e9ef-3524-a9c6-b51ed5ae567b, 580.82.07, 00000000:B8:00.0, Enabled, Default
+7, NVIDIA GeForce RTX 5090, GPU-77b38bf1-cd6d-ee18-c192-687d675a4f08, 580.82.07, 00000000:D8:00.0, Enabled, Default
+	[4mGPU0	GPU1	GPU2	GPU3	GPU4	GPU5	GPU6	GPU7	NIC0	NIC1	CPU Affinity	NUMA Affinity	GPU NUMA ID[0m
+GPU0	 X 	NODE	NODE	NODE	SYS	SYS	SYS	SYS	SYS	NODE	0-15,64-79	0		N/A
+GPU1	NODE	 X 	NODE	NODE	SYS	SYS	SYS	SYS	SYS	NODE	0-15,64-79	0		N/A
+GPU2	NODE	NODE	 X 	NODE	SYS	SYS	SYS	SYS	SYS	NODE	0-15,64-79	0		N/A
+GPU3	NODE	NODE	NODE	 X 	SYS	SYS	SYS	SYS	SYS	NODE	0-15,64-79	0		N/A
+GPU4	SYS	SYS	SYS	SYS	 X 	NODE	NODE	NODE	NODE	SYS	32-47,96-111	1		N/A
+GPU5	SYS	SYS	SYS	SYS	NODE	 X 	NODE	NODE	NODE	SYS	32-47,96-111	1		N/A
+GPU6	SYS	SYS	SYS	SYS	NODE	NODE	 X 	NODE	NODE	SYS	32-47,96-111	1		N/A
+GPU7	SYS	SYS	SYS	SYS	NODE	NODE	NODE	 X 	NODE	SYS	32-47,96-111	1		N/A
+NIC0	SYS	SYS	SYS	SYS	NODE	NODE	NODE	NODE	 X 	SYS				
+NIC1	NODE	NODE	NODE	NODE	SYS	SYS	SYS	SYS	SYS	 X 				
+
+Legend:
+
+  X    = Self
+  SYS  = Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g., QPI/UPI)
+  NODE = Connection traversing PCIe as well as the interconnect between PCIe Host Bridges within a NUMA node
+  PHB  = Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)
+  PXB  = Connection traversing multiple PCIe bridges (without traversing the PCIe Host Bridge)
+  PIX  = Connection traversing at most a single PCIe bridge
+  NV#  = Connection traversing a bonded set of # NVLinks
+
+NIC Legend:
+
+  NIC0: mlx5_2
+  NIC1: mlx5_bond_0
+
+Model name:                              INTEL(R) XEON(R) GOLD 6530
+Thread(s) per core:                      2
+Core(s) per socket:                      32
+Socket(s):                               2
+NUMA node(s):                            2
+NUMA node0 CPU(s):                       0-31,64-95
+NUMA node1 CPU(s):                       32-63,96-127
+3.13.15 (main, Sep  1 2026, 14:18:08) [Clang 22.1.3 ]
+vulkan package 1.3.275.1
+GPU 0 cpulist 0-31,64-95; GPU 4 cpulist 32-63,96-127
+=== GPU 0, every case 2026-10-12T11:26:30+08:00
+[repro] opening device 0 (instance, physical devices, logical device)
+{"python": "3.13.15 (main, Sep  1 2026, 14:18:08) [Clang 22.1.3 ]", "platform": "Linux-5.15.0-176-generic-x86_64-with-glibc2.35", "switch_interval_s": 0.00019999999999999998, "device": "NVIDIA GeForce RTX 5090", "driver_name": "NVIDIA", "driver_info": "580.82.07", "driver_version_raw": 2434040256, "calibrated_extension": "VK_KHR_calibrated_timestamps", "time_domain": "CLOCK_MONOTONIC_RAW", "host_clock": "clock_gettime_ns(CLOCK_MONOTONIC_RAW)", "timestamp_period_ns": 1.0, "timestamp_valid_bits": {"compute": 64, "transfer": 64}, "transfer_family": 1, "compute_family": 0, "affinity": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79], "vulkan_package": "1.3.275.1"}
+== load_only: signal host (transfer), 0 waiter(s), infinite, pattern same, load True, iterations 0, wall 8.3 s
+   load thread: 1438646 units per busy s (100.0 % of the case without waiters)
+== host_w1_infinite: signal host (transfer), 1 waiter(s), infinite, pattern same, load False, iterations 4000, wall 8.5 s
+   blocked 4000, late (> 5 ms) 87 (2.17 %); latency us p50 124 p99 7086 max 9086
+   late waits, from their start: p01 5689 p50 8835 p99 10096 us; in 10.00-10.25 ms: 29; first starter late 87/4000, later starters 0/0
+   late from start, 250 us bins (ms: count): 5.50: 1, 6.00: 1, 6.50: 2, 6.75: 2, 7.00: 2, 7.25: 3, 7.50: 6, 7.75: 6, 8.00: 6, 8.25: 4, 8.50: 7, 8.75: 8, 9.00: 2, 9.25: 2, 9.50: 3, 9.75: 3, 10.00: 29
+   waiter 0: blocked 4000, p50 124 p99 7086 max 9086 us, late 87; driver calls per waiting s 513 (1951 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.030
+== host_w2_infinite: signal host (transfer), 2 waiter(s), infinite, pattern same, load False, iterations 4000, wall 41.4 s
+   blocked 8000, late (> 5 ms) 4208 (52.60 %); latency us p50 7106 p99 9878 max 10030
+   late waits, from their start: p01 7451 p50 10099 p99 10207 us; in 10.00-10.25 ms: 4052; first starter late 2246/4000, later starters 1962/4000
+   late from start, 250 us bins (ms: count): 5.25: 1, 5.75: 3, 6.00: 4, 6.25: 8, 6.50: 6, 6.75: 6, 7.00: 6, 7.25: 10, 7.50: 13, 7.75: 12, 8.00: 10, 8.25: 15, 8.50: 12, 8.75: 12, 9.00: 9, 9.25: 19, 9.50: 6, 9.75: 4, 10.00: 4052
+   waiter 0: blocked 4000, p50 7555 p99 9885 max 10030 us, late 2469; driver calls per waiting s 144 (6948 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 1: blocked 4000, p50 169 p99 9864 max 10009 us, late 1739; driver calls per waiting s 183 (5462 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+== host_w4_infinite: signal host (transfer), 4 waiter(s), infinite, pattern same, load False, iterations 4000, wall 41.9 s
+   blocked 16000, late (> 5 ms) 12220 (76.38 %); latency us p50 7921 p99 9798 max 10032
+   late waits, from their start: p01 9132 p50 10095 p99 10188 us; in 10.00-10.25 ms: 12061; first starter late 3693/4000, later starters 8527/12000
+   late from start, 250 us bins (ms: count): 5.25: 1, 5.75: 1, 6.00: 6, 6.25: 8, 6.50: 6, 6.75: 9, 7.00: 9, 7.25: 12, 7.50: 12, 7.75: 9, 8.00: 14, 8.25: 8, 8.50: 10, 8.75: 14, 9.00: 6, 9.25: 14, 9.50: 6, 9.75: 6, 10.00: 12061, 10.25: 8
+   waiter 0: blocked 4000, p50 8096 p99 9797 max 10004 us, late 3351; driver calls per waiting s 114 (8779 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 1: blocked 4000, p50 7975 p99 9804 max 10029 us, late 3115; driver calls per waiting s 121 (8289 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 2: blocked 4000, p50 7959 p99 9795 max 9961 us, late 3081; driver calls per waiting s 122 (8219 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 3: blocked 4000, p50 7631 p99 9796 max 10032 us, late 2673; driver calls per waiting s 136 (7368 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+== gpu_w1_infinite: signal gpu (transfer), 1 waiter(s), infinite, pattern same, load False, iterations 4000, wall 10.0 s
+   blocked 4000, late (> 5 ms) 0 (0.00 %); latency us p50 237 p99 277 max 352
+   waiter 0: blocked 4000, p50 237 p99 277 max 352 us, late 0; driver calls per waiting s 434 (2302 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.024
+   clock fit: 48/48 pairs, deviation floor 5184 ns, residual max 266 ns
+== gpu_w2_infinite: signal gpu (transfer), 2 waiter(s), infinite, pattern same, load False, iterations 4000, wall 41.3 s
+   blocked 8000, late (> 5 ms) 4000 (50.00 %); latency us p50 6253 p99 9247 max 9545
+   late waits, from their start: p01 10084 p50 10096 p99 10209 us; in 10.00-10.25 ms: 4000; first starter late 1882/4000, later starters 2118/4000
+   late from start, 250 us bins (ms: count): 10.00: 4000
+   waiter 0: blocked 4000, p50 7467 p99 9303 max 9545 us, late 2989; driver calls per waiting s 123 (8160 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+   waiter 1: blocked 4000, p50 248 p99 9141 max 9450 us, late 1011; driver calls per waiting s 227 (4404 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.007
+   clock fit: 48/48 pairs, deviation floor 5184 ns, residual max 316 ns
+== gpu_w4_infinite: signal gpu (transfer), 4 waiter(s), infinite, pattern same, load False, iterations 4000, wall 41.9 s
+   blocked 16000, late (> 5 ms) 12000 (75.00 %); latency us p50 7447 p99 9340 max 9632
+   late waits, from their start: p01 10083 p50 10089 p99 10182 us; in 10.00-10.25 ms: 11998; first starter late 3599/4000, later starters 8401/12000
+   late from start, 250 us bins (ms: count): 10.00: 11998, 10.25: 2
+   waiter 0: blocked 4000, p50 7313 p99 9343 max 9608 us, late 2812; driver calls per waiting s 128 (7808 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 1: blocked 4000, p50 6709 p99 9319 max 9589 us, late 2186; driver calls per waiting s 152 (6594 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 2: blocked 4000, p50 7715 p99 9352 max 9502 us, late 3560; driver calls per waiting s 108 (9249 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 3: blocked 4000, p50 7662 p99 9325 max 9632 us, late 3442; driver calls per waiting s 111 (9024 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+   clock fit: 48/48 pairs, deviation floor 5184 ns, residual max 282 ns
+== host_w1_infinite_load: signal host (transfer), 1 waiter(s), infinite, pattern same, load True, iterations 4000, wall 9.4 s
+   blocked 4000, late (> 5 ms) 113 (2.83 %); latency us p50 125 p99 7779 max 9874
+   late waits, from their start: p01 6126 p50 9263 p99 10350 us; in 10.00-10.25 ms: 17; first starter late 113/4000, later starters 0/0
+   late from start, 250 us bins (ms: count): 5.25: 1, 6.00: 1, 6.25: 1, 7.00: 5, 7.25: 5, 7.50: 6, 7.75: 1, 8.00: 10, 8.25: 9, 8.50: 5, 8.75: 4, 9.00: 8, 9.25: 4, 9.50: 7, 9.75: 5, 10.00: 17, 10.25: 24
+   waiter 0: blocked 4000, p50 125 p99 7779 max 9874 us, late 113; driver calls per waiting s 472 (2119 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.029
+   load thread: 1405048 units per busy s (97.7 % of the case without waiters)
+== host_w2_infinite_load: signal host (transfer), 2 waiter(s), infinite, pattern same, load True, iterations 4000, wall 42.4 s
+   blocked 8000, late (> 5 ms) 4306 (53.83 %); latency us p50 7238 p99 9869 max 10225
+   late waits, from their start: p01 7658 p50 10344 p99 10361 us; in 10.00-10.25 ms: 140; first starter late 2553/4000, later starters 1753/4000
+   late from start, 250 us bins (ms: count): 6.00: 7, 6.25: 4, 6.50: 2, 6.75: 1, 7.00: 17, 7.25: 10, 7.50: 5, 7.75: 3, 8.00: 18, 8.25: 24, 8.50: 12, 8.75: 3, 9.00: 18, 9.25: 21, 9.50: 17, 9.75: 6, 10.00: 140, 10.25: 3996, 10.50: 2
+   waiter 0: blocked 4000, p50 1248 p99 9757 max 10225 us, late 1867; driver calls per waiting s 168 (5962 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.007
+   waiter 1: blocked 4000, p50 7396 p99 9893 max 10212 us, late 2439; driver calls per waiting s 141 (7099 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+   load thread: 1413906 units per busy s (98.3 % of the case without waiters)
+== host_w4_infinite_load: signal host (transfer), 4 waiter(s), infinite, pattern same, load True, iterations 4000, wall 42.5 s
+   blocked 16000, late (> 5 ms) 12307 (76.92 %); latency us p50 8123 p99 9666 max 10182
+   late waits, from their start: p01 9014 p50 10271 p99 10402 us; in 10.00-10.25 ms: 5078; first starter late 3725/4000, later starters 8582/12000
+   late from start, 250 us bins (ms: count): 5.75: 7, 6.00: 6, 6.25: 6, 6.50: 1, 6.75: 6, 7.00: 13, 7.25: 8, 7.50: 5, 7.75: 14, 8.00: 25, 8.25: 18, 8.50: 12, 8.75: 2, 9.00: 29, 9.25: 23, 9.50: 15, 9.75: 7, 10.00: 5078, 10.25: 7026, 10.50: 6
+   waiter 0: blocked 4000, p50 8255 p99 9669 max 10182 us, late 3276; driver calls per waiting s 114 (8776 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+   waiter 1: blocked 4000, p50 8318 p99 9678 max 10048 us, late 3443; driver calls per waiting s 110 (9116 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+   waiter 2: blocked 4000, p50 7517 p99 9653 max 9992 us, late 2636; driver calls per waiting s 134 (7444 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 3: blocked 4000, p50 8044 p99 9657 max 10035 us, late 2952; driver calls per waiting s 123 (8116 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+   load thread: 1382595 units per busy s (96.1 % of the case without waiters)
+== gpu_w1_infinite_load: signal gpu (transfer), 1 waiter(s), infinite, pattern same, load True, iterations 4000, wall 11.2 s
+   blocked 4000, late (> 5 ms) 0 (0.00 %); latency us p50 438 p99 499 max 564
+   waiter 0: blocked 4000, p50 438 p99 499 max 564 us, late 0; driver calls per waiting s 394 (2540 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.025
+   load thread: 1382825 units per busy s (96.1 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5216 ns, residual max 204 ns
+== gpu_w2_infinite_load: signal gpu (transfer), 2 waiter(s), infinite, pattern same, load True, iterations 4000, wall 42.3 s
+   blocked 8000, late (> 5 ms) 4000 (50.00 %); latency us p50 6552 p99 9291 max 9831
+   late waits, from their start: p01 10243 p50 10343 p99 10362 us; in 10.00-10.25 ms: 63; first starter late 2200/4000, later starters 1800/4000
+   late from start, 250 us bins (ms: count): 10.00: 63, 10.25: 3937
+   waiter 0: blocked 4000, p50 7640 p99 9492 max 9831 us, late 2955; driver calls per waiting s 120 (8328 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+   waiter 1: blocked 4000, p50 464 p99 9132 max 9700 us, late 1045; driver calls per waiting s 213 (4692 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+   load thread: 1411784 units per busy s (98.1 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5216 ns, residual max 258 ns
+== gpu_w4_infinite_load: signal gpu (transfer), 4 waiter(s), infinite, pattern same, load True, iterations 4000, wall 42.3 s
+   blocked 16000, late (> 5 ms) 12000 (75.00 %); latency us p50 7582 p99 9209 max 9936
+   late waits, from their start: p01 10088 p50 10226 p99 10370 us; in 10.00-10.25 ms: 6651; first starter late 3630/4000, later starters 8370/12000
+   late from start, 250 us bins (ms: count): 10.00: 6651, 10.25: 5347, 10.50: 2
+   waiter 0: blocked 4000, p50 7692 p99 9217 max 9364 us, late 3219; driver calls per waiting s 114 (8754 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 1: blocked 4000, p50 7828 p99 9227 max 9883 us, late 3469; driver calls per waiting s 108 (9235 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 2: blocked 4000, p50 494 p99 9168 max 9534 us, late 1968; driver calls per waiting s 157 (6361 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 3: blocked 4000, p50 7767 p99 9213 max 9936 us, late 3344; driver calls per waiting s 111 (8989 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   load thread: 1399639 units per busy s (97.3 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5184 ns, residual max 240 ns
+== gpu_w2_infinite_mixed_load: signal gpu (transfer), 2 waiter(s), infinite, pattern mixed, load True, iterations 4000, wall 38.6 s
+   blocked 8000, late (> 5 ms) 3239 (40.49 %); latency us p50 473 p99 9204 max 9854
+   late waits, from their start: p01 10081 p50 10265 p99 10350 us; in 10.00-10.25 ms: 845; first starter late 891/4000, later starters 2348/4000
+   late from start, 250 us bins (ms: count): 8.00: 1, 8.25: 1, 8.50: 3, 8.75: 1, 9.00: 5, 9.25: 5, 9.50: 3, 9.75: 5, 10.00: 845, 10.25: 2370
+   waiter 0: blocked 4000, p50 7706 p99 9298 max 9854 us, late 3198; driver calls per waiting s 114 (8752 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.014
+   waiter 1: blocked 4000, p50 458 p99 5411 max 8849 us, late 41; driver calls per waiting s 353 (2835 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+   load thread: 1407240 units per busy s (97.8 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5280 ns, residual max 242 ns
+== gpu_w2_infinite_split_load: signal gpu (transfer), 2 waiter(s), infinite, pattern split, load True, iterations 4000, wall 11.8 s
+   blocked 8000, late (> 5 ms) 0 (0.00 %); latency us p50 452 p99 676 max 750
+   waiter 0: blocked 4000, p50 469 p99 687 max 750 us, late 0; driver calls per waiting s 377 (2652 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.026
+   waiter 1: blocked 4000, p50 429 p99 520 max 739 us, late 0; driver calls per waiting s 376 (2662 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.027
+   load thread: 1367392 units per busy s (95.0 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5184 ns, residual max 166 ns
+== gpu_w2_infinite_stagger_load: signal gpu (transfer), 2 waiter(s), infinite, pattern same, load True, iterations 4000, wall 42.2 s
+   blocked 7990, late (> 5 ms) 3989 (49.92 %); latency us p50 531 p99 9300 max 9687
+   late waits, from their start: p01 10085 p50 10285 p99 10347 us; in 10.00-10.25 ms: 529; first starter late 3885/4000, later starters 104/3990
+   late from start, 250 us bins (ms: count): 10.00: 529, 10.25: 3460
+   waiter 0: blocked 4000, p50 7900 p99 9311 max 9687 us, late 3886; driver calls per waiting s 99 (10068 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+   waiter 1: blocked 3990, p50 457 p99 8506 max 9679 us, late 103; driver calls per waiting s 445 (2248 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   load thread: 1400333 units per busy s (97.3 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5216 ns, residual max 192 ns
+== gpucompute_w2_infinite_load: signal gpu (compute), 2 waiter(s), infinite, pattern same, load True, iterations 4000, wall 42.3 s
+   blocked 8000, late (> 5 ms) 4000 (50.00 %); latency us p50 6339 p99 9288 max 9775
+   late waits, from their start: p01 10237 p50 10344 p99 10359 us; in 10.00-10.25 ms: 74; first starter late 2348/4000, later starters 1652/4000
+   late from start, 250 us bins (ms: count): 10.00: 74, 10.25: 3926
+   waiter 0: blocked 4000, p50 462 p99 9238 max 9775 us, late 1609; driver calls per waiting s 175 (5713 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+   waiter 1: blocked 4000, p50 6972 p99 9334 max 9768 us, late 2391; driver calls per waiting s 138 (7239 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+   load thread: 1389699 units per busy s (96.6 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5216 ns, residual max 202 ns
+== gpu_w2_infinite_longwait_load: signal gpu (transfer), 2 waiter(s), infinite, pattern same, load True, iterations 1000, wall 20.9 s
+   blocked 2000, late (> 5 ms) 492 (24.60 %); latency us p50 489 p99 9979 max 10175
+   late waits, from their start: p01 20152 p50 20434 p99 30506 us; in 10.00-10.25 ms: 0; first starter late 275/1000, later starters 217/1000
+   late from start, 250 us bins (ms: count): 20.00: 207, 20.25: 45, 30.00: 51, 30.25: 177, 30.50: 12
+   waiter 0: blocked 1000, p50 3311 p99 10011 max 10175 us, late 362; driver calls per waiting s 52 (19320 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.005
+   waiter 1: blocked 1000, p50 466 p99 9641 max 10157 us, late 130; driver calls per waiting s 58 (17241 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.005
+   load thread: 1410344 units per busy s (98.0 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5184 ns, residual max 208 ns
+== gpu_w1_infinite_cowait_load: signal gpu (transfer), 1 waiter(s), infinite, pattern cowait, load True, iterations 4000, wall 10.3 s
+   blocked 4000, late (> 5 ms) 0 (0.00 %); latency us p50 247 p99 529 max 630
+   waiter 0: blocked 4000, p50 247 p99 529 max 630 us, late 0; driver calls per waiting s 469 (2132 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.028
+   load thread: 1370853 units per busy s (95.3 % of the case without waiters)
+   clock fit: 24/48 pairs, deviation floor 2880 ns, residual max 204 ns
+== gpu_w2_infinite_cowait_load: signal gpu (transfer), 2 waiter(s), infinite, pattern cowait, load True, iterations 4000, wall 42.2 s
+   blocked 8000, late (> 5 ms) 3993 (49.91 %); latency us p50 569 p99 9467 max 9795
+   late waits, from their start: p01 10119 p50 10200 p99 10327 us; in 10.00-10.25 ms: 3686; first starter late 2744/4000, later starters 1249/4000
+   late from start, 250 us bins (ms: count): 10.00: 3686, 10.25: 307
+   waiter 0: blocked 4000, p50 7073 p99 9725 max 9791 us, late 2349; driver calls per waiting s 144 (6943 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 1: blocked 4000, p50 514 p99 9453 max 9795 us, late 1644; driver calls per waiting s 179 (5585 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   load thread: 1402711 units per busy s (97.5 % of the case without waiters)
+   clock fit: 24/48 pairs, deviation floor 2848 ns, residual max 224 ns
+== gpu_w2_infinite_distinct_load: signal gpu (transfer), 2 waiter(s), infinite, pattern distinct, load True, iterations 4000, wall 42.3 s
+   blocked 8000, late (> 5 ms) 4000 (50.00 %); latency us p50 6557 p99 9280 max 9825
+   late waits, from their start: p01 10234 p50 10342 p99 10356 us; in 10.00-10.25 ms: 106; first starter late 1775/4000, later starters 2225/4000
+   late from start, 250 us bins (ms: count): 10.00: 106, 10.25: 3894
+   waiter 0: blocked 4000, p50 465 p99 9182 max 9825 us, late 1337; driver calls per waiting s 190 (5266 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+   waiter 1: blocked 4000, p50 7350 p99 9357 max 9798 us, late 2663; driver calls per waiting s 129 (7772 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+   load thread: 1396711 units per busy s (97.1 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 4672 ns, residual max 296 ns
+== gpu_w4_infinite_distinct_load: signal gpu (transfer), 4 waiter(s), infinite, pattern distinct, load True, iterations 4000, wall 42.3 s
+   blocked 16000, late (> 5 ms) 12000 (75.00 %); latency us p50 7617 p99 9228 max 9591
+   late waits, from their start: p01 10088 p50 10231 p99 10372 us; in 10.00-10.25 ms: 6523; first starter late 3651/4000, later starters 8349/12000
+   late from start, 250 us bins (ms: count): 10.00: 6523, 10.25: 5475, 10.50: 2
+   waiter 0: blocked 4000, p50 7903 p99 9233 max 9591 us, late 3611; driver calls per waiting s 105 (9501 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 1: blocked 4000, p50 7875 p99 9238 max 9566 us, late 3496; driver calls per waiting s 108 (9277 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 2: blocked 4000, p50 7077 p99 9231 max 9571 us, late 2617; driver calls per waiting s 132 (7591 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 3: blocked 4000, p50 6883 p99 9193 max 9584 us, late 2276; driver calls per waiting s 144 (6947 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   load thread: 1392251 units per busy s (96.8 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5120 ns, residual max 410 ns
+== gpu_w2_zeropoll_load: signal gpu (transfer), 2 waiter(s), zeropoll, pattern same, load True, iterations 4000, wall 11.5 s
+   blocked 8000, late (> 5 ms) 0 (0.00 %); latency us p50 239 p99 572 max 675
+   waiter 0: blocked 4000, p50 311 p99 653 max 675 us, late 0; driver calls per waiting s 389 (2571 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.026
+   waiter 1: blocked 4000, p50 128 p99 503 max 665 us, late 0; driver calls per waiting s 4883 (205 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.037
+   load thread: 1333676 units per busy s (92.7 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5248 ns, residual max 228 ns
+== gpu_w2_counterpoll_load: signal gpu (transfer), 2 waiter(s), counterpoll, pattern same, load True, iterations 4000, wall 11.5 s
+   blocked 8000, late (> 5 ms) 0 (0.00 %); latency us p50 228 p99 522 max 687
+   waiter 0: blocked 4000, p50 281 p99 570 max 680 us, late 0; driver calls per waiting s 391 (2559 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.025
+   waiter 1: blocked 4000, p50 120 p99 502 max 687 us, late 0; driver calls per waiting s 4924 (203 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.036
+   load thread: 1331768 units per busy s (92.6 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5152 ns, residual max 378 ns
+== gpu_w2_timeout0.1_load: signal gpu (transfer), 2 waiter(s), timeout:0.1, pattern same, load True, iterations 4000, wall 10.8 s
+   blocked 8000, late (> 5 ms) 0 (0.00 %); latency us p50 71 p99 500 max 519
+   waiter 0: blocked 4000, p50 72 p99 503 max 519 us, late 0; driver calls per waiting s 6415 (156 us waited per call), Python share while waiting 0.23 %, thread CPU per wall s 0.580
+   waiter 1: blocked 4000, p50 69 p99 498 max 515 us, late 0; driver calls per waiting s 6410 (156 us waited per call), Python share while waiting 0.23 %, thread CPU per wall s 0.580
+   load thread: 1325574 units per busy s (92.1 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5152 ns, residual max 322 ns
+== gpu_w2_timeout0.2_load: signal gpu (transfer), 2 waiter(s), timeout:0.2, pattern same, load True, iterations 4000, wall 10.8 s
+   blocked 8000, late (> 5 ms) 0 (0.00 %); latency us p50 50 p99 501 max 518
+   waiter 0: blocked 4000, p50 52 p99 501 max 518 us, late 0; driver calls per waiting s 3740 (267 us waited per call), Python share while waiting 0.14 %, thread CPU per wall s 0.645
+   waiter 1: blocked 4000, p50 48 p99 500 max 518 us, late 0; driver calls per waiting s 3745 (267 us waited per call), Python share while waiting 0.15 %, thread CPU per wall s 0.647
+   load thread: 1307834 units per busy s (90.9 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5312 ns, residual max 336 ns
+== gpu_w2_timeout0.5_load: signal gpu (transfer), 2 waiter(s), timeout:0.5, pattern same, load True, iterations 4000, wall 10.9 s
+   blocked 8000, late (> 5 ms) 0 (0.00 %); latency us p50 76 p99 498 max 522
+   waiter 0: blocked 4000, p50 78 p99 496 max 522 us, late 0; driver calls per waiting s 1800 (556 us waited per call), Python share while waiting 0.07 %, thread CPU per wall s 0.734
+   waiter 1: blocked 4000, p50 75 p99 500 max 517 us, late 0; driver calls per waiting s 1804 (554 us waited per call), Python share while waiting 0.08 %, thread CPU per wall s 0.737
+   load thread: 1344552 units per busy s (93.5 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5216 ns, residual max 470 ns
+== gpu_w2_relay_event_load: signal gpu (transfer), 2 waiter(s), relay_event, pattern same, load True, iterations 4000, wall 12.2 s
+   blocked 8000, late (> 5 ms) 0 (0.00 %); latency us p50 469 p99 689 max 760
+   waiter 0: blocked 4000, p50 458 p99 508 max 612 us, late 0; driver calls per waiting s 368 (2719 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.027
+   waiter 1: blocked 4000, p50 560 p99 703 max 760 us, late 0; driver calls per waiting s 362 (2764 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.019
+   load thread: 1373636 units per busy s (95.5 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5216 ns, residual max 354 ns
+== gpu_w2_relay_condition_load: signal gpu (transfer), 2 waiter(s), relay_condition, pattern same, load True, iterations 4000, wall 12.2 s
+   blocked 8000, late (> 5 ms) 0 (0.00 %); latency us p50 470 p99 691 max 744
+   waiter 0: blocked 4000, p50 451 p99 510 max 634 us, late 0; driver calls per waiting s 368 (2720 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.027
+   waiter 1: blocked 4000, p50 564 p99 700 max 744 us, late 0; driver calls per waiting s 362 (2765 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.020
+   load thread: 1373338 units per busy s (95.5 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5216 ns, residual max 156 ns
+== gpu_w4_timeout0.1_load: signal gpu (transfer), 4 waiter(s), timeout:0.1, pattern same, load True, iterations 4000, wall 11.5 s
+   blocked 16000, late (> 5 ms) 0 (0.00 %); latency us p50 101 p99 516 max 691
+   waiter 0: blocked 4000, p50 99 p99 516 max 691 us, late 0; driver calls per waiting s 6098 (164 us waited per call), Python share while waiting 0.24 %, thread CPU per wall s 0.534
+   waiter 1: blocked 4000, p50 99 p99 518 max 549 us, late 0; driver calls per waiting s 6101 (164 us waited per call), Python share while waiting 0.24 %, thread CPU per wall s 0.533
+   waiter 2: blocked 4000, p50 102 p99 514 max 557 us, late 0; driver calls per waiting s 6125 (163 us waited per call), Python share while waiting 0.23 %, thread CPU per wall s 0.535
+   waiter 3: blocked 4000, p50 102 p99 518 max 546 us, late 0; driver calls per waiting s 6116 (163 us waited per call), Python share while waiting 0.24 %, thread CPU per wall s 0.534
+   load thread: 1270654 units per busy s (88.3 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5312 ns, residual max 414 ns
+== gpu_w4_timeout0.2_load: signal gpu (transfer), 4 waiter(s), timeout:0.2, pattern same, load True, iterations 4000, wall 11.4 s
+   blocked 16000, late (> 5 ms) 0 (0.00 %); latency us p50 86 p99 515 max 610
+   waiter 0: blocked 4000, p50 84 p99 511 max 544 us, late 0; driver calls per waiting s 3594 (278 us waited per call), Python share while waiting 0.13 %, thread CPU per wall s 0.604
+   waiter 1: blocked 4000, p50 85 p99 516 max 576 us, late 0; driver calls per waiting s 3601 (278 us waited per call), Python share while waiting 0.14 %, thread CPU per wall s 0.607
+   waiter 2: blocked 4000, p50 85 p99 517 max 551 us, late 0; driver calls per waiting s 3592 (278 us waited per call), Python share while waiting 0.15 %, thread CPU per wall s 0.606
+   waiter 3: blocked 4000, p50 88 p99 514 max 610 us, late 0; driver calls per waiting s 3600 (278 us waited per call), Python share while waiting 0.14 %, thread CPU per wall s 0.606
+   load thread: 1210425 units per busy s (84.1 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5248 ns, residual max 260 ns
+== gpu_w4_timeout0.5_load: signal gpu (transfer), 4 waiter(s), timeout:0.5, pattern same, load True, iterations 4000, wall 11.6 s
+   blocked 16000, late (> 5 ms) 0 (0.00 %); latency us p50 95 p99 521 max 695
+   waiter 0: blocked 4000, p50 96 p99 520 max 677 us, late 0; driver calls per waiting s 1771 (565 us waited per call), Python share while waiting 0.07 %, thread CPU per wall s 0.704
+   waiter 1: blocked 4000, p50 88 p99 516 max 627 us, late 0; driver calls per waiting s 1766 (566 us waited per call), Python share while waiting 0.06 %, thread CPU per wall s 0.705
+   waiter 2: blocked 4000, p50 98 p99 521 max 695 us, late 0; driver calls per waiting s 1770 (565 us waited per call), Python share while waiting 0.08 %, thread CPU per wall s 0.703
+   waiter 3: blocked 4000, p50 96 p99 523 max 658 us, late 0; driver calls per waiting s 1775 (563 us waited per call), Python share while waiting 0.07 %, thread CPU per wall s 0.707
+   load thread: 1297929 units per busy s (90.2 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5216 ns, residual max 218 ns
+== gpu_w4_relay_event_load: signal gpu (transfer), 4 waiter(s), relay_event, pattern same, load True, iterations 4000, wall 12.8 s
+   blocked 16000, late (> 5 ms) 0 (0.00 %); latency us p50 504 p99 756 max 887
+   waiter 0: blocked 4000, p50 441 p99 507 max 562 us, late 0; driver calls per waiting s 380 (2633 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.030
+   waiter 1: blocked 4000, p50 591 p99 761 max 863 us, late 0; driver calls per waiting s 356 (2808 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.022
+   waiter 2: blocked 4000, p50 568 p99 758 max 887 us, late 0; driver calls per waiting s 356 (2806 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.023
+   waiter 3: blocked 4000, p50 568 p99 762 max 873 us, late 0; driver calls per waiting s 357 (2797 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.023
+   load thread: 1354558 units per busy s (94.2 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5216 ns, residual max 244 ns
+== gpu_w4_relay_condition_load: signal gpu (transfer), 4 waiter(s), relay_condition, pattern same, load True, iterations 4000, wall 12.3 s
+   blocked 16000, late (> 5 ms) 0 (0.00 %); latency us p50 513 p99 775 max 916
+   waiter 0: blocked 4000, p50 396 p99 514 max 606 us, late 0; driver calls per waiting s 399 (2506 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.032
+   waiter 1: blocked 4000, p50 588 p99 779 max 902 us, late 0; driver calls per waiting s 369 (2709 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.025
+   waiter 2: blocked 4000, p50 579 p99 779 max 883 us, late 0; driver calls per waiting s 369 (2708 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.024
+   waiter 3: blocked 4000, p50 574 p99 785 max 916 us, late 0; driver calls per waiting s 370 (2706 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.025
+   load thread: 1355491 units per busy s (94.2 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5312 ns, residual max 252 ns
+== load_only_end: signal host (transfer), 0 waiter(s), infinite, pattern same, load True, iterations 0, wall 8.3 s
+   load thread: 1430025 units per busy s (99.4 % of the case without waiters)
+rc=0 2026-10-12T11:40:22+08:00
+=== GPU 4, short pass 2026-10-12T11:40:24+08:00
+[repro] opening device 4 (instance, physical devices, logical device)
+{"python": "3.13.15 (main, Sep  1 2026, 14:18:08) [Clang 22.1.3 ]", "platform": "Linux-5.15.0-176-generic-x86_64-with-glibc2.35", "switch_interval_s": 0.00019999999999999998, "device": "NVIDIA GeForce RTX 5090", "driver_name": "NVIDIA", "driver_info": "580.82.07", "driver_version_raw": 2434040256, "calibrated_extension": "VK_KHR_calibrated_timestamps", "time_domain": "CLOCK_MONOTONIC_RAW", "host_clock": "clock_gettime_ns(CLOCK_MONOTONIC_RAW)", "timestamp_period_ns": 1.0, "timestamp_valid_bits": {"compute": 64, "transfer": 64}, "transfer_family": 1, "compute_family": 0, "affinity": [32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111], "vulkan_package": "1.3.275.1"}
+== load_only: signal host (transfer), 0 waiter(s), infinite, pattern same, load True, iterations 0, wall 4.1 s
+   load thread: 1452093 units per busy s (100.0 % of the case without waiters)
+== host_w4_infinite_load: signal host (transfer), 4 waiter(s), infinite, pattern same, load True, iterations 2000, wall 21.2 s
+   blocked 8000, late (> 5 ms) 6151 (76.89 %); latency us p50 8102 p99 9701 max 10157
+   late waits, from their start: p01 8758 p50 10319 p99 10403 us; in 10.00-10.25 ms: 1451; first starter late 1952/2000, later starters 4199/6000
+   late from start, 250 us bins (ms: count): 6.00: 3, 6.25: 3, 6.50: 1, 6.75: 4, 7.00: 8, 7.25: 2, 7.50: 4, 7.75: 2, 8.00: 11, 8.25: 15, 8.50: 5, 8.75: 5, 9.00: 13, 9.25: 14, 9.50: 6, 9.75: 1, 10.00: 1451, 10.25: 4603
+   waiter 0: blocked 2000, p50 8438 p99 9738 max 10157 us, late 1970; driver calls per waiting s 98 (10181 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+   waiter 1: blocked 2000, p50 8432 p99 9719 max 10153 us, late 1970; driver calls per waiting s 98 (10179 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+   waiter 2: blocked 2000, p50 8424 p99 9736 max 10136 us, late 1958; driver calls per waiting s 99 (10125 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 3: blocked 2000, p50 51 p99 9383 max 9695 us, late 253; driver calls per waiting s 328 (3050 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.004
+   load thread: 1445134 units per busy s (99.5 % of the case without waiters)
+== gpu_w2_infinite_load: signal gpu (transfer), 2 waiter(s), infinite, pattern same, load True, iterations 2000, wall 21.1 s
+   blocked 4000, late (> 5 ms) 2000 (50.00 %); latency us p50 6334 p99 9319 max 9752
+   late waits, from their start: p01 10248 p50 10341 p99 10355 us; in 10.00-10.25 ms: 25; first starter late 1283/2000, later starters 717/2000
+   late from start, 250 us bins (ms: count): 10.00: 25, 10.25: 1975
+   waiter 0: blocked 2000, p50 7490 p99 9534 max 9752 us, late 1376; driver calls per waiting s 126 (7940 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+   waiter 1: blocked 2000, p50 460 p99 9078 max 9730 us, late 624; driver calls per waiting s 198 (5059 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.008
+   load thread: 1451867 units per busy s (100.0 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5472 ns, residual max 262 ns
+== gpu_w4_infinite_load: signal gpu (transfer), 4 waiter(s), infinite, pattern same, load True, iterations 2000, wall 21.1 s
+   blocked 8000, late (> 5 ms) 6000 (75.00 %); latency us p50 7599 p99 9228 max 9585
+   late waits, from their start: p01 10091 p50 10232 p99 10375 us; in 10.00-10.25 ms: 3251; first starter late 1829/2000, later starters 4171/6000
+   late from start, 250 us bins (ms: count): 10.00: 3251, 10.25: 2748, 10.50: 1
+   waiter 0: blocked 2000, p50 7828 p99 9235 max 9585 us, late 1705; driver calls per waiting s 110 (9121 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 1: blocked 2000, p50 7636 p99 9244 max 9565 us, late 1533; driver calls per waiting s 118 (8458 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 2: blocked 2000, p50 6792 p99 9205 max 9375 us, late 1057; driver calls per waiting s 151 (6635 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   waiter 3: blocked 2000, p50 7823 p99 9242 max 9543 us, late 1705; driver calls per waiting s 110 (9112 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.009
+   load thread: 1434134 units per busy s (98.8 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5408 ns, residual max 188 ns
+== gpu_w2_relay_condition_load: signal gpu (transfer), 2 waiter(s), relay_condition, pattern same, load True, iterations 2000, wall 5.8 s
+   blocked 4000, late (> 5 ms) 0 (0.00 %); latency us p50 409 p99 686 max 717
+   waiter 0: blocked 2000, p50 364 p99 507 max 557 us, late 0; driver calls per waiting s 393 (2543 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.020
+   waiter 1: blocked 2000, p50 500 p99 692 max 717 us, late 0; driver calls per waiting s 384 (2605 us waited per call), Python share while waiting 0.00 %, thread CPU per wall s 0.022
+   load thread: 1400924 units per busy s (96.5 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5248 ns, residual max 242 ns
+== gpu_w2_timeout0.2_load: signal gpu (transfer), 2 waiter(s), timeout:0.2, pattern same, load True, iterations 2000, wall 5.3 s
+   blocked 4000, late (> 5 ms) 0 (0.00 %); latency us p50 50 p99 501 max 520
+   waiter 0: blocked 2000, p50 49 p99 502 max 514 us, late 0; driver calls per waiting s 3681 (272 us waited per call), Python share while waiting 0.13 %, thread CPU per wall s 0.637
+   waiter 1: blocked 2000, p50 51 p99 500 max 520 us, late 0; driver calls per waiting s 3700 (270 us waited per call), Python share while waiting 0.13 %, thread CPU per wall s 0.638
+   load thread: 1366758 units per busy s (94.1 % of the case without waiters)
+   clock fit: 48/48 pairs, deviation floor 5216 ns, residual max 318 ns
+rc=0 2026-10-12T11:41:47+08:00
+/data/home/scxm138/run/logs/e7_wake_repro_1691733/gpu0:
+total 6286
+drwxrwxr-x 2 scxm138 scxm138    4096 Oct 12 11:40 .
+drwxrwxr-x 4 scxm138 scxm138    4096 Oct 12 11:41 ..
+-rw-rw-r-- 1 scxm138 scxm138   75135 Oct 12 11:41 cases.json
+-rw-rw-r-- 1 scxm138 scxm138     830 Oct 12 11:41 environment.json
+-rw-rw-r-- 1 scxm138 scxm138   31200 Oct 12 11:41 summary.txt
+-rw-rw-r-- 1 scxm138 scxm138 6320264 Oct 12 11:41 waits.csv.gz
+
+/data/home/scxm138/run/logs/e7_wake_repro_1691733/gpu4:
+total 546
+drwxrwxr-x 2 scxm138 scxm138   4096 Oct 12 11:41 .
+drwxrwxr-x 4 scxm138 scxm138   4096 Oct 12 11:41 ..
+-rw-rw-r-- 1 scxm138 scxm138  13828 Oct 12 11:41 cases.json
+-rw-rw-r-- 1 scxm138 scxm138    852 Oct 12 11:41 environment.json
+-rw-rw-r-- 1 scxm138 scxm138   5359 Oct 12 11:41 summary.txt
+-rw-rw-r-- 1 scxm138 scxm138 529199 Oct 12 11:41 waits.csv.gz
+=== E7 wake repro done 2026-10-12T11:41:49+08:00

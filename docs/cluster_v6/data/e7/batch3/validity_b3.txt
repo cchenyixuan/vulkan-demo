@@ -1,0 +1,9 @@
+== e7_b3A_1683993: 34 rows; roles {'reference': 18, 'equal': 6, 'calibrated': 6, 'trace_equal': 2, 'trace_calibrated': 2}; status {'pass': 34}
+   not pass: none; invariant rows not 0: none
+   seam checks 8 (8 OK), overshoot -0.02..-0.0 dx, duplicates [0]; field checks 4 (NaN-free 4)
+== e7_b3A2_1689810: 82 rows; roles {'reference': 42, 'equal': 15, 'calibrated': 15, 'trace_equal': 5, 'trace_calibrated': 5}; status {'pass': 82}
+   not pass: none; invariant rows not 0: none
+   seam checks 18 (18 OK), overshoot -0.0..-0.0 dx, duplicates [0]; field checks 10 (NaN-free 10)
+== e7_b3B_1683994: 88 rows; roles {'reference': 72, 'equal': 6, 'calibrated': 6, 'trace_equal': 2, 'trace_calibrated': 2}; status {'pass': 88}
+   not pass: none; invariant rows not 0: none
+   seam checks 28 (28 OK), overshoot -0.0..-0.0 dx, duplicates [0]; field checks 4 (NaN-free 4)

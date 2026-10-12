@@ -1,0 +1,128 @@
+## gpu0: NVIDIA GeForce RTX 5090 driver 580.82.07 (NVIDIA), python 3.13.15, switch interval 0.2 ms, host clock clock_gettime_ns(CLOCK_MONOTONIC_RAW), time domain CLOCK_MONOTONIC_RAW, affinity 32 CPUs
+| case | signal | waiters | method | pattern | load | blocked | late | late % | p50 us | p99 us | max us | late from start p50 us | in 10.00-10.25 ms | first / later starters late | driver calls/s | load vs baseline |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| load_only | - | 0 | - | - | True | - | - | - | - | - | - | - | - | - | - | 1438646 units/busy s |
+| host_w1_infinite | host | 1 | infinite | same | False | 4000 | 87 | 2.17 | 124 | 7086 | 9086 | 8835 | 29 | 87/4000 , 0/0 | 473 | - |
+| host_w2_infinite | host | 2 | infinite | same | False | 8000 | 4208 | 52.60 | 7106 | 9878 | 10030 | 10099 | 4052 | 2246/4000 , 1962/4000 | 193 | - |
+| host_w4_infinite | host | 4 | infinite | same | False | 16000 | 12220 | 76.38 | 7921 | 9798 | 10032 | 10095 | 12061 | 3693/4000 , 8527/12000 | 381 | - |
+| gpu_w1_infinite | gpu | 1 | infinite | same | False | 4000 | 0 | 0.00 | 237 | 277 | 352 | - | 0 | 0/4000 , 0/0 | 401 | - |
+| gpu_w2_infinite | gpu | 2 | infinite | same | False | 8000 | 4000 | 50.00 | 6253 | 9247 | 9545 | 10096 | 4000 | 1882/4000 , 2118/4000 | 194 | - |
+| gpu_w4_infinite | gpu | 4 | infinite | same | False | 16000 | 12000 | 75.00 | 7447 | 9340 | 9632 | 10089 | 11998 | 3599/4000 , 8401/12000 | 382 | - |
+| host_w1_infinite_load | host | 1 | infinite | same | True | 4000 | 113 | 2.83 | 125 | 7779 | 9874 | 9263 | 17 | 113/4000 , 0/0 | 425 | 97.7 % |
+| host_w2_infinite_load | host | 2 | infinite | same | True | 8000 | 4306 | 53.83 | 7238 | 9869 | 10225 | 10344 | 140 | 2553/4000 , 1753/4000 | 189 | 98.3 % |
+| host_w4_infinite_load | host | 4 | infinite | same | True | 16000 | 12307 | 76.92 | 8123 | 9666 | 10182 | 10271 | 5078 | 3725/4000 , 8582/12000 | 377 | 96.1 % |
+| gpu_w1_infinite_load | gpu | 1 | infinite | same | True | 4000 | 0 | 0.00 | 438 | 499 | 564 | - | 0 | 0/4000 , 0/0 | 356 | 96.1 % |
+| gpu_w2_infinite_load | gpu | 2 | infinite | same | True | 8000 | 4000 | 50.00 | 6552 | 9291 | 9831 | 10343 | 63 | 2200/4000 , 1800/4000 | 189 | 98.1 % |
+| gpu_w4_infinite_load | gpu | 4 | infinite | same | True | 16000 | 12000 | 75.00 | 7582 | 9209 | 9936 | 10226 | 6651 | 3630/4000 , 8370/12000 | 378 | 97.3 % |
+| gpu_w2_infinite_mixed_load | gpu | 2 | infinite | mixed | True | 8000 | 3239 | 40.49 | 473 | 9204 | 9854 | 10265 | 845 | 891/4000 , 2348/4000 | 207 | 97.8 % |
+| gpu_w2_infinite_split_load | gpu | 2 | infinite | split | True | 8000 | 0 | 0.00 | 452 | 676 | 750 | - | 0 | 0/4000 , 0/4000 | 676 | 95.0 % |
+| gpu_w2_infinite_stagger_load | gpu | 2 | infinite | same | True | 7990 | 3989 | 49.92 | 531 | 9300 | 9687 | 10285 | 529 | 3885/4000 , 104/3990 | 190 | 97.3 % |
+| gpucompute_w2_infinite_load | gpu | 2 | infinite | same | True | 8000 | 4000 | 50.00 | 6339 | 9288 | 9775 | 10344 | 74 | 2348/4000 , 1652/4000 | 189 | 96.6 % |
+| gpu_w2_infinite_longwait_load | gpu | 2 | infinite | same | True | 2000 | 492 | 24.60 | 489 | 9979 | 10175 | 20434 | 0 | 275/1000 , 217/1000 | 96 | 98.0 % |
+| gpu_w1_infinite_cowait_load | gpu | 1 | infinite | cowait | True | 4000 | 0 | 0.00 | 247 | 529 | 630 | - | 0 | 0/4000 , 0/0 | 387 | 95.3 % |
+| gpu_w2_infinite_cowait_load | gpu | 2 | infinite | cowait | True | 8000 | 3993 | 49.91 | 569 | 9467 | 9795 | 10200 | 3686 | 2744/4000 , 1249/4000 | 189 | 97.5 % |
+| gpu_w2_infinite_distinct_load | gpu | 2 | infinite | distinct | True | 8000 | 4000 | 50.00 | 6557 | 9280 | 9825 | 10342 | 106 | 1775/4000 , 2225/4000 | 189 | 97.1 % |
+| gpu_w4_infinite_distinct_load | gpu | 4 | infinite | distinct | True | 16000 | 12000 | 75.00 | 7617 | 9228 | 9591 | 10231 | 6523 | 3651/4000 , 8349/12000 | 378 | 96.8 % |
+| gpu_w2_zeropoll_load | gpu | 2 | zeropoll | same | True | 8000 | 0 | 0.00 | 239 | 572 | 675 | - | 0 | 0/4000 , 0/4000 | 4509 | 92.7 % |
+| gpu_w2_counterpoll_load | gpu | 2 | counterpoll | same | True | 8000 | 0 | 0.00 | 228 | 522 | 687 | - | 0 | 0/4000 , 0/4000 | 4545 | 92.6 % |
+| gpu_w2_timeout0.1_load | gpu | 2 | timeout:0.1 | same | True | 8000 | 0 | 0.00 | 71 | 500 | 519 | - | 0 | 0/4000 , 0/4000 | 11428 | 92.1 % |
+| gpu_w2_timeout0.2_load | gpu | 2 | timeout:0.2 | same | True | 8000 | 0 | 0.00 | 50 | 501 | 518 | - | 0 | 0/4000 , 0/4000 | 6629 | 90.9 % |
+| gpu_w2_timeout0.5_load | gpu | 2 | timeout:0.5 | same | True | 8000 | 0 | 0.00 | 76 | 498 | 522 | - | 0 | 0/4000 , 0/4000 | 3175 | 93.5 % |
+| gpu_w2_relay_event_load | gpu | 2 | relay_event | same | True | 8000 | 0 | 0.00 | 469 | 689 | 760 | - | 0 | 0/4000 , 0/4000 | 655 | 95.5 % |
+| gpu_w2_relay_condition_load | gpu | 2 | relay_condition | same | True | 8000 | 0 | 0.00 | 470 | 691 | 744 | - | 0 | 0/4000 , 0/4000 | 654 | 95.5 % |
+| gpu_w4_timeout0.1_load | gpu | 4 | timeout:0.1 | same | True | 16000 | 0 | 0.00 | 101 | 516 | 691 | - | 0 | 0/4000 , 0/12000 | 20705 | 88.3 % |
+| gpu_w4_timeout0.2_load | gpu | 4 | timeout:0.2 | same | True | 16000 | 0 | 0.00 | 86 | 515 | 610 | - | 0 | 0/4000 , 0/12000 | 12367 | 84.1 % |
+| gpu_w4_timeout0.5_load | gpu | 4 | timeout:0.5 | same | True | 16000 | 0 | 0.00 | 95 | 521 | 695 | - | 0 | 0/4000 , 0/12000 | 6034 | 90.2 % |
+| gpu_w4_relay_event_load | gpu | 4 | relay_event | same | True | 16000 | 0 | 0.00 | 504 | 756 | 887 | - | 0 | 0/4000 , 0/12000 | 1254 | 94.2 % |
+| gpu_w4_relay_condition_load | gpu | 4 | relay_condition | same | True | 16000 | 0 | 0.00 | 513 | 775 | 916 | - | 0 | 0/4000 , 0/12000 | 1302 | 94.2 % |
+| load_only_end | - | 0 | - | - | True | - | - | - | - | - | - | - | - | - | - | 1430025 units/busy s |
+
+per waiter (cases with more than one waiter):
+  host_w2_infinite: w0 blocked 4000 late 2469 p50 7555 p99 9885 max 10030 calls/waiting-s 144 python 0.00 % cpu/wall 0.009; w1 blocked 4000 late 1739 p50 169 p99 9864 max 10009 calls/waiting-s 183 python 0.00 % cpu/wall 0.008
+  host_w4_infinite: w0 blocked 4000 late 3351 p50 8096 p99 9797 max 10004 calls/waiting-s 114 python 0.00 % cpu/wall 0.009; w1 blocked 4000 late 3115 p50 7975 p99 9804 max 10029 calls/waiting-s 121 python 0.00 % cpu/wall 0.009; w2 blocked 4000 late 3081 p50 7959 p99 9795 max 9961 calls/waiting-s 122 python 0.00 % cpu/wall 0.009; w3 blocked 4000 late 2673 p50 7631 p99 9796 max 10032 calls/waiting-s 136 python 0.00 % cpu/wall 0.009
+  gpu_w2_infinite: w0 blocked 4000 late 2989 p50 7467 p99 9303 max 9545 calls/waiting-s 123 python 0.00 % cpu/wall 0.008; w1 blocked 4000 late 1011 p50 248 p99 9141 max 9450 calls/waiting-s 227 python 0.00 % cpu/wall 0.007
+  gpu_w4_infinite: w0 blocked 4000 late 2812 p50 7313 p99 9343 max 9608 calls/waiting-s 128 python 0.00 % cpu/wall 0.009; w1 blocked 4000 late 2186 p50 6709 p99 9319 max 9589 calls/waiting-s 152 python 0.00 % cpu/wall 0.009; w2 blocked 4000 late 3560 p50 7715 p99 9352 max 9502 calls/waiting-s 108 python 0.00 % cpu/wall 0.009; w3 blocked 4000 late 3442 p50 7662 p99 9325 max 9632 calls/waiting-s 111 python 0.00 % cpu/wall 0.008
+  host_w2_infinite_load: w0 blocked 4000 late 1867 p50 1248 p99 9757 max 10225 calls/waiting-s 168 python 0.00 % cpu/wall 0.007; w1 blocked 4000 late 2439 p50 7396 p99 9893 max 10212 calls/waiting-s 141 python 0.00 % cpu/wall 0.008
+  host_w4_infinite_load: w0 blocked 4000 late 3276 p50 8255 p99 9669 max 10182 calls/waiting-s 114 python 0.00 % cpu/wall 0.008; w1 blocked 4000 late 3443 p50 8318 p99 9678 max 10048 calls/waiting-s 110 python 0.00 % cpu/wall 0.008; w2 blocked 4000 late 2636 p50 7517 p99 9653 max 9992 calls/waiting-s 134 python 0.00 % cpu/wall 0.009; w3 blocked 4000 late 2952 p50 8044 p99 9657 max 10035 calls/waiting-s 123 python 0.00 % cpu/wall 0.008
+  gpu_w2_infinite_load: w0 blocked 4000 late 2955 p50 7640 p99 9492 max 9831 calls/waiting-s 120 python 0.00 % cpu/wall 0.008; w1 blocked 4000 late 1045 p50 464 p99 9132 max 9700 calls/waiting-s 213 python 0.00 % cpu/wall 0.008
+  gpu_w4_infinite_load: w0 blocked 4000 late 3219 p50 7692 p99 9217 max 9364 calls/waiting-s 114 python 0.00 % cpu/wall 0.009; w1 blocked 4000 late 3469 p50 7828 p99 9227 max 9883 calls/waiting-s 108 python 0.00 % cpu/wall 0.009; w2 blocked 4000 late 1968 p50 494 p99 9168 max 9534 calls/waiting-s 157 python 0.00 % cpu/wall 0.009; w3 blocked 4000 late 3344 p50 7767 p99 9213 max 9936 calls/waiting-s 111 python 0.00 % cpu/wall 0.009
+  gpu_w2_infinite_mixed_load: w0 blocked 4000 late 3198 p50 7706 p99 9298 max 9854 calls/waiting-s 114 python 0.00 % cpu/wall 0.014; w1 blocked 4000 late 41 p50 458 p99 5411 max 8849 calls/waiting-s 353 python 0.00 % cpu/wall 0.008
+  gpu_w2_infinite_split_load: w0 blocked 4000 late 0 p50 469 p99 687 max 750 calls/waiting-s 377 python 0.00 % cpu/wall 0.026; w1 blocked 4000 late 0 p50 429 p99 520 max 739 calls/waiting-s 376 python 0.00 % cpu/wall 0.027
+  gpu_w2_infinite_stagger_load: w0 blocked 4000 late 3886 p50 7900 p99 9311 max 9687 calls/waiting-s 99 python 0.00 % cpu/wall 0.008; w1 blocked 3990 late 103 p50 457 p99 8506 max 9679 calls/waiting-s 445 python 0.00 % cpu/wall 0.009
+  gpucompute_w2_infinite_load: w0 blocked 4000 late 1609 p50 462 p99 9238 max 9775 calls/waiting-s 175 python 0.00 % cpu/wall 0.008; w1 blocked 4000 late 2391 p50 6972 p99 9334 max 9768 calls/waiting-s 138 python 0.00 % cpu/wall 0.008
+  gpu_w2_infinite_longwait_load: w0 blocked 1000 late 362 p50 3311 p99 10011 max 10175 calls/waiting-s 52 python 0.00 % cpu/wall 0.005; w1 blocked 1000 late 130 p50 466 p99 9641 max 10157 calls/waiting-s 58 python 0.00 % cpu/wall 0.005
+  gpu_w2_infinite_cowait_load: w0 blocked 4000 late 2349 p50 7073 p99 9725 max 9791 calls/waiting-s 144 python 0.00 % cpu/wall 0.009; w1 blocked 4000 late 1644 p50 514 p99 9453 max 9795 calls/waiting-s 179 python 0.00 % cpu/wall 0.009
+  gpu_w2_infinite_distinct_load: w0 blocked 4000 late 1337 p50 465 p99 9182 max 9825 calls/waiting-s 190 python 0.00 % cpu/wall 0.008; w1 blocked 4000 late 2663 p50 7350 p99 9357 max 9798 calls/waiting-s 129 python 0.00 % cpu/wall 0.008
+  gpu_w4_infinite_distinct_load: w0 blocked 4000 late 3611 p50 7903 p99 9233 max 9591 calls/waiting-s 105 python 0.00 % cpu/wall 0.009; w1 blocked 4000 late 3496 p50 7875 p99 9238 max 9566 calls/waiting-s 108 python 0.00 % cpu/wall 0.009; w2 blocked 4000 late 2617 p50 7077 p99 9231 max 9571 calls/waiting-s 132 python 0.00 % cpu/wall 0.009; w3 blocked 4000 late 2276 p50 6883 p99 9193 max 9584 calls/waiting-s 144 python 0.00 % cpu/wall 0.009
+  gpu_w2_zeropoll_load: w0 blocked 4000 late 0 p50 311 p99 653 max 675 calls/waiting-s 389 python 0.00 % cpu/wall 0.026; w1 blocked 4000 late 0 p50 128 p99 503 max 665 calls/waiting-s 4883 python 0.00 % cpu/wall 0.037
+  gpu_w2_counterpoll_load: w0 blocked 4000 late 0 p50 281 p99 570 max 680 calls/waiting-s 391 python 0.00 % cpu/wall 0.025; w1 blocked 4000 late 0 p50 120 p99 502 max 687 calls/waiting-s 4924 python 0.00 % cpu/wall 0.036
+  gpu_w2_timeout0.1_load: w0 blocked 4000 late 0 p50 72 p99 503 max 519 calls/waiting-s 6415 python 0.23 % cpu/wall 0.580; w1 blocked 4000 late 0 p50 69 p99 498 max 515 calls/waiting-s 6410 python 0.23 % cpu/wall 0.580
+  gpu_w2_timeout0.2_load: w0 blocked 4000 late 0 p50 52 p99 501 max 518 calls/waiting-s 3740 python 0.14 % cpu/wall 0.645; w1 blocked 4000 late 0 p50 48 p99 500 max 518 calls/waiting-s 3745 python 0.15 % cpu/wall 0.647
+  gpu_w2_timeout0.5_load: w0 blocked 4000 late 0 p50 78 p99 496 max 522 calls/waiting-s 1800 python 0.07 % cpu/wall 0.734; w1 blocked 4000 late 0 p50 75 p99 500 max 517 calls/waiting-s 1804 python 0.08 % cpu/wall 0.737
+  gpu_w2_relay_event_load: w0 blocked 4000 late 0 p50 458 p99 508 max 612 calls/waiting-s 368 python 0.00 % cpu/wall 0.027; w1 blocked 4000 late 0 p50 560 p99 703 max 760 calls/waiting-s 362 python 0.00 % cpu/wall 0.019
+  gpu_w2_relay_condition_load: w0 blocked 4000 late 0 p50 451 p99 510 max 634 calls/waiting-s 368 python 0.00 % cpu/wall 0.027; w1 blocked 4000 late 0 p50 564 p99 700 max 744 calls/waiting-s 362 python 0.00 % cpu/wall 0.020
+  gpu_w4_timeout0.1_load: w0 blocked 4000 late 0 p50 99 p99 516 max 691 calls/waiting-s 6098 python 0.24 % cpu/wall 0.534; w1 blocked 4000 late 0 p50 99 p99 518 max 549 calls/waiting-s 6101 python 0.24 % cpu/wall 0.533; w2 blocked 4000 late 0 p50 102 p99 514 max 557 calls/waiting-s 6125 python 0.23 % cpu/wall 0.535; w3 blocked 4000 late 0 p50 102 p99 518 max 546 calls/waiting-s 6116 python 0.24 % cpu/wall 0.534
+  gpu_w4_timeout0.2_load: w0 blocked 4000 late 0 p50 84 p99 511 max 544 calls/waiting-s 3594 python 0.13 % cpu/wall 0.604; w1 blocked 4000 late 0 p50 85 p99 516 max 576 calls/waiting-s 3601 python 0.14 % cpu/wall 0.607; w2 blocked 4000 late 0 p50 85 p99 517 max 551 calls/waiting-s 3592 python 0.15 % cpu/wall 0.606; w3 blocked 4000 late 0 p50 88 p99 514 max 610 calls/waiting-s 3600 python 0.14 % cpu/wall 0.606
+  gpu_w4_timeout0.5_load: w0 blocked 4000 late 0 p50 96 p99 520 max 677 calls/waiting-s 1771 python 0.07 % cpu/wall 0.704; w1 blocked 4000 late 0 p50 88 p99 516 max 627 calls/waiting-s 1766 python 0.06 % cpu/wall 0.705; w2 blocked 4000 late 0 p50 98 p99 521 max 695 calls/waiting-s 1770 python 0.08 % cpu/wall 0.703; w3 blocked 4000 late 0 p50 96 p99 523 max 658 calls/waiting-s 1775 python 0.07 % cpu/wall 0.707
+  gpu_w4_relay_event_load: w0 blocked 4000 late 0 p50 441 p99 507 max 562 calls/waiting-s 380 python 0.00 % cpu/wall 0.030; w1 blocked 4000 late 0 p50 591 p99 761 max 863 calls/waiting-s 356 python 0.00 % cpu/wall 0.022; w2 blocked 4000 late 0 p50 568 p99 758 max 887 calls/waiting-s 356 python 0.00 % cpu/wall 0.023; w3 blocked 4000 late 0 p50 568 p99 762 max 873 calls/waiting-s 357 python 0.00 % cpu/wall 0.023
+  gpu_w4_relay_condition_load: w0 blocked 4000 late 0 p50 396 p99 514 max 606 calls/waiting-s 399 python 0.00 % cpu/wall 0.032; w1 blocked 4000 late 0 p50 588 p99 779 max 902 calls/waiting-s 369 python 0.00 % cpu/wall 0.025; w2 blocked 4000 late 0 p50 579 p99 779 max 883 calls/waiting-s 369 python 0.00 % cpu/wall 0.024; w3 blocked 4000 late 0 p50 574 p99 785 max 916 calls/waiting-s 370 python 0.00 % cpu/wall 0.025
+
+wait details (gpu0):
+  host_w1_infinite: blocked 4000, late 87; on-time wake p50/p90/p99 124/133/3040 us; late return after its start p01/p50/p99 5.979/8.835/10.088 ms (top bins 10.00 ms: 29, 8.75 ms: 8, 8.50 ms: 7, 7.75 ms: 6); after the signal p50 6.95 ms; began before the signal p50 1.98 ms; late per iteration {'0/1': 3913, '1/1': 87}
+  host_w2_infinite: blocked 8000, late 4208; on-time wake p50/p90/p99 134/184/4016 us; late return after its start p01/p50/p99 7.454/10.099/10.207 ms (top bins 10.00 ms: 4052, 9.25 ms: 19, 8.25 ms: 15, 7.50 ms: 13); after the signal p50 8.39 ms; began before the signal p50 1.64 ms; late per iteration {'1/2': 3792, '2/2': 208}
+  host_w4_infinite: blocked 16000, late 12220; on-time wake p50/p90/p99 126/168/4345 us; late return after its start p01/p50/p99 9.140/10.095/10.188 ms (top bins 10.00 ms: 12061, 8.75 ms: 14, 9.25 ms: 14, 8.00 ms: 14); after the signal p50 8.38 ms; began before the signal p50 1.70 ms; late per iteration {'3/4': 3780, '4/4': 220}
+  gpu_w1_infinite: blocked 4000, late 0; on-time wake p50/p90/p99 237/252/277 us
+  gpu_w2_infinite: blocked 8000, late 4000; on-time wake p50/p90/p99 241/255/277 us; late return after its start p01/p50/p99 10.084/10.096/10.209 ms (top bins 10.00 ms: 4000); after the signal p50 7.89 ms; began before the signal p50 2.22 ms; late per iteration {'1/2': 4000}
+  gpu_w4_infinite: blocked 16000, late 12000; on-time wake p50/p90/p99 238/252/281 us; late return after its start p01/p50/p99 10.083/10.089/10.182 ms (top bins 10.00 ms: 11998, 10.25 ms: 2); after the signal p50 7.88 ms; began before the signal p50 2.22 ms; late per iteration {'3/4': 4000}
+  host_w1_infinite_load: blocked 4000, late 113; on-time wake p50/p90/p99 125/366/2828 us; late return after its start p01/p50/p99 6.143/9.263/10.350 ms (top bins 10.25 ms: 24, 10.00 ms: 17, 8.00 ms: 10, 8.25 ms: 9); after the signal p50 7.48 ms; began before the signal p50 1.84 ms; late per iteration {'0/1': 3887, '1/1': 113}
+  host_w2_infinite_load: blocked 8000, late 4306; on-time wake p50/p90/p99 125/386/4190 us; late return after its start p01/p50/p99 7.661/10.344/10.361 ms (top bins 10.25 ms: 3996, 10.00 ms: 140, 8.25 ms: 24, 9.25 ms: 21); after the signal p50 8.38 ms; began before the signal p50 1.94 ms; late per iteration {'1/2': 3694, '2/2': 306}
+  host_w4_infinite_load: blocked 16000, late 12307; on-time wake p50/p90/p99 125/386/3957 us; late return after its start p01/p50/p99 9.014/10.271/10.402 ms (top bins 10.25 ms: 7026, 10.00 ms: 5078, 9.00 ms: 29, 8.00 ms: 25); after the signal p50 8.44 ms; began before the signal p50 1.84 ms; late per iteration {'3/4': 3693, '4/4': 307}
+  gpu_w1_infinite_load: blocked 4000, late 0; on-time wake p50/p90/p99 438/466/499 us
+  gpu_w2_infinite_load: blocked 8000, late 4000; on-time wake p50/p90/p99 459/470/500 us; late return after its start p01/p50/p99 10.243/10.343/10.361 ms (top bins 10.25 ms: 3937, 10.00 ms: 63); after the signal p50 7.93 ms; began before the signal p50 2.39 ms; late per iteration {'1/2': 4000}
+  gpu_w4_infinite_load: blocked 16000, late 12000; on-time wake p50/p90/p99 451/468/499 us; late return after its start p01/p50/p99 10.088/10.226/10.370 ms (top bins 10.00 ms: 6651, 10.25 ms: 5347, 10.50 ms: 2); after the signal p50 7.93 ms; began before the signal p50 2.29 ms; late per iteration {'3/4': 4000}
+  gpu_w2_infinite_mixed_load: blocked 8000, late 3239; on-time wake p50/p90/p99 458/504/704 us; late return after its start p01/p50/p99 10.081/10.265/10.350 ms (top bins 10.25 ms: 2370, 10.00 ms: 845, 9.00 ms: 5, 9.75 ms: 5); after the signal p50 7.91 ms; began before the signal p50 2.34 ms; late per iteration {'0/2': 761, '1/2': 3239}
+  gpu_w2_infinite_split_load: blocked 8000, late 0; on-time wake p50/p90/p99 452/502/676 us
+  gpu_w2_infinite_stagger_load: blocked 7990, late 3989; on-time wake p50/p90/p99 448/467/499 us; late return after its start p01/p50/p99 10.085/10.285/10.347 ms (top bins 10.25 ms: 3460, 10.00 ms: 529); after the signal p50 7.95 ms; began before the signal p50 2.34 ms; late per iteration {'0/1': 10, '0/2': 1, '1/2': 3989}
+  gpucompute_w2_infinite_load: blocked 8000, late 4000; on-time wake p50/p90/p99 413/468/504 us; late return after its start p01/p50/p99 10.237/10.344/10.358 ms (top bins 10.25 ms: 3926, 10.00 ms: 74); after the signal p50 7.99 ms; began before the signal p50 2.35 ms; late per iteration {'1/2': 4000}
+  gpu_w2_infinite_longwait_load: blocked 2000, late 492; on-time wake p50/p90/p99 468/3766/4884 us; late return after its start p01/p50/p99 20.152/20.432/30.506 ms (top bins 20.00 ms: 207, 30.25 ms: 177, 30.00 ms: 51, 20.25 ms: 45); after the signal p50 7.55 ms; began before the signal p50 15.09 ms; late per iteration {'0/2': 508, '1/2': 492}
+  gpu_w1_infinite_cowait_load: blocked 4000, late 0; on-time wake p50/p90/p99 247/493/528 us
+  gpu_w2_infinite_cowait_load: blocked 8000, late 3993; on-time wake p50/p90/p99 384/517/551 us; late return after its start p01/p50/p99 10.119/10.200/10.327 ms (top bins 10.00 ms: 3686, 10.25 ms: 307); after the signal p50 8.11 ms; began before the signal p50 2.08 ms; late per iteration {'0/2': 7, '1/2': 3993}
+  gpu_w2_infinite_distinct_load: blocked 8000, late 4000; on-time wake p50/p90/p99 459/471/504 us; late return after its start p01/p50/p99 10.234/10.342/10.356 ms (top bins 10.25 ms: 3894, 10.00 ms: 106); after the signal p50 7.94 ms; began before the signal p50 2.38 ms; late per iteration {'1/2': 4000}
+  gpu_w4_infinite_distinct_load: blocked 16000, late 12000; on-time wake p50/p90/p99 445/470/497 us; late return after its start p01/p50/p99 10.088/10.231/10.372 ms (top bins 10.00 ms: 6523, 10.25 ms: 5475, 10.50 ms: 2); after the signal p50 7.98 ms; began before the signal p50 2.27 ms; late per iteration {'3/4': 4000}
+  gpu_w2_zeropoll_load: blocked 8000, late 0; on-time wake p50/p90/p99 239/469/571 us
+  gpu_w2_counterpoll_load: blocked 8000, late 0; on-time wake p50/p90/p99 228/468/522 us
+  gpu_w2_timeout0.1_load: blocked 8000, late 0; on-time wake p50/p90/p99 71/318/500 us
+  gpu_w2_timeout0.2_load: blocked 8000, late 0; on-time wake p50/p90/p99 50/285/501 us
+  gpu_w2_timeout0.5_load: blocked 8000, late 0; on-time wake p50/p90/p99 76/281/498 us
+  gpu_w2_relay_event_load: blocked 8000, late 0; on-time wake p50/p90/p99 469/606/689 us
+  gpu_w2_relay_condition_load: blocked 8000, late 0; on-time wake p50/p90/p99 470/609/691 us
+  gpu_w4_timeout0.1_load: blocked 16000, late 0; on-time wake p50/p90/p99 101/431/516 us
+  gpu_w4_timeout0.2_load: blocked 16000, late 0; on-time wake p50/p90/p99 86/436/514 us
+  gpu_w4_timeout0.5_load: blocked 16000, late 0; on-time wake p50/p90/p99 95/430/521 us
+  gpu_w4_relay_event_load: blocked 16000, late 0; on-time wake p50/p90/p99 504/674/756 us
+  gpu_w4_relay_condition_load: blocked 16000, late 0; on-time wake p50/p90/p99 513/679/775 us
+
+## gpu4: NVIDIA GeForce RTX 5090 driver 580.82.07 (NVIDIA), python 3.13.15, switch interval 0.2 ms, host clock clock_gettime_ns(CLOCK_MONOTONIC_RAW), time domain CLOCK_MONOTONIC_RAW, affinity 32 CPUs
+| case | signal | waiters | method | pattern | load | blocked | late | late % | p50 us | p99 us | max us | late from start p50 us | in 10.00-10.25 ms | first / later starters late | driver calls/s | load vs baseline |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| load_only | - | 0 | - | - | True | - | - | - | - | - | - | - | - | - | - | 1452093 units/busy s |
+| host_w4_infinite_load | host | 4 | infinite | same | True | 8000 | 6151 | 76.89 | 8102 | 9701 | 10157 | 10319 | 1451 | 1952/2000 , 4199/6000 | 377 | 99.5 % |
+| gpu_w2_infinite_load | gpu | 2 | infinite | same | True | 4000 | 2000 | 50.00 | 6334 | 9319 | 9752 | 10341 | 25 | 1283/2000 , 717/2000 | 189 | 100.0 % |
+| gpu_w4_infinite_load | gpu | 4 | infinite | same | True | 8000 | 6000 | 75.00 | 7599 | 9228 | 9585 | 10232 | 3251 | 1829/2000 , 4171/6000 | 378 | 98.8 % |
+| gpu_w2_relay_condition_load | gpu | 2 | relay_condition | same | True | 4000 | 0 | 0.00 | 409 | 686 | 717 | - | 0 | 0/2000 , 0/2000 | 690 | 96.5 % |
+| gpu_w2_timeout0.2_load | gpu | 2 | timeout:0.2 | same | True | 4000 | 0 | 0.00 | 50 | 501 | 520 | - | 0 | 0/2000 , 0/2000 | 6548 | 94.1 % |
+
+per waiter (cases with more than one waiter):
+  host_w4_infinite_load: w0 blocked 2000 late 1970 p50 8438 p99 9738 max 10157 calls/waiting-s 98 python 0.00 % cpu/wall 0.008; w1 blocked 2000 late 1970 p50 8432 p99 9719 max 10153 calls/waiting-s 98 python 0.00 % cpu/wall 0.008; w2 blocked 2000 late 1958 p50 8424 p99 9736 max 10136 calls/waiting-s 99 python 0.00 % cpu/wall 0.009; w3 blocked 2000 late 253 p50 51 p99 9383 max 9695 calls/waiting-s 328 python 0.00 % cpu/wall 0.004
+  gpu_w2_infinite_load: w0 blocked 2000 late 1376 p50 7490 p99 9534 max 9752 calls/waiting-s 126 python 0.00 % cpu/wall 0.008; w1 blocked 2000 late 624 p50 460 p99 9078 max 9730 calls/waiting-s 198 python 0.00 % cpu/wall 0.008
+  gpu_w4_infinite_load: w0 blocked 2000 late 1705 p50 7828 p99 9235 max 9585 calls/waiting-s 110 python 0.00 % cpu/wall 0.009; w1 blocked 2000 late 1533 p50 7636 p99 9244 max 9565 calls/waiting-s 118 python 0.00 % cpu/wall 0.009; w2 blocked 2000 late 1057 p50 6792 p99 9205 max 9375 calls/waiting-s 151 python 0.00 % cpu/wall 0.009; w3 blocked 2000 late 1705 p50 7823 p99 9242 max 9543 calls/waiting-s 110 python 0.00 % cpu/wall 0.009
+  gpu_w2_relay_condition_load: w0 blocked 2000 late 0 p50 364 p99 507 max 557 calls/waiting-s 393 python 0.00 % cpu/wall 0.020; w1 blocked 2000 late 0 p50 500 p99 692 max 717 calls/waiting-s 384 python 0.00 % cpu/wall 0.022
+  gpu_w2_timeout0.2_load: w0 blocked 2000 late 0 p50 49 p99 502 max 514 calls/waiting-s 3681 python 0.13 % cpu/wall 0.637; w1 blocked 2000 late 0 p50 51 p99 500 max 520 calls/waiting-s 3700 python 0.13 % cpu/wall 0.638
+
+wait details (gpu4):
+  host_w4_infinite_load: blocked 8000, late 6151; on-time wake p50/p90/p99 51/288/3939 us; late return after its start p01/p50/p99 8.825/10.319/10.403 ms (top bins 10.25 ms: 4603, 10.00 ms: 1451, 8.25 ms: 15, 9.25 ms: 14); after the signal p50 8.43 ms; began before the signal p50 1.88 ms; late per iteration {'3/4': 1849, '4/4': 151}
+  gpu_w2_infinite_load: blocked 4000, late 2000; on-time wake p50/p90/p99 453/466/500 us; late return after its start p01/p50/p99 10.248/10.341/10.355 ms (top bins 10.25 ms: 1975, 10.00 ms: 25); after the signal p50 7.91 ms; began before the signal p50 2.41 ms; late per iteration {'1/2': 2000}
+  gpu_w4_infinite_load: blocked 8000, late 6000; on-time wake p50/p90/p99 452/467/499 us; late return after its start p01/p50/p99 10.091/10.232/10.375 ms (top bins 10.00 ms: 3251, 10.25 ms: 2748, 10.50 ms: 1); after the signal p50 7.94 ms; began before the signal p50 2.28 ms; late per iteration {'3/4': 2000}
+  gpu_w2_relay_condition_load: blocked 4000, late 0; on-time wake p50/p90/p99 409/595/684 us
+  gpu_w2_timeout0.2_load: blocked 4000, late 0; on-time wake p50/p90/p99 50/291/501 us
+

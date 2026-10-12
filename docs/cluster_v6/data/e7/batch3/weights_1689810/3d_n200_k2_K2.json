@@ -1,0 +1,248 @@
+{
+ "format": "e32_slab_weights_v1",
+ "case": "cases/aligned/cavity3d_n200_k2/case.yaml",
+ "case_sha256": "9ebd3d92bb57ae9da8711c5c8d5d3e9b66a623a0053f5b24aca0fccfe3aa5776",
+ "particle_count": 17651712,
+ "grid_nx": 104,
+ "fluid_histogram_sha256": "c74041c48e878c3f31926f11dc9c9da2d859f11aa5de2fd50500f57fe45214d1",
+ "slab_count": 2,
+ "device_map": [
+  0,
+  1
+ ],
+ "devices": [
+  {
+   "device_index": 0,
+   "name": "NVIDIA GeForce RTX 5090",
+   "uuid": "985f94ea851e3c90bfc260348179da15"
+  },
+  {
+   "device_index": 1,
+   "name": "NVIDIA GeForce RTX 5090",
+   "uuid": "edd09059a437aa1381013e011eab676c"
+  }
+ ],
+ "host": "wqd10nbj04g1",
+ "settings": {
+  "warmup": 200,
+  "steps": 300,
+  "rounds": 2,
+  "depth": 2,
+  "pool_safety": 1.2,
+  "sync_scheme": "per-direction",
+  "defrag_cadence": 1000
+ },
+ "band_widths": [
+  2,
+  2,
+  3
+ ],
+ "environment": {
+  "V7_WORKER_AFFINITY": "0-31,64-95;0-31,64-95;0-31,64-95;0-31,64-95;32-63,96-127;32-63,96-127;32-63,96-127;32-63,96-127",
+  "VK_LOADER_LAYERS_DISABLE": "VK_LAYER_KHRONOS_validation"
+ },
+ "commit": "",
+ "v7_dirty_files": [],
+ "timestamp": "2026-10-12 10:11:11",
+ "seconds": 98.53073973581195,
+ "rounds": [
+  {
+   "round": 1,
+   "weights": [
+    1.0,
+    1.0
+   ],
+   "cuts": [
+    52
+   ],
+   "own_columns": [
+    52,
+    52
+   ],
+   "fluid": [
+    8000000,
+    8000000
+   ],
+   "all": [
+    8825856,
+    8825856
+   ],
+   "busy_us": [
+    57864.72,
+    56637.82399999999
+   ],
+   "omega": [
+    0.9892849891614635,
+    1.0107150108385365
+   ],
+   "next_cuts": [
+    51
+   ],
+   "changed": true,
+   "statistics": {
+    "per_sim": [
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 57864.72,
+      "busy_p95_us": 58339.0672,
+      "busy_mean_us": 57928.24394666667,
+      "a_p50_us": 836.096,
+      "b_p50_us": 53447.695999999996,
+      "c_p50_us": 3584.24
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 56637.82399999999,
+      "busy_p95_us": 57194.336,
+      "busy_mean_us": 56697.27914666666,
+      "a_p50_us": 818.384,
+      "b_p50_us": 52298.208,
+      "c_p50_us": 3517.4080000000004
+     }
+    ],
+    "per_device": {
+     "0": {
+      "sims": [
+       0
+      ],
+      "busy_us": 57864.72,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "1": {
+      "sims": [
+       1
+      ],
+      "busy_us": 56637.82399999999,
+      "method": "median of T_A + T_B + T_C"
+     }
+    }
+   },
+   "invariants": {
+    "drift": 0,
+    "overflow_total": 0,
+    "stamp_errors_gpu": 0,
+    "stamp_errors_host": 0,
+    "far_migration_total": 0
+   },
+   "devices": [
+    {
+     "device_index": 0,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "985f94ea851e3c90bfc260348179da15"
+    },
+    {
+     "device_index": 1,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "edd09059a437aa1381013e011eab676c"
+    }
+   ],
+   "pilot_steady_fps": 17.202570598953283,
+   "seconds": 49.76363715901971
+  },
+  {
+   "round": 2,
+   "weights": [
+    0.9892849891614635,
+    1.0107150108385365
+   ],
+   "cuts": [
+    51
+   ],
+   "own_columns": [
+    51,
+    53
+   ],
+   "fluid": [
+    7840000,
+    8160000
+   ],
+   "all": [
+    8652800,
+    8998912
+   ],
+   "busy_us": [
+    56852.335999999996,
+    56895.616
+   ],
+   "omega": [
+    0.9803803410651583,
+    1.019619658934842
+   ],
+   "next_cuts": [
+    51
+   ],
+   "changed": false,
+   "statistics": {
+    "per_sim": [
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 56852.335999999996,
+      "busy_p95_us": 57501.068799999994,
+      "busy_mean_us": 56975.49514666667,
+      "a_p50_us": 820.448,
+      "b_p50_us": 52453.44,
+      "c_p50_us": 3575.888
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 56895.616,
+      "busy_p95_us": 57258.7856,
+      "busy_mean_us": 56872.36042666666,
+      "a_p50_us": 842.672,
+      "b_p50_us": 52517.551999999996,
+      "c_p50_us": 3531.632
+     }
+    ],
+    "per_device": {
+     "0": {
+      "sims": [
+       0
+      ],
+      "busy_us": 56852.335999999996,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "1": {
+      "sims": [
+       1
+      ],
+      "busy_us": 56895.616,
+      "method": "median of T_A + T_B + T_C"
+     }
+    }
+   },
+   "invariants": {
+    "drift": 0,
+    "overflow_total": 0,
+    "stamp_errors_gpu": 0,
+    "stamp_errors_host": 0,
+    "far_migration_total": 0
+   },
+   "devices": [
+    {
+     "device_index": 0,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "985f94ea851e3c90bfc260348179da15"
+    },
+    {
+     "device_index": 1,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "edd09059a437aa1381013e011eab676c"
+    }
+   ],
+   "pilot_steady_fps": 17.4901265899507,
+   "seconds": 48.72003032267094
+  }
+ ],
+ "weights": [
+  0.9803803410651583,
+  1.019619658934842
+ ],
+ "cuts": [
+  51
+ ],
+ "switch_interval_s": 0.00019999999999999998
+}
