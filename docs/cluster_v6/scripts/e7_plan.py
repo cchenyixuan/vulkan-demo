@@ -75,6 +75,13 @@ Revision of 2026-10-12 (--revision; user, after the batch-3 report: batches 2 an
     particle, cube against stretched; ANATOMY_STEPS_3D steps), the cross repeat of 2d_n8000 K = 8 only (submit with
     --exclude=<the validation job's node>).
 
+Revision 2 (--revision 2; user, 2026-10-12 evening): 2-D only this round, 3-D postponed (revision 1's batch 4 keeps
+  the 3-D anatomy for later). rc2, arm C, 3 trials, 2-D windows of 1500 steps (warmup 500): A 2d_n8000 K = 1 (a
+  step-traced K = 1 run), 2, 4, 8 with traces; B K = 8 n8000, n11320, n520, n1000 with traces (n4000 K = 8 done in
+  the validation job); C weak 2M / 8M / 32M per card at K = 2 / 4 / 8, no traces (n1440_k2 done); D the n8000
+  anatomy at K = 1 (line A) and K = 8 (line B); E n8000 K = 8 on another node = the cross repeat of line B's job,
+  with the trace (submit with --exclude=<the validation job's node>). One batch, two jobs (e7_b2A, e7_b2B).
+
 Validation job (--emit-validation DIR: e7_v1.sbatch, job e7_V, line V; user item 7): the job's deployment
 (VALIDATION source repo, tag rc2, --validation-tree / --validation-commit, placeholders until rc2 exists) under
 the full protocol at two batch-1 points (same labels as batch 1: they replace those points), and A/B points of
@@ -147,17 +154,35 @@ PLACEHOLDER_TREE = "PLACEHOLDER_TREE"           # rc2's tree and commit are not 
 PLACEHOLDER_COMMIT = "PLACEHOLDER_COMMIT"
 # revision of 2026-10-12 (docstring): the arm, the trials, the traces per point kind, the batch 2 / 4 point lists
 # (case, K), batch 4's extras and cross repeat
-REVISION = {
-    "arms": "C", "trials": 3, "traces_strong": 1, "traces_weak": 0,
-    "batches": {2: {"A": [("cavity2d_n5640", 2), ("cavity2d_n5640", 4), ("cavity2d_n8000", 2), ("cavity2d_n8000", 4),
-                          ("cavity2d_n1440_k4", 4), ("cavity2d_n2840_k2", 2), ("cavity2d_n2840_k4", 4),
-                          ("cavity2d_n5640_k2", 2), ("cavity2d_n5640_k4", 4)],
-                    "B": [("cavity2d_n2000", 8), ("cavity2d_n2840", 8), ("cavity2d_n5640", 8), ("cavity2d_n11320", 8),
-                          ("cavity2d_n1440_k8", 8), ("cavity2d_n2840_k8", 8), ("cavity2d_n5640_k8", 8)]},
-                4: {"A": [], "B": [("cavity2d_n520", 8), ("cavity2d_n1000", 8)]}},
-    "extras": {2: {"A": ([], []), "B": ([], [])}, 4: {"A": ([], []), "B": ([], ["anatomy", "anatomy_3d", "cross"])}},
-    "cross": {"A": [], "B": [("cavity2d_n8000", 8)]},
+REVISIONS = {
+    1: {
+        "arms": "C", "trials": 3, "traces_strong": 1, "traces_weak": 0, "cross_traces": 0,
+        "batches": {2: {"A": [("cavity2d_n5640", 2), ("cavity2d_n5640", 4), ("cavity2d_n8000", 2), ("cavity2d_n8000", 4),
+                              ("cavity2d_n1440_k4", 4), ("cavity2d_n2840_k2", 2), ("cavity2d_n2840_k4", 4),
+                              ("cavity2d_n5640_k2", 2), ("cavity2d_n5640_k4", 4)],
+                        "B": [("cavity2d_n2000", 8), ("cavity2d_n2840", 8), ("cavity2d_n5640", 8), ("cavity2d_n11320", 8),
+                              ("cavity2d_n1440_k8", 8), ("cavity2d_n2840_k8", 8), ("cavity2d_n5640_k8", 8)]},
+                    4: {"A": [], "B": [("cavity2d_n520", 8), ("cavity2d_n1000", 8)]}},
+        "extras": {2: {"A": ([], []), "B": ([], [])}, 4: {"A": ([], []), "B": ([], ["anatomy", "anatomy_3d", "cross"])}},
+        "cross": {"A": [], "B": [("cavity2d_n8000", 8)]},
+    },
+    # revision 2 (user, 2026-10-12 evening): 2-D only this round, 3-D postponed; rc2, arm C, 3 trials, 2-D windows of
+    # 1500 steps (warmup 500). A: 2d_n8000 K = 1 (a step-traced K = 1 run) / 2 / 4 / 8 with traces; B: K = 8 n4000
+    # (done, validation job), n8000, n11320, n520, n1000 with traces; C: weak 2M / 8M / 32M per card at K = 2 / 4 / 8
+    # without traces (n1440_k2 done, validation job); D: the n8000 anatomy at K = 1 and K = 8; E: n8000 K = 8 on
+    # another node (the cross repeat, with the trace: the validation job's three trials have none).
+    2: {
+        "arms": "C", "trials": 3, "traces_strong": 1, "traces_weak": 0, "cross_traces": 1, "window_2d": (1500, 500),
+        "batches": {2: {"A": [("cavity2d_n8000", 2), ("cavity2d_n8000", 4), ("cavity2d_n1440_k4", 4),
+                              ("cavity2d_n2840_k2", 2), ("cavity2d_n2840_k4", 4), ("cavity2d_n5640_k2", 2),
+                              ("cavity2d_n5640_k4", 4)],
+                        "B": [("cavity2d_n11320", 8), ("cavity2d_n520", 8), ("cavity2d_n1000", 8),
+                              ("cavity2d_n1440_k8", 8), ("cavity2d_n2840_k8", 8), ("cavity2d_n5640_k8", 8)]}},
+        "extras": {2: {"A": ([], ["trace_2d_k1", "anatomy_2d_k1"]), "B": ([], ["cross", "anatomy_2d_k8"])}},
+        "cross": {"A": [], "B": [("cavity2d_n8000", 8)]},
+    },
 }
+REVISION = None                                 # --revision N: REVISIONS[N]
 ARMS = "EC"                                     # the timed arms per trial (--revision: REVISION["arms"])
 
 
@@ -259,7 +284,7 @@ def cross_points(points: list[Point], revision: bool = False) -> dict:
     table = REVISION["cross"] if revision else CROSS
     return {line: [dataclasses.replace(by_key[key], references=list(by_key[key].references), cross=True,
                                        trials_fixed=REVISION["trials"] if revision else None,
-                                       traces_fixed=0 if revision else None)
+                                       traces_fixed=REVISION.get("cross_traces", 0) if revision else None)
                    for key in keys] for line, keys in table.items()}
 
 
@@ -313,7 +338,9 @@ class Model:
     cube_soak_seconds: float = 3600.0
 
     def window(self, case: str) -> tuple[int, int]:
-        return (1500, 500) if case.startswith("cavity3d") else (3000, 1000)
+        if case.startswith("cavity3d"):
+            return (1500, 500)
+        return tuple(REVISION["window_2d"]) if REVISION and REVISION.get("window_2d") else (3000, 1000)
 
     def step_time(self, case: str, slabs: int) -> float:
         three_dimensional = case.startswith("cavity3d")
@@ -425,6 +452,10 @@ def extras(model: Model) -> dict:
         "soak_2d": [("soak_2d_n8000_K8", "soak", "cavity2d_n8000", 8, model.soak_steps)],
         "anatomy": [("anatomy_2d_n8000_K1", "anatomy", "cavity2d_n8000", 1, model.anatomy_steps),
                     ("anatomy_2d_n8000_K8", "anatomy", "cavity2d_n8000", 8, model.anatomy_steps)],
+        # revision 2: the same two anatomy runs on separate lines, and a step-traced K = 1 run of n8000 (item A)
+        "anatomy_2d_k1": [("anatomy_2d_n8000_K1", "anatomy", "cavity2d_n8000", 1, model.anatomy_steps)],
+        "anatomy_2d_k8": [("anatomy_2d_n8000_K8", "anatomy", "cavity2d_n8000", 8, model.anatomy_steps)],
+        "trace_2d_k1": [("trace_2d_n8000_K1", "trace", "cavity2d_n8000", 1, model.window("cavity2d_n8000")[0])],
         # revision of 2026-10-12: per-kernel time per particle of the cube K = 1 (per-card case), the stretched
         # K = 1 (the strong reference, one card) and the stretched K = 8
         "anatomy_3d": [("anatomy_3d_n200_K1", "anatomy", "cavity3d_n200", 1, model.anatomy_steps_3d),
@@ -436,7 +467,9 @@ def extras(model: Model) -> dict:
     for group, entries in items.items():
         out[group] = []
         for label, kind, case, slabs, steps in entries:
-            seconds = model.run(case, slabs, steps, cold=True, seam_check=kind == "soak")
+            seconds = model.run(case, slabs, steps, cold=True, seam_check=kind in ("soak", "trace"))
+            if kind == "trace":
+                seconds += model.trace_write
             warmup = 200 if kind == "selftest" else model.window(case)[1]
             out[group].append({"label": label, "kind": kind, "case": case, "slabs": slabs, "steps": steps,
                                "warmup": warmup, "seconds": seconds})
@@ -665,14 +698,16 @@ def main() -> int:
                         help="the validation job's expected experiment/v7 tree (git rev-parse <rc2>:experiment/v7)")
     parser.add_argument("--validation-commit", default=PLACEHOLDER_COMMIT, metavar="PREFIX",
                         help="the validation job's expected COMMIT prefix (the rc2 commit)")
-    parser.add_argument("--revision", action="store_true",
-                        help="the revision of 2026-10-12 (docstring): arm C only, 3 trials, the trimmed batches 2 and 4; "
-                             "emitted jobs export E7_ARMS=C")
+    parser.add_argument("--revision", type=int, choices=sorted(REVISIONS), default=None, metavar="N",
+                        help="a revision of the plan (REVISIONS): 1 = 2026-10-12 noon (arm C only, 3 trials, the trimmed "
+                             "batches 2 and 4), 2 = 2026-10-12 evening (2-D only, 1500-step windows, batch 2 = items "
+                             "A-E); emitted jobs export E7_ARMS")
     arguments = parser.parse_args()
     if (arguments.solver_tag is None) != (arguments.expected_tree is None):
         parser.error("--solver-tag and --expected-tree go together (the tag names the tree's solver)")
-    global ARMS
+    global ARMS, REVISION
     if arguments.revision:
+        REVISION = REVISIONS[arguments.revision]
         ARMS = REVISION["arms"]
     model = load_model(arguments.model_json)
     points = campaign_points()
@@ -727,7 +762,7 @@ def main() -> int:
                f"line B {sum(p.line == 'B' for p in planned)}); 5 trials: {sum(p.trials == 5 for p in planned)} points "
                f"(<= {LIGHT_PER_CARD / 1e6:.1f}M per card), 3 trials: {sum(p.trials == 3 for p in planned)}; arms {ARMS}; "
                f"traced runs per point {sorted({p.traces for p in planned})}; timing runs without the seam check"
-               + (" (revision of 2026-10-12)" if arguments.revision else ""),
+               + (f" (revision {arguments.revision} of 2026-10-12)" if arguments.revision else ""),
                "batches (node-h; wall = the longer line): " + "; ".join(
                    f"{batch}: A {values.get('A', 0.0) / 3600:.1f} + B {values.get('B', 0.0) / 3600:.1f} = "
                    f"{sum(values.values()) / 3600:.1f} (wall {max(values.values()) / 3600:.1f} h)"

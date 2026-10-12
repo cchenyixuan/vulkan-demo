@@ -705,6 +705,9 @@ e7_extra() {        # KIND LABEL CASE K STEPS WARMUP TIMEOUT
                 E30_WRAPPER_ARGS="--obj-cache $NODE_CACHE --defrag-log --loop-trace $SHM/traces/$label" \
                 e30_run "$label" "$limit" --optional -- --case "$yaml" --weights "$(e7_ones "$slabs")" --device-map "$map" \
                 $COMMON --max-steps "$steps" --warmup "$warmup" --anatomy --no-seam-check ;;
+        trace)          # a step-traced run at equal weights (revision 2: 2d_n8000 at K = 1, the phases per step)
+            E30_PREFIX="${pin}" e30_run "$label" "$limit" --optional -- --case "$yaml" --weights "$(e7_ones "$slabs")" \
+                --device-map "$map" $COMMON --max-steps "$steps" --warmup "$warmup" --step-trace "$SHM/traces/$label" ;;
         fulltrace)      # every kernel's ticks for every step (the anatomy samples one frame per defrag)
             E30_PREFIX="${pin}" e30_run "$label" "$limit" --optional -- --case "$yaml" --weights "$(e7_ones "$slabs")" \
                 --device-map "$map" $COMMON --max-steps "$steps" --warmup "$warmup" --step-trace "$SHM/traces/$label" \
