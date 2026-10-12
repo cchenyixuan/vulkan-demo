@@ -181,6 +181,24 @@ REVISIONS = {
         "extras": {2: {"A": ([], ["trace_2d_k1", "anatomy_2d_k1"]), "B": ([], ["cross", "anatomy_2d_k8"])}},
         "cross": {"A": [], "B": [("cavity2d_n8000", 8)]},
     },
+    # revision 3 (user, 2026-10-13: the batch-2 supplement, one whole-node job b2S): 1. the two old-window points
+    # again (2d_n4000 K8 traced, 2d_n1440_k2 K2); 2. the K = 8 strong-scaling transition n1440 / n2000 / n2840,
+    # traced; 3. the 2M-per-card weak points to 5 trials (n1440_k2 K2 = item 1, n1440_k4 K4, n1440_k8 K8);
+    # 5. if this account may lock the SM clocks (e7_clock_lock), 2d_n8000 K8 and 2d_n5640_k8 K8 with their K = 1
+    # references at one locked frequency, else skipped. Item 4 (n11320 K = 1) needs no run: 128.6M does not fit.
+    3: {
+        "arms": "C", "trials": 3, "traces_strong": 1, "traces_weak": 0, "cross_traces": 0, "window_2d": (1500, 500),
+        "extra_points": [("F1", "cavity2d_n1440", 8, "same")],
+        "any_line": True,                       # the K = 2 / 4 points run in the same whole-node job
+        "trials_overrides": {("cavity2d_n1440_k2", 2): 5, ("cavity2d_n1440_k4", 4): 5, ("cavity2d_n1440_k8", 8): 5},
+        "batches": {5: {"B": [("cavity2d_n4000", 8), ("cavity2d_n1440_k2", 2), ("cavity2d_n1440", 8),
+                              ("cavity2d_n2000", 8), ("cavity2d_n2840", 8), ("cavity2d_n1440_k4", 4),
+                              ("cavity2d_n1440_k8", 8)]}},
+        "extras": {5: {"A": ([], []), "B": ([], ["lock"])}},
+        "lock": [("cavity2d_n8000", 8), ("cavity2d_n5640_k8", 8)], "lock_mhz": 2500, "lock_trials": 3,
+        "cross": {"A": [], "B": []},
+        "job_names": {5: "b2S"},
+    },
 }
 REVISION = None                                 # --revision N: REVISIONS[N]
 ARMS = "EC"                                     # the timed arms per trial (--revision: REVISION["arms"])
@@ -274,6 +292,9 @@ def campaign_points() -> list[Point]:
     # F8 E29 per-card points, 3-D (0.7M / 4.7M per card, narrow slab), K = 2
     for case in ("cavity3d_n104_b9", "cavity3d_n200_b9", "cavity3d_n200_x96"):
         add("F8", case, 2)
+    # a revision's own points (revision 3: 2d_n1440 at K = 8), not part of the 51-point campaign
+    for family, case, slabs, reference in (REVISION or {}).get("extra_points", []):
+        add(family, case, slabs, reference)
     return points
 
 
@@ -299,12 +320,26 @@ def revised_batches(points: list[Point], batches: dict) -> dict:
             out[batch][line] = []
             for key in keys:
                 point = by_key[key]
-                if point.line != line:
+                if point.line != line and not REVISION.get("any_line"):
                     raise SystemExit(f"revision batch {batch}: {key} is a line {point.line} point")
                 out[batch][line].append(dataclasses.replace(
-                    point, references=list(point.references), trials_fixed=REVISION["trials"],
+                    point, references=list(point.references),
+                    trials_fixed=REVISION.get("trials_overrides", {}).get(key, REVISION["trials"]),
                     traces_fixed=REVISION["traces_strong"] if point.strong else REVISION["traces_weak"]))
     return out
+
+
+def lock_items(points: list[Point], model: Model) -> list[dict]:
+    """--revision with a "lock" group (revision 3, item 5): the points run under e7_clock_lock, between a lock_begin
+    and a lock_end item (the job skips the block when the account cannot lock the clocks)."""
+    by_key = {(point.case, point.slabs): point for point in points}
+    items = [{"kind": "lock_begin", "seconds": 0.0, "mhz": REVISION["lock_mhz"]}]
+    for key in REVISION["lock"]:
+        point = dataclasses.replace(by_key[key], references=list(by_key[key].references),
+                                    trials_fixed=REVISION.get("lock_trials", REVISION["trials"]), traces_fixed=0)
+        items.append({"kind": "lock", "point": point, "seconds": point_seconds(point, model)["total"]})
+    items.append({"kind": "lock_end", "seconds": 0.0})
+    return items
 
 
 @dataclasses.dataclass
@@ -526,11 +561,13 @@ def build_jobs(points: list[Point], model: Model, revision: bool = False) -> dic
                             items.append({"kind": "cross", "point": point,
                                           "seconds": point_seconds(point, model)["total"],
                                           "original_line": point.line})
+                    elif group == "lock":
+                        items.extend(lock_items(points, model))
                     else:
                         items.extend(dict(entry) for entry in extra_items[group])
 
             add_groups(before)
-            for point in lines[line]:
+            for point in lines.get(line, []):
                 items.append({"kind": "point", "point": point, "seconds": point_seconds(point, model)["total"]})
             add_groups(after)
             if items:               # a line without items has no job (the revision's batch 4 line A)
@@ -544,12 +581,12 @@ def build_jobs(points: list[Point], model: Model, revision: bool = False) -> dic
 def job_cases(items: list[dict]) -> list[str]:
     cases = {BRINGUP_CASE}
     for item in items:
-        if item["kind"] in ("point", "cross", "pair"):
+        if item["kind"] in ("point", "cross", "pair", "lock"):
             point = item["point"]
             cases.add(point.case)
             for kind in point.references:
                 cases.add(reference_spec(point, kind)[0])
-        else:
+        elif "case" in item:
             cases.add(item["case"])
     return sorted(cases)
 
@@ -565,7 +602,11 @@ def emit_item(item: dict, model: Model) -> list[str]:
         references = " ".join(f"{kind}:{timeout(seconds['reference_runs'][kind])}" for kind in point.references)
         return [f"e7_pair_point {point.family} {point.case} {point.slabs} {item['trials']} {steps} {warmup} "
                 f"{timeout(seconds['calibration'])} {timeout(seconds['run'])} {item['arm']} {references}"]
-    if item["kind"] in ("point", "cross"):
+    if item["kind"] == "lock_begin":
+        return [f"if e7_clock_lock {item['mhz']}; then"]
+    if item["kind"] == "lock_end":
+        return ["    e7_clock_unlock", "fi"]
+    if item["kind"] in ("point", "cross", "lock"):
         point = item["point"]
         seconds = point_seconds(point, model)
         steps, warmup = model.window(point.case)
@@ -575,12 +616,16 @@ def emit_item(item: dict, model: Model) -> list[str]:
                      f"{point.traces} {references}")
         if item["kind"] == "cross":
             return [f"e7_cross {item['original_line']} {arguments}"]
+        if item["kind"] == "lock":
+            return [f"    E7_PREFIX=lock_ e7_point {arguments}"]
         return [f"e7_point {arguments}"]
     return [f"e7_extra {item['kind']} {item['label']} {item['case']} {item['slabs']} {item['steps']} "
             f"{item['warmup']} {timeout(item['seconds'])}"]
 
 
 def job_name(batch: int, line: str) -> str:
+    if REVISION and batch in REVISION.get("job_names", {}):
+        return REVISION["job_names"][batch]
     return f"b{batch}{line}"
 
 
@@ -732,7 +777,8 @@ def main() -> int:
                 seconds = point_seconds(point, model)
                 reference = " + ".join({"same": "K=1 of the case", "pairs": "K=2 pairs"}.get(kind, f"K=1 {kind}")
                                        for kind in point.references)
-                lines.append(f"| {batch} | {line} | {'cross ' if point.cross else ''}{point.family} | "
+                lines.append(f"| {batch} | {line} | {'cross ' if point.cross else ''}"
+                             f"{'lock ' if item['kind'] == 'lock' else ''}{point.family} | "
                              f"{point.case} | {point.slabs} | {PARTICLES[point.case] / 1e6:.1f}M | "
                              f"{point.per_card / 1e6:.2f}M | {point.trials} | {reference} | "
                              f"{seconds['run'] / 60:.1f} | {seconds['reference'] / 60:.1f} | "
@@ -746,7 +792,7 @@ def main() -> int:
                                 "fps_estimate": 1.0 / model.step_time(point.case, point.slabs),
                                 **{name: round(value, 1) for name, value in seconds.items()
                                    if not isinstance(value, dict)}})
-            else:
+            elif "case" in item:
                 records.append({"batch": batch, "line": line, "job": job_name(batch, line), "kind": item["kind"],
                                 "case": item["case"], "slabs": item.get("slabs", item.get("parties")),
                                 "steps": item.get("steps"), "seconds": round(item["seconds"], 1),

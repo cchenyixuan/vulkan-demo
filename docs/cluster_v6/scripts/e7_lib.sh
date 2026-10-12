@@ -137,6 +137,32 @@ e7_gpu_health() {   # before any Vulkan process (user, 2026-10-12): nvidia-smi m
     DEVICES=$healthy
 }
 
+e7_clock_lock() {   # MHZ (user item 5, 2026-10-13): lock every GPU's SM clock at MHZ for the lock block. Returns 0 with
+    # E7_CLOCK_LOCKED=1 when `nvidia-smi -lgc` (plain, then sudo -n) succeeds, else 1: the block is skipped and the
+    # report says so. Released by e7_clock_unlock (also from e7_cleanup).
+    local mhz=$1 tool out rc
+    E7_CLOCK_LOCKED=0; E7_CLOCK_TOOL=""
+    for tool in "nvidia-smi" "sudo -n nvidia-smi"; do
+        out=$(timeout 60 $tool -lgc "$mhz,$mhz" 2>&1); rc=$?
+        echo "CLOCK LOCK: '$tool -lgc $mhz,$mhz' rc=$rc: $(echo "$out" | head -3 | tr '\n' ' ')"
+        if [ "$rc" -eq 0 ] && ! echo "$out" | grep -q -i -E 'permission|denied|not supported|password|no devices'; then
+            E7_CLOCK_LOCKED=1; E7_CLOCK_TOOL=$tool
+            echo "CLOCK LOCK: engaged at $mhz MHz on $(hostname): $(timeout 60 nvidia-smi --query-gpu=index,clocks.sm,clocks.max.sm --format=csv,noheader 2>&1 | tr '\n' ';')"
+            return 0
+        fi
+    done
+    echo "CLOCK LOCK: not permitted for $(id -un) on $(hostname): the lock block is skipped (item 5)"
+    return 1
+}
+
+e7_clock_unlock() { # release the SM clock lock (no-op unless e7_clock_lock engaged it)
+    local out
+    [ "${E7_CLOCK_LOCKED:-0}" = 1 ] || return 0
+    out=$(timeout 60 ${E7_CLOCK_TOOL:-nvidia-smi} -rgc 2>&1)
+    echo "CLOCK LOCK: released on $(hostname): $(echo "$out" | head -2 | tr '\n' ' ') $(timeout 60 nvidia-smi --query-gpu=index,clocks.sm,clocks.max.sm --format=csv,noheader 2>&1 | tr '\n' ';')"
+    E7_CLOCK_LOCKED=0
+}
+
 e7_pair_order() {   # TRIAL (1-based) -> R rc1 <job tag> / R <job tag> rc1, alternating
     if [ $(( $1 % 2 )) -eq 1 ]; then echo "R rc1 $E7_SOLVER_TAG"; else echo "R $E7_SOLVER_TAG rc1"; fi
 }
@@ -425,6 +451,7 @@ e7_cleanup() {      # [WHERE STATUS]: stop the sampler, free the node-local cach
     # e7_job_end calls it without arguments (its own check ran).
     local where=${1:-} status=${2:-0} end_status=0
     trap - EXIT TERM
+    e7_clock_unlock
     if [ -n "${E7_MEMPID:-}" ]; then kill "$E7_MEMPID" 2>/dev/null; wait "$E7_MEMPID" 2>/dev/null; E7_MEMPID=""; fi
     [ -n "${E7_GLCACHE:-}" ] && [ -d "$E7_GLCACHE" ] && rm -rf "$E7_GLCACHE"
     [ -n "${NODE_CACHE:-}" ] && [ -d "$NODE_CACHE" ] && [ "$NODE_CACHE" != "$E7_OBJ_CACHE" ] && rm -rf "$NODE_CACHE"
