@@ -1,0 +1,6 @@
+== e7_b2A_1694327: 91 rows; roles {'reference': 66, 'calibrated': 21, 'trace_calibrated': 2, 'trace': 1, 'anatomy': 1}; status {'pass': 91}
+   not pass: none; invariant rows not 0: none
+   seam checks 4 (4 OK), overshoot -0.05..-0.02 dx, duplicates [0]; field checks 3 (NaN-free 3)
+== e7_b2B_1694328: 182 rows; roles {'reference': 156, 'calibrated': 21, 'trace_calibrated': 4, 'anatomy': 1}; status {'pass': 182}
+   not pass: none; invariant rows not 0: none
+   seam checks 28 (28 OK), overshoot -0.36..-0.0 dx, duplicates [0]; field checks 4 (NaN-free 4)

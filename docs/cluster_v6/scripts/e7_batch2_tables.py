@@ -242,7 +242,7 @@ def same_load_rows(rows: list, k1: dict, tolerance: float) -> list:
     sizes = {case: statistics.fmean(run["row"]["loaded_particles"] for run in runs) for case, runs in k1.items()}
     out = []
     for row in sorted(rows, key=sort_key):
-        strong = next((reference for reference in row["references"].values() if reference["kind"] == "strong"), None)
+        strong = next((reference for reference in row["references"].values() if reference["kind"] in ("strong", "pairs")), None)
         if strong is None or not row["particles"] or row["K"] == 1:
             continue
         per_card = row["particles"] / row["K"]
