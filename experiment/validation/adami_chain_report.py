@@ -417,8 +417,23 @@ def main() -> int:
     write_csv(DATA / f"{prefix}_k2_minus_k1_seam_bins.csv", bin_header, bin_rows,
               "E40: the seam strip difference per h/2 column (offset from the seam in support radii; negative = slab 0's side).")
 
-    # E
+    # E (+ the campaign's wall-clock estimates recorded before each launch, campaign.jsonl of the runs root)
     invariants = invariant_rows(runs)
+    estimates = {}
+    campaign_journal = root / "campaign.jsonl"
+    if campaign_journal.exists():
+        for line in campaign_journal.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                entry = json.loads(line)
+                if entry.get("run") in (runs["K1"]["id"], runs["K2"]["id"]) and entry.get("start_step") == 0:
+                    estimates[entry["run"]] = entry          # the last estimate from step 0 wins
+    for row in invariants:
+        entry = estimates.get(row["id"], {})
+        row["estimate_hours"] = entry.get("hours")
+        row["estimate_fps"] = entry.get("fps")
+        row["estimate_logged"] = entry.get("logged")
+        fps_samples = sorted(float(sample["fps"]) for sample in runs[row["run"]]["rows"][1:] if sample.get("fps"))
+        row["median_fps"] = fps_samples[len(fps_samples) // 2] if fps_samples else None
     write_csv(DATA / f"{prefix}_k1_k2_invariants.csv", list(invariants[0].keys()), [list(row.values()) for row in invariants],
               "E40: invariants and run facts of the two runs (segments.jsonl totals, samples.jsonl).")
 
@@ -484,6 +499,9 @@ def main() -> int:
     lines += ["", "每个样本(每 0.2 时间单位)与每个 defrag 边界都检查:存活粒子总数 = 初始总数、每张卡的全部 `overflow_*` 计数、far_migration、"
               "GPU 与主机帧戳错误;任一违反即作废(退出码 3)。overflow 合计 = 两段结束时所有 slab 所有 `overflow_*` 之和。"
               f"数据:`data/{prefix}_k1_k2_invariants.csv`。", ""]
+    lines += ["墙钟(提交前的校准估算 → 实际):" + ";".join(
+        f"{row['run']} {number(row['estimate_hours'], 2)} h(校准 {number(row['estimate_fps'], 1)} 步/s,{row['estimate_logged']})"
+        f" → {row['wall_hours']:.2f} h(运行中样本间吞吐中位数 {number(row['median_fps'], 1)} 步/s)" for row in invariants), ""]
     lines += ["## 文件", "", f"- 图:`docs/validation/figures/{prefix}_fig1_k1.pdf`(.png)、`{prefix}_fig2_k2.pdf`(.png)",
               f"- 数据:`docs/validation/data/{prefix}_k1_k2_summary.csv`、`{prefix}_k2_minus_k1_points.csv`、`{prefix}_k2_minus_k1_seam.csv`、"
               f"`{prefix}_k2_minus_k1_seam_bins.csv`、`{prefix}_k1_k2_invariants.csv`、`profile_{runs['K1']['id']}.csv`、"
