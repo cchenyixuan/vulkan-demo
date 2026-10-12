@@ -41,12 +41,17 @@ Definitions (user, 2026-10-10):
   sums over the arm's runs (timed and traced) that print them: precheck, relay, fallback, blocking, relay slept,
   released; flagged (bold) when fallback or blocking > 0 in a run with V7_DEST_GUARD=relay;
   traces (experiment/v7/analysis/step_trace_model.run_summary), per step on the worse link, p50 / p95: the main
-  ratio r_chain = t_chain / T_B (t_chain = t_tr minus the receiver's two waits: the transport chain itself), and
-  r = t_tr / T_B for reference (it contains the receiver's two waits, which the late wake-ups contaminate);
-  t_chain and t_tr per link (median of the links' p50, largest p95); T_B per sim (median and largest p50); the
-  traced run's fps against the mean of the same arm's timing runs;
+  ratio r_chain = t_chain / T_B (t_chain = t_tr minus the receiver's two waits: the transport chain itself),
+  r_own = t_own / T_B (t_own = t_chain minus the transfer queues' idle waits, transfer_queue_idle: at K >= 3 an
+  upload waits in the receiver's queue behind the other inbound upload, whose sender may be a step behind, and a
+  readback waits for the previous frame's consumed-ack, which comes after that worker's waits on the receiver - both
+  are waits for the other GPUs, not transport work) and r = t_tr / T_B for reference (it contains the receiver's
+  two waits, which the late wake-ups contaminate); t_chain, t_own and t_tr per link (median of the links' p50,
+  largest p95); T_B per sim (median and largest p50); the traced run's fps against the mean of the same arm's
+  timing runs;
   eta-r figure (--figure): x = r_chain p50 of an arm's traced run with a line to its p95, y = eta mean +- std over
-  the trials of the SAME arm, r p50 as an open marker; its numbers in a CSV next to it;
+  the trials of the SAME arm, r p50 as an open marker; its numbers (all ratios) in a CSV next to it; the same figure
+  with x = r_own next to it (<name>_own.png);
   barrier: per simultaneous group the spread (max - min) over its members of the release time, of the loop start
   and of the steady-window start (loop start + loop seconds - steady seconds);
   clocks: per run the median SM clock and power of its GPUs in the loop window (telemetry_loop); per point the
@@ -87,7 +92,10 @@ FIGURE_REFERENCE_MARKERS = {"strong": "o", "weak": "s", "pairs": "D"}
 FIGURE_ZOOM_STANDARD_DEVIATION = 0.01   # the eta-r figure's lower panel: the rows whose eta std over the trials is at
                                         # most this
 ETA_R_COLUMNS = ("job", "point", "arm", "solver", "K", "reference", "trials", "eta_mean", "eta_std", "eta_trial_min",
-                 "eta_trial_max", "eta_min_mean", "r_chain_p50", "r_chain_p95", "r_p50", "r_p95", "trace_status")
+                 "eta_trial_max", "eta_min_mean", "r_chain_p50", "r_chain_p95", "r_own_p50", "r_own_p95", "r_p50",
+                 "r_p95", "trace_status")
+FIGURE_RATIOS = {"r_chain": "r_chain = t_chain / T_B (the chain without the receiver's two waits)",
+                 "r_own": "r_own = t_own / T_B (r_chain without the transfer queues' idle waits)"}
 # two-sided 95 % quantiles of Student's t by degrees of freedom (above 30: 1.96; between the listed ones: the next
 # smaller listed, i.e. the wider interval)
 T_QUANTILE_975 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8: 2.306, 9: 2.262,
@@ -556,15 +564,17 @@ def analyze_point(point: dict) -> dict:
 
 def trace_metrics(directory: pathlib.Path) -> dict:
     """step_trace_model.run_summary of one trace directory, reduced to the report's numbers: r_chain (the main
-    ratio) and r on the worse link per step, t_chain and t_tr per link, T_B per sim."""
+    ratio), r_own and r on the worse link per step, t_chain, t_own and t_tr per link, T_B per sim."""
     if not (directory / "run_meta.json").exists():
         return {"missing": True}
     if str(_REPOSITORY_ROOT) not in sys.path:
         sys.path.insert(0, str(_REPOSITORY_ROOT))
     from experiment.v7.analysis import step_trace_model
-    summary = step_trace_model.run_summary(step_trace_model.load_run(directory))
+    run = step_trace_model.load_run(directory)
+    summary = step_trace_model.run_summary(run)
     links = summary.get("links", {})
     sims = summary.get("sims", [])
+    own = own_chain(run, step_trace_model)
 
     def finite(values):
         return [value for value in values if value is not None and math.isfinite(value)]
@@ -574,15 +584,102 @@ def trace_metrics(directory: pathlib.Path) -> dict:
     t_tr_p95 = finite([entry.get("t_tr_p95") for entry in links.values()])
     t_b = finite([entry.get("T_B_p50_us") for entry in sims])
     return {"r_chain_p50": summary.get("r_chain_worst_p50"), "r_chain_p95": summary.get("r_chain_worst_p95"),
+            "r_own_p50": own["r_own_p50"], "r_own_p95": own["r_own_p95"],
             "r_p50": summary.get("r_worst_p50"), "r_p95": summary.get("r_worst_p95"),
             "t_chain_p50_median_link": statistics.median(t_chain_p50) if t_chain_p50 else None,
             "t_chain_p95_max_link": max(t_chain_p95) if t_chain_p95 else None,
+            "t_own_p50_median_link": own["t_own_p50_median_link"], "t_own_p95_max_link": own["t_own_p95_max_link"],
+            "own_links": own["links"],
             "t_tr_p50_median_link": statistics.median(t_tr_p50) if t_tr_p50 else None,
             "t_tr_p95_max_link": max(t_tr_p95) if t_tr_p95 else None,
             "T_B_p50_median_sim": statistics.median(t_b) if t_b else None,
             "T_B_p50_max_sim": max(t_b) if t_b else None,
             "exposed_steps_fraction": summary.get("exposed_steps_fraction"),
             "coverage": summary.get("coverage"), "links": len(links), "steady_fps": summary.get("steady_fps")}
+
+
+def _merged_spans(spans: list) -> list:
+    merged = []
+    for start, end in sorted(spans):
+        if merged and start <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end])
+    return merged
+
+
+def _covered(merged: list, starts: list, low: float, high: float) -> float:
+    """Length of [low, high] that the merged spans cover."""
+    import bisect
+    total = 0.0
+    index = max(0, bisect.bisect_right(starts, low) - 1)
+    while index < len(merged) and merged[index][0] < high:
+        total += max(0.0, min(merged[index][1], high) - max(merged[index][0], low))
+        index += 1
+    return total
+
+
+def transfer_queue_idle(run: dict) -> dict:
+    """{(link, step): (readback idle us, upload idle us)} for every complete row of a trace.
+
+    The readbacks of one sender share its readback queue and the uploads of one receiver its upload queue
+    (V7_SPLIT_TRANSFER_QUEUES=1, the default). A DMA is ready at R: a readback at max(the link's send_end, the
+    sender's a_end) (it waits for phase_a_done), an upload at its worker's signal. Its idle wait is (start - R) minus
+    the part of [R, start] in which some DMA ran on that queue: the time the queue sat idle while the DMA waited for
+    a semaphore of its own (a readback: the previous frame's consumed-ack from its worker, which comes after that
+    worker's two waits on the receiver) or behind an earlier DMA that waited for one (head of line: an upload behind
+    the other inbound upload, whose sender is late). Time behind a DMA that runs stays out of it: serialisation on a
+    queue is transport work."""
+    import numpy
+    link, device = run["link"], run["device"]
+    signal_column = "worker_dest_signal" if run["dest_signal"] else "worker_signal"
+    a_end = {(int(sim), int(step)): value for sim, step, value in zip(device["sim"], device["step"], device["a_end"])}
+    complete = link["complete"] == 1
+    out: dict = {}
+    for role, start_column, end_column in (("sender", "readback_start", "readback_end"),
+                                           ("receiver", "upload_start", "upload_end")):
+        for gpu in sorted(set(link[role][complete].astype(int))):
+            rows = numpy.where(complete & (link[role] == gpu))[0]
+            merged = _merged_spans([(link[start_column][row], link[end_column][row]) for row in rows
+                                    if math.isfinite(link[start_column][row]) and math.isfinite(link[end_column][row])])
+            starts = [span[0] for span in merged]
+            for row in rows:
+                start = link[start_column][row]
+                ready = (max(link["send_end"][row], a_end.get((gpu, int(link["step"][row])), -math.inf))
+                         if role == "sender" else link[signal_column][row])
+                if not (math.isfinite(start) and math.isfinite(ready)):
+                    continue
+                idle = (start - ready - _covered(merged, starts, ready, start)) / 1e3 if start > ready else 0.0
+                key = (str(link["link"][row]), int(link["step"][row]))
+                readback, upload = out.get(key, (math.nan, math.nan))
+                out[key] = (idle, upload) if role == "sender" else (readback, idle)
+    return out
+
+
+def own_chain(run: dict, step_trace_model) -> dict:
+    """r_own = t_own / T_B on the worse link per step (p50, p95), t_own = t_chain minus the transfer queues' idle
+    waits (transfer_queue_idle): the chain's own work with every wait for the other GPUs taken out. Per link: the
+    p50 / p95 of t_own and of both idle waits."""
+    import numpy
+    metrics = step_trace_model.link_metrics(run)
+    idle = transfer_queue_idle(run)
+    links = {}
+    for name, values in metrics.items():
+        pairs = [idle.get((name, int(step)), (math.nan, math.nan)) for step in values["step"]]
+        readback = numpy.array([pair[0] for pair in pairs])
+        upload = numpy.array([pair[1] for pair in pairs])
+        values["t_own"] = values["t_chain"] - readback - upload
+        values["r_own"] = values["t_own"] / values["T_B"]
+        links[name] = {}
+        for key, series in (("t_own", values["t_own"]), ("readback_idle", readback), ("upload_idle", upload)):
+            links[name][key + "_p50"], links[name][key + "_p95"] = step_trace_model.quantiles(series)
+    worst = step_trace_model.worst_link(metrics, "r_own")
+    r_own_p50, r_own_p95 = step_trace_model.quantiles(worst)
+    p50 = [entry["t_own_p50"] for entry in links.values() if math.isfinite(entry["t_own_p50"])]
+    p95 = [entry["t_own_p95"] for entry in links.values() if math.isfinite(entry["t_own_p95"])]
+    return {"r_own_p50": r_own_p50, "r_own_p95": r_own_p95, "links": links,
+            "t_own_p50_median_link": statistics.median(p50) if p50 else None,
+            "t_own_p95_max_link": max(p95) if p95 else None}
 
 
 # ----------------------------------------------------------------------------- other tables
@@ -915,12 +1012,14 @@ def provenance_lines(provenance: dict, solvers: list, provenance_end=False) -> l
 
 
 def trace_text(trace: dict) -> str:
-    """One traced run: r_chain first (the main ratio), then r, T_B and the fps against the untraced runs."""
+    """One traced run: r_chain first (the main ratio), then r_own, r, T_B and the fps against the untraced runs."""
     if trace.get("error") or trace.get("missing"):
         return f"{trace.get('status')} ({trace.get('error') or 'no trace files'})"
     versus = trace.get("fps_vs_untraced")
     return (f"{trace.get('status')}: r_chain {fmt(trace.get('r_chain_p50'), 3)}/{fmt(trace.get('r_chain_p95'), 3)}, "
             f"t_chain {fmt(trace.get('t_chain_p50_median_link'), 0)}/{fmt(trace.get('t_chain_p95_max_link'), 0)}; "
+            f"r_own {fmt(trace.get('r_own_p50'), 3)}/{fmt(trace.get('r_own_p95'), 3)}, "
+            f"t_own {fmt(trace.get('t_own_p50_median_link'), 0)}/{fmt(trace.get('t_own_p95_max_link'), 0)}; "
             f"r {fmt(trace.get('r_p50'), 3)}/{fmt(trace.get('r_p95'), 3)}, "
             f"t_tr {fmt(trace.get('t_tr_p50_median_link'), 0)}/{fmt(trace.get('t_tr_p95_max_link'), 0)}; "
             f"T_B {fmt(trace.get('T_B_p50_median_sim'), 0)} (max {fmt(trace.get('T_B_p50_max_sim'), 0)}), "
@@ -1052,11 +1151,14 @@ def report(jobs: list, plan: dict, trace_root_override=None) -> tuple:
                                  f"{'<br>'.join(eta_min_texts) or '-'} |")
             lines += ["", "### Points: calibration, arm difference, traces", "",
                       "r_chain = t_chain / T_B is the main ratio (t_chain: the transport chain without the receiver's "
-                      "two waits); r = t_tr / T_B contains those waits and with them the late wake-ups. Both per step "
-                      "on the worse link; t_chain, t_tr: median of the links' p50 / largest p95.", "",
+                      "two waits); r_own = t_own / T_B also leaves out the transfer queues' idle waits (t_own: "
+                      "t_chain minus the readback's wait for the previous frame's consumed-ack and the upload's wait "
+                      "behind an earlier upload that waited: the chain's own work); r = t_tr / T_B contains the "
+                      "receiver's waits and with them the late wake-ups. All per step on the worse link; t_chain, "
+                      "t_own, t_tr: median of the links' p50 / largest p95.", "",
                       "| point | weights | cuts | rounds (cuts → next, changed) | C − E per trial | trace E: r_chain "
-                      "p50/p95, t_chain p50/p95 µs; r p50/p95, t_tr p50/p95 µs; T_B p50 µs, fps vs untraced | "
-                      "trace C: same |", "|---|---|---|---|---|---|---|"]
+                      "p50/p95, t_chain p50/p95 µs; r_own p50/p95, t_own p50/p95 µs; r p50/p95, t_tr p50/p95 µs; "
+                      "T_B p50 µs, fps vs untraced | trace C: same |", "|---|---|---|---|---|---|---|"]
             for item in analyzed:
                 calibration = item["calibration"]
                 rounds = "; ".join(f"{entry['cuts']}→{entry['next_cuts']} {'changed' if entry['changed'] else 'kept'}"
@@ -1260,24 +1362,28 @@ def eta_r_rows(data: dict) -> list:
                                  "eta_trial_min": eta.get("min"), "eta_trial_max": eta.get("max"),
                                  "eta_min_mean": eta_min.get("mean"),
                                  "r_chain_p50": trace.get("r_chain_p50"), "r_chain_p95": trace.get("r_chain_p95"),
+                                 "r_own_p50": trace.get("r_own_p50"), "r_own_p95": trace.get("r_own_p95"),
                                  "r_p50": trace.get("r_p50"), "r_p95": trace.get("r_p95"),
                                  "trace_status": trace.get("status") or ""})
     return rows
 
 
-def eta_r_figure(data: dict, path: pathlib.Path) -> list:
-    """The eta-r figure (PNG at path) and its numbers (eta_r_rows, CSV next to it with the same name). Per point,
-    arm and reference with a traced run that passed: x = r_chain p50 of the trace (filled marker) with a line to
-    its p95, y = eta mean +- std over the trials of the SAME arm's timing runs; r p50 as an open marker at the same
-    eta. Color = arm, marker shape = reference kind, the number = the point (key in the legend; a pair point's
-    solver after it); log x. Upper panel all rows, lower panel the eta band of the rows with eta std <=
-    FIGURE_ZOOM_STANDARD_DEVIATION (the reproducible points), when that is a narrower band. Returns the two paths."""
+def eta_r_figure(data: dict, path: pathlib.Path, ratio: str = "r_chain", write_csv: bool = True) -> list:
+    """The eta-r figure (PNG at path) and its numbers (eta_r_rows, CSV next to it with the same name; all ratios).
+    Per point, arm and reference with a traced run that passed: x = the ratio's p50 of the trace (filled marker;
+    ratio r_chain, the main one, or r_own) with a line to its p95, y = eta mean +- std over the trials of the SAME
+    arm's timing runs; r p50 as an open marker at the same eta. Color = arm, marker shape = reference kind, the
+    number = the point (key in the legend; a pair point's solver after it); log x. Upper panel all rows, lower panel
+    the eta band of the rows with eta std <= FIGURE_ZOOM_STANDARD_DEVIATION (the reproducible points), when that is
+    a narrower band. Returns the paths written."""
     rows = eta_r_rows(data)
     csv_path = path.with_suffix(".csv")
-    with open(csv_path, "w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=ETA_R_COLUMNS)
-        writer.writeheader()
-        writer.writerows({key: "" if row[key] is None else row[key] for key in ETA_R_COLUMNS} for row in rows)
+    if write_csv:
+        with open(csv_path, "w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=ETA_R_COLUMNS)
+            writer.writeheader()
+            writer.writerows({key: "" if row[key] is None else row[key] for key in ETA_R_COLUMNS} for row in rows)
+    p50, p95 = ratio + "_p50", ratio + "_p95"
 
     import matplotlib
     matplotlib.use("Agg")
@@ -1287,7 +1393,7 @@ def eta_r_figure(data: dict, path: pathlib.Path) -> list:
 
     def finite(value):
         return isinstance(value, (int, float)) and math.isfinite(value)
-    plotted = [row for row in rows if finite(row["r_chain_p50"]) and row["r_chain_p50"] > 0
+    plotted = [row for row in rows if finite(row[p50]) and row[p50] > 0
                and finite(row["eta_mean"]) and row["trace_status"] in ("pass", "threshold_only")]
     numbers, solvers, jobs = {}, {}, {}
     for row in plotted:
@@ -1311,17 +1417,17 @@ def eta_r_figure(data: dict, path: pathlib.Path) -> list:
             color = FIGURE_ARM_COLORS.get(row["arm"], muted)
             marker = FIGURE_REFERENCE_MARKERS.get(row["reference"].split(":")[0], "o")
             eta = row["eta_mean"]
-            if finite(row["r_chain_p95"]):
-                axis.plot([row["r_chain_p50"], row["r_chain_p95"]], [eta, eta], "-", color=color, lw=1.5, alpha=0.5,
+            if finite(row[p95]):
+                axis.plot([row[p50], row[p95]], [eta, eta], "-", color=color, lw=1.5, alpha=0.5,
                           solid_capstyle="round", zorder=2)
-            axis.errorbar(row["r_chain_p50"], eta, yerr=row["eta_std"] or 0.0, fmt="none", ecolor=color,
+            axis.errorbar(row[p50], eta, yerr=row["eta_std"] or 0.0, fmt="none", ecolor=color,
                           elinewidth=1.2, capsize=2.5, zorder=3)
-            axis.plot(row["r_chain_p50"], eta, marker, color=color, ms=8, mec="white", mew=1.5, zorder=4)
+            axis.plot(row[p50], eta, marker, color=color, ms=8, mec="white", mew=1.5, zorder=4)
             if finite(row["r_p50"]) and row["r_p50"] > 0:
                 axis.plot(row["r_p50"], eta, marker, mfc="white", mec=color, mew=1.4, ms=7, zorder=4)
             key = (row["job"], row["point"])
             label = str(numbers[key]) + (f" {row['solver']}" if len(solvers[key]) > 1 and row["solver"] else "")
-            axis.annotate(label, (row["r_chain_p50"], eta), xytext=(4, 3), textcoords="offset points",
+            axis.annotate(label, (row[p50], eta), xytext=(4, 3), textcoords="offset points",
                           fontsize=7.5, color=secondary, zorder=5, annotation_clip=True)
         if plotted:
             axis.set_xscale("log")
@@ -1338,7 +1444,7 @@ def eta_r_figure(data: dict, path: pathlib.Path) -> list:
             spine.set_color("#c3c2b7")
         axis.tick_params(which="both", colors=secondary, labelsize=8, labelbottom=True)
     if not plotted:
-        axes[0].text(0.5, 0.5, "no traced run with r_chain", transform=axes[0].transAxes, ha="center",
+        axes[0].text(0.5, 0.5, f"no traced run with {ratio}", transform=axes[0].transAxes, ha="center",
                      color=secondary)
     else:
         axes[0].annotate("ratio 1: as long as phase B", (1.0, 0.0), xycoords=("data", "axes fraction"),
@@ -1346,9 +1452,10 @@ def eta_r_figure(data: dict, path: pathlib.Path) -> list:
         lower, upper = axes[0].get_xlim()       # under one decade the minor ticks carry the labels, in plain numbers
         for axis in axes:
             axis.xaxis.set_minor_formatter(FormatStrFormatter("%g") if upper < 10 * lower else NullFormatter())
-    axes[-1].set_xlabel("transport ratio per step on the worse link: r_chain = t_chain / T_B, p50 (filled) with a "
-                        "line to p95;\nopen marker: r = t_tr / T_B p50 (contains the receiver's two waits)", color=ink)
-    axes[0].set_title("E7: efficiency against the transport ratio (eta and r of the same arm)", loc="left",
+    axes[-1].set_xlabel(f"transport ratio per step on the worse link, p50 (filled) with a line to p95:\n"
+                        f"{FIGURE_RATIOS[ratio]};\nopen marker: r = t_tr / T_B p50 (contains the receiver's two waits)",
+                        color=ink)
+    axes[0].set_title(f"E7: efficiency against the transport ratio {ratio} (eta and r of the same arm)", loc="left",
                       fontsize=11, color=ink)
 
     def header(text):
@@ -1360,7 +1467,7 @@ def eta_r_figure(data: dict, path: pathlib.Path) -> list:
     handles += [Line2D([], [], ls="", marker=FIGURE_REFERENCE_MARKERS.get(kind, "o"), ms=7, color=muted, label=kind)
                 for kind in sorted({row["reference"].split(":")[0] for row in plotted})]
     handles += [header("fill: ratio"),
-                Line2D([], [], ls="-", lw=1.5, marker="o", ms=7, color=muted, label="r_chain p50, line to p95"),
+                Line2D([], [], ls="-", lw=1.5, marker="o", ms=7, color=muted, label=f"{ratio} p50, line to p95"),
                 Line2D([], [], ls="", marker="o", ms=7, mfc="white", mec=muted, mew=1.4, label="r p50"),
                 header("points")]
     handles += [header(f"{number}  {point}" + (f" ({job})" if len(jobs[point]) > 1 else ""))
@@ -1370,7 +1477,7 @@ def eta_r_figure(data: dict, path: pathlib.Path) -> list:
     figure.tight_layout()
     figure.savefig(path, dpi=150, bbox_inches="tight")
     pyplot.close(figure)
-    return [path, csv_path]
+    return [path, csv_path] if write_csv else [path]
 
 
 def jsonable(value):
@@ -1409,7 +1516,11 @@ def main() -> int:
         sys.stdout.flush()
     if arguments.figure:
         try:
-            for path in eta_r_figure(jsonable(data), pathlib.Path(arguments.figure)):
+            figure_path = pathlib.Path(arguments.figure)
+            written = eta_r_figure(jsonable(data), figure_path)
+            written += eta_r_figure(jsonable(data), figure_path.with_name(figure_path.stem + "_own" + figure_path.suffix),
+                                    ratio="r_own", write_csv=False)
+            for path in written:
                 print(f"wrote {path}", file=sys.stderr)
         except Exception as error:                                     # noqa: BLE001
             print(f"eta-r figure {arguments.figure} failed: {type(error).__name__}: {error} (the report is written)",
