@@ -218,6 +218,22 @@ REVISIONS = {
         "cross": {"A": [], "B": []},
         "job_names": {6: "b2T"},
     },
+    # revision 5 (user, 2026-10-13 afternoon: the third supplement, job b2U): revision 4's four K again, on the batch-2
+    # node (submitted with -w wqd10nbj04g2 --exclude=wqd10nbm13g5; 1695731 ran on a 600 W node and its GPU 5 was slow
+    # and then lost), order K = 7, 6, 5, 3; the job exports E7_REFERENCE_SPREAD_PCT=3 (e7_lib.sh: a K = 1 reference
+    # group whose member deviates more than 3 % from the mean of the others stops the job).
+    5: {
+        "arms": "C", "trials": 3, "traces_strong": 1, "traces_weak": 0, "cross_traces": 0, "window_2d": (1500, 500),
+        "extra_points": [("F2", "cavity2d_n8000", 3, "same"), ("F2", "cavity2d_n8000", 5, "same"),
+                         ("F2", "cavity2d_n8000", 6, "same"), ("F2", "cavity2d_n8000", 7, "same")],
+        "any_line": True,
+        "batches": {7: {"B": [("cavity2d_n8000", 7), ("cavity2d_n8000", 6), ("cavity2d_n8000", 5),
+                              ("cavity2d_n8000", 3)]}},
+        "extras": {7: {"A": ([], []), "B": ([], [])}},
+        "cross": {"A": [], "B": []},
+        "job_names": {7: "b2U"},
+        "exports": [("E7_REFERENCE_SPREAD_PCT", "3")],
+    },
 }
 REVISION = None                                 # --revision N: REVISIONS[N]
 ARMS = "EC"                                     # the timed arms per trial (--revision: REVISION["arms"])
@@ -865,6 +881,7 @@ def main() -> int:
             exports += [("E7_SOLVER_TAG", arguments.solver_tag), ("E7_EXPECTED_TREE", arguments.expected_tree)]
         if arguments.revision:
             exports.append(("E7_ARMS", REVISION["arms"]))
+            exports += [tuple(item) for item in REVISION.get("exports", [])]
         for path in emit_jobs(jobs, model, pathlib.Path(arguments.emit_jobs), set(arguments.batch or (1, 2, 3, 4)),
                               arguments.source_repo, exports):
             print(f"wrote {path}")

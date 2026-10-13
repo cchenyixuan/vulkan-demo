@@ -565,6 +565,12 @@ e7_reference() {    # POINT_BASE TRIAL FAMILY POINT_CASE K SPEC STEPS WARMUP   (
     e7_group "$label" "$group_kind" "$reference_case" "$parties" "$steps" "$warmup" "$limit" reference "$family" \
         "$trial" "$kind" "$base"
     e7_check_group "$label" "$parties"
+    # user 2026-10-13 (third batch-2 supplement, exported by its job script): after every K = 1 reference group compare the
+    # cards' fps; a member beyond E7_REFERENCE_SPREAD_PCT % of the others' mean stops the job (e7_reference_spread.py)
+    if [ -n "${E7_REFERENCE_SPREAD_PCT:-}" ] && [ "$E30_DRY" != 1 ] && [ "$group_kind" = k1 ]; then
+        $PY docs/cluster_v6/scripts/e7_reference_spread.py "$E30_RESULTS" "$label" "$parties" "$E7_REFERENCE_SPREAD_PCT" \
+            || e30_fail "reference spread $label (a card beyond $E7_REFERENCE_SPREAD_PCT % of the other cards' mean fps)"
+    fi
 }
 
 e7_calibrate() {    # POINT FAMILY CASE K YAML MAP WEIGHTS_FILE TIMEOUT: the point's weight calibration (a hard step)
