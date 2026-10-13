@@ -505,6 +505,49 @@ def main() -> int:
     lines += ["墙钟(提交前的校准估算 → 实际):" + ";".join(
         f"{row['run']} {number(row['estimate_hours'], 2)} h(校准 {number(row['estimate_fps'], 1)} 步/s,{row['estimate_logged']})"
         f" → {row['wall_hours']:.2f} h(运行中样本间吞吐中位数 {number(row['median_fps'], 1)} 步/s)" for row in invariants), ""]
+    # field figures of experiment/validation/cavity_fields.py (newest checkpoint of each run), when they were rendered
+    fields_dir = _REPO_ROOT / "docs" / "validation" / "fields"
+    k1_id, k2_id = runs["K1"]["id"], runs["K2"]["id"]
+    if (fields_dir / f"{k1_id}_vorticity.png").exists() and (fields_dir / f"{k2_id}_vorticity.png").exists():
+        lines += ["## 场图(每个 run 最新的检查点)", "",
+                  "`experiment/validation/cavity_fields.py`(2026-10-02 批准的场图版式):全部粒子(流体 + 壁 + 盖)的 Shepard 插值到 "
+                  "2048² 网格,边界带按真实厚度,四角放大图逐粒子画出(各自色标),ω_z 为平滑场的中心差分,流线来自 Poisson ψ;"
+                  "主涡参考 = Marchi 2021 表 19。图 K = 2 里的点线 = 切口。", "",
+                  f"![vorticity K1](fields/{k1_id}_vorticity.png)", "", f"![vorticity K2](fields/{k2_id}_vorticity.png)", "",
+                  f"![K2 minus K1](fields/{k2_id}_minus_{k1_id}.png)", "",
+                  "| run | 检查点 | 主涡 (X, Y) | ψ | ω_z | 到参考的距离 |", "|---|---|---|---|---|---|"]
+        for key, run_id in (("K1", k1_id), ("K2", k2_id)):
+            check_path = fields_dir / f"{run_id}_check.json"
+            if not check_path.exists():
+                continue
+            check = json.loads(check_path.read_text(encoding="utf-8"))
+            primary = check["vortex_centres_by_stream_function"][check.get("plotted_stream_function", "poisson")]["primary"]
+            lines.append(f"| {key} | c{int(check['step']):09d}(t = {float(check['time']):.2f}) | "
+                         f"({primary['position'][0]:.4f}, {primary['position'][1]:.4f}) | {primary['stream_function']:.5f} | "
+                         f"{primary['vorticity_z']:.4f} | {primary['distance_to_reference']:.4f} L |")
+        lines.append(f"| Marchi 2021 | – | ({primary['reference_position'][0]:.4f}, {primary['reference_position'][1]:.4f}) | "
+                     f"{primary['reference_stream_function']:.5f} | – | – |")
+        difference_path = fields_dir / f"difference_{k2_id}_minus_{k1_id}.json"
+        if difference_path.exists():
+            difference = json.loads(difference_path.read_text(encoding="utf-8"))
+            interior = difference["statistics_interior"]
+            lines += ["", f"K2 − K1(同一检查点步 {int(difference['minuend']['step']):,},两个 run 都是流体的格点,离壁 > 2h 的内部):"
+                      f"max |Δu| {interior['max_abs_delta_u']:.2e}、rms Δu {interior['rms_delta_u']:.2e}、"
+                      f"max |Δv| {interior['max_abs_delta_v']:.2e}、rms Δv {interior['rms_delta_v']:.2e}(U);"
+                      f"max |Δω_z| {interior['max_abs_delta_vorticity']:.2f}、rms Δω_z {interior['rms_delta_vorticity']:.3f}(U/L)。"]
+            for seam_entry in difference.get("seam", []):
+                lines.append(f"切口 X = {seam_entry['cut_x']:.4f}:差值场的列间跳变在切口处 {seam_entry['difference_column_jump_at_cut']:.1e},"
+                             f"内部中位数 {seam_entry['difference_column_jump_interior_median']:.1e}"
+                             f"(p99 {seam_entry['difference_column_jump_interior_percentile_99']:.1e}),"
+                             f"{100 * seam_entry['difference_column_jump_fraction_larger_than_at_cut']:.0f} % 的列对跳变更大;"
+                             f"K = 2 自身速度在切口附近的二阶 x 差分最大 {seam_entry['dual_second_difference_near_cut_maximum']:.1e},"
+                             f"内部中位数 {seam_entry['dual_second_difference_interior_median']:.1e}"
+                             f"(p99 {seam_entry['dual_second_difference_interior_percentile_99']:.1e});"
+                             f"切口处的 |Δu| 对邻域中位数 {seam_entry['magnitude_at_cut_over_neighbourhood_median']:.2f},"
+                             f"Δω_z 的 {seam_entry['vorticity_at_cut_over_neighbourhood_median']:.2f}。")
+            lines += ["", f"数字:`docs/validation/fields/fields_check.md`、`difference_{k2_id}_minus_{k1_id}.json`;"
+                      f"速度场图 `<run>_velocity.png`,逐像素图 `<run>_{{velocity,vorticity}}_full.png`。"]
+        lines.append("")
     lines += ["## 文件", "", f"- 图:`docs/validation/figures/{prefix}_fig1_k1.pdf`(.png)、`{prefix}_fig2_k2.pdf`(.png)",
               f"- 数据:`docs/validation/data/{prefix}_k1_k2_summary.csv`、`{prefix}_k2_minus_k1_points.csv`、`{prefix}_k2_minus_k1_seam.csv`、"
               f"`{prefix}_k2_minus_k1_seam_bins.csv`、`{prefix}_k1_k2_invariants.csv`、`profile_{runs['K1']['id']}.csv`、"

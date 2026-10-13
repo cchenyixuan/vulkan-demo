@@ -536,6 +536,7 @@ def load_job(job_directory: pathlib.Path, snapshot_name: str = "final") -> dict:
     step = int(path.stem[1:])
     data["meta"] = {"case": run_meta["case"].replace("\\", "/"), "re": int(round(run_meta["reynolds_nominal"])),
                     "k": int(run_meta["slabs"]), "dx": spacing, "cuts": run_meta.get("cuts") or [],
+                    "solver": str(run_meta.get("solver", "v6")), "wall_boundary": str(run_meta.get("wall_boundary", "simple")),
                     "expected_total": int(run_meta["expected_total"]),
                     # the fluid lattice of these cases has (1/dx + 1)^2 particles
                     "fluid_count_initial": (int(round(1.0 / spacing)) + 1) ** 2}
@@ -1175,13 +1176,15 @@ def render_field_figure(field_name: str, data: dict, fields: dict, zooms: dict, 
     meta = data["meta"]
     particle_count = data["position"].shape[0]
     steady_time = result.get("steady_time")
-    title = (f"Lid-driven cavity Re {meta['re']},  {data['setting']},  N = {particle_count:,},  K = {meta['k']},  "
+    wall_text = f",  {meta.get('wall_boundary', 'simple')} walls" if meta.get("wall_boundary", "simple") != "simple" else ""
+    title = (f"Lid-driven cavity Re {meta['re']},  {data['setting']},  N = {particle_count:,},  K = {meta['k']}{wall_text},  "
              f"t* = tU/L = {float(data['time']):.2f}"
              + (f" (steady from t* = {steady_time:.1f})" if steady_time is not None else " (NOT steady)"))
     frame_text = ("unit square = innermost boundary rows (X = (x + 0.5 + dx) / (1 + 2 dx))" if FRAME == "wall"
                   else "unit square = fluid lattice box (X = x + 0.5)")
     subtitle_lines = [
-        f"run {data['job']} (v6 release switches), newest checkpoint {data['snapshot']};  {frame_text};  rel-L2 vs Marchi et al. 2021 "
+        f"run {data['job']} ({meta.get('solver', 'v6')}, {meta.get('wall_boundary', 'simple')} walls), "
+        f"newest checkpoint {data['snapshot']};  {frame_text};  rel-L2 vs Marchi et al. 2021 "
         f"of the time-averaged centre lines (t* 80-100):  u(Y) {100 * final.get('rel_l2_marchi2021_u', float('nan')):.2f} %,"
         f"  v(X) {100 * final.get('rel_l2_marchi2021_v', float('nan')):.2f} %",
         "smooth field = Shepard interpolation (2-D Wendland C4, support h = "
@@ -1577,9 +1580,10 @@ def render_difference_figure(difference: dict, output_directory: pathlib.Path, l
     figure.text(13.35 / figure_width, 2.62 / figure_height, statistics_text,
                 ha="left", va="top", fontsize=7.4, color=TEXT_COLOR, linespacing=1.3)
 
-    title = (f"Lid-driven cavity Re {minuend['re']}:  A = {minuend['job']} ({minuend['setting']})  minus  "
-             f"B = {subtrahend['job']} ({subtrahend['setting']})")
+    title = (f"Lid-driven cavity Re {minuend['re']}:  A (K = {minuend['k']}, {minuend['setting']})  minus  "
+             f"B (K = {subtrahend['k']}, {subtrahend['setting']})")
     subtitle = "\n".join([
+        f"A = {minuend['job']},  B = {subtrahend['job']}",
         f"A at t* = {minuend['time']:.2f} ({'steady' if minuend['converged'] else 'NOT steady'}), B at t* = "
         f"{subtrahend['time']:.2f} ({'steady' if subtrahend['converged'] else 'NOT steady'}); both K = "
         f"{minuend['k']} / {subtrahend['k']}, newest checkpoint of each run",

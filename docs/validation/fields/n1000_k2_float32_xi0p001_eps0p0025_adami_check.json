@@ -1,0 +1,317 @@
+{
+ "job": "n1000_k2_float32_xi0p001_eps0p0025_adami",
+ "reynolds_number": 1000,
+ "k": 2,
+ "time": 99.22500000000001,
+ "step": 13230000,
+ "particle_count": 1046529,
+ "counts": {
+  "fluid": 1002001,
+  "wall": 33517,
+  "lid": 11011
+ },
+ "expected_counts": [
+  1002001,
+  1046529
+ ],
+ "expected_counts_match": true,
+ "particle_spacing": 0.0009979911431104993,
+ "smoothing_length": 0.00499001996007984,
+ "fluid_in_band": {
+  "threshold": 0.5004989955715553,
+  "count": 0,
+  "deepest_penetration_dx": 0.0,
+  "outermost_fluid_extent_dx": -0.8352039101150769
+ },
+ "smallest_fluid_to_boundary_distance_dx": 0.8922721685202141,
+ "smallest_fluid_to_boundary_at": [
+  0.0008730245921426683,
+  0.9931894724002617
+ ],
+ "fluid_to_boundary_distance_below_half_dx": 0,
+ "density_by_material": {
+  "fluid": [
+   999.348388671875,
+   1000.5609130859375
+  ],
+  "wall": [
+   1000.0,
+   1000.0
+  ],
+  "lid": [
+   1000.0,
+   1000.0
+  ]
+ },
+ "reference_density": 1000.0,
+ "speed_of_sound": 100.0,
+ "density_percentiles_fluid": {
+  "0.01": 999.9831665039062,
+  "1": 999.9879150390625,
+  "50": 999.9954223632812,
+  "99": 1000.0065307617188,
+  "99.99": 1000.0674926757813
+ },
+ "density_extremes_fluid": {
+  "lowest": {
+   "density": 999.348388671875,
+   "pressure_coefficient": -6.51611328125,
+   "at": [
+    0.0009053253128143424,
+    0.9989658584613761
+   ]
+  },
+  "second lowest": {
+   "density": 999.7583618164062,
+   "pressure_coefficient": -2.4163818359375,
+   "at": [
+    0.0018328259329120078,
+    0.9990821232100923
+   ]
+  },
+  "second highest": {
+   "density": 1000.478759765625,
+   "pressure_coefficient": 4.78759765625,
+   "at": [
+    0.998300927603792,
+    0.9990140121140165
+   ]
+  },
+  "highest": {
+   "density": 1000.5609130859375,
+   "pressure_coefficient": 5.609130859375,
+   "at": [
+    0.9991151377588451,
+    0.9986573062733024
+   ]
+  }
+ },
+ "particle_volume_over_spacing_squared": 1.1338662075545876,
+ "meta_dx": 0.000998003992015968,
+ "mean_fluid_velocity": [
+  -0.0002992640349758007,
+  0.0002669182190014861
+ ],
+ "max_speed_fluid_raw": 0.9943731142916743,
+ "max_speed_fluid_grid": 0.992043697272973,
+ "nan_counts": {
+  "position": 0,
+  "velocity": 0,
+  "density": 0,
+  "grid_cells_without_particles": 0,
+  "grid_speed_in_fluid": 0,
+  "grid_vorticity_in_fluid": 0
+ },
+ "vortex_centres_by_stream_function": {
+  "velocity-integral": {
+   "primary": {
+    "found": true,
+    "position": [
+     0.5304305855257361,
+     0.5645455518431864
+    ],
+    "stream_function": -0.11911655745400224,
+    "vorticity_z": -2.063866215378556,
+    "reference_position": [
+     0.5307901107,
+     0.56524055787
+    ],
+    "reference_stream_function": -0.1189366115,
+    "reference_source": "Marchi et al. 2021, Table 19",
+    "distance_to_reference": 0.0007824907208630443
+   },
+   "BR1": {
+    "found": true,
+    "position": [
+     0.8638511937183415,
+     0.11186489895851816
+    ],
+    "stream_function": 0.0017482247049269433,
+    "vorticity_z": 1.1352534510860997,
+    "reference_position": null,
+    "reference_stream_function": null,
+    "reference_source": null,
+    "distance_to_reference": null
+   },
+   "BL1": {
+    "found": true,
+    "position": [
+     0.08397439128743449,
+     0.07984171751933995
+    ],
+    "stream_function": 0.00025246263025842413,
+    "vorticity_z": 0.3747203791140211,
+    "reference_position": null,
+    "reference_stream_function": null,
+    "reference_source": null,
+    "distance_to_reference": null
+   }
+  },
+  "poisson": {
+   "primary": {
+    "found": true,
+    "position": [
+     0.5303725532475468,
+     0.5646644922126531
+    ],
+    "stream_function": -0.11913604985504776,
+    "vorticity_z": -2.0638823154883967,
+    "reference_position": [
+     0.5307901107,
+     0.56524055787
+    ],
+    "reference_stream_function": -0.1189366115,
+    "reference_source": "Marchi et al. 2021, Table 19",
+    "distance_to_reference": 0.0007114814598243142
+   },
+   "BR1": {
+    "found": true,
+    "position": [
+     0.8638598043421503,
+     0.1119511698787221
+    ],
+    "stream_function": 0.001755133491808519,
+    "vorticity_z": 1.1362878200027937,
+    "reference_position": null,
+    "reference_stream_function": null,
+    "reference_source": null,
+    "distance_to_reference": null
+   },
+   "BL1": {
+    "found": true,
+    "position": [
+     0.0839457462191175,
+     0.07969174975204157
+    ],
+    "stream_function": 0.00025001799573835,
+    "vorticity_z": 0.3733255246219263,
+    "reference_position": null,
+    "reference_stream_function": null,
+    "reference_source": null,
+    "distance_to_reference": null
+   }
+  }
+ },
+ "plotted_stream_function": "poisson",
+ "setting": "\u03be = 0.001, \u03b5\u00b2 = 0.0025 h\u00b2",
+ "steady_time": 79.38,
+ "stream_function_diagnostics": {
+  "effective_wall": 0.49999999357554725,
+  "velocity_integral_on_left_wall_maximum_absolute": 3.754586763647973e-05,
+  "velocity_integral_on_right_wall_maximum_absolute": 5.571317932119705e-05,
+  "velocity_integral_on_lid_wall_maximum_absolute": 0.000248600112433044,
+  "velocity_integral_on_lid_wall_mean": 0.0001308629464066803,
+  "velocity_integral_minus_poisson_maximum_absolute_interior": 0.0002331968546324479,
+  "poisson_velocity_mismatch_median": 0.00014152041887074802,
+  "poisson_velocity_mismatch_percentile_99": 0.0014039178324049527,
+  "poisson_velocity_mismatch_maximum": 0.0030659585837465777,
+  "divergence_root_mean_square": 0.0016164377153844928,
+  "divergence_maximum_absolute": 0.024616900145223664
+ },
+ "slab_cuts": [
+  {
+   "column": 103,
+   "x": 0.0008982035928144505,
+   "ownership_mismatches": null,
+   "owned_left_maximum_x": null,
+   "owned_right_minimum_x": null
+  }
+ ],
+ "slab_cut_x": [
+  0.0008982035928144505
+ ],
+ "validation": {
+  "points": 300,
+  "max_abs_difference_u": 7.771561172376096e-16,
+  "max_abs_difference_v": 6.661338147750939e-16,
+  "nan_mismatch": 0
+ },
+ "zooms": {
+  "TL": {
+   "fluid_particles": 693,
+   "speed_range": [
+    0.012824528967445204,
+    0.9466744742639641
+   ],
+   "vorticity_range": [
+    -384.0585348440872,
+    131.03161961599474
+   ],
+   "velocity_colour": "colour 0 \u2013 1 linear",
+   "vorticity_colour": "colour \u00b1400 symlog",
+   "vorticity_check": {
+    "particles": 473,
+    "median_absolute_difference": 0.00761393068363958,
+    "median_absolute_smooth": 14.321468889373964,
+    "plain_sum_over_renormalised_median": 1.1450593530197888
+   }
+  },
+  "BL": {
+   "fluid_particles": 684,
+   "speed_range": [
+    2.2761445421753495e-05,
+    0.0011846102725119297
+   ],
+   "vorticity_range": [
+    -0.04645184452032365,
+    0.01389818645165994
+   ],
+   "velocity_colour": "colour 0 \u2013 0.0012 linear",
+   "vorticity_colour": "colour \u00b10.05 linear",
+   "vorticity_check": {
+    "particles": 467,
+    "median_absolute_difference": 5.0942700626568915e-06,
+    "median_absolute_smooth": 0.03305478349296893,
+    "plain_sum_over_renormalised_median": 1.133129704129696
+   }
+  },
+  "TR": {
+   "fluid_particles": 678,
+   "speed_range": [
+    0.062140625726592326,
+    0.9617806884938722
+   ],
+   "vorticity_range": [
+    -347.5316154944518,
+    163.69860259255174
+   ],
+   "velocity_colour": "colour 0 \u2013 1 linear",
+   "vorticity_colour": "colour \u00b1300 symlog, 0.4 % clipped",
+   "vorticity_check": {
+    "particles": 467,
+    "median_absolute_difference": 0.03653255982534631,
+    "median_absolute_smooth": 41.049357667369,
+    "plain_sum_over_renormalised_median": 1.1280929914425788
+   }
+  },
+  "BR": {
+   "fluid_particles": 681,
+   "speed_range": [
+    7.568866903022136e-05,
+    0.0016778860838093587
+   ],
+   "vorticity_range": [
+    -0.09843035357113655,
+    0.036345596235113894
+   ],
+   "velocity_colour": "colour 0 \u2013 0.002 linear",
+   "vorticity_colour": "colour \u00b10.1 linear",
+   "vorticity_check": {
+    "particles": 461,
+    "median_absolute_difference": 9.08141695648429e-06,
+    "median_absolute_smooth": 0.04569471713601518,
+    "plain_sum_over_renormalised_median": 1.1324733521494186
+   }
+  }
+ },
+ "case": "cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_adami/case.yaml",
+ "converged": true,
+ "rel_l2_marchi2021": [
+  0.006774774193164363,
+  0.006950535437811265
+ ],
+ "grid_cells": 2048,
+ "grid_spacing_dx": 0.49951812167513976,
+ "runtime_seconds": 8.826377999968827,
+ "peak_memory_bytes": 1426345984
+}

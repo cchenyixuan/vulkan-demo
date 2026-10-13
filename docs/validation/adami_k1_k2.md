@@ -133,6 +133,27 @@ L2 = √(Σ e_i² / 28)、L∞ = max |e_i|(绝对值,U 为单位),rel L2 = L2 / 
 
 墙钟(提交前的校准估算 → 实际):K1 5.90 h(校准 627.5 步/s,2026-10-13 07:03:12) → 6.31 h(运行中样本间吞吐中位数 586.7 步/s);K2 4.19 h(校准 884.5 步/s,2026-10-13 02:45:12) → 4.29 h(运行中样本间吞吐中位数 869.2 步/s)
 
+## 场图(每个 run 最新的检查点)
+
+`experiment/validation/cavity_fields.py`(2026-10-02 批准的场图版式):全部粒子(流体 + 壁 + 盖)的 Shepard 插值到 2048² 网格,边界带按真实厚度,四角放大图逐粒子画出(各自色标),ω_z 为平滑场的中心差分,流线来自 Poisson ψ;主涡参考 = Marchi 2021 表 19。图 K = 2 里的点线 = 切口。
+
+![vorticity K1](fields/n1000_k1_float32_xi0p001_eps0p0025_adami_vorticity.png)
+
+![vorticity K2](fields/n1000_k2_float32_xi0p001_eps0p0025_adami_vorticity.png)
+
+![K2 minus K1](fields/n1000_k2_float32_xi0p001_eps0p0025_adami_minus_n1000_k1_float32_xi0p001_eps0p0025_adami.png)
+
+| run | 检查点 | 主涡 (X, Y) | ψ | ω_z | 到参考的距离 |
+|---|---|---|---|---|---|
+| K1 | c013230000(t = 99.23) | (0.5304, 0.5646) | -0.11914 | -2.0621 | 0.0007 L |
+| K2 | c013230000(t = 99.23) | (0.5304, 0.5647) | -0.11914 | -2.0639 | 0.0007 L |
+| Marchi 2021 | – | (0.5308, 0.5652) | -0.11894 | – | – |
+
+K2 − K1(同一检查点步 13,230,000,两个 run 都是流体的格点,离壁 > 2h 的内部):max |Δu| 2.13e-03、rms Δu 1.49e-04、max |Δv| 2.06e-03、rms Δv 1.47e-04(U);max |Δω_z| 1.71、rms Δω_z 0.039(U/L)。
+切口 X = 0.5009:差值场的列间跳变在切口处 5.5e-06,内部中位数 1.0e-05(p99 4.1e-05),97 % 的列对跳变更大;K = 2 自身速度在切口附近的二阶 x 差分最大 1.3e-06,内部中位数 2.9e-06(p99 2.2e-04);切口处的 |Δu| 对邻域中位数 0.75,Δω_z 的 0.80。
+
+数字:`docs/validation/fields/fields_check.md`、`difference_n1000_k2_float32_xi0p001_eps0p0025_adami_minus_n1000_k1_float32_xi0p001_eps0p0025_adami.json`;速度场图 `<run>_velocity.png`,逐像素图 `<run>_{velocity,vorticity}_full.png`。
+
 ## 文件
 
 - 图:`docs/validation/figures/adami_fig1_k1.pdf`(.png)、`adami_fig2_k2.pdf`(.png)
