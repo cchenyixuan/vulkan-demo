@@ -438,9 +438,12 @@ def main() -> int:
               "E40: invariants and run facts of the two runs (segments.jsonl totals, samples.jsonl).")
 
     # the document
+    code_hashes_equal = runs['K1']['meta'].get('code_hashes') == runs['K2']['meta'].get('code_hashes')
     lines = [f"# Adami 壁面 1000² 方腔:K = 1 与 K = 2(v7-rc3,E40)", "",
              f"算例 `{runs['K1']['case']}`(Re = 1000,ξ = 0.001,ε² = 0.0025 h²,`wall_boundary: adami`),求解器 experiment/v7 "
-             f"在 tag v7-rc3(提交 {runs['K1']['meta'].get('git', {}).get('head')} / {runs['K2']['meta'].get('git', {}).get('head')}),"
+             f"在 tag v7-rc3 = 64eecf0(运行记录的提交:K = 1 {runs['K1']['meta'].get('git', {}).get('head')}、"
+             f"K = 2 {runs['K2']['meta'].get('git', {}).get('head')},树均干净;1f3fb48 = tag + 两个只加本报告脚本的提交,"
+             f"求解器未变;两次运行记录的求解器代码哈希{'相同' if code_hashes_equal else '**不同**'}),"
              f"默认开关,`cavity_runner --solver v7 --expect release`。K = 1:无头的 GPU 1;K = 2:GPU 0 + 1,等权重,"
              f"切口在全局第 {seam['column']} 列(x = {seam['x']:.4f} m,壁面行框架 X = {seam['x_wall']:.4f})。方法、稳态判据、取样与参考解沿用 "
              "`docs/validation/cavity_re1000.md`(Marchi et al. 2021 为误差参考,Ghia et al. 1982 只画在图里);时间平均取每个 run 最后 20 个时间单位。"

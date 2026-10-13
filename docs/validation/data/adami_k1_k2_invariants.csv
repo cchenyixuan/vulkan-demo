@@ -1,0 +1,4 @@
+# E40: invariants and run facts of the two runs (segments.jsonl totals, samples.jsonl).
+run,id,expected_particles,alive_min,alive_max,samples,segments,segments_complete,invariant_violations,wall_hours,mls_fallbacks_total,min_neighbours,status,git_head,git_dirty,devices,drift,overflow,far_migration,stamp_gpu,stamp_host,estimate_hours,estimate_fps,estimate_logged,median_fps
+K1,n1000_k1_float32_xi0p001_eps0p0025_adami,1046529,1046529,1046529,493,1,1,0,6.312779587888832,0,71,complete,1f3fb48,False,[1],0,0,0,0,0,5.90209461236594,627.5235919382234,2026-10-13 07:03:12,586.6872271986582
+K2,n1000_k2_float32_xi0p001_eps0p0025_adami,1046529,1046529,1046529,493,1,1,0,4.292044750361108,0,71,complete,64eecf0,False,"[0, 1]",0,0,0,0,0,4.187220965291726,884.5254744880828,2026-10-13 02:45:12,869.2062729918719
