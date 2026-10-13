@@ -7,3 +7,6 @@
 == e7_b2S_1695411: 197 rows; roles {'reference': 166, 'calibrated': 27, 'trace_calibrated': 4}; status {'pass': 197}
    not pass: none; invariant rows not 0: none
    seam checks 28 (28 OK), overshoot -0.1..-0.0 dx, duplicates [0]; field checks 4 (NaN-free 4)
+== e7_b2T_1695731: 77 rows; roles {'reference': 63, 'calibrated': 11, 'trace_calibrated': 3}; status {'pass': 76, 'hard_failure': 1}
+   not pass: [('2d_n8000_K7_t3_R1_2d_n8000_g5', 'hard_failure', ['errors: Traceback (most recent call last),VkError', 'no final line'])]; invariant rows not 0: {'alive': 1}
+   seam checks 11 (11 OK), overshoot -0.07..-0.02 dx, duplicates [0]; field checks 3 (NaN-free 3)

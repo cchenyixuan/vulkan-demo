@@ -251,6 +251,9 @@ def same_load_rows(rows: list, k1: dict, tolerance: float) -> list:
                  "per_card": per_card, "eta_strong": strong["eta"], "eta_strong_nodefrag": strong["eta_nodefrag"]}
         if best is None or abs(best[1] - per_card) / per_card > tolerance:
             entry["same_case"] = None
+            if best is not None:        # the second supplement (2026-10-13): say which K = 1 case is nearest, and how far
+                entry.update({"nearest_case": best[0], "nearest_particles": best[1],
+                              "nearest_mismatch": (best[1] - per_card) / per_card})
             out.append(entry)
             continue
         case, size = best
@@ -284,8 +287,12 @@ def table_same_load(entries: list) -> list:
              "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for entry in entries:
         if entry.get("same_case") is None:
+            nearest = ""
+            if entry.get("nearest_case"):
+                nearest = (f" (nearest {entry['nearest_case']}: {entry['nearest_particles'] / 1e6:.2f} M, "
+                           f"{entry['nearest_mismatch'] * 100:+.1f} %)")
             lines.append(f"| {entry['point']} | {entry['job']} | {entry['arm']} | {entry['K']} | {entry['per_card'] / 1e6:.2f} M | "
-                         f"no K=1 case within tolerance | - | - | - | {rng(entry['eta_strong'], 3)} | - | - | "
+                         f"no K=1 case within tolerance{nearest} | - | - | - | {rng(entry['eta_strong'], 3)} | - | - | "
                          f"{rng(entry['eta_strong_nodefrag'], 3)} | - |")
             continue
         lines.append(

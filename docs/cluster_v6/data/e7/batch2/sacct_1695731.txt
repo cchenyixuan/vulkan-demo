@@ -1,0 +1,2 @@
+JobID|JobName|Start|End|Elapsed|NodeList|State
+1695731|e7_B|2026-10-13T10:26:43|2026-10-13T11:29:23|01:02:40|wqd10nbm13g5|FAILED
