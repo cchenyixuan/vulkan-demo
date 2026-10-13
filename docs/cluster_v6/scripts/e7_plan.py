@@ -227,8 +227,10 @@ REVISIONS = {
         "extra_points": [("F2", "cavity2d_n8000", 3, "same"), ("F2", "cavity2d_n8000", 5, "same"),
                          ("F2", "cavity2d_n8000", 6, "same"), ("F2", "cavity2d_n8000", 7, "same")],
         "any_line": True,
+        # + (user, a few minutes later) cavity2d_n5640 at K = 8 (4.0M per card, F1 strong scaling), 3 trials, traced,
+        # after the four n8000 points (the pending job 1695948 was cancelled and resubmitted with it)
         "batches": {7: {"B": [("cavity2d_n8000", 7), ("cavity2d_n8000", 6), ("cavity2d_n8000", 5),
-                              ("cavity2d_n8000", 3)]}},
+                              ("cavity2d_n8000", 3), ("cavity2d_n5640", 8)]}},
         "extras": {7: {"A": ([], []), "B": ([], [])}},
         "cross": {"A": [], "B": []},
         "job_names": {7: "b2U"},

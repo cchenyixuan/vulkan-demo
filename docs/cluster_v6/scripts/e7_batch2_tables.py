@@ -197,8 +197,8 @@ def sort_key(row: dict):
 
 
 def table_points(rows: list) -> list:
-    lines = ["| point | job | node | case | K | arm | trials | window | fps | η (no defrag) | η_min (no defrag) | η (with defrag) | η_min (with defrag) | r_own p50 / p95 | SM clock K / ref | ns/particle K | ns/particle K=1 ref |",
-             "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    lines = ["| point | job | node | case | K | arm | trials | window | fps | fps (no defrag) | η (no defrag) | η_min (no defrag) | η (with defrag) | η_min (with defrag) | r_own p50 / p95 | SM clock K / ref | ns/particle K | ns/particle K=1 ref |",
+             "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for row in sorted(rows, key=sort_key):
         if not row["fps"]["n"]:                      # an arm the plan lists but the job did not run
             continue
@@ -210,13 +210,13 @@ def table_points(rows: list) -> list:
             r_own = "trace: " + trace["error"][:40]
         if not row["references"]:
             lines.append(f"| {row['point']} | {row['job']} | {','.join(row['nodes'])} | {row['case']} | {row['K']} | {row['arm']} | "
-                         f"{row['fps']['n']} | {','.join(row['windows'])} | {rng(row['fps'])} | - | - | - | - | {r_own} | - | "
+                         f"{row['fps']['n']} | {','.join(row['windows'])} | {rng(row['fps'])} | {rng(row['fps_nodefrag'])} | - | - | - | - | {r_own} | - | "
                          f"{rng(row['ns'], 3)} | - |")
             continue
         for key, reference in row["references"].items():
             lines.append(
                 f"| {row['point']} | {row['job']} | {','.join(row['nodes'])} | {row['case']} | {row['K']} | {row['arm']} | "
-                f"{row['fps']['n']} | {','.join(row['windows'])} | {rng(row['fps'])} | "
+                f"{row['fps']['n']} | {','.join(row['windows'])} | {rng(row['fps'])} | {rng(row['fps_nodefrag'])} | "
                 f"{rng(reference['eta_nodefrag'], 3)} | {rng(reference['eta_min_nodefrag'], 3)} | "
                 f"{rng(reference['eta'], 3)} | {rng(reference['eta_min'], 3)} | {r_own} | "
                 f"{rng(reference['clock_ratio'], 3)} | {rng(row['ns'], 3)} | {rng(reference['ns_1'], 3)} ({reference['kind']}: {reference['case']}, {reference['window']}) |")
