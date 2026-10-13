@@ -82,6 +82,10 @@ Revision 2 (--revision 2; user, 2026-10-12 evening): 2-D only this round, 3-D po
   anatomy at K = 1 (line A) and K = 8 (line B); E n8000 K = 8 on another node = the cross repeat of line B's job,
   with the trace (submit with --exclude=<the validation job's node>). One batch, two jobs (e7_b2A, e7_b2B).
 
+Revision 3 (--revision 3; user, 2026-10-13 morning): the batch-2 supplement, one job e7_b2S (REVISIONS[3]).
+Revision 4 (--revision 4; user, 2026-10-13 afternoon): the second supplement, one job e7_b2T: 2d_n8000 at K = 3, 5,
+  6, 7 (3 trials, traced, cards 0..K-1 in bus order); the per-K model tables are interpolated in K (Model.per_k).
+
 Validation job (--emit-validation DIR: e7_v1.sbatch, job e7_V, line V; user item 7): the job's deployment
 (VALIDATION source repo, tag rc2, --validation-tree / --validation-commit, placeholders until rc2 exists) under
 the full protocol at two batch-1 points (same labels as batch 1: they replace those points), and A/B points of
@@ -198,6 +202,21 @@ REVISIONS = {
         "lock": [("cavity2d_n8000", 8), ("cavity2d_n5640_k8", 8)], "lock_mhz": 2500, "lock_trials": 3,
         "cross": {"A": [], "B": []},
         "job_names": {5: "b2S"},
+    },
+    # revision 4 (user, 2026-10-13 afternoon: the second batch-2 supplement, one whole-node job b2T): 2d_n8000's
+    # strong scaling at K = 3, 5, 6, 7 (3 trials, one traced run each), the slabs on cards 0..K-1 in bus order
+    # (e7_device_map; cards 0-3 = NUMA node 0, 4-7 = node 1: the seam 3|4 crosses the sockets at K >= 5), the K = 1
+    # references on the same cards. The model's per-K tables (K = 2, 4, 8) are interpolated in K for these points.
+    4: {
+        "arms": "C", "trials": 3, "traces_strong": 1, "traces_weak": 0, "cross_traces": 0, "window_2d": (1500, 500),
+        "extra_points": [("F2", "cavity2d_n8000", 3, "same"), ("F2", "cavity2d_n8000", 5, "same"),
+                         ("F2", "cavity2d_n8000", 6, "same"), ("F2", "cavity2d_n8000", 7, "same")],
+        "any_line": True,                       # K < 8 points in the whole-node job (line B: its n8000 refmode k1)
+        "batches": {6: {"B": [("cavity2d_n8000", 3), ("cavity2d_n8000", 5), ("cavity2d_n8000", 6),
+                              ("cavity2d_n8000", 7)]}},
+        "extras": {6: {"A": ([], []), "B": ([], [])}},
+        "cross": {"A": [], "B": []},
+        "job_names": {6: "b2T"},
     },
 }
 REVISION = None                                 # --revision N: REVISIONS[N]
@@ -377,6 +396,21 @@ class Model:
             return (1500, 500)
         return tuple(REVISION["window_2d"]) if REVISION and REVISION.get("window_2d") else (3000, 1000)
 
+    @staticmethod
+    def per_k(table: dict, slabs: int) -> float:
+        """A per-K table value; a K the table lacks (3, 5, 6, 7: revision 4) is interpolated linearly in K between
+        its nearest keys (clamped at the ends)."""
+        if slabs in table:
+            return table[slabs]
+        lower = max((key for key in table if key < slabs), default=None)
+        upper = min((key for key in table if key > slabs), default=None)
+        if lower is None:
+            return table[upper]
+        if upper is None:
+            return table[lower]
+        weight = (slabs - lower) / (upper - lower)
+        return table[lower] + weight * (table[upper] - table[lower])
+
     def step_time(self, case: str, slabs: int) -> float:
         three_dimensional = case.startswith("cavity3d")
         cost = self.cost_3d if three_dimensional else self.cost_2d
@@ -384,7 +418,7 @@ class Model:
         if slabs == 1:
             return max(self.floor_k1, cost * per_card)
         efficiency = (self.efficiency_3d or self.efficiency) if three_dimensional else self.efficiency
-        return max(self.floor[slabs], cost * per_card / efficiency[slabs])
+        return max(self.per_k(self.floor, slabs), cost * per_card / self.per_k(efficiency, slabs))
 
     def setup(self, case: str, slabs: int, cold: bool, seam_check: bool = False) -> float:
         """Construction + bootstrap + post-run checks + per-run overhead of one run (a reference set is one
@@ -746,7 +780,8 @@ def main() -> int:
     parser.add_argument("--revision", type=int, choices=sorted(REVISIONS), default=None, metavar="N",
                         help="a revision of the plan (REVISIONS): 1 = 2026-10-12 noon (arm C only, 3 trials, the trimmed "
                              "batches 2 and 4), 2 = 2026-10-12 evening (2-D only, 1500-step windows, batch 2 = items "
-                             "A-E); emitted jobs export E7_ARMS")
+                             "A-E), 3 = the 2026-10-13 supplement b2S, 4 = the second supplement b2T (2d_n8000 K = 3 / "
+                             "5 / 6 / 7); emitted jobs export E7_ARMS")
     arguments = parser.parse_args()
     if (arguments.solver_tag is None) != (arguments.expected_tree is None):
         parser.error("--solver-tag and --expected-tree go together (the tag names the tree's solver)")
