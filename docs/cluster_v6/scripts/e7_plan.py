@@ -87,7 +87,10 @@ Revision 4 (--revision 4; user, 2026-10-13 afternoon): the second supplement, on
   6, 7 (3 trials, traced, cards 0..K-1 in bus order); the per-K model tables are interpolated in K (Model.per_k).
 Revision 5 (--revision 5): the third supplement e7_b2U (cancelled before it started). Revision 6 (--revision 6; user,
   2026-10-15): the fourth supplement, jobs e7_b2V (strong, batch 8) and e7_b2W (weak at K = 3, 5, 6, 7 + one traced
-  2d_n1440_k8 K = 8 run, batch 9); a point with 0 trials runs its calibration and traced runs only.
+  2d_n1440_k8 K = 8 run, batch 9); a point with 0 trials runs its calibration and traced runs only. Revision 7
+  (--revision 7; user, 2026-10-16): b2W stopped at the 3 % rule; the weak item again as job e7_b2X (batch 10, on
+  wqd10nbj04g2) or, if that has not started within 6 h, e7_b2Y (batch 11, any node but wqd10nbm13g5 / wqd10nah09g1,
+  without 2d_n1440_k3 / _k5); both stop before any run unless the eight power caps are equal (E7_UNIFORM_POWER_CAP).
 
 Validation job (--emit-validation DIR: e7_v1.sbatch, job e7_V, line V; user item 7): the job's deployment
 (VALIDATION source repo, tag rc2, --validation-tree / --validation-commit, placeholders until rc2 exists) under
@@ -267,6 +270,29 @@ REVISIONS = {
         "cross": {"A": [], "B": []},
         "job_names": {8: "b2V", 9: "b2W"},
         "exports": [("E7_REFERENCE_SPREAD_PCT", "3")],
+    },
+    # revision 7 (user, 2026-10-16): b2W (1703658, wqd10nah09g1) stopped at the 3 % rule (2d_n1440_k6 K = 6 reference:
+    # GPU 5, the node's one 600 W card, +3.31 %). The whole weak item again on wqd10nbj04g2 (job b2X, batch 10 =
+    # revision 6's batch 9, submitted with --nodelist=wqd10nbj04g2) so that all 2-D scaling data share one node; if it
+    # has not started within 6 h it is cancelled and job b2Y (batch 11) runs on any node but wqd10nbm13g5 and
+    # wqd10nah09g1, without 2d_n1440_k3 / _k5 (kept from wqd10nah09g1). Both export E7_UNIFORM_POWER_CAP=1 (e7_lib.sh:
+    # the eight cards' power caps must be equal, else the job stops before any run) and the 3 % spread rule.
+    7: {
+        "arms": "C", "trials": 3, "traces_strong": 1, "traces_weak": 0, "cross_traces": 0, "window_2d": (1500, 500),
+        "extra_points": [("F3", f"cavity2d_n{n}_k{slabs}", slabs, f"cavity2d_n{n}")
+                         for n in (1440, 2840, 5640) for slabs in (3, 5, 6, 7)],
+        "any_line": True,
+        "trials_overrides": {**{(f"cavity2d_n1440_k{slabs}", slabs): 5 for slabs in (3, 5, 6, 7)},
+                             ("cavity2d_n1440_k8", 8): 0},
+        "traces_overrides": {("cavity2d_n1440_k8", 8): 1},
+        "batches": {10: {"A": [(f"cavity2d_n{n}_k{slabs}", slabs) for n in (1440, 2840, 5640) for slabs in (3, 5, 6, 7)]
+                              + [("cavity2d_n1440_k8", 8)]},
+                    11: {"A": [(f"cavity2d_n{n}_k{slabs}", slabs) for n in (1440, 2840, 5640) for slabs in (3, 5, 6, 7)
+                               if (n, slabs) not in ((1440, 3), (1440, 5))] + [("cavity2d_n1440_k8", 8)]}},
+        "extras": {10: {"A": ([], []), "B": ([], [])}, 11: {"A": ([], []), "B": ([], [])}},
+        "cross": {"A": [], "B": []},
+        "job_names": {10: "b2X", 11: "b2Y"},
+        "exports": [("E7_REFERENCE_SPREAD_PCT", "3"), ("E7_UNIFORM_POWER_CAP", "1")],
     },
 }
 REVISION = None                                 # --revision N: REVISIONS[N]
@@ -835,7 +861,8 @@ def main() -> int:
                              "batches 2 and 4), 2 = 2026-10-12 evening (2-D only, 1500-step windows, batch 2 = items "
                              "A-E), 3 = the 2026-10-13 supplement b2S, 4 = the second supplement b2T (2d_n8000 K = 3 / "
                              "5 / 6 / 7), 5 = the third (b2U), 6 = the fourth (b2V strong, b2W weak; --batch 8 "
-                             "--batch 9); emitted jobs export E7_ARMS")
+                             "--batch 9), 7 = the weak item again (b2X on wqd10nbj04g2, fallback b2Y; --batch 10 "
+                             "--batch 11); emitted jobs export E7_ARMS")
     arguments = parser.parse_args()
     if (arguments.solver_tag is None) != (arguments.expected_tree is None):
         parser.error("--solver-tag and --expected-tree go together (the tag names the tree's solver)")

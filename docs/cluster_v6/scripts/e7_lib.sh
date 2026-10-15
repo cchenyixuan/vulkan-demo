@@ -135,6 +135,19 @@ e7_gpu_health() {   # before any Vulkan process (user, 2026-10-12): nvidia-smi m
     fi
     echo "GPU health: $healthy GPUs listed without an error on $(hostname)"
     DEVICES=$healthy
+    # E7_UNIFORM_POWER_CAP=1 (user, 2026-10-16): every card's power cap must be the same, else the job stops before
+    # any run (wqd10nah09g1: GPU 5 at 600 W, the other seven at 575 W)
+    if [ "${E7_UNIFORM_POWER_CAP:-0}" = 1 ]; then
+        local caps listed distinct
+        caps=$(timeout 60 nvidia-smi --query-gpu=index,power.limit --format=csv,noheader 2>&1)
+        listed=$(echo "$caps" | grep -c -E '^[0-9]+, [0-9.]+ W$')
+        distinct=$(echo "$caps" | grep -E '^[0-9]+, [0-9.]+ W$' | sed -E 's/^[0-9]+, //' | sort -u | wc -l)
+        echo "power caps: $(echo "$caps" | tr '\n' ';')"
+        if [ "$listed" -ne "$E7_EXPECTED_DEVICES" ] || [ "$distinct" -ne 1 ]; then
+            e30_fail "power caps: $distinct distinct values over $listed of $E7_EXPECTED_DEVICES GPUs on $(hostname) (E7_UNIFORM_POWER_CAP=1)"
+        fi
+        echo "power caps: all $listed GPUs at $(echo "$caps" | sed -n '1s/^[0-9]*, //p') on $(hostname)"
+    fi
 }
 
 e7_clock_lock() {   # MHZ (user item 5, 2026-10-13): lock every GPU's SM clock at MHZ for the lock block. Returns 0 with
