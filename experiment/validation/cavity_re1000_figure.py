@@ -55,6 +55,8 @@ CHUNK_POINTS = 40000
 
 # figure style (the serif style of the existing validation figures, cavity_analysis.setup_style)
 FONT_SIZE = 8.0
+INSET_TICK_SIZE = 8.0                     # zoom tick labels (2026-10-15: was 6 pt)
+FIELD_YLABEL_PAD = 4.5                    # (c) y label to its tick labels, points (was 1.5)
 COLOR_K1 = "#08519c"
 COLOR_K2 = "#6baed6"
 COLOR_GHIA = "#b2182b"
@@ -202,7 +204,8 @@ def panel_label(axis, text: str) -> None:
 
 
 def style_inset(inset) -> None:
-    inset.tick_params(labelsize=FONT_SIZE - 2.0, length=2.0, width=0.5, pad=1.5)
+    inset.tick_params(which="major", labelsize=INSET_TICK_SIZE, length=2.0, width=0.5, pad=1.5)
+    inset.tick_params(which="minor", length=1.3, width=0.4)
     for spine in inset.spines.values():
         spine.set_linewidth(0.5)
 
@@ -244,8 +247,8 @@ def draw_profiles(axis_u, axis_v, lines: dict, reference: dict, ghia: dict, seam
             axis.spines[spine].set_visible(False)
 
     # zooms: u_min (lower right of (a)), v_min (lower left of (b)); ticks inside the main axes, clear of its ticks
-    inset_u = axis_u.inset_axes([0.575, 0.47, 0.37, 0.28])
-    inset_v = axis_v.inset_axes([0.225, 0.09, 0.21, 0.36])
+    inset_u = axis_u.inset_axes([0.63, 0.54, 0.33, 0.27])
+    inset_v = axis_v.inset_axes([0.27, 0.15, 0.21, 0.34])
     for key in ("K1", "K2"):
         inset_u.plot(lines[key]["u"], lines[key]["coordinate"], **{**styles[key], "lw": 0.9})
         inset_v.plot(lines[key]["coordinate"], lines[key]["v"], **{**styles[key], "lw": 0.9})
@@ -259,7 +262,9 @@ def draw_profiles(axis_u, axis_v, lines: dict, reference: dict, ghia: dict, seam
     inset_u.yaxis.set_major_locator(FixedLocator([0.1, 0.2]))   # no 0.3 label: it would touch the curve at y = 0.75
     inset_v.set_xlim(0.84, 0.96)
     inset_v.set_ylim(-0.545, -0.375)
-    inset_v.xaxis.set_major_locator(FixedLocator([0.85, 0.95]))
+    # one labelled tick at 8 pt: two ("0.85", "0.95") would touch each other or the seam line
+    inset_v.xaxis.set_major_locator(FixedLocator([0.90]))
+    inset_v.xaxis.set_minor_locator(FixedLocator([0.85, 0.95]))
     inset_v.yaxis.set_major_locator(MultipleLocator(0.1))
     for inset in (inset_u, inset_v):
         style_inset(inset)
@@ -267,6 +272,7 @@ def draw_profiles(axis_u, axis_v, lines: dict, reference: dict, ghia: dict, seam
         # lower right of (a), lifted off the bottom so that its left edge clears the curve below y = 0.1
         axis_u.legend(loc="lower right", bbox_to_anchor=(1.0, 0.06), frameon=False, handlelength=1.6,
                       handletextpad=0.45, borderaxespad=0.0, borderpad=0.0, labelspacing=0.3)
+    return {"inset_u": inset_u, "inset_v": inset_v}
 
 
 def draw_field(axis, colorbar_axis, quantities: dict, seam_wall: float | None) -> dict:
@@ -288,17 +294,134 @@ def draw_field(axis, colorbar_axis, quantities: dict, seam_wall: float | None) -
     axis.yaxis.set_minor_locator(MultipleLocator(0.25))
     axis.tick_params(which="both", direction="out", top=False, right=False)
     axis.set_xlabel(r"$x$", labelpad=1.5)
-    axis.set_ylabel(r"$y$", labelpad=1.5)
+    axis.set_ylabel(r"$y$", labelpad=FIELD_YLABEL_PAD)
     colorbar = axis.figure.colorbar(image, cax=colorbar_axis, ticks=np.linspace(0.0, 1.0, 6))
     colorbar.outline.set_linewidth(0.5)
     colorbar_axis.tick_params(direction="out", length=2.0, width=0.5, labelsize=FONT_SIZE - 0.5, pad=1.5)
-    colorbar.set_label(r"$|\mathbf{u}|/U$", labelpad=2.0)
+    colorbar.set_label(r"$|\boldsymbol{v}|/U$", labelpad=2.0)   # bold italic v: the velocity vector of the text
     return {"levels": levels}
 
 
 # geometry of the row (inches): left margin, panel widths and gaps; the field panel is square
-LAYOUT = {"left": 0.37, "profile_width": 1.20, "gap_ab": 0.44, "gap_bc": 0.37, "colorbar_pad": 0.06,
+# 2026-10-15: gap_bc 0.37 -> 0.42 for the larger (c) y-label pad, taken from the two profile panels (1.20 -> 1.175),
+# so that (c) keeps its size and the figure its height
+LAYOUT = {"left": 0.37, "profile_width": 1.175, "gap_ab": 0.44, "gap_bc": 0.42, "colorbar_pad": 0.06,
           "colorbar_width": 0.075, "bottom": 0.34, "top_margin": 0.21}
+
+
+def _label_boxes(axis, renderer) -> list:
+    """Tick labels of ``axis`` that are drawn: the locator also returns ticks outside the view limits."""
+    frame = axis.get_window_extent(renderer)
+    boxes = []
+    for direction, texts in (("x", axis.get_xticklabels()), ("y", axis.get_yticklabels())):
+        for text in texts:
+            if not (text.get_visible() and text.get_text()):
+                continue
+            box = text.get_window_extent(renderer)
+            centre = 0.5 * (box.x0 + box.x1) if direction == "x" else 0.5 * (box.y0 + box.y1)
+            low, high = (frame.x0, frame.x1) if direction == "x" else (frame.y0, frame.y1)
+            if low - 1.0 <= centre <= high + 1.0:
+                boxes.append((text.get_text(), box))
+    return boxes
+
+
+def _drawn_points(axis, renderer) -> list:
+    """Display-space points of every line of ``axis`` inside its frame (segments densified to 1 px), with the
+    half-width of what is drawn there (marker radius or half the line width), in pixels."""
+    dpi = axis.figure.dpi
+    frame = axis.get_window_extent(renderer)
+    result = []
+    for line in axis.get_lines():
+        data = line.get_xydata()
+        if data.size == 0 or not line.get_visible():
+            continue
+        display = line.get_transform().transform(data)
+        has_marker = line.get_marker() not in (None, "None", "", " ")
+        if line.get_linestyle() not in ("None", "", " ") and len(display) > 1:
+            pieces = [display[:1]]
+            for start, end in zip(display[:-1], display[1:]):
+                steps = max(int(np.ceil(np.hypot(*(end - start)))), 1)
+                pieces.append(start + (end - start) * (np.arange(1, steps + 1)[:, None] / steps))
+            display = np.concatenate(pieces)
+        inside = ((display[:, 0] >= frame.x0 - 1) & (display[:, 0] <= frame.x1 + 1)
+                  & (display[:, 1] >= frame.y0 - 1) & (display[:, 1] <= frame.y1 + 1))
+        radius = 0.5 * (line.get_markersize() if has_marker else line.get_linewidth()) * dpi / 72.0
+        result.append((display[inside], radius))
+    return result
+
+
+def _clearance_points(box, points: list, dpi: float) -> float:
+    """Smallest gap (pt) between a box and drawn points (negative = overlap)."""
+    best = np.inf
+    for display, radius in points:
+        if display.size == 0:
+            continue
+        dx = np.maximum(np.maximum(box.x0 - display[:, 0], display[:, 0] - box.x1), 0.0)
+        dy = np.maximum(np.maximum(box.y0 - display[:, 1], display[:, 1] - box.y1), 0.0)
+        best = min(best, float((np.hypot(dx, dy) - radius).min()))
+    return best * 72.0 / dpi
+
+
+def _clearance_boxes(box, others: list, dpi: float) -> float:
+    """Smallest gap (pt) between a box and other boxes (negative = overlap depth)."""
+    best = np.inf
+    for other in others:
+        dx = max(other.x0 - box.x1, box.x0 - other.x1, 0.0)
+        dy = max(other.y0 - box.y1, box.y0 - other.y1, 0.0)
+        if dx > 0 or dy > 0:
+            gap = float(np.hypot(dx, dy))
+        else:
+            gap = -min(box.x1 - other.x0, other.x1 - box.x0, box.y1 - other.y0, other.y1 - box.y0)
+        best = min(best, gap)
+    return best * 72.0 / dpi
+
+
+def check_clearances(figure, axis_u, axis_v, axis_field, insets: dict, minimum_pt: float = 0.5) -> None:
+    """Measured on the rendered figure: the zoom tick labels against the main curves / reference markers / seam
+    line, the main ticks and tick labels and the legend; each zoom frame against the main curves; the (c) y label
+    against everything of panel (b). Raises when anything overlaps (gap < minimum_pt)."""
+    figure.canvas.draw()                  # tick-label and axis-label positions are set at draw time
+    renderer = figure.canvas.get_renderer()
+    dpi = figure.dpi
+    report = []
+    for name, axis, inset in (("(a) zoom", axis_u, insets["inset_u"]), ("(b) zoom", axis_v, insets["inset_v"])):
+        points = _drawn_points(axis, renderer)
+        main_ticks = []
+        for tick in (axis.xaxis.get_major_ticks() + axis.xaxis.get_minor_ticks()
+                     + axis.yaxis.get_major_ticks() + axis.yaxis.get_minor_ticks()):
+            if tick.get_visible() and tick.tick1line.get_visible():
+                main_ticks.append(tick.tick1line.get_window_extent(renderer))
+        main_labels = [box for _, box in _label_boxes(axis, renderer)]
+        legend = axis.get_legend()
+        legend_boxes = [legend.get_window_extent(renderer)] if legend is not None else []
+        for text, box in _label_boxes(inset, renderer):
+            gaps = {"curves/markers/seam": _clearance_points(box, points, dpi),
+                    "main ticks": _clearance_boxes(box, main_ticks, dpi),
+                    "main tick labels": _clearance_boxes(box, main_labels, dpi)}
+            if legend_boxes:
+                gaps["legend"] = _clearance_boxes(box, legend_boxes, dpi)
+            frame = axis.get_window_extent(renderer)
+            gaps["main axis lines"] = min(box.x0 - frame.x0, box.y0 - frame.y0) * 72.0 / dpi
+            report.append((f"{name} tick label {text!r} ({box.height * 72.0 / dpi:.1f} pt tall)", gaps))
+        report.append((f"{name} frame", {"curves/markers/seam": _clearance_points(inset.get_window_extent(renderer),
+                                                                                  points, dpi)}))
+    label_box = axis_field.yaxis.label.get_window_extent(renderer)
+    field_ticks = [box for text, box in _label_boxes(axis_field, renderer)
+                   if box.x1 <= axis_field.get_window_extent(renderer).x0]   # the y tick labels
+    panel_b_texts = [box for _, box in _label_boxes(axis_v, renderer)] + [axis_v.xaxis.label.get_window_extent(renderer)]
+    label_b = axis_v.yaxis.label.get_window_extent(renderer)
+    panel_a_texts = [box for _, box in _label_boxes(axis_u, renderer)] + [box for _, box in _label_boxes(insets["inset_u"], renderer)]
+    report.append(("(b) y label", {"(a) curves/markers": _clearance_points(label_b, _drawn_points(axis_u, renderer), dpi),
+                                   "(a) tick labels (incl. zoom)": _clearance_boxes(label_b, panel_a_texts, dpi)}))
+    report.append(("(c) y label", {"(b) curves/markers": _clearance_points(label_box, _drawn_points(axis_v, renderer), dpi),
+                                   "(b) tick and axis labels": _clearance_boxes(label_box, panel_b_texts, dpi),
+                                   "(c) tick labels": _clearance_boxes(label_box, field_ticks, dpi)}))
+    failures = []
+    for item, gaps in report:
+        print(f"[check] {item}: " + ", ".join(f"{key} {value:+.1f} pt" for key, value in gaps.items()), flush=True)
+        failures += [f"{item} vs {key} ({value:+.1f} pt)" for key, value in gaps.items() if value < minimum_pt]
+    if failures:
+        raise RuntimeError("overlaps: " + "; ".join(failures))
 
 
 def composite_figure(lines: dict, field_k2: dict, seam_wall: float, width: float, path: pathlib.Path) -> dict:
@@ -319,10 +442,11 @@ def composite_figure(lines: dict, field_k2: dict, seam_wall: float, width: float
     axis_field = axes_inches(figure, x, layout["bottom"], field_size, field_size)
     x += field_size + layout["colorbar_pad"]
     colorbar_axis = axes_inches(figure, x, layout["bottom"], layout["colorbar_width"], field_size)
-    draw_profiles(axis_u, axis_v, lines, reference, ghia, seam_wall, legend=True)
+    insets = draw_profiles(axis_u, axis_v, lines, reference, ghia, seam_wall, legend=True)
     draw_field(axis_field, colorbar_axis, field_k2, seam_wall)
     for axis, text in zip((axis_u, axis_v, axis_field), ("(a)", "(b)", "(c)")):
         panel_label(axis, text)
+    check_clearances(figure, axis_u, axis_v, axis_field, insets)
     save(figure, path)
     plt.close(figure)
     return {"width_in": width, "height_in": height, "field_size_in": field_size}
@@ -331,7 +455,7 @@ def composite_figure(lines: dict, field_k2: dict, seam_wall: float, width: float
 def field_only_figure(field: dict, size: dict, path: pathlib.Path) -> None:
     import matplotlib.pyplot as plt
     layout = LAYOUT
-    left = layout["gap_bc"] + 0.04
+    left = layout["gap_bc"] + 0.08
     width = left + size["field_size_in"] + layout["colorbar_pad"] + layout["colorbar_width"] + 0.33
     figure = plt.figure(figsize=(width, size["height_in"]))
     axis = axes_inches(figure, left, layout["bottom"], size["field_size_in"], size["field_size_in"])
