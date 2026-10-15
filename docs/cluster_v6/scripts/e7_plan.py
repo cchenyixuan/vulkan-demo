@@ -85,6 +85,9 @@ Revision 2 (--revision 2; user, 2026-10-12 evening): 2-D only this round, 3-D po
 Revision 3 (--revision 3; user, 2026-10-13 morning): the batch-2 supplement, one job e7_b2S (REVISIONS[3]).
 Revision 4 (--revision 4; user, 2026-10-13 afternoon): the second supplement, one job e7_b2T: 2d_n8000 at K = 3, 5,
   6, 7 (3 trials, traced, cards 0..K-1 in bus order); the per-K model tables are interpolated in K (Model.per_k).
+Revision 5 (--revision 5): the third supplement e7_b2U (cancelled before it started). Revision 6 (--revision 6; user,
+  2026-10-15): the fourth supplement, jobs e7_b2V (strong, batch 8) and e7_b2W (weak at K = 3, 5, 6, 7 + one traced
+  2d_n1440_k8 K = 8 run, batch 9); a point with 0 trials runs its calibration and traced runs only.
 
 Validation job (--emit-validation DIR: e7_v1.sbatch, job e7_V, line V; user item 7): the job's deployment
 (VALIDATION source repo, tag rc2, --validation-tree / --validation-commit, placeholders until rc2 exists) under
@@ -118,6 +121,11 @@ PARTICLES = {
     "cavity2d_n2840_k2": 16_319_124, "cavity2d_n2840_k4": 32_575_284, "cavity2d_n2840_k8": 65_087_604,
     "cavity2d_n4000_k2": 32_264_484, "cavity2d_n4000_k4": 64_440_484, "cavity2d_n4000_k8": 128_792_484,
     "cavity2d_n5640_k2": 63_991_924, "cavity2d_n5640_k4": 127_859_284, "cavity2d_n5640_k8": 255_594_004,
+    # revision 6 (user 2026-10-15): the weak members at K = 3, 5, 6, 7 (same generator, --n-x = n K)
+    "cavity2d_n1440_k3": 6_348_004, "cavity2d_n1440_k5": 10_558_564, "cavity2d_n1440_k6": 12_663_844,
+    "cavity2d_n1440_k7": 14_769_124, "cavity2d_n2840_k3": 24_447_204, "cavity2d_n2840_k5": 40_703_364,
+    "cavity2d_n2840_k6": 48_831_444, "cavity2d_n2840_k7": 56_959_524, "cavity2d_n5640_k3": 95_925_604,
+    "cavity2d_n5640_k5": 159_792_964, "cavity2d_n5640_k6": 191_726_644, "cavity2d_n5640_k7": 223_660_324,
     "cavity3d_n104_b9": 1_815_848, "cavity3d_n160": 4_741_632, "cavity3d_n160_k2": 9_257_472,
     "cavity3d_n160_k4": 18_289_152, "cavity3d_n160_k8": 36_352_512, "cavity3d_n200": 8_998_912,
     "cavity3d_n200_b9": 10_360_232, "cavity3d_n200_k2": 17_651_712, "cavity3d_n200_k4": 34_957_312,
@@ -234,6 +242,30 @@ REVISIONS = {
         "extras": {7: {"A": ([], []), "B": ([], [])}},
         "cross": {"A": [], "B": []},
         "job_names": {7: "b2U"},
+        "exports": [("E7_REFERENCE_SPREAD_PCT", "3")],
+    },
+    # revision 6 (user, 2026-10-15: the fourth supplement; replaces b2U, whose job 1695962 was cancelled before it
+    # started): any hp_5090 node but wqd10nbm13g5, the points of one item of the request on one node. Job b2V (batch
+    # 8) = item 1, revision 5's five strong points (3 trials, one traced run each); job b2W (batch 9) = item 2, the weak
+    # members cavity2d_n{1440,2840,5640}_k{3,5,6,7} at their K (reference = K = 1 of the per-card case on the same
+    # cards, the n1440 members 5 trials, the others 3, no traces), and item 3, one traced run of 2d_n1440_k8 at K = 8
+    # (its calibration and the traced run, no trials: b2S has the five). Both export the 3 % reference-spread rule.
+    6: {
+        "arms": "C", "trials": 3, "traces_strong": 1, "traces_weak": 0, "cross_traces": 0, "window_2d": (1500, 500),
+        "extra_points": [("F2", "cavity2d_n8000", slabs, "same") for slabs in (3, 5, 6, 7)]
+                        + [("F3", f"cavity2d_n{n}_k{slabs}", slabs, f"cavity2d_n{n}")
+                           for n in (1440, 2840, 5640) for slabs in (3, 5, 6, 7)],
+        "any_line": True,
+        "trials_overrides": {**{(f"cavity2d_n1440_k{slabs}", slabs): 5 for slabs in (3, 5, 6, 7)},
+                             ("cavity2d_n1440_k8", 8): 0},
+        "traces_overrides": {("cavity2d_n1440_k8", 8): 1},
+        "batches": {8: {"B": [("cavity2d_n8000", 7), ("cavity2d_n8000", 6), ("cavity2d_n8000", 5),
+                              ("cavity2d_n8000", 3), ("cavity2d_n5640", 8)]},
+                    9: {"A": [(f"cavity2d_n{n}_k{slabs}", slabs) for n in (1440, 2840, 5640) for slabs in (3, 5, 6, 7)]
+                             + [("cavity2d_n1440_k8", 8)]}},
+        "extras": {8: {"A": ([], []), "B": ([], [])}, 9: {"A": ([], []), "B": ([], [])}},
+        "cross": {"A": [], "B": []},
+        "job_names": {8: "b2V", 9: "b2W"},
         "exports": [("E7_REFERENCE_SPREAD_PCT", "3")],
     },
 }
@@ -362,7 +394,8 @@ def revised_batches(points: list[Point], batches: dict) -> dict:
                 out[batch][line].append(dataclasses.replace(
                     point, references=list(point.references),
                     trials_fixed=REVISION.get("trials_overrides", {}).get(key, REVISION["trials"]),
-                    traces_fixed=REVISION["traces_strong"] if point.strong else REVISION["traces_weak"]))
+                    traces_fixed=REVISION.get("traces_overrides", {}).get(
+                        key, REVISION["traces_strong"] if point.strong else REVISION["traces_weak"])))
     return out
 
 
@@ -504,7 +537,9 @@ def point_seconds(point: Point, model: Model) -> dict:
     run_warm = model.run(point.case, point.slabs, steps, cold=False)
     references_first, references_later, reference_runs = reference_seconds(point, model)
     calibration = calibration_seconds(point, model)
-    trials_total = references_first + (point.trials - 1) * references_later + point.trials * len(ARMS) * run_warm
+    trials_total = 0.0      # a point without trials (revision 6, item 3): its calibration and traced runs only
+    if point.trials:
+        trials_total = references_first + (point.trials - 1) * references_later + point.trials * len(ARMS) * run_warm
     traced = model.run(point.case, point.slabs, steps, cold=True, seam_check=True) + model.trace_write
     total = calibration + trials_total + point.traces * traced
     return {"run": run_warm, "reference": references_later, "reference_first": references_first,
@@ -799,7 +834,8 @@ def main() -> int:
                         help="a revision of the plan (REVISIONS): 1 = 2026-10-12 noon (arm C only, 3 trials, the trimmed "
                              "batches 2 and 4), 2 = 2026-10-12 evening (2-D only, 1500-step windows, batch 2 = items "
                              "A-E), 3 = the 2026-10-13 supplement b2S, 4 = the second supplement b2T (2d_n8000 K = 3 / "
-                             "5 / 6 / 7); emitted jobs export E7_ARMS")
+                             "5 / 6 / 7), 5 = the third (b2U), 6 = the fourth (b2V strong, b2W weak; --batch 8 "
+                             "--batch 9); emitted jobs export E7_ARMS")
     arguments = parser.parse_args()
     if (arguments.solver_tag is None) != (arguments.expected_tree is None):
         parser.error("--solver-tag and --expected-tree go together (the tag names the tree's solver)")
