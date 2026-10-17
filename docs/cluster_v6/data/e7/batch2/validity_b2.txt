@@ -10,3 +10,12 @@
 == e7_b2T_1695731: 77 rows; roles {'reference': 63, 'calibrated': 11, 'trace_calibrated': 3}; status {'pass': 76, 'hard_failure': 1}
    not pass: [('2d_n8000_K7_t3_R1_2d_n8000_g5', 'hard_failure', ['errors: Traceback (most recent call last),VkError', 'no final line'])]; invariant rows not 0: {'alive': 1}
    seam checks 11 (11 OK), overshoot -0.07..-0.02 dx, duplicates [0]; field checks 3 (NaN-free 3)
+== e7_b2V_1703604: 107 rows; roles {'reference': 87, 'calibrated': 15, 'trace_calibrated': 5}; status {'pass': 107}
+   not pass: none; invariant rows not 0: none
+   seam checks 24 (24 OK), overshoot -0.07..-0.0 dx, duplicates [0]; field checks 5 (NaN-free 5)
+== e7_b2W_1703658: 56 rows; roles {'reference': 46, 'calibrated': 10}; status {'pass': 56}
+   not pass: none; invariant rows not 0: none
+   seam checks 0 (0 OK), overshoot -..- dx, duplicates -; field checks 0 (NaN-free 0)
+== e7_b2Y_1704741: 226 rows; roles {'reference': 191, 'calibrated': 34, 'trace_calibrated': 1}; status {'pass': 226}
+   not pass: none; invariant rows not 0: none
+   seam checks 7 (7 OK), overshoot -0.09..-0.04 dx, duplicates [0]; field checks 1 (NaN-free 1)

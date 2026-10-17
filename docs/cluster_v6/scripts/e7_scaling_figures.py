@@ -179,7 +179,8 @@ def weak_figure(chosen: dict, out: pathlib.Path) -> list:
     axis.yaxis.set_major_locator(MultipleLocator(0.02))
     axis.set_xlabel(r"number of GPUs $K$", labelpad=1.5)
     axis.set_ylabel(r"$\eta$", labelpad=1.5)
-    axis.legend(loc="lower left", frameon=False, handlelength=1.4, borderaxespad=0.2)
+    # in the empty strip between the 2.1M series (eta ~0.91-0.94) and the band (lower left covered the 2.1M points)
+    axis.legend(loc="center", bbox_to_anchor=(0.5, 0.42), frameon=False, handlelength=1.4, borderaxespad=0.2)
     save(figure, out / "weak_scaling.pdf")
     plt.close(figure)
     return rows_all

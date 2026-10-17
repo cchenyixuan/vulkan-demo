@@ -1,0 +1,1296 @@
+{
+ "K2": {
+  "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-12\\02_e7_b2A_1694327\\traces\\2d_n8000_K2_C",
+  "links": 2,
+  "link_steps": 2000,
+  "steps_per_link": [
+   1000
+  ],
+  "pooled": {
+   "t_chain": [
+    406.3,
+    3561.7
+   ],
+   "readback": [
+    111.9,
+    117.6
+   ],
+   "host": [
+    181.0,
+    199.4
+   ],
+   "upload": [
+    110.4,
+    3270.4
+   ],
+   "readback_dma": [
+    105.3,
+    108.4
+   ],
+   "memcpy": [
+    166.8,
+    184.7
+   ],
+   "host_rest": [
+    14.1,
+    16.0
+   ],
+   "readback_to_worker": [
+    13.0,
+    14.2
+   ],
+   "stamp_check": [
+    1.1,
+    2.1
+   ],
+   "upload_dma": [
+    78.6,
+    81.8
+   ]
+  },
+  "link_p50_range": {
+   "t_chain": [
+    403.6,
+    408.1
+   ],
+   "readback": [
+    111.2,
+    112.4
+   ],
+   "host": [
+    177.9,
+    183.6
+   ],
+   "upload": [
+    109.7,
+    111.5
+   ],
+   "readback_dma": [
+    105.0,
+    105.6
+   ],
+   "memcpy": [
+    163.8,
+    169.2
+   ],
+   "host_rest": [
+    13.9,
+    14.3
+   ],
+   "readback_to_worker": [
+    12.8,
+    13.1
+   ],
+   "stamp_check": [
+    1.0,
+    1.2
+   ],
+   "upload_dma": [
+    78.4,
+    78.9
+   ]
+  },
+  "per_link": {
+   "s0_to_s1": {
+    "sender": 0,
+    "receiver": 1,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     403.6,
+     3548.0
+    ],
+    "readback": [
+     112.4,
+     117.9
+    ],
+    "host": [
+     177.9,
+     193.4
+    ],
+    "upload": [
+     109.7,
+     3251.4
+    ],
+    "readback_dma": [
+     105.6,
+     108.5
+    ],
+    "memcpy": [
+     163.8,
+     179.3
+    ],
+    "host_rest": [
+     13.9,
+     15.1
+    ],
+    "readback_to_worker": [
+     12.8,
+     13.9
+    ],
+    "stamp_check": [
+     1.0,
+     1.5
+    ],
+    "upload_dma": [
+     78.4,
+     81.4
+    ]
+   },
+   "s1_to_s0": {
+    "sender": 1,
+    "receiver": 0,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     408.1,
+     3644.1
+    ],
+    "readback": [
+     111.2,
+     117.3
+    ],
+    "host": [
+     183.6,
+     202.9
+    ],
+    "upload": [
+     111.5,
+     3355.0
+    ],
+    "readback_dma": [
+     105.0,
+     108.4
+    ],
+    "memcpy": [
+     169.2,
+     188.2
+    ],
+    "host_rest": [
+     14.3,
+     17.0
+    ],
+    "readback_to_worker": [
+     13.1,
+     14.7
+    ],
+    "stamp_check": [
+     1.2,
+     2.5
+    ],
+    "upload_dma": [
+     78.9,
+     82.0
+    ]
+   }
+  }
+ },
+ "K4": {
+  "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-12\\02_e7_b2A_1694327\\traces\\2d_n8000_K4_C",
+  "links": 6,
+  "link_steps": 6000,
+  "steps_per_link": [
+   1000
+  ],
+  "pooled": {
+   "t_chain": [
+    508.1,
+    17730.3
+   ],
+   "readback": [
+    117.9,
+    225.7
+   ],
+   "host": [
+    224.4,
+    286.5
+   ],
+   "upload": [
+    115.6,
+    17390.1
+   ],
+   "readback_dma": [
+    102.8,
+    114.0
+   ],
+   "memcpy": [
+    202.8,
+    265.1
+   ],
+   "host_rest": [
+    15.1,
+    44.2
+   ],
+   "readback_to_worker": [
+    13.6,
+    42.9
+   ],
+   "stamp_check": [
+    1.1,
+    2.3
+   ],
+   "upload_dma": [
+    77.3,
+    87.8
+   ]
+  },
+  "link_p50_range": {
+   "t_chain": [
+    472.8,
+    16478.8
+   ],
+   "readback": [
+    108.8,
+    221.9
+   ],
+   "host": [
+    181.5,
+    248.6
+   ],
+   "upload": [
+    103.0,
+    16150.2
+   ],
+   "readback_dma": [
+    100.5,
+    110.6
+   ],
+   "memcpy": [
+    167.4,
+    230.8
+   ],
+   "host_rest": [
+    13.6,
+    18.7
+   ],
+   "readback_to_worker": [
+    12.4,
+    16.7
+   ],
+   "stamp_check": [
+    0.9,
+    1.5
+   ],
+   "upload_dma": [
+    74.8,
+    78.2
+   ]
+  },
+  "per_link": {
+   "s0_to_s1": {
+    "sender": 0,
+    "receiver": 1,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     472.8,
+     2616.1
+    ],
+    "readback": [
+     108.8,
+     115.8
+    ],
+    "host": [
+     241.9,
+     298.3
+    ],
+    "upload": [
+     115.0,
+     2204.4
+    ],
+    "readback_dma": [
+     103.0,
+     107.0
+    ],
+    "memcpy": [
+     226.7,
+     281.0
+    ],
+    "host_rest": [
+     14.1,
+     18.4
+    ],
+    "readback_to_worker": [
+     12.4,
+     16.6
+    ],
+    "stamp_check": [
+     1.5,
+     2.5
+    ],
+    "upload_dma": [
+     78.0,
+     88.3
+    ]
+   },
+   "s1_to_s0": {
+    "sender": 1,
+    "receiver": 0,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     483.6,
+     2609.6
+    ],
+    "readback": [
+     117.0,
+     123.1
+    ],
+    "host": [
+     248.6,
+     300.5
+    ],
+    "upload": [
+     113.9,
+     2221.6
+    ],
+    "readback_dma": [
+     102.5,
+     104.7
+    ],
+    "memcpy": [
+     230.8,
+     282.1
+    ],
+    "host_rest": [
+     17.6,
+     21.2
+    ],
+    "readback_to_worker": [
+     16.1,
+     19.4
+    ],
+    "stamp_check": [
+     1.4,
+     2.8
+    ],
+    "upload_dma": [
+     78.2,
+     92.0
+    ]
+   },
+   "s1_to_s2": {
+    "sender": 1,
+    "receiver": 2,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     568.9,
+     2648.0
+    ],
+    "readback": [
+     221.9,
+     233.0
+    ],
+    "host": [
+     226.9,
+     274.7
+    ],
+    "upload": [
+     111.7,
+     2203.3
+    ],
+    "readback_dma": [
+     110.6,
+     116.9
+    ],
+    "memcpy": [
+     208.6,
+     257.6
+    ],
+    "host_rest": [
+     14.3,
+     34.3
+    ],
+    "readback_to_worker": [
+     13.2,
+     33.4
+    ],
+    "stamp_check": [
+     0.9,
+     1.4
+    ],
+    "upload_dma": [
+     77.7,
+     91.6
+    ]
+   },
+   "s2_to_s1": {
+    "sender": 2,
+    "receiver": 1,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     482.1,
+     2688.2
+    ],
+    "readback": [
+     115.3,
+     122.4
+    ],
+    "host": [
+     240.3,
+     295.1
+    ],
+    "upload": [
+     115.3,
+     2238.1
+    ],
+    "readback_dma": [
+     100.5,
+     105.0
+    ],
+    "memcpy": [
+     213.0,
+     257.6
+    ],
+    "host_rest": [
+     18.7,
+     46.0
+    ],
+    "readback_to_worker": [
+     16.7,
+     44.4
+    ],
+    "stamp_check": [
+     1.3,
+     2.5
+    ],
+    "upload_dma": [
+     77.5,
+     84.3
+    ]
+   },
+   "s2_to_s3": {
+    "sender": 2,
+    "receiver": 3,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     489.5,
+     2306.2
+    ],
+    "readback": [
+     209.1,
+     219.2
+    ],
+    "host": [
+     181.5,
+     202.0
+    ],
+    "upload": [
+     103.0,
+     1726.0
+    ],
+    "readback_dma": [
+     100.9,
+     103.7
+    ],
+    "memcpy": [
+     167.4,
+     187.1
+    ],
+    "host_rest": [
+     13.6,
+     15.5
+    ],
+    "readback_to_worker": [
+     12.5,
+     13.7
+    ],
+    "stamp_check": [
+     1.0,
+     1.9
+    ],
+    "upload_dma": [
+     74.8,
+     75.2
+    ]
+   },
+   "s3_to_s2": {
+    "sender": 3,
+    "receiver": 2,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     16478.8,
+     18494.7
+    ],
+    "readback": [
+     115.2,
+     123.3
+    ],
+    "host": [
+     183.0,
+     245.5
+    ],
+    "upload": [
+     16150.2,
+     18161.8
+    ],
+    "readback_dma": [
+     109.1,
+     114.3
+    ],
+    "memcpy": [
+     167.4,
+     181.1
+    ],
+    "host_rest": [
+     14.0,
+     75.5
+    ],
+    "readback_to_worker": [
+     13.0,
+     74.5
+    ],
+    "stamp_check": [
+     0.9,
+     1.2
+    ],
+    "upload_dma": [
+     76.8,
+     79.3
+    ]
+   }
+  }
+ },
+ "K8": {
+  "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-12\\03_e7_b2B_1694328\\traces\\x_2d_n8000_K8_C",
+  "links": 14,
+  "link_steps": 14000,
+  "steps_per_link": [
+   1000
+  ],
+  "pooled": {
+   "t_chain": [
+    593.8,
+    4027.5
+   ],
+   "readback": [
+    121.0,
+    220.4
+   ],
+   "host": [
+    259.0,
+    696.7
+   ],
+   "upload": [
+    124.2,
+    2989.6
+   ],
+   "readback_dma": [
+    98.9,
+    109.7
+   ],
+   "memcpy": [
+    229.7,
+    618.1
+   ],
+   "host_rest": [
+    19.6,
+    99.3
+   ],
+   "readback_to_worker": [
+    17.7,
+    97.5
+   ],
+   "stamp_check": [
+    1.7,
+    3.2
+   ],
+   "upload_dma": [
+    75.2,
+    82.8
+   ]
+  },
+  "link_p50_range": {
+   "t_chain": [
+    441.7,
+    4519.8
+   ],
+   "readback": [
+    90.2,
+    216.6
+   ],
+   "host": [
+    215.7,
+    390.2
+   ],
+   "upload": [
+    104.7,
+    3912.1
+   ],
+   "readback_dma": [
+    70.9,
+    105.0
+   ],
+   "memcpy": [
+    191.6,
+    363.7
+   ],
+   "host_rest": [
+    15.6,
+    27.3
+   ],
+   "readback_to_worker": [
+    12.8,
+    24.9
+   ],
+   "stamp_check": [
+    1.2,
+    2.6
+   ],
+   "upload_dma": [
+    73.7,
+    77.9
+   ]
+  },
+  "per_link": {
+   "s0_to_s1": {
+    "sender": 0,
+    "receiver": 1,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     449.6,
+     889.2
+    ],
+    "readback": [
+     111.6,
+     122.0
+    ],
+    "host": [
+     224.5,
+     517.2
+    ],
+    "upload": [
+     108.6,
+     337.3
+    ],
+    "readback_dma": [
+     105.0,
+     113.6
+    ],
+    "memcpy": [
+     194.5,
+     486.3
+    ],
+    "host_rest": [
+     17.5,
+     76.5
+    ],
+    "readback_to_worker": [
+     14.6,
+     73.8
+    ],
+    "stamp_check": [
+     2.5,
+     4.5
+    ],
+    "upload_dma": [
+     76.3,
+     78.6
+    ]
+   },
+   "s1_to_s0": {
+    "sender": 1,
+    "receiver": 0,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     441.7,
+     933.6
+    ],
+    "readback": [
+     118.9,
+     125.1
+    ],
+    "host": [
+     215.7,
+     554.4
+    ],
+    "upload": [
+     104.7,
+     312.7
+    ],
+    "readback_dma": [
+     103.8,
+     107.6
+    ],
+    "memcpy": [
+     196.4,
+     504.3
+    ],
+    "host_rest": [
+     19.1,
+     79.6
+    ],
+    "readback_to_worker": [
+     16.7,
+     76.9
+    ],
+    "stamp_check": [
+     1.9,
+     3.1
+    ],
+    "upload_dma": [
+     75.1,
+     77.5
+    ]
+   },
+   "s1_to_s2": {
+    "sender": 1,
+    "receiver": 2,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     610.5,
+     1165.6
+    ],
+    "readback": [
+     216.6,
+     226.7
+    ],
+    "host": [
+     267.3,
+     661.2
+    ],
+    "upload": [
+     114.3,
+     294.8
+    ],
+    "readback_dma": [
+     103.6,
+     107.4
+    ],
+    "memcpy": [
+     236.1,
+     613.0
+    ],
+    "host_rest": [
+     15.6,
+     127.2
+    ],
+    "readback_to_worker": [
+     13.6,
+     126.1
+    ],
+    "stamp_check": [
+     1.7,
+     2.9
+    ],
+    "upload_dma": [
+     77.6,
+     88.8
+    ]
+   },
+   "s2_to_s1": {
+    "sender": 2,
+    "receiver": 1,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     523.5,
+     1115.7
+    ],
+    "readback": [
+     117.8,
+     123.1
+    ],
+    "host": [
+     277.8,
+     718.2
+    ],
+    "upload": [
+     120.3,
+     322.9
+    ],
+    "readback_dma": [
+     102.5,
+     104.8
+    ],
+    "memcpy": [
+     248.5,
+     591.9
+    ],
+    "host_rest": [
+     20.3,
+     65.1
+    ],
+    "readback_to_worker": [
+     17.7,
+     58.4
+    ],
+    "stamp_check": [
+     2.1,
+     3.6
+    ],
+    "upload_dma": [
+     77.9,
+     96.3
+    ]
+   },
+   "s2_to_s3": {
+    "sender": 2,
+    "receiver": 3,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     590.9,
+     1246.5
+    ],
+    "readback": [
+     216.6,
+     231.1
+    ],
+    "host": [
+     247.4,
+     793.6
+    ],
+    "upload": [
+     114.9,
+     274.3
+    ],
+    "readback_dma": [
+     103.0,
+     116.2
+    ],
+    "memcpy": [
+     221.7,
+     686.9
+    ],
+    "host_rest": [
+     24.4,
+     101.3
+    ],
+    "readback_to_worker": [
+     22.8,
+     99.8
+    ],
+    "stamp_check": [
+     1.4,
+     2.2
+    ],
+    "upload_dma": [
+     77.7,
+     93.0
+    ]
+   },
+   "s3_to_s2": {
+    "sender": 3,
+    "receiver": 2,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     497.3,
+     1125.5
+    ],
+    "readback": [
+     120.2,
+     127.5
+    ],
+    "host": [
+     241.8,
+     668.8
+    ],
+    "upload": [
+     122.0,
+     432.3
+    ],
+    "readback_dma": [
+     104.7,
+     109.8
+    ],
+    "memcpy": [
+     217.5,
+     627.4
+    ],
+    "host_rest": [
+     19.6,
+     51.8
+    ],
+    "readback_to_worker": [
+     18.2,
+     50.7
+    ],
+    "stamp_check": [
+     1.3,
+     2.1
+    ],
+    "upload_dma": [
+     77.4,
+     92.5
+    ]
+   },
+   "s3_to_s4": {
+    "sender": 3,
+    "receiver": 4,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     703.4,
+     1330.1
+    ],
+    "readback": [
+     200.1,
+     225.5
+    ],
+    "host": [
+     370.4,
+     726.5
+    ],
+    "upload": [
+     117.1,
+     276.3
+    ],
+    "readback_dma": [
+     85.0,
+     105.9
+    ],
+    "memcpy": [
+     349.8,
+     682.9
+    ],
+    "host_rest": [
+     17.6,
+     63.2
+    ],
+    "readback_to_worker": [
+     15.7,
+     61.7
+    ],
+    "stamp_check": [
+     1.7,
+     2.7
+    ],
+    "upload_dma": [
+     74.1,
+     75.7
+    ]
+   },
+   "s4_to_s3": {
+    "sender": 4,
+    "receiver": 3,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     4519.8,
+     8766.3
+    ],
+    "readback": [
+     90.2,
+     106.5
+    ],
+    "host": [
+     390.2,
+     788.1
+    ],
+    "upload": [
+     3912.1,
+     8160.3
+    ],
+    "readback_dma": [
+     75.0,
+     89.7
+    ],
+    "memcpy": [
+     363.7,
+     721.2
+    ],
+    "host_rest": [
+     22.2,
+     131.9
+    ],
+    "readback_to_worker": [
+     19.8,
+     129.8
+    ],
+    "stamp_check": [
+     2.0,
+     3.0
+    ],
+    "upload_dma": [
+     76.3,
+     84.6
+    ]
+   },
+   "s4_to_s5": {
+    "sender": 4,
+    "receiver": 5,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     513.3,
+     1227.6
+    ],
+    "readback": [
+     156.9,
+     187.6
+    ],
+    "host": [
+     225.7,
+     733.3
+    ],
+    "upload": [
+     113.2,
+     306.6
+    ],
+    "readback_dma": [
+     70.9,
+     97.2
+    ],
+    "memcpy": [
+     191.6,
+     622.3
+    ],
+    "host_rest": [
+     27.3,
+     132.3
+    ],
+    "readback_to_worker": [
+     24.9,
+     130.7
+    ],
+    "stamp_check": [
+     2.2,
+     3.2
+    ],
+    "upload_dma": [
+     74.2,
+     75.9
+    ]
+   },
+   "s5_to_s4": {
+    "sender": 5,
+    "receiver": 4,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     634.2,
+     2152.8
+    ],
+    "readback": [
+     112.4,
+     118.4
+    ],
+    "host": [
+     224.7,
+     678.4
+    ],
+    "upload": [
+     285.1,
+     1576.5
+    ],
+    "readback_dma": [
+     97.6,
+     100.5
+    ],
+    "memcpy": [
+     198.8,
+     600.7
+    ],
+    "host_rest": [
+     18.3,
+     79.8
+    ],
+    "readback_to_worker": [
+     16.3,
+     78.2
+    ],
+    "stamp_check": [
+     1.6,
+     2.7
+    ],
+    "upload_dma": [
+     73.7,
+     75.0
+    ]
+   },
+   "s5_to_s6": {
+    "sender": 5,
+    "receiver": 6,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     560.5,
+     1184.2
+    ],
+    "readback": [
+     179.9,
+     209.6
+    ],
+    "host": [
+     241.4,
+     713.5
+    ],
+    "upload": [
+     118.7,
+     295.9
+    ],
+    "readback_dma": [
+     71.1,
+     99.6
+    ],
+    "memcpy": [
+     218.9,
+     620.9
+    ],
+    "host_rest": [
+     15.7,
+     102.7
+    ],
+    "readback_to_worker": [
+     12.8,
+     99.8
+    ],
+    "stamp_check": [
+     2.6,
+     3.7
+    ],
+    "upload_dma": [
+     74.6,
+     76.2
+    ]
+   },
+   "s6_to_s5": {
+    "sender": 6,
+    "receiver": 5,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     1248.7,
+     3131.6
+    ],
+    "readback": [
+     113.3,
+     120.4
+    ],
+    "host": [
+     238.6,
+     769.7
+    ],
+    "upload": [
+     805.0,
+     2777.3
+    ],
+    "readback_dma": [
+     98.0,
+     102.7
+    ],
+    "memcpy": [
+     219.3,
+     644.3
+    ],
+    "host_rest": [
+     18.8,
+     99.1
+    ],
+    "readback_to_worker": [
+     16.9,
+     97.6
+    ],
+    "stamp_check": [
+     1.7,
+     2.9
+    ],
+    "upload_dma": [
+     73.9,
+     75.5
+    ]
+   },
+   "s6_to_s7": {
+    "sender": 6,
+    "receiver": 7,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     560.0,
+     1206.9
+    ],
+    "readback": [
+     206.3,
+     215.0
+    ],
+    "host": [
+     231.7,
+     725.6
+    ],
+    "upload": [
+     112.8,
+     321.3
+    ],
+    "readback_dma": [
+     98.7,
+     101.5
+    ],
+    "memcpy": [
+     213.3,
+     630.6
+    ],
+    "host_rest": [
+     15.7,
+     124.6
+    ],
+    "readback_to_worker": [
+     14.2,
+     122.7
+    ],
+    "stamp_check": [
+     1.3,
+     2.0
+    ],
+    "upload_dma": [
+     73.8,
+     75.2
+    ]
+   },
+   "s7_to_s6": {
+    "sender": 7,
+    "receiver": 6,
+    "host_copy_bytes": 2592752,
+    "dma_bytes": 3420684,
+    "t_chain": [
+     512.2,
+     1242.0
+    ],
+    "readback": [
+     103.8,
+     114.3
+    ],
+    "host": [
+     252.6,
+     640.3
+    ],
+    "upload": [
+     124.1,
+     562.4
+    ],
+    "readback_dma": [
+     97.7,
+     107.2
+    ],
+    "memcpy": [
+     208.9,
+     575.6
+    ],
+    "host_rest": [
+     25.1,
+     110.4
+    ],
+    "readback_to_worker": [
+     23.8,
+     109.5
+    ],
+    "stamp_check": [
+     1.2,
+     1.6
+    ],
+    "upload_dma": [
+     73.8,
+     75.3
+    ]
+   }
+  }
+ }
+}

@@ -640,6 +640,417 @@ Summed over the arm's runs (timed and traced) that print the worker lines (parse
 | 2d_n8000_K7 | K runs | 7 | 2 | 1.82 | 17.09 | 4.54 | 23.44 | 8.82 | 26.64 |
 | 2d_n8000_K7 | references | 1 | 14 | 1.89 | 6.88 | 4.85 | 13.62 | 2.89 | 32.10 |
 
+## e7_b2V_1703604
+
+- host wqd10nbj04g2, slurm job 1703604, harness c77b617c7c32, driver 580.82.07
+- job deployment (solver rc2): root /data/run01/scxm138/vulkan-demo-v7rc2, experiment/v7 tree a4b3a8318a83 (v7-rc2) = expected, commit c56d07863dd3
+- provenance at job end: unchanged
+- runs tagged rc2: 107, experiment/v7 tree a4b3a8318a83 (v7-rc2) = expected_tree; root /data/run01/scxm138/vulkan-demo-v7rc2
+- shader cache (after_bringup): CONFIRMED, 2 files, 3 MiB in /dev/shm/scxm138/glcache_1703604; new files in ~/.cache/nvidia: 0
+- shader cache (job_end): CONFIRMED, 16 files, 93 MiB in /dev/shm/scxm138/glcache_1703604; new files in ~/.cache/nvidia: 0
+- runs: calibrated pass 15; reference pass 87; trace_calibrated pass 5
+
+### Points: fps and efficiency
+
+| point | family | K | arm | fps | eta (type: reference) | eta_min |
+|---|---|---|---|---|---|---|
+| 2d_n8000_K7 | F2 | 7 | E | - | strong:cavity2d_n8000: - | strong:cavity2d_n8000: - |
+| 2d_n8000_K7 | F2 | 7 | C | 80.02 ± 0.16 (med 80.00; 79.87–80.19; n=3) | strong:cavity2d_n8000: 0.953 ± 0.001 (med 0.953; 0.952–0.954; n=3) | strong:cavity2d_n8000: 0.961 ± 0.001 (med 0.961; 0.960–0.963; n=3) |
+| 2d_n8000_K6 | F2 | 6 | E | - | strong:cavity2d_n8000: - | strong:cavity2d_n8000: - |
+| 2d_n8000_K6 | F2 | 6 | C | 69.44 ± 0.05 (med 69.44; 69.40–69.49; n=3) | strong:cavity2d_n8000: 0.965 ± 0.001 (med 0.965; 0.963–0.965; n=3) | strong:cavity2d_n8000: 0.973 ± 0.001 (med 0.974; 0.972–0.974; n=3) |
+| 2d_n8000_K5 | F2 | 5 | E | - | strong:cavity2d_n8000: - | strong:cavity2d_n8000: - |
+| 2d_n8000_K5 | F2 | 5 | C | 58.87 ± 0.05 (med 58.86; 58.82–58.93; n=3) | strong:cavity2d_n8000: 0.980 ± 0.001 (med 0.980; 0.979–0.981; n=3) | strong:cavity2d_n8000: 0.990 ± 0.000 (med 0.990; 0.990–0.990; n=3) |
+| 2d_n8000_K3 | F2 | 3 | E | - | strong:cavity2d_n8000: - | strong:cavity2d_n8000: - |
+| 2d_n8000_K3 | F2 | 3 | C | 36.05 ± 0.01 (med 36.05; 36.04–36.06; n=3) | strong:cavity2d_n8000: 1.002 ± 0.001 (med 1.002; 1.001–1.003; n=3) | strong:cavity2d_n8000: 1.009 ± 0.001 (med 1.009; 1.008–1.010; n=3) |
+| 2d_n5640_K8 | F1 | 8 | E | - | strong:cavity2d_n5640: - | strong:cavity2d_n5640: - |
+| 2d_n5640_K8 | F1 | 8 | C | 176.80 ± 0.17 (med 176.70; 176.70–177.00; n=3) | strong:cavity2d_n5640: 0.908 ± 0.003 (med 0.909; 0.905–0.910; n=3) | strong:cavity2d_n5640: 0.916 ± 0.003 (med 0.918; 0.913–0.919; n=3) |
+
+Without the defrag events (user 2026-10-12): fps = steady_frames / (steady_s - the wall time of the events in the window), the same on the K run and on every K = 1 member; eta from these. The defrag event table lists the events themselves.
+
+| point | K | arm | fps without defrag | eta without defrag (type: reference) | eta_min without defrag |
+|---|---|---|---|---|---|
+| 2d_n8000_K7 | 7 | E | - | - | - |
+| 2d_n8000_K7 | 7 | C | 81.47 ± 0.17 (med 81.45; 81.30–81.64; n=3) | strong:cavity2d_n8000: 0.967 ± 0.001 (med 0.967; 0.966–0.968; n=3) | strong:cavity2d_n8000: 0.975 ± 0.001 (med 0.975; 0.974–0.977; n=3) |
+| 2d_n8000_K6 | 6 | E | - | - | - |
+| 2d_n8000_K6 | 6 | C | 70.55 ± 0.07 (med 70.52; 70.50–70.62; n=3) | strong:cavity2d_n8000: 0.977 ± 0.001 (med 0.977; 0.975–0.977; n=3) | strong:cavity2d_n8000: 0.985 ± 0.001 (med 0.986; 0.984–0.986; n=3) |
+| 2d_n8000_K5 | 5 | E | - | - | - |
+| 2d_n8000_K5 | 5 | C | 59.68 ± 0.04 (med 59.68; 59.64–59.73; n=3) | strong:cavity2d_n8000: 0.990 ± 0.000 (med 0.990; 0.990–0.991; n=3) | strong:cavity2d_n8000: 1.000 ± 0.000 (med 1.000; 1.000–1.001; n=3) |
+| 2d_n8000_K3 | 3 | E | - | - | - |
+| 2d_n8000_K3 | 3 | C | 36.36 ± 0.01 (med 36.35; 36.35–36.37; n=3) | strong:cavity2d_n8000: 1.008 ± 0.001 (med 1.008; 1.006–1.009; n=3) | strong:cavity2d_n8000: 1.014 ± 0.001 (med 1.014; 1.013–1.015; n=3) |
+| 2d_n5640_K8 | 8 | E | - | - | - |
+| 2d_n5640_K8 | 8 | C | 181.33 ± 0.25 (med 181.21; 181.18–181.62; n=3) | strong:cavity2d_n5640: 0.928 ± 0.003 (med 0.930; 0.925–0.930; n=3) | strong:cavity2d_n5640: 0.937 ± 0.004 (med 0.938; 0.933–0.939; n=3) |
+
+### Defrag events (wall time per event: the drain before the defrag, the readbacks, every slab's defrag, up to the next submit)
+
+| point | runs | events per run | wall ms per event (mean; min–max) | drain ms | idle ms | share of the steady window |
+|---|---|---|---|---|---|---|
+| 2d_n8000_K7 K=1 2d_n8000 | 21 | 1.0 (1.0 in the window) | 283.7; 282.0–292.7 | 83.2 | 200.5 | 0.34 % |
+| 2d_n8000_K7 K=7 C | 3 | 1.0 (1.0 in the window) | 223.7; 223.1–224.6 | 9.6 | 214.1 | 1.79 % |
+| 2d_n8000_K6 K=1 2d_n8000 | 18 | 1.0 (1.0 in the window) | 282.6; 282.1–284.2 | 83.2 | 199.4 | 0.34 % |
+| 2d_n8000_K6 K=6 C | 3 | 1.0 (1.0 in the window) | 225.5; 224.9–226.5 | 12.4 | 213.1 | 1.57 % |
+| 2d_n8000_K5 K=1 2d_n8000 | 15 | 1.0 (1.0 in the window) | 283.3; 281.8–288.2 | 83.1 | 200.2 | 0.34 % |
+| 2d_n8000_K5 K=5 C | 3 | 1.0 (1.0 in the window) | 230.0; 228.0–231.0 | 16.7 | 213.3 | 1.35 % |
+| 2d_n8000_K3 K=1 2d_n8000 | 9 | 1.0 (1.0 in the window) | 288.8; 282.0–307.9 | 83.2 | 205.6 | 0.35 % |
+| 2d_n8000_K3 K=3 C | 3 | 1.0 (1.0 in the window) | 233.9; 232.5–236.1 | 27.5 | 206.4 | 0.84 % |
+| 2d_n5640_K8 K=1 2d_n5640 | 24 | 1.0 (1.0 in the window) | 142.0; 141.3–144.0 | 41.0 | 101.0 | 0.35 % |
+| 2d_n5640_K8 K=8 C | 3 | 1.0 (1.0 in the window) | 140.2; 138.8–142.6 | 5.1 | 135.1 | 2.48 % |
+
+### Points: calibration, arm difference, traces
+
+r_chain = t_chain / T_B is the main ratio (t_chain: the transport chain without the receiver's two waits); r_own = t_own / T_B also leaves out the transfer queues' idle waits (t_own: t_chain minus the readback's wait for the previous frame's consumed-ack and the upload's wait behind an earlier upload that waited: the chain's own work); r = t_tr / T_B contains the receiver's waits and with them the late wake-ups. All per step on the worse link; t_chain, t_own, t_tr: median of the links' p50 / largest p95.
+
+| point | weights | cuts | rounds (cuts → next, changed) | C − E per trial | trace E: r_chain p50/p95, t_chain p50/p95 µs; r_own p50/p95, t_own p50/p95 µs; r p50/p95, t_tr p50/p95 µs; T_B p50 µs, fps vs untraced | trace C: same |
+|---|---|---|---|---|---|---|
+| 2d_n8000_K7 | 1.0136, 1.0037, 0.9836, 1.0032, 0.9966, 0.9906, 1.0087 | [235, 464, 689, 918, 1146, 1372] | [232, 460, 689, 917, 1146, 1374]→[235, 465, 689, 919, 1147, 1373] changed; [235, 465, 689, 919, 1147, 1373]→[235, 464, 689, 918, 1146, 1372] changed | - | - | pass: r_chain 0.196/0.591, t_chain 636/6224; r_own 0.074/0.201, t_own 582/1378; r 0.816/1.151, t_tr 1421/12097; T_B 10530 (max 10804), fps -0.35 % |
+| 2d_n8000_K6 | 1.0143, 0.9976, 0.9891, 1.0009, 0.9986, 0.9995 | [273, 540, 803, 1070, 1336] | [270, 536, 803, 1070, 1336]→[274, 542, 805, 1071, 1338] changed; [274, 542, 805, 1071, 1338]→[273, 540, 803, 1070, 1336] changed | - | - | pass: r_chain 0.065/0.342, t_chain 586/1849; r_own 0.062/0.338, t_own 569/1728; r 0.936/1.007, t_tr 904/12543; T_B 12314 (max 12571), fps -0.41 % |
+| 2d_n8000_K5 | 1.0090, 0.9991, 0.9876, 0.9962, 1.0081 | [326, 646, 962, 1280] | [323, 643, 963, 1283]→[327, 647, 962, 1279] changed; [327, 647, 962, 1279]→[326, 646, 962, 1280] changed | - | - | pass: r_chain 0.542/0.872, t_chain 539/12758; r_own 0.042/0.265, t_own 504/1835; r 0.747/1.202, t_tr 3615/17635; T_B 14674 (max 14863), fps -0.43 % |
+| 2d_n8000_K3 | 1.0070, 1.0008, 0.9922 | [540, 1074] | [536, 1070]→[541, 1075] changed; [541, 1075]→[540, 1074] changed | - | - | pass: r_chain 0.030/0.670, t_chain 496/16492; r_own 0.022/0.163, t_own 451/3419; r 0.877/1.149, t_tr 6474/28190; T_B 24608 (max 24659), fps -0.14 % |
+| 2d_n5640_K8 | 1.0131, 1.0057, 0.9837, 0.9960, 1.0001, 0.9868, 0.9957, 1.0190 | [146, 288, 426, 567, 708, 847, 987] | [144, 285, 426, 567, 708, 849, 990]→[146, 288, 427, 567, 708, 847, 988] changed; [146, 288, 427, 567, 708, 847, 988]→[146, 288, 426, 567, 708, 847, 987] changed | - | - | pass: r_chain 0.653/1.046, t_chain 609/4743; r_own 0.195/0.396, t_own 507/1412; r 0.978/1.423, t_tr 1079/6443; T_B 4564 (max 4727), fps -0.45 % |
+
+### Dest guards (E7 B2, rc2's transport)
+
+Summed over the arm's runs (timed and traced) that print the worker lines (parse_run_v6 dest_guard); bold: fallback or blocking > 0 in a run with V7_DEST_GUARD=relay, whose dest guards should not sleep in the driver.
+
+- 2d_n8000_K7 C: 4 of 4 runs (4 with V7_DEST_GUARD=relay): precheck 39382, relay 32618, fallback 0, blocking 0 (relay slept 32591, released 0)
+- 2d_n8000_K6 C: 4 of 4 runs (4 with V7_DEST_GUARD=relay): precheck 32821, relay 27179, fallback 0, blocking 0 (relay slept 27161, released 0)
+- 2d_n8000_K5 C: 4 of 4 runs (4 with V7_DEST_GUARD=relay): precheck 24533, relay 23467, fallback 0, blocking 0 (relay slept 23465, released 0)
+- 2d_n8000_K3 C: 4 of 4 runs (4 with V7_DEST_GUARD=relay): precheck 12026, relay 11974, fallback 0, blocking 0 (relay slept 11974, released 0)
+- 2d_n5640_K8 C: 4 of 4 runs (4 with V7_DEST_GUARD=relay): precheck 46057, relay 37943, fallback 0, blocking 0 (relay slept 37928, released 0)
+
+### Start barrier (simultaneous groups)
+
+| group | members | statuses | longest wait (s) | release spread (ms) | loop start spread (ms) | steady start spread (ms) |
+|---|---|---|---|---|---|---|
+| 2d_n8000_K7_t1_R1_2d_n8000 | 7 | ok | 0.3 | 17 | 17 | 671 |
+| 2d_n8000_K7_t2_R1_2d_n8000 | 7 | ok | 0.3 | 19 | 19 | 704 |
+| 2d_n8000_K7_t3_R1_2d_n8000 | 7 | ok | 0.3 | 14 | 14 | 704 |
+| 2d_n8000_K6_t1_R1_2d_n8000 | 6 | ok | 0.2 | 7 | 7 | 645 |
+| 2d_n8000_K6_t2_R1_2d_n8000 | 6 | ok | 0.3 | 20 | 19 | 641 |
+| 2d_n8000_K6_t3_R1_2d_n8000 | 6 | ok | 0.2 | 17 | 16 | 667 |
+| 2d_n8000_K5_t1_R1_2d_n8000 | 5 | ok | 0.1 | 20 | 20 | 625 |
+| 2d_n8000_K5_t2_R1_2d_n8000 | 5 | ok | 0.2 | 19 | 19 | 655 |
+| 2d_n8000_K5_t3_R1_2d_n8000 | 5 | ok | 0.3 | 16 | 16 | 708 |
+| 2d_n8000_K3_t1_R1_2d_n8000 | 3 | ok | 0.1 | 15 | 15 | 565 |
+| 2d_n8000_K3_t2_R1_2d_n8000 | 3 | ok | 0.0 | 4 | 4 | 528 |
+| 2d_n8000_K3_t3_R1_2d_n8000 | 3 | ok | 0.0 | 14 | 14 | 553 |
+| 2d_n5640_K8_t1_R1_2d_n5640 | 8 | ok | 0.1 | 18 | 18 | 328 |
+| 2d_n5640_K8_t2_R1_2d_n5640 | 8 | ok | 0.3 | 19 | 19 | 349 |
+| 2d_n5640_K8_t3_R1_2d_n5640 | 8 | ok | 0.2 | 18 | 18 | 339 |
+
+### Clocks and power (loop window medians, mean over GPUs)
+
+| point | K runs: SM MHz / W | references: SM MHz / W | difference K − reference |
+|---|---|---|---|
+| 2d_n8000_K7 | 2766 / 575 | 2698 / 575 | 68 MHz / -0 W |
+| 2d_n8000_K6 | 2758 / 575 | 2700 / 575 | 58 MHz / -0 W |
+| 2d_n8000_K5 | 2758 / 575 | 2702 / 575 | 56 MHz / -0 W |
+| 2d_n8000_K3 | 2737 / 575 | 2694 / 575 | 43 MHz / -0 W |
+| 2d_n5640_K8 | 2801 / 573 | 2718 / 575 | 82 MHz / -2 W |
+
+### Construction of warm runs (mean over the runs; s since the bench started)
+
+| point | runs | K | n | read-in | partition | contexts + simulators | to bootstrap start | read-in + 1 s × K | bootstrap |
+|---|---|---|---|---|---|---|---|---|---|
+| 2d_n8000_K7 | K runs | 7 | 3 | 1.95 | 20.96 | 5.71 | 28.62 | 8.95 | 35.78 |
+| 2d_n8000_K7 | references | 1 | 14 | 2.06 | 8.57 | 6.45 | 17.09 | 3.06 | 46.58 |
+| 2d_n8000_K6 | K runs | 6 | 3 | 1.96 | 19.10 | 4.38 | 25.44 | 7.96 | 34.64 |
+| 2d_n8000_K6 | references | 1 | 12 | 2.05 | 8.56 | 4.65 | 15.27 | 3.05 | 43.75 |
+| 2d_n8000_K5 | K runs | 5 | 3 | 1.96 | 17.24 | 5.18 | 24.38 | 6.96 | 34.17 |
+| 2d_n8000_K5 | references | 1 | 10 | 2.07 | 8.58 | 4.05 | 14.70 | 3.07 | 42.04 |
+| 2d_n8000_K3 | K runs | 3 | 3 | 1.94 | 13.55 | 4.17 | 19.66 | 4.94 | 33.58 |
+| 2d_n8000_K3 | references | 1 | 6 | 2.03 | 8.60 | 4.32 | 14.94 | 3.03 | 36.95 |
+| 2d_n5640_K8 | K runs | 8 | 3 | 0.97 | 10.80 | 4.40 | 16.17 | 8.97 | 19.81 |
+| 2d_n5640_K8 | references | 1 | 16 | 1.05 | 4.27 | 3.08 | 8.40 | 2.05 | 25.11 |
+
+## e7_b2W_1703658
+
+- host wqd10nah09g1, slurm job 1703658, harness c77b617c7c32, driver 580.82.07
+- job deployment (solver rc2): root /data/run01/scxm138/vulkan-demo-v7rc2, experiment/v7 tree a4b3a8318a83 (v7-rc2) = expected, commit c56d07863dd3
+- provenance at job end: unchanged (checked in the exit cleanup: the job stopped before its end)
+- runs tagged rc2: 56, experiment/v7 tree a4b3a8318a83 (v7-rc2) = expected_tree; root /data/run01/scxm138/vulkan-demo-v7rc2
+- shader cache (after_bringup): CONFIRMED, 2 files, 3 MiB in /dev/shm/scxm138/glcache_1703658; new files in ~/.cache/nvidia: 0
+- runs: calibrated pass 10; reference pass 46
+
+### Points: fps and efficiency
+
+| point | family | K | arm | fps | eta (type: reference) | eta_min |
+|---|---|---|---|---|---|---|
+| 2d_n1440_k3_K3 | F3 | 3 | E | - | weak:cavity2d_n1440: - | weak:cavity2d_n1440: - |
+| 2d_n1440_k3_K3 | F3 | 3 | C | 330.18 ± 1.07 (med 330.70; 328.30–330.80; n=5) | weak:cavity2d_n1440: 0.907 ± 0.004 (med 0.908; 0.901–0.912; n=5) | weak:cavity2d_n1440: 0.910 ± 0.005 (med 0.911; 0.904–0.916; n=5) |
+| 2d_n1440_k5_K5 | F3 | 5 | E | - | weak:cavity2d_n1440: - | weak:cavity2d_n1440: - |
+| 2d_n1440_k5_K5 | F3 | 5 | C | 330.42 ± 0.86 (med 329.90; 329.60–331.40; n=5) | weak:cavity2d_n1440: 0.908 ± 0.003 (med 0.908; 0.904–0.912; n=5) | weak:cavity2d_n1440: 0.912 ± 0.004 (med 0.913; 0.909–0.916; n=5) |
+| 2d_n1440_k6_K6 | F3 | 6 | E | - | - | - |
+| 2d_n1440_k6_K6 | F3 | 6 | C | - | - | - |
+
+Without the defrag events (user 2026-10-12): fps = steady_frames / (steady_s - the wall time of the events in the window), the same on the K run and on every K = 1 member; eta from these. The defrag event table lists the events themselves.
+
+| point | K | arm | fps without defrag | eta without defrag (type: reference) | eta_min without defrag |
+|---|---|---|---|---|---|
+| 2d_n1440_k3_K3 | 3 | E | - | - | - |
+| 2d_n1440_k3_K3 | 3 | C | 334.10 ± 1.77 (med 334.09; 331.49–336.28; n=5) | weak:cavity2d_n1440: 0.912 ± 0.004 (med 0.913; 0.906–0.917; n=5) | weak:cavity2d_n1440: 0.916 ± 0.004 (med 0.916; 0.909–0.921; n=5) |
+| 2d_n1440_k5_K5 | 5 | E | - | - | - |
+| 2d_n1440_k5_K5 | 5 | C | 336.35 ± 0.81 (med 336.00; 335.44–337.24; n=5) | weak:cavity2d_n1440: 0.920 ± 0.003 (med 0.920; 0.916–0.923; n=5) | weak:cavity2d_n1440: 0.924 ± 0.004 (med 0.925; 0.920–0.928; n=5) |
+
+### Defrag events (wall time per event: the drain before the defrag, the readbacks, every slab's defrag, up to the next submit)
+
+| point | runs | events per run | wall ms per event (mean; min–max) | drain ms | idle ms | share of the steady window |
+|---|---|---|---|---|---|---|
+| 2d_n1440_k3_K3 K=1 2d_n1440 | 15 | 1.0 (1.0 in the window) | 14.6; 11.6–27.4 | 2.5 | 12.1 | 0.53 % |
+| 2d_n1440_k3_K3 K=3 C | 5 | 1.0 (1.0 in the window) | 35.4; 29.5–49.5 | 1.4 | 34.1 | 1.17 % |
+| 2d_n1440_k5_K5 K=1 2d_n1440 | 25 | 1.0 (1.0 in the window) | 12.9; 11.7–15.1 | 2.7 | 10.1 | 0.47 % |
+| 2d_n1440_k5_K5 K=5 C | 5 | 1.0 (1.0 in the window) | 53.4; 52.2–55.0 | 0.9 | 52.5 | 1.76 % |
+
+### Points: calibration, arm difference, traces
+
+r_chain = t_chain / T_B is the main ratio (t_chain: the transport chain without the receiver's two waits); r_own = t_own / T_B also leaves out the transfer queues' idle waits (t_own: t_chain minus the readback's wait for the previous frame's consumed-ack and the upload's wait behind an earlier upload that waited: the chain's own work); r = t_tr / T_B contains the receiver's waits and with them the late wake-ups. All per step on the worse link; t_chain, t_own, t_tr: median of the links' p50 / largest p95.
+
+| point | weights | cuts | rounds (cuts → next, changed) | C − E per trial | trace E: r_chain p50/p95, t_chain p50/p95 µs; r_own p50/p95, t_own p50/p95 µs; r p50/p95, t_tr p50/p95 µs; T_B p50 µs, fps vs untraced | trace C: same |
+|---|---|---|---|---|---|---|
+| 2d_n1440_k3_K3 | 1.0003, 1.0001, 0.9996 | [291, 579] | [291, 579]→[291, 579] kept | - | - | - |
+| 2d_n1440_k5_K5 | 1.0011, 0.9822, 1.0121, 0.9997, 1.0049 | [291, 574, 866, 1154] | [291, 579, 867, 1155]→[294, 577, 867, 1154] changed; [294, 577, 867, 1154]→[291, 574, 866, 1154] changed | - | - | - |
+| 2d_n1440_k6_K6 | 1.0064, 0.9835, 1.0001, 1.0005, 0.9944, 1.0151 | [293, 576, 864, 1152, 1439] | [291, 579, 867, 1155, 1443]→[292, 575, 862, 1152, 1439] changed; [292, 575, 862, 1152, 1439]→[293, 576, 864, 1152, 1439] changed | - | - | - |
+
+### Dest guards (E7 B2, rc2's transport)
+
+Summed over the arm's runs (timed and traced) that print the worker lines (parse_run_v6 dest_guard); bold: fallback or blocking > 0 in a run with V7_DEST_GUARD=relay, whose dest guards should not sleep in the driver.
+
+- 2d_n1440_k3_K3 C: 5 of 5 runs (5 with V7_DEST_GUARD=relay): precheck 16112, relay 13888, fallback 0, blocking 0 (relay slept 13879, released 0)
+- 2d_n1440_k5_K5 C: 5 of 5 runs (5 with V7_DEST_GUARD=relay): precheck 34443, relay 25557, fallback 0, blocking 0 (relay slept 25536, released 0)
+
+### Start barrier (simultaneous groups)
+
+| group | members | statuses | longest wait (s) | release spread (ms) | loop start spread (ms) | steady start spread (ms) |
+|---|---|---|---|---|---|---|
+| 2d_n1440_k3_K3_t1_R1_2d_n1440 | 3 | ok | 0.0 | 15 | 15 | 13 |
+| 2d_n1440_k3_K3_t2_R1_2d_n1440 | 3 | ok | 0.0 | 8 | 8 | 13 |
+| 2d_n1440_k3_K3_t3_R1_2d_n1440 | 3 | ok | 0.0 | 5 | 5 | 7 |
+| 2d_n1440_k3_K3_t4_R1_2d_n1440 | 3 | ok | 0.0 | 20 | 20 | 22 |
+| 2d_n1440_k3_K3_t5_R1_2d_n1440 | 3 | ok | 0.0 | 9 | 10 | 28 |
+| 2d_n1440_k5_K5_t1_R1_2d_n1440 | 5 | ok | 0.9 | 19 | 19 | 31 |
+| 2d_n1440_k5_K5_t2_R1_2d_n1440 | 5 | ok | 0.0 | 17 | 17 | 18 |
+| 2d_n1440_k5_K5_t3_R1_2d_n1440 | 5 | ok | 1.6 | 17 | 17 | 19 |
+| 2d_n1440_k5_K5_t4_R1_2d_n1440 | 5 | ok | 2.1 | 8 | 8 | 20 |
+| 2d_n1440_k5_K5_t5_R1_2d_n1440 | 5 | ok | 1.3 | 20 | 20 | 25 |
+| 2d_n1440_k6_K6_t1_R1_2d_n1440 | 6 | ok | 0.9 | 11 | 11 | 45 |
+
+### Clocks and power (loop window medians, mean over GPUs)
+
+| point | K runs: SM MHz / W | references: SM MHz / W | difference K − reference |
+|---|---|---|---|
+| 2d_n1440_k3_K3 | 2828 / 538 | 2796 / 573 | 32 MHz / -35 W |
+| 2d_n1440_k5_K5 | 2824 / 536 | 2789 / 574 | 34 MHz / -38 W |
+| 2d_n1440_k6_K6 | - / - | 2810 / 577 | - MHz / - W |
+
+### Construction of warm runs (mean over the runs; s since the bench started)
+
+| point | runs | K | n | read-in | partition | contexts + simulators | to bootstrap start | read-in + 1 s × K | bootstrap |
+|---|---|---|---|---|---|---|---|---|---|
+| 2d_n1440_k3_K3 | K runs | 3 | 5 | 0.22 | 1.09 | 2.55 | 3.86 | 3.22 | 3.38 |
+| 2d_n1440_k3_K3 | references | 1 | 12 | 0.09 | 0.24 | 4.20 | 4.53 | 1.09 | 1.34 |
+| 2d_n1440_k5_K5 | K runs | 5 | 5 | 0.35 | 2.40 | 3.46 | 6.21 | 5.35 | 6.56 |
+| 2d_n1440_k5_K5 | references | 1 | 20 | 0.10 | 0.24 | 3.75 | 4.08 | 1.10 | 1.36 |
+
+## e7_b2Y_1704741
+
+- host wqd10nbj04g2, slurm job 1704741, harness acfcfeb58b08, driver 580.82.07
+- job deployment (solver rc2): root /data/run01/scxm138/vulkan-demo-v7rc2, experiment/v7 tree a4b3a8318a83 (v7-rc2) = expected, commit c56d07863dd3
+- provenance at job end: unchanged
+- runs tagged rc2: 226, experiment/v7 tree a4b3a8318a83 (v7-rc2) = expected_tree; root /data/run01/scxm138/vulkan-demo-v7rc2
+- shader cache (after_bringup): CONFIRMED, 2 files, 3 MiB in /dev/shm/scxm138/glcache_1704741; new files in ~/.cache/nvidia: 0
+- shader cache (job_end): CONFIRMED, 14 files, 192 MiB in /dev/shm/scxm138/glcache_1704741; new files in ~/.cache/nvidia: 0
+- runs: calibrated pass 34; reference pass 191; trace_calibrated pass 1
+
+### Points: fps and efficiency
+
+| point | family | K | arm | fps | eta (type: reference) | eta_min |
+|---|---|---|---|---|---|---|
+| 2d_n1440_k6_K6 | F3 | 6 | E | - | weak:cavity2d_n1440: - | weak:cavity2d_n1440: - |
+| 2d_n1440_k6_K6 | F3 | 6 | C | 328.44 ± 1.91 (med 329.00; 325.60–330.30; n=5) | weak:cavity2d_n1440: 0.909 ± 0.006 (med 0.910; 0.899–0.915; n=5) | weak:cavity2d_n1440: 0.918 ± 0.006 (med 0.919; 0.909–0.925; n=5) |
+| 2d_n1440_k7_K7 | F3 | 7 | E | - | weak:cavity2d_n1440: - | weak:cavity2d_n1440: - |
+| 2d_n1440_k7_K7 | F3 | 7 | C | 326.66 ± 1.42 (med 326.70; 325.10–328.90; n=5) | weak:cavity2d_n1440: 0.904 ± 0.004 (med 0.904; 0.899–0.910; n=5) | weak:cavity2d_n1440: 0.914 ± 0.005 (med 0.913; 0.909–0.921; n=5) |
+| 2d_n2840_k3_K3 | F3 | 3 | E | - | weak:cavity2d_n2840: - | weak:cavity2d_n2840: - |
+| 2d_n2840_k3_K3 | F3 | 3 | C | 92.11 ± 0.05 (med 92.08; 92.08–92.17; n=3) | weak:cavity2d_n2840: 0.999 ± 0.002 (med 0.998; 0.997–1.000; n=3) | weak:cavity2d_n2840: 1.007 ± 0.001 (med 1.006; 1.006–1.007; n=3) |
+| 2d_n2840_k5_K5 | F3 | 5 | E | - | weak:cavity2d_n2840: - | weak:cavity2d_n2840: - |
+| 2d_n2840_k5_K5 | F3 | 5 | C | 89.66 ± 0.12 (med 89.69; 89.53–89.77; n=3) | weak:cavity2d_n2840: 0.970 ± 0.002 (med 0.970; 0.967–0.972; n=3) | weak:cavity2d_n2840: 0.979 ± 0.004 (med 0.979; 0.975–0.983; n=3) |
+| 2d_n2840_k6_K6 | F3 | 6 | E | - | weak:cavity2d_n2840: - | weak:cavity2d_n2840: - |
+| 2d_n2840_k6_K6 | F3 | 6 | C | 91.07 ± 0.08 (med 91.07; 90.99–91.16; n=3) | weak:cavity2d_n2840: 0.987 ± 0.003 (med 0.988; 0.984–0.990; n=3) | weak:cavity2d_n2840: 0.997 ± 0.005 (med 0.997; 0.992–1.001; n=3) |
+| 2d_n2840_k7_K7 | F3 | 7 | E | - | weak:cavity2d_n2840: - | weak:cavity2d_n2840: - |
+| 2d_n2840_k7_K7 | F3 | 7 | C | 91.05 ± 0.17 (med 90.99; 90.91–91.24; n=3) | weak:cavity2d_n2840: 0.985 ± 0.003 (med 0.985; 0.982–0.987; n=3) | weak:cavity2d_n2840: 0.994 ± 0.002 (med 0.995; 0.992–0.996; n=3) |
+| 2d_n5640_k3_K3 | F3 | 3 | E | - | weak:cavity2d_n5640: - | weak:cavity2d_n5640: - |
+| 2d_n5640_k3_K3 | F3 | 3 | C | 24.58 ± 0.03 (med 24.58; 24.55–24.61; n=3) | weak:cavity2d_n5640: 1.013 ± 0.002 (med 1.014; 1.011–1.014; n=3) | weak:cavity2d_n5640: 1.021 ± 0.001 (med 1.021; 1.020–1.022; n=3) |
+| 2d_n5640_k5_K5 | F3 | 5 | E | - | weak:cavity2d_n5640: - | weak:cavity2d_n5640: - |
+| 2d_n5640_k5_K5 | F3 | 5 | C | 24.48 ± 0.01 (med 24.47; 24.47–24.49; n=3) | weak:cavity2d_n5640: 1.007 ± 0.002 (med 1.008; 1.005–1.008; n=3) | weak:cavity2d_n5640: 1.018 ± 0.002 (med 1.019; 1.016–1.019; n=3) |
+| 2d_n5640_k6_K6 | F3 | 6 | E | - | weak:cavity2d_n5640: - | weak:cavity2d_n5640: - |
+| 2d_n5640_k6_K6 | F3 | 6 | C | 24.40 ± 0.02 (med 24.40; 24.38–24.43; n=3) | weak:cavity2d_n5640: 1.006 ± 0.001 (med 1.006; 1.004–1.007; n=3) | weak:cavity2d_n5640: 1.015 ± 0.001 (med 1.015; 1.014–1.017; n=3) |
+| 2d_n5640_k7_K7 | F3 | 7 | E | - | weak:cavity2d_n5640: - | weak:cavity2d_n5640: - |
+| 2d_n5640_k7_K7 | F3 | 7 | C | 24.34 ± 0.02 (med 24.34; 24.32–24.35; n=3) | weak:cavity2d_n5640: 1.003 ± 0.002 (med 1.004; 1.001–1.004; n=3) | weak:cavity2d_n5640: 1.013 ± 0.003 (med 1.015; 1.009–1.015; n=3) |
+| 2d_n1440_k8_K8 | F3 | 8 | E | - | - | - |
+| 2d_n1440_k8_K8 | F3 | 8 | C | - | - | - |
+
+Without the defrag events (user 2026-10-12): fps = steady_frames / (steady_s - the wall time of the events in the window), the same on the K run and on every K = 1 member; eta from these. The defrag event table lists the events themselves.
+
+| point | K | arm | fps without defrag | eta without defrag (type: reference) | eta_min without defrag |
+|---|---|---|---|---|---|
+| 2d_n1440_k6_K6 | 6 | E | - | - | - |
+| 2d_n1440_k6_K6 | 6 | C | 335.99 ± 1.85 (med 336.46; 332.82–337.44; n=5) | weak:cavity2d_n1440: 0.925 ± 0.005 (med 0.926; 0.915–0.929; n=5) | weak:cavity2d_n1440: 0.935 ± 0.006 (med 0.936; 0.925–0.940; n=5) |
+| 2d_n1440_k7_K7 | 7 | E | - | - | - |
+| 2d_n1440_k7_K7 | 7 | C | 335.08 ± 1.42 (med 335.04; 333.33–337.23; n=5) | weak:cavity2d_n1440: 0.923 ± 0.004 (med 0.923; 0.918–0.929; n=5) | weak:cavity2d_n1440: 0.932 ± 0.004 (med 0.930; 0.928–0.939; n=5) |
+| 2d_n2840_k3_K3 | 3 | E | - | - | - |
+| 2d_n2840_k3_K3 | 3 | C | 92.87 ± 0.05 (med 92.84; 92.84–92.93; n=3) | weak:cavity2d_n2840: 1.003 ± 0.002 (med 1.003; 1.001–1.005; n=3) | weak:cavity2d_n2840: 1.012 ± 0.000 (med 1.011; 1.011–1.012; n=3) |
+| 2d_n2840_k5_K5 | 5 | E | - | - | - |
+| 2d_n2840_k5_K5 | 5 | C | 90.95 ± 0.16 (med 91.03; 90.76–91.05; n=3) | weak:cavity2d_n2840: 0.980 ± 0.003 (med 0.980; 0.977–0.982; n=3) | weak:cavity2d_n2840: 0.990 ± 0.004 (med 0.989; 0.985–0.994; n=3) |
+| 2d_n2840_k6_K6 | 6 | E | - | - | - |
+| 2d_n2840_k6_K6 | 6 | C | 92.66 ± 0.03 (med 92.67; 92.63–92.68; n=3) | weak:cavity2d_n2840: 1.000 ± 0.003 (med 1.002; 0.998–1.002; n=3) | weak:cavity2d_n2840: 1.010 ± 0.004 (med 1.012; 1.005–1.014; n=3) |
+| 2d_n2840_k7_K7 | 7 | E | - | - | - |
+| 2d_n2840_k7_K7 | 7 | C | 92.82 ± 0.16 (med 92.78; 92.69–93.00; n=3) | weak:cavity2d_n2840: 1.000 ± 0.003 (med 1.001; 0.997–1.003; n=3) | weak:cavity2d_n2840: 1.010 ± 0.002 (med 1.010; 1.008–1.012; n=3) |
+| 2d_n5640_k3_K3 | 3 | E | - | - | - |
+| 2d_n5640_k3_K3 | 3 | C | 24.79 ± 0.03 (med 24.81; 24.76–24.81; n=3) | weak:cavity2d_n5640: 1.019 ± 0.002 (med 1.019; 1.016–1.020; n=3) | weak:cavity2d_n5640: 1.026 ± 0.002 (med 1.026; 1.025–1.028; n=3) |
+| 2d_n5640_k5_K5 | 5 | E | - | - | - |
+| 2d_n5640_k5_K5 | 5 | C | 24.82 ± 0.01 (med 24.82; 24.81–24.82; n=3) | weak:cavity2d_n5640: 1.017 ± 0.002 (med 1.018; 1.015–1.019; n=3) | weak:cavity2d_n5640: 1.028 ± 0.002 (med 1.029; 1.026–1.030; n=3) |
+| 2d_n5640_k6_K6 | 6 | E | - | - | - |
+| 2d_n5640_k6_K6 | 6 | C | 24.79 ± 0.02 (med 24.79; 24.77–24.82; n=3) | weak:cavity2d_n5640: 1.018 ± 0.001 (med 1.019; 1.017–1.020; n=3) | weak:cavity2d_n5640: 1.028 ± 0.002 (med 1.028; 1.027–1.030; n=3) |
+| 2d_n5640_k7_K7 | 7 | E | - | - | - |
+| 2d_n5640_k7_K7 | 7 | C | 24.78 ± 0.02 (med 24.78; 24.76–24.80; n=3) | weak:cavity2d_n5640: 1.018 ± 0.002 (med 1.019; 1.016–1.019; n=3) | weak:cavity2d_n5640: 1.028 ± 0.003 (med 1.030; 1.024–1.030; n=3) |
+
+### Defrag events (wall time per event: the drain before the defrag, the readbacks, every slab's defrag, up to the next submit)
+
+| point | runs | events per run | wall ms per event (mean; min–max) | drain ms | idle ms | share of the steady window |
+|---|---|---|---|---|---|---|
+| 2d_n1440_k6_K6 K=1 2d_n1440 | 30 | 1.0 (1.0 in the window) | 14.4; 11.7–28.9 | 2.7 | 11.8 | 0.52 % |
+| 2d_n1440_k6_K6 K=6 C | 5 | 1.0 (1.0 in the window) | 68.4; 63.9–81.5 | 2.1 | 66.2 | 2.25 % |
+| 2d_n1440_k7_K7 K=1 2d_n1440 | 35 | 1.0 (1.0 in the window) | 13.3; 11.8–20.2 | 2.7 | 10.7 | 0.48 % |
+| 2d_n1440_k7_K7 K=7 C | 5 | 1.0 (1.0 in the window) | 77.0; 75.0–79.0 | 1.2 | 75.8 | 2.51 % |
+| 2d_n2840_k3_K3 K=1 2d_n2840 | 9 | 1.0 (1.0 in the window) | 40.2; 37.7–52.1 | 10.8 | 29.4 | 0.37 % |
+| 2d_n2840_k3_K3 K=3 C | 3 | 1.0 (1.0 in the window) | 91.5; 91.0–92.2 | 10.8 | 80.7 | 0.84 % |
+| 2d_n2840_k5_K5 K=1 2d_n2840 | 15 | 1.0 (1.0 in the window) | 43.1; 37.7–66.8 | 10.8 | 32.3 | 0.40 % |
+| 2d_n2840_k5_K5 K=5 C | 3 | 1.0 (1.0 in the window) | 158.5; 152.7–168.2 | 11.0 | 147.5 | 1.42 % |
+| 2d_n2840_k6_K6 K=1 2d_n2840 | 18 | 1.0 (1.0 in the window) | 39.6; 37.6–56.4 | 10.8 | 28.8 | 0.37 % |
+| 2d_n2840_k6_K6 K=6 C | 3 | 1.0 (1.0 in the window) | 187.0; 178.1–194.6 | 10.8 | 176.2 | 1.70 % |
+| 2d_n2840_k7_K7 K=1 2d_n2840 | 21 | 1.0 (1.0 in the window) | 38.4; 37.6–43.0 | 10.8 | 27.6 | 0.35 % |
+| 2d_n2840_k7_K7 K=7 C | 3 | 1.0 (1.0 in the window) | 210.0; 208.8–211.0 | 10.8 | 199.2 | 1.91 % |
+| 2d_n5640_k3_K3 K=1 2d_n5640 | 9 | 1.0 (1.0 in the window) | 143.2; 141.3–154.2 | 41.1 | 102.1 | 0.35 % |
+| 2d_n5640_k3_K3 K=3 C | 3 | 1.0 (1.0 in the window) | 356.3; 342.7–381.1 | 40.4 | 315.9 | 0.88 % |
+| 2d_n5640_k5_K5 K=1 2d_n5640 | 15 | 1.0 (1.0 in the window) | 142.3; 141.4–144.8 | 41.0 | 101.3 | 0.35 % |
+| 2d_n5640_k5_K5 K=5 C | 3 | 1.0 (1.0 in the window) | 551.7; 541.8–571.1 | 40.3 | 511.4 | 1.35 % |
+| 2d_n5640_k6_K6 K=1 2d_n5640 | 18 | 1.0 (1.0 in the window) | 142.2; 141.4–144.6 | 41.1 | 101.1 | 0.34 % |
+| 2d_n5640_k6_K6 K=6 C | 3 | 1.0 (1.0 in the window) | 643.8; 641.4–646.8 | 40.3 | 603.5 | 1.57 % |
+| 2d_n5640_k7_K7 K=1 2d_n5640 | 21 | 1.0 (1.0 in the window) | 142.6; 141.5–150.0 | 41.1 | 101.5 | 0.35 % |
+| 2d_n5640_k7_K7 K=7 C | 3 | 1.0 (1.0 in the window) | 741.8; 738.8–744.4 | 40.3 | 701.5 | 1.81 % |
+
+### Points: calibration, arm difference, traces
+
+r_chain = t_chain / T_B is the main ratio (t_chain: the transport chain without the receiver's two waits); r_own = t_own / T_B also leaves out the transfer queues' idle waits (t_own: t_chain minus the readback's wait for the previous frame's consumed-ack and the upload's wait behind an earlier upload that waited: the chain's own work); r = t_tr / T_B contains the receiver's waits and with them the late wake-ups. All per step on the worse link; t_chain, t_own, t_tr: median of the links' p50 / largest p95.
+
+| point | weights | cuts | rounds (cuts → next, changed) | C − E per trial | trace E: r_chain p50/p95, t_chain p50/p95 µs; r_own p50/p95, t_own p50/p95 µs; r p50/p95, t_tr p50/p95 µs; T_B p50 µs, fps vs untraced | trace C: same |
+|---|---|---|---|---|---|---|
+| 2d_n1440_k6_K6 | 1.0134, 1.0013, 0.9966, 0.9983, 0.9949, 0.9956 | [295, 583, 870, 1158, 1444] | [291, 579, 867, 1155, 1443]→[293, 580, 863, 1153, 1441] changed; [293, 580, 863, 1153, 1441]→[295, 583, 870, 1158, 1444] changed | - | - | - |
+| 2d_n1440_k7_K7 | 1.0060, 1.0069, 0.9843, 1.0075, 0.9934, 0.9995, 1.0024 | [293, 583, 866, 1156, 1442, 1730] | [291, 579, 867, 1155, 1443, 1731]→[293, 584, 869, 1157, 1445, 1731] changed; [293, 584, 869, 1157, 1445, 1731]→[293, 583, 866, 1156, 1442, 1730] changed | - | - | - |
+| 2d_n2840_k3_K3 | 1.0048, 1.0067, 0.9885 | [574, 1146] | [571, 1139]→[575, 1144] changed; [575, 1144]→[574, 1146] changed | - | - | - |
+| 2d_n2840_k5_K5 | 1.0010, 0.9937, 0.9800, 0.9900, 1.0354 | [572, 1136, 1693, 2255] | [571, 1139, 1707, 2275]→[577, 1144, 1703, 2270] changed; [577, 1144, 1703, 2270]→[572, 1136, 1693, 2255] changed | - | - | - |
+| 2d_n2840_k6_K6 | 1.0101, 1.0050, 0.9861, 1.0056, 1.0031, 0.9902 | [577, 1148, 1708, 2279, 2849] | [571, 1139, 1707, 2275, 2843]→[577, 1148, 1706, 2275, 2848] changed; [577, 1148, 1706, 2275, 2848]→[577, 1148, 1708, 2279, 2849] changed | - | - | - |
+| 2d_n2840_k7_K7 | 1.0063, 1.0044, 0.9877, 1.0037, 1.0048, 0.9927, 1.0003 | [575, 1145, 1706, 2276, 2847, 3411] | [571, 1139, 1707, 2275, 2843, 3411]→[578, 1148, 1707, 2280, 2851, 3411] changed; [578, 1148, 1707, 2280, 2851, 3411]→[575, 1145, 1706, 2276, 2847, 3411] changed | - | - | - |
+| 2d_n5640_k3_K3 | 1.0043, 1.0058, 0.9898 | [1136, 2270] | [1131, 2259]→[1137, 2272] changed; [1137, 2272]→[1136, 2270] changed | - | - | - |
+| 2d_n5640_k5_K5 | 1.0033, 1.0033, 0.9920, 0.9975, 1.0038 | [1135, 2267, 3386, 4511] | [1131, 2259, 3387, 4515]→[1136, 2268, 3385, 4509] changed; [1136, 2268, 3385, 4509]→[1135, 2267, 3386, 4511] changed | - | - | - |
+| 2d_n5640_k6_K6 | 1.0039, 1.0061, 0.9934, 1.0006, 1.0060, 0.9900 | [1135, 2270, 3391, 4520, 5654] | [1131, 2259, 3387, 4515, 5643]→[1137, 2276, 3393, 4523, 5660] changed; [1137, 2276, 3393, 4523, 5660]→[1135, 2270, 3391, 4520, 5654] changed | - | - | - |
+| 2d_n5640_k7_K7 | 1.0040, 1.0051, 0.9931, 1.0014, 1.0057, 0.9914, 0.9992 | [1135, 2269, 3389, 4519, 5654, 6772] | [1131, 2259, 3387, 4515, 5643, 6771]→[1136, 2270, 3388, 4520, 5656, 6772] changed; [1136, 2270, 3388, 4520, 5656, 6772]→[1135, 2269, 3389, 4519, 5654, 6772] changed | - | - | - |
+| 2d_n1440_k8_K8 | 1.0063, 1.0059, 0.9943, 1.0000, 1.0099, 0.9849, 1.0063, 0.9924 | [293, 583, 869, 1157, 1448, 1731, 2021] | [291, 579, 867, 1155, 1443, 1731, 2019]→[291, 583, 867, 1154, 1443, 1728, 2017] changed; [291, 583, 867, 1154, 1443, 1728, 2017]→[293, 583, 869, 1157, 1448, 1731, 2021] changed | - | - | pass: r_chain 0.495/0.757, t_chain 703/1700; r_own 0.436/0.707, t_own 590/1460; r 0.980/1.176, t_tr 1044/2877; T_B 2460 (max 2475), fps - |
+
+### Dest guards (E7 B2, rc2's transport)
+
+Summed over the arm's runs (timed and traced) that print the worker lines (parse_run_v6 dest_guard); bold: fallback or blocking > 0 in a run with V7_DEST_GUARD=relay, whose dest guards should not sleep in the driver.
+
+- 2d_n1440_k6_K6 C: 5 of 5 runs (5 with V7_DEST_GUARD=relay): precheck 43431, relay 31569, fallback 0, blocking 0 (relay slept 31526, released 0)
+- 2d_n1440_k7_K7 C: 5 of 5 runs (5 with V7_DEST_GUARD=relay): precheck 52047, relay 37953, fallback 0, blocking 0 (relay slept 37921, released 0)
+- 2d_n2840_k3_K3 C: 3 of 3 runs (3 with V7_DEST_GUARD=relay): precheck 9023, relay 8977, fallback 0, blocking 0 (relay slept 8977, released 0)
+- 2d_n2840_k5_K5 C: 3 of 3 runs (3 with V7_DEST_GUARD=relay): precheck 25717, relay 10283, fallback 0, blocking 0 (relay slept 10263, released 0)
+- 2d_n2840_k6_K6 C: 3 of 3 runs (3 with V7_DEST_GUARD=relay): precheck 24251, relay 20749, fallback 0, blocking 0 (relay slept 20745, released 0)
+- 2d_n2840_k7_K7 C: 3 of 3 runs (3 with V7_DEST_GUARD=relay): precheck 31569, relay 22431, fallback 0, blocking 0 (relay slept 22413, released 0)
+- 2d_n5640_k3_K3 C: 3 of 3 runs (3 with V7_DEST_GUARD=relay): precheck 9021, relay 8979, fallback 0, blocking 0 (relay slept 8979, released 0)
+- 2d_n5640_k5_K5 C: 3 of 3 runs (3 with V7_DEST_GUARD=relay): precheck 18464, relay 17536, fallback 0, blocking 0 (relay slept 17527, released 0)
+- 2d_n5640_k6_K6 C: 3 of 3 runs (3 with V7_DEST_GUARD=relay): precheck 23413, relay 21587, fallback 0, blocking 0 (relay slept 21581, released 0)
+- 2d_n5640_k7_K7 C: 3 of 3 runs (3 with V7_DEST_GUARD=relay): precheck 29020, relay 24980, fallback 0, blocking 0 (relay slept 24958, released 0)
+- 2d_n1440_k8_K8 C: 1 of 1 runs (1 with V7_DEST_GUARD=relay): precheck 12168, relay 8832, fallback 0, blocking 0 (relay slept 8826, released 0)
+
+### Start barrier (simultaneous groups)
+
+| group | members | statuses | longest wait (s) | release spread (ms) | loop start spread (ms) | steady start spread (ms) |
+|---|---|---|---|---|---|---|
+| 2d_n1440_k6_K6_t1_R1_2d_n1440 | 6 | ok | 4.3 | 20 | 20 | 123 |
+| 2d_n1440_k6_K6_t2_R1_2d_n1440 | 6 | ok | 1.9 | 19 | 19 | 42 |
+| 2d_n1440_k6_K6_t3_R1_2d_n1440 | 6 | ok | 2.5 | 7 | 8 | 40 |
+| 2d_n1440_k6_K6_t4_R1_2d_n1440 | 6 | ok | 1.9 | 15 | 15 | 28 |
+| 2d_n1440_k6_K6_t5_R1_2d_n1440 | 6 | ok | 1.2 | 11 | 11 | 36 |
+| 2d_n1440_k7_K7_t1_R1_2d_n1440 | 7 | ok | 3.2 | 18 | 18 | 172 |
+| 2d_n1440_k7_K7_t2_R1_2d_n1440 | 7 | ok | 2.1 | 20 | 19 | 27 |
+| 2d_n1440_k7_K7_t3_R1_2d_n1440 | 7 | ok | 0.5 | 17 | 17 | 27 |
+| 2d_n1440_k7_K7_t4_R1_2d_n1440 | 7 | ok | 1.3 | 19 | 19 | 42 |
+| 2d_n1440_k7_K7_t5_R1_2d_n1440 | 7 | ok | 4.3 | 19 | 19 | 166 |
+| 2d_n2840_k3_K3_t1_R1_2d_n2840 | 3 | ok | 0.1 | 6 | 6 | 107 |
+| 2d_n2840_k3_K3_t2_R1_2d_n2840 | 3 | ok | 0.0 | 19 | 19 | 107 |
+| 2d_n2840_k3_K3_t3_R1_2d_n2840 | 3 | ok | 0.1 | 17 | 17 | 107 |
+| 2d_n2840_k5_K5_t1_R1_2d_n2840 | 5 | ok | 1.2 | 17 | 17 | 73 |
+| 2d_n2840_k5_K5_t2_R1_2d_n2840 | 5 | ok | 0.6 | 16 | 15 | 96 |
+| 2d_n2840_k5_K5_t3_R1_2d_n2840 | 5 | ok | 0.5 | 9 | 9 | 58 |
+| 2d_n2840_k6_K6_t1_R1_2d_n2840 | 6 | ok | 3.6 | 19 | 19 | 126 |
+| 2d_n2840_k6_K6_t2_R1_2d_n2840 | 6 | ok | 0.3 | 19 | 19 | 127 |
+| 2d_n2840_k6_K6_t3_R1_2d_n2840 | 6 | ok | 0.5 | 20 | 20 | 107 |
+| 2d_n2840_k7_K7_t1_R1_2d_n2840 | 7 | ok | 7.5 | 17 | 17 | 366 |
+| 2d_n2840_k7_K7_t2_R1_2d_n2840 | 7 | ok | 4.8 | 9 | 9 | 345 |
+| 2d_n2840_k7_K7_t3_R1_2d_n2840 | 7 | ok | 3.9 | 20 | 20 | 260 |
+| 2d_n5640_k3_K3_t1_R1_2d_n5640 | 3 | ok | 0.0 | 2 | 2 | 310 |
+| 2d_n5640_k3_K3_t2_R1_2d_n5640 | 3 | ok | 0.1 | 16 | 16 | 269 |
+| 2d_n5640_k3_K3_t3_R1_2d_n5640 | 3 | ok | 0.4 | 17 | 17 | 282 |
+| 2d_n5640_k5_K5_t1_R1_2d_n5640 | 5 | ok | 0.1 | 14 | 14 | 320 |
+| 2d_n5640_k5_K5_t2_R1_2d_n5640 | 5 | ok | 0.3 | 19 | 19 | 319 |
+| 2d_n5640_k5_K5_t3_R1_2d_n5640 | 5 | ok | 0.1 | 9 | 9 | 330 |
+| 2d_n5640_k6_K6_t1_R1_2d_n5640 | 6 | ok | 0.3 | 17 | 17 | 350 |
+| 2d_n5640_k6_K6_t2_R1_2d_n5640 | 6 | ok | 0.2 | 14 | 14 | 336 |
+| 2d_n5640_k6_K6_t3_R1_2d_n5640 | 6 | ok | 0.2 | 19 | 20 | 348 |
+| 2d_n5640_k7_K7_t1_R1_2d_n5640 | 7 | ok | 0.3 | 16 | 16 | 358 |
+| 2d_n5640_k7_K7_t2_R1_2d_n5640 | 7 | ok | 0.2 | 15 | 15 | 346 |
+| 2d_n5640_k7_K7_t3_R1_2d_n5640 | 7 | ok | 0.1 | 14 | 14 | 342 |
+
+### Clocks and power (loop window medians, mean over GPUs)
+
+| point | K runs: SM MHz / W | references: SM MHz / W | difference K − reference |
+|---|---|---|---|
+| 2d_n1440_k6_K6 | 2810 / 534 | 2773 / 574 | 38 MHz / -40 W |
+| 2d_n1440_k7_K7 | 2812 / 536 | 2771 / 575 | 41 MHz / -40 W |
+| 2d_n2840_k3_K3 | 2755 / 575 | 2743 / 575 | 12 MHz / -0 W |
+| 2d_n2840_k5_K5 | 2793 / 575 | 2749 / 575 | 45 MHz / -0 W |
+| 2d_n2840_k6_K6 | 2771 / 575 | 2745 / 575 | 25 MHz / -0 W |
+| 2d_n2840_k7_K7 | 2773 / 575 | 2750 / 575 | 23 MHz / -0 W |
+| 2d_n5640_k3_K3 | 2726 / 575 | 2707 / 575 | 18 MHz / 0 W |
+| 2d_n5640_k5_K5 | 2738 / 575 | 2715 / 575 | 23 MHz / 0 W |
+| 2d_n5640_k6_K6 | 2736 / 575 | 2707 / 575 | 29 MHz / -0 W |
+| 2d_n5640_k7_K7 | 2737 / 575 | 2709 / 575 | 29 MHz / -0 W |
+| 2d_n1440_k8_K8 | - / - | - / - | - MHz / - W |
+
+### Construction of warm runs (mean over the runs; s since the bench started)
+
+| point | runs | K | n | read-in | partition | contexts + simulators | to bootstrap start | read-in + 1 s × K | bootstrap |
+|---|---|---|---|---|---|---|---|---|---|
+| 2d_n1440_k6_K6 | K runs | 6 | 5 | 0.40 | 3.23 | 4.39 | 8.02 | 6.40 | 8.07 |
+| 2d_n1440_k6_K6 | references | 1 | 24 | 0.10 | 0.23 | 3.05 | 3.38 | 1.10 | 1.21 |
+| 2d_n1440_k7_K7 | K runs | 7 | 5 | 0.47 | 4.20 | 4.45 | 9.13 | 7.47 | 9.43 |
+| 2d_n1440_k7_K7 | references | 1 | 28 | 0.10 | 0.23 | 2.84 | 3.17 | 1.10 | 1.29 |
+| 2d_n2840_k3_K3 | K runs | 3 | 3 | 0.78 | 4.94 | 3.95 | 9.67 | 3.78 | 14.22 |
+| 2d_n2840_k3_K3 | references | 1 | 6 | 0.28 | 1.05 | 3.69 | 5.02 | 1.28 | 5.51 |
+| 2d_n2840_k5_K5 | K runs | 5 | 3 | 1.31 | 10.74 | 4.92 | 16.97 | 6.31 | 23.27 |
+| 2d_n2840_k5_K5 | references | 1 | 10 | 0.32 | 1.05 | 3.54 | 4.91 | 1.32 | 6.00 |
+| 2d_n2840_k6_K6 | K runs | 6 | 3 | 1.50 | 14.32 | 4.63 | 20.46 | 7.50 | 27.95 |
+| 2d_n2840_k6_K6 | references | 1 | 12 | 0.31 | 1.05 | 3.65 | 5.01 | 1.31 | 6.73 |
+| 2d_n2840_k7_K7 | K runs | 7 | 3 | 1.77 | 18.46 | 5.64 | 25.87 | 8.77 | 32.47 |
+| 2d_n2840_k7_K7 | references | 1 | 14 | 0.30 | 1.05 | 2.58 | 3.93 | 1.30 | 5.18 |
+| 2d_n5640_k3_K3 | K runs | 3 | 3 | 2.95 | 20.37 | 4.22 | 27.54 | 5.95 | 50.25 |
+| 2d_n5640_k3_K3 | references | 1 | 6 | 1.05 | 4.25 | 3.79 | 9.09 | 2.05 | 18.74 |
+| 2d_n5640_k5_K5 | K runs | 5 | 3 | 6.63 | 47.28 | 5.60 | 59.52 | 11.63 | 84.91 |
+| 2d_n5640_k5_K5 | references | 1 | 10 | 1.05 | 4.25 | 3.89 | 9.19 | 2.05 | 21.32 |
+| 2d_n5640_k6_K6 | K runs | 6 | 3 | 5.80 | 57.55 | 6.16 | 69.52 | 11.80 | 96.84 |
+| 2d_n5640_k6_K6 | references | 1 | 12 | 1.03 | 4.25 | 2.86 | 8.15 | 2.03 | 22.45 |
+| 2d_n5640_k7_K7 | K runs | 7 | 3 | 8.76 | 80.56 | 6.40 | 95.71 | 15.76 | 117.33 |
+| 2d_n5640_k7_K7 | references | 1 | 14 | 1.03 | 4.25 | 2.73 | 8.01 | 2.03 | 23.42 |
+
 ## Node-hours
 
 | job | slurm job | node | start | end | state | used (h) | planned (h) |
@@ -648,3 +1059,6 @@ Summed over the arm's runs (timed and traced) that print the worker lines (parse
 | b2B | 1694328 | wqd10nbj04g2 | 2026-10-13T04:19:28 | 2026-10-13T05:56:18 | COMPLETED | 1.61 | 1.74 |
 | b2S | 1695411 | wqd10nbj04g2 | 2026-10-13T07:21:49 | 2026-10-13T07:49:23 | COMPLETED | 0.46 | - |
 | b2T | 1695731 | wqd10nbm13g5 | 2026-10-13T10:26:43 | 2026-10-13T11:29:23 | FAILED | 1.04 | - |
+| b2V | 1703604 | wqd10nbj04g2 | 2026-10-15T19:42:41 | 2026-10-15T21:08:03 | COMPLETED | 1.42 | - |
+| b2W | 1703658 | wqd10nah09g1 | 2026-10-15T19:59:59 | 2026-10-15T20:10:35 | FAILED | 0.18 | - |
+| b2Y | 1704741 | wqd10nbj04g2 | 2026-10-17T14:25:43 | 2026-10-17T16:36:00 | COMPLETED | 2.17 | - |
