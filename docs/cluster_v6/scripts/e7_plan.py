@@ -95,6 +95,13 @@ Revision 8 (--revision 8; user, 2026-10-19): the phases of the K = 1 reference r
   e7_b2Z (batch 12, submitted with --nodelist=wqd10nbj04g2): four traced reference groups (e7_trace_group: the eight
   simultaneous K = 1 runs of a case behind one start barrier, step-traced like the K = 8 traced runs), strong
   cavity2d_n8000 / _n5640 / _n4000 and the weak per-card case cavity2d_n1440, one trial of 1500 / 500 steps, no points.
+Revision 9 (--revision 9; user, 2026-10-19 evening): b2Z keeps waiting for wqd10nbj04g2; a second job e7_b2AA (batch
+  13) of the same four traced reference groups plus, on the same node, the K = 8 chain of each case traced once
+  (points with 0 trials: calibration + the arm-C traced run, as the K = 8 traces of b2B / b2V / b2S / b2Y), on any
+  node of the partition but wqd10nbm13g5 / wqd10nah09g1 (--exclude), the whole node (--exclusive), every card's
+  power cap checked to be 575 W before any run (E7_POWER_CAP_W). Its sbatch name is e7_B9, not the line's
+  singleton e7_B (that would wait for b2Z to end). Whichever of b2Z / b2AA starts first is kept, the other cancelled
+  (a watcher outside the plan).
 
 Validation job (--emit-validation DIR: e7_v1.sbatch, job e7_V, line V; user item 7): the job's deployment
 (VALIDATION source repo, tag rc2, --validation-tree / --validation-commit, placeholders until rc2 exists) under
@@ -313,6 +320,24 @@ REVISIONS = {
         "cross": {"A": [], "B": []},
         "job_names": {12: "b2Z"},
         "exports": [("E7_REFERENCE_SPREAD_PCT", "3"), ("E7_UNIFORM_POWER_CAP", "1")],
+    },
+    # revision 9 (user, 2026-10-19 evening): b2Z stays queued for wqd10nbj04g2; a second job b2AA (batch 13, line B)
+    # of the same four traced reference groups and then, on the same node, the K = 8 chain of each case traced once
+    # (points with 0 trials: calibration + the arm-C traced run, as the K = 8 traces of b2B / b2V / b2S / b2Y were
+    # made), any node but wqd10nbm13g5 / wqd10nah09g1, the whole node, every card at 575 W (E7_POWER_CAP_W) or the
+    # job stops before any run. sbatch name e7_B9 (job_tag), not the line's singleton e7_B, which would wait for b2Z.
+    9: {
+        "arms": "C", "trials": 0, "traces_strong": 1, "traces_weak": 1, "cross_traces": 0, "window_2d": (1500, 500),
+        "any_line": True,
+        "batches": {13: {"B": [("cavity2d_n8000", 8), ("cavity2d_n5640", 8), ("cavity2d_n4000", 8),
+                               ("cavity2d_n1440_k8", 8)]}},
+        "extras": {13: {"A": ([], []), "B": (["tracegroup_k1"], [])}},
+        "tracegroups": [("cavity2d_n8000", 8), ("cavity2d_n5640", 8), ("cavity2d_n4000", 8), ("cavity2d_n1440", 8)],
+        "cross": {"A": [], "B": []},
+        "job_names": {13: "b2AA"},
+        "job_tag": "9",
+        "sbatch": ["--exclusive", "--exclude=wqd10nbm13g5,wqd10nah09g1"],
+        "exports": [("E7_REFERENCE_SPREAD_PCT", "3"), ("E7_UNIFORM_POWER_CAP", "1"), ("E7_POWER_CAP_W", "575")],
     },
 }
 REVISION = None                                 # --revision N: REVISIONS[N]
@@ -781,12 +806,15 @@ def job_estimate(items: list[dict], model: Model) -> tuple[float, int]:
 
 def job_script(name: str, line: str, items: list[dict], model: Model, description: str, source_repository: str,
                exports: list[tuple[str, str]], content: str = None) -> str:
-    """One sbatch script: job e7_<line> (singleton per line), output e7_<name>_<id>.out, the EXPORTS as
+    """One sbatch script: job e7_<line> (singleton per line; a revision's job_tag makes it e7_<line><tag>, its own
+    singleton), the revision's extra sbatch directives, output e7_<name>_<id>.out, the EXPORTS as
     `export VARIABLE=${VARIABLE:-VALUE}` before the source line (a value set at submission wins), the source line
     defaulting to SOURCE_REPOSITORY, e7_job_begin, one line per item, e7_job_end."""
     estimate, limit = job_estimate(items, model)
     if content is None:
         content = ", ".join(sorted({(item["point"].family if "point" in item else item["kind"]) for item in items}))
+    job_tag = REVISION.get("job_tag", "") if REVISION else ""
+    directives = [f"#SBATCH {option}" for option in (REVISION.get("sbatch", []) if REVISION else [])]
     body = [
         "#!/bin/bash",
         "#SBATCH -p hp_5090",
@@ -794,8 +822,9 @@ def job_script(name: str, line: str, items: list[dict], model: Model, descriptio
         "#SBATCH -N 1",
         "#SBATCH --gpus=8",
         f"#SBATCH --time={limit:02d}:00:00",
-        f"#SBATCH -J e7_{line}",
+        f"#SBATCH -J e7_{line}{job_tag}",
         "#SBATCH --dependency=singleton",
+        *directives,
         f"#SBATCH -o /data/run01/scxm138/logs/e7_{name}_%j.out",
         f"# {description}; do not edit by hand).",
         f"# Estimate {estimate / 3600:.2f} h, {len(items)} items: {content}. The protocol is e7_lib.sh's.",
@@ -893,8 +922,9 @@ def main() -> int:
                              "A-E), 3 = the 2026-10-13 supplement b2S, 4 = the second supplement b2T (2d_n8000 K = 3 / "
                              "5 / 6 / 7), 5 = the third (b2U), 6 = the fourth (b2V strong, b2W weak; --batch 8 "
                              "--batch 9), 7 = the weak item again (b2X on wqd10nbj04g2, fallback b2Y; --batch 10 "
-                             "--batch 11), 8 = the traced K = 1 reference groups for tab:phases (b2Z; --batch 12); "
-                             "emitted jobs export E7_ARMS")
+                             "--batch 11), 8 = the traced K = 1 reference groups for tab:phases (b2Z; --batch 12), 9 = the "
+                             "same groups plus the four K = 8 chains traced on the same node, any 575 W node (b2AA; "
+                             "--batch 13); emitted jobs export E7_ARMS")
     arguments = parser.parse_args()
     if (arguments.solver_tag is None) != (arguments.expected_tree is None):
         parser.error("--solver-tag and --expected-tree go together (the tag names the tree's solver)")

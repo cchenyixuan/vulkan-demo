@@ -153,6 +153,21 @@ e7_gpu_health() {   # before any Vulkan process (user, 2026-10-12): nvidia-smi m
         fi
         echo "power caps: all $listed GPUs at $(echo "$caps" | sed -n '1s/^[0-9]*, //p') on $(hostname)"
     fi
+    # E7_POWER_CAP_W=575 (user, 2026-10-19, revision 9): every card's power cap must be that value (W), else the job
+    # stops before any run (a job free to take any node of the partition must still measure at the 575 W of the
+    # batch-2 nodes; nvidia-smi prints "0, 575.00 W" per card)
+    if [ -n "${E7_POWER_CAP_W:-}" ]; then
+        local caps_w listed_w matching
+        caps_w=$(timeout 60 nvidia-smi --query-gpu=index,power.limit --format=csv,noheader 2>&1)
+        listed_w=$(echo "$caps_w" | grep -c -E '^[0-9]+, [0-9.]+ W$')
+        matching=$(echo "$caps_w" | grep -E '^[0-9]+, [0-9.]+ W$' \
+            | awk -v want="$E7_POWER_CAP_W" '{if ($2 + 0 == want + 0) n++} END {print n + 0}')
+        echo "power caps: $(echo "$caps_w" | tr '\n' ';')"
+        if [ "$listed_w" -ne "$E7_EXPECTED_DEVICES" ] || [ "$matching" -ne "$E7_EXPECTED_DEVICES" ]; then
+            e30_fail "power caps: $matching of $listed_w listed GPUs at $E7_POWER_CAP_W W on $(hostname), $E7_EXPECTED_DEVICES expected (E7_POWER_CAP_W=$E7_POWER_CAP_W)"
+        fi
+        echo "power caps: all $listed_w GPUs at $E7_POWER_CAP_W W on $(hostname) (E7_POWER_CAP_W)"
+    fi
 }
 
 e7_clock_lock() {   # MHZ (user item 5, 2026-10-13): lock every GPU's SM clock at MHZ for the lock block. Returns 0 with
