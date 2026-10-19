@@ -1,0 +1,92 @@
+{
+ "model": {
+  "cost_2d": 1.258e-09,
+  "cost_3d": 6e-09,
+  "floor_k1": 0.0014,
+  "floor": {
+   "2": 0.0018,
+   "4": 0.0045,
+   "8": 0.008
+  },
+  "efficiency": {
+   "2": 0.95,
+   "4": 0.9,
+   "8": 0.87
+  },
+  "efficiency_3d": null,
+  "cold_per_simulator": 17.0,
+  "warm_per_simulator": 1.2,
+  "load_per_million": 0.35,
+  "bootstrap_fixed": 2.0,
+  "bootstrap_per_million": 0.5,
+  "post_per_million": 0.1,
+  "post_per_slab": 1.0,
+  "seam_2d_per_million": 0.42,
+  "seam_2d_fixed": 8.0,
+  "seam_3d_per_million": 0.26,
+  "seam_3d_per_million_per_slab": 0.16,
+  "calibration_rounds": 2,
+  "calibration_fixed": 20.0,
+  "pilot_steps": 500,
+  "run_overhead": 10.0,
+  "trace_write": 15.0,
+  "job_overhead": 300.0,
+  "anatomy_steps": 3000,
+  "anatomy_steps_3d": 2000,
+  "soak_steps": 17000,
+  "cube_soak_seconds": 3600.0
+ },
+ "light_per_card": 4200000.0,
+ "batches_hours": {
+  "12": {
+   "B": 0.24171826083111111
+  }
+ },
+ "total_node_hours": 0.24171826083111111,
+ "records": [
+  {
+   "batch": 12,
+   "line": "B",
+   "job": "b2Z",
+   "kind": "tracegroup",
+   "case": "cavity2d_n8000",
+   "slabs": 1,
+   "steps": 1500,
+   "seconds": 255.2,
+   "label": "reftrace_2d_n8000_K1"
+  },
+  {
+   "batch": 12,
+   "line": "B",
+   "job": "b2Z",
+   "kind": "tracegroup",
+   "case": "cavity2d_n5640",
+   "slabs": 1,
+   "steps": 1500,
+   "seconds": 153.2,
+   "label": "reftrace_2d_n5640_K1"
+  },
+  {
+   "batch": 12,
+   "line": "B",
+   "job": "b2Z",
+   "kind": "tracegroup",
+   "case": "cavity2d_n4000",
+   "slabs": 1,
+   "steps": 1500,
+   "seconds": 103.1,
+   "label": "reftrace_2d_n4000_K1"
+  },
+  {
+   "batch": 12,
+   "line": "B",
+   "job": "b2Z",
+   "kind": "tracegroup",
+   "case": "cavity2d_n1440",
+   "slabs": 1,
+   "steps": 1500,
+   "seconds": 58.7,
+   "label": "reftrace_2d_n1440_K1"
+  }
+ ]
+}

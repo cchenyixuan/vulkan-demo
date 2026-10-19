@@ -91,6 +91,10 @@ Revision 5 (--revision 5): the third supplement e7_b2U (cancelled before it star
   (--revision 7; user, 2026-10-16): b2W stopped at the 3 % rule; the weak item again as job e7_b2X (batch 10, on
   wqd10nbj04g2) or, if that has not started within 6 h, e7_b2Y (batch 11, any node but wqd10nbm13g5 / wqd10nah09g1,
   without 2d_n1440_k3 / _k5); both stop before any run unless the eight power caps are equal (E7_UNIFORM_POWER_CAP).
+Revision 8 (--revision 8; user, 2026-10-19): the phases of the K = 1 reference runs for the paper's tab:phases, one job
+  e7_b2Z (batch 12, submitted with --nodelist=wqd10nbj04g2): four traced reference groups (e7_trace_group: the eight
+  simultaneous K = 1 runs of a case behind one start barrier, step-traced like the K = 8 traced runs), strong
+  cavity2d_n8000 / _n5640 / _n4000 and the weak per-card case cavity2d_n1440, one trial of 1500 / 500 steps, no points.
 
 Validation job (--emit-validation DIR: e7_v1.sbatch, job e7_V, line V; user item 7): the job's deployment
 (VALIDATION source repo, tag rc2, --validation-tree / --validation-commit, placeholders until rc2 exists) under
@@ -292,6 +296,22 @@ REVISIONS = {
         "extras": {10: {"A": ([], []), "B": ([], [])}, 11: {"A": ([], []), "B": ([], [])}},
         "cross": {"A": [], "B": []},
         "job_names": {10: "b2X", 11: "b2Y"},
+        "exports": [("E7_REFERENCE_SPREAD_PCT", "3"), ("E7_UNIFORM_POWER_CAP", "1")],
+    },
+    # revision 8 (user, 2026-10-19): the phases of the K = 1 reference runs for the paper's tab:phases. One job b2Z
+    # (batch 12, line B, submitted with --nodelist=wqd10nbj04g2 = the node of every K = 8 trace) of four traced
+    # reference groups (e7_trace_group: the eight simultaneous K = 1 runs of a case behind one start barrier, each
+    # step-traced like the K = 8 traced runs), in the user's order: strong cavity2d_n8000 / _n5640 / _n4000 and the
+    # weak per-card case cavity2d_n1440; one trial of 1500 / 500 steps; no points, no calibration. The 3 % spread rule
+    # and the uniform power-cap check as in revision 7.
+    8: {
+        "arms": "C", "trials": 1, "traces_strong": 0, "traces_weak": 0, "cross_traces": 0, "window_2d": (1500, 500),
+        "any_line": True,
+        "batches": {12: {"B": []}},
+        "extras": {12: {"A": ([], []), "B": (["tracegroup_k1"], [])}},
+        "tracegroups": [("cavity2d_n8000", 8), ("cavity2d_n5640", 8), ("cavity2d_n4000", 8), ("cavity2d_n1440", 8)],
+        "cross": {"A": [], "B": []},
+        "job_names": {12: "b2Z"},
         "exports": [("E7_REFERENCE_SPREAD_PCT", "3"), ("E7_UNIFORM_POWER_CAP", "1")],
     },
 }
@@ -621,6 +641,14 @@ def extras(model: Model) -> dict:
             warmup = 200 if kind == "selftest" else model.window(case)[1]
             out[group].append({"label": label, "kind": kind, "case": case, "slabs": slabs, "steps": steps,
                                "warmup": warmup, "seconds": seconds})
+    # revision 8: the traced reference groups (REVISION["tracegroups"]: case, parties), PARTIES simultaneous K = 1
+    # runs of the case with the seam check and a step trace each: one cold K = 1 run (the members run in parallel)
+    out["tracegroup_k1"] = []
+    for case, parties in (REVISION or {}).get("tracegroups", []):
+        steps, warmup = model.window(case)
+        out["tracegroup_k1"].append({"label": f"reftrace_{case.replace('cavity', '')}_K1", "kind": "tracegroup",
+                                     "case": case, "slabs": 1, "parties": parties, "steps": steps, "warmup": warmup,
+                                     "seconds": model.run(case, 1, steps, cold=True, seam_check=True) + model.trace_write})
     return out
 
 
@@ -732,6 +760,9 @@ def emit_item(item: dict, model: Model) -> list[str]:
         if item["kind"] == "lock":
             return [f"    E7_PREFIX=lock_ e7_point {arguments}"]
         return [f"e7_point {arguments}"]
+    if item["kind"] == "tracegroup":
+        return [f"e7_trace_group {item['label']} {item['case']} {item['parties']} {item['steps']} {item['warmup']} "
+                f"{timeout(item['seconds'])}"]
     return [f"e7_extra {item['kind']} {item['label']} {item['case']} {item['slabs']} {item['steps']} "
             f"{item['warmup']} {timeout(item['seconds'])}"]
 
@@ -862,7 +893,8 @@ def main() -> int:
                              "A-E), 3 = the 2026-10-13 supplement b2S, 4 = the second supplement b2T (2d_n8000 K = 3 / "
                              "5 / 6 / 7), 5 = the third (b2U), 6 = the fourth (b2V strong, b2W weak; --batch 8 "
                              "--batch 9), 7 = the weak item again (b2X on wqd10nbj04g2, fallback b2Y; --batch 10 "
-                             "--batch 11); emitted jobs export E7_ARMS")
+                             "--batch 11), 8 = the traced K = 1 reference groups for tab:phases (b2Z; --batch 12); "
+                             "emitted jobs export E7_ARMS")
     arguments = parser.parse_args()
     if (arguments.solver_tag is None) != (arguments.expected_tree is None):
         parser.error("--solver-tag and --expected-tree go together (the tag names the tree's solver)")

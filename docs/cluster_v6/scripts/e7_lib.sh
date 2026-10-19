@@ -38,6 +38,11 @@
 #       --defrag-log (items 5, 6), the loop rows written to traces/<label>/loop_trace.csv (run_chain_v6.py
 #       --loop-trace, item 11); fulltrace = --step-trace --step-trace-detail full; soak = V7_POOL_PEAKS=1
 #       with --defrag-log and the seam check (item 7); selftest = every E7 output path at once on a small case.
+#   e7_trace_group LABEL CASE PARTIES STEPS WARMUP TIMEOUT      (revision 8, user 2026-10-19: the paper's tab:phases)
+#       PARTIES simultaneous K = 1 runs of CASE on GPUs 0..PARTIES-1 behind one start barrier, pinned like the
+#       members of a reference group (e7_group) and step-traced like a traced run (--step-trace, the seam check
+#       on): the phases per step of the K = 1 references, traces/<LABEL>_g<i>, index role reference_traced. A
+#       member's failure stops the job; the reference-spread rule applies to the group when exported.
 #   e7_pair_point FAMILY CASE K TRIALS STEPS WARMUP T_CAL T_RUN ARM REF:TIMEOUT...      (validation job, item 7)
 #       an A/B point of two solvers, the job's (E7_SOLVER_TAG, its deployment E30_REPO) and v7-rc1 (E7_RC1_REPO,
 #       read only): point ab_<short>_K<K>; ARM C = one calibration by the job's solver (cal_<point>, its weights
@@ -584,6 +589,35 @@ e7_reference() {    # POINT_BASE TRIAL FAMILY POINT_CASE K SPEC STEPS WARMUP   (
         $PY docs/cluster_v6/scripts/e7_reference_spread.py "$E30_RESULTS" "$label" "$parties" "$E7_REFERENCE_SPREAD_PCT" \
             || e30_fail "reference spread $label (a card beyond $E7_REFERENCE_SPREAD_PCT % of the other cards' mean fps)"
     fi
+}
+
+e7_trace_group() {  # LABEL CASE PARTIES STEPS WARMUP TIMEOUT   (revision 8, user 2026-10-19: tab:phases)
+    # PARTIES simultaneous K = 1 processes of CASE on GPUs 0..PARTIES-1 behind the start barrier, each pinned to its
+    # GPU's NUMA cpulist as a reference member is (e7_group) and step-traced as a traced run is (--step-trace, the
+    # seam check on): the phases per step of the K = 1 references. Labels LABEL_g<i>, traces/LABEL_g<i>; a member's
+    # failure stops the job (e7_check_group), then the reference-spread rule when the job exports it.
+    local label=$1 case_name=$2 parties=$3 steps=$4 warmup=$5 limit=$6
+    local yaml=cases/aligned/$case_name/case.yaml member pids="" barrier=$E7_BARRIERS/$label
+    echo; echo "##### TRACEGROUP $label case=$case_name K=1 x$parties steps=$steps warmup=$warmup host=$(hostname) ($(date +%T))"
+    mkdir -p "$barrier"
+    for member in $(seq 0 $((parties - 1))); do
+        e7_index "${label}_g$member" reference_traced extra "$case_name" 1 0 same "$case_name" "$label"
+        (
+            E30_PREFIX=""
+            [ -n "${CPUL[$member]:-}" ] && E30_PREFIX="taskset -c ${CPUL[$member]}"      # local pre-run: no cpulists
+            E30_WRAPPER_ARGS="--obj-cache $NODE_CACHE --barrier $barrier --barrier-parties $parties --barrier-timeout $((limit / 2))"
+            e30_run "${label}_g$member" "$limit" --optional -- --case "$yaml" --weights 1 --device-map "$member" \
+                $COMMON --max-steps "$steps" --warmup "$warmup" --step-trace "$SHM/traces/${label}_g$member"
+        ) &
+        pids="$pids $!"
+    done
+    wait $pids
+    e7_check_group "$label" "$parties"
+    if [ -n "${E7_REFERENCE_SPREAD_PCT:-}" ] && [ "$E30_DRY" != 1 ]; then
+        $PY docs/cluster_v6/scripts/e7_reference_spread.py "$E30_RESULTS" "$label" "$parties" "$E7_REFERENCE_SPREAD_PCT" \
+            || e30_fail "reference spread $label (a card beyond $E7_REFERENCE_SPREAD_PCT % of the other cards' mean fps)"
+    fi
+    [ "$E30_DRY" = 1 ] || grep -h "\[step_trace\] wrote" "$SHM/${label}"_g*.log | cut -c1-200
 }
 
 e7_calibrate() {    # POINT FAMILY CASE K YAML MAP WEIGHTS_FILE TIMEOUT: the point's weight calibration (a hard step)
