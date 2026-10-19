@@ -336,7 +336,9 @@ REVISIONS = {
         "cross": {"A": [], "B": []},
         "job_names": {13: "b2AA"},
         "job_tag": "9",
-        "sbatch": ["--exclusive", "--exclude=wqd10nbm13g5,wqd10nah09g1"],
+        # --exclusive alone is refused by hp_5090 ("Requested node configuration is not available": select/cons_tres,
+        # CR_CPU_MEMORY); --exclusive --mem=0 (the node's whole memory) is accepted and allocates all 128 CPUs
+        "sbatch": ["--exclusive", "--mem=0", "--exclude=wqd10nbm13g5,wqd10nah09g1"],
         "exports": [("E7_REFERENCE_SPREAD_PCT", "3"), ("E7_UNIFORM_POWER_CAP", "1"), ("E7_POWER_CAP_W", "575")],
     },
 }
