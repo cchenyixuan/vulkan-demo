@@ -238,6 +238,13 @@ def code_hashes(case_path: pathlib.Path, solver: str = "v6") -> dict:
     physics = (list((solver_directory / "utils").glob("*.py"))
                + list((solver_directory / "shaders" / "spv").glob("*.spv"))
                + [case_path] + list(case_directory.glob("*.obj")) + [_REPO_ROOT / "materials" / "standard.yaml"])
+    # a case with its own material library (the Re = 3200 variant, 2026-10-20): hash that file too; the cases that use
+    # materials/standard.yaml keep their hashes (the main-series runs' meta.json stays comparable)
+    import yaml
+    case_data = yaml.safe_load(case_path.read_text(encoding="utf-8"))
+    library = (case_directory / case_data["material_library"]).resolve()
+    if library != (_REPO_ROOT / "materials" / "standard.yaml").resolve():
+        physics.append(library)
     validation = _REPO_ROOT / "experiment" / "validation"
     sampling_files = [validation / "cavity_sampling.py", validation / "cavity_reference.py",
                       _REPO_ROOT / "docs" / "validation" / "data" / "marchi2021_re1000.csv"]
@@ -349,6 +356,11 @@ def main() -> int:
     parser.add_argument("--slabs", type=int, choices=tuple(range(1, 9)), required=True,
                         help="1 or 2 as before; 3..8 for a chain continued from a checkpoint (--start-from, 2026-10-20)")
     parser.add_argument("--device-map", required=True, help="e.g. 0,1 (K = 2) or 1 (K = 1)")
+    parser.add_argument("--reynolds", type=float, default=1000.0,
+                        help="the case's nominal Re = U L / nu the runner checks (1000 for the main series; 3200 for the "
+                             "Re = 3200 variant, 2026-10-20); the sampling points are Marchi 2021's, the same at every Re")
+    parser.add_argument("--keep-checkpoints", type=int, default=2,
+                        help="checkpoints kept (newest first; 0 = all, e.g. to pick the one just before the steady window)")
     parser.add_argument("--start-from", default=None, metavar="CHECKPOINT",
                         help="start a fresh run from another run's checkpoints/c<step>.npz of the SAME case: the nine "
                              "restart fields as they are, the global step numbering kept (samples / snapshots / "
@@ -430,8 +442,8 @@ def main() -> int:
     if len(set(fluid_viscosity)) != 1 or len(set(lid_speed)) != 1:
         sys.exit(f"[cavity] expected one fluid viscosity and one lid speed: {fluid_viscosity}, {lid_speed}")
     reynolds = lid_speed[0] * 1.0 / fluid_viscosity[0]
-    if abs(reynolds - 1000.0) > 1e-6:
-        sys.exit(f"[cavity] nominal Re = U L / nu = {reynolds} (expected 1000; L = 1 is the fluid box)")
+    if abs(reynolds - arguments.reynolds) > 1e-6:
+        sys.exit(f"[cavity] nominal Re = U L / nu = {reynolds} (expected --reynolds {arguments.reynolds}; L = 1 is the fluid box)")
     cadence = int(global_case.numerics.defrag_cadence)
 
     def snap(time_value: float) -> int:
@@ -754,8 +766,9 @@ def main() -> int:
                     handle.write(json.dumps({"step": step, "time": step * dt, "file": name}) + "\n")
                 checkpoints = sorted(path for path in (run_dir / "checkpoints").glob("c*.npz")
                                      if step_of(path) is not None and step_of(path) <= step)
-                for old in checkpoints[:-2]:
-                    safe_unlink(old)
+                if arguments.keep_checkpoints > 0:
+                    for old in checkpoints[:-arguments.keep_checkpoints]:
+                        safe_unlink(old)
             if step >= stop_step():
                 raise StopRun()
 
