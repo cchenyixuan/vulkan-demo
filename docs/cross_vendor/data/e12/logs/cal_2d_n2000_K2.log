@@ -1,0 +1,214 @@
+[e30] switchinterval_s=0.0002 (forwarded to the bench) pid=27656 cwd=C:\Users\cchen\PycharmProjects\vulkan-demo-xv
+[e30] solver=v7 bench=experiment/v7/_run_v7_chain_bench.py
+[e30-config] V7_* in environment: none
+[e30-config] partition: ghost_layers=2 keep_departed=1 lean_transport=1 transport_extension=0 compact_ghost_lists=1 packed_replicas=1 init_seam_clamp=1 delta_density=0 band_widths=2,2,3 ghost_self=correction,density
+[e30-config] pools 2-D: ghost_factor=0.29 migrant_factor=0.05 departed_face_fraction=0.8
+[e30-config] pools 3-D: ghost_factor=0.5 migrant_factor=0.02 departed_face_fraction=0.64
+[e30-config] simulator: cascade_force=1 band_voxel_dispatch=1 band_slot_lanes=64 band_compact=0 fast_submit=1 phase_a_no_wait=1 submit_lock_scope=device
+[e30-config] transport/context: worker_count_aware=1 split_transfer_queues=1 concurrent_buffers=1 pool_peaks=0 per_sim_pipeline=0 worker_affinity=unset
+[e30-config] v7 switches beyond the v6 set: V7_DENSITY_COPY_COMPUTE=1 V7_GHOST_SEND_LANES=32 V7_DEEP_WALL_SKIP=auto V7_DEEP_WALL_CHECK=0 V7_FUSED_CORRECTION_DENSITY=1 V7_BAND_OVERLAP=0 V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter diagnostic_poison_inner_replica=0 fake_band_column(V7_FAKE_BAND_TEST)=0
+[e30-config] case C:\Users\cchen\PycharmProjects\vulkan-demo-xv\cases\aligned\cavity2d_n2000\case.yaml: dimension=2 h=0.0025 speed_of_sound=100.0 power=7 xi=0.001 epsilon_squared_factor=0.0025 defrag_cadence=1000 pool_size=4701824 max_per_voxel=96 max_incoming=16 yaml_is_symlink=False
+[chain_v7] switchinterval_s=0.0002
+[case_loader_v7] loading cavity2d_n2000
+[e30] obj cache hit domain.obj (4,000,000 vertices)
+  - domain.obj: 4,000,000 particles (stick_water)
+[e30] obj cache hit wall.obj (66,484 vertices)
+  - wall.obj: 66,484 particles (stick_wall)
+[e30] obj cache hit wall_top.obj (22,000 vertices)
+  - wall_top.obj: 22,000 particles (stick_lid)
+[case_loader_v7] total loaded: 4,088,484 particles
+[e30] obj cache hit frame.obj (8 vertices)
+[case_loader_v7] grid: dim=(406, 406, 1) origin=(-0.5075000238418579, -0.5075000238418579, -0.00125)
+[e30] stage case_loaded: t=0.10s VmRSS=n/a VmHWM=n/a epoch=1792480413.810
+[partition_v7] chain N=2: columns [0,203), [203,406) of 406; particles 2,044,242, 2,044,242
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=26,699 (replica regions 2 x 13,187 + migrants 325) departed pool/slab=325/325
+[e30] stage partition_done: t=0.48s VmRSS=n/a VmHWM=n/a epoch=1792480414.185
+[VulkanContextV7] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] AMD Radeon RX 7900 XTX  type=DISCRETE  api=1.4.349
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=8)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV7] selected: [0] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV7] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV7] transfer queues: 2 (readback + upload split)
+[SimV7] V7_DEEP_WALL_SKIP=auto: off (auto: 2-D slab)
+[SimV7] V7_FUSED_CORRECTION_DENSITY=1: fused (one neighbour traversal for correction + density, band 2, inner ghost column as self)
+[SimV7] device-local buffers: 24, 388.50 MB (14 CONCURRENT for transfer queue)
+[SimV7] defrag scratch buffers: 9, 331.14 MB
+[SimV7] host staging buffers: 2, 1689.0 KB (persistent-mapped)
+  sender   type[3]=HOST_VISIBLE|HOST_COHERENT|HOST_CACHED [host RAM]
+  receiver type[2]=HOST_VISIBLE|HOST_COHERENT [host RAM]
+[SimV7] compute pipelines: 28 (V7_CASCADE_FORCE=1: force_deep_interior in Phase B) (V7_BAND_VOXEL_DISPATCH=1, lanes=64, bands 2/2/3: boundary kernels over band voxels: 77,952/77,952/77,952 threads vs 2,453,120) (seam: ghost_layers=2, departed pool=325) (V7_DENSITY_COPY_COMPUTE=1: density copy pass over 3 region(s), 2,466,632 slots) (V7_GHOST_SEND_LANES=32: ghost_send over 812 lane groups, local size 64, 406 workgroups per direction) (V7_FUSED_CORRECTION_DENSITY: correction_density_all / _interior / _boundary / _boundary_band replace correction + density at band 2)
+[SimV7] init complete on NVIDIA GeForce RTX 5090 (own=2453120, ghost L=0 T=26699, wall_boundary=simple)
+[VulkanContextV7] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] AMD Radeon RX 7900 XTX  type=DISCRETE  api=1.4.349
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=8)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV7] selected: [1] AMD Radeon RX 7900 XTX on queue_family[0]
+[VulkanContextV7] transfer queue family: queue_family[2] (dedicated)
+[VulkanContextV7] transfer queues: 1 (shared)
+[SimV7] V7_DEEP_WALL_SKIP=auto: off (auto: 2-D slab)
+[SimV7] V7_FUSED_CORRECTION_DENSITY=1: fused (one neighbour traversal for correction + density, band 2, inner ghost column as self)
+[SimV7] device-local buffers: 24, 388.50 MB (14 CONCURRENT for transfer queue)
+[SimV7] defrag scratch buffers: 9, 331.14 MB
+[SimV7] host staging buffers: 2, 1689.0 KB (persistent-mapped)
+  sender   type[3]=HOST_VISIBLE|HOST_COHERENT|HOST_CACHED [host RAM]
+  receiver type[1]=HOST_VISIBLE|HOST_COHERENT [host RAM]
+[SimV7] compute pipelines: 28 (V7_CASCADE_FORCE=1: force_deep_interior in Phase B) (V7_BAND_VOXEL_DISPATCH=1, lanes=64, bands 2/2/3: boundary kernels over band voxels: 77,952/77,952/77,952 threads vs 2,453,120) (seam: ghost_layers=2, departed pool=325) (V7_DENSITY_COPY_COMPUTE=1: density copy pass over 3 region(s), 2,466,632 slots) (V7_GHOST_SEND_LANES=32: ghost_send over 812 lane groups, local size 64, 406 workgroups per direction) (V7_FUSED_CORRECTION_DENSITY: correction_density_all / _interior / _boundary / _boundary_band replace correction + density at band 2)
+[SimV7] init complete on AMD Radeon RX 7900 XTX (own=2453120, ghost L=26699 T=0, wall_boundary=simple)
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 2 relays for 2 workers
+[ChainOrchV7] N=2, 2 workers started (s0_to_s1, s1_to_s0)
+[e30] stage bootstrap_start: t=2.63s VmRSS=n/a VmHWM=n/a epoch=1792480416.335
+[SimV7] uploaded initial state (5 payload buffers)
+[SimV7] uploaded initial state (5 payload buffers)
+[ChainOrchV7] bootstrap ghost sync: bridged 1689.0 KB over 1 links
+[SimV7] bootstrap done: alive=2044242 overflow_inside=0 overflow_incoming=0
+[SimV7] bootstrap done: alive=2044242 overflow_inside=0 overflow_incoming=0
+[SimV7] step cmd buffers recorded (phase A/B/C + 1 readback + 1 upload on transfer Q)
+[SimV7] V7_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 1 readback, 1 upload), raw waits/signals
+[SimV7] step cmd buffers recorded (phase A/B/C + 1 readback + 1 upload on transfer Q)
+[SimV7] V7_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 1 readback, 1 upload), raw waits/signals
+[ChainOrchV7] all 2 sims bootstrapped + step cmds ready
+[e30] stage bootstrap_end: t=3.64s VmRSS=n/a VmHWM=n/a epoch=1792480417.349
+[e30] stage loop_start: t=3.64s VmRSS=n/a VmHWM=n/a epoch=1792480417.349
+[e30] defrag_events call=0 n=0 in_window=0 wall_ms=0.000 in_window_ms=0.000 steady_frames=300 steady_s=1.602808 steady_fps=187.1715 steady_fps_nodefrag=187.1715
+[e30] stage loop_end: t=6.30s VmRSS=n/a VmHWM=n/a epoch=1792480420.008
+[worker s0_to_s1] dest guard: precheck 0, relay 500, fallback 0, blocking 0 (relay slept 500, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 500, relay 0, fallback 0, blocking 0 (relay slept 0, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[calibrate] round 1: weights=[1.0, 1.0] cuts=[203] own_columns=[203, 203] fluid=[2000000, 2000000] all=[2044242, 2044242]
+[calibrate] round 1: sim0 (dev0) busy p50 2728.8 us p95 2742.7 us, A/B/C p50 156.1/2399.0/175.0 us, 300/300 frames
+[calibrate] round 1: sim1 (dev1) busy p50 5290.7 us p95 5340.4 us, A/B/C p50 494.2/4567.4/229.1 us, 300/300 frames
+[calibrate] round 1: device 0 (sims [0]) busy 2728.8 us (median of T_A + T_B + T_C)
+[calibrate] round 1: device 1 (sims [1]) busy 5290.7 us (median of T_A + T_B + T_C)
+[calibrate] round 1: omega=[1.3195, 0.6805] -> cuts [267] (changed); pilot 187.2 fps, 6.2 s, invariants {'drift': 0, 'overflow_total': 0, 'stamp_errors_gpu': 0, 'stamp_errors_host': 0, 'far_migration_total': 0}
+[partition_v7] chain N=2: columns [0,267), [267,406) of 406; particles 2,691,282, 1,397,202
+[partition_v7] seam: ghost_layers=2 keep_departed=1 ghost pool/direction=26,699 (replica regions 2 x 13,187 + migrants 325) departed pool/slab=325/325
+[e30] stage partition_done: t=6.70s VmRSS=n/a VmHWM=n/a epoch=1792480420.405
+[VulkanContextV7] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] AMD Radeon RX 7900 XTX  type=DISCRETE  api=1.4.349
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=8)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV7] selected: [0] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV7] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV7] transfer queues: 2 (readback + upload split)
+[SimV7] V7_DEEP_WALL_SKIP=auto: off (auto: 2-D slab)
+[SimV7] V7_FUSED_CORRECTION_DENSITY=1: fused (one neighbour traversal for correction + density, band 2, inner ghost column as self)
+[SimV7] device-local buffers: 24, 509.59 MB (14 CONCURRENT for transfer queue)
+[SimV7] defrag scratch buffers: 9, 434.80 MB
+[SimV7] host staging buffers: 2, 1689.0 KB (persistent-mapped)
+  sender   type[3]=HOST_VISIBLE|HOST_COHERENT|HOST_CACHED [host RAM]
+  receiver type[2]=HOST_VISIBLE|HOST_COHERENT [host RAM]
+[SimV7] compute pipelines: 28 (V7_CASCADE_FORCE=1: force_deep_interior in Phase B) (V7_BAND_VOXEL_DISPATCH=1, lanes=64, bands 2/2/3: boundary kernels over band voxels: 77,952/77,952/77,952 threads vs 3,229,568) (seam: ghost_layers=2, departed pool=325) (V7_DENSITY_COPY_COMPUTE=1: density copy pass over 3 region(s), 3,243,080 slots) (V7_GHOST_SEND_LANES=32: ghost_send over 812 lane groups, local size 64, 406 workgroups per direction) (V7_FUSED_CORRECTION_DENSITY: correction_density_all / _interior / _boundary / _boundary_band replace correction + density at band 2)
+[SimV7] init complete on NVIDIA GeForce RTX 5090 (own=3229568, ghost L=0 T=26699, wall_boundary=simple)
+[VulkanContextV7] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] AMD Radeon RX 7900 XTX  type=DISCRETE  api=1.4.349
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=8)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV7] selected: [1] AMD Radeon RX 7900 XTX on queue_family[0]
+[VulkanContextV7] transfer queue family: queue_family[2] (dedicated)
+[VulkanContextV7] transfer queues: 1 (shared)
+[SimV7] V7_DEEP_WALL_SKIP=auto: off (auto: 2-D slab)
+[SimV7] V7_FUSED_CORRECTION_DENSITY=1: fused (one neighbour traversal for correction + density, band 2, inner ghost column as self)
+[SimV7] device-local buffers: 24, 267.41 MB (14 CONCURRENT for transfer queue)
+[SimV7] defrag scratch buffers: 9, 227.47 MB
+[SimV7] host staging buffers: 2, 1689.0 KB (persistent-mapped)
+  sender   type[3]=HOST_VISIBLE|HOST_COHERENT|HOST_CACHED [host RAM]
+  receiver type[1]=HOST_VISIBLE|HOST_COHERENT [host RAM]
+[SimV7] compute pipelines: 28 (V7_CASCADE_FORCE=1: force_deep_interior in Phase B) (V7_BAND_VOXEL_DISPATCH=1, lanes=64, bands 2/2/3: boundary kernels over band voxels: 77,952/77,952/77,952 threads vs 1,676,672) (seam: ghost_layers=2, departed pool=325) (V7_DENSITY_COPY_COMPUTE=1: density copy pass over 3 region(s), 1,690,184 slots) (V7_GHOST_SEND_LANES=32: ghost_send over 812 lane groups, local size 64, 406 workgroups per direction) (V7_FUSED_CORRECTION_DENSITY: correction_density_all / _interior / _boundary / _boundary_band replace correction + density at band 2)
+[SimV7] init complete on AMD Radeon RX 7900 XTX (own=1676672, ghost L=26699 T=0, wall_boundary=simple)
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 2 relays for 2 workers
+[ChainOrchV7] N=2, 2 workers started (s0_to_s1, s1_to_s0)
+[e30] stage bootstrap_start: t=8.78s VmRSS=n/a VmHWM=n/a epoch=1792480422.489
+[SimV7] uploaded initial state (5 payload buffers)
+[SimV7] uploaded initial state (5 payload buffers)
+[ChainOrchV7] bootstrap ghost sync: bridged 1689.0 KB over 1 links
+[SimV7] bootstrap done: alive=2691282 overflow_inside=0 overflow_incoming=0
+[SimV7] bootstrap done: alive=1397202 overflow_inside=0 overflow_incoming=0
+[SimV7] step cmd buffers recorded (phase A/B/C + 1 readback + 1 upload on transfer Q)
+[SimV7] V7_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 1 readback, 1 upload), raw waits/signals
+[SimV7] step cmd buffers recorded (phase A/B/C + 1 readback + 1 upload on transfer Q)
+[SimV7] V7_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 1 readback, 1 upload), raw waits/signals
+[ChainOrchV7] all 2 sims bootstrapped + step cmds ready
+[e30] stage bootstrap_end: t=9.80s VmRSS=n/a VmHWM=n/a epoch=1792480423.511
+[e30] stage loop_start: t=9.80s VmRSS=n/a VmHWM=n/a epoch=1792480423.511
+[e30] defrag_events call=1 n=0 in_window=0 wall_ms=0.000 in_window_ms=0.000 steady_frames=300 steady_s=1.100735 steady_fps=272.5452 steady_fps_nodefrag=272.5452
+[e30] stage loop_end: t=11.64s VmRSS=n/a VmHWM=n/a epoch=1792480425.343
+[worker s0_to_s1] dest guard: precheck 487, relay 13, fallback 0, blocking 0 (relay slept 13, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 18, relay 482, fallback 0, blocking 0 (relay slept 482, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[calibrate] round 2: weights=[1.3195, 0.6805] cuts=[267] own_columns=[267, 139] fluid=[2640000, 1360000] all=[2691282, 1397202]
+[calibrate] round 2: sim0 (dev0) busy p50 3633.7 us p95 3643.9 us, A/B/C p50 223.8/3214.6/195.3 us, 300/300 frames
+[calibrate] round 2: sim1 (dev1) busy p50 3600.1 us p95 3636.4 us, A/B/C p50 316.1/3071.0/211.8 us, 300/300 frames
+[calibrate] round 2: device 0 (sims [0]) busy 3633.7 us (median of T_A + T_B + T_C)
+[calibrate] round 2: device 1 (sims [1]) busy 3600.1 us (median of T_A + T_B + T_C)
+[calibrate] round 2: omega=[1.3158, 0.6842] -> cuts [266] (changed); pilot 272.5 fps, 5.3 s, invariants {'drift': 0, 'overflow_total': 0, 'stamp_errors_gpu': 0, 'stamp_errors_host': 0, 'far_migration_total': 0}
+[calibrate] final weights=[1.3158200602196946, 0.6841799397803056] cuts=[266] after 2 pilot round(s), 11.6 s
+[calibrate] wrote docs\cross_vendor\data\e12\weights\cal_2d_n2000_K2.json (sha256 ffc657e02a0d7c84)
+[calibrate] done
+[e30] sim0 (dev0): initialization_seam_clamp_count=0 overflow_initialization_outside=0
+[e30] sim1 (dev1): initialization_seam_clamp_count=0 overflow_initialization_outside=0
+[e30] sim2 (dev0): initialization_seam_clamp_count=0 overflow_initialization_outside=0
+[e30] sim3 (dev1): initialization_seam_clamp_count=0 overflow_initialization_outside=0
+[e30] stage exit: t=11.79s VmRSS=n/a VmHWM=n/a epoch=1792480425.496
