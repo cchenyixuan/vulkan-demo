@@ -2,29 +2,33 @@
 e7_loss_figure.py — the paper's fig:loss (section 6.5) redrawn as two panels (user 2026-10-20), from the batch-2
 tables JSON (e7_batch2_tables.py) and the existing step traces on wqd10nbj04g2; no new runs, no b2AA data.
 
-Quantities (the definitions of loss_sources.pdf v1 / e7_full_summary.own_chain, now per card):
-  T_B     the card's phase B (b_start -> b_end of its own step), median over the steady steps
-  t_own   the transport chain into the card without any wait for another GPU: t_chain (upload_end - send_end minus
-          the receiver's two waits) minus the two transfer-queue idle waits (e7_full_summary.transfer_queue_idle);
-          a card has one or two inbound links, per step the slower one (larger t_own) counts; median over the steps
-  t_host  the host hop of that link-step (readback_end -> worker_copy minus the receiver waits: the worker sees
-          the readback, stamp check, memcpy) = t_own minus its readback part (send_end -> readback_end minus the
-          readback idle) and its upload part (worker_copy -> upload_end minus the upload idle); median
-  r_own   t_own / T_B per step on that link, median over the steps
-Each quantity is the median per card, then the mean over the 8 cards. eta = the tables' eta without the defrag
-events, mean over the trials (e7_scaling_figures.select: arm C, window 1500/500, most trials then the later job).
-Steady steps = step >= warmup with complete rows (as link_metrics; the defrag step stays in, medians).
+Quantities (the definitions of loss_sources.pdf v1 / e7_full_summary.own_chain, the slowest of the 14 links per step;
+user 2026-10-20 second message):
+  T_B     each card's phase B (b_start -> b_end of its own step), median over the steady steps, mean over the 8 cards
+  t_own   per step the largest t_own over the 14 links, median over the steps; t_own of a link-step = t_chain
+          (upload_end - send_end minus the receiver's two waits) minus the two transfer-queue idle waits
+          (e7_full_summary.transfer_queue_idle): the chain's own work without any wait for another GPU
+  t_host  the host hop (readback_end -> worker_copy minus the receiver waits: the worker sees the readback, stamp
+          check, memcpy) of that slowest link at that step, median; likewise t_readback (send_end -> readback_end
+          minus the readback idle) and t_upload (worker_copy -> upload_end minus the upload idle)
+  r_own   per step the largest t_own / T_B over the links (T_B = the link's receiver), median over the steps
+          (step_trace_model.worst_link on r_own, as the tables' r_own p50)
+eta = the tables' eta without the defrag events, mean over the trials (e7_scaling_figures.select: arm C, window
+1500/500, most trials then the later job). Steady steps = step >= warmup with complete rows on every link (as
+link_metrics / worst_link; the defrag step stays in, medians).
 
   (a) T_B (filled circle, solid), t_own (open circle, solid) and the host part of t_own (dashed) against particles
-      per GPU (M, walls included), both axes log, the strong K = 8 points; a light vertical line at 2M per GPU.
-  (b) eta against r_own (log): strong filled circles, weak open triangles; dashed line at r_own = 1; eta 0..1.05.
+      per device (M, walls included), both axes log, the nine strong K = 8 points; a light vertical line at 2M.
+  (b) eta against r_own (log): the same nine points, filled circles, no legend; dashed line at r_own = 1;
+      eta 0..1.05 with the band eta = 1 +- 0.02.
   Style: e7_scaling_figures (Times 8 pt, elsarticle text width), panel labels (a) (b).
 
 Usage:
     python docs/cluster_v6/scripts/e7_loss_figure.py --tables tables_b2.json --logs LOGS_N56 --out FIGURE_DIR
         [--exclude-job e7_b2T_1695731 ...]
 Writes <out>/loss_sources.pdf (+ .png), <out>/loss_sources.csv (case, scaling, M_per_device, T_B, t_own, t_host,
-r_own, eta; times in ms) and <out>/loss_sources_figure.json (per card and per point details).
+r_own, eta; times in ms; the plotted strong points) and <out>/loss_sources_figure.json (per point details, the
+weak points with a trace included, and the T_B = t_own crossing).
 """
 
 from __future__ import annotations
@@ -48,12 +52,13 @@ from e7_full_summary import transfer_queue_idle  # noqa: E402
 from e7_loss_sources import JOB_DIRS  # noqa: E402
 
 WEAK_LOADS = ("cavity2d_n1440", "cavity2d_n2840", "cavity2d_n5640")      # the k members' reference cases
-CARD_KEYS = ("T_B", "t_own", "t_host", "t_readback", "t_upload", "r_own")
+LINK_KEYS = ("t_own", "t_host", "t_readback", "t_upload")
 
 
-def per_card(run: dict) -> list:
-    """Per card (receiver): the medians over the steady steps of T_B, t_own, its three parts and r_own, the slower
-    inbound link per step."""
+def worst_link_medians(run: dict) -> dict:
+    """T_B: per card the median phase B, mean over the cards (per-card values listed); t_own and its three parts:
+    per step the slowest link (largest t_own) over all links, medians over the steps; r_own: per step the largest
+    t_own / T_B over the links, median (the tables' definition)."""
     metrics = step_trace_model.link_metrics(run)
     idle = transfer_queue_idle(run)
     for name, values in metrics.items():
@@ -66,27 +71,29 @@ def per_card(run: dict) -> list:
         values["t_own"] = values["t_chain"] - readback_idle - upload_idle
         values["r_own"] = values["t_own"] / values["T_B"]
         values["index"] = {int(step): position for position, step in enumerate(values["step"])}
-    cards = []
-    for card in sorted({values["receiver"] for values in metrics.values()}):
-        inbound = [values for values in metrics.values() if values["receiver"] == card]
-        steps = sorted(set.intersection(*[set(values["index"]) for values in inbound]))
-        series = {key: [] for key in CARD_KEYS}
-        chosen = []
-        for step in steps:
-            candidates = [(values["t_own"][values["index"][step]], values) for values in inbound]
-            if all(not math.isfinite(t) for t, _ in candidates):
-                continue
-            t_own, values = max(candidates, key=lambda item: item[0] if math.isfinite(item[0]) else -math.inf)
-            position = values["index"][step]
-            for key in CARD_KEYS:
-                series[key].append(float(values[key][position]))
-            chosen.append(f"{values['sender']}->{values['receiver']}")
-        entry = {"card": card, "inbound_links": sorted(f"{v['sender']}->{v['receiver']}" for v in inbound),
-                 "steps": len(chosen), "slower_link_share": {link: chosen.count(link) / len(chosen) for link in set(chosen)}}
-        for key in CARD_KEYS:
-            entry[key] = float(np.nanmedian(series[key])) if series[key] else math.nan
-        cards.append(entry)
-    return cards
+    steps = sorted(set.intersection(*[set(values["index"]) for values in metrics.values()]))
+    series = {key: [] for key in LINK_KEYS}
+    slowest = []
+    for step in steps:
+        candidates = [(values["t_own"][values["index"][step]], values) for values in metrics.values()]
+        if all(not math.isfinite(t) for t, _ in candidates):
+            continue
+        _, values = max(candidates, key=lambda item: item[0] if math.isfinite(item[0]) else -math.inf)
+        position = values["index"][step]
+        for key in LINK_KEYS:
+            series[key].append(float(values[key][position]))
+        slowest.append(f"{values['sender']}->{values['receiver']}")
+    r_own_steps = step_trace_model.worst_link(metrics, "r_own")
+    cards = step_trace_model.cycle_components(run)          # per sim medians (us) of the phases, T_B = "b"
+    t_b_cards = [entry["b"] for entry in cards]
+    out = {"links": len(metrics), "steps": len(slowest), "T_B": statistics.mean(t_b_cards),
+           "T_B_cards": t_b_cards, "r_own": float(np.nanmedian(r_own_steps)),
+           "r_own_p95": float(np.nanpercentile(r_own_steps, 95)),
+           "slowest_link_share": {link: round(slowest.count(link) / len(slowest), 3) for link in sorted(set(slowest))}}
+    for key in LINK_KEYS:
+        out[key] = float(np.nanmedian(series[key]))
+        out[key + "_p95"] = float(np.nanpercentile(series[key], 95))
+    return out
 
 
 def trace_for(tables: dict, row: dict, exclude: set) -> dict | None:
@@ -128,26 +135,39 @@ def gather(tables: dict, logs: pathlib.Path, exclude: set) -> list:
         else:
             directory = logs / JOB_DIRS[trace["job"]] / "traces" / trace["label"].replace("_trace_C", "_C")
             run = step_trace_model.load_run(directory)
-            cards = per_card(run)
-            entry["trace"] = dict(trace, directory=str(directory), cards=cards)
-            for key in CARD_KEYS:
-                values = [card[key] for card in cards if math.isfinite(card[key])]
-                entry[key] = statistics.mean(values)
-                entry[key + "_min"], entry[key + "_max"] = min(values), max(values)
-            print(f"[trace] {case} K = {slabs}: {directory.name} ({trace['job']}), {len(cards)} cards, "
-                  f"T_B {entry['T_B'] / 1e3:.3f} ms, t_own {entry['t_own'] / 1e3:.3f} ms, host {entry['t_host'] / 1e3:.3f}, "
-                  f"readback {entry['t_readback'] / 1e3:.3f}, upload {entry['t_upload'] / 1e3:.3f}, r_own {entry['r_own']:.3f} "
-                  f"(worst-link p50 {trace['r_own_worst_link_p50']:.3f})", flush=True)
+            medians = worst_link_medians(run)
+            entry["trace"] = dict(trace, directory=str(directory), **medians)
+            for key in ("T_B", "r_own", "r_own_p95") + LINK_KEYS:
+                entry[key] = medians[key]
+            print(f"[trace] {case} K = {slabs}: {directory.name} ({trace['job']}), {medians['links']} links x {medians['steps']} steps, "
+                  f"T_B {entry['T_B'] / 1e3:.3f} ms (cards {min(medians['T_B_cards']) / 1e3:.3f}-{max(medians['T_B_cards']) / 1e3:.3f}), "
+                  f"t_own {entry['t_own'] / 1e3:.3f} ms = readback {entry['t_readback'] / 1e3:.3f} + host {entry['t_host'] / 1e3:.3f} + "
+                  f"upload {entry['t_upload'] / 1e3:.3f} (medians), r_own {entry['r_own']:.3f} "
+                  f"(tables' p50 {trace['r_own_worst_link_p50']:.3f})", flush=True)
         rows.append(entry)
     rows.sort(key=lambda r: (r["scaling"], r["per_gpu"]))
     return rows
+
+
+def crossing(strong: list) -> list:
+    """Particles per device where t_own = T_B, log-log interpolation between the adjacent points."""
+    out = []
+    for low, high in zip(strong, strong[1:]):
+        f_low = math.log(low["t_own"]) - math.log(low["T_B"])
+        f_high = math.log(high["t_own"]) - math.log(high["T_B"])
+        if f_low == 0.0 or f_low * f_high > 0:
+            continue
+        share = f_low / (f_low - f_high)
+        u = math.log(low["per_gpu"]) + share * (math.log(high["per_gpu"]) - math.log(low["per_gpu"]))
+        value = math.exp(math.log(low["T_B"]) + share * (math.log(high["T_B"]) - math.log(low["T_B"])))
+        out.append({"between": [low["case"], high["case"]], "per_device": math.exp(u), "time_us": value})
+    return out
 
 
 def figure(rows: list, out: pathlib.Path) -> None:
     import matplotlib.pyplot as plt
     from matplotlib.ticker import FuncFormatter, LogLocator, MultipleLocator, NullFormatter
     strong = [row for row in rows if row["scaling"] == "strong" and row.get("trace")]
-    weak = [row for row in rows if row["scaling"] == "weak" and row.get("trace")]
     width, panel, height_panel = style.TEXT_WIDTH, 2.05, 1.85
     left, gap, bottom, top = 0.42, 0.62, 0.40, 0.20
     fig = plt.figure(figsize=(width, bottom + height_panel + top))
@@ -181,27 +201,22 @@ def figure(rows: list, out: pathlib.Path) -> None:
     axis_t.set_xlim(min(xs) / 1.7, max(xs) * 1.7)
     ys = t_b + t_own + t_host
     axis_t.set_ylim(min(ys) / 1.8, max(ys) * 2.2)
-    axis_t.set_xlabel("particles per GPU (M)", labelpad=1.5)
+    axis_t.set_xlabel("particles per device (M)", labelpad=1.5)
     axis_t.set_ylabel("time per step (ms)", labelpad=1.5)
     axis_t.legend(loc="upper left", frameon=False, handlelength=1.6, borderaxespad=0.2)
-    # (b) eta against r_own
+    # (b) eta against r_own: the same nine strong points, no legend; band eta = 1 +- 0.02 (style.band)
     style.band(axis_r)
     axis_r.axvline(1.0, color="#555555", lw=0.6, ls=(0, (3.0, 2.0)), zorder=0.6)
-
-    def draw(selection, label, **marker):
-        axis_r.errorbar([row["r_own"] for row in selection], [row["eta"] for row in selection],
-                        yerr=[[row["eta"] - row["eta_min"] for row in selection], [row["eta_max"] - row["eta"] for row in selection]],
-                        capsize=1.6, elinewidth=0.6, capthick=0.6, ls="none", label=label, **marker)
-    draw(strong, r"strong, $K = 8$", color=style.COLOR_MAIN, marker="o", ms=3.4, mfc=style.COLOR_MAIN, mec=style.COLOR_MAIN)
-    if weak:
-        draw(weak, r"weak, $K = 8$", color=style.COLOR_RED, marker="^", ms=3.8, mfc="white", mec=style.COLOR_RED, mew=0.8)
-    r_values = [row["r_own"] for row in strong + weak]
+    axis_r.errorbar([row["r_own"] for row in strong], [row["eta"] for row in strong],
+                    yerr=[[row["eta"] - row["eta_min"] for row in strong], [row["eta_max"] - row["eta"] for row in strong]],
+                    capsize=1.6, elinewidth=0.6, capthick=0.6, ls="none", color=style.COLOR_MAIN, marker="o", ms=3.4,
+                    mfc=style.COLOR_MAIN, mec=style.COLOR_MAIN)
+    r_values = [row["r_own"] for row in strong]
     axis_r.set_xlim(min(r_values) / 1.8, max(r_values) * 1.8)
     axis_r.set_ylim(0.0, 1.05)
     axis_r.yaxis.set_major_locator(MultipleLocator(0.2))
     axis_r.set_xlabel(r"$r_\mathrm{own}$", labelpad=1.5)
     axis_r.set_ylabel(r"$\eta$", labelpad=1.5)
-    axis_r.legend(loc="lower left", frameon=False, handlelength=1.4, borderaxespad=0.2)
     style.panel_label(axis_t, "(a)")
     style.panel_label(axis_r, "(b)")
     style.save(fig, out / "loss_sources.pdf")
@@ -213,10 +228,10 @@ def write_csv(rows: list, path: pathlib.Path) -> None:
         writer = csv.writer(handle)
         writer.writerow(("case", "scaling", "M_per_device", "T_B", "t_own", "t_host", "r_own", "eta"))
         for row in rows:
-            traced = row.get("trace") is not None
-            writer.writerow((row["case"], row["scaling"], f"{row['per_gpu'] / 1e6:.4f}",
-                             f"{row['T_B'] / 1e3:.4f}" if traced else "", f"{row['t_own'] / 1e3:.4f}" if traced else "",
-                             f"{row['t_host'] / 1e3:.4f}" if traced else "", f"{row['r_own']:.4f}" if traced else "",
+            if row["scaling"] != "strong" or row.get("trace") is None:
+                continue                                    # the plotted points only
+            writer.writerow((row["case"], row["scaling"], f"{row['per_gpu'] / 1e6:.4f}", f"{row['T_B'] / 1e3:.4f}",
+                             f"{row['t_own'] / 1e3:.4f}", f"{row['t_host'] / 1e3:.4f}", f"{row['r_own']:.4f}",
                              f"{row['eta']:.4f}"))
 
 
@@ -236,21 +251,28 @@ def main() -> int:
     rows = gather(tables, pathlib.Path(arguments.logs), set(arguments.exclude_job))
     figure(rows, out)
     write_csv(rows, out / "loss_sources.csv")
-    (out / "loss_sources_figure.json").write_text(json.dumps(rows, indent=1), encoding="utf-8")
-    print(f"{len(rows)} rows -> {out / 'loss_sources.csv'}")
-    print("| case | scaling | M/GPU | T_B ms | t_own ms (cards min-max) | readback | host | upload | r_own (cards min-max) | "
-          "r_own worst-link p50 (v1) | eta | fps (min-max) | trace |")
+    strong = [row for row in rows if row["scaling"] == "strong" and row.get("trace")]
+    crossings = crossing(strong)
+    (out / "loss_sources_figure.json").write_text(json.dumps({"points": rows, "t_own_equals_T_B": crossings}, indent=1),
+                                                  encoding="utf-8")
+    print(f"{len(strong)} plotted rows -> {out / 'loss_sources.csv'}")
+    print("| case | scaling | M/device | T_B ms (cards min-max) | t_own ms | readback | host | upload | t_own p95 | r_own | "
+          "r_own p95 | tables' r_own p50 | eta | fps (min-max) | trace |")
     for row in rows:
         if row.get("trace"):
-            print(f"| {row['case']} | {row['scaling']} | {row['per_gpu'] / 1e6:.3f} | {row['T_B'] / 1e3:.3f} | "
-                  f"{row['t_own'] / 1e3:.3f} ({row['t_own_min'] / 1e3:.3f}-{row['t_own_max'] / 1e3:.3f}) | "
-                  f"{row['t_readback'] / 1e3:.3f} | {row['t_host'] / 1e3:.3f} | {row['t_upload'] / 1e3:.3f} | "
-                  f"{row['r_own']:.3f} ({row['r_own_min']:.3f}-{row['r_own_max']:.3f}) | {row['trace']['r_own_worst_link_p50']:.3f} | "
+            trace = row["trace"]
+            print(f"| {row['case']} | {row['scaling']} | {row['per_gpu'] / 1e6:.3f} | {row['T_B'] / 1e3:.3f} "
+                  f"({min(trace['T_B_cards']) / 1e3:.3f}-{max(trace['T_B_cards']) / 1e3:.3f}) | {row['t_own'] / 1e3:.3f} | "
+                  f"{row['t_readback'] / 1e3:.3f} | {row['t_host'] / 1e3:.3f} | {row['t_upload'] / 1e3:.3f} | {trace['t_own_p95'] / 1e3:.3f} | "
+                  f"{row['r_own']:.3f} | {row['r_own_p95']:.3f} | {trace['r_own_worst_link_p50']:.3f} | "
                   f"{row['eta']:.3f} | {row['fps']:.1f} ({row['fps_min']:.1f}-{row['fps_max']:.1f}) | "
-                  f"{pathlib.Path(row['trace']['directory']).name} ({row['trace']['job']}) |")
+                  f"{pathlib.Path(trace['directory']).name} ({trace['job']}) |")
         else:
-            print(f"| {row['case']} | {row['scaling']} | {row['per_gpu'] / 1e6:.3f} | - | - | - | - | - | - | - | "
+            print(f"| {row['case']} | {row['scaling']} | {row['per_gpu'] / 1e6:.3f} | - | - | - | - | - | - | - | - | - | "
                   f"{row['eta']:.3f} | {row['fps']:.1f} ({row['fps_min']:.1f}-{row['fps_max']:.1f}) | no trace |")
+    for item in crossings:
+        print(f"t_own = T_B between {item['between'][0]} and {item['between'][1]}: {item['per_device'] / 1e6:.3f}M per device, "
+              f"{item['time_us'] / 1e3:.3f} ms (log-log interpolation)")
     return 0
 
 
