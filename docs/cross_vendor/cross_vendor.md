@@ -196,6 +196,19 @@
 
 口径与 E7 报告 4.4 节相同（`step_trace_model.link_metrics` + `e7_full_summary.transfer_queue_idle`）。三部分的中位数之和不等于 t_own 的中位数。
 
+**tab:crossvendor 的 r_own 列（你 10-20 晚的要求，loss_sources.pdf 的口径）**：同一批 trace 运行，每一步先取两条链路 t_own / T_B（T_B 用各自接收卡的）中较大的那个，再对第 500–1498 步取中位数（工具 `xv_r_own.py`，数据 `data/tables/r_own_worst_step.json`）；与上表「两条链路各自中位数中较大的那个」并列。两种口径相差不超过 0.002：每一步较大的那个在 65–95 % 的步里都是 XTX → 5090 这条链路。
+
+| 尺寸 | r_own（每步两链路取大，再取中位数） | p95 | 两链路各自中位数中较大的（现表） | 5090→XTX 中位 | XTX→5090 中位 | 每步取大时来自 XTX→5090 的份额 | 步数 |
+|---|---|---|---|---|---|---|---|
+| 520² | **0.407** | 0.546 | 0.405 | 0.294 | 0.405 | 95 % | 999（500–1498） |
+| 1000² | **0.183** | 0.227 | 0.182 | 0.158 | 0.182 | 95 % | 999（500–1498） |
+| 1440² | **0.115** | 0.137 | 0.114 | 0.106 | 0.114 | 93 % | 999（500–1498） |
+| 2000² | **0.077** | 0.087 | 0.077 | 0.071 | 0.077 | 91 % | 999（500–1498） |
+| 2840² | **0.051** | 0.057 | 0.051 | 0.046 | 0.051 | 91 % | 999（500–1498） |
+| 4000² | **0.034** | 0.038 | 0.034 | 0.032 | 0.034 | 77 % | 999（500–1498） |
+| 5640² | **0.023** | 0.026 | 0.023 | 0.023 | 0.023 | 65 % | 999（500–1498） |
+
+
 ## 5. E3：权重扫描（4000²）
 
 E2 里 4000² 的 r_own = 0.034 < 1，按计划用 4000²。固定权重 (r, 1)，r = ω_5090/ω_XTX = 1.4, 1.5, …, 2.6（13 点），不跑 pilot；每次试验先跑一组参考对（两卡同时，一个屏障），再按 r 升序（单数试验）/ 降序（双数试验）各跑一次 K = 2（带 step trace、seam 检查）；η 用本扫描同一试验的参考对，口径同 4.2；两张卡的步长中位数 = trace 里各卡周期（a_start → 下一 a_start）的稳态步中位数，3 次试验的均值与范围。
@@ -278,5 +291,6 @@ E3 的参考对（τ ms，5090 / XTX，比值）：t1: 21.148 / 42.404（2.005�
 - E3：`data/e3/`（`results.jsonl` 45 行、`index.tsv`、`logs/`、`traces/2d_n4000_K2_r<r>_t<t>/`（39 个，共 62 MB，**没有提交进 git**，只在本机；每个 trace 的步长中位数与 r_own 已在 `tables.json`）、`telemetry.csv`、`campaign_e3.json`）。
 - 三个实验目录下的 `logs/` 被仓库 .gitignore 的 `logs/` 规则排除，用 `git add -f` 加进了 git（运行日志 + 每次的命令行 `.cmd`）。
 - 算例：`cases/aligned/cavity2d_n{520,1000,1440,2000,2840,4000,5640,8000}`，case.yaml 在 git 里，粒子文件 .obj 被 .gitignore 排除，由仓库里的 `utils/geometry/_demo_cavity_case_aligned.py` 按各算例 `generate.txt` 的命令生成：`python utils/geometry/_demo_cavity_case_aligned.py --dimension 2 --n <n> --n-x <n> --border 11 --out cases/aligned/cavity2d_n<n> --objs-only`（`--objs-only` 不碰 case.yaml）。10-20 验证：对 1000² 重新生成的 4 个 .obj 与 e7 工作树里 10-09 生成的文件 sha256 逐个相同；其余 7 个尺寸本机生成（520²–5640² 各 1–40 s，8000² 79 s，domain.obj 10 MB–2.56 GB）。运行前用 `docs/cluster_v6/scripts/obj_cache_build.py --solver v7 --obj-cache logs/xv_objcache --case ...` 建好解析缓存（8000² 解析 36.7 s），每次运行通过 `run_chain_v6.py --obj-cache` 读缓存。
+- r_own（loss_sources 口径）：`data/tables/r_own_worst_step.json`（4.4 节末尾的表，`xv_r_own.py`）。
 - 脚本 `docs/cross_vendor/scripts/`：`xv_lib.py`（协议：一次运行 = run_chain_v6 --solver v7 + parse_run_v6；calibrate / chain / references）、`xv_campaign.py`（`fit` / `e12` / `e3`）、`xv_tables.py`（表 + 图）、`xv_e0.py`、`xv_e0_clocks.py`、`xv_telemetry.py`、`xv_probe_devices.py`。复现（工作树根，`vulkan-demo/.venv` 的 python，`PYTHONIOENCODING=utf-8`）：
   `python docs/cross_vendor/scripts/xv_campaign.py fit --case cavity2d_n8000 --out docs/cross_vendor/data/e12`；`python docs/cross_vendor/scripts/xv_campaign.py e12 --sizes 520,1000,1440,2000,2840,4000,5640,8000 --out docs/cross_vendor/data/e12`；`python docs/cross_vendor/scripts/xv_campaign.py e3 --case cavity2d_n4000 --ratios 1.4:2.6:0.1 --out docs/cross_vendor/data/e3`；`python docs/cross_vendor/scripts/xv_campaign.py more --case cavity2d_n1440 --trials 4,5 --trace --out docs/cross_vendor/data/e12`（第 7 节）；`python docs/cross_vendor/scripts/xv_tables.py --e12 docs/cross_vendor/data/e12 --e3 docs/cross_vendor/data/e3 --trials 5 --out docs/cross_vendor/data/tables`。
