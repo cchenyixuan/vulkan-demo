@@ -1,0 +1,6 @@
+point	old_2d_n2840_k5_K5
+source	/data/home/scxm138/run/logs/e7_b2Y_1704741/weights/2d_n2840_k5_K5.json
+sha256	d2e283170ae51618b724c96bb2c5615259deb19e42d7233ba15e75a4968c4f5f
+copied_to	/dev/shm/scxm138/e7_b2AB_1718639/weights/old_2d_n2840_k5_K5.json
+time	2026-10-20T19:59:31+08:00
+job	b2AB	1718639

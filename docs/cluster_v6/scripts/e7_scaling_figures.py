@@ -77,11 +77,15 @@ def band(axis) -> None:
     axis.axhline(1.0, color="#777777", lw=0.4, zorder=0.5)
 
 
-def select(points: list, exclude: set, window: str, eta_key: str) -> dict:
-    """(case, K) -> the chosen point's numbers (mean, min, max of eta, trials, job, host, per-GPU particles, reference)."""
+def select(points: list, exclude: set, window: str, eta_key: str, exclude_points: set = frozenset()) -> dict:
+    """(case, K) -> the chosen point's numbers (mean, min, max of eta, trials, job, host, per-GPU particles, reference).
+    exclude_points: point names that are not candidates (revision 10: old_2d_n2840_k5_K5, the point run with an earlier
+    job's weights file instead of its own calibration)."""
     chosen = {}
     for order, point in enumerate(points):
         if point["arm"] != "C" or point["job"] in exclude or window not in point.get("windows", []):
+            continue
+        if point["point"] in exclude_points:
             continue
         for name, reference in point["references"].items():
             stats = reference.get(eta_key) or {}
@@ -223,6 +227,8 @@ def main() -> int:
     parser.add_argument("--tables", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--exclude-job", action="append", default=[])
+    parser.add_argument("--exclude-point", action="append", default=[],
+                        help="point names that are no candidates (e.g. old_2d_n2840_k5_K5: run with another job's weights)")
     parser.add_argument("--eta", choices=("nodefrag", "with"), default="nodefrag")
     parser.add_argument("--window", default="1500/500")
     arguments = parser.parse_args()
@@ -231,7 +237,7 @@ def main() -> int:
     setup_style()
     tables = json.loads(pathlib.Path(arguments.tables).read_text(encoding="utf-8"))
     chosen = select(tables["points"], set(arguments.exclude_job), arguments.window,
-                    "eta_nodefrag" if arguments.eta == "nodefrag" else "eta")
+                    "eta_nodefrag" if arguments.eta == "nodefrag" else "eta", set(arguments.exclude_point))
     out = pathlib.Path(arguments.out)
     rows = strong_figure(chosen, out) + weak_figure(chosen, out)
     columns = ("figure", "panel", "case", "K", "point", "job", "host", "reference", "particles", "per_gpu", "trials",
