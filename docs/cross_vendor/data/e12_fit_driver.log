@@ -1,0 +1,49 @@
+RESULT label=fit_2d_n8000_K1_g0 status=pass rc=0 steady_fps=12.3 total_fps=12.3 drift=0 overflow_total=0 far_migration=0 stamps=0+0 alive=64352484->64352484 clamp=0 nan=None fields=- columns=[1606] tq2=1 pins=0/skip0 wall=83.9s vram_peak_mib=0:22618/1:46100 solver=v7 build=58.76s cache_hits=4 barrier=ok/11.0s defrag_ms=0/0 fps_nodefrag=12.26 solver_tag=v7-rc3 root=C:\Users\cchen\PycharmProjects\vulkan-demo-xv
+RESULT label=fit_2d_n8000_K1_g1 status=pass rc=0 steady_fps=5.9 total_fps=5.9 drift=0 overflow_total=0 far_migration=0 stamps=0+0 alive=64352484->64352484 clamp=0 nan=None fields=- columns=[1606] tq2=0 pins=0/skip0 wall=112.2s vram_peak_mib=0:22618/1:46109 solver=v7 build=58.75s cache_hits=4 barrier=ok/0.0s defrag_ms=0/0 fps_nodefrag=5.89 solver_tag=v7-rc3 root=C:\Users\cchen\PycharmProjects\vulkan-demo-xv
+[16:11:43] fit cavity2d_n8000: fits
+{
+ "case": "cavity2d_n8000",
+ "started": "2026-10-20T16:09:49",
+ "steps": 300,
+ "warmup": 100,
+ "cards": {
+  "0": {
+   "status": "pass",
+   "steady_fps": 12.3,
+   "reasons": [],
+   "telemetry_peaks": {
+    "1": {
+     "memory_used_peak_mib": 46100.0,
+     "utilization_peak": 100.0,
+     "samples": 64
+    },
+    "0": {
+     "memory_used_peak_mib": 22618.0,
+     "utilization_peak": 100.0,
+     "samples": 64
+    }
+   },
+   "rc": 0
+  },
+  "1": {
+   "status": "pass",
+   "steady_fps": 5.9,
+   "reasons": [],
+   "telemetry_peaks": {
+    "1": {
+     "memory_used_peak_mib": 46109.0,
+     "utilization_peak": 100.0,
+     "samples": 93
+    },
+    "0": {
+     "memory_used_peak_mib": 22618.0,
+     "utilization_peak": 100.0,
+     "samples": 92
+    }
+   },
+   "rc": 0
+  }
+ },
+ "fits": true,
+ "ended": "2026-10-20T16:11:43"
+}

@@ -1,0 +1,868 @@
+{
+ "case": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-xv\\cases\\aligned\\cavity2d_n1440\\case.yaml",
+ "K": 2,
+ "weights": [
+  1.286818834196999,
+  0.7131811658030011
+ ],
+ "device_map": [
+  0,
+  1
+ ],
+ "depth": 2,
+ "sync_scheme": "per-direction",
+ "pool_safety": 1.2,
+ "switch_interval_s": 0.00019999999999999998,
+ "v7_switches": {
+  "V7_DENSITY_COPY_COMPUTE": 1,
+  "V7_GHOST_SEND_LANES": 32,
+  "V7_DEEP_WALL_SKIP": "auto",
+  "V7_DEEP_WALL_CHECK": 0,
+  "V7_FUSED_CORRECTION_DENSITY": 1,
+  "V7_BAND_OVERLAP": 0,
+  "V7_DEST_GUARD": "relay",
+  "V7_DEST_GUARD_PRECHECK": "counter"
+ },
+ "band_overlap": {
+  "chain": {
+   "verdict": false,
+   "reason": "V7_BAND_OVERLAP=0",
+   "every_slab_alike": true
+  },
+  "slabs": [
+   [
+    false,
+    "V7_BAND_OVERLAP=0"
+   ],
+   [
+    false,
+    "V7_BAND_OVERLAP=0"
+   ]
+  ]
+ },
+ "dest_guard": {
+  "s0_to_s1": {
+   "precheck": 30,
+   "relay": 1470,
+   "fallback": 0,
+   "blocking": 0,
+   "relay_slept": 1470,
+   "released": 0,
+   "relay_attached": true,
+   "mode": "V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter"
+  },
+  "s1_to_s0": {
+   "precheck": 1471,
+   "relay": 29,
+   "fallback": 0,
+   "blocking": 0,
+   "relay_slept": 29,
+   "released": 0,
+   "relay_attached": true,
+   "mode": "V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter"
+  }
+ },
+ "max_steps": 1500,
+ "warmup": 500,
+ "defrag_cadence": 1000,
+ "result": {
+  "frame_count": 1500,
+  "elapsed_s": 2.9003820000070846,
+  "fps": 517.1732551078914,
+  "steady_frames": 1000,
+  "steady_s": 1.9392977000097744,
+  "steady_fps": 515.650588352144
+ },
+ "weights_source": "file",
+ "weights_file": "docs\\cross_vendor\\data\\e12\\weights\\cal_2d_n1440_K2.json",
+ "weights_file_sha256": "094a3089e0f2c0ef3952f114f0007d0dd8489caff4f3ad23b4f541cfd849a3c4",
+ "weight_calibration": {
+  "format": "e32_slab_weights_v1",
+  "case": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-xv\\cases\\aligned\\cavity2d_n1440\\case.yaml",
+  "case_sha256": "904138af7e392dae2bf8d74030c613c3390a6562d219fad962a083d269aa5db8",
+  "particle_count": 2137444,
+  "grid_nx": 294,
+  "fluid_histogram_sha256": "ac2c9b5689b7af17947730e756b57ec53fdd185ca99ebadced1d8b87275fb039",
+  "slab_count": 2,
+  "device_map": [
+   0,
+   1
+  ],
+  "devices": [
+   {
+    "device_index": 0,
+    "name": "NVIDIA GeForce RTX 5090",
+    "uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8"
+   },
+   {
+    "device_index": 1,
+    "name": "AMD Radeon RX 7900 XTX",
+    "uuid": "00000000050000000000000000000000"
+   }
+  ],
+  "host": "DESKTOP-LDQTHT7",
+  "settings": {
+   "warmup": 200,
+   "steps": 300,
+   "rounds": 2,
+   "depth": 2,
+   "pool_safety": 1.2,
+   "sync_scheme": "per-direction",
+   "defrag_cadence": 1000
+  },
+  "band_widths": [
+   2,
+   2,
+   3
+  ],
+  "environment": {
+   "VK_LOADER_LAYERS_DISABLE": "VK_LAYER_KHRONOS_validation",
+   "VK_SDK_PATH": "C:\\VulkanSDK\\1.4.350.0"
+  },
+  "commit": "0dcdee715277719a32fe1f4e0071157a7c950e24",
+  "v7_dirty_files": [],
+  "timestamp": "2026-10-20 16:12:42",
+  "seconds": 8.192800500008161,
+  "rounds": [
+   {
+    "round": 1,
+    "weights": [
+     1.0,
+     1.0
+    ],
+    "cuts": [
+     147
+    ],
+    "own_columns": [
+     147,
+     147
+    ],
+    "fluid": [
+     1036800,
+     1036800
+    ],
+    "all": [
+     1068722,
+     1068722
+    ],
+    "busy_us": [
+     1456.592,
+     2668.76
+    ],
+    "omega": [
+     1.2938338352702994,
+     0.7061661647297006
+    ],
+    "next_cuts": [
+     189
+    ],
+    "changed": true,
+    "statistics": {
+     "per_sim": [
+      {
+       "frames": 300,
+       "complete_frames": 300,
+       "busy_p50_us": 1456.592,
+       "busy_p95_us": 1462.3727999999999,
+       "busy_mean_us": 1458.4427733333332,
+       "a_p50_us": 64.128,
+       "b_p50_us": 1223.84,
+       "c_p50_us": 167.616
+      },
+      {
+       "frames": 300,
+       "complete_frames": 300,
+       "busy_p50_us": 2668.76,
+       "busy_p95_us": 2675.604,
+       "busy_mean_us": 2668.7092000000002,
+       "a_p50_us": 194.8,
+       "b_p50_us": 2289.7,
+       "c_p50_us": 184.28
+      }
+     ],
+     "per_device": {
+      "0": {
+       "sims": [
+        0
+       ],
+       "busy_us": 1456.592,
+       "method": "median of T_A + T_B + T_C"
+      },
+      "1": {
+       "sims": [
+        1
+       ],
+       "busy_us": 2668.76,
+       "method": "median of T_A + T_B + T_C"
+      }
+     }
+    },
+    "invariants": {
+     "drift": 0,
+     "overflow_total": 0,
+     "stamp_errors_gpu": 0,
+     "stamp_errors_host": 0,
+     "far_migration_total": 0
+    },
+    "devices": [
+     {
+      "device_index": 0,
+      "name": "NVIDIA GeForce RTX 5090",
+      "uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8"
+     },
+     {
+      "device_index": 1,
+      "name": "AMD Radeon RX 7900 XTX",
+      "uuid": "00000000050000000000000000000000"
+     }
+    ],
+    "pilot_steady_fps": 368.0754427092221,
+    "seconds": 4.315321300004143
+   },
+   {
+    "round": 2,
+    "weights": [
+     1.2938338352702994,
+     0.7061661647297006
+    ],
+    "cuts": [
+     189
+    ],
+    "own_columns": [
+     189,
+     105
+    ],
+    "fluid": [
+     1339200,
+     734400
+    ],
+    "all": [
+     1375742,
+     761702
+    ],
+    "busy_us": [
+     1874.752,
+     1855.02
+    ],
+    "omega": [
+     1.286818834196999,
+     0.7131811658030011
+    ],
+    "next_cuts": [
+     188
+    ],
+    "changed": true,
+    "statistics": {
+     "per_sim": [
+      {
+       "frames": 300,
+       "complete_frames": 300,
+       "busy_p50_us": 1874.752,
+       "busy_p95_us": 1881.5792,
+       "busy_mean_us": 1876.7187199999998,
+       "a_p50_us": 96.768,
+       "b_p50_us": 1598.656,
+       "c_p50_us": 179.328
+      },
+      {
+       "frames": 300,
+       "complete_frames": 300,
+       "busy_p50_us": 1855.02,
+       "busy_p95_us": 1872.682,
+       "busy_mean_us": 1854.8342666666667,
+       "a_p50_us": 90.56,
+       "b_p50_us": 1591.34,
+       "c_p50_us": 173.12
+      }
+     ],
+     "per_device": {
+      "0": {
+       "sims": [
+        0
+       ],
+       "busy_us": 1874.752,
+       "method": "median of T_A + T_B + T_C"
+      },
+      "1": {
+       "sims": [
+        1
+       ],
+       "busy_us": 1855.02,
+       "method": "median of T_A + T_B + T_C"
+      }
+     }
+    },
+    "invariants": {
+     "drift": 0,
+     "overflow_total": 0,
+     "stamp_errors_gpu": 0,
+     "stamp_errors_host": 0,
+     "far_migration_total": 0
+    },
+    "devices": [
+     {
+      "device_index": 0,
+      "name": "NVIDIA GeForce RTX 5090",
+      "uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8"
+     },
+     {
+      "device_index": 1,
+      "name": "AMD Radeon RX 7900 XTX",
+      "uuid": "00000000050000000000000000000000"
+     }
+    ],
+    "pilot_steady_fps": 526.2756263305288,
+    "seconds": 3.8168651000014506
+   }
+  ],
+  "weights": [
+   1.286818834196999,
+   0.7131811658030011
+  ],
+  "cuts": [
+   188
+  ],
+  "switch_interval_s": 0.00019999999999999998
+ },
+ "partition": [
+  {
+   "own_global_first_column": 0,
+   "own_global_last_column": 187,
+   "own_particle_count": 1368432,
+   "has_leading_peer": false,
+   "has_trailing_peer": true
+  },
+  {
+   "own_global_first_column": 188,
+   "own_global_last_column": 293,
+   "own_particle_count": 769012,
+   "has_leading_peer": true,
+   "has_trailing_peer": false
+  }
+ ],
+ "commit": "0dcdee715277719a32fe1f4e0071157a7c950e24",
+ "v7_dirty_files": [],
+ "clock": {
+  "time_domain": "QUERY_PERFORMANCE_COUNTER",
+  "host_clock": "time.perf_counter_ns",
+  "extensions": [
+   "VK_KHR_calibrated_timestamps",
+   "VK_KHR_calibrated_timestamps"
+  ],
+  "qpc_frequency": 10000000,
+  "calibrate_ms": 500.0,
+  "detail": "phases",
+  "fit_version": 2,
+  "fits": [
+   {
+    "version": 2,
+    "device_center_ns": 1820760682.0,
+    "host_center_ns": 84999862209818.75,
+    "slope": 1.0000085439610562,
+    "intercept_ns": -14.707870601006483,
+    "drift_knots_device_ns": [
+     -1820760682.0,
+     -1820502634.0,
+     -1820222634.0,
+     -1820074282.0,
+     -1819796426.0,
+     -817953258.0,
+     183145654.0,
+     647980310.0,
+     648239190.0,
+     648296342.0,
+     1621327254.0,
+     1621527126.0,
+     1621782998.0,
+     1621867926.0,
+     1622252246.0
+    ],
+    "drift_knots_ns": [
+     -15.738521814346313,
+     -16.9346764087677,
+     -15.738521814346313,
+     6.4315667152404785,
+     -15.738521814346313,
+     -15.738521814346313,
+     -10.5990469455719,
+     14.93917167186737,
+     -10.5990469455719,
+     12.781472444534302,
+     12.781472444534302,
+     1.139664888381958,
+     -10.502142667770386,
+     1.139664888381958,
+     -10.502142667770386
+    ],
+    "samples": 19,
+    "samples_low_deviation": 16,
+    "samples_kept": 15,
+    "deviation_threshold_ns": 13448.0,
+    "line_residual_rms_ns": 36.995310444475464,
+    "residual_rms_ns": 34.2056869324366,
+    "residual_max_ns": 87.76758214831352,
+    "driver_max_deviation_min_ns": 12448.0,
+    "driver_max_deviation_median_ns": 12736.0,
+    "device_origin_tick": 1792480408355366784,
+    "ns_per_tick": 1.0
+   },
+   {
+    "version": 2,
+    "device_center_ns": 1849054492.631579,
+    "host_center_ns": 84999891584147.38,
+    "slope": 1.0000149708106172,
+    "intercept_ns": -0.006579000177055697,
+    "drift_knots_device_ns": [
+     -1849054492.631579,
+     -1849039292.631579,
+     -1848993932.631579,
+     -1848953292.631579,
+     -1848917892.631579,
+     -1347932732.631579,
+     -847278692.6315789,
+     -346378852.6315789,
+     153811867.36842108,
+     619159907.3684211,
+     619190667.3684211,
+     619230827.3684211,
+     654590747.3684211,
+     1155072027.368421,
+     1593020747.368421,
+     1593056787.368421,
+     1593096747.368421,
+     1593141787.368421,
+     1593177067.368421
+    ],
+    "drift_knots_ns": [
+     26.880231618881226,
+     26.236486792564392,
+     25.59274196624756,
+     25.32775855064392,
+     25.062775135040283,
+     -17.42517912387848,
+     -17.42517912387848,
+     -24.062556982040405,
+     -24.062556982040405,
+     -35.091177225112915,
+     -24.062556982040405,
+     -17.42517912387848,
+     5.5090473890304565,
+     14.639172792434692,
+     15.476940870285034,
+     15.275432229042053,
+     15.911691665649414,
+     25.01134717464447,
+     34.111002683639526
+    ],
+    "samples": 19,
+    "samples_low_deviation": 19,
+    "samples_kept": 19,
+    "deviation_threshold_ns": 1015.0,
+    "line_residual_rms_ns": 46.32863888120117,
+    "residual_rms_ns": 35.920752560991176,
+    "residual_max_ns": 85.10208058357239,
+    "driver_max_deviation_min_ns": 15.0,
+    "driver_max_deviation_median_ns": 15.0,
+    "device_origin_tick": 21940229476,
+    "ns_per_tick": 10.0
+   }
+  ]
+ },
+ "slabs": {
+  "frame": 1000,
+  "per_sim": [
+   {
+    "own_columns": 188,
+    "leading_peer": false,
+    "trailing_peer": true,
+    "band_widths": [
+     2,
+     2,
+     3
+    ],
+    "own_particles": 1368419,
+    "n_B": 1346489,
+    "n_correction_interior": 1353799,
+    "n_density_deep_interior": 1353799,
+    "own_column_particles": [
+     1462,
+     7310,
+     7310,
+     7304,
+     7307,
+     7309,
+     7309,
+     7309,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7309,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310
+    ]
+   },
+   {
+    "own_columns": 106,
+    "leading_peer": true,
+    "trailing_peer": false,
+    "band_widths": [
+     2,
+     2,
+     3
+    ],
+    "own_particles": 769025,
+    "n_B": 747095,
+    "n_correction_interior": 754405,
+    "n_density_deep_interior": 754405,
+    "own_column_particles": [
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7311,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7310,
+     7311,
+     7310,
+     7312,
+     7313,
+     7316,
+     7310,
+     7310,
+     1462
+    ]
+   }
+  ]
+ },
+ "links": [
+  {
+   "link": "s0_to_s1",
+   "sender": 0,
+   "receiver": 1,
+   "sender_direction": "trailing",
+   "receiver_direction": "leading",
+   "dma_bytes": 626304
+  },
+  {
+   "link": "s1_to_s0",
+   "sender": 1,
+   "receiver": 0,
+   "sender_direction": "leading",
+   "receiver_direction": "trailing",
+   "dma_bytes": 626304
+  }
+ ],
+ "labels": {
+  "compute": [
+   [
+    "a_start",
+    "a_voxel_end",
+    "a_ghost_trailing_end",
+    "b_start",
+    "b_correction_density_interior_end",
+    "b_force_deep_interior_end",
+    "c_start",
+    "c_force_end"
+   ],
+   [
+    "a_start",
+    "a_voxel_end",
+    "a_ghost_leading_end",
+    "b_start",
+    "b_correction_density_interior_end",
+    "b_force_deep_interior_end",
+    "c_start",
+    "c_force_end"
+   ]
+  ],
+  "transfer": [
+   [
+    "t_rb_trailing_start",
+    "t_rb_trailing_copy_end",
+    "t_rb_trailing_end",
+    "t_up_trailing_start",
+    "t_up_trailing_end"
+   ],
+   [
+    "t_rb_leading_start",
+    "t_rb_leading_copy_end",
+    "t_rb_leading_end",
+    "t_up_leading_start",
+    "t_up_leading_end"
+   ]
+  ]
+ },
+ "records": {
+  "steps": 1500,
+  "device_rows": 3000,
+  "device_rows_complete": 3000,
+  "link_rows": 3000,
+  "link_rows_complete": 3000
+ },
+ "switches_env": {}
+}

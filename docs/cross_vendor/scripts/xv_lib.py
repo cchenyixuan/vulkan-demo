@@ -40,6 +40,7 @@ COMMON = ["--sync-scheme", "per-direction", "--depth", "2", "--pool-safety", "1.
 STEPS, WARMUP = 1500, 500
 SWITCH_INTERVAL_MS = "0.2"
 SOLVER_TAG = "v7-rc3"
+WRAPPER_DEFAULTS: list = []              # run_chain_v6 arguments every launch gets (xv_campaign sets --obj-cache DIR)
 
 
 class RunFailed(RuntimeError):
@@ -115,7 +116,7 @@ class Experiment:
         """Start one harness process (not waited): (process, log path, start epoch)."""
         log = self.directory / "logs" / f"{label}.log"
         command = [str(PYTHON), "-u", str(HARNESS), "--solver", "v7", "--switch-interval-ms", SWITCH_INTERVAL_MS,
-                   *wrapper_arguments, "--", *bench_arguments]
+                   *WRAPPER_DEFAULTS, *wrapper_arguments, "--", *bench_arguments]
         with (self.directory / "logs" / f"{label}.cmd").open("w", encoding="utf-8") as handle:
             handle.write(subprocess.list2cmdline(command) + "\n")
         start = time.time()

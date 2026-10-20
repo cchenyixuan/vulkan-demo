@@ -1,0 +1,248 @@
+{
+ "format": "e32_slab_weights_v1",
+ "case": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-xv\\cases\\aligned\\cavity2d_n1000\\case.yaml",
+ "case_sha256": "2a62beb7362d00dfee9457d1015bc8e2718fba398429dfb4ef673675d8ffd5bf",
+ "particle_count": 1044484,
+ "grid_nx": 206,
+ "fluid_histogram_sha256": "a7ef6111a39b4a31062312a1498301ec3a46d0ee19d0eef7533ae80a31114a25",
+ "slab_count": 2,
+ "device_map": [
+  0,
+  1
+ ],
+ "devices": [
+  {
+   "device_index": 0,
+   "name": "NVIDIA GeForce RTX 5090",
+   "uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8"
+  },
+  {
+   "device_index": 1,
+   "name": "AMD Radeon RX 7900 XTX",
+   "uuid": "00000000050000000000000000000000"
+  }
+ ],
+ "host": "DESKTOP-LDQTHT7",
+ "settings": {
+  "warmup": 200,
+  "steps": 300,
+  "rounds": 2,
+  "depth": 2,
+  "pool_safety": 1.2,
+  "sync_scheme": "per-direction",
+  "defrag_cadence": 1000
+ },
+ "band_widths": [
+  2,
+  2,
+  3
+ ],
+ "environment": {
+  "VK_LOADER_LAYERS_DISABLE": "VK_LAYER_KHRONOS_validation",
+  "VK_SDK_PATH": "C:\\VulkanSDK\\1.4.350.0"
+ },
+ "commit": "0dcdee715277719a32fe1f4e0071157a7c950e24",
+ "v7_dirty_files": [],
+ "timestamp": "2026-10-20 16:12:06",
+ "seconds": 4.684403600011137,
+ "rounds": [
+  {
+   "round": 1,
+   "weights": [
+    1.0,
+    1.0
+   ],
+   "cuts": [
+    103
+   ],
+   "own_columns": [
+    103,
+    103
+   ],
+   "fluid": [
+    500000,
+    500000
+   ],
+   "all": [
+    522242,
+    522242
+   ],
+   "busy_us": [
+    828.2560000000001,
+    1407.3600000000001
+   ],
+   "omega": [
+    1.259035540987361,
+    0.740964459012639
+   ],
+   "next_cuts": [
+    129
+   ],
+   "changed": true,
+   "statistics": {
+    "per_sim": [
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 828.2560000000001,
+      "busy_p95_us": 834.8816,
+      "busy_mean_us": 829.7830399999999,
+      "a_p50_us": 27.424,
+      "b_p50_us": 648.352,
+      "c_p50_us": 151.456
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 1407.3600000000001,
+      "busy_p95_us": 1415.656,
+      "busy_mean_us": 1406.6194666666668,
+      "a_p50_us": 61.78,
+      "b_p50_us": 1187.8400000000001,
+      "c_p50_us": 157.44
+     }
+    ],
+    "per_device": {
+     "0": {
+      "sims": [
+       0
+      ],
+      "busy_us": 828.2560000000001,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "1": {
+      "sims": [
+       1
+      ],
+      "busy_us": 1407.3600000000001,
+      "method": "median of T_A + T_B + T_C"
+     }
+    }
+   },
+   "invariants": {
+    "drift": 0,
+    "overflow_total": 0,
+    "stamp_errors_gpu": 0,
+    "stamp_errors_host": 0,
+    "far_migration_total": 0
+   },
+   "devices": [
+    {
+     "device_index": 0,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8"
+    },
+    {
+     "device_index": 1,
+     "name": "AMD Radeon RX 7900 XTX",
+     "uuid": "00000000050000000000000000000000"
+    }
+   ],
+   "pilot_steady_fps": 688.6034296009126,
+   "seconds": 1.4851006000099005
+  },
+  {
+   "round": 2,
+   "weights": [
+    1.259035540987361,
+    0.740964459012639
+   ],
+   "cuts": [
+    129
+   ],
+   "own_columns": [
+    129,
+    77
+   ],
+   "fluid": [
+    630000,
+    370000
+   ],
+   "all": [
+    655102,
+    389382
+   ],
+   "busy_us": [
+    986.496,
+    1075.04
+   ],
+   "omega": [
+    1.2996047736636127,
+    0.7003952263363873
+   ],
+   "next_cuts": [
+    133
+   ],
+   "changed": true,
+   "statistics": {
+    "per_sim": [
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 986.496,
+      "busy_p95_us": 994.5744,
+      "busy_mean_us": 988.5341866666669,
+      "a_p50_us": 35.392,
+      "b_p50_us": 791.744,
+      "c_p50_us": 158.784
+     },
+     {
+      "frames": 300,
+      "complete_frames": 300,
+      "busy_p50_us": 1075.04,
+      "busy_p95_us": 1082.322,
+      "busy_mean_us": 1073.8493333333333,
+      "a_p50_us": 46.76,
+      "b_p50_us": 872.06,
+      "c_p50_us": 155.76
+     }
+    ],
+    "per_device": {
+     "0": {
+      "sims": [
+       0
+      ],
+      "busy_us": 986.496,
+      "method": "median of T_A + T_B + T_C"
+     },
+     "1": {
+      "sims": [
+       1
+      ],
+      "busy_us": 1075.04,
+      "method": "median of T_A + T_B + T_C"
+     }
+    }
+   },
+   "invariants": {
+    "drift": 0,
+    "overflow_total": 0,
+    "stamp_errors_gpu": 0,
+    "stamp_errors_host": 0,
+    "far_migration_total": 0
+   },
+   "devices": [
+    {
+     "device_index": 0,
+     "name": "NVIDIA GeForce RTX 5090",
+     "uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8"
+    },
+    {
+     "device_index": 1,
+     "name": "AMD Radeon RX 7900 XTX",
+     "uuid": "00000000050000000000000000000000"
+    }
+   ],
+   "pilot_steady_fps": 892.8956755529153,
+   "seconds": 3.143788699992001
+  }
+ ],
+ "weights": [
+  1.2996047736636127,
+  0.7003952263363873
+ ],
+ "cuts": [
+  133
+ ],
+ "switch_interval_s": 0.00019999999999999998
+}

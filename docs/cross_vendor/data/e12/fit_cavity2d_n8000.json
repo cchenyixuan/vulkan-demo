@@ -1,0 +1,46 @@
+{
+ "case": "cavity2d_n8000",
+ "started": "2026-10-20T16:09:49",
+ "steps": 300,
+ "warmup": 100,
+ "cards": {
+  "0": {
+   "status": "pass",
+   "steady_fps": 12.3,
+   "reasons": [],
+   "telemetry_peaks": {
+    "1": {
+     "memory_used_peak_mib": 46100.0,
+     "utilization_peak": 100.0,
+     "samples": 64
+    },
+    "0": {
+     "memory_used_peak_mib": 22618.0,
+     "utilization_peak": 100.0,
+     "samples": 64
+    }
+   },
+   "rc": 0
+  },
+  "1": {
+   "status": "pass",
+   "steady_fps": 5.9,
+   "reasons": [],
+   "telemetry_peaks": {
+    "1": {
+     "memory_used_peak_mib": 46109.0,
+     "utilization_peak": 100.0,
+     "samples": 93
+    },
+    "0": {
+     "memory_used_peak_mib": 22618.0,
+     "utilization_peak": 100.0,
+     "samples": 92
+    }
+   },
+   "rc": 0
+  }
+ },
+ "fits": true,
+ "ended": "2026-10-20T16:11:43"
+}
