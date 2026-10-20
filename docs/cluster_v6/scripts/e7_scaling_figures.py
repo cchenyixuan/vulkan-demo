@@ -7,7 +7,9 @@ panel labels above the top-left corner, elsarticle text width 384 pt).
   strong_scaling.pdf  (a) eta against K: 2d_n8000 at K = 2..8, and 2d_n11320 at K = 8 (another marker; its reference
                       is K = 2 pairs of the case); (b) eta against particles per GPU (log axis): every strong K = 8 point
                       (2d_n11320 with the same marker as in (a)).
-  weak_scaling.pdf    eta against K (2..8) for the three per-GPU loads (the k members of n1440 / n2840 / n5640).
+  weak_scaling.pdf    eta against K (2..8) for the three per-device loads (the k members of n1440 / n2840 / n5640),
+                      legends "2M / 8M / 32M per device", drawn 0.6 text width wide (230.4 pt) for \includegraphics
+                      without scaling.
 
 eta = the tables' eta without the defrag events (--eta nodefrag, default) or with them (--eta with); the marker is
 the mean over the trials, the bar the minimum to the maximum. Both figures shade eta = 1 +- 0.02. Points of every
@@ -35,9 +37,9 @@ COLOR_MAIN = "#08519c"
 COLOR_LIGHT = "#6baed6"
 COLOR_RED = "#b2182b"
 BAND_COLOR = "#c6dbef"
-LOADS = (("cavity2d_n1440", r"2.1M per device", COLOR_MAIN, "o"),
-         ("cavity2d_n2840", r"8.1M per device", COLOR_LIGHT, "s"),
-         ("cavity2d_n5640", r"32.0M per device", COLOR_RED, "^"))
+LOADS = (("cavity2d_n1440", r"2M per device", COLOR_MAIN, "o"),
+         ("cavity2d_n2840", r"8M per device", COLOR_LIGHT, "s"),
+         ("cavity2d_n5640", r"32M per device", COLOR_RED, "^"))
 
 
 def setup_style() -> None:
@@ -173,7 +175,10 @@ def strong_figure(chosen: dict, out: pathlib.Path) -> list:
 def weak_figure(chosen: dict, out: pathlib.Path) -> list:
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MultipleLocator
-    panel, height_panel, left, right, bottom, top = 2.05, 1.85, 0.42, 0.10, 0.40, 0.12
+    # drawn at its insertion width, 0.6 of the text width (230.4 pt): same font sizes and line widths as
+    # strong_scaling.pdf, no scaling in LaTeX
+    height_panel, left, right, bottom, top = 1.85, 0.42, 0.10, 0.40, 0.12
+    panel = 0.6 * TEXT_WIDTH - left - right
     figure = plt.figure(figsize=(left + panel + right, bottom + height_panel + top))
     axis = axes_inches(figure, left, bottom, panel, height_panel)
     band(axis)
