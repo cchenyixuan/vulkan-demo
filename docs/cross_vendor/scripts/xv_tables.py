@@ -137,6 +137,13 @@ def e12_tables(directory: pathlib.Path, sizes: list, trials: int) -> dict:
             if pair:
                 item["eta"] = pair["tau_bar"] / (2.0 * item["T_ms"])
                 item["eta_defrag"] = harmonic(pair["5090"]["tau_ms_defrag"], pair["XTX"]["tau_ms_defrag"]) / (2.0 * item["T_ms_defrag"])
+            trial_trace = directory / "traces" / f"{name}_K2_t{trial}"
+            if trial_trace.exists():                   # extra trials whose K = 2 run was traced (xv_campaign more --trace)
+                try:
+                    item["trace"] = xv_e0.trace_summary(trial_trace)
+                    item["telemetry_loop"] = row.get("telemetry_loop")
+                except Exception as error:  # noqa: BLE001
+                    item["trace_error"] = repr(error)
             runs[trial] = item
         entry["e2"] = {"trials": runs, "T_ms": mean_range([r["T_ms"] for r in runs.values()]),
                        "fps_nodefrag": mean_range([r["fps_nodefrag"] for r in runs.values() if r["fps_nodefrag"]]),
@@ -219,9 +226,14 @@ def weight_sweep_figure(e3: dict, calibrated_ratio: float, e1_ratio: float, out:
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MultipleLocator
     import e7_scaling_figures as style
+    """Single-column figure in the loss_sources.pdf style (e7_scaling_figures: 8 pt serif, same panel geometry), width
+    0.6 linewidth = 0.6 x 384/72 in: eta (filled circles, min-max error bars) against omega_5090 / omega_XTX; two vertical
+    lines, the pilot calibration ("pilot") and the one-device throughput ratio tau_XTX / tau_5090 ("one device"); no title."""
     style.setup_style()
-    figure = plt.figure(figsize=(3.30, 2.45))
-    axis = style.axes_inches(figure, 0.50, 0.42, 2.65, 1.90)
+    width = 0.6 * style.TEXT_WIDTH                     # 3.200 in
+    left, bottom, panel_height, top, right = 0.46, 0.40, 1.85, 0.08, 0.10
+    figure = plt.figure(figsize=(width, bottom + panel_height + top))
+    axis = style.axes_inches(figure, left, bottom, width - left - right, panel_height)
     ratios, means, lows, highs = [], [], [], []
     for ratio, point in sorted(e3["points"].items(), key=lambda item: float(item[0])):
         if not point["eta"]:
@@ -230,21 +242,17 @@ def weight_sweep_figure(e3: dict, calibrated_ratio: float, e1_ratio: float, out:
     import numpy as np
     means_array = np.array(means)
     axis.errorbar(ratios, means, yerr=[means_array - np.array(lows), np.array(highs) - means_array], fmt="o", color=style.COLOR_MAIN,
-                  ms=3.2, lw=0.8, capsize=1.5, mew=0.8, label=r"$\eta$ (mean, min–max of 3 trials)", zorder=3)
-    axis.axvline(calibrated_ratio, color=style.COLOR_RED, lw=0.8, ls=(0, (4, 2)), label=f"E2 calibrated ({calibrated_ratio:.2f})", zorder=2)
-    axis.axvline(e1_ratio, color="#555555", lw=0.8, ls=(0, (1, 1.5)), label=rf"E1 $\tau_\mathrm{{XTX}}/\tau_\mathrm{{5090}}$ ({e1_ratio:.2f})", zorder=2)
-    if e3["optimum"]:
-        best = e3["optimum"]
-        axis.plot([best["ratio"]], [best["eta"]["mean"]], marker="s", ms=6.5, mfc="none", mec=style.COLOR_RED, mew=0.9, ls="none",
-                  label=f"measured optimum ({best['ratio']:.1f})", zorder=4)
-    axis.set_xlabel(r"weight ratio $\omega_\mathrm{5090}/\omega_\mathrm{XTX}$")
+                  ms=3.0, lw=0.8, capsize=1.5, mew=0.8, zorder=3)
+    axis.axvline(calibrated_ratio, color=style.COLOR_RED, lw=0.8, ls=(0, (4, 2)), label="pilot", zorder=2)
+    axis.axvline(e1_ratio, color="#555555", lw=0.8, ls=(0, (1, 1.5)), label="one device", zorder=2)
+    axis.set_xlabel(r"$\omega_\mathrm{5090}/\omega_\mathrm{XTX}$")
     axis.set_ylabel(r"$\eta$")
     axis.set_xlim(1.3, 2.7)
     axis.xaxis.set_major_locator(MultipleLocator(0.2))
-    low = min(lows) if lows else 0.8
-    axis.set_ylim(max(0.0, (low - 0.05) // 0.05 * 0.05), 1.02)
+    axis.set_ylim(0.75, 1.0)
+    axis.yaxis.set_major_locator(MultipleLocator(0.05))
     style.frame(axis)
-    axis.legend(loc="lower left", frameon=False, handlelength=1.8)
+    axis.legend(loc="upper left", frameon=False, handlelength=2.2)
     style.save(figure, out)
     plt.close(figure)
 

@@ -78,3 +78,9 @@ ref_2d_n5640_K1_t3_g1	pass	0	11.9	11.947	149.2	ref_2d_n5640_K1_t3_g1.log
 2d_n5640_K2_t3	pass	0	36.3	36.5003	54.1	2d_n5640_K2_t3.log
 2d_n5640_K2_trace	pass	0	36.2	36.4518	62.2	2d_n5640_K2_trace.log
 cal_2d_n8000_K2	calibrated	0	-	-	126.9	cal_2d_n8000_K2.log
+2d_n1440_K2_t4	pass	0	518.7	522.3658	5.1	2d_n1440_K2_t4.log
+ref_2d_n1440_K1_t4_g0	pass	0	361.3	362.6256	6.0	ref_2d_n1440_K1_t4_g0.log
+ref_2d_n1440_K1_t4_g1	pass	0	184.8	185.2507	9.9	ref_2d_n1440_K1_t4_g1.log
+ref_2d_n1440_K1_t5_g0	pass	0	359.2	360.4579	5.7	ref_2d_n1440_K1_t5_g0.log
+ref_2d_n1440_K1_t5_g1	pass	0	184.2	184.6932	9.7	ref_2d_n1440_K1_t5_g1.log
+2d_n1440_K2_t5	pass	0	495.4	498.9264	5.3	2d_n1440_K2_t5.log

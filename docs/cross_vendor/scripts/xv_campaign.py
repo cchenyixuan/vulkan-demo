@@ -215,9 +215,54 @@ def e3(arguments) -> int:
     return 0
 
 
+def more(arguments) -> int:
+    """Extra trials of one size in the e12 directory (the user's 1440^2 item, 2026-10-20 evening): the E2 flow per trial
+    (reference pair and the calibrated K = 2 run, references first on odd trials), the K = 2 run traced when --trace is
+    given (so that the phases of the trial can be reported); telemetry at 0.25 s."""
+    out = pathlib.Path(arguments.out)
+    experiment = xv_lib.Experiment(out)
+    case, name = arguments.case, short(arguments.case)
+    weights_file = out / "weights" / f"cal_{name}_K2.json"
+    if not weights_file.exists():
+        log(f"{case}: no weights file {weights_file}")
+        return 2
+    trials = [int(trial) for trial in arguments.trials.split(",")]
+    experiment.start_telemetry(interval=0.25, path=out / f"telemetry_more_{name}.csv")
+    try:
+        for trial in trials:
+            done = done_labels(experiment)
+            reference_label = f"ref_{name}_K1_t{trial}"
+            chain_label = f"{name}_K2_t{trial}"
+            order = ("reference", "chain") if trial % 2 == 1 else ("chain", "reference")
+            for item in order:
+                if item == "reference":
+                    if {f"{reference_label}_g0", f"{reference_label}_g1"} <= done:
+                        continue
+                    log(f"{case}: trial {trial} references (both cards)")
+                    experiment.references(case, reference_label, members=(0, 1), timeout=timeout_for(case, "reference"))
+                else:
+                    if chain_label in done:
+                        continue
+                    log(f"{case}: trial {trial} K = 2{' (traced)' if arguments.trace else ''}")
+                    experiment.chain(case, chain_label, weights_file=weights_file, timeout=timeout_for(case, "chain"), trace=arguments.trace)
+    except xv_lib.RunFailed as error:
+        log(f"STOPPED (hard failure, nothing retried): {error}")
+        experiment.stop_telemetry()
+        return 1
+    time.sleep(1)
+    experiment.stop_telemetry()
+    log("more done")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="S6.6 cross-vendor campaign")
     sub = parser.add_subparsers(dest="command", required=True)
+    p_more = sub.add_parser("more")
+    p_more.add_argument("--case", required=True)
+    p_more.add_argument("--trials", required=True, help="comma-separated trial numbers, e.g. 4,5")
+    p_more.add_argument("--trace", action="store_true", help="step-trace the K = 2 run of every trial (seam check on)")
+    p_more.add_argument("--out", required=True)
     p_fit = sub.add_parser("fit")
     p_fit.add_argument("--case", required=True)
     p_fit.add_argument("--out", required=True)
@@ -233,7 +278,7 @@ def main() -> int:
     arguments = parser.parse_args()
     OBJ_CACHE.mkdir(parents=True, exist_ok=True)
     xv_lib.WRAPPER_DEFAULTS[:] = ["--obj-cache", str(OBJ_CACHE)]
-    return {"fit": fit, "e12": e12, "e3": e3}[arguments.command](arguments)
+    return {"fit": fit, "e12": e12, "e3": e3, "more": more}[arguments.command](arguments)
 
 
 if __name__ == "__main__":
