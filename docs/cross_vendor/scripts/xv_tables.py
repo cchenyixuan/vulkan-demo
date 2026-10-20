@@ -244,7 +244,7 @@ def weight_sweep_figure(e3: dict, calibrated_ratio: float, e1_ratio: float, out:
     axis.errorbar(ratios, means, yerr=[means_array - np.array(lows), np.array(highs) - means_array], fmt="o", color=style.COLOR_MAIN,
                   ms=3.0, lw=0.8, capsize=1.5, mew=0.8, zorder=3)
     axis.axvline(calibrated_ratio, color=style.COLOR_RED, lw=0.8, ls=(0, (4, 2)), label="pilot", zorder=2)
-    axis.axvline(e1_ratio, color="#555555", lw=0.8, ls=(0, (1, 1.5)), label="one device", zorder=2)
+    axis.axvline(e1_ratio, color="#555555", lw=0.8, ls=(0, (1, 1.5)), label=r"$\dfrac{\tau_{\mathrm{XTX}}}{\tau_{5090}}$", zorder=2)
     axis.set_xlabel(r"$\omega_\mathrm{5090}/\omega_\mathrm{XTX}$")
     axis.set_ylabel(r"$\eta$")
     axis.set_xlim(1.3, 2.7)
@@ -252,7 +252,7 @@ def weight_sweep_figure(e3: dict, calibrated_ratio: float, e1_ratio: float, out:
     axis.set_ylim(0.75, 1.0)
     axis.yaxis.set_major_locator(MultipleLocator(0.05))
     style.frame(axis)
-    axis.legend(loc="upper left", frameon=False, handlelength=2.2)
+    axis.legend(loc="upper left", frameon=False, handlelength=2.2, labelspacing=0.7)
     style.save(figure, out)
     plt.close(figure)
 
