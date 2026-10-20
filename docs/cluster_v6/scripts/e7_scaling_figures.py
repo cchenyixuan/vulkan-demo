@@ -35,9 +35,9 @@ COLOR_MAIN = "#08519c"
 COLOR_LIGHT = "#6baed6"
 COLOR_RED = "#b2182b"
 BAND_COLOR = "#c6dbef"
-LOADS = (("cavity2d_n1440", r"2.1M per GPU", COLOR_MAIN, "o"),
-         ("cavity2d_n2840", r"8.1M per GPU", COLOR_LIGHT, "s"),
-         ("cavity2d_n5640", r"32.0M per GPU", COLOR_RED, "^"))
+LOADS = (("cavity2d_n1440", r"2.1M per device", COLOR_MAIN, "o"),
+         ("cavity2d_n2840", r"8.1M per device", COLOR_LIGHT, "s"),
+         ("cavity2d_n5640", r"32.0M per device", COLOR_RED, "^"))
 
 
 def setup_style() -> None:
@@ -106,7 +106,7 @@ def errorbar(axis, rows: list, x_key: str, **style) -> None:
 
 def strong_figure(chosen: dict, out: pathlib.Path) -> list:
     import matplotlib.pyplot as plt
-    from matplotlib.ticker import LogLocator, MultipleLocator, NullFormatter
+    from matplotlib.ticker import FuncFormatter, LogLocator, MultipleLocator, NullFormatter
     sweep = sorted((row for (case, slabs), row in chosen.items()
                     if case == "cavity2d_n8000" and 2 <= slabs <= 8 and row["kind"] == "strong"), key=lambda r: r["K"])
     largest = [row for (case, slabs), row in chosen.items() if case == "cavity2d_n11320" and slabs == 8]
@@ -122,29 +122,34 @@ def strong_figure(chosen: dict, out: pathlib.Path) -> list:
     for axis in (axis_k, axis_n):
         band(axis)
         frame(axis)
-    errorbar(axis_k, sweep, "K", label=f"{sweep[0]['particles'] / 1e6:.1f}M particles" if sweep else None, **main)
+    # labels (user 2026-10-20): "64M" / "128M, pair reference" in (a); (b) keeps only the pair-reference legend entry and
+    # reads particles per device in M with plain 0.1 / 1 / 10 ticks (as loss_sources.pdf (a)); "GPU" -> "device"
+    errorbar(axis_k, sweep, "K", label=f"{int(sweep[0]['particles'] // 1e6)}M" if sweep else None, **main)
     if largest:
-        errorbar(axis_k, largest, "K", label=f"{largest[0]['particles'] / 1e6:.1f}M particles (pair reference)", **other)
+        errorbar(axis_k, largest, "K", label=f"{int(largest[0]['particles'] // 1e6)}M, pair reference", **other)
     axis_k.set_xlim(1.6, 8.4)
     axis_k.xaxis.set_major_locator(MultipleLocator(1))
     values = [row[key] for row in sweep + largest for key in ("eta_min", "eta_max")] + [0.98, 1.02]
     axis_k.set_ylim(min(values) - 0.012, max(values) + 0.012)
     axis_k.yaxis.set_major_locator(MultipleLocator(0.02))
-    axis_k.set_xlabel(r"number of GPUs $K$", labelpad=1.5)
+    axis_k.set_xlabel(r"number of devices $K$", labelpad=1.5)
     axis_k.set_ylabel(r"$\eta$", labelpad=1.5)
     axis_k.legend(loc="lower left", frameon=False, handlelength=1.4, borderaxespad=0.2)
-    errorbar(axis_n, k8, "per_gpu", label=r"$K = 8$", **main)
+    for row in k8 + largest:
+        row["per_gpu_M"] = row["per_gpu"] / 1e6
+    errorbar(axis_n, k8, "per_gpu_M", label="_nolegend_", **main)
     if largest:
-        errorbar(axis_n, largest, "per_gpu", label=r"$K = 8$, pair reference", **other)
+        errorbar(axis_n, largest, "per_gpu_M", label=f"{int(largest[0]['particles'] // 1e6)}M, pair reference", **other)
     axis_n.set_xscale("log")
     axis_n.xaxis.set_major_locator(LogLocator(base=10.0, numticks=12))
+    axis_n.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:g}"))
     axis_n.xaxis.set_minor_locator(LogLocator(base=10.0, subs=tuple(range(2, 10)), numticks=12))
     axis_n.xaxis.set_minor_formatter(NullFormatter())
-    xs = [row["per_gpu"] for row in k8 + largest]
+    xs = [row["per_gpu_M"] for row in k8 + largest]
     axis_n.set_xlim(min(xs) / 1.6, max(xs) * 1.6)
     axis_n.set_ylim(0.0, 1.06)
     axis_n.yaxis.set_major_locator(MultipleLocator(0.2))
-    axis_n.set_xlabel("particles per GPU", labelpad=1.5)
+    axis_n.set_xlabel("particles per device (M)", labelpad=1.5)
     axis_n.set_ylabel(r"$\eta$", labelpad=1.5)
     axis_n.legend(loc="lower right", frameon=False, handlelength=1.4, borderaxespad=0.2)
     panel_label(axis_k, "(a)")
@@ -177,7 +182,7 @@ def weak_figure(chosen: dict, out: pathlib.Path) -> list:
     axis.xaxis.set_major_locator(MultipleLocator(1))
     axis.set_ylim(min(values) - 0.012, max(values) + 0.012)
     axis.yaxis.set_major_locator(MultipleLocator(0.02))
-    axis.set_xlabel(r"number of GPUs $K$", labelpad=1.5)
+    axis.set_xlabel(r"number of devices $K$", labelpad=1.5)
     axis.set_ylabel(r"$\eta$", labelpad=1.5)
     # in the empty strip between the 2.1M series (eta ~0.91-0.94) and the band (lower left covered the 2.1M points)
     axis.legend(loc="center", bbox_to_anchor=(0.5, 0.42), frameon=False, handlelength=1.4, borderaxespad=0.2)
