@@ -1,0 +1,107 @@
+{
+ "model": {
+  "cost_2d": 1.258e-09,
+  "cost_3d": 6e-09,
+  "floor_k1": 0.0014,
+  "floor": {
+   "2": 0.0018,
+   "4": 0.0045,
+   "8": 0.008
+  },
+  "efficiency": {
+   "2": 0.95,
+   "4": 0.9,
+   "8": 0.87
+  },
+  "efficiency_3d": null,
+  "cold_per_simulator": 17.0,
+  "warm_per_simulator": 1.2,
+  "load_per_million": 0.35,
+  "bootstrap_fixed": 2.0,
+  "bootstrap_per_million": 0.5,
+  "post_per_million": 0.1,
+  "post_per_slab": 1.0,
+  "seam_2d_per_million": 0.42,
+  "seam_2d_fixed": 8.0,
+  "seam_3d_per_million": 0.26,
+  "seam_3d_per_million_per_slab": 0.16,
+  "calibration_rounds": 2,
+  "calibration_fixed": 20.0,
+  "pilot_steps": 500,
+  "run_overhead": 10.0,
+  "trace_write": 15.0,
+  "job_overhead": 300.0,
+  "anatomy_steps": 3000,
+  "anatomy_steps_3d": 2000,
+  "soak_steps": 17000,
+  "cube_soak_seconds": 3600.0
+ },
+ "light_per_card": 4200000.0,
+ "batches_hours": {
+  "14": {
+   "B": 0.47781338880857144
+  }
+ },
+ "total_node_hours": 0.47781338880857144,
+ "records": [
+  {
+   "batch": 14,
+   "line": "B",
+   "job": "b2AB",
+   "family": "F3",
+   "case": "cavity2d_n2840_k5",
+   "slabs": 5,
+   "particles": 40703364,
+   "per_card": 8140672.8,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "cavity2d_n2840"
+   ],
+   "window": [
+    1500,
+    500
+   ],
+   "fps_estimate": 87.14997849556852,
+   "run": 78.9,
+   "reference": 37.4,
+   "reference_first": 53.2,
+   "calibration": 312.8,
+   "traced": 188.9,
+   "total": 866.5
+  },
+  {
+   "batch": 14,
+   "line": "B",
+   "job": "b2AB",
+   "family": "F3",
+   "case": "cavity2d_n2840_k5",
+   "slabs": 5,
+   "particles": 40703364,
+   "per_card": 8140672.8,
+   "dimension": 2,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "cavity2d_n2840"
+   ],
+   "prefix": "old_",
+   "weights_from": "$HOME/run/logs/e7_b2Y_1704741/weights/2d_n2840_k5_K5.json",
+   "weights_sha256": "d2e283170ae51618b724c96bb2c5615259deb19e42d7233ba15e75a4968c4f5f",
+   "window": [
+    1500,
+    500
+   ],
+   "fps_estimate": 87.14997849556852,
+   "run": 78.9,
+   "reference": 37.4,
+   "reference_first": 53.2,
+   "calibration": 0.0,
+   "traced": 188.9,
+   "total": 553.7
+  }
+ ]
+}

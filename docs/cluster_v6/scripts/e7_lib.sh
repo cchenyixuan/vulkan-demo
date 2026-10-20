@@ -29,6 +29,10 @@
 #       Before the bring-up the node's GPUs are checked with nvidia-smi (e7_gpu_health: E7_EXPECTED_DEVICES GPUs
 #       listed without an error, else the job stops at once). A run of rc2's relay mode whose dest guards fell
 #       back to or took a blocking wait is a hard failure (parse_run_v6: the job stops; user stop rule).
+#       E7_PREFIX=<p> prefixes the point's labels (lock_, old_). E7_WEIGHTS_FROM=FILE (revision 10, user
+#       2026-10-20) replaces the calibration by an earlier job's weights file: e7_weights_from checks its sha256
+#       against E7_WEIGHTS_SHA256 (the whole digest) and copies it to weights/<point>.json (+ <point>.source.txt);
+#       the chain bench rejects a file of another particle set or device map and warns when the node differs.
 #   e7_cross ORIGINAL_LINE <e7_point arguments>
 #       user item 13: the same point on this node, labels x_*; skipped (recorded) when this node is the one
 #       the original point ran on (its points.tsv record: a job of another solver than rc1 looks up
@@ -647,6 +651,29 @@ e7_calibrate() {    # POINT FAMILY CASE K YAML MAP WEIGHTS_FILE TIMEOUT: the poi
     fi
 }
 
+e7_weights_from() { # POINT SOURCE SHA256 WEIGHTS_FILE: the point's weights from an earlier job's file (revision 10, user
+    # 2026-10-20) instead of a calibration: SOURCE must exist and have the sha256 SHA256 (the whole digest), it is
+    # copied to WEIGHTS_FILE (weights/<point>.json, read by every run of the point as a calibrated file would be) and
+    # its origin recorded next to it (<point>.source.txt); the file's weights, cuts and node are printed. The chain
+    # bench checks the file against the case (particle set, device map, cuts) and warns when the node differs.
+    local base=$1 source=$2 digest=$3 weights_file=$4 found
+    echo "=== WEIGHTS $base from $source ($(date +%T))"
+    if [ "$E30_DRY" = 1 ]; then echo "DRY: would check sha256 $digest and copy $source -> $weights_file"; return 0; fi
+    [ -f "$source" ] || e30_fail "weights_$base: $source is not a file"
+    found=$(sha256sum "$source" | cut -c1-64)
+    [ "$found" = "$digest" ] || e30_fail "weights_$base: $source has sha256 $found, expected $digest"
+    cp "$source" "$weights_file" || e30_fail "weights_$base: cannot copy $source to $weights_file"
+    printf 'point\t%s\nsource\t%s\nsha256\t%s\ncopied_to\t%s\ntime\t%s\njob\t%s\t%s\n' "$base" "$source" "$found" \
+        "$weights_file" "$(date -Is)" "$E7_JOB" "$E30_JOB" > "${weights_file%.json}.source.txt"
+    $PY - "$source" <<'PYEOF'
+import json, sys
+record = json.load(open(sys.argv[1], encoding="utf-8"))
+print(f"[weights_from] host={record.get('host')} timestamp={record.get('timestamp')} slabs={record.get('slab_count')} "
+      f"device_map={record.get('device_map')} weights={[round(value, 4) for value in record['weights']]} cuts={record.get('cuts')}")
+PYEOF
+    echo "WEIGHTS label=weights_$base source=$source sha256=$found -> $weights_file"
+}
+
 e7_point() {        # FAMILY CASE K TRIALS STEPS WARMUP T_CAL T_RUN T_TRACE TRACES REF:TIMEOUT...
     local family=$1 case_name=$2 slabs=$3 trials=$4 steps=$5 warmup=$6 t_cal=$7 t_run=$8 t_trace=$9 traces=${10}
     shift 10
@@ -656,8 +683,13 @@ e7_point() {        # FAMILY CASE K TRIALS STEPS WARMUP T_CAL T_RUN T_TRACE TRAC
     map=$(e7_device_map "$slabs")
     weights_file=$SHM/weights/$base.json
     started=$(date +%s)
-    echo; echo "##### POINT $base family=$family case=$case_name K=$slabs trials=$trials arms=${E7_ARMS:-EC} traces=$traces ($(e7_trace_arms "$traces")) references=${references[*]} host=$(hostname) ($(date +%T))"
-    e7_calibrate "$base" "$family" "$case_name" "$slabs" "$yaml" "$map" "$weights_file" "$t_cal"
+    echo; echo "##### POINT $base family=$family case=$case_name K=$slabs trials=$trials arms=${E7_ARMS:-EC} traces=$traces ($(e7_trace_arms "$traces")) references=${references[*]} weights=${E7_WEIGHTS_FROM:-calibration} host=$(hostname) ($(date +%T))"
+    if [ -n "${E7_WEIGHTS_FROM:-}" ]; then
+        [ -n "${E7_WEIGHTS_SHA256:-}" ] || e30_fail "weights_$base: E7_WEIGHTS_FROM without E7_WEIGHTS_SHA256"
+        e7_weights_from "$base" "$E7_WEIGHTS_FROM" "$E7_WEIGHTS_SHA256" "$weights_file"
+    else
+        e7_calibrate "$base" "$family" "$case_name" "$slabs" "$yaml" "$map" "$weights_file" "$t_cal"
+    fi
     for trial in $(seq 1 "$trials"); do
         for item in $(e7_rotation "$trial"); do
             case "$item" in

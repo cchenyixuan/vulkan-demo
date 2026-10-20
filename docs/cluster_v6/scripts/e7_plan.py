@@ -102,6 +102,14 @@ Revision 9 (--revision 9; user, 2026-10-19 evening): b2Z keeps waiting for wqd10
   power cap checked to be 575 W before any run (E7_POWER_CAP_W). Its sbatch name is e7_B9, not the line's
   singleton e7_B (that would wait for b2Z to end). Whichever of b2Z / b2AA starts first is kept, the other cancelled
   (a watcher outside the plan).
+Revision 10 (--revision 10; user, 2026-10-20 night): the 8M-per-device weak point at K = 5 again (2d_n2840_k5 K = 5,
+  eta 0.980 in b2Y 1704741, where the second pilot round measured GPU 4 3 % faster than the first and gave it
+  omega 1.0354). One job e7_b2AB (batch 14, sbatch name e7_B10): (1) the point under the protocol (a fresh 2-round
+  calibration, 3 trials R C / C R / R C with the K = 1 references of cavity2d_n2840 on the same cards); (2) the same
+  point with b2Y's weights file (E7_WEIGHTS_FROM, labels old_*: the file copied into the job's weights/ after its
+  sha256 is checked, no calibration, 3 trials with references); (3) one traced run of each (new and old weights).
+  Any node but wqd10nbm13g5 / wqd10nah09g1, the whole node, every card at 575 W or the job stops before any run,
+  the 3 % spread rule. The point's eta is computed from this job's own references only.
 
 Validation job (--emit-validation DIR: e7_v1.sbatch, job e7_V, line V; user item 7): the job's deployment
 (VALIDATION source repo, tag rc2, --validation-tree / --validation-commit, placeholders until rc2 exists) under
@@ -341,6 +349,31 @@ REVISIONS = {
         "sbatch": ["--exclusive", "--mem=0", "--exclude=wqd10nbm13g5,wqd10nah09g1"],
         "exports": [("E7_REFERENCE_SPREAD_PCT", "3"), ("E7_UNIFORM_POWER_CAP", "1"), ("E7_POWER_CAP_W", "575")],
     },
+    # revision 10 (user, 2026-10-20 night): the 8M-per-device K = 5 weak point again (2d_n2840_k5 K5, eta 0.980 in b2Y
+    # 1704741: its second pilot round measured GPU 4 3 % faster than the first and gave it omega 1.0354, +3.75 %
+    # particles over the mean; the trials then waited on GPU 4). One job b2AB (batch 14, line B, sbatch name e7_B10):
+    # (1) the point under the protocol (fresh 2-round calibration, 3 trials R C / C R / R C, the K = 1 references of
+    # cavity2d_n2840 on the same cards), (2) the same point with b2Y's weights file ("fixed_weights": E7_WEIGHTS_FROM
+    # copied into the job's weights/ under the prefix old_ after its sha256 is checked; no calibration; 3 trials with
+    # references), (3) one traced run of each (new and old weights: traces_weak 1). Any node but wqd10nbm13g5 /
+    # wqd10nah09g1, the whole node (--exclusive --mem=0), every card at 575 W (E7_POWER_CAP_W) or the job stops
+    # before any run, the 3 % spread rule. eta of both points from this job's own references only.
+    10: {
+        "arms": "C", "trials": 3, "traces_strong": 1, "traces_weak": 1, "cross_traces": 0, "window_2d": (1500, 500),
+        "extra_points": [("F3", "cavity2d_n2840_k5", 5, "cavity2d_n2840")],
+        "any_line": True,
+        "batches": {14: {"B": [("cavity2d_n2840_k5", 5), ("cavity2d_n2840_k5", 5, "old")]}},
+        # a third element names a "fixed_weights" entry: the point runs with that weights file instead of a calibration
+        "fixed_weights": {"old": {"prefix": "old_",
+                                  "from": "$HOME/run/logs/e7_b2Y_1704741/weights/2d_n2840_k5_K5.json",
+                                  "sha256": "d2e283170ae51618b724c96bb2c5615259deb19e42d7233ba15e75a4968c4f5f"}},
+        "extras": {14: {"A": ([], []), "B": ([], [])}},
+        "cross": {"A": [], "B": []},
+        "job_names": {14: "b2AB"},
+        "job_tag": "10",
+        "sbatch": ["--exclusive", "--mem=0", "--exclude=wqd10nbm13g5,wqd10nah09g1"],
+        "exports": [("E7_REFERENCE_SPREAD_PCT", "3"), ("E7_UNIFORM_POWER_CAP", "1"), ("E7_POWER_CAP_W", "575")],
+    },
 }
 REVISION = None                                 # --revision N: REVISIONS[N]
 ARMS = "EC"                                     # the timed arms per trial (--revision: REVISION["arms"])
@@ -355,6 +388,11 @@ class Point:
     cross: bool = False
     trials_fixed: int = None        # --revision: the trials and traces set by the revision instead of the rules
     traces_fixed: int = None
+    # revision 10: the point runs with an earlier job's weights file (E7_WEIGHTS_FROM, its sha256 checked) instead of
+    # a calibration; its labels carry the prefix (E7_PREFIX)
+    weights_from: str = None
+    weights_sha256: str = None
+    prefix: str = ""
 
     @property
     def line(self) -> str:
@@ -460,7 +498,9 @@ def revised_batches(points: list[Point], batches: dict) -> dict:
         out[batch] = {}
         for line, keys in lines.items():
             out[batch][line] = []
-            for key in keys:
+            for spec in keys:
+                # (case, K) or (case, K, name): name = a "fixed_weights" entry of the revision (revision 10)
+                key, fixed = tuple(spec[:2]), (REVISION["fixed_weights"][spec[2]] if len(spec) > 2 else None)
                 point = by_key[key]
                 if point.line != line and not REVISION.get("any_line"):
                     raise SystemExit(f"revision batch {batch}: {key} is a line {point.line} point")
@@ -468,7 +508,9 @@ def revised_batches(points: list[Point], batches: dict) -> dict:
                     point, references=list(point.references),
                     trials_fixed=REVISION.get("trials_overrides", {}).get(key, REVISION["trials"]),
                     traces_fixed=REVISION.get("traces_overrides", {}).get(
-                        key, REVISION["traces_strong"] if point.strong else REVISION["traces_weak"])))
+                        key, REVISION["traces_strong"] if point.strong else REVISION["traces_weak"]),
+                    **({"weights_from": fixed["from"], "weights_sha256": fixed["sha256"], "prefix": fixed["prefix"]}
+                       if fixed else {})))
     return out
 
 
@@ -609,7 +651,8 @@ def point_seconds(point: Point, model: Model) -> dict:
     steps, _ = model.window(point.case)
     run_warm = model.run(point.case, point.slabs, steps, cold=False)
     references_first, references_later, reference_runs = reference_seconds(point, model)
-    calibration = calibration_seconds(point, model)
+    # a point with a given weights file (revision 10) has no calibration
+    calibration = 0.0 if point.weights_from else calibration_seconds(point, model)
     trials_total = 0.0      # a point without trials (revision 6, item 3): its calibration and traced runs only
     if point.trials:
         trials_total = references_first + (point.trials - 1) * references_later + point.trials * len(ARMS) * run_warm
@@ -786,6 +829,9 @@ def emit_item(item: dict, model: Model) -> list[str]:
             return [f"e7_cross {item['original_line']} {arguments}"]
         if item["kind"] == "lock":
             return [f"    E7_PREFIX=lock_ e7_point {arguments}"]
+        if point.weights_from:      # revision 10: the given weights file instead of a calibration, prefixed labels
+            return [f"E7_PREFIX={point.prefix} E7_WEIGHTS_FROM={point.weights_from} "
+                    f"E7_WEIGHTS_SHA256={point.weights_sha256} e7_point {arguments}"]
         return [f"e7_point {arguments}"]
     if item["kind"] == "tracegroup":
         return [f"e7_trace_group {item['label']} {item['case']} {item['parties']} {item['steps']} {item['warmup']} "
@@ -926,7 +972,8 @@ def main() -> int:
                              "--batch 9), 7 = the weak item again (b2X on wqd10nbj04g2, fallback b2Y; --batch 10 "
                              "--batch 11), 8 = the traced K = 1 reference groups for tab:phases (b2Z; --batch 12), 9 = the "
                              "same groups plus the four K = 8 chains traced on the same node, any 575 W node (b2AA; "
-                             "--batch 13); emitted jobs export E7_ARMS")
+                             "--batch 13), 10 = 2d_n2840_k5 K = 5 again, calibrated and with b2Y's weights file, both "
+                             "traced (b2AB; --batch 14); emitted jobs export E7_ARMS")
     arguments = parser.parse_args()
     if (arguments.solver_tag is None) != (arguments.expected_tree is None):
         parser.error("--solver-tag and --expected-tree go together (the tag names the tree's solver)")
@@ -958,7 +1005,8 @@ def main() -> int:
                 reference = " + ".join({"same": "K=1 of the case", "pairs": "K=2 pairs"}.get(kind, f"K=1 {kind}")
                                        for kind in point.references)
                 lines.append(f"| {batch} | {line} | {'cross ' if point.cross else ''}"
-                             f"{'lock ' if item['kind'] == 'lock' else ''}{point.family} | "
+                             f"{'lock ' if item['kind'] == 'lock' else ''}{point.family}"
+                             f"{' (weights ' + point.prefix + pathlib.Path(point.weights_from).name + ', no calibration)' if point.weights_from else ''} | "
                              f"{point.case} | {point.slabs} | {PARTICLES[point.case] / 1e6:.1f}M | "
                              f"{point.per_card / 1e6:.2f}M | {point.trials} | {reference} | "
                              f"{seconds['run'] / 60:.1f} | {seconds['reference'] / 60:.1f} | "
@@ -968,6 +1016,8 @@ def main() -> int:
                                 "case": point.case, "slabs": point.slabs, "particles": PARTICLES[point.case],
                                 "per_card": point.per_card, "dimension": point.dimension, "trials": point.trials,
                                 "traces": point.traces, "cross": point.cross, "references": point.references,
+                                **({"prefix": point.prefix, "weights_from": point.weights_from,
+                                    "weights_sha256": point.weights_sha256} if point.weights_from else {}),
                                 "window": list(model.window(point.case)),
                                 "fps_estimate": 1.0 / model.step_time(point.case, point.slabs),
                                 **{name: round(value, 1) for name, value in seconds.items()
