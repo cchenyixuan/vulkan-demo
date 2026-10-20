@@ -1,0 +1,8 @@
+platform.json written
+RESULT label=cal_cavity2d_n1000_K2 status=hard_failure rc=1 steady_fps=- total_fps=None drift=None overflow_total=None far_migration=None stamps=None+None alive=None->None clamp=None nan=None fields=- columns=None tq2=0 pins=0/skip0 wall=0.3s solver=v7 solver_tag=v7-rc3 root=C:\Users\cchen\PycharmProjects\vulkan-demo-xv reasons=errors: Traceback (most recent call last);no final line
+{
+ "case": "cavity2d_n1000",
+ "started": "2026-10-20T15:48:51",
+ "failed": "cal_cavity2d_n1000_K2: RESULT label=cal_cavity2d_n1000_K2 status=hard_failure rc=1 steady_fps=- total_fps=None drift=None overflow_total=None far_migration=None stamps=None+None alive=None->None clamp=None nan=None fields=- columns=None tq2=0 pins=0/skip0 wall=0.3s solver=v7 solver_tag=v7-rc3 root=C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-xv reasons=errors: Traceback (most recent call last);no final line",
+ "ended": "2026-10-20T15:48:52"
+}

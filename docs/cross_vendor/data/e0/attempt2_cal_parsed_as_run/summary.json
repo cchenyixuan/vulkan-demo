@@ -1,0 +1,6 @@
+{
+ "case": "cavity2d_n1000",
+ "started": "2026-10-20T15:49:45",
+ "failed": "cal_cavity2d_n1000_K2: RESULT label=cal_cavity2d_n1000_K2 status=hard_failure rc=0 steady_fps=- total_fps=None drift=None overflow_total=None far_migration=None stamps=None+None alive=2088968->None clamp=0 nan=None fields=- columns=[103, 103] tq2=2 pins=0/skip0 wall=6.6s vram_peak_mib=0:1425/1:1457 solver=v7 build=5.66s cache_hits=0 defrag_ms=0/0 fps_nodefrag=820.37 solver_tag=v7-rc3 root=C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-xv reasons=no final line",
+ "ended": "2026-10-20T15:49:53"
+}

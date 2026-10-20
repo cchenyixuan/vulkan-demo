@@ -30,6 +30,66 @@ module-level constant of partition_v7 / simulator_v7 assigned from a V7_*
 variable, read from the module source), each as v7 resolves it. With the
 default everything printed is the v6 output, unchanged.
 
+E7 (E15): with <PREFIX>POOL_PEAKS=1 in the environment the transport workers
+record every frame's demand of each ghost-pool region of their link (the
+sender's allocation counter: inner / outer replicas and migrants, or one mixed
+region with a single ghost layer), but nothing prints it. Then this script
+collects the workers as they are constructed and, after the run, prints one
+line per link and region:
+  [e30] pool <link> <region>: capacity=C peak=P frame_of_peak=F p999=Q mean=M last=L frames=N occupancy=P/C
+(frames counted from the first recorded frame; the departed pool and the
+install tail are printed by the bench itself on every run). Without the
+switch nothing is installed and the output is unchanged.
+
+E7, solvers other than v6 (the v6 output stays as it was): the chain build is
+timed in stages, each line with this process's host memory from
+/proc/self/status (n/a where there is none):
+  [e30] stage <name>: t=<seconds since the bench started>s VmRSS=<GiB>GiB VmHWM=<GiB>GiB
+for case_loaded (load_case_<solver> returned: the read-in, bench imports
+included), partition_done (compute_chain_partition returned), bootstrap_start
+(contexts and simulators built), bootstrap_end, loop_start (= the chain build
+time: everything before the first timed frame), loop_end and exit (after the
+bench's post-run checks). With --weights auto the pilots report too (the last
+line of a stage is the timed chain's).
+After the run each simulator's last pool-health readback is printed raw (the
+bench prints pool_used only to 0.1 %):
+  [e30] sim<i> (dev<d>) pool_health: peak_tail_high_water=... own_pool_size=... free_margin=...
+      peak_migration_count=... peak_departed_count=... departed_pool_size=...
+
+E7 full campaign (solvers other than v6):
+  --barrier DIR --barrier-parties N   a start barrier for processes launched together (a K = 1
+      reference set, the K = 2 pairs of a pair reference, a pre-check group): after its bootstrap
+      each process writes a token into DIR (node-local) and waits until N tokens are there (or
+      --barrier-timeout seconds passed), then starts its loop, so that the timed windows coincide:
+        [e30] barrier dir=... parties=N arrived_epoch=... released_epoch=... waited=...s seen=n status=ok|timeout
+      (not with --weights auto: its pilot chains would take the barrier);
+  the stage lines end with epoch=<seconds since 1970> (aligns runs with the telemetry);
+  every run (solvers other than v6; E7, user 2026-10-12: eta without the defrag events): each in-loop defrag
+      event of the legacy loop on the host clock, printed after the loop returns (install_defrag_events):
+        [e30] defrag_event call=<c> f<frame> drain_ms=... idle_ms=... wall_ms=... final=<0|1> at_s=...
+        [e30] defrag_events call=<c> n=... in_window=... wall_ms=... in_window_ms=... steady_frames=...
+              steady_s=... steady_fps=... steady_fps_nodefrag=...
+      (start = the drain's first wait for a frame the depth would not yet require, end = the next submit;
+      in_window = the events at frames >= warmup, all inside the bench's steady window; nodefrag =
+      steady_frames / (steady_s - in_window_ms / 1e3); the last call = the timed chain);
+  --defrag-log   every in-loop defrag's report, one line per slab, and every defrag's duration:
+        [e30] defrag f<frame> sim<i>: interval_migration=... alive=... overflow_install_tail=... ...
+        [e30] defrag_time sim<i>: wall_ms=... [gpu_us=...]   (gpu_us with --anatomy timers attached)
+  with --anatomy in the bench arguments every duration the anatomy computes (the bench prints a fixed
+  subset) and the install sum c_start .. c_append_departed_end, one line before each [anatomy] line:
+        [e30] anatomy_all call=<n>: predict=... expand_lists=... install_leading=... ... install_sum=...
+  with <PREFIX>POOL_PEAKS=1 the region demand per 1000 recorded frames as well (E15 developed flow):
+        [e30] pool_series <link> <region>: capacity=C window=1000 peaks=p1,p2,...
+  --loop-trace DIR   (item 11; needs <PREFIX>LOOP_TRACE=1, with which the orchestrator's legacy loop records
+      per frame its start on perf_counter, the time in _submit_frame and the time blocked in frame_done waits)
+      keeps every row, also those the bench's --anatomy [loop] lines reset at each defrag, and writes at exit
+      (never during the loop) DIR/loop_trace.csv (frame, segment, t_loop_ns, submit_us, wait_us, waited_frame,
+      after_defrag; the timed chain's rows, --weights auto pilots excluded) and DIR/loop_trace_meta.json (the
+      clock, clock pairs perf_counter / CLOCK_MONOTONIC_RAW / CLOCK_MONOTONIC / wall around the loop, depth,
+      warmup, defrag cadence, K, row and segment counts, repository root and experiment tree):
+        [e30] loop_trace dir=DIR rows=N segments=M
+      Without the option nothing is installed: the run is the same as before.
+
 Usage (from the checkout root):
     python docs/cluster_v6/scripts/run_chain_v6.py [--switch-interval-ms 0.2] [--solver v7] -- <chain bench arguments>
     python docs/cluster_v6/scripts/run_chain_v6.py --config-only [--solver v7] [--case CASE.yaml ...]
@@ -43,6 +103,7 @@ import os
 import pathlib
 import runpy
 import sys
+import time
 import types
 
 _REPOSITORY_ROOT = pathlib.Path(__file__).resolve().parents[3]
@@ -88,6 +149,18 @@ def parse_arguments(argument_list: list[str]) -> tuple[argparse.Namespace, list[
                         help="cache parsed .obj vertex arrays as .npy files in DIR (node-local); later runs "
                              "of the same files skip the pure-Python parse. Harness only: the loader's "
                              "result is the same array")
+    parser.add_argument("--barrier", default=None, metavar="DIR",
+                        help="E7: hold the loop after the bootstrap until --barrier-parties processes reached it "
+                             "(token files in DIR)")
+    parser.add_argument("--barrier-parties", type=int, default=0)
+    parser.add_argument("--barrier-timeout", type=float, default=1800.0,
+                        help="seconds a process waits at the barrier before it starts anyway (status=timeout)")
+    parser.add_argument("--defrag-log", action="store_true",
+                        help="E7: print every in-loop defrag's per-slab report and each defrag's duration")
+    parser.add_argument("--loop-trace", default=None, metavar="DIR",
+                        help="E7 (item 11), with <PREFIX>LOOP_TRACE=1: write every row of the host loop trace "
+                             "(the rows the --anatomy [loop] lines reset included) to DIR/loop_trace.csv and "
+                             "DIR/loop_trace_meta.json at exit")
     parser.add_argument("--solver", choices=SOLVERS, default="v6",
                         help="solver directory experiment/<solver>: its chain bench, its configuration "
                              "resolvers and its environment prefix (E39: v7 = the v7-perf fork, V7_* "
@@ -95,9 +168,17 @@ def parse_arguments(argument_list: list[str]) -> tuple[argparse.Namespace, list[
     return parser.parse_args(own_arguments), bench_arguments
 
 
+def obj_cache_file(directory: pathlib.Path, path) -> pathlib.Path:
+    """The cache file of one .obj: DIR/<stem>_<key>.npy, key = sha1(resolved path | size | mtime_ns)[:20]."""
+    import hashlib
+    resolved = pathlib.Path(path).resolve()
+    status = resolved.stat()
+    key = hashlib.sha1(f"{resolved}|{status.st_size}|{status.st_mtime_ns}".encode()).hexdigest()[:20]
+    return directory / f"{resolved.stem}_{key}.npy"
+
+
 def install_obj_cache(cache_directory: str, solver: str = "v6") -> None:
     """Wrap case_loader_<solver>._parse_obj_vertices with a .npy cache keyed by resolved path, size and mtime."""
-    import hashlib
     import numpy as np
     case_loader = solver_module(solver, "case_loader")
     original_parser = case_loader._parse_obj_vertices
@@ -106,15 +187,13 @@ def install_obj_cache(cache_directory: str, solver: str = "v6") -> None:
 
     def parse_obj_vertices_cached(path):
         resolved = pathlib.Path(path).resolve()
-        status = resolved.stat()
-        key = hashlib.sha1(f"{resolved}|{status.st_size}|{status.st_mtime_ns}".encode()).hexdigest()[:20]
-        target = directory / f"{resolved.stem}_{key}.npy"
+        target = obj_cache_file(directory, resolved)
         if target.exists():
             vertices = np.load(target)
             print(f"[e30] obj cache hit {resolved.name} ({vertices.shape[0]:,} vertices)", flush=True)
             return vertices
         vertices = original_parser(path)
-        temporary = directory / f"{resolved.stem}_{key}.{os.getpid()}.tmp.npy"
+        temporary = directory / f"{target.stem}.{os.getpid()}.tmp.npy"
         np.save(temporary, vertices)
         os.replace(temporary, target)
         return vertices
@@ -283,6 +362,551 @@ def install_clamp_count_recorder(solver: str = "v6") -> dict:
     return recorded
 
 
+def host_memory_text() -> str:
+    """VmRSS and VmHWM (peak) of this process in GiB from /proc/self/status (Linux); n/a elsewhere."""
+    values = {}
+    try:
+        with open("/proc/self/status", encoding="utf-8") as handle:
+            for line in handle:
+                name, _, rest = line.partition(":")
+                if name in ("VmRSS", "VmHWM"):
+                    values[name] = int(rest.split()[0]) / 1024 ** 2          # kB -> GiB
+    except OSError:
+        pass
+    return " ".join(f"{name}={values[name]:.2f}GiB" if name in values else f"{name}=n/a"
+                    for name in ("VmRSS", "VmHWM"))
+
+
+def report_stage(stage: str, started: float) -> None:
+    print(f"[e30] stage {stage}: t={time.perf_counter() - started:.2f}s {host_memory_text()} "
+          f"epoch={time.time():.3f}", flush=True)
+
+
+def barrier_wait(directory: str, parties: int, timeout_seconds: float) -> None:
+    """E7 start barrier: write this process's token into DIRECTORY, wait until PARTIES tokens are there (or the
+    timeout passed), print one line. The token names carry host and pid; the directory is fresh per group."""
+    import socket
+    path = pathlib.Path(directory)
+    path.mkdir(parents=True, exist_ok=True)
+    arrived = time.time()
+    token = path / f"{socket.gethostname()}_{os.getpid()}.ready"
+    temporary = path / f".{token.name}.tmp"
+    temporary.write_text(f"{arrived:.6f}\n", encoding="utf-8")
+    os.replace(temporary, token)
+    status, seen = "timeout", 0
+    while True:
+        seen = sum(1 for _ in path.glob("*.ready"))
+        if seen >= parties:
+            status = "ok"
+            break
+        if time.time() - arrived > timeout_seconds:
+            break
+        time.sleep(0.02)
+    released = time.time()
+    print(f"[e30] barrier dir={directory} parties={parties} arrived_epoch={arrived:.3f} "
+          f"released_epoch={released:.3f} waited={released - arrived:.2f}s seen={seen} status={status}", flush=True)
+
+
+def install_stage_reporter(solver: str, started: float, barrier=None) -> None:
+    """E7: wrap ChainOrchestrator<V>.bootstrap_all and run_pipelined so that the start and end of the bootstrap
+    and of the timed loop are reported (report_stage). With --weights auto the pilot chains report too; the
+    timed chain's lines come last. BARRIER = (directory, parties, timeout): the first loop waits there first."""
+    orchestrator_module = solver_module(solver, "orchestrator")
+    chain_class = getattr(orchestrator_module, f"ChainOrchestrator{solver.upper()}")
+    original_bootstrap = chain_class.bootstrap_all
+    original_run = chain_class.run_pipelined
+    barrier_passed: list = []
+
+    def bootstrap_all_reporting(orchestrator, *arguments, **keyword_arguments):
+        report_stage("bootstrap_start", started)
+        result = original_bootstrap(orchestrator, *arguments, **keyword_arguments)
+        report_stage("bootstrap_end", started)
+        return result
+
+    def run_pipelined_reporting(orchestrator, *arguments, **keyword_arguments):
+        if barrier is not None and not barrier_passed:
+            barrier_passed.append(True)
+            barrier_wait(*barrier)
+        report_stage("loop_start", started)
+        try:
+            return original_run(orchestrator, *arguments, **keyword_arguments)
+        finally:
+            report_stage("loop_end", started)
+
+    chain_class.bootstrap_all = bootstrap_all_reporting
+    chain_class.run_pipelined = run_pipelined_reporting
+
+    # the read-in and the partition (the bench and the calibration import both inside their functions, after
+    # these module attributes are replaced)
+    case_loader = solver_module(solver, "case_loader")
+    partition = solver_module(solver, "partition")
+    loader_name = f"load_case_{solver}"
+    original_load = getattr(case_loader, loader_name)
+    original_partition = partition.compute_chain_partition
+
+    def load_case_reporting(*arguments, **keyword_arguments):
+        result = original_load(*arguments, **keyword_arguments)
+        report_stage("case_loaded", started)
+        return result
+
+    def compute_chain_partition_reporting(*arguments, **keyword_arguments):
+        result = original_partition(*arguments, **keyword_arguments)
+        report_stage("partition_done", started)
+        return result
+
+    setattr(case_loader, loader_name, load_case_reporting)
+    partition.compute_chain_partition = compute_chain_partition_reporting
+
+
+def install_pool_health_recorder(solver: str) -> dict:
+    """E7 (E15): wrap SphSimulator<V>.readback_pool_health so that each simulator's last pool-health readback
+    (the bench reads it once per slab after the run, in slab order) is kept with its device index; the bench
+    prints the tail's high-water mark only as pool_used to 0.1 % of the own pool, too coarse for the free
+    margin of large slabs."""
+    simulator_module = solver_module(solver, "simulator")
+    simulator_class = getattr(simulator_module, f"SphSimulator{solver.upper()}")
+    original_readback = simulator_class.readback_pool_health
+    recorded: dict = {}
+
+    def readback_pool_health_recording(simulator, *arguments, **keyword_arguments):
+        health = original_readback(simulator, *arguments, **keyword_arguments)
+        device_index = getattr(getattr(simulator, "ctx", None), "physical_device_index", -1)
+        recorded[id(simulator)] = (device_index, dict(health))
+        return health
+
+    simulator_class.readback_pool_health = readback_pool_health_recording
+    return recorded
+
+
+def print_pool_health(recorded: dict) -> None:
+    """[e30] sim<i> (dev<d>) pool_health: the raw watermarks (never reset, survive defrag; common.glsl
+    PoolHealthBuffer): peak_tail_high_water (largest alive + install-tail occupancy ever demanded, the quantity
+    the install overflow guard checks), own_pool_size, free_margin (own pool - that peak), peak_migration_count
+    (deepest migrant install tail in any one defrag interval), peak_departed_count (most migrants sent away in
+    one frame), departed_pool_size."""
+    names = ("peak_tail_high_water", "own_pool_size", "free_margin", "peak_migration_count",
+             "peak_departed_count", "departed_pool_size")
+    for slab_index, (device_index, health) in enumerate(recorded.values()):
+        print(f"[e30] sim{slab_index} (dev{device_index}) pool_health: "
+              + " ".join(f"{name}={health.get(name)}" for name in names), flush=True)
+
+
+def install_pool_peak_recorder(solver: str = "v6") -> list:
+    """E7 (E15): wrap transport_<solver>.GhostMigrationWorker.__init__ so that every worker the bench constructs is
+    kept here (construction order = the orchestrator's link order); their region_counts / region_capacity are
+    read after the run by print_pool_peaks."""
+    transport = solver_module(solver, "transport")
+    worker_class = transport.GhostMigrationWorker
+    original_initializer = worker_class.__init__
+    constructed_workers: list = []
+
+    def initializer_recording(worker, *arguments, **keyword_arguments):
+        original_initializer(worker, *arguments, **keyword_arguments)
+        constructed_workers.append(worker)
+
+    worker_class.__init__ = initializer_recording
+    return constructed_workers
+
+
+def print_pool_peaks(workers: list) -> None:
+    """One line per link and recorded region: capacity (slots), peak demand, the recorded frame of the peak, the
+    99.9th percentile (nearest rank), mean, last value, number of frames and peak / capacity."""
+    for worker in workers:
+        capacities = getattr(worker, "region_capacity", {}) or {}
+        for region, counts in (getattr(worker, "region_counts", {}) or {}).items():
+            capacity = capacities.get(region)
+            if not counts:
+                print(f"[e30] pool {worker.label} {region}: capacity={capacity} frames=0", flush=True)
+                continue
+            peak = max(counts)
+            ordered = sorted(counts)
+            rank = max(1, -(-999 * len(ordered) // 1000))          # nearest rank: ceil(0.999 n)
+            occupancy = f"{peak / capacity:.4f}" if capacity else "n/a"
+            print(f"[e30] pool {worker.label} {region}: capacity={capacity} peak={peak} "
+                  f"frame_of_peak={counts.index(peak)} p999={ordered[rank - 1]} "
+                  f"mean={sum(counts) / len(counts):.1f} last={counts[-1]} frames={len(counts)} "
+                  f"occupancy={occupancy}", flush=True)
+            window = 1000
+            print(f"[e30] pool_series {worker.label} {region}: capacity={capacity} window={window} peaks="
+                  + ",".join(str(max(counts[start:start + window])) for start in range(0, len(counts), window)),
+                  flush=True)
+
+
+def report_value_text(value) -> str:
+    if isinstance(value, float):
+        return f"{value:.6g}"
+    return str(value)
+
+
+def install_defrag_events(solver: str) -> dict:
+    """E7 (user, 2026-10-12: eta without the defrag events): every in-loop defrag event of ChainOrchestrator<V>'s
+    legacy run_pipelined loop, timed on the host clock and printed after the call returns (nothing is printed
+    inside the loop). An event starts at the first frame_done wait of the drain before the defrag (a wait for a frame
+    the pipeline depth would not yet require: frame > _frame_count - depth; with depth 1 at the report readback)
+    and ends at the next frame's submit (the run's last event, at max_steps, when the loop returns):
+      drain_ms = start -> the report readback (the GPUs finish the frames in flight), idle_ms = the report
+      readback -> end (the readbacks, every slab's defrag one after the other, the submit), wall_ms = start -> end.
+        [e30] defrag_event call=<c> f<frame> drain_ms=... idle_ms=... wall_ms=... final=<0|1> at_s=<start - loop start>
+        [e30] defrag_events call=<c> n=<events> in_window=<events at frames >= warmup> wall_ms=<sum>
+              in_window_ms=<sum> steady_frames=<f> steady_s=<s> steady_fps=<f / s>
+              steady_fps_nodefrag=<f / (s - in_window_ms / 1e3)>
+    The loop's steady window opens right before the defrag block of frame `warmup` and closes after the one of
+    frame max_steps, so every event at a frame >= warmup lies inside it. Call c = the c-th run_pipelined of the
+    process (--weights auto pilots first, the timed chain last). Install it before every other run_pipelined
+    wrapper (it binds the call's depth / warmup / max_steps by the original signature). Nothing in the solver
+    changes; the wrappers add a few perf_counter calls per frame."""
+    import inspect
+    orchestrator_module = solver_module(solver, "orchestrator")
+    chain_class = getattr(orchestrator_module, f"ChainOrchestrator{solver.upper()}")
+    original_run = chain_class.run_pipelined
+    original_wait = chain_class._wait_frame
+    original_submit = chain_class._submit_frame
+    original_report = chain_class._collect_defrag_report
+    signature = inspect.signature(original_run)
+    recorder: dict = {"calls": 0, "runs": []}
+    state: dict = {"running": False, "depth": None, "event": None, "events": [], "t_start": None}
+
+    def wait_frame_timed(orchestrator, frame_n, *arguments, **keyword_arguments):
+        if state["running"] and state["event"] is None and state["depth"] is not None \
+                and frame_n > getattr(orchestrator, "_frame_count", 0) - state["depth"]:
+            state["event"] = {"frame": getattr(orchestrator, "_frame_count", None), "start": time.perf_counter(),
+                              "report": None}
+        return original_wait(orchestrator, frame_n, *arguments, **keyword_arguments)
+
+    def collect_defrag_report_timed(orchestrator, *arguments, **keyword_arguments):
+        if state["running"]:
+            now = time.perf_counter()
+            if state["event"] is None:
+                state["event"] = {"frame": None, "start": now, "report": None}
+            state["event"]["report"] = now
+            state["event"]["frame"] = getattr(orchestrator, "_frame_count", state["event"]["frame"])
+        return original_report(orchestrator, *arguments, **keyword_arguments)
+
+    def submit_frame_timed(orchestrator, frame_n, *arguments, **keyword_arguments):
+        event = state["event"]
+        if state["running"] and event is not None:
+            if event["report"] is not None:
+                event["end"] = time.perf_counter()
+                event["final"] = False
+                state["events"].append(event)
+            state["event"] = None                   # a drain without a defrag (none in the legacy loop): dropped
+        return original_submit(orchestrator, frame_n, *arguments, **keyword_arguments)
+
+    def run_pipelined_timed(orchestrator, *arguments, **keyword_arguments):
+        try:
+            bound = signature.bind(orchestrator, *arguments, **keyword_arguments)
+            bound.apply_defaults()
+            parameters = {name: bound.arguments.get(name) for name in ("max_steps", "depth", "warmup")}
+        except TypeError:
+            parameters = {"max_steps": None, "depth": None, "warmup": None}
+        state.update({"running": True, "depth": max(1, int(parameters["depth"])) if parameters["depth"] else None,
+                      "event": None, "events": [], "t_start": time.perf_counter()})
+        call = recorder["calls"]
+        recorder["calls"] += 1
+        try:
+            result = original_run(orchestrator, *arguments, **keyword_arguments)
+        finally:
+            state["running"] = False
+            event = state["event"]
+            if event is not None and event["report"] is not None:
+                event["end"] = time.perf_counter()
+                event["final"] = True
+                state["events"].append(event)
+            state["event"] = None
+        warmup = parameters["warmup"] or 0
+        rows = [{"frame": event["frame"], "drain_ms": (event["report"] - event["start"]) * 1e3,
+                 "idle_ms": (event["end"] - event["report"]) * 1e3, "wall_ms": (event["end"] - event["start"]) * 1e3,
+                 "final": event["final"], "at_s": event["start"] - state["t_start"],
+                 "in_window": event["frame"] is not None and event["frame"] >= warmup} for event in state["events"]]
+        in_window_ms = sum(row["wall_ms"] for row in rows if row["in_window"])
+        steady_frames = result.get("steady_frames") if isinstance(result, dict) else None
+        steady_s = result.get("steady_s") if isinstance(result, dict) else None
+        nodefrag = (steady_frames / (steady_s - in_window_ms / 1e3)
+                    if steady_frames and steady_s and steady_s * 1e3 > in_window_ms else None)
+        for row in rows:
+            print(f"[e30] defrag_event call={call} f{row['frame']} drain_ms={row['drain_ms']:.3f} "
+                  f"idle_ms={row['idle_ms']:.3f} wall_ms={row['wall_ms']:.3f} final={int(row['final'])} "
+                  f"at_s={row['at_s']:.3f}", flush=True)
+        print(f"[e30] defrag_events call={call} n={len(rows)} in_window={sum(row['in_window'] for row in rows)} "
+              f"wall_ms={sum(row['wall_ms'] for row in rows):.3f} in_window_ms={in_window_ms:.3f} "
+              f"steady_frames={steady_frames if steady_frames is not None else '-'} "
+              f"steady_s={f'{steady_s:.6f}' if steady_s is not None else '-'} "
+              f"steady_fps={f'{steady_frames / steady_s:.4f}' if steady_frames and steady_s else '-'} "
+              f"steady_fps_nodefrag={f'{nodefrag:.4f}' if nodefrag is not None else '-'}", flush=True)
+        recorder["runs"].append({"call": call, "parameters": parameters, "events": rows,
+                                 "steady_fps_nodefrag": nodefrag})
+        return result
+
+    chain_class._wait_frame = wait_frame_timed
+    chain_class._submit_frame = submit_frame_timed
+    chain_class._collect_defrag_report = collect_defrag_report_timed
+    chain_class.run_pipelined = run_pipelined_timed
+    return recorder
+
+
+def install_defrag_log(solver: str) -> None:
+    """E7 --defrag-log: wrap ChainOrchestrator<V>.run_pipelined so that its on_defrag callback first prints the
+    report the orchestrator collected at that defrag (one line per slab: the interval's migration count, alive,
+    the never-reset pool watermarks, the overflow counters), and SphSimulator<V>.submit_defrag_and_wait so that
+    each defrag's wall time is printed (and its GPU time, defrag_end - defrag_start, when a BenchTimer is
+    attached, i.e. with --anatomy). Slab index = order of the first defrag call (the bootstrap's, in slab order)."""
+    orchestrator_module = solver_module(solver, "orchestrator")
+    chain_class = getattr(orchestrator_module, f"ChainOrchestrator{solver.upper()}")
+    simulator_class = getattr(solver_module(solver, "simulator"), f"SphSimulator{solver.upper()}")
+    original_run = chain_class.run_pipelined
+    original_defrag = simulator_class.submit_defrag_and_wait
+    slab_order: dict = {}
+
+    def run_pipelined_logging(orchestrator, *arguments, **keyword_arguments):
+        callback = keyword_arguments.get("on_defrag")
+
+        def on_defrag_logging(frame_n, report):
+            for index, entry in enumerate(report or []):
+                print(f"[e30] defrag f{frame_n} sim{index}: "
+                      + " ".join(f"{name}={report_value_text(value)}" for name, value in entry.items()), flush=True)
+            if callback is not None:
+                return callback(frame_n, report)
+            return None
+
+        keyword_arguments["on_defrag"] = on_defrag_logging
+        return original_run(orchestrator, *arguments, **keyword_arguments)
+
+    def submit_defrag_and_wait_timed(simulator, *arguments, **keyword_arguments):
+        index = slab_order.setdefault(id(simulator), len(slab_order))
+        started = time.perf_counter()
+        result = original_defrag(simulator, *arguments, **keyword_arguments)
+        wall_ms = (time.perf_counter() - started) * 1e3
+        gpu_text = ""
+        bench = getattr(simulator, "bench", None)
+        if bench is not None and hasattr(bench, "read_frame"):
+            try:
+                ticks = bench.read_frame(include_defrag=True)
+                if "defrag_start" in ticks and "defrag_end" in ticks:
+                    gpu_text = f" gpu_us={(ticks['defrag_end'] - ticks['defrag_start']) / 1000.0:.1f}"
+            except Exception as error:                                # noqa: BLE001
+                gpu_text = f" gpu_us=unreadable({type(error).__name__})"
+        print(f"[e30] defrag_time sim{index}: wall_ms={wall_ms:.3f}{gpu_text}", flush=True)
+        return result
+
+    chain_class.run_pipelined = run_pipelined_logging
+    simulator_class.submit_defrag_and_wait = submit_defrag_and_wait_timed
+
+
+LOOP_TRACE_COLUMNS = ("frame", "segment", "t_loop_ns", "submit_us", "wait_us", "waited_frame", "after_defrag")
+LOOP_TRACE_RECORD = "_e30_loop_trace_record"       # the orchestrator attribute holding its loop trace record
+
+
+def clock_pair_sample(event: str) -> dict:
+    """One reading of each host clock a loop trace may have to be mapped onto, between two perf_counter_ns
+    readings: perf_counter (the loop rows' clock; CLOCK_MONOTONIC on Linux), CLOCK_MONOTONIC_RAW (the host clock
+    of the cluster step traces), CLOCK_MONOTONIC and the wall clock, where the platform has them."""
+    sample = {"event": event, "perf_counter_ns": time.perf_counter_ns()}
+    clock_gettime_ns = getattr(time, "clock_gettime_ns", None)
+    for name in ("CLOCK_MONOTONIC_RAW", "CLOCK_MONOTONIC"):
+        clock_identifier = getattr(time, name, None)
+        if clock_gettime_ns is None or clock_identifier is None:
+            continue
+        try:
+            sample[f"{name.lower()}_ns"] = clock_gettime_ns(clock_identifier)
+        except OSError:
+            pass
+    sample["time_ns"] = time.time_ns()
+    sample["perf_counter_ns_after"] = time.perf_counter_ns()
+    return sample
+
+
+def install_loop_trace_dump(solver: str) -> dict:
+    """E7 --loop-trace (item 11): keep every row of ChainOrchestrator<V>'s host loop trace (<PREFIX>LOOP_TRACE=1:
+    one tuple per frame, loop start on perf_counter, seconds in _submit_frame, seconds blocked in frame_done
+    waits) for write_loop_trace at exit; nothing in the solver changes and nothing is written during the run.
+      - loop_trace_stats: the bench's --anatomy [loop] line calls it at every defrag and it deletes the rows
+        (reset=True); its wrapper copies the rows before the call and keeps the ones the call dropped (one
+        segment per call). The copy (<= one defrag interval of tuples) happens inside on_defrag, with the pipeline
+        drained.
+      - run_pipelined: its wrapper records the call's parameters (bound to the solver's own signature), a clock
+        pair before and after the call and the rows still held when it returns.
+    Each orchestrator gets its own record (--weights auto pilot chains come first, the timed chain last), held in
+    an attribute of the instance and in the returned dict's "chains" list. Install it before the stage reporter
+    and the defrag log: its run_pipelined wrapper is then the innermost one, next to the loop."""
+    import inspect
+    orchestrator_module = solver_module(solver, "orchestrator")
+    chain_class = getattr(orchestrator_module, f"ChainOrchestrator{solver.upper()}")
+    original_run = chain_class.run_pipelined
+    original_stats = chain_class.loop_trace_stats
+    signature = inspect.signature(original_run)
+    recorder: dict = {"solver": solver, "chains": []}
+
+    def chain_record(orchestrator) -> dict:
+        record = getattr(orchestrator, LOOP_TRACE_RECORD, None)
+        if record is None:
+            record = {"segments": [], "remainder": [], "clock_pairs": [], "parameters": {}, "calls": 0,
+                      "running": False, "defrag_cadence": getattr(orchestrator, "defrag_cadence", None),
+                      "slab_count": len(getattr(orchestrator, "sims", None) or ())}
+            setattr(orchestrator, LOOP_TRACE_RECORD, record)
+            recorder["chains"].append(record)
+        return record
+
+    def run_pipelined_keeping(orchestrator, *arguments, **keyword_arguments):
+        record = chain_record(orchestrator)
+        try:
+            bound = signature.bind(orchestrator, *arguments, **keyword_arguments)
+            bound.apply_defaults()
+            record["parameters"] = {name: value for name, value in bound.arguments.items()
+                                    if name in ("max_steps", "depth", "warmup", "stall_timeout_s")}
+        except TypeError:
+            record["parameters"] = {}
+        record["clock_pairs"].append(clock_pair_sample(f"run_pipelined_start_{record['calls']}"))
+        record["running"] = True
+        try:
+            return original_run(orchestrator, *arguments, **keyword_arguments)
+        finally:
+            record["running"] = False
+            record["clock_pairs"].append(clock_pair_sample(f"run_pipelined_end_{record['calls']}"))
+            record["calls"] += 1
+            record["remainder"] = list(getattr(orchestrator, "_loop_trace_rows", None) or [])
+
+    def loop_trace_stats_keeping(orchestrator, *arguments, **keyword_arguments):
+        rows = getattr(orchestrator, "_loop_trace_rows", None)
+        before = list(rows) if rows else []
+        result = original_stats(orchestrator, *arguments, **keyword_arguments)
+        dropped = len(before) - len(getattr(orchestrator, "_loop_trace_rows", None) or [])
+        record = chain_record(orchestrator)
+        if dropped > 0 and record["running"]:   # after the loop the rows are in the remainder already
+            record["segments"].append(before[:dropped])
+        return result
+
+    chain_class.run_pipelined = run_pipelined_keeping
+    chain_class.loop_trace_stats = loop_trace_stats_keeping
+    return recorder
+
+
+def loop_trace_table(record: dict) -> list[tuple]:
+    """One chain's rows in loop order as LOOP_TRACE_COLUMNS: row i = submitted frame i; segment = the reset that
+    dropped the row (the rows still held at the end form the last segment); t_loop_ns = the loop start on
+    perf_counter in ns; submit_us / wait_us; waited_frame = the frame whose frame_done the iteration waited for
+    (the legacy loop's bookkeeping: frame + 1 - depth, empty when it waited for none, i.e. the first depth - 1
+    frames and the first frame after each drain, or when the depth is unknown); after_defrag = 1 on the first
+    frame after a drain + defrag (they lie in the gap before its t_loop)."""
+    segments = list(record["segments"]) + ([record["remainder"]] if record["remainder"] else [])
+    depth = record["parameters"].get("depth")
+    depth = max(1, int(depth)) if depth is not None else None
+    cadence = record.get("defrag_cadence") or 0
+    table = []
+    frame = next_wait = 0
+    for segment_index, rows in enumerate(segments):
+        for t_loop, submit_seconds, wait_seconds in rows:
+            submitted = frame + 1
+            waited_frame = ""
+            while depth is not None and submitted - next_wait >= depth:
+                waited_frame = next_wait
+                next_wait += 1
+            table.append((frame, segment_index, int(round(t_loop * 1e9)), f"{submit_seconds * 1e6:.3f}",
+                          f"{wait_seconds * 1e6:.3f}", waited_frame,
+                          int(bool(cadence) and frame > 0 and frame % cadence == 0)))
+            if cadence and submitted % cadence == 0:
+                next_wait = submitted           # the drain before the defrag waits every outstanding frame
+            frame += 1
+    return table
+
+
+def experiment_tree_text(solver: str) -> str:
+    """git tree hash of this checkout's experiment/<solver> (tree_hash.py next to this script), or why not."""
+    try:
+        import importlib.util
+        specification = importlib.util.spec_from_file_location(
+            "e30_tree_hash", pathlib.Path(__file__).resolve().parent / "tree_hash.py")
+        module = importlib.util.module_from_spec(specification)
+        specification.loader.exec_module(module)
+        sha, _ = module.tree_sha(str(_REPOSITORY_ROOT / "experiment" / solver), "", [])
+        return sha or "empty"
+    except Exception as error:                                        # noqa: BLE001
+        return f"unavailable ({type(error).__name__}: {error})"
+
+
+def write_loop_trace(recorder: dict, directory: str, bench_arguments: list[str]) -> None:
+    """--loop-trace DIR, at exit: DIR/loop_trace.csv (the last chain that ran its loop: the timed one) and
+    DIR/loop_trace_meta.json, then the line parse_run_v6.py records:
+      [e30] loop_trace dir=DIR rows=N segments=M [error=...]"""
+    import csv
+    import json
+    import platform
+    rows = segments = 0
+    try:
+        chains = recorder["chains"]
+        record = chains[-1] if chains else None
+        table = loop_trace_table(record) if record is not None else []
+        rows = len(table)
+        segments = len(record["segments"]) + (1 if record["remainder"] else 0) if record is not None else 0
+        path = pathlib.Path(directory)
+        path.mkdir(parents=True, exist_ok=True)
+        with open(path / "loop_trace.csv", "w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(LOOP_TRACE_COLUMNS)
+            writer.writerows(table)
+        clock = time.get_clock_info("perf_counter")
+        solver = recorder["solver"]
+        prefix = solver.upper() + "_"
+        parameters = dict(record["parameters"]) if record is not None else {}
+        meta = {
+            "columns": list(LOOP_TRACE_COLUMNS),
+            "row_clock": {"name": "perf_counter", "implementation": clock.implementation,
+                          "monotonic": clock.monotonic, "adjustable": clock.adjustable,
+                          "resolution": clock.resolution},
+            "clock_pairs": (record["clock_pairs"] if record is not None else []) + [clock_pair_sample("write")],
+            "parameters": parameters,
+            "defrag_cadence": record.get("defrag_cadence") if record is not None else None,
+            "slab_count": record.get("slab_count") if record is not None else None,
+            "run_pipelined_calls": record.get("calls") if record is not None else 0,
+            "rows": rows, "segments": segments,
+            "segment_rows": (([len(segment) for segment in record["segments"]]
+                              + ([len(record["remainder"])] if record["remainder"] else []))
+                             if record is not None else []),
+            "complete": record is not None and rows == parameters.get("max_steps"),
+            "chains": len(chains), "chain_rows": [sum(len(segment) for segment in chain["segments"])
+                                                  + len(chain["remainder"]) for chain in chains],
+            "environment": {name: os.environ.get(prefix + name, "") for name in ("LOOP_TRACE", "PER_SIM_PIPELINE")},
+            "solver": solver, "repository_root": str(_REPOSITORY_ROOT),
+            "experiment_tree": experiment_tree_text(solver),
+            "host": platform.node(), "pid": os.getpid(), "bench_arguments": bench_arguments,
+        }
+        (path / "loop_trace_meta.json").write_text(json.dumps(meta, indent=1, default=str), encoding="utf-8")
+        print(f"[e30] loop_trace dir={directory} rows={rows} segments={segments}", flush=True)
+    except Exception as error:                                        # noqa: BLE001
+        print(f"[e30] loop_trace dir={directory} rows={rows} segments={segments} "
+              f"error={type(error).__name__}: {error}", flush=True)
+
+
+INSTALL_END_LABELS = ("c_append_departed_end", "c_install_trailing_end", "c_install_leading_end", "c_expand_end")
+
+
+def install_anatomy_full(solver: str) -> None:
+    """E7 (--anatomy in the bench arguments): wrap bench_<solver>.compute_durations so that every duration it
+    computes is printed (the bench's [anatomy] line keeps a fixed subset: no expand_lists / append_departed /
+    band_compact / ghost sends ...), plus install_sum = the last install tick - c_start (expand_ghost_lists +
+    install_migrations per direction + append_departed with their barriers, v6_opt.md "install 三个 kernel").
+    The bench imports compute_durations inside its main, after this module attribute is replaced; it computes
+    one frame per slab in slab order and prints its [anatomy] line right after, so call n pairs with the n-th
+    [anatomy] line."""
+    bench_module = solver_module(solver, "bench")
+    original_compute = bench_module.compute_durations
+    calls = [0]
+
+    def compute_durations_printing(ticks):
+        durations = original_compute(ticks)
+        calls[0] += 1
+        install_text = ""
+        last = next((label for label in INSTALL_END_LABELS if label in ticks), None)
+        if last is not None and "c_start" in ticks:
+            install_text = f" install_sum={(ticks[last] - ticks['c_start']) / 1000.0:.3f} install_last={last}"
+        print(f"[e30] anatomy_all call={calls[0]}: "
+              + " ".join(f"{name[:-3] if name.endswith('_us') else name}={value:.3f}"
+                         for name, value in durations.items() if isinstance(value, (int, float)))
+              + install_text, flush=True)
+        return durations
+
+    bench_module.compute_durations = compute_durations_printing
+
+
 def main() -> int:
     arguments, bench_arguments = parse_arguments(sys.argv[1:])
     # any spelling argparse would take for the bench's --switch-interval-ms (it accepts unique prefixes, "--sw")
@@ -291,6 +915,22 @@ def main() -> int:
         sys.exit("pass --switch-interval-ms before '--' only: this script forwards its own value to the bench")
     if any(argument.split("=", 1)[0] == "--solver" for argument in bench_arguments):
         sys.exit("pass --solver before '--': it selects the bench, the bench itself has no such option")
+    if arguments.barrier is not None:
+        if arguments.solver == "v6" or arguments.barrier_parties < 1:
+            sys.exit("--barrier needs --barrier-parties >= 1 and a solver other than v6 (the stage reporter holds it)")
+        if "--weights=auto" in bench_arguments or any(
+                argument == "--weights" and index + 1 < len(bench_arguments) and bench_arguments[index + 1] == "auto"
+                for index, argument in enumerate(bench_arguments)):
+            sys.exit("--barrier with --weights auto: the first pilot chain would take the barrier")
+    if arguments.defrag_log and arguments.solver == "v6":
+        sys.exit("--defrag-log is an E7 option (solvers other than v6)")
+    if arguments.loop_trace is not None:
+        if arguments.solver == "v6":
+            sys.exit("--loop-trace is an E7 option (solvers other than v6)")
+        loop_trace_variable = arguments.solver.upper() + "_LOOP_TRACE"
+        if os.environ.get(loop_trace_variable, "0") != "1":
+            sys.exit(f"--loop-trace needs {loop_trace_variable}=1 in the environment (the orchestrator records "
+                     f"the loop rows only then)")
     chain_bench = chain_bench_path(arguments.solver)
     if not chain_bench.exists():
         sys.exit(f"--solver {arguments.solver}: no chain bench at {chain_bench} (experiment/{arguments.solver} "
@@ -310,6 +950,24 @@ def main() -> int:
     if arguments.obj_cache:
         install_obj_cache(arguments.obj_cache, arguments.solver)
     recorded = install_clamp_count_recorder(arguments.solver)
+    pool_peak_workers = (install_pool_peak_recorder(arguments.solver)
+                         if os.environ.get(arguments.solver.upper() + "_POOL_PEAKS", "0") == "1" else None)
+    bench_started = time.perf_counter()
+    pool_health = None
+    # first of all: the defrag event timer binds the loop's parameters by the original run_pipelined signature
+    if arguments.solver != "v6":
+        install_defrag_events(arguments.solver)
+    # then the loop trace: its run_pipelined wrapper is the next one, next to the loop (install_loop_trace_dump)
+    loop_trace = install_loop_trace_dump(arguments.solver) if arguments.loop_trace is not None else None
+    if arguments.solver != "v6":
+        barrier = ((arguments.barrier, arguments.barrier_parties, arguments.barrier_timeout)
+                   if arguments.barrier is not None else None)
+        install_stage_reporter(arguments.solver, bench_started, barrier)
+        pool_health = install_pool_health_recorder(arguments.solver)
+        if arguments.defrag_log:
+            install_defrag_log(arguments.solver)
+        if "--anatomy" in bench_arguments:
+            install_anatomy_full(arguments.solver)
     # forwarded last: argparse keeps the last occurrence, so this value wins even past the refusal above
     sys.argv = ([str(chain_bench)] + bench_arguments
                 + ["--switch-interval-ms", repr(arguments.switch_interval_ms)])
@@ -326,6 +984,14 @@ def main() -> int:
             print(f"[e30] sim{slab_index} (dev{device_index}): "
                   f"initialization_seam_clamp_count={clamp_count} "
                   f"overflow_initialization_outside={outside_count}", flush=True)
+        if pool_health is not None:
+            print_pool_health(pool_health)
+        if pool_peak_workers is not None:
+            print_pool_peaks(pool_peak_workers)
+        if arguments.solver != "v6":
+            report_stage("exit", bench_started)
+        if loop_trace is not None:          # after the exit stamp: the files are not part of the run's post time
+            write_loop_trace(loop_trace, arguments.loop_trace, bench_arguments)
         sys.stdout.flush()
     return exit_code
 

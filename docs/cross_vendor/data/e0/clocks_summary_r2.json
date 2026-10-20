@@ -1,0 +1,136 @@
+{
+ "label": "clocks_cavity2d_n1000_K2_r2",
+ "started": "2026-10-20T15:56:17",
+ "steps": 15000,
+ "result": {
+  "status": "pass",
+  "steady_fps": 846.1,
+  "steady_fps_nodefrag": 850.6515,
+  "drift": 0,
+  "overflow_total": 0,
+  "alive_start": 1044484,
+  "alive_end": 1044484,
+  "defrag_events_summary": {
+   "call": 0,
+   "n": 15,
+   "in_window": 15,
+   "wall_ms": 91.193,
+   "in_window_ms": 91.193,
+   "steady_frames": 14500,
+   "steady_s": 17.136951,
+   "steady_fps": 846.1249
+  },
+  "telemetry_loop": {
+   "1": {
+    "sm_clock_median": 2986.0,
+    "sm_clock_min": 207.0,
+    "power_median": null,
+    "temperature_max": 60.0,
+    "utilization_median": 95.0,
+    "samples": 71
+   },
+   "0": {
+    "sm_clock_median": 2880.0,
+    "sm_clock_min": 2670.0,
+    "power_median": 514.65,
+    "temperature_max": 66.0,
+    "utilization_median": 91.0,
+    "samples": 69
+   }
+  }
+ },
+ "loop_seconds": 17.71499991416931,
+ "ranges": {
+  "1": {
+   "name": "AMD Radeon RX 7900 XTX",
+   "samples": 71,
+   "clock": {
+    "min": 207.0,
+    "median": 2986.0,
+    "max": 2997.0
+   },
+   "memory_clock": {
+    "min": 946.0,
+    "median": 1538.0,
+    "max": 1538.0
+   },
+   "temperature": {
+    "min": 47.0,
+    "median": 57.0,
+    "max": 60.0
+   },
+   "hotspot": {
+    "min": 54.0,
+    "median": 81.0,
+    "max": 83.0
+   },
+   "power": null,
+   "utilization": {
+    "min": 15.0,
+    "median": 95.0,
+    "max": 96.0
+   },
+   "memory_used": {
+    "min": 2492.0,
+    "median": 2492.0,
+    "max": 2492.0
+   },
+   "pcie_gen": {
+    "min": 4.0,
+    "median": 4.0,
+    "max": 4.0
+   },
+   "pcie_width": {
+    "min": 16.0,
+    "median": 16.0,
+    "max": 16.0
+   }
+  },
+  "0": {
+   "name": "NVIDIA GeForce RTX 5090",
+   "samples": 69,
+   "clock": {
+    "min": 2670.0,
+    "median": 2880.0,
+    "max": 2895.0
+   },
+   "memory_clock": {
+    "min": 14001.0,
+    "median": 14001.0,
+    "max": 14001.0
+   },
+   "temperature": {
+    "min": 46.0,
+    "median": 65.0,
+    "max": 66.0
+   },
+   "hotspot": null,
+   "power": {
+    "min": 58.53,
+    "median": 514.65,
+    "max": 518.48
+   },
+   "utilization": {
+    "min": 3.0,
+    "median": 91.0,
+    "max": 92.0
+   },
+   "memory_used": {
+    "min": 1405.0,
+    "median": 1405.0,
+    "max": 1405.0
+   },
+   "pcie_gen": {
+    "min": 5.0,
+    "median": 5.0,
+    "max": 5.0
+   },
+   "pcie_width": {
+    "min": 8.0,
+    "median": 8.0,
+    "max": 8.0
+   }
+  }
+ },
+ "ended": "2026-10-20T15:56:38"
+}

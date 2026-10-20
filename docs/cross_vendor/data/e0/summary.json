@@ -1,0 +1,350 @@
+{
+ "case": "cavity2d_n1000",
+ "started": "2026-10-20T15:50:51",
+ "calibration": {
+  "status": "calibrated",
+  "weights": [
+   1.2957151124230966,
+   0.7042848875769033
+  ],
+  "cuts": [
+   133
+  ],
+  "rounds": [
+   {
+    "round": 1,
+    "weights": [
+     1.0,
+     1.0
+    ],
+    "cuts": [
+     103
+    ],
+    "omega": [
+     1.2447235139488295,
+     0.7552764860511705
+    ],
+    "next_cuts": [
+     127
+    ],
+    "changed": true,
+    "busy_us": [
+     830.9279999999999,
+     1369.4
+    ],
+    "fluid": [
+     500000,
+     500000
+    ]
+   },
+   {
+    "round": 2,
+    "weights": [
+     1.2447235139488295,
+     0.7552764860511705
+    ],
+    "cuts": [
+     127
+    ],
+    "omega": [
+     1.2957151124230966,
+     0.7042848875769033
+    ],
+    "next_cuts": [
+     133
+    ],
+    "changed": true,
+    "busy_us": [
+     973.4879999999999,
+     1097.7
+    ],
+    "fluid": [
+     620000,
+     380000
+    ]
+   }
+  ]
+ },
+ "chain": {
+  "label": "cavity2d_n1000_K2_trace",
+  "status": "pass",
+  "rc": 0,
+  "steady_fps": 863.5,
+  "steady_fps_nodefrag": 869.7731,
+  "reasons": [],
+  "final_line": true,
+  "alive_start": 1044484,
+  "alive_end": 1044484,
+  "seam_checks": [
+   {
+    "seam": 0,
+    "column": 133,
+    "left_overshoot_dx": -0.03,
+    "right_overshoot_dx": -0.36,
+    "duplicates": 0,
+    "ok": true
+   }
+  ],
+  "defrag_events_summary": {
+   "call": 0,
+   "n": 1,
+   "in_window": 1,
+   "wall_ms": 8.355,
+   "in_window_ms": 8.355,
+   "steady_frames": 1000,
+   "steady_s": 1.15808,
+   "steady_fps": 863.498
+  },
+  "stages": {
+   "case_loaded": {
+    "seconds": 0.61,
+    "vm_rss": "n/a",
+    "vm_hwm": "n/a",
+    "epoch": 1792479058.162
+   },
+   "partition_done": {
+    "seconds": 0.72,
+    "vm_rss": "n/a",
+    "vm_hwm": "n/a",
+    "epoch": 1792479058.271
+   },
+   "bootstrap_start": {
+    "seconds": 2.8,
+    "vm_rss": "n/a",
+    "vm_hwm": "n/a",
+    "epoch": 1792479060.356
+   },
+   "bootstrap_end": {
+    "seconds": 3.1,
+    "vm_rss": "n/a",
+    "vm_hwm": "n/a",
+    "epoch": 1792479060.657
+   },
+   "loop_start": {
+    "seconds": 3.1,
+    "vm_rss": "n/a",
+    "vm_hwm": "n/a",
+    "epoch": 1792479060.657
+   },
+   "loop_end": {
+    "seconds": 4.84,
+    "vm_rss": "n/a",
+    "vm_hwm": "n/a",
+    "epoch": 1792479062.395
+   },
+   "exit": {
+    "seconds": 5.43,
+    "vm_rss": "n/a",
+    "vm_hwm": "n/a",
+    "epoch": 1792479062.98
+   }
+  },
+  "build_seconds": 3.1,
+  "telemetry_loop": {
+   "0": {
+    "sm_clock_median": 2895.0,
+    "sm_clock_min": 2895.0,
+    "power_median": 326.48,
+    "temperature_max": 64.0,
+    "utilization_median": 92.0,
+    "samples": 1
+   },
+   "1": {
+    "sm_clock_median": 3013.0,
+    "sm_clock_min": 3013.0,
+    "power_median": 3.0,
+    "temperature_max": 48.0,
+    "utilization_median": 95.0,
+    "samples": 1
+   }
+  },
+  "dest_guard_fallback": 0,
+  "dest_guard_released": 0,
+  "validation_messages": {
+   "error": 0,
+   "warning": 0
+  },
+  "partition": null,
+  "solver_switches": {
+   "V7_DENSITY_COPY_COMPUTE": "1",
+   "V7_GHOST_SEND_LANES": "32",
+   "V7_DEEP_WALL_SKIP": "auto",
+   "V7_DEEP_WALL_CHECK": "0",
+   "V7_FUSED_CORRECTION_DENSITY": "1",
+   "V7_BAND_OVERLAP": "0",
+   "V7_DEST_GUARD": "relay",
+   "V7_DEST_GUARD_PRECHECK": "counter"
+  },
+  "solver_tag": "v7-rc3",
+  "invariants": {
+   "init_clamp_total": 0,
+   "overflow_by_counter": {
+    "overflow_inside_count": 0,
+    "overflow_incoming_count": 0,
+    "overflow_ghost_count": 0,
+    "overflow_install_tail": 0,
+    "overflow_install_inside": 0,
+    "overflow_departed_count": 0,
+    "overflow_initialization_outside": 0,
+    "overflow_deep_wall_skip_count": 0
+   },
+   "drift": 0,
+   "stamp_errors_gpu": 0,
+   "stamp_errors_host": 0,
+   "overflow_total": 0,
+   "far_migration_total": 0,
+   "nan_seen": false
+  }
+ },
+ "telemetry_loop_ranges": {
+  "0": {
+   "name": "NVIDIA GeForce RTX 5090",
+   "samples": 1,
+   "clock": {
+    "min": 2895.0,
+    "median": 2895.0,
+    "max": 2895.0
+   },
+   "memory_clock": {
+    "min": 14001.0,
+    "median": 14001.0,
+    "max": 14001.0
+   },
+   "temperature": {
+    "min": 64.0,
+    "median": 64.0,
+    "max": 64.0
+   },
+   "hotspot": null,
+   "power": {
+    "min": 326.48,
+    "median": 326.48,
+    "max": 326.48
+   },
+   "utilization": {
+    "min": 92.0,
+    "median": 92.0,
+    "max": 92.0
+   },
+   "memory_used": {
+    "min": 1441.0,
+    "median": 1441.0,
+    "max": 1441.0
+   },
+   "pcie_gen": {
+    "min": 5.0,
+    "median": 5.0,
+    "max": 5.0
+   },
+   "pcie_width": {
+    "min": 8.0,
+    "median": 8.0,
+    "max": 8.0
+   }
+  },
+  "1": {
+   "name": "AMD Radeon RX 7900 XTX",
+   "samples": 1,
+   "clock": {
+    "min": 3013.0,
+    "median": 3013.0,
+    "max": 3013.0
+   },
+   "memory_clock": {
+    "min": 1538.0,
+    "median": 1538.0,
+    "max": 1538.0
+   },
+   "temperature": {
+    "min": 48.0,
+    "median": 48.0,
+    "max": 48.0
+   },
+   "hotspot": {
+    "min": 72.0,
+    "median": 72.0,
+    "max": 72.0
+   },
+   "power": {
+    "min": 3.0,
+    "median": 3.0,
+    "max": 3.0
+   },
+   "utilization": {
+    "min": 95.0,
+    "median": 95.0,
+    "max": 95.0
+   },
+   "memory_used": {
+    "min": 2018.0,
+    "median": 2018.0,
+    "max": 2018.0
+   },
+   "pcie_gen": {
+    "min": 4.0,
+    "median": 4.0,
+    "max": 4.0
+   },
+   "pcie_width": {
+    "min": 16.0,
+    "median": 16.0,
+    "max": 16.0
+   }
+  }
+ },
+ "trace": {
+  "cards": [
+   {
+    "sim": "0",
+    "a": 36.672,
+    "a_to_b": 4.192,
+    "b": 822.375,
+    "b_to_c": 112.577,
+    "c": 158.37,
+    "c_to_next_a": 9.632,
+    "period": 1144.107,
+    "period_mean": 1156.9452412412413,
+    "b_correction_density": 402.435,
+    "b_force": 419.844
+   },
+   {
+    "sim": "1",
+    "a": 46.121,
+    "a_to_b": 84.851,
+    "b": 830.969,
+    "b_to_c": 18.321,
+    "c": 143.922,
+    "c_to_next_a": 15.8,
+    "period": 1141.652,
+    "period_mean": 1156.9595745745746,
+    "b_correction_density": 429.245,
+    "b_force": 401.565
+   }
+  ],
+  "links": {
+   "s0_to_s1": {
+    "steps": 1000,
+    "sender": 0,
+    "receiver": 1,
+    "t_chain_us_p50": 199.6135,
+    "t_own_us_p50": 130.7305,
+    "r_own_p50": 0.15721241473086497,
+    "readback_us_p50": 20.448000000000008,
+    "host_us_p50": 71.76200000000006,
+    "upload_us_p50": 38.42
+   },
+   "s1_to_s0": {
+    "steps": 1000,
+    "sender": 1,
+    "receiver": 0,
+    "t_chain_us_p50": 325.4015,
+    "t_own_us_p50": 148.35250000000002,
+    "r_own_p50": 0.18046458857440764,
+    "readback_us_p50": 32.20099999999999,
+    "host_us_p50": 82.076,
+    "upload_us_p50": 34.2365
+   }
+  }
+ },
+ "ended": "2026-10-20T15:51:05"
+}

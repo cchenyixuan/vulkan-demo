@@ -1,0 +1,201 @@
+{
+ "recorded_at": "2026-10-20T15:50:45",
+ "provenance": {
+  "head": "64eecf015942b25cfe460fc9ba75f30ba22f9009",
+  "head_short": "64eecf0",
+  "tag": "v7-rc3",
+  "solver_commit": "64eecf015942b25cfe460fc9ba75f30ba22f9009",
+  "experiment_v7_tree": "989b567f610a02f4b8d0261c80e1ee582db53905",
+  "experiment_v7_tree_at_tag": "f33a46ba021064e92a64d3aba49897c607234850",
+  "harness_scripts_from": "473c178a478a4b4930a7b09c5b7eb6888854635b",
+  "hostname": "DESKTOP-LDQTHT7",
+  "python": "3.13.9"
+ },
+ "windows": {
+  "pcie": {
+   "AMD Radeon(TM) Graphics": {
+    "max_width": 16,
+    "current_gen": 4,
+    "current_width": 16,
+    "location": "PCI bus 14, device 0, function 0",
+    "max_gen": 4
+   },
+   "AMD Radeon RX 7900 XTX": {
+    "max_width": 16,
+    "current_gen": 4,
+    "current_width": 16,
+    "location": "PCI bus 5, device 0, function 0",
+    "max_gen": 4
+   },
+   "NVIDIA GeForce RTX 5090": {
+    "max_width": 16,
+    "current_gen": 5,
+    "current_width": 8,
+    "location": "PCI bus 1, device 0, function 0",
+    "max_gen": 5
+   }
+  },
+  "cpu": {
+   "threads": 32,
+   "max_clock_MHz": 4300,
+   "name": "AMD Ryzen 9 9950X 16-Core Processor",
+   "cores": 16
+  },
+  "dimms": {
+   "capacity_GiB": 32,
+   "part": "F5-6400J3239G32G",
+   "speed_MTs": 4800,
+   "configured_MTs": 4800
+  },
+  "board": {
+   "manufacturer": "ASUSTeK COMPUTER INC.",
+   "product": "ProArt X870E-CREATOR WIFI"
+  },
+  "gpus_windows": [
+   {
+    "driver_version": "32.0.21043.12001",
+    "driver_date": "2026-05-29",
+    "name": "AMD Radeon(TM) Graphics",
+    "pnp": "PCI\\VEN_1002&DEV_13C0&SUBSYS_88771043&REV_C1\\4&1EBE6A9C&0&0041"
+   },
+   {
+    "driver_version": "32.0.31019.2002",
+    "driver_date": "2026-05-29",
+    "name": "AMD Radeon RX 7900 XTX",
+    "pnp": "PCI\\VEN_1002&DEV_744C&SUBSYS_E4711DA2&REV_C8\\6&15948F93&0&0000000B"
+   },
+   {
+    "driver_version": "32.0.15.7688",
+    "driver_date": "2025-06-24",
+    "name": "NVIDIA GeForce RTX 5090",
+    "pnp": "PCI\\VEN_10DE&DEV_2B85&SUBSYS_89E31043&REV_A1\\1841EAF5412DB04800"
+   }
+  ],
+  "os": {
+   "caption": "Microsoft Windows 11 Pro",
+   "total_memory_GiB": 31.1,
+   "build": "26200",
+   "version": "10.0.26200"
+  }
+ },
+ "nvidia_smi": [
+  {
+   "name": "NVIDIA GeForce RTX 5090",
+   "driver_version": "576.88",
+   "pci.bus_id": "00000000:01:00.0",
+   "pcie.link.gen.current": "1",
+   "pcie.link.gen.max": "5",
+   "pcie.link.width.current": "8",
+   "pcie.link.width.max": "16",
+   "memory.total [MiB]": "32607 MiB",
+   "power.limit [W]": "600.00 W",
+   "clocks.max.sm [MHz]": "3090 MHz",
+   "clocks.max.memory [MHz]": "14001 MHz"
+  }
+ ],
+ "vulkan": {
+  "loader_api": "1.4.350",
+  "python": "3.13.9",
+  "devices": [
+   {
+    "index": 0,
+    "name": "NVIDIA GeForce RTX 5090",
+    "type": 2,
+    "api": "1.4.303",
+    "driver_raw": 2417360896,
+    "vendor": "0x10de",
+    "device_id": "0x2b85",
+    "timestamp_period_ns": 1.0,
+    "has_pci_bus_info": true,
+    "has_calibrated_timestamps": true,
+    "has_external_memory_win32": true,
+    "properties2_error": "ExtensionNotSupportedError()",
+    "device_local_heaps_GiB": [
+     31.35
+    ],
+    "driver_decoded": "576.88.0.0",
+    "queue_families": [
+     "16xGCT",
+     "2xT",
+     "8xCT",
+     "2xT",
+     "2xT",
+     "1xT"
+    ]
+   },
+   {
+    "index": 1,
+    "name": "AMD Radeon(TM) Graphics",
+    "type": 1,
+    "api": "1.4.315",
+    "driver_raw": 8388961,
+    "vendor": "0x1002",
+    "device_id": "0x13c0",
+    "timestamp_period_ns": 10.0,
+    "has_pci_bus_info": false,
+    "has_calibrated_timestamps": true,
+    "has_external_memory_win32": true,
+    "properties2_error": "ExtensionNotSupportedError()",
+    "device_local_heaps_GiB": [
+     10.55
+    ],
+    "driver_decoded": "2.0.353",
+    "queue_families": [
+     "8xGCT",
+     "4xCT",
+     "1xT",
+     "1x",
+     "1x"
+    ]
+   },
+   {
+    "index": 2,
+    "name": "AMD Radeon RX 7900 XTX",
+    "type": 2,
+    "api": "1.4.349",
+    "driver_raw": 8389003,
+    "vendor": "0x1002",
+    "device_id": "0x744c",
+    "timestamp_period_ns": 10.0,
+    "has_pci_bus_info": false,
+    "has_calibrated_timestamps": true,
+    "has_external_memory_win32": true,
+    "properties2_error": "ExtensionNotSupportedError()",
+    "device_local_heaps_GiB": [
+     23.98
+    ],
+    "driver_decoded": "2.0.395",
+    "queue_families": [
+     "8xGCT",
+     "8xCT",
+     "1xT",
+     "1x",
+     "1x"
+    ]
+   }
+  ]
+ },
+ "python": {
+  "version": "3.13.9 (tags/v3.13.9:8183fa5, Oct 14 2025, 14:09:13) [MSC v.1944 64 bit (AMD64)]",
+  "vulkan": "1.3.275.1",
+  "numpy": "2.4.6",
+  "cffi": "2.0.0",
+  "executable": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\.venv\\Scripts\\python.exe"
+ },
+ "protocol": {
+  "steps": 1500,
+  "warmup": 500,
+  "depth": 2,
+  "device_map": "0,1",
+  "common": [
+   "--sync-scheme",
+   "per-direction",
+   "--depth",
+   "2",
+   "--pool-safety",
+   "1.2"
+  ],
+  "switch_interval_ms": "0.2",
+  "worker_affinity": "unset (default)"
+ }
+}

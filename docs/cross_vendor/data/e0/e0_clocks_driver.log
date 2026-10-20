@@ -1,0 +1,141 @@
+RESULT label=clocks_cavity2d_n1000_K2 status=pass rc=0 steady_fps=847.4 total_fps=847.7 drift=0 overflow_total=0 far_migration=0 stamps=0+0 alive=1044484->1044484 clamp=0 nan=None fields=- columns=[133, 73] tq2=1 pins=0/skip0 wall=19.3s vram_peak_mib=0:1405/1:2176 solver=v7 build=1.34s cache_hits=0 defrag_ms=89/15 fps_nodefrag=851.83 solver_tag=v7-rc3 root=C:\Users\cchen\PycharmProjects\vulkan-demo-xv
+{
+ "label": "clocks_cavity2d_n1000_K2",
+ "started": "2026-10-20T15:52:46",
+ "steps": 15000,
+ "result": {
+  "status": "pass",
+  "steady_fps": 847.4,
+  "steady_fps_nodefrag": 851.8277,
+  "drift": 0,
+  "overflow_total": 0,
+  "alive_start": 1044484,
+  "alive_end": 1044484,
+  "defrag_events_summary": {
+   "call": 0,
+   "n": 15,
+   "in_window": 15,
+   "wall_ms": 88.672,
+   "in_window_ms": 88.672,
+   "steady_frames": 14500,
+   "steady_s": 17.110894,
+   "steady_fps": 847.4133
+  },
+  "telemetry_loop": {
+   "0": {
+    "sm_clock_median": 600.0,
+    "sm_clock_min": 600.0,
+    "power_median": 30.35,
+    "temperature_max": 67.0,
+    "utilization_median": 90.0,
+    "samples": 70
+   },
+   "1": {
+    "sm_clock_median": 2988.0,
+    "sm_clock_min": 2804.0,
+    "power_median": 3.0,
+    "temperature_max": 56.0,
+    "utilization_median": 95.0,
+    "samples": 70
+   }
+  }
+ },
+ "loop_seconds": 17.694999933242798,
+ "ranges": {
+  "0": {
+   "name": "NVIDIA GeForce RTX 5090",
+   "samples": 70,
+   "clock": {
+    "min": 600.0,
+    "median": 600.0,
+    "max": 2880.0
+   },
+   "memory_clock": {
+    "min": 405.0,
+    "median": 405.0,
+    "max": 14001.0
+   },
+   "temperature": {
+    "min": 43.0,
+    "median": 65.0,
+    "max": 67.0
+   },
+   "hotspot": null,
+   "power": {
+    "min": 30.35,
+    "median": 30.35,
+    "max": 522.03
+   },
+   "utilization": {
+    "min": 0.0,
+    "median": 90.0,
+    "max": 91.0
+   },
+   "memory_used": {
+    "min": 1405.0,
+    "median": 1405.0,
+    "max": 1405.0
+   },
+   "pcie_gen": {
+    "min": 5.0,
+    "median": 5.0,
+    "max": 5.0
+   },
+   "pcie_width": {
+    "min": 8.0,
+    "median": 8.0,
+    "max": 8.0
+   }
+  },
+  "1": {
+   "name": "AMD Radeon RX 7900 XTX",
+   "samples": 70,
+   "clock": {
+    "min": 2804.0,
+    "median": 2988.0,
+    "max": 3013.0
+   },
+   "memory_clock": {
+    "min": 1538.0,
+    "median": 1538.0,
+    "max": 1538.0
+   },
+   "temperature": {
+    "min": 45.0,
+    "median": 53.0,
+    "max": 56.0
+   },
+   "hotspot": {
+    "min": 63.0,
+    "median": 76.0,
+    "max": 79.0
+   },
+   "power": {
+    "min": 3.0,
+    "median": 3.0,
+    "max": 3.0
+   },
+   "utilization": {
+    "min": 87.0,
+    "median": 95.0,
+    "max": 96.0
+   },
+   "memory_used": {
+    "min": 2176.0,
+    "median": 2176.0,
+    "max": 2176.0
+   },
+   "pcie_gen": {
+    "min": 4.0,
+    "median": 4.0,
+    "max": 4.0
+   },
+   "pcie_width": {
+    "min": 16.0,
+    "median": 16.0,
+    "max": 16.0
+   }
+  }
+ },
+ "ended": "2026-10-20T15:53:07"
+}
