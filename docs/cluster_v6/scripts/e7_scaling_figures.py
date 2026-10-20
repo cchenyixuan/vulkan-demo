@@ -140,8 +140,8 @@ def strong_figure(chosen: dict, out: pathlib.Path) -> list:
     if largest:
         anchor = next((row for row in k8 if row["case"] == "cavity2d_n8000"), k8[-1])
         axis_n.plot([anchor["per_gpu_M"], largest[0]["per_gpu_M"]], [anchor["eta"], largest[0]["eta"]], color=COLOR_RED, lw=0.6,
-                    ls=(0, (3, 2)), marker="s", markevery=[1], ms=3.4, mfc="none", mec=COLOR_RED, mew=0.8, label="pair reference",
-                    zorder=2.5)
+                    ls=(0, (3, 2)), marker="s", markevery=[1], ms=3.4, mfc="none", mec=COLOR_RED, mew=0.8,
+                    label=f"{int(largest[0]['particles'] // 1e6)}M, reference on two devices", zorder=2.5)
         errorbar(axis_n, largest, "per_gpu_M", label="_nolegend_", **other)
     axis_n.set_xscale("log")
     axis_n.xaxis.set_major_locator(LogLocator(base=10.0, numticks=12))
