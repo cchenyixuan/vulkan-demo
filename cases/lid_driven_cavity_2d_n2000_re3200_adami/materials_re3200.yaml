@@ -1,0 +1,18 @@
+# Case-local material library of the Re = 3200 cavity (2026-10-20): the three *_re3200 materials of the main checkout's
+# materials/standard.yaml (cavity_validation campaign 2026-09-29), nu = 3.125e-4 = 1 / 3200 for U = L = 1.
+
+stick_water_re3200:
+  kind: fluid
+  rest_density: 1000.0
+  viscosity: 3.125e-4
+
+stick_wall_re3200:
+  kind: boundary
+  rest_density: 1000.0
+  viscosity: 3.125e-4
+
+stick_lid_re3200:
+  kind: boundary
+  rest_density: 1000.0
+  viscosity: 3.125e-4
+  initial_velocity: [1.0, 0.0, 0.0]

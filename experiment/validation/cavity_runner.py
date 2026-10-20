@@ -361,6 +361,11 @@ def main() -> int:
                              "Re = 3200 variant, 2026-10-20); the sampling points are Marchi 2021's, the same at every Re")
     parser.add_argument("--keep-checkpoints", type=int, default=2,
                         help="checkpoints kept (newest first; 0 = all, e.g. to pick the one just before the steady window)")
+    parser.add_argument("--initial-velocity", default=None, metavar="NPZ",
+                        help="warm start of a fresh run (2026-10-20): the fluid particles' initial velocities from a file "
+                             "written by docs/validation/cluster/warm_start_velocity.py (interpolated from a coarser run's "
+                             "final snapshot; same case, rows in the loader's order); t restarts at 0, the bootstrap "
+                             "recomputes density / correction / force from these velocities")
     parser.add_argument("--start-from", default=None, metavar="CHECKPOINT",
                         help="start a fresh run from another run's checkpoints/c<step>.npz of the SAME case: the nine "
                              "restart fields as they are, the global step numbering kept (samples / snapshots / "
@@ -469,6 +474,24 @@ def main() -> int:
     point_sets["v_dense"] = ("v", sampling.centerline_points(frames["wall"], dense_reference, "v"))
 
     weights = [1.0] * arguments.slabs
+    initial_velocity = None
+    if arguments.initial_velocity:
+        velocity_path = pathlib.Path(arguments.initial_velocity).resolve()
+        with np.load(velocity_path) as archive:
+            rows_fluid = np.array(archive["rows"]); values = np.array(archive["velocities"], dtype=np.float32)
+            velocity_case = str(archive["case_sha256"]); velocity_source = json.loads(str(archive["provenance"]))
+        case_digest = hashlib.sha256(pathlib.Path(arguments.case).read_bytes()).hexdigest()
+        if velocity_case != case_digest:
+            sys.exit(f"[cavity] --initial-velocity {velocity_path}: made for another case.yaml ({velocity_case[:12]} != {case_digest[:12]})")
+        fluid_rows = np.flatnonzero(np.isin(global_case.initial.material_group, fluid_groups))
+        if rows_fluid.shape != fluid_rows.shape or not np.array_equal(rows_fluid, fluid_rows) or values.shape != (fluid_rows.size, 2):
+            sys.exit(f"[cavity] --initial-velocity {velocity_path}: rows do not match this case's fluid particles")
+        if not np.isfinite(values).all():
+            sys.exit(f"[cavity] --initial-velocity {velocity_path}: non-finite velocities")
+        global_case.initial.velocities[fluid_rows, :2] = values
+        initial_velocity = {"file": str(velocity_path), "sha256": hashlib.sha256(velocity_path.read_bytes()).hexdigest(),
+                            "rows": int(fluid_rows.size), "max_speed": float(np.sqrt((values ** 2).sum(axis=1)).max()),
+                            **velocity_source}
     start_from = None
     if arguments.start_from:
         # the chain is cut by the fluid distribution of the starting state (the case's rest state would give the
@@ -517,6 +540,7 @@ def main() -> int:
                 "spacing": spacing, "reynolds_nominal": reynolds, "defrag_cadence": cadence,
                 "cuts": list(getattr(chain, "cuts", [])), "cuts_x": cuts_x, "slab_particles": slab_particles,
                 "weights": weights, "start_from": start_from[3] if start_from else None,
+                "initial_velocity": initial_velocity, "reynolds": arguments.reynolds,
                 "pool_safety": arguments.pool_safety,
                 "sample_steps": sample_steps, "snapshot_steps": snapshot_steps, "checkpoint_steps": checkpoint_steps,
                 "window_steps": window_steps, "t_end": arguments.t_end, "t_max": arguments.t_max,

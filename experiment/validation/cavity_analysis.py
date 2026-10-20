@@ -151,8 +151,10 @@ def sliding_steady_time(times: np.ndarray, profile: np.ndarray, kinetic_energy: 
 
 
 # ----------------------------------------------------------------------------------------------- per run
-def analyse_run(run: dict, average_span: float, tolerance: float, window: float, with_stream_function: bool) -> dict:
-    reference = cavity_reference.marchi2021()
+def analyse_run(run: dict, average_span: float, tolerance: float, window: float, with_stream_function: bool,
+                reynolds: int = 1000) -> dict:
+    """reynolds (2026-10-20): the Marchi 2021 reference of that Re (1000 as before; 3200 for the Re = 3200 runs)."""
+    reference = cavity_reference.marchi2021(reynolds)
     times = run["times"]
     arrays = run["arrays"]
     t_last = float(times.max())
@@ -190,7 +192,7 @@ def analyse_run(run: dict, average_span: float, tolerance: float, window: float,
     analysis["frame_reynolds"] = {}
     for frame_name, half_width in FRAME_HALF_WIDTH.items():
         half = half_width(run["spacing"])
-        analysis["frame_reynolds"][frame_name] = 1000.0 * 2.0 * half
+        analysis["frame_reynolds"][frame_name] = float(reynolds) * 2.0 * half
         for line in ("u", "v"):
             spline = CubicSpline(dense_physical, statistics[f"{line}_dense_mls"]["mean"])
             values = spline(reference[line][0] * 2.0 * half - half)

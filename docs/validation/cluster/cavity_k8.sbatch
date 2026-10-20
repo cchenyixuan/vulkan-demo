@@ -19,14 +19,17 @@
 # (one sample), (2) the run. Outputs under /dev/shm during the job, archived to ~/run/logs/cavity_k8_<job id>.
 # Submit: sbatch --export=ALL,EXPECT_COMMIT=<rc3 deployment commit prefix> docs/validation/cluster/cavity_k8.sbatch
 set -u
+# the point (defaults = the Re 1000 continuation; the Re 3200 one passes CASE / RUN_NAME / INPUT / CHECKPOINT /
+# CHECKPOINT_SHA / REYNOLDS through sbatch --export, 2026-10-20 night)
 REPO=$HOME/run/vulkan-demo-v7rc3
-INPUT=$HOME/run/cavity_k8_input/n1000_k1_float32_xi0p001_eps0p0025_adami
-CHECKPOINT=$INPUT/checkpoints/c0011907000.npz
-CHECKPOINT_SHA=db77ef290e1011b268c5175beb5e70f7c69ee4e057f642fc1531b6d7da483cf9
+INPUT=${INPUT:-$HOME/run/cavity_k8_input/n1000_k1_float32_xi0p001_eps0p0025_adami}
+CHECKPOINT=${CHECKPOINT:-$INPUT/checkpoints/c0011907000.npz}
+CHECKPOINT_SHA=${CHECKPOINT_SHA:-db77ef290e1011b268c5175beb5e70f7c69ee4e057f642fc1531b6d7da483cf9}
 EXPECT_COMMIT=${EXPECT_COMMIT:?"the deployment commit prefix is missing: sbatch --export=ALL,EXPECT_COMMIT=..."}
 EXPECT_TREE=f33a46ba021064e92a64d3aba49897c607234850
-CASE=cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_adami/case.yaml
-RUN_NAME=n1000_k8_float32_xi0p001_eps0p0025_adami
+CASE=${CASE:-cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_adami/case.yaml}
+RUN_NAME=${RUN_NAME:-n1000_k8_float32_xi0p001_eps0p0025_adami}
+REYNOLDS=${REYNOLDS:-1000}
 SHM=/dev/shm/scxm138/cavity_k8_$SLURM_JOB_ID
 OUT=$HOME/run/logs/cavity_k8_$SLURM_JOB_ID
 T0=$(date +%s)
@@ -62,7 +65,8 @@ export V7_KEEP_DEPARTED=1 V7_GHOST_LAYERS=2 V7_LEAN_TRANSPORT=1 V7_COMPACT_GHOST
        V7_BAND_SLOT_LANES=64 V7_GHOST_POOL_FACTOR=0.29 V7_MIGRANT_POOL_FACTOR=0.05 V7_DEPARTED_FACE_FRACTION=0.8 \
        V7_INIT_SEAM_CLAMP=1 V7_WORKER_COUNT_AWARE=1 V7_SPLIT_TRANSFER_QUEUES=1
 export VK_LOADER_LAYERS_DISABLE=VK_LAYER_KHRONOS_validation PYTHONIOENCODING=utf-8 PYTHONUNBUFFERED=1
-RUNNER="python -m experiment.validation.cavity_runner --solver v7 --case $CASE --expect release --slabs 8 --device-map 0,1,2,3,4,5,6,7 --start-from $CHECKPOINT --t-end 100 --t-max 200 --average-span 20 --pool-safety 1.2"
+RUNNER="python -m experiment.validation.cavity_runner --solver v7 --case $CASE --expect release --slabs 8 --device-map 0,1,2,3,4,5,6,7 --start-from $CHECKPOINT --reynolds $REYNOLDS --t-end 100 --t-max 300 --average-span 20 --pool-safety 1.2"
+echo "point: case $CASE, run $RUN_NAME, Re $REYNOLDS, checkpoint $CHECKPOINT"
 echo "--- partition the runner will build (CPU)"
 python docs/validation/cluster/cavity_k8_partition_check.py --case "$CASE" --checkpoint "$CHECKPOINT" --slabs 8 --json "$SHM/partition_check.json" 2>&1 | grep -v '^\[' | tr -d '\n' | tr -s ' '; echo
 

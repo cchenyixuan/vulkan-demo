@@ -22,21 +22,26 @@ def _rows(path: pathlib.Path) -> list[dict]:
         return list(csv.DictReader(line for line in handle if not line.startswith("#")))
 
 
-def marchi2021() -> dict:
+def marchi2021(reynolds: int = 1000) -> dict:
     """{'u': (y (28,), u (28,), Uc (28,)), 'v': (x (28,), v (28,), Uc (28,)),
-        'extrema': {name: (value, Uc)}, 'rows': raw rows}. Coordinates are exact dyadic values."""
-    rows = _rows(MARCHI_CSV)
-    result = {"rows": rows, "extrema": {}}
+        'extrema': {name: (value, Uc)}, 'rows': raw rows}. Coordinates are exact dyadic values.
+    reynolds selects docs/validation/data/marchi2021_re<Re>.csv (1000: the full transcription with uncertainties and
+    the 9 extrema; 3200, 2026-10-20: the 28 + 28 profile points only, Uc empty -> NaN, no extrema)."""
+    path = _DATA / f"marchi2021_re{int(reynolds)}.csv"
+    rows = _rows(path)
+    result = {"rows": rows, "extrema": {}, "reynolds": int(reynolds)}
     for line, group in (("u", "u_at_x_0.5"), ("v", "v_at_y_0.5")):
         selected = sorted((row for row in rows if row["group"] == group), key=lambda row: float(row["coordinate"]))
         result[line] = (np.array([float(row["coordinate"]) for row in selected]),
                         np.array([float(row["Tc"]) for row in selected]),
-                        np.array([float(row["Uc"]) for row in selected]))
+                        np.array([float(row["Uc"]) if row["Uc"] else np.nan for row in selected]))
     for row in rows:
         if row["group"] == "extrema":
             result["extrema"][row["quantity"]] = (float(row["Tc"]), float(row["Uc"]))
-    if result["u"][0].size != 28 or result["v"][0].size != 28 or len(result["extrema"]) != 9:
-        raise ValueError(f"{MARCHI_CSV}: expected 28 + 28 profile points and 9 extrema")
+    if result["u"][0].size != 28 or result["v"][0].size != 28:
+        raise ValueError(f"{path}: expected 28 + 28 profile points")
+    if int(reynolds) == 1000 and len(result["extrema"]) != 9:
+        raise ValueError(f"{path}: expected 9 extrema")
     return result
 
 
