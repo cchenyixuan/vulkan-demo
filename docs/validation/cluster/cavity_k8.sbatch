@@ -3,7 +3,7 @@
 #SBATCH -A hp5090
 #SBATCH -N 1
 #SBATCH --gpus=8
-#SBATCH --time=04:00:00
+#SBATCH --time=02:30:00
 #SBATCH -J cav_k8
 #SBATCH --exclusive
 #SBATCH --mem=0
@@ -23,7 +23,7 @@ REPO=$HOME/run/vulkan-demo-v7rc3
 INPUT=$HOME/run/cavity_k8_input/n1000_k1_float32_xi0p001_eps0p0025_adami
 CHECKPOINT=$INPUT/checkpoints/c0011907000.npz
 CHECKPOINT_SHA=db77ef290e1011b268c5175beb5e70f7c69ee4e057f642fc1531b6d7da483cf9
-EXPECT_COMMIT=${EXPECT_COMMIT:?the deployment's commit prefix (sbatch --export=ALL,EXPECT_COMMIT=...)}
+EXPECT_COMMIT=${EXPECT_COMMIT:?"the deployment commit prefix is missing: sbatch --export=ALL,EXPECT_COMMIT=..."}
 EXPECT_TREE=f33a46ba021064e92a64d3aba49897c607234850
 CASE=cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_adami/case.yaml
 RUN_NAME=n1000_k8_float32_xi0p001_eps0p0025_adami
