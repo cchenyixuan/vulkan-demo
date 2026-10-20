@@ -113,7 +113,7 @@ def strong_figure(chosen: dict, out: pathlib.Path) -> list:
     k8 = sorted((row for (case, slabs), row in chosen.items()
                  if slabs == 8 and row["kind"] == "strong" and not re.search(r"_k\d+$", case)), key=lambda r: r["per_gpu"])
     width, panel, height_panel = TEXT_WIDTH, 2.05, 1.85
-    left, gap, bottom, top = 0.42, 0.62, 0.40, 0.20
+    left, gap, bottom, top = 0.42, 0.62, 0.40, 0.44          # top: room for (b)'s secondary axis (ticks + label)
     figure = plt.figure(figsize=(width, bottom + height_panel + top))
     axis_k = axes_inches(figure, left, bottom, panel, height_panel)
     axis_n = axes_inches(figure, left + panel + gap, bottom, panel, height_panel)
@@ -122,24 +122,27 @@ def strong_figure(chosen: dict, out: pathlib.Path) -> list:
     for axis in (axis_k, axis_n):
         band(axis)
         frame(axis)
-    # labels (user 2026-10-20): "64M" / "128M, pair reference" in (a); (b) keeps only the pair-reference legend entry and
-    # reads particles per device in M with plain 0.1 / 1 / 10 ticks (as loss_sources.pdf (a)); "GPU" -> "device"
-    errorbar(axis_k, sweep, "K", label=f"{int(sweep[0]['particles'] // 1e6)}M" if sweep else None, **main)
-    if largest:
-        errorbar(axis_k, largest, "K", label=f"{int(largest[0]['particles'] // 1e6)}M, pair reference", **other)
+    # (a) (user 2026-10-20, second revision): only the 64M sweep against K, no legend; "GPU" -> "device"
+    errorbar(axis_k, sweep, "K", label="_nolegend_", **main)
     axis_k.set_xlim(1.6, 8.4)
     axis_k.xaxis.set_major_locator(MultipleLocator(1))
-    values = [row[key] for row in sweep + largest for key in ("eta_min", "eta_max")] + [0.98, 1.02]
+    values = [row[key] for row in sweep for key in ("eta_min", "eta_max")] + [0.98, 1.02]
     axis_k.set_ylim(min(values) - 0.012, max(values) + 0.012)
     axis_k.yaxis.set_major_locator(MultipleLocator(0.02))
     axis_k.set_xlabel(r"number of devices $K$", labelpad=1.5)
     axis_k.set_ylabel(r"$\eta$", labelpad=1.5)
-    axis_k.legend(loc="lower left", frameon=False, handlelength=1.4, borderaxespad=0.2)
+    # (b): particles per device in M with plain 0.1 / 1 / 10 ticks (as loss_sources.pdf (a)); a secondary axis on top
+    # with the total particles (M) = 8 x the device load (K = 8), ticks 1 / 10 / 100; the 128M pair-reference square is
+    # joined to the 64M K = 8 point by a thin dashed line of its colour, legend entry "pair reference"
     for row in k8 + largest:
         row["per_gpu_M"] = row["per_gpu"] / 1e6
     errorbar(axis_n, k8, "per_gpu_M", label="_nolegend_", **main)
     if largest:
-        errorbar(axis_n, largest, "per_gpu_M", label=f"{int(largest[0]['particles'] // 1e6)}M, pair reference", **other)
+        anchor = next((row for row in k8 if row["case"] == "cavity2d_n8000"), k8[-1])
+        axis_n.plot([anchor["per_gpu_M"], largest[0]["per_gpu_M"]], [anchor["eta"], largest[0]["eta"]], color=COLOR_RED, lw=0.6,
+                    ls=(0, (3, 2)), marker="s", markevery=[1], ms=3.4, mfc="none", mec=COLOR_RED, mew=0.8, label="pair reference",
+                    zorder=2.5)
+        errorbar(axis_n, largest, "per_gpu_M", label="_nolegend_", **other)
     axis_n.set_xscale("log")
     axis_n.xaxis.set_major_locator(LogLocator(base=10.0, numticks=12))
     axis_n.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:g}"))
@@ -151,12 +154,19 @@ def strong_figure(chosen: dict, out: pathlib.Path) -> list:
     axis_n.yaxis.set_major_locator(MultipleLocator(0.2))
     axis_n.set_xlabel("particles per device (M)", labelpad=1.5)
     axis_n.set_ylabel(r"$\eta$", labelpad=1.5)
-    axis_n.legend(loc="lower right", frameon=False, handlelength=1.4, borderaxespad=0.2)
+    axis_n.legend(loc="lower right", frameon=False, handlelength=2.0, borderaxespad=0.2)
+    total_axis = axis_n.secondary_xaxis("top", functions=(lambda load: load * 8.0, lambda total: total / 8.0))
+    total_axis.xaxis.set_major_locator(LogLocator(base=10.0, numticks=12))
+    total_axis.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:g}"))
+    total_axis.xaxis.set_minor_locator(LogLocator(base=10.0, subs=tuple(range(2, 10)), numticks=12))
+    total_axis.xaxis.set_minor_formatter(NullFormatter())
+    total_axis.set_xlabel("total particles (M)", labelpad=2.5)
+    total_axis.tick_params(which="both", direction="in", labelsize=FONT_SIZE - 0.5)
     panel_label(axis_k, "(a)")
     panel_label(axis_n, "(b)")
     save(figure, out / "strong_scaling.pdf")
     plt.close(figure)
-    return [dict(row, figure="strong_scaling", panel="a") for row in sweep + largest] + \
+    return [dict(row, figure="strong_scaling", panel="a") for row in sweep] + \
            [dict(row, figure="strong_scaling", panel="b") for row in k8 + largest]
 
 
