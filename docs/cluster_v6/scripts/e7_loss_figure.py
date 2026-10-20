@@ -18,7 +18,7 @@ eta = the tables' eta without the defrag events, mean over the trials (e7_scalin
 link_metrics / worst_link; the defrag step stays in, medians).
 
   (a) T_B (filled circle, solid), t_own (open circle, solid) and the host part of t_own (dashed) against particles
-      per device (M, walls included), both axes log, the nine strong K = 8 points; a light vertical line at 2M.
+      per device (M, walls included), both axes log, the nine strong K = 8 points.
   (b) eta against r_own (log): the same nine points, filled circles, no legend; dashed line at r_own = 1;
       eta 0..1.05 with the band eta = 1 +- 0.02.
   Style: e7_scaling_figures (Times 8 pt, elsarticle text width), panel labels (a) (b).
@@ -186,7 +186,6 @@ def figure(rows: list, out: pathlib.Path) -> None:
     t_b = [row["T_B"] / 1e3 for row in strong]
     t_own = [row["t_own"] / 1e3 for row in strong]
     t_host = [row["t_host"] / 1e3 for row in strong]
-    axis_t.axvline(2.0, color="#bdbdbd", lw=0.7, zorder=0.5)
     axis_t.plot(xs, t_b, color=style.COLOR_MAIN, marker="o", ms=3.4, mfc=style.COLOR_MAIN, mec=style.COLOR_MAIN, lw=0.9,
                 label=r"$T_B$", zorder=3)
     axis_t.plot(xs, t_own, color=style.COLOR_RED, marker="o", ms=3.4, mfc="white", mec=style.COLOR_RED, mew=0.8, lw=0.9,
