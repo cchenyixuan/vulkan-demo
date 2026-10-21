@@ -1,6 +1,7 @@
 #!/bin/bash
 # e8_deploy_remote.sh — deploy the E8 tag into ~/run/vulkan-demo-e8 on the N56 login node (never on a compute node).
-# Nothing is submitted; the E8 cases' particle files are generated separately (e8_gen_remote.sh).
+# Nothing is submitted; the E8 cases' particle files are generated separately (e8_gen_remote.sh, started by
+# e8_cases_remote.sh right after the case definitions are in the store).
 #
 # Uploaded to ~/run/tools beforehand (built on the dev box with core.autocrlf=false, every file LF):
 #   vd_e8_<SHA>.tar.gz   git archive --prefix=vulkan-demo-e8/ <tag> experiment/__init__.py experiment/v7 experiment/seam_audit
@@ -9,10 +10,11 @@
 #                        cases/aligned/cavity2d_n1000/{case.yaml,generate.txt} cases/aligned/cavity3d_n{192,244,312,392}
 #                        cases/aligned/cavity3d_n192_k{2,4,8} cases/aligned/cavity3d_n48
 #   e8_sha.txt           the 40-hex SHA of the tag's commit
-# Layout: the deployment's cases/ becomes a symbolic link to ~/run/vulkan-demo-v7rc1/cases, the shared case store of
-# the E7 deployments (rc2 links it the same way: one copy of every particle file and one .obj cache key per case);
-# the E8 case directories of the archive (case.yaml + generate.txt) are moved into that store, new directories only
-# (an existing directory there is left alone and compared).
+# Layout: the deployment's cases/ is a symbolic link to ~/run/vulkan-demo-v7rc1/cases, the shared case store of the
+# E7 deployments (rc2 links it the same way: one copy of every particle file and one .obj cache key per case); the
+# E8 case definitions are put there by e8_cases_remote.sh (new directories only; an existing one is compared).
+# JuiceFS creates files at ~0.6-12 s each: the archive is extracted into /dev/shm and copied into the deployment with
+# 16 parallel cp streams.
 # Usage: [SHA=<40 hex>] [EXPECT_TREE=<sha>] [UPDATE=1] bash e8_deploy_remote.sh   (UPDATE=1 moves an existing deployment aside)
 set -u
 SHA=${SHA:-$(cat "$HOME/run/tools/e8_sha.txt" 2>/dev/null | tr -d '[:space:]')}
@@ -21,6 +23,7 @@ DEST=$HOME/run/vulkan-demo-e8
 STORE=$HOME/run/vulkan-demo-v7rc1
 TOOLS=$HOME/run/tools
 TARBALL=$TOOLS/vd_e8_$SHA.tar.gz
+STAGE=/dev/shm/scxm138/e8_stage_$SHA
 E8_CASES="cavity3d_n192 cavity3d_n244 cavity3d_n312 cavity3d_n392 cavity3d_n192_k2 cavity3d_n192_k4 cavity3d_n192_k8 cavity3d_n48"
 FAILS=0
 fail() { echo "FAIL: $*"; FAILS=$((FAILS + 1)); }
@@ -31,6 +34,9 @@ echo "=== e8 deploy $(date) host $(hostname): $SHA -> $DEST (tree $EXPECT_TREE)"
 [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "ABORT: '$SHA' is not a 40-character sha"; exit 1; }
 [ -s "$TARBALL" ] || { echo "ABORT: no $TARBALL"; exit 1; }
 [ -d "$STORE/cases/aligned" ] || { echo "ABORT: no case store $STORE/cases/aligned"; exit 1; }
+for name in $E8_CASES cavity2d_n1000; do
+    [ -f "$STORE/cases/aligned/$name/case.yaml" ] || { echo "ABORT: $name is not in the store (run e8_cases_remote.sh first)"; exit 1; }
+done
 QUEUE=$(timeout 60 squeue -u scxm138 -h -o '%i|%j|%T|%Z|%o') || { echo "ABORT: squeue failed"; exit 1; }
 if echo "$QUEUE" | grep -F "vulkan-demo-e8"; then echo "ABORT: a job of $DEST is queued or running"; exit 1; fi
 echo "queue: $(echo "$QUEUE" | grep -c .) jobs of scxm138, none of $DEST"
@@ -43,32 +49,27 @@ if [ -e "$DEST" ]; then
     fi
 fi
 
-# ---------------------------------------------------------------- extract
+# ---------------------------------------------------------------- extract (stage in /dev/shm, parallel copy)
 ARCHIVE_COMMIT=$(gzip -dc "$TARBALL" | git get-tar-commit-id)
 [ "$ARCHIVE_COMMIT" = "$SHA" ] || { echo "ABORT: archive commit $ARCHIVE_COMMIT != $SHA"; exit 1; }
+rm -rf "$STAGE"; mkdir -p "$STAGE" || { echo "ABORT: cannot create $STAGE"; exit 1; }
+tar xzf "$TARBALL" --strip-components=1 -C "$STAGE" || { echo "ABORT: cannot extract $TARBALL"; exit 1; }
+rm -rf "$STAGE/cases"                       # the case definitions live in the store (e8_cases_remote.sh)
 mkdir -p "$DEST" || { echo "ABORT: cannot create $DEST"; exit 1; }
-tar xzf "$TARBALL" --strip-components=1 -C "$DEST" || { echo "ABORT: cannot extract $TARBALL"; exit 1; }
-echo "extracted: $(find "$DEST" -type f | wc -l) files, $(du -sh "$DEST" | cut -f1)"
+(cd "$STAGE" && find . -type d | sed 's|^\./||' | grep -v '^\.$' | sort) | while read -r directory; do mkdir -p "$DEST/$directory"; done
+(cd "$STAGE" && find . -type f | sed 's|^\./||' | sort) > "$STAGE.files"
+TC=$(date +%s)
+(cd "$STAGE" && xargs -a "$STAGE.files" -P 16 -I{} cp -p "{}" "$DEST/{}")
+echo "copied $(wc -l < "$STAGE.files") files in $(( $(date +%s) - TC )) s"
+MISSING=$(cd "$STAGE" && while read -r file; do [ -f "$DEST/$file" ] || echo "$file"; done < "$STAGE.files" | head -3)
+[ -z "$MISSING" ] && echo "copy complete" || fail "files missing after the copy: $MISSING"
+echo "deployed: $(find "$DEST" -type f | wc -l) files, $(du -sh "$DEST" | cut -f1)"
 CR=$(find "$DEST" -type f \( -name '*.py' -o -name '*.sh' -o -name '*.sbatch' -o -name '*.yaml' -o -name '*.txt' \) -exec grep -l $'\r' {} + 2>/dev/null | head -3)
 [ -z "$CR" ] && echo "CR check OK" || fail "CR in: $CR"
-
-# ---------------------------------------------------------------- the case store
-for name in $E8_CASES cavity2d_n1000; do
-    if [ -d "$STORE/cases/aligned/$name" ]; then
-        if cmp -s "$DEST/cases/aligned/$name/case.yaml" "$STORE/cases/aligned/$name/case.yaml"; then
-            echo "case $name: already in the store, case.yaml identical"
-        else
-            fail "case $name: the store's case.yaml differs from the archive's"
-        fi
-    else
-        mv "$DEST/cases/aligned/$name" "$STORE/cases/aligned/$name" || fail "cannot move $name into the store"
-        echo "case $name: moved into the store (new)"
-    fi
-done
-rm -rf "$DEST/cases"
 ln -s ../vulkan-demo-v7rc1/cases "$DEST/cases" || fail "cannot link cases"
 [ -f "$DEST/cases/aligned/cavity3d_n192/case.yaml" ] && echo "cases link OK" || fail "cases link"
 [ -f "$DEST/cases/aligned/cavity2d_n1000/domain.obj" ] && echo "bring-up case has its particle files" || fail "cavity2d_n1000 particle files missing in the store"
+rm -rf "$STAGE" "$STAGE.files"
 
 # ---------------------------------------------------------------- provenance files
 echo "$SHA tarball_sha256=$(sha256sum "$TARBALL" | cut -c1-64) deployed=$(date -Is) solver_tag=e8-3d-p1 base=v7-rc3" > "$DEST/COMMIT"
@@ -110,7 +111,7 @@ for other in "$HOME/run/vulkan-demo-v7rc2" "$HOME/run/vulkan-demo-v7rc3"; do
 done
 echo
 if [ "$FAILS" -eq 0 ]; then
-    echo "=== DEPLOY OK in $(( $(date +%s) - T0 ))s. Next: e8_gen_remote.sh (particle files + caches), then"
+    echo "=== DEPLOY OK in $(( $(date +%s) - T0 ))s. Submit after e8_gen_remote.sh has ended with status 0:"
     echo "    cd $DEST && sbatch --export=ALL,E30_EXPECT_COMMIT=${SHA:0:12},E7_EXPECTED_TREE=$EXPECT_TREE docs/cluster_v6/e8_jobs/e8_p1.sbatch"
 else
     echo "=== DEPLOY HAS $FAILS FAILURE(S): do not submit"; exit 2

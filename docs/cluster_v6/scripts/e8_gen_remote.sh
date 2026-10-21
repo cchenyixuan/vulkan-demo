@@ -5,8 +5,10 @@
 # run this inside tmux (e8_gen_launch.sh does) and leave the session until the summary line appears.
 # Usage: bash e8_gen_remote.sh [CASE ...]   (default: the four cubes, the three weak boxes and the 56^3 stand-in,
 #                                            the largest first so that the 64M case does not end the batch alone)
+# The generator and the cache builder are run from the store's own deployment (~/run/vulkan-demo-v7rc1, the same
+# files as the E8 tag's), so the generation never depends on the E8 deployment being in place.
 set -u
-export E30_REPO=$HOME/run/vulkan-demo-e8
+export E30_REPO=${E30_REPO:-$HOME/run/vulkan-demo-v7rc1}
 export E30_SOLVER=v7
 export E7_OBJ_CACHE=$HOME/run/e7_objcache
 export E7_GEN_PARALLEL=${E7_GEN_PARALLEL:-3}

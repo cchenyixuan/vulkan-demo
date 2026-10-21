@@ -21,7 +21,9 @@
 #      per-card VRAM against the phase-0 table (telemetry peak + the simulator's buffer prints).
 #   5  (from 1) the K = 1 ns per particle-step and the K = 2 trace.
 # Items run in the user's order; a hard failure of a chain run stops the job (e30_fail, no retries); the dumps and
-# comparisons are optional steps (recorded, the job goes on). Outputs under /dev/shm during the job, synced to
+# comparisons are optional steps (recorded, the job goes on). Every K = 2 chain run records the ghost-pool region
+# demand (V7_POOL_PEAKS=1: the harness prints capacity / peak per link and region, phase-0 item 4) and every run's
+# pool_health (own-pool tail, migrant and departed peaks) is printed by the harness. Outputs under /dev/shm during the job, synced to
 # ~/run/logs/e7_p1_<job> (e30_lib.sh naming: E30_NAME = e7_$E7_JOB).
 export E30_EXPECT_COMMIT=${E30_EXPECT_COMMIT:?"the deployment commit prefix: sbatch --export=ALL,E30_EXPECT_COMMIT=..."}
 export E7_SOLVER_TAG=${E7_SOLVER_TAG:-e8p1}
@@ -52,8 +54,8 @@ compare() {         # LABEL REF_LABEL TEST_LABEL
 e7_index 8m_K1 run phase1 cavity3d_n192 1 0 - - 8m
 E30_PREFIX="$PIN0" e30_run 8m_K1 900 -- --case $C8M --weights 1 --device-map 0 $COMMON --max-steps 300 --warmup 100 --no-seam-check
 e7_index 8m_K2_trace run phase1 cavity3d_n192 2 0 - - 8m
-e30_run 8m_K2_trace 900 -- --case $C8M --weights 1,1 --device-map 0,1 $COMMON --max-steps 300 --warmup 100 \
-    --step-trace "$SHM/traces/8m_K2"
+E30_PREFIX="env V7_POOL_PEAKS=1" e30_run 8m_K2_trace 900 -- --case $C8M --weights 1,1 --device-map 0,1 $COMMON \
+    --max-steps 300 --warmup 100 --step-trace "$SHM/traces/8m_K2"
 dump dump_8m_K1 $C8M 1 0
 dump dump_8m_K2 $C8M 2 0,1
 compare compare_8m dump_8m_K1 dump_8m_K2
@@ -62,18 +64,18 @@ compare compare_8m dump_8m_K1 dump_8m_K2
 e7_index s48_K1 run phase1 cavity3d_n48 1 0 - - s48
 E30_PREFIX="$PIN0" e30_run s48_K1 600 -- --case $C48 --weights 1 --device-map 0 $COMMON --max-steps 300 --warmup 100 --no-seam-check
 e7_index s48_K2 run phase1 cavity3d_n48 2 0 - - s48
-e30_run s48_K2 600 -- --case $C48 --weights 1,1 --device-map 0,1 $COMMON --max-steps 300 --warmup 100
+E30_PREFIX="env V7_POOL_PEAKS=1" e30_run s48_K2 600 -- --case $C48 --weights 1,1 --device-map 0,1 $COMMON --max-steps 300 --warmup 100
 dump dump_s48_K1 $C48 1 0
 dump dump_s48_K2 $C48 2 0,1
 compare compare_s48 dump_s48_K1 dump_s48_K2
 
 # ---- 3. the 2 x 1 x 1 weak box at K = 2
 e7_index weak2_K2 run phase1 cavity3d_n192_k2 2 0 - - weak2
-e30_run weak2_K2 900 -- --case $CW2 --weights 1,1 --device-map 0,1 $COMMON --max-steps 300 --warmup 100
+E30_PREFIX="env V7_POOL_PEAKS=1" e30_run weak2_K2 900 -- --case $CW2 --weights 1,1 --device-map 0,1 $COMMON --max-steps 300 --warmup 100
 
 # ---- 4. the 64M cube at K = 2 (generator output at the largest size, per-card VRAM)
 e7_index 64m_K2 run phase1 cavity3d_n392 2 0 - - 64m
-e30_run 64m_K2 1200 -- --case $C64 --weights 1,1 --device-map 0,1 $COMMON --max-steps 300 --warmup 100
+E30_PREFIX="env V7_POOL_PEAKS=1" e30_run 64m_K2 1200 -- --case $C64 --weights 1,1 --device-map 0,1 $COMMON --max-steps 300 --warmup 100
 
 [ "$E30_DRY" = 1 ] || { echo "--- clocks / temperatures (telemetry.csv) per run are in results.jsonl (telemetry_loop)"; \
     grep -h "RESULT label=" "$SHM"/*.log 2>/dev/null | cut -c1-400; }
