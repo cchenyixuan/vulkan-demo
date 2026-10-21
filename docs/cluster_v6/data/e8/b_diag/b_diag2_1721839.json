@@ -1,8 +1,8 @@
 {
- "job": "e7_e8B_1721839",
+ "job": "02_e8_e8B_1721839",
  "chains": {
   "3d_n152_K8": {
-   "trace": "C:\\Users\\cchen\\AppData\\Local\\Temp\\claude\\C--Users-cchen-PycharmProjects-vulkan-demo\\fd68689d-e4b4-4b3f-8636-fbe3d1d866de\\scratchpad\\e8\\pull\\snapB2\\e7_e8B_1721839\\traces\\3d_n152_K8_C",
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-22\\02_e8_e8B_1721839\\traces\\3d_n152_K8_C",
    "name": "3d_n152_K8_C",
    "case": "cases/aligned/cavity3d_n152/case.yaml",
    "K": 8,
@@ -302,7 +302,7 @@
    "fps_nodefrag": 134.4044
   },
   "3d_n192_K8": {
-   "trace": "C:\\Users\\cchen\\AppData\\Local\\Temp\\claude\\C--Users-cchen-PycharmProjects-vulkan-demo\\fd68689d-e4b4-4b3f-8636-fbe3d1d866de\\scratchpad\\e8\\pull\\snapB2\\e7_e8B_1721839\\traces\\3d_n192_K8_C",
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-22\\02_e8_e8B_1721839\\traces\\3d_n192_K8_C",
    "name": "3d_n192_K8_C",
    "case": "cases/aligned/cavity3d_n192/case.yaml",
    "K": 8,
@@ -602,7 +602,7 @@
    "fps_nodefrag": 98.7925
   },
   "3d_n244_K8": {
-   "trace": "C:\\Users\\cchen\\AppData\\Local\\Temp\\claude\\C--Users-cchen-PycharmProjects-vulkan-demo\\fd68689d-e4b4-4b3f-8636-fbe3d1d866de\\scratchpad\\e8\\pull\\snapB2\\e7_e8B_1721839\\traces\\3d_n244_K8_C",
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-22\\02_e8_e8B_1721839\\traces\\3d_n244_K8_C",
    "name": "3d_n244_K8_C",
    "case": "cases/aligned/cavity3d_n244/case.yaml",
    "K": 8,
@@ -902,7 +902,7 @@
    "fps_nodefrag": 62.3008
   },
   "3d_n312_K8": {
-   "trace": "C:\\Users\\cchen\\AppData\\Local\\Temp\\claude\\C--Users-cchen-PycharmProjects-vulkan-demo\\fd68689d-e4b4-4b3f-8636-fbe3d1d866de\\scratchpad\\e8\\pull\\snapB2\\e7_e8B_1721839\\traces\\3d_n312_K8_C",
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-22\\02_e8_e8B_1721839\\traces\\3d_n312_K8_C",
    "name": "3d_n312_K8_C",
    "case": "cases/aligned/cavity3d_n312/case.yaml",
    "K": 8,
@@ -1202,7 +1202,7 @@
    "fps_nodefrag": 33.2093
   },
   "3d_n392_K8": {
-   "trace": "C:\\Users\\cchen\\AppData\\Local\\Temp\\claude\\C--Users-cchen-PycharmProjects-vulkan-demo\\fd68689d-e4b4-4b3f-8636-fbe3d1d866de\\scratchpad\\e8\\pull\\snapB2\\e7_e8B_1721839\\traces\\3d_n392_K8_C",
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-22\\02_e8_e8B_1721839\\traces\\3d_n392_K8_C",
    "name": "3d_n392_K8_C",
    "case": "cases/aligned/cavity3d_n392/case.yaml",
    "K": 8,
@@ -4869,7 +4869,7 @@
  ],
  "kernel_halves": {
   "cavity3d_n192": {
-   "trace": "C:\\Users\\cchen\\AppData\\Local\\Temp\\claude\\C--Users-cchen-PycharmProjects-vulkan-demo\\fd68689d-e4b4-4b3f-8636-fbe3d1d866de\\scratchpad\\e8\\pull\\snapB2\\e7_e8B_1721839\\traces\\trace_3d_n192_K1",
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-22\\02_e8_e8B_1721839\\traces\\trace_3d_n192_K1",
    "case": "cavity3d_n192",
    "kernels": [
     {
@@ -5009,7 +5009,7 @@
    "defrag_step_removed": 999
   },
   "cavity3d_n392": {
-   "trace": "C:\\Users\\cchen\\AppData\\Local\\Temp\\claude\\C--Users-cchen-PycharmProjects-vulkan-demo\\fd68689d-e4b4-4b3f-8636-fbe3d1d866de\\scratchpad\\e8\\pull\\snapB2\\e7_e8B_1721839\\traces\\trace_3d_n392_K1",
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-22\\02_e8_e8B_1721839\\traces\\trace_3d_n392_K1",
    "case": "cavity3d_n392",
    "kernels": [
     {

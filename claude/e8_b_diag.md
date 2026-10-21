@@ -1,8 +1,8 @@
-# E8 B 线诊断（作业 e7_e8B_1721839，节点 wqd10nbj11g2）
+# E8 B 线诊断（作业 02_e8_e8B_1721839，节点 wqd10nbj11g2）
 
-> 数据快照：作业 1721839 跑到 06:04 CST（五个立方体的 K = 8 点、五个 K = 1 trace、弱 8 × 8M K8 点都已完成，只剩单卡对照在跑）时从登录节点拉的 `~/run/logs/e7_e8B_1721839`（不含 dumps）；生成脚本 `docs/cluster_v6/scripts/e8_b_diag.py`，全部数字在 `docs/cluster_v6/data/e8/b_diag/b_diag_1721839.json`。作业结束后日志按 logs/n56 的布局镜像，本文件用完整目录重跑一次（数字不会变）。
+> 数据：作业 1721839 结束（06:07:41 CST，212 次运行全 pass）后的完整运行目录，镜像在 `vulkan-demo/logs/n56/2026-10-22/02_e8_e8B_1721839`（不含 2.4 GB 的 dump .npz）；第一部分由 `docs/cluster_v6/scripts/e8_b_diag.py` 生成，数字在 `docs/cluster_v6/data/e8/b_diag/b_diag_1721839.json`；第二部分见文末（`e8_b_diag2.py`）。单卡求解器对照的三个 single 半边在作业里全部失败（v7_single 拒绝作业导出的 V7_WORKER_AFFINITY，修在 e8-3d-p2s），与本文无关。
 
-数据：`results.jsonl` / `index.tsv`（210 次运行）；每次运行的逐步墙钟 `raw/<label>/loop_trace.csv`（`t_loop_ns` 的差 = 步长，第 500–1499 步 = 1000 个步长，第 1000 帧有一次 defrag）；step trace `traces/`（11 个，每核起止）；标定记录 `weights/`。每粒子成本一律按算例总粒子数（含壁面与盖板）：ns = 步长 / N_total，与阶段 1 报告一致（8M K = 1：50.25 ms → 6.28 ns）。K = 1 参考与链路在同一作业、同一节点、全部 575 W。
+数据：`results.jsonl` / `index.tsv`（212 次运行）；每次运行的逐步墙钟 `raw/<label>/loop_trace.csv`（`t_loop_ns` 的差 = 步长，第 500–1499 步 = 1000 个步长，第 1000 帧有一次 defrag）；step trace `traces/`（11 个，每核起止）；标定记录 `weights/`。每粒子成本一律按算例总粒子数（含壁面与盖板）：ns = 步长 / N_total，与阶段 1 报告一致（8M K = 1：50.25 ms → 6.28 ns）。K = 1 参考与链路在同一作业、同一节点、全部 575 W。
 
 **口径说明（重要）**：第 1000 帧的 defrag 之后每步慢 5 % 左右（2.6 节，五个尺寸、K = 1 与链路都如此），所以 500–1499 的分布是双峰的，整窗中位数正好落在两峰之间，差一步就能跳 5 %（K = 1 trace 的"周期中位数 − busy 中位数"假象就是这么来的）。各表因此同时给：去 defrag 墙钟的均值（harness 的 fps 口径）、前半 500–999 与后半 1000–1499 各自的中位数、整窗中位数。η 的几种口径在第 1 节并列。
 
