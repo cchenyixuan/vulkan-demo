@@ -40,6 +40,7 @@ BAND_COLOR = "#c6dbef"
 LOADS = (("cavity2d_n1440", r"2M per device", COLOR_MAIN, "o"),
          ("cavity2d_n2840", r"8M per device", COLOR_LIGHT, "s"),
          ("cavity2d_n5640", r"32M per device", COLOR_RED, "^"))
+WEAK_Y_TOP = 1.05                       # weak_scaling.pdf: fixed top of the eta axis (user 2026-10-21; was data + 0.012 = 1.03)
 
 
 def setup_style() -> None:
@@ -199,12 +200,18 @@ def weak_figure(chosen: dict, out: pathlib.Path) -> list:
         values += [row[key] for row in rows for key in ("eta_min", "eta_max")]
     axis.set_xlim(1.6, 8.4)
     axis.xaxis.set_major_locator(MultipleLocator(1))
-    axis.set_ylim(min(values) - 0.012, max(values) + 0.012)
+    # 0.012 below the lowest error bar; the top is fixed (WEAK_Y_TOP) unless the data reach higher
+    low, high_data = min(values) - 0.012, max(values) + 0.012
+    high = max(WEAK_Y_TOP, high_data)
+    axis.set_ylim(low, high)
     axis.yaxis.set_major_locator(MultipleLocator(0.02))
     axis.set_xlabel(r"number of devices $K$", labelpad=1.5)
     axis.set_ylabel(r"$\eta$", labelpad=1.5)
-    # in the empty strip between the 2.1M series (eta ~0.91-0.94) and the band (lower left covered the 2.1M points)
-    axis.legend(loc="center", bbox_to_anchor=(0.5, 0.42), frameon=False, handlelength=1.4, borderaxespad=0.2)
+    # in the empty strip between the 2.1M series (eta ~0.91-0.94) and the band (lower left covered the 2.1M points);
+    # anchored at the eta of 0.42 of the data-driven range, so that the fixed top does not move it
+    legend_eta = low + 0.42 * (high_data - low)
+    axis.legend(loc="center", bbox_to_anchor=(0.5, (legend_eta - low) / (high - low)), frameon=False, handlelength=1.4,
+                borderaxespad=0.2)
     save(figure, out / "weak_scaling.pdf")
     plt.close(figure)
     return rows_all
