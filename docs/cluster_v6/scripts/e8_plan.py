@@ -95,6 +95,9 @@ MATRIX2 = [
     ("strong, load sweep", "cavity3d_n244", 8, "cavity3d_n244", True, 3),
     ("strong, load sweep", "cavity3d_n312", 8, "cavity3d_n312", True, 3),
     ("strong, load sweep", "cavity3d_n392", 8, "cavity3d_n392", True, 3),
+    # e8_C (user 2026-10-22): the 128M cube, K = 1 does not fit one card -> reference "pairs" = four simultaneous K = 2
+    # pairs of the case (E7 2-D 128M), eta = fps_K / (4 x mean pair fps); one K = 2 pair traced (trace_k2)
+    ("strong, load sweep", "cavity3d_n496", 8, "pairs", True, 3),
     ("strong, K sweep", "cavity3d_n392", 2, "cavity3d_n392", True, 3),
     ("strong, K sweep", "cavity3d_n392", 4, "cavity3d_n392", True, 3),
     ("weak", "cavity3d_n192_k2", 2, "cavity3d_n192", True, 3),
@@ -110,6 +113,7 @@ SEQUENCE2 = {
           ("point", "cavity3d_n392", 8), ("trace_k1", "cavity3d_n392"), ("point", "cavity3d_n192_k8", 8),
           ("single_ratio", "cavity3d_n192", 3)],
     "A": [("point", "cavity3d_n392", 2), ("point", "cavity3d_n392", 4), ("point", "cavity3d_n192_k2", 2), ("point", "cavity3d_n192_k4", 4)],
+    "C": [("point", "cavity3d_n496", 8), ("trace_k2", "cavity3d_n496")],
 }
 PHASE1 = [
     # (label, case, K, steps, warmup, seam check, trace, kind)
@@ -233,8 +237,10 @@ def point_estimate(model: Model, group: str, case: str, slabs: int, reference: s
     pilot = model.setup(case, slabs, cold=True, seam_check=False) + PILOT_STEPS * model.step(case, slabs, weak)["step"]
     calibration = PILOT_ROUNDS * pilot + SETUP["calibration_fixed"]
     record = (SETUP["load_per_million"] * PARTICLES[case] / 1e6 + 0.5 * PARTICLES[case] / 1e6 + 10.0) if partition_record else 0.0
-    reference_first = model.run(reference, 1, STEPS, cold=True, seam_check=False, weak=False)
-    reference_later = model.run(reference, 1, STEPS, cold=False, seam_check=False, weak=False)
+    # reference "pairs" (e8_C, 128M): four simultaneous K = 2 pairs of the case itself, one pair's run time
+    reference_case, reference_slabs = (case, 2) if reference == "pairs" else (reference, 1)
+    reference_first = model.run(reference_case, reference_slabs, STEPS, cold=True, seam_check=False, weak=False)
+    reference_later = model.run(reference_case, reference_slabs, STEPS, cold=False, seam_check=False, weak=False)
     chain_run = model.run(case, slabs, STEPS, cold=False, seam_check=False, weak=weak)
     trace = model.run(case, slabs, STEPS, cold=True, seam_check=True, weak=weak) + SETUP["trace_write"] if traced else 0.0
     trials_total = reference_first + (trials - 1) * reference_later + trials * chain_run
@@ -243,17 +249,18 @@ def point_estimate(model: Model, group: str, case: str, slabs: int, reference: s
             "line": "B" if slabs == 8 else "A", "particles": PARTICLES[case], "per_card": PARTICLES[case] / slabs,
             "calibration": calibration, "partition_record": record, "reference_first": reference_first,
             "reference_later": reference_later, "chain_run": chain_run, "trace": trace, "total": total,
-            "step": model.step(case, slabs, weak), "reference_step": model.step(reference, 1, False)}
+            "reference_slabs": reference_slabs,
+            "step": model.step(case, slabs, weak), "reference_step": model.step(reference_case, reference_slabs, False)}
 
 
 def phase2_lines(model: Model) -> tuple[list[str], dict]:
     """The phase-2 budget: every item of both lines in the job order (SEQUENCE2), with its estimate."""
     by_key = {(case, slabs): (group, reference, traced, trials) for group, case, slabs, reference, traced, trials in MATRIX2}
-    lines = ["## Phase 2 (jobs e8_A / e8_B, the items in the job order)", "",
+    lines = ["## Phase 2 (jobs e8_A / e8_B / e8_C, the items in the job order)", "",
              "| line | item | case | K | trials | estimate | note |", "|---|---|---|---|---|---|---|"]
-    totals = {"A": SETUP["job_overhead"], "B": SETUP["job_overhead"]}
-    records = {"A": [], "B": []}
-    for line in ("B", "A"):
+    totals = {line: SETUP["job_overhead"] for line in ("A", "B", "C")}
+    records = {"A": [], "B": [], "C": []}
+    for line in ("B", "A", "C"):
         for spec in SEQUENCE2[line]:
             kind = spec[0]
             case = spec[1]
@@ -263,7 +270,7 @@ def phase2_lines(model: Model) -> tuple[list[str], dict]:
                 estimate = point_estimate(model, group, case, spec[2], reference, traced, trials, partition_record=True)
                 seconds = estimate["total"]
                 note = (f"calibration {seconds_text(estimate['calibration'])} + record {estimate['partition_record']:.0f} s, "
-                        f"reference set {seconds_text(estimate['reference_first'])} / {seconds_text(estimate['reference_later'])} x {trials - 1}, "
+                        f"reference set ({'4 K = 2 pairs' if reference == 'pairs' else 'K = 1'}) {seconds_text(estimate['reference_first'])} / {seconds_text(estimate['reference_later'])} x {trials - 1}, "
                         f"chain run {seconds_text(estimate['chain_run'])} x {trials}, trace {seconds_text(estimate['trace'])}")
                 records[line].append({"kind": "point", "case": case, "slabs": spec[2], "trials": trials, "seconds": seconds, "detail": estimate})
             elif kind == "dump":
@@ -278,6 +285,10 @@ def phase2_lines(model: Model) -> tuple[list[str], dict]:
                 seconds = model.run(case, 1, STEPS, cold=True, seam_check=True, weak=False) + SETUP["trace_write"]
                 note = "K = 1 step trace, every kernel's tick (the ideal-chain row of tab:phases)"
                 records[line].append({"kind": "trace_k1", "case": case, "seconds": seconds})
+            elif kind == "trace_k2":
+                seconds = model.run(case, 2, STEPS, cold=True, seam_check=True, weak=False) + SETUP["trace_write"]
+                note = "K = 2 pair (cards 0, 1, equal weights) step trace, every kernel's tick (the ideal-chain row = a quarter of its phases)"
+                records[line].append({"kind": "trace_k2", "case": case, "seconds": seconds})
             elif kind == "single_ratio":
                 pairs = spec[2]
                 seconds = pairs * 2 * model.run(case, 1, STEPS, cold=False, seam_check=False, weak=False) + pairs * 30.0
@@ -286,11 +297,12 @@ def phase2_lines(model: Model) -> tuple[list[str], dict]:
             else:
                 raise ValueError(kind)
             totals[line] += seconds
-            lines.append(f"| {line} | {kind} | {case} | {spec[2] if len(spec) > 2 and isinstance(spec[2], int) and kind != 'single_ratio' else ('1' if kind in ('trace_k1', 'single_ratio') else '-')} | "
+            lines.append(f"| {line} | {kind} | {case} | {spec[2] if len(spec) > 2 and isinstance(spec[2], int) and kind != 'single_ratio' else ('1' if kind in ('trace_k1', 'single_ratio') else ('2' if kind == 'trace_k2' else '-'))} | "
                          f"{by_key[(case, spec[2])][3] if kind == 'point' else '-'} | **{seconds_text(seconds)}** | {note} |")
-    lines += ["", f"Job overhead {SETUP['job_overhead']:.0f} s per job. **Line A {totals['A'] / 3600:.2f} h, line B {totals['B'] / 3600:.2f} h, "
-              f"total {(totals['A'] + totals['B']) / 3600:.2f} node-h**; time limits (2 x + 1 h, rounded up): "
-              f"A {math.ceil(2 * totals['A'] / 3600 + 1)} h, B {math.ceil(2 * totals['B'] / 3600 + 1)} h."]
+    lines += ["", f"Job overhead {SETUP['job_overhead']:.0f} s per job. **"
+              + ", ".join(f"line {line} {totals[line] / 3600:.2f} h" for line in ("A", "B", "C"))
+              + f", total {sum(totals.values()) / 3600:.2f} node-h**; time limits (2 x + 1 h, rounded up): "
+              + ", ".join(f"{line} {math.ceil(2 * totals[line] / 3600 + 1)} h" for line in ("A", "B", "C")) + "."]
     return lines, {"totals_hours": {line: value / 3600 for line, value in totals.items()}, "items": records}
 
 

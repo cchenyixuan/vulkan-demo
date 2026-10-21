@@ -15,16 +15,19 @@
 # E8 case definitions are put there by e8_cases_remote.sh (new directories only; an existing one is compared).
 # JuiceFS creates files at ~0.6-12 s each: the archive is extracted into /dev/shm and copied into the deployment with
 # 16 parallel cp streams.
-# Usage: [SHA=<40 hex>] [EXPECT_TREE=<sha>] [UPDATE=1] bash e8_deploy_remote.sh   (UPDATE=1 moves an existing deployment aside)
+# Usage: [SHA=<40 hex>] [EXPECT_TREE=<sha>] [UPDATE=1] [DEST=<dir>] [DEPLOY_TAG=<tag>] [E8_DRY_JOBS=<sbatch ...>] bash e8_deploy_remote.sh
+#   UPDATE=1 moves an existing deployment aside; DEST = another deployment directory (e8_C: ~/run/vulkan-demo-e8c, while
+#   the phase-2 jobs read ~/run/vulkan-demo-e8); E8_DRY_JOBS = the job scripts to dry-run (default: every e8_jobs/*.sbatch)
 set -u
 SHA=${SHA:-$(cat "$HOME/run/tools/e8_sha.txt" 2>/dev/null | tr -d '[:space:]')}
 EXPECT_TREE=${EXPECT_TREE:?"the experiment/v7 tree hash of the tag (git rev-parse <tag>:experiment/v7)"}
-DEST=$HOME/run/vulkan-demo-e8
+DEST=${DEST:-$HOME/run/vulkan-demo-e8}
+DEPLOY_TAG=${DEPLOY_TAG:-e8-3d}
 STORE=$HOME/run/vulkan-demo-v7rc1
 TOOLS=$HOME/run/tools
 TARBALL=$TOOLS/vd_e8_$SHA.tar.gz
 STAGE=/dev/shm/scxm138/e8_stage_$SHA
-E8_CASES="cavity3d_n152 cavity3d_n192 cavity3d_n244 cavity3d_n312 cavity3d_n392 cavity3d_n192_k2 cavity3d_n192_k4 cavity3d_n192_k8 cavity3d_n48"
+E8_CASES="cavity3d_n152 cavity3d_n192 cavity3d_n244 cavity3d_n312 cavity3d_n392 cavity3d_n496 cavity3d_n192_k2 cavity3d_n192_k4 cavity3d_n192_k8 cavity3d_n48"
 FAILS=0
 fail() { echo "FAIL: $*"; FAILS=$((FAILS + 1)); }
 T0=$(date +%s)
@@ -38,7 +41,8 @@ for name in $E8_CASES cavity2d_n1000; do
     [ -f "$STORE/cases/aligned/$name/case.yaml" ] || { echo "ABORT: $name is not in the store (run e8_cases_remote.sh first)"; exit 1; }
 done
 QUEUE=$(timeout 60 squeue -u scxm138 -h -o '%i|%j|%T|%Z|%o') || { echo "ABORT: squeue failed"; exit 1; }
-if echo "$QUEUE" | grep -F "vulkan-demo-e8"; then echo "ABORT: a job of $DEST is queued or running"; exit 1; fi
+# a job of this deployment directory exactly (vulkan-demo-e8 does not match vulkan-demo-e8c)
+if echo "$QUEUE" | grep -E "(\||/)$(basename "$DEST")(/|\||$)"; then echo "ABORT: a job of $DEST is queued or running"; exit 1; fi
 echo "queue: $(echo "$QUEUE" | grep -c .) jobs of scxm138, none of $DEST"
 if [ -e "$DEST" ]; then
     if [ "${UPDATE:-0}" = 1 ]; then
@@ -72,7 +76,7 @@ ln -s ../vulkan-demo-v7rc1/cases "$DEST/cases" || fail "cannot link cases"
 rm -rf "$STAGE" "$STAGE.files"
 
 # ---------------------------------------------------------------- provenance files
-echo "$SHA tarball_sha256=$(sha256sum "$TARBALL" | cut -c1-64) deployed=$(date -Is) solver_tag=e8-3d-p1 base=v7-rc3" > "$DEST/COMMIT"
+echo "$SHA tarball_sha256=$(sha256sum "$TARBALL" | cut -c1-64) deployed=$(date -Is) solver_tag=$DEPLOY_TAG base=v7-rc3" > "$DEST/COMMIT"
 echo "$SHA" > "$DEST/SCRIPTS_COMMIT"
 (cd "$DEST" && find . -type f ! -name MANIFEST.sha256 ! -name SCRIPTS.sha256 ! -name COMMIT ! -path '*/__pycache__/*' | sort | xargs sha256sum) > "$DEST/MANIFEST.sha256"
 (cd "$DEST" && find docs/cluster_v6/scripts docs/cluster_v6/e8_jobs remote -type f ! -path '*/__pycache__/*' | sort | xargs sha256sum) > "$DEST/SCRIPTS.sha256"
@@ -93,7 +97,7 @@ for name in $E8_CASES; do
     python utils/geometry/_demo_cavity_case_aligned.py $(grep -o -- '--dimension 3 --n [0-9]* --n-x [0-9]* --border 4' "cases/aligned/$name/generate.txt") --out /dev/null --check-only > /dev/null \
         && echo "generator check-only OK: $name" || fail "generator check-only $name"
 done
-for script in docs/cluster_v6/e8_jobs/*.sbatch; do
+for script in ${E8_DRY_JOBS:-docs/cluster_v6/e8_jobs/*.sbatch}; do
     bash -n "$script" && echo "sbatch syntax OK: $script" || fail "bash -n $script"
     # dry run of the job on the login node (no GPU work, every command printed); the E8 jobs' solver tag is
     # theirs (E7_SOLVER_TAG of the script, exported with E30_EXPECT_COMMIT at submission)
@@ -114,7 +118,7 @@ done
 echo
 if [ "$FAILS" -eq 0 ]; then
     echo "=== DEPLOY OK in $(( $(date +%s) - T0 ))s. Submit after e8_gen_remote.sh has ended with status 0:"
-    echo "    cd $DEST && sbatch --export=ALL,E30_EXPECT_COMMIT=${SHA:0:12},E7_EXPECTED_TREE=$EXPECT_TREE docs/cluster_v6/e8_jobs/<job>.sbatch"
+    echo "    cd $DEST && sbatch --export=ALL,E30_EXPECT_COMMIT=${SHA:0:12},E7_EXPECTED_TREE=$EXPECT_TREE,E30_REPO=$DEST docs/cluster_v6/e8_jobs/<job>.sbatch"
 else
     echo "=== DEPLOY HAS $FAILS FAILURE(S): do not submit"; exit 2
 fi
