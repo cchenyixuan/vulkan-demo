@@ -75,6 +75,7 @@ B_SHARE_CAP = 0.88
 
 MATRIX = [
     # (group, case, K, reference case, traced)
+    ("strong, load sweep", "cavity3d_n152", 8, "cavity3d_n152", True),
     ("strong, load sweep", "cavity3d_n192", 8, "cavity3d_n192", True),
     ("strong, load sweep", "cavity3d_n244", 8, "cavity3d_n244", True),
     ("strong, load sweep", "cavity3d_n312", 8, "cavity3d_n312", False),
