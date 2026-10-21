@@ -313,4 +313,58 @@
   - 阶段 1 的表：`python docs/cluster_v6/scripts/e8_p1_summary.py --job <镜像目录> --out-md OUT.md --json OUT.json`（内部调 `e7_hop_split.py`；`e7_trace_phases.py` 在这条 trace 上因 run_meta 缺 own 粒子数而退出，3.6 节的相位表用 `step_trace_model.load_run` 直接算）
   - 场比较：`python docs/cluster_v6/scripts/e8_field_compare.py --reference dumps/dump_8m_K1_N300.npz --test dumps/dump_8m_K2_N300.npz --md OUT.md --json OUT.json`（.npz 在集群上）
   - 集群：`e8_cases_remote.sh`（算例定义进库 + tmux 生成）、`e8_deploy_remote.sh`（部署 934 s：/dev/shm 暂存 + 16 路并行拷贝 173 s，检查 + 空跑 + test-only）、提交 `cd ~/run/vulkan-demo-e8 && sbatch --export=ALL,E30_EXPECT_COMMIT=0ad381481ca9,E7_EXPECTED_TREE=10781f23663c3c3b8c95cbe7235c3fa7653b07aa docs/cluster_v6/e8_jobs/e8_p1.sbatch`。
-- **阶段 2 没有提交任何作业**；矩阵的作业脚本还没有生成（`e7_plan.py` 的 REVISIONS 里没有 E8 的条目，等你定了点、线和节点规则再加）。
+- **阶段 2 的作业见第二部分（第 6 节起）。**
+
+---
+
+# E8 第二部分：阶段 2（集群作业）
+
+## 6. 阶段 2 的准备与估算（你 10-22 晚的消息；提交前先看估算）
+
+### 6.1 代码（标签 `e8-3d-p2` = ab2600f，分支 `e8-3d` 与标签 e8-3d-p1 / e8-3d-p2 已推到 origin；核函数没动，experiment/v7 树仍是 10781f23）
+
+| 提交 | 改动 |
+|---|---|
+| ab2600f | **新算例** `cases/aligned/cavity3d_n152`（`--n 152`：总边长 160，4,096,000 粒子 = 流体 3,511,808 + 壁面 491,776 + 盖板 92,416；38 列流体，K = 8 的等权重切口给 own 列 7/4/5/5/5/4/5/7，即流体列 5/4/5/5/5/4/5/5——第一个 w < 6、两侧力带重叠的配置）。|
+| | **`e7_plan.py` 修订 11**：E8 的点（E8S 强负载扫描、E8K 强 K 扫描、E8W 弱扩展）、4M / 8M 5 次试验、每点一次 trace、新的条目种类 dump / compare / trace_k1（K = 1 trace）/ single_ratio、按你给的顺序排的 "sequence"、作业名 e8_A / e8_B、整机 `--exclusive --mem=0`、排除两个 600 W 节点、时限 2 × 估计 + 1 h；生成 `docs/cluster_v6/e8_jobs/e8_e8A.sbatch`、`e8_e8B.sbatch`。|
+| | **`e7_lib.sh`**：`E7_RAW=1`（每次运行 `V7_LOOP_TRACE=1` + `--loop-trace`：每步的墙钟周期 / 提交 / 等待；`--defrag-log`：每次 defrag 每个 slab 的时长；K > 1 另加 `V7_POOL_PEAKS=1` + `--pool-demand`：每条链路每步的包头计数器 n0 / n1 / n_mig = 每 seam 每步的迁移数），`E7_TRACE_DETAIL=full`（trace 记每个核的起止：A 的 predict / voxel / ghost_send，B 的 correction_density_interior / density_deep_interior / force_deep_interior，C 的 expand / install_leading / install_trailing / band_compact / correction_density_boundary（含 G1）/ copy / force / append_departed），`E7_CONTINUE_ON_FAILURE=1`（一个点在子 shell 里跑，硬失败只结束这个点：记到 failed_points.tsv，作业继续；`e30_fail` 识别 `E7_IN_POINT`），`E7_PARTITION_RECORD=1`（标定后 `e8_partition_record.py` 写 `weights/<point>.partition.json`：逐列流体直方图、切口、每卡 own / 流体 / 壁面数与份额、两轮 pilot 的每卡 busy 与 ω），`e7_extra dump`（dump_state 到第 1500 步，等权重，每个粒子记 slab 与设备）、`e7_extra compare`（K = 8 对 K = 1 a，噪声底 K = 1 a 对 b）、`e8_single_ratio`（v7-single 对链路 K = 1，同一张卡，交错三对，两步在飞，窗口内不 defrag）。|
+| | **`run_chain_v6.py --pool-demand DIR`**（每条链路每帧的区用量写 CSV）；`e30_lib.sh` 的 `e30_fail` 在点子 shell 里不碰作业级的遥测；`e8_dump_state.py` 给每个粒子加 `device`；`e8_field_compare.py --reference2`（噪声底）+ 每 slab / 设备的表；`e8_single_bench.py`（从 v7-single 的部署跑它的单卡 bench，带本 harness 的 .obj 缓存；本机 XTX 上 2-D 1M 自检通过）；`e8_plan.py --phase2`；部署脚本加 4M 与 v7-single 部署（`e8_deploy_single_remote.sh`）。|
+
+v7-single 部署 `~/run/vulkan-demo-v7single` = 分支 v7-single 的 0e50ce4（experiment/v7 树 82dd6a74 = v7-rc1）；K = 1 用到的核（predict、update_voxel、correction_density、force、defrag、append_departed 等）的 SPIR-V 与 e8 的逐字节相同，只有 ghost / install 核不同（K = 1 不用）。
+
+### 6.2 实验矩阵与作业
+
+| 线 | 顺序 | 时限 |
+|---|---|---|
+| B（K = 8，整节点 8 卡）`e8_e8B.sbatch` | 4M K8（5 次）→ 4M 的 dump K1a、K1b、K8（第 1500 步）→ 比较 → 4M K1 trace → 8M K8（5 次）→ 8M 的 dump × 3 → 比较 → 8M K1 trace → 16M K8 → 16M K1 trace → 32M K8 → 32M K1 trace → 64M K8 → 64M K1 trace → 弱 8 × 8M K8 → v7-single 对照（8M，3 对） | 8 h |
+| A（K ≤ 4，整节点的 0–3 卡）`e8_e8A.sbatch` | 64M K2 → 64M K4 → 弱 2 × 8M K2 → 弱 4 × 8M K4（每点的 trace 紧跟其试验） | 7 h |
+
+每点：两轮 pilot 标定 → 分区记录 → 每次试验 = 参与卡上同时起的 K = 1 参考（屏障）+ 标定臂的 K 运行（R C / C R 交替）→ 一次 trace（标定权重，seam 检查，逐核时间戳，`V7_POOL_PEAKS=1`）。所有运行记每步原始数据（6.1 节的 E7_RAW）；遥测 1 Hz（SM 时钟、功耗、温度、显存）整个作业。
+
+### 6.3 估算（`e8_plan.py --phase2`，阶段 1 标定的参数：K = 1 成本按每卡规模插值 6.83 / 6.28 / 5.91 ns，B_link = 256 n² + 4,500 n，t_chain = 122 µs + B_link / 8.38 GB/s，η 强 K2 / K4 / K8 0.95 / 0.90 / 0.875、弱 0.985）
+
+| 线 | 条目 | 算例 | K | 试验 | 估计 | 说明 |
+|---|---|---|---|---|---|---|
+| B | 点 | 4M | 8 | 5 | **7.9 min** | 标定 44 s + 记录 14 s；参考组 48 s × 5；链路 26 s × 5；trace 50 s |
+| B | dump × 3 + 比较 | 4M | 1, 1, 8 | — | **5.7 min** | 每个 dump 1500 步 + 写 0.5 GB；比较 2.4 min |
+| B | K1 trace | 4M | 1 | — | **1.1 min** | |
+| B | 点 | 8M | 8 | 5 | **12.3 min** | 参考组 1.5 min × 5；链路 34 s × 5；trace 1.0 min |
+| B | dump × 3 + 比较 | 8M | 1, 1, 8 | — | **8.3 min** | 每个 dump 写 1.0 GB；比较 3.7 min |
+| B | K1 trace | 8M | 1 | — | **1.7 min** | |
+| B | 点 + K1 trace | 16M | 8 | 3 | **17.1 min** | 参考组 2.8 min × 3；链路 53 s × 3；trace 1.4 min；K1 trace 3.0 min |
+| B | 点 + K1 trace | 32M | 8 | 3 | **31.6 min** | 参考组 5.5 min × 3；链路 1.5 min × 3；trace 2.3 min；K1 trace 5.7 min |
+| B | 点 + K1 trace | 64M | 8 | 3 | **59.3 min** | 参考组 10.6 min × 3；链路 2.7 min × 3；trace 3.8 min；K1 trace 10.9 min |
+| B | 点 | 弱 8 × 8M | 8 | 3 | **19.8 min** | 参考组 1.5 min × 3；链路 2.5 min × 3；trace 3.6 min |
+| B | v7-single 对照 | 8M | 1 | 3 对 | **10.3 min** | 6 次 1500 步的单卡运行 |
+| A | 点 | 64M | 2 | 3 | **63.2 min** | 标定 5.5 min；参考组 10.6 min × 3；链路 6.1 min × 3；trace 6.5 min |
+| A | 点 | 64M | 4 | 3 | **53.2 min** | 参考组 10.6 min × 3；链路 3.9 min × 3；trace 4.5 min |
+| A | 点 | 弱 2 × 8M | 2 | 3 | **12.9 min** | |
+| A | 点 | 弱 4 × 8M | 4 | 3 | **15.1 min** | |
+
+每个作业另加 166 s 的开头（bring-up、缓存拷入）。**A 线 2.45 h，B 线 2.96 h，合计 5.42 node-h**（两个整节点作业并行时墙钟 3.0 h）。`e7_plan.py` 自己的粗模型（用来定每项超时和时限）给 A 2.57 h、B 3.11 h = 5.7 node-h，时限 A 7 h、B 8 h。阶段 1 之前的估算（4.37 / 4.03 node-h，不含 4M、5 次试验、dump、K1 trace、单卡对照）→ 新增项合计约 1.4 node-h：4M 点 + 其 dump / trace 0.25 h、8M 多两次试验 + dump / trace 0.3 h、16M–64M 的 K1 trace 0.35 h、单卡对照 0.17 h、分区记录与更长的 seam 检查 0.1 h。
+
+4M K8 的步长模型：每卡 0.51M（6.74 ns），own 列 4–5 时相位 B 的模型份额为 0（两侧带重叠，深内部为空）→ t_chain 0.91 ms 全部暴露，步长 4.9 ms（204 fps），η 模型 0.72；8M K8 r = 0.77（刚好藏住）。这两点正是本批要测的窄 slab 区间。
+
+### 6.4 还没做的
+- 阶段 2 的后处理工具（交付 1–10：JSON 表与 index、强 / 弱扩展图、tab:phases、fig:loss 的 r_own / r_chain、三跳表、eq:bytes 对照、逐核表、正确性表、单卡对照、迁移统计）在作业排队期间写。
+- 作业提交等你看过估算。
