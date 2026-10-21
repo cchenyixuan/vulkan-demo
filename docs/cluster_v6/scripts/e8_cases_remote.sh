@@ -9,7 +9,7 @@ SHA=${SHA:-$(cat "$HOME/run/tools/e8_sha.txt" 2>/dev/null | tr -d '[:space:]')}
 STORE=$HOME/run/vulkan-demo-v7rc1
 TARBALL=$HOME/run/tools/vd_e8_$SHA.tar.gz
 STAGE=/dev/shm/scxm138/e8_cases_$SHA
-E8_CASES="cavity3d_n192 cavity3d_n244 cavity3d_n312 cavity3d_n392 cavity3d_n192_k2 cavity3d_n192_k4 cavity3d_n192_k8 cavity3d_n48"
+E8_CASES="cavity3d_n152 cavity3d_n192 cavity3d_n244 cavity3d_n312 cavity3d_n392 cavity3d_n192_k2 cavity3d_n192_k4 cavity3d_n192_k8 cavity3d_n48"
 FAILS=0
 fail() { echo "FAIL: $*"; FAILS=$((FAILS + 1)); }
 [ -s "$TARBALL" ] || { echo "ABORT: no $TARBALL"; exit 1; }
@@ -29,6 +29,7 @@ rm -rf "$STAGE"
 [ "$FAILS" -eq 0 ] || { echo "=== CASES HAVE $FAILS FAILURE(S)"; exit 2; }
 GEN_LOG=$HOME/run/logs/e8_gen_$(date +%Y%m%d_%H%M%S).log
 mkdir -p "$HOME/run/logs"
-tmux new-session -d -s e8gen "bash -lc 'bash $HOME/run/tools/e8_gen_remote.sh > $GEN_LOG 2>&1'" \
+GEN_CASES=${E8_GEN_CASES:-}        # the cases to generate now (default: the list of e8_gen_remote.sh; phase 2: cavity3d_n152)
+tmux new-session -d -s e8gen "bash -lc 'bash $HOME/run/tools/e8_gen_remote.sh $GEN_CASES > $GEN_LOG 2>&1'" \
     && echo "=== CASES OK; generation started in tmux session e8gen, log $GEN_LOG" || fail "tmux start"
 sleep 5; tmux ls 2>&1 | head -3; head -5 "$GEN_LOG" 2>/dev/null

@@ -1,0 +1,487 @@
+{
+ "model": {
+  "cost_2d": 1.3005052843049434e-09,
+  "cost_3d": 6.28e-09,
+  "floor_k1": 0.0014,
+  "floor": {
+   "2": 0.004687887061375782,
+   "4": 0.0045,
+   "8": 0.006779244143331603
+  },
+  "efficiency": {
+   "2": 1.033559479499499,
+   "4": 0.9670847003539155,
+   "8": 0.9542656257479943
+  },
+  "efficiency_3d": {
+   "2": 0.95,
+   "4": 0.9,
+   "8": 0.875
+  },
+  "cold_per_simulator": 2.1992011834319527,
+  "warm_per_simulator": 1.461063432835821,
+  "load_per_million": 0.3864451596708547,
+  "bootstrap_fixed": 0.3189054734206671,
+  "bootstrap_per_million": 0.546985424716854,
+  "post_per_million": 0.0416387426221166,
+  "post_per_slab": 0.0,
+  "seam_2d_per_million": 0.24098260527808044,
+  "seam_2d_fixed": 4.590144862439628,
+  "seam_3d_per_million": 0.0,
+  "seam_3d_per_million_per_slab": 0.29,
+  "calibration_rounds": 2,
+  "calibration_fixed": -10.39242240137382,
+  "pilot_steps": 500,
+  "run_overhead": 2.7203588433158186,
+  "trace_write": 15.0,
+  "job_overhead": 300.0,
+  "anatomy_steps": 3000,
+  "anatomy_steps_3d": 2000,
+  "soak_steps": 17000,
+  "cube_soak_seconds": 3600.0
+ },
+ "light_per_card": 4200000.0,
+ "batches_hours": {
+  "15": {
+   "A": 2.568396263381858,
+   "B": 3.106418709250521
+  }
+ },
+ "total_node_hours": 5.6748149726323796,
+ "records": [
+  {
+   "batch": 15,
+   "line": "A",
+   "job": "e8A",
+   "family": "E8K",
+   "case": "cavity3d_n392",
+   "slabs": 2,
+   "particles": 64000000,
+   "per_card": 32000000.0,
+   "dimension": 3,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "same"
+   ],
+   "window": [
+    1500,
+    500
+   ],
+   "fps_estimate": 4.727308917197452,
+   "run": 385.7,
+   "reference": 669.8,
+   "reference_first": 670.5,
+   "calibration": 340.8,
+   "traced": 436.6,
+   "total": 3944.5
+  },
+  {
+   "batch": 15,
+   "line": "A",
+   "job": "e8A",
+   "family": "E8K",
+   "case": "cavity3d_n392",
+   "slabs": 4,
+   "particles": 64000000,
+   "per_card": 16000000.0,
+   "dimension": 3,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "same"
+   ],
+   "window": [
+    1500,
+    500
+   ],
+   "fps_estimate": 8.957006369426752,
+   "run": 238.8,
+   "reference": 669.8,
+   "reference_first": 670.5,
+   "calibration": 249.7,
+   "traced": 328.3,
+   "total": 3304.4
+  },
+  {
+   "batch": 15,
+   "line": "A",
+   "job": "e8A",
+   "family": "E8W",
+   "case": "cavity3d_n192_k2",
+   "slabs": 2,
+   "particles": 15680000,
+   "per_card": 7840000.0,
+   "dimension": 3,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "cavity3d_n192"
+   ],
+   "window": [
+    1500,
+    500
+   ],
+   "fps_estimate": 19.295138437540622,
+   "run": 99.0,
+   "reference": 87.7,
+   "reference_first": 88.4,
+   "calibration": 86.9,
+   "traced": 123.9,
+   "total": 771.5
+  },
+  {
+   "batch": 15,
+   "line": "A",
+   "job": "e8A",
+   "family": "E8W",
+   "case": "cavity3d_n192_k4",
+   "slabs": 4,
+   "particles": 31040000,
+   "per_card": 7760000.0,
+   "dimension": 3,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "cavity3d_n192"
+   ],
+   "window": [
+    1500,
+    500
+   ],
+   "fps_estimate": 18.468054369952068,
+   "run": 120.4,
+   "reference": 87.7,
+   "reference_first": 88.4,
+   "calibration": 128.0,
+   "traced": 173.0,
+   "total": 925.8
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "family": "E8S",
+   "case": "cavity3d_n152",
+   "slabs": 8,
+   "particles": 4096000,
+   "per_card": 512000.0,
+   "dimension": 3,
+   "trials": 5,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "same"
+   ],
+   "window": [
+    1500,
+    500
+   ],
+   "fps_estimate": 147.50907016435588,
+   "run": 28.9,
+   "reference": 47.1,
+   "reference_first": 47.8,
+   "calibration": 45.6,
+   "traced": 59.1,
+   "total": 485.4
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "kind": "dump",
+   "case": "cavity3d_n152",
+   "slabs": 1,
+   "steps": 1500,
+   "seconds": 69.0,
+   "label": "dump_3d_n152_K1a"
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "kind": "dump",
+   "case": "cavity3d_n152",
+   "slabs": 1,
+   "steps": 1500,
+   "seconds": 69.0,
+   "label": "dump_3d_n152_K1b"
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "kind": "dump",
+   "case": "cavity3d_n152",
+   "slabs": 8,
+   "steps": 1500,
+   "seconds": 56.0,
+   "label": "dump_3d_n152_K8"
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "kind": "compare",
+   "case": "cavity3d_n152",
+   "slabs": 8,
+   "steps": 1500,
+   "seconds": 141.9,
+   "label": "compare_3d_n152_K8"
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "kind": "trace",
+   "case": "cavity3d_n152",
+   "slabs": 1,
+   "steps": 1500,
+   "seconds": 63.8,
+   "label": "trace_3d_n152_K1"
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "family": "E8S",
+   "case": "cavity3d_n192",
+   "slabs": 8,
+   "particles": 8000000,
+   "per_card": 1000000.0,
+   "dimension": 3,
+   "trials": 5,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "same"
+   ],
+   "window": [
+    1500,
+    500
+   ],
+   "fps_estimate": 139.33121019108282,
+   "run": 33.3,
+   "reference": 87.7,
+   "reference_first": 88.4,
+   "calibration": 53.7,
+   "traced": 72.4,
+   "total": 731.6
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "kind": "dump",
+   "case": "cavity3d_n192",
+   "slabs": 1,
+   "steps": 1500,
+   "seconds": 110.8,
+   "label": "dump_3d_n192_K1a"
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "kind": "dump",
+   "case": "cavity3d_n192",
+   "slabs": 1,
+   "steps": 1500,
+   "seconds": 110.8,
+   "label": "dump_3d_n192_K1b"
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "kind": "dump",
+   "case": "cavity3d_n192",
+   "slabs": 8,
+   "steps": 1500,
+   "seconds": 61.6,
+   "label": "dump_3d_n192_K8"
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "kind": "compare",
+   "case": "cavity3d_n192",
+   "slabs": 8,
+   "steps": 1500,
+   "seconds": 220.0,
+   "label": "compare_3d_n192_K8"
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "kind": "trace",
+   "case": "cavity3d_n192",
+   "slabs": 1,
+   "steps": 1500,
+   "seconds": 105.4,
+   "label": "trace_3d_n192_K1"
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "family": "E8S",
+   "case": "cavity3d_n244",
+   "slabs": 8,
+   "particles": 16003008,
+   "per_card": 2000376.0,
+   "dimension": 3,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "same"
+   ],
+   "window": [
+    1500,
+    500
+   ],
+   "fps_estimate": 69.65251042358177,
+   "run": 51.9,
+   "reference": 170.9,
+   "reference_first": 171.6,
+   "calibration": 76.4,
+   "traced": 109.2,
+   "total": 854.6
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "kind": "trace",
+   "case": "cavity3d_n244",
+   "slabs": 1,
+   "steps": 1500,
+   "seconds": 190.6,
+   "label": "trace_3d_n244_K1"
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "family": "E8S",
+   "case": "cavity3d_n312",
+   "slabs": 8,
+   "particles": 32768000,
+   "per_card": 4096000.0,
+   "dimension": 3,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "same"
+   ],
+   "window": [
+    1500,
+    500
+   ],
+   "fps_estimate": 34.01640873805732,
+   "run": 90.8,
+   "reference": 345.1,
+   "reference_first": 345.9,
+   "calibration": 124.2,
+   "traced": 186.3,
+   "total": 1619.0
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "kind": "trace",
+   "case": "cavity3d_n312",
+   "slabs": 1,
+   "steps": 1500,
+   "seconds": 369.0,
+   "label": "trace_3d_n312_K1"
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "family": "E8S",
+   "case": "cavity3d_n392",
+   "slabs": 8,
+   "particles": 64000000,
+   "per_card": 8000000.0,
+   "dimension": 3,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "same"
+   ],
+   "window": [
+    1500,
+    500
+   ],
+   "fps_estimate": 17.416401273885352,
+   "run": 163.3,
+   "reference": 669.8,
+   "reference_first": 670.5,
+   "calibration": 213.1,
+   "traced": 330.0,
+   "total": 3042.9
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "kind": "trace",
+   "case": "cavity3d_n392",
+   "slabs": 1,
+   "steps": 1500,
+   "seconds": 701.4,
+   "label": "trace_3d_n392_K1"
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "family": "E8W",
+   "case": "cavity3d_n192_k8",
+   "slabs": 8,
+   "particles": 61760000,
+   "per_card": 7720000.0,
+   "dimension": 3,
+   "trials": 3,
+   "traces": 1,
+   "cross": false,
+   "references": [
+    "cavity3d_n192"
+   ],
+   "window": [
+    1500,
+    500
+   ],
+   "fps_estimate": 18.048084221642853,
+   "run": 158.1,
+   "reference": 87.7,
+   "reference_first": 88.4,
+   "calibration": 206.7,
+   "traced": 319.7,
+   "total": 1264.3
+  },
+  {
+   "batch": 15,
+   "line": "B",
+   "job": "e8B",
+   "kind": "single_ratio",
+   "case": "cavity3d_n192",
+   "slabs": 1,
+   "steps": 1500,
+   "seconds": 616.0,
+   "label": "single_3d_n192"
+  }
+ ]
+}

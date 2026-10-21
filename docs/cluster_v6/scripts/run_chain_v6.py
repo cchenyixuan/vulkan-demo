@@ -99,6 +99,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import json
 import os
 import pathlib
 import runpy
@@ -157,6 +158,10 @@ def parse_arguments(argument_list: list[str]) -> tuple[argparse.Namespace, list[
                         help="seconds a process waits at the barrier before it starts anyway (status=timeout)")
     parser.add_argument("--defrag-log", action="store_true",
                         help="E7: print every in-loop defrag's per-slab report and each defrag's duration")
+    parser.add_argument("--pool-demand", default=None, metavar="DIR",
+                        help="E8 (user 2026-10-22, per-step raw data): with <PREFIX>POOL_PEAKS=1 write every link's per-frame "
+                             "region demand (inner / outer replicas = n0 / n1, migrants = n_mig) to DIR/pool_demand_<link>.csv "
+                             "at exit (one row per recorded frame, from the first recorded one)")
     parser.add_argument("--loop-trace", default=None, metavar="DIR",
                         help="E7 (item 11), with <PREFIX>LOOP_TRACE=1: write every row of the host loop trace "
                              "(the rows the --anatomy [loop] lines reset included) to DIR/loop_trace.csv and "
@@ -530,6 +535,32 @@ def print_pool_peaks(workers: list) -> None:
             print(f"[e30] pool_series {worker.label} {region}: capacity={capacity} window={window} peaks="
                   + ",".join(str(max(counts[start:start + window])) for start in range(0, len(counts), window)),
                   flush=True)
+
+
+def write_pool_demand(workers: list, directory: str) -> None:
+    """E8: DIR/pool_demand_<link>.csv per worker: index (recorded frame, from the first one the worker saw), one
+    column per region in the worker's region order (inner, outer, migrant with V7_GHOST_LAYERS=2), the counts the
+    sender wrote into the staging header (the packet counters n0, n1, n_mig of eq:bytes)."""
+    target = pathlib.Path(directory)
+    target.mkdir(parents=True, exist_ok=True)
+    written = 0
+    for worker in workers:
+        counts = getattr(worker, "region_counts", {}) or {}
+        if not counts:
+            continue
+        regions = list(counts)
+        length = max(len(values) for values in counts.values())
+        path = target / f"pool_demand_{worker.label}.csv"
+        with path.open("w", encoding="utf-8", newline="") as handle:
+            handle.write("index," + ",".join(regions) + chr(10))
+            for index in range(length):
+                handle.write(str(index) + "," + ",".join(
+                    str(counts[region][index]) if index < len(counts[region]) else "" for region in regions) + chr(10))
+        written += 1
+    capacities = {worker.label: dict(getattr(worker, "region_capacity", {}) or {}) for worker in workers}
+    (target / "pool_demand_meta.json").write_text(json.dumps({"links": capacities, "files": written}, indent=1),
+                                                  encoding="utf-8")
+    print(f"[e30] pool_demand dir={directory} links={written}", flush=True)
 
 
 def report_value_text(value) -> str:
@@ -988,6 +1019,8 @@ def main() -> int:
             print_pool_health(pool_health)
         if pool_peak_workers is not None:
             print_pool_peaks(pool_peak_workers)
+            if arguments.pool_demand is not None:
+                write_pool_demand(pool_peak_workers, arguments.pool_demand)
         if arguments.solver != "v6":
             report_stage("exit", bench_started)
         if loop_trace is not None:          # after the exit stamp: the files are not part of the run's post time

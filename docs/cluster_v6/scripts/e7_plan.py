@@ -152,6 +152,10 @@ PARTICLES = {
     "cavity3d_n160_k4": 18_289_152, "cavity3d_n160_k8": 36_352_512, "cavity3d_n200": 8_998_912,
     "cavity3d_n200_b9": 10_360_232, "cavity3d_n200_k2": 17_651_712, "cavity3d_n200_k4": 34_957_312,
     "cavity3d_n200_k8": 69_568_512, "cavity3d_n200_x96": 4_499_456, "cavity3d_n416": 76_225_024,
+    # E8 (2026-10-22): the cubes by total edge (cases/aligned/cavity3d_n<n>/generate.txt line 1), the weak boxes, the stand-in
+    "cavity3d_n48": 175_616, "cavity3d_n152": 4_096_000, "cavity3d_n192": 8_000_000, "cavity3d_n244": 16_003_008,
+    "cavity3d_n312": 32_768_000, "cavity3d_n392": 64_000_000, "cavity3d_n192_k2": 15_680_000,
+    "cavity3d_n192_k4": 31_040_000, "cavity3d_n192_k8": 61_760_000,
 }
 LIGHT_PER_CARD = 4.2e6          # at most this many particles per card: 5 trials (the nominal 4M class included)
 BRINGUP_CASE = "cavity2d_n1000"
@@ -373,6 +377,52 @@ REVISIONS = {
         "job_tag": "10",
         "sbatch": ["--exclusive", "--mem=0", "--exclude=wqd10nbm13g5,wqd10nah09g1"],
         "exports": [("E7_REFERENCE_SPREAD_PCT", "3"), ("E7_UNIFORM_POWER_CAP", "1"), ("E7_POWER_CAP_W", "575")],
+    },
+    # revision 11 (user 2026-10-22: E8 phase 2, the 3-D cubic-cavity scaling on v7-rc3 + the partitioner floor 3 = tag
+    # e8-3d-p2). Points: strong load sweep 4M / 8M (5 trials) and 16M / 32M / 64M (3 trials) at K = 8 (reference = K = 1 of
+    # the case), strong K sweep 64M at K = 2 / 4 (reference = K = 1 of 64M), weak 2 / 4 / 8 cubes of 8M at K = 2 / 4 / 8
+    # (reference = K = 1 of the 8M cube); E7 protocol (1500 / 500, two pilot rounds, simultaneous references behind one
+    # barrier, arm C), every point traced once with every kernel's tick (E7_TRACE_DETAIL=full) and V7_POOL_PEAKS=1, the
+    # five cubes' K = 1 traced once (the ideal-chain rows of tab:phases), the per-step raw data of every run (E7_RAW=1),
+    # the partition / calibration record of every point (E7_PARTITION_RECORD=1). Line B (K = 8, in this order): 4M ->
+    # its dumps (K = 1 twice, K = 8 once, at step 1500, equal weights) + comparison -> its K = 1 trace -> 8M -> dumps +
+    # comparison -> K = 1 trace -> 16M -> trace -> 32M -> trace -> 64M -> trace -> weak 8 -> the v7_single comparison
+    # (3 interleaved pairs on card 0, E8_SINGLE_REPO). Line A (K <= 4, cards 0-3): 64M K2 -> 64M K4 -> weak 2 -> weak
+    # 4, each point's trace right after its trials. A point's hard failure is recorded and the job goes on
+    # (E7_CONTINUE_ON_FAILURE=1). Whole nodes, every card at 575 W, 600 W nodes excluded; time limit 2 x estimate + 1 h.
+    11: {
+        "arms": "C", "trials": 3, "traces_strong": 1, "traces_weak": 1, "cross_traces": 0,
+        "extra_points": [("E8S", "cavity3d_n152", 8, "same"), ("E8S", "cavity3d_n192", 8, "same"),
+                         ("E8S", "cavity3d_n244", 8, "same"), ("E8S", "cavity3d_n312", 8, "same"),
+                         ("E8S", "cavity3d_n392", 8, "same"), ("E8K", "cavity3d_n392", 2, "same"),
+                         ("E8K", "cavity3d_n392", 4, "same"), ("E8W", "cavity3d_n192_k2", 2, "cavity3d_n192"),
+                         ("E8W", "cavity3d_n192_k4", 4, "cavity3d_n192"), ("E8W", "cavity3d_n192_k8", 8, "cavity3d_n192")],
+        "any_line": True,
+        "trials_overrides": {("cavity3d_n152", 8): 5, ("cavity3d_n192", 8): 5},
+        "batches": {15: {"A": [("cavity3d_n392", 2), ("cavity3d_n392", 4), ("cavity3d_n192_k2", 2), ("cavity3d_n192_k4", 4)],
+                         "B": [("cavity3d_n152", 8), ("cavity3d_n192", 8), ("cavity3d_n244", 8), ("cavity3d_n312", 8),
+                               ("cavity3d_n392", 8), ("cavity3d_n192_k8", 8)]}},
+        # the items of each line in the user's order (build_jobs: a "sequence" replaces extras + points)
+        "sequence": {15: {
+            "B": [("point", "cavity3d_n152", 8), ("dump", "cavity3d_n152", 1, "a"), ("dump", "cavity3d_n152", 1, "b"),
+                  ("dump", "cavity3d_n152", 8, ""), ("compare", "cavity3d_n152", 8), ("trace_k1", "cavity3d_n152"),
+                  ("point", "cavity3d_n192", 8), ("dump", "cavity3d_n192", 1, "a"), ("dump", "cavity3d_n192", 1, "b"),
+                  ("dump", "cavity3d_n192", 8, ""), ("compare", "cavity3d_n192", 8), ("trace_k1", "cavity3d_n192"),
+                  ("point", "cavity3d_n244", 8), ("trace_k1", "cavity3d_n244"),
+                  ("point", "cavity3d_n312", 8), ("trace_k1", "cavity3d_n312"),
+                  ("point", "cavity3d_n392", 8), ("trace_k1", "cavity3d_n392"),
+                  ("point", "cavity3d_n192_k8", 8), ("single_ratio", "cavity3d_n192", 3)],
+            "A": [("point", "cavity3d_n392", 2), ("point", "cavity3d_n392", 4), ("point", "cavity3d_n192_k2", 2),
+                  ("point", "cavity3d_n192_k4", 4)]}},
+        "extras": {15: {"A": ([], []), "B": ([], [])}},
+        "cross": {"A": [], "B": []},
+        "job_names": {15: {"A": "e8A", "B": "e8B"}},
+        "job_prefix": "e8",
+        "description": "E8 phase 2 (user 2026-10-22), 3-D cubic cavity on tag e8-3d-p2 (generated by docs/cluster_v6/scripts/e7_plan.py --revision 11 --emit-jobs",
+        "sbatch": ["--exclusive", "--mem=0", "--exclude=wqd10nbm13g5,wqd10nah09g1"],
+        "exports": [("E7_RAW", "1"), ("E7_TRACE_DETAIL", "full"), ("E7_CONTINUE_ON_FAILURE", "1"),
+                    ("E7_PARTITION_RECORD", "1"), ("E7_UNIFORM_POWER_CAP", "1"), ("E7_POWER_CAP_W", "575"),
+                    ("E8_SINGLE_REPO", "$HOME/run/vulkan-demo-v7single")],
     },
 }
 REVISION = None                                 # --revision N: REVISIONS[N]
@@ -741,7 +791,9 @@ def batch_points(points: list[Point]) -> dict:
     for point in points:
         if (point.case, point.slabs) in first:
             continue
-        batch = next(batch for batch, families in BATCH_FAMILIES.items() if point.family.split("+")[0] in families)
+        batch = next((batch for batch, families in BATCH_FAMILIES.items() if point.family.split("+")[0] in families), None)
+        if batch is None:           # a revision's own family (E8S / E8K / E8W): placed by the revision's batches only
+            continue
         batches[batch][point.line].append(point)
     return batches
 
@@ -777,16 +829,62 @@ def build_jobs(points: list[Point], model: Model, revision: bool = False) -> dic
                     else:
                         items.extend(dict(entry) for entry in extra_items[group])
 
-            add_groups(before)
-            for point in lines.get(line, []):
-                items.append({"kind": "point", "point": point, "seconds": point_seconds(point, model)["total"]})
-            add_groups(after)
+            sequence = ((REVISION.get("sequence", {}) or {}).get(batch) or {}).get(line) if revision else None
+            if sequence is not None:
+                items = sequence_items(sequence, lines.get(line, []), model)
+            else:
+                add_groups(before)
+                for point in lines.get(line, []):
+                    items.append({"kind": "point", "point": point, "seconds": point_seconds(point, model)["total"]})
+                add_groups(after)
             if items:               # a line without items has no job (the revision's batch 4 line A)
                 jobs[(batch, line)] = items
     assigned = sum(1 for items in jobs.values() for item in items if item["kind"] == "point")
     if assigned != len(points) and not revision:
         raise SystemExit(f"{assigned} points in the batches, {len(points)} in the campaign")
     return jobs
+
+
+def short_case(case: str) -> str:
+    return case.replace("cavity", "")           # e7_lib.sh e7_short: cavity3d_n192 -> 3d_n192
+
+
+def sequence_items(sequence: list, points: list[Point], model: Model) -> list[dict]:
+    """E8 (revision 11): the items of a line in the given order. ("point", case, K): the revised point; ("dump", case, K,
+    suffix): a seam-audit dump at the window's last step (dump_<short>_K<K><suffix>, equal weights); ("compare", case,
+    K): the comparison of the K dump against the two K = 1 dumps; ("trace_k1", case): one step-traced K = 1 run;
+    ("single_ratio", case, pairs): the v7_single comparison, PAIRS interleaved pairs on card 0."""
+    by_key = {(point.case, point.slabs): point for point in points}
+    items = []
+    for spec in sequence:
+        kind = spec[0]
+        if kind == "point":
+            point = by_key[(spec[1], spec[2])]
+            items.append({"kind": "point", "point": point, "seconds": point_seconds(point, model)["total"]})
+        elif kind == "dump":
+            case, slabs, suffix = spec[1], spec[2], spec[3]
+            steps = model.window(case)[0]
+            seconds = model.run(case, slabs, steps, cold=True) + 0.3 * PARTICLES[case] / 1e6 + 20.0
+            items.append({"kind": "dump", "label": f"dump_{short_case(case)}_K{slabs}{suffix}", "case": case, "slabs": slabs,
+                          "steps": steps, "warmup": 0, "seconds": seconds})
+        elif kind == "compare":
+            case, slabs = spec[1], spec[2]
+            items.append({"kind": "compare", "label": f"compare_{short_case(case)}_K{slabs}", "case": case, "slabs": slabs,
+                          "steps": model.window(case)[0], "warmup": 0, "seconds": 60.0 + 20.0 * PARTICLES[case] / 1e6})
+        elif kind == "trace_k1":
+            case = spec[1]
+            steps, warmup = model.window(case)
+            items.append({"kind": "trace", "label": f"trace_{short_case(case)}_K1", "case": case, "slabs": 1, "steps": steps,
+                          "warmup": warmup, "seconds": model.run(case, 1, steps, cold=True, seam_check=True) + model.trace_write})
+        elif kind == "single_ratio":
+            case, pairs = spec[1], spec[2]
+            steps, warmup = model.window(case)
+            items.append({"kind": "single_ratio", "label": f"single_{short_case(case)}", "case": case, "slabs": 1, "pairs": pairs,
+                          "steps": steps, "warmup": warmup,
+                          "seconds": pairs * 2 * model.run(case, 1, steps, cold=False) + pairs * 30.0})
+        else:
+            raise SystemExit(f"sequence item of unknown kind: {spec}")
+    return items
 
 
 def job_cases(items: list[dict]) -> list[str]:
@@ -836,13 +934,17 @@ def emit_item(item: dict, model: Model) -> list[str]:
     if item["kind"] == "tracegroup":
         return [f"e7_trace_group {item['label']} {item['case']} {item['parties']} {item['steps']} {item['warmup']} "
                 f"{timeout(item['seconds'])}"]
+    if item["kind"] == "single_ratio":
+        return [f"e8_single_ratio {item['label']} {item['case']} {item['pairs']} {item['steps']} {item['warmup']} "
+                f"{timeout(item['seconds'])}"]
     return [f"e7_extra {item['kind']} {item['label']} {item['case']} {item['slabs']} {item['steps']} "
             f"{item['warmup']} {timeout(item['seconds'])}"]
 
 
 def job_name(batch: int, line: str) -> str:
     if REVISION and batch in REVISION.get("job_names", {}):
-        return REVISION["job_names"][batch]
+        name = REVISION["job_names"][batch]
+        return name[line] if isinstance(name, dict) else name
     return f"b{batch}{line}"
 
 
@@ -862,6 +964,7 @@ def job_script(name: str, line: str, items: list[dict], model: Model, descriptio
     if content is None:
         content = ", ".join(sorted({(item["point"].family if "point" in item else item["kind"]) for item in items}))
     job_tag = REVISION.get("job_tag", "") if REVISION else ""
+    prefix = REVISION.get("job_prefix", "e7") if REVISION else "e7"
     directives = [f"#SBATCH {option}" for option in (REVISION.get("sbatch", []) if REVISION else [])]
     body = [
         "#!/bin/bash",
@@ -870,10 +973,10 @@ def job_script(name: str, line: str, items: list[dict], model: Model, descriptio
         "#SBATCH -N 1",
         "#SBATCH --gpus=8",
         f"#SBATCH --time={limit:02d}:00:00",
-        f"#SBATCH -J e7_{line}{job_tag}",
+        f"#SBATCH -J {prefix}_{line}{job_tag}",
         "#SBATCH --dependency=singleton",
         *directives,
-        f"#SBATCH -o /data/run01/scxm138/logs/e7_{name}_%j.out",
+        f"#SBATCH -o /data/run01/scxm138/logs/{prefix}_{name}_%j.out",
         f"# {description}; do not edit by hand).",
         f"# Estimate {estimate / 3600:.2f} h, {len(items)} items: {content}. The protocol is e7_lib.sh's.",
     ]
@@ -897,9 +1000,10 @@ def emit_jobs(jobs: dict, model: Model, directory: pathlib.Path, batches, source
         if batch not in batches or not items:
             continue
         name = job_name(batch, line)
-        description = (f"E7 full campaign, batch {batch}, line {line} (generated by docs/cluster_v6/scripts/e7_plan.py "
-                       "--emit-jobs")
-        path = directory / f"e7_{name}.sbatch"
+        description = ((REVISION.get("description") if REVISION else None)
+                       or f"E7 full campaign, batch {batch}, line {line} (generated by docs/cluster_v6/scripts/e7_plan.py --emit-jobs")
+        description = f"{description}, line {line}" if REVISION and REVISION.get("description") else description
+        path = directory / f"{(REVISION.get('job_prefix', 'e7') if REVISION else 'e7')}_{name}.sbatch"
         path.write_text(job_script(name, line, items, model, description, source_repository, list(exports)),
                         encoding="utf-8", newline="\n")
         written.append(path)
@@ -973,7 +1077,8 @@ def main() -> int:
                              "--batch 11), 8 = the traced K = 1 reference groups for tab:phases (b2Z; --batch 12), 9 = the "
                              "same groups plus the four K = 8 chains traced on the same node, any 575 W node (b2AA; "
                              "--batch 13), 10 = 2d_n2840_k5 K = 5 again, calibrated and with b2Y's weights file, both "
-                             "traced (b2AB; --batch 14); emitted jobs export E7_ARMS")
+                             "traced (b2AB; --batch 14), 11 = E8 phase 2 (the 3-D cubic cavity, jobs e8_A / e8_B; --batch 15); emitted jobs "
+                             "export E7_ARMS")
     arguments = parser.parse_args()
     if (arguments.solver_tag is None) != (arguments.expected_tree is None):
         parser.error("--solver-tag and --expected-tree go together (the tag names the tree's solver)")
@@ -1061,7 +1166,7 @@ def main() -> int:
         if arguments.revision:
             exports.append(("E7_ARMS", REVISION["arms"]))
             exports += [tuple(item) for item in REVISION.get("exports", [])]
-        for path in emit_jobs(jobs, model, pathlib.Path(arguments.emit_jobs), set(arguments.batch or (1, 2, 3, 4)),
+        for path in emit_jobs(jobs, model, pathlib.Path(arguments.emit_jobs), set(arguments.batch or sorted({batch for batch, _ in jobs})),
                               arguments.source_repo, exports):
             print(f"wrote {path}")
     if arguments.emit_validation:

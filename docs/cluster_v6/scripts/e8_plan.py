@@ -85,6 +85,31 @@ MATRIX = [
     ("weak", "cavity3d_n192_k4", 4, "cavity3d_n192", False),
     ("weak", "cavity3d_n192_k8", 8, "cavity3d_n192", True),
 ]
+# Phase 2 (user 2026-10-22): every point traced, 4M and 8M with 5 trials, the K = 1 traces of the five cubes, the
+# correctness dumps of 4M and 8M (K = 1 twice + K = 8 once, 1500 steps, equal weights) with their comparisons, the
+# v7_single comparison (3 interleaved pairs at 8M on one card), the partition record of every point (CPU).
+MATRIX2 = [
+    ("strong, load sweep", "cavity3d_n152", 8, "cavity3d_n152", True, 5),
+    ("strong, load sweep", "cavity3d_n192", 8, "cavity3d_n192", True, 5),
+    ("strong, load sweep", "cavity3d_n244", 8, "cavity3d_n244", True, 3),
+    ("strong, load sweep", "cavity3d_n312", 8, "cavity3d_n312", True, 3),
+    ("strong, load sweep", "cavity3d_n392", 8, "cavity3d_n392", True, 3),
+    ("strong, K sweep", "cavity3d_n392", 2, "cavity3d_n392", True, 3),
+    ("strong, K sweep", "cavity3d_n392", 4, "cavity3d_n392", True, 3),
+    ("weak", "cavity3d_n192_k2", 2, "cavity3d_n192", True, 3),
+    ("weak", "cavity3d_n192_k4", 4, "cavity3d_n192", True, 3),
+    ("weak", "cavity3d_n192_k8", 8, "cavity3d_n192", True, 3),
+]
+SEQUENCE2 = {
+    "B": [("point", "cavity3d_n152", 8), ("dump", "cavity3d_n152", 1), ("dump", "cavity3d_n152", 1), ("dump", "cavity3d_n152", 8),
+          ("compare", "cavity3d_n152"), ("trace_k1", "cavity3d_n152"),
+          ("point", "cavity3d_n192", 8), ("dump", "cavity3d_n192", 1), ("dump", "cavity3d_n192", 1), ("dump", "cavity3d_n192", 8),
+          ("compare", "cavity3d_n192"), ("trace_k1", "cavity3d_n192"),
+          ("point", "cavity3d_n244", 8), ("trace_k1", "cavity3d_n244"), ("point", "cavity3d_n312", 8), ("trace_k1", "cavity3d_n312"),
+          ("point", "cavity3d_n392", 8), ("trace_k1", "cavity3d_n392"), ("point", "cavity3d_n192_k8", 8),
+          ("single_ratio", "cavity3d_n192", 3)],
+    "A": [("point", "cavity3d_n392", 2), ("point", "cavity3d_n392", 4), ("point", "cavity3d_n192_k2", 2), ("point", "cavity3d_n192_k4", 4)],
+}
 PHASE1 = [
     # (label, case, K, steps, warmup, seam check, trace, kind)
     ("8m_k1", "cavity3d_n192", 1, 300, 100, False, False, "run"),
@@ -201,21 +226,75 @@ class Model:
         return self.setup(case, slabs, cold, seam_check) + steps * self.step(case, slabs, weak)["step"]
 
 
-def point_estimate(model: Model, group: str, case: str, slabs: int, reference: str, traced: bool) -> dict:
+def point_estimate(model: Model, group: str, case: str, slabs: int, reference: str, traced: bool,
+                   trials: int = TRIALS, partition_record: bool = False) -> dict:
     weak = group == "weak"
     pilot = model.setup(case, slabs, cold=True, seam_check=False) + PILOT_STEPS * model.step(case, slabs, weak)["step"]
     calibration = PILOT_ROUNDS * pilot + SETUP["calibration_fixed"]
+    record = (SETUP["load_per_million"] * PARTICLES[case] / 1e6 + 0.5 * PARTICLES[case] / 1e6 + 10.0) if partition_record else 0.0
     reference_first = model.run(reference, 1, STEPS, cold=True, seam_check=False, weak=False)
     reference_later = model.run(reference, 1, STEPS, cold=False, seam_check=False, weak=False)
     chain_run = model.run(case, slabs, STEPS, cold=False, seam_check=False, weak=weak)
     trace = model.run(case, slabs, STEPS, cold=True, seam_check=True, weak=weak) + SETUP["trace_write"] if traced else 0.0
-    trials = reference_first + (TRIALS - 1) * reference_later + TRIALS * chain_run
-    total = calibration + trials + trace
-    return {"group": group, "case": case, "slabs": slabs, "reference": reference, "traced": traced,
+    trials_total = reference_first + (trials - 1) * reference_later + trials * chain_run
+    total = calibration + record + trials_total + trace
+    return {"group": group, "case": case, "slabs": slabs, "reference": reference, "traced": traced, "trials": trials,
             "line": "B" if slabs == 8 else "A", "particles": PARTICLES[case], "per_card": PARTICLES[case] / slabs,
-            "calibration": calibration, "reference_first": reference_first, "reference_later": reference_later,
-            "chain_run": chain_run, "trace": trace, "total": total, "step": model.step(case, slabs, weak),
-            "reference_step": model.step(reference, 1, False)}
+            "calibration": calibration, "partition_record": record, "reference_first": reference_first,
+            "reference_later": reference_later, "chain_run": chain_run, "trace": trace, "total": total,
+            "step": model.step(case, slabs, weak), "reference_step": model.step(reference, 1, False)}
+
+
+def phase2_lines(model: Model) -> tuple[list[str], dict]:
+    """The phase-2 budget: every item of both lines in the job order (SEQUENCE2), with its estimate."""
+    by_key = {(case, slabs): (group, reference, traced, trials) for group, case, slabs, reference, traced, trials in MATRIX2}
+    lines = ["## Phase 2 (jobs e8_A / e8_B, the items in the job order)", "",
+             "| line | item | case | K | trials | estimate | note |", "|---|---|---|---|---|---|---|"]
+    totals = {"A": SETUP["job_overhead"], "B": SETUP["job_overhead"]}
+    records = {"A": [], "B": []}
+    for line in ("B", "A"):
+        for spec in SEQUENCE2[line]:
+            kind = spec[0]
+            case = spec[1]
+            millions = PARTICLES[case] / 1e6
+            if kind == "point":
+                group, reference, traced, trials = by_key[(case, spec[2])]
+                estimate = point_estimate(model, group, case, spec[2], reference, traced, trials, partition_record=True)
+                seconds = estimate["total"]
+                note = (f"calibration {seconds_text(estimate['calibration'])} + record {estimate['partition_record']:.0f} s, "
+                        f"reference set {seconds_text(estimate['reference_first'])} / {seconds_text(estimate['reference_later'])} x {trials - 1}, "
+                        f"chain run {seconds_text(estimate['chain_run'])} x {trials}, trace {seconds_text(estimate['trace'])}")
+                records[line].append({"kind": "point", "case": case, "slabs": spec[2], "trials": trials, "seconds": seconds, "detail": estimate})
+            elif kind == "dump":
+                seconds = model.run(case, spec[2], STEPS, cold=True, seam_check=False, weak=False) + 0.3 * millions + 20.0
+                note = f"dump_state K = {spec[2]} to step {STEPS}, equal weights, npz {0.13 * millions:.1f} GB"
+                records[line].append({"kind": "dump", "case": case, "slabs": spec[2], "seconds": seconds})
+            elif kind == "compare":
+                seconds = 60.0 + 20.0 * millions
+                note = "K = 8 vs K = 1 a + the noise floor K = 1 a vs b (fluid, by seam distance, per slab)"
+                records[line].append({"kind": "compare", "case": case, "seconds": seconds})
+            elif kind == "trace_k1":
+                seconds = model.run(case, 1, STEPS, cold=True, seam_check=True, weak=False) + SETUP["trace_write"]
+                note = "K = 1 step trace, every kernel's tick (the ideal-chain row of tab:phases)"
+                records[line].append({"kind": "trace_k1", "case": case, "seconds": seconds})
+            elif kind == "single_ratio":
+                pairs = spec[2]
+                seconds = pairs * 2 * model.run(case, 1, STEPS, cold=False, seam_check=False, weak=False) + pairs * 30.0
+                note = f"{pairs} interleaved pairs v7_single / chain K = 1 on card 0, {STEPS} steps (warmup {WARMUP}), no defrag"
+                records[line].append({"kind": "single_ratio", "case": case, "pairs": pairs, "seconds": seconds})
+            else:
+                raise ValueError(kind)
+            totals[line] += seconds
+            lines.append(f"| {line} | {kind} | {case} | {spec[2] if len(spec) > 2 and isinstance(spec[2], int) and kind != 'single_ratio' else ('1' if kind in ('trace_k1', 'single_ratio') else '-')} | "
+                         f"{by_key[(case, spec[2])][3] if kind == 'point' else '-'} | **{seconds_text(seconds)}** | {note} |")
+    lines += ["", f"Job overhead {SETUP['job_overhead']:.0f} s per job. **Line A {totals['A'] / 3600:.2f} h, line B {totals['B'] / 3600:.2f} h, "
+              f"total {(totals['A'] + totals['B']) / 3600:.2f} node-h**; time limits (2 x + 1 h, rounded up): "
+              f"A {math.ceil(2 * totals['A'] / 3600 + 1)} h, B {math.ceil(2 * totals['B'] / 3600 + 1)} h."]
+    return lines, {"totals_hours": {line: value / 3600 for line, value in totals.items()}, "items": records}
+
+
+def seconds_text(value: float) -> str:
+    return f"{value / 60:.1f} min" if value >= 60 else f"{value:.0f} s"
 
 
 def seconds(value: float) -> str:
@@ -238,6 +317,7 @@ def main() -> int:
     parser.add_argument("--b-link", action="append", default=[], metavar="CASE=BYTES",
                         help="measured host copy bytes per link and step of a case (phase 1)")
     parser.add_argument("--phase1", action="store_true", help="also the phase-1 job's budget")
+    parser.add_argument("--phase2", action="store_true", help="the phase-2 jobs' budget (MATRIX2 / SEQUENCE2)")
     parser.add_argument("--md", default=None)
     parser.add_argument("--json", default=None)
     arguments = parser.parse_args()
@@ -295,6 +375,10 @@ def main() -> int:
               f"Reference runs alone: {sum(e['reference_first'] + 2 * e['reference_later'] for e in points) / 3600:.2f} h "
               f"of the {(totals['A'] + totals['B']) / 3600:.2f} h (the 64M K = 1 references of the three n392 points are "
               f"{sum(e['reference_first'] + 2 * e['reference_later'] for e in points if e['case'] == 'cavity3d_n392') / 3600:.2f} h)."]
+    phase2 = {}
+    if arguments.phase2:
+        phase2_text, phase2 = phase2_lines(model)
+        lines += [""] + phase2_text
     phase1 = []
     if arguments.phase1:
         lines += ["", "## Phase-1 job (2 cards, 300 steps each)", "",
@@ -319,6 +403,7 @@ def main() -> int:
         pathlib.Path(arguments.md).write_text(text + "\n", encoding="utf-8")
     if arguments.json:
         pathlib.Path(arguments.json).write_text(json.dumps({"model": vars(arguments), "points": points, "phase1": phase1,
+                                                            "phase2": phase2,
                                                             "line_hours": {"A": job_a / 3600, "B": job_b / 3600}},
                                                            indent=1, default=str), encoding="utf-8")
     return 0

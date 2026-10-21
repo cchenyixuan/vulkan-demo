@@ -24,7 +24,7 @@ STORE=$HOME/run/vulkan-demo-v7rc1
 TOOLS=$HOME/run/tools
 TARBALL=$TOOLS/vd_e8_$SHA.tar.gz
 STAGE=/dev/shm/scxm138/e8_stage_$SHA
-E8_CASES="cavity3d_n192 cavity3d_n244 cavity3d_n312 cavity3d_n392 cavity3d_n192_k2 cavity3d_n192_k4 cavity3d_n192_k8 cavity3d_n48"
+E8_CASES="cavity3d_n152 cavity3d_n192 cavity3d_n244 cavity3d_n312 cavity3d_n392 cavity3d_n192_k2 cavity3d_n192_k4 cavity3d_n192_k8 cavity3d_n48"
 FAILS=0
 fail() { echo "FAIL: $*"; FAILS=$((FAILS + 1)); }
 T0=$(date +%s)
@@ -93,26 +93,28 @@ for name in $E8_CASES; do
     python utils/geometry/_demo_cavity_case_aligned.py $(grep -o -- '--dimension 3 --n [0-9]* --n-x [0-9]* --border 4' "cases/aligned/$name/generate.txt") --out /dev/null --check-only > /dev/null \
         && echo "generator check-only OK: $name" || fail "generator check-only $name"
 done
-bash -n docs/cluster_v6/e8_jobs/e8_p1.sbatch && echo "sbatch syntax OK" || fail "bash -n e8_p1.sbatch"
-# dry run of the job on the login node (no GPU work, every command printed)
-DRY_LOG=$HOME/run/logs/e8_deploy_dry_$(date +%Y%m%d_%H%M%S).log
-E30_LOCAL=1 E30_DRY=1 E30_REPO=$DEST E30_PY=python E30_EXPECT_COMMIT=${SHA:0:12} E7_EXPECTED_TREE=$EXPECT_TREE E7_SOLVER_TAG=e8p1 \
-    E7_GLCACHE_BASE=/dev/shm/scxm138 E7_STATE=/dev/shm/scxm138/e8_state_dry E7_OBJ_CACHE=$HOME/run/e7_objcache E30_SHM_ROOT=/dev/shm/scxm138/e8_dry \
-    timeout 900 bash docs/cluster_v6/e8_jobs/e8_p1.sbatch > "$DRY_LOG" 2>&1
-DRY_RUNS=$(grep -c "^DRY: .*run_chain_v6.py" "$DRY_LOG"); DRY_STEPS=$(grep -c "^=== STEP" "$DRY_LOG")
-grep -q "ABORT\|HARD FAILURE" "$DRY_LOG" && fail "dry run aborted (see $DRY_LOG)" || echo "dry run OK: $DRY_RUNS chain runs, $DRY_STEPS steps ($DRY_LOG)"
-rm -rf /dev/shm/scxm138/e8_dry /dev/shm/scxm138/e8_state_dry 2>/dev/null
-# test-only submission
-TEST_ONLY=$(timeout 60 sbatch --test-only --export=ALL,E30_EXPECT_COMMIT=${SHA:0:12},E7_EXPECTED_TREE=$EXPECT_TREE docs/cluster_v6/e8_jobs/e8_p1.sbatch 2>&1 | tail -1)
-echo "$TEST_ONLY"
-echo "$TEST_ONLY" | grep -q "to start at" || fail "test-only did not accept the job: $TEST_ONLY"
+for script in docs/cluster_v6/e8_jobs/*.sbatch; do
+    bash -n "$script" && echo "sbatch syntax OK: $script" || fail "bash -n $script"
+    # dry run of the job on the login node (no GPU work, every command printed); the E8 jobs' solver tag is
+    # theirs (E7_SOLVER_TAG of the script, exported with E30_EXPECT_COMMIT at submission)
+    DRY_LOG=$HOME/run/logs/e8_deploy_dry_$(basename "$script" .sbatch)_$(date +%Y%m%d_%H%M%S).log
+    E30_LOCAL=1 E30_DRY=1 E30_REPO=$DEST E30_PY=python E30_EXPECT_COMMIT=${SHA:0:12} E7_EXPECTED_TREE=$EXPECT_TREE \
+        E7_GLCACHE_BASE=/dev/shm/scxm138 E7_STATE=/dev/shm/scxm138/e8_state_dry E7_OBJ_CACHE=$HOME/run/e7_objcache E30_SHM_ROOT=/dev/shm/scxm138/e8_dry \
+        E8_SINGLE_REPO=$HOME/run/vulkan-demo-v7single timeout 900 bash "$script" > "$DRY_LOG" 2>&1
+    DRY_RUNS=$(grep -c "^DRY: .*run_chain_v6.py" "$DRY_LOG"); DRY_STEPS=$(grep -c "^=== STEP" "$DRY_LOG")
+    grep -q "ABORT\|HARD FAILURE" "$DRY_LOG" && fail "dry run of $script aborted (see $DRY_LOG)" || echo "dry run OK: $script -> $DRY_RUNS chain runs, $DRY_STEPS steps ($DRY_LOG)"
+    rm -rf /dev/shm/scxm138/e8_dry /dev/shm/scxm138/e8_state_dry 2>/dev/null
+    TEST_ONLY=$(timeout 60 sbatch --test-only --export=ALL,E30_EXPECT_COMMIT=${SHA:0:12},E7_EXPECTED_TREE=$EXPECT_TREE "$script" 2>&1 | tail -1)
+    echo "$TEST_ONLY"
+    echo "$TEST_ONLY" | grep -q "to start at" || fail "test-only did not accept $script: $TEST_ONLY"
+done
 for other in "$HOME/run/vulkan-demo-v7rc2" "$HOME/run/vulkan-demo-v7rc3"; do
     [ -z "$(find "$other" -newer "$DEST/COMMIT" ! -path '*/__pycache__*' 2>/dev/null | head -1)" ] && echo "$(basename "$other") untouched" || fail "$other has entries newer than this deploy"
 done
 echo
 if [ "$FAILS" -eq 0 ]; then
     echo "=== DEPLOY OK in $(( $(date +%s) - T0 ))s. Submit after e8_gen_remote.sh has ended with status 0:"
-    echo "    cd $DEST && sbatch --export=ALL,E30_EXPECT_COMMIT=${SHA:0:12},E7_EXPECTED_TREE=$EXPECT_TREE docs/cluster_v6/e8_jobs/e8_p1.sbatch"
+    echo "    cd $DEST && sbatch --export=ALL,E30_EXPECT_COMMIT=${SHA:0:12},E7_EXPECTED_TREE=$EXPECT_TREE docs/cluster_v6/e8_jobs/<job>.sbatch"
 else
     echo "=== DEPLOY HAS $FAILS FAILURE(S): do not submit"; exit 2
 fi

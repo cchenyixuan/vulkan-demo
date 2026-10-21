@@ -62,11 +62,11 @@ CONTEXT_MIB = 50.0                            # measured gap telemetry peak - (d
 
 # E8 cases: name -> (n, n_x); lattice border 4, h/dx 4
 CASES = {
-    "cavity3d_n48": (48, 48), "cavity3d_n192": (192, 192), "cavity3d_n244": (244, 244),
+    "cavity3d_n48": (48, 48), "cavity3d_n152": (152, 152), "cavity3d_n192": (192, 192), "cavity3d_n244": (244, 244),
     "cavity3d_n312": (312, 312), "cavity3d_n392": (392, 392),
     "cavity3d_n192_k2": (192, 384), "cavity3d_n192_k4": (192, 768), "cavity3d_n192_k8": (192, 1536),
 }
-SHORT = {"cavity3d_n48": "56^3 (0.18M)", "cavity3d_n192": "8M (200^3)", "cavity3d_n244": "16M (252^3)",
+SHORT = {"cavity3d_n48": "56^3 (0.18M)", "cavity3d_n152": "4M (160^3)", "cavity3d_n192": "8M (200^3)", "cavity3d_n244": "16M (252^3)",
          "cavity3d_n312": "32M (320^3)", "cavity3d_n392": "64M (400^3)", "cavity3d_n192_k2": "weak 2 x 8M",
          "cavity3d_n192_k4": "weak 4 x 8M", "cavity3d_n192_k8": "weak 8 x 8M"}
 # E7 measurements (rc1, same layout): (n, n_x, K, own columns per slab, own particles per slab,

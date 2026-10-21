@@ -136,6 +136,13 @@ e30_finish() {
 
 e30_fail() {      # LABEL
     echo
+    if [ "${E7_IN_POINT:-0}" = 1 ]; then
+        # E8 (user 2026-10-22): inside a point run in its own subshell (e7_lib.sh E7_CONTINUE_ON_FAILURE=1) the failure
+        # ends the point only: the job's telemetry and cleanup belong to the parent shell
+        echo "*** E30 HARD FAILURE at $1 — the point is abandoned, the job goes on (E7_CONTINUE_ON_FAILURE) ***"
+        e30_sync
+        exit 3
+    fi
     echo "*** E30 HARD FAILURE at $1 — stopping the job (stop at the failing step; no retries on the cluster) ***"
     e30_finish
     exit 3

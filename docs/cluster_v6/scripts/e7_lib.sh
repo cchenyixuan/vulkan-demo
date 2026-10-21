@@ -95,6 +95,38 @@ E7_EXPECTED_DEVICES=${E7_EXPECTED_DEVICES:-8}                   # the local pre-
 E7_SHADER_CACHE_SIZE=17179869184                               # 16 GiB (the driver's default cap is 1 GiB)
 E7_LIBRARY_REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)    # the deployment this file belongs to
 
+# E8 (user 2026-10-22, phase 2): switches exported by the E8 job scripts (e7_plan.py revision 11).
+#   E7_RAW=1                every run keeps its per-step raw data: V7_LOOP_TRACE=1 + --loop-trace (the host loop's
+#                           per-step period / submit / wait), --defrag-log (every defrag's duration per slab), and
+#                           for K > 1 V7_POOL_PEAKS=1 + --pool-demand (every link's per-frame packet counters n0 /
+#                           n1 / n_mig = the per-seam migrations), all under $SHM/raw/<label>/
+#   E7_TRACE_DETAIL=full    traced runs record every kernel's tick (--step-trace-detail full)
+#   E7_CONTINUE_ON_FAILURE=1  a point whose run, calibration or reference fails hard is recorded (failed_points.tsv)
+#                           and the job goes on with the next item (the point runs in a subshell; e30_fail knows)
+#   E7_PARTITION_RECORD=1   after a point's calibration, e8_partition_record.py writes the per-column fluid
+#                           histogram, cuts, per-slab own / fluid / wall counts and the pilot rounds next to the
+#                           weights file (weights/<point>.partition.json)
+#   E8_SINGLE_REPO=DIR      the v7_single deployment of e8_single_ratio (default ~/run/vulkan-demo-v7single)
+e7_raw_prefix() {   # PIN K -> the E30_PREFIX of a run: PIN (taskset ... or empty) + the raw-data environment
+    local pin=$1 slabs=$2
+    if [ "${E7_RAW:-0}" = 1 ]; then
+        if [ "$slabs" -gt 1 ]; then echo "${pin}env V7_LOOP_TRACE=1 V7_POOL_PEAKS=1"; else echo "${pin}env V7_LOOP_TRACE=1"; fi
+    else
+        echo "$pin"
+    fi
+}
+e7_raw_wrapper() {  # LABEL [EXTRA...] -> the E30_WRAPPER_ARGS of a run (obj cache + the raw-data files of the label)
+    local label=$1; shift
+    local text="--obj-cache $NODE_CACHE $*"
+    [ "${E7_RAW:-0}" = 1 ] && text="$text --defrag-log --loop-trace $SHM/raw/$label --pool-demand $SHM/raw/$label"
+    echo "$text"
+}
+e7_trace_arguments() {  # DIR -> --step-trace DIR [--step-trace-detail full]
+    local text="--step-trace $1"
+    [ "${E7_TRACE_DETAIL:-phases}" = full ] && text="$text --step-trace-detail full"
+    echo "$text"
+}
+
 e7_short() {        # CASE -> 2d_n4000 / 3d_n416_k8 (labels)
     echo "$1" | sed 's/^cavity2d_/2d_/; s/^cavity3d_/3d_/'
 }
@@ -525,9 +557,10 @@ e7_group() {        # LABEL KIND CASE PARTIES STEPS WARMUP TIMEOUT ROLE FAMILY T
         e7_index "${label}_$suffix" "$role" "$family" "$case_name" "$slabs" "$trial" "$reference_kind" "$case_name" "$point"
         (
             E30_PREFIX=""
-            [ -n "${CPUL[$gpu]:-}" ] && E30_PREFIX="taskset -c ${CPUL[$gpu]}"      # local pre-run: no cpulists
+            [ -n "${CPUL[$gpu]:-}" ] && E30_PREFIX="taskset -c ${CPUL[$gpu]} "      # local pre-run: no cpulists
+            E30_PREFIX=$(e7_raw_prefix "$E30_PREFIX" "$slabs")
             # a member still missing after half the run timeout has failed: the others start anyway (status timeout)
-            E30_WRAPPER_ARGS="--obj-cache $NODE_CACHE --barrier $barrier --barrier-parties $parties --barrier-timeout $((limit / 2))"
+            E30_WRAPPER_ARGS=$(e7_raw_wrapper "${label}_$suffix" --barrier "$barrier" --barrier-parties "$parties" --barrier-timeout $((limit / 2)))
             e30_run "${label}_$suffix" "$limit" --optional -- --case "$yaml" --weights "$weights" --device-map "$map" \
                 $COMMON --max-steps "$steps" --warmup "$warmup" --no-seam-check
         ) &
@@ -623,10 +656,11 @@ e7_trace_group() {  # LABEL CASE PARTIES STEPS WARMUP TIMEOUT   (revision 8, use
         e7_index "${label}_g$member" reference_traced extra "$case_name" 1 0 same "$case_name" "$label"
         (
             E30_PREFIX=""
-            [ -n "${CPUL[$member]:-}" ] && E30_PREFIX="taskset -c ${CPUL[$member]}"      # local pre-run: no cpulists
-            E30_WRAPPER_ARGS="--obj-cache $NODE_CACHE --barrier $barrier --barrier-parties $parties --barrier-timeout $((limit / 2))"
+            [ -n "${CPUL[$member]:-}" ] && E30_PREFIX="taskset -c ${CPUL[$member]} "      # local pre-run: no cpulists
+            E30_PREFIX=$(e7_raw_prefix "$E30_PREFIX" 1)
+            E30_WRAPPER_ARGS=$(e7_raw_wrapper "${label}_g$member" --barrier "$barrier" --barrier-parties "$parties" --barrier-timeout $((limit / 2)))
             e30_run "${label}_g$member" "$limit" --optional -- --case "$yaml" --weights 1 --device-map "$member" \
-                $COMMON --max-steps "$steps" --warmup "$warmup" --step-trace "$SHM/traces/${label}_g$member"
+                $COMMON --max-steps "$steps" --warmup "$warmup" $(e7_trace_arguments "$SHM/traces/${label}_g$member")
         ) &
         pids="$pids $!"
     done
@@ -675,6 +709,19 @@ PYEOF
 }
 
 e7_point() {        # FAMILY CASE K TRIALS STEPS WARMUP T_CAL T_RUN T_TRACE TRACES REF:TIMEOUT...
+    if [ "${E7_CONTINUE_ON_FAILURE:-0}" = 1 ] && [ "${E7_IN_POINT:-0}" != 1 ]; then
+        # E8: the point in its own subshell; a hard failure inside ends the subshell (e30_fail with E7_IN_POINT=1),
+        # is recorded, and the job goes on with the next item
+        local point_name=${E7_PREFIX:-}$(e7_short "$2")_K$3 point_status
+        ( export E7_IN_POINT=1; e7_point "$@" )
+        point_status=$?
+        if [ "$point_status" -ne 0 ]; then
+            echo "##### POINT $point_name FAILED (status $point_status): recorded, the job goes on ($(date +%T))"
+            e7_state_append failed_points.tsv "$(printf '%s\t%s\t%s\t%s\t%s' "$point_name" "$E7_JOB" "$E30_JOB" "$(hostname)" "$(date -Is)")"
+            echo "$point_name" >> "$SHM/failed_points.txt"
+        fi
+        return 0
+    fi
     local family=$1 case_name=$2 slabs=$3 trials=$4 steps=$5 warmup=$6 t_cal=$7 t_run=$8 t_trace=$9 traces=${10}
     shift 10
     local references=("$@")
@@ -690,6 +737,10 @@ e7_point() {        # FAMILY CASE K TRIALS STEPS WARMUP T_CAL T_RUN T_TRACE TRAC
     else
         e7_calibrate "$base" "$family" "$case_name" "$slabs" "$yaml" "$map" "$weights_file" "$t_cal"
     fi
+    if [ "${E7_PARTITION_RECORD:-0}" = 1 ]; then
+        e30_step "rec_$base" 900 --optional -- $PY -u docs/cluster_v6/scripts/e8_partition_record.py --obj-cache "$NODE_CACHE" \
+            --case "$yaml" --weights-file "$weights_file" --device-map "$map" --out "${weights_file%.json}.partition.json"
+    fi
     for trial in $(seq 1 "$trials"); do
         for item in $(e7_rotation "$trial"); do
             case "$item" in
@@ -699,11 +750,13 @@ e7_point() {        # FAMILY CASE K TRIALS STEPS WARMUP T_CAL T_RUN T_TRACE TRAC
                     done ;;
                 E)
                     e7_index "${base}_t${trial}_E" equal "$family" "$case_name" "$slabs" "$trial" - - "$base"
-                    e30_run "${base}_t${trial}_E" "$t_run" -- --case "$yaml" --weights "$(e7_ones "$slabs")" --device-map "$map" \
+                    E30_PREFIX=$(e7_raw_prefix "" "$slabs") E30_WRAPPER_ARGS=$(e7_raw_wrapper "${base}_t${trial}_E") \
+                        e30_run "${base}_t${trial}_E" "$t_run" -- --case "$yaml" --weights "$(e7_ones "$slabs")" --device-map "$map" \
                         $COMMON --max-steps "$steps" --warmup "$warmup" --no-seam-check ;;
                 C)
                     e7_index "${base}_t${trial}_C" calibrated "$family" "$case_name" "$slabs" "$trial" - - "$base"
-                    e30_run "${base}_t${trial}_C" "$t_run" -- --case "$yaml" --weights-file "$weights_file" --device-map "$map" \
+                    E30_PREFIX=$(e7_raw_prefix "" "$slabs") E30_WRAPPER_ARGS=$(e7_raw_wrapper "${base}_t${trial}_C") \
+                        e30_run "${base}_t${trial}_C" "$t_run" -- --case "$yaml" --weights-file "$weights_file" --device-map "$map" \
                         $COMMON --max-steps "$steps" --warmup "$warmup" --no-seam-check ;;
             esac
         done
@@ -713,12 +766,14 @@ e7_point() {        # FAMILY CASE K TRIALS STEPS WARMUP T_CAL T_RUN T_TRACE TRAC
         case "$item" in
             E)
                 e7_index "${base}_trace_E" trace_equal "$family" "$case_name" "$slabs" 0 - - "$base"
-                e30_run "${base}_trace_E" "$t_trace" -- --case "$yaml" --weights "$(e7_ones "$slabs")" --device-map "$map" \
-                    $COMMON --max-steps "$steps" --warmup "$warmup" --step-trace "$SHM/traces/${base}_E" ;;
+                E30_PREFIX=$(e7_raw_prefix "" "$slabs") E30_WRAPPER_ARGS=$(e7_raw_wrapper "${base}_trace_E") \
+                    e30_run "${base}_trace_E" "$t_trace" -- --case "$yaml" --weights "$(e7_ones "$slabs")" --device-map "$map" \
+                    $COMMON --max-steps "$steps" --warmup "$warmup" $(e7_trace_arguments "$SHM/traces/${base}_E") ;;
             C)
                 e7_index "${base}_trace_C" trace_calibrated "$family" "$case_name" "$slabs" 0 - - "$base"
-                e30_run "${base}_trace_C" "$t_trace" -- --case "$yaml" --weights-file "$weights_file" --device-map "$map" \
-                    $COMMON --max-steps "$steps" --warmup "$warmup" --step-trace "$SHM/traces/${base}_C" ;;
+                E30_PREFIX=$(e7_raw_prefix "" "$slabs") E30_WRAPPER_ARGS=$(e7_raw_wrapper "${base}_trace_C") \
+                    e30_run "${base}_trace_C" "$t_trace" -- --case "$yaml" --weights-file "$weights_file" --device-map "$map" \
+                    $COMMON --max-steps "$steps" --warmup "$warmup" $(e7_trace_arguments "$SHM/traces/${base}_C") ;;
         esac
     done
     # the shared record for e7_cross: <base> for an rc1 job, <base>@<tag> for any other solver (e7_point_record)
@@ -832,9 +887,24 @@ e7_extra() {        # KIND LABEL CASE K STEPS WARMUP TIMEOUT
                 E30_WRAPPER_ARGS="--obj-cache $NODE_CACHE --defrag-log --loop-trace $SHM/traces/$label" \
                 e30_run "$label" "$limit" --optional -- --case "$yaml" --weights "$(e7_ones "$slabs")" --device-map "$map" \
                 $COMMON --max-steps "$steps" --warmup "$warmup" --anatomy --no-seam-check ;;
-        trace)          # a step-traced run at equal weights (revision 2: 2d_n8000 at K = 1, the phases per step)
-            E30_PREFIX="${pin}" e30_run "$label" "$limit" --optional -- --case "$yaml" --weights "$(e7_ones "$slabs")" \
-                --device-map "$map" $COMMON --max-steps "$steps" --warmup "$warmup" --step-trace "$SHM/traces/$label" ;;
+        trace)          # a step-traced run at equal weights (revision 2: 2d_n8000 at K = 1, the phases per step; E8: every
+                        # kernel's tick with E7_TRACE_DETAIL=full, the raw per-step files with E7_RAW=1)
+            E30_PREFIX=$(e7_raw_prefix "$pin" "$slabs") E30_WRAPPER_ARGS=$(e7_raw_wrapper "$label") \
+                e30_run "$label" "$limit" --optional -- --case "$yaml" --weights "$(e7_ones "$slabs")" \
+                --device-map "$map" $COMMON --max-steps "$steps" --warmup "$warmup" $(e7_trace_arguments "$SHM/traces/$label") ;;
+        dump)           # E8: the seam-audit dump at step STEPS (equal weights, every particle keyed by its global id and
+                        # tagged with its slab and device), out of the timing; label = dump_<short>_K<K><suffix>
+            mkdir -p "$SHM/dumps"
+            e30_step "$label" "$limit" --optional -- ${pin}$PY -u docs/cluster_v6/scripts/e8_dump_state.py --obj-cache "$NODE_CACHE" -- \
+                --version v7 --case "$yaml" --slabs "$slabs" --device-map "$map" --horizons "$steps" --depth 2 --pool-safety 1.2 \
+                --sync-scheme per-direction --out-dir "$SHM/dumps" --run-name "$label" --stall-timeout 600 ;;
+        compare)        # E8: K = 1 (two dumps, a / b = the noise floor) against K = K at step STEPS, by seam distance
+            mkdir -p "$SHM/compare"
+            e30_step "$label" "$limit" --optional -- $PY -u docs/cluster_v6/scripts/e8_field_compare.py \
+                --reference "$SHM/dumps/dump_$(e7_short "$case_name")_K1a_N$steps.npz" \
+                --reference2 "$SHM/dumps/dump_$(e7_short "$case_name")_K1b_N$steps.npz" \
+                --test "$SHM/dumps/dump_$(e7_short "$case_name")_K${slabs}_N$steps.npz" \
+                --md "$SHM/compare/$label.md" --json "$SHM/compare/$label.json" ;;
         fulltrace)      # every kernel's ticks for every step (the anatomy samples one frame per defrag)
             E30_PREFIX="${pin}" e30_run "$label" "$limit" --optional -- --case "$yaml" --weights "$(e7_ones "$slabs")" \
                 --device-map "$map" $COMMON --max-steps "$steps" --warmup "$warmup" --step-trace "$SHM/traces/$label" \
@@ -867,6 +937,37 @@ PYEOF
             ;;
         *) echo "unknown extra kind $kind" ;;
     esac
+}
+
+e8_single_ratio() { # LABEL CASE PAIRS STEPS WARMUP TIMEOUT   (E8: fig:reference's method on the cluster)
+    # PAIRS interleaved pairs on GPU 0: v7_single (E8_SINGLE_REPO, its own experiment/v7 = v7-rc1's, whose K = 1
+    # kernels are byte-identical to this deployment's) and this deployment's chain at K = 1, both 2 in flight, STEPS
+    # steps with WARMUP of warmup, defrag off inside both windows (--no-defrag: the single bench's window is drain to
+    # drain, the chain's runs from the submission of frame warmup + 1, both then hold exactly STEPS - WARMUP steps), the
+    # order alternating (single first on odd pairs). Every run is an optional step; the ratio is computed afterwards.
+    local label=$1 case_name=$2 pairs=$3 steps=$4 warmup=$5 limit=$6
+    local yaml=cases/aligned/$case_name/case.yaml pin="" pair kind order measure=$((steps - warmup)) single_repo=${E8_SINGLE_REPO:-$HOME/run/vulkan-demo-v7single}
+    [ -n "${CPUL[0]:-}" ] && pin="taskset -c ${CPUL[0]} "
+    echo; echo "##### SINGLE_RATIO $label case=$case_name pairs=$pairs steps=$steps warmup=$warmup single_repo=$single_repo host=$(hostname) ($(date +%T))"
+    [ -d "$single_repo" ] || { echo "SINGLE_RATIO: no v7_single deployment at $single_repo (skipped)"; return 0; }
+    echo "single COMMIT: $(head -c 80 "$single_repo/COMMIT" 2>/dev/null)"
+    for pair in $(seq 1 "$pairs"); do
+        if [ $((pair % 2)) -eq 1 ]; then order="single chain"; else order="chain single"; fi
+        for kind in $order; do
+            if [ "$kind" = single ]; then
+                e7_index "${label}_p${pair}_single" single_ratio extra "$case_name" 1 "$pair" - - "$label"
+                e30_step "${label}_p${pair}_single" "$limit" --optional -- ${pin}$PY -u docs/cluster_v6/scripts/e8_single_bench.py \
+                    --repo "$single_repo" --obj-cache "$NODE_CACHE" -- --case "$yaml" --device 0 --warmup "$warmup" --measure "$measure" \
+                    --in-flight 2 --no-defrag --tag "${label}_p$pair"
+            else
+                e7_index "${label}_p${pair}_chain" single_ratio extra "$case_name" 1 "$pair" - - "$label"
+                E30_PREFIX=$(e7_raw_prefix "$pin" 1) E30_WRAPPER_ARGS=$(e7_raw_wrapper "${label}_p${pair}_chain") \
+                    e30_run "${label}_p${pair}_chain" "$limit" --optional -- --case "$yaml" --weights 1 --device-map 0 $COMMON \
+                    --max-steps "$steps" --warmup $((warmup + 1)) --no-defrag --no-seam-check
+            fi
+        done
+    done
+    [ "$E30_DRY" = 1 ] || grep -h "^RESULT \|\[bench_single\] fps" "$SHM/${label}"_p*_single.log 2>/dev/null | cut -c1-200
 }
 
 e7_job_end() {
