@@ -55,7 +55,13 @@ def main() -> int:
         runpy.run_path(str(bench), run_name="__main__")
     except SystemExit as exit_request:
         code = exit_request.code
-        return code if isinstance(code, int) else (0 if code is None else 1)
+        if code is None:
+            return 0
+        if isinstance(code, int):
+            return code
+        # a message (e.g. v7_single refusing an unknown V7_* variable): print it as python would, exit 1
+        print(f"[e8] v7_single bench exited: {code}", file=sys.stderr, flush=True)
+        return 1
     return 0
 
 

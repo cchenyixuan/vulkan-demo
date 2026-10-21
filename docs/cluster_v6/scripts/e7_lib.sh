@@ -956,7 +956,10 @@ e8_single_ratio() { # LABEL CASE PAIRS STEPS WARMUP TIMEOUT   (E8: fig:reference
         for kind in $order; do
             if [ "$kind" = single ]; then
                 e7_index "${label}_p${pair}_single" single_ratio extra "$case_name" 1 "$pair" - - "$label"
-                e30_step "${label}_p${pair}_single" "$limit" --optional -- ${pin}$PY -u docs/cluster_v6/scripts/e8_single_bench.py \
+                # v7_single refuses any V7_* variable it does not know (switches.py); the job exports V7_WORKER_AFFINITY for
+                # the chain's workers (job 1721839: every single half exited 1 on it) -> run the bench without the V7_* names
+                # it does not read
+                e30_step "${label}_p${pair}_single" "$limit" --optional -- ${pin}env $(env | grep -o '^V7_[A-Z_0-9]*' | grep -v -x 'V7_FUSED_CORRECTION_DENSITY\|V7_DENSITY_COPY_COMPUTE\|V7_DEEP_WALL_SKIP' | sed 's/^/-u /' | tr '\n' ' ') $PY -u docs/cluster_v6/scripts/e8_single_bench.py \
                     --repo "$single_repo" --obj-cache "$NODE_CACHE" -- --case "$yaml" --device 0 --warmup "$warmup" --measure "$measure" \
                     --in-flight 2 --no-defrag --tag "${label}_p$pair"
             else
