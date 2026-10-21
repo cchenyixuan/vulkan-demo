@@ -329,6 +329,14 @@ def draw_profiles(axis_u, axis_v, line: dict, reference: dict, ghia: dict, legen
     axis_v.set_ylabel(r"$v(x, 0.5)$", labelpad=1.0)
     for axis in (axis_u, axis_v):
         hide_top_right(axis)
+    # Ghia's wall points sit on the frame: the ones on the drawn bottom / left spines stay clipped to half a square,
+    # the ones on the hidden top (a) / right (b) edges are drawn in full (user 2026-10-21)
+    y_ghia, u_ghia = ghia["u"]
+    top = y_ghia >= axis_u.get_ylim()[1] - 1e-9
+    axis_u.plot(u_ghia[top], y_ghia[top], **{**ghia_style, "label": "_nolegend_", "clip_on": False})
+    x_ghia, v_ghia = ghia["v"]
+    right = x_ghia >= axis_v.get_xlim()[1] - 1e-9
+    axis_v.plot(x_ghia[right], v_ghia[right], **{**ghia_style, "label": "_nolegend_", "clip_on": False})
 
     # zooms: u_min (lower right of (a)), v_min (lower left of (b)); ticks inside the main axes, clear of its ticks
     inset_u = axis_u.inset_axes([0.63, 0.54, 0.33, 0.27])
