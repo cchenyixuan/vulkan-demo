@@ -11,7 +11,7 @@ failure), CPU only, no case files.
      prefix count is within half the straddled column of its target; every slab is within half a
      column at each of its cuts (one cut for an end slab, two for an interior slab).
   3  minimum width: extreme weights clamp the slabs to minimum_own_columns, cuts stay monotonic; a
-     grid too small raises.
+     grid too small raises; E8: the floor is 3 own columns (6 columns split in 2, 24 in 8).
   4  nearest_cut on hand-made prefixes: exact boundary, nearer side, tie, ends.
 
 Usage:
@@ -144,11 +144,19 @@ def test_minimum_width() -> None:
     clamped = chain_cuts_from_counts(counts, [1000.0, 1.0, 1.0], MINIMUM_OWN_COLUMNS_HARD)
     check(clamped == [200 - 2 * MINIMUM_OWN_COLUMNS_HARD, 200 - MINIMUM_OWN_COLUMNS_HARD],
           f"extreme weights should push the cuts to the right edge: {clamped}")
+    too_small = 2 * MINIMUM_OWN_COLUMNS_HARD - 1
     try:
-        chain_cuts_from_counts(np.ones(20, dtype=np.int64), [1.0, 1.0], MINIMUM_OWN_COLUMNS_HARD)
-        check(False, "a 20-column grid split in 2 with minimum 12 should raise")
+        chain_cuts_from_counts(np.ones(too_small, dtype=np.int64), [1.0, 1.0], MINIMUM_OWN_COLUMNS_HARD)
+        check(False, f"a {too_small}-column grid split in 2 with minimum {MINIMUM_OWN_COLUMNS_HARD} should raise")
     except ValueError:
         check(True, "")
+    # E8: the floor is 3 own columns; a 6-column grid splits in 2 and a 24-column grid in 8 (3-D 8M at K = 8 has 6
+    # fluid columns per card, the floor must not reject it)
+    check(chain_cuts_from_counts(np.ones(6, dtype=np.int64), [1.0, 1.0], MINIMUM_OWN_COLUMNS_HARD) == [3],
+          "a 6-column grid should split in 2 at the floor of 3")
+    cuts = chain_cuts_from_counts(np.ones(24, dtype=np.int64), [1.0] * 8, MINIMUM_OWN_COLUMNS_HARD)
+    check(cuts == [3, 6, 9, 12, 15, 18, 21], f"a 24-column grid should split in 8 slabs of 3: {cuts}")
+    check(MINIMUM_OWN_COLUMNS_HARD == 3, f"E8: the hard floor is 3, found {MINIMUM_OWN_COLUMNS_HARD}")
 
 
 def test_nearest_cut() -> None:

@@ -831,7 +831,12 @@ import sys as _sys
 from dataclasses import dataclass, field
 
 
-MINIMUM_OWN_COLUMNS_HARD = 12   # < 2 x force band (6 at the default V7_BAND_WIDTHS, 8 with 2,3,4) -> force deep-interior empty; 12 = margin
+# E8 (2026-10-22, user): the hard floor is the correctness floor, 3 own columns per slab = the force band (the
+# widest band, V7_BAND_WIDTHS c,d,f = 2,2,3): a slab narrower than one band would have a band kernel of one side
+# walk columns beyond its other seam. Below 2 x f = 6 own columns the two sides' bands overlap and phase B's
+# deep interior is empty (performance, not correctness; the 3-D cubes of E8 run 6-12 fluid columns per card at
+# K = 8). Was 12 (= 2 x f + margin) from E31 to v7-rc3.
+MINIMUM_OWN_COLUMNS_HARD = 3
 MINIMUM_OWN_COLUMNS_WARN = 20   # below this Phase B's hiding budget is thin
 
 
