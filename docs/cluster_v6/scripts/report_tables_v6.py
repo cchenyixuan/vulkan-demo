@@ -23,7 +23,7 @@ import sys
 
 def case_name(row: dict) -> str:
     for line in row.get("config_lines", []):
-        match = re.search(r"case cases/([^/]+)/case\.yaml", line)
+        match = re.search(r"case cases/(\S+?)/case\.yaml", line)        # E7: also cases/aligned/<name>
         if match:
             return match.group(1)
     return "?"
