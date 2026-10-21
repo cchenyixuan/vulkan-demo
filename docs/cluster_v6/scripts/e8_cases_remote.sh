@@ -9,7 +9,7 @@ SHA=${SHA:-$(cat "$HOME/run/tools/e8_sha.txt" 2>/dev/null | tr -d '[:space:]')}
 STORE=$HOME/run/vulkan-demo-v7rc1
 TARBALL=$HOME/run/tools/vd_e8_$SHA.tar.gz
 STAGE=/dev/shm/scxm138/e8_cases_$SHA
-E8_CASES="cavity3d_n152 cavity3d_n192 cavity3d_n244 cavity3d_n312 cavity3d_n392 cavity3d_n496 cavity3d_n192_k2 cavity3d_n192_k4 cavity3d_n192_k8 cavity3d_n48"
+E8_CASES="cavity3d_n152 cavity3d_n192 cavity3d_n244 cavity3d_n312 cavity3d_n392 cavity3d_n416 cavity3d_n496 cavity3d_n192_k2 cavity3d_n192_k4 cavity3d_n192_k8 cavity3d_n48"
 FAILS=0
 fail() { echo "FAIL: $*"; FAILS=$((FAILS + 1)); }
 [ -s "$TARBALL" ] || { echo "ABORT: no $TARBALL"; exit 1; }

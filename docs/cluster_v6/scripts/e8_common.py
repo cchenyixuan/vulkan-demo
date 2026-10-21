@@ -40,10 +40,10 @@ import e8_vram  # noqa: E402
 from experiment.v7.analysis import step_trace_model  # noqa: E402
 
 CASE_LABELS = {"cavity3d_n152": "4M (160^3)", "cavity3d_n192": "8M (200^3)", "cavity3d_n244": "16M (252^3)",
-               "cavity3d_n312": "32M (320^3)", "cavity3d_n392": "64M (400^3)", "cavity3d_n496": "128M (504^3)",
+               "cavity3d_n312": "32M (320^3)", "cavity3d_n392": "64M (400^3)", "cavity3d_n416": "76M (424^3)", "cavity3d_n496": "128M (504^3)",
                "cavity3d_n192_k2": "weak 2 x 8M",
                "cavity3d_n192_k4": "weak 4 x 8M", "cavity3d_n192_k8": "weak 8 x 8M", "cavity3d_n48": "56^3"}
-CUBES = ("cavity3d_n152", "cavity3d_n192", "cavity3d_n244", "cavity3d_n312", "cavity3d_n392", "cavity3d_n496")
+CUBES = ("cavity3d_n152", "cavity3d_n192", "cavity3d_n244", "cavity3d_n312", "cavity3d_n392", "cavity3d_n416", "cavity3d_n496")
 ROLE_K_RUN = ("equal", "calibrated")
 POINT_PATTERN = re.compile(r"^(?:[a-z]+_)?3d_n(\d+)(?:_k(\d+))?_K(\d+)$")
 NS_PER_MS = 1e6          # the traces' ticks are host-clock nanoseconds (step_trace_model: / 1e3 = us)

@@ -36,8 +36,8 @@ import e8_b_diag as diag  # noqa: E402
 import e8_kernel_table as kernel_table  # noqa: E402
 import e8_loss_sources as loss  # noqa: E402
 
-K8_ALL = ("3d_n152_K8", "3d_n192_K8", "3d_n244_K8", "3d_n312_K8", "3d_n392_K8", "3d_n496_K8")
-STANDIN = {"cavity3d_n244": "cavity3d_n152", "cavity3d_n192": "cavity3d_n152", "cavity3d_n152": "cavity3d_n152"}
+K8_ALL = ("3d_n152_K8", "3d_n192_K8", "3d_n244_K8", "3d_n312_K8", "3d_n392_K8", "3d_n416_K8", "3d_n496_K8")
+STANDIN = {"cavity3d_n244": "cavity3d_n152", "cavity3d_n192": "cavity3d_n152", "cavity3d_n152": "cavity3d_n152", "cavity3d_n416": "cavity3d_n192"}
 E7_PARTICLES = {"cavity2d_n1000": 1_044_484, "cavity2d_n1440": 2_137_444, "cavity2d_n2000": 4_088_484, "cavity2d_n2840": 8_191_044,
                 "cavity2d_n4000": 16_176_484, "cavity2d_n5640": 32_058_244, "cavity2d_n8000": 64_352_484}
 E7_SHORT = {"cavity2d_n1000": "2-D 1.04M", "cavity2d_n1440": "2-D 2.14M", "cavity2d_n2000": "2-D 4.09M", "cavity2d_n2840": "2-D 8.19M",

@@ -98,6 +98,8 @@ MATRIX2 = [
     # e8_C (user 2026-10-22): the 128M cube, K = 1 does not fit one card -> reference "pairs" = four simultaneous K = 2
     # pairs of the case (E7 2-D 128M), eta = fps_K / (4 x mean pair fps); one K = 2 pair traced (trace_k2)
     ("strong, load sweep", "cavity3d_n496", 8, "pairs", True, 3),
+    # e8_D (user 2026-10-22): the 76M cube, 104 fluid columns = 13 per card exactly (the integer-column partner of 64M K8)
+    ("strong, load sweep", "cavity3d_n416", 8, "cavity3d_n416", True, 3),
     ("strong, K sweep", "cavity3d_n392", 2, "cavity3d_n392", True, 3),
     ("strong, K sweep", "cavity3d_n392", 4, "cavity3d_n392", True, 3),
     ("weak", "cavity3d_n192_k2", 2, "cavity3d_n192", True, 3),
@@ -114,6 +116,7 @@ SEQUENCE2 = {
           ("single_ratio", "cavity3d_n192", 3)],
     "A": [("point", "cavity3d_n392", 2), ("point", "cavity3d_n392", 4), ("point", "cavity3d_n192_k2", 2), ("point", "cavity3d_n192_k4", 4)],
     "C": [("point", "cavity3d_n496", 8), ("trace_k2", "cavity3d_n496")],
+    "D": [("point", "cavity3d_n416", 8), ("trace_k1", "cavity3d_n416")],
 }
 PHASE1 = [
     # (label, case, K, steps, warmup, seam check, trace, kind)
@@ -256,11 +259,11 @@ def point_estimate(model: Model, group: str, case: str, slabs: int, reference: s
 def phase2_lines(model: Model) -> tuple[list[str], dict]:
     """The phase-2 budget: every item of both lines in the job order (SEQUENCE2), with its estimate."""
     by_key = {(case, slabs): (group, reference, traced, trials) for group, case, slabs, reference, traced, trials in MATRIX2}
-    lines = ["## Phase 2 (jobs e8_A / e8_B / e8_C, the items in the job order)", "",
+    lines = ["## Phase 2 (jobs e8_A / e8_B / e8_C / e8_D, the items in the job order)", "",
              "| line | item | case | K | trials | estimate | note |", "|---|---|---|---|---|---|---|"]
-    totals = {line: SETUP["job_overhead"] for line in ("A", "B", "C")}
-    records = {"A": [], "B": [], "C": []}
-    for line in ("B", "A", "C"):
+    totals = {line: SETUP["job_overhead"] for line in ("A", "B", "C", "D")}
+    records = {"A": [], "B": [], "C": [], "D": []}
+    for line in ("B", "A", "C", "D"):
         for spec in SEQUENCE2[line]:
             kind = spec[0]
             case = spec[1]
@@ -300,9 +303,9 @@ def phase2_lines(model: Model) -> tuple[list[str], dict]:
             lines.append(f"| {line} | {kind} | {case} | {spec[2] if len(spec) > 2 and isinstance(spec[2], int) and kind != 'single_ratio' else ('1' if kind in ('trace_k1', 'single_ratio') else ('2' if kind == 'trace_k2' else '-'))} | "
                          f"{by_key[(case, spec[2])][3] if kind == 'point' else '-'} | **{seconds_text(seconds)}** | {note} |")
     lines += ["", f"Job overhead {SETUP['job_overhead']:.0f} s per job. **"
-              + ", ".join(f"line {line} {totals[line] / 3600:.2f} h" for line in ("A", "B", "C"))
+              + ", ".join(f"line {line} {totals[line] / 3600:.2f} h" for line in ("A", "B", "C", "D"))
               + f", total {sum(totals.values()) / 3600:.2f} node-h**; time limits (2 x + 1 h, rounded up): "
-              + ", ".join(f"{line} {math.ceil(2 * totals[line] / 3600 + 1)} h" for line in ("A", "B", "C")) + "."]
+              + ", ".join(f"{line} {math.ceil(2 * totals[line] / 3600 + 1)} h" for line in ("A", "B", "C", "D")) + "."]
     return lines, {"totals_hours": {line: value / 3600 for line, value in totals.items()}, "items": records}
 
 

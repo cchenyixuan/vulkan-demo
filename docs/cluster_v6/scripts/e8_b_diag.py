@@ -42,13 +42,14 @@ import e8_kernel_table as kernel_table  # noqa: E402
 
 WINDOW = (500, 1500)                    # the timed window: steps 500 .. 1499
 HALVES = ((500, 1000), (1000, 1500))
-CUBES = ("cavity3d_n152", "cavity3d_n192", "cavity3d_n244", "cavity3d_n312", "cavity3d_n392", "cavity3d_n496")
+CUBES = ("cavity3d_n152", "cavity3d_n192", "cavity3d_n244", "cavity3d_n312", "cavity3d_n392", "cavity3d_n416", "cavity3d_n496")
 SHORT = {"cavity3d_n152": "4M", "cavity3d_n192": "8M", "cavity3d_n244": "16M", "cavity3d_n312": "32M", "cavity3d_n392": "64M",
-         "cavity3d_n496": "128M", "cavity3d_n192_k8": "weak 8 x 8M"}
+         "cavity3d_n416": "76M", "cavity3d_n496": "128M", "cavity3d_n192_k8": "weak 8 x 8M"}
 # eta': the cube whose whole size is the K = 8 point's per-card size
 PER_CARD_CUBE = {"cavity3d_n392": "cavity3d_n192", "cavity3d_n312": "cavity3d_n152", "cavity3d_n244": "2M（没有算例）",
-                 "cavity3d_n192": "1M（没有算例）", "cavity3d_n152": "0.5M（没有算例）", "cavity3d_n496": "cavity3d_n244"}
-K8_POINTS = ("3d_n244_K8", "3d_n312_K8", "3d_n392_K8", "3d_n496_K8")
+                 "cavity3d_n192": "1M（没有算例）", "cavity3d_n152": "0.5M（没有算例）", "cavity3d_n496": "cavity3d_n244",
+                 "cavity3d_n416": "9.5M（没有算例）"}
+K8_POINTS = ("3d_n244_K8", "3d_n312_K8", "3d_n392_K8", "3d_n416_K8", "3d_n496_K8")
 
 
 # ---------------------------------------------------------------- loop traces (per-step wall periods)
