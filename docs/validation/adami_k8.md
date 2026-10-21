@@ -84,6 +84,7 @@ K = 8 作业:2026-10-20T21:50:11 CST 提交,排队 10 h 23 min (PENDING Resource
 ## 文件
 
 - 图:`docs/validation/figures/adami_k8_fig1_k8.pdf`(.png)、`adami_k8_fig2_differences.pdf`(.png)
+- 论文 6.2 的两张图(2026-10-21 拆分,`experiment/validation/cavity_re1000_figure.py`,所有时间平均取共同窗口 t = 89.505–99.8325):`docs/validation/figures/cavity_re1000.pdf`((a)(b) K = 1 中心线对 Marchi 2021 / Ghia 1982,(c) K = 8 时间平均 |v|/U + 流线 + 7 条接缝;旧的三面板版本另存为 `cavity_re1000_v1.pdf`)、`cavity_seams.pdf`((a) 56 点上的 (K = 2 − K = 1)/σ 与 (K = 8 − K = 1)/σ,(b) K = 8 − K = 1 在 7 条接缝条带上的 rms |Δv| 随到最近接缝距离(h)的变化,6 条对照条带的最小–最大为灰带;数据来自 `adami_k8_point_differences.csv` / `adami_k8_strip_bins.csv`,接缝两侧按点数合并);K = 1 的中心线数据 `data/dense_n1000_k1_float32_xi0p001_eps0p0025_adami_common_window.csv`
 - 数据:`docs/validation/data/adami_k8_summary.csv`、`adami_k8_point_differences.csv`、`adami_k8_seams.csv`、`adami_k8_strips.csv`、`adami_k8_strip_bins.csv`、`adami_k8_invariants.csv`、`profile_n1000_k8_float32_xi0p001_eps0p0025_adami.csv`、`adami_k8_report.json`
 - 运行目录(不入库):`C:\Users\cchen\PycharmProjects\vulkan-demo-v7-rc3\logs\validation\cavity_re1000_v7\n1000_k8_float32_xi0p001_eps0p0025_adami`(集群归档 `~/run/logs/cavity_k8_1719093`,本地镜像 `logs/n56/2026-10-20/02_cav_k8_1719093`)
 - 生成:`.venv/Scripts/python.exe -m experiment.validation.adami_k8_report`
