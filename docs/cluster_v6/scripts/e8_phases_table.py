@@ -1,6 +1,7 @@
 """
 e8_phases_table.py — E8 phase 2, deliverable 3: the paper's tab:phases from the step traces, one row block per trace
-point, with the ideal-chain row computed from the K = 1 trace of the same cube.
+point, with the ideal-chain row computed from the K = 1 trace of the same cube (or, where K = 1 does not fit one card,
+from the K = 2 pair trace of the cube: e8_C 128M).
 
 Rules (e7_phases_table.py's): steady steps = the trace's steps >= warmup whose next step is present, minus the defrag
 step (the defrag event at frame f sits in the period of step f - 1; the events come from the traced run's results row,
@@ -9,7 +10,10 @@ GPU ticks on the host clock; per card the median over its kept steps, then the m
 the step mean two ways: "window" = (sum of the steady periods - the in-window defrag wall time) / steady steps (the
 fps-without-defrag convention), "skip" = the mean of the kept steps. The ideal-chain row: the K = 1 trace of the point's
 cube, its phases and period divided by K for a strong point (the reference runs the whole case), not divided for a
-weak point (the per-card cube), its K = 1 fps. Ratio = ideal step mean / chain step mean (window - defrag means).
+weak point (the per-card cube), its K = 1 fps. A cube without a K = 1 trace but with a K = 2 pair trace
+(trace_3d_n<n>_K2, cards 0-1, equal weights = a reference pair): the ideal-chain row = the pair trace's phases and
+period divided by K / 2 (the pair runs the whole case on two cards; a quarter at K = 8), ideal_kind k2_pair; only for
+K > 2 (at K = 2 the pair is the point itself). Ratio = ideal step mean / chain step mean (window - defrag means).
 
 Usage:
     python docs/cluster_v6/scripts/e8_phases_table.py --job DIR [--job DIR ...] --out-dir OUT
@@ -93,13 +97,16 @@ def main() -> int:
     arguments = parser.parse_args()
     out = pathlib.Path(arguments.out_dir)
     jobs = [common.load_job(directory) for directory in arguments.job]
-    # the K = 1 traces by case (trace_3d_n<n>_K1 in any job)
-    k1 = {}
+    # the K = 1 traces by case (trace_3d_n<n>_K1 in any job) and the K = 2 pair traces (trace_3d_n<n>_K2, e8_C)
+    k1, k2 = {}, {}
     for job in jobs:
         for name, path in job["traces"].items():
             if name.startswith("trace_") and name.endswith("_K1"):
                 case = f"cavity{name[len('trace_'):-len('_K1')]}"
                 k1[case] = (path, job["rows"].get(name))
+            elif name.startswith("trace_") and name.endswith("_K2"):
+                case = f"cavity{name[len('trace_'):-len('_K2')]}"
+                k2[case] = (path, job["rows"].get(name))
     blocks, results, rows_csv = [], [], []
     for job in jobs:
         for name, point in sorted(common.points_of(job).items(), key=lambda item: (item[1]["slabs"], item[1]["case"])):
@@ -115,17 +122,21 @@ def main() -> int:
             except Exception as error:                                   # noqa: BLE001
                 blocks.append(f"**{name}**: chain trace failed: {error!r}")
                 continue
-            ideal = None
+            ideal, ideal_kind, ideal_divide, ideal_source = None, None, None, None
             if ideal_case in k1:
+                ideal_kind, ideal_divide, ideal_source = "k1", (1 if weak else slabs), k1[ideal_case]
+            elif ideal_case in k2 and not weak and slabs > 2:            # e8_C: a quarter of the pair's phases at K = 8
+                ideal_kind, ideal_divide, ideal_source = "k2_pair", slabs // 2, k2[ideal_case]
+            if ideal_source is not None:
                 try:
-                    ideal = analyze_trace(k1[ideal_case][0], k1[ideal_case][1], divide=1 if weak else slabs)
+                    ideal = analyze_trace(ideal_source[0], ideal_source[1], divide=ideal_divide)
                 except Exception as error:                               # noqa: BLE001
                     ideal = {"error": repr(error)}
             ratio = None
             if ideal and ideal.get("aggregate") and ideal["aggregate"].get("step_mean_window") and chain["aggregate"].get("step_mean_window"):
                 ratio = ideal["aggregate"]["step_mean_window"] / chain["aggregate"]["step_mean_window"]
             results.append({"point": name, "job": job["name"], "case": case, "K": slabs, "kind": "weak" if weak else "strong",
-                            "ideal_case": ideal_case, "chain": chain, "ideal": ideal, "ratio_ideal_over_chain": ratio})
+                            "ideal_case": ideal_case, "ideal_kind": ideal_kind, "chain": chain, "ideal": ideal, "ratio_ideal_over_chain": ratio})
             agg = chain["aggregate"]
             lines = [f"**{name}** — {common.CASE_LABELS.get(case, case)} K = {slabs} ({job['name']}; chain trace fps {common.fmt(chain['fps_nodefrag'], 2)} "
                      f"without defrag, {len(agg['defrag_events'])} defrag event(s) in the window)", "",
@@ -135,14 +146,17 @@ def main() -> int:
                      f"{ms(agg['period'])} | {common.fmt(agg['step_mean_window'])} | {common.fmt(agg['step_mean_skip'])} |"]
             if ideal and ideal.get("aggregate"):
                 iagg = ideal["aggregate"]
-                label = f"ideal chain = K = 1 trace of {common.short_case(ideal_case)}" + (f" ÷ {slabs}" if not weak else " (per-card cube, not divided)")
+                if ideal_kind == "k2_pair":
+                    label = f"ideal chain = K = 2 pair trace of {common.short_case(ideal_case)} ÷ {ideal_divide}"
+                else:
+                    label = f"ideal chain = K = 1 trace of {common.short_case(ideal_case)}" + (f" ÷ {slabs}" if not weak else " (per-card cube, not divided)")
                 lines.append(f"| {label} | {ms(iagg['a'])} | {ms(iagg['b'])} | {ms(iagg['c'])} | {ms(iagg['period'])} | "
                              f"{common.fmt(iagg['step_mean_window'])} | {common.fmt(iagg['step_mean_skip'])} |")
                 lines.append(f"| ratio ideal / chain (window − defrag means) | | | | | **{common.fmt(ratio, 4)}** | |")
             elif ideal and ideal.get("error"):
                 lines.append(f"| ideal chain | failed: {ideal['error']} | | | | | |")
             else:
-                lines.append("| ideal chain | no K = 1 trace of the cube | | | | | |")
+                lines.append("| ideal chain | no K = 1 (or K = 2 pair) trace of the cube | | | | | |")
             lines += ["", "per card (sim: device): T_A / T_B / T_C / period medians (ms): "
                       + "; ".join(f"{s['sim']}: {common.fmt(s['a_p50_ms'])} / {common.fmt(s['b_p50_ms'])} / {common.fmt(s['c_p50_ms'])} / {common.fmt(s['period_p50_ms'])}"
                                   for s in chain["per_sim"])]
@@ -150,16 +164,16 @@ def main() -> int:
             for side, data in (("chain", chain), ("ideal", ideal)):
                 if data and data.get("aggregate"):
                     a = data["aggregate"]
-                    rows_csv.append([name, job["name"], case, slabs, side, a["divide"], (a["a"] or {}).get("mean"), (a["b"] or {}).get("mean"),
-                                     (a["c"] or {}).get("mean"), (a["period"] or {}).get("mean"), a["step_mean_window"], a["step_mean_skip"],
-                                     data.get("fps_nodefrag"), ratio if side == "ideal" else None])
+                    rows_csv.append([name, job["name"], case, slabs, side, ideal_kind if side == "ideal" else "", a["divide"], (a["a"] or {}).get("mean"),
+                                     (a["b"] or {}).get("mean"), (a["c"] or {}).get("mean"), (a["period"] or {}).get("mean"), a["step_mean_window"],
+                                     a["step_mean_skip"], data.get("fps_nodefrag"), ratio if side == "ideal" else None])
     text = "\n\n".join(blocks)
     print(text[:4000])
     common.write_text(out / "phases_table.md", "## tab:phases (E8 phase 2)\n\n" + text)
     common.write_json(out / "phases_table.json", results)
     with (out / "phases_table.csv").open("w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle)
-        writer.writerow(["point", "job", "case", "K", "side", "divide", "T_A_ms", "T_B_ms", "T_C_ms", "period_ms", "step_mean_window_ms",
+        writer.writerow(["point", "job", "case", "K", "side", "ideal_kind", "divide", "T_A_ms", "T_B_ms", "T_C_ms", "period_ms", "step_mean_window_ms",
                          "step_mean_skip_ms", "fps_nodefrag", "ratio_ideal_over_chain"])
         writer.writerows(rows_csv)
     print(f"[e8_phases_table] {len(results)} points -> {out}")

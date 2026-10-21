@@ -2,7 +2,8 @@
 e8_scaling_figures.py — E8 phase 2, deliverable 2: the scaling figures from e8_p2_tables' tables.json, vector PDF (+ PNG)
 in the style of e7_scaling_figures.py (Times 8 pt, ticks in, no top / right spines, elsarticle text width 384 pt).
 
-  strong_scaling.pdf  (a) eta against particles per device (log axis) for the K = 8 strong points (4M .. 64M);
+  strong_scaling.pdf  (a) eta against particles per device (log axis) for the K = 8 strong points (4M .. 128M; the
+                      128M point, whose references are K = 2 pairs, is drawn with an open diamond on top of the series);
                       (b) eta against K for the 64M cube at K = 2 / 4 / 8.
   weak_scaling.pdf    eta against K for the weak boxes (8M per device, K = 2 / 4 / 8), drawn 0.6 text width wide.
 
@@ -21,6 +22,7 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import e7_full_summary as summary  # noqa: E402
 import e7_scaling_figures as style  # noqa: E402
 
 COLOR_MAIN, COLOR_RED, TEXT_WIDTH, FONT_SIZE = style.COLOR_MAIN, style.COLOR_RED, style.TEXT_WIDTH, style.FONT_SIZE
@@ -33,6 +35,7 @@ def rows_of(tables: dict, eta_key: str) -> list:
         if not stats.get("n"):
             continue
         rows.append({"point": point["point"], "case": point["case"], "K": point["K"], "kind": point["kind"], "job": point["job"],
+                     "reference_kind": point.get("reference_kind") or ("weak" if point["kind"] == "weak" else "k1"),
                      "per_gpu": point["per_card"], "particles": point["particles"], "trials": stats["n"], "eta": stats["mean"],
                      "eta_min": stats["min"], "eta_max": stats["max"]})
     return rows
@@ -70,6 +73,12 @@ def strong_figure(rows: list, out: pathlib.Path) -> list:
         total_axis.xaxis.set_minor_formatter(NullFormatter())
         total_axis.set_xlabel("total particles (M)", labelpad=2.5)
         total_axis.tick_params(which="both", direction="in", labelsize=FONT_SIZE - 0.5)
+        pairs = [row for row in k8 if row.get("reference_kind") == "pairs"]       # e8_C: K = 2 pair references
+        if pairs:
+            axis_n.plot([row["per_gpu_M"] for row in pairs], [row["eta"] for row in pairs], linestyle="none",
+                        marker=summary.FIGURE_REFERENCE_MARKERS.get("pairs", "D"), ms=4.4, mfc="white", mec=COLOR_MAIN, mew=0.9,
+                        label="K = 2 pair reference", zorder=4)
+            axis_n.legend(loc="lower right", frameon=False, handlelength=1.2, borderaxespad=0.2, fontsize=FONT_SIZE - 0.5)
     low = min([row["eta_min"] for row in k8 + sweep] + [0.98]) - 0.03
     axis_n.set_ylim(max(0.0, low), 1.06)
     axis_n.yaxis.set_major_locator(MultipleLocator(0.1 if low < 0.8 else 0.02))
@@ -131,10 +140,10 @@ def main() -> int:
     plotted = strong_figure(rows, out) + weak_figure(rows, out)
     with (out / "scaling_figures.csv").open("w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle)
-        writer.writerow(["figure", "panel", "point", "case", "K", "kind", "job", "per_gpu", "particles", "trials", "eta", "eta_min", "eta_max"])
+        writer.writerow(["figure", "panel", "point", "case", "K", "kind", "reference_kind", "job", "per_gpu", "particles", "trials", "eta", "eta_min", "eta_max"])
         for row in plotted:
-            writer.writerow([row["figure"], row["panel"], row["point"], row["case"], row["K"], row["kind"], row["job"], row["per_gpu"],
-                             row["particles"], row["trials"], row["eta"], row["eta_min"], row["eta_max"]])
+            writer.writerow([row["figure"], row["panel"], row["point"], row["case"], row["K"], row["kind"], row.get("reference_kind"), row["job"],
+                             row["per_gpu"], row["particles"], row["trials"], row["eta"], row["eta_min"], row["eta_max"]])
     print(f"[e8_scaling_figures] {len(plotted)} plotted rows -> {out}")
     return 0
 

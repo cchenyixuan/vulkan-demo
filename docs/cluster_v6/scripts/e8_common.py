@@ -4,8 +4,11 @@ e8_hops, e8_bytes_check, e8_kernel_table, e8_correctness_tables, e8_single_ratio
 
 A pulled job directory has the e30 layout (results.jsonl, index.tsv, <label>.log, traces/<name>/, raw/<label>/,
 weights/<point>.json + .partition.json, compare/, dumps/). Labels of the E8 jobs (e7_lib.sh, e7_plan.py revision 11):
-points 3d_n<n>_K<K>, their K runs <point>_t<t>_C, references <point>_t<t>_R1_3d_n<n>_g<i>, traced run <point>_trace_C
-(trace dir traces/<point>_C, raw dir raw/<point>_trace_C), K = 1 traces trace_3d_n<n>_K1 (trace dir traces/<label>),
+points 3d_n<n>_K<K>, their K runs <point>_t<t>_C, references <point>_t<t>_R1_3d_n<n>_g<i> (K = 1 on card i) or, for
+a point whose K = 1 does not fit one card (e8_C: the 128M cube, revision 12), <point>_t<t>_RP_3d_n<n>_p<i> (K = 2
+pairs on cards 2i, 2i+1; eta = fps_K / ((K / 2) x mean pair fps)), traced run <point>_trace_C (trace dir
+traces/<point>_C, raw dir raw/<point>_trace_C), K = 1 traces trace_3d_n<n>_K1 and K = 2 pair traces trace_3d_n<n>_K2
+(trace dir traces/<label>; the ideal-chain rows of tab:phases),
 dumps dump_3d_n<n>_K1a / K1b / K8, comparisons compare_3d_n<n>_K8, the v7_single pairs single_3d_n<n>_p<i>_{single,chain}.
 """
 from __future__ import annotations
@@ -18,6 +21,14 @@ import sys
 
 import numpy as np
 
+# the tools print their markdown (en dashes, minus signs) to a console whose encoding may be a Windows code page
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (ValueError, OSError):
+            pass
+
 HERE = pathlib.Path(__file__).resolve()
 SCRIPTS = HERE.parent
 REPO = HERE.parents[3]
@@ -29,9 +40,10 @@ import e8_vram  # noqa: E402
 from experiment.v7.analysis import step_trace_model  # noqa: E402
 
 CASE_LABELS = {"cavity3d_n152": "4M (160^3)", "cavity3d_n192": "8M (200^3)", "cavity3d_n244": "16M (252^3)",
-               "cavity3d_n312": "32M (320^3)", "cavity3d_n392": "64M (400^3)", "cavity3d_n192_k2": "weak 2 x 8M",
+               "cavity3d_n312": "32M (320^3)", "cavity3d_n392": "64M (400^3)", "cavity3d_n496": "128M (504^3)",
+               "cavity3d_n192_k2": "weak 2 x 8M",
                "cavity3d_n192_k4": "weak 4 x 8M", "cavity3d_n192_k8": "weak 8 x 8M", "cavity3d_n48": "56^3"}
-CUBES = ("cavity3d_n152", "cavity3d_n192", "cavity3d_n244", "cavity3d_n312", "cavity3d_n392")
+CUBES = ("cavity3d_n152", "cavity3d_n192", "cavity3d_n244", "cavity3d_n312", "cavity3d_n392", "cavity3d_n496")
 ROLE_K_RUN = ("equal", "calibrated")
 POINT_PATTERN = re.compile(r"^(?:[a-z]+_)?3d_n(\d+)(?:_k(\d+))?_K(\d+)$")
 NS_PER_MS = 1e6          # the traces' ticks are host-clock nanoseconds (step_trace_model: / 1e3 = us)
@@ -107,6 +119,32 @@ def card_of(row: dict, label: str = ""):
         return int(row["device_map"][0])
     match = re.search(r"_g(\d+)$", label or "")
     return int(match.group(1)) if match else None
+
+
+def cards_of(row: dict, label: str = "") -> list:
+    """The physical cards of a reference member: its device map (a K = 1 member one card, a K = 2 pair two), else from
+    the label suffix _g<i> -> [i] or _p<i> -> [2i, 2i+1] (e7_group: pair i runs on GPUs 2i, 2i+1)."""
+    if row and row.get("device_map"):
+        return [int(card) for card in row["device_map"]]
+    match = re.search(r"_([gp])(\d+)$", label or "")
+    if not match:
+        return []
+    index = int(match.group(2))
+    return [index] if match.group(1) == "g" else [2 * index, 2 * index + 1]
+
+
+def member_name(label: str) -> str:
+    """g<i> (a K = 1 reference on card i) or p<i> (K = 2 reference pair i) from a reference member's label."""
+    match = re.search(r"_([gp]\d+)$", label or "")
+    return match.group(1) if match else (label or "")
+
+
+def member_sort_key(name: str) -> tuple:
+    """Sort key of a member name: g0..g7 before p0..p3, numerically."""
+    match = re.fullmatch(r"([gp])(\d+)", str(name))
+    if match:
+        return (0 if match.group(1) == "g" else 1, int(match.group(2)))
+    return (2, str(name))
 
 
 def fps_pair(row: dict) -> tuple:

@@ -4,8 +4,10 @@ e8_p2_tables.py — E8 phase 2, deliverable 1: the per-point tables of the two j
 Per point (3d_n<n>_K<K>, arm C):
   - every trial: steps / s of the K run (with the defrag events, and without them = the harness's steady_fps_nodefrag),
     the K = 1 reference of every participating card (tau_k, both conventions), eta = fps_K / (K x mean_k tau_k)
-    (strong; weak: fps_K / mean_k tau_k of the per-card case) without the defrag events (the main value) and with
-    them, eta_min against the slowest card; then mean / min / max over the trials and the std;
+    (strong; weak: fps_K / mean_k tau_k of the per-card case; pairs = a strong point whose references are K = 2
+    pairs of the case (e8_C 128M, labels _RP_..._p<i>): eta = fps_K / ((K / 2) x mean_i fps_pair_i), i.e. the
+    harmonic mean of the pairs' step times over K / 2 chain steps) without the defrag events (the main value) and
+    with them, eta_min against the slowest card (pair); then mean / min / max over the trials and the std;
   - the traced run: per card (sim) the step period median and busy (A + B + C) median from the trace, the fps of the
     traced run;
   - the calibration: both pilot rounds' omega, busy per device and cuts (weights/<point>.json), the final weights,
@@ -78,18 +80,27 @@ def analyze_point(job: dict, name: str, point: dict) -> dict:
             if group.get("skipped"):
                 entry["references"].append({"group": group_name, "skipped": True})
                 continue
+            pairs = bool(group.get("pairs"))          # K = 2 pairs of the case (labels _p<i>): e8_C
             members = []
             for member in group.get("members", []):
                 m_row = member["row"]
                 m_fps, m_nodefrag = common.fps_pair(m_row)
-                card = common.card_of(m_row, member["label"])
-                members.append({"label": member["label"], "card": card, "status": (m_row or {}).get("status"),
-                                "fps": m_fps, "fps_nodefrag": m_nodefrag,
-                                "ns_per_particle": (1e9 / m_fps / common.particles_of(group["case"])) if m_fps and group["case"] in common.CASE_LABELS else None,
-                                "clock": common.card_clock(m_row, card) if card is not None else {}})
+                cards = common.cards_of(m_row, member["label"])
+                card = cards[0] if cards else None
+                per_process = common.particles_of(group["case"]) if group["case"] in common.CASE_LABELS else None
+                per_card_particles = (per_process / (2 if pairs else 1)) if per_process else None     # a pair: per card
+                members.append({"label": member["label"], "name": common.member_name(member["label"]), "card": card, "cards": cards,
+                                "status": (m_row or {}).get("status"), "fps": m_fps, "fps_nodefrag": m_nodefrag,
+                                "ns_per_particle": (1e9 / m_fps / per_card_particles) if m_fps and per_card_particles else None,
+                                "clock": common.card_clock(m_row, card) if card is not None else {},
+                                "clocks": {str(c): common.card_clock(m_row, c) for c in cards}})
             passing = [m for m in members if m["status"] in ("pass", "threshold_only")]
-            factor = 1 if group["case"] != case else slabs
-            kind = "weak" if group["case"] != case else "strong"
+            if pairs:
+                factor, kind = slabs / 2, "pairs"
+            elif group["case"] != case:
+                factor, kind = 1, "weak"
+            else:
+                factor, kind = slabs, "strong"
             reference = {"group": group_name, "case": group["case"], "kind": kind, "members": members,
                          "complete": len(passing) == len(members) and bool(members)}
             values = [m["fps"] for m in passing if m["fps"]]
@@ -109,14 +120,16 @@ def analyze_point(job: dict, name: str, point: dict) -> dict:
         stats[key] = common.describe(values)
     stats["fps"] = common.describe([trial["fps"] for trial in trials])
     stats["fps_nodefrag"] = common.describe([trial["fps_nodefrag"] for trial in trials])
-    # per card tau over the trials (nodefrag)
+    # per card (per pair) tau over the trials (nodefrag), keyed by the member name g<i> / p<i>
     tau = {}
     for trial in trials:
         for reference in trial["references"]:
             for member in reference.get("members", []):
                 if member["card"] is not None and member["fps_nodefrag"]:
-                    tau.setdefault(str(member["card"]), []).append(member["fps_nodefrag"])
-    tau_stats = {card: common.describe(values) for card, values in sorted(tau.items(), key=lambda item: int(item[0]))}
+                    tau.setdefault(member["name"], []).append(member["fps_nodefrag"])
+    tau_stats = {name: common.describe(values) for name, values in sorted(tau.items(), key=lambda item: common.member_sort_key(item[0]))}
+    reference_kinds = {reference["kind"] for trial in trials for reference in trial["references"] if reference.get("kind")}
+    reference_kind = "pairs" if "pairs" in reference_kinds else ("weak" if weak else "k1")
     trace = None
     if point.get("trace_dir"):
         try:
@@ -140,13 +153,14 @@ def analyze_point(job: dict, name: str, point: dict) -> dict:
                 clocks.setdefault(card, {"k": [], "reference": []})["k"].append(value["sm_clock_median"])
         for reference in trial["references"]:
             for member in reference.get("members", []):
-                if member.get("clock", {}).get("sm_clock_median") is not None and member["card"] is not None:
-                    clocks.setdefault(str(member["card"]), {"k": [], "reference": []})["reference"].append(member["clock"]["sm_clock_median"])
+                for card, clock in (member.get("clocks") or {}).items():        # both cards of a pair
+                    if clock.get("sm_clock_median") is not None:
+                        clocks.setdefault(str(card), {"k": [], "reference": []})["reference"].append(clock["sm_clock_median"])
     clock_rows = {card: {"k_sm_clock": statistics.fmean(v["k"]) if v["k"] else None,
                          "reference_sm_clock": statistics.fmean(v["reference"]) if v["reference"] else None}
                   for card, v in sorted(clocks.items(), key=lambda item: int(item[0]))}
     return {"point": name, "job": job["name"], "host": point.get("host"), "line": point.get("line"), "case": case,
-            "K": slabs, "kind": "weak" if weak else "strong", "particles": particles,
+            "K": slabs, "kind": "weak" if weak else "strong", "reference_kind": reference_kind, "particles": particles,
             "per_card": particles / slabs if particles else None, "trials": trials, "trial_count": len(trials),
             "stats": stats, "tau_per_card": tau_stats, "trace": trace, "trace_label": (point["traces"].get("C") or {}).get("label"),
             "trace_fps": trace_fps[0], "trace_fps_nodefrag": trace_fps[1], "calibration_rounds": rounds,
@@ -174,15 +188,26 @@ def index_rows(job: dict) -> list:
     return rows
 
 
+def member_cell(member: dict) -> str:
+    """g<i>: fps for a K = 1 member, p<i> (cards a,b): fps for a K = 2 pair."""
+    name = member.get("name") or f"g{member.get('card')}"
+    cards = member.get("cards") or []
+    where = f" (cards {','.join(str(c) for c in cards)})" if len(cards) > 1 else ""
+    return f"{name}{where}: {common.fmt(member.get('fps_nodefrag'), 2)}"
+
+
 def markdown(points: list, index: list, failed: dict) -> str:
-    lines = ["## E8 phase 2 — points (arm C; eta without the defrag events, mean (min–max) over the trials)", "",
-             "| point | job | case | K | per card | trials | fps K (nodefrag) | fps K (with) | eta | eta_min | eta (with defrag) | "
-             "tau_k per card (nodefrag fps) | ns / particle-step | trace fps | failed |", "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    lines = ["## E8 phase 2 — points (arm C; eta without the defrag events, mean (min–max) over the trials; reference K = 1 of the case, "
+             "or K = 2 pairs of the case where K = 1 does not fit one card: eta = fps_K / ((K / 2) x mean pair fps), or K = 1 of the per-card cube (weak))", "",
+             "| point | job | case | K | reference | per card | trials | fps K (nodefrag) | fps K (with) | eta | eta_min | eta (with defrag) | "
+             "tau_k per card / pair (nodefrag fps) | ns / particle-step | trace fps | failed |", "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    reference_text = {"k1": "K = 1 of the case", "pairs": "K = 2 pairs of the case", "weak": "K = 1 of the per-card cube"}
     for point in sorted(points, key=lambda p: (p["kind"], p["K"], p["particles"] or 0)):
         s = point["stats"]
-        tau = "; ".join(f"g{card}: {common.rng(stats, 2)}" for card, stats in point["tau_per_card"].items())
+        tau = "; ".join(f"{name}: {common.rng(stats, 2)}" for name, stats in point["tau_per_card"].items())
         ns = common.describe([t["ns_per_particle_nodefrag"] for t in point["trials"]])
         lines.append(f"| {point['point']} | {point['job']} | {common.CASE_LABELS.get(point['case'], point['case'])} | {point['K']} | "
+                     f"{reference_text.get(point.get('reference_kind'), point.get('reference_kind') or '-')} | "
                      f"{(point['per_card'] or 0) / 1e6:.2f}M | {point['trial_count']} | {common.rng(s['fps_nodefrag'], 2)} | {common.rng(s['fps'], 2)} | "
                      f"**{common.rng(s['eta'])}** | {common.rng(s['eta_min'])} | {common.rng(s['eta_with'])} | {tau} | {common.rng(ns, 2)} | "
                      f"{common.fmt(point['trace_fps_nodefrag'], 2)} | {'yes' if point['failed'] else ''} |")
@@ -191,7 +216,7 @@ def markdown(points: list, index: list, failed: dict) -> str:
     for point in points:
         for trial in point["trials"]:
             for reference in trial["references"]:
-                members = ", ".join(f"g{m['card']}: {common.fmt(m['fps_nodefrag'], 2)}" for m in reference.get("members", []))
+                members = ", ".join(member_cell(m) for m in reference.get("members", []))
                 lines.append(f"| {point['point']} | {trial['trial']} | {trial['label']} | {trial['status']} | {common.fmt(trial['fps'], 2)} | "
                              f"{common.fmt(trial['fps_nodefrag'], 2)} | {reference['group']} ({reference.get('kind', '')}) | {members} | "
                              f"{common.fmt(reference.get('eta'))} | {common.fmt(reference.get('eta_min'))} | {common.fmt(reference.get('eta_with'))} |")
@@ -246,13 +271,14 @@ def main() -> int:
         writer.writerows(index)
     with (out / "trials.csv").open("w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle)
-        writer.writerow(["point", "job", "case", "K", "kind", "trial", "fps", "fps_nodefrag", "reference", "eta", "eta_min", "eta_with", "members_fps_nodefrag"])
+        writer.writerow(["point", "job", "case", "K", "kind", "reference_kind", "trial", "fps", "fps_nodefrag", "reference", "eta", "eta_min", "eta_with",
+                         "members_fps_nodefrag"])
         for point in points:
             for trial in point["trials"]:
                 for reference in trial["references"]:
-                    writer.writerow([point["point"], point["job"], point["case"], point["K"], point["kind"], trial["trial"], trial["fps"],
+                    writer.writerow([point["point"], point["job"], point["case"], point["K"], point["kind"], reference.get("kind"), trial["trial"], trial["fps"],
                                      trial["fps_nodefrag"], reference["group"], reference.get("eta"), reference.get("eta_min"),
-                                     reference.get("eta_with"), ";".join(f"{m['card']}:{m['fps_nodefrag']}" for m in reference.get("members", []))])
+                                     reference.get("eta_with"), ";".join(f"{m.get('name') or m['card']}:{m['fps_nodefrag']}" for m in reference.get("members", []))])
     print(f"[e8_p2_tables] {len(points)} points, {len(index)} runs -> {out}")
     return 0
 
