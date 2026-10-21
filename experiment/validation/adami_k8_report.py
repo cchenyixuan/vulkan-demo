@@ -19,6 +19,11 @@ docs/validation/figures/adami_k8_fig*.pdf/.png):
 Method, steady-state rule, sampling and references as in docs/validation/cavity_re1000.md and adami_k1_k2.md.
 
     .venv/Scripts/python.exe -m experiment.validation.adami_k8_report [--no-stream-function] [--refresh]
+
+Re = 3200 variant (2026-10-21, the 2000^2 case continued at K = 8 from the warm-started K = 1 run, no K = 2 run):
+    ... adami_k8_report --reynolds 3200 --runs-root logs/validation/cavity_re3200_v7 --k1 <K1 run> --k2 none
+        --k8 <K8 run> --context-runs <K1 run>,<1000^2 K1 run> --out-prefix adami_k8_re3200 --title ... --k1-note ...
+(--context-runs adds the runs' own last-20-time-unit windows to table A instead of the E40 rows.)
 """
 from __future__ import annotations
 
@@ -38,8 +43,8 @@ if str(_REPO_ROOT) not in sys.path:
 
 from experiment.validation import cavity_reference, cavity_sampling as sampling  # noqa: E402
 from experiment.validation.adami_chain_report import (SEAM_STRIP_BINS_PER_SUPPORT, SEAM_STRIP_HALF_WIDTH,  # noqa: E402
-                                                      acceleration_field, extrema_rows, md_table, number,
-                                                      seam_positions, snapshots_in_window, strip_points)
+                                                      acceleration_field, md_table, number, seam_positions,
+                                                      snapshots_in_window, strip_points)
 from experiment.validation.cavity_analysis import (DATA, FIGURES, analyse_run, load_run, profile_csv,  # noqa: E402
                                                    setup_style, write_csv)
 
@@ -62,11 +67,11 @@ def restrict_to_steps(run: dict, steps: set[int]) -> dict:
     return restricted
 
 
-def analyse_window(run: dict, tolerance: float, window: float, with_stream_function: bool) -> dict:
+def analyse_window(run: dict, tolerance: float, window: float, with_stream_function: bool, reynolds: int = 1000) -> dict:
     """analyse_run over ALL of the run's (restricted) samples: the averaging span covers the first sample."""
     times = run["times"]
     span = float(times.max() - times.min()) + 1e-3
-    analysis = analyse_run(run, span, tolerance, window, with_stream_function)
+    analysis = analyse_run(run, span, tolerance, window, with_stream_function, reynolds=reynolds)
     assert analysis["samples_in_window"] == len(run["rows"]), (analysis["samples_in_window"], len(run["rows"]))
     analysis["dense_reference"] = run["points"]["dense_reference"]
     return analysis
@@ -136,7 +141,8 @@ def strip_table(name: str, x_centre: float, points: np.ndarray, offsets: np.ndar
 # ----------------------------------------------------------------------------------------------- tables
 def summary_row(key: str, analysis: dict, reference: dict) -> list:
     errors = analysis["errors"]
-    extrema = extrema_rows(analysis, reference)
+    # value and wall-frame position of the three extrema (the Re = 3200 reference has no extrema, so no lookup there)
+    extrema = {name: {"value": item["value"], "position": item["position_wall"]} for name, item in analysis["extrema"].items()}
     stream = analysis.get("stream") or {}
     return [key, errors[("wall", "mls", "u")]["L2"], errors[("wall", "mls", "u")]["Linf"],
             errors[("wall", "mls", "v")]["L2"], errors[("wall", "mls", "v")]["Linf"],
@@ -145,6 +151,32 @@ def summary_row(key: str, analysis: dict, reference: dict) -> list:
             extrema["v_max"]["position"], extrema["v_min"]["value"], extrema["v_min"]["position"],
             stream.get("psi_min_wall", ""), stream.get("x_wall", ""), stream.get("y_wall", ""),
             analysis["window"][0], analysis["window"][1], analysis["samples_in_window"]]
+
+
+def context_rows(root: pathlib.Path, run_ids: list[str], reference: dict, tolerance: float, window: float,
+                 with_stream_function: bool, reynolds: int, prefix: str, refresh: bool) -> list[list]:
+    """Table A rows of other runs on their OWN averaging windows (the last 20 time units), labelled
+    '<resolution>² K<slabs> (full window)' — the Re = 3200 report's context instead of the E40 rows."""
+    rows = []
+    for run_id in run_ids:
+        run = load_run(run_id, root)
+        if run is None:
+            sys.exit(f"{root / run_id}: no samples.jsonl (context run)")
+        cache_path = root / f"analysis_{prefix}_context_{run['id']}_{len(run['rows'])}.npy"
+        if cache_path.exists() and not refresh and with_stream_function:
+            analysis = np.load(cache_path, allow_pickle=True).item()
+            print(f"[k8] context {run_id}: analysis from {cache_path.name}", flush=True)
+        else:
+            analysis = analyse_run(run, 20.0, tolerance, window, with_stream_function, reynolds=reynolds)
+            if with_stream_function:
+                np.save(cache_path, np.array(analysis, dtype=object), allow_pickle=True)
+        label = f"{run['resolution']}² K{run['slabs']} (full window)"
+        errors = analysis["errors"]
+        print(f"[k8] context {run_id}: window {analysis['window']}, {analysis['samples_in_window']} samples, rel L2 u "
+              f"{errors[('wall', 'mls', 'u')]['L2_relative']:.5f}, v {errors[('wall', 'mls', 'v')]['L2_relative']:.5f}, "
+              f"stream {analysis.get('stream')}", flush=True)
+        rows.append(summary_row(label, analysis, reference))
+    return rows
 
 
 def e40_rows() -> list[list]:
@@ -213,12 +245,18 @@ def invariants(run: dict, key: str, restricted: dict | None = None) -> dict:
 
 
 # ----------------------------------------------------------------------------------------------- figures
-def profile_field_figure(analysis: dict, field: dict | None, path: pathlib.Path, seams_wall: list[float], label: str) -> None:
+INSETS = {1000: ((-0.40, -0.30), (0.08, 0.30), (0.85, 0.96), (-0.54, -0.40)),     # (a) x, (a) y, (b) x, (b) y
+          3200: ((-0.46, -0.34), (0.04, 0.20), (0.90, 0.99), (-0.60, -0.40))}
+
+
+def profile_field_figure(analysis: dict, field: dict | None, path: pathlib.Path, seams_wall: list[float], label: str,
+                         reynolds: int = 1000) -> None:
     import matplotlib.pyplot as plt
     from matplotlib.colors import Normalize
     setup_style()
-    reference = cavity_reference.marchi2021()
-    ghia = cavity_reference.ghia1982()
+    reference = cavity_reference.marchi2021(reynolds)
+    ghia = cavity_reference.ghia1982(reynolds)
+    inset_a_x, inset_a_y, inset_b_x, inset_b_y = INSETS[int(reynolds)]
     dense = analysis["dense_reference"]
     u_mean = analysis["statistics"]["u_dense_mls"]["mean"]
     v_mean = analysis["statistics"]["v_dense_mls"]["mean"]
@@ -239,10 +277,10 @@ def profile_field_figure(analysis: dict, field: dict | None, path: pathlib.Path,
     insets[0].plot(reference["u"][1], reference["u"][0], "o", mfc="none", mec="k", ms=3.0, mew=0.6)
     insets[1].plot(dense, v_mean, "-", color=color, lw=0.8)
     insets[1].plot(reference["v"][0], reference["v"][1], "o", mfc="none", mec="k", ms=3.0, mew=0.6)
-    insets[0].set_xlim(-0.40, -0.30)
-    insets[0].set_ylim(0.08, 0.30)
-    insets[1].set_xlim(0.85, 0.96)
-    insets[1].set_ylim(-0.54, -0.40)
+    insets[0].set_xlim(*inset_a_x)
+    insets[0].set_ylim(*inset_a_y)
+    insets[1].set_xlim(*inset_b_x)
+    insets[1].set_ylim(*inset_b_y)
     for inset in insets:
         inset.tick_params(labelsize=6.0, length=2)
         for spine in inset.spines.values():
@@ -308,7 +346,7 @@ def difference_figure(pairs: dict[str, list[dict]], strips: list[dict], seam_nam
     axes[0].text(41.5, top - 0.12, r"$v(x, 0.5)$", ha="center", va="top", fontsize=7)
     axes[0].set_xlabel("reference point (28 + 28, Marchi et al. 2021)")
     axes[0].set_ylabel(r"$\Delta / \sigma$")
-    axes[0].legend(frameon=False, fontsize=6.2, loc="lower center", ncol=3, columnspacing=0.9, handletextpad=0.3)
+    axes[0].legend(frameon=False, fontsize=6.2, loc="lower center", ncol=max(1, len(pairs)), columnspacing=0.9, handletextpad=0.3)
     by_name = {strip["strip"]: strip for strip in strips}
     offsets = [item["offset_h"] for item in by_name[seam_names[0]]["bins"]]
     controls = np.array([[item["rms_difference"] for item in by_name[name]["bins"]] for name in control_names])
@@ -349,14 +387,31 @@ def main() -> int:
     parser.add_argument("--out-prefix", default="adami_k8")
     parser.add_argument("--doc", default=None, help="markdown output (default docs/validation/<prefix>.md)")
     parser.add_argument("--job-json", default=None, help="facts of the SLURM job (default <k8 run dir>/job.json)")
+    # the Re = 3200 / 2000^2 variant (2026-10-21)
+    parser.add_argument("--reynolds", type=int, default=1000, help="Marchi 2021 / Ghia 1982 reference of this Re (1000, 3200)")
+    parser.add_argument("--context-runs", default="",
+                        help="comma-separated run ids (in --runs-root) added to table A on their own last-20-time-unit "
+                             "windows as '(full window)' rows; default at Re 1000: the E40 K1 / K2 rows")
+    parser.add_argument("--no-e40", action="store_true", help="leave out the E40 K1 / K2 rows and seam facts")
+    parser.add_argument("--title", default=None, help="document title (default: the Re 1000 1000^2 title)")
+    parser.add_argument("--k1-note", default=None, help="sentence describing the K = 1 (and K = 2) runs")
+    parser.add_argument("--hashes-note", default=None, help="the physics-hash sentence (default: the Re 1000 one)")
+    parser.add_argument("--mirror", default="logs/n56/2026-10-20/02_cav_k8_1719093", help="local mirror of the cluster archive")
     arguments = parser.parse_args()
     root = pathlib.Path(arguments.runs_root).resolve()
     prefix = arguments.out_prefix
     doc_path = pathlib.Path(arguments.doc) if arguments.doc else _REPO_ROOT / "docs" / "validation" / f"{prefix}.md"
-    reference = cavity_reference.marchi2021()
+    reference = cavity_reference.marchi2021(arguments.reynolds)
+    with_k2 = arguments.k2 not in (None, "", "none")
+    keys = ["K1", "K2", "K8"] if with_k2 else ["K1", "K8"]
+    others = [key for key in keys if key != "K8"]
+    use_e40 = with_k2 and arguments.reynolds == 1000 and not arguments.no_e40
+    context_ids = [item.strip() for item in arguments.context_runs.split(",") if item.strip()]
 
     runs = {}
-    for key, run_id in (("K1", arguments.k1), ("K2", arguments.k2), ("K8", arguments.k8)):
+    run_ids = {"K1": arguments.k1, "K2": arguments.k2, "K8": arguments.k8}
+    for key in keys:
+        run_id = run_ids[key]
         run = load_run(run_id, root)
         if run is None:
             sys.exit(f"{root / run_id}: no samples.jsonl")
@@ -364,7 +419,7 @@ def main() -> int:
         print(f"[k8] {key} = {run_id}: {len(run['rows'])} samples, t {run['times'].min():.3f}..{run['times'].max():.4f}", flush=True)
     k8_steps = {int(row["step"]) for row in runs["K8"]["rows"]}
     windows = {"K8": runs["K8"]}
-    for key in ("K1", "K2"):
+    for key in others:
         windows[key] = restrict_to_steps(runs[key], k8_steps)
         steps = {int(row["step"]) for row in windows[key]["rows"]}
         if steps != k8_steps:
@@ -374,14 +429,15 @@ def main() -> int:
           f"{start_from.get('source_run')} step {start_from.get('source_step')} (t = {start_from.get('source_time')})", flush=True)
 
     analyses = {}
-    for key in ("K1", "K2", "K8"):
+    for key in keys:
         run = windows[key]
         cache_path = root / f"analysis_{prefix}_{run['id']}_{len(run['rows'])}.npy"
         if cache_path.exists() and not arguments.refresh and not arguments.no_stream_function:
             analysis = np.load(cache_path, allow_pickle=True).item()
             print(f"[k8] {key}: analysis from {cache_path.name}", flush=True)
         else:
-            analysis = analyse_window(run, arguments.steady_tol, arguments.window, not arguments.no_stream_function)
+            analysis = analyse_window(run, arguments.steady_tol, arguments.window, not arguments.no_stream_function,
+                                      arguments.reynolds)
             if not arguments.no_stream_function:
                 np.save(cache_path, np.array(analysis, dtype=object), allow_pickle=True)
         analyses[key] = analysis
@@ -394,21 +450,27 @@ def main() -> int:
     # A: summary
     header = ["run", "L2_u", "Linf_u", "L2_v", "Linf_v", "relL2_u", "relL2_v", "u_min", "y_at_u_min", "v_max", "x_at_v_max",
               "v_min", "x_at_v_min", "psi_min", "x_at_psi_min", "y_at_psi_min", "window_start", "window_end", "samples"]
-    rows = [["Marchi2021", "", "", "", "", "", "", reference["extrema"]["u_min"][0], reference["extrema"]["y_at_u_min"][0],
-             reference["extrema"]["v_max"][0], reference["extrema"]["x_at_v_max"][0], reference["extrema"]["v_min"][0],
-             reference["extrema"]["x_at_v_min"][0], reference["extrema"]["psi_min"][0],
-             reference["extrema"]["x_at_psi_min"][0], reference["extrema"]["y_at_psi_min"][0], "", "", ""]]
-    rows += [summary_row(key, analyses[key], reference) for key in ("K1", "K2", "K8")]
-    rows += e40_rows()
+    reference_extrema = {name: value[0] for name, value in reference["extrema"].items()}   # empty at Re = 3200
+    rows = [["Marchi2021", "", "", "", "", "", ""] + [reference_extrema.get(name, "") for name in
+            ("u_min", "y_at_u_min", "v_max", "x_at_v_max", "v_min", "x_at_v_min", "psi_min", "x_at_psi_min", "y_at_psi_min")]
+            + ["", "", ""]]
+    rows += [summary_row(key, analyses[key], reference) for key in keys]
+    if use_e40:
+        rows += e40_rows()
+    rows += context_rows(root, context_ids, reference, arguments.steady_tol, arguments.window,
+                         not arguments.no_stream_function, arguments.reynolds, prefix, arguments.refresh)
+    resolution = runs["K8"]["resolution"]
+    window_start = float(windows["K8"]["times"].min())
     write_csv(DATA / f"{prefix}_summary.csv", header, rows,
-              "6.2 supplement: K = 1 / K = 2 / K = 8 of the 1000^2 adami cavity on the common window t >= 89.5 (the K = 8\n"
-              "continuation's samples), errors at the Marchi 2021 points (wall frame, MLS, absolute in units of U;\n"
-              "relL2 = L2 / rms(Tc)), extrema from the time-averaged dense lines, primary vortex from the time-averaged\n"
-              "MLS grid of the window's snapshots; the '(E40 full window)' rows repeat adami_k1_k2_summary.csv.")
+              f"6.2 supplement: {' / '.join('K = ' + key[1:] for key in keys)} of the {resolution}^2 adami cavity (Re = {arguments.reynolds})\n"
+              f"on the common window t >= {window_start:.3f} (the K = 8 continuation's samples), errors at the Marchi 2021 points\n"
+              "(wall frame, MLS, absolute in units of U; relL2 = L2 / rms(Tc)), extrema from the time-averaged dense lines,\n"
+              "primary vortex from the time-averaged MLS grid of the window's snapshots; the '(E40 full window)' rows repeat\n"
+              "adami_k1_k2_summary.csv, the other '(full window)' rows are the runs' own last 20 time units.")
 
     # B: points
-    pairs = {pair: point_rows(analyses, reference, first, second)
-             for pair, (first, second) in (("K8-K1", ("K1", "K8")), ("K2-K1", ("K1", "K2")), ("K8-K2", ("K2", "K8")))}
+    pair_keys = [("K8-K1", ("K1", "K8"))] + ([("K2-K1", ("K1", "K2")), ("K8-K2", ("K2", "K8"))] if with_k2 else [])
+    pairs = {pair: point_rows(analyses, reference, first, second) for pair, (first, second) in pair_keys}
     point_summaries = {pair: point_summary(rows_) for pair, rows_ in pairs.items()}
     all_point_rows = [row for rows_ in pairs.values() for row in rows_]
     keys = ["pair", "line", "coordinate_name", "coordinate", "marchi2021_Tc", "difference", "sigma", "difference_over_sigma"]
@@ -466,10 +528,10 @@ def main() -> int:
                 f"{item['rms_sem_first']:.3e}", f"{item['rms_sem_second']:.3e}", f"{item['mean_speed']:.4f}"]
                for s in strips for item in s["bins"]],
               "6.2 supplement: the strip difference per h/2 column (offset from the strip centre in support radii).")
-    e40 = json.loads(E40_REPORT.read_text(encoding="utf-8")) if E40_REPORT.exists() else {}
+    e40 = json.loads(E40_REPORT.read_text(encoding="utf-8")) if E40_REPORT.exists() and use_e40 else {}
 
     # D: invariants, throughput, wall clock
-    facts = [invariants(runs["K8"], "K8"), invariants(runs["K1"], "K1", windows["K1"]), invariants(runs["K2"], "K2", windows["K2"])]
+    facts = [invariants(runs["K8"], "K8")] + [invariants(runs[key], key, windows[key]) for key in others]
     write_csv(DATA / f"{prefix}_invariants.csv", list(facts[0].keys()), [list(row.values()) for row in facts],
               "6.2 supplement: invariants (segment totals of the whole run; alive / MLS fallbacks / neighbours over the\n"
               "window's samples), throughput (median of the sample-wise steps/s in the window) and wall clock.")
@@ -481,29 +543,34 @@ def main() -> int:
     field = None
     if sorted((runs["K8"]["dir"] / "checkpoints").glob("c*.npz")):
         field = acceleration_field(runs["K8"], arguments.grid)
-    profile_field_figure(analyses["K8"], field, FIGURES / f"{prefix}_fig1_k8.pdf", seams_wall, "$K = 8$")
+    profile_field_figure(analyses["K8"], field, FIGURES / f"{prefix}_fig1_k8.pdf", seams_wall, "$K = 8$", arguments.reynolds)
     difference_figure(pairs, strips, seam_names, control_names, support, FIGURES / f"{prefix}_fig2_differences.pdf")
 
     # the document
     k8 = runs["K8"]
     k8_facts = facts[0]
-    hashes_note = ("物理代码哈希:K = 8 的 meta.json 记的是 Linux 部署树(LF 换行)的哈希,与 K = 1 / K = 2(Windows 检出,CRLF)"
-                   "不同;逐文件比较(41 个文件:experiment/v7/utils/*.py、SPIR-V、算例、材料库,CRLF→LF 归一化后)完全一致,"
-                   "部署树的 git tree hash = tag v7-rc3 的 experiment/v7。")
-    lines = [f"# Adami 壁面 1000² 方腔:K = 8 续算(6.2 节补充,2026-10-21)", "",
-             f"算例 `{k8['case']}`(Re = 1000,ξ = 0.001,ε² = 0.0025 h²,`wall_boundary: adami`),求解器 experiment/v7 = tag v7-rc3。"
-             f"K = 8 运行在 N56 集群一整台节点(8 × RTX 5090,SLURM 作业 {job.get('job_id', '1719093')},节点 {job.get('node', '?')},"
+    k_list = " / ".join("K = " + key[1:] for key in others)                      # "K = 1 / K = 2" or "K = 1"
+    sample_interval = float(np.median(np.diff(np.sort(windows["K8"]["times"])))) if len(k8_steps) > 1 else float("nan")
+    hashes_note = arguments.hashes_note or (
+        "物理代码哈希:K = 8 的 meta.json 记的是 Linux 部署树(LF 换行)的哈希,与 K = 1 / K = 2(Windows 检出,CRLF)"
+        "不同;逐文件比较(41 个文件:experiment/v7/utils/*.py、SPIR-V、算例、材料库,CRLF→LF 归一化后)完全一致,"
+        "部署树的 git tree hash = tag v7-rc3 的 experiment/v7。")
+    k1_note = arguments.k1_note or "K = 1、K = 2 为 docs/validation/adami_k1_k2.md 的两次运行(本地 5090 / 5090 + 7900 XTX)。"
+    title = arguments.title or "# Adami 壁面 1000² 方腔:K = 8 续算(6.2 节补充,2026-10-21)"
+    lines = [title, "",
+             f"算例 `{k8['case']}`(Re = {arguments.reynolds},ξ = 0.001,ε² = 0.0025 h²,`wall_boundary: adami`),求解器 experiment/v7 = tag v7-rc3。"
+             f"K = 8 运行在 N56 集群一整台节点(8 × RTX 5090,SLURM 作业 {job.get('job_id', '?')},节点 {job.get('node', '?')},"
              f"部署 `~/run/vulkan-demo-v7rc3` = 提交 {job.get('deploy_commit', '?')}),`cavity_runner --solver v7 --slabs 8 --start-from` "
              f"从 K = 1 运行的检查点 `{pathlib.Path(start_from.get('file', '')).name}`(步 {start_from.get('source_step', 0):,},"
              f"t = {start_from.get('source_time', 0):.4f},sha256 {start_from.get('sha256', '')[:12]}…)启动,全局步号延续,"
              f"等权重按状态的流体直方图切成 8 个 slab,推进到步 {k8['result'].get('stop_step', 0):,}"
-             f"(t = {k8['result'].get('stop_step', 0) * float(k8['meta']['dt']):.3f},与 K = 1 / K = 2 的停止步相同)。K = 1、K = 2 为 docs/validation/adami_k1_k2.md 的两次运行(本地 5090 / 5090 + 7900 XTX)。"
-             f"三者在**同一组取样步**上比较:t ≥ {window[0]:.3f} 的 {len(k8_steps)} 个样本(每 0.2 时间单位)与 "
+             f"(t = {k8['result'].get('stop_step', 0) * float(k8['meta']['dt']):.3f},与 {k_list} 的停止步相同)。{k1_note}"
+             f"{'三者' if with_k2 else '两者'}在**同一组取样步**上比较:t ≥ {window[0]:.3f} 的 {len(k8_steps)} 个样本(每 {sample_interval:.2g} 时间单位)与 "
              f"{len(averages['K8']['_snapshots'])} 个快照(每 ~1 时间单位,步号相同)。方法、稳态判据、取样与参考解沿用 "
              "`docs/validation/cavity_re1000.md`。只报结果。", "", hashes_note, ""]
     lines += ["## 图", "", f"![fig1](figures/{prefix}_fig1_k8.png)", "",
               f"图 1(K = 8):(a) u(0.5, y) 与 (b) v(x, 0.5) 的时间平均 MLS 中线剖面(壁面行框架)对 Marchi 2021(圆圈)与 Ghia 1982(方块),"
-              f"(b) 中的 7 条竖虚线 = 切口;(c) 流体加速度大小 |a| L/U²,末尾检查点"
+              f"(b) 中的 {len(seams)} 条竖虚线 = 切口;(c) 流体加速度大小 |a| L/U²,末尾检查点"
               + (f"(t = {field['time']:.1f})的 Shepard 插值,{arguments.grid}² 网格,色标上限 = 99 百分位 {field['percentiles'][99]:.3g},白色虚线 = 切口。"
                  if field else "(无检查点时省略)。"), "",
               f"![fig2](figures/{prefix}_fig2_differences.png)", "",
@@ -515,23 +582,26 @@ def main() -> int:
         table_rows.append([str(row[0])] + [number(value) for value in row[1:16]] + [number(row[16], 2), number(row[17], 2), str(row[18])])
     lines.append(md_table(["run", "L2 u", "L∞ u", "L2 v", "L∞ v", "rel L2 u", "rel L2 v", "u_min", "y(u_min)", "v_max", "x(v_max)",
                            "v_min", "x(v_min)", "ψ_min", "x(ψ_min)", "y(ψ_min)", "窗口起", "窗口止", "样本数"], table_rows))
+    context_note = ("“E40 full window” 两行是 adami_k1_k2.md 的原值(各自最后 20 个时间单位)。" if use_e40 else "")
+    if context_ids:
+        context_note += "“(full window)” 行是相应运行自己的平均窗口(各自最后 20 个时间单位)。"
     lines += ["", "L2 = √(Σ e_i² / 28)、L∞ = max |e_i|(绝对值,U 为单位),rel L2 = L2 / rms(T_c);极值位置为壁面行框架;"
-              f"ψ_min 与主涡中心来自窗口内快照的 MLS 网格平均(513²)。“E40 full window” 两行是 adami_k1_k2.md 的原值(各自最后 20 个时间单位)。"
+              f"ψ_min 与主涡中心来自窗口内快照的 MLS 网格平均(513²)。{context_note}"
               f"数据:`data/{prefix}_summary.csv`、`data/profile_{k8['id']}.csv`。", ""]
     lines += ["## 表 B:56 个参考点上的差", ""]
     lines.append(md_table(["对", "max |Δ|", "rms Δ", "max |Δ|/σ", "|Δ|/σ > 2", "|Δ|/σ > 3"],
                           [[pair.replace("-", " − "), f"{s['max_abs_difference']:.2e}", f"{s['rms_difference']:.2e}",
                             f"{s['max_abs_sigma_ratio']:.2f}", str(s["points_over_2_sigma"]), str(s["points_over_3_sigma"])]
                            for pair, s in point_summaries.items()]))
-    lines += ["", f"Δ = 时间平均 MLS 速度之差,s.e. = std·√(τ_int/n)(n = {len(k8_steps)},样本间隔 0.2 时间单位),σ = √(s.e.₁² + s.e.₂²)。"
+    lines += ["", f"Δ = 时间平均 MLS 速度之差,s.e. = std·√(τ_int/n)(n = {len(k8_steps)},样本间隔 {sample_interval:.2g} 时间单位),σ = √(s.e.₁² + s.e.₂²)。"
               f"数据:`data/{prefix}_point_differences.csv`。", ""]
-    lines += ["## 表 C:7 条接缝与条带差", ""]
+    lines += [f"## 表 C:{len(seams)} 条接缝与条带差", ""]
     lines.append(md_table(["接缝", "全局列", "x (m)", "X 壁面框架", "左 slab 粒子", "右 slab 粒子"],
                           [[str(index + 1), str(seam["column"]), f"{seam['x']:+.4f}", f"{seam['x_wall']:.4f}",
                             f"{k8['meta']['slab_particles'][index]:,}", f"{k8['meta']['slab_particles'][index + 1]:,}"]
                            for index, seam in enumerate(seams)]))
-    lines += ["", f"切口 = 全局体素列边界(列宽 h = {support} m),按启动状态的流体直方图等权切分(切口列 {', '.join(str(s['column']) for s in seams)};"
-              f"K = 2 的切口为第 {e40.get('seam', {}).get('column', '?')} 列 = 这里的第 4 条接缝)。", ""]
+    lines += ["", f"切口 = 全局体素列边界(列宽 h = {support} m),按启动状态的流体直方图等权切分(切口列 {', '.join(str(s['column']) for s in seams)}"
+              + (f";K = 2 的切口为第 {e40.get('seam', {}).get('column', '?')} 列 = 这里的第 4 条接缝)。" if e40 else ")。"), ""]
     lines.append(md_table(["条带", "中心 x (m)", "点数", "rms |Δu|", "max |Δu|", "rms |Δu| (±0.5h)", "max |Δu| (±0.5h)", "rms s.e. K1", "rms s.e. K8", "平均速度 K1"],
                           [[s["strip"], f"{s['x_centre']:+.4f}", str(s["points"]), f"{s['rms_all']:.2e}", f"{s['max_all']:.2e}",
                             f"{s['rms_inner_half_h']:.2e}", f"{s['max_inner_half_h']:.2e}", f"{s['rms_sem_first']:.2e}",
@@ -557,8 +627,8 @@ def main() -> int:
     smoke = job.get("smoke", {})
     segment_steps = int(k8["result"].get("stop_step", 0)) - int(start_from.get("source_step", 0))
     segment_wall = float(k8["segments"][0].get("wall_s", float("nan")))
-    lines += ["", "每个样本(每 0.2 时间单位)与每个 defrag 边界都检查:存活粒子总数 = 初始总数、每张卡的全部 `overflow_*` 计数、far_migration、"
-              "GPU 与主机帧戳错误;任一违反即作废。K = 1 / K = 2 的段合计为整次运行(E40),存活 / 回退 / 邻居为公共窗口的样本;"
+    lines += ["", f"每个样本(每 {sample_interval:.2g} 时间单位)与每个 defrag 边界都检查:存活粒子总数 = 初始总数、每张卡的全部 `overflow_*` 计数、far_migration、"
+              f"GPU 与主机帧戳错误;任一违反即作废。{k_list} 的段合计为整次运行{'(E40)' if use_e40 else ''},存活 / 回退 / 邻居为公共窗口的样本;"
               "窗口墙钟 = 窗口首末样本之间的墙钟(不含启动),步/s = 窗口内逐样本吞吐的中位数。", "",
               f"K = 8 作业:{job.get('submitted', '?')} 提交,排队 {job.get('queued', '?')},{job.get('start', '?')} 在 {job.get('node', '?')} 开始,"
               f"{job.get('end', '?')} 结束,占用 {job.get('elapsed', '?')}(8 卡,时限 {job.get('time_limit', '?')}):"
@@ -568,9 +638,10 @@ def main() -> int:
     lines += ["## 文件", "", f"- 图:`docs/validation/figures/{prefix}_fig1_k8.pdf`(.png)、`{prefix}_fig2_differences.pdf`(.png)",
               f"- 数据:`docs/validation/data/{prefix}_summary.csv`、`{prefix}_point_differences.csv`、`{prefix}_seams.csv`、"
               f"`{prefix}_strips.csv`、`{prefix}_strip_bins.csv`、`{prefix}_invariants.csv`、`profile_{k8['id']}.csv`、`{prefix}_report.json`",
-              f"- 运行目录(不入库):`{root / k8['id']}`(集群归档 `~/run/logs/cavity_k8_{job.get('job_id', '1719093')}`,"
-              f"本地镜像 `logs/n56/2026-10-20/02_cav_k8_1719093`)",
-              "- 生成:`.venv/Scripts/python.exe -m experiment.validation.adami_k8_report`", ""]
+              f"- 运行目录(不入库):`{root / k8['id']}`(集群归档 `~/run/logs/cavity_k8_{job.get('job_id', '?')}`,"
+              f"本地镜像 `{arguments.mirror}`)",
+              "- 生成:`.venv/Scripts/python.exe -m experiment.validation.adami_k8_report"
+              + (" " + " ".join(sys.argv[1:]) if len(sys.argv) > 1 else "") + "`", ""]
     doc_path.parent.mkdir(parents=True, exist_ok=True)
     doc_path.write_text("\n".join(lines), encoding="utf-8")
 
@@ -592,11 +663,10 @@ def main() -> int:
               "strips": strips, "strip_fallbacks": {key: averages[key]["_fallbacks"] for key in averages},
               "e40_strips": {name: {k: v for k, v in strip.items() if k != "bins"} for name, strip in e40_strip.items()},
               "invariants": facts, "field": {k: v for k, v in (field or {}).items() if k != "field"},
-              "reference": {"u_min": reference["extrema"]["u_min"][0], "y_at_u_min": reference["extrema"]["y_at_u_min"][0],
-                            "v_max": reference["extrema"]["v_max"][0], "x_at_v_max": reference["extrema"]["x_at_v_max"][0],
-                            "v_min": reference["extrema"]["v_min"][0], "x_at_v_min": reference["extrema"]["x_at_v_min"][0],
-                            "psi_min": reference["extrema"]["psi_min"][0], "x_at_psi_min": reference["extrema"]["x_at_psi_min"][0],
-                            "y_at_psi_min": reference["extrema"]["y_at_psi_min"][0]}}
+              "reynolds": arguments.reynolds, "context_runs": context_ids,
+              "reference": {name: reference_extrema.get(name) for name in
+                            ("u_min", "y_at_u_min", "v_max", "x_at_v_max", "v_min", "x_at_v_min", "psi_min", "x_at_psi_min",
+                             "y_at_psi_min")}}
     json.dump(report, open(DATA / f"{prefix}_report.json", "w", encoding="utf-8"), indent=1, default=str)
     print(f"[k8] wrote {doc_path} and {DATA / f'{prefix}_report.json'}")
     return 0

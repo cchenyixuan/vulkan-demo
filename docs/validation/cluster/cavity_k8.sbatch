@@ -19,8 +19,10 @@
 # (one sample), (2) the run. Outputs under /dev/shm during the job, archived to ~/run/logs/cavity_k8_<job id>.
 # Submit: sbatch --export=ALL,EXPECT_COMMIT=<rc3 deployment commit prefix> docs/validation/cluster/cavity_k8.sbatch
 set -u
-# the point (defaults = the Re 1000 continuation; the Re 3200 one passes CASE / RUN_NAME / INPUT / CHECKPOINT /
-# CHECKPOINT_SHA / REYNOLDS through sbatch --export, 2026-10-20 night)
+# the point (defaults = the Re 1000 continuation; the Re 3200 ones pass CASE / RUN_NAME / INPUT / CHECKPOINT /
+# CHECKPOINT_SHA / REYNOLDS through sbatch --export, 2026-10-20 night; T_END / T_MAX / AVERAGE_SPAN must repeat the
+# source run's values, 2026-10-21: with --start-from the stop step is max(T_END, source steady + AVERAGE_SPAN), so a
+# source that stopped at t = 40 needs T_END=40 or the continuation would run to 100)
 REPO=$HOME/run/vulkan-demo-v7rc3
 INPUT=${INPUT:-$HOME/run/cavity_k8_input/n1000_k1_float32_xi0p001_eps0p0025_adami}
 CHECKPOINT=${CHECKPOINT:-$INPUT/checkpoints/c0011907000.npz}
@@ -30,6 +32,10 @@ EXPECT_TREE=f33a46ba021064e92a64d3aba49897c607234850
 CASE=${CASE:-cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_adami/case.yaml}
 RUN_NAME=${RUN_NAME:-n1000_k8_float32_xi0p001_eps0p0025_adami}
 REYNOLDS=${REYNOLDS:-1000}
+T_END=${T_END:-100}
+T_MAX=${T_MAX:-300}
+AVERAGE_SPAN=${AVERAGE_SPAN:-20}
+SMOKE_STEPS=${SMOKE_STEPS:-27000}
 SHM=/dev/shm/scxm138/cavity_k8_$SLURM_JOB_ID
 OUT=$HOME/run/logs/cavity_k8_$SLURM_JOB_ID
 T0=$(date +%s)
@@ -65,13 +71,13 @@ export V7_KEEP_DEPARTED=1 V7_GHOST_LAYERS=2 V7_LEAN_TRANSPORT=1 V7_COMPACT_GHOST
        V7_BAND_SLOT_LANES=64 V7_GHOST_POOL_FACTOR=0.29 V7_MIGRANT_POOL_FACTOR=0.05 V7_DEPARTED_FACE_FRACTION=0.8 \
        V7_INIT_SEAM_CLAMP=1 V7_WORKER_COUNT_AWARE=1 V7_SPLIT_TRANSFER_QUEUES=1
 export VK_LOADER_LAYERS_DISABLE=VK_LAYER_KHRONOS_validation PYTHONIOENCODING=utf-8 PYTHONUNBUFFERED=1
-RUNNER="python -m experiment.validation.cavity_runner --solver v7 --case $CASE --expect release --slabs 8 --device-map 0,1,2,3,4,5,6,7 --start-from $CHECKPOINT --reynolds $REYNOLDS --t-end 100 --t-max 300 --average-span 20 --pool-safety 1.2"
-echo "point: case $CASE, run $RUN_NAME, Re $REYNOLDS, checkpoint $CHECKPOINT"
+RUNNER="python -m experiment.validation.cavity_runner --solver v7 --case $CASE --expect release --slabs 8 --device-map 0,1,2,3,4,5,6,7 --start-from $CHECKPOINT --reynolds $REYNOLDS --t-end $T_END --t-max $T_MAX --average-span $AVERAGE_SPAN --pool-safety 1.2"
+echo "point: case $CASE, run $RUN_NAME, Re $REYNOLDS, checkpoint $CHECKPOINT, t-end $T_END, t-max $T_MAX, average-span $AVERAGE_SPAN"
 echo "--- partition the runner will build (CPU)"
 python docs/validation/cluster/cavity_k8_partition_check.py --case "$CASE" --checkpoint "$CHECKPOINT" --slabs 8 --json "$SHM/partition_check.json" 2>&1 | grep -v '^\[' | tr -d '\n' | tr -s ' '; echo
 
-echo "=== 1. smoke: 27,000 steps at K = 8 from the checkpoint ($(date +%T))"
-$RUNNER --run-dir "$SHM/smoke_$RUN_NAME" --max-steps 27000 > "$SHM/smoke.log" 2>&1; RC=$?
+echo "=== 1. smoke: $SMOKE_STEPS steps at K = 8 from the checkpoint ($(date +%T))"
+$RUNNER --run-dir "$SHM/smoke_$RUN_NAME" --max-steps "$SMOKE_STEPS" > "$SHM/smoke.log" 2>&1; RC=$?
 grep -E "^\[cavity|restart state loaded|restarted from|partition_v7\] chain" "$SHM/smoke.log" | cut -c1-220
 cat "$SHM/smoke_$RUN_NAME/segments.jsonl" 2>/dev/null
 if [ $RC -ne 0 ] || ! grep -q '"status": "complete"' "$SHM/smoke_$RUN_NAME/segments.jsonl" 2>/dev/null; then
@@ -79,7 +85,7 @@ if [ $RC -ne 0 ] || ! grep -q '"status": "complete"' "$SHM/smoke_$RUN_NAME/segme
 fi
 echo "smoke OK: $(tail -1 "$SHM/smoke_$RUN_NAME/samples.jsonl" | cut -c1-160)"
 
-echo "=== 2. the run: t = 89.3025 -> 100 ($(date +%T))"
+echo "=== 2. the run: from the checkpoint to the source's stop step ($(date +%T))"
 ( while sleep 60; do cp "$SHM/$RUN_NAME/heartbeat.json" "$OUT/heartbeat.json" 2>/dev/null; cp "$SHM/$RUN_NAME/run.log" "$OUT/run.log" 2>/dev/null; done ) &
 WATCH=$!
 $RUNNER --run-dir "$SHM/$RUN_NAME" > "$SHM/run_stdout.log" 2>&1; RC=$?

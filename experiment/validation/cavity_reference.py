@@ -45,9 +45,10 @@ def marchi2021(reynolds: int = 1000) -> dict:
     return result
 
 
-def ghia1982() -> dict:
-    """{'u': (y, u), 'v': (x, v)} including the wall points, Re = 1000."""
-    rows = _rows(GHIA_CSV)
+def ghia1982(reynolds: int = 1000) -> dict:
+    """{'u': (y, u), 'v': (x, v)} including the wall points; reynolds selects docs/validation/data/ghia1982_re<Re>.csv
+    (1000 as before; 3200 added 2026-10-21 for the Re = 3200 K = 8 report, same transcription, figures only)."""
+    rows = _rows(_DATA / f"ghia1982_re{int(reynolds)}.csv")
     result = {}
     for line, group in (("u", "u_at_x_0.5"), ("v", "v_at_y_0.5")):
         selected = sorted((row for row in rows if row["line"] == group), key=lambda row: float(row["coordinate"]))
