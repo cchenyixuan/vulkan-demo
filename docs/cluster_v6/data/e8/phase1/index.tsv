@@ -1,0 +1,6 @@
+8m_K1	run	phase1	cavity3d_n192	1	0	-	-	8m	S	wqd10nbl09g4	e8p1
+8m_K2_trace	run	phase1	cavity3d_n192	2	0	-	-	8m	S	wqd10nbl09g4	e8p1
+s48_K1	run	phase1	cavity3d_n48	1	0	-	-	s48	S	wqd10nbl09g4	e8p1
+s48_K2	run	phase1	cavity3d_n48	2	0	-	-	s48	S	wqd10nbl09g4	e8p1
+weak2_K2	run	phase1	cavity3d_n192_k2	2	0	-	-	weak2	S	wqd10nbl09g4	e8p1
+64m_K2	run	phase1	cavity3d_n392	2	0	-	-	64m	S	wqd10nbl09g4	e8p1

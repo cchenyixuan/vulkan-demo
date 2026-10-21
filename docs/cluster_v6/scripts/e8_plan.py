@@ -102,8 +102,14 @@ PHASE1 = [
 
 class Model:
     def __init__(self, cost_ns: float, t_chain_fixed_us: float, host_bandwidth_gbs: float, eta_strong: dict,
-                 eta_weak: float, b_share: float, b_link_override: dict):
+                 eta_weak: float, b_share: float, b_link_override: dict, cost_table: dict = None,
+                 b_link_linear: float = 4400.0, b_link_power: float = 1.044):
         self.cost = cost_ns * 1e-9
+        # phase 1 (--cost-table): the K = 1 cost per particle-step depends on the particles per card (a bigger
+        # slab is cheaper per particle, E7 item 0): piecewise linear in log10(N per card) between the measured
+        # points, flat outside them; None = the constant --cost-ns
+        self.cost_table = sorted((math.log10(n), c * 1e-9) for n, c in cost_table.items()) if cost_table else None
+        self.b_link_linear, self.b_link_power = b_link_linear, b_link_power
         self.t0 = t_chain_fixed_us * 1e-6
         self.beta = host_bandwidth_gbs * 1e9
         self.eta_strong = eta_strong
@@ -124,12 +130,28 @@ class Model:
         weight = (slabs - lower) / (upper - lower)
         return table[lower] + weight * (table[upper] - table[lower])
 
+    def cost_per_particle(self, per_card: float) -> float:
+        if not self.cost_table:
+            return self.cost
+        x = math.log10(per_card)
+        points = self.cost_table
+        if x <= points[0][0]:
+            return points[0][1]
+        if x >= points[-1][0]:
+            return points[-1][1]
+        for (x0, c0), (x1, c1) in zip(points, points[1:]):
+            if x0 <= x <= x1:
+                return c0 + (c1 - c0) * (x - x0) / (x1 - x0)
+        return self.cost
+
     def b_link(self, case: str) -> float:
-        """Host copy bytes per link and step (phase-0 fit; --b-link CASE=BYTES overrides)."""
+        """Host copy bytes per link and step: 2 layers x 32 B x 4 n^2 + the list / count segments (phase 0: the E7
+        3-D traces' fit 4,400 n^1.044; phase 1 (--b-link-linear 4500 --b-link-power 1): 256 n^2 + 4,500 n fits the
+        measured 806,912 / 10,283,280 / 41,126,502 B of n = 48 / 192 / 392 within 2 %); --b-link CASE=BYTES overrides."""
         if case in self.b_link_override:
             return self.b_link_override[case]
         n = EDGE[case]
-        return 2 * 32 * 4 * n * n + 4400.0 * n ** 1.044
+        return 2 * 32 * 4 * n * n + self.b_link_linear * n ** self.b_link_power
 
     def t_chain(self, case: str) -> float:
         return self.t0 + self.b_link(case) / self.beta
@@ -154,7 +176,7 @@ class Model:
 
     def step(self, case: str, slabs: int, weak: bool) -> dict:
         particles = PARTICLES[case]
-        compute = self.cost * particles / slabs
+        compute = self.cost_per_particle(particles / slabs) * particles / slabs
         if slabs == 1:
             return {"step": compute, "compute": compute, "eta": 1.0, "t_chain": 0.0, "T_B": 0.0, "exposed": 0.0,
                     "r": 0.0, "fps": 1.0 / compute}
@@ -203,6 +225,11 @@ def seconds(value: float) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--cost-ns", type=float, default=6.69, help="K = 1 ns per particle-step (phase 0: 6.69)")
+    parser.add_argument("--cost-table", default=None, metavar="N:NS,...",
+                        help="measured ns per particle-step by particles per card, interpolated in log N (phase 1: "
+                             "175616:6.83,8000000:6.28,32000000:5.91)")
+    parser.add_argument("--b-link-linear", type=float, default=4400.0, help="B_link = 256 n^2 + linear x n^power")
+    parser.add_argument("--b-link-power", type=float, default=1.044)
     parser.add_argument("--t-chain-fixed-us", type=float, default=122.0)
     parser.add_argument("--host-bandwidth-gbs", type=float, default=3.76)
     parser.add_argument("--eta-strong", default="2:0.95,4:0.90,8:0.875")
@@ -219,9 +246,12 @@ def main() -> int:
     for item in arguments.b_link:
         case, value = item.split("=")
         overrides[case] = float(value)
+    cost_table = ({float(key): float(value) for key, value in (item.split(":") for item in arguments.cost_table.split(","))}
+                  if arguments.cost_table else None)
     model = Model(arguments.cost_ns, arguments.t_chain_fixed_us, arguments.host_bandwidth_gbs, eta_strong,
-                  arguments.eta_weak, arguments.b_share, overrides)
-    lines = [f"Model: cost {arguments.cost_ns} ns per particle-step (K = 1), t_chain = {arguments.t_chain_fixed_us:.0f} us + "
+                  arguments.eta_weak, arguments.b_share, overrides, cost_table, arguments.b_link_linear, arguments.b_link_power)
+    lines = [f"Model: cost {arguments.cost_ns} ns per particle-step (K = 1){' / table ' + arguments.cost_table if arguments.cost_table else ''}, "
+             f"B_link = 256 n^2 + {arguments.b_link_linear:g} n^{arguments.b_link_power:g}, t_chain = {arguments.t_chain_fixed_us:.0f} us + "
              f"B_link / {arguments.host_bandwidth_gbs} GB/s, eta_strong {eta_strong}, eta_weak {arguments.eta_weak}, "
              f"B share {arguments.b_share}; windows {STEPS}/{WARMUP}, {TRIALS} trials, {PILOT_ROUNDS} pilots x {PILOT_STEPS} steps.", ""]
     lines += ["## Step model per point", "",
@@ -235,7 +265,7 @@ def main() -> int:
         step = estimate["step"]
         n, n_x = e8_vram.CASES[case]
         columns = [entry["own_columns"] for entry in e8_vram.chain(n, n_x, slabs)]
-        lines.append(f"| {case} K{slabs} ({group}) | {PARTICLES[case]:,} | {PARTICLES[case] / slabs / 1e6:.2f}M | "
+        lines.append(f"| {case} K{slabs} ({group}) | {PARTICLES[case]:,} | {PARTICLES[case] / slabs / 1e6:.2f}M ({model.cost_per_particle(PARTICLES[case] / slabs) * 1e9:.2f} ns) | "
                      f"{'/'.join(str(column) for column in columns)} ({model.interior_fraction(case, slabs):.2f}) | "
                      f"{estimate['reference_step']['step'] * 1e3:.1f} | {step['compute'] * 1e3:.2f} | {step['eta']:.3f} | "
                      f"{model.b_link(case) / 1e6:.1f} | {step['t_chain'] * 1e3:.2f} | {model.b_share(case, slabs):.2f} | {step['T_B'] * 1e3:.2f} | "

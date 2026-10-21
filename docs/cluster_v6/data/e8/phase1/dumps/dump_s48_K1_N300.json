@@ -1,0 +1,184 @@
+{
+ "dump_format_version": 1,
+ "tool": "experiment/seam_audit/dump_state.py",
+ "run_name": "dump_s48_K1",
+ "version": "v7",
+ "case": "cases/aligned/cavity3d_n48/case.yaml",
+ "case_resolved": "/data/run01/scxm138/vulkan-demo-v7rc1/cases/aligned/cavity3d_n48/case.yaml",
+ "case_name": "cavity3d_n48",
+ "slabs": 1,
+ "weights": [
+  1.0
+ ],
+ "device_map": [
+  0
+ ],
+ "depth": 2,
+ "pool_safety": 1.2,
+ "sync_scheme": "per-direction",
+ "defrag_cadence": 1000,
+ "horizons": [
+  300
+ ],
+ "cuts": [],
+ "smoothing_length": 0.08333333333333333,
+ "origin_x": -0.6666666666666666,
+ "origin_y": -0.6666666666666666,
+ "origin_z": -0.6666666666666666,
+ "grid_nx": 16,
+ "grid_dimension": [
+  16,
+  16,
+  16
+ ],
+ "dimension": 3,
+ "own_columns": [
+  [
+   0,
+   15
+  ]
+ ],
+ "own_pool_sizes": [
+  201984
+ ],
+ "ghost_pool_sizes": [
+  [
+   0,
+   0
+  ]
+ ],
+ "initial_particle_counts": [
+  175616
+ ],
+ "initial_total": 175616,
+ "material_kinds": [
+  0,
+  1,
+  1
+ ],
+ "material_names": [
+  "stick_water",
+  "stick_wall",
+  "stick_lid"
+ ],
+ "id_encoding": "extension_fields.z = id // 2**20, extension_fields.w = id % 2**20 (id = row index in the degenerate global case)",
+ "environment": {
+  "V7_TRANSPORT_EXTENSION": "1",
+  "V7_WORKER_AFFINITY": "32-63,96-127;32-63,96-127",
+  "VK_LOADER_LAYERS_DISABLE": "VK_LAYER_KHRONOS_validation"
+ },
+ "validation_layer": false,
+ "host": "wqd10nbl09g4",
+ "python": "3.13.15",
+ "numpy": "2.5.3",
+ "horizon": 300,
+ "frame_count": 300,
+ "npz": "dump_s48_K1_N300.npz",
+ "timestamp": "2026-10-21T23:59:00",
+ "wall_time_s": 2.3402528949081898,
+ "bootstrap_time_s": 0.10498865693807602,
+ "frames_time_s": 0.38518860563635826,
+ "global_status": [
+  {
+   "alive_particle_count": 175616,
+   "maximum_velocity": 0.0,
+   "overflow_inside_count": 0,
+   "overflow_incoming_count": 0,
+   "first_overflow_voxel_inside": 0,
+   "first_overflow_voxel_incoming": 0,
+   "correction_fallback_count": 0,
+   "overflow_ghost_count": 0,
+   "ghost_send_leading_count": 0,
+   "ghost_send_trailing_count": 0,
+   "ghost_recv_leading_count": 0,
+   "ghost_recv_trailing_count": 0,
+   "migration_install_count": 0,
+   "overflow_install_tail": 0,
+   "overflow_install_inside": 0,
+   "first_overflow_voxel_install": 0,
+   "frame_stamp": 300,
+   "ghost_stamp_leading": 0,
+   "ghost_stamp_trailing": 0,
+   "stamp_error_count": 0,
+   "stamp_error_sample": 0,
+   "departed_count": 0,
+   "overflow_departed_count": 0,
+   "far_migration_count": 0,
+   "replica_inner_send_leading_count": 0,
+   "replica_inner_send_trailing_count": 0,
+   "replica_outer_send_leading_count": 0,
+   "replica_outer_send_trailing_count": 0,
+   "replica_inner_recv_leading_count": 0,
+   "replica_inner_recv_trailing_count": 0,
+   "replica_outer_recv_leading_count": 0,
+   "replica_outer_recv_trailing_count": 0,
+   "initialization_seam_clamp_count": 0,
+   "overflow_initialization_outside": 0,
+   "overflow_deep_wall_skip_count": 0,
+   "replica_third_send_leading_count": 0,
+   "replica_third_send_trailing_count": 0,
+   "replica_third_recv_leading_count": 0,
+   "replica_third_recv_trailing_count": 0
+  }
+ ],
+ "pool_health": [
+  {
+   "peak_tail_high_water": 0,
+   "peak_migration_count": 0,
+   "peak_departed_count": 0,
+   "departed_pool_size": 0,
+   "own_pool_size": 201984,
+   "free_margin": 201984,
+   "used_fraction": 0.0,
+   "sizing_target": 0
+  }
+ ],
+ "worker_stamp_errors": {},
+ "defrag_reports": [],
+ "ownership_previous": {
+  "frame": 299,
+  "alive_total": 175616,
+  "missing_ids": 0,
+  "duplicate_ids": 0,
+  "invalid_ids": 0,
+  "foreign_extension_values": 0
+ },
+ "bookkeeping": {
+  "alive_total": 175616,
+  "alive_per_slab": [
+   175616
+  ],
+  "missing_ids": 0,
+  "duplicate_ids": 0,
+  "invalid_ids": 0,
+  "foreign_extension_values": 0,
+  "crossed_last_step_count": 0,
+  "crossings_by_direction": {},
+  "density_exact_float64": false,
+  "unknown_previous_owner": 0
+ },
+ "invariants": {
+  "drift": 0,
+  "missing_ids": 0,
+  "duplicate_ids": 0,
+  "invalid_ids": 0,
+  "foreign_extension_values": 0,
+  "previous_duplicate_ids": 0,
+  "previous_invalid_ids": 0,
+  "stamp_errors_gpu": 0,
+  "stamp_errors_host": 0,
+  "overflow_deep_wall_skip_count": 0,
+  "overflow_departed_count": 0,
+  "overflow_ghost_count": 0,
+  "overflow_incoming_count": 0,
+  "overflow_initialization_outside": 0,
+  "overflow_inside_count": 0,
+  "overflow_install_inside": 0,
+  "overflow_install_tail": 0,
+  "overflow_total": 0,
+  "far_migration_count": 0,
+  "warnings": [],
+  "valid": true
+ },
+ "window": null
+}
