@@ -10,11 +10,13 @@
 #   v7single_sha.txt           the 40-hex SHA of that commit
 # The deployment's cases/ links the shared store (~/run/vulkan-demo-v7rc1/cases) like the E8 deployment: the same
 # particle files and .obj cache keys. JuiceFS creates files slowly: /dev/shm stage + 16 parallel copies.
-# Usage: [SHA=<40 hex>] [UPDATE=1] bash e8_deploy_single_remote.sh
+# Usage: [SHA=<40 hex>] [UPDATE=1] [DEST=<dir>] bash e8_deploy_single_remote.sh
+#   DEST = another deployment directory (e8_S2, 2026-10-22: ~/run/vulkan-demo-v7single2 with the bootstrap-defrag bench,
+#   while ~/run/vulkan-demo-v7single stays what jobs 1721839 / 1722130 ran)
 set -u
 SHA=${SHA:-$(cat "$HOME/run/tools/v7single_sha.txt" 2>/dev/null | tr -d '[:space:]')}
 EXPECT_TREE=82dd6a740fa2a97a44e6a31d75392f75e486163b       # v7-rc1's experiment/v7 (the branch v7-single never edits it)
-DEST=$HOME/run/vulkan-demo-v7single
+DEST=${DEST:-$HOME/run/vulkan-demo-v7single}
 TOOLS=$HOME/run/tools
 TARBALL=$TOOLS/vd_v7single_$SHA.tar.gz
 STAGE=/dev/shm/scxm138/v7single_stage_$SHA
@@ -25,7 +27,10 @@ echo "=== v7single deploy $(date) host $(hostname): $SHA -> $DEST"
 [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "ABORT: '$SHA' is not a 40-character sha"; exit 1; }
 [ -s "$TARBALL" ] || { echo "ABORT: no $TARBALL"; exit 1; }
 QUEUE=$(timeout 60 squeue -u scxm138 -h -o '%i|%j|%T|%Z|%o') || { echo "ABORT: squeue failed"; exit 1; }
-if echo "$QUEUE" | grep -F "vulkan-demo-e8"; then echo "ABORT: an E8 job is queued or running (it reads this deployment)"; exit 1; fi
+# a queued or running E8 job reads the deployment it was submitted with (E8_SINGLE_REPO): never replace that one; another
+# DEST is free (e8_D 1722854 reads none of them, its workdir is vulkan-demo-e8d)
+if [ -e "$DEST" ] && echo "$QUEUE" | grep -F "$(cd "$DEST" && pwd -P)"; then echo "ABORT: an E8 job of $DEST is queued or running"; exit 1; fi
+if [ -e "$DEST" ] && echo "$QUEUE" | grep -F "vulkan-demo-e8" | grep -vF "vulkan-demo-e8d"; then echo "ABORT: an E8 job that may read $DEST is queued or running"; exit 1; fi
 if [ -e "$DEST" ]; then
     if [ "${UPDATE:-0}" = 1 ]; then
         ASIDE=$DEST.old.$(date +%Y%m%d_%H%M%S); mv "$DEST" "$ASIDE" || { echo "ABORT: cannot move $DEST aside"; exit 1; }

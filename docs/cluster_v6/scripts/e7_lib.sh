@@ -939,16 +939,28 @@ PYEOF
     esac
 }
 
-e8_single_ratio() { # LABEL CASE PAIRS STEPS WARMUP TIMEOUT   (E8: fig:reference's method on the cluster)
+e8_single_ratio() { # LABEL CASE PAIRS STEPS WARMUP TIMEOUT [DEFRAG]   (E8: fig:reference's method on the cluster)
     # PAIRS interleaved pairs on GPU 0: v7_single (E8_SINGLE_REPO, its own experiment/v7 = v7-rc1's, whose K = 1
     # kernels are byte-identical to this deployment's) and this deployment's chain at K = 1, both 2 in flight, STEPS
-    # steps with WARMUP of warmup, defrag off inside both windows (--no-defrag: the single bench's window is drain to
-    # drain, the chain's runs from the submission of frame warmup + 1, both then hold exactly STEPS - WARMUP steps), the
-    # order alternating (single first on odd pairs). Every run is an optional step; the ratio is computed afterwards.
-    local label=$1 case_name=$2 pairs=$3 steps=$4 warmup=$5 limit=$6
+    # steps with WARMUP of warmup, the order alternating (single first on odd pairs). DEFRAG (revision 15):
+    #   off (default, jobs 1721839 / 1722130): --no-defrag on both halves - the single bench's window is drain to drain, the
+    #       chain's runs from the submission of frame warmup + 1, both then hold exactly STEPS - WARMUP steps without a
+    #       periodic defrag (the bootstrap defrag runs on both sides since the bench of 2026-10-22; before it the single
+    #       half never defragmented: job 1722130's 17 %);
+    #   cadence (Sec. 5.1's protocol): both at the case's defrag cadence (1000), so with WARMUP 1000 the first periodic
+    #       defrag precedes the window and the window holds one defrag per 1000 steps on both sides; the ratio then uses
+    #       the chain's fps WITH its defrag events (the single bench's fps includes its own).
+    # Every run is an optional step; the ratio is computed afterwards (e8_single_ratio.py).
+    local label=$1 case_name=$2 pairs=$3 steps=$4 warmup=$5 limit=$6 defrag=${7:-off}
     local yaml=cases/aligned/$case_name/case.yaml pin="" pair kind order measure=$((steps - warmup)) single_repo=${E8_SINGLE_REPO:-$HOME/run/vulkan-demo-v7single}
+    local single_defrag="--no-defrag" chain_defrag="--no-defrag"
+    case "$defrag" in
+        off) ;;
+        cadence) single_defrag=""; chain_defrag="" ;;
+        *) echo "ABORT: e8_single_ratio DEFRAG='$defrag' (off | cadence)"; exit 2 ;;
+    esac
     [ -n "${CPUL[0]:-}" ] && pin="taskset -c ${CPUL[0]} "
-    echo; echo "##### SINGLE_RATIO $label case=$case_name pairs=$pairs steps=$steps warmup=$warmup single_repo=$single_repo host=$(hostname) ($(date +%T))"
+    echo; echo "##### SINGLE_RATIO $label case=$case_name pairs=$pairs steps=$steps warmup=$warmup defrag=$defrag single_repo=$single_repo host=$(hostname) ($(date +%T))"
     [ -d "$single_repo" ] || { echo "SINGLE_RATIO: no v7_single deployment at $single_repo (skipped)"; return 0; }
     echo "single COMMIT: $(head -c 80 "$single_repo/COMMIT" 2>/dev/null)"
     for pair in $(seq 1 "$pairs"); do
@@ -961,16 +973,36 @@ e8_single_ratio() { # LABEL CASE PAIRS STEPS WARMUP TIMEOUT   (E8: fig:reference
                 # it does not read
                 e30_step "${label}_p${pair}_single" "$limit" --optional -- ${pin}env $(env | grep -o '^V7_[A-Z_0-9]*' | grep -v -x 'V7_FUSED_CORRECTION_DENSITY\|V7_DENSITY_COPY_COMPUTE\|V7_DEEP_WALL_SKIP' | sed 's/^/-u /' | tr '\n' ' ') $PY -u docs/cluster_v6/scripts/e8_single_bench.py \
                     --repo "$single_repo" --obj-cache "$NODE_CACHE" -- --case "$yaml" --device 0 --warmup "$warmup" --measure "$measure" \
-                    --in-flight 2 --no-defrag --tag "${label}_p$pair"
+                    --in-flight 2 $single_defrag --tag "${label}_p$pair"
             else
                 e7_index "${label}_p${pair}_chain" single_ratio extra "$case_name" 1 "$pair" - - "$label"
                 E30_PREFIX=$(e7_raw_prefix "$pin" 1) E30_WRAPPER_ARGS=$(e7_raw_wrapper "${label}_p${pair}_chain") \
                     e30_run "${label}_p${pair}_chain" "$limit" --optional -- --case "$yaml" --weights 1 --device-map 0 $COMMON \
-                    --max-steps "$steps" --warmup $((warmup + 1)) --no-defrag --no-seam-check
+                    --max-steps "$steps" --warmup $((warmup + 1)) $chain_defrag --no-seam-check
             fi
         done
     done
     [ "$E30_DRY" = 1 ] || grep -h "^RESULT \|\[bench_single\] fps" "$SHM/${label}"_p*_single.log 2>/dev/null | cut -c1-200
+}
+
+e8_single_control() { # LABEL CASE STEPS WARMUP TIMEOUT   (revision 15: the bootstrap-defrag control of job 1722130)
+    # Two v7_single runs on GPU 0 under job 1722130's protocol (--no-defrag, STEPS / WARMUP, 2 in flight), back to back:
+    # <LABEL>_boot with the bench's bootstrap defrag (the 2026-10-22 default) and <LABEL>_noboot without it
+    # (--no-bootstrap-defrag = exactly what job 1722130's single halves ran). Their fps ratio isolates the bootstrap
+    # defrag; e8_single_ratio.py reports both next to the pairs. Optional steps, indexed as kind single_control.
+    local label=$1 case_name=$2 steps=$3 warmup=$4 limit=$5
+    local yaml=cases/aligned/$case_name/case.yaml pin="" variant flag measure=$((steps - warmup)) single_repo=${E8_SINGLE_REPO:-$HOME/run/vulkan-demo-v7single}
+    [ -n "${CPUL[0]:-}" ] && pin="taskset -c ${CPUL[0]} "
+    echo; echo "##### SINGLE_CONTROL $label case=$case_name steps=$steps warmup=$warmup single_repo=$single_repo host=$(hostname) ($(date +%T))"
+    [ -d "$single_repo" ] || { echo "SINGLE_CONTROL: no v7_single deployment at $single_repo (skipped)"; return 0; }
+    for variant in boot noboot; do
+        flag=""; [ "$variant" = noboot ] && flag="--no-bootstrap-defrag"
+        e7_index "${label}_${variant}" single_control extra "$case_name" 1 1 - - "$label"
+        e30_step "${label}_${variant}" "$limit" --optional -- ${pin}env $(env | grep -o '^V7_[A-Z_0-9]*' | grep -v -x 'V7_FUSED_CORRECTION_DENSITY\|V7_DENSITY_COPY_COMPUTE\|V7_DEEP_WALL_SKIP' | sed 's/^/-u /' | tr '\n' ' ') $PY -u docs/cluster_v6/scripts/e8_single_bench.py \
+            --repo "$single_repo" --obj-cache "$NODE_CACHE" -- --case "$yaml" --device 0 --warmup "$warmup" --measure "$measure" \
+            --in-flight 2 --no-defrag $flag --tag "${label}_${variant}"
+    done
+    [ "$E30_DRY" = 1 ] || grep -h "^RESULT \|\[bench_single\] fps\|bootstrap defrag" "$SHM/${label}"_*.log 2>/dev/null | cut -c1-200
 }
 
 e7_job_end() {
