@@ -99,3 +99,13 @@ per card (sim: device): T_A / T_B / T_C / period medians (ms): 0: 0.755 / 48.698
 | ratio ideal / chain (window − defrag means) | | | | | **0.9005** | |
 
 per card (sim: device): T_A / T_B / T_C / period medians (ms): 0: 1.555 / 89.103 / 12.068 / 106.759; 1: 1.671 / 81.779 / 23.241 / 106.577; 2: 1.591 / 76.718 / 23.108 / 105.841; 3: 1.651 / 90.550 / 12.514 / 107.985
+
+**3d_n496_K8** — 128M (504^3) K = 8 (04_e8_e8C_1722072; chain trace fps 8.90 without defrag, 1 defrag event(s) in the window)
+
+| row | T_A (ms) | T_B (ms) | T_C (ms) | step median (ms) | step mean window − defrag (ms) | step mean skip (ms) |
+|---|---|---|---|---|---|---|
+| chain K = 8 (per card median, mean over cards (min–max)) | 1.712 (1.670–1.780) | 71.502 (64.195–86.324) | 31.855 (18.729–36.965) | 110.262 (109.054–112.172) | 112.266 | 112.302 |
+| ideal chain = K = 2 pair trace of 3d_n496 ÷ 4 | 1.544 (1.543–1.545) | 88.628 (88.491–88.765) | 4.851 (4.831–4.872) | 95.454 (95.239–95.668) | 96.291 | 96.345 |
+| ratio ideal / chain (window − defrag means) | | | | | **0.8577** | |
+
+per card (sim: device): T_A / T_B / T_C / period medians (ms): 0: 1.724 / 86.150 / 18.783 / 109.758; 1: 1.674 / 64.802 / 36.033 / 110.341; 2: 1.670 / 64.293 / 35.864 / 110.273; 3: 1.779 / 71.166 / 36.965 / 109.600; 4: 1.670 / 64.195 / 35.897 / 109.946; 5: 1.780 / 70.289 / 36.223 / 112.172; 6: 1.670 / 64.802 / 36.349 / 109.054; 7: 1.727 / 86.324 / 18.729 / 110.949

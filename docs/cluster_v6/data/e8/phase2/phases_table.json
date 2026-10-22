@@ -1748,5 +1748,213 @@
    "trace_steady_fps": 2.549817583504606
   },
   "ratio_ideal_over_chain": 0.9005480021705533
+ },
+ {
+  "point": "3d_n496_K8",
+  "job": "04_e8_e8C_1722072",
+  "case": "cavity3d_n496",
+  "K": 8,
+  "kind": "strong",
+  "ideal_case": "cavity3d_n496",
+  "ideal_kind": "k2_pair",
+  "chain": {
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-22\\04_e8_e8C_1722072\\traces\\3d_n496_K8_C",
+   "case": "cases/aligned/cavity3d_n496/case.yaml",
+   "K": 8,
+   "warmup": 500,
+   "max_steps": 1500,
+   "per_sim": [
+    {
+     "sim": 0,
+     "steps": 998,
+     "a_p50_ms": 1.723722,
+     "b_p50_ms": 86.149844,
+     "c_p50_ms": 18.783086,
+     "period_p50_ms": 109.758284,
+     "period_mean_skip_ms": 112.26837126653307,
+     "period_sum_ms": 112833.49214,
+     "steady_steps": 999
+    },
+    {
+     "sim": 1,
+     "steps": 998,
+     "a_p50_ms": 1.673512,
+     "b_p50_ms": 64.802248,
+     "c_p50_ms": 36.032928,
+     "period_p50_ms": 110.340728,
+     "period_mean_skip_ms": 112.26604187575151,
+     "period_sum_ms": 112828.75488,
+     "steady_steps": 999
+    },
+    {
+     "sim": 2,
+     "steps": 998,
+     "a_p50_ms": 1.67022,
+     "b_p50_ms": 64.29263,
+     "c_p50_ms": 35.863724,
+     "period_p50_ms": 110.272628,
+     "period_mean_skip_ms": 112.32626649298598,
+     "period_sum_ms": 112839.022032,
+     "steady_steps": 999
+    },
+    {
+     "sim": 3,
+     "steps": 998,
+     "a_p50_ms": 1.778506,
+     "b_p50_ms": 71.16551,
+     "c_p50_ms": 36.965424,
+     "period_p50_ms": 109.59995,
+     "period_mean_skip_ms": 112.38778474148297,
+     "period_sum_ms": 112844.429196,
+     "steady_steps": 999
+    },
+    {
+     "sim": 4,
+     "steps": 998,
+     "a_p50_ms": 1.670096,
+     "b_p50_ms": 64.194532,
+     "c_p50_ms": 35.896578,
+     "period_p50_ms": 109.946386,
+     "period_mean_skip_ms": 112.32949503807615,
+     "period_sum_ms": 112838.73122,
+     "steady_steps": 999
+    },
+    {
+     "sim": 5,
+     "steps": 998,
+     "a_p50_ms": 1.779806,
+     "b_p50_ms": 70.289134,
+     "c_p50_ms": 36.222778,
+     "period_p50_ms": 112.171798,
+     "period_mean_skip_ms": 112.27237488577154,
+     "period_sum_ms": 112828.493788,
+     "steady_steps": 999
+    },
+    {
+     "sim": 6,
+     "steps": 998,
+     "a_p50_ms": 1.670252,
+     "b_p50_ms": 64.80156,
+     "c_p50_ms": 36.349006,
+     "period_p50_ms": 109.053822,
+     "period_mean_skip_ms": 112.27965249699399,
+     "period_sum_ms": 112833.515332,
+     "steady_steps": 999
+    },
+    {
+     "sim": 7,
+     "steps": 998,
+     "a_p50_ms": 1.727474,
+     "b_p50_ms": 86.32404,
+     "c_p50_ms": 18.72883,
+     "period_p50_ms": 110.949308,
+     "period_mean_skip_ms": 112.28435033266533,
+     "period_sum_ms": 112833.520184,
+     "steady_steps": 999
+    }
+   ],
+   "aggregate": {
+    "sims": 8,
+    "divide": 1,
+    "a": {
+     "mean": 1.7116985,
+     "min": 1.670096,
+     "max": 1.779806
+    },
+    "b": {
+     "mean": 71.50243725,
+     "min": 64.194532,
+     "max": 86.32404
+    },
+    "c": {
+     "mean": 31.85529425,
+     "min": 18.72883,
+     "max": 36.965424
+    },
+    "period": {
+     "mean": 110.261613,
+     "min": 109.053822,
+     "max": 112.171798
+    },
+    "step_mean_skip": 112.30179214128256,
+    "step_mean_window": 112.26647932582581,
+    "defrag_events": [
+     [
+      1000,
+      680.782
+     ]
+    ]
+   },
+   "fps": 8.844078889183692,
+   "fps_nodefrag": 8.8979,
+   "trace_steady_fps": 8.844325126653692
+  },
+  "ideal": {
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-22\\04_e8_e8C_1722072\\traces\\trace_3d_n496_K2",
+   "case": "cases/aligned/cavity3d_n496/case.yaml",
+   "K": 2,
+   "warmup": 500,
+   "max_steps": 1500,
+   "per_sim": [
+    {
+     "sim": 0,
+     "steps": 998,
+     "a_p50_ms": 6.172374,
+     "b_p50_ms": 355.059074,
+     "c_p50_ms": 19.487808,
+     "period_p50_ms": 380.957998,
+     "period_mean_skip_ms": 385.5653679519038,
+     "period_sum_ms": 385647.918232,
+     "steady_steps": 999
+    },
+    {
+     "sim": 1,
+     "steps": 998,
+     "a_p50_ms": 6.178148,
+     "b_p50_ms": 353.964654,
+     "c_p50_ms": 19.32358,
+     "period_p50_ms": 382.673968,
+     "period_mean_skip_ms": 385.1926308176353,
+     "period_sum_ms": 385614.215972,
+     "steady_steps": 999
+    }
+   ],
+   "aggregate": {
+    "sims": 2,
+    "divide": 4,
+    "a": {
+     "mean": 1.54381525,
+     "min": 1.5430935,
+     "max": 1.544537
+    },
+    "b": {
+     "mean": 88.627966,
+     "min": 88.4911635,
+     "max": 88.7647685
+    },
+    "c": {
+     "mean": 4.8514235,
+     "min": 4.830895,
+     "max": 4.871952
+    },
+    "period": {
+     "mean": 95.45399574999999,
+     "min": 95.2394995,
+     "max": 95.668492
+    },
+    "step_mean_skip": 96.34474984619239,
+    "step_mean_window": 96.29072975525526,
+    "defrag_events": [
+     [
+      1000,
+      853.311
+     ]
+    ]
+   },
+   "fps": 2.587924743148469,
+   "fps_nodefrag": 2.5936,
+   "trace_steady_fps": 2.5879023580453198
+  },
+  "ratio_ideal_over_chain": 0.8576979551999232
  }
 ]
