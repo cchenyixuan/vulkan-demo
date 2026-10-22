@@ -959,7 +959,8 @@ e8_single_ratio() { # LABEL CASE PAIRS STEPS WARMUP TIMEOUT [DEFRAG]   (E8: fig:
         cadence) single_defrag=""; chain_defrag="" ;;
         *) echo "ABORT: e8_single_ratio DEFRAG='$defrag' (off | cadence)"; exit 2 ;;
     esac
-    [ -n "${CPUL[0]:-}" ] && pin="taskset -c ${CPUL[0]} "
+    # pin to card 0's NUMA cpulist only when the job's CPU quota intersects it (a 2-card job gets 16 CPUs, not the whole node)
+    [ -n "${CPUL[0]:-}" ] && taskset -c "${CPUL[0]}" true 2>/dev/null && pin="taskset -c ${CPUL[0]} "
     echo; echo "##### SINGLE_RATIO $label case=$case_name pairs=$pairs steps=$steps warmup=$warmup defrag=$defrag single_repo=$single_repo host=$(hostname) ($(date +%T))"
     [ -d "$single_repo" ] || { echo "SINGLE_RATIO: no v7_single deployment at $single_repo (skipped)"; return 0; }
     echo "single COMMIT: $(head -c 80 "$single_repo/COMMIT" 2>/dev/null)"
@@ -992,7 +993,8 @@ e8_single_control() { # LABEL CASE STEPS WARMUP TIMEOUT   (revision 15: the boot
     # defrag; e8_single_ratio.py reports both next to the pairs. Optional steps, indexed as kind single_control.
     local label=$1 case_name=$2 steps=$3 warmup=$4 limit=$5
     local yaml=cases/aligned/$case_name/case.yaml pin="" variant flag measure=$((steps - warmup)) single_repo=${E8_SINGLE_REPO:-$HOME/run/vulkan-demo-v7single}
-    [ -n "${CPUL[0]:-}" ] && pin="taskset -c ${CPUL[0]} "
+    # pin to card 0's NUMA cpulist only when the job's CPU quota intersects it (a 2-card job gets 16 CPUs, not the whole node)
+    [ -n "${CPUL[0]:-}" ] && taskset -c "${CPUL[0]}" true 2>/dev/null && pin="taskset -c ${CPUL[0]} "
     echo; echo "##### SINGLE_CONTROL $label case=$case_name steps=$steps warmup=$warmup single_repo=$single_repo host=$(hostname) ($(date +%T))"
     [ -d "$single_repo" ] || { echo "SINGLE_CONTROL: no v7_single deployment at $single_repo (skipped)"; return 0; }
     for variant in boot noboot; do
