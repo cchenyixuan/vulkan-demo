@@ -1,0 +1,71 @@
+[
+ {
+  "job": "02_e8_e8B_1721839",
+  "case": "cavity3d_n192",
+  "pairs": [
+   {
+    "pair": 1,
+    "single_fps": null,
+    "single_us_per_step": null,
+    "single_status": null,
+    "single_drift": null,
+    "single_overflow": null,
+    "single_gpu": null,
+    "single_measure": null,
+    "single_in_flight": null,
+    "chain_label": "single_3d_n192_p1_chain",
+    "chain_status": "pass",
+    "chain_fps": 19.3717277486911,
+    "chain_fps_nodefrag": 19.3735,
+    "chain_device": [
+     0
+    ],
+    "ratio_chain_over_single": null
+   },
+   {
+    "pair": 2,
+    "single_fps": null,
+    "single_us_per_step": null,
+    "single_status": null,
+    "single_drift": null,
+    "single_overflow": null,
+    "single_gpu": null,
+    "single_measure": null,
+    "single_in_flight": null,
+    "chain_label": "single_3d_n192_p2_chain",
+    "chain_status": "pass",
+    "chain_fps": 19.383003492433062,
+    "chain_fps_nodefrag": 19.3842,
+    "chain_device": [
+     0
+    ],
+    "ratio_chain_over_single": null
+   },
+   {
+    "pair": 3,
+    "single_fps": null,
+    "single_us_per_step": null,
+    "single_status": null,
+    "single_drift": null,
+    "single_overflow": null,
+    "single_gpu": null,
+    "single_measure": null,
+    "single_in_flight": null,
+    "chain_label": "single_3d_n192_p3_chain",
+    "chain_status": "pass",
+    "chain_fps": 19.379243452958296,
+    "chain_fps_nodefrag": 19.3811,
+    "chain_device": [
+     0
+    ],
+    "ratio_chain_over_single": null
+   }
+  ],
+  "single_fps_mean": null,
+  "chain_fps_mean": 19.3796,
+  "ratio_of_means": null,
+  "ratio_min": null,
+  "ratio_max": null,
+  "complete_pairs": 0
+ }
+]
