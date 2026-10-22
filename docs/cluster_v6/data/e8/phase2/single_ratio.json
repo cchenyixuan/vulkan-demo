@@ -1,140 +1,337 @@
-[
- {
-  "job": "02_e8_e8B_1721839",
-  "case": "cavity3d_n192",
-  "pairs": [
-   {
-    "pair": 1,
-    "single_fps": null,
-    "single_us_per_step": null,
-    "single_status": null,
-    "single_drift": null,
-    "single_overflow": null,
-    "single_gpu": null,
-    "single_measure": null,
-    "single_in_flight": null,
-    "chain_label": "single_3d_n192_p1_chain",
-    "chain_status": "pass",
-    "chain_fps": 19.3717277486911,
-    "chain_fps_nodefrag": 19.3735,
-    "chain_device": [
-     0
-    ],
-    "ratio_chain_over_single": null
+{
+ "pairs": [
+  {
+   "job": "02_e8_e8B_1721839",
+   "case": "cavity3d_n192",
+   "mode": "off",
+   "pairs": [
+    {
+     "pair": 1,
+     "mode": "off",
+     "protocol": "-",
+     "valid": false,
+     "failed": true,
+     "invalid_reason": null,
+     "single_fps": null,
+     "single_us_per_step": null,
+     "single_status": null,
+     "single_drift": null,
+     "single_overflow": null,
+     "single_gpu": null,
+     "single_measure": null,
+     "single_warmup": null,
+     "single_in_flight": null,
+     "single_defrag_cadence": null,
+     "single_bootstrap_defrag": false,
+     "single_bootstrap_defrag_ms": null,
+     "chain_label": "single_3d_n192_p1_chain",
+     "chain_status": "pass",
+     "chain_fps": 19.3717277486911,
+     "chain_fps_nodefrag": 19.3735,
+     "chain_fps_used": 19.3735,
+     "chain_device": [
+      0
+     ],
+     "ratio_chain_over_single": null
+    },
+    {
+     "pair": 2,
+     "mode": "off",
+     "protocol": "-",
+     "valid": false,
+     "failed": true,
+     "invalid_reason": null,
+     "single_fps": null,
+     "single_us_per_step": null,
+     "single_status": null,
+     "single_drift": null,
+     "single_overflow": null,
+     "single_gpu": null,
+     "single_measure": null,
+     "single_warmup": null,
+     "single_in_flight": null,
+     "single_defrag_cadence": null,
+     "single_bootstrap_defrag": false,
+     "single_bootstrap_defrag_ms": null,
+     "chain_label": "single_3d_n192_p2_chain",
+     "chain_status": "pass",
+     "chain_fps": 19.383003492433062,
+     "chain_fps_nodefrag": 19.3842,
+     "chain_fps_used": 19.3842,
+     "chain_device": [
+      0
+     ],
+     "ratio_chain_over_single": null
+    },
+    {
+     "pair": 3,
+     "mode": "off",
+     "protocol": "-",
+     "valid": false,
+     "failed": true,
+     "invalid_reason": null,
+     "single_fps": null,
+     "single_us_per_step": null,
+     "single_status": null,
+     "single_drift": null,
+     "single_overflow": null,
+     "single_gpu": null,
+     "single_measure": null,
+     "single_warmup": null,
+     "single_in_flight": null,
+     "single_defrag_cadence": null,
+     "single_bootstrap_defrag": false,
+     "single_bootstrap_defrag_ms": null,
+     "chain_label": "single_3d_n192_p3_chain",
+     "chain_status": "pass",
+     "chain_fps": 19.379243452958296,
+     "chain_fps_nodefrag": 19.3811,
+     "chain_fps_used": 19.3811,
+     "chain_device": [
+      0
+     ],
+     "ratio_chain_over_single": null
+    }
+   ],
+   "protocol": "-",
+   "single_fps_mean": null,
+   "chain_fps_mean": null,
+   "ratio_of_means": null,
+   "ratio_min": null,
+   "ratio_max": null,
+   "complete_pairs": 0,
+   "invalid_pairs": 3
+  },
+  {
+   "job": "05_e8_e8S_1722130",
+   "case": "cavity3d_n192",
+   "mode": "off",
+   "pairs": [
+    {
+     "pair": 1,
+     "mode": "off",
+     "protocol": "off",
+     "valid": false,
+     "failed": false,
+     "invalid_reason": "v7_single never defragmented: the bench before 2026-10-22 skipped the bootstrap defrag under --no-defrag while the chain's bootstrap_all always runs one (claude/e8_single_vs_chain_k1.md)",
+     "single_fps": 16.4796,
+     "single_us_per_step": 60681.0912,
+     "single_status": "ok",
+     "single_drift": 0,
+     "single_overflow": {},
+     "single_gpu": "NVIDIA GeForce RTX 5090",
+     "single_measure": 1000,
+     "single_warmup": 500,
+     "single_in_flight": 2,
+     "single_defrag_cadence": 0,
+     "single_bootstrap_defrag": false,
+     "single_bootstrap_defrag_ms": null,
+     "chain_label": "single_3d_n192_p1_chain",
+     "chain_status": "pass",
+     "chain_fps": 19.068524527581598,
+     "chain_fps_nodefrag": 19.0692,
+     "chain_fps_used": 19.0692,
+     "chain_device": [
+      0
+     ],
+     "ratio_chain_over_single": 1.1571397364013687
+    },
+    {
+     "pair": 2,
+     "mode": "off",
+     "protocol": "off",
+     "valid": false,
+     "failed": false,
+     "invalid_reason": "v7_single never defragmented: the bench before 2026-10-22 skipped the bootstrap defrag under --no-defrag while the chain's bootstrap_all always runs one (claude/e8_single_vs_chain_k1.md)",
+     "single_fps": 16.4507,
+     "single_us_per_step": 60787.6197,
+     "single_status": "ok",
+     "single_drift": 0,
+     "single_overflow": {},
+     "single_gpu": "NVIDIA GeForce RTX 5090",
+     "single_measure": 1000,
+     "single_warmup": 500,
+     "single_in_flight": 2,
+     "single_defrag_cadence": 0,
+     "single_bootstrap_defrag": false,
+     "single_bootstrap_defrag_ms": null,
+     "chain_label": "single_3d_n192_p2_chain",
+     "chain_status": "pass",
+     "chain_fps": 19.130601302183074,
+     "chain_fps_nodefrag": 19.1304,
+     "chain_fps_used": 19.1304,
+     "chain_device": [
+      0
+     ],
+     "ratio_chain_over_single": 1.1628927644416347
+    },
+    {
+     "pair": 3,
+     "mode": "off",
+     "protocol": "off",
+     "valid": false,
+     "failed": false,
+     "invalid_reason": "v7_single never defragmented: the bench before 2026-10-22 skipped the bootstrap defrag under --no-defrag while the chain's bootstrap_all always runs one (claude/e8_single_vs_chain_k1.md)",
+     "single_fps": 16.3866,
+     "single_us_per_step": 61025.2879,
+     "single_status": "ok",
+     "single_drift": 0,
+     "single_overflow": {},
+     "single_gpu": "NVIDIA GeForce RTX 5090",
+     "single_measure": 1000,
+     "single_warmup": 500,
+     "single_in_flight": 2,
+     "single_defrag_cadence": 0,
+     "single_bootstrap_defrag": false,
+     "single_bootstrap_defrag_ms": null,
+     "chain_label": "single_3d_n192_p3_chain",
+     "chain_status": "pass",
+     "chain_fps": 19.304347826086957,
+     "chain_fps_nodefrag": 19.3049,
+     "chain_fps_used": 19.3049,
+     "chain_device": [
+      0
+     ],
+     "ratio_chain_over_single": 1.1780906350310618
+    }
+   ],
+   "protocol": "off",
+   "single_fps_mean": null,
+   "chain_fps_mean": null,
+   "ratio_of_means": null,
+   "ratio_min": null,
+   "ratio_max": null,
+   "complete_pairs": 0,
+   "invalid_pairs": 3
+  },
+  {
+   "job": "06_e8_e8S2_1723164",
+   "case": "cavity3d_n192",
+   "mode": "cadence",
+   "pairs": [
+    {
+     "pair": 1,
+     "mode": "cadence",
+     "protocol": "cadence",
+     "valid": true,
+     "failed": false,
+     "invalid_reason": null,
+     "single_fps": 18.4135,
+     "single_us_per_step": 54308.1156,
+     "single_status": "ok",
+     "single_drift": 0,
+     "single_overflow": {},
+     "single_gpu": "NVIDIA GeForce RTX 5090",
+     "single_measure": 1000,
+     "single_warmup": 1000,
+     "single_in_flight": 2,
+     "single_defrag_cadence": 1000,
+     "single_bootstrap_defrag": true,
+     "single_bootstrap_defrag_ms": 25.4,
+     "chain_label": "single_3d_n192_cadence_p1_chain",
+     "chain_status": "pass",
+     "chain_fps": 18.266593527153045,
+     "chain_fps_nodefrag": 18.2942,
+     "chain_fps_used": 18.266593527153045,
+     "chain_device": [
+      0
+     ],
+     "ratio_chain_over_single": 0.9920218061288211
+    },
+    {
+     "pair": 2,
+     "mode": "cadence",
+     "protocol": "cadence",
+     "valid": true,
+     "failed": false,
+     "invalid_reason": null,
+     "single_fps": 18.292,
+     "single_us_per_step": 54668.6005,
+     "single_status": "ok",
+     "single_drift": 0,
+     "single_overflow": {},
+     "single_gpu": "NVIDIA GeForce RTX 5090",
+     "single_measure": 1000,
+     "single_warmup": 1000,
+     "single_in_flight": 2,
+     "single_defrag_cadence": 1000,
+     "single_bootstrap_defrag": true,
+     "single_bootstrap_defrag_ms": 25.3,
+     "chain_label": "single_3d_n192_cadence_p2_chain",
+     "chain_status": "pass",
+     "chain_fps": 18.296703296703296,
+     "chain_fps_nodefrag": 18.3274,
+     "chain_fps_used": 18.296703296703296,
+     "chain_device": [
+      0
+     ],
+     "ratio_chain_over_single": 1.0002571231523778
+    },
+    {
+     "pair": 3,
+     "mode": "cadence",
+     "protocol": "cadence",
+     "valid": true,
+     "failed": false,
+     "invalid_reason": null,
+     "single_fps": 18.326,
+     "single_us_per_step": 54567.3324,
+     "single_status": "ok",
+     "single_drift": 0,
+     "single_overflow": {},
+     "single_gpu": "NVIDIA GeForce RTX 5090",
+     "single_measure": 1000,
+     "single_warmup": 1000,
+     "single_in_flight": 2,
+     "single_defrag_cadence": 1000,
+     "single_bootstrap_defrag": true,
+     "single_bootstrap_defrag_ms": 25.4,
+     "chain_label": "single_3d_n192_cadence_p3_chain",
+     "chain_status": "pass",
+     "chain_fps": 18.37748344370861,
+     "chain_fps_nodefrag": 18.4091,
+     "chain_fps_used": 18.37748344370861,
+     "chain_device": [
+      0
+     ],
+     "ratio_chain_over_single": 1.0028093115632768
+    }
+   ],
+   "protocol": "cadence",
+   "single_fps_mean": 18.343833333333333,
+   "chain_fps_mean": 18.31359342252165,
+   "ratio_of_means": 0.9983514944634427,
+   "ratio_min": 0.9920218061288211,
+   "ratio_max": 1.0028093115632768,
+   "complete_pairs": 3,
+   "invalid_pairs": 0
+  }
+ ],
+ "controls": [
+  {
+   "job": "06_e8_e8S2_1723164",
+   "case": "cavity3d_n192",
+   "boot": {
+    "fps": 19.5804,
+    "status": "ok",
+    "drift": 0,
+    "measure": 1000,
+    "warmup": 500,
+    "defrag_cadence": 0,
+    "bootstrap_defrag": true,
+    "bootstrap_defrag_ms": 25.5
    },
-   {
-    "pair": 2,
-    "single_fps": null,
-    "single_us_per_step": null,
-    "single_status": null,
-    "single_drift": null,
-    "single_overflow": null,
-    "single_gpu": null,
-    "single_measure": null,
-    "single_in_flight": null,
-    "chain_label": "single_3d_n192_p2_chain",
-    "chain_status": "pass",
-    "chain_fps": 19.383003492433062,
-    "chain_fps_nodefrag": 19.3842,
-    "chain_device": [
-     0
-    ],
-    "ratio_chain_over_single": null
+   "noboot": {
+    "fps": 16.7202,
+    "status": "ok",
+    "drift": 0,
+    "measure": 1000,
+    "warmup": 500,
+    "defrag_cadence": 0,
+    "bootstrap_defrag": false,
+    "bootstrap_defrag_ms": null
    },
-   {
-    "pair": 3,
-    "single_fps": null,
-    "single_us_per_step": null,
-    "single_status": null,
-    "single_drift": null,
-    "single_overflow": null,
-    "single_gpu": null,
-    "single_measure": null,
-    "single_in_flight": null,
-    "chain_label": "single_3d_n192_p3_chain",
-    "chain_status": "pass",
-    "chain_fps": 19.379243452958296,
-    "chain_fps_nodefrag": 19.3811,
-    "chain_device": [
-     0
-    ],
-    "ratio_chain_over_single": null
-   }
-  ],
-  "single_fps_mean": null,
-  "chain_fps_mean": 19.3796,
-  "ratio_of_means": null,
-  "ratio_min": null,
-  "ratio_max": null,
-  "complete_pairs": 0
- },
- {
-  "job": "05_e8_e8S_1722130",
-  "case": "cavity3d_n192",
-  "pairs": [
-   {
-    "pair": 1,
-    "single_fps": 16.4796,
-    "single_us_per_step": 60681.0912,
-    "single_status": "ok",
-    "single_drift": 0,
-    "single_overflow": {},
-    "single_gpu": "NVIDIA GeForce RTX 5090",
-    "single_measure": 1000,
-    "single_in_flight": 2,
-    "chain_label": "single_3d_n192_p1_chain",
-    "chain_status": "pass",
-    "chain_fps": 19.068524527581598,
-    "chain_fps_nodefrag": 19.0692,
-    "chain_device": [
-     0
-    ],
-    "ratio_chain_over_single": 1.1571397364013687
-   },
-   {
-    "pair": 2,
-    "single_fps": 16.4507,
-    "single_us_per_step": 60787.6197,
-    "single_status": "ok",
-    "single_drift": 0,
-    "single_overflow": {},
-    "single_gpu": "NVIDIA GeForce RTX 5090",
-    "single_measure": 1000,
-    "single_in_flight": 2,
-    "chain_label": "single_3d_n192_p2_chain",
-    "chain_status": "pass",
-    "chain_fps": 19.130601302183074,
-    "chain_fps_nodefrag": 19.1304,
-    "chain_device": [
-     0
-    ],
-    "ratio_chain_over_single": 1.1628927644416347
-   },
-   {
-    "pair": 3,
-    "single_fps": 16.3866,
-    "single_us_per_step": 61025.2879,
-    "single_status": "ok",
-    "single_drift": 0,
-    "single_overflow": {},
-    "single_gpu": "NVIDIA GeForce RTX 5090",
-    "single_measure": 1000,
-    "single_in_flight": 2,
-    "chain_label": "single_3d_n192_p3_chain",
-    "chain_status": "pass",
-    "chain_fps": 19.304347826086957,
-    "chain_fps_nodefrag": 19.3049,
-    "chain_device": [
-     0
-    ],
-    "ratio_chain_over_single": 1.1780906350310618
-   }
-  ],
-  "single_fps_mean": 16.43896666666667,
-  "chain_fps_mean": 19.168166666666668,
-  "ratio_of_means": 1.166020167528778,
-  "ratio_min": 1.1571397364013687,
-  "ratio_max": 1.1780906350310618,
-  "complete_pairs": 3
- }
-]
+   "ratio_boot_over_noboot": 1.171062547098719
+  }
+ ]
+}

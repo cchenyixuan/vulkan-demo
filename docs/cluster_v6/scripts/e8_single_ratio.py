@@ -136,7 +136,8 @@ def main() -> int:
             lines.append(f"| {r['job']} | {common.CASE_LABELS.get(r['case'], r['case'])} | {e['protocol']} | {e['pair']} | {steps} | "
                          f"{common.fmt(e['single_fps'], 3)} ({'yes' if e['single_bootstrap_defrag'] else 'NO'}) | "
                          f"{common.fmt(e['chain_fps_used'], 3)} ({common.fmt(e['chain_fps'], 3)} / {common.fmt(e['chain_fps_nodefrag'], 3)}) | "
-                         f"{common.fmt(e['ratio_chain_over_single'], 4)} | {'yes' if e['valid'] else '**INVALID**'} | "
+                         f"{common.fmt(e['ratio_chain_over_single'], 4)} | "
+                         f"{'yes' if e['valid'] else ('failed (no RESULT)' if e['failed'] else '**INVALID**')} | "
                          f"{e['single_status']} / {e['single_drift']} / {e['single_overflow']} | {e['chain_status']} |")
         if r["complete_pairs"]:
             lines.append(f"| {r['job']} | {common.CASE_LABELS.get(r['case'], r['case'])} | {r['protocol']} | **mean / mean** | | "
@@ -144,8 +145,9 @@ def main() -> int:
                          f"**{common.fmt(r['ratio_of_means'], 4)}** (pairs {common.fmt(r['ratio_min'], 4)}–{common.fmt(r['ratio_max'], 4)}) | "
                          f"{r['complete_pairs']} valid pairs | | |")
         else:
+            failed = sum(1 for e in r["pairs"] if e["failed"])
             lines.append(f"| {r['job']} | {common.CASE_LABELS.get(r['case'], r['case'])} | {r['protocol']} | **mean / mean** | | - | - | "
-                         f"**none: {r['invalid_pairs']} invalid pairs** | | | |")
+                         f"**none: {r['invalid_pairs'] - failed} invalid, {failed} failed** | | | |")
     invalid = [(r, e) for r in results for e in r["pairs"] if not e["valid"] and e["single_fps"]]
     if invalid:
         lines += ["", "Invalid pairs: " + "; ".join(f"{r['job']} pair {e['pair']} (chain / single {common.fmt(e['ratio_chain_over_single'], 4)})"

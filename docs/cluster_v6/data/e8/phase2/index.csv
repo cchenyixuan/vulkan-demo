@@ -308,3 +308,11 @@ job,label,role,point,case,K,trial,status,fps,fps_nodefrag,steps,ns_per_particle,
 05_e8_e8S_1722130,single_3d_n192_p2_single,single_ratio,single_3d_n192,cavity3d_n192,1,2,,,,,,,,,,wqd10nbj11g2,e8p2
 05_e8_e8S_1722130,single_3d_n192_p3_single,single_ratio,single_3d_n192,cavity3d_n192,1,3,,,,,,,,,,wqd10nbj11g2,e8p2
 05_e8_e8S_1722130,single_3d_n192_p3_chain,single_ratio,single_3d_n192,cavity3d_n192,1,3,pass,19.304347826086957,19.3049,1500,6.475225225225225,0,0,83.7,5.71,wqd10nbj11g2,e8p2
+06_e8_e8S2_1723164,single_3d_n192_cadence_p1_single,single_ratio,single_3d_n192_cadence,cavity3d_n192,1,1,,,,,,,,,,wqd10nah09g4,e8p2
+06_e8_e8S2_1723164,single_3d_n192_cadence_p1_chain,single_ratio,single_3d_n192_cadence,cavity3d_n192,1,1,pass,18.266593527153045,18.2942,2000,6.843093093093093,0,0,112.9,6.44,wqd10nah09g4,e8p2
+06_e8_e8S2_1723164,single_3d_n192_cadence_p2_chain,single_ratio,single_3d_n192_cadence,cavity3d_n192,1,2,pass,18.296703296703296,18.3274,2000,6.831831831831832,0,0,111.6,5.67,wqd10nah09g4,e8p2
+06_e8_e8S2_1723164,single_3d_n192_cadence_p2_single,single_ratio,single_3d_n192_cadence,cavity3d_n192,1,2,,,,,,,,,,wqd10nah09g4,e8p2
+06_e8_e8S2_1723164,single_3d_n192_cadence_p3_single,single_ratio,single_3d_n192_cadence,cavity3d_n192,1,3,,,,,,,,,,wqd10nah09g4,e8p2
+06_e8_e8S2_1723164,single_3d_n192_cadence_p3_chain,single_ratio,single_3d_n192_cadence,cavity3d_n192,1,3,pass,18.37748344370861,18.4091,2000,6.801801801801802,0,0,111.6,5.68,wqd10nah09g4,e8p2
+06_e8_e8S2_1723164,single_3d_n192_bd_boot,single_control,single_3d_n192_bd,cavity3d_n192,1,1,,,,,,,,,,wqd10nah09g4,e8p2
+06_e8_e8S2_1723164,single_3d_n192_bd_noboot,single_control,single_3d_n192_bd,cavity3d_n192,1,1,,,,,,,,,,wqd10nah09g4,e8p2
