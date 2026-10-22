@@ -7,7 +7,11 @@ _run_single_bench.py — headless throughput runner of v7_single (one GPU, N ste
 fps = measured steps / wall time, both ends taken with an empty queue (every fence waited), so the value is
 exact at any in-flight depth; defrag at the case's cadence inside the window, appended to the step's
 submission (in-flight loop) exactly as _run_single_baseline_bench.py's fence ring does for the other
-solvers. The final status block gives the drift (alive - loaded) and every overflow counter; both must be 0.
+solvers. The bootstrap defrag (one defrag after the bootstrap, before the first step, as the chain's
+ChainOrchestratorV7.bootstrap_all does unconditionally) is run by default; --no-defrag disables only the
+periodic one, --no-bootstrap-defrag the bootstrap one (the pre-2026-10-22 behaviour of this bench under
+--no-defrag: the generator's particle order was then never voxel-sorted, 17 % slower on the 8M cube; E8 job
+1722130). The final status block gives the drift (alive - loaded) and every overflow counter; both must be 0.
 Prints one ``RESULT {json}`` line. --validation enables the Khronos validation layer (messages are counted and
 reported). The device is named by its Vulkan deviceUUID (--gpu-uuid; nvidia-smi's uuid without "GPU-") or
 by its index in the discrete-first order (--device).
@@ -51,7 +55,9 @@ def main() -> int:
     parser.add_argument("--measure", type=int, default=2000)
     parser.add_argument("--in-flight", type=int, default=1)
     parser.add_argument("--validation", action="store_true")
-    parser.add_argument("--no-defrag", action="store_true")
+    parser.add_argument("--no-defrag", action="store_true", help="no periodic defrag (the bootstrap defrag still runs)")
+    parser.add_argument("--no-bootstrap-defrag", action="store_true",
+                        help="skip the defrag after the bootstrap (the generator order is then kept until the first periodic defrag)")
     parser.add_argument("--tag", default="")
     arguments = parser.parse_args()
     if arguments.gpu_uuid:
@@ -76,10 +82,15 @@ def main() -> int:
         sim = SphSimulatorSingle(ctx, case)
         print(f"[bench_single] gpu={ctx.device_name} uuid={ctx.device_uuid} particles={expected:,} "
               f"in_flight={arguments.in_flight} warmup={arguments.warmup} measure={arguments.measure} "
-              f"defrag_cadence={cadence}", flush=True)
+              f"defrag_cadence={cadence} bootstrap_defrag={int(not arguments.no_bootstrap_defrag)}", flush=True)
         t0 = time.perf_counter()
         sim.bootstrap()
         sim.prepare_step(in_flight=arguments.in_flight)
+        if not arguments.no_bootstrap_defrag:
+            # as ChainOrchestratorV7.bootstrap_all: voxel-sort the generator's initial order once, pipeline idle
+            t_defrag = time.perf_counter()
+            sim.submit_defrag_and_wait()
+            print(f"[bench_single] bootstrap defrag: {1e3 * (time.perf_counter() - t_defrag):.1f} ms", flush=True)
         setup_s = time.perf_counter() - t0
         total = arguments.warmup + arguments.measure
         epoch_start = epoch_end = None
@@ -106,6 +117,7 @@ def main() -> int:
                   "particles": expected, "alive": int(status["alive_particle_count"]), "drift": drift,
                   "overflow": overflow, "correction_fallback": int(status["correction_fallback_count"]),
                   "warmup": arguments.warmup, "measure": arguments.measure, "defrag_cadence": cadence,
+                  "bootstrap_defrag": not arguments.no_bootstrap_defrag,
                   "setup_seconds": round(setup_s, 2), "measure_seconds": round(elapsed, 4),
                   "fps": round(arguments.measure / elapsed, 4), "us_per_step": round(elapsed / arguments.measure * 1e6, 4),
                   "epoch_start": epoch_start, "epoch_end": epoch_end,
