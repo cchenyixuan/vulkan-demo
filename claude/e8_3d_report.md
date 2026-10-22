@@ -580,4 +580,4 @@ cd ~/run/vulkan-demo-e8d && sbatch --export=ALL,E30_EXPECT_COMMIT=58b29cd77236,E
 
 ### 7.8 还没做的（第 7 节的续）
 - e8_D（76M K8，SLURM 1722854，14:48 CST 提交，排队中）跑完后：镜像为 `06_e8_e8D_1722854`，用五个镜像重跑 `e8_p2_summary.py`，加进 7.1–7.4 的表与图，76M 对 64M K8 的配对表（6.6 节）。
-- v7_single 在 3-D 8M 比链路 K = 1 慢 14 % 的原因（上面的候选），是否查由你定。
+- v7_single 在 3-D 8M 比链路 K = 1 慢 14 % 的原因：代码与日志排查见 `claude/e8_single_vs_chain_k1.md`（10-22 下午，没提交作业）——每步核序列、SPIR-V sha256、工作组、派发维度两边相同，特化常数只差 force 的密度来源与几个步进核不用的常数，rc1 → rc3 的 host 改动不碰 K = 1；剩下的不对称是 **v7_single 的 bench 在 `--no-defrag` 下连启动 defrag 也不做，而链路的 `bootstrap_all` 无条件做一次**（日志：链路 `defrag_time 74 ms` 在 bootstrapped 之前，single 没有任何 defrag 行），所以 e8_S 的 single 在生成器顺序（3-D 每个体素 16 段）上跑了全部 1500 步；§5.1 的协议每 1000 步 defrag 一次，3-D 在那套协议下也是 ≈ 1（cavity3d_1m 99.64 %）。直接验证（single 加一次启动 defrag，约 10 min 整节点，或先在本机 XTX 做 2-D 旁证）等你的话。
