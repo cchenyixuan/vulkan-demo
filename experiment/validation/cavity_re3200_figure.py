@@ -10,8 +10,7 @@ Outputs (docs/validation/figures/, vector PDF + PNG preview):
   cavity_re3200.pdf   three panels in a row, (a) (b) (c):
     (a) u(0.5, y) and (b) v(x, 0.5): the time-averaged MLS centre lines of K = 1 (solid) against Marchi et al. 2021
         (open circles, Tables 24 / 25) and Ghia et al. 1982 (open squares, Re 3200, 129^2), zooms near u_min and v_min
-        in the boxes of the Re 1000 figure (their limits follow the Re 3200 extrema); the 7 seams of the K = 8 run as
-        thin dashed vertical lines in (b); the legend in (a) only;
+        in the boxes of the Re 1000 figure (their limits follow the Re 3200 extrema); the legend in (a) only;
     (c) K = 8: time-averaged speed |v|/U (colour 0 - 1) with streamlines and the 7 seams (thin white dashed lines),
         the stream-function levels of the Re 1000 figure.
   cavity_re3200_seams.pdf   the cavity_seams.pdf pair for Re 3200: (a) (K = 8 - K = 1) / sigma at the 56 Marchi 2021
@@ -91,7 +90,7 @@ def main() -> int:
         raise RuntimeError(f"K8: {len(seams)} seams in meta.json, expected {base.SEAM_COUNT}")
     print("[figure] seams (K = 8, wall frame) X = " + " ".join(f"{seam:.4f}" for seam in seams), flush=True)
     size = base.composite_figure(line, quantities, seams, arguments.width, pathlib.Path(arguments.out),
-                                 reynolds=REYNOLDS, zoom=ZOOM_RE3200, seams_in_b=True)
+                                 reynolds=REYNOLDS, zoom=ZOOM_RE3200, seams_in_b=False)   # seams in (c) only (user 10-23)
     print(json.dumps(size, indent=1), flush=True)
     print(json.dumps(base.seams_figure(arguments.width, pathlib.Path(arguments.out_seams), **seams_arguments), indent=1),
           flush=True)
