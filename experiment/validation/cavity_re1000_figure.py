@@ -169,10 +169,10 @@ def _snapshot_mls(arguments: tuple) -> tuple[str, np.ndarray, int]:
     return str(path), velocity.reshape(axis.size, axis.size, 2), fallbacks
 
 
-def mean_field(run: dict, grid_points: int, workers: int, refresh: bool) -> dict:
+def mean_field(run: dict, grid_points: int, workers: int, refresh: bool, root: pathlib.Path = RUNS_ROOT) -> dict:
     """Time-averaged MLS velocity on a node grid spanning the innermost wall rows (physical +-(0.5 + dx)) over the
-    snapshots of run["window"]."""
-    cache = RUNS_ROOT / f"mean_field_{run['id']}_{grid_points}.npz"
+    snapshots of run["window"]; cached as mean_field_<run>_<points>.npz in ``root`` (the runs root)."""
+    cache = root / f"mean_field_{run['id']}_{grid_points}.npz"
     files = window_snapshots(run)
     if not files:
         raise RuntimeError(f"{run['id']}: no snapshots in t = {run['window'][0]:.4f} .. {run['window'][1]:.4f}")
@@ -543,11 +543,14 @@ def check_clearances(figure, axis_u, axis_v, axis_field, insets: dict, minimum_p
     _report_clearances(report, minimum_pt)
 
 
-def composite_figure(line: dict, field_k8: dict, seams_wall: list[float], width: float, path: pathlib.Path) -> dict:
+def composite_figure(line: dict, field_k8: dict, seams_wall: list[float], width: float, path: pathlib.Path,
+                     reynolds: int = 1000, zoom: dict | None = None, seams_in_b: bool = False) -> dict:
+    """The three-panel row: (a) / (b) profiles of ``line`` against the references of ``reynolds``, (c) the field;
+    ``zoom`` and ``seams_in_b`` go to draw_profiles (the Re 1000 figure uses the defaults)."""
     import matplotlib.pyplot as plt
     layout = LAYOUT
-    reference = cavity_reference.marchi2021()
-    ghia = cavity_reference.ghia1982()
+    reference = cavity_reference.marchi2021(reynolds)
+    ghia = cavity_reference.ghia1982(reynolds)
     right_reserve = 0.33                       # colourbar tick labels and label
     field_size = (width - layout["left"] - 2 * layout["profile_width"] - layout["gap_ab"] - layout["gap_bc"]
                   - layout["colorbar_pad"] - layout["colorbar_width"] - right_reserve)
@@ -561,7 +564,8 @@ def composite_figure(line: dict, field_k8: dict, seams_wall: list[float], width:
     axis_field = axes_inches(figure, x, layout["bottom"], field_size, field_size)
     x += field_size + layout["colorbar_pad"]
     colorbar_axis = axes_inches(figure, x, layout["bottom"], layout["colorbar_width"], field_size)
-    insets = draw_profiles(axis_u, axis_v, line, reference, ghia, legend=True)
+    insets = draw_profiles(axis_u, axis_v, line, reference, ghia, legend=True, zoom=zoom,
+                           seams_wall=seams_wall if seams_in_b else None)
     draw_field(axis_field, colorbar_axis, field_k8, seams_wall)
     for axis, text in zip((axis_u, axis_v, axis_field), ("(a)", "(b)", "(c)")):
         panel_label(axis, text)
@@ -585,7 +589,7 @@ def field_only_figure(field: dict, size: dict, path: pathlib.Path) -> None:
     plt.close(figure)
 
 
-def draw_point_differences(axis, pairs: dict[str, list[dict]]) -> dict:
+def draw_point_differences(axis, pairs: dict[str, list[dict]], pairs_to_draw: tuple = ("K2-K1", "K8-K1")) -> dict:
     """(a) of cavity_seams.pdf: delta / sigma at the 56 points for K = 2 - K = 1 (open squares) and K = 8 - K = 1
     (filled circles); the u line first, the v line after a thin vertical line; +-2 dashed."""
     from matplotlib.ticker import MultipleLocator
@@ -593,7 +597,7 @@ def draw_point_differences(axis, pairs: dict[str, list[dict]]) -> dict:
               "K8-K1": dict(ls="none", marker="o", mfc=COLOR_K1, mec=COLOR_K1, ms=2.5, mew=0.5, label=r"$K = 8 - K = 1$")}
     index = np.arange(1, 57)
     largest = 0.0
-    for pair in ("K2-K1", "K8-K1"):
+    for pair in pairs_to_draw:
         values = np.array([float(row["difference_over_sigma"]) for row in pairs[pair]])
         largest = max(largest, float(np.abs(values).max()))
         axis.plot(index, values, **styles[pair])
@@ -677,18 +681,19 @@ def check_seams_clearances(figure, axis_a, axis_b, minimum_pt: float = 0.5) -> N
     _report_clearances(report, minimum_pt)
 
 
-def seams_figure(width: float, path: pathlib.Path) -> dict:
+def seams_figure(width: float, path: pathlib.Path, point_csv: pathlib.Path = POINT_DIFFERENCES_CSV,
+                 strip_csv: pathlib.Path = STRIP_BINS_CSV, pairs_to_draw: tuple = ("K2-K1", "K8-K1")) -> dict:
     import matplotlib.pyplot as plt
     layout = SEAMS_LAYOUT
-    pairs = point_differences()
-    folded = folded_strip_bins()
+    pairs = point_differences(point_csv)
+    folded = folded_strip_bins(strip_csv)
     panel_width = (width - layout["left"] - layout["gap"] - layout["right"]) / 2.0
     height = layout["bottom"] + layout["height"] + layout["top_margin"]
     figure = plt.figure(figsize=(width, height))
     axis_a = axes_inches(figure, layout["left"], layout["bottom"], panel_width, layout["height"])
     axis_b = axes_inches(figure, layout["left"] + panel_width + layout["gap"], layout["bottom"], panel_width,
                          layout["height"])
-    points = draw_point_differences(axis_a, pairs)
+    points = draw_point_differences(axis_a, pairs, pairs_to_draw)
     strips = draw_strips(axis_b, folded)
     for axis, text in zip((axis_a, axis_b), ("(a)", "(b)")):
         panel_label(axis, text)
