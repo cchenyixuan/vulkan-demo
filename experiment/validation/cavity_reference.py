@@ -26,7 +26,8 @@ def marchi2021(reynolds: int = 1000) -> dict:
     """{'u': (y (28,), u (28,), Uc (28,)), 'v': (x (28,), v (28,), Uc (28,)),
         'extrema': {name: (value, Uc)}, 'rows': raw rows}. Coordinates are exact dyadic values.
     reynolds selects docs/validation/data/marchi2021_re<Re>.csv (1000: the full transcription with uncertainties and
-    the 9 extrema; 3200, 2026-10-20: the 28 + 28 profile points only, Uc empty -> NaN, no extrema)."""
+    the 9 extrema of Table 19; 3200: the 28 + 28 profile points of Tables 24 / 25 without uncertainty codes (Uc empty
+    -> NaN) and, since 2026-10-23, the 9 extrema of Table 23 with their Uc)."""
     path = _DATA / f"marchi2021_re{int(reynolds)}.csv"
     rows = _rows(path)
     result = {"rows": rows, "extrema": {}, "reynolds": int(reynolds)}

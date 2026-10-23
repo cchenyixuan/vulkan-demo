@@ -141,7 +141,7 @@ def strip_table(name: str, x_centre: float, points: np.ndarray, offsets: np.ndar
 # ----------------------------------------------------------------------------------------------- tables
 def summary_row(key: str, analysis: dict, reference: dict) -> list:
     errors = analysis["errors"]
-    # value and wall-frame position of the three extrema (the Re = 3200 reference has no extrema, so no lookup there)
+    # value and wall-frame position of the three extrema (the reference extrema, Marchi Table 19 / 23, go to table A)
     extrema = {name: {"value": item["value"], "position": item["position_wall"]} for name, item in analysis["extrema"].items()}
     stream = analysis.get("stream") or {}
     return [key, errors[("wall", "mls", "u")]["L2"], errors[("wall", "mls", "u")]["Linf"],
@@ -450,7 +450,7 @@ def main() -> int:
     # A: summary
     header = ["run", "L2_u", "Linf_u", "L2_v", "Linf_v", "relL2_u", "relL2_v", "u_min", "y_at_u_min", "v_max", "x_at_v_max",
               "v_min", "x_at_v_min", "psi_min", "x_at_psi_min", "y_at_psi_min", "window_start", "window_end", "samples"]
-    reference_extrema = {name: value[0] for name, value in reference["extrema"].items()}   # empty at Re = 3200
+    reference_extrema = {name: value[0] for name, value in reference["extrema"].items()}   # Table 19 (Re 1000) / 23 (3200)
     rows = [["Marchi2021", "", "", "", "", "", ""] + [reference_extrema.get(name, "") for name in
             ("u_min", "y_at_u_min", "v_max", "x_at_v_max", "v_min", "x_at_v_min", "psi_min", "x_at_psi_min", "y_at_psi_min")]
             + ["", "", ""]]

@@ -89,8 +89,8 @@ PSI_LEVELS_POSITIVE = (1.0e-5, 1.0e-4, 5.0e-4, 1.0e-3, 1.5e-3)
 
 
 # --------------------------------------------------------------------------------------------- data
-def run_facts(run_id: str) -> dict:
-    directory = RUNS_ROOT / run_id
+def run_facts(run_id: str, root: pathlib.Path = RUNS_ROOT) -> dict:
+    directory = root / run_id
     meta = json.loads((directory / "meta.json").read_text(encoding="utf-8"))
     steps, times = [], []
     with (directory / "samples.jsonl").open(encoding="utf-8") as handle:
@@ -115,10 +115,11 @@ def common_window(k8: dict) -> tuple[float, float]:
     return (min(k8["sample_times"]), max(k8["sample_times"]))
 
 
-def k1_lines_on_window(k1: dict, k8: dict) -> dict:
+def k1_lines_on_window(k1: dict, k8: dict, root: pathlib.Path = RUNS_ROOT,
+                       comparison: str = "K = 1 / K = 2 / K = 8", script: str = "cavity_re1000_figure.py") -> dict:
     """Time-averaged dense MLS centre lines of the K = 1 run on the K = 8 run's sample steps (wall-row frame);
     written to docs/validation/data/dense_<run>_common_window.csv."""
-    run = load_run(k1["id"], RUNS_ROOT)
+    run = load_run(k1["id"], root)
     if run is None:
         raise FileNotFoundError(k1["dir"] / "samples.jsonl")
     wanted = set(k8["sample_steps"])
@@ -134,8 +135,8 @@ def k1_lines_on_window(k1: dict, k8: dict) -> dict:
     write_csv(path, ["coordinate", "u_at_x_0.5", "v_at_y_0.5"],
               [[f"{coordinate[index]:.4f}", f"{u[index]:.7f}", f"{v[index]:.7f}"] for index in range(coordinate.size)],
               f"Run {k1['id']}: time-averaged MLS velocity on the dense centre lines (wall-row frame) over the common\n"
-              f"window of the K = 1 / K = 2 / K = 8 comparison, t in [{window[0]:.4f}, {window[1]:.4f}] ({int(keep.sum())}\n"
-              f"samples, the K = 8 continuation's sample steps {min(wanted):,} .. {max(wanted):,}); cavity_re1000_figure.py.")
+              f"window of the {comparison} comparison, t in [{window[0]:.4f}, {window[1]:.4f}] ({int(keep.sum())}\n"
+              f"samples, the K = 8 continuation's sample steps {min(wanted):,} .. {max(wanted):,}); {script}.")
     print(f"[figure] K1 lines: {int(keep.sum())} samples t = {window[0]:.4f} .. {window[1]:.4f} -> {path.name}", flush=True)
     return {"coordinate": coordinate, "u": u, "v": v, "window": window, "samples": int(keep.sum()),
             "source": str(path.relative_to(_REPO_ROOT)).replace("\\", "/")}
@@ -227,22 +228,22 @@ def _csv_rows(path: pathlib.Path) -> list[dict]:
                                if line and not line.startswith("#")))
 
 
-def point_differences() -> dict[str, list[dict]]:
+def point_differences(path: pathlib.Path = POINT_DIFFERENCES_CSV) -> dict[str, list[dict]]:
     """adami_k8_point_differences.csv by pair: 56 rows each, the u line (28 points by y) then the v line (28 by x)."""
     pairs: dict[str, list[dict]] = {}
-    for row in _csv_rows(POINT_DIFFERENCES_CSV):
+    for row in _csv_rows(path):
         pairs.setdefault(row["pair"], []).append(row)
     for pair, rows in pairs.items():
         if [row["line"] for row in rows] != ["u"] * 28 + ["v"] * 28:
-            raise RuntimeError(f"{POINT_DIFFERENCES_CSV.name}: pair {pair} is not 28 u points followed by 28 v points")
+            raise RuntimeError(f"{path.name}: pair {pair} is not 28 u points followed by 28 v points")
     return pairs
 
 
-def folded_strip_bins() -> dict[str, tuple[np.ndarray, np.ndarray]]:
+def folded_strip_bins(path: pathlib.Path = STRIP_BINS_CSV) -> dict[str, tuple[np.ndarray, np.ndarray]]:
     """adami_k8_strip_bins.csv (rms |delta v| per 0.5 h column at signed offsets -2.75 .. +2.75 h from the strip centre)
     folded to the distance from the strip centre: rms over both columns at the same |offset|, weighted by their points."""
     totals: dict[str, dict[float, list[float]]] = {}
-    for row in _csv_rows(STRIP_BINS_CSV):
+    for row in _csv_rows(path):
         distance = round(abs(float(row["offset_h"])), 6)
         count = int(row["points"])
         bucket = totals.setdefault(row["strip"], {}).setdefault(distance, [0.0, 0.0])
@@ -256,7 +257,7 @@ def folded_strip_bins() -> dict[str, tuple[np.ndarray, np.ndarray]]:
     expected = [f"seam{index}" for index in range(1, SEAM_COUNT + 1)] + [f"control{index}" for index in range(1, CONTROL_COUNT + 1)]
     missing = [name for name in expected if name not in folded]
     if missing:
-        raise RuntimeError(f"{STRIP_BINS_CSV.name}: strips missing: {missing}")
+        raise RuntimeError(f"{path.name}: strips missing: {missing}")
     return folded
 
 
@@ -300,9 +301,26 @@ def hide_top_right(axis) -> None:
         axis.spines[spine].set_visible(False)
 
 
-def draw_profiles(axis_u, axis_v, line: dict, reference: dict, ghia: dict, legend: bool) -> dict:
-    """(a) u(0.5, y) and (b) v(x, 0.5): the K = 1 line (solid) against Marchi 2021 (circles) and Ghia 1982 (squares)."""
+# zoom boxes of the profile panels (axes fractions) and their limits / ticks: the Re = 1000 values; a tick entry that is
+# a number is a MultipleLocator step, a list is a FixedLocator
+ZOOM_RE1000 = {"inset_u": [0.63, 0.54, 0.33, 0.27], "inset_v": [0.27, 0.15, 0.21, 0.34],
+               "u_xlim": (-0.405, -0.29), "u_ylim": (0.08, 0.30), "u_xticks": 0.1, "u_yticks": [0.1, 0.2],
+               "v_xlim": (0.84, 0.96), "v_ylim": (-0.545, -0.375), "v_xticks": [0.90], "v_xminor": [0.85, 0.95],
+               "v_yticks": 0.1}
+
+
+def _locator(specification):
     from matplotlib.ticker import FixedLocator, MultipleLocator
+    return FixedLocator(list(specification)) if isinstance(specification, (list, tuple)) else MultipleLocator(specification)
+
+
+def draw_profiles(axis_u, axis_v, line: dict, reference: dict, ghia: dict, legend: bool, zoom: dict | None = None,
+                  seams_wall: list[float] | None = None) -> dict:
+    """(a) u(0.5, y) and (b) v(x, 0.5): the K = 1 line (solid) against Marchi 2021 (circles) and Ghia 1982 (squares);
+    ``zoom`` = the zoom boxes and their limits (ZOOM_RE1000 by default), ``seams_wall`` = seam positions (wall frame)
+    drawn as thin dashed vertical lines in (b) (none by default)."""
+    from matplotlib.ticker import MultipleLocator
+    zoom = ZOOM_RE1000 if zoom is None else zoom
     k1_style = dict(color=COLOR_K1, lw=1.0, ls="-", label=r"SPH, $K = 1$")
     marchi_style = dict(ls="none", marker="o", mfc="none", mec="k", ms=3.0, mew=0.6, label="Marchi et al. (2021)")
     ghia_style = dict(ls="none", marker="s", mfc="none", mec=COLOR_GHIA, ms=2.6, mew=0.55, label="Ghia et al. (1982)")
@@ -329,6 +347,10 @@ def draw_profiles(axis_u, axis_v, line: dict, reference: dict, ghia: dict, legen
     axis_v.set_ylabel(r"$v(x, 0.5)$", labelpad=1.0)
     for axis in (axis_u, axis_v):
         hide_top_right(axis)
+    if seams_wall:
+        # a LineCollection: not among axis.get_lines(), so the zoom box of (b) may sit over the seam lines
+        axis_v.vlines(seams_wall, *axis_v.get_ylim(), colors=COLOR_GUIDE, lw=0.5, linestyles=(0, (3.0, 2.0)),
+                      zorder=0.6)
     # Ghia's wall points sit on the frame: the ones on the drawn bottom / left spines stay clipped to half a square,
     # the ones on the hidden top (a) / right (b) edges are drawn in full (user 2026-10-21)
     y_ghia, u_ghia = ghia["u"]
@@ -339,24 +361,24 @@ def draw_profiles(axis_u, axis_v, line: dict, reference: dict, ghia: dict, legen
     axis_v.plot(x_ghia[right], v_ghia[right], **{**ghia_style, "label": "_nolegend_", "clip_on": False})
 
     # zooms: u_min (lower right of (a)), v_min (lower left of (b)); ticks inside the main axes, clear of its ticks
-    inset_u = axis_u.inset_axes([0.63, 0.54, 0.33, 0.27])
-    inset_v = axis_v.inset_axes([0.27, 0.15, 0.21, 0.34])
+    inset_u = axis_u.inset_axes(zoom["inset_u"])
+    inset_v = axis_v.inset_axes(zoom["inset_v"])
     inset_u.plot(line["u"], line["coordinate"], **{**k1_style, "lw": 0.9})
     inset_v.plot(line["coordinate"], line["v"], **{**k1_style, "lw": 0.9})
     inset_u.plot(reference["u"][1], reference["u"][0], **{**marchi_style, "ms": 2.8})
     inset_u.plot(ghia["u"][1], ghia["u"][0], **{**ghia_style, "ms": 2.4})
     inset_v.plot(reference["v"][0], reference["v"][1], **{**marchi_style, "ms": 2.8})
     inset_v.plot(ghia["v"][0], ghia["v"][1], **{**ghia_style, "ms": 2.4})
-    inset_u.set_xlim(-0.405, -0.29)
-    inset_u.set_ylim(0.08, 0.30)
-    inset_u.xaxis.set_major_locator(MultipleLocator(0.1))
-    inset_u.yaxis.set_major_locator(FixedLocator([0.1, 0.2]))   # no 0.3 label: it would touch the curve at y = 0.75
-    inset_v.set_xlim(0.84, 0.96)
-    inset_v.set_ylim(-0.545, -0.375)
-    # one labelled tick at 8 pt: two ("0.85", "0.95") would touch each other
-    inset_v.xaxis.set_major_locator(FixedLocator([0.90]))
-    inset_v.xaxis.set_minor_locator(FixedLocator([0.85, 0.95]))
-    inset_v.yaxis.set_major_locator(MultipleLocator(0.1))
+    inset_u.set_xlim(*zoom["u_xlim"])
+    inset_u.set_ylim(*zoom["u_ylim"])
+    inset_u.xaxis.set_major_locator(_locator(zoom["u_xticks"]))
+    inset_u.yaxis.set_major_locator(_locator(zoom["u_yticks"]))   # Re 1000: no 0.3 label, it would touch the curve at y = 0.75
+    inset_v.set_xlim(*zoom["v_xlim"])
+    inset_v.set_ylim(*zoom["v_ylim"])
+    # Re 1000: one labelled tick at 8 pt, two ("0.85", "0.95") would touch each other
+    inset_v.xaxis.set_major_locator(_locator(zoom["v_xticks"]))
+    inset_v.xaxis.set_minor_locator(_locator(zoom["v_xminor"]))
+    inset_v.yaxis.set_major_locator(_locator(zoom["v_yticks"]))
     for inset in (inset_u, inset_v):
         style_inset(inset)
     if legend:
@@ -596,9 +618,11 @@ def draw_point_differences(axis, pairs: dict[str, list[dict]]) -> dict:
     return {"largest": largest}
 
 
-def draw_strips(axis, folded: dict[str, tuple[np.ndarray, np.ndarray]]) -> dict:
+def draw_strips(axis, folded: dict[str, tuple[np.ndarray, np.ndarray]], y_major: float = 2.0, legend_columns: int = 3,
+                headroom: float = 1.6) -> dict:
     """(b) of cavity_seams.pdf: rms |delta v| (K = 8 - K = 1) of the 7 seam strips against the distance to the nearest
-    seam, one thin line per seam; the 6 control strips' min - max as a grey band. Values in 1e-5 U."""
+    seam, one thin line per seam; the 6 control strips' min - max as a grey band. Values in 1e-5 U. ``headroom``
+    = the y range as a multiple of the largest value (the legend sits above the data)."""
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MultipleLocator
     scale = 1.0e5
@@ -613,14 +637,14 @@ def draw_strips(axis, folded: dict[str, tuple[np.ndarray, np.ndarray]]) -> dict:
         peak = max(peak, float(values.max()))
         axis.plot(distances, values, "-", color=colors[index - 1], lw=0.75, label=f"seam {index}")
     axis.set_xlim(0.0, 3.0)
-    axis.set_ylim(0.0, peak * 1.6)                # the legend (two rows) sits above the data
+    axis.set_ylim(0.0, peak * headroom)           # the legend (two rows) sits above the data
     axis.xaxis.set_major_locator(MultipleLocator(1.0))
     axis.xaxis.set_minor_locator(MultipleLocator(0.5))
-    axis.yaxis.set_major_locator(MultipleLocator(2.0))
+    axis.yaxis.set_major_locator(MultipleLocator(y_major))
     axis.set_xlabel(r"distance to the nearest seam ($h$)", labelpad=1.5)
     axis.set_ylabel(r"rms $|\Delta\boldsymbol{v}|/U$ ($10^{-5}$)", labelpad=1.5)
     # three columns: the control entry is wide; the pair is the legend's title
-    axis.legend(loc="upper center", ncol=3, frameon=False, fontsize=FONT_SIZE - 2.0, title=r"$K = 8 - K = 1$",
+    axis.legend(loc="upper center", ncol=legend_columns, frameon=False, fontsize=FONT_SIZE - 2.0, title=r"$K = 8 - K = 1$",
                 title_fontsize=FONT_SIZE - 1.5, columnspacing=1.0, handlelength=1.5, handletextpad=0.4,
                 borderaxespad=0.2, borderpad=0.0, labelspacing=0.3)
     hide_top_right(axis)
