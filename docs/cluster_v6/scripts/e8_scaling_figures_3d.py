@@ -11,9 +11,9 @@ top-left corner, elsarticle text width 384 pt, eta = 1 +- 0.02 band) in the geom
                          (b) eta against the particles per device (log axis, walls included; the total on the top axis
                          = 8 x the load) for the seven cubes at K = 8 (filled circles; 76M open) and the nine 2-D squares
                          at K = 8 (grey thin line, small dots; the 2-D panel (b) data, the 128M pair-reference point
-                         included); the x axis reaches down to the 2-D 0.04M point; every 3-D point carries its fluid
-                         columns per device (5 / 6 / 8 / 10 / 12 / 13 / 16) in small type; legend "3D cubes", "2D squares",
-                         "76M".
+                         included); the x axis reaches down to the 2-D 0.04M point; legend "3D", "2D", "3D, 76M"
+                         (third version, user 2026-10-24: no column labels beside the points; the (a) legend reads
+                         "3D strong, 64M", "3D weak, 8M per device", "2D strong, 64M").
   The marker is the mean over the trials, the bar the minimum to the maximum (3-D: 4M and 8M five trials, the rest three).
 
 eta = the tables' eta without the defrag events (--eta with: with them). The plotted values go to OUT/strong_scaling_3d.csv
@@ -42,18 +42,12 @@ COLOR_2D = "#8c8c8c"
 SWEEP_CASE = "cavity3d_n392"                 # (a): the 64M cube
 SWEEP_CASE_2D = "cavity2d_n8000"             # (a): the 2-D 64M cavity
 OPEN_CASES = ("cavity3d_n416",)              # (b): open marker (76M, 13 whole columns per device)
-# fluid columns of the cubes (the K = 8 partition records: 38 / 48 / 61 / 78 / 98 / 104 / 126 columns) and the label
-# written beside the point (the user's rounding: 5 / 6 / 8 / 10 / 12 / 13 / 16)
+# fluid columns of the cubes (the K = 8 partition records: 38 / 48 / 61 / 78 / 98 / 104 / 126 columns) and their rounded
+# per-device count (5 / 6 / 8 / 10 / 12 / 13 / 16): CSV columns only (the second version wrote them beside the points)
 FLUID_COLUMNS = {"cavity3d_n152": 38, "cavity3d_n192": 48, "cavity3d_n244": 61, "cavity3d_n312": 78,
                  "cavity3d_n392": 98, "cavity3d_n416": 104, "cavity3d_n496": 126}
 COLUMN_LABELS = {"cavity3d_n152": "5", "cavity3d_n192": "6", "cavity3d_n244": "8", "cavity3d_n312": "10",
                  "cavity3d_n392": "12", "cavity3d_n416": "13", "cavity3d_n496": "16"}
-# label placement per cube: (dx, dy) in points, horizontal / vertical alignment (chosen so that nothing crosses the
-# 2-D series or a neighbouring marker)
-LABEL_OFFSETS = {"cavity3d_n152": (0.0, -4.0, "center", "top"), "cavity3d_n192": (-3.5, 3.0, "right", "bottom"),
-                 "cavity3d_n244": (0.0, -4.0, "center", "top"), "cavity3d_n312": (0.0, -4.0, "center", "top"),
-                 "cavity3d_n392": (-1.0, -4.0, "center", "top"), "cavity3d_n416": (3.5, 2.5, "left", "bottom"),
-                 "cavity3d_n496": (0.0, -4.0, "center", "top")}
 COLUMNS = ("figure", "panel", "series", "point", "case", "K", "kind", "reference_kind", "job", "per_gpu", "particles",
            "trials", "eta", "eta_min", "eta_max", "marker", "fluid_columns_per_device", "columns_label")
 
@@ -103,9 +97,9 @@ def strong_figure(rows: list, rows_2d: list, out: pathlib.Path) -> list:
         style.band(axis)
         style.frame(axis)
     # (a): the 2-D sweep first (behind), then the 3-D weak boxes and the 3-D 64M cube
-    style.errorbar(axis_k, sweep_2d, "K", label="2D square, 64M", zorder=2, **grey_style())
+    style.errorbar(axis_k, sweep_2d, "K", label="2D strong, 64M", zorder=2, **grey_style())
     style.errorbar(axis_k, weak, "K", label="3D weak, 8M per device", zorder=3, **weak_style)
-    style.errorbar(axis_k, sweep, "K", label="3D cube, 64M", zorder=4, **main)
+    style.errorbar(axis_k, sweep, "K", label="3D strong, 64M", zorder=4, **main)
     axis_k.set_xlim(1.6, 8.4)
     axis_k.xaxis.set_major_locator(MultipleLocator(1))
     axis_k.set_ylim(0.80, 1.04)
@@ -113,25 +107,21 @@ def strong_figure(rows: list, rows_2d: list, out: pathlib.Path) -> list:
     axis_k.set_xlabel(r"number of devices $K$", labelpad=1.5)
     axis_k.set_ylabel(r"$\eta$", labelpad=1.5)
     handles, labels = axis_k.get_legend_handles_labels()
-    order = [labels.index(name) for name in ("3D cube, 64M", "3D weak, 8M per device", "2D square, 64M")]
+    order = [labels.index(name) for name in ("3D strong, 64M", "3D weak, 8M per device", "2D strong, 64M")]
     axis_k.legend([handles[i] for i in order], [labels[i] for i in order], loc="lower right", frameon=False, ncol=2,
                   handlelength=1.4, columnspacing=0.8, labelspacing=0.25, borderpad=0.2, borderaxespad=0.2)
-    # (b): the 2-D squares (grey, behind), the seven cubes (filled; the open-marker cubes drawn on top), the column labels
+    # (b): the 2-D squares (grey, behind), the seven cubes (filled; the open-marker cubes drawn on top)
     for row in k8 + k8_2d:
         row["per_gpu_M"] = row["per_gpu"] / 1e6
     for row in k8:
         row["marker"] = "open" if row["case"] in OPEN_CASES else "filled"
-    style.errorbar(axis_n, k8_2d, "per_gpu_M", label="2D squares", zorder=2, **grey_style())
-    style.errorbar(axis_n, k8, "per_gpu_M", label="3D cubes", zorder=3, **main)
+    style.errorbar(axis_n, k8_2d, "per_gpu_M", label="2D", zorder=2, **grey_style())
+    style.errorbar(axis_n, k8, "per_gpu_M", label="3D", zorder=3, **main)
     open_rows = [row for row in k8 if row["marker"] == "open"]
     if open_rows:
         axis_n.plot([row["per_gpu_M"] for row in open_rows], [row["eta"] for row in open_rows], linestyle="none", marker="o",
-                    ms=3.4, mfc="white", mec=COLOR_MAIN, mew=0.8, label=", ".join(f"{round(row['particles'] / 1e6):d}M" for row in open_rows),
-                    zorder=4)
-    for row in k8:
-        dx, dy, ha, va = LABEL_OFFSETS.get(row["case"], (0.0, -4.0, "center", "top"))
-        axis_n.annotate(COLUMN_LABELS[row["case"]], xy=(row["per_gpu_M"], row["eta"]), xytext=(dx, dy), textcoords="offset points",
-                        ha=ha, va=va, fontsize=FONT_SIZE - 2.0, color=COLOR_MAIN, zorder=5)
+                    ms=3.4, mfc="white", mec=COLOR_MAIN, mew=0.8,
+                    label="3D, " + ", ".join(f"{round(row['particles'] / 1e6):d}M" for row in open_rows), zorder=4)
     axis_n.set_xscale("log")
     axis_n.xaxis.set_major_locator(LogLocator(base=10.0, numticks=12))
     axis_n.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:g}"))
@@ -144,8 +134,8 @@ def strong_figure(rows: list, rows_2d: list, out: pathlib.Path) -> list:
     axis_n.set_xlabel("particles per device (M)", labelpad=1.5)
     axis_n.set_ylabel(r"$\eta$", labelpad=1.5)
     handles, labels = axis_n.get_legend_handles_labels()
-    order = [labels.index(name) for name in ("3D cubes", "2D squares") if name in labels] + \
-            [i for i, name in enumerate(labels) if name not in ("3D cubes", "2D squares")]
+    order = [labels.index(name) for name in ("3D", "2D") if name in labels] + \
+            [i for i, name in enumerate(labels) if name not in ("3D", "2D")]
     axis_n.legend([handles[i] for i in order], [labels[i] for i in order], loc="lower right", frameon=False, handlelength=1.4,
                   borderaxespad=0.2)
     total_axis = axis_n.secondary_xaxis("top", functions=(lambda load: load * 8.0, lambda total: total / 8.0))
