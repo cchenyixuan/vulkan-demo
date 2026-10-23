@@ -557,6 +557,13 @@ def main() -> int:
         "部署树的 git tree hash = tag v7-rc3 的 experiment/v7。")
     k1_note = arguments.k1_note or "K = 1、K = 2 为 docs/validation/adami_k1_k2.md 的两次运行(本地 5090 / 5090 + 7900 XTX)。"
     title = arguments.title or "# Adami 壁面 1000² 方腔:K = 8 续算(6.2 节补充,2026-10-21)"
+    k8_stop = int(k8["result"].get("stop_step", 0))
+    other_stops = {key: int(runs[key]["result"].get("stop_step", 0)) for key in others}
+    if all(stop == k8_stop for stop in other_stops.values()):
+        stop_phrase = f"与 {k_list} 的停止步相同"
+    else:                                                                       # a shorter continuation (Re 3200)
+        stop_phrase = ";".join(f"K = {key[1:]} 运行继续到步 {stop:,},t = {stop * float(runs[key]['meta']['dt']):.3f}"
+                               for key, stop in other_stops.items())
     lines = [title, "",
              f"算例 `{k8['case']}`(Re = {arguments.reynolds},ξ = 0.001,ε² = 0.0025 h²,`wall_boundary: adami`),求解器 experiment/v7 = tag v7-rc3。"
              f"K = 8 运行在 N56 集群一整台节点(8 × RTX 5090,SLURM 作业 {job.get('job_id', '?')},节点 {job.get('node', '?')},"
@@ -564,7 +571,7 @@ def main() -> int:
              f"从 K = 1 运行的检查点 `{pathlib.Path(start_from.get('file', '')).name}`(步 {start_from.get('source_step', 0):,},"
              f"t = {start_from.get('source_time', 0):.4f},sha256 {start_from.get('sha256', '')[:12]}…)启动,全局步号延续,"
              f"等权重按状态的流体直方图切成 8 个 slab,推进到步 {k8['result'].get('stop_step', 0):,}"
-             f"(t = {k8['result'].get('stop_step', 0) * float(k8['meta']['dt']):.3f},与 {k_list} 的停止步相同)。{k1_note}"
+             f"(t = {k8['result'].get('stop_step', 0) * float(k8['meta']['dt']):.3f},{stop_phrase})。{k1_note}"
              f"{'三者' if with_k2 else '两者'}在**同一组取样步**上比较:t ≥ {window[0]:.3f} 的 {len(k8_steps)} 个样本(每 {sample_interval:.2g} 时间单位)与 "
              f"{len(averages['K8']['_snapshots'])} 个快照(每 ~1 时间单位,步号相同)。方法、稳态判据、取样与参考解沿用 "
              "`docs/validation/cavity_re1000.md`。只报结果。", "", hashes_note, ""]

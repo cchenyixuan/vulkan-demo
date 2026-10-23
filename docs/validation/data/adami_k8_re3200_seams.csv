@@ -1,0 +1,10 @@
+# 6.2 supplement: the 7 seams of the K = 8 continuation (global voxel column of the cut, x in metres of the
+# case frame, X in the wall-row frame) and the particles of the slabs on either side at the start.
+seam,column,x_m,x_wall,slab_left_particles,slab_right_particles
+1,53,-0.374550,0.125824,530268,505554
+2,103,-0.249550,0.250699,505554,506211
+3,153,-0.124550,0.375574,506211,506434
+4,203,0.000450,0.500450,506434,506371
+5,253,0.125450,0.625325,506371,505970
+6,303,0.250450,0.750200,505970,505374
+7,353,0.375450,0.875075,505374,526347

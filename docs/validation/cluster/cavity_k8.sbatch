@@ -7,7 +7,7 @@
 #SBATCH -J cav_k8
 #SBATCH --exclusive
 #SBATCH --mem=0
-#SBATCH --exclude=wqd10nbm13g5,wqd10nah09g1
+#SBATCH --exclude=wqd10nbm13g5,wqd10nah09g1,wqd10nbj04g3
 #SBATCH -o /data/run01/scxm138/logs/cavity_k8_%j.out
 # Paper 6.2 supplement (user 2026-10-20 night, plan a): the 1000^2 adami Re = 1000 cavity continued at K = 8 (equal
 # weights, the chain cut by the particle distribution of the starting state) from the K = 1 run's checkpoint at

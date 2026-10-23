@@ -1,0 +1,5 @@
+# 6.2 supplement: invariants (segment totals of the whole run; alive / MLS fallbacks / neighbours over the
+# window's samples), throughput (median of the sample-wise steps/s in the window) and wall clock.
+run,id,expected_particles,alive_min,alive_max,samples,segments,segments_complete,invariant_violations,wall_hours_run,wall_s_window,steps_window,median_fps_window,mls_fallbacks_total,min_neighbours,status,git_head,devices,slabs,drift,overflow,far_migration,stamp_gpu,stamp_host
+K8,n2000_k8_float32_xi0p001_eps0p0025_adami_re3200,4092529,4092529,4092529,25,1,1,0,0.8128717791916666,2754.5718405529997,1272000,465.7065317900825,0,73,complete,,"[0, 1, 2, 3, 4, 5, 6, 7]",8,0,0,0,0,0
+K1,n2000_k1_float32_xi0p001_eps0p0025_adami_re3200_warm,4092529,4092529,4092529,25,1,1,0,44.70131624230555,8549.113621699973,1272000,149.01638257290438,0,72,complete,18a9491,[0],1,0,0,0,0,0
