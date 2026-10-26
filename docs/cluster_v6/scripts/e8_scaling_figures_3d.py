@@ -42,10 +42,10 @@ COLOR_2D = "#8c8c8c"
 SWEEP_CASE = "cavity3d_n392"                 # (a): the 64M cube
 SWEEP_CASE_2D = "cavity2d_n8000"             # (a): the 2-D 64M cavity
 OPEN_CASES = ("cavity3d_n416",)              # (b): open marker (76M, 13 whole columns per device)
-# fluid columns of the cubes (the K = 8 partition records: 38 / 48 / 61 / 78 / 98 / 104 / 126 columns) and their rounded
+# fluid columns of the cubes (the cases' generate.txt: 38 / 48 / 61 / 78 / 98 / 104 / 124 fluid columns at h/dx = 4) and their rounded
 # per-device count (5 / 6 / 8 / 10 / 12 / 13 / 16): CSV columns only (the second version wrote them beside the points)
 FLUID_COLUMNS = {"cavity3d_n152": 38, "cavity3d_n192": 48, "cavity3d_n244": 61, "cavity3d_n312": 78,
-                 "cavity3d_n392": 98, "cavity3d_n416": 104, "cavity3d_n496": 126}
+                 "cavity3d_n392": 98, "cavity3d_n416": 104, "cavity3d_n496": 124}
 COLUMN_LABELS = {"cavity3d_n152": "5", "cavity3d_n192": "6", "cavity3d_n244": "8", "cavity3d_n312": "10",
                  "cavity3d_n392": "12", "cavity3d_n416": "13", "cavity3d_n496": "16"}
 COLUMNS = ("figure", "panel", "series", "point", "case", "K", "kind", "reference_kind", "job", "per_gpu", "particles",
