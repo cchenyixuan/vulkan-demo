@@ -1,0 +1,618 @@
+[
+ {
+  "point": "3d_n392_K8",
+  "case": "cavity3d_n392",
+  "K": 8,
+  "per_card_cube": "cavity3d_n192",
+  "note": "8M cube = the per-card size",
+  "scale": 1.0,
+  "chain": {
+   "trace": "..\\vulkan-demo\\logs\\n56\\2026-10-22\\02_e8_e8B_1721839\\traces\\3d_n392_K8_C",
+   "case": "cases/aligned/cavity3d_n392/case.yaml",
+   "K": 8,
+   "warmup": 500,
+   "max_steps": 1500,
+   "per_sim": [
+    {
+     "sim": 0,
+     "steps": 998,
+     "a_p50_ms": 0.804212,
+     "b_p50_ms": 40.669088,
+     "c_p50_ms": 12.017426,
+     "period_p50_ms": 57.224444,
+     "period_mean_skip_ms": 58.39333387975952,
+     "period_sum_ms": 58642.511884,
+     "steady_steps": 999
+    },
+    {
+     "sim": 1,
+     "steps": 998,
+     "a_p50_ms": 0.90604,
+     "b_p50_ms": 33.765148,
+     "c_p50_ms": 23.19901,
+     "period_p50_ms": 57.475054,
+     "period_mean_skip_ms": 58.43542563527054,
+     "period_sum_ms": 58647.006176,
+     "steady_steps": 999
+    },
+    {
+     "sim": 2,
+     "steps": 998,
+     "a_p50_ms": 0.842758,
+     "b_p50_ms": 29.242732,
+     "c_p50_ms": 22.578606,
+     "period_p50_ms": 57.204616,
+     "period_mean_skip_ms": 58.40583498597194,
+     "period_sum_ms": 58642.838944,
+     "steady_steps": 999
+    },
+    {
+     "sim": 3,
+     "steps": 998,
+     "a_p50_ms": 0.845254,
+     "b_p50_ms": 29.600676,
+     "c_p50_ms": 23.019952,
+     "period_p50_ms": 57.134982,
+     "period_mean_skip_ms": 58.37871588777555,
+     "period_sum_ms": 58640.00794,
+     "steady_steps": 999
+    },
+    {
+     "sim": 4,
+     "steps": 998,
+     "a_p50_ms": 0.841496,
+     "b_p50_ms": 29.15563,
+     "c_p50_ms": 22.627678,
+     "period_p50_ms": 57.127444,
+     "period_mean_skip_ms": 58.38180815631262,
+     "period_sum_ms": 58642.747408,
+     "steady_steps": 999
+    },
+    {
+     "sim": 5,
+     "steps": 998,
+     "a_p50_ms": 0.903208,
+     "b_p50_ms": 33.627894,
+     "c_p50_ms": 22.99868,
+     "period_p50_ms": 58.93153,
+     "period_mean_skip_ms": 58.397926396793586,
+     "period_sum_ms": 58656.149384,
+     "steady_steps": 999
+    },
+    {
+     "sim": 6,
+     "steps": 998,
+     "a_p50_ms": 0.841574,
+     "b_p50_ms": 29.510942,
+     "c_p50_ms": 22.863222,
+     "period_p50_ms": 57.104834,
+     "period_mean_skip_ms": 58.386656164328656,
+     "period_sum_ms": 58642.755056,
+     "steady_steps": 999
+    },
+    {
+     "sim": 7,
+     "steps": 998,
+     "a_p50_ms": 0.798176,
+     "b_p50_ms": 40.693564,
+     "c_p50_ms": 11.984622,
+     "period_p50_ms": 57.039502,
+     "period_mean_skip_ms": 58.38881457314629,
+     "period_sum_ms": 58642.75618,
+     "steady_steps": 999
+    }
+   ],
+   "aggregate": {
+    "sims": 8,
+    "divide": 1,
+    "a": {
+     "mean": 0.84783975,
+     "min": 0.798176,
+     "max": 0.90604
+    },
+    "b": {
+     "mean": 33.28320925,
+     "min": 29.15563,
+     "max": 40.693564
+    },
+    "c": {
+     "mean": 20.1611495,
+     "min": 11.984622,
+     "max": 23.19901
+    },
+    "period": {
+     "mean": 57.40530075,
+     "min": 57.039502,
+     "max": 58.93153
+    },
+    "step_mean_skip": 58.39606445991984,
+    "step_mean_window": 58.37489952102102,
+    "defrag_events": [
+     [
+      1000,
+      328.072
+     ]
+    ]
+   },
+   "fps": 17.018379850238258,
+   "fps_nodefrag": 17.1131,
+   "trace_steady_fps": 17.017537109176626
+  },
+  "ideal": {
+   "trace": "..\\vulkan-demo\\logs\\n56\\2026-10-22\\02_e8_e8B_1721839\\traces\\trace_3d_n192_K1",
+   "case": "cases/aligned/cavity3d_n192/case.yaml",
+   "K": 1,
+   "warmup": 500,
+   "max_steps": 1500,
+   "per_sim": [
+    {
+     "sim": 0,
+     "steps": 998,
+     "a_p50_ms": 0.75016,
+     "b_p50_ms": 50.87231,
+     "c_p50_ms": 0.061344,
+     "period_p50_ms": 51.733882,
+     "period_mean_skip_ms": 52.75558710220441,
+     "period_sum_ms": 52734.307144,
+     "steady_steps": 999
+    }
+   ],
+   "aggregate": {
+    "sims": 1,
+    "divide": 1.0,
+    "a": {
+     "mean": 0.75016,
+     "min": 0.75016,
+     "max": 0.75016
+    },
+    "b": {
+     "mean": 50.87231,
+     "min": 50.87231,
+     "max": 50.87231
+    },
+    "c": {
+     "mean": 0.061344,
+     "min": 0.061344,
+     "max": 0.061344
+    },
+    "period": {
+     "mean": 51.733882,
+     "min": 51.733882,
+     "max": 51.733882
+    },
+    "step_mean_skip": 52.75558710220441,
+    "step_mean_window": 52.70288603003002,
+    "defrag_events": [
+     [
+      1000,
+      84.124
+     ]
+    ]
+   },
+   "fps": 18.925056775170326,
+   "fps_nodefrag": 18.9557,
+   "trace_steady_fps": 18.92552435309335
+  },
+  "ideal_raw": {
+   "trace": "..\\vulkan-demo\\logs\\n56\\2026-10-22\\02_e8_e8B_1721839\\traces\\trace_3d_n192_K1",
+   "case": "cases/aligned/cavity3d_n192/case.yaml",
+   "K": 1,
+   "warmup": 500,
+   "max_steps": 1500,
+   "per_sim": [
+    {
+     "sim": 0,
+     "steps": 998,
+     "a_p50_ms": 0.75016,
+     "b_p50_ms": 50.87231,
+     "c_p50_ms": 0.061344,
+     "period_p50_ms": 51.733882,
+     "period_mean_skip_ms": 52.75558710220441,
+     "period_sum_ms": 52734.307144,
+     "steady_steps": 999
+    }
+   ],
+   "aggregate": {
+    "sims": 1,
+    "divide": 1,
+    "a": {
+     "mean": 0.75016,
+     "min": 0.75016,
+     "max": 0.75016
+    },
+    "b": {
+     "mean": 50.87231,
+     "min": 50.87231,
+     "max": 50.87231
+    },
+    "c": {
+     "mean": 0.061344,
+     "min": 0.061344,
+     "max": 0.061344
+    },
+    "period": {
+     "mean": 51.733882,
+     "min": 51.733882,
+     "max": 51.733882
+    },
+    "step_mean_skip": 52.75558710220441,
+    "step_mean_window": 52.70288603003002,
+    "defrag_events": [
+     [
+      1000,
+      84.124
+     ]
+    ]
+   },
+   "fps": 18.925056775170326,
+   "fps_nodefrag": 18.9557,
+   "trace_steady_fps": 18.92552435309335
+  },
+  "whole_cube_divided": {
+   "trace": "..\\vulkan-demo\\logs\\n56\\2026-10-22\\02_e8_e8B_1721839\\traces\\trace_3d_n392_K1",
+   "case": "cases/aligned/cavity3d_n392/case.yaml",
+   "K": 1,
+   "warmup": 500,
+   "max_steps": 1500,
+   "per_sim": [
+    {
+     "sim": 0,
+     "steps": 998,
+     "a_p50_ms": 6.046548,
+     "b_p50_ms": 380.461392,
+     "c_p50_ms": 0.721714,
+     "period_p50_ms": 387.330228,
+     "period_mean_skip_ms": 391.5666771062124,
+     "period_sum_ms": 391406.93506,
+     "steady_steps": 999
+    }
+   ],
+   "aggregate": {
+    "sims": 1,
+    "divide": 8,
+    "a": {
+     "mean": 0.7558185,
+     "min": 0.7558185,
+     "max": 0.7558185
+    },
+    "b": {
+     "mean": 47.557674,
+     "min": 47.557674,
+     "max": 47.557674
+    },
+    "c": {
+     "mean": 0.09021425,
+     "min": 0.09021425,
+     "max": 0.09021425
+    },
+    "period": {
+     "mean": 48.4162785,
+     "min": 48.4162785,
+     "max": 48.4162785
+    },
+    "step_mean_skip": 48.94583463827655,
+    "step_mean_window": 48.89687938688689,
+    "defrag_events": [
+     [
+      1000,
+      623.075
+     ]
+    ]
+   },
+   "fps": 2.5498495588760264,
+   "fps_nodefrag": 2.5539,
+   "trace_steady_fps": 2.549817583504606
+  },
+  "ratio_ideal_over_chain": 0.902834719416545,
+  "ratio_divided_over_chain": 0.837635349920884,
+  "eta_timed": 0.840511922152012
+ },
+ {
+  "point": "3d_n192_K8",
+  "case": "cavity3d_n192",
+  "K": 8,
+  "per_card_cube": "cavity3d_n152",
+  "note": "4M cube as the stand-in for 1M per card",
+  "scale": 0.244140625,
+  "chain": {
+   "trace": "..\\vulkan-demo\\logs\\n56\\2026-10-22\\02_e8_e8B_1721839\\traces\\3d_n192_K8_C",
+   "case": "cases/aligned/cavity3d_n192/case.yaml",
+   "K": 8,
+   "warmup": 500,
+   "max_steps": 1500,
+   "per_sim": [
+    {
+     "sim": 0,
+     "steps": 998,
+     "a_p50_ms": 0.087842,
+     "b_p50_ms": 4.675712,
+     "c_p50_ms": 3.438436,
+     "period_p50_ms": 9.928014,
+     "period_mean_skip_ms": 10.099506977955912,
+     "period_sum_ms": 10170.50204,
+     "steady_steps": 999
+    },
+    {
+     "sim": 1,
+     "steps": 998,
+     "a_p50_ms": 0.087108,
+     "b_p50_ms": 1.388116,
+     "c_p50_ms": 5.921376,
+     "period_p50_ms": 9.94646,
+     "period_mean_skip_ms": 10.102657907815631,
+     "period_sum_ms": 10169.75082,
+     "steady_steps": 999
+    },
+    {
+     "sim": 2,
+     "steps": 998,
+     "a_p50_ms": 0.08744,
+     "b_p50_ms": 1.419844,
+     "c_p50_ms": 5.859788,
+     "period_p50_ms": 9.965576,
+     "period_mean_skip_ms": 10.107488937875752,
+     "period_sum_ms": 10172.072944,
+     "steady_steps": 999
+    },
+    {
+     "sim": 3,
+     "steps": 998,
+     "a_p50_ms": 0.088724,
+     "b_p50_ms": 1.421172,
+     "c_p50_ms": 6.085448,
+     "period_p50_ms": 9.996924,
+     "period_mean_skip_ms": 10.108987591182364,
+     "period_sum_ms": 10171.173444,
+     "steady_steps": 999
+    },
+    {
+     "sim": 4,
+     "steps": 998,
+     "a_p50_ms": 0.088528,
+     "b_p50_ms": 1.397176,
+     "c_p50_ms": 6.06331,
+     "period_p50_ms": 10.002482,
+     "period_mean_skip_ms": 10.111163246492985,
+     "period_sum_ms": 10170.954796,
+     "steady_steps": 999
+    },
+    {
+     "sim": 5,
+     "steps": 998,
+     "a_p50_ms": 0.088244,
+     "b_p50_ms": 1.437782,
+     "c_p50_ms": 6.084532,
+     "period_p50_ms": 9.985788,
+     "period_mean_skip_ms": 10.113578168336673,
+     "period_sum_ms": 10171.107756,
+     "steady_steps": 999
+    },
+    {
+     "sim": 6,
+     "steps": 998,
+     "a_p50_ms": 0.087828,
+     "b_p50_ms": 1.41941,
+     "c_p50_ms": 6.258924,
+     "period_p50_ms": 9.99618,
+     "period_mean_skip_ms": 10.115778408817636,
+     "period_sum_ms": 10171.049072,
+     "steady_steps": 999
+    },
+    {
+     "sim": 7,
+     "steps": 998,
+     "a_p50_ms": 0.091538,
+     "b_p50_ms": 4.573352,
+     "c_p50_ms": 3.805786,
+     "period_p50_ms": 10.011574,
+     "period_mean_skip_ms": 10.118512368737473,
+     "period_sum_ms": 10171.51104,
+     "steady_steps": 999
+    }
+   ],
+   "aggregate": {
+    "sims": 8,
+    "divide": 1,
+    "a": {
+     "mean": 0.0884065,
+     "min": 0.087108,
+     "max": 0.091538
+    },
+    "b": {
+     "mean": 2.2165705,
+     "min": 1.388116,
+     "max": 4.675712
+    },
+    "c": {
+     "mean": 5.4397,
+     "min": 3.438436,
+     "max": 6.258924
+    },
+    "period": {
+     "mean": 9.97912475,
+     "min": 9.928014,
+     "max": 10.011574
+    },
+    "step_mean_skip": 10.109709200901804,
+    "step_mean_window": 10.112735974974974,
+    "defrag_events": [
+     [
+      1000,
+      68.392
+     ]
+    ]
+   },
+   "fps": 98.13542688910697,
+   "fps_nodefrag": 98.7925,
+   "trace_steady_fps": 98.12949409979173
+  },
+  "ideal": {
+   "trace": "..\\vulkan-demo\\logs\\n56\\2026-10-22\\02_e8_e8B_1721839\\traces\\trace_3d_n152_K1",
+   "case": "cases/aligned/cavity3d_n152/case.yaml",
+   "K": 1,
+   "warmup": 500,
+   "max_steps": 1500,
+   "per_sim": [
+    {
+     "sim": 0,
+     "steps": 998,
+     "a_p50_ms": 0.3462,
+     "b_p50_ms": 26.20211,
+     "c_p50_ms": 0.02448,
+     "period_p50_ms": 26.608218,
+     "period_mean_skip_ms": 27.06496150300601,
+     "period_sum_ms": 27057.197288,
+     "steady_steps": 999
+    }
+   ],
+   "aggregate": {
+    "sims": 1,
+    "divide": 4.096,
+    "a": {
+     "mean": 0.084521484375,
+     "min": 0.084521484375,
+     "max": 0.084521484375
+    },
+    "b": {
+     "mean": 6.39699951171875,
+     "min": 6.39699951171875,
+     "max": 6.39699951171875
+    },
+    "c": {
+     "mean": 0.005976562499999999,
+     "min": 0.005976562499999999,
+     "max": 0.005976562499999999
+    },
+    "period": {
+     "mean": 6.49614697265625,
+     "min": 6.49614697265625,
+     "max": 6.49614697265625
+    },
+    "step_mean_skip": 6.607656616944826,
+    "step_mean_window": 6.601118522819694,
+    "defrag_events": [
+     [
+      1000,
+      46.054
+     ]
+    ]
+   },
+   "fps": 36.88675765400222,
+   "fps_nodefrag": 36.949,
+   "trace_steady_fps": 36.88619403335295
+  },
+  "ideal_raw": {
+   "trace": "..\\vulkan-demo\\logs\\n56\\2026-10-22\\02_e8_e8B_1721839\\traces\\trace_3d_n152_K1",
+   "case": "cases/aligned/cavity3d_n152/case.yaml",
+   "K": 1,
+   "warmup": 500,
+   "max_steps": 1500,
+   "per_sim": [
+    {
+     "sim": 0,
+     "steps": 998,
+     "a_p50_ms": 0.3462,
+     "b_p50_ms": 26.20211,
+     "c_p50_ms": 0.02448,
+     "period_p50_ms": 26.608218,
+     "period_mean_skip_ms": 27.06496150300601,
+     "period_sum_ms": 27057.197288,
+     "steady_steps": 999
+    }
+   ],
+   "aggregate": {
+    "sims": 1,
+    "divide": 1,
+    "a": {
+     "mean": 0.3462,
+     "min": 0.3462,
+     "max": 0.3462
+    },
+    "b": {
+     "mean": 26.20211,
+     "min": 26.20211,
+     "max": 26.20211
+    },
+    "c": {
+     "mean": 0.02448,
+     "min": 0.02448,
+     "max": 0.02448
+    },
+    "period": {
+     "mean": 26.608218,
+     "min": 26.608218,
+     "max": 26.608218
+    },
+    "step_mean_skip": 27.06496150300601,
+    "step_mean_window": 27.038181469469468,
+    "defrag_events": [
+     [
+      1000,
+      46.054
+     ]
+    ]
+   },
+   "fps": 36.88675765400222,
+   "fps_nodefrag": 36.949,
+   "trace_steady_fps": 36.88619403335295
+  },
+  "whole_cube_divided": {
+   "trace": "..\\vulkan-demo\\logs\\n56\\2026-10-22\\02_e8_e8B_1721839\\traces\\trace_3d_n192_K1",
+   "case": "cases/aligned/cavity3d_n192/case.yaml",
+   "K": 1,
+   "warmup": 500,
+   "max_steps": 1500,
+   "per_sim": [
+    {
+     "sim": 0,
+     "steps": 998,
+     "a_p50_ms": 0.75016,
+     "b_p50_ms": 50.87231,
+     "c_p50_ms": 0.061344,
+     "period_p50_ms": 51.733882,
+     "period_mean_skip_ms": 52.75558710220441,
+     "period_sum_ms": 52734.307144,
+     "steady_steps": 999
+    }
+   ],
+   "aggregate": {
+    "sims": 1,
+    "divide": 8,
+    "a": {
+     "mean": 0.09377,
+     "min": 0.09377,
+     "max": 0.09377
+    },
+    "b": {
+     "mean": 6.35903875,
+     "min": 6.35903875,
+     "max": 6.35903875
+    },
+    "c": {
+     "mean": 0.007668,
+     "min": 0.007668,
+     "max": 0.007668
+    },
+    "period": {
+     "mean": 6.46673525,
+     "min": 6.46673525,
+     "max": 6.46673525
+    },
+    "step_mean_skip": 6.594448387775551,
+    "step_mean_window": 6.587860753753753,
+    "defrag_events": [
+     [
+      1000,
+      84.124
+     ]
+    ]
+   },
+   "fps": 18.925056775170326,
+   "fps_nodefrag": 18.9557,
+   "trace_steady_fps": 18.92552435309335
+  },
+  "ratio_ideal_over_chain": 0.6527529779433433,
+  "ratio_divided_over_chain": 0.6514419806920803,
+  "eta_timed": 0.6634385570954433
+ }
+]
