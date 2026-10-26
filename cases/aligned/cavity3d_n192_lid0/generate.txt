@@ -1,0 +1,2 @@
+# cavity3d_n192 with the lid at rest: case.yaml of cavity3d_n192 with wall_top -> material stick_wall; the .obj files are
+# ../cavity3d_n192's (no copies). Local single-card size-cost study, 2026-10-26.
