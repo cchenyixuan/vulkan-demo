@@ -873,3 +873,22 @@ K = 1 单 slab 只有 predict、voxel、correction_density_interior（全域）�
 （4 × 8M、8 × 8M 盒子：+11.42、+11.46 ms，核各 +5.63 / +5.71、+5.65 / +5.72，见 `fixed_terms.md`。）
 
 **判读**：固定项既不随截面也不严格随 x 向长度——四个算例按 x 向每格算 25、14、30、39 µs，按列算 93、55、115、134 µs；同为 ~16M 的扁盒子和 2 × 8M 盒子差 3 倍。细长（192² 截面）最贵、扁平最便宜，倾向于"每列 / 每 dispatch 的尾部"一类成本而不是"每截面"，但落实到核的拖尾要靠第 1 项的 GPU Trace。
+
+
+#### 7.16 补记：计数器权限打开后的采集（2026-10-27 02:10–02:45）
+
+控制面板里打开计数器权限后普通会话仍报同一错误（Windows 上该设置重启后才生效），改为以管理员运行（UAC 提权，`local_size_cost/nsight_batches/`，由你点确认）。**采到的**：8M 立方体 K = 1 两次（`cube8m` 普通、`cube8m_actions` 加 `--time-every-action`，各 426 ms 窗口、669 MB `.ngfx-gputrace`）、32M 立方体一次（`cube32m`，615 ms，1.0 GB）。**64M 采不到**：四次（含 HES 关闭）都在 activity 启动时报 `GPU Performance Counters unavailable. Please close any existing GPU profiling sessions`，而同一批次里的 8M / 32M 正常——只有 64M 失败，与批次顺序无关；64M 进程此时已占 21.0 GB 显存（8M 2.7 GB、32M ~11 GB），Nsight 的 PMA 缓冲 1.6 GB + HES 要在同一上下文里分配，疑为显存 / PM 资源不够。对照组改用 32M。
+
+**命令行导出只有整窗口的汇总**（`BASE_UNLOCKED/GPUTRACE_FRAME.xls` 656 个指标；`GPUTRACE_REGIMES.xls` 只有一行，`--time-every-action` 也不拆成每个 dispatch），没有随时间的曲线，也没有逐 dispatch 的行；曲线只在 Nsight Graphics 的 UI 里。窗口汇总：
+
+| 采集 | 窗口 (ms) | compute 引擎活跃 | SM 吞吐 | 每 SM 活跃 warp（峰值 48） | warp 占用 | GPC 时钟 (MHz) |
+|---|---|---|---|---|---|---|
+| 8M | 426.6 | 99.86 % | 66.6 % | 29.8 | 62.1 % | 2736 |
+| 8M (every action) | 426.1 | 99.85 % | 66.8 % | 29.8 | 62.1 % | 2733 |
+| 32M | 615.0 | 99.96 % | 72.7 % | 31.2 | 65.0 % | 2685 |
+
+**采样对核的扰动**（链路代码自己的逐核 trace，同一运行）：层注入但未采样时两核各 +4 %（corr+dens 26.5 对 25.6 ms，周期 53.1 对 51.2），采样窗口内的步明显变慢——8M 第 231 步 corr+dens 92.7 ms（3.6 ×）、第 232 步 force 40.6 ms、第 233 步 corr+dens 45.3 ms；32M 窗口约 2.6 步、每步 ≈ 236 对 198 ms（+20 %），且报 "periodic sampling data dropped" / "Hardware Event ran out of resource"。所以从 trace 里读出的拖尾时长会被采样本身放大，只能看形状。
+
+**Nsight Systems 走不通**：`nsys --gpu-metrics-devices=all`（200 kHz 与 20 kHz，指标集 gb20x 与 gb20x-top 都试了）对这张无显示的 5090 只有引擎级计数器（GR Active 100 %、Sync Compute in Flight 100 %），SM 吞吐、warp 占用、VRAM 带宽全是 0（显示卡那边有非零值），另一卡报 `DecodeCounters NVPA_STATUS_ERROR`；Vulkan 工作负载也没采到。四个 `.nsys-rep` / `.sqlite` 留在 `nsight/nsys*/`，仅作记录。
+
+**待办**：拖尾曲线要么在 UI 里打开上面三个 trace 读 SM/warp 占用行（CLI 导不出），要么改用计时法在生产条件下直接量每个 dispatch 的填充 + 排空成本（把两个 sweep 核的 dispatch 用 `vkCmdDispatchBase` 切成 m 段、段间加屏障，T(m) − T(1) = (m − 1) × 尾部成本；只动主机端 dispatch 代码，着色器不变），等你定。镜像 `logs/e8_local/nsight_20261027/`（trace 大文件留在 scratchpad `nsight/<label>/`），脚本 `local_size_cost/nsight_capture.sh`、`nsys_capture.sh`、`nsight_batches/`。

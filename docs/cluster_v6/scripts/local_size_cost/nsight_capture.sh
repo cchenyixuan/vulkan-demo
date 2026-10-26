@@ -3,7 +3,8 @@
 # same solver arguments as run_item.sh (300 steps, warmup 100, bootstrap defrag, full step trace); trace window starts
 # START_MS after collection is ready (= inside the steady steps) and lasts DURATION_MS; metrics auto-exported; clocks unaltered.
 set -u
-LABEL=$1; CASE=$2; START=$3; DUR=$4
+export PATH="/usr/bin:/bin:$PATH"   # an elevated bash started by Start-Process has no MSYS tools on PATH
+LABEL=$1; CASE=$2; START=$3; DUR=$4; shift 4; EXTRA=("$@")   # extra ngfx options, e.g. --time-every-action
 SPN=/c/Users/cchen/AppData/Local/Temp/claude/C--Users-cchen-PycharmProjects-vulkan-demo/fd68689d-e4b4-4b3f-8636-fbe3d1d866de/scratchpad/e8/nsight
 NG="/c/Program Files/NVIDIA Corporation/Nsight Graphics 2026.3.1/host/windows-desktop-nomad-x64/ngfx.exe"
 OUT=$SPN/$LABEL; rm -rf "$OUT"; mkdir -p "$OUT/trace"
@@ -17,7 +18,7 @@ MSYS_NO_PATHCONV=1 "$NG" --activity="GPU Trace Profiler" --platform="Windows (x8
   --args "-u docs/cluster_v6/scripts/run_chain_v6.py --solver v7 --obj-cache logs/e8_local/obj_cache -- --case $CASE --weights 1 --device-map 1 --sync-scheme per-direction --depth 2 --pool-safety 1.2 --max-steps 300 --warmup 100 --no-seam-check --step-trace $WOUT/trace --step-trace-detail full" \
   --env "VK_LOADER_LAYERS_DISABLE=VK_LAYER_KHRONOS_validation; PYTHONDONTWRITEBYTECODE=1;" \
   --output-dir "$WOUT" --start-after-ms "$START" --max-duration-ms "$DUR" --auto-export --set-gpu-clocks unaltered \
-  --architecture "Blackwell GB20x" --metric-set-id 0 --hes-enabled 1 --collect-screenshot 0 --no-timeout --verbose > "$OUT/ngfx.log" 2>&1
+  --architecture "Blackwell GB20x" --metric-set-id 0 --hes-enabled "${HES:-1}" --collect-screenshot 0 --no-timeout --verbose "${EXTRA[@]}" > "$OUT/ngfx.log" 2>&1
 RC=$?
 sleep 1; kill $SMI 2>/dev/null
 echo "rc=$RC seconds=$(( $(date +%s) - T0 ))" | tee "$OUT/status.txt"
