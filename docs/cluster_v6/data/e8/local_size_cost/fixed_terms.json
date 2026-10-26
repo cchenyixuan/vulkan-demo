@@ -1,0 +1,138 @@
+{
+ "slopes_box_fit": {
+  "T": {
+   "a_ns": 5.831356956845237,
+   "b_ms": 11.446465773809601
+  },
+  "corr+dens": {
+   "a_ns": 2.878513806733631,
+   "b_ms": 5.643471081845255
+  },
+  "force": {
+   "a_ns": 2.8209860421316955,
+   "b_ms": 5.712452716517919
+  }
+ },
+ "rows": [
+  {
+   "item": "8m_base",
+   "label": "cube 8M (200^3)",
+   "runs": 2,
+   "N": 8000000,
+   "x_cells": 200,
+   "section_cells": 200,
+   "T_ms": 51.65,
+   "T_runs_ms": [
+    51.55,
+    51.75
+   ],
+   "aN_ms": 46.6508556547619,
+   "fixed_ms": 4.999144345238101,
+   "fixed_corr_dens_ms": 2.628220546130951,
+   "fixed_force_ms": 2.3422086629464367,
+   "fixed_other_ms": 0.028715136160712973,
+   "corr_dens_ms": 25.656330999999998,
+   "force_ms": 24.910097
+  },
+  {
+   "item": "64m_base",
+   "label": "cube 64M (400^3)",
+   "runs": 2,
+   "N": 64000000,
+   "x_cells": 400,
+   "section_cells": 400,
+   "T_ms": 378.9,
+   "T_runs_ms": [
+    378.85,
+    378.95
+   ],
+   "aN_ms": 373.2068452380952,
+   "fixed_ms": 5.693154761904793,
+   "fixed_corr_dens_ms": 1.6425173690476242,
+   "fixed_force_ms": 3.883188303571501,
+   "fixed_other_ms": 0.16744908928566815,
+   "corr_dens_ms": 185.867401,
+   "force_ms": 184.426295
+  },
+  {
+   "item": "box_k2",
+   "label": "box 2 x 8M (384 x 192^2)",
+   "runs": 2,
+   "N": 15680000,
+   "x_cells": 384,
+   "section_cells": 192,
+   "T_ms": 102.9,
+   "T_runs_ms": [
+    102.85,
+    102.95
+   ],
+   "aN_ms": 91.43567708333332,
+   "fixed_ms": 11.464322916666688,
+   "fixed_corr_dens_ms": 5.652860510416659,
+   "fixed_force_ms": 5.716694359375012,
+   "fixed_other_ms": 0.09476804687501783,
+   "corr_dens_ms": 50.78795699999999,
+   "force_ms": 49.9497555
+  },
+  {
+   "item": "box_k4",
+   "label": "box 4 x 8M (768 x 192^2)",
+   "runs": 2,
+   "N": 31040000,
+   "x_cells": 768,
+   "section_cells": 192,
+   "T_ms": 192.425,
+   "T_runs_ms": [
+    192.4,
+    192.45
+   ],
+   "aN_ms": 181.00531994047617,
+   "fixed_ms": 11.419680059523841,
+   "fixed_corr_dens_ms": 5.629386938988091,
+   "fixed_force_ms": 5.706090252232173,
+   "fixed_other_ms": 0.08420286830357782,
+   "corr_dens_ms": 94.9784555,
+   "force_ms": 93.269497
+  },
+  {
+   "item": "box_k8",
+   "label": "box 8 x 8M (1536 x 192^2)",
+   "runs": 2,
+   "N": 61760000,
+   "x_cells": 1536,
+   "section_cells": 192,
+   "T_ms": 371.6,
+   "T_runs_ms": [
+    371.3,
+    371.9
+   ],
+   "aN_ms": 360.14460565476185,
+   "fixed_ms": 11.455394345238176,
+   "fixed_corr_dens_ms": 5.648165796130968,
+   "fixed_force_ms": 5.714573537946478,
+   "fixed_other_ms": 0.09265501116072983,
+   "corr_dens_ms": 183.42517850000002,
+   "force_ms": 179.9386715
+  },
+  {
+   "item": "flatbox",
+   "label": "flat box (96 x 384^2)",
+   "runs": 2,
+   "N": 15981056,
+   "x_cells": 96,
+   "section_cells": 384,
+   "T_ms": 96.95,
+   "T_runs_ms": [
+    96.9,
+    97.0
+   ],
+   "aN_ms": 93.19124208333332,
+   "fixed_ms": 3.7587579166666814,
+   "fixed_corr_dens_ms": 2.5738446578166716,
+   "fixed_force_ms": 1.140033085475018,
+   "fixed_other_ms": 0.04488017337499173,
+   "corr_dens_ms": 48.575535,
+   "force_ms": 46.22236900000001
+  }
+ ]
+}

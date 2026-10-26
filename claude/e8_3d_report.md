@@ -853,3 +853,23 @@ K = 1 单 slab 只有 predict、voxel、correction_density_interior（全域）�
 **第 5 项：64M 的 41,126,480 B 包的 memcpy**（全部链路 × 稳态步合并的中位；`memcpy.md`）：K = 2 **2,626 µs，15.66 GB/s**（两条链路 2,573–2,637）；K = 8 **6,459 µs，6.37 GB/s**（14 条链路的中位 2,996–11,609 µs，p95 13.4 ms；最差链路 11.6 ms = 3.5 GB/s，即 7.4 节的"11 ms"）；K = 4 3,821 µs，10.76 GB/s。
 
 复现：`python docs/cluster_v6/scripts/e8_loss_3d.py --job <02> --job <03> --job <04> --job <09> --tables docs/cluster_v6/data/e8/phase2/tables.json --two-d-json <e7>/figures/loss_sources_figure.json --two-d-tables <e7>/tables_b2.json --two-d-figure-csv <e7>/figures/scaling_figures.csv --two-d-logs ../vulkan-demo/logs/n56 --out-dir docs/cluster_v6/data/e8/loss_3d --figure-out <dir>…`（约 2 min）。
+
+
+### 7.16 单卡固定成本的定位：GPU Trace（未能采集）+ 扁盒子（本机，2026-10-27 凌晨；你的三项清单）
+
+**第 1 项（Nsight Graphics GPU Trace）：未能采集，缺硬件计数器权限。** 本机装有 Nsight Graphics 2026.3.1。命令行 `ngfx --activity="GPU Trace Profiler"` 注入 python 进程成功（识别到 Vulkan，状态 Presenting，采样间隔 24.4 µs），但开始采集时驱动报 `GPU Performance Counters unavailable. Please enable access to GPU performance counters`：这台机器的 NVIDIA 驱动把性能计数器限制为管理员（注册表 `nvlddmkm\Global\NVTweak` 下没有 `RmProfilingAdminOnly = 0`，即默认"仅管理员"），当前会话不是管理员，Windows `sudo` 被禁用，以 UAC 提权运行采集脚本的请求被取消（`The operation was canceled by the user`）。两条路任选其一后即可采：(a) 以管理员身份运行一次 `docs/cluster_v6/scripts/local_size_cost/nsight_capture.sh <label> <case> <start_ms> <duration_ms>`（提权包装 `nsight_elevate.ps1`；8M：`cube8m cases/aligned/cavity3d_n192/case.yaml 12000 400`，64M：`cube64m cases/aligned/cavity3d_n392/case.yaml 90000 1500`），不改系统设置；(b) NVIDIA 控制面板 → Developer → Manage GPU Performance Counters → Allow access to all users（需管理员，可能要重启），之后普通会话即可采。脚本已按要求配置：链路代码 K = 1、device-map 1、300 步 warmup 100、启动 defrag 照常、逐核 trace，采集窗口落在稳态步（8M 从第 ~170 步起 400 ms ≈ 7 步；64M 从第 ~150 步起 1.5 s ≥ 2 整步）、Blackwell GB20x "Top-Level Triage" 指标集、HES 精确 dispatch 时间戳（GB20x 支持）、时钟不锁（与 575 W 计时一致）、指标自动导出。失败记录 `logs/e8_local/nsight_20261027/cube8m_counters_denied/ngfx.log`。表里的拖尾时长一栏因此空着。
+
+**第 2 项（扁盒子）**：本机生成 `cases/aligned/cavity3d_n384_x96`（`--n 384 --n-x 96 --border 4`：流体 96 × 384 × 384 = 14,155,776，壁 1,677,824，盖板 147,456，共 **15,981,056**；24 个整流体列 + 每侧 2 壁列 = 28 列；行数与 generate.txt 一致），K = 1 两次，同 7.12 协议（GPU 1，575 W，300 步取 100–299，启动 defrag 照常）：96.900 / 97.000 ms，均值 **96.950 ms**，drift 0，SM 2812 MHz。固定项 T − 5.831 ns × N = 96.950 − 93.191 = **+3.76 ms**，对比 2 × 8M 盒子（384 × 192²，流体同为 14,155,776）的 **+11.46 ms**：截面大 4 倍、x 向短 4 倍，固定项只有 0.33 倍。**7.14 的"与截面积成正比"被否定**：按截面折算 25.5 对 311 ns / 截面格（12 倍）；按 x 向长度折算 39 对 30 µs / 格；按 voxel 列数（28 对 100 列）134 对 115 µs / 列。两个 sweep 核各自的固定项（核斜率用盒子拟合的 2.879 / 2.821 ns）：corr+dens +2.57 ms（2 × 8M 盒子 +5.65），force +1.14 ms（+5.72）——扁盒子里 force 的固定项掉得比 corr+dens 多。脚本 `local_size_cost/run_flatbox.sh`、`fit_flat.py`（`analyze_runs.py`、`e8_vram.CASES` 加了该算例），数据 `data/e8/local_size_cost/fixed_terms.md/json`、`runs_table.md/json`（新增 flatbox 两行），日志 `logs/e8_local/size_cost_20261026/runs/flatbox_r{1,2}/`。
+
+**第 3 项（表）**：固定项一律 = 实测 − 盒子拟合斜率 × N（T：5.831 ns；corr+dens：2.879 ns；force：2.821 ns；"其余" = 总固定项 − 两核之和）。
+
+| 算例 | N | x 格 | 截面 | T (ms) | 固定项 T − aN (ms) | corr+dens 固定项 (ms) | force 固定项 (ms) | 其余 (ms) | 拖尾时长 corr+dens / force |
+|---|---|---|---|---|---|---|---|---|---|
+| 立方体 8M (200³) | 8,000,000 | 200 | 200² | 51.650 | **+5.00** | +2.63 | +2.34 | +0.03 | 待采（计数器权限） |
+| 立方体 64M (400³) | 64,000,000 | 400 | 400² | 378.900 | **+5.69** | +1.64 | +3.88 | +0.17 | 待采 |
+| 盒子 2 × 8M (384 × 192²) | 15,680,000 | 384 | 192² | 102.900 | **+11.46** | +5.65 | +5.72 | +0.10 | – |
+| 扁盒子 (96 × 384²) | 15,981,056 | 96 | 384² | 96.950 | **+3.76** | +2.57 | +1.14 | +0.05 | – |
+
+（4 × 8M、8 × 8M 盒子：+11.42、+11.46 ms，核各 +5.63 / +5.71、+5.65 / +5.72，见 `fixed_terms.md`。）
+
+**判读**：固定项既不随截面也不严格随 x 向长度——四个算例按 x 向每格算 25、14、30、39 µs，按列算 93、55、115、134 µs；同为 ~16M 的扁盒子和 2 × 8M 盒子差 3 倍。细长（192² 截面）最贵、扁平最便宜，倾向于"每列 / 每 dispatch 的尾部"一类成本而不是"每截面"，但落实到核的拖尾要靠第 1 项的 GPU Trace。
