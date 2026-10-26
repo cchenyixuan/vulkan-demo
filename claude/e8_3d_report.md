@@ -892,3 +892,62 @@ K = 1 单 slab 只有 predict、voxel、correction_density_interior（全域）�
 **Nsight Systems 走不通**：`nsys --gpu-metrics-devices=all`（200 kHz 与 20 kHz，指标集 gb20x 与 gb20x-top 都试了）对这张无显示的 5090 只有引擎级计数器（GR Active 100 %、Sync Compute in Flight 100 %），SM 吞吐、warp 占用、VRAM 带宽全是 0（显示卡那边有非零值），另一卡报 `DecodeCounters NVPA_STATUS_ERROR`；Vulkan 工作负载也没采到。四个 `.nsys-rep` / `.sqlite` 留在 `nsight/nsys*/`，仅作记录。
 
 **待办**：拖尾曲线要么在 UI 里打开上面三个 trace 读 SM/warp 占用行（CLI 导不出），要么改用计时法在生产条件下直接量每个 dispatch 的填充 + 排空成本（把两个 sweep 核的 dispatch 用 `vkCmdDispatchBase` 切成 m 段、段间加屏障，T(m) − T(1) = (m − 1) × 尾部成本；只动主机端 dispatch 代码，着色器不变），等你定。镜像 `logs/e8_local/nsight_20261027/`（trace 大文件留在 scratchpad `nsight/<label>/`），脚本 `local_size_cost/nsight_capture.sh`、`nsys_capture.sh`、`nsight_batches/`。
+
+
+### 7.17 单卡固定成本的定位（二）：拆分 dispatch 的计时法（本机，2026-10-27 03:00–04:10；你批准的第 2 条 + 追加）
+
+**方法**：scratch monkeypatch（`local_size_cost/split/split_dispatch_run.py`，经 `run_chain_v6.py` 跑链路代码；`experiment/v7` 树与其 SPIR-V 不动，运行前后 `HEAD:experiment/v7` = 10781f23、工作区 0 改动，日志里有核对行）。把 phase B 的两个 sweep dispatch 各自切成 m 段：段 = 同一核的 SEGMENT 流水线（spec constant 115 = 该段首线程，与树里 force.comp 的 FORCE_SEGMENT 机制相同；fused 的 correction_density.comp 没有这个变体，用它的 scratch 副本加同样两行编译成 `split/shaders/correction_density_segment.comp.spv`，diff 只有常量声明和 `thread_id += SEGMENT_FIRST_THREAD`），段间插模拟器自己的 compute→compute 屏障；分段按粒子序均分活粒子范围 [0, N)（最后一段带上池尾空槽），不按列。**不用 vkCmdDispatchBase**：它在这张 5090 / 576.88 上把 base ≠ 0 的段跑错（E39 的观察，这里复现：四段运行后多数粒子未被处理，速度中位 0、压力均值 0.0055 对 2.30），而 SEGMENT 流水线的四段 / 一段运行的末态聚合量（ρ 均值、压力均值、速度分位、|x| 和）与两次原版运行一致到 1e-9（原版两次之间也只差这么多；bit 级哈希逐次不同，因为 voxel 列表由原子操作排序）。协议同 7.12：GPU 1，575 W，300 步取 100–299，启动 defrag 照常，逐核 trace；每个 m 两次；拆一个核时另一个核保持原版；另加 m1_seg（SEGMENT 流水线、首线程 0、不拆）核对变体本身的成本。核时长取 trace 的逐步中位（b_start→cd_end，cd_end→force_end）。
+
+**结果**（`data/e8/local_size_cost/split_tail.md`；T(m) − T(1) 对 m − 1 过原点最小二乘，括号内自由拟合与 rms）：
+
+| 立方体 | 核 | T(1) (ms) | 每个段边界的成本 = 斜率 (ms) | 固定项 T_k − a_k N（7.16） | 斜率 / 固定项 |
+|---|---|---|---|---|---|
+| 8M | corr+dens | 25.967 | **+0.350**（+0.345 m +0.028，rms 0.021） | +2.628 | **0.13** |
+| 8M | force | 25.192 | **+0.390**（+0.384 m +0.034，rms 0.066） | +2.342 | **0.17** |
+| 64M | corr+dens | 187.929 | **+0.250**（+0.254 m -0.021，rms 0.120） | +1.643 | **0.15** |
+| 64M | force | 186.653 | **+0.236**（+0.236 m +0.001，rms 0.081） | +3.883 | **0.06** |
+
+逐 m 的 T(m) − T(1)：8M corr+dens +0.36 / +1.08 / +2.44 ms（m = 2 / 4 / 8），force +0.41 / +1.21 / +2.71；64M corr+dens +0.28 / +0.67 / +1.78，force +0.29 / +0.63 / +1.68——都是 m − 1 的直线（8M 的 rms 0.02–0.07 ms，64M 0.08–0.12）。m1_seg 与原版相同（8M 25.965 / 25.175 对 25.967 / 25.192；64M 187.941 / 186.657 对 187.929 / 186.653），变体本身无成本。被拆的核变慢时另一个核略快 0.1–0.3 ms（末态缓存状态不同），步长的增量比核的增量小这么多。
+
+**判读：斜率 ≠ 固定项，固定项不是 dispatch 的尾部。** 一个段边界（排空 + 屏障 + 再填充）在 8M 是 0.35 / 0.39 ms、64M 是 0.25 / 0.24 ms，与规模基本无关；它只占 7.16 固定项的 13–17 %（8M）和 6–15 %（64M）。两个 sweep 核各自的固定项（8M 2.63 / 2.34 ms，64M 1.64 / 3.88 ms）比一次填充-排空大一个量级，所以不能用"核末尾低占用拖尾"解释，要到核内部（按 x 位置的每粒子成本差异、壁面 / 端壁）去找——下面追加项的八片时长正是为此。
+
+**追加：m = 8 各片的 GPU 时间戳**（`split_dispatch_run_ticks.py`：每段的屏障后写一个 tick `b_split_<cd|fo>_p<i>_end`，trace 列表扩展后写进 steps_device.csv；第一次运行没有扩展列表、无片列，重跑一遍；两次运行、逐步中位再取平均；片 → 列的映射用 `e8_vram.lattice`：own 缓冲按 voxel 排序、x 最慢，片 k 的粒子序区间按各 x 列的粒子数累计映射到列区间，跨列的片按比例折算成分；`piece_times.md/json`）：
+
+##### cube 8M (200^3): pieces (m = 8, by particle order = x from -x to +x; live N = 8,000,000; 50 x-columns of 4 cells: -x end wall, 48 fluid columns, +x end wall; fluid column = 160,000 particles = fluid 147,456 + lid 3,072 + side walls 9,472; end wall column = 160,000)
+
+| piece | particles | columns covered (x order) | fluid | lid | wall | wall share | correction_density_interior (ms) | per 1M (ms) | force_deep_interior_scratch (ms) | per 1M (ms) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 1,000,000 | -x end wall (100 %) .. fluid column 6 (25 %) | 774,144 | 16,128 | 209,728 | 21.0 % | 3.526 | 3.526 | 3.500 | 3.500 |
+| 1 | 1,000,000 | fluid column 6 (75 %) .. fluid column 12 (50 %) | 921,600 | 19,200 | 59,200 | 5.9 % | 3.556 | 3.556 | 3.552 | 3.552 |
+| 2 | 1,000,000 | fluid column 12 (50 %) .. fluid column 18 (75 %) | 921,600 | 19,200 | 59,200 | 5.9 % | 3.558 | 3.558 | 3.535 | 3.535 |
+| 3 | 1,000,000 | fluid column 18 (25 %) .. fluid column 24 (100 %) | 921,600 | 19,200 | 59,200 | 5.9 % | 3.597 | 3.597 | 3.601 | 3.601 |
+| 4 | 1,000,000 | fluid column 25 (100 %) .. fluid column 31 (25 %) | 921,600 | 19,200 | 59,200 | 5.9 % | 3.612 | 3.612 | 3.558 | 3.558 |
+| 5 | 1,000,000 | fluid column 31 (75 %) .. fluid column 37 (50 %) | 921,600 | 19,200 | 59,200 | 5.9 % | 3.504 | 3.504 | 3.488 | 3.488 |
+| 6 | 1,000,000 | fluid column 37 (50 %) .. fluid column 43 (75 %) | 921,600 | 19,200 | 59,200 | 5.9 % | 3.482 | 3.482 | 3.507 | 3.507 |
+| 7 | 1,000,000 | fluid column 43 (25 %) .. +x end wall (100 %) | 774,144 | 16,128 | 209,728 | 21.0 % | 3.388 | 3.388 | 3.259 | 3.259 |
+- correction_density_interior: pieces sum 28.223 ms; min 3.388 (piece 7), max 3.612 (piece 4), max / median 1.020; per-run medians agree within 0.075 ms
+- force_deep_interior_scratch: pieces sum 28.001 ms; min 3.259 (piece 7), max 3.601 (piece 3), max / median 1.023; per-run medians agree within 0.093 ms
+
+##### cube 64M (400^3): pieces (m = 8, by particle order = x from -x to +x; live N = 64,000,000; 100 x-columns of 4 cells: -x end wall, 98 fluid columns, +x end wall; fluid column = 640,000 particles = fluid 614,656 + lid 6,272 + side walls 19,072; end wall column = 640,000)
+
+| piece | particles | columns covered (x order) | fluid | lid | wall | wall share | correction_density_interior (ms) | per 1M (ms) | force_deep_interior_scratch (ms) | per 1M (ms) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | 8,000,000 | -x end wall (100 %) .. fluid column 12 (50 %) | 7,068,544 | 72,128 | 859,328 | 10.7 % | 25.130 | 3.141 | 24.105 | 3.013 |
+| 1 | 8,000,000 | fluid column 12 (50 %) .. fluid column 24 (100 %) | 7,683,200 | 78,400 | 238,400 | 3.0 % | 25.073 | 3.134 | 25.114 | 3.139 |
+| 2 | 8,000,000 | fluid column 25 (100 %) .. fluid column 37 (50 %) | 7,683,200 | 78,400 | 238,400 | 3.0 % | 23.296 | 2.912 | 23.522 | 2.940 |
+| 3 | 8,000,000 | fluid column 37 (50 %) .. fluid column 49 (100 %) | 7,683,200 | 78,400 | 238,400 | 3.0 % | 23.206 | 2.901 | 23.428 | 2.928 |
+| 4 | 8,000,000 | fluid column 50 (100 %) .. fluid column 62 (50 %) | 7,683,200 | 78,400 | 238,400 | 3.0 % | 23.238 | 2.905 | 23.380 | 2.922 |
+| 5 | 8,000,000 | fluid column 62 (50 %) .. fluid column 74 (100 %) | 7,683,200 | 78,400 | 238,400 | 3.0 % | 23.423 | 2.928 | 23.575 | 2.947 |
+| 6 | 8,000,000 | fluid column 75 (100 %) .. fluid column 87 (50 %) | 7,683,200 | 78,400 | 238,400 | 3.0 % | 23.468 | 2.933 | 23.651 | 2.956 |
+| 7 | 8,000,000 | fluid column 87 (50 %) .. +x end wall (100 %) | 7,068,544 | 72,128 | 859,328 | 10.7 % | 22.818 | 2.852 | 21.729 | 2.716 |
+- correction_density_interior: pieces sum 189.652 ms; min 22.818 (piece 7), max 25.130 (piece 0), max / median 1.076; per-run medians agree within 0.127 ms
+- force_deep_interior_scratch: pieces sum 188.503 ms; min 21.729 (piece 7), max 25.114 (piece 1), max / median 1.066; per-run medians agree within 0.202 ms
+
+
+**各片判读**：
+- 8M corr+dens: 八片 3.53, 3.56, 3.56, 3.60, 3.61, 3.50, 3.48, 3.39 ms（和 28.22）；最贵第 4 片 3.612 ms = 中间六片中位 3.557 的 1.015 倍，覆盖 fluid column 25 (100 %) .. fluid column 31 (25 %)（流体 921,600、盖板 19,200、壁 59,200，壁占 5.9 %）；最便宜第 7 片 3.388 ms（fluid column 43 (25 %) .. +x end wall (100 %)）
+- 8M force: 八片 3.50, 3.55, 3.54, 3.60, 3.56, 3.49, 3.51, 3.26 ms（和 28.00）；最贵第 3 片 3.601 ms = 中间六片中位 3.543 的 1.016 倍，覆盖 fluid column 18 (25 %) .. fluid column 24 (100 %)（流体 921,600、盖板 19,200、壁 59,200，壁占 5.9 %）；最便宜第 7 片 3.259 ms（fluid column 43 (25 %) .. +x end wall (100 %)）
+- 64M corr+dens: 八片 25.13, 25.07, 23.30, 23.21, 23.24, 23.42, 23.47, 22.82 ms（和 189.65）；最贵第 0 片 25.130 ms = 中间六片中位 23.359 的 1.076 倍，覆盖 -x end wall (100 %) .. fluid column 12 (50 %)（流体 7,068,544、盖板 72,128、壁 859,328，壁占 10.7 %）；最便宜第 7 片 22.818 ms（fluid column 87 (50 %) .. +x end wall (100 %)）
+- 64M force: 八片 24.10, 25.11, 23.52, 23.43, 23.38, 23.58, 23.65, 21.73 ms（和 188.50）；最贵第 1 片 25.114 ms = 中间六片中位 23.548 的 1.066 倍，覆盖 fluid column 12 (50 %) .. fluid column 24 (100 %)（流体 7,683,200、盖板 78,400、壁 238,400，壁占 3.0 %）；最便宜第 7 片 21.729 ms（fluid column 87 (50 %) .. +x end wall (100 %)）
+
+复现：`split/run_series.sh`（32 次运行，约 50 min）、`split/run_ticks.sh`（8 次，约 12 min）、`split/split_analysis.py`、`split/piece_times.py`；日志镜像 `logs/e8_local/split_20261027/runs/`。
