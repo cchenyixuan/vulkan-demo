@@ -1,0 +1,282 @@
+=== E30 e7_p1 job 1741843 node wqd10nbj02g1 Tue Oct 27 01:34:05 PM CST 2026 local=0 dry=0 solver=v7 ===
+COMMIT: cb3c9f5cab754e59a2776b2414612a47b82dbb47 tarball_sha256=e3e91349c346fafd0cf0d642e38e86bcb17a054bdf2e5c0663f6b3449b1e2d99 deployed=2026-10-27T12:14:29+08:00 solver_tag=v7-rc4 base=v7-rc4
+manifest MANIFEST.sha256: OK (281 files)
+manifest SCRIPTS.sha256: OK (128 files)
+--- env | grep ^V7_
+V7_WORKER_AFFINITY=0-31,64-95;0-31,64-95
+--- host
+job cpus: pid 2122531's current affinity list: 0-7,64-71
+0, NVIDIA GeForce RTX 5090, 00000000:16:00.0, GPU-e463aac7-fb22-031e-b2e7-4a0aa4049e75, 580.82.07, 32607 MiB, 575.00 W
+1, NVIDIA GeForce RTX 5090, 00000000:27:00.0, GPU-efc47892-6d0c-6541-a589-536bdcda5fa7, 580.82.07, 32607 MiB, 575.00 W
+--- nvidia-smi topo -m
+	[4mGPU0	GPU1	NIC0	CPU Affinity	NUMA Affinity	GPU NUMA ID[0m
+GPU0	 X 	NODE	NODE	0-7,64-71	0		N/A
+GPU1	NODE	 X 	NODE	0-7,64-71	0		N/A
+NIC0	NODE	NODE	 X 				
+
+Legend:
+
+  X    = Self
+  SYS  = Connection traversing PCIe as well as the SMP interconnect between NUMA nodes (e.g., QPI/UPI)
+  NODE = Connection traversing PCIe as well as the interconnect between PCIe Host Bridges within a NUMA node
+  PHB  = Connection traversing PCIe as well as a PCIe Host Bridge (typically the CPU)
+  PXB  = Connection traversing multiple PCIe bridges (without traversing the PCIe Host Bridge)
+  PIX  = Connection traversing at most a single PCIe bridge
+  NV#  = Connection traversing a bonded set of # NVLinks
+
+NIC Legend:
+gpu0 numa cpulist 0-31,64-95
+gpu1 numa cpulist 0-31,64-95
+--- effective configuration (v7 resolvers, this environment)
+[e30] switchinterval_s=0.0002 (forwarded to the bench) pid=2123457 cwd=/data/run01/scxm138/vulkan-demo-e9
+[e30] solver=v7 bench=experiment/v7/_run_v7_chain_bench.py
+[e30-config] V7_* in environment: V7_WORKER_AFFINITY=0-31,64-95;0-31,64-95
+[e30-config] partition: ghost_layers=2 keep_departed=1 lean_transport=1 transport_extension=0 compact_ghost_lists=1 packed_replicas=1 init_seam_clamp=1 delta_density=0 band_widths=2,2,3 ghost_self=correction,density
+[e30-config] pools 2-D: ghost_factor=0.29 migrant_factor=0.05 departed_face_fraction=0.8
+[e30-config] pools 3-D: ghost_factor=0.5 migrant_factor=0.02 departed_face_fraction=0.64
+[e30-config] simulator: cascade_force=1 band_voxel_dispatch=1 band_slot_lanes=64 band_compact=0 fast_submit=1 phase_a_no_wait=1 submit_lock_scope=device
+[e30-config] transport/context: worker_count_aware=1 split_transfer_queues=1 concurrent_buffers=1 pool_peaks=0 per_sim_pipeline=0 worker_affinity=set
+[e30-config] v7 switches beyond the v6 set: V7_DENSITY_COPY_COMPUTE=1 V7_GHOST_SEND_LANES=32 V7_DEEP_WALL_SKIP=auto V7_DEEP_WALL_CHECK=0 V7_FUSED_CORRECTION_DENSITY=1 V7_BAND_OVERLAP=0 V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter diagnostic_poison_inner_replica=0 fake_band_column(V7_FAKE_BAND_TEST)=0
+[e30-config] case cases/aligned/cavity2d_n1000/case.yaml: dimension=2 h=0.005 speed_of_sound=100.0 power=7 xi=0.001 epsilon_squared_factor=0.0025 defrag_cadence=1000 defrag_order=prefix(default) pool_size=1201280 max_per_voxel=96 max_incoming=16 yaml_is_symlink=False
+[e30-config] case cases/aligned/cavity3d_n192/case.yaml: dimension=3 h=0.020833333333333332 speed_of_sound=100.0 power=7 xi=0.001 epsilon_squared_factor=0.0025 defrag_cadence=1000 defrag_order=prefix(default) pool_size=9200000 max_per_voxel=128 max_incoming=32 yaml_is_symlink=False
+[e30-config] case cases/aligned/cavity3d_n392/case.yaml: dimension=3 h=0.01020408163265306 speed_of_sound=100.0 power=7 xi=0.001 epsilon_squared_factor=0.0025 defrag_cadence=1000 defrag_order=prefix(default) pool_size=73600000 max_per_voxel=128 max_incoming=32 yaml_is_symlink=False
+--- shader cache: __GL_SHADER_DISK_CACHE=1 __GL_SHADER_DISK_CACHE_PATH=/dev/shm/scxm138/glcache_1741843 __GL_SHADER_DISK_CACHE_SIZE=17179869184 __GL_SHADER_DISK_CACHE_SKIP_CLEANUP=1 
+PROVENANCE host=wqd10nbj02g1 slurm_job=1741843 job=p1 line=S harness=cb3c9f5cab754e59a2776b2414612a47b82dbb47 experiment_v7_tree=37f99f2b25f85f01e31f6915bddf12c43f743993 (v7-e9p1 37f99f2b25f85f01e31f6915bddf12c43f743993) driver=580.82.07 solver=e9p1 root=/data/run01/scxm138/vulkan-demo-e9
+GPU health: 2 GPUs listed without an error on wqd10nbj02g1
+power caps: 0, 575.00 W;1, 575.00 W;
+power caps: all 2 GPUs at 575.00 W on wqd10nbj02g1
+power caps: 0, 575.00 W;1, 575.00 W;
+power caps: all 2 GPUs at 575 W on wqd10nbj02g1 (E7_POWER_CAP_W)
+
+=== STEP s0_bringup (13:34:40) timeout 1200s ===
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.312
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [2] llvmpipe (LLVM 15.0.7, 256 bits)  type=CPU  api=1.3.255
+        queue_family[0]: graphics+compute+transfer (count=1)  <- compute pick
+[VulkanContextV7] selected: [1] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV7] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV7] transfer queues: 2 (readback + upload split)
+VulkanContextV7[1]: OK — NVIDIA GeForce RTX 5090 (compute qf 0, transfer qf 1, transfer queues 2 (split))
+ENV STAGE: PASS
+
+===== CASE STAGE (check only; nothing is generated) =====
+case yaml: /data/run01/scxm138/vulkan-demo-e9/cases/aligned/cavity2d_n1000/case.yaml (symlink=False)
+  frame.obj: 453 B
+  domain.obj: 39,000,000 B
+  wall.obj: 1,311,376 B
+  wall_top.obj: 423,500 B
+CASE STAGE: PASS
+
+===== K1 STAGE (chain bench, weights 1, devices 0, 300 steps) =====
+  $ /dev/shm/scxm138/env/venv/bin/python -u /data/run01/scxm138/vulkan-demo-e9/docs/cluster_v6/scripts/run_chain_v6.py --solver v7 -- --case cases/aligned/cavity2d_n1000/case.yaml --weights 1 --device-map 0 --sync-scheme per-direction --depth 2 --pool-safety 1.2 --max-steps 300 --warmup 100 --defrag-cadence 100   > /dev/shm/scxm138/e7_p1_1741843/bringup/bringup_k1.log
+RESULT label=bringup_k1 status=pass rc=0 steady_fps=675.3 total_fps=702.9 drift=0 overflow_total=0 far_migration=0 stamps=0+0 alive=1044484->1044484 clamp=0 nan=False fields=OK columns=[206] tq2=1 pins=0/skip0 wall=5.0s solver=v7 build=3.63s cache_hits=0 defrag_ms=32/3 fps_nodefrag=758.37 root=/data/run01/scxm138/vulkan-demo-e9
+K1 STAGE: PASS (rc=0)
+
+===== K2 STAGE (chain bench, weights 1,1, devices 0,1, 300 steps) =====
+  $ /dev/shm/scxm138/env/venv/bin/python -u /data/run01/scxm138/vulkan-demo-e9/docs/cluster_v6/scripts/run_chain_v6.py --solver v7 -- --case cases/aligned/cavity2d_n1000/case.yaml --weights 1,1 --device-map 0,1 --sync-scheme per-direction --depth 2 --pool-safety 1.2 --max-steps 300 --warmup 100 --defrag-cadence 100   > /dev/shm/scxm138/e7_p1_1741843/bringup/bringup_k2.log
+RESULT label=bringup_k2 status=pass rc=0 steady_fps=897.7 total_fps=980.2 drift=0 overflow_total=0 far_migration=0 stamps=0+0 alive=1044484->1044484 clamp=0 nan=False fields=OK columns=[103, 103] tq2=2 pins=2/skip0 wall=6.4s solver=v7 build=5.14s cache_hits=0 defrag_ms=53/3 fps_nodefrag=1181.23 root=/data/run01/scxm138/vulkan-demo-e9
+K2 STAGE: PASS (rc=0)
+
+BRINGUP: ALL PASS — report: /dev/shm/scxm138/e7_p1_1741843/bringup/bringup_report.txt
+STEP label=s0_bringup rc=0
+
+=== STEP s0_caps (13:35:00) timeout 300s (optional) ===
+[caps] host=wqd10nbj02g1 python=3.13.15 python_vulkan=1.3.275.1 loader=1.4.357 clocksource=tsc perf_counter=clock_gettime(CLOCK_MONOTONIC) monotonic=clock_gettime(CLOCK_MONOTONIC) has_CLOCK_MONOTONIC_RAW=True job_cpus=0-7,64-71
+[caps] v6[0] smi[0] NVIDIA GeForce RTX 5090 bus=0000:16:00.0 uuid=e463aac7 driver=580.82.07 api=1.4.312 vram=31.84GiB period=1.0ns compute_qf=0 transfer_qf=1x2 split=1 domains_KHR=['DEVICE', 'CLOCK_MONOTONIC', 'CLOCK_MONOTONIC_RAW'] domains_EXT=['DEVICE', 'CLOCK_MONOTONIC', 'CLOCK_MONOTONIC_RAW'] numa=0 cpus=0-31,64-95 | [0]0xfx16/ts64 [1]0xcx2/ts64 [2]0xex8/ts64 [3]0x2cx2/ts32 [4]0x4cx2/ts32 [5]0x10cx1/ts64
+[caps] v6[1] smi[1] NVIDIA GeForce RTX 5090 bus=0000:27:00.0 uuid=efc47892 driver=580.82.07 api=1.4.312 vram=31.84GiB period=1.0ns compute_qf=0 transfer_qf=1x2 split=1 domains_KHR=['DEVICE', 'CLOCK_MONOTONIC', 'CLOCK_MONOTONIC_RAW'] domains_EXT=['DEVICE', 'CLOCK_MONOTONIC', 'CLOCK_MONOTONIC_RAW'] numa=0 cpus=0-31,64-95 | [0]0xfx16/ts64 [1]0xcx2/ts64 [2]0xex8/ts64 [3]0x2cx2/ts32 [4]0x4cx2/ts32 [5]0x10cx1/ts64
+[caps] v6[2] smi[None] llvmpipe (LLVM 15.0.7, 256 bits) bus=None uuid=6d657361 driver=Mesa 23.2.1-1ubuntu3.1~22.04.3 (LLVM 15.0.7) api=1.3.255 vram=1007.53GiB period=1.0ns compute_qf=0 transfer_qf=NonexNone split=0 domains_KHR=extension not supported domains_EXT=['DEVICE', 'CLOCK_MONOTONIC'] numa=None cpus=None | [0]0x7x1/ts64
+[caps] v6_index_equals_nvidia_smi_index=True
+[caps] wrote /dev/shm/scxm138/e7_p1_1741843/caps.json
+STEP label=s0_caps rc=0
+SHADER CACHE (after_bringup): CONFIRMED - /dev/shm/scxm138/glcache_1741843 holds 2 files (3 MiB); ~/.cache/nvidia: 0 files newer than the job start
+  /dev/shm/scxm138/glcache_1741843
+  /dev/shm/scxm138/glcache_1741843/GLCache
+  /dev/shm/scxm138/glcache_1741843/GLCache/e6309fdb26ef7d7c2e3b09ae5e4c0d25
+  /dev/shm/scxm138/glcache_1741843/GLCache/e6309fdb26ef7d7c2e3b09ae5e4c0d25/1b1f8a32c9e3ed58
+
+=== STEP s0_obj_cache (13:35:06) timeout 1800s ===
+[obj_cache] check cavity2d_n1000/domain.obj: cached domain_08aea66f7a35ae6cbf76.npy (12,000,128 B) -> staged
+[obj_cache] check cavity2d_n1000/wall.obj: cached wall_5eec1ef194a4786ebf05.npy (401,936 B) -> staged
+[obj_cache] check cavity2d_n1000/wall_top.obj: cached wall_top_5e899aed1706977d59f5.npy (132,128 B) -> staged
+[obj_cache] check cavity2d_n1000/frame.obj: cached frame_dbb43405b54fa736cfa2.npy (224 B) -> staged
+[obj_cache] check cavity3d_n192/domain.obj: cached domain_e23102d2c1c02cd2764b.npy (84,934,784 B) -> staged
+[obj_cache] check cavity3d_n192/wall.obj: cached wall_5ab7c80b4f641a176f28.npy (9,296,000 B) -> staged
+[obj_cache] check cavity3d_n192/wall_top.obj: cached wall_top_e7c07f0a63c0a6fc9e8a.npy (1,769,600 B) -> staged
+[obj_cache] check cavity3d_n192/frame.obj: cached frame_d8a45a23beebb6a91494.npy (224 B) -> staged
+[obj_cache] check cavity3d_n392/domain.obj: cached domain_0d1b228ecfd03bf27dcb.npy (722,835,584 B) -> staged
+[obj_cache] check cavity3d_n392/wall.obj: cached wall_159d264d77dc44a0544f.npy (37,788,800 B) -> staged
+[obj_cache] check cavity3d_n392/wall_top.obj: cached wall_top_293e9d7099dffc8992a8.npy (7,376,000 B) -> staged
+[obj_cache] check cavity3d_n392/frame.obj: cached frame_c7247c59f35297328c4b.npy (224 B) -> staged
+[obj_cache] staged 876,535,632 B to /dev/shm/scxm138/e7_p1_1741843_obj_cache in 15.0 s (58 MB/s)
+[obj_cache] check: 0 missing
+STEP label=s0_obj_cache rc=0
+=== E7 job p1 (line S) ready at 13:35:27: 3 cases staged
+
+=== RUN 8m_K1 (13:35:27) timeout 900s taskset -c 0-31,64-95 env V7_DEFRAG_AUDIT=1 solver=e9p1 ===
+args: --case cases/aligned/cavity3d_n192/case.yaml --weights 1 --device-map 0 --sync-scheme per-direction --depth 2 --pool-safety 1.2 --max-steps 300 --warmup 100 --no-seam-check
+RESULT label=8m_K1 status=pass rc=0 steady_fps=22.5 total_fps=22.7 drift=0 overflow_total=0 far_migration=0 stamps=0+0 alive=8000000->8000000 clamp=0 nan=None fields=- columns=[52] tq2=1 pins=0/skip0 wall=24.2s vram_peak_mib=0:2698/1:2 solver=v7 build=9.1s cache_hits=4 defrag_ms=0/0 fps_nodefrag=22.51 solver_tag=e9p1 root=/data/run01/scxm138/vulkan-demo-e9
+
+=== RUN 8m_K2_trace (13:35:55) timeout 900s env V7_POOL_PEAKS=1 V7_DEFRAG_AUDIT=1 solver=e9p1 ===
+args: --case cases/aligned/cavity3d_n192/case.yaml --weights 1,1 --device-map 0,1 --sync-scheme per-direction --depth 2 --pool-safety 1.2 --max-steps 300 --warmup 100 --step-trace /dev/shm/scxm138/e7_p1_1741843/traces/8m_K2
+RESULT label=8m_K2_trace status=pass rc=0 steady_fps=42.8 total_fps=43.0 drift=0 overflow_total=0 far_migration=0 stamps=0+0 alive=8000000->8000000 clamp=0 nan=False fields=OK columns=[26, 26] tq2=2 pins=2/skip0 wall=26.4s vram_peak_mib=0:1569/1:1553 solver=v7 build=11.9s cache_hits=4 defrag_ms=0/0 fps_nodefrag=42.79 solver_tag=e9p1 root=/data/run01/scxm138/vulkan-demo-e9
+
+=== STEP dump_8m_K1 (13:36:28) timeout 900s (optional) ===
+[seam_audit]   slab 0: own columns [0, 51] particles 8,000,000 pool 9,200,000 device 0; global-id mask bit-identical to the partition
+[seam_audit]   cuts []  total 8,000,000  h=0.020833333333333332  origin_x=-0.5416666666666666  nx=52  dimension=3  defrag_cadence=1000  horizons=[300]
+[VulkanContextV7] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.312
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.312
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [2] llvmpipe (LLVM 15.0.7, 256 bits)  type=CPU  api=1.3.255
+        queue_family[0]: graphics+compute+transfer (count=1)  <- compute pick
+[VulkanContextV7] selected: [0] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV7] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV7] transfer queues: 2 (readback + upload split)
+[SimV7] V7_DEEP_WALL_SKIP=auto: off (auto: 3-D, 0 deep-wall candidates at the initial state = 0.00 % of 8,000,000 particles < 1 %)
+[SimV7] V7_FUSED_CORRECTION_DENSITY=1: fused (one neighbour traversal for correction + density, band 2)
+[SimV7] device-local buffers: 24, 1412.90 MB (14 CONCURRENT for transfer queue)
+[SimV7] defrag scratch buffers: 9, 1228.33 MB
+[SimV7] host staging buffers: 0 (single-GPU mode, no peer)
+[SimV7] compute pipelines: 28 (V7_CASCADE_FORCE=1: force_deep_interior in Phase B) (V7_BAND_VOXEL_DISPATCH=1, lanes=64, bands 2/2/3: boundary kernels over band voxels: 0/0/0 threads vs 9,200,000) (V7_DENSITY_COPY_COMPUTE=1: density copy pass over 1 region(s), 9,200,000 slots) (V7_FUSED_CORRECTION_DENSITY: correction_density_all / _interior / _boundary / _boundary_band replace correction + density at band 2)
+[SimV7] init complete on NVIDIA GeForce RTX 5090 (own=9200000, ghost L=0 T=0, wall_boundary=simple, defrag_order=prefix)
+[ChainOrchV7] N=1, 0 workers started ()
+[SimV7] uploaded initial state (6 payload buffers)
+[SimV7] bootstrap done: alive=8000000 overflow_inside=0 overflow_incoming=0
+[SimV7] step cmd buffers recorded (phase A/B/C + 0 readback + 0 upload on transfer Q)
+[SimV7] V7_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 0 readback, 0 upload), raw waits/signals
+[defrag_prefix] own voxels 1..140608 (140,608, 125,000 non-empty) -> voxel_base_offset in voxel-id order, 8,000,000 own particles, 23.9 ms
+[ChainOrchV7] all 1 sims bootstrapped + step cmds ready
+[seam_audit] bootstrap id check passed on 1 sim(s)
+[seam_audit] N=300: alive 8,000,000 drift 0 missing 0 duplicates 0 crossed 0 {} stamps 0/0 overflow 0 -> VALID (dump_8m_K1_N300.npz)
+[seam_audit] RESULT {"run_name": "dump_8m_K1", "version": "v7", "case": "cases/aligned/cavity3d_n192/case.yaml", "slabs": 1, "device_map": "0", "horizons": "300", "out_dir": "/dev/shm/scxm138/e7_p1_1741843/dumps", "dry_run": false, "valid": true, "error": null, "wall_time_s": 38.02011801395565, "per_horizon": [{"horizon": 300, "valid": true, "drift": 0, "missing_ids": 0, "duplicate_ids": 0, "stamp_errors_gpu": 0, "stamp_errors_host": 0, "overflow_total": 0, "crossed_last_step": 0, "alive": 8000000, "warnings": [], "npz": "/dev/shm/scxm138/e7_p1_1741843/dumps/dump_8m_K1_N300.npz", "json": "/dev/shm/scxm138/e7_p1_1741843/dumps/dump_8m_K1_N300.json"}]}
+[e8] dump_8m_K1_N300.npz: device array added (8,000,000 particles, devices [0])
+STEP label=dump_8m_K1 rc=0
+
+=== STEP dump_8m_K2 (13:37:19) timeout 900s (optional) ===
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [2] llvmpipe (LLVM 15.0.7, 256 bits)  type=CPU  api=1.3.255
+        queue_family[0]: graphics+compute+transfer (count=1)  <- compute pick
+[VulkanContextV7] selected: [1] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV7] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV7] transfer queues: 2 (readback + upload split)
+[SimV7] V7_DEEP_WALL_SKIP=auto: off (auto: 3-D, 0 deep-wall candidates at the initial state = 0.00 % of 4,000,000 particles < 1 %)
+[SimV7] V7_FUSED_CORRECTION_DENSITY=1: fused (one neighbour traversal for correction + density, band 2, inner ghost column as self)
+[SimV7] device-local buffers: 24, 812.82 MB (14 CONCURRENT for transfer queue)
+[SimV7] defrag scratch buffers: 9, 699.10 MB
+[SimV7] host staging buffers: 2, 27327.4 KB (persistent-mapped)
+  sender   type[3]=HOST_VISIBLE|HOST_COHERENT|HOST_CACHED [host RAM]
+  receiver type[2]=HOST_VISIBLE|HOST_COHERENT [host RAM]
+[SimV7] compute pipelines: 28 (V7_CASCADE_FORCE=1: force_deep_interior in Phase B) (V7_BAND_VOXEL_DISPATCH=1, lanes=64, bands 2/2/3: boundary kernels over band voxels: 519,168/519,168/519,168 threads vs 4,800,000) (seam: ghost_layers=2, departed pool=1731) (V7_DENSITY_COPY_COMPUTE=1: density copy pass over 3 region(s), 5,018,051 slots) (V7_GHOST_SEND_LANES=32: ghost_send over 5,408 lane groups, local size 64, 2,704 workgroups per direction) (V7_FUSED_CORRECTION_DENSITY: correction_density_all / _interior / _boundary / _boundary_band replace correction + density at band 2)
+[SimV7] init complete on NVIDIA GeForce RTX 5090 (own=4800000, ghost L=434371 T=0, wall_boundary=simple, defrag_order=prefix)
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 2 relays for 2 workers
+[worker s0_to_s1] pinned to dest device 1 cpus 0-31,64-95
+[worker s1_to_s0] pinned to dest device 0 cpus 0-31,64-95
+[ChainOrchV7] N=2, 2 workers started (s0_to_s1, s1_to_s0)
+[SimV7] uploaded initial state (6 payload buffers)
+[SimV7] uploaded initial state (6 payload buffers)
+[ChainOrchV7] bootstrap ghost sync: bridged 27327.4 KB over 1 links
+[SimV7] bootstrap done: alive=4000000 overflow_inside=0 overflow_incoming=0
+[SimV7] bootstrap done: alive=4000000 overflow_inside=0 overflow_incoming=0
+[SimV7] step cmd buffers recorded (phase A/B/C + 1 readback + 1 upload on transfer Q)
+[SimV7] V7_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 1 readback, 1 upload), raw waits/signals
+[SimV7] step cmd buffers recorded (phase A/B/C + 1 readback + 1 upload on transfer Q)
+[SimV7] V7_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 1 readback, 1 upload), raw waits/signals
+[defrag_prefix] own voxels 1..70304 (70,304, 62,500 non-empty) -> voxel_base_offset in voxel-id order, 4,000,000 own particles, 15.3 ms
+[defrag_prefix] own voxels 5409..75712 (70,304, 62,500 non-empty) -> voxel_base_offset in voxel-id order, 4,000,000 own particles, 14.0 ms
+[ChainOrchV7] all 2 sims bootstrapped + step cmds ready
+[seam_audit] bootstrap id check passed on 2 sim(s)
+[seam_audit] N=300: alive 8,000,000 drift 0 missing 0 duplicates 0 crossed 0 {} stamps 0/0 overflow 0 -> VALID (dump_8m_K2_N300.npz)
+[worker s0_to_s1] dest guard: precheck 268, relay 32, fallback 0, blocking 0 (relay slept 32, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 33, relay 267, fallback 0, blocking 0 (relay slept 267, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[seam_audit] RESULT {"run_name": "dump_8m_K2", "version": "v7", "case": "cases/aligned/cavity3d_n192/case.yaml", "slabs": 2, "device_map": "0,1", "horizons": "300", "out_dir": "/dev/shm/scxm138/e7_p1_1741843/dumps", "dry_run": false, "valid": true, "error": null, "wall_time_s": 35.166499029845, "per_horizon": [{"horizon": 300, "valid": true, "drift": 0, "missing_ids": 0, "duplicate_ids": 0, "stamp_errors_gpu": 0, "stamp_errors_host": 0, "overflow_total": 0, "crossed_last_step": 0, "alive": 8000000, "warnings": [], "npz": "/dev/shm/scxm138/e7_p1_1741843/dumps/dump_8m_K2_N300.npz", "json": "/dev/shm/scxm138/e7_p1_1741843/dumps/dump_8m_K2_N300.json"}]}
+[e8] dump_8m_K2_N300.npz: device array added (8,000,000 particles, devices [0, 1])
+STEP label=dump_8m_K2 rc=0
+
+=== STEP compare_8m (13:38:06) timeout 600s (optional) ===
+K = 2 (cuts [26], devices [0, 1]) vs K = 1 at step 300: 7,077,888 fluid particles compared (ids missing in the test 0, in the reference 0); max |dv|/U = 4.517e-05, rms 2.457e-06; max |drho|/rho0 = 1.831e-07, rms 2.046e-08; max |dx| 1.003e-05 m
+
+| distance to the seam (columns) | particles | max dv/U | rms dv/U | max drho/rho0 | rms drho/rho0 | max dx (m) |
+|---|---|---|---|---|---|---|
+| 0 | 294,912 | 1.896e-05 | 4.353e-06 | 1.221e-07 | 2.723e-08 | 3.576e-06 |
+| 1 | 294,912 | 2.064e-05 | 4.283e-06 | 1.221e-07 | 2.787e-08 | 2.980e-06 |
+| 2 | 294,912 | 2.021e-05 | 3.547e-06 | 1.831e-07 | 2.508e-08 | 2.801e-06 |
+| 3 | 294,912 | 1.804e-05 | 2.779e-06 | 1.221e-07 | 2.230e-08 | 2.742e-06 |
+| 4 | 294,912 | 1.736e-05 | 2.293e-06 | 1.221e-07 | 2.075e-08 | 3.368e-06 |
+| 5 | 294,912 | 1.496e-05 | 2.122e-06 | 1.221e-07 | 2.034e-08 | 3.219e-06 |
+| 6 | 294,912 | 1.366e-05 | 2.010e-06 | 1.221e-07 | 2.002e-08 | 2.593e-06 |
+| 7 | 294,912 | 2.003e-05 | 1.875e-06 | 1.221e-07 | 1.944e-08 | 3.399e-06 |
+| 8 | 294,912 | 1.635e-05 | 1.902e-06 | 1.221e-07 | 1.943e-08 | 3.101e-06 |
+| 9 | 294,912 | 1.799e-05 | 1.849e-06 | 1.221e-07 | 1.930e-08 | 3.368e-06 |
+| 10 | 294,912 | 1.503e-05 | 1.812e-06 | 1.221e-07 | 1.943e-08 | 2.833e-06 |
+| 11 | 294,912 | 1.431e-05 | 1.768e-06 | 1.831e-07 | 1.922e-08 | 3.726e-06 |
+| 12 | 294,912 | 2.452e-05 | 1.815e-06 | 1.221e-07 | 1.931e-08 | 3.938e-06 |
+| 13 | 294,912 | 2.720e-05 | 1.829e-06 | 1.221e-07 | 1.913e-08 | 4.387e-06 |
+| 14 | 294,912 | 3.031e-05 | 1.914e-06 | 1.221e-07 | 1.891e-08 | 4.584e-06 |
+| 15 | 294,912 | 3.327e-05 | 2.010e-06 | 1.221e-07 | 1.874e-08 | 5.467e-06 |
+| interior | 2,359,296 | 4.517e-05 | 2.296e-06 | 1.221e-07 | 1.884e-08 | 1.003e-05 |
+
+| slab | device | particles | max dv/U | rms dv/U | max drho/rho0 | rms drho/rho0 |
+|---|---|---|---|---|---|---|
+| 0 | 0 | 3,538,944 | 2.064e-05 | 2.151e-06 | 1.831e-07 | 1.845e-08 |
+| 1 | 1 | 3,538,944 | 4.517e-05 | 2.729e-06 | 1.831e-07 | 2.230e-08 |
+[e8_field_compare] RESULT {"reference": "/dev/shm/scxm138/e7_p1_1741843/dumps/dump_8m_K1_N300.npz", "reference2": null, "test": "/dev/shm/scxm138/e7_p1_1741843/dumps/dump_8m_K2_N300.npz", "slabs": 2, "cuts": [26], "device_map": [0, 1], "horizon": 300, "reference_horizon": 300, "reference2_horizon": null, "particles_compared": 7077888, "fluid_only": true, "missing_in_test": 0, "missing_in_reference": 0, "dv_max_over_U": 4.51747837360017e-05, "drho_max_over_rho0": 1.8310546875e-07, "dv_rms_over_U": 2.4569653760408983e-06, "drho_rms_over_rho0": 2.0464029897226336e-08, "dx_max_m": 1.0027496500697453e-05, "lid_speed": 1.0, "rho0": 1000.0, "reference_valid": true, "reference2_valid": null, "test_valid": true}
+STEP label=compare_8m rc=0
+
+=== RUN 64m_K2 (13:38:15) timeout 1200s env V7_POOL_PEAKS=1 solver=e9p1 ===
+args: --case cases/aligned/cavity3d_n392/case.yaml --weights 1,1 --device-map 0,1 --sync-scheme per-direction --depth 2 --pool-safety 1.2 --max-steps 300 --warmup 100
+RESULT label=64m_K2 status=pass rc=0 steady_fps=5.5 total_fps=5.5 drift=0 overflow_total=0 far_migration=0 stamps=0+0 alive=64000000->64000000 clamp=0 nan=False fields=OK columns=[51, 51] tq2=2 pins=2/skip0 wall=146.4s vram_peak_mib=0:11511/1:11495 solver=v7 build=54.9s cache_hits=4 defrag_ms=0/0 fps_nodefrag=5.45 solver_tag=e9p1 root=/data/run01/scxm138/vulkan-demo-e9
+--- defrag order / audit lines of every run
+[e30-config] case cases/aligned/cavity3d_n392/case.yaml: dimension=3 h=0.01020408163265306 speed_of_sound=100.0 power=7 xi=0.001 epsilon_squared_factor=0.0025 defrag_cadence=1000 defrag_order=prefix(d
+[SimV7] init complete on NVIDIA GeForce RTX 5090 (own=38400000, ghost L=0 T=1671299, wall_boundary=simple, defrag_order=prefix)
+[SimV7] init complete on NVIDIA GeForce RTX 5090 (own=38400000, ghost L=1671299 T=0, wall_boundary=simple, defrag_order=prefix)
+[e30-config] case cases/aligned/cavity3d_n192/case.yaml: dimension=3 h=0.020833333333333332 speed_of_sound=100.0 power=7 xi=0.001 epsilon_squared_factor=0.0025 defrag_cadence=1000 defrag_order=prefix(
+[SimV7] init complete on NVIDIA GeForce RTX 5090 (own=9200000, ghost L=0 T=0, wall_boundary=simple, defrag_order=prefix)
+[defrag_prefix] audit: 8,000,000 own pids, 125,000 voxel blocks for 125,000 non-empty voxels, 0 block descents, 0 pids without a voxel -> EXACT voxel order (1117 ms)
+[defrag_prefix] audit: 8,000,000 own pids, 125,000 voxel blocks for 125,000 non-empty voxels, 0 block descents, 0 pids without a voxel -> EXACT voxel order (1157 ms)
+[e30-config] case cases/aligned/cavity3d_n192/case.yaml: dimension=3 h=0.020833333333333332 speed_of_sound=100.0 power=7 xi=0.001 epsilon_squared_factor=0.0025 defrag_cadence=1000 defrag_order=prefix(
+[SimV7] init complete on NVIDIA GeForce RTX 5090 (own=4800000, ghost L=0 T=434371, wall_boundary=simple, defrag_order=prefix)
+[SimV7] init complete on NVIDIA GeForce RTX 5090 (own=4800000, ghost L=434371 T=0, wall_boundary=simple, defrag_order=prefix)
+[defrag_prefix] audit: 4,000,000 own pids, 62,500 voxel blocks for 62,500 non-empty voxels, 0 block descents, 0 pids without a voxel -> EXACT voxel order (609 ms)
+[defrag_prefix] audit: 4,000,000 own pids, 62,500 voxel blocks for 62,500 non-empty voxels, 0 block descents, 0 pids without a voxel -> EXACT voxel order (613 ms)
+[defrag_prefix] audit: 4,000,000 own pids, 62,500 voxel blocks for 62,500 non-empty voxels, 0 block descents, 0 pids without a voxel -> EXACT voxel order (606 ms)
+[defrag_prefix] audit: 4,000,000 own pids, 62,500 voxel blocks for 62,500 non-empty voxels, 0 block descents, 0 pids without a voxel -> EXACT voxel order (605 ms)
+[SimV7] init complete on NVIDIA GeForce RTX 5090 (own=9200000, ghost L=0 T=0, wall_boundary=simple, defrag_order=prefix)
+[SimV7] init complete on NVIDIA GeForce RTX 5090 (own=4800000, ghost L=0 T=434371, wall_boundary=simple, defrag_order=prefix)
+[SimV7] init complete on NVIDIA GeForce RTX 5090 (own=4800000, ghost L=434371 T=0, wall_boundary=simple, defrag_order=prefix)
+--- RESULT lines
+RESULT label=bringup_k1 status=pass rc=0 steady_fps=675.3 total_fps=702.9 drift=0 overflow_total=0 far_migration=0 stamps=0+0 alive=1044484->1044484 clamp=0 nan=False fields=OK columns=[206] tq2=1 pins=0/skip0 wall=5.0s solver=v7 build=3.63s cache_hits=0 defrag_ms=32/3 fps_nodefrag=758.37 root=/data/run01/scxm138/vulkan-demo-e9
+RESULT label=bringup_k2 status=pass rc=0 steady_fps=897.7 total_fps=980.2 drift=0 overflow_total=0 far_migration=0 stamps=0+0 alive=1044484->1044484 clamp=0 nan=False fields=OK columns=[103, 103] tq2=2 pins=2/skip0 wall=6.4s solver=v7 build=5.14s cache_hits=0 defrag_ms=53/3 fps_nodefrag=1181.23 root=/data/run01/scxm138/vulkan-demo-e9
+SHADER CACHE (job_end): CONFIRMED - /dev/shm/scxm138/glcache_1741843 holds 2 files (11 MiB); ~/.cache/nvidia: 0 files newer than the job start
+  /dev/shm/scxm138/glcache_1741843
+  /dev/shm/scxm138/glcache_1741843/GLCache
+  /dev/shm/scxm138/glcache_1741843/GLCache/e6309fdb26ef7d7c2e3b09ae5e4c0d25
+  /dev/shm/scxm138/glcache_1741843/GLCache/e6309fdb26ef7d7c2e3b09ae5e4c0d25/1b1f8a32c9e3ed58
+[memory] label=job samples=372 since=0.0 until=1793079652.1356435 cgroup_peak_bytes=11.33GiB node_used_peak_bytes=137.63GiB shm_used_peak_bytes=2.79GiB matched_rss_sum_peak_bytes=8.88GiB matched_processes_peak=2 matched_hwm_max_bytes=8.92GiB window_processes=7 window_process_hwm_max_bytes=8.92GiB window_process_hwm_sum_bytes=12.73GiB cgroup_start_bytes=0.97GiB node_used_start_bytes=130.42GiB
+PROVENANCE_END unchanged: experiment_v7_tree=37f99f2b25f85f01e31f6915bddf12c43f743993 manifest=OK scripts=OK
+
+=== E30 e7_p1 done: 3 runs recorded, wall 413s, logs /data/home/scxm138/run/logs/e7_p1_1741843 ===

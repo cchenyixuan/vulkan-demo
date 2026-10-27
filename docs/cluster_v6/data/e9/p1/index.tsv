@@ -1,0 +1,3 @@
+8m_K1	run	e9p1	cavity3d_n192	1	0	-	-	8m	S	wqd10nbj02g1	e9p1
+8m_K2_trace	run	e9p1	cavity3d_n192	2	0	-	-	8m	S	wqd10nbj02g1	e9p1
+64m_K2	run	e9p1	cavity3d_n392	2	0	-	-	64m	S	wqd10nbj02g1	e9p1

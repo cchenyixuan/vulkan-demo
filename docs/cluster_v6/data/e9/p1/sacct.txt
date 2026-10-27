@@ -1,0 +1,4 @@
+JobID|JobName|Partition|State|Submit|Start|End|Elapsed|NodeList|ExitCode|AllocTRES
+1741843|e9_p1|hp_5090|COMPLETED|2026-10-27T13:33:56|2026-10-27T13:33:58|2026-10-27T13:40:58|00:07:00|wqd10nbj02g1|0:0|billing=16,cpu=16,gres/gpu=2,mem=252000M,node=1
+1741843.batch|batch||COMPLETED|2026-10-27T13:33:58|2026-10-27T13:33:58|2026-10-27T13:40:58|00:07:00|wqd10nbj02g1|0:0|cpu=16,gres/gpu=2,mem=252000M,node=1
+1741843.extern|extern||COMPLETED|2026-10-27T13:33:58|2026-10-27T13:33:58|2026-10-27T13:40:58|00:07:00|wqd10nbj02g1|0:0|billing=16,cpu=16,gres/gpu=2,mem=252000M,node=1
