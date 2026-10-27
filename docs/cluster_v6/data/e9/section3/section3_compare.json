@@ -1,0 +1,374 @@
+{
+ "table2": {
+  "8m": {
+   "predict": {
+    "old_us": 496.92,
+    "new_us": 497.00333333333333,
+    "old_std_us": 0.05000000000001137,
+    "new_std_us": 0.09073771725878924,
+    "change_pct": 0.0167699696798973,
+    "updated": false,
+    "old_ns_per_particle": 0.06113529918859044,
+    "new_ns_per_particle": 0.061145551559728076,
+    "old_share_pct": 4.7315575233878455,
+    "new_share_pct": 4.985505017236825
+   },
+   "update_voxel": {
+    "old_us": 331.33,
+    "new_us": 331.3566666666666,
+    "old_std_us": 0.009999999999990905,
+    "new_std_us": 0.07571877794401986,
+    "change_pct": 0.008048370707958163,
+    "updated": false,
+    "old_ns_per_particle": 0.040763017548409546,
+    "new_ns_per_particle": 0.040766298307173585,
+    "old_share_pct": 3.154847770715799,
+    "new_share_pct": 3.323881779789948
+   },
+   "correction_density": {
+    "old_us": 4530.056666666666,
+    "new_us": 4266.67,
+    "old_std_us": 8.580246694200005,
+    "new_std_us": 12.236572232451634,
+    "change_pct": -5.814202471345087,
+    "updated": true,
+    "old_ns_per_particle": 0.5573258666544622,
+    "new_ns_per_particle": 0.524921812341993,
+    "old_share_pct": 43.134153792441296,
+    "new_share_pct": 42.79952118073086
+   },
+   "density_copy": {
+    "old_us": 81.98,
+    "new_us": 82.03,
+    "old_std_us": 0.036055512754642575,
+    "new_std_us": 0.010000000000005116,
+    "change_pct": 0.06099048548426911,
+    "updated": false,
+    "old_ns_per_particle": 0.010085872630364333,
+    "new_ns_per_particle": 0.010092024053046917,
+    "old_share_pct": 0.780594634483087,
+    "new_share_pct": 0.8228535889711069
+   },
+   "force": {
+    "old_us": 5061.966666666667,
+    "new_us": 4791.903333333333,
+    "old_std_us": 6.328549070153198,
+    "new_std_us": 10.805324304866108,
+    "change_pct": -5.335146418717384,
+    "updated": true,
+    "old_ns_per_particle": 0.6227659314363249,
+    "new_ns_per_particle": 0.5895404571483078,
+    "old_share_pct": 48.19887801820246,
+    "new_share_pct": 48.068204996171445
+   },
+   "step total": {
+    "old_us": 10502.25,
+    "new_us": 9968.966666666667,
+    "old_std_us": 14.887622375651366,
+    "new_std_us": 22.971883539086015,
+    "change_pct": -5.077800788719877,
+    "updated": true,
+    "old_ns_per_particle": 1.292075577363306,
+    "new_ns_per_particle": 1.2264665535050951,
+    "old_share_pct": 100.0,
+    "new_share_pct": 100.0
+   },
+   "throughput_mps": {
+    "old": 773.9485348377729,
+    "new": 815.3504040873511
+   },
+   "step_ps_per_candidate": {
+    "old": 5.75867874430283,
+    "new": 5.466264947399583
+   },
+   "covariates_new": [
+    {
+     "samples": 20,
+     "sm_mhz": 2794.9,
+     "power_w": 599.515,
+     "temp_c_max": 68.0,
+     "pcie": "Gen 4 x4"
+    },
+    {
+     "samples": 20,
+     "sm_mhz": 2792.75,
+     "power_w": 599.1125,
+     "temp_c_max": 69.0,
+     "pcie": "Gen 4 x4"
+    },
+    {
+     "samples": 20,
+     "sm_mhz": 2781.55,
+     "power_w": 599.7455,
+     "temp_c_max": 69.0,
+     "pcie": "Gen 4 x4"
+    }
+   ],
+   "covariates_old": [
+    {
+     "samples": 21,
+     "sm_mhz": 2788.3333333333335,
+     "power_w": 599.9928571428571,
+     "temp_c_max": 68.0,
+     "pcie": "Gen 5 x8"
+    },
+    {
+     "samples": 22,
+     "sm_mhz": 2780.2727272727275,
+     "power_w": 599.7277272727273,
+     "temp_c_max": 68.0,
+     "pcie": "Gen 5 x8"
+    },
+    {
+     "samples": 21,
+     "sm_mhz": 2783.714285714286,
+     "power_w": 599.9871428571429,
+     "temp_c_max": 69.0,
+     "pcie": "Gen 5 x8"
+    }
+   ]
+  },
+  "3d_8m": {
+   "predict": {
+    "old_us": 499.5,
+    "new_us": 504.3966666666667,
+    "old_std_us": 0.49568134925574214,
+    "new_std_us": 0.11590225767140597,
+    "change_pct": 0.9803136469803242,
+    "updated": true,
+    "old_ns_per_particle": 0.054713769215678394,
+    "new_ns_per_particle": 0.055250135762077004,
+    "old_share_pct": 0.8180430880790842,
+    "new_share_pct": 0.8634892729637051
+   },
+   "update_voxel": {
+    "old_us": 315.94,
+    "new_us": 313.29,
+    "old_std_us": 0.2944486372867039,
+    "new_std_us": 0.14730919862657116,
+    "change_pct": -0.8387668544660332,
+    "updated": true,
+    "old_ns_per_particle": 0.0346071436356385,
+    "new_ns_per_particle": 0.03431687038554531,
+    "old_share_pct": 0.5174224889843961,
+    "new_share_pct": 0.5363289890763207
+   },
+   "correction_density": {
+    "old_us": 30353.503333333338,
+    "new_us": 28933.87,
+    "old_std_us": 19.93413487797587,
+    "new_std_us": 19.764318860007613,
+    "change_pct": -4.676999942126415,
+    "updated": true,
+    "old_ns_per_particle": 3.324833986521171,
+    "new_ns_per_particle": 3.1693315028957767,
+    "old_share_pct": 49.710657859497054,
+    "new_share_pct": 49.53261593783932
+   },
+   "density_copy": {
+    "old_us": 77.93333333333334,
+    "new_us": 92.74000000000001,
+    "old_std_us": 0.12055427546683847,
+    "new_std_us": 0.020000000000003126,
+    "change_pct": 18.99914456800684,
+    "updated": true,
+    "old_ns_per_particle": 0.008536589417834908,
+    "new_ns_per_particle": 0.010158468382506535,
+    "old_share_pct": 0.12763328261120446,
+    "new_share_pct": 0.15876392622470545
+   },
+   "force": {
+    "old_us": 29813.476666666666,
+    "new_us": 28569.483333333334,
+    "old_std_us": 23.16565201615048,
+    "new_std_us": 25.02886799943903,
+    "change_pct": -4.172587274010198,
+    "updated": true,
+    "old_ns_per_particle": 3.265681044758784,
+    "new_ns_per_particle": 3.1294176530754156,
+    "old_share_pct": 48.826243280828265,
+    "new_share_pct": 48.908813286729405
+   },
+   "step total": {
+    "old_us": 61060.35333333333,
+    "new_us": 58413.77333333334,
+    "old_std_us": 42.699129187062105,
+    "new_std_us": 43.82648780513225,
+    "change_pct": -4.3343673194160885,
+    "updated": true,
+    "old_ns_per_particle": 6.688372533549107,
+    "new_ns_per_particle": 6.398473900254152,
+    "old_share_pct": 100.0,
+    "new_share_pct": 100.0
+   },
+   "throughput_mps": {
+    "old": 149.5132029479467,
+    "new": 156.28726718105068
+   },
+   "step_ps_per_candidate": {
+    "old": 4.056591533408121,
+    "new": 3.8807601421882496
+   },
+   "covariates_new": [
+    {
+     "samples": 117,
+     "sm_mhz": 2808.051282051282,
+     "power_w": 599.9686324786325,
+     "temp_c_max": 70.0,
+     "pcie": "Gen 4 x4"
+    },
+    {
+     "samples": 117,
+     "sm_mhz": 2805.735042735043,
+     "power_w": 599.9200854700854,
+     "temp_c_max": 70.0,
+     "pcie": "Gen 4 x4"
+    },
+    {
+     "samples": 116,
+     "sm_mhz": 2805.4741379310344,
+     "power_w": 600.0131034482758,
+     "temp_c_max": 70.0,
+     "pcie": "Gen 4 x4"
+    }
+   ],
+   "covariates_old": [
+    {
+     "samples": 122,
+     "sm_mhz": 2797.8278688524592,
+     "power_w": 600.0221311475409,
+     "temp_c_max": 70.0,
+     "pcie": "Gen 5 x8"
+    },
+    {
+     "samples": 122,
+     "sm_mhz": 2797.1639344262294,
+     "power_w": 599.982131147541,
+     "temp_c_max": 70.0,
+     "pcie": "Gen 5 x8"
+    },
+    {
+     "samples": 122,
+     "sm_mhz": 2796.2377049180327,
+     "power_w": 599.9979508196722,
+     "temp_c_max": 70.0,
+     "pcie": "Gen 5 x8"
+    }
+   ]
+  }
+ },
+ "sizes": {
+  "1m": {
+   "old_us": 1313.99,
+   "new_us": 1317.52,
+   "change_pct": 0.2686474021872387,
+   "affected": false,
+   "particles": 1046529,
+   "covariate": {
+    "samples": 2,
+    "sm_mhz": 2846.0,
+    "power_w": 596.4749999999999,
+    "temp_c_max": 67.0,
+    "pcie": "Gen 4 x4"
+   }
+  },
+  "2m": {
+   "old_us": 2598.68,
+   "new_us": 2492.54,
+   "change_pct": -4.08438130127603,
+   "affected": true,
+   "particles": 2064969,
+   "covariate": {
+    "samples": 6,
+    "sm_mhz": 2803.5,
+    "power_w": 599.4733333333334,
+    "temp_c_max": 67.0,
+    "pcie": "Gen 4 x4"
+   }
+  },
+  "4m": {
+   "old_us": 5663.58,
+   "new_us": 5363.77,
+   "change_pct": -5.2936481871890155,
+   "affected": true,
+   "particles": 4182025,
+   "covariate": {
+    "samples": 11,
+    "sm_mhz": 2799.818181818182,
+    "power_w": 599.8981818181818,
+    "temp_c_max": 69.0,
+    "pcie": "Gen 4 x4"
+   }
+  },
+  "4m_gen": {
+   "old_us": 5662.23,
+   "new_us": 5360.03,
+   "change_pct": -5.33711982734717,
+   "affected": true,
+   "particles": 4182025,
+   "covariate": {
+    "samples": 12,
+    "sm_mhz": 2789.8333333333335,
+    "power_w": 600.27,
+    "temp_c_max": 70.0,
+    "pcie": "Gen 4 x4"
+   }
+  },
+  "8m": {
+   "old_us": 10502.25,
+   "new_us": 9968.966666666667,
+   "change_pct": -5.077800788719877,
+   "affected": true,
+   "particles": 8128201,
+   "covariate": {
+    "samples": 20,
+    "sm_mhz": 2794.9,
+    "power_w": 599.515,
+    "temp_c_max": 68.0,
+    "pcie": "Gen 4 x4"
+   }
+  },
+  "16m": {
+   "old_us": 20962.46,
+   "new_us": 20379.28,
+   "change_pct": -2.7820208124428203,
+   "affected": true,
+   "particles": 16184529,
+   "covariate": {
+    "samples": 41,
+    "sm_mhz": 2779.7073170731705,
+    "power_w": 599.1578048780489,
+    "temp_c_max": 70.0,
+    "pcie": "Gen 4 x4"
+   }
+  },
+  "32m": {
+   "old_us": 40654.53,
+   "new_us": 40061.56,
+   "change_pct": -1.458558246768571,
+   "affected": true,
+   "particles": 32251041,
+   "covariate": {
+    "samples": 81,
+    "sm_mhz": 2769.246913580247,
+    "power_w": 598.9523456790123,
+    "temp_c_max": 70.0,
+    "pcie": "Gen 4 x4"
+   }
+  },
+  "3d_8m": {
+   "old_us": 61060.35333333333,
+   "new_us": 58413.77333333334,
+   "change_pct": -4.3343673194160885,
+   "affected": true,
+   "particles": 9129329,
+   "covariate": {
+    "samples": 117,
+    "sm_mhz": 2808.051282051282,
+    "power_w": 599.9686324786325,
+    "temp_c_max": 70.0,
+    "pcie": "Gen 4 x4"
+   }
+  }
+ }
+}

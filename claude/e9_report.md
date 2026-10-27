@@ -6,7 +6,8 @@
 
 - 代码（第 1 节）：host 端 exclusive scan 成为 `experiment/v7` 的 defrag 正式路径并默认开启；v7_single 用同一份 scan；核函数与 SPIR-V 不变。
 - 本机验证（第 2 节）：第 4–6 项**全部通过**。K = 1 的每粒子成本与 7.18 的 prefix 结果相差 −0.16 % / −0.03 %（8M / 64M），每次 defrag 后的 pid 序审计 0 次块间倒序；K = 2（同一张卡）内建检查全过、seam OK、第 300 步场与 K = 1 的差在阶段 1 的噪声水平；defrag 间隔 100 的运行三次周期 defrag 后步长无跳变。**2-D 敏感性：1M -0.82 %，8M -5.46 %**——8M 超过 0.5 % 的门槛，E7 要不要重跑等你定（第 2.3 节）。
-- 第 7 项（Section 3 基线重测，600 W）、第 8–11 项（集群）：见第 3、4 节，随进度补。
+- 第 7 项（第 3 节）：表 2 重测完成——2-D 8M 步长 10502 → 9969 µs（-5.1 %），3-D 9.1M 61060 → 58414 µs（-4.3 %），两个 sweep 核 −4 ~ −6 %，其余核不变；fig:baseline 的 2M–32M 点已按测量 A 重测并重画（S d2 +1.2 ~ +5.0 %），1M 不受影响。
+- 第 8–11 项（集群）：见第 4 节，随进度补。
 
 ## 1. 代码改动（分支 `e8-3d` → 标签 `v7-rc4`；分支 `v7-single` → 标签 `v7-single-rc4`；提交号见第 5 节）
 
@@ -106,9 +107,86 @@ K = 2 两个 slab 在同一张卡上（`--device-map 1,1`）：内建检查全�
 
 （各一次，1300 步取 300–1299，窗口含第 1000 步的周期 defrag，fps 用 nodefrag 值。）1M 在门槛内，**8M 不在：prefix 快 5.5 %**。按你的规则"小于 0.5 % 就不重跑 E7"，8M 的 2-D 点超过门槛——E7 的 2-D 批次要不要在 v7-rc4 上重跑由你定；我没有排 E7 的作业。机制与 3-D 相同：2-D 8M 的 defrag 派发 2,574 个工作组，第一波覆盖大半网格。
 
-## 3. 第 7 项：Section 3 基线重测（工作站 600 W，v7_single，1 在飞，逐核时间戳）
+## 3. 第 7 项：Section 3 基线重测（工作站 600 W，v7_single，1 在飞，逐核时间戳；`tab:kernelcost` 的原协议）
 
-待做（需要把 GPU 1 的功率上限恢复到 600 W：管理员 `nvidia-smi -i 1 -pl 600`，UAC 已弹出等你点）。
+**协议**：`experiment/v7_single/_run_section3_campaign.py run`（= 2026-10-10 做表 2 时的同一脚本：`_run_kernel_breakdown.py --solver v7_single --interleave 0`，预热 1000 步后第 1001–3000 步全部计时，每步一次提交 + fence，生产录制里的 tick 写 BOTTOM_OF_PIPE 时间戳，defrag 帧剔除；2-D 8M `lid_driven_cavity_2d_8m`（8,128,201 粒子）与 3-D 9.1M `cavity3d_8m_b4`（9,129,329）各 3 次独立运行，其余尺寸各 1 次；CPU 端候选数 / 邻居数统计同样重做）。GPU 1 功率上限恢复为 600 W（你点的 UAC），v7-single 提交 ffd1a2f（= rc4.1 的 solver，外加 kernel-breakdown 驱动的 scan 调用——它自己提交 defrag 命令，第一次跑在 voxel 列表一致性检查上失败，修后重跑）。结果 `docs/cluster_v6/data/e9/section3/`（v7-single 分支镜像 `docs/seam_audit/v7_single/section3_rc4_*`）。
+
+#### Section 3 Table 2 (tab:kernelcost): old (atomic defrag order, 2026-10-10, commit f06af58) vs new (prefix order, v7-single-rc4 + ffd1a2f, 2026-10-27), 600 W, 3 runs each, frames 1001-3000, 1 in flight, defrag frames excluded
+
+| case | kernel | old us/step (std) | new us/step (std) | change | > 0.5 %? | old ns/particle | new ns/particle | old % | new % |
+|---|---|---|---|---|---|---|---|---|---|
+| 2-D 8M (8,128,201) | predict | 497 (0) | 497 (0) | **+0.02 %** | no | 0.06 | 0.06 | 4.7 | 5.0 |
+| 2-D 8M (8,128,201) | update_voxel | 331 (0) | 331 (0) | **+0.01 %** | no | 0.04 | 0.04 | 3.2 | 3.3 |
+| 2-D 8M (8,128,201) | correction_density | 4530 (9) | 4267 (12) | **-5.81 %** | yes | 0.56 | 0.52 | 43.1 | 42.8 |
+| 2-D 8M (8,128,201) | density_copy | 82 (0) | 82 (0) | **+0.06 %** | no | 0.01 | 0.01 | 0.8 | 0.8 |
+| 2-D 8M (8,128,201) | force | 5062 (6) | 4792 (11) | **-5.34 %** | yes | 0.62 | 0.59 | 48.2 | 48.1 |
+| 2-D 8M (8,128,201) | step total | 10502 (15) | 9969 (23) | **-5.08 %** | yes | 1.29 | 1.23 | 100.0 | 100.0 |
+| 2-D 8M (8,128,201) | GPU throughput (M particle-steps/s) | 773.9 | 815.4 | **+5.35 %** | | ps/candidate (step) 5.76 | 5.47 | | |
+| 3-D 8M (9,129,329) | predict | 500 (0) | 504 (0) | **+0.98 %** | yes | 0.05 | 0.06 | 0.8 | 0.9 |
+| 3-D 8M (9,129,329) | update_voxel | 316 (0) | 313 (0) | **-0.84 %** | yes | 0.03 | 0.03 | 0.5 | 0.5 |
+| 3-D 8M (9,129,329) | correction_density | 30354 (20) | 28934 (20) | **-4.68 %** | yes | 3.32 | 3.17 | 49.7 | 49.5 |
+| 3-D 8M (9,129,329) | density_copy | 78 (0) | 93 (0) | **+19.00 %** | yes | 0.01 | 0.01 | 0.1 | 0.2 |
+| 3-D 8M (9,129,329) | force | 29813 (23) | 28569 (25) | **-4.17 %** | yes | 3.27 | 3.13 | 48.8 | 48.9 |
+| 3-D 8M (9,129,329) | step total | 61060 (43) | 58414 (44) | **-4.33 %** | yes | 6.69 | 6.40 | 100.0 | 100.0 |
+| 3-D 8M (9,129,329) | GPU throughput (M particle-steps/s) | 149.5 | 156.3 | **+4.53 %** | | ps/candidate (step) 4.06 | 3.88 | | |
+
+#### per-size GPU step of the single runs (frames 1001-3000, defrag frames excluded): fig:baseline's affected points
+
+| size | particles | old GPU step (us) | new (us) | change | affected (> 0.5 %)? | new SM MHz / W / PCIe |
+|---|---|---|---|---|---|---|
+| 1m | 1,046,529 | 1314 | 1318 | **+0.27 %** | no | 2846.0 / 596.4749999999999 / Gen 4 x4 |
+| 2m | 2,064,969 | 2599 | 2493 | **-4.08 %** | yes | 2803.5 / 599.4733333333334 / Gen 4 x4 |
+| 4m | 4,182,025 | 5664 | 5364 | **-5.29 %** | yes | 2799.818181818182 / 599.8981818181818 / Gen 4 x4 |
+| 4m_gen | 4,182,025 | 5662 | 5360 | **-5.34 %** | yes | 2789.8333333333335 / 600.27 / Gen 4 x4 |
+| 8m | 8,128,201 | 10502 | 9969 | **-5.08 %** | yes | 2794.9 / 599.515 / Gen 4 x4 |
+| 16m | 16,184,529 | 20962 | 20379 | **-2.78 %** | yes | 2779.7073170731705 / 599.1578048780489 / Gen 4 x4 |
+| 32m | 32,251,041 | 40655 | 40062 | **-1.46 %** | yes | 2769.246913580247 / 598.9523456790123 / Gen 4 x4 |
+| 3d_8m | 9,129,329 | 61060 | 58414 | **-4.33 %** | yes | 2808.051282051282 / 599.9686324786325 / Gen 4 x4 |
+
+**判读**：
+- 两个 sweep 核各快 4–6 %，predict / update_voxel / density_copy 的绝对值不变（3-D 的 density_copy +15 µs、predict +4 µs 是 1 µs 量级的散布放大成的百分比，按 0.5 % 规则列为"更新"但不改变任何结论）。2-D 8M 的整步 −5.1 %，与本机第 6 项的 −5.5 %（575 W，链路代码）一致；3-D 9.1M −4.3 %。
+- 每候选对的皮秒数随之下降（2-D 5.76 → 5.47，3-D 4.06 → 3.88）：候选数、邻居数、占用体素完全不变（同一物理），少掉的是 atomicAdd 排列带来的访存代价。
+- 1M 不动（+0.3 %）：42k 个 voxel 只有 331 个 defrag 工作组，第一波乱序的代价在 1M 上本来就小（本机第 6 项 −0.8 %）。
+- 4M 凹陷仍在：4M gen 的每候选皮秒数对 2M / 8M 均值 +5.2 %（旧 +6.1 %），prefix 序不是它的原因。
+
+**tab:kernelcost 的新行**（表 2 全表见 `section3_rc4_table2.md`；LaTeX 行如下，与旧表相差 > 0.5 % 的项都在其中）：
+
+```latex
+% columns: kernel & dispatch & 8M $\mu$s/step & ns/particle & \% & 3-D 8M $\mu$s/step & ns/particle & \% \\
+% 8M: 8,128,201 particles (8,003,241 fluid), h/dx = 4.99, 224 candidates and 71.0 neighbours per particle; 3-D 8M: 9,129,329 particles (8,120,601 fluid), h/dx = 4, 1649 candidates and 259.4 neighbours per particle
+% 8M: 3 runs, step spread 0.23 %; 3-D 8M: 3 runs, step spread 0.08 %
+predict & per particle & 497 & 0.06 & 5.0 & 504 & 0.06 & 0.9 \\
+update\_voxel & per voxel & 331 & 0.04 & 3.3 & 313 & 0.03 & 0.5 \\
+correction + density (fused) & per particle & 4267 & 0.52 & 42.8 & 28934 & 3.17 & 49.5 \\
+density (scratch$\to$primary copy) & buffer copy & 82 & 0.01 & 0.8 & 93 & 0.01 & 0.2 \\
+force & per particle & 4792 & 0.59 & 48.1 & 28569 & 3.13 & 48.9 \\
+\midrule
+\textbf{step total} &  & 9969 & 1.23 & 100.0 & 58414 & 6.40 & 100.0 \\
+% ps per candidate: 8M correction_density 2.34, force 2.63; 3-D 8M correction_density 1.92, force 1.90
+```
+
+### 3.1 fig:baseline 受影响的点
+
+各尺寸 GPU 步长超过 0.5 % 的是 2M、4M、8M、16M、32M 与 3-D 8M；1M 不受影响。fig:baseline 是 2-D 曲线（v7_single 的 S 系列），所以按测量 A 的协议重测了 2M、4M gen、8M、16M、32M（`_run_single_baseline_campaign.py --sizes 2m,4m_gen,8m,16m,32m --configs v7_single:1,v7_single:2,v7_chain:2 --trials 3 --warmup 1000`，窗口 6000 / 4000 / 2000 / 2000 / 2000 步，600 W，45 次运行全部 drift 0），并入 r3 为 `throughput_rc4_merged`（1M、旧 4M、3-D 8M 与 V / Vx 列保留旧值——V / Vx 是 atomic 序的旧运行，它们与新 S 的比值已无意义，图不用它们）。图 `manuscripts/fig/single_gpu_throughput.{pdf,png}` 已重画（v7-single 工作树与 vulkan-demo 主库各一份），旧图改名 `single_gpu_throughput_e8_atomic.*`。
+
+**吞吐（fps，均值 ± 标准差，3 次）**
+
+| size | particles | S d1 | S d2 | V d1 | V d2 | Vx d1 | Vx d2 | C d2 |
+|---|---|---|---|---|---|---|---|---|
+| 1m | 1,046,529 | 705.24 ± 0.20 (n=3) | 734.60 ± 0.08 (n=3) | 698.86 ± 1.10 (n=3) | 733.32 ± 0.31 (n=3) | 699.89 ± 1.71 (n=3) | 732.97 ± 0.35 (n=3) | 723.94 ± 0.78 (n=3) |
+| 2m | 2,064,969 | 371.08 ± 2.58 (n=3) | 385.72 ± 0.52 (n=3) | 361.66 ± 0.16 (n=3) | 371.69 ± 0.20 (n=3) | 361.11 ± 0.32 (n=3) | 371.45 ± 0.32 (n=3) | 382.05 ± 0.29 (n=3) |
+| 4m | 4,182,025 | 172.56 ± 0.02 (n=3) | 174.97 ± 0.18 (n=3) | 172.37 ± 0.09 (n=3) | 175.36 ± 0.03 (n=3) | 172.40 ± 0.09 (n=3) | 175.25 ± 0.08 (n=3) | 174.86 ± 0.13 (n=3) |
+| 4m_gen | 4,182,025 | 179.28 ± 1.01 (n=3) | 183.81 ± 0.18 (n=3) | n/a | n/a | n/a | n/a | 183.27 ± 0.12 (n=3) |
+| 8m | 8,128,201 | 97.71 ± 0.52 (n=3) | 99.17 ± 0.08 (n=3) | 93.53 ± 0.06 (n=3) | 94.57 ± 0.07 (n=3) | 93.59 ± 0.05 (n=3) | 94.54 ± 0.05 (n=3) | 99.07 ± 0.05 (n=3) |
+| 16m | 16,184,529 | 48.18 ± 0.23 (n=3) | 48.65 ± 0.03 (n=3) | 47.29 ± 0.01 (n=3) | 47.58 ± 0.02 (n=3) | 47.28 ± 0.01 (n=3) | 47.57 ± 0.01 (n=3) | 48.67 ± 0.05 (n=3) |
+| 32m | 32,251,041 | 24.65 ± 0.01 (n=3) | 24.79 ± 0.01 (n=3) | 24.40 ± 0.00 (n=3) | 24.50 ± 0.01 (n=3) | 24.41 ± 0.00 (n=3) | 24.49 ± 0.00 (n=3) | 24.78 ± 0.00 (n=3) |
+| 3d_8m | 9,129,329 | 16.30 ± 0.02 (n=3) | 16.34 ± 0.01 (n=3) | 16.28 ± 0.01 (n=3) | 16.33 ± 0.04 (n=3) | 16.28 ± 0.02 (n=3) | 16.34 ± 0.02 (n=3) | 16.32 ± 0.03 (n=3) |
+
+S d2 的变化：2M 371.9 → 385.7（+3.7 %），4M gen 175.1 → 183.8（+5.0 %），8M 94.4 → 99.2（+5.0 %），16M 47.5 → 48.7（+2.5 %），32M 24.5 → 24.8（+1.2 %）；C/S（链路 K = 1 对单卡）在重测点上仍是 0.99–1.00。3-D 8M 的吞吐行没有重测（图里没有它；表 2 的 3-D 值已重测）。
+
+![single_gpu_throughput](../docs/cluster_v6/data/e9/section3/single_gpu_throughput.png)
+
+**协变量**：这次 nvidia-smi 报 GPU 1 的 PCIe 为 Gen 4 x4（10-10 为 Gen 5 x8）——你热插拔换 7900 XTX 再换回来后链路重新协商的结果。单卡核时间不依赖它（1M 点与旧值一致），本节的数字不受影响；本机的传输类测量在重启前不要做。
 
 ## 4. 集群（第 8–11 项）
 
