@@ -185,6 +185,18 @@ def case_dimension(adapter) -> int:
     return int(getattr(physics, "dimension", 2))
 
 
+def prepare_defrag(sim) -> None:
+    """E9 (v7 / v7_single, numerics.defrag_order = prefix): the host scan of experiment.v7.utils.defrag_prefix must run right
+    before ANY submission of the defrag command (voxel_base_offset in voxel-id order + the own total in the scratch
+    counter). The simulators do it inside submit_defrag_and_wait; this driver submits the adapter's own defrag command
+    (the queue is idle: the timed step just completed) and therefore does it here. Solvers without the flag (V0, V5,
+    V6, atomic order) are untouched. The scan's wall time counts in defrag_wall like the command it belongs to."""
+    numerics = getattr(getattr(sim, "case", None), "numerics", None)
+    if numerics is not None and getattr(numerics, "use_prefix_sum_defrag", False):
+        from experiment.v7.utils.defrag_prefix import upload_defrag_prefix
+        upload_defrag_prefix(sim, verbose=False)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--solver", choices=sorted(ADAPTERS), required=True)
@@ -274,6 +286,7 @@ def main() -> int:
             wall = time.perf_counter() - t_frame
             if defrag_frame:
                 t_defrag = time.perf_counter()
+                prepare_defrag(adapter.sim)      # E9: the prefix order's host scan before the adapter's own defrag command
                 adapter.sim.ctx.submit_and_wait(adapter.defrag_cmd)
                 if measured:
                     defrag_wall.append((time.perf_counter() - t_defrag) * 1e6)
