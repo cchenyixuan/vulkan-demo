@@ -1,0 +1,1598 @@
+{
+ "sizes": {
+  "1m": {
+   "size": "1m",
+   "label": "1M",
+   "case": "cases/lid_driven_cavity_2d_gen/case.yaml",
+   "particles": 1046529,
+   "dimension": 2,
+   "runs": 1,
+   "commit": "ffd1a2f91a51214cbb8697c0ffc37c54f84d444b",
+   "drift_ok": true,
+   "stages": {
+    "predict": {
+     "mean_us": 26.78,
+     "std_us": 0.0,
+     "p50_us": 26.78,
+     "ns_per_particle": 0.025589352994518068,
+     "share_pct": 2.03260671564758
+    },
+    "update_voxel": {
+     "mean_us": 19.95,
+     "std_us": 0.0,
+     "p50_us": 20.45,
+     "ns_per_particle": 0.019063016887253006,
+     "share_pct": 1.5142085129637501
+    },
+    "correction_density": {
+     "mean_us": 600.31,
+     "std_us": 0.0,
+     "p50_us": 600.06,
+     "ns_per_particle": 0.5736200334630001,
+     "share_pct": 45.56363470763252,
+     "ps_per_candidate": 2.5693292722086256
+    },
+    "density_copy": {
+     "mean_us": 8.32,
+     "std_us": 0.0,
+     "p50_us": 8.32,
+     "ns_per_particle": 0.00795009025072406,
+     "share_pct": 0.6314894650555589
+    },
+    "force": {
+     "mean_us": 662.17,
+     "std_us": 0.0,
+     "p50_us": 663.39,
+     "ns_per_particle": 0.6327297189088883,
+     "share_pct": 50.25881960046147,
+     "ps_per_candidate": 2.8340903269617126
+    },
+    "gpu_frame": {
+     "mean_us": 1317.52,
+     "std_us": 0.0,
+     "p50_us": 1317.82,
+     "ns_per_particle": 1.2589426571074476,
+     "share_pct": 100.0
+    }
+   },
+   "stage_names": [
+    "predict",
+    "update_voxel",
+    "correction_density",
+    "density_copy",
+    "force"
+   ],
+   "gpu_frame_us": 1317.52,
+   "gpu_frame_std_us": 0.0,
+   "gpu_frame_spread_pct": 0.0,
+   "gpu_frame_values": [
+    1317.52
+   ],
+   "gpu_step_amortized_us": 1321.63141604296,
+   "gpu_step_amortized_std_us": 0.0,
+   "defrag_wall_us": 4103.0,
+   "timed_wall_us": 1429.641690292583,
+   "candidate_pairs": 233644635.0,
+   "candidates_per_particle": 223.25672293839924,
+   "candidates_per_fluid_particle": 225.01499998502996,
+   "candidates_per_wall_particle": 183.6907114624506,
+   "fluid_particles": 1002001,
+   "wall_particles": 44528,
+   "grid_dimensions": [
+    206,
+    206,
+    1
+   ],
+   "total_voxels": 42436,
+   "end_occupied_voxels": 42436.0,
+   "end_mean_per_voxel": 24.66134885474597,
+   "end_max_per_voxel": 31,
+   "gpu_throughput_mps": 794.3173538162608,
+   "covariates": [
+    {
+     "samples": 2,
+     "sm_mhz": 2846.0,
+     "power_w": 596.4749999999999,
+     "temp_c_max": 67.0,
+     "pcie": "Gen 4 x4"
+    }
+   ],
+   "switches": {
+    "V7_DENSITY_COPY_COMPUTE": 1,
+    "V7_DEEP_WALL_SKIP": "auto",
+    "V7_FUSED_CORRECTION_DENSITY": 1
+   },
+   "host_round_trip_us": 112.12169029258303,
+   "step_ps_per_candidate": 5.638991025837165,
+   "initial": {
+    "candidates_per_particle": 223.24390915110808,
+    "candidates_per_fluid_particle": 225.0,
+    "occupied_voxels": 42436,
+    "mean_per_voxel": 24.66134885474597,
+    "max_per_voxel": 25,
+    "grid_dimensions": [
+     206,
+     206,
+     1
+    ],
+    "h": 0.005,
+    "dx": 0.001,
+    "h_over_dx": 5.0,
+    "neighbors_f32_all": 73.51872332252618,
+    "neighbors_f32_fluid": 73.81793431343881,
+    "neighbors_f32_wall": 66.78566295364715,
+    "neighbors_strict64_all": 73.78886586038227,
+    "neighbors_lo_all": 67.73446698562582,
+    "neighbors_hi_all": 79.65232497140548,
+    "neighbors_lo_fluid": 68.0,
+    "neighbors_hi_fluid": 80.0,
+    "ambiguous_pairs_2ulp": 801496,
+    "ratio_candidates_to_neighbors": 3.0365585671521855,
+    "ratio_candidates_to_neighbors_fluid": 3.048039776412952
+   },
+   "end": {
+    "runs": 1,
+    "step": 3000,
+    "candidates_per_particle": 223.2567114719229,
+    "candidates_per_fluid_particle": 225.014988008994,
+    "occupied_voxels": 42436.0,
+    "mean_per_voxel": 24.66134885474597,
+    "max_per_voxel": 31,
+    "cpu_binning_vs_gpu_mismatch": 7,
+    "neighbors_f32_all": 73.86121932598141,
+    "neighbors_f32_fluid": 74.18108365161312,
+    "neighbors_f32_wall": 66.66340280273087,
+    "neighbors_strict64_all": 73.86549058841179,
+    "neighbors_lo_all": 71.87267433582825,
+    "neighbors_hi_all": 75.86651301588394,
+    "neighbors_lo_fluid": 72.30112943999058,
+    "neighbors_hi_fluid": 76.06849693762781,
+    "ambiguous_pairs_2ulp": 31984.0,
+    "ratio_candidates_to_neighbors": 3.022651311598239,
+    "ratio_candidates_to_neighbors_fluid": 3.0333203147282535
+   },
+   "a": {
+    "1": {
+     "fps": 705.2418333333334,
+     "fps_std": 0.20257680847849702,
+     "wall_us": 1417.953321449309,
+     "mparticle_steps_per_s": 738.0560305965,
+     "idle_vs_amortized": 0.07288106520253756,
+     "idle_vs_frame": 0.076229067831463
+    },
+    "2": {
+     "fps": 734.6044333333333,
+     "fps_std": 0.07769300697837138,
+     "wall_us": 1361.2768377430157,
+     "mparticle_steps_per_s": 768.7848430119,
+     "idle_vs_amortized": 0.02999733603394228,
+     "idle_vs_frame": 0.0332115168976681
+    }
+   },
+   "memory": {
+    "device_local_bytes": 366153868,
+    "device_local_bytes_per_particle": 349.87455483794525,
+    "slot_bytes": 288,
+    "voxel_list_bytes_per_particle": 18.653109469493916,
+    "pool_capacity": 1203585
+   }
+  },
+  "2m": {
+   "size": "2m",
+   "label": "2M",
+   "case": "cases/lid_driven_cavity_2d_2m/case.yaml",
+   "particles": 2064969,
+   "dimension": 2,
+   "runs": 1,
+   "commit": "ffd1a2f91a51214cbb8697c0ffc37c54f84d444b",
+   "drift_ok": true,
+   "stages": {
+    "predict": {
+     "mean_us": 100.69,
+     "std_us": 0.0,
+     "p50_us": 100.64,
+     "ns_per_particle": 0.048761022562566314,
+     "share_pct": 4.039654328516293
+    },
+    "update_voxel": {
+     "mean_us": 35.48,
+     "std_us": 0.0,
+     "p50_us": 34.82,
+     "ns_per_particle": 0.017181855998806762,
+     "share_pct": 1.423447567541544
+    },
+    "correction_density": {
+     "mean_us": 1108.59,
+     "std_us": 0.0,
+     "p50_us": 1108.0,
+     "ns_per_particle": 0.5368555169593345,
+     "share_pct": 44.47631733091545,
+     "ps_per_candidate": 2.3984301689426744
+    },
+    "density_copy": {
+     "mean_us": 14.45,
+     "std_us": 0.0,
+     "p50_us": 14.46,
+     "ns_per_particle": 0.0069976837424678045,
+     "share_pct": 0.5797299140635657
+    },
+    "force": {
+     "mean_us": 1233.33,
+     "std_us": 0.0,
+     "p50_us": 1233.82,
+     "ns_per_particle": 0.597263203466977,
+     "share_pct": 49.480850858963144,
+     "ps_per_candidate": 2.6683046755446727
+    },
+    "gpu_frame": {
+     "mean_us": 2492.54,
+     "std_us": 0.0,
+     "p50_us": 2493.5,
+     "ns_per_particle": 1.2070592827301523,
+     "share_pct": 100.0
+    }
+   },
+   "stage_names": [
+    "predict",
+    "update_voxel",
+    "correction_density",
+    "density_copy",
+    "force"
+   ],
+   "gpu_frame_us": 2492.54,
+   "gpu_frame_std_us": 0.0,
+   "gpu_frame_spread_pct": 0.0,
+   "gpu_frame_values": [
+    2492.54
+   ],
+   "gpu_step_amortized_us": 2502.8111200719495,
+   "gpu_step_amortized_std_us": 0.0,
+   "defrag_wall_us": 10245.2,
+   "timed_wall_us": 2631.0277287964827,
+   "candidate_pairs": 462214833.0,
+   "candidates_per_particle": 223.83620916343054,
+   "candidates_per_fluid_particle": 225.00490154702894,
+   "candidates_per_wall_particle": 186.54204386076756,
+   "fluid_particles": 2002225,
+   "wall_particles": 62744,
+   "grid_dimensions": [
+    288,
+    288,
+    1
+   ],
+   "total_voxels": 82944,
+   "end_occupied_voxels": 82944.0,
+   "end_mean_per_voxel": 24.89594184027778,
+   "end_max_per_voxel": 30,
+   "gpu_throughput_mps": 828.4597238158666,
+   "covariates": [
+    {
+     "samples": 6,
+     "sm_mhz": 2803.5,
+     "power_w": 599.4733333333334,
+     "temp_c_max": 67.0,
+     "pcie": "Gen 4 x4"
+    }
+   ],
+   "switches": {
+    "V7_DENSITY_COPY_COMPUTE": 1,
+    "V7_DEEP_WALL_SKIP": "auto",
+    "V7_FUSED_CORRECTION_DENSITY": 1
+   },
+   "host_round_trip_us": 138.48772879648277,
+   "step_ps_per_candidate": 5.392600630798017,
+   "initial": {
+    "candidates_per_particle": 223.83241637041525,
+    "candidates_per_fluid_particle": 225.0,
+    "occupied_voxels": 82944,
+    "mean_per_voxel": 24.89594184027778,
+    "max_per_voxel": 25,
+    "grid_dimensions": [
+     288,
+     288,
+     1
+    ],
+    "h": 0.003536,
+    "dx": 0.000708,
+    "h_over_dx": 4.994350282485876,
+    "neighbors_f32_all": 72.64913129446495,
+    "neighbors_f32_fluid": 72.83134313076702,
+    "neighbors_f32_wall": 66.83456585490246,
+    "neighbors_strict64_all": 72.74934006273217,
+    "neighbors_lo_all": 71.42435746008778,
+    "neighbors_hi_all": 75.13208188597504,
+    "neighbors_lo_fluid": 71.62144913783416,
+    "neighbors_hi_fluid": 75.3472441908377,
+    "ambiguous_pairs_2ulp": 252912,
+    "ratio_candidates_to_neighbors": 3.0810060957668846,
+    "ratio_candidates_to_neighbors_fluid": 3.0893292685268428
+   },
+   "end": {
+    "runs": 1,
+    "step": 3000,
+    "candidates_per_particle": 223.8362149746558,
+    "candidates_per_fluid_particle": 225.00490754036136,
+    "occupied_voxels": 82944.0,
+    "mean_per_voxel": 24.89594184027778,
+    "max_per_voxel": 30,
+    "cpu_binning_vs_gpu_mismatch": 5,
+    "neighbors_f32_all": 71.43798284623159,
+    "neighbors_f32_fluid": 71.58941777272784,
+    "neighbors_f32_wall": 66.60553997194951,
+    "neighbors_strict64_all": 71.43968262961816,
+    "neighbors_lo_all": 71.01427479056586,
+    "neighbors_hi_all": 72.44068458170558,
+    "neighbors_lo_fluid": 71.20189639026583,
+    "neighbors_hi_fluid": 72.58374408470577,
+    "ambiguous_pairs_2ulp": 8046.0,
+    "ratio_candidates_to_neighbors": 3.1332941672843346,
+    "ratio_candidates_to_neighbors_fluid": 3.1429911646254163
+   },
+   "a": {
+    "1": {
+     "fps": 363.55586666666665,
+     "fps_std": 0.22300090433300762,
+     "wall_us": 2750.6088931219742,
+     "mparticle_steps_per_s": 750.7315944348,
+     "idle_vs_amortized": 0.09900778011682365,
+     "idle_vs_frame": 0.10353651019521215
+    },
+    "2": {
+     "fps": 371.85339999999997,
+     "fps_std": 0.5218131083060424,
+     "wall_us": 2689.231831684207,
+     "mparticle_steps_per_s": 767.8657435445999,
+     "idle_vs_amortized": 0.07448453066122629,
+     "idle_vs_frame": 0.0789122066984711
+    }
+   }
+  },
+  "4m": {
+   "size": "4m",
+   "label": "4M(旧手工)",
+   "case": "cases/lid_driven_cavity_2d_4m/case.yaml",
+   "particles": 4182025,
+   "dimension": 2,
+   "runs": 1,
+   "commit": "ffd1a2f91a51214cbb8697c0ffc37c54f84d444b",
+   "drift_ok": true,
+   "stages": {
+    "predict": {
+     "mean_us": 236.95,
+     "std_us": 0.0,
+     "p50_us": 236.9,
+     "ns_per_particle": 0.05665915435703995,
+     "share_pct": 4.417601798734845
+    },
+    "update_voxel": {
+     "mean_us": 127.81,
+     "std_us": 0.0,
+     "p50_us": 127.01,
+     "ns_per_particle": 0.030561749391742037,
+     "share_pct": 2.3828389360468476
+    },
+    "correction_density": {
+     "mean_us": 2365.92,
+     "std_us": 0.0,
+     "p50_us": 2367.52,
+     "ns_per_particle": 0.565735498950867,
+     "share_pct": 44.109273887582795,
+     "ps_per_candidate": 2.524569606589429
+    },
+    "density_copy": {
+     "mean_us": 33.23,
+     "std_us": 0.0,
+     "p50_us": 32.86,
+     "ns_per_particle": 0.007945911370687645,
+     "share_pct": 0.6195269372102084
+    },
+    "force": {
+     "mean_us": 2599.87,
+     "std_us": 0.0,
+     "p50_us": 2601.86,
+     "ns_per_particle": 0.6216772974814833,
+     "share_pct": 48.47094487645816,
+     "ps_per_candidate": 2.7742074047658662
+    },
+    "gpu_frame": {
+     "mean_us": 5363.77,
+     "std_us": 0.0,
+     "p50_us": 5367.38,
+     "ns_per_particle": 1.282577220365732,
+     "share_pct": 99.99999999999999
+    }
+   },
+   "stage_names": [
+    "predict",
+    "update_voxel",
+    "correction_density",
+    "density_copy",
+    "force"
+   ],
+   "gpu_frame_us": 5363.77,
+   "gpu_frame_std_us": 0.0,
+   "gpu_frame_spread_pct": 0.0,
+   "gpu_frame_values": [
+    5363.77
+   ],
+   "gpu_step_amortized_us": 5381.6448159940055,
+   "gpu_step_amortized_std_us": 0.0,
+   "defrag_wall_us": 17864.0,
+   "timed_wall_us": 5576.479980347769,
+   "candidate_pairs": 937157761.0,
+   "candidates_per_particle": 224.09186004387826,
+   "candidates_per_fluid_particle": 225.0004413085811,
+   "candidates_per_wall_particle": 203.65663618388533,
+   "fluid_particles": 4004001,
+   "wall_particles": 178024,
+   "grid_dimensions": [
+    410,
+    410,
+    1
+   ],
+   "total_voxels": 168100,
+   "end_occupied_voxels": 168100.0,
+   "end_mean_per_voxel": 24.87819750148721,
+   "end_max_per_voxel": 30,
+   "gpu_throughput_mps": 779.6801503420169,
+   "covariates": [
+    {
+     "samples": 11,
+     "sm_mhz": 2799.818181818182,
+     "power_w": 599.8981818181818,
+     "temp_c_max": 69.0,
+     "pcie": "Gen 4 x4"
+    }
+   ],
+   "switches": {
+    "V7_DENSITY_COPY_COMPUTE": 1,
+    "V7_DEEP_WALL_SKIP": "auto",
+    "V7_FUSED_CORRECTION_DENSITY": 1
+   },
+   "host_round_trip_us": 212.70998034776858,
+   "step_ps_per_candidate": 5.72344403814845,
+   "initial": {
+    "candidates_per_particle": 224.09138371960952,
+    "candidates_per_fluid_particle": 225.0,
+    "occupied_voxels": 168100,
+    "mean_per_voxel": 24.87819750148721,
+    "max_per_voxel": 25,
+    "grid_dimensions": [
+     410,
+     410,
+     1
+    ],
+    "h": 0.0025,
+    "dx": 0.0005,
+    "h_over_dx": 5.0,
+    "neighbors_f32_all": 73.90192932849517,
+    "neighbors_f32_fluid": 74.01467582051053,
+    "neighbors_f32_wall": 71.3661079405024,
+    "neighbors_strict64_all": 73.98321626484777,
+    "neighbors_lo_all": 68.00831176284217,
+    "neighbors_hi_all": 79.62332219439148,
+    "neighbors_lo_fluid": 68.09737560005604,
+    "neighbors_hi_fluid": 79.83569134972744,
+    "ambiguous_pairs_2ulp": 1251176,
+    "ratio_candidates_to_neighbors": 3.032280560951528,
+    "ratio_candidates_to_neighbors_fluid": 3.0399376543327272
+   },
+   "end": {
+    "runs": 1,
+    "step": 3000,
+    "candidates_per_particle": 224.09186004387826,
+    "candidates_per_fluid_particle": 225.0004413085811,
+    "occupied_voxels": 168100.0,
+    "mean_per_voxel": 24.87819750148721,
+    "max_per_voxel": 30,
+    "cpu_binning_vs_gpu_mismatch": 0,
+    "neighbors_f32_all": 74.26536857144565,
+    "neighbors_f32_fluid": 74.39574165940518,
+    "neighbors_f32_wall": 71.33310115490046,
+    "neighbors_strict64_all": 74.27409831361601,
+    "neighbors_lo_all": 70.07868389117712,
+    "neighbors_hi_all": 77.65293225172016,
+    "neighbors_lo_fluid": 70.25394873777505,
+    "neighbors_hi_fluid": 77.78402727671646,
+    "ambiguous_pairs_2ulp": 201066.0,
+    "ratio_candidates_to_neighbors": 3.017447625379988,
+    "ratio_candidates_to_neighbors_fluid": 3.0243725822193794
+   },
+   "a": {
+    "1": {
+     "fps": 172.56233333333333,
+     "fps_std": 0.016460356415737464,
+     "wall_us": 5795.007407951137,
+     "mparticle_steps_per_s": 721.6599920583333,
+     "idle_vs_amortized": 0.07680971266045589,
+     "idle_vs_frame": 0.08039819156137118
+    },
+    "2": {
+     "fps": 174.96906666666666,
+     "fps_std": 0.17773115465030834,
+     "wall_us": 5715.295960886038,
+     "mparticle_steps_per_s": 731.7250110266666,
+     "idle_vs_amortized": 0.06199798691664604,
+     "idle_vs_frame": 0.06553710559663029
+    }
+   }
+  },
+  "4m_gen": {
+   "size": "4m_gen",
+   "label": "4M gen",
+   "case": "cases/lid_driven_cavity_2d_4m_gen/case.yaml",
+   "particles": 4182025,
+   "dimension": 2,
+   "runs": 1,
+   "commit": "ffd1a2f91a51214cbb8697c0ffc37c54f84d444b",
+   "drift_ok": true,
+   "stages": {
+    "predict": {
+     "mean_us": 242.84,
+     "std_us": 0.0,
+     "p50_us": 242.72,
+     "ns_per_particle": 0.05806756296291868,
+     "share_pct": 4.530571657248188
+    },
+    "update_voxel": {
+     "mean_us": 128.18,
+     "std_us": 0.0,
+     "p50_us": 127.01,
+     "ns_per_particle": 0.030650223277000975,
+     "share_pct": 2.3914045257209384
+    },
+    "correction_density": {
+     "mean_us": 2337.94,
+     "std_us": 0.0,
+     "p50_us": 2338.82,
+     "ns_per_particle": 0.5590449602764211,
+     "share_pct": 43.61803945127173,
+     "ps_per_candidate": 2.492084351247028
+    },
+    "density_copy": {
+     "mean_us": 33.38,
+     "std_us": 0.0,
+     "p50_us": 32.9,
+     "ns_per_particle": 0.007981779162008835,
+     "share_pct": 0.6227577084456618
+    },
+    "force": {
+     "mean_us": 2617.69,
+     "std_us": 0.0,
+     "p50_us": 2618.27,
+     "ns_per_particle": 0.6259383910904406,
+     "share_pct": 48.83722665731349,
+     "ps_per_candidate": 2.79027874343047
+    },
+    "gpu_frame": {
+     "mean_us": 5360.03,
+     "std_us": 0.0,
+     "p50_us": 5362.11,
+     "ns_per_particle": 1.2816829167687902,
+     "share_pct": 100.0
+    }
+   },
+   "stage_names": [
+    "predict",
+    "update_voxel",
+    "correction_density",
+    "density_copy",
+    "force"
+   ],
+   "gpu_frame_us": 5360.03,
+   "gpu_frame_std_us": 0.0,
+   "gpu_frame_spread_pct": 0.0,
+   "gpu_frame_values": [
+    5360.03
+   ],
+   "gpu_step_amortized_us": 5377.721492018434,
+   "gpu_step_amortized_std_us": 0.0,
+   "defrag_wall_us": 17676.1,
+   "timed_wall_us": 5579.859759060533,
+   "candidate_pairs": 938146415.0,
+   "candidates_per_particle": 224.32826561295067,
+   "candidates_per_fluid_particle": 225.23743338165715,
+   "candidates_per_wall_particle": 182.75327388933584,
+   "fluid_particles": 4092529,
+   "wall_particles": 89496,
+   "grid_dimensions": [
+    410,
+    410,
+    1
+   ],
+   "total_voxels": 168100,
+   "end_occupied_voxels": 168100.0,
+   "end_mean_per_voxel": 24.87819750148721,
+   "end_max_per_voxel": 36,
+   "gpu_throughput_mps": 780.2241778497508,
+   "covariates": [
+    {
+     "samples": 12,
+     "sm_mhz": 2789.8333333333335,
+     "power_w": 600.27,
+     "temp_c_max": 70.0,
+     "pcie": "Gen 4 x4"
+    }
+   ],
+   "switches": {
+    "V7_DENSITY_COPY_COMPUTE": 1,
+    "V7_DEEP_WALL_SKIP": "auto",
+    "V7_FUSED_CORRECTION_DENSITY": 1
+   },
+   "host_round_trip_us": 219.82975906053343,
+   "step_ps_per_candidate": 5.713425872868682,
+   "initial": {
+    "candidates_per_particle": 224.32568934905936,
+    "candidates_per_fluid_particle": 225.23733393214806,
+    "occupied_voxels": 168100,
+    "mean_per_voxel": 24.87819750148721,
+    "max_per_voxel": 36,
+    "grid_dimensions": [
+     410,
+     410,
+     1
+    ],
+    "h": 0.002473,
+    "dx": 0.000494,
+    "h_over_dx": 5.006072874493928,
+    "neighbors_f32_all": 77.43806505221752,
+    "neighbors_f32_fluid": 77.59770450007807,
+    "neighbors_f32_wall": 70.1379726468222,
+    "neighbors_strict64_all": 77.51532140530007,
+    "neighbors_lo_all": 74.74616914054793,
+    "neighbors_hi_all": 78.36232160257292,
+    "neighbors_lo_fluid": 74.89371877389262,
+    "neighbors_hi_fluid": 78.52977950797661,
+    "ambiguous_pairs_2ulp": 1593688,
+    "ratio_candidates_to_neighbors": 2.896840064350698,
+    "ratio_candidates_to_neighbors_fluid": 2.9026288262421662
+   },
+   "end": {
+    "runs": 1,
+    "step": 3000,
+    "candidates_per_particle": 224.3282804383044,
+    "candidates_per_fluid_particle": 225.23744853121383,
+    "occupied_voxels": 168100.0,
+    "mean_per_voxel": 24.87819750148721,
+    "max_per_voxel": 36,
+    "cpu_binning_vs_gpu_mismatch": 262,
+    "neighbors_f32_all": 78.48470681069577,
+    "neighbors_f32_fluid": 78.66793833348524,
+    "neighbors_f32_wall": 70.1057812639671,
+    "neighbors_strict64_all": 78.48545907783908,
+    "neighbors_lo_all": 78.33466323132932,
+    "neighbors_hi_all": 78.56509753050257,
+    "neighbors_lo_fluid": 78.56053432975062,
+    "neighbors_hi_fluid": 78.73842384501124,
+    "ambiguous_pairs_2ulp": 29676.0,
+    "ratio_candidates_to_neighbors": 2.8582419372398458,
+    "ratio_candidates_to_neighbors_fluid": 2.863141621640043
+   },
+   "a": {
+    "1": {
+     "fps": 172.2346,
+     "fps_std": 0.1610690224717363,
+     "wall_us": 5806.034327597358,
+     "mparticle_steps_per_s": 720.2894030650001,
+     "idle_vs_amortized": 0.07964578236612319,
+     "idle_vs_frame": 0.0832092968877709
+    },
+    "2": {
+     "fps": 175.1206666666667,
+     "fps_std": 0.22084223629851893,
+     "wall_us": 5710.348293176894,
+     "mparticle_steps_per_s": 732.3590060166667,
+     "idle_vs_amortized": 0.06185273849754802,
+     "idle_vs_frame": 0.06535752471103606
+    }
+   }
+  },
+  "8m": {
+   "size": "8m",
+   "label": "8M",
+   "case": "cases/lid_driven_cavity_2d_8m/case.yaml",
+   "particles": 8128201,
+   "dimension": 2,
+   "runs": 3,
+   "commit": "ffd1a2f91a51214cbb8697c0ffc37c54f84d444b",
+   "drift_ok": true,
+   "stages": {
+    "predict": {
+     "mean_us": 497.00333333333333,
+     "std_us": 0.09073771725878924,
+     "p50_us": 496.98,
+     "ns_per_particle": 0.061145551559728076,
+     "share_pct": 4.985505017236825
+    },
+    "update_voxel": {
+     "mean_us": 331.3566666666666,
+     "std_us": 0.07571877794401986,
+     "p50_us": 331.78,
+     "ns_per_particle": 0.040766298307173585,
+     "share_pct": 3.323881779789948
+    },
+    "correction_density": {
+     "mean_us": 4266.67,
+     "std_us": 12.236572232451634,
+     "p50_us": 4268.376666666667,
+     "ns_per_particle": 0.524921812341993,
+     "share_pct": 42.79952118073086,
+     "ps_per_candidate": 2.3395352239668106
+    },
+    "density_copy": {
+     "mean_us": 82.03,
+     "std_us": 0.010000000000005116,
+     "p50_us": 82.05,
+     "ns_per_particle": 0.010092024053046917,
+     "share_pct": 0.8228535889711069
+    },
+    "force": {
+     "mean_us": 4791.903333333333,
+     "std_us": 10.805324304866108,
+     "p50_us": 4793.556666666666,
+     "ns_per_particle": 0.5895404571483078,
+     "share_pct": 48.068204996171445,
+     "ps_per_candidate": 2.6275354405485025
+    },
+    "gpu_frame": {
+     "mean_us": 9968.966666666667,
+     "std_us": 22.971883539086015,
+     "p50_us": 9972.256666666666,
+     "ns_per_particle": 1.2264665535050951,
+     "share_pct": 100.0
+    }
+   },
+   "stage_names": [
+    "predict",
+    "update_voxel",
+    "correction_density",
+    "density_copy",
+    "force"
+   ],
+   "gpu_frame_us": 9968.966666666667,
+   "gpu_frame_std_us": 22.971883539086015,
+   "gpu_frame_spread_pct": 0.23043394874513254,
+   "gpu_frame_values": [
+    9949.75,
+    9962.74,
+    9994.41
+   ],
+   "gpu_step_amortized_us": 10004.319641331647,
+   "gpu_step_amortized_std_us": 22.992429674198114,
+   "defrag_wall_us": 35329.3,
+   "timed_wall_us": 10229.029262920549,
+   "candidate_pairs": 1823725480.3333333,
+   "candidates_per_particle": 224.3701257305686,
+   "candidates_per_fluid_particle": 225.0013297946003,
+   "candidates_per_wall_particle": 183.94376333760138,
+   "fluid_particles": 8003241,
+   "wall_particles": 124960,
+   "grid_dimensions": [
+    571,
+    571,
+    1
+   ],
+   "total_voxels": 326041,
+   "end_occupied_voxels": 326041.0,
+   "end_mean_per_voxel": 24.929996534178215,
+   "end_max_per_voxel": 30,
+   "gpu_throughput_mps": 815.3504040873511,
+   "covariates": [
+    {
+     "samples": 20,
+     "sm_mhz": 2794.9,
+     "power_w": 599.515,
+     "temp_c_max": 68.0,
+     "pcie": "Gen 4 x4"
+    },
+    {
+     "samples": 20,
+     "sm_mhz": 2792.75,
+     "power_w": 599.1125,
+     "temp_c_max": 69.0,
+     "pcie": "Gen 4 x4"
+    },
+    {
+     "samples": 20,
+     "sm_mhz": 2781.55,
+     "power_w": 599.7455,
+     "temp_c_max": 69.0,
+     "pcie": "Gen 4 x4"
+    }
+   ],
+   "switches": {
+    "V7_DENSITY_COPY_COMPUTE": 1,
+    "V7_DEEP_WALL_SKIP": "auto",
+    "V7_FUSED_CORRECTION_DENSITY": 1
+   },
+   "host_round_trip_us": 260.06259625388157,
+   "step_ps_per_candidate": 5.466264947399583,
+   "initial": {
+    "candidates_per_particle": 224.36908548398347,
+    "candidates_per_fluid_particle": 225.0,
+    "occupied_voxels": 326041,
+    "mean_per_voxel": 24.929996534178215,
+    "max_per_voxel": 25,
+    "grid_dimensions": [
+     571,
+     571,
+     1
+    ],
+    "h": 0.001768,
+    "dx": 0.000354,
+    "h_over_dx": 4.994350282485876,
+    "neighbors_f32_all": 74.87617641345237,
+    "neighbors_f32_fluid": 74.98170153816434,
+    "neighbors_f32_wall": 68.11766965428937,
+    "neighbors_strict64_all": 74.92138789382793,
+    "neighbors_lo_all": 72.50503327858156,
+    "neighbors_hi_all": 76.50416272924353,
+    "neighbors_lo_fluid": 72.61043569723816,
+    "neighbors_hi_fluid": 76.61907119878059,
+    "ambiguous_pairs_2ulp": 525848,
+    "ratio_candidates_to_neighbors": 2.996535029313716,
+    "ratio_candidates_to_neighbors_fluid": 3.0007321170949823
+   },
+   "end": {
+    "runs": 3,
+    "step": 3000,
+    "candidates_per_particle": 224.37012663277724,
+    "candidates_per_fluid_particle": 225.00133071089576,
+    "occupied_voxels": 326041.0,
+    "mean_per_voxel": 24.929996534178215,
+    "max_per_voxel": 30,
+    "cpu_binning_vs_gpu_mismatch": 23,
+    "neighbors_f32_all": 70.99015399184476,
+    "neighbors_f32_fluid": 71.03861564750247,
+    "neighbors_f32_wall": 67.88635830132309,
+    "neighbors_strict64_all": 70.99066636434475,
+    "neighbors_lo_all": 69.41905939579988,
+    "neighbors_hi_all": 72.7293533546558,
+    "neighbors_lo_fluid": 69.4759219421232,
+    "neighbors_hi_fluid": 72.78886757668965,
+    "ambiguous_pairs_2ulp": 23709.333333333332,
+    "ratio_candidates_to_neighbors": 3.1605809283453854,
+    "ratio_candidates_to_neighbors_fluid": 3.16731018532394
+   },
+   "a": {
+    "1": {
+     "fps": 93.58793333333334,
+     "fps_std": 0.08052554460128203,
+     "wall_us": 10685.138183768704,
+     "mparticle_steps_per_s": 760.7015333079333,
+     "idle_vs_amortized": 0.06805245802266624,
+     "idle_vs_frame": 0.07184009547315529
+    },
+    "2": {
+     "fps": 94.43536666666667,
+     "fps_std": 0.052177613334967794,
+     "wall_us": 10589.253108210518,
+     "mparticle_steps_per_s": 767.5896417753667,
+     "idle_vs_amortized": 0.05846809056982627,
+     "idle_vs_frame": 0.06222173895092942
+    }
+   },
+   "b": {
+    "runs": 3,
+    "gpu_frame_us": 10571.873333333333,
+    "candidates_per_particle": 224.37586902686095,
+    "stages": {
+     "predict": 496.8333333333333,
+     "update_voxel": 331.30333333333334,
+     "correction_density": 4564.673333333333,
+     "density_copy": 82.00333333333333,
+     "force": 5097.0633333333335
+    },
+    "delta_pct": {
+     "predict": 0.03421670580343594,
+     "update_voxel": 0.016098037045586544,
+     "correction_density": -6.528470091324534,
+     "density_copy": 0.03251900329255264,
+     "force": -5.98697681475413,
+     "gpu_frame": -5.702931237037134
+    }
+   },
+   "memory": {
+    "device_local_bytes": 2842047304,
+    "device_local_bytes_per_particle": 349.6526850160325,
+    "slot_bytes": 288,
+    "voxel_list_bytes_per_particle": 18.451723819329764,
+    "pool_capacity": 9347457
+   }
+  },
+  "16m": {
+   "size": "16m",
+   "label": "16M",
+   "case": "cases/lid_driven_cavity_2d_16m/case.yaml",
+   "particles": 16184529,
+   "dimension": 2,
+   "runs": 1,
+   "commit": "ffd1a2f91a51214cbb8697c0ffc37c54f84d444b",
+   "drift_ok": true,
+   "stages": {
+    "predict": {
+     "mean_us": 1004.34,
+     "std_us": 0.0,
+     "p50_us": 1004.22,
+     "ns_per_particle": 0.06205555935548078,
+     "share_pct": 4.928240840697022
+    },
+    "update_voxel": {
+     "mean_us": 604.99,
+     "std_us": 0.0,
+     "p50_us": 604.16,
+     "ns_per_particle": 0.037380760354533644,
+     "share_pct": 2.968652474474074
+    },
+    "correction_density": {
+     "mean_us": 8749.93,
+     "std_us": 0.0,
+     "p50_us": 8752.13,
+     "ns_per_particle": 0.5406354426502,
+     "share_pct": 42.935422644960965,
+     "ps_per_candidate": 2.407602416049949
+    },
+    "density_copy": {
+     "mean_us": 173.05,
+     "std_us": 0.0,
+     "p50_us": 173.18,
+     "ns_per_particle": 0.010692309921407043,
+     "share_pct": 0.849146780455443
+    },
+    "force": {
+     "mean_us": 9846.98,
+     "std_us": 0.0,
+     "p50_us": 9848.7,
+     "ns_per_particle": 0.6084193120479441,
+     "share_pct": 48.31858632885951,
+     "ps_per_candidate": 2.709463142996061
+    },
+    "gpu_frame": {
+     "mean_us": 20379.28,
+     "std_us": 0.0,
+     "p50_us": 20382.86,
+     "ns_per_particle": 1.2591827664555453,
+     "share_pct": 100.0
+    }
+   },
+   "stage_names": [
+    "predict",
+    "update_voxel",
+    "correction_density",
+    "density_copy",
+    "force"
+   ],
+   "gpu_frame_us": 20379.28,
+   "gpu_frame_std_us": 0.0,
+   "gpu_frame_spread_pct": 0.0,
+   "gpu_frame_values": [
+    20379.28
+   ],
+   "gpu_step_amortized_us": 20453.339134008103,
+   "gpu_step_amortized_std_us": 0.0,
+   "defrag_wall_us": 74036.35,
+   "timed_wall_us": 20711.689689863208,
+   "candidate_pairs": 3634291917.0,
+   "candidates_per_particle": 224.55345577248494,
+   "candidates_per_fluid_particle": 225.00084001743878,
+   "candidates_per_wall_particle": 183.98353235747302,
+   "fluid_particles": 16008001,
+   "wall_particles": 176528,
+   "grid_dimensions": [
+    806,
+    806,
+    1
+   ],
+   "total_voxels": 649636,
+   "end_occupied_voxels": 649636.0,
+   "end_mean_per_voxel": 24.91322679161869,
+   "end_max_per_voxel": 30,
+   "gpu_throughput_mps": 794.1658880981075,
+   "covariates": [
+    {
+     "samples": 41,
+     "sm_mhz": 2779.7073170731705,
+     "power_w": 599.1578048780489,
+     "temp_c_max": 70.0,
+     "pcie": "Gen 4 x4"
+    }
+   ],
+   "switches": {
+    "V7_DENSITY_COPY_COMPUTE": 1,
+    "V7_DEEP_WALL_SKIP": "auto",
+    "V7_FUSED_CORRECTION_DENSITY": 1
+   },
+   "host_round_trip_us": 332.40968986320877,
+   "step_ps_per_candidate": 5.607496718871854,
+   "initial": {
+    "candidates_per_particle": 224.55279514158244,
+    "candidates_per_fluid_particle": 225.0,
+    "occupied_voxels": 649636,
+    "mean_per_voxel": 24.91322679161869,
+    "max_per_voxel": 25,
+    "grid_dimensions": [
+     806,
+     806,
+     1
+    ],
+    "h": 0.00125,
+    "dx": 0.00025,
+    "h_over_dx": 5.0,
+    "neighbors_f32_all": 75.1558323384017,
+    "neighbors_f32_fluid": 75.22760649502708,
+    "neighbors_f32_wall": 68.64717212000363,
+    "neighbors_strict64_all": 75.18368066194574,
+    "neighbors_lo_all": 68.723429640739,
+    "neighbors_hi_all": 78.51526973691975,
+    "neighbors_lo_fluid": 68.78016311967997,
+    "neighbors_hi_fluid": 78.60797859770248,
+    "ambiguous_pairs_2ulp": 2121496,
+    "ratio_candidates_to_neighbors": 2.987829262943905,
+    "ratio_candidates_to_neighbors_fluid": 2.9909232857870287
+   },
+   "end": {
+    "runs": 1,
+    "step": 3000,
+    "candidates_per_particle": 224.55345552533532,
+    "candidates_per_fluid_particle": 225.00083976756375,
+    "occupied_voxels": 649636.0,
+    "mean_per_voxel": 24.91322679161869,
+    "max_per_voxel": 30,
+    "cpu_binning_vs_gpu_mismatch": 20,
+    "neighbors_f32_all": 75.12220405054728,
+    "neighbors_f32_fluid": 75.19409525274267,
+    "neighbors_f32_wall": 68.60292984682317,
+    "neighbors_strict64_all": 75.14319347816671,
+    "neighbors_lo_all": 68.85833365926187,
+    "neighbors_hi_all": 78.45088022023995,
+    "neighbors_lo_fluid": 68.91494078492374,
+    "neighbors_hi_fluid": 78.54399771714156,
+    "ambiguous_pairs_2ulp": 1707770.0,
+    "ratio_candidates_to_neighbors": 2.989175548872882,
+    "ratio_candidates_to_neighbors_fluid": 2.992267398274959
+   },
+   "a": {
+    "1": {
+     "fps": 47.22606666666667,
+     "fps_std": 0.0075108809958179005,
+     "wall_us": 21174.746714738045,
+     "mparticle_steps_per_s": 764.3316455226001,
+     "idle_vs_amortized": 0.0352708951826084,
+     "idle_vs_frame": 0.0390331118046392
+    },
+    "2": {
+     "fps": 47.4717,
+     "fps_std": 0.02190616351623309,
+     "wall_us": 21065.181992639828,
+     "mparticle_steps_per_s": 768.3071053292999,
+     "idle_vs_amortized": 0.02991408173614074,
+     "idle_vs_frame": 0.03365683147980825
+    }
+   }
+  },
+  "32m": {
+   "size": "32m",
+   "label": "32M",
+   "case": "cases/lid_driven_cavity_2d_32m/case.yaml",
+   "particles": 32251041,
+   "dimension": 2,
+   "runs": 1,
+   "commit": "ffd1a2f91a51214cbb8697c0ffc37c54f84d444b",
+   "drift_ok": true,
+   "stages": {
+    "predict": {
+     "mean_us": 2026.67,
+     "std_us": 0.0,
+     "p50_us": 2026.5,
+     "ns_per_particle": 0.06284045218881462,
+     "share_pct": 5.058889369260708
+    },
+    "update_voxel": {
+     "mean_us": 1153.72,
+     "std_us": 0.0,
+     "p50_us": 1154.05,
+     "ns_per_particle": 0.03577310884321532,
+     "share_pct": 2.879867883327559
+    },
+    "correction_density": {
+     "mean_us": 17169.86,
+     "std_us": 0.0,
+     "p50_us": 17174.53,
+     "ns_per_particle": 0.5323815749079231,
+     "share_pct": 42.85869047535843,
+     "ps_per_candidate": 2.3695851153451613
+    },
+    "density_copy": {
+     "mean_us": 363.53,
+     "std_us": 0.0,
+     "p50_us": 363.65,
+     "ns_per_particle": 0.011271884216078483,
+     "share_pct": 0.9074284675883816
+    },
+    "force": {
+     "mean_us": 19347.78,
+     "std_us": 0.0,
+     "p50_us": 19350.4,
+     "ns_per_particle": 0.5999117981959095,
+     "share_pct": 48.29512380446493,
+     "ps_per_candidate": 2.6701563963231387
+    },
+    "gpu_frame": {
+     "mean_us": 40061.56,
+     "std_us": 0.0,
+     "p50_us": 40071.36,
+     "ns_per_particle": 1.2421788183519409,
+     "share_pct": 100.0
+    }
+   },
+   "stage_names": [
+    "predict",
+    "update_voxel",
+    "correction_density",
+    "density_copy",
+    "force"
+   ],
+   "gpu_frame_us": 40061.56,
+   "gpu_frame_std_us": 0.0,
+   "gpu_frame_spread_pct": 0.0,
+   "gpu_frame_values": [
+    40061.56
+   ],
+   "gpu_step_amortized_us": 40203.13793605341,
+   "gpu_step_amortized_std_us": 0.0,
+   "defrag_wall_us": 141526.4,
+   "timed_wall_us": 40421.98248202908,
+   "candidate_pairs": 7245935117.0,
+   "candidates_per_particle": 224.67290643424502,
+   "candidates_per_fluid_particle": 225.0003283268309,
+   "candidates_per_wall_particle": 182.65856563161609,
+   "fluid_particles": 32001649,
+   "wall_particles": 249392,
+   "grid_dimensions": [
+    1137,
+    1137,
+    1
+   ],
+   "total_voxels": 1292769,
+   "end_occupied_voxels": 1292769.0,
+   "end_mean_per_voxel": 24.947257398653587,
+   "end_max_per_voxel": 30,
+   "gpu_throughput_mps": 805.037072944738,
+   "covariates": [
+    {
+     "samples": 81,
+     "sm_mhz": 2769.246913580247,
+     "power_w": 598.9523456790123,
+     "temp_c_max": 70.0,
+     "pcie": "Gen 4 x4"
+    }
+   ],
+   "switches": {
+    "V7_DENSITY_COPY_COMPUTE": 1,
+    "V7_DEEP_WALL_SKIP": "auto",
+    "V7_FUSED_CORRECTION_DENSITY": 1
+   },
+   "host_round_trip_us": 360.42248202908377,
+   "step_ps_per_candidate": 5.528832283635807,
+   "initial": {
+    "candidates_per_particle": 224.67259673881534,
+    "candidates_per_fluid_particle": 225.0,
+    "occupied_voxels": 1292769,
+    "mean_per_voxel": 24.947257398653587,
+    "max_per_voxel": 25,
+    "grid_dimensions": [
+     1137,
+     1137,
+     1
+    ],
+    "h": 0.000884,
+    "dx": 0.000176,
+    "h_over_dx": 5.022727272727273,
+    "neighbors_f32_all": 74.46411506530906,
+    "neighbors_f32_fluid": 74.5171144149478,
+    "neighbors_f32_wall": 67.66330916789633,
+    "neighbors_strict64_all": 74.48383684731293,
+    "neighbors_lo_all": 71.66080462332984,
+    "neighbors_hi_all": 75.13042955729708,
+    "neighbors_lo_fluid": 71.71209408615162,
+    "neighbors_hi_fluid": 75.18602019539681,
+    "ambiguous_pairs_2ulp": 954072,
+    "ratio_candidates_to_neighbors": 3.0171928658759364,
+    "ratio_candidates_to_neighbors_fluid": 3.0194405911518496
+   },
+   "end": {
+    "runs": 1,
+    "step": 3000,
+    "candidates_per_particle": 224.67290649625852,
+    "candidates_per_fluid_particle": 225.00032838932768,
+    "occupied_voxels": 1292769.0,
+    "mean_per_voxel": 24.947257398653587,
+    "max_per_voxel": 30,
+    "cpu_binning_vs_gpu_mismatch": 53,
+    "neighbors_f32_all": 73.19287938643593,
+    "neighbors_f32_fluid": 73.23547939670235,
+    "neighbors_f32_wall": 67.72650285494322,
+    "neighbors_strict64_all": 73.19299324322586,
+    "neighbors_lo_all": 70.97044873683302,
+    "neighbors_hi_all": 73.92991432431592,
+    "neighbors_lo_fluid": 71.01401496529132,
+    "neighbors_hi_fluid": 73.97555054116117,
+    "ambiguous_pairs_2ulp": 22892.0,
+    "ratio_candidates_to_neighbors": 3.0696006002176053,
+    "ratio_candidates_to_neighbors_fluid": 3.072285868035965
+   },
+   "a": {
+    "1": {
+     "fps": 24.418666666666667,
+     "fps_std": 0.0034933269720051775,
+     "wall_us": 40952.27694659823,
+     "mparticle_steps_per_s": 787.527419832,
+     "idle_vs_amortized": 0.018633844247093023,
+     "idle_vs_frame": 0.022233705991434816
+    },
+    "2": {
+     "fps": 24.500766666666664,
+     "fps_std": 0.0024785748593357244,
+     "wall_us": 40815.049324987114,
+     "mparticle_steps_per_s": 790.1752302980999,
+     "idle_vs_amortized": 0.015220488259075626,
+     "idle_vs_frame": 0.01880828717072225
+    }
+   },
+   "memory": {
+    "device_local_bytes": 11276240040,
+    "device_local_bytes_per_particle": 349.6395679134822,
+    "slot_bytes": 288,
+    "voxel_list_bytes_per_particle": 18.438914886499322,
+    "pool_capacity": 37088769
+   }
+  },
+  "3d_8m": {
+   "size": "3d_8m",
+   "label": "3-D 8M",
+   "case": "cases/cavity3d_8m_b4/case.yaml",
+   "particles": 9129329,
+   "dimension": 3,
+   "runs": 3,
+   "commit": "ffd1a2f91a51214cbb8697c0ffc37c54f84d444b",
+   "drift_ok": true,
+   "stages": {
+    "predict": {
+     "mean_us": 504.3966666666667,
+     "std_us": 0.11590225767140597,
+     "p50_us": 504.3233333333333,
+     "ns_per_particle": 0.055250135762077004,
+     "share_pct": 0.8634892729637051
+    },
+    "update_voxel": {
+     "mean_us": 313.29,
+     "std_us": 0.14730919862657116,
+     "p50_us": 313.34,
+     "ns_per_particle": 0.03431687038554531,
+     "share_pct": 0.5363289890763207
+    },
+    "correction_density": {
+     "mean_us": 28933.87,
+     "std_us": 19.764318860007613,
+     "p50_us": 28790.61333333333,
+     "ns_per_particle": 3.1693315028957767,
+     "share_pct": 49.53261593783932,
+     "ps_per_candidate": 1.9222420160972657
+    },
+    "density_copy": {
+     "mean_us": 92.74000000000001,
+     "std_us": 0.020000000000003126,
+     "p50_us": 92.29,
+     "ns_per_particle": 0.010158468382506535,
+     "share_pct": 0.15876392622470545
+    },
+    "force": {
+     "mean_us": 28569.483333333334,
+     "std_us": 25.02886799943903,
+     "p50_us": 28404.78,
+     "ns_per_particle": 3.1294176530754156,
+     "share_pct": 48.908813286729405,
+     "ps_per_candidate": 1.8980337326555894
+    },
+    "gpu_frame": {
+     "mean_us": 58413.77333333334,
+     "std_us": 43.82648780513225,
+     "p50_us": 58105.37666666667,
+     "ns_per_particle": 6.398473900254152,
+     "share_pct": 100.0
+    }
+   },
+   "stage_names": [
+    "predict",
+    "update_voxel",
+    "correction_density",
+    "density_copy",
+    "force"
+   ],
+   "gpu_frame_us": 58413.77333333334,
+   "gpu_frame_std_us": 43.82648780513225,
+   "gpu_frame_spread_pct": 0.07502766095085152,
+   "gpu_frame_values": [
+    58367.75,
+    58418.56,
+    58455.01
+   ],
+   "gpu_step_amortized_us": 58450.535668033706,
+   "gpu_step_amortized_std_us": 42.73918081268888,
+   "defrag_wall_us": 35107.166666666664,
+   "timed_wall_us": 58742.66189532054,
+   "candidate_pairs": 15052147316.333334,
+   "candidates_per_particle": 1648.7681971296395,
+   "candidates_per_fluid_particle": 1713.1926268757695,
+   "candidates_per_wall_particle": 1130.1297845735753,
+   "fluid_particles": 8120601,
+   "wall_particles": 1008728,
+   "grid_dimensions": [
+    53,
+    53,
+    53
+   ],
+   "total_voxels": 148877,
+   "end_occupied_voxels": 148877.0,
+   "end_mean_per_voxel": 61.32128535636801,
+   "end_max_per_voxel": 78,
+   "gpu_throughput_mps": 156.28726718105068,
+   "covariates": [
+    {
+     "samples": 117,
+     "sm_mhz": 2808.051282051282,
+     "power_w": 599.9686324786325,
+     "temp_c_max": 70.0,
+     "pcie": "Gen 4 x4"
+    },
+    {
+     "samples": 117,
+     "sm_mhz": 2805.735042735043,
+     "power_w": 599.9200854700854,
+     "temp_c_max": 70.0,
+     "pcie": "Gen 4 x4"
+    },
+    {
+     "samples": 116,
+     "sm_mhz": 2805.4741379310344,
+     "power_w": 600.0131034482758,
+     "temp_c_max": 70.0,
+     "pcie": "Gen 4 x4"
+    }
+   ],
+   "switches": {
+    "V7_DENSITY_COPY_COMPUTE": 1,
+    "V7_DEEP_WALL_SKIP": "auto",
+    "V7_FUSED_CORRECTION_DENSITY": 1
+   },
+   "host_round_trip_us": 328.8885619872017,
+   "step_ps_per_candidate": 3.8807601421882496,
+   "initial": {
+    "candidates_per_particle": 1648.6346049090794,
+    "candidates_per_fluid_particle": 1712.998843927931,
+    "occupied_voxels": 148877,
+    "mean_per_voxel": 61.32128535636801,
+    "max_per_voxel": 64,
+    "grid_dimensions": [
+     53,
+     53,
+     53
+    ],
+    "h": 0.02,
+    "dx": 0.005,
+    "h_over_dx": 4.0,
+    "neighbors_f32_all": 247.334613310573,
+    "neighbors_f32_fluid": 252.50746268656715,
+    "neighbors_f32_wall": 205.69142920589098,
+    "neighbors_strict64_all": 247.82265158808494,
+    "neighbors_lo_all": 244.8082975210993,
+    "neighbors_hi_all": 250.69346498521415,
+    "neighbors_lo_fluid": 250.0,
+    "neighbors_hi_fluid": 256.0,
+    "ambiguous_pairs_2ulp": 23325654,
+    "ratio_candidates_to_neighbors": 6.66560406908726,
+    "ratio_candidates_to_neighbors_fluid": 6.783953336279192
+   },
+   "end": {
+    "runs": 3,
+    "step": 3000,
+    "candidates_per_particle": 1648.768198517109,
+    "candidates_per_fluid_particle": 1713.192616613803,
+    "occupied_voxels": 148877.0,
+    "mean_per_voxel": 61.32128535636801,
+    "max_per_voxel": 78,
+    "cpu_binning_vs_gpu_mismatch": 10,
+    "neighbors_f32_all": 259.4338093559049,
+    "neighbors_f32_fluid": 265.8889798099098,
+    "neighbors_f32_wall": 207.467507593722,
+    "neighbors_strict64_all": 259.47050821953434,
+    "neighbors_lo_all": 259.2365490023053,
+    "neighbors_hi_all": 259.6936876740886,
+    "neighbors_lo_fluid": 265.8807119078994,
+    "neighbors_hi_fluid": 265.89736067564456,
+    "ambiguous_pairs_2ulp": 1754734.6666666667,
+    "ratio_candidates_to_neighbors": 6.3552557216364916,
+    "ratio_candidates_to_neighbors_fluid": 6.443262980357827
+   },
+   "a": {
+    "1": {
+     "fps": 16.30163333333333,
+     "fps_std": 0.017179736125254228,
+     "wall_us": 61343.54635220602,
+     "mparticle_steps_per_s": 148.82297393736664,
+     "idle_vs_amortized": 0.04949502431599595,
+     "idle_vs_frame": 0.05015551729819223
+    },
+    "2": {
+     "fps": 16.33706666666667,
+     "fps_std": 0.007993956050250465,
+     "wall_us": 61210.49882475842,
+     "mparticle_steps_per_s": 149.14645649493335,
+     "idle_vs_amortized": 0.04721878294494597,
+     "idle_vs_frame": 0.047877843389191765
+    }
+   },
+   "b": {
+    "runs": 3,
+    "gpu_frame_us": 63319.09666666667,
+    "candidates_per_particle": 1649.0783436913418,
+    "stages": {
+     "predict": 498.42,
+     "update_voxel": 318.37666666666667,
+     "correction_density": 31410.286666666667,
+     "density_copy": 77.64333333333333,
+     "force": 31014.37
+    },
+    "delta_pct": {
+     "predict": 1.19912256062491,
+     "update_voxel": -1.597688272800557,
+     "correction_density": -7.884094446341683,
+     "density_copy": 19.44360966814065,
+     "force": -7.883076995169224,
+     "gpu_frame": -7.746988809958277
+    }
+   },
+   "memory": {
+    "device_local_bytes": 3120728120,
+    "device_local_bytes_per_particle": 341.83543171683266,
+    "slot_bytes": 288,
+    "voxel_list_bytes_per_particle": 10.632594794206671,
+    "pool_capacity": 10498817
+   }
+  }
+ },
+ "dip_4m": {
+  "criterion": "the 4M point's ps/candidate (whole step, fused kernel, force) against the mean of 2M and 8M; the run-to-run spread of the step is the yardstick",
+  "step_spread_pct_8m_runs": 0.23043394874513254,
+  "ps_per_candidate_step_2m_4m_8m": [
+   5.392600630798017,
+   5.72344403814845,
+   5.466264947399583
+  ],
+  "ps_per_candidate_step_4m_vs_neighbours_pct": 5.415137464082176,
+  "ps_per_candidate_correction_density_2m_4m_8m": [
+   2.3984301689426744,
+   2.524569606589429,
+   2.3395352239668106
+  ],
+  "ps_per_candidate_correction_density_4m_vs_neighbours_pct": 6.5676676477007145,
+  "ps_per_candidate_force_2m_4m_8m": [
+   2.6683046755446727,
+   2.7742074047658662,
+   2.6275354405485025
+  ],
+  "ps_per_candidate_force_4m_vs_neighbours_pct": 4.769303602482733,
+  "candidates_per_particle_2m_4m_8m": [
+   223.83620916343054,
+   224.09186004387826,
+   224.3701257305686
+  ],
+  "candidates_4m_vs_neighbours_pct": -0.005045623964239354,
+  "gpu_throughput_mps_2m_4m_8m": [
+   828.4597238158666,
+   779.6801503420169,
+   815.3504040873511
+  ],
+  "gpu_throughput_4m_vs_neighbours_pct": -5.137444147938474,
+  "a_throughput_d2_2m_4m_8m": [
+   767.8657435445999,
+   731.7250110266666,
+   767.5896417753667
+  ],
+  "a_throughput_d2_4m_vs_neighbours_pct": -4.689511916468259,
+  "ps_per_candidate_step_2m_4m_gen_8m": [
+   5.392600630798017,
+   5.713425872868682,
+   5.466264947399583
+  ],
+  "ps_per_candidate_step_4m_gen_vs_neighbours_pct": 5.2306215916344545,
+  "ps_per_candidate_correction_density_2m_4m_gen_8m": [
+   2.3984301689426744,
+   2.492084351247028,
+   2.3395352239668106
+  ],
+  "ps_per_candidate_correction_density_4m_gen_vs_neighbours_pct": 5.196393159667689,
+  "ps_per_candidate_force_2m_4m_gen_8m": [
+   2.6683046755446727,
+   2.79027874343047,
+   2.6275354405485025
+  ],
+  "ps_per_candidate_force_4m_gen_vs_neighbours_pct": 5.3762455913756835,
+  "candidates_per_particle_2m_4m_gen_8m": [
+   223.83620916343054,
+   224.32826561295067,
+   224.3701257305686
+  ],
+  "candidates_4m_gen_vs_neighbours_pct": 0.10044399127215886,
+  "gpu_throughput_mps_2m_4m_gen_8m": [
+   828.4597238158666,
+   780.2241778497508,
+   815.3504040873511
+  ],
+  "gpu_throughput_4m_gen_vs_neighbours_pct": -5.071253108170648,
+  "a_throughput_d2_2m_4m_gen_8m": [
+   767.8657435445999,
+   732.3590060166667,
+   767.5896417753667
+  ],
+  "a_throughput_d2_4m_gen_vs_neighbours_pct": -4.606931205096032,
+  "grid_2m": {
+   "dimensions": [
+    288,
+    288,
+    1
+   ],
+   "total_voxels": 82944,
+   "end_occupied_voxels": 82944.0,
+   "end_mean_per_voxel": 24.89594184027778,
+   "end_max_per_voxel": 30,
+   "fluid_particles": 2002225,
+   "wall_particles": 62744,
+   "h_over_dx": 4.994350282485876
+  },
+  "grid_4m": {
+   "dimensions": [
+    410,
+    410,
+    1
+   ],
+   "total_voxels": 168100,
+   "end_occupied_voxels": 168100.0,
+   "end_mean_per_voxel": 24.87819750148721,
+   "end_max_per_voxel": 30,
+   "fluid_particles": 4004001,
+   "wall_particles": 178024,
+   "h_over_dx": 5.0
+  },
+  "grid_4m_gen": {
+   "dimensions": [
+    410,
+    410,
+    1
+   ],
+   "total_voxels": 168100,
+   "end_occupied_voxels": 168100.0,
+   "end_mean_per_voxel": 24.87819750148721,
+   "end_max_per_voxel": 36,
+   "fluid_particles": 4092529,
+   "wall_particles": 89496,
+   "h_over_dx": 5.006072874493928
+  },
+  "grid_8m": {
+   "dimensions": [
+    571,
+    571,
+    1
+   ],
+   "total_voxels": 326041,
+   "end_occupied_voxels": 326041.0,
+   "end_mean_per_voxel": 24.929996534178215,
+   "end_max_per_voxel": 30,
+   "fluid_particles": 8003241,
+   "wall_particles": 124960,
+   "h_over_dx": 4.994350282485876
+  }
+ },
+ "runs": 12,
+ "commit": "ffd1a2f91a51214cbb8697c0ffc37c54f84d444b"
+}
