@@ -252,7 +252,18 @@ K = 2 (cuts [26], devices [0, 1]) vs K = 1 at step 300: 7,077,888 fluid particle
 
 （E8 阶段 1 两卡：max |dv|/U 5.7e-5、|dρ|/ρ0 1.8e-7。）**短作业全部检查通过，提交正式批次。**
 
-### 4.3 正式批次（待提交后补）
+### 4.3 正式批次：提交（2026-10-27 14:15 CST；你的话："部署好了就直接提交四个作业，报我作业号，然后持续监控"）
+
+| 作业 | SLURM | 内容 | 时限 | 估算 |
+|---|---|---|---|---|
+| e9_B | **1741917** | B 线：4M / 8M（5 次）、16M / 32M / 64M（3 次）K = 8 + 同步 K = 1 参考，4M / 8M 的 dump K1a / K1b / K8 + 比较，五个立方体的 K = 1 trace，弱 8 × 8M K8，v7-single-rc4.1 对照（Sec. 5.1 cadence 协议，3 对） | 8 h | 3.1 node-h |
+| e9_A | **1741918** | A 线：64M K2 / K4、弱 2 / 4（各 3 次，trace 紧跟） | 7 h | 2.6 node-h |
+| e9_C | **1741921** | C 线：128M K8，四对同步 K = 2 参考，K8 + 一对 K2 trace | 5 h | 1.5 node-h |
+| e9_D（e9_BD） | **1741924** | D 线：76M K8（13 列/卡），K8 + K1 trace | 4 h | 1.3 node-h |
+
+提交参数：`--export=ALL,E30_EXPECT_COMMIT=cb3c9f5cab75,E7_EXPECTED_TREE=37f99f2b…,E30_REPO=$HOME/run/vulkan-demo-e9`；整节点 `--exclusive --mem=0`，575 W，`--exclude=wqd10nbm13g5,wqd10nah09g1,wqd10nbj04g3,wqd10nbj04g5`；E7_RAW / E7_TRACE_DETAIL=full / E7_PARTITION_RECORD / E7_CONTINUE_ON_FAILURE 同 E8。提交时四个都 PENDING（Priority，无空闲整节点；backfill 预估 11-01 是悲观值）。监控：队列状态、运行中输出、丢卡信号（出现则取消 + 排除，不重提）。各作业结束后：打包 → 拉回 → 镜像 `logs/n56/2026-10-27/<seq>_e9_<job>_<id>` + README / jobs.csv → `e8_p2_summary.py --out-dir docs/cluster_v6/data/e9/phase2` → E8 对 E9 的 η 对照（`e9_compare_eta.py`）→ 本报告续写。
+
+### 4.4 结果（随作业结束补）
 
 ## 5. 数据与复现
 
