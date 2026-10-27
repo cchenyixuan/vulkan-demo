@@ -287,6 +287,24 @@ def _resolve_materials(
 # Public loader
 # ============================================================================
 
+DEFRAG_ORDER_CHOICES = ("prefix", "atomic")     # case.yaml numerics.defrag_order (E9, 2026-10-27)
+
+
+def _defrag_order_is_prefix(numerics_mapping: dict, case_path: pathlib.Path) -> bool:
+    """numerics.defrag_order: "prefix" (default since E9: the host scan of utils/defrag_prefix.py + defrag.comp's
+    prefix branch, pid order = voxel-id order) or "atomic" (the pre-E9 atomicAdd arrival order, kept for A/B runs).
+    The legacy key use_prefix_sum_defrag is ignored: the generators wrote 'false' into every case before 2026-10-27
+    without anybody choosing it, and 'true' never had a producer of voxel_base_offset (the switch alone leaves the
+    buffer unwritten and the alive count 0)."""
+    order = str(numerics_mapping.get("defrag_order", "prefix"))
+    if order not in DEFRAG_ORDER_CHOICES:
+        raise ValueError(f"numerics.defrag_order: {order!r}, expected one of {', '.join(DEFRAG_ORDER_CHOICES)}")
+    if "use_prefix_sum_defrag" in numerics_mapping:
+        print(f"[case_loader_v7] {case_path.parent.name}: numerics.use_prefix_sum_defrag is a legacy key and is ignored "
+              f"(defrag_order = {order}; set numerics.defrag_order to choose)", flush=True)
+    return order == "prefix"
+
+
 def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
     """Parse a V0/V1-style case.yaml into a CaseV7.
 
@@ -368,7 +386,7 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
         use_kcg_correction=bool(nm.get("use_kcg_correction", True)),
         use_density_diffusion=bool(nm.get("use_density_diffusion", True)),
         use_pst=bool(nm.get("use_pst", True)),
-        use_prefix_sum_defrag=bool(nm.get("use_prefix_sum_defrag", False)),
+        use_prefix_sum_defrag=_defrag_order_is_prefix(nm, case_path),
         defrag_cadence=int(nm.get("defrag_cadence", 1000)),
         # E37 wall boundary option: simple (the v6 walls, default) or adami (Adami et al. 2012 wall pressure +
         # no-slip, walls store rho0; one GPU only). Optional key.

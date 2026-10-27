@@ -30,6 +30,7 @@ from vulkan import *  # noqa: F401, F403
 from vulkan._vulkancache import ffi
 
 from experiment.v7.utils.case_v7 import CaseV7, KIND_FLUID
+from experiment.v7.utils.defrag_prefix import upload_defrag_prefix
 from experiment.v7_single.utils import spirv_manifest
 from experiment.v7_single.utils.deep_wall_single import resolve_deep_wall_skip
 from experiment.v7_single.utils.switches import Switches, configured_switches
@@ -154,6 +155,7 @@ class SphSimulatorSingle:
 
         self.step_cmd: Any = None
         self.defrag_cmd: Any = None
+        self._defrag_prefix_records: list = []             # E9: one record per host scan (utils/defrag_prefix.py)
         self._fences: list = []
         self._submitted_count = 0
         self._destroyed = False
@@ -714,7 +716,8 @@ class SphSimulatorSingle:
         into global_status.alive_particle_count."""
         self._record_compute_barrier(cmd)
         counter = self.buffers["defrag_scratch_counter"]
-        vkCmdFillBuffer(cmd, counter.handle, 0, counter.size, 0)
+        if not self.case.numerics.use_prefix_sum_defrag:     # prefix order: the host wrote the total (E9)
+            vkCmdFillBuffer(cmd, counter.handle, 0, counter.size, 0)
         twins = [(spec, self.scratch_buffers[spec.name]) for spec in self._buffer_specs
                  if spec.set_index == 0 and spec.binding in DEFRAG_SET0_BINDINGS]
         for _spec, scratch in twins:
@@ -926,6 +929,12 @@ class SphSimulatorSingle:
         fence = self._fences[slot]
         vkWaitForFences(self.ctx.device, 1, [fence], VK_TRUE, UINT64_MAX)
         vkResetFences(self.ctx.device, 1, [fence])
+        if with_defrag and self.case.numerics.use_prefix_sum_defrag:
+            # E9 prefix order: the scan needs the voxel counts of the step before the defrag, so the undrained
+            # step + defrag submission becomes the step alone followed by the drained defrag
+            self.submit_step(with_defrag=False)
+            self.submit_defrag_and_wait()
+            return
         command_buffers = [self.step_cmd] + ([self.defrag_cmd] if with_defrag else [])
         try:
             vkQueueSubmit(self.ctx.compute_queue, 1, VkSubmitInfo(
@@ -961,6 +970,8 @@ class SphSimulatorSingle:
             self.record_defrag(self.defrag_cmd)
             vkEndCommandBuffer(self.defrag_cmd)
         self.drain()
+        if self.case.numerics.use_prefix_sum_defrag:        # E9: the same host scan as SphSimulatorV7
+            self._defrag_prefix_records.append(upload_defrag_prefix(self, verbose=len(self._defrag_prefix_records) < 2))
         self.ctx.submit_and_wait(self.defrag_cmd)
 
     # ------------------------------------------------------------------ readback

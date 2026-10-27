@@ -60,6 +60,7 @@ from experiment.v7.utils.partition_v7 import (
 )
 from experiment.v7.utils.sync_scheme_v7 import make_sync_scheme
 from experiment.v7.utils.vulkan_context_v7 import VulkanContextV7
+from experiment.v7.utils.defrag_prefix import audit_pid_order, upload_defrag_prefix
 
 # Serialization of driver-entry calls that MUTATE queue/semaphore state
 # (vkQueueSubmit2, vkSignalSemaphore).
@@ -926,10 +927,12 @@ class SphSimulatorV7:
             ctx.physical_device_index)
 
         self._destroyed = False
+        self._defrag_prefix_records: list[dict] = []        # E9: one record per host scan (utils/defrag_prefix.py)
         print(f"[SimV7] init complete on {ctx.device_name} "
               f"(own={case.capacities.own_pool_size}, "
               f"ghost L={case.capacities.leading_ghost_pool_size} "
-              f"T={case.capacities.trailing_ghost_pool_size}, wall_boundary={self.wall_boundary})")
+              f"T={case.capacities.trailing_ghost_pool_size}, wall_boundary={self.wall_boundary}, "
+              f"defrag_order={'prefix' if case.numerics.use_prefix_sum_defrag else 'atomic'})")
 
     @property
     def _wall_adami(self) -> bool:
@@ -1062,9 +1065,16 @@ class SphSimulatorV7:
     # ========================================================================
 
     def submit_defrag_and_wait(self) -> None:
+        """One defrag, queue drained (bootstrap and every defrag_cadence frames). Prefix order (E9, the default):
+        the host scan of utils/defrag_prefix.py first - voxel_base_offset in voxel-id order + the own total in
+        defrag_scratch_counter - then the recorded command; atomic order: the command alone."""
         if self.defrag_cmd is None:
             self.defrag_cmd = self._record_defrag_cmd()
+        if self.case.numerics.use_prefix_sum_defrag:
+            self._defrag_prefix_records.append(upload_defrag_prefix(self, verbose=len(self._defrag_prefix_records) < 2))
         self.ctx.submit_and_wait(self.defrag_cmd)
+        if os.environ.get("V7_DEFRAG_AUDIT") == "1":          # diagnostic: the pid order after this defrag
+            audit_pid_order(self, own_total=self._defrag_prefix_records[-1]["total"] if self._defrag_prefix_records else None)
 
     # ========================================================================
     # Worker-facing accessors
@@ -4651,7 +4661,8 @@ class SphSimulatorV7:
 
     def _record_defrag_cmd(self):
         """V5 defrag cmd buffer (mirrors V1 _record_defrag_cmd):
-            1. fill defrag_scratch_counter = 0
+            1. fill defrag_scratch_counter = 0   (atomic order only; prefix order: the host wrote the own total
+               into it and voxel_base_offset before the submit, utils/defrag_prefix.py)
             2. transfer→compute barrier
             3. defrag dispatch (per extended voxel)
             4. compute→transfer barrier
@@ -4669,9 +4680,12 @@ class SphSimulatorV7:
         self._bench_reset_defrag(cmd, "defrag_start")
         self._record_compute_barrier(cmd)
 
-        # 1. Reset scratch counter
+        # 1. Reset scratch counter (atomic order: defrag.comp's atomicAdd base). Prefix order (E9 default): the
+        # kernel reads voxel_base_offset instead and never touches the counter; the host put the own-particle
+        # total into it right before this submit, so step 6 refreshes alive_particle_count exactly as before.
         scratch_counter = self.buffers["defrag_scratch_counter"]
-        vkCmdFillBuffer(cmd, scratch_counter.handle, 0, scratch_counter.size, 0)
+        if not self.case.numerics.use_prefix_sum_defrag:
+            vkCmdFillBuffer(cmd, scratch_counter.handle, 0, scratch_counter.size, 0)
 
         # 1b. Zero each defrag scratch SoA before dispatch.
         # defrag.comp only writes scratch[own_first_pid .. own_first_pid + alive - 1].
