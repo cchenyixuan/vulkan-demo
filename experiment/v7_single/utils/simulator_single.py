@@ -925,16 +925,17 @@ class SphSimulatorSingle:
         after the submission ``in_flight`` steps back has completed: at most ``in_flight`` steps are queued."""
         if not self._fences:
             raise RuntimeError("call prepare_step() first")
+        if with_defrag and self.case.numerics.use_prefix_sum_defrag:
+            # E9 prefix order: the scan needs the voxel counts of the step before the defrag, so the undrained
+            # step + defrag submission becomes the step alone followed by the drained defrag (decided BEFORE this
+            # slot's fence is waited on and reset: the inner submit_step owns the fence handling)
+            self.submit_step(with_defrag=False)
+            self.submit_defrag_and_wait()
+            return
         slot = self._submitted_count % len(self._fences)
         fence = self._fences[slot]
         vkWaitForFences(self.ctx.device, 1, [fence], VK_TRUE, UINT64_MAX)
         vkResetFences(self.ctx.device, 1, [fence])
-        if with_defrag and self.case.numerics.use_prefix_sum_defrag:
-            # E9 prefix order: the scan needs the voxel counts of the step before the defrag, so the undrained
-            # step + defrag submission becomes the step alone followed by the drained defrag
-            self.submit_step(with_defrag=False)
-            self.submit_defrag_and_wait()
-            return
         command_buffers = [self.step_cmd] + ([self.defrag_cmd] if with_defrag else [])
         try:
             vkQueueSubmit(self.ctx.compute_queue, 1, VkSubmitInfo(
