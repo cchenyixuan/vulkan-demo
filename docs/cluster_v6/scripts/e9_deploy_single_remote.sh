@@ -1,0 +1,77 @@
+#!/bin/bash
+# e9_deploy_single_remote.sh — deploy the v7_single solver of tag v7-single-rc4 (branch v7-single: experiment/v7_single on
+# v7-rc1's experiment/v7 + the E9 prefix defrag host scan; SPIR-V unchanged) into ~/run/vulkan-demo-v7single-rc4 on the
+# N56 login node, for the E9 single-GPU-solver
+# comparison (e7_lib.sh e8_single_ratio: run by the E8 job through e8_single_bench.py from this directory).
+# Nothing is submitted. Login node only.
+#
+# Uploaded to ~/run/tools beforehand (built on the dev box with core.autocrlf=false, every file LF):
+#   vd_v7single_<SHA>.tar.gz   git archive --prefix=vulkan-demo-v7single/ <v7-single head> experiment/__init__.py
+#                              experiment/v7 experiment/v7_single materials
+#   v7single_rc4_sha.txt       the 40-hex SHA of that commit (tag v7-single-rc4)
+# The deployment's cases/ links the shared store (~/run/vulkan-demo-v7rc1/cases) like the E8 deployment: the same
+# particle files and .obj cache keys. JuiceFS creates files slowly: /dev/shm stage + 16 parallel copies.
+# Usage: EXPECT_TREE=<sha> [SHA=<40 hex>] [UPDATE=1] [DEST=<dir>] bash e9_deploy_single_remote.sh
+#   DEST = another deployment directory (e8_S2, 2026-10-22: ~/run/vulkan-demo-v7single2 with the bootstrap-defrag bench,
+#   while ~/run/vulkan-demo-v7single stays what jobs 1721839 / 1722130 ran)
+set -u
+SHA=${SHA:-$(cat "$HOME/run/tools/v7single_rc4_sha.txt" 2>/dev/null | tr -d '[:space:]')}
+EXPECT_TREE=${EXPECT_TREE:?"the experiment/v7 tree hash of tag v7-single-rc4 (git rev-parse v7-single-rc4:experiment/v7)"}
+DEST=${DEST:-$HOME/run/vulkan-demo-v7single-rc4}
+TOOLS=$HOME/run/tools
+TARBALL=$TOOLS/vd_v7single_$SHA.tar.gz
+STAGE=/dev/shm/scxm138/v7single_rc4_stage_$SHA
+FAILS=0
+fail() { echo "FAIL: $*"; FAILS=$((FAILS + 1)); }
+T0=$(date +%s)
+echo "=== v7single-rc4 deploy $(date) host $(hostname): $SHA -> $DEST"
+[[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "ABORT: '$SHA' is not a 40-character sha"; exit 1; }
+[ -s "$TARBALL" ] || { echo "ABORT: no $TARBALL"; exit 1; }
+QUEUE=$(timeout 60 squeue -u scxm138 -h -o '%i|%j|%T|%Z|%o') || { echo "ABORT: squeue failed"; exit 1; }
+# a queued or running E8 job reads the deployment it was submitted with (E8_SINGLE_REPO): never replace that one; another
+# DEST is free (e8_D 1722854 reads none of them, its workdir is vulkan-demo-e8d)
+if [ -e "$DEST" ] && echo "$QUEUE" | grep -F "$(cd "$DEST" && pwd -P)"; then echo "ABORT: an E8 job of $DEST is queued or running"; exit 1; fi
+if [ -e "$DEST" ] && echo "$QUEUE" | grep -F "vulkan-demo-e9"; then echo "ABORT: an E9 job that may read $DEST is queued or running"; exit 1; fi
+if [ -e "$DEST" ]; then
+    if [ "${UPDATE:-0}" = 1 ]; then
+        ASIDE=$DEST.old.$(date +%Y%m%d_%H%M%S); mv "$DEST" "$ASIDE" || { echo "ABORT: cannot move $DEST aside"; exit 1; }
+        echo "existing deployment moved to $ASIDE"
+    else
+        echo "ABORT: $DEST exists (UPDATE=1 moves it aside)"; exit 1
+    fi
+fi
+ARCHIVE_COMMIT=$(gzip -dc "$TARBALL" | git get-tar-commit-id)
+[ "$ARCHIVE_COMMIT" = "$SHA" ] || { echo "ABORT: archive commit $ARCHIVE_COMMIT != $SHA"; exit 1; }
+rm -rf "$STAGE"; mkdir -p "$STAGE" || { echo "ABORT: cannot create $STAGE"; exit 1; }
+tar xzf "$TARBALL" --strip-components=1 -C "$STAGE" || { echo "ABORT: cannot extract $TARBALL"; exit 1; }
+mkdir -p "$DEST" || { echo "ABORT: cannot create $DEST"; exit 1; }
+(cd "$STAGE" && find . -type d | sed 's|^\./||' | grep -v '^\.$' | sort) | while read -r directory; do mkdir -p "$DEST/$directory"; done
+(cd "$STAGE" && find . -type f | sed 's|^\./||' | sort) > "$STAGE.files"
+TC=$(date +%s)
+(cd "$STAGE" && xargs -a "$STAGE.files" -P 16 -I{} cp -p "{}" "$DEST/{}")
+echo "copied $(wc -l < "$STAGE.files") files in $(( $(date +%s) - TC )) s"
+MISSING=$(cd "$STAGE" && while read -r file; do [ -f "$DEST/$file" ] || echo "$file"; done < "$STAGE.files" | head -3)
+[ -z "$MISSING" ] && echo "copy complete" || fail "files missing after the copy: $MISSING"
+rm -rf "$STAGE" "$STAGE.files"
+CR=$(find "$DEST" -type f \( -name '*.py' -o -name '*.sh' -o -name '*.yaml' -o -name '*.txt' \) -exec grep -l $'\r' {} + 2>/dev/null | head -3)
+[ -z "$CR" ] && echo "CR check OK" || fail "CR in: $CR"
+ln -s ../vulkan-demo-v7rc1/cases "$DEST/cases" || fail "cannot link cases"
+[ -f "$DEST/cases/aligned/cavity3d_n192/domain.obj" ] && echo "cases link OK (8M cube present)" || fail "cases link / 8M particle files"
+echo "$SHA tarball_sha256=$(sha256sum "$TARBALL" | cut -c1-64) deployed=$(date -Is) solver_tag=v7-single-rc4 base=v7-rc1+E9-defrag-prefix" > "$DEST/COMMIT"
+(cd "$DEST" && find . -type f ! -name MANIFEST.sha256 ! -name COMMIT ! -path '*/__pycache__/*' | sort | xargs sha256sum) > "$DEST/MANIFEST.sha256"
+echo "COMMIT: $(cat "$DEST/COMMIT")"; echo "MANIFEST.sha256: $(wc -l < "$DEST/MANIFEST.sha256") files"
+source "$TOOLS/env.sh" > /dev/null 2>&1 || { echo "ABORT: env script failed"; exit 1; }
+cd "$DEST" || exit 1
+sha256sum --quiet -c MANIFEST.sha256 && echo "MANIFEST OK" || fail "MANIFEST.sha256"
+python "$HOME/run/vulkan-demo-e9/docs/cluster_v6/scripts/tree_hash.py" experiment/v7 --expect "$EXPECT_TREE" && echo "experiment/v7 tree OK (v7-single-rc4)" || fail "experiment/v7 tree"
+python -c "import dataclasses; from experiment.v7.utils.case_v7 import NumericsConstants as N; from experiment.v7.utils import defrag_prefix; \
+    f = {x.name: x.default for x in dataclasses.fields(N)}; assert f['use_prefix_sum_defrag'] is True, f; print('defrag order default: prefix (defrag_prefix imported)')" \
+    || fail "defrag order default"
+python -m py_compile experiment/v7_single/_run_single_bench.py experiment/v7_single/utils/simulator_single.py experiment/v7/utils/defrag_prefix.py && echo "py_compile OK" || fail "py_compile"
+python -c "import experiment.v7_single.utils.simulator_single, experiment.v7_single.utils.spirv_manifest; print('imports OK')" || fail "imports"
+python experiment/v7_single/_run_single_bench.py --help | head -3 | cut -c1-120
+for spv in correction_density.comp.spv force.comp.spv predict.comp.spv update_voxel.comp.spv defrag.comp.spv; do
+    cmp -s "experiment/v7/shaders/spv/$spv" "$HOME/run/vulkan-demo-e9/experiment/v7/shaders/spv/$spv" && echo "SPIR-V $spv = e9's" || fail "SPIR-V $spv differs from e9's"
+done
+echo
+if [ "$FAILS" -eq 0 ]; then echo "=== DEPLOY OK in $(( $(date +%s) - T0 ))s"; else echo "=== DEPLOY HAS $FAILS FAILURE(S)"; exit 2; fi

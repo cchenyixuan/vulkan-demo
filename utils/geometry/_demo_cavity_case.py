@@ -129,7 +129,7 @@ numerics:
   pst_anti: 0.0005
   defrag_enabled: true
   defrag_cadence: 1000
-  use_prefix_sum_defrag: false
+  defrag_order: prefix              # defrag pid order: prefix (voxel-id order, default since 2026-10-27) | atomic (arrival order)
 
 capacities:
   pool_size: {pool_size}

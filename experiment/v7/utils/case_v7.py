@@ -77,7 +77,13 @@ class NumericsConstants:
     use_kcg_correction: bool = True
     use_density_diffusion: bool = True
     use_pst: bool = True
-    use_prefix_sum_defrag: bool = False
+    # Defrag destination order (spec const 46 USE_PREFIX_SUM_DEFRAG; case.yaml numerics.defrag_order, E9 2026-10-27).
+    # True = "prefix": the host scans inside_particle_count over the own voxels before every defrag
+    # (utils/defrag_prefix.py) and defrag.comp's prefix branch packs voxel v's particles at the exclusive prefix sum,
+    # i.e. the pid order is the voxel-id order. False = "atomic": base = atomicAdd(defrag_scratch_counter, count),
+    # voxel blocks in the workgroups' arrival order (the dispatch's first wave, ~16M particles, lands scrambled:
+    # +12 % per particle on an 8M slab, E8 report 7.18). The SPIR-V is the same either way.
+    use_prefix_sum_defrag: bool = True
     defrag_cadence: int = 1000
     # E37: "simple" (the v6 walls) or "adami" (Adami et al. 2012 wall pressure + no-slip, walls store rho0;
     # one GPU only). Spec const 100 WALL_BOUNDARY, shaders/wall_boundary.glsl.

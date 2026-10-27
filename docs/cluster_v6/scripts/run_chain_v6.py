@@ -231,7 +231,8 @@ def print_case_numerics(case_path: str) -> None:
           f"speed_of_sound={physics.get('speed_of_sound')} power={physics.get('power')} "
           f"xi={regularization.get('xi', 'default(0.001)')} "
           f"epsilon_squared_factor={numerics.get('epsilon_squared_factor', 'default(0.0025)')} "
-          f"defrag_cadence={numerics.get('defrag_cadence')} pool_size={capacities.get('pool_size')} "
+          f"defrag_cadence={numerics.get('defrag_cadence')} defrag_order={numerics.get('defrag_order', 'prefix(default)')} "
+          f"pool_size={capacities.get('pool_size')} "
           f"max_per_voxel={capacities.get('max_per_voxel')} max_incoming={capacities.get('max_incoming')} "
           f"yaml_is_symlink={path.is_symlink()}", flush=True)
 
