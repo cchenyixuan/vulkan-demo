@@ -1,0 +1,294 @@
+[
+ {
+  "raw": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-28\\01_e9_e9A_1741918\\raw\\3d_n192_k2_K2_trace_C",
+  "case": "cavity3d_n192_k2",
+  "column_particles": 160000,
+  "column_fluid": 147456,
+  "window": [
+   500,
+   1500
+  ],
+  "links": {
+   "s0_to_s1": {
+    "frames": 1000,
+    "mean": 0.657,
+    "peak": 39.0,
+    "p95": 4.0,
+    "mean_fraction_of_column": 4.10625e-06,
+    "peak_fraction_of_column": 0.00024375,
+    "mean_fraction_of_fluid_column": 4.4555664062500006e-06,
+    "total": 657.0
+   },
+   "s1_to_s0": {
+    "frames": 1000,
+    "mean": 0.0,
+    "peak": 0.0,
+    "p95": 0.0,
+    "mean_fraction_of_column": 0.0,
+    "peak_fraction_of_column": 0.0,
+    "mean_fraction_of_fluid_column": 0.0,
+    "total": 0.0
+   }
+  },
+  "seams": {
+   "0-1": {
+    "directions": 2,
+    "mean": 0.657,
+    "peak": 39.0,
+    "p95": 4.0,
+    "mean_fraction_of_column": 4.10625e-06,
+    "peak_fraction_of_column": 0.00024375
+   }
+  },
+  "point": "3d_n192_k2_K2",
+  "job": "01_e9_e9A_1741918",
+  "K": 2
+ },
+ {
+  "raw": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-28\\01_e9_e9A_1741918\\raw\\3d_n392_K2_trace_C",
+  "case": "cavity3d_n392",
+  "column_particles": 640000,
+  "column_fluid": 614656,
+  "window": [
+   500,
+   1500
+  ],
+  "links": {
+   "s0_to_s1": {
+    "frames": 1000,
+    "mean": 2.476,
+    "peak": 264.0,
+    "p95": 11.0,
+    "mean_fraction_of_column": 3.86875e-06,
+    "peak_fraction_of_column": 0.0004125,
+    "mean_fraction_of_fluid_column": 4.028269471053727e-06,
+    "total": 2476.0
+   },
+   "s1_to_s0": {
+    "frames": 1000,
+    "mean": 0.0,
+    "peak": 0.0,
+    "p95": 0.0,
+    "mean_fraction_of_column": 0.0,
+    "peak_fraction_of_column": 0.0,
+    "mean_fraction_of_fluid_column": 0.0,
+    "total": 0.0
+   }
+  },
+  "seams": {
+   "0-1": {
+    "directions": 2,
+    "mean": 2.476,
+    "peak": 264.0,
+    "p95": 11.0,
+    "mean_fraction_of_column": 3.86875e-06,
+    "peak_fraction_of_column": 0.0004125
+   }
+  },
+  "point": "3d_n392_K2",
+  "job": "01_e9_e9A_1741918",
+  "K": 2
+ },
+ {
+  "raw": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-28\\01_e9_e9A_1741918\\raw\\3d_n192_k4_K4_trace_C",
+  "case": "cavity3d_n192_k4",
+  "column_particles": 160000,
+  "column_fluid": 147456,
+  "window": [
+   500,
+   1500
+  ],
+  "links": {
+   "s0_to_s1": {
+    "frames": 1000,
+    "mean": 0.661,
+    "peak": 36.0,
+    "p95": 3.0499999999999545,
+    "mean_fraction_of_column": 4.1312500000000005e-06,
+    "peak_fraction_of_column": 0.000225,
+    "mean_fraction_of_fluid_column": 4.4826931423611115e-06,
+    "total": 661.0
+   },
+   "s1_to_s0": {
+    "frames": 1000,
+    "mean": 0.0,
+    "peak": 0.0,
+    "p95": 0.0,
+    "mean_fraction_of_column": 0.0,
+    "peak_fraction_of_column": 0.0,
+    "mean_fraction_of_fluid_column": 0.0,
+    "total": 0.0
+   },
+   "s1_to_s2": {
+    "frames": 1000,
+    "mean": 0.65,
+    "peak": 37.0,
+    "p95": 4.0,
+    "mean_fraction_of_column": 4.0625000000000005e-06,
+    "peak_fraction_of_column": 0.00023125,
+    "mean_fraction_of_fluid_column": 4.408094618055556e-06,
+    "total": 650.0
+   },
+   "s2_to_s1": {
+    "frames": 1000,
+    "mean": 0.0,
+    "peak": 0.0,
+    "p95": 0.0,
+    "mean_fraction_of_column": 0.0,
+    "peak_fraction_of_column": 0.0,
+    "mean_fraction_of_fluid_column": 0.0,
+    "total": 0.0
+   },
+   "s2_to_s3": {
+    "frames": 1000,
+    "mean": 0.654,
+    "peak": 50.0,
+    "p95": 3.0,
+    "mean_fraction_of_column": 4.0875e-06,
+    "peak_fraction_of_column": 0.0003125,
+    "mean_fraction_of_fluid_column": 4.435221354166667e-06,
+    "total": 654.0
+   },
+   "s3_to_s2": {
+    "frames": 1000,
+    "mean": 0.0,
+    "peak": 0.0,
+    "p95": 0.0,
+    "mean_fraction_of_column": 0.0,
+    "peak_fraction_of_column": 0.0,
+    "mean_fraction_of_fluid_column": 0.0,
+    "total": 0.0
+   }
+  },
+  "seams": {
+   "0-1": {
+    "directions": 2,
+    "mean": 0.661,
+    "peak": 36.0,
+    "p95": 3.0499999999999545,
+    "mean_fraction_of_column": 4.1312500000000005e-06,
+    "peak_fraction_of_column": 0.000225
+   },
+   "1-2": {
+    "directions": 2,
+    "mean": 0.65,
+    "peak": 37.0,
+    "p95": 4.0,
+    "mean_fraction_of_column": 4.0625000000000005e-06,
+    "peak_fraction_of_column": 0.00023125
+   },
+   "2-3": {
+    "directions": 2,
+    "mean": 0.654,
+    "peak": 50.0,
+    "p95": 3.0,
+    "mean_fraction_of_column": 4.0875e-06,
+    "peak_fraction_of_column": 0.0003125
+   }
+  },
+  "point": "3d_n192_k4_K4",
+  "job": "01_e9_e9A_1741918",
+  "K": 4
+ },
+ {
+  "raw": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-28\\01_e9_e9A_1741918\\raw\\3d_n392_K4_trace_C",
+  "case": "cavity3d_n392",
+  "column_particles": 640000,
+  "column_fluid": 614656,
+  "window": [
+   500,
+   1500
+  ],
+  "links": {
+   "s0_to_s1": {
+    "frames": 1000,
+    "mean": 2.454,
+    "peak": 279.0,
+    "p95": 11.0,
+    "mean_fraction_of_column": 3.834375e-06,
+    "peak_fraction_of_column": 0.0004359375,
+    "mean_fraction_of_fluid_column": 3.992477092877968e-06,
+    "total": 2454.0
+   },
+   "s1_to_s0": {
+    "frames": 1000,
+    "mean": 0.0,
+    "peak": 0.0,
+    "p95": 0.0,
+    "mean_fraction_of_column": 0.0,
+    "peak_fraction_of_column": 0.0,
+    "mean_fraction_of_fluid_column": 0.0,
+    "total": 0.0
+   },
+   "s1_to_s2": {
+    "frames": 1000,
+    "mean": 2.469,
+    "peak": 277.0,
+    "p95": 11.0,
+    "mean_fraction_of_column": 3.8578125e-06,
+    "peak_fraction_of_column": 0.0004328125,
+    "mean_fraction_of_fluid_column": 4.0168809870887125e-06,
+    "total": 2469.0
+   },
+   "s2_to_s1": {
+    "frames": 1000,
+    "mean": 0.0,
+    "peak": 0.0,
+    "p95": 0.0,
+    "mean_fraction_of_column": 0.0,
+    "peak_fraction_of_column": 0.0,
+    "mean_fraction_of_fluid_column": 0.0,
+    "total": 0.0
+   },
+   "s2_to_s3": {
+    "frames": 1000,
+    "mean": 2.468,
+    "peak": 188.0,
+    "p95": 10.0,
+    "mean_fraction_of_column": 3.85625e-06,
+    "peak_fraction_of_column": 0.00029375,
+    "mean_fraction_of_fluid_column": 4.015254060807997e-06,
+    "total": 2468.0
+   },
+   "s3_to_s2": {
+    "frames": 1000,
+    "mean": 0.0,
+    "peak": 0.0,
+    "p95": 0.0,
+    "mean_fraction_of_column": 0.0,
+    "peak_fraction_of_column": 0.0,
+    "mean_fraction_of_fluid_column": 0.0,
+    "total": 0.0
+   }
+  },
+  "seams": {
+   "0-1": {
+    "directions": 2,
+    "mean": 2.454,
+    "peak": 279.0,
+    "p95": 11.0,
+    "mean_fraction_of_column": 3.834375e-06,
+    "peak_fraction_of_column": 0.0004359375
+   },
+   "1-2": {
+    "directions": 2,
+    "mean": 2.469,
+    "peak": 277.0,
+    "p95": 11.0,
+    "mean_fraction_of_column": 3.8578125e-06,
+    "peak_fraction_of_column": 0.0004328125
+   },
+   "2-3": {
+    "directions": 2,
+    "mean": 2.468,
+    "peak": 188.0,
+    "p95": 10.0,
+    "mean_fraction_of_column": 3.85625e-06,
+    "peak_fraction_of_column": 0.00029375
+   }
+  },
+  "point": "3d_n392_K4",
+  "job": "01_e9_e9A_1741918",
+  "K": 4
+ }
+]

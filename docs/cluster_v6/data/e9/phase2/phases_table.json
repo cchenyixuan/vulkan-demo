@@ -1,0 +1,354 @@
+[
+ {
+  "point": "3d_n192_k2_K2",
+  "job": "01_e9_e9A_1741918",
+  "case": "cavity3d_n192_k2",
+  "K": 2,
+  "kind": "weak",
+  "ideal_case": "cavity3d_n192",
+  "ideal_kind": null,
+  "chain": {
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-28\\01_e9_e9A_1741918\\traces\\3d_n192_k2_K2_C",
+   "case": "cases/aligned/cavity3d_n192_k2/case.yaml",
+   "K": 2,
+   "warmup": 500,
+   "max_steps": 1500,
+   "per_sim": [
+    {
+     "sim": 0,
+     "steps": 998,
+     "a_p50_ms": 0.744219,
+     "b_p50_ms": 42.149642,
+     "c_p50_ms": 3.415154,
+     "period_p50_ms": 46.7766185,
+     "period_mean_skip_ms": 47.453487577154306,
+     "period_sum_ms": 47484.075342,
+     "steady_steps": 999
+    },
+    {
+     "sim": 1,
+     "steps": 998,
+     "a_p50_ms": 0.720076,
+     "b_p50_ms": 41.7880855,
+     "c_p50_ms": 3.367479,
+     "period_p50_ms": 46.735305,
+     "period_mean_skip_ms": 47.40716590480962,
+     "period_sum_ms": 47474.723463,
+     "steady_steps": 999
+    }
+   ],
+   "aggregate": {
+    "sims": 2,
+    "divide": 1,
+    "a": {
+     "mean": 0.7321475,
+     "min": 0.720076,
+     "max": 0.744219
+    },
+    "b": {
+     "mean": 41.96886375,
+     "min": 41.7880855,
+     "max": 42.149642
+    },
+    "c": {
+     "mean": 3.3913165,
+     "min": 3.367479,
+     "max": 3.415154
+    },
+    "period": {
+     "mean": 46.75596175,
+     "min": 46.735305,
+     "max": 46.7766185
+    },
+    "step_mean_skip": 47.43032674098196,
+    "step_mean_window": 47.40138578828829,
+    "defrag_events": [
+     [
+      1000,
+      125.415
+     ]
+    ]
+   },
+   "fps": 21.017234131988232,
+   "fps_nodefrag": 21.0732,
+   "trace_steady_fps": 21.01765636116324
+  },
+  "ideal": null,
+  "ratio_ideal_over_chain": null
+ },
+ {
+  "point": "3d_n392_K2",
+  "job": "01_e9_e9A_1741918",
+  "case": "cavity3d_n392",
+  "K": 2,
+  "kind": "strong",
+  "ideal_case": "cavity3d_n392",
+  "ideal_kind": null,
+  "chain": {
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-28\\01_e9_e9A_1741918\\traces\\3d_n392_K2_C",
+   "case": "cases/aligned/cavity3d_n392/case.yaml",
+   "K": 2,
+   "warmup": 500,
+   "max_steps": 1500,
+   "per_sim": [
+    {
+     "sim": 0,
+     "steps": 998,
+     "a_p50_ms": 3.08635,
+     "b_p50_ms": 174.131388,
+     "c_p50_ms": 12.5345065,
+     "period_p50_ms": 189.9425935,
+     "period_mean_skip_ms": 193.377953244489,
+     "period_sum_ms": 193468.221743,
+     "steady_steps": 999
+    },
+    {
+     "sim": 1,
+     "steps": 998,
+     "a_p50_ms": 3.0694595,
+     "b_p50_ms": 171.9156705,
+     "c_p50_ms": 12.161257,
+     "period_p50_ms": 195.2121735,
+     "period_mean_skip_ms": 193.19779553907816,
+     "period_sum_ms": 193456.113874,
+     "steady_steps": 999
+    }
+   ],
+   "aggregate": {
+    "sims": 2,
+    "divide": 1,
+    "a": {
+     "mean": 3.07790475,
+     "min": 3.0694595,
+     "max": 3.08635
+    },
+    "b": {
+     "mean": 173.02352925,
+     "min": 171.9156705,
+     "max": 174.131388
+    },
+    "c": {
+     "mean": 12.34788175,
+     "min": 12.161257,
+     "max": 12.5345065
+    },
+    "period": {
+     "mean": 192.5773835,
+     "min": 189.9425935,
+     "max": 195.2121735
+    },
+    "step_mean_skip": 193.2878743917836,
+    "step_mean_window": 193.17840321171172,
+    "defrag_events": [
+     [
+      1000,
+      476.943
+     ]
+    ]
+   },
+   "fps": 5.158627805003869,
+   "fps_nodefrag": 5.1713,
+   "trace_steady_fps": 5.158537542922154
+  },
+  "ideal": null,
+  "ratio_ideal_over_chain": null
+ },
+ {
+  "point": "3d_n192_k4_K4",
+  "job": "01_e9_e9A_1741918",
+  "case": "cavity3d_n192_k4",
+  "K": 4,
+  "kind": "weak",
+  "ideal_case": "cavity3d_n192",
+  "ideal_kind": null,
+  "chain": {
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-28\\01_e9_e9A_1741918\\traces\\3d_n192_k4_K4_C",
+   "case": "cases/aligned/cavity3d_n192_k4/case.yaml",
+   "K": 4,
+   "warmup": 500,
+   "max_steps": 1500,
+   "per_sim": [
+    {
+     "sim": 0,
+     "steps": 998,
+     "a_p50_ms": 0.7436275,
+     "b_p50_ms": 41.929939,
+     "c_p50_ms": 3.5219565,
+     "period_p50_ms": 46.760313,
+     "period_mean_skip_ms": 47.301278791583165,
+     "period_sum_ms": 47485.053493,
+     "steady_steps": 999
+    },
+    {
+     "sim": 1,
+     "steps": 998,
+     "a_p50_ms": 0.740204,
+     "b_p50_ms": 39.0592305,
+     "c_p50_ms": 6.1458955,
+     "period_p50_ms": 46.759884,
+     "period_mean_skip_ms": 47.28095279659319,
+     "period_sum_ms": 47463.47358,
+     "steady_steps": 999
+    },
+    {
+     "sim": 2,
+     "steps": 998,
+     "a_p50_ms": 0.720459,
+     "b_p50_ms": 38.684523,
+     "c_p50_ms": 6.159378,
+     "period_p50_ms": 46.7627485,
+     "period_mean_skip_ms": 47.24910694188377,
+     "period_sum_ms": 47424.426799,
+     "steady_steps": 999
+    },
+    {
+     "sim": 3,
+     "steps": 998,
+     "a_p50_ms": 0.735436,
+     "b_p50_ms": 42.147493,
+     "c_p50_ms": 3.4065655,
+     "period_p50_ms": 46.667594,
+     "period_mean_skip_ms": 47.25255009619238,
+     "period_sum_ms": 47390.23316,
+     "steady_steps": 999
+    }
+   ],
+   "aggregate": {
+    "sims": 4,
+    "divide": 1,
+    "a": {
+     "mean": 0.734931625,
+     "min": 0.720459,
+     "max": 0.7436275
+    },
+    "b": {
+     "mean": 40.455296374999996,
+     "min": 38.684523,
+     "max": 42.147493
+    },
+    "c": {
+     "mean": 4.808448875,
+     "min": 3.4065655,
+     "max": 6.159378
+    },
+    "period": {
+     "mean": 46.737634875,
+     "min": 46.667594,
+     "max": 46.7627485
+    },
+    "step_mean_skip": 47.270972156563126,
+    "step_mean_window": 47.25606282082082,
+    "defrag_events": [
+     [
+      1000,
+      231.99
+     ]
+    ]
+   },
+   "fps": 21.039343572480536,
+   "fps_nodefrag": 21.1408,
+   "trace_steady_fps": 21.037637708647583
+  },
+  "ideal": null,
+  "ratio_ideal_over_chain": null
+ },
+ {
+  "point": "3d_n392_K4",
+  "job": "01_e9_e9A_1741918",
+  "case": "cavity3d_n392",
+  "K": 4,
+  "kind": "strong",
+  "ideal_case": "cavity3d_n392",
+  "ideal_kind": null,
+  "chain": {
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-28\\01_e9_e9A_1741918\\traces\\3d_n392_K4_C",
+   "case": "cases/aligned/cavity3d_n392/case.yaml",
+   "K": 4,
+   "warmup": 500,
+   "max_steps": 1500,
+   "per_sim": [
+    {
+     "sim": 0,
+     "steps": 998,
+     "a_p50_ms": 1.5543915,
+     "b_p50_ms": 80.110837,
+     "c_p50_ms": 11.9700505,
+     "period_p50_ms": 98.9925375,
+     "period_mean_skip_ms": 100.29114978256513,
+     "period_sum_ms": 100589.98873,
+     "steady_steps": 999
+    },
+    {
+     "sim": 1,
+     "steps": 998,
+     "a_p50_ms": 1.659099,
+     "b_p50_ms": 73.119693,
+     "c_p50_ms": 23.130159,
+     "period_p50_ms": 97.827663,
+     "period_mean_skip_ms": 100.37570819438878,
+     "period_sum_ms": 100596.959799,
+     "steady_steps": 999
+    },
+    {
+     "sim": 2,
+     "steps": 998,
+     "a_p50_ms": 1.590649,
+     "b_p50_ms": 70.466594,
+     "c_p50_ms": 23.348645,
+     "period_p50_ms": 99.891493,
+     "period_mean_skip_ms": 100.30405283366734,
+     "period_sum_ms": 100589.971464,
+     "steady_steps": 999
+    },
+    {
+     "sim": 3,
+     "steps": 998,
+     "a_p50_ms": 1.650458,
+     "b_p50_ms": 82.3406945,
+     "c_p50_ms": 12.113678,
+     "period_p50_ms": 98.113136,
+     "period_mean_skip_ms": 100.26995151603207,
+     "period_sum_ms": 100589.161343,
+     "steady_steps": 999
+    }
+   ],
+   "aggregate": {
+    "sims": 4,
+    "divide": 1,
+    "a": {
+     "mean": 1.613649375,
+     "min": 1.5543915,
+     "max": 1.659099
+    },
+    "b": {
+     "mean": 76.509454625,
+     "min": 70.466594,
+     "max": 82.3406945
+    },
+    "c": {
+     "mean": 17.640633125,
+     "min": 11.9700505,
+     "max": 23.348645
+    },
+    "period": {
+     "mean": 98.70620737499999,
+     "min": 97.827663,
+     "max": 99.891493
+    },
+    "step_mean_skip": 100.31021558166333,
+    "step_mean_window": 100.26990223623623,
+    "defrag_events": [
+     [
+      1000,
+      421.888
+     ]
+    ]
+   },
+   "fps": 9.920634920634921,
+   "fps_nodefrag": 9.9626,
+   "trace_steady_fps": 9.920927334224665
+  },
+  "ideal": null,
+  "ratio_ideal_over_chain": null
+ }
+]

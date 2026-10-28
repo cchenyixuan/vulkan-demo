@@ -263,7 +263,28 @@ K = 2 (cuts [26], devices [0, 1]) vs K = 1 at step 300: 7,077,888 fluid particle
 
 提交参数：`--export=ALL,E30_EXPECT_COMMIT=cb3c9f5cab75,E7_EXPECTED_TREE=37f99f2b…,E30_REPO=$HOME/run/vulkan-demo-e9`；整节点 `--exclusive --mem=0`，575 W，`--exclude=wqd10nbm13g5,wqd10nah09g1,wqd10nbj04g3,wqd10nbj04g5`；E7_RAW / E7_TRACE_DETAIL=full / E7_PARTITION_RECORD / E7_CONTINUE_ON_FAILURE 同 E8。提交时四个都 PENDING（Priority，无空闲整节点；backfill 预估 11-01 是悲观值）。监控：队列状态、运行中输出、丢卡信号（出现则取消 + 排除，不重提）。各作业结束后：打包 → 拉回 → 镜像 `logs/n56/2026-10-27/<seq>_e9_<job>_<id>` + README / jobs.csv → `e8_p2_summary.py --out-dir docs/cluster_v6/data/e9/phase2` → E8 对 E9 的 η 对照（`e9_compare_eta.py`）→ 本报告续写。
 
-### 4.4 结果（随作业结束补）
+### 4.4 结果
+
+四个作业排了 27 h 29 min（分区 36 个节点全部 8/8 被占，别人的作业对我们不可见），2026-10-28 17:37 / 17:38 CST e9_B、e9_A 同时拿到整节点 wqd10nbj04g4 / g2；e9_C、e9_D 因账号并发 GPU 上限（AssocGrpGRES，16 张）等 A / B 结束后自动接上。镜像 `C:/Users/cchen/PycharmProjects/vulkan-demo/logs/n56/2026-10-28/<seq>_e9_<job>_<id>/`（README / jobs.csv 已加行），后处理 = E8 的 `e8_p2_summary.py`（10 个工具）输出到 `docs/cluster_v6/data/e9/phase2/`，E8-vs-E9 的 η 对照 `eta_e8_vs_e9.md/json`（`e9_compare_eta.py`）。下面按作业结束顺序补。
+
+#### 4.4.1 A 线：e9_A = SLURM 1741918（wqd10nbj04g2，17:38:38–19:58:47 CST，2 h 20 min；E8 的 e8_A 2 h 18 min）
+
+- PROVENANCE harness cb3c9f5 / experiment/v7 树 37f99f2b，PROVENANCE_END unchanged；8 卡 575 W；bring-up 2-D 1M K1 677 fps / K2 882 fps 通过；52 次运行 + bring-up 全部 pass，drift 0，trace 运行的 fields=OK；协议与 E8 逐项相同（64M K2 / K4 各 3 次 + 同时 K = 1 参考 + trace；weak 2 × 8M K2、4 × 8M K4）。
+- 镜像 `logs/n56/2026-10-28/01_e9_e9A_1741918/`（291 文件，npz 不拉）。
+
+| 点 | E8 η（min–max） | E9 η（min–max） | E9 − E8 | η_min E8 / E9 | fps_K E8 / E9 | 参考 fps E8 / E9（整域等效） |
+|---|---|---|---|---|---|---|
+| 64M K = 2 | 0.968 (0.966–0.970) | **0.987** (0.986–0.987) | **+0.018** | 0.971 / 0.989 | 4.95 / 5.17 (+4.5 %) | 2.56 / 2.62 (+2.6 %) |
+| 64M K = 4 | 0.901 (0.898–0.904) | **0.951** (0.948–0.954) | **+0.051** | 0.912 / 0.961 | 9.19 / 9.94 (+8.2 %) | 2.55 / 2.61 (+2.4 %) |
+| weak 2 × 8M K = 2 | 0.984 (0.981–0.986) | **0.986** (0.983–0.988) | **+0.002** | 0.986 / 0.987 | 18.46 / 21.09 (+14.2 %) | 9.38 / 10.69 (+13.9 %) |
+| weak 4 × 8M K = 4 | 0.981 (0.978–0.986) | **0.992** (0.991–0.992) | **+0.011** | 0.993 / 1.002 | 18.39 / 21.15 (+15.0 %) | 4.69 / 5.33 (+13.7 %) |
+
+**判读**
+- 64M K = 4 的 η 从 0.901 升到 **0.951**（+0.05），K = 2 从 0.968 到 **0.987**（+0.02）；weak 点基本不动（+0.002 / +0.011，本来就在 0.98–0.99）。
+- 原因就是 7.18 的机制：atomicAdd 序只打乱 defrag 第一波的 ~16M 粒子，所以 K = 1 的 64M 参考只付 ~2 %（2.55 → 2.62 fps，+2.7 %），而 K = 4 的 16M slab 整块被打乱、付的更多（9.19 → 9.94 fps，+8.2 %），K = 2 的 32M slab 居中（4.95 → 5.17，+4.4 %）；prefix 序把这个随 slab 大小变化的代价抹平，η 就上来了。weak 点的 8M 每卡参考和 8M slab 一起快了 ~14 %（每卡 K = 1 18.8 → 21.4 fps），比值不变。
+- 分割：K2 终切 [51]（E8 [50]；标定两轮在 50 / 51 之间摆），K4 [26, 51, 75]（与 E8 相同）；weak K2 [50]，K4 [50, 98, 145]。
+- 协变量：busy 中位 SM 时钟 2685–2715 MHz（参考运行 2662–2707），温度 ≤ 71 °C，卡功率峰 582–588 W（575 W 上限的 nvidia-smi 瞬时值），主机 cgroup 峰 39.0 GiB；e8_A 为 2670–2722 MHz / ≤ 75 °C / 35.4 GiB。
+- tab:phases 块（T_A / T_B / T_C）、loss sources、hops、bytes check、migration stats 都已生成在 `data/e9/phase2/`；"ideal chain" 行要等 B 线的 K = 1 trace 到齐后重跑整批再填。
 
 ## 5. 数据与复现
 

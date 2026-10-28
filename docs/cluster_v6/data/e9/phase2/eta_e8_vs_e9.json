@@ -1,0 +1,342 @@
+{
+ "e8": "docs/cluster_v6/data/e8/phase2/tables.json",
+ "e9": "docs/cluster_v6/data/e9/phase2/tables.json",
+ "points": [
+  {
+   "point": "3d_n152_K8",
+   "case": "cavity3d_n152",
+   "K": 8,
+   "kind": "strong",
+   "particles": 4096000,
+   "e8": {
+    "eta": 0.4636153180388095,
+    "eta_min_trials": 0.4599733584336892,
+    "eta_max_trials": 0.46605137981970723,
+    "n": 5,
+    "eta_min": 0.4686734231155715,
+    "fps_K": 136.81294,
+    "reference_fps": 36.88751608196089,
+    "job": "02_e8_e8B_1721839"
+   },
+   "e9": {
+    "eta": null,
+    "eta_min_trials": null,
+    "eta_max_trials": null,
+    "n": null,
+    "eta_min": null,
+    "fps_K": null,
+    "reference_fps": null,
+    "job": null
+   },
+   "delta_eta": null
+  },
+  {
+   "point": "3d_n192_K8",
+   "case": "cavity3d_n192",
+   "K": 8,
+   "kind": "strong",
+   "particles": 8000000,
+   "e8": {
+    "eta": 0.6634385570954433,
+    "eta_min_trials": 0.6602396152420477,
+    "eta_max_trials": 0.6665267907711123,
+    "n": 5,
+    "eta_min": 0.6712922297568237,
+    "fps_K": 99.85708,
+    "reference_fps": 18.814304454427873,
+    "job": "02_e8_e8B_1721839"
+   },
+   "e9": {
+    "eta": null,
+    "eta_min_trials": null,
+    "eta_max_trials": null,
+    "n": null,
+    "eta_min": null,
+    "fps_K": null,
+    "reference_fps": null,
+    "job": null
+   },
+   "delta_eta": null
+  },
+  {
+   "point": "3d_n244_K8",
+   "case": "cavity3d_n244",
+   "K": 8,
+   "kind": "strong",
+   "particles": 16003008,
+   "e8": {
+    "eta": 0.815798082494148,
+    "eta_min_trials": 0.8143451506341118,
+    "eta_max_trials": 0.8174589640013175,
+    "n": 3,
+    "eta_min": 0.8265262985306655,
+    "fps_K": 62.72990000000001,
+    "reference_fps": 9.61173808600641,
+    "job": "02_e8_e8B_1721839"
+   },
+   "e9": {
+    "eta": null,
+    "eta_min_trials": null,
+    "eta_max_trials": null,
+    "n": null,
+    "eta_min": null,
+    "fps_K": null,
+    "reference_fps": null,
+    "job": null
+   },
+   "delta_eta": null
+  },
+  {
+   "point": "3d_n312_K8",
+   "case": "cavity3d_n312",
+   "K": 8,
+   "kind": "strong",
+   "particles": 32768000,
+   "e8": {
+    "eta": 0.846788964785269,
+    "eta_min_trials": 0.8445498303760147,
+    "eta_max_trials": 0.8503271801400382,
+    "n": 3,
+    "eta_min": 0.856328735238239,
+    "fps_K": 33.34146666666667,
+    "reference_fps": 4.92174969992693,
+    "job": "02_e8_e8B_1721839"
+   },
+   "e9": {
+    "eta": null,
+    "eta_min_trials": null,
+    "eta_max_trials": null,
+    "n": null,
+    "eta_min": null,
+    "fps_K": null,
+    "reference_fps": null,
+    "job": null
+   },
+   "delta_eta": null
+  },
+  {
+   "point": "3d_n392_K8",
+   "case": "cavity3d_n392",
+   "K": 8,
+   "kind": "strong",
+   "particles": 64000000,
+   "e8": {
+    "eta": 0.840511922152012,
+    "eta_min_trials": 0.8396996632469262,
+    "eta_max_trials": 0.8420838918622742,
+    "n": 3,
+    "eta_min": 0.8497696840680261,
+    "fps_K": 17.15856666666667,
+    "reference_fps": 2.55180298673435,
+    "job": "02_e8_e8B_1721839"
+   },
+   "e9": {
+    "eta": null,
+    "eta_min_trials": null,
+    "eta_max_trials": null,
+    "n": null,
+    "eta_min": null,
+    "fps_K": null,
+    "reference_fps": null,
+    "job": null
+   },
+   "delta_eta": null
+  },
+  {
+   "point": "3d_n192_k8_K8",
+   "case": "cavity3d_n192_k8",
+   "K": 8,
+   "kind": "weak",
+   "particles": 61760000,
+   "e8": {
+    "eta": 0.9850697692970553,
+    "eta_min_trials": 0.984592305362975,
+    "eta_max_trials": 0.9858782481191471,
+    "n": 3,
+    "eta_min": 0.998183173504226,
+    "fps_K": 18.5621,
+    "reference_fps": 2.3554296074436807,
+    "job": "02_e8_e8B_1721839"
+   },
+   "e9": {
+    "eta": null,
+    "eta_min_trials": null,
+    "eta_max_trials": null,
+    "n": null,
+    "eta_min": null,
+    "fps_K": null,
+    "reference_fps": null,
+    "job": null
+   },
+   "delta_eta": null
+  },
+  {
+   "point": "3d_n392_K2",
+   "case": "cavity3d_n392",
+   "K": 2,
+   "kind": "strong",
+   "particles": 64000000,
+   "e8": {
+    "eta": 0.9683569792413756,
+    "eta_min_trials": 0.9656428026076231,
+    "eta_max_trials": 0.9701510031060149,
+    "n": 3,
+    "eta_min": 0.9713591173942208,
+    "fps_K": 4.9507,
+    "reference_fps": 2.556237062430452,
+    "job": "03_e8_e8A_1721840"
+   },
+   "e9": {
+    "eta": 0.9866286343241968,
+    "eta_min_trials": 0.9858575077192846,
+    "eta_max_trials": 0.9873256079896316,
+    "n": 3,
+    "eta_min": 0.9885699138697438,
+    "fps_K": 5.1749,
+    "reference_fps": 2.6225166288350277,
+    "job": "01_e9_e9A_1741918"
+   },
+   "delta_eta": 0.018271655082821137
+  },
+  {
+   "point": "3d_n392_K4",
+   "case": "cavity3d_n392",
+   "K": 4,
+   "kind": "strong",
+   "particles": 64000000,
+   "e8": {
+    "eta": 0.90052751750971,
+    "eta_min_trials": 0.8984941766989529,
+    "eta_max_trials": 0.9036635671523334,
+    "n": 3,
+    "eta_min": 0.9116293459677687,
+    "fps_K": 9.188866666666668,
+    "reference_fps": 2.5509677627834364,
+    "job": "03_e8_e8A_1721840"
+   },
+   "e9": {
+    "eta": 0.9511960894143882,
+    "eta_min_trials": 0.9483667320292697,
+    "eta_max_trials": 0.9535553641496793,
+    "n": 3,
+    "eta_min": 0.9606850654167847,
+    "fps_K": 9.939866666666667,
+    "reference_fps": 2.6124651839102464,
+    "job": "01_e9_e9A_1741918"
+   },
+   "delta_eta": 0.050668571904678106
+  },
+  {
+   "point": "3d_n192_k2_K2",
+   "case": "cavity3d_n192_k2",
+   "K": 2,
+   "kind": "weak",
+   "particles": 15680000,
+   "e8": {
+    "eta": 0.983744912643005,
+    "eta_min_trials": 0.9806543582214987,
+    "eta_max_trials": 0.9857920410919855,
+    "n": 3,
+    "eta_min": 0.9862940917326369,
+    "fps_K": 18.464833333333335,
+    "reference_fps": 9.384970176732242,
+    "job": "03_e8_e8A_1721840"
+   },
+   "e9": {
+    "eta": 0.9861344342428581,
+    "eta_min_trials": 0.9829500433473474,
+    "eta_max_trials": 0.9878239106899316,
+    "n": 3,
+    "eta_min": 0.9866974580918669,
+    "fps_K": 21.086233333333336,
+    "reference_fps": 10.691358399589346,
+    "job": "01_e9_e9A_1741918"
+   },
+   "delta_eta": 0.0023895215998530617
+  },
+  {
+   "point": "3d_n192_k4_K4",
+   "case": "cavity3d_n192_k4",
+   "K": 4,
+   "kind": "weak",
+   "particles": 31040000,
+   "e8": {
+    "eta": 0.9807777841485198,
+    "eta_min_trials": 0.9777353833236573,
+    "eta_max_trials": 0.986067118372573,
+    "n": 3,
+    "eta_min": 0.9931608269334729,
+    "fps_K": 18.39186666666667,
+    "reference_fps": 4.688081990619798,
+    "job": "03_e8_e8A_1721840"
+   },
+   "e9": {
+    "eta": 0.9915890009427595,
+    "eta_min_trials": 0.9910375038066012,
+    "eta_max_trials": 0.9922079322710238,
+    "n": 3,
+    "eta_min": 1.0016007832333635,
+    "fps_K": 21.148466666666668,
+    "reference_fps": 5.33196380923942,
+    "job": "01_e9_e9A_1741918"
+   },
+   "delta_eta": 0.010811216794239686
+  },
+  {
+   "point": "3d_n496_K8",
+   "case": "cavity3d_n496",
+   "K": 8,
+   "kind": "strong",
+   "particles": 128024064,
+   "e8": {
+    "eta": 0.8676066222015087,
+    "eta_min_trials": 0.8639986763861449,
+    "eta_max_trials": 0.8712813589611602,
+    "n": 3,
+    "eta_min": 0.8744701764375341,
+    "fps_K": 8.9279,
+    "reference_fps": 1.2862828284646295,
+    "job": "04_e8_e8C_1722072"
+   },
+   "e9": {
+    "eta": null,
+    "eta_min_trials": null,
+    "eta_max_trials": null,
+    "n": null,
+    "eta_min": null,
+    "fps_K": null,
+    "reference_fps": null,
+    "job": null
+   },
+   "delta_eta": null
+  },
+  {
+   "point": "3d_n416_K8",
+   "case": "cavity3d_n416",
+   "K": 8,
+   "kind": "strong",
+   "particles": 76225024,
+   "e8": {
+    "eta": 0.8825636832289984,
+    "eta_min_trials": 0.8814927814481186,
+    "eta_max_trials": 0.8835019021991277,
+    "n": 3,
+    "eta_min": 0.891899546215616,
+    "fps_K": 15.2189,
+    "reference_fps": 2.1554960125255853,
+    "job": "09_e8_e8D3_1725242"
+   },
+   "e9": {
+    "eta": null,
+    "eta_min_trials": null,
+    "eta_max_trials": null,
+    "n": null,
+    "eta_min": null,
+    "fps_K": null,
+    "reference_fps": null,
+    "job": null
+   },
+   "delta_eta": null
+  }
+ ]
+}
