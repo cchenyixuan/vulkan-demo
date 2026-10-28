@@ -1,0 +1,427 @@
+{
+ "g1": {
+  "trace": "..\\vulkan-demo\\logs\\n56\\2026-10-12\\03_e7_b2B_1694328\\traces\\x_2d_n8000_K8_C",
+  "anatomy_log": "..\\vulkan-demo\\logs\\n56\\2026-10-12\\03_e7_b2B_1694328\\anatomy_2d_n8000_K8.log",
+  "grid": [
+   1606,
+   1606,
+   1
+  ],
+  "fixed_bytes": 25712,
+  "host_copy_bytes_p50": 2592752.0,
+  "n0": 40110.0,
+  "own_particles_interior": 8022000.0,
+  "particle_share_interior": 0.01,
+  "sims": [
+   {
+    "sim": 0,
+    "frames": 3,
+    "boundary_us": 175.33333333333334,
+    "sides": 1,
+    "n0": 40110.0,
+    "band_particles": 120330.0,
+    "cost_ns_per_particle": 1.457104074905122,
+    "redundant_us": 58.44444444444445,
+    "period_us": 11103.076670670669,
+    "share": 0.005263806256407142,
+    "boundary_share_of_step": 0.015791418769221424
+   },
+   {
+    "sim": 1,
+    "frames": 3,
+    "boundary_us": 251.33333333333334,
+    "sides": 2,
+    "n0": 40110.0,
+    "band_particles": 240660.0,
+    "cost_ns_per_particle": 1.044350259009945,
+    "redundant_us": 83.77777777777777,
+    "period_us": 11105.506689689691,
+    "share": 0.007543805079650866,
+    "boundary_share_of_step": 0.022631415238952603
+   },
+   {
+    "sim": 2,
+    "frames": 3,
+    "boundary_us": 256.6666666666667,
+    "sides": 2,
+    "n0": 40110.0,
+    "band_particles": 240660.0,
+    "cost_ns_per_particle": 1.0665115377157264,
+    "redundant_us": 85.55555555555557,
+    "period_us": 11110.31043943944,
+    "share": 0.0077005549054552066,
+    "boundary_share_of_step": 0.023101664716365617
+   },
+   {
+    "sim": 3,
+    "frames": 3,
+    "boundary_us": 253.33333333333334,
+    "sides": 2,
+    "n0": 40110.0,
+    "band_particles": 240660.0,
+    "cost_ns_per_particle": 1.052660738524613,
+    "redundant_us": 84.44444444444446,
+    "period_us": 11105.601562562564,
+    "share": 0.007603770400795768,
+    "boundary_share_of_step": 0.022811311202387302
+   },
+   {
+    "sim": 4,
+    "frames": 3,
+    "boundary_us": 250.66666666666666,
+    "sides": 2,
+    "n0": 40110.0,
+    "band_particles": 240660.0,
+    "cost_ns_per_particle": 1.0415800991717221,
+    "redundant_us": 83.55555555555554,
+    "period_us": 11103.57592992993,
+    "share": 0.007525103271490199,
+    "boundary_share_of_step": 0.0225753098144706
+   },
+   {
+    "sim": 5,
+    "frames": 3,
+    "boundary_us": 253.33333333333334,
+    "sides": 2,
+    "n0": 40110.0,
+    "band_particles": 240660.0,
+    "cost_ns_per_particle": 1.052660738524613,
+    "redundant_us": 84.44444444444446,
+    "period_us": 11100.523749749751,
+    "share": 0.007607248662149672,
+    "boundary_share_of_step": 0.022821745986449014
+   },
+   {
+    "sim": 6,
+    "frames": 3,
+    "boundary_us": 257.3333333333333,
+    "sides": 2,
+    "n0": 40110.0,
+    "band_particles": 240660.0,
+    "cost_ns_per_particle": 1.0692816975539488,
+    "redundant_us": 85.77777777777776,
+    "period_us": 11099.42211011011,
+    "share": 0.007728130070812021,
+    "boundary_share_of_step": 0.023184390212436068
+   },
+   {
+    "sim": 7,
+    "frames": 3,
+    "boundary_us": 177.33333333333334,
+    "sides": 1,
+    "n0": 40110.0,
+    "band_particles": 120330.0,
+    "cost_ns_per_particle": 1.473725033934458,
+    "redundant_us": 59.111111111111114,
+    "period_us": 11094.591307307306,
+    "share": 0.005327921459547443,
+    "boundary_share_of_step": 0.015983764378642327
+   }
+  ],
+  "share_mean": 0.00703754251328854,
+  "share_min": 0.005263806256407142,
+  "share_max": 0.007728130070812021,
+  "detail": "phases"
+ },
+ "clocks": [
+  {
+   "case": "cavity2d_n520",
+   "point": "2d_n520_K8",
+   "job": "e7_b2B_1694328",
+   "host": "wqd10nbj04g2",
+   "reference": "strong:cavity2d_n520",
+   "per_gpu": 36720.5,
+   "trials": 3,
+   "ratio_mean": 1.1600098171029687,
+   "ratio_min": 1.0694960212201592,
+   "ratio_max": 1.3096607934795637,
+   "ratios": [
+    1.1008726366091834,
+    1.3096607934795637,
+    1.0694960212201592
+   ],
+   "sm_clock_chain": 2717.625,
+   "sm_clock_reference": 2361.375
+  },
+  {
+   "case": "cavity2d_n1000",
+   "point": "2d_n1000_K8",
+   "job": "e7_b2B_1694328",
+   "host": "wqd10nbj04g2",
+   "reference": "strong:cavity2d_n1000",
+   "per_gpu": 130560.5,
+   "trials": 3,
+   "ratio_mean": 0.955931015841168,
+   "ratio_min": 0.9310143626570916,
+   "ratio_max": 0.9775437023756163,
+   "ratios": [
+    0.9310143626570916,
+    0.9775437023756163,
+    0.9592349824907964
+   ],
+   "sm_clock_chain": 2663.25,
+   "sm_clock_reference": 2786.0
+  },
+  {
+   "case": "cavity2d_n1440",
+   "point": "2d_n1440_K8",
+   "job": "e7_b2S_1695411",
+   "host": "wqd10nbj04g2",
+   "reference": "strong:cavity2d_n1440",
+   "per_gpu": 267180.5,
+   "trials": 3,
+   "ratio_mean": 0.9849144953910685,
+   "ratio_min": 0.9784424683373754,
+   "ratio_max": 0.9887903479944177,
+   "ratios": [
+    0.9784424683373754,
+    0.9875106698414124,
+    0.9887903479944177
+   ],
+   "sm_clock_chain": 2738.7916666666665,
+   "sm_clock_reference": 2780.75
+  },
+  {
+   "case": "cavity2d_n2000",
+   "point": "2d_n2000_K8",
+   "job": "e7_b2S_1695411",
+   "host": "wqd10nbj04g2",
+   "reference": "strong:cavity2d_n2000",
+   "per_gpu": 511060.5,
+   "trials": 3,
+   "ratio_mean": 1.036679081057235,
+   "ratio_min": 1.0359319279555816,
+   "ratio_max": 1.0377162003078872,
+   "ratios": [
+    1.0359319279555816,
+    1.036389114908236,
+    1.0377162003078872
+   ],
+   "sm_clock_chain": 2866.4583333333335,
+   "sm_clock_reference": 2765.0416666666665
+  },
+  {
+   "case": "cavity2d_n2840",
+   "point": "2d_n2840_K8",
+   "job": "e7_b2S_1695411",
+   "host": "wqd10nbj04g2",
+   "reference": "strong:cavity2d_n2840",
+   "per_gpu": 1023880.5,
+   "trials": 3,
+   "ratio_mean": 1.0330150586499098,
+   "ratio_min": 1.030205742708569,
+   "ratio_max": 1.03468443960827,
+   "ratios": [
+    1.030205742708569,
+    1.03468443960827,
+    1.0341549936328907
+   ],
+   "sm_clock_chain": 2847.625,
+   "sm_clock_reference": 2756.625
+  },
+  {
+   "case": "cavity2d_n4000",
+   "point": "2d_n4000_K8",
+   "job": "e7_b2S_1695411",
+   "host": "wqd10nbj04g2",
+   "reference": "strong:cavity2d_n4000",
+   "per_gpu": 2022060.5,
+   "trials": 3,
+   "ratio_mean": 1.0240104327186228,
+   "ratio_min": 1.018317011244106,
+   "ratio_max": 1.02776509270253,
+   "ratios": [
+    1.018317011244106,
+    1.0259491942092325,
+    1.02776509270253
+   ],
+   "sm_clock_chain": 2812.5833333333335,
+   "sm_clock_reference": 2746.6666666666665
+  },
+  {
+   "case": "cavity2d_n5640",
+   "point": "2d_n5640_K8",
+   "job": "e7_b2V_1703604",
+   "host": "wqd10nbj04g2",
+   "reference": "strong:cavity2d_n5640",
+   "per_gpu": 4007280.5,
+   "trials": 3,
+   "ratio_mean": 1.03035966236982,
+   "ratio_min": 1.0260638541523521,
+   "ratio_max": 1.0328980759470308,
+   "ratios": [
+    1.0260638541523521,
+    1.0321170570100768,
+    1.0328980759470308
+   ],
+   "sm_clock_chain": 2800.7083333333335,
+   "sm_clock_reference": 2718.2083333333335
+  },
+  {
+   "case": "cavity2d_n8000",
+   "point": "x_2d_n8000_K8",
+   "job": "e7_b2B_1694328",
+   "host": "wqd10nbj04g2",
+   "reference": "strong:cavity2d_n8000",
+   "per_gpu": 8044060.5,
+   "trials": 3,
+   "ratio_mean": 1.0274990346448662,
+   "ratio_min": 1.0270395192974346,
+   "ratio_max": 1.0280862483805293,
+   "ratios": [
+    1.0270395192974346,
+    1.027371336256635,
+    1.0280862483805293
+   ],
+   "sm_clock_chain": 2779.0416666666665,
+   "sm_clock_reference": 2704.6666666666665
+  },
+  {
+   "case": "cavity2d_n11320",
+   "point": "2d_n11320_K8",
+   "job": "e7_b2B_1694328",
+   "host": "wqd10nbj04g2",
+   "reference": "pairs:cavity2d_n11320",
+   "per_gpu": 16080120.5,
+   "trials": 3,
+   "ratio_mean": 1.0187031046735864,
+   "ratio_min": 1.0183786273606632,
+   "ratio_max": 1.0190296272404737,
+   "ratios": [
+    1.0183786273606632,
+    1.0190296272404737,
+    1.0187010594196222
+   ],
+   "sm_clock_chain": 2764.2083333333335,
+   "sm_clock_reference": 2713.4583333333335
+  }
+ ],
+ "k_series": [
+  {
+   "case": "cavity2d_n8000",
+   "K": 2,
+   "point": "2d_n8000_K2",
+   "job": "e7_b2A_1694327",
+   "host": "wqd10nbj04g2",
+   "trials": 3,
+   "ratio_mean": 1.0092766164120346,
+   "ratio_min": 1.0069994474120465,
+   "ratio_max": 1.0110823790173624,
+   "ratios": [
+    1.0110823790173624,
+    1.0097480228066948,
+    1.0069994474120465
+   ],
+   "sm_clock_chain": 2738.5,
+   "sm_clock_reference": 2713.3333333333335
+  },
+  {
+   "case": "cavity2d_n8000",
+   "K": 3,
+   "point": "2d_n8000_K3",
+   "job": "e7_b2V_1703604",
+   "host": "wqd10nbj04g2",
+   "trials": 3,
+   "ratio_mean": 1.0160452462499927,
+   "ratio_min": 1.014831294030404,
+   "ratio_max": 1.0175807849449052,
+   "ratios": [
+    1.014831294030404,
+    1.0175807849449052,
+    1.0157236597746686
+   ],
+   "sm_clock_chain": 2737.111111111111,
+   "sm_clock_reference": 2693.888888888889
+  },
+  {
+   "case": "cavity2d_n8000",
+   "K": 4,
+   "point": "2d_n8000_K4",
+   "job": "e7_b2A_1694327",
+   "host": "wqd10nbj04g2",
+   "trials": 3,
+   "ratio_mean": 1.0198685755905694,
+   "ratio_min": 1.01877196227113,
+   "ratio_max": 1.0214675673174793,
+   "ratios": [
+    1.01877196227113,
+    1.0214675673174793,
+    1.0193661971830985
+   ],
+   "sm_clock_chain": 2754.75,
+   "sm_clock_reference": 2701.0833333333335
+  },
+  {
+   "case": "cavity2d_n8000",
+   "K": 5,
+   "point": "2d_n8000_K5",
+   "job": "e7_b2V_1703604",
+   "host": "wqd10nbj04g2",
+   "trials": 3,
+   "ratio_mean": 1.0207244946273093,
+   "ratio_min": 1.0200443786982247,
+   "ratio_max": 1.0216424547880225,
+   "ratios": [
+    1.0200443786982247,
+    1.0204866503956809,
+    1.0216424547880225
+   ],
+   "sm_clock_chain": 2758.2000000000003,
+   "sm_clock_reference": 2702.2000000000003
+  },
+  {
+   "case": "cavity2d_n8000",
+   "K": 6,
+   "point": "2d_n8000_K6",
+   "job": "e7_b2V_1703604",
+   "host": "wqd10nbj04g2",
+   "trials": 3,
+   "ratio_mean": 1.0216489331894187,
+   "ratio_min": 1.0209104367135455,
+   "ratio_max": 1.022277074976859,
+   "ratios": [
+    1.0209104367135455,
+    1.022277074976859,
+    1.0217592878778514
+   ],
+   "sm_clock_chain": 2758.1111111111113,
+   "sm_clock_reference": 2699.6666666666665
+  },
+  {
+   "case": "cavity2d_n8000",
+   "K": 7,
+   "point": "2d_n8000_K7",
+   "job": "e7_b2V_1703604",
+   "host": "wqd10nbj04g2",
+   "trials": 3,
+   "ratio_mean": 1.025151554278229,
+   "ratio_min": 1.0249656193800911,
+   "ratio_max": 1.025449339907746,
+   "ratios": [
+    1.0250397035468504,
+    1.0249656193800911,
+    1.025449339907746
+   ],
+   "sm_clock_chain": 2765.8095238095243,
+   "sm_clock_reference": 2697.952380952381
+  },
+  {
+   "case": "cavity2d_n8000",
+   "K": 8,
+   "point": "x_2d_n8000_K8",
+   "job": "e7_b2B_1694328",
+   "host": "wqd10nbj04g2",
+   "trials": 3,
+   "ratio_mean": 1.0274990346448662,
+   "ratio_min": 1.0270395192974346,
+   "ratio_max": 1.0280862483805293,
+   "ratios": [
+    1.0270395192974346,
+    1.027371336256635,
+    1.0280862483805293
+   ],
+   "sm_clock_chain": 2779.0416666666665,
+   "sm_clock_reference": 2704.6666666666665
+  }
+ ]
+}
