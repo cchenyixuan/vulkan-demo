@@ -19,16 +19,16 @@
     "job": "02_e8_e8B_1721839"
    },
    "e9": {
-    "eta": null,
-    "eta_min_trials": null,
-    "eta_max_trials": null,
-    "n": null,
-    "eta_min": null,
-    "fps_K": null,
-    "reference_fps": null,
-    "job": null
+    "eta": 0.46348694306923816,
+    "eta_min_trials": 0.4611043085862351,
+    "eta_max_trials": 0.4665345301230646,
+    "n": 5,
+    "eta_min": 0.4687774058219656,
+    "fps_K": 156.77328,
+    "reference_fps": 42.28093216656709,
+    "job": "02_e9_e9B_1741917"
    },
-   "delta_eta": null
+   "delta_eta": -0.0001283749695713543
   },
   {
    "point": "3d_n192_K8",
@@ -47,16 +47,16 @@
     "job": "02_e8_e8B_1721839"
    },
    "e9": {
-    "eta": null,
-    "eta_min_trials": null,
-    "eta_max_trials": null,
-    "n": null,
-    "eta_min": null,
-    "fps_K": null,
-    "reference_fps": null,
-    "job": null
+    "eta": 0.6608734345371736,
+    "eta_min_trials": 0.6583551298313141,
+    "eta_max_trials": 0.6627050615111355,
+    "n": 5,
+    "eta_min": 0.6676385289682578,
+    "fps_K": 113.00218,
+    "reference_fps": 21.37364245832076,
+    "job": "02_e9_e9B_1741917"
    },
-   "delta_eta": null
+   "delta_eta": -0.0025651225582696835
   },
   {
    "point": "3d_n244_K8",
@@ -75,16 +75,16 @@
     "job": "02_e8_e8B_1721839"
    },
    "e9": {
-    "eta": null,
-    "eta_min_trials": null,
-    "eta_max_trials": null,
-    "n": null,
-    "eta_min": null,
-    "fps_K": null,
-    "reference_fps": null,
-    "job": null
+    "eta": 0.8135974516323605,
+    "eta_min_trials": 0.8112921227655702,
+    "eta_max_trials": 0.8151698979141538,
+    "n": 3,
+    "eta_min": 0.8200864619362909,
+    "fps_K": 69.28466666666667,
+    "reference_fps": 10.64480145059105,
+    "job": "02_e9_e9B_1741917"
    },
-   "delta_eta": null
+   "delta_eta": -0.002200630861787456
   },
   {
    "point": "3d_n312_K8",
@@ -103,16 +103,16 @@
     "job": "02_e8_e8B_1721839"
    },
    "e9": {
-    "eta": null,
-    "eta_min_trials": null,
-    "eta_max_trials": null,
-    "n": null,
-    "eta_min": null,
-    "fps_K": null,
-    "reference_fps": null,
-    "job": null
+    "eta": 0.8670504107088605,
+    "eta_min_trials": 0.864664212725983,
+    "eta_max_trials": 0.8701274726750081,
+    "n": 3,
+    "eta_min": 0.8770008906826003,
+    "fps_K": 36.1359,
+    "reference_fps": 5.209601938031629,
+    "job": "02_e9_e9B_1741917"
    },
-   "delta_eta": null
+   "delta_eta": 0.02026144592359147
   },
   {
    "point": "3d_n392_K8",
@@ -131,16 +131,16 @@
     "job": "02_e8_e8B_1721839"
    },
    "e9": {
-    "eta": null,
-    "eta_min_trials": null,
-    "eta_max_trials": null,
-    "n": null,
-    "eta_min": null,
-    "fps_K": null,
-    "reference_fps": null,
-    "job": null
+    "eta": 0.8776432807930088,
+    "eta_min_trials": 0.8766482105142988,
+    "eta_max_trials": 0.8782524834555069,
+    "n": 3,
+    "eta_min": 0.8883055207799927,
+    "fps_K": 18.450433333333333,
+    "reference_fps": 2.6278377754829596,
+    "job": "02_e9_e9B_1741917"
    },
-   "delta_eta": null
+   "delta_eta": 0.037131358640996814
   },
   {
    "point": "3d_n192_k8_K8",
@@ -159,16 +159,16 @@
     "job": "02_e8_e8B_1721839"
    },
    "e9": {
-    "eta": null,
-    "eta_min_trials": null,
-    "eta_max_trials": null,
-    "n": null,
-    "eta_min": null,
-    "fps_K": null,
-    "reference_fps": null,
-    "job": null
+    "eta": 0.9823669673480029,
+    "eta_min_trials": 0.9783091939564927,
+    "eta_max_trials": 0.9860717742487968,
+    "n": 3,
+    "eta_min": 0.9932952482591197,
+    "fps_K": 21.01093333333333,
+    "reference_fps": 2.6735087334591507,
+    "job": "02_e9_e9B_1741917"
    },
-   "delta_eta": null
+   "delta_eta": -0.002702801949052369
   },
   {
    "point": "3d_n392_K2",

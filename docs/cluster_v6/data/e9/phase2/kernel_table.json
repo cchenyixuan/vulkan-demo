@@ -1,1 +1,2884 @@
-[]
+[
+ {
+  "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-28\\02_e9_e9B_1741917\\traces\\3d_n192_K8_C",
+  "case": "cavity3d_n192",
+  "K": 8,
+  "detail": "full",
+  "sims": [
+   {
+    "sim": 0,
+    "own_particles": 1119490,
+    "period_p50_ms": 8.755476,
+    "kernels": {
+     "a_predict_end": {
+      "kernel": "predict",
+      "phase": "A",
+      "us_p50": 33.056,
+      "us_mean": 33.0325025025025,
+      "steps": 999,
+      "after": "a_start",
+      "ns_per_particle": 0.02952773137768091,
+      "share_of_period": 0.0037754657770748268
+     },
+     "a_voxel_end": {
+      "kernel": "voxel",
+      "phase": "A",
+      "us_p50": 32.768,
+      "us_mean": 32.32791391391392,
+      "steps": 999,
+      "after": "a_predict_end",
+      "ns_per_particle": 0.02927047137535842,
+      "share_of_period": 0.003742572077177757
+     },
+     "a_ghost_trailing_end": {
+      "kernel": "ghost_trailing",
+      "phase": "A",
+      "us_p50": 14.337,
+      "us_mean": 14.956755755755756,
+      "steps": 999,
+      "after": "a_voxel_end",
+      "ns_per_particle": 0.012806724490616263,
+      "share_of_period": 0.0016374894980010224
+     },
+     "b_correction_density_interior_end": {
+      "kernel": "correction_density_interior",
+      "phase": "B",
+      "us_p50": 2293.936,
+      "us_mean": 2320.3435755755754,
+      "steps": 999,
+      "after": "b_start",
+      "ns_per_particle": 2.049090210720953,
+      "share_of_period": 0.2620001471079357
+     },
+     "b_force_deep_interior_end": {
+      "kernel": "force_deep_interior",
+      "phase": "B",
+      "us_p50": 1554.464,
+      "us_mean": 1565.7764544544543,
+      "steps": 999,
+      "after": "b_correction_density_interior_end",
+      "ns_per_particle": 1.3885465703132676,
+      "share_of_period": 0.17754191776666395
+     },
+     "c_expand_end": {
+      "kernel": "expand",
+      "phase": "C",
+      "us_p50": 11.521,
+      "us_mean": 11.995028028028027,
+      "steps": 999,
+      "after": "c_start",
+      "ns_per_particle": 0.010291293356796398,
+      "share_of_period": 0.001315862210118559
+     },
+     "c_install_trailing_end": {
+      "kernel": "install_trailing",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 4.141105105105105,
+      "steps": 999,
+      "after": "c_expand_end",
+      "ns_per_particle": 0.0036588089219198026,
+      "share_of_period": 0.0004678215096472196
+     },
+     "c_append_departed_end": {
+      "kernel": "append_departed",
+      "phase": "C",
+      "us_p50": 2.048,
+      "us_mean": 2.7552512512512513,
+      "steps": 999,
+      "after": "c_install_trailing_end",
+      "ns_per_particle": 0.0018294044609599013,
+      "share_of_period": 0.0002339107548236098
+     },
+     "c_correction_density_boundary_end": {
+      "kernel": "correction_density_boundary",
+      "phase": "C",
+      "us_p50": 1725.348,
+      "us_mean": 1700.5418138138139,
+      "steps": 999,
+      "after": "c_append_departed_end",
+      "ns_per_particle": 1.5411910780801972,
+      "share_of_period": 0.1970593032292019
+     },
+     "c_density_end": {
+      "kernel": "density",
+      "phase": "C",
+      "us_p50": 10.752,
+      "us_mean": 10.731372372372372,
+      "steps": 999,
+      "after": "c_correction_density_boundary_end",
+      "ns_per_particle": 0.009604373420039482,
+      "share_of_period": 0.0012280314628239516
+     },
+     "c_force_end": {
+      "kernel": "force",
+      "phase": "C",
+      "us_p50": 1734.437,
+      "us_mean": 1668.6984354354356,
+      "steps": 999,
+      "after": "c_density_end",
+      "ns_per_particle": 1.5493099536396038,
+      "share_of_period": 0.19809739641796742
+     }
+    },
+    "g1": {
+     "n0_per_side": {
+      "s1_to_s0": 159997.0
+     },
+     "band_particles": 479997.0,
+     "boundary_us": 1725.348,
+     "boundary_kernels": [
+      "correction_density_boundary"
+     ],
+     "cost_per_particle_us": 0.00359449746560916,
+     "redundant_us": 575.1088110050688,
+     "share_of_step": 0.06568561332417207
+    }
+   },
+   {
+    "sim": 1,
+    "own_particles": 959976,
+    "period_p50_ms": 8.793531,
+    "kernels": {
+     "a_predict_end": {
+      "kernel": "predict",
+      "phase": "A",
+      "us_p50": 24.832,
+      "us_mean": 24.958890890890892,
+      "steps": 999,
+      "after": "a_start",
+      "ns_per_particle": 0.025867313349500404,
+      "share_of_period": 0.002823894064852902
+     },
+     "a_voxel_end": {
+      "kernel": "voxel",
+      "phase": "A",
+      "us_p50": 28.673,
+      "us_mean": 28.743002002002,
+      "steps": 999,
+      "after": "a_predict_end",
+      "ns_per_particle": 0.02986845504470945,
+      "share_of_period": 0.003260692434017689
+     },
+     "a_ghost_leading_end": {
+      "kernel": "ghost_leading",
+      "phase": "A",
+      "us_p50": 14.337,
+      "us_mean": 14.833181181181184,
+      "steps": 999,
+      "after": "a_voxel_end",
+      "ns_per_particle": 0.014934748368709217,
+      "share_of_period": 0.0016304030769892096
+     },
+     "a_ghost_trailing_end": {
+      "kernel": "ghost_trailing",
+      "phase": "A",
+      "us_p50": 16.384,
+      "us_mean": 15.779682682682685,
+      "steps": 999,
+      "after": "a_ghost_leading_end",
+      "ns_per_particle": 0.017067093344000268,
+      "share_of_period": 0.0018631878366039765
+     },
+     "b_correction_density_interior_end": {
+      "kernel": "correction_density_interior",
+      "phase": "B",
+      "us_p50": 1102.812,
+      "us_mean": 1121.36496996997,
+      "steps": 999,
+      "after": "b_start",
+      "ns_per_particle": 1.1487912197804946,
+      "share_of_period": 0.12541173733281888
+     },
+     "b_force_deep_interior_end": {
+      "kernel": "force_deep_interior",
+      "phase": "B",
+      "us_p50": 10.176,
+      "us_mean": 8.976565565565565,
+      "steps": 999,
+      "after": "b_correction_density_interior_end",
+      "ns_per_particle": 0.010600265006625165,
+      "share_of_period": 0.001157214320390751
+     },
+     "c_expand_end": {
+      "kernel": "expand",
+      "phase": "C",
+      "us_p50": 21.76,
+      "us_mean": 22.156692692692694,
+      "steps": 999,
+      "after": "c_start",
+      "ns_per_particle": 0.022667233347500353,
+      "share_of_period": 0.0024745463454896566
+     },
+     "c_install_leading_end": {
+      "kernel": "install_leading",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 4.618809809809811,
+      "steps": 999,
+      "after": "c_expand_end",
+      "ns_per_particle": 0.004266773336000067,
+      "share_of_period": 0.0004657969591509941
+     },
+     "c_install_trailing_end": {
+      "kernel": "install_trailing",
+      "phase": "C",
+      "us_p50": 2.048,
+      "us_mean": 2.6877487487487493,
+      "steps": 999,
+      "after": "c_install_leading_end",
+      "ns_per_particle": 0.0021333866680000335,
+      "share_of_period": 0.00023289847957549706
+     },
+     "c_append_departed_end": {
+      "kernel": "append_departed",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 3.9523723723723734,
+      "steps": 999,
+      "after": "c_install_trailing_end",
+      "ns_per_particle": 0.004266773336000067,
+      "share_of_period": 0.0004657969591509941
+     },
+     "c_correction_density_boundary_end": {
+      "kernel": "correction_density_boundary",
+      "phase": "C",
+      "us_p50": 2882.505,
+      "us_mean": 2960.289158158158,
+      "steps": 999,
+      "after": "c_append_departed_end",
+      "ns_per_particle": 3.0026844421110526,
+      "share_of_period": 0.32779835540467195
+     },
+     "c_density_end": {
+      "kernel": "density",
+      "phase": "C",
+      "us_p50": 10.368,
+      "us_mean": 10.385129129129128,
+      "steps": 999,
+      "after": "c_correction_density_boundary_end",
+      "ns_per_particle": 0.010800270006750169,
+      "share_of_period": 0.0011790485528509539
+     },
+     "c_force_end": {
+      "kernel": "force",
+      "phase": "C",
+      "us_p50": 3011.532,
+      "us_mean": 3068.792992992993,
+      "steps": 999,
+      "after": "c_density_end",
+      "ns_per_particle": 3.137090927273182,
+      "share_of_period": 0.34247130077781046
+     }
+    },
+    "g1": {
+     "n0_per_side": {
+      "s0_to_s1": 159994.0,
+      "s2_to_s1": 160000.0
+     },
+     "band_particles": 959994.0,
+     "boundary_us": 2882.505,
+     "boundary_kernels": [
+      "correction_density_boundary"
+     ],
+     "cost_per_particle_us": 0.003002628141425884,
+     "redundant_us": 960.8229894874343,
+     "share_of_step": 0.10926475263320666
+    }
+   },
+   {
+    "sim": 2,
+    "own_particles": 960043,
+    "period_p50_ms": 8.809431,
+    "kernels": {
+     "a_predict_end": {
+      "kernel": "predict",
+      "phase": "A",
+      "us_p50": 25.024,
+      "us_mean": 25.11554754754755,
+      "steps": 999,
+      "after": "a_start",
+      "ns_per_particle": 0.026065499149517262,
+      "share_of_period": 0.002840592088183675
+     },
+     "a_voxel_end": {
+      "kernel": "voxel",
+      "phase": "A",
+      "us_p50": 28.641,
+      "us_mean": 28.102427427427425,
+      "steps": 999,
+      "after": "a_predict_end",
+      "ns_per_particle": 0.02983303872847362,
+      "share_of_period": 0.003251174792106323
+     },
+     "a_ghost_leading_end": {
+      "kernel": "ghost_leading",
+      "phase": "A",
+      "us_p50": 14.337,
+      "us_mean": 14.834523523523526,
+      "steps": 999,
+      "after": "a_voxel_end",
+      "ns_per_particle": 0.014933706094414521,
+      "share_of_period": 0.0016274603887583658
+     },
+     "a_ghost_trailing_end": {
+      "kernel": "ghost_trailing",
+      "phase": "A",
+      "us_p50": 16.352,
+      "us_mean": 15.624297297297298,
+      "steps": 999,
+      "after": "a_ghost_leading_end",
+      "ns_per_particle": 0.017032570416116777,
+      "share_of_period": 0.0018561925282120945
+     },
+     "b_correction_density_interior_end": {
+      "kernel": "correction_density_interior",
+      "phase": "B",
+      "us_p50": 1077.37,
+      "us_mean": 1089.7237377377378,
+      "steps": 999,
+      "after": "b_start",
+      "ns_per_particle": 1.122210151003653,
+      "share_of_period": 0.12229734247308366
+     },
+     "b_force_deep_interior_end": {
+      "kernel": "force_deep_interior",
+      "phase": "B",
+      "us_p50": 6.624,
+      "us_mean": 7.631315315315316,
+      "steps": 999,
+      "after": "b_correction_density_interior_end",
+      "ns_per_particle": 0.006899690951342805,
+      "share_of_period": 0.0007519214351074433
+     },
+     "c_expand_end": {
+      "kernel": "expand",
+      "phase": "C",
+      "us_p50": 21.664,
+      "us_mean": 22.124987987987986,
+      "steps": 999,
+      "after": "c_start",
+      "ns_per_particle": 0.02256565591332888,
+      "share_of_period": 0.0024591826645784503
+     },
+     "c_install_leading_end": {
+      "kernel": "install_leading",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 4.555887887887888,
+      "steps": 999,
+      "after": "c_expand_end",
+      "ns_per_particle": 0.004266475564115357,
+      "share_of_period": 0.0004649562497282741
+     },
+     "c_install_trailing_end": {
+      "kernel": "install_trailing",
+      "phase": "C",
+      "us_p50": 2.08,
+      "us_mean": 2.532876876876877,
+      "steps": 999,
+      "after": "c_install_leading_end",
+      "ns_per_particle": 0.00216656962240233,
+      "share_of_period": 0.0002361105955651392
+     },
+     "c_append_departed_end": {
+      "kernel": "append_departed",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 3.5725585585585584,
+      "steps": 999,
+      "after": "c_install_trailing_end",
+      "ns_per_particle": 0.004266475564115357,
+      "share_of_period": 0.0004649562497282741
+     },
+     "c_correction_density_boundary_end": {
+      "kernel": "correction_density_boundary",
+      "phase": "C",
+      "us_p50": 2813.092,
+      "us_mean": 2928.217846846847,
+      "steps": 999,
+      "after": "c_append_departed_end",
+      "ns_per_particle": 2.930172919337988,
+      "share_of_period": 0.3193273209132349
+     },
+     "c_density_end": {
+      "kernel": "density",
+      "phase": "C",
+      "us_p50": 10.368,
+      "us_mean": 10.258225225225226,
+      "steps": 999,
+      "after": "c_correction_density_boundary_end",
+      "ns_per_particle": 0.010799516271666998,
+      "share_of_period": 0.001176920507124694
+     },
+     "c_force_end": {
+      "kernel": "force",
+      "phase": "C",
+      "us_p50": 2935.879,
+      "us_mean": 3018.678484484484,
+      "steps": 999,
+      "after": "c_density_end",
+      "ns_per_particle": 3.058070315600447,
+      "share_of_period": 0.33326545153710835
+     }
+    },
+    "g1": {
+     "n0_per_side": {
+      "s1_to_s2": 160000.0,
+      "s3_to_s2": 160000.0
+     },
+     "band_particles": 960000.0,
+     "boundary_us": 2813.092,
+     "boundary_kernels": [
+      "correction_density_boundary"
+     ],
+     "cost_per_particle_us": 0.002930304166666667,
+     "redundant_us": 937.6973333333334,
+     "share_of_step": 0.10644244030441165
+    }
+   },
+   {
+    "sim": 3,
+    "own_particles": 959923,
+    "period_p50_ms": 8.800414,
+    "kernels": {
+     "a_predict_end": {
+      "kernel": "predict",
+      "phase": "A",
+      "us_p50": 25.152,
+      "us_mean": 25.211077077077075,
+      "steps": 999,
+      "after": "a_start",
+      "ns_per_particle": 0.026202101626901324,
+      "share_of_period": 0.0028580473600446524
+     },
+     "a_voxel_end": {
+      "kernel": "voxel",
+      "phase": "A",
+      "us_p50": 28.705,
+      "us_mean": 28.993487487487485,
+      "steps": 999,
+      "after": "a_predict_end",
+      "ns_per_particle": 0.029903440171763777,
+      "share_of_period": 0.0032617783663359467
+     },
+     "a_ghost_leading_end": {
+      "kernel": "ghost_leading",
+      "phase": "A",
+      "us_p50": 14.337,
+      "us_mean": 14.97780780780781,
+      "steps": 999,
+      "after": "a_voxel_end",
+      "ns_per_particle": 0.014935572957414293,
+      "share_of_period": 0.0016291279023918645
+     },
+     "a_ghost_trailing_end": {
+      "kernel": "ghost_trailing",
+      "phase": "A",
+      "us_p50": 16.225,
+      "us_mean": 15.615895895895894,
+      "steps": 999,
+      "after": "a_ghost_leading_end",
+      "ns_per_particle": 0.016902397379789838,
+      "share_of_period": 0.0018436632640237154
+     },
+     "b_correction_density_interior_end": {
+      "kernel": "correction_density_interior",
+      "phase": "B",
+      "us_p50": 1083.035,
+      "us_mean": 1110.191097097097,
+      "steps": 999,
+      "after": "b_start",
+      "ns_per_particle": 1.128251953542107,
+      "share_of_period": 0.12306636937762246
+     },
+     "b_force_deep_interior_end": {
+      "kernel": "force_deep_interior",
+      "phase": "B",
+      "us_p50": 6.624,
+      "us_mean": 6.657454454454455,
+      "steps": 999,
+      "after": "b_correction_density_interior_end",
+      "ns_per_particle": 0.00690055348189386,
+      "share_of_period": 0.0007526918619964923
+     },
+     "c_expand_end": {
+      "kernel": "expand",
+      "phase": "C",
+      "us_p50": 21.792,
+      "us_mean": 22.23872872872873,
+      "steps": 999,
+      "after": "c_start",
+      "ns_per_particle": 0.022701820875216033,
+      "share_of_period": 0.0024762471401913594
+     },
+     "c_install_leading_end": {
+      "kernel": "install_leading",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 4.615711711711712,
+      "steps": 999,
+      "after": "c_expand_end",
+      "ns_per_particle": 0.004267008916340164,
+      "share_of_period": 0.00046543264896401463
+     },
+     "c_install_trailing_end": {
+      "kernel": "install_trailing",
+      "phase": "C",
+      "us_p50": 3.936,
+      "us_mean": 3.1859869869869875,
+      "steps": 999,
+      "after": "c_install_leading_end",
+      "ns_per_particle": 0.004100328880545627,
+      "share_of_period": 0.0004472516861138578
+     },
+     "c_append_departed_end": {
+      "kernel": "append_departed",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 4.045269269269269,
+      "steps": 999,
+      "after": "c_install_trailing_end",
+      "ns_per_particle": 0.004267008916340164,
+      "share_of_period": 0.00046543264896401463
+     },
+     "c_correction_density_boundary_end": {
+      "kernel": "correction_density_boundary",
+      "phase": "C",
+      "us_p50": 2869.161,
+      "us_mean": 2975.956798798799,
+      "steps": 999,
+      "after": "c_append_departed_end",
+      "ns_per_particle": 2.988949113626822,
+      "share_of_period": 0.32602568470074245
+     },
+     "c_density_end": {
+      "kernel": "density",
+      "phase": "C",
+      "us_p50": 10.368,
+      "us_mean": 10.31410910910911,
+      "steps": 999,
+      "after": "c_correction_density_boundary_end",
+      "ns_per_particle": 0.010800866319486043,
+      "share_of_period": 0.0011781263926901621
+     },
+     "c_force_end": {
+      "kernel": "force",
+      "phase": "C",
+      "us_p50": 3003.532,
+      "us_mean": 3046.0033413413416,
+      "steps": 999,
+      "after": "c_density_end",
+      "ns_per_particle": 3.128930132937746,
+      "share_of_period": 0.3412943981953576
+     }
+    },
+    "g1": {
+     "n0_per_side": {
+      "s2_to_s3": 160000.0,
+      "s4_to_s3": 160000.0
+     },
+     "band_particles": 960000.0,
+     "boundary_us": 2869.161,
+     "boundary_kernels": [
+      "correction_density_boundary"
+     ],
+     "cost_per_particle_us": 0.0029887093750000002,
+     "redundant_us": 956.3870000000001,
+     "share_of_step": 0.10867522823358083
+    }
+   },
+   {
+    "sim": 4,
+    "own_particles": 960092,
+    "period_p50_ms": 8.807475,
+    "kernels": {
+     "a_predict_end": {
+      "kernel": "predict",
+      "phase": "A",
+      "us_p50": 24.897,
+      "us_mean": 25.108252252252253,
+      "steps": 999,
+      "after": "a_start",
+      "ns_per_particle": 0.02593188986055503,
+      "share_of_period": 0.002826803368729403
+     },
+     "a_voxel_end": {
+      "kernel": "voxel",
+      "phase": "A",
+      "us_p50": 28.673,
+      "us_mean": 28.383673673673673,
+      "steps": 999,
+      "after": "a_predict_end",
+      "ns_per_particle": 0.029864846285564302,
+      "share_of_period": 0.003255530103690331
+     },
+     "a_ghost_leading_end": {
+      "kernel": "ghost_leading",
+      "phase": "A",
+      "us_p50": 14.337,
+      "us_mean": 14.88552052052052,
+      "steps": 999,
+      "after": "a_voxel_end",
+      "ns_per_particle": 0.014932943926207072,
+      "share_of_period": 0.0016278218218047738
+     },
+     "a_ghost_trailing_end": {
+      "kernel": "ghost_trailing",
+      "phase": "A",
+      "us_p50": 16.353,
+      "us_mean": 15.843340340340342,
+      "steps": 999,
+      "after": "a_ghost_leading_end",
+      "ns_per_particle": 0.017032742695491685,
+      "share_of_period": 0.0018567182989449305
+     },
+     "b_correction_density_interior_end": {
+      "kernel": "correction_density_interior",
+      "phase": "B",
+      "us_p50": 1066.681,
+      "us_mean": 1069.4135815815816,
+      "steps": 999,
+      "after": "b_start",
+      "ns_per_particle": 1.111019568957975,
+      "share_of_period": 0.12111087456961274
+     },
+     "b_force_deep_interior_end": {
+      "kernel": "force_deep_interior",
+      "phase": "B",
+      "us_p50": 6.528,
+      "us_mean": 6.5963503503503516,
+      "steps": 999,
+      "after": "b_correction_density_interior_end",
+      "ns_per_particle": 0.006799348395778738,
+      "share_of_period": 0.0007411885926443163
+     },
+     "c_expand_end": {
+      "kernel": "expand",
+      "phase": "C",
+      "us_p50": 21.728,
+      "us_mean": 22.09984984984985,
+      "steps": 999,
+      "after": "c_start",
+      "ns_per_particle": 0.0226311645134008,
+      "share_of_period": 0.0024669953647327983
+     },
+     "c_install_leading_end": {
+      "kernel": "install_leading",
+      "phase": "C",
+      "us_p50": 4.128,
+      "us_mean": 4.447727727727728,
+      "steps": 999,
+      "after": "c_expand_end",
+      "ns_per_particle": 0.0042995879561542015,
+      "share_of_period": 0.00046869278652508236
+     },
+     "c_install_trailing_end": {
+      "kernel": "install_trailing",
+      "phase": "C",
+      "us_p50": 2.08,
+      "us_mean": 2.86108008008008,
+      "steps": 999,
+      "after": "c_install_leading_end",
+      "ns_per_particle": 0.0021664590476745977,
+      "share_of_period": 0.00023616303197000274
+     },
+     "c_append_departed_end": {
+      "kernel": "append_departed",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 3.6468078078078077,
+      "steps": 999,
+      "after": "c_install_trailing_end",
+      "ns_per_particle": 0.0042662578169592085,
+      "share_of_period": 0.0004650595091101593
+     },
+     "c_correction_density_boundary_end": {
+      "kernel": "correction_density_boundary",
+      "phase": "C",
+      "us_p50": 2837.187,
+      "us_mean": 2922.380214214214,
+      "steps": 999,
+      "after": "c_append_departed_end",
+      "ns_per_particle": 2.955119926007091,
+      "share_of_period": 0.3221339827816712
+     },
+     "c_density_end": {
+      "kernel": "density",
+      "phase": "C",
+      "us_p50": 10.368,
+      "us_mean": 10.298050050050051,
+      "steps": 999,
+      "after": "c_correction_density_boundary_end",
+      "ns_per_particle": 0.010798965099177995,
+      "share_of_period": 0.0011771818824350907
+     },
+     "c_force_end": {
+      "kernel": "force",
+      "phase": "C",
+      "us_p50": 2971.4,
+      "us_mean": 3055.6115655655653,
+      "steps": 999,
+      "after": "c_density_end",
+      "ns_per_particle": 3.0949117376251443,
+      "share_of_period": 0.3373725159594549
+     }
+    },
+    "g1": {
+     "n0_per_side": {
+      "s3_to_s4": 160000.0,
+      "s5_to_s4": 160000.0
+     },
+     "band_particles": 960000.0,
+     "boundary_us": 2837.187,
+     "boundary_kernels": [
+      "correction_density_boundary"
+     ],
+     "cost_per_particle_us": 0.002955403125,
+     "redundant_us": 945.729,
+     "share_of_step": 0.10737799426055708
+    }
+   },
+   {
+    "sim": 5,
+    "own_particles": 959953,
+    "period_p50_ms": 8.794363,
+    "kernels": {
+     "a_predict_end": {
+      "kernel": "predict",
+      "phase": "A",
+      "us_p50": 24.833,
+      "us_mean": 25.021150150150152,
+      "steps": 999,
+      "after": "a_start",
+      "ns_per_particle": 0.025868974835226308,
+      "share_of_period": 0.0028237406165745028
+     },
+     "a_voxel_end": {
+      "kernel": "voxel",
+      "phase": "A",
+      "us_p50": 28.704,
+      "us_mean": 28.735551551551552,
+      "steps": 999,
+      "after": "a_predict_end",
+      "ns_per_particle": 0.029901463925838034,
+      "share_of_period": 0.0032639089380322368
+     },
+     "a_ghost_leading_end": {
+      "kernel": "ghost_leading",
+      "phase": "A",
+      "us_p50": 14.337,
+      "us_mean": 14.854194194194196,
+      "steps": 999,
+      "after": "a_voxel_end",
+      "ns_per_particle": 0.014935106197907605,
+      "share_of_period": 0.00163024883098412
+     },
+     "a_ghost_trailing_end": {
+      "kernel": "ghost_trailing",
+      "phase": "A",
+      "us_p50": 16.384,
+      "us_mean": 16.013675675675675,
+      "steps": 999,
+      "after": "a_ghost_leading_end",
+      "ns_per_particle": 0.017067502263131633,
+      "share_of_period": 0.001863011567750842
+     },
+     "b_correction_density_interior_end": {
+      "kernel": "correction_density_interior",
+      "phase": "B",
+      "us_p50": 1090.811,
+      "us_mean": 1100.0836426426426,
+      "steps": 999,
+      "after": "b_start",
+      "ns_per_particle": 1.1363170905242235,
+      "share_of_period": 0.12403524848815085
+     },
+     "b_force_deep_interior_end": {
+      "kernel": "force_deep_interior",
+      "phase": "B",
+      "us_p50": 6.464,
+      "us_mean": 6.534598598598599,
+      "steps": 999,
+      "after": "b_correction_density_interior_end",
+      "ns_per_particle": 0.0067336630022511515,
+      "share_of_period": 0.0007350162825891994
+     },
+     "c_expand_end": {
+      "kernel": "expand",
+      "phase": "C",
+      "us_p50": 22.657,
+      "us_mean": 22.452045045045047,
+      "steps": 999,
+      "after": "c_start",
+      "ns_per_particle": 0.023602197190904138,
+      "share_of_period": 0.0025763093927325944
+     },
+     "c_install_leading_end": {
+      "kernel": "install_leading",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 4.602175175175176,
+      "steps": 999,
+      "after": "c_expand_end",
+      "ns_per_particle": 0.004266875565782908,
+      "share_of_period": 0.0004657528919377105
+     },
+     "c_install_trailing_end": {
+      "kernel": "install_trailing",
+      "phase": "C",
+      "us_p50": 4.064,
+      "us_mean": 3.4963733733733737,
+      "steps": 999,
+      "after": "c_install_leading_end",
+      "ns_per_particle": 0.0042335406004252295,
+      "share_of_period": 0.0004621141974694471
+     },
+     "c_append_departed_end": {
+      "kernel": "append_departed",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 4.080253253253254,
+      "steps": 999,
+      "after": "c_install_trailing_end",
+      "ns_per_particle": 0.004266875565782908,
+      "share_of_period": 0.0004657528919377105
+     },
+     "c_correction_density_boundary_end": {
+      "kernel": "correction_density_boundary",
+      "phase": "C",
+      "us_p50": 2904.969,
+      "us_mean": 2994.906439439439,
+      "steps": 999,
+      "after": "c_append_departed_end",
+      "ns_per_particle": 3.0261575306291038,
+      "share_of_period": 0.3303217072117673
+     },
+     "c_density_end": {
+      "kernel": "density",
+      "phase": "C",
+      "us_p50": 10.337,
+      "us_mean": 10.30877977977978,
+      "steps": 999,
+      "after": "c_correction_density_boundary_end",
+      "ns_per_particle": 0.010768235528197735,
+      "share_of_period": 0.0011754120224511996
+     },
+     "c_force_end": {
+      "kernel": "force",
+      "phase": "C",
+      "us_p50": 3034.251,
+      "us_mean": 3131.7215125125126,
+      "steps": 999,
+      "after": "c_density_end",
+      "ns_per_particle": 3.160832874109462,
+      "share_of_period": 0.3450222602819556
+     }
+    },
+    "g1": {
+     "n0_per_side": {
+      "s4_to_s5": 160000.0,
+      "s6_to_s5": 160000.0
+     },
+     "band_particles": 960000.0,
+     "boundary_us": 2904.969,
+     "boundary_kernels": [
+      "correction_density_boundary"
+     ],
+     "cost_per_particle_us": 0.003026009375,
+     "redundant_us": 968.323,
+     "share_of_step": 0.11010723573725577
+    }
+   },
+   {
+    "sim": 6,
+    "own_particles": 960009,
+    "period_p50_ms": 8.77521,
+    "kernels": {
+     "a_predict_end": {
+      "kernel": "predict",
+      "phase": "A",
+      "us_p50": 24.768,
+      "us_mean": 24.993385385385384,
+      "steps": 999,
+      "after": "a_start",
+      "ns_per_particle": 0.025799758127267557,
+      "share_of_period": 0.002822496555637985
+     },
+     "a_voxel_end": {
+      "kernel": "voxel",
+      "phase": "A",
+      "us_p50": 28.704,
+      "us_mean": 28.956014014014013,
+      "steps": 999,
+      "after": "a_predict_end",
+      "ns_per_particle": 0.029899719690127904,
+      "share_of_period": 0.0032710328299835564
+     },
+     "a_ghost_leading_end": {
+      "kernel": "ghost_leading",
+      "phase": "A",
+      "us_p50": 14.337,
+      "us_mean": 14.860256256256257,
+      "steps": 999,
+      "after": "a_voxel_end",
+      "ns_per_particle": 0.014934234991546955,
+      "share_of_period": 0.0016338070541901562
+     },
+     "a_ghost_trailing_end": {
+      "kernel": "ghost_trailing",
+      "phase": "A",
+      "us_p50": 16.353,
+      "us_mean": 15.840145145145145,
+      "steps": 999,
+      "after": "a_ghost_leading_end",
+      "ns_per_particle": 0.017034215304231524,
+      "share_of_period": 0.001863545145928132
+     },
+     "b_correction_density_interior_end": {
+      "kernel": "correction_density_interior",
+      "phase": "B",
+      "us_p50": 1098.681,
+      "us_mean": 1119.753002002002,
+      "steps": 999,
+      "after": "b_start",
+      "ns_per_particle": 1.1444486457939458,
+      "share_of_period": 0.12520281565911245
+     },
+     "b_force_deep_interior_end": {
+      "kernel": "force_deep_interior",
+      "phase": "B",
+      "us_p50": 6.401,
+      "us_mean": 6.478634634634634,
+      "steps": 999,
+      "after": "b_correction_density_interior_end",
+      "ns_per_particle": 0.006667645824153732,
+      "share_of_period": 0.0007294412327454273
+     },
+     "c_expand_end": {
+      "kernel": "expand",
+      "phase": "C",
+      "us_p50": 21.729,
+      "us_mean": 22.22033133133133,
+      "steps": 999,
+      "after": "c_start",
+      "ns_per_particle": 0.022634162804723707,
+      "share_of_period": 0.0024761800572293997
+     },
+     "c_install_leading_end": {
+      "kernel": "install_leading",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 4.559256256256257,
+      "steps": 999,
+      "after": "c_expand_end",
+      "ns_per_particle": 0.004266626667041663,
+      "share_of_period": 0.00046676945622953756
+     },
+     "c_install_trailing_end": {
+      "kernel": "install_trailing",
+      "phase": "C",
+      "us_p50": 3.904,
+      "us_mean": 3.0823603603603607,
+      "steps": 999,
+      "after": "c_install_leading_end",
+      "ns_per_particle": 0.004066628542024085,
+      "share_of_period": 0.000444889637968778
+     },
+     "c_append_departed_end": {
+      "kernel": "append_departed",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 3.89915015015015,
+      "steps": 999,
+      "after": "c_install_trailing_end",
+      "ns_per_particle": 0.004266626667041663,
+      "share_of_period": 0.00046676945622953756
+     },
+     "c_correction_density_boundary_end": {
+      "kernel": "correction_density_boundary",
+      "phase": "C",
+      "us_p50": 3111.847,
+      "us_mean": 3041.1671511511513,
+      "steps": 999,
+      "after": "c_append_departed_end",
+      "ns_per_particle": 3.2414769028207027,
+      "share_of_period": 0.35461795216296826
+     },
+     "c_density_end": {
+      "kernel": "density",
+      "phase": "C",
+      "us_p50": 10.368,
+      "us_mean": 10.31495895895896,
+      "steps": 999,
+      "after": "c_correction_density_boundary_end",
+      "ns_per_particle": 0.01079989875094921,
+      "share_of_period": 0.0011815101860810171
+     },
+     "c_force_end": {
+      "kernel": "force",
+      "phase": "C",
+      "us_p50": 3171.465,
+      "us_mean": 3135.1037287287286,
+      "steps": 999,
+      "after": "c_density_end",
+      "ns_per_particle": 3.303578403952463,
+      "share_of_period": 0.3614118636477076
+     }
+    },
+    "g1": {
+     "n0_per_side": {
+      "s5_to_s6": 160000.0,
+      "s7_to_s6": 160000.0
+     },
+     "band_particles": 960000.0,
+     "boundary_us": 3111.847,
+     "boundary_kernels": [
+      "correction_density_boundary"
+     ],
+     "cost_per_particle_us": 0.0032415072916666668,
+     "redundant_us": 1037.2823333333333,
+     "share_of_step": 0.11820598405432274
+    }
+   },
+   {
+    "sim": 7,
+    "own_particles": 1120514,
+    "period_p50_ms": 8.743929,
+    "kernels": {
+     "a_predict_end": {
+      "kernel": "predict",
+      "phase": "A",
+      "us_p50": 34.721,
+      "us_mean": 34.653214214214216,
+      "steps": 999,
+      "after": "a_start",
+      "ns_per_particle": 0.030986672187942318,
+      "share_of_period": 0.003970869388349333
+     },
+     "a_voxel_end": {
+      "kernel": "voxel",
+      "phase": "A",
+      "us_p50": 34.817,
+      "us_mean": 35.11007507507507,
+      "steps": 999,
+      "after": "a_predict_end",
+      "ns_per_particle": 0.03107234715496638,
+      "share_of_period": 0.003981848434496667
+     },
+     "a_ghost_leading_end": {
+      "kernel": "ghost_leading",
+      "phase": "A",
+      "us_p50": 14.336,
+      "us_mean": 14.574296296296298,
+      "steps": 999,
+      "after": "a_voxel_end",
+      "ns_per_particle": 0.012794128408926618,
+      "share_of_period": 0.0016395375580016717
+     },
+     "b_correction_density_interior_end": {
+      "kernel": "correction_density_interior",
+      "phase": "B",
+      "us_p50": 2244.561,
+      "us_mean": 2276.5463583583582,
+      "steps": 999,
+      "after": "b_start",
+      "ns_per_particle": 2.003153017276,
+      "share_of_period": 0.25669936249482356
+     },
+     "b_force_deep_interior_end": {
+      "kernel": "force_deep_interior",
+      "phase": "B",
+      "us_p50": 1560.609,
+      "us_mean": 1585.2445195195196,
+      "steps": 999,
+      "after": "b_correction_density_interior_end",
+      "ns_per_particle": 1.392761714713069,
+      "share_of_period": 0.17847914821815225
+     },
+     "c_expand_end": {
+      "kernel": "expand",
+      "phase": "C",
+      "us_p50": 11.392,
+      "us_mean": 11.467465465465464,
+      "steps": 999,
+      "after": "c_start",
+      "ns_per_particle": 0.010166762753522044,
+      "share_of_period": 0.0013028468094834712
+     },
+     "c_install_leading_end": {
+      "kernel": "install_leading",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 4.765012012012012,
+      "steps": 999,
+      "after": "c_expand_end",
+      "ns_per_particle": 0.0036554652596933195,
+      "share_of_period": 0.0004684393022861919
+     },
+     "c_append_departed_end": {
+      "kernel": "append_departed",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 3.7708328328328333,
+      "steps": 999,
+      "after": "c_install_leading_end",
+      "ns_per_particle": 0.0036554652596933195,
+      "share_of_period": 0.0004684393022861919
+     },
+     "c_correction_density_boundary_end": {
+      "kernel": "correction_density_boundary",
+      "phase": "C",
+      "us_p50": 1794.982,
+      "us_mean": 1739.191323323323,
+      "steps": 999,
+      "after": "c_append_departed_end",
+      "ns_per_particle": 1.6019273297790122,
+      "share_of_period": 0.2052832313711605
+     },
+     "c_density_end": {
+      "kernel": "density",
+      "phase": "C",
+      "us_p50": 10.241,
+      "us_mean": 10.029388388388389,
+      "steps": 999,
+      "after": "c_correction_density_boundary_end",
+      "ns_per_particle": 0.009139555596806466,
+      "share_of_period": 0.0011712126207795144
+     },
+     "c_force_end": {
+      "kernel": "force",
+      "phase": "C",
+      "us_p50": 1910.888,
+      "us_mean": 1799.0977777777778,
+      "steps": 999,
+      "after": "c_density_end",
+      "ns_per_particle": 1.7053673581945428,
+      "share_of_period": 0.21853882848316813
+     }
+    },
+    "g1": {
+     "n0_per_side": {
+      "s6_to_s7": 160000.0
+     },
+     "band_particles": 480000.0,
+     "boundary_us": 1794.982,
+     "boundary_kernels": [
+      "correction_density_boundary"
+     ],
+     "cost_per_particle_us": 0.0037395458333333333,
+     "redundant_us": 598.3273333333333,
+     "share_of_step": 0.06842774379038682
+    }
+   }
+  ],
+  "mean_over_sims": {
+   "predict": {
+    "phase": "A",
+    "us_p50_mean": 27.160375,
+    "ns_per_particle_mean": 0.02703124256432389,
+    "share_mean": 0.00309273865243091,
+    "sims": 8
+   },
+   "voxel": {
+    "phase": "A",
+    "us_p50_mean": 29.960625,
+    "ns_per_particle_mean": 0.029951722797100237,
+    "share_mean": 0.0034110672469800634,
+    "sims": 8
+   },
+   "ghost_trailing": {
+    "phase": "A",
+    "us_p50_mean": 16.05542857142857,
+    "ns_per_particle_mean": 0.016420463699054,
+    "share_mean": 0.0018262583056378161,
+    "sims": 7
+   },
+   "correction_density_interior": {
+    "phase": "B",
+    "us_p50_mean": 1382.235875,
+    "ns_per_particle_mean": 1.355410232199919,
+    "share_mean": 0.15747798718789505,
+    "sims": 8
+   },
+   "force_deep_interior": {
+    "phase": "B",
+    "us_p50_mean": 394.73625,
+    "ns_per_particle_mean": 0.35323868146104775,
+    "share_mean": 0.04511106746378623,
+    "sims": 8
+   },
+   "expand": {
+    "phase": "C",
+    "us_p50_mean": 19.280375,
+    "ns_per_particle_mean": 0.019657536344424045,
+    "share_mean": 0.002193521248069536,
+    "sims": 8
+   },
+   "install_trailing": {
+    "phase": "C",
+    "us_p50_mean": 3.172571428571428,
+    "ns_per_particle_mean": 0.003217960326141672,
+    "share_mean": 0.0003610355911871345,
+    "sims": 7
+   },
+   "append_departed": {
+    "phase": "C",
+    "us_p50_mean": 3.84,
+    "ns_per_particle_mean": 0.0038856109483615736,
+    "share_mean": 0.00043701472152881147,
+    "sims": 8
+   },
+   "correction_density_boundary": {
+    "phase": "C",
+    "us_p50_mean": 2617.386375,
+    "ns_per_particle_mean": 2.6609599052989963,
+    "share_mean": 0.2978209422219273,
+    "sims": 8
+   },
+   "density": {
+    "phase": "C",
+    "us_p50_mean": 10.39625,
+    "ns_per_particle_mean": 0.010438960124134262,
+    "share_mean": 0.0011834304534045729,
+    "sims": 8
+   },
+   "force": {
+    "phase": "C",
+    "us_p50_mean": 2721.6730000000002,
+    "ns_per_particle_mean": 2.767261462916574,
+    "share_mean": 0.30968425191256627,
+    "sims": 8
+   },
+   "ghost_leading": {
+    "phase": "A",
+    "us_p50_mean": 14.336857142857143,
+    "ns_per_particle_mean": 0.014628634420732325,
+    "share_mean": 0.0016312009475885944,
+    "sims": 7
+   },
+   "install_leading": {
+    "phase": "C",
+    "us_p50_mean": 4.1005714285714285,
+    "ns_per_particle_mean": 0.004184116180732526,
+    "share_mean": 0.00046654861354597217,
+    "sims": 7
+   }
+  },
+  "kernel_order": [
+   "predict",
+   "voxel",
+   "ghost_trailing",
+   "correction_density_interior",
+   "force_deep_interior",
+   "expand",
+   "install_trailing",
+   "append_departed",
+   "correction_density_boundary",
+   "density",
+   "force",
+   "ghost_leading",
+   "install_leading"
+  ],
+  "period_mean_of_sims_ms": 8.784978625,
+  "g1_share_mean": 0.0992733740422367,
+  "g1_share_range": [
+   0.06568561332417207,
+   0.11820598405432274
+  ],
+  "point": "3d_n192_K8",
+  "job": "02_e9_e9B_1741917"
+ },
+ {
+  "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-28\\02_e9_e9B_1741917\\traces\\3d_n392_K8_C",
+  "case": "cavity3d_n392",
+  "K": 8,
+  "detail": "full",
+  "sims": [
+   {
+    "sim": 0,
+    "own_particles": 8318821,
+    "period_p50_ms": 53.15152,
+    "kernels": {
+     "a_predict_end": {
+      "kernel": "predict",
+      "phase": "A",
+      "us_p50": 463.242,
+      "us_mean": 463.29250950950944,
+      "steps": 999,
+      "after": "a_start",
+      "ns_per_particle": 0.05568601608328873,
+      "share_of_period": 0.008715498634846192
+     },
+     "a_voxel_end": {
+      "kernel": "voxel",
+      "phase": "A",
+      "us_p50": 290.822,
+      "us_mean": 290.4832472472472,
+      "steps": 999,
+      "after": "a_predict_end",
+      "ns_per_particle": 0.034959521307166,
+      "share_of_period": 0.005471565065307634
+     },
+     "a_ghost_trailing_end": {
+      "kernel": "ghost_trailing",
+      "phase": "A",
+      "us_p50": 47.105,
+      "us_mean": 47.28040940940941,
+      "steps": 999,
+      "after": "a_voxel_end",
+      "ns_per_particle": 0.005662461062691456,
+      "share_of_period": 0.0008862399419621489
+     },
+     "b_correction_density_interior_end": {
+      "kernel": "correction_density_interior",
+      "phase": "B",
+      "us_p50": 19043.939,
+      "us_mean": 19560.666794794794,
+      "steps": 999,
+      "after": "b_start",
+      "ns_per_particle": 2.2892593794240796,
+      "share_of_period": 0.35829528487614276
+     },
+     "b_force_deep_interior_end": {
+      "kernel": "force_deep_interior",
+      "phase": "B",
+      "us_p50": 16269.671,
+      "us_mean": 16873.824552552553,
+      "steps": 999,
+      "after": "b_correction_density_interior_end",
+      "ns_per_particle": 1.9557664481541315,
+      "share_of_period": 0.3060998255553181
+     },
+     "c_expand_end": {
+      "kernel": "expand",
+      "phase": "C",
+      "us_p50": 37.696,
+      "us_mean": 37.44271771771771,
+      "steps": 999,
+      "after": "c_start",
+      "ns_per_particle": 0.004531411362259147,
+      "share_of_period": 0.0007092177232184518
+     },
+     "c_install_trailing_end": {
+      "kernel": "install_trailing",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 4.125243243243244,
+      "steps": 999,
+      "after": "c_expand_end",
+      "ns_per_particle": 0.0004923774655086339,
+      "share_of_period": 7.706270676736997e-05
+     },
+     "c_append_departed_end": {
+      "kernel": "append_departed",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 3.8859159159159167,
+      "steps": 999,
+      "after": "c_install_trailing_end",
+      "ns_per_particle": 0.0004923774655086339,
+      "share_of_period": 7.706270676736997e-05
+     },
+     "c_correction_density_boundary_end": {
+      "kernel": "correction_density_boundary",
+      "phase": "C",
+      "us_p50": 5742.591,
+      "us_mean": 5752.887132132132,
+      "steps": 999,
+      "after": "c_append_departed_end",
+      "ns_per_particle": 0.6903130864337627,
+      "share_of_period": 0.10804189607371531
+     },
+     "c_density_end": {
+      "kernel": "density",
+      "phase": "C",
+      "us_p50": 91.298,
+      "us_mean": 91.24264364364365,
+      "steps": 999,
+      "after": "c_correction_density_boundary_end",
+      "ns_per_particle": 0.010974872520997868,
+      "share_of_period": 0.001717693115831871
+     },
+     "c_force_end": {
+      "kernel": "force",
+      "phase": "C",
+      "us_p50": 5775.326,
+      "us_mean": 5838.221325325326,
+      "steps": 999,
+      "after": "c_density_end",
+      "ns_per_particle": 0.6942481392495403,
+      "share_of_period": 0.10865777686132025
+     }
+    },
+    "g1": {
+     "n0_per_side": {
+      "s1_to_s0": 640000.0
+     },
+     "band_particles": 1920000.0,
+     "boundary_us": 5742.591,
+     "boundary_kernels": [
+      "correction_density_boundary"
+     ],
+     "cost_per_particle_us": 0.0029909328125,
+     "redundant_us": 1914.197,
+     "share_of_step": 0.036013965357905096
+    }
+   },
+   {
+    "sim": 1,
+    "own_particles": 7679958,
+    "period_p50_ms": 53.265319,
+    "kernels": {
+     "a_predict_end": {
+      "kernel": "predict",
+      "phase": "A",
+      "us_p50": 460.876,
+      "us_mean": 460.82541641641643,
+      "steps": 999,
+      "after": "a_start",
+      "ns_per_particle": 0.06001022401424591,
+      "share_of_period": 0.008652459210842237
+     },
+     "a_voxel_end": {
+      "kernel": "voxel",
+      "phase": "A",
+      "us_p50": 264.007,
+      "us_mean": 263.814034034034,
+      "steps": 999,
+      "after": "a_predict_end",
+      "ns_per_particle": 0.034376099452627214,
+      "share_of_period": 0.004956452058420978
+     },
+     "a_ghost_leading_end": {
+      "kernel": "ghost_leading",
+      "phase": "A",
+      "us_p50": 45.345,
+      "us_mean": 45.77056256256257,
+      "steps": 999,
+      "after": "a_voxel_end",
+      "ns_per_particle": 0.005904329164300118,
+      "share_of_period": 0.0008513043918877122
+     },
+     "a_ghost_trailing_end": {
+      "kernel": "ghost_trailing",
+      "phase": "A",
+      "us_p50": 69.633,
+      "us_mean": 69.0427977977978,
+      "steps": 999,
+      "after": "a_ghost_leading_end",
+      "ns_per_particle": 0.009066846459316574,
+      "share_of_period": 0.001307285890843909
+     },
+     "b_correction_density_interior_end": {
+      "kernel": "correction_density_interior",
+      "phase": "B",
+      "us_p50": 14479.864,
+      "us_mean": 14880.755163163163,
+      "steps": 999,
+      "after": "b_start",
+      "ns_per_particle": 1.8854092691652742,
+      "share_of_period": 0.2718441243166121
+     },
+     "b_force_deep_interior_end": {
+      "kernel": "force_deep_interior",
+      "phase": "B",
+      "us_p50": 11068.702,
+      "us_mean": 11441.54602802803,
+      "steps": 999,
+      "after": "b_correction_density_interior_end",
+      "ns_per_particle": 1.441245121392591,
+      "share_of_period": 0.20780316738551777
+     },
+     "c_expand_end": {
+      "kernel": "expand",
+      "phase": "C",
+      "us_p50": 105.443,
+      "us_mean": 105.70565665665666,
+      "steps": 999,
+      "after": "c_start",
+      "ns_per_particle": 0.013729632375593721,
+      "share_of_period": 0.0019795807474653443
+     },
+     "c_install_leading_end": {
+      "kernel": "install_leading",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 4.9001211211211215,
+      "steps": 999,
+      "after": "c_expand_end",
+      "ns_per_particle": 0.0005333362500159506,
+      "share_of_period": 7.689806570012283e-05
+     },
+     "c_install_trailing_end": {
+      "kernel": "install_trailing",
+      "phase": "C",
+      "us_p50": 2.048,
+      "us_mean": 2.5722812812812816,
+      "steps": 999,
+      "after": "c_install_leading_end",
+      "ns_per_particle": 0.0002666681250079753,
+      "share_of_period": 3.8449032850061413e-05
+     },
+     "c_append_departed_end": {
+      "kernel": "append_departed",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 3.877090090090091,
+      "steps": 999,
+      "after": "c_install_trailing_end",
+      "ns_per_particle": 0.0005333362500159506,
+      "share_of_period": 7.689806570012283e-05
+     },
+     "c_correction_density_boundary_end": {
+      "kernel": "correction_density_boundary",
+      "phase": "C",
+      "us_p50": 11057.311,
+      "us_mean": 11074.682103103103,
+      "steps": 999,
+      "after": "c_append_departed_end",
+      "ns_per_particle": 1.4397619101562795,
+      "share_of_period": 0.20758931341423115
+     },
+     "c_density_end": {
+      "kernel": "density",
+      "phase": "C",
+      "us_p50": 92.003,
+      "us_mean": 91.63326326326327,
+      "steps": 999,
+      "after": "c_correction_density_boundary_end",
+      "ns_per_particle": 0.011979622805228882,
+      "share_of_period": 0.0017272589693868164
+     },
+     "c_force_end": {
+      "kernel": "force",
+      "phase": "C",
+      "us_p50": 11456.873,
+      "us_mean": 11387.801754754757,
+      "steps": 999,
+      "after": "c_density_end",
+      "ns_per_particle": 1.4917884967600084,
+      "share_of_period": 0.215090667156241
+     }
+    },
+    "g1": {
+     "n0_per_side": {
+      "s0_to_s1": 640000.0,
+      "s2_to_s1": 640000.0
+     },
+     "band_particles": 3840000.0,
+     "boundary_us": 11057.311,
+     "boundary_kernels": [
+      "correction_density_boundary"
+     ],
+     "cost_per_particle_us": 0.0028795080729166664,
+     "redundant_us": 3685.770333333333,
+     "share_of_step": 0.0691964378047437
+    }
+   },
+   {
+    "sim": 2,
+    "own_particles": 8319984,
+    "period_p50_ms": 54.630741,
+    "kernels": {
+     "a_predict_end": {
+      "kernel": "predict",
+      "phase": "A",
+      "us_p50": 499.982,
+      "us_mean": 500.04640740740746,
+      "steps": 999,
+      "after": "a_start",
+      "ns_per_particle": 0.06009410595020375,
+      "share_of_period": 0.009152026695006754
+     },
+     "a_voxel_end": {
+      "kernel": "voxel",
+      "phase": "A",
+      "us_p50": 286.887,
+      "us_mean": 286.82239439439434,
+      "steps": 999,
+      "after": "a_predict_end",
+      "ns_per_particle": 0.03448167688784017,
+      "share_of_period": 0.005251384014725335
+     },
+     "a_ghost_leading_end": {
+      "kernel": "ghost_leading",
+      "phase": "A",
+      "us_p50": 45.602,
+      "us_mean": 46.04122122122122,
+      "steps": 999,
+      "after": "a_voxel_end",
+      "ns_per_particle": 0.005481020155807992,
+      "share_of_period": 0.0008347314930251448
+     },
+     "a_ghost_trailing_end": {
+      "kernel": "ghost_trailing",
+      "phase": "A",
+      "us_p50": 69.441,
+      "us_mean": 68.80695195195196,
+      "steps": 999,
+      "after": "a_ghost_leading_end",
+      "ns_per_particle": 0.008346290089019402,
+      "share_of_period": 0.0012710975309670428
+     },
+     "b_correction_density_interior_end": {
+      "kernel": "correction_density_interior",
+      "phase": "B",
+      "us_p50": 16239.722,
+      "us_mean": 16820.897874874874,
+      "steps": 999,
+      "after": "b_start",
+      "ns_per_particle": 1.9518934171027251,
+      "share_of_period": 0.29726344001081734
+     },
+     "b_force_deep_interior_end": {
+      "kernel": "force_deep_interior",
+      "phase": "B",
+      "us_p50": 12917.076,
+      "us_mean": 13370.40683083083,
+      "steps": 999,
+      "after": "b_correction_density_interior_end",
+      "ns_per_particle": 1.5525361587233821,
+      "share_of_period": 0.2364433607078476
+     },
+     "c_expand_end": {
+      "kernel": "expand",
+      "phase": "C",
+      "us_p50": 107.299,
+      "us_mean": 107.21300700700702,
+      "steps": 999,
+      "after": "c_start",
+      "ns_per_particle": 0.012896539224113893,
+      "share_of_period": 0.001964077331478993
+     },
+     "c_install_leading_end": {
+      "kernel": "install_leading",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 4.911985985985987,
+      "steps": 999,
+      "after": "c_expand_end",
+      "ns_per_particle": 0.0004923086390550751,
+      "share_of_period": 7.497610182516104e-05
+     },
+     "c_install_trailing_end": {
+      "kernel": "install_trailing",
+      "phase": "C",
+      "us_p50": 2.048,
+      "us_mean": 2.533637637637638,
+      "steps": 999,
+      "after": "c_install_leading_end",
+      "ns_per_particle": 0.00024615431952753757,
+      "share_of_period": 3.748805091258052e-05
+     },
+     "c_append_departed_end": {
+      "kernel": "append_departed",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 3.6095055055055063,
+      "steps": 999,
+      "after": "c_install_trailing_end",
+      "ns_per_particle": 0.0004923086390550751,
+      "share_of_period": 7.497610182516104e-05
+     },
+     "c_correction_density_boundary_end": {
+      "kernel": "correction_density_boundary",
+      "phase": "C",
+      "us_p50": 11132.232,
+      "us_mean": 11091.36844944945,
+      "steps": 999,
+      "after": "c_append_departed_end",
+      "ns_per_particle": 1.3380112269446671,
+      "share_of_period": 0.20377230468098537
+     },
+     "c_density_end": {
+      "kernel": "density",
+      "phase": "C",
+      "us_p50": 101.507,
+      "us_mean": 101.42925425425425,
+      "steps": 999,
+      "after": "c_correction_density_boundary_end",
+      "ns_per_particle": 0.012200384039200075,
+      "share_of_period": 0.001858056437491851
+     },
+     "c_force_end": {
+      "kernel": "force",
+      "phase": "C",
+      "us_p50": 11402.402,
+      "us_mean": 11412.633814814815,
+      "steps": 999,
+      "after": "c_density_end",
+      "ns_per_particle": 1.370483645160856,
+      "share_of_period": 0.2087176888191943
+     }
+    },
+    "g1": {
+     "n0_per_side": {
+      "s1_to_s2": 640000.0,
+      "s3_to_s2": 640000.0
+     },
+     "band_particles": 3840000.0,
+     "boundary_us": 11132.232,
+     "boundary_kernels": [
+      "correction_density_boundary"
+     ],
+     "cost_per_particle_us": 0.00289901875,
+     "redundant_us": 3710.744,
+     "share_of_step": 0.06792410156032846
+    }
+   },
+   {
+    "sim": 3,
+    "own_particles": 7679976,
+    "period_p50_ms": 53.861917,
+    "kernels": {
+     "a_predict_end": {
+      "kernel": "predict",
+      "phase": "A",
+      "us_p50": 461.708,
+      "us_mean": 461.9086136136136,
+      "steps": 999,
+      "after": "a_start",
+      "ns_per_particle": 0.060118417036719905,
+      "share_of_period": 0.008572067719015645
+     },
+     "a_voxel_end": {
+      "kernel": "voxel",
+      "phase": "A",
+      "us_p50": 264.199,
+      "us_mean": 264.27037537537535,
+      "steps": 999,
+      "after": "a_predict_end",
+      "ns_per_particle": 0.034401018961517586,
+      "share_of_period": 0.0049051169121960515
+     },
+     "a_ghost_leading_end": {
+      "kernel": "ghost_leading",
+      "phase": "A",
+      "us_p50": 46.529,
+      "us_mean": 45.92366666666667,
+      "steps": 999,
+      "after": "a_voxel_end",
+      "ns_per_particle": 0.0060584824744243995,
+      "share_of_period": 0.0008638571107671494
+     },
+     "a_ghost_trailing_end": {
+      "kernel": "ghost_trailing",
+      "phase": "A",
+      "us_p50": 69.506,
+      "us_mean": 68.97985985985987,
+      "steps": 999,
+      "after": "a_ghost_leading_end",
+      "ns_per_particle": 0.00905028869881885,
+      "share_of_period": 0.001290447943024382
+     },
+     "b_correction_density_interior_end": {
+      "kernel": "correction_density_interior",
+      "phase": "B",
+      "us_p50": 14162.321,
+      "us_mean": 14641.016147147147,
+      "steps": 999,
+      "after": "b_start",
+      "ns_per_particle": 1.8440579762228424,
+      "share_of_period": 0.26293755938913205
+     },
+     "b_force_deep_interior_end": {
+      "kernel": "force_deep_interior",
+      "phase": "B",
+      "us_p50": 10895.645,
+      "us_mean": 11306.746008008007,
+      "steps": 999,
+      "after": "b_correction_density_interior_end",
+      "ns_per_particle": 1.4187082095048213,
+      "share_of_period": 0.20228847406229525
+     },
+     "c_expand_end": {
+      "kernel": "expand",
+      "phase": "C",
+      "us_p50": 105.507,
+      "us_mean": 105.45502602602602,
+      "steps": 999,
+      "after": "c_start",
+      "ns_per_particle": 0.013737933556042362,
+      "share_of_period": 0.001958842274403267
+     },
+     "c_install_leading_end": {
+      "kernel": "install_leading",
+      "phase": "C",
+      "us_p50": 4.097,
+      "us_mean": 4.89006006006006,
+      "steps": 999,
+      "after": "c_expand_end",
+      "ns_per_particle": 0.000533465208745444,
+      "share_of_period": 7.606487529955535e-05
+     },
+     "c_install_trailing_end": {
+      "kernel": "install_trailing",
+      "phase": "C",
+      "us_p50": 2.048,
+      "us_mean": 2.4954554554554558,
+      "steps": 999,
+      "after": "c_install_leading_end",
+      "ns_per_particle": 0.00026666750000260415,
+      "share_of_period": 3.8023154653036205e-05
+     },
+     "c_append_departed_end": {
+      "kernel": "append_departed",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 3.9700890890890896,
+      "steps": 999,
+      "after": "c_install_trailing_end",
+      "ns_per_particle": 0.0005333350000052083,
+      "share_of_period": 7.604630930607241e-05
+     },
+     "c_correction_density_boundary_end": {
+      "kernel": "correction_density_boundary",
+      "phase": "C",
+      "us_p50": 10931.358,
+      "us_mean": 10891.060824824823,
+      "steps": 999,
+      "after": "c_append_departed_end",
+      "ns_per_particle": 1.423358354244857,
+      "share_of_period": 0.20295152138755107
+     },
+     "c_density_end": {
+      "kernel": "density",
+      "phase": "C",
+      "us_p50": 92.034,
+      "us_mean": 91.62702602602603,
+      "steps": 999,
+      "after": "c_correction_density_boundary_end",
+      "ns_per_particle": 0.011983631198847496,
+      "share_of_period": 0.0017087026442077805
+     },
+     "c_force_end": {
+      "kernel": "force",
+      "phase": "C",
+      "us_p50": 11127.714,
+      "us_mean": 11208.69485985986,
+      "steps": 999,
+      "after": "c_density_end",
+      "ns_per_particle": 1.4489256216425677,
+      "share_of_period": 0.20659706560388483
+     }
+    },
+    "g1": {
+     "n0_per_side": {
+      "s2_to_s3": 640000.0,
+      "s4_to_s3": 640000.0
+     },
+     "band_particles": 3840000.0,
+     "boundary_us": 10931.358,
+     "boundary_kernels": [
+      "correction_density_boundary"
+     ],
+     "cost_per_particle_us": 0.0028467078125,
+     "redundant_us": 3643.786,
+     "share_of_step": 0.06765050712918369
+    }
+   },
+   {
+    "sim": 4,
+    "own_particles": 7679998,
+    "period_p50_ms": 53.760663,
+    "kernels": {
+     "a_predict_end": {
+      "kernel": "predict",
+      "phase": "A",
+      "us_p50": 459.724,
+      "us_mean": 459.8840170170171,
+      "steps": 999,
+      "after": "a_start",
+      "ns_per_particle": 0.05985991142185193,
+      "share_of_period": 0.008551308230703925
+     },
+     "a_voxel_end": {
+      "kernel": "voxel",
+      "phase": "A",
+      "us_p50": 264.198,
+      "us_mean": 264.19814214214216,
+      "steps": 999,
+      "after": "a_predict_end",
+      "ns_per_particle": 0.03440079020853912,
+      "share_of_period": 0.004914336714932254
+     },
+     "a_ghost_leading_end": {
+      "kernel": "ghost_leading",
+      "phase": "A",
+      "us_p50": 45.121,
+      "us_mean": 45.48132832832833,
+      "steps": 999,
+      "after": "a_voxel_end",
+      "ns_per_particle": 0.005875131738315557,
+      "share_of_period": 0.0008392939648084325
+     },
+     "a_ghost_trailing_end": {
+      "kernel": "ghost_trailing",
+      "phase": "A",
+      "us_p50": 69.602,
+      "us_mean": 69.01034734734735,
+      "steps": 999,
+      "after": "a_ghost_leading_end",
+      "ns_per_particle": 0.00906276277676114,
+      "share_of_period": 0.0012946640929632882
+     },
+     "b_correction_density_interior_end": {
+      "kernel": "correction_density_interior",
+      "phase": "B",
+      "us_p50": 14205.4,
+      "us_mean": 14730.726105105106,
+      "steps": 999,
+      "after": "b_start",
+      "ns_per_particle": 1.8496619400161303,
+      "share_of_period": 0.2642340924999381
+     },
+     "b_force_deep_interior_end": {
+      "kernel": "force_deep_interior",
+      "phase": "B",
+      "us_p50": 10934.313,
+      "us_mean": 11397.128236236238,
+      "steps": 999,
+      "after": "b_correction_density_interior_end",
+      "ns_per_particle": 1.4237390426403758,
+      "share_of_period": 0.20338873052960674
+     },
+     "c_expand_end": {
+      "kernel": "expand",
+      "phase": "C",
+      "us_p50": 105.41,
+      "us_mean": 105.1706866866867,
+      "steps": 999,
+      "after": "c_start",
+      "ns_per_particle": 0.013725263990954164,
+      "share_of_period": 0.0019607273072506566
+     },
+     "c_install_leading_end": {
+      "kernel": "install_leading",
+      "phase": "C",
+      "us_p50": 4.16,
+      "us_mean": 4.911620620620622,
+      "steps": 999,
+      "after": "c_expand_end",
+      "ns_per_particle": 0.0005416668077257311,
+      "share_of_period": 7.737999808521707e-05
+     },
+     "c_install_trailing_end": {
+      "kernel": "install_trailing",
+      "phase": "C",
+      "us_p50": 2.048,
+      "us_mean": 2.539506506506507,
+      "steps": 999,
+      "after": "c_install_leading_end",
+      "ns_per_particle": 0.0002666667361111292,
+      "share_of_period": 3.8094768288106865e-05
+     },
+     "c_append_departed_end": {
+      "kernel": "append_departed",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 3.7440380380380387,
+      "steps": 999,
+      "after": "c_install_trailing_end",
+      "ns_per_particle": 0.0005333334722222584,
+      "share_of_period": 7.618953657621373e-05
+     },
+     "c_correction_density_boundary_end": {
+      "kernel": "correction_density_boundary",
+      "phase": "C",
+      "us_p50": 10998.249,
+      "us_mean": 10934.680611611613,
+      "steps": 999,
+      "after": "c_append_departed_end",
+      "ns_per_particle": 1.432064044808345,
+      "share_of_period": 0.20457800157710107
+     },
+     "c_density_end": {
+      "kernel": "density",
+      "phase": "C",
+      "us_p50": 92.13,
+      "us_mean": 91.86501301301301,
+      "steps": 999,
+      "after": "c_correction_density_boundary_end",
+      "ns_per_particle": 0.01199609687398356,
+      "share_of_period": 0.0017137065441324634
+     },
+     "c_force_end": {
+      "kernel": "force",
+      "phase": "C",
+      "us_p50": 11212.079,
+      "us_mean": 11231.871659659659,
+      "steps": 999,
+      "after": "c_density_end",
+      "ns_per_particle": 1.459906499975651,
+      "share_of_period": 0.2085554450844477
+     }
+    },
+    "g1": {
+     "n0_per_side": {
+      "s3_to_s4": 640000.0,
+      "s5_to_s4": 640000.0
+     },
+     "band_particles": 3840000.0,
+     "boundary_us": 10998.249,
+     "boundary_kernels": [
+      "correction_density_boundary"
+     ],
+     "cost_per_particle_us": 0.00286412734375,
+     "redundant_us": 3666.083,
+     "share_of_step": 0.06819266719236702
+    }
+   },
+   {
+    "sim": 5,
+    "own_particles": 8320042,
+    "period_p50_ms": 53.321659,
+    "kernels": {
+     "a_predict_end": {
+      "kernel": "predict",
+      "phase": "A",
+      "us_p50": 502.028,
+      "us_mean": 502.07107407407403,
+      "steps": 999,
+      "after": "a_start",
+      "ns_per_particle": 0.06033959924721534,
+      "share_of_period": 0.00941508590345998
+     },
+     "a_voxel_end": {
+      "kernel": "voxel",
+      "phase": "A",
+      "us_p50": 287.175,
+      "us_mean": 287.42565765765767,
+      "steps": 999,
+      "after": "a_predict_end",
+      "ns_per_particle": 0.03451605172185429,
+      "share_of_period": 0.005385710148290773
+     },
+     "a_ghost_leading_end": {
+      "kernel": "ghost_leading",
+      "phase": "A",
+      "us_p50": 46.945,
+      "us_mean": 46.63547847847848,
+      "steps": 999,
+      "after": "a_voxel_end",
+      "ns_per_particle": 0.005642399401349176,
+      "share_of_period": 0.00088041146656746
+     },
+     "a_ghost_trailing_end": {
+      "kernel": "ghost_trailing",
+      "phase": "A",
+      "us_p50": 69.474,
+      "us_mean": 68.8694854854855,
+      "steps": 999,
+      "after": "a_ghost_leading_end",
+      "ns_per_particle": 0.008350198232172385,
+      "share_of_period": 0.0013029227016361214
+     },
+     "b_correction_density_interior_end": {
+      "kernel": "correction_density_interior",
+      "phase": "B",
+      "us_p50": 16349.547,
+      "us_mean": 16840.12934834835,
+      "steps": 999,
+      "after": "b_start",
+      "ns_per_particle": 1.9650798637795337,
+      "share_of_period": 0.30662112369759537
+     },
+     "b_force_deep_interior_end": {
+      "kernel": "force_deep_interior",
+      "phase": "B",
+      "us_p50": 13016.436,
+      "us_mean": 13408.43362962963,
+      "steps": 999,
+      "after": "b_correction_density_interior_end",
+      "ns_per_particle": 1.5644675832165271,
+      "share_of_period": 0.24411160950562322
+     },
+     "c_expand_end": {
+      "kernel": "expand",
+      "phase": "C",
+      "us_p50": 107.33,
+      "us_mean": 107.51975775775776,
+      "steps": 999,
+      "after": "c_start",
+      "ns_per_particle": 0.012900175263538333,
+      "share_of_period": 0.0020128781064370107
+     },
+     "c_install_leading_end": {
+      "kernel": "install_leading",
+      "phase": "C",
+      "us_p50": 4.128,
+      "us_mean": 4.876954954954956,
+      "steps": 999,
+      "after": "c_expand_end",
+      "ns_per_particle": 0.0004961513415437086,
+      "share_of_period": 7.741694608564223e-05
+     },
+     "c_install_trailing_end": {
+      "kernel": "install_trailing",
+      "phase": "C",
+      "us_p50": 4.032,
+      "us_mean": 3.24958958958959,
+      "steps": 999,
+      "after": "c_install_leading_end",
+      "ns_per_particle": 0.0004846129382519944,
+      "share_of_period": 7.56165519906273e-05
+     },
+     "c_append_departed_end": {
+      "kernel": "append_departed",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 4.080821821821822,
+      "steps": 999,
+      "after": "c_install_trailing_end",
+      "ns_per_particle": 0.0004923052071131371,
+      "share_of_period": 7.681681472063726e-05
+     },
+     "c_correction_density_boundary_end": {
+      "kernel": "correction_density_boundary",
+      "phase": "C",
+      "us_p50": 11204.9,
+      "us_mean": 11183.012926926927,
+      "steps": 999,
+      "after": "c_append_departed_end",
+      "ns_per_particle": 1.3467359900346656,
+      "share_of_period": 0.21013787286700888
+     },
+     "c_density_end": {
+      "kernel": "density",
+      "phase": "C",
+      "us_p50": 101.603,
+      "us_mean": 101.73244544544544,
+      "steps": 999,
+      "after": "c_correction_density_boundary_end",
+      "ns_per_particle": 0.01221183739216701,
+      "share_of_period": 0.001905473346206276
+     },
+     "c_force_end": {
+      "kernel": "force",
+      "phase": "C",
+      "us_p50": 11513.003,
+      "us_mean": 11510.517003003002,
+      "steps": 999,
+      "after": "c_density_end",
+      "ns_per_particle": 1.3837674136741136,
+      "share_of_period": 0.21591606892801293
+     }
+    },
+    "g1": {
+     "n0_per_side": {
+      "s4_to_s5": 640000.0,
+      "s6_to_s5": 640000.0
+     },
+     "band_particles": 3840000.0,
+     "boundary_us": 11204.9,
+     "boundary_kernels": [
+      "correction_density_boundary"
+     ],
+     "cost_per_particle_us": 0.002917942708333333,
+     "redundant_us": 3734.9666666666662,
+     "share_of_step": 0.07004595762233629
+    }
+   },
+   {
+    "sim": 6,
+    "own_particles": 7680042,
+    "period_p50_ms": 53.804326,
+    "kernels": {
+     "a_predict_end": {
+      "kernel": "predict",
+      "phase": "A",
+      "us_p50": 461.258,
+      "us_mean": 461.2135715715716,
+      "steps": 999,
+      "after": "a_start",
+      "ns_per_particle": 0.06005930696733169,
+      "share_of_period": 0.008572879437240789
+     },
+     "a_voxel_end": {
+      "kernel": "voxel",
+      "phase": "A",
+      "us_p50": 264.038,
+      "us_mean": 263.94726126126125,
+      "steps": 999,
+      "after": "a_predict_end",
+      "ns_per_particle": 0.0343797599023547,
+      "share_of_period": 0.004907374920001786
+     },
+     "a_ghost_leading_end": {
+      "kernel": "ghost_leading",
+      "phase": "A",
+      "us_p50": 46.882,
+      "us_mean": 46.00865565565565,
+      "steps": 999,
+      "after": "a_voxel_end",
+      "ns_per_particle": 0.006104393699930287,
+      "share_of_period": 0.000871342575688059
+     },
+     "a_ghost_trailing_end": {
+      "kernel": "ghost_trailing",
+      "phase": "A",
+      "us_p50": 69.442,
+      "us_mean": 68.90703503503504,
+      "steps": 999,
+      "after": "a_ghost_leading_end",
+      "ns_per_particle": 0.009041877635565014,
+      "share_of_period": 0.0012906397154756662
+     },
+     "b_correction_density_interior_end": {
+      "kernel": "correction_density_interior",
+      "phase": "B",
+      "us_p50": 14316.848,
+      "us_mean": 14760.827913913914,
+      "steps": 999,
+      "after": "b_start",
+      "ns_per_particle": 1.8641627220267807,
+      "share_of_period": 0.26609102026480175
+     },
+     "b_force_deep_interior_end": {
+      "kernel": "force_deep_interior",
+      "phase": "B",
+      "us_p50": 11035.907,
+      "us_mean": 11339.86577177177,
+      "steps": 999,
+      "after": "b_correction_density_interior_end",
+      "ns_per_particle": 1.4369591989210475,
+      "share_of_period": 0.20511189007367175
+     },
+     "c_expand_end": {
+      "kernel": "expand",
+      "phase": "C",
+      "us_p50": 105.538,
+      "us_mean": 105.40785285285286,
+      "steps": 999,
+      "after": "c_start",
+      "ns_per_particle": 0.013741851932580576,
+      "share_of_period": 0.0019615151391358383
+     },
+     "c_install_leading_end": {
+      "kernel": "install_leading",
+      "phase": "C",
+      "us_p50": 4.128,
+      "us_mean": 4.883022022022022,
+      "steps": 999,
+      "after": "c_expand_end",
+      "ns_per_particle": 0.00053749706056295,
+      "share_of_period": 7.6722455365392e-05
+     },
+     "c_install_trailing_end": {
+      "kernel": "install_trailing",
+      "phase": "C",
+      "us_p50": 2.048,
+      "us_mean": 2.540520520520521,
+      "steps": 999,
+      "after": "c_install_leading_end",
+      "ns_per_particle": 0.00026666520834130853,
+      "share_of_period": 3.80638538246906e-05
+     },
+     "c_append_departed_end": {
+      "kernel": "append_departed",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 3.918168168168169,
+      "steps": 999,
+      "after": "c_install_trailing_end",
+      "ns_per_particle": 0.0005333304166826171,
+      "share_of_period": 7.61277076493812e-05
+     },
+     "c_correction_density_boundary_end": {
+      "kernel": "correction_density_boundary",
+      "phase": "C",
+      "us_p50": 11072.612,
+      "us_mean": 11050.87073973974,
+      "steps": 999,
+      "after": "c_append_departed_end",
+      "ns_per_particle": 1.4417384696594107,
+      "share_of_period": 0.20579408428980225
+     },
+     "c_density_end": {
+      "kernel": "density",
+      "phase": "C",
+      "us_p50": 92.13,
+      "us_mean": 91.81313313313312,
+      "steps": 999,
+      "after": "c_correction_density_boundary_end",
+      "ns_per_particle": 0.011996028146721073,
+      "share_of_period": 0.001712315846127317
+     },
+     "c_force_end": {
+      "kernel": "force",
+      "phase": "C",
+      "us_p50": 11226.439,
+      "us_mean": 11312.739582582582,
+      "steps": 999,
+      "after": "c_density_end",
+      "ns_per_particle": 1.4617679174150349,
+      "share_of_period": 0.2086530923182645
+     }
+    },
+    "g1": {
+     "n0_per_side": {
+      "s5_to_s6": 640000.0,
+      "s7_to_s6": 640000.0
+     },
+     "band_particles": 3840000.0,
+     "boundary_us": 11072.612,
+     "boundary_kernels": [
+      "correction_density_boundary"
+     ],
+     "cost_per_particle_us": 0.002883492708333333,
+     "redundant_us": 3690.8706666666662,
+     "share_of_step": 0.06859802809660075
+    }
+   },
+   {
+    "sim": 7,
+    "own_particles": 8321179,
+    "period_p50_ms": 53.075411,
+    "kernels": {
+     "a_predict_end": {
+      "kernel": "predict",
+      "phase": "A",
+      "us_p50": 457.515,
+      "us_mean": 457.70534534534534,
+      "steps": 999,
+      "after": "a_start",
+      "ns_per_particle": 0.05498199233546112,
+      "share_of_period": 0.00862009339880571
+     },
+     "a_voxel_end": {
+      "kernel": "voxel",
+      "phase": "A",
+      "us_p50": 288.966,
+      "us_mean": 289.46950050050054,
+      "steps": 999,
+      "after": "a_predict_end",
+      "ns_per_particle": 0.03472656939599545,
+      "share_of_period": 0.005444442059996483
+     },
+     "a_ghost_leading_end": {
+      "kernel": "ghost_leading",
+      "phase": "A",
+      "us_p50": 45.249,
+      "us_mean": 45.91648048048048,
+      "steps": 999,
+      "after": "a_voxel_end",
+      "ns_per_particle": 0.0054378111563277275,
+      "share_of_period": 0.0008525416788576541
+     },
+     "b_correction_density_interior_end": {
+      "kernel": "correction_density_interior",
+      "phase": "B",
+      "us_p50": 19341.408,
+      "us_mean": 19932.23335135135,
+      "steps": 999,
+      "after": "b_start",
+      "ns_per_particle": 2.3243590842115043,
+      "share_of_period": 0.364413720696388
+     },
+     "b_force_deep_interior_end": {
+      "kernel": "force_deep_interior",
+      "phase": "B",
+      "us_p50": 16796.043,
+      "us_mean": 17172.997537537536,
+      "steps": 999,
+      "after": "b_correction_density_interior_end",
+      "ns_per_particle": 2.0184691376065818,
+      "share_of_period": 0.3164562022892296
+     },
+     "c_expand_end": {
+      "kernel": "expand",
+      "phase": "C",
+      "us_p50": 37.728,
+      "us_mean": 37.538068068068064,
+      "steps": 999,
+      "after": "c_start",
+      "ns_per_particle": 0.0045339728901397265,
+      "share_of_period": 0.0007108376419355471
+     },
+     "c_install_leading_end": {
+      "kernel": "install_leading",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 5.036517517517519,
+      "steps": 999,
+      "after": "c_expand_end",
+      "ns_per_particle": 0.0004922379388786133,
+      "share_of_period": 7.717321303456322e-05
+     },
+     "c_append_departed_end": {
+      "kernel": "append_departed",
+      "phase": "C",
+      "us_p50": 4.096,
+      "us_mean": 4.08202002002002,
+      "steps": 999,
+      "after": "c_install_leading_end",
+      "ns_per_particle": 0.0004922379388786133,
+      "share_of_period": 7.717321303456322e-05
+     },
+     "c_correction_density_boundary_end": {
+      "kernel": "correction_density_boundary",
+      "phase": "C",
+      "us_p50": 5827.581,
+      "us_mean": 5844.052150150151,
+      "steps": 999,
+      "after": "c_append_departed_end",
+      "ns_per_particle": 0.7003311670137128,
+      "share_of_period": 0.10979813232157543
+     },
+     "c_density_end": {
+      "kernel": "density",
+      "phase": "C",
+      "us_p50": 88.354,
+      "us_mean": 89.05465765765766,
+      "steps": 999,
+      "after": "c_correction_density_boundary_end",
+      "ns_per_particle": 0.010617966516523681,
+      "share_of_period": 0.001664688004017529
+     },
+     "c_force_end": {
+      "kernel": "force",
+      "phase": "C",
+      "us_p50": 6055.938,
+      "us_mean": 6011.213962962963,
+      "steps": 999,
+      "after": "c_density_end",
+      "ns_per_particle": 0.7277740329825858,
+      "share_of_period": 0.11410063315383465
+     }
+    },
+    "g1": {
+     "n0_per_side": {
+      "s6_to_s7": 640000.0
+     },
+     "band_particles": 1920000.0,
+     "boundary_us": 5827.581,
+     "boundary_kernels": [
+      "correction_density_boundary"
+     ],
+     "cost_per_particle_us": 0.0030351984375,
+     "redundant_us": 1942.527,
+     "share_of_step": 0.036599377440525147
+    }
+   }
+  ],
+  "mean_over_sims": {
+   "predict": {
+    "phase": "A",
+    "us_p50_mean": 470.791625,
+    "ns_per_particle_mean": 0.0588936966320398,
+    "share_mean": 0.008781427403740154,
+    "sims": 8
+   },
+   "voxel": {
+    "phase": "A",
+    "us_p50_mean": 276.2865,
+    "ns_per_particle_mean": 0.03453018597973682,
+    "share_mean": 0.0051545477367339115,
+    "sims": 8
+   },
+   "ghost_trailing": {
+    "phase": "A",
+    "us_p50_mean": 66.31471428571429,
+    "ns_per_particle_mean": 0.00836867499347783,
+    "share_mean": 0.001234756830981794,
+    "sims": 7
+   },
+   "correction_density_interior": {
+    "phase": "B",
+    "us_p50_mean": 16017.381125,
+    "ns_per_particle_mean": 1.9967354564936088,
+    "share_mean": 0.29896254571892844,
+    "sims": 8
+   },
+   "force_deep_interior": {
+    "phase": "B",
+    "us_p50_mean": 12866.724125,
+    "ns_per_particle_mean": 1.6014863625199323,
+    "share_mean": 0.24021290751363875,
+    "sims": 8
+   },
+   "expand": {
+    "phase": "C",
+    "us_p50_mean": 88.993875,
+    "ns_per_particle_mean": 0.01122459757440274,
+    "share_mean": 0.0016572095339156387,
+    "sims": 8
+   },
+   "install_trailing": {
+    "phase": "C",
+    "us_p50_mean": 2.624,
+    "ns_per_particle_mean": 0.0003271160418215976,
+    "share_mean": 4.897115989806755e-05,
+    "sims": 7
+   },
+   "append_departed": {
+    "phase": "C",
+    "us_p50_mean": 4.096,
+    "ns_per_particle_mean": 0.0005128205486851867,
+    "share_mean": 7.64113069474402e-05,
+    "sims": 8
+   },
+   "correction_density_boundary": {
+    "phase": "C",
+    "us_p50_mean": 9745.85425,
+    "ns_per_particle_mean": 1.2265392811619624,
+    "share_mean": 0.1815828908264963,
+    "sims": 8
+   },
+   "density": {
+    "phase": "C",
+    "us_p50_mean": 93.882375,
+    "ns_per_particle_mean": 0.011745054936708705,
+    "share_mean": 0.001750986863425238,
+    "sims": 8
+   },
+   "force": {
+    "phase": "C",
+    "us_p50_mean": 9971.22175,
+    "ns_per_particle_mean": 1.2548327208575447,
+    "share_mean": 0.18578605474065002,
+    "sims": 8
+   },
+   "ghost_leading": {
+    "phase": "A",
+    "us_p50_mean": 45.95328571428571,
+    "ns_per_particle_mean": 0.005786223970065036,
+    "share_mean": 0.0008562118116573731,
+    "sims": 7
+   },
+   "install_leading": {
+    "phase": "C",
+    "us_p50_mean": 4.114428571428571,
+    "ns_per_particle_mean": 0.0005180947495039246,
+    "share_mean": 7.666166505652197e-05,
+    "sims": 7
+   }
+  },
+  "kernel_order": [
+   "predict",
+   "voxel",
+   "ghost_trailing",
+   "correction_density_interior",
+   "force_deep_interior",
+   "expand",
+   "install_trailing",
+   "append_departed",
+   "correction_density_boundary",
+   "density",
+   "force",
+   "ghost_leading",
+   "install_leading"
+  ],
+  "period_mean_of_sims_ms": 53.6089445,
+  "g1_share_mean": 0.06052763027549877,
+  "g1_share_range": [
+   0.036013965357905096,
+   0.07004595762233629
+  ],
+  "point": "3d_n392_K8",
+  "job": "02_e9_e9B_1741917"
+ },
+ {
+  "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-28\\02_e9_e9B_1741917\\traces\\trace_3d_n192_K1",
+  "case": "cavity3d_n192",
+  "K": 1,
+  "detail": "full",
+  "sims": [
+   {
+    "sim": 0,
+    "own_particles": 8000000,
+    "period_p50_ms": 45.869743,
+    "kernels": {
+     "a_predict_end": {
+      "kernel": "predict",
+      "phase": "A",
+      "us_p50": 464.138,
+      "us_mean": 464.3144864864865,
+      "steps": 999,
+      "after": "a_start",
+      "ns_per_particle": 0.05801725,
+      "share_of_period": 0.010118609123229663
+     },
+     "a_voxel_end": {
+      "kernel": "voxel",
+      "phase": "A",
+      "us_p50": 278.918,
+      "us_mean": 279.0424584584585,
+      "steps": 999,
+      "after": "a_predict_end",
+      "ns_per_particle": 0.03486475,
+      "share_of_period": 0.006080653209676801
+     },
+     "b_correction_density_interior_end": {
+      "kernel": "correction_density_interior",
+      "phase": "B",
+      "us_p50": 22660.37,
+      "us_mean": 23147.135044044044,
+      "steps": 999,
+      "after": "b_start",
+      "ns_per_particle": 2.83254625,
+      "share_of_period": 0.4940156303034006
+     },
+     "b_force_deep_interior_end": {
+      "kernel": "force_deep_interior",
+      "phase": "B",
+      "us_p50": 21837.279,
+      "us_mean": 22363.90145945946,
+      "steps": 999,
+      "after": "b_correction_density_interior_end",
+      "ns_per_particle": 2.729659875,
+      "share_of_period": 0.4760715358706064
+     },
+     "c_correction_density_boundary_end": {
+      "kernel": "correction_density_boundary",
+      "phase": "C",
+      "us_p50": 0.192,
+      "us_mean": 0.18444544544544547,
+      "steps": 999,
+      "after": "c_start",
+      "ns_per_particle": 2.4e-05,
+      "share_of_period": 4.185765767207372e-06
+     },
+     "c_density_end": {
+      "kernel": "density",
+      "phase": "C",
+      "us_p50": 67.297,
+      "us_mean": 67.63169469469469,
+      "steps": 999,
+      "after": "c_correction_density_boundary_end",
+      "ns_per_particle": 0.008412125,
+      "share_of_period": 0.0014671327022695547
+     },
+     "c_force_end": {
+      "kernel": "force",
+      "phase": "C",
+      "us_p50": 0.192,
+      "us_mean": 0.19123923923923927,
+      "steps": 999,
+      "after": "c_density_end",
+      "ns_per_particle": 2.4e-05,
+      "share_of_period": 4.185765767207372e-06
+     }
+    },
+    "g1": null
+   }
+  ],
+  "mean_over_sims": {
+   "predict": {
+    "phase": "A",
+    "us_p50_mean": 464.138,
+    "ns_per_particle_mean": 0.05801725,
+    "share_mean": 0.010118609123229663,
+    "sims": 1
+   },
+   "voxel": {
+    "phase": "A",
+    "us_p50_mean": 278.918,
+    "ns_per_particle_mean": 0.03486475,
+    "share_mean": 0.006080653209676801,
+    "sims": 1
+   },
+   "correction_density_interior": {
+    "phase": "B",
+    "us_p50_mean": 22660.37,
+    "ns_per_particle_mean": 2.83254625,
+    "share_mean": 0.4940156303034006,
+    "sims": 1
+   },
+   "force_deep_interior": {
+    "phase": "B",
+    "us_p50_mean": 21837.279,
+    "ns_per_particle_mean": 2.729659875,
+    "share_mean": 0.4760715358706064,
+    "sims": 1
+   },
+   "correction_density_boundary": {
+    "phase": "C",
+    "us_p50_mean": 0.192,
+    "ns_per_particle_mean": 2.4e-05,
+    "share_mean": 4.185765767207372e-06,
+    "sims": 1
+   },
+   "density": {
+    "phase": "C",
+    "us_p50_mean": 67.297,
+    "ns_per_particle_mean": 0.008412125,
+    "share_mean": 0.0014671327022695547,
+    "sims": 1
+   },
+   "force": {
+    "phase": "C",
+    "us_p50_mean": 0.192,
+    "ns_per_particle_mean": 2.4e-05,
+    "share_mean": 4.185765767207372e-06,
+    "sims": 1
+   }
+  },
+  "kernel_order": [
+   "predict",
+   "voxel",
+   "correction_density_interior",
+   "force_deep_interior",
+   "correction_density_boundary",
+   "density",
+   "force"
+  ],
+  "period_mean_of_sims_ms": 45.869743,
+  "g1_share_mean": null,
+  "g1_share_range": null,
+  "point": "trace_3d_n192_K1",
+  "job": "02_e9_e9B_1741917"
+ },
+ {
+  "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-28\\02_e9_e9B_1741917\\traces\\trace_3d_n392_K1",
+  "case": "cavity3d_n392",
+  "K": 1,
+  "detail": "full",
+  "sims": [
+   {
+    "sim": 0,
+    "own_particles": 64000000,
+    "period_p50_ms": 381.840072,
+    "kernels": {
+     "a_predict_end": {
+      "kernel": "predict",
+      "phase": "A",
+      "us_p50": 3899.834,
+      "us_mean": 3900.0233733733735,
+      "steps": 999,
+      "after": "a_start",
+      "ns_per_particle": 0.06093490625,
+      "share_of_period": 0.010213265411284542
+     },
+     "a_voxel_end": {
+      "kernel": "voxel",
+      "phase": "A",
+      "us_p50": 2136.464,
+      "us_mean": 2135.816545545546,
+      "steps": 999,
+      "after": "a_predict_end",
+      "ns_per_particle": 0.03338225,
+      "share_of_period": 0.005595180172708536
+     },
+     "b_correction_density_interior_end": {
+      "kernel": "correction_density_interior",
+      "phase": "B",
+      "us_p50": 179043.9,
+      "us_mean": 185380.73636136137,
+      "steps": 999,
+      "after": "b_start",
+      "ns_per_particle": 2.7975609375,
+      "share_of_period": 0.46889761742973896
+     },
+     "b_force_deep_interior_end": {
+      "kernel": "force_deep_interior",
+      "phase": "B",
+      "us_p50": 178712.537,
+      "us_mean": 185363.03992992992,
+      "steps": 999,
+      "after": "b_correction_density_interior_end",
+      "ns_per_particle": 2.792383390625,
+      "share_of_period": 0.46802981170609037
+     },
+     "c_correction_density_boundary_end": {
+      "kernel": "correction_density_boundary",
+      "phase": "C",
+      "us_p50": 0.192,
+      "us_mean": 0.18319619619619623,
+      "steps": 999,
+      "after": "c_start",
+      "ns_per_particle": 3e-06,
+      "share_of_period": 5.028283149915182e-07
+     },
+     "c_density_end": {
+      "kernel": "density",
+      "phase": "C",
+      "us_p50": 720.689,
+      "us_mean": 720.9591871871872,
+      "steps": 999,
+      "after": "c_correction_density_boundary_end",
+      "ns_per_particle": 0.011260765625,
+      "share_of_period": 0.0018874106015777199
+     },
+     "c_force_end": {
+      "kernel": "force",
+      "phase": "C",
+      "us_p50": 0.192,
+      "us_mean": 0.18873673673673677,
+      "steps": 999,
+      "after": "c_density_end",
+      "ns_per_particle": 3e-06,
+      "share_of_period": 5.028283149915182e-07
+     }
+    },
+    "g1": null
+   }
+  ],
+  "mean_over_sims": {
+   "predict": {
+    "phase": "A",
+    "us_p50_mean": 3899.834,
+    "ns_per_particle_mean": 0.06093490625,
+    "share_mean": 0.010213265411284542,
+    "sims": 1
+   },
+   "voxel": {
+    "phase": "A",
+    "us_p50_mean": 2136.464,
+    "ns_per_particle_mean": 0.03338225,
+    "share_mean": 0.005595180172708536,
+    "sims": 1
+   },
+   "correction_density_interior": {
+    "phase": "B",
+    "us_p50_mean": 179043.9,
+    "ns_per_particle_mean": 2.7975609375,
+    "share_mean": 0.46889761742973896,
+    "sims": 1
+   },
+   "force_deep_interior": {
+    "phase": "B",
+    "us_p50_mean": 178712.537,
+    "ns_per_particle_mean": 2.792383390625,
+    "share_mean": 0.46802981170609037,
+    "sims": 1
+   },
+   "correction_density_boundary": {
+    "phase": "C",
+    "us_p50_mean": 0.192,
+    "ns_per_particle_mean": 3e-06,
+    "share_mean": 5.028283149915182e-07,
+    "sims": 1
+   },
+   "density": {
+    "phase": "C",
+    "us_p50_mean": 720.689,
+    "ns_per_particle_mean": 0.011260765625,
+    "share_mean": 0.0018874106015777199,
+    "sims": 1
+   },
+   "force": {
+    "phase": "C",
+    "us_p50_mean": 0.192,
+    "ns_per_particle_mean": 3e-06,
+    "share_mean": 5.028283149915182e-07,
+    "sims": 1
+   }
+  },
+  "kernel_order": [
+   "predict",
+   "voxel",
+   "correction_density_interior",
+   "force_deep_interior",
+   "correction_density_boundary",
+   "density",
+   "force"
+  ],
+  "period_mean_of_sims_ms": 381.840072,
+  "g1_share_mean": null,
+  "g1_share_range": null,
+  "point": "trace_3d_n392_K1",
+  "job": "02_e9_e9B_1741917"
+ }
+]

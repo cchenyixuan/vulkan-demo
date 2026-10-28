@@ -286,6 +286,47 @@ K = 2 (cuts [26], devices [0, 1]) vs K = 1 at step 300: 7,077,888 fluid particle
 - 协变量：busy 中位 SM 时钟 2685–2715 MHz（参考运行 2662–2707），温度 ≤ 71 °C，卡功率峰 582–588 W（575 W 上限的 nvidia-smi 瞬时值），主机 cgroup 峰 39.0 GiB；e8_A 为 2670–2722 MHz / ≤ 75 °C / 35.4 GiB。
 - tab:phases 块（T_A / T_B / T_C）、loss sources、hops、bytes check、migration stats 都已生成在 `data/e9/phase2/`；"ideal chain" 行要等 B 线的 K = 1 trace 到齐后重跑整批再填。
 
+#### 4.4.2 B 线：e9_B = SLURM 1741917（wqd10nbj04g4，17:37:49–20:28:58 CST，2 h 51 min；e8_B 2 h 44 min + e8_S2 的单卡对比另算）
+
+- 协议 = e8_B 逐项：K = 8 强扩展 4M / 8M（5 次）、16M / 33M / 64M（3 次），每次同时 8 张 K = 1 参考；4M / 8M 的 K1a / K1b / K8 三份 dump + 按离 seam 列距的场比较（节点上做完，`compare/`）；五个立方体的 K = 1 trace；weak 8 × 8M K8；v7_single 对比（5.1 节 cadence 协议 2000 / 1000，3 对，用 `~/run/vulkan-demo-v7single-rc4` = rc4.1）。PROVENANCE harness cb3c9f5 / 树 37f99f2b，PROVENANCE_END unchanged；8 卡 575 W；bring-up 通过；**212 次运行全部 pass，drift 0**。
+- 镜像 `logs/n56/2026-10-28/02_e9_e9B_1741917/`（1168 文件；6 个 npz dump 2.4 GB 不拉，compare 的 json / md 在）。
+
+| 点（K = 8） | E8 η（min–max） | E9 η（min–max） | E9 − E8 | η_min E8 / E9 | fps_K E8 / E9 | K = 1 参考 fps E8 / E9 |
+|---|---|---|---|---|---|---|
+| 4M (160³)，每卡 0.51M，5 次 | 0.464 (0.460–0.466) | **0.463** (0.461–0.467) | **-0.000** | 0.469 / 0.469 | 136.81 / 156.77 (+14.6 %) | 36.89 / 42.28 (+14.6 %) |
+| 8M (200³)，每卡 1.0M，5 次 | 0.663 (0.660–0.667) | **0.661** (0.658–0.663) | **-0.003** | 0.671 / 0.668 | 99.86 / 113.00 (+13.2 %) | 18.81 / 21.37 (+13.6 %) |
+| 16M (252³)，每卡 2.0M | 0.816 (0.814–0.817) | **0.814** (0.811–0.815) | **-0.002** | 0.827 / 0.820 | 62.73 / 69.28 (+10.4 %) | 9.61 / 10.64 (+10.7 %) |
+| 33M (320³)，每卡 4.1M | 0.847 (0.845–0.850) | **0.867** (0.865–0.870) | **+0.020** | 0.856 / 0.877 | 33.34 / 36.14 (+8.4 %) | 4.92 / 5.21 (+5.8 %) |
+| 64M (400³)，每卡 8.0M | 0.841 (0.840–0.842) | **0.878** (0.877–0.878) | **+0.037** | 0.850 / 0.888 | 17.16 / 18.45 (+7.5 %) | 2.55 / 2.63 (+3.0 %) |
+| weak 8 × 8M（参考 = 每卡 8M K = 1） | 0.985 (0.985–0.986) | **0.982** (0.978–0.986) | **-0.003** | 0.998 / 0.993 | 18.56 / 21.01 (+13.2 %) | 2.36 / 2.67 (+13.5 %) |
+
+**判读**
+- K = 8 的 η 在 4M / 8M / 16M 三点与 E8 相同（差 ≤ 0.003），在 33M / 64M 分别 **+0.020 / +0.037**（0.847 → 0.867，0.841 → 0.878）。机制仍是 7.18 的：atomicAdd 序只打乱 defrag 第一波覆盖的 ~16M 粒子。≤ 16M 的算例里 K = 1 参考和 K = 8 的 slab 都被整体打乱，两边同样快了 10–15 %，比值不动；33M / 64M 的 K = 1 参考只有前 16M 乱（prefix 后只快 +5.8 / +3.0 %），而 4M / 8M 的 slab 整块乱（+8.4 / +7.5 %），η 的差就是这两个百分比的差。
+- 每粒子成本的"尺寸效应"消失：K = 1 参考 4M 5.77 ns、8M 5.85 ns、64M 5.94 ns（E8：6.64 ns @ 8M 对 6.13 ns @ 64M，比 1.09；7.18 的本机预测）。
+- K = 8 在小算例的低 η（4M 0.46、8M 0.66）与 E8 一样，是每卡 0.5–1M 粒子时的链路 / 延迟地板（E8 报告 B 线诊断），与 defrag 序无关。
+- weak 8 × 8M：0.982（E8 0.985），η_min 0.993；8 张卡的 K = 1 参考 21.25–21.53 fps（E8 ≈ 18.9）。
+- 分割终切与 E8 相同（4M [7, 11, 16, 21, 26, 30, 35]，8M [8, 14, 20, 26, 32, 38, 44]，16M [10, 17, 25, 32, 40, 48, 55]，33M [12, 22, 31, 41, 51, 60, 70]，64M [14, 26, 39, 51, 63, 76, 88]，weak [50, 97, 146, 194, 242, 290, 338]）。
+
+**单卡参考（第 9 项的 "single reference with v7-single-rc4"）**：链路 K = 1 / v7_single = **0.9974**（三对 0.9956–0.9985；E8 的 e8_S2 0.9984），v7_single 每对带 bootstrap defrag，drift 0。
+
+| job | case | protocol | pair | steps (warmup + measured) | v7_single fps (bootstrap defrag) | chain K = 1 fps used (with / without defrag) | ratio chain / single | valid | single status / drift / overflow | chain status |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 02_e9_e9B_1741917 | 8M (200^3) | cadence | 1 | 1000 + 1000 | 20.711 (yes) | 20.679 (20.679 / 20.716) | 0.9985 | yes | ok / 0 / {} | pass |
+| 02_e9_e9B_1741917 | 8M (200^3) | cadence | 2 | 1000 + 1000 | 20.756 (yes) | 20.718 (20.718 / 20.758) | 0.9982 | yes | ok / 0 / {} | pass |
+| 02_e9_e9B_1741917 | 8M (200^3) | cadence | 3 | 1000 + 1000 | 20.736 (yes) | 20.645 (20.645 / 20.680) | 0.9956 | yes | ok / 0 / {} | pass |
+| 02_e9_e9B_1741917 | 8M (200^3) | cadence | **mean / mean** | | 20.734 | 20.680 | **0.9974** (pairs 0.9956–0.9985) | 3 valid pairs | | |
+
+**正确性（K = 8 对 K = 1，第 1500 步，流体粒子，K = 1 噪声地板 = 两次独立 K = 1 之差）**：两个算例的 rms 比 test / noise 都在 1 附近（4M dv 0.99、dρ 0.92；8M 1.01 / 0.99），按 seam 距离分层也都 0.96–1.04，即 K = 8 与 K = 1 的差异与 K = 1 自身的重复性差异同量级：
+
+### compare_3d_n152_K8 (02_e9_e9B_1741917): K = 8, cuts [7, 11, 16, 21, 26, 30, 35], devices [0, 1, 2, 3, 4, 5, 6, 7], step 1500 (references at 1500 / 1500); 3,511,808 fluid particles compared, ids missing 0 / 0; dumps valid: test True, reference True, reference2 True
+- test |B − A1|: max |dv|/U **3.457e-01**, rms 2.838e-03; max |drho|/rho0 **8.805e-04**, rms 1.993e-06; max |dx| 8.059e-03 m
+- noise |A1 − A2|: max |dv|/U 4.329e-01, rms 2.859e-03; max |drho|/rho0 7.884e-04, rms 2.169e-06; rms ratios test / noise: dv 0.99, drho 0.92
+### compare_3d_n192_K8 (02_e9_e9B_1741917): K = 8, cuts [8, 14, 20, 26, 32, 38, 44], devices [0, 1, 2, 3, 4, 5, 6, 7], step 1500 (references at 1500 / 1500); 7,077,888 fluid particles compared, ids missing 0 / 0; dumps valid: test True, reference True, reference2 True
+- test |B − A1|: max |dv|/U **4.778e-01**, rms 3.153e-03; max |drho|/rho0 **5.552e-04**, rms 1.830e-06; max |dx| 7.346e-03 m
+- noise |A1 − A2|: max |dv|/U 4.594e-01, rms 3.134e-03; max |drho|/rho0 6.158e-04, rms 1.855e-06; rms ratios test / noise: dv 1.01, drho 0.99
+
+**协变量**：busy 中位 SM 时钟 2707–2752 MHz（参考运行 2680–2809），温度 ≤ 71 °C，卡功率峰 584–588 W，主机 cgroup 峰 67.5 GiB（dump 阶段）。K = 1 trace 的逐核表 `kernel_table.md`（8M K8：G1 冗余份额 9.9 %，64M K8 6.1 %）、tab:phases 块、loss sources、hops、bytes check、migration stats 均已生成到 `data/e9/phase2/`。
+
 ## 5. 数据与复现
 
 - 代码：提交号与标签见本节末尾的更新。
