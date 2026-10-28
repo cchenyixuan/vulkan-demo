@@ -327,16 +327,16 @@
     "job": "09_e8_e8D3_1725242"
    },
    "e9": {
-    "eta": null,
-    "eta_min_trials": null,
-    "eta_max_trials": null,
-    "n": null,
-    "eta_min": null,
-    "fps_K": null,
-    "reference_fps": null,
-    "job": null
+    "eta": 0.9286971368540393,
+    "eta_min_trials": 0.927331396860201,
+    "eta_max_trials": 0.9301107731548622,
+    "n": 3,
+    "eta_min": 0.9396800796742063,
+    "fps_K": 16.448166666666665,
+    "reference_fps": 2.2138765715355837,
+    "job": "04_e9_e9D_1741924"
    },
-   "delta_eta": null
+   "delta_eta": 0.046133453625040954
   }
  ]
 }
