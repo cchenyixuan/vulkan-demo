@@ -442,6 +442,10 @@ K = 2 (cuts [26], devices [0, 1]) vs K = 1 at step 300: 7,077,888 fluid particle
 3. 每粒子成本：K = 1 立方体 5.77 / 5.85 / 5.94 / 5.99 ns（4M / 8M / 64M / 76M；E8 6.64 → 6.13 ns 的尺寸效应没了）；链路 K = 1 / v7_single 0.9974；K8 对 K1 的场差在 K1 噪声地板上；VRAM = 模型。
 4. 两个 campaign 其他协变量相同：切口逐点相同（64M K2 差一列、128M 差一列），时钟比链路 / 参考 1.01–1.03，温度 ≤ 75 °C，575 W 上限。≤ 16M 的暴露项差异是节点（nbj04g4 对 nbj11g2 的主机 memcpy）造成的，不影响 η。
 
+### 4.6 论文切到 E9（你 2026-10-29 的四项）
+
+交付在一个文件里：`docs/cluster_v6/data/e9/paper_e9.md`（生成脚本 `docs/cluster_v6/scripts/e9_paper_rows.py`，同名 .json 带全部数值）。内容：(1) `C:/Users/cchen/PycharmProjects/vulkan-demo/manuscripts/fig/` 里的 `strong_scaling_3d.*` 与 `loss_sources.*` 已换成 E9（2-D 部分仍是 E7），E8 版保留为 `*_e8_atomic.*`；(2) tab:strong3d、tab:weak3d、tab:phases 的 64M / 8M 3-D 行块（理想链 = 整算例 K = 1 trace ÷ 8 一行 + 链路 K = 8 一行，步长中位数与均值两列）、tab:ledger3d（η、seam、transport、imbalance、r）的 LaTeX 行；(3) 按整算例 ÷ K 的理想链重算账本：η' + 三项 = 100 % 恒等，计时 η + 三项 − 1 在 +0.003 ~ +0.013（8 点最大 0.0126 < 0.02）；(4) 64M K8 逐核每处理粒子成本（E9）：interior corr+dens 2.78 ns、force 2.80 ns，boundary 2.91 / 2.98 ns，boundary / interior = 1.047 / 1.065（合计 1.056）；E8 为 3.14 / 3.12 对 2.94 / 3.02。
+
 ## 5. 数据与复现
 
 - 代码：提交号与标签见本节末尾的更新。
