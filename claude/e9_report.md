@@ -452,6 +452,12 @@ K = 2 (cuts [26], devices [0, 1]) vs K = 1 at step 300: 7,077,888 fluid particle
 2. **fig:loss(a) 3-D 2M / 卡（16M K8）的 host 部分**：取法 = 每步按 t_tr 选最慢链路、取它的 host、对步取中位（`e7_loss_figure.worst_link_medians`）。E9 **1.54 ms**（3→4 在 78 % 的步里最慢，其 host 中位 1.50；逐链路 host 中位 1.07–1.58，合并 1.16）；E8 3.94 ms（逐链路 1.17–3.72，合并 2.44；最慢链路在 3→4 / 5→6 / 2→1 / 2→3 间轮换，所以图值高于任一链路自己的中位）。降幅是节点差异；该点 E9 已过 t_tr = T_B 交点（r 0.81，E8 1.51）。
 3. **8M / 16M K8 的 G1 复本与 boundary 核（E9，内部卡 s1–s6 均值）**：8M 每卡 6 列 × 160k = 0.96M 自有，G1 2 × 160k = 320k（33 % 自有）；corr+dens boundary 处理 0.64M 自有 + 0.32M G1 = 0.96M，2,903 us（3.02 ns / 处理粒子，K1 立方体 2.83）；force boundary 处理全部 0.96M 自有（3 列 × 2 侧 = 整个 slab），3,021 us（3.15 ns，K1 2.73）；force deep interior 空派发 7 us，corr+dens interior 只剩 2 列 1,087 us（3.40 ns）。G1 冗余 10.9 % 周期，内部卡 seam 19.3 % = G1 冗余 10.9 + 带核每粒子超额 6.6 + 窄 interior 核超额 2.0 + 小核 / 空隙 1.1 + 残差 -1.2。16M 每卡 7–8 列 × 254k，G1 2 × 254k = 508k（27 %）；corr+dens boundary 1.524M 处理 4,519 us（2.97 ns，K1 2.79），force boundary 1.524M（80 % 自有）4,675 us（3.07 ns，K1 2.70），deep interior 1–2 列 3.2–3.8 ns；G1 冗余 10.4 %，seam 17.6 % = 10.4 + 5.8 + 2.8 -0.6 -0.8。boundary 核时长与 E8 相同（8M 2,921 / 3,003 → 2,903 / 3,021 us）。正文的 seam 构成：一半多是 G1 复本的 corr+dens 冗余（≈ 10–11 % 周期），其次是带核每处理粒子比 K1 立方体贵 6–15 %（force 带更贵），再是 1M–2M 每卡时 interior 核只剩 1–2 列的窄派发。
 
+#### 4.8 fig:loss 重画成三栏（用户 2026-10-29；`e8_loss_3d.py` 的 `figure()` 换成三栏版，旧两栏版保留为 `figure_v1`，新入口 `--figure-from-json` 只重画不重跑）
+
+- 布局：整页宽 5.333 in，三个 1.38 × 1.62 in 面板。(a) 2-D、(b) 3-D：T_B 实线实心、t_tr 实线空心、host 部分虚线无符号，(a) 用 fig:scaling3d 的 2-D 灰（`#8c8c8c`，圆），(b) 用 3-D 蓝（`#08519c`，方）；横轴每卡粒子数（对数，各自范围），纵轴 ms（对数，共用范围 0.1–140，刻度只在 (a) 标）；t_tr = T_B 的交点画细竖虚线；图例在 (a) 左上只标三个量，维度由面板标题 "2-D" / "3-D" 给出。(c) η 对 r：2-D 灰实心圆、3-D 蓝实心方，r 对数轴，r = 1 竖虚线，η = 1 ± 0.02 带，图例 2-D / 3-D。
+- 输出：`docs/cluster_v6/data/e9/loss_3d/figures/loss_sources.{pdf,png,csv}` 和 `C:/Users/cchen/PycharmProjects/vulkan-demo/manuscripts/fig/loss_sources.{pdf,png,csv}`（覆盖），两处旧版另存 `loss_sources_v1.*`；CSV 列不变（数据同 10-28 的 E9 版）。
+- **交点**：2-D 1.42M / 卡（cavity2d_n2840 与 cavity2d_n4000 之间，1.60 ms；E7 数据不变）；3-D **1.31M / 卡**（cavity3d_n192 与 cavity3d_n244 之间，2.67 ms）。用户给的 1.97M / 卡是 E8 的值（E8 json：1.97M，5.62 ms）：E8 的 16M K8 t_tr 5.67 ms 贴着 T_B 5.72，E9（nbj04g4）同点 t_tr 2.92 ms 对 T_B 5.09，8M K8 t_tr 2.52 对 T_B 1.77，交点落到 1.0M 与 2.0M 之间，按 E9 数据画在 1.31M。正文若引交点数字要改成 1.31M（4.7 的第 2 项：这是节点差异带来的 t_tr 下降）。
+
 ## 5. 数据与复现
 
 - 代码：提交号与标签见本节末尾的更新。

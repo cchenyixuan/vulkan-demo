@@ -120,3 +120,5 @@ Per card (E9): sim | own (M) | sides | corr+dens interior us (ns/p) | force deep
 | 7 | 8.32 | 1 | 19,341 (2.75) | 16,796 (2.62) | 5,828 (3.04) | 6,056 (3.15) | 53.075 |
 
 补三项（2026-10-29：64M K8 三跳 E8/E9 + memcpy 按 K、fig:loss(a) 2M/卡 host 取法、8M/16M K8 G1 与 boundary 核）见 `paper_e9_addenda.md`。
+
+fig:loss 2026-10-29 重画成三栏（(a) 2-D 灰 / (b) 3-D 蓝 / (c) η 对 r；`e8_loss_3d.py --figure-from-json`），manuscripts/fig 与 data/e9/loss_3d/figures 的旧两栏版另存 `loss_sources_v1.*`；t_tr = T_B 交点 2-D 1.42M / 卡、3-D 1.31M / 卡（E8 曾是 1.97M）。

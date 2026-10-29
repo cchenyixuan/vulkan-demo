@@ -27,9 +27,13 @@ E8 mirrors 02 / 03 / 04 / 09, no new runs).
                over the cards (min-max); step median; step mean window - defrag; step mean skip), the ideal-chain row
                = the K = 1 trace of the per-card-size cube, NOT divided (64M: the 8M cube; 8M: the 4M cube as the
                stand-in for 1M per card, flagged); the whole cube's K = 1 trace / 8 as a third row for comparison.
-  3. figure    fig:loss with the 3-D series: (a) T_B, t_tr and its host part of the seven cubes (squares) beside the
-               nine 2-D points (circles, from the E7 figure JSON, unchanged), log-log; (b) eta against r, the 2-D
-               circles and the seven 3-D squares, log x (4M's r = 205). Style e7_loss_figure / e7_scaling_figures.
+  3. figure    fig:loss, three panels across the text width (user 2026-10-29; the two-panel version stays as
+               figure_v1): (a) 2-D and (b) 3-D T_B (filled), t_tr (open) and the host part of t_tr (dashed) against
+               particles per device, log-log, in fig:scaling3d's 2-D grey (circles) and 3-D blue (squares), a thin
+               dashed vertical at t_tr = T_B, one y range (ticks labelled on (a) only), the three quantities in
+               (a)'s legend and the dimension in the panel titles; (c) eta against r, 2-D grey circles and 3-D blue
+               squares, log x, r = 1 dashed, the eta = 1 +- 0.02 band. Style e7_loss_figure / e7_scaling_figures.
+               --figure-from-json redraws it from an existing loss_sources_figure.json (no traces needed).
   4. 2-D checks   the G1 redundancy share of 2-D 64M K8 from the anatomy run's per-kernel samples (the boundary
                correction + density kernel per sim) and the chain trace (period, host copy bytes -> n0), by
                e8_kernel_table's formula; the SM clock ratio chain / reference of the nine strong K = 8 2-D points
@@ -46,6 +50,10 @@ Usage:
 Writes OUT/ledger.{md,json,csv}, phases_3d.{md,json,csv}, two_d_checks.{md,json}, memcpy.{md,json},
 loss_sources_figure.json and, in every --figure-out directory, loss_sources.{pdf,png,csv} (the previous files are
 kept as loss_sources_2d.* when none exist yet).
+    python docs/cluster_v6/scripts/e8_loss_3d.py --figure-from-json OUT/loss_sources_figure.json
+        --figure-out DIR [--figure-out DIR ...] [--backup-suffix _v1]
+Redraws fig:loss only; in every --figure-out directory the existing loss_sources.* are kept as loss_sources_v1.*
+(the suffix) when those do not exist yet.
 """
 from __future__ import annotations
 
@@ -68,6 +76,7 @@ import e8_kernel_table as kernel_table  # noqa: E402
 import e7_full_summary as summary  # noqa: E402
 import e7_scaling_figures as style  # noqa: E402
 from e7_loss_figure import worst_link_medians  # noqa: E402
+from e8_scaling_figures_3d import COLOR_2D  # noqa: E402     fig:scaling3d's 2-D grey
 from experiment.v7.analysis import step_trace_model  # noqa: E402
 
 # point -> (per-card-size cube, note); the ledger / figure order
@@ -380,7 +389,8 @@ def crossing(points: list) -> list:
     return out
 
 
-def figure(two_d: list, three_d: list, out: pathlib.Path) -> None:
+def figure_v1(two_d: list, three_d: list, out: pathlib.Path) -> None:
+    """The two-panel fig:loss (E8 / E9 first version): (a) 2-D circles and 3-D squares together, (b) eta against r."""
     import matplotlib.pyplot as plt
     from matplotlib.lines import Line2D
     from matplotlib.ticker import FuncFormatter, LogLocator, MultipleLocator, NullFormatter
@@ -449,6 +459,86 @@ def figure(two_d: list, three_d: list, out: pathlib.Path) -> None:
     style.panel_label(axis_r, "(b)")
     style.save(fig, out / "loss_sources.pdf")
     plt.close(fig)
+
+
+def figure(two_d: list, three_d: list, crossings: dict, out: pathlib.Path) -> None:
+    """fig:loss, three panels across the text width (user 2026-10-29): (a) 2-D and (b) 3-D time per step against
+    particles per device (T_B filled, t_tr open, host part dashed without markers; fig:scaling3d's 2-D grey with
+    circles and 3-D blue with squares; a thin dashed vertical at t_tr = T_B; one y range, y ticks labelled on (a)
+    only; the legend of the three quantities in (a), the dimension in the panel titles); (c) eta against r (2-D grey
+    filled circles, 3-D blue filled squares, the eta = 1 +- 0.02 band, r = 1 dashed)."""
+    import matplotlib.pyplot as plt
+    from matplotlib.lines import Line2D
+    from matplotlib.ticker import FuncFormatter, LogLocator, MultipleLocator, NullFormatter
+    width, panel, height_panel = style.TEXT_WIDTH, 1.38, 1.62
+    left, gap_ab, gap_bc, bottom, top = 0.42, 0.16, 0.50, 0.40, 0.28
+    fig = plt.figure(figsize=(width, bottom + height_panel + top))
+    axis_a = style.axes_inches(fig, left, bottom, panel, height_panel)
+    axis_b = style.axes_inches(fig, left + panel + gap_ab, bottom, panel, height_panel)
+    axis_c = style.axes_inches(fig, left + 2 * panel + gap_ab + gap_bc, bottom, panel, height_panel)
+    plain = FuncFormatter(lambda value, _: f"{value:g}")
+    dashed = (0, (3.0, 2.0))
+    for axis in (axis_a, axis_b, axis_c):
+        style.frame(axis)
+        axis.set_xscale("log")
+        axis.xaxis.set_major_locator(LogLocator(base=10.0, numticks=12))
+        axis.xaxis.set_minor_locator(LogLocator(base=10.0, subs=tuple(range(2, 10)), numticks=12))
+        axis.xaxis.set_minor_formatter(NullFormatter())
+        axis.xaxis.set_major_formatter(plain)
+    # (a) 2-D grey circles, (b) 3-D blue squares: T_B filled, t_tr open, host part dashed; the crossing t_tr = T_B
+    ys_all = [row[key] / 1e3 for row in two_d + three_d for key in ("T_B", "t_tr", "t_host")]
+    panels = ((axis_a, two_d, "2-D", COLOR_2D, "o", 3.4, crossings.get("2D", [])),
+              (axis_b, three_d, "3-D", style.COLOR_MAIN, "s", 3.1, crossings.get("3D", [])))
+    for axis, rows, title, color, marker, size, cross in panels:
+        xs = [row["per_gpu"] / 1e6 for row in rows]
+        axis.plot(xs, [row["T_B"] / 1e3 for row in rows], color=color, marker=marker, ms=size, mfc=color, mec=color, lw=0.9, zorder=3)
+        axis.plot(xs, [row["t_tr"] / 1e3 for row in rows], color=color, marker=marker, ms=size, mfc="white", mec=color, mew=0.8, lw=0.9, zorder=3)
+        axis.plot(xs, [row["t_host"] / 1e3 for row in rows], color=color, ls=dashed, lw=0.9, zorder=2.5)
+        for item in cross:
+            axis.axvline(item["per_device"] / 1e6, color="#555555", lw=0.6, ls=dashed, zorder=0.6)
+        axis.set_yscale("log")
+        axis.yaxis.set_major_locator(LogLocator(base=10.0, numticks=12))
+        axis.yaxis.set_minor_locator(LogLocator(base=10.0, subs=tuple(range(2, 10)), numticks=12))
+        axis.yaxis.set_minor_formatter(NullFormatter())
+        axis.yaxis.set_major_formatter(plain)
+        axis.set_xlim(min(xs) / 1.7, max(xs) * 1.7)
+        axis.set_ylim(min(ys_all) / 1.8, max(ys_all) * 2.2)
+        axis.set_xlabel("particles per device (M)", labelpad=1.5)
+        axis.set_title(title, fontsize=style.FONT_SIZE, pad=3.0)
+    axis_a.set_ylabel("time per step (ms)", labelpad=1.5)
+    axis_b.tick_params(axis="y", labelleft=False)
+    handles = [Line2D([], [], color=COLOR_2D, marker="o", ms=3.4, mfc=COLOR_2D, mec=COLOR_2D, lw=0.9, label=r"$T_B$"),
+               Line2D([], [], color=COLOR_2D, marker="o", ms=3.4, mfc="white", mec=COLOR_2D, mew=0.8, lw=0.9, label=r"$t_\mathrm{tr}$"),
+               Line2D([], [], color=COLOR_2D, ls=dashed, lw=0.9, label=r"host part of $t_\mathrm{tr}$")]
+    axis_a.legend(handles=handles, loc="upper left", frameon=False, handlelength=1.6, borderaxespad=0.2)
+    # (c) eta against r: 2-D grey circles, 3-D blue squares; band eta = 1 +- 0.02, dashed line at r = 1
+    style.band(axis_c)
+    axis_c.axvline(1.0, color="#555555", lw=0.6, ls=dashed, zorder=0.6)
+    for rows, color, marker, size, label in ((two_d, COLOR_2D, "o", 3.4, "2-D"), (three_d, style.COLOR_MAIN, "s", 3.1, "3-D")):
+        axis_c.errorbar([row["r"] for row in rows], [row["eta"] for row in rows],
+                        yerr=[[row["eta"] - row["eta_min"] for row in rows], [row["eta_max"] - row["eta"] for row in rows]],
+                        capsize=1.6, elinewidth=0.6, capthick=0.6, ls="none", color=color, marker=marker, ms=size, mfc=color, mec=color, label=label)
+    r_values = [row["r"] for row in two_d + three_d]
+    axis_c.set_xlim(min(r_values) / 1.8, max(r_values) * 1.8)
+    axis_c.set_ylim(0.0, 1.05)
+    axis_c.yaxis.set_major_locator(MultipleLocator(0.2))
+    axis_c.set_xlabel(r"$r$", labelpad=1.5)
+    axis_c.set_ylabel(r"$\eta$", labelpad=1.5)
+    axis_c.legend(handles=[Line2D([], [], color=COLOR_2D, marker="o", ms=3.4, mfc=COLOR_2D, mec=COLOR_2D, lw=0, label="2-D"),
+                           Line2D([], [], color=style.COLOR_MAIN, marker="s", ms=3.1, mfc=style.COLOR_MAIN, mec=style.COLOR_MAIN, lw=0, label="3-D")],
+                  loc="lower right", frameon=False, handlelength=1.0, borderaxespad=0.2, handletextpad=0.5)
+    for axis, text in ((axis_a, "(a)"), (axis_b, "(b)"), (axis_c, "(c)")):
+        style.panel_label(axis, text)
+    style.save(fig, out / "loss_sources.pdf")
+    plt.close(fig)
+
+
+def backup_figure_files(target: pathlib.Path, suffix: str) -> None:
+    """Keep the directory's loss_sources.{pdf,png,csv} as loss_sources<suffix>.* when those do not exist yet."""
+    for extension in (".pdf", ".png", ".csv"):
+        old, keep = target / f"loss_sources{extension}", target / f"loss_sources{suffix}{extension}"
+        if old.exists() and not keep.exists():
+            shutil.copy2(old, keep)
 
 
 def write_figure_csv(rows: list, path: pathlib.Path) -> None:
@@ -582,18 +672,37 @@ def memcpy_of(data: dict, name: str) -> dict:
 # ----------------------------------------------------------------------------------------- main
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--job", action="append", required=True)
-    parser.add_argument("--tables", required=True)
-    parser.add_argument("--two-d-json", required=True)
-    parser.add_argument("--two-d-tables", required=True)
-    parser.add_argument("--two-d-figure-csv", required=True)
-    parser.add_argument("--two-d-logs", required=True)
-    parser.add_argument("--out-dir", required=True)
+    parser.add_argument("--job", action="append", default=[])
+    parser.add_argument("--tables")
+    parser.add_argument("--two-d-json")
+    parser.add_argument("--two-d-tables")
+    parser.add_argument("--two-d-figure-csv")
+    parser.add_argument("--two-d-logs")
+    parser.add_argument("--out-dir")
     parser.add_argument("--figure-out", action="append", default=[])
+    parser.add_argument("--figure-from-json", help="redraw fig:loss from this loss_sources_figure.json into the --figure-out directories; nothing else runs")
+    parser.add_argument("--backup-suffix", default="_v1", help="--figure-from-json: keep the existing loss_sources.* as loss_sources<suffix>.* (when absent)")
     arguments = parser.parse_args()
     import matplotlib
     matplotlib.use("Agg")
     style.setup_style()
+    if arguments.figure_from_json:
+        document = json.loads(pathlib.Path(arguments.figure_from_json).read_text(encoding="utf-8"))
+        two_d = [p for p in document["points"] if p["dimension"] == "2D"]
+        three_d = [p for p in document["points"] if p["dimension"] == "3D"]
+        for dimension, items in document["t_tr_equals_T_B"].items():
+            for item in items:
+                print(f"[figure] {dimension}: t_tr = T_B at {item['per_device'] / 1e6:.3f}M per device ({item['time_us'] / 1e3:.3f} ms)", flush=True)
+        for directory in arguments.figure_out:
+            target = pathlib.Path(directory)
+            target.mkdir(parents=True, exist_ok=True)
+            backup_figure_files(target, arguments.backup_suffix)
+            figure(two_d, three_d, document["t_tr_equals_T_B"], target)
+            write_figure_csv(two_d + three_d, target / "loss_sources.csv")
+        return 0
+    missing = [name for name in ("job", "tables", "two_d_json", "two_d_tables", "two_d_figure_csv", "two_d_logs", "out_dir") if not getattr(arguments, name)]
+    if missing:
+        parser.error("missing: " + ", ".join("--" + name.replace("_", "-") for name in missing))
     out = pathlib.Path(arguments.out_dir)
     out.mkdir(parents=True, exist_ok=True)
     tables = json.loads(pathlib.Path(arguments.tables).read_text(encoding="utf-8"))
@@ -641,11 +750,8 @@ def main() -> int:
     for directory in arguments.figure_out:
         target = pathlib.Path(directory)
         target.mkdir(parents=True, exist_ok=True)
-        for suffix in (".pdf", ".png", ".csv"):
-            old, keep = target / f"loss_sources{suffix}", target / f"loss_sources_2d{suffix}"
-            if old.exists() and not keep.exists():
-                shutil.copy2(old, keep)
-        figure(two_d, three_d, target)
+        backup_figure_files(target, "_2d")
+        figure(two_d, three_d, crossings, target)
         write_figure_csv(two_d + three_d, target / "loss_sources.csv")
     # 4. 2-D checks
     g1 = two_d_g1(pathlib.Path(arguments.two_d_logs))
