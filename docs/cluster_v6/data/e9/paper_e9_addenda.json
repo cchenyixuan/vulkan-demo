@@ -1,0 +1,4104 @@
+{
+ "item1": {
+  "hops_64m_k8": {
+   "e8": {
+    "campaign": "e8",
+    "point": "3d_n392_K8",
+    "job": "02_e8_e8B_1721839",
+    "node": "wqd10nbj11g2",
+    "links": 14,
+    "steps_per_link": [
+     1000
+    ],
+    "host_copy_bytes_p50": 41126480.0,
+    "dma_bytes_p50": 53727956.0,
+    "pooled_p50_us": {
+     "t_chain": 13604.6,
+     "readback": 2707.3,
+     "host": 6715.2,
+     "memcpy": 6459.4,
+     "host_rest": 245.2,
+     "upload": 1536.8,
+     "readback_dma": 1810.9,
+     "upload_dma": 1203.2
+    },
+    "pooled_p95_us": {
+     "t_chain": 35093.1,
+     "readback": 6488.7,
+     "host": 13636.0,
+     "memcpy": 13421.9,
+     "host_rest": 458.9,
+     "upload": 26628.1
+    },
+    "link_p50_range_us": {
+     "readback": [
+      1183.3,
+      5955.7
+     ],
+     "host": [
+      3163.3,
+      11855.3
+     ],
+     "memcpy": [
+      2995.5,
+      11608.6
+     ],
+     "upload": [
+      1025.1,
+      26717.6
+     ],
+     "t_chain": [
+      6416.0,
+      35270.4
+     ]
+    },
+    "memcpy_gbps_at_p50": 6.366919528129548,
+    "slowest_link_median_us": {
+     "t_tr": 17042.142,
+     "readback": 1626.824,
+     "host": 11362.940000000002,
+     "upload": 1512.672
+    },
+    "per_link": {
+     "s0_to_s1": {
+      "host_copy_bytes": 41126480,
+      "readback": 1183.3,
+      "host": 11855.3,
+      "memcpy": 11608.6,
+      "upload": 2141.7,
+      "t_chain": 15334.0
+     },
+     "s1_to_s0": {
+      "host_copy_bytes": 41126480,
+      "readback": 1331.1,
+      "host": 7903.4,
+      "memcpy": 7717.4,
+      "upload": 3008.9,
+      "t_chain": 12000.3
+     },
+     "s1_to_s2": {
+      "host_copy_bytes": 41126480,
+      "readback": 2729.3,
+      "host": 5807.4,
+      "memcpy": 5686.5,
+      "upload": 2698.9,
+      "t_chain": 11093.8
+     },
+     "s2_to_s1": {
+      "host_copy_bytes": 41126480,
+      "readback": 1239.7,
+      "host": 11717.6,
+      "memcpy": 11466.8,
+      "upload": 2042.0,
+      "t_chain": 15311.6
+     },
+     "s2_to_s3": {
+      "host_copy_bytes": 41126480,
+      "readback": 2208.3,
+      "host": 3163.3,
+      "memcpy": 2995.5,
+      "upload": 1025.1,
+      "t_chain": 6416.0
+     },
+     "s3_to_s2": {
+      "host_copy_bytes": 41126480,
+      "readback": 3249.8,
+      "host": 4823.4,
+      "memcpy": 4526.5,
+      "upload": 26717.6,
+      "t_chain": 35270.4
+     },
+     "s3_to_s4": {
+      "host_copy_bytes": 41126480,
+      "readback": 5955.7,
+      "host": 5308.5,
+      "memcpy": 5093.4,
+      "upload": 1026.4,
+      "t_chain": 12703.7
+     },
+     "s4_to_s3": {
+      "host_copy_bytes": 41126480,
+      "readback": 2676.7,
+      "host": 5784.1,
+      "memcpy": 5362.1,
+      "upload": 20797.8,
+      "t_chain": 29977.7
+     },
+     "s4_to_s5": {
+      "host_copy_bytes": 41126480,
+      "readback": 4955.8,
+      "host": 6872.4,
+      "memcpy": 6580.6,
+      "upload": 1295.6,
+      "t_chain": 14536.5
+     },
+     "s5_to_s4": {
+      "host_copy_bytes": 41126480,
+      "readback": 1819.4,
+      "host": 9388.8,
+      "memcpy": 9037.2,
+      "upload": 3075.3,
+      "t_chain": 17690.9
+     },
+     "s5_to_s6": {
+      "host_copy_bytes": 41126480,
+      "readback": 3769.9,
+      "host": 7722.8,
+      "memcpy": 7512.5,
+      "upload": 1229.5,
+      "t_chain": 12099.0
+     },
+     "s6_to_s5": {
+      "host_copy_bytes": 41126480,
+      "readback": 2506.0,
+      "host": 9818.9,
+      "memcpy": 9492.6,
+      "upload": 1168.5,
+      "t_chain": 13583.8
+     },
+     "s6_to_s7": {
+      "host_copy_bytes": 41126512,
+      "readback": 4781.0,
+      "host": 7567.1,
+      "memcpy": 7314.8,
+      "upload": 1333.1,
+      "t_chain": 15032.6
+     },
+     "s7_to_s6": {
+      "host_copy_bytes": 41126512,
+      "readback": 2873.2,
+      "host": 10140.8,
+      "memcpy": 8933.6,
+      "upload": 4556.6,
+      "t_chain": 22547.2
+     }
+    }
+   },
+   "e9": {
+    "campaign": "e9",
+    "point": "3d_n392_K8",
+    "job": "02_e9_e9B_1741917",
+    "node": "wqd10nbj04g4",
+    "links": 14,
+    "steps_per_link": [
+     1000
+    ],
+    "host_copy_bytes_p50": 41126480.0,
+    "dma_bytes_p50": 53727956.0,
+    "pooled_p50_us": {
+     "t_chain": 7439.9,
+     "readback": 1663.8,
+     "host": 4297.8,
+     "memcpy": 4259.9,
+     "host_rest": 23.2,
+     "upload": 1070.4,
+     "readback_dma": 1175.1,
+     "upload_dma": 998.7
+    },
+    "pooled_p95_us": {
+     "t_chain": 30469.1,
+     "readback": 3120.1,
+     "host": 6031.5,
+     "memcpy": 5975.6,
+     "host_rest": 70.2,
+     "upload": 24441.1
+    },
+    "link_p50_range_us": {
+     "readback": [
+      1051.2,
+      2998.3
+     ],
+     "host": [
+      2648.2,
+      5712.6
+     ],
+     "memcpy": [
+      2628.6,
+      5680.8
+     ],
+     "upload": [
+      1019.7,
+      24648.2
+     ],
+     "t_chain": [
+      5675.1,
+      29707.3
+     ]
+    },
+    "memcpy_gbps_at_p50": 9.654329913847743,
+    "slowest_link_median_us": {
+     "t_tr": 9745.9835,
+     "readback": 2492.098,
+     "host": 5659.8175,
+     "upload": 1212.8319999999999
+    },
+    "per_link": {
+     "s0_to_s1": {
+      "host_copy_bytes": 41126480,
+      "readback": 1552.9,
+      "host": 5166.0,
+      "memcpy": 5132.6,
+      "upload": 1206.1,
+      "t_chain": 8092.6
+     },
+     "s1_to_s0": {
+      "host_copy_bytes": 41126480,
+      "readback": 1586.8,
+      "host": 5067.7,
+      "memcpy": 5042.3,
+      "upload": 1251.9,
+      "t_chain": 8028.1
+     },
+     "s1_to_s2": {
+      "host_copy_bytes": 41126480,
+      "readback": 2998.3,
+      "host": 5217.9,
+      "memcpy": 5150.4,
+      "upload": 1165.6,
+      "t_chain": 9429.4
+     },
+     "s2_to_s1": {
+      "host_copy_bytes": 41126480,
+      "readback": 1619.9,
+      "host": 5712.6,
+      "memcpy": 5680.8,
+      "upload": 1144.3,
+      "t_chain": 8483.4
+     },
+     "s2_to_s3": {
+      "host_copy_bytes": 41126480,
+      "readback": 2657.8,
+      "host": 4458.6,
+      "memcpy": 4422.1,
+      "upload": 1019.7,
+      "t_chain": 8559.2
+     },
+     "s3_to_s2": {
+      "host_copy_bytes": 41126480,
+      "readback": 1402.6,
+      "host": 4323.6,
+      "memcpy": 4291.2,
+      "upload": 1021.4,
+      "t_chain": 6850.8
+     },
+     "s3_to_s4": {
+      "host_copy_bytes": 41126504,
+      "readback": 2772.6,
+      "host": 3829.0,
+      "memcpy": 3804.6,
+      "upload": 1026.0,
+      "t_chain": 7832.0
+     },
+     "s4_to_s3": {
+      "host_copy_bytes": 41126480,
+      "readback": 1051.2,
+      "host": 5034.7,
+      "memcpy": 5012.2,
+      "upload": 2687.9,
+      "t_chain": 11632.2
+     },
+     "s4_to_s5": {
+      "host_copy_bytes": 41126480,
+      "readback": 1984.4,
+      "host": 5173.5,
+      "memcpy": 5150.9,
+      "upload": 1086.3,
+      "t_chain": 8316.1
+     },
+     "s5_to_s4": {
+      "host_copy_bytes": 41126480,
+      "readback": 1220.5,
+      "host": 4279.0,
+      "memcpy": 4212.3,
+      "upload": 1222.7,
+      "t_chain": 6922.5
+     },
+     "s5_to_s6": {
+      "host_copy_bytes": 41126512,
+      "readback": 2429.3,
+      "host": 2820.1,
+      "memcpy": 2790.1,
+      "upload": 1204.5,
+      "t_chain": 6537.1
+     },
+     "s6_to_s5": {
+      "host_copy_bytes": 41126480,
+      "readback": 1070.9,
+      "host": 5245.2,
+      "memcpy": 5224.9,
+      "upload": 1082.4,
+      "t_chain": 7353.4
+     },
+     "s6_to_s7": {
+      "host_copy_bytes": 41126480,
+      "readback": 1990.6,
+      "host": 2648.2,
+      "memcpy": 2628.6,
+      "upload": 1021.4,
+      "t_chain": 5675.1
+     },
+     "s7_to_s6": {
+      "host_copy_bytes": 41126512,
+      "readback": 1292.8,
+      "host": 3666.9,
+      "memcpy": 3636.5,
+      "upload": 24648.2,
+      "t_chain": 29707.3
+     }
+    }
+   }
+  },
+  "memcpy_64m_packet": {
+   "e8": {
+    "3d_n392_K2": {
+     "campaign": "e8",
+     "point": "3d_n392_K2",
+     "job": "03_e8_e8A_1721840",
+     "node": "wqd10nbj11g2",
+     "links": 2,
+     "steps_per_link": [
+      1000
+     ],
+     "host_copy_bytes_p50": 41126480.0,
+     "dma_bytes_p50": 53727956.0,
+     "pooled_p50_us": {
+      "t_chain": 4937.4,
+      "readback": 973.1,
+      "host": 2850.2,
+      "memcpy": 2626.3,
+      "host_rest": 237.6,
+      "upload": 1106.3,
+      "readback_dma": 966.2,
+      "upload_dma": 1067.5
+     },
+     "pooled_p95_us": {
+      "t_chain": 5225.8,
+      "readback": 980.6,
+      "host": 3031.3,
+      "memcpy": 2805.7,
+      "host_rest": 256.7,
+      "upload": 1243.6
+     },
+     "link_p50_range_us": {
+      "readback": [
+       973.1,
+       973.1
+      ],
+      "host": [
+       2813.6,
+       2867.8
+      ],
+      "memcpy": [
+       2573.2,
+       2637.1
+      ],
+      "upload": [
+       1099.3,
+       1112.5
+      ],
+      "t_chain": [
+       4906.2,
+       4955.2
+      ]
+     },
+     "memcpy_gbps_at_p50": 15.659475307466776,
+     "slowest_link_median_us": null,
+     "per_link": {
+      "s0_to_s1": {
+       "host_copy_bytes": 41126480,
+       "readback": 973.1,
+       "host": 2867.8,
+       "memcpy": 2637.1,
+       "upload": 1099.3,
+       "t_chain": 4955.2
+      },
+      "s1_to_s0": {
+       "host_copy_bytes": 41126480,
+       "readback": 973.1,
+       "host": 2813.6,
+       "memcpy": 2573.2,
+       "upload": 1112.5,
+       "t_chain": 4906.2
+      }
+     }
+    },
+    "3d_n392_K4": {
+     "campaign": "e8",
+     "point": "3d_n392_K4",
+     "job": "03_e8_e8A_1721840",
+     "node": "wqd10nbj11g2",
+     "links": 6,
+     "steps_per_link": [
+      1000
+     ],
+     "host_copy_bytes_p50": 41126480.0,
+     "dma_bytes_p50": 53727956.0,
+     "pooled_p50_us": {
+      "t_chain": 6939.1,
+      "readback": 1255.2,
+      "host": 4084.4,
+      "memcpy": 3820.7,
+      "host_rest": 235.3,
+      "upload": 1336.2,
+      "readback_dma": 981.9,
+      "upload_dma": 1137.3
+     },
+     "pooled_p95_us": {
+      "t_chain": 86591.2,
+      "readback": 2453.0,
+      "host": 4993.4,
+      "memcpy": 4713.8,
+      "host_rest": 318.8,
+      "upload": 81439.3
+     },
+     "link_p50_range_us": {
+      "readback": [
+       975.4,
+       2438.5
+      ],
+      "host": [
+       2791.5,
+       4965.6
+      ],
+      "memcpy": [
+       2549.2,
+       4695.7
+      ],
+      "upload": [
+       1023.9,
+       74883.9
+      ],
+      "t_chain": [
+       5778.5,
+       80061.1
+      ]
+     },
+     "memcpy_gbps_at_p50": 10.764121757793074,
+     "slowest_link_median_us": null,
+     "per_link": {
+      "s0_to_s1": {
+       "host_copy_bytes": 41126480,
+       "readback": 975.4,
+       "host": 4479.8,
+       "memcpy": 4239.7,
+       "upload": 1386.2,
+       "t_chain": 6846.5
+      },
+      "s1_to_s0": {
+       "host_copy_bytes": 41126480,
+       "readback": 1233.9,
+       "host": 4445.2,
+       "memcpy": 4151.8,
+       "upload": 1395.6,
+       "t_chain": 7083.3
+      },
+      "s1_to_s2": {
+       "host_copy_bytes": 41126480,
+       "readback": 2438.5,
+       "host": 3007.1,
+       "memcpy": 2798.5,
+       "upload": 1330.5,
+       "t_chain": 6761.9
+      },
+      "s2_to_s1": {
+       "host_copy_bytes": 41126480,
+       "readback": 1047.5,
+       "host": 4965.6,
+       "memcpy": 4695.7,
+       "upload": 1023.9,
+       "t_chain": 7041.4
+      },
+      "s2_to_s3": {
+       "host_copy_bytes": 41126480,
+       "readback": 1957.5,
+       "host": 2791.5,
+       "memcpy": 2549.2,
+       "upload": 1024.8,
+       "t_chain": 5778.5
+      },
+      "s3_to_s2": {
+       "host_copy_bytes": 41126480,
+       "readback": 1404.5,
+       "host": 3769.7,
+       "memcpy": 3610.8,
+       "upload": 74883.9,
+       "t_chain": 80061.1
+      }
+     }
+    },
+    "3d_n392_K8": {
+     "campaign": "e8",
+     "point": "3d_n392_K8",
+     "job": "02_e8_e8B_1721839",
+     "node": "wqd10nbj11g2",
+     "links": 14,
+     "steps_per_link": [
+      1000
+     ],
+     "host_copy_bytes_p50": 41126480.0,
+     "dma_bytes_p50": 53727956.0,
+     "pooled_p50_us": {
+      "t_chain": 13604.6,
+      "readback": 2707.3,
+      "host": 6715.2,
+      "memcpy": 6459.4,
+      "host_rest": 245.2,
+      "upload": 1536.8,
+      "readback_dma": 1810.9,
+      "upload_dma": 1203.2
+     },
+     "pooled_p95_us": {
+      "t_chain": 35093.1,
+      "readback": 6488.7,
+      "host": 13636.0,
+      "memcpy": 13421.9,
+      "host_rest": 458.9,
+      "upload": 26628.1
+     },
+     "link_p50_range_us": {
+      "readback": [
+       1183.3,
+       5955.7
+      ],
+      "host": [
+       3163.3,
+       11855.3
+      ],
+      "memcpy": [
+       2995.5,
+       11608.6
+      ],
+      "upload": [
+       1025.1,
+       26717.6
+      ],
+      "t_chain": [
+       6416.0,
+       35270.4
+      ]
+     },
+     "memcpy_gbps_at_p50": 6.366919528129548,
+     "slowest_link_median_us": {
+      "t_tr": 17042.142,
+      "readback": 1626.824,
+      "host": 11362.940000000002,
+      "upload": 1512.672
+     },
+     "per_link": {
+      "s0_to_s1": {
+       "host_copy_bytes": 41126480,
+       "readback": 1183.3,
+       "host": 11855.3,
+       "memcpy": 11608.6,
+       "upload": 2141.7,
+       "t_chain": 15334.0
+      },
+      "s1_to_s0": {
+       "host_copy_bytes": 41126480,
+       "readback": 1331.1,
+       "host": 7903.4,
+       "memcpy": 7717.4,
+       "upload": 3008.9,
+       "t_chain": 12000.3
+      },
+      "s1_to_s2": {
+       "host_copy_bytes": 41126480,
+       "readback": 2729.3,
+       "host": 5807.4,
+       "memcpy": 5686.5,
+       "upload": 2698.9,
+       "t_chain": 11093.8
+      },
+      "s2_to_s1": {
+       "host_copy_bytes": 41126480,
+       "readback": 1239.7,
+       "host": 11717.6,
+       "memcpy": 11466.8,
+       "upload": 2042.0,
+       "t_chain": 15311.6
+      },
+      "s2_to_s3": {
+       "host_copy_bytes": 41126480,
+       "readback": 2208.3,
+       "host": 3163.3,
+       "memcpy": 2995.5,
+       "upload": 1025.1,
+       "t_chain": 6416.0
+      },
+      "s3_to_s2": {
+       "host_copy_bytes": 41126480,
+       "readback": 3249.8,
+       "host": 4823.4,
+       "memcpy": 4526.5,
+       "upload": 26717.6,
+       "t_chain": 35270.4
+      },
+      "s3_to_s4": {
+       "host_copy_bytes": 41126480,
+       "readback": 5955.7,
+       "host": 5308.5,
+       "memcpy": 5093.4,
+       "upload": 1026.4,
+       "t_chain": 12703.7
+      },
+      "s4_to_s3": {
+       "host_copy_bytes": 41126480,
+       "readback": 2676.7,
+       "host": 5784.1,
+       "memcpy": 5362.1,
+       "upload": 20797.8,
+       "t_chain": 29977.7
+      },
+      "s4_to_s5": {
+       "host_copy_bytes": 41126480,
+       "readback": 4955.8,
+       "host": 6872.4,
+       "memcpy": 6580.6,
+       "upload": 1295.6,
+       "t_chain": 14536.5
+      },
+      "s5_to_s4": {
+       "host_copy_bytes": 41126480,
+       "readback": 1819.4,
+       "host": 9388.8,
+       "memcpy": 9037.2,
+       "upload": 3075.3,
+       "t_chain": 17690.9
+      },
+      "s5_to_s6": {
+       "host_copy_bytes": 41126480,
+       "readback": 3769.9,
+       "host": 7722.8,
+       "memcpy": 7512.5,
+       "upload": 1229.5,
+       "t_chain": 12099.0
+      },
+      "s6_to_s5": {
+       "host_copy_bytes": 41126480,
+       "readback": 2506.0,
+       "host": 9818.9,
+       "memcpy": 9492.6,
+       "upload": 1168.5,
+       "t_chain": 13583.8
+      },
+      "s6_to_s7": {
+       "host_copy_bytes": 41126512,
+       "readback": 4781.0,
+       "host": 7567.1,
+       "memcpy": 7314.8,
+       "upload": 1333.1,
+       "t_chain": 15032.6
+      },
+      "s7_to_s6": {
+       "host_copy_bytes": 41126512,
+       "readback": 2873.2,
+       "host": 10140.8,
+       "memcpy": 8933.6,
+       "upload": 4556.6,
+       "t_chain": 22547.2
+      }
+     }
+    }
+   },
+   "e9": {
+    "3d_n392_K2": {
+     "campaign": "e9",
+     "point": "3d_n392_K2",
+     "job": "01_e9_e9A_1741918",
+     "node": "wqd10nbj04g2",
+     "links": 2,
+     "steps_per_link": [
+      1000
+     ],
+     "host_copy_bytes_p50": 41126480.0,
+     "dma_bytes_p50": 53727956.0,
+     "pooled_p50_us": {
+      "t_chain": 5047.9,
+      "readback": 1044.0,
+      "host": 2829.8,
+      "memcpy": 2814.8,
+      "host_rest": 14.8,
+      "upload": 1056.9,
+      "readback_dma": 1036.7,
+      "upload_dma": 1023.8
+     },
+     "pooled_p95_us": {
+      "t_chain": 8606.2,
+      "readback": 1055.8,
+      "host": 3614.3,
+      "memcpy": 3600.7,
+      "host_rest": 17.5,
+      "upload": 4564.4
+     },
+     "link_p50_range_us": {
+      "readback": [
+       1043.0,
+       1045.1
+      ],
+      "host": [
+       2726.7,
+       3144.2
+      ],
+      "memcpy": [
+       2710.6,
+       3129.2
+      ],
+      "upload": [
+       1053.2,
+       1060.3
+      ],
+      "t_chain": [
+       4857.5,
+       5293.9
+      ]
+     },
+     "memcpy_gbps_at_p50": 14.610800056842404,
+     "slowest_link_median_us": null,
+     "per_link": {
+      "s0_to_s1": {
+       "host_copy_bytes": 41126480,
+       "readback": 1045.1,
+       "host": 2726.7,
+       "memcpy": 2710.6,
+       "upload": 1060.3,
+       "t_chain": 4857.5
+      },
+      "s1_to_s0": {
+       "host_copy_bytes": 41126480,
+       "readback": 1043.0,
+       "host": 3144.2,
+       "memcpy": 3129.2,
+       "upload": 1053.2,
+       "t_chain": 5293.9
+      }
+     }
+    },
+    "3d_n392_K4": {
+     "campaign": "e9",
+     "point": "3d_n392_K4",
+     "job": "01_e9_e9A_1741918",
+     "node": "wqd10nbj04g2",
+     "links": 6,
+     "steps_per_link": [
+      1000
+     ],
+     "host_copy_bytes_p50": 41126480.0,
+     "dma_bytes_p50": 53727956.0,
+     "pooled_p50_us": {
+      "t_chain": 6627.6,
+      "readback": 1175.5,
+      "host": 3946.2,
+      "memcpy": 3929.1,
+      "host_rest": 15.5,
+      "upload": 1097.9,
+      "readback_dma": 1043.6,
+      "upload_dma": 1004.6
+     },
+     "pooled_p95_us": {
+      "t_chain": 77243.4,
+      "readback": 2214.4,
+      "host": 4580.2,
+      "memcpy": 4555.2,
+      "host_rest": 32.4,
+      "upload": 72424.8
+     },
+     "link_p50_range_us": {
+      "readback": [
+       1041.8,
+       2204.3
+      ],
+      "host": [
+       3398.8,
+       4469.1
+      ],
+      "memcpy": [
+       3384.1,
+       4446.5
+      ],
+      "upload": [
+       1010.7,
+       67621.3
+      ],
+      "t_chain": [
+       6197.1,
+       72596.5
+      ]
+     },
+     "memcpy_gbps_at_p50": 10.467150237967981,
+     "slowest_link_median_us": null,
+     "per_link": {
+      "s0_to_s1": {
+       "host_copy_bytes": 41126480,
+       "readback": 1041.8,
+       "host": 4193.0,
+       "memcpy": 4178.2,
+       "upload": 1133.5,
+       "t_chain": 6392.9
+      },
+      "s1_to_s0": {
+       "host_copy_bytes": 41126480,
+       "readback": 1190.0,
+       "host": 3853.0,
+       "memcpy": 3827.7,
+       "upload": 1123.0,
+       "t_chain": 6197.1
+      },
+      "s1_to_s2": {
+       "host_copy_bytes": 41126480,
+       "readback": 2204.3,
+       "host": 3968.1,
+       "memcpy": 3952.8,
+       "upload": 1062.7,
+       "t_chain": 7332.2
+      },
+      "s2_to_s1": {
+       "host_copy_bytes": 41126480,
+       "readback": 1109.7,
+       "host": 4469.1,
+       "memcpy": 4446.5,
+       "upload": 1024.8,
+       "t_chain": 6644.1
+      },
+      "s2_to_s3": {
+       "host_copy_bytes": 41126480,
+       "readback": 2079.0,
+       "host": 3398.8,
+       "memcpy": 3384.1,
+       "upload": 1010.7,
+       "t_chain": 6492.3
+      },
+      "s3_to_s2": {
+       "host_copy_bytes": 41126480,
+       "readback": 1152.9,
+       "host": 3653.5,
+       "memcpy": 3638.6,
+       "upload": 67621.3,
+       "t_chain": 72596.5
+      }
+     }
+    },
+    "3d_n392_K8": {
+     "campaign": "e9",
+     "point": "3d_n392_K8",
+     "job": "02_e9_e9B_1741917",
+     "node": "wqd10nbj04g4",
+     "links": 14,
+     "steps_per_link": [
+      1000
+     ],
+     "host_copy_bytes_p50": 41126480.0,
+     "dma_bytes_p50": 53727956.0,
+     "pooled_p50_us": {
+      "t_chain": 7439.9,
+      "readback": 1663.8,
+      "host": 4297.8,
+      "memcpy": 4259.9,
+      "host_rest": 23.2,
+      "upload": 1070.4,
+      "readback_dma": 1175.1,
+      "upload_dma": 998.7
+     },
+     "pooled_p95_us": {
+      "t_chain": 30469.1,
+      "readback": 3120.1,
+      "host": 6031.5,
+      "memcpy": 5975.6,
+      "host_rest": 70.2,
+      "upload": 24441.1
+     },
+     "link_p50_range_us": {
+      "readback": [
+       1051.2,
+       2998.3
+      ],
+      "host": [
+       2648.2,
+       5712.6
+      ],
+      "memcpy": [
+       2628.6,
+       5680.8
+      ],
+      "upload": [
+       1019.7,
+       24648.2
+      ],
+      "t_chain": [
+       5675.1,
+       29707.3
+      ]
+     },
+     "memcpy_gbps_at_p50": 9.654329913847743,
+     "slowest_link_median_us": {
+      "t_tr": 9745.9835,
+      "readback": 2492.098,
+      "host": 5659.8175,
+      "upload": 1212.8319999999999
+     },
+     "per_link": {
+      "s0_to_s1": {
+       "host_copy_bytes": 41126480,
+       "readback": 1552.9,
+       "host": 5166.0,
+       "memcpy": 5132.6,
+       "upload": 1206.1,
+       "t_chain": 8092.6
+      },
+      "s1_to_s0": {
+       "host_copy_bytes": 41126480,
+       "readback": 1586.8,
+       "host": 5067.7,
+       "memcpy": 5042.3,
+       "upload": 1251.9,
+       "t_chain": 8028.1
+      },
+      "s1_to_s2": {
+       "host_copy_bytes": 41126480,
+       "readback": 2998.3,
+       "host": 5217.9,
+       "memcpy": 5150.4,
+       "upload": 1165.6,
+       "t_chain": 9429.4
+      },
+      "s2_to_s1": {
+       "host_copy_bytes": 41126480,
+       "readback": 1619.9,
+       "host": 5712.6,
+       "memcpy": 5680.8,
+       "upload": 1144.3,
+       "t_chain": 8483.4
+      },
+      "s2_to_s3": {
+       "host_copy_bytes": 41126480,
+       "readback": 2657.8,
+       "host": 4458.6,
+       "memcpy": 4422.1,
+       "upload": 1019.7,
+       "t_chain": 8559.2
+      },
+      "s3_to_s2": {
+       "host_copy_bytes": 41126480,
+       "readback": 1402.6,
+       "host": 4323.6,
+       "memcpy": 4291.2,
+       "upload": 1021.4,
+       "t_chain": 6850.8
+      },
+      "s3_to_s4": {
+       "host_copy_bytes": 41126504,
+       "readback": 2772.6,
+       "host": 3829.0,
+       "memcpy": 3804.6,
+       "upload": 1026.0,
+       "t_chain": 7832.0
+      },
+      "s4_to_s3": {
+       "host_copy_bytes": 41126480,
+       "readback": 1051.2,
+       "host": 5034.7,
+       "memcpy": 5012.2,
+       "upload": 2687.9,
+       "t_chain": 11632.2
+      },
+      "s4_to_s5": {
+       "host_copy_bytes": 41126480,
+       "readback": 1984.4,
+       "host": 5173.5,
+       "memcpy": 5150.9,
+       "upload": 1086.3,
+       "t_chain": 8316.1
+      },
+      "s5_to_s4": {
+       "host_copy_bytes": 41126480,
+       "readback": 1220.5,
+       "host": 4279.0,
+       "memcpy": 4212.3,
+       "upload": 1222.7,
+       "t_chain": 6922.5
+      },
+      "s5_to_s6": {
+       "host_copy_bytes": 41126512,
+       "readback": 2429.3,
+       "host": 2820.1,
+       "memcpy": 2790.1,
+       "upload": 1204.5,
+       "t_chain": 6537.1
+      },
+      "s6_to_s5": {
+       "host_copy_bytes": 41126480,
+       "readback": 1070.9,
+       "host": 5245.2,
+       "memcpy": 5224.9,
+       "upload": 1082.4,
+       "t_chain": 7353.4
+      },
+      "s6_to_s7": {
+       "host_copy_bytes": 41126480,
+       "readback": 1990.6,
+       "host": 2648.2,
+       "memcpy": 2628.6,
+       "upload": 1021.4,
+       "t_chain": 5675.1
+      },
+      "s7_to_s6": {
+       "host_copy_bytes": 41126512,
+       "readback": 1292.8,
+       "host": 3666.9,
+       "memcpy": 3636.5,
+       "upload": 24648.2,
+       "t_chain": 29707.3
+      }
+     }
+    }
+   }
+  },
+  "node_control": {
+   "e8": {
+    "3d_n416_K8": {
+     "campaign": "e8",
+     "point": "3d_n416_K8",
+     "job": "09_e8_e8D3_1725242",
+     "node": "wqd10nbj04g2",
+     "links": 14,
+     "steps_per_link": [
+      1000
+     ],
+     "host_copy_bytes_p50": 46209296.0,
+     "dma_bytes_p50": 60234780.0,
+     "pooled_p50_us": {
+      "t_chain": 10066.2,
+      "readback": 1997.7,
+      "host": 6410.2,
+      "memcpy": 6359.0,
+      "host_rest": 28.1,
+      "upload": 1307.7,
+      "readback_dma": 1515.3,
+      "upload_dma": 1228.1
+     },
+     "pooled_p95_us": {
+      "t_chain": 36616.2,
+      "readback": 3960.9,
+      "host": 7760.3,
+      "memcpy": 7713.3,
+      "host_rest": 59.8,
+      "upload": 31029.8
+     },
+     "link_p50_range_us": {
+      "readback": [
+       1177.9,
+       3912.0
+      ],
+      "host": [
+       3067.3,
+       7396.1
+      ],
+      "memcpy": [
+       3044.2,
+       7337.4
+      ],
+      "upload": [
+       1132.9,
+       31480.5
+      ],
+      "t_chain": [
+       6469.8,
+       37106.9
+      ]
+     },
+     "memcpy_gbps_at_p50": 7.266755150180845,
+     "slowest_link_median_us": {
+      "t_tr": 12273.325,
+      "readback": 3645.26,
+      "host": 7355.782999999999,
+      "upload": 1276.9505
+     },
+     "per_link": {
+      "s0_to_s1": {
+       "host_copy_bytes": 46209296,
+       "readback": 1889.5,
+       "host": 7121.3,
+       "memcpy": 7065.7,
+       "upload": 1374.3,
+       "t_chain": 10384.3
+      },
+      "s1_to_s0": {
+       "host_copy_bytes": 46209296,
+       "readback": 1991.4,
+       "host": 6957.1,
+       "memcpy": 6885.9,
+       "upload": 1423.6,
+       "t_chain": 10382.0
+      },
+      "s1_to_s2": {
+       "host_copy_bytes": 46209296,
+       "readback": 3657.4,
+       "host": 7348.9,
+       "memcpy": 7321.9,
+       "upload": 1275.0,
+       "t_chain": 12285.1
+      },
+      "s2_to_s1": {
+       "host_copy_bytes": 46209296,
+       "readback": 1981.3,
+       "host": 7396.1,
+       "memcpy": 7337.4,
+       "upload": 1414.3,
+       "t_chain": 10944.6
+      },
+      "s2_to_s3": {
+       "host_copy_bytes": 46209296,
+       "readback": 3659.0,
+       "host": 6799.2,
+       "memcpy": 6751.9,
+       "upload": 1233.7,
+       "t_chain": 11597.6
+      },
+      "s3_to_s2": {
+       "host_copy_bytes": 46209296,
+       "readback": 1560.8,
+       "host": 6771.3,
+       "memcpy": 6705.4,
+       "upload": 1216.4,
+       "t_chain": 9402.4
+      },
+      "s3_to_s4": {
+       "host_copy_bytes": 46209296,
+       "readback": 3912.0,
+       "host": 4451.1,
+       "memcpy": 4413.6,
+       "upload": 1141.2,
+       "t_chain": 9529.1
+      },
+      "s4_to_s3": {
+       "host_copy_bytes": 46209296,
+       "readback": 1177.9,
+       "host": 5673.3,
+       "memcpy": 5647.4,
+       "upload": 1133.0,
+       "t_chain": 7987.7
+      },
+      "s4_to_s5": {
+       "host_copy_bytes": 46209296,
+       "readback": 2248.6,
+       "host": 7091.1,
+       "memcpy": 7059.4,
+       "upload": 1283.8,
+       "t_chain": 10669.3
+      },
+      "s5_to_s4": {
+       "host_copy_bytes": 46209296,
+       "readback": 1548.6,
+       "host": 5594.3,
+       "memcpy": 5556.7,
+       "upload": 1642.8,
+       "t_chain": 8910.7
+      },
+      "s5_to_s6": {
+       "host_copy_bytes": 46209296,
+       "readback": 2960.6,
+       "host": 3287.1,
+       "memcpy": 3261.9,
+       "upload": 1585.4,
+       "t_chain": 7855.1
+      },
+      "s6_to_s5": {
+       "host_copy_bytes": 46209296,
+       "readback": 1204.3,
+       "host": 7157.2,
+       "memcpy": 7124.6,
+       "upload": 1158.0,
+       "t_chain": 9561.8
+      },
+      "s6_to_s7": {
+       "host_copy_bytes": 46209296,
+       "readback": 2262.8,
+       "host": 3067.3,
+       "memcpy": 3044.2,
+       "upload": 1132.9,
+       "t_chain": 6469.8
+      },
+      "s7_to_s6": {
+       "host_copy_bytes": 46209296,
+       "readback": 1521.9,
+       "host": 4062.5,
+       "memcpy": 4031.9,
+       "upload": 31480.5,
+       "t_chain": 37106.9
+      }
+     }
+    },
+    "3d_n496_K8": {
+     "campaign": "e8",
+     "point": "3d_n496_K8",
+     "job": "04_e8_e8C_1722072",
+     "node": "wqd10nbj11g2",
+     "links": 14,
+     "steps_per_link": [
+      1000
+     ],
+     "host_copy_bytes_p50": 65290256.0,
+     "dma_bytes_p50": 84609624.0,
+     "pooled_p50_us": {
+      "t_chain": 28021.9,
+      "readback": 4307.3,
+      "host": 17893.6,
+      "memcpy": 17574.2,
+      "host_rest": 257.2,
+      "upload": 2578.7,
+      "readback_dma": 3702.4,
+      "upload_dma": 2039.8
+     },
+     "pooled_p95_us": {
+      "t_chain": 74573.8,
+      "readback": 10087.3,
+      "host": 23262.3,
+      "memcpy": 22950.8,
+      "host_rest": 379.7,
+      "upload": 57774.2
+     },
+     "link_p50_range_us": {
+      "readback": [
+       1830.8,
+       10056.5
+      ],
+      "host": [
+       4874.9,
+       23406.3
+      ],
+      "memcpy": [
+       4634.2,
+       23157.1
+      ],
+      "upload": [
+       1630.8,
+       59134.1
+      ],
+      "t_chain": [
+       11504.3,
+       70849.4
+      ]
+     },
+     "memcpy_gbps_at_p50": 3.7151196640529864,
+     "slowest_link_median_us": {
+      "t_tr": 29486.420000000002,
+      "readback": 4149.780000000001,
+      "host": 22860.062,
+      "upload": 3227.874
+     },
+     "per_link": {
+      "s0_to_s1": {
+       "host_copy_bytes": 65290190,
+       "readback": 4243.9,
+       "host": 21371.9,
+       "memcpy": 21188.3,
+       "upload": 2558.7,
+       "t_chain": 28319.4
+      },
+      "s1_to_s0": {
+       "host_copy_bytes": 65290160,
+       "readback": 4113.1,
+       "host": 21051.9,
+       "memcpy": 20742.7,
+       "upload": 2799.0,
+       "t_chain": 28149.2
+      },
+      "s1_to_s2": {
+       "host_copy_bytes": 65290256,
+       "readback": 10056.5,
+       "host": 9919.9,
+       "memcpy": 9707.9,
+       "upload": 1872.2,
+       "t_chain": 22015.5
+      },
+      "s2_to_s1": {
+       "host_copy_bytes": 65290256,
+       "readback": 1830.8,
+       "host": 8619.1,
+       "memcpy": 8349.0,
+       "upload": 1925.2,
+       "t_chain": 12385.5
+      },
+      "s2_to_s3": {
+       "host_copy_bytes": 65290256,
+       "readback": 4751.1,
+       "host": 19555.2,
+       "memcpy": 19347.5,
+       "upload": 5008.4,
+       "t_chain": 29210.2
+      },
+      "s3_to_s2": {
+       "host_copy_bytes": 65290256,
+       "readback": 3700.3,
+       "host": 19498.2,
+       "memcpy": 19217.6,
+       "upload": 5111.1,
+       "t_chain": 28318.3
+      },
+      "s3_to_s4": {
+       "host_copy_bytes": 65290256,
+       "readback": 7907.2,
+       "host": 18024.7,
+       "memcpy": 17801.1,
+       "upload": 2042.4,
+       "t_chain": 27745.0
+      },
+      "s4_to_s3": {
+       "host_copy_bytes": 65290256,
+       "readback": 3011.0,
+       "host": 23406.3,
+       "memcpy": 23157.1,
+       "upload": 2064.0,
+       "t_chain": 28520.7
+      },
+      "s4_to_s5": {
+       "host_copy_bytes": 65290256,
+       "readback": 5022.4,
+       "host": 4874.9,
+       "memcpy": 4634.2,
+       "upload": 1630.8,
+       "t_chain": 11504.3
+      },
+      "s5_to_s4": {
+       "host_copy_bytes": 65290256,
+       "readback": 3843.4,
+       "host": 8041.6,
+       "memcpy": 7699.4,
+       "upload": 59134.1,
+       "t_chain": 70849.4
+      },
+      "s5_to_s6": {
+       "host_copy_bytes": 65290352,
+       "readback": 7416.7,
+       "host": 10063.2,
+       "memcpy": 9484.0,
+       "upload": 2352.6,
+       "t_chain": 19865.0
+      },
+      "s6_to_s5": {
+       "host_copy_bytes": 65290256,
+       "readback": 3876.4,
+       "host": 15895.7,
+       "memcpy": 15497.1,
+       "upload": 48031.4,
+       "t_chain": 67452.6
+      },
+      "s6_to_s7": {
+       "host_copy_bytes": 65290496,
+       "readback": 7095.7,
+       "host": 17240.6,
+       "memcpy": 16961.6,
+       "upload": 2275.6,
+       "t_chain": 26623.4
+      },
+      "s7_to_s6": {
+       "host_copy_bytes": 65290256,
+       "readback": 3809.9,
+       "host": 18796.7,
+       "memcpy": 18451.1,
+       "upload": 6292.0,
+       "t_chain": 28958.6
+      }
+     }
+    },
+    "3d_n192_k8_K8": {
+     "campaign": "e8",
+     "point": "3d_n192_k8_K8",
+     "job": "02_e8_e8B_1721839",
+     "node": "wqd10nbj11g2",
+     "links": 14,
+     "steps_per_link": [
+      1000
+     ],
+     "host_copy_bytes_p50": 10283280.0,
+     "dma_bytes_p50": 13963924.0,
+     "pooled_p50_us": {
+      "t_chain": 3534.7,
+      "readback": 601.4,
+      "host": 1907.0,
+      "memcpy": 1631.3,
+      "host_rest": 227.7,
+      "upload": 444.7,
+      "readback_dma": 413.1,
+      "upload_dma": 313.0
+     },
+     "pooled_p95_us": {
+      "t_chain": 45092.0,
+      "readback": 1325.4,
+      "host": 3127.7,
+      "memcpy": 2804.4,
+      "host_rest": 519.6,
+      "upload": 43930.5
+     },
+     "link_p50_range_us": {
+      "readback": [
+       259.5,
+       1330.0
+      ],
+      "host": [
+       794.3,
+       3062.1
+      ],
+      "memcpy": [
+       593.8,
+       2786.4
+      ],
+      "upload": [
+       297.5,
+       44706.4
+      ],
+      "t_chain": [
+       1608.6,
+       45899.3
+      ]
+     },
+     "memcpy_gbps_at_p50": 6.303733218905168,
+     "slowest_link_median_us": {
+      "t_tr": 4551.470000000001,
+      "readback": 1113.276,
+      "host": 3079.936,
+      "upload": 314.658
+     },
+     "per_link": {
+      "s0_to_s1": {
+       "host_copy_bytes": 10283280,
+       "readback": 259.5,
+       "host": 1439.0,
+       "memcpy": 1262.8,
+       "upload": 668.8,
+       "t_chain": 2354.7
+      },
+      "s1_to_s0": {
+       "host_copy_bytes": 10283280,
+       "readback": 276.3,
+       "host": 1806.8,
+       "memcpy": 1590.1,
+       "upload": 965.9,
+       "t_chain": 3167.4
+      },
+      "s1_to_s2": {
+       "host_copy_bytes": 10283310,
+       "readback": 516.2,
+       "host": 794.3,
+       "memcpy": 593.8,
+       "upload": 297.5,
+       "t_chain": 1608.6
+      },
+      "s2_to_s1": {
+       "host_copy_bytes": 10283280,
+       "readback": 283.0,
+       "host": 835.5,
+       "memcpy": 615.1,
+       "upload": 44706.4,
+       "t_chain": 45899.3
+      },
+      "s2_to_s3": {
+       "host_copy_bytes": 10283280,
+       "readback": 556.7,
+       "host": 1902.6,
+       "memcpy": 1707.1,
+       "upload": 736.1,
+       "t_chain": 3315.9
+      },
+      "s3_to_s2": {
+       "host_copy_bytes": 10283280,
+       "readback": 283.2,
+       "host": 2057.3,
+       "memcpy": 1759.8,
+       "upload": 9353.8,
+       "t_chain": 11821.0
+      },
+      "s3_to_s4": {
+       "host_copy_bytes": 10283280,
+       "readback": 1127.9,
+       "host": 3062.1,
+       "memcpy": 2786.4,
+       "upload": 320.6,
+       "t_chain": 4563.6
+      },
+      "s4_to_s3": {
+       "host_copy_bytes": 10283280,
+       "readback": 853.3,
+       "host": 2854.2,
+       "memcpy": 2563.8,
+       "upload": 379.3,
+       "t_chain": 4124.7
+      },
+      "s4_to_s5": {
+       "host_copy_bytes": 10283280,
+       "readback": 1330.0,
+       "host": 1629.8,
+       "memcpy": 1379.8,
+       "upload": 394.1,
+       "t_chain": 3381.1
+      },
+      "s5_to_s4": {
+       "host_copy_bytes": 10283280,
+       "readback": 720.4,
+       "host": 2320.4,
+       "memcpy": 2098.6,
+       "upload": 809.6,
+       "t_chain": 3876.4
+      },
+      "s5_to_s6": {
+       "host_copy_bytes": 10283280,
+       "readback": 1228.1,
+       "host": 1828.5,
+       "memcpy": 1537.0,
+       "upload": 387.4,
+       "t_chain": 3498.8
+      },
+      "s6_to_s5": {
+       "host_copy_bytes": 10283280,
+       "readback": 734.4,
+       "host": 2276.8,
+       "memcpy": 2043.5,
+       "upload": 376.3,
+       "t_chain": 3432.1
+      },
+      "s6_to_s7": {
+       "host_copy_bytes": 10283280,
+       "readback": 1239.0,
+       "host": 1694.5,
+       "memcpy": 1475.8,
+       "upload": 387.7,
+       "t_chain": 3384.8
+      },
+      "s7_to_s6": {
+       "host_copy_bytes": 10283280,
+       "readback": 710.9,
+       "host": 2416.5,
+       "memcpy": 2140.7,
+       "upload": 362.6,
+       "t_chain": 3563.8
+      }
+     }
+    },
+    "3d_n192_k2_K2": {
+     "campaign": "e8",
+     "point": "3d_n192_k2_K2",
+     "job": "03_e8_e8A_1721840",
+     "node": "wqd10nbj11g2",
+     "links": 2,
+     "steps_per_link": [
+      1000
+     ],
+     "host_copy_bytes_p50": 10283280.0,
+     "dma_bytes_p50": 13963924.0,
+     "pooled_p50_us": {
+      "t_chain": 1330.9,
+      "readback": 259.5,
+      "host": 759.9,
+      "memcpy": 612.1,
+      "host_rest": 150.0,
+      "upload": 311.7,
+      "readback_dma": 253.2,
+      "upload_dma": 275.3
+     },
+     "pooled_p95_us": {
+      "t_chain": 1457.1,
+      "readback": 264.5,
+      "host": 862.3,
+      "memcpy": 672.3,
+      "host_rest": 237.9,
+      "upload": 338.5
+     },
+     "link_p50_range_us": {
+      "readback": [
+       259.5,
+       259.5
+      ],
+      "host": [
+       757.8,
+       762.4
+      ],
+      "memcpy": [
+       602.7,
+       618.8
+      ],
+      "upload": [
+       310.6,
+       312.6
+      ],
+      "t_chain": [
+       1327.0,
+       1340.4
+      ]
+     },
+     "memcpy_gbps_at_p50": 16.8,
+     "slowest_link_median_us": null,
+     "per_link": {
+      "s0_to_s1": {
+       "host_copy_bytes": 10283280,
+       "readback": 259.5,
+       "host": 762.4,
+       "memcpy": 602.7,
+       "upload": 312.6,
+       "t_chain": 1340.4
+      },
+      "s1_to_s0": {
+       "host_copy_bytes": 10283280,
+       "readback": 259.5,
+       "host": 757.8,
+       "memcpy": 618.8,
+       "upload": 310.6,
+       "t_chain": 1327.0
+      }
+     }
+    }
+   },
+   "e9": {
+    "3d_n416_K8": {
+     "campaign": "e9",
+     "point": "3d_n416_K8",
+     "job": "04_e9_e9D_1741924",
+     "node": "wqd10nbj04g4",
+     "links": 14,
+     "steps_per_link": [
+      1000
+     ],
+     "host_copy_bytes_p50": 46209296.0,
+     "dma_bytes_p50": 60234780.0,
+     "pooled_p50_us": {
+      "t_chain": 8305.9,
+      "readback": 2054.1,
+      "host": 4646.8,
+      "memcpy": 4612.9,
+      "host_rest": 22.0,
+      "upload": 1208.8,
+      "readback_dma": 1177.5,
+      "upload_dma": 1108.8
+     },
+     "pooled_p95_us": {
+      "t_chain": 31584.1,
+      "readback": 4020.1,
+      "host": 7655.8,
+      "memcpy": 7615.9,
+      "host_rest": 63.6,
+      "upload": 25769.3
+     },
+     "link_p50_range_us": {
+      "readback": [
+       1100.3,
+       2651.0
+      ],
+      "host": [
+       3119.3,
+       6866.6
+      ],
+      "memcpy": [
+       3094.5,
+       6804.8
+      ],
+      "upload": [
+       1137.4,
+       11640.7
+      ],
+      "t_chain": [
+       6092.7,
+       28127.8
+      ]
+     },
+     "memcpy_gbps_at_p50": 10.01740683734744,
+     "slowest_link_median_us": {
+      "t_tr": 9848.516,
+      "readback": 2406.718,
+      "host": 6910.550499999999,
+      "upload": 1266.6335
+     },
+     "per_link": {
+      "s0_to_s1": {
+       "host_copy_bytes": 46209296,
+       "readback": 1197.6,
+       "host": 5510.8,
+       "memcpy": 5491.8,
+       "upload": 1264.5,
+       "t_chain": 7953.7
+      },
+      "s1_to_s0": {
+       "host_copy_bytes": 46209200,
+       "readback": 1272.3,
+       "host": 5722.5,
+       "memcpy": 5703.8,
+       "upload": 1259.6,
+       "t_chain": 8431.3
+      },
+      "s1_to_s2": {
+       "host_copy_bytes": 46209296,
+       "readback": 2419.8,
+       "host": 5015.3,
+       "memcpy": 4996.0,
+       "upload": 1232.9,
+       "t_chain": 8684.3
+      },
+      "s2_to_s1": {
+       "host_copy_bytes": 46209296,
+       "readback": 1272.4,
+       "host": 6866.6,
+       "memcpy": 6804.8,
+       "upload": 1338.4,
+       "t_chain": 9451.4
+      },
+      "s2_to_s3": {
+       "host_copy_bytes": 46209296,
+       "readback": 2396.7,
+       "host": 4827.7,
+       "memcpy": 4806.7,
+       "upload": 1142.6,
+       "t_chain": 8452.2
+      },
+      "s3_to_s2": {
+       "host_copy_bytes": 46209296,
+       "readback": 1318.1,
+       "host": 5148.8,
+       "memcpy": 5097.8,
+       "upload": 11640.7,
+       "t_chain": 28127.8
+      },
+      "s3_to_s4": {
+       "host_copy_bytes": 46209296,
+       "readback": 2651.0,
+       "host": 3974.4,
+       "memcpy": 3949.7,
+       "upload": 1140.0,
+       "t_chain": 8660.7
+      },
+      "s4_to_s3": {
+       "host_copy_bytes": 46209296,
+       "readback": 1178.0,
+       "host": 4821.5,
+       "memcpy": 4798.6,
+       "upload": 1428.7,
+       "t_chain": 10465.0
+      },
+      "s4_to_s5": {
+       "host_copy_bytes": 46209296,
+       "readback": 2197.6,
+       "host": 3871.7,
+       "memcpy": 3822.6,
+       "upload": 1137.4,
+       "t_chain": 7542.8
+      },
+      "s5_to_s4": {
+       "host_copy_bytes": 46209296,
+       "readback": 1191.4,
+       "host": 3759.6,
+       "memcpy": 3731.4,
+       "upload": 1138.2,
+       "t_chain": 6092.7
+      },
+      "s5_to_s6": {
+       "host_copy_bytes": 46209296,
+       "readback": 2228.0,
+       "host": 3252.0,
+       "memcpy": 3219.7,
+       "upload": 1152.2,
+       "t_chain": 6860.9
+      },
+      "s6_to_s5": {
+       "host_copy_bytes": 46209296,
+       "readback": 1234.7,
+       "host": 4310.1,
+       "memcpy": 4283.9,
+       "upload": 1189.5,
+       "t_chain": 6956.2
+      },
+      "s6_to_s7": {
+       "host_copy_bytes": 46209350,
+       "readback": 2365.1,
+       "host": 3119.3,
+       "memcpy": 3094.5,
+       "upload": 1176.5,
+       "t_chain": 6890.4
+      },
+      "s7_to_s6": {
+       "host_copy_bytes": 46209296,
+       "readback": 1100.3,
+       "host": 4766.5,
+       "memcpy": 4697.9,
+       "upload": 5836.5,
+       "t_chain": 12625.5
+      }
+     }
+    },
+    "3d_n496_K8": {
+     "campaign": "e9",
+     "point": "3d_n496_K8",
+     "job": "03_e9_e9C_1741921",
+     "node": "wqd10nbj04g2",
+     "links": 14,
+     "steps_per_link": [
+      1000
+     ],
+     "host_copy_bytes_p50": 65290256.0,
+     "dma_bytes_p50": 84609624.0,
+     "pooled_p50_us": {
+      "t_chain": 14356.6,
+      "readback": 3054.1,
+      "host": 7613.1,
+      "memcpy": 7544.9,
+      "host_rest": 26.0,
+      "upload": 1710.1,
+      "readback_dma": 2170.5,
+      "upload_dma": 1549.0
+     },
+     "pooled_p95_us": {
+      "t_chain": 63671.3,
+      "readback": 6141.6,
+      "host": 11688.4,
+      "memcpy": 11611.2,
+      "host_rest": 95.6,
+      "upload": 53571.0
+     },
+     "link_p50_range_us": {
+      "readback": [
+       1669.3,
+       6065.2
+      ],
+      "host": [
+       4353.1,
+       11545.1
+      ],
+      "memcpy": [
+       4331.9,
+       11521.5
+      ],
+      "upload": [
+       1573.2,
+       53537.2
+      ],
+      "t_chain": [
+       9072.1,
+       61695.0
+      ]
+     },
+     "memcpy_gbps_at_p50": 8.653561478614694,
+     "slowest_link_median_us": {
+      "t_tr": 17536.619,
+      "readback": 6036.013499999999,
+      "host": 10038.0435,
+      "upload": 1606.6765
+     },
+     "per_link": {
+      "s0_to_s1": {
+       "host_copy_bytes": 65290256,
+       "readback": 2691.2,
+       "host": 11013.4,
+       "memcpy": 10766.9,
+       "upload": 1844.5,
+       "t_chain": 15726.3
+      },
+      "s1_to_s0": {
+       "host_copy_bytes": 65290192,
+       "readback": 3075.9,
+       "host": 11019.3,
+       "memcpy": 10954.3,
+       "upload": 1860.6,
+       "t_chain": 15882.7
+      },
+      "s1_to_s2": {
+       "host_copy_bytes": 65290256,
+       "readback": 5757.3,
+       "host": 6425.5,
+       "memcpy": 6400.9,
+       "upload": 1573.2,
+       "t_chain": 13770.6
+      },
+      "s2_to_s1": {
+       "host_copy_bytes": 65290256,
+       "readback": 1721.5,
+       "host": 6058.5,
+       "memcpy": 6035.4,
+       "upload": 1615.8,
+       "t_chain": 9495.4
+      },
+      "s2_to_s3": {
+       "host_copy_bytes": 65290256,
+       "readback": 3413.3,
+       "host": 10277.1,
+       "memcpy": 10252.9,
+       "upload": 1891.3,
+       "t_chain": 16345.1
+      },
+      "s3_to_s2": {
+       "host_copy_bytes": 65290256,
+       "readback": 2881.2,
+       "host": 9850.6,
+       "memcpy": 9772.7,
+       "upload": 1972.4,
+       "t_chain": 14691.6
+      },
+      "s3_to_s4": {
+       "host_copy_bytes": 65290256,
+       "readback": 6065.2,
+       "host": 10005.7,
+       "memcpy": 9978.5,
+       "upload": 1607.1,
+       "t_chain": 17154.0
+      },
+      "s4_to_s3": {
+       "host_copy_bytes": 65290256,
+       "readback": 1669.3,
+       "host": 11545.1,
+       "memcpy": 11521.5,
+       "upload": 1574.9,
+       "t_chain": 15389.9
+      },
+      "s4_to_s5": {
+       "host_copy_bytes": 65290256,
+       "readback": 3109.1,
+       "host": 4353.1,
+       "memcpy": 4331.9,
+       "upload": 1575.5,
+       "t_chain": 9072.1
+      },
+      "s5_to_s4": {
+       "host_copy_bytes": 65290256,
+       "readback": 2469.9,
+       "host": 5646.1,
+       "memcpy": 5546.2,
+       "upload": 53537.2,
+       "t_chain": 61695.0
+      },
+      "s5_to_s6": {
+       "host_copy_bytes": 65290256,
+       "readback": 4597.1,
+       "host": 5133.9,
+       "memcpy": 5103.1,
+       "upload": 1628.3,
+       "t_chain": 11380.0
+      },
+      "s6_to_s5": {
+       "host_copy_bytes": 65290256,
+       "readback": 2297.5,
+       "host": 8131.7,
+       "memcpy": 8073.7,
+       "upload": 49865.3,
+       "t_chain": 60823.4
+      },
+      "s6_to_s7": {
+       "host_copy_bytes": 65290256,
+       "readback": 4539.5,
+       "host": 6172.2,
+       "memcpy": 6126.5,
+       "upload": 1871.1,
+       "t_chain": 12663.3
+      },
+      "s7_to_s6": {
+       "host_copy_bytes": 65290256,
+       "readback": 2215.6,
+       "host": 10304.4,
+       "memcpy": 9955.7,
+       "upload": 2503.4,
+       "t_chain": 15414.5
+      }
+     }
+    },
+    "3d_n192_k8_K8": {
+     "campaign": "e9",
+     "point": "3d_n192_k8_K8",
+     "job": "02_e9_e9B_1741917",
+     "node": "wqd10nbj04g4",
+     "links": 14,
+     "steps_per_link": [
+      1000
+     ],
+     "host_copy_bytes_p50": 10283280.0,
+     "dma_bytes_p50": 13963924.0,
+     "pooled_p50_us": {
+      "t_chain": 1852.2,
+      "readback": 326.2,
+      "host": 918.4,
+      "memcpy": 866.4,
+      "host_rest": 25.9,
+      "upload": 374.9,
+      "readback_dma": 285.8,
+      "upload_dma": 263.5
+     },
+     "pooled_p95_us": {
+      "t_chain": 39049.0,
+      "readback": 639.8,
+      "host": 1184.8,
+      "memcpy": 1122.5,
+      "host_rest": 130.7,
+      "upload": 37592.6
+     },
+     "link_p50_range_us": {
+      "readback": [
+       276.5,
+       644.3
+      ],
+      "host": [
+       666.4,
+       1134.9
+      ],
+      "memcpy": [
+       637.4,
+       1078.7
+      ],
+      "upload": [
+       296.4,
+       38018.5
+      ],
+      "t_chain": [
+       1313.8,
+       39524.7
+      ]
+     },
+     "memcpy_gbps_at_p50": 11.868975069252077,
+     "slowest_link_median_us": {
+      "t_tr": 2080.9119999999994,
+      "readback": 550.4304999999999,
+      "host": 1139.9789999999994,
+      "upload": 542.6254999999992
+     },
+     "per_link": {
+      "s0_to_s1": {
+       "host_copy_bytes": 10283280,
+       "readback": 316.1,
+       "host": 666.4,
+       "memcpy": 637.4,
+       "upload": 323.8,
+       "t_chain": 1313.8
+      },
+      "s1_to_s0": {
+       "host_copy_bytes": 10283280,
+       "readback": 313.0,
+       "host": 683.9,
+       "memcpy": 661.6,
+       "upload": 323.3,
+       "t_chain": 1321.9
+      },
+      "s1_to_s2": {
+       "host_copy_bytes": 10283280,
+       "readback": 600.4,
+       "host": 851.1,
+       "memcpy": 834.1,
+       "upload": 395.4,
+       "t_chain": 1865.8
+      },
+      "s2_to_s1": {
+       "host_copy_bytes": 10283280,
+       "readback": 319.8,
+       "host": 807.5,
+       "memcpy": 783.8,
+       "upload": 416.1,
+       "t_chain": 1548.5
+      },
+      "s2_to_s3": {
+       "host_copy_bytes": 10283280,
+       "readback": 613.7,
+       "host": 919.4,
+       "memcpy": 891.0,
+       "upload": 358.9,
+       "t_chain": 1910.6
+      },
+      "s3_to_s2": {
+       "host_copy_bytes": 10283280,
+       "readback": 328.2,
+       "host": 1023.3,
+       "memcpy": 993.6,
+       "upload": 376.0,
+       "t_chain": 1760.9
+      },
+      "s3_to_s4": {
+       "host_copy_bytes": 10283280,
+       "readback": 644.3,
+       "host": 1014.8,
+       "memcpy": 995.3,
+       "upload": 296.4,
+       "t_chain": 1966.0
+      },
+      "s4_to_s3": {
+       "host_copy_bytes": 10283280,
+       "readback": 307.2,
+       "host": 1134.9,
+       "memcpy": 1078.7,
+       "upload": 38018.5,
+       "t_chain": 39524.7
+      },
+      "s4_to_s5": {
+       "host_copy_bytes": 10283280,
+       "readback": 566.1,
+       "host": 914.0,
+       "memcpy": 833.3,
+       "upload": 333.3,
+       "t_chain": 1861.4
+      },
+      "s5_to_s4": {
+       "host_copy_bytes": 10283280,
+       "readback": 296.3,
+       "host": 933.7,
+       "memcpy": 885.5,
+       "upload": 9680.8,
+       "t_chain": 10919.2
+      },
+      "s5_to_s6": {
+       "host_copy_bytes": 10283280,
+       "readback": 553.3,
+       "host": 977.8,
+       "memcpy": 896.9,
+       "upload": 328.8,
+       "t_chain": 1894.7
+      },
+      "s6_to_s5": {
+       "host_copy_bytes": 10283280,
+       "readback": 298.4,
+       "host": 904.0,
+       "memcpy": 845.5,
+       "upload": 572.4,
+       "t_chain": 1800.1
+      },
+      "s6_to_s7": {
+       "host_copy_bytes": 10283280,
+       "readback": 563.8,
+       "host": 960.6,
+       "memcpy": 870.2,
+       "upload": 329.4,
+       "t_chain": 1896.8
+      },
+      "s7_to_s6": {
+       "host_copy_bytes": 10283280,
+       "readback": 276.5,
+       "host": 918.7,
+       "memcpy": 858.4,
+       "upload": 519.7,
+       "t_chain": 1765.0
+      }
+     }
+    },
+    "3d_n192_k2_K2": {
+     "campaign": "e9",
+     "point": "3d_n192_k2_K2",
+     "job": "01_e9_e9A_1741918",
+     "node": "wqd10nbj04g2",
+     "links": 2,
+     "steps_per_link": [
+      1000
+     ],
+     "host_copy_bytes_p50": 10283280.0,
+     "dma_bytes_p50": 13963924.0,
+     "pooled_p50_us": {
+      "t_chain": 1243.5,
+      "readback": 297.2,
+      "host": 636.5,
+      "memcpy": 622.7,
+      "host_rest": 14.1,
+      "upload": 304.9,
+      "readback_dma": 290.3,
+      "upload_dma": 264.3
+     },
+     "pooled_p95_us": {
+      "t_chain": 4468.5,
+      "readback": 305.3,
+      "host": 699.8,
+      "memcpy": 682.5,
+      "host_rest": 16.0,
+      "upload": 3541.7
+     },
+     "link_p50_range_us": {
+      "readback": [
+       294.6,
+       298.7
+      ],
+      "host": [
+       632.2,
+       643.4
+      ],
+      "memcpy": [
+       619.0,
+       628.3
+      ],
+      "upload": [
+       304.8,
+       305.0
+      ],
+      "t_chain": [
+       1239.3,
+       1248.1
+      ]
+     },
+     "memcpy_gbps_at_p50": 16.514019592098926,
+     "slowest_link_median_us": null,
+     "per_link": {
+      "s0_to_s1": {
+       "host_copy_bytes": 10283280,
+       "readback": 294.6,
+       "host": 643.4,
+       "memcpy": 628.3,
+       "upload": 305.0,
+       "t_chain": 1248.1
+      },
+      "s1_to_s0": {
+       "host_copy_bytes": 10283280,
+       "readback": 298.7,
+       "host": 632.2,
+       "memcpy": 619.0,
+       "upload": 304.8,
+       "t_chain": 1239.3
+      }
+     }
+    }
+   }
+  }
+ },
+ "item2": {
+  "e8:3d_n192_K8": {
+   "campaign": "e8",
+   "point": "3d_n192_K8",
+   "node": "wqd10nbj11g2",
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-22\\02_e8_e8B_1721839\\traces\\3d_n192_K8_C",
+   "links": 14,
+   "steps": 1000,
+   "per_card_M": 1.0,
+   "fig_t_host_us": 2528.7619999999997,
+   "fig_t_tr_us": 3549.6659999999997,
+   "fig_t_readback_us": 697.222,
+   "fig_t_upload_us": 300.082,
+   "T_B_us": 2133.0225,
+   "r_p50": 2.647398170681738,
+   "slowest_link_share_by_t_tr": {
+    "0->1": 0.008,
+    "1->0": 0.002,
+    "1->2": 0.003,
+    "2->3": 0.002,
+    "3->4": 0.728,
+    "4->3": 0.004,
+    "4->5": 0.229,
+    "5->4": 0.002,
+    "5->6": 0.001,
+    "6->5": 0.001,
+    "6->7": 0.003,
+    "7->6": 0.017
+   },
+   "slowest_link_share_by_host": {
+    "s0_to_s1": 0.009,
+    "s1_to_s0": 0.002,
+    "s2_to_s3": 0.003,
+    "s3_to_s2": 0.001,
+    "s3_to_s4": 0.79,
+    "s4_to_s3": 0.015,
+    "s4_to_s5": 0.115,
+    "s5_to_s4": 0.005,
+    "s6_to_s5": 0.002,
+    "s6_to_s7": 0.002,
+    "s7_to_s6": 0.056
+   },
+   "alt_median_of_per_step_max_host_us": 2551.19,
+   "alt_max_per_link_host_p50_us": 2536.236,
+   "alt_min_per_link_host_p50_us": 781.1699999999998,
+   "alt_pooled_host_p50_us": 1529.196,
+   "per_link_host_p50_us": {
+    "s0_to_s1": 1428.2159999999997,
+    "s1_to_s0": 867.5540000000001,
+    "s1_to_s2": 781.1699999999998,
+    "s2_to_s1": 786.662,
+    "s2_to_s3": 965.3740000000001,
+    "s3_to_s2": 967.9300000000001,
+    "s3_to_s4": 2536.236,
+    "s4_to_s3": 1825.62,
+    "s4_to_s5": 2332.876,
+    "s5_to_s4": 1674.092,
+    "s5_to_s6": 1330.52,
+    "s6_to_s5": 1818.3940000000002,
+    "s6_to_s7": 1452.336,
+    "s7_to_s6": 2061.5499999999997
+   },
+   "eta": 0.6634385570954433
+  },
+  "e8:3d_n244_K8": {
+   "campaign": "e8",
+   "point": "3d_n244_K8",
+   "node": "wqd10nbj11g2",
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-22\\02_e8_e8B_1721839\\traces\\3d_n244_K8_C",
+   "links": 14,
+   "steps": 1000,
+   "per_card_M": 2.000376,
+   "fig_t_host_us": 3943.874,
+   "fig_t_tr_us": 5668.498,
+   "fig_t_readback_us": 1198.08,
+   "fig_t_upload_us": 483.562,
+   "T_B_us": 5724.68,
+   "r_p50": 1.5078700649547305,
+   "slowest_link_share_by_t_tr": {
+    "0->1": 0.013,
+    "1->0": 0.027,
+    "1->2": 0.029,
+    "2->1": 0.141,
+    "2->3": 0.114,
+    "3->2": 0.001,
+    "3->4": 0.344,
+    "4->3": 0.012,
+    "4->5": 0.038,
+    "5->4": 0.013,
+    "5->6": 0.224,
+    "6->5": 0.011,
+    "6->7": 0.023,
+    "7->6": 0.01
+   },
+   "slowest_link_share_by_host": {
+    "s0_to_s1": 0.049,
+    "s1_to_s0": 0.024,
+    "s1_to_s2": 0.002,
+    "s2_to_s1": 0.084,
+    "s2_to_s3": 0.201,
+    "s3_to_s2": 0.003,
+    "s3_to_s4": 0.233,
+    "s4_to_s3": 0.038,
+    "s4_to_s5": 0.02,
+    "s5_to_s4": 0.01,
+    "s5_to_s6": 0.137,
+    "s6_to_s5": 0.038,
+    "s6_to_s7": 0.01,
+    "s7_to_s6": 0.151
+   },
+   "alt_median_of_per_step_max_host_us": 4026.0620000000004,
+   "alt_max_per_link_host_p50_us": 3720.576,
+   "alt_min_per_link_host_p50_us": 1171.8159999999998,
+   "alt_pooled_host_p50_us": 2443.848,
+   "per_link_host_p50_us": {
+    "s0_to_s1": 1910.6499999999996,
+    "s1_to_s0": 1270.1019999999999,
+    "s1_to_s2": 1294.032,
+    "s2_to_s1": 1171.8159999999998,
+    "s2_to_s3": 2092.084,
+    "s3_to_s2": 1801.86,
+    "s3_to_s4": 3720.576,
+    "s4_to_s3": 3004.974,
+    "s4_to_s5": 1676.5,
+    "s5_to_s4": 3388.88,
+    "s5_to_s6": 2677.6000000000004,
+    "s6_to_s5": 3317.864,
+    "s6_to_s7": 2324.228,
+    "s7_to_s6": 3641.4299999999994
+   },
+   "eta": 0.815798082494148
+  },
+  "e8:3d_n392_K8": {
+   "campaign": "e8",
+   "point": "3d_n392_K8",
+   "node": "wqd10nbj11g2",
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-22\\02_e8_e8B_1721839\\traces\\3d_n392_K8_C",
+   "links": 14,
+   "steps": 1000,
+   "per_card_M": 8.0,
+   "fig_t_host_us": 11362.940000000002,
+   "fig_t_tr_us": 17042.142,
+   "fig_t_readback_us": 1626.824,
+   "fig_t_upload_us": 1512.672,
+   "T_B_us": 32382.1335,
+   "r_p50": 0.5461493319547277,
+   "slowest_link_share_by_t_tr": {
+    "0->1": 0.153,
+    "2->1": 0.532,
+    "3->2": 0.058,
+    "3->4": 0.108,
+    "4->3": 0.001,
+    "4->5": 0.005,
+    "5->4": 0.002,
+    "5->6": 0.011,
+    "6->5": 0.001,
+    "6->7": 0.118,
+    "7->6": 0.011
+   },
+   "slowest_link_share_by_host": {
+    "s0_to_s1": 0.427,
+    "s2_to_s1": 0.538,
+    "s3_to_s2": 0.003,
+    "s3_to_s4": 0.001,
+    "s4_to_s3": 0.007,
+    "s5_to_s4": 0.001,
+    "s6_to_s5": 0.002,
+    "s7_to_s6": 0.021
+   },
+   "alt_median_of_per_step_max_host_us": 12794.944000000001,
+   "alt_max_per_link_host_p50_us": 11855.323999999999,
+   "alt_min_per_link_host_p50_us": 3163.3,
+   "alt_pooled_host_p50_us": 6715.183999999999,
+   "per_link_host_p50_us": {
+    "s0_to_s1": 11855.323999999999,
+    "s1_to_s0": 7903.374,
+    "s1_to_s2": 5807.394,
+    "s2_to_s1": 11717.639999999998,
+    "s2_to_s3": 3163.3,
+    "s3_to_s2": 4823.4220000000005,
+    "s3_to_s4": 5308.492,
+    "s4_to_s3": 5784.122000000001,
+    "s4_to_s5": 6872.362,
+    "s5_to_s4": 9388.816,
+    "s5_to_s6": 7722.8,
+    "s6_to_s5": 9818.869999999999,
+    "s6_to_s7": 7567.1,
+    "s7_to_s6": 10140.766
+   },
+   "eta": 0.840511922152012
+  },
+  "e9:3d_n192_K8": {
+   "campaign": "e9",
+   "point": "3d_n192_K8",
+   "node": "wqd10nbj04g4",
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-28\\02_e9_e9B_1741917\\traces\\3d_n192_K8_C",
+   "links": 14,
+   "steps": 1000,
+   "per_card_M": 1.0,
+   "fig_t_host_us": 1547.3184999999999,
+   "fig_t_tr_us": 2518.9264999999996,
+   "fig_t_readback_us": 642.544,
+   "fig_t_upload_us": 292.02,
+   "T_B_us": 1772.6476249999998,
+   "r_p50": 2.3383527499284007,
+   "slowest_link_share_by_t_tr": {
+    "0->1": 0.013,
+    "1->0": 0.002,
+    "1->2": 0.003,
+    "2->3": 0.006,
+    "3->4": 0.909,
+    "4->3": 0.029,
+    "4->5": 0.001,
+    "5->4": 0.003,
+    "5->6": 0.008,
+    "6->5": 0.002,
+    "6->7": 0.021,
+    "7->6": 0.003
+   },
+   "slowest_link_share_by_host": {
+    "s0_to_s1": 0.015,
+    "s1_to_s0": 0.001,
+    "s2_to_s1": 0.002,
+    "s2_to_s3": 0.001,
+    "s3_to_s2": 0.011,
+    "s3_to_s4": 0.658,
+    "s4_to_s3": 0.271,
+    "s5_to_s4": 0.001,
+    "s5_to_s6": 0.003,
+    "s6_to_s5": 0.004,
+    "s6_to_s7": 0.024,
+    "s7_to_s6": 0.009
+   },
+   "alt_median_of_per_step_max_host_us": 1574.4015,
+   "alt_max_per_link_host_p50_us": 1540.3615,
+   "alt_min_per_link_host_p50_us": 633.5550000000001,
+   "alt_pooled_host_p50_us": 943.155,
+   "per_link_host_p50_us": {
+    "s0_to_s1": 674.9984999999999,
+    "s1_to_s0": 633.5550000000001,
+    "s1_to_s2": 770.1125000000002,
+    "s2_to_s1": 770.155,
+    "s2_to_s3": 970.4119999999999,
+    "s3_to_s2": 1046.7779999999998,
+    "s3_to_s4": 1540.3615,
+    "s4_to_s3": 1443.2400000000002,
+    "s4_to_s5": 931.4865,
+    "s5_to_s4": 917.095,
+    "s5_to_s6": 959.9565,
+    "s6_to_s5": 931.8235,
+    "s6_to_s7": 948.49,
+    "s7_to_s6": 929.5929999999994
+   },
+   "eta": 0.6608734345371736
+  },
+  "e9:3d_n244_K8": {
+   "campaign": "e9",
+   "point": "3d_n244_K8",
+   "node": "wqd10nbj04g4",
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-28\\02_e9_e9B_1741917\\traces\\3d_n244_K8_C",
+   "links": 14,
+   "steps": 1000,
+   "per_card_M": 2.000376,
+   "fig_t_host_us": 1541.8520000000003,
+   "fig_t_tr_us": 2920.7969999999996,
+   "fig_t_readback_us": 910.6635,
+   "fig_t_upload_us": 441.2395,
+   "T_B_us": 5087.062,
+   "r_p50": 0.8082690254518659,
+   "slowest_link_share_by_t_tr": {
+    "0->1": 0.061,
+    "1->0": 0.079,
+    "1->2": 0.02,
+    "2->1": 0.006,
+    "2->3": 0.01,
+    "3->4": 0.775,
+    "4->3": 0.021,
+    "4->5": 0.007,
+    "5->6": 0.004,
+    "6->5": 0.001,
+    "6->7": 0.004,
+    "7->6": 0.012
+   },
+   "slowest_link_share_by_host": {
+    "s0_to_s1": 0.154,
+    "s1_to_s0": 0.047,
+    "s1_to_s2": 0.006,
+    "s2_to_s1": 0.014,
+    "s3_to_s4": 0.158,
+    "s4_to_s3": 0.616,
+    "s7_to_s6": 0.005
+   },
+   "alt_median_of_per_step_max_host_us": 1606.6280000000002,
+   "alt_max_per_link_host_p50_us": 1576.6585,
+   "alt_min_per_link_host_p50_us": 1072.256,
+   "alt_pooled_host_p50_us": 1159.1620000000003,
+   "per_link_host_p50_us": {
+    "s0_to_s1": 1213.21,
+    "s1_to_s0": 1165.777,
+    "s1_to_s2": 1139.6575000000003,
+    "s2_to_s1": 1114.0115,
+    "s2_to_s3": 1176.4069999999997,
+    "s3_to_s2": 1167.3065000000001,
+    "s3_to_s4": 1495.8085,
+    "s4_to_s3": 1576.6585,
+    "s4_to_s5": 1125.0245,
+    "s5_to_s4": 1091.8385,
+    "s5_to_s6": 1072.256,
+    "s6_to_s5": 1140.1415,
+    "s6_to_s7": 1091.5520000000001,
+    "s7_to_s6": 1187.9309999999998
+   },
+   "eta": 0.8135974516323605
+  },
+  "e9:3d_n392_K8": {
+   "campaign": "e9",
+   "point": "3d_n392_K8",
+   "node": "wqd10nbj04g4",
+   "trace": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo\\logs\\n56\\2026-10-28\\02_e9_e9B_1741917\\traces\\3d_n392_K8_C",
+   "links": 14,
+   "steps": 1000,
+   "per_card_M": 8.0,
+   "fig_t_host_us": 5659.8175,
+   "fig_t_tr_us": 9745.9835,
+   "fig_t_readback_us": 2492.098,
+   "fig_t_upload_us": 1212.8319999999999,
+   "T_B_us": 28878.72975,
+   "r_p50": 0.3474089873707627,
+   "slowest_link_share_by_t_tr": {
+    "0->1": 0.007,
+    "1->2": 0.491,
+    "2->1": 0.003,
+    "2->3": 0.331,
+    "4->3": 0.162,
+    "7->6": 0.006
+   },
+   "slowest_link_share_by_host": {
+    "s0_to_s1": 0.036,
+    "s1_to_s2": 0.037,
+    "s2_to_s1": 0.265,
+    "s2_to_s3": 0.183,
+    "s3_to_s2": 0.009,
+    "s4_to_s3": 0.163,
+    "s4_to_s5": 0.161,
+    "s6_to_s5": 0.096,
+    "s7_to_s6": 0.05
+   },
+   "alt_median_of_per_step_max_host_us": 5872.824499999999,
+   "alt_max_per_link_host_p50_us": 5712.585500000001,
+   "alt_min_per_link_host_p50_us": 2648.249,
+   "alt_pooled_host_p50_us": 4297.848,
+   "per_link_host_p50_us": {
+    "s0_to_s1": 5165.9529999999995,
+    "s1_to_s0": 5067.6605,
+    "s1_to_s2": 5217.918,
+    "s2_to_s1": 5712.585500000001,
+    "s2_to_s3": 4458.6345,
+    "s3_to_s2": 4323.568500000001,
+    "s3_to_s4": 3829.0265000000018,
+    "s4_to_s3": 5034.66,
+    "s4_to_s5": 5173.538499999999,
+    "s5_to_s4": 4279.013999999999,
+    "s5_to_s6": 2820.0575,
+    "s6_to_s5": 5245.2495,
+    "s6_to_s7": 2648.249,
+    "s7_to_s6": 3666.943000000001
+   },
+   "eta": 0.8776432807930088
+  }
+ },
+ "item3": {
+  "e9:cavity3d_n192": {
+   "campaign": "e9",
+   "case": "cavity3d_n192",
+   "point": "3d_n192_K8",
+   "node": "wqd10nbj04g4",
+   "K": 8,
+   "total_own": 8000000,
+   "period_ms": 8.90907906751002,
+   "tau_ref_ms": 5.791679802354709,
+   "busy_mean_ms": 7.3227467489979965,
+   "seam_ledger": 0.17800302360934903,
+   "g1_share_ledger": 0.0992733740422367,
+   "eta": 0.6608734345371736,
+   "k1_rate_ns": {
+    "cd": 2.83254625,
+    "f": 2.729659875
+   },
+   "k1_small_gap_ns_per_particle": 0.17151175000000057,
+   "k1_period_ms": 45.869743,
+   "cards": [
+    {
+     "sim": 0,
+     "columns": 7,
+     "own": 1119490,
+     "sides": 1,
+     "n0_per_side": {
+      "s1_to_s0": 159997.0
+     },
+     "g1_total": 159997.0,
+     "g1_share_of_own": 0.14291954372080143,
+     "processed": {
+      "cdb": 479991.0,
+      "fb": 479991.0,
+      "cdi": 799496.0,
+      "fdi": 639499.0
+     },
+     "us_p50": {
+      "cdb": 1725.348,
+      "fb": 1734.437,
+      "cdi": 2293.936,
+      "fdi": 1554.464
+     },
+     "ns_per_processed": {
+      "cdb": 3.594542397669956,
+      "fb": 3.6134781693823426,
+      "cdi": 2.86922761339644,
+      "fdi": 2.4307528236947986
+     },
+     "small_kernels_us": 108.578,
+     "all_kernels_us": 7416.763,
+     "busy_us": 7365.162903807615,
+     "ideal_us": 6483.727621938073,
+     "seam_us": 881.4352818695425,
+     "seam_share_of_period": 0.09893674477354177,
+     "g1_redundant_us": 575.116,
+     "g1_redundant_share_of_period": 0.06455392253699437,
+     "band_rate_excess_us": 789.9761198551249,
+     "interior_rate_excess_us": -161.82415709262486,
+     "gaps_us": -51.600096192384626,
+     "k1_small_gap_allowance_us": 192.00568900750065,
+     "explained_us": 1068.240177562615,
+     "residual_us": -186.80489569307247
+    },
+    {
+     "sim": 1,
+     "columns": 6,
+     "own": 959976,
+     "sides": 2,
+     "n0_per_side": {
+      "s0_to_s1": 159994.0,
+      "s2_to_s1": 160000.0
+     },
+     "g1_total": 319994.0,
+     "g1_share_of_own": 0.3333354167187513,
+     "processed": {
+      "cdb": 959994.0,
+      "fb": 960000.0,
+      "cdi": 319976.0,
+      "fdi": 0
+     },
+     "us_p50": {
+      "cdb": 2882.505,
+      "fb": 3011.532,
+      "cdi": 1102.812,
+      "fdi": 10.176
+     },
+     "ns_per_processed": {
+      "cdb": 3.002628141425884,
+      "fb": 3.1370125,
+      "cdi": 3.4465459909493212,
+      "fdi": null
+     },
+     "small_kernels_us": 126.594,
+     "all_kernels_us": 7133.619000000001,
+     "busy_us": 7287.2695571142285,
+     "ideal_us": 5559.8736099452635,
+     "seam_us": 1727.395947168965,
+     "seam_share_of_period": 0.19389163953752528,
+     "g1_redundant_us": 960.8229894874343,
+     "g1_redundant_share_of_period": 0.1078476217582804,
+     "band_rate_excess_us": 554.3361152775001,
+     "interior_rate_excess_us": 196.46518111,
+     "gaps_us": 153.65055711422792,
+     "k1_small_gap_allowance_us": 164.64716371800054,
+     "explained_us": 1827.221679271162,
+     "residual_us": -99.82573210219698
+    },
+    {
+     "sim": 2,
+     "columns": 6,
+     "own": 960043,
+     "sides": 2,
+     "n0_per_side": {
+      "s1_to_s2": 160000.0,
+      "s3_to_s2": 160000.0
+     },
+     "g1_total": 320000.0,
+     "g1_share_of_own": 0.3333184034465123,
+     "processed": {
+      "cdb": 960000.0,
+      "fb": 960000.0,
+      "cdi": 320043.0,
+      "fdi": 0
+     },
+     "us_p50": {
+      "cdb": 2813.092,
+      "fb": 2935.879,
+      "cdi": 1077.37,
+      "fdi": 6.624
+     },
+     "ns_per_processed": {
+      "cdb": 2.9303041666666667,
+      "fb": 3.0582072916666667,
+      "cdi": 3.3663288995541225,
+      "fdi": null
+     },
+     "small_kernels_us": 126.658,
+     "all_kernels_us": 6959.623,
+     "busy_us": 7171.234121242485,
+     "ideal_us": 5560.261652492021,
+     "seam_us": 1610.972468750464,
+     "seam_share_of_period": 0.18082368071301796,
+     "g1_redundant_us": 937.6973333333334,
+     "g1_redundant_share_of_period": 0.10525188139287761,
+     "band_rate_excess_us": 409.25312000000025,
+     "interior_rate_excess_us": 170.83340051125,
+     "gaps_us": 211.61112124248575,
+     "k1_small_gap_allowance_us": 164.65865500525055,
+     "explained_us": 1691.3943200818187,
+     "residual_us": -80.42185133135467
+    },
+    {
+     "sim": 3,
+     "columns": 6,
+     "own": 959923,
+     "sides": 2,
+     "n0_per_side": {
+      "s2_to_s3": 160000.0,
+      "s4_to_s3": 160000.0
+     },
+     "g1_total": 320000.0,
+     "g1_share_of_own": 0.3333600715890754,
+     "processed": {
+      "cdb": 960000.0,
+      "fb": 960000.0,
+      "cdi": 319923.0,
+      "fdi": 0
+     },
+     "us_p50": {
+      "cdb": 2869.161,
+      "fb": 3003.532,
+      "cdi": 1083.035,
+      "fdi": 6.624
+     },
+     "ns_per_processed": {
+      "cdb": 2.988709375,
+      "fb": 3.1286791666666667,
+      "cdi": 3.385298962562867,
+      "fdi": null
+     },
+     "small_kernels_us": 128.707,
+     "all_kernels_us": 7091.059,
+     "busy_us": 7268.281739478958,
+     "ideal_us": 5559.566650915739,
+     "seam_us": 1708.715088563219,
+     "seam_share_of_period": 0.19179480568251192,
+     "g1_redundant_us": 956.387,
+     "g1_redundant_share_of_period": 0.10734970390910431,
+     "band_rate_excess_us": 532.9751200000001,
+     "interior_rate_excess_us": 176.83830606125005,
+     "gaps_us": 177.22273947895792,
+     "k1_small_gap_allowance_us": 164.63807359525055,
+     "explained_us": 1807.4920919449576,
+     "residual_us": -98.7770033817385
+    },
+    {
+     "sim": 4,
+     "columns": 6,
+     "own": 960092,
+     "sides": 2,
+     "n0_per_side": {
+      "s3_to_s4": 160000.0,
+      "s5_to_s4": 160000.0
+     },
+     "g1_total": 320000.0,
+     "g1_share_of_own": 0.33330139194993813,
+     "processed": {
+      "cdb": 960000.0,
+      "fb": 960000.0,
+      "cdi": 320092.0,
+      "fdi": 0
+     },
+     "us_p50": {
+      "cdb": 2837.187,
+      "fb": 2971.4,
+      "cdi": 1066.681,
+      "fdi": 6.528
+     },
+     "ns_per_processed": {
+      "cdb": 2.955403125,
+      "fb": 3.0952083333333333,
+      "cdi": 3.3324200542344076,
+      "fdi": null
+     },
+     "small_kernels_us": 126.66,
+     "all_kernels_us": 7008.456,
+     "busy_us": 7181.559753507014,
+     "ideal_us": 5560.545444802337,
+     "seam_us": 1621.0143087046763,
+     "seam_share_of_period": 0.18195082751215608,
+     "g1_redundant_us": 945.729,
+     "g1_redundant_share_of_period": 0.10615339619657453,
+     "band_rate_excess_us": 468.86912000000024,
+     "interior_rate_excess_us": 160.00560574499997,
+     "gaps_us": 173.1037535070136,
+     "k1_small_gap_allowance_us": 164.66705908100053,
+     "explained_us": 1709.7004201710133,
+     "residual_us": -88.68611146633702
+    },
+    {
+     "sim": 5,
+     "columns": 6,
+     "own": 959953,
+     "sides": 2,
+     "n0_per_side": {
+      "s4_to_s5": 160000.0,
+      "s6_to_s5": 160000.0
+     },
+     "g1_total": 320000.0,
+     "g1_share_of_own": 0.3333496535767897,
+     "processed": {
+      "cdb": 960000.0,
+      "fb": 960000.0,
+      "cdi": 319953.0,
+      "fdi": 0
+     },
+     "us_p50": {
+      "cdb": 2904.969,
+      "fb": 3034.251,
+      "cdi": 1090.811,
+      "fdi": 6.464
+     },
+     "ns_per_processed": {
+      "cdb": 3.026009375,
+      "fb": 3.160678125,
+      "cdi": 3.409285113751082,
+      "fdi": null
+     },
+     "small_kernels_us": 129.50799999999998,
+     "all_kernels_us": 7166.003000000001,
+     "busy_us": 7363.075666332665,
+     "ideal_us": 5559.740401309809,
+     "seam_us": 1803.3352650228553,
+     "seam_share_of_period": 0.20241545185061036,
+     "g1_redundant_us": 968.323,
+     "g1_redundant_share_of_period": 0.10868946079189241,
+     "band_rate_excess_us": 599.5021200000002,
+     "interior_rate_excess_us": 184.5293296737499,
+     "gaps_us": 197.07266633266408,
+     "k1_small_gap_allowance_us": 164.64321894775054,
+     "explained_us": 1914.2918970586638,
+     "residual_us": -110.95663203580852
+    },
+    {
+     "sim": 6,
+     "columns": 6,
+     "own": 960009,
+     "sides": 2,
+     "n0_per_side": {
+      "s5_to_s6": 160000.0,
+      "s7_to_s6": 160000.0
+     },
+     "g1_total": 320000.0,
+     "g1_share_of_own": 0.33333020836262994,
+     "processed": {
+      "cdb": 960000.0,
+      "fb": 960000.0,
+      "cdi": 320009.0,
+      "fdi": 0
+     },
+     "us_p50": {
+      "cdb": 3111.847,
+      "fb": 3171.465,
+      "cdi": 1098.681,
+      "fdi": 6.401
+     },
+     "ns_per_processed": {
+      "cdb": 3.2415072916666667,
+      "fb": 3.303609375,
+      "cdi": 3.433281563956014,
+      "fdi": null
+     },
+     "small_kernels_us": 128.35500000000002,
+     "all_kernels_us": 7516.749000000001,
+     "busy_us": 7431.03751002004,
+     "ideal_us": 5560.064735378743,
+     "seam_us": 1870.9727746412973,
+     "seam_share_of_period": 0.21000742730687327,
+     "g1_redundant_us": 1037.2823333333333,
+     "g1_redundant_share_of_period": 0.11642980441335796,
+     "band_rate_excess_us": 943.5941200000003,
+     "interior_rate_excess_us": 192.24070708375004,
+     "gaps_us": -85.71148997996079,
+     "k1_small_gap_allowance_us": 164.65282360575054,
+     "explained_us": 2051.107846831372,
+     "residual_us": -180.13507219007488
+    },
+    {
+     "sim": 7,
+     "columns": 7,
+     "own": 1120514,
+     "sides": 1,
+     "n0_per_side": {
+      "s6_to_s7": 160000.0
+     },
+     "g1_total": 160000.0,
+     "g1_share_of_own": 0.1427916117067703,
+     "processed": {
+      "cdb": 480000.0,
+      "fb": 480000.0,
+      "cdi": 800514.0,
+      "fdi": 640514.0
+     },
+     "us_p50": {
+      "cdb": 1794.982,
+      "fb": 1910.888,
+      "cdi": 2244.561,
+      "fdi": 1560.609
+     },
+     "ns_per_processed": {
+      "cdb": 3.739545833333333,
+      "fb": 3.9810166666666666,
+      "cdi": 2.8038997444142137,
+      "fdi": 2.4364947526517766
+     },
+     "small_kernels_us": 113.699,
+     "all_kernels_us": 7624.739,
+     "busy_us": 7514.352740480962,
+     "ideal_us": 6489.6583020556845,
+     "seam_us": 1024.6944384252774,
+     "seam_share_of_period": 0.11501687555587796,
+     "g1_redundant_us": 598.3273333333333,
+     "g1_redundant_share_of_period": 0.06715927974141983,
+     "band_rate_excess_us": 1036.0110599999998,
+     "interior_rate_excess_us": -210.70829394824997,
+     "gaps_us": -110.3862595190376,
+     "k1_small_gap_allowance_us": 192.18131703950064,
+     "explained_us": 1234.761522826545,
+     "residual_us": -210.0670844012675
+    }
+   ]
+  },
+  "e9:cavity3d_n244": {
+   "campaign": "e9",
+   "case": "cavity3d_n244",
+   "point": "3d_n244_K8",
+   "node": "wqd10nbj04g4",
+   "K": 8,
+   "total_own": 16003008,
+   "period_ms": 14.43961016758517,
+   "tau_ref_ms": 11.56671129458918,
+   "busy_mean_ms": 13.683087322394789,
+   "seam_ledger": 0.15285196387997288,
+   "g1_share_ledger": 0.09259078536077878,
+   "eta": 0.8135974516323605,
+   "k1_rate_ns": {
+    "cd": 2.790531942494811,
+    "f": 2.695169558123073
+   },
+   "k1_small_gap_ns_per_particle": 0.28366710808368084,
+   "k1_period_ms": 92.327252,
+   "cards": [
+    {
+     "sim": 0,
+     "columns": 9,
+     "own": 2285416,
+     "sides": 1,
+     "n0_per_side": {
+      "s1_to_s0": 254016.0
+     },
+     "g1_total": 254016.0,
+     "g1_share_of_own": 0.11114650461885275,
+     "processed": {
+      "cdb": 762048.0,
+      "fb": 762048.0,
+      "cdi": 1777384.0,
+      "fdi": 1523368.0
+     },
+     "us_p50": {
+      "cdb": 2272.176,
+      "fb": 2486.197,
+      "cdi": 4882.503,
+      "fdi": 3727.439
+     },
+     "ns_per_processed": {
+      "cdb": 2.9816704459561603,
+      "fb": 3.262520208700764,
+      "cdi": 2.747016401632962,
+      "fdi": 2.4468408158764
+     },
+     "small_kernels_us": 228.611,
+     "all_kernels_us": 13596.926,
+     "busy_us": 13952.170866733466,
+     "ideal_us": 13214.889130860809,
+     "seam_us": 737.281735872657,
+     "seam_share_of_period": 0.05105967040078045,
+     "g1_redundant_us": 757.392,
+     "g1_redundant_share_of_period": 0.05245238557064616,
+     "band_rate_excess_us": 578.0051428571425,
+     "interior_rate_excess_us": -455.63988549802673,
+     "gaps_us": 355.24486673346655,
+     "k1_small_gap_allowance_us": 648.2973474881735,
+     "explained_us": 815.3157766044089,
+     "residual_us": -78.03404073175193
+    },
+    {
+     "sim": 1,
+     "columns": 7,
+     "own": 1778112,
+     "sides": 2,
+     "n0_per_side": {
+      "s0_to_s1": 254016.0,
+      "s2_to_s1": 254016.0
+     },
+     "g1_total": 508032.0,
+     "g1_share_of_own": 0.2857142857142857,
+     "processed": {
+      "cdb": 1524096.0,
+      "fb": 1524096.0,
+      "cdi": 762048.0,
+      "fdi": 254016.0
+     },
+     "us_p50": {
+      "cdb": 4486.13,
+      "fb": 4614.133,
+      "cdi": 2273.786,
+      "fdi": 948.248
+     },
+     "ns_per_processed": {
+      "cdb": 2.943469440245234,
+      "fb": 3.0274556195935163,
+      "cdi": 2.9837831737633325,
+      "fdi": 3.7330246913580245
+     },
+     "small_kernels_us": 235.558,
+     "all_kernels_us": 12557.855,
+     "busy_us": 12748.14660521042,
+     "ideal_us": 10281.521150745937,
+     "seam_us": 2466.6254544644835,
+     "seam_share_of_period": 0.17082354896267904,
+     "g1_redundant_us": 1495.3766666666668,
+     "g1_redundant_share_of_period": 0.10356073670351366,
+     "band_rate_excess_us": 739.527285714285,
+     "interior_rate_excess_us": 410.8985238095235,
+     "gaps_us": 190.29160521042104,
+     "k1_small_gap_allowance_us": 504.3918888888899,
+     "explained_us": 2567.260192512006,
+     "residual_us": -100.63473804752266
+    },
+    {
+     "sim": 2,
+     "columns": 8,
+     "own": 2032128,
+     "sides": 2,
+     "n0_per_side": {
+      "s1_to_s2": 254016.0,
+      "s3_to_s2": 254016.0
+     },
+     "g1_total": 508032.0,
+     "g1_share_of_own": 0.25,
+     "processed": {
+      "cdb": 1524096.0,
+      "fb": 1524096.0,
+      "cdi": 1016064.0,
+      "fdi": 508032.0
+     },
+     "us_p50": {
+      "cdb": 4525.042,
+      "fb": 4636.788,
+      "cdi": 2922.697,
+      "fdi": 1639.945
+     },
+     "ns_per_processed": {
+      "cdb": 2.9690006403796088,
+      "fb": 3.042320168808264,
+      "cdi": 2.8764890794280675,
+      "fdi": 3.2280348481985386
+     },
+     "small_kernels_us": 255.686,
+     "all_kernels_us": 13980.158,
+     "busy_us": 14170.521631262523,
+     "ideal_us": 11750.309886566783,
+     "seam_us": 2420.21174469574,
+     "seam_share_of_period": 0.16760921635743076,
+     "g1_redundant_us": 1508.3473333333334,
+     "g1_redundant_share_of_period": 0.10445900656787495,
+     "band_rate_excess_us": 801.0942857142852,
+     "interior_rate_excess_us": 358.0505714285711,
+     "gaps_us": 190.363631262524,
+     "k1_small_gap_allowance_us": 576.4478730158742,
+     "explained_us": 2537.0939487228397,
+     "residual_us": -116.88220402709976
+    },
+    {
+     "sim": 3,
+     "columns": 7,
+     "own": 1778111,
+     "sides": 2,
+     "n0_per_side": {
+      "s2_to_s3": 254016.0,
+      "s4_to_s3": 254016.0
+     },
+     "g1_total": 508032.0,
+     "g1_share_of_own": 0.28571444639845317,
+     "processed": {
+      "cdb": 1524096.0,
+      "fb": 1524096.0,
+      "cdi": 762047.0,
+      "fdi": 254015.0
+     },
+     "us_p50": {
+      "cdb": 4537.267,
+      "fb": 4650.999,
+      "cdi": 2289.531,
+      "fdi": 963.609
+     },
+     "ns_per_processed": {
+      "cdb": 2.977021788653733,
+      "fb": 3.051644384605694,
+      "cdi": 3.0044485445123463,
+      "fdi": 3.793512194161762
+     },
+     "small_kernels_us": 238.30900000000003,
+     "all_kernels_us": 12679.715,
+     "busy_us": 12879.084149298596,
+     "ideal_us": 10281.515368477354,
+     "seam_us": 2597.5687808212424,
+     "seam_share_of_period": 0.17989189117116244,
+     "g1_redundant_us": 1512.4223333333332,
+     "g1_redundant_share_of_period": 0.10474121640267697,
+     "band_rate_excess_us": 827.530285714285,
+     "interior_rate_excess_us": 442.01000951102424,
+     "gaps_us": 199.3691492985963,
+     "k1_small_gap_allowance_us": 504.39160522178184,
+     "explained_us": 2715.249172635457,
+     "residual_us": -117.68039181421454
+    },
+    {
+     "sim": 4,
+     "columns": 8,
+     "own": 2032129,
+     "sides": 2,
+     "n0_per_side": {
+      "s3_to_s4": 254016.0,
+      "s5_to_s4": 254016.0
+     },
+     "g1_total": 508032.0,
+     "g1_share_of_own": 0.249999876976314,
+     "processed": {
+      "cdb": 1524096.0,
+      "fb": 1524096.0,
+      "cdi": 1016065.0,
+      "fdi": 508033.0
+     },
+     "us_p50": {
+      "cdb": 4507.628,
+      "fb": 4794.738,
+      "cdi": 2925.734,
+      "fdi": 1638.376
+     },
+     "ns_per_processed": {
+      "cdb": 2.9575748509280255,
+      "fb": 3.1459553728898966,
+      "cdi": 2.8794752304232505,
+      "fdi": 3.2249401121580683
+     },
+     "small_kernels_us": 258.949,
+     "all_kernels_us": 14125.425,
+     "busy_us": 14278.283787575152,
+     "ideal_us": 11750.315668835365,
+     "seam_us": 2527.9681187397873,
+     "seam_share_of_period": 0.17507177059493675,
+     "g1_redundant_us": 1502.5426666666667,
+     "g1_redundant_share_of_period": 0.1040570104890821,
+     "band_rate_excess_us": 941.630285714285,
+     "interior_rate_excess_us": 359.51308572707046,
+     "gaps_us": 152.85878757515275,
+     "k1_small_gap_allowance_us": 576.4481566829822,
+     "explained_us": 2639.045669000193,
+     "residual_us": -111.07755026040559
+    },
+    {
+     "sim": 5,
+     "columns": 8,
+     "own": 2032128,
+     "sides": 2,
+     "n0_per_side": {
+      "s4_to_s5": 254016.0,
+      "s6_to_s5": 254016.0
+     },
+     "g1_total": 508032.0,
+     "g1_share_of_own": 0.25,
+     "processed": {
+      "cdb": 1524096.0,
+      "fb": 1524096.0,
+      "cdi": 1016064.0,
+      "fdi": 508032.0
+     },
+     "us_p50": {
+      "cdb": 4554.708,
+      "fb": 4710.424,
+      "cdi": 2960.139,
+      "fdi": 1658.922
+     },
+     "ns_per_processed": {
+      "cdb": 2.9884652935248175,
+      "fb": 3.090634710674393,
+      "cdi": 2.9133391203703702,
+      "fdi": 3.2653887944066518
+     },
+     "small_kernels_us": 257.67100000000005,
+     "all_kernels_us": 14141.864,
+     "busy_us": 14394.601612224451,
+     "ideal_us": 11750.309886566783,
+     "seam_us": 2644.2917256576675,
+     "seam_share_of_period": 0.18312763952545744,
+     "g1_redundant_us": 1518.236,
+     "g1_redundant_share_of_period": 0.10514383576699456,
+     "band_rate_excess_us": 904.3962857142855,
+     "interior_rate_excess_us": 414.4695714285711,
+     "gaps_us": 252.73761222445137,
+     "k1_small_gap_allowance_us": 576.4478730158742,
+     "explained_us": 2771.062596351434,
+     "residual_us": -126.77087069376648
+    },
+    {
+     "sim": 6,
+     "columns": 7,
+     "own": 1778112,
+     "sides": 2,
+     "n0_per_side": {
+      "s5_to_s6": 254016.0,
+      "s7_to_s6": 254016.0
+     },
+     "g1_total": 508032.0,
+     "g1_share_of_own": 0.2857142857142857,
+     "processed": {
+      "cdb": 1524096.0,
+      "fb": 1524096.0,
+      "cdi": 762048.0,
+      "fdi": 254016.0
+     },
+     "us_p50": {
+      "cdb": 4504.712,
+      "fb": 4640.715,
+      "cdi": 2281.461,
+      "fdi": 953.365
+     },
+     "ns_per_processed": {
+      "cdb": 2.955661585621903,
+      "fb": 3.0448967781557066,
+      "cdi": 2.993854717813051,
+      "fdi": 3.7531690917107583
+     },
+     "small_kernels_us": 235.654,
+     "all_kernels_us": 12615.907000000001,
+     "busy_us": 12856.592055110219,
+     "ideal_us": 10281.521150745937,
+     "seam_us": 2575.070904364282,
+     "seam_share_of_period": 0.17833382442310958,
+     "g1_redundant_us": 1501.5706666666667,
+     "g1_redundant_share_of_period": 0.10398969565241276,
+     "band_rate_excess_us": 784.691285714285,
+     "interior_rate_excess_us": 423.6905238095235,
+     "gaps_us": 240.68505511021795,
+     "k1_small_gap_allowance_us": 504.3918888888899,
+     "explained_us": 2681.899642411803,
+     "residual_us": -106.82873804752126
+    },
+    {
+     "sim": 7,
+     "columns": 9,
+     "own": 2286872,
+     "sides": 1,
+     "n0_per_side": {
+      "s6_to_s7": 254017.0
+     },
+     "g1_total": 254017.0,
+     "g1_share_of_own": 0.11107617741613872,
+     "processed": {
+      "cdb": 762051.0,
+      "fb": 762051.0,
+      "cdi": 1778838.0,
+      "fdi": 1524821.0
+     },
+     "us_p50": {
+      "cdb": 2352.051,
+      "fb": 2581.431,
+      "cdi": 4899.881,
+      "fdi": 3764.304
+     },
+     "ns_per_processed": {
+      "cdb": 3.086474527295417,
+      "fb": 3.3874780034407146,
+      "cdi": 2.754540323514564,
+      "fdi": 2.468685832632158
+     },
+     "small_kernels_us": 200.325,
+     "all_kernels_us": 13797.992,
+     "busy_us": 14185.297871743485,
+     "ideal_us": 13223.308113914456,
+     "seam_us": 961.9897578290293,
+     "seam_share_of_period": 0.06662158788667,
+     "g1_redundant_us": 784.017,
+     "g1_redundant_share_of_period": 0.05429627191459811,
+     "band_rate_excess_us": 753.0976857526405,
+     "interior_rate_excess_us": -409.3704003103672,
+     "gaps_us": 387.3058717434851,
+     "k1_small_gap_allowance_us": 648.7103667975433,
+     "explained_us": 1066.6647903882154,
+     "residual_us": -104.67503255918609
+    }
+   ]
+  },
+  "e8:cavity3d_n192": {
+   "campaign": "e8",
+   "case": "cavity3d_n192",
+   "point": "3d_n192_K8",
+   "node": "wqd10nbj11g2",
+   "K": 8,
+   "total_own": 8000000,
+   "period_ms": 10.109709200901804,
+   "tau_ref_ms": 6.594448387775551,
+   "busy_mean_ms": 7.730714307114228,
+   "seam_ledger": 0.11108704195657994,
+   "g1_share_ledger": 0.08818466580325071,
+   "eta": 0.6634385570954433,
+   "k1_rate_ns": {
+    "cd": 3.215063,
+    "f": 3.116753
+   },
+   "k1_small_gap_ns_per_particle": 0.15588799999999947,
+   "k1_period_ms": 51.901632,
+   "cards": [
+    {
+     "sim": 0,
+     "columns": 7,
+     "own": 1119492,
+     "sides": 1,
+     "n0_per_side": {
+      "s1_to_s0": 159996.0
+     },
+     "g1_total": 159996.0,
+     "g1_share_of_own": 0.14291839512921933,
+     "processed": {
+      "cdb": 479988.0,
+      "fb": 479988.0,
+      "cdi": 799500.0,
+      "fdi": 639504.0
+     },
+     "us_p50": {
+      "cdb": 1760.168,
+      "fb": 1621.928,
+      "cdi": 2635.872,
+      "fdi": 1890.348
+     },
+     "ns_per_processed": {
+      "cdb": 3.667108344375276,
+      "fb": 3.3791011441952716,
+      "cdi": 3.2969005628517825,
+      "fdi": 2.955959618704496
+     },
+     "small_kernels_us": 109.75999999999999,
+     "all_kernels_us": 8018.076,
+     "busy_us": 8210.91343486974,
+     "ideal_us": 7382.432214527627,
+     "seam_us": 828.4812203421134,
+     "seam_share_of_period": 0.08194906538639227,
+     "g1_redundant_us": 586.7226666666667,
+     "g1_redundant_share_of_period": 0.05803556314105751,
+     "band_rate_excess_us": 342.9003017920001,
+     "interior_rate_excess_us": -37.39887901199975,
+     "gaps_us": 192.83743486974072,
+     "k1_small_gap_allowance_us": 174.51536889599942,
+     "explained_us": 1020.3061554204082,
+     "residual_us": -191.82493507829486
+    },
+    {
+     "sim": 1,
+     "columns": 6,
+     "own": 959961,
+     "sides": 2,
+     "n0_per_side": {
+      "s0_to_s1": 159995.0,
+      "s2_to_s1": 160000.0
+     },
+     "g1_total": 319995.0,
+     "g1_share_of_own": 0.3333416670052221,
+     "processed": {
+      "cdb": 959995.0,
+      "fb": 960000.0,
+      "cdi": 319961.0,
+      "fdi": 0
+     },
+     "us_p50": {
+      "cdb": 2868.332,
+      "fb": 2977.776,
+      "cdi": 1328.004,
+      "fdi": 9.028
+     },
+     "ns_per_processed": {
+      "cdb": 2.987861395111433,
+      "fb": 3.10185,
+      "cdi": 4.150518344423227,
+      "fdi": null
+     },
+     "small_kernels_us": 127.268,
+     "all_kernels_us": 7310.407999999999,
+     "busy_us": 7508.7259599198405,
+     "ideal_us": 6330.413268777405,
+     "seam_us": 1178.3126911424351,
+     "seam_share_of_period": 0.11655258007196959,
+     "g1_redundant_us": 956.100707128683,
+     "g1_redundant_share_of_period": 0.09457252311900298,
+     "band_rate_excess_us": -232.41928468499955,
+     "interior_rate_excess_us": 299.30922745700013,
+     "gaps_us": 198.3179599198411,
+     "k1_small_gap_allowance_us": 149.6464003679995,
+     "explained_us": 1198.930209452525,
+     "residual_us": -20.617518310089963
+    },
+    {
+     "sim": 2,
+     "columns": 6,
+     "own": 960054,
+     "sides": 2,
+     "n0_per_side": {
+      "s1_to_s2": 160000.0,
+      "s3_to_s2": 160000.0
+     },
+     "g1_total": 320000.0,
+     "g1_share_of_own": 0.3333145843879615,
+     "processed": {
+      "cdb": 960000.0,
+      "fb": 960000.0,
+      "cdi": 320054.0,
+      "fdi": 0
+     },
+     "us_p50": {
+      "cdb": 2844.62,
+      "fb": 2966.448,
+      "cdi": 1410.084,
+      "fdi": 9.792
+     },
+     "ns_per_processed": {
+      "cdb": 2.9631458333333334,
+      "fb": 3.09005,
+      "cdi": 4.405769026476782,
+      "fdi": null
+     },
+     "small_kernels_us": 126.432,
+     "all_kernels_us": 7357.376,
+     "busy_us": 7516.239539078156,
+     "ideal_us": 6331.026552477469,
+     "seam_us": 1185.2129866006871,
+     "seam_share_of_period": 0.11723512151021753,
+     "g1_redundant_us": 948.2066666666666,
+     "g1_redundant_share_of_period": 0.09379168557905553,
+     "band_rate_excess_us": -267.4753599999997,
+     "interior_rate_excess_us": 381.090226598,
+     "gaps_us": 158.86353907815555,
+     "k1_small_gap_allowance_us": 149.66089795199952,
+     "explained_us": 1197.456174390823,
+     "residual_us": -12.243187790135835
+    },
+    {
+     "sim": 3,
+     "columns": 6,
+     "own": 959925,
+     "sides": 2,
+     "n0_per_side": {
+      "s2_to_s3": 160000.0,
+      "s4_to_s3": 160000.0
+     },
+     "g1_total": 320000.0,
+     "g1_share_of_own": 0.3333593770346642,
+     "processed": {
+      "cdb": 960000.0,
+      "fb": 960000.0,
+      "cdi": 319925.0,
+      "fdi": 0
+     },
+     "us_p50": {
+      "cdb": 2859.048,
+      "fb": 2993.32,
+      "cdi": 1400.836,
+      "fdi": 6.464
+     },
+     "ns_per_processed": {
+      "cdb": 2.978175,
+      "fb": 3.1180416666666666,
+      "cdi": 4.378638743455498,
+      "fdi": null
+     },
+     "small_kernels_us": 124.808,
+     "all_kernels_us": 7384.476,
+     "busy_us": 7608.186809619238,
+     "ideal_us": 6330.175868635446,
+     "seam_us": 1278.0109409837924,
+     "seam_share_of_period": 0.12641421385985974,
+     "g1_redundant_us": 953.0159999999998,
+     "g1_redundant_share_of_period": 0.09426739988871186,
+     "band_rate_excess_us": -226.17536000000015,
+     "interior_rate_excess_us": 372.25696972500015,
+     "gaps_us": 223.71080961923872,
+     "k1_small_gap_allowance_us": 149.6407883999995,
+     "explained_us": 1297.975630944239,
+     "residual_us": -19.96468996044655
+    },
+    {
+     "sim": 4,
+     "columns": 6,
+     "own": 960092,
+     "sides": 2,
+     "n0_per_side": {
+      "s3_to_s4": 160000.0,
+      "s5_to_s4": 160000.0
+     },
+     "g1_total": 320000.0,
+     "g1_share_of_own": 0.33330139194993813,
+     "processed": {
+      "cdb": 960000.0,
+      "fb": 960000.0,
+      "cdi": 320092.0,
+      "fdi": 0
+     },
+     "us_p50": {
+      "cdb": 2844.784,
+      "fb": 2974.84,
+      "cdi": 1374.152,
+      "fdi": 6.624
+     },
+     "ns_per_processed": {
+      "cdb": 2.9633166666666666,
+      "fb": 3.0987916666666666,
+      "cdi": 4.292990765155018,
+      "fdi": null
+     },
+     "small_kernels_us": 128.0,
+     "all_kernels_us": 7328.400000000001,
+     "busy_us": 7478.472629258517,
+     "ideal_us": 6331.277141516205,
+     "seam_us": 1147.1954877423123,
+     "seam_share_of_period": 0.1134746277014556,
+     "g1_redundant_us": 948.2613333333333,
+     "g1_redundant_share_of_period": 0.09379709292219272,
+     "band_rate_excess_us": -258.91936000000004,
+     "interior_rate_excess_us": 345.0360542040001,
+     "gaps_us": 150.07262925851683,
+     "k1_small_gap_allowance_us": 149.66682169599952,
+     "explained_us": 1162.7838350998506,
+     "residual_us": -15.588347357538396
+    },
+    {
+     "sim": 5,
+     "columns": 6,
+     "own": 959946,
+     "sides": 2,
+     "n0_per_side": {
+      "s4_to_s5": 160000.0,
+      "s6_to_s5": 160000.0
+     },
+     "g1_total": 320000.0,
+     "g1_share_of_own": 0.33335208438808017,
+     "processed": {
+      "cdb": 960000.0,
+      "fb": 960000.0,
+      "cdi": 319946.0,
+      "fdi": 0
+     },
+     "us_p50": {
+      "cdb": 3053.524,
+      "fb": 2972.624,
+      "cdi": 1398.916,
+      "fdi": 6.592
+     },
+     "ns_per_processed": {
+      "cdb": 3.1807541666666665,
+      "fb": 3.0964833333333335,
+      "cdi": 4.372350334118883,
+      "fdi": null
+     },
+     "small_kernels_us": 129.672,
+     "all_kernels_us": 7561.3279999999995,
+     "busy_us": 7582.107843687375,
+     "ideal_us": 6330.314352051589,
+     "seam_us": 1251.7934916357863,
+     "seam_share_of_period": 0.12382091974753578,
+     "g1_redundant_us": 1017.8413333333333,
+     "g1_redundant_share_of_period": 0.10067958564451489,
+     "band_rate_excess_us": -52.39535999999987,
+     "interior_rate_excess_us": 370.2694534020001,
+     "gaps_us": 20.779843687375433,
+     "k1_small_gap_allowance_us": 149.6440620479995,
+     "explained_us": 1336.5232083747094,
+     "residual_us": -84.72971673892312
+    },
+    {
+     "sim": 6,
+     "columns": 6,
+     "own": 960033,
+     "sides": 2,
+     "n0_per_side": {
+      "s5_to_s6": 160000.0,
+      "s7_to_s6": 160000.0
+     },
+     "g1_total": 320000.0,
+     "g1_share_of_own": 0.33332187539386665,
+     "processed": {
+      "cdb": 960000.0,
+      "fb": 960000.0,
+      "cdi": 320033.0,
+      "fdi": 0
+     },
+     "us_p50": {
+      "cdb": 3053.676,
+      "fb": 3132.492,
+      "cdi": 1387.648,
+      "fdi": 6.176
+     },
+     "ns_per_processed": {
+      "cdb": 3.1809125,
+      "fb": 3.2630125,
+      "cdi": 4.3359528548618425,
+      "fdi": null
+     },
+     "small_kernels_us": 128.512,
+     "all_kernels_us": 7708.504,
+     "busy_us": 7671.189426853707,
+     "ideal_us": 6330.888069061326,
+     "seam_us": 1340.3013577923812,
+     "seam_share_of_period": 0.13257565882041633,
+     "g1_redundant_us": 1017.8919999999999,
+     "g1_redundant_share_of_period": 0.10068459732839816,
+     "band_rate_excess_us": 107.62463999999979,
+     "interior_rate_excess_us": 358.7217429210001,
+     "gaps_us": -37.31457314629279,
+     "k1_small_gap_allowance_us": 149.6576243039995,
+     "explained_us": 1425.7781854707075,
+     "residual_us": -85.47682767832634
+    },
+    {
+     "sim": 7,
+     "columns": 7,
+     "own": 1120497,
+     "sides": 1,
+     "n0_per_side": {
+      "s6_to_s7": 160000.0
+     },
+     "g1_total": 160000.0,
+     "g1_share_of_own": 0.14279377811810295,
+     "processed": {
+      "cdb": 480000.0,
+      "fb": 480000.0,
+      "cdi": 800497.0,
+      "fdi": 640497.0
+     },
+     "us_p50": {
+      "cdb": 1840.036,
+      "fb": 1906.5,
+      "cdi": 2485.264,
+      "fdi": 1757.22
+     },
+     "ns_per_processed": {
+      "cdb": 3.8334083333333333,
+      "fb": 3.971875,
+      "cdi": 3.1046512354199955,
+      "fdi": 2.743525730799676
+     },
+     "small_kernels_us": 116.0,
+     "all_kernels_us": 8105.02,
+     "busy_us": 8269.878813627254,
+     "ideal_us": 7389.059635157342,
+     "seam_us": 880.819178469912,
+     "seam_share_of_period": 0.08712606475281617,
+     "g1_redundant_us": 613.3453333333334,
+     "g1_redundant_share_of_period": 0.060668939248877896,
+     "band_rate_excess_us": 707.26432,
+     "interior_rate_excess_us": -327.4352325519997,
+     "gaps_us": 164.85881362725377,
+     "k1_small_gap_allowance_us": 174.6720363359994,
+     "explained_us": 1099.3611980725882,
+     "residual_us": -218.5420196026762
+    }
+   ]
+  },
+  "e8:cavity3d_n244": {
+   "campaign": "e8",
+   "case": "cavity3d_n244",
+   "point": "3d_n244_K8",
+   "node": "wqd10nbj11g2",
+   "K": 8,
+   "total_own": 16003008,
+   "period_ms": 16.03355663276553,
+   "tau_ref_ms": 12.98897806262525,
+   "busy_mean_ms": 14.374312651803606,
+   "seam_ledger": 0.07213090429746413,
+   "g1_share_ledger": 0.08319771050535674,
+   "eta": 0.815798082494148,
+   "k1_rate_ns": {
+    "cd": 3.150789901498518,
+    "f": 3.0798792327042515
+   },
+   "k1_small_gap_ns_per_particle": 0.11634687678716366,
+   "k1_period_ms": 101.571348,
+   "cards": [
+    {
+     "sim": 0,
+     "columns": 9,
+     "own": 2285415,
+     "sides": 1,
+     "n0_per_side": {
+      "s1_to_s0": 254016.0
+     },
+     "g1_total": 254016.0,
+     "g1_share_of_own": 0.11114655325181641,
+     "processed": {
+      "cdb": 762048.0,
+      "fb": 762048.0,
+      "cdi": 1777383.0,
+      "fdi": 1523367.0
+     },
+     "us_p50": {
+      "cdb": 2284.472,
+      "fb": 2492.352,
+      "cdi": 5500.1,
+      "fdi": 4272.228
+     },
+     "ns_per_processed": {
+      "cdb": 2.997805912488452,
+      "fb": 3.270597127739985,
+      "cdi": 3.094493420945289,
+      "fdi": 2.804464058890602
+     },
+     "small_kernels_us": 228.676,
+     "all_kernels_us": 14777.828000000001,
+     "busy_us": 15311.818965931863,
+     "ideal_us": 14839.812764697579,
+     "seam_us": 472.00620123428416,
+     "seam_share_of_period": 0.029438646212139315,
+     "g1_redundant_us": 761.4906666666666,
+     "g1_redundant_share_of_period": 0.04749355892194967,
+     "band_rate_excess_us": 28.755047619047605,
+     "interior_rate_excess_us": -519.6187945821181,
+     "gaps_us": 533.9909659318619,
+     "k1_small_gap_allowance_us": 265.90089741253564,
+     "explained_us": 767.3929882229222,
+     "residual_us": -295.38678698863805
+    },
+    {
+     "sim": 1,
+     "columns": 7,
+     "own": 1778113,
+     "sides": 2,
+     "n0_per_side": {
+      "s0_to_s1": 254016.0,
+      "s2_to_s1": 254016.0
+     },
+     "g1_total": 508032.0,
+     "g1_share_of_own": 0.28571412503029897,
+     "processed": {
+      "cdb": 1524096.0,
+      "fb": 1524096.0,
+      "cdi": 762049.0,
+      "fdi": 254017.0
+     },
+     "us_p50": {
+      "cdb": 4431.832,
+      "fb": 4538.392,
+      "cdi": 2527.268,
+      "fdi": 1045.5
+     },
+     "ns_per_processed": {
+      "cdb": 2.907843075501806,
+      "fb": 2.977759931132947,
+      "cdi": 3.3164114118645913,
+      "fdi": 4.115866260919545
+     },
+     "small_kernels_us": 228.2,
+     "all_kernels_us": 12771.192000000001,
+     "busy_us": 12930.73758717435,
+     "ideal_us": 11545.764771157408,
+     "seam_us": 1384.9728160169416,
+     "seam_share_of_period": 0.08637963788936678,
+     "g1_redundant_us": 1477.2773333333334,
+     "g1_redundant_share_of_period": 0.09213659621312148,
+     "band_rate_excess_us": -525.913904761904,
+     "interior_rate_excess_us": 389.37002329911996,
+     "gaps_us": 159.54558717434884,
+     "k1_small_gap_allowance_us": 206.87789412465392,
+     "explained_us": 1521.6011449202445,
+     "residual_us": -136.62832890330287
+    },
+    {
+     "sim": 2,
+     "columns": 8,
+     "own": 2032128,
+     "sides": 2,
+     "n0_per_side": {
+      "s1_to_s2": 254016.0,
+      "s3_to_s2": 254016.0
+     },
+     "g1_total": 508032.0,
+     "g1_share_of_own": 0.25,
+     "processed": {
+      "cdb": 1524096.0,
+      "fb": 1524096.0,
+      "cdi": 1016064.0,
+      "fdi": 508032.0
+     },
+     "us_p50": {
+      "cdb": 4497.396,
+      "fb": 4646.908,
+      "cdi": 3210.296,
+      "fdi": 1844.272
+     },
+     "ns_per_processed": {
+      "cdb": 2.950861363063744,
+      "fb": 3.0489601704879483,
+      "cdi": 3.159541131267322,
+      "fdi": 3.630228017132779
+     },
+     "small_kernels_us": 254.44,
+     "all_kernels_us": 14453.312,
+     "busy_us": 14817.399258517033,
+     "ideal_us": 13195.152317587555,
+     "seam_us": 1622.2469409294772,
+     "seam_share_of_period": 0.10117823375596645,
+     "g1_redundant_us": 1499.132,
+     "g1_redundant_share_of_period": 0.09349965415261853,
+     "band_rate_excess_us": -351.833904761904,
+     "interior_rate_excess_us": 288.4866031746035,
+     "gaps_us": 364.08725851703275,
+     "k1_small_gap_allowance_us": 236.43174603174532,
+     "explained_us": 1817.8802108979871,
+     "residual_us": -195.63326996850992
+    },
+    {
+     "sim": 3,
+     "columns": 7,
+     "own": 1778112,
+     "sides": 2,
+     "n0_per_side": {
+      "s2_to_s3": 254016.0,
+      "s4_to_s3": 254016.0
+     },
+     "g1_total": 508032.0,
+     "g1_share_of_own": 0.2857142857142857,
+     "processed": {
+      "cdb": 1524096.0,
+      "fb": 1524096.0,
+      "cdi": 762048.0,
+      "fdi": 254016.0
+     },
+     "us_p50": {
+      "cdb": 4495.316,
+      "fb": 4626.58,
+      "cdi": 2613.44,
+      "fdi": 1059.804
+     },
+     "ns_per_processed": {
+      "cdb": 2.9494966196355086,
+      "fb": 3.035622427983539,
+      "cdi": 3.42949525489208,
+      "fdi": 4.17219387755102
+     },
+     "small_kernels_us": 232.612,
+     "all_kernels_us": 13027.752,
+     "busy_us": 13278.359551102203,
+     "ideal_us": 11545.758277889112,
+     "seam_us": 1732.6012732130912,
+     "seam_share_of_period": 0.10806094448641651,
+     "g1_redundant_us": 1498.4386666666667,
+     "g1_redundant_share_of_period": 0.09345641151162418,
+     "band_rate_excess_us": -374.24190476190455,
+     "interior_rate_excess_us": 489.852253968254,
+     "gaps_us": 250.6075511022027,
+     "k1_small_gap_allowance_us": 206.87777777777714,
+     "explained_us": 1890.390789197442,
+     "residual_us": -157.78951598435083
+    },
+    {
+     "sim": 4,
+     "columns": 8,
+     "own": 2032128,
+     "sides": 2,
+     "n0_per_side": {
+      "s3_to_s4": 254016.0,
+      "s5_to_s4": 254016.0
+     },
+     "g1_total": 508032.0,
+     "g1_share_of_own": 0.25,
+     "processed": {
+      "cdb": 1524096.0,
+      "fb": 1524096.0,
+      "cdi": 1016064.0,
+      "fdi": 508032.0
+     },
+     "us_p50": {
+      "cdb": 4496.296,
+      "fb": 4659.364,
+      "cdi": 3322.076,
+      "fdi": 1859.384
+     },
+     "ns_per_processed": {
+      "cdb": 2.9501396237507347,
+      "fb": 3.0571328840178045,
+      "cdi": 3.2695538863693625,
+      "fdi": 3.6599741748551273
+     },
+     "small_kernels_us": 257.51599999999996,
+     "all_kernels_us": 14594.636,
+     "busy_us": 14838.710396793587,
+     "ideal_us": 13195.152317587555,
+     "seam_us": 1643.5580792060318,
+     "seam_share_of_period": 0.1025073922679964,
+     "g1_redundant_us": 1498.7653333333333,
+     "g1_redundant_share_of_period": 0.09347678544824652,
+     "band_rate_excess_us": -340.4779047619048,
+     "interior_rate_excess_us": 415.3786031746034,
+     "gaps_us": 244.07439679358686,
+     "k1_small_gap_allowance_us": 236.43174603174532,
+     "explained_us": 1838.8246825078736,
+     "residual_us": -195.26660330184177
+    },
+    {
+     "sim": 5,
+     "columns": 8,
+     "own": 2032126,
+     "sides": 2,
+     "n0_per_side": {
+      "s4_to_s5": 254016.0,
+      "s6_to_s5": 254016.0
+     },
+     "g1_total": 508032.0,
+     "g1_share_of_own": 0.25000024604773524,
+     "processed": {
+      "cdb": 1524096.0,
+      "fb": 1524096.0,
+      "cdi": 1016062.0,
+      "fdi": 508030.0
+     },
+     "us_p50": {
+      "cdb": 4504.572,
+      "fb": 4656.124,
+      "cdi": 3307.768,
+      "fdi": 1865.908
+     },
+     "ns_per_processed": {
+      "cdb": 2.9555697278911564,
+      "fb": 3.0550070336776685,
+      "cdi": 3.2554785042645036,
+      "fdi": 3.672830344664685
+     },
+     "small_kernels_us": 254.952,
+     "all_kernels_us": 14589.324,
+     "busy_us": 14801.134601202404,
+     "ideal_us": 13195.139331050961,
+     "seam_us": 1605.995270151443,
+     "seam_share_of_period": 0.10016463015258235,
+     "g1_redundant_us": 1501.524,
+     "g1_redundant_share_of_period": 0.09364884126404904,
+     "band_rate_excess_us": -335.44190476190465,
+     "interior_rate_excess_us": 407.60706451287183,
+     "gaps_us": 211.81060120240363,
+     "k1_small_gap_allowance_us": 236.43151333799173,
+     "explained_us": 1804.020247615379,
+     "residual_us": -198.024977463936
+    },
+    {
+     "sim": 6,
+     "columns": 7,
+     "own": 1778114,
+     "sides": 2,
+     "n0_per_side": {
+      "s5_to_s6": 254016.0,
+      "s7_to_s6": 254016.0
+     },
+     "g1_total": 508032.0,
+     "g1_share_of_own": 0.285713964346493,
+     "processed": {
+      "cdb": 1524096.0,
+      "fb": 1524096.0,
+      "cdi": 762050.0,
+      "fdi": 254018.0
+     },
+     "us_p50": {
+      "cdb": 4474.86,
+      "fb": 4794.36,
+      "cdi": 2550.464,
+      "fdi": 1075.192
+     },
+     "ns_per_processed": {
+      "cdb": 2.936074892920131,
+      "fb": 3.1457073570168808,
+      "cdi": 3.346846007479824,
+      "fdi": 4.232739412167642
+     },
+     "small_kernels_us": 234.952,
+     "all_kernels_us": 13129.828,
+     "busy_us": 13222.264216432866,
+     "ideal_us": 11545.771264425706,
+     "seam_us": 1676.49295200716,
+     "seam_share_of_period": 0.10456151373059341,
+     "g1_redundant_us": 1491.62,
+     "g1_redundant_share_of_period": 0.0930311367692297,
+     "band_rate_excess_us": -226.91790476190474,
+     "interior_rate_excess_us": 442.25179262998574,
+     "gaps_us": 92.43621643286679,
+     "k1_small_gap_allowance_us": 206.87801047153073,
+     "explained_us": 1827.464093829417,
+     "residual_us": -150.97114182225687
+    },
+    {
+     "sim": 7,
+     "columns": 9,
+     "own": 2286872,
+     "sides": 1,
+     "n0_per_side": {
+      "s6_to_s7": 254017.0
+     },
+     "g1_total": 254017.0,
+     "g1_share_of_own": 0.11107617741613872,
+     "processed": {
+      "cdb": 762051.0,
+      "fb": 762051.0,
+      "cdi": 1778838.0,
+      "fdi": 1524821.0
+     },
+     "us_p50": {
+      "cdb": 2359.216,
+      "fb": 2635.7,
+      "cdi": 5594.288,
+      "fdi": 4299.864
+     },
+     "ns_per_processed": {
+      "cdb": 3.0958767851495503,
+      "fb": 3.458692397228007,
+      "cdi": 3.1449114534319595,
+      "fdi": 2.819913943997361
+     },
+     "small_kernels_us": 226.27200000000002,
+     "all_kernels_us": 15115.339999999998,
+     "busy_us": 15794.07663727455,
+     "ideal_us": 14849.273456606124,
+     "seam_us": 944.8031806684248,
+     "seam_share_of_period": 0.058926612623032316,
+     "g1_redundant_us": 786.4053333333334,
+     "g1_redundant_share_of_period": 0.04904746659429681,
+     "band_rate_excess_us": 246.82835561164524,
+     "interior_rate_excess_us": -406.8573382931506,
+     "gaps_us": 678.736637274551,
+     "k1_small_gap_allowance_us": 266.0704148120145,
+     "explained_us": 1265.3145731143645,
+     "residual_us": -320.5113924459397
+    }
+   ]
+  }
+ }
+}
