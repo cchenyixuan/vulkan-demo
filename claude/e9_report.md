@@ -188,6 +188,17 @@ S d2 的变化：2M 371.9 → 385.7（+3.7 %），4M gen 175.1 → 183.8（+5.0 
 
 **协变量**：这次 nvidia-smi 报 GPU 1 的 PCIe 为 Gen 4 x4（10-10 为 Gen 5 x8）——你热插拔换 7900 XTX 再换回来后链路重新协商的结果。单卡核时间不依赖它（1M 点与旧值一致），本节的数字不受影响；本机的传输类测量在重启前不要做。
 
+### 3.2 fig:baseline 补测与重画（用户 2026-10-29 晚；v7-single-rc4.1 = 39668e2 的 solver，600 W，GPU 1）
+
+**补测**（`_run_single_baseline_campaign.py`，测量 A 协议：3 次交错试验、预热 1000 步、窗口 1M 10000 步 / 4M 4000 步、每步一次提交或两在飞；`logs/v7_single/throughput_rc4c`，9 次运行全部 drift 0）：
+- 1M（`lid_driven_cavity_2d_gen`，1,046,529 粒子）两在飞：**733.54 ± 0.26 fps = 767.7 M 粒子步/s**（旧 atomic 序 734.60 ± 0.08 / 768.8；−0.14 %，与 3.1 的"1M 不受影响"一致）。
+- 4M gen 414² 变体（`lid_driven_cavity_2d_4m_gen_n414`，4,272,489 粒子，网格 414 × 414，第 8 项 stride 研究的算例）：一在飞 **187.19 ± 0.07 fps = 799.8 M**，两在飞 **190.74 ± 0.11 fps = 814.9 M**；对 410² 的 4M gen（749.8 / 768.7 M）高 +6.7 / +6.0 %，即 4M 凹陷在 prefix 序下仍是 410² 网格特有的（stride 研究的旧测：414² 773.8 对 410² 731.9 M，+5.7 %）。
+- 并表：新脚本 `_merge_throughput_results.py`（base r3 + rc4b + rc4c，按 (size, solver, in_flight) 整键替换）重建 `logs/v7_single/throughput_rc4_merged`（162 次运行，54 键），`_summarize_v7_single_campaign.py` 重出 summary，拷到 `docs/cluster_v6/data/e9/section3/throughput_rc4_summary.{md,json,csv}` 与 v7-single 的 `docs/seam_audit/v7_single/`（+ `throughput_rc4c_results.jsonl`、`throughput_rc4_merged_MERGE.txt`）。表里仍是旧 atomic 运行的：1M S d1、手工 4M、3-D 8M、V / Vx 列。
+
+**重画**（`_plot_single_baseline_paper.py --v2`，新函数 `figure_throughput_v2`）：单面板 3.5 × 2.33 in（3:2），横轴粒子数对数、刻度 1M–32M，纵轴 700–820 M 线性；两在飞实心圆实线、一在飞空心圆虚线，颜色 COLOR_V0 `#2a78d6`（fig:reference 同色）；每点 3 次试验 min–max 误差棒；414 变体两个空心方块画在它自己的粒子数 4.27M 处（对数轴上与 4M 刻度重合），不连线；图例右下三项。输出 `manuscripts/fig/single_gpu_throughput.{pdf,png,csv}`（主库与 v7-single 工作树各一份，副本在 `docs/cluster_v6/data/e9/section3/`），旧两面板版另存 `single_gpu_throughput_two_panel_v1.*`（三处）。
+
+曲线值（M 粒子步/s，rc4.1）：两在飞 767.7 / 796.5 / 768.7 / 806.1 / 787.4 / 799.6（1M → 32M），一在飞 738.1 / 766.3 / 749.8 / 794.2 / 779.7 / 795.0；正文的"732–790 M"改为 **768–806 M**（两在飞）。
+
 ## 4. 集群（第 8–11 项）
 
 ### 4.1 部署
