@@ -22,6 +22,12 @@ v7_single (docs/seam_audit/v7_single.md, measurement C): Figure A redrawn from t
 S data, written under another name (the old single_gpu_v0_throughput stays):
     .venv/Scripts/python.exe _plot_single_baseline_paper.py --dir logs/v7_single/throughput \
         --solver v7_single --figure-a-name single_gpu_throughput --no-figure-b
+
+fig:baseline v2 (2026-10-29, figure_throughput_v2: one 3:2 panel, y 700-820, min-max bars, the 414-voxel 4M as
+open squares; the CSV beside the figure):
+    .venv/Scripts/python.exe _plot_single_baseline_paper.py --dir logs/v7_single/throughput_rc4_merged \
+        --solver v7_single --sizes 1m,2m,4m_gen,8m,16m,32m --variant-size 4m_gen_n414 --v2 \
+        --figure-a-name single_gpu_throughput --no-figure-b --out-dir manuscripts/fig
 """
 
 from __future__ import annotations
@@ -158,6 +164,71 @@ def figure_a_single_panel(rows, sizes, n_values, out: pathlib.Path, width: float
     plt.close(fig)
 
 
+def figure_throughput_v2(rows, sizes, n_values, out: pathlib.Path, width: float, solver: str = "v7_single",
+                         variant: str | None = None, variant_label: str = "4M, 414 voxels per side",
+                         y_limits: tuple[float, float] = (700.0, 820.0)) -> None:
+    """fig:baseline, second single-panel version (user 2026-10-29): width x 2/3 width; particle throughput against the
+    particle count, log x with the size ticks, linear y fixed to y_limits; 2 in flight = filled circles, solid line;
+    1 in flight = open circles, dashed; the paper's 2-D main colour (COLOR_V0, as fig:reference); every point carries
+    a min-to-max error bar over the trials (hidden under the marker when smaller than it); the variant size (the 4M
+    case on a 414-voxel grid) as open squares at its own particle count, not joined. Legend lower right. The CSV
+    beside the figure lists every plotted value."""
+    import csv
+    import matplotlib.pyplot as plt
+    from matplotlib import ticker
+    from matplotlib.lines import Line2D
+    style = {2: dict(color=COLOR_V0, linestyle="-", marker="o", markerfacecolor=COLOR_V0),
+             1: dict(color=COLOR_V0, linestyle=(0, (4, 2)), marker="o", markerfacecolor="white")}
+    labels = {2: "2 steps in flight", 1: "1 step in flight"}
+    fig, ax = plt.subplots(figsize=(width, width * 2.0 / 3.0))
+    csv_rows = []
+    for depth in (2, 1):
+        xs, ys, lower, upper = [], [], [], []
+        for tag in sizes:
+            row = rows.get((tag, solver, depth))
+            if not row:
+                continue
+            scale = row["particles"] / 1e6
+            xs.append(n_values[tag]); ys.append(row["fps_mean"] * scale)
+            lower.append((row["fps_mean"] - row["fps_min"]) * scale); upper.append((row["fps_max"] - row["fps_mean"]) * scale)
+            csv_rows.append((tag, row["particles"], depth, f"{row['fps_mean'] * scale:.2f}", f"{row['fps_min'] * scale:.2f}",
+                             f"{row['fps_max'] * scale:.2f}", row["n"], f"{row['fps_mean']:.3f}", "curve"))
+        ax.errorbar(xs, ys, yerr=[lower, upper], linewidth=1.0, markersize=4, markeredgewidth=0.9, capsize=1.8,
+                    elinewidth=0.7, capthick=0.7, label=labels[depth], zorder=3, **style[depth])
+    if variant:
+        for depth, face in ((2, "white"), (1, "white")):
+            row = rows.get((variant, solver, depth))
+            if not row:
+                continue
+            scale = row["particles"] / 1e6
+            ax.errorbar([row["particles"]], [row["fps_mean"] * scale],
+                        yerr=[[(row["fps_mean"] - row["fps_min"]) * scale], [(row["fps_max"] - row["fps_mean"]) * scale]],
+                        linestyle="none", marker="s", markersize=4.2, markeredgewidth=0.9, markerfacecolor=face,
+                        color=COLOR_V0, capsize=1.8, elinewidth=0.7, capthick=0.7, zorder=4)
+            csv_rows.append((variant, row["particles"], depth, f"{row['fps_mean'] * scale:.2f}", f"{row['fps_min'] * scale:.2f}",
+                             f"{row['fps_max'] * scale:.2f}", row["n"], f"{row['fps_mean']:.3f}", "variant"))
+    ax.set_ylim(*y_limits)
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(20))
+    ax.set_ylabel("throughput (M particle-steps / s)")
+    ax.set_xlabel("particles (fluid + wall)")
+    log_size_axis(ax, sizes, n_values)
+    handles = [Line2D([], [], linewidth=1.0, markersize=4, markeredgewidth=0.9, label=labels[2], **style[2]),
+               Line2D([], [], linewidth=1.0, markersize=4, markeredgewidth=0.9, label=labels[1], **style[1])]
+    if variant:
+        handles.append(Line2D([], [], linestyle="none", marker="s", markersize=4.2, markeredgewidth=0.9,
+                              markerfacecolor="white", color=COLOR_V0, label=variant_label))
+    ax.legend(handles=handles, frameon=False, loc="lower right", handlelength=2.6)
+    tidy(ax)
+    fig.savefig(out.with_suffix(".pdf"), bbox_inches="tight")
+    fig.savefig(out.with_suffix(".png"), dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    with open(out.with_suffix(".csv"), "w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(("size", "particles", "steps_in_flight", "throughput_M_per_s_mean", "throughput_min", "throughput_max",
+                         "trials", "fps_mean", "series"))
+        writer.writerows(csv_rows)
+
+
 def figure_b(rows, sizes, n_values, out: pathlib.Path, width: float, height: float) -> None:
     import matplotlib.pyplot as plt
     style = {1: dict(color=INK_2, linestyle=(0, (4, 2)), marker="o", markerfacecolor="white"),
@@ -201,6 +272,12 @@ def main() -> int:
                         help="Figure A as one throughput panel (no fps panel), height = 0.66 x width")
     parser.add_argument("--exclude-sizes", default="",
                         help="comma-separated size tags to leave out (e.g. 4m when 4m_gen replaces it)")
+    parser.add_argument("--v2", action="store_true",
+                        help="Figure A as figure_throughput_v2 (2026-10-29): one panel 3:2, fixed y range, min-max bars, "
+                             "the --variant-size as open squares; writes the CSV beside the figure")
+    parser.add_argument("--variant-size", default=None, help="--v2: size tag drawn as open squares, not joined (4m_gen_n414)")
+    parser.add_argument("--variant-label", default="4M, 414 voxels per side")
+    parser.add_argument("--ylim", default="700,820", help="--v2: y range, M particle-steps / s")
     args = parser.parse_args()
 
     import matplotlib
@@ -211,13 +288,19 @@ def main() -> int:
     rows = aggregate(ok, [])
     wanted = args.sizes.split(",") if args.sizes else [tag for tag in CURVE_SIZES if tag != "3d_8m"]
     excluded = {tag for tag in args.exclude_sizes.split(",") if tag}
+    if args.variant_size:
+        excluded.add(args.variant_size)
     wanted = [tag for tag in wanted if tag not in excluded]
     sizes = [tag for tag in wanted if any(k[0] == tag and k[1] == args.solver for k in rows)]   # excludes 1m_orig
     n_values = {tag: next(rows[k]["particles"] for k in rows if k[0] == tag) for tag in sizes}
 
     out_dir = _REPO / args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
-    if args.single_panel:
+    if args.v2:
+        low, high = (float(v) for v in args.ylim.split(","))
+        figure_throughput_v2(rows, sizes, n_values, out_dir / args.figure_a_name, args.width, solver=args.solver,
+                             variant=args.variant_size, variant_label=args.variant_label, y_limits=(low, high))
+    elif args.single_panel:
         figure_a_single_panel(rows, sizes, n_values, out_dir / args.figure_a_name, args.width, args.width * 0.66,
                               solver=args.solver)
     else:
