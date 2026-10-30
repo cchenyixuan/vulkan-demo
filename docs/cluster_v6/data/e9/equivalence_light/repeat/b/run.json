@@ -1,0 +1,169 @@
+{
+ "run": "b",
+ "slabs": 2,
+ "device_map": [
+  0,
+  1
+ ],
+ "device_uuids": [
+  "fb83f0dafd9e1d38dc05e7ae643e22a8",
+  "ae137c668a40f5acaab90a83f7cda175"
+ ],
+ "weights": [
+  1.0,
+  1.0
+ ],
+ "depth": 2,
+ "cuts": [
+  103
+ ],
+ "cuts_x_physical": [
+  0.0008999824523926447
+ ],
+ "cuts_x_reference": [
+  0.5008981860802322
+ ],
+ "slab_particles": [
+  524477,
+  522052
+ ],
+ "own_first_columns": [
+  0,
+  103
+ ],
+ "own_last_columns": [
+  102,
+  205
+ ],
+ "ghost_layers": [
+  3,
+  3
+ ],
+ "checkpoint": {
+  "file": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-rc3\\logs\\validation\\cavity_re1000_v7\\n1000_k1_float32_xi0p001_eps0p0025_adami\\checkpoints\\c0011907000.npz",
+  "sha256": "db77ef290e1011b268c5175beb5e70f7c69ee4e057f642fc1531b6d7da483cf9",
+  "rows": 1046529,
+  "stored_density_offset": 0.0,
+  "source_run": "n1000_k1_float32_xi0p001_eps0p0025_adami",
+  "source_step": 11907000,
+  "source_time": 89.30250000000001,
+  "source_git": {
+   "head": "1f3fb48",
+   "dirty": false
+  },
+  "source_environment": {
+   "V7_BAND_SLOT_LANES": "64",
+   "V7_COMPACT_GHOST_LISTS": "1",
+   "V7_DEPARTED_FACE_FRACTION": "0.8",
+   "V7_GHOST_LAYERS": "2",
+   "V7_GHOST_POOL_FACTOR": "0.29",
+   "V7_INIT_SEAM_CLAMP": "1",
+   "V7_KEEP_DEPARTED": "1",
+   "V7_LEAN_TRANSPORT": "1",
+   "V7_MIGRANT_POOL_FACTOR": "0.05",
+   "V7_PACKED_REPLICAS": "1",
+   "V7_SPLIT_TRANSFER_QUEUES": "1",
+   "V7_WORKER_COUNT_AWARE": "1"
+  }
+ },
+ "start_step": 11907000,
+ "dt": 7.5e-06,
+ "support_radius": 0.005,
+ "spacing": 0.001,
+ "lid_speed": 1.0,
+ "expected_total": 1046529,
+ "fluid_particles": 1002001,
+ "defrag_cadence": 1000,
+ "use_prefix_sum_defrag": true,
+ "wall_boundary": "adami",
+ "environment": {
+  "V7_BAND_SLOT_LANES": "64",
+  "V7_COMPACT_GHOST_LISTS": "1",
+  "V7_DEPARTED_FACE_FRACTION": "0.8",
+  "V7_GHOST_LAYERS": "2",
+  "V7_GHOST_POOL_FACTOR": "0.29",
+  "V7_INIT_SEAM_CLAMP": "1",
+  "V7_KEEP_DEPARTED": "1",
+  "V7_LEAN_TRANSPORT": "1",
+  "V7_MIGRANT_POOL_FACTOR": "0.05",
+  "V7_PACKED_REPLICAS": "1",
+  "V7_SPLIT_TRANSFER_QUEUES": "1",
+  "V7_WORKER_COUNT_AWARE": "1"
+ },
+ "case": {
+  "path": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-rc3\\cases\\lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_adami\\case.yaml",
+  "sha256": "e09595cbea5cfde1577969058e6e6d9b53dc11706abb28a2f3fa6e05f907b0c5",
+  "same_as_this_worktree": true,
+  "materials_same_as_this_worktree": true
+ },
+ "solver": {
+  "git_head": "60b0118ae5ba347763b3308e823212572c30a0a6",
+  "experiment_v7_tree": "37f99f2b25f85f01e31f6915bddf12c43f743993",
+  "v7_rc4_tree": "37f99f2b25f85f01e31f6915bddf12c43f743993",
+  "dirty": false
+ },
+ "records": {
+  "1": {
+   "global_step": 11907001,
+   "time": 89.3025075,
+   "alive": 1046529,
+   "state_sha256": {
+    "pid_order": "8e1ed6e80541317491966827471e6d5392365ba9f47ffd74c80afe21d699b6ff",
+    "sorted": "0e2e57c62f7e6ae88e9337fff7997d5799a90c4167800fd4bf16103bfe9d1d65",
+    "kinematic_pid_order": "c309f374643190c8f3958f0acb9d403823b01a2769386e795a3891465802a79d",
+    "kinematic_sorted": "a0151f9d586d0c5d97fbf3efcc5df67d4f0d0e9529e870d92f630b62fa47c0aa"
+   },
+   "max_speed": 0.9945380291546836,
+   "density_min": 999.29443359375,
+   "density_max": 1000.6865234375,
+   "sample_seconds": 0.7906499999808148
+  },
+  "10": {
+   "global_step": 11907010,
+   "time": 89.302575,
+   "alive": 1046529,
+   "state_sha256": {
+    "pid_order": "b43733b61b07776d1c490bc6157b4b1bc8952e3d442f5772c98dc9255bdbab55",
+    "sorted": "f55adb31adcc1e59eb5ac13edad0c017044954a1bc52daf9810776367168b231",
+    "kinematic_pid_order": "a541e4818da71d54ae8a69ab3eda61d7ae277d68ea16b91ae3eedb1109d3a28e",
+    "kinematic_sorted": "680f6d0a3b07693ef433678901b1b70e930eb83f6b4faadbda4bb349e801158d"
+   },
+   "max_speed": 0.9945546541711195,
+   "density_min": 999.2926025390625,
+   "density_max": 1000.7081909179688,
+   "sample_seconds": 0.7829447999829426
+  },
+  "100": {
+   "global_step": 11907100,
+   "time": 89.30325,
+   "alive": 1046529,
+   "state_sha256": {
+    "pid_order": "36b7f1ecc333fdc660e525c81f99a295432d7a21a555244753114fc40af9786d",
+    "sorted": "c9096b106d76b6f37b46614e6f98574ec0c8e1e1acd97779725af9263c64c2b8",
+    "kinematic_pid_order": "86d12f6ed48e408c5ed06bd2b328ec7f2bef8d7469f2d0e36168c2357abec899",
+    "kinematic_sorted": "fc7e59fc374e80d27fbdb525537dcd91fc0e2b7297630d6d55ae5ba96e044eb1"
+   },
+   "max_speed": 0.9944088596724016,
+   "density_min": 999.255859375,
+   "density_max": 1000.8051147460938,
+   "sample_seconds": 0.7903772999998182
+  },
+  "500": {
+   "global_step": 11907500,
+   "time": 89.30625,
+   "alive": 1046529,
+   "state_sha256": {
+    "pid_order": "22235f6721e6b52bfa9b5f33e49c9ced02d13033258533324d54bf535f91c449",
+    "sorted": "a0988d0379dc18822cd6515f59fc434349a39d9de9458fdeb1d56df74bc5b5d7",
+    "kinematic_pid_order": "eff1d03c3c6b54b57eb1abc86c9d7183b05fff83ee0d8f1f3e7df27d02231960",
+    "kinematic_sorted": "edd891a4c41c6b1baad664d2bc5794a0af0858683d961af51bb52e3c5f792df5"
+   },
+   "max_speed": 0.9943809038762594,
+   "density_min": 999.4697875976562,
+   "density_max": 1000.5611572265625,
+   "sample_seconds": 0.7863483000546694
+  }
+ },
+ "wall_seconds": 4.3325051999418065,
+ "unix_end": 1793387356.7008152
+}

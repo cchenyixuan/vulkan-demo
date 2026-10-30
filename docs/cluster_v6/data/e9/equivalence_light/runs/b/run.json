@@ -1,0 +1,161 @@
+{
+ "run": "b",
+ "slabs": 2,
+ "device_map": [
+  0,
+  1
+ ],
+ "device_uuids": [
+  "fb83f0dafd9e1d38dc05e7ae643e22a8",
+  "ae137c668a40f5acaab90a83f7cda175"
+ ],
+ "weights": [
+  1.0,
+  1.0
+ ],
+ "depth": 2,
+ "cuts": [
+  103
+ ],
+ "cuts_x_physical": [
+  0.0008999824523926447
+ ],
+ "cuts_x_reference": [
+  0.5008981860802322
+ ],
+ "slab_particles": [
+  524477,
+  522052
+ ],
+ "own_first_columns": [
+  0,
+  103
+ ],
+ "own_last_columns": [
+  102,
+  205
+ ],
+ "ghost_layers": [
+  3,
+  3
+ ],
+ "checkpoint": {
+  "file": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-rc3\\logs\\validation\\cavity_re1000_v7\\n1000_k1_float32_xi0p001_eps0p0025_adami\\checkpoints\\c0011907000.npz",
+  "sha256": "db77ef290e1011b268c5175beb5e70f7c69ee4e057f642fc1531b6d7da483cf9",
+  "rows": 1046529,
+  "stored_density_offset": 0.0,
+  "source_run": "n1000_k1_float32_xi0p001_eps0p0025_adami",
+  "source_step": 11907000,
+  "source_time": 89.30250000000001,
+  "source_git": {
+   "head": "1f3fb48",
+   "dirty": false
+  },
+  "source_environment": {
+   "V7_BAND_SLOT_LANES": "64",
+   "V7_COMPACT_GHOST_LISTS": "1",
+   "V7_DEPARTED_FACE_FRACTION": "0.8",
+   "V7_GHOST_LAYERS": "2",
+   "V7_GHOST_POOL_FACTOR": "0.29",
+   "V7_INIT_SEAM_CLAMP": "1",
+   "V7_KEEP_DEPARTED": "1",
+   "V7_LEAN_TRANSPORT": "1",
+   "V7_MIGRANT_POOL_FACTOR": "0.05",
+   "V7_PACKED_REPLICAS": "1",
+   "V7_SPLIT_TRANSFER_QUEUES": "1",
+   "V7_WORKER_COUNT_AWARE": "1"
+  }
+ },
+ "start_step": 11907000,
+ "dt": 7.5e-06,
+ "support_radius": 0.005,
+ "spacing": 0.001,
+ "lid_speed": 1.0,
+ "expected_total": 1046529,
+ "fluid_particles": 1002001,
+ "defrag_cadence": 1000,
+ "use_prefix_sum_defrag": true,
+ "wall_boundary": "adami",
+ "environment": {
+  "V7_BAND_SLOT_LANES": "64",
+  "V7_COMPACT_GHOST_LISTS": "1",
+  "V7_DEPARTED_FACE_FRACTION": "0.8",
+  "V7_GHOST_LAYERS": "2",
+  "V7_GHOST_POOL_FACTOR": "0.29",
+  "V7_INIT_SEAM_CLAMP": "1",
+  "V7_KEEP_DEPARTED": "1",
+  "V7_LEAN_TRANSPORT": "1",
+  "V7_MIGRANT_POOL_FACTOR": "0.05",
+  "V7_PACKED_REPLICAS": "1",
+  "V7_SPLIT_TRANSFER_QUEUES": "1",
+  "V7_WORKER_COUNT_AWARE": "1"
+ },
+ "case": {
+  "path": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-rc3\\cases\\lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_adami\\case.yaml",
+  "sha256": "e09595cbea5cfde1577969058e6e6d9b53dc11706abb28a2f3fa6e05f907b0c5",
+  "same_as_this_worktree": true,
+  "materials_same_as_this_worktree": true
+ },
+ "solver": {
+  "git_head": "60b0118ae5ba347763b3308e823212572c30a0a6",
+  "experiment_v7_tree": "37f99f2b25f85f01e31f6915bddf12c43f743993",
+  "v7_rc4_tree": "37f99f2b25f85f01e31f6915bddf12c43f743993",
+  "dirty": false
+ },
+ "records": {
+  "1": {
+   "global_step": 11907001,
+   "time": 89.3025075,
+   "alive": 1046529,
+   "state_sha256": {
+    "pid_order": "f94ad35319804650d29139553c34778e94459bf2d2528ff81e37b8d09ca674b2",
+    "sorted": "7ff1eb33867454d74f2903e4b4a60aad9d6eac3e0c7cc194b77a8cbe3ad656df"
+   },
+   "max_speed": 0.9945380291546836,
+   "density_min": 999.29443359375,
+   "density_max": 1000.6865234375,
+   "sample_seconds": 0.43250260001514107
+  },
+  "10": {
+   "global_step": 11907010,
+   "time": 89.302575,
+   "alive": 1046529,
+   "state_sha256": {
+    "pid_order": "4979b1533eafca97fe06aaa7278fd0085c22c5369b483bea2744cd5677d8660e",
+    "sorted": "ef57f17eda6d9ee0a565cff0f1c99e1d04ccdc45f992d6322281ba19340662ac"
+   },
+   "max_speed": 0.9945546541712211,
+   "density_min": 999.2926025390625,
+   "density_max": 1000.7081909179688,
+   "sample_seconds": 0.435438200016506
+  },
+  "100": {
+   "global_step": 11907100,
+   "time": 89.30325,
+   "alive": 1046529,
+   "state_sha256": {
+    "pid_order": "2affdf7fb07ae45fce4d2c2ce8f122fe5dd799b63a4c570f1015336769343472",
+    "sorted": "0a6ac17be260ef0abebe8c32660da8a46b7c55f2c9df79082df94784ade98510"
+   },
+   "max_speed": 0.9944082640015023,
+   "density_min": 999.255859375,
+   "density_max": 1000.80517578125,
+   "sample_seconds": 0.4323719000676647
+  },
+  "500": {
+   "global_step": 11907500,
+   "time": 89.30625,
+   "alive": 1046529,
+   "state_sha256": {
+    "pid_order": "472ef9b340052499ad4c2efbeee34123e9dfa64c71a77bd59220a4bb9ad8a751",
+    "sorted": "cbaeb8f838dcc83937595f55d8ae6e284319c8736e035275b716204bfbc7b321"
+   },
+   "max_speed": 0.9943804256306564,
+   "density_min": 999.4696655273438,
+   "density_max": 1000.56103515625,
+   "sample_seconds": 0.4433923000469804
+  }
+ },
+ "wall_seconds": 4.553701899945736,
+ "unix_end": 1793387234.3004925
+}

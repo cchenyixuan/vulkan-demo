@@ -1,0 +1,156 @@
+{
+ "run": "a1",
+ "slabs": 1,
+ "device_map": [
+  1
+ ],
+ "device_uuids": [
+  "ae137c668a40f5acaab90a83f7cda175"
+ ],
+ "weights": [
+  1.0
+ ],
+ "depth": 2,
+ "cuts": [],
+ "cuts_x_physical": [],
+ "cuts_x_reference": [],
+ "slab_particles": [
+  1046529
+ ],
+ "own_first_columns": [
+  0
+ ],
+ "own_last_columns": [
+  205
+ ],
+ "ghost_layers": [
+  2
+ ],
+ "checkpoint": {
+  "file": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-rc3\\logs\\validation\\cavity_re1000_v7\\n1000_k1_float32_xi0p001_eps0p0025_adami\\checkpoints\\c0011907000.npz",
+  "sha256": "db77ef290e1011b268c5175beb5e70f7c69ee4e057f642fc1531b6d7da483cf9",
+  "rows": 1046529,
+  "stored_density_offset": 0.0,
+  "source_run": "n1000_k1_float32_xi0p001_eps0p0025_adami",
+  "source_step": 11907000,
+  "source_time": 89.30250000000001,
+  "source_git": {
+   "head": "1f3fb48",
+   "dirty": false
+  },
+  "source_environment": {
+   "V7_BAND_SLOT_LANES": "64",
+   "V7_COMPACT_GHOST_LISTS": "1",
+   "V7_DEPARTED_FACE_FRACTION": "0.8",
+   "V7_GHOST_LAYERS": "2",
+   "V7_GHOST_POOL_FACTOR": "0.29",
+   "V7_INIT_SEAM_CLAMP": "1",
+   "V7_KEEP_DEPARTED": "1",
+   "V7_LEAN_TRANSPORT": "1",
+   "V7_MIGRANT_POOL_FACTOR": "0.05",
+   "V7_PACKED_REPLICAS": "1",
+   "V7_SPLIT_TRANSFER_QUEUES": "1",
+   "V7_WORKER_COUNT_AWARE": "1"
+  }
+ },
+ "start_step": 11907000,
+ "dt": 7.5e-06,
+ "support_radius": 0.005,
+ "spacing": 0.001,
+ "lid_speed": 1.0,
+ "expected_total": 1046529,
+ "fluid_particles": 1002001,
+ "defrag_cadence": 1000,
+ "use_prefix_sum_defrag": true,
+ "wall_boundary": "adami",
+ "environment": {
+  "V7_BAND_SLOT_LANES": "64",
+  "V7_COMPACT_GHOST_LISTS": "1",
+  "V7_DEPARTED_FACE_FRACTION": "0.8",
+  "V7_GHOST_LAYERS": "2",
+  "V7_GHOST_POOL_FACTOR": "0.29",
+  "V7_INIT_SEAM_CLAMP": "1",
+  "V7_KEEP_DEPARTED": "1",
+  "V7_LEAN_TRANSPORT": "1",
+  "V7_MIGRANT_POOL_FACTOR": "0.05",
+  "V7_PACKED_REPLICAS": "1",
+  "V7_SPLIT_TRANSFER_QUEUES": "1",
+  "V7_WORKER_COUNT_AWARE": "1"
+ },
+ "case": {
+  "path": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-rc3\\cases\\lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_adami\\case.yaml",
+  "sha256": "e09595cbea5cfde1577969058e6e6d9b53dc11706abb28a2f3fa6e05f907b0c5",
+  "same_as_this_worktree": true,
+  "materials_same_as_this_worktree": true
+ },
+ "solver": {
+  "git_head": "60b0118ae5ba347763b3308e823212572c30a0a6",
+  "experiment_v7_tree": "37f99f2b25f85f01e31f6915bddf12c43f743993",
+  "v7_rc4_tree": "37f99f2b25f85f01e31f6915bddf12c43f743993",
+  "dirty": false
+ },
+ "records": {
+  "1": {
+   "global_step": 11907001,
+   "time": 89.3025075,
+   "alive": 1046529,
+   "state_sha256": {
+    "pid_order": "644256dce25aa6dc92a39b201bcd01c81faf70bc38a895809a1e8292ea35be46",
+    "sorted": "35335d2309f6de49b01e3476ef80eb17d2288411a4ef9c9a04cdd671e8e08cdc",
+    "kinematic_pid_order": "64de1a1702f8da1932831042a0095ff59f9166056b7e535c1a3a277dd769d3e7",
+    "kinematic_sorted": "a0151f9d586d0c5d97fbf3efcc5df67d4f0d0e9529e870d92f630b62fa47c0aa"
+   },
+   "max_speed": 0.9945380291546836,
+   "density_min": 999.29443359375,
+   "density_max": 1000.6865234375,
+   "sample_seconds": 0.7983907000161707
+  },
+  "10": {
+   "global_step": 11907010,
+   "time": 89.302575,
+   "alive": 1046529,
+   "state_sha256": {
+    "pid_order": "2c892d870490214e7e7587ee71f72d66615eb5330ddc41e7a56338587ba97c1e",
+    "sorted": "9ce93df5a51568e07627e8709a49b7fec19d8a3bf5f2c80a2584217d3a8dbe49",
+    "kinematic_pid_order": "867b20954a3a3c29ea3b80a4c573567e798140ec7b0ec1a54e5331853a5d8b56",
+    "kinematic_sorted": "6ae26eabeffd444438dc14dee3e14ba717c53525f05eecbb68cfffc74ec4b465"
+   },
+   "max_speed": 0.9945546541709162,
+   "density_min": 999.2926025390625,
+   "density_max": 1000.7081909179688,
+   "sample_seconds": 0.7820230000652373
+  },
+  "100": {
+   "global_step": 11907100,
+   "time": 89.30325,
+   "alive": 1046529,
+   "state_sha256": {
+    "pid_order": "ab077c274629806eeb6cc8f5c8fb20acb66a03e6e29c3b2bfa29949ad8d7c465",
+    "sorted": "5c1dc79ad2691cb6e2c56102aedf3ceb41f76eb4f2f3c7ac4a6ea7e478b6b506",
+    "kinematic_pid_order": "210018b1426510f31852ee6aff87ae5f418ab0cbb8b36362b8c359ac7f93e6a7",
+    "kinematic_sorted": "6b6134dc9be5735fffe3ef0e40ed46f5e691361e1a3c125dddb3a2cb839da6fe"
+   },
+   "max_speed": 0.9944078465917326,
+   "density_min": 999.255859375,
+   "density_max": 1000.80517578125,
+   "sample_seconds": 0.7749604000709951
+  },
+  "500": {
+   "global_step": 11907500,
+   "time": 89.30625,
+   "alive": 1046529,
+   "state_sha256": {
+    "pid_order": "deec6ce64fcaf198a98fa7a502eb7624a2f14fcdf4874f983b6ad34518a56045",
+    "sorted": "d2311f371ffdceb9ae975bfb0c02802773119ac34960f0bf7d5f55e1a37da359",
+    "kinematic_pid_order": "5503b49abb41232aedb0cbef205f409477d4a05be150cd7e27ad66683c8841c0",
+    "kinematic_sorted": "5a7632d412aed3e9419d97828da414709988755f118a743078fb1a048c49242b"
+   },
+   "max_speed": 0.9943807247786023,
+   "density_min": 999.4697265625,
+   "density_max": 1000.5611572265625,
+   "sample_seconds": 0.789369799895212
+  }
+ },
+ "wall_seconds": 4.502213399973698,
+ "unix_end": 1793387345.281607
+}

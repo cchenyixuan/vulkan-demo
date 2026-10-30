@@ -1,0 +1,52 @@
+[case_loader_v7] lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_adami: numerics.use_prefix_sum_defrag is a legacy key and is ignored (defrag_order = prefix; set numerics.defrag_order to choose)
+[case_loader_v7] loading lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_adami
+  - ../lid_driven_cavity_2d_n1000/domain.obj: 1,002,001 particles (stick_water)
+  - ../lid_driven_cavity_2d_n1000/wall.obj: 33,517 particles (stick_wall)
+  - ../lid_driven_cavity_2d_n1000/wall_top.obj: 11,011 particles (stick_lid)
+[case_loader_v7] total loaded: 1,046,529 particles
+[case_loader_v7] grid: dim=(206, 206, 1) origin=(-0.5141000175476074, -0.5141000175476074, -0.0025)
+[partition_v7] chain N=1: columns [0,206) of 206; particles 1,046,529
+[equivalence] run a2: K = 1 devices [1], checkpoint step 11907000 (t = 89.3025), 1,046,529 particles, dt 7.500e-06, cuts [] x []
+[VulkanContextV7] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV7] selected: [1] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV7] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV7] transfer queues: 2 (readback + upload split)
+[SimV7] V7_DEEP_WALL_SKIP=auto: off (auto: 2-D slab)
+[SimV7] V7_FUSED_CORRECTION_DENSITY=1: fused (one neighbour traversal for correction + density, band 2)
+[SimV7] device-local buffers: 24, 207.84 MB (14 CONCURRENT for transfer queue)
+[SimV7] defrag scratch buffers: 9, 160.70 MB
+[SimV7] host staging buffers: 0 (single-GPU mode, no peer)
+[SimV7] compute pipelines: 30 (V7_CASCADE_FORCE=1: force_deep_interior in Phase B) (V7_BAND_VOXEL_DISPATCH=1, lanes=64, bands 2/2/3: boundary kernels over band voxels: 0/0/0 threads vs 1,203,584) (V7_DENSITY_COPY_COMPUTE=1: density copy pass over 1 region(s), 1,203,584 slots) (V7_FUSED_CORRECTION_DENSITY: correction_density_all / _interior / _boundary / _boundary_band replace correction + density at band 2)
+[SimV7] init complete on NVIDIA GeForce RTX 5090 (own=1203584, ghost L=0 T=0, wall_boundary=adami, defrag_order=prefix)
+[ChainOrchV7] N=1, 0 workers started ()
+[SimV7] uploaded initial state (10 payload buffers)
+[SimV7] restart state loaded: 1,046,529 own particles, voxel lists rebuilt (no bootstrap correction/density/force/half kick)
+[SimV7] step cmd buffers recorded (phase A/B/C + 0 readback + 0 upload on transfer Q)
+[SimV7] V7_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 0 readback, 0 upload), raw waits/signals
+[defrag_prefix] own voxels 1..42436 (42,436, 42,436 non-empty) -> voxel_base_offset in voxel-id order, 1,046,529 own particles, 3.0 ms
+[ChainOrchV7] all 1 sims restarted from a saved state + step cmds ready
+[equivalence] a2 step 1: alive 1,046,529, max speed 0.994538, state 73e083568397 / 635bd5432f15
+[equivalence] a2 step 10: alive 1,046,529, max speed 0.994555, state 514d20a8b05b / 0a60f405e8ba
+[equivalence] a2 step 100: alive 1,046,529, max speed 0.994407, state 04bc6d007541 / 0920b9d2e493
+[equivalence] a2 step 500: alive 1,046,529, max speed 0.994383, state 86bdc435eed6 / e3adc1d11da7
+[equivalence] run a2 done in 4.4 s

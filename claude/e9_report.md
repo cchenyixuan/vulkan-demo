@@ -471,6 +471,13 @@ K = 2 (cuts [26], devices [0, 1]) vs K = 1 at step 300: 7,077,888 fluid particle
 - 输出：`docs/cluster_v6/data/e9/loss_3d/figures/loss_sources.{pdf,png,csv}` 和 `C:/Users/cchen/PycharmProjects/vulkan-demo/manuscripts/fig/loss_sources.{pdf,png,csv}`（覆盖），两处旧版另存 `loss_sources_v1.*`；CSV 列不变（数据同 10-28 的 E9 版）。
 - **交点**：2-D 1.42M / 卡（cavity2d_n2840 与 cavity2d_n4000 之间，1.60 ms；E7 数据不变）；3-D **1.31M / 卡**（cavity3d_n192 与 cavity3d_n244 之间，2.67 ms）。用户给的 1.97M / 卡是 E8 的值（E8 json：1.97M，5.62 ms）：E8 的 16M K8 t_tr 5.67 ms 贴着 T_B 5.72，E9（nbj04g4）同点 t_tr 2.92 ms 对 T_B 5.09，8M K8 t_tr 2.52 对 T_B 1.77，交点落到 1.0M 与 2.0M 之间，按 E9 数据画在 1.31M。正文若引交点数字要改成 1.31M（4.7 的第 2 项：这是节点差异带来的 t_tr 下降）。
 
+#### 4.9 轻量版 K = 2 对 K = 1 等价性检查（用户 2026-10-31；`docs/cluster_v6/scripts/e9_equivalence_light.py`，数据 `docs/cluster_v6/data/e9/equivalence_light/`）
+
+- 设置：Re = 1000 方腔 1001²，所有运行从 5.3 的 K = 1 检查点 c0011907000（t = 89.3025，sha256 db77ef29…）起跑 500 步，第 1、10、100、500 步取 56 点瞬时速度（MLS，wall 坐标系，5.3 运行自己的 points.npz）。t ≈ 80 的 Re 1000 检查点（c0010584000，t = 79.38）已被保留两个的规则删掉，全盘只有 Re 3200 运行的同名文件。
+- 求解器 v7-rc4（`experiment/v7` 树 37f99f2b，未改），算例从 rc3 工作树读（OBJ 被 git 忽略，case.yaml 与材料库字节相同）。工作站现在是两张 5090：a1、a2 = K = 1 在无显示的卡上，b = K = 2 等权，第 103 列切开，x = +0.0009 m，离中线 0.90 Δx = 0.18 h。runner 只能停在 defrag 边界，所以驱动复刻 `run_pipelined` 的 depth 2 循环，在记录步排空读数；每个记录步查不变量，全部为 0，drift 0。
+- 结果：a1 与 a2 不逐位相同（`initialize_voxelization` 的 atomicAdd 让体素内顺序逐次不同，defrag 保留它）。第 1 步三次运行排序后的 (x, y, u, v) 逐位相同，差值 2–3e-16 是插值的 float64 舍入，没有检验力。第 10 / 100 / 500 步 56 点最大差：a1 对 a2 1.0e-7 / 2.9e-6 / 8.6e-6，b 对 a1 1.0e-7 / 2.8e-6 / 8.1e-6。独立重复一遍（`repeat/`）量级相同。
+- 结论：b 的差和噪声底同量级（比值 0.65–1.53）。缝上 28 点的 b 对 a1 与同样点的 a1 对 a2 之比 0.60–1.40，没有超出噪声。这个检查分辨不了 1.5 倍以内的缝效应。表见 `equivalence_light.md`。
+
 ## 5. 数据与复现
 
 - 代码：提交号与标签见本节末尾的更新。

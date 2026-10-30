@@ -1,0 +1,148 @@
+{
+ "run": "a2",
+ "slabs": 1,
+ "device_map": [
+  1
+ ],
+ "device_uuids": [
+  "ae137c668a40f5acaab90a83f7cda175"
+ ],
+ "weights": [
+  1.0
+ ],
+ "depth": 2,
+ "cuts": [],
+ "cuts_x_physical": [],
+ "cuts_x_reference": [],
+ "slab_particles": [
+  1046529
+ ],
+ "own_first_columns": [
+  0
+ ],
+ "own_last_columns": [
+  205
+ ],
+ "ghost_layers": [
+  2
+ ],
+ "checkpoint": {
+  "file": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-rc3\\logs\\validation\\cavity_re1000_v7\\n1000_k1_float32_xi0p001_eps0p0025_adami\\checkpoints\\c0011907000.npz",
+  "sha256": "db77ef290e1011b268c5175beb5e70f7c69ee4e057f642fc1531b6d7da483cf9",
+  "rows": 1046529,
+  "stored_density_offset": 0.0,
+  "source_run": "n1000_k1_float32_xi0p001_eps0p0025_adami",
+  "source_step": 11907000,
+  "source_time": 89.30250000000001,
+  "source_git": {
+   "head": "1f3fb48",
+   "dirty": false
+  },
+  "source_environment": {
+   "V7_BAND_SLOT_LANES": "64",
+   "V7_COMPACT_GHOST_LISTS": "1",
+   "V7_DEPARTED_FACE_FRACTION": "0.8",
+   "V7_GHOST_LAYERS": "2",
+   "V7_GHOST_POOL_FACTOR": "0.29",
+   "V7_INIT_SEAM_CLAMP": "1",
+   "V7_KEEP_DEPARTED": "1",
+   "V7_LEAN_TRANSPORT": "1",
+   "V7_MIGRANT_POOL_FACTOR": "0.05",
+   "V7_PACKED_REPLICAS": "1",
+   "V7_SPLIT_TRANSFER_QUEUES": "1",
+   "V7_WORKER_COUNT_AWARE": "1"
+  }
+ },
+ "start_step": 11907000,
+ "dt": 7.5e-06,
+ "support_radius": 0.005,
+ "spacing": 0.001,
+ "lid_speed": 1.0,
+ "expected_total": 1046529,
+ "fluid_particles": 1002001,
+ "defrag_cadence": 1000,
+ "use_prefix_sum_defrag": true,
+ "wall_boundary": "adami",
+ "environment": {
+  "V7_BAND_SLOT_LANES": "64",
+  "V7_COMPACT_GHOST_LISTS": "1",
+  "V7_DEPARTED_FACE_FRACTION": "0.8",
+  "V7_GHOST_LAYERS": "2",
+  "V7_GHOST_POOL_FACTOR": "0.29",
+  "V7_INIT_SEAM_CLAMP": "1",
+  "V7_KEEP_DEPARTED": "1",
+  "V7_LEAN_TRANSPORT": "1",
+  "V7_MIGRANT_POOL_FACTOR": "0.05",
+  "V7_PACKED_REPLICAS": "1",
+  "V7_SPLIT_TRANSFER_QUEUES": "1",
+  "V7_WORKER_COUNT_AWARE": "1"
+ },
+ "case": {
+  "path": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-rc3\\cases\\lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_adami\\case.yaml",
+  "sha256": "e09595cbea5cfde1577969058e6e6d9b53dc11706abb28a2f3fa6e05f907b0c5",
+  "same_as_this_worktree": true,
+  "materials_same_as_this_worktree": true
+ },
+ "solver": {
+  "git_head": "60b0118ae5ba347763b3308e823212572c30a0a6",
+  "experiment_v7_tree": "37f99f2b25f85f01e31f6915bddf12c43f743993",
+  "v7_rc4_tree": "37f99f2b25f85f01e31f6915bddf12c43f743993",
+  "dirty": false
+ },
+ "records": {
+  "1": {
+   "global_step": 11907001,
+   "time": 89.3025075,
+   "alive": 1046529,
+   "state_sha256": {
+    "pid_order": "c786c739478514834796ec5e804a4051be48368cc3b5c9fde9e26f07305b70b1",
+    "sorted": "30456a960836a562ffcf4a286e9adb74434bde49633c2d76087363c3538bf805"
+   },
+   "max_speed": 0.9945380291546836,
+   "density_min": 999.29443359375,
+   "density_max": 1000.6865234375,
+   "sample_seconds": 0.4661799999885261
+  },
+  "10": {
+   "global_step": 11907010,
+   "time": 89.302575,
+   "alive": 1046529,
+   "state_sha256": {
+    "pid_order": "398326daa2fb336a58c9a61f45ce32aad36e1e2f60f159891debb1843885b692",
+    "sorted": "23f53c28671e572e2c5d368d04b8d2327fdba116709b35e31bdd0a9236bf33aa"
+   },
+   "max_speed": 0.9945546541712438,
+   "density_min": 999.2926025390625,
+   "density_max": 1000.7081909179688,
+   "sample_seconds": 0.4870375000173226
+  },
+  "100": {
+   "global_step": 11907100,
+   "time": 89.30325,
+   "alive": 1046529,
+   "state_sha256": {
+    "pid_order": "b8c72b08176583f8c1d60d137aa3c6748c27dec5093dc32386e7c0297bb217c0",
+    "sorted": "d0dc8c9278010e885e4120ea8b72dc07f4a2cd7e1319db6e5bd8e7270d1bf09d"
+   },
+   "max_speed": 0.9944079659559178,
+   "density_min": 999.255859375,
+   "density_max": 1000.80517578125,
+   "sample_seconds": 0.4784204000607133
+  },
+  "500": {
+   "global_step": 11907500,
+   "time": 89.30625,
+   "alive": 1046529,
+   "state_sha256": {
+    "pid_order": "b22785dbb8b7512514b963cc342135f0ced8cc8e5b43163152272bd23d2e5639",
+    "sorted": "dc5ca87c4280c8a6ad54781a1838f56cafdfdd976cf822d943eeb10f5e9800f3"
+   },
+   "max_speed": 0.9943810805470492,
+   "density_min": 999.4697265625,
+   "density_max": 1000.5610961914062,
+   "sample_seconds": 0.436873700004071
+  }
+ },
+ "wall_seconds": 3.1995982999214903,
+ "unix_end": 1793387228.4750707
+}
