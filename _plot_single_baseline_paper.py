@@ -23,8 +23,8 @@ S data, written under another name (the old single_gpu_v0_throughput stays):
     .venv/Scripts/python.exe _plot_single_baseline_paper.py --dir logs/v7_single/throughput \
         --solver v7_single --figure-a-name single_gpu_throughput --no-figure-b
 
-fig:baseline v2 (2026-10-29, figure_throughput_v2: one 3:2 panel, y 700-820, min-max bars, the 414-voxel 4M as
-open squares; the CSV beside the figure):
+fig:baseline v2 (2026-10-29/30, figure_throughput_v2: one 3:2 panel, y 700-820, min-max bars; the 414-voxel 4M is
+listed in the CSV beside the figure as series grid414 and drawn only with --draw-variant):
     .venv/Scripts/python.exe _plot_single_baseline_paper.py --dir logs/v7_single/throughput_rc4_merged \
         --solver v7_single --sizes 1m,2m,4m_gen,8m,16m,32m --variant-size 4m_gen_n414 --v2 \
         --figure-a-name single_gpu_throughput --no-figure-b --out-dir manuscripts/fig
@@ -166,13 +166,15 @@ def figure_a_single_panel(rows, sizes, n_values, out: pathlib.Path, width: float
 
 def figure_throughput_v2(rows, sizes, n_values, out: pathlib.Path, width: float, solver: str = "v7_single",
                          variant: str | None = None, variant_label: str = "4M, 414 voxels per side",
-                         y_limits: tuple[float, float] = (700.0, 820.0)) -> None:
+                         y_limits: tuple[float, float] = (700.0, 820.0), draw_variant: bool = False,
+                         variant_series: str = "grid414") -> None:
     """fig:baseline, second single-panel version (user 2026-10-29): width x 2/3 width; particle throughput against the
     particle count, log x with the size ticks, linear y fixed to y_limits; 2 in flight = filled circles, solid line;
     1 in flight = open circles, dashed; the paper's 2-D main colour (COLOR_V0, as fig:reference); every point carries
-    a min-to-max error bar over the trials (hidden under the marker when smaller than it); the variant size (the 4M
-    case on a 414-voxel grid) as open squares at its own particle count, not joined. Legend lower right. The CSV
-    beside the figure lists every plotted value."""
+    a min-to-max error bar over the trials (hidden under the marker when smaller than it). Legend lower right. The
+    variant size (the 4M case on a 414-voxel grid) is listed in the CSV beside the figure (series = variant_series)
+    and, only with draw_variant (the 2026-10-29 first cut), drawn as open squares at its own particle count with a
+    third legend entry; the figure of 2026-10-30 leaves it out."""
     import csv
     import matplotlib.pyplot as plt
     from matplotlib import ticker
@@ -201,12 +203,13 @@ def figure_throughput_v2(rows, sizes, n_values, out: pathlib.Path, width: float,
             if not row:
                 continue
             scale = row["particles"] / 1e6
-            ax.errorbar([row["particles"]], [row["fps_mean"] * scale],
-                        yerr=[[(row["fps_mean"] - row["fps_min"]) * scale], [(row["fps_max"] - row["fps_mean"]) * scale]],
-                        linestyle="none", marker="s", markersize=4.2, markeredgewidth=0.9, markerfacecolor=face,
-                        color=COLOR_V0, capsize=1.8, elinewidth=0.7, capthick=0.7, zorder=4)
+            if draw_variant:
+                ax.errorbar([row["particles"]], [row["fps_mean"] * scale],
+                            yerr=[[(row["fps_mean"] - row["fps_min"]) * scale], [(row["fps_max"] - row["fps_mean"]) * scale]],
+                            linestyle="none", marker="s", markersize=4.2, markeredgewidth=0.9, markerfacecolor=face,
+                            color=COLOR_V0, capsize=1.8, elinewidth=0.7, capthick=0.7, zorder=4)
             csv_rows.append((variant, row["particles"], depth, f"{row['fps_mean'] * scale:.2f}", f"{row['fps_min'] * scale:.2f}",
-                             f"{row['fps_max'] * scale:.2f}", row["n"], f"{row['fps_mean']:.3f}", "variant"))
+                             f"{row['fps_max'] * scale:.2f}", row["n"], f"{row['fps_mean']:.3f}", variant_series))
     ax.set_ylim(*y_limits)
     ax.yaxis.set_major_locator(ticker.MultipleLocator(20))
     ax.set_ylabel("throughput (M particle-steps / s)")
@@ -214,7 +217,7 @@ def figure_throughput_v2(rows, sizes, n_values, out: pathlib.Path, width: float,
     log_size_axis(ax, sizes, n_values)
     handles = [Line2D([], [], linewidth=1.0, markersize=4, markeredgewidth=0.9, label=labels[2], **style[2]),
                Line2D([], [], linewidth=1.0, markersize=4, markeredgewidth=0.9, label=labels[1], **style[1])]
-    if variant:
+    if variant and draw_variant:
         handles.append(Line2D([], [], linestyle="none", marker="s", markersize=4.2, markeredgewidth=0.9,
                               markerfacecolor="white", color=COLOR_V0, label=variant_label))
     ax.legend(handles=handles, frameon=False, loc="lower right", handlelength=2.6)
@@ -275,8 +278,12 @@ def main() -> int:
     parser.add_argument("--v2", action="store_true",
                         help="Figure A as figure_throughput_v2 (2026-10-29): one panel 3:2, fixed y range, min-max bars, "
                              "the --variant-size as open squares; writes the CSV beside the figure")
-    parser.add_argument("--variant-size", default=None, help="--v2: size tag drawn as open squares, not joined (4m_gen_n414)")
+    parser.add_argument("--variant-size", default=None,
+                        help="--v2: size tag kept out of the curve and listed in the CSV (4m_gen_n414); drawn only with --draw-variant")
     parser.add_argument("--variant-label", default="4M, 414 voxels per side")
+    parser.add_argument("--draw-variant", action="store_true",
+                        help="--v2: draw the variant size as open squares with a third legend entry (the 2026-10-29 first cut)")
+    parser.add_argument("--variant-series", default="grid414", help="--v2: the variant's series name in the CSV")
     parser.add_argument("--ylim", default="700,820", help="--v2: y range, M particle-steps / s")
     args = parser.parse_args()
 
@@ -299,7 +306,8 @@ def main() -> int:
     if args.v2:
         low, high = (float(v) for v in args.ylim.split(","))
         figure_throughput_v2(rows, sizes, n_values, out_dir / args.figure_a_name, args.width, solver=args.solver,
-                             variant=args.variant_size, variant_label=args.variant_label, y_limits=(low, high))
+                             variant=args.variant_size, variant_label=args.variant_label, y_limits=(low, high),
+                             draw_variant=args.draw_variant, variant_series=args.variant_series)
     elif args.single_panel:
         figure_a_single_panel(rows, sizes, n_values, out_dir / args.figure_a_name, args.width, args.width * 0.66,
                               solver=args.solver)
