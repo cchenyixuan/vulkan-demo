@@ -1067,8 +1067,7 @@ def check_density_copy(failures: list) -> None:
                             failures.append(f"{tag}: the copy pass writes {written.size} slots, v6 copies "
                                             f"{expected_slots.size} (or different ones)")
                         # whole cmds: the two switch values differ only inside the copy
-                        recordings = [("phase C", lambda simulator: simulator._record_phase_c_cmd(0)),
-                                      ("bootstrap", lambda simulator: simulator._record_bootstrap_compute_cmd())]
+                        recordings = [("phase C", lambda simulator: simulator._record_phase_c_cmd(0))]
                         if slab_count == 1:
                             recordings.append(("single cmd", lambda simulator: simulator._record_step_single_cmd()))
                         for name, record in recordings:
@@ -1091,6 +1090,18 @@ def check_density_copy(failures: list) -> None:
                                     stream_on[start - 1] != ("tick", before_copy)
                                     or stream_on[start + len(compute_stream)] != ("tick", "c_density_end")):
                                 failures.append(f"{tag}: the step trace ticks do not bracket the copy")
+                        # the bootstrap records no copy at either switch value (force reads the uploaded rho_0, P_0;
+                        # step 1 integrates density from it once), and a barrier orders force after the density pass
+                        for switch_value in (False, True):
+                            simulator_v7._DENSITY_COPY_COMPUTE = switch_value
+                            bootstrap_stream = capture(simulator._record_bootstrap_compute_cmd)
+                            if copy_section(bootstrap_stream, transfer_stream) is not None \
+                                    or ("bind", "pipeline:density_scratch_copy") in bootstrap_stream:
+                                failures.append(f"{tag} bootstrap: switch {int(switch_value)} records the density copy")
+                            force_index = bootstrap_stream.index(("bind", "pipeline:force_all"))
+                            if bootstrap_stream[force_index - 1] != compute_barrier:
+                                failures.append(f"{tag} bootstrap: no compute barrier before force_all")
+                        simulator_v7._DENSITY_COPY_COMPUTE = True
         # one region (own range: K = 1, one ghost layer, no density self pass), three (an edge slab: own, one inner
         # replica region, departed pool), four (an interior slab); two ghost layers need the departed pool
         if not {1, 3, 4} <= region_counts:
@@ -1588,9 +1599,23 @@ E40_CHANGED_SPIRV = frozenset({"expand_ghost_lists.comp.spv", "ghost_send.comp.s
 E40_ADDED_SPIRV = frozenset({"wall_extrapolate_band.comp.spv"})
 
 
+def _without_bootstrap_density_copy(source: str, origin: str) -> str:
+    """A committed simulator's source with the one later change to its bootstrap: _record_bootstrap_compute_cmd records
+    a compute barrier where it recorded the scratch -> primary density copy. The commits below predate that change; with
+    it applied, every "does not record the <commit> stream" check still compares the whole bootstrap stream, so any other
+    difference fails. Raises unless the line occurs exactly once in that function."""
+    first = source.index("def _record_bootstrap_compute_cmd(self):")
+    stop = source.index("def bootstrap_init(self)", first)
+    body = source[first:stop]
+    line = "self._record_density_scratch_to_primary_copy(cmd)"
+    if body.count(line) != 1:
+        raise RuntimeError(f"{origin}: {body.count(line)} density copies in _record_bootstrap_compute_cmd")
+    return source[:first] + body.replace(line, "self._record_compute_barrier(cmd)") + source[stop:]
+
+
 def _load_committed_simulator(commit: str):
     """experiment/v7/utils/simulator_v7.py of a commit as a module of its own (its __file__, hence its spv directory,
-    is this tree's); None when git or the commit is not available."""
+    is this tree's), with _without_bootstrap_density_copy applied; None when git or the commit is not available."""
     import subprocess
     import types
     relative = "experiment/v7/utils/simulator_v7.py"
@@ -1604,7 +1629,8 @@ def _load_committed_simulator(commit: str):
     module = types.ModuleType(name)
     module.__file__ = str(_REPO_ROOT / relative)
     sys.modules[name] = module
-    exec(compile(result.stdout.decode("utf-8"), f"{commit}:{relative}", "exec"), module.__dict__)
+    source = _without_bootstrap_density_copy(result.stdout.decode("utf-8"), f"{commit}:{relative}")
+    exec(compile(source, f"{commit}:{relative}", "exec"), module.__dict__)
     return module
 
 

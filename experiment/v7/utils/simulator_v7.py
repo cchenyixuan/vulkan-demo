@@ -3512,7 +3512,11 @@ class SphSimulatorV7:
     def _record_bootstrap_compute_cmd(self):
         """Bootstrap stage 2: (if peer) upload + install_migrations →
         correction(ALL) → density → force → bootstrap_half_kick. Runs after
-        host memcpy completes the cross-GPU ghost transport."""
+        host memcpy completes the cross-GPU ghost transport.
+
+        Force reads the uploaded (rho_0, P_0) from primary: a_0 = a(r_0, v_0, rho_0). The density pass runs for its
+        by-products only (density shares the correction's traversal on a fused slab); there is no scratch -> primary
+        copy here, so step 1 integrates density from rho_0 once."""
         cmd = self._allocate_oneshot_cmd()
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(
             flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT))
@@ -3531,7 +3535,7 @@ class SphSimulatorV7:
         self._record_expand_ghost_lists(cmd)
 
         # E37 wall_boundary adami: the wall pass once before step 0, on the initial state (the bootstrap correction
-        # and density read its (rho0, p_w) as every step's do), and again after density + copy below, before force.
+        # and density read its (rho0, p_w) as every step's do), and again before force below, on the same primary.
         if self._wall_adami:
             self._record_compute_barrier(cmd)
             self._record_wall_extrapolate(cmd)
@@ -3561,8 +3565,7 @@ class SphSimulatorV7:
             self._record_compute_barrier(cmd)
             if ghost_self:
                 # V7_GHOST_LAYERS = 2: the band pipeline re-runs the own band
-                # (same inputs, same result) plus the inner ghost column as self,
-                # so the bootstrap force reads this step's rho/P at the seam too.
+                # (same inputs, same result) plus the inner ghost column as self.
                 self._bind_pipeline_and_sets(cmd, "correction_boundary_band")
                 vkCmdDispatch(cmd, self._per_band_dispatch_count(
                     self.band_widths[0], self._ghost_self_layer(2, 1, "correction")), 1, 1)
@@ -3575,9 +3578,13 @@ class SphSimulatorV7:
                 self._bind_pipeline_and_sets(cmd, "density_boundary_band")
                 vkCmdDispatch(cmd, self._per_band_dispatch_count(
                     self.band_widths[1], self._ghost_self_layer(2, 1, "density")), 1, 1)
-        self._record_density_scratch_to_primary_copy(cmd)
+        # No scratch -> primary copy (see the docstring): scratch's rho_0 + dt rho_dot_0 is not a state of t = 0. It
+        # is never read: every step rewrites a live slot's scratch before that step reads it, which the step after
+        # any defrag already relies on (defrag does not move scratch, and the bootstrap defrag follows this cmd).
+        # The barrier orders force after the L, grad rho and kernel sum written above.
+        self._record_compute_barrier(cmd)
         self._record_wall_extrapolate(cmd)
-        self._record_wall_band_pass(cmd)              # E40: + the inner ghost column's walls (this step's rho/P)
+        self._record_wall_band_pass(cmd)              # E40: + the inner ghost column's walls
 
         self._bind_pipeline_and_sets(cmd, "force_all")
         vkCmdDispatch(cmd, per_p, 1, 1)
