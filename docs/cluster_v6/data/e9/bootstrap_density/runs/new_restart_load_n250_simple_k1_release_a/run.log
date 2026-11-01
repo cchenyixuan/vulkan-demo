@@ -1,0 +1,51 @@
+[case_loader_v7] lid_driven_cavity_2d_n250_xi0p001_eps0p0025: numerics.use_prefix_sum_defrag is a legacy key and is ignored (defrag_order = prefix; set numerics.defrag_order to choose)
+[case_loader_v7] loading lid_driven_cavity_2d_n250_xi0p001_eps0p0025
+  - ../lid_driven_cavity_2d_n250/domain.obj: 63,001 particles (stick_water)
+  - ../lid_driven_cavity_2d_n250/wall.obj: 8,767 particles (stick_wall)
+  - ../lid_driven_cavity_2d_n250/wall_top.obj: 2,761 particles (stick_lid)
+[case_loader_v7] total loaded: 74,529 particles
+[case_loader_v7] grid: dim=(56, 56, 1) origin=(-0.5564000105857849, -0.5564000105857849, -0.01)
+[partition_v7] chain N=1: columns [0,56) of 56; particles 74,529
+[bootstrap] new_restart_load_n250_simple_k1_release_a: solver vulkan-demo-bootstrap, 74,529 particles, dt 3.000e-05, cadence 1000, wall simple
+[VulkanContextV7] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV7] selected: [1] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV7] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV7] transfer queues: 2 (readback + upload split)
+[SimV7] V7_DEEP_WALL_SKIP=auto: off (auto: 2-D slab)
+[SimV7] V7_FUSED_CORRECTION_DENSITY=1: fused (one neighbour traversal for correction + density, band 2)
+[SimV7] device-local buffers: 24, 13.72 MB (14 CONCURRENT for transfer queue)
+[SimV7] defrag scratch buffers: 9, 11.45 MB
+[SimV7] host staging buffers: 0 (single-GPU mode, no peer)
+[SimV7] compute pipelines: 28 (V7_CASCADE_FORCE=1: force_deep_interior in Phase B) (V7_BAND_VOXEL_DISPATCH=1, lanes=64, bands 2/2/3: boundary kernels over band voxels: 0/0/0 threads vs 85,760) (V7_DENSITY_COPY_COMPUTE=1: density copy pass over 1 region(s), 85,760 slots) (V7_FUSED_CORRECTION_DENSITY: correction_density_all / _interior / _boundary / _boundary_band replace correction + density at band 2)
+[SimV7] init complete on NVIDIA GeForce RTX 5090 (own=85760, ghost L=0 T=0, wall_boundary=simple, defrag_order=prefix)
+[ChainOrchV7] N=1, 0 workers started ()
+[SimV7] uploaded initial state (10 payload buffers)
+[SimV7] restart state loaded: 74,529 own particles, voxel lists rebuilt (no bootstrap correction/density/force/half kick)
+[SimV7] step cmd buffers recorded (phase A/B/C + 0 readback + 0 upload on transfer Q)
+[SimV7] V7_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 0 readback, 0 upload), raw waits/signals
+[defrag_prefix] own voxels 1..3136 (3,136, 3,136 non-empty) -> voxel_base_offset in voxel-id order, 74,529 own particles, 1.3 ms
+[ChainOrchV7] all 1 sims restarted from a saved state + step cmds ready
+[bootstrap] restored vs checkpoint: {'position_voxel_id': {'fluid_bit_identical': True, 'wall_bit_identical': True, 'fluid_max_abs_difference': 0.0, 'wall_max_abs_difference': 0.0}, 'velocity_mass': {'fluid_bit_identical': True, 'wall_bit_identical': True, 'fluid_max_abs_difference': 0.0, 'wall_max_abs_difference': 0.0}, 'density_pressure': {'fluid_bit_identical': True, 'wall_bit_identical': True, 'fluid_max_abs_difference': 0.0, 'wall_max_abs_difference': 0.0}, 'acceleration': {'fluid_bit_identical': True, 'wall_bit_identical': True, 'fluid_max_abs_difference': 0.0, 'wall_max_abs_difference': 0.0}, 'shift': {'fluid_bit_identical': True, 'wall_bit_identical': True, 'fluid_max_abs_difference': 0.0, 'wall_max_abs_difference': 0.0}}
+[defrag_prefix] own voxels 1..3136 (3,136, 3,136 non-empty) -> voxel_base_offset in voxel-id order, 74,529 own particles, 1.3 ms
+[bootstrap] step 2000: KE 2.518736369e+00, max |drho|/rho0 1.175e-03
+[bootstrap] run new_restart_load_n250_simple_k1_release_a done in 0.9 s

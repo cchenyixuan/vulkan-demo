@@ -1,0 +1,63 @@
+{
+ "run": {
+  "name": "new_restart_save_n250_adami_k1_release_a",
+  "tree": "new",
+  "mode": "restart_save",
+  "case": "n250_adami",
+  "slabs": 1,
+  "variant": "release",
+  "repeat": "a"
+ },
+ "solver_root": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-bootstrap",
+ "dt": 3e-05,
+ "support_radius": 0.02,
+ "spacing": 0.004,
+ "lid_speed": 1.0,
+ "expected_total": 74529,
+ "defrag_cadence": 1000,
+ "wall_boundary": "adami",
+ "switches": {
+  "V7_BAND_SLOT_LANES": "64",
+  "V7_COMPACT_GHOST_LISTS": "1",
+  "V7_DEPARTED_FACE_FRACTION": "0.8",
+  "V7_GHOST_LAYERS": "2",
+  "V7_GHOST_POOL_FACTOR": "0.29",
+  "V7_INIT_SEAM_CLAMP": "1",
+  "V7_KEEP_DEPARTED": "1",
+  "V7_LEAN_TRANSPORT": "1",
+  "V7_MIGRANT_POOL_FACTOR": "0.05",
+  "V7_PACKED_REPLICAS": "1",
+  "V7_SPLIT_TRANSFER_QUEUES": "1",
+  "V7_WORKER_COUNT_AWARE": "1"
+ },
+ "records": {
+  "2000": {
+   "time": 0.060000000000000005,
+   "alive": 74529,
+   "kinetic_energy": 2.796563416913554,
+   "max_speed": 0.8520751700318626,
+   "max_relative_density_deviation": 0.00031097412109375,
+   "density_min": 999.6890258789062,
+   "density_max": 1000.2191772460938
+  },
+  "4000": {
+   "time": 0.12000000000000001,
+   "alive": 74529,
+   "kinetic_energy": 4.01394258548083,
+   "max_speed": 0.9007257412558612,
+   "max_relative_density_deviation": 0.00037200927734375,
+   "density_min": 999.6649780273438,
+   "density_max": 1000.3720092773438
+  }
+ },
+ "device_uuids": [
+  "ae137c668a40f5acaab90a83f7cda175"
+ ],
+ "fused_active": [
+  true
+ ],
+ "deep_wall_skip_active": [
+  false
+ ],
+ "wall_seconds": 1.5513080000000627
+}

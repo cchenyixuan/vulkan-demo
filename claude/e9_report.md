@@ -478,6 +478,14 @@ K = 2 (cuts [26], devices [0, 1]) vs K = 1 at step 300: 7,077,888 fluid particle
 - 结果：a1 与 a2 不逐位相同（`initialize_voxelization` 的 atomicAdd 让体素内顺序逐次不同，defrag 保留它）。第 1 步三次运行排序后的 (x, y, u, v) 逐位相同，差值 2–3e-16 是插值的 float64 舍入，没有检验力。第 10 / 100 / 500 步 56 点最大差：a1 对 a2 1.0e-7 / 2.9e-6 / 8.6e-6，b 对 a1 1.0e-7 / 2.8e-6 / 8.1e-6。独立重复一遍（`repeat/`）量级相同。
 - 结论：b 的差和噪声底同量级（比值 0.65–1.53）。缝上 28 点的 b 对 a1 与同样点的 a1 对 a2 之比 0.60–1.40，没有超出噪声。这个检查分辨不了 1.5 倍以内的缝效应。表见 `equivalence_light.md`。
 
+#### 4.10 启动步多积分一步密度（2026-11-01；修复提交 216b73e，分支 `bootstrap-density-fix`，未推送；脚本 `docs/cluster_v6/scripts/e9_bootstrap_density.py`，数据 `docs/cluster_v6/data/e9/bootstrap_density/`）
+
+- 问题：`_record_bootstrap_compute_cmd` 在 correction + density 之后做了 scratch → primary 拷贝，force 用的是 ρ^0 + Δt ρ̇^0，第 1 步再从这个值积分一次，与论文 2.5 节的 a(r^0, v^0, ρ^0) 不符。这个顺序从 V0 就有，`utils/sph`、`experiment/v5`、`v6`、`v7_single` 相同，这次只改 `experiment/v7`。
+- 修复：方案 A，拷贝换成一个 compute 屏障。主循环、核、SPIR-V、force、predict、halo 包都没改。`_test_seam_layout` 新增断言（在未修复的代码上有 200 条失败，修复后为 0），历史基准模拟器施加同一处替换（必须恰好命中一次），失败集合与 a501a56 逐条相同：858 条，其中 840 条是 E9 后的 defrag 录制流，18 条是 partition 比较。
+- 结果：见 `bootstrap_density.md` 的结论。旧代码 15 个组合结果相同（26 个流体粒子，全在上角 2h 内，最大 |ρ−ρ0|/ρ0 = 7.913e-4，压力 7.9 ρ0U²），修复后 ρ = ρ0、P = 0。动能相对差第 1000 步降到 1e-5 量级以下，56 点速度从 t = 0.03 起在噪声底内。毒化 16 个组合活粒子 NaN 为 0。
+- 重启：`restart_init` 不走 `bootstrap_compute`，任务里担心的二次积分和二次半步回退不存在；4 个运行重启后流体状态与检查点逐位相同。Re 1000 / 3200 的 K = 1、K = 2 都是一段从第 0 步跑完（经过旧启动步），K = 8 续算（`start_from` t = 89.3025 / 79.5）走 `restart_all`。
+- 结论：修的理由是一致性和公开代码要与论文一致，不是精度；论文数据不重跑。注意 `experiment/v7` 树从 37f99f2b 变为 27887d76，`cavity_runner` 的 physics 哈希随之变化，rc4 下启动的运行不能用修复后的代码 `--resume`。
+
 ## 5. 数据与复现
 
 - 代码：提交号与标签见本节末尾的更新。

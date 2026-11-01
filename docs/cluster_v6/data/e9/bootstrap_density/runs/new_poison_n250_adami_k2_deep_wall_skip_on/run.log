@@ -1,0 +1,105 @@
+[case_loader_v7] lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami: numerics.use_prefix_sum_defrag is a legacy key and is ignored (defrag_order = prefix; set numerics.defrag_order to choose)
+[case_loader_v7] loading lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami
+  - ../lid_driven_cavity_2d_n250/domain.obj: 63,001 particles (stick_water)
+  - ../lid_driven_cavity_2d_n250/wall.obj: 8,767 particles (stick_wall)
+  - ../lid_driven_cavity_2d_n250/wall_top.obj: 2,761 particles (stick_lid)
+[case_loader_v7] total loaded: 74,529 particles
+[case_loader_v7] grid: dim=(56, 56, 1) origin=(-0.5564000105857849, -0.5564000105857849, -0.01)
+[partition_v7] chain N=2: columns [0,28), [28,56) of 56; particles 37,401, 37,128
+[partition_v7] seam: ghost_layers=3 keep_departed=1 ghost pool/direction=5,521 (replica regions 3 x 1,819 + migrants 64) departed pool/slab=64/64
+[bootstrap] new_poison_n250_adami_k2_deep_wall_skip_on: solver vulkan-demo-bootstrap, 74,529 particles, dt 3.000e-05, cadence 1000, wall adami
+[VulkanContextV7] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV7] selected: [0] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV7] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV7] transfer queues: 2 (readback + upload split)
+[SimV7] V7_DEEP_WALL_SKIP=1: on (forced (V7_DEEP_WALL_SKIP=1))
+[SimV7] V7_FUSED_CORRECTION_DENSITY=1: fused (one neighbour traversal for correction + density, band 2, inner ghost column as self)
+[SimV7] device-local buffers: 26, 9.02 MB (14 CONCURRENT for transfer queue)
+[SimV7] defrag scratch buffers: 9, 6.74 MB
+[SimV7] host staging buffers: 2, 349.2 KB (persistent-mapped)
+  sender   type[3]=HOST_VISIBLE|HOST_COHERENT|HOST_CACHED [host RAM]
+  receiver type[2]=HOST_VISIBLE|HOST_COHERENT [host RAM]
+[SimV7] compute pipelines: 34 (V7_CASCADE_FORCE=1: force_deep_interior in Phase B) (V7_BAND_VOXEL_DISPATCH=1, lanes=64, bands 2/2/4: boundary kernels over band voxels: 14,336/14,336/14,336 threads vs 44,928) (seam: ghost_layers=3, departed pool=64) (E40 adami chain: wall pass split, wall band 3 + the inner ghost column as self, 14,336 band threads; correction_density band self layers 2) (V7_DENSITY_COPY_COMPUTE=1: density copy pass over 3 region(s), 48,630 slots) (V7_GHOST_SEND_LANES=32: ghost_send over 168 lane groups, local size 64, 84 workgroups per direction) (V7_DEEP_WALL_SKIP: correction_interior, density_deep_interior skip deep walls outside band 2, marker 2 x 14 workgroups) (V7_FUSED_CORRECTION_DENSITY: correction_density_all / _interior / _boundary / _boundary_band replace correction + density at band 2; deep-wall skip in correction_density_interior)
+[SimV7] init complete on NVIDIA GeForce RTX 5090 (own=44928, ghost L=0 T=5521, wall_boundary=adami, defrag_order=prefix)
+[VulkanContextV7] available physical devices (3, discrete-first stable order):
+  [0] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [1] NVIDIA GeForce RTX 5090  type=DISCRETE  api=1.4.303
+        queue_family[0]: graphics+compute+transfer+sparse (count=16)  <- compute pick
+        queue_family[1]: transfer+sparse (count=2)
+        queue_family[2]: compute+transfer+sparse (count=8)
+        queue_family[3]: transfer+sparse (count=2)
+        queue_family[4]: transfer+sparse (count=2)
+        queue_family[5]: transfer+sparse (count=1)
+  [2] AMD Radeon(TM) Graphics  type=INTEGRATED  api=1.4.315
+        queue_family[0]: graphics+compute+transfer+sparse (count=8)  <- compute pick
+        queue_family[1]: compute+transfer+sparse (count=4)
+        queue_family[2]: transfer+sparse (count=1)
+        queue_family[3]: none (count=1)
+        queue_family[4]: none (count=1)
+[VulkanContextV7] selected: [1] NVIDIA GeForce RTX 5090 on queue_family[0]
+[VulkanContextV7] transfer queue family: queue_family[1] (dedicated)
+[VulkanContextV7] transfer queues: 2 (readback + upload split)
+[SimV7] V7_DEEP_WALL_SKIP=1: on (forced (V7_DEEP_WALL_SKIP=1))
+[SimV7] V7_FUSED_CORRECTION_DENSITY=1: fused (one neighbour traversal for correction + density, band 2, inner ghost column as self)
+[SimV7] device-local buffers: 26, 8.98 MB (14 CONCURRENT for transfer queue)
+[SimV7] defrag scratch buffers: 9, 6.71 MB
+[SimV7] host staging buffers: 2, 349.2 KB (persistent-mapped)
+  sender   type[3]=HOST_VISIBLE|HOST_COHERENT|HOST_CACHED [host RAM]
+  receiver type[2]=HOST_VISIBLE|HOST_COHERENT [host RAM]
+[SimV7] compute pipelines: 34 (V7_CASCADE_FORCE=1: force_deep_interior in Phase B) (V7_BAND_VOXEL_DISPATCH=1, lanes=64, bands 2/2/4: boundary kernels over band voxels: 14,336/14,336/14,336 threads vs 44,672) (seam: ghost_layers=3, departed pool=64) (E40 adami chain: wall pass split, wall band 3 + the inner ghost column as self, 14,336 band threads; correction_density band self layers 2) (V7_DENSITY_COPY_COMPUTE=1: density copy pass over 3 region(s), 48,374 slots) (V7_GHOST_SEND_LANES=32: ghost_send over 168 lane groups, local size 64, 84 workgroups per direction) (V7_DEEP_WALL_SKIP: correction_interior, density_deep_interior skip deep walls outside band 2, marker 2 x 14 workgroups) (V7_FUSED_CORRECTION_DENSITY: correction_density_all / _interior / _boundary / _boundary_band replace correction + density at band 2; deep-wall skip in correction_density_interior)
+[SimV7] init complete on NVIDIA GeForce RTX 5090 (own=44672, ghost L=5521 T=0, wall_boundary=adami, defrag_order=prefix)
+[transport_v7] dest guard: V7_DEST_GUARD=relay V7_DEST_GUARD_PRECHECK=counter, 2 relays for 2 workers
+[ChainOrchV7] N=2, 2 workers started (s0_to_s1, s1_to_s0)
+[SimV7] uploaded initial state (5 payload buffers)
+[SimV7] uploaded initial state (5 payload buffers)
+[ChainOrchV7] bootstrap ghost sync: bridged 349.2 KB over 1 links
+[SimV7] bootstrap done: alive=37401 overflow_inside=0 overflow_incoming=0
+[SimV7] bootstrap done: alive=37128 overflow_inside=0 overflow_incoming=0
+[SimV7] step cmd buffers recorded (phase A/B/C + 1 readback + 1 upload on transfer Q)
+[SimV7] V7_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 1 readback, 1 upload), raw waits/signals
+[SimV7] step cmd buffers recorded (phase A/B/C + 1 readback + 1 upload on transfer Q)
+[SimV7] V7_FAST_SUBMIT=1: cached cffi submit batches (compute A+B+C, 1 readback, 1 upload), raw waits/signals
+[defrag_prefix] own voxels 1..1568 (1,568, 1,568 non-empty) -> voxel_base_offset in voxel-id order, 37,401 own particles, 1.5 ms
+[defrag_prefix] own voxels 169..1736 (1,568, 1,568 non-empty) -> voxel_base_offset in voxel-id order, 37,128 own particles, 1.2 ms
+[ChainOrchV7] all 2 sims bootstrapped + step cmds ready
+[bootstrap] density_pressure_scratch poisoned in every slot
+[bootstrap] step 1: {'time': 3e-05, 'alive': 74529, 'kinetic_energy': 3.1180114841665108e-06, 'max_speed': 0.0011620443547190867, 'max_relative_density_deviation': 0.00079217529296875, 'density_min': 999.2078247070312, 'density_max': 1000.7921142578125, 'live_primary_nan': 0, 'empty_primary_nan': 15071, 'alive_rows_not_finite': {'position_voxel_id': 0, 'velocity_mass': 0, 'density_pressure': 0, 'acceleration': 0, 'shift': 0, 'correction_inverse': 0}}
+[bootstrap] step 2: {'time': 6e-05, 'alive': 74529, 'kinetic_energy': 3.8873963184241876e-05, 'max_speed': 0.011536698084946497, 'max_relative_density_deviation': 0.001228759765625, 'density_min': 998.7723388671875, 'density_max': 1001.228759765625, 'live_primary_nan': 0, 'empty_primary_nan': 15071, 'alive_rows_not_finite': {'position_voxel_id': 0, 'velocity_mass': 0, 'density_pressure': 0, 'acceleration': 0, 'shift': 0, 'correction_inverse': 0}}
+[bootstrap] step 3: {'time': 9e-05, 'alive': 74529, 'kinetic_energy': 0.0001548553981585244, 'max_speed': 0.028940765831594387, 'max_relative_density_deviation': 0.00145379638671875, 'density_min': 998.5482177734375, 'density_max': 1001.4537963867188, 'live_primary_nan': 0, 'empty_primary_nan': 15071, 'alive_rows_not_finite': {'position_voxel_id': 0, 'velocity_mass': 0, 'density_pressure': 0, 'acceleration': 0, 'shift': 0, 'correction_inverse': 0}}
+[bootstrap] step 10: {'time': 0.00030000000000000003, 'alive': 74529, 'kinetic_energy': 0.003779269506578509, 'max_speed': 0.15418425400125255, 'max_relative_density_deviation': 0.0013355712890625, 'density_min': 998.6644287109375, 'density_max': 1001.327392578125, 'live_primary_nan': 0, 'empty_primary_nan': 15071, 'alive_rows_not_finite': {'position_voxel_id': 0, 'velocity_mass': 0, 'density_pressure': 0, 'acceleration': 0, 'shift': 0, 'correction_inverse': 0}}
+[bootstrap] step 100: {'time': 0.003, 'alive': 74529, 'kinetic_energy': 0.11466889438526098, 'max_speed': 0.5072590483431065, 'max_relative_density_deviation': 0.0004881591796875, 'density_min': 999.5118408203125, 'density_max': 1000.4273681640625, 'live_primary_nan': 0, 'empty_primary_nan': 15071, 'alive_rows_not_finite': {'position_voxel_id': 0, 'velocity_mass': 0, 'density_pressure': 0, 'acceleration': 0, 'shift': 0, 'correction_inverse': 0}}
+[bootstrap] step 999: {'time': 0.02997, 'alive': 74529, 'kinetic_energy': 1.8079204593758895, 'max_speed': 0.7639411614906638, 'max_relative_density_deviation': 0.00041571044921875, 'density_min': 999.6285400390625, 'density_max': 1000.4157104492188, 'live_primary_nan': 0, 'empty_primary_nan': 15066, 'alive_rows_not_finite': {'position_voxel_id': 0, 'velocity_mass': 0, 'density_pressure': 0, 'acceleration': 0, 'shift': 0, 'correction_inverse': 0}}
+[bootstrap] step 1000: {'time': 0.030000000000000002, 'alive': 74529, 'kinetic_energy': 1.8092205313290068, 'max_speed': 0.7641056110844797, 'max_relative_density_deviation': 0.00041668701171875, 'density_min': 999.628662109375, 'density_max': 1000.4166870117188, 'live_primary_nan': 0, 'empty_primary_nan': 15066, 'alive_rows_not_finite': {'position_voxel_id': 0, 'velocity_mass': 0, 'density_pressure': 0, 'acceleration': 0, 'shift': 0, 'correction_inverse': 0}}
+[defrag_prefix] own voxels 1..1568 (1,568, 1,568 non-empty) -> voxel_base_offset in voxel-id order, 37,396 own particles, 1.4 ms
+[defrag_prefix] own voxels 169..1736 (1,568, 1,568 non-empty) -> voxel_base_offset in voxel-id order, 37,133 own particles, 1.3 ms
+[bootstrap] step 1001: {'time': 0.03003, 'alive': 74529, 'kinetic_energy': 1.8105199514088406, 'max_speed': 0.7642698223211335, 'max_relative_density_deviation': 0.00041766357421875, 'density_min': 999.6288452148438, 'density_max': 1000.4176635742188, 'live_primary_nan': 0, 'empty_primary_nan': 15061, 'alive_rows_not_finite': {'position_voxel_id': 0, 'velocity_mass': 0, 'density_pressure': 0, 'acceleration': 0, 'shift': 0, 'correction_inverse': 0}}
+[bootstrap] step 1200: {'time': 0.036000000000000004, 'alive': 74529, 'kinetic_energy': 2.054440752475389, 'max_speed': 0.7935218929952038, 'max_relative_density_deviation': 0.000355712890625, 'density_min': 999.644287109375, 'density_max': 1000.2333374023438, 'live_primary_nan': 0, 'empty_primary_nan': 15049, 'alive_rows_not_finite': {'position_voxel_id': 0, 'velocity_mass': 0, 'density_pressure': 0, 'acceleration': 0, 'shift': 0, 'correction_inverse': 0}}
+[worker s0_to_s1] dest guard: precheck 657, relay 543, fallback 0, blocking 0 (relay slept 543, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[worker s1_to_s0] dest guard: precheck 992, relay 208, fallback 0, blocking 0 (relay slept 208, released 0; V7_DEST_GUARD=relay, V7_DEST_GUARD_PRECHECK=counter)
+[bootstrap] run new_poison_n250_adami_k2_deep_wall_skip_on done in 4.8 s

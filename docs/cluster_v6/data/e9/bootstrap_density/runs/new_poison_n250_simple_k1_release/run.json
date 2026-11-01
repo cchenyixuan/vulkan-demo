@@ -1,0 +1,216 @@
+{
+ "run": {
+  "name": "new_poison_n250_simple_k1_release",
+  "tree": "new",
+  "mode": "poison",
+  "case": "n250_simple",
+  "slabs": 1,
+  "variant": "release",
+  "repeat": ""
+ },
+ "solver_root": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-bootstrap",
+ "dt": 3e-05,
+ "support_radius": 0.02,
+ "spacing": 0.004,
+ "lid_speed": 1.0,
+ "expected_total": 74529,
+ "defrag_cadence": 1000,
+ "wall_boundary": "simple",
+ "switches": {
+  "V7_BAND_SLOT_LANES": "64",
+  "V7_COMPACT_GHOST_LISTS": "1",
+  "V7_DEPARTED_FACE_FRACTION": "0.8",
+  "V7_GHOST_LAYERS": "2",
+  "V7_GHOST_POOL_FACTOR": "0.29",
+  "V7_INIT_SEAM_CLAMP": "1",
+  "V7_KEEP_DEPARTED": "1",
+  "V7_LEAN_TRANSPORT": "1",
+  "V7_MIGRANT_POOL_FACTOR": "0.05",
+  "V7_PACKED_REPLICAS": "1",
+  "V7_SPLIT_TRANSFER_QUEUES": "1",
+  "V7_WORKER_COUNT_AWARE": "1"
+ },
+ "records": {
+  "1": {
+   "time": 3e-05,
+   "alive": 74529,
+   "kinetic_energy": 7.795028726466451e-07,
+   "max_speed": 0.0005810221773595914,
+   "max_relative_density_deviation": 0.000791748046875,
+   "density_min": 999.208251953125,
+   "density_max": 1000.791748046875,
+   "live_primary_nan": 0,
+   "empty_primary_nan": 11231,
+   "alive_rows_not_finite": {
+    "position_voxel_id": 0,
+    "velocity_mass": 0,
+    "density_pressure": 0,
+    "acceleration": 0,
+    "shift": 0,
+    "correction_inverse": 0
+   }
+  },
+  "2": {
+   "time": 6e-05,
+   "alive": 74529,
+   "kinetic_energy": 9.499033474726595e-06,
+   "max_speed": 0.0062697758468717784,
+   "max_relative_density_deviation": 0.00124322509765625,
+   "density_min": 998.7581176757812,
+   "density_max": 1001.2432250976562,
+   "live_primary_nan": 0,
+   "empty_primary_nan": 11231,
+   "alive_rows_not_finite": {
+    "position_voxel_id": 0,
+    "velocity_mass": 0,
+    "density_pressure": 0,
+    "acceleration": 0,
+    "shift": 0,
+    "correction_inverse": 0
+   }
+  },
+  "3": {
+   "time": 9e-05,
+   "alive": 74529,
+   "kinetic_energy": 3.614228816740119e-05,
+   "max_speed": 0.013710769952114036,
+   "max_relative_density_deviation": 0.00149554443359375,
+   "density_min": 998.5072631835938,
+   "density_max": 1001.4955444335938,
+   "live_primary_nan": 0,
+   "empty_primary_nan": 11231,
+   "alive_rows_not_finite": {
+    "position_voxel_id": 0,
+    "velocity_mass": 0,
+    "density_pressure": 0,
+    "acceleration": 0,
+    "shift": 0,
+    "correction_inverse": 0
+   }
+  },
+  "10": {
+   "time": 0.00030000000000000003,
+   "alive": 74529,
+   "kinetic_energy": 0.0009527147389529573,
+   "max_speed": 0.06982250830682915,
+   "max_relative_density_deviation": 0.0016060791015625,
+   "density_min": 998.4016723632812,
+   "density_max": 1001.6060791015625,
+   "live_primary_nan": 0,
+   "empty_primary_nan": 11231,
+   "alive_rows_not_finite": {
+    "position_voxel_id": 0,
+    "velocity_mass": 0,
+    "density_pressure": 0,
+    "acceleration": 0,
+    "shift": 0,
+    "correction_inverse": 0
+   }
+  },
+  "100": {
+   "time": 0.003,
+   "alive": 74529,
+   "kinetic_energy": 0.028799097266189674,
+   "max_speed": 0.23177077766066376,
+   "max_relative_density_deviation": 0.001133544921875,
+   "density_min": 998.8767700195312,
+   "density_max": 1001.133544921875,
+   "live_primary_nan": 0,
+   "empty_primary_nan": 11231,
+   "alive_rows_not_finite": {
+    "position_voxel_id": 0,
+    "velocity_mass": 0,
+    "density_pressure": 0,
+    "acceleration": 0,
+    "shift": 0,
+    "correction_inverse": 0
+   }
+  },
+  "999": {
+   "time": 0.02997,
+   "alive": 74529,
+   "kinetic_energy": 0.7727600523425967,
+   "max_speed": 0.5213291187244872,
+   "max_relative_density_deviation": 0.00123114013671875,
+   "density_min": 998.938232421875,
+   "density_max": 1001.2311401367188,
+   "live_primary_nan": 0,
+   "empty_primary_nan": 11231,
+   "alive_rows_not_finite": {
+    "position_voxel_id": 0,
+    "velocity_mass": 0,
+    "density_pressure": 0,
+    "acceleration": 0,
+    "shift": 0,
+    "correction_inverse": 0
+   }
+  },
+  "1000": {
+   "time": 0.030000000000000002,
+   "alive": 74529,
+   "kinetic_energy": 0.7735744200971643,
+   "max_speed": 0.5215448866441621,
+   "max_relative_density_deviation": 0.001231201171875,
+   "density_min": 998.9378051757812,
+   "density_max": 1001.231201171875,
+   "live_primary_nan": 0,
+   "empty_primary_nan": 11231,
+   "alive_rows_not_finite": {
+    "position_voxel_id": 0,
+    "velocity_mass": 0,
+    "density_pressure": 0,
+    "acceleration": 0,
+    "shift": 0,
+    "correction_inverse": 0
+   }
+  },
+  "1001": {
+   "time": 0.03003,
+   "alive": 74529,
+   "kinetic_energy": 0.7743885078268806,
+   "max_speed": 0.5217607738016179,
+   "max_relative_density_deviation": 0.00123126220703125,
+   "density_min": 998.9374389648438,
+   "density_max": 1001.2312622070312,
+   "live_primary_nan": 0,
+   "empty_primary_nan": 11231,
+   "alive_rows_not_finite": {
+    "position_voxel_id": 0,
+    "velocity_mass": 0,
+    "density_pressure": 0,
+    "acceleration": 0,
+    "shift": 0,
+    "correction_inverse": 0
+   }
+  },
+  "1200": {
+   "time": 0.036000000000000004,
+   "alive": 74529,
+   "kinetic_energy": 0.9294734124547714,
+   "max_speed": 0.559118463693615,
+   "max_relative_density_deviation": 0.0010802001953125,
+   "density_min": 998.9197998046875,
+   "density_max": 1001.0440673828125,
+   "live_primary_nan": 0,
+   "empty_primary_nan": 11231,
+   "alive_rows_not_finite": {
+    "position_voxel_id": 0,
+    "velocity_mass": 0,
+    "density_pressure": 0,
+    "acceleration": 0,
+    "shift": 0,
+    "correction_inverse": 0
+   }
+  }
+ },
+ "device_uuids": [
+  "ae137c668a40f5acaab90a83f7cda175"
+ ],
+ "fused_active": [
+  true
+ ],
+ "deep_wall_skip_active": [
+  false
+ ],
+ "wall_seconds": 1.3242836000008538
+}

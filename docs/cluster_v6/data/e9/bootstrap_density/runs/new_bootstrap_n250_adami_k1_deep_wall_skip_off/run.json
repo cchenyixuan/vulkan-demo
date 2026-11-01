@@ -1,0 +1,83 @@
+{
+ "run": {
+  "name": "new_bootstrap_n250_adami_k1_deep_wall_skip_off",
+  "tree": "new",
+  "mode": "bootstrap",
+  "case": "n250_adami",
+  "slabs": 1,
+  "variant": "deep_wall_skip_off",
+  "repeat": ""
+ },
+ "solver_root": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-bootstrap",
+ "dt": 3e-05,
+ "support_radius": 0.02,
+ "spacing": 0.004,
+ "lid_speed": 1.0,
+ "expected_total": 74529,
+ "defrag_cadence": 1000,
+ "wall_boundary": "adami",
+ "switches": {
+  "V7_BAND_SLOT_LANES": "64",
+  "V7_COMPACT_GHOST_LISTS": "1",
+  "V7_DEEP_WALL_SKIP": "0",
+  "V7_DEPARTED_FACE_FRACTION": "0.8",
+  "V7_GHOST_LAYERS": "2",
+  "V7_GHOST_POOL_FACTOR": "0.29",
+  "V7_INIT_SEAM_CLAMP": "1",
+  "V7_KEEP_DEPARTED": "1",
+  "V7_LEAN_TRANSPORT": "1",
+  "V7_MIGRANT_POOL_FACTOR": "0.05",
+  "V7_PACKED_REPLICAS": "1",
+  "V7_SPLIT_TRANSFER_QUEUES": "1",
+  "V7_WORKER_COUNT_AWARE": "1"
+ },
+ "records": {},
+ "device_uuids": [
+  "ae137c668a40f5acaab90a83f7cda175"
+ ],
+ "fused_active": [
+  true
+ ],
+ "deep_wall_skip_active": [
+  false
+ ],
+ "alive": 74529,
+ "fluid": {
+  "count": 63001,
+  "density_changed": 0,
+  "density_changed_beyond_2h_of_a_corner": 0,
+  "density_changed_beyond_5h_of_a_corner": 0,
+  "max_relative_density_deviation": 0.0,
+  "at_corner_distance_h": 50.0,
+  "position": [
+   -0.5,
+   -0.5
+  ],
+  "max_abs_pressure": 0.0,
+  "pressure_at_corner_distance_h": 50.0,
+  "pressure_changed": 0,
+  "pressure_changed_beyond_5h_of_a_corner": 0,
+  "max_acceleration": 77.46961975129621,
+  "mean_acceleration": 0.36071659371590614
+ },
+ "wall": {
+  "count": 11528,
+  "density_changed": 0,
+  "density_changed_beyond_2h_of_a_corner": 0,
+  "density_changed_beyond_5h_of_a_corner": 0,
+  "max_relative_density_deviation": 0.0,
+  "at_corner_distance_h": 52.2463411238303,
+  "position": [
+   -0.5440000295639038,
+   -0.5440000295639038
+  ],
+  "max_abs_pressure": 0.0,
+  "pressure_at_corner_distance_h": 52.2463411238303,
+  "pressure_changed": 0,
+  "pressure_changed_beyond_5h_of_a_corner": 0,
+  "max_acceleration": 0.0,
+  "mean_acceleration": 0.0
+ },
+ "fluid_max_half_step_speed": 0.0011620442382991314,
+ "wall_seconds": 0.35720989999936137
+}

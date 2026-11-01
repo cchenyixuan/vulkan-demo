@@ -1,0 +1,117 @@
+{
+ "run": {
+  "name": "old_trajectory_n250_simple_k1_release_a",
+  "tree": "old",
+  "mode": "trajectory",
+  "case": "n250_simple",
+  "slabs": 1,
+  "variant": "release",
+  "repeat": "a"
+ },
+ "solver_root": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-e8",
+ "dt": 3e-05,
+ "support_radius": 0.02,
+ "spacing": 0.004,
+ "lid_speed": 1.0,
+ "expected_total": 74529,
+ "defrag_cadence": 1000,
+ "wall_boundary": "simple",
+ "switches": {
+  "V7_BAND_SLOT_LANES": "64",
+  "V7_COMPACT_GHOST_LISTS": "1",
+  "V7_DEPARTED_FACE_FRACTION": "0.8",
+  "V7_GHOST_LAYERS": "2",
+  "V7_GHOST_POOL_FACTOR": "0.29",
+  "V7_INIT_SEAM_CLAMP": "1",
+  "V7_KEEP_DEPARTED": "1",
+  "V7_LEAN_TRANSPORT": "1",
+  "V7_MIGRANT_POOL_FACTOR": "0.05",
+  "V7_PACKED_REPLICAS": "1",
+  "V7_SPLIT_TRANSFER_QUEUES": "1",
+  "V7_WORKER_COUNT_AWARE": "1"
+ },
+ "records": {
+  "1": {
+   "time": 3e-05,
+   "alive": 74529,
+   "kinetic_energy": 1.4430157513330413e-06,
+   "max_speed": 0.0032247875759032108,
+   "max_relative_density_deviation": 0.00124493408203125,
+   "density_min": 998.75634765625,
+   "density_max": 1001.2449340820312
+  },
+  "10": {
+   "time": 0.00030000000000000003,
+   "alive": 74529,
+   "kinetic_energy": 0.0010593888409734958,
+   "max_speed": 0.07414378936988936,
+   "max_relative_density_deviation": 0.001572021484375,
+   "density_min": 998.4359130859375,
+   "density_max": 1001.572021484375
+  },
+  "100": {
+   "time": 0.003,
+   "alive": 74529,
+   "kinetic_energy": 0.028809961368050467,
+   "max_speed": 0.23226515040605453,
+   "max_relative_density_deviation": 0.0011329345703125,
+   "density_min": 998.8773803710938,
+   "density_max": 1001.1329345703125
+  },
+  "1000": {
+   "time": 0.030000000000000002,
+   "alive": 74529,
+   "kinetic_energy": 0.7735763894199739,
+   "max_speed": 0.5215447087271117,
+   "max_relative_density_deviation": 0.001231201171875,
+   "density_min": 998.9378051757812,
+   "density_max": 1001.231201171875
+  },
+  "10000": {
+   "time": 0.3,
+   "alive": 74529,
+   "kinetic_energy": 4.5586858851077166,
+   "max_speed": 0.8400970467111551,
+   "max_relative_density_deviation": 0.001245361328125,
+   "density_min": 998.9671020507812,
+   "density_max": 1001.245361328125
+  },
+  "33000": {
+   "time": 0.99,
+   "alive": 74529,
+   "kinetic_energy": 8.675588737057849,
+   "max_speed": 0.9191747369977419,
+   "max_relative_density_deviation": 0.00135260009765625,
+   "density_min": 999.00146484375,
+   "density_max": 1001.3526000976562
+  },
+  "100000": {
+   "time": 3.0,
+   "alive": 74529,
+   "kinetic_energy": 14.4477714251529,
+   "max_speed": 0.9323425529811935,
+   "max_relative_density_deviation": 0.0009483642578125,
+   "density_min": 999.3204345703125,
+   "density_max": 1000.9483642578125
+  },
+  "333000": {
+   "time": 9.99,
+   "alive": 74529,
+   "kinetic_energy": 27.3229013250727,
+   "max_speed": 0.929172090905775,
+   "max_relative_density_deviation": 0.001207275390625,
+   "density_min": 998.8917236328125,
+   "density_max": 1001.207275390625
+  }
+ },
+ "device_uuids": [
+  "ae137c668a40f5acaab90a83f7cda175"
+ ],
+ "fused_active": [
+  true
+ ],
+ "deep_wall_skip_active": [
+  false
+ ],
+ "wall_seconds": 77.38885149999987
+}

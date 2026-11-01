@@ -1,0 +1,86 @@
+{
+ "run": {
+  "name": "old_bootstrap_n250_adami_k2_unfused",
+  "tree": "old",
+  "mode": "bootstrap",
+  "case": "n250_adami",
+  "slabs": 2,
+  "variant": "unfused",
+  "repeat": ""
+ },
+ "solver_root": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-e8",
+ "dt": 3e-05,
+ "support_radius": 0.02,
+ "spacing": 0.004,
+ "lid_speed": 1.0,
+ "expected_total": 74529,
+ "defrag_cadence": 1000,
+ "wall_boundary": "adami",
+ "switches": {
+  "V7_BAND_SLOT_LANES": "64",
+  "V7_COMPACT_GHOST_LISTS": "1",
+  "V7_DEPARTED_FACE_FRACTION": "0.8",
+  "V7_FUSED_CORRECTION_DENSITY": "0",
+  "V7_GHOST_LAYERS": "2",
+  "V7_GHOST_POOL_FACTOR": "0.29",
+  "V7_INIT_SEAM_CLAMP": "1",
+  "V7_KEEP_DEPARTED": "1",
+  "V7_LEAN_TRANSPORT": "1",
+  "V7_MIGRANT_POOL_FACTOR": "0.05",
+  "V7_PACKED_REPLICAS": "1",
+  "V7_SPLIT_TRANSFER_QUEUES": "1",
+  "V7_WORKER_COUNT_AWARE": "1"
+ },
+ "records": {},
+ "device_uuids": [
+  "fb83f0dafd9e1d38dc05e7ae643e22a8",
+  "ae137c668a40f5acaab90a83f7cda175"
+ ],
+ "fused_active": [
+  false,
+  false
+ ],
+ "deep_wall_skip_active": [
+  false,
+  false
+ ],
+ "alive": 74529,
+ "fluid": {
+  "count": 63001,
+  "density_changed": 26,
+  "density_changed_beyond_2h_of_a_corner": 0,
+  "density_changed_beyond_5h_of_a_corner": 0,
+  "max_relative_density_deviation": 0.00079132080078125,
+  "at_corner_distance_h": 0.0,
+  "position": [
+   -0.5,
+   0.5
+  ],
+  "max_abs_pressure": 7932.35595703125,
+  "pressure_at_corner_distance_h": 0.0,
+  "pressure_changed": 25,
+  "pressure_changed_beyond_5h_of_a_corner": 0,
+  "max_acceleration": 380.9120363617442,
+  "mean_acceleration": 0.4437064759945412
+ },
+ "wall": {
+  "count": 11528,
+  "density_changed": 0,
+  "density_changed_beyond_2h_of_a_corner": 0,
+  "density_changed_beyond_5h_of_a_corner": 0,
+  "max_relative_density_deviation": 0.0,
+  "at_corner_distance_h": 52.2463411238303,
+  "position": [
+   -0.5440000295639038,
+   -0.5440000295639038
+  ],
+  "max_abs_pressure": 7932.3564453125,
+  "pressure_at_corner_distance_h": 0.8944263380086689,
+  "pressure_changed": 162,
+  "pressure_changed_beyond_5h_of_a_corner": 0,
+  "max_acceleration": 0.0,
+  "mean_acceleration": 0.0
+ },
+ "fluid_max_half_step_speed": 0.0057136802934110165,
+ "wall_seconds": 0.5041531000006216
+}
