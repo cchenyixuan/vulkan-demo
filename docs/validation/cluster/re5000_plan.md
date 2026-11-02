@@ -34,6 +34,16 @@ t = 80 不满足完整稳态判据。混跑与 2×5090 的逐点比较不受影�
 
 检查点每 5 t 一个，就是为了能选混跑的起点。
 
+## 第三张 5090（ZeroTier 机器，2026-11-02 起）
+
+本机两张卡被占着时，粗网格和细网格先在 `Administrator@10.147.20.1`（9800X3D，单张 5090，Gen5 x16）上用 K = 1 跑，粗网格实测 592 步/秒。
+
+- 位置 `D:/vulkan-demo-re5000`（打包自本工作树，物理 / 采样 / runner 哈希与本机相同；独立 venv，没动系统 Python）。进度在 `logs/validation/cavity_re5000_v7/` 下，内容与本机同名。
+- 启动：`re5000_pipeline.py --single-card a85cce699d0fb7294c33d0a5981a4666`，用 WMI 建进程（与 SSH 会话无关），细网格每 2 t 一个检查点。那台机器重启后不会自动继续，要重新启动（已完成的阶段会跳过，未完成的 `--resume`）。
+- 交接：本机流水线带 `--take-over` 运行。本机卡空出来后，它等远端做完 warm 文件，然后停掉远端，取回最新的细网格检查点，用 K = 2 `--start-from` 接着跑；远端还没有检查点时取 warm 文件。远端失败或连不上 30 分钟，退回本机自己跑粗网格。
+- 密码只放在本机进程的环境变量 `REMOTE_PW` 里，不落盘。本机重启后要带着它用 `--take-over` 重新启动；不带的话流水线会在本机从头跑粗网格（已经交接过的除外，`pipeline_state/take_over.json` 记着起点）。
+- 交接后细网格的 `samples/` 分在两台机器上，分析 t 早于交接点的部分要从远端取。
+
 ## 流水线
 
 ```
@@ -42,7 +52,7 @@ cd C:\Users\cchen\PycharmProjects\vulkan-demo-v7-rc3
 ```
 
 - 启动（分离进程，关掉会话也继续）：
-  `powershell -NoProfile -Command "Start-Process -FilePath 'C:\Users\cchen\PycharmProjects\vulkan-demo\.venv\Scripts\python.exe' -ArgumentList 'docs\validation\cluster\re5000_pipeline.py' -WorkingDirectory 'C:\Users\cchen\PycharmProjects\vulkan-demo-v7-rc3' -WindowStyle Hidden"`
+  `powershell -NoProfile -Command "$env:REMOTE_PW='<密码>'; Start-Process -FilePath 'C:\Users\cchen\PycharmProjects\vulkan-demo\.venv\Scripts\python.exe' -ArgumentList 'docs\validation\cluster\re5000_pipeline.py','--take-over' -WorkingDirectory 'C:\Users\cchen\PycharmProjects\vulkan-demo-v7-rc3' -WindowStyle Hidden"`
 - 进度：`logs/validation/cavity_re5000_v7/pipeline.log`；运行内 `<run>/run.log` 每个窗口一行，`<run>/heartbeat.json` 有当前步和 fps。
 - 等卡：显示卡利用率 ≤ 30 %，无显示卡 ≤ 5 % 且显存 ≤ 500 MiB，连续 20 分钟才开跑。
 - 重启电脑后用同一条命令接着跑：跑完的阶段跳过，未完成的从最新检查点 `--resume`。只能有一个实例（`pipeline.pid`）。

@@ -56,6 +56,15 @@ COMMON = ["--slabs", "2", "--device-map", "0,1", "--reynolds", "5000", "--keep-c
 # snapshots from t = 58 on (none before t_end - span), so warm_start_velocity.py finds one at the early stop
 COARSE_ARGUMENTS = ["--t-end", "60", "--t-max", "300", "--steady-tol", "3.3e-3", "--average-span", "2", "--initial-velocity", str(COARSE_WARM_FILE)]
 FINE_ARGUMENTS = ["--t-end", "40", "--t-max", "300", "--average-span", "20", "--checkpoint-time", "5"]
+SINGLE_CARD = False
+# the ZeroTier machine's run (--single-card there), taken over by --take-over here; REMOTE_PW comes from the environment only
+REMOTE_HOST = "10.147.20.1"
+REMOTE_USER = "Administrator"
+REMOTE_RUNS = "D:/vulkan-demo-re5000/logs/validation/cavity_re5000_v7"
+REMOTE_FINE = "n2500_k1_float32_xi0p001_eps0p0025_adami_re5000_warm"
+REMOTE_WARM = "warm_n2500_from_n1000_k1_re5000.npz"
+REMOTE_POLL_SECONDS = 120
+REMOTE_GIVE_UP_SECONDS = 1800
 IDLE_MINUTES = 20
 RETRY_IDLE_MINUTES = 3
 HEADLESS_UTILIZATION_LIMIT = 5        # per cent; the display card also draws the desktop, hence its own limit
@@ -66,6 +75,19 @@ MAXIMUM_ATTEMPTS = 6
 QUICK_FAILURE_SECONDS = 180
 POLL_SECONDS = 30
 HEARTBEAT_LOG_SECONDS = 3600
+
+
+def configure_single_card(uuid: str) -> None:
+    """The ZeroTier machine (user 2026-11-02): its one 5090 starts the work while the two local cards are busy. K = 1, no
+    wait for idle cards, a checkpoint every 2 t so that handing over to the local K = 2 loses little, k1 run directories."""
+    global SINGLE_CARD, COMMON, COARSE_RUN, FINE_RUN, WARM_FILE, FINE_ARGUMENTS
+    SINGLE_CARD = True
+    COMMON = ["--slabs", "1", "--device-map", "0", "--reynolds", "5000", "--keep-checkpoints", "0", "--expect", "release",
+              "--solver", "v7", "--require-uuid", uuid]
+    COARSE_RUN = RUNS / "n1000_k1_float32_xi0p001_eps0p0025_adami_re5000"
+    FINE_RUN = RUNS / "n2500_k1_float32_xi0p001_eps0p0025_adami_re5000_warm"
+    WARM_FILE = RUNS / "warm_n2500_from_n1000_k1_re5000.npz"
+    FINE_ARGUMENTS = ["--t-end", "40", "--t-max", "300", "--average-span", "20", "--checkpoint-time", "2"]
 
 
 def log(message: str) -> None:
@@ -102,6 +124,8 @@ def cards_idle() -> bool:
 
 def wait_for_idle(minutes: int) -> None:
     """Idle at every poll for the given minutes on end: a gap between two phases of another job must not start a run."""
+    if SINGLE_CARD:
+        return
     needed = minutes * 60 // POLL_SECONDS
     streak = 0
     last_report = 0.0
@@ -121,7 +145,7 @@ def wait_for_idle(minutes: int) -> None:
 
 
 def runner_environment() -> dict:
-    environment = {key: value for key, value in os.environ.items() if not key.startswith("V7_")}
+    environment = {key: value for key, value in os.environ.items() if not key.startswith("V7_") and key != "REMOTE_PW"}
     environment.update(expected_environments("v7")["release"])
     environment.update({"VK_LOADER_LAYERS_DISABLE": "VK_LAYER_KHRONOS_validation", "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"})
     return environment
@@ -200,6 +224,96 @@ def run_tool(marker: pathlib.Path, command: list[str], required: bool) -> int:
     return stop(f"{marker.name} failed, see {marker.with_suffix('.out').name}") if required else 0
 
 
+def remote_session():
+    import paramiko
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(REMOTE_HOST, username=REMOTE_USER, password=os.environ["REMOTE_PW"], timeout=30, allow_agent=False, look_for_keys=False)
+    return client, client.open_sftp()
+
+
+def remote_text(sftp, path: str) -> str | None:
+    """The file's text, None when it is not there."""
+    try:
+        with sftp.open(path) as handle:
+            return handle.read().decode("utf-8")
+    except FileNotFoundError:
+        return None
+
+
+def remote_fetch(sftp, source: str, target: pathlib.Path) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    partial = target.with_name(target.name + ".partial")
+    sftp.get(source, str(partial))
+    if partial.stat().st_size != sftp.stat(source).st_size:
+        raise OSError(f"{source}: short copy")
+    partial.replace(target)
+
+
+def finish_take_over(client, sftp, marker: pathlib.Path) -> list[str]:
+    """Stop the remote pipeline, then its runner (in this order: the pipeline would retry), and fetch what the fine run
+    starts from: the newest checkpoint of the manifest (checkpoints are atomic, the manifest line comes after the file), or
+    the remote warm file when it has no checkpoint yet."""
+    fine = f"{REMOTE_RUNS}/{REMOTE_FINE}"
+    for path in (f"{REMOTE_RUNS}/pipeline_state/pipeline.pid", f"{fine}/runner.pid"):
+        pid = (remote_text(sftp, path) or "").strip()
+        if pid.isdigit():
+            _, stdout, _ = client.exec_command(f"taskkill /F /T /PID {pid}")
+            log(f"take-over: stopping remote pid {pid}: exit {stdout.channel.recv_exit_status()}")
+    time.sleep(5)
+    manifest = (remote_text(sftp, f"{fine}/checkpoints/manifest.jsonl") or "").strip()
+    if manifest:
+        entry = json.loads(manifest.splitlines()[-1])
+        local = RUNS / REMOTE_FINE
+        checkpoint = local / "checkpoints" / entry["file"]
+        remote_fetch(sftp, f"{fine}/meta.json", local / "meta.json")
+        steady = remote_text(sftp, f"{fine}/steady.json")
+        if steady is not None:
+            (local / "steady.json").write_text(steady, encoding="utf-8")
+        remote_fetch(sftp, f"{fine}/checkpoints/{entry['file']}", checkpoint)
+        start = ["--start-from", str(checkpoint)]
+        log(f"take-over: fine continues from the remote t = {entry['time']:.2f}, {entry['file']}")
+    else:
+        remote_fetch(sftp, f"{REMOTE_RUNS}/{REMOTE_WARM}", RUNS / REMOTE_WARM)
+        start = ["--initial-velocity", str(RUNS / REMOTE_WARM)]
+        log("take-over: no remote fine checkpoint yet, fine starts from the remote warm file")
+    marker.write_text(json.dumps(start), encoding="utf-8")
+    return start
+
+
+def take_over_from_remote() -> list[str] | None:
+    """The cards are free here: the fine run takes over from the ZeroTier machine, once that has finished the coarse run and
+    made the warm file. Returns the fine run's starting arguments, or None = no usable remote run, do the coarse run here."""
+    import paramiko
+    marker = STATE / "take_over.json"
+    if marker.exists():
+        return json.loads(marker.read_text(encoding="utf-8"))
+    if "REMOTE_PW" not in os.environ:
+        log("take-over: REMOTE_PW is not set, coarse run here")
+        return None
+    log("take-over: waiting for the remote warm file")
+    unreachable_since = None
+    while True:
+        try:
+            client, sftp = remote_session()
+            try:
+                if remote_text(sftp, f"{REMOTE_RUNS}/pipeline_state/STOPPED") is not None:
+                    log("take-over: the remote pipeline has stopped, coarse run here")
+                    return None
+                if remote_text(sftp, f"{REMOTE_RUNS}/pipeline_state/warm_start_done") is not None:
+                    return finish_take_over(client, sftp, marker)
+            finally:
+                client.close()
+            unreachable_since = None
+        except (OSError, EOFError, paramiko.SSHException) as error:
+            unreachable_since = unreachable_since or time.time()
+            log(f"take-over: remote failed: {error!r}")
+            if time.time() - unreachable_since > REMOTE_GIVE_UP_SECONDS:
+                log("take-over: remote unreachable, coarse run here")
+                return None
+        time.sleep(REMOTE_POLL_SECONDS)
+
+
 def report(run_dir: pathlib.Path, name: str) -> None:
     """The window against Marchi 2021 Re 5000 for the log; the pipeline goes on whatever it says (the user chose the stages)."""
     run_tool(STATE / f"{name}_decide_done", [sys.executable, "docs/validation/cluster/re3200_decide.py", "--run-dir", str(run_dir), "--reynolds", "5000",
@@ -209,7 +323,11 @@ def report(run_dir: pathlib.Path, name: str) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--check", action="store_true", help="print the commands and the card / disk state, start nothing")
+    parser.add_argument("--single-card", default=None, metavar="UUID", help="one 5090, K = 1, no wait (the ZeroTier machine)")
+    parser.add_argument("--take-over", action="store_true", help="when the cards are free, continue the ZeroTier machine's run")
     arguments = parser.parse_args()
+    if arguments.single_card:
+        configure_single_card(arguments.single_card)
     if arguments.check:
         print("coarse warm:", "--source-run", COARSE_SOURCE, "--case", COARSE_CASE, "--out", COARSE_WARM_FILE)
         print("coarse:", "--case", COARSE_CASE, "--run-dir", COARSE_RUN, *COMMON, *COARSE_ARGUMENTS)
@@ -238,13 +356,16 @@ def main() -> int:
         else:
             wait_for_idle(RETRY_IDLE_MINUTES)
 
-    if run_stage("coarse", COARSE_CASE, COARSE_RUN, COARSE_ARGUMENTS):
-        return 1
-    report(COARSE_RUN, "coarse")
-    if run_tool(STATE / "warm_start_done", [sys.executable, "docs/validation/cluster/warm_start_velocity.py", "--source-run", str(COARSE_RUN),
-                                            "--case", FINE_CASE, "--out", str(WARM_FILE)], required=True):
-        return 1
-    if run_stage("fine", FINE_CASE, FINE_RUN, [*FINE_ARGUMENTS, "--initial-velocity", str(WARM_FILE)], announce=True):
+    start = take_over_from_remote() if arguments.take_over else None
+    if start is None:
+        if run_stage("coarse", COARSE_CASE, COARSE_RUN, COARSE_ARGUMENTS):
+            return 1
+        report(COARSE_RUN, "coarse")
+        if run_tool(STATE / "warm_start_done", [sys.executable, "docs/validation/cluster/warm_start_velocity.py", "--source-run", str(COARSE_RUN),
+                                                "--case", FINE_CASE, "--out", str(WARM_FILE)], required=True):
+            return 1
+        start = ["--initial-velocity", str(WARM_FILE)]
+    if run_stage("fine", FINE_CASE, FINE_RUN, [*FINE_ARGUMENTS, *start], announce=not SINGLE_CARD):
         return 1
     report(FINE_RUN, "fine")
     (STATE / "fine_done").write_text(time.strftime("%Y-%m-%d %H:%M:%S\n"), encoding="utf-8")
