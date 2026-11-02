@@ -90,3 +90,4 @@ python -m experiment.validation.cavity_runner --case cases/lid_driven_cavity_2d_
 - 启动步修复（分支 `bootstrap-density-fix`）不在这棵树上，以便与 Re 1000 / 3200 和 `xv` 使用同一份求解器。测得的影响到 t = 0.03 已进入噪声底。
 - `cavity_runner.py` 比 Re 3200 时多了 `--weights`，默认行为不变。
 - 粗网格不是冷启动，这一点在报 Re 5000 1000² 的结果时要写明。它走的是同一稳态判据。细网格的稳态与初值无关。
+- 粗网格运行的 `meta.json` 记着启动时的 `steady_tol` 0.0033、`average_span` 2。t = 9.92 起 `--resume` 用的是 1e-3 和 20（`--resume` 不改写 meta），以 `pipeline.log` 的命令行为准。
