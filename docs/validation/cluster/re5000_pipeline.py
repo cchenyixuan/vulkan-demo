@@ -1,11 +1,15 @@
 """re5000_pipeline.py (user 2026-11-02): the Re = 5000 cavity on the workstation's two RTX 5090, unattended, by the procedure
 of the Re = 3200 runs (solver experiment/v7 = tree of tag v7-rc3, release switches, adami walls).
 
-    1. wait until the cards are free
-    2. coarse: 1000^2 K = 2, cold start to steady state (runner's rule: 1e-3 per window, then the 20 t averaging window)
-    3. warm_start_velocity.py: the coarse final snapshot -> initial velocities of the 2500^2 case
-    4. fine: 2500^2 K = 2 from them, every checkpoint kept, one every 5 t, for the 5090 + 7900 XTX continuation
-    5. stop. The mixed continuation needs the card swapped by hand: docs/validation/cluster/re5000_plan.md
+    1. warm_start_velocity.py: the finished Re 3200 1000^2 state -> initial velocities of the Re 5000 1000^2 case
+    2. wait until the cards are free
+    3. coarse: 1000^2 K = 2 from them, stopped early (user 2026-11-02: as fast as possible). It only feeds the fine run, and
+       on Re 3200 the coarse state closest to the fine end state was at a window change of 3.3e-3, not at the coarse's own
+       steady state (0.77 % against 1.17 %)
+    4. warm_start_velocity.py: the coarse final snapshot -> initial velocities of the 2500^2 case
+    5. fine: 2500^2 K = 2 from them, every checkpoint kept, one every 5 t, for the 5090 + 7900 XTX continuation. At t = 80
+       pipeline.log says the card may be swapped; the run goes on towards the full stop rule until it is
+    6. stop. The mixed continuation needs the card swapped by hand: docs/validation/cluster/re5000_plan.md
 
 Idempotent: a stage with its result.json / marker is skipped, so a rerun after a reboot continues (the runner resumes from
 its newest checkpoint). A crash is retried with --resume, after the cards are idle again. An invariant violation stops the
@@ -40,12 +44,17 @@ FINE_CASE = "cases/lid_driven_cavity_2d_n2500_re5000_adami/case.yaml"
 COARSE_RUN = RUNS / "n1000_k2_float32_xi0p001_eps0p0025_adami_re5000"
 FINE_RUN = RUNS / "n2500_k2_float32_xi0p001_eps0p0025_adami_re5000_warm"
 WARM_FILE = RUNS / "warm_n2500_from_n1000_re5000.npz"
+COARSE_SOURCE = _ROOT / "logs/validation/cavity_re3200_v7/n1000_k1_float32_xi0p001_eps0p0025_adami_re3200"
+COARSE_WARM_FILE = RUNS / "warm_n1000_re5000_from_re3200.npz"
+SWAP_READY = STATE / "ready_for_swap"
+SWAP_READY_TIME = 80.0  # 1.6 x the Re 3200 t = 50, where its error against Marchi had flattened (tail tau 78 against 48.7)
 # device map 0,1 = the display 5090, the headless 5090: anything else in the box and the runner refuses to start
 DEVICE_UUIDS = "fb83f0dafd9e1d38dc05e7ae643e22a8,ae137c668a40f5acaab90a83f7cda175"
 COMMON = ["--slabs", "2", "--device-map", "0,1", "--reynolds", "5000", "--keep-checkpoints", "0", "--expect", "release",
           "--solver", "v7", "--require-uuid", DEVICE_UUIDS]
-# t_max is a cap, far above the estimates (steady near t = 310 coarse, t = 125 fine)
-COARSE_ARGUMENTS = ["--t-end", "100", "--t-max", "600", "--average-span", "20"]
+# t_max is a cap, far above the estimates (fine steady near t = 125). Coarse: the span of 2 t is what makes the runner keep
+# snapshots from t = 58 on (none before t_end - span), so warm_start_velocity.py finds one at the early stop
+COARSE_ARGUMENTS = ["--t-end", "60", "--t-max", "300", "--steady-tol", "3.3e-3", "--average-span", "2", "--initial-velocity", str(COARSE_WARM_FILE)]
 FINE_ARGUMENTS = ["--t-end", "40", "--t-max", "300", "--average-span", "20", "--checkpoint-time", "5"]
 IDLE_MINUTES = 20
 RETRY_IDLE_MINUTES = 3
@@ -118,7 +127,20 @@ def runner_environment() -> dict:
     return environment
 
 
-def run_stage(name: str, case: str, run_dir: pathlib.Path, extra: list[str]) -> int:
+def announce_swap(run_dir: pathlib.Path) -> None:
+    """Once, when the fine run passes SWAP_READY_TIME. The heartbeat may be caught mid-write: the next poll reads it again."""
+    if SWAP_READY.exists():
+        return
+    try:
+        heartbeat = json.loads((run_dir / "heartbeat.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return
+    if heartbeat.get("time", 0.0) >= SWAP_READY_TIME:
+        SWAP_READY.write_text(time.strftime("%Y-%m-%d %H:%M:%S\n"), encoding="utf-8")
+        log(f"fine reached t = {heartbeat['time']:.2f}: the 7900 XTX may be swapped in now (re5000_plan.md); the run goes on until then")
+
+
+def run_stage(name: str, case: str, run_dir: pathlib.Path, extra: list[str], announce: bool = False) -> int:
     """The runner until the run has its result.json. 0 = done; anything else stops the pipeline."""
     if (run_dir / "result.json").exists():
         log(f"{name}: result.json exists, skipped")
@@ -144,6 +166,8 @@ def run_stage(name: str, case: str, run_dir: pathlib.Path, extra: list[str]) -> 
             last_report = time.time()
             while process.poll() is None:
                 time.sleep(POLL_SECONDS)
+                if announce:
+                    announce_swap(run_dir)
                 if time.time() - last_report >= HEARTBEAT_LOG_SECONDS:
                     last_report = time.time()
                     heartbeat = run_dir / "heartbeat.json"
@@ -187,6 +211,7 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="print the commands and the card / disk state, start nothing")
     arguments = parser.parse_args()
     if arguments.check:
+        print("coarse warm:", "--source-run", COARSE_SOURCE, "--case", COARSE_CASE, "--out", COARSE_WARM_FILE)
         print("coarse:", "--case", COARSE_CASE, "--run-dir", COARSE_RUN, *COMMON, *COARSE_ARGUMENTS)
         print("warm:", "--source-run", COARSE_RUN, "--case", FINE_CASE, "--out", WARM_FILE)
         print("fine:", "--case", FINE_CASE, "--run-dir", FINE_RUN, *COMMON, *FINE_ARGUMENTS, "--initial-velocity", WARM_FILE)
@@ -202,6 +227,10 @@ def main() -> int:
     (STATE / "STOPPED").unlink(missing_ok=True)
     log(f"pipeline started, pid {os.getpid()}")
 
+    # before the wait: a set-up error shows now, not when the cards come free
+    if run_tool(STATE / "coarse_warm_done", [sys.executable, "docs/validation/cluster/warm_start_velocity.py", "--source-run", str(COARSE_SOURCE),
+                                             "--case", COARSE_CASE, "--out", str(COARSE_WARM_FILE)], required=True):
+        return 1
     if not (COARSE_RUN / "result.json").exists() or not (FINE_RUN / "result.json").exists():
         if not any(path.exists() for path in (COARSE_RUN / "meta.json", FINE_RUN / "meta.json")) or not (STATE / "started").exists():
             wait_for_idle(IDLE_MINUTES)
@@ -215,7 +244,7 @@ def main() -> int:
     if run_tool(STATE / "warm_start_done", [sys.executable, "docs/validation/cluster/warm_start_velocity.py", "--source-run", str(COARSE_RUN),
                                             "--case", FINE_CASE, "--out", str(WARM_FILE)], required=True):
         return 1
-    if run_stage("fine", FINE_CASE, FINE_RUN, [*FINE_ARGUMENTS, "--initial-velocity", str(WARM_FILE)]):
+    if run_stage("fine", FINE_CASE, FINE_RUN, [*FINE_ARGUMENTS, "--initial-velocity", str(WARM_FILE)], announce=True):
         return 1
     report(FINE_RUN, "fine")
     (STATE / "fine_done").write_text(time.strftime("%Y-%m-%d %H:%M:%S\n"), encoding="utf-8")

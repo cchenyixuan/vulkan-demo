@@ -6,13 +6,33 @@
 
 | 阶段 | 算例 | 设备 | 停止规则 | 检查点 | 估时 |
 |---|---|---|---|---|---|
-| 粗 | `lid_driven_cavity_2d_n1000_re5000_adami`，1,046,529 粒子，dt 7.5e-6 | 2×5090 | 窗口变化 < 1e-3 后再平均 20 t；上限 t = 600 | 全留，每 10 t | t ≈ 330，约 15 h |
-| 细 | `lid_driven_cavity_2d_n2500_re5000_adami`，6,365,529 粒子，dt 3e-6，从粗网格末态 warm 启动 | 2×5090 | 同上；最早 t = 40，上限 t = 300 | 全留，每 5 t | t ≈ 145，约 77 h（61–106 h） |
-| 混跑 | 同一细算例，`--start-from` 检查点 | 5090 + 7900 XTX | 与细网格同一停止步 | 无 | 10 t 约 6.6 h |
+| 粗 | `lid_driven_cavity_2d_n1000_re5000_adami`，1,046,529 粒子，dt 7.5e-6，从 Re 3200 1000² 末态启动 | 2×5090 | 窗口变化 < 3.3e-3，最早 t = 60，上限 t = 300 | 全留，每 10 t | t ≈ 60–100，3–4 h |
+| 细 | `lid_driven_cavity_2d_n2500_re5000_adami`，6,365,529 粒子，dt 3e-6，从粗网格末态 warm 启动 | 2×5090 | t = 80 起可换卡；不换就继续走完整判据（窗口变化 < 1e-3 后再平均 20 t，上限 t = 300） | 全留，每 5 t | 到 t = 80 约 42 h；走完 t ≈ 145 约 77 h |
+| 混跑 | 同一细算例，`--start-from` 检查点 | 5090 + 7900 XTX | 与 2×5090 重叠 10 t | 无 | 约 6.6 h |
 
 前两段由 `re5000_pipeline.py` 自动完成，第三段要手动换卡。估时来自外推（2026-11-02 的推算），不是实测。
 
-`--start-from` 会复制源运行的 `steady.json`，所以混跑停在细网格的同一步，能和 2×5090 在同一时间窗上逐点比较。检查点每 5 t 一个，就是为了能选混跑的起点。
+## 为什么这样缩短（用户 2026-11-02：越快越好）
+
+都来自已完成的 Re 3200 运行（1000² 冷启动 → 2000² warm）。数字由 `docs/validation/cluster/re3200_window_errors.py` 和 `re3200_coarse_vs_fine.py` 算出，在工作树根目录运行。粗网格的距离是对细网格尾部外推极限（Aitken）的距离。
+
+- 粗网格只为细网格提供初值，不需要收敛到自己的稳态。Re 3200 粗网格离细网格末态最近是在 t ≈ 135（窗口变化约 3.3e-3），距离 0.77 %；跑到稳态反而变成 1.17 %。粗网格的稳态越过了细网格的稳态（动能 54.2 对 53.0）。
+- Re 3200 与 Re 5000 的 Marchi 解相差 5.9 / 6.5 %，相当于粗网格冷启动已走完前段，所以从 Re 3200 末态启动。效果未实测。
+- 细网格对 Marchi 的误差很快走平，后面是慢模态在收尾（τ = 48.7）：
+
+| Re 3200 细网格窗口 | u / v 相对 L2 | 对应 Re 5000 时刻（× 1.6） | 到此的细网格耗时 |
+|---|---|---|---|
+| t 20–30 | 0.46 / 0.53 % | 48 | 25 h |
+| t 30–40 | 0.40 / 0.46 % | 64 | 34 h |
+| t 40–50 | 0.36 / 0.43 % | 80 | 42 h |
+| t 50–60 | 0.35 / 0.40 % | 96 | 51 h |
+| t 69.6–89.6（完整判据） | 0.35 / 0.38 % | 145 | 77 h |
+
+没有直接放宽 `--steady-tol`：Re 5000 的 τ ≈ 78，同样的窗口变化对应 1.6 倍的剩余距离，放宽判据比 Re 3200 上看起来危险。所以用固定时刻 t = 80 提示换卡，同时让运行继续，晚换只会更准。× 1.6 是 τ 之比的外推，以运行中实际的窗口数据为准。
+
+t = 80 不满足完整稳态判据。混跑与 2×5090 的逐点比较不受影响，因为两边是同一时间窗；对 Marchi 的误差要标明是 t = 80 附近的值。
+
+检查点每 5 t 一个，就是为了能选混跑的起点。
 
 ## 流水线
 
@@ -31,8 +51,10 @@ cd C:\Users\cchen\PycharmProjects\vulkan-demo-v7-rc3
 
 ## 混跑（细网格结束后，手动）
 
+`pipeline.log` 出现 `the 7900 XTX may be swapped in now`（同时生成 `pipeline_state/ready_for_swap`）后随时可以换。细网格不用等它结束，关机时它留下的检查点就够用。
+
 1. 关机，换上 7900 XTX。Vulkan 设备序：[0] 5090，[1] 7900 XTX，[2] 核显。这之后 `--require-uuid` 的两张 5090 不再匹配，不要重启流水线的细网格阶段。
-2. 选起点：`<fine run>/checkpoints/` 里比停止时刻早 10 t 左右的检查点（按需 5 / 10 / 15 / 20 t）。
+2. 选起点：`<fine run>/checkpoints/` 里倒数第 3 个检查点（早最后一个 10 t），记它的时刻为 T0，重叠窗口是 [T0, T0 + 10]，`T = T0 + 10`。
 3. 标定权重：`vulkan-demo-xv` 的 E2 / E3 里校准比值 1.98–2.05，先按 1.3333,0.6667，切口约在第 336 列（5090 约 423 万，XTX 约 213 万）。用 `--max-steps` 短跑看两边的相位时间再定。
 4. 运行：
 
@@ -40,10 +62,10 @@ cd C:\Users\cchen\PycharmProjects\vulkan-demo-v7-rc3
 python -m experiment.validation.cavity_runner --case cases/lid_driven_cavity_2d_n2500_re5000_adami/case.yaml
     --run-dir logs/validation/cavity_re5000_v7/n2500_k2xv_float32_xi0p001_eps0p0025_adami_re5000
     --start-from <checkpoint> --slabs 2 --device-map 0,1 --weights 1.3333,0.6667 --reynolds 5000 --expect release --solver v7
-    --t-end 40 --t-max 300 --average-span 20
+    --t-end 40 --t-max <T> --average-span 20
 ```
 
-环境变量同流水线的 `runner_environment()`。`--t-end / --t-max / --average-span` 必须与细网格相同，否则停止步不同。
+环境变量同流水线的 `runner_environment()`。`--t-max <T>` 让混跑停在重叠窗口的末端。如果细网格已经走完完整判据，`--start-from` 会复制它的 `steady.json`，这时改用细网格的 `--t-max 300`，混跑就停在同一步。
 
 ## 验证
 
@@ -55,3 +77,4 @@ python -m experiment.validation.cavity_runner --case cases/lid_driven_cavity_2d_
 
 - 启动步修复（分支 `bootstrap-density-fix`）不在这棵树上，以便与 Re 1000 / 3200 和 `xv` 使用同一份求解器。测得的影响到 t = 0.03 已进入噪声底。
 - `cavity_runner.py` 比 Re 3200 时多了 `--weights`，默认行为不变。
+- 粗网格不是冷启动，也没有收敛到自己的稳态，所以这次没有 Re 5000 1000² 的收敛结果可报。需要时从它的末检查点 `--start-from` 续跑即可。细网格的稳态与初值无关。
