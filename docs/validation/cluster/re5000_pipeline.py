@@ -3,9 +3,9 @@ of the Re = 3200 runs (solver experiment/v7 = tree of tag v7-rc3, release switch
 
     1. warm_start_velocity.py: the finished Re 3200 1000^2 state -> initial velocities of the Re 5000 1000^2 case
     2. wait until the cards are free
-    3. coarse: 1000^2 K = 2 from them, stopped early (user 2026-11-02: as fast as possible). It only feeds the fine run, and
-       on Re 3200 the coarse state closest to the fine end state was at a window change of 3.3e-3, not at the coarse's own
-       steady state (0.77 % against 1.17 %)
+    3. coarse: 1000^2 from them, to the runner's steady rule (1e-3 per window, then 20 t of averaging). User 2026-11-02, after
+       an early stop at 3.3e-3 ran for 40 minutes: that stop came from the cold-started Re 3200 run and was never checked on
+       this start. Snapshots are kept from t = 40, so the state the fine run starts from can still be chosen afterwards
     4. warm_start_velocity.py: the coarse final snapshot -> initial velocities of the 2500^2 case
     5. fine: 2500^2 K = 2 from them, every checkpoint kept, one every 5 t, for the 5090 + 7900 XTX continuation. At t = 80
        pipeline.log says the card may be swapped; the run goes on towards the full stop rule until it is
@@ -52,9 +52,8 @@ SWAP_READY_TIME = 80.0  # 1.6 x the Re 3200 t = 50, where its error against Marc
 DEVICE_UUIDS = "fb83f0dafd9e1d38dc05e7ae643e22a8,ae137c668a40f5acaab90a83f7cda175"
 COMMON = ["--slabs", "2", "--device-map", "0,1", "--reynolds", "5000", "--keep-checkpoints", "0", "--expect", "release",
           "--solver", "v7", "--require-uuid", DEVICE_UUIDS]
-# t_max is a cap, far above the estimates (fine steady near t = 125). Coarse: the span of 2 t is what makes the runner keep
-# snapshots from t = 58 on (none before t_end - span), so warm_start_velocity.py finds one at the early stop
-COARSE_ARGUMENTS = ["--t-end", "60", "--t-max", "300", "--steady-tol", "3.3e-3", "--average-span", "2", "--initial-velocity", str(COARSE_WARM_FILE)]
+# t_max is a cap, far above the estimates (fine steady near t = 125). The runner keeps snapshots from t_end - span = 40 on
+COARSE_ARGUMENTS = ["--t-end", "60", "--t-max", "300", "--steady-tol", "1e-3", "--average-span", "20", "--initial-velocity", str(COARSE_WARM_FILE)]
 FINE_ARGUMENTS = ["--t-end", "40", "--t-max", "300", "--average-span", "20", "--checkpoint-time", "5"]
 SINGLE_CARD = False
 # the ZeroTier machine's run (--single-card there), taken over by --take-over here; REMOTE_PW comes from the environment only
