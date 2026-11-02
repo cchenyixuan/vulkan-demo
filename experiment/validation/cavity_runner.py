@@ -370,7 +370,10 @@ def main() -> int:
                         help="start a fresh run from another run's checkpoints/c<step>.npz of the SAME case: the nine "
                              "restart fields as they are, the global step numbering kept (samples / snapshots / "
                              "checkpoints on the source's steps), the chain cut by the fluid distribution of that state "
-                             "with equal weights, the source's steady.json copied (same stop step)")
+                             "with --weights, the source's steady.json copied (same stop step)")
+    parser.add_argument("--weights", default=None, metavar="W0,W1,...",
+                        help="slab weights in device-map order (default equal; 2026-11-02, for the 5090 + 7900 XTX "
+                             "continuation, where the cards differ by about 2)")
     parser.add_argument("--expect", choices=sorted(EXPECTED), required=True)
     parser.add_argument("--t-end", type=float, default=100.0, help="earliest stop time")
     parser.add_argument("--t-max", type=float, default=200.0, help="latest stop time (steady or not)")
@@ -473,7 +476,9 @@ def main() -> int:
     point_sets["u_dense"] = ("u", sampling.centerline_points(frames["wall"], dense_reference, "u"))
     point_sets["v_dense"] = ("v", sampling.centerline_points(frames["wall"], dense_reference, "v"))
 
-    weights = [1.0] * arguments.slabs
+    weights = [float(item) for item in arguments.weights.split(",")] if arguments.weights else [1.0] * arguments.slabs
+    if len(weights) != arguments.slabs or min(weights) <= 0.0:
+        sys.exit(f"[cavity] --weights {arguments.weights}: needs {arguments.slabs} positive values")
     initial_velocity = None
     if arguments.initial_velocity:
         velocity_path = pathlib.Path(arguments.initial_velocity).resolve()
