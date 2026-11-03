@@ -66,7 +66,7 @@ cd C:\Users\cchen\PycharmProjects\vulkan-demo-v7-rc3
 `pipeline.log` 出现 `the 7900 XTX may be swapped in now`（同时生成 `pipeline_state/ready_for_swap`）后随时可以换。细网格不用等它结束，关机时它留下的检查点就够用。
 
 1. 关机，换上 7900 XTX。Vulkan 设备序：[0] 5090，[1] 7900 XTX，[2] 核显。这之后 `--require-uuid` 的两张 5090 不再匹配，不要重启流水线的细网格阶段。
-2. 选起点：`<fine run>/checkpoints/` 里倒数第 3 个检查点（早最后一个 10 t），记它的时刻为 T0，重叠窗口是 [T0, T0 + 10]，`T = T0 + 10`。
+2. 选起点：从 ZeroTier 机器取最新的细网格检查点（每 2 t 一个，约 0.89 GB，按 38 MB/s 约半分钟），记它的时刻为 T0，重叠窗口是 [T0, T0 + 10]，`T = T0 + 10`。远端单卡运行不停，等它也跑过 T0 + 10，两边就有了共同窗口。建议 T0 ≈ 70–80（2026-11-05 夜到 11-06 上午）：Re 3200 细网格的单样本误差在 t = 40 / 50 离终值 +0.02 / +0.04 和 +0.00 / +0.02（u / v），按 × 1.6 对应 t ≈ 64 / 80；Re 5000 到 t = 15.7 的下降比 × 1.6 慢一些，所以取偏晚的一端。只做逐点比较的话，更早也可以，但对 Marchi 的误差要注明是哪个时刻的值。
 3. 标定权重：`vulkan-demo-xv` 的 E2 / E3 里校准比值 1.98–2.05，先按 1.3333,0.6667，切口约在第 336 列（5090 约 423 万，XTX 约 213 万）。用 `--max-steps` 短跑看两边的相位时间再定。
 4. 运行：
 
@@ -81,7 +81,7 @@ python -m experiment.validation.cavity_runner --case cases/lid_driven_cavity_2d_
 
 ## 验证
 
-- 对照一：同一时间窗内，混跑与 2×5090 的 56 点平均速度差，用 max |Δ|/σ 和接缝带 / 对照带，方法同 `adami_k8_report.py`（`--reynolds 5000 --k2 none`）。
+- 对照一：同一时间窗内，混跑与参照运行的 56 点平均速度差（参照运行是 ZeroTier 机器上的单卡 K = 1，没有接缝；混跑接缝在第 336 列附近），用 max |Δ|/σ 和接缝带 / 对照带，方法同 `adami_k8_report.py`（`--reynolds 5000 --k2 none`）。
 - 对照二：与 Marchi 2021 Re 5000（`docs/validation/data/marchi2021_re5000.csv`，Tables 27–29，由 PDF 解析）的相对 L2 和极值。
 - 2×5090 与混跑的接缝位置不同（第 253 列 / 第 336 列），都不在同一批点上，这对检验有利。
 
