@@ -15,6 +15,10 @@ of the Re = 3200 runs (solver experiment/v7 = tree of tag v7-rc3, release switch
 its newest checkpoint, which keeps running as the K = 1 reference (same global steps, so every sample can be compared). The
 slab weights come from short probes at three work ratios first. No idle wait: nvidia-smi sees one card only.
 
+--boost (user 2026-11-03, before the swap): the two 5090 here push the run on overnight, from the ZeroTier run's newest
+checkpoint at the moment the cards are idle (that run goes on), a checkpoint every 1 t so that the swap loses little.
+--mixed afterwards starts from the boost run's newest checkpoint when there is one, else from the ZeroTier run's.
+
 Idempotent: a stage with its result.json / marker is skipped, so a rerun after a reboot continues (the runner resumes from
 its newest checkpoint). A crash is retried with --resume, after the cards are idle again. An invariant violation stops the
 pipeline: it is never retried. Two quick failures in a row (a set-up error) stop it too. One instance only (pipeline.pid).
@@ -68,8 +72,10 @@ REMOTE_FINE = "n2500_k1_float32_xi0p001_eps0p0025_adami_re5000_warm"
 REMOTE_WARM = "warm_n2500_from_n1000_k1_re5000.npz"
 REMOTE_POLL_SECONDS = 120
 REMOTE_GIVE_UP_SECONDS = 1800
+BOOST = False
+BOOST_RUN = RUNS / "n2500_k2_float32_xi0p001_eps0p0025_adami_re5000_from_k1"
 MIXED = False
-MIXED_RUN = RUNS / "n2500_k2xv_float32_xi0p001_eps0p0025_adami_re5000"
+MIXED_RUN =RUNS / "n2500_k2xv_float32_xi0p001_eps0p0025_adami_re5000"
 MIXED_PROBES = RUNS / "mixed_probes"
 MIXED_RATIOS = (1.8, 2.0, 2.2)        # 5090 : XTX work ratio; vulkan-demo-xv E1 / E2 calibrated 1.98-2.05 (simple walls)
 MIXED_PROBE_STEPS = 12000             # the 7900 XTX needs ~5000 steps to reach its steady clock: the rate is the second half
@@ -96,6 +102,13 @@ def configure_single_card(uuid: str) -> None:
     FINE_RUN = RUNS / "n2500_k1_float32_xi0p001_eps0p0025_adami_re5000_warm"
     WARM_FILE = RUNS / "warm_n2500_from_n1000_k1_re5000.npz"
     FINE_ARGUMENTS = ["--t-end", "40", "--t-max", "300", "--average-span", "20", "--checkpoint-time", "2"]
+
+
+def configure_boost() -> None:
+    """The two 5090 here (COMMON as by default, both UUIDs required), a checkpoint every 1 t (about 30 minutes)."""
+    global BOOST, FINE_ARGUMENTS
+    BOOST = True
+    FINE_ARGUMENTS = ["--t-end", "40", "--t-max", "300", "--average-span", "20", "--checkpoint-time", "1"]
 
 
 def configure_mixed(uuids: str | None) -> None:
@@ -299,11 +312,11 @@ def fetch_remote_start(sftp, marker: pathlib.Path) -> list[str]:
             (local / "steady.json").write_text(steady, encoding="utf-8")
         remote_fetch(sftp, f"{fine}/checkpoints/{entry['file']}", checkpoint)
         start = ["--start-from", str(checkpoint)]
-        log(f"take-over: fine continues from the remote t = {entry['time']:.2f}, {entry['file']}")
+        log(f"fetched the remote fine checkpoint t = {entry['time']:.2f}, {entry['file']}: the local run starts from it")
     else:
         remote_fetch(sftp, f"{REMOTE_RUNS}/{REMOTE_WARM}", RUNS / REMOTE_WARM)
         start = ["--initial-velocity", str(RUNS / REMOTE_WARM)]
-        log("take-over: no remote fine checkpoint yet, fine starts from the remote warm file")
+        log("no remote fine checkpoint yet: the local run starts from the remote warm file")
     marker.write_text(json.dumps(start), encoding="utf-8")
     return start
 
@@ -341,13 +354,24 @@ def take_over_from_remote() -> list[str] | None:
         time.sleep(REMOTE_POLL_SECONDS)
 
 
-def mixed_start() -> list[str]:
+def newest_checkpoint(run_dir: pathlib.Path) -> tuple[pathlib.Path, dict] | None:
+    """The newest manifest entry of a local run whose file is there (the file is written before its manifest line)."""
+    manifest = run_dir / "checkpoints" / "manifest.jsonl"
+    if not manifest.exists():
+        return None
+    for line in reversed(manifest.read_text(encoding="utf-8").strip().splitlines()):
+        entry = json.loads(line)
+        if (run_dir / "checkpoints" / entry["file"]).exists():
+            return run_dir / "checkpoints" / entry["file"], entry
+    return None
+
+
+def remote_start(marker: pathlib.Path) -> list[str]:
     """The newest checkpoint of the ZeroTier fine run, fetched once (marker); that run is left running as the reference."""
-    marker = STATE / "mixed_start.json"
     if marker.exists():
         return json.loads(marker.read_text(encoding="utf-8"))
     if "REMOTE_PW" not in os.environ:
-        raise SystemExit("--mixed needs REMOTE_PW for the first start (the checkpoint comes from the ZeroTier machine)")
+        raise SystemExit("needs REMOTE_PW for the first start (the checkpoint comes from the ZeroTier machine)")
     client, sftp = remote_session()
     try:
         start = fetch_remote_start(sftp, marker)
@@ -355,7 +379,21 @@ def mixed_start() -> list[str]:
         client.close()
     if start[0] != "--start-from":
         marker.unlink()
-        raise SystemExit("--mixed: the remote fine run has no checkpoint yet")
+        raise SystemExit("the remote fine run has no checkpoint yet")
+    return start
+
+
+def mixed_start() -> list[str]:
+    """The boost run's newest checkpoint when it has one, else the ZeroTier run's; fixed by the marker from then on."""
+    marker = STATE / "mixed_start.json"
+    if marker.exists():
+        return json.loads(marker.read_text(encoding="utf-8"))
+    local = newest_checkpoint(BOOST_RUN)
+    if local is None:
+        return remote_start(marker)
+    start = ["--start-from", str(local[0])]
+    marker.write_text(json.dumps(start), encoding="utf-8")
+    log(f"mixed: continues the 2x5090 boost run from its t = {local[1]['time']:.2f}, {local[0].name}")
     return start
 
 
@@ -421,13 +459,23 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="print the commands and the card / disk state, start nothing")
     parser.add_argument("--single-card", default=None, metavar="UUID", help="one 5090, K = 1, no wait (the ZeroTier machine)")
     parser.add_argument("--take-over", action="store_true", help="when the cards are free, continue the ZeroTier machine's run")
-    parser.add_argument("--mixed", action="store_true", help="5090 + 7900 XTX here, from the ZeroTier run's newest checkpoint")
+    parser.add_argument("--boost", action="store_true", help="2x5090 here once idle, from the ZeroTier run's newest checkpoint")
+    parser.add_argument("--mixed", action="store_true", help="5090 + 7900 XTX here, from the boost run's or the ZeroTier run's newest checkpoint")
     parser.add_argument("--mixed-uuids", default=None, metavar="UUID0,UUID1", help="--require-uuid of the mixed run (5090, XTX)")
     arguments = parser.parse_args()
     if arguments.single_card:
         configure_single_card(arguments.single_card)
+    if arguments.boost and (arguments.mixed or arguments.single_card or arguments.take_over):
+        parser.error("--boost goes alone")
+    if arguments.boost:
+        configure_boost()
     if arguments.mixed:
         configure_mixed(arguments.mixed_uuids)
+    if arguments.check and arguments.boost:
+        print("boost:", "--case", FINE_CASE, "--run-dir", BOOST_RUN, *COMMON, *FINE_ARGUMENTS,
+              "--start-from <newest remote checkpoint once idle>", "| marker", (STATE / "boost_start.json").exists())
+        print("cards", card_states(), "idle now:", cards_idle(), "free disk GB", round(shutil.disk_usage(_ROOT).free / 1e9))
+        return 0
     if arguments.check and arguments.mixed:
         print("mixed probes: ratios", MIXED_RATIOS, "--max-steps", MIXED_PROBE_STEPS, "into", MIXED_PROBES)
         print("mixed:", "--case", FINE_CASE, "--run-dir", MIXED_RUN, *COMMON, *FINE_ARGUMENTS, "--weights <probe>",
@@ -450,6 +498,18 @@ def main() -> int:
     PID_FILE.write_text(str(os.getpid()), encoding="utf-8")
     (STATE / "STOPPED").unlink(missing_ok=True)
     log(f"pipeline started, pid {os.getpid()}")
+
+    if BOOST:
+        marker = STATE / "boost_start.json"
+        # the wait comes first, so that the remote checkpoint is the newest one when the cards come free
+        wait_for_idle(RETRY_IDLE_MINUTES if marker.exists() else IDLE_MINUTES)
+        start = remote_start(marker)
+        log(f"boost: starts {' '.join(start)}")
+        if run_stage("boost", FINE_CASE, BOOST_RUN, [*FINE_ARGUMENTS, *start]):
+            return 1
+        report(BOOST_RUN, "boost")
+        log("boost stage done (it reached the stop rule before any swap)")
+        return 0
 
     if MIXED:
         start = mixed_start()
