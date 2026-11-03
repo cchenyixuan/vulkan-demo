@@ -11,6 +11,10 @@ of the Re = 3200 runs (solver experiment/v7 = tree of tag v7-rc3, release switch
        pipeline.log says the card may be swapped; the run goes on towards the full stop rule until it is
     6. stop. The mixed continuation needs the card swapped by hand: docs/validation/cluster/re5000_plan.md
 
+--mixed (user 2026-11-03): this box with the 7900 XTX in place of one 5090 continues the ZeroTier machine's fine run from
+its newest checkpoint, which keeps running as the K = 1 reference (same global steps, so every sample can be compared). The
+slab weights come from short probes at three work ratios first. No idle wait: nvidia-smi sees one card only.
+
 Idempotent: a stage with its result.json / marker is skipped, so a rerun after a reboot continues (the runner resumes from
 its newest checkpoint). A crash is retried with --resume, after the cards are idle again. An invariant violation stops the
 pipeline: it is never retried. Two quick failures in a row (a set-up error) stop it too. One instance only (pipeline.pid).
@@ -64,6 +68,11 @@ REMOTE_FINE = "n2500_k1_float32_xi0p001_eps0p0025_adami_re5000_warm"
 REMOTE_WARM = "warm_n2500_from_n1000_k1_re5000.npz"
 REMOTE_POLL_SECONDS = 120
 REMOTE_GIVE_UP_SECONDS = 1800
+MIXED = False
+MIXED_RUN = RUNS / "n2500_k2xv_float32_xi0p001_eps0p0025_adami_re5000"
+MIXED_PROBES = RUNS / "mixed_probes"
+MIXED_RATIOS = (1.8, 2.0, 2.2)        # 5090 : XTX work ratio; vulkan-demo-xv E1 / E2 calibrated 1.98-2.05 (simple walls)
+MIXED_PROBE_STEPS = 12000             # the 7900 XTX needs ~5000 steps to reach its steady clock: the rate is the second half
 IDLE_MINUTES = 20
 RETRY_IDLE_MINUTES = 3
 HEADLESS_UTILIZATION_LIMIT = 5        # per cent; the display card also draws the desktop, hence its own limit
@@ -87,6 +96,18 @@ def configure_single_card(uuid: str) -> None:
     FINE_RUN = RUNS / "n2500_k1_float32_xi0p001_eps0p0025_adami_re5000_warm"
     WARM_FILE = RUNS / "warm_n2500_from_n1000_k1_re5000.npz"
     FINE_ARGUMENTS = ["--t-end", "40", "--t-max", "300", "--average-span", "20", "--checkpoint-time", "2"]
+
+
+def configure_mixed(uuids: str | None) -> None:
+    """This box after the 7900 XTX went in for one 5090 (device order [0] 5090, [1] XTX): K = 2, weights from the probes,
+    the same stop rule as the fine run, a checkpoint every 5 t (disk: about 0.9 GB each)."""
+    global MIXED, COMMON, FINE_ARGUMENTS
+    MIXED = True
+    COMMON = ["--slabs", "2", "--device-map", "0,1", "--reynolds", "5000", "--keep-checkpoints", "0", "--expect", "release",
+              "--solver", "v7"]
+    if uuids:
+        COMMON += ["--require-uuid", uuids]
+    FINE_ARGUMENTS = ["--t-end", "40", "--t-max", "300", "--average-span", "20", "--checkpoint-time", "5"]
 
 
 def log(message: str) -> None:
@@ -123,7 +144,7 @@ def cards_idle() -> bool:
 
 def wait_for_idle(minutes: int) -> None:
     """Idle at every poll for the given minutes on end: a gap between two phases of another job must not start a run."""
-    if SINGLE_CARD:
+    if SINGLE_CARD or MIXED:
         return
     needed = minutes * 60 // POLL_SECONDS
     streak = 0
@@ -251,8 +272,7 @@ def remote_fetch(sftp, source: str, target: pathlib.Path) -> None:
 
 def finish_take_over(client, sftp, marker: pathlib.Path) -> list[str]:
     """Stop the remote pipeline, then its runner (in this order: the pipeline would retry), and fetch what the fine run
-    starts from: the newest checkpoint of the manifest (checkpoints are atomic, the manifest line comes after the file), or
-    the remote warm file when it has no checkpoint yet."""
+    starts from."""
     fine = f"{REMOTE_RUNS}/{REMOTE_FINE}"
     for path in (f"{REMOTE_RUNS}/pipeline_state/pipeline.pid", f"{fine}/runner.pid"):
         pid = (remote_text(sftp, path) or "").strip()
@@ -260,6 +280,14 @@ def finish_take_over(client, sftp, marker: pathlib.Path) -> list[str]:
             _, stdout, _ = client.exec_command(f"taskkill /F /T /PID {pid}")
             log(f"take-over: stopping remote pid {pid}: exit {stdout.channel.recv_exit_status()}")
     time.sleep(5)
+    return fetch_remote_start(sftp, marker)
+
+
+def fetch_remote_start(sftp, marker: pathlib.Path) -> list[str]:
+    """What a local fine run starts from: the newest checkpoint of the remote manifest (checkpoints are atomic, the manifest
+    line comes after the file) with the run's meta.json beside it, or the remote warm file when it has no checkpoint yet.
+    The arguments are written to the marker, so that a restart starts from the same file."""
+    fine = f"{REMOTE_RUNS}/{REMOTE_FINE}"
     manifest = (remote_text(sftp, f"{fine}/checkpoints/manifest.jsonl") or "").strip()
     if manifest:
         entry = json.loads(manifest.splitlines()[-1])
@@ -313,6 +341,75 @@ def take_over_from_remote() -> list[str] | None:
         time.sleep(REMOTE_POLL_SECONDS)
 
 
+def mixed_start() -> list[str]:
+    """The newest checkpoint of the ZeroTier fine run, fetched once (marker); that run is left running as the reference."""
+    marker = STATE / "mixed_start.json"
+    if marker.exists():
+        return json.loads(marker.read_text(encoding="utf-8"))
+    if "REMOTE_PW" not in os.environ:
+        raise SystemExit("--mixed needs REMOTE_PW for the first start (the checkpoint comes from the ZeroTier machine)")
+    client, sftp = remote_session()
+    try:
+        start = fetch_remote_start(sftp, marker)
+    finally:
+        client.close()
+    if start[0] != "--start-from":
+        marker.unlink()
+        raise SystemExit("--mixed: the remote fine run has no checkpoint yet")
+    return start
+
+
+def probe_rate(ratio: float, start: list[str]) -> float | None:
+    """Steps per second of one short probe at the 5090 : XTX work ratio, over the second half of its steps; None = it failed."""
+    weights = f"{2 * ratio / (ratio + 1):.4f},{2 / (ratio + 1):.4f}"
+    probe = MIXED_PROBES / f"ratio_{ratio:.2f}".replace(".", "p")
+    if probe.exists():
+        shutil.rmtree(probe)
+    MIXED_PROBES.mkdir(parents=True, exist_ok=True)
+    command = [sys.executable, "-m", "experiment.validation.cavity_runner", "--case", FINE_CASE, "--run-dir", str(probe), *COMMON,
+               *FINE_ARGUMENTS, "--weights", weights, "--max-steps", str(MIXED_PROBE_STEPS), *start]
+    log(f"mixed probe {ratio:.2f}: {' '.join(command[1:])}")
+    readings = []
+    with open(MIXED_PROBES / f"{probe.name}.out", "w", encoding="utf-8") as output:
+        process = subprocess.Popen(command, cwd=_ROOT, env=runner_environment(), stdout=output, stderr=subprocess.STDOUT,
+                                   creationflags=subprocess.CREATE_NO_WINDOW)
+        while process.poll() is None:
+            time.sleep(2)
+            try:
+                heartbeat = json.loads((probe / "heartbeat.json").read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            if not readings or heartbeat["step"] != readings[-1][0]:
+                readings.append((heartbeat["step"], heartbeat["unix"]))
+    if process.returncode != 0 or len(readings) < 4:
+        log(f"mixed probe {ratio:.2f}: exit {process.returncode}, {len(readings)} heartbeats, see {probe.name}.out")
+        return None
+    half = readings[0][0] + (readings[-1][0] - readings[0][0]) / 2
+    late = [reading for reading in readings if reading[0] >= half]
+    rate = (late[-1][0] - late[0][0]) / max(late[-1][1] - late[0][1], 1e-9)
+    log(f"mixed probe {ratio:.2f}: weights {weights}, {rate:.1f} steps/s over steps {late[0][0]}..{late[-1][0]}")
+    return rate
+
+
+def mixed_weights(start: list[str]) -> str | None:
+    """Slab weights: the run's own (meta.json) on a restart, otherwise those of the fastest probe. None = every probe failed."""
+    meta = MIXED_RUN / "meta.json"
+    if meta.exists():
+        return ",".join(f"{value:.4f}" for value in json.loads(meta.read_text(encoding="utf-8"))["weights"])
+    record = STATE / "mixed_probes.json"
+    rates = json.loads(record.read_text(encoding="utf-8")) if record.exists() else {}
+    for ratio in MIXED_RATIOS:
+        if f"{ratio:.2f}" not in rates:
+            rates[f"{ratio:.2f}"] = probe_rate(ratio, start)
+            record.write_text(json.dumps(rates, indent=1), encoding="utf-8")
+    measured = {float(key): value for key, value in rates.items() if value}
+    if not measured:
+        return None
+    ratio = max(measured, key=measured.get)
+    log(f"mixed: ratio {ratio:.2f} is the fastest ({measured[ratio]:.1f} steps/s of {measured})")
+    return f"{2 * ratio / (ratio + 1):.4f},{2 / (ratio + 1):.4f}"
+
+
 def report(run_dir: pathlib.Path, name: str) -> None:
     """The window against Marchi 2021 Re 5000 for the log; the pipeline goes on whatever it says (the user chose the stages)."""
     run_tool(STATE / f"{name}_decide_done", [sys.executable, "docs/validation/cluster/re3200_decide.py", "--run-dir", str(run_dir), "--reynolds", "5000",
@@ -324,9 +421,19 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="print the commands and the card / disk state, start nothing")
     parser.add_argument("--single-card", default=None, metavar="UUID", help="one 5090, K = 1, no wait (the ZeroTier machine)")
     parser.add_argument("--take-over", action="store_true", help="when the cards are free, continue the ZeroTier machine's run")
+    parser.add_argument("--mixed", action="store_true", help="5090 + 7900 XTX here, from the ZeroTier run's newest checkpoint")
+    parser.add_argument("--mixed-uuids", default=None, metavar="UUID0,UUID1", help="--require-uuid of the mixed run (5090, XTX)")
     arguments = parser.parse_args()
     if arguments.single_card:
         configure_single_card(arguments.single_card)
+    if arguments.mixed:
+        configure_mixed(arguments.mixed_uuids)
+    if arguments.check and arguments.mixed:
+        print("mixed probes: ratios", MIXED_RATIOS, "--max-steps", MIXED_PROBE_STEPS, "into", MIXED_PROBES)
+        print("mixed:", "--case", FINE_CASE, "--run-dir", MIXED_RUN, *COMMON, *FINE_ARGUMENTS, "--weights <probe>",
+              "--start-from <newest remote checkpoint>", "| marker", (STATE / "mixed_start.json").exists(),
+              "| free disk GB", round(shutil.disk_usage(_ROOT).free / 1e9))
+        return 0
     if arguments.check:
         print("coarse warm:", "--source-run", COARSE_SOURCE, "--case", COARSE_CASE, "--out", COARSE_WARM_FILE)
         print("coarse:", "--case", COARSE_CASE, "--run-dir", COARSE_RUN, *COMMON, *COARSE_ARGUMENTS)
@@ -343,6 +450,19 @@ def main() -> int:
     PID_FILE.write_text(str(os.getpid()), encoding="utf-8")
     (STATE / "STOPPED").unlink(missing_ok=True)
     log(f"pipeline started, pid {os.getpid()}")
+
+    if MIXED:
+        start = mixed_start()
+        log(f"mixed: starts {' '.join(start)}")
+        weights = mixed_weights(start)
+        if weights is None:
+            return stop("mixed: every probe failed, see mixed_probes/*.out")
+        if run_stage("mixed", FINE_CASE, MIXED_RUN, [*FINE_ARGUMENTS, "--weights", weights, *start]):
+            return 1
+        report(MIXED_RUN, "mixed")
+        (STATE / "mixed_done").write_text(time.strftime("%Y-%m-%d %H:%M:%S\n"), encoding="utf-8")
+        log("mixed stage done: compare it with the ZeroTier K = 1 run on common windows (re5000_plan.md)")
+        return 0
 
     # before the wait: a set-up error shows now, not when the cards come free
     if run_tool(STATE / "coarse_warm_done", [sys.executable, "docs/validation/cluster/warm_start_velocity.py", "--source-run", str(COARSE_SOURCE),

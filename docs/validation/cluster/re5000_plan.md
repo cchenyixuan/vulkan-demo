@@ -61,7 +61,21 @@ cd C:\Users\cchen\PycharmProjects\vulkan-demo-v7-rc3
 - 崩溃自动 `--resume`，最多 6 次。不变量违反直接停，不重试；两次 3 分钟内失败也停。停止原因写在 `pipeline_state/STOPPED`。
 - 跑的过程中不要改这个工作树的求解器和算例：`--resume` 会比较 physics 与 sampling 哈希，不同就拒绝。
 
-## 混跑（细网格结束后，手动）
+## 混跑：`--mixed`（2026-11-03 起，本机空出来就换卡）
+
+ZeroTier 机器上的单卡细网格不停，作 K = 1 参照。本机从它最新的检查点接着跑，判据和细网格相同。两边的全局步号一致，所以每个样本都能逐点比较，不只是一个 10 t 的重叠窗口。混跑跑在前面，参照晚一些才覆盖到同样的时刻。
+
+1. 关机，用 7900 XTX 换下一张 5090。开机后确认设备序：[0] 5090，[1] 7900 XTX，[2] 核显。
+2. 启动（分离进程）：
+   `powershell -NoProfile -Command "$env:REMOTE_PW='<密码>'; Start-Process -FilePath 'C:\Users\cchen\PycharmProjects\vulkan-demo\.venv\Scripts\python.exe' -ArgumentList 'docs\validation\cluster\re5000_pipeline.py','--mixed' -WorkingDirectory 'C:\Users\cchen\PycharmProjects\vulkan-demo-v7-rc3' -WindowStyle Hidden"`
+   设备 UUID 确认后，可以再加 `'--mixed-uuids','<5090>,<XTX>'`。
+3. 它先取远端最新的检查点（约 0.9 GB，起点记在 `pipeline_state/mixed_start.json`，重启后不变）。然后在功比 1.8 / 2.0 / 2.2 上各短跑 12000 步，取后一半计速（`pipeline_state/mixed_probes.json`），用最快的那组权重跑 `n2500_k2xv_float32_xi0p001_eps0p0025_adami_re5000`。每 5 t 一个检查点，崩溃自动 `--resume`。
+4. 重启电脑后用同一条命令接着跑。起点和权重都已记下，不再需要密码。
+5. 速度未实测，估计 130–140 步/秒（1.4–1.5 t/h）。磁盘：检查点每个约 0.9 GB，加上 t = 20 起的快照，跑到 t ≈ 150 约需 60 GB，本机剩余 177 GB。
+
+下面的旧步骤（t = 80 后从细网格的检查点只跑 10 t）只在不换卡、继续用两张 5090 时才用。
+
+## 混跑（旧步骤：细网格结束后，手动）
 
 `pipeline.log` 出现 `the 7900 XTX may be swapped in now`（同时生成 `pipeline_state/ready_for_swap`）后随时可以换。细网格不用等它结束，关机时它留下的检查点就够用。
 
