@@ -461,6 +461,8 @@ def main() -> int:
     parser.add_argument("--take-over", action="store_true", help="when the cards are free, continue the ZeroTier machine's run")
     parser.add_argument("--boost", action="store_true", help="2x5090 here once idle, from the ZeroTier run's newest checkpoint")
     parser.add_argument("--mixed", action="store_true", help="5090 + 7900 XTX here, from the boost run's or the ZeroTier run's newest checkpoint")
+    parser.add_argument("--start-at", default=None, metavar="'YYYY-MM-DD HH:MM'",
+                        help="--boost: sleep until then, then a short idle check instead of the 20 minutes")
     parser.add_argument("--mixed-uuids", default=None, metavar="UUID0,UUID1", help="--require-uuid of the mixed run (5090, XTX)")
     arguments = parser.parse_args()
     if arguments.single_card:
@@ -501,8 +503,16 @@ def main() -> int:
 
     if BOOST:
         marker = STATE / "boost_start.json"
-        # the wait comes first, so that the remote checkpoint is the newest one when the cards come free
-        wait_for_idle(RETRY_IDLE_MINUTES if marker.exists() else IDLE_MINUTES)
+        # the wait comes first, so that the remote checkpoint is the newest one when the cards come free; with --start-at
+        # (the user names the time the cards are free) only the short idle check follows it
+        idle_minutes = RETRY_IDLE_MINUTES if marker.exists() else IDLE_MINUTES
+        if arguments.start_at:
+            target = time.mktime(time.strptime(arguments.start_at, "%Y-%m-%d %H:%M"))
+            if time.time() < target:
+                log(f"boost: sleeping until {arguments.start_at} (user), then {RETRY_IDLE_MINUTES} idle minutes")
+                time.sleep(target - time.time())
+            idle_minutes = RETRY_IDLE_MINUTES
+        wait_for_idle(idle_minutes)
         start = remote_start(marker)
         log(f"boost: starts {' '.join(start)}")
         if run_stage("boost", FINE_CASE, BOOST_RUN, [*FINE_ARGUMENTS, *start]):
