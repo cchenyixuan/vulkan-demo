@@ -17,7 +17,10 @@ slab weights come from short probes at three work ratios first. No idle wait: nv
 
 --boost (user 2026-11-03, before the swap): the two 5090 here push the run on overnight, from the ZeroTier run's newest
 checkpoint at the moment the cards are idle (that run goes on), a checkpoint every 1 t so that the swap loses little.
---mixed afterwards starts from the boost run's newest checkpoint when there is one, else from the ZeroTier run's.
+--mixed afterwards starts from the boost run's newest checkpoint when there is one, else from the ZeroTier run's. A run
+started with --start-from has no samples before its start, so the runner skips its first two window tests (the boost run,
+from t = 20.10, made no test at t = 30.15); the mixed run therefore gets the boost run's samples up to its start step copied
+in (seed_samples) and its first window test is complete.
 
 Idempotent: a stage with its result.json / marker is skipped, so a rerun after a reboot continues (the runner resumes from
 its newest checkpoint). A crash is retried with --resume, after the cards are idle again. An invariant violation stops the
@@ -197,8 +200,35 @@ def announce_swap(run_dir: pathlib.Path) -> None:
         log(f"fine reached t = {heartbeat['time']:.2f}: the 7900 XTX may be swapped in now (re5000_plan.md); the run goes on until then")
 
 
-def run_stage(name: str, case: str, run_dir: pathlib.Path, extra: list[str], announce: bool = False) -> int:
-    """The runner until the run has its result.json. 0 = done; anything else stops the pipeline."""
+def seed_samples(run_dir: pathlib.Path, start_checkpoint: pathlib.Path) -> bool:
+    """Copies the samples of the run that holds start_checkpoint, up to its step, into the new run directory: the runner
+    keeps the rows at or before its start step and builds the window means from them, so the windows around the start
+    are complete. The runner refuses a fresh directory with samples.jsonl unless --resume is given; with no manifest it then
+    starts from --start-from. False = no samples next to the checkpoint (one fetched from the ZeroTier machine)."""
+    source = start_checkpoint.resolve().parent.parent
+    start_step = int(start_checkpoint.stem[1:])
+    if not (source / "samples.jsonl").exists():
+        log(f"{run_dir.name}: no samples next to {start_checkpoint.name}, its first two windows are not tested")
+        return False
+    kept = []
+    for line in (source / "samples.jsonl").read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        step = json.loads(line)["step"]
+        if step <= start_step and (source / "samples" / f"s{step:010d}.npz").exists():
+            kept.append((step, line))
+    (run_dir / "samples").mkdir(parents=True, exist_ok=True)
+    for step, _ in kept:
+        shutil.copy2(source / "samples" / f"s{step:010d}.npz", run_dir / "samples" / f"s{step:010d}.npz")
+    (run_dir / "samples.jsonl").write_text("".join(line + "\n" for _, line in kept), encoding="utf-8")
+    log(f"{run_dir.name}: {len(kept)} samples of {source.name} up to step {start_step} copied in for the window test")
+    return True
+
+
+def run_stage(name: str, case: str, run_dir: pathlib.Path, extra: list[str], announce: bool = False,
+              seed_from: pathlib.Path | None = None) -> int:
+    """The runner until the run has its result.json. 0 = done; anything else stops the pipeline. seed_from: the
+    --start-from checkpoint whose run's earlier samples are copied in before a start without own checkpoints."""
     if (run_dir / "result.json").exists():
         log(f"{name}: result.json exists, skipped")
         return 0
@@ -212,8 +242,9 @@ def run_stage(name: str, case: str, run_dir: pathlib.Path, extra: list[str], ann
             aside = run_dir.with_name(f"{run_dir.name}.failed{int(time.time())}")
             run_dir.rename(aside)
             log(f"{name}: no checkpoint in the failed run, moved aside to {aside.name}")
+        seeded = not checkpoints and seed_from is not None and seed_samples(run_dir, seed_from)
         command = [sys.executable, "-m", "experiment.validation.cavity_runner", "--case", case, "--run-dir", str(run_dir), *COMMON, *extra]
-        if checkpoints:
+        if checkpoints or seeded:
             command.append("--resume")
         log(f"{name}: attempt {attempt}: {' '.join(command[1:])}")
         started = time.time()
@@ -527,7 +558,8 @@ def main() -> int:
         weights = mixed_weights(start)
         if weights is None:
             return stop("mixed: every probe failed, see mixed_probes/*.out")
-        if run_stage("mixed", FINE_CASE, MIXED_RUN, [*FINE_ARGUMENTS, "--weights", weights, *start]):
+        if run_stage("mixed", FINE_CASE, MIXED_RUN, [*FINE_ARGUMENTS, "--weights", weights, *start],
+                     seed_from=pathlib.Path(start[1]) if start[0] == "--start-from" else None):
             return 1
         report(MIXED_RUN, "mixed")
         (STATE / "mixed_done").write_text(time.strftime("%Y-%m-%d %H:%M:%S\n"), encoding="utf-8")
