@@ -67,6 +67,14 @@ ZeroTier 机器上的单卡继续跑。本机两张 5090 空闲满 20 分钟后�
 
 启动：同下面的命令，把 `'--mixed'` 换成 `'--boost'`。加 `'--start-at','2026-11-03T21:48'` 时，先睡到那个时刻，再只查 3 分钟空闲（用户说卡几点空出来时用）。2026-11-03 21:08 按用户要求就是这样挂上的（pid 13284）。
 
+## 2026-11-04 20:17：放宽判稳阈值的选项 `--mixed-steady-tol`
+
+集群（19:14 CST）hp_5090 只空 2 卡、没有 8 卡位，`--test-only` 估 11-18 才能开跑，不可用。于是加了 `--mixed-steady-tol TOL`：取 2×5090 `windows.jsonl` 里第一个两项都低于 TOL 的窗口，混跑从它的检查点出发，这个判定作为混跑的 `steady.json`（`pipeline_state/mixed_steady.json`），停在 t_s + `--mixed-average-span`。TOL = 2.5e-3 时 t 60.30 的窗口（1.21e-3 / 2.10e-3）已满足，可以立刻换卡：
+
+`powershell -NoProfile -Command "Start-Process -FilePath 'C:\Users\cchen\PycharmProjects\vulkan-demo\.venv\Scripts\python.exe' -ArgumentList 'docs\validation\cluster\re5000_pipeline.py','--mixed','--mixed-average-span','5','--mixed-steady-tol','2.5e-3' -WorkingDirectory 'C:\Users\cchen\PycharmProjects\vulkan-demo-v7-rc3' -WindowStyle Hidden"`
+
+ZeroTier 的 K = 1 照常跑到完整规则（1e-3 + 20 t），Re 5000 2500² 的收敛值由它给。
+
 ## 2026-11-04 20:05 定案：2×5090 判稳，换卡后混跑只平均 5 t
 
 用户：收敛以后换异构跑几步就够了（小算例早已验证过等价），这次只是补个形式。于是：
