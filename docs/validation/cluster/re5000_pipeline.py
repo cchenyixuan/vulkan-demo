@@ -88,6 +88,8 @@ MIXED_WEIGHTS_FILE = STATE / "mixed_weights.json"   # the pilot's full record (w
 CHAIN_BENCH = "experiment/v7/_run_v7_chain_bench.py"
 MIXED_DEVICE_MAP = "0,1"              # 5090, 7900 XTX (the runner's COMMON device map)
 MIXED_AVERAGE_SPAN = 20.0
+MIXED_STEADY_TOL = None               # --mixed-steady-tol: steady from the boost's window records at this tolerance
+MIXED_STEADY_RECORD = STATE / "mixed_steady.json"   # that decision, written into the mixed run as its steady.json
 IDLE_MINUTES = 20
 RETRY_IDLE_MINUTES = 3
 HEADLESS_UTILIZATION_LIMIT = 5        # per cent; the display card also draws the desktop, hence its own limit
@@ -120,18 +122,20 @@ def configure_boost() -> None:
     FINE_ARGUMENTS = ["--t-end", "40", "--t-max", "300", "--average-span", "20", "--checkpoint-time", "1"]
 
 
-def configure_mixed(uuids: str | None, average_span: float) -> None:
+def configure_mixed(uuids: str | None, average_span: float, steady_tol: float | None = None) -> None:
     """This box after the 7900 XTX went in for one 5090 (device order [0] 5090, [1] XTX): K = 2, weights from the pilot,
     the fine run's stop rule with its own averaging span (user 2026-11-04: after the 2x5090 steady decision a few t on the
     pair are enough, --mixed-average-span 5), a checkpoint every 2 t (about 1.4 h at the estimated mixed rate, 0.9 GB each)."""
-    global MIXED, COMMON, FINE_ARGUMENTS, MIXED_AVERAGE_SPAN
+    global MIXED, COMMON, FINE_ARGUMENTS, MIXED_AVERAGE_SPAN, MIXED_STEADY_TOL
     MIXED = True
     COMMON = ["--slabs", "2", "--device-map", "0,1", "--reynolds", "5000", "--keep-checkpoints", "0", "--expect", "release",
               "--solver", "v7"]
     if uuids:
         COMMON += ["--require-uuid", uuids]
-    MIXED_AVERAGE_SPAN = average_span
+    MIXED_AVERAGE_SPAN, MIXED_STEADY_TOL = average_span, steady_tol
     FINE_ARGUMENTS = ["--t-end", "40", "--t-max", "300", "--average-span", f"{average_span:g}", "--checkpoint-time", "2"]
+    if steady_tol is not None:
+        FINE_ARGUMENTS += ["--steady-tol", f"{steady_tol:g}"]
 
 
 def log(message: str) -> None:
@@ -234,9 +238,10 @@ def seed_samples(run_dir: pathlib.Path, start_checkpoint: pathlib.Path) -> bool:
 
 
 def run_stage(name: str, case: str, run_dir: pathlib.Path, extra: list[str], announce: bool = False,
-              seed_from: pathlib.Path | None = None) -> int:
+              seed_from: pathlib.Path | None = None, steady_record: dict | None = None) -> int:
     """The runner until the run has its result.json. 0 = done; anything else stops the pipeline. seed_from: the
-    --start-from checkpoint whose run's earlier samples are copied in before a start without own checkpoints."""
+    --start-from checkpoint whose run's earlier samples are copied in before a start without own checkpoints;
+    steady_record: written as the run's steady.json then (the runner keeps a decision at or before its start step)."""
     if (run_dir / "result.json").exists():
         log(f"{name}: result.json exists, skipped")
         return 0
@@ -251,7 +256,12 @@ def run_stage(name: str, case: str, run_dir: pathlib.Path, extra: list[str], ann
             run_dir.rename(aside)
             log(f"{name}: no checkpoint in the failed run, moved aside to {aside.name}")
         seeded = not checkpoints and seed_from is not None and seed_samples(run_dir, seed_from)
-        command = [sys.executable, "-m", "experiment.validation.cavity_runner", "--case", case, "--run-dir", str(run_dir), *COMMON, *extra]
+        if seeded and steady_record is not None and not (run_dir / "steady.json").exists():
+            (run_dir / "steady.json").write_text(json.dumps(steady_record, indent=1), encoding="utf-8")
+            log(f"{name}: steady.json written from the pipeline's record (t = {steady_record['steady_time']:.2f})")
+        if steady_record is not None and not seeded and not checkpoints:
+            return stop(f"{name}: a steady record needs the seeded start (no samples next to {seed_from})")
+        command =[sys.executable, "-m", "experiment.validation.cavity_runner", "--case", case, "--run-dir", str(run_dir), *COMMON, *extra]
         if checkpoints or seeded:
             command.append("--resume")
         log(f"{name}: attempt {attempt}: {' '.join(command[1:])}")
@@ -437,14 +447,39 @@ def steady_checkpoint(run_dir: pathlib.Path) -> tuple[pathlib.Path, dict] | None
     return path, {"step": step, "time": steady["steady_time"]}
 
 
+def relaxed_steady_checkpoint(run_dir: pathlib.Path, tolerance: float) -> tuple[pathlib.Path, dict]:
+    """--mixed-steady-tol: the first window test of run_dir (windows.jsonl, the runner's own records) with both changes
+    below tolerance, and its checkpoint; the steady record the mixed run gets in place of the runner's 1e-3 decision."""
+    path = run_dir / "windows.jsonl"
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()] if path.exists() else []
+    for row in rows:
+        if row["profile_change"] < tolerance and row["kinetic_energy_change"] < tolerance:
+            step = int(row["step"])
+            checkpoint = run_dir / "checkpoints" / f"c{step:010d}.npz"
+            if not checkpoint.exists():
+                raise SystemExit(f"{run_dir.name}: window at step {step} is below {tolerance:g} but {checkpoint.name} is missing")
+            return checkpoint, {"steady_time": row["time"], "decided_at_step": step, "profile_change": row["profile_change"],
+                                "kinetic_energy_change": row["kinetic_energy_change"], "steady_tol": tolerance,
+                                "decided_by": f"re5000_pipeline --mixed-steady-tol from {run_dir.name}/windows.jsonl"}
+    raise SystemExit(f"{run_dir.name}: no window test below {tolerance:g} yet "
+                     f"(last {rows[-1] if rows else None}); wait for the next window end")
+
+
 def mixed_start() -> list[str]:
-    """The checkpoint of the boost run's steady decision, else its newest one, else the ZeroTier run's; fixed by the
-    marker from then on."""
+    """The checkpoint of the boost run's steady decision (the runner's, or with --mixed-steady-tol the first window below
+    that tolerance), else its newest one, else the ZeroTier run's; fixed by the marker from then on."""
     marker = STATE / "mixed_start.json"
     if marker.exists():
         return json.loads(marker.read_text(encoding="utf-8"))
-    steady = steady_checkpoint(BOOST_RUN)
-    local = steady or newest_checkpoint(BOOST_RUN)
+    if MIXED_STEADY_TOL is not None:
+        checkpoint, record = relaxed_steady_checkpoint(BOOST_RUN, MIXED_STEADY_TOL)
+        MIXED_STEADY_RECORD.write_text(json.dumps(record, indent=1), encoding="utf-8")
+        steady, local = (checkpoint, {"time": record["steady_time"]}), (checkpoint, {"time": record["steady_time"]})
+        log(f"mixed: steady by --mixed-steady-tol {MIXED_STEADY_TOL:g} (user 2026-11-04): window t = {record['steady_time']:.2f}, "
+            f"profile {record['profile_change']:.2e}, KE {record['kinetic_energy_change']:.2e}; record {MIXED_STEADY_RECORD.name}")
+    else:
+        steady = steady_checkpoint(BOOST_RUN)
+        local = steady or newest_checkpoint(BOOST_RUN)
     if local is None:
         return remote_start(marker)
     start = ["--start-from", str(local[0])]
@@ -487,11 +522,11 @@ def mixed_weights() -> str | None:
     return ",".join(f"{value:.6f}" for value in weights)
 
 
-def report(run_dir: pathlib.Path, name: str, average_span: float = 20.0) -> None:
+def report(run_dir: pathlib.Path, name: str, average_span: float = 20.0, steady_tol: float | None = None) -> None:
     """The window against Marchi 2021 Re 5000 for the log; the pipeline goes on whatever it says (the user chose the stages)."""
     run_tool(STATE / f"{name}_decide_done", [sys.executable, "docs/validation/cluster/re3200_decide.py", "--run-dir", str(run_dir), "--reynolds", "5000",
-                                             "--average-span", f"{average_span:g}", "--no-stream-function",
-                                             "--json", str(STATE / f"{name}_decision.json")], required=False)
+                                             "--average-span", f"{average_span:g}", "--steady-tol", f"{steady_tol or 1e-3:g}",
+                                             "--no-stream-function", "--json", str(STATE / f"{name}_decision.json")], required=False)
 
 
 def main() -> int:
@@ -507,6 +542,9 @@ def main() -> int:
     parser.add_argument("--mixed-uuids", default=None, metavar="UUID0,UUID1", help="--require-uuid of the mixed run (5090, XTX)")
     parser.add_argument("--mixed-average-span", type=float, default=20.0, metavar="T",
                         help="--average-span of the mixed run: from a steady start it stops at t_steady + T (user 2026-11-04: 5)")
+    parser.add_argument("--mixed-steady-tol", type=float, default=None, metavar="TOL",
+                        help="steady = the boost run's first window test with both changes below TOL (instead of the runner's "
+                             "1e-3 decision); the mixed run starts at that window's checkpoint with that steady record")
     arguments = parser.parse_args()
     if arguments.single_card:
         configure_single_card(arguments.single_card)
@@ -515,7 +553,7 @@ def main() -> int:
     if arguments.boost:
         configure_boost()
     if arguments.mixed:
-        configure_mixed(arguments.mixed_uuids, arguments.mixed_average_span)
+        configure_mixed(arguments.mixed_uuids, arguments.mixed_average_span, arguments.mixed_steady_tol)
     if arguments.check and arguments.boost:
         print("boost:", "--case", FINE_CASE, "--run-dir", BOOST_RUN, *COMMON, *FINE_ARGUMENTS,
               "--start-from <newest remote checkpoint once idle>", "| marker", (STATE / "boost_start.json").exists())
@@ -524,6 +562,13 @@ def main() -> int:
     if arguments.check and arguments.mixed:
         print("mixed pilot:", CHAIN_BENCH, "--case", FINE_CASE, "--weights auto --calibrate-only --weights-file", MIXED_WEIGHTS_FILE,
               "--device-map", MIXED_DEVICE_MAP, "| record", MIXED_WEIGHTS_FILE.exists())
+        if MIXED_STEADY_TOL is not None:
+            try:
+                checkpoint, record = relaxed_steady_checkpoint(BOOST_RUN, MIXED_STEADY_TOL)
+                print(f"--mixed-steady-tol {MIXED_STEADY_TOL:g}: window t = {record['steady_time']:.2f} "
+                      f"({record['profile_change']:.2e} / {record['kinetic_energy_change']:.2e}) -> {checkpoint.name}")
+            except SystemExit as error:
+                print(f"--mixed-steady-tol {MIXED_STEADY_TOL:g}: {error}")
         steady = steady_checkpoint(BOOST_RUN)
         newest = newest_checkpoint(BOOST_RUN)
         print("boost steady checkpoint:", steady[0].name if steady else None, "| boost newest:", newest[0].name if newest else None)
@@ -574,10 +619,15 @@ def main() -> int:
         weights = mixed_weights()
         if weights is None:
             return stop("mixed: the weight pilot failed, see pipeline_state/mixed_pilot.out")
+        steady_record = None
+        if MIXED_STEADY_TOL is not None:
+            if not MIXED_STEADY_RECORD.exists():
+                return stop(f"mixed: --mixed-steady-tol given but {MIXED_STEADY_RECORD.name} is missing (start marker from an earlier choice?)")
+            steady_record = json.loads(MIXED_STEADY_RECORD.read_text(encoding="utf-8"))
         if run_stage("mixed", FINE_CASE, MIXED_RUN, [*FINE_ARGUMENTS, "--weights", weights, *start],
-                     seed_from=pathlib.Path(start[1]) if start[0] == "--start-from" else None):
+                     seed_from=pathlib.Path(start[1]) if start[0] == "--start-from" else None, steady_record=steady_record):
             return 1
-        report(MIXED_RUN, "mixed", MIXED_AVERAGE_SPAN)
+        report(MIXED_RUN, "mixed", MIXED_AVERAGE_SPAN, MIXED_STEADY_TOL)
         (STATE / "mixed_done").write_text(time.strftime("%Y-%m-%d %H:%M:%S\n"), encoding="utf-8")
         log("mixed stage done: compare it with the ZeroTier K = 1 run on common windows (re5000_plan.md)")
         return 0
