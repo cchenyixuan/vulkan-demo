@@ -87,6 +87,7 @@ MIXED_RUN =RUNS / "n2500_k2xv_float32_xi0p001_eps0p0025_adami_re5000"
 MIXED_WEIGHTS_FILE = STATE / "mixed_weights.json"   # the pilot's full record (weight_calibration.write_weights_file)
 CHAIN_BENCH = "experiment/v7/_run_v7_chain_bench.py"
 MIXED_DEVICE_MAP = "0,1"              # 5090, 7900 XTX (the runner's COMMON device map)
+MIXED_AVERAGE_SPAN = 20.0
 IDLE_MINUTES = 20
 RETRY_IDLE_MINUTES = 3
 HEADLESS_UTILIZATION_LIMIT = 5        # per cent; the display card also draws the desktop, hence its own limit
@@ -119,16 +120,18 @@ def configure_boost() -> None:
     FINE_ARGUMENTS = ["--t-end", "40", "--t-max", "300", "--average-span", "20", "--checkpoint-time", "1"]
 
 
-def configure_mixed(uuids: str | None) -> None:
+def configure_mixed(uuids: str | None, average_span: float) -> None:
     """This box after the 7900 XTX went in for one 5090 (device order [0] 5090, [1] XTX): K = 2, weights from the pilot,
-    the same stop rule as the fine run, a checkpoint every 2 t (about 1.4 h at the estimated mixed rate, 0.9 GB each)."""
-    global MIXED, COMMON, FINE_ARGUMENTS
+    the fine run's stop rule with its own averaging span (user 2026-11-04: after the 2x5090 steady decision a few t on the
+    pair are enough, --mixed-average-span 5), a checkpoint every 2 t (about 1.4 h at the estimated mixed rate, 0.9 GB each)."""
+    global MIXED, COMMON, FINE_ARGUMENTS, MIXED_AVERAGE_SPAN
     MIXED = True
     COMMON = ["--slabs", "2", "--device-map", "0,1", "--reynolds", "5000", "--keep-checkpoints", "0", "--expect", "release",
               "--solver", "v7"]
     if uuids:
         COMMON += ["--require-uuid", uuids]
-    FINE_ARGUMENTS = ["--t-end", "40", "--t-max", "300", "--average-span", "20", "--checkpoint-time", "2"]
+    MIXED_AVERAGE_SPAN = average_span
+    FINE_ARGUMENTS = ["--t-end", "40", "--t-max", "300", "--average-span", f"{average_span:g}", "--checkpoint-time", "2"]
 
 
 def log(message: str) -> None:
@@ -484,10 +487,11 @@ def mixed_weights() -> str | None:
     return ",".join(f"{value:.6f}" for value in weights)
 
 
-def report(run_dir: pathlib.Path, name: str) -> None:
+def report(run_dir: pathlib.Path, name: str, average_span: float = 20.0) -> None:
     """The window against Marchi 2021 Re 5000 for the log; the pipeline goes on whatever it says (the user chose the stages)."""
     run_tool(STATE / f"{name}_decide_done", [sys.executable, "docs/validation/cluster/re3200_decide.py", "--run-dir", str(run_dir), "--reynolds", "5000",
-                                             "--no-stream-function", "--json", str(STATE / f"{name}_decision.json")], required=False)
+                                             "--average-span", f"{average_span:g}", "--no-stream-function",
+                                             "--json", str(STATE / f"{name}_decision.json")], required=False)
 
 
 def main() -> int:
@@ -501,6 +505,8 @@ def main() -> int:
     parser.add_argument("--start-at", default=None, metavar="YYYY-MM-DDTHH:MM",
                         help="--boost: sleep until then, then a short idle check instead of the 20 minutes")
     parser.add_argument("--mixed-uuids", default=None, metavar="UUID0,UUID1", help="--require-uuid of the mixed run (5090, XTX)")
+    parser.add_argument("--mixed-average-span", type=float, default=20.0, metavar="T",
+                        help="--average-span of the mixed run: from a steady start it stops at t_steady + T (user 2026-11-04: 5)")
     arguments = parser.parse_args()
     if arguments.single_card:
         configure_single_card(arguments.single_card)
@@ -509,7 +515,7 @@ def main() -> int:
     if arguments.boost:
         configure_boost()
     if arguments.mixed:
-        configure_mixed(arguments.mixed_uuids)
+        configure_mixed(arguments.mixed_uuids, arguments.mixed_average_span)
     if arguments.check and arguments.boost:
         print("boost:", "--case", FINE_CASE, "--run-dir", BOOST_RUN, *COMMON, *FINE_ARGUMENTS,
               "--start-from <newest remote checkpoint once idle>", "| marker", (STATE / "boost_start.json").exists())
@@ -571,7 +577,7 @@ def main() -> int:
         if run_stage("mixed", FINE_CASE, MIXED_RUN, [*FINE_ARGUMENTS, "--weights", weights, *start],
                      seed_from=pathlib.Path(start[1]) if start[0] == "--start-from" else None):
             return 1
-        report(MIXED_RUN, "mixed")
+        report(MIXED_RUN, "mixed", MIXED_AVERAGE_SPAN)
         (STATE / "mixed_done").write_text(time.strftime("%Y-%m-%d %H:%M:%S\n"), encoding="utf-8")
         log("mixed stage done: compare it with the ZeroTier K = 1 run on common windows (re5000_plan.md)")
         return 0

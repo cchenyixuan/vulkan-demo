@@ -67,9 +67,17 @@ ZeroTier 机器上的单卡继续跑。本机两张 5090 空闲满 20 分钟后�
 
 启动：同下面的命令，把 `'--mixed'` 换成 `'--boost'`。加 `'--start-at','2026-11-03T21:48'` 时，先睡到那个时刻，再只查 3 分钟空闲（用户说卡几点空出来时用）。2026-11-03 21:08 按用户要求就是这样挂上的（pid 13284）。
 
-## 2026-11-04 晚：用户要求今晚出异构结果
+## 2026-11-04 20:05 定案：2×5090 判稳，换卡后混跑只平均 5 t
 
-收敛后 20 t 的平均今晚出不来（2×5090 上也要 10.5 h）。改成：
+用户：收敛以后换异构跑几步就够了（小算例早已验证过等价），这次只是补个形式。于是：
+
+- 2×5090 跑到判稳（t 100.5 或 110.55），判稳后再多跑约 1 h（约 2 t），这一段给混跑当同步号对照；然后关机换卡。
+- 启动命令加 `'--mixed-average-span','5'`：混跑从判稳那一步的检查点出发，继承 `steady.json`，停在 t_s + 5（约 3.5 h），流水线的 Marchi 报告也按 5 t 的窗口算。
+- 结果：判稳那一刻后约 5.5–6 h。下面"今晚"那一节的手工起点已撤掉（改名 `pipeline_state/mixed_start_tonight_unused.json`），但第 1–3 项的分析内容不变，只是重叠段换成判稳点之后、平均窗口换成 [t_s, t_s + 5]。
+
+## 2026-11-04 晚（已撤回）：用户要求今晚出异构结果
+
+收敛后 20 t 的平均今晚出不来（2×5090 上也要 10.5 h）。当时改成：
 
 - 起点手工定在 2×5090 的 `c0019765000.npz`（t = 59.295），写进 `pipeline_state/mixed_start.json`（19:06，pipeline.log 有记录）。这样混跑和 2×5090 在 t = 59.295 到关机时刻（约 t 61.5–62.5）有一段同起点、同步号的重叠。
 - 换卡后照常 `--mixed`：pilot 定权重，然后混跑一直跑到完整的停止规则（窗口比较由混跑接着做，带复制进来的样本），收敛结果约 11-06 下午到夜里。
@@ -85,7 +93,7 @@ ZeroTier 机器上的单卡细网格不停，作 K = 1 参照。本机从它最�
 
 1. 关机，用 7900 XTX 换下一张 5090。开机后确认设备序：[0] 5090，[1] 7900 XTX，[2] 核显。
 2. 启动（分离进程）：
-   `powershell -NoProfile -Command "$env:REMOTE_PW='<密码>'; Start-Process -FilePath 'C:\Users\cchen\PycharmProjects\vulkan-demo\.venv\Scripts\python.exe' -ArgumentList 'docs\validation\cluster\re5000_pipeline.py','--mixed' -WorkingDirectory 'C:\Users\cchen\PycharmProjects\vulkan-demo-v7-rc3' -WindowStyle Hidden"`
+   `powershell -NoProfile -Command "$env:REMOTE_PW='<密码>'; Start-Process -FilePath 'C:\Users\cchen\PycharmProjects\vulkan-demo\.venv\Scripts\python.exe' -ArgumentList 'docs\validation\cluster\re5000_pipeline.py','--mixed','--mixed-average-span','5' -WorkingDirectory 'C:\Users\cchen\PycharmProjects\vulkan-demo-v7-rc3' -WindowStyle Hidden"`
    设备 UUID 确认后，可以再加 `'--mixed-uuids','<5090>,<XTX>'`。
 3. 起点（用户 2026-11-04：不上集群，判稳时再换卡）：
    - 2×5090 已经判稳时，取它判稳那一步的检查点（`steady.json` 的 `decided_at_step`，窗口终点正好是检查点），不取最新的。跑步器会复制 `steady.json`，停止步就是 t_s + 20，平均窗口里的样本全部来自混跑，换卡晚几个小时也不影响。
