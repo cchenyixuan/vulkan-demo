@@ -13,14 +13,19 @@ of the Re = 3200 runs (solver experiment/v7 = tree of tag v7-rc3, release switch
 
 --mixed (user 2026-11-03): this box with the 7900 XTX in place of one 5090 continues the ZeroTier machine's fine run from
 its newest checkpoint, which keeps running as the K = 1 reference (same global steps, so every sample can be compared). The
-slab weights come from short probes at three work ratios first. No idle wait: nvidia-smi sees one card only.
+slab weights come from the pilot of the paper's slab rule first (sec:slab, experiment/v7/weight_calibration.py through
+_run_v7_chain_bench.py --weights auto --calibrate-only, record in pipeline_state/mixed_weights.json; user 2026-11-04, was
+three probe ratios). No idle wait: nvidia-smi sees one card only.
 
 --boost (user 2026-11-03, before the swap): the two 5090 here push the run on overnight, from the ZeroTier run's newest
 checkpoint at the moment the cards are idle (that run goes on), a checkpoint every 1 t so that the swap loses little.
---mixed afterwards starts from the boost run's newest checkpoint when there is one, else from the ZeroTier run's. A run
-started with --start-from has no samples before its start, so the runner skips its first two window tests (the boost run,
-from t = 20.10, made no test at t = 30.15); the mixed run therefore gets the boost run's samples up to its start step copied
-in (seed_samples) and its first window test is complete.
+--mixed afterwards starts from the checkpoint at the boost run's steady decision when it made one (user 2026-11-04: the
+2x5090 decide, the mixed pair runs the whole averaging window; the runner copies steady.json, so the stop step is t_steady
++ 20 and every averaged sample comes from the mixed pair however late the card is swapped), else from the boost run's
+newest checkpoint, else from the ZeroTier run's. A run started with --start-from has no samples before its start, so the
+runner skips its first two window tests (the boost run, from t = 20.10, made no test at t = 30.15); the mixed run
+therefore gets the boost run's samples up to its start step copied in (seed_samples) and its first window test is complete
+(after a steady start there is no window test left, the copied samples are only history: analyse steps > the start).
 
 Idempotent: a stage with its result.json / marker is skipped, so a rerun after a reboot continues (the runner resumes from
 its newest checkpoint). A crash is retried with --resume, after the cards are idle again. An invariant violation stops the
@@ -79,9 +84,9 @@ BOOST = False
 BOOST_RUN = RUNS / "n2500_k2_float32_xi0p001_eps0p0025_adami_re5000_from_k1"
 MIXED = False
 MIXED_RUN =RUNS / "n2500_k2xv_float32_xi0p001_eps0p0025_adami_re5000"
-MIXED_PROBES = RUNS / "mixed_probes"
-MIXED_RATIOS = (1.8, 2.0, 2.2)        # 5090 : XTX work ratio; vulkan-demo-xv E1 / E2 calibrated 1.98-2.05 (simple walls)
-MIXED_PROBE_STEPS = 12000             # the 7900 XTX needs ~5000 steps to reach its steady clock: the rate is the second half
+MIXED_WEIGHTS_FILE = STATE / "mixed_weights.json"   # the pilot's full record (weight_calibration.write_weights_file)
+CHAIN_BENCH = "experiment/v7/_run_v7_chain_bench.py"
+MIXED_DEVICE_MAP = "0,1"              # 5090, 7900 XTX (the runner's COMMON device map)
 IDLE_MINUTES = 20
 RETRY_IDLE_MINUTES = 3
 HEADLESS_UTILIZATION_LIMIT = 5        # per cent; the display card also draws the desktop, hence its own limit
@@ -115,15 +120,15 @@ def configure_boost() -> None:
 
 
 def configure_mixed(uuids: str | None) -> None:
-    """This box after the 7900 XTX went in for one 5090 (device order [0] 5090, [1] XTX): K = 2, weights from the probes,
-    the same stop rule as the fine run, a checkpoint every 5 t (disk: about 0.9 GB each)."""
+    """This box after the 7900 XTX went in for one 5090 (device order [0] 5090, [1] XTX): K = 2, weights from the pilot,
+    the same stop rule as the fine run, a checkpoint every 2 t (about 1.4 h at the estimated mixed rate, 0.9 GB each)."""
     global MIXED, COMMON, FINE_ARGUMENTS
     MIXED = True
     COMMON = ["--slabs", "2", "--device-map", "0,1", "--reynolds", "5000", "--keep-checkpoints", "0", "--expect", "release",
               "--solver", "v7"]
     if uuids:
         COMMON += ["--require-uuid", uuids]
-    FINE_ARGUMENTS = ["--t-end", "40", "--t-max", "300", "--average-span", "20", "--checkpoint-time", "5"]
+    FINE_ARGUMENTS = ["--t-end", "40", "--t-max", "300", "--average-span", "20", "--checkpoint-time", "2"]
 
 
 def log(message: str) -> None:
@@ -414,69 +419,69 @@ def remote_start(marker: pathlib.Path) -> list[str]:
     return start
 
 
+def steady_checkpoint(run_dir: pathlib.Path) -> tuple[pathlib.Path, dict] | None:
+    """The checkpoint at the step of run_dir's steady decision, None = no decision yet. The runner writes steady.json and,
+    in the same step, that checkpoint (window ends are whole checkpoint intervals); a decision without its checkpoint
+    stops the pipeline instead of starting the mixed run elsewhere."""
+    steady_path = run_dir / "steady.json"
+    if not steady_path.exists():
+        return None
+    steady = json.loads(steady_path.read_text(encoding="utf-8"))
+    step = int(steady["decided_at_step"])
+    path = run_dir / "checkpoints" / f"c{step:010d}.npz"
+    if not path.exists():
+        raise SystemExit(f"{run_dir.name} is steady at step {step} but has no {path.name}: start the mixed run by hand")
+    return path, {"step": step, "time": steady["steady_time"]}
+
+
 def mixed_start() -> list[str]:
-    """The boost run's newest checkpoint when it has one, else the ZeroTier run's; fixed by the marker from then on."""
+    """The checkpoint of the boost run's steady decision, else its newest one, else the ZeroTier run's; fixed by the
+    marker from then on."""
     marker = STATE / "mixed_start.json"
     if marker.exists():
         return json.loads(marker.read_text(encoding="utf-8"))
-    local = newest_checkpoint(BOOST_RUN)
+    steady = steady_checkpoint(BOOST_RUN)
+    local = steady or newest_checkpoint(BOOST_RUN)
     if local is None:
         return remote_start(marker)
     start = ["--start-from", str(local[0])]
     marker.write_text(json.dumps(start), encoding="utf-8")
-    log(f"mixed: continues the 2x5090 boost run from its t = {local[1]['time']:.2f}, {local[0].name}")
+    if steady:
+        log(f"mixed: starts at the 2x5090 boost run's steady decision t = {local[1]['time']:.2f}, {local[0].name} "
+            f"(steady.json copied: stop at t_steady + average span, all averaged samples from the mixed pair)")
+    else:
+        log(f"mixed: no steady decision in the boost run yet, continues it from its newest t = {local[1]['time']:.2f}, "
+            f"{local[0].name}; the window tests go on in the mixed run")
     return start
 
 
-def probe_rate(ratio: float, start: list[str]) -> float | None:
-    """Steps per second of one short probe at the 5090 : XTX work ratio, over the second half of its steps; None = it failed."""
-    weights = f"{2 * ratio / (ratio + 1):.4f},{2 / (ratio + 1):.4f}"
-    probe = MIXED_PROBES / f"ratio_{ratio:.2f}".replace(".", "p")
-    if probe.exists():
-        shutil.rmtree(probe)
-    MIXED_PROBES.mkdir(parents=True, exist_ok=True)
-    command = [sys.executable, "-m", "experiment.validation.cavity_runner", "--case", FINE_CASE, "--run-dir", str(probe), *COMMON,
-               *FINE_ARGUMENTS, "--weights", weights, "--max-steps", str(MIXED_PROBE_STEPS), *start]
-    log(f"mixed probe {ratio:.2f}: {' '.join(command[1:])}")
-    readings = []
-    with open(MIXED_PROBES / f"{probe.name}.out", "w", encoding="utf-8") as output:
-        process = subprocess.Popen(command, cwd=_ROOT, env=runner_environment(), stdout=output, stderr=subprocess.STDOUT,
-                                   creationflags=subprocess.CREATE_NO_WINDOW)
-        while process.poll() is None:
-            time.sleep(2)
-            try:
-                heartbeat = json.loads((probe / "heartbeat.json").read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                continue
-            if not readings or heartbeat["step"] != readings[-1][0]:
-                readings.append((heartbeat["step"], heartbeat["unix"]))
-    if process.returncode != 0 or len(readings) < 4:
-        log(f"mixed probe {ratio:.2f}: exit {process.returncode}, {len(readings)} heartbeats, see {probe.name}.out")
-        return None
-    half = readings[0][0] + (readings[-1][0] - readings[0][0]) / 2
-    late = [reading for reading in readings if reading[0] >= half]
-    rate = (late[-1][0] - late[0][0]) / max(late[-1][1] - late[0][1], 1e-9)
-    log(f"mixed probe {ratio:.2f}: weights {weights}, {rate:.1f} steps/s over steps {late[0][0]}..{late[-1][0]}")
-    return rate
-
-
-def mixed_weights(start: list[str]) -> str | None:
-    """Slab weights: the run's own (meta.json) on a restart, otherwise those of the fastest probe. None = every probe failed."""
+def mixed_weights() -> str | None:
+    """Slab weights: the run's own (meta.json) on a restart, otherwise the pilot's (sec:slab rule: the case's initial
+    fluid histogram, 200 + 300 frames per pilot, at most two pilots; the runner cuts its start state with them).
+    None = the pilot failed."""
     meta = MIXED_RUN / "meta.json"
     if meta.exists():
-        return ",".join(f"{value:.4f}" for value in json.loads(meta.read_text(encoding="utf-8"))["weights"])
-    record = STATE / "mixed_probes.json"
-    rates = json.loads(record.read_text(encoding="utf-8")) if record.exists() else {}
-    for ratio in MIXED_RATIOS:
-        if f"{ratio:.2f}" not in rates:
-            rates[f"{ratio:.2f}"] = probe_rate(ratio, start)
-            record.write_text(json.dumps(rates, indent=1), encoding="utf-8")
-    measured = {float(key): value for key, value in rates.items() if value}
-    if not measured:
-        return None
-    ratio = max(measured, key=measured.get)
-    log(f"mixed: ratio {ratio:.2f} is the fastest ({measured[ratio]:.1f} steps/s of {measured})")
-    return f"{2 * ratio / (ratio + 1):.4f},{2 / (ratio + 1):.4f}"
+        return ",".join(f"{value:.6f}" for value in json.loads(meta.read_text(encoding="utf-8"))["weights"])
+    if not MIXED_WEIGHTS_FILE.exists():
+        command = [sys.executable, CHAIN_BENCH, "--case", FINE_CASE, "--weights", "auto", "--calibrate-only",
+                   "--weights-file", str(MIXED_WEIGHTS_FILE), "--device-map", MIXED_DEVICE_MAP]
+        log(f"mixed pilot: {' '.join(command[1:])}")
+        started = time.time()
+        with open(STATE / "mixed_pilot.out", "w", encoding="utf-8") as output:
+            completed = subprocess.run(command, cwd=_ROOT, env=runner_environment(), stdout=output, stderr=subprocess.STDOUT,
+                                       creationflags=subprocess.CREATE_NO_WINDOW)
+        log(f"mixed pilot: exit {completed.returncode} after {(time.time() - started) / 60:.1f} min, see mixed_pilot.out")
+        if completed.returncode != 0 or not MIXED_WEIGHTS_FILE.exists():
+            MIXED_WEIGHTS_FILE.unlink(missing_ok=True)
+            return None
+    record = json.loads(MIXED_WEIGHTS_FILE.read_text(encoding="utf-8"))
+    weights = [float(value) for value in record["weights"]]
+    names = [device.get("name") for device in record["devices"]]
+    log(f"mixed pilot: weights {weights} (5090 : XTX = {weights[0] / weights[1]:.3f}), cuts {record['cuts']} after "
+        f"{len(record['rounds'])} pilot(s), devices {names}")
+    if len(names) != 2 or "5090" not in str(names[0]) or "7900" not in str(names[1]):
+        raise SystemExit(f"mixed pilot ran on {names}, expected [RTX 5090, RX 7900 XTX]: device order changed?")
+    return ",".join(f"{value:.6f}" for value in weights)
 
 
 def report(run_dir: pathlib.Path, name: str) -> None:
@@ -491,7 +496,8 @@ def main() -> int:
     parser.add_argument("--single-card", default=None, metavar="UUID", help="one 5090, K = 1, no wait (the ZeroTier machine)")
     parser.add_argument("--take-over", action="store_true", help="when the cards are free, continue the ZeroTier machine's run")
     parser.add_argument("--boost", action="store_true", help="2x5090 here once idle, from the ZeroTier run's newest checkpoint")
-    parser.add_argument("--mixed", action="store_true", help="5090 + 7900 XTX here, from the boost run's or the ZeroTier run's newest checkpoint")
+    parser.add_argument("--mixed", action="store_true", help="5090 + 7900 XTX here, from the boost run's steady checkpoint (else its or the "
+                                                                 "ZeroTier run's newest), pilot weights")
     parser.add_argument("--start-at", default=None, metavar="YYYY-MM-DDTHH:MM",
                         help="--boost: sleep until then, then a short idle check instead of the 20 minutes")
     parser.add_argument("--mixed-uuids", default=None, metavar="UUID0,UUID1", help="--require-uuid of the mixed run (5090, XTX)")
@@ -510,9 +516,13 @@ def main() -> int:
         print("cards", card_states(), "idle now:", cards_idle(), "free disk GB", round(shutil.disk_usage(_ROOT).free / 1e9))
         return 0
     if arguments.check and arguments.mixed:
-        print("mixed probes: ratios", MIXED_RATIOS, "--max-steps", MIXED_PROBE_STEPS, "into", MIXED_PROBES)
-        print("mixed:", "--case", FINE_CASE, "--run-dir", MIXED_RUN, *COMMON, *FINE_ARGUMENTS, "--weights <probe>",
-              "--start-from <newest remote checkpoint>", "| marker", (STATE / "mixed_start.json").exists(),
+        print("mixed pilot:", CHAIN_BENCH, "--case", FINE_CASE, "--weights auto --calibrate-only --weights-file", MIXED_WEIGHTS_FILE,
+              "--device-map", MIXED_DEVICE_MAP, "| record", MIXED_WEIGHTS_FILE.exists())
+        steady = steady_checkpoint(BOOST_RUN)
+        newest = newest_checkpoint(BOOST_RUN)
+        print("boost steady checkpoint:", steady[0].name if steady else None, "| boost newest:", newest[0].name if newest else None)
+        print("mixed:", "--case", FINE_CASE, "--run-dir", MIXED_RUN, *COMMON, *FINE_ARGUMENTS, "--weights <pilot>",
+              "--start-from", (steady or newest or ["<newest remote checkpoint>"])[0], "| marker", (STATE / "mixed_start.json").exists(),
               "| free disk GB", round(shutil.disk_usage(_ROOT).free / 1e9))
         return 0
     if arguments.check:
@@ -555,9 +565,9 @@ def main() -> int:
     if MIXED:
         start = mixed_start()
         log(f"mixed: starts {' '.join(start)}")
-        weights = mixed_weights(start)
+        weights = mixed_weights()
         if weights is None:
-            return stop("mixed: every probe failed, see mixed_probes/*.out")
+            return stop("mixed: the weight pilot failed, see pipeline_state/mixed_pilot.out")
         if run_stage("mixed", FINE_CASE, MIXED_RUN, [*FINE_ARGUMENTS, "--weights", weights, *start],
                      seed_from=pathlib.Path(start[1]) if start[0] == "--start-from" else None):
             return 1

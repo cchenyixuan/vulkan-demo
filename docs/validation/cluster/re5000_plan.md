@@ -75,12 +75,16 @@ ZeroTier 机器上的单卡细网格不停，作 K = 1 参照。本机从它最�
 2. 启动（分离进程）：
    `powershell -NoProfile -Command "$env:REMOTE_PW='<密码>'; Start-Process -FilePath 'C:\Users\cchen\PycharmProjects\vulkan-demo\.venv\Scripts\python.exe' -ArgumentList 'docs\validation\cluster\re5000_pipeline.py','--mixed' -WorkingDirectory 'C:\Users\cchen\PycharmProjects\vulkan-demo-v7-rc3' -WindowStyle Hidden"`
    设备 UUID 确认后，可以再加 `'--mixed-uuids','<5090>,<XTX>'`。
-3. 它先取远端最新的检查点（约 0.9 GB，起点记在 `pipeline_state/mixed_start.json`，重启后不变）。然后在功比 1.8 / 2.0 / 2.2 上各短跑 12000 步，取后一半计速（`pipeline_state/mixed_probes.json`），用最快的那组权重跑 `n2500_k2xv_float32_xi0p001_eps0p0025_adami_re5000`。每 5 t 一个检查点，崩溃自动 `--resume`。
-4. 重启电脑后用同一条命令接着跑。起点和权重都已记下，不再需要密码。
+3. 起点（用户 2026-11-04：不上集群，判稳时再换卡）：
+   - 2×5090 已经判稳时，取它判稳那一步的检查点（`steady.json` 的 `decided_at_step`，窗口终点正好是检查点），不取最新的。跑步器会复制 `steady.json`，停止步就是 t_s + 20，平均窗口里的样本全部来自混跑，换卡晚几个小时也不影响。
+   - 还没判稳时，取 2×5090 最新的检查点，窗口比较在混跑里接着做；没有 2×5090 运行时取远端最新的。
+   - 起点记在 `pipeline_state/mixed_start.json`，重启后不变。
+4. 权重：论文 sec:slab 的 pilot（`experiment/v7/_run_v7_chain_bench.py --weights auto --calibrate-only`，每轮 200 + 300 帧，最多两轮），记录在 `pipeline_state/mixed_weights.json`，输出在 `pipeline_state/mixed_pilot.out`。pilot 的设备名不是 [5090, 7900 XTX] 就停下。原来的三组功比短跑已删掉。然后跑 `n2500_k2xv_float32_xi0p001_eps0p0025_adami_re5000`，每 2 t 一个检查点，崩溃自动 `--resume`。
+5. 重启电脑后用同一条命令接着跑。起点和权重都已记下，不再需要密码。
    - 从检查点新起的运行，起点之前没有样本，跑步器会跳过它的头两次窗口比较。2×5090 这条从 t = 20.10 起步，t = 30.15 就没有比较，第一次比较要到 t = 40.20。
    - 所以混跑从 2×5090 的检查点起步时，流水线会先把 2×5090 运行在起点之前的样本复制进混跑目录（`seed_samples`，带 `--resume` 启动），混跑的第一次窗口比较就是完整的。
-   - 分析混跑本身时，只取起点（`meta.json` 的 `start_from`）之后的样本。
-5. 速度未实测，估计 130–140 步/秒（1.4–1.5 t/h）。磁盘：检查点每个约 0.9 GB，加上 t = 20 起的快照，跑到 t ≈ 150 约需 60 GB，本机剩余 177 GB。
+   - 分析混跑本身时，只取起点（`meta.json` 的 `start_from`）之后的样本。从判稳点起步时不再有窗口比较，复制进来的样本只是历史。
+6. 速度未实测，估计 130–140 步/秒（1.4–1.5 t/h）。磁盘：检查点每个约 0.9 GB，加上 t = 20 起的快照，跑到 t ≈ 150 约需 60 GB，本机剩余 177 GB。
 
 下面的旧步骤（t = 80 后从细网格的检查点只跑 10 t）只在不换卡、继续用两张 5090 时才用。
 
