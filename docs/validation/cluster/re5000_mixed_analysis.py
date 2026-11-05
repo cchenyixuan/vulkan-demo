@@ -128,7 +128,9 @@ def main() -> int:
     rates = np.array([row["fps"] for row in mixed_rows])
     facts = {"devices": devices, "weights": meta.get("weights"), "cuts": meta.get("cuts"), "slab_particles": meta.get("slab_particles"),
              "pilot_rounds": len(weights_record.get("rounds", [])), "start_step": start_step, "start_time": start_time,
-             "start_checkpoint": meta["start_from"].get("file"), "last_step": mixed_rows[-1]["step"], "last_time": mixed_rows[-1]["time"],
+             "start_checkpoint": meta["start_from"].get("file"), "first_step": mixed_rows[0]["step"], "first_time": mixed_rows[0]["time"],
+             "last_step": mixed_rows[-1]["step"], "last_time": mixed_rows[-1]["time"],
+             "window_steps": meta.get("window_steps"), "stop_step": (result or {}).get("stop_step"),
              "samples": len(mixed_rows), "expected_total": expected_total, "alive_values": alive,
              "mls_fallbacks_max": max(row["mls_fallbacks"] for row in mixed_rows),
              "min_neighbours_min": min(row["min_neighbours"] for row in mixed_rows),
@@ -183,7 +185,7 @@ def main() -> int:
 
     all_mixed = [load_sample(mixed_dir, row["step"]) for row in mixed_rows]
     marchi = {"newest_mixed": {"t": mixed_rows[-1]["time"], "L2u_pct": table[-1]["mixed_L2u_pct"], "L2v_pct": table[-1]["mixed_L2v_pct"]},
-              "window": {"t_range": [start_time, mixed_rows[-1]["time"]], "mixed": window(all_mixed)}}
+              "window": {"t_range": [mixed_rows[0]["time"], mixed_rows[-1]["time"]], "mixed": window(all_mixed)}}
     if mixed_stack:
         marchi["window_common"] = {"t_range": [common[0]["t"], common[-1]["t"]], "mixed": window(mixed_stack), "boost": window(boost_stack)}
     extrema_reference = {name: {"value": reference["extrema"][value_key][0], "position": reference["extrema"][position_key][0]}
@@ -213,8 +215,8 @@ def write_report(out: pathlib.Path, record: dict, mixed_dir: pathlib.Path, boost
              f"- devices (pilot record): {facts['devices']}; weights {facts['weights']} (5090 : XTX = "
              f"{facts['weights'][0] / facts['weights'][1]:.3f}), cut {facts['cuts']}, slab particles {facts['slab_particles']}, "
              f"{facts['pilot_rounds']} pilot round(s)",
-             f"- samples after the start: {facts['samples']}, t {facts['start_time']:.3f} → {facts['last_time']:.3f} "
-             f"(step {facts['start_step']} → {facts['last_step']})",
+             f"- samples after the start: {facts['samples']}, t {facts['first_time']:.3f} → {facts['last_time']:.3f} "
+             f"(step {facts['first_step']} → {facts['last_step']})",
              f"- steps/s median {facts['steps_per_second_median']:.1f} (range {facts['steps_per_second_range'][0]:.1f}–{facts['steps_per_second_range'][1]:.1f})",
              f"- alive at every sample: {facts['alive_values']} (expected {facts['expected_total']}); MLS fallbacks max "
              f"{facts['mls_fallbacks_max']}; min neighbours {facts['min_neighbours_min']}; density {facts['density_range'][0]:.3f}–{facts['density_range'][1]:.3f}"]
@@ -258,7 +260,13 @@ def write_report(out: pathlib.Path, record: dict, mixed_dir: pathlib.Path, boost
                  f"({data[f'{name}_position'] - values['position']:+.4f})" for _, _, data in rows]
         lines.append(f"| {name} | {values['value']:.5f} | {values['position']:.4f} | " + " | ".join(cells) + " |")
     lines += ["", "## 5. Window tests of the mixed run after the start", ""]
-    lines += [f"- t {row['time']:.2f}: profile {row['profile_change']:.3e}, KE {row['kinetic_energy_change']:.3e}" for row in record["windows_after_start"]] or ["- none yet"]
+    no_window = ["- none yet"]
+    if facts["window_steps"] and facts["stop_step"]:
+        next_window_end = (facts["start_step"] // facts["window_steps"] + 1) * facts["window_steps"]
+        if facts["stop_step"] < next_window_end:
+            no_window = [f"- none: the run stopped at step {facts['stop_step']}, before the next window end at step {next_window_end} "
+                         f"(window {facts['window_steps']} steps); the steady decision is the 2×5090 run's window at the start"]
+    lines += [f"- t {row['time']:.2f}: profile {row['profile_change']:.3e}, KE {row['kinetic_energy_change']:.3e}" for row in record["windows_after_start"]] or no_window
     (out / "report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
