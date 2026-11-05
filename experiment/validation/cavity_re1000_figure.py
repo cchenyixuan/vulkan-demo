@@ -315,13 +315,13 @@ def _locator(specification):
 
 
 def draw_profiles(axis_u, axis_v, line: dict, reference: dict, ghia: dict, legend: bool, zoom: dict | None = None,
-                  seams_wall: list[float] | None = None) -> dict:
+                  seams_wall: list[float] | None = None, line_label: str = r"SPH, $K = 1$") -> dict:
     """(a) u(0.5, y) and (b) v(x, 0.5): the K = 1 line (solid) against Marchi 2021 (circles) and Ghia 1982 (squares);
     ``zoom`` = the zoom boxes and their limits (ZOOM_RE1000 by default), ``seams_wall`` = seam positions (wall frame)
     drawn as thin dashed vertical lines in (b) (none by default)."""
     from matplotlib.ticker import MultipleLocator
     zoom = ZOOM_RE1000 if zoom is None else zoom
-    k1_style = dict(color=COLOR_K1, lw=1.0, ls="-", label=r"SPH, $K = 1$")
+    k1_style = dict(color=COLOR_K1, lw=1.0, ls="-", label=line_label)   # line_label: Re 5000 figure (2026-11-06)
     marchi_style = dict(ls="none", marker="o", mfc="none", mec="k", ms=3.0, mew=0.6, label="Marchi et al. (2021)")
     ghia_style = dict(ls="none", marker="s", mfc="none", mec=COLOR_GHIA, ms=2.6, mew=0.55, label="Ghia et al. (1982)")
     axis_u.plot(line["u"], line["coordinate"], **k1_style)
@@ -331,7 +331,7 @@ def draw_profiles(axis_u, axis_v, line: dict, reference: dict, ghia: dict, legen
     axis_v.plot(reference["v"][0], reference["v"][1], **marchi_style)
     axis_v.plot(ghia["v"][0], ghia["v"][1], **ghia_style)
 
-    axis_u.set_xlim(-0.46, 1.04)
+    axis_u.set_xlim(*zoom.get("u_main_xlim", (-0.46, 1.04)))   # optional key: Re 5000 (u_min -0.448, 2026-11-06)
     axis_u.set_ylim(0.0, 1.0)
     axis_u.xaxis.set_major_locator(MultipleLocator(0.5))
     axis_u.xaxis.set_minor_locator(MultipleLocator(0.25))
@@ -544,9 +544,10 @@ def check_clearances(figure, axis_u, axis_v, axis_field, insets: dict, minimum_p
 
 
 def composite_figure(line: dict, field_k8: dict, seams_wall: list[float], width: float, path: pathlib.Path,
-                     reynolds: int = 1000, zoom: dict | None = None, seams_in_b: bool = False) -> dict:
+                     reynolds: int = 1000, zoom: dict | None = None, seams_in_b: bool = False,
+                     line_label: str = r"SPH, $K = 1$") -> dict:
     """The three-panel row: (a) / (b) profiles of ``line`` against the references of ``reynolds``, (c) the field;
-    ``zoom`` and ``seams_in_b`` go to draw_profiles (the Re 1000 figure uses the defaults)."""
+    ``zoom``, ``seams_in_b`` and ``line_label`` go to draw_profiles (the Re 1000 figure uses the defaults)."""
     import matplotlib.pyplot as plt
     layout = LAYOUT
     reference = cavity_reference.marchi2021(reynolds)
@@ -565,7 +566,7 @@ def composite_figure(line: dict, field_k8: dict, seams_wall: list[float], width:
     x += field_size + layout["colorbar_pad"]
     colorbar_axis = axes_inches(figure, x, layout["bottom"], layout["colorbar_width"], field_size)
     insets = draw_profiles(axis_u, axis_v, line, reference, ghia, legend=True, zoom=zoom,
-                           seams_wall=seams_wall if seams_in_b else None)
+                           seams_wall=seams_wall if seams_in_b else None, line_label=line_label)
     draw_field(axis_field, colorbar_axis, field_k8, seams_wall)
     for axis, text in zip((axis_u, axis_v, axis_field), ("(a)", "(b)", "(c)")):
         panel_label(axis, text)
