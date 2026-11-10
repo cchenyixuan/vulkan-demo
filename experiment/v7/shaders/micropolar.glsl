@@ -79,4 +79,39 @@ layout(std430, set = 0, binding = 14) buffer WallDummyAngularVelocityBuffer {
     vec4 wall_dummy_angular_velocity[];
 };
 
+// ----------------------------------------------------------------------------
+// Transport of angular_velocity (a slab with a peer; the release layout only:
+// GHOST_LAYERS >= 2, LEAN_TRANSPORT, COMPACT_GHOST_LISTS, PACKED_REPLICAS).
+//
+//   replicas  layers 0 .. MICROPOLAR_REPLICA_LAYERS - 1: three words (w_x, w_y,
+//             w_z) per replica in ghost_packed_words, in a block of its own
+//             AFTER the 2 * 8 * GHOST_LAYERS * R words of the replica records
+//             (helpers.glsl packed_layer_base, unchanged): per direction d and
+//             layer l, 3 R words at packed_angular_velocity_base(d, l), record
+//             of region slot s at + 3 s. Outbox in phase A, inbox in phase C,
+//             like the records. The layers beyond carry no w: nothing reads it.
+//   migrants  the angular_velocity slot of the migrant region travels as its
+//             SoA segment, like the other four lean fields (44 -> 60 B).
+//   departed  ghost_send copies it with the departed copy (local, no transport).
+//
+// angular_acceleration never travels (see its buffer comment).
+// ----------------------------------------------------------------------------
+uint packed_angular_velocity_base(uint direction, uint layer) {
+    return (2u * 8u * GHOST_LAYERS + (direction * MICROPOLAR_REPLICA_LAYERS + layer) * 3u) * REPLICA_REGION_SIZE;
+}
+
+void store_packed_angular_velocity(uint direction, uint layer, uint region_slot, vec3 value) {
+    uint word = packed_angular_velocity_base(direction, layer) + 3u * region_slot;
+    ghost_packed_words[word + 0u] = floatBitsToUint(value.x);
+    ghost_packed_words[word + 1u] = floatBitsToUint(value.y);
+    ghost_packed_words[word + 2u] = floatBitsToUint(value.z);
+}
+
+vec3 load_packed_angular_velocity(uint direction, uint layer, uint region_slot) {
+    uint word = packed_angular_velocity_base(direction, layer) + 3u * region_slot;
+    return vec3(uintBitsToFloat(ghost_packed_words[word + 0u]),
+                uintBitsToFloat(ghost_packed_words[word + 1u]),
+                uintBitsToFloat(ghost_packed_words[word + 2u]));
+}
+
 #endif  // SPH_MICROPOLAR_GLSL_INCLUDED

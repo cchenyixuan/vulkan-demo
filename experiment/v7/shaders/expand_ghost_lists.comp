@@ -25,6 +25,9 @@
 
 #include "common.glsl"
 #include "helpers.glsl"
+#ifdef MICROPOLAR
+#include "micropolar.glsl"
+#endif
 
 layout(local_size_x_id = 51) in;
 
@@ -81,4 +84,10 @@ void main() {
     velocity_mass[particle_id]     = vec4(velocity_material.xyz, material_parameters[material_id].particle_mass);
     density_pressure[particle_id]  = vec2(density, pressure);
     material[particle_id]          = material_id;
+#ifdef MICROPOLAR
+    // the micro-rotation of the layers that carry it (the others' slots are never read)
+    if (layer < MICROPOLAR_REPLICA_LAYERS) {
+        angular_velocity[particle_id] = vec4(load_packed_angular_velocity(direction, layer, region_slot), 0.0);
+    }
+#endif
 }

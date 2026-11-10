@@ -119,6 +119,9 @@
 
 #include "common.glsl"
 #include "helpers.glsl"
+#ifdef MICROPOLAR
+#include "micropolar.glsl"
+#endif
 
 layout(constant_id = 90) const uint GHOST_DIRECTION                   = 0u;
 layout(constant_id = 91) const uint BOUNDARY_VOXEL_X_LOCAL            = 0u;
@@ -162,6 +165,10 @@ void store_departed(uint source_particle_id, uint ghost_voxel_id) {
     density_pressure[departed_particle_id]             = density_pressure[source_particle_id];
     material[departed_particle_id]                     = material[source_particle_id];
     copy_recomputed_fields(departed_particle_id, source_particle_id);
+#ifdef MICROPOLAR
+    // the departed copy stays a neighbour of this slab's seam column for the rest of the step (force, wall pass)
+    angular_velocity[departed_particle_id] = angular_velocity[source_particle_id];
+#endif
 }
 
 // GHOST_LAYERS = 2 path (see header). One (y, z) face voxel per thread.
@@ -228,9 +235,18 @@ void send_two_layers(uint y, uint z) {
                                                     density_pressure[source_particle_id].x);
                 vec4 source_velocity_material = vec4(velocity_mass[source_particle_id].xyz,
                                                      uintBitsToFloat(material[source_particle_id]));
+#ifdef MICROPOLAR
+                vec3 source_angular_velocity = angular_velocity[source_particle_id].xyz;
+#endif
                 store_packed_vec4(packed_base + 4u * region_slot, source_position_density);
                 store_packed_vec4(packed_base + 4u * REPLICA_REGION_SIZE + 4u * region_slot,
                                   source_velocity_material);
+#ifdef MICROPOLAR
+                // the micro-rotation of the layers whose fluid state feeds the receiver's force (micropolar.glsl)
+                if (layer_index < MICROPOLAR_REPLICA_LAYERS) {
+                    store_packed_angular_velocity(GHOST_DIRECTION, layer_index, region_slot, source_angular_velocity);
+                }
+#endif
             } else {
                 position_voxel_id[my_destination_particle_id] = vec4(position_voxel_id[source_particle_id].xyz,
                                                                      float(peer_replica_voxel_id));
@@ -279,6 +295,10 @@ void send_two_layers(uint y, uint z) {
             density_pressure[my_destination_particle_id]             = density_pressure[source_particle_id];
             material[my_destination_particle_id]                     = material[source_particle_id];
             copy_recomputed_fields(my_destination_particle_id, source_particle_id);
+#ifdef MICROPOLAR
+            // the migrant keeps its micro-rotation w_{n+1/2} (its alpha is rewritten by the receiver's band force)
+            angular_velocity[my_destination_particle_id] = angular_velocity[source_particle_id];
+#endif
             if (DEPARTED_POOL_SIZE > 0u) store_departed(source_particle_id, ghost_voxel_id);
             position_voxel_id[source_particle_id] = vec4(0.0);
             velocity_mass[source_particle_id]     = vec4(0.0);

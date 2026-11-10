@@ -1,4 +1,4 @@
-SPIR-V manifest of experiment/v7/shaders/spv (branch v9-micropolar: the tag micropolar-base = v7-rc4 + the bootstrap fix + the v7-adami-multi tooling, + the micropolar terms, Stage 1: one slab)
+SPIR-V manifest of experiment/v7/shaders/spv (branch v9-micropolar: the tag micropolar-base = v7-rc4 + the bootstrap fix + the v7-adami-multi tooling, + the micropolar terms, Stages 1 and 2: one slab and chains)
 
 compiler: C:\VulkanSDK\1.4.350.0/Bin/glslc.exe; glslc --version:
   shaderc v2026.2 v2026.2
@@ -12,11 +12,11 @@ flags: glslc --target-env=vulkan1.2 -O [-D<macro>] -I experiment/v7/shaders expe
   SHADER_VARIANTS; glslc output is deterministic, _test_seam_layout.py check_spirv_current compares every file
   with a fresh build)
 sources: experiment/v7/shaders/*.comp, *.glsl at the commit that adds this manifest;
-  last change to a shader source before it: the micropolar terms (2026-11-10): #ifdef MICROPOLAR blocks in bootstrap_half_kick.comp, defrag.comp, force.comp, predict.comp, wall_extrapolate.comp, wall_extrapolate_band.comp, new micropolar.glsl
-check: every file below byte-identical to a fresh build with the compiler above (29 of 29);
+  last change to a shader source before it: the micropolar terms (2026-11-10): #ifdef MICROPOLAR blocks in bootstrap_half_kick.comp, defrag.comp, expand_ghost_lists.comp, force.comp, ghost_send.comp, ghost_send_lanes.comp, install_migrations.comp, predict.comp, wall_extrapolate.comp, wall_extrapolate_band.comp, new micropolar.glsl
+check: every file below byte-identical to a fresh build with the compiler above (33 of 33);
   every file of micropolar-base (23 of 23) byte-identical to that tag's (the Newtonian solver: a case without physics.micropolar
   loads only these); new against micropolar-base (loaded only by a case with physics.micropolar.enabled, instead of the plain module of the same kernel):
-  bootstrap_half_kick_micropolar, defrag_micropolar, force_micropolar, predict_micropolar, wall_extrapolate_band_micropolar, wall_extrapolate_micropolar
+  bootstrap_half_kick_micropolar, defrag_micropolar, expand_ghost_lists_micropolar, force_micropolar, ghost_send_lanes_micropolar, ghost_send_micropolar, install_migrations_micropolar, predict_micropolar, wall_extrapolate_band_micropolar, wall_extrapolate_micropolar
 scope: the tracked compute SPIR-V only (spv/render/*.spv from shaders/render are not tracked). Nothing checks this
   manifest automatically; regenerate it with any shader change.
 
@@ -36,13 +36,17 @@ f5faeac0e14610d9944a6d92b5d974f259e8ff45f32c60c2fdcd409053e34a87    89468  corre
 8c99cc51d910658432fcc351b58f480aa4f90e9509d0e6daac5f14a722379695    55972  density_deep_wall_skip.comp.spv  (density.comp -DDEEP_WALL_SKIP)
 50e9e5f6fb22a5996b208b8c53a60bf709c005ace3a804d32382f68cfe7a098b     1888  density_scratch_copy.comp.spv  (density_scratch_copy.comp)
 4087617c2a4a14b5b49548572a4de96161c07af09ed9e5eeeaa042f117364a01     5068  expand_ghost_lists.comp.spv  (expand_ghost_lists.comp)
+746ac3c4ee33aa401a3c1cf6981589a8c5e91336432f45ae4eceac13d9972b68     5764  expand_ghost_lists_micropolar.comp.spv  (expand_ghost_lists.comp -DMICROPOLAR)
 3a635216025f245f7f11a3f5edc9d7120640e6df51c9b63021072cedd580f715    46776  force.comp.spv  (force.comp)
 dc4af9bb8204a788717ad4a096090ba16a6b011c81207c48bcbaa055a7d9fa4a    54092  force_micropolar.comp.spv  (force.comp -DMICROPOLAR)
 faa772d587f1235af0fc03d5442a4fbf3f4cf0cb673d168043722a3ddfce750e    46828  force_segment.comp.spv  (force.comp -DFORCE_SEGMENT)
 0a73e65d75e2a6c6a140ca12812e748e04965fafcde81d4f20b1b543242a89be    19140  ghost_send.comp.spv  (ghost_send.comp)
 60e3eb2eba09588073f7a61d062537c6a7a303929fb73287d21acdf64a602c03    21668  ghost_send_lanes.comp.spv  (ghost_send_lanes.comp)
+13f52aa944aaf4b35f21511d8ebda578b3cbab2fc447f8af09128564177b0204    22592  ghost_send_lanes_micropolar.comp.spv  (ghost_send_lanes.comp -DMICROPOLAR)
+4583f1f04e06eb6ab3d95a9f543cf82dbc924b55f2c9cafc733623ff282a5419    20064  ghost_send_micropolar.comp.spv  (ghost_send.comp -DMICROPOLAR)
 62f42d33a26a70871521e30aa448dd3f620342e912120cc2e3d3bc4a6e3bdafa     6704  initialize_voxelization.comp.spv  (initialize_voxelization.comp)
 88b442d4059c5d3745df14a4db94bbba9eb06621bdb931e4cb8f6235088cd24b     7600  install_migrations.comp.spv  (install_migrations.comp)
+527a07513146c580a80eb59edbfbdec10c217483bcae845c13d26df30ba92d55     7816  install_migrations_micropolar.comp.spv  (install_migrations.comp -DMICROPOLAR)
 099b129f66ea93c40d2a3751a1aa809d74c4f5b6c0f0759a9f7fb9f5c725442b     6392  predict.comp.spv  (predict.comp)
 9dd391475f3042545201c8e9fd49590ef3007013d49dc7ca42ca22e3ce2bfcb8     6976  predict_micropolar.comp.spv  (predict.comp -DMICROPOLAR)
 024e04287997e22a6e37212b18f161b19a093571918d15337a2a69f4f2ba25ee     4916  update_voxel.comp.spv  (update_voxel.comp)

@@ -91,6 +91,9 @@
 
 #include "common.glsl"
 #include "helpers.glsl"
+#ifdef MICROPOLAR
+#include "micropolar.glsl"
+#endif
 
 layout(constant_id = 90) const uint GHOST_DIRECTION = 0u;
 //   0 = leading recv  (walks set 0 leading ghost-pid range)
@@ -185,6 +188,10 @@ void main() {
     velocity_mass[own_pid]                   = velocity_mass[gpid];
     density_pressure[own_pid]                = density_pressure[gpid];
     material[own_pid]                        = material[gpid];
+#ifdef MICROPOLAR
+    // micropolar: w_{n+1/2} travels with the migrant; angular_acceleration does not (the band force rewrites it)
+    angular_velocity[own_pid]                = angular_velocity[gpid];
+#endif
     if (!LEAN_TRANSPORT) {
         acceleration[own_pid]                 = acceleration[gpid];
         shift[own_pid]                        = shift[gpid];

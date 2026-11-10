@@ -1603,7 +1603,8 @@ E40_ADDED_SPIRV = frozenset({"wall_extrapolate_band.comp.spv"})
 MICROPOLAR_ADDED_SPIRV = frozenset({
     "predict_micropolar.comp.spv", "bootstrap_half_kick_micropolar.comp.spv", "force_micropolar.comp.spv",
     "wall_extrapolate_micropolar.comp.spv", "wall_extrapolate_band_micropolar.comp.spv",
-    "defrag_micropolar.comp.spv"})
+    "defrag_micropolar.comp.spv", "ghost_send_micropolar.comp.spv", "ghost_send_lanes_micropolar.comp.spv",
+    "expand_ghost_lists_micropolar.comp.spv", "install_migrations_micropolar.comp.spv"})
 
 
 def _without_micropolar_blocks_bytes(source: bytes) -> bytes:
@@ -4189,6 +4190,13 @@ def check_micropolar(failures: list) -> None:
         16-byte stub with simple walls), spec entries 21 (Theta) and 116, defrag bindings 12 / 13, the two restart
         fields, the <kernel>_micropolar module files, and the angular_velocity upload (zero for fluid, the
         material's wall_angular_velocity otherwise, or the provided initial values);
+      - the link of a micropolar slab with a peer: spec 116 = ghost layers - 1 (1 simple chain, 2 adami chain, 0
+        without a peer); ghost_packed_words grows by 3 words per replica of those layers and direction; the
+        transport segments are the Newtonian ones in their order plus one 12 B / replica segment per w layer
+        (after the replica records, inside the buffer, disjoint from the records and from each other, bounded by
+        that layer's replica counter) and the migrant region's angular_velocity segment (16 B / slot, the migrant
+        counter); the staging stays contiguous and grows by exactly 12 R (layers - 1) + 16 M per direction; the
+        Newtonian slab's segments equal the base tag's;
       - shader sources: with the #ifdef MICROPOLAR blocks removed every kernel is the tag's text; micropolar.glsl
         declares the bindings and spec id the simulator uses; every micropolar module is a SHADER_VARIANTS entry;
       - the loader's coefficient report: Eringen's groups, the admissible range, the growing wavelength outside it,
@@ -4225,6 +4233,14 @@ def check_micropolar(failures: list) -> None:
         def spec_rows(simulator):
             return [(spec.name, spec.set_index, spec.binding, spec.size, spec.usage)
                     for spec in simulator._build_buffer_specs()]
+
+        def plain_and_region(rows):
+            return [row for row in rows if row[5] is not None]
+
+        def segment_rows(simulator, direction):
+            segments, total = simulator._compute_transport_segments(direction)
+            return ([(segment.buffer_name, segment.device_offset, segment.staging_offset, segment.size,
+                      segment.stride, segment.region, segment.count_staging_offset) for segment in segments], total)
 
         global_case = _synthetic_global_case(case_v7)
         slabs = []
@@ -4265,6 +4281,10 @@ def check_micropolar(failures: list) -> None:
                 failures.append(f"micropolar {label}: a Newtonian case uploads angular_velocity")
             if base_module is not None:
                 base = fake(base_module, slab)
+                for direction in ("leading", "trailing"):
+                    if segment_rows(current, direction) != segment_rows(base, direction):
+                        failures.append(f"micropolar {label}: Newtonian {direction} transport segments differ from "
+                                        f"{MICROPOLAR_BASE_TAG}")
                 if spec_rows(current) != spec_rows(base):
                     failures.append(f"micropolar {label}: Newtonian buffer specs differ from {MICROPOLAR_BASE_TAG}")
                 if current._global_entries() != base._global_entries():
@@ -4288,7 +4308,78 @@ def check_micropolar(failures: list) -> None:
             current = fake(simulator_v7, micropolar_slab)
             pool_capacity = slab.capacities.total_pool_capacity()
             adami_walls = slab.numerics.wall_boundary == "adami"
-            added = [row for row in spec_rows(current) if row not in spec_rows(plain)]
+            has_peer = slab.transport.has_leading_peer or slab.transport.has_trailing_peer
+            angular_velocity_layers = slab.ghost_grid.ghost_layers - 1 if has_peer else 0
+            replica_region = slab.capacities.replica_region_size
+            # the packed buffer is the one existing spec that changes (the w block); compared below
+            added = [row for row in spec_rows(current)
+                     if row not in spec_rows(plain) and row[0] != "ghost_packed_words"]
+            packed_plain = next(row for row in spec_rows(plain) if row[0] == "ghost_packed_words")
+            packed_current = next(row for row in spec_rows(current) if row[0] == "ghost_packed_words")
+            expected_packed = packed_plain[3] + (4 * 2 * 3 * angular_velocity_layers * replica_region
+                                                 if has_peer else 0)
+            if packed_current[:3] != packed_plain[:3] or packed_current[3] != expected_packed:
+                failures.append(f"micropolar {label}: ghost_packed_words {packed_current[3]} B, expected "
+                                f"{expected_packed}")
+            if has_peer and angular_velocity_layers != (2 if slab.numerics.wall_boundary == "adami" else 1):
+                failures.append(f"micropolar {label}: {angular_velocity_layers} w layers")
+            if current._micropolar_replica_layers() != angular_velocity_layers:
+                failures.append(f"micropolar {label}: _micropolar_replica_layers = "
+                                f"{current._micropolar_replica_layers()}, expected {angular_velocity_layers}")
+            for direction in ("leading", "trailing"):
+                plain_segments, plain_total = segment_rows(plain, direction)
+                segments, total = segment_rows(current, direction)
+                if not plain_segments:
+                    if segments:
+                        failures.append(f"micropolar {label} {direction}: segments on a side without a peer")
+                    continue
+                pool_size = (slab.capacities.leading_ghost_pool_size if direction == "leading"
+                             else slab.capacities.trailing_ghost_pool_size)
+                layer_count = slab.ghost_grid.ghost_layers
+                migrant_region = pool_size - layer_count * replica_region
+                first_particle_id = 1 if direction == "leading" else (
+                    slab.capacities.leading_ghost_pool_size + slab.capacities.own_pool_size + 1)
+                direction_index = 0 if direction == "leading" else 1
+                layer_keys = ("inner", "outer", "third")[:angular_velocity_layers]
+                packed_segments = [row for row in segments if row[0] == "ghost_packed_words" and row[4] == 12]
+                expected_packed_segments = [
+                    4 * (2 * layer_count * 8 + (direction_index * angular_velocity_layers + layer) * 3) * replica_region
+                    for layer in range(angular_velocity_layers)]
+                if ([row[1] for row in packed_segments] != expected_packed_segments
+                        or any(row[3] != 12 * replica_region for row in packed_segments)
+                        or [row[5] for row in packed_segments] != list(layer_keys)):
+                    failures.append(f"micropolar {label} {direction}: w segments {packed_segments}")
+                if any(row[1] + row[3] > packed_current[3] or row[1] < 4 * 2 * layer_count * 8 * replica_region
+                       for row in packed_segments):
+                    failures.append(f"micropolar {label} {direction}: a w segment leaves its block of the buffer")
+                migrant_segments = [row for row in segments if row[0] == "angular_velocity"]
+                if migrant_segments != [("angular_velocity", 16 * (first_particle_id + layer_count * replica_region),
+                                         migrant_segments[0][2] if migrant_segments else -1, 16 * migrant_region,
+                                         16, "migrant", migrant_segments[0][6] if migrant_segments else -1)]:
+                    failures.append(f"micropolar {label} {direction}: migrant angular_velocity segment "
+                                    f"{migrant_segments}")
+                # every w / migrant segment is counted by the counter word of its region's records
+                by_region = {row[5]: row[6] for row in plain_and_region(segments) if row[0] != "ghost_packed_words"
+                             or row[4] == 16}
+                if any(row[6] != by_region.get(row[5]) for row in packed_segments + migrant_segments):
+                    failures.append(f"micropolar {label} {direction}: a micropolar segment has another count word "
+                                    "than its region")
+                # the Newtonian segments, in order, with every other field but the staging offsets
+                remaining = [row for row in segments if row not in packed_segments and row not in migrant_segments]
+                if [(row[0], row[1], row[3], row[4], row[5]) for row in remaining] \
+                        != [(row[0], row[1], row[3], row[4], row[5]) for row in plain_segments]:
+                    failures.append(f"micropolar {label} {direction}: the Newtonian segments are not kept in order")
+                offset = 0
+                for row in segments:
+                    if row[2] != offset:
+                        failures.append(f"micropolar {label} {direction}: staging not contiguous at {row[0]}")
+                        break
+                    offset += row[3]
+                expected_total = plain_total + 12 * replica_region * angular_velocity_layers + 16 * migrant_region
+                if total != expected_total or offset != total:
+                    failures.append(f"micropolar {label} {direction}: staging {total} B, expected {expected_total}")
+                if segments[-1][:2] != plain_segments[-1][:2] or segments[-1][3] != 4:
+                    failures.append(f"micropolar {label} {direction}: the frame stamp is not the last segment")
             buffer_usage = simulator_v7.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT \
                 | simulator_v7.VK_BUFFER_USAGE_TRANSFER_DST_BIT | simulator_v7.VK_BUFFER_USAGE_TRANSFER_SRC_BIT
             expected_added = [
@@ -4301,7 +4392,8 @@ def check_micropolar(failures: list) -> None:
             if entries[:len(plain._global_entries())] != plain._global_entries():
                 failures.append(f"micropolar {label}: the Newtonian spec entries are not a prefix of the micropolar ones")
             extra = entries[len(plain._global_entries()):]
-            if [entry[:2] for entry in extra] != [(21, 'f'), (116, 'I')] or extra[0][2] != 1.6e-3:
+            if ([entry[:2] for entry in extra] != [(21, 'f'), (116, 'I')] or extra[0][2] != 1.6e-3
+                    or extra[1][2] != angular_velocity_layers):
                 failures.append(f"micropolar {label}: extra spec entries {extra}")
             if current._defrag_set0_bindings() != simulator_v7.DEFRAG_SET0_BINDINGS + (12, 13):
                 failures.append(f"micropolar {label}: defrag bindings {current._defrag_set0_bindings()}")
@@ -4311,7 +4403,7 @@ def check_micropolar(failures: list) -> None:
                     or layout != simulator_v7.restart_field_layout_of(micropolar_slab)):
                 failures.append(f"micropolar {label}: restart fields {list(layout)}")
             for name in ("predict", "bootstrap_half_kick", "force", "wall_extrapolate", "wall_extrapolate_band",
-                         "defrag"):
+                         "defrag", "ghost_send", "ghost_send_lanes", "expand_ghost_lists", "install_migrations"):
                 if current._shader_module_file_name(name) != f"{name}_micropolar":
                     failures.append(f"micropolar {label}: module {name} -> {current._shader_module_file_name(name)}")
             for name in ("correction", "density", "correction_density", "update_voxel", "initialize_voxelization",
@@ -4338,6 +4430,26 @@ def check_micropolar(failures: list) -> None:
                     and not uploaded[:own_first].any() and not uploaded[own_first + count:].any()
                     and not uploaded[:, 3].any()):
                 failures.append(f"micropolar {label}: the provided initial angular_velocities are not uploaded as given")
+        # the seam kernels: w in the replica block for the w layers only, in the migrant slot, in the departed copy
+        for name in ("ghost_send.comp", "ghost_send_lanes.comp"):
+            kernel_text = (pathlib.Path(__file__).resolve().parent / "shaders" / name).read_text(encoding="utf-8")
+            for fragment in (
+                    "if (layer_index < MICROPOLAR_REPLICA_LAYERS) {",
+                    "store_packed_angular_velocity(GHOST_DIRECTION, layer_index, region_slot, source_angular_velocity);",
+                    "angular_velocity[my_destination_particle_id] = angular_velocity[source_particle_id];",
+                    "angular_velocity[departed_particle_id] = angular_velocity[source_particle_id];"):
+                if kernel_text.count(fragment) != 1:
+                    failures.append(f"{name}: micropolar statement not found once: {fragment}")
+        expand_text = (pathlib.Path(__file__).resolve().parent / "shaders" / "expand_ghost_lists.comp").read_text(
+            encoding="utf-8")
+        if expand_text.count("angular_velocity[particle_id] = vec4(load_packed_angular_velocity(direction, layer, "
+                             "region_slot), 0.0);") != 1 or expand_text.count(
+                                 "if (layer < MICROPOLAR_REPLICA_LAYERS) {") != 1:
+            failures.append("expand_ghost_lists.comp: the micropolar unpack is not found once")
+        install_text = (pathlib.Path(__file__).resolve().parent / "shaders" / "install_migrations.comp").read_text(
+            encoding="utf-8")
+        if install_text.count("angular_velocity[own_pid]                = angular_velocity[gpid];") != 1:
+            failures.append("install_migrations.comp: the micropolar copy is not found once")
         # the partition slices a provided initial micro-rotation with the particles
         count = global_case.initial.positions.shape[0]
         tagged = dataclasses.replace(global_case, initial=dataclasses.replace(
@@ -4401,6 +4513,10 @@ def check_micropolar(failures: list) -> None:
                                 f"{MICROPOLAR_BASE_TAG}'s")
         include_text = (shader_directory / "micropolar.glsl").read_text(encoding="utf-8")
         for pattern in (r"layout\(constant_id = 116\) const uint MICROPOLAR_REPLICA_LAYERS = 0u;",
+                        # the w block's word offset = the host's segment offset / 4
+                        r"return \(2u \* 8u \* GHOST_LAYERS \+ \(direction \* MICROPOLAR_REPLICA_LAYERS \+ layer\) "
+                        r"\* 3u\) \* REPLICA_REGION_SIZE;",
+                        r"uint word = packed_angular_velocity_base\(direction, layer\) \+ 3u \* region_slot;",
                         r"set = 0, binding = 12\) buffer AngularVelocityBuffer \{(?:\s*//[^\n]*\n)*\s*"
                         r"vec4 angular_velocity\[\];",
                         r"set = 0, binding = 13\) buffer AngularAccelerationBuffer \{(?:\s*//[^\n]*\n)*\s*"

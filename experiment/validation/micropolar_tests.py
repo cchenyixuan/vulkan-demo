@@ -16,6 +16,20 @@ Sub-commands:
   operators   T3: one force evaluation (the bootstrap) on prescribed states with uniform density, on a lattice and
               a jittered lattice; reads back acceleration / angular_acceleration, interior particles only.
   relaxation  T4: v = 0, uniform w, xi = 0: w against the scheme's exact product and against exp(-2 c t / Theta).
+  seam        K = 2 against K = 1, particle by particle, on a prescribed smooth state (v, w, wall values) of a
+              cavity case: acceleration, angular_acceleration and the wall dummy micro-rotation after the bootstrap
+              force (no motion: particles match exactly by position) and after a few steps. A replica, a wall
+              dummy value or a ghost layer without the right w shows up at the seam as an O(1) difference;
+              agreement is at the rounding level of the neighbour sums.
+  advection   A fluid block with uniform w translating across the cut of a K = 2 chain (c > 0, xi = 0): every
+              particle, migrants included, must follow the relaxation product of T4. A migrant that lost w, or
+              kept a stale alpha, would not.
+  cavity      T5: a micropolar cavity case on a K-slab chain to a given step count, sampling the centreline
+              profiles u(0, y), v(x, 0) and w_z on both lines (Shepard, radius h) at every --sample-steps (at defrag
+              boundaries, pipeline drained); writes samples.npz + run.json.
+  cavity-compare  Time-averaged centreline profiles and their extrema of two cavity runs (K = 1 against K = 2) over
+              the last --window time units, the steadiness of each (last window against the one before), and the
+              sampling noise (standard error of the window mean).
   restart     The relaxation state run N steps, saved with cavity_runner.read_restart_state, restarted in a new
               simulator (restart_init: no force pass) and run N more: w must continue the same product, which
               it does only if the state carries angular_acceleration. Also: a state without the two micropolar
@@ -78,10 +92,10 @@ def _read_own_particles(sim, field_names) -> dict:
 
 
 def _run_chain(solver, global_case, slab_count: int, device_map, weights, steps: int, field_names,
-               validation: bool, depth: int = 2) -> tuple[dict, dict]:
+               validation: bool, depth: int = 2, pool_safety: float = 1.2) -> tuple[dict, dict]:
     """Bootstrap a K-slab chain of ``global_case``, run ``steps`` steps, return (merged own rows, invariants)."""
     _load_case, compute_chain_partition, SphSimulatorV7, VulkanContextV7, ChainOrchestratorV7 = solver
-    chain = compute_chain_partition(global_case, list(weights), pool_safety=1.2)
+    chain = compute_chain_partition(global_case, list(weights), pool_safety=pool_safety)
     contexts, sims = [], []
     try:
         for index in range(slab_count):
@@ -100,6 +114,8 @@ def _run_chain(solver, global_case, slab_count: int, device_map, weights, steps:
         for context in contexts:
             context.destroy()
     merged = {name: np.concatenate([part[name] for part in parts]) for name in parts[0]}
+    merged["_slab"] = np.concatenate([np.full(part["material"].shape[0], index, dtype=np.int32)
+                                      for index, part in enumerate(parts)])
     overflow = {}
     for status in statuses:
         for name, value in status.items():
@@ -134,6 +150,7 @@ def command_dump(arguments) -> int:
     meta = {"repo_root": str(repo_root), "case": arguments.case, "slabs": arguments.slabs, "device_map": device_map,
             "weights": weights, "steps": arguments.steps, "depth": arguments.depth, "micropolar": micropolar,
             "timestep": float(global_case.physics.timestep), **invariants}
+    rows.pop("_slab", None)
     np.savez(out_path, _meta=json.dumps(meta), **rows)
     conserved = invariants["particles_alive"] == invariants["particles_loaded"]
     counters_zero = all(value == 0 for value in invariants["counters"].values())
@@ -494,6 +511,332 @@ def command_relaxation(arguments) -> int:
     return 0
 
 
+def _prescribed_cavity_case(solver, case_path: pathlib.Path, wall_boundary: str):
+    """The cavity case with a smooth prescribed state: v a rigid rotation plus a shear, w_z of the fluid a linear
+    plus a sine part, and non-zero prescribed wall micro-rotations (so the stored wall values and the adami dummy
+    values enter the sums)."""
+    load_case = solver[0]
+    case = load_case(case_path)
+    from experiment.v7.utils.case_v7 import KIND_FLUID
+    case.numerics.wall_boundary = wall_boundary
+    positions = case.initial.positions.astype(np.float64)
+    kinds = np.asarray([material.kind for material in case.materials])[case.initial.material_group.astype(np.int64)]
+    fluid = kinds == KIND_FLUID
+    velocities = case.initial.velocities.copy()
+    velocities[fluid, 0] = (-0.8 * positions[fluid, 1] + 0.3 * positions[fluid, 0]).astype(np.float32)
+    velocities[fluid, 1] = (0.8 * positions[fluid, 0] - 0.3 * positions[fluid, 1]).astype(np.float32)
+    case.initial.velocities = velocities
+    spin = np.zeros((positions.shape[0], 3), dtype=np.float32)
+    spin[fluid, 2] = (1.5 * positions[fluid, 0] - 0.7 * positions[fluid, 1]
+                      + 0.4 * np.sin(9.0 * positions[fluid, 0]) * np.cos(7.0 * positions[fluid, 1])).astype(np.float32)
+    # walls: a different constant per boundary material
+    for group, material in enumerate(case.materials):
+        if material.kind != KIND_FLUID:
+            spin[case.initial.material_group == group, 2] = 0.6 - 0.9 * group
+    case.initial.angular_velocities = spin
+    return case
+
+
+def command_seam(arguments) -> int:
+    """Runs per wall option and step count: K = 1 on the first device twice (the same-device rounding floor), K = 1
+    on the second device (the cross-device rounding floor: another vendor's code generation), K = 2 on the two
+    devices, and K = 2 with both slabs on the first device (the seam alone, no second device). Every run is compared
+    with the first K = 1 run, particle by particle, near the cut and elsewhere. Pass: each K = 2 run's rms
+    difference near the cut stays within --ratio-limit times the larger K = 1 floor of its devices (or the absolute
+    rounding bound when the floors are below it)."""
+    from scipy.spatial import cKDTree
+    solver = _import_solver(_THIS_REPO_ROOT)
+    from experiment.v7.utils.case_v7 import KIND_FLUID
+    device_map = [int(value) for value in arguments.device_map.split(",")]
+    first, second = device_map[0], device_map[1]
+    run_plan = [("k1", 1, [first]), ("k1_repeat", 1, [first]), ("k1_other_device", 1, [second]),
+                ("k2", 2, [first, second]), ("k2_one_device", 2, [first, first])]
+    exit_code = 0
+    results = []
+    for wall_boundary in arguments.walls:
+        for steps in arguments.steps:
+            fields = ["acceleration", "angular_acceleration", "angular_velocity", "density_pressure"]
+            # the wall dummy buffers are transient and not permuted by defrag: after the bootstrap defrag (steps = 0)
+            # their slots no longer belong to the particles read back, so they are compared after steps only
+            dummy_fields = ["wall_dummy_velocity", "wall_dummy_angular_velocity"] \
+                if wall_boundary == "adami" and steps > 0 else []
+            runs = {}
+            for label, slab_count, devices in run_plan:
+                case = _prescribed_cavity_case(solver, _THIS_REPO_ROOT / arguments.case, wall_boundary)
+                rows, invariants = _run_chain(solver, case, slab_count, devices, [1.0] * slab_count, steps,
+                                              fields + dummy_fields, arguments.validation, depth=1)
+                if (invariants["particles_alive"] != invariants["particles_loaded"]
+                        or any(invariants["counters"].values())):
+                    raise RuntimeError(f"seam {wall_boundary} {label}: {invariants}")
+                runs[label] = rows
+            smoothing_length = float(case.physics.smoothing_length)
+            reference = runs["k1"]
+            tree = cKDTree(reference["position_voxel_id"][:, :3].astype(np.float64))
+            fluid_groups = [group for group, material in enumerate(case.materials) if material.kind == KIND_FLUID]
+            k2 = runs["k2"]
+            cut = 0.5 * (float(k2["position_voxel_id"][k2["_slab"] == 0, 0].max())
+                         + float(k2["position_voxel_id"][k2["_slab"] == 1, 0].min()))
+            comparison_names = (["acceleration", "angular_acceleration", "angular_velocity"] + dummy_fields)
+            table = {}
+            for label, _slab_count, _devices in run_plan[1:]:
+                other = runs[label]
+                distance, index = tree.query(other["position_voxel_id"][:, :3].astype(np.float64))
+                if np.unique(index).size != index.size or float(distance.max()) > 0.01 * smoothing_length:
+                    raise RuntimeError(f"seam {wall_boundary} {steps} steps {label}: particles do not match "
+                                       f"(max distance {distance.max():.3e})")
+                is_fluid = np.isin(other["material"], fluid_groups)
+                near = np.abs(other["position_voxel_id"][:, 0].astype(np.float64) - cut) < 4.0 * smoothing_length
+                for name in comparison_names:
+                    mask = (~is_fluid if name.startswith("wall_dummy")
+                            else np.ones_like(is_fluid) if name == "angular_velocity" else is_fluid)
+                    scale = float(np.sqrt((reference[name][:, :3].astype(np.float64) ** 2).sum(axis=1)[
+                        np.isin(reference["material"], fluid_groups) if not name.startswith("wall_dummy")
+                        else ~np.isin(reference["material"], fluid_groups)].mean()))
+                    difference = np.sqrt(((reference[name][index, :3].astype(np.float64)
+                                           - other[name][:, :3].astype(np.float64)) ** 2).sum(axis=1)) / scale
+
+                    def summary(selection):
+                        values = difference[selection]
+                        return float(np.sqrt((values ** 2).mean())), float(values.max())
+                    near_rms, near_max = summary(mask & near)
+                    far_rms, far_max = summary(mask & ~near)
+                    table[(name, label)] = (near_rms, near_max, far_rms, far_max)
+                    results.append({"walls": wall_boundary, "steps": steps, "run": label, "field": name,
+                                    "cut_x": cut, "scale_rms": scale, "near_seam_rms": near_rms,
+                                    "near_seam_max": near_max, "elsewhere_rms": far_rms, "elsewhere_max": far_max,
+                                    "near_seam_particles": int((mask & near).sum())})
+            print(f"[seam] {wall_boundary}, {steps} steps, cut at x = {cut:+.4f}; |difference to the first K = 1 run| "
+                  f"/ field rms, near the cut (within 4 h) and elsewhere: rms (max)")
+            for name in comparison_names:
+                floors = {"k2": max(table[(name, "k1_repeat")][0], table[(name, "k1_other_device")][0],
+                                    table[(name, "k1_repeat")][2], table[(name, "k1_other_device")][2]),
+                          "k2_one_device": max(table[(name, "k1_repeat")][0], table[(name, "k1_repeat")][2])}
+                verdicts = []
+                for label in ("k2", "k2_one_device"):
+                    bound = max(arguments.ratio_limit * floors[label], arguments.rounding_bound)
+                    passed = table[(name, label)][0] <= bound
+                    exit_code |= 0 if passed else 1
+                    verdicts.append(f"{label} {'PASS' if passed else 'FAIL'}")
+                print(f"[seam]   {name}: " + "; ".join(
+                    f"{label} near {table[(name, label)][0]:.1e} ({table[(name, label)][1]:.1e}) elsewhere "
+                    f"{table[(name, label)][2]:.1e} ({table[(name, label)][3]:.1e})"
+                    for label, _count, _devices in run_plan[1:]) + " | " + ", ".join(verdicts))
+    if arguments.json:
+        pathlib.Path(arguments.json).parent.mkdir(parents=True, exist_ok=True)
+        pathlib.Path(arguments.json).write_text(json.dumps(results, indent=1), encoding="utf-8")
+    return exit_code
+
+
+def command_advection(arguments) -> int:
+    solver = _import_solver(_THIS_REPO_ROOT)
+    device_map = [int(value) for value in arguments.device_map.split(",")]
+    viscosity, viscosity_transfer, initial_spin = 2.5e-3, -0.625e-3, 3.0
+    coupling = float(np.float32(viscosity) + np.float32(viscosity_transfer))
+    # jittered: a lattice line would cross the cut in one step (101 migrants at once, more than the migrant region
+    # of a link is sized for); with the jitter the crossings spread over about 80 steps
+    case, _group, _spacing = _fluid_block_case(solver, _THIS_REPO_ROOT / arguments.case, arguments.half_width,
+                                               arguments.jitter, arguments.seed, None, viscosity=viscosity,
+                                               viscosity_transfer=viscosity_transfer, viscosity_rotation=0.0,
+                                               micro_inertia=arguments.micro_inertia)
+    case.initial.angular_velocities[:, 2] = initial_spin
+    case.initial.velocities[:, 0] = arguments.speed
+    timestep = float(np.float32(case.physics.timestep))
+    columns = arguments.speed * timestep * arguments.steps / case.physics.smoothing_length
+    # the block's own pools are sized from the initial halves; half a block may end up on one slab
+    rows, invariants = _run_chain(solver, case, 2, device_map, [1.0, 1.0], arguments.steps,
+                                  ["angular_velocity", "acceleration"], arguments.validation, depth=arguments.depth,
+                                  pool_safety=arguments.pool_safety)
+    rate = 2.0 * coupling / float(np.float32(arguments.micro_inertia))
+    discrete = initial_spin * (1.0 - 0.5 * rate * timestep) * (1.0 - rate * timestep) ** (arguments.steps - 1)
+    spin = rows["angular_velocity"][:, 2].astype(np.float64)
+    deviation = float(np.abs(spin / discrete - 1.0).max())
+    moved = int(invariants["slab_particles"][1]) - case.initial.positions.shape[0] // 2
+    conserved = invariants["particles_alive"] == invariants["particles_loaded"]
+    counters_zero = all(value == 0 for value in invariants["counters"].values())
+    passed = conserved and counters_zero and deviation < 0.05 * rate * timestep and abs(moved) > 0
+    print(f"[advection] block at {arguments.speed} m/s for {arguments.steps} steps = {columns:.1f} voxel columns; "
+          f"slab particles {invariants['slab_particles']} ({moved:+,} crossed to slab 1), "
+          f"{'conserved' if conserved else 'NOT CONSERVED'}, counters "
+          f"{'all zero' if counters_zero else invariants['counters']}")
+    print(f"[advection] w_z min {spin.min():.7f} max {spin.max():.7f}, the product {discrete:.7f}: max relative "
+          f"deviation {deviation:.2e} (one lost kick = {rate * timestep:.2e}; a lost w = 1); max |w_xy| "
+          f"{np.abs(rows['angular_velocity'][:, :2]).max():.1e}, max |a| {np.abs(rows['acceleration'][:, :3]).max():.2e}; "
+          f"{'PASS' if passed else 'FAIL'}")
+    return 0 if passed else 1
+
+
+_CENTRELINE_POINTS = 201
+
+
+def _centreline_points(half_extent: float) -> dict:
+    axis = np.linspace(-half_extent, half_extent, _CENTRELINE_POINTS)
+    zeros = np.zeros_like(axis)
+    return {"vertical": np.column_stack([zeros, axis]),        # x = 0: u(y), w_z(y)
+            "horizontal": np.column_stack([axis, zeros])}      # y = 0: v(x), w_z(x)
+
+
+def command_cavity(arguments) -> int:
+    import time
+    solver = _import_solver(_THIS_REPO_ROOT)
+    load_case, compute_chain_partition, SphSimulatorV7, VulkanContextV7, ChainOrchestratorV7 = solver
+    from experiment.v7.utils.case_v7 import KIND_FLUID
+    case = load_case(_THIS_REPO_ROOT / arguments.case)
+    device_map = [int(value) for value in arguments.device_map.split(",")]
+    weights = [float(value) for value in arguments.weights.split(",")] if arguments.weights else [1.0] * arguments.slabs
+    if len(device_map) != arguments.slabs or len(weights) != arguments.slabs:
+        sys.exit("--device-map / --weights need one entry per slab")
+    cadence = case.numerics.defrag_cadence
+    if arguments.sample_steps % cadence or arguments.steps % arguments.sample_steps:
+        sys.exit(f"--sample-steps must be a multiple of the defrag cadence {cadence} and divide --steps")
+    fluid_group = next(index for index, material in enumerate(case.materials) if material.kind == KIND_FLUID)
+    smoothing_length = float(case.physics.smoothing_length)
+    timestep = float(case.physics.timestep)
+    lines = _centreline_points(arguments.half_extent)
+    out_dir = pathlib.Path(arguments.out).resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    expected = int(case.initial.positions.shape[0])
+    samples = {"step": [], "u_vertical": [], "w_vertical": [], "v_horizontal": [], "w_horizontal": [],
+               "kinetic_energy": [], "spin_square_mean": []}
+    chain = compute_chain_partition(case, weights, pool_safety=1.2)
+    contexts, sims = [], []
+    started = time.perf_counter()
+    try:
+        for index in range(arguments.slabs):
+            contexts.append(VulkanContextV7.create(device_index=device_map[index], enable_validation=False,
+                                                   application_name=f"micropolar_cavity_k{arguments.slabs}_s{index}"))
+            sims.append(SphSimulatorV7(contexts[-1], chain.slabs[index], sync_scheme="per-direction"))
+
+        def sample(step: int) -> None:
+            parts = [_read_own_particles(sim, ["density_pressure", "angular_velocity"]) for sim in sims]
+            rows = {name: np.concatenate([part[name] for part in parts]) for name in parts[0]}
+            if rows["material"].shape[0] != expected:
+                raise RuntimeError(f"step {step}: {rows['material'].shape[0]} particles alive, {expected} loaded")
+            vertical = _sampled_fields(rows, lines["vertical"], smoothing_length, fluid_group)
+            horizontal = _sampled_fields(rows, lines["horizontal"], smoothing_length, fluid_group)
+            fluid = rows["material"] == fluid_group
+            samples["step"].append(step)
+            samples["u_vertical"].append(vertical["u"])
+            samples["w_vertical"].append(vertical["w_z"])
+            samples["v_horizontal"].append(horizontal["v"])
+            samples["w_horizontal"].append(horizontal["w_z"])
+            samples["kinetic_energy"].append(float(0.5 * (rows["velocity_mass"][fluid, 3].astype(np.float64)
+                                                         * (rows["velocity_mass"][fluid, :2].astype(np.float64) ** 2
+                                                            ).sum(axis=1)).sum()))
+            samples["spin_square_mean"].append(float((rows["angular_velocity"][fluid, 2].astype(np.float64) ** 2).mean()))
+
+        def on_defrag(frame: int, report: list) -> None:
+            for index, entry in enumerate(report):
+                bad = {key: value for key, value in entry.items()
+                       if (key.startswith("overflow_") or key == "far_migration") and value}
+                if bad:
+                    raise RuntimeError(f"invariant violation at step {frame}, sim {index}: {bad}")
+            if frame > 0 and frame % arguments.sample_steps == 0:
+                sample(frame)
+                if len(samples["step"]) % 20 == 0:
+                    rate = frame / (time.perf_counter() - started)
+                    print(f"[cavity] step {frame:,} (t = {frame * timestep:.2f}), {rate:,.0f} steps/s, min u "
+                          f"{samples['u_vertical'][-1].min():+.5f}, max |w_z| "
+                          f"{np.abs(samples['w_vertical'][-1]).max():.5f}", flush=True)
+
+        with ChainOrchestratorV7(sims, defrag_cadence=cadence) as orchestrator:
+            orchestrator.bootstrap_all()
+            orchestrator.run_pipelined(arguments.steps, depth=arguments.depth, on_defrag=on_defrag)
+            if not samples["step"] or samples["step"][-1] != arguments.steps:
+                sample(arguments.steps)
+            statuses = [sim.readback_global_status() for sim in sims]
+    finally:
+        for sim in sims:
+            sim.destroy()
+        for context in contexts:
+            context.destroy()
+    counters = {}
+    for status in statuses:
+        for name, value in status.items():
+            if name.startswith(_OVERFLOW_PREFIX) or name in ("far_migration_count", "stamp_error_count"):
+                counters[name] = counters.get(name, 0) + int(value)
+    elapsed = time.perf_counter() - started
+    np.savez(out_dir / "samples.npz", coordinate=np.linspace(-arguments.half_extent, arguments.half_extent,
+                                                            _CENTRELINE_POINTS),
+             **{name: np.asarray(values) for name, values in samples.items()})
+    meta = {"case": arguments.case, "slabs": arguments.slabs, "device_map": device_map, "weights": weights,
+            "steps": arguments.steps, "sample_steps": arguments.sample_steps, "timestep": timestep,
+            "depth": arguments.depth, "particles": expected, "counters": counters, "elapsed_seconds": elapsed,
+            "steps_per_second": arguments.steps / elapsed,
+            "slab_particles": [int(slab.initial.positions.shape[0]) for slab in chain.slabs]}
+    (out_dir / "run.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
+    zero = all(value == 0 for value in counters.values())
+    print(f"[cavity] {arguments.steps:,} steps (t = {arguments.steps * timestep:.2f}) in {elapsed:.0f} s, "
+          f"{len(samples['step'])} samples, particle count conserved at every sample, counters "
+          f"{'all zero' if zero else counters}")
+    return 0 if zero else 1
+
+
+def command_cavity_compare(arguments) -> int:
+    def load(directory):
+        with np.load(pathlib.Path(directory) / "samples.npz") as archive:
+            data = {name: np.array(archive[name]) for name in archive.files}
+        meta = json.loads((pathlib.Path(directory) / "run.json").read_text(encoding="utf-8"))
+        return data, meta
+
+    runs = [load(directory) for directory in arguments.runs]
+    profiles = ("u_vertical", "v_horizontal", "w_vertical", "w_horizontal")
+    extrema = (("u_vertical", "min"), ("v_horizontal", "min"), ("v_horizontal", "max"),
+               ("w_vertical", "min"), ("w_vertical", "max"), ("w_horizontal", "min"), ("w_horizontal", "max"))
+    summaries = []
+    for (data, meta), directory in zip(runs, arguments.runs):
+        time_axis = data["step"] * meta["timestep"]
+        last = time_axis > time_axis[-1] - arguments.window
+        previous = (time_axis > time_axis[-1] - 2.0 * arguments.window) & ~last
+        summary = {"label": f"K = {meta['slabs']} (devices {meta['device_map']})", "samples": int(last.sum()),
+                   "end_time": float(time_axis[-1])}
+        for name in profiles:
+            summary[name] = data[name][last].mean(axis=0)
+            summary[name + "_previous"] = data[name][previous].mean(axis=0)
+            # standard error of the window mean, per point (samples treated as independent: an underestimate
+            # when they are correlated)
+            summary[name + "_error"] = data[name][last].std(axis=0, ddof=1) / np.sqrt(last.sum())
+        summaries.append(summary)
+        print(f"{directory}: {summary['label']}, t_end = {summary['end_time']:.2f}, window {arguments.window} "
+              f"({summary['samples']} samples), {meta['steps_per_second']:,.0f} steps/s, counters "
+              f"{'all zero' if not any(meta['counters'].values()) else meta['counters']}")
+    reference, test = summaries[0], summaries[1]
+    exit_code = 0
+    report = {"window": arguments.window, "extrema": [], "profiles": []}
+    print(f"\n{'extremum':<20}{reference['label']:>24}{test['label']:>24}{'rel. diff':>12}{'drift ref':>12}"
+          f"{'drift test':>12}{'4 digits':>10}")
+    for name, kind in extrema:
+        pick = (np.min, np.argmin) if kind == "min" else (np.max, np.argmax)
+        first, second = float(pick[0](reference[name])), float(pick[0](test[name]))
+        relative = abs(second - first) / abs(first)
+        drift_reference = abs(float(pick[0](reference[name + "_previous"])) - first) / abs(first)
+        drift_test = abs(float(pick[0](test[name + "_previous"])) - second) / abs(second)
+        same = f"{first:.4e}" == f"{second:.4e}" or relative < 5e-5
+        four = float(f"{first:.3e}") == float(f"{second:.3e}")
+        report["extrema"].append({"profile": name, "kind": kind, "reference": first, "test": second,
+                                  "relative_difference": relative, "drift_reference": drift_reference,
+                                  "drift_test": drift_test, "equal_to_four_digits": bool(four)})
+        exit_code |= 0 if four else 1
+        print(f"{kind + ' ' + name:<20}{first:>24.6f}{second:>24.6f}{relative:>12.2e}{drift_reference:>12.2e}"
+              f"{drift_test:>12.2e}{'yes' if four else 'NO':>10}")
+        del same
+    print(f"\n{'profile':<16}{'max |diff|':>12}{'rms diff':>12}{'profile rms':>13}{'max std err':>13}"
+          f"{'max drift ref':>15}")
+    for name in profiles:
+        difference = np.abs(test[name] - reference[name])
+        scale = float(np.sqrt((reference[name] ** 2).mean()))
+        error = float(max(reference[name + "_error"].max(), test[name + "_error"].max()))
+        drift = float(np.abs(reference[name] - reference[name + "_previous"]).max())
+        report["profiles"].append({"profile": name, "max_difference": float(difference.max()),
+                                   "rms_difference": float(np.sqrt((difference ** 2).mean())), "profile_rms": scale,
+                                   "max_standard_error": error, "max_drift_reference": drift})
+        print(f"{name:<16}{difference.max():>12.3e}{np.sqrt((difference ** 2).mean()):>12.3e}{scale:>13.4e}"
+              f"{error:>13.3e}{drift:>15.3e}")
+    if arguments.json:
+        pathlib.Path(arguments.json).write_text(json.dumps(report, indent=1), encoding="utf-8")
+    print(f"\n{'PASS' if exit_code == 0 else 'FAIL'}: every extremum equal to four significant digits")
+    return exit_code
+
+
 def command_restart(arguments) -> int:
     solver = _import_solver(_THIS_REPO_ROOT)
     _load_case, compute_chain_partition, SphSimulatorV7, VulkanContextV7, ChainOrchestratorV7 = solver
@@ -619,6 +962,53 @@ def main() -> int:
     relaxation.add_argument("--validation", action="store_true")
     relaxation.add_argument("--json", default=None)
     relaxation.set_defaults(handler=command_relaxation)
+
+    seam = commands.add_parser("seam")
+    seam.add_argument("--case", default="cases/micropolar_cavity_n250_re400/case.yaml")
+    seam.add_argument("--walls", nargs="+", default=["simple", "adami"])
+    seam.add_argument("--steps", type=int, nargs="+", default=[0, 20])
+    seam.add_argument("--device-map", default="0,1")
+    seam.add_argument("--ratio-limit", type=float, default=2.0,
+                      help="accepted (K = 2 vs K = 1 rms near the cut) / (K = 1 floor rms)")
+    seam.add_argument("--rounding-bound", type=float, default=1e-5,
+                      help="accepted rms |difference| / field rms when the K = 1 floor is below it (a K = 1 repeat "
+                           "can be bit-identical at the bootstrap)")
+    seam.add_argument("--validation", action="store_true")
+    seam.add_argument("--json", default=None)
+    seam.set_defaults(handler=command_seam)
+
+    advection = commands.add_parser("advection")
+    advection.add_argument("--case", default="cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025/case.yaml")
+    advection.add_argument("--half-width", type=float, default=0.2)
+    advection.add_argument("--micro-inertia", type=float, default=2.25e-4,
+                           help="2 c dt / Theta = 5e-4: w halves over the default 1400 steps")
+    advection.add_argument("--speed", type=float, default=1.0)
+    advection.add_argument("--steps", type=int, default=1400)
+    advection.add_argument("--pool-safety", type=float, default=2.2)
+    advection.add_argument("--jitter", type=float, default=0.3, help="jitter amplitude in particle spacings")
+    advection.add_argument("--depth", type=int, default=2)
+    advection.add_argument("--device-map", default="0,1")
+    advection.add_argument("--seed", type=int, default=20261110)
+    advection.add_argument("--validation", action="store_true")
+    advection.set_defaults(handler=command_advection)
+
+    cavity = commands.add_parser("cavity")
+    cavity.add_argument("--case", default="cases/micropolar_cavity_n250_re400/case.yaml")
+    cavity.add_argument("--slabs", type=int, default=1)
+    cavity.add_argument("--device-map", default="0")
+    cavity.add_argument("--weights", default=None)
+    cavity.add_argument("--steps", type=int, required=True)
+    cavity.add_argument("--sample-steps", type=int, default=5000)
+    cavity.add_argument("--depth", type=int, default=2)
+    cavity.add_argument("--half-extent", type=float, default=0.5)
+    cavity.add_argument("--out", required=True)
+    cavity.set_defaults(handler=command_cavity)
+
+    cavity_compare = commands.add_parser("cavity-compare")
+    cavity_compare.add_argument("runs", nargs=2, help="two cavity run directories: the reference (K = 1), the test")
+    cavity_compare.add_argument("--window", type=float, default=5.0, help="averaging window in time units")
+    cavity_compare.add_argument("--json", default=None)
+    cavity_compare.set_defaults(handler=command_cavity_compare)
 
     restart = commands.add_parser("restart")
     restart.add_argument("--case", default="cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025/case.yaml")

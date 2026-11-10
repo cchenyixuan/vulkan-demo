@@ -593,7 +593,13 @@ MICROPOLAR_DEFRAG_SET0_BINDINGS = (12, 13)        # angular_velocity, angular_ac
 # kernels with a MICROPOLAR variant (compile_shaders_v7.SHADER_VARIANTS): module file <name>_micropolar.comp.spv
 MICROPOLAR_SHADER_MODULES = frozenset({
     "predict", "bootstrap_half_kick", "force", "wall_extrapolate", "wall_extrapolate_band", "defrag",
+    "ghost_send", "ghost_send_lanes", "expand_ghost_lists", "install_migrations",
 })
+# The link (micropolar.glsl): three words (w_x, w_y, w_z) per replica of the layers that carry angular_velocity,
+# in a block of ghost_packed_words after the replica records; the migrant region's angular_velocity slots as an
+# SoA segment (16 B).
+MICROPOLAR_PACKED_ANGULAR_VELOCITY_WORDS = 3
+MICROPOLAR_MIGRANT_FIELDS = ("angular_velocity",)
 MICROPOLAR_RESTART_FIELDS = {
     "angular_velocity":     (4, np.float32),      # w_{n-1/2} (walls: the prescribed w_wall)
     "angular_acceleration": (4, np.float32),      # alpha_n: the first predict after a restart reads it
@@ -616,6 +622,7 @@ _SET0_BYTE_STRIDES = {
     "correction_inverse":          32,
     "density_gradient_kernel_sum": 16,
     "extension_fields":            16,
+    "angular_velocity":            16,     # micropolar (binding 12): the migrant region's segment
 }
 _SET0_BINDING_TO_NAME = {
     0: "position_voxel_id",
@@ -850,12 +857,17 @@ class SphSimulatorV7:
             raise ValueError("V7_FAKE_BAND_TEST is not supported with wall_boundary adami: the phase B wall pass "
                              "would read the fake band's fluid density before density_boundary_band writes it")
 
-        # Micropolar terms: one slab only at this stage (the seam transport of angular_velocity is Stage 2 of
-        # docs/micropolar_design.md).
+        # Micropolar terms on a slab with a peer: angular_velocity crosses the link in the release transport layout
+        # only (docs/micropolar_design.md D3): the replica w block sits in ghost_packed_words, the migrant's slot
+        # in the lean migrant region; the legacy layouts have no MICROPOLAR path in ghost_send.
         if self._micropolar:
             if case.transport.has_leading_peer or case.transport.has_trailing_peer:
-                raise NotImplementedError("physics.micropolar on a slab with a peer: the link does not carry "
-                                          "angular_velocity yet (docs/micropolar_design.md, Stage 2)")
+                if not (case.ghost_grid.ghost_layers >= 2 and case.capacities.replica_region_size > 0
+                        and configured_lean_transport() and configured_compact_ghost_lists()
+                        and configured_packed_replicas()):
+                    raise ValueError("physics.micropolar on a slab with a peer needs the release transport layout: "
+                                     "V7_GHOST_LAYERS >= 2, V7_LEAN_TRANSPORT=1, V7_COMPACT_GHOST_LISTS=1, "
+                                     "V7_PACKED_REPLICAS=1")
             if _BAND_OVERLAP != "0" or _BAND_COMPACT:
                 raise ValueError("physics.micropolar is not supported with V7_BAND_OVERLAP or "
                                  "V7_BAND_COMPACT_DISPATCH (no MICROPOLAR variant of those paths)")
@@ -1021,6 +1033,21 @@ class SphSimulatorV7:
         if self._micropolar and shader_name in MICROPOLAR_SHADER_MODULES:
             return f"{shader_name}_micropolar"
         return shader_name
+
+    def _micropolar_replica_layers(self) -> int:
+        """Replica layers, from the inner one, whose angular_velocity travels (spec const 116): the layers whose
+        fluid state feeds this slab's force - the inner layer directly, and with the three-layer ghost of an adami
+        chain the outer one through the wall pass on the inner ghost column - i.e. the layers the density band
+        recomputes as self: ghost_layers - 1. 0 without the micropolar terms or without a peer."""
+        transport = self.case.transport
+        if not self._micropolar or not (transport.has_leading_peer or transport.has_trailing_peer):
+            return 0
+        return self.case.ghost_grid.ghost_layers - 1
+
+    def _packed_words_per_direction(self) -> int:
+        """Words of ghost_packed_words one direction's replica records take, per replica region slot: 8 per ghost
+        layer (V7_PACKED_REPLICAS)."""
+        return self.case.ghost_grid.ghost_layers * _PACKED_REPLICA_WORDS
 
     def restart_field_layout(self) -> dict:
         """RESTART_FIELD_LAYOUT of this sim: + the two micropolar fields on a micropolar case."""
@@ -1319,7 +1346,9 @@ class SphSimulatorV7:
             # V7_PACKED_REPLICAS: packed replica out/inbox, ghost_layers (2; E40 adami chain: 3) layers x 8 words x R
             # per direction
             _BufferSpec("ghost_packed_words",           1, 7,
-                        max(4, 4 * 2 * case.ghost_grid.ghost_layers * _PACKED_REPLICA_WORDS
+                        max(4, 4 * 2 * (case.ghost_grid.ghost_layers * _PACKED_REPLICA_WORDS
+                                        # micropolar: + the w block, 3 words per replica of the layers that carry it
+                                        + self._micropolar_replica_layers() * MICROPOLAR_PACKED_ANGULAR_VELOCITY_WORDS)
                             * case.capacities.replica_region_size)
                         if configured_packed_replicas() else 4,                       BSU | TRANSFER),
 
@@ -1398,7 +1427,9 @@ class SphSimulatorV7:
         # multi-GPU run needs CONCURRENT for the transfer-queue DMA.
         concurrent_enabled = os.environ.get("V7_CONCURRENT_BUFFERS", "1") == "1"
         for spec in self._buffer_specs:
-            shared = concurrent_enabled and spec.name in _CONCURRENT_BUFFER_NAMES
+            # micropolar: the transfer queue copies angular_velocity's migrant region, like the other lean fields
+            shared = concurrent_enabled and (spec.name in _CONCURRENT_BUFFER_NAMES
+                                             or (self._micropolar and spec.name in MICROPOLAR_MIGRANT_FIELDS))
             buffers[spec.name] = self._allocate_buffer(
                 spec.size, spec.usage,
                 required_properties=VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -1585,12 +1616,30 @@ class SphSimulatorV7:
                     segments.append(segment)
                     counted_segments.append((segment, count_key))
                     staging_offset += stride * replica_region
+            # micropolar: the w block of the layers that carry angular_velocity (micropolar.glsl
+            # packed_angular_velocity_base): after both directions' replica records, 3 words per replica, live
+            # prefix = the layer's replica counter, like the records.
+            angular_velocity_layers = self._micropolar_replica_layers()
+            angular_velocity_stride = 4 * MICROPOLAR_PACKED_ANGULAR_VELOCITY_WORDS
+            direction_index = 0 if direction == "leading" else 1
+            for layer_index, count_key in enumerate(layer_keys[:angular_velocity_layers]):
+                segment = _TransportSegment(
+                    "ghost_packed_words",
+                    (2 * layer_count * _PACKED_REPLICA_WORDS
+                     + (direction_index * angular_velocity_layers + layer_index)
+                     * MICROPOLAR_PACKED_ANGULAR_VELOCITY_WORDS) * region_bytes,
+                    staging_offset, angular_velocity_stride * replica_region, stride=angular_velocity_stride,
+                    region=count_key)
+                segments.append(segment)
+                counted_segments.append((segment, count_key))
+                staging_offset += angular_velocity_stride * replica_region
         else:
             for layer_index, count_key in enumerate(layer_keys):
                 add_particle_segments(_REPLICA_TRANSPORT_FIELDS, layer_index * replica_region, replica_region,
                                       count_key)
-        add_particle_segments(transported_particle_fields(), layer_count * replica_region,
-                              migrant_region, "migrant")
+        add_particle_segments(transported_particle_fields()
+                              + (MICROPOLAR_MIGRANT_FIELDS if self._micropolar else ()),     # 44 -> 60 B per migrant
+                              layer_count * replica_region, migrant_region, "migrant")
 
         size = 4 * ghost_voxel_count
         segments.append(_TransportSegment(
@@ -1974,7 +2023,7 @@ class SphSimulatorV7:
         if self._micropolar:
             # Micropolar terms: Theta (id 21, common.glsl) and the replica layers that carry angular_velocity
             # (id 116, micropolar.glsl). Only on a micropolar case: a Newtonian pipeline keeps its blob.
-            entries += [(21, 'f', p.micro_inertia), (116, 'I', 0)]
+            entries += [(21, 'f', p.micro_inertia), (116, 'I', self._micropolar_replica_layers())]
         return entries
 
     # ----- Per-pipeline mode entries (kernel-specific spec const overrides) ---

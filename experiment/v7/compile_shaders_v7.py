@@ -69,6 +69,11 @@ SHADER_VARIANTS = (
     ("wall_extrapolate_micropolar", "wall_extrapolate.comp", ("MICROPOLAR",)),
     ("wall_extrapolate_band_micropolar", "wall_extrapolate_band.comp", ("MICROPOLAR",)),
     ("defrag_micropolar", "defrag.comp", ("MICROPOLAR",)),
+    # the seam: angular_velocity in the replica records' w block, the migrant packet and the departed copies
+    ("ghost_send_micropolar", "ghost_send.comp", ("MICROPOLAR",)),
+    ("ghost_send_lanes_micropolar", "ghost_send_lanes.comp", ("MICROPOLAR",)),
+    ("expand_ghost_lists_micropolar", "expand_ghost_lists.comp", ("MICROPOLAR",)),
+    ("install_migrations_micropolar", "install_migrations.comp", ("MICROPOLAR",)),
 )
 
 
