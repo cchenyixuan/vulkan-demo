@@ -3,6 +3,9 @@
 #include "common.glsl"
 #include "helpers.glsl"
 #include "wall_boundary.glsl"
+#ifdef MICROPOLAR
+#include "micropolar.glsl"
+#endif
 
 // ============================================================================
 // wall_extrapolate_band.comp - E40: the SPLIT wall pass of wall_boundary adami
@@ -89,6 +92,9 @@ void process_wall(uint self_particle_id) {
     vec3  velocity_weighted_sum       = vec3(0.0);    // sum_f u_f W_wf
     float pressure_weighted_sum       = 0.0;          // sum_f p_f W_wf
     vec3  density_offset_weighted_sum = vec3(0.0);    // sum_f rho_f r_wf W_wf
+#ifdef MICROPOLAR
+    vec3  angular_velocity_weighted_sum = vec3(0.0);  // sum_f w_f W_wf
+#endif
 
     int neighbor_z_range = int(NEIGHBOR_Z_RANGE);
     // Same nesting as correction / density / force (innermost = y, the fastest
@@ -123,6 +129,9 @@ void process_wall(uint self_particle_id) {
                     velocity_weighted_sum       += velocity_mass[neighbor_particle_id].xyz * kernel_value;
                     pressure_weighted_sum       += neighbor_density_pressure.y * kernel_value;
                     density_offset_weighted_sum += neighbor_density * kernel_value * position_difference_neighbor_to_self;
+#ifdef MICROPOLAR
+                    angular_velocity_weighted_sum += angular_velocity[neighbor_particle_id].xyz * kernel_value;
+#endif
                 }
             }
         }
@@ -145,6 +154,15 @@ void process_wall(uint self_particle_id) {
     density_pressure[self_particle_id]         = wall_density_pressure;
     density_pressure_scratch[self_particle_id] = wall_density_pressure;
     wall_dummy_velocity[self_particle_id]      = vec4(dummy_velocity, kernel_weight_sum);
+#ifdef MICROPOLAR
+    // Micropolar: dummy micro-rotation 2 w_wall - w~_w, w_wall = the wall's stored, prescribed value (its
+    // angular_velocity slot); w_wall itself without a fluid neighbour (the dummy velocity's rule).
+    vec3 wall_angular_velocity = angular_velocity[self_particle_id].xyz;
+    vec3 dummy_angular_velocity = (kernel_weight_sum > 0.0)
+        ? 2.0 * wall_angular_velocity - angular_velocity_weighted_sum / kernel_weight_sum
+        : wall_angular_velocity;
+    wall_dummy_angular_velocity[self_particle_id] = vec4(dummy_angular_velocity, kernel_weight_sum);
+#endif
 }
 
 // ---------------------------------------------------------------------------

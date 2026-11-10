@@ -60,6 +60,15 @@ SHADER_VARIANTS = (
     ("correction_density_deep_wall_skip", "correction_density.comp", ("DEEP_WALL_SKIP",)),
     # E39 B3: a workgroup segment of force_deep_interior_scratch (spec constant 115 = its first thread)
     ("force_segment", "force.comp", ("FORCE_SEGMENT",)),
+    # Micropolar terms (docs/micropolar_design.md, shaders/micropolar.glsl): the kernels that read or write
+    # angular_velocity / angular_acceleration, loaded instead of the plain modules by a case with
+    # physics.micropolar.enabled. The plain builds above are the Newtonian solver, unchanged.
+    ("predict_micropolar", "predict.comp", ("MICROPOLAR",)),
+    ("bootstrap_half_kick_micropolar", "bootstrap_half_kick.comp", ("MICROPOLAR",)),
+    ("force_micropolar", "force.comp", ("MICROPOLAR",)),
+    ("wall_extrapolate_micropolar", "wall_extrapolate.comp", ("MICROPOLAR",)),
+    ("wall_extrapolate_band_micropolar", "wall_extrapolate_band.comp", ("MICROPOLAR",)),
+    ("defrag_micropolar", "defrag.comp", ("MICROPOLAR",)),
 )
 
 

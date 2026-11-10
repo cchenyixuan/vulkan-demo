@@ -2,6 +2,9 @@
 #extension GL_GOOGLE_include_directive : enable
 #include "common.glsl"
 #include "helpers.glsl"
+#ifdef MICROPOLAR
+#include "micropolar.glsl"
+#endif
 
 // ============================================================================
 // predict.comp - leapfrog kick + drift + voxel-crossing detection (stage 1).
@@ -142,4 +145,12 @@ void main() {
     // ========================================================================
     position_voxel_id[self_particle_id] = vec4(new_position, float(new_voxel_id));
     velocity_mass[self_particle_id]     = vec4(new_velocity, self_mass);
+#ifdef MICROPOLAR
+    // Micropolar kick, the velocity kick's leapfrog: w_{n+1/2} = w_{n-1/2} + alpha_n * dt (fluid only: every
+    // other kind returned above; a killed particle's slot is gated by voxel_id = 0).
+    vec4 self_angular_velocity = angular_velocity[self_particle_id];
+    angular_velocity[self_particle_id] =
+        vec4(self_angular_velocity.xyz + angular_acceleration[self_particle_id].xyz * TIMESTEP,
+             self_angular_velocity.w);
+#endif
 }

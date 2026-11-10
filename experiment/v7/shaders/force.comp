@@ -3,6 +3,9 @@
 #include "common.glsl"
 #include "helpers.glsl"
 #include "wall_boundary.glsl"
+#ifdef MICROPOLAR
+#include "micropolar.glsl"
+#endif
 
 // ============================================================================
 // force.comp - δ-plus WCSPH acceleration + particle shifting (stage 5).
@@ -154,6 +157,13 @@ void process_particle(uint self_particle_id) {
     vec3 a_viscosity         = vec3(0.0);
     vec3 particle_shift_main = vec3(0.0);
     vec3 particle_shift_anti = vec3(0.0);
+#ifdef MICROPOLAR
+    // Micropolar accumulators (micropolar.glsl): curl w, curl v, lap w
+    vec3 self_angular_velocity      = angular_velocity[self_particle_id].xyz;   // w_{n+1/2}
+    vec3 curl_angular_velocity      = vec3(0.0);
+    vec3 curl_velocity              = vec3(0.0);
+    vec3 laplacian_angular_velocity = vec3(0.0);
+#endif
 
     // ========================================================================
     // Loop-invariant constants (all pair-averaged quantities uniform in V0).
@@ -243,6 +253,26 @@ void process_particle(uint self_particle_id) {
                         / (distance * distance + EPS_H_SQUARED)
                         * kernel_gradient_corrected;
 
+#ifdef MICROPOLAR
+                    // ==== Micropolar pair terms =============================
+                    // A wall neighbour enters with its prescribed micro-rotation (its stored slot; simple)
+                    // or with the dummy value 2 w_wall - w~ of this step's wall pass (adami); curl v takes
+                    // the viscous term's neighbour velocity.
+                    vec3 neighbor_angular_velocity = angular_velocity[neighbor_particle_id].xyz;
+                    if (WALL_ADAMI
+                            && material_parameters[material[neighbor_particle_id]].kind == MATERIAL_BOUNDARY) {
+                        neighbor_angular_velocity = wall_dummy_angular_velocity[neighbor_particle_id].xyz;
+                    }
+                    vec3 angular_velocity_difference = self_angular_velocity - neighbor_angular_velocity;
+                    curl_angular_velocity += neighbor_volume_dynamic
+                        * cross(angular_velocity_difference, kernel_gradient_corrected);
+                    curl_velocity += neighbor_volume_dynamic
+                        * cross(self_velocity - viscous_neighbor_velocity, kernel_gradient_corrected);
+                    laplacian_angular_velocity += 2.0 * neighbor_volume_dynamic * angular_velocity_difference
+                        * dot(position_difference_neighbor_to_self, kernel_gradient_corrected)
+                        / (distance * distance + EPS_H_SQUARED);
+#endif
+
                     // ==== Particle shifting (PST) ===========================
                     // Gated by USE_PST spec const: glslc -O DCE-removes the entire
                     // block (including the kernel_value / kernel_value_at_delta_x
@@ -290,6 +320,14 @@ void process_particle(uint self_particle_id) {
     // ========================================================================
     vec3 gravity_vector = vec3(GRAVITY_X, GRAVITY_Y, GRAVITY_Z);
     vec3 total_acceleration = a_pressure + a_viscosity + gravity_vector;
+#ifdef MICROPOLAR
+    // Micropolar: a += c curl w, alpha = (xi lap w + c (curl v - 2 w)) / Theta, c = nu + nu_t
+    float coupling_coefficient = self_params.viscosity + self_params.viscosity_transfer;
+    total_acceleration += coupling_coefficient * curl_angular_velocity;
+    vec3 total_angular_acceleration =
+        (self_params.viscosity_rotation * laplacian_angular_velocity
+         + coupling_coefficient * (curl_velocity - 2.0 * self_angular_velocity)) / MICROPOLAR_THETA;
+#endif
 
     // ========================================================================
     // Blend PST shift by kernel_sum: interior → main, surface → anti
@@ -316,6 +354,9 @@ void process_particle(uint self_particle_id) {
     // ========================================================================
     acceleration[self_particle_id] = vec4(total_acceleration, 0.0);
     shift[self_particle_id]        = vec4(particle_shift, 0.0);
+#ifdef MICROPOLAR
+    angular_acceleration[self_particle_id] = vec4(total_angular_acceleration, 0.0);
+#endif
 }
 
 

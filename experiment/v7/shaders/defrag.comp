@@ -2,6 +2,9 @@
 #extension GL_GOOGLE_include_directive : enable
 #include "common.glsl"
 #include "helpers.glsl"
+#ifdef MICROPOLAR
+#include "micropolar.glsl"
+#endif
 
 // ============================================================================
 // defrag.comp — per-voxel SoA scatter to restore spatial locality.
@@ -128,6 +131,16 @@ layout(std430, set = 4, binding = 8) writeonly buffer DstDensityGradientKernelSu
 layout(std430, set = 4, binding = 9) writeonly buffer DstExtensionFieldsBuffer {
     vec4 dst_extension_fields[];
 };
+#ifdef MICROPOLAR
+// Micropolar: both fields are read after a defrag (predict reads w_{n-1/2} and alpha_n), like velocity and
+// acceleration. wall_dummy_angular_velocity (binding 14) is transient, like wall_dummy_velocity: not permuted.
+layout(std430, set = 4, binding = 12) writeonly buffer DstAngularVelocityBuffer {
+    vec4 dst_angular_velocity[];
+};
+layout(std430, set = 4, binding = 13) writeonly buffer DstAngularAccelerationBuffer {
+    vec4 dst_angular_acceleration[];
+};
+#endif
 
 void main() {
     uint voxel_id = gl_GlobalInvocationID.x + 1u;       // 1-based
@@ -184,6 +197,10 @@ void main() {
         dst_correction_inverse[new_id * 2u + 1u] = correction_inverse[old_id * 2u + 1u];
         dst_density_gradient_kernel_sum[new_id]  = density_gradient_kernel_sum[old_id];
         dst_extension_fields[new_id]             = extension_fields[old_id];
+#ifdef MICROPOLAR
+        dst_angular_velocity[new_id]             = angular_velocity[old_id];
+        dst_angular_acceleration[new_id]         = angular_acceleration[old_id];
+#endif
 
         // Patch the voxel's inside slot to reference the new particle_id.
         inside_particle_index[slot_index_global] = new_id;

@@ -2,6 +2,9 @@
 #extension GL_GOOGLE_include_directive : enable
 #include "common.glsl"
 #include "helpers.glsl"
+#ifdef MICROPOLAR
+#include "micropolar.glsl"
+#endif
 
 // ============================================================================
 // bootstrap_half_kick.comp - one-time backward half-kick at simulation startup.
@@ -60,4 +63,11 @@ void main() {
     vec3 v_minus_half = v_zero - 0.5 * a_zero * TIMESTEP;
 
     velocity_mass[self_particle_id] = vec4(v_minus_half, self_mass);
+#ifdef MICROPOLAR
+    // Micropolar: w_{-1/2} = w_0 - 0.5 * alpha_0 * dt (alpha_0 from the bootstrap force pass)
+    vec4 self_angular_velocity = angular_velocity[self_particle_id];
+    angular_velocity[self_particle_id] =
+        vec4(self_angular_velocity.xyz - 0.5 * angular_acceleration[self_particle_id].xyz * TIMESTEP,
+             self_angular_velocity.w);
+#endif
 }
