@@ -1,0 +1,4 @@
+within 0.01 of a wall: rms u(simple) - u(adami) = 1.195e-02; adami repeat 3.140e-06
+within 0.01 of a wall: rms v(simple) - v(adami) = 3.095e-03; adami repeat 2.504e-06
+interior |x|, |y| <= 0.3: rms u(simple) - u(adami) = 3.118e-03; adami repeat 1.283e-06
+interior |x|, |y| <= 0.3: rms v(simple) - v(adami) = 1.695e-03; adami repeat 1.573e-06

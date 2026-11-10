@@ -1,0 +1,34 @@
+[
+ {
+  "arrangement": "lattice",
+  "viscous_form": "monaghan_gingold",
+  "host_operator": "MG",
+  "particles": 7569,
+  "rms_relative": 1.3473952254388484e-06,
+  "max_relative": 5.425864930697727e-06
+ },
+ {
+  "arrangement": "lattice",
+  "viscous_form": "laplacian",
+  "host_operator": "BM",
+  "particles": 7569,
+  "rms_relative": 7.63997956615093e-07,
+  "max_relative": 4.262736474397209e-06
+ },
+ {
+  "arrangement": "developed",
+  "viscous_form": "monaghan_gingold",
+  "host_operator": "MG",
+  "particles": 56605,
+  "rms_relative": 1.5001295232364517e-06,
+  "max_relative": 7.044690918041222e-06
+ },
+ {
+  "arrangement": "developed",
+  "viscous_form": "laplacian",
+  "host_operator": "BM",
+  "particles": 56605,
+  "rms_relative": 9.103283402847507e-07,
+  "max_relative": 5.206411944737014e-06
+ }
+]

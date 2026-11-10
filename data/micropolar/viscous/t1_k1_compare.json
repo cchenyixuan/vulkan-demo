@@ -1,0 +1,136 @@
+{
+ "reference": [
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k1_base_a1.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k1_base_a2.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k1_base_a3.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k1_base_a4.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k1_base_a5.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k1_base_a6.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k1_base_a7.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k1_base_a8.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k1_base_a9.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k1_base_a10.npz"
+ ],
+ "floor": {
+  "u": {
+   "pair_rms_max": 0.00015314976078542372,
+   "pair_rms_median": 8.957013613816662e-05,
+   "pair_rms_min": 3.0102390107694484e-05,
+   "pairs": 45
+  },
+  "v": {
+   "pair_rms_max": 0.0001637512425117276,
+   "pair_rms_median": 9.323848974871698e-05,
+   "pair_rms_min": 3.89851613805586e-05,
+   "pairs": 45
+  },
+  "rho": {
+   "pair_rms_max": 0.0015843162789133728,
+   "pair_rms_median": 0.00044657850479447596,
+   "pair_rms_min": 6.564227991867912e-05,
+   "pairs": 45
+  }
+ },
+ "tests": {
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k1_v2_newtonian1.npz": {
+   "u": {
+    "rms_min": 2.6332563573504356e-05,
+    "rms_median": 0.00012601425527966072,
+    "rms_max": 0.00015037156361906779,
+    "ratio_to_floor_max": 0.9818596049245651
+   },
+   "v": {
+    "rms_min": 3.416147241025656e-05,
+    "rms_median": 0.00014447613241292165,
+    "rms_max": 0.00016535113442598615,
+    "ratio_to_floor_max": 1.0097702581654853
+   },
+   "rho": {
+    "rms_min": 5.467395270974639e-05,
+    "rms_median": 0.0014522307272263673,
+    "rms_max": 0.0015817257042941182,
+    "ratio_to_floor_max": 0.998364862714766
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k1_v2_newtonian2.npz": {
+   "u": {
+    "rms_min": 2.3420817236437254e-05,
+    "rms_median": 7.018071211016357e-05,
+    "rms_max": 0.00013266804805785203,
+    "ratio_to_floor_max": 0.8662635016696607
+   },
+   "v": {
+    "rms_min": 3.3994433100424305e-05,
+    "rms_median": 7.067588411690119e-05,
+    "rms_max": 0.00013863324075666706,
+    "ratio_to_floor_max": 0.846608786780585
+   },
+   "rho": {
+    "rms_min": 8.297646972594882e-05,
+    "rms_median": 0.00033638308610405265,
+    "rms_max": 0.0015737786033593372,
+    "ratio_to_floor_max": 0.9933487551101456
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k1_v2_newtonian3.npz": {
+   "u": {
+    "rms_min": 8.961920319180228e-05,
+    "rms_median": 0.00016781092960194865,
+    "rms_max": 0.00019836618970912076,
+    "ratio_to_floor_max": 1.295243222658697
+   },
+   "v": {
+    "rms_min": 8.771039776433911e-05,
+    "rms_median": 0.0001599220979599886,
+    "rms_max": 0.00020150262438624548,
+    "ratio_to_floor_max": 1.2305410407607393
+   },
+   "rho": {
+    "rms_min": 0.00047958263121876746,
+    "rms_median": 0.00089924468632014,
+    "rms_max": 0.0015604749247469809,
+    "ratio_to_floor_max": 0.9849516447670765
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k1_v2_newtonian4.npz": {
+   "u": {
+    "rms_min": 4.0138365636384763e-05,
+    "rms_median": 6.352761006672175e-05,
+    "rms_max": 0.0001291700339809101,
+    "ratio_to_floor_max": 0.8434230214821471
+   },
+   "v": {
+    "rms_min": 4.215327612474807e-05,
+    "rms_median": 6.32689729145639e-05,
+    "rms_max": 0.00014209449373367024,
+    "ratio_to_floor_max": 0.867746049154367
+   },
+   "rho": {
+    "rms_min": 0.0001327947295171418,
+    "rms_median": 0.00023178869728477384,
+    "rms_max": 0.0014772154883300071,
+    "ratio_to_floor_max": 0.9323993624197169
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k1_v2_newtonian5.npz": {
+   "u": {
+    "rms_min": 3.1134922569957485e-05,
+    "rms_median": 7.533546664858498e-05,
+    "rms_max": 0.0001364302791796355,
+    "ratio_to_floor_max": 0.8908292019521097
+   },
+   "v": {
+    "rms_min": 4.794309572493328e-05,
+    "rms_median": 7.278051107213736e-05,
+    "rms_max": 0.0001419396540246471,
+    "ratio_to_floor_max": 0.8668004703199832
+   },
+   "rho": {
+    "rms_min": 0.00011838100825979433,
+    "rms_median": 0.0003585895595831298,
+    "rms_max": 0.0015605751365147151,
+    "ratio_to_floor_max": 0.9850148971422923
+   }
+  }
+ }
+}

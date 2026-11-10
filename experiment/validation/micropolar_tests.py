@@ -35,6 +35,8 @@ Sub-commands:
   label       Check A: w as a passive label (c = 0, xi = 0): every fluid particle keeps its id-derived w bit for
               bit through defrags, seam crossings and a restart; matched by the global id in extension_fields.
   paired      Check D: K = 1 against K = 2 as paired continuations of one saved state (groups of cavity runs).
+  operators-host  Discretizations of the viscous Laplacian compared on the host (viscous_operators.py): lattice
+              symbols by direction and wavelength, and factor / noise / exactness on a developed arrangement.
   restart     The relaxation state run N steps, saved with cavity_runner.read_restart_state, restarted in a new
               simulator (restart_init: no force pass) and run N more: w must continue the same product, which
               it does only if the state carries angular_acceleration. Also: a state without the two micropolar
@@ -56,6 +58,16 @@ import numpy as np
 _THIS_REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 _OVERFLOW_PREFIX = "overflow_"
+
+# --viscous-form (before the sub-command): numerics.viscous_form of every case the sub-command builds; None = the
+# case file's own value
+_VISCOUS_FORM = None
+
+
+def _apply_viscous_form(case):
+    if _VISCOUS_FORM is not None:
+        case.numerics.viscous_form = _VISCOUS_FORM
+    return case
 
 
 def _import_solver(repo_root: pathlib.Path):
@@ -317,6 +329,7 @@ def _fluid_block_case(solver, case_path: pathlib.Path, half_width: float, jitter
     if eps_h_squared is not None:
         case.numerics.eps_h_squared = float(eps_h_squared)
     case.numerics.wall_boundary = "simple"
+    _apply_viscous_form(case)
     case.physics.micropolar_enabled = True
     case.physics.micro_inertia = float(micro_inertia)
     material.viscosity = float(viscosity)
@@ -767,7 +780,7 @@ def _prescribed_cavity_case(solver, case_path: pathlib.Path, wall_boundary: str)
     plus a sine part, and non-zero prescribed wall micro-rotations (so the stored wall values and the adami dummy
     values enter the sums)."""
     load_case = solver[0]
-    case = load_case(case_path)
+    case = _apply_viscous_form(load_case(case_path))
     from experiment.v7.utils.case_v7 import KIND_FLUID
     case.numerics.wall_boundary = wall_boundary
     positions = case.initial.positions.astype(np.float64)
@@ -969,7 +982,9 @@ def command_cavity(arguments) -> int:
     solver = _import_solver(_THIS_REPO_ROOT)
     load_case, compute_chain_partition, SphSimulatorV7, VulkanContextV7, ChainOrchestratorV7 = solver
     from experiment.v7.utils.case_v7 import KIND_FLUID
-    case = load_case(_THIS_REPO_ROOT / arguments.case)
+    case = _apply_viscous_form(load_case(_THIS_REPO_ROOT / arguments.case))
+    if arguments.epsilon_squared_factor is not None:
+        case.numerics.eps_h_squared = arguments.epsilon_squared_factor * case.physics.smoothing_length ** 2
     device_map = [int(value) for value in arguments.device_map.split(",")]
     weights = [float(value) for value in arguments.weights.split(",")] if arguments.weights else [1.0] * arguments.slabs
     if len(device_map) != arguments.slabs or len(weights) != arguments.slabs:
@@ -1399,6 +1414,236 @@ def command_paired(arguments) -> int:
     return exit_code
 
 
+def command_operators_host(arguments) -> int:
+    """Section 3 of the 2026-11-11 task: discretizations of the viscous Laplacian compared on the host (numpy,
+    float64; experiment/validation/viscous_operators.py). Validates the harness against the shader's check C
+    numbers, then the lattice measurements (long transverse wave by direction, the whole spectrum, the
+    longitudinal wave) and the developed arrangement (a saved state: mean factor at k -> 0 with uncertainty, noise,
+    exactness for linear fields, smallest pair distance). Writes a json and a markdown table file."""
+    from experiment.validation import viscous_operators as operators
+    solver = _import_solver(_THIS_REPO_ROOT)
+    case = solver[0](_THIS_REPO_ROOT / arguments.case)
+    from experiment.v7.utils.case_v7 import KIND_FLUID
+    smoothing_length = float(case.physics.smoothing_length)
+    fluid_group = next(index for index, material in enumerate(case.materials) if material.kind == KIND_FLUID)
+    spacing = 2.0 * float(case.materials[fluid_group].radius)
+    default_factor = float(case.numerics.eps_h_squared) / smoothing_length ** 2
+    epsilon_factors = [default_factor, arguments.small_epsilon_factor]
+    out_dir = pathlib.Path(arguments.out).resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    lines = []
+
+    def say(text=""):
+        print(text, flush=True)
+        lines.append(text)
+
+    def table(header, rows):
+        say("| " + " | ".join(header) + " |")
+        say("|" + "---|" * len(header))
+        for row in rows:
+            say("| " + " | ".join(row) + " |")
+        say()
+
+    names = operators.OPERATORS
+    # ---- validation against the shader (check C: json of micropolar_tests.py factors / operators3d)
+    say("## Harness validation against the shader (check C)")
+    say()
+    reference = json.loads((_THIS_REPO_ROOT / arguments.shader_factors).read_text(encoding="utf-8"))
+    reference_3d = json.loads((_THIS_REPO_ROOT / arguments.shader_factors_3d).read_text(encoding="utf-8"))
+    rows, worst = [], 0.0
+    for dimension, source, length, step, direction, polarisation in (
+            (2, reference, smoothing_length, spacing, np.array([1.0, 0.0]), np.array([0.0, 1.0])),
+            (3, reference_3d, 0.04, 0.01, np.array([2.0, 3.0, 6.0]) / 7.0, np.array([3.0, -2.0, 0.0]) / np.sqrt(13.0))):
+        positions = operators.lattice_patch(step, length, dimension)
+        lattice = operators.ParticleSet(positions, np.full(positions.shape[0], step ** dimension), length, dimension)
+        for eps_label, factor in (("case EPS_H_SQUARED", default_factor), ("EPS_H_SQUARED = 0", 0.0)):
+            for coefficient, name in (("nu", "MG"), ("xi", "BM")):
+                entry = next(item for item in source if item.get("dimension") == dimension
+                             and item.get("eps") == eps_label and item.get("coefficient") == coefficient)
+                host = [operators._plane_wave_ratio(lattice, name, k_times_h / length * direction, polarisation,
+                                                    factor * length ** 2).real
+                        for k_times_h in (0.6283185, 0.3141593, 0.1570796)]
+                difference = max(abs(a - b) for a, b in zip(host, entry["ratios"]))
+                worst = max(worst, difference)
+                rows.append([f"{dimension}-D", eps_label, f"{coefficient} ({name})",
+                             " ".join(f"{value:.6f}" for value in entry["ratios"]),
+                             " ".join(f"{value:.6f}" for value in host), f"{difference:.1e}"])
+    table(["case", "eps", "operator", "shader (float32, k h = 0.628 / 0.314 / 0.157)", "host (float64)",
+           "max difference"], rows)
+    validated = worst < 5e-5
+    say(f"Largest difference {worst:.1e}: {'the harness reproduces the shader to four digits' if validated else 'MISMATCH'}.")
+    say()
+
+    # ---- lattice
+    lattice = operators.lattice_measurements(smoothing_length, spacing, 0.04, 0.01, epsilon_factors)
+    for factor in epsilon_factors:
+        say(f"## Lattice, long transverse wave, 2-D, h/dx = {smoothing_length / spacing:.0f}, "
+            f"epsilon_squared_factor = {factor:g}")
+        say()
+        table(["angle (deg)"] + list(names),
+              [[f"{row['angle']:g}"] + [f"{row[name]:.5f}" for name in names]
+               for row in lattice["long_wave_2d"] if row["epsilon_factor"] == factor])
+        say(f"## Lattice, long transverse wave, 3-D, h/dx = 4, epsilon_squared_factor = {factor:g}")
+        say()
+        table(["wave vector, polarisation"] + list(names),
+              [[row["direction"]] + [f"{row[name]:.5f}" for name in names]
+               for row in lattice["long_wave_3d"] if row["epsilon_factor"] == factor])
+        say(f"## Lattice, long longitudinal wave (v parallel to k), epsilon_squared_factor = {factor:g}")
+        say()
+        table(["case"] + list(names),
+              [[row["case"]] + [f"{row[name]:.5f}" for name in names]
+               for row in lattice["longitudinal"] if row["epsilon_factor"] == factor])
+    for direction in ("axis", "diagonal"):
+        say(f"## Lattice, transverse wave over the whole spectrum, 2-D, along the {direction}, "
+            f"epsilon_squared_factor = {default_factor:g}")
+        say()
+        table(["k dx / pi"] + list(names),
+              [[f"{row['k_dx_over_pi']:.3f}"] + [f"{row[name]:.4f}" for name in names]
+               for row in lattice["spectrum_2d"] if row["direction"] == direction])
+
+    # ---- developed arrangement
+    state, offset = _load_state(_THIS_REPO_ROOT / arguments.state)
+    density = state["density_pressure"][:, 0].astype(np.float64) + offset
+    volumes = state["velocity_mass"][:, 3].astype(np.float64) / density
+    is_fluid = state["material"] == fluid_group
+    developed = operators.developed_measurements(state["position_voxel_id"][:, :2].astype(np.float64), volumes,
+                                                 is_fluid, smoothing_length, spacing, epsilon_factors,
+                                                 regularization_xi=arguments.regularization_xi)
+    say(f"## Developed arrangement ({arguments.state}): {developed['fluid']:,} fluid particles, bulk "
+        f"{developed['bulk']:,}, wall bands {developed['band']}; KGC regularisation xi = "
+        f"{developed['regularization_xi']:g}")
+    say()
+    say(f"Smallest pair distance: {developed['smallest_pair_distance_over_dx']:.4f} dx.")
+    say()
+    for factor in epsilon_factors:
+        used = [name for name in names if factor == epsilon_factors[0] or operators.HAS_EPSILON[name]]
+        say(f"### Mean factor at k -> 0 (intercept of a fit in k^2 over 2, 4, 8 waves; +- standard error over the "
+            f"four quadrants / the four walls), epsilon_squared_factor = {factor:g}")
+        say()
+        directions = []
+        for item in developed["factors"]:
+            key = (item["region"], item["direction"])
+            if item["epsilon_factor"] == factor and key not in directions:
+                directions.append(key)
+        rows = []
+        for region, direction in directions:
+            row = [region, f"{direction:g} deg" if region == "bulk" else str(direction)]
+            for name in used:
+                item = next(entry for entry in developed["factors"] if entry["operator"] == name
+                            and entry["epsilon_factor"] == factor and entry["region"] == region
+                            and entry["direction"] == direction)
+                row.append(f"{item['intercept']:.4f} +- {item['standard_error']:.4f}")
+            rows.append(row)
+        # bulk mean over the eight directions and its spread
+        row = ["bulk", "mean of 8 (std over directions)"]
+        for name in used:
+            values = np.array([entry["intercept"] for entry in developed["factors"] if entry["operator"] == name
+                               and entry["epsilon_factor"] == factor and entry["region"] == "bulk"])
+            row.append(f"{values.mean():.4f} ({values.std(ddof=1):.4f})")
+        rows.append(row)
+        table(["region", "wave vector"] + used, rows)
+    say(f"### Noise: rms of the residual after the projection / rms of the signal, per wave count (2 / 4 / 8), "
+        f"epsilon_squared_factor = {default_factor:g}")
+    say()
+    rows = []
+    for region in ("bulk", "wall band"):
+        row = [region + (" (mean of 8 directions)" if region == "bulk" else " (normal and parallel)")]
+        for name in names:
+            values = np.mean([entry["per_wave_count"] for entry in developed["noise"] if entry["operator"] == name
+                              and entry["epsilon_factor"] == default_factor and entry["region"] == region], axis=0)
+            row.append(" / ".join(f"{value:.3f}" for value in values))
+        rows.append(row)
+    table(["region"] + list(names), rows)
+    say("### Exactness: rms |lap_h v| in units of |grad v| / h (zero is exact)")
+    say()
+    rows = []
+    for field in ("linear", "rigid rotation"):
+        for region, key in (("bulk", "bulk_rms"), ("wall bands", "band_rms")):
+            rows.append([field, region] + [f"{next(entry for entry in developed['exactness'] if entry['operator'] == name and entry['field'] == field)[key]:.2e}"
+                                           for name in names])
+    table(["field", "region"] + list(names), rows)
+    (out_dir / "operators_host.json").write_text(json.dumps(
+        {"case": arguments.case, "state": arguments.state, "smoothing_length": smoothing_length, "spacing": spacing,
+         "epsilon_factors": epsilon_factors, "validation_max_difference": worst, "lattice": lattice,
+         "developed": developed}, indent=1), encoding="utf-8")
+    (out_dir / "operators_host.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return 0 if validated else 1
+
+
+def command_viscous_cross_check(arguments) -> int:
+    """The shader's viscous term against the host harness, particle by particle, for both numerics.viscous_form
+    values: one force evaluation (the bootstrap: uniform rho_0, P = 0, so the acceleration is the viscous term)
+    on (a) a regular lattice block and (b) the particle positions of a saved developed state, with
+    v = e sin(k . r) on the fluid. Host: viscous_operators.py with the same ingredients (V = m / rho_0, the case's
+    KGC regularisation and EPS_H_SQUARED). Compared where no wall particle is in the support."""
+    from scipy.spatial import cKDTree
+    from experiment.validation import viscous_operators as operators
+    solver = _import_solver(_THIS_REPO_ROOT)
+    load_case = solver[0]
+    from experiment.v7.utils.case_v7 import KIND_FLUID
+    exit_code = 0
+    results = []
+    state, _offset = _load_state(_THIS_REPO_ROOT / arguments.state)
+    for arrangement in ("lattice", "developed"):
+        for form, host_name in (("monaghan_gingold", "MG"), ("laplacian", "BM")):
+            if arrangement == "lattice":
+                case, fluid_group, spacing = _fluid_block_case(
+                    solver, _THIS_REPO_ROOT / arguments.block_case, arguments.half_width, 0.0, arguments.seed, None,
+                    viscosity=2.5e-3, viscosity_transfer=0.0, viscosity_rotation=0.0, micro_inertia=1.0)
+                case.physics.micropolar_enabled = False
+                case.initial.angular_velocities = None
+                limit = arguments.half_width - 1.2 * case.physics.smoothing_length
+            else:
+                case = load_case(_THIS_REPO_ROOT / arguments.case)
+                fluid_group = next(index for index, material in enumerate(case.materials)
+                                   if material.kind == KIND_FLUID)
+                case.physics.micropolar_enabled = False
+                _state_as_initial(case, {name: state[name] for name in ("position_voxel_id", "velocity_mass",
+                                                                         "material")})
+                limit = 0.5 - 1.2 * case.physics.smoothing_length
+            case.numerics.viscous_form = form
+            smoothing_length = float(case.physics.smoothing_length)
+            positions = case.initial.positions.astype(np.float64)
+            radians = np.radians(arguments.angle)
+            wave_vector = 2.0 * np.pi * arguments.waves * np.array([np.cos(radians), np.sin(radians), 0.0])
+            transverse = np.array([-np.sin(radians), np.cos(radians), 0.0])
+            is_fluid = case.initial.material_group == fluid_group
+            velocities = np.zeros_like(positions)
+            velocities[is_fluid] = np.sin(positions[is_fluid] @ wave_vector)[:, None] * transverse[None, :]
+            case.initial.velocities = velocities.astype(np.float32)
+            rows, _invariants = _run_chain(solver, case, 1, [arguments.device], [1.0], 0, ["acceleration"], False)
+            # host: the float32 positions and velocities the GPU got, V = m / rho_0 (the bootstrap force's density)
+            material = case.materials[fluid_group]
+            volume = float(np.float32(material.rest_density * material.volume)) / material.rest_density
+            particles = operators.ParticleSet(case.initial.positions.astype(np.float64),
+                                              np.full(positions.shape[0], volume), smoothing_length, 2,
+                                              float(case.numerics.regularization_xi))
+            host = float(np.float32(material.viscosity)) * particles.laplacian(
+                host_name, case.initial.velocities[:, :2].astype(np.float64), float(case.numerics.eps_h_squared))
+            tree = cKDTree(case.initial.positions[:, :2].astype(np.float64))
+            distance, index = tree.query(rows["position_voxel_id"][:, :2].astype(np.float64))
+            if float(distance.max()) > 1e-9:
+                raise RuntimeError(f"positions moved at the bootstrap: {distance.max():.2e}")
+            inside = (is_fluid[index] & (np.abs(rows["position_voxel_id"][:, 0]) < limit)
+                      & (np.abs(rows["position_voxel_id"][:, 1]) < limit))
+            shader = rows["acceleration"][:, :2].astype(np.float64)
+            difference = np.sqrt(((shader - host[index]) ** 2).sum(axis=1))[inside]
+            scale = float(np.sqrt((host[index][inside] ** 2).sum(axis=1).mean()))
+            record = {"arrangement": arrangement, "viscous_form": form, "host_operator": host_name,
+                      "particles": int(inside.sum()), "rms_relative": float(np.sqrt((difference ** 2).mean()) / scale),
+                      "max_relative": float(difference.max() / scale)}
+            passed = record["rms_relative"] < arguments.tolerance
+            exit_code |= 0 if passed else 1
+            results.append(record)
+            print(f"[cross-check] {arrangement}, viscous_form = {form} against host {host_name}: {inside.sum():,} "
+                  f"particles, |shader - host| / rms(host) rms {record['rms_relative']:.2e} max "
+                  f"{record['max_relative']:.2e}; {'PASS' if passed else 'FAIL'}")
+    if arguments.json:
+        pathlib.Path(arguments.json).parent.mkdir(parents=True, exist_ok=True)
+        pathlib.Path(arguments.json).write_text(json.dumps(results, indent=1), encoding="utf-8")
+    return exit_code
+
+
 def command_restart(arguments) -> int:
     solver = _import_solver(_THIS_REPO_ROOT)
     _load_case, compute_chain_partition, SphSimulatorV7, VulkanContextV7, ChainOrchestratorV7 = solver
@@ -1466,6 +1711,8 @@ def command_restart(arguments) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--viscous-form", default=None, choices=("monaghan_gingold", "laplacian"),
+                        help="numerics.viscous_form of every case the sub-command builds (default: the case's)")
     commands = parser.add_subparsers(dest="command", required=True)
 
     dump = commands.add_parser("dump")
@@ -1594,6 +1841,8 @@ def main() -> int:
     cavity.add_argument("--half-extent", type=float, default=0.5)
     cavity.add_argument("--out", required=True)
     cavity.add_argument("--save-state", default=None, help="write the final step-boundary state (.npz)")
+    cavity.add_argument("--epsilon-squared-factor", type=float, default=None,
+                        help="override numerics.epsilon_squared_factor (EPS_H_SQUARED / h^2)")
     cavity.add_argument("--start-state", default=None,
                         help="continue from a saved state (restart) instead of the case's initial condition")
     cavity.set_defaults(handler=command_cavity)
@@ -1625,6 +1874,31 @@ def main() -> int:
     paired.add_argument("--json", default=None)
     paired.set_defaults(handler=command_paired)
 
+    host = commands.add_parser("operators-host")
+    host.add_argument("--case", default="cases/micropolar_cavity_n250_re400/case.yaml")
+    host.add_argument("--state", default="data/micropolar/checks/d/k1_t40.npz")
+    host.add_argument("--shader-factors", default="data/micropolar/checks/c_factors.json")
+    host.add_argument("--shader-factors-3d", default="data/micropolar/checks/e_operators3d.json")
+    host.add_argument("--small-epsilon-factor", type=float, default=1e-6)
+    host.add_argument("--regularization-xi", type=float, default=0.0,
+                      help="KGC regularisation on the developed arrangement (the solver's default is 0.001, a "
+                           "factor 0.999 on every corrected gradient; 0 isolates the operators)")
+    host.add_argument("--out", default="data/micropolar/viscous")
+    host.set_defaults(handler=command_operators_host)
+
+    cross = commands.add_parser("viscous-cross-check")
+    cross.add_argument("--case", default="cases/micropolar_cavity_n250_re400/case.yaml")
+    cross.add_argument("--block-case", default="cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025/case.yaml")
+    cross.add_argument("--state", default="data/micropolar/checks/d/k1_t40.npz")
+    cross.add_argument("--half-width", type=float, default=0.2)
+    cross.add_argument("--waves", type=float, default=4.0, help="waves per metre (the cavity is 1 m wide)")
+    cross.add_argument("--angle", type=float, default=22.5)
+    cross.add_argument("--tolerance", type=float, default=1e-4)
+    cross.add_argument("--seed", type=int, default=20261110)
+    cross.add_argument("--device", type=int, default=0)
+    cross.add_argument("--json", default=None)
+    cross.set_defaults(handler=command_viscous_cross_check)
+
     restart = commands.add_parser("restart")
     restart.add_argument("--case", default="cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025/case.yaml")
     restart.add_argument("--half-width", type=float, default=0.2)
@@ -1636,6 +1910,8 @@ def main() -> int:
     restart.set_defaults(handler=command_restart)
 
     arguments = parser.parse_args()
+    global _VISCOUS_FORM
+    _VISCOUS_FORM = arguments.viscous_form
     return arguments.handler(arguments)
 
 
