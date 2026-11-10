@@ -2,7 +2,7 @@
 
 Branch `v9-micropolar`, base tag `micropolar-base` = ab50c10 (merge of `origin/bootstrap-density-fix` eda5b90 and
 `origin/v7-adami-multi` 8c33192). Sections 0 to 7 are the Stage 0 plan, with the decisions of 2026-11-10 entered in
-Section 2; Section 8 is the Stage 1 report (one slab), Section 9 the Stage 2 report (chains).
+Section 2; Section 8 is the Stage 1 report (one slab), Section 9 the Stage 2 report (chains), Section 10 the checks A to E.
 
 Marked **[read]** = inferred from reading the code, **[run]** = verified by running on this machine.
 
@@ -397,3 +397,98 @@ case. The runner's eleven-field checkpoints support that; I did not run it.
 4. The wall dummy buffers cannot be read back meaningfully right after a defrag (they are not permuted, by
    design); the seam test compares them after steps only.
 5. `_test_partition_chain.py` and two more cases need git-ignored `.obj` files; copied from the main worktree.
+
+## 10. Checks A to E (2026-11-11)
+
+All run on this machine (5090 = device 0, XTX = device 1); no solver or shader file changed, so T0 / T1 were not
+re-run. Commands: `micropolar_tests.py label / seam --device-map 0,0,0 / factors / paired / operators3d`. Logs:
+`logs/micropolar/a_*`, `b_*`, `c_*`, `d/`, `e_*` (not tracked). No defect found.
+
+| check | result | measured |
+|---|---|---|
+| A. w as a passive label | pass | c = 0, xi = 0, w_0 of each fluid particle derived from its global id (three distinct non-zero components), id in `extension_fields` with `V7_TRANSPORT_EXTENSION=1`. Start: the K = 1 state at t = 40.2; 1,500 steps, state written and restarted, 1,500 steps. 63,001 fluid particles compared, **0 bitwise mismatches** in K = 1, K = 2 (5090 + XTX), K = 2 (one card), each with simple and adami walls; 11,528 wall particles unchanged; ids unique and complete. Covered per run: 4 defrags, 1 restart, 1,444 seam crossings at K = 2 (0 at K = 1). u, v, rho against Newtonian runs of the same two phases: largest rms / largest reference-pair rms 0.67 to 1.35 with three references (2.96 once at K = 1 simple, 1.02 when repeated with ten). |
+| B. a slab with two peers | pass | K = 3 runs here (device maps 0,0,0 and 0,0,1; cuts at x = -0.176 and +0.164, middle slab 21,840 particles). Check A: 0 mismatches of 63,001 for both maps and wall types, 2,488 (simple) / 2,476 (adami) crossings, 4 defrags, 1 restart. Per-particle seam check on the prescribed state (0,0,0): after the bootstrap force 1.0e-7 to 1.1e-7 rms near the cuts against 0.9e-7 to 1.1e-7 for the K = 1 repeat; after 20 steps acceleration 1.3e-5 to 1.7e-5 against 1.1e-5 to 2.0e-5, angular_acceleration 1.7e-6 to 2.0e-6 against 1.7e-6 to 1.9e-6, wall dummy micro-rotation 4.9e-8 against 4.9e-8. |
+| C. factors, 2-D, h / dx = 5 | measured | Table below. The factor on nu is not the factor on xi. |
+| D. paired continuation | pass | Table below; every quantity within 3 K = 1 standard deviations (largest 2.5). |
+| E. operators in 3-D, h / dx = 4 | pass | Rigid rotation, Omega = (0.7, -1.1, 1.6): Theta alpha / c = (1.400000, -2.199999, 3.199998) on the lattice, max relative error per component 1.5e-6 (lattice and jittered 0.1 dx), a max 0.9e-6 / 1.7e-6 m/s^2. Linear w, nine gradient components: a / c = (1.9, 1.1, 3.1) = curl w, max relative error per component 1.1e-6 (lattice), 1.5e-6 (jittered). 12,167 interior particles of a 33^3 block. |
+
+### C and E: the constant factors
+
+Regular lattice, Richardson limit of three resolutions (2-D: dx = 4, 2, 1 mm; wave vector along x) or three
+wavelengths on one lattice (direction rows and 3-D; the factors depend on k h only); every order 1.99 to 2.00.
+
+| case | factor on nu | factor on xi |
+|---|---|---|
+| 2-D, h / dx = 5, wave vector along a lattice axis | 0.9587 (-4.13 %) | 0.9808 (-1.92 %) |
+| 2-D, wave vector at 22.5 degrees | 0.9808 | 0.9808 |
+| 2-D, wave vector at 45 degrees | 1.0029 (+0.29 %) | 0.9808 |
+| 2-D, along an axis, EPS_H_SQUARED = 0 | 0.9747 (-2.53 %) | 1.0000 |
+| 3-D, h / dx = 4, wave vector along (2, 3, 6) / 7, v along (3, -2, 0) | 0.9735 (-2.65 %) | 0.9862 (-1.38 %) |
+| 3-D, same, EPS_H_SQUARED = 0 | 0.9863 (-1.37 %) | 1.0000 |
+
+- The xi operator (component-wise Laplacian) is isotropic and its only constant error is the EPS_H_SQUARED
+  denominator.
+- The viscous operator carries the same denominator factor on the angle average, plus a lattice anisotropy of
+  about +-2.2 % in 2-D at h / dx = 5 (period 90 degrees) that does not vanish with EPS_H_SQUARED = 0. It comes from
+  the (v_ij . r_ij) r form of the term, which needs an isotropic fourth moment of the particle arrangement.
+- So one constant per case compensates xi, but on a lattice-like arrangement the effective nu depends on the
+  local shear direction: 0.959 to 1.003 in 2-D. With mu = rho (nu - c): at the axis value a nominal K = 3 is 3.59,
+  at the angle mean 3.25, at 45 degrees 2.97. Which value a developed flow sees depends on how far the particles
+  have left the lattice; on the jittered lattice (0.1 dx) the single-resolution ratios follow the same pattern
+  but the extrapolation is noise (orders -0.1 to 4.4), so I give no number for it.
+- The 3-D value is for one direction only.
+
+### D: paired continuations
+
+Start: the K = 1 state at t = 40.2 (`cavity --save-state`). 200,000 steps each, profiles sampled every 1,000 steps,
+first time unit discarded, mean of the next five (167 samples). K = 2 cut at x = +0.0036 (column boundary; 0.18 h
+from the line x = 0) in all ten K = 2 runs. Counters zero and particle count conserved in all fifteen runs.
+
+Per run (K = 1 | K = 2 on 5090 + XTX | K = 2 on one card):
+
+| quantity | K = 1 runs 1-5 | K = 2 pair, runs 1-5 | K = 2 one card, runs 1-5 |
+|---|---|---|---|
+| min u on x = 0 | -0.403591 -0.403519 -0.403447 -0.403466 -0.403540 | -0.403460 -0.403458 -0.403400 -0.403501 -0.403468 | -0.403470 -0.403558 -0.403507 -0.403503 -0.403452 |
+| min v on y = 0 | -0.525896 -0.525953 -0.525888 -0.525935 -0.525930 | -0.525893 -0.525923 -0.525998 -0.526008 -0.525883 | -0.525988 -0.525919 -0.525994 -0.525940 -0.526046 |
+| max v on y = 0 | 0.383129 0.383196 0.383208 0.383192 0.383159 | 0.383165 0.383126 0.383143 0.383179 0.383190 | 0.383168 0.383124 0.383191 0.383141 0.383127 |
+| min w on x = 0 | -2.108031 -2.108075 -2.107877 -2.107777 -2.108000 | -2.108000 -2.108112 -2.107964 -2.108100 -2.107663 | -2.107919 -2.107808 -2.108221 -2.107727 -2.108001 |
+| max w on x = 0 | 0.817155 0.816621 0.817948 0.816098 0.816025 | 0.816938 0.817036 0.815546 0.817048 0.816634 | 0.816448 0.816860 0.815612 0.815991 0.815790 |
+| min w on y = 0 | -1.646708 -1.646805 -1.646757 -1.646919 -1.646940 | -1.646838 -1.646785 -1.646768 -1.646932 -1.646862 | -1.646953 -1.647082 -1.647015 -1.646480 -1.647123 |
+| max w on y = 0 | 1.767671 1.768211 1.767213 1.767774 1.767322 | 1.767760 1.767456 1.768222 1.767777 1.767610 | 1.767888 1.767452 1.767228 1.767753 1.768214 |
+| L2 u(y) from the K = 1 mean | 4.6e-5 2.4e-5 7.8e-5 3.9e-5 5.9e-5 | 6.7e-5 3.5e-5 5.2e-5 8.2e-5 5.3e-5 | 3.7e-5 5.8e-5 3.3e-5 3.4e-5 9.8e-5 |
+| L2 v(x) | 3.9e-5 3.2e-5 3.9e-5 4.7e-5 5.0e-5 | 4.5e-5 4.1e-5 8.5e-5 3.3e-5 3.2e-5 | 4.9e-5 3.9e-5 5.8e-5 6.1e-5 8.9e-5 |
+| L2 w(y) on x = 0 | 3.0e-4 1.3e-4 5.1e-4 2.9e-4 4.2e-4 | 4.0e-4 2.3e-4 3.7e-4 4.9e-4 3.0e-4 | 2.4e-4 4.0e-4 4.5e-4 2.2e-4 6.9e-4 |
+| L2 w(x) on y = 0 | 2.5e-4 2.1e-4 1.8e-4 3.1e-4 4.1e-4 | 4.3e-4 3.4e-4 3.6e-4 2.6e-4 3.3e-4 | 3.2e-4 3.5e-4 3.2e-4 4.2e-4 5.9e-4 |
+
+Summary (difference of means in K = 1 standard deviations):
+
+| quantity | K = 1 mean | K = 1 std | K = 2 pair mean | std | diff | K = 2 one card mean | std | diff |
+|---|---|---|---|---|---|---|---|---|
+| min u on x = 0 | -0.403513 | 5.8e-5 | -0.403457 | 3.6e-5 | +0.96 | -0.403498 | 4.1e-5 | +0.25 |
+| min v on y = 0 | -0.525920 | 2.8e-5 | -0.525941 | 5.9e-5 | -0.76 | -0.525978 | 5.0e-5 | -2.08 |
+| max v on y = 0 | 0.383177 | 3.2e-5 | 0.383161 | 2.6e-5 | -0.50 | 0.383150 | 2.9e-5 | -0.83 |
+| min w on x = 0 | -2.107952 | 1.2e-4 | -2.107968 | 1.8e-4 | -0.13 | -2.107935 | 1.9e-4 | +0.14 |
+| max w on x = 0 | 0.816769 | 8.0e-4 | 0.816640 | 6.3e-4 | -0.16 | 0.816140 | 5.1e-4 | -0.79 |
+| min w on y = 0 | -1.646826 | 1.0e-4 | -1.646837 | 6.5e-5 | -0.11 | -1.646931 | 2.6e-4 | -1.04 |
+| max w on y = 0 | 1.767638 | 4.0e-4 | 1.767765 | 2.9e-4 | +0.32 | 1.767707 | 3.8e-4 | +0.17 |
+| L2 u(y) | 4.9e-5 | 2.0e-5 | 5.8e-5 | 1.7e-5 | +0.40 | 5.2e-5 | 2.8e-5 | +0.12 |
+| L2 v(x) | 4.1e-5 | 7.3e-6 | 4.7e-5 | 2.2e-5 | +0.81 | 5.9e-5 | 1.9e-5 | +2.46 |
+| L2 w(y) on x = 0 | 3.3e-4 | 1.5e-4 | 3.6e-4 | 9.9e-5 | +0.22 | 4.0e-4 | 1.9e-4 | +0.51 |
+| L2 w(x) on y = 0 | 2.7e-4 | 8.9e-5 | 3.5e-4 | 6.0e-5 | +0.82 | 4.0e-4 | 1.1e-4 | +1.42 |
+
+- **min w on x = 0, the quantity on the seam: the offset of the old table does not persist.** K = 1 -2.107952
+  +- 1.2e-4, K = 2 on the pair -2.107968 (-0.13 std), K = 2 on one card -2.107935 (+0.14 std); the K = 2 runs
+  scatter on both sides of the K = 1 mean.
+- No bimodality in any group: the fifteen runs form one cloud per quantity.
+- The L2 rows are biased low for the K = 1 group, because each K = 1 run is part of the mean it is compared with
+  (a factor of about sqrt(4/5) = 0.89 for five runs); the K = 2 differences in those rows (+0.1 to +2.5 std) are
+  consistent with that bias and with five-run standard deviations. The largest, L2 v(x) of K = 2 on one card, is
+  5.9e-5 against 4.1e-5, i.e. 1.8e-5 of a profile of rms 0.29.
+- Standard deviations are from five runs each and uncertain by about a third.
+
+### Unexpected
+
+1. The viscous term's factor (check C) is direction dependent on the lattice; see above.
+2. The crossings counted in check A are equal for simple and adami walls at K = 2 (1,444) and nearly equal at
+   K = 3 (2,488 / 2,476): over 3,000 steps the crossings near the cuts are set by the starting velocity field.
+3. A three-reference floor was again too small once (K = 1 simple, ratio 2.96; 1.02 with ten references).
