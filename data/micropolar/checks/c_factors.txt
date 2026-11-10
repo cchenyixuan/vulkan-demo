@@ -1,0 +1,16 @@
+[factors] 2-D, case EPS_H_SQUARED, dx = 0.004 (k h = 0.628): viscous a_y / (-nu k^2 v_y) = 0.955284 (|a_x| / |a_y| max 9.4e-06), lap w / (-k^2 w) = 0.975644
+[factors] 2-D, case EPS_H_SQUARED, dx = 0.002 (k h = 0.314): viscous a_y / (-nu k^2 v_y) = 0.957864 (|a_x| / |a_y| max 7.1e-05), lap w / (-k^2 w) = 0.979507
+[factors] 2-D, case EPS_H_SQUARED, dx = 0.001 (k h = 0.157): viscous a_y / (-nu k^2 v_y) = 0.958510 (|a_x| / |a_y| max 2.8e-04), lap w / (-k^2 w) = 0.980475
+[factors] 2-D, case EPS_H_SQUARED, factor on nu: 0.958725 (-4.1275%), order 2.00
+[factors] 2-D, case EPS_H_SQUARED, factor on xi: 0.980799 (-1.9201%), order 2.00
+[factors] 2-D, EPS_H_SQUARED = 0, dx = 0.004 (k h = 0.628): viscous a_y / (-nu k^2 v_y) = 0.971250 (|a_x| / |a_y| max 9.2e-06), lap w / (-k^2 w) = 0.994783
+[factors] 2-D, EPS_H_SQUARED = 0, dx = 0.002 (k h = 0.314): viscous a_y / (-nu k^2 v_y) = 0.973859 (|a_x| / |a_y| max 7.2e-05), lap w / (-k^2 w) = 0.998692
+[factors] 2-D, EPS_H_SQUARED = 0, dx = 0.001 (k h = 0.157): viscous a_y / (-nu k^2 v_y) = 0.974512 (|a_x| / |a_y| max 2.9e-04), lap w / (-k^2 w) = 0.999672
+[factors] 2-D, EPS_H_SQUARED = 0, factor on nu: 0.974730 (-2.5270%), order 2.00
+[factors] 2-D, EPS_H_SQUARED = 0, factor on xi: 1.000000 (+0.0000%), order 2.00
+[factors] 2-D, case EPS_H_SQUARED, wave vector at 0 deg to the lattice, jitter 0 dx: nu 0.95873 (-4.127%, order 1.99), xi 0.98080 (-1.920%, order 1.99)
+[factors] 2-D, case EPS_H_SQUARED, wave vector at 22.5 deg to the lattice, jitter 0 dx: nu 0.98080 (-1.920%, order 2.00), xi 0.98080 (-1.920%, order 2.00)
+[factors] 2-D, case EPS_H_SQUARED, wave vector at 45 deg to the lattice, jitter 0 dx: nu 1.00287 (+0.287%, order 2.00), xi 0.98080 (-1.920%, order 2.00)
+[factors] 2-D, case EPS_H_SQUARED, wave vector at 0 deg to the lattice, jitter 0.1 dx: nu 0.93602 (-6.398%, order -0.12), xi 0.97992 (-2.008%, order 4.07)
+[factors] 2-D, case EPS_H_SQUARED, wave vector at 22.5 deg to the lattice, jitter 0.1 dx: nu 0.98002 (-1.998%, order 4.41), xi 0.98069 (-1.931%, order 2.54)
+[factors] 2-D, case EPS_H_SQUARED, wave vector at 45 deg to the lattice, jitter 0.1 dx: nu 1.00433 (+0.433%, order 0.78), xi 0.98282 (-1.718%, order 1.21)

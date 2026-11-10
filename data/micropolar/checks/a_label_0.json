@@ -1,0 +1,84 @@
+[
+ {
+  "walls": "simple",
+  "slabs": 1,
+  "device_map": [
+   0
+  ],
+  "particles": 74529,
+  "fluid_compared": 63001,
+  "mismatches": 0,
+  "wall_particles": 11528,
+  "wall_mismatches": 0,
+  "ids_unique_and_complete": true,
+  "materials_kept": true,
+  "seam_crossings": 0,
+  "defrags": 4,
+  "steps": [
+   1500,
+   1500
+  ],
+  "cuts_x": [
+   [],
+   []
+  ],
+  "floor": {
+   "u": [
+    1.6240787748164717e-05,
+    2.4800321215783088e-05,
+    1.5270393037791925
+   ],
+   "v": [
+    1.726638262738534e-05,
+    4.0970551140631196e-05,
+    2.3728508758777225
+   ],
+   "rho": [
+    1.2399592055265851e-05,
+    3.669004133507446e-05,
+    2.9589716477400523
+   ]
+  }
+ },
+ {
+  "walls": "adami",
+  "slabs": 1,
+  "device_map": [
+   0
+  ],
+  "particles": 74529,
+  "fluid_compared": 63001,
+  "mismatches": 0,
+  "wall_particles": 11528,
+  "wall_mismatches": 0,
+  "ids_unique_and_complete": true,
+  "materials_kept": true,
+  "seam_crossings": 0,
+  "defrags": 4,
+  "steps": [
+   1500,
+   1500
+  ],
+  "cuts_x": [
+   [],
+   []
+  ],
+  "floor": {
+   "u": [
+    3.8710460743242255e-06,
+    3.7018960716686464e-06,
+    0.9563038002111334
+   ],
+   "v": [
+    2.4673496103715098e-06,
+    2.5145666665543556e-06,
+    1.0191367514292944
+   ],
+   "rho": [
+    1.1340664075129498e-05,
+    1.1386210009552807e-05,
+    1.0040161611455536
+   ]
+  }
+ }
+]

@@ -1,0 +1,73 @@
+
+group K1: 5 runs
+  k1_1: K = 1, devices [0], cuts x = [], 167 samples, 2,481 steps/s, counters zero
+  k1_2: K = 1, devices [0], cuts x = [], 167 samples, 2,490 steps/s, counters zero
+  k1_3: K = 1, devices [0], cuts x = [], 167 samples, 2,500 steps/s, counters zero
+  k1_4: K = 1, devices [0], cuts x = [], 167 samples, 2,483 steps/s, counters zero
+  k1_5: K = 1, devices [0], cuts x = [], 167 samples, 2,487 steps/s, counters zero
+    min u_vertical                          -0.403591  -0.403519  -0.403447  -0.403466  -0.403540
+    min v_horizontal                        -0.525896  -0.525953  -0.525888  -0.525935  -0.525930
+    max v_horizontal                        +0.383129  +0.383196  +0.383208  +0.383192  +0.383159
+    min w_vertical                          -2.108031  -2.108075  -2.107877  -2.107777  -2.108000
+    max w_vertical                          +0.817155  +0.816621  +0.817948  +0.816098  +0.816025
+    min w_horizontal                        -1.646708  -1.646805  -1.646757  -1.646919  -1.646940
+    max w_horizontal                        +1.767671  +1.768211  +1.767213  +1.767774  +1.767322
+    L2 u_vertical                           4.646e-05  2.439e-05  7.799e-05  3.923e-05  5.923e-05
+    L2 v_horizontal                         3.946e-05  3.178e-05  3.862e-05  4.712e-05  5.001e-05
+    L2 w_vertical                           2.963e-04  1.250e-04  5.067e-04  2.858e-04  4.162e-04
+    L2 w_horizontal                         2.546e-04  2.095e-04  1.827e-04  3.142e-04  4.051e-04
+    w_vertical at the K=1 minimum's point   -2.108031  -2.108075  -2.107877  -2.107777  -2.108000
+
+group K2x: 5 runs
+  k2x_1: K = 2, devices [0, 1], cuts x = [0.0035999894142151323], 167 samples, 1,442 steps/s, counters zero
+  k2x_2: K = 2, devices [0, 1], cuts x = [0.0035999894142151323], 167 samples, 1,464 steps/s, counters zero
+  k2x_3: K = 2, devices [0, 1], cuts x = [0.0035999894142151323], 167 samples, 1,474 steps/s, counters zero
+  k2x_4: K = 2, devices [0, 1], cuts x = [0.0035999894142151323], 167 samples, 1,473 steps/s, counters zero
+  k2x_5: K = 2, devices [0, 1], cuts x = [0.0035999894142151323], 167 samples, 1,471 steps/s, counters zero
+    min u_vertical                          -0.403460  -0.403458  -0.403400  -0.403501  -0.403468
+    min v_horizontal                        -0.525893  -0.525923  -0.525998  -0.526008  -0.525883
+    max v_horizontal                        +0.383165  +0.383126  +0.383143  +0.383179  +0.383190
+    min w_vertical                          -2.108000  -2.108112  -2.107964  -2.108100  -2.107663
+    max w_vertical                          +0.816938  +0.817036  +0.815546  +0.817048  +0.816634
+    min w_horizontal                        -1.646838  -1.646785  -1.646768  -1.646932  -1.646862
+    max w_horizontal                        +1.767760  +1.767456  +1.768222  +1.767777  +1.767610
+    L2 u_vertical                           6.661e-05  3.529e-05  5.199e-05  8.168e-05  5.256e-05
+    L2 v_horizontal                         4.515e-05  4.097e-05  8.492e-05  3.340e-05  3.182e-05
+    L2 w_vertical                           3.951e-04  2.305e-04  3.731e-04  4.920e-04  2.978e-04
+    L2 w_horizontal                         4.277e-04  3.434e-04  3.645e-04  2.623e-04  3.321e-04
+    w_vertical at the K=1 minimum's point   -2.108000  -2.108112  -2.107964  -2.108100  -2.107663
+
+group K2s: 5 runs
+  k2s_1: K = 2, devices [0, 0], cuts x = [0.0035999894142151323], 167 samples, 734 steps/s, counters zero
+  k2s_2: K = 2, devices [0, 0], cuts x = [0.0035999894142151323], 167 samples, 737 steps/s, counters zero
+  k2s_3: K = 2, devices [0, 0], cuts x = [0.0035999894142151323], 167 samples, 741 steps/s, counters zero
+  k2s_4: K = 2, devices [0, 0], cuts x = [0.0035999894142151323], 167 samples, 737 steps/s, counters zero
+  k2s_5: K = 2, devices [0, 0], cuts x = [0.0035999894142151323], 167 samples, 739 steps/s, counters zero
+    min u_vertical                          -0.403470  -0.403558  -0.403507  -0.403503  -0.403452
+    min v_horizontal                        -0.525988  -0.525919  -0.525994  -0.525940  -0.526046
+    max v_horizontal                        +0.383168  +0.383124  +0.383191  +0.383141  +0.383127
+    min w_vertical                          -2.107919  -2.107808  -2.108221  -2.107727  -2.108001
+    max w_vertical                          +0.816448  +0.816860  +0.815612  +0.815991  +0.815790
+    min w_horizontal                        -1.646953  -1.647082  -1.647015  -1.646480  -1.647123
+    max w_horizontal                        +1.767888  +1.767452  +1.767228  +1.767753  +1.768214
+    L2 u_vertical                           3.663e-05  5.785e-05  3.261e-05  3.428e-05  9.838e-05
+    L2 v_horizontal                         4.908e-05  3.889e-05  5.788e-05  6.119e-05  8.920e-05
+    L2 w_vertical                           2.395e-04  3.967e-04  4.469e-04  2.236e-04  6.909e-04
+    L2 w_horizontal                         3.242e-04  3.471e-04  3.191e-04  4.209e-04  5.868e-04
+    w_vertical at the K=1 minimum's point   -2.107919  -2.107808  -2.108221  -2.107727  -2.108001
+
+quantity                                    K=1 mean    K=1 std        K2x mean      K2x std  diff / std        K2s mean      K2s std  diff / std
+min u_vertical                             -0.403513   5.77e-05       -0.403457     3.64e-05        0.96       -0.403498     4.08e-05        0.25
+min v_horizontal                           -0.525920   2.76e-05       -0.525941     5.89e-05       -0.76       -0.525978     4.97e-05       -2.08
+max v_horizontal                            0.383177   3.21e-05        0.383161     2.62e-05       -0.50        0.383150     2.89e-05       -0.83
+min w_vertical                             -2.107952   1.22e-04       -2.107968     1.82e-04       -0.13       -2.107935     1.91e-04        0.14
+max w_vertical                              0.816769   8.01e-04        0.816640     6.34e-04       -0.16        0.816140     5.09e-04       -0.79
+min w_horizontal                           -1.646826   1.01e-04       -1.646837     6.54e-05       -0.11       -1.646931     2.60e-04       -1.04
+max w_horizontal                            1.767638   3.96e-04        1.767765     2.87e-04        0.32        1.767707     3.83e-04        0.17
+L2 u_vertical                               0.000049   2.03e-05        0.000058     1.74e-05        0.40        0.000052     2.79e-05        0.12
+L2 v_horizontal                             0.000041   7.26e-06        0.000047     2.18e-05        0.81        0.000059     1.88e-05        2.46
+L2 w_vertical                               0.000326   1.45e-04        0.000358     9.93e-05        0.22        0.000400     1.90e-04        0.51
+L2 w_horizontal                             0.000273   8.90e-05        0.000346     5.96e-05        0.82        0.000400     1.12e-04        1.42
+w_vertical at the K=1 minimum's point      -2.107952   1.22e-04       -2.107968     1.82e-04       -0.13       -2.107935     1.91e-04        0.14
+
+PASS: every quantity within 3.0 K = 1 standard deviations (window: 5.0 time units after discarding 1.0)

@@ -1,0 +1,2 @@
+[advection] block at 1.0 m/s for 1400 steps = 2.1 voxel columns; slab particles [4166, 6035] (+935 crossed to slab 1), conserved, counters all zero
+[advection] w_z min 1.4898696 max 1.4898697, the product 1.4898677: max relative deviation 1.33e-06 (one lost kick = 5.00e-04; a lost w = 1); max |w_xy| 0.0e+00, max |a| 9.84e-09; PASS

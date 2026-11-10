@@ -1,0 +1,41 @@
+[
+ {
+  "steps": 1,
+  "rate_times_timestep": 0.004999999686131365,
+  "mean": 2.992499828338623,
+  "spread": 0.0,
+  "discrete": 2.9925000004708027,
+  "exponential": 2.992509367662008,
+  "relative_to_discrete_max": 5.7521196139553865e-08,
+  "relative_to_exponential": -3.1877338424468604e-06,
+  "expected_first_order_difference": -3.130212826274459e-06,
+  "in_plane_spin_max": 0.0,
+  "velocity_max": 0.0
+ },
+ {
+  "steps": 100,
+  "rate_times_timestep": 0.004999999686131365,
+  "mean": 1.8218766450881958,
+  "spread": 0.0,
+  "discrete": 1.8218774754722449,
+  "exponential": 1.8241467070201356,
+  "relative_to_discrete_max": 4.557847935737769e-07,
+  "relative_to_exponential": -0.0012444514047053046,
+  "expected_first_order_difference": -0.0012439961869062932,
+  "in_plane_spin_max": 0.0,
+  "velocity_max": 0.0
+ },
+ {
+  "steps": 300,
+  "rate_times_timestep": 0.004999999686131365,
+  "mean": 0.668552041053772,
+  "spread": 0.0,
+  "discrete": 0.6685522320296643,
+  "exponential": 0.6710661133186137,
+  "relative_to_discrete_max": 2.856559041530815e-07,
+  "relative_to_exponential": -0.003746385363446403,
+  "expected_first_order_difference": -0.0037461007776380395,
+  "in_plane_spin_max": 0.0,
+  "velocity_max": 0.0
+ }
+]

@@ -1,0 +1,771 @@
+{
+ "reference": [
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a1.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a2.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a3.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a4.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a5.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a6.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a7.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a8.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a9.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a10.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a11.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a12.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a13.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a14.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a15.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a16.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a17.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a18.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a19.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a20.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a21.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a22.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a23.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a24.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a25.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a26.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a27.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a28.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a29.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a30.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a31.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a32.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a33.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a34.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a35.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a36.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a37.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a38.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a39.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a40.npz"
+ ],
+ "floor": {
+  "u": {
+   "pair_rms_max": 0.00020840411603543298,
+   "pair_rms_median": 7.792735723773636e-05,
+   "pair_rms_min": 2.0760276208080704e-05,
+   "pairs": 780
+  },
+  "v": {
+   "pair_rms_max": 0.00020300765846850913,
+   "pair_rms_median": 8.900033053699523e-05,
+   "pair_rms_min": 2.7393550384728332e-05,
+   "pairs": 780
+  },
+  "rho": {
+   "pair_rms_max": 0.0019059986041646813,
+   "pair_rms_median": 0.000437670898719102,
+   "pair_rms_min": 4.755892523163352e-05,
+   "pairs": 780
+  }
+ },
+ "tests": {
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian1.npz": {
+   "u": {
+    "rms_min": 4.397108217545418e-05,
+    "rms_median": 6.783203206241228e-05,
+    "rms_max": 0.00014393673430889727,
+    "ratio_to_floor_max": 0.6906616675671851
+   },
+   "v": {
+    "rms_min": 5.4235852778184357e-05,
+    "rms_median": 9.448408540043644e-05,
+    "rms_max": 0.00015690202578959067,
+    "ratio_to_floor_max": 0.7728872249119092
+   },
+   "rho": {
+    "rms_min": 8.594437379997726e-05,
+    "rms_median": 0.0007099502367561715,
+    "rms_max": 0.001152630665100417,
+    "ratio_to_floor_max": 0.6047384623377342
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian2.npz": {
+   "u": {
+    "rms_min": 2.7729857558223385e-05,
+    "rms_median": 5.678908172610611e-05,
+    "rms_max": 0.0001416785564142528,
+    "ratio_to_floor_max": 0.6798260951341505
+   },
+   "v": {
+    "rms_min": 3.769394063270466e-05,
+    "rms_median": 8.274952035649971e-05,
+    "rms_max": 0.00015233000689497951,
+    "ratio_to_floor_max": 0.7503658140001117
+   },
+   "rho": {
+    "rms_min": 5.135771087768246e-05,
+    "rms_median": 0.00037881902931581146,
+    "rms_max": 0.0016229418674296896,
+    "ratio_to_floor_max": 0.8514916348225535
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian3.npz": {
+   "u": {
+    "rms_min": 2.258356428450551e-05,
+    "rms_median": 0.00012576796095249858,
+    "rms_max": 0.00017588014669804502,
+    "ratio_to_floor_max": 0.8439379703428783
+   },
+   "v": {
+    "rms_min": 3.361800643844486e-05,
+    "rms_median": 0.00014296878976887277,
+    "rms_max": 0.00018964025579464353,
+    "ratio_to_floor_max": 0.9341532099098657
+   },
+   "rho": {
+    "rms_min": 6.545294779296524e-05,
+    "rms_median": 0.001556127861798658,
+    "rms_max": 0.0018622700792868196,
+    "ratio_to_floor_max": 0.9770574203032923
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian4.npz": {
+   "u": {
+    "rms_min": 2.6503420969376556e-05,
+    "rms_median": 5.6553183167005616e-05,
+    "rms_max": 0.00015411303273630354,
+    "ratio_to_floor_max": 0.7394913098074376
+   },
+   "v": {
+    "rms_min": 4.413200513112572e-05,
+    "rms_median": 6.66585523698421e-05,
+    "rms_max": 0.00017132160482077763,
+    "ratio_to_floor_max": 0.8439169542332972
+   },
+   "rho": {
+    "rms_min": 8.85069510993742e-05,
+    "rms_median": 0.00033944541334244573,
+    "rms_max": 0.0017891525256829082,
+    "ratio_to_floor_max": 0.9386956117247621
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian5.npz": {
+   "u": {
+    "rms_min": 2.81843159134637e-05,
+    "rms_median": 0.00012966575142415863,
+    "rms_max": 0.00017506746095759186,
+    "ratio_to_floor_max": 0.8400384036936526
+   },
+   "v": {
+    "rms_min": 4.047297035458889e-05,
+    "rms_median": 0.0001493905774066291,
+    "rms_max": 0.0001880436708702084,
+    "ratio_to_floor_max": 0.9262885562486206
+   },
+   "rho": {
+    "rms_min": 6.219089507192326e-05,
+    "rms_median": 0.0015762477325223893,
+    "rms_max": 0.0018640949026147286,
+    "ratio_to_floor_max": 0.9780148309351374
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian6.npz": {
+   "u": {
+    "rms_min": 3.3761696681646615e-05,
+    "rms_median": 0.00013678941629739828,
+    "rms_max": 0.00021092830095512037,
+    "ratio_to_floor_max": 1.0121119724874255
+   },
+   "v": {
+    "rms_min": 3.705722892670424e-05,
+    "rms_median": 0.00013706443971909073,
+    "rms_max": 0.0002043449224197312,
+    "ratio_to_floor_max": 1.0065872586350209
+   },
+   "rho": {
+    "rms_min": 0.00011922288971783586,
+    "rms_median": 0.0007424709118358617,
+    "rms_max": 0.0016624946820760404,
+    "ratio_to_floor_max": 0.8722433890787877
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian7.npz": {
+   "u": {
+    "rms_min": 3.370829788728082e-05,
+    "rms_median": 7.935501775780349e-05,
+    "rms_max": 0.00016745127688878354,
+    "ratio_to_floor_max": 0.8034931366725664
+   },
+   "v": {
+    "rms_min": 3.922797065038509e-05,
+    "rms_median": 9.235805126251174e-05,
+    "rms_max": 0.00018339084717610267,
+    "ratio_to_floor_max": 0.9033691071539084
+   },
+   "rho": {
+    "rms_min": 7.774896584894913e-05,
+    "rms_median": 0.00030973728257467566,
+    "rms_max": 0.0017493407956732376,
+    "ratio_to_floor_max": 0.9178080151007769
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian8.npz": {
+   "u": {
+    "rms_min": 3.36644101951765e-05,
+    "rms_median": 5.827900555266133e-05,
+    "rms_max": 0.0001397233969485429,
+    "ratio_to_floor_max": 0.6704445171552517
+   },
+   "v": {
+    "rms_min": 3.7223739712610344e-05,
+    "rms_median": 7.869477183834061e-05,
+    "rms_max": 0.00015229477312309476,
+    "ratio_to_floor_max": 0.7501922551691269
+   },
+   "rho": {
+    "rms_min": 0.000102554715364346,
+    "rms_median": 0.0003493984768278692,
+    "rms_max": 0.0015894617688591549,
+    "ratio_to_floor_max": 0.8339259878711972
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian9.npz": {
+   "u": {
+    "rms_min": 2.6400104271609496e-05,
+    "rms_median": 6.937543816500961e-05,
+    "rms_max": 0.000166265180944298,
+    "ratio_to_floor_max": 0.7978018098070074
+   },
+   "v": {
+    "rms_min": 3.31417519683866e-05,
+    "rms_median": 7.024608363494266e-05,
+    "rms_max": 0.0001735414360923889,
+    "ratio_to_floor_max": 0.8548516711220968
+   },
+   "rho": {
+    "rms_min": 5.698745347165259e-05,
+    "rms_median": 0.0003063008683720057,
+    "rms_max": 0.0017676181013696068,
+    "ratio_to_floor_max": 0.9273973745349511
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian10.npz": {
+   "u": {
+    "rms_min": 2.9008795825672523e-05,
+    "rms_median": 6.838604149658722e-05,
+    "rms_max": 0.00016767391637260756,
+    "ratio_to_floor_max": 0.8045614432303225
+   },
+   "v": {
+    "rms_min": 3.6320622276852386e-05,
+    "rms_median": 6.56810433553572e-05,
+    "rms_max": 0.00017171384557198527,
+    "ratio_to_floor_max": 0.8458491017895357
+   },
+   "rho": {
+    "rms_min": 5.2194788401452286e-05,
+    "rms_median": 0.0003212541039444125,
+    "rms_max": 0.0018046960875700918,
+    "ratio_to_floor_max": 0.9468506868928237
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian11.npz": {
+   "u": {
+    "rms_min": 3.197566829959907e-05,
+    "rms_median": 5.7983877358964265e-05,
+    "rms_max": 0.00015485055229979018,
+    "ratio_to_floor_max": 0.7430302013491058
+   },
+   "v": {
+    "rms_min": 4.301550455506668e-05,
+    "rms_median": 9.071444420711198e-05,
+    "rms_max": 0.00018345081055553636,
+    "ratio_to_floor_max": 0.9036644821160456
+   },
+   "rho": {
+    "rms_min": 5.508626145938533e-05,
+    "rms_median": 0.00035339645129812324,
+    "rms_max": 0.001810875933921689,
+    "ratio_to_floor_max": 0.9500930010991899
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian12.npz": {
+   "u": {
+    "rms_min": 2.5543551652333818e-05,
+    "rms_median": 5.660407943083221e-05,
+    "rms_max": 0.0001460295216502989,
+    "ratio_to_floor_max": 0.700703634977492
+   },
+   "v": {
+    "rms_min": 3.5370064602151545e-05,
+    "rms_median": 8.8455687897345e-05,
+    "rms_max": 0.00018088869579458108,
+    "ratio_to_floor_max": 0.8910437032731
+   },
+   "rho": {
+    "rms_min": 7.489326161694567e-05,
+    "rms_median": 0.00037450601033067233,
+    "rms_max": 0.0017966782690460106,
+    "ratio_to_floor_max": 0.9426440633902872
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian13.npz": {
+   "u": {
+    "rms_min": 4.173752283911157e-05,
+    "rms_median": 8.65839690350325e-05,
+    "rms_max": 0.0001696250281506673,
+    "ratio_to_floor_max": 0.8139235989073631
+   },
+   "v": {
+    "rms_min": 5.087463546784602e-05,
+    "rms_median": 6.85035748059395e-05,
+    "rms_max": 0.00017553961004881946,
+    "ratio_to_floor_max": 0.8646945212465934
+   },
+   "rho": {
+    "rms_min": 9.7145985542521e-05,
+    "rms_median": 0.00031830764699986806,
+    "rms_max": 0.0018246411404208775,
+    "ratio_to_floor_max": 0.9573150454748316
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian14.npz": {
+   "u": {
+    "rms_min": 3.7414320233782076e-05,
+    "rms_median": 8.114696649914169e-05,
+    "rms_max": 0.00014698259553711567,
+    "ratio_to_floor_max": 0.7052768358573379
+   },
+   "v": {
+    "rms_min": 4.1916379887956646e-05,
+    "rms_median": 0.0001089769148350356,
+    "rms_max": 0.00016509877562616813,
+    "ratio_to_floor_max": 0.8132637796606994
+   },
+   "rho": {
+    "rms_min": 0.0001309743334656815,
+    "rms_median": 0.0010618476620673227,
+    "rms_max": 0.001155732026622431,
+    "ratio_to_floor_max": 0.6063656206762752
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian15.npz": {
+   "u": {
+    "rms_min": 3.304238223460488e-05,
+    "rms_median": 6.185480812519894e-05,
+    "rms_max": 0.00014802173140530904,
+    "ratio_to_floor_max": 0.7102629939427026
+   },
+   "v": {
+    "rms_min": 4.813356544399484e-05,
+    "rms_median": 6.953067545248331e-05,
+    "rms_max": 0.0001747510599515415,
+    "ratio_to_floor_max": 0.860810184550989
+   },
+   "rho": {
+    "rms_min": 9.177262036285709e-05,
+    "rms_median": 0.00038039849164384976,
+    "rms_max": 0.0018652391811217505,
+    "ratio_to_floor_max": 0.9786151873595973
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian16.npz": {
+   "u": {
+    "rms_min": 2.7556350171234066e-05,
+    "rms_median": 7.594845444509145e-05,
+    "rms_max": 0.00014488301233902526,
+    "ratio_to_floor_max": 0.6952022594140711
+   },
+   "v": {
+    "rms_min": 4.023452220059481e-05,
+    "rms_median": 8.838569237483134e-05,
+    "rms_max": 0.00016836561127473836,
+    "ratio_to_floor_max": 0.8293559590061254
+   },
+   "rho": {
+    "rms_min": 8.734672891010706e-05,
+    "rms_median": 0.0003974840434238074,
+    "rms_max": 0.0016882925251930838,
+    "ratio_to_floor_max": 0.8857784688320856
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian17.npz": {
+   "u": {
+    "rms_min": 4.949024806565226e-05,
+    "rms_median": 0.00012231304796239039,
+    "rms_max": 0.00018521649402270763,
+    "ratio_to_floor_max": 0.8887372166450734
+   },
+   "v": {
+    "rms_min": 4.7394160695589885e-05,
+    "rms_median": 0.00013320674985815492,
+    "rms_max": 0.00018999941991453353,
+    "ratio_to_floor_max": 0.9359224245424541
+   },
+   "rho": {
+    "rms_min": 0.0002866138224056376,
+    "rms_median": 0.0013905671921017246,
+    "rms_max": 0.0017240238333120195,
+    "ratio_to_floor_max": 0.9045252339350932
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian18.npz": {
+   "u": {
+    "rms_min": 2.9790002038120775e-05,
+    "rms_median": 6.81561511148003e-05,
+    "rms_max": 0.00014078193087677844,
+    "ratio_to_floor_max": 0.6755237543045581
+   },
+   "v": {
+    "rms_min": 3.969450442188703e-05,
+    "rms_median": 7.484829139266108e-05,
+    "rms_max": 0.00013870940877792423,
+    "ratio_to_floor_max": 0.6832718027701455
+   },
+   "rho": {
+    "rms_min": 5.1018596993968066e-05,
+    "rms_median": 0.0006511746276248332,
+    "rms_max": 0.0012068786209808876,
+    "ratio_to_floor_max": 0.6332001599286645
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian19.npz": {
+   "u": {
+    "rms_min": 2.7290415197580653e-05,
+    "rms_median": 0.00014887755991942572,
+    "rms_max": 0.00017691334220261093,
+    "ratio_to_floor_max": 0.8488956243672847
+   },
+   "v": {
+    "rms_min": 3.380619750522183e-05,
+    "rms_median": 0.00016385890263061518,
+    "rms_max": 0.00018987266841079538,
+    "ratio_to_floor_max": 0.9352980564536127
+   },
+   "rho": {
+    "rms_min": 0.00013698691037432,
+    "rms_median": 0.0016937810578564003,
+    "rms_max": 0.001901324587790415,
+    "ratio_to_floor_max": 0.9975477335796294
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian20.npz": {
+   "u": {
+    "rms_min": 5.058794126337932e-05,
+    "rms_median": 8.109033266187098e-05,
+    "rms_max": 0.0001452184171717591,
+    "ratio_to_floor_max": 0.6968116558075512
+   },
+   "v": {
+    "rms_min": 4.859238909023066e-05,
+    "rms_median": 8.179375106597637e-05,
+    "rms_max": 0.00014417683635909115,
+    "ratio_to_floor_max": 0.7102039275107254
+   },
+   "rho": {
+    "rms_min": 9.687940115163817e-05,
+    "rms_median": 0.0007265005180576546,
+    "rms_max": 0.001179863486952674,
+    "ratio_to_floor_max": 0.6190264171099739
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian21.npz": {
+   "u": {
+    "rms_min": 2.5215872655666148e-05,
+    "rms_median": 6.219780583498576e-05,
+    "rms_max": 0.00014505296495407124,
+    "ratio_to_floor_max": 0.6960177548960178
+   },
+   "v": {
+    "rms_min": 3.309039890775497e-05,
+    "rms_median": 8.545352833729932e-05,
+    "rms_max": 0.00016438843851991137,
+    "ratio_to_floor_max": 0.8097647141002395
+   },
+   "rho": {
+    "rms_min": 6.490572649085256e-05,
+    "rms_median": 0.00023041577148971823,
+    "rms_max": 0.0017357857189748448,
+    "ratio_to_floor_max": 0.9106962172910753
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian22.npz": {
+   "u": {
+    "rms_min": 5.496078145043123e-05,
+    "rms_median": 0.00010305110631063833,
+    "rms_max": 0.00016840008612199853,
+    "ratio_to_floor_max": 0.8080458741677015
+   },
+   "v": {
+    "rms_min": 4.40865226416972e-05,
+    "rms_median": 9.911263950444218e-05,
+    "rms_max": 0.00016007795458147198,
+    "ratio_to_floor_max": 0.7885316041232184
+   },
+   "rho": {
+    "rms_min": 9.576499133176052e-05,
+    "rms_median": 0.0004918201545150498,
+    "rms_max": 0.001568527123509598,
+    "ratio_to_floor_max": 0.8229424303261844
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian23.npz": {
+   "u": {
+    "rms_min": 3.1810200841659e-05,
+    "rms_median": 0.0001295411148327311,
+    "rms_max": 0.00017849039020283606,
+    "ratio_to_floor_max": 0.8564628837392493
+   },
+   "v": {
+    "rms_min": 3.7208633886089276e-05,
+    "rms_median": 0.00014344897299969515,
+    "rms_max": 0.00018894359401263504,
+    "ratio_to_floor_max": 0.9307215079373189
+   },
+   "rho": {
+    "rms_min": 8.159155699710364e-05,
+    "rms_median": 0.0015498744359495119,
+    "rms_max": 0.0018500036026690581,
+    "ratio_to_floor_max": 0.9706216985819025
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian24.npz": {
+   "u": {
+    "rms_min": 2.9797850467569012e-05,
+    "rms_median": 7.560681109304682e-05,
+    "rms_max": 0.00014346901399332187,
+    "ratio_to_floor_max": 0.6884173725672923
+   },
+   "v": {
+    "rms_min": 3.482356592432298e-05,
+    "rms_median": 8.231847611504396e-05,
+    "rms_max": 0.00016190851635363682,
+    "ratio_to_floor_max": 0.7975488096117926
+   },
+   "rho": {
+    "rms_min": 8.976093025098882e-05,
+    "rms_median": 0.00029561536257456515,
+    "rms_max": 0.0017296983024812501,
+    "ratio_to_floor_max": 0.9075023972744743
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian25.npz": {
+   "u": {
+    "rms_min": 2.4557888774551086e-05,
+    "rms_median": 6.025136019363706e-05,
+    "rms_max": 0.00014695712655650957,
+    "ratio_to_floor_max": 0.7051546262719871
+   },
+   "v": {
+    "rms_min": 3.809870897078725e-05,
+    "rms_median": 8.034730877138369e-05,
+    "rms_max": 0.0001757281196623206,
+    "ratio_to_floor_max": 0.8656231050001487
+   },
+   "rho": {
+    "rms_min": 8.33388148542006e-05,
+    "rms_median": 0.00038158769194324984,
+    "rms_max": 0.0017974254034192293,
+    "ratio_to_floor_max": 0.9430360544293079
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian26.npz": {
+   "u": {
+    "rms_min": 2.6793141696887397e-05,
+    "rms_median": 5.402865212663045e-05,
+    "rms_max": 0.00014762018356055098,
+    "ratio_to_floor_max": 0.7083362189231067
+   },
+   "v": {
+    "rms_min": 3.678108538768504e-05,
+    "rms_median": 6.280743441776341e-05,
+    "rms_max": 0.00017137666185966968,
+    "ratio_to_floor_max": 0.8441881609419868
+   },
+   "rho": {
+    "rms_min": 5.429689597691929e-05,
+    "rms_median": 0.00036970537245794785,
+    "rms_max": 0.0018314247225761915,
+    "ratio_to_floor_max": 0.9608741153191073
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian27.npz": {
+   "u": {
+    "rms_min": 5.037631100151683e-05,
+    "rms_median": 9.683942600070047e-05,
+    "rms_max": 0.00017206270840366278,
+    "ratio_to_floor_max": 0.8256204900214571
+   },
+   "v": {
+    "rms_min": 4.9601111658105845e-05,
+    "rms_median": 0.00010240741629183623,
+    "rms_max": 0.0001727965280323662,
+    "ratio_to_floor_max": 0.8511823117213613
+   },
+   "rho": {
+    "rms_min": 0.0001749582176340793,
+    "rms_median": 0.0005058878394694188,
+    "rms_max": 0.0016975301040018024,
+    "ratio_to_floor_max": 0.8906250509799079
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian28.npz": {
+   "u": {
+    "rms_min": 2.9431224783422903e-05,
+    "rms_median": 0.0001252191108858883,
+    "rms_max": 0.00019988675881777094,
+    "ratio_to_floor_max": 0.9591305710285783
+   },
+   "v": {
+    "rms_min": 3.7589855697533e-05,
+    "rms_median": 0.00012988849272870946,
+    "rms_max": 0.00019539307353735235,
+    "ratio_to_floor_max": 0.9624911444789755
+   },
+   "rho": {
+    "rms_min": 6.018645134041485e-05,
+    "rms_median": 0.0006758454520994885,
+    "rms_max": 0.0016799733927163284,
+    "ratio_to_floor_max": 0.8814137581452164
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian29.npz": {
+   "u": {
+    "rms_min": 3.7477773482643265e-05,
+    "rms_median": 7.787656853406847e-05,
+    "rms_max": 0.00016338267402399474,
+    "ratio_to_floor_max": 0.7839704758816584
+   },
+   "v": {
+    "rms_min": 4.105101073199707e-05,
+    "rms_median": 7.317157212873482e-05,
+    "rms_max": 0.0001647165018062738,
+    "ratio_to_floor_max": 0.8113807284360403
+   },
+   "rho": {
+    "rms_min": 6.404164775244605e-05,
+    "rms_median": 0.00024124142421147357,
+    "rms_max": 0.0017200299459515854,
+    "ratio_to_floor_max": 0.9024298035650461
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_newtonian30.npz": {
+   "u": {
+    "rms_min": 2.754248070549348e-05,
+    "rms_median": 5.909817414373926e-05,
+    "rms_max": 0.0001508578121604208,
+    "ratio_to_floor_max": 0.7238715579627605
+   },
+   "v": {
+    "rms_min": 3.5946408374323294e-05,
+    "rms_median": 7.386468952868575e-05,
+    "rms_max": 0.00017532063249063186,
+    "ratio_to_floor_max": 0.8636158547576562
+   },
+   "rho": {
+    "rms_min": 5.58123709971577e-05,
+    "rms_median": 0.00036214863986125585,
+    "rms_max": 0.001822548991154293,
+    "ratio_to_floor_max": 0.9562173797881868
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_null1.npz": {
+   "u": {
+    "rms_min": 4.450324426613825e-05,
+    "rms_median": 0.00012092994449215404,
+    "rms_max": 0.0001926513829375412,
+    "ratio_to_floor_max": 0.9244125624888643
+   },
+   "v": {
+    "rms_min": 3.527322483141378e-05,
+    "rms_median": 0.00012222594325538756,
+    "rms_max": 0.0001901192191216288,
+    "ratio_to_floor_max": 0.9365125461565795
+   },
+   "rho": {
+    "rms_min": 7.485638531813186e-05,
+    "rms_median": 0.000639132232613342,
+    "rms_max": 0.0016258036258853213,
+    "ratio_to_floor_max": 0.8529930831706156
+   },
+   "angular_velocity_abs_max": 0.0
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_null2.npz": {
+   "u": {
+    "rms_min": 3.690412522134513e-05,
+    "rms_median": 7.325386792317532e-05,
+    "rms_max": 0.0001643723884840196,
+    "ratio_to_floor_max": 0.7887194917785256
+   },
+   "v": {
+    "rms_min": 4.9282302215660565e-05,
+    "rms_median": 7.865320696535521e-05,
+    "rms_max": 0.00017499810542459318,
+    "ratio_to_floor_max": 0.8620271114143172
+   },
+   "rho": {
+    "rms_min": 9.489847661247983e-05,
+    "rms_median": 0.0003331670481228422,
+    "rms_max": 0.0017776904328414614,
+    "ratio_to_floor_max": 0.9326819174773467
+   },
+   "angular_velocity_abs_max": 0.0
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_null3.npz": {
+   "u": {
+    "rms_min": 2.4219244294670654e-05,
+    "rms_median": 0.00010608349637206927,
+    "rms_max": 0.00017717252321200634,
+    "ratio_to_floor_max": 0.8501392706748814
+   },
+   "v": {
+    "rms_min": 3.794577878933973e-05,
+    "rms_median": 0.00011207052665785662,
+    "rms_max": 0.00017724635809590857,
+    "ratio_to_floor_max": 0.8731018299164478
+   },
+   "rho": {
+    "rms_min": 8.715114220562284e-05,
+    "rms_median": 0.0005355803018986521,
+    "rms_max": 0.001623006073435598,
+    "ratio_to_floor_max": 0.8515253211042582
+   },
+   "angular_velocity_abs_max": 0.0
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_null4.npz": {
+   "u": {
+    "rms_min": 3.540032735097837e-05,
+    "rms_median": 0.00011300343024579689,
+    "rms_max": 0.00019077419221837823,
+    "ratio_to_floor_max": 0.915405107382537
+   },
+   "v": {
+    "rms_min": 4.24319360423791e-05,
+    "rms_median": 0.00011988149592478224,
+    "rms_max": 0.00018964120953827824,
+    "ratio_to_floor_max": 0.9341579079771303
+   },
+   "rho": {
+    "rms_min": 0.00020987300900043724,
+    "rms_median": 0.0011354143926934574,
+    "rms_max": 0.0014863627832717194,
+    "ratio_to_floor_max": 0.7798341404993471
+   },
+   "angular_velocity_abs_max": 0.0
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_new_null5.npz": {
+   "u": {
+    "rms_min": 2.8436597200246232e-05,
+    "rms_median": 5.5884005934334034e-05,
+    "rms_max": 0.0001543398008522692,
+    "ratio_to_floor_max": 0.7405794270686491
+   },
+   "v": {
+    "rms_min": 3.278711974368594e-05,
+    "rms_median": 8.560165613697975e-05,
+    "rms_max": 0.00017952316722131712,
+    "ratio_to_floor_max": 0.8843172152993678
+   },
+   "rho": {
+    "rms_min": 8.169817544698481e-05,
+    "rms_median": 0.00033990556891863425,
+    "rms_max": 0.0017876203807895938,
+    "ratio_to_floor_max": 0.9378917575718962
+   },
+   "angular_velocity_abs_max": 0.0
+  }
+ }
+}

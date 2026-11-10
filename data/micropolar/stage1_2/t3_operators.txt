@@ -1,0 +1,16 @@
+[T3] rigid rotation, lattice (xi_reg = 0, 18,769 interior): Theta alpha_z / c mean = +1.9999997 (expected +2.0), relative error max 8.17e-07 rms 2.61e-07; |a| max 3.18e-08 rms 1.47e-08 m/s^2
+[T3] linear w_z, lattice (xi_reg = 0): a / c against curl w relative error max 1.20e-06 rms 2.66e-07; lap w / (|grad w| / dx) max 5.81e-05 rms 2.23e-05
+[T3] rigid rotation, jittered (xi_reg = 0, 19,031 interior): Theta alpha_z / c mean = +2.0000000 (expected +2.0), relative error max 6.13e-07 rms 1.57e-07; |a| max 2.85e-08 rms 9.07e-09 m/s^2
+[T3] linear w_z, jittered (xi_reg = 0): a / c against curl w relative error max 1.43e-06 rms 2.95e-07; lap w / (|grad w| / dx) max 7.08e-02 rms 1.82e-02
+[T3] rigid rotation, lattice, default xi (xi_reg = 0.001, 18,769 interior): Theta alpha_z / c mean = +1.9982298 (expected +2.0), relative error max 8.86e-04 rms 8.85e-04; |a| max 3.18e-08 rms 1.47e-08 m/s^2
+[T3] linear w_z, lattice, default xi (xi_reg = 0.001): a / c against curl w relative error max 8.86e-04 rms 8.85e-04; lap w / (|grad w| / dx) max 5.81e-05 rms 2.23e-05
+[T3] rigid rotation, jittered, default xi (xi_reg = 0.001, 19,031 interior): Theta alpha_z / c mean = +1.9982284 (expected +2.0), relative error max 9.16e-04 rms 8.86e-04; |a| max 2.84e-08 rms 9.06e-09 m/s^2
+[T3] linear w_z, jittered, default xi (xi_reg = 0.001): a / c against curl w relative error max 9.30e-04 rms 8.86e-04; lap w / (|grad w| / dx) max 7.08e-02 rms 1.82e-02
+[T3] sin(k x), case EPS_H_SQUARED, dx = 0.004 m (k h = 0.628, 3,844 interior): lap w / (-k^2 w) = 0.975506, relative L2 error 2.449e-02
+[T3] sin(k x), case EPS_H_SQUARED, dx = 0.002 m (k h = 0.314, 18,769 interior): lap w / (-k^2 w) = 0.979438, relative L2 error 2.056e-02, observed order 0.25
+[T3] sin(k x), case EPS_H_SQUARED, dx = 0.001 m (k h = 0.157, 82,369 interior): lap w / (-k^2 w) = 0.980441, relative L2 error 1.956e-02, observed order 0.07
+[T3] sin(k x), case EPS_H_SQUARED: amplitude ratio 0.975506 / 0.979438 / 0.980441, Richardson order 1.97, limit dx -> 0 at fixed h/dx = 0.980784 (constant factor -1.9216%)
+[T3] sin(k x), EPS_H_SQUARED = 0, dx = 0.004 m (k h = 0.628, 3,844 interior): lap w / (-k^2 w) = 0.994644, relative L2 error 5.356e-03
+[T3] sin(k x), EPS_H_SQUARED = 0, dx = 0.002 m (k h = 0.314, 18,769 interior): lap w / (-k^2 w) = 0.998622, relative L2 error 1.378e-03, observed order 1.96
+[T3] sin(k x), EPS_H_SQUARED = 0, dx = 0.001 m (k h = 0.157, 82,369 interior): lap w / (-k^2 w) = 0.999637, relative L2 error 3.665e-04, observed order 1.91
+[T3] sin(k x), EPS_H_SQUARED = 0: amplitude ratio 0.994644 / 0.998622 / 0.999637, Richardson order 1.97, limit dx -> 0 at fixed h/dx = 0.999985 (constant factor -0.0015%)

@@ -1,0 +1,575 @@
+{
+ "discard": 1.0,
+ "window": 5.0,
+ "groups": {
+  "K1": [
+   {
+    "run": "logs\\micropolar\\d\\k1_1",
+    "cuts_x": [],
+    "device_map": [
+     0
+    ],
+    "values": {
+     "min u_vertical": -0.4035908770596158,
+     "min v_horizontal": -0.525895504758789,
+     "max v_horizontal": 0.38312932225868507,
+     "min w_vertical": -2.108030792642979,
+     "max w_vertical": 0.8171546450552546,
+     "min w_horizontal": -1.6467081597014388,
+     "max w_horizontal": 1.7676708643689292,
+     "L2 u_vertical": 4.64599978260002e-05,
+     "L2 v_horizontal": 3.9460951582226195e-05,
+     "L2 w_vertical": 0.0002963264706927136,
+     "L2 w_horizontal": 0.00025463249468793756,
+     "w_vertical at the K=1 minimum's point": -2.108030792642979
+    }
+   },
+   {
+    "run": "logs\\micropolar\\d\\k1_2",
+    "cuts_x": [],
+    "device_map": [
+     0
+    ],
+    "values": {
+     "min u_vertical": -0.40351862808374667,
+     "min v_horizontal": -0.5259529396935645,
+     "max v_horizontal": 0.3831959943896247,
+     "min w_vertical": -2.10807468377429,
+     "max w_vertical": 0.8166206045040191,
+     "min w_horizontal": -1.646805270329613,
+     "max w_horizontal": 1.7682114562311217,
+     "L2 u_vertical": 2.4385615541462796e-05,
+     "L2 v_horizontal": 3.178127433436862e-05,
+     "L2 w_vertical": 0.00012501857219345368,
+     "L2 w_horizontal": 0.00020945964226657752,
+     "w_vertical at the K=1 minimum's point": -2.10807468377429
+    }
+   },
+   {
+    "run": "logs\\micropolar\\d\\k1_3",
+    "cuts_x": [],
+    "device_map": [
+     0
+    ],
+    "values": {
+     "min u_vertical": -0.40344740583673044,
+     "min v_horizontal": -0.5258877909100754,
+     "max v_horizontal": 0.3832075213816157,
+     "min w_vertical": -2.1078768174354017,
+     "max w_vertical": 0.8179483976603408,
+     "min w_horizontal": -1.6467571800754317,
+     "max w_horizontal": 1.767213390532886,
+     "L2 u_vertical": 7.798986034536598e-05,
+     "L2 v_horizontal": 3.86176432775965e-05,
+     "L2 w_vertical": 0.0005066795844512365,
+     "L2 w_horizontal": 0.00018267972731708133,
+     "w_vertical at the K=1 minimum's point": -2.1078768174354017
+    }
+   },
+   {
+    "run": "logs\\micropolar\\d\\k1_4",
+    "cuts_x": [],
+    "device_map": [
+     0
+    ],
+    "values": {
+     "min u_vertical": -0.40346607316324906,
+     "min v_horizontal": -0.5259349650683609,
+     "max v_horizontal": 0.3831918694017139,
+     "min w_vertical": -2.107776580864705,
+     "max w_vertical": 0.8160978966543924,
+     "min w_horizontal": -1.6469189839259482,
+     "max w_horizontal": 1.767773806187261,
+     "L2 u_vertical": 3.922784325892293e-05,
+     "L2 v_horizontal": 4.71213110470066e-05,
+     "L2 w_vertical": 0.00028577950748456094,
+     "L2 w_horizontal": 0.0003141997079801118,
+     "w_vertical at the K=1 minimum's point": -2.107776580864705
+    }
+   },
+   {
+    "run": "logs\\micropolar\\d\\k1_5",
+    "cuts_x": [],
+    "device_map": [
+     0
+    ],
+    "values": {
+     "min u_vertical": -0.4035400389154756,
+     "min v_horizontal": -0.5259296892037946,
+     "max v_horizontal": 0.383158898440373,
+     "min w_vertical": -2.1080000945891646,
+     "max w_vertical": 0.8160253727355405,
+     "min w_horizontal": -1.6469396852825426,
+     "max w_horizontal": 1.7673223555722284,
+     "L2 u_vertical": 5.922885704815037e-05,
+     "L2 v_horizontal": 5.001233051304666e-05,
+     "L2 w_vertical": 0.00041618402929772673,
+     "L2 w_horizontal": 0.0004050695032912425,
+     "w_vertical at the K=1 minimum's point": -2.1080000945891646
+    }
+   }
+  ],
+  "K2x": [
+   {
+    "run": "logs\\micropolar\\d\\k2x_1",
+    "cuts_x": [
+     0.0035999894142151323
+    ],
+    "device_map": [
+     0,
+     1
+    ],
+    "values": {
+     "min u_vertical": -0.40345976208490314,
+     "min v_horizontal": -0.5258926503686662,
+     "max v_horizontal": 0.3831653538572398,
+     "min w_vertical": -2.1080003200693067,
+     "max w_vertical": 0.8169382510545133,
+     "min w_horizontal": -1.6468379448382295,
+     "max w_horizontal": 1.7677602346421764,
+     "L2 u_vertical": 6.66096895884308e-05,
+     "L2 v_horizontal": 4.515098405004828e-05,
+     "L2 w_vertical": 0.0003950783525060669,
+     "L2 w_horizontal": 0.00042771337524227814,
+     "w_vertical at the K=1 minimum's point": -2.1080003200693067
+    }
+   },
+   {
+    "run": "logs\\micropolar\\d\\k2x_2",
+    "cuts_x": [
+     0.0035999894142151323
+    ],
+    "device_map": [
+     0,
+     1
+    ],
+    "values": {
+     "min u_vertical": -0.40345819443595743,
+     "min v_horizontal": -0.5259229111895659,
+     "max v_horizontal": 0.38312591338882035,
+     "min w_vertical": -2.108112382772569,
+     "max w_vertical": 0.8170358055270851,
+     "min w_horizontal": -1.6467846493862823,
+     "max w_horizontal": 1.7674563380392512,
+     "L2 u_vertical": 3.5292524784255616e-05,
+     "L2 v_horizontal": 4.0973605419551604e-05,
+     "L2 w_vertical": 0.00023051290410591214,
+     "L2 w_horizontal": 0.00034340780631609197,
+     "w_vertical at the K=1 minimum's point": -2.108112382772569
+    }
+   },
+   {
+    "run": "logs\\micropolar\\d\\k2x_3",
+    "cuts_x": [
+     0.0035999894142151323
+    ],
+    "device_map": [
+     0,
+     1
+    ],
+    "values": {
+     "min u_vertical": -0.4033998773319866,
+     "min v_horizontal": -0.525998323449898,
+     "max v_horizontal": 0.3831430405528245,
+     "min w_vertical": -2.1079642037558974,
+     "max w_vertical": 0.8155456672024116,
+     "min w_horizontal": -1.6467684666854217,
+     "max w_horizontal": 1.7682222845944133,
+     "L2 u_vertical": 5.1990463226589033e-05,
+     "L2 v_horizontal": 8.491979603424735e-05,
+     "L2 w_vertical": 0.0003730867911873157,
+     "L2 w_horizontal": 0.00036454282797900706,
+     "w_vertical at the K=1 minimum's point": -2.1079642037558974
+    }
+   },
+   {
+    "run": "logs\\micropolar\\d\\k2x_4",
+    "cuts_x": [
+     0.0035999894142151323
+    ],
+    "device_map": [
+     0,
+     1
+    ],
+    "values": {
+     "min u_vertical": -0.4035007087951036,
+     "min v_horizontal": -0.5260084074536384,
+     "max v_horizontal": 0.38317852373578265,
+     "min w_vertical": -2.108099545639134,
+     "max w_vertical": 0.8170477248587094,
+     "min w_horizontal": -1.64693219822298,
+     "max w_horizontal": 1.7677773926765734,
+     "L2 u_vertical": 8.167748683930498e-05,
+     "L2 v_horizontal": 3.3399916117766395e-05,
+     "L2 w_vertical": 0.0004919596692524972,
+     "L2 w_horizontal": 0.0002622795733678685,
+     "w_vertical at the K=1 minimum's point": -2.108099545639134
+    }
+   },
+   {
+    "run": "logs\\micropolar\\d\\k2x_5",
+    "cuts_x": [
+     0.0035999894142151323
+    ],
+    "device_map": [
+     0,
+     1
+    ],
+    "values": {
+     "min u_vertical": -0.4034684527675913,
+     "min v_horizontal": -0.5258826954837769,
+     "max v_horizontal": 0.383190347483059,
+     "min w_vertical": -2.107663095694386,
+     "max w_vertical": 0.8166336027893042,
+     "min w_horizontal": -1.64686206676241,
+     "max w_horizontal": 1.7676101261728674,
+     "L2 u_vertical": 5.255722821191482e-05,
+     "L2 v_horizontal": 3.1822337836099165e-05,
+     "L2 w_vertical": 0.00029779405443502283,
+     "L2 w_horizontal": 0.00033205290979015185,
+     "w_vertical at the K=1 minimum's point": -2.107663095694386
+    }
+   }
+  ],
+  "K2s": [
+   {
+    "run": "logs\\micropolar\\d\\k2s_1",
+    "cuts_x": [
+     0.0035999894142151323
+    ],
+    "device_map": [
+     0,
+     0
+    ],
+    "values": {
+     "min u_vertical": -0.40346950729010467,
+     "min v_horizontal": -0.5259875764969066,
+     "max v_horizontal": 0.38316770868589356,
+     "min w_vertical": -2.1079193397874896,
+     "max w_vertical": 0.8164479246820091,
+     "min w_horizontal": -1.6469531081684903,
+     "max w_horizontal": 1.7678879774888427,
+     "L2 u_vertical": 3.663162694688797e-05,
+     "L2 v_horizontal": 4.908428562090486e-05,
+     "L2 w_vertical": 0.00023953514598710153,
+     "L2 w_horizontal": 0.0003242047497130436,
+     "w_vertical at the K=1 minimum's point": -2.1079193397874896
+    }
+   },
+   {
+    "run": "logs\\micropolar\\d\\k2s_2",
+    "cuts_x": [
+     0.0035999894142151323
+    ],
+    "device_map": [
+     0,
+     0
+    ],
+    "values": {
+     "min u_vertical": -0.4035581506403635,
+     "min v_horizontal": -0.5259192087782589,
+     "max v_horizontal": 0.38312405731340077,
+     "min w_vertical": -2.1078077994821593,
+     "max w_vertical": 0.8168598507042836,
+     "min w_horizontal": -1.6470820064845277,
+     "max w_horizontal": 1.7674520903937856,
+     "L2 u_vertical": 5.785496875037728e-05,
+     "L2 v_horizontal": 3.8894869370323416e-05,
+     "L2 w_vertical": 0.00039669385797099134,
+     "L2 w_horizontal": 0.0003471285079468701,
+     "w_vertical at the K=1 minimum's point": -2.1078077994821593
+    }
+   },
+   {
+    "run": "logs\\micropolar\\d\\k2s_3",
+    "cuts_x": [
+     0.0035999894142151323
+    ],
+    "device_map": [
+     0,
+     0
+    ],
+    "values": {
+     "min u_vertical": -0.403506670726709,
+     "min v_horizontal": -0.5259940628707732,
+     "max v_horizontal": 0.3831914115734407,
+     "min w_vertical": -2.108220591306156,
+     "max w_vertical": 0.8156123258144192,
+     "min w_horizontal": -1.6470149076869585,
+     "max w_horizontal": 1.7672276621081198,
+     "L2 u_vertical": 3.261456268130426e-05,
+     "L2 v_horizontal": 5.787741952488937e-05,
+     "L2 w_vertical": 0.00044694361753321504,
+     "L2 w_horizontal": 0.0003191462986797529,
+     "w_vertical at the K=1 minimum's point": -2.108220591306156
+    }
+   },
+   {
+    "run": "logs\\micropolar\\d\\k2s_4",
+    "cuts_x": [
+     0.0035999894142151323
+    ],
+    "device_map": [
+     0,
+     0
+    ],
+    "values": {
+     "min u_vertical": -0.40350345946560406,
+     "min v_horizontal": -0.5259403443014368,
+     "max v_horizontal": 0.3831407082880801,
+     "min w_vertical": -2.107726977795394,
+     "max w_vertical": 0.8159907958408689,
+     "min w_horizontal": -1.6464796296084865,
+     "max w_horizontal": 1.7677525791393833,
+     "L2 u_vertical": 3.42813100307569e-05,
+     "L2 v_horizontal": 6.11924805368319e-05,
+     "L2 w_vertical": 0.0002236239047543169,
+     "L2 w_horizontal": 0.00042086222987068215,
+     "w_vertical at the K=1 minimum's point": -2.107726977795394
+    }
+   },
+   {
+    "run": "logs\\micropolar\\d\\k2s_5",
+    "cuts_x": [
+     0.0035999894142151323
+    ],
+    "device_map": [
+     0,
+     0
+    ],
+    "values": {
+     "min u_vertical": -0.40345190956630406,
+     "min v_horizontal": -0.5260463252058445,
+     "max v_horizontal": 0.3831266106175172,
+     "min w_vertical": -2.1080006183836137,
+     "max w_vertical": 0.8157898901310043,
+     "min w_horizontal": -1.6471229126675961,
+     "max w_horizontal": 1.7682135067252147,
+     "L2 u_vertical": 9.837639225445027e-05,
+     "L2 v_horizontal": 8.920472282255357e-05,
+     "L2 w_vertical": 0.0006909011288534004,
+     "L2 w_horizontal": 0.000586840106591165,
+     "w_vertical at the K=1 minimum's point": -2.1080006183836137
+    }
+   }
+  ]
+ },
+ "summary": [
+  {
+   "quantity": "min u_vertical",
+   "group": "K2x",
+   "reference_mean": -0.4035126046117636,
+   "reference_std": 5.7731177223308965e-05,
+   "mean": -0.4034573990831084,
+   "std": 3.6444764059824306e-05,
+   "difference_in_reference_std": 0.9562515664913303
+  },
+  {
+   "quantity": "min u_vertical",
+   "group": "K2s",
+   "reference_mean": -0.4035126046117636,
+   "reference_std": 5.7731177223308965e-05,
+   "mean": -0.403497939537817,
+   "std": 4.080205607430674e-05,
+   "difference_in_reference_std": 0.254023469673417
+  },
+  {
+   "quantity": "min v_horizontal",
+   "group": "K2x",
+   "reference_mean": -0.5259201779269168,
+   "reference_std": 2.7568738541861325e-05,
+   "mean": -0.5259409975891092,
+   "std": 5.8936515018746e-05,
+   "difference_in_reference_std": -0.7551909624282758
+  },
+  {
+   "quantity": "min v_horizontal",
+   "group": "K2s",
+   "reference_mean": -0.5259201779269168,
+   "reference_std": 2.7568738541861325e-05,
+   "mean": -0.525977503530644,
+   "std": 4.972722052145416e-05,
+   "difference_in_reference_std": -2.0793698500252793
+  },
+  {
+   "quantity": "max v_horizontal",
+   "group": "K2x",
+   "reference_mean": 0.3831767211744025,
+   "reference_std": 3.2069788896752924e-05,
+   "mean": 0.38316063580354526,
+   "std": 2.6173751078981688e-05,
+   "difference_in_reference_std": -0.5015739551332524
+  },
+  {
+   "quantity": "max v_horizontal",
+   "group": "K2s",
+   "reference_mean": 0.3831767211744025,
+   "reference_std": 3.2069788896752924e-05,
+   "mean": 0.38315009929566646,
+   "std": 2.8874247973245197e-05,
+   "difference_in_reference_std": -0.8301232921033761
+  },
+  {
+   "quantity": "min w_vertical",
+   "group": "K2x",
+   "reference_mean": -2.107951793861308,
+   "reference_std": 0.00012247117737445456,
+   "mean": -2.1079679095862587,
+   "std": 0.00018178024730977163,
+   "difference_in_reference_std": -0.13158789925937903
+  },
+  {
+   "quantity": "min w_vertical",
+   "group": "K2s",
+   "reference_mean": -2.107951793861308,
+   "reference_std": 0.00012247117737445456,
+   "mean": -2.1079350653509623,
+   "std": 0.00019076595390036665,
+   "difference_in_reference_std": 0.13659140627590502
+  },
+  {
+   "quantity": "max w_vertical",
+   "group": "K2x",
+   "reference_mean": 0.8167693833219095,
+   "reference_std": 0.0008007937698530476,
+   "mean": 0.8166402102864048,
+   "std": 0.0006343225209385687,
+   "difference_in_reference_std": -0.1613062443386049
+  },
+  {
+   "quantity": "max w_vertical",
+   "group": "K2s",
+   "reference_mean": 0.8167693833219095,
+   "reference_std": 0.0008007937698530476,
+   "mean": 0.8161401574345171,
+   "std": 0.0005089895308153095,
+   "difference_in_reference_std": -0.7857527257085387
+  },
+  {
+   "quantity": "min w_horizontal",
+   "group": "K2x",
+   "reference_mean": -1.646825855862995,
+   "reference_std": 0.00010077510517370316,
+   "mean": -1.6468370651790647,
+   "std": 6.543950962096786e-05,
+   "difference_in_reference_std": -0.1112310034355439
+  },
+  {
+   "quantity": "min w_horizontal",
+   "group": "K2s",
+   "reference_mean": -1.646825855862995,
+   "reference_std": 0.00010077510517370316,
+   "mean": -1.646930512923212,
+   "std": 0.00026023871037668644,
+   "difference_in_reference_std": -1.0385209723831266
+  },
+  {
+   "quantity": "max w_horizontal",
+   "group": "K2x",
+   "reference_mean": 1.767638374578485,
+   "reference_std": 0.0003963266768263192,
+   "mean": 1.7677652752250566,
+   "std": 0.0002865934476551483,
+   "difference_in_reference_std": 0.32019203851681716
+  },
+  {
+   "quantity": "max w_horizontal",
+   "group": "K2s",
+   "reference_mean": 1.767638374578485,
+   "reference_std": 0.0003963266768263192,
+   "mean": 1.7677067631710692,
+   "std": 0.00038279329069203265,
+   "difference_in_reference_std": 0.17255611742294966
+  },
+  {
+   "quantity": "L2 u_vertical",
+   "group": "K2x",
+   "reference_mean": 4.945843480398046e-05,
+   "reference_std": 2.0321203751848676e-05,
+   "mean": 5.762547853009905e-05,
+   "std": 1.7431412262201465e-05,
+   "difference_in_reference_std": 0.4018976348965357
+  },
+  {
+   "quantity": "L2 u_vertical",
+   "group": "K2s",
+   "reference_mean": 4.945843480398046e-05,
+   "reference_std": 2.0321203751848676e-05,
+   "mean": 5.195177213275533e-05,
+   "std": 2.788804776482881e-05,
+   "difference_in_reference_std": 0.12269634019825443
+  },
+  {
+   "quantity": "L2 v_horizontal",
+   "group": "K2x",
+   "reference_mean": 4.139870215084892e-05,
+   "reference_std": 7.261661821999545e-06,
+   "mean": 4.725332789154256e-05,
+   "std": 2.175229906333745e-05,
+   "difference_in_reference_std": 0.8062377296277804
+  },
+  {
+   "quantity": "L2 v_horizontal",
+   "group": "K2s",
+   "reference_mean": 4.139870215084892e-05,
+   "reference_std": 7.261661821999545e-06,
+   "mean": 5.9250755575100625e-05,
+   "std": 1.8845528090947125e-05,
+   "difference_in_reference_std": 2.4583977967919237
+  },
+  {
+   "quantity": "L2 w_vertical",
+   "group": "K2x",
+   "reference_mean": 0.0003259976328239383,
+   "reference_std": 0.0001446288456988439,
+   "mean": 0.00035768635429736295,
+   "std": 9.927843687311927e-05,
+   "difference_in_reference_std": 0.21910374324226503
+  },
+  {
+   "quantity": "L2 w_vertical",
+   "group": "K2s",
+   "reference_mean": 0.0003259976328239383,
+   "reference_std": 0.0001446288456988439,
+   "mean": 0.00039953953101980503,
+   "std": 0.00018953531119522948,
+   "difference_in_reference_std": 0.5084870714449365
+  },
+  {
+   "quantity": "L2 w_horizontal",
+   "group": "K2x",
+   "reference_mean": 0.00027320821510859016,
+   "reference_std": 8.898321026938383e-05,
+   "mean": 0.0003459992985390795,
+   "std": 5.9647428254214805e-05,
+   "difference_in_reference_std": 0.8180316624914391
+  },
+  {
+   "quantity": "L2 w_horizontal",
+   "group": "K2s",
+   "reference_mean": 0.00027320821510859016,
+   "reference_std": 8.898321026938383e-05,
+   "mean": 0.0003996363785603027,
+   "std": 0.00011227358618413807,
+   "difference_in_reference_std": 1.4208091961277811
+  },
+  {
+   "quantity": "w_vertical at the K=1 minimum's point",
+   "group": "K2x",
+   "reference_mean": -2.107951793861308,
+   "reference_std": 0.00012247117737445456,
+   "mean": -2.1079679095862587,
+   "std": 0.00018178024730977163,
+   "difference_in_reference_std": -0.13158789925937903
+  },
+  {
+   "quantity": "w_vertical at the K=1 minimum's point",
+   "group": "K2s",
+   "reference_mean": -2.107951793861308,
+   "reference_std": 0.00012247117737445456,
+   "mean": -2.1079350653509623,
+   "std": 0.00019076595390036665,
+   "difference_in_reference_std": 0.13659140627590502
+  }
+ ]
+}

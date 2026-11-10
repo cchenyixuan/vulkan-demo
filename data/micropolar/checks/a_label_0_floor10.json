@@ -1,0 +1,43 @@
+[
+ {
+  "walls": "simple",
+  "slabs": 1,
+  "device_map": [
+   0
+  ],
+  "particles": 74529,
+  "fluid_compared": 63001,
+  "mismatches": 0,
+  "wall_particles": 11528,
+  "wall_mismatches": 0,
+  "ids_unique_and_complete": true,
+  "materials_kept": true,
+  "seam_crossings": 0,
+  "defrags": 4,
+  "steps": [
+   1500,
+   1500
+  ],
+  "cuts_x": [
+   [],
+   []
+  ],
+  "floor": {
+   "u": [
+    3.114106144626277e-05,
+    2.991833814856504e-05,
+    0.960735978771704
+   ],
+   "v": [
+    7.521475955024608e-05,
+    6.712643461965501e-05,
+    0.8924635938616837
+   ],
+   "rho": [
+    3.577934888153372e-05,
+    3.65880336709096e-05,
+    1.0226019984895045
+   ]
+  }
+ }
+]

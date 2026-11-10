@@ -1,0 +1,14 @@
+[3-D] rigid rotation, lattice (12,167 interior, h / dx = 4): Theta alpha / c mean = (+1.400000, -2.199999, +3.199998), expected (+1.4, -2.2, +3.2); max relative error per component (1.3e-06, 1.4e-06, 1.5e-06); |a| max 8.9e-07 m/s^2; PASS
+[3-D] linear w, lattice: a / c mean = (+1.900000, +1.100000, +3.100000), curl w = (+1.9, +1.1, +3.1); max relative error per component (1.1e-06, 1.1e-06, 8.5e-07); PASS
+[3-D] rigid rotation, jittered (12,167 interior, h / dx = 4): Theta alpha / c mean = (+1.400000, -2.200000, +3.200000), expected (+1.4, -2.2, +3.2); max relative error per component (1.5e-06, 1.5e-06, 1.3e-06); |a| max 1.7e-06 m/s^2; PASS
+[3-D] linear w, jittered: a / c mean = (+1.900000, +1.100000, +3.100000), curl w = (+1.9, +1.1, +3.1); max relative error per component (1.3e-06, 1.5e-06, 1.4e-06); PASS
+[3-D] sin(k . r), case EPS_H_SQUARED, k h = 0.628: viscous a / (-nu k^2 v) = 0.969923, lap w / (-k^2 w) = 0.981173
+[3-D] sin(k . r), case EPS_H_SQUARED, k h = 0.314: viscous a / (-nu k^2 v) = 0.972612, lap w / (-k^2 w) = 0.984916
+[3-D] sin(k . r), case EPS_H_SQUARED, k h = 0.157: viscous a / (-nu k^2 v) = 0.973282, lap w / (-k^2 w) = 0.985851
+[3-D] case EPS_H_SQUARED, factor on nu at h / dx = 4: 0.973504 (-2.6496%), order 2.00
+[3-D] case EPS_H_SQUARED, factor on xi at h / dx = 4: 0.986162 (-1.3838%), order 2.00
+[3-D] sin(k . r), EPS_H_SQUARED = 0, k h = 0.628: viscous a / (-nu k^2 v) = 0.982730, lap w / (-k^2 w) = 0.994955
+[3-D] sin(k . r), EPS_H_SQUARED = 0, k h = 0.314: viscous a / (-nu k^2 v) = 0.985444, lap w / (-k^2 w) = 0.998734
+[3-D] sin(k . r), EPS_H_SQUARED = 0, k h = 0.157: viscous a / (-nu k^2 v) = 0.986121, lap w / (-k^2 w) = 0.999677
+[3-D] EPS_H_SQUARED = 0, factor on nu at h / dx = 4: 0.986345 (-1.3655%), order 2.00
+[3-D] EPS_H_SQUARED = 0, factor on xi at h / dx = 4: 0.999991 (-0.0009%), order 2.00

@@ -1,0 +1,218 @@
+reference: cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, 3000 steps, tree vulkan-demo-v9-base, 40 repeats (780 pairs); rms over 2401 sample points
+
+test k2_new_newtonian1.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   4.397e-05   6.783e-05   1.439e-04       0.69
+v            2.739e-05   8.900e-05   2.030e-04   5.424e-05   9.448e-05   1.569e-04       0.77
+rho          4.756e-05   4.377e-04   1.906e-03   8.594e-05   7.100e-04   1.153e-03       0.60
+
+test k2_new_newtonian2.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   2.773e-05   5.679e-05   1.417e-04       0.68
+v            2.739e-05   8.900e-05   2.030e-04   3.769e-05   8.275e-05   1.523e-04       0.75
+rho          4.756e-05   4.377e-04   1.906e-03   5.136e-05   3.788e-04   1.623e-03       0.85
+
+test k2_new_newtonian3.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   2.258e-05   1.258e-04   1.759e-04       0.84
+v            2.739e-05   8.900e-05   2.030e-04   3.362e-05   1.430e-04   1.896e-04       0.93
+rho          4.756e-05   4.377e-04   1.906e-03   6.545e-05   1.556e-03   1.862e-03       0.98
+
+test k2_new_newtonian4.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   2.650e-05   5.655e-05   1.541e-04       0.74
+v            2.739e-05   8.900e-05   2.030e-04   4.413e-05   6.666e-05   1.713e-04       0.84
+rho          4.756e-05   4.377e-04   1.906e-03   8.851e-05   3.394e-04   1.789e-03       0.94
+
+test k2_new_newtonian5.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   2.818e-05   1.297e-04   1.751e-04       0.84
+v            2.739e-05   8.900e-05   2.030e-04   4.047e-05   1.494e-04   1.880e-04       0.93
+rho          4.756e-05   4.377e-04   1.906e-03   6.219e-05   1.576e-03   1.864e-03       0.98
+
+test k2_new_newtonian6.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   3.376e-05   1.368e-04   2.109e-04       1.01
+v            2.739e-05   8.900e-05   2.030e-04   3.706e-05   1.371e-04   2.043e-04       1.01
+rho          4.756e-05   4.377e-04   1.906e-03   1.192e-04   7.425e-04   1.662e-03       0.87
+
+test k2_new_newtonian7.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   3.371e-05   7.936e-05   1.675e-04       0.80
+v            2.739e-05   8.900e-05   2.030e-04   3.923e-05   9.236e-05   1.834e-04       0.90
+rho          4.756e-05   4.377e-04   1.906e-03   7.775e-05   3.097e-04   1.749e-03       0.92
+
+test k2_new_newtonian8.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   3.366e-05   5.828e-05   1.397e-04       0.67
+v            2.739e-05   8.900e-05   2.030e-04   3.722e-05   7.869e-05   1.523e-04       0.75
+rho          4.756e-05   4.377e-04   1.906e-03   1.026e-04   3.494e-04   1.589e-03       0.83
+
+test k2_new_newtonian9.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   2.640e-05   6.938e-05   1.663e-04       0.80
+v            2.739e-05   8.900e-05   2.030e-04   3.314e-05   7.025e-05   1.735e-04       0.85
+rho          4.756e-05   4.377e-04   1.906e-03   5.699e-05   3.063e-04   1.768e-03       0.93
+
+test k2_new_newtonian10.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   2.901e-05   6.839e-05   1.677e-04       0.80
+v            2.739e-05   8.900e-05   2.030e-04   3.632e-05   6.568e-05   1.717e-04       0.85
+rho          4.756e-05   4.377e-04   1.906e-03   5.219e-05   3.213e-04   1.805e-03       0.95
+
+test k2_new_newtonian11.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   3.198e-05   5.798e-05   1.549e-04       0.74
+v            2.739e-05   8.900e-05   2.030e-04   4.302e-05   9.071e-05   1.835e-04       0.90
+rho          4.756e-05   4.377e-04   1.906e-03   5.509e-05   3.534e-04   1.811e-03       0.95
+
+test k2_new_newtonian12.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   2.554e-05   5.660e-05   1.460e-04       0.70
+v            2.739e-05   8.900e-05   2.030e-04   3.537e-05   8.846e-05   1.809e-04       0.89
+rho          4.756e-05   4.377e-04   1.906e-03   7.489e-05   3.745e-04   1.797e-03       0.94
+
+test k2_new_newtonian13.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   4.174e-05   8.658e-05   1.696e-04       0.81
+v            2.739e-05   8.900e-05   2.030e-04   5.087e-05   6.850e-05   1.755e-04       0.86
+rho          4.756e-05   4.377e-04   1.906e-03   9.715e-05   3.183e-04   1.825e-03       0.96
+
+test k2_new_newtonian14.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   3.741e-05   8.115e-05   1.470e-04       0.71
+v            2.739e-05   8.900e-05   2.030e-04   4.192e-05   1.090e-04   1.651e-04       0.81
+rho          4.756e-05   4.377e-04   1.906e-03   1.310e-04   1.062e-03   1.156e-03       0.61
+
+test k2_new_newtonian15.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   3.304e-05   6.185e-05   1.480e-04       0.71
+v            2.739e-05   8.900e-05   2.030e-04   4.813e-05   6.953e-05   1.748e-04       0.86
+rho          4.756e-05   4.377e-04   1.906e-03   9.177e-05   3.804e-04   1.865e-03       0.98
+
+test k2_new_newtonian16.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   2.756e-05   7.595e-05   1.449e-04       0.70
+v            2.739e-05   8.900e-05   2.030e-04   4.023e-05   8.839e-05   1.684e-04       0.83
+rho          4.756e-05   4.377e-04   1.906e-03   8.735e-05   3.975e-04   1.688e-03       0.89
+
+test k2_new_newtonian17.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   4.949e-05   1.223e-04   1.852e-04       0.89
+v            2.739e-05   8.900e-05   2.030e-04   4.739e-05   1.332e-04   1.900e-04       0.94
+rho          4.756e-05   4.377e-04   1.906e-03   2.866e-04   1.391e-03   1.724e-03       0.90
+
+test k2_new_newtonian18.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   2.979e-05   6.816e-05   1.408e-04       0.68
+v            2.739e-05   8.900e-05   2.030e-04   3.969e-05   7.485e-05   1.387e-04       0.68
+rho          4.756e-05   4.377e-04   1.906e-03   5.102e-05   6.512e-04   1.207e-03       0.63
+
+test k2_new_newtonian19.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   2.729e-05   1.489e-04   1.769e-04       0.85
+v            2.739e-05   8.900e-05   2.030e-04   3.381e-05   1.639e-04   1.899e-04       0.94
+rho          4.756e-05   4.377e-04   1.906e-03   1.370e-04   1.694e-03   1.901e-03       1.00
+
+test k2_new_newtonian20.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   5.059e-05   8.109e-05   1.452e-04       0.70
+v            2.739e-05   8.900e-05   2.030e-04   4.859e-05   8.179e-05   1.442e-04       0.71
+rho          4.756e-05   4.377e-04   1.906e-03   9.688e-05   7.265e-04   1.180e-03       0.62
+
+test k2_new_newtonian21.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   2.522e-05   6.220e-05   1.451e-04       0.70
+v            2.739e-05   8.900e-05   2.030e-04   3.309e-05   8.545e-05   1.644e-04       0.81
+rho          4.756e-05   4.377e-04   1.906e-03   6.491e-05   2.304e-04   1.736e-03       0.91
+
+test k2_new_newtonian22.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   5.496e-05   1.031e-04   1.684e-04       0.81
+v            2.739e-05   8.900e-05   2.030e-04   4.409e-05   9.911e-05   1.601e-04       0.79
+rho          4.756e-05   4.377e-04   1.906e-03   9.576e-05   4.918e-04   1.569e-03       0.82
+
+test k2_new_newtonian23.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   3.181e-05   1.295e-04   1.785e-04       0.86
+v            2.739e-05   8.900e-05   2.030e-04   3.721e-05   1.434e-04   1.889e-04       0.93
+rho          4.756e-05   4.377e-04   1.906e-03   8.159e-05   1.550e-03   1.850e-03       0.97
+
+test k2_new_newtonian24.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   2.980e-05   7.561e-05   1.435e-04       0.69
+v            2.739e-05   8.900e-05   2.030e-04   3.482e-05   8.232e-05   1.619e-04       0.80
+rho          4.756e-05   4.377e-04   1.906e-03   8.976e-05   2.956e-04   1.730e-03       0.91
+
+test k2_new_newtonian25.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   2.456e-05   6.025e-05   1.470e-04       0.71
+v            2.739e-05   8.900e-05   2.030e-04   3.810e-05   8.035e-05   1.757e-04       0.87
+rho          4.756e-05   4.377e-04   1.906e-03   8.334e-05   3.816e-04   1.797e-03       0.94
+
+test k2_new_newtonian26.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   2.679e-05   5.403e-05   1.476e-04       0.71
+v            2.739e-05   8.900e-05   2.030e-04   3.678e-05   6.281e-05   1.714e-04       0.84
+rho          4.756e-05   4.377e-04   1.906e-03   5.430e-05   3.697e-04   1.831e-03       0.96
+
+test k2_new_newtonian27.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   5.038e-05   9.684e-05   1.721e-04       0.83
+v            2.739e-05   8.900e-05   2.030e-04   4.960e-05   1.024e-04   1.728e-04       0.85
+rho          4.756e-05   4.377e-04   1.906e-03   1.750e-04   5.059e-04   1.698e-03       0.89
+
+test k2_new_newtonian28.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   2.943e-05   1.252e-04   1.999e-04       0.96
+v            2.739e-05   8.900e-05   2.030e-04   3.759e-05   1.299e-04   1.954e-04       0.96
+rho          4.756e-05   4.377e-04   1.906e-03   6.019e-05   6.758e-04   1.680e-03       0.88
+
+test k2_new_newtonian29.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   3.748e-05   7.788e-05   1.634e-04       0.78
+v            2.739e-05   8.900e-05   2.030e-04   4.105e-05   7.317e-05   1.647e-04       0.81
+rho          4.756e-05   4.377e-04   1.906e-03   6.404e-05   2.412e-04   1.720e-03       0.90
+
+test k2_new_newtonian30.npz (cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   2.754e-05   5.910e-05   1.509e-04       0.72
+v            2.739e-05   8.900e-05   2.030e-04   3.595e-05   7.386e-05   1.753e-04       0.86
+rho          4.756e-05   4.377e-04   1.906e-03   5.581e-05   3.621e-04   1.823e-03       0.96
+
+test k2_new_null1.npz (cases/micropolar_cavity_n250_null/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   4.450e-05   1.209e-04   1.927e-04       0.92
+v            2.739e-05   8.900e-05   2.030e-04   3.527e-05   1.222e-04   1.901e-04       0.94
+rho          4.756e-05   4.377e-04   1.906e-03   7.486e-05   6.391e-04   1.626e-03       0.85
+max |w| over all particles of the test dump: 0.000e+00
+
+test k2_new_null2.npz (cases/micropolar_cavity_n250_null/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   3.690e-05   7.325e-05   1.644e-04       0.79
+v            2.739e-05   8.900e-05   2.030e-04   4.928e-05   7.865e-05   1.750e-04       0.86
+rho          4.756e-05   4.377e-04   1.906e-03   9.490e-05   3.332e-04   1.778e-03       0.93
+max |w| over all particles of the test dump: 0.000e+00
+
+test k2_new_null3.npz (cases/micropolar_cavity_n250_null/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   2.422e-05   1.061e-04   1.772e-04       0.85
+v            2.739e-05   8.900e-05   2.030e-04   3.795e-05   1.121e-04   1.772e-04       0.87
+rho          4.756e-05   4.377e-04   1.906e-03   8.715e-05   5.356e-04   1.623e-03       0.85
+max |w| over all particles of the test dump: 0.000e+00
+
+test k2_new_null4.npz (cases/micropolar_cavity_n250_null/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   3.540e-05   1.130e-04   1.908e-04       0.92
+v            2.739e-05   8.900e-05   2.030e-04   4.243e-05   1.199e-04   1.896e-04       0.93
+rho          4.756e-05   4.377e-04   1.906e-03   2.099e-04   1.135e-03   1.486e-03       0.78
+max |w| over all particles of the test dump: 0.000e+00
+
+test k2_new_null5.npz (cases/micropolar_cavity_n250_null/case.yaml, K = 2, tree vulkan-demo-v9-micropolar)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.076e-05   7.793e-05   2.084e-04   2.844e-05   5.588e-05   1.543e-04       0.74
+v            2.739e-05   8.900e-05   2.030e-04   3.279e-05   8.560e-05   1.795e-04       0.88
+rho          4.756e-05   4.377e-04   1.906e-03   8.170e-05   3.399e-04   1.788e-03       0.94
+max |w| over all particles of the test dump: 0.000e+00
+
+PASS: limit = 2.0 x the largest reference-pair rms
