@@ -238,6 +238,13 @@ def code_hashes(case_path: pathlib.Path, solver: str = "v6") -> dict:
     physics = (list((solver_directory / "utils").glob("*.py"))
                + list((solver_directory / "shaders" / "spv").glob("*.spv"))
                + [case_path] + list(case_directory.glob("*.obj")) + [_REPO_ROOT / "materials" / "standard.yaml"])
+    # a case with its own material library (the Re = 3200 variant, 2026-10-20): hash that file too; the cases that use
+    # materials/standard.yaml keep their hashes (the main-series runs' meta.json stays comparable)
+    import yaml
+    case_data = yaml.safe_load(case_path.read_text(encoding="utf-8"))
+    library = (case_directory / case_data["material_library"]).resolve()
+    if library != (_REPO_ROOT / "materials" / "standard.yaml").resolve():
+        physics.append(library)
     validation = _REPO_ROOT / "experiment" / "validation"
     sampling_files = [validation / "cavity_sampling.py", validation / "cavity_reference.py",
                       _REPO_ROOT / "docs" / "validation" / "data" / "marchi2021_re1000.csv"]
@@ -254,6 +261,12 @@ def device_uuid(ctx) -> str:
 
 
 def process_alive(pid: int) -> bool:
+    if os.name != "nt":                                                      # Linux (cluster): signal 0 probes the pid
+        try:
+            os.kill(pid, 0)
+            return True
+        except OSError:
+            return False
     import ctypes
     handle = ctypes.windll.kernel32.OpenProcess(0x1000, False, pid)        # PROCESS_QUERY_LIMITED_INFORMATION
     if not handle:
@@ -283,19 +296,84 @@ def atomic_write_text(path: pathlib.Path, text_value: str) -> None:
 
 
 def git_state(solver: str = "v6") -> dict:
-    head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
-                          cwd=_REPO_ROOT).stdout.strip()
-    dirty = subprocess.run(["git", "status", "--porcelain", f"experiment/{solver}", "experiment/validation"],
-                           capture_output=True, text=True, cwd=_REPO_ROOT).stdout.strip()
+    try:
+        head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
+                              cwd=_REPO_ROOT).stdout.strip()
+        dirty = subprocess.run(["git", "status", "--porcelain", f"experiment/{solver}", "experiment/validation"],
+                               capture_output=True, text=True, cwd=_REPO_ROOT).stdout.strip()
+    except OSError:                                        # no git (a tarball deployment): the COMMIT file, if any
+        commit_file = _REPO_ROOT / "COMMIT"
+        head = commit_file.read_text(encoding="utf-8").split()[0][:7] if commit_file.exists() else ""
+        dirty = ""
     return {"head": head, "dirty": bool(dirty)}
+
+
+def load_start_state(path: pathlib.Path, expected_total: int, layout: dict, dt: float) -> tuple[dict, float, int, dict]:
+    """Another run's checkpoint c<step>.npz as the starting state of a fresh run of the SAME case (--start-from, user
+    2026-10-20: the paper's 6.2 K = 1 run continued at K = 8 from its t = 89.3 checkpoint). The nine restart fields are
+    taken as they are (same case: same masses, same dt, no re-staggering); the run keeps the source's global step
+    numbering, so its samples / snapshots / checkpoints fall on the same steps as the source's. Returns (rows, the
+    stored density offset, the checkpoint's step, provenance for meta.json: file, sha256, source run, step, time,
+    the source meta's slabs / cuts / code hashes / git)."""
+    payload = path.read_bytes()
+    digest = hashlib.sha256(payload).hexdigest()
+    del payload
+    with np.load(path) as archive:
+        rows = {name: np.array(archive[name]) for name in archive.files if not name.startswith("_")}
+        stored_offset = float(archive["_stored_density_offset"])
+    if set(rows) != set(layout):
+        sys.exit(f"[cavity] --start-from {path}: fields {sorted(rows)} differ from {sorted(layout)}")
+    count = int(rows["position_voxel_id"].shape[0])
+    for name, (component_count, element_type) in layout.items():
+        shape = (count,) if component_count == 1 else (count, component_count)
+        if rows[name].shape != shape or rows[name].dtype != element_type:
+            sys.exit(f"[cavity] --start-from {path}: {name} is {rows[name].dtype} {rows[name].shape}, "
+                     f"expected {np.dtype(element_type)} {shape}")
+    if count != expected_total:
+        sys.exit(f"[cavity] --start-from {path}: {count} rows, the case has {expected_total} particles")
+    source_step = step_of(path)
+    if source_step is None:
+        sys.exit(f"[cavity] --start-from {path}: not a c<step>.npz checkpoint")
+    source_dir = path.parent.parent
+    source_meta_path = source_dir / "meta.json"
+    source_meta = json.loads(source_meta_path.read_text(encoding="utf-8")) if source_meta_path.exists() else {}
+    if source_meta and abs(float(source_meta["dt"]) - dt) > 1e-15:
+        sys.exit(f"[cavity] --start-from {path}: the source run's dt {source_meta['dt']} differs from this case's {dt}")
+    if source_meta and int(source_meta.get("expected_total", count)) != expected_total:
+        sys.exit(f"[cavity] --start-from {path}: the source run had {source_meta['expected_total']} particles")
+    provenance = {"file": str(path), "sha256": digest, "rows": count, "stored_density_offset": stored_offset,
+                  "source_run": source_dir.name, "source_step": source_step, "source_time": source_step * dt,
+                  "source_case": source_meta.get("case"), "source_slabs": source_meta.get("slabs"),
+                  "source_cuts": source_meta.get("cuts"), "source_code_hashes": source_meta.get("code_hashes"),
+                  "source_git": source_meta.get("git")}
+    return rows, stored_offset, source_step, provenance
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--case", required=True)
     parser.add_argument("--run-dir", required=True)
-    parser.add_argument("--slabs", type=int, choices=(1, 2), required=True)
+    parser.add_argument("--slabs", type=int, choices=tuple(range(1, 9)), required=True,
+                        help="1 or 2 as before; 3..8 for a chain continued from a checkpoint (--start-from, 2026-10-20)")
     parser.add_argument("--device-map", required=True, help="e.g. 0,1 (K = 2) or 1 (K = 1)")
+    parser.add_argument("--reynolds", type=float, default=1000.0,
+                        help="the case's nominal Re = U L / nu the runner checks (1000 for the main series; 3200 for the "
+                             "Re = 3200 variant, 2026-10-20); the sampling points are Marchi 2021's, the same at every Re")
+    parser.add_argument("--keep-checkpoints", type=int, default=2,
+                        help="checkpoints kept (newest first; 0 = all, e.g. to pick the one just before the steady window)")
+    parser.add_argument("--initial-velocity", default=None, metavar="NPZ",
+                        help="warm start of a fresh run (2026-10-20): the fluid particles' initial velocities from a file "
+                             "written by docs/validation/cluster/warm_start_velocity.py (interpolated from a coarser run's "
+                             "final snapshot; same case, rows in the loader's order); t restarts at 0, the bootstrap "
+                             "recomputes density / correction / force from these velocities")
+    parser.add_argument("--start-from", default=None, metavar="CHECKPOINT",
+                        help="start a fresh run from another run's checkpoints/c<step>.npz of the SAME case: the nine "
+                             "restart fields as they are, the global step numbering kept (samples / snapshots / "
+                             "checkpoints on the source's steps), the chain cut by the fluid distribution of that state "
+                             "with --weights, the source's steady.json copied (same stop step)")
+    parser.add_argument("--weights", default=None, metavar="W0,W1,...",
+                        help="slab weights in device-map order (default equal; 2026-11-02, for the 5090 + 7900 XTX "
+                             "continuation, where the cards differ by about 2)")
     parser.add_argument("--expect", choices=sorted(EXPECTED), required=True)
     parser.add_argument("--t-end", type=float, default=100.0, help="earliest stop time")
     parser.add_argument("--t-max", type=float, default=200.0, help="latest stop time (steady or not)")
@@ -372,8 +450,8 @@ def main() -> int:
     if len(set(fluid_viscosity)) != 1 or len(set(lid_speed)) != 1:
         sys.exit(f"[cavity] expected one fluid viscosity and one lid speed: {fluid_viscosity}, {lid_speed}")
     reynolds = lid_speed[0] * 1.0 / fluid_viscosity[0]
-    if abs(reynolds - 1000.0) > 1e-6:
-        sys.exit(f"[cavity] nominal Re = U L / nu = {reynolds} (expected 1000; L = 1 is the fluid box)")
+    if abs(reynolds - arguments.reynolds) > 1e-6:
+        sys.exit(f"[cavity] nominal Re = U L / nu = {reynolds} (expected --reynolds {arguments.reynolds}; L = 1 is the fluid box)")
     cadence = int(global_case.numerics.defrag_cadence)
 
     def snap(time_value: float) -> int:
@@ -398,11 +476,45 @@ def main() -> int:
     point_sets["u_dense"] = ("u", sampling.centerline_points(frames["wall"], dense_reference, "u"))
     point_sets["v_dense"] = ("v", sampling.centerline_points(frames["wall"], dense_reference, "v"))
 
-    weights = [1.0] * arguments.slabs
+    weights = [float(item) for item in arguments.weights.split(",")] if arguments.weights else [1.0] * arguments.slabs
+    if len(weights) != arguments.slabs or min(weights) <= 0.0:
+        sys.exit(f"[cavity] --weights {arguments.weights}: needs {arguments.slabs} positive values")
+    initial_velocity = None
+    if arguments.initial_velocity:
+        velocity_path = pathlib.Path(arguments.initial_velocity).resolve()
+        with np.load(velocity_path) as archive:
+            rows_fluid = np.array(archive["rows"]); values = np.array(archive["velocities"], dtype=np.float32)
+            velocity_case = str(archive["case_sha256"]); velocity_source = json.loads(str(archive["provenance"]))
+        case_digest = hashlib.sha256(pathlib.Path(arguments.case).read_bytes()).hexdigest()
+        if velocity_case != case_digest:
+            sys.exit(f"[cavity] --initial-velocity {velocity_path}: made for another case.yaml ({velocity_case[:12]} != {case_digest[:12]})")
+        fluid_rows = np.flatnonzero(np.isin(global_case.initial.material_group, fluid_groups))
+        if rows_fluid.shape != fluid_rows.shape or not np.array_equal(rows_fluid, fluid_rows) or values.shape != (fluid_rows.size, 2):
+            sys.exit(f"[cavity] --initial-velocity {velocity_path}: rows do not match this case's fluid particles")
+        if not np.isfinite(values).all():
+            sys.exit(f"[cavity] --initial-velocity {velocity_path}: non-finite velocities")
+        global_case.initial.velocities[fluid_rows, :2] = values
+        initial_velocity = {"file": str(velocity_path), "sha256": hashlib.sha256(velocity_path.read_bytes()).hexdigest(),
+                            "rows": int(fluid_rows.size), "max_speed": float(np.sqrt((values ** 2).sum(axis=1)).max()),
+                            **velocity_source}
+    start_from = None
+    if arguments.start_from:
+        # the chain is cut by the fluid distribution of the starting state (the case's rest state would give the
+        # t = 0 cuts): the state's positions / velocities / materials stand in for the initial condition from here on
+        # (compute_chain_partition bins the fluid per column and sizes every slab's pool from them)
+        start_from = load_start_state(pathlib.Path(arguments.start_from).resolve(), expected_total,
+                                      SphSimulator.RESTART_FIELD_LAYOUT, dt)
+        rows = start_from[0]
+        global_case.initial = type(global_case.initial)(
+            positions=np.ascontiguousarray(rows["position_voxel_id"][:, :3], dtype=np.float32),
+            velocities=np.ascontiguousarray(rows["velocity_mass"][:, :3], dtype=np.float32),
+            material_group=np.ascontiguousarray(rows["material"], dtype=np.uint32))
     chain = compute_chain_partition(global_case, weights, arguments.pool_safety)
     device_map = [int(item) for item in arguments.device_map.split(",")]
     if len(device_map) != arguments.slabs:
         sys.exit("--device-map needs one entry per slab")
+    cuts_x = [float(global_case.grid.origin_x + cut * support) for cut in getattr(chain, "cuts", [])]
+    slab_particles = [int(geometry.own_particle_count) for geometry in getattr(chain, "geometry", [])]
 
     meta_path = run_dir / "meta.json"
     if meta_path.exists():
@@ -420,6 +532,9 @@ def main() -> int:
         stored_solver = stored.get("solver", "v6")             # runs started before E39 carry no solver: v6
         if stored_solver != arguments.solver:
             mismatch["solver"] = (stored_solver, arguments.solver)
+        recorded_start = (stored.get("start_from") or {}).get("sha256")
+        if recorded_start != (start_from[3]["sha256"] if start_from else None):
+            mismatch["start_from"] = (recorded_start, start_from[3]["sha256"] if start_from else None)
         if mismatch:
             sys.exit(f"[cavity] {run_dir} was started with different settings: {mismatch}")
     else:
@@ -428,7 +543,10 @@ def main() -> int:
                 "slabs": arguments.slabs, "device_map": device_map, "expect": arguments.expect,
                 "environment": environment, "expected_total": expected_total, "dt": dt, "support_radius": support,
                 "spacing": spacing, "reynolds_nominal": reynolds, "defrag_cadence": cadence,
-                "cuts": list(getattr(chain, "cuts", [])), "pool_safety": arguments.pool_safety,
+                "cuts": list(getattr(chain, "cuts", [])), "cuts_x": cuts_x, "slab_particles": slab_particles,
+                "weights": weights, "start_from": start_from[3] if start_from else None,
+                "initial_velocity": initial_velocity, "reynolds": arguments.reynolds,
+                "pool_safety": arguments.pool_safety,
                 "sample_steps": sample_steps, "snapshot_steps": snapshot_steps, "checkpoint_steps": checkpoint_steps,
                 "window_steps": window_steps, "t_end": arguments.t_end, "t_max": arguments.t_max,
                 "steady_tol": arguments.steady_tol, "average_span": arguments.average_span,
@@ -468,6 +586,14 @@ def main() -> int:
             break
         if state is None:
             sys.exit(f"[cavity] --resume: no usable checkpoint in {manifest_path.parent}")
+    if state is None and start_from is not None:
+        # --start-from: the source checkpoint is the starting state (also on a retry before the run's own first
+        # checkpoint); the source's steady decision travels with it so the stop step is the source's
+        state, stored_offset, start_step = start_from[0], start_from[1], start_from[2]
+        source_steady = pathlib.Path(arguments.start_from).resolve().parent.parent / "steady.json"
+        if source_steady.exists() and not (run_dir / "steady.json").exists():
+            (run_dir / "steady.json").write_bytes(source_steady.read_bytes())
+    start_from = None
     samples_path = run_dir / "samples.jsonl"
     previous_rows = []
     if samples_path.exists():
@@ -669,8 +795,9 @@ def main() -> int:
                     handle.write(json.dumps({"step": step, "time": step * dt, "file": name}) + "\n")
                 checkpoints = sorted(path for path in (run_dir / "checkpoints").glob("c*.npz")
                                      if step_of(path) is not None and step_of(path) <= step)
-                for old in checkpoints[:-2]:
-                    safe_unlink(old)
+                if arguments.keep_checkpoints > 0:
+                    for old in checkpoints[:-arguments.keep_checkpoints]:
+                        safe_unlink(old)
             if step >= stop_step():
                 raise StopRun()
 

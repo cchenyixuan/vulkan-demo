@@ -1,0 +1,57 @@
+schema_version: 2
+
+# Re = 3200 VARIANT (2026-10-20, user: a second Reynolds number for the paper-6.2 K = 8 continuation) of
+# cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_adami: the same particles (the base case's OBJs, referenced), the same
+# numerics (adami walls, xi 0.001, eps^2 0.0025 h^2) and the same lid speed U = 1; only the fluid / wall / lid materials
+# change to the *_re3200 set of the case-local library materials_re3200.yaml (nu = 3.125e-4 -> Re = U L / nu = 3200).
+# dt is unchanged (CFL on c = 100): 7.5e-6; the viscous constraint nu dt / h^2 = 9.4e-5.
+
+time:
+  total: null
+  max_steps: null
+  output_cadence: null
+
+physics:
+  dimension: 2
+  h: 0.005000
+  particle_radius: 0.000500
+  lattice: grid
+  calibrate_volume: true
+  speed_of_sound: 100.0
+  power: 7
+  cfl: 0.15
+  gravity: [0.0, 0.0, 0.0]
+
+numerics:
+  use_density_diffusion: true
+  delta_coefficient: 0.1
+  use_kcg_correction: true
+  regularization:
+    xi: 0.001
+    det_threshold: 1.0e-4
+    frobenius_max: 10.0
+  # eps^2 = epsilon_squared_factor * h^2 (h = support radius) in the viscous / delta-diffusion
+  # denominators; read by the V0 and v6 loaders (v2-v5 ignore it and use 0.01)
+  epsilon_squared_factor: 0.0025
+  use_pst: true
+  pst_main: 0.1
+  pst_anti: 0.0005
+  defrag_enabled: true
+  defrag_cadence: 1000
+  use_prefix_sum_defrag: false
+  wall_boundary: adami   # E37: Adami 2012 wall pressure + no-slip, walls store rho0 (one GPU only)
+
+capacities:
+  pool_size: 1203584
+  max_per_voxel: 96
+  max_incoming: 16
+  workgroup: 128
+
+material_library: materials_re3200.yaml
+
+geometry:
+  frame: ../lid_driven_cavity_2d_n1000/frame.obj
+  particles:
+    - {file: ../lid_driven_cavity_2d_n1000/domain.obj,   material: stick_water_re3200}
+    - {file: ../lid_driven_cavity_2d_n1000/wall.obj,     material: stick_wall_re3200}
+    - {file: ../lid_driven_cavity_2d_n1000/wall_top.obj, material: stick_lid_re3200}

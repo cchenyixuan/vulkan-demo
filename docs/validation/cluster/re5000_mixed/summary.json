@@ -1,0 +1,223 @@
+{
+ "facts": {
+  "devices": [
+   "NVIDIA GeForce RTX 5090",
+   "AMD Radeon RX 7900 XTX"
+  ],
+  "weights": [
+   1.351579,
+   0.648421
+  ],
+  "cuts": [
+   341
+  ],
+  "slab_particles": [
+   4297822,
+   2067707
+  ],
+  "pilot_rounds": 2,
+  "start_step": 33500000,
+  "start_time": 100.49999999999999,
+  "start_checkpoint": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-v7-rc3\\logs\\validation\\cavity_re5000_v7\\n2500_k2_float32_xi0p001_eps0p0025_adami_re5000_from_k1\\checkpoints\\c0033500000.npz",
+  "first_step": 33567000,
+  "first_time": 100.701,
+  "last_step": 34438000,
+  "last_time": 103.314,
+  "window_steps": 3350000,
+  "stop_step": 34500000,
+  "samples": 14,
+  "expected_total": 6365529,
+  "alive_values": [
+   6365529
+  ],
+  "mls_fallbacks_max": 0,
+  "min_neighbours_min": 74,
+  "density_range": [
+   999.4742431640625,
+   1000.638671875
+  ],
+  "steps_per_second_median": 131.7607220983213,
+  "steps_per_second_range": [
+   130.07870720679662,
+   131.90693567368646
+  ],
+  "segments": [
+   {
+    "segment": 0,
+    "start_step": 33500000,
+    "status": "complete",
+    "totals": {
+     "overflow": 0,
+     "far_migration": 0,
+     "stamp_gpu": 0,
+     "stamp_host": 0,
+     "drift": 0
+    },
+    "error": null,
+    "device_uuids": [
+     "fb83f0dafd9e1d38dc05e7ae643e22a8",
+     "00000000050000000000000000000000"
+    ]
+   }
+  ],
+  "result": {
+   "status": "complete",
+   "segments_with_invariant_violation": [],
+   "segments": [
+    {
+     "segment": 0,
+     "start_step": 33500000,
+     "status": "complete",
+     "error": null
+    }
+   ],
+   "steady": {
+    "steady_time": 100.49999999999999,
+    "decided_at_step": 33500000,
+    "profile_change": 0.0007553750698335212,
+    "kinetic_energy_change": 0.0011929779521037932,
+    "steady_tol": 0.0012,
+    "decided_by": "re5000_pipeline --mixed-steady-tol from n2500_k2_float32_xi0p001_eps0p0025_adami_re5000_from_k1/windows.jsonl"
+   },
+   "stop_step": 34500000,
+   "dt": 2.9999999999999997e-06
+  },
+  "steady": {
+   "steady_time": 100.49999999999999,
+   "decided_at_step": 33500000,
+   "profile_change": 0.0007553750698335212,
+   "kinetic_energy_change": 0.0011929779521037932,
+   "steady_tol": 0.0012,
+   "decided_by": "re5000_pipeline --mixed-steady-tol from n2500_k2_float32_xi0p001_eps0p0025_adami_re5000_from_k1/windows.jsonl"
+  }
+ },
+ "same_step": {
+  "common_samples": 14,
+  "t_range": [
+   100.701,
+   103.314
+  ],
+  "diff_u_pct": {
+   "mean": 0.018528849166243498,
+   "max": 0.027370513616808638,
+   "last": 0.027370513616808638
+  },
+  "diff_v_pct": {
+   "mean": 0.026056564759924572,
+   "max": 0.047164722050063945,
+   "last": 0.012667264852993203
+  },
+  "max_abs_du": {
+   "mean": 0.00019923392019297842,
+   "max": 0.0003321288180020421,
+   "last": 0.00032019829638324504
+  },
+  "max_abs_dv": {
+   "mean": 0.00039305749691622864,
+   "max": 0.0008616390966474929,
+   "last": 0.00012502993847396393
+  },
+  "dense_max_abs_du": {
+   "mean": 0.0005885184495225919,
+   "max": 0.0009764056364768292,
+   "last": 0.000602745256199716
+  },
+  "dense_max_abs_dv": {
+   "mean": 0.00075524490831514,
+   "max": 0.001118312902580465,
+   "last": 0.0010044346881155075
+  },
+  "KE_relative_diff": {
+   "mean": -1.8019876962885263e-05,
+   "max": 3.274445067225412e-05,
+   "last": -3.274445067225412e-05
+  },
+  "same_vendor_scale_boost_minus_k1": {
+   "count": 225,
+   "t_range": [
+    20.301,
+    65.727
+   ],
+   "u_mean": 0.030933777777777775,
+   "u_min": 0.0084,
+   "u_max": 0.07,
+   "v_mean": 0.029210666666666666,
+   "v_min": 0.0122,
+   "v_max": 0.0563
+  }
+ },
+ "marchi": {
+  "newest_mixed": {
+   "t": 103.314,
+   "L2u_pct": 0.27599933109389824,
+   "L2v_pct": 0.3659693675313228
+  },
+  "window": {
+   "t_range": [
+    100.701,
+    103.314
+   ],
+   "mixed": {
+    "samples": 14,
+    "L2u_pct": 0.28072863414049215,
+    "L2v_pct": 0.3699121451716298,
+    "Linf_u": 0.0026872980093293197,
+    "Linf_v": 0.004740017583255485,
+    "u_min": -0.4479730864267489,
+    "u_min_position": 0.07347573214249543,
+    "v_max": 0.4479834828780524,
+    "v_max_position": 0.07913573043660431,
+    "v_min": -0.5770591361683799,
+    "v_min_position": 0.9579089139973777
+   }
+  },
+  "window_common": {
+   "t_range": [
+    100.701,
+    103.314
+   ],
+   "mixed": {
+    "samples": 14,
+    "L2u_pct": 0.28072863414049215,
+    "L2v_pct": 0.3699121451716298,
+    "Linf_u": 0.0026872980093293197,
+    "Linf_v": 0.004740017583255485,
+    "u_min": -0.4479730864267489,
+    "u_min_position": 0.07347573214249543,
+    "v_max": 0.4479834828780524,
+    "v_max_position": 0.07913573043660431,
+    "v_min": -0.5770591361683799,
+    "v_min_position": 0.9579089139973777
+   },
+   "boost": {
+    "samples": 14,
+    "L2u_pct": 0.28123906863660536,
+    "L2v_pct": 0.359628598945525,
+    "Linf_u": 0.0027189440722001357,
+    "Linf_v": 0.004503753709881875,
+    "u_min": -0.4479451858316618,
+    "u_min_position": 0.07348714398794771,
+    "v_max": 0.44799151216510585,
+    "v_max_position": 0.07915468828004919,
+    "v_min": -0.5771199591096146,
+    "v_min_position": 0.9578792579618641
+   }
+  }
+ },
+ "extrema_reference": {
+  "u_min": {
+   "value": -0.4473136506,
+   "position": 0.074296756
+  },
+  "v_max": {
+   "value": 0.447508528,
+   "position": 0.0796881334
+  },
+  "v_min": {
+   "value": -0.576136016,
+   "position": 0.9574604998
+  }
+ },
+ "windows_after_start": [],
+ "dt": 2.9999999999999997e-06
+}

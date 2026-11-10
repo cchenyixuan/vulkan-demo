@@ -1,0 +1,22 @@
+{
+ "status": "complete",
+ "segments_with_invariant_violation": [],
+ "segments": [
+  {
+   "segment": 0,
+   "start_step": 33500000,
+   "status": "complete",
+   "error": null
+  }
+ ],
+ "steady": {
+  "steady_time": 100.49999999999999,
+  "decided_at_step": 33500000,
+  "profile_change": 0.0007553750698335212,
+  "kinetic_energy_change": 0.0011929779521037932,
+  "steady_tol": 0.0012,
+  "decided_by": "re5000_pipeline --mixed-steady-tol from n2500_k2_float32_xi0p001_eps0p0025_adami_re5000_from_k1/windows.jsonl"
+ },
+ "stop_step": 34500000,
+ "dt": 2.9999999999999997e-06
+}

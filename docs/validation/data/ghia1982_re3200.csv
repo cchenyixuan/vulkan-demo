@@ -1,0 +1,39 @@
+# Ghia, Ghia, Shin, J. Comput. Phys. 48 (1982) 387-411, Tables I and II, Re = 3200 (129^2 grid). Values from the
+# repository transcription docs/cavity_validation/reference/ghia1982.json (gist.github.com/ivan-pi, checked against the
+# paper; the gist's u(y = 0.4531) = -0.86636 corrected to -0.08663). Shown as a familiar reference only (figures);
+# errors are computed against Marchi 2021 (marchi2021_re3200.csv). Added 2026-10-21 for the Re = 3200 K = 8 report.
+line,coordinate,value
+u_at_x_0.5,1.0,1.0
+u_at_x_0.5,0.9766,0.53236
+u_at_x_0.5,0.9688,0.48296
+u_at_x_0.5,0.9609,0.46547
+u_at_x_0.5,0.9531,0.46101
+u_at_x_0.5,0.8516,0.34682
+u_at_x_0.5,0.7344,0.19791
+u_at_x_0.5,0.6172,0.07156
+u_at_x_0.5,0.5,-0.04272
+u_at_x_0.5,0.4531,-0.08663
+u_at_x_0.5,0.2813,-0.24427
+u_at_x_0.5,0.1719,-0.34323
+u_at_x_0.5,0.1016,-0.41933
+u_at_x_0.5,0.0703,-0.37827
+u_at_x_0.5,0.0625,-0.35344
+u_at_x_0.5,0.0547,-0.32407
+u_at_x_0.5,0.0,0.0
+v_at_y_0.5,1.0,0.0
+v_at_y_0.5,0.9688,-0.39017
+v_at_y_0.5,0.9609,-0.47425
+v_at_y_0.5,0.9531,-0.52357
+v_at_y_0.5,0.9453,-0.54053
+v_at_y_0.5,0.9063,-0.44307
+v_at_y_0.5,0.8594,-0.37401
+v_at_y_0.5,0.8047,-0.31184
+v_at_y_0.5,0.5,0.00999
+v_at_y_0.5,0.2344,0.28188
+v_at_y_0.5,0.2266,0.2903
+v_at_y_0.5,0.1563,0.37119
+v_at_y_0.5,0.0938,0.42768
+v_at_y_0.5,0.0781,0.41906
+v_at_y_0.5,0.0703,0.40917
+v_at_y_0.5,0.0625,0.3956
+v_at_y_0.5,0.0,0.0
