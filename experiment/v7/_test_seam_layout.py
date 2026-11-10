@@ -158,7 +158,9 @@ def _comparable(value):
 
 V7_ONLY_FIELDS = {"departed_pool_size", "replica_region_size", "ghost_layers",
                   "wall_boundary",          # E37 numerics option (v6 only)
-                  "chain_own_particle_counts"}      # E39 B3 chain metadata of a slab case (v7 only)
+                  "chain_own_particle_counts",      # E39 B3 chain metadata of a slab case (v7 only)
+                  # micropolar terms (v7 only): physics switch + Theta, the wall value, the optional initial w
+                  "micropolar_enabled", "micro_inertia", "wall_angular_velocity", "angular_velocities"}
 
 
 def _strip_v7_only(tree):
@@ -1597,6 +1599,27 @@ B6_COMMIT = "3d6e1c9"    # E39 B6: the build V7_DEEP_WALL_SKIP=0 must reproduce 
 E40_CHANGED_SPIRV = frozenset({"expand_ghost_lists.comp.spv", "ghost_send.comp.spv", "ghost_send_lanes.comp.spv",
                                "install_migrations.comp.spv"})
 E40_ADDED_SPIRV = frozenset({"wall_extrapolate_band.comp.spv"})
+# the MICROPOLAR variants (compile_shaders_v7.SHADER_VARIANTS; check_micropolar): modules beside every earlier build's
+MICROPOLAR_ADDED_SPIRV = frozenset({
+    "predict_micropolar.comp.spv", "bootstrap_half_kick_micropolar.comp.spv", "force_micropolar.comp.spv",
+    "wall_extrapolate_micropolar.comp.spv", "wall_extrapolate_band_micropolar.comp.spv",
+    "defrag_micropolar.comp.spv"})
+
+
+def _without_micropolar_blocks_bytes(source: bytes) -> bytes:
+    """A shader source without its #ifdef MICROPOLAR ... #endif blocks, LF line endings (the blocks hold no nested
+    preprocessor branch; check_micropolar verifies that)."""
+    kept, skipping = [], False
+    for line in source.replace(b"\r\n", b"\n").split(b"\n"):
+        if line.strip() == b"#ifdef MICROPOLAR":
+            skipping = True
+            continue
+        if skipping:
+            if line.strip() == b"#endif":
+                skipping = False
+            continue
+        kept.append(line)
+    return b"\n".join(kept)
 
 
 def _without_bootstrap_density_copy(source: str, origin: str) -> str:
@@ -2311,7 +2334,8 @@ def check_fused_correction_density(failures: list) -> None:
             failures.append(f"{pathlib.Path(path).name}: differs from {B4_COMMIT} (switch 0 must run the B4 SPIR-V)")
     new_spv = sorted(path.name for path in spv_directory.glob("*.spv")
                      if f"experiment/v7/shaders/spv/{path.name}" not in committed_spv
-                     and path.name not in LATER_ITEM_SPIRV_AFTER_B1 and path.name not in E40_ADDED_SPIRV)
+                     and path.name not in LATER_ITEM_SPIRV_AFTER_B1 and path.name not in E40_ADDED_SPIRV
+                     and path.name not in MICROPOLAR_ADDED_SPIRV)
     if new_spv != ["correction_density.comp.spv", "correction_density_deep_wall_skip.comp.spv"]:
         failures.append(f"SPIR-V files beside {B4_COMMIT}'s: {new_spv}")
     if ("correction_density_deep_wall_skip", "correction_density.comp", ("DEEP_WALL_SKIP",)) \
@@ -2940,7 +2964,7 @@ def check_band_overlap(failures: list) -> None:
             failures.append(f"{pathlib.Path(path).name}: differs from {B1_COMMIT} (switch 0 must run the B1 SPIR-V)")
     new_spv = sorted(path.name for path in spv_directory.glob("*.spv")
                      if f"experiment/v7/shaders/spv/{path.name}" not in committed_spv
-                     and path.name not in E40_ADDED_SPIRV)
+                     and path.name not in E40_ADDED_SPIRV and path.name not in MICROPOLAR_ADDED_SPIRV)
     if new_spv != ["force_segment.comp.spv"]:
         failures.append(f"SPIR-V files beside {B1_COMMIT}'s: {new_spv}")
     if ("force_segment", "force.comp", ("FORCE_SEGMENT",)) not in compile_shaders_v7.SHADER_VARIANTS:
@@ -4107,11 +4131,12 @@ def check_adami_chain(failures: list) -> None:
         texts = {name: (shader_directory / name).read_text(encoding="utf-8")
                  for name in ("helpers.glsl", "common.glsl", "ghost_send.comp", "ghost_send_lanes.comp",
                               "expand_ghost_lists.comp", "wall_extrapolate_band.comp")}
-        # the K = 1 kernel is rc2's source byte for byte (its SPIR-V keeps the E39 pins)
+        # the K = 1 kernel is rc2's source byte for byte (its SPIR-V keeps the E39 pins); the micropolar terms sit
+        # in #ifdef MICROPOLAR blocks, which the plain build does not see (its SPIR-V is still rc2's)
         rc2_wall = subprocess.run(["git", "show", "v7-rc2:experiment/v7/shaders/wall_extrapolate.comp"],
                                   cwd=_REPO_ROOT, capture_output=True).stdout
-        if rc2_wall and rc2_wall != (shader_directory / "wall_extrapolate.comp").read_bytes().replace(b"\r\n", b"\n") \
-                and rc2_wall.replace(b"\r\n", b"\n") != (shader_directory / "wall_extrapolate.comp").read_bytes().replace(b"\r\n", b"\n"):
+        current_wall = _without_micropolar_blocks_bytes((shader_directory / "wall_extrapolate.comp").read_bytes())
+        if rc2_wall and rc2_wall.replace(b"\r\n", b"\n") != current_wall:
             failures.append("wall_extrapolate.comp differs from v7-rc2's (the K = 1 kernel must stay rc2's)")
         if "return (GHOST_LAYERS >= 2u) ? GHOST_LAYERS * REPLICA_REGION_SIZE : 0u;" not in texts["helpers.glsl"]:
             failures.append("helpers.glsl: migrant_region_offset is not GHOST_LAYERS * REPLICA_REGION_SIZE")
@@ -4152,6 +4177,294 @@ def check_adami_chain(failures: list) -> None:
         os.environ.update(saved_environment)
 
 
+MICROPOLAR_BASE_TAG = "micropolar-base"
+
+
+def check_micropolar(failures: list) -> None:
+    """The micropolar terms (docs/micropolar_design.md; case.yaml physics.micropolar), CPU only:
+      - a Newtonian case (the key absent) builds what the tag micropolar-base builds: the same buffer specs, global
+        spec entries, defrag bindings, restart fields and shader module files, on K = 1 and K = 2 slabs with simple
+        and adami walls (the base simulator is loaded from the tag; skipped without git or the tag);
+      - a micropolar slab adds exactly: the three set-0 buffers at bindings 12 / 13 / 14 (the wall dummy buffer a
+        16-byte stub with simple walls), spec entries 21 (Theta) and 116, defrag bindings 12 / 13, the two restart
+        fields, the <kernel>_micropolar module files, and the angular_velocity upload (zero for fluid, the
+        material's wall_angular_velocity otherwise, or the provided initial values);
+      - shader sources: with the #ifdef MICROPOLAR blocks removed every kernel is the tag's text; micropolar.glsl
+        declares the bindings and spec id the simulator uses; every micropolar module is a SHADER_VARIANTS entry;
+      - the loader's coefficient report: Eringen's groups, the admissible range, the growing wavelength outside it,
+        the step numbers and the three rejections."""
+    import math
+    import re
+    import struct
+    import subprocess
+    import types
+    import experiment.v7.utils.case_v7 as case_v7
+    import experiment.v7.utils.case_loader_v7 as case_loader_v7
+    import experiment.v7.utils.partition_v7 as partition_v7
+    import experiment.v7.utils.simulator_v7 as simulator_v7
+    from experiment.v7 import compile_shaders_v7
+
+    saved_environment = {key: value for key, value in os.environ.items() if key.startswith("V7_")}
+    for key in list(saved_environment):
+        del os.environ[key]
+    try:
+        def with_walls(global_case, wall_boundary):
+            return dataclasses.replace(global_case, numerics=dataclasses.replace(global_case.numerics,
+                                                                                  wall_boundary=wall_boundary))
+
+        def with_micropolar(case, micro_inertia=1.6e-3):
+            return dataclasses.replace(case, physics=dataclasses.replace(
+                case.physics, micropolar_enabled=True, micro_inertia=micro_inertia))
+
+        def fake(module, slab):
+            simulator = object.__new__(module.SphSimulatorV7)
+            simulator.case = slab
+            simulator.band_widths = simulator._configured_band_widths()
+            return simulator
+
+        def spec_rows(simulator):
+            return [(spec.name, spec.set_index, spec.binding, spec.size, spec.usage)
+                    for spec in simulator._build_buffer_specs()]
+
+        global_case = _synthetic_global_case(case_v7)
+        slabs = []
+        for wall_boundary in ("simple", "adami"):
+            walled = with_walls(global_case, wall_boundary)
+            slabs.append((f"{wall_boundary} K=1", walled))
+            chain = partition_v7.compute_chain_partition(walled, [1.0, 1.0], pool_safety=1.2)
+            slabs += [(f"{wall_boundary} K=2 slab {index}", slab) for index, slab in enumerate(chain.slabs)]
+
+        # ---- a Newtonian case builds what the base tag builds
+        base_module = None
+        try:
+            shown = subprocess.run(["git", "show", f"{MICROPOLAR_BASE_TAG}:experiment/v7/utils/simulator_v7.py"],
+                                   cwd=_REPO_ROOT, capture_output=True)
+            if shown.returncode == 0:
+                base_module = types.ModuleType("experiment.v7.utils._simulator_v7_micropolar_base")
+                base_module.__file__ = simulator_v7.__file__
+                sys.modules[base_module.__name__] = base_module
+                exec(compile(shown.stdout.decode("utf-8"), f"{MICROPOLAR_BASE_TAG}:simulator_v7.py", "exec"),
+                     base_module.__dict__)
+        except OSError:
+            base_module = None
+        if base_module is None:
+            print(f"[seam_layout] tag {MICROPOLAR_BASE_TAG} not available: micropolar base comparison skipped")
+        for label, slab in slabs:
+            current = fake(simulator_v7, slab)
+            if current._micropolar:
+                failures.append(f"micropolar {label}: a case without physics.micropolar reports the terms on")
+            if current._defrag_set0_bindings() != simulator_v7.DEFRAG_SET0_BINDINGS:
+                failures.append(f"micropolar {label}: Newtonian defrag bindings {current._defrag_set0_bindings()}")
+            if current.restart_field_layout() != simulator_v7.SphSimulatorV7.RESTART_FIELD_LAYOUT:
+                failures.append(f"micropolar {label}: Newtonian restart fields differ from RESTART_FIELD_LAYOUT")
+            renamed = [name for name in simulator_v7.MICROPOLAR_SHADER_MODULES
+                       if current._shader_module_file_name(name) != name]
+            if renamed:
+                failures.append(f"micropolar {label}: a Newtonian case loads variant modules {renamed}")
+            if "angular_velocity" in current._build_initial_data():
+                failures.append(f"micropolar {label}: a Newtonian case uploads angular_velocity")
+            if base_module is not None:
+                base = fake(base_module, slab)
+                if spec_rows(current) != spec_rows(base):
+                    failures.append(f"micropolar {label}: Newtonian buffer specs differ from {MICROPOLAR_BASE_TAG}")
+                if current._global_entries() != base._global_entries():
+                    failures.append(f"micropolar {label}: Newtonian spec entries differ from {MICROPOLAR_BASE_TAG}")
+                if current._material_parameters_payload() != base._material_parameters_payload():
+                    failures.append(f"micropolar {label}: material parameters differ from {MICROPOLAR_BASE_TAG}")
+                if (simulator_v7.DEFRAG_SET0_BINDINGS != base_module.DEFRAG_SET0_BINDINGS
+                        or simulator_v7.SphSimulatorV7.RESTART_FIELD_LAYOUT
+                        != base_module.SphSimulatorV7.RESTART_FIELD_LAYOUT
+                        or simulator_v7._CONCURRENT_BUFFER_NAMES != base_module._CONCURRENT_BUFFER_NAMES):
+                    failures.append(f"micropolar: module constants differ from {MICROPOLAR_BASE_TAG}")
+
+        # ---- a micropolar slab adds exactly the micropolar items
+        for label, slab in slabs:
+            plain = fake(simulator_v7, slab)
+            micropolar_slab = with_micropolar(slab)
+            # an initial micro-rotation for walls through the material, and a provided one below
+            micropolar_slab = dataclasses.replace(micropolar_slab, materials=[
+                dataclasses.replace(material, wall_angular_velocity=(0.0, 0.0, 2.5))
+                if material.kind == case_v7.KIND_BOUNDARY else material for material in micropolar_slab.materials])
+            current = fake(simulator_v7, micropolar_slab)
+            pool_capacity = slab.capacities.total_pool_capacity()
+            adami_walls = slab.numerics.wall_boundary == "adami"
+            added = [row for row in spec_rows(current) if row not in spec_rows(plain)]
+            buffer_usage = simulator_v7.VK_BUFFER_USAGE_STORAGE_BUFFER_BIT \
+                | simulator_v7.VK_BUFFER_USAGE_TRANSFER_DST_BIT | simulator_v7.VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+            expected_added = [
+                ("angular_velocity", 0, 12, 16 * pool_capacity, buffer_usage),
+                ("angular_acceleration", 0, 13, 16 * pool_capacity, buffer_usage),
+                ("wall_dummy_angular_velocity", 0, 14, 16 * pool_capacity if adami_walls else 16, buffer_usage)]
+            if added != expected_added or len(spec_rows(current)) != len(spec_rows(plain)) + 3:
+                failures.append(f"micropolar {label}: added buffer specs {added}")
+            entries = current._global_entries()
+            if entries[:len(plain._global_entries())] != plain._global_entries():
+                failures.append(f"micropolar {label}: the Newtonian spec entries are not a prefix of the micropolar ones")
+            extra = entries[len(plain._global_entries()):]
+            if [entry[:2] for entry in extra] != [(21, 'f'), (116, 'I')] or extra[0][2] != 1.6e-3:
+                failures.append(f"micropolar {label}: extra spec entries {extra}")
+            if current._defrag_set0_bindings() != simulator_v7.DEFRAG_SET0_BINDINGS + (12, 13):
+                failures.append(f"micropolar {label}: defrag bindings {current._defrag_set0_bindings()}")
+            layout = current.restart_field_layout()
+            if (list(layout)[:9] != list(simulator_v7.SphSimulatorV7.RESTART_FIELD_LAYOUT)
+                    or list(layout)[9:] != ["angular_velocity", "angular_acceleration"]
+                    or layout != simulator_v7.restart_field_layout_of(micropolar_slab)):
+                failures.append(f"micropolar {label}: restart fields {list(layout)}")
+            for name in ("predict", "bootstrap_half_kick", "force", "wall_extrapolate", "wall_extrapolate_band",
+                         "defrag"):
+                if current._shader_module_file_name(name) != f"{name}_micropolar":
+                    failures.append(f"micropolar {label}: module {name} -> {current._shader_module_file_name(name)}")
+            for name in ("correction", "density", "correction_density", "update_voxel", "initialize_voxelization",
+                         "append_departed", "band_compact", "density_scratch_copy", "deep_wall_marker"):
+                if current._shader_module_file_name(name) != name:
+                    failures.append(f"micropolar {label}: module {name} has no variant but maps to "
+                                    f"{current._shader_module_file_name(name)}")
+            # the upload: zero for fluid, the wall value for the other kinds
+            own_first = current.own_first_pid()
+            count = micropolar_slab.initial.positions.shape[0]
+            uploaded = np.frombuffer(current._build_initial_data()["angular_velocity"],
+                                     np.float32).reshape(pool_capacity, 4)
+            wall_rows = micropolar_slab.initial.material_group == 1
+            expected_upload = np.zeros((pool_capacity, 4), np.float32)
+            expected_upload[own_first:own_first + count, 2] = np.where(wall_rows, np.float32(2.5), np.float32(0.0))
+            if not np.array_equal(uploaded, expected_upload):
+                failures.append(f"micropolar {label}: angular_velocity upload is not (0 fluid, w_wall walls)")
+            provided = np.arange(count * 3, dtype=np.float32).reshape(count, 3)
+            current.case = dataclasses.replace(micropolar_slab, initial=dataclasses.replace(
+                micropolar_slab.initial, angular_velocities=provided))
+            uploaded = np.frombuffer(current._build_initial_data()["angular_velocity"],
+                                     np.float32).reshape(pool_capacity, 4)
+            if not (np.array_equal(uploaded[own_first:own_first + count, :3], provided)
+                    and not uploaded[:own_first].any() and not uploaded[own_first + count:].any()
+                    and not uploaded[:, 3].any()):
+                failures.append(f"micropolar {label}: the provided initial angular_velocities are not uploaded as given")
+        # the partition slices a provided initial micro-rotation with the particles
+        count = global_case.initial.positions.shape[0]
+        tagged = dataclasses.replace(global_case, initial=dataclasses.replace(
+            global_case.initial, angular_velocities=np.repeat(global_case.initial.positions[:, :1], 3, axis=1)))
+        for slab in partition_v7.compute_chain_partition(tagged, [1.0, 1.0], pool_safety=1.2).slabs:
+            if not np.array_equal(slab.initial.angular_velocities[:, 0], slab.initial.positions[:, 0]):
+                failures.append("micropolar: the partition does not slice initial angular_velocities with the particles")
+
+        # ---- shader sources
+        shader_directory = pathlib.Path(__file__).resolve().parent / "shaders"
+
+        def without_micropolar_blocks(text: str) -> str:
+            kept, skipping = [], False
+            for line in text.replace("\r\n", "\n").split("\n"):
+                if line.strip() == "#ifdef MICROPOLAR":
+                    if skipping:
+                        raise ValueError("nested #ifdef MICROPOLAR")
+                    skipping = True
+                    continue
+                if skipping:
+                    if line.strip() == "#endif":
+                        skipping = False
+                    elif line.strip().startswith(("#if", "#else", "#elif")):
+                        raise ValueError("preprocessor branch inside an #ifdef MICROPOLAR block")
+                    continue
+                kept.append(line)
+            if skipping:
+                raise ValueError("unterminated #ifdef MICROPOLAR")
+            return "\n".join(kept)
+
+        variant_sources = {source for name, source, macros in compile_shaders_v7.SHADER_VARIANTS
+                           if "MICROPOLAR" in macros}
+        variant_names = {name for name, source, macros in compile_shaders_v7.SHADER_VARIANTS if "MICROPOLAR" in macros}
+        if variant_names != {f"{name}_micropolar" for name in simulator_v7.MICROPOLAR_SHADER_MODULES}:
+            failures.append(f"micropolar: SHADER_VARIANTS {sorted(variant_names)} != the simulator's module set")
+        if any(macros != ("MICROPOLAR",) or name != source[:-len(".comp")] + "_micropolar"
+               for name, source, macros in compile_shaders_v7.SHADER_VARIANTS if "MICROPOLAR" in macros):
+            failures.append("micropolar: a MICROPOLAR variant is not (<kernel>_micropolar, <kernel>.comp, (MICROPOLAR,))")
+        for source in sorted(shader_directory.glob("*.comp")) + sorted(shader_directory.glob("*.glsl")):
+            text = source.read_text(encoding="utf-8")
+            uses = "MICROPOLAR" in text.replace("MICROPOLAR_THETA", "")
+            if source.name == "micropolar.glsl":
+                continue
+            if uses != (source.name in variant_sources):
+                failures.append(f"micropolar: {source.name} "
+                                + ("has no MICROPOLAR variant in SHADER_VARIANTS" if uses
+                                   else "is a MICROPOLAR variant source without a MICROPOLAR block"))
+            if uses and text.count('#ifdef MICROPOLAR\n#include "micropolar.glsl"\n#endif'.replace("\n", "\r\n" if "\r\n" in text else "\n")) != 1:
+                failures.append(f"micropolar: {source.name} does not include micropolar.glsl under #ifdef MICROPOLAR")
+            shown = subprocess.run(["git", "show", f"{MICROPOLAR_BASE_TAG}:experiment/v7/shaders/{source.name}"],
+                                   cwd=_REPO_ROOT, capture_output=True)
+            if shown.returncode != 0:
+                continue
+            try:
+                stripped = without_micropolar_blocks(text)
+            except ValueError as error:
+                failures.append(f"micropolar: {source.name}: {error}")
+                continue
+            if stripped != shown.stdout.decode("utf-8").replace("\r\n", "\n"):
+                failures.append(f"micropolar: {source.name} without its MICROPOLAR blocks differs from "
+                                f"{MICROPOLAR_BASE_TAG}'s")
+        include_text = (shader_directory / "micropolar.glsl").read_text(encoding="utf-8")
+        for pattern in (r"layout\(constant_id = 116\) const uint MICROPOLAR_REPLICA_LAYERS = 0u;",
+                        r"set = 0, binding = 12\) buffer AngularVelocityBuffer \{(?:\s*//[^\n]*\n)*\s*"
+                        r"vec4 angular_velocity\[\];",
+                        r"set = 0, binding = 13\) buffer AngularAccelerationBuffer \{(?:\s*//[^\n]*\n)*\s*"
+                        r"vec4 angular_acceleration\[\];",
+                        r"set = 0, binding = 14\) buffer WallDummyAngularVelocityBuffer \{(?:\s*//[^\n]*\n)*\s*"
+                        r"vec4 wall_dummy_angular_velocity\[\];"):
+            if not re.search(pattern, include_text):
+                failures.append(f"micropolar.glsl: {pattern} not found")
+        if not re.search(r"layout\(constant_id = 21\) const float MICROPOLAR_THETA",
+                         (shader_directory / "common.glsl").read_text(encoding="utf-8")):
+            failures.append("common.glsl: spec constant 21 MICROPOLAR_THETA not found")
+        force_text = (shader_directory / "force.comp").read_text(encoding="utf-8")
+        for fragment in (
+                "cross(angular_velocity_difference, kernel_gradient_corrected)",
+                "cross(self_velocity - viscous_neighbor_velocity, kernel_gradient_corrected)",
+                "vec3 angular_velocity_difference = self_angular_velocity - neighbor_angular_velocity;",
+                "float coupling_coefficient = self_params.viscosity + self_params.viscosity_transfer;",
+                "total_acceleration += coupling_coefficient * curl_angular_velocity;",
+                "+ coupling_coefficient * (curl_velocity - 2.0 * self_angular_velocity)) / MICROPOLAR_THETA;"):
+            if force_text.count(fragment) != 1:
+                failures.append(f"force.comp: micropolar statement not found once: {fragment}")
+
+        # ---- the loader's coefficient report (T5's smoke parameters; dt = 3e-5, dx = 4 mm)
+        report = case_loader_v7.micropolar_coefficient_report("fluid", 2.5e-3, -0.625e-3, 3.75e-6, 1.6e-3, 3.0e-5, 4.0e-3)
+        expected = {"coupling_coefficient": 1.875e-3, "eringen_kappa_over_mu": 3.0, "coupling_number_squared": 0.6,
+                    "characteristic_length_squared": 1.6e-3}
+        for key, value in expected.items():
+            if not math.isclose(report[key], value, rel_tol=1e-12):
+                failures.append(f"micropolar report {key} = {report[key]}, expected {value}")
+        numbers = {"viscous": 2.5e-3 * 3.0e-5 / 1.6e-5, "angular_diffusion": 3.75e-6 / 1.6e-3 * 3.0e-5 / 1.6e-5,
+                   "relaxation": 2.0 * 1.875e-3 * 3.0e-5 / 1.6e-3, "coupling": 1.875e-3 * 3.0e-5 / (0.04 * 4.0e-3)}
+        if (not report["admissible"] or report["warnings"] or report["shortest_growing_wavelength"] is not None
+                or any(not math.isclose(report["step_numbers"][key], value, rel_tol=1e-12)
+                       for key, value in numbers.items())):
+            failures.append(f"micropolar report of the T5 parameters: {report}")
+        outside = case_loader_v7.micropolar_coefficient_report("fluid", 1.0e-3, 2.0e-3, 4.0e-6, 1.0e-3, 3.0e-5, 4.0e-3)
+        wavelength = 2.0 * math.pi * math.sqrt(1.0e-3 * 4.0e-6 / (3.0e-3 * 1.0e-3))
+        if outside["admissible"] or not math.isclose(outside["shortest_growing_wavelength"], wavelength, rel_tol=1e-12):
+            failures.append(f"micropolar report outside the admissible range: {outside}")
+        if case_loader_v7.micropolar_coefficient_report("fluid", 1e-3, 0.0, 0.0, 1e-9, 3.0e-5, 4.0e-3)["warnings"] \
+                != ["relaxation", "coupling"]:
+            failures.append("micropolar report: a small Theta does not warn about the relaxation and coupling numbers")
+        null = case_loader_v7.micropolar_coefficient_report("fluid", 1e-3, -1e-3, 0.0, 1e-3, 3.0e-5, 4.0e-3)
+        if null["coupling_coefficient"] != 0.0 or not null["admissible"] or null["characteristic_length_squared"] is not None:
+            failures.append(f"micropolar report of the null coupling: {null}")
+        for arguments in (("fluid", 1e-3, -2e-3, 0.0, 1e-3), ("fluid", 1e-3, 0.0, -1e-9, 1e-3),
+                          ("fluid", 1e-3, 0.0, 0.0, 0.0)):
+            try:
+                case_loader_v7.micropolar_coefficient_report(*arguments, 3.0e-5, 4.0e-3)
+                failures.append(f"micropolar report accepted {arguments}")
+            except ValueError:
+                pass
+        # the struct row a kernel reads: nu_t and xi at fields 8 and 9 of the 48-byte row
+        material = dataclasses.replace(global_case.materials[0], viscosity_transfer=-0.25e-3, viscosity_rotation=3.0e-6)
+        row_case = dataclasses.replace(global_case, materials=[material])
+        row = struct.unpack("<I f f f f f f f f f f I", fake(simulator_v7, row_case)._material_parameters_payload())
+        if row[2] != np.float32(1e-3) or row[8] != np.float32(-0.25e-3) or row[9] != np.float32(3.0e-6):
+            failures.append(f"micropolar: material row (viscosity, transfer, rotation) = {row[2], row[8], row[9]}")
+    finally:
+        for key in [key for key in os.environ if key.startswith("V7_")]:
+            del os.environ[key]
+        os.environ.update(saved_environment)
+
+
 def main() -> int:
     import experiment.v7.utils.simulator_v7 as simulator_v7
     failures: list = []
@@ -4175,6 +4488,7 @@ def main() -> int:
         check_deep_wall_skip(failures)
         check_fused_correction_density(failures)
         check_adami_chain(failures)
+        check_micropolar(failures)
     finally:
         simulator_v7._BAND_OVERLAP = band_overlap
     check_band_overlap(failures)
@@ -4201,6 +4515,8 @@ def main() -> int:
           "release defaults (E6b, phase A no-wait E32) + LEGACY_DEFAULTS; "
           + "E40 adami chain: three-layer ghost partition / pool / links, split wall pipelines and bands, "
           "segments, copy regions, phase A / B / C / bootstrap streams, lane groups with three layers, shader text; "
+          "micropolar terms: a Newtonian case = the micropolar-base build (buffers, spec entries, modules, restart "
+          "fields), the micropolar additions, shader sources without their MICROPOLAR blocks, coefficient report; "
           + ("SPIR-V current)" if spirv_checked else "SPIR-V check SKIPPED: no glslc)"))
     return 0
 

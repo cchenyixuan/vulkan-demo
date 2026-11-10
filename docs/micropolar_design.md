@@ -1,8 +1,8 @@
 # Micropolar terms in the v7 chain solver: design note (Stage 0)
 
 Branch `v9-micropolar`, base tag `micropolar-base` = ab50c10 (merge of `origin/bootstrap-density-fix` eda5b90 and
-`origin/v7-adami-multi` 8c33192). Nothing below is implemented yet. This note fixes the storage, the kernel
-variants and the seam before any code is written.
+`origin/v7-adami-multi` 8c33192). Sections 0 to 7 are the Stage 0 plan, with the decisions of 2026-11-10 entered in
+Section 2; Section 8 is the Stage 1 report (one slab).
 
 Marked **[read]** = inferred from reading the code, **[run]** = verified by running on this machine.
 
@@ -58,11 +58,14 @@ Marked **[read]** = inferred from reading the code, **[run]** = verified by runn
    material at upload, as the lid speed is written into `velocity_mass`. `simple` walls are then read like any
    neighbour, replicas carry the value, and the adami pass reads the wall's own slot as `w_wall`.
 
-## 2. Decisions I need from you
+## 2. Decisions
 
-| | question | my recommendation |
+Decided 2026-11-10: **D1 = the separate buffer** (`wall_dummy_angular_velocity`, set 0 binding 14: one design for
+both dummy fields); D2, D3, D4 as recommended.
+
+| | question | recommendation at Stage 0 |
 |---|---|---|
-| D1 | Where the adami dummy micro-rotation lives | In the wall particle's own `angular_acceleration` slot (a wall never has alpha). Saves 16 B per pool slot against a separate `wall_dummy_angular_velocity` buffer. Coverage, lifetime and transport are those of `wall_dummy_velocity`; the only difference is that defrag carries it along, unused. Alternative: a separate buffer at set 0 binding 14. |
+| D1 | Where the adami dummy micro-rotation lives | In the wall particle's own `angular_acceleration` slot (a wall never has alpha). Saves 16 B per pool slot against a separate `wall_dummy_angular_velocity` buffer. Coverage, lifetime and transport are those of `wall_dummy_velocity`; the only difference is that defrag carries it along, unused. Alternative: a separate buffer at set 0 binding 14. **Decided: the separate buffer.** |
 | D2 | Replica record for w | 12 B (three words) per replica in a separate packed block, only for the layers that need w (Section 5). Alternative: one word in 2-D (w_z only), 4 B instead of 12 B, at the cost of a dimension branch in pack and unpack. |
 | D3 | Transport layouts supported with micropolar | Only the release layout: `V7_GHOST_LAYERS` >= 2, lean transport, compact ghost lists, packed replicas. The legacy layouts (mixed one-layer pool, SoA replicas, non-lean) are refused at start-up with micropolar on. Also refused: `V7_BAND_OVERLAP` (default 0; it would need a `MICROPOLAR` + `FORCE_SEGMENT` double variant) and `V7_BAND_COMPACT_DISPATCH`. |
 | D4 | Points 1 to 6 of Section 1 | As written there. |
@@ -92,7 +95,7 @@ angular_acceleration = (self_params.viscosity_rotation * laplacian_angular_veloc
 ```
 
 - `neighbor_angular_velocity` = `angular_velocity[j]` for a fluid neighbour and for a `simple` wall (its stored
-  `w_wall`); the dummy value for a wall neighbour under `adami`.
+  `w_wall`); `wall_dummy_angular_velocity[j]` for a wall neighbour under `adami`.
 - `viscous_neighbor_velocity` is the variable the Morris term already uses, so the curl of v sees the dummy
   velocity under `adami`.
 - c is summed in the shader from the two material fields. With `nu_t = -nu` the float32 sum is exactly 0 (T2).
@@ -113,15 +116,16 @@ K = 3, N_c^2 = 0.6, l = 0.04 m; step numbers 4.7e-3, 4.4e-3, 7.0e-5, 3.5e-4. No 
 | item | where | size | notes |
 |---|---|---|---|
 | `angular_velocity` | set 0 binding 12, vec4 | 16 B per pool slot | xyz = w^{n+1/2}; w free. Fluid: integrated. Wall: prescribed `w_wall`. Defragged, transported (replicas, migrants, departed copies), in the restart state. `SHARING_MODE_CONCURRENT` (the transfer queue copies its migrant region). |
-| `angular_acceleration` | set 0 binding 13, vec4 | 16 B per pool slot | Fluid: xyz = alpha. Wall under adami (D1): xyz = dummy micro-rotation. Defragged, in the restart state, never transported, exclusive. |
+| `angular_acceleration` | set 0 binding 13, vec4 | 16 B per pool slot | xyz = alpha, written by force for the particles it writes `acceleration` for. Defragged, in the restart state, never transported, exclusive. |
+| `wall_dummy_angular_velocity` | set 0 binding 14, vec4 | 16 B per pool slot with adami, a 16 B stub with simple | (2 w_wall - w~, Shepard sum) per wall particle, written by the wall pass. The rules of `wall_dummy_velocity`: transient, not defragged, not transported, not in the restart state. |
 | defrag twins | set 4 bindings 12, 13 | 32 B per pool slot | Only in `defrag_micropolar`. |
 | packed w block | `ghost_packed_words`, after the existing blocks | 12 B per replica of a w layer | Section 5. |
 
 Binding 11 of set 0 stays reserved for the global id buffer, as `common.glsl` notes. `extension_fields` is not
 touched.
 
-Bytes per pool slot, micropolar on: +32 B live, +32 B defrag twins = **+64 B** on 288 B (simple) or 304 B
-(adami) of set 0 plus twins today. With the separate dummy buffer of D1's alternative: +80 B under adami.
+Bytes per pool slot, micropolar on: +32 B live, +32 B defrag twins = **+64 B** on 288 B with simple walls;
+with adami walls +16 B for the dummy buffer = **+80 B** on 304 B (set 0 plus defrag twins today).
 
 Spec constants:
 
@@ -214,8 +218,8 @@ is unchanged.
 | `micropolar.glsl` (new) | Bindings 12 / 13 of set 0, spec 116, the packed w block helpers (base offset, three-word load / store), the model and id-plan comment. Included only under `#ifdef MICROPOLAR`. |
 | `predict.comp` | `angular_velocity += angular_acceleration * TIMESTEP` next to the velocity kick, fluid only. |
 | `bootstrap_half_kick.comp` | `angular_velocity -= 0.5 * angular_acceleration * TIMESTEP`. |
-| `force.comp` | Section 3. Wall neighbour under adami reads the dummy value (D1: `angular_acceleration[j]`). Writes `angular_acceleration[self]`. |
-| `wall_extrapolate.comp`, `wall_extrapolate_band.comp` | One more Shepard sum over the fluid neighbours' w; writes `2 w_wall - w~` (or `w_wall` without fluid neighbour). |
+| `force.comp` | Section 3. Wall neighbour under adami reads `wall_dummy_angular_velocity[j]`. Writes `angular_acceleration[self]`. |
+| `wall_extrapolate.comp`, `wall_extrapolate_band.comp` | One more Shepard sum over the fluid neighbours' w; writes `2 w_wall - w~` (or `w_wall` without fluid neighbour) to `wall_dummy_angular_velocity`. |
 | `defrag.comp` | Set 4 bindings 12 / 13, two more copies. |
 | `ghost_send.comp`, `ghost_send_lanes.comp` | Packed w for layers < `MICROPOLAR_REPLICA_LAYERS`; `angular_velocity` into the migrant slot and the departed copy. Only the release layout paths (D3). |
 | `expand_ghost_lists.comp` | Unpack w into the ghost slot of the w layers. |
@@ -252,3 +256,55 @@ the same buffer list and spec blobs, and runs the same recording code. T0 and T1
 | T4 | yes, K = 1 | Against the discrete product and against the exponential (Section 1 point 3). |
 | T5 | yes, cross-vendor K = 2 | Same-vendor K = 2 is not available on this machine. |
 | 3-D | not planned | The kernels are dimension independent, but no test above exercises w_x, w_y or a 3-D seam. I will say so in the reports. |
+
+## 8. Stage 1 report (one slab, 2026-11-10)
+
+Everything in this section was run on this machine (RTX 5090, device 0) unless marked **[read]**. Logs and dumps:
+`logs/micropolar/` (not tracked). Driver: `experiment/validation/micropolar_tests.py`.
+
+### What changed
+
+- Shaders: `micropolar.glsl` (new) and `#ifdef MICROPOLAR` blocks in `predict`, `bootstrap_half_kick`, `force`,
+  `wall_extrapolate`, `wall_extrapolate_band`, `defrag`; six `<kernel>_micropolar` entries in `SHADER_VARIANTS`.
+- Host: `physics.micropolar: {enabled, micro_inertia}`; material keys `viscosity_transfer`, `viscosity_rotation`,
+  `wall_angular_velocity`; the start-up report and checks (`case_loader_v7.micropolar_coefficient_report`); the
+  three buffers, the variant modules, spec entries 21 / 116, the w upload and the eleven-field restart layout in
+  `simulator_v7.py`; the partition slices a provided initial w; `cavity_runner.py` and `_run_v7_equivalence.py`
+  follow the per-case restart layout / read w.
+- A slab with a peer refuses micropolar until Stage 2 (`NotImplementedError` in the constructor).
+- New files: `materials/micropolar.yaml`, `cases/micropolar_cavity_n250_null`, `cases/micropolar_cavity_n250_re400`.
+
+### Tests
+
+| test | result | measured |
+|---|---|---|
+| T0 build | pass | 23 of 23 SPIR-V files of `micropolar-base` byte-identical; 6 new files; `MANIFEST.txt` regenerated (29). `_test_seam_layout.py`: 858 failures before, 858 after, the same set (sorted diff empty), with the new `check_micropolar` contributing none. Three existing pins were extended for the new files and fields (the two "SPIR-V files beside" lists, the v5 field strip list, the rc2 text pin of `wall_extrapolate.comp`, now compared without its MICROPOLAR blocks). |
+| T1 Newtonian, K = 1 | pass | 3,000 steps of the n = 250 adami cavity, fields sampled at 2,401 points. Ten repeats of `micropolar-base`: pair rms of u 3.0e-5 to 1.5e-4 m/s, v 3.9e-5 to 1.6e-4, rho 6.6e-5 to 1.6e-3 kg/m^3. Nine runs of this tree against all ten: largest rms / largest base pair rms = 0.73 to 1.04 (u), 0.65 to 1.04 (v), 0.67 to 1.09 (rho). |
+| T1, K = 2 | not run at this stage | Stage 2 (cross-vendor pair). |
+| T2 null coupling, K = 1 | pass | Five runs: ratios 0.73 to 0.94 (u), 0.64 to 1.03 (v), 0.65 to 1.06 (rho); max abs w over all particles exactly 0 in all five. |
+| T3 rigid rotation | pass | Regularization xi = 0: Theta alpha_z / c = +1.9999997 (lattice), +2.0000000 (jittered 0.1 dx); relative error max 8.2e-7 / 6.1e-7; a max 3.2e-8 m/s^2. Default xi = 0.001: +1.99823 (-8.9e-4), as predicted. |
+| T3 linear w_z | pass | xi = 0: a / c against curl w, relative error max 1.4e-6 (lattice), 1.5e-6 (jittered). Theta alpha + 2 c w = xi lap w: lattice 5.8e-5 of grad w / dx (rounding of the pair differences); jittered max 7.1e-2, rms 1.8e-2 of grad w / dx (not exact on disordered particles, as expected). Default xi: curl off by 8.9e-4. |
+| T3 sin(k x) | pass | lap w / (-k^2 w) = 0.975506, 0.979438, 0.980441 at dx = 4, 2, 1 mm (k h = 0.63, 0.31, 0.16): Richardson order 1.97, limit 0.980784, i.e. a constant factor -1.92 % from EPS_H_SQUARED = 0.0025 h^2. With EPS_H_SQUARED = 0: 0.994644, 0.998622, 0.999637, order 1.97, limit 0.999985. |
+| T4 relaxation | pass | 2 c dt / Theta = 0.005: after 100 / 300 steps w_z = 1.8218766 / 0.6685520 against the scheme's product 1.8218775 / 0.6685522 (max relative deviation 4.6e-7 / 2.9e-7, all particles, spread 0); against the exponential -1.244e-3 / -3.746e-3, equal to the expected first-order difference. v and w_x, w_y stay exactly 0. |
+| restart (not in the task list) | pass | 100 steps, state saved by `cavity_runner.read_restart_state` (eleven fields), restart in a new simulator, 100 more: 2.8e-7 from the uninterrupted product (a lost kick would be 5e-3); a nine-field state is refused. |
+| validation layer | clean | T3, T4 and the restart check ran with the Khronos validation layer on: no message. |
+
+### Bytes
+
+Per pool slot with micropolar on: +64 B (simple walls), +80 B (adami walls), as planned. Per link: nothing yet
+(Stage 2).
+
+### Surprises
+
+1. **The run-to-run floor is bimodal.** After 3,000 steps of the n = 250 cavity started from rest, repeats of one
+   build fall into two groups: within a group the sampled density differs by about 2e-4 kg/m^3 rms, between the
+   groups by about 1.5e-3 (max 1.5e-2). 2 of 10 base runs and 2 of 9 runs of this tree were in the second group. A
+   floor taken from one pair of repeats can therefore be 7 times too low; the comparison now takes the largest of
+   all pairs of ten reference repeats. I did not look for the cause (a property of `micropolar-base`).
+2. **Particles cannot be matched one to one after 3,000 steps**: between two repeats single particles near the lid
+   corners are up to 0.7 dx apart. The comparison is made on Shepard-sampled fields instead.
+3. **The angular diffusion carries the EPS_H_SQUARED factor**, -1.92 % at h / dx = 5: the effective xi is 0.981 xi
+   (the same mechanism that sets the effective viscosity). If the thesis comparisons need xi to better than 2 %,
+   the case can compensate or lower `epsilon_squared_factor`; I changed no default.
+4. The git-ignored cavity `.obj` files are absent from a fresh worktree; I copied the n250 / n500 / n1000 sets
+   from `vulkan-demo-bootstrap` into this worktree and into the base checkout `vulkan-demo-v9-base`.

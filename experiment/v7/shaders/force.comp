@@ -272,7 +272,6 @@ void process_particle(uint self_particle_id) {
                         * dot(position_difference_neighbor_to_self, kernel_gradient_corrected)
                         / (distance * distance + EPS_H_SQUARED);
 #endif
-
                     // ==== Particle shifting (PST) ===========================
                     // Gated by USE_PST spec const: glslc -O DCE-removes the entire
                     // block (including the kernel_value / kernel_value_at_delta_x

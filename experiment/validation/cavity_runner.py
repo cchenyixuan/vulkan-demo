@@ -182,9 +182,20 @@ class CachedStateReader:
         vkFreeMemory(device, self.staging.memory, None)
 
 
+def restart_field_layout(simulator_class, case) -> dict:
+    """The restart fields of ``case`` under ``simulator_class``: its nine RESTART_FIELD_LAYOUT fields, + the two
+    micropolar fields (angular_velocity, angular_acceleration) on a v7 case with physics.micropolar.enabled."""
+    layout = dict(simulator_class.RESTART_FIELD_LAYOUT)
+    if getattr(case.physics, "micropolar_enabled", False):
+        from experiment.v7.utils.simulator_v7 import MICROPOLAR_RESTART_FIELDS
+        layout.update(MICROPOLAR_RESTART_FIELDS)
+    return layout
+
+
 def read_restart_state(sim) -> dict:
-    """Alive own rows of the nine restart fields, density stored as on the GPU (restart_init converts)."""
-    layout = sim.RESTART_FIELD_LAYOUT
+    """Alive own rows of the restart fields (nine; eleven with the micropolar terms), density stored as on the GPU
+    (restart_init converts)."""
+    layout = restart_field_layout(type(sim), sim.case)
     raw = sim.readback_buffers_batch(list(layout), density="stored")
     capacities = sim.case.capacities
     pool_capacity = capacities.total_pool_capacity()
@@ -494,6 +505,22 @@ def main() -> int:
         if not np.isfinite(values).all():
             sys.exit(f"[cavity] --initial-velocity {velocity_path}: non-finite velocities")
         global_case.initial.velocities[fluid_rows, :2] = values
+        with np.load(velocity_path) as archive:
+            initial_spin = np.array(archive["angular_velocities"], dtype=np.float32) \
+                if "angular_velocities" in archive.files else None
+        if initial_spin is not None:
+            # micropolar: optional initial micro-rotation w_0 of the fluid rows, (rows, 3); every other particle
+            # keeps its material's prescribed wall_angular_velocity. Absent: w_0 = 0.
+            if not getattr(global_case.physics, "micropolar_enabled", False):
+                sys.exit(f"[cavity] --initial-velocity {velocity_path}: angular_velocities given, but the case has "
+                         "no physics.micropolar")
+            if initial_spin.shape != (fluid_rows.size, 3) or not np.isfinite(initial_spin).all():
+                sys.exit(f"[cavity] --initial-velocity {velocity_path}: angular_velocities must be finite, "
+                         f"shape ({fluid_rows.size}, 3)")
+            spin_rows = np.asarray([material.wall_angular_velocity for material in global_case.materials],
+                                   dtype=np.float32)[global_case.initial.material_group.astype(np.int64)]
+            spin_rows[fluid_rows] = initial_spin
+            global_case.initial.angular_velocities = spin_rows
         initial_velocity = {"file": str(velocity_path), "sha256": hashlib.sha256(velocity_path.read_bytes()).hexdigest(),
                             "rows": int(fluid_rows.size), "max_speed": float(np.sqrt((values ** 2).sum(axis=1)).max()),
                             **velocity_source}
@@ -503,12 +530,15 @@ def main() -> int:
         # t = 0 cuts): the state's positions / velocities / materials stand in for the initial condition from here on
         # (compute_chain_partition bins the fluid per column and sizes every slab's pool from them)
         start_from = load_start_state(pathlib.Path(arguments.start_from).resolve(), expected_total,
-                                      SphSimulator.RESTART_FIELD_LAYOUT, dt)
+                                      restart_field_layout(SphSimulator, global_case), dt)
         rows = start_from[0]
         global_case.initial = type(global_case.initial)(
             positions=np.ascontiguousarray(rows["position_voxel_id"][:, :3], dtype=np.float32),
             velocities=np.ascontiguousarray(rows["velocity_mass"][:, :3], dtype=np.float32),
             material_group=np.ascontiguousarray(rows["material"], dtype=np.uint32))
+        if "angular_velocity" in rows:                # micropolar: the state's w stands in for the initial one too
+            global_case.initial.angular_velocities = np.ascontiguousarray(rows["angular_velocity"][:, :3],
+                                                                          dtype=np.float32)
     chain = compute_chain_partition(global_case, weights, arguments.pool_safety)
     device_map = [int(item) for item in arguments.device_map.split(",")]
     if len(device_map) != arguments.slabs:

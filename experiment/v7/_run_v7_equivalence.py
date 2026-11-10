@@ -92,12 +92,14 @@ def run_config(global_case, slab_count: int, args) -> dict:
             for sim in sims:
                 sim.submit_defrag_and_wait()
 
-            masses, velocities, densities, positions = [], [], [], []
+            masses, velocities, densities, positions, angular_velocities = [], [], [], [], []
+            micropolar = bool(getattr(global_case.physics, "micropolar_enabled", False))
             for sim in sims:
                 capacities = sim.case.capacities
                 pool = capacities.total_pool_capacity()
                 raw = sim.readback_buffers_batch(
-                    ["position_voxel_id", "velocity_mass", "density_pressure"])
+                    ["position_voxel_id", "velocity_mass", "density_pressure"]
+                    + (["angular_velocity"] if micropolar else []))
                 position_voxel = np.frombuffer(
                     raw["position_voxel_id"], np.float32).reshape(pool, 4)
                 velocity_mass = np.frombuffer(
@@ -114,6 +116,11 @@ def run_config(global_case, slab_count: int, args) -> dict:
                     density_pressure[own, 0][alive].astype(np.float64))
                 positions.append(
                     position_voxel[own, 0:2][alive].astype(np.float64))
+                if micropolar:
+                    angular_velocity = np.frombuffer(
+                        raw["angular_velocity"], np.float32)[:pool * 4].reshape(pool, 4)
+                    angular_velocities.append(
+                        angular_velocity[own, 0:3][alive].astype(np.float64))
     finally:
         for sim in sims:
             sim.destroy()
@@ -124,7 +131,17 @@ def run_config(global_case, slab_count: int, args) -> dict:
     velocity = np.concatenate(velocities)
     density = np.concatenate(densities)
     position = np.concatenate(positions)
+    micropolar_metrics = {}
+    if angular_velocities:
+        # micropolar: mass-weighted mean micro-rotation about z and the micro-rotation "energy" sum m w^2 / 2
+        # (per unit micro-inertia), aggregates like the others
+        angular_velocity = np.concatenate(angular_velocities)
+        micropolar_metrics = {
+            "mean_angular_velocity_z": float((mass * angular_velocity[:, 2]).sum() / mass.sum()),
+            "angular_velocity_square_sum": float(0.5 * (mass * (angular_velocity ** 2).sum(1)).sum()),
+        }
     return {
+        **micropolar_metrics,
         "n": int(mass.shape[0]),
         "kinetic_energy": float(0.5 * (mass * (velocity ** 2).sum(1)).sum()),
         "momentum_x": float((mass * velocity[:, 0]).sum()),
