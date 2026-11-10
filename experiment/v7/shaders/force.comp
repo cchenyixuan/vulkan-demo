@@ -246,12 +246,26 @@ void process_particle(uint self_particle_id) {
                             && material_parameters[material[neighbor_particle_id]].kind == MATERIAL_BOUNDARY) {
                         viscous_neighbor_velocity = wall_dummy_velocity[neighbor_particle_id].xyz;
                     }
+#ifdef VISCOUS_LAPLACIAN
+                    // case.yaml numerics.viscous_form: laplacian (the force_laplacian variants): the
+                    // Brookshaw-Morris form 2 nu V_j v_ij (r_ij . G_ij) / (r_ij^2 + eps^2), the operator of
+                    // xi lap w. It approximates nu lap v only (no grad div v part), involves second moments of
+                    // the particle arrangement only (no lattice anisotropy), is not identically zero for a
+                    // rigid rotation on disordered particles and does not conserve angular momentum pairwise
+                    // (docs/viscous_operator_comparison.md).
+                    a_viscosity +=
+                        2.0 * viscosity_uniform * neighbor_volume_dynamic
+                        * (self_velocity - viscous_neighbor_velocity)
+                        * dot(position_difference_neighbor_to_self, kernel_gradient_corrected)
+                        / (distance * distance + EPS_H_SQUARED);
+#else
                     a_viscosity +=
                         morris_coefficient * viscosity_uniform * neighbor_volume_dynamic
                         * dot(self_velocity - viscous_neighbor_velocity,
                               position_difference_neighbor_to_self)
                         / (distance * distance + EPS_H_SQUARED)
                         * kernel_gradient_corrected;
+#endif
 
 #ifdef MICROPOLAR
                     // ==== Micropolar pair terms =============================

@@ -68,6 +68,10 @@ class PhysicsConstants:
 
 
 WALL_BOUNDARY_CHOICES = ("simple", "adami")     # case.yaml numerics.wall_boundary (E37)
+# case.yaml numerics.viscous_form: the discretization of nu lap v in force.comp (docs/viscous_operator_comparison.md).
+# monaghan_gingold (default): 2 (d + 2) nu V_j (v_ij . r_ij) / (r_ij^2 + eps^2) G_ij, the solver of paper 2.
+# laplacian: the Brookshaw-Morris form 2 nu V_j v_ij (r_ij . G_ij) / (r_ij^2 + eps^2) (force.comp -DVISCOUS_LAPLACIAN).
+VISCOUS_FORM_CHOICES = ("monaghan_gingold", "laplacian")
 
 
 @dataclass
@@ -93,6 +97,7 @@ class NumericsConstants:
     # E37: "simple" (the v6 walls) or "adami" (Adami et al. 2012 wall pressure + no-slip, walls store rho0;
     # one GPU only). Spec const 100 WALL_BOUNDARY, shaders/wall_boundary.glsl.
     wall_boundary: str = "simple"
+    viscous_form: str = "monaghan_gingold"         # VISCOUS_FORM_CHOICES; selects the force module, no spec constant
 
 
 @dataclass

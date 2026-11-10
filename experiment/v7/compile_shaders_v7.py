@@ -74,6 +74,11 @@ SHADER_VARIANTS = (
     ("ghost_send_lanes_micropolar", "ghost_send_lanes.comp", ("MICROPOLAR",)),
     ("expand_ghost_lists_micropolar", "expand_ghost_lists.comp", ("MICROPOLAR",)),
     ("install_migrations_micropolar", "install_migrations.comp", ("MICROPOLAR",)),
+    # case.yaml numerics.viscous_form: laplacian (docs/viscous_operator_comparison.md): the Brookshaw-Morris form of
+    # the viscous term in place of the Monaghan-Gingold one, Newtonian and micropolar. The default form loads the
+    # plain force / force_micropolar modules above.
+    ("force_laplacian", "force.comp", ("VISCOUS_LAPLACIAN",)),
+    ("force_micropolar_laplacian", "force.comp", ("MICROPOLAR", "VISCOUS_LAPLACIAN")),
 )
 
 

@@ -1,4 +1,4 @@
-SPIR-V manifest of experiment/v7/shaders/spv (branch v9-micropolar: the tag micropolar-base = v7-rc4 + the bootstrap fix + the v7-adami-multi tooling, + the micropolar terms, Stages 1 and 2: one slab and chains)
+SPIR-V manifest of experiment/v7/shaders/spv (branch v9-micropolar: the tag micropolar-base = v7-rc4 + the bootstrap fix + the v7-adami-multi tooling, + the micropolar terms, and numerics.viscous_form: laplacian)
 
 compiler: C:\VulkanSDK\1.4.350.0/Bin/glslc.exe; glslc --version:
   shaderc v2026.2 v2026.2
@@ -13,10 +13,10 @@ flags: glslc --target-env=vulkan1.2 -O [-D<macro>] -I experiment/v7/shaders expe
   with a fresh build)
 sources: experiment/v7/shaders/*.comp, *.glsl at the commit that adds this manifest;
   last change to a shader source before it: the micropolar terms (2026-11-10): #ifdef MICROPOLAR blocks in bootstrap_half_kick.comp, defrag.comp, expand_ghost_lists.comp, force.comp, ghost_send.comp, ghost_send_lanes.comp, install_migrations.comp, predict.comp, wall_extrapolate.comp, wall_extrapolate_band.comp, new micropolar.glsl
-check: every file below byte-identical to a fresh build with the compiler above (33 of 33);
+check: every file below byte-identical to a fresh build with the compiler above (35 of 35);
   every file of micropolar-base (23 of 23) byte-identical to that tag's (the Newtonian solver: a case without physics.micropolar
   loads only these); new against micropolar-base (loaded only by a case with physics.micropolar.enabled, instead of the plain module of the same kernel):
-  bootstrap_half_kick_micropolar, defrag_micropolar, expand_ghost_lists_micropolar, force_micropolar, ghost_send_lanes_micropolar, ghost_send_micropolar, install_migrations_micropolar, predict_micropolar, wall_extrapolate_band_micropolar, wall_extrapolate_micropolar
+  bootstrap_half_kick_micropolar, defrag_micropolar, expand_ghost_lists_micropolar, force_laplacian, force_micropolar, force_micropolar_laplacian, ghost_send_lanes_micropolar, ghost_send_micropolar, install_migrations_micropolar, predict_micropolar, wall_extrapolate_band_micropolar, wall_extrapolate_micropolar
 scope: the tracked compute SPIR-V only (spv/render/*.spv from shaders/render are not tracked). Nothing checks this
   manifest automatically; regenerate it with any shader change.
 
@@ -38,7 +38,9 @@ f5faeac0e14610d9944a6d92b5d974f259e8ff45f32c60c2fdcd409053e34a87    89468  corre
 4087617c2a4a14b5b49548572a4de96161c07af09ed9e5eeeaa042f117364a01     5068  expand_ghost_lists.comp.spv  (expand_ghost_lists.comp)
 746ac3c4ee33aa401a3c1cf6981589a8c5e91336432f45ae4eceac13d9972b68     5764  expand_ghost_lists_micropolar.comp.spv  (expand_ghost_lists.comp -DMICROPOLAR)
 3a635216025f245f7f11a3f5edc9d7120640e6df51c9b63021072cedd580f715    46776  force.comp.spv  (force.comp)
+937319ebad7f8c9abb616217a1e72a2c5f1eb3894d078c7c17158e4643c4a57e    46616  force_laplacian.comp.spv  (force.comp -DVISCOUS_LAPLACIAN)
 dc4af9bb8204a788717ad4a096090ba16a6b011c81207c48bcbaa055a7d9fa4a    54092  force_micropolar.comp.spv  (force.comp -DMICROPOLAR)
+732ce5119d721d557e3654f0792e09c8d830e55274e3eafd5d1ba23dc69a7710    53756  force_micropolar_laplacian.comp.spv  (force.comp -DMICROPOLAR -DVISCOUS_LAPLACIAN)
 faa772d587f1235af0fc03d5442a4fbf3f4cf0cb673d168043722a3ddfce750e    46828  force_segment.comp.spv  (force.comp -DFORCE_SEGMENT)
 0a73e65d75e2a6c6a140ca12812e748e04965fafcde81d4f20b1b543242a89be    19140  ghost_send.comp.spv  (ghost_send.comp)
 60e3eb2eba09588073f7a61d062537c6a7a303929fb73287d21acdf64a602c03    21668  ghost_send_lanes.comp.spv  (ghost_send_lanes.comp)

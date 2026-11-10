@@ -160,7 +160,8 @@ V7_ONLY_FIELDS = {"departed_pool_size", "replica_region_size", "ghost_layers",
                   "wall_boundary",          # E37 numerics option (v6 only)
                   "chain_own_particle_counts",      # E39 B3 chain metadata of a slab case (v7 only)
                   # micropolar terms (v7 only): physics switch + Theta, the wall value, the optional initial w
-                  "micropolar_enabled", "micro_inertia", "wall_angular_velocity", "angular_velocities"}
+                  "micropolar_enabled", "micro_inertia", "wall_angular_velocity", "angular_velocities",
+                  "viscous_form"}           # numerics option of the viscous term's discretization (v7 only)
 
 
 def _strip_v7_only(tree):
@@ -1604,7 +1605,9 @@ MICROPOLAR_ADDED_SPIRV = frozenset({
     "predict_micropolar.comp.spv", "bootstrap_half_kick_micropolar.comp.spv", "force_micropolar.comp.spv",
     "wall_extrapolate_micropolar.comp.spv", "wall_extrapolate_band_micropolar.comp.spv",
     "defrag_micropolar.comp.spv", "ghost_send_micropolar.comp.spv", "ghost_send_lanes_micropolar.comp.spv",
-    "expand_ghost_lists_micropolar.comp.spv", "install_migrations_micropolar.comp.spv"})
+    "expand_ghost_lists_micropolar.comp.spv", "install_migrations_micropolar.comp.spv",
+    # numerics.viscous_form: laplacian (force.comp -DVISCOUS_LAPLACIAN)
+    "force_laplacian.comp.spv", "force_micropolar_laplacian.comp.spv"})
 
 
 def _without_micropolar_blocks_bytes(source: bytes) -> bytes:
@@ -1621,6 +1624,43 @@ def _without_micropolar_blocks_bytes(source: bytes) -> bytes:
             continue
         kept.append(line)
     return b"\n".join(kept)
+
+
+def _plain_build_text(text: str) -> str:
+    """A shader source as its plain build sees it, as far as the two option macros go: the #ifdef MICROPOLAR
+    blocks removed, and of every #ifdef VISCOUS_LAPLACIAN ... #else ... #endif the #else branch kept. Raises on a
+    nested or unterminated block."""
+    kept, state = [], None                    # None | "micropolar" | "laplacian" | "laplacian_else"
+    for line in text.replace("\r\n", "\n").split("\n"):
+        stripped = line.strip()
+        if state is None:
+            if stripped == "#ifdef MICROPOLAR":
+                state = "micropolar"
+            elif stripped == "#ifdef VISCOUS_LAPLACIAN":
+                state = "laplacian"
+            else:
+                kept.append(line)
+            continue
+        if stripped.startswith(("#if", "#elif")):
+            raise ValueError("nested preprocessor branch inside an option block")
+        if state == "micropolar":
+            if stripped == "#else":
+                raise ValueError("#else inside an #ifdef MICROPOLAR block")
+            if stripped == "#endif":
+                state = None
+        elif state == "laplacian":
+            if stripped == "#else":
+                state = "laplacian_else"
+            elif stripped == "#endif":
+                raise ValueError("#ifdef VISCOUS_LAPLACIAN without #else")
+        else:
+            if stripped == "#endif":
+                state = None
+            else:
+                kept.append(line)
+    if state is not None:
+        raise ValueError("unterminated option block")
+    return "\n".join(kept)
 
 
 def _without_bootstrap_density_copy(source: str, origin: str) -> str:
@@ -4136,7 +4176,8 @@ def check_adami_chain(failures: list) -> None:
         # in #ifdef MICROPOLAR blocks, which the plain build does not see (its SPIR-V is still rc2's)
         rc2_wall = subprocess.run(["git", "show", "v7-rc2:experiment/v7/shaders/wall_extrapolate.comp"],
                                   cwd=_REPO_ROOT, capture_output=True).stdout
-        current_wall = _without_micropolar_blocks_bytes((shader_directory / "wall_extrapolate.comp").read_bytes())
+        current_wall = _plain_build_text((shader_directory / "wall_extrapolate.comp").read_bytes().decode(
+            "utf-8")).encode("utf-8")
         if rc2_wall and rc2_wall.replace(b"\r\n", b"\n") != current_wall:
             failures.append("wall_extrapolate.comp differs from v7-rc2's (the K = 1 kernel must stay rc2's)")
         if "return (GHOST_LAYERS >= 2u) ? GHOST_LAYERS * REPLICA_REGION_SIZE : 0u;" not in texts["helpers.glsl"]:
@@ -4482,12 +4523,50 @@ def check_micropolar(failures: list) -> None:
 
         variant_sources = {source for name, source, macros in compile_shaders_v7.SHADER_VARIANTS
                            if "MICROPOLAR" in macros}
-        variant_names = {name for name, source, macros in compile_shaders_v7.SHADER_VARIANTS if "MICROPOLAR" in macros}
+        variant_names = {name for name, source, macros in compile_shaders_v7.SHADER_VARIANTS
+                         if macros == ("MICROPOLAR",)}
         if variant_names != {f"{name}_micropolar" for name in simulator_v7.MICROPOLAR_SHADER_MODULES}:
             failures.append(f"micropolar: SHADER_VARIANTS {sorted(variant_names)} != the simulator's module set")
-        if any(macros != ("MICROPOLAR",) or name != source[:-len(".comp")] + "_micropolar"
-               for name, source, macros in compile_shaders_v7.SHADER_VARIANTS if "MICROPOLAR" in macros):
+        if any(name != source[:-len(".comp")] + "_micropolar"
+               for name, source, macros in compile_shaders_v7.SHADER_VARIANTS if macros == ("MICROPOLAR",)):
             failures.append("micropolar: a MICROPOLAR variant is not (<kernel>_micropolar, <kernel>.comp, (MICROPOLAR,))")
+        # numerics.viscous_form: laplacian = two more variants of force.comp and nothing else
+        laplacian_variants = sorted((name, source, macros) for name, source, macros
+                                    in compile_shaders_v7.SHADER_VARIANTS if "VISCOUS_LAPLACIAN" in macros)
+        if laplacian_variants != [("force_laplacian", "force.comp", ("VISCOUS_LAPLACIAN",)),
+                                  ("force_micropolar_laplacian", "force.comp", ("MICROPOLAR", "VISCOUS_LAPLACIAN"))]:
+            failures.append(f"viscous_form: VISCOUS_LAPLACIAN variants {laplacian_variants}")
+        for label, slab in slabs:
+            for micropolar_on in (False, True):
+                base_case = with_micropolar(slab) if micropolar_on else slab
+                default_form = fake(simulator_v7, base_case)
+                laplacian = fake(simulator_v7, dataclasses.replace(base_case, numerics=dataclasses.replace(
+                    base_case.numerics, viscous_form="laplacian")))
+                expected_module = "force_micropolar_laplacian" if micropolar_on else "force_laplacian"
+                if (laplacian._shader_module_file_name("force") != expected_module
+                        or default_form._shader_module_file_name("force")
+                        != ("force_micropolar" if micropolar_on else "force")):
+                    failures.append(f"viscous_form {label}: force module "
+                                    f"{laplacian._shader_module_file_name('force')}")
+                others = [name for name in ("predict", "correction", "density", "correction_density",
+                                            "wall_extrapolate", "wall_extrapolate_band", "defrag", "ghost_send",
+                                            "ghost_send_lanes", "expand_ghost_lists", "install_migrations",
+                                            "bootstrap_half_kick", "force_segment")
+                          if laplacian._shader_module_file_name(name) != default_form._shader_module_file_name(name)]
+                if others:
+                    failures.append(f"viscous_form {label}: laplacian changes modules {others}")
+                if (spec_rows(laplacian) != spec_rows(default_form)
+                        or laplacian._global_entries() != default_form._global_entries()
+                        or laplacian._defrag_set0_bindings() != default_form._defrag_set0_bindings()
+                        or any(segment_rows(laplacian, direction) != segment_rows(default_form, direction)
+                               for direction in ("leading", "trailing"))):
+                    failures.append(f"viscous_form {label}: laplacian changes buffers, spec entries or segments")
+        force_source = (shader_directory / "force.comp").read_text(encoding="utf-8")
+        if force_source.count("#ifdef VISCOUS_LAPLACIAN") != 1 or force_source.count(
+                "* (self_velocity - viscous_neighbor_velocity)\n                        "
+                "* dot(position_difference_neighbor_to_self, kernel_gradient_corrected)\n                        "
+                "/ (distance * distance + EPS_H_SQUARED);") != 1:
+            failures.append("force.comp: the VISCOUS_LAPLACIAN statement is not found once")
         for source in sorted(shader_directory.glob("*.comp")) + sorted(shader_directory.glob("*.glsl")):
             text = source.read_text(encoding="utf-8")
             uses = "MICROPOLAR" in text.replace("MICROPOLAR_THETA", "")
@@ -4504,7 +4583,7 @@ def check_micropolar(failures: list) -> None:
             if shown.returncode != 0:
                 continue
             try:
-                stripped = without_micropolar_blocks(text)
+                stripped = _plain_build_text(text)
             except ValueError as error:
                 failures.append(f"micropolar: {source.name}: {error}")
                 continue

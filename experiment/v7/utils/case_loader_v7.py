@@ -34,6 +34,7 @@ from experiment.v7.utils.case_v7 import (
     InitialParticles,
     KIND_BOUNDARY,
     KIND_FLUID,
+    VISCOUS_FORM_CHOICES,
     KIND_INLET,
     KIND_ROTOR,
     MaterialParameter,
@@ -482,7 +483,12 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
         # E37 wall boundary option: simple (the v6 walls, default) or adami (Adami et al. 2012 wall pressure +
         # no-slip, walls store rho0; one GPU only). Optional key.
         wall_boundary=str(nm.get("wall_boundary", "simple")),
+        # the viscous term's discretization (optional key; default = the Monaghan-Gingold form of paper 2)
+        viscous_form=str(nm.get("viscous_form", "monaghan_gingold")),
     )
+    if numerics.viscous_form not in VISCOUS_FORM_CHOICES:
+        raise ValueError(f"numerics.viscous_form: {numerics.viscous_form!r}, expected one of "
+                         f"{', '.join(VISCOUS_FORM_CHOICES)}")
     if numerics.wall_boundary not in WALL_BOUNDARY_CHOICES:
         raise ValueError(f"numerics.wall_boundary: {numerics.wall_boundary!r}, expected one of "
                          f"{', '.join(WALL_BOUNDARY_CHOICES)}")

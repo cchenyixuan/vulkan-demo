@@ -874,6 +874,13 @@ class SphSimulatorV7:
             print(f"[SimV7] micropolar terms on: Theta = {case.physics.micro_inertia:.6g} m^2, modules "
                   f"{', '.join(sorted(name + '_micropolar' for name in MICROPOLAR_SHADER_MODULES))}")
 
+        if self._viscous_laplacian:
+            if _BAND_OVERLAP != "0":
+                raise ValueError("numerics.viscous_form: laplacian is not supported with V7_BAND_OVERLAP (no "
+                                 "FORCE_SEGMENT variant of the laplacian force module)")
+            print(f"[SimV7] numerics.viscous_form = laplacian: force module "
+                  f"{self._shader_module_file_name('force')}")
+
         # Keep-alive bag for cffi cdata referenced by VkSpecializationInfo.
         # Python GC would otherwise free the cdata before pipeline creation.
         # Must be initialized BEFORE pipeline build (which calls _make_spec_info).
@@ -1020,6 +1027,12 @@ class SphSimulatorV7:
         """case.yaml physics.micropolar.enabled. Read from the case, as _wall_adami."""
         return bool(getattr(self.case.physics, "micropolar_enabled", False))
 
+    @property
+    def _viscous_laplacian(self) -> bool:
+        """case.yaml numerics.viscous_form == laplacian (the Brookshaw-Morris form of the viscous term: another
+        force module, the same buffers, spec constants and recordings). Read from the case, as _wall_adami."""
+        return getattr(self.case.numerics, "viscous_form", "monaghan_gingold") == "laplacian"
+
     def _defrag_set0_bindings(self) -> tuple[int, ...]:
         """Set 0 bindings defrag permutes (scratch twin, set 4 binding, fill and copy-back): the nine of
         DEFRAG_SET0_BINDINGS, + angular_velocity / angular_acceleration with the micropolar terms."""
@@ -1030,9 +1043,13 @@ class SphSimulatorV7:
     def _shader_module_file_name(self, shader_name: str) -> str:
         """The .comp.spv stem of a shader module key: the kernel's MICROPOLAR variant on a micropolar case, the
         plain module otherwise. The module keys, and with them every pipeline key and recording, are shared."""
+        file_name = shader_name
         if self._micropolar and shader_name in MICROPOLAR_SHADER_MODULES:
-            return f"{shader_name}_micropolar"
-        return shader_name
+            file_name = f"{shader_name}_micropolar"
+        if shader_name == "force" and self._viscous_laplacian:
+            # numerics.viscous_form: laplacian -> force_laplacian / force_micropolar_laplacian
+            file_name = f"{file_name}_laplacian"
+        return file_name
 
     def _micropolar_replica_layers(self) -> int:
         """Replica layers, from the inner one, whose angular_velocity travels (spec const 116): the layers whose
