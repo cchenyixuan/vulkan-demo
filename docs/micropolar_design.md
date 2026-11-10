@@ -2,7 +2,7 @@
 
 Branch `v9-micropolar`, base tag `micropolar-base` = ab50c10 (merge of `origin/bootstrap-density-fix` eda5b90 and
 `origin/v7-adami-multi` 8c33192). Sections 0 to 7 are the Stage 0 plan, with the decisions of 2026-11-10 entered in
-Section 2; Section 8 is the Stage 1 report (one slab).
+Section 2; Section 8 is the Stage 1 report (one slab), Section 9 the Stage 2 report (chains).
 
 Marked **[read]** = inferred from reading the code, **[run]** = verified by running on this machine.
 
@@ -308,3 +308,92 @@ Per pool slot with micropolar on: +64 B (simple walls), +80 B (adami walls), as 
    the case can compensate or lower `epsilon_squared_factor`; I changed no default.
 4. The git-ignored cavity `.obj` files are absent from a fresh worktree; I copied the n250 / n500 / n1000 sets
    from `vulkan-demo-bootstrap` into this worktree and into the base checkout `vulkan-demo-v9-base`.
+
+## 9. Stage 2 report (chains, 2026-11-10)
+
+Run on this machine: RTX 5090 (device 0) and RX 7900 XTX (device 1). K = 2 was run two ways: on the pair
+(cross-vendor, device map 0,1) and with both slabs on the 5090 (device map 0,0), which separates the seam from the
+second card's rounding. Logs and dumps: `logs/micropolar/` (not tracked).
+
+### What changed
+
+- Shaders: MICROPOLAR blocks in `ghost_send`, `ghost_send_lanes`, `expand_ghost_lists`, `install_migrations` (four
+  more variants, ten in all) and the packed w helpers in `micropolar.glsl`.
+- Host (`simulator_v7.py`): spec 116 = ghost layers - 1 on a slab with a peer; the w block of `ghost_packed_words`
+  and one transport segment per w layer and direction; `angular_velocity` in the migrant region's segments and
+  CONCURRENT; micropolar with a peer refuses every transport layout but the release one.
+- Tests: `micropolar_tests.py seam / advection / cavity / cavity-compare`; `check_micropolar` covers the link
+  layout.
+
+### Seam, as built **[run]** unless marked
+
+- Band widths unchanged: 2 / 2 / 3 (simple), 2 / 2 / 4 with wall band 3 (adami). No recording changed: the
+  micropolar slab binds the same pipeline keys in the same order.
+- w layers: G1 (simple chain), G1 + G2 (adami chain); G3 never. Departed copies and migrants carry w; alpha does
+  not travel.
+- Bytes per link and step, n = 250 cavity, K = 2 (R = 1,819, M = 64, 1,365 replicas per layer, 112 / 168 ghost
+  voxels), measured from the segments and the counters after 2,000 steps; they equal the Section 5.2 formula:
+
+| chain | host copy, Newtonian | host copy, micropolar | DMA, Newtonian | DMA, micropolar |
+|---|---|---|---|---|
+| simple (2 layers) | 88,272 B | 104,652 B (+18.6 %) | 120,144 B | 142,996 B |
+| adami (3 layers) | 132,436 B | 165,196 B (+24.7 %) | 178,804 B | 223,484 B |
+
+### Tests
+
+| test | result | measured |
+|---|---|---|
+| T0 build | pass | 23 of 23 base SPIR-V files byte-identical, 10 new, `MANIFEST.txt` regenerated (33). `_test_seam_layout.py`: 858 failures, the base's set (sorted diff empty). `_test_chain_cuts.py` ALL PASS. `_test_partition_chain.py`: 3,093 passed, 2 failed, the same two on `micropolar-base` (minimum slab width). |
+| T1 Newtonian, K = 2 (5090 + XTX) | pass | 3,000 steps. 40 repeats of `micropolar-base` (780 pairs): pair rms u 2.1e-5 to 2.1e-4, v 2.7e-5 to 2.0e-4, rho 4.8e-5 to 1.9e-3. 30 runs of this tree against all 40: largest rms / largest base pair rms 0.67 to 1.01 (u), 0.68 to 1.01 (v), 0.60 to 1.00 (rho). Runs in the far group (rho rms above 1e-3 to the first base run): base 4 of 39, this tree 6 of 30. |
+| T2 null coupling, K = 2 | pass | Five runs: ratios 0.74 to 0.92 (u), 0.86 to 0.94 (v), 0.78 to 0.94 (rho); max abs w exactly 0. |
+| seam, K = 2 against K = 1 per particle (not in the task list) | pass | Prescribed smooth v, w and non-zero wall values on the T5 cavity; particles matched by position. After the bootstrap force: acceleration and angular_acceleration differ by 1.0e-7 to 1.5e-7 rms (max 5e-6) of the field rms near the cut, the same as a K = 1 repeat (0.9e-7 to 1.1e-7), simple and adami. After 20 steps, K = 2 on one card: acceleration 1.5e-5 near the cut against 1.2e-5 to 1.3e-5 for the K = 1 repeat; angular_acceleration 1.3e-6 to 1.6e-6 against 1.0e-6 to 1.4e-6; adami wall dummy micro-rotation 4.2e-8 against 3.7e-8. On the pair the acceleration differs by 7e-5 to 9e-5, which is what a K = 1 run on the XTX gives (9e-5 to 1.2e-4): the second card's rounding, not the seam. |
+| migrants (not in the task list) | pass | Jittered fluid block with uniform w crossing the cut at 1 m/s, 1,400 steps: 935 particles changed slab, count conserved, all counters zero, every particle's w within 1.3e-6 of the relaxation product (one lost kick would be 5e-4, a lost w would be 1). Validation layer on, both cards: no message. |
+| T5 micropolar cavity | equal within the K = 1 repeat scatter; four digits not reached by either | See below. |
+
+### T5
+
+`cases/micropolar_cavity_n250_re400`, 1,340,000 steps (t = 40.2), centreline profiles sampled every 5,000 steps
+(Shepard, radius h, 201 points), mean over the last 5 time units (34 samples). Particle count conserved at every
+sample and all overflow / far-migration / stamp counters zero in the four runs. Speeds: K = 1 2,715 and 2,827
+steps/s, K = 2 on the pair 1,610, K = 2 on one card 776.
+
+| extremum | K = 1 (a) | K = 1 (b) | K = 2, 5090 + XTX | K = 2, one card |
+|---|---|---|---|---|
+| min u on x = 0 | -0.403434 | -0.403518 | -0.403522 | -0.403503 |
+| min v on y = 0 | -0.526033 | -0.525978 | -0.525906 | -0.526069 |
+| max v on y = 0 | 0.383100 | 0.383141 | 0.383109 | 0.383137 |
+| min w_z on x = 0 | -2.107771 | -2.107946 | -2.108683 | -2.108489 |
+| max w_z on x = 0 | 0.817413 | 0.816826 | 0.816659 | 0.817163 |
+| min w_z on y = 0 | -1.646534 | -1.646742 | -1.646443 | -1.646564 |
+| max w_z on y = 0 | 1.768059 | 1.768169 | 1.767883 | 1.768479 |
+
+Relative differences to K = 1 (a): the K = 1 repeat 6e-5 to 7e-4, K = 2 on the pair 3e-5 to 9e-4, K = 2 on one
+card 2e-5 to 3e-4. Profile differences (max over the 201 points): u and v 1.6e-4 to 3.4e-4 for all three, w
+1.0e-3 to 4.2e-3, against a standard error of the window mean of 1e-4 (u, v) and 1e-3 to 2e-3 (w).
+
+Reading: K = 2 agrees with K = 1 as well as K = 1 agrees with itself; the values agree to three digits and
+differ in the fourth. Four digits are not reached, for two reasons that are the same for K = 1: the flow is not
+steady at t = 40 (the window mean still moves by up to 1e-3 relative between the last two windows), and the
+sampling noise of a 5-unit window is 1e-4 in u, v and 1e-3 in w. Reaching four digits needs the method of
+paper 2's correctness section: a K = 2 continuation from the K = 1 checkpoint and a longer window, on a finer
+case. The runner's eleven-field checkpoints support that; I did not run it.
+
+### Not run
+
+- Same-vendor K = 2 on two cards (one 5090 here); K = 2 on one card stands in for it in the seam test and T5.
+- K > 2, and anything in 3-D: the kernels and the layout are dimension independent, `check_micropolar` covers the
+  2-D layout only, and no test exercises w_x, w_y.
+- The legacy transport layouts with micropolar (refused at start-up, D3).
+
+### Surprises
+
+1. The bimodal run-to-run floor of Section 8 also shows at K = 2, and ten repeats were not enough to sample it:
+   the first K = 2 comparison failed on a floor of ten base repeats that all fell in the near group.
+2. Cross-vendor rounding is visible per particle after 20 steps (about 1e-4 of the acceleration rms), six times
+   the same-card repeat floor. It is not a seam effect: a K = 1 run on the XTX shows it.
+3. A lattice-aligned block crossing the cut sends a whole lattice line in one step (101 migrants against a
+   migrant region of 64): the link overflows and counts it. This is the base behaviour and only concerns
+   synthetic tests; the advection test jitters the block.
+4. The wall dummy buffers cannot be read back meaningfully right after a defrag (they are not permuted, by
+   design); the seam test compares them after steps only.
+5. `_test_partition_chain.py` and two more cases need git-ignored `.obj` files; copied from the main worktree.

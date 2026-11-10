@@ -56,7 +56,7 @@ Multi-GPU ghost handling and inlet/outlet kernels are deferred (V0+ work). `defr
 | `force.comp` | Stage 5 — pressure + viscosity + gravity + PST shift. |
 | `wall_extrapolate.comp` | E37 (`numerics.wall_boundary: adami`): the Adami wall pass between density and force (wall pressure + dummy velocity from the fluid neighbours); every slab without a peer (K = 1), the kernel of v7-rc2 byte for byte. |
 | `wall_extrapolate_band.comp` | E40: the same computation with the interior / boundary-band modes and the band-voxel dispatch, for an adami slab with a peer (three-layer ghost, `partition_v7.chain_ghost_layers`): the interior pass in phase B, the band pass + the inner ghost column as self in phase C. |
-| `micropolar.glsl` | The micropolar terms (case.yaml `physics.micropolar`, `docs/micropolar_design.md`): the model, set 0 bindings 12 `angular_velocity` / 13 `angular_acceleration` / 14 `wall_dummy_angular_velocity`, spec constant 116. Included only under `#ifdef MICROPOLAR`, i.e. by the `<kernel>_micropolar` variants of `compile_shaders_v7.py` (`predict`, `bootstrap_half_kick`, `force`, `wall_extrapolate`, `wall_extrapolate_band`, `defrag`), which a micropolar case loads instead of the plain modules. The plain modules are the Newtonian solver and do not change. |
+| `micropolar.glsl` | The micropolar terms (case.yaml `physics.micropolar`, `docs/micropolar_design.md`): the model, set 0 bindings 12 `angular_velocity` / 13 `angular_acceleration` / 14 `wall_dummy_angular_velocity`, spec constant 116. Included only under `#ifdef MICROPOLAR`, i.e. by the `<kernel>_micropolar` variants of `compile_shaders_v7.py` (`predict`, `bootstrap_half_kick`, `force`, `wall_extrapolate`, `wall_extrapolate_band`, `defrag`, and for the link `ghost_send`, `ghost_send_lanes`, `expand_ghost_lists`, `install_migrations`), which a micropolar case loads instead of the plain modules. Over a link `angular_velocity` travels as three words per replica of the layers recomputed as self (a block of `ghost_packed_words` after the replica records), in the migrant packet (44 -> 60 B) and in the departed copies; `angular_acceleration` does not travel. The plain modules are the Newtonian solver and do not change. |
 | `_test_common.comp` | Smoke test: empty kernel including `common.glsl`, used to detect regressions in bindings/spec constants. |
 
 Compiled `.spv` artifacts coexist alongside source. Build via
@@ -148,6 +148,7 @@ Micropolar variants only (`<kernel>_micropolar`; no such buffer exists on a Newt
 | Buffer (set 0) | bootstrap | predict | wall pass (adami) | force | defrag |
 |---|---|---|---|---|---|
 | `angular_velocity` (binding 12) | R/W (fluid) | R/W (fluid) | R (self wall, fluid neighbours) | R (self, neighbours) | permuted |
+| | ghost_send: R (own), W (migrant slot, departed copy) | expand_ghost_lists: W (replica slots of the w layers) | install_migrations: R/W (migrant slot -> own slot) | | |
 | `angular_acceleration` (binding 13) | R | R | — | W | permuted |
 | `wall_dummy_angular_velocity` (binding 14) | — | — | W (walls) | R (wall neighbours, adami) | — |
 
