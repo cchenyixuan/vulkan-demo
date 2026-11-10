@@ -1,0 +1,47 @@
+# ============================================================================
+# Materials of the micropolar cases (docs/micropolar_design.md). Same schema as
+# standard.yaml, plus the micropolar keys:
+#
+#   viscosity_transfer:     nu_t [m^2/s], fluid. May be negative. The coupling
+#                           coefficient is c = viscosity + viscosity_transfer
+#                           (= kappa / rho in Eringen's notation, viscosity =
+#                           (mu + kappa) / rho); c >= 0 is required.
+#   viscosity_rotation:     xi [m^4/s], fluid: the angular viscosity (= gamma / rho).
+#   wall_angular_velocity:  [w_x, w_y, w_z] 1/s, boundary: the prescribed
+#                           micro-rotation of the wall. Default [0, 0, 0] (no spin).
+#
+# The micro-inertia Theta is a case key: physics.micropolar.micro_inertia.
+# The keys are read for every case but only a case with
+# physics.micropolar.enabled uses them.
+# ============================================================================
+schema_version: 1
+
+# T2 (null coupling): the Re 1000 cavity fluid of standard.yaml's stick_water with c = 0 and xi = 0.
+micropolar_null_water:
+  kind: fluid
+  rest_density: 1000.0
+  viscosity: 1.0e-3
+  viscosity_transfer: -1.0e-3
+  viscosity_rotation: 0.0
+
+# T5 (K = 1 against K = 2 smoke configuration, not a published comparison): Re = 400 on mu + kappa,
+# kappa / mu = 3 (nu_t = -0.25 nu, c = 0.75 nu), xi = l^2 c (2 nu - c) / nu with l = 0.04 m.
+micropolar_water_re400:
+  kind: fluid
+  rest_density: 1000.0
+  viscosity: 2.5e-3
+  viscosity_transfer: -0.625e-3
+  viscosity_rotation: 3.75e-6
+
+stick_wall:
+  kind: boundary
+  rest_density: 1000.0
+  viscosity: 1.0e-3
+  wall_angular_velocity: [0.0, 0.0, 0.0]
+
+stick_lid:
+  kind: boundary
+  rest_density: 1000.0
+  viscosity: 1.0e-3
+  initial_velocity: [1.0, 0.0, 0.0]
+  wall_angular_velocity: [0.0, 0.0, 0.0]

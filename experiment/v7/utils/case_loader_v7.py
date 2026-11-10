@@ -267,6 +267,12 @@ def _resolve_materials(
             diameter = 2.0 * particle_radius
             volume = diameter ** dimension
         initial_velocity = tuple(spec.get("initial_velocity", [0.0, 0.0, 0.0]))
+        wall_angular_velocity = tuple(float(value) for value in spec.get("wall_angular_velocity", [0.0, 0.0, 0.0]))
+        if len(wall_angular_velocity) != 3:
+            raise ValueError(f"material {name!r}: wall_angular_velocity needs three components")
+        if any(wall_angular_velocity) and kind_name != "boundary":
+            raise ValueError(f"material {name!r}: wall_angular_velocity is the prescribed micro-rotation of a "
+                             f"boundary material, not of kind {kind_name!r}")
         result.append(MaterialParameter(
             kind=kind,
             rest_density=rest_density,
@@ -276,11 +282,84 @@ def _resolve_materials(
             radius=particle_radius,
             volume=volume,
             rotor_angular_velocity=float(spec.get("rotor_angular_velocity", 0.0)),
+            viscosity_transfer=float(spec.get("viscosity_transfer", 0.0)),
+            viscosity_rotation=float(spec.get("viscosity_rotation", 0.0)),
             initial_velocity=(float(initial_velocity[0]),
                               float(initial_velocity[1]),
                               float(initial_velocity[2])),
+            wall_angular_velocity=wall_angular_velocity,
         ))
     return result
+
+
+MICROPOLAR_STEP_NUMBER_WARNING = 0.1
+
+
+def micropolar_coefficient_report(material_name: str, viscosity: float, viscosity_transfer: float,
+                                  viscosity_rotation: float, micro_inertia: float, timestep: float,
+                                  particle_spacing: float) -> dict:
+    """The micropolar coefficients of one fluid material in float64: c = nu + nu_t, Eringen's groups, the
+    admissible range 0 <= c <= 2 nu and the four explicit step numbers (docs/micropolar_design.md). Raises on
+    c < 0, xi < 0, Theta <= 0. dt is never changed here; a step number above MICROPOLAR_STEP_NUMBER_WARNING is
+    listed in "warnings"."""
+    coupling = viscosity + viscosity_transfer
+    if micro_inertia <= 0.0:
+        raise ValueError(f"physics.micropolar.micro_inertia = {micro_inertia}: Theta must be > 0")
+    if coupling < 0.0:
+        raise ValueError(f"material {material_name!r}: c = viscosity + viscosity_transfer = {coupling} < 0")
+    if viscosity_rotation < 0.0:
+        raise ValueError(f"material {material_name!r}: viscosity_rotation = {viscosity_rotation} < 0")
+    report = {
+        "material": material_name, "viscosity": viscosity, "viscosity_transfer": viscosity_transfer,
+        "coupling_coefficient": coupling, "viscosity_rotation": viscosity_rotation, "micro_inertia": micro_inertia,
+        # Eringen: mu + kappa = rho nu, kappa = rho c, gamma = rho xi, j = Theta
+        "eringen_kappa_over_mu": coupling / (viscosity - coupling) if viscosity != coupling else None,
+        "coupling_number_squared": (coupling / (2.0 * viscosity - coupling)
+                                    if 2.0 * viscosity != coupling else None),
+        "characteristic_length_squared": (viscosity_rotation * viscosity / (coupling * (2.0 * viscosity - coupling))
+                                          if coupling * (2.0 * viscosity - coupling) != 0.0 else None),
+        "admissible": 0.0 <= coupling <= 2.0 * viscosity,
+        # c > 2 nu: transverse modes with k^2 < c (c - 2 nu) / (nu xi) grow in the continuous model
+        "shortest_growing_wavelength": None,
+        "step_numbers": {
+            "viscous": viscosity * timestep / particle_spacing ** 2,
+            "angular_diffusion": viscosity_rotation / micro_inertia * timestep / particle_spacing ** 2,
+            "relaxation": 2.0 * coupling * timestep / micro_inertia,
+            "coupling": coupling * timestep / (micro_inertia ** 0.5 * particle_spacing),
+        },
+    }
+    if coupling > 2.0 * viscosity:
+        report["shortest_growing_wavelength"] = (
+            2.0 * np.pi * (viscosity * viscosity_rotation / (coupling * (coupling - 2.0 * viscosity))) ** 0.5)
+    report["warnings"] = [name for name, value in report["step_numbers"].items()
+                          if value > MICROPOLAR_STEP_NUMBER_WARNING]
+    return report
+
+
+def _print_micropolar_report(report: dict) -> None:
+    def text(value) -> str:
+        return "undefined" if value is None else f"{value:.6g}"
+    print(f"[case_loader_v7] micropolar, material {report['material']}: nu = {report['viscosity']:.6g}, "
+          f"nu_t = {report['viscosity_transfer']:.6g}, c = nu + nu_t = {report['coupling_coefficient']:.6g} m^2/s, "
+          f"xi = {report['viscosity_rotation']:.6g} m^4/s, Theta = {report['micro_inertia']:.6g} m^2")
+    print(f"[case_loader_v7]   Eringen: K = kappa/mu = c/(nu - c) = {text(report['eringen_kappa_over_mu'])}, "
+          f"N_c^2 = c/(2 nu - c) = {text(report['coupling_number_squared'])}, "
+          f"l^2 = xi nu/(c (2 nu - c)) = {text(report['characteristic_length_squared'])} m^2")
+    if report["admissible"]:
+        print("[case_loader_v7]   0 <= c <= 2 nu: inside the thermodynamically admissible range")
+    else:
+        wavelength = report["shortest_growing_wavelength"]
+        growing = ("every wavelength grows (xi = 0)" if wavelength == 0.0
+                   else f"transverse modes longer than {wavelength:.6g} m grow")
+        print(f"[case_loader_v7]   c > 2 nu: OUTSIDE the thermodynamically admissible range (run allowed); in the "
+              f"continuous model {growing}")
+    numbers = report["step_numbers"]
+    print(f"[case_loader_v7]   step numbers: nu dt/dx^2 = {numbers['viscous']:.4g}, (xi/Theta) dt/dx^2 = "
+          f"{numbers['angular_diffusion']:.4g}, 2 c dt/Theta = {numbers['relaxation']:.4g}, "
+          f"c dt/(sqrt(Theta) dx) = {numbers['coupling']:.4g}")
+    for name in report["warnings"]:
+        print(f"[case_loader_v7]   WARNING: the {name} step number {numbers[name]:.4g} is above "
+              f"{MICROPOLAR_STEP_NUMBER_WARNING} (dt is the acoustic step and is not changed)")
 
 
 # ============================================================================
@@ -348,6 +427,16 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
         raise ValueError(
             f"physics.lattice must be 'grid' or 'hex', got {lattice!r}")
     calibrate_volume = bool(phys.get("calibrate_volume", True))
+    # Micropolar terms (optional block; absent = off, the Newtonian solver): physics.micropolar: {enabled,
+    # micro_inertia}. The coefficients nu_t / xi and the wall value are material keys.
+    micropolar_block = phys.get("micropolar") or {}
+    unknown_micropolar_keys = set(micropolar_block) - {"enabled", "micro_inertia"}
+    if unknown_micropolar_keys:
+        raise ValueError(f"physics.micropolar: unknown keys {sorted(unknown_micropolar_keys)}")
+    micropolar_enabled = bool(micropolar_block.get("enabled", False))
+    micro_inertia = float(micropolar_block.get("micro_inertia", 0.0)) if micropolar_enabled else 0.0
+    if micropolar_enabled and "micro_inertia" not in micropolar_block:
+        raise ValueError("physics.micropolar.enabled needs physics.micropolar.micro_inertia (Theta, m^2)")
 
     physics = PhysicsConstants(
         smoothing_length=h,
@@ -366,6 +455,8 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
                                      else 495.0 / (32.0 * np.pi * h ** 4)),
         lattice=lattice,
         calibrate_volume=calibrate_volume,
+        micropolar_enabled=micropolar_enabled,
+        micro_inertia=micro_inertia,
     )
 
     # --- Numerics ---------------------------------------------------------
@@ -420,6 +511,17 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
         lattice=lattice, calibrate_volume=calibrate_volume,
     )
     material_name_to_group = {name: idx for idx, name in enumerate(used_material_names)}
+    if micropolar_enabled:
+        for name, material in zip(used_material_names, materials):
+            if dimension == 2 and (material.wall_angular_velocity[0] != 0.0
+                                   or material.wall_angular_velocity[1] != 0.0):
+                raise ValueError(f"material {name!r}: in a 2-D case the micro-rotation is along z; "
+                                 f"wall_angular_velocity = {material.wall_angular_velocity}")
+            if material.kind != KIND_FLUID:
+                continue
+            _print_micropolar_report(micropolar_coefficient_report(
+                name, material.viscosity, material.viscosity_transfer, material.viscosity_rotation,
+                micro_inertia, timestep, 2.0 * particle_radius))
     # E39 B1: in 2-D every particle stays on z = 0 (positions are flattened below); the fused correction + density
     # kernel drops the z terms of its 2-D accumulators, which is exact only if nothing ever moves a particle in z.
     if dimension == 2:

@@ -60,6 +60,11 @@ class PhysicsConstants:
     kernel_gradient_coefficient: float
     lattice: str = "grid"            # CPU-only; {"grid", "hex"}; preprocessor's particle layout
     calibrate_volume: bool = True    # CPU-only; True → partition-of-unity calibrated V; False → (2·r)^dim
+    # Micropolar terms (case.yaml physics.micropolar, docs/micropolar_design.md, shaders/micropolar.glsl). Off
+    # (default): the Newtonian solver, the plain shader modules, no micropolar buffer. On: the <kernel>_micropolar
+    # modules and micro_inertia = Theta [m^2] as spec const 21 MICROPOLAR_THETA.
+    micropolar_enabled: bool = False
+    micro_inertia: float = 0.0
 
 
 WALL_BOUNDARY_CHOICES = ("simple", "adami")     # case.yaml numerics.wall_boundary (E37)
@@ -226,14 +231,19 @@ class MaterialParameter:
     radius: float
     volume: float
     rotor_angular_velocity: float = 0.0
-    viscosity_transfer: float = 0.0  # reserved (micropolar)
-    viscosity_rotation: float = 0.0  # reserved
+    viscosity_transfer: float = 0.0  # micropolar transfer coefficient nu_t [m^2/s]; c = viscosity + viscosity_transfer
+    viscosity_rotation: float = 0.0  # micropolar angular viscosity xi [m^4/s]
     reserved_material_0: int = 0
     reserved_material_1: int = 0
 
     initial_velocity: tuple[float, float, float] = (0.0, 0.0, 0.0)
     """Not part of the GPU struct — used CPU-side at bootstrap to fill
     velocity_mass for fresh particles."""
+
+    wall_angular_velocity: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    """Micropolar, boundary kinds: the prescribed micro-rotation w_wall [1/s] (default: no spin). Not part of
+    the GPU struct: uploaded into the angular_velocity slot of every particle of this material, as
+    initial_velocity is into velocity_mass; walls never integrate it."""
 
 
 @dataclass
@@ -243,6 +253,9 @@ class InitialParticles:
     positions: np.ndarray              # (N, 3) float32; world coords
     velocities: np.ndarray             # (N, 3) float32
     material_group: np.ndarray         # (N,) uint32, indexes CaseV7.materials
+    # Micropolar only: (N, 3) float32 initial micro-rotation w_0 of every particle. None (default): zero for
+    # fluid particles, the material's wall_angular_velocity for the others.
+    angular_velocities: Optional[np.ndarray] = None
 
 
 # ============================================================================

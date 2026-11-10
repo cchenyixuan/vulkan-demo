@@ -587,6 +587,18 @@ def _driver_submit_lock_for(physical_device_index: int):
 # 2 which IS the scratch).
 DEFRAG_SET0_BINDINGS = (0, 1, 3, 4, 5, 6, 7, 8, 9)
 
+# Micropolar terms (case.yaml physics.micropolar; shaders/micropolar.glsl, docs/micropolar_design.md). Only a
+# micropolar case has these buffers, bindings and modules: a Newtonian case builds exactly the lists above.
+MICROPOLAR_DEFRAG_SET0_BINDINGS = (12, 13)        # angular_velocity, angular_acceleration (both read after a defrag)
+# kernels with a MICROPOLAR variant (compile_shaders_v7.SHADER_VARIANTS): module file <name>_micropolar.comp.spv
+MICROPOLAR_SHADER_MODULES = frozenset({
+    "predict", "bootstrap_half_kick", "force", "wall_extrapolate", "wall_extrapolate_band", "defrag",
+})
+MICROPOLAR_RESTART_FIELDS = {
+    "angular_velocity":     (4, np.float32),      # w_{n-1/2} (walls: the prescribed w_wall)
+    "angular_acceleration": (4, np.float32),      # alpha_n: the first predict after a restart reads it
+}
+
 # Ghost transport: 9 SoA fields (same set as defrag — skip binding 2 scratch
 # which is transient) + 2 set-1 buffers (inside_particle_count + index) + 1
 # set-3 count field (ghost_send_*_count → ghost_recv_*_count). Total 12
@@ -777,6 +789,16 @@ class _BandOverlapPlan:
 # SphSimulatorV7
 # ============================================================================
 
+def restart_field_layout_of(case) -> dict:
+    """The step-boundary fields of a restart state of ``case``: SphSimulatorV7.RESTART_FIELD_LAYOUT, + the two
+    micropolar fields when the case has the micropolar terms (restart_init runs no force pass, so alpha_n comes
+    from the state like a_n)."""
+    layout = dict(SphSimulatorV7.RESTART_FIELD_LAYOUT)
+    if getattr(case.physics, "micropolar_enabled", False):
+        layout.update(MICROPOLAR_RESTART_FIELDS)
+    return layout
+
+
 class SphSimulatorV7:
     """Per-GPU SPH simulator using timeline semaphore + 3-submit-per-frame pattern.
 
@@ -827,6 +849,18 @@ class SphSimulatorV7:
         if self._wall_adami and _FAKE_BAND_COLUMN > 0:
             raise ValueError("V7_FAKE_BAND_TEST is not supported with wall_boundary adami: the phase B wall pass "
                              "would read the fake band's fluid density before density_boundary_band writes it")
+
+        # Micropolar terms: one slab only at this stage (the seam transport of angular_velocity is Stage 2 of
+        # docs/micropolar_design.md).
+        if self._micropolar:
+            if case.transport.has_leading_peer or case.transport.has_trailing_peer:
+                raise NotImplementedError("physics.micropolar on a slab with a peer: the link does not carry "
+                                          "angular_velocity yet (docs/micropolar_design.md, Stage 2)")
+            if _BAND_OVERLAP != "0" or _BAND_COMPACT:
+                raise ValueError("physics.micropolar is not supported with V7_BAND_OVERLAP or "
+                                 "V7_BAND_COMPACT_DISPATCH (no MICROPOLAR variant of those paths)")
+            print(f"[SimV7] micropolar terms on: Theta = {case.physics.micro_inertia:.6g} m^2, modules "
+                  f"{', '.join(sorted(name + '_micropolar' for name in MICROPOLAR_SHADER_MODULES))}")
 
         # Keep-alive bag for cffi cdata referenced by VkSpecializationInfo.
         # Python GC would otherwise free the cdata before pipeline creation.
@@ -968,6 +1002,29 @@ class SphSimulatorV7:
         """E37: case.yaml numerics.wall_boundary == adami. Read from the case (not stored by __init__): the CPU
         tests call _build_buffer_specs / _global_entries on simulators built with object.__new__ + .case."""
         return self.case.numerics.wall_boundary == "adami"
+
+    @property
+    def _micropolar(self) -> bool:
+        """case.yaml physics.micropolar.enabled. Read from the case, as _wall_adami."""
+        return bool(getattr(self.case.physics, "micropolar_enabled", False))
+
+    def _defrag_set0_bindings(self) -> tuple[int, ...]:
+        """Set 0 bindings defrag permutes (scratch twin, set 4 binding, fill and copy-back): the nine of
+        DEFRAG_SET0_BINDINGS, + angular_velocity / angular_acceleration with the micropolar terms."""
+        if self._micropolar:
+            return DEFRAG_SET0_BINDINGS + MICROPOLAR_DEFRAG_SET0_BINDINGS
+        return DEFRAG_SET0_BINDINGS
+
+    def _shader_module_file_name(self, shader_name: str) -> str:
+        """The .comp.spv stem of a shader module key: the kernel's MICROPOLAR variant on a micropolar case, the
+        plain module otherwise. The module keys, and with them every pipeline key and recording, are shared."""
+        if self._micropolar and shader_name in MICROPOLAR_SHADER_MODULES:
+            return f"{shader_name}_micropolar"
+        return shader_name
+
+    def restart_field_layout(self) -> dict:
+        """RESTART_FIELD_LAYOUT of this sim: + the two micropolar fields on a micropolar case."""
+        return restart_field_layout_of(self.case)
 
     @property
     def _wall_pass_split(self) -> bool:
@@ -1220,6 +1277,17 @@ class SphSimulatorV7:
                         8 * pool_capacity if self._deep_wall_record() else 16, BSU | TRANSFER),
         ] if self._deep_wall_skip_active() else []
 
+        # Micropolar terms (only on a micropolar case; shaders/micropolar.glsl): angular_velocity (w_{n+1/2};
+        # walls: the prescribed w_wall) and angular_acceleration, both permuted by defrag and part of the restart
+        # state; wall_dummy_angular_velocity follows wall_dummy_velocity (transient; a 16-byte stub with simple:
+        # binding 14 is declared by force_micropolar, never read).
+        micropolar_specs = [
+            _BufferSpec("angular_velocity",             0, 12, 16 * pool_capacity, BSU | TRANSFER),
+            _BufferSpec("angular_acceleration",         0, 13, 16 * pool_capacity, BSU | TRANSFER),
+            _BufferSpec("wall_dummy_angular_velocity",  0, 14, 16 * pool_capacity if self._wall_adami else 16,
+                        BSU | TRANSFER),
+        ] if self._micropolar else []
+
         return [
             # Set 0: particle SoA
             _BufferSpec("position_voxel_id",            0, 0, 16 * pool_capacity, BSU | TRANSFER | VERT),
@@ -1268,7 +1336,7 @@ class SphSimulatorV7:
             # V7_BAND_COMPACT_DISPATCH: indirect dispatch sizes + list column starts
             _BufferSpec("band_compact_meta",            3, 9, 128,
                         BSU | TRANSFER | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT),
-        ] + deep_wall_specs
+        ] + deep_wall_specs + micropolar_specs
 
     def _allocate_buffer(
         self,
@@ -1352,7 +1420,7 @@ class SphSimulatorV7:
         for spec in self._buffer_specs:
             if spec.set_index != 0:
                 continue
-            if spec.binding not in DEFRAG_SET0_BINDINGS:
+            if spec.binding not in self._defrag_set0_bindings():
                 continue
             scratch[spec.name] = self._allocate_buffer(
                 spec.size,
@@ -1785,7 +1853,7 @@ class SphSimulatorV7:
             # segment that does not start at workgroup 0 (likewise for a pre-B3 V7_SPV_DIR)
             *(("force_segment",) if self._force_deep_segment_first_groups() else ()),
         ):
-            spv_path = shader_dir / f"{shader_name}.comp.spv"
+            spv_path = shader_dir / f"{self._shader_module_file_name(shader_name)}.comp.spv"
             if not spv_path.exists():
                 raise FileNotFoundError(
                     f"shader not compiled: {spv_path}. "
@@ -1841,7 +1909,7 @@ class SphSimulatorV7:
         cap = self.case.capacities
         g = self.case.grid
         gh = self.case.ghost_grid
-        return [
+        entries = [
             (0,  'f', p.smoothing_length),
             (1,  'f', p.speed_of_sound),
             (2,  'f', p.delta_coefficient),
@@ -1903,6 +1971,11 @@ class SphSimulatorV7:
             # install_migrations / defrag) don't use in_boundary_band at all,
             # so they rely on the GLSL default (NEIGHBOR_X_RANGE = 0u).
         ]
+        if self._micropolar:
+            # Micropolar terms: Theta (id 21, common.glsl) and the replica layers that carry angular_velocity
+            # (id 116, micropolar.glsl). Only on a micropolar case: a Newtonian pipeline keeps its blob.
+            entries += [(21, 'f', p.micro_inertia), (116, 'I', 0)]
+        return entries
 
     # ----- Per-pipeline mode entries (kernel-specific spec const overrides) ---
 
@@ -3400,6 +3473,24 @@ class SphSimulatorV7:
             material_arr[own_first:own_first + n_initial] = case.initial.material_group
         data["material"] = material_arr.tobytes()
 
+        if self._micropolar:
+            # angular_velocity (vec4: w_0, 0): the provided initial micro-rotation, else zero for fluid and the
+            # material's prescribed wall_angular_velocity for every other kind (walls never integrate it).
+            angular_velocity = np.zeros((pool_capacity, 4), dtype=np.float32)
+            if case.initial.angular_velocities is not None:
+                provided = np.asarray(case.initial.angular_velocities, dtype=np.float32)
+                if provided.shape != (n_initial, 3):
+                    raise ValueError(f"initial angular_velocities: shape {provided.shape}, expected "
+                                     f"({n_initial}, 3)")
+                angular_velocity[own_first:own_first + n_initial, 0:3] = provided
+            else:
+                wall_values = np.asarray([material.wall_angular_velocity for material in case.materials],
+                                         dtype=np.float32).reshape(-1, 3)
+                if n_initial > 0:
+                    angular_velocity[own_first:own_first + n_initial, 0:3] = wall_values[
+                        np.asarray(case.initial.material_group, dtype=np.int64)]
+            data["angular_velocity"] = angular_velocity.tobytes()
+
         data["material_parameters"] = self._material_parameters_payload()
         return data
 
@@ -3670,7 +3761,7 @@ class SphSimulatorV7:
         transport fill them before any kernel reads them, as in every step.
         Callers then record the step cmd buffers (ChainOrchestratorV7.
         restart_all, which also runs the bootstrap defrag)."""
-        layout = self.RESTART_FIELD_LAYOUT
+        layout = self.restart_field_layout()
         missing = [name for name in layout if name not in state]
         if missing:
             raise ValueError(f"restart state lacks {missing}")
@@ -4715,7 +4806,7 @@ class SphSimulatorV7:
                 descriptorCount=1,
                 stageFlags=VK_SHADER_STAGE_COMPUTE_BIT,
             )
-            for b in DEFRAG_SET0_BINDINGS
+            for b in self._defrag_set0_bindings()
         ]
         ci = VkDescriptorSetLayoutCreateInfo(
             bindingCount=len(bindings), pBindings=bindings)
@@ -4724,7 +4815,7 @@ class SphSimulatorV7:
     def _allocate_defrag_set4(self):
         pool_size = VkDescriptorPoolSize(
             type=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-            descriptorCount=len(DEFRAG_SET0_BINDINGS),
+            descriptorCount=len(self._defrag_set0_bindings()),
         )
         pool_ci = VkDescriptorPoolCreateInfo(
             maxSets=1, poolSizeCount=1, pPoolSizes=[pool_size])
@@ -4745,7 +4836,7 @@ class SphSimulatorV7:
         for spec in self._buffer_specs:
             if spec.set_index != 0:
                 continue
-            if spec.binding not in DEFRAG_SET0_BINDINGS:
+            if spec.binding not in self._defrag_set0_bindings():
                 continue
             scratch_buf = self.scratch_buffers[spec.name]
             buf_info = VkDescriptorBufferInfo(
@@ -4821,7 +4912,7 @@ class SphSimulatorV7:
         for spec in self._buffer_specs:
             if spec.set_index != 0:
                 continue
-            if spec.binding not in DEFRAG_SET0_BINDINGS:
+            if spec.binding not in self._defrag_set0_bindings():
                 continue
             scratch_buf = self.scratch_buffers[spec.name]
             vkCmdFillBuffer(cmd, scratch_buf.handle, 0, scratch_buf.size, 0)
@@ -4845,7 +4936,7 @@ class SphSimulatorV7:
         for spec in self._buffer_specs:
             if spec.set_index != 0:
                 continue
-            if spec.binding not in DEFRAG_SET0_BINDINGS:
+            if spec.binding not in self._defrag_set0_bindings():
                 continue
             src = self.scratch_buffers[spec.name].handle
             dst = self.buffers[spec.name].handle

@@ -485,10 +485,12 @@ def _filter_particles_by_x_range(
     grid_nx = global_case.grid.grid_dimension_x
     np.clip(x_indices, 0, grid_nx - 1, out=x_indices)
     mask = (x_indices >= x_lo_inclusive) & (x_indices < x_hi_exclusive)
+    angular_velocities = global_case.initial.angular_velocities       # micropolar: optional initial w_0
     return InitialParticles(
         positions=positions[mask].copy(),
         velocities=velocities[mask].copy(),
         material_group=material_group[mask].copy(),
+        angular_velocities=None if angular_velocities is None else angular_velocities[mask].copy(),
     )
 
 

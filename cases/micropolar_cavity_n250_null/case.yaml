@@ -1,0 +1,59 @@
+schema_version: 2
+
+# T2 of docs/micropolar_design.md (null coupling): cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami with
+# the micropolar terms switched on and c = nu + nu_t = 0, xi = 0 (materials/micropolar.yaml
+# micropolar_null_water). The micropolar kernels run; velocity and density must equal the Newtonian case's
+# within the run-to-run rounding floor and w must stay zero. Geometry: the n250 cavity's OBJ files.
+
+time:
+  total: null
+  max_steps: null
+  output_cadence: null
+
+physics:
+  dimension: 2
+  h: 0.020000
+  particle_radius: 0.002000
+  lattice: grid
+  calibrate_volume: true
+  speed_of_sound: 100.0
+  power: 7
+  cfl: 0.15
+  gravity: [0.0, 0.0, 0.0]
+  micropolar:
+    enabled: true
+    micro_inertia: 1.6e-3   # Theta [m^2]
+
+numerics:
+  use_density_diffusion: true
+  delta_coefficient: 0.1
+  use_kcg_correction: true
+  regularization:
+    xi: 0.001
+    det_threshold: 1.0e-4
+    frobenius_max: 10.0
+  # eps^2 = epsilon_squared_factor * h^2 (h = support radius) in the viscous / delta-diffusion
+  # denominators; read by the V0 and v6 loaders (v2-v5 ignore it and use 0.01)
+  epsilon_squared_factor: 0.0025
+  use_pst: true
+  pst_main: 0.1
+  pst_anti: 0.0005
+  defrag_enabled: true
+  defrag_cadence: 1000
+  use_prefix_sum_defrag: false
+  wall_boundary: adami   # E37: Adami 2012 wall pressure + no-slip, walls store rho0 (one GPU only)
+
+capacities:
+  pool_size: 85760
+  max_per_voxel: 96
+  max_incoming: 16
+  workgroup: 128
+
+material_library: ../../materials/micropolar.yaml
+
+geometry:
+  frame: ../lid_driven_cavity_2d_n250/frame.obj
+  particles:
+    - {file: ../lid_driven_cavity_2d_n250/domain.obj,   material: micropolar_null_water}
+    - {file: ../lid_driven_cavity_2d_n250/wall.obj,     material: stick_wall}
+    - {file: ../lid_driven_cavity_2d_n250/wall_top.obj, material: stick_lid}
