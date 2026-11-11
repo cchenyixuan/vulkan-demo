@@ -886,6 +886,11 @@ class SphSimulatorV7:
             print(f"[SimV7] numerics.viscous_form = laplacian: force module "
                   f"{self._shader_module_file_name('force')}")
 
+        if self._delta_fluid_only:
+            print(f"[SimV7] numerics.delta_fluid_only = true (density diffusion between fluid pairs only): modules "
+                  f"{', '.join(sorted(name + '_delta_fluid_only' for name in DELTA_FLUID_ONLY_SHADER_MODULES))} "
+                  f"in place of the plain ones")
+
         # Keep-alive bag for cffi cdata referenced by VkSpecializationInfo.
         # Python GC would otherwise free the cdata before pipeline creation.
         # Must be initialized BEFORE pipeline build (which calls _make_spec_info).
