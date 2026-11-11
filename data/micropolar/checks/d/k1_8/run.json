@@ -1,0 +1,34 @@
+{
+ "case": "cases/micropolar_cavity_n250_re400/case.yaml",
+ "slabs": 1,
+ "device_map": [
+  0
+ ],
+ "weights": [
+  1.0
+ ],
+ "steps": 200000,
+ "sample_steps": 1000,
+ "timestep": 3e-05,
+ "depth": 2,
+ "particles": 74529,
+ "counters": {
+  "overflow_inside_count": 0,
+  "overflow_incoming_count": 0,
+  "overflow_ghost_count": 0,
+  "overflow_install_tail": 0,
+  "overflow_install_inside": 0,
+  "stamp_error_count": 0,
+  "overflow_departed_count": 0,
+  "far_migration_count": 0,
+  "overflow_initialization_outside": 0,
+  "overflow_deep_wall_skip_count": 0
+ },
+ "elapsed_seconds": 80.43383529997664,
+ "steps_per_second": 2486.515771057085,
+ "cuts_x": [],
+ "start_state": "data/micropolar/checks/d/k1_t40.npz",
+ "slab_particles": [
+  74529
+ ]
+}

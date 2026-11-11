@@ -284,6 +284,79 @@ the viscous term. The micropolar force variant already accumulates `curl v` from
 - SW would be the alternative that keeps a symmetric main term with a normalisation; its formula has to be
   checked against the paper first (Section 2).
 
-## 8. The cavity with both forms
+## 8. The cavity with both forms **[run]**
 
-See Section 9 (added when the runs finished).
+Newtonian adami cavity, Re = 1000 (`cases/lid_driven_cavity_2d_n{250,500}_xi0p001_eps0p0025_adami` and their
+variants `cases/viscous_cavity_n{250,500}_laplacian[_eps1em6]`), K = 1 on the 5090, `cavity_runner.py --solver v7
+--expect release` from rest; driver and analysis `experiment/validation/viscous_form_campaign.py`. Errors against
+Marchi et al. 2021 at the 28 + 28 reference points (the runner's MLS samples, wall frame), mean over the last 20
+time units; all runs passed the runner's steady test (at t = 80.6 / 79.6; the n = 500 EPS 1e-6 run at 69.6) and its
+invariant checks (drift, overflow, stamps) at every sample. In units of U; E_k in the runner's units; the density
+range is max - min over the fluid in kg/m^3 (rho_0 = 1000).
+
+| n | form | t_end | L2 u | Linf u | L2 v | Linf v | E_k | std E_k | density range, mean (max) | steps/s |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 250 | monaghan_gingold | 100.6 | 1.10e-2 | 2.30e-2 | 1.22e-2 | 1.93e-2 | 53.772 | 5.3e-3 | 0.686 (0.843) | 3,253 |
+| 250 | laplacian | 100.6 | 9.58e-3 | 1.91e-2 | 1.13e-2 | 1.78e-2 | 53.431 | 1.1e-2 | 0.572 (0.739) | 3,244 |
+| 250 | laplacian, eps factor 1e-6 | 100.6 | 9.34e-3 | 2.13e-2 | 1.05e-2 | 1.69e-2 | 53.300 | 6.0e-3 | 0.584 (0.757) | 3,241 |
+| 500 | monaghan_gingold | 99.5 | 5.04e-3 | 1.08e-2 | 5.56e-3 | 1.05e-2 | 51.705 | 4.8e-3 | 0.929 (1.117) | 1,736 |
+| 500 | laplacian | 99.5 | 4.68e-3 | 9.93e-3 | 5.36e-3 | 9.46e-3 | 51.659 | 5.2e-3 | 0.800 (0.969) | 1,726 |
+| 500 | laplacian, eps factor 1e-6 | 89.5 | 4.18e-3 | 1.09e-2 | 4.29e-3 | 7.26e-3 | 51.533 | 6.9e-3 | 0.834 (0.996) | 1,729 |
+
+Difference to the monaghan_gingold run at the 56 reference points, and the kinetic energy ratio:
+
+| n | form | rms u | max u | rms v | max v | E_k ratio |
+|---|---|---|---|---|---|---|
+| 250 | laplacian | 1.65e-3 | 3.89e-3 | 1.02e-3 | 2.17e-3 | 0.99365 |
+| 250 | laplacian, eps factor 1e-6 | 2.55e-3 | 6.24e-3 | 3.06e-3 | 6.71e-3 | 0.99122 |
+| 500 | laplacian | 5.2e-4 | 1.01e-3 | 5.0e-4 | 1.07e-3 | 0.99912 |
+| 500 | laplacian, eps factor 1e-6 | 2.09e-3 | 5.03e-3 | 2.57e-3 | 5.75e-3 | 0.99669 |
+
+Kinetic energy history (mean over +-2.5 time units around t):
+
+| n | form | t = 5 | 10 | 20 | 40 | 60 | 80 |
+|---|---|---|---|---|---|---|---|
+| 250 | monaghan_gingold | 23.073 | 34.742 | 49.033 | 53.391 | 53.705 | 53.763 |
+| 250 | laplacian | 22.897 | 34.497 | 48.715 | 53.067 | 53.362 | 53.418 |
+| 250 | laplacian, 1e-6 | 23.046 | 34.675 | 48.754 | 52.965 | 53.237 | 53.296 |
+| 500 | monaghan_gingold | 22.472 | 33.684 | 47.127 | 51.345 | 51.630 | 51.694 |
+| 500 | laplacian | 22.459 | 33.680 | 47.110 | 51.307 | 51.590 | 51.650 |
+| 500 | laplacian, 1e-6 | 22.605 | 33.856 | 47.161 | 51.219 | 51.483 | 51.535 |
+
+- **Stable in every run**, both resolutions, including the 1e-6 denominator (smallest pair distance 0.88 dx).
+- **No extra acoustic noise with `laplacian`.** The fluid density range is 14 to 17 % smaller than with MG over
+  the averaging window and during the start-up (first five time units: 0.60 against 0.67 at n = 250, 0.83 against
+  0.93 at n = 500). The missing `grad div v` damping does not show in this measure; the kinetic energy scatter of
+  the n = 250 laplacian run is twice MG's (1.1e-2 against 5.3e-3), at n = 500 the two are equal.
+- **The forms agree better with resolution**: the profiles differ by 1.0e-3 to 1.7e-3 rms at n = 250 and 5e-4 at
+  n = 500, E_k by 0.63 % and 0.09 %. `laplacian` is slightly closer to Marchi et al. at both resolutions (L2 u
+  -13 % / -7 %, L2 v -7 % / -4 %).
+- **The EPS factor is a viscosity change of the size measured in Section 5.** Removing it (0.9808 -> 1.0000 on
+  the operator, +2 % effective viscosity) lowers E_k by a further 0.24 % at both resolutions and moves the
+  profiles by about 2e-3 to 3e-3 rms, more than the change of form at n = 500. It reduces the error against
+  Marchi et al. (n = 500: L2 u 4.68e-3 -> 4.18e-3, L2 v 5.36e-3 -> 4.29e-3). Note that
+  `epsilon_squared_factor` also enters the delta-term denominator of the continuity equation, so this row
+  changes the density diffusion as well.
+- I did not use `effective_viscosity.py` / `reynolds_sensitivity.py`: they are written around the run names and
+  the tracked output files of `docs/validation/`, and running them would have rewritten those tables. No effective
+  Reynolds number is given; the factor measured on the operator (Section 5) is the direct number.
+
+### The micropolar T5 configuration with `laplacian`
+
+One K = 1 continuation of the t = 40.2 state with `numerics.viscous_form: laplacian`, 200,000 steps (6 time
+units), first unit discarded, next five averaged, against the ten `monaghan_gingold` K = 1 continuations of check D:
+stable, counters zero.
+
+| quantity | MG, mean of ten (std) | laplacian | difference |
+|---|---|---|---|
+| min u on x = 0 | -0.403512 (5.3e-5) | -0.403258 | +2.5e-4 |
+| min v on y = 0 | -0.525930 (3.2e-5) | -0.525622 | +3.1e-4 |
+| max v on y = 0 | 0.383181 (3.0e-5) | 0.382872 | -3.1e-4 |
+| min w on x = 0 | -2.107924 (1.4e-4) | -2.100409 | +7.5e-3 (0.36 %) |
+| max w on x = 0 | 0.816694 (6.9e-4) | 0.813809 | -2.9e-3 |
+| min w on y = 0 | -1.646905 (1.4e-4) | -1.646637 | +2.7e-4 |
+| max w on y = 0 | 1.767781 (3.5e-4) | 1.765439 | -2.3e-3 |
+| L2 of the profile difference | (4.4e-5 to 3.2e-4 among the MG runs) | u 6.5e-4, v 3.5e-4, w 2.5e-3 and 2.8e-3 | |
+
+This is the drift of the first six time units after the switch, not a new steady state: the profiles were still
+moving. It shows the direction and that the change is small (below 0.4 % in every extremum).

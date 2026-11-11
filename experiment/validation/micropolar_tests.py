@@ -1352,7 +1352,7 @@ def command_paired(arguments) -> int:
     groups = {}
     for specification in arguments.group:
         label, _, pattern = specification.partition("=")
-        directories = sorted(pathlib.Path().glob(pattern))
+        directories = sorted(path for path in pathlib.Path().glob(pattern) if path.is_dir())
         if not directories:
             sys.exit(f"--group {specification}: no run directory matches")
         groups[label] = [load(directory) for directory in directories]

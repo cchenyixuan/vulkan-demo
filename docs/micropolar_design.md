@@ -2,7 +2,7 @@
 
 Branch `v9-micropolar`, base tag `micropolar-base` = ab50c10 (merge of `origin/bootstrap-density-fix` eda5b90 and
 `origin/v7-adami-multi` 8c33192). Sections 0 to 7 are the Stage 0 plan, with the decisions of 2026-11-10 entered in
-Section 2; Section 8 is the Stage 1 report (one slab), Section 9 the Stage 2 report (chains), Section 10 the checks A to E.
+Section 2; Section 8 is the Stage 1 report (one slab), Section 9 the Stage 2 report (chains), Section 10 the checks A to E, Section 11 the night of 2026-11-11.
 
 Marked **[read]** = inferred from reading the code, **[run]** = verified by running on this machine.
 
@@ -492,3 +492,41 @@ Summary (difference of means in K = 1 standard deviations):
 2. The crossings counted in check A are equal for simple and adami walls at K = 2 (1,444) and nearly equal at
    K = 3 (2,488 / 2,476): over 3,000 steps the crossings near the cuts are set by the starting velocity field.
 3. A three-reference floor was again too small once (K = 1 simple, ratio 2.96; 1.02 with ten references).
+
+## 11. Night of 2026-11-11: viscous forms, check D extended
+
+Full write-up of the operator comparison and of `numerics.viscous_form`: `docs/viscous_operator_comparison.md`.
+Here only what concerns the micropolar work.
+
+- **`numerics.viscous_form: laplacian`** (Brookshaw-Morris form of the viscous term) is available with micropolar
+  on or off: modules `force_laplacian` / `force_micropolar_laplacian`; default unchanged and byte-identical
+  (T0: 33 earlier SPIR-V files identical, 35 in the manifest, layout test 858 failures = the base's set; T1 at
+  K = 1 and K = 2 within the floor). What the form gives up is listed in Section 6 of that document.
+- **Check A, the confirmation asked for:** the simple and adami label runs ran different wall options. The K = 2
+  logs show 16 simulators with `wall_boundary=simple` / two ghost layers and 16 with `adami` / three; from the
+  same state after 3,000 steps the two options differ by 1.2e-2 (u) and 3.1e-3 (v) rms within 0.01 of the walls,
+  against 3e-6 between two adami runs (`data/micropolar/checks/a_walls_differ.txt`). The equal crossing counts
+  are a property of the short run.
+- **Check D with ten K = 1 and ten one-card K = 2 continuations** (`data/micropolar/checks/d/paired10.*`). Standard
+  error of a difference of means from both groups' variances:
+
+| quantity | K = 1 mean (std) | K = 2 one card mean (std) | difference | in standard errors | runs 1-5 / 6-10 separately |
+|---|---|---|---|---|---|
+| min u on x = 0 | -0.403512 (5.3e-5) | -0.403488 (5.1e-5) | +2.3e-5 | +1.0 | +0.5 / +0.9 |
+| min v on y = 0 | -0.525930 (3.2e-5) | -0.525977 (3.9e-5) | -4.6e-5 | **-2.9** | -2.3 / -1.7 |
+| max v on y = 0 | 0.383181 (3.0e-5) | 0.383169 (4.0e-5) | -1.2e-5 | -0.8 | |
+| min w on x = 0 | -2.107924 (1.4e-4) | -2.107922 (1.6e-4) | +2e-6 | +0.04 | +0.2 / -0.1 |
+| max w on x = 0 | 0.816694 (6.9e-4) | 0.816563 (8.4e-4) | -1.3e-4 | -0.4 | |
+| min w on y = 0 | -1.646905 (1.4e-4) | -1.646930 (1.8e-4) | -2.5e-5 | -0.4 | |
+| max w on y = 0 | 1.767781 (3.5e-4) | 1.767772 (3.1e-4) | -9e-6 | -0.06 | |
+| L2 v(x) from the K = 1 mean | 4.4e-5 | 5.5e-5 | | +1.9 | +2.2 / +0.8 |
+| L2 w(x) on y = 0 | 3.0e-4 | 4.0e-4 | | +2.6 | +2.1 / +1.4 |
+
+  - **min w on x = 0, the quantity on the seam: no offset** (+0.04 standard errors with ten runs each).
+  - **min v on y = 0 for the one-card K = 2 runs: the offset did not go away.** The second, independent five runs
+    give the same sign (-1.7 standard errors), the ten together -2.9; the size is 4.6e-5 in 0.526 (9e-5
+    relative). The five 5090 + XTX runs, with the same cut, are at -0.4 standard errors of the ten K = 1 runs.
+    So it is not established as a seam effect and not excluded either: one of eleven quantities, in the fifth
+    digit, reproduced once. The L2 rows of the one-card runs are high as well, but they carry the bias noted in
+    Section 10 (each K = 1 run is part of its own mean; factor 0.95 for ten runs).
+  - What would settle it: twenty more of each, or the same test on a state closer to steady; I did not run more.

@@ -1,0 +1,67 @@
+{
+ "case": "cases\\viscous_cavity_n250_laplacian\\case.yaml",
+ "solver": "v7",
+ "slabs": 1,
+ "device_map": [
+  0
+ ],
+ "expect": "release",
+ "environment": {
+  "V7_BAND_SLOT_LANES": "64",
+  "V7_COMPACT_GHOST_LISTS": "1",
+  "V7_DEPARTED_FACE_FRACTION": "0.8",
+  "V7_GHOST_LAYERS": "2",
+  "V7_GHOST_POOL_FACTOR": "0.29",
+  "V7_INIT_SEAM_CLAMP": "1",
+  "V7_KEEP_DEPARTED": "1",
+  "V7_LEAN_TRANSPORT": "1",
+  "V7_MIGRANT_POOL_FACTOR": "0.05",
+  "V7_PACKED_REPLICAS": "1",
+  "V7_SPLIT_TRANSFER_QUEUES": "1",
+  "V7_WORKER_COUNT_AWARE": "1"
+ },
+ "expected_total": 74529,
+ "dt": 3e-05,
+ "support_radius": 0.02,
+ "spacing": 0.004,
+ "reynolds_nominal": 1000.0,
+ "defrag_cadence": 1000,
+ "cuts": [],
+ "cuts_x": [],
+ "slab_particles": [
+  74529
+ ],
+ "weights": [
+  1.0
+ ],
+ "start_from": null,
+ "initial_velocity": null,
+ "reynolds": 1000.0,
+ "pool_safety": 1.2,
+ "sample_steps": 7000,
+ "snapshot_steps": 33000,
+ "checkpoint_steps": 336000,
+ "window_steps": 336000,
+ "t_end": 100.0,
+ "t_max": 200.0,
+ "steady_tol": 0.001,
+ "average_span": 20.0,
+ "wall_boundary": "adami",
+ "frames": {
+  "wall": 0.504,
+  "fluid": 0.5
+ },
+ "dense_reference": "linspace(0, 1, 1001) in the wall frame",
+ "fluid_groups": [
+  0
+ ],
+ "git": {
+  "head": "c08cb97",
+  "dirty": false
+ },
+ "code_hashes": {
+  "physics": "81636e90b58a3b1d",
+  "sampling": "7a39943ff281ec00",
+  "runner": "2adfcc1c585099bc"
+ }
+}

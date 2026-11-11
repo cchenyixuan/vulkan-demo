@@ -15,3 +15,15 @@ Results behind `docs/micropolar_design.md` (sections 8 to 10), copied from the u
 
 Not copied (large, still in `logs/micropolar/` of the worktree `vulkan-demo-v9-micropolar`): the particle dumps of
 T1 / T2 (`logs/micropolar/t1/*.npz`, 323 MB) and the full run logs.
+
+Added 2026-11-11 (night):
+
+| path | content |
+|---|---|
+| `viscous/operators_host.md` / `.json` | the host comparison of the viscous Laplacian discretizations (`micropolar_tests.py operators-host`) |
+| `viscous/cross_check.json`, `seam_laplacian_k{2,3}.json`, `t1_k{1,2}_compare.json` | shader against host for both viscous forms; seam checks with `laplacian`; T1 re-run |
+| `viscous/cavity_n{250,500}.json`, `viscous/cavity_runs/` | the Re = 1000 cavity with both forms (summaries; per run samples.jsonl, meta.json, steady.json) |
+| `checks/a_walls_differ.txt` | check A: simple against adami near the walls |
+| `checks/d/k1_{6..10}`, `k2s_{6..10}`, `k1lap_1`, `paired10.*` | check D extended to ten runs per group; the micropolar continuation with `laplacian` |
+
+Not copied: the cavity runs' profile samples, snapshots and checkpoints (`logs/micropolar/cavity_forms/`, 6 runs).
