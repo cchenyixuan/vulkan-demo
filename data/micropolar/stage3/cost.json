@@ -1,0 +1,625 @@
+{
+ "protocol": {
+  "1m": {
+   "warmup": 1000,
+   "measured": 6000
+  },
+  "4m": {
+   "warmup": 1000,
+   "measured": 3000
+  }
+ },
+ "cases": {
+  "paper": {
+   "1m": "cases/lid_driven_cavity_2d_gen/case.yaml",
+   "4m": "cases/lid_driven_cavity_2d_4m/case.yaml"
+  },
+  "paper_adami": {
+   "1m": "cases/cost_cavity_1m_paper_adami/case.yaml",
+   "4m": "cases/cost_cavity_4m_paper_adami/case.yaml"
+  },
+  "thesis": {
+   "1m": "cases/cost_cavity_1m_thesis/case.yaml",
+   "4m": "cases/cost_cavity_4m_thesis/case.yaml"
+  },
+  "thesis_micropolar": {
+   "1m": "cases/cost_cavity_1m_thesis_micropolar/case.yaml",
+   "4m": "cases/cost_cavity_4m_thesis_micropolar/case.yaml"
+  }
+ },
+ "throughput": {
+  "1m_paper": {
+   "particles": 1046529,
+   "slots": 1203584,
+   "device": "NVIDIA GeForce RTX 5090",
+   "steps_per_second": [
+    712.6,
+    714.6,
+    730.8,
+    713.6,
+    730.9,
+    730.2
+   ],
+   "steps_per_second_mean": 722.1166666666667,
+   "steps_per_second_std": 9.354018744190453,
+   "particle_steps_per_second_mean": 755716033.05,
+   "particle_steps_per_second_std": 9789251.88233889,
+   "device_local_megabytes": 189.47,
+   "device_local_buffers": 24,
+   "defrag_scratch_megabytes": 160.7,
+   "defrag_scratch_buffers": 9,
+   "bytes_per_particle": 350.85492893173523,
+   "bytes_per_slot": 305.0720663617994,
+   "drift": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failed": false,
+   "trials": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "ratio_to_paper_by_trial": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "ratio_to_paper": 1.0,
+   "ratio_to_paper_std": 0.0
+  },
+  "1m_paper_adami": {
+   "particles": 1046529,
+   "slots": 1203584,
+   "device": "NVIDIA GeForce RTX 5090",
+   "steps_per_second": [
+    644.1,
+    660.8,
+    660.3
+   ],
+   "steps_per_second_mean": 655.0666666666666,
+   "steps_per_second_std": 9.500701728468934,
+   "particle_steps_per_second_mean": 685546263.5999999,
+   "particle_steps_per_second_std": 9942759.879192865,
+   "device_local_megabytes": 207.84,
+   "device_local_buffers": 24,
+   "defrag_scratch_megabytes": 160.7,
+   "defrag_scratch_buffers": 9,
+   "bytes_per_particle": 369.26086046349405,
+   "bytes_per_slot": 321.076218228225,
+   "drift": [
+    0,
+    0,
+    0
+   ],
+   "failed": false,
+   "trials": [
+    4,
+    5,
+    6
+   ],
+   "ratio_to_paper_by_trial": [
+    0.9026065022421524,
+    0.9040908469010809,
+    0.9042728019720623
+   ],
+   "ratio_to_paper": 0.9036567170384319,
+   "ratio_to_paper_std": 0.000914051558013626
+  },
+  "1m_thesis": {
+   "particles": 1046529,
+   "slots": 1203584,
+   "device": "NVIDIA GeForce RTX 5090",
+   "steps_per_second": [
+    643.0,
+    637.9,
+    655.9,
+    639.4,
+    657.0,
+    656.1
+   ],
+   "steps_per_second_mean": 648.2166666666667,
+   "steps_per_second_std": 9.052163645596938,
+   "particle_steps_per_second_mean": 678377539.95,
+   "particle_steps_per_second_std": 9473351.767862918,
+   "device_local_megabytes": 207.84,
+   "device_local_buffers": 24,
+   "defrag_scratch_megabytes": 160.7,
+   "defrag_scratch_buffers": 9,
+   "bytes_per_particle": 369.26086046349405,
+   "bytes_per_slot": 321.076218228225,
+   "drift": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failed": false,
+   "trials": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "ratio_to_paper_by_trial": [
+    0.9023294976143699,
+    0.892667226420375,
+    0.8975095785440613,
+    0.8960201793721972,
+    0.8988917772609112,
+    0.8985209531635168
+   ],
+   "ratio_to_paper": 0.8976565353959052,
+   "ratio_to_paper_std": 0.0032156516553619335
+  },
+  "1m_thesis_micropolar": {
+   "particles": 1046529,
+   "slots": 1203584,
+   "device": "NVIDIA GeForce RTX 5090",
+   "steps_per_second": [
+    489.0,
+    504.2,
+    503.6,
+    492.7,
+    505.1,
+    504.3
+   ],
+   "steps_per_second_mean": 499.81666666666666,
+   "steps_per_second_std": 7.05957977975083,
+   "particle_steps_per_second_mean": 523072636.35,
+   "particle_steps_per_second_std": 7388054.967322857,
+   "device_local_megabytes": 262.94,
+   "device_local_buffers": 27,
+   "defrag_scratch_megabytes": 197.43,
+   "defrag_scratch_buffers": 11,
+   "bytes_per_particle": 461.270479002493,
+   "bytes_per_slot": 401.0795533340423,
+   "drift": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failed": false,
+   "trials": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "ratio_to_paper_by_trial": [
+    0.6862194779680044,
+    0.7055695493982648,
+    0.6891078270388616,
+    0.6904428251121076,
+    0.6910658092762348,
+    0.69063270336894
+   ],
+   "ratio_to_paper": 0.6921730320270689,
+   "ratio_to_paper_std": 0.006795574086039884
+  },
+  "4m_paper": {
+   "particles": 4182025,
+   "slots": 4800000,
+   "device": "NVIDIA GeForce RTX 5090",
+   "steps_per_second": [
+    180.0,
+    184.8,
+    184.8,
+    184.9,
+    184.8,
+    184.8
+   ],
+   "steps_per_second_mean": 184.01666666666668,
+   "steps_per_second_std": 1.9681632723599642,
+   "particle_steps_per_second_mean": 769562300.4166667,
+   "particle_steps_per_second_std": 8230908.00909118,
+   "device_local_megabytes": 753.5,
+   "device_local_buffers": 24,
+   "defrag_scratch_megabytes": 640.87,
+   "defrag_scratch_buffers": 9,
+   "bytes_per_particle": 349.61601547575634,
+   "bytes_per_slot": 304.6047744,
+   "drift": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failed": false,
+   "trials": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "ratio_to_paper_by_trial": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "ratio_to_paper": 1.0,
+   "ratio_to_paper_std": 0.0
+  },
+  "4m_paper_adami": {
+   "particles": 4182025,
+   "slots": 4800000,
+   "device": "NVIDIA GeForce RTX 5090",
+   "steps_per_second": [
+    172.7,
+    172.8,
+    172.7
+   ],
+   "steps_per_second_mean": 172.73333333333332,
+   "steps_per_second_std": 0.0577350269189757,
+   "particle_steps_per_second_mean": 722375118.3333333,
+   "particle_steps_per_second_std": 241449.32595082937,
+   "device_local_megabytes": 826.74,
+   "device_local_buffers": 24,
+   "defrag_scratch_megabytes": 640.87,
+   "defrag_scratch_buffers": 9,
+   "bytes_per_particle": 367.9797761515056,
+   "bytes_per_slot": 320.60429653333335,
+   "drift": [
+    0,
+    0,
+    0
+   ],
+   "failed": false,
+   "trials": [
+    4,
+    5,
+    6
+   ],
+   "ratio_to_paper_by_trial": [
+    0.9340183883180097,
+    0.935064935064935,
+    0.9345238095238094
+   ],
+   "ratio_to_paper": 0.9345357109689181,
+   "ratio_to_paper_std": 0.0005233748720293946
+  },
+  "4m_thesis": {
+   "particles": 4182025,
+   "slots": 4800000,
+   "device": "NVIDIA GeForce RTX 5090",
+   "steps_per_second": [
+    166.8,
+    171.6,
+    171.5,
+    171.5,
+    171.5,
+    171.4
+   ],
+   "steps_per_second_mean": 170.71666666666667,
+   "steps_per_second_std": 1.919809018279331,
+   "particle_steps_per_second_mean": 713941367.9166666,
+   "particle_steps_per_second_std": 8028689.309669619,
+   "device_local_megabytes": 826.74,
+   "device_local_buffers": 24,
+   "defrag_scratch_megabytes": 640.87,
+   "defrag_scratch_buffers": 9,
+   "bytes_per_particle": 367.9797761515056,
+   "bytes_per_slot": 320.60429653333335,
+   "drift": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failed": false,
+   "trials": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "ratio_to_paper_by_trial": [
+    0.9266666666666667,
+    0.9285714285714285,
+    0.928030303030303,
+    0.9275283937263386,
+    0.928030303030303,
+    0.9274891774891775
+   ],
+   "ratio_to_paper": 0.9277193787523695,
+   "ratio_to_paper_std": 0.0006506930681209473
+  },
+  "4m_thesis_micropolar": {
+   "particles": 4182025,
+   "slots": 4800000,
+   "device": "NVIDIA GeForce RTX 5090",
+   "steps_per_second": [
+    129.3,
+    132.6,
+    132.6,
+    132.6,
+    132.6,
+    132.6
+   ],
+   "steps_per_second_mean": 132.05,
+   "steps_per_second_std": 1.347219358530741,
+   "particle_steps_per_second_mean": 552236401.25,
+   "particle_steps_per_second_std": 5634105.037859523,
+   "device_local_megabytes": 1046.47,
+   "device_local_buffers": 27,
+   "defrag_scratch_megabytes": 787.35,
+   "defrag_scratch_buffers": 11,
+   "bytes_per_particle": 459.80108687059504,
+   "bytes_per_slot": 400.60409173333335,
+   "drift": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failed": false,
+   "trials": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "ratio_to_paper_by_trial": [
+    0.7183333333333334,
+    0.7175324675324675,
+    0.7175324675324675,
+    0.7171444023796646,
+    0.7175324675324675,
+    0.7175324675324675
+   ],
+   "ratio_to_paper": 0.7176012676404779,
+   "ratio_to_paper_std": 0.0003907889109590943
+  }
+ },
+ "kernels": {
+  "1m_paper": {
+   "steps": 1998,
+   "intervals_microseconds": {
+    "a_predict_end": 34.871290790790795,
+    "a_voxel_end": 22.509190190190193,
+    "a_end": 0.0,
+    "b_start": 4.782407907907908,
+    "b_correction_density_interior_end": 602.5059259259259,
+    "b_force_deep_interior_end": 667.9889189189189,
+    "b_end": 0.0,
+    "c_start": 4.2842122122122115,
+    "c_correction_density_boundary_end": 0.18002252252252254,
+    "c_density_end": 8.345348848848849,
+    "c_force_end": 0.17276526526526528,
+    "c_end": 0.0
+   },
+   "sum_microseconds": 1345.6400825825826
+  },
+  "1m_paper_adami": {
+   "steps": 1998,
+   "intervals_microseconds": {
+    "a_predict_end": 35.18525975975977,
+    "a_voxel_end": 22.16851951951952,
+    "a_end": 0.0,
+    "b_start": 4.570976476476477,
+    "b_correction_density_interior_end": 585.3554834834835,
+    "b_wall_extrapolate_end": 67.80031631631631,
+    "b_force_deep_interior_end": 755.9508103103103,
+    "b_end": 0.0,
+    "c_start": 4.214802802802803,
+    "c_correction_density_boundary_end": 0.18032482482482481,
+    "c_density_end": 8.368947947947948,
+    "c_force_end": 0.17678578578578577,
+    "c_end": 0.0
+   },
+   "sum_microseconds": 1483.9722272272272
+  },
+  "1m_thesis": {
+   "steps": 1998,
+   "intervals_microseconds": {
+    "a_predict_end": 34.733461961961964,
+    "a_voxel_end": 22.18343193193193,
+    "a_end": 0.0,
+    "b_start": 4.659882382382382,
+    "b_correction_density_interior_end": 585.3031246246246,
+    "b_wall_extrapolate_end": 67.64274524524524,
+    "b_force_deep_interior_end": 765.4992867867868,
+    "b_end": 0.0,
+    "c_start": 4.293211211211211,
+    "c_correction_density_boundary_end": 0.17949299299299298,
+    "c_density_end": 8.433836336336338,
+    "c_force_end": 0.17758658658658658,
+    "c_end": 0.0
+   },
+   "sum_microseconds": 1493.1060600600601
+  },
+  "1m_thesis_micropolar": {
+   "steps": 1998,
+   "intervals_microseconds": {
+    "a_predict_end": 75.38460860860862,
+    "a_voxel_end": 24.46967917917918,
+    "a_end": 0.0,
+    "b_start": 4.722842342342342,
+    "b_correction_density_interior_end": 589.9215250250251,
+    "b_wall_extrapolate_end": 69.92312562562563,
+    "b_force_deep_interior_end": 1190.6186396396395,
+    "b_end": 0.0,
+    "c_start": 4.634996996996997,
+    "c_correction_density_boundary_end": 0.180502002002002,
+    "c_density_end": 9.453886886886886,
+    "c_force_end": 0.17585735735735736,
+    "c_end": 0.0
+   },
+   "sum_microseconds": 1969.4856636636634
+  },
+  "4m_paper": {
+   "steps": 1998,
+   "intervals_microseconds": {
+    "a_predict_end": 256.8883618618619,
+    "a_voxel_end": 127.3542967967968,
+    "a_end": 0.0,
+    "b_start": 4.39186936936937,
+    "b_correction_density_interior_end": 2362.1447012012013,
+    "b_force_deep_interior_end": 2595.0322097097096,
+    "b_end": 0.0,
+    "c_start": 4.29503903903904,
+    "c_correction_density_boundary_end": 0.17944494494494495,
+    "c_density_end": 27.87597947947948,
+    "c_force_end": 0.18995045045045045,
+    "c_end": 0.0
+   },
+   "sum_microseconds": 5378.351852852853
+  },
+  "4m_paper_adami": {
+   "steps": 1998,
+   "intervals_microseconds": {
+    "a_predict_end": 257.427501001001,
+    "a_voxel_end": 127.93843493493493,
+    "a_end": 0.0,
+    "b_start": 4.368583083083083,
+    "b_correction_density_interior_end": 2342.140332832833,
+    "b_wall_extrapolate_end": 82.25765415415415,
+    "b_force_deep_interior_end": 2907.1704124124126,
+    "b_end": 0.0,
+    "c_start": 4.289534534534535,
+    "c_correction_density_boundary_end": 0.1802137137137137,
+    "c_density_end": 28.123037037037037,
+    "c_force_end": 0.1780035035035035,
+    "c_end": 0.0
+   },
+   "sum_microseconds": 5754.073707207207
+  },
+  "4m_thesis": {
+   "steps": 1998,
+   "intervals_microseconds": {
+    "a_predict_end": 256.71795295295294,
+    "a_voxel_end": 127.72459109109109,
+    "a_end": 0.0,
+    "b_start": 4.38687987987988,
+    "b_correction_density_interior_end": 2340.417945445445,
+    "b_wall_extrapolate_end": 82.2154069069069,
+    "b_force_deep_interior_end": 2952.2904124124125,
+    "b_end": 0.0,
+    "c_start": 4.305410410410411,
+    "c_correction_density_boundary_end": 0.1796846846846847,
+    "c_density_end": 27.9886006006006,
+    "c_force_end": 0.17912512512512513,
+    "c_end": 0.0
+   },
+   "sum_microseconds": 5796.406009509509
+  },
+  "4m_thesis_micropolar": {
+   "steps": 1998,
+   "intervals_microseconds": {
+    "a_predict_end": 380.8185035035035,
+    "a_voxel_end": 143.46145245245245,
+    "a_end": 0.0,
+    "b_start": 4.403097597597598,
+    "b_correction_density_interior_end": 2292.3857852852852,
+    "b_wall_extrapolate_end": 84.50639339339338,
+    "b_force_deep_interior_end": 4564.491215715716,
+    "b_end": 0.0,
+    "c_start": 4.35104004004004,
+    "c_correction_density_boundary_end": 0.17894694694694696,
+    "c_density_end": 30.96498148148148,
+    "c_force_end": 0.17635285285285288,
+    "c_end": 0.0
+   },
+   "sum_microseconds": 7505.73776926927
+  }
+ },
+ "pair": {
+  "pair_4m_thesis_micropolar": {
+   "particles": 4182025,
+   "devices": [
+    "NVIDIA GeForce RTX 5090",
+    "AMD Radeon RX 7900 XTX"
+   ],
+   "weights": [
+    1.2817894671496495,
+    0.7182105328503504
+   ],
+   "trials": [
+    {
+     "trial": 1,
+     "chain_steps_per_second": 191.2,
+     "reference_steps_per_second": {
+      "NVIDIA GeForce RTX 5090": 130.0,
+      "AMD Radeon RX 7900 XTX": 73.0
+     },
+     "efficiency": 0.9418719211822659,
+     "drift": 0,
+     "weights": [
+      1.2817894671496495,
+      0.7182105328503504
+     ]
+    },
+    {
+     "trial": 2,
+     "chain_steps_per_second": 191.3,
+     "reference_steps_per_second": {
+      "NVIDIA GeForce RTX 5090": 132.6,
+      "AMD Radeon RX 7900 XTX": 73.1
+     },
+     "efficiency": 0.9299951385512883,
+     "drift": 0,
+     "weights": [
+      1.2817894671496495,
+      0.7182105328503504
+     ]
+    },
+    {
+     "trial": 3,
+     "chain_steps_per_second": 191.2,
+     "reference_steps_per_second": {
+      "NVIDIA GeForce RTX 5090": 132.5,
+      "AMD Radeon RX 7900 XTX": 73.1
+     },
+     "efficiency": 0.9299610894941633,
+     "drift": 0,
+     "weights": [
+      1.2817894671496495,
+      0.7182105328503504
+     ]
+    }
+   ],
+   "steps_per_second_mean": 191.23333333333332,
+   "steps_per_second_std": 0.0577350269189757,
+   "efficiency_mean": 0.9339427164092392,
+   "efficiency_std": 0.006866913868981835,
+   "megabytes_per_slab": [
+    1236.8,
+    712.34
+   ]
+  }
+ }
+}

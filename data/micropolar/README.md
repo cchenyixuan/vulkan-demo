@@ -39,3 +39,16 @@ Added 2026-11-11 (Stage 3, Section 12 of the design note):
 | `stage3/boundary_layer_operators.txt` | discrete gradient and Laplacian on an exponential field of length l (host) |
 
 Not copied: the raw samples of the cylinder runs (`logs/micropolar/couette/`, 134 to 267 samples per run, 130 MB).
+
+Added 2026-11-11 (Stage 3, Sections 12.8 and 12.9):
+
+| path | content |
+|---|---|
+| `stage3/cavity_n1000.json` | the n = 1000 baseline: thesis configuration against the Monaghan-Gingold run of the validation series (`viscous_form_campaign.py analyse --resolution 1000 --monaghan-gingold-run ...`) |
+| `stage3/cavity_runs/n1000_laplacian_eps1em6/`, `n1000_monaghan_gingold_v7rc3/` | per run samples.jsonl, meta.json, steady.json, windows.jsonl (the second copied from the worktree `vulkan-demo-v7-rc3`) |
+| `stage3/cost.json` / `cost.txt` | the cost table: per-trial steps/s, memory, per-kernel intervals of the traced runs, the K = 2 point (`micropolar_cost.py summarise`) |
+| `stage3/cost_level_test.txt` | nine further 1M runs of the paper row (idle start / host load / alone) |
+| `stage3/cost_telemetry_session2.csv` | RTX 5090 power, SM clock, temperature every 5 s during trials 4 to 6 and the level test |
+
+Not copied: the profile samples of the n = 1000 runs (24 MB each), the bench logs and step traces
+(`logs/micropolar/cost/`).

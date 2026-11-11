@@ -1,0 +1,11 @@
+1M, paper configuration (cases/lid_driven_cavity_2d_gen), RTX 5090, protocol of micropolar_cost.py, 2026-11-11 21:30:33 to 21:32:18.
+trials 1-3: first runs after an idle minute; trials 4-6: beside a host process at full load (numpy sort loop, 50 s); trials 7-9: alone.
+trial 1: STEADY (post-warmup 1000): 6000 steps in 8.18s = 733.3 fps  drift=0
+trial 2: STEADY (post-warmup 1000): 6000 steps in 8.20s = 731.9 fps  drift=0
+trial 3: STEADY (post-warmup 1000): 6000 steps in 8.21s = 731.1 fps  drift=0
+trial 4: STEADY (post-warmup 1000): 6000 steps in 8.21s = 731.1 fps  drift=0
+trial 5: STEADY (post-warmup 1000): 6000 steps in 8.22s = 730.4 fps  drift=0
+trial 6: STEADY (post-warmup 1000): 6000 steps in 8.21s = 730.6 fps  drift=0
+trial 7: STEADY (post-warmup 1000): 6000 steps in 8.21s = 731.1 fps  drift=0
+trial 8: STEADY (post-warmup 1000): 6000 steps in 8.21s = 730.9 fps  drift=0
+trial 9: STEADY (post-warmup 1000): 6000 steps in 8.21s = 731.1 fps  drift=0

@@ -542,14 +542,12 @@ card stays open. Data: `data/micropolar/stage3/`. Tools: `experiment/validation/
 
 Readings I took without asking are collected in 12.10.
 
-Sections 12.8 (baseline at n = 1000) and 12.9 (cost) are added when the n = 1000 run has finished.
-
 ### 12.1 What `origin/v8-tgv` already has **[read]**, not merged
 
 - **Explicit viscous step limit of the Monaghan-Gingold form.** Measured there on the 800 x 800 Taylor-Green
   case at Re 100: `dt nu / h^2` = 0.016 and 0.020 run, 0.024 blows up within 400 steps (h = support radius =
   5 dx). Its case generator has no time step key either: it writes a reduced `physics.cfl`, and the shifting
-  scale shrinks with it. I do the same (12.3).
+  scale shrinks with it. I do the same (12.2).
 - **Effective viscosity against Mach number** (Re 100, 400 x 400, eps^2 = 1e-4 h^2): nu_eff / nu = 0.9949,
   0.9971, 0.9990, 1.0000 at Ma 0.1, 0.05, 0.02, 0.01. The pilot below runs at Ma 0.02 with one pair at 0.01.
 - **Specialization constant ids.** `experiment/v8/shaders/common.glsl` uses 116 `PERIODIC_X`, 117 `PERIODIC_Y`,
@@ -811,3 +809,233 @@ the core 1.5e-3; Mach number and step were changed together, so this pair does n
 
 **Speed on the RX 7900 XTX** (344,908 particles, sampling included): Newtonian 699 to 715 steps/s, micropolar 617
 to 624 (-13 %), three slabs on the one card 233 to 236.
+
+### 12.8 Baseline: the Newtonian cavity at n = 1000 in the thesis configuration **[run]**
+
+Lid-driven cavity, Re = 1000, 1000 x 1000 fluid particles (1,046,529 with the walls), adami walls, K = 1 on the
+RTX 5090, from rest with `cavity_runner.py --solver v7 --expect release`, dt = 7.5e-6 s; case
+`cases/viscous_cavity_n1000_laplacian_eps1em6` (the validation case with the two keys changed). Same driver and
+same analysis as the table of Section 8 of `docs/viscous_operator_comparison.md`: errors against Marchi et al.
+2021 at the 28 + 28 reference points (the runner's MLS samples, wall frame), mean over the last 20 time units
+(99 samples), in units of U. The run passed the runner's steady test at t = 69.46 (profile change 6.4e-4,
+kinetic energy change 9.9e-4 against 1e-3) and stopped at t = 100 (13,334,000 steps, 6 h 21 min); drift,
+overflow, far migration and both stamp counters zero at the end, particle count constant in all 493 samples.
+`data/micropolar/stage3/cavity_n1000.json`, `cavity_runs/`.
+
+The Monaghan-Gingold row is the existing n = 1000 run of the validation series (worktree `vulkan-demo-v7-rc3`,
+commit 1f3fb48, EPS factor 0.0025, adami, K = 1, same runner, same sample cadence, steady at t = 79.38); its
+samples were kept, and it was analysed again with the same code. It was not run again on this branch (12.10).
+The thesis run's `meta.json` records commit 7e76dcb: it started before the rotating-wall commits, which are
+host code.
+
+| n | configuration | t_end | L2 u | Linf u | L2 v | Linf v | E_k | std E_k | density range, mean (max) | steps/s |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1000 | monaghan_gingold, EPS factor 0.0025 (validation series) | 99.8 | 2.15e-3 | 5.35e-3 | 2.21e-3 | 5.12e-3 | 50.580 | 4.5e-3 | 1.355 (1.522) | 586 |
+| 1000 | **thesis: laplacian, EPS factor 1e-6** | 99.8 | **1.42e-3** | 5.31e-3 | **9.49e-4** | 2.28e-3 | 50.547 | 3.8e-3 | 1.186 (1.415) | 590 |
+
+| value at the reference points | Marchi et al. | monaghan_gingold | thesis |
+|---|---|---|---|
+| min u on x = 0.5 (y = 0.172) | -0.388569 | -0.39029 (-1.7e-3) | -0.38955 (-9.8e-4) |
+| max v on y = 0.5 (x = 0.156) | 0.376917 | 0.37927 (+2.4e-3) | 0.37820 (+1.3e-3) |
+| min v on y = 0.5 (x = 0.906) | -0.526418 | -0.52829 (-1.9e-3) | -0.52781 (-1.4e-3) |
+| rms error without the points within 0.05 of a wall, u (24 points) / v (25 points) | | 2.25e-3 / 2.10e-3 | 4.5e-4 / 7.9e-4 |
+
+Difference between the two rows at the 56 points: rms u 2.12e-3 (max 4.49e-3), rms v 2.41e-3 (max 5.37e-3);
+E_k ratio 0.99935. Kinetic energy history (mean over +-2.5 time units around t):
+
+| configuration | t = 5 | 10 | 20 | 40 | 60 | 80 | 90 |
+|---|---|---|---|---|---|---|---|
+| monaghan_gingold | 22.296 | 32.991 | 46.171 | 50.244 | 50.513 | 50.570 | 50.580 |
+| thesis | 22.493 | 33.251 | 46.319 | 50.241 | 50.488 | 50.538 | 50.547 |
+
+With the rows of last night (n = 250 and 500, same analysis; the n = 500 thesis run ended at t = 89.5):
+
+| configuration | L2 u at n = 250 / 500 / 1000 | order 250-500 / 500-1000 | L2 v at n = 250 / 500 / 1000 | order |
+|---|---|---|---|---|
+| monaghan_gingold, EPS factor 0.0025 | 1.10e-2 / 5.04e-3 / 2.15e-3 | 1.13 / 1.23 | 1.22e-2 / 5.56e-3 / 2.21e-3 | 1.13 / 1.33 |
+| thesis | 9.34e-3 / 4.18e-3 / 1.42e-3 | 1.16 / 1.56 | 1.05e-2 / 4.29e-3 / 9.49e-4 | 1.29 / 2.18 |
+
+- **The thesis configuration is closer to Marchi et al. than the paper's configuration at n = 1000:** L2 u
+  1.42e-3 against 2.15e-3 (-34 %), L2 v 9.5e-4 against 2.21e-3 (-57 %); the three extreme values are within
+  0.25 to 0.34 % of the reference (0.36 to 0.63 % for Monaghan-Gingold).
+- **Where the remaining error is.** For u it is the four points nearest the lid (y = 0.953 to 0.977): +1.5e-3,
+  +2.5e-3, +3.9e-3, +5.3e-3, growing towards the lid; every other u point is within 1.1e-3. For v the same at
+  the right wall (x = 0.945 to 0.969: +5e-4, +1.1e-3, +1.8e-3, +2.3e-3). Without the points within 0.05 of a
+  wall the rms error is 4.5e-4 (u) and 7.9e-4 (v), against 2.2e-3 and 2.1e-3 for Monaghan-Gingold.
+- Linf u is the same size in both rows and sits in different places: at the point nearest the lid for the
+  thesis configuration (+5.3e-3; Monaghan-Gingold has +2.6e-3 there), on the lower flank of the vortex at
+  y = 0.10 for Monaghan-Gingold (-5.4e-3; the thesis configuration has -8.6e-4 there).
+- **The two rows differ by 2.1e-3 to 2.4e-3 rms, the same as at n = 500** (2.1e-3, 2.6e-3): the difference does
+  not shrink with resolution. That is what a change of the effective viscosity does, and the EPS factor is one
+  (0.9808 on the operator at 0.0025, Section 5 of the comparison): the Monaghan-Gingold row's error pattern, a
+  primary vortex 0.4 to 0.6 % too strong, is the pattern of a Reynolds number about 2 % high. **[inferred]**: at
+  n = 1000 I ran only the thesis configuration, so form and EPS factor are not separated here; at n = 500 the
+  form alone moved the profiles by 5e-4 and the EPS factor by 2.1e-3 to 2.6e-3.
+- Fluid density range 12 % smaller than in the Monaghan-Gingold run (1.19 against 1.36 kg/m^3 of 1000; first
+  five time units 1.17 against 1.38), as at the lower resolutions. Kinetic energy 0.065 % lower.
+- Speed with sampling: 590 steps/s; the Monaghan-Gingold run made 586 on the headless RTX 5090 of the earlier
+  rig. 12.9 measures the cost of the form on one card and in one session.
+
+### 12.9 Cost **[run]**
+
+`experiment/validation/micropolar_cost.py`; `data/micropolar/stage3/cost.json` / `cost.txt`. Lid-driven cavity at
+1,046,529 and 4,182,025 particles (fluid and walls; pools of 1,203,584 and 4,800,000 slots), one RTX 5090.
+Protocol = the reference working point of paper 2's Section 5.1: K = 1 chain (`_run_v7_chain_bench.py`), depth 2,
+per-direction sync, pool safety 1.2, defrag every 1,000 steps (`defrag_order` prefix, the tree's default),
+validation layers off, no timers, warm-up 1,000 steps, then 6,000 (1M) / 3,000 (4M) measured steps, one process
+per run, trials interleaved (trial, then size, then configuration). Throughput = particles times the steps per
+second of the measured window. Drift, overflow and far migration zero in all 59 runs of this section. The card
+is the rig's only RTX 5090 and drives the display; paper 2 measured on a headless card, so the first row is the
+paper's configuration, not the paper's number.
+
+Rows: **paper** = `cases/lid_driven_cavity_2d_gen` / `lid_driven_cavity_2d_4m` unchanged (Monaghan-Gingold, EPS
+factor 0.0025, simple walls); **thesis** = the same particles with `viscous_form: laplacian`, EPS factor 1e-6,
+`wall_boundary: adami`; **micropolar** = thesis with `physics.micropolar` on (`micropolar_water_re1000`,
+Theta = 1.6e-3). A **control** that I added: the paper configuration with adami walls only (trials 4 to 6), to
+separate the wall option from the viscous form.
+
+| size | configuration | steps/s, trials 1 to 6 | mean +- std | M particle-steps/s | ratio to the paper row, trial by trial |
+|---|---|---|---|---|---|
+| 1M | Newtonian, paper | 712.6 714.6 730.8 713.6 730.9 730.2 | 722.1 +- 9.4 | 755.7 +- 9.8 | 1 |
+| 1M | control: paper + adami walls | - - - 644.1 660.8 660.3 | 655.1 +- 9.5 | 685.5 +- 9.9 | 0.9037 +- 0.0009 |
+| 1M | Newtonian, thesis | 643.0 637.9 655.9 639.4 657.0 656.1 | 648.2 +- 9.1 | 678.4 +- 9.5 | 0.8977 +- 0.0032 |
+| 1M | micropolar, thesis | 489.0 504.2 503.6 492.7 505.1 504.3 | 499.8 +- 7.1 | 523.1 +- 7.4 | 0.6922 +- 0.0068 |
+| 4M | Newtonian, paper | 180.0 184.8 184.8 184.9 184.8 184.8 | 184.0 +- 2.0 | 769.6 +- 8.2 | 1 |
+| 4M | control: paper + adami walls | - - - 172.7 172.8 172.7 | 172.7 +- 0.1 | 722.4 +- 0.2 | 0.9345 +- 0.0005 |
+| 4M | Newtonian, thesis | 166.8 171.6 171.5 171.5 171.5 171.4 | 170.7 +- 1.9 | 713.9 +- 8.0 | 0.9277 +- 0.0007 |
+| 4M | micropolar, thesis | 129.3 132.6 132.6 132.6 132.6 132.6 | 132.1 +- 1.3 | 552.2 +- 5.6 | 0.7176 +- 0.0004 |
+
+| step, trial by trial | 1M | 4M |
+|---|---|---|
+| paper -> paper + adami walls (trials 4 to 6) | 0.9037 +- 0.0009 | 0.9345 +- 0.0005 |
+| paper + adami walls -> thesis: form and EPS factor (trials 4 to 6) | 0.9935 +- 0.0008 | 0.9927 +- 0.0003 |
+| thesis -> micropolar (six trials) | 0.7711 +- 0.0101 (0.768 to 0.769 in trials 3, 5, 6) | 0.7735 +- 0.0009 |
+| paper -> micropolar (six trials) | 0.6922 +- 0.0068 | 0.7176 +- 0.0004 |
+
+- **The micropolar terms cost 23 % of the throughput of the thesis configuration** (factor 0.77 at both sizes;
+  step time x 1.30): 504 steps/s at 1M, 132.6 at 4M, 528 to 555 M particle-steps/s on this card.
+- **The thesis configuration costs 10 % (1M) and 7 % (4M) against the paper configuration, and it is the wall
+  option:** adami walls alone give 0.904 and 0.935; the `laplacian` form with the small EPS factor adds 0.6 to
+  0.7 %.
+- **Two levels 2.4 % apart.** The 1M runs sit at either 731 or 713 steps/s (paper row; the other rows likewise):
+  the lower level in trial 1, in the first two runs of trial 2 and in trial 4, that is in the first one to three
+  minutes of a session; at 4M all of trial 1 is 2.6 % low and the other five trials agree to 0.1 %. The ratios
+  hold within a trial at one level (4M: +-0.001); trial 2 at 1M straddles the change (0.790 in the third line
+  of the second table; trials 3, 5 and 6, all at the upper level, give 0.768 to 0.769). **I did not find the
+  cause.** Nine further 1M runs of the paper row, three after an idle minute, three beside a host process at
+  full load, three alone, all gave 730.4 to 733.3. Power, SM clock and temperature were sampled every 5 s in the
+  second session (600 W limit at 4M, 2805 to 2895 MHz, 64 to 69 C under load): in the one low-level run the
+  sampler covers (1M micropolar, trial 4) the card drew 558 to 568 W at 2887 MHz, against 571 to 574 W at the
+  same clock in the same run of trials 5 and 6 (three samples per run). That points to a card that is less
+  busy rather than clocked down; it also draws the desktop, which I did not control. The upper level is the
+  reproducible one: 731 / 660 / 656 / 504 steps/s at 1M (765 / 691 / 687 / 528 M particle-steps/s) and 184.8 /
+  172.7 / 171.5 / 132.6 at 4M (773 / 722 / 717 / 555).
+
+**Per-kernel split.** One more run per row with `--step-trace-detail full` (GPU timestamps on the host clock),
+2,000 steps after the warm-up, the two defrag steps left out (1,998 steps). The table gives the mean interval
+ending at each timestamp, in microseconds per step; at K = 1 phase C has nothing to do. The traced runs ran at the
+upper level of the untraced ones (735 / 667 / 663 / 504 and 184.6 / 172.6 / 171.4 / 132.5 steps/s): the timers
+cost nothing measurable here.
+
+| interval (timestamp) | 1M paper | 1M paper + adami | 1M thesis | 1M micropolar | 4M paper | 4M paper + adami | 4M thesis | 4M micropolar |
+|---|---|---|---|---|---|---|---|---|
+| predict (`a_predict_end`) | 34.9 | 35.2 | 34.7 | 75.4 | 256.9 | 257.4 | 256.7 | 380.8 |
+| voxel update (`a_voxel_end`) | 22.5 | 22.2 | 22.2 | 24.5 | 127.4 | 127.9 | 127.7 | 143.5 |
+| correction + density, fused (`b_correction_density_interior_end`) | 602.5 | 585.4 | 585.3 | 589.9 | 2362.1 | 2342.1 | 2340.4 | 2292.4 |
+| wall extrapolation (`b_wall_extrapolate_end`) | - | 67.8 | 67.6 | 69.9 | - | 82.3 | 82.2 | 84.5 |
+| force (`b_force_deep_interior_end`) | 668.0 | 756.0 | 765.5 | 1190.6 | 2595.0 | 2907.2 | 2952.3 | 4564.5 |
+| phase gaps and phase C (`b_start`, `c_start`, `c_density_end`, ...) | 17.8 | 17.6 | 17.8 | 19.2 | 37.0 | 37.2 | 37.1 | 40.2 |
+| sum | 1345.6 | 1484.0 | 1493.1 | 1969.5 | 5378.4 | 5754.1 | 5796.4 | 7505.7 |
+| step time of the untraced runs at the upper level | 1368 | 1514 | 1524 | 1983 | 5411 | 5790 | 5831 | 7541 |
+
+- **Micropolar: the force kernel takes 55 % more** (765 -> 1191, 2952 -> 4565 microseconds) and predict about
+  twice as long at 1M and 1.5 times at 4M (+41 and +124 microseconds: it also integrates w). Together these are
+  98 % (1M) and 102 % (4M) of the added step time; correction + density, which the micropolar terms do not
+  enter, changes by +0.8 % and -2.1 %.
+- **Adami walls:** the wall pass itself is 68 to 82 microseconds; the larger part is the force kernel, +13 % and
+  +12 % (668 -> 756, 2595 -> 2907). Correction + density is 1 to 3 % faster with adami.
+- **`laplacian` against Monaghan-Gingold, both with adami walls:** force kernel +1.3 % (1M) and +1.6 % (4M),
+  nothing else.
+- Per particle and step the two neighbour kernels cost the same at both sizes: correction + density 0.55 to
+  0.58 ns; force 0.62 to 0.64 ns in the paper row, 0.70 to 0.73 ns with adami walls, 1.09 to 1.14 ns
+  micropolar. Predict costs 1.9 times as much per particle at 4M as at 1M and the voxel update 1.4 times.
+
+**Memory.** Device-local buffers plus the defrag scratch buffers of the slab, as the simulator reports them at
+start-up (host-visible staging and what the driver adds are not in it).
+
+| configuration | buffers | 1M: MB | 1M: bytes per particle | 4M: MB | 4M: bytes per particle | bytes per pool slot |
+|---|---|---|---|---|---|---|
+| Newtonian, paper | 24 + 9 | 189.5 + 160.7 | 350.9 | 753.5 + 640.9 | 349.6 | 305 |
+| Newtonian, thesis (and the control) | 24 + 9 | 207.8 + 160.7 | 369.3 | 826.7 + 640.9 | 368.0 | 321 |
+| micropolar, thesis | 27 + 11 | 262.9 + 197.4 | 461.3 | 1046.5 + 787.4 | 459.8 | 401 |
+
+Per pool slot the steps are +16 B (adami: the wall dummy velocity) and +80 B (micropolar with adami: three live
+vec4 buffers and two defrag twins), as Section 4 planned. **Micropolar: +25 % memory per particle** against the
+thesis configuration (+92 B), +31 % against the paper configuration. The pools are 1.15 times the particle
+count; the bench's total also holds the voxel tables and index lists, which is why 305 B exceeds the 288 B of
+Section 4's count.
+
+**The K = 2 point:** the 4M micropolar case on RTX 5090 + RX 7900 XTX, weights from the bench's calibration
+(two pilot rounds: 1.2818 : 0.7182, cut at column 261 of 410), three trials, each preceded by a K = 1 run of the
+same case on both cards at the same time.
+
+| trial | K = 2 steps/s | K = 1 at the same time: 5090 | XTX | sum | efficiency = K = 2 / sum |
+|---|---|---|---|---|---|
+| 1 | 191.2 | 130.0 | 73.0 | 203.0 | 0.942 |
+| 2 | 191.3 | 132.6 | 73.1 | 205.7 | 0.930 |
+| 3 | 191.2 | 132.5 | 73.1 | 205.6 | 0.930 |
+| mean +- std | 191.2 +- 0.1 | 131.7 +- 1.5 | 73.07 +- 0.06 | | **0.934 +- 0.007** |
+
+- 191.2 steps/s = 800 M particle-steps/s, 1.44 times the 5090 alone (1.55 would be the sum). Drift zero.
+- The efficiency of trial 1 is higher only because its 5090 reference ran at the lower level described above
+  (130.0); against the usual level the number is 0.930.
+- The weights (ratio 1.78) are close to the ratio of the K = 1 throughputs (1.81). An efficiency against the
+  slower card (eta_min of the equal-slab definition) does not apply to a weighted pair.
+- Memory of the two slabs: 1,236.8 + 712.3 MB = 1,949 MB, 6 % more than the one slab (1,834 MB): 489 bytes per
+  particle.
+- No clock or power record was taken during these runs (the sampler ran only in the second session of the
+  one-card table).
+
+### 12.10 Readings taken without asking
+
+- **Which card ran what.** The n = 1000 baseline held the RTX 5090 for most of the day, so every one-slab run of
+  the pilot table and the three-slab runs ("K = 3 on one card") ran on the RX 7900 XTX; the K = 2 run used the
+  pair while the 5090 was shared with the baseline, so its speed says nothing. The cost table (12.9) ran after
+  the baseline, on idle cards.
+- **s = threshold / 1.6** with "threshold" = the largest stable value of the bisection bracket (not the smallest
+  failing one; the two differ by 2 %).
+- **Design of a cylinder case:** `nu_inf = (mu + kappa / 2) / rho` is the viscosity that defines Re_g = U g / nu_inf
+  and the end time 2 g^2 / nu_inf; Ma = U / c0 with U the rotor's surface speed; `Theta = l^2`.
+- **Steady test of the cylinder runs:** the fitted constant (C2, or beta for a control) of the last two windows of
+  an eighth of the run each, relative difference below 1e-4. Two rows missed it and were continued to
+  3 g^2 / nu_inf (12.7); both versions are in the table.
+- **Noise floor of D** = (1 + D) times the relative spread (max - min) of beta over the three lattices; the
+  criterion is evaluated for both estimates of C2. The joint v-w fit is my addition; the velocity-only fit is the
+  one the task describes.
+- **Runs beyond the tables**, each for one question a table raised, none of them a parameter sweep: five more
+  one-slab and three more three-slab runs of the m = 5 case (is the 3e-5 difference of the first pair a
+  difference: not resolved); one pair at Mach 0.1 (does the viscous branch of the step rule hold: yes); the two
+  continuations to 3 g^2 / nu_inf; in the cost table the control row (paper configuration with adami walls),
+  trials 4 to 6 of every row, and nine runs on the question of the two levels (12.9).
+- **Baseline row for Monaghan-Gingold at n = 1000** is the existing run of the validation series in the v7-rc3
+  tree (493 samples kept); it was not run again. Its commit (1f3fb48, 2026-10-13) is an ancestor of this
+  branch's base and no commit between the two touches `experiment/v7/shaders`; it predates the prefix-order
+  defrag and the bootstrap density-step fix, which are host code. So the row has the same kernels but is not a
+  same-tree, same-day control.
+- **Baseline averages:** the last 20 time units of each run, as in Section 8 of
+  `docs/viscous_operator_comparison.md`.
+- **"Paper 2's single-GPU protocol"** read as the reference working point of its Section 5.1: a K = 1 chain
+  (`_run_v7_chain_bench.py`), depth 2, per-direction sync, pool safety 1.2, defrag at the case's cadence, validation
+  layers off, no GPU timers, warm-up 1,000 steps, then 6,000 (1M) / 3,000 (4M) measured steps, trials
+  interleaved, one process per run. Three trials were planned; I ran six in two sessions because the first
+  showed two levels. The per-kernel split is a separate traced run.
+- **Throughput counts fluid and wall particles**, as paper 2 does.
+- **The paper row uses the paper's cases unchanged** (`cases/lid_driven_cavity_2d_gen`, `lid_driven_cavity_2d_4m`:
+  Monaghan-Gingold, EPS factor 0.0025, the wall option those cases have, which is `simple`). The thesis rows are
+  the same particle files with the three keys of the thesis configuration, so the step from row 1 to row 2
+  contains the adami wall pass as well as the change of viscous form; the control row separates the two.
+- **The K = 2 point:** weights from the bench's own calibration (`--weights auto`), written once and reused by
+  the three trials; efficiency against the sum of the two K = 1 runs of the same case made on both cards at the
+  same time before each trial.
+- **Left as found:** the Stage-1 warning threshold for the step numbers (12.2); specialization constant id 116
+  (12.1); the default of every option.

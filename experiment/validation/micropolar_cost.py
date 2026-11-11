@@ -9,6 +9,9 @@ Throughput of one card on the 2-D lid-driven cavity at about 1M and 4M particles
   thesis_micropolar  the thesis configuration with physics.micropolar on (materials/micropolar.yaml,
                      micropolar_water_re1000)
 
+and one control, paper_adami: the paper configuration with wall_boundary adami only, which separates the wall
+option from the viscous form in the step from the first row to the second.
+
 Protocol = the reference working point of paper 2's Section 5.1: a K = 1 chain (_run_v7_chain_bench.py, depth 2,
 per-direction sync scheme, pool safety 1.2, defrag at the case cadence, validation layers off, no GPU timers,
 no seam check), warm-up 1000 steps, then 6000 (1M) / 3000 (4M) measured steps, three trials interleaved
@@ -39,6 +42,8 @@ _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 CASES = {
     "paper": {"1m": "cases/lid_driven_cavity_2d_gen/case.yaml", "4m": "cases/lid_driven_cavity_2d_4m/case.yaml"},
+    "paper_adami": {"1m": "cases/cost_cavity_1m_paper_adami/case.yaml",
+                    "4m": "cases/cost_cavity_4m_paper_adami/case.yaml"},
     "thesis": {"1m": "cases/cost_cavity_1m_thesis/case.yaml", "4m": "cases/cost_cavity_4m_thesis/case.yaml"},
     "thesis_micropolar": {"1m": "cases/cost_cavity_1m_thesis_micropolar/case.yaml",
                           "4m": "cases/cost_cavity_4m_thesis_micropolar/case.yaml"},
@@ -103,7 +108,7 @@ def parse_log(log_path: pathlib.Path) -> dict:
 
 def command_run(arguments) -> int:
     out = _REPO_ROOT / arguments.out
-    for trial in range(1, arguments.trials + 1):
+    for trial in range(arguments.first_trial, arguments.trials + 1):
         for size in arguments.sizes:
             warmup, measured = PROTOCOL[size]
             for configuration in arguments.configurations:
@@ -207,13 +212,14 @@ def command_summarise(arguments) -> int:
     print(f"{'size':<5}{'configuration':<20}{'particles':>11}{'steps/s':>20}{'M particle-steps/s':>22}"
           f"{'vs paper':>10}{'device-local MB':>17}{'scratch MB':>12}{'B/particle':>12}{'B/slot':>9}{'trials':>8}")
     for size in PROTOCOL:
-        reference = None
+        reference: dict[int, float] = {}
         for configuration in CASES:
             records = [parse_log(path) for path in sorted(out.glob(f"{size}_{configuration}_t*.log"))]
             records = [record for record in records if "particle_steps_per_second" in record]
             if not records:
                 continue
             rates = [record["steps_per_second"] for record in records]
+            trial_numbers = [int(record["log"].rsplit("_t", 1)[1].split(".")[0]) for record in records]
             mean, deviation = _mean_std(rates)
             particles = records[0]["particles"]
             megabytes = records[0]["device_local_megabytes"][0] + records[0]["defrag_scratch_megabytes"][0]
@@ -230,10 +236,15 @@ def command_summarise(arguments) -> int:
                     "drift": [record.get("drift") for record in records],
                     "failed": any(record["failed"] for record in records)}
             if configuration == "paper":
-                reference = mean
-            item["ratio_to_paper"] = mean / reference if reference else None
+                reference = dict(zip(trial_numbers, rates))
+            # trial by trial against the paper row of the same trial (the trials are interleaved)
+            ratios = [rate / reference[trial] for trial, rate in zip(trial_numbers, rates) if trial in reference]
+            item["trials"] = trial_numbers
+            item["ratio_to_paper_by_trial"] = ratios
+            item["ratio_to_paper"] = statistics.mean(ratios) if ratios else None
+            item["ratio_to_paper_std"] = statistics.stdev(ratios) if len(ratios) > 1 else 0.0
             summary["throughput"][f"{size}_{configuration}"] = item
-            ratio_text = f"{item['ratio_to_paper']:.4f}" if reference else "-"
+            ratio_text = f"{item['ratio_to_paper']:.4f}" if ratios else "-"
             print(f"{size:<5}{configuration:<20}{particles:>11,}{mean:>12.1f} +- {deviation:<5.1f}"
                   f"{particles * mean / 1e6:>14.1f} +- {particles * deviation / 1e6:<5.1f}{ratio_text:>10}"
                   f"{item['device_local_megabytes']:>17.1f}{item['defrag_scratch_megabytes']:>12.1f}"
@@ -303,7 +314,9 @@ def main() -> int:
         command.add_argument("--sizes", nargs="+", default=list(PROTOCOL), choices=list(PROTOCOL))
         command.add_argument("--configurations", nargs="+", default=list(CASES), choices=list(CASES))
         if name == "run":
-            command.add_argument("--trials", type=int, default=3)
+            command.add_argument("--trials", type=int, default=3, help="number of the last trial")
+            command.add_argument("--first-trial", type=int, default=1,
+                                 help="number of the first trial (a later session adds trials to the same directory)")
         else:
             command.add_argument("--steps", type=int, default=2000, help="traced steps after the warm-up")
         command.set_defaults(handler=handler)

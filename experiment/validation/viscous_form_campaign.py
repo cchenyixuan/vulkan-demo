@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -123,7 +124,8 @@ def command_analyse(arguments) -> int:
             run_dir = pathlib.Path(arguments.monaghan_gingold_run)
         if (run_dir / "samples.jsonl").exists():
             summaries[name] = summarise(run_dir, arguments.average_span)
-            summaries[name]["run_directory"] = str(run_dir)
+            # relative to the repository root, so that the file names no local account
+            summaries[name]["run_directory"] = pathlib.Path(os.path.relpath(run_dir.resolve(), _REPO_ROOT)).as_posix()
     if not summaries:
         print("no runs")
         return 1

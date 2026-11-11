@@ -1,0 +1,31 @@
+size configuration         particles             steps/s    M particle-steps/s  vs paper  device-local MB  scratch MB  B/particle   B/slot  trials
+1m   paper                 1,046,529       722.1 +- 9.4           755.7 +- 9.8      1.0000            189.5       160.7       350.9    305.1       6
+1m   paper_adami           1,046,529       655.1 +- 9.5           685.5 +- 9.9      0.9037            207.8       160.7       369.3    321.1       3
+1m   thesis                1,046,529       648.2 +- 9.1           678.4 +- 9.5      0.8977            207.8       160.7       369.3    321.1       6
+1m   thesis_micropolar     1,046,529       499.8 +- 7.1           523.1 +- 7.4      0.6922            262.9       197.4       461.3    401.1       6
+4m   paper                 4,182,025       184.0 +- 2.0           769.6 +- 8.2      1.0000            753.5       640.9       349.6    304.6       6
+4m   paper_adami           4,182,025       172.7 +- 0.1           722.4 +- 0.2      0.9345            826.7       640.9       368.0    320.6       3
+4m   thesis                4,182,025       170.7 +- 1.9           713.9 +- 8.0      0.9277            826.7       640.9       368.0    320.6       6
+4m   thesis_micropolar     4,182,025       132.1 +- 1.3           552.2 +- 5.6      0.7176           1046.5       787.4       459.8    400.6       6
+
+mean interval ending at each GPU timestamp, microseconds per step (traced runs)
+tick                                                  1m_paper          1m_paper_adami               1m_thesis    1m_thesis_micropolar                4m_paper          4m_paper_adami               4m_thesis    4m_thesis_micropolar
+a_predict_end                                             34.9                    35.2                    34.7                    75.4                   256.9                   257.4                   256.7                   380.8
+a_voxel_end                                               22.5                    22.2                    22.2                    24.5                   127.4                   127.9                   127.7                   143.5
+a_end                                                      0.0                     0.0                     0.0                     0.0                     0.0                     0.0                     0.0                     0.0
+b_start                                                    4.8                     4.6                     4.7                     4.7                     4.4                     4.4                     4.4                     4.4
+b_correction_density_interior_end                        602.5                   585.4                   585.3                   589.9                  2362.1                  2342.1                  2340.4                  2292.4
+b_force_deep_interior_end                                668.0                   756.0                   765.5                  1190.6                  2595.0                  2907.2                  2952.3                  4564.5
+b_end                                                      0.0                     0.0                     0.0                     0.0                     0.0                     0.0                     0.0                     0.0
+c_start                                                    4.3                     4.2                     4.3                     4.6                     4.3                     4.3                     4.3                     4.4
+c_correction_density_boundary_end                          0.2                     0.2                     0.2                     0.2                     0.2                     0.2                     0.2                     0.2
+c_density_end                                              8.3                     8.4                     8.4                     9.5                    27.9                    28.1                    28.0                    31.0
+c_force_end                                                0.2                     0.2                     0.2                     0.2                     0.2                     0.2                     0.2                     0.2
+c_end                                                      0.0                     0.0                     0.0                     0.0                     0.0                     0.0                     0.0                     0.0
+b_wall_extrapolate_end                                     nan                    67.8                    67.6                    69.9                     nan                    82.3                    82.2                    84.5
+sum                                                     1345.6                  1484.0                  1493.1                  1969.5                  5378.4                  5754.1                  5796.4                  7505.7
+
+pair_4m_thesis_micropolar: K = 2 on ['NVIDIA GeForce RTX 5090', 'AMD Radeon RX 7900 XTX'], weights [1.2817894671496495, 0.7182105328503504]: 191.2 +- 0.1 steps/s = 799.7 M particle-steps/s; efficiency against the two simultaneous K = 1 runs 0.9339 +- 0.0069
+  trial 1: K = 2 191.2; K = 1 {'NVIDIA GeForce RTX 5090': 130.0, 'AMD Radeon RX 7900 XTX': 73.0}; efficiency 0.9419; drift 0
+  trial 2: K = 2 191.3; K = 1 {'NVIDIA GeForce RTX 5090': 132.6, 'AMD Radeon RX 7900 XTX': 73.1}; efficiency 0.9300; drift 0
+  trial 3: K = 2 191.2; K = 1 {'NVIDIA GeForce RTX 5090': 132.5, 'AMD Radeon RX 7900 XTX': 73.1}; efficiency 0.9300; drift 0
