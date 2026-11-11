@@ -1,0 +1,56 @@
+{
+ "eps0.3_l0.05": {
+  "load_exact_film": 0.11241867140918638,
+  "load_rule_film": 0.12208939682010733,
+  "load_rule_stokes": 0.1224757261246674,
+  "torque_exact_film": 0.05100097607471765,
+  "torque_rule_film": 0.052107391271605685,
+  "torque_rule_stokes": 0.042670984214493,
+  "rotor_speed_term": 0.009375000000000001
+ },
+ "eps0.3_l0.1": {
+  "load_exact_film": 0.21661934034513042,
+  "load_rule_film": 0.26498371747328653,
+  "load_rule_stokes": 0.265781005997098,
+  "torque_exact_film": 0.1046153563588419,
+  "torque_rule_film": 0.11021081560023394,
+  "torque_rule_stokes": 0.09024064005577137,
+  "rotor_speed_term": 0.018750000000000003
+ },
+ "eps0.3_l0.25": {
+  "load_exact_film": 0.4213368385610825,
+  "load_rule_film": 0.8722105249801859,
+  "load_rule_stokes": 0.8743408756815856,
+  "torque_exact_film": 0.26144196860534574,
+  "torque_rule_film": 0.3330079439643132,
+  "torque_rule_stokes": 0.27261943465463334,
+  "rotor_speed_term": 0.04687500000000001
+ },
+ "eps0.6_l0.05": {
+  "load_exact_film": 0.11837243889102056,
+  "load_rule_film": 0.1336874929176215,
+  "load_rule_stokes": 0.13406368197538887,
+  "torque_exact_film": 0.08036123015275631,
+  "torque_rule_film": 0.08518033365488686,
+  "torque_rule_stokes": 0.07538036808518167,
+  "rotor_speed_term": 0.009375000000000001
+ },
+ "eps0.6_l0.1": {
+  "load_exact_film": 0.21809644120254545,
+  "load_rule_film": 0.29477070961331187,
+  "load_rule_stokes": 0.2955529606687415,
+  "torque_exact_film": 0.16015381463690392,
+  "torque_rule_film": 0.18608901124097343,
+  "torque_rule_stokes": 0.16486457909728025,
+  "rotor_speed_term": 0.018750000000000003
+ },
+ "eps0.6_l0.25": {
+  "load_exact_film": 0.4060231137908241,
+  "load_rule_film": 1.0508704914395643,
+  "load_rule_stokes": 1.0530491642809054,
+  "torque_exact_film": 0.34188290480023076,
+  "torque_rule_film": 0.6456521666865764,
+  "torque_rule_stokes": 0.5745711783276977,
+  "rotor_speed_term": 0.04687500000000001
+ }
+}

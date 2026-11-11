@@ -1,0 +1,136 @@
+{
+ "reference": [
+  "logs/micropolar/t1/k1_base_a1.npz",
+  "logs/micropolar/t1/k1_base_a2.npz",
+  "logs/micropolar/t1/k1_base_a3.npz",
+  "logs/micropolar/t1/k1_base_a4.npz",
+  "logs/micropolar/t1/k1_base_a5.npz",
+  "logs/micropolar/t1/k1_base_a6.npz",
+  "logs/micropolar/t1/k1_base_a7.npz",
+  "logs/micropolar/t1/k1_base_a8.npz",
+  "logs/micropolar/t1/k1_base_a9.npz",
+  "logs/micropolar/t1/k1_base_a10.npz"
+ ],
+ "floor": {
+  "u": {
+   "pair_rms_max": 0.00015314976078542372,
+   "pair_rms_median": 8.957013613816662e-05,
+   "pair_rms_min": 3.0102390107694484e-05,
+   "pairs": 45
+  },
+  "v": {
+   "pair_rms_max": 0.0001637512425117276,
+   "pair_rms_median": 9.323848974871698e-05,
+   "pair_rms_min": 3.89851613805586e-05,
+   "pairs": 45
+  },
+  "rho": {
+   "pair_rms_max": 0.0015843162789133728,
+   "pair_rms_median": 0.00044657850479447596,
+   "pair_rms_min": 6.564227991867912e-05,
+   "pairs": 45
+  }
+ },
+ "tests": {
+  "logs/micropolar/t1/k1_v6_newtonian1.npz": {
+   "u": {
+    "rms_min": 3.9606846635392944e-05,
+    "rms_median": 8.841073308239254e-05,
+    "rms_max": 0.0001576931483344647,
+    "ratio_to_floor_max": 1.0296663052279047
+   },
+   "v": {
+    "rms_min": 4.193188627733436e-05,
+    "rms_median": 8.186020163862709e-05,
+    "rms_max": 0.00015477582371157227,
+    "ratio_to_floor_max": 0.9451886980368255
+   },
+   "rho": {
+    "rms_min": 0.00010649988894102127,
+    "rms_median": 0.00038249083667058804,
+    "rms_max": 0.0014325660764860193,
+    "ratio_to_floor_max": 0.9042172295727254
+   }
+  },
+  "logs/micropolar/t1/k1_v6_newtonian2.npz": {
+   "u": {
+    "rms_min": 2.2428886906817135e-05,
+    "rms_median": 6.418884956620928e-05,
+    "rms_max": 0.00013395660219506372,
+    "ratio_to_floor_max": 0.8746771885771908
+   },
+   "v": {
+    "rms_min": 3.044505159092877e-05,
+    "rms_median": 6.73453564115032e-05,
+    "rms_max": 0.00014954999179140116,
+    "ratio_to_floor_max": 0.9132754628148281
+   },
+   "rho": {
+    "rms_min": 5.8728840876707576e-05,
+    "rms_median": 0.00030341824204409377,
+    "rms_max": 0.0015822628489678392,
+    "ratio_to_floor_max": 0.9987039015044762
+   }
+  },
+  "logs/micropolar/t1/k1_v6_newtonian3.npz": {
+   "u": {
+    "rms_min": 4.4126369682316e-05,
+    "rms_median": 0.000143137237163632,
+    "rms_max": 0.00015436451892546335,
+    "ratio_to_floor_max": 1.0079318317822359
+   },
+   "v": {
+    "rms_min": 4.672609839656199e-05,
+    "rms_median": 0.0001580607462661644,
+    "rms_max": 0.00017427813173508518,
+    "ratio_to_floor_max": 1.064285858610225
+   },
+   "rho": {
+    "rms_min": 0.0002992077975247476,
+    "rms_median": 0.0016053673369681811,
+    "rms_max": 0.0017585208291694453,
+    "ratio_to_floor_max": 1.1099556651501135
+   }
+  },
+  "logs/micropolar/t1/k1_v6_newtonian4.npz": {
+   "u": {
+    "rms_min": 4.195621509573791e-05,
+    "rms_median": 8.202693245967741e-05,
+    "rms_max": 0.00014706805917927743,
+    "ratio_to_floor_max": 0.9602891863822935
+   },
+   "v": {
+    "rms_min": 4.369671668366261e-05,
+    "rms_median": 7.872468544537243e-05,
+    "rms_max": 0.00013823931772969457,
+    "ratio_to_floor_max": 0.8442031682281379
+   },
+   "rho": {
+    "rms_min": 6.761757182837232e-05,
+    "rms_median": 0.00034272782197211106,
+    "rms_max": 0.001546853582720561,
+    "ratio_to_floor_max": 0.9763540293744213
+   }
+  },
+  "logs/micropolar/t1/k1_v6_newtonian5.npz": {
+   "u": {
+    "rms_min": 2.8508987234350776e-05,
+    "rms_median": 7.221631012758307e-05,
+    "rms_max": 0.00014816732724108839,
+    "ratio_to_floor_max": 0.9674669191856188
+   },
+   "v": {
+    "rms_min": 3.6395400694115386e-05,
+    "rms_median": 6.967961600829196e-05,
+    "rms_max": 0.0001427054699387158,
+    "ratio_to_floor_max": 0.8714771732403526
+   },
+   "rho": {
+    "rms_min": 7.48982356983888e-05,
+    "rms_median": 0.00031289434099180036,
+    "rms_max": 0.001598269175169795,
+    "ratio_to_floor_max": 1.0088068881460917
+   }
+  }
+ }
+}

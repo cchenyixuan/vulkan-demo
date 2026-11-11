@@ -1808,3 +1808,797 @@ the two give `delta_b / delta` = 0.637 and 0.638 with a scatter of 1.5 % around 
 - `delta_b` is negative in the narrowest gap at eps = 0.6.
 - At l = 5 dx the run is further from the exact solution (+3 %) than the rule is (-0.2 to -0.4 %).
 - The uniform outward drift of 3e-4 to 5e-4 U in every concentric run is the same seepage, at small pressure.
+
+## 14. Stage 5 (2026-11-12): slip form of the rule, exact eccentric benchmark, wall candidates
+
+Tools: `experiment/validation/micropolar_stage5.py` (run table, queue, the rule, the plane film, the benchmark and
+candidate tables), `micropolar_eccentric_reference.py` (the exact Stokes solution and its checks),
+`micropolar_stage5_cavity.py` (the cavity of the candidates); data and the commands that make each file:
+`data/micropolar/stage5/README.md`. Marks as before: **[run]**, **[run, host]**, **[host]**, **[read]**,
+**[inferred]**.
+
+Carried in from the task: the rows at g = 400 dx stay on hold (not restarted); the two torque readings of 13.3
+are diagnostics with the accuracy stated there; the joint fit has left the tables; the wall and the
+density-diffusion term are not decided, and **nothing here changes a default or the tag.** While a GPU run was
+active the host analysis ran as one process (the rule of the task allows two).
+
+Settings in this section, all "thesis configuration otherwise" (`viscous_form: laplacian`, EPS factor 1e-6,
+`wall_boundary: adami`, w = 0 on every wall):
+
+| | setting | case key | status |
+|---|---|---|---|
+| (a) | the thesis configuration | none | the reference for the defect |
+| (b) | density diffusion off (`nd_`) | `numerics.use_density_diffusion: false` | existing switch |
+| (c) | density diffusion between fluid pairs only (`fd_`) | `numerics.delta_fluid_only: true` | new option, 14.4.2 |
+| (d') | walls store the Tait density of their pressure (`ew_`) | `numerics.wall_density: eos` | new option: the part of the `v7-wall` treatment that ports in an hour, without its volume anchor (14.4.1) |
+
+### 14.0 State of the tree **[run]**
+
+- Tag `thesis-ch5-rc1` = `8ca21ab` is where it was; no `rc2`. `experiment/v7/shaders` and `experiment/v7/utils`
+  **did change** during this stage, by the two options above, each as compile-time variants that only a case
+  with the key loads (commits `70d1be4`, `ba5bced`: `delta_fluid_only`; `bfcc024`: `wall_density`). The 35 SPIR-V
+  files of the tag are byte-identical after both (43 files now), and a case without the keys builds the same
+  module list, buffers, spec constants and recordings (14.4.2). Every `run.json` records its commit, the two
+  tree hashes and whether the directories differed from the commit:
+
+| `git describe` at the start of the run | shaders tree | utils tree | solver directories differ from the commit | runs |
+|---|---|---|---|---|
+| `thesis-ch5-rc1-9-gbfcc024` | `92a96215` | `7815b154` | no | `ew_e60_k3_m2`, `ew_e60_k3_m5`, `ew_e60_re1`, `ew_e60_re10`, `ew_g100_k3_m2`, `ew_g100_k3_m5`, `ew_g100_newtonian`, `fd_e60_re1`, `fd_e60_re10`, `fd_g100_newtonian_long`, `nd_e30_slip_m2`, `nd_e60_k3_m5_rotated`, `nd_e60_k3_m5_shifted`, `nd_e60_newtonian_rotated`, `nd_e60_newtonian_shifted`, `nd_e60_re10`, `nd_g100_control`, `thesis_e60_re1`, `thesis_e60_re10`, `thesis_g100_control` |
+| `thesis-ch5-rc1-10-g5bc8e0d` | `92a96215` | `7815b154` | no | `fd_e60_k3_m2`, `fd_e60_k3_m5`, `fd_g100_k3_m2`, `fd_g100_k3_m5`, `fd_g100_k3_m5_long`, `fd_g100_newtonian`, `nd_e30_k3_m10_g200`, `nd_e30_re10_g200`, `nd_e60_k3_m10_g200`, `nd_e60_re1_ma001` |
+| `thesis-ch5-rc1-6-g5d07112` | `bd3adc4c` | `83aa1faf` | no | `nd_e30_re1`, `nd_e30_slip_m5`, `nd_e60_re1`, `nd_e60_re1_g200`, `nd_e60_slip_m2`, `nd_e60_slip_m5` |
+| `thesis-ch5-rc1-8-gba5bced` | `c3409837` | `25618f81` | yes | `nd_e60_re10_g200` |
+| `thesis-ch5-rc1-8-gba5bced` | `c3409837` | `25618f81` | no | `nd_g100_slip_m2`, `nd_g100_slip_m5` |
+
+  One run started while the edits of the first option were not yet committed (`nd_e60_re10_g200`, "yes" above);
+  two others in that position were run again on the committed tree and reproduce to 1e-4 (14.6).
+
+- What ran: 39 runs between the cylinders to their end time (one of them, the thesis configuration at
+  Reynolds number 1, after losing two particles at 96 % of it); six cavity runs (two stopped by the runner,
+  three finished, one running when this was written); 20 dumps of T1 and four seam checks. What did not: 14.6.
+
+### 14.1 The rule in its slip form **[host]**
+
+**The derivation is right.** Checked term by term against the model as the solver has it
+(`Dv/Dt = ... + nu lap v + c curl w`, `Theta Dw/Dt = xi lap w + c (curl v - 2 w)`), steady, plane, `u(y)` along the
+wall and `w(y)` out of the plane:
+
+- momentum: `nu u'' + c w' = 0`, so `nu u' + c w = const`; spin: `xi w'' - c (u' + 2 w) = 0`. Eliminating `u'`:
+  `xi w'' - c (2 - c / nu) (w - w_c) = 0` with `w_c = -u_c' / 2`, so the layer length is
+  `l^2 = xi nu / (c (2 nu - c))`. That is the l of the cases (`design_parameters`: `xi = l^2 c (2 nu - c) / nu`,
+  `Theta = l^2`), so `delta = c l / (2 nu)` needs no conversion.
+- `u' = u_c' - (c / nu) (w_b - w_c) exp(-y / l)`, integrated from the wall: the two lines of the task, and outside
+  the layer `u = [U_b - 2 delta w_b] + u_c' (y - delta)`.
+- The vector form has the right sign: for the wall y = 0 with the fluid above, `n = y^`, `z^ x n = -x^`, and the
+  apparent velocity is `U_b - 2 delta w_b` along x.
+- The step to a rotating wall holds because the model sees w only through `curl v - 2 w` and through gradients of
+  w: both are unchanged by a rigid rotation added to v with its rate added to w. What is dropped is inertia in
+  the turning frame and the curvature of the layer (the exact layer functions are Bessel functions; the rule
+  takes the exponential); both are of order l / R.
+- To first order in delta the slip form and the `(R1 / R2)^2` form are the same number:
+  `D = 2 delta R1 (R1 + R2) / (R2 (R2^2 - R1^2))`. They differ at second order.
+
+The hand values of the task reproduce: K = 3, nominal radii, `D_rule` = 0.18440 (m = 2), 0.06483 (m = 5),
+0.03116 (m = 10) against the exact 0.17744, 0.06502, 0.03121.
+
+**The sweep of Stage 4 with both forms** (`micropolar_stage5.py rule`; `data/micropolar/stage5/rule_slip_form.txt`
+and `.json`). `D_SPH` and `D_exact` as in 13.2 (velocity-only fit; exact solution and both rule forms with the
+hydrodynamic radii of the run's control):
+
+| K | m | g / dx | l / dx | D_SPH | D_exact | D_SPH / D_exact | D_rule, (R1/R2)^2 form | / D_exact | D_rule, slip form | / D_exact |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 3 | 1 | 100 | 50 | 0.32214 | 0.32213 | 1.0000 | 0.43006 | 1.3351 | 0.47911 | 1.4873 |
+| 3 | 2 | 100 | 25 | 0.17757 | 0.17747 | 1.0006 | 0.17662 | 0.9952 | 0.18443 | 1.0392 |
+| 3 | 5 | 50 | 5 | 0.06697 | 0.06503 | 1.0298 | 0.06385 | 0.9818 | 0.06484 | 0.9972 |
+| 3 | 5 | 100 | 10 | 0.06545 | 0.06503 | 1.0065 | 0.06385 | 0.9818 | 0.06484 | 0.9972 |
+| 3 | 5 | 200 | 20 | 0.06504 | 0.06502 | 1.0004 | 0.06384 | 0.9818 | 0.06484 | 0.9972 |
+| 3 | 10 | 100 | 5 | 0.03216 | 0.03121 | 1.0303 | 0.03093 | 0.9911 | 0.03117 | 0.9985 |
+| 3 | 10 | 200 | 10 | 0.03140 | 0.03121 | 1.0062 | 0.03093 | 0.9911 | 0.03116 | 0.9985 |
+| 3 | 20 | 200 | 5 | 0.01575 | 0.01530 | 1.0297 | 0.01523 | 0.9956 | 0.01529 | 0.9992 |
+| 1 | 1 | 100 | 50 | 0.18925 | 0.18950 | 0.9987 | 0.25036 | 1.3212 | 0.26632 | 1.4054 |
+| 1 | 2 | 100 | 25 | 0.11030 | 0.11021 | 1.0009 | 0.11116 | 1.0087 | 0.11421 | 1.0363 |
+| 1 | 5 | 100 | 10 | 0.04241 | 0.04221 | 1.0047 | 0.04168 | 0.9873 | 0.04210 | 0.9973 |
+| 1 | 10 | 200 | 10 | 0.02063 | 0.02054 | 1.0045 | 0.02041 | 0.9937 | 0.02051 | 0.9986 |
+| 1 | 20 | 200 | 5 | 0.01038 | 0.01013 | 1.0241 | 0.01010 | 0.9969 | 0.01013 | 0.9993 |
+| 0.5 | 1 | 100 | 50 | 0.11680 | 0.11715 | 0.9970 | 0.15395 | 1.3141 | 0.15986 | 1.3646 |
+| 0.5 | 2 | 100 | 25 | 0.07020 | 0.07026 | 0.9991 | 0.07145 | 1.0169 | 0.07270 | 1.0347 |
+| 0.5 | 5 | 100 | 10 | 0.02776 | 0.02766 | 1.0040 | 0.02740 | 0.9909 | 0.02758 | 0.9974 |
+| 0.5 | 10 | 200 | 10 | 0.01363 | 0.01358 | 1.0038 | 0.01351 | 0.9954 | 0.01356 | 0.9987 |
+| 0.5 | 20 | 200 | 5 | 0.00687 | 0.00673 | 1.0214 | 0.00671 | 0.9977 | 0.00672 | 0.9993 |
+
+On the host over m (nominal radii), `D_rule / D_exact`:
+
+| m | slip form, K = 3 | K = 1 | K = 0.5 | (R1/R2)^2 form, K = 3 | K = 1 | K = 0.5 |
+|---|---|---|---|---|---|---|
+| 1 | 1.4871 | 1.4052 | 1.3644 | 1.3349 | 1.3210 | 1.3140 |
+| 1.5 | 1.1310 | 1.1176 | 1.1102 | 1.0633 | 1.0763 | 1.0841 |
+| 2 | 1.0392 | 1.0363 | 1.0346 | 0.9952 | 1.0086 | 1.0169 |
+| 2.5 | 1.0104 | 1.0098 | 1.0095 | 0.9773 | 0.9887 | 0.9958 |
+| 3 | 1.0010 | 1.0010 | 1.0010 | 0.9742 | 0.9838 | 0.9898 |
+| 4 | 0.9971 | 0.9973 | 0.9974 | 0.9777 | 0.9847 | 0.9891 |
+| 5 | 0.9972 | 0.9973 | 0.9974 | 0.9818 | 0.9873 | 0.9909 |
+| 10 | 0.9985 | 0.9986 | 0.9987 | 0.9911 | 0.9937 | 0.9954 |
+| 20 | 0.9992 | 0.9993 | 0.9993 | 0.9956 | 0.9969 | 0.9977 |
+| 40 | 0.9996 | 0.9996 | 0.9997 | 0.9978 | 0.9984 | 0.9989 |
+| 100 | 0.9998 | 0.9999 | 0.9999 | 0.9991 | 0.9994 | 0.9995 |
+
+- **From m = 3 up the slip form is within 0.3 % of the exact D for every K** (0.9971 to 1.0010), six times
+  closer than the `(R1 / R2)^2` form at m = 5 to 20 (K = 3: -0.28, -0.15, -0.08 % against -1.82, -0.89, -0.44 %).
+  The remaining error falls like 1 / m, `-0.015 / m` (K = 3) against `-0.088 / m`, and hardly depends on K. It is
+  what the curvature of the layer leaves [inferred: l / R1 = 1 / (8 m) here; I did not derive the coefficient].
+- **Where it stops holding:** below m = 2.5. The slip form is 1 % high at m = 2.5, 2 % at m = 2.2 to 2.3, 5 % at
+  m = 1.8 to 1.9, 11 to 13 % at m = 1.5 and 36 to 49 % at m = 1, where the two wall layers fill the gap. The
+  runs follow the exact solution there (1.000, 0.999, 0.997 at m = 1).
+- **At m = 2 the `(R1 / R2)^2` form is the closer one** (0.995 to 1.017 against 1.035 to 1.039). That is a
+  cancellation in the first-order form, not accuracy: it crosses 1 between m = 1.9 and 2.4 on its way from
+  0.97 to 0.99 (m = 3) to 1.31 to 1.33 (m = 1).
+- At l = 5 dx the run is 2 to 3 % from exact and the slip form 0.1 %: as in 13.2, those rows test the solver.
+- **The general statement, a rotor that carries `w_b = f Omega`:** the same rule with the rotor's displaced
+  surface moving at `Omega (R1 + (2 f - 1) delta)` gives, for K = 3, `D_rule / D_exact` = 0.9971 to 0.9972 (m = 5),
+  0.9985 (m = 10), 0.9992 (m = 20) for f = 0, 0.5, 1 and 2 alike, with D_exact from 0.065 (f = 0) to 0.105
+  (f = 2) at m = 5. So the slip term carries the whole effect of the wall value, as the derivation says.
+
+### 14.2 The rule between eccentric cylinders **[run]**, **[host]**
+
+Setting of the `nd_` runs of 13.4.3 (`numerics.use_density_diffusion: false`, thesis configuration otherwise;
+provisional, 14.4). g = 100 dx, eps = 0.3 and 0.6, K = 3, l = 10 dx and 25 dx, w = 0 on both walls, Reynolds number
+10 on nu_inf. For each case three runs on the same lattice with the same dt and end time: the Newtonian control
+of viscosity nu_inf (R1 = 400 dx, R2 = 500 dx, Omega), the micropolar run, and **a Newtonian run in the
+slip-form geometry: rotor radius R1 + delta turning at Omega (R1 - delta) / (R1 + delta), stator radius
+R2 - delta, the same offset of the axes** (delta = 3 l / 8 = 3.75 and 9.375 dx; `nd_e30_slip_m5` and so on).
+Torques about the rotor axis by the two readings of 13.3 on both walls; `D_T = T / T_control - 1`.
+`micropolar_stage5.py benchmark`; `data/micropolar/stage5/benchmark.json`.
+
+*The readings and their concentric errors.* Between concentric cylinders the same three runs exist at each l
+(`nd_g100_newtonian`, `nd_g100_k3_m5` / `_m2` of Stage 4, `nd_g100_slip_m5` / `_m2` new), and there the fit gives
+D, so the error of each reading is known:
+
+| concentric runs at the same l | D of the fits | wall form, rotor: reading - fit | stator | circle form, rotor | stator |
+|---|---|---|---|---|---|
+| micropolar, l = 10 dx | 0.06548 | +0.0020 | +0.0059 | -0.0065 | -0.0017 |
+| slip-form geometry for l = 10 dx | 0.06445 | +0.0075 | +0.0077 | -0.0000 | +0.0000 |
+| micropolar, l = 25 dx | 0.17776 | -0.0003 | +0.0023 | -0.0029 | +0.0001 |
+| slip-form geometry for l = 25 dx | 0.18487 | +0.0085 | +0.0086 | +0.0000 | +0.0001 |
+
+The slip-form run between concentric cylinders is also the check of the procedure: its fit gives
+`beta' / beta - 1` = 0.06445 (l = 10 dx) and 0.18487 (l = 25 dx) against the formula's 0.06483 and 0.18440 for the
+nominal radii (-0.6 % and +0.3 %; the lattice puts the displaced walls at other places of its staircase than the
+nominal ones). The circle form reads a Newtonian run without error (0.0000); the wall form is off by +0.008 in
+the displaced geometry (its lattice dependence, 13.3). The micropolar rows repeat 13.4.3.
+
+*The runs.*
+
+| eps | l / dx | narrowest gap / l | run | D_T as measured: wall form, rotor | stator | circle form, rotor | stator | with the concentric error taken off: wall form, rotor | stator | circle form, rotor | stator | load against the control | turn of the force (deg) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0.3 | 10 | 7.0 | micropolar (`nd_e30_k3_m5`) | 0.0898 | 0.0913 | 0.0804 | 0.0863 | 0.0878 | 0.0855 | 0.0869 | 0.0880 | +21.71 % | +0.75 |
+| 0.3 | 10 | 7.0 | Newtonian, slip-form geometry (`nd_e30_slip_m5`) | 0.0988 | 0.0985 | 0.0897 | 0.0898 | 0.0913 | 0.0908 | 0.0897 | 0.0898 | +26.81 % | +0.61 |
+| 0.3 | 25 | 2.8 | micropolar (`nd_e30_k3_m2`) | 0.2188 | 0.2198 | 0.2153 | 0.2184 | 0.2190 | 0.2175 | 0.2182 | 0.2183 | +41.13 % | +1.24 |
+| 0.3 | 25 | 2.8 | Newtonian, slip-form geometry (`nd_e30_slip_m2`) | 0.2859 | 0.2838 | 0.2734 | 0.2737 | 0.2774 | 0.2752 | 0.2734 | 0.2736 | +88.05 % | +1.44 |
+| 0.6 | 10 | 4.0 | micropolar (`nd_e60_k3_m5`) | 0.1485 | 0.1467 | 0.1379 | 0.1450 | 0.1465 | 0.1408 | 0.1444 | 0.1467 | +21.68 % | +0.55 |
+| 0.6 | 10 | 4.0 | Newtonian, slip-form geometry (`nd_e60_slip_m5`) | 0.1732 | 0.1728 | 0.1638 | 0.1637 | 0.1656 | 0.1651 | 0.1638 | 0.1637 | +29.76 % | +0.56 |
+| 0.6 | 25 | 1.6 | micropolar (`nd_e60_k3_m2`) | 0.3102 | 0.3101 | 0.3067 | 0.3098 | 0.3105 | 0.3078 | 0.3096 | 0.3097 | +39.46 % | +0.62 |
+| 0.6 | 25 | 1.6 | Newtonian, slip-form geometry (`nd_e60_slip_m2`) | 0.5917 | 0.5883 | 0.5766 | 0.5760 | 0.5832 | 0.5797 | 0.5766 | 0.5759 | +105.77 % | +1.31 |
+
+*The rule against the micropolar run* (mean of the four readings with their concentric errors taken off; the
+four agree to 0.002 to 0.006 for the micropolar runs and to 0.002 to 0.007 for the slip-form runs), with two host
+columns: the rule evaluated on the exact Stokes solution of 14.3 for the slip-form geometry (no run), and the
+thin-film estimate with the exact plane film described below:
+
+| eps | l / dx | narrowest gap / l | D_T, micropolar run | D_T, slip-form run | ratio | D_T, rule from exact Stokes | D_T, exact plane film | load: micropolar run | slip-form run | ratio | rule from exact Stokes | exact plane film |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0.3 | 10 | 7.0 | 0.0871 | 0.0904 | 1.04 | 0.0902 | 0.086 | +21.7 % | +26.8 % | 1.23 | +26.6 % | +21.7 % |
+| 0.3 | 25 | 2.8 | 0.2183 | 0.2749 | 1.26 | 0.2726 | 0.215 | +41.1 % | +88.1 % | 2.14 | +87.4 % | +42.1 % |
+| 0.6 | 10 | 4.0 | 0.1446 | 0.1646 | 1.14 | 0.1649 | 0.141 | +21.7 % | +29.8 % | 1.37 | +29.6 % | +21.8 % |
+| 0.6 | 25 | 1.6 | 0.3094 | 0.5788 | 1.87 | 0.5746 | 0.295 | +39.5 % | +105.8 % | 2.68 | +105.3 % | +40.6 % |
+
+*Noise floor of this setting,* three lattices at eps = 0.6. The Newtonian control alone:
+
+| lattice | load (N/m) | direction (deg) | torque: wall form, rotor | stator | circle form, rotor | stator |
+|---|---|---|---|---|---|---|
+| as generated | 2,138.25 | 89.39 | 223.777 | -222.018 | 223.670 | -223.764 |
+| shifted (0.5, 0.5) dx | 2,145.50 | 89.39 | 225.390 | -223.608 | 223.558 | -223.625 |
+| rotated 15 degrees | 2,149.85 | 89.43 | 225.707 | -223.777 | 223.790 | -223.811 |
+| spread (max - min) / mean | 5.4e-03 | 0.05 deg | 8.6e-03 | 7.9e-03 | 1.0e-03 | 8.3e-04 |
+
+and the micropolar run at l = 10 dx over its control, each pair on its own lattice:
+
+| lattice | D_T: wall form, rotor | stator | circle form, rotor | stator | change of the load | turn (deg) |
+|---|---|---|---|---|---|---|
+| as generated | 0.1485 | 0.1467 | 0.1379 | 0.1450 | +21.68 % | +0.55 |
+| shifted (0.5, 0.5) dx | 0.1495 | 0.1473 | 0.1376 | 0.1443 | +21.67 % | +0.54 |
+| rotated 15 degrees | 0.1497 | 0.1475 | 0.1379 | 0.1447 | +21.70 % | +0.55 |
+| max - min | 0.0011 | 0.0009 | 0.0003 | 0.0007 | 0.04 points | 0.01 |
+
+- **The slip-form geometry is solved correctly:** the slip-form runs reproduce the exact Stokes value of their
+  own geometry to 0.2 to 0.8 % of `D_T` (0.0904 against 0.0902, 0.2749 against 0.2726, 0.1646 against 0.1649,
+  0.5788 against 0.5746) and to 0.2 to 0.6 points of the load change.
+- **The rule over-predicts between eccentric cylinders, and the load much more than the torque.** `D_T` of the
+  rule is 4 % high at eps = 0.3, l = 10 dx (narrowest gap 7 l), 14 % at eps = 0.6, l = 10 dx (4 l), 26 % at
+  eps = 0.3, l = 25 dx (2.8 l) and 87 % at eps = 0.6, l = 25 dx (1.6 l). The change of the load is 1.23, 1.37,
+  2.1 and 2.7 times the measured one: the micropolar runs give +21.7 % and +39 to +41 % at both eccentricities,
+  the rule +27 to +30 % and +88 to +106 %. All of this is far above the noise floor.
+- **Why, and what replaces the rule in a film** **[host]** (`micropolar_stage5.py film`;
+  `data/micropolar/stage5/plane_film.txt`). The wall-layer solution of 14.1 is for a core flow of uniform shear.
+  Solving the model's two ordinary differential equations between two plane walls at distance h that carry w = 0
+  gives, for the shear-driven part, a wall stress `mu_inf U / (h - 2 delta tanh(h / (2 l)))`: the rule up to
+  exponentially small terms, which is why it is so good between concentric cylinders. For the pressure-driven
+  part the flux is `- f(h) (dp/dx) / (12 mu_inf)` with
+
+  ```
+  f(h) = h^3 - 12 delta h ( (h / 2) coth(h / (2 l)) - l )  =  h^3 - 6 delta h^2 + 12 delta l h - ...      (h >> l)
+  rule:  (h - 2 delta)^3                                   =  h^3 - 6 delta h^2 + 12 delta^2 h - 8 delta^3
+  ```
+
+  The rule has the first-order term right and the second-order term too small by the factor l / delta
+  (= 2 nu / c = 8 / 3 at K = 3): a pressure-driven film is displaced by less than 2 delta. Relative to the
+  micropolar effect itself the miss is `2 (l - delta) / h`, algebraic in l / h, not exponential. For h -> 0 the
+  exact f tends to `h^3 nu_inf / nu` (a Newtonian fluid of viscosity mu + kappa, the upper bound of the effect:
+  +60 % on load and torque at K = 3), while the rule's film closes at h = 2 delta. Both closed forms agree with a
+  numerical solution of the two equations to 2e-11.
+
+  | h / l | f exact / h^3 | f rule / h^3 | rule / exact |
+  |---|---|---|---|
+  | 1.6 | 0.640 | 0.150 | 0.23 |
+  | 2.8 | 0.666 | 0.393 | 0.59 |
+  | 4 | 0.698 | 0.536 | 0.77 |
+  | 7 | 0.770 | 0.712 | 0.92 |
+  | 14 | 0.862 | 0.848 | 0.983 |
+  | 40 | 0.947 | 0.945 | 0.998 |
+
+  Put into the Reynolds equation of a journal bearing (thin film, so ratios only), the exact film gives a load
+  change of +21.7 %, +42.1 %, +21.8 % and +40.6 % for the four cases, against +21.7 %, +41.1 %, +21.7 % and
+  +39.5 % measured in the micropolar runs, and the rule's film gives +26.5 %, +87.2 %, +29.5 % and +105.1 %,
+  which is what the rule gives on the exact Stokes solution (+26.6, +87.4, +29.6, +105.3 %). For the torque the
+  thin film lacks the curvature term of the rotor's apparent speed (-2 delta / R1); with it the exact film gives
+  0.086, 0.215, 0.141 and 0.295 against 0.087, 0.218, 0.145 and 0.309 measured. **So the micropolar runs agree
+  with the film theory of the model to a point in the load and to 0.001 to 0.014 in `D_T`, and the rule's
+  excess is the second-order term of the pressure-driven film.**
+- **Where the rule holds between eccentric cylinders** [host, thin film with the two film functions, eps = 0.3
+  and 0.6]: its change of the load is within 10 % of the exact film's where the narrowest gap is above 10 to
+  12 l and within 5 % above 17 to 22 l; its change of the torque is within 5 % above 7 to 10 l. The four cases
+  of the task have their narrowest gap at 1.6 to 7 l. Two further micropolar runs at g = 200 dx with l = 10 dx
+  (narrowest gap 14 l and 8 l; last table of 14.4.3) confirm it: load change +11.4 % and +11.9 % measured,
+  +11.2 % and +11.8 % from the exact film, +12.3 % and +13.4 % from the rule.
+
+### 14.3 An exact benchmark for the Newtonian eccentric flow **[host]**, **[run]**
+
+#### 14.3.1 The closed form and its checks **[host]**
+
+`experiment/validation/micropolar_eccentric_reference.py`; `data/micropolar/stage5/eccentric_reference_check.txt`.
+
+I did not have the texts of Jeffery (1922), Wannier (1950) or Ballal & Rivlin (1976), so the formulas below are
+**derived here, not copied**, and checked the three ways the task names, the third being the independent
+numerical solution. The inertial corrections of Ballal & Rivlin are not implemented (I would not write them from
+memory); the runs at Reynolds numbers 1 and 10 show their size instead (14.3.2).
+
+*Geometry and signs.* Inner cylinder (radius R1, rate Omega_1) with its axis at x = +e from the axis of the outer
+one (R2, Omega_2), e < R2 - R1; the narrowest gap is on the +x side; rates and torques positive counter-clockwise.
+
+*Solution.* Bipolar coordinates (xi, eta) with limiting points at distance a on both sides of an origin on the
+line of centres: with `d1 = (R2^2 - R1^2 - e^2) / (2 e)` and `a = sqrt(d1^2 - R1^2)` the cylinders are
+`xi = xi_1` and `xi = xi_2`, `sinh xi_k = a / R_k`. Jeffery's form of the stream function,
+`psi (cosh xi - cos eta) / a = A cosh xi + B sinh xi + C xi cosh xi + D xi sinh xi + (E + F xi + G cosh 2 xi +
+H sinh 2 xi) cos eta`, satisfies the biharmonic equation; the wall conditions (psi constant and the tangential
+velocity `Omega_k R_k` on each circle) and a single-valued pressure (`C + F = 0`) fix the coefficients. Force and
+torque follow from the complex form `psi = Im(conj(z) phi + chi)`: the traction on a closed contour is
+`2 i mu d(phi + z conj(phi') + conj(chi'))`, so the force is `4 i mu` times the increment of phi round the
+cylinder, and only the logarithms of the solution contribute: **the force is `4 pi mu D` and the moment about the
+origin `-4 pi mu a C`**. With `t = xi_1 - xi_2`, `s = xi_1 + xi_2`:
+
+```
+Delta = t tanh t - sinh^2 t - (t - tanh t) cosh s sinh t                                              (negative)
+C = a [ - (Omega_1 - Omega_2) (t + cosh s sinh t) + sinh s sinh t (Omega_1 coth xi_1 - Omega_2 coth xi_2) ] / Delta
+D = a [ (tanh t - cosh s sinh t) (Omega_1 coth xi_1 - Omega_2 coth xi_2) + sinh s sinh t (Omega_1 - Omega_2) ] / Delta
+
+force of the fluid on the inner cylinder    F   = (0, - 4 pi mu D)             perpendicular to the line of centres
+its torque about the inner axis             T_1 = - 4 pi mu (a C + d1 D)
+on the outer cylinder                       - F,  T_2 = 4 pi mu (a C + (d1 + e) D) about the outer axis
+
+outer cylinder at rest:   C = a Omega_1 [ (R1 / R2) sinh t - t ] / Delta
+                          D = a Omega_1 (R1 / R2) sinh t tanh t / Delta
+```
+
+(`sinh t = a e / (R1 R2)`, `cosh t = (R1^2 + R2^2 - e^2) / (2 R1 R2)`, `cosh s = (d1 (d1 + e) + a^2) / (R1 R2)`.)
+With the inner cylinder turning counter-clockwise and the narrowest gap on +x the load points to +y.
+
+*Checks.*
+
+| check | result |
+|---|---|
+| concentric limit, R1 = 4, R2 = 5 | `T_1 / (-4 pi mu Omega R1^2 R2^2 / (R2^2 - R1^2)) - 1` = +1.4e-2, +1.4e-4, +1.5e-6 at e = 0.1, 0.01, 0.001 (second order in e); `F / e` tends to a constant (1350.4457 mu Omega) |
+| thin-film limit against Sommerfeld (load `12 pi mu Omega R^3 eps / (c^2 (2 + eps^2) sqrt(1 - eps^2))`, journal torque `4 pi mu Omega R^3 (1 + 2 eps^2) / (c (2 + eps^2) sqrt(1 - eps^2))`) | load ratio 1.0490, 1.0050, 1.00050, 1.000050 at c / R = 0.1, 0.01, 0.001, 0.0001 for eps = 0.3, 0.6 and 0.9 alike (about 1 + c / (2 R)); torque ratio 1.057 to 1.129 at c / R = 0.1 down to 1.00006 to 1.00013 at 0.0001 |
+| independent numerical Stokes solution: point forces on a circle inside the inner and one outside the outer cylinder (240 each, between the wall and the limiting point), wall velocities at 720 points per circle, least squares; force = minus the sum of the inner point forces. No bipolar coordinates | ten cases (R1 / R2 from 1/3 to 0.83, e / (R2 - R1) from 0.3 to 0.9, outer cylinder at rest, turning alone, with and against the inner one, and the two slip-form geometries of 14.2): force and torque agree to **1.5e-12** at worst; the numerical force along the line of centres is at most 1.2e-11 of the load; wall-velocity error at points between the collocation points at most 1.1e-12 U |
+
+*The cases of the runs* (R1 = 0.4 m, R2 = 0.5 m, Omega = 2.5 rad/s, mu = 10 Pa s for Reynolds number 10; every
+value is proportional to mu):
+
+| eps | load (N/m) | torque on the rotor (N) | over the concentric torque | Sommerfeld load (N/m) |
+|---|---|---|---|---|
+| 0.1 | 337.62 | 141.62 | 1.0143 | 301.6 |
+| 0.3 | 1,016.00 | 158.02 | 1.1318 | 907.6 |
+| 0.6 | 2,145.40 | 223.62 | 1.6016 | 1,916.9 |
+
+So the 2,138 N/m of Stage 4 was right to 0.3 %, and the Sommerfeld number is 11 % low at this clearance
+(c / R = 0.25).
+
+#### 14.3.2 The runs against the exact values **[run]**
+
+Newtonian, `nd_` setting, the lattice as generated. Reynolds number 1 = nu_inf ten times larger at the same wall
+speed and sound speed: the step is then the viscous one (5.1e-6 s at g = 100 dx) and the run goes to
+10 g^2 / nu_inf (0.4 turns of the rotor; 196,000 steps); the runs at Reynolds number 10 and g = 100 dx are those
+of Stage 4 (2 g^2 / nu_inf, 0.8 turns), the two at g = 200 dx are new (they are also the controls of the
+micropolar runs at the end of 14.4.3). Mean over the 24 states of the last quarter. Load = magnitude of the
+force of the fluid on the rotor (exchange terms of the wall sums); the exact force is along +y, 90 degrees from
+the line of centres.
+
+| run | eps | Re | g / dx | Ma | load, exact (N/m) | load, run | load / exact - 1 | F_y / exact - 1 | direction (deg) | F_x (N/m) | F_x / load | torque, exact (N) | wall form: rotor | stator | circle form: rotor | stator | torque, 2nd - 1st half | load, 2nd - 1st half | density min / max | mean pressure (Pa), change over half the run |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `nd_e30_re1` | 0.3 | 1 | 100 | 0.02 | 10,160.0 | 10,115.6 | -0.44 % | -0.45 % | 90.70 | -124.1 | -1.23 % | 1,580.23 | -0.32 % | -0.88 % | -0.13 % | -0.09 % | +0.000 % | -0.007 % | 995.21 / 1003.97 | -818, -522 |
+| `nd_e30_newtonian` | 0.3 | 10 | 100 | 0.02 | 1,016.0 | 1,014.1 | -0.19 % | -0.33 % | 86.93 | +54.4 | +5.36 % | 158.02 | -0.15 % | -0.91 % | -0.09 % | -0.09 % | +0.021 % | -0.001 % | 998.99 / 1000.52 | not recorded |
+| `nd_e60_re1` | 0.6 | 1 | 100 | 0.02 | 21,454.0 | 21,364.4 | -0.42 % | -0.44 % | 91.31 | -489.5 | -2.29 % | 2,236.20 | -0.10 % | -0.84 % | -0.04 % | +0.08 % | +0.003 % | -0.004 % | 989.47 / 1010.78 | +174, +65 |
+| `nd_e60_newtonian` | 0.6 | 10 | 100 | 0.02 | 2,145.4 | 2,138.2 | -0.33 % | -0.34 % | 89.39 | +22.8 | +1.07 % | 223.62 | +0.07 % | -0.72 % | +0.02 % | +0.06 % | +0.011 % | +0.009 % | 998.13 / 1001.32 | not recorded |
+| `nd_e60_re1_ma001` | 0.6 | 1 | 100 | 0.01 | 21,454.0 | 21,387.8 | -0.31 % | -0.31 % | 90.25 | -93.7 | -0.44 % | 2,236.20 | -0.24 % | -0.72 % | -0.00 % | +0.07 % | +0.005 % | -0.001 % | 996.56 / 1003.04 | -556, -245 |
+| `nd_e60_re1_g200` | 0.6 | 1 | 200 | 0.02 | 21,454.0 | 21,456.4 | +0.01 % | -0.01 % | 91.23 | -460.5 | -2.15 % | 2,236.20 | +0.39 % | -0.28 % | +0.07 % | +0.24 % | +0.029 % | +0.012 % | 989.64 / 1010.55 | -144, -180 |
+| `nd_e60_re10_g200` | 0.6 | 10 | 200 | 0.02 | 2,145.4 | 2,142.7 | -0.13 % | -0.13 % | 89.43 | +21.3 | +1.00 % | 223.62 | +0.35 % | -0.36 % | -0.00 % | +0.03 % | +0.006 % | -0.001 % | 998.27 / 1001.43 | -137, -63 |
+| `nd_e30_re10_g200` | 0.3 | 10 | 200 | 0.02 | 1,016.0 | 1,015.3 | -0.07 % | -0.18 % | 87.28 | +48.2 | +4.75 % | 158.02 | +0.11 % | -0.52 % | -0.10 % | -0.12 % | +0.016 % | -0.037 % | 999.07 / 1000.61 | -162, -105 |
+
+- **Load: within 0.45 % of the exact value at g = 100 dx** (-0.19 to -0.44 % in magnitude, -0.30 to -0.45 % in the
+  component along the exact direction) **and within 0.13 % at g = 200 dx** (+0.01 % at Reynolds number 1;
+  -0.13 % and -0.07 % at Reynolds number 10). Halving the Mach number at g = 100 dx moves it from -0.42 to
+  -0.31 %. Taking the exact values for the hydrodynamic radii of the concentric control (-0.07 and -0.09 dx)
+  instead of the nominal ones changes them by 0.01 % (`benchmark.txt`, columns "hyd"): the offsets of the two
+  walls cancel in the gap.
+- **At g = 100 dx that is the lattice, not a bias:** on the three lattices of 14.2 (eps = 0.6, Reynolds number
+  10) the load is -0.33 %, +0.00 % and +0.21 % from exact (spread 0.54 %, mean -0.04 %), the rotor torque by
+  the circle form +0.02, -0.03 and +0.08 %.
+- **Torque, circle form: within 0.13 % at g = 100 dx** (-0.13 to +0.08 %, both walls); at g = 200 dx within
+  0.12 % in the two runs at Reynolds number 10 and +0.07 / +0.24 % at Reynolds number 1. **Wall form:** rotor
+  -0.32 to +0.07 % at g = 100 dx and +0.11 to +0.39 % at g = 200 dx, stator -0.72 to -0.91 % and -0.28 to
+  -0.52 %: the first-order, lattice-dependent error of 13.3, here against an exact value. So in a flow carried
+  by wall pressure the two readings are as good as between concentric cylinders: 0.1 to 0.2 % for the circle
+  form, up to 0.9 % for the wall form at g = 100 dx.
+- **Direction.** At Reynolds number 10 the force is at 86.9 (eps = 0.3) and 89.4 degrees (eps = 0.6):
+  +54 and +23 N/m along the line of centres, 5.4 and 1.1 % of the load (+48 and +21 N/m at g = 200 dx). That is
+  inertia [inferred: the first correction in the Reynolds number is a force of order rho U^2 R1 along the line
+  of centres, whatever the viscosity; Ballal & Rivlin give it and I did not implement it]. At Reynolds number 1
+  the component has the other sign, -124 and -490 N/m (-1.2 and -2.3 % of the ten times larger load, 90.7 and
+  91.3 degrees), and it is **compressibility**: at half the Mach number it is -94 N/m, 4.4 times smaller after
+  the +23 N/m of inertia is taken off, for a factor 4 in Ma^2; at g = 200 dx it is the same (-461 N/m). At
+  Reynolds number 1 and Ma = 0.02 the bearing pressure is +-22 rho U^2 and the density varies by +-1 % (989.5
+  to 1010.8 kg/m^3).
+- **Steady:** between the two halves of the last quarter torque and load change by 0.04 % at most; no fluid
+  behind a wall in any of these runs (deepest fluid particle 0.14 dx behind the rotor surface).
+- **The pressure level is not tied to anything in this setting.** The mean pressure of the fluid moves by -522,
+  +65, -245 and -180 Pa over half a run in the four runs at Reynolds number 1 (the bearing pressure is +-8,000
+  to +-22,000 Pa there) and by -63 and -105 Pa in the two runs at Reynolds number 10 that recorded it. The
+  forces do not follow it within these runs. It is the absence of the reservoir that 14.4.1 describes; 14.4.3
+  shows what it does in a long run.
+
+### 14.4 Candidates for the wall and the density-diffusion term
+
+#### 14.4.1 What `v7-wall` recorded **[read]**
+
+Branch `v7-wall` (worktree `vulkan-demo-v7-wall`, local, tag `v7-wall-rc1`, never merged; v7-rc4 chain +
+`v7_single`, Monaghan-Gingold operator, EPS factor 0.0025, no rotating wall, no micropolar terms). Read:
+`docs/wall_bc/README.md`, `W3_v3.md` section 2, `W4_defaults.md` section 3, `W5_anchor.md`, `W6_closeout.md`,
+`W6b_closed_profile.md`, and the comments of `shaders/wall_boundary.glsl`.
+
+*What it found about walls that keep rho0.*
+
+- **The defect of 13.4 is there, with the same cause and the same cure** (W3 B, 2026-11-09). In a pressure-driven
+  channel at Reynolds number 10 (the zero-net-flow Couette of `cases/w3_exact`) fluid left through the walls at
+  the high-pressure end from t = 1.2 on, in every wall mode and at three sound speeds, 2 to 80 % of the fluid in
+  30 time units; in a hydrostatic box the walls drove a steady circulation (0.02 sqrt(g H)) and the wall
+  pressure was 10 to 22 % off, growing with the resolution. With the delta term off both vanished. The stated
+  mechanism is the one of 13.4.2: the delta term is the linear form `psi_ij = rho_j - rho_i`, and against a wall
+  neighbour at rho0 it carries a flux proportional to the fluid's over-density, that is to the wall pressure.
+- **Its size** (W6b T1, lid-driven cavity, checkpoints of two runs that differ only in the wall rule): the
+  wall-normal velocity that the rho0 wall adds is `v_n / U = kappa Ma p / (rho0 U^2)` with kappa = 0.6 to 0.9
+  (slope 0.005 to 0.010 at Ma 0.01, correlation 0.83 to 1.00 on all four walls, n = 250 and 500), halving at
+  half the Mach number. In the cavity that seepage moved psi_min by 0.8 percentage points at n = 250.
+- **The same exchange is what holds the mean density** (W4 C2). In a lid-driven flow the continuity equation of
+  the scheme does not conserve the sum of the densities; the exchange with rho0 walls acts as a reservoir at rho0.
+  Taking it away let the mean density of the cavity fall at 0.4 to 0.7 per mille per time unit (to 948 and
+  923 kg/m^3 at t = 90, pressure level -4.4e5 and -6.1e5 Pa) with walls that follow the fluid (`eos`), whatever
+  the delta rule. One row matters here: **adami walls at rho0 with the delta term between fluid pairs only did
+  not drift** (0.00 per mille per time unit over one time unit; the mirror walls of that branch did, -0.55).
+
+*What its treatment does differently.* Three switches and one new wall mode:
+
+| switch | what it does | status there |
+|---|---|---|
+| `wall_density: eos` (W3) | the wall stores the Tait density of its own pressure, so the delta term sees no jump towards rho0 | fixes the leak and the circulation; leaks mean density slowly in a box (-0.09 to -0.80 kg/m^3 at t = 5) and fast in the cavity (above) |
+| `delta_fluid_only: true` (W4) | the delta term skips fluid-wall pairs: candidate (c) of this stage | no drift under gravity; leaves a one-sided-stencil error at a wall where the density has a normal gradient (0.4 to 0.8 % of the wall pressure and a circulation of 1e-3 sqrt(g H) in the hydrostatic box, first order in dx); "invisible in the cavity" |
+| `density_anchor: volume` (W5, on chains since W6) | a global constraint: the sum of the particle volumes is held at its initial value by a uniform source in the continuity equation (a reduction kernel, one buffer, one extra pass per step; across slabs one 4-byte segment per link and a host sum) | pins the mean density exactly (999.99994); costs +0.01 to +0.3 % |
+| mirror walls (W2 to W4) | wall values from the fluid's state at the mirror point | **boxes only** (needs plane walls): not available for cylinders, where that branch falls back to adami |
+
+- **Its own verdict on the combination** (`eos` walls + delta with walls + volume anchor, "the candidate"):
+  locally the best (hydrostatic wall pressure 0.10 to 0.14 % after removing the level, residual velocity
+  1.4e-5 to 1.7e-4 sqrt(g H)), **but it failed that branch's cavity gate**: psi_min +4.39 % against +3.57 % for
+  rho0 walls at n = 250, +2.30 against +1.30 to +1.40 at n = 500, +1.05 against +0.13 (adami walls at rho0) at
+  n = 1000 (three-point limits -0.78 and -1.39 %; neither inside the required 0 +- 0.4). The branch kept rho0
+  walls with the delta term for closed boxes and requires `eos` + fluid-only explicitly for stratified or
+  pressure-driven cases.
+- Left open there: a delta term renormalised with the particle's own density gradient
+  (`psi_ij = rho_j - rho_i - grad rho_i . r_ij`), which vanishes on a linear field for any stencil; not built.
+
+*What that means for the candidates below.* (c) is `v7-wall`'s W4 switch; that branch measured it with `eos`
+walls and under gravity, and once with rho0 adami walls for one time unit. (d) for cylinders can only be
+adami walls with `eos` density, the delta term with walls and the volume anchor. Of these I ported `eos` walls
+(an hour; `numerics.wall_density: eos`, 14.4.2) and measured it without the anchor ("ew" below). **The anchor
+is not ported.** It would take about two days: the reduction kernel and its pass in the step recording behind an
+option (the default recordings are pinned by `_test_seam_layout.py`), the reduction over fluid particles without
+the wall particle range that `v7-wall` introduced in W1 and this tree does not have, the cross-slab exchange,
+and the gates (T0, T1, seam, a drift test). The whole branch cannot be merged in less: it restructures the
+kernels (W1) under the micropolar and laplacian variants of this tree.
+
+#### 14.4.2 What was built, and its gates **[run]**
+
+- **(c) `numerics.delta_fluid_only: true`.** In the two kernels that carry the delta term (`density.comp`,
+  `correction_density.comp`) the term acts only when the particle and its neighbour are both fluid; the drift
+  term keeps every neighbour. `#ifdef DELTA_FLUID_ONLY` with the plain statement as its `#else`; four variants in
+  `SHADER_VARIANTS` (the two kernels and their `DEEP_WALL_SKIP` builds); the simulator loads
+  `<kernel>_delta_fluid_only` for a case with the key. No new buffer, spec constant or recording. The key name
+  is `v7-wall`'s.
+- **(d') `numerics.wall_density: eos`** (default `rho0`). In the two wall-pass kernels the wall stores
+  `rho0 (p_w / B + 1)^(1 / gamma)` (clamped at 0.5 inside the root, as on `v7-wall`) instead of rho0;
+  `#ifdef WALL_DENSITY_EOS`, four variants (Newtonian and micropolar); refused with `wall_boundary: simple`.
+- **T0** after each of the two: every earlier SPIR-V file byte-identical (35 of 35, then 39 of 39; 43 in the
+  manifest, the 23 of `micropolar-base` among them); `_test_seam_layout.py` 858 failures, the base's set
+  (sorted diff empty), with new checks for the two options (their variants, the module names, nothing else
+  changing) and the plain-build text of the four edited kernels compared with `micropolar-base`.
+- **T1 with the default** (3,000 steps of the n = 250 adami cavity, five runs against the base repeats; largest
+  sampled rms over the largest base pair rms, limit 2):
+
+| after | K = 1, five runs against ten: u | v | rho | K = 2 (5090 + XTX), five against forty: u | v | rho |
+|---|---|---|---|---|---|---|
+| `delta_fluid_only` | 0.77 to 1.00 | 0.81 to 1.10 | 0.89 to 1.14 | 0.60 to 0.82 | 0.75 to 0.93 | 0.84 to 1.00 |
+| `wall_density` | 0.87 to 1.03 | 0.84 to 1.06 | 0.90 to 1.11 | 0.61 to 0.74 | 0.74 to 0.88 | 0.59 to 0.94 |
+
+- **Seam, per particle** (the m = 5 annulus of 12.7 with the option on, prescribed smooth v and w, 20 steps;
+  relative rms difference to a one-slab run, particles within 4 h of a cut / the others; the pressure is the
+  density kernels' output and was added to the comparison for this stage):
+
+| option | quantity | one slab again | one slab, other card | K = 2, XTX + 5090 | K = 2, one card | K = 3, one card (its one-slab repeat) |
+|---|---|---|---|---|---|---|
+| `delta_fluid_only` | acceleration | 3.4e-5 / 3.4e-5 | 1.3e-4 / 1.3e-4 | 9.8e-5 / 9.2e-5 | 3.2e-5 / 3.4e-5 | 3.1e-5 / 3.4e-5 (3.1e-5 / 3.4e-5) |
+| `delta_fluid_only` | pressure | 1.1e-5 / 1.1e-5 | 6.3e-5 / 6.3e-5 | 4.6e-5 / 4.5e-5 | 1.0e-5 / 1.1e-5 | 1.0e-5 / 1.1e-5 (1.0e-5 / 1.1e-5) |
+| `wall_density: eos` | acceleration | 2.9e-5 / 3.4e-5 | 1.3e-4 / 1.2e-4 | 9.4e-5 / 9.2e-5 | 3.6e-5 / 3.5e-5 | 3.1e-5 / 3.4e-5 (3.0e-5 / 3.5e-5) |
+| `wall_density: eos` | pressure | 8.7e-6 / 1.1e-5 | 6.4e-5 / 6.9e-5 | 4.5e-5 / 4.9e-5 | 1.1e-5 / 1.1e-5 | 1.0e-5 / 1.1e-5 (9.6e-6 / 1.1e-5) |
+
+  Every chain is at the level of a repeated one-slab run on the same hardware, as in 12.7; the angular
+  acceleration, the angular velocity and the two wall dummy fields likewise (`seam_{fd,ew}_k{2,3}.json`). Both
+  options ran on chains without any change to the link.
+
+#### 14.4.3 The candidates on the three tests **[run]**
+
+*Test 1: the benchmark of 14.3 at eps = 0.6, Reynolds numbers 1 and 10* (g = 100 dx, Newtonian, the lattice as
+generated; 96 states over the whole run, of which the 24 of the last quarter are averaged; "velocity into the
+wall per wall pressure" = slope of the fluid's velocity into the wall at the surface, over U, against the wall
+pressure over rho0 U^2, both extrapolated from the fluid between 0.5 and 12 dx from the surface in 72 angle
+bins, with its correlation; for a wall that lets nothing through the slope is zero):
+
+| candidate | run | Re | load / exact - 1 | F_y / exact - 1 | direction (deg) | torque, circle form: rotor | stator | wall form: rotor | stator | torque, 2nd - 1st half of the last quarter | load, 2nd - 1st half | fluid behind the rotor surface / the stator surface at the end | share of the fluid | first seen at t / t_end | velocity into the wall per wall pressure: rotor (correlation) | stator (correlation) | velocity into the rotor, min / max (% of U) | wall pressure at the rotor, min / max (Pa) | density min / max | mean pressure (Pa), change over half the run |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| (a) thesis | `thesis_e60_re1` (two particles left the domain near the end) | 1 | -84.65 % | -84.94 % | 101.18 | -21.40 % | -22.84 % | -20.48 % | -23.78 % | -0.549 % | -1.936 % | 14,522 / 4,348 | 6.68 % | 0.14 | +0.00259 (+0.91) | +0.00229 (+0.85) | -0.305 / +1.048 | -2812 / +2306 | 997.65 / 1001.48 | +290, +158 |
+| (a) thesis | `thesis_e60_re10` | 10 | -50.72 % | -50.78 % | 92.83 | -11.66 % | -14.35 % | -11.14 % | -15.04 % | -0.639 % | -1.099 % | 17,684 / 942 | 6.59 % | 0.16 | +0.00934 (+0.97) | +0.00901 (+0.97) | -0.801 / +1.292 | -1110 / +964 | 999.47 / 1000.42 | +11, -1 |
+| (b) diffusion off | `nd_e60_re1` | 1 | -0.42 % | -0.44 % | 91.31 | -0.04 % | +0.08 % | -0.10 % | -0.84 % | +0.003 % | -0.004 % | 0 / 0 | 0.00 % | none | +0.00000 (+0.20) | +0.00000 (+0.07) | -0.014 / +0.035 | -21558 / +21762 | 989.47 / 1010.78 | +174, +65 |
+| (b) diffusion off | `nd_e60_re10` | 10 | -0.35 % | -0.36 % | 89.39 | +0.02 % | +0.06 % | +0.07 % | -0.72 % | +0.020 % | +0.006 % | 0 / 0 | 0.00 % | none | +0.00001 (+0.18) | -0.00000 (-0.13) | -0.018 / +0.030 | -2468 / +1876 | 998.19 / 1001.34 | -240, -67 |
+| (c) fluid pairs only | `fd_e60_re1` | 1 | -0.58 % | -0.61 % | 91.53 | -0.12 % | -0.02 % | -0.15 % | -0.89 % | -0.008 % | +0.007 % | 0 / 0 | 0.00 % | none | -0.00000 (-0.12) | -0.00001 (-0.75) | -0.044 / +0.022 | -21074 / +22587 | 991.23 / 1008.99 | +556, +198 |
+| (c) fluid pairs only | `fd_e60_re10` | 10 | -0.61 % | -0.62 % | 89.23 | +0.03 % | +0.09 % | +0.26 % | -0.65 % | +0.040 % | +0.009 % | 0 / 0 | 0.00 % | none | +0.00007 (+0.68) | +0.00003 (+0.62) | -0.019 / +0.040 | -2911 / +1459 | 998.78 / 1000.64 | -681, -308 |
+| (d') eos walls | `ew_e60_re1` | 1 | -1.07 % | -1.08 % | 90.83 | -0.11 % | -0.07 % | -0.09 % | -0.69 % | +0.027 % | +0.001 % | 0 / 0 | 0.00 % | none | +0.00002 (+0.79) | +0.00001 (+0.80) | -0.008 / +0.133 | -22527 / +20658 | 990.60 / 1008.25 | -913, -492 |
+| (d') eos walls | `ew_e60_re10` | 10 | -0.59 % | -0.60 % | 89.20 | +0.03 % | +0.09 % | +0.24 % | -0.62 % | +0.026 % | +0.021 % | 0 / 0 | 0.00 % | none | +0.00008 (+0.70) | +0.00004 (+0.69) | -0.019 / +0.048 | -2858 / +1506 | 998.81 / 1000.66 | -630, -280 |
+
+- **(a) fails the benchmark at both Reynolds numbers.** Reynolds number 10: load 1,057 of 2,145 N/m (-50.7 %),
+  torque -11 to -15 %, 6.6 % of the fluid behind the wall surfaces at the end (the first after 16 % of the run),
+  torque and load still falling (-0.6 % and -1.1 % between the halves of the last quarter). Both walls let
+  through 0.0093 and 0.0090 U per rho0 U^2 of wall pressure (correlation 0.97 over the 72 bins), that is
+  `v_n / U = 0.46 Ma p / (rho0 U^2)`; `v7-wall` W6b found 0.6 to 0.9 for the same quantity in the cavity, and
+  the cavity here gives 0.80 (below). Reynolds number 1: load 3,293 of 21,454 N/m (**-84.7 %**), torque -20 to
+  -24 %; the wall pressure is +-2,800 Pa where the exact flow has +-22,000, because the walls leak as fast as
+  the film is fed (velocity into the walls up to 1.05 % of U); two particles left the domain at step 188,000 of
+  196,000, and the numbers of that row are from the 19 states of the last quarter before it.
+- **(b), (c) and (d') all pass it.** Load 0.35 to 1.07 % below the exact value, torque by the circle form
+  within 0.12 %, nothing behind a wall (deepest fluid particle 0.07 to 0.17 dx behind a surface), torque steady
+  to 0.04 % and load to 0.02 % between the halves of the last quarter. The walls let nothing through: slope
+  at most 2e-5 at Reynolds number 1 in all three and for (b) at Reynolds number 10, 3e-5 to 8e-5 for (c) and
+  (d') at Reynolds number 10 with a correlation of 0.6 to 0.7 (a remainder a hundred times below that of
+  (a)). The three lattices of 14.2 put the
+  lattice spread of the load at 0.54 % in this case, so the loads of (b), (c) and (d') at Reynolds number 10
+  (-0.35, -0.61, -0.59 %) do not differ; at Reynolds number 1 (d') is the lowest (-1.07 % against -0.42 and
+  -0.58 %).
+- **(c) and (d') give nearly the same flow here** at Reynolds number 10 (load -0.61 / -0.59 %, direction 89.23 /
+  89.20 degrees, the same small remaining slope and density range, the level of the pressure within 8 %): walls
+  that follow the fluid's density exchange almost nothing with it, which is what (c) does by construction.
+- **The level of the pressure moves in all three** (last column: +65 and -67 Pa per half run for (b), +198 and
+  -308 Pa for (c), -492 and -280 Pa for (d')), as in 14.3.2; in (a) it stands still at Reynolds number 10
+  (-0.9 Pa). The forces do not follow it in these runs.
+
+*Test 2: the concentric control at g = 100 dx* (Newtonian, Reynolds number 10, last quarter; the controls of the
+thesis configuration and of (b) were run again with the level of density and pressure in the samples and are
+shown beside their runs of Stage 4):
+
+| candidate | run | beta / nominal | hydrodynamic offset, inner (dx) | outer (dx) | fit rms / U | radial velocity, mean over the gap / U | largest bin / U | change of beta, last two eighths | density min / max | mean density | mean pressure (Pa), change over half the run |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| (a) thesis | `thesis_g100_control` | 0.999545 | -0.0839 | -0.0998 | 4.7e-05 | +3.8e-04 | 4.8e-04 | 6.5e-06 | 999.969 / 1000.021 | 1000.0069 | +17.3, +0.05 |
+| (a) thesis | `g100_newtonian` | 0.999545 | -0.0841 | -0.1003 | 5.0e-05 | +3.8e-04 | 4.8e-04 | 5.9e-06 | 999.969 / 1000.021 | not recorded | not recorded |
+| (b) diffusion off | `nd_g100_control` | 0.999659 | -0.0689 | -0.0867 | 8.2e-06 | -1.2e-05 | 2.8e-05 | 1.0e-07 | 999.653 / 1000.260 | 999.9677 | -80.7, -2.62 |
+| (b) diffusion off | `nd_g100_newtonian` | 0.999661 | -0.0690 | -0.0870 | 8.0e-06 | -1.2e-05 | 2.9e-05 | 5.6e-06 | 999.656 / 1000.257 | not recorded | not recorded |
+| (c) fluid pairs only | `fd_g100_newtonian` | 0.999612 | -0.0719 | -0.0857 | 4.2e-06 | +1.7e-05 | 5.3e-05 | 1.2e-06 | 999.945 / 1000.014 | 999.9938 | -15.3, +10.52 |
+| (d') eos walls | `ew_g100_newtonian` | 0.999611 | -0.0717 | -0.0853 | 4.9e-06 | +2.1e-05 | 6.3e-05 | 8.9e-06 | 999.985 / 1000.051 | 1000.0306 | +76.7, +51.72 |
+| (c), run five times longer | `fd_g100_newtonian_long` | 0.999618 | -0.0711 | -0.0851 | 6.9e-06 | +1.5e-05 | 4.1e-05 | 1.9e-06 | 999.988 / 1000.063 | 1000.0397 | +99.4, +79.17 |
+
+and the micropolar runs of the pilot (K = 3, w = 0 on both walls) with each candidate:
+
+| candidate | run | l / dx | D_SPH | D_exact | D_SPH / D_exact |
+|---|---|---|---|---|---|
+| (a) thesis | `g100_k3_m5` | 10 | 0.06545 | 0.06503 | 1.0065 |
+| (a) thesis | `g100_k3_m2` | 25 | 0.17757 | 0.17747 | 1.0006 |
+| (b) diffusion off | `nd_g100_k3_m5` | 10 | 0.06548 | 0.06503 | 1.0070 |
+| (b) diffusion off | `nd_g100_k3_m2` | 25 | 0.17776 | 0.17747 | 1.0016 |
+| (c) fluid pairs only | `fd_g100_k3_m5` | 10 | 0.06548 | 0.06503 | 1.0069 |
+| (c) fluid pairs only | `fd_g100_k3_m2` | 25 | 0.17776 | 0.17746 | 1.0017 |
+| (d') eos walls | `ew_g100_k3_m5` | 10 | 0.06548 | 0.06503 | 1.0071 |
+| (d') eos walls | `ew_g100_k3_m2` | 25 | 0.17771 | 0.17746 | 1.0014 |
+| (c), run five times longer | `fd_g100_k3_m5_long` | 10 | 0.06547 | 0.06503 | 1.0068 |
+
+- **The three candidates leave the concentric flow where it was.** `beta / nominal` is 0.999545 (a), 0.999659
+  (b), 0.999612 (c), 0.999611 (d'): all within 1.2e-4, inside the lattice floor of 1.8e-4 at this gap. The
+  hydrodynamic offsets move by 0.01 to 0.015 dx (inner -0.084 to -0.069 ... -0.072, outer -0.100 to -0.085 ...
+  -0.087). D of the micropolar runs is the same to 0.0003 at l = 10 dx (1.0065 to 1.0071 of exact) and at
+  l = 25 dx (1.0006 to 1.0017).
+- **The uniform radial drift of 13.4.2 is the seepage.** Mean radial velocity over the gap: +3.8e-4 U in (a),
+  -1.2e-5, +1.7e-5 and +2.1e-5 U in (b), (c), (d'): twenty to thirty times smaller. The residual of the
+  two-function fit falls with it, from 4.7e-5 U to 8.2e-6 (b), 4.2e-6 (c) and 4.9e-6 U (d').
+- **Level of the pressure:** +17 Pa and still in (a) (+0.05 Pa per half run); -81 Pa (-2.6) in (b); -15 Pa
+  (+10.5) in (c); +77 Pa (+52) in (d'). rho U^2 is 1,000 Pa.
+- **(c) run five times longer** (667,000 steps, 10 g^2 / nu_inf; control and m = 5): `beta / nominal` 0.999618
+  (0.999612 at the standard length), the same offsets, D at l = 10 dx 0.06547 (0.06548), 1.0068 of exact. The
+  mean pressure rises through the run, from -30 to +110 Pa in the control and from -15 to +53 Pa in the
+  micropolar run, and D does not move: between the cylinders the level drifts slowly enough for the run lengths
+  of this chapter (0.14 rho U^2 in 667,000 steps).
+
+*Test 3: the lid-driven cavity, Re = 1000, n = 250 and 500* (K = 1, `cavity_runner.py --solver v7 --expect
+release --t-end 60 --t-max 120`, the protocol and the analysis of the thesis runs of 2026-11-11, which are the
+rows (a); Ma = 0.01; errors against Marchi et al. 2021 at the 28 + 28 reference points, MLS samples in the wall
+frame, mean over the last 20 time units, in units of U; `micropolar_stage5_cavity.py`):
+
+| n | candidate | t_end | steady at | L2 u | Linf u | L2 v | Linf v | u: rms of the 4 points nearest the lid | the other 24 | v: rms of the 4 nearest the right wall | the other 24 | min u | max v | min v | E_k | density min / max in the window | mean density, last snapshot |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 250 | (a) thesis | 100.6 | 80.6 | 9.34e-03 | 2.13e-02 | 1.05e-02 | 1.69e-02 | 1.54e-02 | 7.90e-03 | 4.60e-03 | 1.12e-02 | -0.40221 | 0.39154 | -0.54331 | 53.300 | 999.67 / 1000.46 | 999.993 |
+| 250 | (c) fluid pairs only | 90.5 | 70.6 | 9.12e-03 | 1.79e-02 | 1.26e-02 | 2.05e-02 | 1.01e-02 | 8.94e-03 | 1.03e-02 | 1.30e-02 | -0.40437 | 0.39398 | -0.54691 | 53.544 | 892.84 / 923.68 | 894.081 |
+| 250 | (d') eos walls | 100.6 | 80.6 | 1.05e-02 | 2.18e-02 | 1.23e-02 | 2.04e-02 | 1.61e-02 | 9.25e-03 | 6.73e-03 | 1.30e-02 | -0.40457 | 0.39390 | -0.54685 | 53.760 | 929.76 / 943.43 | 930.356 |
+| 500 | (a) thesis | 89.5 | 69.6 | 4.18e-03 | 1.09e-02 | 4.29e-03 | 7.26e-03 | 7.78e-03 | 3.21e-03 | 2.16e-03 | 4.55e-03 | -0.39416 | 0.38313 | -0.53367 | 51.533 | 999.54 / 1000.58 | 999.994 |
+| 500 | (c) fluid pairs only | 89.5 | 69.6 | 6.18e-03 | 1.14e-02 | 7.37e-03 | 1.21e-02 | 8.17e-03 | 5.79e-03 | 6.72e-03 | 7.47e-03 | -0.39797 | 0.38687 | -0.53851 | 52.248 | 959.30 / 969.61 | 959.997 |
+
+The four points nearest the lid (u on x = 0.5) and nearest the right wall (v on y = 0.5), error against the
+reference:
+
+| n | candidate | u error at y = 0.953 | 0.961 | 0.969 | 0.977 | v error at x = 0.945 | 0.953 | 0.961 | 0.969 |
+|---|---|---|---|---|---|---|---|---|---|
+| 250 | (a) thesis | +8.96e-03 | +1.21e-02 | +1.63e-02 | +2.13e-02 | -7.43e-03 | -3.46e-03 | +5.40e-04 | +4.16e-03 |
+| 250 | (c) fluid pairs only | +4.52e-03 | +7.00e-03 | +1.06e-02 | +1.50e-02 | -1.54e-02 | -1.15e-02 | -7.03e-03 | -2.60e-03 |
+| 250 | (d') eos walls | +9.97e-03 | +1.29e-02 | +1.70e-02 | +2.18e-02 | -1.12e-02 | -6.82e-03 | -2.21e-03 | +2.13e-03 |
+| 500 | (a) thesis | +4.20e-03 | +5.97e-03 | +8.33e-03 | +1.09e-02 | -3.43e-03 | -1.57e-03 | +3.02e-04 | +2.08e-03 |
+| 500 | (c) fluid pairs only | +5.36e-03 | +6.69e-03 | +8.63e-03 | +1.09e-02 | -9.86e-03 | -7.51e-03 | -4.78e-03 | -2.00e-03 |
+
+Velocity into the walls (from the snapshots of the last 20 time units, one per time unit: per wall, in 50 bins
+along it without the corner squares, a cubic in the wall distance over the fluid between 0.5 and 12 dx from the
+surface, evaluated at the surface; pressure from the particle volumes). The last two columns are the diagnostic
+of `v7-wall` W6b: the thesis run's velocity into the wall minus this run's, against the thesis run's wall
+pressure, the four walls together:
+
+| n | candidate | velocity into the wall, rms over U: bottom | left | right | lid | slope against the wall pressure (correlation): bottom | left | right | lid | thesis run minus this run, four walls: slope (correlation) | slope / Ma |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 250 | (a) thesis | 2.0e-04 | 5.7e-04 | 5.2e-03 | 2.0e-03 | +0.0123 (+0.60) | +0.0137 (+0.57) | +0.1052 (+0.95) | +0.0087 (+0.27) | - | - |
+| 250 | (c) fluid pairs only | 5.7e-05 | 4.1e-04 | 4.9e-03 | 1.7e-03 | +0.0000 (+0.09) | -0.0000 (-0.03) | +0.0000 (+0.01) | +0.0001 (+0.21) | +0.0079 (+0.69) | 0.79 |
+| 250 | (d') eos walls | 5.5e-05 | 4.0e-04 | 4.8e-03 | 1.8e-03 | -0.0000 (-0.08) | +0.0000 (+0.01) | +0.0003 (+0.14) | +0.0000 (+0.04) | +0.0088 (+0.72) | 0.88 |
+| 500 | (a) thesis | 1.2e-04 | 3.9e-04 | 3.1e-03 | 1.4e-03 | +0.0101 (+0.95) | +0.0126 (+0.67) | +0.0372 (+0.88) | +0.0093 (+0.51) | - | - |
+| 500 | (c) fluid pairs only | 1.7e-05 | 2.3e-04 | 2.7e-03 | 1.2e-03 | +0.0000 (+0.09) | -0.0000 (-0.15) | +0.0016 (+0.44) | -0.0003 (-0.23) | +0.0080 (+0.95) | 0.80 |
+
+Runs that did not reach an averaging window:
+
+| n | candidate | last sample at t | largest fluid speed / U | density min / max over the run | how it ended |
+|---|---|---|---|---|---|
+| 250 | (b) diffusion off | 3.36 | 2.03 | 959.47 / 1008.22 | stopped by the runner: 40 particles had left the domain by step 119,000 |
+| 500 | (b) diffusion off | 4.49 | 2.45 | 988.08 / 1004.29 | stopped by the runner: 7 particles had left the domain by step 312,000 |
+| 500 | (d') eos walls | 10.14 | 0.99 | 996.43 / 1000.39 | still running when this was written |
+
+- **(b) fails the cavity at both resolutions.** Without the delta term the fluid at the lid corners moves at
+  2.0 to 2.5 U from the first samples on, the density range grows to 49 kg/m^3 (n = 250) and 16 kg/m^3 (n = 500)
+  where (a) has 1, and particles leave the domain: 40 at n = 250 by t = 3.6, 7 at n = 500 by t = 4.7. The
+  term is what keeps this flow together; the flow between the cylinders at Reynolds number 10 never needed it.
+- **(c) runs, and its walls are tight, but nothing holds its mean density.** The fluid's density falls linearly,
+  by 0.45 kg/m^3 per time unit at n = 500 (982.3 at t = 40, 960.0 at t = 89, pressure level -3.6e5 Pa at the
+  end; rho U^2 is 1,000 Pa) and by 1.31 at n = 250 (959.1 at t = 41, 894.1 at t = 90), against 999.994
+  throughout in (a). The rate falls with dx, a little faster than first order. This is what `v7-wall`
+  W4 found (-0.4 to -0.7 per mille per time unit) and why that branch built the volume anchor; its one row that
+  said otherwise (adami walls at rho0, fluid pairs only, 0.00 over one time unit) does not carry over to this
+  tree. The largest fluid speed stays at 0.99 U and no particle is lost.
+- **(c) is further from Marchi et al. than (a):** at n = 500 L2 u 6.2e-3 against 4.2e-3 and L2 v 7.4e-3 against
+  4.3e-3; the three extrema are 2.3 to 2.6 % above the reference where (a) has 1.4 to 1.7 % (min u -0.3980
+  against -0.3942, reference -0.3886), and the kinetic energy is 1.4 % higher. At n = 250 the two are closer:
+  L2 u 9.1e-3 against 9.3e-3, L2 v 1.26e-2 against 1.05e-2, extrema 3.9 to 4.5 % against 3.2 to 3.9 %. So the
+  tight cavity has a primary vortex 0.6 to 1.0 % stronger. `v7-wall` saw the same step with the mean density
+  held by its anchor (psi_min +4.4 % against +3.6 % at n = 250), so it is the missing seepage and not the
+  falling density [inferred from that branch's runs; here the two are not separated].
+- **The points nearest the lid: not this effect at n = 500, partly at n = 250.** At n = 500 u at the four points
+  below the lid has the same error in (a) and (c) (+4.2e-3, +6.0e-3, +8.3e-3, +1.09e-2 against +5.4e-3, +6.7e-3,
+  +8.6e-3, +1.09e-2; the point nearest the lid is identical). At n = 250 the tight walls are better there
+  (+4.5e-3 to +1.50e-2 against +9.0e-3 to +2.13e-2). In (a) the error at the nearest point halves with dx
+  (2.13e-2, 1.09e-2, and 5.3e-3 at n = 1000 in 12.8), which is what a wall model does and a seepage that does
+  not depend on dx would not. At the right wall (c) is worse at both resolutions (-9.9e-3 to -2.0e-3 against
+  -3.4e-3 to +2.1e-3 at n = 500). So I do not expect the remaining error of the n = 1000 baseline at the lid to
+  go with the seepage; settling it needs that run with tight walls, which needs the anchor first.
+- **The seepage of (a) in the cavity, measured:** the velocity into the walls of the thesis run minus that of
+  (c), against the wall pressure, is a straight line on every wall: slope 0.0076, 0.0083, 0.0062 and 0.0096 U per
+  rho0 U^2 at n = 500 (bottom, left, right, lid; correlation 0.97 to 0.98), 0.0080 for the four together and
+  0.0079 at n = 250 (correlation 0.69), that is `v_n / U = 0.80 Ma p / (rho0 U^2)` at Ma = 0.01, the same at
+  both resolutions and inside `v7-wall`'s 0.6 to 0.9. In (c) the slope is zero (below 3e-4) on every wall but
+  the right one at n = 500 (0.0016), where the jet from the lid turns down and the extrapolation to the surface
+  is poor (a velocity "into the wall" of 0.3 to 0.5 % of U rms is there in every run). With wall
+  pressures of -0.08 to +0.35 rho0 U^2 the seepage of (a) is up to 0.3 % of U; it does not shrink with dx, so
+  **the thesis baseline converges to a cavity with slightly porous walls, about 1 % weaker in its extrema than
+  the tight one at n = 500** [inferred from the rows above; `v7-wall` extrapolated its two series to -1.4 % and
+  -0.8 % of psi_min].
+- **(d') behaves in the cavity as (c) does,** and as `v7-wall` W4 measured for it: walls tight (slope 8e-5), the
+  mean density leaving at 0.68 kg/m^3 per time unit at n = 250 (930.4 at t = 100; that branch had 0.72), the
+  extrema 3.9 to 4.5 % above the reference as in (c), L2 u / v 1.05e-2 / 1.23e-2; the thesis run minus this run
+  gives the seepage of (a) again, 0.0088 U per rho0 U^2. Its four points below the lid are those of (a), not of
+  (c). Its run at n = 500 was at t = 12 when this was written.
+
+*Beyond the table: the micropolar effect at eps = 0.6 with each candidate, and at g = 200 dx* (micropolar run
+over its own Newtonian control, readings as measured):
+
+| run | setting | eps | l / g | g / dx | narrowest gap / l | D_T: wall form, rotor | stator | circle form, rotor | stator | mean | load against the control | rule from exact Stokes: D_T | load | exact plane film: D_T | load |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `nd_e60_k3_m5` | (b) diffusion off | 0.6 | 0.1 | 100 | 4.0 | 0.1485 | 0.1467 | 0.1379 | 0.1450 | 0.1445 | +21.68 % | 0.1649 | +29.56 % | 0.141 | +21.81 % |
+| `fd_e60_k3_m5` | (c) fluid pairs only | 0.6 | 0.1 | 100 | 4.0 | 0.1483 | 0.1463 | 0.1377 | 0.1449 | 0.1443 | +21.67 % | 0.1649 | +29.56 % | 0.141 | +21.81 % |
+| `ew_e60_k3_m5` | (d') eos walls | 0.6 | 0.1 | 100 | 4.0 | 0.1486 | 0.1466 | 0.1379 | 0.1450 | 0.1445 | +21.67 % | 0.1649 | +29.56 % | 0.141 | +21.81 % |
+| `nd_e60_k3_m2` | (b) diffusion off | 0.6 | 0.25 | 100 | 1.6 | 0.3102 | 0.3101 | 0.3067 | 0.3098 | 0.3092 | +39.46 % | 0.5746 | +105.30 % | 0.295 | +40.60 % |
+| `fd_e60_k3_m2` | (c) fluid pairs only | 0.6 | 0.25 | 100 | 1.6 | 0.3104 | 0.3099 | 0.3068 | 0.3097 | 0.3092 | +39.42 % | 0.5746 | +105.30 % | 0.295 | +40.60 % |
+| `ew_e60_k3_m2` | (d') eos walls | 0.6 | 0.25 | 100 | 1.6 | 0.3108 | 0.3103 | 0.3068 | 0.3100 | 0.3095 | +39.43 % | 0.5746 | +105.30 % | 0.295 | +40.60 % |
+| `nd_e30_k3_m10_g200` | (b) diffusion off | 0.3 | 0.05 | 200 | 14.0 | 0.0458 | 0.0470 | 0.0351 | 0.0408 | 0.0422 | +11.38 % | 0.0427 | +12.25 % | 0.042 | +11.24 % |
+| `nd_e60_k3_m10_g200` | (b) diffusion off | 0.6 | 0.05 | 200 | 8.0 | 0.0766 | 0.0743 | 0.0644 | 0.0722 | 0.0719 | +11.94 % | 0.0754 | +13.41 % | 0.071 | +11.84 % |
+
+- **The micropolar effect does not depend on the candidate:** at eps = 0.6 the mean `D_T` is 0.1445, 0.1443 and
+  0.1445 for (b), (c), (d') at l = 10 dx and 0.3092, 0.3092, 0.3095 at l = 25 dx; the load change +21.68, +21.67,
+  +21.67 % and +39.46, +39.42, +39.43 %. (In (a) the same pairs gave 0.12 and +14 %, 0.26 and +21 %: 13.4.1.)
+- **At g = 200 dx with l = 10 dx,** where the narrowest gap is 14 l (eps = 0.3) and 8 l (eps = 0.6), the micropolar
+  runs give a load change of +11.4 % and +11.9 %. The exact plane film gives +11.2 % and +11.8 %, the rule
+  +12.3 % and +13.4 %: 1.08 and 1.12 times the measured change, which is the excess the two film functions
+  predict (1.09 and 1.13). `D_T` is 0.042 and 0.072 (mean of the four readings as measured; they spread by
+  0.012 because no concentric pair exists at this resolution to take their errors off) against the rule's
+  0.043 and 0.075 and the exact film's 0.042 and 0.071. So the rule comes within a tenth of the load change
+  only when the narrowest gap is ten layer lengths or more, as the host calculation of 14.2 says.
+
+#### 14.4.4 What I would choose
+
+**(c) for the flows between cylinders; the default, as it is, for the cavity; and no single setting for
+both until the solver has an anchor for the mean density.** The table that decides, in one place:
+
+| | bearing at eps = 0.6 (load against exact, Reynolds number 10 / 1) | concentric control | cavity, Re = 1000 | on chains |
+|---|---|---|---|---|
+| (a) thesis | **-51 % / -85 %**, 6.6 % of the fluid behind the walls | unchanged; radial drift 3.8e-4 U | the baseline: L2 u / v 4.2e-3 / 4.3e-3 at n = 500, mean density held | as before |
+| (b) diffusion off | -0.4 % / -0.4 %, walls tight | unchanged, drift gone | **fails: fluid at 2 U at the lid corners, particles lost at t = 3.6 and 4.7** | existing switch |
+| (c) fluid pairs only | -0.6 % / -0.6 %, walls tight | unchanged, drift gone, smallest fit residual | walls tight, **mean density runs away** (-0.45 kg/m^3 per time unit at n = 500), L2 u / v 6.2e-3 / 7.4e-3 | T0, T1, seam at K = 2 and 3 pass |
+| (d') eos walls, no anchor | -0.6 % / -1.1 %, walls tight | unchanged, drift gone | walls tight, **mean density runs away** (-0.68 kg/m^3 per time unit at n = 250), L2 u / v 1.05e-2 / 1.23e-2 at n = 250 | T0, T1, seam pass |
+
+1. **Between the cylinders the three candidates are equally right**, and they give the same micropolar effect
+   to three digits (end of 14.4.3), so the choice among them is made by the other columns.
+2. **(b) is out.** A chapter should not rest on a setting that loses particles in the solver's own baseline,
+   even though the cylinders at Reynolds number 10 never needed the term.
+3. **(d') adds nothing to (c)** in any row: the same flow in the bearing, a larger drift of the level, the
+   lowest load at Reynolds number 1, and by its own branch's verdict it needs the anchor.
+4. **(c) removes the cause and nothing else:** the exchange with a particle whose density does not evolve. It
+   keeps the term between fluid particles, needs no extra pass, gave the cleanest concentric control, and ran
+   on chains without touching the link. Run five times longer between the cylinders its D did not move
+   (0.06547 against 0.06548) while the pressure level rose by 0.14 rho U^2. Its cost, from one unshared run
+   each on the XTX (not a bench): 629 steps/s against 710 for (a) and 737 for (b) at Reynolds number 1, about
+   11 % below (a); the kernel now reads each neighbour's material.
+5. **(c) is not a setting for every flow.** In the cavity nothing replaces the reservoir that the walls at rho0
+   were, and the mean density leaves. So the cavity cases keep the default, and the key goes into the cylinder
+   cases only. One tag carries both, since the option is per case.
+6. **What that leaves open is the cavity baseline itself.** Its walls seep `0.80 Ma p`, which makes its vortex
+   about 1 % weaker than a tight cavity's at n = 500 and flatters its agreement with Marchi et al. by that
+   much. Either the chapter says so, or the volume anchor of `v7-wall` is ported (about two days, 14.4.1) and
+   the cavity is rerun tight with (c) + anchor; that branch's own numbers say such a cavity is 0.8 points of
+   psi_min further from the reference at n = 250 than today's.
+
+If you take (c): the tag would be the head after this stage (the option is in the tree since `70d1be4`), the
+concentric sweep and the rows at g = 400 dx would be run again with the key (D moved by 0.00003 at l = 10 dx
+and 0.0002 at l = 25 dx between (a) and (c)), and the eccentric cases compared with the film function of
+14.2, not with the rule.
+
+### 14.5 Readings taken without asking
+
+1. **"Reynolds number 1"** = nu_inf ten times larger at the same wall speed and sound speed (not a slower rotor).
+   The Mach number stays 0.02, so the bearing pressure is 22 rho U^2 and the density varies by 1 %; one run at
+   Ma = 0.01 measures what that does (14.3.2). End time 10 g^2 / nu_inf instead of 2, because the step is then
+   the viscous one and 2 g^2 / nu_inf would be 0.08 turns of the rotor and 40 samples.
+2. **The exact solution is derived, not transcribed** (14.3.1); the numerical Stokes solution is the check the
+   task names for that case. No inertial correction is implemented.
+3. **Section 2, viscosity and step of the slip-form runs:** nu_inf, the sound speed, dt and end time of the
+   micropolar run they stand for, the same lattice; only the radii and the rotor's rate differ.
+4. **"With the concentric error taken off"** = each reading's D between concentric cylinders at the same l minus
+   the D of the fits there, subtracted from that reading's `D_T` (for the micropolar runs the concentric
+   micropolar pair of Stage 4, for the slip-form runs the concentric slip-form run of this stage).
+5. **Noise floor of section 2:** the Newtonian control on the three lattices, and beyond the task the micropolar
+   run at l = 10 dx on the same three, so that the floor of the change against the control is measured too.
+6. **Beyond section 2:** the plane-film calculation (host), because the rule's miss needed an explanation
+   before the numbers could be used; and two micropolar runs at g = 200 dx, l = 10 dx, where the narrowest gap is
+   14 l and 8 l.
+7. **Candidate (c): the key is `v7-wall`'s `delta_fluid_only`,** and the pair is skipped from both sides (a wall
+   particle of `wall_boundary: simple` takes no diffusion from its fluid neighbours either).
+8. **Candidate (d):** the treatment of `v7-wall` cannot be had in under a day (14.4.1). I built and measured the
+   part that could, `wall_density: eos`, and call it (d') so that it is not mistaken for the whole. This added
+   a second option to the solver directories that the task did not ask for; like the first it is inert without
+   its key.
+9. **"Wall-normal velocity per unit wall pressure"** = the slope defined in 14.4.3, from fits extrapolated to the
+   surface. For the cavity the walls' own flow (corners, the jet at the right wall) is in that number, so the
+   difference to the thesis run is given as well, as `v7-wall` did.
+10. **Cavity rows (a) are the runs of 2026-11-11** (same case files, same runner options), not new runs; their
+    snapshots were kept, so the wall velocities come from the same kind of data as the new rows.
+11. **A run that lost particles or did not finish is shown with what it gave up to there** and marked.
+12. The concentric controls of (a) and (b) were run again only to record the level of density and pressure;
+    they reproduce their Stage 4 values (beta / nominal 0.999545 and 0.999659 against 0.999545 and 0.999661).
+
+### 14.6 Not reached, open, unexpected
+
+**Not reached.**
+
+- **Candidate (d) as the task names it.** The treatment of `v7-wall` needs its volume anchor, which is not in
+  this tree and is about two days of porting (14.4.1). What was measured is (d'), `eos` walls without the
+  anchor.
+- **Errors against Marchi et al. for (b):** its cavity runs stopped at t = 3.6 and 4.7, before any averaging
+  window.
+- **The cavity at n = 1000 with any candidate** (6.4 hours each on the 5090), which is what would say whether the
+  remaining error of the baseline at the lid changes with tight walls.
+- **The inertial corrections of Ballal & Rivlin** to the exact benchmark; the runs at Reynolds number 10 are
+  compared with the Stokes values, and their component along the line of centres is read as inertia.
+- **A benchmark of the cost of (c).** The 11 % of 14.4.4 is one unshared run against another, on one card.
+- **The two options together, and either of them on a chain in a real run.** T0, T1 and the per-particle seam
+  check of each option alone are what was run; no production-length K = 2 run with a key set.
+- **A noise floor at eps = 0.3** (the three lattices are at eps = 0.6), and three lattices at g = 200 dx.
+- **The cavity at n = 500 with (d')**: started last, at t = 12 of about 90 when this section
+  was written (`logs/micropolar/stage5_cavity/n500_ew`; `micropolar_stage5_cavity analyse` adds its row when it
+  has finished).
+- One run of the benchmark table, `nd_e60_re10_g200`, started while the solver directories had uncommitted
+  edits (its `run.json` says so). Two shorter runs in the same position were set aside
+  (`logs/micropolar/stage5_modified_tree/`) and run again on the committed tree: load 21,387.8 against
+  21,389.3 N/m and `D_T` 0.2859 against 0.2859, so the edits were inert, as the byte-identical SPIR-V says.
+- On hold by the task, not run: every row at g = 400 dx.
+
+**Open, for you.**
+
+1. The choice of 14.4.4, and with it the tag.
+2. Whether the cavity baseline keeps its seeping walls (and the chapter says so) or waits for an anchor.
+3. Whether the chapter states the rule as first order for pressure-driven films and gives the film function
+   of 14.2 for the bearing.
+
+**Unexpected.**
+
+1. **The rule's miss between eccentric cylinders has a clean cause.** For a shear-driven film the rule is
+   exact up to exponentially small terms; for a pressure-driven film its second-order term is too small by
+   l / delta. The exact plane film, put into a Reynolds equation, reproduces the load change of the micropolar
+   runs to a point (+21.7 against +21.7 %, +42.1 against +41.1 %).
+2. **Density diffusion off loses particles in the cavity** within five time units at both resolutions, with
+   the fluid at twice the lid speed in the corners. In the bearing the same setting is as accurate as any.
+3. **With the term between fluid pairs only the cavity's mean density leaves** at 0.45 to 1.3 kg/m^3 per time
+   unit. `v7-wall` had measured this for its own walls and had one row saying that adami walls at rho0 were
+   exempt; they are not.
+4. **The thesis baseline of the cavity has walls that seep** `0.80 Ma p`, the same at n = 250 and 500, and the
+   tight cavity is 0.6 to 1.0 % stronger in its extrema: part of the baseline's agreement with the reference
+   comes from the defect of Stage 4.
+5. **In the thesis configuration the bearing at Reynolds number 1 carries 15 % of its load** and loses
+   particles: the wall pressure stays at +-2,800 Pa of the exact +-22,000 [inferred: it cannot rise above what
+   the seepage lets through].
+6. **Compressibility shows in the direction of the load,** not in its size: at Reynolds number 1 and Ma = 0.02
+   the force turns by 1.3 degrees (2.3 % of the load along the line of centres), five times less at Ma = 0.01,
+   while the magnitude stays within 0.4 % of exact.
+7. **At g = 100 dx the load has no bias,** only a lattice spread of 0.5 %; at g = 200 dx one run is within
+   0.01 %.
+8. (c) and (d') give nearly the same flow, and all three working settings give the same micropolar effect to
+   three digits.
+9. Stopping a background waiter from the session left its shell loop alive; three such loops would have
+   started duplicate runs an hour later and were killed by hand before they did. No run was affected (the
+   cavity runner also refuses a directory that another runner holds, which is how it was noticed).

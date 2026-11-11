@@ -1,0 +1,21 @@
+Concentric control at g = 100 dx (Newtonian, Reynolds number 10) of each candidate, last quarter of the run
+candidate run                    beta / nominal inner offset outer offset fit rms / U v_r mean / U v_r max / U sector spread   steady   rho min   rho max   rho mean   p mean   change
+thesis    thesis_g100_control          0.999545      -0.0839      -0.0998    4.68e-05    +3.76e-04    4.76e-04      1.60e-04  6.5e-06   999.969  1000.021  1000.0069    17.34   +0.045
+thesis    g100_newtonian               0.999545      -0.0841      -0.1003    4.97e-05    +3.76e-04    4.76e-04      1.33e-04  5.9e-06   999.969  1000.021          -        -        -
+nd        nd_g100_control              0.999659      -0.0689      -0.0867    8.24e-06    -1.24e-05    2.82e-05      1.33e-04  1.0e-07   999.653  1000.260   999.9677   -80.73   -2.619
+nd        nd_g100_newtonian            0.999661      -0.0690      -0.0870    7.99e-06    -1.23e-05    2.86e-05      1.32e-04  5.6e-06   999.656  1000.257          -        -        -
+fd        fd_g100_newtonian            0.999612      -0.0719      -0.0857    4.19e-06    +1.71e-05    5.34e-05      1.27e-04  1.2e-06   999.945  1000.014   999.9938   -15.34  +10.519
+ew        ew_g100_newtonian            0.999611      -0.0717      -0.0853    4.91e-06    +2.05e-05    6.33e-05      1.34e-04  8.9e-06   999.985  1000.051  1000.0306    76.75  +51.723
+fd_long   fd_g100_newtonian_long       0.999618      -0.0711      -0.0851    6.88e-06    +1.54e-05    4.15e-05      1.43e-04  1.9e-06   999.988  1000.063  1000.0397    99.38  +79.167
+
+the micropolar runs of the pilot with each candidate (K = 3, w = 0 on both walls): D against the exact solution with the hydrodynamic radii of the control
+candidate run                 l/dx     D_SPH   D_exact  D_SPH / D_exact     joint   steady
+thesis    g100_k3_m5            10   0.06545   0.06503           1.0065   0.06460  8.1e-06
+thesis    g100_k3_m2            25   0.17757   0.17747           1.0006   0.17709  1.5e-05
+nd        nd_g100_k3_m5         10   0.06548   0.06503           1.0070   0.06460  9.2e-06
+nd        nd_g100_k3_m2         25   0.17776   0.17747           1.0016   0.17710  7.3e-06
+fd        fd_g100_k3_m5         10   0.06548   0.06503           1.0069   0.06460  1.3e-05
+fd        fd_g100_k3_m2         25   0.17776   0.17746           1.0017   0.17710  1.6e-05
+ew        ew_g100_k3_m5         10   0.06548   0.06503           1.0071   0.06460  2.9e-06
+ew        ew_g100_k3_m2         25   0.17771   0.17746           1.0014   0.17709  1.1e-05
+fd_long   fd_g100_k3_m5_long    10   0.06547   0.06503           1.0068   0.06459  2.5e-05

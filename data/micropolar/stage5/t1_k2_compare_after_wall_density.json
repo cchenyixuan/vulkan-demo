@@ -1,0 +1,166 @@
+{
+ "reference": [
+  "logs/micropolar/t1/k2_base_a1.npz",
+  "logs/micropolar/t1/k2_base_a2.npz",
+  "logs/micropolar/t1/k2_base_a3.npz",
+  "logs/micropolar/t1/k2_base_a4.npz",
+  "logs/micropolar/t1/k2_base_a5.npz",
+  "logs/micropolar/t1/k2_base_a6.npz",
+  "logs/micropolar/t1/k2_base_a7.npz",
+  "logs/micropolar/t1/k2_base_a8.npz",
+  "logs/micropolar/t1/k2_base_a9.npz",
+  "logs/micropolar/t1/k2_base_a10.npz",
+  "logs/micropolar/t1/k2_base_a11.npz",
+  "logs/micropolar/t1/k2_base_a12.npz",
+  "logs/micropolar/t1/k2_base_a13.npz",
+  "logs/micropolar/t1/k2_base_a14.npz",
+  "logs/micropolar/t1/k2_base_a15.npz",
+  "logs/micropolar/t1/k2_base_a16.npz",
+  "logs/micropolar/t1/k2_base_a17.npz",
+  "logs/micropolar/t1/k2_base_a18.npz",
+  "logs/micropolar/t1/k2_base_a19.npz",
+  "logs/micropolar/t1/k2_base_a20.npz",
+  "logs/micropolar/t1/k2_base_a21.npz",
+  "logs/micropolar/t1/k2_base_a22.npz",
+  "logs/micropolar/t1/k2_base_a23.npz",
+  "logs/micropolar/t1/k2_base_a24.npz",
+  "logs/micropolar/t1/k2_base_a25.npz",
+  "logs/micropolar/t1/k2_base_a26.npz",
+  "logs/micropolar/t1/k2_base_a27.npz",
+  "logs/micropolar/t1/k2_base_a28.npz",
+  "logs/micropolar/t1/k2_base_a29.npz",
+  "logs/micropolar/t1/k2_base_a30.npz",
+  "logs/micropolar/t1/k2_base_a31.npz",
+  "logs/micropolar/t1/k2_base_a32.npz",
+  "logs/micropolar/t1/k2_base_a33.npz",
+  "logs/micropolar/t1/k2_base_a34.npz",
+  "logs/micropolar/t1/k2_base_a35.npz",
+  "logs/micropolar/t1/k2_base_a36.npz",
+  "logs/micropolar/t1/k2_base_a37.npz",
+  "logs/micropolar/t1/k2_base_a38.npz",
+  "logs/micropolar/t1/k2_base_a39.npz",
+  "logs/micropolar/t1/k2_base_a40.npz"
+ ],
+ "floor": {
+  "u": {
+   "pair_rms_max": 0.00020840411603543298,
+   "pair_rms_median": 7.792735723773636e-05,
+   "pair_rms_min": 2.0760276208080704e-05,
+   "pairs": 780
+  },
+  "v": {
+   "pair_rms_max": 0.00020300765846850913,
+   "pair_rms_median": 8.900033053699523e-05,
+   "pair_rms_min": 2.7393550384728332e-05,
+   "pairs": 780
+  },
+  "rho": {
+   "pair_rms_max": 0.0019059986041646813,
+   "pair_rms_median": 0.000437670898719102,
+   "pair_rms_min": 4.755892523163352e-05,
+   "pairs": 780
+  }
+ },
+ "tests": {
+  "logs/micropolar/t1/k2_v6_newtonian1.npz": {
+   "u": {
+    "rms_min": 4.823448346960161e-05,
+    "rms_median": 6.864012484138009e-05,
+    "rms_max": 0.00015422543906470646,
+    "ratio_to_floor_max": 0.7400306769300323
+   },
+   "v": {
+    "rms_min": 3.91117334021006e-05,
+    "rms_median": 8.15082357748755e-05,
+    "rms_max": 0.00016787827257503117,
+    "ratio_to_floor_max": 0.8269553663221662
+   },
+   "rho": {
+    "rms_min": 7.073459398062604e-05,
+    "rms_median": 0.0004169349405993896,
+    "rms_max": 0.0017603499713820731,
+    "ratio_to_floor_max": 0.9235840821371222
+   }
+  },
+  "logs/micropolar/t1/k2_v6_newtonian2.npz": {
+   "u": {
+    "rms_min": 2.2565753062499256e-05,
+    "rms_median": 6.947677826803545e-05,
+    "rms_max": 0.00012664509242080182,
+    "ratio_to_floor_max": 0.6076899767146132
+   },
+   "v": {
+    "rms_min": 2.454610064802178e-05,
+    "rms_median": 8.201498397937441e-05,
+    "rms_max": 0.0001504652749222364,
+    "ratio_to_floor_max": 0.7411802887504207
+   },
+   "rho": {
+    "rms_min": 5.9733707895049307e-05,
+    "rms_median": 0.00036281544110278044,
+    "rms_max": 0.0016067305822383166,
+    "ratio_to_floor_max": 0.8429862323757991
+   }
+  },
+  "logs/micropolar/t1/k2_v6_newtonian3.npz": {
+   "u": {
+    "rms_min": 3.154707578670333e-05,
+    "rms_median": 7.73352167528348e-05,
+    "rms_max": 0.00015097841752827296,
+    "ratio_to_floor_max": 0.7244502671079852
+   },
+   "v": {
+    "rms_min": 4.650851814922933e-05,
+    "rms_median": 0.00010191990513538948,
+    "rms_max": 0.00016359619166996794,
+    "ratio_to_floor_max": 0.8058621674873672
+   },
+   "rho": {
+    "rms_min": 0.00024291887309924864,
+    "rms_median": 0.0008593222654273227,
+    "rms_max": 0.001129304799610627,
+    "ratio_to_floor_max": 0.5925003287741408
+   }
+  },
+  "logs/micropolar/t1/k2_v6_newtonian4.npz": {
+   "u": {
+    "rms_min": 2.8159467525143765e-05,
+    "rms_median": 7.356348262009084e-05,
+    "rms_max": 0.00013687257940869739,
+    "ratio_to_floor_max": 0.6567652405935507
+   },
+   "v": {
+    "rms_min": 3.952424132809923e-05,
+    "rms_median": 8.362784629086046e-05,
+    "rms_max": 0.00015927197138463077,
+    "ratio_to_floor_max": 0.7845613933295885
+   },
+   "rho": {
+    "rms_min": 6.69215239559139e-05,
+    "rms_median": 0.0004032658570356172,
+    "rms_max": 0.0015920561798580674,
+    "ratio_to_floor_max": 0.8352871698748165
+   }
+  },
+  "logs/micropolar/t1/k2_v6_newtonian5.npz": {
+   "u": {
+    "rms_min": 3.132320771409839e-05,
+    "rms_median": 5.754279121109443e-05,
+    "rms_max": 0.00014356011410905992,
+    "ratio_to_floor_max": 0.6888545046041785
+   },
+   "v": {
+    "rms_min": 3.7793906393391924e-05,
+    "rms_median": 8.848206592855904e-05,
+    "rms_max": 0.00017904971901332658,
+    "ratio_to_floor_max": 0.8819850461016033
+   },
+   "rho": {
+    "rms_min": 8.34940382666618e-05,
+    "rms_median": 0.0003737073511534565,
+    "rms_max": 0.0017828209354193267,
+    "ratio_to_floor_max": 0.9353736836552731
+   }
+  }
+ }
+}

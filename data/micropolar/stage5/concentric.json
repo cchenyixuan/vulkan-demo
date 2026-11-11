@@ -1,0 +1,290 @@
+{
+ "thesis_g100_control": {
+  "candidate": "thesis",
+  "beta_over_nominal": 0.999544721470001,
+  "inner_offset_in_spacings": -0.08388147452986772,
+  "outer_offset_in_spacings": -0.09979996014986003,
+  "fit_rms_over_wall_speed": 4.6753939815282825e-05,
+  "radial_velocity_mean_over_wall_speed": 0.00037599197506528806,
+  "radial_velocity_max_over_wall_speed": 0.00047600272499007237,
+  "sector_spread": 0.00016049531908709136,
+  "steady_change": 6.539917953987581e-06,
+  "levels": {
+   "density_min": 999.96923828125,
+   "density_max": 1000.021240234375,
+   "density_mean": 1000.0068889423414,
+   "density_mean_change": 1.7878331163956318e-05,
+   "pressure_mean": 17.33889501651376,
+   "pressure_mean_change": 0.04508499038746194,
+   "pressure_min": -76.74097442626953,
+   "pressure_max": 53.346153259277344
+  },
+  "revision": {
+   "commit": "bfcc024aba395fc1f7ea70a45849db99049a7a08",
+   "describe": "thesis-ch5-rc1-9-gbfcc024",
+   "shaders_tree": "92a962153a107d7380b841e57e108b938e26c983",
+   "utils_tree": "7815b15418938e514c10e9a9e5f199368e3c404d",
+   "solver_modified": false
+  },
+  "counters_zero": true,
+  "failure": null
+ },
+ "g100_newtonian": {
+  "candidate": "thesis",
+  "beta_over_nominal": 0.999545227826625,
+  "inner_offset_in_spacings": -0.08409244983642594,
+  "outer_offset_in_spacings": -0.10028326199074122,
+  "fit_rms_over_wall_speed": 4.974301925879164e-05,
+  "radial_velocity_mean_over_wall_speed": 0.0003758792667565581,
+  "radial_velocity_max_over_wall_speed": 0.00047617638573291466,
+  "sector_spread": 0.0001328760182011223,
+  "steady_change": 5.9035269200757185e-06,
+  "levels": {
+   "density_min": 999.9688720703125,
+   "density_max": 1000.0211791992188
+  },
+  "revision": {
+   "commit": "8ca21ab8ec4cec617261f453423383dbbbad95dc",
+   "describe": "thesis-ch5-rc1",
+   "shaders_tree": "bd3adc4c73d0ccee89141b7765e922b76d9ff809",
+   "utils_tree": "83aa1faf79c8c99efa7705950dd4895efd4c82d8",
+   "solver_modified": false
+  },
+  "counters_zero": true,
+  "failure": null
+ },
+ "nd_g100_control": {
+  "candidate": "nd",
+  "beta_over_nominal": 0.9996592440318749,
+  "inner_offset_in_spacings": -0.06892213216119769,
+  "outer_offset_in_spacings": -0.08669064609689858,
+  "fit_rms_over_wall_speed": 8.239820019569102e-06,
+  "radial_velocity_mean_over_wall_speed": -1.23982379851824e-05,
+  "radial_velocity_max_over_wall_speed": 2.815971389883599e-05,
+  "sector_spread": 0.00013323861721957375,
+  "steady_change": 1.0001729923346679e-07,
+  "levels": {
+   "density_min": 999.6525268554688,
+   "density_max": 1000.2603759765625,
+   "density_mean": 999.9676587889152,
+   "density_mean_change": -0.001046340839820914,
+   "pressure_mean": -80.73294000516759,
+   "pressure_mean_change": -2.618719713569007,
+   "pressure_min": -867.694580078125,
+   "pressure_max": 651.7341918945312
+  },
+  "revision": {
+   "commit": "bfcc024aba395fc1f7ea70a45849db99049a7a08",
+   "describe": "thesis-ch5-rc1-9-gbfcc024",
+   "shaders_tree": "92a962153a107d7380b841e57e108b938e26c983",
+   "utils_tree": "7815b15418938e514c10e9a9e5f199368e3c404d",
+   "solver_modified": false
+  },
+  "counters_zero": true,
+  "failure": null
+ },
+ "nd_g100_newtonian": {
+  "candidate": "nd",
+  "beta_over_nominal": 0.9996607530874082,
+  "inner_offset_in_spacings": -0.068951028159292,
+  "outer_offset_in_spacings": -0.08695932807628592,
+  "fit_rms_over_wall_speed": 7.986761836882754e-06,
+  "radial_velocity_mean_over_wall_speed": -1.233301566480483e-05,
+  "radial_velocity_max_over_wall_speed": 2.8607504070499776e-05,
+  "sector_spread": 0.00013173623880230218,
+  "steady_change": 5.567936421603789e-06,
+  "levels": {
+   "density_min": 999.6556396484375,
+   "density_max": 1000.2570190429688
+  },
+  "revision": {
+   "commit": "645dc15116ec93ba55df66da051323047197a4ca",
+   "describe": "thesis-ch5-rc1-3-g645dc15",
+   "shaders_tree": "bd3adc4c73d0ccee89141b7765e922b76d9ff809",
+   "utils_tree": "83aa1faf79c8c99efa7705950dd4895efd4c82d8",
+   "solver_modified": false
+  },
+  "counters_zero": true,
+  "failure": null
+ },
+ "fd_g100_newtonian": {
+  "candidate": "fd",
+  "beta_over_nominal": 0.9996115568165062,
+  "inner_offset_in_spacings": -0.07185688071781327,
+  "outer_offset_in_spacings": -0.08571520127559351,
+  "fit_rms_over_wall_speed": 4.194567497940526e-06,
+  "radial_velocity_mean_over_wall_speed": 1.7080690490088998e-05,
+  "radial_velocity_max_over_wall_speed": 5.3426721700007996e-05,
+  "sector_spread": 0.00012713227677547086,
+  "steady_change": 1.1550389374942974e-06,
+  "levels": {
+   "density_min": 999.944580078125,
+   "density_max": 1000.0139770507812,
+   "density_mean": 999.9938159427567,
+   "density_mean_change": 0.004206221235335761,
+   "pressure_mean": -15.339172145344786,
+   "pressure_mean_change": 10.518816154159598,
+   "pressure_min": -138.41049194335938,
+   "pressure_max": 35.16674041748047
+  },
+  "revision": {
+   "commit": "5bc8e0dbdc800bc83107223bdf39b362b916640c",
+   "describe": "thesis-ch5-rc1-10-g5bc8e0d",
+   "shaders_tree": "92a962153a107d7380b841e57e108b938e26c983",
+   "utils_tree": "7815b15418938e514c10e9a9e5f199368e3c404d",
+   "solver_modified": false
+  },
+  "counters_zero": true,
+  "failure": null
+ },
+ "ew_g100_newtonian": {
+  "candidate": "ew",
+  "beta_over_nominal": 0.9996108540496417,
+  "inner_offset_in_spacings": -0.07168972003879226,
+  "outer_offset_in_spacings": -0.08528985456640603,
+  "fit_rms_over_wall_speed": 4.907654713646779e-06,
+  "radial_velocity_mean_over_wall_speed": 2.052481650665303e-05,
+  "radial_velocity_max_over_wall_speed": 6.328899903212429e-05,
+  "sector_spread": 0.00013388231758929562,
+  "steady_change": 8.945119716100833e-06,
+  "levels": {
+   "density_min": 999.984619140625,
+   "density_max": 1000.0509643554688,
+   "density_mean": 1000.0305700084723,
+   "density_mean_change": 0.020682872736756508,
+   "pressure_mean": 76.74569972690973,
+   "pressure_mean_change": 51.723269139170455,
+   "pressure_min": -38.16825866699219,
+   "pressure_max": 127.76680755615234
+  },
+  "revision": {
+   "commit": "bfcc024aba395fc1f7ea70a45849db99049a7a08",
+   "describe": "thesis-ch5-rc1-9-gbfcc024",
+   "shaders_tree": "92a962153a107d7380b841e57e108b938e26c983",
+   "utils_tree": "7815b15418938e514c10e9a9e5f199368e3c404d",
+   "solver_modified": false
+  },
+  "counters_zero": true,
+  "failure": null
+ },
+ "fd_g100_newtonian_long": {
+  "candidate": "fd_long",
+  "beta_over_nominal": 0.9996181971435946,
+  "inner_offset_in_spacings": -0.07107806081591006,
+  "outer_offset_in_spacings": -0.08512806971744391,
+  "fit_rms_over_wall_speed": 6.877910408359043e-06,
+  "radial_velocity_mean_over_wall_speed": 1.540587742440532e-05,
+  "radial_velocity_max_over_wall_speed": 4.149223676951567e-05,
+  "sector_spread": 0.00014301837547099595,
+  "steady_change": 1.9194630739018912e-06,
+  "levels": {
+   "density_min": 999.9884643554688,
+   "density_max": 1000.063232421875,
+   "density_mean": 1000.0397051210463,
+   "density_mean_change": 0.03166959288819271,
+   "pressure_mean": 99.38458762779501,
+   "pressure_mean_change": 79.16705204394938,
+   "pressure_min": -28.759239196777344,
+   "pressure_max": 158.2503204345703
+  },
+  "revision": {
+   "commit": "bfcc024aba395fc1f7ea70a45849db99049a7a08",
+   "describe": "thesis-ch5-rc1-9-gbfcc024",
+   "shaders_tree": "92a962153a107d7380b841e57e108b938e26c983",
+   "utils_tree": "7815b15418938e514c10e9a9e5f199368e3c404d",
+   "solver_modified": false
+  },
+  "counters_zero": true,
+  "failure": null
+ },
+ "g100_k3_m5": {
+  "candidate": "thesis",
+  "control": "g100_newtonian",
+  "length_in_spacings": 10.0,
+  "relative_torque_change": 0.06544749680386497,
+  "relative_torque_change_joint": 0.0646006757282187,
+  "exact_hydrodynamic": 0.06502678293470021,
+  "sph_over_exact": 1.0064698551916251,
+  "steady_change": 8.104543621064778e-06
+ },
+ "g100_k3_m2": {
+  "candidate": "thesis",
+  "control": "g100_newtonian",
+  "length_in_spacings": 25.0,
+  "relative_torque_change": 0.1775748970305855,
+  "relative_torque_change_joint": 0.17708783276423334,
+  "exact_hydrodynamic": 0.17746716595379342,
+  "sph_over_exact": 1.0006070479359552,
+  "steady_change": 1.4810207186980788e-05
+ },
+ "nd_g100_k3_m5": {
+  "candidate": "nd",
+  "control": "nd_g100_newtonian",
+  "length_in_spacings": 10.0,
+  "relative_torque_change": 0.06548483014667306,
+  "relative_torque_change_joint": 0.06460104213589513,
+  "exact_hydrodynamic": 0.06502877540933594,
+  "sph_over_exact": 1.0070131220289233,
+  "steady_change": 9.150436136601542e-06
+ },
+ "nd_g100_k3_m2": {
+  "candidate": "nd",
+  "control": "nd_g100_newtonian",
+  "length_in_spacings": 25.0,
+  "relative_torque_change": 0.1777553852526934,
+  "relative_torque_change_joint": 0.17709957259500864,
+  "exact_hydrodynamic": 0.1774724325286452,
+  "sph_over_exact": 1.0015943474714166,
+  "steady_change": 7.303516783278871e-06
+ },
+ "fd_g100_k3_m5": {
+  "candidate": "fd",
+  "control": "fd_g100_newtonian",
+  "length_in_spacings": 10.0,
+  "relative_torque_change": 0.06547535087478518,
+  "relative_torque_change_joint": 0.06459776831766773,
+  "exact_hydrodynamic": 0.06502523337183619,
+  "sph_over_exact": 1.0069221974241147,
+  "steady_change": 1.2890506521450798e-05
+ },
+ "fd_g100_k3_m2": {
+  "candidate": "fd",
+  "control": "fd_g100_newtonian",
+  "length_in_spacings": 25.0,
+  "relative_torque_change": 0.17776086849848682,
+  "relative_torque_change_joint": 0.17710459115704413,
+  "exact_hydrodynamic": 0.17746308549697054,
+  "sph_over_exact": 1.0016779996847365,
+  "steady_change": 1.6208262496251628e-05
+ },
+ "ew_g100_k3_m5": {
+  "candidate": "ew",
+  "control": "ew_g100_newtonian",
+  "length_in_spacings": 10.0,
+  "relative_torque_change": 0.06548490596793566,
+  "relative_torque_change_joint": 0.06460247328238844,
+  "exact_hydrodynamic": 0.06502502408725452,
+  "sph_over_exact": 1.0070723830884558,
+  "steady_change": 2.8530663388587317e-06
+ },
+ "ew_g100_k3_m2": {
+  "candidate": "ew",
+  "control": "ew_g100_newtonian",
+  "length_in_spacings": 25.0,
+  "relative_torque_change": 0.17770866842111532,
+  "relative_torque_change_joint": 0.17709424653170847,
+  "exact_hydrodynamic": 0.17746253343189777,
+  "sph_over_exact": 1.0013869687559263,
+  "steady_change": 1.0993242196077697e-05
+ },
+ "fd_g100_k3_m5_long": {
+  "candidate": "fd_long",
+  "control": "fd_g100_newtonian_long",
+  "length_in_spacings": 10.0,
+  "relative_torque_change": 0.06546844493690118,
+  "relative_torque_change_joint": 0.06459470919437527,
+  "exact_hydrodynamic": 0.06502541747755264,
+  "sph_over_exact": 1.006813142868348,
+  "steady_change": 2.513777384679556e-05
+ }
+}

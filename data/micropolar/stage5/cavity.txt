@@ -1,0 +1,35 @@
+Lid-driven cavity, Re = 1000, thesis configuration otherwise; mean over the last 20 time units; errors against Marchi et al. 2021 (MLS samples, wall frame), in units of U
+    n   cand.   t_end      L2 u    Linf u      L2 v    Linf v  u: 4 at lid    others  v: 4 at wall    others     u_min     v_max     v_min       E_k   rho min   rho max   rho mean steady at
+  250  thesis   100.6  9.34e-03  2.13e-02  1.05e-02  1.69e-02     1.54e-02  7.90e-03      4.60e-03  1.12e-02  -0.40221   0.39154  -0.54331   53.2999   999.672  1000.459   999.9935     80.64
+  250      fd    90.5  9.12e-03  1.79e-02  1.26e-02  2.05e-02     1.01e-02  8.94e-03      1.03e-02  1.30e-02  -0.40437   0.39398  -0.54691   53.5435   892.844   923.683   894.0808     70.56
+  250      ew   100.6  1.05e-02  2.18e-02  1.23e-02  2.04e-02     1.61e-02  9.25e-03      6.73e-03  1.30e-02  -0.40457   0.39390  -0.54685   53.7601   929.762   943.433   930.3562     80.64
+  500  thesis    89.5  4.18e-03  1.09e-02  4.29e-03  7.26e-03     7.78e-03  3.21e-03      2.16e-03  4.55e-03  -0.39416   0.38313  -0.53367   51.5331   999.542  1000.578   999.9944     69.61
+  500      fd    89.5  6.18e-03  1.14e-02  7.37e-03  1.21e-02     8.17e-03  5.79e-03      6.72e-03  7.47e-03  -0.39797   0.38687  -0.53851   52.2476   959.298   969.614   959.9966     69.61
+
+runs without an averaging window (stopped, or still running)
+    n   cand.  last sample at t  largest fluid speed / U  density min       max   failure
+  250      nd              3.36                    2.032       959.47   1008.22   InvariantViolation('drift at step 119000: alive 74489 != expected 74529')
+  500      nd              4.49                    2.451       988.08   1004.29   InvariantViolation('drift at step 312000: alive 273522 != expected 273529')
+  500      ew             10.14                    0.986       996.43   1000.39   none recorded
+
+errors at the four points nearest the lid (u on x = 0.5) and nearest the right wall (v on y = 0.5)
+    n   cand.   u at y =                                        v at x =    
+  250  thesis   0.953: +8.96e-03 0.961: +1.21e-02 0.969: +1.63e-02 0.977: +2.13e-02   |   0.945: -7.43e-03 0.953: -3.46e-03 0.961: +5.40e-04 0.969: +4.16e-03
+  250      fd   0.953: +4.52e-03 0.961: +7.00e-03 0.969: +1.06e-02 0.977: +1.50e-02   |   0.945: -1.54e-02 0.953: -1.15e-02 0.961: -7.03e-03 0.969: -2.60e-03
+  250      ew   0.953: +9.97e-03 0.961: +1.29e-02 0.969: +1.70e-02 0.977: +2.18e-02   |   0.945: -1.12e-02 0.953: -6.82e-03 0.961: -2.21e-03 0.969: +2.13e-03
+  500  thesis   0.953: +4.20e-03 0.961: +5.97e-03 0.969: +8.33e-03 0.977: +1.09e-02   |   0.945: -3.43e-03 0.953: -1.57e-03 0.961: +3.02e-04 0.969: +2.08e-03
+  500      fd   0.953: +5.36e-03 0.961: +6.69e-03 0.969: +8.63e-03 0.977: +1.09e-02   |   0.945: -9.86e-03 0.953: -7.51e-03 0.961: -4.78e-03 0.969: -2.00e-03
+
+velocity into each wall at its surface (cubic in the wall distance over 0.5 to 12 dx, 50 bins along the wall, corners left out, snapshots of the last 20 time units), over U; slope against the wall pressure over rho0 U^2 and its correlation
+    n   cand.   bottom: rms     slope      r     left: rms     slope      r    right: rms     slope      r      lid: rms     slope      r    all: rms     slope      r  slope / Ma  mean p_w
+  250  thesis      2.00e-04  +0.01233  +0.60      5.71e-04  +0.01374  +0.57      5.19e-03  +0.10523  +0.95      1.96e-03  +0.00866  +0.27    2.79e-03  +0.04573  +0.61       4.573   -0.0361
+  250      fd      5.75e-05  +0.00000  +0.09      4.14e-04  -0.00000  -0.03      4.91e-03  +0.00001  +0.01      1.66e-03  +0.00009  +0.21    2.60e-03  +0.00002  +0.03       0.002 -568.8465
+  250      ew      5.53e-05  -0.00000  -0.08      3.97e-04  +0.00000  +0.01      4.84e-03  +0.00031  +0.14      1.77e-03  +0.00003  +0.04    2.59e-03  +0.00008  +0.07       0.008 -425.5080
+  500  thesis      1.19e-04  +0.01010  +0.95      3.91e-04  +0.01261  +0.67      3.07e-03  +0.03724  +0.88      1.44e-03  +0.00930  +0.51    1.71e-03  +0.02202  +0.70       2.202   -0.0185
+  500      fd      1.68e-05  +0.00000  +0.09      2.25e-04  -0.00005  -0.15      2.74e-03  +0.00155  +0.44      1.17e-03  -0.00031  -0.23    1.49e-03  +0.00029  +0.15       0.029 -263.0670
+
+thesis run minus candidate: difference of the velocity into the wall (over U) against the wall pressure of the thesis run (over rho0 U^2), per wall and for the four walls together: slope, correlation
+    n   cand.   bottom: slope      r     left: slope      r    right: slope      r      lid: slope      r    all: slope      r  slope / Ma  rms difference
+  250      fd        +0.00688  +0.64        +0.00646  +0.80        +0.00817  +0.64        +0.00790  +0.71      +0.00794  +0.69       0.794        5.10e-04
+  250      ew        +0.00671  +0.71        +0.00700  +0.83        +0.00941  +0.63        +0.00868  +0.82      +0.00882  +0.72       0.882        5.24e-04
+  500      fd        +0.00755  +0.98        +0.00830  +0.98        +0.00621  +0.98        +0.00959  +0.97      +0.00803  +0.95       0.803        4.78e-04

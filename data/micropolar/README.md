@@ -55,3 +55,7 @@ Not copied: the profile samples of the n = 1000 runs (24 MB each), the bench log
 
 Added 2026-11-12 (Stage 4, Section 13): `stage4/`, with its own `README.md` (concentric resolution study and
 sweep, wall sums, the eccentric pilot and the cases on the porous walls, draft figures).
+
+Added 2026-11-12 (Stage 5, Section 14): `stage5/`, with its own `README.md` (the wall rule in its slip form and
+the plane film, the exact Stokes benchmark of the eccentric flow, the candidates for the wall and the
+density-diffusion term between the cylinders and in the cavity).

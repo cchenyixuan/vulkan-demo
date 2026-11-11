@@ -1,0 +1,27 @@
+Plane film between two walls with w = 0 (K = 3, delta = 3 l / 8): the pressure-driven flux is - f(h) (dp/dx) / (12 mu_inf), the shear stress of the shear-driven part mu_inf U / g_s(h)
+   exact:  f = h^3 - 12 delta h ((h / 2) coth(h / (2 l)) - l),      g_s = h - 2 delta tanh(h / (2 l))
+   rule:   f = (h - 2 delta)^3,                                      g_s = h - 2 delta
+
+  h / l  f exact / h^3  f rule / h^3  rule / exact  g_s exact / h  g_s rule / h
+      1         0.6311        0.0156        0.0248         0.6534        0.2500
+    1.6         0.6401        0.1499        0.2342         0.6887        0.5312
+      2         0.6478        0.2441        0.3769         0.7144        0.6250
+    2.8         0.6663        0.3925        0.5890         0.7629        0.7321
+      4         0.6978        0.5364        0.7687         0.8192        0.8125
+      7         0.7698        0.7118        0.9246         0.8931        0.8929
+      8         0.7889        0.7443        0.9435         0.9063        0.9062
+     10         0.8200        0.7915        0.9652         0.9250        0.9250
+     14         0.8622        0.8477        0.9832         0.9464        0.9464
+     20         0.8987        0.8917        0.9921         0.9625        0.9625
+     40         0.9466        0.9448        0.9981         0.9812        0.9812
+   check: the two closed forms against a numerical solution of the two ordinary differential equations at h / l = 1.6, 2.8, 4, 7, 14: largest relative difference 2.4e-11
+
+Journal bearing in the thin-film approximation (R = 0.4, c = 0.1; ratios only, the thin-film values are 11 % from the exact Stokes ones at this clearance): change of the load and of the journal torque against the Newtonian film, with the exact film and with the rule's film; beside it the rule from the exact Stokes solution of the slip-form geometry
+  eps  l / g h_min / l  load: exact film  rule film  rule, Stokes  torque: exact film  rule film  rule, Stokes
+  0.3   0.05      14.0           +11.24%    +12.21%       +12.25%              0.0510     0.0521        0.0427
+  0.3    0.1       7.0           +21.66%    +26.50%       +26.58%              0.1046     0.1102        0.0902
+  0.3   0.25       2.8           +42.13%    +87.22%       +87.43%              0.2614     0.3330        0.2726
+  0.6   0.05       8.0           +11.84%    +13.37%       +13.41%              0.0804     0.0852        0.0754
+  0.6    0.1       4.0           +21.81%    +29.48%       +29.56%              0.1602     0.1861        0.1649
+  0.6   0.25       1.6           +40.60%   +105.09%      +105.30%              0.3419     0.6457        0.5746
+   (the thin film has no curvature: its torque change lacks the factor (R1 - delta) / (R1 + delta) of the rotor's apparent speed, -2 delta / R1 = -0.009, -0.019, -0.047 for l / g = 0.05, 0.1, 0.25)
