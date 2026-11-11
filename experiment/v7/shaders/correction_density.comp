@@ -192,7 +192,14 @@ void process_particle(uint self_particle_id) {
                     // q_j = -ρ_i V_j (v_j - v_i) + 2 δ h c₀ ψ_ij V_j / (r² + ε²) (r_j - r_i),  ψ_ij = ρ_j - ρ_i
                     vec3 rate_vector = (-self_density * neighbor_volume)
                                      * (neighbor_velocity_mass.xyz - self_velocity);
+#ifdef DELTA_FLUID_ONLY
+                    // case.yaml numerics.delta_fluid_only: the diffusion between two fluid particles only (as
+                    // density.comp's DELTA_FLUID_ONLY variant)
+                    if (USE_DENSITY_DIFFUSION && !self_is_boundary
+                            && material_parameters[material[neighbor_particle_id]].kind != MATERIAL_BOUNDARY) {
+#else
                     if (USE_DENSITY_DIFFUSION) {
+#endif
                         float psi_ij = neighbor_stored_density - self_stored_density;
                         rate_vector += (diffusion_coefficient * psi_ij * neighbor_volume
                                         / (distance * distance + EPS_H_SQUARED))

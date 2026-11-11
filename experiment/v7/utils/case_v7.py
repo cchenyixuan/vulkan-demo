@@ -98,6 +98,10 @@ class NumericsConstants:
     # one GPU only). Spec const 100 WALL_BOUNDARY, shaders/wall_boundary.glsl.
     wall_boundary: str = "simple"
     viscous_form: str = "monaghan_gingold"         # VISCOUS_FORM_CHOICES; selects the force module, no spec constant
+    # case.yaml numerics.delta_fluid_only (docs/micropolar_design.md, Section 14): True = the delta-SPH density
+    # diffusion acts between fluid pairs only (the DELTA_FLUID_ONLY modules of the density kernels, no spec
+    # constant); False (default) = with wall neighbours too, the solver as it was.
+    delta_fluid_only: bool = False
 
 
 @dataclass

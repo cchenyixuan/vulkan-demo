@@ -193,7 +193,15 @@ void process_particle(uint self_particle_id) {
                     // --- δ-SPH density diffusion (gated by USE_DENSITY_DIFFUSION) -
                     // Spec-const branch: glslc -O DCE-removes the entire body when
                     // USE_DENSITY_DIFFUSION = false → vanilla WCSPH continuity.
+#ifdef DELTA_FLUID_ONLY
+                    // case.yaml numerics.delta_fluid_only (docs/micropolar_design.md, Section 14): the diffusion
+                    // acts between two fluid particles only, so a wall that keeps rho0 is no sink for the density
+                    // of the fluid beside it. The drift below keeps every neighbour.
+                    if (USE_DENSITY_DIFFUSION && self_params.kind != MATERIAL_BOUNDARY
+                            && material_parameters[material[neighbor_particle_id]].kind != MATERIAL_BOUNDARY) {
+#else
                     if (USE_DENSITY_DIFFUSION) {
+#endif
                         // --- ψ_ij ---------------------------------------------------
                         // V0 simplification: ψ_ij = (ρ_j - ρ_i) only (linear form).
                         // Full Antuono δ-plus formulation also includes an antisymmetric

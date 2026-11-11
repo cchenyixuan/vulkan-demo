@@ -1,4 +1,4 @@
-SPIR-V manifest of experiment/v7/shaders/spv (branch v9-micropolar: the tag micropolar-base = v7-rc4 + the bootstrap fix + the v7-adami-multi tooling, + the micropolar terms, and numerics.viscous_form: laplacian)
+SPIR-V manifest of experiment/v7/shaders/spv (branch v9-micropolar: the tag micropolar-base = v7-rc4 + the bootstrap fix + the v7-adami-multi tooling, + the micropolar terms, numerics.viscous_form: laplacian, and numerics.delta_fluid_only: true)
 
 compiler: C:\VulkanSDK\1.4.350.0/Bin/glslc.exe; glslc --version:
   shaderc v2026.2 v2026.2
@@ -12,11 +12,13 @@ flags: glslc --target-env=vulkan1.2 -O [-D<macro>] -I experiment/v7/shaders expe
   SHADER_VARIANTS; glslc output is deterministic, _test_seam_layout.py check_spirv_current compares every file
   with a fresh build)
 sources: experiment/v7/shaders/*.comp, *.glsl at the commit that adds this manifest;
-  last change to a shader source before it: the micropolar terms (2026-11-10): #ifdef MICROPOLAR blocks in bootstrap_half_kick.comp, defrag.comp, expand_ghost_lists.comp, force.comp, ghost_send.comp, ghost_send_lanes.comp, install_migrations.comp, predict.comp, wall_extrapolate.comp, wall_extrapolate_band.comp, new micropolar.glsl
-check: every file below byte-identical to a fresh build with the compiler above (35 of 35);
+  last change to a shader source before it: the micropolar terms (2026-11-10): #ifdef MICROPOLAR blocks in bootstrap_half_kick.comp, defrag.comp, expand_ghost_lists.comp, force.comp, ghost_send.comp, ghost_send_lanes.comp, install_migrations.comp, predict.comp, wall_extrapolate.comp, wall_extrapolate_band.comp, new micropolar.glsl;
+  after it: #ifdef VISCOUS_LAPLACIAN in force.comp (2026-11-11), #ifdef DELTA_FLUID_ONLY in density.comp and correction_density.comp (2026-11-12)
+check: every file below byte-identical to a fresh build with the compiler above (39 of 39);
   every file of micropolar-base (23 of 23) byte-identical to that tag's (the Newtonian solver: a case without physics.micropolar
-  loads only these); new against micropolar-base (loaded only by a case with physics.micropolar.enabled, instead of the plain module of the same kernel):
-  bootstrap_half_kick_micropolar, defrag_micropolar, expand_ghost_lists_micropolar, force_laplacian, force_micropolar, force_micropolar_laplacian, ghost_send_lanes_micropolar, ghost_send_micropolar, install_migrations_micropolar, predict_micropolar, wall_extrapolate_band_micropolar, wall_extrapolate_micropolar
+  loads only these); new against micropolar-base (each loaded only by a case that asks for it - physics.micropolar.enabled,
+  numerics.viscous_form: laplacian, numerics.delta_fluid_only: true - instead of the plain module of the same kernel):
+  bootstrap_half_kick_micropolar, correction_density_deep_wall_skip_delta_fluid_only, correction_density_delta_fluid_only, defrag_micropolar, density_deep_wall_skip_delta_fluid_only, density_delta_fluid_only, expand_ghost_lists_micropolar, force_laplacian, force_micropolar, force_micropolar_laplacian, ghost_send_lanes_micropolar, ghost_send_micropolar, install_migrations_micropolar, predict_micropolar, wall_extrapolate_band_micropolar, wall_extrapolate_micropolar
 scope: the tracked compute SPIR-V only (spv/render/*.spv from shaders/render are not tracked). Nothing checks this
   manifest automatically; regenerate it with any shader change.
 
@@ -29,11 +31,15 @@ ee9ff135900b69f881c6fc9ad0dfc5c87ed14de015497e8060dceae90ebdabc7    37504  corre
 e3de58bdc5e00f892dfa2f100789015c8f0aab4dae92eec6d8257866ab4515d5    53920  correction_deep_wall_skip.comp.spv  (correction.comp -DDEEP_WALL_SKIP)
 7871141dcdec3681b4fe0ab9b90cd703418183926f5ce453fea5ad63ca3ed143    57868  correction_density.comp.spv  (correction_density.comp)
 f5faeac0e14610d9944a6d92b5d974f259e8ff45f32c60c2fdcd409053e34a87    89468  correction_density_deep_wall_skip.comp.spv  (correction_density.comp -DDEEP_WALL_SKIP)
+c19438225d92920403eb4f81068a886944fbe2ae3722f47ad866a04854bbee96    90348  correction_density_deep_wall_skip_delta_fluid_only.comp.spv  (correction_density.comp -DDEEP_WALL_SKIP -DDELTA_FLUID_ONLY)
+1061a1a83214d83d636de4bf40c94055a87a048d5e24b4b32c0807c5921a6102    58748  correction_density_delta_fluid_only.comp.spv  (correction_density.comp -DDELTA_FLUID_ONLY)
 4c9b4096d57aab44946b91a35b74a4ca8a1821761befdd99a58acf8366ea3a8e     4980  deep_wall_marker.comp.spv  (deep_wall_marker.comp)
 52d7d9b3a09cf4ce33e8f2981c6e699b0ff213beabf1935e46e1ff8ad7969c42     5968  defrag.comp.spv  (defrag.comp)
 2f4c9fa7d450c11f58978b7a9ac1de6dc5ab8154854c19fc46fbc4f594413312     6736  defrag_micropolar.comp.spv  (defrag.comp -DMICROPOLAR)
 949bc2d1a5d85ca789fbaea61da51f9e75b2226dd701f4115dd1b55bacec6e7e    38844  density.comp.spv  (density.comp)
 8c99cc51d910658432fcc351b58f480aa4f90e9509d0e6daac5f14a722379695    55972  density_deep_wall_skip.comp.spv  (density.comp -DDEEP_WALL_SKIP)
+3ea39eec4b410ef2cd6e36e78ac007bdac072cdafe78b416e9dfc5b755c1a751    57108  density_deep_wall_skip_delta_fluid_only.comp.spv  (density.comp -DDEEP_WALL_SKIP -DDELTA_FLUID_ONLY)
+f62000db8fba4dfd58d6353bd245c1babdb7b84c6225ae6be284dfc456c3164f    39980  density_delta_fluid_only.comp.spv  (density.comp -DDELTA_FLUID_ONLY)
 50e9e5f6fb22a5996b208b8c53a60bf709c005ace3a804d32382f68cfe7a098b     1888  density_scratch_copy.comp.spv  (density_scratch_copy.comp)
 4087617c2a4a14b5b49548572a4de96161c07af09ed9e5eeeaa042f117364a01     5068  expand_ghost_lists.comp.spv  (expand_ghost_lists.comp)
 746ac3c4ee33aa401a3c1cf6981589a8c5e91336432f45ae4eceac13d9972b68     5764  expand_ghost_lists_micropolar.comp.spv  (expand_ghost_lists.comp -DMICROPOLAR)

@@ -162,6 +162,7 @@ V7_ONLY_FIELDS = {"departed_pool_size", "replica_region_size", "ghost_layers",
                   # micropolar terms (v7 only): physics switch + Theta, the wall value, the optional initial w
                   "micropolar_enabled", "micro_inertia", "wall_angular_velocity", "angular_velocities",
                   "viscous_form",           # numerics option of the viscous term's discretization (v7 only)
+                  "delta_fluid_only",       # numerics option: density diffusion between fluid pairs only (v7 only)
                   "rigid_rotation_rate", "rigid_rotation_centre"}     # rotating wall material (v7 only, host side)
 
 
@@ -1608,7 +1609,10 @@ MICROPOLAR_ADDED_SPIRV = frozenset({
     "defrag_micropolar.comp.spv", "ghost_send_micropolar.comp.spv", "ghost_send_lanes_micropolar.comp.spv",
     "expand_ghost_lists_micropolar.comp.spv", "install_migrations_micropolar.comp.spv",
     # numerics.viscous_form: laplacian (force.comp -DVISCOUS_LAPLACIAN)
-    "force_laplacian.comp.spv", "force_micropolar_laplacian.comp.spv"})
+    "force_laplacian.comp.spv", "force_micropolar_laplacian.comp.spv",
+    # numerics.delta_fluid_only: true (density.comp / correction_density.comp -DDELTA_FLUID_ONLY)
+    "density_delta_fluid_only.comp.spv", "density_deep_wall_skip_delta_fluid_only.comp.spv",
+    "correction_density_delta_fluid_only.comp.spv", "correction_density_deep_wall_skip_delta_fluid_only.comp.spv"})
 
 
 def _without_micropolar_blocks_bytes(source: bytes) -> bytes:
@@ -1628,17 +1632,17 @@ def _without_micropolar_blocks_bytes(source: bytes) -> bytes:
 
 
 def _plain_build_text(text: str) -> str:
-    """A shader source as its plain build sees it, as far as the two option macros go: the #ifdef MICROPOLAR
-    blocks removed, and of every #ifdef VISCOUS_LAPLACIAN ... #else ... #endif the #else branch kept. Raises on a
-    nested or unterminated block."""
+    """A shader source as its plain build sees it, as far as the option macros go: the #ifdef MICROPOLAR
+    blocks removed, and of every #ifdef VISCOUS_LAPLACIAN ... #else ... #endif and every #ifdef DELTA_FLUID_ONLY
+    ... #else ... #endif the #else branch kept. Raises on a nested or unterminated block."""
     kept, state = [], None                    # None | "micropolar" | "laplacian" | "laplacian_else"
     for line in text.replace("\r\n", "\n").split("\n"):
         stripped = line.strip()
         if state is None:
             if stripped == "#ifdef MICROPOLAR":
                 state = "micropolar"
-            elif stripped == "#ifdef VISCOUS_LAPLACIAN":
-                state = "laplacian"
+            elif stripped in ("#ifdef VISCOUS_LAPLACIAN", "#ifdef DELTA_FLUID_ONLY"):
+                state = "laplacian"           # an alternative: the #else branch is the plain build
             else:
                 kept.append(line)
             continue
@@ -1653,7 +1657,7 @@ def _plain_build_text(text: str) -> str:
             if stripped == "#else":
                 state = "laplacian_else"
             elif stripped == "#endif":
-                raise ValueError("#ifdef VISCOUS_LAPLACIAN without #else")
+                raise ValueError("#ifdef VISCOUS_LAPLACIAN / DELTA_FLUID_ONLY without #else")
         else:
             if stripped == "#endif":
                 state = None
@@ -4562,6 +4566,47 @@ def check_micropolar(failures: list) -> None:
                         or any(segment_rows(laplacian, direction) != segment_rows(default_form, direction)
                                for direction in ("leading", "trailing"))):
                     failures.append(f"viscous_form {label}: laplacian changes buffers, spec entries or segments")
+        # numerics.delta_fluid_only: true = four more variants of the two density kernels and nothing else
+        fluid_only_variants = sorted((name, source, macros) for name, source, macros
+                                     in compile_shaders_v7.SHADER_VARIANTS if "DELTA_FLUID_ONLY" in macros)
+        if fluid_only_variants != [
+                ("correction_density_deep_wall_skip_delta_fluid_only", "correction_density.comp",
+                 ("DEEP_WALL_SKIP", "DELTA_FLUID_ONLY")),
+                ("correction_density_delta_fluid_only", "correction_density.comp", ("DELTA_FLUID_ONLY",)),
+                ("density_deep_wall_skip_delta_fluid_only", "density.comp", ("DEEP_WALL_SKIP", "DELTA_FLUID_ONLY")),
+                ("density_delta_fluid_only", "density.comp", ("DELTA_FLUID_ONLY",))]:
+            failures.append(f"delta_fluid_only: DELTA_FLUID_ONLY variants {fluid_only_variants}")
+        for label, slab in slabs:
+            for micropolar_on in (False, True):
+                base_case = with_micropolar(slab) if micropolar_on else slab
+                default_rule = fake(simulator_v7, base_case)
+                fluid_only = fake(simulator_v7, dataclasses.replace(base_case, numerics=dataclasses.replace(
+                    base_case.numerics, delta_fluid_only=True)))
+                changed = sorted(name for name in ("predict", "correction", "density", "density_deep_wall_skip",
+                                                   "correction_density", "correction_density_deep_wall_skip", "force",
+                                                   "wall_extrapolate", "wall_extrapolate_band", "defrag",
+                                                   "ghost_send", "ghost_send_lanes", "expand_ghost_lists",
+                                                   "install_migrations", "bootstrap_half_kick", "force_segment",
+                                                   "correction_deep_wall_skip")
+                                 if fluid_only._shader_module_file_name(name)
+                                 != default_rule._shader_module_file_name(name))
+                if changed != sorted(simulator_v7.DELTA_FLUID_ONLY_SHADER_MODULES) or any(
+                        fluid_only._shader_module_file_name(name) != f"{name}_delta_fluid_only"
+                        or default_rule._shader_module_file_name(name) != name
+                        for name in simulator_v7.DELTA_FLUID_ONLY_SHADER_MODULES):
+                    failures.append(f"delta_fluid_only {label}: modules changed {changed}")
+                if (spec_rows(fluid_only) != spec_rows(default_rule)
+                        or fluid_only._global_entries() != default_rule._global_entries()
+                        or fluid_only._defrag_set0_bindings() != default_rule._defrag_set0_bindings()
+                        or any(segment_rows(fluid_only, direction) != segment_rows(default_rule, direction)
+                               for direction in ("leading", "trailing"))):
+                    failures.append(f"delta_fluid_only {label}: changes buffers, spec entries or segments")
+        for kernel in ("density.comp", "correction_density.comp"):
+            kernel_source = (shader_directory / kernel).read_text(encoding="utf-8")
+            if kernel_source.count("#ifdef DELTA_FLUID_ONLY") != 1 or kernel_source.count(
+                    "#else\n                    if (USE_DENSITY_DIFFUSION) {\n#endif\n") != 1:
+                failures.append(f"{kernel}: the DELTA_FLUID_ONLY branch is not found once with the plain statement "
+                                f"as its #else")
         force_source = (shader_directory / "force.comp").read_text(encoding="utf-8")
         if force_source.count("#ifdef VISCOUS_LAPLACIAN") != 1 or force_source.count(
                 "* (self_velocity - viscous_neighbor_velocity)\n                        "

@@ -79,6 +79,14 @@ SHADER_VARIANTS = (
     # plain force / force_micropolar modules above.
     ("force_laplacian", "force.comp", ("VISCOUS_LAPLACIAN",)),
     ("force_micropolar_laplacian", "force.comp", ("MICROPOLAR", "VISCOUS_LAPLACIAN")),
+    # case.yaml numerics.delta_fluid_only: true (docs/micropolar_design.md, Section 14): the delta-SPH density
+    # diffusion between fluid pairs only, in the two kernels that carry the term and their DEEP_WALL_SKIP builds.
+    # The default (diffusion with wall neighbours too) loads the plain modules above.
+    ("density_delta_fluid_only", "density.comp", ("DELTA_FLUID_ONLY",)),
+    ("density_deep_wall_skip_delta_fluid_only", "density.comp", ("DEEP_WALL_SKIP", "DELTA_FLUID_ONLY")),
+    ("correction_density_delta_fluid_only", "correction_density.comp", ("DELTA_FLUID_ONLY",)),
+    ("correction_density_deep_wall_skip_delta_fluid_only", "correction_density.comp",
+     ("DEEP_WALL_SKIP", "DELTA_FLUID_ONLY")),
 )
 
 

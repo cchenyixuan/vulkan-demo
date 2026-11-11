@@ -595,6 +595,11 @@ MICROPOLAR_SHADER_MODULES = frozenset({
     "predict", "bootstrap_half_kick", "force", "wall_extrapolate", "wall_extrapolate_band", "defrag",
     "ghost_send", "ghost_send_lanes", "expand_ghost_lists", "install_migrations",
 })
+# kernels with a DELTA_FLUID_ONLY variant (case.yaml numerics.delta_fluid_only): module file
+# <name>_delta_fluid_only.comp.spv; the same bindings, spec constants and recordings as the plain module
+DELTA_FLUID_ONLY_SHADER_MODULES = frozenset({
+    "density", "density_deep_wall_skip", "correction_density", "correction_density_deep_wall_skip",
+})
 # The link (micropolar.glsl): three words (w_x, w_y, w_z) per replica of the layers that carry angular_velocity,
 # in a block of ghost_packed_words after the replica records; the migrant region's angular_velocity slots as an
 # SoA segment (16 B).
@@ -1033,6 +1038,12 @@ class SphSimulatorV7:
         force module, the same buffers, spec constants and recordings). Read from the case, as _wall_adami."""
         return getattr(self.case.numerics, "viscous_form", "monaghan_gingold") == "laplacian"
 
+    @property
+    def _delta_fluid_only(self) -> bool:
+        """case.yaml numerics.delta_fluid_only (the density diffusion between fluid pairs only: other modules of
+        the density kernels, the same buffers, spec constants and recordings). Read from the case, as _wall_adami."""
+        return bool(getattr(self.case.numerics, "delta_fluid_only", False))
+
     def _defrag_set0_bindings(self) -> tuple[int, ...]:
         """Set 0 bindings defrag permutes (scratch twin, set 4 binding, fill and copy-back): the nine of
         DEFRAG_SET0_BINDINGS, + angular_velocity / angular_acceleration with the micropolar terms."""
@@ -1049,6 +1060,9 @@ class SphSimulatorV7:
         if shader_name == "force" and self._viscous_laplacian:
             # numerics.viscous_form: laplacian -> force_laplacian / force_micropolar_laplacian
             file_name = f"{file_name}_laplacian"
+        if shader_name in DELTA_FLUID_ONLY_SHADER_MODULES and self._delta_fluid_only:
+            # numerics.delta_fluid_only: true -> the density kernels' DELTA_FLUID_ONLY modules
+            file_name = f"{file_name}_delta_fluid_only"
         return file_name
 
     def _micropolar_replica_layers(self) -> int:

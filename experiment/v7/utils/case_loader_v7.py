@@ -498,7 +498,11 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
         wall_boundary=str(nm.get("wall_boundary", "simple")),
         # the viscous term's discretization (optional key; default = the Monaghan-Gingold form of paper 2)
         viscous_form=str(nm.get("viscous_form", "monaghan_gingold")),
+        # the density diffusion between fluid pairs only (optional key; default = with wall neighbours too)
+        delta_fluid_only=nm.get("delta_fluid_only", False),
     )
+    if not isinstance(numerics.delta_fluid_only, bool):
+        raise ValueError(f"numerics.delta_fluid_only: {numerics.delta_fluid_only!r}, expected true or false")
     if numerics.viscous_form not in VISCOUS_FORM_CHOICES:
         raise ValueError(f"numerics.viscous_form: {numerics.viscous_form!r}, expected one of "
                          f"{', '.join(VISCOUS_FORM_CHOICES)}")
