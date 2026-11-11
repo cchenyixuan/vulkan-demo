@@ -198,6 +198,28 @@ Exactness, rms `|lap_h v|` in units of `|grad v| / h`, eps 0.0025, bulk (wall ba
   `nu U / L^2` already at `L = h / 0.031 = 32 h`. It is a zero-mean error (it does not move the factor above).
 - BM is ten times smaller, BM-G / FM / DS are exact.
 
+**Which gradient the exactness row used, and why 3.1e-2 does not give the 33 % of the noise table.** The row's
+linear field was `v = A r` with `A = [[0.3, 0.7], [-0.4, 0.5]]` and the unit was `|A|_F / h` with the Frobenius
+norm (0.995). For BM the error is `2 A b_i` with a geometric vector b_i, so it depends on `|A|` only: 3.33e-3 for
+every field below, which is why the BM numbers agree both ways (3.33e-3 / (k h) = 1.3 % at two waves,
+k h = 0.251). For MG the pair term sees only the strain part of A (`v_ij . r_ij = r_ij^T A r_ij`), and the error
+differs by the kind of strain. Measured on the same state (rms `|lap_h v| h / |A|_F`, bulk,
+`data/micropolar/viscous/exactness_by_field.json`):
+
+| linear field | MG | BM |
+|---|---|---|
+| rigid rotation | 0 | 3.33e-3 |
+| isotropic expansion, A = I | 1.33e-2 | 3.33e-3 |
+| pure strain, [[1, 0], [0, -1]] or [[0, 1], [1, 0]] | 1.16e-1 | 3.33e-3 |
+| simple shear, [[0, 1], [0, 0]] (the local gradient of a transverse wave) | 8.23e-2 | 3.33e-3 |
+| the row above, [[0.3, 0.7], [-0.4, 0.5]] (mostly rotation and expansion) | 3.08e-2 | 3.33e-3 |
+
+A transverse wave is locally a simple shear, so its MG residual is 8.23e-2 / (k h) = 32.7 % at two waves, the
+measured 33 %. The 3.1e-2 of the exactness row is the value for a field whose gradient is 78 % rotation and 57 %
+expansion by norm and only 26 % deviatoric strain; it understates MG for shear flows by a factor 2.7. For a shear
+`|grad v| = U / L` the pointwise MG error equals the continuous viscous term at `L = h / 0.082 = 12 h` (not the
+32 h stated above for the mixed field).
+
 Smallest pair distance in the state: 0.8761 dx.
 
 ## 6. The `laplacian` option in the solver

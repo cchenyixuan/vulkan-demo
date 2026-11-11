@@ -1,0 +1,166 @@
+{
+ "reference": [
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a1.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a2.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a3.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a4.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a5.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a6.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a7.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a8.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a9.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a10.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a11.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a12.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a13.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a14.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a15.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a16.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a17.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a18.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a19.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a20.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a21.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a22.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a23.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a24.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a25.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a26.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a27.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a28.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a29.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a30.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a31.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a32.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a33.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a34.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a35.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a36.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a37.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a38.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a39.npz",
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_base_a40.npz"
+ ],
+ "floor": {
+  "u": {
+   "pair_rms_max": 0.00020840411603543298,
+   "pair_rms_median": 7.792735723773636e-05,
+   "pair_rms_min": 2.0760276208080704e-05,
+   "pairs": 780
+  },
+  "v": {
+   "pair_rms_max": 0.00020300765846850913,
+   "pair_rms_median": 8.900033053699523e-05,
+   "pair_rms_min": 2.7393550384728332e-05,
+   "pairs": 780
+  },
+  "rho": {
+   "pair_rms_max": 0.0019059986041646813,
+   "pair_rms_median": 0.000437670898719102,
+   "pair_rms_min": 4.755892523163352e-05,
+   "pairs": 780
+  }
+ },
+ "tests": {
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_v3_newtonian1.npz": {
+   "u": {
+    "rms_min": 2.9237810439657388e-05,
+    "rms_median": 5.328279194025515e-05,
+    "rms_max": 0.00015280041995770343,
+    "ratio_to_floor_max": 0.733192908395937
+   },
+   "v": {
+    "rms_min": 3.563126350675612e-05,
+    "rms_median": 7.655283632090071e-05,
+    "rms_max": 0.00017769702172723724,
+    "ratio_to_floor_max": 0.8753217640545412
+   },
+   "rho": {
+    "rms_min": 6.477486990370345e-05,
+    "rms_median": 0.0003575338400614603,
+    "rms_max": 0.0018225596021083585,
+    "ratio_to_floor_max": 0.9562229469245123
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_v3_newtonian2.npz": {
+   "u": {
+    "rms_min": 3.675150552204273e-05,
+    "rms_median": 7.712087042887461e-05,
+    "rms_max": 0.00015031101614469718,
+    "ratio_to_floor_max": 0.7212478285176538
+   },
+   "v": {
+    "rms_min": 3.7146096915670774e-05,
+    "rms_median": 9.599098538205574e-05,
+    "rms_max": 0.00015566790716493007,
+    "ratio_to_floor_max": 0.7668080521655666
+   },
+   "rho": {
+    "rms_min": 0.00019762470379326954,
+    "rms_median": 0.0008859526317618763,
+    "rms_max": 0.0011480906333175632,
+    "ratio_to_floor_max": 0.602356492186794
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_v3_newtonian3.npz": {
+   "u": {
+    "rms_min": 2.407021571123717e-05,
+    "rms_median": 6.125971151878025e-05,
+    "rms_max": 0.00015384446715590257,
+    "ratio_to_floor_max": 0.7382026328584885
+   },
+   "v": {
+    "rms_min": 3.609935993364895e-05,
+    "rms_median": 6.999079636416493e-05,
+    "rms_max": 0.00016097964429438995,
+    "ratio_to_floor_max": 0.7929732578013128
+   },
+   "rho": {
+    "rms_min": 5.800146981816809e-05,
+    "rms_median": 0.00028513833219837254,
+    "rms_max": 0.001705430157356107,
+    "ratio_to_floor_max": 0.8947698878843225
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_v3_newtonian4.npz": {
+   "u": {
+    "rms_min": 3.192710184513432e-05,
+    "rms_median": 5.869992258713896e-05,
+    "rms_max": 0.00015499356687027923,
+    "ratio_to_floor_max": 0.7437164381337226
+   },
+   "v": {
+    "rms_min": 4.162023423683761e-05,
+    "rms_median": 6.984871816599449e-05,
+    "rms_max": 0.00017115155382532423,
+    "ratio_to_floor_max": 0.8430792962023821
+   },
+   "rho": {
+    "rms_min": 6.424732640457036e-05,
+    "rms_median": 0.0003198293745919028,
+    "rms_max": 0.0017740465293703369,
+    "ratio_to_floor_max": 0.9307701094292389
+   }
+  },
+  "vulkan-demo-v9-micropolar/logs/micropolar/t1/k2_v3_newtonian5.npz": {
+   "u": {
+    "rms_min": 2.399805110651056e-05,
+    "rms_median": 6.270797397262383e-05,
+    "rms_max": 0.00014636880897370518,
+    "ratio_to_floor_max": 0.7023316609966546
+   },
+   "v": {
+    "rms_min": 3.131392815974393e-05,
+    "rms_median": 9.253161000471589e-05,
+    "rms_max": 0.00018048588408456107,
+    "ratio_to_floor_max": 0.8890594839926117
+   },
+   "rho": {
+    "rms_min": 8.506655061820715e-05,
+    "rms_median": 0.0003886199328644129,
+    "rms_max": 0.001806899067448146,
+    "ratio_to_floor_max": 0.9480065008966959
+   }
+  }
+ }
+}

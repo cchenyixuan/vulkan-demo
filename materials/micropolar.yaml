@@ -45,3 +45,12 @@ stick_lid:
   viscosity: 1.0e-3
   initial_velocity: [1.0, 0.0, 0.0]
   wall_angular_velocity: [0.0, 0.0, 0.0]
+
+# Cost measurement of Stage 3 (docs/micropolar_design.md): the Re 1000 cavity fluid of standard.yaml's stick_water
+# with K = kappa / mu = 3 and l = 0.04 m (nu_t = -0.25 nu, xi = l^2 c (2 nu - c) / nu; Theta = l^2 = 1.6e-3 in the case).
+micropolar_water_re1000:
+  kind: fluid
+  rest_density: 1000.0
+  viscosity: 1.0e-3
+  viscosity_transfer: -0.25e-3
+  viscosity_rotation: 1.5e-6
