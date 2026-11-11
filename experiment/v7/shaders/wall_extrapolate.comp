@@ -122,7 +122,16 @@ void main() {
         dummy_velocity = wall_velocity;
     }
 
+#ifdef WALL_DENSITY_EOS
+    // case.yaml numerics.wall_density: eos (branch v7-wall, W3; Adami, Hu & Adams 2012 eq. 28): the wall stores the
+    // Tait inverse of its pressure, rho_w = rho0 (p_w / B + 1)^(1 / gamma), so its density and volume follow the
+    // fluid beside it and the delta term sees no jump towards rho0. p_w / B + 1 is clamped at 0.5.
+    float wall_density = self_params.rest_density
+                       * pow(max(wall_pressure / self_params.eos_constant + 1.0, 0.5), 1.0 / POWER_PARAMETER);
+    vec2 wall_density_pressure = vec2(DELTA_DENSITY ? wall_density - REFERENCE_DENSITY : wall_density, wall_pressure);
+#else
     vec2 wall_density_pressure = vec2(stored_rest_density(self_params.rest_density), wall_pressure);
+#endif
     density_pressure[self_particle_id]         = wall_density_pressure;
     density_pressure_scratch[self_particle_id] = wall_density_pressure;
     wall_dummy_velocity[self_particle_id]      = vec4(dummy_velocity, kernel_weight_sum);

@@ -163,6 +163,7 @@ V7_ONLY_FIELDS = {"departed_pool_size", "replica_region_size", "ghost_layers",
                   "micropolar_enabled", "micro_inertia", "wall_angular_velocity", "angular_velocities",
                   "viscous_form",           # numerics option of the viscous term's discretization (v7 only)
                   "delta_fluid_only",       # numerics option: density diffusion between fluid pairs only (v7 only)
+                  "wall_density",           # numerics option: what an adami wall stores as its density (v7 only)
                   "rigid_rotation_rate", "rigid_rotation_centre"}     # rotating wall material (v7 only, host side)
 
 
@@ -1612,7 +1613,11 @@ MICROPOLAR_ADDED_SPIRV = frozenset({
     "force_laplacian.comp.spv", "force_micropolar_laplacian.comp.spv",
     # numerics.delta_fluid_only: true (density.comp / correction_density.comp -DDELTA_FLUID_ONLY)
     "density_delta_fluid_only.comp.spv", "density_deep_wall_skip_delta_fluid_only.comp.spv",
-    "correction_density_delta_fluid_only.comp.spv", "correction_density_deep_wall_skip_delta_fluid_only.comp.spv"})
+    "correction_density_delta_fluid_only.comp.spv", "correction_density_deep_wall_skip_delta_fluid_only.comp.spv",
+    # numerics.wall_density: eos (wall_extrapolate.comp / wall_extrapolate_band.comp -DWALL_DENSITY_EOS)
+    "wall_extrapolate_wall_density_eos.comp.spv", "wall_extrapolate_band_wall_density_eos.comp.spv",
+    "wall_extrapolate_micropolar_wall_density_eos.comp.spv",
+    "wall_extrapolate_band_micropolar_wall_density_eos.comp.spv"})
 
 
 def _without_micropolar_blocks_bytes(source: bytes) -> bytes:
@@ -1633,15 +1638,15 @@ def _without_micropolar_blocks_bytes(source: bytes) -> bytes:
 
 def _plain_build_text(text: str) -> str:
     """A shader source as its plain build sees it, as far as the option macros go: the #ifdef MICROPOLAR
-    blocks removed, and of every #ifdef VISCOUS_LAPLACIAN ... #else ... #endif and every #ifdef DELTA_FLUID_ONLY
-    ... #else ... #endif the #else branch kept. Raises on a nested or unterminated block."""
+    blocks removed, and of every #ifdef VISCOUS_LAPLACIAN / DELTA_FLUID_ONLY / WALL_DENSITY_EOS ... #else ...
+    #endif the #else branch kept. Raises on a nested or unterminated block."""
     kept, state = [], None                    # None | "micropolar" | "laplacian" | "laplacian_else"
     for line in text.replace("\r\n", "\n").split("\n"):
         stripped = line.strip()
         if state is None:
             if stripped == "#ifdef MICROPOLAR":
                 state = "micropolar"
-            elif stripped in ("#ifdef VISCOUS_LAPLACIAN", "#ifdef DELTA_FLUID_ONLY"):
+            elif stripped in ("#ifdef VISCOUS_LAPLACIAN", "#ifdef DELTA_FLUID_ONLY", "#ifdef WALL_DENSITY_EOS"):
                 state = "laplacian"           # an alternative: the #else branch is the plain build
             else:
                 kept.append(line)
@@ -4601,6 +4606,48 @@ def check_micropolar(failures: list) -> None:
                         or any(segment_rows(fluid_only, direction) != segment_rows(default_rule, direction)
                                for direction in ("leading", "trailing"))):
                     failures.append(f"delta_fluid_only {label}: changes buffers, spec entries or segments")
+        # numerics.wall_density: eos = four more variants of the two wall-pass kernels and nothing else
+        eos_variants = sorted((name, source, macros) for name, source, macros
+                              in compile_shaders_v7.SHADER_VARIANTS if "WALL_DENSITY_EOS" in macros)
+        if eos_variants != [
+                ("wall_extrapolate_band_micropolar_wall_density_eos", "wall_extrapolate_band.comp",
+                 ("MICROPOLAR", "WALL_DENSITY_EOS")),
+                ("wall_extrapolate_band_wall_density_eos", "wall_extrapolate_band.comp", ("WALL_DENSITY_EOS",)),
+                ("wall_extrapolate_micropolar_wall_density_eos", "wall_extrapolate.comp",
+                 ("MICROPOLAR", "WALL_DENSITY_EOS")),
+                ("wall_extrapolate_wall_density_eos", "wall_extrapolate.comp", ("WALL_DENSITY_EOS",))]:
+            failures.append(f"wall_density: WALL_DENSITY_EOS variants {eos_variants}")
+        for label, slab in slabs:
+            for micropolar_on in (False, True):
+                base_case = with_micropolar(slab) if micropolar_on else slab
+                rest_walls = fake(simulator_v7, base_case)
+                eos_walls = fake(simulator_v7, dataclasses.replace(base_case, numerics=dataclasses.replace(
+                    base_case.numerics, wall_density="eos")))
+                changed = sorted(name for name in ("predict", "correction", "density", "density_deep_wall_skip",
+                                                   "correction_density", "correction_density_deep_wall_skip", "force",
+                                                   "wall_extrapolate", "wall_extrapolate_band", "defrag",
+                                                   "ghost_send", "ghost_send_lanes", "expand_ghost_lists",
+                                                   "install_migrations", "bootstrap_half_kick", "force_segment",
+                                                   "correction_deep_wall_skip")
+                                 if eos_walls._shader_module_file_name(name) != rest_walls._shader_module_file_name(name))
+                suffix = "_micropolar_wall_density_eos" if micropolar_on else "_wall_density_eos"
+                if changed != sorted(simulator_v7.WALL_DENSITY_EOS_SHADER_MODULES) or any(
+                        eos_walls._shader_module_file_name(name) != f"{name}{suffix}"
+                        for name in simulator_v7.WALL_DENSITY_EOS_SHADER_MODULES):
+                    failures.append(f"wall_density {label}: modules changed {changed}")
+                if (spec_rows(eos_walls) != spec_rows(rest_walls)
+                        or eos_walls._global_entries() != rest_walls._global_entries()
+                        or eos_walls._defrag_set0_bindings() != rest_walls._defrag_set0_bindings()
+                        or any(segment_rows(eos_walls, direction) != segment_rows(rest_walls, direction)
+                               for direction in ("leading", "trailing"))):
+                    failures.append(f"wall_density {label}: changes buffers, spec entries or segments")
+        for kernel in ("wall_extrapolate.comp", "wall_extrapolate_band.comp"):
+            kernel_source = (shader_directory / kernel).read_text(encoding="utf-8")
+            if kernel_source.count("#ifdef WALL_DENSITY_EOS") != 1 or kernel_source.count(
+                    "#else\n    vec2 wall_density_pressure = vec2(stored_rest_density(self_params.rest_density), "
+                    "wall_pressure);\n#endif\n") != 1:
+                failures.append(f"{kernel}: the WALL_DENSITY_EOS branch is not found once with the plain statement "
+                                f"as its #else")
         for kernel in ("density.comp", "correction_density.comp"):
             kernel_source = (shader_directory / kernel).read_text(encoding="utf-8")
             if kernel_source.count("#ifdef DELTA_FLUID_ONLY") != 1 or kernel_source.count(

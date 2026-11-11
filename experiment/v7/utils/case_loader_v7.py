@@ -35,6 +35,7 @@ from experiment.v7.utils.case_v7 import (
     KIND_BOUNDARY,
     KIND_FLUID,
     VISCOUS_FORM_CHOICES,
+    WALL_DENSITY_CHOICES,
     KIND_INLET,
     KIND_ROTOR,
     MaterialParameter,
@@ -500,7 +501,15 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
         viscous_form=str(nm.get("viscous_form", "monaghan_gingold")),
         # the density diffusion between fluid pairs only (optional key; default = with wall neighbours too)
         delta_fluid_only=nm.get("delta_fluid_only", False),
+        # what an adami wall stores as its density (optional key; default rho0)
+        wall_density=str(nm.get("wall_density", "rho0")),
     )
+    if numerics.wall_density not in WALL_DENSITY_CHOICES:
+        raise ValueError(f"numerics.wall_density: {numerics.wall_density!r}, expected one of "
+                         f"{', '.join(WALL_DENSITY_CHOICES)}")
+    if numerics.wall_density == "eos" and numerics.wall_boundary != "adami":
+        raise ValueError("numerics.wall_density: eos needs numerics.wall_boundary: adami (a simple wall integrates "
+                         "its own density)")
     if not isinstance(numerics.delta_fluid_only, bool):
         raise ValueError(f"numerics.delta_fluid_only: {numerics.delta_fluid_only!r}, expected true or false")
     if numerics.viscous_form not in VISCOUS_FORM_CHOICES:

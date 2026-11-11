@@ -68,6 +68,7 @@ class PhysicsConstants:
 
 
 WALL_BOUNDARY_CHOICES = ("simple", "adami")     # case.yaml numerics.wall_boundary (E37)
+WALL_DENSITY_CHOICES = ("rho0", "eos")              # case.yaml numerics.wall_density (adami walls)
 # case.yaml numerics.viscous_form: the discretization of nu lap v in force.comp (docs/viscous_operator_comparison.md).
 # monaghan_gingold (default): 2 (d + 2) nu V_j (v_ij . r_ij) / (r_ij^2 + eps^2) G_ij, the solver of paper 2.
 # laplacian: the Brookshaw-Morris form 2 nu V_j v_ij (r_ij . G_ij) / (r_ij^2 + eps^2) (force.comp -DVISCOUS_LAPLACIAN).
@@ -102,6 +103,10 @@ class NumericsConstants:
     # diffusion acts between fluid pairs only (the DELTA_FLUID_ONLY modules of the density kernels, no spec
     # constant); False (default) = with wall neighbours too, the solver as it was.
     delta_fluid_only: bool = False
+    # case.yaml numerics.wall_density (docs/micropolar_design.md, Section 14; branch v7-wall W3): what an adami wall
+    # stores as its density - "rho0" (default, the solver as it was) or "eos" (the Tait inverse of the wall
+    # pressure; the WALL_DENSITY_EOS modules of the wall pass, no spec constant).
+    wall_density: str = "rho0"
 
 
 @dataclass

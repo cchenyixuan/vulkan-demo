@@ -600,6 +600,9 @@ MICROPOLAR_SHADER_MODULES = frozenset({
 DELTA_FLUID_ONLY_SHADER_MODULES = frozenset({
     "density", "density_deep_wall_skip", "correction_density", "correction_density_deep_wall_skip",
 })
+# kernels with a WALL_DENSITY_EOS variant (case.yaml numerics.wall_density: eos): module file
+# <name>[_micropolar]_wall_density_eos.comp.spv; the same bindings, spec constants and recordings as the plain module
+WALL_DENSITY_EOS_SHADER_MODULES = frozenset({"wall_extrapolate", "wall_extrapolate_band"})
 # The link (micropolar.glsl): three words (w_x, w_y, w_z) per replica of the layers that carry angular_velocity,
 # in a block of ghost_packed_words after the replica records; the migrant region's angular_velocity slots as an
 # SoA segment (16 B).
@@ -886,6 +889,11 @@ class SphSimulatorV7:
             print(f"[SimV7] numerics.viscous_form = laplacian: force module "
                   f"{self._shader_module_file_name('force')}")
 
+        if self._wall_density_eos:
+            print(f"[SimV7] numerics.wall_density = eos (adami walls store the Tait density of their pressure): "
+                  f"wall pass modules {self._shader_module_file_name('wall_extrapolate')}, "
+                  f"{self._shader_module_file_name('wall_extrapolate_band')}")
+
         if self._delta_fluid_only:
             print(f"[SimV7] numerics.delta_fluid_only = true (density diffusion between fluid pairs only): modules "
                   f"{', '.join(sorted(name + '_delta_fluid_only' for name in DELTA_FLUID_ONLY_SHADER_MODULES))} "
@@ -1049,6 +1057,12 @@ class SphSimulatorV7:
         the density kernels, the same buffers, spec constants and recordings). Read from the case, as _wall_adami."""
         return bool(getattr(self.case.numerics, "delta_fluid_only", False))
 
+    @property
+    def _wall_density_eos(self) -> bool:
+        """case.yaml numerics.wall_density == eos (an adami wall stores the Tait density of its pressure: other
+        modules of the wall pass, the same buffers, spec constants and recordings). Read from the case."""
+        return getattr(self.case.numerics, "wall_density", "rho0") == "eos"
+
     def _defrag_set0_bindings(self) -> tuple[int, ...]:
         """Set 0 bindings defrag permutes (scratch twin, set 4 binding, fill and copy-back): the nine of
         DEFRAG_SET0_BINDINGS, + angular_velocity / angular_acceleration with the micropolar terms."""
@@ -1065,6 +1079,9 @@ class SphSimulatorV7:
         if shader_name == "force" and self._viscous_laplacian:
             # numerics.viscous_form: laplacian -> force_laplacian / force_micropolar_laplacian
             file_name = f"{file_name}_laplacian"
+        if shader_name in WALL_DENSITY_EOS_SHADER_MODULES and self._wall_density_eos:
+            # numerics.wall_density: eos -> the wall pass's WALL_DENSITY_EOS modules
+            file_name = f"{file_name}_wall_density_eos"
         if shader_name in DELTA_FLUID_ONLY_SHADER_MODULES and self._delta_fluid_only:
             # numerics.delta_fluid_only: true -> the density kernels' DELTA_FLUID_ONLY modules
             file_name = f"{file_name}_delta_fluid_only"

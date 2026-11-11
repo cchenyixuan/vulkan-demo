@@ -87,6 +87,13 @@ SHADER_VARIANTS = (
     ("correction_density_delta_fluid_only", "correction_density.comp", ("DELTA_FLUID_ONLY",)),
     ("correction_density_deep_wall_skip_delta_fluid_only", "correction_density.comp",
      ("DEEP_WALL_SKIP", "DELTA_FLUID_ONLY")),
+    # case.yaml numerics.wall_density: eos (docs/micropolar_design.md, Section 14; branch v7-wall W3): the adami wall
+    # pass stores the Tait density of the wall pressure instead of rho0. The default (rho0) loads the plain modules.
+    ("wall_extrapolate_wall_density_eos", "wall_extrapolate.comp", ("WALL_DENSITY_EOS",)),
+    ("wall_extrapolate_band_wall_density_eos", "wall_extrapolate_band.comp", ("WALL_DENSITY_EOS",)),
+    ("wall_extrapolate_micropolar_wall_density_eos", "wall_extrapolate.comp", ("MICROPOLAR", "WALL_DENSITY_EOS")),
+    ("wall_extrapolate_band_micropolar_wall_density_eos", "wall_extrapolate_band.comp",
+     ("MICROPOLAR", "WALL_DENSITY_EOS")),
 )
 
 
