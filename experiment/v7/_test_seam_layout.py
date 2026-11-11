@@ -161,7 +161,8 @@ V7_ONLY_FIELDS = {"departed_pool_size", "replica_region_size", "ghost_layers",
                   "chain_own_particle_counts",      # E39 B3 chain metadata of a slab case (v7 only)
                   # micropolar terms (v7 only): physics switch + Theta, the wall value, the optional initial w
                   "micropolar_enabled", "micro_inertia", "wall_angular_velocity", "angular_velocities",
-                  "viscous_form"}           # numerics option of the viscous term's discretization (v7 only)
+                  "viscous_form",           # numerics option of the viscous term's discretization (v7 only)
+                  "rigid_rotation_rate", "rigid_rotation_centre"}     # rotating wall material (v7 only, host side)
 
 
 def _strip_v7_only(tree):

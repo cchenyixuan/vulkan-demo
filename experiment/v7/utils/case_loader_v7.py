@@ -268,6 +268,17 @@ def _resolve_materials(
             diameter = 2.0 * particle_radius
             volume = diameter ** dimension
         initial_velocity = tuple(spec.get("initial_velocity", [0.0, 0.0, 0.0]))
+        rigid_rotation = spec.get("rigid_rotation") or {}
+        if set(rigid_rotation) - {"angular_velocity", "centre"}:
+            raise ValueError(f"material {name!r}: rigid_rotation takes angular_velocity and centre")
+        rigid_rotation_rate = float(rigid_rotation.get("angular_velocity", 0.0))
+        rigid_rotation_centre = tuple(float(value) for value in rigid_rotation.get("centre", [0.0, 0.0, 0.0]))
+        if len(rigid_rotation_centre) != 3:
+            raise ValueError(f"material {name!r}: rigid_rotation.centre needs three components")
+        if rigid_rotation_rate != 0.0 and kind_name != "boundary":
+            raise ValueError(f"material {name!r}: rigid_rotation is the velocity field of a boundary material")
+        if rigid_rotation_rate != 0.0 and any(initial_velocity):
+            raise ValueError(f"material {name!r}: give rigid_rotation or initial_velocity, not both")
         wall_angular_velocity = tuple(float(value) for value in spec.get("wall_angular_velocity", [0.0, 0.0, 0.0]))
         if len(wall_angular_velocity) != 3:
             raise ValueError(f"material {name!r}: wall_angular_velocity needs three components")
@@ -289,6 +300,8 @@ def _resolve_materials(
                               float(initial_velocity[1]),
                               float(initial_velocity[2])),
             wall_angular_velocity=wall_angular_velocity,
+            rigid_rotation_rate=rigid_rotation_rate,
+            rigid_rotation_centre=rigid_rotation_centre,
         ))
     return result
 
@@ -555,6 +568,13 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
         init_vel = np.broadcast_to(
             np.asarray(materials[group].initial_velocity, dtype=np.float32),
             (n, 3)).copy()
+        if materials[group].rigid_rotation_rate != 0.0:
+            # a wall in rigid rotation about z: v = Omega z^ x (r - centre) per particle (float64, then float32)
+            rate = materials[group].rigid_rotation_rate
+            centre = np.asarray(materials[group].rigid_rotation_centre, dtype=np.float64)
+            offset = verts.astype(np.float64) - centre[None, :]
+            init_vel = np.column_stack([-rate * offset[:, 1], rate * offset[:, 0],
+                                        np.zeros(n)]).astype(np.float32)
         groups = np.full(n, group, dtype=np.uint32)
         all_positions_list.append(verts)
         all_velocities_list.append(init_vel)

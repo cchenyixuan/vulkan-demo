@@ -245,6 +245,14 @@ class MaterialParameter:
     """Not part of the GPU struct — used CPU-side at bootstrap to fill
     velocity_mass for fresh particles."""
 
+    rigid_rotation_rate: float = 0.0
+    rigid_rotation_centre: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    """Boundary kinds (material key rigid_rotation: {angular_velocity, centre}): the wall carries the velocity
+    field of a rigid rotation about the z axis through the centre, v = Omega z^ x (r - centre), written into
+    velocity_mass of every particle of the material at upload in place of initial_velocity. The particles do not
+    move (predict skips boundary kinds): a circular wall turning about its own axis keeps its shape. The adami wall
+    pass takes each wall particle's stored velocity as its wall velocity. Not part of the GPU struct."""
+
     wall_angular_velocity: tuple[float, float, float] = (0.0, 0.0, 0.0)
     """Micropolar, boundary kinds: the prescribed micro-rotation w_wall [1/s] (default: no spin). Not part of
     the GPU struct: uploaded into the angular_velocity slot of every particle of this material, as
