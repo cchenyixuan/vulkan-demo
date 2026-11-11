@@ -604,11 +604,41 @@ def _fit(loaded: dict, profile: dict, reference_module) -> dict:
     coefficients, _residual, _rank, singular = np.linalg.lstsq(basis / scale, velocity[inside], rcond=None)
     coefficients = coefficients / scale
     fitted = basis @ coefficients
-    return {"coefficients": coefficients.tolist(), "rigid_rotation_rate": float(coefficients[0]),
-            "potential_vortex_constant": float(coefficients[1]),
-            "condition_number": float(singular[0] / singular[-1]),
-            "fit_rms_over_wall_speed": float(np.sqrt(((fitted - velocity[inside]) ** 2).mean()) / meta["wall_speed"]),
-            "bins": int(inside.sum())}
+    result = {"coefficients": coefficients.tolist(), "rigid_rotation_rate": float(coefficients[0]),
+              "potential_vortex_constant": float(coefficients[1]),
+              "condition_number": float(singular[0] / singular[-1]),
+              "fit_rms_over_wall_speed": float(np.sqrt(((fitted - velocity[inside]) ** 2).mean())
+                                               / meta["wall_speed"]),
+              "bins": int(inside.sum())}
+    if meta["micropolar"]:
+        # Joint fit of v_theta(r) and w_z(r): the two profiles share the four constants
+        #   v = C1' r + C2 / r + f (A I1 - B K1),   w = C1' + A I0 + B K0,   f = kappa l / (mu + kappa) = c l / nu
+        # (scaled Bessel functions). The velocity alone separates K1 from 1 / r poorly over a narrow gap when l is
+        # not small (the condition number above); w pins A and B. Each block is weighted by the rms of its data.
+        factor = meta["design_coupling"] * meta["micropolar_length"] / meta["design_viscosity"]
+        spin = profile["spin"][inside]
+        spin_basis = reference_module.micro_rotation_basis_functions(radius[inside], meta["micropolar_length"],
+                                                                     meta["inner_radius"], meta["outer_radius"])
+        velocity_rows = np.column_stack([basis[:, 0], basis[:, 1], factor * basis[:, 2], -factor * basis[:, 3]])
+        spin_rows = np.column_stack([spin_basis[:, 0], np.zeros(spin.size), spin_basis[:, 1], spin_basis[:, 2]])
+        velocity_weight = 1.0 / np.sqrt((velocity[inside] ** 2).mean())
+        spin_weight = 1.0 / np.sqrt((spin ** 2).mean())
+        joint = np.vstack([velocity_rows * velocity_weight, spin_rows * spin_weight])
+        target = np.concatenate([velocity[inside] * velocity_weight, spin * spin_weight])
+        joint_scale = np.sqrt((joint ** 2).sum(axis=0))
+        joint_coefficients, _residual, _rank, joint_singular = np.linalg.lstsq(joint / joint_scale, target,
+                                                                               rcond=None)
+        joint_coefficients = joint_coefficients / joint_scale
+        result.update({
+            "joint_coefficients": joint_coefficients.tolist(),
+            "joint_potential_vortex_constant": float(joint_coefficients[1]),
+            "joint_condition_number": float(joint_singular[0] / joint_singular[-1]),
+            "joint_velocity_rms_over_wall_speed": float(np.sqrt(((velocity_rows @ joint_coefficients
+                                                                  - velocity[inside]) ** 2).mean())
+                                                        / meta["wall_speed"]),
+            "joint_spin_rms_over_rotation_rate": float(np.sqrt(((spin_rows @ joint_coefficients - spin) ** 2).mean())
+                                                       / meta["rotation_rate"])})
+    return result
 
 
 def command_analyse(arguments) -> int:
@@ -678,6 +708,7 @@ def command_analyse(arguments) -> int:
         record["same_timestep_as_control"] = bool(abs(record["timestep"] / control["timestep"] - 1.0) < 1e-12)
         beta = control["fit"]["potential_vortex_constant"]
         record["relative_torque_change"] = record["fit"]["potential_vortex_constant"] / beta - 1.0
+        record["relative_torque_change_joint"] = record["fit"]["joint_potential_vortex_constant"] / beta - 1.0
         density = 1000.0
         eringen = reference.eringen_parameters_from_solver_parameters(
             density, meta["design_viscosity"], meta["design_coupling"], meta["design_viscosity_rotation"])
@@ -695,6 +726,8 @@ def command_analyse(arguments) -> int:
         record["exact_nominal"] = exact["nominal"]["relative_torque_change"]
         record["exact_hydrodynamic"] = exact["hydrodynamic"]["relative_torque_change"]
         record["difference_to_exact_hydrodynamic"] = record["relative_torque_change"] - record["exact_hydrodynamic"]
+        record["difference_joint_to_exact_hydrodynamic"] = (record["relative_torque_change_joint"]
+                                                            - record["exact_hydrodynamic"])
         # profile errors against the exact solution with the hydrodynamic radii
         profile = record["_profile"]
         solution = exact["hydrodynamic"]["solution"]
@@ -736,7 +769,8 @@ def command_analyse(arguments) -> int:
               f"{record['fit']['fit_rms_over_wall_speed']:>9.1e}"
               + ("" if record["counters_zero"] and not record["failure"] else "  FAILED / counters"))
     print(f"\n{'micropolar run':<24}{'D_SPH':>11}{'D nominal':>11}{'D hydro':>11}{'diff':>11}{'diff/D':>9}"
-          f"{'v core':>9}{'v wall':>9}{'w core':>9}{'w wall':>9}{'cond':>9}")
+          f"{'v core':>9}{'v wall':>9}{'w core':>9}{'w wall':>9}{'cond':>9}{'D joint':>11}{'diff':>11}"
+          f"{'diff/D':>9}{'cond':>9}")
     for name, record in results.items():
         if "relative_torque_change" not in record:
             continue
@@ -745,7 +779,10 @@ def command_analyse(arguments) -> int:
               f"{record['difference_to_exact_hydrodynamic'] / record['exact_hydrodynamic']:>9.3f}"
               f"{record['velocity_error_core']:>9.1e}{record['velocity_error_wall_layers']:>9.1e}"
               f"{record['spin_error_core']:>9.1e}{record['spin_error_wall_layers']:>9.1e}"
-              f"{record['fit']['condition_number']:>9.1e}")
+              f"{record['fit']['condition_number']:>9.1e}{record['relative_torque_change_joint']:>11.5f}"
+              f"{record['difference_joint_to_exact_hydrodynamic']:>11.2e}"
+              f"{record['difference_joint_to_exact_hydrodynamic'] / record['exact_hydrodynamic']:>9.3f}"
+              f"{record['fit']['joint_condition_number']:>9.1e}")
     if arguments.json:
         for record in results.values():
             profile = record.pop("_profile")
