@@ -1048,8 +1048,9 @@ data and the commands that make each file: `data/micropolar/stage4/README.md`. M
 measured here, **[run, host]** computed on the host from saved states, **[host]** computed without a run,
 **[inferred]** concluded from the numbers.
 
-All walls carry w = 0, the rotor included. Thesis configuration everywhere (`viscous_form: laplacian`, EPS factor
-1e-6, `wall_boundary: adami`); no default was changed and nothing was tuned.
+All walls carry w = 0, the rotor included. Thesis configuration (`viscous_form: laplacian`, EPS factor 1e-6,
+`wall_boundary: adami`) in every run of 13.1 to 13.3 and in the pilot of 13.4.1; the cases of 13.4.2 and 13.4.3
+that depart from it are marked where they appear. No default was changed and nothing was tuned.
 
 ### 13.0 Freeze **[run]**
 
@@ -1058,14 +1059,13 @@ All walls carry w = 0, the rotor included. Thesis configuration everywhere (`vis
   `run.json` records the commit, `git describe`, the two tree hashes and whether either directory differed from
   the commit (never). The tooling changed while the runs went on (the commits after the tag touch
   `experiment/validation`, `cases/`, `data/` and `docs/` only); the first runs of the night were started at
-  `8ca21ab` with the run driver's state saving not yet committed, the later ones at the tooling commits. The table of 13.2 gives the
-  `git describe` of every row.
+  `8ca21ab` with the run driver's state saving not yet committed, the later ones at the tooling commits. The
+  table of 13.2 gives the `git describe` of every row.
 - T0 and T1 were not re-run: nothing under `experiment/v7` was touched.
 - **What ran:** 56 runs to their end time (two of them lost particles on the way, 13.4), all on one slab (XTX:
   g = 50 and 100 dx, the eccentric pilot; 5090: g = 200 dx and most of the short runs that a result called
-  for). **What did not:** everything at g = 400 dx and the
-  third lattice at g = 200 dx; the background jobs were stopped at 02:30 when the machine ran out of memory
-  (13.6).
+  for). **What did not:** everything at g = 400 dx and the third lattice at g = 200 dx; the background jobs
+  were stopped at 02:30 when the machine ran out of memory (13.6).
 
 ### 13.1 Resolution study **[run]**
 
