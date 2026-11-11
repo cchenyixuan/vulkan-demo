@@ -748,9 +748,10 @@ def command_reduce(arguments) -> int:
     analysis uses, written beside a copy of the run's run.json: analyse --runs <directory> then gives the same
     numbers from files small enough to keep in the repository."""
     out = _REPO_ROOT / arguments.out
-    names = arguments.names or [name for name in PILOT if (_REPO_ROOT / PILOT_RUNS / name / "run.json").exists()]
+    runs_directory = _REPO_ROOT / arguments.runs
+    names = arguments.names or [name for name in PILOT if (runs_directory / name / "run.json").exists()]
     for name in names:
-        loaded = _load_run(name)
+        loaded = _load_run(name, runs_directory)
         data, run = loaded["data"], loaded["run"]
         end_time = run["steps"] * run["timestep"]
         time_axis = data["step"] * run["timestep"]
@@ -1054,6 +1055,7 @@ def main() -> int:
     reduce = commands.add_parser("reduce")
     reduce.add_argument("names", nargs="*", help="runs of the pilot table (default: every finished one)")
     reduce.add_argument("--out", default="data/micropolar/stage3/couette")
+    reduce.add_argument("--runs", default=PILOT_RUNS, help="directory of the raw runs")
     reduce.set_defaults(handler=command_reduce)
 
     limit = commands.add_parser("step-limit")

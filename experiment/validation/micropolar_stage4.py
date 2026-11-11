@@ -29,6 +29,16 @@ RUNS_DIRECTORY = "logs/micropolar/stage4"
 STEP_OPTIONS = ["--step-number", "0.0328", "--step-number-angular", "0.0334"]
 LATTICES = {"": [], "_shifted": ["--lattice-offset", "0.5", "0.5"], "_rotated": ["--lattice-angle", "15"]}
 STATE_COUNT = 24
+SUPPORT_SPACINGS = 5                 # h / dx of the cases
+# The displaced Newtonian geometry of the rule (section 4): name -> (offset of the rotor axis in dx, l in dx of the
+# K = 3 micropolar run it stands for, mean of delta_b / delta around the rotor). The mean is the measured one of
+# the Newtonian control (omega_N from the velocity profile beside the rotor; data/micropolar/stage4/eccentric.json);
+# the concentric entry uses the exact (R1 / R2)^2 and is the check of the procedure against the formula.
+DISPLACED = {
+    "g100_displaced_m5": (0, 10.0, 0.64),
+    "e30_displaced_m5": (30, 10.0, 0.6710),
+    "e30_displaced_m2": (30, 25.0, 0.6710),
+}
 
 
 def _ratio_tag(coupling_ratio: float) -> str:
@@ -79,6 +89,13 @@ def _build_table() -> dict:
             else:
                 micropolar(name, gap, coupling_ratio, gap_over_two_lengths, control, section=("sweep",))
 
+    # the m = 1 rows again to three diffusion times (for a row whose velocity-only C2 misses the steady test at two)
+    for coupling_ratio in (3, 1, 0.5):
+        name = f"g100_{_ratio_tag(coupling_ratio)}_m1"
+        micropolar(f"{name}_t3", 100, coupling_ratio, 1, "g100_newtonian", section=("extended",))
+        runs[f"{name}_t3"]["generate"] += ["--end-time-factor", "3"]
+        runs[f"{name}_t3"]["extends"] = name
+
     # section 4, eccentric pilot: g = 100 dx, the rotor axis at x = eps g, K = 3, l = 10 dx (m = 5) and 25 dx
     # (m = 2); noise floor from the three lattices at eps = 0.6
     for eccentricity in (30, 60):
@@ -88,6 +105,24 @@ def _build_table() -> dict:
         for gap_over_two_lengths in (5, 2):
             micropolar(f"e{eccentricity}_k3_m{gap_over_two_lengths}", 100, 3, gap_over_two_lengths,
                        f"e{eccentricity}_newtonian", eccentricity, section=("eccentric",))
+    # Newtonian fluid of viscosity nu_inf between the displaced walls: rotor radius R1 + mean delta_b, stator
+    # radius R2 - delta, delta = c l / (2 nu) = 3 l / 8 at K = 3; same Omega, offset, sound speed, dt and end time
+    for name, (eccentricity, length, mean_ratio) in DISPLACED.items():
+        displacement = 0.375 * length
+        inner, outer = 400.0 + mean_ratio * displacement, 500.0 - displacement          # in dx; dx = 1e-3 m
+        gap = outer - inner
+        wall_speed = 2.5 * inner * 1.0e-3
+        runs[name] = {
+            "generate": ["--gap", repr(gap * 1.0e-3), "--gap-in-spacings", repr(gap), "--inner-radius-in-gaps",
+                         repr(inner / gap), "--eccentricity-in-spacings", str(eccentricity), "--wall-speed",
+                         repr(wall_speed), "--reynolds", repr(wall_speed * gap * 1.0e-3 / 0.01), "--mach",
+                         repr(wall_speed / 50.0), "--end-time-factor", repr(2.0 * 0.01 / (gap * 1.0e-3) ** 2),
+                         "--step-from-coupling-ratio", "3", "--step-from-gap-over-two-lengths", "5"],
+            "control": f"e{eccentricity}_newtonian" if eccentricity else "g100_newtonian", "gap": gap,
+            "eccentricity": eccentricity, "section": ["displaced"],
+            "displaced": {"length_in_spacings": length, "mean_ratio": mean_ratio,
+                          "displacement_in_spacings": displacement, "inner_radius_in_spacings": inner,
+                          "outer_radius_in_spacings": outer}}
     return runs
 
 
@@ -707,7 +742,8 @@ def command_eccentric(arguments) -> int:
         summary = cached_wall_sums(name, runs_directory, arguments.recompute)
         torques = wall_torques(summary)
         factor = torques["mass_over_lattice_mass"]
-        record = {"eccentricity_ratio": meta["eccentricity"] / meta["gap"], "micropolar": meta["micropolar"],
+        record = {"eccentricity_ratio": RUNS[name]["eccentricity"] / 100.0, "micropolar": meta["micropolar"],
+                  "displaced": RUNS[name].get("displaced"),
                   "length_in_spacings": (meta["micropolar_length"] / meta["spacing"]) if meta["micropolar"] else None,
                   "steps": run["steps"], "timestep": run["timestep"], "counters_zero": not any(run["counters"].values()),
                   "failure": run["failure"], "revision": run.get("revision"),
@@ -843,6 +879,112 @@ def command_eccentric(arguments) -> int:
     return 0
 
 
+def command_rule_scan(arguments) -> int:
+    """The displacement rule against the exact solution on the host (no run): D_rule / D_exact over m for the three
+    K of the sweep, the pilot geometry (R1 = 4 g, R2 = 5 g, nominal radii), w = 0 on both walls; the same with the
+    stator's displacement on the rotor as well (what the rule would give without the factor of the rotating wall)."""
+    from scipy.optimize import brentq
+    from experiment.validation import micropolar_couette as couette
+    from experiment.validation import micropolar_couette_reference as reference
+    inner, outer, gap, wall_speed, far_viscosity = 0.4, 0.5, 0.1, 1.0, 0.01
+    ratios = (0.5, 1.0, 3.0)
+
+    def evaluate(coupling_ratio, gap_over_two_lengths):
+        length = gap / (2.0 * gap_over_two_lengths)
+        design = couette.design_parameters(far_viscosity, coupling_ratio, length)
+        eringen = reference.eringen_parameters_from_solver_parameters(
+            DENSITY, design["viscosity"], design["coupling"], design["viscosity_rotation"])
+        exact = reference.relative_torque_change(inner, outer, eringen.shear_viscosity, eringen.coupling_viscosity,
+                                                 eringen.spin_viscosity, wall_speed, 0.0, 0.0, 0.0)
+        displacement = design["coupling"] * length / (2.0 * design["viscosity"])
+        plain = (((inner + displacement) * (outer - displacement)) ** 2
+                 / ((outer - displacement) ** 2 - (inner + displacement) ** 2)
+                 / (inner ** 2 * outer ** 2 / (outer ** 2 - inner ** 2)) - 1.0)
+        return exact, rule_torque_change(inner, outer, displacement) / exact, plain / exact
+    lines = ["D_rule / D_exact on the host: R1 = 4 g, R2 = 5 g, nominal radii, w = 0 on both walls",
+             f"{'m':>7}" + "".join(f"{'K = %g' % ratio:>12}" for ratio in ratios)
+             + "".join(f"{'K = %g, both walls delta' % ratio:>28}" for ratio in ratios)]
+    for value in (1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5, 7, 10, 20, 40, 100):
+        results = [evaluate(ratio, value) for ratio in ratios]
+        lines.append(f"{value:>7g}" + "".join(f"{result[1]:>12.4f}" for result in results)
+                     + "".join(f"{result[2]:>28.4f}" for result in results))
+    for ratio in ratios:
+        crossings = [brentq(lambda value: evaluate(ratio, value)[1] - level, 1.0, 2.2) for level in (1.05, 1.02)]
+        grid = np.geomspace(1.5, 100.0, 600)
+        lowest = min((evaluate(ratio, value)[1], value) for value in grid)
+        lines.append(f"K = {ratio:g}: D_rule / D_exact = 1.05 at m = {crossings[0]:.2f}, 1.02 at m = {crossings[1]:.2f}; "
+                     f"lowest {lowest[0]:.4f} at m = {lowest[1]:.2f}; (1 - ratio) m = "
+                     f"{(1.0 - evaluate(ratio, 40.0)[1]) * 40.0:.4f} at m = 40, "
+                     f"{(1.0 - evaluate(ratio, 100.0)[1]) * 100.0:.4f} at m = 100")
+    print("\n".join(lines))
+    if arguments.out:
+        target = _REPO_ROOT / arguments.out
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    return 0
+
+
+def command_layer_length(arguments) -> int:
+    """The layer length the SPH profiles show: the l that minimises the residual of the fit of w alone (three
+    functions), of v alone (four) and of the joint fit, over the bins further than h from the walls; and, at the
+    nominal l, the amplitudes of the two wall layers in the velocity-only fit over those of the w-only fit (1 if
+    the two profiles are the exact pair). From the profiles kept in the analysis file."""
+    from scipy.optimize import minimize_scalar
+    from experiment.validation import micropolar_couette_reference as reference
+    runs = json.loads((_REPO_ROOT / arguments.analysis).read_text(encoding="utf-8"))["runs"]
+    lines = [f"{'run':<16}{'K':>5}{'m':>5}{'l/dx':>6}{'h/l':>6}{'l_w / l':>10}{'l_v / l':>10}{'l_joint / l':>12}"
+             f"{'stator layer':>14}{'rotor layer':>13}"]
+    records = {}
+    for name, record in runs.items():
+        if "relative_torque_change" not in record:
+            continue
+        profile = record["profile"]
+        radius, velocity, spin = (np.asarray(profile[key]) for key in ("radius", "velocity", "spin"))
+        spacing = 0.1 / record["gap_in_spacings"]
+        inner, outer = 0.4, 0.5
+        length = record["length_in_spacings"] * spacing
+        inside = (radius > inner + SUPPORT_SPACINGS * spacing) & (radius < outer - SUPPORT_SPACINGS * spacing)
+        ratio = record["coupling_ratio"] / (1.0 + record["coupling_ratio"])          # c / nu
+
+        def fits(trial):
+            velocity_basis = reference.velocity_basis_functions(radius[inside], trial, inner, outer)
+            spin_basis = reference.micro_rotation_basis_functions(radius[inside], trial, inner, outer)
+            velocity_fit = np.linalg.lstsq(velocity_basis, velocity[inside], rcond=None)[0]
+            spin_fit = np.linalg.lstsq(spin_basis, spin[inside], rcond=None)[0]
+            factor = ratio * trial
+            velocity_rows = np.column_stack([velocity_basis[:, 0], velocity_basis[:, 1],
+                                             factor * velocity_basis[:, 2], -factor * velocity_basis[:, 3]])
+            spin_rows = np.column_stack([spin_basis[:, 0], np.zeros(spin_basis.shape[0]), spin_basis[:, 1],
+                                         spin_basis[:, 2]])
+            velocity_weight = 1.0 / np.sqrt((velocity[inside] ** 2).mean())
+            spin_weight = 1.0 / np.sqrt((spin[inside] ** 2).mean())
+            joint = np.vstack([velocity_rows * velocity_weight, spin_rows * spin_weight])
+            target = np.concatenate([velocity[inside] * velocity_weight, spin[inside] * spin_weight])
+            joint_fit = np.linalg.lstsq(joint, target, rcond=None)[0]
+            return {"velocity": float(((velocity_basis @ velocity_fit - velocity[inside]) ** 2).sum()),
+                    "spin": float(((spin_basis @ spin_fit - spin[inside]) ** 2).sum()),
+                    "joint": float(((joint @ joint_fit - target) ** 2).sum()),
+                    "velocity_fit": velocity_fit, "spin_fit": spin_fit, "factor": factor}
+        best = {key: float(minimize_scalar(lambda trial: fits(trial)[key], bounds=(0.7 * length, 1.4 * length),
+                                           method="bounded", options={"xatol": 1e-9 * length}).x / length)
+                for key in ("spin", "velocity", "joint")}
+        nominal = fits(length)
+        stator_layer = (nominal["velocity_fit"][2] / nominal["factor"]) / nominal["spin_fit"][1]
+        rotor_layer = (-nominal["velocity_fit"][3] / nominal["factor"]) / nominal["spin_fit"][2]
+        records[name] = {"length_from_spin": best["spin"], "length_from_velocity": best["velocity"],
+                         "length_from_joint": best["joint"], "stator_layer_amplitude_ratio": float(stator_layer),
+                         "rotor_layer_amplitude_ratio": float(rotor_layer)}
+        lines.append(f"{name:<16}{record['coupling_ratio']:>5g}{record['gap_over_two_lengths']:>5g}"
+                     f"{record['length_in_spacings']:>6g}{record['support_over_length']:>6.2f}{best['spin']:>10.4f}"
+                     f"{best['velocity']:>10.4f}{best['joint']:>12.4f}{stator_layer:>14.4f}{rotor_layer:>13.4f}")
+    print("\n".join(lines))
+    if arguments.out:
+        target = _REPO_ROOT / arguments.out
+        target.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+        target.with_suffix(".json").write_text(json.dumps(records, indent=1), encoding="utf-8")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -872,6 +1014,13 @@ def main() -> int:
     eccentric.add_argument("--recompute", action="store_true")
     eccentric.add_argument("--json", default=None)
     eccentric.set_defaults(handler=command_eccentric)
+    rule = commands.add_parser("rule-scan")
+    rule.add_argument("--out", default=None)
+    rule.set_defaults(handler=command_rule_scan)
+    layer = commands.add_parser("layer-length")
+    layer.add_argument("--analysis", default="data/micropolar/stage4/couette_stage4.json")
+    layer.add_argument("--out", default=None)
+    layer.set_defaults(handler=command_layer_length)
     arguments = parser.parse_args()
     return arguments.handler(arguments)
 

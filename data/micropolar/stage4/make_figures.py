@@ -57,7 +57,8 @@ def figure_profiles(runs: dict) -> None:
         print("figure A: runs missing")
         return
     colour = SERIES[3.0][0]
-    figure, axes = plt.subplots(2, len(cases), figsize=(3.6 * len(cases), 5.2), sharex=True, squeeze=False)
+    figure, axes = plt.subplots(2, len(cases), figsize=(max(3.9 * len(cases), 4.6), 5.4), sharex=True,
+                                squeeze=False)
     rotation_rate = WALL_SPEED / INNER_RADIUS
     for column, name in enumerate(cases):
         record = runs[name]
@@ -79,9 +80,8 @@ def figure_profiles(runs: dict) -> None:
         axes[0][column].set_title(
             f"K = 3, m = {record['gap_over_two_lengths']:g} (l = {record['length_in_spacings']:g} dx, "
             f"g = {record['gap_in_spacings']} dx)", fontsize=9, color=INK)
-    axes[0][0].legend(loc="upper right")
-    figure.suptitle("Concentric cylinders, w = 0 on both walls: SPH against the exact solution", fontsize=10,
-                    color=INK)
+    axes[1][0].legend(loc="upper center")
+    figure.suptitle("SPH against the exact solution (w = 0 on both walls)", fontsize=10, color=INK)
     figure.tight_layout()
     for suffix in ("png", "pdf"):
         figure.savefig(HERE / f"figure_a_profiles.{suffix}", dpi=200)
