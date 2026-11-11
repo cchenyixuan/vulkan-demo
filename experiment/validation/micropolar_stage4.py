@@ -775,6 +775,88 @@ def rotor_displacement_map(vorticity: np.ndarray, rate: float) -> np.ndarray:
     return 1.0 + rate / (0.5 * vorticity - rate)
 
 
+def eccentric_record(name: str, runs_directory: pathlib.Path, recompute: bool = False) -> dict:
+    """Torque (three readings, both walls, about the rotor axis), force, advective terms, drift over the
+    saved states and, for a Newtonian run, the vorticity at the rotor and the map of delta_b, of one
+    eccentric run."""
+    run = json.loads((runs_directory / name / "run.json").read_text(encoding="utf-8"))
+    meta = run["couette"]
+    summary = cached_wall_sums(name, runs_directory, recompute)
+    torques = wall_torques(summary)
+    factor = torques["mass_over_lattice_mass"]
+    record = {"eccentricity_ratio": RUNS[name]["eccentricity"] / 100.0, "micropolar": meta["micropolar"],
+              "displaced": RUNS[name].get("displaced"),
+              "length_in_spacings": (meta["micropolar_length"] / meta["spacing"]) if meta["micropolar"] else None,
+              "steps": run["steps"], "timestep": run["timestep"], "counters_zero": not any(run["counters"].values()),
+              "failure": run["failure"], "revision": run.get("revision"),
+              "steps_per_second": run["steps_per_second"], **torques}
+    # the advective transport of angular momentum through the rotor's circle (not zero off-centre): rho0 r^2
+    # integral of v_t (v_n - mean v_n) over the angle; the mean of v_n along the closed circle is a drift
+    # that the shifting cancels (no mass crosses on average)
+    layer = summary["rotor"]["layer"]
+    tangential = np.asarray(layer["tangential_velocity_by_angle"]["mean"])
+    outward = np.asarray(layer["outward_velocity_by_angle"]["mean"])
+    radius = layer["circle_radius"]["mean"]
+    record["rotor"]["circle_advection"] = float(DENSITY * radius ** 2 * (tangential * (outward - outward.mean())).sum()
+                                                * 2.0 * np.pi / tangential.size)
+    record["rotor"]["circle_with_advection"] = record["rotor"]["circle"] + record["rotor"]["circle_advection"]
+    # The stator's circle is centred on the origin, the torque is taken about the rotor axis at (e, 0). For
+    # the circle form this adds e kappa r_C * integral of w cos(angle) (the force of the term kappa n x w
+    # has an arm e; the term mu (grad v)^T n has no net force in an incompressible flow), and the advective
+    # term is - rho0 r_C * integral of [r_C v_t - e (v_n sin + v_t cos)] (v_n - mean v_n).
+    layer = summary["stator"]["layer"]
+    tangential = np.asarray(layer["tangential_velocity_by_angle"]["mean"])
+    outward = np.asarray(layer["outward_velocity_by_angle"]["mean"])
+    spin_on_circle = np.asarray(layer["spin_by_angle"]["mean"])
+    radius = layer["circle_radius"]["mean"]
+    angle = (np.arange(tangential.size) + 0.5) * 2.0 * np.pi / tangential.size
+    step = 2.0 * np.pi / tangential.size
+    offset = meta["eccentricity"]
+    record["stator"]["circle_offset_term"] = float(offset * torques["coupling_viscosity"] * radius
+                                                   * (spin_on_circle * np.cos(angle)).sum() * step)
+    record["stator"]["circle_advection"] = float(-DENSITY * radius * (
+        (radius * tangential - offset * (outward * np.sin(angle) + tangential * np.cos(angle)))
+        * (outward - outward.mean())).sum() * step)
+    record["stator"]["circle_with_advection"] = (record["stator"]["circle"] + record["stator"]["circle_offset_term"]
+                                                 + record["stator"]["circle_advection"])
+    # time behaviour over the saved states: first against second half
+    for wall in ("rotor", "stator"):
+        values = np.asarray(summary[wall]["torque_exchange"]["values"]) / factor
+        half = values.size // 2
+        record[wall]["wall_first_half_minus_second"] = float(values[:half].mean() - values[half:].mean())
+    # local wall shear of the rotor from the viscous pair sums: tangential force on the fluid per unit arc
+    viscous = np.asarray(summary["rotor"]["tangential_by_angle"]["viscous"]["mean"]) / factor
+    bins = viscous.size
+    arc = meta["inner_radius"] * 2.0 * np.pi / bins
+    shear_viscosity = torques["shear_viscosity"] + torques["coupling_viscosity"]      # of the laplacian term
+    record["rotor"]["tangential_traction_by_angle"] = (viscous / arc).tolist()
+    record["rotor"]["normal_traction_by_angle"] = (
+        (np.asarray(summary["rotor"]["radial_by_angle"]["pressure_flux"]["mean"])
+         + np.asarray(summary["rotor"]["radial_by_angle"]["viscous"]["mean"])) / factor / arc).tolist()
+    if not meta["micropolar"]:
+        # omega_N at the rotor two ways: from the pair sums (omega = Omega - f_t / mu) and from the velocity
+        # profile beside the wall (omega = dv_t/dn + Omega)
+        profile = wall_shear_profiles(name, runs_directory)
+        from_sums = meta["rotation_rate"] - (viscous / arc) / shear_viscosity
+        from_profile = np.asarray(profile["vorticity"])
+        record["rotor_vorticity"] = {"angle": profile["angle"], "from_pair_sums": from_sums.tolist(),
+                                     "from_profile": from_profile.tolist(),
+                                     "wall_value_over_wall_speed": profile["wall_value_over_wall_speed"]}
+        for label, vorticity in (("from_pair_sums", from_sums), ("from_profile", from_profile)):
+            ratio = rotor_displacement_map(vorticity, meta["rotation_rate"])
+            angle = np.asarray(profile["angle"])
+            record[f"displacement_{label}"] = {
+                "ratio_by_angle": ratio.tolist(), "mean": float(ratio.mean()), "min": float(ratio.min()),
+                "max": float(ratio.max()), "angle_of_max_degrees": float(np.degrees(angle[np.argmax(ratio)])),
+                "angle_of_min_degrees": float(np.degrees(angle[np.argmin(ratio)])),
+                "largest_deviation_from_mean": float(np.abs(ratio / ratio.mean() - 1.0).max())}
+    force = -np.asarray(record["rotor"]["force"])                      # the fluid on the rotor
+    record["rotor_force_on_wall"] = force.tolist()
+    record["rotor_force_magnitude"] = float(np.hypot(*force))
+    record["rotor_force_angle_degrees"] = float(np.degrees(np.arctan2(force[1], force[0])))
+    return record
+
+
 def command_eccentric(arguments) -> int:
     runs_directory = _REPO_ROOT / arguments.runs
     names = [name for name in RUNS if RUNS[name]["eccentricity"] and "leak" not in RUNS[name]["section"]
@@ -787,78 +869,7 @@ def command_eccentric(arguments) -> int:
         lines.append(text)
         print(text)
     for name in names:
-        run = json.loads((runs_directory / name / "run.json").read_text(encoding="utf-8"))
-        meta = run["couette"]
-        summary = cached_wall_sums(name, runs_directory, arguments.recompute)
-        torques = wall_torques(summary)
-        factor = torques["mass_over_lattice_mass"]
-        record = {"eccentricity_ratio": RUNS[name]["eccentricity"] / 100.0, "micropolar": meta["micropolar"],
-                  "displaced": RUNS[name].get("displaced"),
-                  "length_in_spacings": (meta["micropolar_length"] / meta["spacing"]) if meta["micropolar"] else None,
-                  "steps": run["steps"], "timestep": run["timestep"], "counters_zero": not any(run["counters"].values()),
-                  "failure": run["failure"], "revision": run.get("revision"),
-                  "steps_per_second": run["steps_per_second"], **torques}
-        # the advective transport of angular momentum through the rotor's circle (not zero off-centre): rho0 r^2
-        # integral of v_t (v_n - mean v_n) over the angle; the mean of v_n along the closed circle is a drift
-        # that the shifting cancels (no mass crosses on average)
-        layer = summary["rotor"]["layer"]
-        tangential = np.asarray(layer["tangential_velocity_by_angle"]["mean"])
-        outward = np.asarray(layer["outward_velocity_by_angle"]["mean"])
-        radius = layer["circle_radius"]["mean"]
-        record["rotor"]["circle_advection"] = float(DENSITY * radius ** 2 * (tangential * (outward - outward.mean())).sum()
-                                                    * 2.0 * np.pi / tangential.size)
-        record["rotor"]["circle_with_advection"] = record["rotor"]["circle"] + record["rotor"]["circle_advection"]
-        # The stator's circle is centred on the origin, the torque is taken about the rotor axis at (e, 0). For
-        # the circle form this adds e kappa r_C * integral of w cos(angle) (the force of the term kappa n x w
-        # has an arm e; the term mu (grad v)^T n has no net force in an incompressible flow), and the advective
-        # term is - rho0 r_C * integral of [r_C v_t - e (v_n sin + v_t cos)] (v_n - mean v_n).
-        layer = summary["stator"]["layer"]
-        tangential = np.asarray(layer["tangential_velocity_by_angle"]["mean"])
-        outward = np.asarray(layer["outward_velocity_by_angle"]["mean"])
-        spin_on_circle = np.asarray(layer["spin_by_angle"]["mean"])
-        radius = layer["circle_radius"]["mean"]
-        angle = (np.arange(tangential.size) + 0.5) * 2.0 * np.pi / tangential.size
-        step = 2.0 * np.pi / tangential.size
-        offset = meta["eccentricity"]
-        record["stator"]["circle_offset_term"] = float(offset * torques["coupling_viscosity"] * radius
-                                                       * (spin_on_circle * np.cos(angle)).sum() * step)
-        record["stator"]["circle_advection"] = float(-DENSITY * radius * (
-            (radius * tangential - offset * (outward * np.sin(angle) + tangential * np.cos(angle)))
-            * (outward - outward.mean())).sum() * step)
-        record["stator"]["circle_with_advection"] = (record["stator"]["circle"] + record["stator"]["circle_offset_term"]
-                                                     + record["stator"]["circle_advection"])
-        # time behaviour over the saved states: first against second half
-        for wall in ("rotor", "stator"):
-            values = np.asarray(summary[wall]["torque_exchange"]["values"]) / factor
-            half = values.size // 2
-            record[wall]["wall_first_half_minus_second"] = float(values[:half].mean() - values[half:].mean())
-        # local wall shear of the rotor from the viscous pair sums: tangential force on the fluid per unit arc
-        viscous = np.asarray(summary["rotor"]["tangential_by_angle"]["viscous"]["mean"]) / factor
-        bins = viscous.size
-        arc = meta["inner_radius"] * 2.0 * np.pi / bins
-        shear_viscosity = torques["shear_viscosity"] + torques["coupling_viscosity"]      # of the laplacian term
-        record["rotor"]["tangential_traction_by_angle"] = (viscous / arc).tolist()
-        record["rotor"]["normal_traction_by_angle"] = (
-            (np.asarray(summary["rotor"]["radial_by_angle"]["pressure_flux"]["mean"])
-             + np.asarray(summary["rotor"]["radial_by_angle"]["viscous"]["mean"])) / factor / arc).tolist()
-        if not meta["micropolar"]:
-            # omega_N at the rotor two ways: from the pair sums (omega = Omega - f_t / mu) and from the velocity
-            # profile beside the wall (omega = dv_t/dn + Omega)
-            profile = wall_shear_profiles(name, runs_directory)
-            from_sums = meta["rotation_rate"] - (viscous / arc) / shear_viscosity
-            from_profile = np.asarray(profile["vorticity"])
-            record["rotor_vorticity"] = {"angle": profile["angle"], "from_pair_sums": from_sums.tolist(),
-                                         "from_profile": from_profile.tolist(),
-                                         "wall_value_over_wall_speed": profile["wall_value_over_wall_speed"]}
-            for label, vorticity in (("from_pair_sums", from_sums), ("from_profile", from_profile)):
-                ratio = rotor_displacement_map(vorticity, meta["rotation_rate"])
-                angle = np.asarray(profile["angle"])
-                record[f"displacement_{label}"] = {
-                    "ratio_by_angle": ratio.tolist(), "mean": float(ratio.mean()), "min": float(ratio.min()),
-                    "max": float(ratio.max()), "angle_of_max_degrees": float(np.degrees(angle[np.argmax(ratio)])),
-                    "angle_of_min_degrees": float(np.degrees(angle[np.argmin(ratio)])),
-                    "largest_deviation_from_mean": float(np.abs(ratio / ratio.mean() - 1.0).max())}
-        records[name] = record
+        records[name] = eccentric_record(name, runs_directory, arguments.recompute)
 
     say("eccentric runs: rotor axis at x = eps g (narrowest gap on the +x side, angle 0); torque about the rotor "
         "axis and force of each wall on the fluid, per unit depth (the fluid acts on the wall with the opposite)")

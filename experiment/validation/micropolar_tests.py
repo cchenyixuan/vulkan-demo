@@ -834,6 +834,8 @@ def command_seam(arguments) -> int:
                 if (invariants["particles_alive"] != invariants["particles_loaded"]
                         or any(invariants["counters"].values())):
                     raise RuntimeError(f"seam {wall_boundary} {label}: {invariants}")
+                # the pressure column alone (the density kernels' output through the equation of state)
+                rows["pressure"] = rows["density_pressure"][:, 1:2]
                 runs[label] = rows
             smoothing_length = float(case.physics.smoothing_length)
             reference = runs["k1"]
@@ -844,7 +846,8 @@ def command_seam(arguments) -> int:
                            + float(k2["position_voxel_id"][k2["_slab"] == index + 1, 0].min()))
                     for index in range(slab_count - 1)]
             cut = cuts[0]
-            comparison_names = (["acceleration", "angular_acceleration", "angular_velocity"] + dummy_fields)
+            comparison_names = (["acceleration", "angular_acceleration", "angular_velocity"] + dummy_fields
+                                + (["pressure"] if arguments.pressure and steps > 0 else []))
             table = {}
             for label, _slab_count, _devices in run_plan[1:]:
                 other = runs[label]
@@ -1812,6 +1815,9 @@ def main() -> int:
                       help="accepted rms |difference| / field rms when the K = 1 floor is below it (a K = 1 repeat "
                            "can be bit-identical at the bootstrap)")
     seam.add_argument("--validation", action="store_true")
+    seam.add_argument("--pressure", action="store_true",
+                      help="also compare the fluid pressure per particle (after steps only: the bootstrap pressure "
+                           "is zero)")
     seam.add_argument("--json", default=None)
     seam.set_defaults(handler=command_seam)
 

@@ -70,7 +70,7 @@ physics:
 {micropolar_block}
 numerics:
   use_density_diffusion: {density_diffusion}
-  delta_coefficient: 0.1
+{delta_fluid_only_line}  delta_coefficient: 0.1
   use_kcg_correction: true
   regularization:
     xi: 0.001
@@ -232,6 +232,7 @@ def command_generate(arguments) -> int:
                                                                              for key, value in design.items()},
         "rotor_micro_rotation": rotor_micro_rotation, "viscous_form": arguments.viscous_form,
         "wall_boundary": arguments.wall_boundary, "density_diffusion": not arguments.no_density_diffusion,
+        "delta_fluid_only": bool(arguments.delta_fluid_only), "wall_density": arguments.wall_density,
         "epsilon_squared_factor": arguments.epsilon_squared_factor,
         "timestep": timestep, "dt_acoustic": dt_acoustic, "dt_viscous": dt_viscous, "dt_angular": dt_angular,
         "governing": governing, "step_number": arguments.step_number,
@@ -259,6 +260,8 @@ def command_generate(arguments) -> int:
         micropolar_block=micropolar_block, epsilon_squared_factor=arguments.epsilon_squared_factor,
         viscous_form=arguments.viscous_form, wall_boundary=arguments.wall_boundary,
         density_diffusion="false" if arguments.no_density_diffusion else "true",
+        delta_fluid_only_line=("  delta_fluid_only: true\n" if arguments.delta_fluid_only else "")
+        + ("  wall_density: eos\n" if arguments.wall_density == "eos" else ""),
         pool_size=int(1.25 * total) + 4096),
         encoding="utf-8", newline="\n")
     (out_dir / "couette.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
@@ -364,7 +367,8 @@ def command_run(arguments) -> int:
     bin_count = int(round((meta["outer_radius"] - meta["inner_radius"]) / meta["spacing"]))
     shape = (SECTOR_COUNT, bin_count)
     samples = {"step": [], "count": [], "radius": [], "velocity": [], "radial_velocity": [], "spin": [],
-               "kinetic_energy": [], "density_min": [], "density_max": []}
+               "kinetic_energy": [], "density_min": [], "density_max": [], "density_mean": [],
+               "pressure_mean": [], "pressure_min": [], "pressure_max": []}
     expected = int(case.initial.positions.shape[0])
     chain = compute_chain_partition(case, weights, pool_safety=arguments.pool_safety)
     out_dir = (_REPO_ROOT / arguments.out).resolve()
@@ -420,6 +424,13 @@ def command_run(arguments) -> int:
                                                          * (velocity ** 2).sum(axis=1)).sum()))
             samples["density_min"].append(float(rows["density_pressure"][fluid, 0].min()))
             samples["density_max"].append(float(rows["density_pressure"][fluid, 0].max()))
+            # the level of the fluid's density and pressure (Stage 5: without the diffusion towards walls at rho0
+            # nothing ties the mean density to rho0)
+            samples["density_mean"].append(float(rows["density_pressure"][fluid, 0].astype(np.float64).mean()))
+            pressure = rows["density_pressure"][fluid, 1].astype(np.float64)
+            samples["pressure_mean"].append(float(pressure.mean()))
+            samples["pressure_min"].append(float(pressure.min()))
+            samples["pressure_max"].append(float(pressure.max()))
 
         def on_defrag(frame: int, report: list) -> None:
             for index, entry in enumerate(report):
@@ -1033,6 +1044,12 @@ def main() -> int:
     generate.add_argument("--epsilon-squared-factor", default="1.0e-6")
     generate.add_argument("--no-density-diffusion", action="store_true",
                           help="numerics.use_density_diffusion false (a diagnostic; the cases of the thesis keep it)")
+    generate.add_argument("--delta-fluid-only", action="store_true",
+                          help="numerics.delta_fluid_only: true - the density diffusion acts between fluid pairs "
+                               "only (Stage 5, candidate fd; not the thesis configuration)")
+    generate.add_argument("--wall-density", default="rho0", choices=("rho0", "eos"),
+                          help="numerics.wall_density: what an adami wall stores as its density (Stage 5, candidate "
+                               "ew; eos is not the thesis configuration)")
     generate.add_argument("--wall-boundary", default="adami", choices=("adami", "simple"),
                           help="numerics.wall_boundary of the case (the thesis configuration is adami)")
     generate.set_defaults(handler=command_generate)
