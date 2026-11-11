@@ -72,7 +72,7 @@ def figure_profiles(runs: dict) -> None:
             axis.plot(exact_radius, np.asarray(exact[key]) / scale, color=INK, linewidth=1.2, label="exact")
             axis.plot(radius[::step], np.asarray(profile[key])[::step] / scale, linestyle="none", marker="o",
                       markersize=3.5, markerfacecolor="white", markeredgecolor=colour, markeredgewidth=1.0,
-                      label="SPH (bins of one dx, every %d shown)" % step)
+                      label="SPH (bins of one dx, about fifty shown)")
             if column == 0:
                 axis.set_ylabel(label)
             if row == 1:
@@ -80,7 +80,7 @@ def figure_profiles(runs: dict) -> None:
         axes[0][column].set_title(
             f"K = 3, m = {record['gap_over_two_lengths']:g} (l = {record['length_in_spacings']:g} dx, "
             f"g = {record['gap_in_spacings']} dx)", fontsize=9, color=INK)
-    axes[1][0].legend(loc="upper center")
+    axes[0][0].legend(loc="lower left")
     figure.suptitle("SPH against the exact solution (w = 0 on both walls)", fontsize=10, color=INK)
     figure.tight_layout()
     for suffix in ("png", "pdf"):

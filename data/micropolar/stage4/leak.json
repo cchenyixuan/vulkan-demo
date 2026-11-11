@@ -1,0 +1,7338 @@
+{
+ "e30_displaced_m2": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 30.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 4997,
+    "beyond_stator": 154,
+    "deepest_rotor": -26.63997912232563,
+    "deepest_stator": -12.186636895047565,
+    "rotor_by_sector": [
+     1657,
+     946,
+     53,
+     0,
+     0,
+     46,
+     533,
+     1762
+    ],
+    "pressure_min": -825.03466796875,
+    "pressure_max": 659.3125,
+    "fluid": 237588
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 8835,
+    "beyond_stator": 187,
+    "deepest_rotor": -30.762020113950793,
+    "deepest_stator": -14.82748688947072,
+    "rotor_by_sector": [
+     2279,
+     1939,
+     1404,
+     529,
+     0,
+     35,
+     578,
+     2071
+    ],
+    "pressure_min": -825.4817504882812,
+    "pressure_max": 654.5441284179688,
+    "fluid": 237588
+   }
+  ]
+ },
+ "e30_displaced_m5": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 30.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 1950,
+    "beyond_stator": 44,
+    "deepest_rotor": -20.315145952905176,
+    "deepest_stator": -3.8572298753254963,
+    "rotor_by_sector": [
+     805,
+     91,
+     0,
+     0,
+     0,
+     9,
+     167,
+     878
+    ],
+    "pressure_min": -683.7504272460938,
+    "pressure_max": 566.7975463867188,
+    "fluid": 264664
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 4454,
+    "beyond_stator": 65,
+    "deepest_rotor": -24.33795750116735,
+    "deepest_stator": -3.8964166141617906,
+    "rotor_by_sector": [
+     1388,
+     1022,
+     488,
+     4,
+     0,
+     8,
+     258,
+     1286
+    ],
+    "pressure_min": -684.3251342773438,
+    "pressure_max": 558.4529418945312,
+    "fluid": 264664
+   }
+  ]
+ },
+ "e30_k3_m2": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 30.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 1711,
+    "beyond_stator": 37,
+    "deepest_rotor": -19.92281905557047,
+    "deepest_stator": -3.7465029588433785,
+    "rotor_by_sector": [
+     697,
+     34,
+     0,
+     0,
+     0,
+     7,
+     132,
+     841
+    ],
+    "pressure_min": -737.1178588867188,
+    "pressure_max": 643.6875610351562,
+    "fluid": 282696
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 4012,
+    "beyond_stator": 57,
+    "deepest_rotor": -23.82945429233235,
+    "deepest_stator": -3.894792555273252,
+    "rotor_by_sector": [
+     1317,
+     958,
+     358,
+     0,
+     0,
+     8,
+     193,
+     1178
+    ],
+    "pressure_min": -741.7371826171875,
+    "pressure_max": 629.9359130859375,
+    "fluid": 282696
+   }
+  ]
+ },
+ "e30_k3_m5": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 30.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 1012,
+    "beyond_stator": 13,
+    "deepest_rotor": -17.977172741425683,
+    "deepest_stator": -0.617655448765575,
+    "rotor_by_sector": [
+     370,
+     1,
+     0,
+     0,
+     0,
+     0,
+     43,
+     598
+    ],
+    "pressure_min": -678.5137329101562,
+    "pressure_max": 598.5157470703125,
+    "fluid": 282696
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 2882,
+    "beyond_stator": 37,
+    "deepest_rotor": -22.214971415832395,
+    "deepest_stator": -3.80525407318677,
+    "rotor_by_sector": [
+     1060,
+     692,
+     108,
+     0,
+     0,
+     1,
+     115,
+     906
+    ],
+    "pressure_min": -682.36669921875,
+    "pressure_max": 583.2739868164062,
+    "fluid": 282696
+   }
+  ]
+ },
+ "e30_ma005_newtonian": {
+  "timestep": 3.75e-06,
+  "steps": 534000,
+  "states": 96,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 30.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 3000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.11831532340195183,
+    "deepest_stator": -0.015582780663603302,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -231.6066131591797,
+    "pressure_max": 312.6689147949219,
+    "fluid": 90455
+   },
+   {
+    "step": 9000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.14633210788483897,
+    "deepest_stator": -0.022281498894938245,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -169.61778259277344,
+    "pressure_max": 164.8494110107422,
+    "fluid": 90505
+   },
+   {
+    "step": 15000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.17153571664801914,
+    "deepest_stator": -0.028948818966645362,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -191.07545471191406,
+    "pressure_max": 194.14083862304688,
+    "fluid": 90453
+   },
+   {
+    "step": 21000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.12573219670247715,
+    "deepest_stator": -0.03710589272376552,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -281.67449951171875,
+    "pressure_max": 269.7535705566406,
+    "fluid": 90437
+   },
+   {
+    "step": 24000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.18515578373995423,
+    "deepest_stator": -0.04101785617949272,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -319.82147216796875,
+    "pressure_max": 317.4372863769531,
+    "fluid": 90443
+   },
+   {
+    "step": 30000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.13011030324328043,
+    "deepest_stator": -0.03832036969497743,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -412.8047180175781,
+    "pressure_max": 403.2679748535156,
+    "fluid": 90476
+   },
+   {
+    "step": 36000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.19143346996680632,
+    "deepest_stator": -0.051798330580887786,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -496.5918273925781,
+    "pressure_max": 489.7798767089844,
+    "fluid": 90455
+   },
+   {
+    "step": 42000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1764954216806891,
+    "deepest_stator": -0.035912570946150524,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -563.0084228515625,
+    "pressure_max": 551.0875244140625,
+    "fluid": 90473
+   },
+   {
+    "step": 48000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1645140345461482,
+    "deepest_stator": -0.045736869551782355,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -608.3079223632812,
+    "pressure_max": 598.7711791992188,
+    "fluid": 90463
+   },
+   {
+    "step": 54000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.17113071882790543,
+    "deepest_stator": -0.03527934323299675,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -646.7955322265625,
+    "pressure_max": 632.8309936523438,
+    "fluid": 90451
+   },
+   {
+    "step": 60000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1713631714490571,
+    "deepest_stator": -0.048222004095266335,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -667.91259765625,
+    "pressure_max": 670.9779663085938,
+    "fluid": 90485
+   },
+   {
+    "step": 63000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1403573818169468,
+    "deepest_stator": -0.055742660992175175,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -684.9425048828125,
+    "pressure_max": 680.5147094726562,
+    "fluid": 90474
+   },
+   {
+    "step": 69000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.19740457327327432,
+    "deepest_stator": -0.040222566229264345,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -706.0595703125,
+    "pressure_max": 694.1386108398438,
+    "fluid": 90478
+   },
+   {
+    "step": 75000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1913429893705132,
+    "deepest_stator": -0.04193867283797115,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -723.0894775390625,
+    "pressure_max": 708.4437255859375,
+    "fluid": 90402
+   },
+   {
+    "step": 81000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.15224801724672554,
+    "deepest_stator": -0.05895914426812254,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -735.0103759765625,
+    "pressure_max": 718.6616821289062,
+    "fluid": 90414
+   },
+   {
+    "step": 87000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.19496543668157118,
+    "deepest_stator": -0.058247821909884756,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -737.3945922851562,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90397
+   },
+   {
+    "step": 93000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.17207576229744115,
+    "deepest_stator": -0.06801218240015672,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -748.9749145507812,
+    "pressure_max": 732.966796875,
+    "fluid": 90432
+   },
+   {
+    "step": 99000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.14645286045383843,
+    "deepest_stator": -0.049223564691947,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -756.12744140625,
+    "pressure_max": 737.053955078125,
+    "fluid": 90449
+   },
+   {
+    "step": 105000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.16264494214618397,
+    "deepest_stator": -0.06720900306578237,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -760.8958129882812,
+    "pressure_max": 737.053955078125,
+    "fluid": 90440
+   },
+   {
+    "step": 108000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.18115231348975191,
+    "deepest_stator": -0.05597173611537887,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -763.280029296875,
+    "pressure_max": 737.053955078125,
+    "fluid": 90455
+   },
+   {
+    "step": 114000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1427712061426445,
+    "deepest_stator": -0.07241608121255627,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -768.0484008789062,
+    "pressure_max": 737.053955078125,
+    "fluid": 90478
+   },
+   {
+    "step": 120000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.17326012843205119,
+    "deepest_stator": -0.0637387243073162,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -768.0484008789062,
+    "pressure_max": 741.8223266601562,
+    "fluid": 90441
+   },
+   {
+    "step": 126000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.18004019204337363,
+    "deepest_stator": -0.07310052146192181,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -772.8167724609375,
+    "pressure_max": 741.8223266601562,
+    "fluid": 90465
+   },
+   {
+    "step": 132000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.17178221729580168,
+    "deepest_stator": -0.0884394526052823,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -775.5415649414062,
+    "pressure_max": 737.053955078125,
+    "fluid": 90470
+   },
+   {
+    "step": 138000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1765374592245239,
+    "deepest_stator": -0.07942051111875514,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -763.280029296875,
+    "pressure_max": 737.053955078125,
+    "fluid": 90465
+   },
+   {
+    "step": 144000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.16099544170633528,
+    "deepest_stator": -0.09111461982092006,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -775.5415649414062,
+    "pressure_max": 741.8223266601562,
+    "fluid": 90434
+   },
+   {
+    "step": 147000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1495591743180258,
+    "deepest_stator": -0.0815646371078449,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -768.0484008789062,
+    "pressure_max": 737.053955078125,
+    "fluid": 90457
+   },
+   {
+    "step": 153000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.13643825273240706,
+    "deepest_stator": -0.07615530114324365,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -775.5415649414062,
+    "pressure_max": 741.8223266601562,
+    "fluid": 90435
+   },
+   {
+    "step": 159000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.17446099621265532,
+    "deepest_stator": -0.07938733030132816,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -775.5415649414062,
+    "pressure_max": 741.8223266601562,
+    "fluid": 90474
+   },
+   {
+    "step": 165000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.15068389832179063,
+    "deepest_stator": -0.07135697788784867,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -775.5415649414062,
+    "pressure_max": 737.053955078125,
+    "fluid": 90509
+   },
+   {
+    "step": 171000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.17261913133631568,
+    "deepest_stator": -0.07356289716409226,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 737.053955078125,
+    "fluid": 90477
+   },
+   {
+    "step": 177000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.21812216024313935,
+    "deepest_stator": -0.07086859091165465,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -775.5415649414062,
+    "pressure_max": 741.8223266601562,
+    "fluid": 90468
+   },
+   {
+    "step": 183000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.19147768869631765,
+    "deepest_stator": -0.09616833563708127,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 737.053955078125,
+    "fluid": 90503
+   },
+   {
+    "step": 186000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.2055946082253901,
+    "deepest_stator": -0.09615060059908753,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -770.4325561523438,
+    "pressure_max": 737.053955078125,
+    "fluid": 90503
+   },
+   {
+    "step": 192000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.15405095497089683,
+    "deepest_stator": -0.07785893438716496,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -765.6641845703125,
+    "pressure_max": 741.8223266601562,
+    "fluid": 90505
+   },
+   {
+    "step": 198000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1818784386107275,
+    "deepest_stator": -0.08815887570012837,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -772.8167724609375,
+    "pressure_max": 737.053955078125,
+    "fluid": 90512
+   },
+   {
+    "step": 204000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.19101988216946308,
+    "deepest_stator": -0.07761008033690953,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -775.5415649414062,
+    "pressure_max": 741.8223266601562,
+    "fluid": 90538
+   },
+   {
+    "step": 210000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.22029784522326068,
+    "deepest_stator": -0.07599185981377321,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 741.8223266601562,
+    "fluid": 90561
+   },
+   {
+    "step": 216000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.15020787411473835,
+    "deepest_stator": -0.0839632083583508,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -772.8167724609375,
+    "pressure_max": 741.8223266601562,
+    "fluid": 90569
+   },
+   {
+    "step": 222000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1666743964487405,
+    "deepest_stator": -0.09048342024864375,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -772.8167724609375,
+    "pressure_max": 737.053955078125,
+    "fluid": 90549
+   },
+   {
+    "step": 228000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.22798995258471733,
+    "deepest_stator": -0.08953806973965861,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -777.9257202148438,
+    "pressure_max": 732.966796875,
+    "fluid": 90571
+   },
+   {
+    "step": 231000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.18628850048063583,
+    "deepest_stator": -0.09414053019196622,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -772.8167724609375,
+    "pressure_max": 728.1984252929688,
+    "fluid": 90550
+   },
+   {
+    "step": 237000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.19716779038847498,
+    "deepest_stator": -0.09619558196594102,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -777.9257202148438,
+    "pressure_max": 732.966796875,
+    "fluid": 90540
+   },
+   {
+    "step": 243000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.17585629177779838,
+    "deepest_stator": -0.08943686868789769,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 737.053955078125,
+    "fluid": 90490
+   },
+   {
+    "step": 249000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.2394490255592796,
+    "deepest_stator": -0.09126550421645341,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -775.5415649414062,
+    "pressure_max": 737.053955078125,
+    "fluid": 90517
+   },
+   {
+    "step": 255000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.19090748205452535,
+    "deepest_stator": -0.10062702291890879,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -777.9257202148438,
+    "pressure_max": 732.966796875,
+    "fluid": 90589
+   },
+   {
+    "step": 261000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.21975348567904174,
+    "deepest_stator": -0.10588873836170354,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -775.5415649414062,
+    "pressure_max": 728.1984252929688,
+    "fluid": 90541
+   },
+   {
+    "step": 267000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.18556492226945442,
+    "deepest_stator": -0.1043676858653031,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -775.5415649414062,
+    "pressure_max": 732.966796875,
+    "fluid": 90550
+   },
+   {
+    "step": 270000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.21239184089455465,
+    "deepest_stator": -0.09931179372490995,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -772.8167724609375,
+    "pressure_max": 737.053955078125,
+    "fluid": 90552
+   },
+   {
+    "step": 276000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.19381894441983238,
+    "deepest_stator": -0.10920681383608244,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -772.8167724609375,
+    "pressure_max": 732.966796875,
+    "fluid": 90562
+   },
+   {
+    "step": 282000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1843175003480857,
+    "deepest_stator": -0.12221092997088956,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90594
+   },
+   {
+    "step": 288000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.2386365591905415,
+    "deepest_stator": -0.10413629240413336,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -775.5415649414062,
+    "pressure_max": 732.966796875,
+    "fluid": 90570
+   },
+   {
+    "step": 294000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.17899942961741022,
+    "deepest_stator": -0.09026169985482113,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 732.966796875,
+    "fluid": 90551
+   },
+   {
+    "step": 300000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1731454740159788,
+    "deepest_stator": -0.10675841205209924,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 728.1984252929688,
+    "fluid": 90528
+   },
+   {
+    "step": 306000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.17218100962146377,
+    "deepest_stator": -0.09499351933028866,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 728.1984252929688,
+    "fluid": 90496
+   },
+   {
+    "step": 309000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.19579743923137105,
+    "deepest_stator": -0.08859193674071175,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -777.9257202148438,
+    "pressure_max": 728.1984252929688,
+    "fluid": 90500
+   },
+   {
+    "step": 315000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.17764791907615152,
+    "deepest_stator": -0.1033017972139616,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 732.966796875,
+    "fluid": 90563
+   },
+   {
+    "step": 321000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.15258787695376919,
+    "deepest_stator": -0.12478490987388735,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -772.8167724609375,
+    "pressure_max": 737.053955078125,
+    "fluid": 90538
+   },
+   {
+    "step": 327000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.19089476248901338,
+    "deepest_stator": -0.12177950448455377,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -777.9257202148438,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90577
+   },
+   {
+    "step": 333000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.23696531601391513,
+    "deepest_stator": -0.11134561517278652,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -782.694091796875,
+    "pressure_max": 728.1984252929688,
+    "fluid": 90606
+   },
+   {
+    "step": 339000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.2059641771540166,
+    "deepest_stator": -0.10668185529894014,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 728.1984252929688,
+    "fluid": 90576
+   },
+   {
+    "step": 345000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1747409599126004,
+    "deepest_stator": -0.1233754604550441,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -777.9257202148438,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90602
+   },
+   {
+    "step": 351000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.18477704372715786,
+    "deepest_stator": -0.1325940250852531,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -782.694091796875,
+    "pressure_max": 728.1984252929688,
+    "fluid": 90565
+   },
+   {
+    "step": 354000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.17477907390928138,
+    "deepest_stator": -0.11551495377326582,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -777.9257202148438,
+    "pressure_max": 728.1984252929688,
+    "fluid": 90554
+   },
+   {
+    "step": 360000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.20932650279842369,
+    "deepest_stator": -0.12906818410496346,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -782.694091796875,
+    "pressure_max": 728.1984252929688,
+    "fluid": 90544
+   },
+   {
+    "step": 366000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.16575618966213623,
+    "deepest_stator": -0.11238497985488483,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -777.9257202148438,
+    "pressure_max": 728.1984252929688,
+    "fluid": 90572
+   },
+   {
+    "step": 372000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.261950748860762,
+    "deepest_stator": -0.13077720119913927,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -782.694091796875,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90594
+   },
+   {
+    "step": 378000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.2113215922612821,
+    "deepest_stator": -0.11444685436690083,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -782.694091796875,
+    "pressure_max": 732.966796875,
+    "fluid": 90557
+   },
+   {
+    "step": 384000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.21638180642935545,
+    "deepest_stator": -0.12195719778651526,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -782.694091796875,
+    "pressure_max": 718.6616821289062,
+    "fluid": 90567
+   },
+   {
+    "step": 390000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.15514796274296305,
+    "deepest_stator": -0.13008030235728274,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -772.8167724609375,
+    "pressure_max": 728.1984252929688,
+    "fluid": 90586
+   },
+   {
+    "step": 393000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.17962560735790278,
+    "deepest_stator": -0.12521932979159267,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -772.8167724609375,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90594
+   },
+   {
+    "step": 399000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.20009139071813786,
+    "deepest_stator": -0.12142009440252455,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -772.8167724609375,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90598
+   },
+   {
+    "step": 405000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.2196416969721393,
+    "deepest_stator": -0.1219789719170139,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -782.694091796875,
+    "pressure_max": 728.1984252929688,
+    "fluid": 90625
+   },
+   {
+    "step": 411000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1985766879354367,
+    "deepest_stator": -0.12288323546416624,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90662
+   },
+   {
+    "step": 417000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1547882397597844,
+    "deepest_stator": -0.12577720413686766,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90665
+   },
+   {
+    "step": 423000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.18213098300123853,
+    "deepest_stator": -0.12561569250058024,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -785.0783081054688,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90624
+   },
+   {
+    "step": 429000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.21554687661390348,
+    "deepest_stator": -0.1310948252517541,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -782.694091796875,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90596
+   },
+   {
+    "step": 432000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.18173917459968214,
+    "deepest_stator": -0.12925876868907782,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90653
+   },
+   {
+    "step": 438000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.19487749408408916,
+    "deepest_stator": -0.11987655205358827,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -775.5415649414062,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90645
+   },
+   {
+    "step": 444000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.14428511780884,
+    "deepest_stator": -0.12642403796458979,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -777.9257202148438,
+    "pressure_max": 718.6616821289062,
+    "fluid": 90620
+   },
+   {
+    "step": 450000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.18903932188962802,
+    "deepest_stator": -0.11704098830067622,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -782.694091796875,
+    "pressure_max": 728.1984252929688,
+    "fluid": 90674
+   },
+   {
+    "step": 456000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.20897603070241244,
+    "deepest_stator": -0.12206642871315232,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 728.1984252929688,
+    "fluid": 90672
+   },
+   {
+    "step": 462000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.2043839249622481,
+    "deepest_stator": -0.12117248006382475,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -777.9257202148438,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90703
+   },
+   {
+    "step": 468000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.22779500832048605,
+    "deepest_stator": -0.1294538791841715,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -782.694091796875,
+    "pressure_max": 718.6616821289062,
+    "fluid": 90656
+   },
+   {
+    "step": 474000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.20770871924108425,
+    "deepest_stator": -0.1310107910746927,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -777.9257202148438,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90700
+   },
+   {
+    "step": 477000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.2003275291000972,
+    "deepest_stator": -0.13067842993119694,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -782.694091796875,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90687
+   },
+   {
+    "step": 483000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.2031067513357243,
+    "deepest_stator": -0.12774606336718453,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90681
+   },
+   {
+    "step": 489000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1718295237791989,
+    "deepest_stator": -0.11608687131214879,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -775.5415649414062,
+    "pressure_max": 728.1984252929688,
+    "fluid": 90606
+   },
+   {
+    "step": 495000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.17233715589187737,
+    "deepest_stator": -0.12112833419841706,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90641
+   },
+   {
+    "step": 501000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.2168543024950731,
+    "deepest_stator": -0.12069098348543861,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -775.5415649414062,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90610
+   },
+   {
+    "step": 507000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1582123809510949,
+    "deepest_stator": -0.13066223050151038,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -782.694091796875,
+    "pressure_max": 732.966796875,
+    "fluid": 90598
+   },
+   {
+    "step": 513000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.20411091934280368,
+    "deepest_stator": -0.12973929506743254,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -777.9257202148438,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90607
+   },
+   {
+    "step": 516000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.18025257992548838,
+    "deepest_stator": -0.12820569121074765,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 728.1984252929688,
+    "fluid": 90601
+   },
+   {
+    "step": 522000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.19583639476350445,
+    "deepest_stator": -0.12090776484030563,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90651
+   },
+   {
+    "step": 528000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.20361746224956123,
+    "deepest_stator": -0.13013063247035994,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -780.3099365234375,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90633
+   },
+   {
+    "step": 534000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.2288269099667284,
+    "deepest_stator": -0.12681808563264063,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -770.4325561523438,
+    "pressure_max": 723.4300537109375,
+    "fluid": 90652
+   }
+  ]
+ },
+ "e30_newtonian": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 30.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 640,
+    "beyond_stator": 6,
+    "deepest_rotor": -16.654607997429903,
+    "deepest_stator": -0.5639257628999861,
+    "rotor_by_sector": [
+     176,
+     0,
+     0,
+     0,
+     0,
+     0,
+     23,
+     441
+    ],
+    "pressure_min": -592.7894287109375,
+    "pressure_max": 519.411865234375,
+    "fluid": 282696
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 2231,
+    "beyond_stator": 16,
+    "deepest_rotor": -20.17010888616144,
+    "deepest_stator": -3.726015053484022,
+    "rotor_by_sector": [
+     860,
+     485,
+     17,
+     0,
+     0,
+     0,
+     78,
+     791
+    ],
+    "pressure_min": -592.1934204101562,
+    "pressure_max": 510.76922607421875,
+    "fluid": 282696
+   }
+  ]
+ },
+ "e60_displaced_m2": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 21,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 60.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 21275,
+    "beyond_stator": 2830,
+    "deepest_rotor": -48.23500667921582,
+    "deepest_stator": -33.18906359350626,
+    "rotor_by_sector": [
+     5048,
+     4515,
+     3488,
+     1507,
+     0,
+     257,
+     1745,
+     4715
+    ],
+    "pressure_min": -1407.7552490234375,
+    "pressure_max": 1500.12109375,
+    "fluid": 235600
+   },
+   {
+    "step": 130000,
+    "inside_rotor": 29863,
+    "beyond_stator": 4318,
+    "deepest_rotor": -52.049358890182525,
+    "deepest_stator": -42.11988593063476,
+    "rotor_by_sector": [
+     5571,
+     5206,
+     4770,
+     4071,
+     2600,
+     568,
+     1970,
+     5107
+    ],
+    "pressure_min": -1486.433349609375,
+    "pressure_max": 1471.127685546875,
+    "fluid": 235600
+   }
+  ]
+ },
+ "e60_displaced_m5": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 60.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 15082,
+    "beyond_stator": 1127,
+    "deepest_rotor": -41.84250618665758,
+    "deepest_stator": -24.44331394578303,
+    "rotor_by_sector": [
+     3955,
+     3356,
+     2311,
+     567,
+     0,
+     98,
+     1103,
+     3692
+    ],
+    "pressure_min": -1537.821044921875,
+    "pressure_max": 1190.9859619140625,
+    "fluid": 263944
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 22388,
+    "beyond_stator": 1798,
+    "deepest_rotor": -45.912605534556114,
+    "deepest_stator": -32.01927166802798,
+    "rotor_by_sector": [
+     4409,
+     4167,
+     3766,
+     3079,
+     1792,
+     170,
+     1121,
+     3884
+    ],
+    "pressure_min": -1449.7977294921875,
+    "pressure_max": 1184.429443359375,
+    "fluid": 263944
+   }
+  ]
+ },
+ "e60_k3_m2": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 60.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 14072,
+    "beyond_stator": 1006,
+    "deepest_rotor": -40.73713763977388,
+    "deepest_stator": -23.755067311776013,
+    "rotor_by_sector": [
+     3785,
+     3148,
+     2105,
+     385,
+     0,
+     92,
+     1016,
+     3541
+    ],
+    "pressure_min": -1597.6173095703125,
+    "pressure_max": 1344.7232666015625,
+    "fluid": 282696
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 21082,
+    "beyond_stator": 1664,
+    "deepest_rotor": -44.85014489219491,
+    "deepest_stator": -30.45492165989194,
+    "rotor_by_sector": [
+     4231,
+     3988,
+     3598,
+     2876,
+     1543,
+     97,
+     1047,
+     3702
+    ],
+    "pressure_min": -1574.5843505859375,
+    "pressure_max": 1332.8023681640625,
+    "fluid": 282696
+   }
+  ]
+ },
+ "e60_k3_m5": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 60.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 12546,
+    "beyond_stator": 622,
+    "deepest_rotor": -38.49539757744319,
+    "deepest_stator": -19.737273711892154,
+    "rotor_by_sector": [
+     3437,
+     2826,
+     1852,
+     279,
+     0,
+     75,
+     861,
+     3216
+    ],
+    "pressure_min": -1518.8114013671875,
+    "pressure_max": 1250.25,
+    "fluid": 282696
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 19157,
+    "beyond_stator": 1019,
+    "deepest_rotor": -42.5630664339014,
+    "deepest_stator": -25.909197503938163,
+    "rotor_by_sector": [
+     3925,
+     3651,
+     3241,
+     2562,
+     1298,
+     78,
+     955,
+     3447
+    ],
+    "pressure_min": -1485.6669921875,
+    "pressure_max": 1246.07763671875,
+    "fluid": 282696
+   }
+  ]
+ },
+ "e60_newtonian": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 60.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 11417,
+    "beyond_stator": 548,
+    "deepest_rotor": -37.1633081530377,
+    "deepest_stator": -18.672141716457812,
+    "rotor_by_sector": [
+     3235,
+     2562,
+     1575,
+     147,
+     0,
+     61,
+     814,
+     3023
+    ],
+    "pressure_min": -1328.246826171875,
+    "pressure_max": 1055.0872802734375,
+    "fluid": 282696
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 17672,
+    "beyond_stator": 918,
+    "deepest_rotor": -41.27255568257415,
+    "deepest_stator": -24.95361387277506,
+    "rotor_by_sector": [
+     3729,
+     3442,
+     3031,
+     2271,
+     978,
+     64,
+     882,
+     3275
+    ],
+    "pressure_min": -1310.2803955078125,
+    "pressure_max": 1046.4447021484375,
+    "fluid": 282696
+   }
+  ]
+ },
+ "e60_newtonian_rotated": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 60.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 10855,
+    "beyond_stator": 1159,
+    "deepest_rotor": -36.2825954941437,
+    "deepest_stator": -23.800278275730392,
+    "rotor_by_sector": [
+     3117,
+     2508,
+     1460,
+     81,
+     0,
+     22,
+     888,
+     2779
+    ],
+    "pressure_min": -1340.2742919921875,
+    "pressure_max": 1041.9317626953125,
+    "fluid": 282666
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 16822,
+    "beyond_stator": 1898,
+    "deepest_rotor": -40.22660048192661,
+    "deepest_stator": -33.051780977429225,
+    "rotor_by_sector": [
+     3555,
+     3321,
+     2935,
+     2204,
+     831,
+     21,
+     957,
+     2998
+    ],
+    "pressure_min": -1321.5626220703125,
+    "pressure_max": 1025.242431640625,
+    "fluid": 282666
+   }
+  ]
+ },
+ "e60_newtonian_shifted": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 60.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 11485,
+    "beyond_stator": 539,
+    "deepest_rotor": -37.00993512771888,
+    "deepest_stator": -18.851834205134587,
+    "rotor_by_sector": [
+     3226,
+     2581,
+     1577,
+     156,
+     0,
+     69,
+     825,
+     3051
+    ],
+    "pressure_min": -1328.5235595703125,
+    "pressure_max": 1048.53076171875,
+    "fluid": 282804
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 17786,
+    "beyond_stator": 875,
+    "deepest_rotor": -41.554284525420314,
+    "deepest_stator": -24.06999194275061,
+    "rotor_by_sector": [
+     3735,
+     3467,
+     3024,
+     2281,
+     991,
+     69,
+     918,
+     3301
+    ],
+    "pressure_min": -1313.0689697265625,
+    "pressure_max": 1041.03759765625,
+    "fluid": 282804
+   }
+  ]
+ },
+ "g050_k3_m5": {
+  "timestep": 3e-05,
+  "steps": 67000,
+  "states": 17,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 51000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.09096207986691862,
+    "deepest_stator": -0.05490072715125249,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -88.66190338134766,
+    "pressure_max": 53.04813003540039,
+    "fluid": 30899
+   },
+   {
+    "step": 67000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.09690301036252569,
+    "deepest_stator": -0.058359209416436464,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -90.30103302001953,
+    "pressure_max": 51.85603713989258,
+    "fluid": 30797
+   }
+  ]
+ },
+ "g050_newtonian": {
+  "timestep": 3e-05,
+  "steps": 67000,
+  "states": 17,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 51000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.07085237728418625,
+    "deepest_stator": -0.06212985955367234,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -87.32080078125,
+    "pressure_max": 52.15406036376953,
+    "fluid": 30837
+   },
+   {
+    "step": 67000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.11432774487182829,
+    "deepest_stator": -0.06351371041918297,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -86.87376403808594,
+    "pressure_max": 54.2402229309082,
+    "fluid": 30764
+   }
+  ]
+ },
+ "g050_newtonian_rotated": {
+  "timestep": 3e-05,
+  "steps": 67000,
+  "states": 17,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 51000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.07634829234209883,
+    "deepest_stator": -0.06327144440254617,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -86.27771759033203,
+    "pressure_max": 53.04813003540039,
+    "fluid": 30806
+   },
+   {
+    "step": 67000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.06883734324983348,
+    "deepest_stator": -0.05826177150425327,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -90.45004272460938,
+    "pressure_max": 55.432315826416016,
+    "fluid": 30753
+   }
+  ]
+ },
+ "g050_newtonian_shifted": {
+  "timestep": 3e-05,
+  "steps": 67000,
+  "states": 17,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 51000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.06366769804738714,
+    "deepest_stator": -0.10022488949684716,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -94.7713851928711,
+    "pressure_max": 59.90266418457031,
+    "fluid": 30646
+   },
+   {
+    "step": 67000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.09972762124071943,
+    "deepest_stator": -0.06646927346720677,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -92.08917236328125,
+    "pressure_max": 60.79673385620117,
+    "fluid": 30592
+   }
+  ]
+ },
+ "g100_displaced_m5": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.14839214495387942,
+    "deepest_stator": -0.07589636698435154,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -84.80889129638672,
+    "pressure_max": 60.711585998535156,
+    "fluid": 61783
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.12662971923427246,
+    "deepest_stator": -0.08757463663050524,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -82.1266860961914,
+    "pressure_max": 59.774940490722656,
+    "fluid": 61769
+   }
+  ]
+ },
+ "g100_k05_m1": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.09631271570653688,
+    "deepest_stator": -0.07989675134589813,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -75.6978988647461,
+    "pressure_max": 54.2402229309082,
+    "fluid": 61977
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.08348029162391635,
+    "deepest_stator": -0.0502502291230833,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -73.46272277832031,
+    "pressure_max": 54.2402229309082,
+    "fluid": 61854
+   }
+  ]
+ },
+ "g100_k05_m2": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1136196716593485,
+    "deepest_stator": -0.05842942823064412,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -77.33702087402344,
+    "pressure_max": 53.04813003540039,
+    "fluid": 61918
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.04898531399549766,
+    "deepest_stator": -0.062452913344279715,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -73.90975952148438,
+    "pressure_max": 53.346153259277344,
+    "fluid": 62004
+   }
+  ]
+ },
+ "g100_k05_m5": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1453292083502533,
+    "deepest_stator": -0.06801321308991248,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -72.8666763305664,
+    "pressure_max": 52.75010681152344,
+    "fluid": 61958
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.0915786175898492,
+    "deepest_stator": -0.05677591210506705,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -72.8666763305664,
+    "pressure_max": 52.452083587646484,
+    "fluid": 62135
+   }
+  ]
+ },
+ "g100_k1_m1": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1120390959494788,
+    "deepest_stator": -0.05960019120521132,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -75.6978988647461,
+    "pressure_max": 55.432315826416016,
+    "fluid": 61946
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.06421793352118232,
+    "deepest_stator": -0.06550281832307103,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -76.2939453125,
+    "pressure_max": 55.13429260253906,
+    "fluid": 61914
+   }
+  ]
+ },
+ "g100_k1_m2": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.10210723468445648,
+    "deepest_stator": -0.0649216724816215,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -74.95283508300781,
+    "pressure_max": 53.6441764831543,
+    "fluid": 61808
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.12554794076402587,
+    "deepest_stator": -0.0725642743536481,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -74.50580596923828,
+    "pressure_max": 53.346153259277344,
+    "fluid": 61733
+   }
+  ]
+ },
+ "g100_k1_m5": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.0722059840549405,
+    "deepest_stator": -0.05642163195551664,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -74.20777893066406,
+    "pressure_max": 52.75010681152344,
+    "fluid": 61867
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.13954265527471588,
+    "deepest_stator": -0.08264679365965755,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -72.2706298828125,
+    "pressure_max": 52.452083587646484,
+    "fluid": 62000
+   }
+  ]
+ },
+ "g100_k3_m1": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.10749355189326737,
+    "deepest_stator": -0.05388903464942363,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -80.31725311279297,
+    "pressure_max": 56.326385498046875,
+    "fluid": 61978
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.08318455521727497,
+    "deepest_stator": -0.06870350139231984,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -79.27417755126953,
+    "pressure_max": 56.62440872192383,
+    "fluid": 61933
+   }
+  ]
+ },
+ "g100_k3_m10": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.07239182713275616,
+    "deepest_stator": -0.0527304449151611,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -75.54888153076172,
+    "pressure_max": 51.85603713989258,
+    "fluid": 62072
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.0932806886456139,
+    "deepest_stator": -0.0664268537219348,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -74.80382537841797,
+    "pressure_max": 51.85603713989258,
+    "fluid": 61953
+   }
+  ]
+ },
+ "g100_k3_m1_t3": {
+  "timestep": 1.5e-05,
+  "steps": 201000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 151000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.10495429522500155,
+    "deepest_stator": -0.05952954425536561,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -78.82714080810547,
+    "pressure_max": 56.92243194580078,
+    "fluid": 62003
+   },
+   {
+    "step": 201000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.07879835896085208,
+    "deepest_stator": -0.07074127667006103,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -84.63859558105469,
+    "pressure_max": 56.326385498046875,
+    "fluid": 62047
+   }
+  ]
+ },
+ "g100_k3_m2": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.07824936176759056,
+    "deepest_stator": -0.07214533597832418,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -80.31725311279297,
+    "pressure_max": 54.2402229309082,
+    "fluid": 61960
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.07404967094332138,
+    "deepest_stator": -0.05491534806445486,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -77.03900146484375,
+    "pressure_max": 54.538246154785156,
+    "fluid": 61952
+   }
+  ]
+ },
+ "g100_k3_m5": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.08992514052313938,
+    "deepest_stator": -0.05107537196835654,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -75.54888153076172,
+    "pressure_max": 52.75010681152344,
+    "fluid": 62056
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.09482895334311792,
+    "deepest_stator": -0.08751998600042832,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -76.14492797851562,
+    "pressure_max": 52.75010681152344,
+    "fluid": 61923
+   }
+  ]
+ },
+ "g100_newtonian": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1179219835807932,
+    "deepest_stator": -0.056753210477822336,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -77.63504791259766,
+    "pressure_max": 52.15406036376953,
+    "fluid": 61825
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.07971359121206056,
+    "deepest_stator": -0.06160478514960488,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -76.59196472167969,
+    "pressure_max": 52.15406036376953,
+    "fluid": 61781
+   }
+  ]
+ },
+ "g100_newtonian_rotated": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.08401909620481263,
+    "deepest_stator": -0.07896432812115606,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -77.63504791259766,
+    "pressure_max": 52.452083587646484,
+    "fluid": 61939
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.11068881350678739,
+    "deepest_stator": -0.0840330549322088,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -74.95283508300781,
+    "pressure_max": 52.15406036376953,
+    "fluid": 61890
+   }
+  ]
+ },
+ "g100_newtonian_shifted": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.053687722593620535,
+    "deepest_stator": -0.093638988843181,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -78.52911376953125,
+    "pressure_max": 56.92243194580078,
+    "fluid": 61897
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.044542457816154624,
+    "deepest_stator": -0.07111469679377258,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -80.01923370361328,
+    "pressure_max": 56.92243194580078,
+    "fluid": 61821
+   }
+  ]
+ },
+ "g200_k05_m10": {
+  "timestep": 7.5e-06,
+  "steps": 267000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 201000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.09739104337980198,
+    "deepest_stator": -0.07652160499516114,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -70.65278625488281,
+    "pressure_max": 49.3441276550293,
+    "fluid": 124441
+   },
+   {
+    "step": 267000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.17847459608555383,
+    "deepest_stator": -0.10204496156873688,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -70.65278625488281,
+    "pressure_max": 48.79065704345703,
+    "fluid": 124496
+   }
+  ]
+ },
+ "g200_k05_m20": {
+  "timestep": 7.5e-06,
+  "steps": 267000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 201000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.11690623941595923,
+    "deepest_stator": -0.06284898259889538,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -70.35476684570312,
+    "pressure_max": 48.79065704345703,
+    "fluid": 124513
+   },
+   {
+    "step": 267000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1357114392780412,
+    "deepest_stator": -0.12935457543972184,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -69.33296966552734,
+    "pressure_max": 48.79065704345703,
+    "fluid": 124503
+   }
+  ]
+ },
+ "g200_k1_m10": {
+  "timestep": 7.5e-06,
+  "steps": 267000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 201000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1539897323908912,
+    "deepest_stator": -0.06371225066725827,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -71.84487915039062,
+    "pressure_max": 48.49263381958008,
+    "fluid": 124633
+   },
+   {
+    "step": 267000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.10394000207059051,
+    "deepest_stator": -0.08485343809705448,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -71.09982299804688,
+    "pressure_max": 48.194610595703125,
+    "fluid": 124753
+   }
+  ]
+ },
+ "g200_k1_m20": {
+  "timestep": 7.5e-06,
+  "steps": 267000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 201000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.11430224375008624,
+    "deepest_stator": -0.08191951035430023,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -71.09982299804688,
+    "pressure_max": 48.49263381958008,
+    "fluid": 124447
+   },
+   {
+    "step": 267000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.10664841702356931,
+    "deepest_stator": -0.07653771230753392,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -70.95081329345703,
+    "pressure_max": 48.49263381958008,
+    "fluid": 124639
+   }
+  ]
+ },
+ "g200_k3_m10": {
+  "timestep": 7.5e-06,
+  "steps": 267000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 201000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.12150668627219918,
+    "deepest_stator": -0.08552639689485275,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -72.31320190429688,
+    "pressure_max": 47.55598831176758,
+    "fluid": 124535
+   },
+   {
+    "step": 267000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1266930843938363,
+    "deepest_stator": -0.07304764262205943,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -72.16419219970703,
+    "pressure_max": 47.89658737182617,
+    "fluid": 124509
+   }
+  ]
+ },
+ "g200_k3_m20": {
+  "timestep": 7.5e-06,
+  "steps": 267000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 201000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.08093286528665367,
+    "deepest_stator": -0.06243446622633542,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -71.993896484375,
+    "pressure_max": 47.257965087890625,
+    "fluid": 124562
+   },
+   {
+    "step": 267000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1397490024416248,
+    "deepest_stator": -0.08092762720779412,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -71.84487915039062,
+    "pressure_max": 47.55598831176758,
+    "fluid": 124613
+   }
+  ]
+ },
+ "g200_k3_m5": {
+  "timestep": 7.5e-06,
+  "steps": 267000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 201000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.10907934597426117,
+    "deepest_stator": -0.060741311905587736,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -72.76023864746094,
+    "pressure_max": 48.49263381958008,
+    "fluid": 124682
+   },
+   {
+    "step": 267000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.10959704197843756,
+    "deepest_stator": -0.058750401374929595,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -72.46221923828125,
+    "pressure_max": 47.89658737182617,
+    "fluid": 124586
+   }
+  ]
+ },
+ "g200_newtonian": {
+  "timestep": 7.5e-06,
+  "steps": 267000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 201000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.09048537410272228,
+    "deepest_stator": -0.0866473848446514,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -69.92901611328125,
+    "pressure_max": 49.9401741027832,
+    "fluid": 124613
+   },
+   {
+    "step": 267000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.13595787840847695,
+    "deepest_stator": -0.09390823260368997,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -68.8646469116211,
+    "pressure_max": 49.9401741027832,
+    "fluid": 124415
+   }
+  ]
+ },
+ "g200_newtonian_shifted": {
+  "timestep": 7.5e-06,
+  "steps": 267000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 201000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1174556436365215,
+    "deepest_stator": -0.08958291332672452,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -73.4840087890625,
+    "pressure_max": 53.21842956542969,
+    "fluid": 124627
+   },
+   {
+    "step": 267000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.13166528953267864,
+    "deepest_stator": -0.11513129567419789,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -73.05825805664062,
+    "pressure_max": 52.62238311767578,
+    "fluid": 124540
+   }
+  ]
+ },
+ "leak_e10": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 10.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 1000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.06554671442943194,
+    "deepest_stator": 0.00781907420493999,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -131.8965606689453,
+    "pressure_max": 121.21029663085938,
+    "fluid": 282696
+   },
+   {
+    "step": 7000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1690332083966184,
+    "deepest_stator": -0.028475010956929836,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -108.50173950195312,
+    "pressure_max": 71.69586944580078,
+    "fluid": 282696
+   },
+   {
+    "step": 13000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.10401007858068523,
+    "deepest_stator": -0.04078612328928255,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -177.62184143066406,
+    "pressure_max": 151.31063842773438,
+    "fluid": 282696
+   },
+   {
+    "step": 18000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.09456373314625788,
+    "deepest_stator": -0.06781423421697852,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -212.17123413085938,
+    "pressure_max": 189.45761108398438,
+    "fluid": 282696
+   },
+   {
+    "step": 24000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.08004006757089677,
+    "deepest_stator": -0.05411247019770915,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -228.71153259277344,
+    "pressure_max": 206.48751831054688,
+    "fluid": 282696
+   },
+   {
+    "step": 30000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.10485817254118901,
+    "deepest_stator": -0.07310693727546891,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -235.69378662109375,
+    "pressure_max": 214.19354248046875,
+    "fluid": 282696
+   },
+   {
+    "step": 36000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.11007601189300109,
+    "deepest_stator": -0.08470374795066515,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -238.52500915527344,
+    "pressure_max": 216.91831970214844,
+    "fluid": 282696
+   },
+   {
+    "step": 41000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.10264810531962487,
+    "deepest_stator": -0.08491043969849343,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -237.6522216796875,
+    "pressure_max": 219.00448608398438,
+    "fluid": 282696
+   },
+   {
+    "step": 47000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.09530441127314493,
+    "deepest_stator": -0.08298084122759786,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -238.07797241210938,
+    "pressure_max": 217.51437377929688,
+    "fluid": 282696
+   },
+   {
+    "step": 53000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.10509049082246813,
+    "deepest_stator": -0.0986357229264545,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -240.1854248046875,
+    "pressure_max": 217.51437377929688,
+    "fluid": 282696
+   },
+   {
+    "step": 59000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.13403741799628,
+    "deepest_stator": -0.080089488989743,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -240.03640747070312,
+    "pressure_max": 216.32228088378906,
+    "fluid": 282696
+   },
+   {
+    "step": 65000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.14477467332946192,
+    "deepest_stator": -0.09683103619417821,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -237.9502410888672,
+    "pressure_max": 216.02426147460938,
+    "fluid": 282696
+   },
+   {
+    "step": 70000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.22225986549401222,
+    "deepest_stator": -0.09112301964775416,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -240.3344268798828,
+    "pressure_max": 215.72622680664062,
+    "fluid": 282696
+   },
+   {
+    "step": 76000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.16377319408672486,
+    "deepest_stator": -0.11459057104934445,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -238.82302856445312,
+    "pressure_max": 214.83216857910156,
+    "fluid": 282696
+   },
+   {
+    "step": 82000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.15550152843890608,
+    "deepest_stator": -0.124012158716158,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -239.41908264160156,
+    "pressure_max": 214.19354248046875,
+    "fluid": 282696
+   },
+   {
+    "step": 88000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.152814840432558,
+    "deepest_stator": -0.13615049725046457,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -239.56808471679688,
+    "pressure_max": 213.342041015625,
+    "fluid": 282696
+   },
+   {
+    "step": 94000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.16986007559477434,
+    "deepest_stator": -0.12211507984316583,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -237.6522216796875,
+    "pressure_max": 215.13018798828125,
+    "fluid": 282696
+   },
+   {
+    "step": 99000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.22568706505093905,
+    "deepest_stator": -0.13054268372436617,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -238.9720458984375,
+    "pressure_max": 213.89552307128906,
+    "fluid": 282696
+   },
+   {
+    "step": 105000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.20990772407369906,
+    "deepest_stator": -0.13492334824272145,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -239.8874053955078,
+    "pressure_max": 213.64007568359375,
+    "fluid": 282696
+   },
+   {
+    "step": 111000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.21425768532695733,
+    "deepest_stator": -0.14715845605761668,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -239.8874053955078,
+    "pressure_max": 213.0440216064453,
+    "fluid": 282696
+   },
+   {
+    "step": 117000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.17804193035381166,
+    "deepest_stator": -0.13713880266319478,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -240.4834442138672,
+    "pressure_max": 212.44798278808594,
+    "fluid": 282696
+   },
+   {
+    "step": 122000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.2003086335747306,
+    "deepest_stator": -0.14295384030604819,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -238.82302856445312,
+    "pressure_max": 213.342041015625,
+    "fluid": 282696
+   },
+   {
+    "step": 128000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.2727097080588159,
+    "deepest_stator": -0.16533391365836092,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -239.71710205078125,
+    "pressure_max": 213.342041015625,
+    "fluid": 282696
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.29178825250619767,
+    "deepest_stator": -0.1650293880866016,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -237.5032196044922,
+    "pressure_max": 213.89552307128906,
+    "fluid": 282696
+   }
+  ]
+ },
+ "leak_e30": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 30.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 1000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.06584059764758177,
+    "deepest_stator": 0.006488438771101723,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -132.194580078125,
+    "pressure_max": 121.5083236694336,
+    "fluid": 282696
+   },
+   {
+    "step": 7000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.10481802919232175,
+    "deepest_stator": -0.03451618916161525,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -238.22698974609375,
+    "pressure_max": 227.64715576171875,
+    "fluid": 282696
+   },
+   {
+    "step": 13000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.16044641500978507,
+    "deepest_stator": -0.05660566813403545,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -445.50213623046875,
+    "pressure_max": 432.857421875,
+    "fluid": 282696
+   },
+   {
+    "step": 18000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.11768495432568082,
+    "deepest_stator": -0.06714292910436903,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -521.2426147460938,
+    "pressure_max": 511.024658203125,
+    "fluid": 282696
+   },
+   {
+    "step": 24000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1041510686073388,
+    "deepest_stator": -0.10104836625524083,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -564.9881591796875,
+    "pressure_max": 544.7438354492188,
+    "fluid": 282696
+   },
+   {
+    "step": 30000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.14410833859895833,
+    "deepest_stator": -0.11594194510733402,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -581.3794555664062,
+    "pressure_max": 556.3667602539062,
+    "fluid": 282696
+   },
+   {
+    "step": 36000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.18501825944444716,
+    "deepest_stator": -0.15496343555843062,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -585.998779296875,
+    "pressure_max": 555.7706909179688,
+    "fluid": 282696
+   },
+   {
+    "step": 41000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.24161945308520671,
+    "deepest_stator": -0.18257756868533814,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -587.765625,
+    "pressure_max": 551.3003540039062,
+    "fluid": 282696
+   },
+   {
+    "step": 47000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.3357035015379428,
+    "deepest_stator": -0.19910399705913573,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -587.765625,
+    "pressure_max": 546.8300170898438,
+    "fluid": 282696
+   },
+   {
+    "step": 53000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.36308251165168004,
+    "deepest_stator": -0.25373624383950855,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -590.4478759765625,
+    "pressure_max": 544.7438354492188,
+    "fluid": 282696
+   },
+   {
+    "step": 59000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.4344408322636828,
+    "deepest_stator": -0.29244428092578545,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -588.212646484375,
+    "pressure_max": 539.6348876953125,
+    "fluid": 282696
+   },
+   {
+    "step": 65000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.4495615592461366,
+    "deepest_stator": -0.34386353134496783,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -588.3616943359375,
+    "pressure_max": 536.9526977539062,
+    "fluid": 282696
+   },
+   {
+    "step": 70000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.4959368615961024,
+    "deepest_stator": -0.40850720367024973,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -589.1280517578125,
+    "pressure_max": 533.3764038085938,
+    "fluid": 282696
+   },
+   {
+    "step": 76000,
+    "inside_rotor": 6,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.9338217248821556,
+    "deepest_stator": -0.44173874373609756,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     2,
+     4
+    ],
+    "pressure_min": -589.5537719726562,
+    "pressure_max": 530.3961791992188,
+    "fluid": 282696
+   },
+   {
+    "step": 82000,
+    "inside_rotor": 49,
+    "beyond_stator": 0,
+    "deepest_rotor": -12.406468790614522,
+    "deepest_stator": -0.46648186723929896,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     3,
+     46
+    ],
+    "pressure_min": -589.426025390625,
+    "pressure_max": 527.4159545898438,
+    "fluid": 282696
+   },
+   {
+    "step": 88000,
+    "inside_rotor": 192,
+    "beyond_stator": 2,
+    "deepest_rotor": -13.791546520892982,
+    "deepest_stator": -0.5109622089419785,
+    "rotor_by_sector": [
+     1,
+     0,
+     0,
+     0,
+     0,
+     0,
+     8,
+     183
+    ],
+    "pressure_min": -592.9810180664062,
+    "pressure_max": 525.03173828125,
+    "fluid": 282696
+   },
+   {
+    "step": 94000,
+    "inside_rotor": 390,
+    "beyond_stator": 3,
+    "deepest_rotor": -15.5464340165134,
+    "deepest_stator": -0.5502137526970374,
+    "rotor_by_sector": [
+     54,
+     0,
+     0,
+     0,
+     0,
+     0,
+     10,
+     326
+    ],
+    "pressure_min": -594.3008422851562,
+    "pressure_max": 522.051513671875,
+    "fluid": 282696
+   },
+   {
+    "step": 99000,
+    "inside_rotor": 578,
+    "beyond_stator": 6,
+    "deepest_rotor": -16.18245798994905,
+    "deepest_stator": -0.5485697754392671,
+    "rotor_by_sector": [
+     142,
+     0,
+     0,
+     0,
+     0,
+     0,
+     24,
+     412
+    ],
+    "pressure_min": -590.0007934570312,
+    "pressure_max": 520.8594360351562,
+    "fluid": 282696
+   },
+   {
+    "step": 105000,
+    "inside_rotor": 819,
+    "beyond_stator": 8,
+    "deepest_rotor": -17.103485464934565,
+    "deepest_stator": -0.5524734035287082,
+    "rotor_by_sector": [
+     292,
+     0,
+     0,
+     0,
+     0,
+     0,
+     34,
+     493
+    ],
+    "pressure_min": -590.0007934570312,
+    "pressure_max": 519.3693237304688,
+    "fluid": 282696
+   },
+   {
+    "step": 111000,
+    "inside_rotor": 1082,
+    "beyond_stator": 8,
+    "deepest_rotor": -18.249506400799476,
+    "deepest_stator": -0.5881429191058052,
+    "rotor_by_sector": [
+     461,
+     5,
+     0,
+     0,
+     0,
+     0,
+     39,
+     577
+    ],
+    "pressure_min": -591.61865234375,
+    "pressure_max": 516.3890991210938,
+    "fluid": 282696
+   },
+   {
+    "step": 117000,
+    "inside_rotor": 1369,
+    "beyond_stator": 13,
+    "deepest_rotor": -19.094531825748994,
+    "deepest_stator": -0.6258679709568726,
+    "rotor_by_sector": [
+     601,
+     66,
+     0,
+     0,
+     0,
+     0,
+     57,
+     645
+    ],
+    "pressure_min": -593.279052734375,
+    "pressure_max": 513.11083984375,
+    "fluid": 282696
+   },
+   {
+    "step": 122000,
+    "inside_rotor": 1610,
+    "beyond_stator": 16,
+    "deepest_rotor": -19.248737902064494,
+    "deepest_stator": -3.1334723996572222,
+    "rotor_by_sector": [
+     703,
+     165,
+     0,
+     0,
+     0,
+     0,
+     70,
+     672
+    ],
+    "pressure_min": -594.598876953125,
+    "pressure_max": 513.7068481445312,
+    "fluid": 282696
+   },
+   {
+    "step": 128000,
+    "inside_rotor": 1918,
+    "beyond_stator": 18,
+    "deepest_rotor": -19.754428138257175,
+    "deepest_stator": -3.142587545935771,
+    "rotor_by_sector": [
+     795,
+     323,
+     0,
+     0,
+     0,
+     0,
+     65,
+     735
+    ],
+    "pressure_min": -596.4083251953125,
+    "pressure_max": 509.5345458984375,
+    "fluid": 282696
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 2227,
+    "beyond_stator": 22,
+    "deepest_rotor": -20.441115561898425,
+    "deepest_stator": -3.6590819334153535,
+    "rotor_by_sector": [
+     865,
+     494,
+     25,
+     0,
+     0,
+     0,
+     66,
+     777
+    ],
+    "pressure_min": -593.5770874023438,
+    "pressure_max": 509.23651123046875,
+    "fluid": 282696
+   }
+  ]
+ },
+ "leak_e60": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 60.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 1000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.06615704315926507,
+    "deepest_stator": 0.0033862051045385755,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -132.93963623046875,
+    "pressure_max": 121.5083236694336,
+    "fluid": 282696
+   },
+   {
+    "step": 7000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.14002159884829446,
+    "deepest_stator": -0.09716021028882693,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -942.668701171875,
+    "pressure_max": 921.1471557617188,
+    "fluid": 282696
+   },
+   {
+    "step": 13000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1709089567804578,
+    "deepest_stator": -0.15260769613989478,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -1193.5616455078125,
+    "pressure_max": 1148.5389404296875,
+    "fluid": 282696
+   },
+   {
+    "step": 18000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.4312461712276394,
+    "deepest_stator": -0.27873912299325454,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -1260.2550048828125,
+    "pressure_max": 1198.138427734375,
+    "fluid": 282696
+   },
+   {
+    "step": 24000,
+    "inside_rotor": 30,
+    "beyond_stator": 0,
+    "deepest_rotor": -12.083829261848367,
+    "deepest_stator": -0.4946959999926337,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     30
+    ],
+    "pressure_min": -1292.3350830078125,
+    "pressure_max": 1175.744140625,
+    "fluid": 282696
+   },
+   {
+    "step": 30000,
+    "inside_rotor": 359,
+    "beyond_stator": 17,
+    "deepest_rotor": -14.844606662524795,
+    "deepest_stator": -3.0266357447309433,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     13,
+     346
+    ],
+    "pressure_min": -1305.8525390625,
+    "pressure_max": 1145.5587158203125,
+    "fluid": 282696
+   },
+   {
+    "step": 36000,
+    "inside_rotor": 902,
+    "beyond_stator": 40,
+    "deepest_rotor": -17.900202374561523,
+    "deepest_stator": -3.8194525087410502,
+    "rotor_by_sector": [
+     62,
+     0,
+     0,
+     0,
+     0,
+     0,
+     59,
+     781
+    ],
+    "pressure_min": -1306.8956298828125,
+    "pressure_max": 1118.055419921875,
+    "fluid": 282696
+   },
+   {
+    "step": 41000,
+    "inside_rotor": 1464,
+    "beyond_stator": 74,
+    "deepest_rotor": -20.305473011962448,
+    "deepest_stator": -5.998289570627868,
+    "rotor_by_sector": [
+     241,
+     0,
+     0,
+     0,
+     0,
+     0,
+     112,
+     1111
+    ],
+    "pressure_min": -1311.791748046875,
+    "pressure_max": 1095.3204345703125,
+    "fluid": 282696
+   },
+   {
+    "step": 47000,
+    "inside_rotor": 2209,
+    "beyond_stator": 103,
+    "deepest_rotor": -22.948460229926802,
+    "deepest_stator": -6.081114449901448,
+    "rotor_by_sector": [
+     590,
+     0,
+     0,
+     0,
+     0,
+     1,
+     191,
+     1427
+    ],
+    "pressure_min": -1317.0072021484375,
+    "pressure_max": 1078.8865966796875,
+    "fluid": 282696
+   },
+   {
+    "step": 53000,
+    "inside_rotor": 3041,
+    "beyond_stator": 143,
+    "deepest_rotor": -25.14766634872584,
+    "deepest_stator": -6.609402669822795,
+    "rotor_by_sector": [
+     1045,
+     6,
+     0,
+     0,
+     0,
+     6,
+     269,
+     1715
+    ],
+    "pressure_min": -1321.285888671875,
+    "pressure_max": 1076.204345703125,
+    "fluid": 282696
+   },
+   {
+    "step": 59000,
+    "inside_rotor": 3968,
+    "beyond_stator": 190,
+    "deepest_rotor": -27.398976217877678,
+    "deepest_stator": -12.143798839526209,
+    "rotor_by_sector": [
+     1497,
+     117,
+     0,
+     0,
+     0,
+     11,
+     363,
+     1980
+    ],
+    "pressure_min": -1320.711181640625,
+    "pressure_max": 1068.455810546875,
+    "fluid": 282696
+   },
+   {
+    "step": 65000,
+    "inside_rotor": 4927,
+    "beyond_stator": 230,
+    "deepest_rotor": -29.15770949261459,
+    "deepest_stator": -12.49520278274796,
+    "rotor_by_sector": [
+     1850,
+     414,
+     0,
+     0,
+     0,
+     20,
+     454,
+     2189
+    ],
+    "pressure_min": -1328.7364501953125,
+    "pressure_max": 1062.197265625,
+    "fluid": 282696
+   },
+   {
+    "step": 70000,
+    "inside_rotor": 5773,
+    "beyond_stator": 264,
+    "deepest_rotor": -30.256175326368982,
+    "deepest_stator": -13.132295422607742,
+    "rotor_by_sector": [
+     2114,
+     749,
+     0,
+     0,
+     0,
+     26,
+     518,
+     2366
+    ],
+    "pressure_min": -1336.61279296875,
+    "pressure_max": 1055.5982666015625,
+    "fluid": 282696
+   },
+   {
+    "step": 76000,
+    "inside_rotor": 6820,
+    "beyond_stator": 313,
+    "deepest_rotor": -32.07579470918487,
+    "deepest_stator": -14.447237372670507,
+    "rotor_by_sector": [
+     2397,
+     1233,
+     27,
+     0,
+     0,
+     34,
+     593,
+     2536
+    ],
+    "pressure_min": -1338.0816650390625,
+    "pressure_max": 1061.30322265625,
+    "fluid": 282696
+   },
+   {
+    "step": 82000,
+    "inside_rotor": 7887,
+    "beyond_stator": 360,
+    "deepest_rotor": -33.445228420786954,
+    "deepest_stator": -15.325404028509348,
+    "rotor_by_sector": [
+     2629,
+     1650,
+     220,
+     0,
+     0,
+     42,
+     661,
+     2685
+    ],
+    "pressure_min": -1339.14599609375,
+    "pressure_max": 1052.916015625,
+    "fluid": 282696
+   },
+   {
+    "step": 88000,
+    "inside_rotor": 8983,
+    "beyond_stator": 409,
+    "deepest_rotor": -34.47052546473856,
+    "deepest_stator": -16.225083172094813,
+    "rotor_by_sector": [
+     2843,
+     1983,
+     572,
+     0,
+     0,
+     49,
+     716,
+     2820
+    ],
+    "pressure_min": -1339.7208251953125,
+    "pressure_max": 1049.935791015625,
+    "fluid": 282696
+   },
+   {
+    "step": 94000,
+    "inside_rotor": 10086,
+    "beyond_stator": 462,
+    "deepest_rotor": -35.79575720063327,
+    "deepest_stator": -17.2774061134352,
+    "rotor_by_sector": [
+     3025,
+     2278,
+     1040,
+     3,
+     0,
+     54,
+     760,
+     2926
+    ],
+    "pressure_min": -1334.2286376953125,
+    "pressure_max": 1042.4852294921875,
+    "fluid": 282696
+   },
+   {
+    "step": 99000,
+    "inside_rotor": 11042,
+    "beyond_stator": 516,
+    "deepest_rotor": -36.76697461775308,
+    "deepest_stator": -18.501525533286543,
+    "rotor_by_sector": [
+     3157,
+     2491,
+     1442,
+     76,
+     0,
+     59,
+     811,
+     3006
+    ],
+    "pressure_min": -1325.6072998046875,
+    "pressure_max": 1043.0386962890625,
+    "fluid": 282696
+   },
+   {
+    "step": 105000,
+    "inside_rotor": 12181,
+    "beyond_stator": 580,
+    "deepest_rotor": -37.697426316963934,
+    "deepest_stator": -19.949492109616163,
+    "rotor_by_sector": [
+     3305,
+     2712,
+     1820,
+     349,
+     0,
+     70,
+     830,
+     3095
+    ],
+    "pressure_min": -1326.9483642578125,
+    "pressure_max": 1045.1673583984375,
+    "fluid": 282696
+   },
+   {
+    "step": 111000,
+    "inside_rotor": 13312,
+    "beyond_stator": 661,
+    "deepest_rotor": -38.465443687073495,
+    "deepest_stator": -21.185643355182805,
+    "rotor_by_sector": [
+     3426,
+     2912,
+     2136,
+     760,
+     0,
+     66,
+     848,
+     3164
+    ],
+    "pressure_min": -1324.1171875,
+    "pressure_max": 1043.9327392578125,
+    "fluid": 282696
+   },
+   {
+    "step": 117000,
+    "inside_rotor": 14473,
+    "beyond_stator": 727,
+    "deepest_rotor": -39.253886253663715,
+    "deepest_stator": -22.246534066735713,
+    "rotor_by_sector": [
+     3526,
+     3079,
+     2412,
+     1270,
+     16,
+     71,
+     880,
+     3219
+    ],
+    "pressure_min": -1322.79736328125,
+    "pressure_max": 1044.52880859375,
+    "fluid": 282696
+   },
+   {
+    "step": 122000,
+    "inside_rotor": 15424,
+    "beyond_stator": 771,
+    "deepest_rotor": -40.047664702771435,
+    "deepest_stator": -22.97095074075428,
+    "rotor_by_sector": [
+     3605,
+     3205,
+     2604,
+     1635,
+     167,
+     72,
+     899,
+     3237
+    ],
+    "pressure_min": -1319.966064453125,
+    "pressure_max": 1041.25048828125,
+    "fluid": 282696
+   },
+   {
+    "step": 128000,
+    "inside_rotor": 16564,
+    "beyond_stator": 829,
+    "deepest_rotor": -40.85874125104183,
+    "deepest_stator": -23.669670749707382,
+    "rotor_by_sector": [
+     3673,
+     3341,
+     2821,
+     1984,
+     507,
+     65,
+     905,
+     3268
+    ],
+    "pressure_min": -1316.858154296875,
+    "pressure_max": 1049.6376953125,
+    "fluid": 282696
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 17723,
+    "beyond_stator": 878,
+    "deepest_rotor": -41.52995328534642,
+    "deepest_stator": -24.48981811892603,
+    "rotor_by_sector": [
+     3736,
+     3446,
+     3004,
+     2286,
+     975,
+     62,
+     908,
+     3306
+    ],
+    "pressure_min": -1307.044677734375,
+    "pressure_max": 1040.654541015625,
+    "fluid": 282696
+   }
+  ]
+ },
+ "leak_e60_no_density_diffusion": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 60.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 1000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.06808474802288966,
+    "deepest_stator": 0.003909721732531235,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -997.67529296875,
+    "pressure_max": 722.0250854492188,
+    "fluid": 282696
+   },
+   {
+    "step": 7000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.08835859249706202,
+    "deepest_stator": -0.06307024356377866,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -3497.32373046875,
+    "pressure_max": 2849.6552734375,
+    "fluid": 282696
+   },
+   {
+    "step": 13000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.14900074363294324,
+    "deepest_stator": -0.08389661290364447,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -3953.341796875,
+    "pressure_max": 3008.41650390625,
+    "fluid": 282696
+   },
+   {
+    "step": 18000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.09399046270713862,
+    "deepest_stator": -0.05386216043934411,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -4162.1494140625,
+    "pressure_max": 3118.89794921875,
+    "fluid": 282696
+   },
+   {
+    "step": 24000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.10364029127718499,
+    "deepest_stator": -0.06573753459204745,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -3838.666748046875,
+    "pressure_max": 3069.93701171875,
+    "fluid": 282696
+   },
+   {
+    "step": 30000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.12457564088447226,
+    "deepest_stator": -0.12057875932025564,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -4115.828125,
+    "pressure_max": 3291.283203125,
+    "fluid": 282696
+   },
+   {
+    "step": 36000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.08038060490156429,
+    "deepest_stator": -0.08743760051899141,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -3841.75341796875,
+    "pressure_max": 3202.38720703125,
+    "fluid": 282696
+   },
+   {
+    "step": 41000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.08660428640899775,
+    "deepest_stator": -0.08923383099579407,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -3734.720458984375,
+    "pressure_max": 3129.712158203125,
+    "fluid": 282696
+   },
+   {
+    "step": 47000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.11233246801412022,
+    "deepest_stator": -0.05553735487517919,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -3570.9140625,
+    "pressure_max": 3020.46533203125,
+    "fluid": 282696
+   },
+   {
+    "step": 53000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.09678142197566686,
+    "deepest_stator": -0.06508475361255428,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -3779.296142578125,
+    "pressure_max": 3137.205322265625,
+    "fluid": 282696
+   },
+   {
+    "step": 59000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1260741456226011,
+    "deepest_stator": -0.08517675676644743,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -3934.7578125,
+    "pressure_max": 3210.17822265625,
+    "fluid": 282696
+   },
+   {
+    "step": 65000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.12596043812901359,
+    "deepest_stator": -0.06295975051384683,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -3828.172119140625,
+    "pressure_max": 3247.090576171875,
+    "fluid": 282696
+   },
+   {
+    "step": 70000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.129816475193556,
+    "deepest_stator": -0.07340514004239296,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -3683.609375,
+    "pressure_max": 3279.873291015625,
+    "fluid": 282696
+   },
+   {
+    "step": 76000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.10598910524400873,
+    "deepest_stator": -0.09884742791144152,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -4505.7490234375,
+    "pressure_max": 2995.516357421875,
+    "fluid": 282696
+   },
+   {
+    "step": 82000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.06716908454534876,
+    "deepest_stator": -0.06329570952212649,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -3940.3564453125,
+    "pressure_max": 2879.37255859375,
+    "fluid": 282696
+   },
+   {
+    "step": 88000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.13374051723669123,
+    "deepest_stator": -0.08000665348717462,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -3585.517333984375,
+    "pressure_max": 3286.770263671875,
+    "fluid": 282696
+   },
+   {
+    "step": 94000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.13713592873210168,
+    "deepest_stator": -0.05436571595029971,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -3649.16650390625,
+    "pressure_max": 2924.075927734375,
+    "fluid": 282696
+   },
+   {
+    "step": 99000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.11238700086052544,
+    "deepest_stator": -0.08078305702996502,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -3967.96630859375,
+    "pressure_max": 3256.41455078125,
+    "fluid": 282696
+   },
+   {
+    "step": 105000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.10397474508244686,
+    "deepest_stator": -0.07199912451283375,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -4339.4521484375,
+    "pressure_max": 3285.833740234375,
+    "fluid": 282696
+   },
+   {
+    "step": 111000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.101770630434872,
+    "deepest_stator": -0.06478705727375189,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -4312.88525390625,
+    "pressure_max": 3181.90869140625,
+    "fluid": 282696
+   },
+   {
+    "step": 117000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.11705751596102765,
+    "deepest_stator": -0.055319124129371566,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -3958.067626953125,
+    "pressure_max": 3062.1884765625,
+    "fluid": 282696
+   },
+   {
+    "step": 122000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.12066728244236602,
+    "deepest_stator": -0.0626787063594536,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -4531.37890625,
+    "pressure_max": 3243.21630859375,
+    "fluid": 282696
+   },
+   {
+    "step": 128000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.11550455013176197,
+    "deepest_stator": -0.07834338449497213,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -4375.1298828125,
+    "pressure_max": 3415.942138671875,
+    "fluid": 282696
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.11335059814471249,
+    "deepest_stator": -0.04912674820911622,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -4008.1142578125,
+    "pressure_max": 2937.912841796875,
+    "fluid": 282696
+   }
+  ]
+ },
+ "leak_e60_paper_operator": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "monaghan_gingold",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 60.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 1000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.04266247280976243,
+    "deepest_stator": 0.0035492271353021465,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -91.9614486694336,
+    "pressure_max": 73.52658081054688,
+    "fluid": 282696
+   },
+   {
+    "step": 7000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.06114237089233088,
+    "deepest_stator": -0.08626630822539116,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -1011.788818359375,
+    "pressure_max": 1004.2105102539062,
+    "fluid": 282696
+   },
+   {
+    "step": 13000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.18771312872384316,
+    "deepest_stator": -0.15002370338768056,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -1278.2215576171875,
+    "pressure_max": 1250.164794921875,
+    "fluid": 282696
+   },
+   {
+    "step": 18000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.3673475164717721,
+    "deepest_stator": -0.2488463414774822,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -1346.85205078125,
+    "pressure_max": 1277.0294189453125,
+    "fluid": 282696
+   },
+   {
+    "step": 24000,
+    "inside_rotor": 2,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.5075948668253338,
+    "deepest_stator": -0.4192543455681097,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     2
+    ],
+    "pressure_min": -1365.286865234375,
+    "pressure_max": 1271.6650390625,
+    "fluid": 282696
+   },
+   {
+    "step": 30000,
+    "inside_rotor": 159,
+    "beyond_stator": 1,
+    "deepest_rotor": -13.259630328774973,
+    "deepest_stator": -0.5652779582733247,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     2,
+     157
+    ],
+    "pressure_min": -1376.71826171875,
+    "pressure_max": 1244.7578125,
+    "fluid": 282696
+   },
+   {
+    "step": 36000,
+    "inside_rotor": 557,
+    "beyond_stator": 18,
+    "deepest_rotor": -16.274824883320825,
+    "deepest_stator": -3.094297260231027,
+    "rotor_by_sector": [
+     19,
+     0,
+     0,
+     0,
+     0,
+     0,
+     23,
+     515
+    ],
+    "pressure_min": -1379.6771240234375,
+    "pressure_max": 1222.0654296875,
+    "fluid": 282696
+   },
+   {
+    "step": 41000,
+    "inside_rotor": 965,
+    "beyond_stator": 31,
+    "deepest_rotor": -18.34482332839238,
+    "deepest_stator": -3.815352193029309,
+    "rotor_by_sector": [
+     118,
+     0,
+     0,
+     0,
+     0,
+     0,
+     48,
+     799
+    ],
+    "pressure_min": -1377.8890380859375,
+    "pressure_max": 1200.2672119140625,
+    "fluid": 282696
+   },
+   {
+    "step": 47000,
+    "inside_rotor": 1524,
+    "beyond_stator": 57,
+    "deepest_rotor": -20.799558308258526,
+    "deepest_stator": -3.8119824458631157,
+    "rotor_by_sector": [
+     370,
+     0,
+     0,
+     0,
+     0,
+     0,
+     90,
+     1064
+    ],
+    "pressure_min": -1391.2574462890625,
+    "pressure_max": 1199.0325927734375,
+    "fluid": 282696
+   },
+   {
+    "step": 53000,
+    "inside_rotor": 2187,
+    "beyond_stator": 81,
+    "deepest_rotor": -22.76559410365442,
+    "deepest_stator": -4.295022206946775,
+    "rotor_by_sector": [
+     729,
+     0,
+     0,
+     0,
+     0,
+     0,
+     142,
+     1316
+    ],
+    "pressure_min": -1393.7906494140625,
+    "pressure_max": 1185.876953125,
+    "fluid": 282696
+   },
+   {
+    "step": 59000,
+    "inside_rotor": 2895,
+    "beyond_stator": 100,
+    "deepest_rotor": -24.557394723508374,
+    "deepest_stator": -6.726969707273489,
+    "rotor_by_sector": [
+     1127,
+     37,
+     0,
+     0,
+     0,
+     2,
+     218,
+     1511
+    ],
+    "pressure_min": -1399.1337890625,
+    "pressure_max": 1182.3006591796875,
+    "fluid": 282696
+   },
+   {
+    "step": 65000,
+    "inside_rotor": 3670,
+    "beyond_stator": 119,
+    "deepest_rotor": -26.031140722594436,
+    "deepest_stator": -6.729896896991772,
+    "rotor_by_sector": [
+     1439,
+     223,
+     0,
+     0,
+     0,
+     8,
+     280,
+     1720
+    ],
+    "pressure_min": -1398.7081298828125,
+    "pressure_max": 1180.2144775390625,
+    "fluid": 282696
+   },
+   {
+    "step": 70000,
+    "inside_rotor": 4337,
+    "beyond_stator": 134,
+    "deepest_rotor": -27.749345454550767,
+    "deepest_stator": -12.145504236644289,
+    "rotor_by_sector": [
+     1672,
+     475,
+     0,
+     0,
+     0,
+     10,
+     330,
+     1850
+    ],
+    "pressure_min": -1398.5164794921875,
+    "pressure_max": 1173.9134521484375,
+    "fluid": 282696
+   },
+   {
+    "step": 76000,
+    "inside_rotor": 5187,
+    "beyond_stator": 150,
+    "deepest_rotor": -29.04259283544064,
+    "deepest_stator": -12.154426418543363,
+    "rotor_by_sector": [
+     1903,
+     851,
+     5,
+     0,
+     0,
+     16,
+     394,
+     2018
+    ],
+    "pressure_min": -1402.114013671875,
+    "pressure_max": 1172.763916015625,
+    "fluid": 282696
+   },
+   {
+    "step": 82000,
+    "inside_rotor": 6033,
+    "beyond_stator": 176,
+    "deepest_rotor": -29.782299027319326,
+    "deepest_stator": -12.429105280153173,
+    "rotor_by_sector": [
+     2101,
+     1229,
+     86,
+     0,
+     0,
+     24,
+     431,
+     2162
+    ],
+    "pressure_min": -1407.606201171875,
+    "pressure_max": 1167.9530029296875,
+    "fluid": 282696
+   },
+   {
+    "step": 88000,
+    "inside_rotor": 6923,
+    "beyond_stator": 193,
+    "deepest_rotor": -31.205613394762466,
+    "deepest_stator": -12.510920896384725,
+    "rotor_by_sector": [
+     2296,
+     1525,
+     319,
+     0,
+     0,
+     26,
+     487,
+     2270
+    ],
+    "pressure_min": -1404.498291015625,
+    "pressure_max": 1165.270751953125,
+    "fluid": 282696
+   },
+   {
+    "step": 94000,
+    "inside_rotor": 7826,
+    "beyond_stator": 204,
+    "deepest_rotor": -32.40925577105591,
+    "deepest_stator": -12.847436692640768,
+    "rotor_by_sector": [
+     2459,
+     1777,
+     664,
+     0,
+     0,
+     27,
+     527,
+     2372
+    ],
+    "pressure_min": -1413.54541015625,
+    "pressure_max": 1168.549072265625,
+    "fluid": 282696
+   },
+   {
+    "step": 99000,
+    "inside_rotor": 8590,
+    "beyond_stator": 226,
+    "deepest_rotor": -33.11198517260222,
+    "deepest_stator": -13.945656777104242,
+    "rotor_by_sector": [
+     2599,
+     1948,
+     997,
+     17,
+     0,
+     37,
+     552,
+     2440
+    ],
+    "pressure_min": -1410.8631591796875,
+    "pressure_max": 1166.164794921875,
+    "fluid": 282696
+   },
+   {
+    "step": 105000,
+    "inside_rotor": 9532,
+    "beyond_stator": 243,
+    "deepest_rotor": -34.04943895175511,
+    "deepest_stator": -13.80377371983732,
+    "rotor_by_sector": [
+     2739,
+     2155,
+     1337,
+     154,
+     0,
+     40,
+     586,
+     2521
+    ],
+    "pressure_min": -1414.567138671875,
+    "pressure_max": 1165.270751953125,
+    "fluid": 282696
+   },
+   {
+    "step": 111000,
+    "inside_rotor": 10481,
+    "beyond_stator": 252,
+    "deepest_rotor": -34.987726109859786,
+    "deepest_stator": -13.663964729282219,
+    "rotor_by_sector": [
+     2835,
+     2330,
+     1621,
+     433,
+     0,
+     43,
+     615,
+     2604
+    ],
+    "pressure_min": -1411.01220703125,
+    "pressure_max": 1162.29052734375,
+    "fluid": 282696
+   },
+   {
+    "step": 117000,
+    "inside_rotor": 11445,
+    "beyond_stator": 268,
+    "deepest_rotor": -35.616547869419755,
+    "deepest_stator": -13.40064864747037,
+    "rotor_by_sector": [
+     2935,
+     2498,
+     1854,
+     802,
+     3,
+     49,
+     657,
+     2647
+    ],
+    "pressure_min": -1409.2239990234375,
+    "pressure_max": 1161.949951171875,
+    "fluid": 282696
+   },
+   {
+    "step": 122000,
+    "inside_rotor": 12243,
+    "beyond_stator": 277,
+    "deepest_rotor": -36.037704240563514,
+    "deepest_stator": -13.00765243155766,
+    "rotor_by_sector": [
+     2991,
+     2628,
+     2023,
+     1130,
+     45,
+     44,
+     674,
+     2708
+    ],
+    "pressure_min": -1406.392822265625,
+    "pressure_max": 1160.8004150390625,
+    "fluid": 282696
+   },
+   {
+    "step": 128000,
+    "inside_rotor": 13211,
+    "beyond_stator": 290,
+    "deepest_rotor": -36.759450803710344,
+    "deepest_stator": -13.592683225239876,
+    "rotor_by_sector": [
+     3081,
+     2748,
+     2225,
+     1442,
+     239,
+     44,
+     688,
+     2744
+    ],
+    "pressure_min": -1408.05322265625,
+    "pressure_max": 1163.482666015625,
+    "fluid": 282696
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 14183,
+    "beyond_stator": 301,
+    "deepest_rotor": -37.45742089951448,
+    "deepest_stator": -14.124020141454196,
+    "rotor_by_sector": [
+     3149,
+     2849,
+     2387,
+     1711,
+     555,
+     43,
+     697,
+     2792
+    ],
+    "pressure_min": -1410.4373779296875,
+    "pressure_max": 1154.79736328125,
+    "fluid": 282696
+   }
+  ]
+ },
+ "leak_e60_simple_walls": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 22,
+  "viscous_form": "laplacian",
+  "wall_boundary": "simple",
+  "eccentricity_in_spacings": 60.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 1000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.10658097919896692,
+    "deepest_stator": 0.003554947698658495,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -265.62384033203125,
+    "pressure_max": 212.74600219726562,
+    "fluid": 282696
+   },
+   {
+    "step": 7000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.0974999977060853,
+    "deepest_stator": -0.10121968597009978,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -694.9049682617188,
+    "pressure_max": 647.0935668945312,
+    "fluid": 282696
+   },
+   {
+    "step": 13000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.374708065857543,
+    "deepest_stator": -0.23962121371745582,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -881.3823852539062,
+    "pressure_max": 846.8116455078125,
+    "fluid": 282696
+   },
+   {
+    "step": 18000,
+    "inside_rotor": 3,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.5638544242597132,
+    "deepest_stator": -0.44340455772806653,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     3
+    ],
+    "pressure_min": -963.7644653320312,
+    "pressure_max": 895.474609375,
+    "fluid": 282696
+   },
+   {
+    "step": 24000,
+    "inside_rotor": 264,
+    "beyond_stator": 25,
+    "deepest_rotor": -14.22805755283718,
+    "deepest_stator": -3.141264858189774,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     21,
+     243
+    ],
+    "pressure_min": -1009.2769165039062,
+    "pressure_max": 903.86181640625,
+    "fluid": 282696
+   },
+   {
+    "step": 30000,
+    "inside_rotor": 943,
+    "beyond_stator": 88,
+    "deepest_rotor": -18.003110816042224,
+    "deepest_stator": -6.061614521408187,
+    "rotor_by_sector": [
+     13,
+     0,
+     0,
+     0,
+     0,
+     0,
+     109,
+     821
+    ],
+    "pressure_min": -1028.6058349609375,
+    "pressure_max": 921.4451904296875,
+    "fluid": 282696
+   },
+   {
+    "step": 36000,
+    "inside_rotor": 1863,
+    "beyond_stator": 184,
+    "deepest_rotor": -21.59809277658037,
+    "deepest_stator": -7.198265280939808,
+    "rotor_by_sector": [
+     207,
+     0,
+     0,
+     0,
+     0,
+     5,
+     256,
+     1395
+    ],
+    "pressure_min": -1040.7822265625,
+    "pressure_max": 916.42138671875,
+    "fluid": 282696
+   },
+   {
+    "step": 41000,
+    "inside_rotor": 2789,
+    "beyond_stator": 269,
+    "deepest_rotor": -24.42703280297914,
+    "deepest_stator": -13.193792181351194,
+    "rotor_by_sector": [
+     538,
+     0,
+     0,
+     0,
+     0,
+     17,
+     419,
+     1815
+    ],
+    "pressure_min": -1045.3802490234375,
+    "pressure_max": 911.35498046875,
+    "fluid": 282696
+   },
+   {
+    "step": 47000,
+    "inside_rotor": 3999,
+    "beyond_stator": 400,
+    "deepest_rotor": -27.45669479476709,
+    "deepest_stator": -14.193047254326796,
+    "rotor_by_sector": [
+     1072,
+     0,
+     0,
+     0,
+     0,
+     44,
+     592,
+     2291
+    ],
+    "pressure_min": -1041.9530029296875,
+    "pressure_max": 911.9510498046875,
+    "fluid": 282696
+   },
+   {
+    "step": 53000,
+    "inside_rotor": 5324,
+    "beyond_stator": 567,
+    "deepest_rotor": -30.634918527291276,
+    "deepest_stator": -15.870278059029852,
+    "rotor_by_sector": [
+     1719,
+     53,
+     0,
+     0,
+     0,
+     66,
+     765,
+     2721
+    ],
+    "pressure_min": -1059.0467529296875,
+    "pressure_max": 939.7097778320312,
+    "fluid": 282696
+   },
+   {
+    "step": 59000,
+    "inside_rotor": 6718,
+    "beyond_stator": 800,
+    "deepest_rotor": -33.47789406151358,
+    "deepest_stator": -18.263758799636932,
+    "rotor_by_sector": [
+     2293,
+     333,
+     0,
+     0,
+     0,
+     103,
+     910,
+     3079
+    ],
+    "pressure_min": -1086.52880859375,
+    "pressure_max": 919.06103515625,
+    "fluid": 282696
+   },
+   {
+    "step": 65000,
+    "inside_rotor": 8154,
+    "beyond_stator": 1051,
+    "deepest_rotor": -35.940854860903755,
+    "deepest_stator": -20.48450118998546,
+    "rotor_by_sector": [
+     2802,
+     813,
+     0,
+     0,
+     0,
+     128,
+     1056,
+     3355
+    ],
+    "pressure_min": -1097.683349609375,
+    "pressure_max": 917.868896484375,
+    "fluid": 282696
+   },
+   {
+    "step": 70000,
+    "inside_rotor": 9383,
+    "beyond_stator": 1283,
+    "deepest_rotor": -37.628166456728614,
+    "deepest_stator": -22.1939851211439,
+    "rotor_by_sector": [
+     3180,
+     1338,
+     4,
+     0,
+     0,
+     156,
+     1155,
+     3550
+    ],
+    "pressure_min": -1103.94189453125,
+    "pressure_max": 912.2490844726562,
+    "fluid": 282696
+   },
+   {
+    "step": 76000,
+    "inside_rotor": 10902,
+    "beyond_stator": 1579,
+    "deepest_rotor": -39.4134754181274,
+    "deepest_stator": -24.17541102899523,
+    "rotor_by_sector": [
+     3572,
+     1986,
+     134,
+     0,
+     0,
+     185,
+     1275,
+     3750
+    ],
+    "pressure_min": -1114.6280517578125,
+    "pressure_max": 909.822265625,
+    "fluid": 282696
+   },
+   {
+    "step": 82000,
+    "inside_rotor": 12467,
+    "beyond_stator": 1881,
+    "deepest_rotor": -41.03056689350032,
+    "deepest_stator": -26.234448298338098,
+    "rotor_by_sector": [
+     3893,
+     2530,
+     518,
+     0,
+     0,
+     221,
+     1389,
+     3916
+    ],
+    "pressure_min": -1118.0340576171875,
+    "pressure_max": 928.6403198242188,
+    "fluid": 282696
+   },
+   {
+    "step": 88000,
+    "inside_rotor": 14011,
+    "beyond_stator": 2173,
+    "deepest_rotor": -42.55726630553996,
+    "deepest_stator": -28.308428248468132,
+    "rotor_by_sector": [
+     4137,
+     3016,
+     1084,
+     0,
+     0,
+     235,
+     1482,
+     4057
+    ],
+    "pressure_min": -1135.59619140625,
+    "pressure_max": 920.8917236328125,
+    "fluid": 282696
+   },
+   {
+    "step": 94000,
+    "inside_rotor": 15573,
+    "beyond_stator": 2475,
+    "deepest_rotor": -43.69500426678607,
+    "deepest_stator": -30.260411277268194,
+    "rotor_by_sector": [
+     4356,
+     3434,
+     1770,
+     44,
+     0,
+     250,
+     1553,
+     4166
+    ],
+    "pressure_min": -1152.9879150390625,
+    "pressure_max": 920.8917236328125,
+    "fluid": 282696
+   },
+   {
+    "step": 99000,
+    "inside_rotor": 16900,
+    "beyond_stator": 2741,
+    "deepest_rotor": -44.71891001047962,
+    "deepest_stator": -31.81978725379553,
+    "rotor_by_sector": [
+     4490,
+     3722,
+     2274,
+     270,
+     0,
+     254,
+     1611,
+     4279
+    ],
+    "pressure_min": -1154.6058349609375,
+    "pressure_max": 910.4183349609375,
+    "fluid": 282696
+   },
+   {
+    "step": 105000,
+    "inside_rotor": 18479,
+    "beyond_stator": 3060,
+    "deepest_rotor": -45.743470168739755,
+    "deepest_stator": -33.66675895171656,
+    "rotor_by_sector": [
+     4643,
+     3997,
+     2798,
+     745,
+     0,
+     258,
+     1667,
+     4371
+    ],
+    "pressure_min": -1161.609375,
+    "pressure_max": 922.6372680664062,
+    "fluid": 282696
+   },
+   {
+    "step": 111000,
+    "inside_rotor": 20054,
+    "beyond_stator": 3380,
+    "deepest_rotor": -46.608355547235526,
+    "deepest_stator": -35.53494210609331,
+    "rotor_by_sector": [
+     4775,
+     4226,
+     3252,
+     1399,
+     1,
+     253,
+     1690,
+     4458
+    ],
+    "pressure_min": -1207.6751708984375,
+    "pressure_max": 930.428466796875,
+    "fluid": 282696
+   },
+   {
+    "step": 117000,
+    "inside_rotor": 21627,
+    "beyond_stator": 3675,
+    "deepest_rotor": -47.441480442820534,
+    "deepest_stator": -37.37249963528566,
+    "rotor_by_sector": [
+     4893,
+     4412,
+     3628,
+     2091,
+     127,
+     248,
+     1710,
+     4518
+    ],
+    "pressure_min": -1291.0152587890625,
+    "pressure_max": 917.5709228515625,
+    "fluid": 282696
+   },
+   {
+    "step": 122000,
+    "inside_rotor": 22944,
+    "beyond_stator": 3919,
+    "deepest_rotor": -48.11580875132698,
+    "deepest_stator": -38.93559708142558,
+    "rotor_by_sector": [
+     4977,
+     4538,
+     3881,
+     2564,
+     452,
+     244,
+     1719,
+     4569
+    ],
+    "pressure_min": -1393.0244140625,
+    "pressure_max": 914.6332397460938,
+    "fluid": 282696
+   }
+  ]
+ },
+ "nd_e30_k3_m2": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 30.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.11157565993424878,
+    "deepest_stator": -0.057312933525288656,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -2188.61865234375,
+    "pressure_max": 1520.4293212890625,
+    "fluid": 282696
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.08686155832282605,
+    "deepest_stator": -0.07701082114730529,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -2451.04931640625,
+    "pressure_max": 1771.449951171875,
+    "fluid": 282696
+   }
+  ]
+ },
+ "nd_e30_k3_m5": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 30.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.09111907802800134,
+    "deepest_stator": -0.049474021122541956,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -2406.175537109375,
+    "pressure_max": 1371.8009033203125,
+    "fluid": 282696
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.08904142866233977,
+    "deepest_stator": -0.07164665655268188,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -2265.827880859375,
+    "pressure_max": 1267.4501953125,
+    "fluid": 282696
+   }
+  ]
+ },
+ "nd_e30_newtonian": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 30.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.0951748696921828,
+    "deepest_stator": -0.05146139156253504,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -2161.13671875,
+    "pressure_max": 1225.76953125,
+    "fluid": 282696
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.08662565365330499,
+    "deepest_stator": -0.08143330102439172,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -2483.12939453125,
+    "pressure_max": 1031.5008544921875,
+    "fluid": 282696
+   }
+  ]
+ },
+ "nd_e60_k3_m2": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 60.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.11368263822553182,
+    "deepest_stator": -0.06524948849684353,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -5010.70703125,
+    "pressure_max": 3857.229248046875,
+    "fluid": 282696
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.04469136297463594,
+    "deepest_stator": -0.05729679376809127,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -5405.07666015625,
+    "pressure_max": 4428.45458984375,
+    "fluid": 282696
+   }
+  ]
+ },
+ "nd_e60_k3_m5": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 60.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.09901156044500592,
+    "deepest_stator": -0.06361171100677243,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -4799.1103515625,
+    "pressure_max": 3588.7529296875,
+    "fluid": 282696
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.09421208483523236,
+    "deepest_stator": -0.06629731835161579,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -4517.9892578125,
+    "pressure_max": 3351.05810546875,
+    "fluid": 282696
+   }
+  ]
+ },
+ "nd_e60_newtonian": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 60.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.12070354169368969,
+    "deepest_stator": -0.06436970699663647,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -3647.080322265625,
+    "pressure_max": 2946.21484375,
+    "fluid": 282696
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.0979496031097149,
+    "deepest_stator": -0.08713012752559202,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -4529.71875,
+    "pressure_max": 2884.949951171875,
+    "fluid": 282696
+   }
+  ]
+ },
+ "nd_g100_k3_m2": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.1576660483209591,
+    "deepest_stator": -0.06999969639809311,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -674.3413696289062,
+    "pressure_max": 569.4797973632812,
+    "fluid": 61957
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.06553434902473176,
+    "deepest_stator": -0.054178651749392515,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -565.7545166015625,
+    "pressure_max": 575.184814453125,
+    "fluid": 61813
+   }
+  ]
+ },
+ "nd_g100_k3_m5": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": true,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.11413230832912902,
+    "deepest_stator": -0.060506972500817824,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -469.4504089355469,
+    "pressure_max": 427.74847412109375,
+    "fluid": 61948
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.0679513473452742,
+    "deepest_stator": -0.05627637003391417,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -547.1280517578125,
+    "pressure_max": 505.61767578125,
+    "fluid": 61906
+   }
+  ]
+ },
+ "nd_g100_newtonian": {
+  "timestep": 1.5e-05,
+  "steps": 134000,
+  "states": 24,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "eccentricity_in_spacings": 0.0,
+  "micropolar": false,
+  "series": [
+   {
+    "step": 101000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.14424316022276784,
+    "deepest_stator": -0.08016961700341163,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -809.5161743164062,
+    "pressure_max": 518.517822265625,
+    "fluid": 61902
+   },
+   {
+    "step": 134000,
+    "inside_rotor": 0,
+    "beyond_stator": 0,
+    "deepest_rotor": -0.11844151521839263,
+    "deepest_stator": -0.09480436243103352,
+    "rotor_by_sector": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ],
+    "pressure_min": -786.1639404296875,
+    "pressure_max": 443.9694519042969,
+    "fluid": 61944
+   }
+  ]
+ }
+}

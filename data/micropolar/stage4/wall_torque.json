@@ -1,0 +1,4261 @@
+{
+ "g050_k3_m5": {
+  "fit_torque": 148.81533001425777,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 17,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 6.736225509618166e-07,
+   "wall_pressure_max_difference_over_max_pressure": 7.37278368810709e-07,
+   "dummy_spin_max_difference_over_max_spin": 1.2073177740138735e-07,
+   "acceleration_rms_difference_over_rms": 3.892865774655318e-06,
+   "acceleration_max_difference_over_rms": 1.972012018671021e-05,
+   "angular_acceleration_rms_difference_over_rms": 9.071383475161746e-06,
+   "angular_acceleration_max_difference_over_rms": 5.220904049931737e-05,
+   "kernel_sum_min": 0.9798291693044004,
+   "target_fluid": 13814.0
+  },
+  "shear_viscosity": 4.0,
+  "coupling_viscosity": 12.0,
+  "rotor": {
+   "as_written": 164.62543822198992,
+   "as_written_standard_error": 0.00402902583235353,
+   "as_written_by_term": {
+    "pressure": -0.179703136436599,
+    "viscous": 153.28529405124414,
+    "coupling": 9.976447797495986,
+    "spin_diffusion": 1.9088136082199925,
+    "spin_coupling": -0.36541409853357243
+   },
+   "wall": 147.92683954716364,
+   "wall_standard_error": 0.0030467844123309284,
+   "wall_by_term": {
+    "viscous": 135.30257157849465,
+    "pressure_flux": 0.8809232678851832,
+    "spin_diffusion": 1.6902482092964515,
+    "wall_term": 10.053096491487338
+   },
+   "not_exchange_by_term": {
+    "coupling": 8.772649956939873,
+    "spin_coupling": -0.323572989546114
+   },
+   "circle": 147.31151895270648,
+   "circle_standard_error": 0.010169079719930946,
+   "circle_by_term": {
+    "pair_sum": -176.5291694087656,
+    "circulation_term": -9.284513107203946,
+    "spin_term": 38.502163563263075
+   },
+   "layer_total": 0.007795184934888257,
+   "force": [
+    -0.006208588854865751,
+    -0.07035087321047412
+   ],
+   "force_standard_error": [
+    0.014025133980689929,
+    0.012705587394146707
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.003901351238456823,
+     -0.02232749425826447
+    ],
+    "pressure_flux": [
+     -0.010109940093322575,
+     -0.04802337895220965
+    ],
+    "pressure": [
+     0.0005230711799048194,
+     0.007481516241110672
+    ]
+   },
+   "force_as_written": [
+    0.006514342376852041,
+    -0.018713163329428885
+   ],
+   "as_written_over_fit": 1.1062397819244658,
+   "wall_over_fit": 0.9940295770132754,
+   "circle_over_fit": 0.9898947839486213
+  },
+  "stator": {
+   "as_written": -182.63528014789668,
+   "as_written_standard_error": 0.0023314097118612713,
+   "as_written_by_term": {
+    "pressure": -0.7370918574785756,
+    "viscous": -168.51994624297745,
+    "coupling": -15.404982491733552,
+    "spin_diffusion": 2.4549925238885244,
+    "spin_coupling": -0.4282520795956147
+   },
+   "wall": -148.07338036988486,
+   "wall_standard_error": 0.0019121259629900015,
+   "wall_by_term": {
+    "viscous": -149.72940847012876,
+    "pressure_flux": -0.5178597531690269,
+    "spin_diffusion": 2.1738878534129324,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -13.719278799566172,
+    "spin_coupling": -0.3792158163305301
+   },
+   "circle": -147.95317629437935,
+   "circle_standard_error": 0.01685254260423966,
+   "circle_by_term": {
+    "pair_sum": 201.00877433921903,
+    "circulation_term": -0.8845776860421225,
+    "spin_term": 53.9401757308818
+   },
+   "layer_total": -0.0005482048507307412,
+   "force": [
+    0.022302338733753136,
+    0.06939679901689717
+   ],
+   "force_standard_error": [
+    0.015833156155192662,
+    0.017131553200130326
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.007612166837495658,
+     0.004286970910261987
+    ],
+    "pressure_flux": [
+     0.014690171896257487,
+     0.06510982810663521
+    ],
+    "pressure": [
+     0.015014826447987484,
+     0.06494933214137068
+    ]
+   },
+   "force_as_written": [
+    0.02721334255552428,
+    0.07654875908300189
+   ],
+   "as_written_over_fit": 1.227261197689772,
+   "wall_over_fit": 0.9950142929206163,
+   "circle_over_fit": 0.9942065530493678
+  },
+  "fit_torque_joint": 148.61205024873993,
+  "exact_torque": 148.54492538503936,
+  "exact_couple": {
+   "rotor": 1.8323793151513552,
+   "stator": 2.239755562178139
+  },
+  "balance_wall": -0.00098471590734087,
+  "balance_as_written": -0.1210214157653063,
+  "balance_circle": -0.004311769100746488,
+  "rotor_force_over_tangential_scale": 0.0001898307151930915,
+  "change": {
+   "wall_rotor": 0.07070076727859154,
+   "wall_stator": 0.07680396678622525,
+   "circle_rotor": 0.05709176317401132,
+   "circle_stator": 0.06167895194316997
+  }
+ },
+ "g050_newtonian": {
+  "fit_torque": 139.47514205605503,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 17,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 6.22488171231339e-07,
+   "wall_pressure_max_difference_over_max_pressure": 6.319300170791777e-07,
+   "acceleration_rms_difference_over_rms": 2.8136195971153175e-06,
+   "acceleration_max_difference_over_rms": 1.5205901659417024e-05,
+   "kernel_sum_min": 0.9814230504642745,
+   "target_fluid": 13831.0
+  },
+  "shear_viscosity": 10.0,
+  "coupling_viscosity": 0.0,
+  "rotor": {
+   "as_written": 126.97710707664231,
+   "as_written_standard_error": 0.003060481336482522,
+   "as_written_by_term": {
+    "pressure": -0.1872926676310625,
+    "viscous": 127.1643997442734,
+    "coupling": 0.0
+   },
+   "wall": 138.15889935630702,
+   "wall_standard_error": 0.0021746554489981747,
+   "wall_by_term": {
+    "viscous": 112.22276970706656,
+    "pressure_flux": 0.8033884205221457,
+    "wall_term": 25.132741228718345
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.0
+   },
+   "circle": 139.3554694914949,
+   "circle_standard_error": 0.0014590633013054802,
+   "circle_by_term": {
+    "pair_sum": -116.54629324666202,
+    "circulation_term": -22.809176244832866,
+    "spin_term": -0.0
+   },
+   "layer_total": 0.009193560862879832,
+   "force": [
+    -0.011649415117361771,
+    0.07669414625040004
+   ],
+   "force_standard_error": [
+    0.012177726505949116,
+    0.015666518373187447
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.01224627228627579,
+     0.0213866778968767
+    ],
+    "pressure_flux": [
+     -0.023895687403637567,
+     0.055307468353523355
+    ],
+    "pressure": [
+     -0.009229348223027364,
+     0.0007347267789321869
+    ]
+   },
+   "force_as_written": [
+    0.0034070414482450318,
+    0.02498191570083152
+   ],
+   "as_written_over_fit": 0.9103923839389978,
+   "wall_over_fit": 0.9905628868316978,
+   "circle_over_fit": 0.9991419792602753
+  },
+  "stator": {
+   "as_written": -154.91780368700782,
+   "as_written_standard_error": 0.0019047088033506947,
+   "as_written_by_term": {
+    "pressure": -0.7665547213073861,
+    "viscous": -154.15124896570046,
+    "coupling": 0.0
+   },
+   "wall": -137.51191947390126,
+   "wall_standard_error": 0.0017287040929972206,
+   "wall_by_term": {
+    "viscous": -136.95768265723493,
+    "pressure_flux": -0.554236816666347,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.0
+   },
+   "circle": -139.35773712343413,
+   "circle_standard_error": 0.0012862716652522644,
+   "circle_by_term": {
+    "pair_sum": 136.6501132120473,
+    "circulation_term": -2.707623911386827,
+    "spin_term": -0.0
+   },
+   "layer_total": -0.00013095079535561133,
+   "force": [
+    0.006454043271338823,
+    -0.049968068789138745
+   ],
+   "force_standard_error": [
+    0.012791196432944116,
+    0.01486954718872417
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.0042192993196407185,
+     0.0112630678982153
+    ],
+    "pressure_flux": [
+     0.01067334259097954,
+     -0.06123113668735405
+    ],
+    "pressure": [
+     0.012249039320429585,
+     -0.061115008717622085
+    ]
+   },
+   "force_as_written": [
+    0.009068062844068345,
+    -0.05629827767832392
+   ],
+   "as_written_over_fit": 1.1107198128878506,
+   "wall_over_fit": 0.985924211632172,
+   "circle_over_fit": 0.9991582375834849
+  },
+  "balance_wall": 0.004638675199525791,
+  "balance_as_written": -0.20032742894885272,
+  "balance_circle": -1.6258323209565424e-05,
+  "rotor_force_over_tangential_scale": 0.00022247359843822082
+ },
+ "g050_newtonian_rotated": {
+  "fit_torque": 139.4598884348547,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 17,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 5.789457112104074e-07,
+   "wall_pressure_max_difference_over_max_pressure": 7.026992467609611e-07,
+   "acceleration_rms_difference_over_rms": 2.8220897222012786e-06,
+   "acceleration_max_difference_over_rms": 1.6540160956227737e-05,
+   "kernel_sum_min": 0.9805397094735676,
+   "target_fluid": 13860.0
+  },
+  "shear_viscosity": 10.0,
+  "coupling_viscosity": 0.0,
+  "rotor": {
+   "as_written": 126.35943075972716,
+   "as_written_standard_error": 0.003151030665448222,
+   "as_written_by_term": {
+    "pressure": -0.16938655234382086,
+    "viscous": 126.52881731207098,
+    "coupling": 0.0
+   },
+   "wall": 137.58622083988075,
+   "wall_standard_error": 0.0022474304313532052,
+   "wall_by_term": {
+    "viscous": 111.66161924927633,
+    "pressure_flux": 0.7918603618860612,
+    "wall_term": 25.132741228718345
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.0
+   },
+   "circle": 139.33799780304935,
+   "circle_standard_error": 0.0016681410131483324,
+   "circle_by_term": {
+    "pair_sum": -116.53069387389898,
+    "circulation_term": -22.807303929150358,
+    "spin_term": -0.0
+   },
+   "layer_total": 0.010817258204842996,
+   "force": [
+    0.03607615929161386,
+    -0.021743986520099047
+   ],
+   "force_standard_error": [
+    0.010268843264965532,
+    0.012925392653900422
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.009048094749307093,
+     -0.0007790066970007827
+    ],
+    "pressure_flux": [
+     0.045124254040920964,
+     -0.02096497982309827
+    ],
+    "pressure": [
+     -0.0006923333455437044,
+     0.0008853928735500523
+    ]
+   },
+   "force_as_written": [
+    -0.010999959411333169,
+    0.00012014293546168744
+   ],
+   "as_written_over_fit": 0.9060628986430955,
+   "wall_over_fit": 0.9865648279515928,
+   "circle_over_fit": 0.9991259807162238
+  },
+  "stator": {
+   "as_written": -154.31000238786626,
+   "as_written_standard_error": 0.001713180313795203,
+   "as_written_by_term": {
+    "pressure": -0.7884489741100379,
+    "viscous": -153.52155341375624,
+    "coupling": 0.0
+   },
+   "wall": -136.94545479810927,
+   "wall_standard_error": 0.0016303113682533232,
+   "wall_by_term": {
+    "viscous": -136.40155468301214,
+    "pressure_flux": -0.5439001150971241,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.0
+   },
+   "circle": -139.33755322203552,
+   "circle_standard_error": 0.0013059088986534537,
+   "circle_by_term": {
+    "pair_sum": 136.6291576582213,
+    "circulation_term": -2.708395563814234,
+    "spin_term": -0.0
+   },
+   "layer_total": -0.00013387608375071313,
+   "force": [
+    -0.03347536494747643,
+    0.007800818944072621
+   ],
+   "force_standard_error": [
+    0.014146109967851086,
+    0.01455863553683665
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.01941090294177629,
+     -0.007752106187035136
+    ],
+    "pressure_flux": [
+     -0.05288626788925271,
+     0.015552925131107759
+    ],
+    "pressure": [
+     -0.052918768424085015,
+     0.01653913716566491
+    ]
+   },
+   "force_as_written": [
+    -0.03784075573235405,
+    0.009923278850767533
+   ],
+   "as_written_over_fit": 1.1064830477040604,
+   "wall_over_fit": 0.9819702018625952,
+   "circle_over_fit": 0.999122792838915
+  },
+  "balance_wall": 0.0045946260889976505,
+  "balance_as_written": -0.20042014906096484,
+  "balance_circle": 3.1878773087595262e-06,
+  "rotor_force_over_tangential_scale": 0.00012081559779194103
+ },
+ "g050_newtonian_shifted": {
+  "fit_torque": 139.5202184568986,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 17,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 5.724562719752729e-07,
+   "wall_pressure_max_difference_over_max_pressure": 4.3528307877183544e-07,
+   "acceleration_rms_difference_over_rms": 2.8244524020333855e-06,
+   "acceleration_max_difference_over_rms": 1.68403110822031e-05,
+   "kernel_sum_min": 0.9821314161349002,
+   "target_fluid": 13867.0
+  },
+  "shear_viscosity": 10.0,
+  "coupling_viscosity": 0.0,
+  "rotor": {
+   "as_written": 129.0831427136609,
+   "as_written_standard_error": 0.0032585284527889453,
+   "as_written_by_term": {
+    "pressure": -0.21591167499535452,
+    "viscous": 129.29905438865623,
+    "coupling": 0.0
+   },
+   "wall": 140.03937331318983,
+   "wall_standard_error": 0.00243625463162402,
+   "wall_by_term": {
+    "viscous": 114.10728315597113,
+    "pressure_flux": 0.7993489285003619,
+    "wall_term": 25.132741228718345
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.0
+   },
+   "circle": 139.41379308332475,
+   "circle_standard_error": 0.0011490305033268157,
+   "circle_by_term": {
+    "pair_sum": -116.58040520522665,
+    "circulation_term": -22.833387878098105,
+    "spin_term": -0.0
+   },
+   "layer_total": 0.008643160096080921,
+   "force": [
+    0.040051889353859796,
+    0.010438521238798
+   ],
+   "force_standard_error": [
+    0.010766867910381206,
+    0.012707927938514421
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.013325694961718539,
+     -0.011854556944376921
+    ],
+    "pressure_flux": [
+     0.026726194392141262,
+     0.022293078183174928
+    ],
+    "pressure": [
+     -0.0035184686890273255,
+     0.0029899373197999905
+    ]
+   },
+   "force_as_written": [
+    0.01107539523795603,
+    -0.010010900457116651
+   ],
+   "as_written_over_fit": 0.9251930948885234,
+   "wall_over_fit": 1.0037210008845536,
+   "circle_over_fit": 0.9992372046521221
+  },
+  "stator": {
+   "as_written": -156.91953126909362,
+   "as_written_standard_error": 0.00139555984263696,
+   "as_written_by_term": {
+    "pressure": -0.702965138058826,
+    "viscous": -156.21656613103482,
+    "coupling": 0.0
+   },
+   "wall": -139.40437823083641,
+   "wall_standard_error": 0.0012433738738476651,
+   "wall_by_term": {
+    "viscous": -138.78183012041714,
+    "pressure_flux": -0.6225481104193058,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.0
+   },
+   "circle": -139.41217906024644,
+   "circle_standard_error": 0.0012766833303911461,
+   "circle_by_term": {
+    "pair_sum": 136.67887977530208,
+    "circulation_term": -2.7332992849443727,
+    "spin_term": -0.0
+   },
+   "layer_total": -1.0631743920385473e-05,
+   "force": [
+    -0.03019308435576419,
+    0.017478090237230095
+   ],
+   "force_standard_error": [
+    0.012008498108516438,
+    0.011841871882545582
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.00236895926704414,
+     0.002704589436597999
+    ],
+    "pressure_flux": [
+     -0.027824125088720054,
+     0.014773500800632097
+    ],
+    "pressure": [
+     -0.027766521039535832,
+     0.014876983499421232
+    ]
+   },
+   "force_as_written": [
+    -0.03403228862072796,
+    0.01985503992230515
+   ],
+   "as_written_over_fit": 1.1247081821160574,
+   "wall_over_fit": 0.9991697244503817,
+   "circle_over_fit": 0.9992256362708783
+  },
+  "balance_wall": 0.004551276434172007,
+  "balance_as_written": -0.19951508722753408,
+  "balance_circle": 1.1568381243628359e-05,
+  "rotor_force_over_tangential_scale": 0.00011866326704176058
+ },
+ "g100_displaced_m5": {
+  "fit_torque": 148.4591582265314,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 6.054722611622875e-07,
+   "wall_pressure_max_difference_over_max_pressure": 4.5326103536350056e-07,
+   "acceleration_rms_difference_over_rms": 5.6471929902846955e-06,
+   "acceleration_max_difference_over_rms": 3.641386305409611e-05,
+   "kernel_sum_min": 0.9775021614323198,
+   "target_fluid": 27711.0
+  },
+  "shear_viscosity": 10.0,
+  "coupling_viscosity": 0.0,
+  "rotor": {
+   "as_written": 138.68591395565366,
+   "as_written_standard_error": 0.0019997178417906756,
+   "as_written_by_term": {
+    "pressure": -0.16097025419571087,
+    "viscous": 138.84688420984938,
+    "coupling": 0.0
+   },
+   "wall": 148.88162985727328,
+   "wall_standard_error": 0.001609206448812886,
+   "wall_by_term": {
+    "viscous": 122.7393569666269,
+    "pressure_flux": 0.7070339884992002,
+    "wall_term": 25.43523890214719
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.0
+   },
+   "circle": 148.36843181832694,
+   "circle_standard_error": 0.0009798864001061935,
+   "circle_by_term": {
+    "pair_sum": -124.17723168842073,
+    "circulation_term": -24.191200129906193,
+    "spin_term": -0.0
+   },
+   "layer_total": 0.0029353926201123527,
+   "force": [
+    0.010755095302698582,
+    0.012835995867380148
+   ],
+   "force_standard_error": [
+    0.0034772744545073556,
+    0.0076934792068177275
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.004182099162661078,
+     0.0044282473442297625
+    ],
+    "pressure_flux": [
+     0.006572996140037509,
+     0.00840774852315039
+    ],
+    "pressure": [
+     0.00033578629043575615,
+     -0.00013261255445982896
+    ]
+   },
+   "force_as_written": [
+    0.005102091625253046,
+    0.004851101807153554
+   ],
+   "as_written_over_fit": 0.9341688017928479,
+   "wall_over_fit": 1.0028457094583363,
+   "circle_over_fit": 0.9993888796805245
+  },
+  "stator": {
+   "as_written": -167.2497016303988,
+   "as_written_standard_error": 0.0007783888930876422,
+   "as_written_by_term": {
+    "pressure": -0.6382836884308265,
+    "viscous": -166.61141794196797,
+    "coupling": 0.0
+   },
+   "wall": -148.3429067170823,
+   "wall_standard_error": 0.0006934465511891745,
+   "wall_by_term": {
+    "viscous": -147.7764636348681,
+    "pressure_flux": -0.5664430822142028,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.0
+   },
+   "circle": -148.30708205405398,
+   "circle_standard_error": 0.0005845674409239432,
+   "circle_by_term": {
+    "pair_sum": 146.83467962886084,
+    "circulation_term": -1.4724024251931325,
+    "spin_term": -0.0
+   },
+   "layer_total": 4.4858184619433697e-05,
+   "force": [
+    -0.013763501542152173,
+    -0.014758012592489293
+   ],
+   "force_standard_error": [
+    0.003523350061687285,
+    0.008053335227863232
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.00848309542457936,
+     -0.003325559067218181
+    ],
+    "pressure_flux": [
+     -0.005280406117572812,
+     -0.011432453525271107
+    ],
+    "pressure": [
+     -0.005361634910045508,
+     -0.011662319210926324
+    ]
+   },
+   "force_as_written": [
+    -0.01563498752403238,
+    -0.016925955524351836
+   ],
+   "as_written_over_fit": 1.1265704563351706,
+   "wall_over_fit": 0.9992169461901992,
+   "circle_over_fit": 0.9989756363009591
+  },
+  "balance_wall": 0.003628763268137133,
+  "balance_as_written": -0.19240165454232275,
+  "balance_circle": 0.00041324337956536594,
+  "rotor_force_over_tangential_scale": 4.539071055380722e-05
+ },
+ "g100_k05_m1": {
+  "fit_torque": 155.86323662049875,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 8.038353817019228e-07,
+   "wall_pressure_max_difference_over_max_pressure": 5.610533770613783e-07,
+   "dummy_spin_max_difference_over_max_spin": 6.06421968509772e-08,
+   "acceleration_rms_difference_over_rms": 6.102541261250086e-06,
+   "acceleration_max_difference_over_rms": 3.543591684054547e-05,
+   "angular_acceleration_rms_difference_over_rms": 7.914331324003724e-06,
+   "angular_acceleration_max_difference_over_rms": 4.85906999401666e-05,
+   "kernel_sum_min": 0.978738639519558,
+   "target_fluid": 27737.0
+  },
+  "shear_viscosity": 8.0,
+  "coupling_viscosity": 4.0,
+  "rotor": {
+   "as_written": 152.23124738720176,
+   "as_written_standard_error": 0.0020263098667837676,
+   "as_written_by_term": {
+    "pressure": -0.1379182421056353,
+    "viscous": 148.39840180010773,
+    "coupling": 0.2961315377401072,
+    "spin_diffusion": 3.75785102084239,
+    "spin_coupling": -0.0832187293828552
+   },
+   "wall": 155.28520238859582,
+   "wall_standard_error": 0.0017929891104385772,
+   "wall_by_term": {
+    "viscous": 131.18540599822836,
+    "pressure_flux": 0.6660386145658969,
+    "spin_diffusion": 3.3275647928268817,
+    "wall_term": 20.106192982974676
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.26130478222618037,
+    "spin_coupling": -0.07368991278853339
+   },
+   "circle": 155.7988715643073,
+   "circle_standard_error": 0.0009616838905626012,
+   "circle_by_term": {
+    "pair_sum": -138.10957423670135,
+    "circulation_term": -19.220040825933008,
+    "spin_term": 1.530743498327067
+   },
+   "layer_total": 0.0061728670622000275,
+   "force": [
+    -0.02151687795504895,
+    -0.012694224911848332
+   ],
+   "force_standard_error": [
+    0.004462371142324701,
+    0.005645975029301054
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.0015505216778613385,
+     -0.014886295382389565
+    ],
+    "pressure_flux": [
+     -0.019966356277187614,
+     0.002192070470541232
+    ],
+    "pressure": [
+     0.001767693462292618,
+     0.004384455313060131
+    ]
+   },
+   "force_as_written": [
+    0.00026086453559542297,
+    -0.011897146719710374
+   ],
+   "as_written_over_fit": 0.9766975887832979,
+   "wall_over_fit": 0.9962914010741972,
+   "circle_over_fit": 0.9995870414500105
+  },
+  "stator": {
+   "as_written": -175.06368098137816,
+   "as_written_standard_error": 0.0010746140494214947,
+   "as_written_by_term": {
+    "pressure": -0.6658262662798283,
+    "viscous": -178.323362891978,
+    "coupling": -0.4287010109215295,
+    "spin_diffusion": 4.452410058121093,
+    "spin_coupling": -0.0982008703198712
+   },
+   "wall": -154.75708906692498,
+   "wall_standard_error": 0.0009685899483553967,
+   "wall_by_term": {
+    "viscous": -158.16559079661045,
+    "pressure_flux": -0.5340928198213457,
+    "spin_diffusion": 3.9425945495068713,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -0.3806960165400109,
+    "spin_coupling": -0.08695654960480853
+   },
+   "circle": -155.75819526446713,
+   "circle_standard_error": 0.0005590296434104766,
+   "circle_by_term": {
+    "pair_sum": 156.85098363011298,
+    "circulation_term": -1.0486614828144318,
+    "spin_term": 2.1414498484602755
+   },
+   "layer_total": -6.009067578666118e-06,
+   "force": [
+    0.03243705763642822,
+    0.008734212349996086
+   ],
+   "force_standard_error": [
+    0.0042993386003398705,
+    0.008377244062084727
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.0018151351109286188,
+     0.0016938873933874203
+    ],
+    "pressure_flux": [
+     0.0306219225254996,
+     0.0070403249566086635
+    ],
+    "pressure": [
+     0.030741476230514594,
+     0.006868120240541751
+    ]
+   },
+   "force_as_written": [
+    0.036765821870340894,
+    0.009666877388169905
+   ],
+   "as_written_over_fit": 1.1231877688234417,
+   "wall_over_fit": 0.9929030887747631,
+   "circle_over_fit": 0.9993260671450871
+  },
+  "fit_torque_joint": 155.89955716480256,
+  "exact_torque": 155.91281406845664,
+  "exact_couple": {
+   "rotor": 3.3655640037055115,
+   "stator": 3.9385577787960258
+  },
+  "balance_wall": 0.0033883122994341043,
+  "balance_as_written": -0.14649018004014377,
+  "balance_circle": 0.0002609743049234734,
+  "rotor_force_over_tangential_scale": 6.411359598149498e-05,
+  "change": {
+   "wall_rotor": 0.11686887496429477,
+   "wall_stator": 0.11731713391000742,
+   "circle_rotor": 0.1169118829470488,
+   "circle_stator": 0.11729198584988443
+  }
+ },
+ "g100_k05_m2": {
+  "fit_torque": 149.3599553194842,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 6.152196387887443e-07,
+   "wall_pressure_max_difference_over_max_pressure": 6.275604256183608e-07,
+   "dummy_spin_max_difference_over_max_spin": 7.487842622226457e-08,
+   "acceleration_rms_difference_over_rms": 5.936968589235501e-06,
+   "acceleration_max_difference_over_rms": 3.668766502537676e-05,
+   "angular_acceleration_rms_difference_over_rms": 7.677287577048711e-06,
+   "angular_acceleration_max_difference_over_rms": 4.3737881731058844e-05,
+   "kernel_sum_min": 0.9792218475388653,
+   "target_fluid": 27706.0
+  },
+  "shear_viscosity": 8.0,
+  "coupling_viscosity": 4.0,
+  "rotor": {
+   "as_written": 145.35561011158202,
+   "as_written_standard_error": 0.0017951653140814774,
+   "as_written_by_term": {
+    "pressure": -0.13506296048791858,
+    "viscous": 142.63787809294953,
+    "coupling": 0.7022052849524106,
+    "spin_diffusion": 2.2299095268088513,
+    "spin_coupling": -0.07931983264085096
+   },
+   "wall": 148.8256238714143,
+   "wall_standard_error": 0.0015249506387419785,
+   "wall_by_term": {
+    "viscous": 126.0948334135643,
+    "pressure_flux": 0.6500198794774653,
+    "spin_diffusion": 1.9745775953978666,
+    "wall_term": 20.106192982974676
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.6196226365990097,
+    "spin_coupling": -0.07023745247076049
+   },
+   "circle": 149.19213799079094,
+   "circle_standard_error": 0.001597831186368221,
+   "circle_by_term": {
+    "pair_sum": -133.45977664306676,
+    "circulation_term": -19.254824459669127,
+    "spin_term": 3.522463111944949
+   },
+   "layer_total": 0.004018326698752663,
+   "force": [
+    -0.019667202795138613,
+    0.01295466775574173
+   ],
+   "force_standard_error": [
+    0.004699277720330549,
+    0.006883520442749314
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.008766312291500185,
+     0.005108472992862186
+    ],
+    "pressure_flux": [
+     -0.028433515086638803,
+     0.00784619476287954
+    ],
+    "pressure": [
+     -0.0021731210795427856,
+     0.002319442256437962
+    ]
+   },
+   "force_as_written": [
+    0.007490104431915646,
+    0.008523693537736236
+   ],
+   "as_written_over_fit": 0.9731899678241281,
+   "wall_over_fit": 0.9964225253889041,
+   "circle_over_fit": 0.9988764235478359
+  },
+  "stator": {
+   "as_written": -168.4295234564538,
+   "as_written_standard_error": 0.0007642730178946032,
+   "as_written_by_term": {
+    "pressure": -0.634050905219037,
+    "viscous": -169.35711228748846,
+    "coupling": -1.0349362836175382,
+    "spin_diffusion": 2.6898913329048226,
+    "spin_coupling": -0.0933153130335936
+   },
+   "wall": -148.33827217708452,
+   "wall_standard_error": 0.000680905184907326,
+   "wall_by_term": {
+    "viscous": -150.2130280983488,
+    "pressure_flux": -0.5071340595412258,
+    "spin_diffusion": 2.381889980805514,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -0.919045000196154,
+    "spin_coupling": -0.08263040460092494
+   },
+   "circle": -149.20803926123637,
+   "circle_standard_error": 0.000961916227410748,
+   "circle_by_term": {
+    "pair_sum": 153.20748549222856,
+    "circulation_term": -1.0055280037926282,
+    "spin_term": 5.00497423478482
+   },
+   "layer_total": -8.782269381521752e-05,
+   "force": [
+    0.02192771436580184,
+    0.00315543539517764
+   ],
+   "force_standard_error": [
+    0.004158728757860864,
+    0.006945840709115568
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.001204847204429006,
+     0.004746935974565054
+    ],
+    "pressure_flux": [
+     0.02072286716137283,
+     -0.001591500579387413
+    ],
+    "pressure": [
+     0.020467202732852977,
+     -0.0017769089002531485
+    ]
+   },
+   "force_as_written": [
+    0.02447239083927311,
+    0.0033772406717412647
+   ],
+   "as_written_over_fit": 1.12767523996763,
+   "wall_over_fit": 0.9931595912691975,
+   "circle_over_fit": 0.9989828862902184
+  },
+  "fit_torque_joint": 149.31273117903456,
+  "exact_torque": 149.36888408135837,
+  "exact_couple": {
+   "rotor": 2.004386987027956,
+   "stator": 2.3842796870738034
+  },
+  "balance_wall": 0.003262934119706536,
+  "balance_as_written": -0.1544852721435018,
+  "balance_circle": -0.00010646274238240357,
+  "rotor_force_over_tangential_scale": 6.307023848625348e-05,
+  "change": {
+   "wall_rotor": 0.07040918608052071,
+   "wall_stator": 0.0709744808290349,
+   "circle_rotor": 0.06954864365246993,
+   "circle_stator": 0.07030609983566838
+  }
+ },
+ "g100_k05_m5": {
+  "fit_torque": 143.43775863552636,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 6.520880029281528e-07,
+   "wall_pressure_max_difference_over_max_pressure": 5.702258500315617e-07,
+   "dummy_spin_max_difference_over_max_spin": 9.314890466911134e-08,
+   "acceleration_rms_difference_over_rms": 5.869100827120914e-06,
+   "acceleration_max_difference_over_rms": 3.5531633203200745e-05,
+   "angular_acceleration_rms_difference_over_rms": 7.42812363715564e-06,
+   "angular_acceleration_max_difference_over_rms": 4.602104106396141e-05,
+   "kernel_sum_min": 0.9792692692117021,
+   "target_fluid": 27688.0
+  },
+  "shear_viscosity": 8.0,
+  "coupling_viscosity": 4.0,
+  "rotor": {
+   "as_written": 139.77638205683652,
+   "as_written_standard_error": 0.0013039609508200948,
+   "as_written_by_term": {
+    "pressure": -0.1323221784623024,
+    "viscous": 137.4586838134213,
+    "coupling": 1.6727664871878687,
+    "spin_diffusion": 0.8531007384205537,
+    "spin_coupling": -0.07584680373090756
+   },
+   "wall": 143.01611551407643,
+   "wall_standard_error": 0.0010196693682029642,
+   "wall_by_term": {
+    "viscous": 121.51789439784493,
+    "pressure_flux": 0.6366102185608722,
+    "spin_diffusion": 0.7554179146959618,
+    "wall_term": 20.106192982974676
+   },
+   "not_exchange_by_term": {
+    "coupling": 1.4760475402505195,
+    "spin_coupling": -0.06716209672592127
+   },
+   "circle": 143.0988594324451,
+   "circle_standard_error": 0.0025521944473577934,
+   "circle_by_term": {
+    "pair_sum": -131.307893352079,
+    "circulation_term": -19.27658820030444,
+    "spin_term": 7.485622119938328
+   },
+   "layer_total": 0.004432105107893034,
+   "force": [
+    0.004285907294044419,
+    -0.01863211574960066
+   ],
+   "force_standard_error": [
+    0.005872005537996446,
+    0.004770452040469688
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.0027950749386188097,
+     -0.005187994004293502
+    ],
+    "pressure_flux": [
+     0.007080982232663233,
+     -0.013444121745307161
+    ],
+    "pressure": [
+     -0.00017452696956992683,
+     -0.001682083930345483
+    ]
+   },
+   "force_as_written": [
+    -0.003506509060090247,
+    -0.007943356669710022
+   ],
+   "as_written_over_fit": 0.9744741090942912,
+   "wall_over_fit": 0.9970604454122758,
+   "circle_over_fit": 0.9976373082910309
+  },
+  "stator": {
+   "as_written": -163.48530193216297,
+   "as_written_standard_error": 0.0010488414672412017,
+   "as_written_by_term": {
+    "pressure": -0.6081411131942066,
+    "viscous": -161.30270810396175,
+    "coupling": -2.550358575872737,
+    "spin_diffusion": 1.0648812960354055,
+    "spin_coupling": -0.08897543516966855
+   },
+   "wall": -142.61149656524785,
+   "wall_standard_error": 0.0009422559082153893,
+   "wall_by_term": {
+    "viscous": -143.06935204488616,
+    "pressure_flux": -0.4850934264183403,
+    "spin_diffusion": 0.9429489060566708,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -2.2647604847195386,
+    "spin_coupling": -0.07878745694145958
+   },
+   "circle": -143.20579285846281,
+   "circle_standard_error": 0.0014046969657248631,
+   "circle_by_term": {
+    "pair_sum": 153.1566531403944,
+    "circulation_term": -0.9786911499957295,
+    "spin_term": 10.929551431927312
+   },
+   "layer_total": 7.777792877124463e-05,
+   "force": [
+    -0.0064731719605107315,
+    0.016668603958734995
+   ],
+   "force_standard_error": [
+    0.004647204079612431,
+    0.005588503328375307
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.003788817731597753,
+     0.002568756477511729
+    ],
+    "pressure_flux": [
+     -0.0026843542289129766,
+     0.014099847481223265
+    ],
+    "pressure": [
+     -0.0026846612003247035,
+     0.014348592334199134
+    ]
+   },
+   "force_as_written": [
+    -0.007618391589385445,
+    0.019084400736637773
+   ],
+   "as_written_over_fit": 1.139764755719428,
+   "wall_over_fit": 0.994239577652785,
+   "circle_over_fit": 0.9983828123133675
+  },
+  "fit_torque_joint": 143.33832753068293,
+  "exact_torque": 143.4224602976251,
+  "exact_couple": {
+   "rotor": 0.7796409477752342,
+   "stator": 0.9529393608508038
+  },
+  "balance_wall": 0.0028208677594908373,
+  "balance_as_written": -0.16529064662513673,
+  "balance_circle": -0.0007455040223365116,
+  "rotor_force_over_tangential_scale": 5.331567214106217e-05,
+  "change": {
+   "wall_rotor": 0.028625043333174505,
+   "wall_stator": 0.0296282358735227,
+   "circle_rotor": 0.025866329656287768,
+   "circle_stator": 0.027250504645133455
+  }
+ },
+ "g100_k1_m1": {
+  "fit_torque": 165.97547037443556,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 6.893279147490716e-07,
+   "wall_pressure_max_difference_over_max_pressure": 6.298439205064962e-07,
+   "dummy_spin_max_difference_over_max_spin": 6.265402575963353e-08,
+   "acceleration_rms_difference_over_rms": 6.676275078844154e-06,
+   "acceleration_max_difference_over_rms": 4.6471994637004564e-05,
+   "angular_acceleration_rms_difference_over_rms": 1.1543929327626812e-05,
+   "angular_acceleration_max_difference_over_rms": 6.555697917359468e-05,
+   "kernel_sum_min": 0.9789105714373734,
+   "target_fluid": 27732.0
+  },
+  "shear_viscosity": 6.666666666666667,
+  "coupling_viscosity": 6.666666666666667,
+  "rotor": {
+   "as_written": 167.51999783379154,
+   "as_written_standard_error": 0.002212963872385122,
+   "as_written_by_term": {
+    "pressure": -0.1406831024195674,
+    "viscous": 161.18575672859984,
+    "coupling": 0.5321641905220832,
+    "spin_diffusion": 6.07768259810724,
+    "spin_coupling": -0.13492258101806237
+   },
+   "wall": 165.32029181995406,
+   "wall_standard_error": 0.0019703730603283544,
+   "wall_by_term": {
+    "viscous": 142.490704115881,
+    "pressure_flux": 0.6926588150201676,
+    "spin_diffusion": 5.381768069907336,
+    "wall_term": 16.755160819145566
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.46957868475567754,
+    "spin_coupling": -0.11947350436803468
+   },
+   "circle": 165.8621214036497,
+   "circle_standard_error": 0.0011602293148482445,
+   "circle_by_term": {
+    "pair_sum": -152.57917786792757,
+    "circulation_term": -16.034333933571126,
+    "spin_term": 2.751390397848996
+   },
+   "layer_total": 0.00372305805096047,
+   "force": [
+    0.023200215783674084,
+    -0.04074424175123148
+   ],
+   "force_standard_error": [
+    0.0042949592546937,
+    0.003863163090847646
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.003737670089764375,
+     -0.014774270366867563
+    ],
+    "pressure_flux": [
+     0.019462545693909705,
+     -0.02596997138436391
+    ],
+    "pressure": [
+     0.0021020778908024127,
+     0.00015297174091031653
+    ]
+   },
+   "force_as_written": [
+    0.0067067620907844926,
+    -0.016593359212099885
+   ],
+   "as_written_over_fit": 1.0093057573861461,
+   "wall_over_fit": 0.9960525579291721,
+   "circle_over_fit": 0.9993170739596029
+  },
+  "stator": {
+   "as_written": -186.7856689870116,
+   "as_written_standard_error": 0.0008143611611159071,
+   "as_written_by_term": {
+    "pressure": -0.6892569578548731,
+    "viscous": -192.36921407348646,
+    "coupling": -0.7705241443508862,
+    "spin_diffusion": 7.202264626593788,
+    "spin_coupling": -0.15893843791314521
+   },
+   "wall": -164.79913261459285,
+   "wall_standard_error": 0.000737591420444143,
+   "wall_by_term": {
+    "viscous": -170.623752202605,
+    "pressure_flux": -0.5529621913483886,
+    "spin_diffusion": 6.377581779360567,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -0.684242540430423,
+    "spin_coupling": -0.14073946712984
+   },
+   "circle": -165.85305090403034,
+   "circle_standard_error": 0.0008217225784262772,
+   "circle_by_term": {
+    "pair_sum": 168.84981040952462,
+    "circulation_term": -0.8519961877125309,
+    "spin_term": 3.848755693206822
+   },
+   "layer_total": -0.00010240418705338997,
+   "force": [
+    -0.005322688855808471,
+    0.04182314169720654
+   ],
+   "force_standard_error": [
+    0.0067465944315500655,
+    0.0023195414578422147
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.0007586899859385326,
+     0.005658660193322284
+    ],
+    "pressure_flux": [
+     -0.004563998869869935,
+     0.03616448150388425
+    ],
+    "pressure": [
+     -0.00428759481472365,
+     0.03648140957012001
+    ]
+   },
+   "force_as_written": [
+    -0.005725889401565948,
+    0.04759703366709744
+   ],
+   "as_written_over_fit": 1.1253811696730178,
+   "wall_over_fit": 0.9929125806530994,
+   "circle_over_fit": 0.9992624243201176
+  },
+  "fit_torque_joint": 166.0030439536768,
+  "exact_torque": 166.0101491135106,
+  "exact_couple": {
+   "rotor": 5.444052406517228,
+   "stator": 6.37091284856094
+  },
+  "balance_wall": 0.003139977276072759,
+  "balance_as_written": -0.11607541228687171,
+  "balance_circle": 5.464963948523456e-05,
+  "rotor_force_over_tangential_scale": 0.00011299619909776592,
+  "change": {
+   "wall_rotor": 0.18904496689686567,
+   "wall_stator": 0.1898188033516417,
+   "circle_rotor": 0.1890546604509744,
+   "circle_stator": 0.18970487741712838
+  }
+ },
+ "g100_k1_m2": {
+  "fit_torque": 154.95723784565897,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 5.847457273944201e-07,
+   "wall_pressure_max_difference_over_max_pressure": 7.516043134082099e-07,
+   "dummy_spin_max_difference_over_max_spin": 6.942306035103809e-08,
+   "acceleration_rms_difference_over_rms": 6.433170056244085e-06,
+   "acceleration_max_difference_over_rms": 3.83033624984617e-05,
+   "angular_acceleration_rms_difference_over_rms": 1.1318668541498429e-05,
+   "angular_acceleration_max_difference_over_rms": 6.123077020192566e-05,
+   "kernel_sum_min": 0.9790889082756191,
+   "target_fluid": 27725.0
+  },
+  "shear_viscosity": 6.666666666666667,
+  "coupling_viscosity": 6.666666666666667,
+  "rotor": {
+   "as_written": 155.899864836872,
+   "as_written_standard_error": 0.0017069411884809275,
+   "as_written_by_term": {
+    "pressure": -0.13615084788794213,
+    "viscous": 151.44153678989815,
+    "coupling": 1.223295769689563,
+    "spin_diffusion": 3.4962067701406414,
+    "spin_coupling": -0.12502364496837604
+   },
+   "wall": 154.39794895502797,
+   "wall_standard_error": 0.0015527064405190109,
+   "wall_by_term": {
+    "viscous": 133.87974889313273,
+    "pressure_flux": 0.6671595784847459,
+    "spin_diffusion": 3.0958796642648823,
+    "wall_term": 16.755160819145566
+   },
+   "not_exchange_by_term": {
+    "coupling": 1.07943047041435,
+    "spin_coupling": -0.11070802886017457
+   },
+   "circle": 154.67857103121912,
+   "circle_standard_error": 0.0021870964593484164,
+   "circle_by_term": {
+    "pair_sum": -144.7390726021125,
+    "circulation_term": -16.07840329575286,
+    "spin_term": 6.138904866646217
+   },
+   "layer_total": 0.005266282061381003,
+   "force": [
+    -0.015527872769432148,
+    -0.011889716459300587
+   ],
+   "force_standard_error": [
+    0.003667225177032412,
+    0.005498495604617515
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.007649981440602018,
+     0.00046906354510178064
+    ],
+    "pressure_flux": [
+     -0.007877891328830131,
+     -0.012358780004402364
+    ],
+    "pressure": [
+     -0.001639424386976293,
+     -0.002380492090686992
+    ]
+   },
+   "force_as_written": [
+    -0.01059872843267204,
+    -0.00214804412434866
+   ],
+   "as_written_over_fit": 1.0060831427064538,
+   "wall_over_fit": 0.996390688822241,
+   "circle_over_fit": 0.9982016534476602
+  },
+  "stator": {
+   "as_written": -175.57580466820886,
+   "as_written_standard_error": 0.0008209019512833823,
+   "as_written_by_term": {
+    "pressure": -0.6389415554231607,
+    "viscous": -177.2057648612318,
+    "coupling": -1.8036328907581842,
+    "spin_diffusion": 4.219075093413714,
+    "spin_coupling": -0.14654045420943682
+   },
+   "wall": -153.94885921814384,
+   "wall_standard_error": 0.000701966132388446,
+   "wall_by_term": {
+    "viscous": -157.1746145188045,
+    "pressure_flux": -0.5102219004762129,
+    "spin_diffusion": 3.735977201136918,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -1.6016636241873672,
+    "spin_coupling": -0.12976109309487002
+   },
+   "circle": -154.80039015447025,
+   "circle_standard_error": 0.0016931686451863125,
+   "circle_by_term": {
+    "pair_sum": 162.72520118390884,
+    "circulation_term": -0.7973816138186954,
+    "spin_term": 8.722192643257292
+   },
+   "layer_total": -1.191433216110732e-05,
+   "force": [
+    0.007339078921407698,
+    0.007378238727139415
+   ],
+   "force_standard_error": [
+    0.003103621711441219,
+    0.007423709829530748
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.004607573841178576,
+     -0.002156220139161467
+    ],
+    "pressure_flux": [
+     0.011946652762586277,
+     0.009534458866300884
+    ],
+    "pressure": [
+     0.01209116154652468,
+     0.009813724938780898
+    ]
+   },
+   "force_as_written": [
+    0.008316064222195779,
+    0.008634546022948763
+   ],
+   "as_written_over_fit": 1.1330597209217583,
+   "wall_over_fit": 0.9934925361245823,
+   "circle_over_fit": 0.998987800161068
+  },
+  "fit_torque_joint": 154.89010125377018,
+  "exact_torque": 154.94363408793913,
+  "exact_couple": {
+   "rotor": 3.1438840705350257,
+   "stator": 3.739746354573104
+  },
+  "balance_wall": 0.0028981526976586728,
+  "balance_as_written": -0.12697657821530442,
+  "balance_circle": -0.0007861467134078852,
+  "rotor_force_over_tangential_scale": 5.0483865185480514e-05,
+  "change": {
+   "wall_rotor": 0.11048741859295719,
+   "wall_stator": 0.11148186611306588,
+   "circle_rotor": 0.10888052196660936,
+   "circle_stator": 0.11042141334749678
+  }
+ },
+ "g100_k1_m5": {
+  "fit_torque": 145.4815060377896,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 7.619268370673282e-07,
+   "wall_pressure_max_difference_over_max_pressure": 6.323168176994038e-07,
+   "dummy_spin_max_difference_over_max_spin": 8.626242747311117e-08,
+   "acceleration_rms_difference_over_rms": 6.3018495875776205e-06,
+   "acceleration_max_difference_over_rms": 3.7294145100027865e-05,
+   "angular_acceleration_rms_difference_over_rms": 1.0821104221276136e-05,
+   "angular_acceleration_max_difference_over_rms": 6.372013875765414e-05,
+   "kernel_sum_min": 0.9787548458983574,
+   "target_fluid": 27729.0
+  },
+  "shear_viscosity": 6.666666666666667,
+  "coupling_viscosity": 6.666666666666667,
+  "rotor": {
+   "as_written": 147.07274895618693,
+   "as_written_standard_error": 0.0018036297301213295,
+   "as_written_by_term": {
+    "pressure": -0.1317721375621702,
+    "viscous": 143.18821723674094,
+    "coupling": 2.8329132223776896,
+    "spin_diffusion": 1.3001327877026607,
+    "spin_coupling": -0.11674215307217305
+   },
+   "wall": 145.1382297917074,
+   "wall_standard_error": 0.0014496494076790963,
+   "wall_by_term": {
+    "viscous": 126.58612288237288,
+    "pressure_flux": 0.6456827574053726,
+    "spin_diffusion": 1.151263332783594,
+    "wall_term": 16.755160819145566
+   },
+   "not_exchange_by_term": {
+    "coupling": 2.4997601647969585,
+    "spin_coupling": -0.10337479486206128
+   },
+   "circle": 144.96637718498175,
+   "circle_standard_error": 0.002979516689116941,
+   "circle_by_term": {
+    "pair_sum": -141.55385402427854,
+    "circulation_term": -16.103652173796103,
+    "spin_term": 12.69112901309289
+   },
+   "layer_total": 0.004819015822583179,
+   "force": [
+    0.041624200644148554,
+    -0.004768415351367934
+   ],
+   "force_standard_error": [
+    0.0048189493140886564,
+    0.004626711587036379
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.006914900798475481,
+     -0.005824681851310095
+    ],
+    "pressure_flux": [
+     0.034709299845673065,
+     0.0010562664999421616
+    ],
+    "pressure": [
+     0.0027413507967057452,
+     -0.002282213773187874
+    ]
+   },
+   "force_as_written": [
+    0.010806654657099866,
+    -0.009861314392119113
+   ],
+   "as_written_over_fit": 1.0109377677048794,
+   "wall_over_fit": 0.997640413167066,
+   "circle_over_fit": 0.9964591454485354
+  },
+  "stator": {
+   "as_written": -167.7871248008009,
+   "as_written_standard_error": 0.001079712468742425,
+   "as_written_by_term": {
+    "pressure": -0.5978418955670802,
+    "viscous": -164.35457175437253,
+    "coupling": -4.323293976935254,
+    "spin_diffusion": 1.6247420963868269,
+    "spin_coupling": -0.1361592703128809
+   },
+   "wall": -144.81332114036425,
+   "wall_standard_error": 0.0008931456128638134,
+   "wall_by_term": {
+    "viscous": -145.77654304395,
+    "pressure_flux": -0.47548191074178325,
+    "spin_diffusion": 1.4387038143275288,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -3.839156703515597,
+    "spin_coupling": -0.12056858869529508
+   },
+   "circle": -145.19259663587954,
+   "circle_standard_error": 0.003183094360253879,
+   "circle_by_term": {
+    "pair_sum": 162.95579216402018,
+    "circulation_term": -0.766301062443825,
+    "spin_term": 18.529496590584476
+   },
+   "layer_total": -3.31442998191569e-05,
+   "force": [
+    -0.03292590705357146,
+    -0.0058705444199643655
+   ],
+   "force_standard_error": [
+    0.005566306514915807,
+    0.006315257670088548
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.0013273026122835121,
+     0.0010106578081723514
+    ],
+    "pressure_flux": [
+     -0.034253209665854975,
+     -0.006881202228136716
+    ],
+    "pressure": [
+     -0.03446047576768975,
+     -0.0070168094285645525
+    ]
+   },
+   "force_as_written": [
+    -0.03735449092993388,
+    -0.006607363239766334
+   ],
+   "as_written_over_fit": 1.1533227100166072,
+   "wall_over_fit": 0.9954070801463124,
+   "circle_over_fit": 0.9980141159534395
+  },
+  "fit_torque_joint": 145.3765981161522,
+  "exact_torque": 145.45383934201016,
+  "exact_couple": {
+   "rotor": 1.1899784877405293,
+   "stator": 1.4544866361490612
+  },
+  "balance_wall": 0.0022333330207535383,
+  "balance_as_written": -0.14238494231172802,
+  "balance_circle": -0.001554970504904076,
+  "rotor_force_over_tangential_scale": 0.00011519386424813925,
+  "change": {
+   "wall_rotor": 0.04388807773275771,
+   "wall_stator": 0.04552499600564053,
+   "circle_rotor": 0.03925444183245208,
+   "circle_stator": 0.0415023386124882
+  }
+ },
+ "g100_k3_m1": {
+  "fit_torque": 184.52150210332215,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 6.212568774977001e-07,
+   "wall_pressure_max_difference_over_max_pressure": 7.025658519634269e-07,
+   "dummy_spin_max_difference_over_max_spin": 6.368126678240387e-08,
+   "acceleration_rms_difference_over_rms": 7.777983502354962e-06,
+   "acceleration_max_difference_over_rms": 4.219367358883383e-05,
+   "angular_acceleration_rms_difference_over_rms": 1.6911227489159737e-05,
+   "angular_acceleration_max_difference_over_rms": 0.00010326704233110402,
+   "kernel_sum_min": 0.9757721915139005,
+   "target_fluid": 27730.0
+  },
+  "shear_viscosity": 4.0,
+  "coupling_viscosity": 12.0,
+  "rotor": {
+   "as_written": 196.32586543139908,
+   "as_written_standard_error": 0.0020769408532225336,
+   "as_written_by_term": {
+    "pressure": -0.14404657461901613,
+    "viscous": 185.2854750062288,
+    "coupling": 1.0853604071262628,
+    "spin_diffusion": 10.329501675014019,
+    "spin_coupling": -0.23042508235098194
+   },
+   "wall": 183.73630477296751,
+   "wall_standard_error": 0.0017568468460588027,
+   "wall_by_term": {
+    "viscous": 163.7978513867327,
+    "pressure_flux": 0.7386169333750948,
+    "spin_diffusion": 9.146739961372345,
+    "wall_term": 10.053096491487338
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.9577161081732025,
+    "spin_coupling": -0.20404065705709656
+   },
+   "circle": 184.28024683864845,
+   "circle_standard_error": 0.002009235230741109,
+   "circle_by_term": {
+    "pair_sum": -180.25265105262287,
+    "circulation_term": -9.639995624831391,
+    "spin_term": 5.612399838805815
+   },
+   "layer_total": 0.004975392296287284,
+   "force": [
+    -0.02092626268358146,
+    0.017003074876067115
+   ],
+   "force_standard_error": [
+    0.006247950832793201,
+    0.00457906377142766
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.01627329351890993,
+     0.009963201939096113
+    ],
+    "pressure_flux": [
+     -0.00465296916467153,
+     0.007039872936971002
+    ],
+    "pressure": [
+     0.0008021324390242075,
+     -0.004646379626455757
+    ]
+   },
+   "force_as_written": [
+    -0.01773312792373228,
+    0.005990524200464857
+   ],
+   "as_written_over_fit": 1.0639728334829353,
+   "wall_over_fit": 0.9957446838368194,
+   "circle_over_fit": 0.9986925357645386
+  },
+  "stator": {
+   "as_written": -208.46906065494832,
+   "as_written_standard_error": 0.0018479564061494346,
+   "as_written_by_term": {
+    "pressure": -0.7262160375015521,
+    "viscous": -218.14358964633212,
+    "coupling": -1.5716388349403585,
+    "spin_diffusion": 12.242836321137958,
+    "spin_coupling": -0.2704524573122555
+   },
+   "wall": -183.2262616014486,
+   "wall_standard_error": 0.001640087713222064,
+   "wall_by_term": {
+    "viscous": -193.48471019091775,
+    "pressure_flux": -0.5825429454823,
+    "spin_diffusion": 10.840991534951407,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -1.3956503469277821,
+    "spin_coupling": -0.23948476671755786
+   },
+   "circle": -184.3694664604128,
+   "circle_standard_error": 0.0018853704112547142,
+   "circle_by_term": {
+    "pair_sum": 191.73341156252494,
+    "circulation_term": -0.4871636636773882,
+    "spin_term": 7.851108765789525
+   },
+   "layer_total": -4.30827801334882e-05,
+   "force": [
+    0.010088939624425433,
+    -0.025430159621776065
+   ],
+   "force_standard_error": [
+    0.004885918504045874,
+    0.00262626637796598
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.000614545033933578,
+     0.0015064851849196559
+    ],
+    "pressure_flux": [
+     0.010703484658359012,
+     -0.02693664480669572
+    ],
+    "pressure": [
+     0.010738907954830209,
+     -0.026780069959143924
+    ]
+   },
+   "force_as_written": [
+    0.01142988446783541,
+    -0.02849087552104412
+   ],
+   "as_written_over_fit": 1.1297819402002094,
+   "wall_over_fit": 0.9929805443424785,
+   "circle_over_fit": 0.9991760545997278
+  },
+  "fit_torque_joint": 184.5248524060627,
+  "exact_torque": 184.51959586294382,
+  "exact_couple": {
+   "rotor": 9.254134001264628,
+   "stator": 10.829668197238892
+  },
+  "balance_wall": 0.0027641394943409086,
+  "balance_as_written": -0.06580910671727408,
+  "balance_circle": -0.00048351883518918604,
+  "rotor_force_over_tangential_scale": 5.844994486801925e-05,
+  "change": {
+   "wall_rotor": 0.32149977490032633,
+   "wall_stator": 0.32285921571607945,
+   "circle_rotor": 0.32109299265075797,
+   "circle_stator": 0.3225276972545372
+  }
+ },
+ "g100_k3_m10": {
+  "fit_torque": 144.05068459184284,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 6.495253590532712e-07,
+   "wall_pressure_max_difference_over_max_pressure": 5.381286279174321e-07,
+   "dummy_spin_max_difference_over_max_spin": 1.3097180644938907e-07,
+   "acceleration_rms_difference_over_rms": 7.2332005147440266e-06,
+   "acceleration_max_difference_over_rms": 4.174327381990676e-05,
+   "angular_acceleration_rms_difference_over_rms": 1.7623550954674726e-05,
+   "angular_acceleration_max_difference_over_rms": 0.00012983890766981869,
+   "kernel_sum_min": 0.9791715040341006,
+   "target_fluid": 27714.0
+  },
+  "shear_viscosity": 4.0,
+  "coupling_viscosity": 12.0,
+  "rotor": {
+   "as_written": 160.27536197844933,
+   "as_written_standard_error": 0.002046195655643202,
+   "as_written_by_term": {
+    "pressure": -0.12854321918780806,
+    "viscous": 150.14080913649036,
+    "coupling": 9.525226293045366,
+    "spin_diffusion": 0.9155624473508751,
+    "spin_coupling": -0.17769267924945978
+   },
+   "wall": 144.25734778856253,
+   "wall_standard_error": 0.0016408681974270144,
+   "wall_by_term": {
+    "viscous": 132.73959020957136,
+    "pressure_flux": 0.6539335337658376,
+    "spin_diffusion": 0.8107275537379443,
+    "wall_term": 10.053096491487338
+   },
+   "not_exchange_by_term": {
+    "coupling": 8.405105881174352,
+    "spin_coupling": -0.15734628651697724
+   },
+   "circle": 142.63544961972178,
+   "circle_standard_error": 0.005365478562517824,
+   "circle_by_term": {
+    "pair_sum": -168.84751333100968,
+    "circulation_term": -9.687866792806044,
+    "spin_term": 35.899930504093945
+   },
+   "layer_total": 0.003605811955473041,
+   "force": [
+    0.03357961303016411,
+    -0.0015746355261890659
+   ],
+   "force_standard_error": [
+    0.004269879236921647,
+    0.0041303263032352955
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.0018766154658793912,
+     -0.006083348461864891
+    ],
+    "pressure_flux": [
+     0.031702997564284706,
+     0.004508712935675825
+    ],
+    "pressure": [
+     -0.00036820826293051706,
+     -0.0002066254112642011
+    ]
+   },
+   "force_as_written": [
+    0.0015546226454637505,
+    -0.00877606152451584
+   ],
+   "as_written_over_fit": 1.1126317270381458,
+   "wall_over_fit": 1.001434656123331,
+   "circle_over_fit": 0.9901754373737895
+  },
+  "stator": {
+   "as_written": -177.96469843149714,
+   "as_written_standard_error": 0.0008568390068493042,
+   "as_written_by_term": {
+    "pressure": -0.5657987038561653,
+    "viscous": -163.42382326181107,
+    "coupling": -14.949098267836112,
+    "spin_diffusion": 1.1784558536958223,
+    "spin_coupling": -0.20443405168959186
+   },
+   "wall": -144.3553008619097,
+   "wall_standard_error": 0.0007519996660664402,
+   "wall_by_term": {
+    "viscous": -144.9525987912065,
+    "pressure_flux": -0.44622087624116263,
+    "spin_diffusion": 1.043518805537936,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -13.274959110526442,
+    "spin_coupling": -0.18102568438297018
+   },
+   "circle": -143.1817097460161,
+   "circle_standard_error": 0.007557493464553491,
+   "circle_by_term": {
+    "pair_sum": 195.81172554973085,
+    "circulation_term": -0.4281024461464867,
+    "spin_term": 53.058118249861224
+   },
+   "layer_total": -0.00011177446623015696,
+   "force": [
+    -0.030431436386484156,
+    -0.008315921140045422
+   ],
+   "force_standard_error": [
+    0.004703980090889482,
+    0.004280089695640382
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.0028749426851382553,
+     0.0005329803996769734
+    ],
+    "pressure_flux": [
+     -0.03330637907162241,
+     -0.008848901539722401
+    ],
+    "pressure": [
+     -0.03366477641112621,
+     -0.008887306241452715
+    ]
+   },
+   "force_as_written": [
+    -0.03314732546819289,
+    -0.010411791865431147
+   ],
+   "as_written_over_fit": 1.2354311188159028,
+   "wall_over_fit": 1.0021146464588486,
+   "circle_over_fit": 0.9939675757301056
+  },
+  "fit_torque_joint": 143.92715240519746,
+  "exact_torque": 143.91890844192122,
+  "exact_couple": {
+   "rotor": 0.8755961375936816,
+   "stator": 1.0822735561668262
+  },
+  "balance_wall": -0.0006799903355178607,
+  "balance_as_written": -0.12279939177775702,
+  "balance_circle": -0.003792138356316157,
+  "rotor_force_over_tangential_scale": 9.33463446781321e-05,
+  "change": {
+   "wall_rotor": 0.03755244705645722,
+   "wall_stator": 0.04221817556929719,
+   "circle_rotor": 0.022544175129056265,
+   "circle_stator": 0.027077750534280298
+  }
+ },
+ "g100_k3_m1_t3": {
+  "fit_torque": 184.5048141702284,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 6.507899249497129e-07,
+   "wall_pressure_max_difference_over_max_pressure": 7.892280373871171e-07,
+   "dummy_spin_max_difference_over_max_spin": 6.586907559733546e-08,
+   "acceleration_rms_difference_over_rms": 7.782155396076899e-06,
+   "acceleration_max_difference_over_rms": 5.280624533729857e-05,
+   "angular_acceleration_rms_difference_over_rms": 1.694049641925661e-05,
+   "angular_acceleration_max_difference_over_rms": 9.253724061282858e-05,
+   "kernel_sum_min": 0.9783108270953026,
+   "target_fluid": 27724.0
+  },
+  "shear_viscosity": 4.0,
+  "coupling_viscosity": 12.0,
+  "rotor": {
+   "as_written": 196.32059455895362,
+   "as_written_standard_error": 0.0023491590138376124,
+   "as_written_by_term": {
+    "pressure": -0.14395602584652134,
+    "viscous": 185.2805899012623,
+    "coupling": 1.0852936233200585,
+    "spin_diffusion": 10.329077501698071,
+    "spin_coupling": -0.23041044148031609
+   },
+   "wall": 183.7313902584883,
+   "wall_standard_error": 0.002047802791382901,
+   "wall_by_term": {
+    "viscous": 163.79353864923823,
+    "pressure_flux": 0.7383907604748439,
+    "spin_diffusion": 9.14636435728789,
+    "wall_term": 10.053096491487338
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.9576570460715209,
+    "spin_coupling": -0.20402769261398965
+   },
+   "circle": 184.2769431159185,
+   "circle_standard_error": 0.001565834561981856,
+   "circle_by_term": {
+    "pair_sum": -180.24926617385128,
+    "circulation_term": -9.639996586793197,
+    "spin_term": 5.612319644725989
+   },
+   "layer_total": 0.002721398504983923,
+   "force": [
+    0.016230746466399458,
+    0.010243536371388211
+   ],
+   "force_standard_error": [
+    0.005578793958181908,
+    0.006472427827735306
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.01154496054320541,
+     -0.0019922587170903214
+    ],
+    "pressure_flux": [
+     0.004685785923194044,
+     0.012235795088478527
+    ],
+    "pressure": [
+     -0.0013535419036909996,
+     0.001424119774635353
+    ]
+   },
+   "force_as_written": [
+    0.01161088267018933,
+    -0.000620191712863159
+   ],
+   "as_written_over_fit": 1.0640404991157775,
+   "wall_over_fit": 0.9958081098576294,
+   "circle_over_fit": 0.9987649587609152
+  },
+  "stator": {
+   "as_written": -208.4715406079281,
+   "as_written_standard_error": 0.0014848829827435292,
+   "as_written_by_term": {
+    "pressure": -0.725737674720258,
+    "viscous": -218.14673780762413,
+    "coupling": -1.5717716145745768,
+    "spin_diffusion": 12.243180451576755,
+    "spin_coupling": -0.27047396258592743
+   },
+   "wall": -183.22827711603733,
+   "wall_standard_error": 0.0012814922758389408,
+   "wall_by_term": {
+    "viscous": -193.4875198681856,
+    "pressure_flux": -0.5820535091815476,
+    "spin_diffusion": 10.841296261329841,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -1.395768092549735,
+    "spin_coupling": -0.23950380956708384
+   },
+   "circle": -184.37118001982603,
+   "circle_standard_error": 0.001756009408677858,
+   "circle_by_term": {
+    "pair_sum": 191.73473439376656,
+    "circulation_term": -0.48714265815835134,
+    "spin_term": 7.850697032098878
+   },
+   "layer_total": 7.52936022658864e-05,
+   "force": [
+    -0.009853896180036854,
+    -0.005050605059005984
+   ],
+   "force_standard_error": [
+    0.0056731448239726945,
+    0.007562645118062311
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.005900927845857183,
+     0.004178000648604467
+    ],
+    "pressure_flux": [
+     -0.015754824025894038,
+     -0.00922860570761045
+    ],
+    "pressure": [
+     -0.01562856674848355,
+     -0.00939115081436177
+    ]
+   },
+   "force_as_written": [
+    -0.010846732072006255,
+    -0.0058174062871143226
+   ],
+   "as_written_over_fit": 1.1298975668764255,
+   "wall_over_fit": 0.9930812805078717,
+   "circle_over_fit": 0.9992757145606018
+  },
+  "fit_torque_joint": 184.5232034542945,
+  "exact_torque": 184.51959586294382,
+  "exact_couple": {
+   "rotor": 9.254134001264628,
+   "stator": 10.829668197238892
+  },
+  "balance_wall": 0.0027268293497576326,
+  "balance_as_written": -0.06585706776064787,
+  "balance_circle": -0.0005107557996865257,
+  "rotor_force_over_tangential_scale": 4.1609523909048795e-05,
+  "change": {
+   "wall_rotor": 0.32146442788610363,
+   "wall_stator": 0.3228737673530817,
+   "circle_rotor": 0.3210693084793772,
+   "circle_stator": 0.32253998903922576
+  }
+ },
+ "g100_k3_m2": {
+  "fit_torque": 164.34569928021992,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 5.93924287195513e-07,
+   "wall_pressure_max_difference_over_max_pressure": 5.053941175341606e-07,
+   "dummy_spin_max_difference_over_max_spin": 7.514665504818672e-08,
+   "acceleration_rms_difference_over_rms": 7.252481116272969e-06,
+   "acceleration_max_difference_over_rms": 4.9432438351862794e-05,
+   "angular_acceleration_rms_difference_over_rms": 1.6710713134086157e-05,
+   "angular_acceleration_max_difference_over_rms": 9.956785457663689e-05,
+   "kernel_sum_min": 0.9801160267003005,
+   "target_fluid": 27727.0
+  },
+  "shear_viscosity": 4.0,
+  "coupling_viscosity": 12.0,
+  "rotor": {
+   "as_written": 175.15306328126857,
+   "as_written_standard_error": 0.0018745056719846704,
+   "as_written_by_term": {
+    "pressure": -0.13722682643776116,
+    "viscous": 167.50475089449705,
+    "coupling": 2.3624584588037756,
+    "spin_diffusion": 5.626419885741207,
+    "spin_coupling": -0.20333913133566603
+   },
+   "wall": 163.8165276707853,
+   "wall_standard_error": 0.0016723648763465355,
+   "wall_by_term": {
+    "viscous": 148.0850338305743,
+    "pressure_flux": 0.6962209352328151,
+    "spin_diffusion": 4.982176413490855,
+    "wall_term": 10.053096491487338
+   },
+   "not_exchange_by_term": {
+    "coupling": 2.0846223446490595,
+    "spin_coupling": -0.1800561359893629
+   },
+   "circle": 163.87027562065856,
+   "circle_standard_error": 0.002036050700099508,
+   "circle_by_term": {
+    "pair_sum": -166.05343762109612,
+    "circulation_term": -9.680029275844838,
+    "spin_term": 11.86319127628239
+   },
+   "layer_total": 0.0024235267942032974,
+   "force": [
+    0.03490562610836728,
+    0.0049768101041517306
+   ],
+   "force_standard_error": [
+    0.004688511262966245,
+    0.007394981444035252
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.01172677058509194,
+     -0.0025707498827256653
+    ],
+    "pressure_flux": [
+     0.023178855523275338,
+     0.0075475599868773955
+    ],
+    "pressure": [
+     -0.0026772784028789,
+     0.0009261569064034902
+    ]
+   },
+   "force_as_written": [
+    0.010398712225776511,
+    -0.0017452373952897549
+   ],
+   "as_written_over_fit": 1.065759944120116,
+   "wall_over_fit": 0.9967801310788648,
+   "circle_over_fit": 0.9971071731013129
+  },
+  "stator": {
+   "as_written": -188.03344839218252,
+   "as_written_standard_error": 0.0010672239439351032,
+   "as_written_by_term": {
+    "pressure": -0.6408717302074932,
+    "viscous": -190.46468981800558,
+    "coupling": -3.485011435804489,
+    "spin_diffusion": 6.793653072577592,
+    "spin_coupling": -0.23652848074248967
+   },
+   "wall": -163.42933517851066,
+   "wall_standard_error": 0.0009227454794691706,
+   "wall_by_term": {
+    "viscous": -168.93508567386417,
+    "pressure_flux": -0.5100070888632762,
+    "spin_diffusion": 6.015757584216776,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -3.0947629726992014,
+    "spin_coupling": -0.20944519637798337
+   },
+   "circle": -164.18405526126878,
+   "circle_standard_error": 0.0032429671895939723,
+   "circle_by_term": {
+    "pair_sum": 180.59952699445645,
+    "circulation_term": -0.4374511384657171,
+    "spin_term": 16.852922871653405
+   },
+   "layer_total": 0.00015377719672619974,
+   "force": [
+    -0.04322931977578508,
+    0.0005340816272523725
+   ],
+   "force_standard_error": [
+    0.00501975429784733,
+    0.008625965815286048
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.009511818898357664,
+     -0.004135554720912298
+    ],
+    "pressure_flux": [
+     -0.033717500877427406,
+     0.004669636348164671
+    ],
+    "pressure": [
+     -0.03357156618032213,
+     0.004668722579961561
+    ]
+   },
+   "force_as_written": [
+    -0.04879801805476485,
+    0.00032688629433758244
+   ],
+   "as_written_over_fit": 1.1441336719835515,
+   "wall_over_fit": 0.9944241674365522,
+   "circle_over_fit": 0.9990164390083885
+  },
+  "fit_torque_joint": 164.2777232069783,
+  "exact_torque": 164.3306640249726,
+  "exact_couple": {
+   "rotor": 5.0626236056561265,
+   "stator": 6.022145775434474
+  },
+  "balance_wall": 0.0023559636423125863,
+  "balance_as_written": -0.07837372786343541,
+  "balance_circle": -0.0019092659070755894,
+  "rotor_force_over_tangential_scale": 8.581577879000506e-05,
+  "change": {
+   "wall_rotor": 0.17822933638179017,
+   "wall_stator": 0.17992912298514963,
+   "circle_rotor": 0.17477524878590023,
+   "circle_stator": 0.17773275965530133
+  }
+ },
+ "g100_k3_m5": {
+  "fit_torque": 148.6968806401476,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 6.456891437078838e-07,
+   "wall_pressure_max_difference_over_max_pressure": 6.53474977335992e-07,
+   "dummy_spin_max_difference_over_max_spin": 8.629457585293894e-08,
+   "acceleration_rms_difference_over_rms": 7.016938470328549e-06,
+   "acceleration_max_difference_over_rms": 4.1349417292630734e-05,
+   "angular_acceleration_rms_difference_over_rms": 1.618970223083086e-05,
+   "angular_acceleration_max_difference_over_rms": 9.940572482958427e-05,
+   "kernel_sum_min": 0.9786805469451436,
+   "target_fluid": 27702.0
+  },
+  "shear_viscosity": 4.0,
+  "coupling_viscosity": 12.0,
+  "rotor": {
+   "as_written": 160.77803144745005,
+   "as_written_standard_error": 0.0017669732032135662,
+   "as_written_by_term": {
+    "pressure": -0.13096199112317394,
+    "viscous": 153.87268633559347,
+    "coupling": 5.222260490370846,
+    "spin_diffusion": 1.9968884677281018,
+    "spin_coupling": -0.182841855119196
+   },
+   "wall": 148.52268399727694,
+   "wall_standard_error": 0.0014690567630314623,
+   "wall_by_term": {
+    "viscous": 136.0380725019978,
+    "pressure_flux": 0.6632767943578278,
+    "spin_diffusion": 1.768238209433993,
+    "wall_term": 10.053096491487338
+   },
+   "not_exchange_by_term": {
+    "coupling": 4.6081169651667295,
+    "spin_coupling": -0.16190586491462408
+   },
+   "circle": 147.752243413463,
+   "circle_standard_error": 0.0047320588312242525,
+   "circle_by_term": {
+    "pair_sum": -161.4982343572412,
+    "circulation_term": -9.699634669930985,
+    "spin_term": 23.445625613709183
+   },
+   "layer_total": 0.0032841893547918095,
+   "force": [
+    0.03043337691659176,
+    0.02490773585773992
+   ],
+   "force_standard_error": [
+    0.0039489072418747466,
+    0.007974216102784657
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.005920291383038793,
+     0.00471916519298122
+    ],
+    "pressure_flux": [
+     0.024513085533552966,
+     0.020188570664758702
+    ],
+    "pressure": [
+     0.0010302261380981793,
+     0.0003520907704831963
+    ]
+   },
+   "force_as_written": [
+    0.008308214093673329,
+    0.005447513522954368
+   ],
+   "as_written_over_fit": 1.0812468341991606,
+   "wall_over_fit": 0.9988285117877339,
+   "circle_over_fit": 0.9936472290298364
+  },
+  "stator": {
+   "as_written": -175.52658478359317,
+   "as_written_standard_error": 0.0013563862385596798,
+   "as_written_by_term": {
+    "pressure": -0.5786212251025461,
+    "viscous": -169.2516833487384,
+    "coupling": -7.98671094407289,
+    "spin_diffusion": 2.5013046406029447,
+    "spin_coupling": -0.21087390628228508
+   },
+   "wall": -148.3629124436832,
+   "wall_standard_error": 0.0011679339334642375,
+   "wall_by_term": {
+    "viscous": -150.12075207359393,
+    "pressure_flux": -0.457057451437395,
+    "spin_diffusion": 2.214897081348118,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -7.0923317359229205,
+    "spin_coupling": -0.18672815456997793
+   },
+   "circle": -148.25827078972898,
+   "circle_standard_error": 0.006856441039041002,
+   "circle_by_term": {
+    "pair_sum": 182.07577166966897,
+    "circulation_term": -0.4133980051743446,
+    "spin_term": 34.23089888511433
+   },
+   "layer_total": 1.5223539348883726e-05,
+   "force": [
+    -0.03128474241491697,
+    -0.024341391498985232
+   ],
+   "force_standard_error": [
+    0.004358470780878427,
+    0.009391032268760856
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.003227364104072393,
+     -0.004205456270625855
+    ],
+    "pressure_flux": [
+     -0.028057378310844584,
+     -0.020135935228359374
+    ],
+    "pressure": [
+     -0.028005561245610915,
+     -0.02016731210313993
+    ]
+   },
+   "force_as_written": [
+    -0.03597875282757457,
+    -0.02757532890896371
+   ],
+   "as_written_over_fit": 1.180432192174727,
+   "wall_over_fit": 0.9977540336083268,
+   "circle_over_fit": 0.9970503090008991
+  },
+  "fit_torque_joint": 148.57869588417728,
+  "exact_torque": 148.63816461690422,
+  "exact_couple": {
+   "rotor": 1.8332105833757626,
+   "stator": 2.240696216139047
+  },
+  "balance_wall": 0.0010744781794071125,
+  "balance_as_written": -0.09918535797556645,
+  "balance_circle": -0.0034030799710627205,
+  "rotor_force_over_tangential_scale": 0.00010579012579451904,
+  "change": {
+   "wall_rotor": 0.0682303299422331,
+   "wall_stator": 0.07115237892870052,
+   "circle_rotor": 0.0592261339483815,
+   "circle_stator": 0.06349317612512917
+  }
+ },
+ "g100_newtonian": {
+  "fit_torque": 139.56284198537168,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 6.819275601976926e-07,
+   "wall_pressure_max_difference_over_max_pressure": 7.734904993698449e-07,
+   "acceleration_rms_difference_over_rms": 5.314010038153381e-06,
+   "acceleration_max_difference_over_rms": 3.574751658847053e-05,
+   "kernel_sum_min": 0.9789320669352839,
+   "target_fluid": 27749.0
+  },
+  "shear_viscosity": 10.0,
+  "coupling_viscosity": 0.0,
+  "rotor": {
+   "as_written": 128.01622731293483,
+   "as_written_standard_error": 0.0015956432617103113,
+   "as_written_by_term": {
+    "pressure": -0.1332112796495614,
+    "viscous": 128.1494385925844,
+    "coupling": 0.0
+   },
+   "wall": 139.03619831250123,
+   "wall_standard_error": 0.0014153052390223123,
+   "wall_by_term": {
+    "viscous": 113.28373824787731,
+    "pressure_flux": 0.6197188359055822,
+    "wall_term": 25.132741228718345
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.0
+   },
+   "circle": 139.49074581713757,
+   "circle_standard_error": 0.0006760149097814138,
+   "circle_by_term": {
+    "pair_sum": -115.50842473958042,
+    "circulation_term": -23.982321077557145,
+    "spin_term": -0.0
+   },
+   "layer_total": 0.004588286634726611,
+   "force": [
+    0.0029239230098098523,
+    0.06190172457166178
+   ],
+   "force_standard_error": [
+    0.003941708612661247,
+    0.004423133165525382
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.009124621418444844,
+     0.012964444413999186
+    ],
+    "pressure_flux": [
+     -0.0062006984086349914,
+     0.04893728015766259
+    ],
+    "pressure": [
+     -0.0033610567327479464,
+     0.0010268413986149851
+    ]
+   },
+   "force_as_written": [
+    0.006508849199428352,
+    0.015800494039114918
+   ],
+   "as_written_over_fit": 0.917265838756371,
+   "wall_over_fit": 0.9962264764361445,
+   "circle_over_fit": 0.9994834143013391
+  },
+  "stator": {
+   "as_written": -156.22008221467763,
+   "as_written_standard_error": 0.0007610479405889339,
+   "as_written_by_term": {
+    "pressure": -0.6226483717849264,
+    "viscous": -155.59743384289268,
+    "coupling": 0.0
+   },
+   "wall": -138.50775609728512,
+   "wall_standard_error": 0.0006675088809330011,
+   "wall_by_term": {
+    "viscous": -138.00853822192346,
+    "pressure_flux": -0.49921787536167195,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.0
+   },
+   "circle": -139.40688489409274,
+   "circle_standard_error": 0.0009940575324637437,
+   "circle_by_term": {
+    "pair_sum": 138.04302263007156,
+    "circulation_term": -1.3638622640211717,
+    "spin_term": -0.0
+   },
+   "layer_total": -5.319751641998837e-05,
+   "force": [
+    -0.004140077597400394,
+    -0.05228399978473548
+   ],
+   "force_standard_error": [
+    0.004244543634451407,
+    0.004693521539225009
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.0012743739760755369,
+     -0.003006585601216441
+    ],
+    "pressure_flux": [
+     -0.005414451573475931,
+     -0.04927741418351903
+    ],
+    "pressure": [
+     -0.004986515237331489,
+     -0.049615944314973986
+    ]
+   },
+   "force_as_written": [
+    -0.004192156936565947,
+    -0.05942713067259975
+   ],
+   "as_written_over_fit": 1.1193529738456593,
+   "wall_over_fit": 0.9924400659009427,
+   "circle_over_fit": 0.9988825314169564
+  },
+  "balance_wall": 0.0037864105352017094,
+  "balance_as_written": -0.2020871350892883,
+  "balance_circle": 0.0006008828843827506,
+  "rotor_force_over_tangential_scale": 0.00017761387157100162
+ },
+ "g100_newtonian_rotated": {
+  "fit_torque": 139.5580228392762,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 6.966287983684541e-07,
+   "wall_pressure_max_difference_over_max_pressure": 6.550436736608603e-07,
+   "acceleration_rms_difference_over_rms": 5.299771592840715e-06,
+   "acceleration_max_difference_over_rms": 3.2766333341152354e-05,
+   "kernel_sum_min": 0.9795060081961042,
+   "target_fluid": 27712.0
+  },
+  "shear_viscosity": 10.0,
+  "coupling_viscosity": 0.0,
+  "rotor": {
+   "as_written": 127.71525085843253,
+   "as_written_standard_error": 0.0010512198207972383,
+   "as_written_by_term": {
+    "pressure": -0.12579185430374507,
+    "viscous": 127.84104271273627,
+    "coupling": 0.0
+   },
+   "wall": 138.75687412991056,
+   "wall_standard_error": 0.0007358789078174246,
+   "wall_by_term": {
+    "viscous": 113.01105260229261,
+    "pressure_flux": 0.6130802988996211,
+    "wall_term": 25.132741228718345
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.0
+   },
+   "circle": 139.48665576530252,
+   "circle_standard_error": 0.000945320978525893,
+   "circle_by_term": {
+    "pair_sum": -115.5048668637369,
+    "circulation_term": -23.98178890156561,
+    "spin_term": -0.0
+   },
+   "layer_total": 0.005723347435247884,
+   "force": [
+    0.002943699093898229,
+    0.03962641652013304
+   ],
+   "force_standard_error": [
+    0.00491173839541721,
+    0.0038246151885347095
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.007220497088503141,
+     0.005355354845862978
+    ],
+    "pressure_flux": [
+     -0.004276797994604908,
+     0.03427106167427005
+    ],
+    "pressure": [
+     -0.0031448348845040867,
+     0.0011724704771330543
+    ]
+   },
+   "force_as_written": [
+    0.004602684644014204,
+    0.007371936109788521
+   ],
+   "as_written_over_fit": 0.9151408730225238,
+   "wall_over_fit": 0.9942593862175284,
+   "circle_over_fit": 0.9994886207720507
+  },
+  "stator": {
+   "as_written": -155.9240366467396,
+   "as_written_standard_error": 0.0008713585123673831,
+   "as_written_by_term": {
+    "pressure": -0.6340629257514939,
+    "viscous": -155.28997372098812,
+    "coupling": 0.0
+   },
+   "wall": -138.23269616205738,
+   "wall_standard_error": 0.0007875792300244148,
+   "wall_by_term": {
+    "viscous": -137.736654928632,
+    "pressure_flux": -0.4960412334253685,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.0
+   },
+   "circle": -139.40627013939317,
+   "circle_standard_error": 0.000626505719414238,
+   "circle_by_term": {
+    "pair_sum": 138.04215549831176,
+    "circulation_term": -1.3641146410814253,
+    "spin_term": -0.0
+   },
+   "layer_total": 0.0001235952680871509,
+   "force": [
+    -0.0027071028603630164,
+    -0.037075291993638876
+   ],
+   "force_standard_error": [
+    0.00630285604103988,
+    0.003165860762923286
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.002450392445133191,
+     0.0006133623640598176
+    ],
+    "pressure_flux": [
+     -0.0051574953054962114,
+     -0.03768865435769869
+    ],
+    "pressure": [
+     -0.005448281935963025,
+     -0.03793011798290317
+    ]
+   },
+   "force_as_written": [
+    -0.0033855455219902824,
+    -0.04214217210708782
+   ],
+   "as_written_over_fit": 1.117270318642387,
+   "wall_over_fit": 0.9905034003043656,
+   "circle_over_fit": 0.998912619304891
+  },
+  "balance_wall": 0.0037559859131628243,
+  "balance_as_written": -0.20212944561986304,
+  "balance_circle": 0.0005760014671597975,
+  "rotor_force_over_tangential_scale": 0.00011388984598783082
+ },
+ "g100_newtonian_shifted": {
+  "fit_torque": 139.53825075279775,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 6.177565696965204e-07,
+   "wall_pressure_max_difference_over_max_pressure": 3.4366822098994266e-07,
+   "acceleration_rms_difference_over_rms": 5.316549406138286e-06,
+   "acceleration_max_difference_over_rms": 3.200809472005746e-05,
+   "kernel_sum_min": 0.9787922311504452,
+   "target_fluid": 27739.0
+  },
+  "shear_viscosity": 10.0,
+  "coupling_viscosity": 0.0,
+  "rotor": {
+   "as_written": 129.03711287407182,
+   "as_written_standard_error": 0.0013397476118403172,
+   "as_written_by_term": {
+    "pressure": -0.14924680291892142,
+    "viscous": 129.18635967699078,
+    "coupling": 0.0
+   },
+   "wall": 139.94134207622227,
+   "wall_standard_error": 0.0011211676942889982,
+   "wall_by_term": {
+    "viscous": 114.20056760225293,
+    "pressure_flux": 0.6080332452509565,
+    "wall_term": 25.132741228718345
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.0
+   },
+   "circle": 139.46089628659232,
+   "circle_standard_error": 0.0006424181488584157,
+   "circle_by_term": {
+    "pair_sum": -115.47497818026315,
+    "circulation_term": -23.985918106329166,
+    "spin_term": -0.0
+   },
+   "layer_total": 0.004281037871580156,
+   "force": [
+    0.008027039210466474,
+    -0.06355019053159085
+   ],
+   "force_standard_error": [
+    0.005004535620928921,
+    0.007200588574929843
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.009022037889814878,
+     -0.013654273954978244
+    ],
+    "pressure_flux": [
+     0.01704907710028135,
+     -0.04989591657661261
+    ],
+    "pressure": [
+     0.004600401797113264,
+     0.0007039451214086523
+    ]
+   },
+   "force_as_written": [
+    -0.004993396294061813,
+    -0.014624931280791434
+   ],
+   "as_written_over_fit": 0.9247436611676503,
+   "wall_over_fit": 1.0028887514444955,
+   "circle_over_fit": 0.9994456397024607
+  },
+  "stator": {
+   "as_written": -157.18962168880714,
+   "as_written_standard_error": 0.0006296502801580006,
+   "as_written_by_term": {
+    "pressure": -0.6163211247397745,
+    "viscous": -156.57330056406735,
+    "coupling": 0.0
+   },
+   "wall": -139.417140046574,
+   "wall_standard_error": 0.0005593968090986258,
+   "wall_by_term": {
+    "viscous": -138.8713889609493,
+    "pressure_flux": -0.5457510856247099,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.0
+   },
+   "circle": -139.3872997494614,
+   "circle_standard_error": 0.0005240766198164868,
+   "circle_by_term": {
+    "pair_sum": 138.01185039708292,
+    "circulation_term": -1.3754493523784617,
+    "spin_term": -0.0
+   },
+   "layer_total": -3.7343579122863744e-05,
+   "force": [
+    -0.0030687267148194588,
+    0.05551790442796088
+   ],
+   "force_standard_error": [
+    0.005898615959987241,
+    0.008433316561506159
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.0055418945363523466,
+     0.00028909571544393615
+    ],
+    "pressure_flux": [
+     -0.008610621251171806,
+     0.05522880871251695
+    ],
+    "pressure": [
+     -0.008610621251171806,
+     0.05522880871251695
+    ]
+   },
+   "force_as_written": [
+    -0.003465542682393252,
+    0.06269690503979829
+   ],
+   "as_written_over_fit": 1.1264984392507549,
+   "wall_over_fit": 0.9991320608824436,
+   "circle_over_fit": 0.9989182105800954
+  },
+  "balance_wall": 0.0037566905620519896,
+  "balance_as_written": -0.2017547780831046,
+  "balance_circle": 0.0005274291223652109,
+  "rotor_force_over_tangential_scale": 0.0001836202840259989
+ },
+ "g200_k05_m10": {
+  "fit_torque": 141.48757751210354,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 0.0008479179814457893,
+   "wall_pressure_max_difference_over_max_pressure": 0.32583257031301666,
+   "dummy_spin_max_difference_over_max_spin": 0.041568415176086844,
+   "acceleration_rms_difference_over_rms": 1.151560525236005e-05,
+   "acceleration_max_difference_over_rms": 7.661241637078536e-05,
+   "angular_acceleration_rms_difference_over_rms": 1.4697359989571896e-05,
+   "angular_acceleration_max_difference_over_rms": 8.974944014394913e-05,
+   "kernel_sum_min": 0.9763480403127155,
+   "target_fluid": 55436.0
+  },
+  "shear_viscosity": 8.0,
+  "coupling_viscosity": 4.0,
+  "rotor": {
+   "as_written": 138.21881127917683,
+   "as_written_standard_error": 0.001321734531526419,
+   "as_written_by_term": {
+    "pressure": -0.0912989497658444,
+    "viscous": 136.2943577475975,
+    "coupling": 1.6352233377965686,
+    "spin_diffusion": 0.4180354071885464,
+    "spin_coupling": -0.03750626363995716
+   },
+   "wall": 141.53449550546267,
+   "wall_standard_error": 0.001134479477363491,
+   "wall_by_term": {
+    "viscous": 120.58865277840779,
+    "pressure_flux": 0.46948075776316317,
+    "spin_diffusion": 0.3701689863170334,
+    "wall_term": 20.106192982974676
+   },
+   "not_exchange_by_term": {
+    "coupling": 1.4454471082748859,
+    "spin_coupling": -0.033211673828098504
+   },
+   "circle": 141.16905528901694,
+   "circle_standard_error": 0.0009642173488043459,
+   "circle_by_term": {
+    "pair_sum": -128.70469554937503,
+    "circulation_term": -19.699595389002283,
+    "spin_term": 7.235235649360376
+   },
+   "layer_total": 0.001961193269437827,
+   "force": [
+    0.005503918418878443,
+    0.005445010304629706
+   ],
+   "force_standard_error": [
+    0.0023782391067098192,
+    0.0023288613910340873
+   ],
+   "force_by_term": {
+    "viscous": [
+     1.4813966325829995e-05,
+     -0.0007894899410778958
+    ],
+    "pressure_flux": [
+     0.0054891044525526116,
+     0.006234500245707601
+    ],
+    "pressure": [
+     0.0006216638329108127,
+     0.0003005280560724195
+    ]
+   },
+   "force_as_written": [
+    0.000775880823932344,
+    -0.0006453619384581668
+   ],
+   "as_written_over_fit": 0.9768971503335897,
+   "wall_over_fit": 1.0003316050368811,
+   "circle_over_fit": 0.9977487619147387
+  },
+  "stator": {
+   "as_written": -161.84702782516834,
+   "as_written_standard_error": 0.0005496854973483351,
+   "as_written_by_term": {
+    "pressure": -0.427035998673313,
+    "viscous": -159.3741468857388,
+    "coupling": -2.526820169292695,
+    "spin_diffusion": 0.5245973192479635,
+    "spin_coupling": -0.04362209071145166
+   },
+   "wall": -141.13549209094964,
+   "wall_standard_error": 0.000484384094923466,
+   "wall_by_term": {
+    "viscous": -141.2411546301601,
+    "pressure_flux": -0.35886667183570653,
+    "spin_diffusion": 0.4645292110461506,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -2.2406580714906092,
+    "spin_coupling": -0.03862721870447857
+   },
+   "circle": -141.19360752130888,
+   "circle_standard_error": 0.001239484395173017,
+   "circle_by_term": {
+    "pair_sum": 151.62479042980894,
+    "circulation_term": -0.4835877791681027,
+    "spin_term": 10.91477068766816
+   },
+   "layer_total": -3.589691004480095e-05,
+   "force": [
+    -0.004431609460639019,
+    -0.005570504941259646
+   ],
+   "force_standard_error": [
+    0.0027864636459081532,
+    0.001998693624345069
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.0017101606521877366,
+     -0.0019701075688813934
+    ],
+    "pressure_flux": [
+     -0.002721448808451283,
+     -0.003600397372378253
+    ],
+    "pressure": [
+     -0.0027644325501198557,
+     -0.0037559366806737453
+    ]
+   },
+   "force_as_written": [
+    -0.005126478195480026,
+    -0.006459823004902829
+   ],
+   "as_written_over_fit": 1.1438956738892723,
+   "wall_over_fit": 0.9975115453430972,
+   "circle_over_fit": 0.9979222911582502
+  },
+  "fit_torque_joint": 141.40008256558326,
+  "exact_torque": 141.4803424322797,
+  "exact_couple": {
+   "rotor": 0.3809327614204485,
+   "stator": 0.4708508932771406
+  },
+  "balance_wall": 0.002820059693784068,
+  "balance_as_written": -0.1669985235556827,
+  "balance_circle": -0.00017352924351141826,
+  "rotor_force_over_tangential_scale": 2.188792525269254e-05,
+  "change": {
+   "wall_rotor": 0.014786996315734324,
+   "wall_stator": 0.015503618177354017,
+   "circle_rotor": 0.011633605162576499,
+   "circle_stator": 0.012913083225885913
+  }
+ },
+ "g200_k1_m10": {
+  "fit_torque": 142.46512814094356,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 6.217550247988868e-07,
+   "wall_pressure_max_difference_over_max_pressure": 5.290284030313944e-05,
+   "dummy_spin_max_difference_over_max_spin": 1.2966097981298352e-05,
+   "acceleration_rms_difference_over_rms": 1.226288603644747e-05,
+   "acceleration_max_difference_over_rms": 9.025329068007462e-05,
+   "angular_acceleration_rms_difference_over_rms": 2.178457239527366e-05,
+   "angular_acceleration_max_difference_over_rms": 0.0001546717216014593,
+   "kernel_sum_min": 0.9776412357711349,
+   "target_fluid": 55396.0
+  },
+  "shear_viscosity": 6.666666666666667,
+  "coupling_viscosity": 6.666666666666667,
+  "rotor": {
+   "as_written": 144.32557004811488,
+   "as_written_standard_error": 0.0009352097607595279,
+   "as_written_by_term": {
+    "pressure": -0.09040407100286939,
+    "viscous": 141.09741489843282,
+    "coupling": 2.744446932615818,
+    "spin_diffusion": 0.6313755940075353,
+    "spin_coupling": -0.05726330593841775
+   },
+   "wall": 142.62566313230593,
+   "wall_standard_error": 0.0007368985400210102,
+   "wall_by_term": {
+    "viscous": 124.83997052003234,
+    "pressure_flux": 0.47145076888913434,
+    "spin_diffusion": 0.5590810242388665,
+    "wall_term": 16.755160819145566
+   },
+   "not_exchange_by_term": {
+    "coupling": 2.4259395585331296,
+    "spin_coupling": -0.050706470188602304
+   },
+   "circle": 141.94645791429932,
+   "circle_standard_error": 0.0016592287846955097,
+   "circle_by_term": {
+    "pair_sum": -137.66502443036956,
+    "circulation_term": -16.43858571531844,
+    "spin_term": 12.157152231388672
+   },
+   "layer_total": 0.001972983613497961,
+   "force": [
+    -0.01728888751445501,
+    -0.007571542905044659
+   ],
+   "force_standard_error": [
+    0.0024094812924431784,
+    0.002336062704476712
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.010161987470251162,
+     0.002648573685032292
+    ],
+    "pressure_flux": [
+     -0.007126900044203846,
+     -0.01022011659007695
+    ],
+    "pressure": [
+     0.0010370448274937439,
+     -0.0038102367914562307
+    ]
+   },
+   "force_as_written": [
+    -0.010902625422141814,
+    -0.001450024305355786
+   ],
+   "as_written_over_fit": 1.0130589283949596,
+   "wall_over_fit": 1.0011268370966089,
+   "circle_over_fit": 0.9963593180070627
+  },
+  "stator": {
+   "as_written": -164.88364057124437,
+   "as_written_standard_error": 0.0007804851303144526,
+   "as_written_by_term": {
+    "pressure": -0.4125082163918679,
+    "viscous": -160.95302673627268,
+    "coupling": -4.245198113824657,
+    "spin_diffusion": 0.7932482096236247,
+    "spin_coupling": -0.06615571437880834
+   },
+   "wall": -142.28405647603657,
+   "wall_standard_error": 0.000673000018139966,
+   "wall_by_term": {
+    "viscous": -142.64052753740592,
+    "pressure_flux": -0.3459476347621448,
+    "spin_diffusion": 0.7024186961314983,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -3.7644300046869,
+    "spin_coupling": -0.058580668789228886
+   },
+   "circle": -142.10377628076105,
+   "circle_standard_error": 0.0021424360637125944,
+   "circle_by_term": {
+    "pair_sum": 160.06618886412753,
+    "circulation_term": -0.3753028593366007,
+    "spin_term": 18.337715442703058
+   },
+   "layer_total": 3.442640186909823e-05,
+   "force": [
+    0.01520446517542609,
+    0.002432509870234481
+   ],
+   "force_standard_error": [
+    0.0021889435602885183,
+    0.002669180910923916
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.002288665958292248,
+     0.0004316607509692823
+    ],
+    "pressure_flux": [
+     0.01291579921713384,
+     0.0020008491192651987
+    ],
+    "pressure": [
+     0.012936750018868662,
+     0.0020253851960721175
+    ]
+   },
+   "force_as_written": [
+    0.01729273648883334,
+    0.002886139306350998
+   ],
+   "as_written_over_fit": 1.1573614029120287,
+   "wall_over_fit": 0.998729010619863,
+   "circle_over_fit": 0.9974635767720995
+  },
+  "fit_torque_joint": 142.3753377277983,
+  "exact_torque": 142.4521925823584,
+  "exact_couple": {
+   "rotor": 0.5762831142763725,
+   "stator": 0.7123131602694349
+  },
+  "balance_wall": 0.002397826476745978,
+  "balance_as_written": -0.14430247451706907,
+  "balance_circle": -0.001104258765036868,
+  "rotor_force_over_tangential_scale": 5.299306477795669e-05,
+  "change": {
+   "wall_rotor": 0.02261054996296874,
+   "wall_stator": 0.02376781360747149,
+   "circle_rotor": 0.017204561338964863,
+   "circle_stator": 0.0194425703646961
+  }
+ },
+ "g200_k1_m20": {
+  "fit_torque": 141.0337855153581,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 0.0023863911628723145,
+   "wall_pressure_max_difference_over_max_pressure": 0.329290457116484,
+   "dummy_spin_max_difference_over_max_spin": 0.13294587690977028,
+   "acceleration_rms_difference_over_rms": 1.260625176699509e-05,
+   "acceleration_max_difference_over_rms": 7.324022651223948e-05,
+   "angular_acceleration_rms_difference_over_rms": 2.3051913828028883e-05,
+   "angular_acceleration_max_difference_over_rms": 0.00016801462699518228,
+   "kernel_sum_min": 0.9784835992007394,
+   "target_fluid": 55437.0
+  },
+  "shear_viscosity": 6.666666666666667,
+  "coupling_viscosity": 6.666666666666667,
+  "rotor": {
+   "as_written": 145.39133819383366,
+   "as_written_standard_error": 0.001167492876794748,
+   "as_written_by_term": {
+    "pressure": -0.08980304641117448,
+    "viscous": 140.05505837979427,
+    "coupling": 5.183108642865882,
+    "spin_diffusion": 0.29981207585546765,
+    "spin_coupling": -0.05683785827079315
+   },
+   "wall": 141.40797934989024,
+   "wall_standard_error": 0.000980668686825101,
+   "wall_by_term": {
+    "viscous": 123.91772131826286,
+    "pressure_flux": 0.4696145995342106,
+    "spin_diffusion": 0.2654826129475874,
+    "wall_term": 16.755160819145566
+   },
+   "not_exchange_by_term": {
+    "coupling": 4.581597281950336,
+    "spin_coupling": -0.05032973766990321
+   },
+   "circle": 140.24643634328328,
+   "circle_standard_error": 0.002546119130600488,
+   "circle_by_term": {
+    "pair_sum": -143.02703724429864,
+    "circulation_term": -16.42892651597427,
+    "spin_term": 19.20952741698962
+   },
+   "layer_total": 0.001575832768574487,
+   "force": [
+    -0.001157714582275517,
+    -0.0028602187098523816
+   ],
+   "force_standard_error": [
+    0.0016061710283877889,
+    0.0023128085997667553
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.001449531397041022,
+     -9.425077090907609e-05
+    ],
+    "pressure_flux": [
+     0.0002918168147655041,
+     -0.0027659679389433057
+    ],
+    "pressure": [
+     0.0008266029076455692,
+     0.0006532720252672858
+    ]
+   },
+   "force_as_written": [
+    -0.00045052501397964563,
+    0.0007524364461672857
+   ],
+   "as_written_over_fit": 1.0308972255304105,
+   "wall_over_fit": 1.0026532212346482,
+   "circle_over_fit": 0.9944173010091325
+  },
+  "stator": {
+   "as_written": -167.58097870039265,
+   "as_written_standard_error": 0.0007859561800218019,
+   "as_written_by_term": {
+    "pressure": -0.412070122925871,
+    "viscous": -159.32637784042052,
+    "coupling": -8.160812216440881,
+    "spin_diffusion": 0.3839107658242406,
+    "spin_coupling": -0.06562928642962411
+   },
+   "wall": -141.20486546330196,
+   "wall_standard_error": 0.0006592066337773527,
+   "wall_by_term": {
+    "viscous": -141.1992028524585,
+    "pressure_flux": -0.345614338801381,
+    "spin_diffusion": 0.33995172795795847,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -7.23657944573851,
+    "spin_coupling": -0.05811451856135934
+   },
+   "circle": -140.40666493051882,
+   "circle_standard_error": 0.002995928433966694,
+   "circle_by_term": {
+    "pair_sum": 169.178251866623,
+    "circulation_term": -0.3873703610791019,
+    "spin_term": 29.158957297183278
+   },
+   "layer_total": 9.687837474938284e-06,
+   "force": [
+    0.0021195353357120962,
+    0.006841116858854456
+   ],
+   "force_standard_error": [
+    0.0015418655571112047,
+    0.002058415169337647
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.00037461191351839337,
+     0.0017795662328162578
+    ],
+    "pressure_flux": [
+     0.0017449234221937034,
+     0.0050615506260381984
+    ],
+    "pressure": [
+     0.001740314858619758,
+     0.005060033227404282
+    ]
+   },
+   "force_as_written": [
+    0.0023880769659336944,
+    0.007913029918217495
+   ],
+   "as_written_over_fit": 1.188232862700432,
+   "wall_over_fit": 1.001213042302727,
+   "circle_over_fit": 0.995553401743081
+  },
+  "fit_torque_joint": 140.94028021357994,
+  "exact_torque": 140.99970245062036,
+  "exact_couple": {
+   "rotor": 0.2836145132285897,
+   "stator": 0.3525351242554234
+  },
+  "balance_wall": 0.0014401789319209996,
+  "balance_as_written": -0.1573356371700213,
+  "balance_circle": -0.0011361007339485214,
+  "rotor_force_over_tangential_scale": 8.751482444415038e-06,
+  "change": {
+   "wall_rotor": 0.013879889189374328,
+   "wall_stator": 0.016002776182085565,
+   "circle_rotor": 0.005022012215715854,
+   "circle_stator": 0.0072676120182846304
+  }
+ },
+ "g200_k3_m10": {
+  "fit_torque": 143.96860336073547,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 0.0015653424197807908,
+   "wall_pressure_max_difference_over_max_pressure": 0.3721481711722771,
+   "dummy_spin_max_difference_over_max_spin": 0.08357390901902129,
+   "acceleration_rms_difference_over_rms": 1.3589147214410744e-05,
+   "acceleration_max_difference_over_rms": 9.103923020307311e-05,
+   "angular_acceleration_rms_difference_over_rms": 3.2939289615923357e-05,
+   "angular_acceleration_max_difference_over_rms": 0.00020990504292678087,
+   "kernel_sum_min": 0.977040469457857,
+   "target_fluid": 55444.0
+  },
+  "shear_viscosity": 4.0,
+  "coupling_viscosity": 12.0,
+  "rotor": {
+   "as_written": 156.06334661960537,
+   "as_written_standard_error": 0.0009714728148890533,
+   "as_written_by_term": {
+    "pressure": -0.08921716532734819,
+    "viscous": 150.29598178293276,
+    "coupling": 4.988964150217338,
+    "spin_diffusion": 0.9562208390522393,
+    "spin_coupling": -0.08860298726960425
+   },
+   "wall": 144.3570358587668,
+   "wall_standard_error": 0.0008009352129974665,
+   "wall_by_term": {
+    "viscous": 132.98208383274272,
+    "pressure_flux": 0.4751251078780728,
+    "spin_diffusion": 0.8467304266586743,
+    "wall_term": 10.053096491487338
+   },
+   "not_exchange_by_term": {
+    "coupling": 4.409969013837631,
+    "spin_coupling": -0.07845765554365472
+   },
+   "circle": 143.06592617675318,
+   "circle_standard_error": 0.003633550620770563,
+   "circle_by_term": {
+    "pair_sum": -155.32991746699082,
+    "circulation_term": -9.883662955248864,
+    "spin_term": 22.147654245486503
+   },
+   "layer_total": 0.0022231599943569793,
+   "force": [
+    0.006189573102091951,
+    0.003142121812696125
+   ],
+   "force_standard_error": [
+    0.0021787347639582776,
+    0.0015611495981804801
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.0016084540503252802,
+     0.004554412133612441
+    ],
+    "pressure_flux": [
+     0.004581119051766669,
+     -0.0014122903209163164
+    ],
+    "pressure": [
+     -0.0017820859965781079,
+     -0.0021881300862036184
+    ]
+   },
+   "force_as_written": [
+    -0.0007339238751821716,
+    0.0030364904119826387
+   ],
+   "as_written_over_fit": 1.0840095894280828,
+   "wall_over_fit": 1.0026980361618016,
+   "circle_over_fit": 0.9937300413915908
+  },
+  "stator": {
+   "as_written": -170.5003702383636,
+   "as_written_standard_error": 0.000994116255263245,
+   "as_written_by_term": {
+    "pressure": -0.38773099055778615,
+    "viscous": -163.48237533377315,
+    "coupling": -7.733478863720749,
+    "spin_diffusion": 1.2042382425883558,
+    "spin_coupling": -0.1010232929002907
+   },
+   "wall": -144.1399501599961,
+   "wall_standard_error": 0.0008599754652599172,
+   "wall_by_term": {
+    "viscous": -144.882370543439,
+    "pressure_flux": -0.32392864316496894,
+    "spin_diffusion": 1.0663490266078852,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -6.857663430629417,
+    "spin_coupling": -0.0894557955719832
+   },
+   "circle": -143.4714833875449,
+   "circle_standard_error": 0.0027920194600804353,
+   "circle_by_term": {
+    "pair_sum": 176.6776728022685,
+    "circulation_term": -0.19972072234467708,
+    "spin_term": 33.40591013706827
+   },
+   "layer_total": 2.0528274535699795e-06,
+   "force": [
+    -0.013538057554198625,
+    -0.0056150175004551
+   ],
+   "force_standard_error": [
+    0.0025274088733443743,
+    0.0013959289797840127
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.0026289335058481966,
+     -0.0010927985708461504
+    ],
+    "pressure_flux": [
+     -0.010909124048350425,
+     -0.00452221892960895
+    ],
+    "pressure": [
+     -0.010846156267875384,
+     -0.00444216142876676
+    ]
+   },
+   "force_as_written": [
+    -0.015206245303683972,
+    -0.006342905560401558
+   ],
+   "as_written_over_fit": 1.184288561938388,
+   "wall_over_fit": 1.0011901678231279,
+   "circle_over_fit": 0.9965470251041822
+  },
+  "fit_torque_joint": 143.8735513506243,
+  "exact_torque": 143.94152281575037,
+  "exact_couple": {
+   "rotor": 0.8756514753231333,
+   "stator": 1.0823466005337148
+  },
+  "balance_wall": 0.0015078683386736428,
+  "balance_as_written": -0.10027897251030515,
+  "balance_circle": -0.0028169837125914263,
+  "rotor_force_over_tangential_scale": 1.9286013843234577e-05,
+  "change": {
+   "wall_rotor": 0.03502430480282959,
+   "wall_stator": 0.03712141250092982,
+   "circle_rotor": 0.02522679901628533,
+   "circle_stator": 0.029254405665195105
+  }
+ },
+ "g200_k3_m20": {
+  "fit_torque": 141.78383038700622,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 0.0011987595353275537,
+   "wall_pressure_max_difference_over_max_pressure": 0.3721481711722771,
+   "dummy_spin_max_difference_over_max_spin": 0.11141782516943026,
+   "acceleration_rms_difference_over_rms": 1.4210097117344887e-05,
+   "acceleration_max_difference_over_rms": 8.593642939838428e-05,
+   "angular_acceleration_rms_difference_over_rms": 3.547716509945043e-05,
+   "angular_acceleration_max_difference_over_rms": 0.0002463758126551053,
+   "kernel_sum_min": 0.9780195204817891,
+   "target_fluid": 55368.0
+  },
+  "shear_viscosity": 4.0,
+  "coupling_viscosity": 12.0,
+  "rotor": {
+   "as_written": 158.35498429114296,
+   "as_written_standard_error": 0.0009166242763106641,
+   "as_written_by_term": {
+    "pressure": -0.08831903591833278,
+    "viscous": 148.7703181987303,
+    "coupling": 9.31201699883467,
+    "spin_diffusion": 0.44867661152341015,
+    "spin_coupling": -0.08770848202710035
+   },
+   "wall": 142.5553254870332,
+   "wall_standard_error": 0.000753364562264974,
+   "wall_by_term": {
+    "viscous": 131.63216739995562,
+    "pressure_flux": 0.47275992301476394,
+    "spin_diffusion": 0.3973016725754819,
+    "wall_term": 10.053096491487338
+   },
+   "not_exchange_by_term": {
+    "coupling": 8.231335346769935,
+    "spin_coupling": -0.07766557407596317
+   },
+   "circle": 140.37948731579905,
+   "circle_standard_error": 0.004815544341759166,
+   "circle_by_term": {
+    "pair_sum": -165.20579594991744,
+    "circulation_term": -9.874588752547366,
+    "spin_term": 34.700897386665744
+   },
+   "layer_total": 0.001975333754854643,
+   "force": [
+    -0.009773389740905115,
+    -0.00922641282559655
+   ],
+   "force_standard_error": [
+    0.002141787059398439,
+    0.0016600567040264372
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.008915355607153215,
+     0.0023265094183561414
+    ],
+    "pressure_flux": [
+     -0.0008580341337519029,
+     -0.011552922243952692
+    ],
+    "pressure": [
+     0.0014543186288061146,
+     -0.0037514186494628896
+    ]
+   },
+   "force_as_written": [
+    -0.010737447383137378,
+    -0.002449982595048743
+   ],
+   "as_written_over_fit": 1.11687619003454,
+   "wall_over_fit": 1.005441347563549,
+   "circle_over_fit": 0.9900951817469317
+  },
+  "stator": {
+   "as_written": -175.73463801874104,
+   "as_written_standard_error": 0.000853411094096603,
+   "as_written_by_term": {
+    "pressure": -0.38807718407274655,
+    "viscous": -161.09446129239498,
+    "coupling": -14.729642327099063,
+    "spin_diffusion": 0.5774714148330177,
+    "spin_coupling": -0.09992863000727868
+   },
+   "wall": -142.57947917948522,
+   "wall_standard_error": 0.0006872335270384183,
+   "wall_by_term": {
+    "viscous": -142.76658812785496,
+    "pressure_flux": -0.3242401014474605,
+    "spin_diffusion": 0.5113490498171802,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -13.06147290076394,
+    "spin_coupling": -0.08848647515917336
+   },
+   "circle": -140.81347339833954,
+   "circle_standard_error": 0.00517094211272186,
+   "circle_by_term": {
+    "pair_sum": 193.27460154890267,
+    "circulation_term": -0.21103750355798265,
+    "spin_term": 52.672165654121116
+   },
+   "layer_total": -1.923786015697155e-05,
+   "force": [
+    0.007158186726845942,
+    -0.00020159927182326507
+   ],
+   "force_standard_error": [
+    0.0020977686636834535,
+    0.0016956857415194153
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.000796908285598039,
+     -0.0019700958186588753
+    ],
+    "pressure_flux": [
+     0.006361278441247904,
+     0.0017684965468356105
+    ],
+    "pressure": [
+     0.006380038834500787,
+     0.0017916681488771317
+    ]
+   },
+   "force_as_written": [
+    0.008129577413399397,
+    -0.0008226632365490296
+   ],
+   "as_written_over_fit": 1.239454721593177,
+   "wall_over_fit": 1.0056117033254584,
+   "circle_over_fit": 0.9931560814373681
+  },
+  "fit_torque_joint": 141.68458801670775,
+  "exact_torque": 141.72045006088572,
+  "exact_couple": {
+   "rotor": 0.42813161556222495,
+   "stator": 0.5321710464381464
+  },
+  "balance_wall": -0.0001703557619094424,
+  "balance_as_written": -0.12257853155863703,
+  "balance_circle": -0.0030608996904364786,
+  "rotor_force_over_tangential_scale": 3.791816129426129e-05,
+  "change": {
+   "wall_rotor": 0.022106236668041346,
+   "wall_stator": 0.02589345060918702,
+   "circle_rotor": 0.005975470710716468,
+   "circle_stator": 0.010186027565960876
+  }
+ },
+ "g200_k3_m5": {
+  "fit_torque": 148.66431139365812,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 0.0018329441081732514,
+   "wall_pressure_max_difference_over_max_pressure": 0.36746636460962395,
+   "dummy_spin_max_difference_over_max_spin": 0.06850490983351257,
+   "acceleration_rms_difference_over_rms": 1.3399969106217305e-05,
+   "acceleration_max_difference_over_rms": 8.565195289193353e-05,
+   "angular_acceleration_rms_difference_over_rms": 3.383813421772347e-05,
+   "angular_acceleration_max_difference_over_rms": 0.00023343364229700477,
+   "kernel_sum_min": 0.978080419041929,
+   "target_fluid": 55433.0
+  },
+  "shear_viscosity": 4.0,
+  "coupling_viscosity": 12.0,
+  "rotor": {
+   "as_written": 158.76944048311452,
+   "as_written_standard_error": 0.0011588817535041144,
+   "as_written_by_term": {
+    "pressure": -0.09079081348926506,
+    "viscous": 154.24852249047672,
+    "coupling": 2.6655693399998746,
+    "spin_diffusion": 2.037610484782296,
+    "spin_coupling": -0.09147101865511521
+   },
+   "wall": 148.81708665969882,
+   "wall_standard_error": 0.001015863712471652,
+   "wall_by_term": {
+    "viscous": 136.47865907733578,
+    "pressure_flux": 0.48103366847905676,
+    "spin_diffusion": 1.8042974223966337,
+    "wall_term": 10.053096491487338
+   },
+   "not_exchange_by_term": {
+    "coupling": 2.356211781786843,
+    "spin_coupling": -0.08099728795862189
+   },
+   "circle": 148.15192944875824,
+   "circle_standard_error": 0.0023844730532642886,
+   "circle_by_term": {
+    "pair_sum": -151.29319075237095,
+    "circulation_term": -9.88547193232967,
+    "spin_term": 13.026733235942377
+   },
+   "layer_total": 0.0019517770575625522,
+   "force": [
+    0.0021500076090682635,
+    0.0067709543154551265
+   ],
+   "force_standard_error": [
+    0.0015760951473894932,
+    0.002104668500629498
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.002709904982437965,
+     0.0017332929499926126
+    ],
+    "pressure_flux": [
+     -0.0005598973733697011,
+     0.005037661365462515
+    ],
+    "pressure": [
+     0.00048648149628623306,
+     0.0011123798571530605
+    ]
+   },
+   "force_as_written": [
+    0.0037769128747657953,
+    0.0032593228541191216
+   ],
+   "as_written_over_fit": 1.0679727972014639,
+   "wall_over_fit": 1.0010276525993933,
+   "circle_over_fit": 0.9965534300727824
+  },
+  "stator": {
+   "as_written": -171.6797090256513,
+   "as_written_standard_error": 0.0006829826367556672,
+   "as_written_by_term": {
+    "pressure": -0.39750445780538995,
+    "viscous": -169.63890947878073,
+    "coupling": -4.055101507954133,
+    "spin_diffusion": 2.5163977172278633,
+    "spin_coupling": -0.10459129833893425
+   },
+   "wall": -148.4422546882139,
+   "wall_standard_error": 0.0005776283502710811,
+   "wall_by_term": {
+    "viscous": -150.33817384958414,
+    "pressure_flux": -0.3323427899830684,
+    "spin_diffusion": 2.2282619513533315,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -3.5958681284133314,
+    "spin_coupling": -0.0926152527224648
+   },
+   "circle": -148.39493848248836,
+   "circle_standard_error": 0.0024999743214063016,
+   "circle_by_term": {
+    "pair_sum": 167.61693267872545,
+    "circulation_term": -0.19744772416373826,
+    "spin_term": 19.419441920400835
+   },
+   "layer_total": 3.417369967012463e-05,
+   "force": [
+    -0.0016097883564725936,
+    -1.0119655317123568e-05
+   ],
+   "force_standard_error": [
+    0.0011719075832469785,
+    0.0035070116225512965
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.002218004821603024,
+     -6.776058346172855e-05
+    ],
+    "pressure_flux": [
+     0.0006082164651304306,
+     5.764092814460479e-05
+    ],
+    "pressure": [
+     0.0006579036154232244,
+     5.240900715734115e-05
+    ]
+   },
+   "force_as_written": [
+    -0.0019248246440415455,
+    8.106486318543363e-06
+   ],
+   "as_written_over_fit": 1.1548145443666649,
+   "wall_over_fit": 0.998506321366826,
+   "circle_over_fit": 0.998188045882401
+  },
+  "fit_torque_joint": 148.5791838501543,
+  "exact_torque": 148.66097785379523,
+  "exact_couple": {
+   "rotor": 1.8333177701274848,
+   "stator": 2.240838999044476
+  },
+  "balance_wall": 0.00252133123256718,
+  "balance_as_written": -0.0868417471652011,
+  "balance_circle": -0.0016346158096184784,
+  "rotor_force_over_tangential_scale": 1.9114495620714385e-05,
+  "change": {
+   "wall_rotor": 0.06700238576132422,
+   "wall_stator": 0.06807752247850041,
+   "circle_rotor": 0.06167368049036881,
+   "circle_stator": 0.06457492879575355
+  }
+ },
+ "g200_newtonian": {
+  "fit_torque": 139.58523676216387,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 0.0011308211833238602,
+   "wall_pressure_max_difference_over_max_pressure": 0.3277285076688397,
+   "acceleration_rms_difference_over_rms": 1.0614496873608535e-05,
+   "acceleration_max_difference_over_rms": 7.205569145794712e-05,
+   "kernel_sum_min": 0.9780304602963397,
+   "target_fluid": 55421.0
+  },
+  "shear_viscosity": 10.0,
+  "coupling_viscosity": 0.0,
+  "rotor": {
+   "as_written": 128.61321902216926,
+   "as_written_standard_error": 0.0009460659574580866,
+   "as_written_by_term": {
+    "pressure": -0.09286146210409706,
+    "viscous": 128.70608048427337,
+    "coupling": 0.0
+   },
+   "wall": 139.47212175492496,
+   "wall_standard_error": 0.0008078156312091596,
+   "wall_by_term": {
+    "viscous": 113.87226011230254,
+    "pressure_flux": 0.46712041390406556,
+    "wall_term": 25.132741228718345
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.0
+   },
+   "circle": 139.54563645236962,
+   "circle_standard_error": 0.0007222568722738212,
+   "circle_by_term": {
+    "pair_sum": -114.98624390044114,
+    "circulation_term": -24.559392551928493,
+    "spin_term": -0.0
+   },
+   "layer_total": 0.0018693035543457012,
+   "force": [
+    -0.012007776349678043,
+    -0.01339300207054576
+   ],
+   "force_standard_error": [
+    0.002710292157022814,
+    0.001390492014828581
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.006956227978195559,
+     -0.0025209789817933915
+    ],
+    "pressure_flux": [
+     -0.005051548371482487,
+     -0.010872023088752373
+    ],
+    "pressure": [
+     0.0014095500277560547,
+     -0.0016411927722213685
+    ]
+   },
+   "force_as_written": [
+    -0.0062639169170424225,
+    -0.004700380713385992
+   ],
+   "as_written_over_fit": 0.9213955716628572,
+   "wall_over_fit": 0.9991896348792841,
+   "circle_over_fit": 0.9997163001567155
+  },
+  "stator": {
+   "as_written": -156.84587602062385,
+   "as_written_standard_error": 0.000660308659537197,
+   "as_written_by_term": {
+    "pressure": -0.4516977024815942,
+    "viscous": -156.39417831814225,
+    "coupling": 0.0
+   },
+   "wall": -138.98078703477435,
+   "wall_standard_error": 0.0005893963143504841,
+   "wall_by_term": {
+    "viscous": -138.60004128705026,
+    "pressure_flux": -0.3807457477240666,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.0
+   },
+   "circle": -139.39360628223005,
+   "circle_standard_error": 0.0003938915688579586,
+   "circle_by_term": {
+    "pair_sum": 138.70822636736312,
+    "circulation_term": -0.6853799148669388,
+    "spin_term": -0.0
+   },
+   "layer_total": 2.748386557027412e-05,
+   "force": [
+    0.016186027995821178,
+    0.006079452454220364
+   ],
+   "force_standard_error": [
+    0.002654108580059093,
+    0.0010374287859050957
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.0026994257184726083,
+     0.002699287076709548
+    ],
+    "pressure_flux": [
+     0.013486602277348573,
+     0.0033801653775108174
+    ],
+    "pressure": [
+     0.013548268249306427,
+     0.003477107543470085
+    ]
+   },
+   "force_as_written": [
+    0.018348677535827525,
+    0.006975062026921438
+   ],
+   "as_written_over_fit": 1.123656624861195,
+   "wall_over_fit": 0.9956696729438556,
+   "circle_over_fit": 0.9986271436408398
+  },
+  "balance_wall": 0.003519961935428589,
+  "balance_as_written": -0.20226105319833768,
+  "balance_circle": 0.001089156515875736,
+  "rotor_force_over_tangential_scale": 5.154628592823154e-05
+ },
+ "nd_g100_k3_m2": {
+  "fit_torque": 164.38988635882103,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 7.242882423819097e-07,
+   "wall_pressure_max_difference_over_max_pressure": 1.5800412001990539e-06,
+   "dummy_spin_max_difference_over_max_spin": 9.255752812569467e-08,
+   "acceleration_rms_difference_over_rms": 7.409864099161428e-06,
+   "acceleration_max_difference_over_rms": 5.84311022961732e-05,
+   "angular_acceleration_rms_difference_over_rms": 1.6998091818811017e-05,
+   "angular_acceleration_max_difference_over_rms": 9.47814319109958e-05,
+   "kernel_sum_min": 0.9780636593876054,
+   "target_fluid": 27715.0
+  },
+  "shear_viscosity": 4.0,
+  "coupling_viscosity": 12.0,
+  "rotor": {
+   "as_written": 173.1425392258616,
+   "as_written_standard_error": 0.0029168420494435254,
+   "as_written_by_term": {
+    "pressure": -0.49514811443302514,
+    "viscous": 165.85552186916433,
+    "coupling": 2.360675803543838,
+    "spin_diffusion": 5.622841896573983,
+    "spin_coupling": -0.20135222898755642
+   },
+   "wall": 163.76490173643526,
+   "wall_standard_error": 0.0019173937213260784,
+   "wall_by_term": {
+    "viscous": 146.62700812817636,
+    "pressure_flux": 2.105789000990235,
+    "spin_diffusion": 4.979008115781357,
+    "wall_term": 10.053096491487338
+   },
+   "not_exchange_by_term": {
+    "coupling": 2.083049830030643,
+    "spin_coupling": -0.17829674045620192
+   },
+   "circle": 163.81400857954745,
+   "circle_standard_error": 0.005062726261821922,
+   "circle_by_term": {
+    "pair_sum": -165.98700346692254,
+    "circulation_term": -9.680778541746578,
+    "spin_term": 11.853773429121683
+   },
+   "layer_total": 0.000633178863543167,
+   "force": [
+    -0.049473089273529704,
+    0.029107728746204705
+   ],
+   "force_standard_error": [
+    0.015052135511045664,
+    0.009193562586557026
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.0006981766775267539,
+     -0.0032576923066108677
+    ],
+    "pressure_flux": [
+     -0.04877491259600294,
+     0.032365421052815584
+    ],
+    "pressure": [
+     0.016534014338268087,
+     -0.018770794523404084
+    ]
+   },
+   "force_as_written": [
+    0.0178467897992122,
+    -0.024677278812929856
+   ],
+   "as_written_over_fit": 1.0532432563882657,
+   "wall_over_fit": 0.9961981564910777,
+   "circle_over_fit": 0.9964968782932511
+  },
+  "stator": {
+   "as_written": -186.3687914271948,
+   "as_written_standard_error": 0.008984232045890602,
+   "as_written_by_term": {
+    "pressure": -0.7673077841207254,
+    "viscous": -188.67522425522165,
+    "coupling": -3.4866656622917827,
+    "spin_diffusion": 6.7954424796599255,
+    "spin_coupling": -0.23503620522059632
+   },
+   "wall": -163.44516925059915,
+   "wall_standard_error": 0.0015930826900832785,
+   "wall_by_term": {
+    "viscous": -167.34876007436148,
+    "pressure_flux": -2.1137512745754656,
+    "spin_diffusion": 6.017342098337795,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -3.0962316561597807,
+    "spin_coupling": -0.20812379128227618
+   },
+   "circle": -164.28506765888932,
+   "circle_standard_error": 0.0024406339297574162,
+   "circle_by_term": {
+    "pair_sum": 180.71115967653049,
+    "circulation_term": -0.4375785782461891,
+    "spin_term": 16.86367059588735
+   },
+   "layer_total": -1.6419958205612732e-05,
+   "force": [
+    0.03957290048711683,
+    -0.015287465271787504
+   ],
+   "force_standard_error": [
+    0.003290122118218419,
+    0.0031088152501813626
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.003702238278107668,
+     -0.03915902088759682
+    ],
+    "pressure_flux": [
+     0.03587066220900916,
+     0.02387155561580932
+    ],
+    "pressure": [
+     -0.2965165121120763,
+     0.9683336340051031
+    ]
+   },
+   "force_as_written": [
+    -0.33076987350258014,
+    1.049151029318379
+   ],
+   "as_written_over_fit": 1.1336998616837013,
+   "wall_over_fit": 0.9942531920354285,
+   "circle_over_fit": 0.9993623774414996
+  },
+  "fit_torque_joint": 164.29834870200415,
+  "exact_torque": 164.35039210837334,
+  "exact_couple": {
+   "rotor": 5.063128438896475,
+   "stator": 6.022690496335828
+  },
+  "balance_wall": 0.0019449644556491672,
+  "balance_as_written": -0.08045660529543563,
+  "balance_circle": -0.0028654991482485056,
+  "rotor_force_over_tangential_scale": 0.00013966979157864818,
+  "change": {
+   "wall_rotor": 0.17748564052039129,
+   "wall_stator": 0.18005358891871381,
+   "circle_rotor": 0.17480789387249396,
+   "circle_stator": 0.1778140558161796
+  }
+ },
+ "nd_g100_k3_m5": {
+  "fit_torque": 148.71927765142755,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 6.700691672634207e-07,
+   "wall_pressure_max_difference_over_max_pressure": 1.267539468677286e-06,
+   "dummy_spin_max_difference_over_max_spin": 9.545650857988689e-08,
+   "acceleration_rms_difference_over_rms": 7.000346288828766e-06,
+   "acceleration_max_difference_over_rms": 4.2533359381352945e-05,
+   "angular_acceleration_rms_difference_over_rms": 1.649818309913943e-05,
+   "angular_acceleration_max_difference_over_rms": 0.0001155096310537,
+   "kernel_sum_min": 0.9793892362913925,
+   "target_fluid": 27688.0
+  },
+  "shear_viscosity": 4.0,
+  "coupling_viscosity": 12.0,
+  "rotor": {
+   "as_written": 158.84866519036814,
+   "as_written_standard_error": 0.002919154334754532,
+   "as_written_by_term": {
+    "pressure": -0.4709089410581075,
+    "viscous": 152.2920718452032,
+    "coupling": 5.2143622425391145,
+    "spin_diffusion": 1.9940725923390072,
+    "spin_coupling": -0.180932548655086
+   },
+   "wall": 148.4653057625943,
+   "wall_standard_error": 0.0019574333772773692,
+   "wall_by_term": {
+    "viscous": 134.64071124319628,
+    "pressure_flux": 2.005753266927367,
+    "spin_diffusion": 1.7657447609833308,
+    "wall_term": 10.053096491487338
+   },
+   "not_exchange_by_term": {
+    "coupling": 4.601148874774578,
+    "spin_coupling": -0.1602151802830484
+   },
+   "circle": 147.66090245041914,
+   "circle_standard_error": 0.005692537396673077,
+   "circle_by_term": {
+    "pair_sum": -161.3800247840826,
+    "circulation_term": -9.700355319945366,
+    "spin_term": 23.41947765360882
+   },
+   "layer_total": -0.0027357042610685737,
+   "force": [
+    -0.03630501282286652,
+    -0.014619490783092546
+   ],
+   "force_standard_error": [
+    0.01388079116877638,
+    0.011232770166879038
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.004978562510981146,
+     -0.005992858754381791
+    ],
+    "pressure_flux": [
+     -0.041283575333847675,
+     -0.008626632028710753
+    ],
+    "pressure": [
+     0.013027294686786237,
+     0.0022884200092684174
+    ]
+   },
+   "force_as_written": [
+    0.019872149192823364,
+    -0.004052077082771105
+   ],
+   "as_written_over_fit": 1.0681107903353466,
+   "wall_over_fit": 0.9982922732490102,
+   "circle_over_fit": 0.9928834027590623
+  },
+  "stator": {
+   "as_written": -174.06879662972415,
+   "as_written_standard_error": 0.0053691566533352175,
+   "as_written_by_term": {
+    "pressure": -0.5882774366121054,
+    "viscous": -167.78313335299416,
+    "coupling": -7.9896048205051216,
+    "spin_diffusion": 2.5018812065489864,
+    "spin_coupling": -0.20966222616177452
+   },
+   "wall": -148.38789435250717,
+   "wall_standard_error": 0.0007845427657837708,
+   "wall_by_term": {
+    "viscous": -148.81892908118917,
+    "pressure_flux": -1.7843728999262896,
+    "spin_diffusion": 2.215407628608281,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": -7.094901918900357,
+    "spin_coupling": -0.18565521578480085
+   },
+   "circle": -148.37969940590293,
+   "circle_standard_error": 0.007727807212809652,
+   "circle_by_term": {
+    "pair_sum": 182.22608359699097,
+    "circulation_term": -0.413580042789917,
+    "spin_term": 34.25996423387797
+   },
+   "layer_total": -0.00010374629352053914,
+   "force": [
+    0.008510827611587253,
+    0.0001157038061843234
+   ],
+   "force_standard_error": [
+    0.0029668320425575634,
+    0.003071882263911488
+   ],
+   "force_by_term": {
+    "viscous": [
+     -0.005500895484118616,
+     -0.01061569812648827
+    ],
+    "pressure_flux": [
+     0.01401172309570587,
+     0.010731401932672588
+    ],
+    "pressure": [
+     -0.579717957810216,
+     0.8295733838599402
+    ]
+   },
+   "force_as_written": [
+    -0.6609796030244821,
+    0.9244573071418
+   ],
+   "as_written_over_fit": 1.1704521389467175,
+   "wall_over_fit": 0.9977717529014828,
+   "circle_over_fit": 0.9977166494425791
+  },
+  "fit_torque_joint": 148.5959194291037,
+  "exact_torque": 148.65562199985246,
+  "exact_couple": {
+   "rotor": 1.83339596605396,
+   "stator": 2.2408993396999697
+  },
+  "balance_wall": 0.0005205203475273482,
+  "balance_as_written": -0.10234134861137091,
+  "balance_circle": -0.004833246683516839,
+  "rotor_force_over_tangential_scale": 0.00010526679800975755,
+  "change": {
+   "wall_rotor": 0.06748005095911336,
+   "wall_stator": 0.07134195574963509,
+   "circle_rotor": 0.05896434205656331,
+   "circle_stator": 0.06378320347969746
+  }
+ },
+ "nd_g100_newtonian": {
+  "fit_torque": 139.5789723547308,
+  "mass_over_lattice_mass": 1.1293096467852592,
+  "states": 24,
+  "checks": {
+   "dummy_velocity_max_difference_over_max_speed": 6.492138229230449e-07,
+   "wall_pressure_max_difference_over_max_pressure": 1.5211890545046068e-06,
+   "acceleration_rms_difference_over_rms": 5.552032469660852e-06,
+   "acceleration_max_difference_over_rms": 4.7748810348863916e-05,
+   "kernel_sum_min": 0.9790467633212128,
+   "target_fluid": 27728.0
+  },
+  "shear_viscosity": 10.0,
+  "coupling_viscosity": 0.0,
+  "rotor": {
+   "as_written": 126.47549778697214,
+   "as_written_standard_error": 0.00240905128371902,
+   "as_written_by_term": {
+    "pressure": -0.472990749479165,
+    "viscous": 126.94848853645134,
+    "coupling": 0.0
+   },
+   "wall": 139.0801688792223,
+   "wall_standard_error": 0.001757986687838622,
+   "wall_by_term": {
+    "viscous": 112.22204638178083,
+    "pressure_flux": 1.725381268723108,
+    "wall_term": 25.132741228718345
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.0
+   },
+   "circle": 139.43897503069277,
+   "circle_standard_error": 0.0009066702530965684,
+   "circle_by_term": {
+    "pair_sum": -115.45484991652377,
+    "circulation_term": -23.984125114169007,
+    "spin_term": -0.0
+   },
+   "layer_total": -0.0005449807964808801,
+   "force": [
+    0.013904550076519674,
+    -0.05281470881611486
+   ],
+   "force_standard_error": [
+    0.015569663432252063,
+    0.0142218682899899
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.00996941052466028,
+     0.0010931910995478874
+    ],
+    "pressure_flux": [
+     0.003935139551859391,
+     -0.05390789991566276
+    ],
+    "pressure": [
+     -0.007269887776093628,
+     0.03395224053577526
+    ]
+   },
+   "force_as_written": [
+    0.0030485970816725807,
+    0.03957714402152374
+   ],
+   "as_written_over_fit": 0.9061214282731854,
+   "wall_over_fit": 0.9964263709132287,
+   "circle_over_fit": 0.9989970027599698
+  },
+  "stator": {
+   "as_written": -154.63139802729782,
+   "as_written_standard_error": 0.00826529456892301,
+   "as_written_by_term": {
+    "pressure": -0.5378182450356948,
+    "viscous": -154.09357978226214,
+    "coupling": 0.0
+   },
+   "wall": -138.50656511316947,
+   "wall_standard_error": 0.0008981943210032569,
+   "wall_by_term": {
+    "viscous": -136.6753636763221,
+    "pressure_flux": -1.8312014368473588,
+    "wall_term": 0.0
+   },
+   "not_exchange_by_term": {
+    "coupling": 0.0
+   },
+   "circle": -139.48302522595225,
+   "circle_standard_error": 0.0005902869786868466,
+   "circle_by_term": {
+    "pair_sum": 138.11885981051066,
+    "circulation_term": -1.3641654154416036,
+    "spin_term": -0.0
+   },
+   "layer_total": -0.0003295499810177544,
+   "force": [
+    -0.04913020931789584,
+    0.02813594321396592
+   ],
+   "force_standard_error": [
+    0.011183387396994855,
+    0.005453966448723485
+   ],
+   "force_by_term": {
+    "viscous": [
+     0.00022491404946293315,
+     -0.01189536854927921
+    ],
+    "pressure_flux": [
+     -0.04935512336735879,
+     0.04003131176324514
+    ],
+    "pressure": [
+     -0.39245927501434175,
+     -0.7901949160055842
+    ]
+   },
+   "force_as_written": [
+    -0.44295404763828916,
+    -0.9058082959405405
+   ],
+   "as_written_over_fit": 1.1078416427534103,
+   "wall_over_fit": 0.9923168424049155,
+   "circle_over_fit": 0.9993125961084258
+  },
+  "balance_wall": 0.0041095285083132035,
+  "balance_as_written": -0.2017202144802249,
+  "balance_circle": -0.0003155933484559714,
+  "rotor_force_over_tangential_scale": 0.00015651175615919154
+ }
+}

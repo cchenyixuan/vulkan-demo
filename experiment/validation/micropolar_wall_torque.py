@@ -129,8 +129,11 @@ def wall_sums(state: dict, parameters: dict, angle_bins: int = ANGLE_BINS) -> di
                                                     count) / safe[:, None]
     host_wall_pressure = np.bincount(wall_first, pressure[wall_second] * wall_kernel, count) / safe
     host_dummy_spin = 2.0 * spin - np.bincount(wall_first, spin[wall_second] * wall_kernel, count) / safe
-    # walls whose fluid neighbours are all in the saved band: within h of the surface
-    checked = is_wall & has_fluid & (wall_distance > -support)
+    # walls whose fluid neighbours are all in the saved band (within h of the surface) and whose kernel weight is
+    # not at the rounding level: a wall particle whose only fluid neighbour sits at the edge of the support has a
+    # weight of 1e-20 W(0) or less here and exactly zero in the GPU's float32, and then no dummy value at all
+    weight_scale = 9.0 / (np.pi * support ** 2)                                    # W(0)
+    checked = is_wall & (weight > 1.0e-6 * weight_scale) & (wall_distance > -support)
     speed_scale = max(float(np.abs(velocity).max()), 1e-30)
     checks = {
         "dummy_velocity_max_difference_over_max_speed": float(np.abs(

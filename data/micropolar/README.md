@@ -52,3 +52,6 @@ Added 2026-11-11 (Stage 3, Sections 12.8 and 12.9):
 
 Not copied: the profile samples of the n = 1000 runs (24 MB each), the bench logs and step traces
 (`logs/micropolar/cost/`).
+
+Added 2026-11-12 (Stage 4, Section 13): `stage4/`, with its own `README.md` (concentric resolution study and
+sweep, wall sums, the eccentric pilot and the cases on the porous walls, draft figures).

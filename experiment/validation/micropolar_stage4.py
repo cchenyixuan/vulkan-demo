@@ -399,7 +399,10 @@ def analyse_concentric(names, runs_directory: pathlib.Path, margin: float = 1.0)
         record["sph_joint_over_exact"] = record["relative_torque_change_joint"] / exact_change
         record["rule_over_exact"] = record["rule_hydrodynamic"] / exact_change
         gap = record["gap_in_spacings"]
-        floor_gap = gap if gap in floors else (200 if gap == 400 and 200 in floors else None)
+        # a gap without its three lattices takes the floor of the next coarser gap that has them (an upper bound:
+        # the floor falls with dx)
+        floor_gap = next((candidate for candidate in (gap, 200, 100, 50) if candidate <= gap and candidate in floors),
+                         None)
         floor = floors.get(floor_gap)
         record["noise_floor_gap"] = floor_gap
         record["noise_floor_of_change"] = float(floor["relative_spread"] * (1.0 + exact_change)) if floor else None

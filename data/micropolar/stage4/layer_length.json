@@ -1,0 +1,149 @@
+{
+ "g050_k3_m5": {
+  "length_from_spin": 1.0188065532035409,
+  "length_from_velocity": 1.0107189466121689,
+  "length_from_joint": 1.0215427765739775,
+  "stator_layer_amplitude_ratio": 1.0249782533832827,
+  "rotor_layer_amplitude_ratio": 1.014358016935179
+ },
+ "g100_k3_m5": {
+  "length_from_spin": 1.0039874740318204,
+  "length_from_velocity": 1.0044289688894064,
+  "length_from_joint": 1.005975142907353,
+  "stator_layer_amplitude_ratio": 1.012775906371346,
+  "rotor_layer_amplitude_ratio": 0.9960866357397002
+ },
+ "g200_k3_m5": {
+  "length_from_spin": 1.000468595624697,
+  "length_from_velocity": 1.0016061581042701,
+  "length_from_joint": 1.0020078877615375,
+  "stator_layer_amplitude_ratio": 1.0113433074634808,
+  "rotor_layer_amplitude_ratio": 0.9896478414627139
+ },
+ "g100_k3_m10": {
+  "length_from_spin": 1.017378050803837,
+  "length_from_velocity": 1.015169009638228,
+  "length_from_joint": 1.0190817782885857,
+  "stator_layer_amplitude_ratio": 1.0556525950095765,
+  "rotor_layer_amplitude_ratio": 0.9916342293580943
+ },
+ "g200_k3_m10": {
+  "length_from_spin": 1.0038479858192357,
+  "length_from_velocity": 1.0068352239810836,
+  "length_from_joint": 1.0049187870381975,
+  "stator_layer_amplitude_ratio": 1.0380210332124797,
+  "rotor_layer_amplitude_ratio": 0.9726928869287063
+ },
+ "g100_k3_m1": {
+  "length_from_spin": 1.0004138596323566,
+  "length_from_velocity": 1.0043845270127123,
+  "length_from_joint": 1.000473042346325,
+  "stator_layer_amplitude_ratio": 1.0019786711267626,
+  "rotor_layer_amplitude_ratio": 0.99773024496467
+ },
+ "g100_k3_m2": {
+  "length_from_spin": 1.000275451794909,
+  "length_from_velocity": 1.0016804504269652,
+  "length_from_joint": 1.001920427774561,
+  "stator_layer_amplitude_ratio": 1.0028100708663004,
+  "rotor_layer_amplitude_ratio": 0.9975274360715873
+ },
+ "g200_k3_m20": {
+  "length_from_spin": 1.0175375316036066,
+  "length_from_velocity": 1.0415578408268047,
+  "length_from_joint": 1.0191343123007421,
+  "stator_layer_amplitude_ratio": 1.1426969131819023,
+  "rotor_layer_amplitude_ratio": 0.9102339824274247
+ },
+ "g100_k1_m1": {
+  "length_from_spin": 1.0000254863524412,
+  "length_from_velocity": 1.014534856022717,
+  "length_from_joint": 1.0003810216131355,
+  "stator_layer_amplitude_ratio": 1.0026690039186639,
+  "rotor_layer_amplitude_ratio": 0.9948054716373151
+ },
+ "g100_k1_m2": {
+  "length_from_spin": 1.0003136533430927,
+  "length_from_velocity": 1.0055417820117234,
+  "length_from_joint": 1.0015752472386696,
+  "stator_layer_amplitude_ratio": 1.0047117659240588,
+  "rotor_layer_amplitude_ratio": 0.9964349855876067
+ },
+ "g100_k1_m5": {
+  "length_from_spin": 1.0026260021141518,
+  "length_from_velocity": 1.0019209425616946,
+  "length_from_joint": 1.0048403265479189,
+  "stator_layer_amplitude_ratio": 1.0157696065366808,
+  "rotor_layer_amplitude_ratio": 0.9895530270686715
+ },
+ "g200_k1_m10": {
+  "length_from_spin": 1.0025391461642357,
+  "length_from_velocity": 1.0073449998861477,
+  "length_from_joint": 1.0037070605008866,
+  "stator_layer_amplitude_ratio": 1.0495755712254906,
+  "rotor_layer_amplitude_ratio": 0.9572530129172223
+ },
+ "g200_k1_m20": {
+  "length_from_spin": 1.012304757650717,
+  "length_from_velocity": 1.0591631408179198,
+  "length_from_joint": 1.0139829484879022,
+  "stator_layer_amplitude_ratio": 1.1806550582489574,
+  "rotor_layer_amplitude_ratio": 0.8590398045670204
+ },
+ "g100_k05_m1": {
+  "length_from_spin": 1.0000414983205501,
+  "length_from_velocity": 1.0202329005652755,
+  "length_from_joint": 1.0003360496948661,
+  "stator_layer_amplitude_ratio": 1.0038168781164085,
+  "rotor_layer_amplitude_ratio": 0.9909072062012955
+ },
+ "g100_k05_m2": {
+  "length_from_spin": 1.000030024920835,
+  "length_from_velocity": 0.9980414211018319,
+  "length_from_joint": 1.0013905865283457,
+  "stator_layer_amplitude_ratio": 1.0055284587865736,
+  "rotor_layer_amplitude_ratio": 0.9917380754297613
+ },
+ "g100_k05_m5": {
+  "length_from_spin": 1.002096381055764,
+  "length_from_velocity": 1.0024228727624804,
+  "length_from_joint": 1.004392799514449,
+  "stator_layer_amplitude_ratio": 1.0211769653903444,
+  "rotor_layer_amplitude_ratio": 0.9831377630702428
+ },
+ "g200_k05_m10": {
+  "length_from_spin": 1.0020068522676127,
+  "length_from_velocity": 1.0119302236844188,
+  "length_from_joint": 1.003234484802997,
+  "stator_layer_amplitude_ratio": 1.069284540960283,
+  "rotor_layer_amplitude_ratio": 0.9357904951021554
+ },
+ "g200_k05_m20": {
+  "length_from_spin": 1.0098130543965504,
+  "length_from_velocity": 1.1239995550190907,
+  "length_from_joint": 1.0115506027865637,
+  "stator_layer_amplitude_ratio": 1.2476499847130755,
+  "rotor_layer_amplitude_ratio": 0.7855304124090305
+ },
+ "g100_k3_m1_t3": {
+  "length_from_spin": 1.000140642075079,
+  "length_from_velocity": 0.9987340150509314,
+  "length_from_joint": 1.0004711320785438,
+  "stator_layer_amplitude_ratio": 1.001708309435893,
+  "rotor_layer_amplitude_ratio": 0.9973053161329888
+ },
+ "nd_g100_k3_m5": {
+  "length_from_spin": 1.0041672794462435,
+  "length_from_velocity": 1.003365063918252,
+  "length_from_joint": 1.0061208445298757,
+  "stator_layer_amplitude_ratio": 1.0037400589815193,
+  "rotor_layer_amplitude_ratio": 1.0070182913794206
+ },
+ "nd_g100_k3_m2": {
+  "length_from_spin": 1.0003192796450249,
+  "length_from_velocity": 1.0014739270428274,
+  "length_from_joint": 1.0019149027471934,
+  "stator_layer_amplitude_ratio": 1.0005687912222017,
+  "rotor_layer_amplitude_ratio": 1.001720544022854
+ }
+}
