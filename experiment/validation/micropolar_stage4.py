@@ -38,6 +38,8 @@ DISPLACED = {
     "g100_displaced_m5": (0, 10.0, 0.64),
     "e30_displaced_m5": (30, 10.0, 0.6710),
     "e30_displaced_m2": (30, 25.0, 0.6710),
+    "e60_displaced_m5": (60, 10.0, 0.7541),
+    "e60_displaced_m2": (60, 25.0, 0.7541),
 }
 
 
@@ -105,6 +107,40 @@ def _build_table() -> dict:
         for gap_over_two_lengths in (5, 2):
             micropolar(f"e{eccentricity}_k3_m{gap_over_two_lengths}", 100, 3, gap_over_two_lengths,
                        f"e{eccentricity}_newtonian", eccentricity, section=("eccentric",))
+    # Diagnostic runs on the fluid that enters the walls in the eccentric cases (section 13.4), Newtonian, states
+    # spread over the whole run: the two controls again; the offset 0.1 g; the paper's operator and EPS factor
+    # (Monaghan-Gingold, 0.0025: the kernels of micropolar-base); the wall option simple; the density diffusion
+    # term switched off.
+    for name, eccentricity, extra in (("leak_e30", 30, []), ("leak_e60", 60, []), ("leak_e10", 10, []),
+                                      ("leak_e60_paper_operator", 60, ["--viscous-form", "monaghan_gingold",
+                                                                       "--epsilon-squared-factor", "0.0025"]),
+                                      ("leak_e60_simple_walls", 60, ["--wall-boundary", "simple"]),
+                                      ("leak_e60_no_density_diffusion", 60, ["--no-density-diffusion"])):
+        newtonian(name, 100, (3, 5), "", eccentricity, section=("leak",))
+        runs[name]["generate"] += extra
+        runs[name]["state_span"] = 1.0
+
+    # The eccentric case at eps = 0.3 again at a quarter of the Mach number (the wall-normal velocity that carries
+    # fluid into the walls is proportional to it, section 13.4): control and the two micropolar runs, 96 states
+    # over the whole run, the fluid within 3 h of a wall.
+    newtonian("e30_ma005_newtonian", 100, (3, 5), "", 30, section=("low_mach",))
+    for gap_over_two_lengths in (5, 2):
+        micropolar(f"e30_ma005_k3_m{gap_over_two_lengths}", 100, 3, gap_over_two_lengths, "e30_ma005_newtonian", 30,
+                   section=("low_mach",))
+    for name in ("e30_ma005_newtonian", "e30_ma005_k3_m5", "e30_ma005_k3_m2"):
+        runs[name]["generate"] += ["--mach", "0.005"]
+        runs[name].update({"state_span": 1.0, "state_count": 96, "state_band": 3.0, "last_quarter_only": True})
+
+    # The same cases with numerics.use_density_diffusion false (not the thesis configuration; section 13.4): the
+    # concentric control with m = 5 and m = 2 at g = 100 dx as the check of that setting, and the eccentric pilot.
+    for prefix, eccentricity in (("nd_g100", 0), ("nd_e30", 30), ("nd_e60", 60)):
+        newtonian(f"{prefix}_newtonian", 100, (3, 5), "", eccentricity, section=("no_diffusion",))
+        for gap_over_two_lengths in (5, 2):
+            micropolar(f"{prefix}_k3_m{gap_over_two_lengths}", 100, 3, gap_over_two_lengths, f"{prefix}_newtonian",
+                       eccentricity, section=("no_diffusion",))
+        for name in (f"{prefix}_newtonian", f"{prefix}_k3_m5", f"{prefix}_k3_m2"):
+            runs[name]["generate"] += ["--no-density-diffusion"]
+
     # Newtonian fluid of viscosity nu_inf between the displaced walls: rotor radius R1 + mean delta_b, stator
     # radius R2 - delta, delta = c l / (2 nu) = 3 l / 8 at K = 3; same Omega, offset, sound speed, dt and end time
     for name, (eccentricity, length, mean_ratio) in DISPLACED.items():
@@ -172,12 +208,16 @@ def command_queue(arguments) -> int:
         steps = arguments.steps if arguments.steps else meta["steps"]
         sample_steps = arguments.sample_steps if arguments.sample_steps else sample_steps_for(steps)
         band = 1000.0 if RUNS[name]["eccentricity"] else 2.0          # eccentric runs keep the whole fluid
+        band = RUNS[name].get("state_band", band)
         command = [sys.executable, "-m", "experiment.validation.micropolar_couette", "run", "--case",
                    f"{CASES}/{name}", "--out", f"{arguments.out}/{name}", "--device-map", str(arguments.device),
-                   "--sample-steps", str(sample_steps), "--state-count", str(STATE_COUNT),
+                   "--sample-steps", str(sample_steps), "--state-count",
+                   str(RUNS[name].get("state_count", STATE_COUNT)),
                    "--state-band-supports", str(band)]
         if arguments.steps:
             command += ["--steps", str(arguments.steps)]
+        if "state_span" in RUNS[name]:
+            command += ["--state-span", str(RUNS[name]["state_span"])]
         with open(_REPO_ROOT / arguments.out / f"{name}.log", "w", encoding="utf-8") as log:
             code = subprocess.run(command, cwd=_REPO_ROOT, stdout=log, stderr=subprocess.STDOUT).returncode
         print(f"[stage4] {name}: exit {code}", flush=True)
@@ -522,7 +562,9 @@ def cached_wall_sums(name: str, runs_directory: pathlib.Path, recompute: bool = 
     cache = runs_directory / name / "wall_sums.json"
     if cache.exists() and not recompute:
         return json.loads(cache.read_text(encoding="utf-8"))
-    summary = wall_torque.run_sums(runs_directory / name)
+    # a run whose states cover the whole run is averaged over its last quarter like the others
+    last_quarter = name in RUNS and RUNS[name].get("last_quarter_only")
+    summary = wall_torque.run_sums(runs_directory / name, last_fraction=0.25 if last_quarter else None)
     cache.write_text(json.dumps(summary), encoding="utf-8")
     return summary
 
@@ -700,6 +742,8 @@ def wall_shear_profiles(name: str, runs_directory: pathlib.Path, angle_bins: int
     matrix = np.zeros((angle_bins, count, count))
     right = np.zeros((angle_bins, count))
     for path in wall_torque.state_files(runs_directory / name):
+        if int(path.stem.split("_")[1]) <= 0.75 * run["steps"]:
+            continue
         state = wall_torque.load_state(path)
         fluid = state["kind"] == 0
         own = state["position"][fluid].astype(np.float64) - np.array([meta["eccentricity"], 0.0])
@@ -730,7 +774,10 @@ def rotor_displacement_map(vorticity: np.ndarray, rate: float) -> np.ndarray:
 
 def command_eccentric(arguments) -> int:
     runs_directory = _REPO_ROOT / arguments.runs
-    names = [name for name in RUNS if RUNS[name]["eccentricity"] and (runs_directory / name / "run.json").exists()]
+    names = [name for name in RUNS if RUNS[name]["eccentricity"] and "leak" not in RUNS[name]["section"]
+             and (runs_directory / name / "run.json").exists()]
+    if arguments.names:
+        names = [name for name in names if name in arguments.names]
     lines, records = [], {}
 
     def say(text=""):
@@ -758,6 +805,25 @@ def command_eccentric(arguments) -> int:
         record["rotor"]["circle_advection"] = float(DENSITY * radius ** 2 * (tangential * (outward - outward.mean())).sum()
                                                     * 2.0 * np.pi / tangential.size)
         record["rotor"]["circle_with_advection"] = record["rotor"]["circle"] + record["rotor"]["circle_advection"]
+        # The stator's circle is centred on the origin, the torque is taken about the rotor axis at (e, 0). For
+        # the circle form this adds e kappa r_C * integral of w cos(angle) (the force of the term kappa n x w
+        # has an arm e; the term mu (grad v)^T n has no net force in an incompressible flow), and the advective
+        # term is - rho0 r_C * integral of [r_C v_t - e (v_n sin + v_t cos)] (v_n - mean v_n).
+        layer = summary["stator"]["layer"]
+        tangential = np.asarray(layer["tangential_velocity_by_angle"]["mean"])
+        outward = np.asarray(layer["outward_velocity_by_angle"]["mean"])
+        spin_on_circle = np.asarray(layer["spin_by_angle"]["mean"])
+        radius = layer["circle_radius"]["mean"]
+        angle = (np.arange(tangential.size) + 0.5) * 2.0 * np.pi / tangential.size
+        step = 2.0 * np.pi / tangential.size
+        offset = meta["eccentricity"]
+        record["stator"]["circle_offset_term"] = float(offset * torques["coupling_viscosity"] * radius
+                                                       * (spin_on_circle * np.cos(angle)).sum() * step)
+        record["stator"]["circle_advection"] = float(-DENSITY * radius * (
+            (radius * tangential - offset * (outward * np.sin(angle) + tangential * np.cos(angle)))
+            * (outward - outward.mean())).sum() * step)
+        record["stator"]["circle_with_advection"] = (record["stator"]["circle"] + record["stator"]["circle_offset_term"]
+                                                     + record["stator"]["circle_advection"])
         # time behaviour over the saved states: first against second half
         for wall in ("rotor", "stator"):
             values = np.asarray(summary[wall]["torque_exchange"]["values"]) / factor
@@ -793,9 +859,9 @@ def command_eccentric(arguments) -> int:
 
     say("eccentric runs: rotor axis at x = eps g (narrowest gap on the +x side, angle 0); torque about the rotor "
         "axis and force of each wall on the fluid, per unit depth (the fluid acts on the wall with the opposite)")
-    say(f"{'run':<24}{'eps':>5}{'l/dx':>6}{'T rotor':>11}{'T stator':>11}{'sum/T':>9}{'T circle':>11}{'+advect.':>10}"
-        f"{'as written':>11}{'Fx rotor':>11}{'Fy rotor':>11}{'|F| R1/T':>9}{'angle':>8}{'F sum/|F|':>10}{'s.e. T':>9}"
-        f"{'drift':>9}")
+    say(f"{'run':<24}{'eps':>5}{'l/dx':>6}{'T rotor':>11}{'T stator':>11}{'sum/T':>9}{'circle: R':>11}{'+advect.':>10}"
+        f"{'circle: S':>11}{'sum/T':>9}{'as written':>11}{'Fx rotor':>11}{'Fy rotor':>11}{'|F| R1/T':>9}{'angle':>8}"
+        f"{'F sum/|F|':>10}{'s.e. T':>9}{'drift':>9}")
     for name, record in records.items():
         rotor, stator = record["rotor"], record["stator"]
         force = -np.asarray(rotor["force"])                      # the fluid on the rotor
@@ -806,7 +872,9 @@ def command_eccentric(arguments) -> int:
         say(f"{name:<24}{record['eccentricity_ratio']:>5.2f}"
             + (f"{record['length_in_spacings']:>6g}" if record["micropolar"] else f"{'-':>6}")
             + f"{rotor['wall']:>11.4f}{stator['wall']:>11.4f}{(rotor['wall'] + stator['wall']) / rotor['wall']:>+9.4f}"
-            f"{rotor['circle']:>11.4f}{rotor['circle_with_advection']:>10.4f}{rotor['as_written']:>11.4f}"
+            f"{rotor['circle']:>11.4f}{rotor['circle_with_advection']:>10.4f}{stator['circle_with_advection']:>11.4f}"
+            f"{(rotor['circle_with_advection'] + stator['circle_with_advection']) / rotor['circle_with_advection']:>+9.4f}"
+            f"{rotor['as_written']:>11.4f}"
             f"{force[0]:>11.4f}{force[1]:>11.4f}"
             f"{record['rotor_force_magnitude'] * 0.4 / rotor['wall']:>9.4f}{record['rotor_force_angle_degrees']:>8.2f}"
             f"{np.hypot(*total) / record['rotor_force_magnitude']:>10.4f}{rotor['wall_standard_error']:>9.1e}"
@@ -819,7 +887,7 @@ def command_eccentric(arguments) -> int:
         if all(member in records for member in members):
             torque_values = np.array([records[member]["rotor"]["wall"] for member in members])
             stator_values = np.array([records[member]["stator"]["wall"] for member in members])
-            circle_values = np.array([records[member]["rotor"]["circle"] for member in members])
+            circle_values = np.array([records[member]["rotor"]["circle_with_advection"] for member in members])
             magnitudes = np.array([records[member]["rotor_force_magnitude"] for member in members])
             angles = np.array([records[member]["rotor_force_angle_degrees"] for member in members])
             floors[eccentricity] = {
@@ -839,8 +907,8 @@ def command_eccentric(arguments) -> int:
                 f"{floors[eccentricity]['force_angle_spread_degrees']:.3f} degrees")
     say()
     say("micropolar against Newtonian: D_T = T / T_Newtonian - 1 and the change of the force on the rotor")
-    say(f"{'run':<24}{'D_T rotor':>11}{'D_T stator':>11}{'D_T circle':>11}{'|F| change':>11}{'turn (deg)':>11}"
-        f"{'Fx / FxN':>10}{'Fy / FyN':>10}")
+    say(f"{'run':<24}{'wall: rotor':>12}{'stator':>10}{'circle: rotor':>14}{'stator':>10}{'|F| change':>11}"
+        f"{'turn (deg)':>11}{'Fx / FxN':>10}{'Fy / FyN':>10}")
     for name, record in records.items():
         control_name = RUNS[name]["control"]
         if control_name not in records:
@@ -850,13 +918,16 @@ def command_eccentric(arguments) -> int:
             "torque_rotor": record["rotor"]["wall"] / control["rotor"]["wall"] - 1.0,
             "torque_stator": record["stator"]["wall"] / control["stator"]["wall"] - 1.0,
             "torque_rotor_circle": record["rotor"]["circle_with_advection"] / control["rotor"]["circle_with_advection"] - 1.0,
+            "torque_stator_circle": record["stator"]["circle_with_advection"]
+            / control["stator"]["circle_with_advection"] - 1.0,
             "force_magnitude": record["rotor_force_magnitude"] / control["rotor_force_magnitude"] - 1.0,
             "force_turn_degrees": record["rotor_force_angle_degrees"] - control["rotor_force_angle_degrees"],
             "force_x_ratio": record["rotor_force_on_wall"][0] / control["rotor_force_on_wall"][0],
             "force_y_ratio": record["rotor_force_on_wall"][1] / control["rotor_force_on_wall"][1]}
         change = record["change"]
-        say(f"{name:<24}{change['torque_rotor']:>11.5f}{change['torque_stator']:>11.5f}"
-            f"{change['torque_rotor_circle']:>11.5f}{change['force_magnitude']:>11.5f}"
+        say(f"{name:<24}{change['torque_rotor']:>12.5f}{change['torque_stator']:>10.5f}"
+            f"{change['torque_rotor_circle']:>14.5f}{change['torque_stator_circle']:>10.5f}"
+            f"{change['force_magnitude']:>11.5f}"
             f"{change['force_turn_degrees']:>11.3f}{change['force_x_ratio']:>10.4f}{change['force_y_ratio']:>10.4f}")
     say()
     say("displacement of the rotor's effective surface, delta_b / delta = 1 + Omega / (omega_N / 2 - Omega), from "
@@ -985,6 +1056,73 @@ def command_layer_length(arguments) -> int:
     return 0
 
 
+def command_leak(arguments) -> int:
+    """Fluid behind a wall surface, from the saved states of every run: the number of fluid particles more than
+    half a spacing inside the rotor or beyond the stator surface, the deepest one, where they sit around the rotor
+    (eight 45-degree sectors about its axis, from angle 0 = the narrowest gap), and the pressure extremes of the
+    fluid, at the first and the last saved state and, for a run whose states cover the whole run, along it."""
+    from experiment.validation import micropolar_wall_torque as wall_torque
+    runs_directory = _REPO_ROOT / arguments.runs
+    names = arguments.names or sorted(path.parent.name for path in runs_directory.glob("*/run.json"))
+    lines, records = [], {}
+
+    def say(text=""):
+        lines.append(text)
+        print(text)
+
+    def measure(path, meta) -> dict:
+        state = wall_torque.load_state(path)
+        fluid = state["kind"] == 0
+        position = state["position"][fluid].astype(np.float64)
+        own = position - np.array([meta["eccentricity"], 0.0])
+        rotor = (np.hypot(own[:, 0], own[:, 1]) - meta["inner_radius"]) / meta["spacing"]
+        stator = (meta["outer_radius"] - np.hypot(position[:, 0], position[:, 1])) / meta["spacing"]
+        inside = rotor < -0.5
+        sector = (np.degrees(np.arctan2(own[inside, 1], own[inside, 0])) % 360.0 // 45.0).astype(np.int64)
+        pressure = state["pressure"][fluid]
+        return {"step": int(state["step"]), "inside_rotor": int(inside.sum()),
+                "beyond_stator": int((stator < -0.5).sum()), "deepest_rotor": float(rotor.min()),
+                "deepest_stator": float(stator.min()), "rotor_by_sector": np.bincount(sector, minlength=8).tolist(),
+                "pressure_min": float(pressure.min()), "pressure_max": float(pressure.max()),
+                "fluid": int(fluid.sum())}
+    say(f"{'run':<26}{'states':>7}{'inside the rotor':>18}{'':>9}{'deepest':>9}{'beyond the stator':>19}{'':>8}"
+        f"{'deepest':>9}{'p min':>9}{'p max':>9}   inside the rotor by 45-degree sector, last state")
+    say(f"{'':<26}{'':>7}{'first state':>18}{'last':>9}{'(dx)':>9}{'first state':>19}{'last':>8}{'(dx)':>9}"
+        f"{'(Pa)':>9}{'(Pa)':>9}")
+    for name in names:
+        run_file = runs_directory / name / "run.json"
+        files = wall_torque.state_files(runs_directory / name)
+        if not run_file.exists() or not files:
+            continue
+        run = json.loads(run_file.read_text(encoding="utf-8"))
+        meta = run["couette"]
+        whole = name in RUNS and RUNS[name].get("state_span") == 1.0
+        series = [measure(path, meta) for path in (files if whole else (files[0], files[-1]))]
+        first, last = series[0], series[-1]
+        records[name] = {"timestep": run["timestep"], "steps": run["steps"], "states": len(files),
+                         "viscous_form": meta["viscous_form"], "wall_boundary": meta.get("wall_boundary", "adami"),
+                         "eccentricity_in_spacings": meta["eccentricity"] / meta["spacing"],
+                         "micropolar": meta["micropolar"], "series": series}
+        say(f"{name:<26}{len(files):>7}{first['inside_rotor']:>18,}{last['inside_rotor']:>9,}"
+            f"{last['deepest_rotor']:>9.2f}{first['beyond_stator']:>19,}{last['beyond_stator']:>8,}"
+            f"{last['deepest_stator']:>9.2f}{last['pressure_min']:>9.0f}{last['pressure_max']:>9.0f}   "
+            + " ".join(f"{value}" for value in last["rotor_by_sector"]))
+    for name, record in records.items():
+        if len(record["series"]) > 2:
+            say()
+            say(f"{name}: along the run (time in units of the end time; fluid inside the rotor, beyond the stator, "
+                f"lowest pressure)")
+            for entry in record["series"]:
+                say(f"   {entry['step'] / record['steps']:>6.3f}{entry['inside_rotor']:>9,}{entry['beyond_stator']:>8,}"
+                    f"{entry['pressure_min']:>10.0f}")
+    if arguments.json:
+        target = _REPO_ROOT / arguments.json
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(records, indent=1), encoding="utf-8")
+        target.with_suffix(".txt").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -1010,10 +1148,16 @@ def main() -> int:
     torque.add_argument("--json", default=None, help="relative to the repository root; a .txt goes beside it")
     torque.set_defaults(handler=command_torque)
     eccentric = commands.add_parser("eccentric")
+    eccentric.add_argument("names", nargs="*", help="default: every finished eccentric run of the table")
     eccentric.add_argument("--runs", default=RUNS_DIRECTORY)
     eccentric.add_argument("--recompute", action="store_true")
     eccentric.add_argument("--json", default=None)
     eccentric.set_defaults(handler=command_eccentric)
+    leak = commands.add_parser("leak")
+    leak.add_argument("names", nargs="*", help="default: every run with saved states")
+    leak.add_argument("--runs", default=RUNS_DIRECTORY)
+    leak.add_argument("--json", default=None)
+    leak.set_defaults(handler=command_leak)
     rule = commands.add_parser("rule-scan")
     rule.add_argument("--out", default=None)
     rule.set_defaults(handler=command_rule_scan)

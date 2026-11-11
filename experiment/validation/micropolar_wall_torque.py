@@ -311,12 +311,15 @@ def state_files(run_directory: pathlib.Path) -> list:
     return sorted((run_directory / "states").glob("state_*.npz"))
 
 
-def run_sums(run_directory: pathlib.Path, limit: int | None = None) -> dict:
+def run_sums(run_directory: pathlib.Path, limit: int | None = None, last_fraction: float | None = None) -> dict:
     """wall_sums of every saved state of a run: per wall and term the mean, the standard deviation over the states
     and the standard error; the checks as the worst value over the states."""
     run = json.loads((run_directory / "run.json").read_text(encoding="utf-8"))
     parameters = run_parameters(run)
-    files = state_files(run_directory)[:limit]
+    files = state_files(run_directory)
+    if last_fraction is not None:
+        files = [path for path in files if int(path.stem.split("_")[1]) > (1.0 - last_fraction) * run["steps"]]
+    files = files[:limit]
     if not files:
         raise FileNotFoundError(f"no states under {run_directory}")
     per_state = [wall_sums(load_state(path), parameters) for path in files]

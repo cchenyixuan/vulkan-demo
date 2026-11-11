@@ -69,7 +69,7 @@ physics:
   gravity: [0.0, 0.0, 0.0]
 {micropolar_block}
 numerics:
-  use_density_diffusion: true
+  use_density_diffusion: {density_diffusion}
   delta_coefficient: 0.1
   use_kcg_correction: true
   regularization:
@@ -83,7 +83,7 @@ numerics:
   defrag_enabled: true
   defrag_cadence: 1000
   viscous_form: {viscous_form}
-  wall_boundary: adami
+  wall_boundary: {wall_boundary}
 
 capacities:
   pool_size: {pool_size}
@@ -231,6 +231,7 @@ def command_generate(arguments) -> int:
         "micropolar_length": micropolar_length if micropolar else None, **{f"design_{key}": value
                                                                              for key, value in design.items()},
         "rotor_micro_rotation": rotor_micro_rotation, "viscous_form": arguments.viscous_form,
+        "wall_boundary": arguments.wall_boundary, "density_diffusion": not arguments.no_density_diffusion,
         "epsilon_squared_factor": arguments.epsilon_squared_factor,
         "timestep": timestep, "dt_acoustic": dt_acoustic, "dt_viscous": dt_viscous, "dt_angular": dt_angular,
         "governing": governing, "step_number": arguments.step_number,
@@ -256,7 +257,9 @@ def command_generate(arguments) -> int:
         governing=governing, cfl_effective=timestep * speed_of_sound / smoothing_length, end_time=end_time,
         steps=steps, particle_radius=0.5 * spacing, speed_of_sound=speed_of_sound,
         micropolar_block=micropolar_block, epsilon_squared_factor=arguments.epsilon_squared_factor,
-        viscous_form=arguments.viscous_form, pool_size=int(1.25 * total) + 4096),
+        viscous_form=arguments.viscous_form, wall_boundary=arguments.wall_boundary,
+        density_diffusion="false" if arguments.no_density_diffusion else "true",
+        pool_size=int(1.25 * total) + 4096),
         encoding="utf-8", newline="\n")
     (out_dir / "couette.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
     radii = meta["radii_in_spacings"]
@@ -282,12 +285,13 @@ def solver_revision() -> dict:
                                         "experiment/v7/utils"))}
 
 
-def state_steps(steps: int, sample_steps: int, state_count: int) -> list:
+def state_steps(steps: int, sample_steps: int, state_count: int, span: float = 0.25) -> list:
     """The sample steps at which a state is saved: state_count of them, evenly spread over the samples of the last
-    quarter of the run (all of them when the quarter holds fewer)."""
+    quarter of the run (all of them when the quarter holds fewer); span = the fraction of the run, counted from
+    its end, that the states cover (1 = the whole run)."""
     if state_count <= 0:
         return []
-    quarter = [step for step in range(sample_steps, steps + 1, sample_steps) if step > 0.75 * steps + 1e-9]
+    quarter = [step for step in range(sample_steps, steps + 1, sample_steps) if step > (1.0 - span) * steps + 1e-9]
     if len(quarter) <= state_count:
         return quarter
     chosen = np.unique(np.round(np.linspace(0, len(quarter) - 1, state_count)).astype(np.int64))
@@ -311,15 +315,19 @@ def _save_wall_band(path: pathlib.Path, rows: dict, meta: dict, fluid_group: int
                     (rotor_distance < band_supports * support + spacing)
                     | (stator_distance < band_supports * support + spacing),
                     np.where(kind == 1, rotor_distance > -(support + spacing), stator_distance > -(support + spacing)))
+    # wall_boundary simple has no dummy values: a wall neighbour enters with its stored velocity and w
+    dummy = rows.get("wall_dummy_velocity")
     arrays = {"position": position[keep], "velocity": rows["velocity_mass"][keep, :2],
               "density": rows["density_pressure"][keep, 0], "pressure": rows["density_pressure"][keep, 1],
-              "acceleration": rows["acceleration"][keep, :2], "dummy_velocity": rows["wall_dummy_velocity"][keep, :2],
-              "dummy_weight": rows["wall_dummy_velocity"][keep, 3], "kind": kind[keep],
-              "mass": np.float64(rows["velocity_mass"][is_fluid, 3][0]), "step": np.int64(step)}
+              "acceleration": rows["acceleration"][keep, :2],
+              "dummy_velocity": (dummy if dummy is not None else rows["velocity_mass"])[keep, :2],
+              "dummy_weight": dummy[keep, 3] if dummy is not None else np.zeros(int(keep.sum()), np.float32),
+              "kind": kind[keep], "mass": np.float64(rows["velocity_mass"][is_fluid, 3][0]),
+              "step": np.int64(step)}
     if micropolar:
         arrays.update({"spin": rows["angular_velocity"][keep, 2],
                        "angular_acceleration": rows["angular_acceleration"][keep, 2],
-                       "dummy_spin": rows["wall_dummy_angular_velocity"][keep, 2]})
+                       "dummy_spin": rows.get("wall_dummy_angular_velocity", rows["angular_velocity"])[keep, 2]})
     path.parent.mkdir(parents=True, exist_ok=True)
     np.savez(path, **arrays)
 
@@ -362,9 +370,11 @@ def command_run(arguments) -> int:
     out_dir = (_REPO_ROOT / arguments.out).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     revision = solver_revision()
-    saved_steps = set(state_steps(steps, arguments.sample_steps, arguments.state_count))
-    state_fields = ["acceleration", "wall_dummy_velocity"] + (
-        ["angular_acceleration", "wall_dummy_angular_velocity"] if micropolar else [])
+    saved_steps = set(state_steps(steps, arguments.sample_steps, arguments.state_count, arguments.state_span))
+    # the wall pass's dummy values exist with wall_boundary adami only (simple: 16-byte stubs)
+    adami = meta.get("wall_boundary", "adami") == "adami"
+    state_fields = ["acceleration"] + (["wall_dummy_velocity"] if adami else []) + (
+        ["angular_acceleration"] + (["wall_dummy_angular_velocity"] if adami else []) if micropolar else [])
     contexts, sims = [], []
     started = time.perf_counter()
     failure = None
@@ -1021,6 +1031,10 @@ def main() -> int:
     generate.add_argument("--end-time-factor", type=float, default=2.0, help="end time in g^2 / nu_inf")
     generate.add_argument("--viscous-form", default="laplacian", choices=("monaghan_gingold", "laplacian"))
     generate.add_argument("--epsilon-squared-factor", default="1.0e-6")
+    generate.add_argument("--no-density-diffusion", action="store_true",
+                          help="numerics.use_density_diffusion false (a diagnostic; the cases of the thesis keep it)")
+    generate.add_argument("--wall-boundary", default="adami", choices=("adami", "simple"),
+                          help="numerics.wall_boundary of the case (the thesis configuration is adami)")
     generate.set_defaults(handler=command_generate)
 
     run = commands.add_parser("run")
@@ -1034,6 +1048,8 @@ def main() -> int:
     run.add_argument("--pool-safety", type=float, default=1.2)
     run.add_argument("--state-count", type=int, default=0,
                      help="save the particles near the walls at this many sample steps of the last quarter")
+    run.add_argument("--state-span", type=float, default=0.25,
+                     help="the fraction of the run, from its end, over which the states are spread")
     run.add_argument("--state-band-supports", type=float, default=2.0,
                      help="the saved fluid lies within this many h (+ dx) of a wall surface; large = all of it")
     run.set_defaults(handler=command_run)
