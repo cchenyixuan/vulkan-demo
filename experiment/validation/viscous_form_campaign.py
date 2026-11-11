@@ -118,8 +118,12 @@ def command_analyse(arguments) -> int:
     summaries = {}
     for name in RUNS:
         run_dir = LOGS / f"n{arguments.resolution}_{name}"
+        if name == "monaghan_gingold" and arguments.monaghan_gingold_run:
+            # the row of an existing run of the validation series (same runner, same sample files)
+            run_dir = pathlib.Path(arguments.monaghan_gingold_run)
         if (run_dir / "samples.jsonl").exists():
             summaries[name] = summarise(run_dir, arguments.average_span)
+            summaries[name]["run_directory"] = str(run_dir)
     if not summaries:
         print("no runs")
         return 1
@@ -163,6 +167,8 @@ def main() -> int:
     analyse.add_argument("--resolution", type=int, default=250)
     analyse.add_argument("--average-span", type=float, default=20.0)
     analyse.add_argument("--json", default=None)
+    analyse.add_argument("--monaghan-gingold-run", default=None,
+                         help="run directory of an existing cavity_runner run to use as the monaghan_gingold row")
     analyse.set_defaults(handler=command_analyse)
     arguments = parser.parse_args()
     return arguments.handler(arguments)

@@ -512,6 +512,31 @@ PILOT = {
     # finer: g = 200 dx, m = 10 (l = 10 dx), with its control
     "n200_k3_m10": (_K3 + ["--gap-over-two-lengths", "10", "--gap-in-spacings", "200"], {}),
     "n200_newtonian": (["--gap-in-spacings", "200"], {}),
+    # added after the first pass: the two runs whose velocity-only C2 missed the 1e-4 steady test, extended to
+    # three diffusion times, and a second one-slab run of the m = 5 case (run-to-run scale for the chain rows)
+    "n100_k3_m1_t3": (_K3 + ["--gap-over-two-lengths", "1", "--end-time-factor", "3"], {}),
+    "n100_k3_m5_mg_t3": (_K3 + ["--gap-over-two-lengths", "5", "--viscous-form", "monaghan_gingold",
+                                "--end-time-factor", "3"], {}),
+    "n100_k3_m5_repeat": (_K3 + ["--gap-over-two-lengths", "5"], {"case": "n100_k3_m5"}),
+    # more runs of the one-slab and of the three-slab row (the same case): is the chain's C2 resolved from the
+    # one-slab value?
+    **{f"n100_k3_m5_repeat{index}": (_K3 + ["--gap-over-two-lengths", "5"], {"case": "n100_k3_m5"})
+       for index in range(2, 6)},
+    **{f"n100_k3_m5_chain3_repeat{index}": (_K3 + ["--gap-over-two-lengths", "5"],
+                                            {"device_map": "one card x 3", "case": "n100_k3_m5"})
+       for index in range(2, 5)},
+}
+# A check of the step rule, not a row of the table: at Mach 0.1 the acoustic step is five times larger and the
+# viscous limit s h^2 / nu sets dt (in every row above the acoustic limit does).
+PILOT.update({
+    "n100_k3_m5_ma01": (_K3 + ["--gap-over-two-lengths", "5", "--mach", "0.1"], {}),
+    "n100_newtonian_ma01": (["--mach", "0.1"], {}),
+})
+# runs of one case that differ only in the decomposition
+REPEAT_GROUPS = {
+    "one slab": ["n100_k3_m5", "n100_k3_m5_repeat"] + [f"n100_k3_m5_repeat{index}" for index in range(2, 6)],
+    "three slabs, one card": ["n100_k3_m5_chain3"] + [f"n100_k3_m5_chain3_repeat{index}" for index in range(2, 5)],
+    "two slabs, the pair": ["n100_k3_m5_chain2"],
 }
 # the Newtonian control of each micropolar run (same particles; the step is checked to be the same)
 PILOT_CONTROL = {
@@ -519,6 +544,11 @@ PILOT_CONTROL = {
     "n100_k3_m5_nospin0": "n100_newtonian", "n100_k3_m5_mg": "n100_newtonian_mg",
     "n100_k3_m5_ma001": "n100_newtonian_ma001", "n100_k3_m5_chain2": "n100_newtonian",
     "n100_k3_m5_chain3": "n100_newtonian", "n200_k3_m10": "n200_newtonian",
+    "n100_k3_m1_t3": "n100_newtonian", "n100_k3_m5_mg_t3": "n100_newtonian_mg",
+    "n100_k3_m5_repeat": "n100_newtonian",
+    **{f"n100_k3_m5_repeat{index}": "n100_newtonian" for index in range(2, 6)},
+    **{f"n100_k3_m5_chain3_repeat{index}": "n100_newtonian" for index in range(2, 5)},
+    "n100_k3_m5_ma01": "n100_newtonian_ma01",
 }
 PILOT_CASES = "cases/couette"
 PILOT_RUNS = "logs/micropolar/couette"
@@ -563,9 +593,12 @@ def command_pilot(arguments) -> int:
     return 0
 
 
-def _load_run(name: str) -> dict:
-    run_dir = _REPO_ROOT / PILOT_RUNS / name
-    with np.load(run_dir / "samples.npz") as archive:
+def _load_run(name: str, runs_directory: pathlib.Path | None = None) -> dict:
+    run_dir = (runs_directory if runs_directory is not None else _REPO_ROOT / PILOT_RUNS) / name
+    source = run_dir / "samples.npz"
+    if not source.exists():
+        source = run_dir / "windows.npz"          # the reduced form written by the reduce command
+    with np.load(source) as archive:
         data = {key: np.array(archive[key]) for key in archive.files}
     run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
     return {"name": name, "data": data, "run": run, "meta": run["couette"]}
@@ -588,13 +621,14 @@ def _profile(loaded: dict, first_time: float, last_time: float, sector=None) -> 
             "samples": int(window.sum())}
 
 
-def _fit(loaded: dict, profile: dict, reference_module) -> dict:
-    """Least squares away from the walls (more than h from each nominal radius). Newtonian run: alpha r +
-    beta / r. Micropolar run: the four functions of the exact solution with the case's l; coefficient 1 is C2."""
+def _fit(loaded: dict, profile: dict, reference_module, margin: float = 1.0) -> dict:
+    """Least squares away from the walls (more than margin * h from each nominal radius; the stage's rule is
+    margin = 1). Newtonian run: alpha r + beta / r. Micropolar run: the four functions of the exact solution with
+    the case's l; coefficient 1 is C2."""
     meta = loaded["meta"]
     radius, velocity = profile["radius"], profile["velocity"]
-    inside = ((radius > meta["inner_radius"] + meta["smoothing_length"])
-              & (radius < meta["outer_radius"] - meta["smoothing_length"]))
+    inside = ((radius > meta["inner_radius"] + margin * meta["smoothing_length"])
+              & (radius < meta["outer_radius"] - margin * meta["smoothing_length"]))
     if meta["micropolar"]:
         basis = reference_module.velocity_basis_functions(radius[inside], meta["micropolar_length"],
                                                           meta["inner_radius"], meta["outer_radius"])
@@ -641,21 +675,65 @@ def _fit(loaded: dict, profile: dict, reference_module) -> dict:
     return result
 
 
+def command_reduce(arguments) -> int:
+    """The samples of each run summed over the eight windows of an eighth of the run, the only time resolution the
+    analysis uses, written beside a copy of the run's run.json: analyse --runs <directory> then gives the same
+    numbers from files small enough to keep in the repository."""
+    out = _REPO_ROOT / arguments.out
+    names = arguments.names or [name for name in PILOT if (_REPO_ROOT / PILOT_RUNS / name / "run.json").exists()]
+    for name in names:
+        loaded = _load_run(name)
+        data, run = loaded["data"], loaded["run"]
+        end_time = run["steps"] * run["timestep"]
+        time_axis = data["step"] * run["timestep"]
+        reduced = {key: [] for key in data}
+        for index in range(8):
+            # the same window test as _profile; the window keeps the step of its last sample
+            window = ((time_axis > (index / 8.0) * end_time + 1e-12)
+                      & (time_axis <= ((index + 1) / 8.0) * end_time + 1e-12))
+            for key, values in data.items():
+                if key == "step":
+                    reduced[key].append(values[window][-1])
+                elif values.ndim == 3:
+                    reduced[key].append(values[window].sum(axis=0))
+                elif key == "density_min":
+                    reduced[key].append(values[window].min())
+                elif key == "density_max":
+                    reduced[key].append(values[window].max())
+                else:
+                    reduced[key].append(values[window].mean())
+        target = out / name
+        target.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(target / "windows.npz", **{key: np.asarray(values) for key, values in reduced.items()})
+        run["reduced"] = "sums of the samples over the eight windows of an eighth of the run"
+        (target / "run.json").write_text(json.dumps(run, indent=1), encoding="utf-8")
+    print(f"[couette] reduced {len(names)} runs into {out}")
+    return 0
+
+
 def command_analyse(arguments) -> int:
     from experiment.validation import micropolar_couette_reference as reference
-    names = arguments.names or [name for name in PILOT if (_REPO_ROOT / PILOT_RUNS / name / "run.json").exists()]
-    loaded = {name: _load_run(name) for name in names}
+    runs_directory = _REPO_ROOT / arguments.runs
+    names = arguments.names or [name for name in PILOT if (runs_directory / name / "run.json").exists()]
+    loaded = {name: _load_run(name, runs_directory) for name in names}
+    margin = arguments.fit_margin
     results = {}
     for name, item in loaded.items():
         meta, run = item["meta"], item["run"]
         end_time = run["steps"] * run["timestep"]
         whole = _profile(item, 0.75 * end_time, end_time)
-        fit = _fit(item, whole, reference)
+        fit = _fit(item, whole, reference, margin)
         # steadiness: the fitted beta / C2 of the last two windows of an eighth of the end time
-        windows = [_fit(item, _profile(item, (index / 8.0) * end_time, ((index + 1) / 8.0) * end_time), reference)
-                   ["potential_vortex_constant"] for index in range(8)]
+        window_fits = [_fit(item, _profile(item, (index / 8.0) * end_time, ((index + 1) / 8.0) * end_time),
+                            reference, margin) for index in range(8)]
+        windows = [entry["potential_vortex_constant"] for entry in window_fits]
         steady_change = abs(windows[7] - windows[6]) / abs(windows[7])
-        sectors = [_fit(item, _profile(item, 0.75 * end_time, end_time, sector=sector), reference)
+        # the same test on the joint fit of v and w (micropolar runs): the velocity-only C2 of a single window
+        # carries the noise amplification of its condition number
+        joint_windows = [entry.get("joint_potential_vortex_constant") for entry in window_fits]
+        joint_steady_change = (abs(joint_windows[7] - joint_windows[6]) / abs(joint_windows[7])
+                               if joint_windows[7] is not None else None)
+        sectors = [_fit(item, _profile(item, 0.75 * end_time, end_time, sector=sector), reference, margin)
                    ["potential_vortex_constant"] for sector in range(SECTOR_COUNT)]
         sector_profiles = np.array([_profile(item, 0.75 * end_time, end_time, sector=sector)["velocity"]
                                     for sector in range(SECTOR_COUNT)])
@@ -668,6 +746,7 @@ def command_analyse(arguments) -> int:
             "counters_zero": not any(run["counters"].values()), "steps_per_second": run["steps_per_second"],
             "fit": fit, "window_constants": windows, "steady_change": float(steady_change),
             "steady": bool(steady_change < 1.0e-4),
+            "joint_window_constants": joint_windows, "joint_steady_change": joint_steady_change,
             "sector_constants": sectors,
             "sector_spread": float((max(sectors) - min(sectors)) / abs(np.mean(sectors))),
             # a four-fold pattern alternates between neighbouring 45-degree sectors
@@ -758,6 +837,19 @@ def command_analyse(arguments) -> int:
         print(f"noise floor of D: beta of the three Newtonian lattices {betas[0]:.8f} {betas[1]:.8f} {betas[2]:.8f}: "
               f"spread (max - min) / mean = {floor['relative_spread']:.2e}, std / mean = {floor['relative_std']:.2e}")
 
+    # Success criterion of the stage: |D_SPH - D_exact (hydrodynamic radii)| within the noise floor of D or within
+    # 5 % of D_exact, whichever is larger. D = C2 / beta - 1, so the lattice spread of beta enters D as
+    # (1 + D) * spread.
+    for record in results.values():
+        if "relative_torque_change" not in record:
+            continue
+        floor_of_change = (floor["relative_spread"] * (1.0 + record["exact_hydrodynamic"])) if floor else 0.0
+        allowance = max(floor_of_change, 0.05 * abs(record["exact_hydrodynamic"]))
+        record["noise_floor_of_change"] = float(floor_of_change)
+        record["allowance"] = float(allowance)
+        record["within_criterion"] = bool(abs(record["difference_to_exact_hydrodynamic"]) <= allowance)
+        record["joint_within_criterion"] = bool(abs(record["difference_joint_to_exact_hydrodynamic"]) <= allowance)
+
     print(f"\n{'run':<24}{'K':>2}{'limit':>9}{'steps':>9}{'alpha':>11}{'beta or C2':>13}{'dR1/dx':>8}{'dR2/dx':>8}"
           f"{'steady':>9}{'sectors':>9}{'4-fold':>9}{'fit rms':>9}")
     for name, record in results.items():
@@ -767,10 +859,12 @@ def command_analyse(arguments) -> int:
                  if not record["micropolar"] else f"{'':>16}")
               + f"{record['steady_change']:>9.1e}{record['sector_spread']:>9.1e}{record['sector_fourfold']:>9.1e}"
               f"{record['fit']['fit_rms_over_wall_speed']:>9.1e}"
+              + (f"  joint steady {record['joint_steady_change']:.1e}" if record["joint_steady_change"] is not None
+                 else "")
               + ("" if record["counters_zero"] and not record["failure"] else "  FAILED / counters"))
     print(f"\n{'micropolar run':<24}{'D_SPH':>11}{'D nominal':>11}{'D hydro':>11}{'diff':>11}{'diff/D':>9}"
           f"{'v core':>9}{'v wall':>9}{'w core':>9}{'w wall':>9}{'cond':>9}{'D joint':>11}{'diff':>11}"
-          f"{'diff/D':>9}{'cond':>9}")
+          f"{'diff/D':>9}{'cond':>9}{'floor of D':>12}{'allowed':>10}{'within':>8}")
     for name, record in results.items():
         if "relative_torque_change" not in record:
             continue
@@ -782,14 +876,51 @@ def command_analyse(arguments) -> int:
               f"{record['fit']['condition_number']:>9.1e}{record['relative_torque_change_joint']:>11.5f}"
               f"{record['difference_joint_to_exact_hydrodynamic']:>11.2e}"
               f"{record['difference_joint_to_exact_hydrodynamic'] / record['exact_hydrodynamic']:>9.3f}"
-              f"{record['fit']['joint_condition_number']:>9.1e}")
+              f"{record['fit']['joint_condition_number']:>9.1e}{record['noise_floor_of_change']:>12.2e}"
+              f"{record['allowance']:>10.2e}"
+              f"{('yes' if record['within_criterion'] else 'NO') + '/' + ('yes' if record['joint_within_criterion'] else 'NO'):>8}")
+    # decomposition: the runs of one case as groups (C2 of the velocity-only and of the joint fit)
+    groups = {}
+    for label, members in REPEAT_GROUPS.items():
+        members = [name for name in members if name in results]
+        if not members:
+            continue
+        groups[label] = {"runs": members}
+        for key, field in (("velocity_only", "potential_vortex_constant"),
+                           ("joint", "joint_potential_vortex_constant")):
+            values = np.array([results[name]["fit"][field] for name in members])
+            groups[label][key] = {"values": values.tolist(), "mean": float(values.mean()),
+                                  "std": float(values.std(ddof=1)) if values.size > 1 else None}
+    if "one slab" in groups and len(groups) > 1:
+        print("\ndecomposition, C2 of the m = 5 case (mean, standard deviation of the runs, difference to the "
+              "one-slab mean in units of the standard error of the difference)")
+        base = groups["one slab"]
+        for label, group in groups.items():
+            text = f"{label:<24}{len(group['runs']):>3} runs"
+            for key in ("velocity_only", "joint"):
+                item, reference_item = group[key], base[key]
+                text += f"   {key} {item['mean']:.8f}"
+                text += f" ({item['std']:.1e})" if item["std"] is not None else " (one run)"
+                if label != "one slab" and reference_item["std"] is not None:
+                    difference = item["mean"] - reference_item["mean"]
+                    count, base_count = len(group["runs"]), len(base["runs"])
+                    # a single run takes the one-slab scatter as its own
+                    own = item["std"] if item["std"] is not None else reference_item["std"]
+                    error = float(np.sqrt(own ** 2 / count + reference_item["std"] ** 2 / base_count))
+                    item["difference_to_one_slab"] = float(difference)
+                    item["difference_in_standard_errors"] = float(difference / error)
+                    text += f" {difference:+.2e} ({difference / error:+.1f})"
+            print(text)
+
     if arguments.json:
         for record in results.values():
+            record.pop("exact_solutions", None)
             profile = record.pop("_profile")
             record["profile"] = {key: (value.tolist() if isinstance(value, np.ndarray) else value)
                                  for key, value in profile.items()}
         pathlib.Path(arguments.json).parent.mkdir(parents=True, exist_ok=True)
-        pathlib.Path(arguments.json).write_text(json.dumps({"noise_floor": floor, "runs": results}, indent=1),
+        pathlib.Path(arguments.json).write_text(json.dumps({"noise_floor": floor, "fit_margin": margin,
+                                                            "decomposition": groups, "runs": results}, indent=1),
                                                 encoding="utf-8")
     return 0
 
@@ -842,7 +973,16 @@ def main() -> int:
     analyse = commands.add_parser("analyse")
     analyse.add_argument("names", nargs="*", help="runs of the pilot table (default: every finished one)")
     analyse.add_argument("--json", default=None)
+    analyse.add_argument("--runs", default=PILOT_RUNS,
+                         help="directory of the runs (the raw ones, or the reduced copies of the reduce command)")
+    analyse.add_argument("--fit-margin", type=float, default=1.0,
+                         help="the fits use the bins further than this many h from each wall (the stage's rule: 1)")
     analyse.set_defaults(handler=command_analyse)
+
+    reduce = commands.add_parser("reduce")
+    reduce.add_argument("names", nargs="*", help="runs of the pilot table (default: every finished one)")
+    reduce.add_argument("--out", default="data/micropolar/stage3/couette")
+    reduce.set_defaults(handler=command_reduce)
 
     limit = commands.add_parser("step-limit")
     limit.add_argument("--case", default="cases/couette/step_probe", help="a Newtonian annulus case directory")

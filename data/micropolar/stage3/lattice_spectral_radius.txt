@@ -1,0 +1,5 @@
+Largest eigenvalue of the lattice symbols of the two viscous forms (host, float64; 2-D square lattice, h = 5 dx, 41 x 41 wave vectors of the Brillouin zone quadrant) and the forward-Euler bound dt nu / h^2 <= 2 / (lambda_max h^2); experiment/validation/viscous_operators.py lattice_symbol
+EPS factor 1e-06 MG: lambda_max h^2 = 90.133 at k dx / pi = (0.000, 0.700); 2 / (lambda_max h^2) = 0.02219
+EPS factor 1e-06 BM: lambda_max h^2 = 35.865 at k dx / pi = (1.000, 1.000); 2 / (lambda_max h^2) = 0.05576
+EPS factor 0.0025 MG: lambda_max h^2 = 86.954 at k dx / pi = (0.675, 0.000); 2 / (lambda_max h^2) = 0.02300
+EPS factor 0.0025 BM: lambda_max h^2 = 34.399 at k dx / pi = (0.725, 1.000); 2 / (lambda_max h^2) = 0.05814

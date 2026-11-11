@@ -1,0 +1,14 @@
+Field exp(x . d / l) on the 2-D square lattice, h = 5 dx (host, float64; experiment/validation/viscous_operators.py):
+discrete / exact of the corrected gradient (the curls of the micropolar terms) and of the Brookshaw-Morris Laplacian (EPS 1e-6 h^2)
+l =   50 dx (l / h = 10.0), direction  0.0 deg: gradient 1.00027  laplacian 1.00012
+l =   50 dx (l / h = 10.0), direction 22.5 deg: gradient 1.00027  laplacian 1.00012
+l =   50 dx (l / h = 10.0), direction 45.0 deg: gradient 1.00027  laplacian 1.00012
+l =   25 dx (l / h =  5.0), direction  0.0 deg: gradient 1.00106  laplacian 1.00052
+l =   25 dx (l / h =  5.0), direction 22.5 deg: gradient 1.00106  laplacian 1.00052
+l =   25 dx (l / h =  5.0), direction 45.0 deg: gradient 1.00106  laplacian 1.00052
+l =   10 dx (l / h =  2.0), direction  0.0 deg: gradient 1.00665  laplacian 1.00331
+l =   10 dx (l / h =  2.0), direction 22.5 deg: gradient 1.00665  laplacian 1.00331
+l =   10 dx (l / h =  2.0), direction 45.0 deg: gradient 1.00665  laplacian 1.00331
+l =    5 dx (l / h =  1.0), direction  0.0 deg: gradient 1.02684  laplacian 1.01336
+l =    5 dx (l / h =  1.0), direction 22.5 deg: gradient 1.02684  laplacian 1.01336
+l =    5 dx (l / h =  1.0), direction 45.0 deg: gradient 1.02685  laplacian 1.01336

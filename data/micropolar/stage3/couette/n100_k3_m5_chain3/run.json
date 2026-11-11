@@ -1,0 +1,94 @@
+{
+ "case": "cases/couette/n100_k3_m5",
+ "couette": {
+  "title": "n100_k3_m5",
+  "spacing": 0.001,
+  "smoothing_length": 0.005,
+  "gap": 0.1,
+  "inner_radius": 0.4,
+  "outer_radius": 0.5,
+  "eccentricity": 0.0,
+  "rotation_rate": 2.5,
+  "wall_speed": 1.0,
+  "far_viscosity": 0.01,
+  "reynolds": 10.0,
+  "mach": 0.02,
+  "speed_of_sound": 50.0,
+  "micropolar": true,
+  "coupling_ratio": 3.0,
+  "micropolar_length": 0.01,
+  "design_viscosity": 0.016,
+  "design_viscosity_transfer": -0.004,
+  "design_coupling": 0.012,
+  "design_viscosity_rotation": 1.5000000000000002e-06,
+  "design_micro_inertia": 0.0001,
+  "rotor_micro_rotation": 2.5,
+  "viscous_form": "laplacian",
+  "epsilon_squared_factor": "1.0e-6",
+  "timestep": 1.5e-05,
+  "dt_acoustic": 1.5e-05,
+  "dt_viscous": 5.1250000000000006e-05,
+  "dt_angular": 5.566666666666667e-05,
+  "governing": "acoustic",
+  "step_number": 0.0328,
+  "step_number_angular": 0.0334,
+  "end_time": 2.0000000000000004,
+  "steps": 134000,
+  "fluid_count": 282696,
+  "inner_count": 27296,
+  "outer_count": 34916,
+  "lattice_offset": [
+   0.0,
+   0.0
+  ],
+  "lattice_angle": 0.0,
+  "radii_in_spacings": {
+   "fluid_at_inner_wall_min": 400.00124999804694,
+   "fluid_at_outer_wall_max": 499.991999935999,
+   "inner_wall_min": 389.00000000000006,
+   "inner_wall_max": 400.0,
+   "outer_wall_min": 500.0,
+   "outer_wall_max": 510.988258182123
+  }
+ },
+ "slabs": 3,
+ "device_map": [
+  1,
+  1,
+  1
+ ],
+ "weights": [
+  1.0,
+  1.0,
+  1.0
+ ],
+ "steps": 134000,
+ "sample_steps": 1000,
+ "timestep": 1.5e-05,
+ "particles": 344908,
+ "counters": {
+  "overflow_inside_count": 0,
+  "overflow_incoming_count": 0,
+  "overflow_ghost_count": 0,
+  "overflow_install_tail": 0,
+  "overflow_install_inside": 0,
+  "stamp_error_count": 0,
+  "overflow_departed_count": 0,
+  "far_migration_count": 0,
+  "overflow_initialization_outside": 0,
+  "overflow_deep_wall_skip_count": 0
+ },
+ "elapsed_seconds": 567.9472156999982,
+ "failure": null,
+ "steps_per_second": 235.93741864698507,
+ "cuts_x": [
+  -0.22550001144409176,
+  0.22449998855590825
+ ],
+ "slab_particles": [
+  114759,
+  115108,
+  115041
+ ],
+ "reduced": "sums of the samples over the eight windows of an eighth of the run"
+}

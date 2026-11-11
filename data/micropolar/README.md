@@ -27,3 +27,15 @@ Added 2026-11-11 (night):
 | `checks/d/k1_{6..10}`, `k2s_{6..10}`, `k1lap_1`, `paired10.*` | check D extended to ten runs per group; the micropolar continuation with `laplacian` |
 
 Not copied: the cavity runs' profile samples, snapshots and checkpoints (`logs/micropolar/cavity_forms/`, 6 runs).
+
+Added 2026-11-11 (Stage 3, Section 12 of the design note):
+
+| path | content |
+|---|---|
+| `stage3/step_limit.json`, `lattice_spectral_radius.txt` | the measured explicit step limits (bisection probes) and the forward-Euler bound of the lattice symbols |
+| `stage3/t1_k{1,2}_compare.json`, `seam_annulus_k{2,3}.json` | T1 after the rotating wall; the per-particle seam check on the annulus |
+| `stage3/couette_pilot.json` / `.txt` | the cylinder pilot: every fitted number, profile and per-sector constant (`micropolar_couette.py analyse`) |
+| `stage3/couette/<run>/` | per run `run.json` and `windows.npz` = the samples summed over the eight windows of an eighth of the run (`micropolar_couette.py reduce`); `analyse --runs data/micropolar/stage3/couette` reproduces `couette_pilot.txt` |
+| `stage3/boundary_layer_operators.txt` | discrete gradient and Laplacian on an exponential field of length l (host) |
+
+Not copied: the raw samples of the cylinder runs (`logs/micropolar/couette/`, 134 to 267 samples per run, 130 MB).

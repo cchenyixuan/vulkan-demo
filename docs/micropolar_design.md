@@ -2,7 +2,7 @@
 
 Branch `v9-micropolar`, base tag `micropolar-base` = ab50c10 (merge of `origin/bootstrap-density-fix` eda5b90 and
 `origin/v7-adami-multi` 8c33192). Sections 0 to 7 are the Stage 0 plan, with the decisions of 2026-11-10 entered in
-Section 2; Section 8 is the Stage 1 report (one slab), Section 9 the Stage 2 report (chains), Section 10 the checks A to E, Section 11 the night of 2026-11-11.
+Section 2; Section 8 is the Stage 1 report (one slab), Section 9 the Stage 2 report (chains), Section 10 the checks A to E, Section 11 the night of 2026-11-11, Section 12 Stage 3 (thesis configuration, step limits, concentric cylinders, baseline, cost).
 
 Marked **[read]** = inferred from reading the code, **[run]** = verified by running on this machine.
 
@@ -530,3 +530,284 @@ Here only what concerns the micropolar work.
     digit, reproduced once. The L2 rows of the one-card runs are high as well, but they carry the bias noted in
     Section 10 (each K = 1 run is part of its own mean; factor 0.95 for ten runs).
   - What would settle it: twenty more of each, or the same test on a state closer to steady; I did not run more.
+
+## 12. Stage 3 (2026-11-11): thesis configuration, step limits, concentric cylinders
+
+Decisions entered as given: the thesis configuration is `numerics.viscous_form: laplacian`,
+`epsilon_squared_factor: 1e-6`, `wall_boundary: adami`, written in the case files (no code default changed); BM-G
+is not built (the proposal stays in `docs/viscous_operator_comparison.md`); the min v offset of check D with one
+card stays open. Data: `data/micropolar/stage3/`. Tools: `experiment/validation/micropolar_couette.py`
+(generator, runs, step limits, analysis), `micropolar_couette_reference.py` (exact solution),
+`micropolar_cost.py` (throughput), `viscous_form_campaign.py` (baseline).
+
+Readings I took without asking are collected in 12.10.
+
+Sections 12.8 (baseline at n = 1000) and 12.9 (cost) are added when the n = 1000 run has finished.
+
+### 12.1 What `origin/v8-tgv` already has **[read]**, not merged
+
+- **Explicit viscous step limit of the Monaghan-Gingold form.** Measured there on the 800 x 800 Taylor-Green
+  case at Re 100: `dt nu / h^2` = 0.016 and 0.020 run, 0.024 blows up within 400 steps (h = support radius =
+  5 dx). Its case generator has no time step key either: it writes a reduced `physics.cfl`, and the shifting
+  scale shrinks with it. I do the same (12.3).
+- **Effective viscosity against Mach number** (Re 100, 400 x 400, eps^2 = 1e-4 h^2): nu_eff / nu = 0.9949,
+  0.9971, 0.9990, 1.0000 at Ma 0.1, 0.05, 0.02, 0.01. The pilot below runs at Ma 0.02 with one pair at 0.01.
+- **Specialization constant ids.** `experiment/v8/shaders/common.glsl` uses 116 `PERIODIC_X`, 117 `PERIODIC_Y`,
+  118 `DOMAIN_LENGTH_X`, 119 `DOMAIN_LENGTH_Y`. This branch uses 116 for `MICROPOLAR_REPLICA_LAYERS`
+  (`experiment/v7/shaders/micropolar.glsl`). The two trees are separate directories today, so nothing is wrong
+  now; when the periodic domain is brought into the tree that carries the micropolar kernels, id 116 collides
+  and one of the two must move (the micropolar one is the cheaper to move: one line in `micropolar.glsl` and
+  one entry in `simulator_v7.py`, and only the `_micropolar` modules are rebuilt). Not changed here.
+
+### 12.2 Step limits of the thesis configuration **[run]**
+
+Measured as v8-tgv did, by bisection on runs that either stay intact or blow up: annulus with g = 50 dx
+(101,768 particles), adami walls, EPS factor 1e-6, 2,000 steps at the acoustic step of the case, the diffusivity
+raised until the run fails (particles lost, counters, or speed above the wall speed by a wide margin). h is the
+support radius (5 dx). `data/micropolar/stage3/step_limit.json`.
+
+| term | largest stable `dt D / h^2` | smallest failing | in dx^2 | s = threshold / 1.6 |
+|---|---|---|---|---|
+| viscous, `laplacian` (D = nu) | 0.05246 | 0.05341 | 1.31 | 0.0328 |
+| viscous, `monaghan_gingold` (D = nu), same EPS | 0.02134 | 0.02173 | 0.53 | 0.0133 |
+| angular diffusion (D = xi / Theta) | 0.05341 | 0.05438 | 1.34 | 0.0334 |
+
+- The Monaghan-Gingold number agrees with v8-tgv's bracket (0.020 runs, 0.024 fails).
+- **The `laplacian` form allows a step 2.46 times larger.** Both numbers are the forward-Euler bound
+  `dt nu <= 2 / lambda_max` of the discrete operator: on the square lattice the largest eigenvalue of the symbol
+  is 90.1 / h^2 for Monaghan-Gingold (a longitudinal mode at k dx = 0.70 pi along an axis) and 35.9 / h^2 for
+  the Brookshaw-Morris form (the checkerboard mode), giving 0.0222 and 0.0558 (host, float64,
+  `data/micropolar/stage3/lattice_spectral_radius.txt`); the measured limits on the developed arrangement are
+  0.96 and 0.94 of these.
+- The angular diffusion uses the same Brookshaw-Morris sum as the `laplacian` viscous term and has the same
+  limit within the bracket.
+- **Rule in the case tooling** (`micropolar_couette.py generate`): `dt = min(CFL h / c0, s h^2 / nu,
+  s h^2 / (xi / Theta))` with CFL = 0.15 and the s of the table for the case's viscous form. The solver has no
+  time step key (`dt = cfl h / c0`), so the case stores the effective number `cfl = dt c0 / h`, and its header
+  names the limit that set it. A Newtonian control takes the limits of the micropolar run it is paired with, so
+  both run the same dt; the analysis checks this per pair.
+- With the parameters built as in 12.5 (`Theta = l^2`, `xi = l^2 c (2 nu - c) / nu`) the angular diffusivity is
+  `xi / Theta = c (2 nu - c) / nu <= nu`, with equality at c = nu: **the angular limit never governs** in this
+  parametrization; it would with a micro-inertia smaller than l^2.
+- The start-up report of Stage 1 warns when a step number exceeds 0.1 in units of dx^2 (0.004 in h^2). That is
+  13 times below the measured limit, and the warning appears for every case of the pilot table (viscous number
+  0.24 per dx^2 = 0.0096 per h^2). I left the threshold as it is; with these measurements it could be 0.8
+  per dx^2.
+
+### 12.3 Rotating wall material **[run]**
+
+Material key `rigid_rotation: {angular_velocity: Omega, centre: [x, y, z]}` on a boundary material: the loader
+writes `v = Omega z^ x (r - centre)` on each wall particle at upload (float64, then float32). The wall's
+micro-rotation stays the separate key `wall_angular_velocity`. Wall particles do not move, so nothing else is
+needed: this is host code only (`case_v7.py`, `case_loader_v7.py`), no shader and no SPIR-V file changed.
+The loader rejects the key on a fluid material and together with `initial_velocity`.
+
+- T0: 35 SPIR-V files, the 23 of `micropolar-base` byte-identical; layout test 858 failures = the base's set.
+- T1 after the change (`data/micropolar/stage3/t1_k{1,2}_compare.json`): K = 1, five runs against ten base runs:
+  largest sampled rms 1.5e-4 / 1.7e-4 / 1.8e-3 (u, v, rho) against the base's own largest pair distance
+  1.5e-4 / 1.6e-4 / 1.6e-3 (ratios 0.63 to 1.11); K = 2, five runs against forty: ratios 0.60 to 0.96.
+
+### 12.4 Annulus generator **[run]**
+
+`micropolar_couette.py generate`: fluid on a Cartesian lattice clipped between the inner cylinder (radius R1,
+centre offset by the eccentricity along x) and the outer one (R2, centred on the origin); wall shells 11 dx
+thick on both sides (2.2 h, as the cavity's frame); parameters for the eccentricity, a lattice offset (in dx) and
+a lattice angle. It writes the four geometry files, `materials.yaml` (fluid, rotor with `rigid_rotation`,
+stator), `case.yaml` in the thesis configuration and `couette.json` with every derived number.
+
+| case | fluid | rotor | stator | fluid radii (dx) | rotor shell (dx) | stator shell (dx) |
+|---|---|---|---|---|---|---|
+| g = 100 dx, as generated | 282,696 | 27,296 | 34,916 | 400.0012 to 499.9920 | 389.0000 to 400.0000 | 500.0000 to 510.9883 |
+| g = 100 dx, shifted (0.5, 0.5) dx | 282,804 | 27,200 | 34,892 | 400.0056 to 499.9965 | 389.0122 to 399.9956 | 500.0045 to 510.9956 |
+| g = 100 dx, rotated 15 degrees | 282,704 | 27,284 | 34,912 | 400.0000 to 500.0000 | 389.0013 to 400.0000 | 500.0000 to 510.9883 |
+| g = 200 dx | 1,130,948 | 54,948 | 69,408 | 800.0006 to 999.9985 | 789.0006 to 800.0000 | 1000.0000 to 1010.9980 |
+
+The wall is a staircase of a Cartesian lattice: a particle at exactly R1 or R2 belongs to the wall (`<=`, `>=`),
+and the first fluid particle sits between 0.001 and 1 dx from the nominal radius depending on the angle. The
+hydrodynamic radii of 12.6 measure where the wall effectively is.
+
+### 12.5 Reference solution **[run, host]**
+
+`micropolar_couette_reference.py`, written from the formulas of the task; **they are correct as given**. Eringen
+parameters from the solver's: `mu = rho (nu - c)`, `kappa = rho c`, `gamma = rho xi`,
+`l^2 = gamma (mu + kappa) / (kappa (2 mu + kappa)) = xi nu / (c (2 nu - c))`. A case is designed from
+`nu_inf = (mu + kappa / 2) / rho` (the viscosity the torque sees as l -> 0 with w = 0 on the walls), K = kappa / mu
+and l: `mu / rho = nu_inf / (1 + K / 2)`, `c = K mu / rho`, `nu = (1 + K) mu / rho`, `nu_t = -mu / rho`,
+`xi = l^2 c (2 nu - c) / nu`, `Theta = l^2`. The solution is evaluated with exponentially scaled Bessel functions
+and an equilibrated 4 x 4 system, so that R2 / l = 500 costs no digits.
+
+| check | result |
+|---|---|
+| both equations, analytic derivatives, 220 random cases, R2 / l from 0.5 to 500 | residuals 1.4e-15 (momentum), 4.0e-16 (angular) relative; wall values to 7e-15 |
+| scaled evaluation against the literal formula with `iv`, `kv` | 6e-15 |
+| against `scipy.integrate.solve_bvp` (9 cases, tolerance 1e-9) | 1.1e-12 in v, v', w, w' |
+| rigid rotation, v = Omega r and w = Omega on both walls | v / (Omega r) - 1 and w / Omega - 1 below 1e-15, torque 1e-15 of the Newtonian one |
+| torque `M(r) = 2 pi (r^2 t + r gamma w')` independent of r (401 radii, 220 cases) | spread 7e-15; equals `-2 pi (2 mu + kappa) C2` to 5e-15 |
+| `w_wall` = the Newtonian rotation rate alpha on both walls | the Newtonian profile for every l (9e-16), torque of viscosity mu + kappa / 2 |
+| w = 0 on the walls, l -> 0 | D -> 0 with order 1.01 in l; D / l = 6.705 at l = 0.001 against the thin-layer estimate 6.653 |
+| condition number of the 4 x 4 system, R1 0.4, R2 0.5 | 43 at l = 0.05, 32 at l = 0.0001 (1e2 to 4e3 before equilibration) |
+| round trip design -> solver -> Eringen | 2e-16 |
+
+Reference values of the pilot (R1 = 0.4, R2 = 0.5, nu_inf = 0.01, K = 3, Omega = 2.5, w = Omega on the rotor,
+0 on the stator): D = +0.43037 (l = 0.05, m = 1), +0.23280 (m = 2), +0.08523 (m = 5), +0.04094 (m = 10); with
+w = 0 on the rotor, m = 5: +0.06502. `D = C2 / beta_N - 1` with beta_N the Newtonian constant for the same
+walls, so D is the relative change of the torque against a Newtonian fluid of viscosity `mu + kappa / 2`.
+
+### 12.6 Diagnostics **[run, host]**
+
+`micropolar_couette.py run` samples the fluid at every 1,000th step (a defrag boundary): sums of count, radius,
+v_theta, v_r and w_z in radial bins of one dx about the rotor axis and in eight 45-degree sectors.
+`analyse` then, per run:
+
+- averages the last quarter of the run; fits the bins further than h from both nominal radii;
+- Newtonian: `v = alpha r + beta / r`; hydrodynamic radii `sqrt(beta / (Omega - alpha))` (where the fit reaches
+  the rotor's rotation) and `sqrt(-beta / alpha)` (where it reaches zero);
+- micropolar: the four functions of the exact solution with the case's l (`C1' r`, `C2 / r`, scaled `I1(r / l)`,
+  `K1(r / l)`), giving C2; `D_SPH = C2 / beta - 1` with beta of the paired Newtonian control (same particles,
+  same dt); `D_exact` with the nominal radii and with the control's hydrodynamic radii;
+- **a second estimate of C2 that I added:** the joint fit of v and w, which share the four constants
+  (`w = C1' + A I0 + B K0`, `v = C1' r + C2 / r + (c l / nu) (A I1 - B K1)`), each block weighted by the rms of its
+  data. The velocity alone separates K1 from 1 / r poorly across a narrow gap when l is not small: the
+  condition number of the velocity-only fit is 680 at m = 1 against 22 for the joint fit. Both are reported;
+- steady test: C2 (or beta) of the last two windows of an eighth of the run, for both fits;
+- the fit per sector: spread of the eight C2, and the four-fold part (difference of the means of alternate
+  sectors, which is what a Cartesian lattice would imprint);
+- profile errors against the exact solution with the hydrodynamic radii: rms over the bins further than h from
+  the walls ("core") and within h ("wall layers"), relative to the rms of the exact profile.
+
+### 12.7 Pilot table **[run]**
+
+R1 = 4 g, R2 = 5 g, g = 0.1 m = 100 dx (h = 5 dx), wall speed U = Omega R1 = 1 m/s, Re_g = U g / nu_inf = 10,
+Ma = U / c0 = 0.02, K = kappa / mu = 3, outer wall at rest with w = 0; end time 2 g^2 / nu_inf = 2 s (134,000
+steps), average over the last quarter. Thesis configuration everywhere except the operator row. All runs: every
+counter zero, no particle lost. In every row the acoustic limit sets dt (viscous `s h^2 / nu` = 5.1e-5 s and
+angular 5.6e-5 s against 1.5e-5 s), so the table does not exercise the other two branches of the rule; the
+Mach 0.1 pair at the end of this section does. One-slab runs and the three-slab run on the RX 7900 XTX (the
+RTX 5090 was running the baseline of 12.8), the two-slab run on the pair. `data/micropolar/stage3/couette_pilot.json`
+(every number below, the profiles, the per-sector constants), reduced samples of every run under
+`data/micropolar/stage3/couette/`.
+
+**Newtonian controls and the noise floor.** Nominal: alpha = -4.444444, beta = 1.111111.
+
+| lattice | alpha | beta | beta / nominal | hydrodynamic R1 - R1 | hydrodynamic R2 - R2 | steady (last two eighths) | sector spread of beta | four-fold part |
+|---|---|---|---|---|---|---|---|---|
+| as generated | -4.444171 | 1.11059956 | 0.999540 | -0.084 dx | -0.100 dx | 2.5e-6 | 1.5e-4 | 6.1e-5 |
+| shifted by (0.5, 0.5) dx | -4.442605 | 1.11040042 | 0.999360 | -0.075 dx | -0.056 dx | 6.6e-6 | 3.7e-5 | 3.3e-6 |
+| rotated by 15 degrees | -4.444009 | 1.11056561 | 0.999509 | -0.086 dx | -0.098 dx | 3.5e-7 | 3.3e-4 | 1.6e-4 |
+| Mach 0.01, as generated | -4.444138 | 1.11063092 | 0.999568 | -0.078 dx | -0.091 dx | 2.4e-6 | 1.8e-4 | 8.2e-5 |
+| Monaghan-Gingold, as generated | -4.455793 | 1.11289503 | 1.001606 | -0.006 dx | -0.236 dx | 1.4e-5 | 1.3e-4 | 2.4e-6 |
+| g = 200 dx, as generated | -4.444132 | 1.11078546 | 0.999707 | -0.099 dx | -0.111 dx | 1.2e-6 | 8.0e-5 | 3.7e-5 |
+
+- **Noise floor:** beta of the three lattices spreads by 1.79e-4 (max - min, relative; standard deviation
+  9.6e-5). `D = C2 / beta - 1`, so the floor of D is `(1 + D)` times that: 1.9e-4 to 2.6e-4 for the rows below.
+- Both hydrodynamic radii are smaller than nominal by 0.06 to 0.11 dx with the `laplacian` form: the rotor's
+  no-slip position lies that far behind its surface, the stator's that far inside the fluid, and the
+  hydrodynamic gap is within 0.02 dx of the nominal one. The offsets are the same in dx at g = 200 dx
+  (-0.099, -0.111), so they halve in metres: first order in dx.
+- With the Monaghan-Gingold form the stator acts 0.24 dx inside the fluid and the rotor at its surface: the
+  hydrodynamic gap is 0.23 dx narrower, and beta is 0.16 % above nominal instead of 0.05 % below.
+- Fit residual 4.6e-5 U; no four-fold pattern above 1.6e-4 in beta.
+
+**Micropolar runs.** `D_exact` with the control's hydrodynamic radii; "allowed" is the larger of the noise floor
+and 5 % of `D_exact`.
+
+| run | D_SPH, velocity fit | D_SPH, joint fit | D_exact, nominal radii | D_exact, hydrodynamic radii | difference, velocity fit | difference, joint fit | allowed | steady, velocity / joint |
+|---|---|---|---|---|---|---|---|---|
+| m = 1 (l = 50 dx) | 0.43057 | 0.43058 | 0.43037 | 0.43042 | +1.6e-4 (+0.04 %) | +1.7e-4 (+0.04 %) | 2.2e-2 | 1.8e-4 / 6.8e-6 |
+| m = 1, run to 3 g^2 / nu_inf | 0.43052 | 0.43058 | 0.43037 | 0.43042 | +1.0e-4 (+0.02 %) | +1.6e-4 (+0.04 %) | 2.2e-2 | 4.6e-5 / 1.8e-6 |
+| m = 2 (l = 25 dx) | 0.23310 | 0.23250 | 0.23280 | 0.23284 | +2.7e-4 (+0.11 %) | -3.4e-4 (-0.14 %) | 1.2e-2 | 3.1e-5 / 1.2e-6 |
+| m = 5 (l = 10 dx) | 0.08578 | 0.08485 | 0.08523 | 0.08525 | +5.3e-4 (+0.63 %) | -4.0e-4 (-0.47 %) | 4.3e-3 | 2.9e-5 / 1.2e-5 |
+| m = 5, w = 0 on the rotor | 0.06544 | 0.06460 | 0.06502 | 0.06503 | +4.2e-4 (+0.64 %) | -4.3e-4 (-0.65 %) | 3.3e-3 | 2.7e-5 / 1.2e-5 |
+| m = 5, Monaghan-Gingold | 0.08644 | 0.08514 | 0.08523 | 0.08543 | +1.01e-3 (+1.19 %) | -2.9e-4 (-0.33 %) | 4.3e-3 | 1.7e-4 / 6.1e-5 |
+| m = 5, Monaghan-Gingold, to 3 g^2 / nu_inf | 0.08640 | 0.08516 | 0.08523 | 0.08543 | +9.7e-4 (+1.14 %) | -2.7e-4 (-0.31 %) | 4.3e-3 | 3.3e-5 / 4.0e-5 |
+| m = 5, Mach 0.01 | 0.08580 | 0.08485 | 0.08523 | 0.08524 | +5.5e-4 (+0.65 %) | -4.0e-4 (-0.46 %) | 4.3e-3 | 1.8e-7 / 5.6e-7 |
+| g = 200 dx, m = 10 (l = 10 dx) | 0.04118 | 0.04047 | 0.04094 | 0.04094 | +2.5e-4 (+0.60 %) | -4.7e-4 (-1.14 %) | 2.0e-3 | 1.6e-6 / 1.4e-6 |
+
+| run | alpha (C1') | C2 | v error, core | v error, wall layers | w error, core | w error, wall layers | sector spread of C2 | four-fold part |
+|---|---|---|---|---|---|---|---|---|
+| m = 1 | -6.68183 | 1.588793 | 9.7e-5 | 8.2e-4 | 6.6e-3 | 9.8e-3 | 1.2e-3 | 4.7e-4 |
+| m = 2 | -5.67780 | 1.369483 | 1.0e-4 | 8.1e-4 | 4.5e-3 | 8.4e-3 | 5.9e-4 | 2.3e-4 |
+| m = 5 | -4.89855 | 1.205867 | 1.5e-4 | 7.4e-4 | 3.8e-3 | 1.1e-2 | 3.1e-4 | 1.1e-4 |
+| m = 5, w = 0 on the rotor | -4.80682 | 1.183282 | 1.2e-4 | 7.1e-4 | 2.6e-3 | 8.6e-3 | 2.9e-4 | 1.1e-4 |
+| m = 5, Monaghan-Gingold | -4.91508 | 1.209095 | 3.1e-4 | 5.8e-4 | 2.4e-3 | 1.4e-2 | 6.7e-4 | 4.2e-5 |
+| m = 5, Mach 0.01 | -4.89849 | 1.205920 | 1.8e-4 | 7.7e-4 | 3.8e-3 | 1.1e-2 | 3.2e-4 | 1.4e-4 |
+| g = 200 dx, m = 10 | -4.66230 | 1.156533 | 1.6e-4 | 3.5e-4 | 2.8e-3 | 1.2e-2 | 1.3e-4 | 6.2e-5 |
+
+- **Every row is inside the criterion, with both fits:** the largest deviation of D is 1.2 % of `D_exact`
+  (Monaghan-Gingold, velocity fit) and 0.6 % for the thesis configuration (m = 5 and m = 10 at l = 10 dx);
+  m = 1 and m = 2 are at the noise floor (1.6e-4 and 2.7e-4 against 2.6e-4 and 2.2e-4).
+- **Steady test.** Two rows missed 1e-4 on the velocity-only C2 at 2 g^2 / nu_inf: m = 1 (1.8e-4) and the
+  Monaghan-Gingold row (1.7e-4). Both were run again to 3 g^2 / nu_inf and pass there (4.6e-5, 3.3e-5); D moved
+  by 5e-5 and 4e-5. The joint fit was steady in both at the first end time (6.8e-6, 6.1e-5): the miss was noise
+  of the velocity-only fit (condition number 680 at m = 1), not drift.
+- **The wall condition on w is seen:** with w = 0 on the rotor D falls from 0.0858 to 0.0654, as the exact
+  solution says (0.0852 to 0.0650), with the same deviation (+0.64 %).
+- **Mach number:** 0.01 against 0.02 changes D by 2e-5 and the Newtonian beta by 2.8e-5: nothing at this level.
+- **Resolution at fixed l / dx:** g = 200 dx with l = 10 dx gives the same relative deviation as g = 100 dx with
+  l = 10 dx (+0.60 % against +0.63 %): the deviation follows l / h, not g / dx.
+- **The two estimates of C2 bracket the exact value** from m = 2 on (velocity fit high, joint fit low), about
+  9e-4 apart at l = 10 dx. With fits started 1.5, 2 and 3 h from the walls instead of h, the velocity-fit
+  deviation at m = 5 stays (+5.4e-4, +5.5e-4, +5.8e-4) and the joint-fit deviation shrinks (-3.2e-4, -2.7e-4,
+  -2.0e-4): the joint fit is pulled by the w bins nearest the walls.
+
+**What limits the numbers** (inferred from two host measurements, not from a further run):
+
+- *D at small l.* On a field `exp(x / l)` the corrected SPH gradient (the two curls) and the Brookshaw-Morris
+  Laplacian of the lattice return 1.0066 and 1.0033 times the exact value at l = 2 h (10 dx), 1.0011 and 1.0005
+  at l = 5 h, 1.0003 and 1.0001 at l = 10 h (`data/micropolar/stage3/boundary_layer_operators.txt`). Put into
+  the plane form of the two equations, these factors make the layer 0.47 % thicker at l = 2 h and 0.07 % at
+  l = 5 h; D of a thin layer is proportional to l, so +0.5 % and +0.07 % are expected, against the measured
+  +0.63 % (m = 5), +0.60 % (m = 10 at g = 200 dx) and +0.11 % (m = 2). The same factors change the ratio between
+  the layer amplitudes of v and w by 0.8 % at l = 2 h, which the joint fit takes as exact; that is its bias.
+  The deviation of D is then a resolution effect of second order in h / l, about 0.6 % at l = 2 h.
+- *The w profile.* Its error (0.3 to 0.7 % in the core, 1 % in the wall layers) has the shape of a displaced
+  profile: near the rotor w_SPH - w_exact = +2.7e-2 Omega at m = 5, +2.9e-2 at m = 10 (g = 200 dx), +7.5e-3 at
+  m = 1, which with the local slopes is a displacement of 0.11, 0.12 and 0.12 dx; near the stator 0.03 to
+  0.04 dx. So w feels the rotor about 0.1 dx further out than v does (the exact solution above uses the
+  hydrodynamic radii of v for both). It is the size of the hydrodynamic offset itself, first order in dx, and it
+  does not reach D: D with nominal and with hydrodynamic radii differs by 2e-5 to 5e-5.
+- *The v profile.* Relative error 1e-4 to 2e-4 in the core and 8e-4 in the wall layers (4e-4 at g = 200 dx):
+  the wall-layer number is the first bin beside each wall (-1.2e-3 U at the rotor, +8e-4 U at the stator at
+  m = 5; the next bins are at 2e-4 U).
+
+**Chains** (the m = 5 case, same particles and dt).
+
+- *Per particle, 20 steps from the same state* (case `cases/couette/seam_k3_m5`, adami;
+  `data/micropolar/stage3/seam_annulus_k{2,3}.json`). Relative rms difference to a one-slab run, particles within
+  h of a cut / the others:
+
+| quantity | one slab again | one slab, other card | K = 2, XTX + 5090 | K = 2, one card | K = 3, one card |
+|---|---|---|---|---|---|
+| acceleration | 4.0e-5 / 3.7e-5 | 1.5e-4 / 1.5e-4 | 1.1e-4 / 1.1e-4 | 3.5e-5 / 3.7e-5 | 3.5e-5 / 3.8e-5 |
+| angular acceleration | 1.7e-5 / 1.5e-5 | 1.9e-5 / 1.7e-5 | 1.5e-5 / 1.6e-5 | 1.5e-5 / 1.5e-5 | 1.4e-5 / 1.5e-5 |
+| angular velocity | 1.4e-6 / 1.6e-6 | 1.9e-6 / 1.9e-6 | 1.9e-6 / 1.7e-6 | 1.6e-6 / 1.5e-6 | 1.7e-6 / 1.6e-6 |
+| wall dummy velocity | 3.1e-7 / 4.5e-7 | 5.6e-7 / 6.4e-7 | 4.0e-7 / 5.5e-7 | 3.9e-7 / 4.3e-7 | 4.6e-7 / 4.6e-7 |
+| wall dummy angular velocity | 1.4e-6 / 3.0e-6 | 2.5e-6 / 3.6e-6 | 1.6e-6 / 3.2e-6 | 1.9e-6 / 2.7e-6 | 3.1e-6 / 3.0e-6 |
+
+  Every chain is at the level of a repeated one-slab run on the same hardware, and particles at a cut are no
+  different from the others. The cuts of the annulus cross both walls and the rotating wall's velocity field;
+  nothing in the seam needed a change.
+- *D against one slab.* First pass: one slab 0.08578, K = 2 on the pair 0.08580, K = 3 on one card 0.08581
+  (velocity fit; 0.08485, 0.08486, 0.08486 with the joint fit). To see whether 2e-5 to 3e-5 is a difference I
+  ran the one-slab case five more times and the three-slab case three more times:
+
+| decomposition | runs | C2, velocity fit: mean (std of the runs) | difference to one slab | C2, joint fit: mean (std) | difference to one slab |
+|---|---|---|---|---|---|
+| one slab | 6 | 1.20588074 (1.5e-5) | | 1.20483994 (6.8e-6) | |
+| three slabs, one card | 4 | 1.20589511 (1.4e-5) | +1.4e-5 (+1.5 standard errors) | 1.20484780 (6.8e-6) | +7.9e-6 (+1.8) |
+| two slabs, 5090 + XTX | 1 | 1.20589050 | +9.8e-6 (+0.6) | 1.20484599 | +6.0e-6 (+0.8) |
+
+  **The chain value is not resolved from the one-slab value:** the difference is 1.4e-5 in C2 (1.3e-5 in D, 0.015 %
+  of D), one run-to-run standard deviation, and fifteen times below the lattice noise floor. Both differences
+  have the same sign at 1.5 to 1.8 standard errors, which four runs cannot separate from zero; the first
+  three-slab run (+3.3e-5 from the first one-slab run) was at the upper end of its group.
+
+**The viscous branch of the step rule** (not a row of the table). The same m = 5 case and its control at Mach 0.1:
+the acoustic step is five times larger, so `s h^2 / nu` sets dt = 5.125e-5 s (`dt nu / h^2` = 0.0328, 0.82 per
+dx^2; 40,000 steps). Both runs complete with every counter zero and are steady (4.7e-6, 2.8e-6).
+`D_SPH` = 0.08531 against 0.08530 (velocity fit; joint fit 0.08472). The profiles are less accurate than at
+Mach 0.02: Newtonian fit residual 6.7e-4 U against 4.6e-5, hydrodynamic offsets -0.22 and -0.29 dx, v error in
+the core 1.5e-3; Mach number and step were changed together, so this pair does not say which of the two it is.
+
+**Speed on the RX 7900 XTX** (344,908 particles, sampling included): Newtonian 699 to 715 steps/s, micropolar 617
+to 624 (-13 %), three slabs on the one card 233 to 236.
