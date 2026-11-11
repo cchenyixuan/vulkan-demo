@@ -1056,9 +1056,9 @@ All walls carry w = 0, the rotor included. Thesis configuration everywhere (`vis
 - Tag `thesis-ch5-rc1` = `8ca21ab` (the head when the task arrived), pushed. `experiment/v7/shaders` (tree
   `bd3adc4c`) and `experiment/v7/utils` (tree `83aa1faf`) did not change during the stage: no `rc2`. Every
   `run.json` records the commit, `git describe`, the two tree hashes and whether either directory differed from
-  the commit (never). The tooling changed while the runs went on (three commits after the tag, all under
-  `experiment/validation` and `data/`); the first runs of the night were started at `8ca21ab` with the run
-  driver's state saving not yet committed, the later ones at the tooling commits. The table of 13.2 gives the
+  the commit (never). The tooling changed while the runs went on (the commits after the tag touch
+  `experiment/validation`, `cases/`, `data/` and `docs/` only); the first runs of the night were started at
+  `8ca21ab` with the run driver's state saving not yet committed, the later ones at the tooling commits. The table of 13.2 gives the
   `git describe` of every row.
 - T0 and T1 were not re-run: nothing under `experiment/v7` was touched.
 - **What ran:** 56 runs to their end time (two of them lost particles on the way, 13.4), all on one slab (XTX:
