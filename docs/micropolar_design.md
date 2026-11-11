@@ -1849,12 +1849,12 @@ Settings in this section, all "thesis configuration otherwise" (`viscous_form: l
 | `thesis-ch5-rc1-8-gba5bced` | `c3409837` | `25618f81` | yes | `nd_e60_re10_g200` |
 | `thesis-ch5-rc1-8-gba5bced` | `c3409837` | `25618f81` | no | `nd_g100_slip_m2`, `nd_g100_slip_m5` |
 
-  One run started while the edits of the first option were not yet committed (`nd_e60_re10_g200`, "yes" above);
-  two others in that position were run again on the committed tree and reproduce to 1e-4 (14.6).
+  One run started while edits to the solver directories were not yet committed (`nd_e60_re10_g200`, "yes"
+  above); two others in that position were run again on the committed tree and reproduce to 1e-4 (14.6).
 
 - What ran: 39 runs between the cylinders to their end time (one of them, the thesis configuration at
   Reynolds number 1, after losing two particles at 96 % of it); six cavity runs (two stopped by the runner,
-  three finished, one running when this was written); 20 dumps of T1 and four seam checks. What did not: 14.6.
+  four finished); 20 dumps of T1 and four seam checks. What did not: 14.6.
 
 ### 14.1 The rule in its slip form **[host]**
 
@@ -2369,6 +2369,7 @@ frame, mean over the last 20 time units, in units of U; `micropolar_stage5_cavit
 | 250 | (d') eos walls | 100.6 | 80.6 | 1.05e-02 | 2.18e-02 | 1.23e-02 | 2.04e-02 | 1.61e-02 | 9.25e-03 | 6.73e-03 | 1.30e-02 | -0.40457 | 0.39390 | -0.54685 | 53.760 | 929.76 / 943.43 | 930.356 |
 | 500 | (a) thesis | 89.5 | 69.6 | 4.18e-03 | 1.09e-02 | 4.29e-03 | 7.26e-03 | 7.78e-03 | 3.21e-03 | 2.16e-03 | 4.55e-03 | -0.39416 | 0.38313 | -0.53367 | 51.533 | 999.54 / 1000.58 | 999.994 |
 | 500 | (c) fluid pairs only | 89.5 | 69.6 | 6.18e-03 | 1.14e-02 | 7.37e-03 | 1.21e-02 | 8.17e-03 | 5.79e-03 | 6.72e-03 | 7.47e-03 | -0.39797 | 0.38687 | -0.53851 | 52.248 | 959.30 / 969.61 | 959.997 |
+| 500 | (d') eos walls | 99.5 | 79.6 | 6.21e-03 | 1.20e-02 | 7.15e-03 | 1.19e-02 | 9.16e-03 | 5.57e-03 | 5.86e-03 | 7.35e-03 | -0.39760 | 0.38660 | -0.53834 | 52.244 | 968.70 / 975.75 | 969.168 |
 
 The four points nearest the lid (u on x = 0.5) and nearest the right wall (v on y = 0.5), error against the
 reference:
@@ -2380,6 +2381,7 @@ reference:
 | 250 | (d') eos walls | +9.97e-03 | +1.29e-02 | +1.70e-02 | +2.18e-02 | -1.12e-02 | -6.82e-03 | -2.21e-03 | +2.13e-03 |
 | 500 | (a) thesis | +4.20e-03 | +5.97e-03 | +8.33e-03 | +1.09e-02 | -3.43e-03 | -1.57e-03 | +3.02e-04 | +2.08e-03 |
 | 500 | (c) fluid pairs only | +5.36e-03 | +6.69e-03 | +8.63e-03 | +1.09e-02 | -9.86e-03 | -7.51e-03 | -4.78e-03 | -2.00e-03 |
+| 500 | (d') eos walls | +6.22e-03 | +7.68e-03 | +9.64e-03 | +1.20e-02 | -8.91e-03 | -6.48e-03 | -3.83e-03 | -1.15e-03 |
 
 Velocity into the walls (from the snapshots of the last 20 time units, one per time unit: per wall, in 50 bins
 along it without the corner squares, a cubic in the wall distance over the fluid between 0.5 and 12 dx from the
@@ -2394,6 +2396,7 @@ pressure, the four walls together:
 | 250 | (d') eos walls | 5.5e-05 | 4.0e-04 | 4.8e-03 | 1.8e-03 | -0.0000 (-0.08) | +0.0000 (+0.01) | +0.0003 (+0.14) | +0.0000 (+0.04) | +0.0088 (+0.72) | 0.88 |
 | 500 | (a) thesis | 1.2e-04 | 3.9e-04 | 3.1e-03 | 1.4e-03 | +0.0101 (+0.95) | +0.0126 (+0.67) | +0.0372 (+0.88) | +0.0093 (+0.51) | - | - |
 | 500 | (c) fluid pairs only | 1.7e-05 | 2.3e-04 | 2.7e-03 | 1.2e-03 | +0.0000 (+0.09) | -0.0000 (-0.15) | +0.0016 (+0.44) | -0.0003 (-0.23) | +0.0080 (+0.95) | 0.80 |
+| 500 | (d') eos walls | 1.5e-05 | 2.4e-04 | 2.6e-03 | 1.2e-03 | -0.0000 (-0.08) | +0.0000 (+0.06) | +0.0004 (+0.11) | +0.0000 (+0.00) | +0.0071 (+0.99) | 0.71 |
 
 Runs that did not reach an averaging window:
 
@@ -2401,7 +2404,6 @@ Runs that did not reach an averaging window:
 |---|---|---|---|---|---|
 | 250 | (b) diffusion off | 3.36 | 2.03 | 959.47 / 1008.22 | stopped by the runner: 40 particles had left the domain by step 119,000 |
 | 500 | (b) diffusion off | 4.49 | 2.45 | 988.08 / 1004.29 | stopped by the runner: 7 particles had left the domain by step 312,000 |
-| 500 | (d') eos walls | 10.14 | 0.99 | 996.43 / 1000.39 | still running when this was written |
 
 - **(b) fails the cavity at both resolutions.** Without the delta term the fluid at the lid corners moves at
   2.0 to 2.5 U from the first samples on, the density range grows to 49 kg/m^3 (n = 250) and 16 kg/m^3 (n = 500)
@@ -2433,18 +2435,20 @@ Runs that did not reach an averaging window:
   (c), against the wall pressure, is a straight line on every wall: slope 0.0076, 0.0083, 0.0062 and 0.0096 U per
   rho0 U^2 at n = 500 (bottom, left, right, lid; correlation 0.97 to 0.98), 0.0080 for the four together and
   0.0079 at n = 250 (correlation 0.69), that is `v_n / U = 0.80 Ma p / (rho0 U^2)` at Ma = 0.01, the same at
-  both resolutions and inside `v7-wall`'s 0.6 to 0.9. In (c) the slope is zero (below 3e-4) on every wall but
-  the right one at n = 500 (0.0016), where the jet from the lid turns down and the extrapolation to the surface
-  is poor (a velocity "into the wall" of 0.3 to 0.5 % of U rms is there in every run). With wall
-  pressures of -0.08 to +0.35 rho0 U^2 the seepage of (a) is up to 0.3 % of U; it does not shrink with dx, so
-  **the thesis baseline converges to a cavity with slightly porous walls, about 1 % weaker in its extrema than
-  the tight one at n = 500** [inferred from the rows above; `v7-wall` extrapolated its two series to -1.4 % and
-  -0.8 % of psi_min].
+  both resolutions and inside `v7-wall`'s 0.6 to 0.9 (0.71 and 0.88 with (d') in place of (c)). In (c) the slope
+  is zero (below 3e-4) on every wall but the right one at n = 500 (0.0016), where the jet from the lid turns down
+  and the extrapolation to the surface is poor (a velocity "into the wall" of 0.3 to 0.5 % of U rms is there in
+  every run). With wall pressures of -0.08 to +0.35 rho0 U^2 the seepage of (a) is up to 0.3 % of U; it does not
+  shrink with dx, so **the thesis baseline converges to a cavity with slightly porous walls, about 1 % weaker in
+  its extrema than the tight one at n = 500** [inferred from the rows above; `v7-wall` extrapolated its two series
+  to -1.4 % and -0.8 % of psi_min].
 - **(d') behaves in the cavity as (c) does,** and as `v7-wall` W4 measured for it: walls tight (slope 8e-5), the
   mean density leaving at 0.68 kg/m^3 per time unit at n = 250 (930.4 at t = 100; that branch had 0.72), the
   extrema 3.9 to 4.5 % above the reference as in (c), L2 u / v 1.05e-2 / 1.23e-2; the thesis run minus this run
   gives the seepage of (a) again, 0.0088 U per rho0 U^2. Its four points below the lid are those of (a), not of
-  (c). Its run at n = 500 was at t = 12 when this was written.
+  (c). At n = 500 the same: mean density 969.2 at t = 99 (-0.31 kg/m^3 per time unit), L2 u / v 6.2e-3 /
+  7.2e-3 and extrema 2.3 to 2.6 % above the reference, as (c) there; the seepage of (a) from this pair is
+  0.0071 U per rho0 U^2 (correlation 0.99).
 
 *Beyond the table: the micropolar effect at eps = 0.6 with each candidate, and at g = 200 dx* (micropolar run
 over its own Newtonian control, readings as measured):
@@ -2481,7 +2485,7 @@ both until the solver has an anchor for the mean density.** The table that decid
 | (a) thesis | **-51 % / -85 %**, 6.6 % of the fluid behind the walls | unchanged; radial drift 3.8e-4 U | the baseline: L2 u / v 4.2e-3 / 4.3e-3 at n = 500, mean density held | as before |
 | (b) diffusion off | -0.4 % / -0.4 %, walls tight | unchanged, drift gone | **fails: fluid at 2 U at the lid corners, particles lost at t = 3.6 and 4.7** | existing switch |
 | (c) fluid pairs only | -0.6 % / -0.6 %, walls tight | unchanged, drift gone, smallest fit residual | walls tight, **mean density runs away** (-0.45 kg/m^3 per time unit at n = 500), L2 u / v 6.2e-3 / 7.4e-3 | T0, T1, seam at K = 2 and 3 pass |
-| (d') eos walls, no anchor | -0.6 % / -1.1 %, walls tight | unchanged, drift gone | walls tight, **mean density runs away** (-0.68 kg/m^3 per time unit at n = 250), L2 u / v 1.05e-2 / 1.23e-2 at n = 250 | T0, T1, seam pass |
+| (d') eos walls, no anchor | -0.6 % / -1.1 %, walls tight | unchanged, drift gone | walls tight, **mean density runs away** (-0.31 kg/m^3 per time unit at n = 500, -0.68 at n = 250), L2 u / v 6.2e-3 / 7.2e-3 | T0, T1, seam pass |
 
 1. **Between the cylinders the three candidates are equally right**, and they give the same micropolar effect
    to three digits (end of 14.4.3), so the choice among them is made by the other columns.
@@ -2500,9 +2504,9 @@ both until the solver has an anchor for the mean density.** The table that decid
    cases only. One tag carries both, since the option is per case.
 6. **What that leaves open is the cavity baseline itself.** Its walls seep `0.80 Ma p`, which makes its vortex
    about 1 % weaker than a tight cavity's at n = 500 and flatters its agreement with Marchi et al. by that
-   much. Either the chapter says so, or the volume anchor of `v7-wall` is ported (about two days, 14.4.1) and
-   the cavity is rerun tight with (c) + anchor; that branch's own numbers say such a cavity is 0.8 points of
-   psi_min further from the reference at n = 250 than today's.
+   much [inferred, 14.4.3]. Either the chapter says so, or the volume anchor of `v7-wall` is ported (about two
+   days, 14.4.1) and the cavity is rerun tight with (c) + anchor; that branch's own numbers say such a cavity is
+   0.8 points of psi_min further from the reference at n = 250 than today's.
 
 If you take (c): the tag would be the head after this stage (the option is in the tree since `70d1be4`), the
 concentric sweep and the rows at g = 400 dx would be run again with the key (D moved by 0.00003 at l = 10 dx
@@ -2559,9 +2563,8 @@ and 0.0002 at l = 25 dx between (a) and (c)), and the eccentric cases compared w
 - **The two options together, and either of them on a chain in a real run.** T0, T1 and the per-particle seam
   check of each option alone are what was run; no production-length K = 2 run with a key set.
 - **A noise floor at eps = 0.3** (the three lattices are at eps = 0.6), and three lattices at g = 200 dx.
-- **The cavity at n = 500 with (d')**: started last, at t = 12 of about 90 when this section
-  was written (`logs/micropolar/stage5_cavity/n500_ew`; `micropolar_stage5_cavity analyse` adds its row when it
-  has finished).
+- (The cavity at n = 500 with (d') finished after the first version of this section and is in the
+  tables.)
 - One run of the benchmark table, `nd_e60_re10_g200`, started while the solver directories had uncommitted
   edits (its `run.json` says so). Two shorter runs in the same position were set aside
   (`logs/micropolar/stage5_modified_tree/`) and run again on the committed tree: load 21,387.8 against
@@ -2599,6 +2602,6 @@ and 0.0002 at l = 25 dx between (a) and (c)), and the eccentric cases compared w
    0.01 %.
 8. (c) and (d') give nearly the same flow, and all three working settings give the same micropolar effect to
    three digits.
-9. Stopping a background waiter from the session left its shell loop alive; three such loops would have
-   started duplicate runs an hour later and were killed by hand before they did. No run was affected (the
-   cavity runner also refuses a directory that another runner holds, which is how it was noticed).
+9. Stopping a background waiter from the session left its shell loop alive. Four such loops were found and
+   killed by hand before any of them started an unwanted run; no run was affected (the cavity runner refuses
+   a directory that another runner holds, which is how it was noticed).
