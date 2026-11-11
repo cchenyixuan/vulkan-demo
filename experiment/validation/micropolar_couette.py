@@ -12,7 +12,9 @@ micropolar_couette_reference.py.
              dt c0 / h (the solver's dt is CFL h / c0 and its shifting scale follows the same number), and the
              header says which limit governs.
   run        One case on a K-slab chain to its end time, sampling v_theta and w_z of the fluid in radial bins of
-             one particle spacing and eight 45-degree sectors at every --sample-steps (defrag boundaries).
+             one particle spacing and eight 45-degree sectors at every --sample-steps (defrag boundaries). With
+             --state-count N the particles near both walls are saved at N sample steps of the last quarter (the
+             input of micropolar_wall_torque.py). run.json records the commit and the trees of the solver.
   analyse    Time averages, fits and the comparison with the reference solution for a list of runs.
 
 Lengths in the generator are given in particle spacings dx.
@@ -266,6 +268,62 @@ def command_generate(arguments) -> int:
     return 0
 
 
+def solver_revision() -> dict:
+    """The commit of this tree, its description by tag, the tree hashes of the two directories a production
+    series must not change (experiment/v7/shaders, experiment/v7/utils) and whether they differ from the commit."""
+    import subprocess
+
+    def git(*arguments) -> str:
+        return subprocess.run(["git", *arguments], cwd=_REPO_ROOT, capture_output=True, text=True).stdout.strip()
+    return {"commit": git("rev-parse", "HEAD"), "describe": git("describe", "--tags", "--always"),
+            "shaders_tree": git("rev-parse", "HEAD:experiment/v7/shaders"),
+            "utils_tree": git("rev-parse", "HEAD:experiment/v7/utils"),
+            "solver_modified": bool(git("status", "--porcelain", "--", "experiment/v7/shaders",
+                                        "experiment/v7/utils"))}
+
+
+def state_steps(steps: int, sample_steps: int, state_count: int) -> list:
+    """The sample steps at which a state is saved: state_count of them, evenly spread over the samples of the last
+    quarter of the run (all of them when the quarter holds fewer)."""
+    if state_count <= 0:
+        return []
+    quarter = [step for step in range(sample_steps, steps + 1, sample_steps) if step > 0.75 * steps + 1e-9]
+    if len(quarter) <= state_count:
+        return quarter
+    chosen = np.unique(np.round(np.linspace(0, len(quarter) - 1, state_count)).astype(np.int64))
+    return [quarter[index] for index in chosen]
+
+
+def _save_wall_band(path: pathlib.Path, rows: dict, meta: dict, fluid_group: int, micropolar: bool,
+                    step: int, band_supports: float = 2.0) -> None:
+    """The particles the wall sums need, as the GPU holds them at a step boundary before the defrag: fluid within
+    band_supports h + dx of a wall surface (2: the fluid within h of a wall and all its neighbours), wall particles
+    within h + dx of the surface (the wall neighbours of that fluid). kind: 0 fluid, 1 rotor, 2 stator."""
+    position = rows["position_voxel_id"][:, :2]
+    spacing, support = meta["spacing"], meta["smoothing_length"]
+    rotor_distance = np.hypot(position[:, 0].astype(np.float64) - meta["eccentricity"],
+                              position[:, 1].astype(np.float64)) - meta["inner_radius"]
+    stator_distance = meta["outer_radius"] - np.hypot(position[:, 0].astype(np.float64),
+                                                      position[:, 1].astype(np.float64))
+    is_fluid = rows["material"] == fluid_group
+    kind = np.where(is_fluid, 0, np.where(rotor_distance <= 0.0, 1, 2)).astype(np.uint8)
+    keep = np.where(is_fluid,
+                    (rotor_distance < band_supports * support + spacing)
+                    | (stator_distance < band_supports * support + spacing),
+                    np.where(kind == 1, rotor_distance > -(support + spacing), stator_distance > -(support + spacing)))
+    arrays = {"position": position[keep], "velocity": rows["velocity_mass"][keep, :2],
+              "density": rows["density_pressure"][keep, 0], "pressure": rows["density_pressure"][keep, 1],
+              "acceleration": rows["acceleration"][keep, :2], "dummy_velocity": rows["wall_dummy_velocity"][keep, :2],
+              "dummy_weight": rows["wall_dummy_velocity"][keep, 3], "kind": kind[keep],
+              "mass": np.float64(rows["velocity_mass"][is_fluid, 3][0]), "step": np.int64(step)}
+    if micropolar:
+        arrays.update({"spin": rows["angular_velocity"][keep, 2],
+                       "angular_acceleration": rows["angular_acceleration"][keep, 2],
+                       "dummy_spin": rows["wall_dummy_angular_velocity"][keep, 2]})
+    path.parent.mkdir(parents=True, exist_ok=True)
+    np.savez(path, **arrays)
+
+
 def _sector_bins(positions, centre_x, inner_radius, outer_radius, spacing):
     """(sector index, radial bin index, radius, cos, sin) about the rotor axis; bins of one spacing from R1."""
     offset_x = positions[:, 0].astype(np.float64) - centre_x
@@ -303,6 +361,10 @@ def command_run(arguments) -> int:
     chain = compute_chain_partition(case, weights, pool_safety=arguments.pool_safety)
     out_dir = (_REPO_ROOT / arguments.out).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
+    revision = solver_revision()
+    saved_steps = set(state_steps(steps, arguments.sample_steps, arguments.state_count))
+    state_fields = ["acceleration", "wall_dummy_velocity"] + (
+        ["angular_acceleration", "wall_dummy_angular_velocity"] if micropolar else [])
     contexts, sims = [], []
     started = time.perf_counter()
     failure = None
@@ -313,11 +375,16 @@ def command_run(arguments) -> int:
             sims.append(SphSimulatorV7(contexts[-1], chain.slabs[index], sync_scheme="per-direction"))
 
         def sample(step: int) -> None:
-            parts = [tests._read_own_particles(sim, ["density_pressure"] + (["angular_velocity"] if micropolar
-                                                                              else [])) for sim in sims]
+            fields = ["density_pressure"] + (["angular_velocity"] if micropolar else [])
+            if step in saved_steps:
+                fields = fields + state_fields
+            parts = [tests._read_own_particles(sim, fields) for sim in sims]
             rows = {name: np.concatenate([part[name] for part in parts]) for name in parts[0]}
             if rows["material"].shape[0] != expected:
                 raise RuntimeError(f"step {step}: {rows['material'].shape[0]} particles alive, {expected} loaded")
+            if step in saved_steps:
+                _save_wall_band(out_dir / "states" / f"state_{step:08d}.npz", rows, meta, fluid_group, micropolar,
+                                step, arguments.state_band_supports)
             fluid = rows["material"] == fluid_group
             positions = rows["position_voxel_id"][fluid]
             velocity = rows["velocity_mass"][fluid, :2].astype(np.float64)
@@ -374,7 +441,8 @@ def command_run(arguments) -> int:
                 counters[name] = counters.get(name, 0) + int(value)
     elapsed = time.perf_counter() - started
     np.savez(out_dir / "samples.npz", **{name: np.asarray(values) for name, values in samples.items()})
-    run_meta = {"case": arguments.case, "couette": meta, "slabs": slab_count, "device_map": device_map,
+    run_meta = {"case": arguments.case, "couette": meta, "revision": revision,
+                "state_steps": sorted(saved_steps), "slabs": slab_count, "device_map": device_map,
                 "weights": weights, "steps": steps, "sample_steps": arguments.sample_steps, "timestep": timestep,
                 "particles": expected, "counters": counters, "elapsed_seconds": elapsed, "failure": failure,
                 "steps_per_second": steps / elapsed, "cuts_x": tests._cut_positions(case, chain),
@@ -963,6 +1031,10 @@ def main() -> int:
     run.add_argument("--sample-steps", type=int, default=1000)
     run.add_argument("--depth", type=int, default=2)
     run.add_argument("--pool-safety", type=float, default=1.2)
+    run.add_argument("--state-count", type=int, default=0,
+                     help="save the particles near the walls at this many sample steps of the last quarter")
+    run.add_argument("--state-band-supports", type=float, default=2.0,
+                     help="the saved fluid lies within this many h (+ dx) of a wall surface; large = all of it")
     run.set_defaults(handler=command_run)
 
     pilot = commands.add_parser("pilot")
