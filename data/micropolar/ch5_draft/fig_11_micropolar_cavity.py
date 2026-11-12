@@ -100,6 +100,7 @@ def main() -> int:
     tex_header = ["run", "fluid", "$n$", "slabs", r"$u_{\min}/U$", r"$y/L$", r"$v_{\max}/U$", r"$x/L$",
                   r"$v_{\min}/U$", r"$x/L$", r"$E_k$", r"$\dot{\bar\rho}/\rho_0$", r"$\dot{\bar p}/(\rho U^2)$"]
     labels = {"mp_n500": "micropolar", "mp_n250": "micropolar", "mp_n500_k2": "micropolar",
+              "mp_n500_l40": "micropolar, l = L / 40",
               "newtonian_re400_n500": "Newtonian, mu_inf (Re 400)", "newtonian_re250_n500": "Newtonian, mu + kappa (Re 250)"}
     plain, tex = [], []
     for name, item in runs.items():
@@ -132,8 +133,8 @@ def main() -> int:
     for key, words in (("resolution", "n = 250 minus n = 500"), ("chain", "two slabs minus one slab")):
         if key in comparisons:
             entry = comparisons[key]
-            text += (f" {words.capitalize()}: rms difference of the centre lines {entry['u_rms']:.1e} (u) and "
-                     f"{entry['v_rms']:.1e} (v) U, extrema {entry['u_min']:+.1e}, {entry['v_max']:+.1e}, "
+            text += (f" {words.capitalize()}: rms difference of the centre lines {entry['u_difference_rms']:.1e} (u) and "
+                     f"{entry['v_difference_rms']:.1e} (v) U, extrema {entry['u_min']:+.1e}, {entry['v_max']:+.1e}, "
                      f"{entry['v_min']:+.1e} U (standard error of the time means {entry['u_noise_rms']:.0e}).")
     parameters = analysis["parameters"]
     caption = (

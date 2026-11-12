@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import pathlib
+import shutil
 import subprocess
 import sys
 import time
@@ -128,7 +129,8 @@ def command_list(arguments) -> int:
 
 def ensure_case(name: str) -> dict:
     case_dir = _REPO_ROOT / CASES / name
-    if not (case_dir / "couette.json").exists():
+    # the particle files are generated and not in the repository; those of finished runs may have been removed
+    if not (case_dir / "couette.json").exists() or not (case_dir / "domain.obj").exists():
         code = subprocess.run([sys.executable, "-m", "experiment.validation.micropolar_couette", "generate",
                                "--out", f"{CASES}/{name}", *stage4.STEP_OPTIONS, *RUNS[name]["generate"]],
                               cwd=_REPO_ROOT).returncode
@@ -190,6 +192,7 @@ def command_runner(arguments) -> int:
 
     say(f"plan {arguments.plan}; stop with {stop_path.name}, terminate with {kill_path.name}")
     idle_reported = False
+    disk_reported = False
     while True:
         if kill_path.exists():
             for name, (process, job, log, started) in running.items():
@@ -221,6 +224,16 @@ def command_runner(arguments) -> int:
             time.sleep(5.0)
             continue
         busy = {device for process, job, log, started in running.values() for device in job["devices"]}
+        # the disk of this machine is shared and nearly full: start nothing below the reserve
+        free_gigabytes = shutil.disk_usage(_REPO_ROOT).free / 1024.0 ** 3
+        if free_gigabytes < arguments.disk_reserve:
+            if not disk_reported:
+                say(f"{free_gigabytes:.1f} GB free on the disk, below the reserve of {arguments.disk_reserve:g} GB: "
+                    "no job is started until there is room")
+                disk_reported = True
+            time.sleep(30.0)
+            continue
+        disk_reported = False
         pending = [job for job in plan if job["name"] not in running and _job_state(job) == "pending"]
         first = {}
         for job in pending:
@@ -229,8 +242,13 @@ def command_runner(arguments) -> int:
         # a device whose first job waits for another device stays idle (a chain job is not overtaken)
         for job in pending:
             if all(first.get(device) == job["name"] and device not in busy for device in job["devices"]):
-                command = (run_command(job["run"], job["devices"]) if "run" in job
-                           else [sys.executable if part == "{python}" else part for part in job["command"]])
+                try:
+                    command = (run_command(job["run"], job["devices"]) if "run" in job
+                               else [sys.executable if part == "{python}" else part for part in job["command"]])
+                except Exception as error:                # e.g. the case could not be generated; try again later
+                    say(f"{job['name']}: not started ({error}); again in 60 s")
+                    time.sleep(60.0)
+                    break
                 log_path = _REPO_ROOT / job["log"]
                 log_path.parent.mkdir(parents=True, exist_ok=True)
                 log = open(log_path, "w", encoding="utf-8")
@@ -668,6 +686,7 @@ def main() -> int:
     runner = commands.add_parser("runner")
     runner.add_argument("--plan", default=PLAN)
     runner.add_argument("--exit-when-empty", action="store_true")
+    runner.add_argument("--disk-reserve", type=float, default=3.0, help="GB that must be free before a job starts")
     runner.set_defaults(handler=command_runner)
     plan = commands.add_parser("plan")
     plan.add_argument("names", nargs="*")
