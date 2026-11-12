@@ -1,0 +1,82 @@
+{
+ "item": "05",
+ "title": "Table: Newtonian eccentric flow against the exact Stokes values",
+ "status": "provisional",
+ "caption": "Newtonian flow between eccentric rotating cylinders (R1 = 4 g, R2 = 5 g, rotor axis displaced by eps g towards +x, rotor at Omega, stator at rest) against the exact Stokes solution: load on the rotor (magnitude; the exact force is along +y, 90 degrees from the line of centres), its direction, and the rotor and stator torque by the circle form (flux of angular momentum across a circle at distance h from the wall) and by the wall form (pair sums over the wall particles), each as reading / exact - 1. Mean over the saved states of the last quarter of the run; the two 'half' columns compare the two halves of that quarter; drifts: change of the fluid's mean density (over rho0) and mean pressure (over rho U^2) between the last two eighths of the run. Re = rho U g / mu on the one viscosity of the Newtonian fluid. Settings: Stage 4 and 5 runs without the density diffusion term (numerics.use_density_diffusion: false). Load within 0.44 % of exact in every row, rotor torque by the circle form within 0.13 %; the departure of the direction from 90 degrees is inertia at Re = 10 and compressibility at Re = 1 (design note 14.3.2). Exact values for mu = 10 Pa s: load 1,016.0 and 2,145.4 N/m, rotor torque 158.02 and 223.62 N at eps = 0.3 and 0.6.",
+ "files": [
+  "tab_05_eccentric_newtonian.csv",
+  "tab_05_eccentric_newtonian.tex"
+ ],
+ "sources": [
+  "data/micropolar/stage6/eccentric_stage5_runs.json",
+  "nd_e30_newtonian",
+  "nd_e60_newtonian",
+  "nd_e60_newtonian_shifted",
+  "nd_e60_newtonian_rotated",
+  "nd_e30_re1",
+  "nd_e60_re1",
+  "nd_e60_re1_ma001",
+  "nd_e60_re1_g200",
+  "nd_e60_re10_g200",
+  "nd_e30_re10_g200"
+ ],
+ "numbers": {
+  "nd_e30_newtonian": {
+   "load_over_exact": 0.9981489808104465,
+   "direction": 86.92713618449834,
+   "rotor_torque_circle_over_exact": 0.9990624759399456
+  },
+  "nd_e60_newtonian": {
+   "load_over_exact": 0.9966675914750981,
+   "direction": 89.38774823622042,
+   "rotor_torque_circle_over_exact": 1.000224534134572
+  },
+  "nd_e60_newtonian_shifted": {
+   "load_over_exact": 1.0000484217154728,
+   "direction": 89.3872173792015,
+   "rotor_torque_circle_over_exact": 0.9997221087786031
+  },
+  "nd_e60_newtonian_rotated": {
+   "load_over_exact": 1.0020755516935025,
+   "direction": 89.43242604243154,
+   "rotor_torque_circle_over_exact": 1.0007588933511795
+  },
+  "nd_e30_re1": {
+   "load_over_exact": 0.9956228997835199,
+   "direction": 90.70321417161459,
+   "rotor_torque_circle_over_exact": 0.9986531367871848
+  },
+  "nd_e60_re1": {
+   "load_over_exact": 0.9958243889147591,
+   "direction": 91.31286409728784,
+   "rotor_torque_circle_over_exact": 0.9995515774910575
+  },
+  "nd_e60_re1_ma001": {
+   "load_over_exact": 0.9969139532545916,
+   "direction": 90.25102707651435,
+   "rotor_torque_circle_over_exact": 0.9999999204788128
+  },
+  "nd_e60_re1_g200": {
+   "load_over_exact": 1.0001154220799051,
+   "direction": 91.22982686437172,
+   "rotor_torque_circle_over_exact": 1.0006523343180658
+  },
+  "nd_e60_re10_g200": {
+   "load_over_exact": 0.9987454865716396,
+   "direction": 89.42930962946139,
+   "rotor_torque_circle_over_exact": 0.999996249644058
+  },
+  "nd_e30_re10_g200": {
+   "load_over_exact": 0.9993126956447497,
+   "direction": 87.28018132441008,
+   "rotor_torque_circle_over_exact": 0.9989652322086978
+  },
+  "spread_nd_e60": {
+   "load_spread": 0.005407960218404395,
+   "force_angle_spread_degrees": 0.045208663230042134,
+   "rotor_torque_circle_spread": 0.001036784572576388,
+   "rotor_torque_wall_spread": 0.00863031998716668
+  }
+ },
+ "tag": "thesis-ch5-rc1 and the commits of Stage 5"
+}

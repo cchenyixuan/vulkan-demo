@@ -34,7 +34,7 @@ Design note: `docs/micropolar_design.md`, Section 15. Run data of Stage 6: `data
 - Reynolds numbers: on `mu_inf` (the far viscosity `mu + kappa / 2`, the one the cases are set by) and on `mu`
   (`Re_g (1 + K / 2)`, the one the thesis quotes).
 
-## Index (written 2026-11-12 17:23)
+## Index (written 2026-11-12 17:42)
 
 | no. | item | files | status | data |
 |---|---|---|---|---|
@@ -42,12 +42,12 @@ Design note: `docs/micropolar_design.md`, Section 15. Run data of Stage 6: `data
 | 02 | Concentric cylinders: convergence of D and of the profiles | `fig_02_concentric_convergence.pdf`, `fig_02_concentric_convergence.png` | provisional | thesis-ch5-rc1 |
 | 03 | Concentric cylinders: D against m for three K, with the slip-form rule | `fig_03_concentric_sweep.pdf`, `fig_03_concentric_sweep.png` | provisional | thesis-ch5-rc1 |
 | 04 | Table of every concentric row (and of the controls) | `tab_04_concentric_rows.csv`, `tab_04_concentric_rows.tex`, `tab_04b_concentric_controls.csv`, `tab_04b_concentric_controls.tex` | provisional | thesis-ch5-rc1 |
-| 05 | Table: Newtonian flow between eccentric cylinders against the exact Stokes values | - | not reached | - |
-| 06 | Eccentric: wall pressure around the rotor against the Stokes solution, with the micropolar runs | - | not reached | - |
-| 07 | Eccentric fields, eps = 0.6, K = 3, l = 10 dx: pressure, speed, micro-rotation, w - curl v / 2 | - | not reached | - |
-| 08 | Eccentric: measured over predicted change against narrowest gap / l | - | not reached | - |
-| 09 | Table of every eccentric micropolar row | - | not reached | - |
-| 10 | The film function over h^3 against h / l at K = 3 | - | not reached | - |
+| 05 | Table: Newtonian eccentric flow against the exact Stokes values | `tab_05_eccentric_newtonian.csv`, `tab_05_eccentric_newtonian.tex` | provisional | thesis-ch5-rc1 and the commits of Stage 5 |
+| 06 | Eccentric cylinders: wall pressure around the rotor | `fig_06_eccentric_wall_pressure.pdf`, `fig_06_eccentric_wall_pressure.png` | provisional | thesis-ch5-rc1 and the commits of Stage 5 |
+| 07 | Eccentric fields: pressure, speed, micro-rotation, w - curl v / 2 | `fig_07_eccentric_fields.pdf`, `fig_07_eccentric_fields.png` | provisional | thesis-ch5-rc1 and the commits of Stage 4 |
+| 08 | Eccentric cylinders: measured over predicted change against narrowest gap / l | `fig_08_eccentric_prediction.pdf`, `fig_08_eccentric_prediction.png` | provisional | thesis-ch5-rc1 and the commits of Stage 5; concentric: thesis-ch5-rc1 |
+| 09 | Table of every eccentric micropolar row | `tab_09_eccentric_rows.csv`, `tab_09_eccentric_rows.tex` | provisional | thesis-ch5-rc1 and the commits of Stage 5 |
+| 10 | The film function over h^3 against h / l at K = 3 | `fig_10_film_function.pdf`, `fig_10_film_function.png` | final (host only) | host |
 | 11 | Micropolar cavity: centre lines with the two Newtonian bounds, fields, the slab cut | - | not reached | - |
 | 12 | Newtonian cavity baseline at n = 1000 against Marchi et al. | - | not reached | - |
 | 13 | Seepage: velocity into the wall against wall pressure; candidates table | - | not reached | - |

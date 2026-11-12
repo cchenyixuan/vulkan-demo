@@ -1,0 +1,25 @@
+{
+ "item": "09",
+ "title": "Table of every eccentric micropolar row",
+ "status": "provisional",
+ "caption": "Every micropolar run between eccentric cylinders (R1 = 4 g, R2 = 5 g, rotor axis displaced by eps g, w = 0 on both walls, Ma = 0.02, Re = 10 on mu_inf) against its Newtonian control on the same particles. D_T = T / T_control - 1 by four readings (rotor and stator; wall form = pair sums over the wall particles, circle form = flux of angular momentum across a circle at distance h from the wall); 'corrected' = their mean with the error each reading makes between concentric cylinders at the same K, l and g taken off ('-' where that concentric row does not exist). Predictions: the film function of micropolar lubrication theory in the thin-film calculation (load: plane film; torque: shear-driven stress of the exact concentric solution at the local gap) and the wall rule on the exact Stokes solution of its slip-form geometry. 8 rows (8 on the lattice as generated). Load change over the film function 0.972 to 1.012, over the rule 0.375 to 0.929; torque change over the film function 0.958 to 0.989, over the rule 0.538 to 0.988. Noise floor of the changes from three lattices (max - min): nd_e60: D_T 0.0004, load change 0.04 points, turn 0.01 degrees. Stage 4 and 5 runs without the density diffusion term (numerics.use_density_diffusion: false).",
+ "files": [
+  "tab_09_eccentric_rows.csv",
+  "tab_09_eccentric_rows.tex"
+ ],
+ "sources": [
+  "data/micropolar/stage6/eccentric_stage5_runs.json",
+  "nd_e30_k3_m5",
+  "nd_e30_k3_m2",
+  "nd_e60_k3_m5",
+  "nd_e60_k3_m2",
+  "nd_e60_k3_m5_shifted",
+  "nd_e60_k3_m5_rotated",
+  "nd_e30_k3_m10_g200",
+  "nd_e60_k3_m10_g200"
+ ],
+ "numbers": {
+  "rows": 8
+ },
+ "tag": "thesis-ch5-rc1 and the commits of Stage 5"
+}

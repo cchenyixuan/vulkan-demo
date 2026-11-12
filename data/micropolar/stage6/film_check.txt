@@ -1,0 +1,30 @@
+Plane film of the model, K = 3: delta / l = K / (2 (1 + K)) = 0.3750
+
+1. closed forms against the solution of the four-constant system (pressure-driven film between walls with w = 0; shear-driven film)
+  h / l   f / h^3, system   lubrication  difference   g_s / h, system   closed form  difference
+    0.5      0.6265532572  0.6265532572    -8.9e-16      0.6326220064  0.6326220064     0.0e+00
+      1      0.6311048191  0.6311048191     2.2e-16      0.6534121321  0.6534121321     0.0e+00
+    1.6      0.6400833878  0.6400833878     5.6e-16      0.6887327639  0.6887327639    -1.1e-16
+      2      0.6478353038  0.6478353038     4.4e-16      0.7144021915  0.7144021915     1.1e-16
+    2.8      0.6663499170  0.6663499170     5.6e-16      0.7628522371  0.7628522371    -2.2e-16
+      4      0.6977604696  0.6977604696     7.8e-16      0.8192448287  0.8192448287     1.1e-16
+      7      0.7698214184  0.7698214184     5.6e-16      0.8930523681  0.8930523681     1.1e-16
+     10      0.8199795691  0.8199795691     8.9e-16      0.9250068097  0.9250068097     0.0e+00
+     14      0.8622446307  0.8622446307     1.1e-16      0.9464286605  0.9464286605     0.0e+00
+     20      0.8987499995  0.8987499995     6.7e-16      0.9625000002  0.9625000002     0.0e+00
+     40      0.9465625000  0.9465625000     1.1e-16      0.9812500000  0.9812500000    -1.1e-16
+    100      0.9779500000  0.9779500000     1.1e-16      0.9925000000  0.9925000000     0.0e+00
+   largest relative difference 1.4e-15; limit h -> 0: f / h^3 -> nu_inf / nu = 0.6250
+
+2. the sharper form of the wall rule for the pressure-driven film (3.1 of the task)
+   core: the Newtonian profile u_c = G' (y^2 - h y) / 2 + delta G' h / 2, which satisfies u = - delta du/dn at both nominal walls (n into the fluid); its flux is - G' (h^3 - 6 delta h^2) / 12
+   wall layers: each carries delta l times the wall shear rate of the core, - G' h / 2, more than the core does there; together - G' (12 delta l h) / 12
+  h / l  core: max |u - u_c| / max u, middle half  layer excess / (delta l shear rate)  f sharper / f  f rule / f  f first order / f  exp(-h / l)
+      2                                  7.42e-01                             0.686965       1.543602      0.3769            -0.1930      1.4e-01
+      4                                  2.04e-01                             0.925371       1.030081      0.7687             0.6270      1.8e-02
+      7                                  4.76e-02                             0.993611       1.000762      0.9246             0.8815      9.1e-04
+     10                                  1.45e-02                             0.999546       1.000025      0.9652             0.9451      4.5e-05
+     14                                  3.62e-03                             0.999988       1.000000      0.9832             0.9734      8.3e-07
+     20                                  5.46e-04                             1.000000       1.000000      0.9921             0.9875      2.1e-09
+     40                                  1.77e-06                             1.000000       1.000000      0.9981             0.9970      4.2e-18
+   f sharper - f = 6 delta h^2 (coth(h / (2 l)) - 1) = 12 delta h^2 exp(-h / l) + ...: exponentially small.

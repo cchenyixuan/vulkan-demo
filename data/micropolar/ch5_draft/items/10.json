@@ -1,0 +1,18 @@
+{
+ "item": "10",
+ "title": "The film function over h^3 against h / l at K = 3",
+ "status": "final (host only)",
+ "caption": "Pressure-driven flux of a plane film between two walls with w = 0, as f(h) / h^3 against h / l (flux = - f(h) (dp/dx) / (12 mu_inf)), K = 3 (delta = K l / (2 (1 + K)) = 0.375 l). Dash-dotted: the film function of micropolar lubrication theory, f = h^3 - 6 delta h^2 coth(h / (2 l)) + 12 delta l h (in the notation of that theory h^3 + 12 l'^2 h - 6 N l' h^2 coth(N h / (2 l')) with N^2 = delta / l and l' = N l; the user quotes it from Prakash and Sinha 1975, neither of us has compared it with the original). Circles: the two ordinary differential equations of the model solved between the walls at the narrowest gaps of the eccentric runs; they agree with the formula to 1e-15. Dashed: the wall rule (both walls displaced by delta). Dotted: its first-order term alone. Long dashes: the sharper form of the rule, a Newtonian core with the slip length - delta plus delta l times the wall shear rate carried by each wall layer; it differs from the film function by 6 delta h^2 (coth(h / (2 l)) - 1), about 12 delta h^2 exp(-h / l). The grey line is the limit h -> 0, nu_inf / nu = 0.625 (a Newtonian fluid of viscosity mu + kappa). Ratios to the film function: h / l = 4: rule 0.769, first order 0.627, sharper form 1.0301; h / l = 7: rule 0.925, first order 0.881, sharper form 1.0008; h / l = 10: rule 0.965, first order 0.945, sharper form 1.0000; h / l = 14: rule 0.983, first order 0.973, sharper form 1.0000; h / l = 20: rule 0.992, first order 0.987, sharper form 1.0000.",
+ "files": [
+  "fig_10_film_function.pdf",
+  "fig_10_film_function.png"
+ ],
+ "sources": [
+  "experiment/validation/micropolar_film.py",
+  "data/micropolar/stage6/film_check.txt"
+ ],
+ "numbers": {
+  "limit": 0.625
+ },
+ "tag": "host"
+}

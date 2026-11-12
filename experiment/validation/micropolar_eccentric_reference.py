@@ -165,7 +165,35 @@ def numerical_stokes_force_and_torque(inner_radius: float, outer_radius: float, 
     outer_force = -strengths[~inside].sum(axis=0)       # by the fictitious fluid outside; not the wall force
     return {"force": force.tolist(), "inner_torque": float(torque),
             "wall_velocity_error_over_wall_speed": float(np.abs(residual).max() / speed),
-            "outer_point_force_sum": outer_force.tolist()}
+            "outer_point_force_sum": outer_force.tolist(), "sources": sources, "strengths": strengths}
+
+
+def numerical_stokes_rotor_wall(inner_radius: float, outer_radius: float, offset: float, viscosity: float,
+                                inner_rate: float, count: int = 720, source_count: int = 240) -> dict:
+    """Pressure and vorticity of the numerical Stokes solution on the surface of the inner cylinder, at count
+    angles about its axis (angle 0 = the narrowest gap for offset > 0). A point force f at y gives
+    p = f . r / (2 pi r^2) and the vorticity - (r x f)_z / (2 pi mu r^2), r = x - y. The pressure is returned with
+    its mean over the angle removed (the level of the pressure is free). The traction of the fluid on a wall that
+    turns at Omega is - p n + mu (vorticity - 2 Omega) z^ x n (n into the fluid); its integrals are returned as
+    force and torque, the check of these two sums against the forces of the point forces themselves."""
+    solution = numerical_stokes_force_and_torque(inner_radius, outer_radius, offset, viscosity, inner_rate,
+                                                 source_count=source_count)
+    sources, strengths = solution["sources"], solution["strengths"]
+    angle = 2.0 * np.pi * (np.arange(count) + 0.5) / count
+    normal = np.column_stack([np.cos(angle), np.sin(angle)])
+    tangent = np.column_stack([-np.sin(angle), np.cos(angle)])
+    points = np.array([offset, 0.0]) + inner_radius * normal
+    separation = points[:, None, :] - sources[None, :, :]
+    distance_squared = (separation ** 2).sum(axis=2)
+    pressure = ((separation * strengths[None, :, :]).sum(axis=2) / distance_squared).sum(axis=1) / (2.0 * np.pi)
+    vorticity = -((separation[:, :, 0] * strengths[None, :, 1] - separation[:, :, 1] * strengths[None, :, 0])
+                  / distance_squared).sum(axis=1) / (2.0 * np.pi * viscosity)
+    shear = viscosity * (vorticity - 2.0 * inner_rate)
+    arc = inner_radius * 2.0 * np.pi / count
+    traction = -pressure[:, None] * normal + shear[:, None] * tangent
+    return {"angle": angle, "pressure": pressure - pressure.mean(), "vorticity": vorticity, "shear": shear,
+            "force": (traction.sum(axis=0) * arc).tolist(), "torque": float(shear.sum() * arc * inner_radius),
+            "force_of_point_forces": solution["force"], "torque_of_point_forces": solution["inner_torque"]}
 
 
 def command_check(arguments) -> int:

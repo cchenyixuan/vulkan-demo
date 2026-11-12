@@ -1,0 +1,12 @@
+run,setting,eps,Re,g/dx,Ma,lattice,load/exact - 1 (%),direction (deg),"torque, circle form: rotor (%)",stator (%),"torque, wall form: rotor (%)",stator (%),"torque, 2nd - 1st half (%)","load, 2nd - 1st half (%)",density drift,pressure drift,git describe
+nd_e30_newtonian,density diffusion off,0.3,10,100,0.02,as generated,-0.19,86.9,-0.09,-0.09,-0.15,-0.91,+0.021,-0.001,-,-,thesis-ch5-rc1-2-gad23a67
+nd_e60_newtonian,density diffusion off,0.6,10,100,0.02,as generated,-0.33,89.4,+0.02,+0.06,+0.07,-0.72,+0.011,+0.009,-,-,thesis-ch5-rc1-3-g645dc15
+nd_e60_newtonian_shifted,density diffusion off,0.6,10,100,0.02,shifted,+0.00,89.4,-0.03,+0.00,+0.79,-0.01,-0.005,-0.018,-7.3e-06,-1.8e-02,thesis-ch5-rc1-9-gbfcc024
+nd_e60_newtonian_rotated,density diffusion off,0.6,10,100,0.02,rotated,+0.21,89.4,+0.08,+0.09,+0.93,+0.07,+0.010,-0.006,-8.2e-06,-2.1e-02,thesis-ch5-rc1-9-gbfcc024
+nd_e30_re1,density diffusion off,0.3,1,100,0.02,as generated,-0.44,90.7,-0.13,-0.09,-0.32,-0.88,+0.000,-0.007,-5.2e-05,-1.3e-01,thesis-ch5-rc1-6-g5d07112
+nd_e60_re1,density diffusion off,0.6,1,100,0.02,as generated,-0.42,91.3,-0.04,+0.08,-0.10,-0.84,+0.003,-0.004,+6.7e-06,+1.7e-02,thesis-ch5-rc1-6-g5d07112
+nd_e60_re1_ma001,density diffusion off,0.6,1,100,0.01,as generated,-0.31,90.3,-0.00,+0.07,-0.24,-0.72,+0.005,-0.001,-5.9e-06,-5.9e-02,thesis-ch5-rc1-10-g5bc8e0d
+nd_e60_re1_g200,density diffusion off,0.6,1,200,0.02,as generated,+0.01,91.2,+0.07,+0.24,+0.39,-0.28,+0.029,+0.012,-1.7e-05,-4.3e-02,thesis-ch5-rc1-6-g5d07112
+nd_e60_re10_g200,density diffusion off,0.6,10,200,0.02,as generated,-0.13,89.4,-0.00,+0.03,+0.35,-0.36,+0.006,-0.001,-6.1e-06,-1.5e-02,thesis-ch5-rc1-8-gba5bced
+nd_e30_re10_g200,density diffusion off,0.3,10,200,0.02,as generated,-0.07,87.3,-0.10,-0.12,+0.11,-0.52,+0.016,-0.037,-1.0e-05,-2.6e-02,thesis-ch5-rc1-10-g5bc8e0d
+spread of nd_e60 over three lattices,density diffusion off,0.6,10,100,0.02,max - min,0.54,0.05,0.10,0.08,0.86,0.79,,,,,

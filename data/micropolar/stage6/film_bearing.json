@@ -1,0 +1,242 @@
+{
+ "K3_eps0_l0.05": {
+  "load_change_plane": NaN,
+  "torque_change_plane": 0.03896103879417323,
+  "load_change_slip": NaN,
+  "torque_change_slip": 0.02922077909562959,
+  "load_change_concentric": NaN,
+  "torque_change_concentric": 0.03120726414177666,
+  "load_change_rule": NaN,
+  "torque_change_rule": 0.031160783719149654
+ },
+ "K3_eps0_l0.1": {
+  "load_change_plane": NaN,
+  "torque_change_plane": 0.08107312241907927,
+  "load_change_slip": NaN,
+  "torque_change_slip": 0.060804841814311006,
+  "load_change_concentric": NaN,
+  "torque_change_concentric": 0.06501600155468323,
+  "load_change_rule": NaN,
+  "torque_change_rule": 0.06483207869246121
+ },
+ "K3_eps0_l0.2": {
+  "load_change_plane": NaN,
+  "torque_change_plane": 0.17369809891547527,
+  "load_change_slip": NaN,
+  "torque_change_slip": 0.13027357418660745,
+  "load_change_concentric": NaN,
+  "torque_change_concentric": 0.1395846479282934,
+  "load_change_rule": NaN,
+  "torque_change_rule": 0.14103988855698524
+ },
+ "K3_eps0_l0.25": {
+  "load_change_plane": NaN,
+  "torque_change_plane": 0.22063632863346538,
+  "load_change_slip": NaN,
+  "torque_change_slip": 0.16547724647510065,
+  "load_change_concentric": NaN,
+  "torque_change_concentric": 0.17743877381426687,
+  "load_change_rule": NaN,
+  "torque_change_rule": 0.1843971105722284
+ },
+ "K3_eps0.3_l0.05": {
+  "load_change_plane": 0.11241867140919282,
+  "torque_change_plane": 0.05100097607471743,
+  "load_change_slip": 0.10198976464509246,
+  "torque_change_slip": 0.04114784721056841,
+  "load_change_concentric": 0.11241867140919282,
+  "torque_change_concentric": 0.044028554684923504,
+  "load_change_rule": 0.12247572612466562,
+  "torque_change_rule": 0.04267098421441373
+ },
+ "K3_eps0.3_l0.1": {
+  "load_change_plane": 0.21661934034514396,
+  "torque_change_plane": 0.104615356358841,
+  "load_change_slip": 0.19385917721114576,
+  "torque_change_slip": 0.0839201056487513,
+  "load_change_concentric": 0.21661934034514396,
+  "torque_change_concentric": 0.09011411452554041,
+  "load_change_rule": 0.2657810059971053,
+  "torque_change_rule": 0.0902406400554221
+ },
+ "K3_eps0.3_l0.2": {
+  "load_change_plane": 0.37085299492819335,
+  "torque_change_plane": 0.21236175646172062,
+  "load_change_slip": 0.3231500451866023,
+  "torque_change_slip": 0.16837664774376626,
+  "load_change_concentric": 0.37085299492819335,
+  "torque_change_concentric": 0.18172658751878945,
+  "load_change_rule": 0.6348359498892175,
+  "torque_change_rule": 0.2039226698505332
+ },
+ "K3_eps0.3_l0.25": {
+  "load_change_plane": 0.42133683856108095,
+  "torque_change_plane": 0.26144196860534463,
+  "load_change_slip": 0.3638277739504898,
+  "torque_change_slip": 0.20637031774131698,
+  "load_change_concentric": 0.42133683856108095,
+  "torque_change_concentric": 0.22301409258612614,
+  "load_change_rule": 0.8743408756815276,
+  "torque_change_rule": 0.27261943465459915
+ },
+ "K3_eps0.6_l0.05": {
+  "load_change_plane": 0.11837243889102655,
+  "torque_change_plane": 0.08036123015275631,
+  "load_change_slip": 0.10789075439463702,
+  "torque_change_slip": 0.07023484618282594,
+  "load_change_concentric": 0.11837243889102655,
+  "torque_change_concentric": 0.07464623364950884,
+  "load_change_rule": 0.13406368197538598,
+  "torque_change_rule": 0.07538036808519899
+ },
+ "K3_eps0.6_l0.1": {
+  "load_change_plane": 0.218096441202561,
+  "torque_change_plane": 0.16015381463690392,
+  "load_change_slip": 0.1956794136928024,
+  "torque_change_slip": 0.1387013024728858,
+  "load_change_concentric": 0.218096441202561,
+  "torque_change_concentric": 0.14814216897890975,
+  "load_change_rule": 0.2955529606687455,
+  "torque_change_rule": 0.16486457909723384
+ },
+ "K3_eps0.6_l0.2": {
+  "load_change_plane": 0.3582925431079029,
+  "torque_change_plane": 0.29283508105145173,
+  "load_change_slip": 0.31484541433272195,
+  "torque_change_slip": 0.2501648674948793,
+  "load_change_concentric": 0.3582925431079029,
+  "torque_change_concentric": 0.26888018024251514,
+  "load_change_rule": 0.7389683259362048,
+  "torque_change_rule": 0.40598963269988286
+ },
+ "K3_eps0.6_l0.25": {
+  "load_change_plane": 0.40602311379083567,
+  "torque_change_plane": 0.34188290480022965,
+  "load_change_slip": 0.35478290726511785,
+  "torque_change_slip": 0.2905854117014961,
+  "load_change_concentric": 0.40602311379083567,
+  "torque_change_concentric": 0.31298835086473886,
+  "load_change_rule": 1.053049164280917,
+  "torque_change_rule": 0.574571178327622
+ },
+ "K1_eps0_l0.05": {
+  "load_change_plane": NaN,
+  "torque_change_plane": 0.02564102553261538,
+  "load_change_slip": NaN,
+  "torque_change_slip": 0.019230769149461757,
+  "load_change_concentric": NaN,
+  "torque_change_concentric": 0.020538118273636385,
+  "load_change_rule": NaN,
+  "torque_change_rule": 0.02050926476111714
+ },
+ "K1_eps0_l0.1": {
+  "load_change_plane": NaN,
+  "torque_change_plane": 0.05262654873664707,
+  "load_change_slip": NaN,
+  "torque_change_slip": 0.039469911552484804,
+  "load_change_concentric": NaN,
+  "torque_change_concentric": 0.04220355255662134,
+  "load_change_rule": NaN,
+  "torque_change_rule": 0.04209087068256534
+ },
+ "K1_eps0_l0.2": {
+  "load_change_plane": NaN,
+  "torque_change_plane": 0.10946100952377003,
+  "load_change_slip": NaN,
+  "torque_change_slip": 0.08209575714282802,
+  "load_change_concentric": NaN,
+  "torque_change_concentric": 0.08796442589664744,
+  "load_change_rule": NaN,
+  "torque_change_rule": 0.08882984375000014
+ },
+ "K1_eps0_l0.25": {
+  "load_change_plane": NaN,
+  "torque_change_plane": 0.13701412150876457,
+  "load_change_slip": NaN,
+  "torque_change_slip": 0.10276059113157454,
+  "load_change_concentric": NaN,
+  "torque_change_concentric": 0.1101905694092038,
+  "load_change_rule": NaN,
+  "torque_change_rule": 0.11419219970703054
+ },
+ "K1_eps0.3_l0.05": {
+  "load_change_plane": 0.0721760181570148,
+  "torque_change_plane": 0.03330687251128328,
+  "load_change_slip": 0.06547492973672875,
+  "torque_change_slip": 0.02684870798782346,
+  "load_change_concentric": 0.0721760181570148,
+  "torque_change_concentric": 0.028725055853332737,
+  "load_change_rule": 0.07953492962780606,
+  "torque_change_rule": 0.027942105837455822
+ },
+ "K1_eps0.3_l0.1": {
+  "load_change_plane": 0.13451214408749923,
+  "torque_change_plane": 0.06698110834498139,
+  "load_change_slip": 0.12036256359859387,
+  "torque_change_slip": 0.053654169511437866,
+  "load_change_concentric": 0.13451214408749923,
+  "torque_change_concentric": 0.057599031367887576,
+  "load_change_rule": 0.16772285403877296,
+  "torque_change_rule": 0.05794272146118851
+ },
+ "K1_eps0.3_l0.2": {
+  "load_change_plane": 0.2198282225133783,
+  "torque_change_plane": 0.13131845889007954,
+  "load_change_slip": 0.1915234747566137,
+  "torque_change_slip": 0.10394013520066037,
+  "load_change_concentric": 0.2198282225133783,
+  "torque_change_concentric": 0.11213536218112519,
+  "load_change_rule": 0.37514006258013843,
+  "torque_change_rule": 0.12511254406031402
+ },
+ "K1_eps0.3_l0.25": {
+  "load_change_plane": 0.24613710981627657,
+  "torque_change_plane": 0.15934505574556068,
+  "load_change_slip": 0.21251308604096564,
+  "torque_change_slip": 0.12556554667025632,
+  "load_change_concentric": 0.24613710981627657,
+  "torque_change_concentric": 0.13564234610199977,
+  "load_change_rule": 0.49748972108945555,
+  "torque_change_rule": 0.16288071298208995
+ },
+ "K1_eps0.6_l0.05": {
+  "load_change_plane": 0.07551849970639624,
+  "torque_change_plane": 0.05180300914925429,
+  "load_change_slip": 0.0687984389047338,
+  "torque_change_slip": 0.04523051944286127,
+  "load_change_concentric": 0.07551849970639624,
+  "torque_change_concentric": 0.04807445279791023,
+  "load_change_rule": 0.08666687124936834,
+  "torque_change_rule": 0.04886095884122499
+ },
+ "K1_eps0.6_l0.1": {
+  "load_change_plane": 0.13463915690626838,
+  "torque_change_plane": 0.1002873419826742,
+  "load_change_slip": 0.1207139548303553,
+  "torque_change_slip": 0.08671952175227804,
+  "load_change_concentric": 0.13463915690626838,
+  "torque_change_concentric": 0.0926355018537044,
+  "load_change_rule": 0.1844877892172232,
+  "torque_change_rule": 0.10345631908026798
+ },
+ "K1_eps0.6_l0.2": {
+  "load_change_plane": 0.21247624286268452,
+  "torque_change_plane": 0.17589862021825775,
+  "load_change_slip": 0.1865756774394305,
+  "torque_change_slip": 0.14994740222573189,
+  "load_change_concentric": 0.21247624286268452,
+  "torque_change_concentric": 0.16123231045102426,
+  "load_change_rule": 0.4225163286755296,
+  "torque_change_rule": 0.23446285748284446
+ },
+ "K1_eps0.6_l0.25": {
+  "load_change_plane": 0.23770457720087768,
+  "torque_change_plane": 0.2025771349071499,
+  "load_change_slip": 0.20757111939437967,
+  "torque_change_slip": 0.1717910484626719,
+  "load_change_concentric": 0.23770457720087768,
+  "torque_change_concentric": 0.1851268978108196,
+  "load_change_rule": 0.568809749268854,
+  "torque_change_rule": 0.3140431078515835
+ }
+}

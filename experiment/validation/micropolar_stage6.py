@@ -363,6 +363,303 @@ def command_concentric(arguments) -> int:
     return 0
 
 
+READINGS = ("rotor_torque_wall", "stator_torque_wall", "rotor_torque_circle", "stator_torque_circle")
+# the runs of Stages 4 and 5 without the density diffusion term, in the form of this stage (the provisional pack)
+STAGE5_NEWTONIAN = ("nd_e30_newtonian", "nd_e60_newtonian", "nd_e60_newtonian_shifted", "nd_e60_newtonian_rotated",
+                    "nd_e30_re1", "nd_e60_re1", "nd_e60_re1_ma001", "nd_e60_re1_g200", "nd_e60_re10_g200",
+                    "nd_e30_re10_g200")
+STAGE5_PAIRS = (("nd_e30_k3_m5", "nd_e30_newtonian"), ("nd_e30_k3_m2", "nd_e30_newtonian"),
+                ("nd_e60_k3_m5", "nd_e60_newtonian"), ("nd_e60_k3_m2", "nd_e60_newtonian"),
+                ("nd_e60_k3_m5_shifted", "nd_e60_newtonian_shifted"),
+                ("nd_e60_k3_m5_rotated", "nd_e60_newtonian_rotated"),
+                ("nd_e30_k3_m10_g200", "nd_e30_re10_g200"), ("nd_e60_k3_m10_g200", "nd_e60_re10_g200"))
+
+
+def _spread(values) -> float:
+    values = np.asarray(values, dtype=np.float64)
+    return float(values.max() - values.min())
+
+
+def command_eccentric(arguments) -> int:
+    """Every finished eccentric run of the stage (or, with --set stage5, the runs of Stages 4 and 5 without the
+    density diffusion term): the record of Stage 5 (load, direction, torque by both readings, wall pressure,
+    levels), each micropolar run against its control, the predictions of the host (film function in the thin-film
+    calculation; the rule on the exact Stokes solution), the noise floors from the three lattices, and the same
+    flow at two resolutions."""
+    from experiment.validation import micropolar_stage5 as stage5
+    from experiment.validation import micropolar_film as film
+    lines = []
+
+    def say(text=""):
+        lines.append(text)
+        print(text, flush=True)
+    own = _REPO_ROOT / RUNS_DIRECTORY
+    concentric_fits = {}
+    if arguments.set == "stage6":
+        stage4.RUNS.update(RUNS)
+        original = stage5.run_directory
+        stage5.run_directory = lambda name: own if name in RUNS else original(name)
+        stage5.CONCENTRIC_CONTROLS[("fd", 100)] = "g100_newtonian"
+        stage5.CONCENTRIC_FALLBACKS[200] = "g200_newtonian"
+        names = finished(arguments.names, eccentric=True)
+        pairs = [(name, RUNS[name]["control"]) for name in names
+                 if RUNS[name]["control"] and RUNS[name]["control"] in names]
+        concentric_path = _REPO_ROOT / "data/micropolar/stage6/concentric.json"
+        if concentric_path.exists():
+            concentric_fits = json.loads(concentric_path.read_text(encoding="utf-8"))["runs"]
+    else:
+        names = [name for name in STAGE5_NEWTONIAN + tuple(pair[0] for pair in STAGE5_PAIRS)
+                 if stage5._finished(name)]
+        pairs = [pair for pair in STAGE5_PAIRS if pair[0] in names and pair[1] in names]
+    records = {}
+    for name in names:
+        records[name] = stage5.eccentric_summary(name, arguments.recompute)
+        directory = stage5.run_directory(name)
+        records[name].update(levels(name, directory))
+        records[name]["control"] = stage4.RUNS[name]["control"] if arguments.set == "stage6" else None
+        print(f"[stage6] {name}: summarised", flush=True)
+
+    def percent(value):
+        return f"{100.0 * (value - 1.0):+.2f} %"
+    say("Newtonian runs against the exact Stokes values (load in N/m, torque in N; torque columns: reading / exact - 1; "
+        "levels: mean density over rho0 - 1 and mean pressure over rho U^2 in the last eighth, and their change from "
+        "the eighth before)")
+    say(f"{'run':<26}{'eps':>5}{'Re':>4}{'g/dx':>6}{'Ma':>6}{'load exact':>11}{'load':>10}{'':>9}{'angle':>8}"
+        f"{'T exact':>9}{'T wall R':>10}{'T wall S':>10}{'T circ R':>10}{'T circ S':>10}{'dT %':>8}{'dF %':>8}"
+        f"{'behind':>7}{'rho level':>11}{'drift':>10}{'p level':>9}{'drift':>10}  describe")
+    for name in names:
+        item = records[name]
+        if item["micropolar"]:
+            continue
+        behind = item["behind_walls"]
+        say(f"{name:<26}{item['eccentricity_ratio']:>5.2f}{item['reynolds']:>4g}{item['gap_in_spacings']:>6g}"
+            f"{item['mach']:>6g}{item['exact']['load']:>11.2f}{item['load']:>10.2f}{percent(item['load_over_exact']):>9}"
+            f"{item['force_angle_degrees']:>8.2f}{item['exact']['rotor_torque']:>9.3f}"
+            f"{percent(item['rotor_torque_wall_over_exact']):>10}{percent(item['stator_torque_wall_over_exact']):>10}"
+            f"{percent(item['rotor_torque_circle_over_exact']):>10}{percent(item['stator_torque_circle_over_exact']):>10}"
+            f"{100.0 * item['torque_change_between_halves']:>+8.3f}{100.0 * item['load_change_between_halves']:>+8.3f}"
+            f"{behind['inside_rotor'] + behind['beyond_stator']:>7,}"
+            + (f"{item['density_level']:>+11.2e}{item['density_drift']:>+10.1e}{item['pressure_level']:>+9.3f}"
+               f"{item['pressure_drift']:>+10.1e}" if "density_level" in item else f"{'-':>11}{'-':>10}{'-':>9}{'-':>10}")
+            + f"  {item['revision']['describe']}"
+            + ("" if item["counters_zero"] and not item["failure"] else "  FAILED / counters"))
+
+    # what each torque reading makes of D between concentric cylinders at the same K, l and g, minus D of the fit
+    def reading_errors(coupling_ratio, gap_over_two_lengths, gap):
+        if arguments.set != "stage6":
+            errors = stage5.concentric_reading_errors().get(f"micropolar_m{gap_over_two_lengths:g}")
+            return {key: errors[key] for key in READINGS} if errors and gap == 100 and coupling_ratio == 3 else None
+        name = f"g{gap:03d}_{_ratio_tag(coupling_ratio)}_m{gap_over_two_lengths:g}"
+        control = f"g{gap:03d}_newtonian"
+        if name not in concentric_fits or "relative_torque_change" not in concentric_fits[name]:
+            return None
+        torques = stage4.wall_torques(stage4.cached_wall_sums(name, own))
+        base = stage4.wall_torques(stage4.cached_wall_sums(control, own))
+        fit_change = concentric_fits[name]["relative_torque_change"]
+        return {"rotor_torque_wall": torques["rotor"]["wall"] / base["rotor"]["wall"] - 1.0 - fit_change,
+                "stator_torque_wall": torques["stator"]["wall"] / base["stator"]["wall"] - 1.0 - fit_change,
+                "rotor_torque_circle": torques["rotor"]["circle"] / base["rotor"]["circle"] - 1.0 - fit_change,
+                "stator_torque_circle": torques["stator"]["circle"] / base["stator"]["circle"] - 1.0 - fit_change}
+
+    say()
+    say("micropolar run over its Newtonian control: D_T by the four readings (measured), their mean with the error "
+        "each reading makes between concentric cylinders at the same K, l, g taken off (corrected; '-' = no such "
+        "concentric row), the change of the load and the turn of the force; predictions of the host: film = the "
+        "film function of micropolar lubrication theory in the thin-film calculation (torque: 'conc.' with the "
+        "shear-driven stress of the exact concentric solution at the local gap, 'slip' with the slip term of the "
+        "rule on the rotor), rule = the wall rule on the exact Stokes solution of its slip-form geometry")
+    say(f"{'run':<22}{'K':>4}{'eps':>5}{'g/dx':>6}{'l/dx':>6}{'hmin/l':>7}" + "".join(
+        f"{label:>9}" for label in ("wall R", "wall S", "circ R", "circ S")) + f"{'mean':>9}{'corr.':>9}{'spread':>8}"
+        f"{'film c.':>9}{'film s.':>9}{'film pl.':>9}{'rule':>9}{'load':>9}{'film':>9}{'rule':>9}{'turn':>8}"
+        f"{'meas/film':>10}{'meas/rule':>10}")
+    pair_records = {}
+    for name, control_name in pairs:
+        item, control = records[name], records[control_name]
+        meta_gap = item["outer_radius"] - item["inner_radius"]
+        coupling_ratio = stage4.RUNS[name].get("coupling_ratio", 3)
+        length_in_spacings = item["length_in_spacings"]
+        spacing = meta_gap / item["gap_in_spacings"]
+        length = length_in_spacings * spacing
+        gap_over_two_lengths = meta_gap / (2.0 * length)
+        changes = {key: item[key] / control[key] - 1.0 for key in READINGS}
+        errors = reading_errors(coupling_ratio, gap_over_two_lengths, round(item["gap_in_spacings"]))
+        corrected = {key: changes[key] - errors[key] for key in READINGS} if errors else None
+        mean_change = float(np.mean(list(changes.values())))
+        corrected_mean = float(np.mean(list(corrected.values()))) if corrected else None
+        best = corrected_mean if corrected_mean is not None else mean_change
+        load_change = item["load"] / control["load"] - 1.0
+        predicted = film.predictions(item["eccentricity_ratio"], meta_gap, item["inner_radius"], length,
+                                     coupling_ratio)
+        entry = {
+            "control": control_name, "coupling_ratio": coupling_ratio, "eccentricity_ratio": item["eccentricity_ratio"],
+            "gap_in_spacings": item["gap_in_spacings"], "length_in_spacings": length_in_spacings,
+            "gap_over_two_lengths": gap_over_two_lengths,
+            "narrowest_gap_over_length": (1.0 - item["eccentricity_ratio"]) * meta_gap / length,
+            "lattice": stage4.RUNS[name].get("lattice", ""),
+            "changes": changes, "reading_errors": errors, "corrected": corrected, "mean_change": mean_change,
+            "corrected_mean": corrected_mean, "torque_change": best,
+            "spread_of_readings": _spread(list((corrected or changes).values())),
+            "load_change": load_change,
+            "turn_degrees": item["force_angle_degrees"] - control["force_angle_degrees"],
+            "predictions": predicted,
+            "load_over_film": load_change / predicted["load_change_plane"],
+            "load_over_rule": load_change / predicted["load_change_rule"],
+            "torque_over_film": best / predicted["torque_change_concentric"],
+            "torque_over_film_slip": best / predicted["torque_change_slip"],
+            "torque_over_film_plane": best / predicted["torque_change_plane"],
+            "torque_over_rule": best / predicted["torque_change_rule"]}
+        pair_records[name] = entry
+        say(f"{name:<22}{coupling_ratio:>4g}{item['eccentricity_ratio']:>5.2f}{item['gap_in_spacings']:>6g}"
+            f"{length_in_spacings:>6g}{entry['narrowest_gap_over_length']:>7.1f}"
+            + "".join(f"{changes[key]:>9.4f}" for key in READINGS) + f"{mean_change:>9.4f}"
+            + (f"{corrected_mean:>9.4f}" if corrected else f"{'-':>9}") + f"{entry['spread_of_readings']:>8.4f}"
+            f"{predicted['torque_change_concentric']:>9.4f}{predicted['torque_change_slip']:>9.4f}"
+            f"{predicted['torque_change_plane']:>9.4f}{predicted['torque_change_rule']:>9.4f}"
+            f"{100.0 * load_change:>+8.2f}%{100.0 * predicted['load_change_plane']:>+8.2f}%"
+            f"{100.0 * predicted['load_change_rule']:>+8.2f}%{entry['turn_degrees']:>+8.3f}"
+            f"{entry['load_over_film']:>10.3f}{entry['load_over_rule']:>10.3f}")
+
+    # noise floors: the three lattices of one case
+    floors = {}
+    for label, members in (("e30", [f"e30_newtonian{lattice}" for lattice in LATTICES]),
+                           ("e60", [f"e60_newtonian{lattice}" for lattice in LATTICES]),
+                           ("nd_e60", [f"nd_e60_newtonian{lattice}" for lattice in LATTICES])):
+        if not all(member in records for member in members):
+            continue
+        floor = {"runs": members,
+                 "load_over_exact": [records[member]["load_over_exact"] for member in members],
+                 "force_angle_degrees": [records[member]["force_angle_degrees"] for member in members]}
+        for key in READINGS:
+            floor[f"{key}_over_exact"] = [records[member][f"{key}_over_exact"] for member in members]
+            floor[f"{key}_spread"] = _spread(floor[f"{key}_over_exact"])
+        floor["load_spread"] = _spread(floor["load_over_exact"])
+        floor["force_angle_spread_degrees"] = _spread(floor["force_angle_degrees"])
+        micropolar = [member.replace("newtonian", "k3_m5") for member in members]
+        if all(member in pair_records for member in micropolar):
+            floor["pairs"] = micropolar
+            floor["torque_change"] = [pair_records[member]["torque_change"] for member in micropolar]
+            floor["load_change"] = [pair_records[member]["load_change"] for member in micropolar]
+            floor["turn_degrees"] = [pair_records[member]["turn_degrees"] for member in micropolar]
+            floor["torque_change_spread"] = _spread(floor["torque_change"])
+            floor["load_change_spread"] = _spread(floor["load_change"])
+            floor["turn_spread_degrees"] = _spread(floor["turn_degrees"])
+            floor["readings_change_spread"] = {key: _spread([pair_records[member]["changes"][key]
+                                                             for member in micropolar]) for key in READINGS}
+        floors[label] = floor
+    if floors:
+        say()
+        say("noise floors from the three lattices (max - min): Newtonian load and torque readings over exact, the "
+            "direction; then the changes of the micropolar run (K = 3, l = 10 dx) against its control")
+        for label, floor in floors.items():
+            say(f"{label}: load {100.0 * floor['load_spread']:.2f} % (values "
+                + ", ".join(f"{100.0 * (value - 1.0):+.2f}" for value in floor["load_over_exact"])
+                + f" %), direction {floor['force_angle_spread_degrees']:.2f} degrees, torque wall R / S "
+                f"{100.0 * floor['rotor_torque_wall_spread']:.2f} / {100.0 * floor['stator_torque_wall_spread']:.2f} %, "
+                f"circle R / S {100.0 * floor['rotor_torque_circle_spread']:.2f} / "
+                f"{100.0 * floor['stator_torque_circle_spread']:.2f} %"
+                + (f"; changes: D_T {floor['torque_change_spread']:.4f} (values "
+                   + ", ".join(f"{value:.4f}" for value in floor["torque_change"])
+                   + f"), load change {100.0 * floor['load_change_spread']:.2f} points (values "
+                   + ", ".join(f"{100.0 * value:+.2f}" for value in floor["load_change"])
+                   + f" %), turn {floor['turn_spread_degrees']:.3f} degrees" if "pairs" in floor else ""))
+
+    # the same flow at two resolutions: g = 100 dx with l = 10 dx and g = 200 dx with l = 20 dx (m = 5)
+    resolution = []
+    for clearance in (30, 60):
+        for coupling_ratio in (3, 1):
+            coarse = f"e{clearance}_{_ratio_tag(coupling_ratio)}_m5"
+            fine = f"e{clearance}_g200_{_ratio_tag(coupling_ratio)}_m5"
+            if coarse in pair_records and fine in pair_records:
+                resolution.append({"coarse": coarse, "fine": fine, "coupling_ratio": coupling_ratio,
+                                   "eccentricity_ratio": clearance / 100.0,
+                                   **{f"{key}_{label}": pair_records[run][key] for key in
+                                      ("torque_change", "load_change", "turn_degrees", "mean_change")
+                                      for label, run in (("coarse", coarse), ("fine", fine))},
+                                   "control_load_over_exact_coarse": records[pair_records[coarse]["control"]][
+                                       "load_over_exact"],
+                                   "control_load_over_exact_fine": records[pair_records[fine]["control"]][
+                                       "load_over_exact"]})
+    if resolution:
+        say()
+        say("the same flow at two resolutions (m = 5): g = 100 dx with l = 10 dx against g = 200 dx with l = 20 dx")
+        say(f"{'K':>4}{'eps':>5}{'D_T 100':>10}{'D_T 200':>10}{'load 100':>10}{'load 200':>10}{'turn 100':>10}"
+            f"{'turn 200':>10}{'control load / exact 100':>26}{'200':>9}")
+        for entry in resolution:
+            say(f"{entry['coupling_ratio']:>4g}{entry['eccentricity_ratio']:>5.2f}{entry['torque_change_coarse']:>10.4f}"
+                f"{entry['torque_change_fine']:>10.4f}{100.0 * entry['load_change_coarse']:>+9.2f}%"
+                f"{100.0 * entry['load_change_fine']:>+9.2f}%{entry['turn_degrees_coarse']:>+10.3f}"
+                f"{entry['turn_degrees_fine']:>+10.3f}{percent(entry['control_load_over_exact_coarse']):>26}"
+                f"{percent(entry['control_load_over_exact_fine']):>9}")
+    if arguments.json:
+        target = _REPO_ROOT / arguments.json
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps({"set": arguments.set, "runs": records, "pairs": pair_records, "floors": floors,
+                                      "resolution": resolution}, indent=1), encoding="utf-8")
+        target.with_suffix(".txt").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    return 0
+
+
+def velocity_gradient(position: np.ndarray, velocity: np.ndarray, radius: float) -> np.ndarray:
+    """The gradient of a particle field of vectors by weighted linear least squares over the neighbours within
+    radius (weight (1 - r / radius)^2): exact for a linear field on any particle arrangement, one-sided at a wall
+    (fluid particles only). Any dimension d; returns (count, d, d) with [i, a, b] = d v_a / d x_b."""
+    from scipy.spatial import cKDTree
+    position = np.asarray(position, dtype=np.float64)
+    velocity = np.asarray(velocity, dtype=np.float64)
+    count, dimension = position.shape
+    pairs = cKDTree(position).query_pairs(radius, output_type="ndarray")
+    first, second = pairs[:, 0], pairs[:, 1]
+    separation = position[second] - position[first]
+    difference = velocity[second] - velocity[first]
+    weight = (1.0 - np.sqrt((separation ** 2).sum(axis=1)) / radius) ** 2
+    moment = np.zeros((count, dimension, dimension))
+    right = np.zeros((count, dimension, dimension))                 # [i, a, b] = sum of W dv_a r_b
+    for row in range(dimension):
+        for column in range(dimension):
+            values = weight * separation[:, row] * separation[:, column]
+            moment[:, row, column] = np.bincount(first, values, count) + np.bincount(second, values, count)
+            values = weight * difference[:, row] * separation[:, column]
+            right[:, row, column] = np.bincount(first, values, count) + np.bincount(second, values, count)
+    # grad[i, a, :] = moment^-1 right[i, a, :]
+    return np.linalg.solve(moment[:, None, :, :], right[..., None])[..., 0]
+
+
+def command_fields(arguments) -> int:
+    """The whole fluid of one eccentric (or concentric) run at its last saved step, with the curl of the velocity,
+    as a file small enough for the repository: x, y, velocity, pressure, micro-rotation, curl (float32)."""
+    from experiment.validation import micropolar_stage5 as stage5
+    name = arguments.name
+    directory = (_REPO_ROOT / RUNS_DIRECTORY) if name in RUNS and arguments.set == "stage6" \
+        else stage5.run_directory(name)
+    run = json.loads((directory / name / "run.json").read_text(encoding="utf-8"))
+    meta = run["couette"]
+    candidates = sorted((directory / name / "states").glob("full_*.npz")) \
+        or sorted((directory / name / "states").glob("state_*.npz"))
+    state = np.load(candidates[-1])
+    fluid = state["kind"] == 0
+    position = state["position"][fluid].astype(np.float64)
+    if position.shape[0] != meta["fluid_count"]:
+        sys.exit(f"{name}: the state {candidates[-1].name} holds {position.shape[0]:,} fluid particles of "
+                 f"{meta['fluid_count']:,} (a wall band, not the whole fluid)")
+    velocity = state["velocity"][fluid].astype(np.float64)
+    gradient = velocity_gradient(position, velocity, arguments.radius_in_spacings * meta["spacing"])
+    curl = gradient[:, 1, 0] - gradient[:, 0, 1]
+    spin = state["spin"][fluid] if "spin" in state.files else np.zeros(position.shape[0], np.float32)
+    target = _REPO_ROOT / arguments.out / f"{name}.npz"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(target, x=position[:, 0].astype(np.float32), y=position[:, 1].astype(np.float32),
+                        u=velocity[:, 0].astype(np.float32), v=velocity[:, 1].astype(np.float32),
+                        pressure=state["pressure"][fluid].astype(np.float32), spin=spin.astype(np.float32),
+                        curl=curl.astype(np.float32), step=np.int64(state["step"]))
+    summary = {"run": name, "state": candidates[-1].name, "step": int(state["step"]), "steps": run["steps"],
+               "revision": run["revision"], "couette": meta,
+               "gradient": f"weighted linear least squares over the fluid neighbours within "
+                           f"{arguments.radius_in_spacings:g} dx"}
+    target.with_suffix(".json").write_text(json.dumps(summary, indent=1), encoding="utf-8")
+    print(f"[stage6] fields of {name}: {position.shape[0]:,} particles, step {int(state['step']):,} -> {target}")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -385,6 +682,19 @@ def main() -> int:
     concentric.add_argument("names", nargs="*", help="default: every finished concentric run of the table")
     concentric.add_argument("--json", default="data/micropolar/stage6/concentric.json")
     concentric.set_defaults(handler=command_concentric)
+    eccentric = commands.add_parser("eccentric")
+    eccentric.add_argument("names", nargs="*", help="default: every finished eccentric run of the table")
+    eccentric.add_argument("--set", default="stage6", choices=("stage6", "stage5"),
+                           help="stage5: the runs of Stages 4 and 5 without the density diffusion term")
+    eccentric.add_argument("--recompute", action="store_true", help="ignore the wall_sums.json beside each run")
+    eccentric.add_argument("--json", default=None)
+    eccentric.set_defaults(handler=command_eccentric)
+    fields = commands.add_parser("fields")
+    fields.add_argument("name")
+    fields.add_argument("--set", default="stage6", choices=("stage6", "stage5"))
+    fields.add_argument("--radius-in-spacings", type=float, default=3.0)
+    fields.add_argument("--out", default="data/micropolar/stage6/fields")
+    fields.set_defaults(handler=command_fields)
     arguments = parser.parse_args()
     return arguments.handler(arguments)
 

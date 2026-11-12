@@ -1,0 +1,33 @@
+{
+ "item": "07",
+ "title": "Eccentric fields: pressure, speed, micro-rotation, w - curl v / 2",
+ "status": "provisional",
+ "caption": "Micropolar fluid between eccentric cylinders, eps = 0.6 (rotor axis at x = 0.6 g, rotor turning counter-clockwise at Omega, stator at rest), K = 3, l = 10 dx (m = 5), g = 100 dx, w = 0 on both walls, Ma = 0.02, Re = 10 on mu_inf (25 on mu); every fluid particle at the last step of run `nd_e60_k3_m5` (step 134,000; thesis-ch5-rc1-3-g645dc15; Stage 4 run without the density diffusion term). (a) Pressure, mean removed. (b) Speed, with six streamlines started across the widest gap. (c) Micro-rotation. (d) Micro-rotation minus half the curl of the velocity (curl by weighted linear least squares over the fluid neighbours within 3 dx): it vanishes in the core and is carried by the two wall layers of thickness l, where the walls hold w = 0; inset: the narrowest gap (4 l wide). Ranges: pressure -4.31 to 3.56 rho U^2; micro-rotation -4.83 to 0.55 Omega; w - curl v / 2 -0.85 to 7.85 Omega, with a median magnitude of 3.2e-03 Omega further than 5 l from both walls. Colour scales of the signed fields are symmetric about zero and end at the 99.8th percentile of the magnitude.",
+ "files": [
+  "fig_07_eccentric_fields.pdf",
+  "fig_07_eccentric_fields.png"
+ ],
+ "sources": [
+  "data/micropolar/stage6/fields/nd_e60_k3_m5.npz",
+  "nd_e60_k3_m5"
+ ],
+ "numbers": {
+  "a": {
+   "min": -4.3086395263671875,
+   "max": 3.5604076385498047
+  },
+  "b": {
+   "min": 1.1468842785689048e-05,
+   "max": 0.999424934387207
+  },
+  "c": {
+   "min": -4.8263349533081055,
+   "max": 0.5456888675689697
+  },
+  "d": {
+   "min": -0.8456453084945679,
+   "max": 7.853307247161865
+  }
+ },
+ "tag": "thesis-ch5-rc1 and the commits of Stage 4"
+}

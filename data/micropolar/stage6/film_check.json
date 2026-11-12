@@ -1,0 +1,54 @@
+{
+ "closed_forms_largest_relative_difference": 1.4432899320127035e-15,
+ "sharper": {
+  "2": {
+   "core_error": 0.7420201078096388,
+   "layer_excess_over_prediction": 0.6869647147090022,
+   "sharper_over_exact": 1.5436021996854068,
+   "rule_over_exact": 0.37685600578257,
+   "first_order_over_exact": -0.19295027496067585
+  },
+  "4": {
+   "core_error": 0.20372554883007726,
+   "layer_excess_over_prediction": 0.9253705593782384,
+   "sharper_over_exact": 1.0300812833687132,
+   "rule_over_exact": 0.7687121533835132,
+   "first_order_over_exact": 0.6270059985722601
+  },
+  "7": {
+   "core_error": 0.047601625318217856,
+   "layer_excess_over_prediction": 0.9936110027795335,
+   "sharper_over_exact": 1.0007621831025428,
+   "rule_over_exact": 0.9246043703274145,
+   "first_order_over_exact": 0.8814660288254186
+  },
+  "10": {
+   "core_error": 0.014529909984872129,
+   "layer_excess_over_prediction": 0.9995459852982442,
+   "sharper_over_exact": 1.0000249163475825,
+   "rule_over_exact": 0.9652107867331193,
+   "first_order_over_exact": 0.9451455002065567
+  },
+  "14": {
+   "core_error": 0.0036247343645345125,
+   "layer_excess_over_prediction": 0.999988368796585,
+   "sharper_over_exact": 1.0000003099785153,
+   "rule_over_exact": 0.9831799856606049,
+   "first_order_over_exact": 0.9733730827897383
+  },
+  "20": {
+   "core_error": 0.0005460673973504107,
+   "layer_excess_over_prediction": 0.9999999796102824,
+   "sharper_over_exact": 1.000000000516005,
+   "rule_over_exact": 0.9921179594827306,
+   "first_order_over_exact": 0.9874826152522442
+  },
+  "40": {
+   "core_error": 1.7670604912886882e-06,
+   "layer_excess_over_prediction": 1.0000000833333318,
+   "sharper_over_exact": 1.0,
+   "rule_over_exact": 0.998135987537141,
+   "first_order_over_exact": 0.9970287223506108
+  }
+ }
+}
