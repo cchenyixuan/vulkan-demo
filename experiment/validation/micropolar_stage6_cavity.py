@@ -177,7 +177,8 @@ def summarise(run: str, average_span: float) -> dict:
         with np.load(run_dir / "samples" / f"s{row['step']:010d}.npz") as archive:
             profiles["u"].append(np.array(archive["u_dense_mls"]))
             profiles["v"].append(np.array(archive["v_dense_mls"]))
-    coordinate = np.asarray(meta["dense_reference"], dtype=np.float64)
+    with np.load(run_dir / "points.npz") as archive:
+        coordinate = np.array(archive["dense_reference"], dtype=np.float64)       # 0 to 1 along each centre line
     summary = {"run": run, "case": RUNS[run][0], "resolution": RUNS[run][1], "micropolar": RUNS[run][2],
                "slabs": RUNS[run][4], "viscosity": case_viscosity(run), "end_time": end_time,
                "samples": len(window), "timestep": meta["dt"], "spacing": meta["spacing"],
@@ -193,10 +194,13 @@ def summarise(run: str, average_span: float) -> dict:
     summary["v_max"], summary["x_at_v_max"] = _extremum(coordinate, v, "max", 0.02, 0.98)
     summary["v_min"], summary["x_at_v_min"] = _extremum(coordinate, v, "min", 0.02, 0.98)
     half = len(window) // 2
-    summary["kinetic_energy_mean"] = float(np.mean([row["kinetic_energy"] for row in window]))
+    # kinetic energy per unit depth in rho U^2 L^2
+    summary["kinetic_energy_mean"] = float(np.mean([row["kinetic_energy"] for row in window])
+                                           / (DENSITY * WALL_SPEED ** 2))
     summary["kinetic_energy_change_between_halves"] = float(
         (np.mean([row["kinetic_energy"] for row in window[half:]])
-         - np.mean([row["kinetic_energy"] for row in window[:half]])) / summary["kinetic_energy_mean"])
+         - np.mean([row["kinetic_energy"] for row in window[:half]]))
+        / np.mean([row["kinetic_energy"] for row in window]))
     summary["steps_per_second"] = float(np.median([row["fps"] for row in window]))
     summary["density_min"] = float(min(row["density_min"] for row in window))
     summary["density_max"] = float(max(row["density_max"] for row in window))

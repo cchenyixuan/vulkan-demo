@@ -7,6 +7,8 @@ micropolar_rotor3d_analysis.py - what the 3-D runs of Stage 6 (section 4 of the 
             face (tangential and normal component), the torque by both readings with its split into lateral
             surface and end faces, speed and memory. Per pair: the change of the torque against the Newtonian
             control; a chain run against the one-slab run.
+  sizing    Particles, steps, step limit, memory per card and hours per run of the production case at g = 80 dx on
+            eight RTX 5090, from the measured runs.
   maps      The azimuthal means on the (r, z) grid over the last quarter and the fluid within 1.5 dx of the plane
             y = 0 at the last step with w - curl v / 2, as files for the repository (item 15 of the pack).
 """
@@ -436,6 +438,126 @@ def command_maps(arguments) -> int:
     return 0
 
 
+def count_particles(gap_in_spacings: int, wall_layers: int = 9, offset_z: float = 0.5) -> dict:
+    """Particle counts of the nominal case at a resolution, by the inequalities of the generator (lattice offset
+    (0, 0, 0.5) dx), without writing a file."""
+    rotor_radius, rotor_half = 3.0 * gap_in_spacings, 1.5 * gap_in_spacings
+    housing_radius, housing_half = 4.0 * gap_in_spacings, 2.5 * gap_in_spacings
+    reach = int(np.ceil(housing_radius + wall_layers)) + 2
+    index = np.arange(-reach, reach + 1, dtype=np.float64)
+    grid_x, grid_y = np.meshgrid(index, index, indexing="ij")
+    radius = np.hypot(grid_x, grid_y).ravel()
+    radius = radius[radius < housing_radius + wall_layers]
+    counts = {"domain": 0, "rotor": 0, "housing": 0}
+    levels = np.arange(-int(np.ceil(housing_half + wall_layers)) - 2, int(np.ceil(housing_half + wall_layers)) + 3) \
+        + offset_z
+    for height in levels:
+        if abs(height) >= housing_half + wall_layers:
+            continue
+        in_rotor = (radius <= rotor_radius) & (abs(height) <= rotor_half)
+        in_cavity = (radius < housing_radius) & (abs(height) < housing_half)
+        shell = in_rotor & ((radius > rotor_radius - wall_layers) | (abs(height) > rotor_half - wall_layers))
+        counts["domain"] += int((in_cavity & ~in_rotor).sum())
+        counts["rotor"] += int(shell.sum())
+        counts["housing"] += int((~in_cavity).sum())
+    return counts
+
+
+def command_sizing(arguments) -> int:
+    """What the measured runs say about the production run at g = 80 dx on eight RTX 5090: particles, steps, the
+    step limit, memory per card, hours per run."""
+    analysis = json.loads((_REPO_ROOT / arguments.analysis).read_text(encoding="utf-8"))
+    runs = analysis["runs"]
+    lines, result = [], {}
+
+    def say(text=""):
+        lines.append(text)
+        print(text)
+    check = count_particles(40)
+    stored = runs.get("g40_newtonian", runs.get("g40_k3_m2", {})).get("counts")
+    counts = count_particles(arguments.gap_in_spacings)
+    total = sum(counts.values())
+    say(f"Production case at g = {arguments.gap_in_spacings} dx: fluid {counts['domain']:,}, rotor {counts['rotor']:,}, "
+        f"housing {counts['housing']:,}, total {total:,} particles"
+        + (f" (the same count at g = 40 dx reproduces the generated case: fluid {check['domain']:,} = "
+           f"{stored['domain']:,}, rotor {check['rotor']:,} = {stored['rotor_lateral'] + stored['rotor_end']:,}, "
+           f"housing {check['housing']:,} = {stored['housing']:,})" if stored else ""))
+    spacing = 0.1 / arguments.gap_in_spacings
+    support, sound, far_viscosity = 4.0 * spacing, 50.0, 0.01
+    dt_acoustic = 0.15 * support / sound
+    dt_viscous = 0.0328 * support ** 2 / (1.6 * far_viscosity)
+    dt_angular = 0.0334 * support ** 2 / (1.5 * far_viscosity)
+    steps = {factor: int(np.ceil(round(factor * 0.1 ** 2 / far_viscosity / dt_acoustic / 1000.0, 6))) * 1000
+             for factor in (1.5, 2.0)}
+    say(f"Step: acoustic limit {dt_acoustic:.3e} s; viscous limit of K = 3 {dt_viscous:.3e} s ({dt_viscous / dt_acoustic:.1f} "
+        f"times larger), angular limit {dt_angular:.3e} s ({dt_angular / dt_acoustic:.1f} times), with the step numbers "
+        "measured in 2-D (not measured in 3-D); the acoustic limit governs. Steps: "
+        + ", ".join(f"{count:,} to {factor:g} g^2 / nu_inf" for factor, count in steps.items()))
+    result.update({"counts": counts, "total": total, "dt_acoustic": dt_acoustic, "dt_viscous": dt_viscous,
+                   "dt_angular": dt_angular, "steps": {str(key): value for key, value in steps.items()}})
+    partition_path = _REPO_ROOT / arguments.partition
+    share, ghost_slots = 1.0 / 8.0, None
+    if partition_path.exists():
+        partition = json.loads(partition_path.read_text(encoding="utf-8"))
+        particles = [slab["particles"] for slab in partition["slab"]]
+        share = max(particles) / sum(particles)
+        three = max(max(cut["three_columns_left"], cut["three_columns_right"]) for cut in partition["cut"])
+        say(f"Eight slabs along x (partition of the g = 40 dx case, {partition['columns']} voxel columns): "
+            f"{min(slab['columns'] for slab in partition['slab'])} to {max(slab['columns'] for slab in partition['slab'])} "
+            f"columns per slab, particles per slab {min(particles):,} to {max(particles):,} (largest share "
+            f"{share:.4f} against 0.125), wall share {min(slab['wall_share'] for slab in partition['slab']):.2f} to "
+            f"{max(slab['wall_share'] for slab in partition['slab']):.2f}; the three ghost columns of a cut hold up to "
+            f"{three:,} particles, {three / (sum(particles) / 8.0):.2f} of a slab. At g = 80 dx the columns double: "
+            f"about {2 * partition['columns'] // 8} per slab, and the three ghost columns are half that share.")
+        result["partition"] = {"largest_share": share, "three_ghost_columns_over_slab": three / (sum(particles) / 8.0)}
+        ghost_slots = 4 * three                         # the cut face grows fourfold from g = 40 to 80 dx
+    per_card = share * total
+    say(f"Largest slab at g = {arguments.gap_in_spacings} dx: {per_card / 1e6:.1f} million particles")
+    # the measured one-slab runs on the 5090: time per step = a + b n from the two sizes
+    table = []
+    for label, small, large in (("Newtonian", "g20_newtonian", "g40_newtonian"),
+                                ("micropolar", "g20_k3_m1", "g40_k3_m2")):
+        if small not in runs or large not in runs:
+            continue
+        one, two = runs[small], runs[large]
+        time_one, time_two = 1.0 / one["steps_per_second"], 1.0 / two["steps_per_second"]
+        slope = (time_two - time_one) / (two["particles"] - one["particles"])
+        intercept = time_one - slope * one["particles"]
+        step_time = intercept + slope * per_card
+        bytes_per_particle = two.get("bytes_per_particle", one.get("bytes_per_particle"))
+        memory = bytes_per_particle * per_card / 1024.0 ** 3 if bytes_per_particle else None
+        ghost_memory = (2 * ghost_slots * bytes_per_particle / 1.25 / 1024.0 ** 3
+                        if ghost_slots and bytes_per_particle else None)
+        entry = {"steps_per_second_small": one["steps_per_second"], "steps_per_second_large": two["steps_per_second"],
+                 "time_per_step_intercept": intercept, "time_per_particle": slope,
+                 "one_slab_step_time_at_largest_slab": step_time, "bytes_per_particle": bytes_per_particle,
+                 "memory_gigabytes_own": memory, "memory_gigabytes_ghost": ghost_memory,
+                 "hours_without_chain_overhead": {str(factor): count * step_time / 3600.0
+                                                  for factor, count in steps.items()}}
+        result[label] = entry
+        table.append((label, entry))
+        say(f"{label}: {one['steps_per_second']:.1f} steps/s at {one['particles']:,} and {two['steps_per_second']:.2f} "
+            f"at {two['particles']:,} particles on one 5090: {1e3 * intercept:.1f} ms + {1e9 * slope:.2f} ns per "
+            f"particle; a slab of {per_card / 1e6:.1f} million: {1e3 * step_time:.0f} ms per step before any cost of "
+            f"the chain; {bytes_per_particle:.0f} bytes per particle: {memory:.1f} GB for the slab's own particles"
+            + (f" and about {ghost_memory:.1f} GB for the ghost regions of two cuts" if ghost_memory else "")
+            + "; " + ", ".join(f"{count * step_time / 3600.0:.1f} h to {factor:g} g^2 / nu_inf"
+                               for factor, count in steps.items()) + " without chain overhead")
+    chain = runs.get("g40_k3_m2_k2")
+    single = runs.get("g40_k3_m2")
+    if chain and single:
+        ratio = chain["steps_per_second"] / single["steps_per_second"]
+        result["two_slabs_over_one_slab_rate"] = ratio
+        say(f"The chain as measured: two slabs (5090 + XTX, weights {chain['weights']}, slabs of "
+            f"{chain['slab_particles']}) run at {chain['steps_per_second']:.2f} steps/s against "
+            f"{single['steps_per_second']:.2f} on the 5090 alone ({ratio:.2f} times).")
+    if arguments.out:
+        target = _REPO_ROOT / arguments.out
+        target.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+        target.with_suffix(".json").write_text(json.dumps(result, indent=1), encoding="utf-8")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -450,6 +572,12 @@ def main() -> int:
     maps.add_argument("--radius-in-spacings", type=float, default=3.0)
     maps.add_argument("--out", default="data/micropolar/stage6/rotor3d")
     maps.set_defaults(handler=command_maps)
+    sizing = commands.add_parser("sizing")
+    sizing.add_argument("--gap-in-spacings", type=int, default=80)
+    sizing.add_argument("--analysis", default="data/micropolar/stage6/rotor3d.json")
+    sizing.add_argument("--partition", default="data/micropolar/stage6/rotor3d_partition_g40_k8.json")
+    sizing.add_argument("--out", default="data/micropolar/stage6/rotor3d_sizing.txt")
+    sizing.set_defaults(handler=command_sizing)
     arguments = parser.parse_args()
     return arguments.handler(arguments)
 

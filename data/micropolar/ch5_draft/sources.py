@@ -11,7 +11,7 @@ CONCENTRIC_STAGE4 = {
     "note": "Stage 4 runs on thesis-ch5-rc1 (thesis configuration, density diffusion towards the walls)"}
 CONCENTRIC_STAGE6 = {
     "analysis": "data/micropolar/stage6/concentric.json", "tag": "thesis-ch5-rc2",
-    "status": "final (rc2 runs); incomplete: rows at g = 200 dx still running, rows at g = 400 dx not reached",
+    "status": "final (rc2 runs) for g <= 200 dx; the rows at g = 400 dx are not reached",
     "note": "Stage 6 runs on thesis-ch5-rc2 (numerics.delta_fluid_only: true)"}
 CONCENTRIC = CONCENTRIC_STAGE6
 

@@ -1,8 +1,8 @@
 {
  "item": "03",
  "title": "Concentric cylinders: D against m for three K, with the slip-form rule",
- "status": "final (rc2 runs); incomplete: rows at g = 200 dx still running, rows at g = 400 dx not reached",
- "caption": "Relative change D of the torque between concentric cylinders (R1 = 4 g, R2 = 5 g, w = 0 on both walls) against m = g / (2 l) for K = 3, 1 and 0.5 (Re = 10 on mu_inf; 25, 15 and 12.5 on mu; Ma = 0.02). (a) Exact solution (solid), the wall rule in its slip form (dashed; every wall displaced by delta = K l / (2 (1 + K)) into the fluid, the rotor's apparent speed reduced by 2 delta Omega) and the runs (points; bars: noise floor of D from three lattices, smaller than the symbols). (b) The same as ratios to the exact value; the rule leaves the frame below m of about 1.9 (1.36 to 1.49 at m = 1). Resolution of the rows (m, l / dx, g / dx): (1, 50, 100), (2, 25, 100), (5, 10, 100), (10, 10, 200), (20, 5, 200). Runs: the sweep rows of tab_04; tag `thesis-ch5-rc2`, `thesis-ch5-rc2-2-g7a21ef4`, `thesis-ch5-rc2-1-gcb243fd`, `thesis-ch5-rc2-3-g656e652`. Ratio to exact: m = 1: runs 1.000 to 1.001, rule 1.365 to 1.487; m = 2: runs 1.001 to 1.001, rule 1.035 to 1.039; m = 5: runs 1.005 to 1.007, rule 0.997 to 0.997; m = 10: runs 1.008 to 1.008, rule 0.999 to 0.999; m = 20: runs 1.032 to 1.032, rule 0.999 to 0.999.",
+ "status": "final (rc2 runs) for g <= 200 dx; the rows at g = 400 dx are not reached",
+ "caption": "Relative change D of the torque between concentric cylinders (R1 = 4 g, R2 = 5 g, w = 0 on both walls) against m = g / (2 l) for K = 3, 1 and 0.5 (Re = 10 on mu_inf; 25, 15 and 12.5 on mu; Ma = 0.02). (a) Exact solution (solid), the wall rule in its slip form (dashed; every wall displaced by delta = K l / (2 (1 + K)) into the fluid, the rotor's apparent speed reduced by 2 delta Omega) and the runs (points; bars: noise floor of D from three lattices, smaller than the symbols). (b) The same as ratios to the exact value; the rule leaves the frame below m of about 1.9 (1.36 to 1.49 at m = 1). Resolution of the rows (m, l / dx, g / dx): (1, 50, 100), (2, 25, 100), (5, 10, 100), (10, 10, 200), (20, 5, 200). Runs: the sweep rows of tab_04; tag `thesis-ch5-rc2`, `thesis-ch5-rc2-3-g656e652`, `thesis-ch5-rc2-6-gaa27df9`, `thesis-ch5-rc2-2-g7a21ef4`, `thesis-ch5-rc2-1-gcb243fd`. Ratio to exact: m = 1: runs 1.000 to 1.001, rule 1.365 to 1.487; m = 2: runs 1.001 to 1.001, rule 1.035 to 1.039; m = 5: runs 1.005 to 1.007, rule 0.997 to 0.997; m = 10: runs 1.006 to 1.008, rule 0.999 to 0.999; m = 20: runs 1.024 to 1.032, rule 0.999 to 0.999.",
  "files": [
   "fig_03_concentric_sweep.pdf",
   "fig_03_concentric_sweep.png"
@@ -17,9 +17,13 @@
   "g100_k1_m1",
   "g100_k1_m2",
   "g100_k1_m5",
+  "g200_k1_m10",
+  "g200_k1_m20",
   "g100_k05_m1",
   "g100_k05_m2",
-  "g100_k05_m5"
+  "g100_k05_m5",
+  "g200_k05_m10",
+  "g200_k05_m20"
  ],
  "numbers": {
   "K = 3": {
@@ -53,7 +57,7 @@
     "D_exact": 0.031207182580554438,
     "ratio": 1.0075151423006605,
     "rule_ratio": 0.9985103686682135,
-    "floor": 0.006095944880109743
+    "floor": 0.0003672448116689697
    },
    "m = 20": {
     "run": "g200_k3_m20",
@@ -61,7 +65,7 @@
     "D_exact": 0.01529607017526935,
     "ratio": 1.0322239975130807,
     "rule_ratio": 0.9992490569989069,
-    "floor": 0.012245104669630727
+    "floor": 0.0007376955085237584
    }
   },
   "K = 1": {
@@ -88,6 +92,22 @@
     "ratio": 1.0060624057177046,
     "rule_ratio": 0.9973295801016444,
     "floor": 0.004555084134684521
+   },
+   "m = 10": {
+    "run": "g200_k1_m10",
+    "D": 0.02067350385805411,
+    "D_exact": 0.02053806167910488,
+    "ratio": 1.0065946914107784,
+    "rule_ratio": 0.9985949207890904,
+    "floor": 0.0005522478761657787
+   },
+   "m = 20": {
+    "run": "g200_k1_m20",
+    "D": 0.010401679561704125,
+    "D_exact": 0.010132839294228146,
+    "ratio": 1.0265315830706123,
+    "rule_ratio": 0.9992921974862453,
+    "floor": 0.0011079282516158384
    }
   },
   "K = 0.5": {
@@ -114,6 +134,22 @@
     "ratio": 1.0052248518460156,
     "rule_ratio": 0.9974383631906408,
     "floor": 0.006855400131948559
+   },
+   "m = 10": {
+    "run": "g200_k05_m10",
+    "D": 0.013658903268609635,
+    "D_exact": 0.013576007454211947,
+    "ratio": 1.0061060525104506,
+    "rule_ratio": 0.9986519665866221,
+    "floor": 0.0008297524729109953
+   },
+   "m = 20": {
+    "run": "g200_k05_m20",
+    "D": 0.006888777879456187,
+    "D_exact": 0.006726842699184887,
+    "ratio": 1.0240729845356606,
+    "rule_ratio": 0.9993211271263859,
+    "floor": 0.0016632773662539923
    }
   }
  },

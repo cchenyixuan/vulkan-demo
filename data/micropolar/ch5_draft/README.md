@@ -34,14 +34,14 @@ Design note: `docs/micropolar_design.md`, Section 15. Run data of Stage 6: `data
 - Reynolds numbers: on `mu_inf` (the far viscosity `mu + kappa / 2`, the one the cases are set by) and on `mu`
   (`Re_g (1 + K / 2)`, the one the thesis quotes).
 
-## Index (written 2026-11-12 18:53)
+## Index (written 2026-11-12 20:17)
 
 | no. | item | files | status | data |
 |---|---|---|---|---|
-| 01 | Concentric cylinders: profiles against the exact solution | `fig_01_concentric_profiles.pdf`, `fig_01_concentric_profiles.png` | final (rc2 runs); incomplete: rows at g = 200 dx still running, rows at g = 400 dx not reached | thesis-ch5-rc2 |
-| 02 | Concentric cylinders: convergence of D and of the profiles | `fig_02_concentric_convergence.pdf`, `fig_02_concentric_convergence.png` | final (rc2 runs); incomplete: rows at g = 200 dx still running, rows at g = 400 dx not reached | thesis-ch5-rc2 |
-| 03 | Concentric cylinders: D against m for three K, with the slip-form rule | `fig_03_concentric_sweep.pdf`, `fig_03_concentric_sweep.png` | final (rc2 runs); incomplete: rows at g = 200 dx still running, rows at g = 400 dx not reached | thesis-ch5-rc2 |
-| 04 | Table of every concentric row (and of the controls) | `tab_04_concentric_rows.csv`, `tab_04_concentric_rows.tex`, `tab_04b_concentric_controls.csv`, `tab_04b_concentric_controls.tex` | final (rc2 runs); incomplete: rows at g = 200 dx still running, rows at g = 400 dx not reached | thesis-ch5-rc2 |
+| 01 | Concentric cylinders: profiles against the exact solution | `fig_01_concentric_profiles.pdf`, `fig_01_concentric_profiles.png` | final (rc2 runs) for g <= 200 dx; the rows at g = 400 dx are not reached | thesis-ch5-rc2 |
+| 02 | Concentric cylinders: convergence of D and of the profiles | `fig_02_concentric_convergence.pdf`, `fig_02_concentric_convergence.png` | final (rc2 runs) for g <= 200 dx; the rows at g = 400 dx are not reached | thesis-ch5-rc2 |
+| 03 | Concentric cylinders: D against m for three K, with the slip-form rule | `fig_03_concentric_sweep.pdf`, `fig_03_concentric_sweep.png` | final (rc2 runs) for g <= 200 dx; the rows at g = 400 dx are not reached | thesis-ch5-rc2 |
+| 04 | Table of every concentric row (and of the controls) | `tab_04_concentric_rows.csv`, `tab_04_concentric_rows.tex`, `tab_04b_concentric_controls.csv`, `tab_04b_concentric_controls.tex` | final (rc2 runs) for g <= 200 dx; the rows at g = 400 dx are not reached | thesis-ch5-rc2 |
 | 05 | Table: Newtonian eccentric flow against the exact Stokes values | `tab_05_eccentric_newtonian.csv`, `tab_05_eccentric_newtonian.tex` | final (rc2 runs); incomplete: rows at g = 200 dx and the noise floors still running | thesis-ch5-rc2; thesis-ch5-rc1 and the commits of Stage 5 |
 | 06 | Eccentric cylinders: wall pressure around the rotor | `fig_06_eccentric_wall_pressure.pdf`, `fig_06_eccentric_wall_pressure.png` | final (rc2 runs); incomplete: rows at g = 200 dx and the noise floors still running | thesis-ch5-rc2 |
 | 07 | Eccentric fields: pressure, speed, micro-rotation, w - curl v / 2 | `fig_07_eccentric_fields.pdf`, `fig_07_eccentric_fields.png` | final | thesis-ch5-rc2 |

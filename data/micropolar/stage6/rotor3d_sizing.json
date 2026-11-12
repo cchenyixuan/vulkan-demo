@@ -1,0 +1,19 @@
+{
+ "counts": {
+  "domain": 85237920,
+  "rotor": 6212658,
+  "housing": 13475794
+ },
+ "total": 104926372,
+ "dt_acoustic": 1.5e-05,
+ "dt_viscous": 5.1250000000000006e-05,
+ "dt_angular": 5.5666666666666674e-05,
+ "steps": {
+  "1.5": 100000,
+  "2.0": 134000
+ },
+ "partition": {
+  "largest_share": 0.1341712467627878,
+  "three_ghost_columns_over_slab": 0.3220870729654748
+ }
+}

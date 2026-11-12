@@ -26,9 +26,13 @@
   "g100_k1_m1",
   "g100_k1_m2",
   "g100_k1_m5",
+  "g200_k1_m10",
+  "g200_k1_m20",
   "g100_k05_m1",
   "g100_k05_m2",
-  "g100_k05_m5"
+  "g100_k05_m5",
+  "g200_k05_m10",
+  "g200_k05_m20"
  ],
  "numbers": {
   "load": {
@@ -146,6 +150,14 @@
     "narrowest_gap_over_length": 10.0,
     "over_rule": 1.0087562083691233
    },
+   "g200_k1_m10": {
+    "narrowest_gap_over_length": 20.0,
+    "over_rule": 1.008011026748831
+   },
+   "g200_k1_m20": {
+    "narrowest_gap_over_length": 40.0,
+    "over_rule": 1.0272586793461298
+   },
    "g100_k05_m1": {
     "narrowest_gap_over_length": 2.0,
     "over_rule": 0.7332818854277445
@@ -157,6 +169,14 @@
    "g100_k05_m5": {
     "narrowest_gap_over_length": 10.0,
     "over_rule": 1.00780648603736
+   },
+   "g200_k05_m10": {
+    "narrowest_gap_over_length": 20.0,
+    "over_rule": 1.0074641478445254
+   },
+   "g200_k05_m20": {
+    "narrowest_gap_over_length": 40.0,
+    "over_rule": 1.0247686721889393
    }
   }
  },
