@@ -28,3 +28,7 @@ micropolar run over its Newtonian control: the change of the mid-plane constant 
 run               D mid-plane  D 2-D exact   ratio  D_T wall  lateral     ends   circle   + adv.  housing  ends, film
 g20_k3_m1             0.30122      0.30338  0.9929    0.3297   0.3166   0.3610   0.3327   0.3304   0.3421      0.3998
 g20s_k3_m1            0.30589      0.30338  1.0082    0.3327   0.3236   0.3555   0.3318   0.3295   0.3414      0.3998
+
+for scale, the second lattice against the first, sample by sample (g20s_k3_m1 over g20_k3_m1): angular momentum differs by at most 2.8e-03, kinetic energy by at most 2.0e-03; mid-plane profile of v_theta at most 7.7e-03, of w_z at most 1.2e-02
+
+for scale, the second lattice against the first, sample by sample (g20s_newtonian over g20_newtonian): angular momentum differs by at most 2.8e-03, kinetic energy by at most 1.8e-03; mid-plane profile of v_theta at most 7.3e-03, of w_z at most 0.0e+00

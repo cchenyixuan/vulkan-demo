@@ -37,6 +37,8 @@ PAIRS = (("g20_k3_m1", "g20_newtonian"), ("g20s_k3_m1", "g20s_newtonian"),
          ("g40_k3_m2", "g40_newtonian"), ("g40_k3_m2_k2", "g40_newtonian"),
          ("g40_k3_m2", "g40_newtonian_k2"), ("g40_k3_m2_k2", "g40_newtonian_k2"))
 CHAINS = (("g40_k3_m2_k2", "g40_k3_m2"),)
+# (run on the second lattice, run on the first): the scale for the differences of a chain against one slab
+LATTICES = (("g20s_k3_m1", "g20_k3_m1"), ("g20s_newtonian", "g20_newtonian"))
 DEVICE_LOCAL = re.compile(r"\[SimV7\] device-local buffers: (\d+), ([0-9.]+) MB")
 DEFRAG_SCRATCH = re.compile(r"\[SimV7\] defrag scratch buffers: (\d+), ([0-9.]+) MB")
 STAGING = re.compile(r"\[SimV7\] host staging buffers: (\d+)(?:, ([0-9.]+) (KB|MB))?")
@@ -243,6 +245,56 @@ def analyse_run(item: dict) -> dict:
     return record
 
 
+def compare_samples(directory: pathlib.Path, name: str, single: str) -> dict | None:
+    """A run on several slabs against the run of the same case on one slab, sample by sample at equal steps:
+    angular momentum and kinetic energy of the fluid and the mid-plane profiles of v_theta and w_z. The one-slab
+    run may still be going (its samples_partial.npz is taken then)."""
+    def samples(run: str):
+        run_dir = directory / run
+        for file_name, finished in (("samples.npz", True), ("samples_partial.npz", False)):
+            if (run_dir / file_name).exists():
+                with np.load(run_dir / file_name) as archive:
+                    return {key: np.array(archive[key]) for key in archive.files}, finished
+        return None, False
+    chain, chain_finished = samples(name)
+    base, base_finished = samples(single)
+    if chain is None or base is None:
+        return None
+    steps = np.intersect1d(chain["step"], base["step"])
+    if steps.size == 0:
+        return None
+    rows_chain = np.searchsorted(chain["step"], steps)
+    rows_base = np.searchsorted(base["step"], steps)
+
+    def relative(key):
+        return chain[key][rows_chain] / base[key][rows_base] - 1.0
+
+    def profile_difference(key):
+        differences = []
+        for row_chain, row_base in zip(rows_chain, rows_base):
+            count_chain, count_base = chain["midplane_count"][row_chain], base["midplane_count"][row_base]
+            filled = (count_chain > 0) & (count_base > 0)
+            first = chain[key][row_chain][filled] / count_chain[filled]
+            second = base[key][row_base][filled] / count_base[filled]
+            scale = float((second ** 2).mean())
+            # a Newtonian run has no micro-rotation: both profiles vanish and so does their difference
+            differences.append(float(np.sqrt(((first - second) ** 2).mean() / scale)) if scale > 0.0 else 0.0)
+        return np.asarray(differences)
+    momentum, energy = relative("angular_momentum"), relative("kinetic_energy")
+    velocity, spin = profile_difference("midplane_tangential"), profile_difference("midplane_spin_axial")
+    last_quarter = steps > 0.75 * steps[-1]
+    return {"single": single, "single_finished": bool(base_finished), "chain_finished": bool(chain_finished),
+            "common_samples": int(steps.size), "first_step": int(steps[0]), "last_step": int(steps[-1]),
+            "angular_momentum_largest": float(np.abs(momentum).max()), "angular_momentum_last": float(momentum[-1]),
+            "kinetic_energy_largest": float(np.abs(energy).max()), "kinetic_energy_last": float(energy[-1]),
+            "midplane_velocity_largest": float(velocity.max()), "midplane_velocity_last": float(velocity[-1]),
+            "midplane_velocity_last_quarter_mean": float(velocity[last_quarter].mean()),
+            "midplane_spin_largest": float(spin.max()), "midplane_spin_last": float(spin[-1]),
+            "midplane_spin_last_quarter_mean": float(spin[last_quarter].mean()),
+            "steps": steps.tolist(), "angular_momentum": momentum.tolist(), "kinetic_energy": energy.tolist(),
+            "midplane_velocity": velocity.tolist(), "midplane_spin": spin.tolist()}
+
+
 def command_analyse(arguments) -> int:
     directory = _REPO_ROOT / arguments.directory
     names = [path.parent.name for path in sorted(directory.glob("*/run.json"))]
@@ -384,12 +436,40 @@ def command_analyse(arguments) -> int:
             f"energy {entry['kinetic_energy_ratio']:.6f}"
             + (f"; torque wall form {entry['rotor_wall_ratio']:.5f}, circle form {entry['rotor_circle_ratio']:.5f}"
                if "rotor_wall_ratio" in entry else ""))
+    chain_samples = {}
+    for name, single in CHAINS:
+        entry = compare_samples(directory, name, single)
+        if entry is None:
+            continue
+        chain_samples[name] = entry
+        say()
+        say(f"chain against one slab, sample by sample at equal steps ({name} over {single}"
+            + ("" if entry["single_finished"] else ", which is still running") + f"): {entry['common_samples']} "
+            f"samples from step {entry['first_step']:,} to {entry['last_step']:,}; angular momentum of the fluid "
+            f"differs by at most {entry['angular_momentum_largest']:.1e} (last {entry['angular_momentum_last']:+.1e}), "
+            f"kinetic energy by at most {entry['kinetic_energy_largest']:.1e} (last {entry['kinetic_energy_last']:+.1e}); "
+            f"mid-plane profile of v_theta: rms difference over rms at most {entry['midplane_velocity_largest']:.1e} "
+            f"(last {entry['midplane_velocity_last']:.1e}), of w_z at most {entry['midplane_spin_largest']:.1e} "
+            f"(last {entry['midplane_spin_last']:.1e})")
+    lattice_samples = {}
+    for name, first in LATTICES:
+        entry = compare_samples(directory, name, first)
+        if entry is None:
+            continue
+        lattice_samples[name] = entry
+        say()
+        say(f"for scale, the second lattice against the first, sample by sample ({name} over {first}): angular "
+            f"momentum differs by at most {entry['angular_momentum_largest']:.1e}, kinetic energy by at most "
+            f"{entry['kinetic_energy_largest']:.1e}; mid-plane profile of v_theta at most "
+            f"{entry['midplane_velocity_largest']:.1e}, of w_z at most {entry['midplane_spin_largest']:.1e}")
     if arguments.json:
         for record in records.values():
             record.get("exact_two_dimensional", {}).pop("solution", None)
         target = _REPO_ROOT / arguments.json
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(json.dumps({"runs": records, "pairs": pairs, "chains": chains}, indent=1), encoding="utf-8")
+        target.write_text(json.dumps({"runs": records, "pairs": pairs, "chains": chains,
+                                      "chain_samples": chain_samples, "lattice_samples": lattice_samples},
+                                     indent=1), encoding="utf-8")
         target.with_suffix(".txt").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
     return 0
 
