@@ -2,24 +2,29 @@
 run              g/dx l/dx  K   particles   steps    limit steps/s B/part.  L steady  E steady mid steady v_z rms/U  rho level     drift  p level     drift  describe
 g20_k3_m1          20   10  1   2,587,028  34,000 acoustic    36.8     485   3.2e-05   6.4e-05    3.7e-03   2.3e-03  -9.91e-05  -2.3e-06   -0.247  -5.7e-03  thesis-ch5-rc2-3-g656e652
 g20_newtonian      20    -  1   2,587,028  34,000 acoustic    45.9     389   1.3e-05   3.0e-05    2.4e-05   3.1e-03  -2.01e-04  -5.4e-06   -0.502  -1.3e-02  thesis-ch5-rc2-2-g7a21ef4
+g20s_k3_m1         20   10  1   2,592,584  34,000 acoustic    19.9     485   3.2e-05   4.9e-05    2.6e-03   2.2e-03  -3.94e-05  +1.8e-06   -0.098  +4.6e-03  thesis-ch5-rc2-13-g23d02d8
 g20s_newtonian     20    -  1   2,592,584  34,000 acoustic    23.1     389   2.0e-05   3.5e-05    5.1e-06   3.1e-03  -9.67e-05  +1.8e-06   -0.242  +4.6e-03  thesis-ch5-rc2-12-g4e3a64c
 
 mid-plane against the 2-D solution between infinite cylinders of the same radii; how far the ends reach (distance from the rotor's end, in g, beyond which the fitted constant of v_theta(r) is within 1 % and 0.1 % of its mid-plane value)
 run               C2 mid-plane         2-D    ratio  v rms vs 2-D  w rms vs 2-D  reach 1 %   0.1 %
 g20_k3_m1             0.887374    0.893749   0.9929      1.45e-02      1.62e-02       0.78    1.38
 g20_newtonian         0.681955    0.685714   0.9945      1.57e-02             -       0.78    1.43
+g20s_k3_m1            0.890102    0.893749   0.9959      1.01e-02      1.12e-02       0.28    1.38
 g20s_newtonian        0.681607    0.685714   0.9940      1.15e-02             -       0.83    1.43
 
 wall layers of w above the rotor's end face (between 0.4 R1 and 0.6 R1): fitted decay length of the tangential component w_r (expected l) and of the normal component w_z (expected l sqrt(nu_inf / nu))
 run               w_r: fitted / dx  expected   ratio  w_z: fitted / dx  expected   ratio
 g20_k3_m1                    12.17     10.00   1.217              7.77      7.91   0.983
+g20s_k3_m1                   11.40     10.00   1.140              7.60      7.91   0.961
 
 torque of the rotor on the fluid about its axis (N m; rho0 dx^3 per particle): wall form (pair sums over the rotor's wall particles, by lateral surface and end faces), circle form (flux across the closed surface at distance h, without and with the advective term), wall form of the housing; references: 2-D Newtonian value times the rotor length, and two plane discs for the end faces
 run              states       wall    lateral      ends     circle     + adv. circle/wall    housing (R + H) / R lat / 2-D ends / discs  a check alpha check
 g20_k3_m1             4   55.95981   39.12028  16.83952   55.15172   55.26495      0.9856  -55.67409     +0.0051    1.5133       1.9853  2.0e-06     4.1e-06
 g20_newtonian         4   42.08514   29.71205  12.37309   41.38363   41.54050      0.9833  -41.48405     +0.0143    1.1494       1.4587  1.4e-06           -
+g20s_k3_m1            2   55.86646   39.61448  16.25198   55.12994   55.24446      0.9868  -55.70460     +0.0029    1.5324       1.9160  2.2e-06     2.0e-05
 g20s_newtonian        2   41.91878   29.92928  11.98950   41.39535   41.55302      0.9875  -41.52641     +0.0094    1.1578       1.4135  1.6e-06           -
 
 micropolar run over its Newtonian control: the change of the mid-plane constant against the 2-D exact D for the radii, and the change of the torque by reading and by surface; for the end faces the exact plane film between two discs, 1 / (1 - 2 (delta / g) tanh(g / (2 l))) - 1
 run               D mid-plane  D 2-D exact   ratio  D_T wall  lateral     ends   circle   + adv.  housing  ends, film
 g20_k3_m1             0.30122      0.30338  0.9929    0.3297   0.3166   0.3610   0.3327   0.3304   0.3421      0.3998
+g20s_k3_m1            0.30589      0.30338  1.0082    0.3327   0.3236   0.3555   0.3318   0.3295   0.3414      0.3998
