@@ -1,7 +1,7 @@
 {
  "item": "08",
  "title": "Eccentric cylinders: measured over predicted change against narrowest gap / l",
- "status": "final (rc2 runs); incomplete: rows at g = 200 dx and the noise floors still running",
+ "status": "final",
  "caption": "What the two predictions of the host make of the micropolar effect between eccentric cylinders: measured change over predicted change, (a) of the load and (b) of the rotor torque, against the narrowest gap in units of l (concentric rows: g / l). Change = micropolar run over its Newtonian control, minus one; the torque change is the mean of the four readings (rotor and stator, wall form and circle form) with the error of each reading between concentric cylinders at the same K, l and g taken off where that row exists. Filled: against the film function of micropolar lubrication theory in the thin-film calculation (load: the plane film; torque: the shear-driven stress of the exact concentric solution at the local gap, the pressure-driven stress of the plane film). Open: against the wall rule, evaluated on the exact Stokes solution of its slip-form geometry (rotor radius R1 + delta turning at Omega (R1 - delta) / (R1 + delta), stator radius R2 - delta); triangles: concentric rows, D of the run over D of the rule. Runs: the rows of tab_09 on the lattice as generated (Stage 6 runs on thesis-ch5-rc2 (numerics.delta_fluid_only: true)) and the sweep rows of tab_04. Load over film 0.971 to 1.011, load over rule 0.374 to 0.928; torque over film 0.953 to 0.991, torque over rule (eccentric) 0.538 to 0.984.",
  "files": [
   "fig_08_eccentric_prediction.pdf",
@@ -20,8 +20,12 @@
   "e60_k1_m2",
   "e30_g200_k3_m5",
   "e30_g200_k3_m10",
+  "e30_g200_k1_m5",
+  "e30_g200_k1_m10",
   "e60_g200_k3_m5",
   "e60_g200_k3_m10",
+  "e60_g200_k1_m5",
+  "e60_g200_k1_m10",
   "g100_k3_m5",
   "g200_k3_m10",
   "g100_k3_m1",
@@ -90,6 +94,16 @@
     "over_film": 1.0113096253124052,
     "over_rule": 0.928266261881708
    },
+   "e30_g200_k1_m5": {
+    "narrowest_gap_over_length": 6.999999999999999,
+    "over_film": 0.9919690347774691,
+    "over_rule": 0.7955497925493851
+   },
+   "e30_g200_k1_m10": {
+    "narrowest_gap_over_length": 13.999999999999998,
+    "over_film": 1.0084217663012334,
+    "over_rule": 0.9151182763993292
+   },
    "e60_g200_k3_m5": {
     "narrowest_gap_over_length": 4.0,
     "over_film": 0.9873430880504158,
@@ -99,6 +113,16 @@
     "narrowest_gap_over_length": 8.0,
     "over_film": 1.0097247402533065,
     "over_rule": 0.8915433199449432
+   },
+   "e60_g200_k1_m5": {
+    "narrowest_gap_over_length": 4.0,
+    "over_film": 0.9855261778108818,
+    "over_rule": 0.7192368354161036
+   },
+   "e60_g200_k1_m10": {
+    "narrowest_gap_over_length": 8.0,
+    "over_film": 1.0056375251020928,
+    "over_rule": 0.8762775908413205
    }
   },
   "torque": {
@@ -152,6 +176,16 @@
     "over_film": 0.9534965843133344,
     "over_rule": 0.9838319241174798
    },
+   "e30_g200_k1_m5": {
+    "narrowest_gap_over_length": 6.999999999999999,
+    "over_film": 0.9624861297269337,
+    "over_rule": 0.9567770960503175
+   },
+   "e30_g200_k1_m10": {
+    "narrowest_gap_over_length": 13.999999999999998,
+    "over_film": 0.9566714280074118,
+    "over_rule": 0.9834777794537659
+   },
    "e60_g200_k3_m5": {
     "narrowest_gap_over_length": 4.0,
     "over_film": 0.9676807441272347,
@@ -161,6 +195,16 @@
     "narrowest_gap_over_length": 8.0,
     "over_film": 0.9578488876192791,
     "over_rule": 0.9485203333775968
+   },
+   "e60_g200_k1_m5": {
+    "narrowest_gap_over_length": 4.0,
+    "over_film": 0.9700441020337908,
+    "over_rule": 0.868584181335543
+   },
+   "e60_g200_k1_m10": {
+    "narrowest_gap_over_length": 8.0,
+    "over_film": 0.9597981926568049,
+    "over_rule": 0.9443484942346088
    },
    "g100_k3_m5": {
     "narrowest_gap_over_length": 10.0,

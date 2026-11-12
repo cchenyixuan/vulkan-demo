@@ -92,6 +92,10 @@ def _build_table() -> dict:
     # the row added by the task of Stage 6: m = 20, K = 3 at l = 10 dx (g = 400 dx)
     micropolar("g400_k3_m20", 400, 3, 20, "g400_newtonian_k3", section=("sweep", "resolution"))
 
+    # beyond the task: the concentric row at K = 1, g = 200 dx, l = 20 dx, which the sweep does not have; it gives
+    # the reading errors of the eccentric rows with the same K, l and g
+    micropolar("g200_k1_m5", 200, 1, 5, "g200_newtonian", section=("extra",))
+
     # 2.2 eccentric: K = 1 and 3, eps = 0.3 and 0.6; g = 100 dx with l = 25 and 10 dx (m = 2, 5), g = 200 dx with
     # l = 20 and 10 dx (m = 5, 10); each with its control. The final state of every eccentric run holds the whole
     # fluid (fields); the other states the fluid within 3 h of a wall.

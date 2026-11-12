@@ -22,7 +22,7 @@ ECCENTRIC_STAGE5 = {
     "note": "Stage 4 and 5 runs without the density diffusion term (numerics.use_density_diffusion: false)"}
 ECCENTRIC_STAGE6 = {
     "analysis": "data/micropolar/stage6/eccentric.json", "tag": "thesis-ch5-rc2",
-    "status": "final (rc2 runs); incomplete: rows at g = 200 dx and the noise floors still running",
+    "status": "final",
     "note": "Stage 6 runs on thesis-ch5-rc2 (numerics.delta_fluid_only: true)"}
 ECCENTRIC = ECCENTRIC_STAGE6
 # the Newtonian benchmark rows at Reynolds number 1 exist only in the setting of Stage 5 (they were not asked again)

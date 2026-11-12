@@ -1,7 +1,7 @@
 {
  "item": "05",
  "title": "Table: Newtonian eccentric flow against the exact Stokes values",
- "status": "final (rc2 runs); incomplete: rows at g = 200 dx and the noise floors still running",
+ "status": "final",
  "caption": "Newtonian flow between eccentric rotating cylinders (R1 = 4 g, R2 = 5 g, rotor axis displaced by eps g towards +x, rotor at Omega, stator at rest) against the exact Stokes solution: load on the rotor (magnitude; the exact force is along +y, 90 degrees from the line of centres), its direction, and the rotor and stator torque by the circle form (flux of angular momentum across a circle at distance h from the wall) and by the wall form (pair sums over the wall particles), each as reading / exact - 1. Mean over the saved states of the last quarter of the run; the two 'half' columns compare the two halves of that quarter; drifts: change of the fluid's mean density (over rho0) and mean pressure (over rho U^2) between the last two eighths of the run. Re = rho U g / mu on the one viscosity of the Newtonian fluid. Settings: Stage 6 runs on thesis-ch5-rc2 (numerics.delta_fluid_only: true); Stage 4 and 5 runs without the density diffusion term (numerics.use_density_diffusion: false). Load within 0.61 % of exact in every row, rotor torque by the circle form within 0.13 %; the departure of the direction from 90 degrees is inertia at Re = 10 and compressibility at Re = 1 (design note 14.3.2). Exact values for mu = 10 Pa s: load 1,016.0 and 2,145.4 N/m, rotor torque 158.02 and 223.62 N at eps = 0.3 and 0.6.",
  "files": [
   "tab_05_eccentric_newtonian.csv",
