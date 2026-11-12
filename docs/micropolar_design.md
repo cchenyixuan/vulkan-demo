@@ -2635,13 +2635,18 @@ Decisions carried in from the task:
 
 | `git describe` at the start of the run | shaders tree | utils tree | solver directories differ from the commit | runs |
 |---|---|---|---|---|
+| `thesis-ch5-rc2-13-g23d02d8` | `92a96215` | `7815b154` | no | 4: `e30_g200_k1_m10`, `e30_g200_k1_m5`, `g200_k1_m5`, `g20s_k3_m1` |
+| `thesis-ch5-rc2-9-g20fa8bb` | `92a96215` | `7815b154` | no | 4: `e30_g200_k3_m10`, `e30_g200_k3_m5`, `e30_g200_newtonian`, `e60_g200_k1_m5` |
 | `thesis-ch5-rc2-5-g8bc6d20` | `92a96215` | `7815b154` | no | 3: `e30_k1_m2`, `e30_newtonian_shifted`, `g200_newtonian_shifted` |
 | `thesis-ch5-rc2-4-g8435711` | `92a96215` | `7815b154` | no | 2: `e30_k1_m5`, `e60_k1_m2` |
 | `thesis-ch5-rc2-3-g656e652` | `92a96215` | `7815b154` | no | 10: `e30_k3_m2`, `e30_k3_m5`, `e30_newtonian`, `e60_k1_m5`, `e60_k3_m2`, `e60_k3_m5`, `e60_newtonian`, `g100_k05_m5`, `g200_k3_m20`, `g20_k3_m1` |
-| `thesis-ch5-rc2-6-gaa27df9` | `92a96215` | `7815b154` | no | 12: `e30_k3_m5_rotated`, `e30_k3_m5_shifted`, `e30_newtonian_rotated`, `e60_k3_m5_rotated`, `e60_k3_m5_shifted`, `e60_newtonian_rotated`, `e60_newtonian_shifted`, `g200_k05_m10`, `g200_k05_m20`, `g200_k1_m10`, `g200_k1_m20`, `g200_newtonian_rotated` |
+| `thesis-ch5-rc2-6-gaa27df9` | `92a96215` | `7815b154` | no | 13: `e30_k3_m5_rotated`, `e30_k3_m5_shifted`, `e30_newtonian_rotated`, `e60_g200_newtonian`, `e60_k3_m5_rotated`, `e60_k3_m5_shifted`, `e60_newtonian_rotated`, `e60_newtonian_shifted`, `g200_k05_m10`, `g200_k05_m20`, `g200_k1_m10`, `g200_k1_m20`, `g200_newtonian_rotated` |
+| `thesis-ch5-rc2-10-g83a871b` | `92a96215` | `7815b154` | no | 1: `e60_g200_k1_m10` |
+| `thesis-ch5-rc2-8-gadfb9c3` | `92a96215` | `7815b154` | no | 2: `e60_g200_k3_m10`, `e60_g200_k3_m5` |
 | `thesis-ch5-rc2` | `92a96215` | `7815b154` | no | 7: `g050_k3_m5`, `g050_newtonian`, `g050_newtonian_rotated`, `g050_newtonian_shifted`, `g100_k3_m5`, `g100_newtonian`, `g200_newtonian` |
 | `thesis-ch5-rc2-2-g7a21ef4` | `92a96215` | `7815b154` | no | 8: `g100_k05_m1`, `g100_k05_m2`, `g100_k1_m1`, `g100_k1_m2`, `g100_k1_m5`, `g100_newtonian_rotated`, `g200_k3_m10`, `g20_newtonian` |
 | `thesis-ch5-rc2-1-gcb243fd` | `92a96215` | `7815b154` | no | 5: `g100_k3_m1`, `g100_k3_m10`, `g100_k3_m2`, `g100_newtonian_shifted`, `g200_k3_m5` |
+| `thesis-ch5-rc2-12-g4e3a64c` | `92a96215` | `7815b154` | no | 1: `g20s_newtonian` |
 
 - **Changes to existing validation tools** (none under `experiment/v7`): `micropolar_couette.py run` can save the
   whole fluid at the last step (`--full-final-state`, for the fields); `cavity_runner.py` writes the mean density
@@ -2655,7 +2660,12 @@ Decisions carried in from the task:
   pack items 12 to 14 from existing data).
 - **States per run:** 12 of the last quarter instead of the 24 of Stages 4 and 5 (the disk: under 20 GB were free when
   the stage began); the eccentric runs keep the fluid within 3 h of a wall and, at the last step, all of it.
-- (to be written)
+- **What ran:** 28 runs between concentric cylinders, 28 between eccentric ones, 4 cavity runs (`mp_n250`, `mp_n500`,
+  `newtonian_re250_n500`, `newtonian_re400_n500`), 4 runs of the 3-D case (`g20_k3_m1`, `g20_newtonian`, `g20s_k3_m1`,
+  `g20s_newtonian`) and the two per-particle seam checks in 3-D; all to their end time, every counter zero, no
+  particle lost. **Interrupted and done again** (15.6): one eccentric run and the cavity at n = 250 when the disk
+  filled at 22:15, the Newtonian cavity at Reynolds number 250 when it filled again at 23:20. **What did not run:**
+  15.6.
 
 ### 15.1 The pack
 
@@ -2670,19 +2680,26 @@ every item and is the one to trust):
 | 02 | Concentric cylinders: convergence of D and of the profiles | `fig_02_concentric_convergence.pdf`, `fig_02_concentric_convergence.png` | final (rc2 runs) for g <= 200 dx; the rows at g = 400 dx are not reached | thesis-ch5-rc2 |
 | 03 | Concentric cylinders: D against m for three K, with the slip-form rule | `fig_03_concentric_sweep.pdf`, `fig_03_concentric_sweep.png` | final (rc2 runs) for g <= 200 dx; the rows at g = 400 dx are not reached | thesis-ch5-rc2 |
 | 04 | Table of every concentric row (and of the controls) | `tab_04_concentric_rows.csv`, `tab_04_concentric_rows.tex`, `tab_04b_concentric_controls.csv`, `tab_04b_concentric_controls.tex` | final (rc2 runs) for g <= 200 dx; the rows at g = 400 dx are not reached | thesis-ch5-rc2 |
-| 05 | Table: Newtonian eccentric flow against the exact Stokes values | `tab_05_eccentric_newtonian.csv`, `tab_05_eccentric_newtonian.tex` | final (rc2 runs); incomplete: rows at g = 200 dx and the noise floors still running | thesis-ch5-rc2; thesis-ch5-rc1 and the commits of Stage 5 |
-| 06 | Eccentric cylinders: wall pressure around the rotor | `fig_06_eccentric_wall_pressure.pdf`, `fig_06_eccentric_wall_pressure.png` | final (rc2 runs); incomplete: rows at g = 200 dx and the noise floors still running | thesis-ch5-rc2 |
+| 05 | Table: Newtonian eccentric flow against the exact Stokes values | `tab_05_eccentric_newtonian.csv`, `tab_05_eccentric_newtonian.tex` | final | thesis-ch5-rc2; thesis-ch5-rc1 and the commits of Stage 5 |
+| 06 | Eccentric cylinders: wall pressure around the rotor | `fig_06_eccentric_wall_pressure.pdf`, `fig_06_eccentric_wall_pressure.png` | final | thesis-ch5-rc2 |
 | 07 | Eccentric fields: pressure, speed, micro-rotation, w - curl v / 2 | `fig_07_eccentric_fields.pdf`, `fig_07_eccentric_fields.png` | final | thesis-ch5-rc2 |
-| 08 | Eccentric cylinders: measured over predicted change against narrowest gap / l | `fig_08_eccentric_prediction.pdf`, `fig_08_eccentric_prediction.png` | final (rc2 runs); incomplete: rows at g = 200 dx and the noise floors still running | thesis-ch5-rc2; concentric: thesis-ch5-rc2 |
-| 09 | Table of every eccentric micropolar row | `tab_09_eccentric_rows.csv`, `tab_09_eccentric_rows.tex` | final (rc2 runs); incomplete: rows at g = 200 dx and the noise floors still running | thesis-ch5-rc2 |
+| 08 | Eccentric cylinders: measured over predicted change against narrowest gap / l | `fig_08_eccentric_prediction.pdf`, `fig_08_eccentric_prediction.png` | final | thesis-ch5-rc2; concentric: thesis-ch5-rc2 |
+| 09 | Table of every eccentric micropolar row | `tab_09_eccentric_rows.csv`, `tab_09_eccentric_rows.tex` | final | thesis-ch5-rc2 |
 | 10 | The film function over h^3 against h / l at K = 3 | `fig_10_film_function.pdf`, `fig_10_film_function.png` | final (host only) | host |
-| 11 | Micropolar cavity: centre lines with the two Newtonian bounds, fields, the slab cut | - | not reached | - |
+| 11 | Micropolar cavity: centre lines with the two Newtonian bounds, fields, the slab cut | `fig_11_micropolar_cavity.pdf`, `fig_11_micropolar_cavity.png`, `tab_11_micropolar_cavity.csv`, `tab_11_micropolar_cavity.tex` | final (rc2 runs), incomplete: mp_n500_k2; fields of the two-slab run | thesis-ch5-rc2 |
 | 12 | Newtonian cavity baseline at n = 1000 against Marchi et al. | `fig_12_cavity_baseline.pdf`, `fig_12_cavity_baseline.png` | final (existing data) | Stage 3 (design note 12.8), `micropolar-base-13-g7e76dcb` |
 | 13 | Seepage of the thesis walls: velocity into the wall against wall pressure; the wall candidates | `fig_13_seepage.pdf`, `fig_13_seepage.png`, `tab_13_candidates.csv`, `tab_13_candidates.tex` | final (existing data) | Stage 5, `thesis-ch5-rc1-6-g5d07112`, `thesis-ch5-rc1-9-gbfcc024`; cavity `thesis-ch5-rc1-10-g5bc8e0d`, `thesis-ch5-rc1-9-gbfcc024`, `micropolar-base-12-gc08cb97` |
 | 14 | Solver checks: operator checks, passive label, chain against one slab, step limits, cost | `tab_14a_operator_checks.csv`, `tab_14a_operator_checks.tex`, `tab_14b_passive_label.csv`, `tab_14b_passive_label.tex`, `tab_14c_chain_against_one_slab.csv`, `tab_14c_chain_against_one_slab.tex`, `tab_14d_step_limits.csv`, `tab_14d_step_limits.tex`, `tab_14e_cost.csv`, `tab_14e_cost.tex` | final (existing data) | Stages 1 to 3, `micropolar-base-9-g278a557` to `thesis-ch5-rc1` |
 | 15 | 3-D: fields in a plane through the axis and the mid-plane profiles | `fig_15_three_dimensional.pdf`, `fig_15_three_dimensional.png` | provisional (the g = 20 dx run; the g = 40 dx run replaces it) | thesis-ch5-rc2 |
 
-(to be written)
+- **Final** (rc2 runs, host, or existing data that is not run again): 05, 06, 07, 08, 09, 10, 12, 13, 14.
+- **Final but with rows or panels still missing:** 01 (final (rc2 runs) for g <= 200 dx; the rows at g = 400 dx are
+  not reached); 02 (final (rc2 runs) for g <= 200 dx; the rows at g = 400 dx are not reached); 03 (final (rc2 runs)
+  for g <= 200 dx; the rows at g = 400 dx are not reached); 04 (final (rc2 runs) for g <= 200 dx; the rows at g =
+  400 dx are not reached); 11 (final (rc2 runs), incomplete: mp_n500_k2; fields of the two-slab run).
+- **Provisional:** 15 (provisional (the g = 20 dx run; the g = 40 dx run replaces it)). **Not reached:** none.
+- Every item was first made from the runs of Stages 3 to 5 and committed, then regenerated as the rc2 runs finished;
+  the swap was one line per data set in `sources.py`.
 
 ### 15.2 Runs on rc2 **[run]**
 
@@ -2724,7 +2741,7 @@ with the key, each with its control on the same particles and with the same dt; 
   0.04 to 0.10 dx inside the nominal ones.
 - **Levels.** With the key nothing ties the level of the pressure (14.4.3). In the last eighth of the run the mean
   pressure of the controls stands at -0.015 to +0.287 rho U^2 (the flow's own pressure difference across the gap is
-  0.2 rho U^2), and over all 27 concentric runs it still changes by 1.2e-05 to 1.4e-02 rho U^2 per eighth; the mean
+  0.2 rho U^2), and over all 28 concentric runs it still changes by 1.2e-05 to 1.4e-02 rho U^2 per eighth; the mean
   density by 4.9e-09 to 5.8e-06 of rho0 per eighth. The fitted constants do not follow it: the steady test (1e-4 on
   the constant of the last two eighths) is in the tables.
 
@@ -2741,6 +2758,7 @@ with the key, each with its control on the same particles and with the same dt; 
 | `g100_k1_m1` | 1 | 1 | 100 | 50 | 0.18957 | 0.18925 | 0.18950 | 1.0004 | 0.0012 | 0.26631 | 1.4053 | 6e-05 | +6.9e-07 | +1.7e-03 | 564 (XTX) | `thesis-ch5-rc2-2-g7a21ef4` |
 | `g100_k1_m2` | 1 | 2 | 100 | 25 | 0.11030 | 0.11030 | 0.11020 | 1.0009 | 0.0019 | 0.11421 | 1.0363 | 5e-05 | +7.9e-07 | +2.0e-03 | 512 (XTX) | `thesis-ch5-rc2-2-g7a21ef4` |
 | `g100_k1_m5` | 1 | 5 | 100 | 10 | 0.04247 | 0.04241 | 0.04221 | 1.0061 | 0.0046 | 0.04210 | 0.9973 | 9e-06 | +8.8e-07 | +2.2e-03 | 569 (XTX) | `thesis-ch5-rc2-2-g7a21ef4` |
+| `g200_k1_m5` | 1 | 5 | 200 | 20 | 0.04227 | - | 0.04220 | 1.0016 | 0.0003 | 0.04209 | 0.9973 | 4e-06 | -1.2e-08 | -2.9e-05 | 163 (XTX) | `thesis-ch5-rc2-13-g23d02d8` |
 | `g200_k1_m10` | 1 | 10 | 200 | 10 | 0.02067 | 0.02063 | 0.02054 | 1.0066 | 0.0006 | 0.02051 | 0.9986 | 3e-06 | -8.1e-09 | -2.0e-05 | 278 (5090) | `thesis-ch5-rc2-6-gaa27df9` |
 | `g200_k1_m20` | 1 | 20 | 200 | 5 | 0.01040 | 0.01038 | 0.01013 | 1.0265 | 0.0011 | 0.01013 | 0.9993 | 3e-06 | -5.0e-09 | -1.3e-05 | 278 (5090) | `thesis-ch5-rc2-6-gaa27df9` |
 | `g100_k05_m1` | 0.5 | 1 | 100 | 50 | 0.11722 | 0.11680 | 0.11715 | 1.0006 | 0.0018 | 0.15985 | 1.3645 | 3e-04 | +7.7e-07 | +1.9e-03 | 563 (XTX) | `thesis-ch5-rc2-2-g7a21ef4` |
@@ -2757,9 +2775,9 @@ with the key, each with its control on the same particles and with the same dt; 
 | m = 10 | `g100_k3_m10` | 5 | +3.13 % | - | 4.1e-04 | 7.3e-04 | 3.1e-03 | 1.3e-02 |
 | m = 10 | `g200_k3_m10` | 10 | +0.75 % | 2.06 | 1.2e-04 | 4.3e-04 | 1.9e-03 | 6.7e-03 |
 
-- **18 rows** (none at g = 400 dx; 15.6). `D_SPH / D_exact` by resolution of the micropolar length: l = 5 dx: 1.0241
-  to 1.0322 (5 rows); l = 10 dx: 1.0052 to 1.0075 (6 rows); l = 20 dx: 1.0015 (1 rows); l = 25 dx: 1.0009 to 1.0015
-  (3 rows); l = 50 dx: 1.0004 to 1.0012 (3 rows).
+- **19 rows** (none at g = 400 dx; 15.6). `D_SPH / D_exact` by resolution of the micropolar length: l = 5 dx: 1.0241
+  to 1.0322 (5 rows); l = 10 dx: 1.0052 to 1.0075 (6 rows); l = 20 dx: 1.0015 to 1.0016 (2 rows); l = 25 dx: 1.0009
+  to 1.0015 (3 rows); l = 50 dx: 1.0004 to 1.0012 (3 rows).
 - **Against Stage 4 (rc1):** D moves by 2.6e-05 to 3.6e-03 of D_exact. In units of the noise floor that is at most
   5.8; the largest values are rows at g = 200 dx, whose floor is now measured and ten times smaller than the bound
   Stage 4 used for them. In D itself the key changes the fourth digit: the largest change is 0.00042.
@@ -2786,20 +2804,25 @@ last quarter. Full tables: items 05 and 09 of the pack.
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `e30_newtonian` | 0.3 | 100 | -0.29 % | 86.88 | -0.11 % / -0.09 % | -0.19 % / -0.86 % | +0.015 / +0.003 | 0 | -8.0e-06 | -0.187 | -2.0e-02 | `thesis-ch5-rc2-3-g656e652` |
 | `e60_newtonian` | 0.6 | 100 | -0.61 % | 89.23 | +0.03 % / +0.08 % | +0.26 % / -0.66 % | +0.039 / +0.012 | 0 | -2.7e-05 | -0.709 | -6.6e-02 | `thesis-ch5-rc2-3-g656e652` |
+| `e30_g200_newtonian` | 0.3 | 200 | -0.12 % | 87.04 | -0.10 % / -0.10 % | +0.14 % / -0.48 % | +0.007 / -0.025 | 0 | -9.5e-06 | -0.184 | -2.4e-02 | `thesis-ch5-rc2-9-g20fa8bb` |
+| `e60_g200_newtonian` | 0.6 | 200 | -0.34 % | 89.30 | -0.00 % / +0.04 % | +0.45 % / -0.33 % | +0.034 / +0.014 | 0 | -1.7e-05 | -0.389 | -4.2e-02 | `thesis-ch5-rc2-6-gaa27df9` |
 | `e30_newtonian_shifted` | 0.3 | 100 | +0.04 % | 86.88 | -0.13 % / -0.12 % | +0.53 % / -0.13 % | +0.014 / -0.005 | 0 | -8.1e-06 | -0.187 | -2.0e-02 | `thesis-ch5-rc2-5-g8bc6d20` |
 | `e30_newtonian_rotated` | 0.3 | 100 | +0.15 % | 86.91 | -0.11 % / -0.10 % | +0.56 % / -0.11 % | +0.013 / -0.014 | 0 | -8.3e-06 | -0.185 | -2.1e-02 | `thesis-ch5-rc2-6-gaa27df9` |
 | `e60_newtonian_shifted` | 0.6 | 100 | -0.26 % | 89.23 | -0.04 % / +0.03 % | +0.94 % / +0.04 % | +0.041 / +0.012 | 0 | -2.5e-05 | -0.707 | -6.4e-02 | `thesis-ch5-rc2-6-gaa27df9` |
+| `e60_newtonian_rotated` | 0.6 | 100 | -0.05 % | 89.31 | +0.06 % / +0.10 % | +1.07 % / +0.11 % | +0.038 / +0.014 | 0 | -2.4e-05 | -0.691 | -6.0e-02 | `thesis-ch5-rc2-6-gaa27df9` |
 
 | case | load / exact - 1 on the three lattices | spread | direction (deg) | torque, wall form R / S | circle form R / S | D_T of the pair | load change (points) | turn (deg) |
 |---|---|---|---|---|---|---|---|---|
 | e30 | -0.29 % +0.04 % +0.15 % | 0.43 % | 0.03 | 0.75 / 0.75 % | 0.03 / 0.03 % | 0.0007 | 0.04 | 0.002 |
+| e60 | -0.61 % -0.26 % -0.05 % | 0.56 % | 0.08 | 0.82 / 0.77 % | 0.10 / 0.07 % | 0.0003 | 0.04 | 0.007 |
 
-- **Load against exact:** g = 100 dx: -0.61 to +0.15 % (5 runs). **Torque by the circle form:** within 0.13 % in
-  every run; by the wall form within 0.94 %.
+- **Load against exact:** g = 100 dx: -0.61 to +0.15 % (6 runs); g = 200 dx: -0.34 to -0.12 % (2 runs). **Torque by
+  the circle form:** within 0.13 % in every run; by the wall form within 1.07 %.
 - **Noise floors from the three lattices** (max - min): eps = 0.3: load 0.43 %, direction 0.03 degrees, torque by
   the wall form 0.75 % and by the circle form 0.03 %; of the changes against the control: D_T 0.0007, load change
-  0.04 points, turn 0.002 degrees. The floor at eps = 0.3 was the missing one; it is of the size of the one at eps =
-  0.6.
+  0.04 points, turn 0.002 degrees; eps = 0.6: load 0.56 %, direction 0.08 degrees, torque by the wall form 0.82 %
+  and by the circle form 0.10 %; of the changes against the control: D_T 0.0003, load change 0.04 points, turn 0.007
+  degrees. The floor at eps = 0.3 was the missing one; it is of the size of the one at eps = 0.6.
 - **Walls and levels:** fluid particles more than 0.5 dx behind a wall surface at the end of a run: 0 at most. The
   mean pressure of the controls stands at -0.71 to -0.18 rho U^2 in the last eighth and changes by up to 8.1e-02 rho
   U^2 per eighth (the bearing pressure is +-0.8 and +-2.2 rho U^2 at eps = 0.3 and 0.6); between the two halves of
@@ -2817,34 +2840,50 @@ same K, l and g taken off (a dash where no such concentric row exists).
 | `e30_k3_m5` | 3 | 0.3 | 100 | 10 | 7.0 | 0.0901 / 0.0913 / 0.0807 / 0.0860 | 0.0870 | 0.0870 | 0.0901 | 0.0902 | 0.965 / 0.964 | +21.71 % | +21.66 % | +26.58 % | 1.002 / 0.817 | +0.73 |
 | `e30_k3_m5_rotated` | 3 | 0.3 | 100 | 10 | 7.0 | 0.0916 / 0.0927 / 0.0806 / 0.0859 | 0.0877 | 0.0876 | 0.0901 | 0.0902 | 0.972 / 0.971 | +21.74 % | +21.66 % | +26.58 % | 1.003 / 0.818 | +0.73 |
 | `e30_k3_m5_shifted` | 3 | 0.3 | 100 | 10 | 7.0 | 0.0914 / 0.0926 / 0.0802 / 0.0854 | 0.0874 | 0.0873 | 0.0901 | 0.0902 | 0.969 / 0.968 | +21.70 % | +21.66 % | +26.58 % | 1.002 / 0.816 | +0.73 |
+| `e30_g200_k3_m5` | 3 | 0.3 | 200 | 20 | 7.0 | 0.0885 / 0.0890 / 0.0824 / 0.0864 | 0.0866 | 0.0863 | 0.0901 | 0.0902 | 0.958 / 0.957 | +21.54 % | +21.66 % | +26.58 % | 0.995 / 0.811 | +0.76 |
+| `e30_g200_k3_m10` | 3 | 0.3 | 200 | 10 | 14.0 | 0.0458 / 0.0470 / 0.0351 / 0.0410 | 0.0422 | 0.0420 | 0.0440 | 0.0427 | 0.953 / 0.984 | +11.37 % | +11.24 % | +12.25 % | 1.011 / 0.928 | +0.41 |
 | `e60_k3_m2` | 3 | 0.6 | 100 | 25 | 1.6 | 0.3105 / 0.3101 / 0.3067 / 0.3098 | 0.3093 | 0.3093 | 0.3130 | 0.5746 | 0.988 / 0.538 | +39.41 % | +40.60 % | +105.30 % | 0.971 / 0.374 | +0.59 |
 | `e60_k3_m5` | 3 | 0.6 | 100 | 10 | 4.0 | 0.1483 / 0.1466 / 0.1379 / 0.1449 | 0.1444 | 0.1444 | 0.1481 | 0.1649 | 0.974 / 0.876 | +21.68 % | +21.81 % | +29.56 % | 0.994 / 0.734 | +0.54 |
+| `e60_k3_m5_rotated` | 3 | 0.6 | 100 | 10 | 4.0 | 0.1493 / 0.1473 / 0.1376 / 0.1447 | 0.1447 | 0.1446 | 0.1481 | 0.1649 | 0.976 / 0.877 | +21.68 % | +21.81 % | +29.56 % | 0.994 / 0.734 | +0.54 |
 | `e60_k3_m5_shifted` | 3 | 0.6 | 100 | 10 | 4.0 | 0.1491 / 0.1472 / 0.1376 / 0.1442 | 0.1445 | 0.1444 | 0.1481 | 0.1649 | 0.975 / 0.876 | +21.65 % | +21.81 % | +29.56 % | 0.993 / 0.732 | +0.55 |
+| `e60_g200_k3_m5` | 3 | 0.6 | 200 | 20 | 4.0 | 0.1459 / 0.1448 / 0.1394 / 0.1443 | 0.1436 | 0.1434 | 0.1481 | 0.1649 | 0.968 / 0.870 | +21.53 % | +21.81 % | +29.56 % | 0.987 / 0.729 | +0.53 |
+| `e60_g200_k3_m10` | 3 | 0.6 | 200 | 10 | 8.0 | 0.0762 / 0.0742 / 0.0642 / 0.0722 | 0.0717 | 0.0715 | 0.0746 | 0.0754 | 0.958 / 0.949 | +11.95 % | +11.84 % | +13.41 % | 1.010 / 0.892 | +0.34 |
 | `e30_k1_m2` | 1 | 0.3 | 100 | 25 | 2.8 | 0.1335 / 0.1338 / 0.1316 / 0.1332 | 0.1330 | 0.1331 | 0.1356 | 0.1629 | 0.981 / 0.817 | +23.99 % | +24.61 % | +49.75 % | 0.974 / 0.482 | +0.82 |
 | `e30_k1_m5` | 1 | 0.3 | 100 | 10 | 7.0 | 0.0572 / 0.0580 / 0.0523 / 0.0551 | 0.0557 | 0.0556 | 0.0576 | 0.0579 | 0.966 / 0.960 | +13.44 % | +13.45 % | +16.77 % | 0.999 / 0.801 | +0.49 |
+| `e30_g200_k1_m5` | 1 | 0.3 | 200 | 20 | 7.0 | 0.0564 / 0.0568 / 0.0532 / 0.0554 | 0.0554 | - | 0.0576 | 0.0579 | 0.962 / 0.957 | +13.34 % | +13.45 % | +16.77 % | 0.992 / 0.796 | +0.50 |
+| `e30_g200_k1_m10` | 1 | 0.3 | 200 | 10 | 14.0 | 0.0295 / 0.0302 / 0.0238 / 0.0269 | 0.0276 | 0.0275 | 0.0287 | 0.0279 | 0.957 / 0.983 | +7.28 % | +7.22 % | +7.95 % | 1.008 / 0.915 | +0.26 |
 | `e60_k1_m2` | 1 | 0.6 | 100 | 25 | 1.6 | 0.1838 / 0.1837 / 0.1822 / 0.1837 | 0.1833 | 0.1834 | 0.1851 | 0.3140 | 0.991 / 0.584 | +23.10 % | +23.77 % | +56.88 % | 0.972 / 0.406 | +0.39 |
 | `e60_k1_m5` | 1 | 0.6 | 100 | 10 | 4.0 | 0.0924 / 0.0915 / 0.0869 / 0.0905 | 0.0903 | 0.0903 | 0.0926 | 0.1035 | 0.974 / 0.873 | +13.34 % | +13.46 % | +18.45 % | 0.991 / 0.723 | +0.36 |
+| `e60_g200_k1_m5` | 1 | 0.6 | 200 | 20 | 4.0 | 0.0911 / 0.0905 / 0.0876 / 0.0902 | 0.0899 | - | 0.0926 | 0.1035 | 0.970 / 0.869 | +13.27 % | +13.46 % | +18.45 % | 0.986 / 0.719 | +0.35 |
+| `e60_g200_k1_m10` | 1 | 0.6 | 200 | 10 | 8.0 | 0.0486 / 0.0475 / 0.0424 / 0.0465 | 0.0463 | 0.0461 | 0.0481 | 0.0489 | 0.960 / 0.944 | +7.59 % | +7.55 % | +8.67 % | 1.006 / 0.876 | +0.22 |
 
-- **The film function carries the load at both K:** measured over predicted change of the load 0.991 to 1.002 where
-  the narrowest gap is at least 4 l (4 rows) and 0.971 to 0.975 where it is 1.6 l and 2.8 l (4 rows); the noise
+- **The film function carries the load at both K:** measured over predicted change of the load 0.986 to 1.011 where
+  the narrowest gap is at least 4 l (12 rows) and 0.971 to 0.975 where it is 1.6 l and 2.8 l (4 rows); the noise
   floor of the load change is 0.04 points of 13 to 42. The rule over-predicts the change of the load by a factor
-  1.22 to 2.67.
-- **Torque:** measured over the film function with the locally concentric shear stress 0.965 to 0.991; over the rule
-  0.538 to 0.964. The four readings of one row differ by 0.0008 to 0.0058 after the concentric correction; the film
+  1.08 to 2.67; where the narrowest gap is 8 l or more (4 rows) by 1.08 to 1.14.
+- **Torque:** measured over the film function with the locally concentric shear stress 0.953 to 0.991; over the rule
+  0.538 to 0.984. The four readings of one row differ by 0.0008 to 0.0061 after the concentric correction; the film
   function is 1 to 4 % above the mean, more than the floor of D_T (0.0004 to 0.0007) and of one sign. [inferred]
   What is left is the thin-film calculation itself at a clearance ratio of 0.25: its pressure-driven wall stress is
   that of a plane film.
 - **K = 1 against K = 3:** the ratios measured / film function are the same within 0.01 at equal eps and l (item 08
   of the pack): the film function has the dependence on K right.
-- **Turn of the force** against the control: +0.36 to +1.22 degrees, towards the direction of the Stokes force (90
+- **Turn of the force** against the control: +0.22 to +1.22 degrees, towards the direction of the Stokes force (90
   degrees from the line of centres; the controls stand 1 to 3 degrees short of it through inertia), larger for the
   larger l.
 
 **The same flow at two resolutions** (m = 5: g = 100 dx with l = 10 dx against g = 200 dx with l = 20 dx):
 
-(not available when this section was written)
+| K | eps | D_T, g = 100 dx | g = 200 dx | load change, g = 100 dx | g = 200 dx | turn (deg), g = 100 dx | g = 200 dx | control: load / exact - 1, g = 100 dx | g = 200 dx |
+|---|---|---|---|---|---|---|---|---|---|
+| 3 | 0.3 | 0.0870 | 0.0863 | +21.71 % | +21.54 % | +0.73 | +0.76 | -0.29 % | -0.12 % |
+| 1 | 0.3 | 0.0556 | 0.0554 | +13.44 % | +13.34 % | +0.49 | +0.50 | -0.29 % | -0.12 % |
+| 3 | 0.6 | 0.1444 | 0.1434 | +21.68 % | +21.53 % | +0.54 | +0.53 | -0.61 % | -0.34 % |
+| 1 | 0.6 | 0.0903 | 0.0899 | +13.34 % | +13.27 % | +0.36 | +0.35 | -0.61 % | -0.34 % |
 
-(not available when this section was written)
+- **What changes from g = 100 dx to 200 dx at the same m:** D_T by -0.0010 to -0.0002, the load change by -0.17 to
+  -0.07 points, the turn by -0.01 to +0.03 degrees; the control's load moves from -0.61 to -0.29 % to -0.34 to -0.12
+  % of exact. The micropolar effect is resolved at g = 100 dx with l = 10 dx to within these differences.
 
 #### 15.2.3 Micropolar cavity
 
@@ -2855,9 +2894,48 @@ viscosity mu_inf (Reynolds number 400) and mu + kappa (Reynolds number 250). Run
 the cavity runs of the thesis (release switches; stop at the later of t = 40 and 20 time units after the steady
 test passes, at most t = 80); time means over the last 20 time units of the dense centre-line samples.
 
-(not available when this section was written)
+| run | n | card | end time | steady at | u_min | at y | v_max | at x | v_min | at x | kinetic energy | density level | drift per L / U | pressure level | drift per L / U | steps/s |  |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `mp_n500` | 500 | XTX | 69.6 | 49.7 | -0.35798 | 0.3112 | 0.32284 | 0.2380 | -0.46272 | 0.8451 | 0.05274 | -5.2e-06 | -2.7e-10 | -0.0516 | -2.7e-06 | 886 |  |
+| `newtonian_re400_n500` | 500 | XTX | 69.6 | 49.7 | -0.33112 | 0.2793 | 0.30661 | 0.2250 | -0.45728 | 0.8621 | 0.04667 | -4.8e-06 | -7.5e-10 | -0.0476 | -7.5e-06 | 1003 |  |
+| `newtonian_re250_n500` | 500 | 5090 | 69.6 | 49.7 | -0.28896 | 0.3472 | 0.25484 | 0.2530 | -0.39308 | 0.8357 | 0.04378 | -4.4e-06 | -4.2e-10 | -0.0429 | -4.2e-06 | 1733 |  |
+| `mp_n250` | 250 | XTX | 70.4 | 50.4 | -0.36329 | 0.3107 | 0.32782 | 0.2376 | -0.46881 | 0.8447 | 0.05382 | -6.2e-06 | +1.3e-08 | -0.0612 | +1.3e-04 | 2154 |  |
 
-(not available when this section was written)
+- **They run and pass the steady test** (1e-3 on the centre-line profile and on the kinetic energy between
+  consecutive windows of 10 time units): `mp_n500` at t = 50, `newtonian_re400_n500` at t = 50,
+  `newtonian_re250_n500` at t = 50, `mp_n250` at t = 50; each then runs 20 time units more, which are the averaging
+  window. Kinetic energy between the two halves of that window: 8.1e-06 to 2.5e-05. The run at n = 250 was
+  interrupted at t = 39.5 when the disk filled (15.6) and continued from its checkpoint at t = 30.2.
+- **The micropolar extrema are not between the two Newtonian ones.** Extrema of the centre lines (Reynolds number
+  400 / micropolar / Reynolds number 250): u_min -0.3311 / -0.3580 / -0.2890, v_max 0.3066 / 0.3228 / 0.2548, v_min
+  -0.4573 / -0.4627 / -0.3931 U; kinetic energy 0.0467 / 0.0527 / 0.0438 rho U^2 L^2. All of them lie beyond the
+  value of the Newtonian fluid of viscosity mu_inf, on the side away from the fluid of viscosity mu + kappa: by
+  0.64, 0.31 and 0.08 of the distance between the two bounds for the three extrema (+8.1 %, +5.3 % and +1.2 % of the
+  Reynolds-400 values) and by 13 % in the kinetic energy. Along the centre lines the micropolar profile is outside
+  the band of the two bounds at 54 % (u) and 65 % (v) of the 1,001 points, by at most 0.053 and 0.045 U. **The
+  positions of the extrema do lie between those of the bounds:** y of u_min 0.279 / 0.311 / 0.347, x of v_max 0.225
+  / 0.238 / 0.253, x of v_min 0.862 / 0.845 / 0.836 L.
+- **What the profiles show** [run] (micropolar minus the Newtonian fluid of viscosity mu_inf): below the lid the
+  micropolar fluid moves faster, by up to 0.080 U at y = 0.95 L; within 0.2 L of the bottom wall the return flow is
+  slower by up to 0.035 U; next to the side walls the vertical flow is slower (v smaller by up to 0.014 U near the
+  left wall, the downward flow weaker by up to 0.039 U near the right one); and between the walls and the centre of
+  the vortex the streams are faster, which is what the extrema measure. [inferred] The walls hold w = 0 and their
+  layers are not thin in this flow: l = L / 20 is as thick as the boundary layer under the lid at this Reynolds
+  number (about L Re^-1/2 = 0.05 L). A wall layer stiffens the fluid next to a wall. Under the lid that couples the
+  fluid more firmly to the drive; at the three walls at rest it pushes the stream away from the wall, and the
+  circulation passes through a narrower passage. The argument 'mu_inf far from walls, mu + kappa in a wall layer'
+  bounds the stress a film transmits (15.3.1: f / h^3 between nu_inf / nu and 1); it does not bound the extrema of a
+  recirculating flow. That is my reading of the profiles, not a tested statement.
+- **Resolution** (n = 250 with l = 12.5 dx minus n = 500 with l = 25 dx): the centre lines differ by 3.0e-03 (u) and
+  3.5e-03 (v) U rms, at most 7.2e-03 and 6.2e-03; the extrema by -0.0053, +0.0050 and -0.0061 U (1.3 to 1.5 %, the
+  coarser run the stronger, as in the Newtonian cavity of the thesis configuration), their positions by less than
+  6e-4 L. The departure from the bounds is five times larger than this.
+- **Levels** (default walls: the diffusion towards the walls holds the mean density): mean density -6.2e-06 to
+  -4.4e-06 of rho0, drifting by at most 1e-08 per time unit; mean pressure -0.061 to -0.043 rho U^2, drifting by at
+  most 1e-04 per time unit.
+- **No reference for Reynolds number 400 is in the repository** (the transcribed tables of Marchi et al. are for
+  1,000, 3,200 and 5,000), so the Newtonian bound at 400 is not compared with one here; its extrema are in the table
+  for that comparison.
 
 ### 15.3 Host: the film function, the sharper form of the rule, the bearing **[host]**
 
@@ -3072,6 +3150,10 @@ the rotor's wall particles within h of both the lateral surface and an end face 
 | `g20_k3_m1` | elsewhere | 123,698 | 9.1e-07 | 5.2e-07 | 1.6e-07 | 1.07 |
 | `g20_newtonian` | edges | 11,177 | 7.9e-07 | 6.0e-07 | - | 1.14 |
 | `g20_newtonian` | elsewhere | 123,728 | 9.0e-07 | 7.2e-07 | - | 1.08 |
+| `g20s_k3_m1` | edges | 11,165 | 8.7e-07 | 3.3e-07 | 2.0e-07 | 1.13 |
+| `g20s_k3_m1` | elsewhere | 123,296 | 9.0e-07 | 4.4e-07 | 1.6e-07 | 1.07 |
+| `g20s_newtonian` | edges | 11,166 | 8.5e-07 | 4.4e-07 | - | 1.14 |
+| `g20s_newtonian` | elsewhere | 123,292 | 1.0e-06 | 5.9e-07 | - | 1.08 |
 
 So at an edge the dummy value is the mirror of an average over fluid from both sides of the rim. Nothing is
 special-cased and nothing fails; what it does to the flow at the rim is part of the resolution error there (the
@@ -3106,6 +3188,8 @@ matrices `L_i` (the buffer `correction_inverse`, six numbers per particle; in 2-
 |---|---|---|---|---|---|
 | `g20_k3_m1` | 3,259 | 2.0e-06 | 1.1e-05 | 4.1e-06 | 1.8e-05 |
 | `g20_newtonian` | 3,264 | 1.4e-06 | 6.8e-06 | - | - |
+| `g20s_k3_m1` | 3,144 | 2.2e-06 | 1.2e-05 | 2.0e-05 | 7.5e-05 |
+| `g20s_newtonian` | 3,194 | 1.6e-06 | 7.9e-06 | - | - |
 
 #### 15.4.4 Runs **[run]**, **[run, host]**
 
@@ -3118,6 +3202,8 @@ with the step numbers measured in 2-D). End time 2 g^2 / nu_inf at g = 20 dx and
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `g20_k3_m1` | 20 | 10 | 2,587,028 | 5090 | 34,000 | 6.00e-05 (acoustic) | 36.8 | 95 | 485 | 1.17 | 3 | 3.2e-05 | 6.4e-05 | 2.3e-03 | -9.9e-05 | -2.3e-06 | -0.247 | -5.7e-03 | `thesis-ch5-rc2-3-g656e652` |
 | `g20_newtonian` | 20 | - | 2,587,028 | 5090 | 34,000 | 6.00e-05 (acoustic) | 45.9 | 119 | 389 | 0.94 | 2 | 1.3e-05 | 3.0e-05 | 3.1e-03 | -2.0e-04 | -5.4e-06 | -0.502 | -1.3e-02 | `thesis-ch5-rc2-2-g7a21ef4` |
+| `g20s_k3_m1` | 20 | 10 | 2,592,584 | XTX | 34,000 | 6.00e-05 (acoustic) | 19.9 | 52 | 485 | 1.17 | 2 | 3.2e-05 | 4.9e-05 | 2.2e-03 | -3.9e-05 | +1.8e-06 | -0.098 | +4.6e-03 | `thesis-ch5-rc2-13-g23d02d8` |
+| `g20s_newtonian` | 20 | - | 2,592,584 | XTX | 34,000 | 6.00e-05 (acoustic) | 23.1 | 60 | 389 | 0.94 | 2 | 2.0e-05 | 3.5e-05 | 3.1e-03 | -9.7e-05 | +1.8e-06 | -0.242 | +4.6e-03 | `thesis-ch5-rc2-12-g4e3a64c` |
 
 - **They run and settle.** Every counter is zero in every run. The angular momentum of the fluid at g = 20 dx is
   within 5e-4 of its final value at t = 0.8 g^2 / nu_inf and within 6e-5 from t = 1.0 on (e-folding time 0.11
@@ -3142,8 +3228,19 @@ end beyond which its 1 / r coefficient is within 1 % and within 0.1 % of the mid
 |---|---|---|---|---|---|---|---|
 | `g20_k3_m1` | 0.887374 | 0.893749 | 0.9929 | 1.4e-02 | 1.6e-02 | 0.78 | 1.38 |
 | `g20_newtonian` | 0.681955 | 0.685714 | 0.9945 | 1.6e-02 | - | 0.78 | 1.43 |
+| `g20s_k3_m1` | 0.890102 | 0.893749 | 0.9959 | 1.0e-02 | 1.1e-02 | 0.28 | 1.38 |
+| `g20s_newtonian` | 0.681607 | 0.685714 | 0.9940 | 1.2e-02 | - | 0.83 | 1.43 |
 
-(to be written)
+- **The mid-plane is close to the 2-D solution but not on it:** the Newtonian constant is 0.9945 of the 2-D one at g
+  = 20 dx (`g20_newtonian`), 0.9940 of the 2-D one at g = 20 dx (`g20s_newtonian`); the micropolar one 0.9929
+  (`g20_k3_m1`), 0.9959 (`g20s_k3_m1`). Part of that is resolution (in 2-D beta / nominal was 0.9990 at g = 50 dx,
+  and the hydrodynamic radii sit a tenth of a spacing inside the nominal ones), part is the ends.
+- **How far the ends reach:** the 1 / r coefficient of v_theta(r) is within 1 % of its mid-plane value further than
+  0.28 to 0.83 g from the rotor's ends and within 0.1 % further than 1.38 to 1.43 g. The mid-plane is 1.5 g from the
+  ends: at the 0.1 % level the ends reach it; at the 1 % level the middle half of the rotor's length is 2-D.
+- **The micropolar effect in the mid-plane** (constant of the micropolar run over that of its control, minus one,
+  against the exact 2-D D for R1 = 3 g, R2 = 4 g): `g20_k3_m1`: 0.3012 against 0.3034 (0.993); `g20s_k3_m1`: 0.3059
+  against 0.3034 (1.008).
 
 **Torque.** In N m for the case's units (g = 0.1 m, U = 1 m/s, mu_inf = 10 Pa s); "flux form" = across the
 closed surface at distance h.
@@ -3152,12 +3249,35 @@ closed surface at distance h.
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `g20_k3_m1` | 4 | 55.9598 | 39.1203 | 16.8395 | 55.1517 | 55.2649 | -1.24 % | -55.6741 | +0.51 % | 5.8e-05 | - | - |
 | `g20_newtonian` | 4 | 42.0851 | 29.7121 | 12.3731 | 41.3836 | 41.5405 | -1.29 % | -41.4840 | +1.43 % | 1.1e-04 | 1.149 | 1.459 |
+| `g20s_k3_m1` | 2 | 55.8665 | 39.6145 | 16.2520 | 55.1299 | 55.2445 | -1.11 % | -55.7046 | +0.29 % | 4.1e-05 | - | - |
+| `g20s_newtonian` | 2 | 41.9188 | 29.9293 | 11.9895 | 41.3954 | 41.5530 | -0.87 % | -41.5264 | +0.94 % | 1.1e-04 | 1.158 | 1.413 |
 
 | run | control | D, mid-plane | D, 2-D exact | D_T, wall form | lateral surface | end faces | flux form | with advection | housing | end faces: plane film |
 |---|---|---|---|---|---|---|---|---|---|---|
 | `g20_k3_m1` | `g20_newtonian` | 0.3012 | 0.3034 | 0.3297 | 0.3166 | 0.3610 | 0.3327 | 0.3304 | 0.3421 | 0.3998 |
+| `g20s_k3_m1` | `g20s_newtonian` | 0.3059 | 0.3034 | 0.3327 | 0.3236 | 0.3555 | 0.3318 | 0.3295 | 0.3414 | 0.3998 |
 
-(to be written)
+- **The two readings:** flux form (with the advective term) over wall form - 1 = -1.24 % (`g20_k3_m1`), -1.29 %
+  (`g20_newtonian`), -1.11 % (`g20s_k3_m1`), -0.87 % (`g20s_newtonian`). The advective term is +0.20 to +0.38 % of
+  the torque. **Rotor against housing:** the wall form of the housing is -0.51 % from the rotor's wall form and
+  +0.74 % from its flux form (`g20_k3_m1`), -1.43 % from the rotor's wall form and -0.14 % from its flux form
+  (`g20_newtonian`), -0.29 % from the rotor's wall form and +0.83 % from its flux form (`g20s_k3_m1`), -0.94 % from
+  the rotor's wall form and -0.06 % from its flux form (`g20s_newtonian`). The flux form and the housing agree with
+  each other; the rotor's wall form stands above both. As in 2-D (13.3) the wall form carries a first-order error of
+  the staircase surface, here with the rims added, and the flux form is the reading to quote.
+- **Scatter over the saved states** of one run: 4.1e-05 to 1.1e-04 of the torque (wall form).
+- **Lateral surface and end faces** (wall form, Newtonian): the end faces carry 29.4 % of the torque
+  (`g20_newtonian`), 28.6 % of the torque (`g20s_newtonian`); the lateral surface carries 1.149 to 1.158 of the 2-D
+  torque per length times the rotor's length, and the end faces 1.413 to 1.459 of two plane discs at distance g (`pi
+  mu Omega R1^4 / g`). Both are above one because of the rims: beyond the rotor's edge the housing still brakes the
+  fluid, and the shear stress at the edge is singular (15.4.2). There is no exact value to compare the 3-D torque
+  with; the checks are the two readings, the housing, and the lattices.
+- **The change of the torque** D_T = T / T_control - 1: `g20_k3_m1`: 0.3304 by the flux form, 0.3297 by the wall
+  form (lateral surface 0.3166, end faces 0.3610), 0.3421 on the housing; `g20s_k3_m1`: 0.3295 by the flux form,
+  0.3327 by the wall form (lateral surface 0.3236, end faces 0.3555), 0.3414 on the housing. For comparison: the
+  exact 2-D D for the lateral gap is 0.3034 and the exact plane film between two discs at distance g gives 0.3998
+  for the end faces. The lateral surface gains more than the 2-D value and the end faces less than the plane film;
+  the rims belong to both.
 
 **Fields** for item 15 (`data/micropolar/stage6/rotor3d/<run>.npz`): the fluid within 1.5 dx of the plane y = 0
 at the last step (v_theta, the three components of w, w - curl v / 2 with the curl from weighted least squares
@@ -3197,11 +3317,25 @@ rms difference to the first one-slab run over the field's rms, near the cut (wit
 | K = 3, one card (5090) | 20 | pressure | 7.7e-06 | 7.6e-06 | 7.6e-06 / 8.3e-06 | 7.7e-06 |
 | K = 3, one card (5090) | 20 | wall dummy velocity | 1.0e-03 | 1.2e-03 | 1.2e-03 / 4.6e-04 | 4.9e-04 |
 | K = 3, one card (5090) | 20 | wall dummy angular velocity | 1.5e-03 | 1.8e-03 | 1.5e-03 / 9.4e-04 | 1.5e-03 |
-| K = 2, XTX + 5090 | - | not reached |  |  |  |  |
+| K = 2, XTX + 5090 | 0 | acceleration | 1.2e-07 | 1.6e-07 | 1.5e-07 / 1.8e-07 | 1.4e-07 |
+| K = 2, XTX + 5090 | 0 | angular acceleration | 1.2e-07 | 1.6e-07 | 1.6e-07 / 1.8e-07 | 1.4e-07 |
+| K = 2, XTX + 5090 | 0 | angular velocity | 4.6e-09 | 5.9e-09 | 5.6e-09 / 7.7e-09 | 5.3e-09 |
+| K = 2, XTX + 5090 | 20 | acceleration | 1.3e-05 | 5.0e-05 | 3.7e-05 / 3.9e-05 | 1.3e-05 |
+| K = 2, XTX + 5090 | 20 | angular acceleration | 2.9e-06 | 3.1e-06 | 3.0e-06 / 3.6e-06 | 2.9e-06 |
+| K = 2, XTX + 5090 | 20 | angular velocity | 2.9e-07 | 3.2e-07 | 3.3e-07 / 3.8e-07 | 3.1e-07 |
+| K = 2, XTX + 5090 | 20 | pressure | 7.4e-06 | 4.0e-05 | 2.9e-05 / 3.0e-05 | 7.6e-06 |
+| K = 2, XTX + 5090 | 20 | wall dummy velocity | 3.0e-04 | 1.2e-03 | 1.5e-03 / 1.1e-03 | 8.8e-04 |
+| K = 2, XTX + 5090 | 20 | wall dummy angular velocity | 9.5e-04 | 2.1e-03 | 1.7e-03 / 1.9e-03 | 1.7e-03 |
 
-(to be written)
+**Pass.** three slabs on one card: every field passes; the largest ratio of a chain's rms difference near the cut to
+the larger one-slab floor is 1.04; two slabs on XTX + 5090: every field passes; the largest ratio of a chain's rms
+difference near the cut to the larger one-slab floor is 1.27 (limit 2). The chain differs from the one-slab run by
+what a second one-slab run differs by, in every component of the acceleration, of the angular acceleration and of w,
+in the pressure and in the dummy values of the walls. The large maxima of the dummy rows (0.2 to 0.6 of the field
+rms, the same in the one-slab repeats) are the wall particles whose only fluid neighbour sits at the edge of the
+support, as in 2-D.
 
-(to be written)
+**The micropolar run at g = 40 dx on two slabs against the one-slab run:** (not available when this section was written)
 
 #### 15.4.6 The rule in 3-D **[host]**: the argument for the normal component is right
 
@@ -3246,8 +3380,12 @@ nu s'' - c w_x' = 0,      xi w_x'' + c (s' - 2 w_x) = 0        the same pair wit
 | run | w_r: fitted length / dx | expected (l) | ratio | w_z: fitted length / dx | expected (l sqrt(nu_inf / nu)) | ratio |
 |---|---|---|---|---|---|---|
 | `g20_k3_m1` | 12.17 | 10.00 | 1.217 | 7.77 | 7.91 | 0.983 |
+| `g20s_k3_m1` | 11.40 | 10.00 | 1.140 | 7.60 | 7.91 | 0.961 |
 
-(to be written)
+  The normal component decays over 0.98 (`g20_k3_m1`), 0.96 (`g20s_k3_m1`) of `l sqrt(nu_inf / nu)` and the tangential
+  one over 1.22 (`g20_k3_m1`), 1.14 (`g20s_k3_m1`) of l. At g = 20 dx the end gap is two l wide and the two layers of
+  the tangential component overlap; the fit of the normal component, whose layer sits on the rotor's face only, is the
+  cleaner one.
 
 - Where the rule cannot be right: within a few l of the rim, where the lateral layer (slip `- 2 delta Omega`)
   meets the layer of the end face (no slip). The displaced rotor of the rule has a jump of `2 delta Omega` in
@@ -3260,7 +3398,21 @@ nu s'' - c w_x' = 0,      xi w_x'' + c (s' - 2 w_x) = 0        the same pair wit
 `micropolar_rotor3d_partition.py` (the chain partition of a case without a GPU;
 `rotor3d_partition_g40_k8.json`).
 
-(to be written)
+- **Particles at g = 80 dx:** 85.2 million fluid, 6.2 million rotor and 13.5 million housing particles, 105 million
+  in all (counted with the generator's inequalities; the same count reproduces the generated case at g = 40 dx
+  exactly).
+- **Step limit:** the acoustic one, 1.50e-05 s; the viscous and the angular limit of K = 3 are 3.4 and 3.7 times
+  larger with the step numbers measured in 2-D. They were not measured in 3-D; a factor of three is room for that.
+  134,000 steps to 2 g^2 / nu_inf, 100,000 to 1.5.
+- **Eight slabs along x:** with the cuts on voxel columns the largest slab holds 0.134 of the particles at g = 40 dx
+  (0.125 would be even; at g = 80 dx there are twice as many columns to choose from), the wall share is 0.31 to 0.33
+  in every slab (the end walls of the housing run through all of them), and the three ghost columns of a cut hold
+  0.32 of a slab at g = 40 dx, half that at g = 80 dx. At g = 40 dx a slab is 9 to 15 columns wide, below the 20 the
+  partition warns about; at g = 80 dx about 21. Eight cards want g = 80 dx; the case at g = 40 dx is a two-card
+  case.
+- **Memory per card** is a quarter of an RTX 5090. The host matters more: every slab's process holds its particles
+  on the host too, and the run driver reads every particle back at each sample. On this machine the runs at g = 40
+  dx could only run one at a time (15.6).
 
 ### 15.5 Readings taken without asking
 
@@ -3297,6 +3449,56 @@ nu s'' - c w_x' = 0,      xi w_x'' + c (s' - 2 w_x) = 0        the same pair wit
 
 ### 15.6 Not reached, open, unexpected
 
-(to be written)
+**Not reached**
 
-(to be written)
+- **The rows at g = 400 dx** (m = 10 at l = 20 dx; m = 20 at l = 10 dx; m = 40 at l = 5 dx for K = 3, 1, 0.5): none.
+  They were last in the queue, and from 23:30 on they were held back because a g = 400 dx run beside a 3-D run at g
+  = 40 dx does not fit into this machine's memory tonight (below). The cases are in the run table
+  (`micropolar_stage6 list`); two jobs are kept in `logs/micropolar/stage6/plan_held_g400.json`.
+- **3-D:** no displaced (rule) run, by instruction; no run at g = 80 dx; the step limits were not measured in 3-D;
+  no second lattice at g = 40 dx. The one-slab micropolar run at g = 40 dx had not finished. The run on two slabs at
+  g = 40 dx had not finished.
+- **Cavity:** no comparison of the Newtonian bound at Reynolds number 400 with a reference (no table for 400 in the
+  repository). The run on two slabs had not finished. The run with l = L / 40 (added by me, 15.2.3) had not
+  finished.
+- **Eccentric:** the concentric row K = 1, l = 20 dx at g = 200 dx (`g200_k1_m5`), which I added to get the reading
+  errors of two eccentric rows, ran, but I removed its particle states together with those of the other finished
+  runs before its wall sums were taken (my mistake while making room on the disk). The two rows carry the
+  uncorrected mean; their fit and samples are in `concentric.json`.
+- **Out of scope, untouched:** the volume anchor, new wall options, periodic boundaries, merging branches, eight
+  cards, the cost benchmark of the key.
+
+**Unexpected**
+
+- **The micropolar cavity is not between its two Newtonian bounds** (15.2.3): its extrema and its kinetic energy lie
+  beyond the bound of viscosity mu_inf, on the side away from the bound of viscosity mu + kappa, while the positions
+  of the extrema lie between the two. The same at n = 250.
+- **The machine, not the solver, cost about an hour of card time.** At 22:15 and again at 23:10 the disk had no free
+  space left; three runs and the queue runner died with `No space left on device`. The cause: committed memory was
+  at its limit (other programs on this machine held about 27 GB tonight, the system 9 GB, of 31 GB of RAM), Windows
+  grew the page file from 15 to 24 GB, and the disk had less than that free. My own share was larger than it had to
+  be: every Python process that uses numpy commits 0.79 GB for the 32 threads of its linear algebra library and 0.05
+  GB with one thread. From 23:26 on every process of the stage runs with one thread, the queue runner starts nothing
+  below 2 GB of free disk and keeps a job whose run died of a full disk, and I removed what could be made again: the
+  generated particle files of finished cases and the particle states of finished runs whose wall sums were stored
+  (660 files; samples, `run.json`, `wall_sums.json` and the final full states remain). The runs lost were done
+  again; the cost is the g = 400 dx rows and an hour of the 3-D runs.
+- **A lattice plane on a cut overflows the pools of a 3-D chain at its first step** (15.4.5); cured in the
+  generator, with nothing changed in the solver.
+- **With its own noise floor the row at l = 20 dx shows second order through all three resolutions** (15.2.1): the
+  floor at g = 200 dx is 1.1e-5 of beta, sixteen times below the one at g = 100 dx that Stage 4 had to use for it.
+- **The load does not see the slip term of the rule, the torque does** (15.3.3): in the exact concentric flux the
+  rotor's apparent speed and the change of the geometry cancel to first order.
+- **In 3-D the wall-form torque of the rotor depends on the lattice by 0.2 to 0.4 % and its split into lateral
+  surface and end faces by up to 3 %; the flux form does not (0.03 %)** (15.4.4).
+- **The level of the pressure wanders in every case with the key**, most in the smallest cases: +0.28 rho U^2 at g =
+  50 dx (concentric), -0.7 to -0.2 in the bearing at g = 100 dx, -0.5 in the 3-D case at g = 20 dx, and it still
+  moves at the end of those runs; no reading follows it. It is the known price of the key (14.4.3), now recorded for
+  every run.
+- **The helper's comparison of the tables of Sections 8 to 14 with their data files** (while building pack items 12
+  to 14) found three things I had written imprecisely: Section 8 quotes 1.4e-6 and 1.5e-6 for the largest relative
+  error of the linear-w check where the data file has 1.20e-6 and 1.43e-6; 14.4.3 says the wall velocities of the
+  cavity come from the snapshots of the last 20 time units, which holds for the thesis run at n = 250 only (the
+  other five runs carry 50 to 61 snapshots from t = 40 on, so the n = 250 difference compares different windows; the
+  slopes are reproduced from the stored arrays); and the ratios of check B for K = 3 on two cards (2.02, 1.97, 1.20)
+  are in the data but not in the note. Item 14 of the pack is built from the data files.

@@ -32,8 +32,10 @@ from experiment.validation.micropolar_rotor3d import DENSITY                    
 
 RUNS_DIRECTORY = "logs/micropolar/stage6_rotor3d"
 # (micropolar run, its Newtonian control)
-PAIRS = (("g20_k3_m1", "g20_newtonian"), ("g20s_k3_m1", "g20s_newtonian"), ("g40_k3_m2", "g40_newtonian"),
-         ("g40_k3_m2_k2", "g40_newtonian"))
+# The control at g = 40 dx ran on two slabs (g40_newtonian_k2); a one-slab control is taken if one exists.
+PAIRS = (("g20_k3_m1", "g20_newtonian"), ("g20s_k3_m1", "g20s_newtonian"),
+         ("g40_k3_m2", "g40_newtonian"), ("g40_k3_m2_k2", "g40_newtonian"),
+         ("g40_k3_m2", "g40_newtonian_k2"), ("g40_k3_m2_k2", "g40_newtonian_k2"))
 CHAINS = (("g40_k3_m2_k2", "g40_k3_m2"),)
 DEVICE_LOCAL = re.compile(r"\[SimV7\] device-local buffers: (\d+), ([0-9.]+) MB")
 DEFRAG_SCRATCH = re.compile(r"\[SimV7\] defrag scratch buffers: (\d+), ([0-9.]+) MB")
@@ -324,7 +326,7 @@ def command_analyse(arguments) -> int:
                    if "angular_acceleration_rms_difference_over_rms" in checks else f"{'-':>12}"))
     pairs = {}
     for name, control in PAIRS:
-        if name not in records or control not in records:
+        if name not in records or control not in records or name in pairs:
             continue
         item, base = records[name], records[control]
         entry = {"control": control,
@@ -474,7 +476,8 @@ def command_sizing(arguments) -> int:
         lines.append(text)
         print(text)
     check = count_particles(40)
-    stored = runs.get("g40_newtonian", runs.get("g40_k3_m2", {})).get("counts")
+    stored = next((runs[name].get("counts") for name in ("g40_newtonian", "g40_newtonian_k2", "g40_k3_m2",
+                                                           "g40_k3_m2_k2") if name in runs), None)
     counts = count_particles(arguments.gap_in_spacings)
     total = sum(counts.values())
     say(f"Production case at g = {arguments.gap_in_spacings} dx: fluid {counts['domain']:,}, rotor {counts['rotor']:,}, "
