@@ -399,6 +399,10 @@ def command_run(arguments) -> int:
             if step in saved_steps:
                 _save_wall_band(out_dir / "states" / f"state_{step:08d}.npz", rows, meta, fluid_group, micropolar,
                                 step, arguments.state_band_supports)
+                if arguments.full_final_state and step == steps:
+                    # the whole fluid at the end of the run (fields)
+                    _save_wall_band(out_dir / "states" / f"full_{step:08d}.npz", rows, meta, fluid_group,
+                                    micropolar, step, 1.0e9)
             fluid = rows["material"] == fluid_group
             positions = rows["position_voxel_id"][fluid]
             velocity = rows["velocity_mass"][fluid, :2].astype(np.float64)
@@ -1069,6 +1073,8 @@ def main() -> int:
                      help="the fraction of the run, from its end, over which the states are spread")
     run.add_argument("--state-band-supports", type=float, default=2.0,
                      help="the saved fluid lies within this many h (+ dx) of a wall surface; large = all of it")
+    run.add_argument("--full-final-state", action="store_true",
+                     help="save the whole fluid at the last step as states/full_<step>.npz (fields)")
     run.set_defaults(handler=command_run)
 
     pilot = commands.add_parser("pilot")

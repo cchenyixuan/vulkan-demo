@@ -1,0 +1,157 @@
+{
+ "item": "03",
+ "title": "Concentric cylinders: D against m for three K, with the slip-form rule",
+ "status": "provisional",
+ "caption": "Relative change D of the torque between concentric cylinders (R1 = 4 g, R2 = 5 g, w = 0 on both walls) against m = g / (2 l) for K = 3, 1 and 0.5 (Re = 10 on mu_inf; 25, 15 and 12.5 on mu; Ma = 0.02). (a) Exact solution (solid), the wall rule in its slip form (dashed; every wall displaced by delta = K l / (2 (1 + K)) into the fluid, the rotor's apparent speed reduced by 2 delta Omega) and the runs (points; bars: noise floor of D from three lattices, smaller than the symbols). (b) The same as ratios to the exact value; the rule leaves the frame below m of about 1.9 (1.36 to 1.49 at m = 1). Resolution of the rows (m, l / dx, g / dx): (1, 50, 100), (2, 25, 100), (5, 10, 100), (10, 10, 200), (20, 5, 200). Runs: the sweep rows of tab_04; tag `thesis-ch5-rc1`, `thesis-ch5-rc1-3-g645dc15`, `thesis-ch5-rc1-1-ga07f93d`, `thesis-ch5-rc1-2-gad23a67`. Ratio to exact: m = 1: runs 0.997 to 1.000, rule 1.365 to 1.487; m = 2: runs 0.999 to 1.001, rule 1.035 to 1.039; m = 5: runs 1.004 to 1.006, rule 0.997 to 0.997; m = 10: runs 1.004 to 1.006, rule 0.999 to 0.999; m = 20: runs 1.021 to 1.030, rule 0.999 to 0.999.",
+ "files": [
+  "fig_03_concentric_sweep.pdf",
+  "fig_03_concentric_sweep.png"
+ ],
+ "sources": [
+  "data/micropolar/stage4/couette_stage4.json",
+  "g100_k3_m1",
+  "g100_k3_m2",
+  "g100_k3_m5",
+  "g200_k3_m10",
+  "g200_k3_m20",
+  "g100_k1_m1",
+  "g100_k1_m2",
+  "g100_k1_m5",
+  "g200_k1_m10",
+  "g200_k1_m20",
+  "g100_k05_m1",
+  "g100_k05_m2",
+  "g100_k05_m5",
+  "g200_k05_m10",
+  "g200_k05_m20"
+ ],
+ "numbers": {
+  "K = 3": {
+   "m = 1": {
+    "run": "g100_k3_m1",
+    "D": 0.32213918460232294,
+    "D_exact": 0.32212552594969646,
+    "ratio": 1.000042401646334,
+    "rule_ratio": 1.4873466614280682,
+    "floor": 0.0007232501788951494
+   },
+   "m = 2": {
+    "run": "g100_k3_m2",
+    "D": 0.1775748970305855,
+    "D_exact": 0.17746716595379342,
+    "ratio": 1.0006070479359552,
+    "rule_ratio": 1.0392458639608995,
+    "floor": 0.0011691541939027532
+   },
+   "m = 5": {
+    "run": "g100_k3_m5",
+    "D": 0.06544749680386497,
+    "D_exact": 0.06502678293470021,
+    "ratio": 1.0064698551916251,
+    "rule_ratio": 0.9971705378386168,
+    "floor": 0.002886085952373321
+   },
+   "m = 10": {
+    "run": "g200_k3_m10",
+    "D": 0.03140279516837685,
+    "D_exact": 0.031208787939437155,
+    "ratio": 1.0062164294658344,
+    "rule_ratio": 0.9985103106198435,
+    "floor": 0.005822516171858509
+   },
+   "m = 20": {
+    "run": "g200_k3_m20",
+    "D": 0.015750903719055076,
+    "D_exact": 0.01529684190284386,
+    "ratio": 1.029683369880864,
+    "rule_ratio": 0.9992490274294575,
+    "floor": 0.011695862593448889
+   }
+  },
+  "K = 1": {
+   "m = 1": {
+    "run": "g100_k1_m1",
+    "D": 0.18925258337625683,
+    "D_exact": 0.18950106455206117,
+    "ratio": 0.9986887610558194,
+    "rule_ratio": 1.4053589291859592,
+    "floor": 0.0011060994625113644
+   },
+   "m = 2": {
+    "run": "g100_k1_m2",
+    "D": 0.11030440224125604,
+    "D_exact": 0.1102069281749054,
+    "ratio": 1.0008844640528944,
+    "rule_ratio": 1.036343215224074,
+    "floor": 0.001775154002894576
+   },
+   "m = 5": {
+    "run": "g100_k1_m5",
+    "D": 0.042408595068867294,
+    "D_exact": 0.042210356802966364,
+    "ratio": 1.0046964366310924,
+    "rule_ratio": 0.9973295037744732,
+    "floor": 0.004350882567302837
+   },
+   "m = 10": {
+    "run": "g200_k1_m10",
+    "D": 0.020631776293697168,
+    "D_exact": 0.020539104898890326,
+    "ratio": 1.004511949048561,
+    "rule_ratio": 0.9985948655855128,
+    "floor": 0.008755665024475032
+   },
+   "m = 20": {
+    "run": "g200_k1_m20",
+    "D": 0.010377521196331063,
+    "D_exact": 0.010133347345798072,
+    "ratio": 1.0240960703507556,
+    "rule_ratio": 0.9992921694158484,
+    "floor": 0.017565753316045634
+   }
+  },
+  "K = 0.5": {
+   "m = 1": {
+    "run": "g100_k05_m1",
+    "D": 0.1167960927367444,
+    "D_exact": 0.11715132660309946,
+    "ratio": 0.9969677350085965,
+    "rule_ratio": 1.3645528938084737,
+    "floor": 0.0016803733879356922
+   },
+   "m = 2": {
+    "run": "g100_k05_m2",
+    "D": 0.07019858004281265,
+    "D_exact": 0.07026255668406778,
+    "ratio": 0.9990894632322761,
+    "rule_ratio": 1.034672706405102,
+    "floor": 0.0026841537163823054
+   },
+   "m = 5": {
+    "run": "g100_k05_m5",
+    "D": 0.027764672852970573,
+    "D_exact": 0.02765505672819435,
+    "ratio": 1.0039636919154995,
+    "rule_ratio": 0.9974382910058508,
+    "floor": 0.006548077489697093
+   },
+   "m = 10": {
+    "run": "g200_k05_m10",
+    "D": 0.013628524004877685,
+    "D_exact": 0.013576691304001187,
+    "ratio": 1.0038177711870948,
+    "rule_ratio": 0.9986519133365405,
+    "floor": 0.013155388303399575
+   },
+   "m = 20": {
+    "run": "g200_k05_m20",
+    "D": 0.006871351937768111,
+    "D_exact": 0.006727178585714588,
+    "ratio": 1.0214314738662773,
+    "rule_ratio": 0.9993211000694802,
+    "floor": 0.026370589399938103
+   }
+  }
+ },
+ "tag": "thesis-ch5-rc1"
+}

@@ -1,0 +1,34 @@
+{
+ "item": "01",
+ "title": "Concentric cylinders: profiles against the exact solution",
+ "status": "provisional",
+ "caption": "Circular Couette flow of the micropolar fluid between concentric cylinders (R1 = 4 g, R2 = 5 g, rotor at Omega, w = 0 on both walls): bin means of the azimuthal velocity (a, b) and of the micro-rotation (c, d) over the last quarter of the run (bins of one dx, about forty shown; every bin in the insets, which cover the 0.08 g next to the rotor and to the stator) against the exact solution (line). (a, c) K = 3, l = 25 dx, m = 2, g = 100 dx, Ma = 0.02, Re = 10 on mu_inf (25 on mu), run `g100_k3_m2`; (b, d) K = 3, l = 10 dx, m = 10, g = 200 dx, Ma = 0.02, Re = 10 on mu_inf (25 on mu), run `g200_k3_m10`. Tag `thesis-ch5-rc1`. Rms deviation from the exact profile, relative to the rms of the profile: m = 2: v 6.2e-05 in the core and 7.5e-04 within h of a wall, w 2.9e-03 and 5.6e-03; m = 10: v 1.7e-04 in the core and 3.4e-04 within h of a wall, w 2.0e-03 and 9.3e-03.",
+ "files": [
+  "fig_01_concentric_profiles.pdf",
+  "fig_01_concentric_profiles.png"
+ ],
+ "sources": [
+  "data/micropolar/stage4/couette_stage4.json",
+  "g100_k3_m2",
+  "g200_k3_m10"
+ ],
+ "numbers": {
+  "g100_k3_m2": {
+   "velocity_error_core": 6.155224866851872e-05,
+   "velocity_error_wall_layers": 0.0007549917075181467,
+   "spin_error_core": 0.0029382040587888143,
+   "spin_error_wall_layers": 0.0056048344380442575,
+   "relative_torque_change": 0.1775748970305855,
+   "exact_hydrodynamic": 0.17746716595379342
+  },
+  "g200_k3_m10": {
+   "velocity_error_core": 0.0001716075856258365,
+   "velocity_error_wall_layers": 0.0003390701986250756,
+   "spin_error_core": 0.0019706566918089494,
+   "spin_error_wall_layers": 0.009316744780027383,
+   "relative_torque_change": 0.03140279516837685,
+   "exact_hydrodynamic": 0.031208787939437155
+  }
+ },
+ "tag": "thesis-ch5-rc1"
+}
