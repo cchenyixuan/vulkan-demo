@@ -1,0 +1,43 @@
+check,case,quantity,measured,expected,measured / expected - 1,largest relative error over the particles,note
+T3,"2-D, lattice, regularization xi = 0, 18,769 particles",Theta alpha_z / c (rigid rotation: curl v = 2 Omega),1.9999997,2,-1.6e-07,8.2e-07,largest |a| 3.2e-08 m/s^2 (curl w = 0)
+T3,"2-D, jittered by 0.1 dx, regularization xi = 0, 19,031 particles",Theta alpha_z / c (rigid rotation: curl v = 2 Omega),2.0000000,2,-1.8e-08,6.1e-07,largest |a| 2.8e-08 m/s^2 (curl w = 0)
+T3,"2-D, lattice, regularization xi = 0.001, 18,769 particles",Theta alpha_z / c (rigid rotation: curl v = 2 Omega),1.9982298,2,-8.9e-04,8.9e-04,largest |a| 3.2e-08 m/s^2 (curl w = 0)
+T3,"2-D, jittered by 0.1 dx, regularization xi = 0.001, 19,031 particles",Theta alpha_z / c (rigid rotation: curl v = 2 Omega),1.9982284,2,-8.9e-04,9.2e-04,largest |a| 2.8e-08 m/s^2 (curl w = 0)
+T3,"2-D, lattice, regularization xi = 0, 18,769 particles",a / c against curl w (linear w_z),-,-,-,1.2e-06,rms 2.7e-07
+T3,"2-D, lattice, regularization xi = 0, 18,769 particles","Theta alpha + 2 c w - xi lap w, over grad w / dx (linear w_z)",5.8e-05,0,-,-,rms 2.2e-05; rounding of the pair differences
+T3,"2-D, jittered by 0.1 dx, regularization xi = 0, 19,031 particles",a / c against curl w (linear w_z),-,-,-,1.4e-06,rms 2.9e-07
+T3,"2-D, jittered by 0.1 dx, regularization xi = 0, 19,031 particles","Theta alpha + 2 c w - xi lap w, over grad w / dx (linear w_z)",7.1e-02,0,-,-,rms 1.8e-02; not exact on disordered particles
+T3,"2-D, lattice, regularization xi = 0.001, 18,769 particles",a / c against curl w (linear w_z),-,-,-,8.9e-04,rms 8.9e-04
+T3,"2-D, lattice, regularization xi = 0.001, 18,769 particles","Theta alpha + 2 c w - xi lap w, over grad w / dx (linear w_z)",5.8e-05,0,-,-,rms 2.2e-05; rounding of the pair differences
+T3,"2-D, jittered by 0.1 dx, regularization xi = 0.001, 19,031 particles",a / c against curl w (linear w_z),-,-,-,9.3e-04,rms 8.9e-04
+T3,"2-D, jittered by 0.1 dx, regularization xi = 0.001, 19,031 particles","Theta alpha + 2 c w - xi lap w, over grad w / dx (linear w_z)",7.1e-02,0,-,-,rms 1.8e-02; not exact on disordered particles
+T3,"2-D lattice, dx = 4 mm, k h = 0.63, case EPS_H_SQUARED = 0.0025 h^2","lap w / (-k^2 w), w = sin(k x)",0.975506,1,-2.45e-02,-,"3,844 particles; relative L2 error 2.449e-02"
+T3,"2-D lattice, dx = 2 mm, k h = 0.31, case EPS_H_SQUARED = 0.0025 h^2","lap w / (-k^2 w), w = sin(k x)",0.979438,1,-2.06e-02,-,"18,769 particles; relative L2 error 2.056e-02"
+T3,"2-D lattice, dx = 1 mm, k h = 0.16, case EPS_H_SQUARED = 0.0025 h^2","lap w / (-k^2 w), w = sin(k x)",0.980441,1,-1.96e-02,-,"82,369 particles; relative L2 error 1.956e-02"
+T3,"2-D lattice, limit dx -> 0 at h / dx = 5, case EPS_H_SQUARED = 0.0025 h^2","lap w / (-k^2 w), w = sin(k x)",0.980784,1,-1.92e-02,-,Richardson order 1.97
+T3,"2-D lattice, dx = 4 mm, k h = 0.63, EPS_H_SQUARED = 0","lap w / (-k^2 w), w = sin(k x)",0.994644,1,-5.36e-03,-,"3,844 particles; relative L2 error 5.356e-03"
+T3,"2-D lattice, dx = 2 mm, k h = 0.31, EPS_H_SQUARED = 0","lap w / (-k^2 w), w = sin(k x)",0.998622,1,-1.38e-03,-,"18,769 particles; relative L2 error 1.378e-03"
+T3,"2-D lattice, dx = 1 mm, k h = 0.16, EPS_H_SQUARED = 0","lap w / (-k^2 w), w = sin(k x)",0.999637,1,-3.63e-04,-,"82,369 particles; relative L2 error 3.665e-04"
+T3,"2-D lattice, limit dx -> 0 at h / dx = 5, EPS_H_SQUARED = 0","lap w / (-k^2 w), w = sin(k x)",0.999985,1,-1.52e-05,-,Richardson order 1.97
+T4,"2 c dt / Theta = 0.005, after 1 step","w_z against the product of the scheme, w_0 (1 - lambda dt / 2) (1 - lambda dt)^n",2.9924998,2.9925000,-5.8e-08,5.8e-08,"spread over the particles 0; largest in-plane w 0, largest v 0"
+T4,"2 c dt / Theta = 0.005, after 1 step",w_z against exp(-lambda t): relative difference,-3.1877e-06,-3.1302e-06,-,-,expected: the first-order difference of forward Euler
+T4,"2 c dt / Theta = 0.005, after 100 steps","w_z against the product of the scheme, w_0 (1 - lambda dt / 2) (1 - lambda dt)^n",1.8218766,1.8218775,-4.6e-07,4.6e-07,"spread over the particles 0; largest in-plane w 0, largest v 0"
+T4,"2 c dt / Theta = 0.005, after 100 steps",w_z against exp(-lambda t): relative difference,-1.2445e-03,-1.2440e-03,-,-,expected: the first-order difference of forward Euler
+T4,"2 c dt / Theta = 0.005, after 300 steps","w_z against the product of the scheme, w_0 (1 - lambda dt / 2) (1 - lambda dt)^n",0.6685520,0.6685522,-2.9e-07,2.9e-07,"spread over the particles 0; largest in-plane w 0, largest v 0"
+T4,"2 c dt / Theta = 0.005, after 300 steps",w_z against exp(-lambda t): relative difference,-3.7464e-03,-3.7461e-03,-,-,expected: the first-order difference of forward Euler
+C,"2-D, h / dx = 5, wave vector along a lattice axis, case EPS_H_SQUARED",factor on nu (viscous term),0.9587,1,-4.13 %,-,"Richardson order 2.00; ratios 0.955284, 0.957864, 0.958510"
+C,"2-D, h / dx = 5, wave vector along a lattice axis, case EPS_H_SQUARED",factor on xi (angular diffusion),0.9808,1,-1.92 %,-,"Richardson order 2.00; ratios 0.975644, 0.979507, 0.980475"
+C,"2-D, h / dx = 5, wave vector at 22.5 degrees, case EPS_H_SQUARED",factor on nu (viscous term),0.9808,1,-1.92 %,-,"Richardson order 2.00; ratios 0.977359, 0.979938, 0.980584"
+C,"2-D, h / dx = 5, wave vector at 22.5 degrees, case EPS_H_SQUARED",factor on xi (angular diffusion),0.9808,1,-1.92 %,-,"Richardson order 2.00; ratios 0.975643, 0.979507, 0.980476"
+C,"2-D, h / dx = 5, wave vector at 45 degrees, case EPS_H_SQUARED",factor on nu (viscous term),1.0029,1,+0.29 %,-,"Richardson order 2.00; ratios 0.999433, 1.002011, 1.002657"
+C,"2-D, h / dx = 5, wave vector at 45 degrees, case EPS_H_SQUARED",factor on xi (angular diffusion),0.9808,1,-1.92 %,-,"Richardson order 2.00; ratios 0.975642, 0.979507, 0.980476"
+C,"2-D, h / dx = 5, wave vector along a lattice axis, EPS_H_SQUARED = 0",factor on nu (viscous term),0.9747,1,-2.53 %,-,"Richardson order 2.00; ratios 0.971250, 0.973859, 0.974512"
+C,"2-D, h / dx = 5, wave vector along a lattice axis, EPS_H_SQUARED = 0",factor on xi (angular diffusion),1.0000,1,+1.4e-05 %,-,"Richardson order 2.00; ratios 0.994783, 0.998692, 0.999672"
+C,"3-D, h / dx = 4, wave vector along (2, 3, 6) / 7, case EPS_H_SQUARED",factor on nu (viscous term),0.9735,1,-2.65 %,-,"Richardson order 2.00; ratios 0.969923, 0.972612, 0.973282"
+C,"3-D, h / dx = 4, wave vector along (2, 3, 6) / 7, case EPS_H_SQUARED",factor on xi (angular diffusion),0.9862,1,-1.38 %,-,"Richardson order 2.00; ratios 0.981173, 0.984916, 0.985851"
+C,"3-D, h / dx = 4, wave vector along (2, 3, 6) / 7, EPS_H_SQUARED = 0",factor on nu (viscous term),0.9863,1,-1.37 %,-,"Richardson order 2.00; ratios 0.982730, 0.985444, 0.986121"
+C,"3-D, h / dx = 4, wave vector along (2, 3, 6) / 7, EPS_H_SQUARED = 0",factor on xi (angular diffusion),1.0000,1,-9.0e-04 %,-,"Richardson order 2.00; ratios 0.994955, 0.998734, 0.999677"
+E,"3-D, h / dx = 4, lattice, 12,167 particles","Theta alpha / c, three components (rigid rotation: curl v = 2 Omega)","(1.400000, -2.199999, 3.199998)","(1.4, -2.2, 3.2)",-,1.5e-06,largest |a| 8.9e-07 m/s^2
+E,"3-D, h / dx = 4, lattice, 12,167 particles","a / c against curl w, three components (linear w)","(1.900000, 1.100000, 3.100000)","(1.9, 1.1, 3.1)",-,1.1e-06,
+E,"3-D, h / dx = 4, jittered by 0.1 dx, 12,167 particles","Theta alpha / c, three components (rigid rotation: curl v = 2 Omega)","(1.400000, -2.200000, 3.200000)","(1.4, -2.2, 3.2)",-,1.5e-06,largest |a| 1.7e-06 m/s^2
+E,"3-D, h / dx = 4, jittered by 0.1 dx, 12,167 particles","a / c against curl w, three components (linear w)","(1.900000, 1.100000, 3.100000)","(1.9, 1.1, 3.1)",-,1.5e-06,

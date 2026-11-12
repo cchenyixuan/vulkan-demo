@@ -171,6 +171,7 @@ class CachedStateReader:
                 "velocities": velocity[alive, :2].astype(np.float64),
                 "mass": velocity[alive, 3].astype(np.float64),
                 "density": density[alive, 0].astype(np.float64) + offset,
+                "pressure": density[alive, 1].astype(np.float64),
                 "material": material[alive].copy()}
 
     def destroy(self) -> None:
@@ -777,6 +778,11 @@ def main() -> int:
                        "mean_v": float((light["mass"][fluid] * light["velocities"][fluid, 1]).sum() / fluid_mass),
                        "density_min": float(light["density"][fluid].min()),
                        "density_max": float(light["density"][fluid].max()),
+                       # the level of the fluid (Stage 6 of docs/micropolar_design.md: every run records it)
+                       "density_mean": float(light["density"][fluid].mean()),
+                       "pressure_mean": float(light["pressure"][fluid].mean()),
+                       "pressure_min": float(light["pressure"][fluid].min()),
+                       "pressure_max": float(light["pressure"][fluid].max()),
                        "alive": alive, "mls_fallbacks": int(sum(result["mls_fallback"].sum() for result in sampled.values())),
                        "min_neighbours": int(min(result["neighbours"].min() for result in sampled.values())),
                        "fps": fps, "sample_s": time.perf_counter() - sample_started, "segment": segment_index,

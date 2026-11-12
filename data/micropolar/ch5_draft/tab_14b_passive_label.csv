@@ -1,0 +1,12 @@
+slabs K,devices,walls,fluid particles compared,bitwise mismatches of w,wall particles,wall particles changed,ids unique and complete,seam crossings,defrags,restarts,steps,cuts at x (L),u: largest rms to a Newtonian reference / largest reference pair rms,v: the same,rho: the same,Newtonian references
+1,RTX 5090,simple,"63,001",0,"11,528",0,yes,0,4,1,"1,500 + 1,500",-,1.53,2.37,2.96,three
+1,RTX 5090,simple,"63,001",0,"11,528",0,yes,0,4,1,"1,500 + 1,500",-,0.96,0.89,1.02,ten (the comparison repeated)
+1,RTX 5090,adami,"63,001",0,"11,528",0,yes,0,4,1,"1,500 + 1,500",-,0.96,1.02,1.00,three
+2,RTX 5090 + RX 7900 XTX,simple,"63,001",0,"11,528",0,yes,"1,444",4,1,"1,500 + 1,500",+0.004,0.91,0.67,0.94,three
+2,RTX 5090 + RX 7900 XTX,adami,"63,001",0,"11,528",0,yes,"1,444",4,1,"1,500 + 1,500",+0.004,0.73,0.93,1.02,three
+2,RTX 5090 (2 slabs on one card),simple,"63,001",0,"11,528",0,yes,"1,444",4,1,"1,500 + 1,500",+0.004,1.19,1.21,1.35,three
+2,RTX 5090 (2 slabs on one card),adami,"63,001",0,"11,528",0,yes,"1,444",4,1,"1,500 + 1,500",+0.004,1.12,0.97,0.93,three
+3,RTX 5090 (3 slabs on one card),simple,"63,001",0,"11,528",0,yes,"2,488",4,1,"1,500 + 1,500","-0.176, +0.164",0.96,0.98,1.02,three
+3,RTX 5090 (3 slabs on one card),adami,"63,001",0,"11,528",0,yes,"2,476",4,1,"1,500 + 1,500","-0.176, +0.164",1.09,1.05,1.01,three
+3,RTX 5090 (2 slabs) + RX 7900 XTX,simple,"63,001",0,"11,528",0,yes,"2,488",4,1,"1,500 + 1,500","-0.176, +0.164",2.02,1.97,1.20,three
+3,RTX 5090 (2 slabs) + RX 7900 XTX,adami,"63,001",0,"11,528",0,yes,"2,476",4,1,"1,500 + 1,500","-0.176, +0.164",1.03,0.94,0.98,three

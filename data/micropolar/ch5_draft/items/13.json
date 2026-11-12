@@ -1,0 +1,446 @@
+{
+ "item": "13",
+ "title": "Seepage of the thesis walls: velocity into the wall against wall pressure; the wall candidates",
+ "status": "final (existing data)",
+ "caption": "Seepage of the thesis walls (adami walls that keep rho0, with the density diffusion term acting on fluid-wall pairs): velocity of the fluid into the wall at the wall surface, over U, against the wall pressure, over rho U^2; lines: least-squares fits. (a) Newtonian flow between eccentric cylinders (eccentricity ratio 0.6, R1 = 4 g, R2 = 5 g, g = 100 dx, Ma = 0.02) in the thesis configuration at Re = 10 and 1, around the rotor and the stator: 72 angle bins, velocity and pressure extrapolated to the surface from the fluid between 0.5 and 12 dx from it, mean of the 24 states of the last quarter of the run (19 at Re = 1, where 2 particles had left the domain by step 188,000 of 196,000). Slopes: 0.0093 (rotor, correlation 0.97) and 0.0090 (stator, 0.97) at Re = 10, that is v_n / U = 0.47 and 0.45 Ma p / (rho U^2); 0.0026 (rotor, correlation 0.91) and 0.0023 (stator, 0.85) at Re = 1. For contrast the candidate (c), density diffusion between fluid pairs only, at Re = 10 (rotor and stator together): slope 0.00007 and 0.00003. (b) Lid-driven cavity, Re = 1000, Ma = 0.01, thesis configuration, n = 250 and 500: the same quantities at the four walls (50 bins along each wall without the corner squares of side 12 dx; pressure from the particle volumes). The steep branch is the right wall below the lid, where the jet from the lid turns down and the extrapolation to the surface is poor: the rms velocity into the right wall is 0.52 and 0.31 % of U at n = 250 and 500, and 0.49 and 0.27 % with the tight walls (c), so it is not seepage; slopes wall by wall: n = 250: bottom 0.012, left 0.014, right 0.105, lid 0.009; n = 500: bottom 0.010, left 0.013, right 0.037, lid 0.009. (c), (d) The velocity into the wall of the thesis run minus that of the run with tight walls (c), against the wall pressure of the thesis run, for n = 250 and n = 500. Slopes: n = 250: 0.0079 for the four walls together (correlation 0.69; bottom 0.0069, left 0.0065, right 0.0082, lid 0.0079), that is v_n / U = 0.79 Ma p / (rho U^2); n = 500: 0.0080 for the four walls together (correlation 0.95; bottom 0.0075, left 0.0083, right 0.0062, lid 0.0096), that is v_n / U = 0.80 Ma p / (rho U^2). Snapshots averaged: n = 250: 21 snapshots from t = 80.2 to 100.0 (thesis), 51 from t = 40.6 to 90.1 (tight); n = 500: 50 snapshots from t = 40.2 to 89.4 (thesis), 50 from t = 40.2 to 89.4 (tight). Runs: `thesis_e60_re10`, `thesis_e60_re1`, `fd_e60_re10` (`thesis-ch5-rc1-9-gbfcc024`); cavity `n250_laplacian_eps1em6`, `n500_laplacian_eps1em6`, `n250_fd`, `n500_fd` (commits 5bc8e0d = `thesis-ch5-rc1-10-g5bc8e0d`, bfcc024 = `thesis-ch5-rc1-9-gbfcc024`, c08cb97 = `micropolar-base-12-gc08cb97`). Stage 5 (design note 14.4.3 and 14.4.4); existing data, not rerun on thesis-ch5-rc2. Table tab_13_candidates: the four candidates on the three tests (bearing at eccentricity ratio 0.6 against the exact Stokes load, concentric control at g = 100 dx with the micropolar run at K = 3, l = 10 dx, cavity at n = 250 and 500 against Marchi et al.), every number from the three data files. Thesis walls: load -50.7 % (Re = 10) and -84.7 % (Re = 1), 6.6 % of the fluid behind the wall surfaces; the three tight candidates -0.61 to -0.35 % and -1.07 to -0.42 %. In the cavity (b) loses particles (by t = 3.6 and 4.7), and the mean density of (c) and (d') runs away ((c): -1.31 and -0.45 kg/m^3 per L / U at n = 250 and 500; thesis +5e-05 and -1e-07).",
+ "files": [
+  "fig_13_seepage.pdf",
+  "fig_13_seepage.png",
+  "tab_13_candidates.csv",
+  "tab_13_candidates.tex"
+ ],
+ "sources": [
+  "data/micropolar/stage5/benchmark.json",
+  "data/micropolar/stage5/concentric.json",
+  "data/micropolar/stage5/cavity.json",
+  "thesis_e60_re10",
+  "thesis_e60_re1",
+  "thesis_g100_control",
+  "g100_k3_m5",
+  "n250_laplacian_eps1em6",
+  "n500_laplacian_eps1em6",
+  "nd_e60_re10",
+  "nd_e60_re1",
+  "nd_g100_control",
+  "nd_g100_k3_m5",
+  "n250_nd",
+  "n500_nd",
+  "fd_e60_re10",
+  "fd_e60_re1",
+  "fd_g100_newtonian",
+  "fd_g100_k3_m5",
+  "n250_fd",
+  "n500_fd",
+  "ew_e60_re10",
+  "ew_e60_re1",
+  "ew_g100_newtonian",
+  "ew_g100_k3_m5",
+  "n250_ew",
+  "n500_ew"
+ ],
+ "numbers": {
+  "bearing": {
+   "thesis_e60_re10, rotor": {
+    "slope": 0.009335663236229506,
+    "intercept": 0.0017275835375159443,
+    "correlation": 0.9711517474019173,
+    "slope_over_mach": 0.4667831618114753,
+    "velocity_min": -0.008009011047926699,
+    "velocity_max": 0.012918427326393138,
+    "pressure_min_over_dynamic_pressure": -1.1101250215309229,
+    "pressure_max_over_dynamic_pressure": 0.9641668611976335,
+    "bins": 72,
+    "states": 24
+   },
+   "thesis_e60_re10, stator": {
+    "slope": 0.009014020418196995,
+    "intercept": 0.0016179265124578613,
+    "correlation": 0.9659439868509178,
+    "slope_over_mach": 0.45070102090984976,
+    "velocity_min": -0.007728229024816582,
+    "velocity_max": 0.013135844768385018,
+    "pressure_min_over_dynamic_pressure": -1.0822135332613276,
+    "pressure_max_over_dynamic_pressure": 0.9986173884836615,
+    "bins": 72,
+    "states": 24
+   },
+   "thesis_e60_re1, rotor": {
+    "slope": 0.002590112083273336,
+    "intercept": 0.0022172625164503406,
+    "correlation": 0.9058732405390186,
+    "slope_over_mach": 0.1295056041636668,
+    "velocity_min": -0.0030521397674591008,
+    "velocity_max": 0.01048157047995903,
+    "pressure_min_over_dynamic_pressure": -2.8119036334766543,
+    "pressure_max_over_dynamic_pressure": 2.306023292192876,
+    "bins": 72,
+    "states": 19
+   },
+   "thesis_e60_re1, stator": {
+    "slope": 0.0022936620603432427,
+    "intercept": 0.002274773903398785,
+    "correlation": 0.8517592195766964,
+    "slope_over_mach": 0.11468310301716213,
+    "velocity_min": -0.0027345849624918843,
+    "velocity_max": 0.010612168139635563,
+    "pressure_min_over_dynamic_pressure": -2.668563871532759,
+    "pressure_max_over_dynamic_pressure": 2.35424946144321,
+    "bins": 72,
+    "states": 19
+   },
+   "fd_e60_re10, rotor": {
+    "slope": 6.867384546483443e-05,
+    "correlation": 0.6809602232070602,
+    "velocity_min": -0.0001947187870976412,
+    "velocity_max": 0.000402516819627532
+   },
+   "fd_e60_re10, stator": {
+    "slope": 3.284706237752904e-05,
+    "correlation": 0.6228765638241156,
+    "velocity_min": -0.00021642718726946387,
+    "velocity_max": 0.00017748723462126064
+   }
+  },
+  "cavity": {
+   "n = 250": {
+    "thesis_run": "n250_laplacian_eps1em6",
+    "tight_run": "n250_fd",
+    "thesis_commit": "c08cb97",
+    "tight_commit": "5bc8e0d",
+    "thesis_snapshots": 21,
+    "thesis_snapshot_times": [
+     80.19,
+     99.99000000000001
+    ],
+    "tight_snapshots": 51,
+    "tight_snapshot_times": [
+     40.59,
+     90.09
+    ],
+    "difference_all_walls": {
+     "slope": 0.007943682356589179,
+     "intercept": 1.2124289985806875e-05,
+     "correlation": 0.6859299799916754,
+     "rms": 0.0005100897475941537,
+     "pressure_min": -0.09701483859865402,
+     "pressure_max": 0.18021953299836965,
+     "difference_min": -0.0016406566887785508,
+     "difference_max": 0.0025988820137033755
+    },
+    "slope_over_mach": 0.7943682356589179,
+    "difference_by_wall": {
+     "bottom": {
+      "slope": 0.006884617376452341,
+      "correlation": 0.6429422205998102
+     },
+     "left": {
+      "slope": 0.006461895570118234,
+      "correlation": 0.7993611486990189
+     },
+     "right": {
+      "slope": 0.00816782850137389,
+      "correlation": 0.6382344913807328
+     },
+     "lid": {
+      "slope": 0.00790018347222935,
+      "correlation": 0.7101576381507055
+     }
+    },
+    "thesis_by_wall": {
+     "bottom": {
+      "slope": 0.012332782757295385,
+      "correlation": 0.6005834052983245,
+      "velocity_rms": 0.00019997502926586468,
+      "velocity_min": -0.00032616393704130834,
+      "velocity_max": -7.697338351136611e-05,
+      "pressure_min": -0.03160390144004944,
+      "pressure_max": -0.0205127637793696
+     },
+     "left": {
+      "slope": 0.01373814178625169,
+      "correlation": 0.5679290279655298,
+      "velocity_rms": 0.0005707798601001651,
+      "velocity_min": -0.0029210309579384666,
+      "velocity_max": -4.8261155051948214e-05,
+      "pressure_min": -0.06231505075478281,
+      "pressure_max": -0.01817984132098934
+     },
+     "right": {
+      "slope": 0.10523263392024404,
+      "correlation": 0.9461078888239928,
+      "velocity_rms": 0.005187730361495081,
+      "velocity_min": -0.0012894571545676212,
+      "velocity_max": 0.022598102152375142,
+      "pressure_min": -0.07501508379358596,
+      "pressure_max": 0.16452328725695584
+     },
+     "lid": {
+      "slope": 0.008655007828804259,
+      "correlation": 0.2661764341760469,
+      "velocity_rms": 0.0019631194648103032,
+      "velocity_min": -0.00815808258296461,
+      "velocity_max": 0.002449942128633988,
+      "pressure_min": -0.09701483859865402,
+      "pressure_max": 0.18021953299836965
+     }
+    },
+    "tight_by_wall": {
+     "bottom": {
+      "slope": 1.5611171914665783e-06,
+      "correlation": 0.09444752922721168,
+      "velocity_rms": 5.749394492154202e-05
+     },
+     "left": {
+      "slope": -4.789390320735191e-06,
+      "correlation": -0.034081795522377986,
+      "velocity_rms": 0.00041421827776619334
+     },
+     "right": {
+      "slope": 1.2790086403930607e-05,
+      "correlation": 0.01072747694751928,
+      "velocity_rms": 0.0049073127201300585
+     },
+     "lid": {
+      "slope": 8.881150365885185e-05,
+      "correlation": 0.20571591501595402,
+      "velocity_rms": 0.0016636306571631337
+     }
+    }
+   },
+   "n = 500": {
+    "thesis_run": "n500_laplacian_eps1em6",
+    "tight_run": "n500_fd",
+    "thesis_commit": "c08cb97",
+    "tight_commit": "bfcc024",
+    "thesis_snapshots": 50,
+    "thesis_snapshot_times": [
+     40.2,
+     89.44500000000001
+    ],
+    "tight_snapshots": 50,
+    "tight_snapshot_times": [
+     40.2,
+     89.44500000000001
+    ],
+    "difference_all_walls": {
+     "slope": 0.008029145117718541,
+     "intercept": 2.825392756200871e-07,
+     "correlation": 0.9538369815712369,
+     "rms": 0.00047848515340793903,
+     "pressure_min": -0.08182292870721256,
+     "pressure_max": 0.3477962011129555,
+     "difference_min": -0.0007378583813274827,
+     "difference_max": 0.004170898891404622
+    },
+    "slope_over_mach": 0.8029145117718541,
+    "difference_by_wall": {
+     "bottom": {
+      "slope": 0.007545080981934416,
+      "correlation": 0.9817663382799624
+     },
+     "left": {
+      "slope": 0.008295765795478745,
+      "correlation": 0.9849126964598386
+     },
+     "right": {
+      "slope": 0.00621294413772557,
+      "correlation": 0.9822543871199753
+     },
+     "lid": {
+      "slope": 0.009592698937083692,
+      "correlation": 0.9706610935901321
+     }
+    },
+    "thesis_by_wall": {
+     "bottom": {
+      "slope": 0.010097358614180764,
+      "correlation": 0.9466656442011221,
+      "velocity_rms": 0.00011913287350189938,
+      "velocity_min": -0.00016524615976653686,
+      "velocity_max": -5.4858875538881754e-05,
+      "pressure_min": -0.019979645797805097,
+      "pressure_max": -0.00954431854689891
+     },
+     "left": {
+      "slope": 0.012605102188184886,
+      "correlation": 0.6727989703686302,
+      "velocity_rms": 0.00039141068600201254,
+      "velocity_min": -0.002094325308257222,
+      "velocity_max": -3.727953374950554e-05,
+      "pressure_min": -0.05865782710621501,
+      "pressure_max": -0.007444272677200494
+     },
+     "right": {
+      "slope": 0.03723750463894615,
+      "correlation": 0.881030715123391,
+      "velocity_rms": 0.003067212477389106,
+      "velocity_min": -0.0005786445029377538,
+      "velocity_max": 0.02040109111303844,
+      "pressure_min": -0.0615059733823724,
+      "pressure_max": 0.34476854443300803
+     },
+     "lid": {
+      "slope": 0.009302089038684994,
+      "correlation": 0.5149451944819023,
+      "velocity_rms": 0.0014415645326710282,
+      "velocity_min": -0.008629748780590463,
+      "velocity_max": 0.0034110841666325324,
+      "pressure_min": -0.08182292870721256,
+      "pressure_max": 0.3477962011129555
+     }
+    },
+    "tight_by_wall": {
+     "bottom": {
+      "slope": 2.3523995238454644e-06,
+      "correlation": 0.09402666671515697,
+      "velocity_rms": 1.6818213676088895e-05
+     },
+     "left": {
+      "slope": -4.6041905966067325e-05,
+      "correlation": -0.14977466198850392,
+      "velocity_rms": 0.00022503367852625664
+     },
+     "right": {
+      "slope": 0.0015542150356754095,
+      "correlation": 0.4370306074373238,
+      "velocity_rms": 0.002741681992104773
+     },
+     "lid": {
+      "slope": -0.00031340029350147207,
+      "correlation": -0.23195312846515911,
+      "velocity_rms": 0.0011706800867108695
+     }
+    }
+   }
+  },
+  "candidates": {
+   "(a) thesis": {
+    "bearing_load_re10": -0.5071771172553586,
+    "bearing_load_re1": -0.8465125240074487,
+    "behind_walls_share_re10": 0.06588703059116507,
+    "rotor_slope_re10": 0.009335663236229506,
+    "rotor_slope_re1": 0.002590112083273336,
+    "beta_over_nominal": 0.999544721470001,
+    "radial_velocity": 0.00037599197506528806,
+    "d_ratio": 1.0064698551916251,
+    "cavity": {
+     "250": {
+      "u_l2": 0.009338593775355376,
+      "v_l2": 0.010520218642847592,
+      "density_drift": 4.8814142821880276e-05,
+      "density_mean_last": 999.9934841183442,
+      "time_of_last_snapshot": 99.99000000000001,
+      "difference_to_thesis": null
+     },
+     "500": {
+      "u_l2": 0.004183074429547396,
+      "v_l2": 0.004286287459097089,
+      "density_drift": -1.1104401178315321e-07,
+      "density_mean_last": 999.9944174569998,
+      "time_of_last_snapshot": 89.44500000000001,
+      "difference_to_thesis": null
+     }
+    }
+   },
+   "(b) diffusion off": {
+    "bearing_load_re10": -0.003498554370535145,
+    "bearing_load_re1": -0.004175611085240893,
+    "behind_walls_share_re10": 0.0,
+    "rotor_slope_re10": 9.998611436965291e-06,
+    "rotor_slope_re1": 1.402296057568772e-06,
+    "beta_over_nominal": 0.9996592440318749,
+    "radial_velocity": -1.23982379851824e-05,
+    "d_ratio": 1.0070131220289233,
+    "cavity": {
+     "250": {
+      "step": 119000,
+      "time": 3.5700000000000003,
+      "lost": 40,
+      "last_sample_time": 3.36,
+      "max_speed": 2.03171767022837
+     },
+     "500": {
+      "step": 312000,
+      "time": 4.68,
+      "lost": 7,
+      "last_sample_time": 4.485,
+      "max_speed": 2.451469411287837
+     }
+    }
+   },
+   "(c) fluid pairs only": {
+    "bearing_load_re10": -0.0061076869011050805,
+    "bearing_load_re1": -0.005791312595839648,
+    "behind_walls_share_re10": 0.0,
+    "rotor_slope_re10": 6.867384546483443e-05,
+    "rotor_slope_re1": -9.725771963617812e-07,
+    "beta_over_nominal": 0.9996115568165062,
+    "radial_velocity": 1.7080690490088998e-05,
+    "d_ratio": 1.0069221974241147,
+    "cavity": {
+     "250": {
+      "u_l2": 0.00911580365360731,
+      "v_l2": 0.012627939920455012,
+      "density_drift": -1.313516543773828,
+      "density_mean_last": 894.0807835510278,
+      "time_of_last_snapshot": 90.09,
+      "difference_to_thesis": {
+       "slope": 0.007943682356589179,
+       "correlation": 0.6859299799916754,
+       "rms": 0.0005100897475941537
+      }
+     },
+     "500": {
+      "u_l2": 0.006183307454902152,
+      "v_l2": 0.007370227303204484,
+      "density_drift": -0.452909156818013,
+      "density_mean_last": 959.9965663334981,
+      "time_of_last_snapshot": 89.44500000000001,
+      "difference_to_thesis": {
+       "slope": 0.008029145117718541,
+       "correlation": 0.9538369815712369,
+       "rms": 0.00047848515340793903
+      }
+     }
+    }
+   },
+   "(d') eos walls": {
+    "bearing_load_re10": -0.0058923241046962005,
+    "bearing_load_re1": -0.010714557018856707,
+    "behind_walls_share_re10": 0.0,
+    "rotor_slope_re10": 8.179379462585406e-05,
+    "rotor_slope_re1": 2.1575372344755844e-05,
+    "beta_over_nominal": 0.9996108540496417,
+    "radial_velocity": 2.052481650665303e-05,
+    "d_ratio": 1.0070723830884558,
+    "cavity": {
+     "250": {
+      "u_l2": 0.010498619970584981,
+      "v_l2": 0.012295470797782121,
+      "density_drift": -0.6796106705494841,
+      "density_mean_last": 930.3562371529755,
+      "time_of_last_snapshot": 99.99000000000001,
+      "difference_to_thesis": {
+       "slope": 0.008822972209722743,
+       "correlation": 0.7224277282460088,
+       "rms": 0.0005240656041060229
+      }
+     },
+     "500": {
+      "u_l2": 0.0062140507953870865,
+      "v_l2": 0.0071525522350067185,
+      "density_drift": -0.30645058488653615,
+      "density_mean_last": 969.1676443478948,
+      "time_of_last_snapshot": 99.495,
+      "difference_to_thesis": {
+       "slope": 0.007091905694943429,
+       "correlation": 0.9853807407107538,
+       "rms": 0.00041690467073174164
+      }
+     }
+    }
+   }
+  }
+ },
+ "tag": "Stage 5, `thesis-ch5-rc1-6-g5d07112`, `thesis-ch5-rc1-9-gbfcc024`; cavity `thesis-ch5-rc1-10-g5bc8e0d`, `thesis-ch5-rc1-9-gbfcc024`, `micropolar-base-12-gc08cb97`"
+}

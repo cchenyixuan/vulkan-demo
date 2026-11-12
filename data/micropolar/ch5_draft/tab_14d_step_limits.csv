@@ -1,0 +1,4 @@
+term,diffusivity D,largest stable dt D / h^2,smallest failing dt D / h^2,largest stable dt D / dx^2,s = largest stable / 1.6,probes,"forward-Euler bound of the lattice symbol, 2 / (lambda_max h^2)",largest stable / bound
+"viscous term, laplacian form (thesis configuration)",nu,0.05246,0.05341,1.31,0.0328,9,0.05576,0.94
+"viscous term, monaghan_gingold form, same EPS factor",nu,0.02134,0.02173,0.53,0.0133,9,0.02219,0.96
+angular diffusion,xi / Theta,0.05341,0.05438,1.34,0.0334,9,0.05576,0.96

@@ -1,0 +1,849 @@
+{
+ "item": "14",
+ "title": "Solver checks: operator checks, passive label, chain against one slab, step limits, cost",
+ "status": "final (existing data)",
+ "caption": "Solver checks of design note Sections 8 to 12, as they stand; every number is read from the data files under data/micropolar. Existing data of Stages 1 to 3, not rerun on thesis-ch5-rc2; the cards are one RTX 5090 and one RX 7900 XTX.\n\n(a) tab_14a_operator_checks (design note Sections 8 (T3, T4) and 10 (checks C and E); data in the tree since `micropolar-base-9-g278a557`). The micropolar operators on prescribed fields, one slab, 2-D at h = 5 dx unless said otherwise. Rigid rotation and a linear w_z with the regularization xi = 0: Theta alpha_z / c = 2 to 8.2e-07 and a / c = curl w to 1.4e-06 (largest relative error over the particles, lattice and jittered); with the default regularization 0.001 both are off by 8.9e-04 to 9.2e-04, the factor M (M + xi I)^-1. Relaxation of a uniform w (T4): the scheme's product is met to 4.6e-07 over 300 steps, and the difference to the exponential is the expected first-order one. Constant factors at h = 5 dx (check C, Richardson limits of three resolutions, orders 1.995 to 2.005): 0.9808 on xi in every direction, 0.9587 to 1.0029 on nu with the direction of the wave vector. These are the factors of the viscous form of that stage (Monaghan-Gingold) with EPS factor 0.0025; the thesis configuration uses the laplacian form with EPS factor 1e-6. 3-D operators at h = 4 dx (check E): exact to 1.5e-06.\n\n(b) tab_14b_passive_label (design note Section 10 (checks A and B); data in the tree since `micropolar-base-9-g278a557`). With c = 0 and xi = 0 the micro-rotation is a label that the solver must only carry: w_0 of every fluid particle derived from its global id, the n = 250 cavity started from the K = 1 state at t = 40.2, 1,500 steps, the state written and restarted, 1,500 more. 0 bitwise mismatches among the 63,001 fluid particles in each of the 10 runs (K = 1, 2 and 3, simple and adami walls, one card and the pair), 0 of the 11,528 wall particles changed; per run 4 defrags, one restart and 1,444 to 2,488 crossings of a cut in the chains. u, v and rho against Newtonian runs of the same two phases, largest sampled rms over the largest rms between two references (three references per run): 0.67 to 1.35 at K = 1 and 2, 0.94 to 2.02 at K = 3 (the largest on RTX 5090 (2 slabs) + RX 7900 XTX, simple walls); the floor of three references was too small once, 2.96 at K = 1 with simple walls, which is 1.02 when the comparison is repeated with ten references.\n\n(c) tab_14c_chain_against_one_slab (design note Sections 9 (T5), 10 (check D) and 11 (check D with ten runs); data in the tree since `micropolar-base-9-g278a557`, the ten-run set since `micropolar-base-13-g7e76dcb`). The micropolar cavity `micropolar_cavity_n250_re400` (n = 250, Re = 400, K = 3) as a chain of two slabs against one slab, on RTX 5090 + RX 7900 XTX (the pair) and with both slabs on the RTX 5090 (one card); extrema of the centre-line profiles of u, v (in U) and w (in U / L). From rest to t = 40.2 (1,340,000 steps, mean over the last 5 time units; in the .csv): relative differences to the first K = 1 run: the K = 1 repeat 6e-05 to 7e-04; K = 2 on the pair 3e-05 to 9e-04; K = 2 on one card 2e-05 to 3e-04. K = 2 agrees with K = 1 as well as K = 1 with its repeat, to three digits; four are not reached by either. Paired continuations from the K = 1 state at t = 40.2 (200,000 steps each, first time unit discarded, mean of the next five; cut at x = +0.0036 L from the vertical centre line): with five runs per group every quantity is within 2.5 K = 1 standard deviations. With 10 runs at K = 1, 10 at K = 2 on one card and the 5 on the pair (the table; differences of the means in standard errors of the difference): the minimum of w on the line next to the cut differs by +0.04 (one card) and -0.47 (pair); the largest offset of an extremum on one card is min v on the horizontal centre line, -2.9 (-4.6e-05 U; -0.4 on the pair), and on the pair min u on the vertical centre line, +2.3 (+5.4e-05 U; +1.0 on one card). Neither is established as a seam effect and neither is excluded: the offsets are in the fifth digit and the standard deviations are from five and ten runs. The L2 rows are biased low for K = 1 (each K = 1 run is part of the mean it is compared with). Per particle, 20 steps after a prescribed smooth state: the acceleration within 4 h of the cut differs from a K = 1 run by 1.5e-05 (K = 2 on one card) against 1.2e-05 to 1.3e-05 for a K = 1 repeat, and by 6.8e-05 to 8.6e-05 on the pair against 9.3e-05 to 1.2e-04 for K = 1 on the other card (relative rms, simple and adami walls).\n\n(d) tab_14d_step_limits (design note Section 12.2; data in the tree since `micropolar-base-15-g8cc60ea`). Explicit step limits by bisection on runs that stay intact or blow up: annulus with 101,768 particles (g = 50 dx), adami walls, EPS factor 1e-6, 2,000 steps at the acoustic step, the diffusivity raised until the run fails; h is the support radius (5 dx). Largest stable dt D / h^2: 0.0525 for the laplacian form of the viscous term (1.31 in dx^2), 0.0213 for the Monaghan-Gingold form, 0.0534 for the angular diffusion: the laplacian form allows a step 2.46 times larger. The limits are 0.96 and 0.94 of the forward-Euler bound of the lattice symbols. The cases use s = limit / 1.6: 0.0328 (laplacian), 0.0133 (Monaghan-Gingold), 0.0334 (angular).\n\n(e) tab_14e_cost (design note Section 12.9; data in the tree since `thesis-ch5-rc1`). Lid-driven cavity with 1,046,529 and 4,182,025 particles on one RTX 5090 (the rig's display card), K = 1 chain bench at depth 2, warm-up 1,000 steps, then 6,000 (1M) and 3,000 (4M) measured steps, trials interleaved; drift 0 in the 42 runs of the table. Steps trial by trial, 1M and 4M: paper to paper with adami walls 0.904 and 0.935; to the thesis configuration (form and EPS factor) 0.994 and 0.993; thesis to micropolar 0.771 and 0.774, so the micropolar terms cost 23 % of the throughput of the thesis configuration: 500 steps/s at 1M and 132 at 4M (523 and 552 M particle-steps/s). The trials of a row sit on two levels (paper row: 2.4 % apart at 1M, trials 1, 2, 4 on the lower one; at 4M trial 1 is 2.6 % low; cause not found), which is what the standard deviations of the rows show; the ratios hold within a trial. Traced runs: the force kernel takes 55.5 % (1M) and 54.6 % (4M) more with the micropolar terms; force and predict together are 98 % and 102 % of the added step time. Memory: +25 % per particle (369 to 461 bytes). K = 2 on RTX 5090 + RX 7900 XTX, 4M micropolar, weights 1.28 : 0.72: 191.2 steps/s, 0.934 +- 0.007 of the sum of the two K = 1 runs made at the same time (three trials), 1.44 times the RTX 5090 alone.",
+ "files": [
+  "tab_14a_operator_checks.csv",
+  "tab_14a_operator_checks.tex",
+  "tab_14b_passive_label.csv",
+  "tab_14b_passive_label.tex",
+  "tab_14c_chain_against_one_slab.csv",
+  "tab_14c_chain_against_one_slab.tex",
+  "tab_14d_step_limits.csv",
+  "tab_14d_step_limits.tex",
+  "tab_14e_cost.csv",
+  "tab_14e_cost.tex"
+ ],
+ "sources": [
+  "data/micropolar/stage1_2/t3_operators.json",
+  "data/micropolar/stage1_2/t4_relaxation.json",
+  "data/micropolar/checks/c_factors.json",
+  "data/micropolar/checks/e_operators3d.json",
+  "data/micropolar/checks/a_label_0.json",
+  "data/micropolar/checks/a_label_0_1.json",
+  "data/micropolar/checks/a_label_0_0.json",
+  "data/micropolar/checks/a_label_0_0_0.json",
+  "data/micropolar/checks/a_label_0_0_1.json",
+  "data/micropolar/checks/a_label_0_floor10.json",
+  "data/micropolar/t5/compare_k1_b.json",
+  "data/micropolar/t5/compare_k2_cross.json",
+  "data/micropolar/t5/compare_k2_same.json",
+  "data/micropolar/t5/k1_a/run.json",
+  "data/micropolar/checks/d/paired.json",
+  "data/micropolar/checks/d/paired10.json",
+  "data/micropolar/stage1_2/seam_k2.json",
+  "data/micropolar/stage3/step_limit.json",
+  "data/micropolar/stage3/lattice_spectral_radius.txt",
+  "data/micropolar/stage3/cost.json"
+ ],
+ "numbers": {
+  "a": {
+   "T3 rigid rotation, lattice": {
+    "mean": 1.9999996845537522,
+    "relative_error_max": 8.167124641023094e-07,
+    "acceleration_max": 3.182496044473737e-08
+   },
+   "T3 rigid rotation, jittered": {
+    "mean": 1.9999999644383193,
+    "relative_error_max": 6.132619437826392e-07,
+    "acceleration_max": 2.8453353759460292e-08
+   },
+   "T3 rigid rotation, lattice, default xi": {
+    "mean": 1.998229842560427,
+    "relative_error_max": 0.0008857247502532806,
+    "acceleration_max": 3.179680518883288e-08
+   },
+   "T3 rigid rotation, jittered, default xi": {
+    "mean": 1.9982284309799294,
+    "relative_error_max": 0.0009162423282894627,
+    "acceleration_max": 2.84289637835586e-08
+   },
+   "T3 linear w_z, lattice": {
+    "curl_relative_error_max": 1.1968190820727261e-06,
+    "laplacian_over_gradient_per_spacing_max": 5.8114595522754976e-05
+   },
+   "T3 linear w_z, jittered": {
+    "curl_relative_error_max": 1.434452667740367e-06,
+    "laplacian_over_gradient_per_spacing_max": 0.07084310351611811
+   },
+   "T3 linear w_z, lattice, default xi": {
+    "curl_relative_error_max": 0.0008860141922236756,
+    "laplacian_over_gradient_per_spacing_max": 5.8114595522754976e-05
+   },
+   "T3 linear w_z, jittered, default xi": {
+    "curl_relative_error_max": 0.0009301915560643099,
+    "laplacian_over_gradient_per_spacing_max": 0.07078047610680781
+   },
+   "T3 sin(k x) limit, case EPS_H_SQUARED": {
+    "limit": 0.9807842238467104,
+    "order": 1.971081686676132
+   },
+   "T3 sin(k x) limit, EPS_H_SQUARED = 0": {
+    "limit": 0.9999847619055969,
+    "order": 1.97083078187014
+   },
+   "T4 after 1 steps": {
+    "mean": 2.992499828338623,
+    "product": 2.9925000004708027,
+    "largest_deviation": 5.7521196139553865e-08,
+    "relative_to_exponential": -3.1877338424468604e-06,
+    "expected_first_order_difference": -3.130212826274459e-06
+   },
+   "T4 after 100 steps": {
+    "mean": 1.8218766450881958,
+    "product": 1.8218774754722449,
+    "largest_deviation": 4.557847935737769e-07,
+    "relative_to_exponential": -0.0012444514047053046,
+    "expected_first_order_difference": -0.0012439961869062932
+   },
+   "T4 after 300 steps": {
+    "mean": 0.668552041053772,
+    "product": 0.6685522320296643,
+    "largest_deviation": 2.856559041530815e-07,
+    "relative_to_exponential": -0.003746385363446403,
+    "expected_first_order_difference": -0.0037461007776380395
+   },
+   "C 2-D, h / dx = 5, wave vector along a lattice axis, case EPS_H_SQUARED, nu": {
+    "factor": 0.9587252843967161,
+    "order": 1.9978482329509624
+   },
+   "C 2-D, h / dx = 5, wave vector along a lattice axis, case EPS_H_SQUARED, xi": {
+    "factor": 0.9807992649200423,
+    "order": 1.996181944868615
+   },
+   "C 2-D, h / dx = 5, wave vector at 22.5 degrees, case EPS_H_SQUARED, nu": {
+    "factor": 0.9808002225113553,
+    "order": 1.9960911488706585
+   },
+   "C 2-D, h / dx = 5, wave vector at 22.5 degrees, case EPS_H_SQUARED, xi": {
+    "factor": 0.980800614187499,
+    "order": 1.9952275048787194
+   },
+   "C 2-D, h / dx = 5, wave vector at 45 degrees, case EPS_H_SQUARED, nu": {
+    "factor": 1.0028725750587457,
+    "order": 1.9966901483860497
+   },
+   "C 2-D, h / dx = 5, wave vector at 45 degrees, case EPS_H_SQUARED, xi": {
+    "factor": 0.9808000955034395,
+    "order": 1.995662730319277
+   },
+   "C 2-D, h / dx = 5, wave vector along a lattice axis, EPS_H_SQUARED = 0, nu": {
+    "factor": 0.974730168410094,
+    "order": 1.997888054477777
+   },
+   "C 2-D, h / dx = 5, wave vector along a lattice axis, EPS_H_SQUARED = 0, xi": {
+    "factor": 1.0000001425426843,
+    "order": 1.9960543249517217
+   },
+   "C 3-D, h / dx = 4, wave vector along (2, 3, 6) / 7, case EPS_H_SQUARED, nu": {
+    "factor": 0.9735043218093434,
+    "order": 2.0043078314845166
+   },
+   "C 3-D, h / dx = 4, wave vector along (2, 3, 6) / 7, case EPS_H_SQUARED, xi": {
+    "factor": 0.9861620233153668,
+    "order": 2.0015677533333522
+   },
+   "C 3-D, h / dx = 4, wave vector along (2, 3, 6) / 7, EPS_H_SQUARED = 0, nu": {
+    "factor": 0.9863452341942635,
+    "order": 2.0049626759243235
+   },
+   "C 3-D, h / dx = 4, wave vector along (2, 3, 6) / 7, EPS_H_SQUARED = 0, xi": {
+    "factor": 0.9999910183780812,
+    "order": 2.002775113284964
+   },
+   "E rigid rotation, lattice": {
+    "relative_error_max": 1.4652109973922745e-06
+   },
+   "E linear w, lattice": {
+    "relative_error_max": 1.1119427352616769e-06
+   },
+   "E rigid rotation, jittered": {
+    "relative_error_max": 1.5287892848484373e-06
+   },
+   "E linear w, jittered": {
+    "relative_error_max": 1.4844717731822175e-06
+   }
+  },
+  "b": {
+   "runs": 11,
+   "mismatches": 0,
+   "wall_mismatches": 0,
+   "fluid_compared": 63001,
+   "wall_particles": 11528,
+   "seam_crossings": [
+    1444,
+    2476,
+    2488
+   ],
+   "largest_ratio_three_references": 2.9589716477400523,
+   "ratios_ten_references": [
+    0.960735978771704,
+    0.8924635938616837,
+    1.0226019984895045
+   ],
+   "ratios_three_references_up_to_two_slabs": [
+    0.6681769071487628,
+    1.354180206336703
+   ],
+   "ratios_three_references_three_slabs": [
+    0.9376904674856922,
+    2.020683976494954
+   ]
+  },
+  "c": {
+   "min u, vertical centre line": {
+    "five": {
+     "K2x": 0.9562515664913303,
+     "K2s": 0.254023469673417
+    },
+    "ten": {
+     "K2s": {
+      "difference": 2.335294638233787e-05,
+      "in_standard_errors": 1.003291646638565,
+      "runs": 10
+     },
+     "K2x": {
+      "difference": 5.410147510420682e-05,
+      "in_standard_errors": 2.3122780491371673,
+      "runs": 5
+     },
+     "K1": {
+      "runs": 10,
+      "mean": -0.4035115005582126,
+      "std": 5.308463221629381e-05
+     }
+    }
+   },
+   "min v, horizontal centre line": {
+    "five": {
+     "K2x": -0.7551909624282758,
+     "K2s": -2.0793698500252793
+    },
+    "ten": {
+     "K2s": {
+      "difference": -4.63727017585569e-05,
+      "in_standard_errors": -2.919309743722724,
+      "runs": 10
+     },
+     "K2x": {
+      "difference": -1.073169449750111e-05,
+      "in_standard_errors": -0.380694197286515,
+      "runs": 5
+     },
+     "K1": {
+      "runs": 10,
+      "mean": -0.5259302658946117,
+      "std": 3.16168378308212e-05
+     }
+    }
+   },
+   "max v, horizontal centre line": {
+    "five": {
+     "K2x": -0.5015739551332524,
+     "K2s": -0.8301232921033761
+    },
+    "ten": {
+     "K2s": {
+      "difference": -1.2227561957622868e-05,
+      "in_standard_errors": -0.7780508622369701,
+      "runs": 10
+     },
+     "K2x": {
+      "difference": -2.0656596039836383e-05,
+      "in_standard_errors": -1.3701479745393543,
+      "runs": 5
+     },
+     "K1": {
+      "runs": 10,
+      "mean": 0.3831812923995851,
+      "std": 3.0046317969572435e-05
+     }
+    }
+   },
+   "min w, vertical centre line (the line next to the cut)": {
+    "five": {
+     "K2x": -0.13158789925937903,
+     "K2s": 0.13659140627590502
+    },
+    "ten": {
+     "K2s": {
+      "difference": 2.431589759321895e-06,
+      "in_standard_errors": 0.03653114791795675,
+      "runs": 10
+     },
+     "K2x": {
+      "difference": -4.377443952829907e-05,
+      "in_standard_errors": -0.47303074224993674,
+      "runs": 5
+     },
+     "K1": {
+      "runs": 10,
+      "mean": -2.1079241351467304,
+      "std": 0.00013981803418405662
+     }
+    }
+   },
+   "max w, vertical centre line": {
+    "five": {
+     "K2x": -0.1613062443386049,
+     "K2s": -0.7857527257085387
+    },
+    "ten": {
+     "K2s": {
+      "difference": -0.0001312584092812985,
+      "in_standard_errors": -0.38282845111257696,
+      "runs": 10
+     },
+     "K2x": {
+      "difference": -5.357814250195325e-05,
+      "in_standard_errors": -0.15009609210882138,
+      "runs": 5
+     },
+     "K1": {
+      "runs": 10,
+      "mean": 0.8166937884289067,
+      "std": 0.000685176440179001
+     }
+    }
+   },
+   "min w, horizontal centre line": {
+    "five": {
+     "K2x": -0.1112310034355439,
+     "K2s": -1.0385209723831266
+    },
+    "ten": {
+     "K2s": {
+      "difference": -2.5582487218178684e-05,
+      "in_standard_errors": -0.35870554821827666,
+      "runs": 10
+     },
+     "K2x": {
+      "difference": 6.747565494102936e-05,
+      "in_standard_errors": 1.2636308269465364,
+      "runs": 5
+     },
+     "K1": {
+      "runs": 10,
+      "mean": -1.6469045408340057,
+      "std": 0.00014124112504370866
+     }
+    }
+   },
+   "max w, horizontal centre line": {
+    "five": {
+     "K2x": 0.32019203851681716,
+     "K2s": 0.17255611742294966
+    },
+    "ten": {
+     "K2s": {
+      "difference": -8.688239098830763e-06,
+      "in_standard_errors": -0.05890577773104483,
+      "runs": 10
+     },
+     "K2x": {
+      "difference": -1.5550946851794478e-05,
+      "in_standard_errors": -0.09171805716556411,
+      "runs": 5
+     },
+     "K1": {
+      "runs": 10,
+      "mean": 1.7677808261719083,
+      "std": 0.00035100708246221617
+     }
+    }
+   },
+   "L2 of u(y) from the K = 1 mean": {
+    "five": {
+     "K2x": 0.4018976348965357,
+     "K2s": 0.12269634019825443
+    },
+    "ten": {
+     "K2s": {
+      "difference": 5.9339203196341056e-06,
+      "in_standard_errors": 0.6014085242023206,
+      "runs": 10
+     },
+     "K2x": {
+      "difference": 1.0103315468120906e-05,
+      "in_standard_errors": 1.214044601145721,
+      "runs": 5
+     },
+     "K1": {
+      "runs": 10,
+      "mean": 4.6281382647959426e-05,
+      "std": 1.5106995782106377e-05
+     }
+    }
+   },
+   "L2 of v(x) from the K = 1 mean": {
+    "five": {
+     "K2x": 0.8062377296277804,
+     "K2s": 2.4583977967919237
+    },
+    "ten": {
+     "K2s": {
+      "difference": 1.1092878631410834e-05,
+      "in_standard_errors": 1.8529907370451593,
+      "runs": 10
+     },
+     "K2x": {
+      "difference": -2.249755118804716e-06,
+      "in_standard_errors": -0.2735578144405866,
+      "runs": 5
+     },
+     "K1": {
+      "runs": 10,
+      "mean": 4.379890276281645e-05,
+      "std": 9.153594454331194e-06
+     }
+    }
+   },
+   "L2 of w(y) from the K = 1 mean": {
+    "five": {
+     "K2x": 0.21910374324226503,
+     "K2s": 0.5084870714449365
+    },
+    "ten": {
+     "K2s": {
+      "difference": 6.467408552324097e-05,
+      "in_standard_errors": 1.1211175841385252,
+      "runs": 10
+     },
+     "K2x": {
+      "difference": 1.528338438560033e-05,
+      "in_standard_errors": 0.3455220879143884,
+      "runs": 5
+     },
+     "K1": {
+      "runs": 10,
+      "mean": 0.0003222611376211406,
+      "std": 0.00010482149780949778
+     }
+    }
+   },
+   "L2 of w(x) from the K = 1 mean": {
+    "five": {
+     "K2x": 0.8180316624914391,
+     "K2s": 1.4208091961277811
+    },
+    "ten": {
+     "K2s": {
+      "difference": 0.00010178778663922391,
+      "in_standard_errors": 2.5998220114994424,
+      "runs": 10
+     },
+     "K2x": {
+      "difference": 3.430923037483282e-05,
+      "in_standard_errors": 1.1375706037916626,
+      "runs": 5
+     },
+     "K1": {
+      "runs": 10,
+      "mean": 0.00030039420168885566,
+      "std": 6.162624112491204e-05
+     }
+    }
+   },
+   "_summary": {
+    "relative_differences_from_rest": {
+     "the K = 1 repeat": [
+      6.199993691957673e-05,
+      0.0007176694836217301
+     ],
+     "K = 2 on the pair": [
+      2.528750953190162e-05,
+      0.0009221292615573251
+     ],
+     "K = 2 on one card": [
+      1.8610310792421814e-05,
+      0.0003407333004650237
+     ]
+    },
+    "largest_difference_five_runs_in_reference_std": 2.4583977967919237,
+    "groups": {
+     "K1": 10,
+     "K2s": 10,
+     "K2x": 5,
+     "K1lap": 1
+    },
+    "cut_x": 0.0035999894142151323,
+    "largest_offset_one_card": {
+     "quantity": "min v, horizontal centre line",
+     "difference": -4.63727017585569e-05,
+     "in_standard_errors": -2.919309743722724,
+     "runs": 10
+    },
+    "largest_offset_pair": {
+     "quantity": "min u, vertical centre line",
+     "difference": 5.410147510420682e-05,
+     "in_standard_errors": 2.3122780491371673,
+     "runs": 5
+    }
+   }
+  },
+  "d": {
+   "laplacian": {
+    "largest_stable": 0.05245733775133308,
+    "smallest_failing": 0.05340952874827195,
+    "in_spacings_squared": 1.311433443783327,
+    "step_number": 0.03278583609458317,
+    "bound": 0.05576,
+    "stable_over_bound": 0.9407700457556148,
+    "probes": 9
+   },
+   "monaghan_gingold": {
+    "largest_stable": 0.021339352920467073,
+    "smallest_failing": 0.021726698916325463,
+    "in_spacings_squared": 0.5334838230116768,
+    "step_number": 0.01333709557529192,
+    "bound": 0.02219,
+    "stable_over_bound": 0.9616652961003638,
+    "probes": 9
+   },
+   "angular": {
+    "largest_stable": 0.05340952874827195,
+    "smallest_failing": 0.05437900365120982,
+    "in_spacings_squared": 1.3352382187067988,
+    "step_number": 0.03338095546766997,
+    "bound": 0.05576,
+    "stable_over_bound": 0.9578466418269719,
+    "probes": 9
+   }
+  },
+  "e": {
+   "1m_paper": {
+    "steps_per_second_mean": 722.1166666666667,
+    "steps_per_second_std": 9.354018744190453,
+    "particle_steps_per_second_mean": 755716033.05,
+    "ratio_to_paper": 1.0,
+    "ratio_to_paper_std": 0.0,
+    "step_from_the_row_above": null,
+    "bytes_per_particle": 350.85492893173523,
+    "intervals_microseconds": {
+     "predict": 34.871290790790795,
+     "voxel update": 22.509190190190193,
+     "correction + density": 602.5059259259259,
+     "wall extrapolation": null,
+     "force": 667.9889189189189,
+     "phase gaps and phase C": 17.764756756756757
+    },
+    "sum_microseconds": 1345.6400825825826,
+    "drift": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "1m_paper_adami": {
+    "steps_per_second_mean": 655.0666666666666,
+    "steps_per_second_std": 9.500701728468934,
+    "particle_steps_per_second_mean": 685546263.5999999,
+    "ratio_to_paper": 0.9036567170384319,
+    "ratio_to_paper_std": 0.000914051558013626,
+    "step_from_the_row_above": {
+     "mean": 0.9036567170384319,
+     "std": 0.000914051558013626,
+     "trials": [
+      4,
+      5,
+      6
+     ]
+    },
+    "bytes_per_particle": 369.26086046349405,
+    "intervals_microseconds": {
+     "predict": 35.18525975975977,
+     "voxel update": 22.16851951951952,
+     "correction + density": 585.3554834834835,
+     "wall extrapolation": 67.80031631631631,
+     "force": 755.9508103103103,
+     "phase gaps and phase C": 17.511837837837838
+    },
+    "sum_microseconds": 1483.9722272272272,
+    "drift": [
+     0,
+     0,
+     0
+    ]
+   },
+   "1m_thesis": {
+    "steps_per_second_mean": 648.2166666666667,
+    "steps_per_second_std": 9.052163645596938,
+    "particle_steps_per_second_mean": 678377539.95,
+    "ratio_to_paper": 0.8976565353959052,
+    "ratio_to_paper_std": 0.0032156516553619335,
+    "step_from_the_row_above": {
+     "mean": 0.993530548662131,
+     "std": 0.0007789092785992443,
+     "trials": [
+      4,
+      5,
+      6
+     ]
+    },
+    "bytes_per_particle": 369.26086046349405,
+    "intervals_microseconds": {
+     "predict": 34.733461961961964,
+     "voxel update": 22.18343193193193,
+     "correction + density": 585.3031246246246,
+     "wall extrapolation": 67.64274524524524,
+     "force": 765.4992867867868,
+     "phase gaps and phase C": 17.74400950950951
+    },
+    "sum_microseconds": 1493.1060600600601,
+    "drift": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "1m_thesis_micropolar": {
+    "steps_per_second_mean": 499.81666666666666,
+    "steps_per_second_std": 7.05957977975083,
+    "particle_steps_per_second_mean": 523072636.35,
+    "ratio_to_paper": 0.6921730320270689,
+    "ratio_to_paper_std": 0.006795574086039884,
+    "step_from_the_row_above": {
+     "mean": 0.771116701210861,
+     "std": 0.010076641419808645,
+     "trials": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+     ]
+    },
+    "bytes_per_particle": 461.270479002493,
+    "intervals_microseconds": {
+     "predict": 75.38460860860862,
+     "voxel update": 24.46967917917918,
+     "correction + density": 589.9215250250251,
+     "wall extrapolation": 69.92312562562563,
+     "force": 1190.6186396396395,
+     "phase gaps and phase C": 19.168085585585583
+    },
+    "sum_microseconds": 1969.4856636636634,
+    "drift": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "4m_paper": {
+    "steps_per_second_mean": 184.01666666666668,
+    "steps_per_second_std": 1.9681632723599642,
+    "particle_steps_per_second_mean": 769562300.4166667,
+    "ratio_to_paper": 1.0,
+    "ratio_to_paper_std": 0.0,
+    "step_from_the_row_above": null,
+    "bytes_per_particle": 349.61601547575634,
+    "intervals_microseconds": {
+     "predict": 256.8883618618619,
+     "voxel update": 127.3542967967968,
+     "correction + density": 2362.1447012012013,
+     "wall extrapolation": null,
+     "force": 2595.0322097097096,
+     "phase gaps and phase C": 36.93228328328328
+    },
+    "sum_microseconds": 5378.351852852853,
+    "drift": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "4m_paper_adami": {
+    "steps_per_second_mean": 172.73333333333332,
+    "steps_per_second_std": 0.0577350269189757,
+    "particle_steps_per_second_mean": 722375118.3333333,
+    "ratio_to_paper": 0.9345357109689181,
+    "ratio_to_paper_std": 0.0005233748720293946,
+    "step_from_the_row_above": {
+     "mean": 0.934535710968918,
+     "std": 0.0005233748720293946,
+     "trials": [
+      4,
+      5,
+      6
+     ]
+    },
+    "bytes_per_particle": 367.9797761515056,
+    "intervals_microseconds": {
+     "predict": 257.427501001001,
+     "voxel update": 127.93843493493493,
+     "correction + density": 2342.140332832833,
+     "wall extrapolation": 82.25765415415415,
+     "force": 2907.1704124124126,
+     "phase gaps and phase C": 37.13937187187187
+    },
+    "sum_microseconds": 5754.073707207207,
+    "drift": [
+     0,
+     0,
+     0
+    ]
+   },
+   "4m_thesis": {
+    "steps_per_second_mean": 170.71666666666667,
+    "steps_per_second_std": 1.919809018279331,
+    "particle_steps_per_second_mean": 713941367.9166666,
+    "ratio_to_paper": 0.9277193787523695,
+    "ratio_to_paper_std": 0.0006506930681209473,
+    "step_from_the_row_above": {
+     "mean": 0.9926669606539565,
+     "std": 0.00033305780156077033,
+     "trials": [
+      4,
+      5,
+      6
+     ]
+    },
+    "bytes_per_particle": 367.9797761515056,
+    "intervals_microseconds": {
+     "predict": 256.71795295295294,
+     "voxel update": 127.72459109109109,
+     "correction + density": 2340.417945445445,
+     "wall extrapolation": 82.2154069069069,
+     "force": 2952.2904124124125,
+     "phase gaps and phase C": 37.0397007007007
+    },
+    "sum_microseconds": 5796.406009509509,
+    "drift": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "4m_thesis_micropolar": {
+    "steps_per_second_mean": 132.05,
+    "steps_per_second_std": 1.347219358530741,
+    "particle_steps_per_second_mean": 552236401.25,
+    "ratio_to_paper": 0.7176012676404779,
+    "ratio_to_paper_std": 0.0003907889109590943,
+    "step_from_the_row_above": {
+     "mean": 0.7735115991159223,
+     "std": 0.0008655862815836078,
+     "trials": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+     ]
+    },
+    "bytes_per_particle": 459.80108687059504,
+    "intervals_microseconds": {
+     "predict": 380.8185035035035,
+     "voxel update": 143.46145245245245,
+     "correction + density": 2292.3857852852852,
+     "wall extrapolation": 84.50639339339338,
+     "force": 4564.491215715716,
+     "phase gaps and phase C": 40.074418918918916
+    },
+    "sum_microseconds": 7505.73776926927,
+    "drift": [
+     0,
+     0,
+     0,
+     0,
+     0,
+     0
+    ]
+   },
+   "pair_4m_thesis_micropolar": {
+    "steps_per_second_mean": 191.23333333333332,
+    "efficiency_mean": 0.9339427164092392,
+    "efficiency_std": 0.006866913868981835,
+    "weights": [
+     1.2817894671496495,
+     0.7182105328503504
+    ],
+    "megabytes_per_slab": [
+     1236.8,
+     712.34
+    ],
+    "trials": [
+     {
+      "trial": 1,
+      "chain_steps_per_second": 191.2,
+      "reference_steps_per_second": {
+       "NVIDIA GeForce RTX 5090": 130.0,
+       "AMD Radeon RX 7900 XTX": 73.0
+      },
+      "efficiency": 0.9418719211822659,
+      "drift": 0,
+      "weights": [
+       1.2817894671496495,
+       0.7182105328503504
+      ]
+     },
+     {
+      "trial": 2,
+      "chain_steps_per_second": 191.3,
+      "reference_steps_per_second": {
+       "NVIDIA GeForce RTX 5090": 132.6,
+       "AMD Radeon RX 7900 XTX": 73.1
+      },
+      "efficiency": 0.9299951385512883,
+      "drift": 0,
+      "weights": [
+       1.2817894671496495,
+       0.7182105328503504
+      ]
+     },
+     {
+      "trial": 3,
+      "chain_steps_per_second": 191.2,
+      "reference_steps_per_second": {
+       "NVIDIA GeForce RTX 5090": 132.5,
+       "AMD Radeon RX 7900 XTX": 73.1
+      },
+      "efficiency": 0.9299610894941633,
+      "drift": 0,
+      "weights": [
+       1.2817894671496495,
+       0.7182105328503504
+      ]
+     }
+    ]
+   },
+   "levels": {
+    "1m_paper": {
+     "trials_on_the_lower_level": [
+      1,
+      2,
+      4
+     ],
+     "apart": 0.023869581464872835,
+     "lower_below_upper": 0.023313107349787643
+    },
+    "4m_paper": {
+     "trials_on_the_lower_level": [
+      1
+     ],
+     "apart": 0.02677777777777779,
+     "lower_below_upper": 0.026079428633264734
+    }
+   }
+  }
+ },
+ "tag": "Stages 1 to 3, `micropolar-base-9-g278a557` to `thesis-ch5-rc1`"
+}

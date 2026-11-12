@@ -797,6 +797,22 @@ def _prescribed_cavity_case(solver, case_path: pathlib.Path, wall_boundary: str)
     for group, material in enumerate(case.materials):
         if material.kind != KIND_FLUID:
             spin[case.initial.material_group == group, 2] = 0.6 - 0.9 * group
+    if int(case.physics.dimension) == 3:
+        # three dimensions (Stage 6): the velocity gets a dependence on z and a z component (still free of
+        # divergence), the micro-rotation of the fluid its x and y components, the walls a vector per material,
+        # so that every component of w and of the two curls crosses the cut
+        x, y, z = (positions[fluid, axis] for axis in range(3))
+        velocities[fluid, 0] += (0.5 * z).astype(np.float32)
+        velocities[fluid, 1] += (-0.4 * z).astype(np.float32)
+        velocities[fluid, 2] = (0.2 * x - 0.3 * y).astype(np.float32)
+        case.initial.velocities = velocities
+        spin[fluid, 0] = (0.9 * y - 1.1 * z + 0.3 * np.sin(8.0 * z) * np.cos(6.0 * x)).astype(np.float32)
+        spin[fluid, 1] = (-1.3 * x + 0.8 * z + 0.35 * np.cos(7.0 * y) * np.sin(5.0 * z)).astype(np.float32)
+        spin[fluid, 2] += (0.6 * z).astype(np.float32)
+        for group, material in enumerate(case.materials):
+            if material.kind != KIND_FLUID:
+                spin[case.initial.material_group == group, 0] = -0.5 + 0.4 * group
+                spin[case.initial.material_group == group, 1] = 0.7 - 0.3 * group
     case.initial.angular_velocities = spin
     return case
 
