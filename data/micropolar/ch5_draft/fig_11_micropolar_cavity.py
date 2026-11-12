@@ -20,9 +20,12 @@ REFERENCE = "data/micropolar/stage6/cavity_reference.json"
 # finite-difference case -> what the table calls it
 REFERENCE_CASES = {"newtonian_far": "Newtonian, mu_inf (Re 400)", "newtonian_wall": "Newtonian, mu + kappa (Re 250)",
                    "micropolar": "micropolar, l = L / 20", "micropolar_l40": "micropolar, l = L / 40",
+                   "micropolar_l80": "micropolar, l = L / 80", "micropolar_l160": "micropolar, l = L / 160",
                    "micropolar_l10": "micropolar, l = L / 10",
                    "micropolar_no_inertia": "micropolar, l = L / 20, Theta -> 0",
-                   "micropolar_free_spin": "micropolar, l = L / 20, walls do not hold w"}
+                   "micropolar_free_spin": "micropolar, l = L / 20, walls do not hold w",
+                   "micropolar_lid_spin": "micropolar, l = L / 20, only the lid holds w",
+                   "micropolar_rest_spin": "micropolar, l = L / 20, only the walls at rest hold w"}
 # the runs of the figure: the micropolar run, its two bounds, the coarser run, the run on two slabs
 RUNS = {"micropolar": "mp_n500", "far": "newtonian_re400_n500", "wall": "newtonian_re250_n500",
         "coarse": "mp_n250", "chain": "mp_n500_k2"}
@@ -178,7 +181,7 @@ def main() -> int:
                    if particle else ["-"] * 7))
             tex_b.append(
                 [style.tex_escape(label).replace("mu\\_inf", r"$\mu_\infty$").replace("mu + kappa", r"$\mu + \kappa$")
-                 .replace("Theta -> 0", r"$\Theta \to 0$").replace("hold w", "hold $w$")
+                 .replace("Theta -> 0", r"$\Theta \to 0$").replace("hold w", "hold $w$").replace("holds w", "holds $w$")
                  .replace("l = L / ", "$l = L/$"),
                  f"{zero['u_min']['extrapolated']:.4f}", f"{zero['v_max']['extrapolated']:.4f}",
                  f"{zero['v_min']['extrapolated']:.4f}", f"{zero['kinetic_energy']['extrapolated']:.4f}"]

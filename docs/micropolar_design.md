@@ -2686,7 +2686,7 @@ every item and is the one to trust):
 | 08 | Eccentric cylinders: measured over predicted change against narrowest gap / l | `fig_08_eccentric_prediction.pdf`, `fig_08_eccentric_prediction.png` | final | thesis-ch5-rc2; concentric: thesis-ch5-rc2 |
 | 09 | Table of every eccentric micropolar row | `tab_09_eccentric_rows.csv`, `tab_09_eccentric_rows.tex` | final | thesis-ch5-rc2 |
 | 10 | The film function over h^3 against h / l at K = 3 | `fig_10_film_function.pdf`, `fig_10_film_function.png` | final (host only) | host |
-| 11 | Micropolar cavity: centre lines with the two Newtonian bounds, fields, the slab cut | `fig_11_micropolar_cavity.pdf`, `fig_11_micropolar_cavity.png`, `tab_11_micropolar_cavity.csv`, `tab_11_micropolar_cavity.tex` | final (rc2 runs), incomplete: mp_n500_k2; fields of the two-slab run | thesis-ch5-rc2 |
+| 11 | Micropolar cavity: centre lines with the two Newtonian bounds, fields, the slab cut | `fig_11_micropolar_cavity.pdf`, `fig_11_micropolar_cavity.png`, `tab_11_micropolar_cavity.csv`, `tab_11_micropolar_cavity.tex`, `tab_11b_cavity_finite_differences.csv`, `tab_11b_cavity_finite_differences.tex` | final (rc2 runs), incomplete: mp_n500_k2; fields of the two-slab run | thesis-ch5-rc2 |
 | 12 | Newtonian cavity baseline at n = 1000 against Marchi et al. | `fig_12_cavity_baseline.pdf`, `fig_12_cavity_baseline.png` | final (existing data) | Stage 3 (design note 12.8), `micropolar-base-13-g7e76dcb` |
 | 13 | Seepage of the thesis walls: velocity into the wall against wall pressure; the wall candidates | `fig_13_seepage.pdf`, `fig_13_seepage.png`, `tab_13_candidates.csv`, `tab_13_candidates.tex` | final (existing data) | Stage 5, `thesis-ch5-rc1-6-g5d07112`, `thesis-ch5-rc1-9-gbfcc024`; cavity `thesis-ch5-rc1-10-g5bc8e0d`, `thesis-ch5-rc1-9-gbfcc024`, `micropolar-base-12-gc08cb97` |
 | 14 | Solver checks: operator checks, passive label, chain against one slab, step limits, cost | `tab_14a_operator_checks.csv`, `tab_14a_operator_checks.tex`, `tab_14b_passive_label.csv`, `tab_14b_passive_label.tex`, `tab_14c_chain_against_one_slab.csv`, `tab_14c_chain_against_one_slab.tex`, `tab_14d_step_limits.csv`, `tab_14d_step_limits.tex`, `tab_14e_cost.csv`, `tab_14e_cost.tex` | final (existing data) | Stages 1 to 3, `micropolar-base-9-g278a557` to `thesis-ch5-rc1` |
@@ -2896,10 +2896,10 @@ test passes, at most t = 80); time means over the last 20 time units of the dens
 
 | run | n | card | end time | steady at | u_min | at y | v_max | at x | v_min | at x | kinetic energy | density level | drift per L / U | pressure level | drift per L / U | steps/s |  |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `mp_n500` | 500 | XTX | 69.6 | 49.7 | -0.35798 | 0.3112 | 0.32284 | 0.2380 | -0.46272 | 0.8451 | 0.05274 | -5.2e-06 | -2.7e-10 | -0.0516 | -2.7e-06 | 886 |  |
-| `newtonian_re400_n500` | 500 | XTX | 69.6 | 49.7 | -0.33112 | 0.2793 | 0.30661 | 0.2250 | -0.45728 | 0.8621 | 0.04667 | -4.8e-06 | -7.5e-10 | -0.0476 | -7.5e-06 | 1003 |  |
-| `newtonian_re250_n500` | 500 | 5090 | 69.6 | 49.7 | -0.28896 | 0.3472 | 0.25484 | 0.2530 | -0.39308 | 0.8357 | 0.04378 | -4.4e-06 | -4.2e-10 | -0.0429 | -4.2e-06 | 1733 |  |
-| `mp_n250` | 250 | XTX | 70.4 | 50.4 | -0.36329 | 0.3107 | 0.32782 | 0.2376 | -0.46881 | 0.8447 | 0.05382 | -6.2e-06 | +1.3e-08 | -0.0612 | +1.3e-04 | 2154 |  |
+| `mp_n500` | 500 | XTX | 69.6 | 49.7 | -0.35798 | 0.3112 | 0.32284 | 0.2380 | -0.46272 | 0.8451 | 0.04651 | -5.2e-06 | -2.7e-10 | -0.0516 | -2.7e-06 | 886 |  |
+| `newtonian_re400_n500` | 500 | XTX | 69.6 | 49.7 | -0.33112 | 0.2793 | 0.30661 | 0.2250 | -0.45728 | 0.8621 | 0.04116 | -4.8e-06 | -7.5e-10 | -0.0476 | -7.5e-06 | 1003 |  |
+| `newtonian_re250_n500` | 500 | 5090 | 69.6 | 49.7 | -0.28896 | 0.3472 | 0.25484 | 0.2530 | -0.39308 | 0.8357 | 0.03861 | -4.4e-06 | -4.2e-10 | -0.0429 | -4.2e-06 | 1733 |  |
+| `mp_n250` | 250 | XTX | 70.4 | 50.4 | -0.36329 | 0.3107 | 0.32782 | 0.2376 | -0.46881 | 0.8447 | 0.04728 | -6.2e-06 | +1.3e-08 | -0.0612 | +1.3e-04 | 2154 |  |
 
 - **They run and pass the steady test** (1e-3 on the centre-line profile and on the kinetic energy between
   consecutive windows of 10 time units): `mp_n500` at t = 50, `newtonian_re400_n500` at t = 50,
@@ -2908,7 +2908,7 @@ test passes, at most t = 80); time means over the last 20 time units of the dens
   interrupted at t = 39.5 when the disk filled (15.6) and continued from its checkpoint at t = 30.2.
 - **The micropolar extrema are not between the two Newtonian ones.** Extrema of the centre lines (Reynolds number
   400 / micropolar / Reynolds number 250): u_min -0.3311 / -0.3580 / -0.2890, v_max 0.3066 / 0.3228 / 0.2548, v_min
-  -0.4573 / -0.4627 / -0.3931 U; kinetic energy 0.0467 / 0.0527 / 0.0438 rho U^2 L^2. All of them lie beyond the
+  -0.4573 / -0.4627 / -0.3931 U; kinetic energy 0.0412 / 0.0465 / 0.0386 rho U^2 L^2. All of them lie beyond the
   value of the Newtonian fluid of viscosity mu_inf, on the side away from the fluid of viscosity mu + kappa: by
   0.64, 0.31 and 0.08 of the distance between the two bounds for the three extrema (+8.1 %, +5.3 % and +1.2 % of the
   Reynolds-400 values) and by 13 % in the kinetic energy. Along the centre lines the micropolar profile is outside
@@ -2919,13 +2919,8 @@ test passes, at most t = 80); time means over the last 20 time units of the dens
   micropolar fluid moves faster, by up to 0.080 U at y = 0.95 L; within 0.2 L of the bottom wall the return flow is
   slower by up to 0.035 U; next to the side walls the vertical flow is slower (v smaller by up to 0.014 U near the
   left wall, the downward flow weaker by up to 0.039 U near the right one); and between the walls and the centre of
-  the vortex the streams are faster, which is what the extrema measure. [inferred] The walls hold w = 0 and their
-  layers are not thin in this flow: l = L / 20 is as thick as the boundary layer under the lid at this Reynolds
-  number (about L Re^-1/2 = 0.05 L). A wall layer stiffens the fluid next to a wall. Under the lid that couples the
-  fluid more firmly to the drive; at the three walls at rest it pushes the stream away from the wall, and the
-  circulation passes through a narrower passage. The argument 'mu_inf far from walls, mu + kappa in a wall layer'
-  bounds the stress a film transmits (15.3.1: f / h^3 between nu_inf / nu and 1); it does not bound the extrema of a
-  recirculating flow. That is my reading of the profiles, not a tested statement.
+  the vortex the streams are faster, which is what the extrema measure. Whether this is the model or the particle
+  solver, and which term does it, is answered by the second method below.
 - **Resolution** (n = 250 with l = 12.5 dx minus n = 500 with l = 25 dx): the centre lines differ by 3.0e-03 (u) and
   3.5e-03 (v) U rms, at most 7.2e-03 and 6.2e-03; the extrema by -0.0053, +0.0050 and -0.0061 U (1.3 to 1.5 %, the
   coarser run the stronger, as in the Newtonian cavity of the thesis configuration), their positions by less than
@@ -2936,6 +2931,76 @@ test passes, at most t = 80); time means over the last 20 time units of the dens
 - **No reference for Reynolds number 400 is in the repository** (the transcribed tables of Marchi et al. are for
   1,000, 3,200 and 5,000), so the Newtonian bound at 400 is not compared with one here; its extrema are in the table
   for that comparison.
+
+**The same cases by a second method [host run].** Tool `micropolar_cavity_reference.py`: the equations of
+Section 1 in stream function, vorticity and microrotation on a uniform grid of nodes (second-order central
+differences, wall vorticity by Jensen's formula, Poisson equation by a sine transform, explicit steps until the
+three extrema change by less than 1e-7 U in 5 time units twice in a row), on grids of 128, 192 and 256 intervals,
+each started from the coarser solution. It shares nothing with the particle solver but the equations and the
+parameters. Data `data/micropolar/stage6/cavity_reference.txt`, `.json` (centre lines of every grid) and
+`cavity_reference_<case>.npz` (fields of the finest grid).
+
+| case | u_min / U on the grids of 128 / 192 / 256 -> zero spacing | v_max / U | v_min / U | E_k (zero spacing) | place between the bounds (u_min, v_max, v_min, E_k): 0 = mu_inf, 1 = mu + kappa | particle run at n = 500 over finite differences (u_min, v_max, v_min, E_k); rms difference of the centre lines u, v (U) |
+|---|---|---|---|---|---|---|
+| `newtonian_far`: Newtonian, mu_inf (Reynolds number 400) | -0.3250 / -0.3270 / -0.3278 -> **-0.3287**, order 2.0 | 0.2998 / 0.3020 / 0.3028 -> **0.3038**, order 2.0 | -0.4487 / -0.4516 / -0.4527 -> **-0.4541**, order 2.0 | 0.0408 | - | `newtonian_re400_n500`: 1.0073, 1.0092, 1.0071, 1.0084; 2.8e-03, 2.5e-03 |
+| `newtonian_wall`: Newtonian, mu + kappa (Reynolds number 250) | -0.2856 / -0.2868 / -0.2872 -> **-0.2877**, order 2.0 | 0.2510 / 0.2523 / 0.2528 -> **0.2534**, order 2.0 | -0.3883 / -0.3901 / -0.3908 -> **-0.3916**, order 1.9 | 0.0385 | - | `newtonian_re250_n500`: 1.0043, 1.0057, 1.0037, 1.0040; 2.1e-03, 1.5e-03 |
+| `micropolar`: micropolar, l = L / 20, Theta = l^2, w = 0 on the walls | -0.3538 / -0.3554 / -0.3560 -> **-0.3567**, order 1.9 | 0.3181 / 0.3199 / 0.3205 -> **0.3213**, order 1.9 | -0.4573 / -0.4595 / -0.4603 -> **-0.4614**, order 2.0 | 0.0463 | -0.68, -0.35, -0.12, -2.35 | `mp_n500`: 1.0034, 1.0047, 1.0030, 1.0038; 2.1e-03, 1.6e-03 |
+| `micropolar_l40`: micropolar, l = L / 40 | -0.3534 / -0.3553 / -0.3560 -> **-0.3568**, order 1.9 | 0.3200 / 0.3221 / 0.3228 -> **0.3238**, order 1.9 | -0.4645 / -0.4671 / -0.4680 -> **-0.4692**, order 1.9 | 0.0458 | -0.69, -0.40, -0.24, -2.11 | - |
+| `micropolar_l10`: micropolar, l = L / 10 | -0.3406 / -0.3420 / -0.3425 -> **-0.3432**, order 2.0 | 0.3104 / 0.3119 / 0.3125 -> **0.3132**, order 2.0 | -0.4480 / -0.4500 / -0.4507 -> **-0.4516**, order 2.0 | 0.0458 | -0.35, -0.19, +0.04, -2.13 | - |
+| `micropolar_no_inertia`: micropolar, l = L / 20, Theta -> 0 (w follows omega without lag or transport) | -0.3588 / -0.3605 / -0.3611 -> **-0.3618**, order 1.9 | 0.3184 / 0.3202 / 0.3209 -> **0.3217**, order 1.9 | -0.4575 / -0.4598 / -0.4606 -> **-0.4616**, order 2.0 | 0.0471 | -0.81, -0.35, -0.12, -2.66 | - |
+| `micropolar_free_spin`: micropolar, l = L / 20, walls do not hold w (zero normal derivative) | -0.3142 / -0.3160 / -0.3166 -> **-0.3174**, order 1.8 | 0.2890 / 0.2909 / 0.2916 -> **0.2925**, order 1.9 | -0.4238 / -0.4264 / -0.4273 -> **-0.4285**, order 1.9 | 0.0402 | +0.28, +0.22, +0.41, +0.27 | - |
+| `micropolar_lid_spin`: micropolar, l = L / 20, only the lid holds w | -0.3621 / -0.3642 / -0.3650 -> **-0.3659**, order 1.9 | 0.3367 / 0.3390 / 0.3398 -> **0.3408**, order 1.9 | -0.4871 / -0.4900 / -0.4910 -> **-0.4923**, order 1.9 | 0.0492 | -0.91, -0.73, -0.61, -3.58 | - |
+| `micropolar_rest_spin`: micropolar, l = L / 20, only the three walls at rest hold w | -0.3123 / -0.3136 / -0.3141 -> **-0.3147**, order 1.9 | 0.2770 / 0.2785 / 0.2790 -> **0.2797**, order 1.9 | -0.4040 / -0.4059 / -0.4066 -> **-0.4075**, order 1.9 | 0.0386 | +0.34, +0.48, +0.75, +0.92 | - |
+
+- **The scheme converges with its order** (1.95 to 1.97 from the three grids), and every case reaches the steady
+  state by t = 40 to 75. Extrema extrapolated to zero spacing (u_min, v_max, v_min): -0.3287, 0.3038, -0.4541 U at
+  Reynolds number 400, -0.2877, 0.2534, -0.3916 at 250. [inferred, from memory, not checked against a source
+  tonight] The values at Reynolds number 400 are the ones I remember from the literature for this benchmark
+  (-0.3287, 0.3038, -0.4541); check them against a table before the chapter cites that.
+- **The micropolar extrema lie beyond the fluid of viscosity mu_inf in this solution too:** -0.3567, 0.3213, -0.4614
+  U, that is +8.5, +5.8, +1.6 % of the Reynolds-400 values and -0.68, -0.35, -0.12 on the way from the fluid of
+  viscosity mu_inf (0) to the fluid of viscosity mu + kappa (1); the kinetic energy is +13.5 %. The particle runs
+  gave the same picture (15.2.3 above). It is a property of the equations with w = 0 on the walls, not of the
+  particle solver.
+- **The particle runs at n = 500 against it** (u_min, v_max, v_min, kinetic energy; particle run over finite
+  differences - 1): +0.73, +0.92, +0.71, +0.84 % (mu_inf), +0.43, +0.57, +0.37, +0.40 % (mu + kappa), +0.34, +0.47,
+  +0.30, +0.38 % (micropolar); rms difference of the centre lines 2.8e-03 / 2.5e-03, 2.1e-03 / 1.5e-03, 2.1e-03 /
+  1.6e-03 U (u / v, in the same order). The particle runs are stronger by 0.3 to 0.9 % in every case, the micropolar
+  one by no more than the Newtonian ones: the micropolar terms add no error of their own at this resolution. (The
+  excess has the sign the Newtonian cavity of the thesis configuration shows against Marchi et al. at Reynolds
+  number 1,000: +0.25 to +0.34 % at the three extrema at n = 1,000, Section 12.)
+- **Which term does it** (variants of the micropolar case, same grids): **walls that do not hold w** (zero normal
+  derivative instead of w = 0): -0.3174, 0.2925, -0.4285 U, +0.28, +0.22, +0.41 on the way between the bounds:
+  between them, as the ordering of the viscosities says. The overshoot comes with the condition w = 0; **only the
+  lid holds w:** -0.3659, 0.3408, -0.4923 U (-0.91, -0.73, -0.61); **only the three walls at rest hold w:** -0.3147,
+  0.2797, -0.4075 U (+0.34, +0.48, +0.75); **no spin inertia** (Theta -> 0, so that w follows the vorticity without
+  lag and is not carried by the flow): -0.3618, 0.3217, -0.4616 U (-0.81, -0.35, -0.12): the lag of w is not the
+  cause; with it the overshoot is a little smaller; **the length l** (L / 10, 20, 40): -0.35, -0.19, +0.04; -0.68,
+  -0.35, -0.12; -0.69, -0.40, -0.24 (u_min, v_max, v_min, in that order of l); kinetic energy +12.3, +13.5, +12.2 %;
+  traction of the lid over that on the fluid of viscosity mu_inf 1.30, 1.23, 1.14, flux of the main vortex over that
+  of the fluid of viscosity mu_inf 1.086, 1.082, 1.066. The lid's excess traction falls with l, as it must, but
+  between L / 10 and L / 40 the core comes closer to the viscosity mu_inf at the same time, and the extrema do not
+  come back towards the Newtonian ones in this range.
+- **What the lid does** [host run] (finest grid; traction = -nu omega + c w at the lid, mean over 0.1 < x < 0.9):
+  the lid pulls on the micropolar fluid with 0.0489 rho U^2, on the fluid of viscosity mu_inf with 0.0397 and on the
+  fluid of viscosity mu + kappa with 0.0539: +23 % and +36 % against the fluid of viscosity mu_inf. The depth below
+  the lid at which u has fallen to U / 2 (at x = 0.25 / 0.5 / 0.75) is 0.031 / 0.071 / 0.076 L in the micropolar
+  fluid, 0.026 / 0.057 / 0.064 in the fluid of viscosity mu_inf and 0.032 / 0.065 / 0.073 in the fluid of viscosity
+  mu + kappa; the layer in which the lid holds w down is l sqrt(nu_inf / nu) = 0.040 L thick. The flux of the main
+  vortex (the least stream function) is 0.1231 U L against 0.1137 and 0.1104. In the variants: only the lid holds w:
+  traction 0.0485, flux 0.1273; only the walls at rest: 0.0432, 0.1101; no wall holds w: 0.0431, 0.1125.
+- **Reading** [inferred from the variants and the lid numbers, not derived]: the two Newtonian fluids bound the
+  stress the micropolar fluid transmits at a given shear rate (15.3.1). With walls that do not hold w there are no
+  wall layers; the fluid is between the two viscosities everywhere (mu_inf at scales above l, towards mu + kappa
+  below), and the flow lies between the two Newtonian ones. With w = 0 on the lid the fluid under the lid is, across
+  a layer as thick as the lid's own shear layer at this Reynolds number, the fluid of viscosity mu + kappa: the lid
+  takes hold of it nearly as of the more viscous fluid (traction and depth above). Below that layer the fluid has
+  the viscosity mu_inf and loses its momentum as slowly as the less viscous one. More drive than the fluid of
+  viscosity mu_inf gets and less loss than the fluid of viscosity mu + kappa has: the vortex is stronger than in
+  either. The walls at rest work the other way (their layers brake), which is why holding w on the lid alone
+  overshoots most and holding it on the walls at rest alone gives the weakest flow of the variants. So 'between the
+  two Newtonian fluids' is not a property of this flow with w = 0 on a driving wall, and I would not present it as a
+  check in the chapter; the check of the solver for this case is the second method.
 
 ### 15.3 Host: the film function, the sharper form of the rule, the bearing **[host]**
 
@@ -3262,9 +3327,12 @@ closed surface at distance h.
   the torque. **Rotor against housing:** the wall form of the housing is -0.51 % from the rotor's wall form and
   +0.74 % from its flux form (`g20_k3_m1`), -1.43 % from the rotor's wall form and -0.14 % from its flux form
   (`g20_newtonian`), -0.29 % from the rotor's wall form and +0.83 % from its flux form (`g20s_k3_m1`), -0.94 % from
-  the rotor's wall form and -0.06 % from its flux form (`g20s_newtonian`). The flux form and the housing agree with
-  each other; the rotor's wall form stands above both. As in 2-D (13.3) the wall form carries a first-order error of
-  the staircase surface, here with the rims added, and the flux form is the reading to quote.
+  the rotor's wall form and -0.06 % from its flux form (`g20s_newtonian`). In the Newtonian runs the housing and the
+  rotor's flux form agree within 0.14 %. In the micropolar runs the housing's wall form lies +0.74 to +0.83 % from
+  the rotor's flux form, between the rotor's two readings: a wall form with the micropolar terms has a reading error
+  of its own, as the four readings of the 2-D cases had (14.2). The rotor's wall form stands above both in every
+  run. As in 2-D (13.3) the wall form carries a first-order error of the staircase surface, here with the rims
+  added, and the flux form is the reading to quote.
 - **Scatter over the saved states** of one run: 4.1e-05 to 1.1e-04 of the torque (wall form).
 - **Lateral surface and end faces** (wall form, Newtonian): the end faces carry 29.4 % of the torque
   (`g20_newtonian`), 28.6 % of the torque (`g20s_newtonian`); the lateral surface carries 1.149 to 1.158 of the 2-D
@@ -3335,7 +3403,8 @@ in the pressure and in the dummy values of the walls. The large maxima of the du
 rms, the same in the one-slab repeats) are the wall particles whose only fluid neighbour sits at the edge of the
 support, as in 2-D.
 
-**The micropolar run at g = 40 dx on two slabs against the one-slab run:** (not available when this section was written)
+**The micropolar run at g = 40 dx on two slabs against the one-slab run:** (not available when this section was
+written)
 
 #### 15.4.6 The rule in 3-D **[host]**: the argument for the normal component is right
 
@@ -3447,6 +3516,17 @@ nu s'' - c w_x' = 0,      xi w_x'' + c (s' - 2 w_x) = 0        the same pair wit
     built by a helper process from existing data and checked by me; its comparison of the old tables with their
     data files is in 15.6.
 
+11. **Added to 2.3 without being asked,** because the answer to "say if they do not" was that they do not: the
+    same cases by finite differences on the host (15.2.3; about ten minutes of one core), a micropolar run with
+    l = L / 40, and host variants that switch off one term of the microrotation equation at a time. The xi = 0
+    check stays dropped; no wall option was built.
+12. **The control of the 3-D pair at g = 40 dx ran on two slabs** (5090 + XTX) instead of on the 5090 alone: on
+    one card the three runs at g = 40 dx would have ended after 07:00. The micropolar run exists on two slabs
+    and on one, so the pair "two slabs over two slabs" is like against like, and the pair "one slab over two"
+    differs from it by what 15.4.5 measures.
+13. **One concentric row beyond the list:** K = 1, l = 20 dx at g = 200 dx (`g200_k1_m5`), the row that gives
+    the reading errors of the eccentric rows with those parameters.
+
 ### 15.6 Not reached, open, unexpected
 
 **Not reached**
@@ -3461,10 +3541,10 @@ nu s'' - c w_x' = 0,      xi w_x'' + c (s' - 2 w_x) = 0        the same pair wit
 - **Cavity:** no comparison of the Newtonian bound at Reynolds number 400 with a reference (no table for 400 in the
   repository). The run on two slabs had not finished. The run with l = L / 40 (added by me, 15.2.3) had not
   finished.
-- **Eccentric:** the concentric row K = 1, l = 20 dx at g = 200 dx (`g200_k1_m5`), which I added to get the reading
-  errors of two eccentric rows, ran, but I removed its particle states together with those of the other finished
-  runs before its wall sums were taken (my mistake while making room on the disk). The two rows carry the
-  uncorrected mean; their fit and samples are in `concentric.json`.
+- **Eccentric:** `e30_g200_k1_m5`, `e60_g200_k1_m5` carry the mean of the four torque readings without the
+  correction by the concentric row at the same K, l and g. That row (`g200_k1_m5`, K = 1, l = 20 dx at g = 200 dx,
+  added by me) ran, but I removed its particle states together with those of the other finished runs before its wall
+  sums were taken (my mistake while making room on the disk); it is queued once more behind the 3-D runs.
 - **Out of scope, untouched:** the volume anchor, new wall options, periodic boundaries, merging branches, eight
   cards, the cost benchmark of the key.
 
@@ -3472,7 +3552,16 @@ nu s'' - c w_x' = 0,      xi w_x'' + c (s' - 2 w_x) = 0        the same pair wit
 
 - **The micropolar cavity is not between its two Newtonian bounds** (15.2.3): its extrema and its kinetic energy lie
   beyond the bound of viscosity mu_inf, on the side away from the bound of viscosity mu + kappa, while the positions
-  of the extrema lie between the two. The same at n = 250.
+  of the extrema lie between the two. The same at n = 250. A finite-difference solution of the same equations on the
+  host shows the same (extrema within 0.3 to 0.5 % of the particle run), and its variants say where it comes from:
+  with walls that do not hold w the solution lies between the bounds; it is the condition w = 0, above all on the
+  lid, that drives the flow harder than the fluid of viscosity mu_inf is driven.
+- **The kinetic energy of my cavity table was 13 % too large in absolute terms** until 00:45: the tool divided the
+  particles' kinetic energy by rho0 L^2, but the masses of the fluid particles sum to 1.134 rho0 L^2 at n = 500 (the
+  mass of a particle is not rho0 dx^2). The finite-difference values exposed it; the table now carries the kinetic
+  energy over the fluid mass. Ratios between runs were not affected. The E_k columns of the cavity tables in
+  Sections 12 and 14.4.3 are the raw sums (1/2) sum m |v|^2 with these masses (about 50 at Reynolds number 1,000);
+  over the fluid mass they are about 0.045.
 - **The machine, not the solver, cost about an hour of card time.** At 22:15 and again at 23:10 the disk had no free
   space left; three runs and the queue runner died with `No space left on device`. The cause: committed memory was
   at its limit (other programs on this machine held about 27 GB tonight, the system 9 GB, of 31 GB of RAM), Windows

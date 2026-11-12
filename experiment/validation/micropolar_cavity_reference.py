@@ -224,6 +224,31 @@ def solve(resolution: int, parameters: dict, start: dict | None = None, end_time
     return result
 
 
+def lid_measures(fields, parameters: dict) -> dict:
+    """What the lid does to the fluid, from the fields of the finest grid: the traction on the fluid
+    (-nu omega + c w at the lid, over rho U^2; mean over 0.1 < x < 0.9, away from the corner singularities), the
+    depth below the lid at which u has fallen to U / 2 (at x = 0.25, 0.5, 0.75), and the flux of the main vortex
+    (the least stream function)."""
+    stream = np.asarray(fields["stream"], dtype=np.float64)
+    vorticity = np.asarray(fields["vorticity"], dtype=np.float64)
+    spin = np.asarray(fields["spin"], dtype=np.float64)
+    resolution = stream.shape[0] - 1
+    spacing = 1.0 / resolution
+    middle = slice(int(round(0.1 * resolution)), int(round(0.9 * resolution)) + 1)
+    traction = -parameters["viscosity"] * vorticity[middle, -1] + parameters["coupling"] * spin[middle, -1]
+    depths = {}
+    for position in (0.25, 0.5, 0.75):
+        column = int(round(position * resolution))
+        velocity = np.zeros(resolution + 1)
+        velocity[1:-1] = (stream[column, 2:] - stream[column, :-2]) / (2.0 * spacing)
+        velocity[-1] = LID_SPEED
+        below = int(np.max(np.nonzero(velocity < 0.5 * LID_SPEED)[0]))
+        fraction = (velocity[below + 1] - 0.5 * LID_SPEED) / (velocity[below + 1] - velocity[below])
+        depths[f"{position:g}"] = float(1.0 - (below + 1 - fraction) * spacing)
+    return {"lid_traction_mean": float(traction.mean()), "half_speed_depth": depths,
+            "stream_min": float(stream.min()), "resolution": resolution}
+
+
 def extrapolate(values: list, resolutions: list) -> dict:
     """Zero-spacing value from the two finest grids with the second order of the scheme, and the order the three
     finest grids show (None if their differences do not have one sign or the ratio is out of range)."""
@@ -326,6 +351,29 @@ def command_run(arguments) -> int:
                                        "over_far": dict(zip(names, ratios))}
             say(f"{case:<24}" + "".join(f"{value:>9.2f}" for value in fractions) + "   "
                 + "".join(f"{value:>9.4f}" for value in ratios))
+    say()
+    say("What the lid does (finest grid of each case): traction of the lid on the fluid, mean over 0.1 < x < 0.9, "
+        "in rho U^2 and over that on the fluid of viscosity mu_inf; depth below the lid at which u = U / 2, at "
+        "x = 0.25, 0.5, 0.75 (L); flux of the main vortex (the least stream function, U L) and over that of the "
+        "fluid of viscosity mu_inf")
+    say(f"{'case':<24}{'n':>6}{'traction':>10}{'ratio':>8}{'x=0.25':>9}{'0.5':>8}{'0.75':>8}{'flux':>10}{'ratio':>8}")
+    for case, entry in cases.items():
+        fields_path = target.parent / f"{target.stem}_{case}.npz"
+        if not fields_path.exists():
+            continue
+        with np.load(fields_path) as fields:
+            entry["lid"] = lid_measures(fields, entry["parameters"])
+    base = cases.get("newtonian_far", {}).get("lid")
+    for case, entry in cases.items():
+        lid = entry.get("lid")
+        if not lid:
+            continue
+        say(f"{case:<24}{lid['resolution']:>6}{lid['lid_traction_mean']:>10.5f}"
+            + (f"{lid['lid_traction_mean'] / base['lid_traction_mean']:>8.3f}" if base else f"{'-':>8}")
+            + "".join(f"{lid['half_speed_depth'][key]:>{width}.4f}" for key, width in (("0.25", 9), ("0.5", 8),
+                                                                                       ("0.75", 8)))
+            + f"{lid['stream_min']:>10.5f}"
+            + (f"{lid['stream_min'] / base['stream_min']:>8.3f}" if base else f"{'-':>8}"))
     compared = [(case, entry) for case, entry in cases.items() if entry["parameters"]["particle_run"] in particle]
     if compared:
         say()
