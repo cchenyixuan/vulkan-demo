@@ -46,6 +46,11 @@ micropolar_rest_spin       192   -0.31358  0.3246    0.27850  0.2434   -0.40588 
 micropolar_rest_spin       256   -0.31405  0.3243    0.27904  0.2432   -0.40657  0.8411   0.03859         50
 micropolar_rest_spin      -> 0   -0.31466  0.3238    0.27973  0.2429   -0.40745  0.8412   0.03865
                          order       1.93               1.94               1.92        
+micropolar_l80             192   -0.34709  0.2872    0.31935  0.2259   -0.46970  0.8555   0.04436         70
+micropolar_l80             256   -0.34782  0.2868    0.32014  0.2256   -0.47072  0.8556   0.04447         50
+micropolar_l80             384   -0.34836  0.2865    0.32073  0.2254   -0.47147  0.8557   0.04455         50
+micropolar_l80            -> 0   -0.34879  0.2863    0.32120  0.2253   -0.47208  0.8558   0.04462
+                         order       1.88               1.88               1.90        
 
 Against the two Newtonian bounds (finite differences, extrapolated): the place of each extremum on the way from the fluid of viscosity mu_inf (0) to the fluid of viscosity mu + kappa (1); negative = beyond the fluid of viscosity mu_inf; and the value over that of the fluid of viscosity mu_inf
 case                        u_min    v_max    v_min      E_k       u_min    v_max    v_min      E_k
@@ -56,6 +61,7 @@ micropolar_free_spin         0.28     0.22     0.41     0.27      0.9656   0.962
 micropolar_l10              -0.35    -0.19     0.04    -2.13      1.0440   1.0309   0.9945   1.1227
 micropolar_lid_spin         -0.91    -0.73    -0.61    -3.58      1.1132   1.1218   1.0843   1.2065
 micropolar_rest_spin         0.34     0.48     0.75     0.92      0.9573   0.9207   0.8974   0.9470
+micropolar_l80              -0.49    -0.34    -0.29    -1.62      1.0611   1.0572   1.0397   1.0932
 
 What the lid does (finest grid of each case): traction of the lid on the fluid, mean over 0.1 < x < 0.9, in rho U^2 and over that on the fluid of viscosity mu_inf; depth below the lid at which u = U / 2, at x = 0.25, 0.5, 0.75 (L); flux of the main vortex (the least stream function, U L) and over that of the fluid of viscosity mu_inf
 case                         n  traction   ratio   x=0.25     0.5    0.75      flux   ratio
@@ -68,6 +74,7 @@ micropolar_free_spin       256   0.04307   1.085   0.0297  0.0609  0.0668  -0.11
 micropolar_l10             256   0.05142   1.296   0.0316  0.0727  0.0773  -0.12350   1.086
 micropolar_lid_spin        256   0.04848   1.221   0.0318  0.0730  0.0771  -0.12728   1.119
 micropolar_rest_spin       256   0.04324   1.090   0.0293  0.0604  0.0666  -0.11014   0.969
+micropolar_l80             384   0.04286   1.080   0.0293  0.0629  0.0691  -0.11926   1.049
 
 The particle runs (n = 500, time means) against the finite differences: extrema over the extrapolated ones, and the centre lines against those of the finest grid (rms and largest difference, U)
 case                    particle run                u_min    v_max    v_min      E_k     u rms     u max     v rms     v max

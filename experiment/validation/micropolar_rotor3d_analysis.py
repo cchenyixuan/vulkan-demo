@@ -600,9 +600,22 @@ def command_sizing(arguments) -> int:
     table = []
     for label, small, large in (("Newtonian", "g20_newtonian", "g40_newtonian"),
                                 ("micropolar", "g20_k3_m1", "g40_k3_m2")):
-        if small not in runs or large not in runs:
+        if small not in runs:
             continue
-        one, two = runs[small], runs[large]
+        from_chain = False
+        if large in runs:
+            one, two = runs[small], runs[large]
+        elif f"{large}_k2" in runs:
+            # No one-slab run at g = 40 dx: the two-slab run's rate with the particles of its slab on the 5090.
+            # The step of a chain waits for its slowest card, so this is an upper bound of the 5090's time.
+            chain_run = runs[f"{large}_k2"]
+            one = runs[small]
+            two = {"steps_per_second": chain_run["steps_per_second"],
+                   "particles": chain_run["slab_particles"][0],
+                   "bytes_per_particle": chain_run.get("bytes_per_particle", one.get("bytes_per_particle"))}
+            from_chain = True
+        else:
+            continue
         time_one, time_two = 1.0 / one["steps_per_second"], 1.0 / two["steps_per_second"]
         slope = (time_two - time_one) / (two["particles"] - one["particles"])
         intercept = time_one - slope * one["particles"]
@@ -617,10 +630,13 @@ def command_sizing(arguments) -> int:
                  "memory_gigabytes_own": memory, "memory_gigabytes_ghost": ghost_memory,
                  "hours_without_chain_overhead": {str(factor): count * step_time / 3600.0
                                                   for factor, count in steps.items()}}
+        entry["large_point_from_two_slab_run"] = from_chain
         result[label] = entry
         table.append((label, entry))
         say(f"{label}: {one['steps_per_second']:.1f} steps/s at {one['particles']:,} and {two['steps_per_second']:.2f} "
-            f"at {two['particles']:,} particles on one 5090: {1e3 * intercept:.1f} ms + {1e9 * slope:.2f} ns per "
+            f"at {two['particles']:,} particles "
+            + ("(the 5090's slab of the run on two slabs, whose step waits for the slower card: an upper bound of "
+               "the 5090's time) " if from_chain else "") + f"on one 5090: {1e3 * intercept:.1f} ms + {1e9 * slope:.2f} ns per "
             f"particle; a slab of {per_card / 1e6:.1f} million: {1e3 * step_time:.0f} ms per step before any cost of "
             f"the chain; {bytes_per_particle:.0f} bytes per particle: {memory:.1f} GB for the slab's own particles"
             + (f" and about {ghost_memory:.1f} GB for the ghost regions of two cuts" if ghost_memory else "")

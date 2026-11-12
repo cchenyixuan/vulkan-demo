@@ -2956,6 +2956,7 @@ parameters. Data `data/micropolar/stage6/cavity_reference.txt`, `.json` (centre 
 | `micropolar_free_spin`: micropolar, l = L / 20, walls do not hold w (zero normal derivative) | -0.3142 / -0.3160 / -0.3166 -> **-0.3174**, order 1.8 | 0.2890 / 0.2909 / 0.2916 -> **0.2925**, order 1.9 | -0.4238 / -0.4264 / -0.4273 -> **-0.4285**, order 1.9 | 0.0402 | +0.28, +0.22, +0.41, +0.27 | - |
 | `micropolar_lid_spin`: micropolar, l = L / 20, only the lid holds w | -0.3621 / -0.3642 / -0.3650 -> **-0.3659**, order 1.9 | 0.3367 / 0.3390 / 0.3398 -> **0.3408**, order 1.9 | -0.4871 / -0.4900 / -0.4910 -> **-0.4923**, order 1.9 | 0.0492 | -0.91, -0.73, -0.61, -3.58 | - |
 | `micropolar_rest_spin`: micropolar, l = L / 20, only the three walls at rest hold w | -0.3123 / -0.3136 / -0.3141 -> **-0.3147**, order 1.9 | 0.2770 / 0.2785 / 0.2790 -> **0.2797**, order 1.9 | -0.4040 / -0.4059 / -0.4066 -> **-0.4075**, order 1.9 | 0.0386 | +0.34, +0.48, +0.75, +0.92 | - |
+| `micropolar_l80`: micropolar, l = L / 80 (grids of 192 / 256 / 384) | -0.3471 / -0.3478 / -0.3484 -> **-0.3488**, order 1.9 | 0.3194 / 0.3201 / 0.3207 -> **0.3212**, order 1.9 | -0.4697 / -0.4707 / -0.4715 -> **-0.4721**, order 1.9 | 0.0446 | -0.49, -0.34, -0.29, -1.62 | - |
 
 - **The scheme converges with its order** (1.95 to 1.97 from the three grids), and every case reaches the steady
   state by t = 40 to 75. Extrema extrapolated to zero spacing (u_min, v_max, v_min): -0.3287, 0.3038, -0.4541 U at
@@ -2980,12 +2981,17 @@ parameters. Data `data/micropolar/stage6/cavity_reference.txt`, `.json` (centre 
   lid holds w:** -0.3659, 0.3408, -0.4923 U (-0.91, -0.73, -0.61); **only the three walls at rest hold w:** -0.3147,
   0.2797, -0.4075 U (+0.34, +0.48, +0.75); **no spin inertia** (Theta -> 0, so that w follows the vorticity without
   lag and is not carried by the flow): -0.3618, 0.3217, -0.4616 U (-0.81, -0.35, -0.12): the lag of w is not the
-  cause; with it the overshoot is a little smaller; **the length l** (L / 10, 20, 40): -0.35, -0.19, +0.04; -0.68,
-  -0.35, -0.12; -0.69, -0.40, -0.24 (u_min, v_max, v_min, in that order of l); kinetic energy +12.3, +13.5, +12.2 %;
-  traction of the lid over that on the fluid of viscosity mu_inf 1.30, 1.23, 1.14, flux of the main vortex over that
-  of the fluid of viscosity mu_inf 1.086, 1.082, 1.066. The lid's excess traction falls with l, as it must, but
-  between L / 10 and L / 40 the core comes closer to the viscosity mu_inf at the same time, and the extrema do not
-  come back towards the Newtonian ones in this range.
+  cause; with it the overshoot is a little smaller; **the length l** (L / 10, 20, 40, 80): -0.35, -0.19, +0.04;
+  -0.68, -0.35, -0.12; -0.69, -0.40, -0.24; -0.49, -0.34, -0.29 (u_min, v_max, v_min, in that order of l); kinetic
+  energy +12.3, +13.5, +12.2, +9.3 %; traction of the lid over that on the fluid of viscosity mu_inf 1.30, 1.23,
+  1.14, 1.08, flux of the main vortex over that of the fluid of viscosity mu_inf 1.086, 1.082, 1.066, 1.049. The
+  lid's excess traction falls with l, as it must, but between L / 10 and L / 40 the core comes closer to the
+  viscosity mu_inf at the same time, and the extrema do not come back towards the Newtonian ones in this range; at L
+  / 80 they have begun to. A run at l = L / 160 was stopped with the machine's other jobs (15.6) before its finest
+  grid had passed the steady test: its grid of 384 intervals is steady (-0.34028, 0.31469, -0.46654 U) and its grid
+  of 512 stood at -0.34047, 0.31490, -0.46681 U at t = 25 with a change of 1.9e-6 per 5 time units; extrapolated
+  from these two, the place is -0.29, -0.23, -0.21 (log: `cavity_reference_l160_incomplete.log`). The overshoot is
+  largest near l = L / 40 to L / 80 and goes back towards zero with l, as the equations demand for l -> 0.
 - **What the lid does** [host run] (finest grid; traction = -nu omega + c w at the lid, mean over 0.1 < x < 0.9):
   the lid pulls on the micropolar fluid with 0.0489 rho U^2, on the fluid of viscosity mu_inf with 0.0397 and on the
   fluid of viscosity mu + kappa with 0.0539: on the micropolar fluid 23 % more than on the fluid of viscosity mu_inf
@@ -3538,19 +3544,31 @@ nu s'' - c w_x' = 0,      xi w_x'' + c (s' - 2 w_x) = 0        the same pair wit
 
 **Not reached**
 
+- **What was in the queue at 02:50 and after it.** The harness stopped every background job of this session then
+  because the machine was critically short of memory (15.6, unexpected), and its rule is that such jobs are started
+  again only when asked. They were not started again: the micropolar run at g = 40 dx on two slabs (stopped at step
+  38,000 of 51,000, that is at 1.12 of its 1.5 g^2 / nu_inf and 1,000 steps before its first saved state: its
+  samples to step 35,000 survive and are analysed in 15.4.4; no torque and no particle fields); its Newtonian
+  control (so there is no torque change and no change of the mid-plane constant at g = 40 dx); the micropolar run at
+  g = 40 dx on one slab (so the chain in 3-D is checked per particle, 15.4.5, but not by a long run against a
+  one-slab run); the cavity run with l = L / 40 (the finite differences have that case); the second run of the
+  concentric row `g200_k1_m5` (K = 1, l = 20 dx at g = 200 dx, a row I added). Its first run is in the tables, but I
+  removed its particle states together with those of the other finished runs before its wall sums were taken (my
+  mistake while making room on the disk), so `e30_g200_k1_m5`, `e60_g200_k1_m5` carry the mean of the four torque
+  readings without the correction by the concentric row; the finite-difference case l = L / 160 on its finest grid
+  (15.2.3 quotes what its log holds). **To take it up:** `python -m experiment.validation.micropolar_stage6 runner`
+  reads `logs/micropolar/stage6/plan.json`, which still lists these jobs in this order (the 3-D run on two slabs
+  starts from its beginning; there is no restart file); then the commands of `data/micropolar/stage6/README.md`.
+  Before that, free memory on the machine: the two-slab run at g = 40 dx needs about 4 GB of host memory at a
+  sample.
 - **The rows at g = 400 dx** (m = 10 at l = 20 dx; m = 20 at l = 10 dx; m = 40 at l = 5 dx for K = 3, 1, 0.5): none.
   They were last in the queue, and from 23:30 on they were held back because a g = 400 dx run beside a 3-D run at g
-  = 40 dx does not fit into this machine's memory tonight (below). The cases are in the run table
-  (`micropolar_stage6 list`); two jobs are kept in `logs/micropolar/stage6/plan_held_g400.json`.
+  = 40 dx does not fit into this machine's memory tonight. The cases are in the run table (`micropolar_stage6
+  list`); two jobs are kept in `logs/micropolar/stage6/plan_held_g400.json`.
 - **3-D:** no displaced (rule) run, by instruction; no run at g = 80 dx; the step limits were not measured in 3-D;
-  no second lattice at g = 40 dx. The one-slab micropolar run at g = 40 dx had not finished. The run on two slabs at
-  g = 40 dx had not finished.
-- **Cavity:** no comparison of the Newtonian bound at Reynolds number 400 with a reference (no table for 400 in the
-  repository). The run with l = L / 40 (added by me, 15.2.3) had not finished.
-- **Eccentric:** `e30_g200_k1_m5`, `e60_g200_k1_m5` carry the mean of the four torque readings without the
-  correction by the concentric row at the same K, l and g. That row (`g200_k1_m5`, K = 1, l = 20 dx at g = 200 dx,
-  added by me) ran, but I removed its particle states together with those of the other finished runs before its wall
-  sums were taken (my mistake while making room on the disk); it is queued once more behind the 3-D runs.
+  no second lattice at g = 40 dx.
+- **Cavity:** no comparison of the Newtonian bound at Reynolds number 400 with a published table (none for 400 in
+  the repository); the comparison is with the finite-difference solution.
 - **Out of scope, untouched:** the volume anchor, new wall options, periodic boundaries, merging branches, eight
   cards, the cost benchmark of the key.
 
@@ -3568,16 +3586,24 @@ nu s'' - c w_x' = 0,      xi w_x'' + c (s' - 2 w_x) = 0        the same pair wit
   energy over the fluid mass. Ratios between runs were not affected. The E_k columns of the cavity tables in
   Sections 12 and 14.4.3 are the raw sums (1/2) sum m |v|^2 with these masses (about 50 at Reynolds number 1,000);
   over the fluid mass they are about 0.045.
-- **The machine, not the solver, cost about an hour of card time.** At 22:15 and again at 23:10 the disk had no free
-  space left; three runs and the queue runner died with `No space left on device`. The cause: committed memory was
-  at its limit (other programs on this machine held about 27 GB tonight, the system 9 GB, of 31 GB of RAM), Windows
-  grew the page file from 15 to 24 GB, and the disk had less than that free. My own share was larger than it had to
-  be: every Python process that uses numpy commits 0.79 GB for the 32 threads of its linear algebra library and 0.05
-  GB with one thread. From 23:26 on every process of the stage runs with one thread, the queue runner starts nothing
-  below 2 GB of free disk and keeps a job whose run died of a full disk, and I removed what could be made again: the
-  generated particle files of finished cases and the particle states of finished runs whose wall sums were stored
-  (660 files; samples, `run.json`, `wall_sums.json` and the final full states remain). The runs lost were done
-  again; the cost is the g = 400 dx rows and an hour of the 3-D runs.
+- **At 02:50 the harness stopped every background job of the session for lack of memory**: the queue runner with the
+  two-slab 3-D run at g = 40 dx (at step 38,000 of 51,000), a finite-difference run on the host and a waiter. Its
+  message says the stop is no failure of the jobs and forbids starting them again without being asked, so the queue
+  ended there (what that leaves undone: above). [inferred from the timing, not measured] My own run was the trigger:
+  its first saved state was due at step 39,000, the last heartbeat is step 38,000 (02:49), and saving a state read
+  every field of all 15.6 million particles back to the host at once, about 3 GB more than an ordinary sample needs,
+  with less than that left of the machine's commit limit (47.7 GB, of which other programs held about 38 GB after
+  the stop). The states at g = 20 dx were a sixth of that and had passed.
+- **The machine, not the solver, cost about an hour of card time before that.** At 22:15 and again at 23:10 the disk
+  had no free space left; three runs and the queue runner died with `No space left on device`. The cause: committed
+  memory was at its limit (other programs on this machine held about 27 GB tonight, the system 9 GB, of 31 GB of
+  RAM), Windows grew the page file from 15 to 24 GB, and the disk had less than that free. My own share was larger
+  than it had to be: every Python process that uses numpy commits 0.79 GB for the 32 threads of its linear algebra
+  library and 0.05 GB with one thread. From 23:26 on every process of the stage runs with one thread, the queue
+  runner starts nothing below 2 GB of free disk and keeps a job whose run died of a full disk, and I removed what
+  could be made again: the generated particle files of finished cases and the particle states of finished runs whose
+  wall sums were stored (660 files; samples, `run.json`, `wall_sums.json` and the final full states remain). The
+  runs lost were done again; the cost is the g = 400 dx rows and an hour of the 3-D runs.
 - **A lattice plane on a cut overflows the pools of a 3-D chain at its first step** (15.4.5); cured in the
   generator, with nothing changed in the solver.
 - **With its own noise floor the row at l = 20 dx shows second order through all three resolutions** (15.2.1): the
