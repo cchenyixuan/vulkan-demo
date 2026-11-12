@@ -120,7 +120,7 @@ def main() -> int:
 
     # the table
     header = ["run", "fluid", "n", "slabs", "end time", "steady at", "u_min", "y at u_min", "v_max", "x at v_max",
-              "v_min", "x at v_min", "kinetic energy", "density level", "density drift per L/U",
+              "v_min", "x at v_min", "kinetic energy over fluid mass / U^2", "density level", "density drift per L/U",
               "pressure level", "pressure drift per L/U", "git describe"]
     tex_header = ["run", "fluid", "$n$", "slabs", r"$u_{\min}/U$", r"$y/L$", r"$v_{\max}/U$", r"$x/L$",
                   r"$v_{\min}/U$", r"$x/L$", r"$E_k$", r"$\dot{\bar\rho}/\rho_0$", r"$\dot{\bar p}/(\rho U^2)$"]
@@ -142,7 +142,9 @@ def main() -> int:
         plain.append(cells)
         tex.append([style.texttt(name), style.tex_escape(cells[1]).replace("mu\\_inf", r"$\mu_\infty$")
                     .replace("mu + kappa", r"$\mu + \kappa$"), cells[2], cells[3], *cells[6:13], cells[14], cells[16]])
-    style.write_table("tab_11_micropolar_cavity", header, plain, tex_header, "ll" + "r" * (len(tex_header) - 2), tex)
+    style.write_table("tab_11_micropolar_cavity", header, plain, tex_header, "ll" + "r" * (len(tex_header) - 2), tex,
+                      note="$E_k$: kinetic energy of the fluid over its mass, in $U^2$ (the kinetic energy per unit "
+                           "depth in $\\rho U^2 L^2$ of a fluid that fills the square).")
 
     # the same cases by finite differences
     reference_text = (" No reference table for Reynolds number 400 is in the repository (the Marchi et al. files hold "
@@ -194,7 +196,8 @@ def main() -> int:
         style.write_table("tab_11b_cavity_finite_differences", header_b, plain_b, tex_header_b,
                           "l" + "r" * (len(tex_header_b) - 1), tex_b,
                           note="Finite differences, extrapolated to zero spacing; ratio: the particle run at "
-                               "$n = 500$ over the finite-difference value.")
+                               "$n = 500$ over the finite-difference value. $E_k$: half the mean square speed, in "
+                               "$U^2$.")
         if all(case in reference for case in ("newtonian_far", "newtonian_wall", "micropolar")):
             far, wall, polar = (reference[case] for case in ("newtonian_far", "newtonian_wall", "micropolar"))
 

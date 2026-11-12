@@ -2894,7 +2894,7 @@ viscosity mu_inf (Reynolds number 400) and mu + kappa (Reynolds number 250). Run
 the cavity runs of the thesis (release switches; stop at the later of t = 40 and 20 time units after the steady
 test passes, at most t = 80); time means over the last 20 time units of the dense centre-line samples.
 
-| run | n | card | end time | steady at | u_min | at y | v_max | at x | v_min | at x | kinetic energy | density level | drift per L / U | pressure level | drift per L / U | steps/s |  |
+| run | n | card | end time | steady at | u_min | at y | v_max | at x | v_min | at x | kinetic energy over fluid mass / U^2 | density level | drift per L / U | pressure level | drift per L / U | steps/s |  |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `mp_n500` | 500 | XTX | 69.6 | 49.7 | -0.35798 | 0.3112 | 0.32284 | 0.2380 | -0.46272 | 0.8451 | 0.04651 | -5.2e-06 | -2.7e-10 | -0.0516 | -2.7e-06 | 886 |  |
 | `newtonian_re400_n500` | 500 | XTX | 69.6 | 49.7 | -0.33112 | 0.2793 | 0.30661 | 0.2250 | -0.45728 | 0.8621 | 0.04116 | -4.8e-06 | -7.5e-10 | -0.0476 | -7.5e-06 | 1003 |  |
@@ -2934,9 +2934,8 @@ test passes, at most t = 80); time means over the last 20 time units of the dens
 - **Levels** (default walls: the diffusion towards the walls holds the mean density): mean density -6.2e-06 to
   -4.4e-06 of rho0, drifting by at most 1e-08 per time unit; mean pressure -0.061 to -0.043 rho U^2, drifting by at
   most 1e-04 per time unit.
-- **No reference for Reynolds number 400 is in the repository** (the transcribed tables of Marchi et al. are for
-  1,000, 3,200 and 5,000), so the Newtonian bound at 400 is not compared with one here; its extrema are in the table
-  for that comparison.
+- **No table for Reynolds number 400 is in the repository** (the transcribed tables of Marchi et al. are for 1,000,
+  3,200 and 5,000); the two Newtonian runs are compared with the finite-difference solution below.
 
 **The same cases by a second method [host run].** Tool `micropolar_cavity_reference.py`: the equations of
 Section 1 in stream function, vorticity and microrotation on a uniform grid of nodes (second-order central
@@ -2989,12 +2988,13 @@ parameters. Data `data/micropolar/stage6/cavity_reference.txt`, `.json` (centre 
   come back towards the Newtonian ones in this range.
 - **What the lid does** [host run] (finest grid; traction = -nu omega + c w at the lid, mean over 0.1 < x < 0.9):
   the lid pulls on the micropolar fluid with 0.0489 rho U^2, on the fluid of viscosity mu_inf with 0.0397 and on the
-  fluid of viscosity mu + kappa with 0.0539: +23 % and +36 % against the fluid of viscosity mu_inf. The depth below
-  the lid at which u has fallen to U / 2 (at x = 0.25 / 0.5 / 0.75) is 0.031 / 0.071 / 0.076 L in the micropolar
-  fluid, 0.026 / 0.057 / 0.064 in the fluid of viscosity mu_inf and 0.032 / 0.065 / 0.073 in the fluid of viscosity
-  mu + kappa; the layer in which the lid holds w down is l sqrt(nu_inf / nu) = 0.040 L thick. The flux of the main
-  vortex (the least stream function) is 0.1231 U L against 0.1137 and 0.1104. In the variants: only the lid holds w:
-  traction 0.0485, flux 0.1273; only the walls at rest: 0.0432, 0.1101; no wall holds w: 0.0431, 0.1125.
+  fluid of viscosity mu + kappa with 0.0539: on the micropolar fluid 23 % more than on the fluid of viscosity mu_inf
+  (on the fluid of viscosity mu + kappa 36 % more). The depth below the lid at which u has fallen to U / 2 (at x =
+  0.25 / 0.5 / 0.75) is 0.031 / 0.071 / 0.076 L in the micropolar fluid, 0.026 / 0.057 / 0.064 in the fluid of
+  viscosity mu_inf and 0.032 / 0.065 / 0.073 in the fluid of viscosity mu + kappa; the layer in which the lid holds
+  w down is l sqrt(nu_inf / nu) = 0.040 L thick. The flux of the main vortex (the least stream function) is 0.1231 U
+  L against 0.1137 and 0.1104. In the variants: only the lid holds w: traction 0.0485, flux 0.1273; only the walls
+  at rest: 0.0432, 0.1101; no wall holds w: 0.0431, 0.1125.
 - **Reading** [inferred from the variants and the lid numbers, not derived]: the two Newtonian fluids bound the
   stress the micropolar fluid transmits at a given shear rate (15.3.1). With walls that do not hold w there are no
   wall layers; the fluid is between the two viscosities everywhere (mu_inf at scales above l, towards mu + kappa
