@@ -2,7 +2,17 @@ Micropolar cavity of Stage 6 (K = 3, Reynolds number 400 on mu_inf, l = L / 20, 
 run                         n  K  t_end  steady     u_min    at y     v_max    at x     v_min    at x      E_k     dE_k  rho level   drift/t  p level   drift/t  steps/s
 mp_n500                   500  1   69.6    49.7  -0.35798  0.3112   0.32284  0.2380  -0.46272  0.8451   0.0527 +2.5e-05  -5.21e-06  -2.7e-10  -0.0516  -2.7e-06      886
 newtonian_re400_n500      500  1   69.6    49.7  -0.33112  0.2793   0.30661  0.2250  -0.45728  0.8621   0.0467 -1.3e-05  -4.80e-06  -7.5e-10  -0.0476  -7.5e-06     1003
+newtonian_re250_n500      500  1   69.6    49.7  -0.28896  0.3472   0.25484  0.2530  -0.39308  0.8357   0.0438 -1.2e-05  -4.39e-06  -4.2e-10  -0.0429  -4.2e-06     1733
 mp_n250                   250  1   70.4    50.4  -0.36329  0.3107   0.32782  0.2376  -0.46881  0.8447   0.0538 +8.1e-06  -6.17e-06  +1.3e-08  -0.0612  +1.3e-04     2154
+
+the micropolar run between its Newtonian bounds (viscosity mu_inf: Reynolds number 400; viscosity mu + kappa: Reynolds number 250)
+              Re 400  micropolar    Re 250  between  position: Re 400  micropolar    Re 250
+u_min       -0.33112    -0.35798  -0.28896       NO            0.2793      0.3112    0.3472   (-0.64 of the way from Re 400 to Re 250)
+v_max        0.30661     0.32284   0.25484       NO            0.2250      0.2380    0.2530   (-0.31 of the way from Re 400 to Re 250)
+v_min       -0.45728    -0.46272  -0.39308       NO            0.8621      0.8451    0.8357   (-0.08 of the way from Re 400 to Re 250)
+kinetic_energy_mean   0.04667     0.05274   0.04378       NO   (-2.10 of the way from Re 400 to Re 250)
+   u along the centre line: the micropolar profile lies outside the band of the two bounds at 54 % of the points, by at most 5.28e-02 U (at 0.355); the band is up to 8.74e-02 U wide
+   v along the centre line: the micropolar profile lies outside the band of the two bounds at 65 % of the points, by at most 4.46e-02 U (at 0.793); the band is up to 9.80e-02 U wide
 
 n = 250 (l = 12.5 dx) minus n = 500 (l = 25 dx): rms / max difference of the time-mean centre lines u 3.00e-03 / 7.23e-03 U, v 3.49e-03 / 6.24e-03 U (rms standard error of the difference over the samples: 1.7e-05, 1.9e-05); extrema: u_min -5.31e-03, v_max +4.99e-03, v_min -6.09e-03 U; positions -5.6e-04, -4.1e-04, -3.8e-04 L; kinetic energy +1.08e-03
 

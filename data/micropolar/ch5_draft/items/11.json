@@ -1,8 +1,8 @@
 {
  "item": "11",
  "title": "Micropolar cavity: centre lines with the two Newtonian bounds, fields, the slab cut",
- "status": "final (rc2 runs), incomplete: newtonian_re250_n500, mp_n500_k2; fields of the two-slab run",
- "caption": "Lid-driven cavity filled with the micropolar fluid: K = 3, Reynolds number 400 on mu_inf (1,000 on mu), l = L / 20 (25 dx at n = 500, 12.5 dx at n = 250), Theta = l^2, w = 0 on the four walls, Ma = 0.01, thesis configuration with the default walls. (a) u on the vertical centre line and (b) v on the horizontal centre line, time means over the last 20 L / U (MLS samples at 1,001 points, every 25th shown): the micropolar run (circles; crosses: n = 250) between two Newtonian runs on the same particles, one with the viscosity mu_inf that the micropolar fluid has far from walls (solid) and one with mu + kappa that it has inside a wall layer (dashed). (c) Micro-rotation and (d) micro-rotation minus half the curl of the velocity at the last step of run `mp_n500`; the second vanishes in the core and marks the wall layers of thickness l. Colour scales end at the 99.5th percentile of the magnitude. Runs: `newtonian_re400_n500`, `mp_n500`, `mp_n250`; tag `thesis-ch5-rc2`. N = 250 minus n = 500: rms difference of the centre lines 3.0e-03 (u) and 3.5e-03 (v) U, extrema -5.3e-03, +5.0e-03, -6.1e-03 U (standard error of the time means 2e-05). No reference table for Reynolds number 400 is in the repository (the Marchi et al. files hold 1,000, 3,200 and 5,000), so the Newtonian bound at 400 is not compared with a reference here.",
+ "status": "final (rc2 runs), incomplete: mp_n500_k2; fields of the two-slab run",
+ "caption": "Lid-driven cavity filled with the micropolar fluid: K = 3, Reynolds number 400 on mu_inf (1,000 on mu), l = L / 20 (25 dx at n = 500, 12.5 dx at n = 250), Theta = l^2, w = 0 on the four walls, Ma = 0.01, thesis configuration with the default walls. (a) u on the vertical centre line and (b) v on the horizontal centre line, time means over the last 20 L / U (MLS samples at 1,001 points, every 25th shown): the micropolar run (circles; crosses: n = 250) between two Newtonian runs on the same particles, one with the viscosity mu_inf that the micropolar fluid has far from walls (solid) and one with mu + kappa that it has inside a wall layer (dashed). (c) Micro-rotation and (d) micro-rotation minus half the curl of the velocity at the last step of run `mp_n500`; the second vanishes in the core and marks the wall layers of thickness l. Colour scales end at the 99.5th percentile of the magnitude. Runs: `newtonian_re400_n500`, `newtonian_re250_n500`, `mp_n500`, `mp_n250`; tag `thesis-ch5-rc2`. Between the two bounds: u_min no (-0.64 of the way from the Re 400 value to the Re 250 value), v_max no (-0.31), v_min no (-0.08); along the centre lines the micropolar profile leaves the band of the two bounds at 54 % (u) and 65 % (v) of the points, by at most 5.3e-02 and 4.5e-02 U. N = 250 minus n = 500: rms difference of the centre lines 3.0e-03 (u) and 3.5e-03 (v) U, extrema -5.3e-03, +5.0e-03, -6.1e-03 U (standard error of the time means 2e-05). No reference table for Reynolds number 400 is in the repository (the Marchi et al. files hold 1,000, 3,200 and 5,000), so the Newtonian bound at 400 is not compared with a reference here.",
  "files": [
   "fig_11_micropolar_cavity.pdf",
   "fig_11_micropolar_cavity.png",
@@ -12,6 +12,7 @@
  "sources": [
   "data/micropolar/stage6/cavity.json",
   "newtonian_re400_n500",
+  "newtonian_re250_n500",
   "mp_n500",
   "mp_n250"
  ],
