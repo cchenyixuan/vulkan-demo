@@ -3592,8 +3592,9 @@ nu s'' - c w_x' = 0,      xi w_x'' + c (s' - 2 w_x) = 0        the same pair wit
   (15.2.3 quotes what its log holds). **To take it up:** `python -m experiment.validation.micropolar_stage6 runner`
   reads `logs/micropolar/stage6/plan.json`, which still lists these jobs in this order (the 3-D run on two slabs
   starts from its beginning; there is no restart file); then the commands of `data/micropolar/stage6/README.md`.
-  Before that, free memory on the machine: the two-slab run at g = 40 dx needs about 4 GB of host memory at a
-  sample.
+  Before that, free memory on the machine: a sample of the two-slab run at g = 40 dx still reads positions,
+  velocities, densities and micro-rotations of all 15.6 million particles back to the host (about 3 GB for a moment,
+  every 1,000 steps).
 - **The rows at g = 400 dx** (m = 10 at l = 20 dx; m = 20 at l = 10 dx; m = 40 at l = 5 dx for K = 3, 1, 0.5): none.
   They were last in the queue, and from 23:30 on they were held back because a g = 400 dx run beside a 3-D run at g
   = 40 dx does not fit into this machine's memory tonight. The cases are in the run table (`micropolar_stage6
@@ -3626,7 +3627,10 @@ nu s'' - c w_x' = 0,      xi w_x'' + c (s' - 2 w_x) = 0        the same pair wit
   its first saved state was due at step 39,000, the last heartbeat is step 38,000 (02:49), and saving a state read
   every field of all 15.6 million particles back to the host at once, about 3 GB more than an ordinary sample needs,
   with less than that left of the machine's commit limit (47.7 GB, of which other programs held about 38 GB after
-  the stop). The states at g = 20 dx were a sixth of that and had passed.
+  the stop). The states at g = 20 dx were a sixth of that and had passed. **Changed since**
+  (`micropolar_rotor3d.py`, a tool of this stage, nothing under `experiment/v7`): a saved state now reads its fields
+  one buffer of one card at a time and copies only the rows of the wall band. Checked on the host against the old
+  path with a stand-in for the card (identical arrays); not run on a card, because nothing was started again.
 - **The machine, not the solver, cost about an hour of card time before that.** At 22:15 and again at 23:10 the disk
   had no free space left; three runs and the queue runner died with `No space left on device`. The cause: committed
   memory was at its limit (other programs on this machine held about 27 GB tonight, the system 9 GB, of 31 GB of

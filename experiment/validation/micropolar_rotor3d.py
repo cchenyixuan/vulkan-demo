@@ -339,9 +339,10 @@ COMPONENTS = {"position_voxel_id": 4, "velocity_mass": 4, "density_pressure": 2,
               "wall_dummy_angular_velocity": 4, "correction_inverse": 8}
 
 
-def read_own_particles(sim, field_names) -> dict:
+def read_own_particles(sim, field_names, with_alive: bool = False) -> dict:
     """Own, alive rows of the named set-0 buffers of one sim (as micropolar_tests._read_own_particles, with the
-    packed inverse of the correction matrix: (m00, m11, m22, m01, m02, m12, -, -))."""
+    packed inverse of the correction matrix: (m00, m11, m22, m01, m02, m12, -, -)). With with_alive the mask of
+    the alive rows of the own pool comes back under "_alive" (for read_own_field)."""
     capacities = sim.case.capacities
     pool_capacity = capacities.total_pool_capacity()
     names = list(dict.fromkeys(["position_voxel_id", "velocity_mass", "material", *field_names]))
@@ -355,7 +356,24 @@ def read_own_particles(sim, field_names) -> dict:
             count = COMPONENTS[name]
             rows[name] = np.frombuffer(raw[name], np.float32)[:pool_capacity * count].reshape(pool_capacity, count)[own]
     alive = (rows["velocity_mass"][:, 3] > 0) & (rows["position_voxel_id"][:, 3] > 0.5)
-    return {name: np.array(values[alive]) for name, values in rows.items()}
+    result = {name: np.array(values[alive]) for name, values in rows.items()}
+    if with_alive:
+        result["_alive"] = alive
+    return result
+
+
+def read_own_field(sim, name: str, alive: np.ndarray, selection: np.ndarray) -> np.ndarray:
+    """The rows `selection` (indices into the alive rows of the own pool, in their order) of one set-0 buffer.
+    One buffer is read back at a time and only the selected rows are copied: a saved state needs the fields of
+    the wall band only, and reading every field of every particle at once is what the host could not hold at
+    g = 40 dx (docs/micropolar_design.md 15.6)."""
+    capacities = sim.case.capacities
+    pool_capacity = capacities.total_pool_capacity()
+    raw = sim.readback_buffers_batch([name])
+    own = slice(sim.own_first_pid(), sim.own_first_pid() + capacities.own_pool_size)
+    count = COMPONENTS[name]
+    values = np.frombuffer(raw[name], np.float32)[:pool_capacity * count].reshape(pool_capacity, count)[own]
+    return np.array(values[np.flatnonzero(alive)[selection]])
 
 
 def state_steps(steps: int, sample_steps: int, state_count: int) -> list:
@@ -417,7 +435,8 @@ def command_run(arguments) -> int:
         safe = np.where(radius > 0.0, radius, 1.0)
         return radius, x / safe, y / safe
 
-    def save_state(rows: dict, step: int) -> None:
+    def state_band(rows: dict) -> np.ndarray:
+        """The rows a saved state keeps: the fluid near the rotor and the rotor's shell (and the housing's band)."""
         position = rows["position_voxel_id"][:, :3]
         radius, _cosine, _sine = cylindrical(position)
         height = position[:, 2].astype(np.float64)
@@ -429,18 +448,24 @@ def command_run(arguments) -> int:
         keep = np.where(is_fluid, to_rotor < fluid_reach, (kind < 3) & (to_rotor > -(support + spacing)))
         if arguments.housing_band:
             keep |= np.where(is_fluid, to_housing < support + spacing, (kind == 3) & (to_housing > -(support + spacing)))
-        arrays = {"position": position[keep], "velocity": rows["velocity_mass"][keep, :3],
+        return keep
+
+    def save_state(rows: dict, keep: np.ndarray, band: dict, step: int) -> None:
+        """rows: the sample's fields of every particle; band: the state fields of the rows `keep` only."""
+        is_fluid = rows["material"] == fluid_group
+        kind = group_kind[rows["material"]]
+        arrays = {"position": rows["position_voxel_id"][keep, :3], "velocity": rows["velocity_mass"][keep, :3],
                   "density": rows["density_pressure"][keep, 0], "pressure": rows["density_pressure"][keep, 1],
-                  "acceleration": rows["acceleration"][keep, :3],
-                  "dummy_velocity": rows["wall_dummy_velocity"][keep, :3],
-                  "dummy_weight": rows["wall_dummy_velocity"][keep, 3],
-                  "correction_inverse": rows["correction_inverse"][keep, :6],
+                  "acceleration": band["acceleration"][:, :3],
+                  "dummy_velocity": band["wall_dummy_velocity"][:, :3],
+                  "dummy_weight": band["wall_dummy_velocity"][:, 3],
+                  "correction_inverse": band["correction_inverse"][:, :6],
                   "kind": kind[keep], "mass": np.float64(rows["velocity_mass"][is_fluid, 3][0]),
                   "step": np.int64(step)}
         if micropolar:
             arrays.update({"spin": rows["angular_velocity"][keep, :3],
-                           "angular_acceleration": rows["angular_acceleration"][keep, :3],
-                           "dummy_spin": rows["wall_dummy_angular_velocity"][keep, :3]})
+                           "angular_acceleration": band["angular_acceleration"][:, :3],
+                           "dummy_spin": band["wall_dummy_angular_velocity"][:, :3]})
         (out_dir / "states").mkdir(exist_ok=True)
         np.savez(out_dir / "states" / f"state_{step:08d}.npz", **arrays)
 
@@ -469,15 +494,24 @@ def command_run(arguments) -> int:
 
         def sample(step: int) -> None:
             wanted = ["density_pressure"] + (["angular_velocity"] if micropolar else [])
-            if step in saved_steps:
-                wanted = wanted + state_fields
-            parts = [read_own_particles(sim, wanted) for sim in sims]
+            parts = [read_own_particles(sim, wanted, with_alive=True) for sim in sims]
+            alive_masks = [part.pop("_alive") for part in parts]
+            counts = [part["material"].shape[0] for part in parts]
             rows = {name: np.concatenate([part[name] for part in parts]) for name in parts[0]}
             del parts
             if rows["material"].shape[0] != expected:
                 raise RuntimeError(f"step {step}: {rows['material'].shape[0]} particles alive, {expected} loaded")
             if step in saved_steps:
-                save_state(rows, step)
+                # the state fields: one buffer of one sim at a time, the rows of the band only
+                keep = state_band(rows)
+                band, offset = {name: [] for name in state_fields}, 0
+                for sim, alive, count in zip(sims, alive_masks, counts):
+                    selection = np.flatnonzero(keep[offset:offset + count])
+                    for name in state_fields:
+                        band[name].append(read_own_field(sim, name, alive, selection))
+                    offset += count
+                save_state(rows, keep, {name: np.concatenate(values) for name, values in band.items()}, step)
+            del alive_masks
             if step == steps:
                 save_slabs(rows, step)
             fluid = rows["material"] == fluid_group

@@ -39,9 +39,11 @@ PAIRS = (("g20_k3_m1", "g20_newtonian"), ("g20s_k3_m1", "g20s_newtonian"),
 CHAINS = (("g40_k3_m2_k2", "g40_k3_m2"),)
 # (run on the second lattice, run on the first): the scale for the differences of a chain against one slab
 LATTICES = (("g20s_k3_m1", "g20_k3_m1"), ("g20s_newtonian", "g20_newtonian"))
-# Runs that were stopped before their end (run directory -> case): what their samples_partial.npz holds is analysed
-# with the part that exists taken as the run.
+# Runs that were stopped before their end (run -> case): what their samples_partial.npz holds is analysed with the
+# part that exists taken as the run. What a stopped run left (samples_partial.npz, heartbeat.json, its log as
+# run.log) is kept under STOPPED, because a later run of the same name overwrites it in the run directory.
 PARTIAL = {"g40_k3_m2_k2": "cases/rotor3d/g40_k3_m2"}
+STOPPED = "data/micropolar/stage6/rotor3d_stopped"
 ALIVE = re.compile(r"\[SimV7\] bootstrap done: alive=(\d+)")
 DEVICE_LOCAL = re.compile(r"\[SimV7\] device-local buffers: (\d+), ([0-9.]+) MB")
 DEFRAG_SCRATCH = re.compile(r"\[SimV7\] defrag scratch buffers: (\d+), ([0-9.]+) MB")
@@ -61,8 +63,8 @@ def load_partial(name: str, directory: pathlib.Path, case: str) -> dict | None:
     'the last quarter' is the last quarter of what exists. The (r, z) sums are kept per eighth of the planned
     run; the eighths that lie in that last quarter are put where analyse_run looks for the last quarter."""
     from experiment.validation.micropolar_couette import solver_revision
-    run_dir = directory / name
-    if (run_dir / "run.json").exists() or not (run_dir / "samples_partial.npz").exists():
+    run_dir = _REPO_ROOT / STOPPED / name
+    if (directory / name / "run.json").exists() or not (run_dir / "samples_partial.npz").exists():
         return None
     meta = json.loads((_REPO_ROOT / case / "rotor3d.json").read_text(encoding="utf-8"))
     with np.load(run_dir / "samples_partial.npz") as archive:
@@ -76,7 +78,7 @@ def load_partial(name: str, directory: pathlib.Path, case: str) -> dict | None:
         moved = np.zeros_like(data[key])
         moved[6] = data[key][late].sum(axis=0)
         data[key] = moved
-    log_path = run_dir.with_suffix(".log")
+    log_path = run_dir / "run.log"
     alive = [int(value) for value in ALIVE.findall(log_path.read_text(encoding="utf-8", errors="replace"))] \
         if log_path.exists() else []
     run = {"steps": reached, "particles": int(sum(meta["counts"].values())), "timestep": meta["timestep"],
@@ -146,6 +148,8 @@ def analyse_run(item: dict) -> dict:
               "counters_zero": not any(run["counters"].values()), "revision": run["revision"],
               "lattice_offset": meta["lattice_offset"]}
     log_path = item["directory"].with_suffix(".log")
+    if not log_path.exists():
+        log_path = item["directory"] / "run.log"                  # a stopped run kept under STOPPED
     if log_path.exists():
         text = log_path.read_text(encoding="utf-8", errors="replace")
         local = [float(match[1]) for match in DEVICE_LOCAL.findall(text)]
@@ -633,7 +637,7 @@ def command_maps(arguments) -> int:
     from experiment.validation.micropolar_stage6 import velocity_gradient
     directory = _REPO_ROOT / arguments.directory
     if arguments.name in PARTIAL and not (directory / arguments.name / "run.json").exists():
-        return partial_maps(arguments, directory)
+        return partial_maps(arguments, directory)                 # reads what is kept under STOPPED
     item = load(arguments.name, directory)
     run, meta, data = item["run"], item["meta"], item["data"]
     spacing = meta["spacing"]
