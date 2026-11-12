@@ -2,8 +2,8 @@ Micropolar cavity of Stage 6 (K = 3, Reynolds number 400 on mu_inf, l = L / 20, 
 run                         n  K  t_end  steady     u_min    at y     v_max    at x     v_min    at x      E_k     dE_k  rho level   drift/t  p level   drift/t  steps/s
 mp_n500                   500  1   69.6    49.7  -0.35798  0.3112   0.32284  0.2380  -0.46272  0.8451   0.0527 +2.5e-05  -5.21e-06  -2.7e-10  -0.0516  -2.7e-06      886
 newtonian_re400_n500      500  1   69.6    49.7  -0.33112  0.2793   0.30661  0.2250  -0.45728  0.8621   0.0467 -1.3e-05  -4.80e-06  -7.5e-10  -0.0476  -7.5e-06     1003
-mp_n250                   250  1   12.0       -  -0.22682  0.3990   0.17563  0.3137  -0.30145  0.8300   0.0375 +4.7e-01  -5.45e-06  -2.8e-07  -0.0540  -2.8e-03     2174  (not finished)
+mp_n250                   250  1   70.4    50.4  -0.36329  0.3107   0.32782  0.2376  -0.46881  0.8447   0.0538 +8.1e-06  -6.17e-06  +1.3e-08  -0.0612  +1.3e-04     2154
 
-n = 250 (l = 12.5 dx) minus n = 500 (l = 25 dx): rms / max difference of the time-mean centre lines u 1.06e-01 / 1.81e-01 U, v 1.06e-01 / 1.71e-01 U (rms standard error of the difference over the samples: 1.1e-02, 1.0e-02); extrema: u_min +1.31e-01, v_max -1.47e-01, v_min +1.61e-01 U; positions +8.8e-02, +7.6e-02, -1.5e-02 L; kinetic energy -1.53e-02
+n = 250 (l = 12.5 dx) minus n = 500 (l = 25 dx): rms / max difference of the time-mean centre lines u 3.00e-03 / 7.23e-03 U, v 3.49e-03 / 6.24e-03 U (rms standard error of the difference over the samples: 1.7e-05, 1.9e-05); extrema: u_min -5.31e-03, v_max +4.99e-03, v_min -6.09e-03 U; positions -5.6e-04, -4.1e-04, -3.8e-04 L; kinetic energy +1.08e-03
 
 micropolar (l = L / 20) minus Newtonian of viscosity mu_inf: rms / max difference of the time-mean centre lines u 3.72e-02 / 8.00e-02 U, v 2.32e-02 / 4.78e-02 U (rms standard error of the difference over the samples: 1.0e-05, 1.1e-05); extrema: u_min -2.69e-02, v_max +1.62e-02, v_min -5.44e-03 U; positions +3.2e-02, +1.3e-02, -1.7e-02 L; kinetic energy +6.07e-03
