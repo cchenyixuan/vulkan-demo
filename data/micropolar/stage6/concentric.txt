@@ -3,20 +3,70 @@ run                           steps         dt    limit      alpha         beta 
 g050_newtonian               67,000 3.0000e-05 acoustic  -4.443472   1.10999803  0.998998  -0.086  -0.098  1.3e-06  3.2e-04  1.3e-04  9.0e-06   1701.3
 g050_newtonian_shifted       67,000 3.0000e-05 acoustic  -4.443153   1.11033684  0.999303  -0.051  -0.051  1.1e-05  1.3e-04  1.3e-05  1.7e-05   1701.2
 g050_newtonian_rotated       67,000 3.0000e-05 acoustic  -4.442877   1.10987109  0.998884  -0.089  -0.095  1.6e-05  1.2e-04  4.3e-05  1.1e-05   1712.1
+g100_newtonian              134,000 1.5000e-05 acoustic  -4.444237   1.11068009  0.999612  -0.072  -0.085  5.3e-06  1.3e-04  5.6e-05  5.0e-06    647.2
+g100_newtonian_shifted      134,000 1.5000e-05 acoustic  -4.442648   1.11047520  0.999428  -0.063  -0.042  4.5e-06  3.1e-05  7.8e-06  5.9e-06    636.8
+g100_newtonian_rotated      134,000 1.5000e-05 acoustic  -4.444117   1.11065437  0.999589  -0.073  -0.084  1.1e-06  3.3e-04  1.6e-04  5.6e-06    639.6
+g200_newtonian              267,000 7.5000e-06 acoustic  -4.444102   1.11087864  0.999791  -0.064  -0.066  2.2e-06  7.3e-05  3.4e-05  1.5e-05    358.5
 
 noise floor at g = 50 dx: beta spread (max - min) / mean = 4.20e-04, std / mean = 2.17e-04
+noise floor at g = 100 dx: beta spread (max - min) / mean = 1.84e-04, std / mean = 1.00e-04
 
 micropolar runs (w = 0 on both walls); D_exact with the hydrodynamic radii of the control
 run                 K   m  l/dx  Re_mu    limit     D_SPH   D_joint   D_exact D_nominal    D_rule  SPH/ex joint/ex rule/ex floor/D   steady j.steady   v core   v wall   w core   w wall  steps/s
 g050_k3_m5          3   5     5     25 acoustic   0.06696   0.06550   0.06503   0.06502   0.06385  1.0297   1.0072  0.9818  0.0069  2.6e-05  1.3e-05  5.8e-04  1.4e-03  4.2e-03  1.4e-02   1537.9
+g100_k3_m5          3   5    10     25 acoustic   0.06550   0.06461   0.06503   0.06502   0.06384  1.0073   0.9937  0.9818  0.0030  9.5e-06  5.1e-06  1.6e-04  7.8e-04  2.7e-03  7.7e-03    564.2
+g200_k3_m5          3   5    20     25 acoustic   0.06511   0.06444   0.06502   0.06502   0.06384  1.0015   0.9912  0.9818  0.0030  1.0e-06  9.5e-07  9.0e-05  4.5e-04  1.8e-03  4.0e-03    277.1
+g100_k3_m10         3  10     5     25 acoustic   0.03219   0.03127   0.03121   0.03121   0.03093  1.0313   1.0020  0.9911  0.0061  2.1e-05  9.9e-06  4.1e-04  7.3e-04  3.1e-03  1.3e-02    564.7
+g200_k3_m10         3  10    10     25 acoustic   0.03144   0.03073   0.03121   0.03121   0.03093  1.0075   0.9846  0.9911  0.0061  1.5e-06  5.2e-07  1.2e-04  4.3e-04  1.9e-03  6.7e-03    281.8
+g100_k3_m1          3   1    50     25 acoustic   0.32250   0.32215   0.32212   0.32210   0.43005  1.0012   1.0001  1.3350  0.0008  8.0e-05  3.5e-07  6.4e-05  8.2e-04  3.2e-03  4.5e-03    560.2
+g100_k3_m2          3   2    25     25 acoustic   0.17769   0.17710   0.17746   0.17744   0.17661  1.0013   0.9979  0.9952  0.0012  1.5e-05  4.2e-06  9.5e-05  8.2e-04  2.9e-03  5.0e-03    563.6
+g100_k1_m1          1   1    50     15 acoustic   0.18957   0.18944   0.18950   0.18949   0.25036  1.0004   0.9997  1.3211  0.0012  6.0e-05  7.7e-07  4.7e-05  8.2e-04  3.2e-03  4.5e-03    563.5
+g100_k1_m2          1   2    25     15 acoustic   0.11030   0.10981   0.11020   0.11019   0.11116  1.0009   0.9964  1.0087  0.0019  5.1e-05  8.1e-06  6.6e-05  8.2e-04  2.9e-03  5.0e-03    511.6
+g100_k1_m5          1   5    10     15 acoustic   0.04247   0.04167   0.04221   0.04220   0.04167  1.0061   0.9872  0.9873  0.0046  8.9e-06  1.5e-06  8.8e-05  7.9e-04  2.6e-03  7.5e-03    569.4
+g100_k05_m1       0.5   1    50   12.5 acoustic   0.11722   0.11706   0.11715   0.11714   0.15395  1.0006   0.9992  1.3141  0.0018  3.0e-04  1.1e-05  2.8e-05  8.2e-04  3.2e-03  4.5e-03    562.8
 
 where the fitted profiles reach the wall values, in dx from the nominal radius (separate fits of v and w), and w minus v (separate / joint fit)
 run               v rotor  w rotor    w - v  (joint) v stator w stator    w - v  (joint)
 g050_k3_m5         -0.131    0.095    0.226    0.234   -0.098   -0.134   -0.036   -0.063
+g100_k3_m5         -0.107    0.062    0.168    0.198   -0.096   -0.081    0.015   -0.049
+g200_k3_m5         -0.110    0.057    0.168    0.216   -0.091   -0.054    0.037   -0.102
+g100_k3_m10        -0.137    0.130    0.267    0.268   -0.067   -0.145   -0.078   -0.107
+g200_k3_m10        -0.131    0.079    0.210    0.237   -0.101   -0.071    0.030   -0.118
+g100_k3_m1         -0.082    0.045    0.128    0.143   -0.088   -0.073    0.015   -0.009
+g100_k3_m2         -0.092    0.043    0.135    0.170   -0.093   -0.070    0.022   -0.032
+g100_k1_m1         -0.078    0.045    0.123    0.136   -0.088   -0.073    0.015   -0.005
+g100_k1_m2         -0.084    0.043    0.126    0.156   -0.091   -0.069    0.022   -0.025
+g100_k1_m5         -0.091    0.051    0.143    0.174   -0.094   -0.073    0.021   -0.037
+g100_k05_m1        -0.076    0.045    0.121    0.133   -0.087   -0.073    0.014   -0.003
+
+resolution series m = 5: deviation of D and profile errors against h / l, observed orders between neighbours
+run                h/l      dev D    dev/D  order joint dev/D  order   v core  order   v wall  order   w core  order   w wall  order
+g050_k3_m5        1.00  +1.93e-03  +0.0297    nan     +0.0072    nan  5.8e-04    nan  1.4e-03    nan  4.2e-03    nan  1.4e-02    nan
+g100_k3_m5        0.50  +4.74e-04  +0.0073   2.03     -0.0063   0.20  1.6e-04   1.89  7.8e-04   0.85  2.7e-03   0.63  7.7e-03   0.89
+g200_k3_m5        0.25  +9.60e-05  +0.0015   2.30     -0.0088  -0.48  9.0e-05   0.80  4.5e-04   0.79  1.8e-03   0.59  4.0e-03   0.93
+
+resolution series m = 10: deviation of D and profile errors against h / l, observed orders between neighbours
+run                h/l      dev D    dev/D  order joint dev/D  order   v core  order   v wall  order   w core  order   w wall  order
+g100_k3_m10       1.00  +9.76e-04  +0.0313    nan     +0.0020    nan  4.1e-04    nan  7.3e-04    nan  3.1e-03    nan  1.3e-02    nan
+g200_k3_m10       0.50  +2.35e-04  +0.0075   2.06     -0.0154  -2.92  1.2e-04   1.74  4.3e-04   0.77  1.9e-03   0.66  6.7e-03   0.97
 
 rule in its slip form (hydrodynamic radii of the control) and the levels of the fluid: mean density relative to rho0 and mean pressure in rho U^2 over the last eighth of the run, and their change from the eighth before (drift)
 run                            D_SPH   D_exact    D_slip  slip/ex   rho level   rho drift     p level     p drift  describe
 g050_newtonian                     -         -         -        -    1.12e-04    4.36e-06    2.80e-01    1.09e-02  thesis-ch5-rc2
 g050_newtonian_shifted             -         -         -        -    1.15e-04    3.30e-06    2.87e-01    8.26e-03  thesis-ch5-rc2
 g050_newtonian_rotated             -         -         -        -    1.13e-04    3.19e-06    2.82e-01    7.98e-03  thesis-ch5-rc2
+g100_newtonian                     -         -         -        -   -5.62e-06    1.22e-06   -1.39e-02    3.05e-03  thesis-ch5-rc2
+g100_newtonian_shifted             -         -         -        -   -4.83e-06    1.41e-06   -1.19e-02    3.53e-03  thesis-ch5-rc2-1-gcb243fd
+g100_newtonian_rotated             -         -         -        -   -6.16e-06    1.13e-06   -1.53e-02    2.83e-03  thesis-ch5-rc2-2-g7a21ef4
+g200_newtonian                     -         -         -        -   -5.35e-06    9.10e-09   -1.31e-02    2.30e-05  thesis-ch5-rc2
 g050_k3_m5                   0.06696   0.06503   0.06485   0.9972    1.21e-04    5.78e-06    3.04e-01    1.45e-02  thesis-ch5-rc2
+g100_k3_m5                   0.06550   0.06503   0.06484   0.9972   -2.28e-06    6.54e-07   -5.56e-03    1.64e-03  thesis-ch5-rc2
+g200_k3_m5                   0.06511   0.06502   0.06483   0.9972   -2.88e-06   -1.99e-08   -6.92e-03   -4.99e-05  thesis-ch5-rc2-1-gcb243fd
+g100_k3_m10                  0.03219   0.03121   0.03116   0.9985   -1.75e-07    7.15e-07   -3.08e-04    1.80e-03  thesis-ch5-rc2-1-gcb243fd
+g200_k3_m10                  0.03144   0.03121   0.03116   0.9985   -2.45e-06   -1.50e-08   -5.84e-03   -3.71e-05  thesis-ch5-rc2-2-g7a21ef4
+g100_k3_m1                   0.32250   0.32212   0.47909   1.4873   -5.17e-06    5.21e-07   -1.28e-02    1.31e-03  thesis-ch5-rc2-1-gcb243fd
+g100_k3_m2                   0.17769   0.17746   0.18443   1.0392   -4.15e-06    5.88e-07   -1.02e-02    1.46e-03  thesis-ch5-rc2-1-gcb243fd
+g100_k1_m1                   0.18957   0.18950   0.26631   1.4053   -5.57e-06    6.91e-07   -1.38e-02    1.73e-03  thesis-ch5-rc2-2-g7a21ef4
+g100_k1_m2                   0.11030   0.11020   0.11421   1.0363   -4.93e-06    7.95e-07   -1.22e-02    1.99e-03  thesis-ch5-rc2-2-g7a21ef4
+g100_k1_m5                   0.04247   0.04221   0.04210   0.9973   -3.62e-06    8.76e-07   -8.95e-03    2.18e-03  thesis-ch5-rc2-2-g7a21ef4
+g100_k05_m1                  0.11722   0.11715   0.15985   1.3645   -6.29e-06    7.72e-07   -1.56e-02    1.93e-03  thesis-ch5-rc2-2-g7a21ef4

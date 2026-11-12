@@ -537,6 +537,11 @@ def command_run(arguments) -> int:
                 (out_dir / "heartbeat.json").write_text(json.dumps(
                     {"step": frame, "steps": steps, "elapsed_seconds": time.perf_counter() - started}),
                     encoding="utf-8")
+                if len(samples["step"]) % 5 == 0:
+                    # what a run that is stopped early leaves behind
+                    np.savez_compressed(out_dir / "samples_partial.npz",
+                                        **{name: np.asarray(values) for name, values in samples.items()},
+                                        **{f"window_{name}": values for name, values in windows.items()})
 
         with ChainOrchestratorV7(sims, defrag_cadence=cadence) as orchestrator:
             orchestrator.bootstrap_all()

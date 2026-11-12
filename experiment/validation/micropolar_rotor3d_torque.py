@@ -224,7 +224,7 @@ def surface_terms(state: State) -> dict:
     angle_index = np.minimum((np.arctan2(position[:, 1], position[:, 0]) % (2.0 * np.pi) / (2.0 * np.pi)
                               * ANGLE_BINS).astype(np.int64), ANGLE_BINS - 1)
     cap_width = CAP_BIN_SPACINGS * spacing
-    cap_bins = int(np.ceil(radius_rotor / cap_width))
+    cap_bins = int(np.ceil(radius_rotor / cap_width - 1.0e-9))
     cap_index = np.minimum((radius / cap_width).astype(np.int64), cap_bins - 1)
     edge_angle = np.arctan2(beyond_axial, beyond_radial)                         # 0 at the lateral side
     edge_index = np.minimum((edge_angle / (0.5 * np.pi) * EDGE_BINS).astype(np.int64), EDGE_BINS - 1)

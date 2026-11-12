@@ -153,6 +153,200 @@ def command_run(arguments) -> int:
     return code
 
 
+def _extremum(coordinate: np.ndarray, values: np.ndarray, kind: str, low: float = 0.0, high: float = 1.0):
+    """(value, position) of the minimum or maximum of a dense profile between low and high, from the parabola
+    through the three samples around it."""
+    inside = np.nonzero((coordinate >= low) & (coordinate <= high))[0]
+    index = inside[np.argmin(values[inside]) if kind == "min" else np.argmax(values[inside])]
+    index = int(min(max(index, 1), coordinate.size - 2))
+    fit = np.polyfit(coordinate[index - 1:index + 2], values[index - 1:index + 2], 2)
+    position = -fit[1] / (2.0 * fit[0])
+    return float(np.polyval(fit, position)), float(position)
+
+
+def summarise(run: str, average_span: float) -> dict:
+    """One run: the time means of the dense centre-line profiles over the last average_span time units, their
+    scatter over the samples, the extrema, the levels of the fluid and their drift, the steady time."""
+    run_dir = _REPO_ROOT / RUNS_DIRECTORY / run
+    meta = json.loads((run_dir / "meta.json").read_text(encoding="utf-8"))
+    rows = [json.loads(line) for line in (run_dir / "samples.jsonl").read_text(encoding="utf-8").splitlines() if line]
+    end_time = rows[-1]["time"]
+    window = [row for row in rows if row["time"] > end_time - average_span + 1e-9]
+    profiles = {"u": [], "v": []}
+    for row in window:
+        with np.load(run_dir / "samples" / f"s{row['step']:010d}.npz") as archive:
+            profiles["u"].append(np.array(archive["u_dense_mls"]))
+            profiles["v"].append(np.array(archive["v_dense_mls"]))
+    coordinate = np.asarray(meta["dense_reference"], dtype=np.float64)
+    summary = {"run": run, "case": RUNS[run][0], "resolution": RUNS[run][1], "micropolar": RUNS[run][2],
+               "slabs": RUNS[run][4], "viscosity": case_viscosity(run), "end_time": end_time,
+               "samples": len(window), "timestep": meta["dt"], "spacing": meta["spacing"],
+               "device_map": meta["device_map"], "cuts_x": meta.get("cuts_x"), "git": meta.get("git"),
+               "coordinate": coordinate.tolist(), "finished": (run_dir / "done.json").exists()}
+    for name in ("u", "v"):
+        stack = np.asarray(profiles[name])
+        mean = stack.mean(axis=0)
+        summary[f"{name}_mean"] = mean.tolist()
+        summary[f"{name}_standard_error"] = (stack.std(axis=0, ddof=1) / np.sqrt(stack.shape[0])).tolist()
+    u, v = np.asarray(summary["u_mean"]), np.asarray(summary["v_mean"])
+    summary["u_min"], summary["y_at_u_min"] = _extremum(coordinate, u, "min", 0.02, 0.98)
+    summary["v_max"], summary["x_at_v_max"] = _extremum(coordinate, v, "max", 0.02, 0.98)
+    summary["v_min"], summary["x_at_v_min"] = _extremum(coordinate, v, "min", 0.02, 0.98)
+    half = len(window) // 2
+    summary["kinetic_energy_mean"] = float(np.mean([row["kinetic_energy"] for row in window]))
+    summary["kinetic_energy_change_between_halves"] = float(
+        (np.mean([row["kinetic_energy"] for row in window[half:]])
+         - np.mean([row["kinetic_energy"] for row in window[:half]])) / summary["kinetic_energy_mean"])
+    summary["steps_per_second"] = float(np.median([row["fps"] for row in window]))
+    summary["density_min"] = float(min(row["density_min"] for row in window))
+    summary["density_max"] = float(max(row["density_max"] for row in window))
+    if "density_mean" in rows[-1]:
+        scale = DENSITY * WALL_SPEED ** 2
+        summary["density_level"] = float(np.mean([row["density_mean"] for row in window[half:]]) / DENSITY - 1.0)
+        summary["pressure_level"] = float(np.mean([row["pressure_mean"] for row in window[half:]]) / scale)
+        # drift per time unit L / U over the averaging window (least squares)
+        times = np.array([row["time"] for row in window])
+        summary["density_drift_per_time_unit"] = float(
+            np.polyfit(times, [row["density_mean"] / DENSITY for row in window], 1)[0])
+        summary["pressure_drift_per_time_unit"] = float(
+            np.polyfit(times, [row["pressure_mean"] / scale for row in window], 1)[0])
+        summary["level_history"] = [[row["time"], row["density_mean"] / DENSITY - 1.0, row["pressure_mean"] / scale]
+                                    for row in rows if abs(row["time"] / 5.0 - round(row["time"] / 5.0)) < 1e-6]
+    steady_path = run_dir / "steady.json"
+    summary["steady"] = json.loads(steady_path.read_text(encoding="utf-8")) if steady_path.exists() else None
+    return summary
+
+
+def command_analyse(arguments) -> int:
+    lines, records = [], {}
+
+    def say(text=""):
+        lines.append(text)
+        print(text)
+    for run in RUNS:
+        run_dir = _REPO_ROOT / RUNS_DIRECTORY / run
+        if (run_dir / "samples.jsonl").exists() and list((run_dir / "samples").glob("s*.npz")):
+            records[run] = summarise(run, arguments.average_span)
+    say(f"Micropolar cavity of Stage 6 (K = {COUPLING_RATIO:g}, Reynolds number 400 on mu_inf, l = L / 20, w = 0 on the "
+        f"walls, Ma = 0.01) and its two Newtonian bounds; time means over the last {arguments.average_span:g} time "
+        "units of the dense centre-line samples (MLS, 1,001 points); extrema from a parabola through three samples")
+    say(f"{'run':<24}{'n':>5}{'K':>3}{'t_end':>7}{'steady':>8}{'u_min':>10}{'at y':>8}{'v_max':>10}{'at x':>8}"
+        f"{'v_min':>10}{'at x':>8}{'E_k':>9}{'dE_k':>9}{'rho level':>11}{'drift/t':>10}{'p level':>9}{'drift/t':>10}"
+        f"{'steps/s':>9}")
+    for run, item in records.items():
+        steady = (item["steady"] or {}).get("steady_time")
+        say(f"{run:<24}{item['resolution']:>5}{item['slabs']:>3}{item['end_time']:>7.1f}"
+            + (f"{steady:>8.1f}" if steady is not None else f"{'-':>8}")
+            + f"{item['u_min']:>10.5f}{item['y_at_u_min']:>8.4f}{item['v_max']:>10.5f}{item['x_at_v_max']:>8.4f}"
+            f"{item['v_min']:>10.5f}{item['x_at_v_min']:>8.4f}{item['kinetic_energy_mean']:>9.4f}"
+            f"{item['kinetic_energy_change_between_halves']:>+9.1e}"
+            + (f"{item['density_level']:>+11.2e}{item['density_drift_per_time_unit']:>+10.1e}"
+               f"{item['pressure_level']:>+9.4f}{item['pressure_drift_per_time_unit']:>+10.1e}"
+               if "density_level" in item else f"{'-':>11}{'-':>10}{'-':>9}{'-':>10}")
+            + f"{item['steps_per_second']:>9.0f}" + ("" if item["finished"] else "  (not finished)"))
+
+    def compare(first: str, second: str) -> dict:
+        one, two = records[first], records[second]
+        result = {"first": first, "second": second}
+        for name in ("u", "v"):
+            difference = np.asarray(one[f"{name}_mean"]) - np.asarray(two[f"{name}_mean"])
+            noise = np.hypot(np.asarray(one[f"{name}_standard_error"]), np.asarray(two[f"{name}_standard_error"]))
+            result[f"{name}_rms"] = float(np.sqrt((difference ** 2).mean()))
+            result[f"{name}_max"] = float(np.abs(difference).max())
+            result[f"{name}_noise_rms"] = float(np.sqrt((noise ** 2).mean()))
+        for key in ("u_min", "v_max", "v_min", "y_at_u_min", "x_at_v_max", "x_at_v_min", "kinetic_energy_mean"):
+            result[key] = one[key] - two[key]
+        return result
+    comparisons = {}
+    bounds = ("newtonian_re400_n500", "newtonian_re250_n500")
+    if "mp_n500" in records and all(bound in records for bound in bounds):
+        say()
+        say("the micropolar run between its Newtonian bounds (viscosity mu_inf: Reynolds number 400; viscosity "
+            "mu + kappa: Reynolds number 250)")
+        say(f"{'':<10}{'Re 400':>10}{'micropolar':>12}{'Re 250':>10}{'between':>9}{'position: Re 400':>18}"
+            f"{'micropolar':>12}{'Re 250':>10}")
+        inside = {}
+        for key, place in (("u_min", "y_at_u_min"), ("v_max", "x_at_v_max"), ("v_min", "x_at_v_min"),
+                           ("kinetic_energy_mean", None)):
+            low, value, high = (records[run][key] for run in (bounds[0], "mp_n500", bounds[1]))
+            inside[key] = bool(min(low, high) <= value <= max(low, high))
+            fraction = (value - low) / (high - low)
+            say(f"{key:<10}{low:>10.5f}{value:>12.5f}{high:>10.5f}{'yes' if inside[key] else 'NO':>9}"
+                + (f"{records[bounds[0]][place]:>18.4f}{records['mp_n500'][place]:>12.4f}"
+                   f"{records[bounds[1]][place]:>10.4f}" if place else "")
+                + f"   ({fraction:.2f} of the way from Re 400 to Re 250)")
+            inside[f"{key}_fraction"] = float(fraction)
+        # along the whole centre lines: where the micropolar profile leaves the band between the two bounds
+        for name in ("u", "v"):
+            low, value, high = (np.asarray(records[run][f"{name}_mean"]) for run in (bounds[0], "mp_n500", bounds[1]))
+            band_low, band_high = np.minimum(low, high), np.maximum(low, high)
+            outside = np.maximum(band_low - value, value - band_high)
+            inside[f"{name}_outside_max"] = float(outside.max())
+            inside[f"{name}_outside_share"] = float((outside > 0.0).mean())
+            inside[f"{name}_band_max_width"] = float((band_high - band_low).max())
+            coordinate = np.asarray(records["mp_n500"]["coordinate"])
+            inside[f"{name}_outside_at"] = float(coordinate[np.argmax(outside)])
+            say(f"   {name} along the centre line: the micropolar profile lies outside the band of the two bounds at "
+                f"{100.0 * inside[f'{name}_outside_share']:.0f} % of the points, by at most "
+                f"{inside[f'{name}_outside_max']:.2e} U (at {inside[f'{name}_outside_at']:.3f}); the band is up to "
+                f"{inside[f'{name}_band_max_width']:.2e} U wide")
+        comparisons["bounds"] = inside
+    for label, first, second, text in (
+            ("resolution", "mp_n250", "mp_n500", "n = 250 (l = 12.5 dx) minus n = 500 (l = 25 dx)"),
+            ("chain", "mp_n500_k2", "mp_n500", "two slabs minus one slab, n = 500")):
+        if first in records and second in records:
+            entry = compare(first, second)
+            comparisons[label] = entry
+            say()
+            say(f"{text}: rms / max difference of the time-mean centre lines u {entry['u_rms']:.2e} / "
+                f"{entry['u_max']:.2e} U, v {entry['v_rms']:.2e} / {entry['v_max']:.2e} U (rms standard error of the "
+                f"difference over the samples: {entry['u_noise_rms']:.1e}, {entry['v_noise_rms']:.1e}); extrema: "
+                f"u_min {entry['u_min']:+.2e}, v_max {entry['v_max']:+.2e}, v_min {entry['v_min']:+.2e} U; positions "
+                f"{entry['y_at_u_min']:+.1e}, {entry['x_at_v_max']:+.1e}, {entry['x_at_v_min']:+.1e} L; kinetic "
+                f"energy {entry['kinetic_energy_mean']:+.2e}")
+    if arguments.json:
+        target = _REPO_ROOT / arguments.json
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps({"runs": records, "comparisons": comparisons,
+                                      "parameters": {"coupling_ratio": COUPLING_RATIO, "far_viscosity": FAR_VISCOSITY,
+                                                     "length": LENGTH, **design()}}, indent=1), encoding="utf-8")
+        target.with_suffix(".txt").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    return 0
+
+
+def command_fields(arguments) -> int:
+    """The fluid of the newest checkpoint of one run with the curl of the velocity, as a file for the repository:
+    x, y, u, v, micro-rotation, curl (float32); the cavity is [-0.5, 0.5]^2, stored here as [0, 1]^2."""
+    from experiment.validation.micropolar_stage6 import velocity_gradient
+    run = arguments.run
+    run_dir = _REPO_ROOT / RUNS_DIRECTORY / run
+    meta = json.loads((run_dir / "meta.json").read_text(encoding="utf-8"))
+    checkpoint = sorted((run_dir / "checkpoints").glob("c*.npz"))[-1]
+    with np.load(checkpoint) as archive:
+        position = archive["position_voxel_id"][:, :2].astype(np.float64)
+        velocity = archive["velocity_mass"][:, :2].astype(np.float64)
+        material = archive["material"]
+        spin = (archive["angular_velocity"][:, 2].astype(np.float64) if "angular_velocity" in archive.files
+                else np.zeros(position.shape[0]))
+    fluid = np.isin(material, meta["fluid_groups"])
+    position, velocity, spin = position[fluid], velocity[fluid], spin[fluid]
+    gradient = velocity_gradient(position, velocity, arguments.radius_in_spacings * meta["spacing"])
+    curl = gradient[:, 1, 0] - gradient[:, 0, 1]
+    target = _REPO_ROOT / arguments.out / f"cavity_{run}.npz"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(target, x=(position[:, 0] + 0.5).astype(np.float32), y=(position[:, 1] + 0.5).astype(np.float32),
+                        u=velocity[:, 0].astype(np.float32), v=velocity[:, 1].astype(np.float32),
+                        spin=spin.astype(np.float32), curl=curl.astype(np.float32))
+    step = int(checkpoint.stem[1:])
+    target.with_suffix(".json").write_text(json.dumps(
+        {"run": run, "checkpoint": checkpoint.name, "step": step, "time": step * meta["dt"],
+         "cuts_x": [value + 0.5 for value in (meta.get("cuts_x") or [])], "spacing": meta["spacing"],
+         "git": meta.get("git"), "resolution": RUNS[run][1], "slabs": RUNS[run][4],
+         "length": LENGTH, "coupling_ratio": COUPLING_RATIO if RUNS[run][2] else None}, indent=1), encoding="utf-8")
+    print(f"[stage6 cavity] fields of {run}: {position.shape[0]:,} particles at t = {step * meta['dt']:.2f} -> {target}")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -165,6 +359,15 @@ def main() -> int:
     run.add_argument("--t-max", type=float, default=80.0)
     run.add_argument("--max-steps", type=int, default=None, help="a short run (smoke test); leaves no done.json")
     run.set_defaults(handler=command_run)
+    analyse = commands.add_parser("analyse")
+    analyse.add_argument("--average-span", type=float, default=20.0)
+    analyse.add_argument("--json", default="data/micropolar/stage6/cavity.json")
+    analyse.set_defaults(handler=command_analyse)
+    fields = commands.add_parser("fields")
+    fields.add_argument("run", choices=sorted(RUNS))
+    fields.add_argument("--radius-in-spacings", type=float, default=3.0)
+    fields.add_argument("--out", default="data/micropolar/stage6/fields")
+    fields.set_defaults(handler=command_fields)
     arguments = parser.parse_args()
     return arguments.handler(arguments)
 

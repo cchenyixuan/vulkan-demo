@@ -1,0 +1,139 @@
+"""
+Item 15 - the 3-D case (rotor of radius 3 g and length 3 g in a housing of radius 4 g with end gaps g, K = 3):
+fields in a plane through the axis (v_theta, two components of w, |w - curl v / 2|) and the mid-plane profiles of
+v_theta and w_z against the 2-D exact solution for the radii.
+
+Run from the repository root:  python data/micropolar/ch5_draft/fig_15_three_dimensional.py
+"""
+import json
+
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.colors import TwoSlopeNorm
+from matplotlib.patches import Rectangle
+
+import style
+
+ANALYSIS = "data/micropolar/stage6/rotor3d.json"
+MAPS = "data/micropolar/stage6/rotor3d/{run}"
+# the micropolar run of the figure: the finest that exists
+RUNS = ["g40_k3_m2", "g40_k3_m2_k2", "g20_k3_m1"]
+TAG = "thesis-ch5-rc2"
+
+
+def main() -> int:
+    style.setup()
+    if not style.exists(ANALYSIS):
+        print("[pack] item 15: no 3-D analysis yet")
+        return 1
+    analysis = style.load_json(ANALYSIS)
+    name = next((run for run in RUNS if run in analysis["runs"] and style.exists(MAPS.format(run=run) + ".npz")),
+                None)
+    if name is None:
+        print("[pack] item 15: no micropolar 3-D run with its maps yet")
+        return 1
+    record = analysis["runs"][name]
+    data = np.load(style.REPO_ROOT / (MAPS.format(run=name) + ".npz"))
+    summary = json.loads((style.REPO_ROOT / (MAPS.format(run=name) + ".json")).read_text(encoding="utf-8"))
+    meta = summary["rotor3d"]
+    gap, rate, speed = meta["gap"], meta["rotation_rate"], meta["wall_speed"]
+    x, z = data["x"] / gap, data["z"] / gap
+    excess = np.sqrt(data["excess_radial"] ** 2 + data["excess_tangential"] ** 2 + data["excess_axial"] ** 2) / rate
+    panels = [("a", data["tangential"] / speed, style.FIELD_MAGNITUDE, False, style.math(style.VELOCITY)),
+              ("b", data["spin_axial"] / rate, style.FIELD_SIGNED, True, style.math(r"w_z\,/\,\Omega")),
+              ("c", data["spin_radial"] / rate, style.FIELD_SIGNED, True, style.math(r"w_r\,/\,\Omega")),
+              ("d", excess, style.FIELD_MAGNITUDE, False,
+               style.math(r"|\mathbf{w} - \frac{1}{2}\,\nabla\!\times\!\mathbf{v}|\,/\,\Omega"))]
+    figure = plt.figure(figsize=(style.WIDE, 0.88 * style.WIDE))
+    grid = figure.add_gridspec(3, 2, height_ratios=[1.0, 1.0, 1.25])
+    half_width = meta["housing_radius"] / gap + 0.15
+    half_height = meta["housing_half_height"] / gap + 0.15
+    points_per_gap = (0.5 * style.WIDE * 72.0 * 0.74) / (2.0 * half_width)
+    marker_area = (1.4 * meta["spacing"] / gap * points_per_gap) ** 2
+    numbers = {}
+    for index, (letter, values, colour_map, signed, label) in enumerate(panels):
+        axis = figure.add_subplot(grid[index // 2, index % 2])
+        if signed:
+            bound = float(np.percentile(np.abs(values), 99.8))
+            keywords = {"norm": TwoSlopeNorm(vmin=-bound, vcenter=0.0, vmax=bound)}
+        else:
+            keywords = {"vmin": 0.0, "vmax": float(np.percentile(values, 99.9))}
+        image = axis.scatter(x, z, c=values, s=marker_area, marker="s", linewidths=0.0, cmap=colour_map,
+                             rasterized=True, **keywords)
+        rotor_radius, rotor_half = meta["rotor_radius"] / gap, meta["rotor_half_length"] / gap
+        housing_radius, housing_half = meta["housing_radius"] / gap, meta["housing_half_height"] / gap
+        axis.add_patch(Rectangle((-rotor_radius, -rotor_half), 2.0 * rotor_radius, 2.0 * rotor_half,
+                                 facecolor="white", edgecolor=style.INK, linewidth=0.5, zorder=3))
+        axis.add_patch(Rectangle((-housing_radius, -housing_half), 2.0 * housing_radius, 2.0 * housing_half,
+                                 facecolor="none", edgecolor=style.INK, linewidth=0.5, zorder=3))
+        for cut in summary.get("cuts_x") or []:
+            axis.axvline(cut / gap, color=style.INK, linewidth=0.6, linestyle=(0, (3, 2)), zorder=4)
+        axis.set_aspect("equal")
+        axis.set_xlim(-half_width, half_width)
+        axis.set_ylim(-half_height, half_height)
+        axis.set_xlabel(style.math(rf"x\,/\,{style.GAP}"))
+        axis.set_ylabel(style.math(rf"z\,/\,{style.GAP}"))
+        bar = figure.colorbar(image, ax=axis, fraction=0.03, pad=0.03)
+        bar.set_label(label)
+        bar.ax.tick_params(labelsize=style.FONT_SIZE - 1.5)
+        bar.outline.set_linewidth(0.4)
+        style.panel_letter(axis, letter)
+        numbers[letter] = {"min": float(values.min()), "max": float(values.max())}
+    middle = record["midplane"]
+    exact = record["exact_two_dimensional"]
+    radius = (np.asarray(middle["radius"]) - meta["rotor_radius"]) / gap
+    for index, (letter, key, scale, label) in enumerate((("e", "velocity", speed, style.VELOCITY),
+                                                         ("f", "spin", rate, r"w_z\,/\,\Omega"))):
+        axis = figure.add_subplot(grid[2, index])
+        axis.plot(radius, np.asarray(exact[key]) / scale, **style.EXACT, label="2-D exact")
+        axis.plot(radius, np.asarray(middle[key]) / scale, **style.run_markers(0, filled=False),
+                  label="run, mid-plane")
+        axis.set_xlim(0.0, 1.0)
+        axis.set_xlabel(style.math(style.RADIUS_IN_GAP))
+        axis.set_ylabel(style.math(label))
+        style.panel_letter(axis, letter)
+        if index == 0:
+            axis.legend(loc="upper right", handletextpad=0.4)
+    figure.tight_layout(pad=0.4, w_pad=1.0, h_pad=0.9)
+    style.save(figure, "fig_15_three_dimensional")
+
+    pair = analysis.get("pairs", {}).get(name, {})
+    reach = record["end_reach"]["reach_in_gaps"]
+    layers = record.get("end_face_layers")
+    caption = (
+        f"The 3-D case at g = {record['gap_in_spacings']:g} dx: a rotor of radius 3 g and length 3 g turning at Omega "
+        "about z in a coaxial housing of radius 4 g with end gaps g, micropolar fluid with K = 3, "
+        f"l = {record['length_in_spacings']:g} dx, w = 0 on every wall, Ma = {meta['mach']:g}, Re = {meta['reynolds']:g} "
+        f"on mu_inf ({meta['reynolds'] * 2.5:g} on mu), h = 4 dx; run `{name}` "
+        f"({record['particles']:,} particles, {record['slabs']} slab" + ("s" if record["slabs"] > 1 else "")
+        + f", {summary['revision']['describe']}). (a) to (d): the fluid particles within 1.5 dx of the plane y = 0 at "
+        "the last step: (a) azimuthal velocity, (b) axial and (c) radial component of the micro-rotation (radial: "
+        "along x, with the sign of x), (d) magnitude of w - curl v / 2 (curl by weighted least squares over the "
+        "neighbours within 3 dx): the wall layers on every face of the rotor and of the housing. (e), (f): bin "
+        "means in the mid-plane (|z| < 2 dx, last quarter of the run) against the exact solution between infinite "
+        "cylinders of the same radii. "
+        f"Mid-plane constant of v_theta over the 2-D one: "
+        f"{record['midplane_fit']['potential_vortex_constant'] / exact['potential_vortex_constant']:.4f}; rms "
+        f"deviation of the mid-plane profiles from the 2-D ones {record['midplane_velocity_rms_against_two_dimensional']:.1e} "
+        f"(v) and {record['midplane_spin_rms_against_two_dimensional']:.1e} (w); the fitted constant of v_theta(r) is "
+        f"within 1 % of its mid-plane value further than {reach['0.01']:.2f} g from the rotor's ends and within "
+        f"0.1 % further than {reach['0.001']:.2f} g."
+        + (f" Change against the Newtonian control `{pair['control']}`: mid-plane {pair['midplane_change']:.4f} "
+           f"(2-D exact {pair['two_dimensional_change']:.4f})"
+           + (f", torque {pair['rotor_wall_change']:.4f} by the wall form (lateral surface "
+              f"{pair['rotor_wall_lateral_change']:.4f}, end faces {pair['rotor_wall_end_change']:.4f}) and "
+              f"{pair['rotor_circle_change']:.4f} by the flux across the surface at distance h."
+              if "rotor_wall_change" in pair else ".") if pair else "")
+        + (f" Decay length of the wall layer on the rotor's end face: {layers['tangential']['fitted_over_expected']:.2f} l "
+           f"for the tangential component and {layers['normal']['fitted_over_expected']:.2f} of l sqrt(nu_inf / nu) "
+           "for the normal one." if layers else ""))
+    final = name.startswith("g40")
+    style.record("15", "3-D: fields in a plane through the axis and the mid-plane profiles",
+                 "final" if final else "provisional (the g = 20 dx run; the g = 40 dx run replaces it)", caption,
+                 ["fig_15_three_dimensional.pdf", "fig_15_three_dimensional.png"],
+                 [ANALYSIS, MAPS.format(run=name) + ".npz", name], numbers, TAG)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

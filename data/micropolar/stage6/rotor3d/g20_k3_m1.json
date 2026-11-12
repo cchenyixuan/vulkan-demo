@@ -1,0 +1,78 @@
+{
+ "run": "g20_k3_m1",
+ "rotor3d": {
+  "title": "g20_k3_m1",
+  "spacing": 0.005,
+  "smoothing_length": 0.02,
+  "gap": 0.1,
+  "rotor_radius": 0.30000000000000004,
+  "rotor_half_length": 0.15000000000000002,
+  "housing_radius": 0.4,
+  "housing_half_height": 0.25,
+  "nominal": {
+   "rotor_radius": 0.30000000000000004,
+   "rotor_half_length": 0.15000000000000002,
+   "housing_radius": 0.4,
+   "housing_half_height": 0.25
+  },
+  "displacements_in_spacings": {
+   "rotor_lateral": 0.0,
+   "rotor_end": 0.0,
+   "housing_lateral": 0.0,
+   "housing_end": 0.0
+  },
+  "rotation_rate": 3.333333333333333,
+  "end_rotation_rate": 3.333333333333333,
+  "wall_speed": 1.0,
+  "far_viscosity": 0.01,
+  "reynolds": 10.0,
+  "mach": 0.02,
+  "speed_of_sound": 50.0,
+  "micropolar": true,
+  "coupling_ratio": 3.0,
+  "micropolar_length": 0.05,
+  "design_viscosity": 0.016,
+  "design_viscosity_transfer": -0.004,
+  "design_coupling": 0.012,
+  "design_viscosity_rotation": 3.750000000000001e-05,
+  "design_micro_inertia": 0.0025000000000000005,
+  "epsilon_squared_factor": 1e-06,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "delta_fluid_only": true,
+  "timestep": 6e-05,
+  "dt_acoustic": 6e-05,
+  "dt_viscous": 0.0008200000000000001,
+  "dt_angular": 0.0008906666666666667,
+  "governing": "acoustic",
+  "end_time": 2.0000000000000004,
+  "steps": 34000,
+  "counts": {
+   "domain": 1329560,
+   "rotor_lateral": 159352,
+   "rotor_end": 174722,
+   "housing": 923394
+  },
+  "fluid_count": 1329560,
+  "wall_layers": 9,
+  "geometry": "cases/rotor3d/geometry_g020",
+  "lattice_offset": [
+   0.0,
+   0.0,
+   0.5
+  ],
+  "lattice_angle": 0.0
+ },
+ "revision": {
+  "commit": "656e652c27be06c105c3c93ded4c0b88082de0db",
+  "describe": "thesis-ch5-rc2-3-g656e652",
+  "shaders_tree": "92a962153a107d7380b841e57e108b938e26c983",
+  "utils_tree": "7815b15418938e514c10e9a9e5f199368e3c404d",
+  "solver_modified": false
+ },
+ "steps": 34000,
+ "slabs": 1,
+ "cuts_x": [],
+ "gradient": "weighted linear least squares over the fluid neighbours within 3 dx",
+ "particles_in_plane": 26173
+}

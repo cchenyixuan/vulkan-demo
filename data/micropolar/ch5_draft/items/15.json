@@ -1,0 +1,34 @@
+{
+ "item": "15",
+ "title": "3-D: fields in a plane through the axis and the mid-plane profiles",
+ "status": "provisional (the g = 20 dx run; the g = 40 dx run replaces it)",
+ "caption": "The 3-D case at g = 20 dx: a rotor of radius 3 g and length 3 g turning at Omega about z in a coaxial housing of radius 4 g with end gaps g, micropolar fluid with K = 3, l = 10 dx, w = 0 on every wall, Ma = 0.02, Re = 10 on mu_inf (25 on mu), h = 4 dx; run `g20_k3_m1` (2,587,028 particles, 1 slab, thesis-ch5-rc2-3-g656e652). (a) to (d): the fluid particles within 1.5 dx of the plane y = 0 at the last step: (a) azimuthal velocity, (b) axial and (c) radial component of the micro-rotation (radial: along x, with the sign of x), (d) magnitude of w - curl v / 2 (curl by weighted least squares over the neighbours within 3 dx): the wall layers on every face of the rotor and of the housing. (e), (f): bin means in the mid-plane (|z| < 2 dx, last quarter of the run) against the exact solution between infinite cylinders of the same radii. Mid-plane constant of v_theta over the 2-D one: 0.9929; rms deviation of the mid-plane profiles from the 2-D ones 1.4e-02 (v) and 1.6e-02 (w); the fitted constant of v_theta(r) is within 1 % of its mid-plane value further than 0.78 g from the rotor's ends and within 0.1 % further than 1.38 g. Change against the Newtonian control `g20_newtonian`: mid-plane 0.3012 (2-D exact 0.3034), torque 0.3297 by the wall form (lateral surface 0.3166, end faces 0.3610) and 0.3327 by the flux across the surface at distance h. Decay length of the wall layer on the rotor's end face: 1.22 l for the tangential component and 0.98 of l sqrt(nu_inf / nu) for the normal one.",
+ "files": [
+  "fig_15_three_dimensional.pdf",
+  "fig_15_three_dimensional.png"
+ ],
+ "sources": [
+  "data/micropolar/stage6/rotor3d.json",
+  "data/micropolar/stage6/rotor3d/g20_k3_m1.npz",
+  "g20_k3_m1"
+ ],
+ "numbers": {
+  "a": {
+   "min": -0.00031864928314462304,
+   "max": 0.9791823625564575
+  },
+  "b": {
+   "min": -0.625243604183197,
+   "max": 0.25193551182746887
+  },
+  "c": {
+   "min": -0.5962874293327332,
+   "max": 0.5963720679283142
+  },
+  "d": {
+   "min": 0.027567286044359207,
+   "max": 2.5674216747283936
+  }
+ },
+ "tag": "thesis-ch5-rc2"
+}

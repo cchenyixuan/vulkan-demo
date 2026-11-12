@@ -19,6 +19,8 @@ The four constants follow from u and w on the two walls. Everything here is line
           h - 2 delta tanh(h / (2 l)); the sharper form of the wall rule (task of Stage 6, 3.1): core = Newtonian
           profile with u = - delta du/dn at the nominal wall, each wall layer carrying delta l times the wall shear
           rate more: f = h^3 - 6 delta h^2 + 12 delta l h up to exponentially small terms.
+  flux    The wedge term dQ/dh of the exact concentric solution against the plane film: does the load see the
+          slip term of the rule (it does not).
   bearing The journal bearing in the thin-film approximation with the film of the model: change of load and
           torque against the Newtonian film; the torque also with the curvature term (the slip term of the rule
           on the rotor, and the shear-driven stress of the exact concentric solution at the local gap).
@@ -303,6 +305,66 @@ def command_bearing(arguments) -> int:
     return 0
 
 
+def command_flux(arguments) -> int:
+    """Does the load see the slip term of the rule? The flux Q = integral of v_theta dr between concentric cylinders
+    (rotor at R1, stator at R1 + h, w = 0 on both), exact micropolar against Newtonian: the wedge term of a
+    bearing is dQ/dh. The plane film with w = 0 on both walls leaves dQ/dh unchanged; with the slip term on the
+    rotor (w1 = Omega in the plane problem) it would fall by 2 delta / R1."""
+    from experiment.validation import micropolar_couette_reference as reference
+    from experiment.validation.micropolar_couette import design_parameters
+    lines, records = [], {}
+
+    def say(text=""):
+        lines.append(text)
+        print(text)
+    radius, speed, far_viscosity = 0.4, 1.0, 0.01
+    rate = speed / radius
+    say("Change of dQ/dh (Q = flux between concentric cylinders, rotor radius R1 = 4 g fixed, gap h) of the exact "
+        "micropolar solution against the Newtonian one, and what the plane film gives with the effective rotor "
+        "micro-rotation w1 = 0 (the plane film as it is) and w1 = Omega (the slip term of the rule)")
+    say(f"{'K':>4}{'l / g':>7}{'h / g':>7}{'h / l':>7}{'exact':>11}{'plane, w1 = 0':>15}{'w1 = Omega':>12}"
+        f"{'2 delta / R1':>14}")
+    for coupling_ratio, length in ((3.0, 0.01), (3.0, 0.005), (1.0, 0.01)):
+        design = design_parameters(far_viscosity, coupling_ratio, length)
+        eringen = reference.eringen_parameters_from_solver_parameters(1000.0, design["viscosity"], design["coupling"],
+                                                                      design["viscosity_rotation"])
+        displacement = displacement_over_length(coupling_ratio) * length
+
+        def flux(gap, micropolar):
+            coordinate = np.linspace(radius, radius + gap, 20001)
+            if micropolar:
+                solution = reference.solve_micropolar_couette(
+                    radius, radius + gap, eringen.shear_viscosity, eringen.coupling_viscosity,
+                    eringen.spin_viscosity, speed, 0.0, 0.0, 0.0)
+                velocity = reference.velocity(solution, coordinate)
+            else:
+                alpha, beta = reference.newtonian_couette_constants(radius, radius + gap, speed, 0.0)
+                velocity = alpha * coordinate + beta / coordinate
+            return np.trapezoid(velocity, coordinate)
+        for gap in (0.04, 0.07, 0.1, 0.13, 0.16):
+            step = 1.0e-4
+            exact = ((flux(gap + step, True) - flux(gap - step, True))
+                     / (flux(gap + step, False) - flux(gap - step, False)) - 1.0)
+
+            def plane(spin):
+                gaps = np.array([gap - step, gap + step])
+                film = plane_film(gaps, length, displacement, lower_velocity=speed, lower_spin=spin)["flux"]
+                base = plane_film(gaps, length, 0.0, lower_velocity=speed)["flux"]
+                return (film[1] - film[0]) / (base[1] - base[0]) - 1.0
+            entry = {"exact": float(exact), "plane": float(plane(0.0)), "plane_with_slip_term": float(plane(rate)),
+                     "two_displacements_over_radius": 2.0 * displacement / radius}
+            records[f"K{coupling_ratio:g}_l{length / 0.1:g}_h{gap / 0.1:g}"] = entry
+            say(f"{coupling_ratio:>4g}{length / 0.1:>7g}{gap / 0.1:>7g}{gap / length:>7.1f}{entry['exact']:>+11.5f}"
+                f"{entry['plane']:>+15.5f}{entry['plane_with_slip_term']:>+12.5f}"
+                f"{-entry['two_displacements_over_radius']:>+14.5f}")
+    if arguments.out:
+        target = _REPO_ROOT / arguments.out
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(NEWLINE.join(lines) + NEWLINE, encoding="utf-8", newline=NEWLINE)
+        target.with_suffix(".json").write_text(json.dumps(records, indent=1), encoding="utf-8")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -313,6 +375,9 @@ def main() -> int:
     bearing = commands.add_parser("bearing")
     bearing.add_argument("--out", default=None)
     bearing.set_defaults(handler=command_bearing)
+    flux = commands.add_parser("flux")
+    flux.add_argument("--out", default=None)
+    flux.set_defaults(handler=command_flux)
     arguments = parser.parse_args()
     return arguments.handler(arguments)
 
