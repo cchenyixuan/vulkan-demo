@@ -27,12 +27,15 @@ def main() -> int:
         print("[pack] item 15: no 3-D analysis yet")
         return 1
     analysis = style.load_json(ANALYSIS)
-    name = next((run for run in RUNS if run in analysis["runs"] and style.exists(MAPS.format(run=run) + ".npz")),
-                None)
+    # a run that reached its end, or one that was stopped (its record is under "partial_runs": the part that
+    # exists, with azimuthal means in place of the particles of a plane)
+    records = {**analysis.get("partial_runs", {}), **analysis["runs"]}
+    name = next((run for run in RUNS if run in records and style.exists(MAPS.format(run=run) + ".npz")), None)
     if name is None:
         print("[pack] item 15: no micropolar 3-D run with its maps yet")
         return 1
-    record = analysis["runs"][name]
+    record = records[name]
+    partial = record.get("partial")
     data = np.load(style.REPO_ROOT / (MAPS.format(run=name) + ".npz"))
     summary = json.loads((style.REPO_ROOT / (MAPS.format(run=name) + ".json")).read_text(encoding="utf-8"))
     meta = summary["rotor3d"]
@@ -106,12 +109,25 @@ def main() -> int:
         f"l = {record['length_in_spacings']:g} dx, w = 0 on every wall, Ma = {meta['mach']:g}, Re = {meta['reynolds']:g} "
         f"on mu_inf ({meta['reynolds'] * 2.5:g} on mu), h = 4 dx; run `{name}` "
         f"({record['particles']:,} particles, {record['slabs']} slab" + ("s" if record["slabs"] > 1 else "")
-        + f", {summary['revision']['describe']}). (a) to (d): the fluid particles within 1.5 dx of the plane y = 0 at "
-        "the last step: (a) azimuthal velocity, (b) axial and (c) radial component of the micro-rotation (radial: "
-        "along x, with the sign of x), (d) magnitude of w - curl v / 2 (curl by weighted least squares over the "
-        "neighbours within 3 dx): the wall layers on every face of the rotor and of the housing. (e), (f): bin "
-        "means in the mid-plane (|z| < 2 dx, last quarter of the run) against the exact solution between infinite "
-        "cylinders of the same radii. "
+        + f", {summary['revision']['describe']}). "
+        + ((f"The run was stopped from outside at step {partial['last_heartbeat_step']:,} of "
+            f"{partial['planned_steps']:,} (the machine ran out of memory); its samples reach step "
+            f"{partial['samples_to_step']:,}, t = {partial['time_reached_over_diffusion_time']:.2f} g^2 / nu_inf, "
+            "where the angular momentum of the fluid has changed by 3e-5 over the last 10,000 steps. No particle "
+            "state was saved, so (a) to (d) show the azimuthal means on the (r, z) grid of one spacing over the "
+            f"samples of steps {partial['window_steps'][0]:,} to {partial['window_steps'][1]:,}, mirrored about "
+            "the axis: (a) azimuthal velocity, (b) axial and (c) radial component of the micro-rotation, (d) "
+            "magnitude of w - curl v / 2 (curl from finite differences of the means): the wall layers on every "
+            "face of the rotor and of the housing. (e), (f): bin means in the mid-plane (|z| < 2 dx, samples of "
+            f"steps {partial['midplane_steps'][0]:,} to {partial['midplane_steps'][1]:,}) against the exact "
+            "solution between infinite cylinders of the same radii. ") if partial else
+           ("(a) to (d): the fluid particles within 1.5 dx of the plane y = 0 at "
+            "the last step: (a) azimuthal velocity, (b) axial and (c) radial component of the micro-rotation (radial: "
+            "along x, with the sign of x), (d) magnitude of w - curl v / 2 (curl by weighted least squares over the "
+            "neighbours within 3 dx): the wall layers on every face of the rotor and of the housing. (e), (f): bin "
+            "means in the mid-plane (|z| < 2 dx, last quarter of the run) against the exact solution between "
+            "infinite cylinders of the same radii. "))
+        +
         f"Mid-plane constant of v_theta over the 2-D one: "
         f"{record['midplane_fit']['potential_vortex_constant'] / exact['potential_vortex_constant']:.4f}; rms "
         f"deviation of the mid-plane profiles from the 2-D ones {record['midplane_velocity_rms_against_two_dimensional']:.1e} "
@@ -127,9 +143,13 @@ def main() -> int:
         + (f" Decay length of the wall layer on the rotor's end face: {layers['tangential']['fitted_over_expected']:.2f} l "
            f"for the tangential component and {layers['normal']['fitted_over_expected']:.2f} of l sqrt(nu_inf / nu) "
            "for the normal one." if layers else ""))
-    final = name.startswith("g40")
-    style.record("15", "3-D: fields in a plane through the axis and the mid-plane profiles",
-                 "final" if final else "provisional (the g = 20 dx run; the g = 40 dx run replaces it)", caption,
+    final = name.startswith("g40") and not partial
+    status = ("final" if final else
+              "provisional (the g = 40 dx run on two slabs, stopped at step "
+              f"{partial['last_heartbeat_step']:,} of {partial['planned_steps']:,}: azimuthal means near its end; "
+              "no Newtonian control and no torque at g = 40 dx)" if partial else
+              "provisional (the g = 20 dx run; the g = 40 dx run replaces it)")
+    style.record("15", "3-D: fields in a plane through the axis and the mid-plane profiles", status, caption,
                  ["fig_15_three_dimensional.pdf", "fig_15_three_dimensional.png"],
                  [ANALYSIS, MAPS.format(run=name) + ".npz", name], numbers, TAG)
     return 0

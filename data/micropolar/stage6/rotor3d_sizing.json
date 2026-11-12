@@ -15,5 +15,20 @@
  "partition": {
   "largest_share": 0.1341712467627878,
   "three_ghost_columns_over_slab": 0.3220870729654748
+ },
+ "micropolar": {
+  "steps_per_second_small": 36.83779808059695,
+  "steps_per_second_large": 6.670815298780035,
+  "time_per_step_intercept": -0.014777852800095106,
+  "time_per_particle": 1.6205423197894836e-08,
+  "one_slab_step_time_at_largest_slab": 0.21336375035632985,
+  "bytes_per_particle": 551.5197712656292,
+  "memory_gigabytes_own": 7.231115994384787,
+  "memory_gigabytes_ghost": 2.065255023822972,
+  "hours_without_chain_overhead": {
+   "1.5": 5.926770843231385,
+   "2.0": 7.941872929930056
+  },
+  "large_point_from_two_slab_run": true
  }
 }

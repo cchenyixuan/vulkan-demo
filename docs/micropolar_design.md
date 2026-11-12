@@ -2663,9 +2663,10 @@ Decisions carried in from the task:
 - **What ran:** 28 runs between concentric cylinders, 28 between eccentric ones, 5 cavity runs (`mp_n250`, `mp_n500`,
   `mp_n500_k2`, `newtonian_re250_n500`, `newtonian_re400_n500`), 4 runs of the 3-D case (`g20_k3_m1`, `g20_newtonian`,
   `g20s_k3_m1`, `g20s_newtonian`) and the two per-particle seam checks in 3-D; all to their end time, every counter
-  zero, no particle lost. **Interrupted and done again** (15.6): one eccentric run and the cavity at n = 250 when the
-  disk filled at 22:15, the Newtonian cavity at Reynolds number 250 when it filled again at 23:20. **What did not
-  run:** 15.6.
+  zero, no particle lost. **Stopped and not done again:** the micropolar 3-D run at g = 40 dx on two slabs, at step
+  38,000 of 51,000 (15.4.4, 15.6). **Interrupted and done again** (15.6): one eccentric run and the cavity at n = 250
+  when the disk filled at 22:15, the Newtonian cavity at Reynolds number 250 when it filled again at 23:20. **What did
+  not run:** 15.6.
 
 ### 15.1 The pack
 
@@ -2690,14 +2691,15 @@ every item and is the one to trust):
 | 12 | Newtonian cavity baseline at n = 1000 against Marchi et al. | `fig_12_cavity_baseline.pdf`, `fig_12_cavity_baseline.png` | final (existing data) | Stage 3 (design note 12.8), `micropolar-base-13-g7e76dcb` |
 | 13 | Seepage of the thesis walls: velocity into the wall against wall pressure; the wall candidates | `fig_13_seepage.pdf`, `fig_13_seepage.png`, `tab_13_candidates.csv`, `tab_13_candidates.tex` | final (existing data) | Stage 5, `thesis-ch5-rc1-6-g5d07112`, `thesis-ch5-rc1-9-gbfcc024`; cavity `thesis-ch5-rc1-10-g5bc8e0d`, `thesis-ch5-rc1-9-gbfcc024`, `micropolar-base-12-gc08cb97` |
 | 14 | Solver checks: operator checks, passive label, chain against one slab, step limits, cost | `tab_14a_operator_checks.csv`, `tab_14a_operator_checks.tex`, `tab_14b_passive_label.csv`, `tab_14b_passive_label.tex`, `tab_14c_chain_against_one_slab.csv`, `tab_14c_chain_against_one_slab.tex`, `tab_14d_step_limits.csv`, `tab_14d_step_limits.tex`, `tab_14e_cost.csv`, `tab_14e_cost.tex` | final (existing data) | Stages 1 to 3, `micropolar-base-9-g278a557` to `thesis-ch5-rc1` |
-| 15 | 3-D: fields in a plane through the axis and the mid-plane profiles | `fig_15_three_dimensional.pdf`, `fig_15_three_dimensional.png` | provisional (the g = 20 dx run; the g = 40 dx run replaces it) | thesis-ch5-rc2 |
+| 15 | 3-D: fields in a plane through the axis and the mid-plane profiles | `fig_15_three_dimensional.pdf`, `fig_15_three_dimensional.png` | provisional (the g = 40 dx run on two slabs, stopped at step 38,000 of 51,000: azimuthal means near its end; no Newtonian control and no torque at g = 40 dx) | thesis-ch5-rc2 |
 
 - **Final** (rc2 runs, host, or existing data that is not run again): 05, 06, 07, 08, 09, 10, 11, 12, 13, 14.
 - **Final but with rows or panels still missing:** 01 (final (rc2 runs) for g <= 200 dx; the rows at g = 400 dx are
   not reached); 02 (final (rc2 runs) for g <= 200 dx; the rows at g = 400 dx are not reached); 03 (final (rc2 runs)
   for g <= 200 dx; the rows at g = 400 dx are not reached); 04 (final (rc2 runs) for g <= 200 dx; the rows at g =
   400 dx are not reached).
-- **Provisional:** 15 (provisional (the g = 20 dx run; the g = 40 dx run replaces it)). **Not reached:** none.
+- **Provisional:** 15 (provisional (the g = 40 dx run on two slabs, stopped at step 38,000 of 51,000: azimuthal
+  means near its end; no Newtonian control and no torque at g = 40 dx)). **Not reached:** none.
 - Every item was first made from the runs of Stages 3 to 5 and committed, then regenerated as the rc2 runs finished;
   the swap was one line per data set in `sources.py`.
 
@@ -3360,9 +3362,33 @@ closed surface at distance h.
   for the end faces. The lateral surface gains more than the 2-D value and the end faces less than the plane film;
   the rims belong to both.
 
+**The micropolar run at g = 40 dx** (l = 10 dx, 15.6 million particles; two slabs, 5090 + XTX, weights 1.3 : 0.7)
+**was stopped before its end; what it gives:**
+
+- It ran 38,000 of its 51,000 steps in 5,696 s (6.7 steps/s with the start-up), with no overflow and no far
+  migration reported at any defragmentation, and was then stopped from outside with every other background job
+  (15.6). Its first saved state was due at step 39,000: there is no state, so no torque; and there is no Newtonian
+  control at this resolution, so no change of any constant. Its samples reach step 35,000 (t = 1.05 g^2 / nu_inf).
+- **Settled:** the angular momentum of the fluid stands at -3.2e-05, +8.6e-06 and +2.5e-06 of its last value ten,
+  five and one sample earlier (a sample every 1,000 steps).
+- **Mid-plane** (samples of steps 27,000 to 35,000): the constant of v_theta is 0.9989 of the exact 2-D one (g = 20
+  dx: 0.9929); the profiles deviate from the 2-D ones by 5.9e-03 (v) and 6.5e-03 (w) rms (g = 20 dx: 1.4e-02 and
+  1.6e-02).
+- **Reach of the ends** ((r, z) sums of steps 26,000 to 35,000): 0.46 g at the 1 % level and 1.26 g at the 0.1 %
+  level (g = 20 dx: 0.78 and 1.38).
+- **Wall layers on the rotor's end face:** the normal component decays over 0.979 of `l sqrt(nu_inf / nu)` and the
+  tangential one over 0.981 of l. At g = 40 dx the end gap is four l wide, the two tangential layers no longer
+  overlap, and both lengths come out within 2 % (15.4.6).
+- **Levels:** mean density -3.3e-05 of rho0, mean pressure -0.082 rho U^2, moving by -9e-06 per eighth of the part:
+  the level of the pressure wanders far less than at g = 20 dx.
+- **On the cards:** 5.06 GB (5090, 10.16 million particles) and 2.96 GB (XTX, 5.44 million), 552 bytes per particle
+  with the ghost regions of the cut.
+
 **Fields** for item 15 (`data/micropolar/stage6/rotor3d/<run>.npz`): the fluid within 1.5 dx of the plane y = 0
 at the last step (v_theta, the three components of w, w - curl v / 2 with the curl from weighted least squares
-over the neighbours within 3 dx) and the azimuthal means on the (r, z) grid over the last quarter.
+over the neighbours within 3 dx) and the azimuthal means on the (r, z) grid over the last quarter. For the
+stopped run at g = 40 dx there is no particle state: its file holds the azimuthal means on the (r, z) grid of
+one spacing with w - curl v / 2 from finite differences of the means, and item 15 shows those.
 
 #### 15.4.5 The chain in 3-D **[run]**
 
@@ -3492,6 +3518,13 @@ nu s'' - c w_x' = 0,      xi w_x'' + c (s' - 2 w_x) = 0        the same pair wit
   0.32 of a slab at g = 40 dx, half that at g = 80 dx. At g = 40 dx a slab is 9 to 15 columns wide, below the 20 the
   partition warns about; at g = 80 dx about 21. Eight cards want g = 80 dx; the case at g = 40 dx is a two-card
   case.
+- **micropolar:** 36.8 steps/s at g = 20 dx and 6.67 at g = 40 dx (not a one-card run: the run on two slabs, counted
+  with the particles of its slab on the 5090; its step waits for the slower card, so this bounds the 5090's time
+  from above) on one 5090, that is -14.8 ms + 16.21 ns per particle and step; 552 bytes per particle. The largest
+  slab at g = 80 dx then takes 213 ms per step and 7.2 GB (+ about 2.1 GB for the ghost regions of two cuts) on its
+  card: 7.9 h to 2 g^2 / nu_inf (5.9 h to 1.5). This figure already contains a two-slab chain, the samples (a
+  read-back of every particle each 1,000 steps) and the start-up of the stopped run, and the fit through two points
+  has a negative intercept: read it as an upper estimate for one card of the node, not as a measurement.
 - **Memory per card** is a quarter of an RTX 5090. The host matters more: every slab's process holds its particles
   on the host too, and the run driver reads every particle back at each sample. On this machine the runs at g = 40
   dx could only run one at a time (15.6).

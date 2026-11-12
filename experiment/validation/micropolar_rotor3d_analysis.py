@@ -39,6 +39,10 @@ PAIRS = (("g20_k3_m1", "g20_newtonian"), ("g20s_k3_m1", "g20s_newtonian"),
 CHAINS = (("g40_k3_m2_k2", "g40_k3_m2"),)
 # (run on the second lattice, run on the first): the scale for the differences of a chain against one slab
 LATTICES = (("g20s_k3_m1", "g20_k3_m1"), ("g20s_newtonian", "g20_newtonian"))
+# Runs that were stopped before their end (run directory -> case): what their samples_partial.npz holds is analysed
+# with the part that exists taken as the run.
+PARTIAL = {"g40_k3_m2_k2": "cases/rotor3d/g40_k3_m2"}
+ALIVE = re.compile(r"\[SimV7\] bootstrap done: alive=(\d+)")
 DEVICE_LOCAL = re.compile(r"\[SimV7\] device-local buffers: (\d+), ([0-9.]+) MB")
 DEFRAG_SCRATCH = re.compile(r"\[SimV7\] defrag scratch buffers: (\d+), ([0-9.]+) MB")
 STAGING = re.compile(r"\[SimV7\] host staging buffers: (\d+)(?:, ([0-9.]+) (KB|MB))?")
@@ -50,6 +54,44 @@ def load(name: str, directory: pathlib.Path) -> dict:
     with np.load(run_dir / "samples.npz") as archive:
         data = {key: np.array(archive[key]) for key in archive.files}
     return {"name": name, "run": run, "meta": run["rotor3d"], "data": data, "directory": run_dir}
+
+
+def load_partial(name: str, directory: pathlib.Path, case: str) -> dict | None:
+    """A run that was stopped before its end, as an item for analyse_run: the samples that exist are the run, so
+    'the last quarter' is the last quarter of what exists. The (r, z) sums are kept per eighth of the planned
+    run; the eighths that lie in that last quarter are put where analyse_run looks for the last quarter."""
+    from experiment.validation.micropolar_couette import solver_revision
+    run_dir = directory / name
+    if (run_dir / "run.json").exists() or not (run_dir / "samples_partial.npz").exists():
+        return None
+    meta = json.loads((_REPO_ROOT / case / "rotor3d.json").read_text(encoding="utf-8"))
+    with np.load(run_dir / "samples_partial.npz") as archive:
+        data = {key: np.array(archive[key]) for key in archive.files}
+    heartbeat = json.loads((run_dir / "heartbeat.json").read_text(encoding="utf-8"))
+    planned, reached = int(heartbeat["steps"]), int(data["step"][-1])
+    eighth_planned = np.minimum(((data["step"] - 1) * 8) // planned, 7)
+    late = np.unique(eighth_planned[data["step"] > 0.75 * reached])
+    late_steps = data["step"][np.isin(eighth_planned, late)]
+    for key in [key for key in data if key.startswith("window_")]:
+        moved = np.zeros_like(data[key])
+        moved[6] = data[key][late].sum(axis=0)
+        data[key] = moved
+    log_path = run_dir.with_suffix(".log")
+    alive = [int(value) for value in ALIVE.findall(log_path.read_text(encoding="utf-8", errors="replace"))] \
+        if log_path.exists() else []
+    run = {"steps": reached, "particles": int(sum(meta["counts"].values())), "timestep": meta["timestep"],
+           "slabs": len(alive) or None, "device_map": None, "weights": None, "slab_particles": alive,
+           "cuts_x": None, "steps_per_second": None, "elapsed_seconds": heartbeat["elapsed_seconds"],
+           "bootstrap_seconds": None, "counters": {}, "revision": solver_revision(),
+           "failure": f"stopped from outside at step {heartbeat['step']:,} of {planned:,}"}
+    return {"name": name, "run": run, "meta": meta, "data": data, "directory": run_dir,
+            "partial": {"planned_steps": planned, "last_heartbeat_step": int(heartbeat["step"]),
+                        "last_heartbeat_seconds": float(heartbeat["elapsed_seconds"]),
+                        "samples_to_step": reached,
+                        "midplane_steps": [int(data["step"][data["step"] > 0.75 * reached][0]), reached],
+                        "window_steps": [int(late_steps[0]), int(late_steps[-1])],
+                        "time_reached_over_diffusion_time": reached * meta["timestep"] * meta["far_viscosity"]
+                        / meta["gap"] ** 2}}
 
 
 def _annulus_meta(meta: dict) -> dict:
@@ -436,6 +478,45 @@ def command_analyse(arguments) -> int:
             f"energy {entry['kinetic_energy_ratio']:.6f}"
             + (f"; torque wall form {entry['rotor_wall_ratio']:.5f}, circle form {entry['rotor_circle_ratio']:.5f}"
                if "rotor_wall_ratio" in entry else ""))
+    partial_runs = {}
+    for name, case in PARTIAL.items():
+        if arguments.names and name not in arguments.names:
+            continue
+        item = load_partial(name, directory, case)
+        if item is None:
+            continue
+        record = analyse_run(item)
+        record["partial"] = item["partial"]
+        partial_runs[name] = record
+        part, exact = record["partial"], record.get("exact_two_dimensional", {})
+        history = np.asarray(record["history"]["angular_momentum_over_last"])
+        say()
+        say(f"run stopped before its end: {name} ({record['particles']:,} particles, slabs of "
+            f"{record['slab_particles']}): last heartbeat at step {part['last_heartbeat_step']:,} of "
+            f"{part['planned_steps']:,} after {part['last_heartbeat_seconds']:.0f} s, samples to step "
+            f"{part['samples_to_step']:,} (t = {part['time_reached_over_diffusion_time']:.3f} g^2 / nu_inf). "
+            f"Angular momentum of the fluid over its last value: {history[-11] - 1.0:+.1e} ten samples earlier, "
+            f"{history[-6] - 1.0:+.1e} five samples earlier, {history[-2] - 1.0:+.1e} one sample earlier; between "
+            f"the last two eighths of the part {record['angular_momentum_steady_change']:.1e} (kinetic energy "
+            f"{record['kinetic_energy_steady_change']:.1e}). Mid-plane (samples of steps "
+            f"{part['midplane_steps'][0]:,} to {part['midplane_steps'][1]:,}): constant of v_theta "
+            + (f"{record['midplane_fit']['potential_vortex_constant'] / exact['potential_vortex_constant']:.4f} of "
+               f"the 2-D exact one, rms deviation of the profiles from the 2-D ones "
+               f"{record['midplane_velocity_rms_against_two_dimensional']:.1e} (v), "
+               f"{record['midplane_spin_rms_against_two_dimensional']:.1e} (w)" if "potential_vortex_constant" in exact
+               else f"{record['midplane_beta_over_two_dimensional']:.4f} of the 2-D one")
+            + f". Reach of the ends ((r, z) sums of steps {part['window_steps'][0]:,} to {part['window_steps'][1]:,}): "
+            f"{record['end_reach']['reach_in_gaps']['0.01']:.2f} g (1 %), "
+            f"{record['end_reach']['reach_in_gaps']['0.001']:.2f} g (0.1 %)."
+            + (f" Wall layers on the rotor's end face: normal component "
+               f"{record['end_face_layers']['normal']['fitted_over_expected']:.3f} of l sqrt(nu_inf / nu), tangential "
+               f"{record['end_face_layers']['tangential']['fitted_over_expected']:.3f} of l."
+               if "end_face_layers" in record else "")
+            + f" Levels: density {record['density_level']:+.1e}, pressure {record['pressure_level']:+.3f} rho U^2 "
+            f"(drift {record['pressure_drift']:+.1e} per eighth of the part); rms v_z / U "
+            f"{record['axial_speed_rms_over_wall_speed']:.1e}."
+            + (f" {record['bytes_per_particle']:.0f} bytes per particle on the cards."
+               if "bytes_per_particle" in record else ""))
     chain_samples = {}
     for name, single in CHAINS:
         entry = compare_samples(directory, name, single)
@@ -467,16 +548,92 @@ def command_analyse(arguments) -> int:
             record.get("exact_two_dimensional", {}).pop("solution", None)
         target = _REPO_ROOT / arguments.json
         target.parent.mkdir(parents=True, exist_ok=True)
+        for record in partial_runs.values():
+            record.get("exact_two_dimensional", {}).pop("solution", None)
         target.write_text(json.dumps({"runs": records, "pairs": pairs, "chains": chains,
-                                      "chain_samples": chain_samples, "lattice_samples": lattice_samples},
-                                     indent=1), encoding="utf-8")
+                                      "chain_samples": chain_samples, "lattice_samples": lattice_samples,
+                                      "partial_runs": partial_runs}, indent=1), encoding="utf-8")
         target.with_suffix(".txt").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    return 0
+
+
+def _one_sided(field: np.ndarray, valid: np.ndarray, spacing: float, axis: int) -> np.ndarray:
+    """Derivative of a cell field along one axis from the cells that exist: central where both neighbours exist,
+    one-sided where one does, nan where none does."""
+    forward = (np.roll(field, -1, axis=axis) - field) / spacing
+    backward = (field - np.roll(field, 1, axis=axis)) / spacing
+    has_forward = valid & np.roll(valid, -1, axis=axis)
+    has_backward = valid & np.roll(valid, 1, axis=axis)
+    edge = [slice(None)] * field.ndim
+    edge[axis] = -1
+    has_forward[tuple(edge)] = False
+    edge[axis] = 0
+    has_backward[tuple(edge)] = False
+    result = np.full(field.shape, np.nan)
+    both = has_forward & has_backward
+    result[both] = 0.5 * (forward[both] + backward[both])
+    only = has_forward & ~has_backward
+    result[only] = forward[only]
+    only = has_backward & ~has_forward
+    result[only] = backward[only]
+    return result
+
+
+def partial_maps(arguments, directory: pathlib.Path) -> int:
+    """The fields of a stopped run for item 15: no particle slab exists, so the azimuthal means on the (r, z)
+    grid of one spacing stand for the plane through the axis (mirrored), with w - curl v / 2 from finite
+    differences of the means in cylindrical coordinates."""
+    item = load_partial(arguments.name, directory, PARTIAL[arguments.name])
+    if item is None:
+        sys.exit(f"{arguments.name}: no stopped run with samples_partial.npz")
+    meta, data = item["meta"], item["data"]
+    spacing = meta["spacing"]
+    count = data["window_count"][6]
+    valid = count > 0
+    safe = np.where(valid, count, 1.0)
+    means = {key[len("window_"):]: data[key][6] / safe for key in data if key.startswith("window_")
+             and key != "window_count"}
+    radius = ((np.arange(count.shape[0]) + 0.5) * spacing)[:, None] * np.ones((1, count.shape[1]))
+    height = (-meta["housing_half_height"] + (np.arange(count.shape[1]) + 0.5) * spacing)[None, :] \
+        * np.ones((count.shape[0], 1))
+    tangential, outward, axial = means["tangential"], means["radial"], means["axial"]
+    curl_radial = -_one_sided(tangential, valid, spacing, 1)
+    curl_tangential = _one_sided(outward, valid, spacing, 1) - _one_sided(axial, valid, spacing, 0)
+    curl_axial = _one_sided(radius * tangential, valid, spacing, 0) / radius
+    excess = {"radial": means["spin_radial"] - 0.5 * curl_radial,
+              "tangential": means["spin_tangential"] - 0.5 * curl_tangential,
+              "axial": means["spin_axial"] - 0.5 * curl_axial}
+    keep = valid & np.isfinite(excess["radial"]) & np.isfinite(excess["tangential"]) & np.isfinite(excess["axial"])
+    keep &= radius > spacing                 # the cell on the axis holds a handful of particles: 1 / r is noise there
+
+    def mirrored(values):
+        return np.concatenate([values[keep], values[keep]]).astype(np.float32)
+    target = _REPO_ROOT / arguments.out / f"{arguments.name}.npz"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(
+        target, **{f"map_{key}": values.astype(np.float32) for key, values in means.items()},
+        map_count=count.astype(np.float32),
+        x=np.concatenate([radius[keep], -radius[keep]]).astype(np.float32), z=mirrored(height),
+        tangential=mirrored(tangential), pressure=mirrored(means["pressure"]),
+        spin_radial=mirrored(means["spin_radial"]), spin_tangential=mirrored(means["spin_tangential"]),
+        spin_axial=mirrored(means["spin_axial"]), excess_radial=mirrored(excess["radial"]),
+        excess_tangential=mirrored(excess["tangential"]), excess_axial=mirrored(excess["axial"]))
+    target.with_suffix(".json").write_text(json.dumps(
+        {"run": arguments.name, "rotor3d": meta, "revision": item["run"]["revision"], "steps": item["run"]["steps"],
+         "slabs": item["run"]["slabs"], "cuts_x": None, "partial": item["partial"],
+         "gradient": "finite differences of the azimuthal means on the (r, z) grid of one spacing (central; "
+                     "one-sided in the cells next to a wall)", "cells": int(keep.sum())}, indent=1),
+        encoding="utf-8")
+    print(f"[rotor3d] maps of the stopped run {arguments.name}: {int(keep.sum()):,} cells of the (r, z) grid -> "
+          f"{target}")
     return 0
 
 
 def command_maps(arguments) -> int:
     from experiment.validation.micropolar_stage6 import velocity_gradient
     directory = _REPO_ROOT / arguments.directory
+    if arguments.name in PARTIAL and not (directory / arguments.name / "run.json").exists():
+        return partial_maps(arguments, directory)
     item = load(arguments.name, directory)
     run, meta, data = item["run"], item["meta"], item["data"]
     spacing = meta["spacing"]
@@ -605,13 +762,16 @@ def command_sizing(arguments) -> int:
         from_chain = False
         if large in runs:
             one, two = runs[small], runs[large]
-        elif f"{large}_k2" in runs:
+        elif f"{large}_k2" in runs or f"{large}_k2" in analysis.get("partial_runs", {}):
             # No one-slab run at g = 40 dx: the two-slab run's rate with the particles of its slab on the 5090.
-            # The step of a chain waits for its slowest card, so this is an upper bound of the 5090's time.
-            chain_run = runs[f"{large}_k2"]
+            # The step of a chain waits for its slowest card, so this is an upper bound of the 5090's time. A run
+            # that was stopped gives its rate up to its last heartbeat (start-up included).
+            chain_run = runs.get(f"{large}_k2") or analysis["partial_runs"][f"{large}_k2"]
+            rate = chain_run["steps_per_second"]
+            if rate is None:
+                rate = chain_run["partial"]["last_heartbeat_step"] / chain_run["partial"]["last_heartbeat_seconds"]
             one = runs[small]
-            two = {"steps_per_second": chain_run["steps_per_second"],
-                   "particles": chain_run["slab_particles"][0],
+            two = {"steps_per_second": rate, "particles": chain_run["slab_particles"][0],
                    "bytes_per_particle": chain_run.get("bytes_per_particle", one.get("bytes_per_particle"))}
             from_chain = True
         else:
