@@ -10,9 +10,10 @@ CONCENTRIC_STAGE4 = {
     "analysis": "data/micropolar/stage4/couette_stage4.json", "status": "provisional", "tag": "thesis-ch5-rc1",
     "note": "Stage 4 runs on thesis-ch5-rc1 (thesis configuration, density diffusion towards the walls)"}
 CONCENTRIC_STAGE6 = {
-    "analysis": "data/micropolar/stage6/concentric.json", "status": "final", "tag": "thesis-ch5-rc2",
+    "analysis": "data/micropolar/stage6/concentric.json", "tag": "thesis-ch5-rc2",
+    "status": "final (rc2 runs); incomplete: rows at g = 200 dx still running, rows at g = 400 dx not reached",
     "note": "Stage 6 runs on thesis-ch5-rc2 (numerics.delta_fluid_only: true)"}
-CONCENTRIC = CONCENTRIC_STAGE4
+CONCENTRIC = CONCENTRIC_STAGE6
 
 # eccentric cylinders: analysis file of micropolar_stage6.py eccentric (--set stage5 for the older runs)
 ECCENTRIC_STAGE5 = {
@@ -20,9 +21,10 @@ ECCENTRIC_STAGE5 = {
     "tag": "thesis-ch5-rc1 and the commits of Stage 5",
     "note": "Stage 4 and 5 runs without the density diffusion term (numerics.use_density_diffusion: false)"}
 ECCENTRIC_STAGE6 = {
-    "analysis": "data/micropolar/stage6/eccentric.json", "status": "final", "tag": "thesis-ch5-rc2",
+    "analysis": "data/micropolar/stage6/eccentric.json", "tag": "thesis-ch5-rc2",
+    "status": "final (rc2 runs); incomplete: rows at g = 200 dx and the noise floors still running",
     "note": "Stage 6 runs on thesis-ch5-rc2 (numerics.delta_fluid_only: true)"}
-ECCENTRIC = ECCENTRIC_STAGE5
+ECCENTRIC = ECCENTRIC_STAGE6
 # the Newtonian benchmark rows at Reynolds number 1 exist only in the setting of Stage 5 (they were not asked again)
 ECCENTRIC_BENCHMARK_STAGE5 = ECCENTRIC_STAGE5
 
@@ -34,4 +36,4 @@ ECCENTRIC_FIELD_STAGE5 = {
 ECCENTRIC_FIELD_STAGE6 = {
     "fields": "data/micropolar/stage6/fields/e60_k3_m5", "status": "final", "tag": "thesis-ch5-rc2",
     "note": "Stage 6 run on thesis-ch5-rc2 (numerics.delta_fluid_only: true)"}
-ECCENTRIC_FIELD = ECCENTRIC_FIELD_STAGE5
+ECCENTRIC_FIELD = ECCENTRIC_FIELD_STAGE6

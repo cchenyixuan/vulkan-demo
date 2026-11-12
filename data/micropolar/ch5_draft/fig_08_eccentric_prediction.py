@@ -64,10 +64,10 @@ def main() -> int:
     axes[0].set_ylabel("measured change / predicted change")
     axes[0].set_ylim(0.3, 1.12)
     grey = style.MUTED
-    handles = [plt.Line2D([], [], linestyle="none", marker="o", markersize=style.MARKER_SIZE, markerfacecolor=grey,
-                          markeredgecolor=grey, label="against the film function"),
-               plt.Line2D([], [], linestyle="none", marker="o", markersize=style.MARKER_SIZE, markerfacecolor="white",
-                          markeredgecolor=grey, label="against the rule"),
+    handles = [plt.Line2D([], [], linestyle="none", marker="D", markersize=style.MARKER_SIZE, markerfacecolor=grey,
+                          markeredgecolor=grey, label="filled: against the film function"),
+               plt.Line2D([], [], linestyle="none", marker="D", markersize=style.MARKER_SIZE, markerfacecolor="white",
+                          markeredgecolor=grey, label="open: against the rule"),
                plt.Line2D([], [], linestyle="none", marker="o", markersize=style.MARKER_SIZE, markerfacecolor="white",
                           markeredgecolor=grey, label=r"$\varepsilon = 0.3$"),
                plt.Line2D([], [], linestyle="none", marker="s", markersize=style.MARKER_SIZE, markerfacecolor="white",

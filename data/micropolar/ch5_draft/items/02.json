@@ -1,14 +1,14 @@
 {
  "item": "02",
  "title": "Concentric cylinders: convergence of D and of the profiles",
- "status": "provisional",
- "caption": "Convergence between concentric cylinders, K = 3, w = 0 on both walls, in the micropolar length resolved (l / dx = 5, 10, 20; h = 5 dx; Ma = 0.02, Re = 10 on mu_inf, 25 on mu). (a) Deviation of the relative torque change D (velocity fit, against the run's Newtonian control) from the exact value; horizontal bars: the noise floor of D (spread of the control's beta over three lattices); dotted: power law through the points above their floor, order 2.2. (b), (c) Rms deviation of the bin means of v_theta and of w from the exact profiles, relative to the rms of the profile, further than h from both walls (circles) and within h of a wall (squares). Filled symbols, solid lines: m = 5 (runs `g050_k3_m5`, `g100_k3_m5`, `g200_k3_m5`); open symbols, dashed lines: m = 10 (`g100_k3_m10`, `g200_k3_m10`). Tag `thesis-ch5-rc1`. Deviation of D: m = 5: +2.98 %, +0.65 %, +0.04 %; m = 10: +3.03 %, +0.62 %. Not in the figure yet: `g400_k3_m10`.",
+ "status": "final (rc2 runs); incomplete: rows at g = 200 dx still running, rows at g = 400 dx not reached",
+ "caption": "Convergence between concentric cylinders, K = 3, w = 0 on both walls, in the micropolar length resolved (l / dx = 5, 10, 20; h = 5 dx; Ma = 0.02, Re = 10 on mu_inf, 25 on mu). (a) Deviation of the relative torque change D (velocity fit, against the run's Newtonian control) from the exact value; horizontal bars: the noise floor of D (spread of the control's beta over three lattices); dotted: power law through the points above their floor, order 2.0. (b), (c) Rms deviation of the bin means of v_theta and of w from the exact profiles, relative to the rms of the profile, further than h from both walls (circles) and within h of a wall (squares). Filled symbols, solid lines: m = 5 (runs `g050_k3_m5`, `g100_k3_m5`, `g200_k3_m5`); open symbols, dashed lines: m = 10 (`g100_k3_m10`, `g200_k3_m10`). Tag `thesis-ch5-rc2`, `thesis-ch5-rc2-2-g7a21ef4`, `thesis-ch5-rc2-1-gcb243fd`. Deviation of D: m = 5: +2.97 %, +0.73 %, +0.15 %; m = 10: +3.13 %, +0.75 %. Not in the figure yet: `g400_k3_m10`.",
  "files": [
   "fig_02_concentric_convergence.pdf",
   "fig_02_concentric_convergence.png"
  ],
  "sources": [
-  "data/micropolar/stage4/couette_stage4.json",
+  "data/micropolar/stage6/concentric.json",
   "g050_k3_m5",
   "g100_k3_m5",
   "g200_k3_m5",
@@ -19,33 +19,33 @@
   "m = 5": {
    "g050_k3_m5": {
     "length_in_spacings": 5.0,
-    "deviation": 0.029813791510784067,
-    "noise_floor": 0.007083805473558317
+    "deviation": 0.02972131250555526,
+    "noise_floor": 0.006871452799191743
    },
    "g100_k3_m5": {
     "length_in_spacings": 10.0,
-    "deviation": 0.006469855191625231,
-    "noise_floor": 0.002886085952373321
+    "deviation": 0.0072885167395076176,
+    "noise_floor": 0.0030215401365085008
    },
    "g200_k3_m5": {
     "length_in_spacings": 20.0,
-    "deviation": 0.0003673022213036196,
-    "noise_floor": 0.002886395822978009
+    "deviation": 0.001476706220481727,
+    "noise_floor": 0.0030219436462155915
    }
   },
   "m = 10": {
    "g100_k3_m10": {
     "length_in_spacings": 5.0,
-    "deviation": 0.03025117987432267,
-    "noise_floor": 0.005821894884874564
+    "deviation": 0.03127304516154155,
+    "noise_floor": 0.006095135456517622
    },
    "g200_k3_m10": {
     "length_in_spacings": 10.0,
-    "deviation": 0.006216429465834471,
-    "noise_floor": 0.005822516171858509
+    "deviation": 0.007515142300660628,
+    "noise_floor": 0.006095944880109743
    }
   },
-  "fitted_order": 2.243503931102165
+  "fitted_order": 2.0424240272610397
  },
- "tag": "thesis-ch5-rc1"
+ "tag": "thesis-ch5-rc2"
 }

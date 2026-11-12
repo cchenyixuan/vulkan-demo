@@ -1,23 +1,23 @@
 {
  "item": "08",
  "title": "Eccentric cylinders: measured over predicted change against narrowest gap / l",
- "status": "provisional",
- "caption": "What the two predictions of the host make of the micropolar effect between eccentric cylinders: measured change over predicted change, (a) of the load and (b) of the rotor torque, against the narrowest gap in units of l (concentric rows: g / l). Change = micropolar run over its Newtonian control, minus one; the torque change is the mean of the four readings (rotor and stator, wall form and circle form) with the error of each reading between concentric cylinders at the same K, l and g taken off where that row exists. Filled: against the film function of micropolar lubrication theory in the thin-film calculation (load: the plane film; torque: the shear-driven stress of the exact concentric solution at the local gap, the pressure-driven stress of the plane film). Open: against the wall rule, evaluated on the exact Stokes solution of its slip-form geometry (rotor radius R1 + delta turning at Omega (R1 - delta) / (R1 + delta), stator radius R2 - delta); triangles: concentric rows, D of the run over D of the rule. Runs: the rows of tab_09 on the lattice as generated (Stage 4 and 5 runs without the density diffusion term (numerics.use_density_diffusion: false)) and the sweep rows of tab_04. Load over film 0.972 to 1.012, load over rule 0.375 to 0.929; torque over film 0.958 to 0.989, torque over rule (eccentric) 0.538 to 0.988.",
+ "status": "final (rc2 runs); incomplete: rows at g = 200 dx and the noise floors still running",
+ "caption": "What the two predictions of the host make of the micropolar effect between eccentric cylinders: measured change over predicted change, (a) of the load and (b) of the rotor torque, against the narrowest gap in units of l (concentric rows: g / l). Change = micropolar run over its Newtonian control, minus one; the torque change is the mean of the four readings (rotor and stator, wall form and circle form) with the error of each reading between concentric cylinders at the same K, l and g taken off where that row exists. Filled: against the film function of micropolar lubrication theory in the thin-film calculation (load: the plane film; torque: the shear-driven stress of the exact concentric solution at the local gap, the pressure-driven stress of the plane film). Open: against the wall rule, evaluated on the exact Stokes solution of its slip-form geometry (rotor radius R1 + delta turning at Omega (R1 - delta) / (R1 + delta), stator radius R2 - delta); triangles: concentric rows, D of the run over D of the rule. Runs: the rows of tab_09 on the lattice as generated (Stage 6 runs on thesis-ch5-rc2 (numerics.delta_fluid_only: true)) and the sweep rows of tab_04. Load over film 0.971 to 1.002, load over rule 0.374 to 0.817; torque over film 0.965 to 0.991, torque over rule (eccentric) 0.538 to 0.964.",
  "files": [
   "fig_08_eccentric_prediction.pdf",
   "fig_08_eccentric_prediction.png"
  ],
  "sources": [
-  "data/micropolar/stage6/eccentric_stage5_runs.json",
-  "data/micropolar/stage4/couette_stage4.json",
-  "nd_e30_k3_m5",
-  "nd_e30_k3_m2",
-  "nd_e60_k3_m5",
-  "nd_e60_k3_m2",
-  "nd_e60_k3_m5_shifted",
-  "nd_e60_k3_m5_rotated",
-  "nd_e30_k3_m10_g200",
-  "nd_e60_k3_m10_g200",
+  "data/micropolar/stage6/eccentric.json",
+  "data/micropolar/stage6/concentric.json",
+  "e30_k3_m5",
+  "e30_k3_m2",
+  "e30_k1_m5",
+  "e30_k1_m2",
+  "e60_k3_m5",
+  "e60_k3_m2",
+  "e60_k1_m5",
+  "e60_k1_m2",
   "g100_k3_m5",
   "g200_k3_m10",
   "g100_k3_m1",
@@ -26,159 +26,139 @@
   "g100_k1_m1",
   "g100_k1_m2",
   "g100_k1_m5",
-  "g200_k1_m10",
-  "g200_k1_m20",
   "g100_k05_m1",
   "g100_k05_m2",
-  "g100_k05_m5",
-  "g200_k05_m10",
-  "g200_k05_m20"
+  "g100_k05_m5"
  ],
  "numbers": {
   "load": {
-   "nd_e30_k3_m5": {
+   "e30_k3_m5": {
     "narrowest_gap_over_length": 6.999999999999999,
-    "over_film": 1.0023207320080234,
-    "over_rule": 0.8169208893136208
+    "over_film": 1.0022751401844416,
+    "over_rule": 0.8168837306358877
    },
-   "nd_e30_k3_m2": {
+   "e30_k3_m2": {
     "narrowest_gap_over_length": 2.8,
-    "over_film": 0.9760781185930372,
-    "over_rule": 0.47036308162546103
+    "over_film": 0.9749168967157803,
+    "over_rule": 0.46980349946678635
    },
-   "nd_e60_k3_m5": {
+   "e30_k1_m5": {
+    "narrowest_gap_over_length": 6.999999999999999,
+    "over_film": 0.9988087276247508,
+    "over_rule": 0.8010351615830839
+   },
+   "e30_k1_m2": {
+    "narrowest_gap_over_length": 2.8,
+    "over_film": 0.9744698696718032,
+    "over_rule": 0.48212694083171165
+   },
+   "e60_k3_m5": {
     "narrowest_gap_over_length": 4.0,
-    "over_film": 0.994161666095895,
-    "over_rule": 0.7336185056813628
+    "over_film": 0.9942073702833908,
+    "over_rule": 0.7336522320247509
    },
-   "nd_e60_k3_m2": {
+   "e60_k3_m2": {
     "narrowest_gap_over_length": 1.6,
-    "over_film": 0.9717912686079901,
-    "over_rule": 0.3746925881702544
+    "over_film": 0.9705906965784171,
+    "over_rule": 0.37422968481273616
    },
-   "nd_e60_k3_m5_shifted": {
+   "e60_k1_m5": {
     "narrowest_gap_over_length": 4.0,
-    "over_film": 0.993408018632462,
-    "over_rule": 0.7330623690440435
+    "over_film": 0.9909216694079119,
+    "over_rule": 0.7231744642575638
    },
-   "nd_e60_k3_m5_rotated": {
-    "narrowest_gap_over_length": 4.0,
-    "over_film": 0.9951356867541309,
-    "over_rule": 0.7343372615981987
-   },
-   "nd_e30_k3_m10_g200": {
-    "narrowest_gap_over_length": 13.999999999999998,
-    "over_film": 1.0120749203915627,
-    "over_rule": 0.9289687150024785
-   },
-   "nd_e60_k3_m10_g200": {
-    "narrowest_gap_over_length": 8.0,
-    "over_film": 1.0085930970044363,
-    "over_rule": 0.8905441278494441
+   "e60_k1_m2": {
+    "narrowest_gap_over_length": 1.6,
+    "over_film": 0.971705605267228,
+    "over_rule": 0.40607403505416967
    }
   },
   "torque": {
-   "nd_e30_k3_m5": {
+   "e30_k3_m5": {
     "narrowest_gap_over_length": 6.999999999999999,
-    "over_film": 0.9660225968059257,
-    "over_rule": 0.9646681458542208
+    "over_film": 0.964996115816983,
+    "over_rule": 0.9636431040843573
    },
-   "nd_e30_k3_m2": {
+   "e30_k3_m2": {
     "narrowest_gap_over_length": 2.8,
-    "over_film": 0.9787503565862964,
-    "over_rule": 0.8006587018203456
+    "over_film": 0.9783343300864168,
+    "over_rule": 0.8003183747542301
    },
-   "nd_e60_k3_m5": {
+   "e30_k1_m5": {
+    "narrowest_gap_over_length": 6.999999999999999,
+    "over_film": 0.9659254749711796,
+    "over_rule": 0.9601960406495894
+   },
+   "e30_k1_m2": {
+    "narrowest_gap_over_length": 2.8,
+    "over_film": 0.9809204039559357,
+    "over_rule": 0.8168821372139783
+   },
+   "e60_k3_m5": {
     "narrowest_gap_over_length": 4.0,
-    "over_film": 0.9761625045379355,
-    "over_rule": 0.8771491820148721
+    "over_film": 0.9744932079226964,
+    "over_rule": 0.8756492041384526
    },
-   "nd_e60_k3_m2": {
+   "e60_k3_m2": {
     "narrowest_gap_over_length": 1.6,
-    "over_film": 0.9885462989581327,
-    "over_rule": 0.5384945982934632
+    "over_film": 0.9881560493510919,
+    "over_rule": 0.5382820161356026
    },
-   "nd_e60_k3_m5_shifted": {
+   "e60_k1_m5": {
     "narrowest_gap_over_length": 4.0,
-    "over_film": 0.9771261123523446,
-    "over_rule": 0.878015049943893
+    "over_film": 0.9744181677502395,
+    "over_rule": 0.872500749954912
    },
-   "nd_e60_k3_m5_rotated": {
-    "narrowest_gap_over_length": 4.0,
-    "over_film": 0.9789846118523257,
-    "over_rule": 0.8796850396316808
-   },
-   "nd_e30_k3_m10_g200": {
-    "narrowest_gap_over_length": 13.999999999999998,
-    "over_film": 0.9579400012660705,
-    "over_rule": 0.9884167076627871
-   },
-   "nd_e60_k3_m10_g200": {
-    "narrowest_gap_over_length": 8.0,
-    "over_film": 0.96301683202495,
-    "over_rule": 0.9536379468278013
+   "e60_k1_m2": {
+    "narrowest_gap_over_length": 1.6,
+    "over_film": 0.9905265630354416,
+    "over_rule": 0.5839106327428036
    },
    "g100_k3_m5": {
     "narrowest_gap_over_length": 10.0,
-    "over_rule": 1.0093257040798307
+    "over_rule": 1.0101466052790058
    },
    "g200_k3_m10": {
     "narrowest_gap_over_length": 20.0,
-    "over_rule": 1.0077176156961336
+    "over_rule": 1.0090182074368015
    },
    "g100_k3_m1": {
     "narrowest_gap_over_length": 2.0,
-    "over_rule": 0.6723667236299495
+    "over_rule": 0.6731555024846365
    },
    "g100_k3_m2": {
     "narrowest_gap_over_length": 4.0,
-    "over_rule": 0.9628203321611699
+    "over_rule": 0.9634960678579954
    },
    "g200_k3_m20": {
     "narrowest_gap_over_length": 40.0,
-    "over_rule": 1.0304572149844349
+    "over_rule": 1.0329997214240152
    },
    "g100_k1_m1": {
     "narrowest_gap_over_length": 2.0,
-    "over_rule": 0.7106289648255912
+    "over_rule": 0.7118401636411981
    },
    "g100_k1_m2": {
     "narrowest_gap_over_length": 4.0,
-    "over_rule": 0.9657847413383098
+    "over_rule": 0.9657857962632656
    },
    "g100_k1_m5": {
     "narrowest_gap_over_length": 10.0,
-    "over_rule": 1.0073866589013345
-   },
-   "g200_k1_m10": {
-    "narrowest_gap_over_length": 20.0,
-    "over_rule": 1.0059254094598
-   },
-   "g200_k1_m20": {
-    "narrowest_gap_over_length": 40.0,
-    "over_rule": 1.0248214703307508
+    "over_rule": 1.0087562083691233
    },
    "g100_k05_m1": {
     "narrowest_gap_over_length": 2.0,
-    "over_rule": 0.7306186074077751
+    "over_rule": 0.7332818854277445
    },
    "g100_k05_m2": {
     "narrowest_gap_over_length": 4.0,
-    "over_rule": 0.9656091796443946
+    "over_rule": 0.9679316007504075
    },
    "g100_k05_m5": {
     "narrowest_gap_over_length": 10.0,
-    "over_rule": 1.0065421600198126
-   },
-   "g200_k05_m10": {
-    "narrowest_gap_over_length": 20.0,
-    "over_rule": 1.0051728312754091
-   },
-   "g200_k05_m20": {
-    "narrowest_gap_over_length": 40.0,
-    "over_rule": 1.0221253947257392
+    "over_rule": 1.00780648603736
    }
   }
  },
- "tag": "thesis-ch5-rc1 and the commits of Stage 5; concentric: thesis-ch5-rc1"
+ "tag": "thesis-ch5-rc2; concentric: thesis-ch5-rc2"
 }

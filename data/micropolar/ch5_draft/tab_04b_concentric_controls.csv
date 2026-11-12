@@ -1,9 +1,8 @@
 run,g/dx,dt,dt set by,steps,beta/nominal,hydrodynamic R1 - R1 (dx),hydrodynamic R2 - R2 (dx),steady,sector spread,fit rms/U,density level,density drift,pressure level,pressure drift,steps/s,git describe
-g050_newtonian,50,3.0000e-05,acoustic,"67,000",0.998917,-0.091,-0.102,7e-06,3e-04,2e-05,-,-,-,-,1843,thesis-ch5-rc1
-g050_newtonian_shifted,50,3.0000e-05,acoustic,"67,000",0.999240,-0.056,-0.056,2e-06,7e-05,1e-05,-,-,-,-,1824,thesis-ch5-rc1-1-ga07f93d
-g050_newtonian_rotated,50,3.0000e-05,acoustic,"67,000",0.998808,-0.094,-0.100,5e-06,1e-04,2e-05,-,-,-,-,1835,thesis-ch5-rc1-1-ga07f93d
-g100_newtonian,100,1.5000e-05,acoustic,"134,000",0.999545,-0.084,-0.100,6e-06,1e-04,5e-05,-,-,-,-,705,thesis-ch5-rc1
-g100_newtonian_shifted,100,1.5000e-05,acoustic,"134,000",0.999369,-0.075,-0.057,1e-05,3e-05,5e-05,-,-,-,-,701,thesis-ch5-rc1-1-ga07f93d
-g100_newtonian_rotated,100,1.5000e-05,acoustic,"134,000",0.999511,-0.086,-0.099,6e-08,3e-04,5e-05,-,-,-,-,704,thesis-ch5-rc1-1-ga07f93d
-g200_newtonian,200,7.5000e-06,acoustic,"267,000",0.999706,-0.099,-0.111,2e-06,8e-05,7e-05,-,-,-,-,371,thesis-ch5-rc1
-g200_newtonian_shifted,200,7.5000e-06,acoustic,"267,000",0.999709,-0.086,-0.086,3e-06,3e-05,7e-05,-,-,-,-,343,thesis-ch5-rc1-3-g645dc15
+g050_newtonian,50,3.0000e-05,acoustic,"67,000",0.998998,-0.086,-0.098,1e-06,3e-04,9e-06,+1.1e-04,+4.4e-06,+0.280,+1.1e-02,1701,thesis-ch5-rc2
+g050_newtonian_shifted,50,3.0000e-05,acoustic,"67,000",0.999303,-0.051,-0.051,1e-05,1e-04,2e-05,+1.1e-04,+3.3e-06,+0.287,+8.3e-03,1701,thesis-ch5-rc2
+g050_newtonian_rotated,50,3.0000e-05,acoustic,"67,000",0.998884,-0.089,-0.095,2e-05,1e-04,1e-05,+1.1e-04,+3.2e-06,+0.282,+8.0e-03,1712,thesis-ch5-rc2
+g100_newtonian,100,1.5000e-05,acoustic,"134,000",0.999612,-0.072,-0.085,5e-06,1e-04,5e-06,-5.6e-06,+1.2e-06,-0.014,+3.0e-03,647,thesis-ch5-rc2
+g100_newtonian_shifted,100,1.5000e-05,acoustic,"134,000",0.999428,-0.063,-0.042,5e-06,3e-05,6e-06,-4.8e-06,+1.4e-06,-0.012,+3.5e-03,637,thesis-ch5-rc2-1-gcb243fd
+g100_newtonian_rotated,100,1.5000e-05,acoustic,"134,000",0.999589,-0.073,-0.084,1e-06,3e-04,6e-06,-6.2e-06,+1.1e-06,-0.015,+2.8e-03,640,thesis-ch5-rc2-2-g7a21ef4
+g200_newtonian,200,7.5000e-06,acoustic,"267,000",0.999791,-0.064,-0.066,2e-06,7e-05,2e-05,-5.4e-06,+9.1e-09,-0.013,+2.3e-05,359,thesis-ch5-rc2

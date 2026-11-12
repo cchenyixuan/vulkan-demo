@@ -1,42 +1,42 @@
 {
  "item": "06",
  "title": "Eccentric cylinders: wall pressure around the rotor",
- "status": "provisional",
- "caption": "Pressure on the rotor between eccentric cylinders, (a) eps = 0.3 and (b) eps = 0.6, against the angle about the rotor axis measured from the narrowest gap in the direction of rotation; mean over the angle removed. Line: Stokes solution of the Newtonian flow (sum of point forces; its wall pressure and wall vorticity integrate to the exact force and torque to 1e-13). Open circles: Newtonian run. Filled symbols: micropolar runs, K = 3, l = 10 dx (m = 5) and l = 25 dx (m = 2), w = 0 on both walls. g = 100 dx, Ma = 0.02, Re = 10 on mu_inf (25 on mu for K = 3). The pressure of a run is the fluid pressure extrapolated to the wall surface (cubic in the wall distance over 0.5 to 12 dx, 72 angle bins, states of the last quarter; every second bin shown). Runs: `nd_e30_newtonian`, `nd_e30_k3_m5`, `nd_e30_k3_m2`, `nd_e60_newtonian`, `nd_e60_k3_m5`, `nd_e60_k3_m2`; Stage 4 and 5 runs without the density diffusion term (numerics.use_density_diffusion: false). eps = 0.3: extremum of the Stokes pressure 0.80 rho U^2, rms difference of the Newtonian run 0.035 rho U^2; micropolar extremum over the Stokes one 1.24, 1.44. eps = 0.6: extremum of the Stokes pressure 2.19 rho U^2, rms difference of the Newtonian run 0.039 rho U^2; micropolar extremum over the Stokes one 1.26, 1.44.",
+ "status": "final (rc2 runs); incomplete: rows at g = 200 dx and the noise floors still running",
+ "caption": "Pressure on the rotor between eccentric cylinders, (a) eps = 0.3 and (b) eps = 0.6, against the angle about the rotor axis measured from the narrowest gap in the direction of rotation; mean over the angle removed. Line: Stokes solution of the Newtonian flow (sum of point forces; its wall pressure and wall vorticity integrate to the exact force and torque to 1e-13). Open circles: Newtonian run. Filled symbols: micropolar runs, K = 3, l = 10 dx (m = 5) and l = 25 dx (m = 2), w = 0 on both walls. g = 100 dx, Ma = 0.02, Re = 10 on mu_inf (25 on mu for K = 3). The pressure of a run is the fluid pressure extrapolated to the wall surface (cubic in the wall distance over 0.5 to 12 dx, 72 angle bins, states of the last quarter; every second bin shown). Runs: `e30_newtonian`, `e30_k3_m5`, `e30_k3_m2`, `e60_newtonian`, `e60_k3_m5`, `e60_k3_m2`; Stage 6 runs on thesis-ch5-rc2 (numerics.delta_fluid_only: true). eps = 0.3: extremum of the Stokes pressure 0.80 rho U^2, rms difference of the Newtonian run 0.034 rho U^2; micropolar extremum over the Stokes one 1.24, 1.44. eps = 0.6: extremum of the Stokes pressure 2.19 rho U^2, rms difference of the Newtonian run 0.038 rho U^2; micropolar extremum over the Stokes one 1.26, 1.44.",
  "files": [
   "fig_06_eccentric_wall_pressure.pdf",
   "fig_06_eccentric_wall_pressure.png"
  ],
  "sources": [
-  "data/micropolar/stage6/eccentric_stage5_runs.json",
-  "nd_e30_newtonian",
-  "nd_e30_k3_m5",
-  "nd_e30_k3_m2",
-  "nd_e60_newtonian",
-  "nd_e60_k3_m5",
-  "nd_e60_k3_m2"
+  "data/micropolar/stage6/eccentric.json",
+  "e30_newtonian",
+  "e30_k3_m5",
+  "e30_k3_m2",
+  "e60_newtonian",
+  "e60_k3_m5",
+  "e60_k3_m2"
  ],
  "numbers": {
   "eps = 0.3": {
    "exact_extremum": 0.7988512614911382,
-   "newtonian_rms_difference": 0.03533361676816903,
-   "nd_e30_k3_m5": {
-    "extremum_over_exact": 1.2422703488176174
+   "newtonian_rms_difference": 0.03427791243542763,
+   "e30_k3_m5": {
+    "extremum_over_exact": 1.2378082036739073
    },
-   "nd_e30_k3_m2": {
-    "extremum_over_exact": 1.4390413308081809
+   "e30_k3_m2": {
+    "extremum_over_exact": 1.4369327999632922
    }
   },
   "eps = 0.6": {
    "exact_extremum": 2.189278900236696,
-   "newtonian_rms_difference": 0.03932788098100851,
-   "nd_e60_k3_m5": {
-    "extremum_over_exact": 1.256927602171534
+   "newtonian_rms_difference": 0.0379449338829926,
+   "e60_k3_m5": {
+    "extremum_over_exact": 1.264433474808746
    },
-   "nd_e60_k3_m2": {
-    "extremum_over_exact": 1.4355788868787134
+   "e60_k3_m2": {
+    "extremum_over_exact": 1.4430394598934384
    }
   }
  },
- "tag": "thesis-ch5-rc1 and the commits of Stage 5"
+ "tag": "thesis-ch5-rc2"
 }

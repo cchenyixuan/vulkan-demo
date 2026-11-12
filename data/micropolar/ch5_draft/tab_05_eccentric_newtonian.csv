@@ -1,4 +1,6 @@
 run,setting,eps,Re,g/dx,Ma,lattice,load/exact - 1 (%),direction (deg),"torque, circle form: rotor (%)",stator (%),"torque, wall form: rotor (%)",stator (%),"torque, 2nd - 1st half (%)","load, 2nd - 1st half (%)",density drift,pressure drift,git describe
+e30_newtonian,diffusion between fluid pairs (rc2),0.3,10,100,0.02,as generated,-0.29,86.9,-0.11,-0.09,-0.19,-0.86,+0.015,+0.003,-8.0e-06,-2.0e-02,thesis-ch5-rc2-3-g656e652
+e60_newtonian,diffusion between fluid pairs (rc2),0.6,10,100,0.02,as generated,-0.61,89.2,+0.03,+0.08,+0.26,-0.66,+0.039,+0.012,-2.7e-05,-6.6e-02,thesis-ch5-rc2-3-g656e652
 nd_e30_newtonian,density diffusion off,0.3,10,100,0.02,as generated,-0.19,86.9,-0.09,-0.09,-0.15,-0.91,+0.021,-0.001,-,-,thesis-ch5-rc1-2-gad23a67
 nd_e60_newtonian,density diffusion off,0.6,10,100,0.02,as generated,-0.33,89.4,+0.02,+0.06,+0.07,-0.72,+0.011,+0.009,-,-,thesis-ch5-rc1-3-g645dc15
 nd_e60_newtonian_shifted,density diffusion off,0.6,10,100,0.02,shifted,+0.00,89.4,-0.03,+0.00,+0.79,-0.01,-0.005,-0.018,-7.3e-06,-1.8e-02,thesis-ch5-rc1-9-gbfcc024
