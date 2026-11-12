@@ -12,6 +12,12 @@
   "data/micropolar/stage6/eccentric_stage5_runs.json",
   "e30_newtonian",
   "e60_newtonian",
+  "e30_g200_newtonian",
+  "e60_g200_newtonian",
+  "e30_newtonian_shifted",
+  "e30_newtonian_rotated",
+  "e60_newtonian_shifted",
+  "e60_newtonian_rotated",
   "nd_e30_newtonian",
   "nd_e60_newtonian",
   "nd_e60_newtonian_shifted",
@@ -33,6 +39,36 @@
    "load_over_exact": 0.9938862984534961,
    "direction": 89.22793441710591,
    "rotor_torque_circle_over_exact": 1.000260034823336
+  },
+  "e30_g200_newtonian": {
+   "load_over_exact": 0.9988019685379536,
+   "direction": 87.04454060892157,
+   "rotor_torque_circle_over_exact": 0.9989818853137117
+  },
+  "e60_g200_newtonian": {
+   "load_over_exact": 0.996586024640325,
+   "direction": 89.29783852270884,
+   "rotor_torque_circle_over_exact": 0.9999819970067164
+  },
+  "e30_newtonian_shifted": {
+   "load_over_exact": 1.0003820107095076,
+   "direction": 86.87797282705912,
+   "rotor_torque_circle_over_exact": 0.9986746405783551
+  },
+  "e30_newtonian_rotated": {
+   "load_over_exact": 1.0014589315932643,
+   "direction": 86.90605994802883,
+   "rotor_torque_circle_over_exact": 0.9989359131362294
+  },
+  "e60_newtonian_shifted": {
+   "load_over_exact": 0.9973879565046455,
+   "direction": 89.22535895832894,
+   "rotor_torque_circle_over_exact": 0.9996150143327442
+  },
+  "e60_newtonian_rotated": {
+   "load_over_exact": 0.9994850913052408,
+   "direction": 89.31019456550479,
+   "rotor_torque_circle_over_exact": 1.0006275375132831
   },
   "nd_e30_newtonian": {
    "load_over_exact": 0.9981489808104465,
@@ -83,6 +119,18 @@
    "load_over_exact": 0.9993126956447497,
    "direction": 87.28018132441008,
    "rotor_torque_circle_over_exact": 0.9989652322086978
+  },
+  "spread_e30": {
+   "load_spread": 0.004325450200466707,
+   "force_angle_spread_degrees": 0.02902514654250865,
+   "rotor_torque_circle_spread": 0.0002719523775399635,
+   "rotor_torque_wall_spread": 0.0075065428137911505
+  },
+  "spread_e60": {
+   "load_spread": 0.005598792851744694,
+   "force_angle_spread_degrees": 0.08483560717584737,
+   "rotor_torque_circle_spread": 0.0010125231805389046,
+   "rotor_torque_wall_spread": 0.008157384882459429
   },
   "spread_nd_e60": {
    "load_spread": 0.005407960218404395,

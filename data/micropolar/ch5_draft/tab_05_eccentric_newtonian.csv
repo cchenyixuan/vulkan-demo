@@ -1,6 +1,12 @@
 run,setting,eps,Re,g/dx,Ma,lattice,load/exact - 1 (%),direction (deg),"torque, circle form: rotor (%)",stator (%),"torque, wall form: rotor (%)",stator (%),"torque, 2nd - 1st half (%)","load, 2nd - 1st half (%)",density drift,pressure drift,git describe
 e30_newtonian,diffusion between fluid pairs (rc2),0.3,10,100,0.02,as generated,-0.29,86.9,-0.11,-0.09,-0.19,-0.86,+0.015,+0.003,-8.0e-06,-2.0e-02,thesis-ch5-rc2-3-g656e652
 e60_newtonian,diffusion between fluid pairs (rc2),0.6,10,100,0.02,as generated,-0.61,89.2,+0.03,+0.08,+0.26,-0.66,+0.039,+0.012,-2.7e-05,-6.6e-02,thesis-ch5-rc2-3-g656e652
+e30_g200_newtonian,diffusion between fluid pairs (rc2),0.3,10,200,0.02,as generated,-0.12,87.0,-0.10,-0.10,+0.14,-0.48,+0.007,-0.025,-9.5e-06,-2.4e-02,thesis-ch5-rc2-9-g20fa8bb
+e60_g200_newtonian,diffusion between fluid pairs (rc2),0.6,10,200,0.02,as generated,-0.34,89.3,-0.00,+0.04,+0.45,-0.33,+0.034,+0.014,-1.7e-05,-4.2e-02,thesis-ch5-rc2-6-gaa27df9
+e30_newtonian_shifted,diffusion between fluid pairs (rc2),0.3,10,100,0.02,shifted,+0.04,86.9,-0.13,-0.12,+0.53,-0.13,+0.014,-0.005,-8.1e-06,-2.0e-02,thesis-ch5-rc2-5-g8bc6d20
+e30_newtonian_rotated,diffusion between fluid pairs (rc2),0.3,10,100,0.02,rotated,+0.15,86.9,-0.11,-0.10,+0.56,-0.11,+0.013,-0.014,-8.3e-06,-2.1e-02,thesis-ch5-rc2-6-gaa27df9
+e60_newtonian_shifted,diffusion between fluid pairs (rc2),0.6,10,100,0.02,shifted,-0.26,89.2,-0.04,+0.03,+0.94,+0.04,+0.041,+0.012,-2.5e-05,-6.4e-02,thesis-ch5-rc2-6-gaa27df9
+e60_newtonian_rotated,diffusion between fluid pairs (rc2),0.6,10,100,0.02,rotated,-0.05,89.3,+0.06,+0.10,+1.07,+0.11,+0.038,+0.014,-2.4e-05,-6.0e-02,thesis-ch5-rc2-6-gaa27df9
 nd_e30_newtonian,density diffusion off,0.3,10,100,0.02,as generated,-0.19,86.9,-0.09,-0.09,-0.15,-0.91,+0.021,-0.001,-,-,thesis-ch5-rc1-2-gad23a67
 nd_e60_newtonian,density diffusion off,0.6,10,100,0.02,as generated,-0.33,89.4,+0.02,+0.06,+0.07,-0.72,+0.011,+0.009,-,-,thesis-ch5-rc1-3-g645dc15
 nd_e60_newtonian_shifted,density diffusion off,0.6,10,100,0.02,shifted,+0.00,89.4,-0.03,+0.00,+0.79,-0.01,-0.005,-0.018,-7.3e-06,-1.8e-02,thesis-ch5-rc1-9-gbfcc024
@@ -11,4 +17,6 @@ nd_e60_re1_ma001,density diffusion off,0.6,1,100,0.01,as generated,-0.31,90.3,-0
 nd_e60_re1_g200,density diffusion off,0.6,1,200,0.02,as generated,+0.01,91.2,+0.07,+0.24,+0.39,-0.28,+0.029,+0.012,-1.7e-05,-4.3e-02,thesis-ch5-rc1-6-g5d07112
 nd_e60_re10_g200,density diffusion off,0.6,10,200,0.02,as generated,-0.13,89.4,-0.00,+0.03,+0.35,-0.36,+0.006,-0.001,-6.1e-06,-1.5e-02,thesis-ch5-rc1-8-gba5bced
 nd_e30_re10_g200,density diffusion off,0.3,10,200,0.02,as generated,-0.07,87.3,-0.10,-0.12,+0.11,-0.52,+0.016,-0.037,-1.0e-05,-2.6e-02,thesis-ch5-rc1-10-g5bc8e0d
+spread of e30 over three lattices,diffusion between fluid pairs (rc2),0.3,10,100,0.02,max - min,0.43,0.03,0.03,0.03,0.75,0.75,,,,,
+spread of e60 over three lattices,diffusion between fluid pairs (rc2),0.6,10,100,0.02,max - min,0.56,0.08,0.10,0.07,0.82,0.77,,,,,
 spread of nd_e60 over three lattices,density diffusion off,0.6,10,100,0.02,max - min,0.54,0.05,0.10,0.08,0.86,0.79,,,,,

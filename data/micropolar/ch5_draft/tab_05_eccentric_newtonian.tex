@@ -5,6 +5,12 @@ run & setting & $\varepsilon$ & $\mathit{Re}$ & $g/\Delta x$ & $\mathit{Ma}$ & l
 \midrule
 \texttt{e30\_newtonian} & diffusion between fluid pairs (rc2) & 0.3 & 10 & 100 & 0.02 & as generated & -0.29 & 86.9 & -0.11 & -0.09 & -0.19 & -0.86 \\
 \texttt{e60\_newtonian} & diffusion between fluid pairs (rc2) & 0.6 & 10 & 100 & 0.02 & as generated & -0.61 & 89.2 & +0.03 & +0.08 & +0.26 & -0.66 \\
+\texttt{e30\_g200\_newtonian} & diffusion between fluid pairs (rc2) & 0.3 & 10 & 200 & 0.02 & as generated & -0.12 & 87.0 & -0.10 & -0.10 & +0.14 & -0.48 \\
+\texttt{e60\_g200\_newtonian} & diffusion between fluid pairs (rc2) & 0.6 & 10 & 200 & 0.02 & as generated & -0.34 & 89.3 & -0.00 & +0.04 & +0.45 & -0.33 \\
+\texttt{e30\_newtonian\_shifted} & diffusion between fluid pairs (rc2) & 0.3 & 10 & 100 & 0.02 & shifted & +0.04 & 86.9 & -0.13 & -0.12 & +0.53 & -0.13 \\
+\texttt{e30\_newtonian\_rotated} & diffusion between fluid pairs (rc2) & 0.3 & 10 & 100 & 0.02 & rotated & +0.15 & 86.9 & -0.11 & -0.10 & +0.56 & -0.11 \\
+\texttt{e60\_newtonian\_shifted} & diffusion between fluid pairs (rc2) & 0.6 & 10 & 100 & 0.02 & shifted & -0.26 & 89.2 & -0.04 & +0.03 & +0.94 & +0.04 \\
+\texttt{e60\_newtonian\_rotated} & diffusion between fluid pairs (rc2) & 0.6 & 10 & 100 & 0.02 & rotated & -0.05 & 89.3 & +0.06 & +0.10 & +1.07 & +0.11 \\
 \texttt{nd\_e30\_newtonian} & density diffusion off & 0.3 & 10 & 100 & 0.02 & as generated & -0.19 & 86.9 & -0.09 & -0.09 & -0.15 & -0.91 \\
 \texttt{nd\_e60\_newtonian} & density diffusion off & 0.6 & 10 & 100 & 0.02 & as generated & -0.33 & 89.4 & +0.02 & +0.06 & +0.07 & -0.72 \\
 \texttt{nd\_e60\_newtonian\_shifted} & density diffusion off & 0.6 & 10 & 100 & 0.02 & shifted & +0.00 & 89.4 & -0.03 & +0.00 & +0.79 & -0.01 \\
@@ -15,6 +21,10 @@ run & setting & $\varepsilon$ & $\mathit{Re}$ & $g/\Delta x$ & $\mathit{Ma}$ & l
 \texttt{nd\_e60\_re1\_g200} & density diffusion off & 0.6 & 1 & 200 & 0.02 & as generated & +0.01 & 91.2 & +0.07 & +0.24 & +0.39 & -0.28 \\
 \texttt{nd\_e60\_re10\_g200} & density diffusion off & 0.6 & 10 & 200 & 0.02 & as generated & -0.13 & 89.4 & -0.00 & +0.03 & +0.35 & -0.36 \\
 \texttt{nd\_e30\_re10\_g200} & density diffusion off & 0.3 & 10 & 200 & 0.02 & as generated & -0.07 & 87.3 & -0.10 & -0.12 & +0.11 & -0.52 \\
+\midrule
+spread of e30 over three lattices & diffusion between fluid pairs (rc2) & 0.3 & 10 & 100 & 0.02 & max - min & 0.43 & 0.03 & 0.03 & 0.03 & 0.75 & 0.75 \\
+\midrule
+spread of e60 over three lattices & diffusion between fluid pairs (rc2) & 0.6 & 10 & 100 & 0.02 & max - min & 0.56 & 0.08 & 0.10 & 0.07 & 0.82 & 0.77 \\
 \midrule
 spread of nd\_e60 over three lattices & density diffusion off & 0.6 & 10 & 100 & 0.02 & max - min & 0.54 & 0.05 & 0.10 & 0.08 & 0.86 & 0.79 \\
 \bottomrule

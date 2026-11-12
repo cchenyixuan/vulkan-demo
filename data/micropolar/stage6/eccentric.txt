@@ -2,9 +2,12 @@ Newtonian runs against the exact Stokes values (load in N/m, torque in N; torque
 run                         eps  Re  g/dx    Ma load exact      load            angle  T exact  T wall R  T wall S  T circ R  T circ S    dT %    dF % behind  rho level     drift  p level     drift  describe
 e30_newtonian              0.30  10   100  0.02    1016.00   1013.09  -0.29 %   86.88  158.023   -0.19 %   -0.86 %   -0.11 %   -0.09 %  +0.015  +0.003      0  -7.51e-05  -8.0e-06   -0.187  -2.0e-02  thesis-ch5-rc2-3-g656e652
 e60_newtonian              0.60  10   100  0.02    2145.40   2132.28  -0.61 %   89.23  223.620   +0.26 %   -0.66 %   +0.03 %   +0.08 %  +0.039  +0.012      0  -2.84e-04  -2.7e-05   -0.709  -6.6e-02  thesis-ch5-rc2-3-g656e652
+e30_g200_newtonian         0.30  10   200  0.02    1016.00   1014.79  -0.12 %   87.04  158.023   +0.14 %   -0.48 %   -0.10 %   -0.10 %  +0.007  -0.025      0  -7.40e-05  -9.5e-06   -0.184  -2.4e-02  thesis-ch5-rc2-9-g20fa8bb
+e60_g200_newtonian         0.60  10   200  0.02    2145.40   2138.07  -0.34 %   89.30  223.620   +0.45 %   -0.33 %   -0.00 %   +0.04 %  +0.034  +0.014      0  -1.56e-04  -1.7e-05   -0.389  -4.2e-02  thesis-ch5-rc2-6-gaa27df9
 e30_newtonian_shifted      0.30  10   100  0.02    1016.00   1016.39  +0.04 %   86.88  158.023   +0.53 %   -0.13 %   -0.13 %   -0.12 %  +0.014  -0.005      0  -7.50e-05  -8.1e-06   -0.187  -2.0e-02  thesis-ch5-rc2-5-g8bc6d20
 e30_newtonian_rotated      0.30  10   100  0.02    1016.00   1017.49  +0.15 %   86.91  158.023   +0.56 %   -0.11 %   -0.11 %   -0.10 %  +0.013  -0.014      0  -7.41e-05  -8.3e-06   -0.185  -2.1e-02  thesis-ch5-rc2-6-gaa27df9
 e60_newtonian_shifted      0.60  10   100  0.02    2145.40   2139.79  -0.26 %   89.23  223.620   +0.94 %   +0.04 %   -0.04 %   +0.03 %  +0.041  +0.012      0  -2.83e-04  -2.5e-05   -0.707  -6.4e-02  thesis-ch5-rc2-6-gaa27df9
+e60_newtonian_rotated      0.60  10   100  0.02    2145.40   2144.29  -0.05 %   89.31  223.620   +1.07 %   +0.11 %   +0.06 %   +0.10 %  +0.038  +0.014      0  -2.77e-04  -2.4e-05   -0.691  -6.0e-02  thesis-ch5-rc2-6-gaa27df9
 
 micropolar run over its Newtonian control: D_T by the four readings (measured), their mean with the error each reading makes between concentric cylinders at the same K, l, g taken off (corrected; '-' = no such concentric row), the change of the load and the turn of the force; predictions of the host: film = the film function of micropolar lubrication theory in the thin-film calculation (torque: 'conc.' with the shear-driven stress of the exact concentric solution at the local gap, 'slip' with the slip term of the rule on the rotor), rule = the wall rule on the exact Stokes solution of its slip-form geometry
 run                      K  eps  g/dx  l/dx hmin/l   wall R   wall S   circ R   circ S     mean    corr.  spread  film c.  film s. film pl.     rule     load     film     rule    turn meas/film meas/rule
@@ -16,9 +19,20 @@ e60_k3_m5                3 0.60   100    10    4.0   0.1483   0.1466   0.1379   
 e60_k3_m2                3 0.60   100    25    1.6   0.3105   0.3101   0.3067   0.3098   0.3093   0.3093  0.0024   0.3130   0.2906   0.3419   0.5746  +39.41%  +40.60% +105.30%  +0.589     0.971     0.374
 e60_k1_m5                1 0.60   100    10    4.0   0.0924   0.0915   0.0869   0.0905   0.0903   0.0903  0.0031   0.0926   0.0867   0.1003   0.1035  +13.34%  +13.46%  +18.45%  +0.358     0.991     0.723
 e60_k1_m2                1 0.60   100    25    1.6   0.1838   0.1837   0.1822   0.1837   0.1833   0.1834  0.0013   0.1851   0.1718   0.2026   0.3140  +23.10%  +23.77%  +56.88%  +0.391     0.972     0.406
+e30_g200_k3_m5           3 0.30   200    20    7.0   0.0885   0.0890   0.0824   0.0864   0.0866   0.0863  0.0014   0.0901   0.0839   0.1046   0.0902  +21.54%  +21.66%  +26.58%  +0.761     0.995     0.811
+e30_g200_k3_m10          3 0.30   200    10   14.0   0.0458   0.0470   0.0351   0.0410   0.0422   0.0420  0.0021   0.0440   0.0411   0.0510   0.0427  +11.37%  +11.24%  +12.25%  +0.408     1.011     0.928
+e60_g200_k3_m5           3 0.60   200    20    4.0   0.1459   0.1448   0.1394   0.1443   0.1436   0.1434  0.0030   0.1481   0.1387   0.1602   0.1649  +21.53%  +21.81%  +29.56%  +0.530     0.987     0.729
+e60_g200_k3_m10          3 0.60   200    10    8.0   0.0762   0.0742   0.0642   0.0722   0.0717   0.0715  0.0061   0.0746   0.0702   0.0804   0.0754  +11.95%  +11.84%  +13.41%  +0.343     1.010     0.892
 e30_k3_m5_shifted        3 0.30   100    10    7.0   0.0914   0.0926   0.0802   0.0854   0.0874   0.0873  0.0025   0.0901   0.0839   0.1046   0.0902  +21.70%  +21.66%  +26.58%  +0.729     1.002     0.816
 e30_k3_m5_rotated        3 0.30   100    10    7.0   0.0916   0.0927   0.0806   0.0859   0.0877   0.0876  0.0023   0.0901   0.0839   0.1046   0.0902  +21.74%  +21.66%  +26.58%  +0.731     1.003     0.818
 e60_k3_m5_shifted        3 0.60   100    10    4.0   0.1491   0.1472   0.1376   0.1442   0.1445   0.1444  0.0054   0.1481   0.1387   0.1602   0.1649  +21.65%  +21.81%  +29.56%  +0.548     0.993     0.732
+e60_k3_m5_rotated        3 0.60   100    10    4.0   0.1493   0.1473   0.1376   0.1447   0.1447   0.1446  0.0055   0.1481   0.1387   0.1602   0.1649  +21.68%  +21.81%  +29.56%  +0.543     0.994     0.734
 
 noise floors from the three lattices (max - min): Newtonian load and torque readings over exact, the direction; then the changes of the micropolar run (K = 3, l = 10 dx) against its control
 e30: load 0.43 % (values -0.29, +0.04, +0.15 %), direction 0.03 degrees, torque wall R / S 0.75 / 0.75 %, circle R / S 0.03 / 0.03 %; changes: D_T 0.0007 (values 0.0870, 0.0873, 0.0876), load change 0.04 points (values +21.71, +21.70, +21.74 %), turn 0.002 degrees
+e60: load 0.56 % (values -0.61, -0.26, -0.05 %), direction 0.08 degrees, torque wall R / S 0.82 / 0.77 %, circle R / S 0.10 / 0.07 %; changes: D_T 0.0003 (values 0.1444, 0.1444, 0.1446), load change 0.04 points (values +21.68, +21.65, +21.68 %), turn 0.007 degrees
+
+the same flow at two resolutions (m = 5): g = 100 dx with l = 10 dx against g = 200 dx with l = 20 dx
+   K  eps   D_T 100   D_T 200  load 100  load 200  turn 100  turn 200  control load / exact 100      200
+   3 0.30    0.0870    0.0863   +21.71%   +21.54%    +0.730    +0.761                   -0.29 %  -0.12 %
+   3 0.60    0.1444    0.1434   +21.68%   +21.53%    +0.541    +0.530                   -0.61 %  -0.34 %
