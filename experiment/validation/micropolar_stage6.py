@@ -206,11 +206,19 @@ def command_runner(arguments) -> int:
                 continue
             log.close()
             del running[name]
+            out_of_space = False
             if code:
-                done = _REPO_ROOT / job["done"]
-                done.parent.mkdir(parents=True, exist_ok=True)
-                done.with_name(done.name + ".failed").write_text(f"exit {code}\n", encoding="utf-8")
-            say(f"{name}: exit {code} after {time.time() - started:.0f} s")
+                try:
+                    tail = (_REPO_ROOT / job["log"]).read_text(encoding="utf-8", errors="replace")[-4000:]
+                    out_of_space = "No space left on device" in tail
+                except OSError:
+                    pass
+                if not out_of_space:
+                    done = _REPO_ROOT / job["done"]
+                    done.parent.mkdir(parents=True, exist_ok=True)
+                    done.with_name(done.name + ".failed").write_text(f"exit {code}\n", encoding="utf-8")
+            say(f"{name}: exit {code} after {time.time() - started:.0f} s"
+                + (" (the disk was full: the job stays in the plan)" if out_of_space else ""))
         if stop_path.exists():
             if not running:
                 say("stopped")
