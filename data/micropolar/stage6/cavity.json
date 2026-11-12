@@ -5042,7 +5042,9 @@
    "x_at_v_max": 0.23804489162984568,
    "v_min": -0.46272130954283597,
    "x_at_v_min": 0.8451192184138279,
-   "kinetic_energy_mean": 0.05273839100389013,
+   "fluid_mass": 1133.8314026109874,
+   "fluid_mass_over_density_and_area": 1.1338314026109875,
+   "kinetic_energy_mean": 0.046513433022267806,
    "kinetic_energy_change_between_halves": 2.4845478999258555e-05,
    "steps_per_second": 886.2499123689918,
    "density_min": 999.000244140625,
@@ -10101,7 +10103,9 @@
    "x_at_v_max": 0.2249885274448794,
    "v_min": -0.45727873052288714,
    "x_at_v_min": 0.8620717539274623,
-   "kinetic_energy_mean": 0.04666594976323937,
+   "fluid_mass": 1133.8314026109874,
+   "fluid_mass_over_density_and_area": 1.1338314026109875,
+   "kinetic_energy_mean": 0.041157750310828405,
    "kinetic_energy_change_between_halves": -1.2716299696655913e-05,
    "steps_per_second": 1003.0418788087277,
    "density_min": 999.2556762695312,
@@ -15160,7 +15164,9 @@
    "x_at_v_max": 0.25304757910547854,
    "v_min": -0.3930832676472953,
    "x_at_v_min": 0.8357133077319149,
-   "kinetic_energy_mean": 0.04378070279328851,
+   "fluid_mass": 1133.8314026109874,
+   "fluid_mass_over_density_and_area": 1.1338314026109875,
+   "kinetic_energy_mean": 0.03861306248219117,
    "kinetic_energy_change_between_halves": -1.1807923601005398e-05,
    "steps_per_second": 1732.628476951965,
    "density_min": 999.021484375,
@@ -20219,7 +20225,9 @@
    "x_at_v_max": 0.23763318926479407,
    "v_min": -0.4688084981183742,
    "x_at_v_min": 0.8447348531818204,
-   "kinetic_energy_mean": 0.053821510361519095,
+   "fluid_mass": 1138.3621929138899,
+   "fluid_mass_over_density_and_area": 1.1383621929138898,
+   "kinetic_energy_mean": 0.04727977676749,
    "kinetic_energy_change_between_halves": 8.089391276946437e-06,
    "steps_per_second": 2154.3114519698365,
    "density_min": 999.3258056640625,
@@ -20246,7 +20254,7 @@
    "v_min": false,
    "v_min_fraction": -0.08478136578742825,
    "kinetic_energy_mean": false,
-   "kinetic_energy_mean_fraction": -2.104652150714907,
+   "kinetic_energy_mean_fraction": -2.1046521507149083,
    "u_outside_max": 0.05275480042376063,
    "u_outside_share": 0.5414585414585414,
    "u_band_max_width": 0.0873892594736321,
@@ -20271,7 +20279,7 @@
    "y_at_u_min": -0.0005558100341021,
    "x_at_v_max": -0.00041170236505161384,
    "x_at_v_min": -0.0003843652320074664,
-   "kinetic_energy_mean": 0.0010831193576289685
+   "kinetic_energy_mean": 0.0007663437452221922
   },
   "far": {
    "first": "mp_n500",
@@ -20288,7 +20296,7 @@
    "y_at_u_min": 0.03195915816212708,
    "x_at_v_max": 0.01305636418496628,
    "x_at_v_min": -0.016952535513634404,
-   "kinetic_energy_mean": 0.006072441240650754
+   "kinetic_energy_mean": 0.005355682711439401
   }
  },
  "parameters": {

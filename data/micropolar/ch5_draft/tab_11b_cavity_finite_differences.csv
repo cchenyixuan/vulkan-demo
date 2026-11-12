@@ -1,0 +1,8 @@
+case,fluid,grids,u_min (finest grid),u_min (extrapolated),order,v_max (finest grid),v_max (extrapolated),order,v_min (finest grid),v_min (extrapolated),order,kinetic energy (extrapolated),place of u_min between the bounds,of v_max,of v_min,particle run,u_min particle / finite differences,v_max,v_min,kinetic energy,rms difference of u on the centre line,of v
+newtonian_far,"Newtonian, mu_inf (Re 400)",128 192 256,-0.32777,-0.32871,1.97,0.30279,0.30381,1.97,-0.45270,-0.45406,1.97,0.04081,-,-,-,newtonian_re400_n500,1.0073,1.0092,1.0071,1.0084,2.8e-03,2.5e-03
+newtonian_wall,"Newtonian, mu + kappa (Re 250)",128 192 256,-0.28719,-0.28773,1.96,0.25279,0.25340,1.96,-0.39078,-0.39162,1.95,0.03846,-,-,-,newtonian_re250_n500,1.0043,1.0057,1.0037,1.0040,2.1e-03,1.5e-03
+micropolar,"micropolar, l = L / 20",128 192 256,-0.35601,-0.35675,1.95,0.32051,0.32134,1.95,-0.46033,-0.46135,1.96,0.04634,-0.68,-0.35,-0.12,mp_n500,1.0034,1.0047,1.0030,1.0038,2.1e-03,1.6e-03
+micropolar_l40,"micropolar, l = L / 40",128 192 256,-0.35597,-0.35685,1.93,0.32282,0.32378,1.92,-0.46802,-0.46922,1.93,0.04579,-0.69,-0.40,-0.24,-,-,-,-,-,-,-
+micropolar_l10,"micropolar, l = L / 10",128 192 256,-0.34253,-0.34316,1.96,0.31249,0.31321,1.96,-0.45068,-0.45157,1.97,0.04582,-0.35,-0.19,+0.04,-,-,-,-,-,-,-
+micropolar_no_inertia,"micropolar, l = L / 20, Theta -> 0",128 192 256,-0.36105,-0.36181,1.95,0.32086,0.32170,1.95,-0.46059,-0.46163,1.97,0.04708,-0.81,-0.35,-0.12,-,-,-,-,-,-,-
+micropolar_free_spin,"micropolar, l = L / 20, walls do not hold w",128 192 256,-0.31659,-0.31741,1.84,0.29159,0.29249,1.85,-0.42731,-0.42851,1.86,0.04018,+0.28,+0.22,+0.41,-,-,-,-,-,-,-

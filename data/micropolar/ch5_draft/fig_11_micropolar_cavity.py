@@ -1,6 +1,8 @@
 """
 Item 11 - micropolar lid-driven cavity: centre-line profiles with the two Newtonian bounds, fields of w and of
 w - curl v / 2 with the slab cut of the run on two slabs marked, and a small table (tab_11_micropolar_cavity).
+A second table (tab_11b_cavity_finite_differences) and a dotted line in (a) and (b) carry the same cases solved by
+finite differences on the host (experiment/validation/micropolar_cavity_reference.py).
 
 Run from the repository root:  python data/micropolar/ch5_draft/fig_11_micropolar_cavity.py
 """
@@ -14,6 +16,13 @@ import style
 
 SOURCE = "data/micropolar/stage6/cavity.json"
 FIELD = "data/micropolar/stage6/fields/cavity_{run}"
+REFERENCE = "data/micropolar/stage6/cavity_reference.json"
+# finite-difference case -> what the table calls it
+REFERENCE_CASES = {"newtonian_far": "Newtonian, mu_inf (Re 400)", "newtonian_wall": "Newtonian, mu + kappa (Re 250)",
+                   "micropolar": "micropolar, l = L / 20", "micropolar_l40": "micropolar, l = L / 40",
+                   "micropolar_l10": "micropolar, l = L / 10",
+                   "micropolar_no_inertia": "micropolar, l = L / 20, Theta -> 0",
+                   "micropolar_free_spin": "micropolar, l = L / 20, walls do not hold w"}
 # the runs of the figure: the micropolar run, its two bounds, the coarser run, the run on two slabs
 RUNS = {"micropolar": "mp_n500", "far": "newtonian_re400_n500", "wall": "newtonian_re250_n500",
         "coarse": "mp_n250", "chain": "mp_n500_k2"}
@@ -32,6 +41,7 @@ def main() -> int:
         return 1
     main_run = runs[RUNS["micropolar"]]
     coordinate = np.asarray(main_run["coordinate"])
+    reference = style.load_json(REFERENCE)["cases"] if style.exists(REFERENCE) else {}
     field_run = next((RUNS[key] for key in ("chain", "micropolar") if style.exists(FIELD.format(run=RUNS[key]) + ".npz")),
                      None)
     figure = plt.figure(figsize=(style.WIDE, 0.92 * style.WIDE))
@@ -48,6 +58,10 @@ def main() -> int:
             if RUNS[key] in runs:
                 axis.plot(coordinate, runs[RUNS[key]][f"{name}_mean"], label=text, **look)
                 used.append(RUNS[key])
+        if "micropolar" in reference:
+            finest = reference["micropolar"]["grids"][-1]
+            axis.plot(finest["coordinate"], finest[name], color=style.INK, linewidth=0.8, linestyle=(0, (1, 1.5)),
+                      label="micropolar, finite differences")
         axis.plot(coordinate[10::25], np.asarray(main_run[f"{name}_mean"])[10::25],
                   **style.run_markers(0, filled=False), label=r"micropolar, $n = 500$")
         if RUNS["coarse"] in runs:
@@ -58,7 +72,15 @@ def main() -> int:
         axis.set_ylabel(style.math(label))
         style.panel_letter(axis, letter)
     used += [RUNS["micropolar"]] + ([RUNS["coarse"]] if RUNS["coarse"] in runs else [])
-    upper[0].legend(loc="upper left", handletextpad=0.4)
+    # the lines in the legend of (a), the markers in the one of (b): together they do not fit into one panel
+    handles, labels_ = upper[0].get_legend_handles_labels()
+    lines_ = [(handle, label) for handle, label in zip(handles, labels_) if handle.get_marker() in ("None", "", None)]
+    markers_ = [(handle, label) for handle, label in zip(handles, labels_) if (handle, label) not in lines_]
+    upper[0].legend(*zip(*lines_), loc="lower right", handletextpad=0.4, handlelength=1.7,
+                    fontsize=style.FONT_SIZE - 1.0, borderaxespad=0.3)
+    if markers_:
+        upper[1].legend(*zip(*markers_), loc="lower left", handletextpad=0.2, fontsize=style.FONT_SIZE - 1.0,
+                        borderaxespad=0.3)
     numbers = {}
     if field_run:
         data = np.load(style.REPO_ROOT / (FIELD.format(run=field_run) + ".npz"))
@@ -119,6 +141,84 @@ def main() -> int:
                     .replace("mu + kappa", r"$\mu + \kappa$"), cells[2], cells[3], *cells[6:13], cells[14], cells[16]])
     style.write_table("tab_11_micropolar_cavity", header, plain, tex_header, "ll" + "r" * (len(tex_header) - 2), tex)
 
+    # the same cases by finite differences
+    reference_text = (" No reference table for Reynolds number 400 is in the repository (the Marchi et al. files hold "
+                      "1,000, 3,200 and 5,000), so the Newtonian bound at 400 is not compared with a reference here.")
+    reference_numbers = {}
+    if reference:
+        header_b = ["case", "fluid", "grids", "u_min (finest grid)", "u_min (extrapolated)", "order",
+                    "v_max (finest grid)", "v_max (extrapolated)", "order", "v_min (finest grid)",
+                    "v_min (extrapolated)", "order", "kinetic energy (extrapolated)",
+                    "place of u_min between the bounds", "of v_max", "of v_min", "particle run",
+                    "u_min particle / finite differences", "v_max", "v_min", "kinetic energy",
+                    "rms difference of u on the centre line", "of v"]
+        tex_header_b = ["fluid", r"$u_{\min}/U$", r"$v_{\max}/U$", r"$v_{\min}/U$", r"$E_k$",
+                        r"ratio $u_{\min}$", r"ratio $v_{\max}$", r"ratio $v_{\min}$", r"ratio $E_k$"]
+        plain_b, tex_b = [], []
+        for case, label in REFERENCE_CASES.items():
+            if case not in reference:
+                continue
+            entry = reference[case]
+            zero, finest = entry["extrapolated"], entry["grids"][-1]
+
+            def order(key):
+                return f"{zero[key]['order']:.2f}" if zero[key]["order"] is not None else "-"
+            place = (entry.get("against_bounds") or {}).get("fraction")
+            particle = entry.get("particle")
+            ratios = particle["over_finite_differences"] if particle else None
+            plain_b.append(
+                [case, label, " ".join(str(value) for value in entry["resolutions"]),
+                 f"{finest['u_min']:.5f}", f"{zero['u_min']['extrapolated']:.5f}", order("u_min"),
+                 f"{finest['v_max']:.5f}", f"{zero['v_max']['extrapolated']:.5f}", order("v_max"),
+                 f"{finest['v_min']:.5f}", f"{zero['v_min']['extrapolated']:.5f}", order("v_min"),
+                 f"{zero['kinetic_energy']['extrapolated']:.5f}"]
+                + ([f"{place[key]:+.2f}" for key in ("u_min", "v_max", "v_min")] if place else ["-"] * 3)
+                + ([particle["run"]] + [f"{ratios[key]:.4f}" for key in ("u_min", "v_max", "v_min", "kinetic_energy")]
+                   + [f"{particle['u_difference_rms']:.1e}", f"{particle['v_difference_rms']:.1e}"]
+                   if particle else ["-"] * 7))
+            tex_b.append(
+                [style.tex_escape(label).replace("mu\\_inf", r"$\mu_\infty$").replace("mu + kappa", r"$\mu + \kappa$")
+                 .replace("Theta -> 0", r"$\Theta \to 0$").replace("hold w", "hold $w$")
+                 .replace("l = L / ", "$l = L/$"),
+                 f"{zero['u_min']['extrapolated']:.4f}", f"{zero['v_max']['extrapolated']:.4f}",
+                 f"{zero['v_min']['extrapolated']:.4f}", f"{zero['kinetic_energy']['extrapolated']:.4f}"]
+                + ([f"{ratios[key]:.4f}" for key in ("u_min", "v_max", "v_min", "kinetic_energy")]
+                   if particle else ["--"] * 4))
+            reference_numbers[case] = {"extrapolated": {key: zero[key]["extrapolated"] for key in zero},
+                                       "against_bounds": entry.get("against_bounds"),
+                                       "particle": {key: value for key, value in particle.items()}
+                                       if particle else None}
+        style.write_table("tab_11b_cavity_finite_differences", header_b, plain_b, tex_header_b,
+                          "l" + "r" * (len(tex_header_b) - 1), tex_b,
+                          note="Finite differences, extrapolated to zero spacing; ratio: the particle run at "
+                               "$n = 500$ over the finite-difference value.")
+        if all(case in reference for case in ("newtonian_far", "newtonian_wall", "micropolar")):
+            far, wall, polar = (reference[case] for case in ("newtonian_far", "newtonian_wall", "micropolar"))
+
+            def triple(entry):
+                return ", ".join(f"{entry['extrapolated'][key]['extrapolated']:.4f}"
+                                 for key in ("u_min", "v_max", "v_min"))
+
+            def excess(entry):
+                ratios = entry["particle"]["over_finite_differences"]
+                return ", ".join(f"{100.0 * (ratios[key] - 1.0):+.1f}" for key in ("u_min", "v_max", "v_min"))
+            fraction = polar["against_bounds"]["fraction"]
+            over_far = polar["against_bounds"]["over_far"]
+            reference_text = (
+                " Dotted line in (a) and (b), and table 11b: the same equations solved by finite differences on the "
+                "host (stream function, vorticity and micro-rotation on a uniform grid, second order, steady state; "
+                "grids of " + ", ".join(str(value) for value in polar["resolutions"]) + " intervals, extrema "
+                "extrapolated to zero spacing). Its extrema (u_min, v_max, v_min) are " + triple(far)
+                + " U for the Newtonian fluid of viscosity mu_inf, " + triple(wall) + " for mu + kappa and "
+                + triple(polar) + " for the micropolar fluid: there too the micropolar extrema lie beyond the "
+                f"Reynolds-400 values, by {-fraction['u_min']:.2f}, {-fraction['v_max']:.2f} and "
+                f"{-fraction['v_min']:.2f} of the distance between the bounds "
+                f"({100.0 * (over_far['u_min'] - 1.0):+.1f}, {100.0 * (over_far['v_max'] - 1.0):+.1f} and "
+                f"{100.0 * (over_far['v_min'] - 1.0):+.1f} %)."
+                + (" The particle runs at n = 500 are stronger than the finite-difference values by "
+                   + excess(far) + " % (mu_inf), " + excess(wall) + " % (mu + kappa) and " + excess(polar)
+                   + " % (micropolar)." if all("particle" in entry for entry in (far, wall, polar)) else ""))
+
     comparisons = analysis.get("comparisons", {})
     bounds = comparisons.get("bounds")
     text = ""
@@ -139,10 +239,11 @@ def main() -> int:
                  f"{100.0 * bounds['v_outside_share']:.0f} % (v) of the points, by at most "
                  f"{bounds['u_outside_max']:.1e} and {bounds['v_outside_max']:.1e} U. The positions of the three "
                  "extrema do lie between those of the two bounds.")
-    for key, words in (("resolution", "n = 250 minus n = 500"), ("chain", "two slabs minus one slab")):
+    for key, words in (("resolution", "The run at n = 250 minus the run at n = 500"),
+                       ("chain", "Two slabs minus one slab")):
         if key in comparisons:
             entry = comparisons[key]
-            text += (f" {words.capitalize()}: rms difference of the centre lines {entry['u_difference_rms']:.1e} (u) and "
+            text += (f" {words}: rms difference of the centre lines {entry['u_difference_rms']:.1e} (u) and "
                      f"{entry['v_difference_rms']:.1e} (v) U, extrema {entry['u_min']:+.1e}, {entry['v_max']:+.1e}, "
                      f"{entry['v_min']:+.1e} U (standard error of the time means {entry['u_noise_rms']:.0e}).")
     parameters = analysis["parameters"]
@@ -158,17 +259,18 @@ def main() -> int:
         + (" (two slabs, 5090 + XTX; dashed line: the cut)" if field_run == RUNS["chain"] else "")
         + "; the second vanishes in the core and marks the wall layers of thickness l. Colour scales end at the "
         "99.5th percentile of the magnitude. Runs: " + ", ".join(f"`{name}`" for name in dict.fromkeys(used))
-        + f"; tag `{TAG}`." + text
-        + " No reference table for Reynolds number 400 is in the repository (the Marchi et al. files hold 1,000, "
-        "3,200 and 5,000), so the Newtonian bound at 400 is not compared with a reference here.")
+        + f"; tag `{TAG}`." + text + reference_text)
     style.record("11", "Micropolar cavity: centre lines with the two Newtonian bounds, fields, the slab cut",
                  "final" if all(RUNS[key] in runs for key in RUNS) and field_run == RUNS["chain"]
                  else "final (rc2 runs), incomplete: " + ", ".join(
                      RUNS[key] for key in RUNS if RUNS[key] not in runs) + (
                      "" if field_run == RUNS["chain"] else "; fields of the two-slab run"),
                  caption, ["fig_11_micropolar_cavity.pdf", "fig_11_micropolar_cavity.png",
-                           "tab_11_micropolar_cavity.csv", "tab_11_micropolar_cavity.tex"],
-                 [SOURCE] + list(dict.fromkeys(used)), {"fields": numbers, "parameters": parameters}, TAG)
+                           "tab_11_micropolar_cavity.csv", "tab_11_micropolar_cavity.tex"]
+                 + (["tab_11b_cavity_finite_differences.csv", "tab_11b_cavity_finite_differences.tex"]
+                    if reference else []),
+                 [SOURCE] + ([REFERENCE] if reference else []) + list(dict.fromkeys(used)),
+                 {"fields": numbers, "parameters": parameters, "finite_differences": reference_numbers}, TAG)
     return 0
 
 

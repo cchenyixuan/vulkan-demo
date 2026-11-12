@@ -34,7 +34,7 @@ Design note: `docs/micropolar_design.md`, Section 15. Run data of Stage 6: `data
 - Reynolds numbers: on `mu_inf` (the far viscosity `mu + kappa / 2`, the one the cases are set by) and on `mu`
   (`Re_g (1 + K / 2)`, the one the thesis quotes).
 
-## Index (written 2026-11-13 00:06)
+## Index (written 2026-11-13 00:47)
 
 | no. | item | files | status | data |
 |---|---|---|---|---|
@@ -48,7 +48,7 @@ Design note: `docs/micropolar_design.md`, Section 15. Run data of Stage 6: `data
 | 08 | Eccentric cylinders: measured over predicted change against narrowest gap / l | `fig_08_eccentric_prediction.pdf`, `fig_08_eccentric_prediction.png` | final | thesis-ch5-rc2; concentric: thesis-ch5-rc2 |
 | 09 | Table of every eccentric micropolar row | `tab_09_eccentric_rows.csv`, `tab_09_eccentric_rows.tex` | final | thesis-ch5-rc2 |
 | 10 | The film function over h^3 against h / l at K = 3 | `fig_10_film_function.pdf`, `fig_10_film_function.png` | final (host only) | host |
-| 11 | Micropolar cavity: centre lines with the two Newtonian bounds, fields, the slab cut | `fig_11_micropolar_cavity.pdf`, `fig_11_micropolar_cavity.png`, `tab_11_micropolar_cavity.csv`, `tab_11_micropolar_cavity.tex` | final (rc2 runs), incomplete: mp_n500_k2; fields of the two-slab run | thesis-ch5-rc2 |
+| 11 | Micropolar cavity: centre lines with the two Newtonian bounds, fields, the slab cut | `fig_11_micropolar_cavity.pdf`, `fig_11_micropolar_cavity.png`, `tab_11_micropolar_cavity.csv`, `tab_11_micropolar_cavity.tex`, `tab_11b_cavity_finite_differences.csv`, `tab_11b_cavity_finite_differences.tex` | final (rc2 runs), incomplete: mp_n500_k2; fields of the two-slab run | thesis-ch5-rc2 |
 | 12 | Newtonian cavity baseline at n = 1000 against Marchi et al. | `fig_12_cavity_baseline.pdf`, `fig_12_cavity_baseline.png` | final (existing data) | Stage 3 (design note 12.8), `micropolar-base-13-g7e76dcb` |
 | 13 | Seepage of the thesis walls: velocity into the wall against wall pressure; the wall candidates | `fig_13_seepage.pdf`, `fig_13_seepage.png`, `tab_13_candidates.csv`, `tab_13_candidates.tex` | final (existing data) | Stage 5, `thesis-ch5-rc1-6-g5d07112`, `thesis-ch5-rc1-9-gbfcc024`; cavity `thesis-ch5-rc1-10-g5bc8e0d`, `thesis-ch5-rc1-9-gbfcc024`, `micropolar-base-12-gc08cb97` |
 | 14 | Solver checks: operator checks, passive label, chain against one slab, step limits, cost | `tab_14a_operator_checks.csv`, `tab_14a_operator_checks.tex`, `tab_14b_passive_label.csv`, `tab_14b_passive_label.tex`, `tab_14c_chain_against_one_slab.csv`, `tab_14c_chain_against_one_slab.tex`, `tab_14d_step_limits.csv`, `tab_14d_step_limits.tex`, `tab_14e_cost.csv`, `tab_14e_cost.tex` | final (existing data) | Stages 1 to 3, `micropolar-base-9-g278a557` to `thesis-ch5-rc1` |

@@ -200,9 +200,18 @@ def summarise(run: str, average_span: float) -> dict:
     summary["v_max"], summary["x_at_v_max"] = _extremum(coordinate, v, "max", 0.02, 0.98)
     summary["v_min"], summary["x_at_v_min"] = _extremum(coordinate, v, "min", 0.02, 0.98)
     half = len(window) // 2
-    # kinetic energy per unit depth in rho U^2 L^2
+    # Kinetic energy of the fluid over its mass, in U^2: (1/2) <|v|^2>, which is the kinetic energy per unit depth
+    # in rho U^2 L^2 of a fluid that fills the square. The samples carry (1/2) sum m |v|^2, and the mass of a
+    # particle is not rho0 dx^2 (the fluid's masses sum to 1.134 rho0 L^2 at n = 500), so the fluid mass is read
+    # from the newest checkpoint.
+    checkpoint = sorted((run_dir / "checkpoints").glob("c*.npz"))[-1]
+    with np.load(checkpoint) as archive:
+        fluid = np.isin(archive["material"], meta["fluid_groups"])
+        fluid_mass = float(archive["velocity_mass"][fluid, 3].astype(np.float64).sum())
+    summary["fluid_mass"] = fluid_mass
+    summary["fluid_mass_over_density_and_area"] = fluid_mass / DENSITY
     summary["kinetic_energy_mean"] = float(np.mean([row["kinetic_energy"] for row in window])
-                                           / (DENSITY * WALL_SPEED ** 2))
+                                           / (fluid_mass * WALL_SPEED ** 2))
     summary["kinetic_energy_change_between_halves"] = float(
         (np.mean([row["kinetic_energy"] for row in window[half:]])
          - np.mean([row["kinetic_energy"] for row in window[:half]]))
@@ -235,6 +244,8 @@ def command_analyse(arguments) -> int:
         print(text)
     for run in RUNS:
         run_dir = _REPO_ROOT / RUNS_DIRECTORY / run
+        if not (run_dir / "done.json").exists():
+            continue                     # a run that is still going is not in the tables
         if (run_dir / "samples.jsonl").exists() and list((run_dir / "samples").glob("s*.npz")):
             records[run] = summarise(run, arguments.average_span)
     say(f"Micropolar cavity of Stage 6 (K = {COUPLING_RATIO:g}, Reynolds number 400 on mu_inf, l = L / 20, w = 0 on the "
