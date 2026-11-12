@@ -223,6 +223,9 @@ def command_runner(arguments) -> int:
                     done.with_name(done.name + ".failed").write_text(f"exit {code}\n", encoding="utf-8")
             say(f"{name}: exit {code} after {time.time() - started:.0f} s"
                 + (" (the disk was full: the job stays in the plan)" if out_of_space else ""))
+            if arguments.one_job and not running:
+                say("one job done; the runner ends (--one-job)")
+                return 0 if code == 0 else 4
         if stop_path.exists():
             if not running:
                 say("stopped")
@@ -254,6 +257,17 @@ def command_runner(arguments) -> int:
         # a device whose first job waits for another device stays idle (a chain job is not overtaken)
         for job in pending:
             if all(first.get(device) == job["name"] and device not in busy for device in job["devices"]):
+                wanted = job.get("minimum_free_physical_gigabytes")
+                if wanted:
+                    # a job that names a floor of free physical memory is not started below it, and the runner
+                    # ends there: the plan is not worked off on a machine that cannot hold it
+                    from experiment.validation.micropolar_rotor3d import memory_status
+                    free = memory_status().get("free_physical")
+                    if free is not None and free < wanted * 1024.0 ** 3:
+                        say(f"{job['name']}: not started, {free / 1024.0 ** 3:.1f} GB of physical memory free, "
+                            f"{wanted:g} GB wanted; the runner ends")
+                        return 3
+                    say(f"{job['name']}: {free / 1024.0 ** 3:.1f} GB of physical memory free ({wanted:g} GB wanted)")
                 try:
                     command = (run_command(job["run"], job["devices"]) if "run" in job
                                else [sys.executable if part == "{python}" else part for part in job["command"]])
@@ -711,6 +725,8 @@ def main() -> int:
     runner = commands.add_parser("runner")
     runner.add_argument("--plan", default=PLAN)
     runner.add_argument("--exit-when-empty", action="store_true")
+    runner.add_argument("--one-job", action="store_true",
+                        help="end when a job has finished and none is running; the next call takes the next job")
     runner.add_argument("--disk-reserve", type=float, default=3.0, help="GB that must be free before a job starts")
     runner.set_defaults(handler=command_runner)
     plan = commands.add_parser("plan")

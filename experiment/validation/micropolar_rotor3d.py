@@ -19,7 +19,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pathlib
+import shutil
 import sys
 import time
 
@@ -158,6 +160,78 @@ def _write_points(path: pathlib.Path, points: np.ndarray, comment: str) -> None:
             handle.write("".join(f"v {x:.7f} {y:.7f} {z:.7f}\n" for x, y, z in chunk))
 
 
+def write_geometry(geometry_dir: pathlib.Path, meta: dict) -> dict:
+    """The particle files of a geometry (domain, rotor_lateral, rotor_end, housing, frame) from its
+    parameters; returns the particle counts."""
+    spacing = meta["spacing"]
+    rotor_radius, rotor_half_length = meta["rotor_radius"], meta["rotor_half_length"]
+    housing_radius, housing_half_height = meta["housing_radius"], meta["housing_half_height"]
+    wall_thickness = meta["wall_layers"] * spacing
+    geometry_dir.mkdir(parents=True, exist_ok=True)
+    # The frame fixes the voxel grid (its lower corner is the origin, the voxels are h = 4 dx wide). With a
+    # margin of a whole number of spacings a lattice plane lies exactly on every fourth voxel boundary, and so
+    # on a cut of a chain: the first step then moves a whole plane of fluid particles (thousands in 3-D) across
+    # the cut at once and overflows the migrant region and the departed pool. A margin of 2.25 dx keeps every
+    # lattice plane (offset 0 or 0.5 dx) a quarter of a spacing from the boundaries.
+    half_extent = housing_radius + wall_thickness + meta["frame_margin"] * spacing
+    half_height = housing_half_height + wall_thickness + meta["frame_margin"] * spacing
+    count_xy = int(np.ceil(half_extent / spacing)) + 2
+    count_z = int(np.ceil(half_height / spacing)) + 2
+    index_xy = np.arange(-count_xy, count_xy + 1, dtype=np.float64)
+    index_z = np.arange(-count_z, count_z + 1, dtype=np.float64) + meta["lattice_offset"][2]
+    angle = np.radians(meta["lattice_angle"])
+    parts = {"domain": [], "rotor_lateral": [], "rotor_end": [], "housing": []}
+    grid_x, grid_y = np.meshgrid(index_xy + meta["lattice_offset"][0], index_xy + meta["lattice_offset"][1],
+                                 indexing="ij")
+    plane_x = spacing * (np.cos(angle) * grid_x - np.sin(angle) * grid_y).ravel()
+    plane_y = spacing * (np.sin(angle) * grid_x + np.cos(angle) * grid_y).ravel()
+    plane_radius = np.hypot(plane_x, plane_y)
+    near = plane_radius < housing_radius + wall_thickness            # nothing beyond the housing shell
+    plane_x, plane_y, plane_radius = plane_x[near], plane_y[near], plane_radius[near]
+    for level in index_z:                                              # one lattice plane at a time
+        height = level * spacing
+        if abs(height) >= housing_half_height + wall_thickness:
+            continue
+        in_rotor = (plane_radius <= rotor_radius) & (abs(height) <= rotor_half_length)
+        in_cavity = (plane_radius < housing_radius) & (abs(height) < housing_half_height)
+        fluid = in_cavity & ~in_rotor
+        shell = in_rotor & ((plane_radius > rotor_radius - wall_thickness)
+                            | (abs(height) > rotor_half_length - wall_thickness))
+        # a rotor particle belongs to the surface it is nearer to
+        lateral = shell & ((rotor_radius - plane_radius) <= (rotor_half_length - abs(height)))
+        housing = ~in_cavity
+        for name, mask in (("domain", fluid), ("rotor_lateral", lateral), ("rotor_end", shell & ~lateral),
+                           ("housing", housing)):
+            if mask.any():
+                parts[name].append(np.column_stack([plane_x[mask], plane_y[mask],
+                                                    np.full(int(mask.sum()), height)]))
+    counts = {}
+    for name, chunks in parts.items():
+        points = np.concatenate(chunks) if chunks else np.empty((0, 3))
+        counts[name] = int(points.shape[0])
+        _write_points(geometry_dir / f"{name}.obj", points, f"rotor3d {name}")
+    with open(geometry_dir / "frame.obj", "w", encoding="utf-8", newline="\n") as handle:
+        handle.write("# rotor3d frame bbox\n")
+        for sign_x in (-1.0, 1.0):
+            for sign_y in (-1.0, 1.0):
+                for sign_z in (-1.0, 1.0):
+                    handle.write(f"v {sign_x * half_extent:.9f} {sign_y * half_extent:.9f} "
+                                 f"{sign_z * half_height:.9f}\n")
+    return counts
+
+
+def command_geometry(arguments) -> int:
+    """Write the particle files of an existing geometry directory again (they are not in the repository)."""
+    geometry_dir = (_REPO_ROOT / arguments.geometry).resolve()
+    stored = json.loads((geometry_dir / "geometry.json").read_text(encoding="utf-8"))
+    stored.setdefault("frame_margin", 2.0)                     # the first geometries of the stage
+    counts = write_geometry(geometry_dir, stored)
+    if counts != stored["counts"]:
+        sys.exit(f"{geometry_dir.name}: counts {counts} differ from the stored {stored['counts']}")
+    print(f"[rotor3d] geometry {geometry_dir.name}: written again, counts as stored {counts}")
+    return 0
+
+
 def command_generate(arguments) -> int:
     from experiment.validation.micropolar_couette import design_parameters
     gap = arguments.gap
@@ -218,56 +292,7 @@ def command_generate(arguments) -> int:
         counts = stored["counts"]
         print(f"[rotor3d] geometry {geometry_dir.name}: reused")
     else:
-        geometry_dir.mkdir(parents=True, exist_ok=True)
-        # The frame fixes the voxel grid (its lower corner is the origin, the voxels are h = 4 dx wide). With a
-        # margin of a whole number of spacings a lattice plane lies exactly on every fourth voxel boundary, and so
-        # on a cut of a chain: the first step then moves a whole plane of fluid particles (thousands in 3-D) across
-        # the cut at once and overflows the migrant region and the departed pool. A margin of 2.25 dx keeps every
-        # lattice plane (offset 0 or 0.5 dx) a quarter of a spacing from the boundaries.
-        half_extent = housing_radius + wall_thickness + arguments.frame_margin * spacing
-        half_height = housing_half_height + wall_thickness + arguments.frame_margin * spacing
-        count_xy = int(np.ceil(half_extent / spacing)) + 2
-        count_z = int(np.ceil(half_height / spacing)) + 2
-        index_xy = np.arange(-count_xy, count_xy + 1, dtype=np.float64)
-        index_z = np.arange(-count_z, count_z + 1, dtype=np.float64) + arguments.lattice_offset[2]
-        angle = np.radians(arguments.lattice_angle)
-        parts = {"domain": [], "rotor_lateral": [], "rotor_end": [], "housing": []}
-        grid_x, grid_y = np.meshgrid(index_xy + arguments.lattice_offset[0], index_xy + arguments.lattice_offset[1],
-                                     indexing="ij")
-        plane_x = spacing * (np.cos(angle) * grid_x - np.sin(angle) * grid_y).ravel()
-        plane_y = spacing * (np.sin(angle) * grid_x + np.cos(angle) * grid_y).ravel()
-        plane_radius = np.hypot(plane_x, plane_y)
-        near = plane_radius < housing_radius + wall_thickness            # nothing beyond the housing shell
-        plane_x, plane_y, plane_radius = plane_x[near], plane_y[near], plane_radius[near]
-        for level in index_z:                                              # one lattice plane at a time
-            height = level * spacing
-            if abs(height) >= housing_half_height + wall_thickness:
-                continue
-            in_rotor = (plane_radius <= rotor_radius) & (abs(height) <= rotor_half_length)
-            in_cavity = (plane_radius < housing_radius) & (abs(height) < housing_half_height)
-            fluid = in_cavity & ~in_rotor
-            shell = in_rotor & ((plane_radius > rotor_radius - wall_thickness)
-                                | (abs(height) > rotor_half_length - wall_thickness))
-            # a rotor particle belongs to the surface it is nearer to
-            lateral = shell & ((rotor_radius - plane_radius) <= (rotor_half_length - abs(height)))
-            housing = ~in_cavity
-            for name, mask in (("domain", fluid), ("rotor_lateral", lateral), ("rotor_end", shell & ~lateral),
-                               ("housing", housing)):
-                if mask.any():
-                    parts[name].append(np.column_stack([plane_x[mask], plane_y[mask],
-                                                        np.full(int(mask.sum()), height)]))
-        counts = {}
-        for name, chunks in parts.items():
-            points = np.concatenate(chunks) if chunks else np.empty((0, 3))
-            counts[name] = int(points.shape[0])
-            _write_points(geometry_dir / f"{name}.obj", points, f"rotor3d {name}")
-        with open(geometry_dir / "frame.obj", "w", encoding="utf-8", newline="\n") as handle:
-            handle.write("# rotor3d frame bbox\n")
-            for sign_x in (-1.0, 1.0):
-                for sign_y in (-1.0, 1.0):
-                    for sign_z in (-1.0, 1.0):
-                        handle.write(f"v {sign_x * half_extent:.9f} {sign_y * half_extent:.9f} "
-                                     f"{sign_z * half_height:.9f}\n")
+        counts = write_geometry(geometry_dir, geometry_meta)
         geometry_file.write_text(json.dumps({**geometry_meta, "counts": counts}, indent=1), encoding="utf-8")
         print(f"[rotor3d] geometry {geometry_dir.name}: written")
 
@@ -376,6 +401,42 @@ def read_own_field(sim, name: str, alive: np.ndarray, selection: np.ndarray) -> 
     return np.array(values[np.flatnonzero(alive)[selection]])
 
 
+def memory_status() -> dict:
+    """Free physical memory and free commit of the machine, working set and commit of this process with their
+    peaks, in bytes (Windows; empty elsewhere). The structures carry the field names of the Windows API."""
+    if os.name != "nt":
+        return {}
+    import ctypes
+    from ctypes import wintypes
+
+    class MemoryStatus(ctypes.Structure):
+        _fields_ = [("dwLength", wintypes.DWORD), ("dwMemoryLoad", wintypes.DWORD),
+                    ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                    ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                    ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                    ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+
+    class ProcessMemoryCounters(ctypes.Structure):
+        _fields_ = [("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD),
+                    ("PeakWorkingSetSize", ctypes.c_size_t), ("WorkingSetSize", ctypes.c_size_t),
+                    ("QuotaPeakPagedPoolUsage", ctypes.c_size_t), ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t), ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                    ("PagefileUsage", ctypes.c_size_t), ("PeakPagefileUsage", ctypes.c_size_t)]
+    kernel = ctypes.windll.kernel32
+    status = MemoryStatus()
+    status.dwLength = ctypes.sizeof(MemoryStatus)
+    kernel.GlobalMemoryStatusEx(ctypes.byref(status))
+    counters = ProcessMemoryCounters()
+    counters.cb = ctypes.sizeof(ProcessMemoryCounters)
+    kernel.GetCurrentProcess.restype = wintypes.HANDLE
+    kernel.K32GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, ctypes.POINTER(ProcessMemoryCounters), wintypes.DWORD]
+    kernel.K32GetProcessMemoryInfo(kernel.GetCurrentProcess(), ctypes.byref(counters), counters.cb)
+    return {"free_physical": int(status.ullAvailPhys), "total_physical": int(status.ullTotalPhys),
+            "free_commit": int(status.ullAvailPageFile), "commit_limit": int(status.ullTotalPageFile),
+            "working_set": int(counters.WorkingSetSize), "peak_working_set": int(counters.PeakWorkingSetSize),
+            "commit": int(counters.PagefileUsage), "peak_commit": int(counters.PeakPagefileUsage)}
+
+
 def state_steps(steps: int, sample_steps: int, state_count: int) -> list:
     if state_count <= 0:
         return []
@@ -420,7 +481,24 @@ def command_run(arguments) -> int:
     out_dir = (_REPO_ROOT / arguments.out).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     revision = solver_revision()
-    saved_steps = set(state_steps(steps, arguments.sample_steps, arguments.state_count))
+    if arguments.state_every:
+        # a state at every state_every steps through the averaging window (the last quarter of the run)
+        saved_steps = {step for step in range(arguments.sample_steps, steps + 1, arguments.sample_steps)
+                       if step > 0.75 * steps + 1e-9 and step % arguments.state_every == 0}
+    else:
+        saved_steps = set(state_steps(steps, arguments.sample_steps, arguments.state_count))
+    skipped_states = []
+    gigabyte = 1024.0 ** 3
+    memory = {"peak_working_set": 0, "peak_commit": 0, "least_free_physical": None, "least_free_commit": None}
+
+    def note_memory() -> dict:
+        status = memory_status()
+        if status:
+            memory["peak_working_set"] = max(memory["peak_working_set"], status["peak_working_set"])
+            memory["peak_commit"] = max(memory["peak_commit"], status["peak_commit"])
+            for key, source in (("least_free_physical", "free_physical"), ("least_free_commit", "free_commit")):
+                memory[key] = status[source] if memory[key] is None else min(memory[key], status[source])
+        return status
     state_fields = ["acceleration", "wall_dummy_velocity", "correction_inverse"] + (
         ["angular_acceleration", "wall_dummy_angular_velocity"] if micropolar else [])
     # the order of the materials in the case: fluid, rotor lateral, rotor end, housing
@@ -449,6 +527,10 @@ def command_run(arguments) -> int:
         if arguments.housing_band:
             keep |= np.where(is_fluid, to_housing < support + spacing, (kind == 3) & (to_housing > -(support + spacing)))
         return keep
+
+    # bytes of a saved row: position, velocity, density, pressure, acceleration, dummy velocity and weight, the
+    # packed inverse of the correction matrix, the kind; with the micropolar fields three vectors more
+    state_row_bytes = 12 + 12 + 4 + 4 + 12 + 12 + 4 + 24 + 1 + (36 if micropolar else 0)
 
     def save_state(rows: dict, keep: np.ndarray, band: dict, step: int) -> None:
         """rows: the sample's fields of every particle; band: the state fields of the rows `keep` only."""
@@ -493,6 +575,13 @@ def command_run(arguments) -> int:
             sims.append(SphSimulatorV7(contexts[-1], chain.slabs[index], sync_scheme="per-direction"))
 
         def sample(step: int) -> None:
+            status = note_memory()
+            if status and min(status["free_physical"], status["free_commit"]) < arguments.memory_floor_gigabytes * gigabyte:
+                # before the read-back of a sample: end the run with what it has instead of taking the machine down
+                raise RuntimeError(
+                    f"step {step}: {status['free_physical'] / gigabyte:.1f} GB of physical memory and "
+                    f"{status['free_commit'] / gigabyte:.1f} GB of commit are free, below the floor of "
+                    f"{arguments.memory_floor_gigabytes:g} GB: the run ends itself")
             wanted = ["density_pressure"] + (["angular_velocity"] if micropolar else [])
             parts = [read_own_particles(sim, wanted, with_alive=True) for sim in sims]
             alive_masks = [part.pop("_alive") for part in parts]
@@ -502,8 +591,18 @@ def command_run(arguments) -> int:
             if rows["material"].shape[0] != expected:
                 raise RuntimeError(f"step {step}: {rows['material'].shape[0]} particles alive, {expected} loaded")
             if step in saved_steps:
-                # the state fields: one buffer of one sim at a time, the rows of the band only
                 keep = state_band(rows)
+                needed = float(keep.sum()) * state_row_bytes
+                free = shutil.disk_usage(out_dir).free
+                if free - needed < arguments.disk_reserve_gigabytes * gigabyte:
+                    # the disk of this machine is shared and nearly full: a state is not worth a dead run
+                    skipped_states.append(step)
+                    print(f"[rotor3d] step {step}: state not saved ({needed / gigabyte:.2f} GB wanted, "
+                          f"{free / gigabyte:.1f} GB free, reserve {arguments.disk_reserve_gigabytes:g} GB)",
+                          flush=True)
+                    keep = None
+            if step in saved_steps and keep is not None:
+                # the state fields: one buffer of one sim at a time, the rows of the band only
                 band, offset = {name: [] for name in state_fields}, 0
                 for sim, alive, count in zip(sims, alive_masks, counts):
                     selection = np.flatnonzero(keep[offset:offset + count])
@@ -568,8 +667,10 @@ def command_run(arguments) -> int:
                     raise RuntimeError(f"invariant violation at step {frame}, sim {index}: {bad}")
             if frame > 0 and frame % arguments.sample_steps == 0:
                 sample(frame)
+                status = note_memory()
                 (out_dir / "heartbeat.json").write_text(json.dumps(
-                    {"step": frame, "steps": steps, "elapsed_seconds": time.perf_counter() - started}),
+                    {"step": frame, "steps": steps, "elapsed_seconds": time.perf_counter() - started,
+                     "memory_now": status, "memory": memory, "skipped_states": skipped_states}),
                     encoding="utf-8")
                 if len(samples["step"]) % 5 == 0:
                     # what a run that is stopped early leaves behind
@@ -580,6 +681,15 @@ def command_run(arguments) -> int:
         with ChainOrchestratorV7(sims, defrag_cadence=cadence) as orchestrator:
             orchestrator.bootstrap_all()
             bootstrap_seconds = time.perf_counter() - started
+            # what a run that is stopped from outside needs to be analysed all the same
+            (out_dir / "start.json").write_text(json.dumps(
+                {"case": arguments.case, "rotor3d": meta, "revision": revision, "slabs": slab_count,
+                 "device_map": device_map, "weights": weights, "steps": steps,
+                 "sample_steps": arguments.sample_steps, "timestep": timestep, "particles": expected,
+                 "state_steps": sorted(saved_steps), "bootstrap_seconds": bootstrap_seconds,
+                 "cuts_x": tests._cut_positions(case, chain),
+                 "slab_particles": [int(slab.initial.positions.shape[0]) for slab in chain.slabs],
+                 "memory_at_start": note_memory()}, indent=1), encoding="utf-8")
             try:
                 orchestrator.run_pipelined(steps, depth=arguments.depth, on_defrag=on_defrag)
                 if not samples["step"] or samples["step"][-1] != steps:
@@ -601,7 +711,8 @@ def command_run(arguments) -> int:
     np.savez_compressed(out_dir / "samples.npz", **{name: np.asarray(values) for name, values in samples.items()},
                         **{f"window_{name}": values for name, values in windows.items()})
     run_meta = {"case": arguments.case, "rotor3d": meta, "revision": revision,
-                "state_steps": sorted(saved_steps), "slabs": slab_count, "device_map": device_map,
+                "state_steps": sorted(saved_steps), "skipped_states": skipped_states, "memory": memory,
+                "slabs": slab_count, "device_map": device_map,
                 "weights": weights, "steps": steps, "sample_steps": arguments.sample_steps, "timestep": timestep,
                 "particles": expected, "counters": counters, "elapsed_seconds": elapsed,
                 "bootstrap_seconds": bootstrap_seconds, "failure": failure,
@@ -653,6 +764,9 @@ def main() -> int:
     generate.add_argument("--end-time-factor", type=float, default=2.0, help="end time in g^2 / nu_inf")
     generate.set_defaults(handler=command_generate)
 
+    geometry = commands.add_parser("geometry")
+    geometry.add_argument("--geometry", required=True, help="an existing geometry directory with its geometry.json")
+    geometry.set_defaults(handler=command_geometry)
     run = commands.add_parser("run")
     run.add_argument("--case", required=True)
     run.add_argument("--out", required=True)
@@ -663,6 +777,13 @@ def main() -> int:
     run.add_argument("--depth", type=int, default=2)
     run.add_argument("--pool-safety", type=float, default=1.2)
     run.add_argument("--state-count", type=int, default=0)
+    run.add_argument("--state-every", type=int, default=0,
+                     help="a wall-band state at every multiple of this many steps through the last quarter of the "
+                          "run (the averaging window); replaces --state-count")
+    run.add_argument("--disk-reserve-gigabytes", type=float, default=4.0,
+                     help="a state is not saved if less than this would stay free on the disk")
+    run.add_argument("--memory-floor-gigabytes", type=float, default=2.0,
+                     help="the run ends itself at a sample when less physical memory or commit than this is free")
     run.add_argument("--state-band-supports", type=float, default=2.0,
                      help="the saved fluid lies within this many h (+ dx) of the rotor surface")
     run.add_argument("--housing-band", action="store_true",

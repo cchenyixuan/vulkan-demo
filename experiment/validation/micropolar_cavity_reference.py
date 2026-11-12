@@ -14,6 +14,8 @@ Unit square, lid at y = 1 moving with U = 1 in +x, the parameters of micropolar_
 
   run       Cases on a sequence of grids (a finer grid starts from the coarser solution), extrema of the centre
             lines with their extrapolation to zero spacing, and the comparison with the particle runs.
+  lid       The traction of the lid for the lengths l of the cases that exist, on every grid and extrapolated,
+            against delta / lambda (lambda = mu_inf U / traction on the Newtonian fluid of viscosity mu_inf).
 
 Cases: newtonian_far (nu_inf, Reynolds number 400), newtonian_wall (nu, Reynolds number 250), micropolar (K = 3,
 l = L / 20, Theta = l^2, w = 0 on the walls) and its variants, named micropolar[_l<N>][_no_inertia][_free_spin]:
@@ -406,6 +408,95 @@ def command_run(arguments) -> int:
     return 0
 
 
+# case -> grids of the lid table: the grids of `run`, and one finer grid for the Newtonian fluid so that the case
+# l = L / 80 is compared on like grids
+LID_GRIDS = {"newtonian_far": [128, 192, 256, 384], "micropolar_l10": [128, 192, 256],
+             "micropolar": [128, 192, 256], "micropolar_l40": [128, 192, 256], "micropolar_l80": [192, 256, 384]}
+
+
+def command_lid(arguments) -> int:
+    lines = []
+
+    def say(text=""):
+        lines.append(text)
+        print(text, flush=True)
+
+    target = _REPO_ROOT / arguments.out
+    stored_fields = _REPO_ROOT / "data/micropolar/stage6"
+    result = {"cases": {}}
+    for case, resolutions in LID_GRIDS.items():
+        parameters = case_parameters(case)
+        grids, start = [], None
+        for resolution in resolutions:
+            fields_path = stored_fields / f"cavity_reference_{case}.npz"
+            fields = None
+            if fields_path.exists():
+                with np.load(fields_path) as archive:
+                    if archive["stream"].shape[0] - 1 == resolution:
+                        fields = {key: np.array(archive[key], dtype=np.float64) for key in archive.files}
+            if fields is None:
+                solved = solve(resolution, parameters, start=start, end_time=arguments.end_time,
+                               tolerance=arguments.tolerance)
+                fields = {key: solved[key] for key in ("stream", "vorticity", "spin")}
+                say(f"  {case}, n = {resolution}: solved, steady {solved['steady']} at t = {solved['time']:.0f} "
+                    f"({solved['seconds']:.0f} s)")
+            else:
+                say(f"  {case}, n = {resolution}: the stored fields of the finest grid of `run`")
+            start = fields
+            grids.append(lid_measures(fields, parameters))
+        tractions = [grid["lid_traction_mean"] for grid in grids]
+        result["cases"][case] = {
+            "length": parameters["length"], "resolutions": resolutions, "grids": grids,
+            "traction": extrapolate(tractions, resolutions),
+            "stream_min": extrapolate([grid["stream_min"] for grid in grids], resolutions)}
+        target.with_suffix(".json").write_text(json.dumps(result, indent=1), encoding="utf-8")
+    cases = result["cases"]
+    far = cases["newtonian_far"]
+    far_traction = far["traction"]["extrapolated"]
+    shear_length = cavity.FAR_VISCOSITY * LID_SPEED / far_traction
+    ratio = cavity.COUPLING_RATIO / (2.0 * (1.0 + cavity.COUPLING_RATIO))
+    result["shear_length"] = shear_length
+    result["displacement_over_length"] = ratio
+    say()
+    say("Traction of the lid on the fluid (-nu omega + c w at the lid over rho U^2, mean over 0.1 < x < 0.9) on every "
+        "grid and extrapolated to zero spacing with the second order of the scheme from the two finest grids "
+        "('order': what the three finest grids show)")
+    say(f"{'case':<18}{'grids':<22}{'traction per grid':<44}{'-> 0':>10}{'order':>7}")
+    for case, entry in cases.items():
+        order = entry["traction"]["order"]
+        per_grid = " ".join(f"{grid['lid_traction_mean']:.5f}" for grid in entry["grids"])
+        say(f"{case:<18}{' '.join(str(value) for value in entry['resolutions']):<22}{per_grid:<44}"
+            f"{entry['traction']['extrapolated']:>10.5f}" + (f"{order:>7.2f}" if order is not None else f"{'-':>7}"))
+    say()
+    say(f"The lid's shear length in the Newtonian fluid of viscosity mu_inf: lambda = mu_inf U / traction = "
+        f"{shear_length:.4f} L. delta = K l / (2 (1 + K)) = {ratio:g} l. Excess of the traction over that on the "
+        "Newtonian fluid, extrapolated values and the values of like grids, against delta / lambda")
+    say(f"{'l / L':>8}{'delta / L':>11}{'delta / lambda':>16}{'excess (-> 0)':>15}{'like grids':>26}"
+        f"{'excess / (delta / lambda)':>27}")
+    rows = []
+    for case, entry in cases.items():
+        if case == "newtonian_far":
+            continue
+        displacement = ratio * entry["length"]
+        excess = entry["traction"]["extrapolated"] / far_traction - 1.0
+        like = {}
+        for resolution, grid in zip(entry["resolutions"], entry["grids"]):
+            if resolution in far["resolutions"]:
+                like[str(resolution)] = (grid["lid_traction_mean"]
+                                         / far["grids"][far["resolutions"].index(resolution)]["lid_traction_mean"] - 1.0)
+        row = {"case": case, "length": entry["length"], "displacement": displacement,
+               "displacement_over_shear_length": displacement / shear_length, "excess": excess,
+               "excess_like_grids": like, "excess_over_first_order": excess / (displacement / shear_length)}
+        rows.append(row)
+        say(f"{'1/' + format(1.0 / entry['length'], '.0f'):>8}{displacement:>11.5f}"
+            f"{row['displacement_over_shear_length']:>16.4f}{excess:>15.4f}"
+            f"{', '.join(f'{value:.4f}' for value in like.values()):>26}{row['excess_over_first_order']:>27.3f}")
+    result["rows"] = rows
+    target.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    target.with_suffix(".json").write_text(json.dumps(result, indent=1), encoding="utf-8")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -418,6 +509,11 @@ def main() -> int:
     run.add_argument("--fresh", action="store_true", help="do not reuse the stored cases")
     run.add_argument("--verbose", action="store_true")
     run.set_defaults(handler=command_run)
+    lid = commands.add_parser("lid")
+    lid.add_argument("--end-time", type=float, default=400.0)
+    lid.add_argument("--tolerance", type=float, default=1e-7)
+    lid.add_argument("--out", default="data/micropolar/stage6/cavity_reference_lid.txt")
+    lid.set_defaults(handler=command_lid)
     arguments = parser.parse_args()
     return arguments.handler(arguments)
 

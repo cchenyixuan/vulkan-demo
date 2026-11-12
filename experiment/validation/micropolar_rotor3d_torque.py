@@ -395,10 +395,14 @@ def readings(sums: dict, surface: dict, parameters: dict, mass: float) -> dict:
     return result
 
 
-def run_readings(run_directory: pathlib.Path, with_checks: bool = True) -> dict:
-    run = json.loads((run_directory / "run.json").read_text(encoding="utf-8"))
+def run_readings(run_directory: pathlib.Path, with_checks: bool = True, steps: list | None = None) -> dict:
+    # a run that was stopped before its end has no run.json; start.json carries the same parameters
+    record = run_directory / ("run.json" if (run_directory / "run.json").exists() else "start.json")
+    run = json.loads(record.read_text(encoding="utf-8"))
     parameters = parameters_of(run)
     files = sorted((run_directory / "states").glob("state_*.npz"))
+    if steps:
+        files = [path for path in files if int(path.stem.split("_")[1]) in steps]
     if not files:
         raise FileNotFoundError(f"no states under {run_directory}")
     per_state, checks = [], {}
@@ -430,10 +434,17 @@ def run_readings(run_directory: pathlib.Path, with_checks: bool = True) -> dict:
 def command_sums(arguments) -> int:
     for name in arguments.runs:
         run_directory = _REPO_ROOT / arguments.directory / name
-        summary = run_readings(run_directory, not arguments.no_checks)
-        target = run_directory / "torque.json"
+        summary = run_readings(run_directory, not arguments.no_checks, arguments.steps)
+        target = run_directory / (arguments.out or "torque.json")
         target.write_text(json.dumps(summary, indent=1), encoding="utf-8")
         print(json.dumps({key: summary[key] for key in summary if key not in ("per_state", "parameters")}, indent=1))
+    from experiment.validation.micropolar_rotor3d import memory_status
+    status = memory_status()
+    if status:
+        print(f"[rotor3d torque] memory of this process at its peak: working set "
+              f"{status['peak_working_set'] / 1024.0 ** 3:.2f} GB, commit {status['peak_commit'] / 1024.0 ** 3:.2f} GB; "
+              f"free on the machine now: physical {status['free_physical'] / 1024.0 ** 3:.1f} GB, commit "
+              f"{status['free_commit'] / 1024.0 ** 3:.1f} GB", flush=True)
     return 0
 
 
@@ -444,6 +455,8 @@ def main() -> int:
     sums.add_argument("runs", nargs="+")
     sums.add_argument("--directory", default="logs/micropolar/stage6_rotor3d")
     sums.add_argument("--no-checks", action="store_true")
+    sums.add_argument("--steps", type=int, nargs="+", default=None, help="only the states of these steps")
+    sums.add_argument("--out", default=None, help="file name in the run directory (default torque.json)")
     sums.set_defaults(handler=command_sums)
     arguments = parser.parse_args()
     return arguments.handler(arguments)
