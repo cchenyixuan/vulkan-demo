@@ -1,0 +1,41 @@
+{
+ "item": "11",
+ "title": "Micropolar cavity: centre lines with the two Newtonian bounds, fields, the slab cut",
+ "status": "final (rc2 runs), incomplete: newtonian_re400_n500, newtonian_re250_n500, mp_n250, mp_n500_k2; fields of the two-slab run",
+ "caption": "Lid-driven cavity filled with the micropolar fluid: K = 3, Reynolds number 400 on mu_inf (1,000 on mu), l = L / 20 (25 dx at n = 500, 12.5 dx at n = 250), Theta = l^2, w = 0 on the four walls, Ma = 0.01, thesis configuration with the default walls. (a) u on the vertical centre line and (b) v on the horizontal centre line, time means over the last 20 L / U (MLS samples at 1,001 points, every 25th shown): the micropolar run (circles; crosses: n = 250) between two Newtonian runs on the same particles, one with the viscosity mu_inf that the micropolar fluid has far from walls (solid) and one with mu + kappa that it has inside a wall layer (dashed). (c) Micro-rotation and (d) micro-rotation minus half the curl of the velocity at the last step of run `mp_n500`; the second vanishes in the core and marks the wall layers of thickness l. Colour scales end at the 99.5th percentile of the magnitude. Runs: `mp_n500`; tag `thesis-ch5-rc2`. No reference table for Reynolds number 400 is in the repository (the Marchi et al. files hold 1,000, 3,200 and 5,000), so the Newtonian bound at 400 is not compared with a reference here.",
+ "files": [
+  "fig_11_micropolar_cavity.pdf",
+  "fig_11_micropolar_cavity.png",
+  "tab_11_micropolar_cavity.csv",
+  "tab_11_micropolar_cavity.tex"
+ ],
+ "sources": [
+  "data/micropolar/stage6/cavity.json",
+  "mp_n500"
+ ],
+ "numbers": {
+  "fields": {
+   "c": {
+    "min": -2.7490761280059814,
+    "max": 1.279402256011963,
+    "colour_bound": 2.5248308181762695
+   },
+   "d": {
+    "min": -43.30033874511719,
+    "max": 103.7265625,
+    "colour_bound": 11.651972770690918
+   }
+  },
+  "parameters": {
+   "coupling_ratio": 3.0,
+   "far_viscosity": 0.0025,
+   "length": 0.05,
+   "viscosity": 0.004,
+   "viscosity_transfer": -0.001,
+   "coupling": 0.003,
+   "viscosity_rotation": 9.375000000000003e-06,
+   "micro_inertia": 0.0025000000000000005
+  }
+ },
+ "tag": "thesis-ch5-rc2"
+}

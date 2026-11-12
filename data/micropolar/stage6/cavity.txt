@@ -1,0 +1,3 @@
+Micropolar cavity of Stage 6 (K = 3, Reynolds number 400 on mu_inf, l = L / 20, w = 0 on the walls, Ma = 0.01) and its two Newtonian bounds; time means over the last 20 time units of the dense centre-line samples (MLS, 1,001 points); extrema from a parabola through three samples
+run                         n  K  t_end  steady     u_min    at y     v_max    at x     v_min    at x      E_k     dE_k  rho level   drift/t  p level   drift/t  steps/s
+mp_n500                   500  1   69.6    49.7  -0.35798  0.3112   0.32284  0.2380  -0.46272  0.8451   0.0527 +2.5e-05  -5.21e-06  -2.7e-10  -0.0516  -2.7e-06      886

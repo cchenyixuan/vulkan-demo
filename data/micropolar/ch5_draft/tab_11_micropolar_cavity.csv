@@ -1,0 +1,2 @@
+run,fluid,n,slabs,end time,steady at,u_min,y at u_min,v_max,x at v_max,v_min,x at v_min,kinetic energy,density level,density drift per L/U,pressure level,pressure drift per L/U,git describe
+mp_n500,micropolar,500,1,69.6,49.7,-0.35798,0.3112,0.32284,0.2380,-0.46272,0.8451,0.05274,-5.2e-06,-2.7e-10,-0.0516,-2.7e-06,
