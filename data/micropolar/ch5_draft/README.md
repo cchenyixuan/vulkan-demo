@@ -34,7 +34,7 @@ Design note: `docs/micropolar_design.md`, Section 15. Run data of Stage 6: `data
 - Reynolds numbers: on `mu_inf` (the far viscosity `mu + kappa / 2`, the one the cases are set by) and on `mu`
   (`Re_g (1 + K / 2)`, the one the thesis quotes).
 
-## Index (written 2026-11-12 23:30)
+## Index (written 2026-11-12 23:54)
 
 | no. | item | files | status | data |
 |---|---|---|---|---|
