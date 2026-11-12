@@ -123,13 +123,22 @@ def main() -> int:
     bounds = comparisons.get("bounds")
     text = ""
     if bounds:
-        text += (" Between the two bounds: u_min " + ("yes" if bounds["u_min"] else "no")
-                 + f" ({bounds['u_min_fraction']:.2f} of the way from the Re 400 value to the Re 250 value), v_max "
-                 + ("yes" if bounds["v_max"] else "no") + f" ({bounds['v_max_fraction']:.2f}), v_min "
-                 + ("yes" if bounds["v_min"] else "no") + f" ({bounds['v_min_fraction']:.2f}); along the centre lines "
-                 f"the micropolar profile leaves the band of the two bounds at {100.0 * bounds['u_outside_share']:.0f} % "
-                 f"(u) and {100.0 * bounds['v_outside_share']:.0f} % (v) of the points, by at most "
-                 f"{bounds['u_outside_max']:.1e} and {bounds['v_outside_max']:.1e} U.")
+        def place(key):
+            fraction = bounds[f"{key}_fraction"]
+            if fraction < 0.0:
+                return f"beyond the Reynolds-400 value by {-fraction:.2f} of the distance between the two bounds"
+            if fraction > 1.0:
+                return f"beyond the Reynolds-250 value by {fraction - 1.0:.2f} of the distance between the two bounds"
+            return f"between the two bounds, {fraction:.2f} of the way from the Reynolds-400 value"
+        text += (" The micropolar extrema are not between the two Newtonian ones where the ordering of the "
+                 "viscosities would put them: " if not (bounds["u_min"] and bounds["v_max"] and bounds["v_min"])
+                 else " The micropolar extrema against the two Newtonian ones: ")
+        text += (f"u_min is {place('u_min')}, v_max {place('v_max')}, v_min {place('v_min')}; the kinetic energy is "
+                 f"{place('kinetic_energy_mean')}. Along the centre lines the micropolar profile leaves the band of "
+                 f"the two bounds at {100.0 * bounds['u_outside_share']:.0f} % (u) and "
+                 f"{100.0 * bounds['v_outside_share']:.0f} % (v) of the points, by at most "
+                 f"{bounds['u_outside_max']:.1e} and {bounds['v_outside_max']:.1e} U. The positions of the three "
+                 "extrema do lie between those of the two bounds.")
     for key, words in (("resolution", "n = 250 minus n = 500"), ("chain", "two slabs minus one slab")):
         if key in comparisons:
             entry = comparisons[key]
@@ -142,7 +151,7 @@ def main() -> int:
         "l = L / 20 (25 dx at n = 500, 12.5 dx at n = 250), Theta = l^2, w = 0 on the four walls, Ma = 0.01, thesis "
         "configuration with the default walls. (a) u on the vertical centre line and (b) v on the horizontal centre "
         "line, time means over the last 20 L / U (MLS samples at 1,001 points, every 25th shown): the micropolar run "
-        "(circles; crosses: n = 250) between two Newtonian runs on the same particles, one with the viscosity "
+        "(circles; crosses: n = 250) and two Newtonian runs on the same particles, one with the viscosity "
         "mu_inf that the micropolar fluid has far from walls (solid) and one with mu + kappa that it has inside a "
         "wall layer (dashed). (c) Micro-rotation and (d) micro-rotation minus half the curl of the velocity at the "
         f"last step of run `{field_run}`"
