@@ -64,7 +64,7 @@ def main() -> int:
         if "micropolar" in reference:
             finest = reference["micropolar"]["grids"][-1]
             axis.plot(finest["coordinate"], finest[name], color=style.INK, linewidth=0.8, linestyle=(0, (1, 1.5)),
-                      label="micropolar, finite differences")
+                      label="micropolar, finite\ndifferences")
         axis.plot(coordinate[10::25], np.asarray(main_run[f"{name}_mean"])[10::25],
                   **style.run_markers(0, filled=False), label=r"micropolar, $n = 500$")
         if RUNS["coarse"] in runs:
@@ -79,7 +79,7 @@ def main() -> int:
     handles, labels_ = upper[0].get_legend_handles_labels()
     lines_ = [(handle, label) for handle, label in zip(handles, labels_) if handle.get_marker() in ("None", "", None)]
     markers_ = [(handle, label) for handle, label in zip(handles, labels_) if (handle, label) not in lines_]
-    upper[0].legend(*zip(*lines_), loc="lower right", handletextpad=0.4, handlelength=1.7,
+    upper[0].legend(*zip(*lines_), loc="upper left", handletextpad=0.4, handlelength=1.7,
                     fontsize=style.FONT_SIZE - 1.0, borderaxespad=0.3)
     if markers_:
         upper[1].legend(*zip(*markers_), loc="lower left", handletextpad=0.2, fontsize=style.FONT_SIZE - 1.0,

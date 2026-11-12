@@ -1,8 +1,8 @@
 {
  "item": "11",
  "title": "Micropolar cavity: centre lines with the two Newtonian bounds, fields, the slab cut",
- "status": "final (rc2 runs), incomplete: mp_n500_k2; fields of the two-slab run",
- "caption": "Lid-driven cavity filled with the micropolar fluid: K = 3, Reynolds number 400 on mu_inf (1,000 on mu), l = L / 20 (25 dx at n = 500, 12.5 dx at n = 250), Theta = l^2, w = 0 on the four walls, Ma = 0.01, thesis configuration with the default walls. (a) u on the vertical centre line and (b) v on the horizontal centre line, time means over the last 20 L / U (MLS samples at 1,001 points, every 25th shown): the micropolar run (circles; crosses: n = 250) and two Newtonian runs on the same particles, one with the viscosity mu_inf that the micropolar fluid has far from walls (solid) and one with mu + kappa that it has inside a wall layer (dashed). (c) Micro-rotation and (d) micro-rotation minus half the curl of the velocity at the last step of run `mp_n500`; the second vanishes in the core and marks the wall layers of thickness l. Colour scales end at the 99.5th percentile of the magnitude. Runs: `newtonian_re400_n500`, `newtonian_re250_n500`, `mp_n500`, `mp_n250`; tag `thesis-ch5-rc2`. The micropolar extrema are not between the two Newtonian ones where the ordering of the viscosities would put them: u_min is beyond the Reynolds-400 value by 0.64 of the distance between the two bounds, v_max beyond the Reynolds-400 value by 0.31 of the distance between the two bounds, v_min beyond the Reynolds-400 value by 0.08 of the distance between the two bounds; the kinetic energy is beyond the Reynolds-400 value by 2.10 of the distance between the two bounds. Along the centre lines the micropolar profile leaves the band of the two bounds at 54 % (u) and 65 % (v) of the points, by at most 5.3e-02 and 4.5e-02 U. The positions of the three extrema do lie between those of the two bounds. The run at n = 250 minus the run at n = 500: rms difference of the centre lines 3.0e-03 (u) and 3.5e-03 (v) U, extrema -5.3e-03, +5.0e-03, -6.1e-03 U (standard error of the time means 2e-05). Dotted line in (a) and (b), and table 11b: the same equations solved by finite differences on the host (stream function, vorticity and micro-rotation on a uniform grid, second order, steady state; grids of 128, 192, 256 intervals, extrema extrapolated to zero spacing). Its extrema (u_min, v_max, v_min) are -0.3287, 0.3038, -0.4541 U for the Newtonian fluid of viscosity mu_inf, -0.2877, 0.2534, -0.3916 for mu + kappa and -0.3567, 0.3213, -0.4614 for the micropolar fluid: there too the micropolar extrema lie beyond the Reynolds-400 values, by 0.68, 0.35 and 0.12 of the distance between the bounds (+8.5, +5.8 and +1.6 %). The particle runs at n = 500 are stronger than the finite-difference values by +0.7, +0.9, +0.7 % (mu_inf), +0.4, +0.6, +0.4 % (mu + kappa) and +0.3, +0.5, +0.3 % (micropolar). Variants of the finite-difference solution (table 11b; place of u_min, v_max, v_min on the way from the Reynolds-400 to the Reynolds-250 value): walls that do not hold w +0.28, +0.22, +0.41 (between the bounds); only the lid holds w -0.91, -0.73, -0.61; only the three walls at rest hold w +0.34, +0.48, +0.75. The overshoot belongs to the condition w = 0 on the driving wall.",
+ "status": "final",
+ "caption": "Lid-driven cavity filled with the micropolar fluid: K = 3, Reynolds number 400 on mu_inf (1,000 on mu), l = L / 20 (25 dx at n = 500, 12.5 dx at n = 250), Theta = l^2, w = 0 on the four walls, Ma = 0.01, thesis configuration with the default walls. (a) u on the vertical centre line and (b) v on the horizontal centre line, time means over the last 20 L / U (MLS samples at 1,001 points, every 25th shown): the micropolar run (circles; crosses: n = 250) and two Newtonian runs on the same particles, one with the viscosity mu_inf that the micropolar fluid has far from walls (solid) and one with mu + kappa that it has inside a wall layer (dashed). (c) Micro-rotation and (d) micro-rotation minus half the curl of the velocity at the last step of run `mp_n500_k2` (two slabs, 5090 + XTX; dashed line: the cut); the second vanishes in the core and marks the wall layers of thickness l. Colour scales end at the 99.5th percentile of the magnitude. Runs: `newtonian_re400_n500`, `newtonian_re250_n500`, `mp_n500`, `mp_n250`, `mp_n500_k2`; tag `thesis-ch5-rc2`. The micropolar extrema are not between the two Newtonian ones where the ordering of the viscosities would put them: u_min is beyond the Reynolds-400 value by 0.64 of the distance between the two bounds, v_max beyond the Reynolds-400 value by 0.31 of the distance between the two bounds, v_min beyond the Reynolds-400 value by 0.08 of the distance between the two bounds; the kinetic energy is beyond the Reynolds-400 value by 2.10 of the distance between the two bounds. Along the centre lines the micropolar profile leaves the band of the two bounds at 54 % (u) and 65 % (v) of the points, by at most 5.3e-02 and 4.5e-02 U. The positions of the three extrema do lie between those of the two bounds. The run at n = 250 minus the run at n = 500: rms difference of the centre lines 3.0e-03 (u) and 3.5e-03 (v) U, extrema -5.3e-03, +5.0e-03, -6.1e-03 U (standard error of the time means 2e-05). Two slabs minus one slab: rms difference of the centre lines 2.1e-05 (u) and 1.6e-05 (v) U, extrema -5.2e-06, +1.4e-05, -2.1e-06 U (standard error of the time means 1e-05). Dotted line in (a) and (b), and table 11b: the same equations solved by finite differences on the host (stream function, vorticity and micro-rotation on a uniform grid, second order, steady state; grids of 128, 192, 256 intervals, extrema extrapolated to zero spacing). Its extrema (u_min, v_max, v_min) are -0.3287, 0.3038, -0.4541 U for the Newtonian fluid of viscosity mu_inf, -0.2877, 0.2534, -0.3916 for mu + kappa and -0.3567, 0.3213, -0.4614 for the micropolar fluid: there too the micropolar extrema lie beyond the Reynolds-400 values, by 0.68, 0.35 and 0.12 of the distance between the bounds (+8.5, +5.8 and +1.6 %). The particle runs at n = 500 are stronger than the finite-difference values by +0.7, +0.9, +0.7 % (mu_inf), +0.4, +0.6, +0.4 % (mu + kappa) and +0.3, +0.5, +0.3 % (micropolar). Variants of the finite-difference solution (table 11b; place of u_min, v_max, v_min on the way from the Reynolds-400 to the Reynolds-250 value): walls that do not hold w +0.28, +0.22, +0.41 (between the bounds); only the lid holds w -0.91, -0.73, -0.61; only the three walls at rest hold w +0.34, +0.48, +0.75. The overshoot belongs to the condition w = 0 on the driving wall.",
  "files": [
   "fig_11_micropolar_cavity.pdf",
   "fig_11_micropolar_cavity.png",
@@ -17,19 +17,20 @@
   "newtonian_re400_n500",
   "newtonian_re250_n500",
   "mp_n500",
-  "mp_n250"
+  "mp_n250",
+  "mp_n500_k2"
  ],
  "numbers": {
   "fields": {
    "c": {
-    "min": -2.7490761280059814,
-    "max": 1.279402256011963,
-    "colour_bound": 2.5248308181762695
+    "min": -2.7484304904937744,
+    "max": 1.2791252136230469,
+    "colour_bound": 2.5260448455810547
    },
    "d": {
-    "min": -43.30033874511719,
-    "max": 103.7265625,
-    "colour_bound": 11.651972770690918
+    "min": -42.62175750732422,
+    "max": 105.76984405517578,
+    "colour_bound": 11.617928504943848
    }
   },
   "parameters": {

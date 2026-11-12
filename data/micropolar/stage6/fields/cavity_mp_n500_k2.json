@@ -1,0 +1,18 @@
+{
+ "run": "mp_n500_k2",
+ "checkpoint": "c0004641000.npz",
+ "step": 4641000,
+ "time": 69.615,
+ "cuts_x": [
+  0.50180002450943
+ ],
+ "spacing": 0.002,
+ "git": {
+  "head": "0bfb930",
+  "dirty": false
+ },
+ "resolution": 500,
+ "slabs": 2,
+ "length": 0.05,
+ "coupling_ratio": 3.0
+}

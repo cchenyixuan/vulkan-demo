@@ -2660,12 +2660,12 @@ Decisions carried in from the task:
   pack items 12 to 14 from existing data).
 - **States per run:** 12 of the last quarter instead of the 24 of Stages 4 and 5 (the disk: under 20 GB were free when
   the stage began); the eccentric runs keep the fluid within 3 h of a wall and, at the last step, all of it.
-- **What ran:** 28 runs between concentric cylinders, 28 between eccentric ones, 4 cavity runs (`mp_n250`, `mp_n500`,
-  `newtonian_re250_n500`, `newtonian_re400_n500`), 4 runs of the 3-D case (`g20_k3_m1`, `g20_newtonian`, `g20s_k3_m1`,
-  `g20s_newtonian`) and the two per-particle seam checks in 3-D; all to their end time, every counter zero, no
-  particle lost. **Interrupted and done again** (15.6): one eccentric run and the cavity at n = 250 when the disk
-  filled at 22:15, the Newtonian cavity at Reynolds number 250 when it filled again at 23:20. **What did not run:**
-  15.6.
+- **What ran:** 28 runs between concentric cylinders, 28 between eccentric ones, 5 cavity runs (`mp_n250`, `mp_n500`,
+  `mp_n500_k2`, `newtonian_re250_n500`, `newtonian_re400_n500`), 4 runs of the 3-D case (`g20_k3_m1`, `g20_newtonian`,
+  `g20s_k3_m1`, `g20s_newtonian`) and the two per-particle seam checks in 3-D; all to their end time, every counter
+  zero, no particle lost. **Interrupted and done again** (15.6): one eccentric run and the cavity at n = 250 when the
+  disk filled at 22:15, the Newtonian cavity at Reynolds number 250 when it filled again at 23:20. **What did not
+  run:** 15.6.
 
 ### 15.1 The pack
 
@@ -2686,17 +2686,17 @@ every item and is the one to trust):
 | 08 | Eccentric cylinders: measured over predicted change against narrowest gap / l | `fig_08_eccentric_prediction.pdf`, `fig_08_eccentric_prediction.png` | final | thesis-ch5-rc2; concentric: thesis-ch5-rc2 |
 | 09 | Table of every eccentric micropolar row | `tab_09_eccentric_rows.csv`, `tab_09_eccentric_rows.tex` | final | thesis-ch5-rc2 |
 | 10 | The film function over h^3 against h / l at K = 3 | `fig_10_film_function.pdf`, `fig_10_film_function.png` | final (host only) | host |
-| 11 | Micropolar cavity: centre lines with the two Newtonian bounds, fields, the slab cut | `fig_11_micropolar_cavity.pdf`, `fig_11_micropolar_cavity.png`, `tab_11_micropolar_cavity.csv`, `tab_11_micropolar_cavity.tex`, `tab_11b_cavity_finite_differences.csv`, `tab_11b_cavity_finite_differences.tex` | final (rc2 runs), incomplete: mp_n500_k2; fields of the two-slab run | thesis-ch5-rc2 |
+| 11 | Micropolar cavity: centre lines with the two Newtonian bounds, fields, the slab cut | `fig_11_micropolar_cavity.pdf`, `fig_11_micropolar_cavity.png`, `tab_11_micropolar_cavity.csv`, `tab_11_micropolar_cavity.tex`, `tab_11b_cavity_finite_differences.csv`, `tab_11b_cavity_finite_differences.tex` | final | thesis-ch5-rc2 |
 | 12 | Newtonian cavity baseline at n = 1000 against Marchi et al. | `fig_12_cavity_baseline.pdf`, `fig_12_cavity_baseline.png` | final (existing data) | Stage 3 (design note 12.8), `micropolar-base-13-g7e76dcb` |
 | 13 | Seepage of the thesis walls: velocity into the wall against wall pressure; the wall candidates | `fig_13_seepage.pdf`, `fig_13_seepage.png`, `tab_13_candidates.csv`, `tab_13_candidates.tex` | final (existing data) | Stage 5, `thesis-ch5-rc1-6-g5d07112`, `thesis-ch5-rc1-9-gbfcc024`; cavity `thesis-ch5-rc1-10-g5bc8e0d`, `thesis-ch5-rc1-9-gbfcc024`, `micropolar-base-12-gc08cb97` |
 | 14 | Solver checks: operator checks, passive label, chain against one slab, step limits, cost | `tab_14a_operator_checks.csv`, `tab_14a_operator_checks.tex`, `tab_14b_passive_label.csv`, `tab_14b_passive_label.tex`, `tab_14c_chain_against_one_slab.csv`, `tab_14c_chain_against_one_slab.tex`, `tab_14d_step_limits.csv`, `tab_14d_step_limits.tex`, `tab_14e_cost.csv`, `tab_14e_cost.tex` | final (existing data) | Stages 1 to 3, `micropolar-base-9-g278a557` to `thesis-ch5-rc1` |
 | 15 | 3-D: fields in a plane through the axis and the mid-plane profiles | `fig_15_three_dimensional.pdf`, `fig_15_three_dimensional.png` | provisional (the g = 20 dx run; the g = 40 dx run replaces it) | thesis-ch5-rc2 |
 
-- **Final** (rc2 runs, host, or existing data that is not run again): 05, 06, 07, 08, 09, 10, 12, 13, 14.
+- **Final** (rc2 runs, host, or existing data that is not run again): 05, 06, 07, 08, 09, 10, 11, 12, 13, 14.
 - **Final but with rows or panels still missing:** 01 (final (rc2 runs) for g <= 200 dx; the rows at g = 400 dx are
   not reached); 02 (final (rc2 runs) for g <= 200 dx; the rows at g = 400 dx are not reached); 03 (final (rc2 runs)
   for g <= 200 dx; the rows at g = 400 dx are not reached); 04 (final (rc2 runs) for g <= 200 dx; the rows at g =
-  400 dx are not reached); 11 (final (rc2 runs), incomplete: mp_n500_k2; fields of the two-slab run).
+  400 dx are not reached).
 - **Provisional:** 15 (provisional (the g = 20 dx run; the g = 40 dx run replaces it)). **Not reached:** none.
 - Every item was first made from the runs of Stages 3 to 5 and committed, then regenerated as the rc2 runs finished;
   the swap was one line per data set in `sources.py`.
@@ -2900,12 +2900,13 @@ test passes, at most t = 80); time means over the last 20 time units of the dens
 | `newtonian_re400_n500` | 500 | XTX | 69.6 | 49.7 | -0.33112 | 0.2793 | 0.30661 | 0.2250 | -0.45728 | 0.8621 | 0.04116 | -4.8e-06 | -7.5e-10 | -0.0476 | -7.5e-06 | 1003 |  |
 | `newtonian_re250_n500` | 500 | 5090 | 69.6 | 49.7 | -0.28896 | 0.3472 | 0.25484 | 0.2530 | -0.39308 | 0.8357 | 0.03861 | -4.4e-06 | -4.2e-10 | -0.0429 | -4.2e-06 | 1733 |  |
 | `mp_n250` | 250 | XTX | 70.4 | 50.4 | -0.36329 | 0.3107 | 0.32782 | 0.2376 | -0.46881 | 0.8447 | 0.04728 | -6.2e-06 | +1.3e-08 | -0.0612 | +1.3e-04 | 2154 |  |
+| `mp_n500_k2` | 500 | 5090 + XTX | 69.6 | 49.7 | -0.35798 | 0.3112 | 0.32285 | 0.2380 | -0.46272 | 0.8451 | 0.04651 | -5.2e-06 | -7.5e-10 | -0.0514 | -7.6e-06 | 1167 |  |
 
 - **They run and pass the steady test** (1e-3 on the centre-line profile and on the kinetic energy between
   consecutive windows of 10 time units): `mp_n500` at t = 50, `newtonian_re400_n500` at t = 50,
-  `newtonian_re250_n500` at t = 50, `mp_n250` at t = 50; each then runs 20 time units more, which are the averaging
-  window. Kinetic energy between the two halves of that window: 8.1e-06 to 2.5e-05. The run at n = 250 was
-  interrupted at t = 39.5 when the disk filled (15.6) and continued from its checkpoint at t = 30.2.
+  `newtonian_re250_n500` at t = 50, `mp_n250` at t = 50, `mp_n500_k2` at t = 50; each then runs 20 time units more,
+  which are the averaging window. Kinetic energy between the two halves of that window: 8.1e-06 to 2.5e-05. The run
+  at n = 250 was interrupted at t = 39.5 when the disk filled (15.6) and continued from its checkpoint at t = 30.2.
 - **The micropolar extrema are not between the two Newtonian ones.** Extrema of the centre lines (Reynolds number
   400 / micropolar / Reynolds number 250): u_min -0.3311 / -0.3580 / -0.2890, v_max 0.3066 / 0.3228 / 0.2548, v_min
   -0.4573 / -0.4627 / -0.3931 U; kinetic energy 0.0412 / 0.0465 / 0.0386 rho U^2 L^2. All of them lie beyond the
@@ -2925,6 +2926,11 @@ test passes, at most t = 80); time means over the last 20 time units of the dens
   3.5e-03 (v) U rms, at most 7.2e-03 and 6.2e-03; the extrema by -0.0053, +0.0050 and -0.0061 U (1.3 to 1.5 %, the
   coarser run the stronger, as in the Newtonian cavity of the thesis configuration), their positions by less than
   6e-4 L. The departure from the bounds is five times larger than this.
+- **Two slabs against one** (5090 + XTX, equal weights; the cut at x = 0.502 L lies beside the vertical centre line
+  on which u is sampled): the time-mean centre lines differ by 2.1e-05 (u) and 1.6e-05 (v) U rms, at most 5.7e-05
+  and 4.5e-05; the standard error of these differences from the scatter of the samples is 1e-05; extrema u_min
+  -5.2e-06, v_max +1.4e-05, v_min -2.1e-06 U; kinetic energy +7.9e-06 relative. The fields of w and of w - curl v /
+  2 of this run, with the cut, are item 11 of the pack.
 - **Levels** (default walls: the diffusion towards the walls holds the mean density): mean density -6.2e-06 to
   -4.4e-06 of rho0, drifting by at most 1e-08 per time unit; mean pressure -0.061 to -0.043 rho U^2, drifting by at
   most 1e-04 per time unit.
@@ -3261,7 +3267,8 @@ matrices `L_i` (the buffer `correction_inverse`, six numbers per particle; in 2-
 Each micropolar run with its Newtonian control on the same particles and with the same dt (the acoustic limit;
 the viscous and the angular limit of K = 3 are 14 and 15 times larger at g = 20 dx and 7 times at g = 40 dx,
 with the step numbers measured in 2-D). End time 2 g^2 / nu_inf at g = 20 dx and 1.5 g^2 / nu_inf at g = 40 dx
-(below); samples every 1,000 steps; last quarter averaged.
+(below); samples every 1,000 steps; last quarter averaged. At g = 40 dx the control ran on two slabs (5090 +
+XTX), the micropolar case on two slabs and on one (15.5, reading 12).
 
 | run | g / dx | l / dx | particles | card | steps | dt (limit) | steps/s | million particle steps / s | bytes / particle | GB per card | start-up (s) | angular momentum, last two eighths | kinetic energy | rms v_z / U | density level | drift | pressure level | drift | git describe |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -3539,8 +3546,7 @@ nu s'' - c w_x' = 0,      xi w_x'' + c (s' - 2 w_x) = 0        the same pair wit
   no second lattice at g = 40 dx. The one-slab micropolar run at g = 40 dx had not finished. The run on two slabs at
   g = 40 dx had not finished.
 - **Cavity:** no comparison of the Newtonian bound at Reynolds number 400 with a reference (no table for 400 in the
-  repository). The run on two slabs had not finished. The run with l = L / 40 (added by me, 15.2.3) had not
-  finished.
+  repository). The run with l = L / 40 (added by me, 15.2.3) had not finished.
 - **Eccentric:** `e30_g200_k1_m5`, `e60_g200_k1_m5` carry the mean of the four torque readings without the
   correction by the concentric row at the same K, l and g. That row (`g200_k1_m5`, K = 1, l = 20 dx at g = 200 dx,
   added by me) ran, but I removed its particle states together with those of the other finished runs before its wall
