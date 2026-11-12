@@ -7,8 +7,9 @@ Design note: `docs/micropolar_design.md`, Section 15. Run data of Stage 6: `data
 
 - **final**: made from runs on the tag `thesis-ch5-rc2` (Stage 6). An item that is final but still lacks rows
   says so in its caption.
-- **provisional**: made from older runs; the column "data" and the caption say which. The item is regenerated
-  when its rc2 runs exist; the swap is one line in `sources.py`.
+- **provisional**: made from older runs, or from a run that did not reach its end; the status, the column
+  "data" and the caption say which. The item is regenerated when its rc2 runs exist; for older runs the swap
+  is one line in `sources.py`.
 - **not reached**: no file yet.
 
 ## Files
@@ -34,7 +35,7 @@ Design note: `docs/micropolar_design.md`, Section 15. Run data of Stage 6: `data
 - Reynolds numbers: on `mu_inf` (the far viscosity `mu + kappa / 2`, the one the cases are set by) and on `mu`
   (`Re_g (1 + K / 2)`, the one the thesis quotes).
 
-## Index (written 2026-11-13 03:03)
+## Index (written 2026-11-13 03:04)
 
 | no. | item | files | status | data |
 |---|---|---|---|---|

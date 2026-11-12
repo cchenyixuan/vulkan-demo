@@ -67,8 +67,12 @@ def main() -> int:
         "on both walls, Ma = 0.02, Re = 10 on mu_inf) against its Newtonian control on the same particles. D_T = "
         "T / T_control - 1 by four readings (rotor and stator; wall form = pair sums over the wall particles, circle "
         "form = flux of angular momentum across a circle at distance h from the wall); 'corrected' = their mean with "
-        "the error each reading makes between concentric cylinders at the same K, l and g taken off ('-' where that "
-        "concentric row does not exist). Predictions: the film function of micropolar lubrication theory in the "
+        "the error each reading makes between concentric cylinders at the same K, l and g taken off ('-' where the "
+        "wall sums of that concentric row do not exist"
+        + (": " + ", ".join(f"`{name}`" for name, entry in pairs.items() if entry["corrected_mean"] is None)
+           + ", which carry the uncorrected mean in every column that uses D_T"
+           if any(entry["corrected_mean"] is None for entry in pairs.values()) else "")
+        + "). Predictions: the film function of micropolar lubrication theory in the "
         "thin-film calculation (load: plane film; torque: shear-driven stress of the exact concentric solution at "
         "the local gap) and the wall rule on the exact Stokes solution of its slip-form geometry. "
         f"{len(pairs)} rows ({len(main_rows)} on the lattice as generated). Load change over the film function "

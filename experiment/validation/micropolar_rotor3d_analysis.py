@@ -607,8 +607,9 @@ def partial_maps(arguments, directory: pathlib.Path) -> int:
     excess = {"radial": means["spin_radial"] - 0.5 * curl_radial,
               "tangential": means["spin_tangential"] - 0.5 * curl_tangential,
               "axial": means["spin_axial"] - 0.5 * curl_axial}
+    for values in excess.values():
+        values[0, :] = values[1, :]          # the cell on the axis holds a handful of particles: 1 / r is noise there
     keep = valid & np.isfinite(excess["radial"]) & np.isfinite(excess["tangential"]) & np.isfinite(excess["axial"])
-    keep &= radius > spacing                 # the cell on the axis holds a handful of particles: 1 / r is noise there
 
     def mirrored(values):
         return np.concatenate([values[keep], values[keep]]).astype(np.float32)
@@ -626,7 +627,8 @@ def partial_maps(arguments, directory: pathlib.Path) -> int:
         {"run": arguments.name, "rotor3d": meta, "revision": item["run"]["revision"], "steps": item["run"]["steps"],
          "slabs": item["run"]["slabs"], "cuts_x": None, "partial": item["partial"],
          "gradient": "finite differences of the azimuthal means on the (r, z) grid of one spacing (central; "
-                     "one-sided in the cells next to a wall)", "cells": int(keep.sum())}, indent=1),
+                     "one-sided in the cells next to a wall; w - curl v / 2 of the cell on the axis is that of its "
+                     "neighbour)", "cells": int(keep.sum())}, indent=1),
         encoding="utf-8")
     print(f"[rotor3d] maps of the stopped run {arguments.name}: {int(keep.sum()):,} cells of the (r, z) grid -> "
           f"{target}")
