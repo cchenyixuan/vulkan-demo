@@ -442,9 +442,20 @@ def command_eccentric(arguments) -> int:
                  if stage5._finished(name)]
         pairs = [pair for pair in STAGE5_PAIRS if pair[0] in names and pair[1] in names]
     records = {}
+    # the particle states of a finished run may have been removed after its analysis (the disk); its record is then
+    # taken from the analysis file as it stands
+    previous = {}
+    if arguments.json and (_REPO_ROOT / arguments.json).exists():
+        previous = json.loads((_REPO_ROOT / arguments.json).read_text(encoding="utf-8")).get("runs", {})
     for name in names:
-        records[name] = stage5.eccentric_summary(name, arguments.recompute)
         directory = stage5.run_directory(name)
+        if not list((directory / name / "states").glob("state_*.npz")):
+            if name in previous:
+                records[name] = previous[name]
+                continue
+            print(f"[stage6] {name}: no states and no earlier record; left out", flush=True)
+            continue
+        records[name] = stage5.eccentric_summary(name, arguments.recompute)
         records[name].update(levels(name, directory))
         records[name]["control"] = stage4.RUNS[name]["control"] if arguments.set == "stage6" else None
         print(f"[stage6] {name}: summarised", flush=True)
@@ -483,6 +494,8 @@ def command_eccentric(arguments) -> int:
         control = f"g{gap:03d}_newtonian"
         if name not in concentric_fits or "relative_torque_change" not in concentric_fits[name]:
             return None
+        if not (own / name / "wall_sums.json").exists() and not list((own / name / "states").glob("state_*.npz")):
+            return None                                   # its states were removed before its wall sums were taken
         torques = stage4.wall_torques(stage4.cached_wall_sums(name, own))
         base = stage4.wall_torques(stage4.cached_wall_sums(control, own))
         fit_change = concentric_fits[name]["relative_torque_change"]
