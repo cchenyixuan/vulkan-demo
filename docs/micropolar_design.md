@@ -2655,7 +2655,9 @@ Decisions carried in from the task:
   vorticity of its point-force solution.
 - **One queue runner** (`micropolar_stage6.py runner`): it reads a plan file before every decision, starts a
   job when every card it names is idle and the job is the first unfinished one of each of them, and is stopped
-  by a file beside the plan. No waiter loops. One run per card; the runs on two slabs take both cards. While a
+  by a file beside the plan. No waiter loop starts a job; from midnight on I let the harness wake me at the end
+  of a run with a background wait on the log of the runner, which starts nothing. One run per card; the runs on
+  two slabs take both cards. While a
   GPU run was active the host ran one analysis process, for a time with a second one beside it (a helper that built
   pack items 12 to 14 from existing data).
 - **States per run:** 12 of the last quarter instead of the 24 of Stages 4 and 5 (the disk: under 20 GB were free when
@@ -3578,10 +3580,10 @@ nu s'' - c w_x' = 0,      xi w_x'' + c (s' - 2 w_x) = 0        the same pair wit
 **Not reached**
 
 - **What was in the queue at 02:50 and after it.** The harness stopped every background job of this session then
-  because the machine was critically short of memory (15.6, unexpected), and its rule is that such jobs are started
-  again only when asked. They were not started again: the micropolar run at g = 40 dx on two slabs (stopped at step
-  38,000 of 51,000, that is at 1.12 of its 1.5 g^2 / nu_inf and 1,000 steps before its first saved state: its
-  samples to step 35,000 survive and are analysed in 15.4.4; no torque and no particle fields); its Newtonian
+  because the machine was critically short of memory (below, under unexpected), and its rule is that such jobs are
+  started again only when asked. They were not started again: the micropolar run at g = 40 dx on two slabs (stopped
+  at step 38,000 of 51,000, that is at 1.12 of its 1.5 g^2 / nu_inf and 1,000 steps before its first saved state:
+  its samples to step 35,000 survive and are analysed in 15.4.4; no torque and no particle fields); its Newtonian
   control (so there is no torque change and no change of the mid-plane constant at g = 40 dx); the micropolar run at
   g = 40 dx on one slab (so the chain in 3-D is checked per particle, 15.4.5, but not by a long run against a
   one-slab run); the cavity run with l = L / 40 (the finite differences have that case); the second run of the
@@ -3621,16 +3623,17 @@ nu s'' - c w_x' = 0,      xi w_x'' + c (s' - 2 w_x) = 0        the same pair wit
   Sections 12 and 14.4.3 are the raw sums (1/2) sum m |v|^2 with these masses (about 50 at Reynolds number 1,000);
   over the fluid mass they are about 0.045.
 - **At 02:50 the harness stopped every background job of the session for lack of memory**: the queue runner with the
-  two-slab 3-D run at g = 40 dx (at step 38,000 of 51,000), a finite-difference run on the host and a waiter. Its
-  message says the stop is no failure of the jobs and forbids starting them again without being asked, so the queue
-  ended there (what that leaves undone: above). [inferred from the timing, not measured] My own run was the trigger:
-  its first saved state was due at step 39,000, the last heartbeat is step 38,000 (02:49), and saving a state read
-  every field of all 15.6 million particles back to the host at once, about 3 GB more than an ordinary sample needs,
-  with less than that left of the machine's commit limit (47.7 GB, of which other programs held about 38 GB after
-  the stop). The states at g = 20 dx were a sixth of that and had passed. **Changed since**
-  (`micropolar_rotor3d.py`, a tool of this stage, nothing under `experiment/v7`): a saved state now reads its fields
-  one buffer of one card at a time and copies only the rows of the wall band. Checked on the host against the old
-  path with a stand-in for the card (identical arrays); not run on a card, because nothing was started again.
+  two-slab 3-D run at g = 40 dx (at step 38,000 of 51,000), a finite-difference run on the host and a wait of mine
+  on the log of the runner (it started nothing). Its message says the stop is no failure of the jobs and forbids
+  starting them again without being asked, so the queue ended there (what that leaves undone: above). [inferred from
+  the timing, not measured] My own run was the trigger: its first saved state was due at step 39,000, the last
+  heartbeat is step 38,000 (02:49), and saving a state read every field of all 15.6 million particles back to the
+  host at once, about 3 GB more than an ordinary sample needs, with less than that left of the machine's commit
+  limit (47.7 GB, of which other programs held about 38 GB after the stop). The states at g = 20 dx were a sixth of
+  that and had passed. **Changed since** (`micropolar_rotor3d.py`, a tool of this stage, nothing under
+  `experiment/v7`): a saved state now reads its fields one buffer of one card at a time and copies only the rows of
+  the wall band. Checked on the host against the old path with a stand-in for the card (identical arrays); not run
+  on a card, because nothing was started again.
 - **The machine, not the solver, cost about an hour of card time before that.** At 22:15 and again at 23:10 the disk
   had no free space left; three runs and the queue runner died with `No space left on device`. The cause: committed
   memory was at its limit (other programs on this machine held about 27 GB tonight, the system 9 GB, of 31 GB of
