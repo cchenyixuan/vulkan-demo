@@ -222,6 +222,19 @@ def main() -> int:
                    + excess(far) + " % (mu_inf), " + excess(wall) + " % (mu + kappa) and " + excess(polar)
                    + " % (micropolar)." if all("particle" in entry for entry in (far, wall, polar)) else ""))
 
+            def places(case):
+                values = reference[case]["against_bounds"]["fraction"]
+                return ", ".join(f"{values[key]:+.2f}" for key in ("u_min", "v_max", "v_min"))
+            if all(case in reference and "against_bounds" in reference[case]
+                   for case in ("micropolar_free_spin", "micropolar_lid_spin", "micropolar_rest_spin")):
+                reference_text += (
+                    " Variants of the finite-difference solution (table 11b; place of u_min, v_max, v_min on the "
+                    "way from the Reynolds-400 to the Reynolds-250 value): walls that do not hold w "
+                    + places("micropolar_free_spin") + " (between the bounds); only the lid holds w "
+                    + places("micropolar_lid_spin") + "; only the three walls at rest hold w "
+                    + places("micropolar_rest_spin") + ". The overshoot belongs to the condition w = 0 on the "
+                    "driving wall.")
+
     comparisons = analysis.get("comparisons", {})
     bounds = comparisons.get("bounds")
     text = ""
