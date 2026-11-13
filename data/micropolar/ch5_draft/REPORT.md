@@ -1,6 +1,6 @@
 # Chapter 5: what the solver has shown
 
-Written 2026-11-13 14:38 at commit `181ee07` (branch `v9-micropolar`; solver tag `thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number below is read from the data files by `report.py`; the captions with all parameters and run names are in `captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6) and 16 (Stage 7).
+Written 2026-11-13 14:54 at commit `de60599` (branch `v9-micropolar`; solver tag `thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number below is read from the data files by `report.py`; the captions with all parameters and run names are in `captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6) and 16 (Stage 7).
 
 **State.** Every item is final except the one row at g = 400 dx (m = 20, K = 3, l = 10 dx): its Newtonian control is done, the micropolar run is going; items 02 to 04 gain that row when it ends. Nothing else is pending and there is no further queue.
 
@@ -25,6 +25,7 @@ Marks: **[run]** measured in a particle run on the tag; **[host]** computed on t
 | 13 | Seepage of the thesis walls: velocity into the wall against wall pressure; the wall candidates | `fig_13_seepage.pdf`, `tab_13_candidates.csv`, `tab_13_candidates.tex` | final (existing data) |
 | 14 | Solver checks: operator checks, passive label, chain against one slab, step limits, cost | `tab_14a_operator_checks.csv`, `tab_14a_operator_checks.tex`, `tab_14b_passive_label.csv`, `tab_14b_passive_label.tex`, `tab_14c_chain_against_one_slab.csv`, `tab_14c_chain_against_one_slab.tex`, `tab_14d_step_limits.csv`, `tab_14d_step_limits.tex`, `tab_14e_cost.csv`, `tab_14e_cost.tex` | final (existing data) |
 | 15 | 3-D: fields in a plane through the axis and the mid-plane profiles | `fig_15_three_dimensional.pdf`, `tab_15b_three_dimensional.csv`, `tab_15b_three_dimensional.tex` | final |
+| 16 | The map of the effect: contours of D in the plane (N, m) for the torque and the load | `fig_16_effect_map.pdf` | final (host only) |
 
 ## 2. Concentric cylinders (items 01 to 04) [run]
 
@@ -175,7 +176,19 @@ Rotor of radius 3 g and length 3 g in a housing of radius 4 g with end gaps g, K
 - **The rule in 3-D** [host, run]: the argument for the normal component is right; that component has its own layer length l sqrt(nu_inf / nu), and the run shows both lengths (table).
 - **Chain:** per-particle seam checks pass on three slabs (one card) and two slabs (XTX + 5090); the cavity on two slabs equals the one-slab run to 2e-5 U.
 
-## 8. To be careful with in the text
+## 8. The map of the effect (item 16) [host]
+
+Contours D = 1 %, 5 %, 20 % in the plane of N = sqrt(K / (2 + K)) and m = g / (2 l): (a) the torque between the concentric cylinders from the exact solution, with the slip-form rule; (b) the load of the bearing at an eccentricity ratio of 0.6 from the film function in the thin-film calculation. m at which D equals 1 %, 5 %, 20 % ('-': outside 1 <= m <= 100):
+
+| K | torque, exact | torque, slip-form rule | load, film function |
+|---|---|---|---|
+| 3 | 30.4 / 6.4 / 1.8 | 30.4 / 6.4 / 1.9 | - / 24.3 / 5.6 |
+| 1 | 20.3 / 4.3 / - | 20.2 / 4.2 / 1.2 | 80.9 / 15.6 / 2.8 |
+| 0.5 | 13.5 / 2.8 / - | 13.5 / 2.8 / - | 53.4 / 9.8 / - |
+
+Noise floors shaded in the figure: 1.1e-05 (torque, g = 200 dx) and 3.6e-04 (change of the load, measured at g = 100 dx). The load feels the micro-structure at about four times the m at which the torque does.
+
+## 9. To be careful with in the text
 
 - **The film function** is that of micropolar lubrication theory; ours is that the runs reproduce it at a clearance ratio of 0.25. Its match with the published form has not been checked against the original.
 - **The cavity is not 'between two Newtonian fluids'**, and the pack no longer says so; its check is the finite-difference solution. The Reynolds-400 values of that solution (-0.3287, 0.3038, -0.4541) are the ones I remember from the literature; no table for Reynolds number 400 was in the repository to compare.

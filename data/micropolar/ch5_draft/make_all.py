@@ -30,13 +30,15 @@ ITEMS = [
     ("08", "fig_08_eccentric_prediction", "Eccentric: measured over predicted change against narrowest gap / l"),
     ("09", "tab_09_eccentric_rows", "Table of every eccentric micropolar row"),
     ("10", "fig_10_film_function", "The film function over h^3 against h / l at K = 3"),
-    ("11", "fig_11_micropolar_cavity", "Micropolar cavity: centre lines with the two Newtonian bounds, fields, "
-                                       "the slab cut"),
+    ("11", "fig_11_micropolar_cavity", "Micropolar cavity: centre lines against the finite-difference solution, "
+                                       "fields, the slab cut"),
     ("12", "fig_12_cavity_baseline", "Newtonian cavity baseline at n = 1000 against Marchi et al."),
     ("13", "fig_13_seepage", "Seepage: velocity into the wall against wall pressure; candidates table"),
     ("14", "tab_14_solver_checks", "Tables of Sections 8 to 12: operator checks, passive label, K = 2 against "
                                    "K = 1, step limits, cost"),
     ("15", "fig_15_three_dimensional", "3-D: fields in a plane through the axis and the mid-plane profiles"),
+    ("16", "fig_16_effect_map", "The map of the effect: contours of D in the plane (N, m) for the torque and the "
+                                "load"),
 ]
 
 

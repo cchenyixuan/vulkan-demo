@@ -19,7 +19,9 @@ FIELD = "data/micropolar/stage6/fields/cavity_{run}"
 REFERENCE = "data/micropolar/stage6/cavity_reference.json"
 LID = "data/micropolar/stage6/cavity_reference_lid.json"
 # the reference of Marchi et al. (2021) at Reynolds number 400, transcribed from the appendix of paper 1
-MARCHI = "data/micropolar/ch5_draft/reference/marchi_re400_from_paper1.csv"
+MARCHI = next((name for name in ("data/micropolar/ch5_draft/reference/marchi_re400.csv",
+                                 "data/micropolar/ch5_draft/reference/marchi_re400_from_paper1.csv")
+               if style.exists(name)), "data/micropolar/ch5_draft/reference/marchi_re400.csv")
 
 
 def read_reference_points(file_path) -> dict | None:

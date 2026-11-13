@@ -268,8 +268,30 @@ def main() -> int:
         "two slabs equals the one-slab run to 2e-5 U.")
     say()
 
+    # ---- the map of the effect -----------------------------------------------------------------------------------
+    if "16" in items:
+        crossings = items["16"]["numbers"]["crossings"]
+        say("## 8. The map of the effect (item 16) [host]")
+        say()
+        say("Contours D = 1 %, 5 %, 20 % in the plane of N = sqrt(K / (2 + K)) and m = g / (2 l): (a) the torque "
+            "between the concentric cylinders from the exact solution, with the slip-form rule; (b) the load of the "
+            "bearing at an eccentricity ratio of 0.6 from the film function in the thin-film calculation. m at which "
+            "D equals 1 %, 5 %, 20 % ('-': outside 1 <= m <= 100):")
+        say()
+
+        def cells(entry):
+            return " / ".join("-" if entry[key] is None else f"{entry[key]:.1f}" for key in ("0.01", "0.05", "0.2"))
+        say(table(["K", "torque, exact", "torque, slip-form rule", "load, film function"],
+                  [[label.replace("K = ", ""), cells(entry["torque, exact"]), cells(entry["torque, slip-form rule"]),
+                    cells(entry["load, film function"])] for label, entry in crossings.items()]))
+        say()
+        say(f"Noise floors shaded in the figure: {items['16']['numbers']['torque_noise_floor']:.1e} (torque, g = 200 "
+            f"dx) and {items['16']['numbers']['load_noise_floor']:.1e} (change of the load, measured at g = 100 dx). "
+            "The load feels the micro-structure at about four times the m at which the torque does.")
+        say()
+
     # ---- cautions ------------------------------------------------------------------------------------------------
-    say("## 8. To be careful with in the text")
+    say("## 9. To be careful with in the text")
     say()
     for line in (
             "**The film function** is that of micropolar lubrication theory; ours is that the runs reproduce it at a "

@@ -1,0 +1,74 @@
+{
+ "item": "16",
+ "title": "The map of the effect: contours of D in the plane (N, m) for the torque and the load",
+ "status": "final (host only)",
+ "caption": "The size of the micropolar effect in the plane of the coupling number N = sqrt(K / (2 + K)) and of m = g / (2 l) (upper axis: K = kappa / mu); D is the relative change against the Newtonian fluid of viscosity mu_inf. Host only, no run. (a) Torque between the concentric cylinders of the chapter (R1 = 4 g, R2 = 5 g, w = 0 on both walls): contours D = 1 %, 5 % and 20 % of the exact solution (solid) and of the wall rule in its slip form (dashed). (b) Load of the bearing at an eccentricity ratio of 0.6 (R1 = 4 g, mean gap g, m built on the mean gap): the same contours from the film function of micropolar lubrication theory in the thin-film calculation (dash-dotted). Points: the runs of the chapter, in (a) the 15 places of the 18 rows of item 04, in (b) the 6 places of the 16 rows of item 09 (every place holds runs at the eccentricity ratios 0.3 and 0.6; the contours are those of 0.6). Shaded: D below the noise floor of the runs, 1.1e-05 for the torque (three lattices at g = 200 dx) and 3.6e-04 for the change of the load (three lattices at eps = 0.6, measured at g = 100 dx; no three-lattice set of the bearing exists at g = 200 dx). m at which D equals 1 %, 5 % and 20 %: K = 3 (N = 0.775): torque 30.4, 6.4, 1.8 (rule 30.4, 6.4, 1.9), load beyond the frame, 24.3, 5.6; K = 1 (N = 0.577): torque 20.3, 4.3, beyond the frame (rule 20.2, 4.2, 1.2), load 80.9, 15.6, 2.8; K = 0.5 (N = 0.447): torque 13.5, 2.8, beyond the frame (rule 13.5, 2.8, beyond the frame), load 53.4, 9.8, beyond the frame.",
+ "files": [
+  "fig_16_effect_map.pdf",
+  "fig_16_effect_map.png"
+ ],
+ "sources": [
+  "data/micropolar/stage6/concentric.json",
+  "data/micropolar/stage6/eccentric.json",
+  "tab_04_concentric_rows.csv",
+  "tab_09_eccentric_rows.csv"
+ ],
+ "numbers": {
+  "torque_noise_floor": 1.1113844126681689e-05,
+  "load_noise_floor": 0.00036413745913566054,
+  "crossings": {
+   "K = 3": {
+    "torque, exact": {
+     "0.01": 30.38728683508976,
+     "0.05": 6.386452860321159,
+     "0.2": 1.7791316201725396
+    },
+    "torque, slip-form rule": {
+     "0.01": 30.37241346479881,
+     "0.05": 6.3725983680686165,
+     "0.2": 1.8731210036543804
+    },
+    "load, film function": {
+     "0.01": null,
+     "0.05": 24.288039113706663,
+     "0.2": 5.554397688080968
+    }
+   },
+   "K = 1": {
+    "torque, exact": {
+     "0.01": 20.262257527122294,
+     "0.05": 4.259632301680677,
+     "0.2": null
+    },
+    "torque, slip-form rule": {
+     "0.01": 20.248275643199214,
+     "0.05": 4.2483989120457455,
+     "0.2": 1.2487473357695869
+    },
+    "load, film function": {
+     "0.01": 80.89617229650412,
+     "0.05": 15.610975467217967,
+     "0.2": 2.7826767296965547
+    }
+   },
+   "K = 0.5": {
+    "torque, exact": {
+     "0.01": 13.512213704169582,
+     "0.05": 2.8243113162289646,
+     "0.2": null
+    },
+    "torque, slip-form rule": {
+     "0.01": 13.498850428799475,
+     "0.05": 2.8322659413638296,
+     "0.2": null
+    },
+    "load, film function": {
+     "0.01": 53.422063139127744,
+     "0.05": 9.760872256556134,
+     "0.2": null
+    }
+   }
+  }
+ },
+ "tag": "host"
+}
