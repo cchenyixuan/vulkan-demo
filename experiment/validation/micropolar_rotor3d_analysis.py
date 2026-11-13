@@ -37,6 +37,8 @@ PAIRS = (("g20_k3_m1", "g20_newtonian"), ("g20s_k3_m1", "g20s_newtonian"),
          ("g40_k3_m2", "g40_newtonian"), ("g40_k3_m2_k2", "g40_newtonian"),
          ("g40_k3_m2", "g40_newtonian_k2"), ("g40_k3_m2_k2", "g40_newtonian_k2"))
 CHAINS = (("g40_k3_m2_k2", "g40_k3_m2"),)
+# (Newtonian run in the slip-form geometry of the wall rule, Newtonian control in the nominal geometry)
+RULES = (("g40_slip_newtonian_k2", "g40_newtonian_k2"),)
 # (run on the second lattice, run on the first): the scale for the differences of a chain against one slab
 LATTICES = (("g20s_k3_m1", "g20_k3_m1"), ("g20s_newtonian", "g20_newtonian"))
 # Runs that were stopped before their end (run -> case): what their samples_partial.npz holds is analysed with the
@@ -457,6 +459,27 @@ def command_analyse(arguments) -> int:
                     ("rotor_wall_change", 10), ("rotor_wall_lateral_change", 9), ("rotor_wall_end_change", 9),
                     ("rotor_circle_change", 9), ("rotor_circle_with_advection_change", 9),
                     ("housing_wall_change", 9), ("end_faces_plane_film_change", 12))))
+    rules = {}
+    for name, control in RULES:
+        if name not in records or control not in records:
+            continue
+        item, base = records[name], records[control]
+        entry = {"control": control,
+                 "midplane_change": item["midplane_fit"]["potential_vortex_constant"]
+                 / base["midplane_fit"]["potential_vortex_constant"] - 1.0}
+        if "torque" in item and "torque" in base:
+            for key in ("rotor_wall", "rotor_wall_lateral", "rotor_wall_end", "rotor_circle",
+                        "rotor_circle_with_advection", "housing_wall"):
+                if key in item["torque"] and key in base["torque"]:
+                    entry[f"{key}_change"] = item["torque"][key]["mean"] / base["torque"][key]["mean"] - 1.0
+        rules[name] = entry
+        say()
+        say(f"the wall rule in 3-D: Newtonian run in the slip-form geometry ({name}) over the Newtonian control "
+            f"({control}): change of the mid-plane constant {entry['midplane_change']:.4f}; torque "
+            + ", ".join(f"{label} {entry[key]:.4f}" for label, key in (
+                ("flux form", "rotor_circle_with_advection_change"), ("on the housing", "housing_wall_change"),
+                ("wall form", "rotor_wall_change"), ("lateral surface", "rotor_wall_lateral_change"),
+                ("end faces", "rotor_wall_end_change")) if key in entry))
     chains = {}
     for name, single in CHAINS:
         if name not in records or single not in records:
@@ -554,7 +577,7 @@ def command_analyse(arguments) -> int:
         target.parent.mkdir(parents=True, exist_ok=True)
         for record in partial_runs.values():
             record.get("exact_two_dimensional", {}).pop("solution", None)
-        target.write_text(json.dumps({"runs": records, "pairs": pairs, "chains": chains,
+        target.write_text(json.dumps({"runs": records, "pairs": pairs, "rules": rules, "chains": chains,
                                       "chain_samples": chain_samples, "lattice_samples": lattice_samples,
                                       "partial_runs": partial_runs}, indent=1), encoding="utf-8")
         target.with_suffix(".txt").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")

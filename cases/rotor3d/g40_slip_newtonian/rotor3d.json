@@ -1,0 +1,63 @@
+{
+ "title": "g40_slip_newtonian",
+ "spacing": 0.0025,
+ "smoothing_length": 0.01,
+ "gap": 0.1,
+ "rotor_radius": 0.30937500000000007,
+ "rotor_half_length": 0.15937500000000002,
+ "housing_radius": 0.390625,
+ "housing_half_height": 0.240625,
+ "nominal": {
+  "rotor_radius": 0.30000000000000004,
+  "rotor_half_length": 0.15000000000000002,
+  "housing_radius": 0.4,
+  "housing_half_height": 0.25
+ },
+ "displacements_in_spacings": {
+  "rotor_lateral": 3.75,
+  "rotor_end": 3.75,
+  "housing_lateral": 3.75,
+  "housing_end": 3.75
+ },
+ "rotation_rate": 3.131313131313131,
+ "end_rotation_rate": 3.333333333333333,
+ "wall_speed": 1.0,
+ "far_viscosity": 0.01,
+ "reynolds": 10.0,
+ "mach": 0.02,
+ "speed_of_sound": 50.0,
+ "micropolar": false,
+ "coupling_ratio": null,
+ "micropolar_length": null,
+ "design_viscosity": 0.01,
+ "design_viscosity_transfer": 0.0,
+ "design_coupling": 0.0,
+ "design_viscosity_rotation": 0.0,
+ "design_micro_inertia": 0.0,
+ "epsilon_squared_factor": 1e-06,
+ "viscous_form": "laplacian",
+ "wall_boundary": "adami",
+ "delta_fluid_only": true,
+ "timestep": 3e-05,
+ "dt_acoustic": 3e-05,
+ "dt_viscous": 0.00020500000000000002,
+ "dt_angular": 0.00022266666666666667,
+ "governing": "acoustic",
+ "end_time": 1.5000000000000002,
+ "steps": 51000,
+ "counts": {
+  "domain": 8572480,
+  "rotor_lateral": 799040,
+  "rotor_end": 808106,
+  "housing": 3293514
+ },
+ "fluid_count": 8572480,
+ "wall_layers": 9,
+ "geometry": "cases/rotor3d/geometry_g040_slip",
+ "lattice_offset": [
+  0.0,
+  0.0,
+  0.5
+ ],
+ "lattice_angle": 0.0
+}

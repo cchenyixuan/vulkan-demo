@@ -163,6 +163,12 @@ def main() -> int:
 
         def change(run, key):
             return f"{pairs[run][key]:.4f}" if key in pairs[run] else "-"
+        rules = analysis.get("rules", {})
+
+        def rule(run, key):
+            # the Newtonian run in the slip-form geometry of the rule that shares this column's control
+            entry = next((entry for entry in rules.values() if entry["control"] == pairs[run]["control"]), None)
+            return f"{entry[key]:.4f}" if entry and key in entry else "-"
         specification = [
             ("g / dx; l / dx; m = g / (2 l)", r"$g/\Delta x$; $l/\Delta x$; $m$",
              lambda run: f"{runs_[run]['gap_in_spacings']:g}; {runs_[run]['length_in_spacings']:g}; "
@@ -185,6 +191,16 @@ def main() -> int:
              lambda run: change(run, "rotor_wall_lateral_change")),
             ("D_T, wall form, end faces", r"$D_T$, end faces", lambda run: change(run, "rotor_wall_end_change")),
             ("exact 2-D D for the radii (lateral gap)", r"$D$, exact 2-D", lambda run: change(run, "two_dimensional_change")),
+            ("the wall rule (Newtonian run in the slip-form geometry over the control): D_T, flux form",
+             r"rule: $D_T$, flux form", lambda run: rule(run, "rotor_circle_with_advection_change")),
+            ("the wall rule: D_T on the housing", r"rule: $D_T$, housing", lambda run: rule(run, "housing_wall_change")),
+            ("the wall rule: D_T, wall form", r"rule: $D_T$, wall form", lambda run: rule(run, "rotor_wall_change")),
+            ("the wall rule: D_T, wall form, lateral surface", r"rule: $D_T$, lateral surface",
+             lambda run: rule(run, "rotor_wall_lateral_change")),
+            ("the wall rule: D_T, wall form, end faces", r"rule: $D_T$, end faces",
+             lambda run: rule(run, "rotor_wall_end_change")),
+            ("the wall rule: change of the mid-plane constant", r"rule: $D$, mid-plane",
+             lambda run: rule(run, "midplane_change")),
             ("exact plane film between two discs (end faces)", "plane film, end faces",
              lambda run: change(run, "end_faces_plane_film_change")),
             ("mid-plane constant over the 2-D one, Newtonian", "mid-plane constant / 2-D, Newtonian",

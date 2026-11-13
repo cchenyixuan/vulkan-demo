@@ -1,0 +1,21 @@
+{
+ "spacing": 0.0025,
+ "rotor_radius": 0.30937500000000007,
+ "rotor_half_length": 0.15937500000000002,
+ "housing_radius": 0.390625,
+ "housing_half_height": 0.240625,
+ "wall_layers": 9,
+ "lattice_offset": [
+  0.0,
+  0.0,
+  0.5
+ ],
+ "lattice_angle": 0.0,
+ "frame_margin": 2.0,
+ "counts": {
+  "domain": 8572480,
+  "rotor_lateral": 799040,
+  "rotor_end": 808106,
+  "housing": 3293514
+ }
+}
