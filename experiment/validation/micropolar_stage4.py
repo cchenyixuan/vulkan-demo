@@ -517,7 +517,8 @@ def command_analyse(arguments) -> int:
     # section 1: orders along the two series
     orders = {}
     for series, members in (("m = 5", ["g050_k3_m5", "g100_k3_m5", "g200_k3_m5"]),
-                            ("m = 10", ["g100_k3_m10", "g200_k3_m10", "g400_k3_m10"])):
+                            ("m = 10", ["g100_k3_m10", "g200_k3_m10", "g400_k3_m10"]),
+                            ("m = 20", ["g200_k3_m20", "g400_k3_m20"])):
         present = [member for member in members if member in results and "difference" in results[member]]
         if len(present) < 2:
             continue

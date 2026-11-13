@@ -1,0 +1,131 @@
+{
+ "run": "g20_two_slab_one_card",
+ "state": "state_00002000.npz",
+ "cut_x": 0.113749988079071,
+ "device_map": [
+  0,
+  0
+ ],
+ "support": 0.02,
+ "spacing": 0.005,
+ "pressure": {
+  "saved_rms": 210.26180287516183,
+  "density_unit_in_the_last_place": 6.103515625e-05,
+  "pressure_of_one_density_unit": 0.152587890625,
+  "host_equation_of_state_minus_saved_rms": 0.24205005260974163,
+  "host_equation_of_state_minus_saved_max": 0.5109024047851562,
+  "share_equal_to_the_bit": 0.0
+ },
+ "near_the_rotor": {
+  "targets": 6604,
+  "acceleration_rms": 2.418772734779939,
+  "bins": [
+   [
+    -200,
+    -8
+   ],
+   [
+    -8,
+    -4
+   ],
+   [
+    -4,
+    0
+   ],
+   [
+    0,
+    4
+   ],
+   [
+    4,
+    8
+   ],
+   [
+    8,
+    200
+   ]
+  ],
+  "variants": {
+   "saved pressures (the check as it is)": [
+    8.3448353750669e-07,
+    9.313419651378637e-07,
+    9.6810729003241e-07,
+    1.0263704112651848e-06,
+    1.1361044456891375e-06,
+    2.590107761324625e-06
+   ],
+   "fluid neighbours across the cut: equation of state of their saved density": [
+    8.3448353750669e-07,
+    9.313419651378637e-07,
+    0.0034543578843000064,
+    0.0031854449344409985,
+    1.1361044456891375e-06,
+    2.590107761324625e-06
+   ],
+   "every fluid neighbour: equation of state of its saved density": [
+    0.004592145075089311,
+    0.004190298656808081,
+    0.004345598714450484,
+    0.004361643374305305,
+    0.004209341347812561,
+    0.0037705968888051525
+   ]
+  }
+ },
+ "no_wall_neighbour": {
+  "targets": 5182,
+  "acceleration_rms": 1.4800740154330922,
+  "bins": [
+   [
+    -200,
+    -8
+   ],
+   [
+    -8,
+    -4
+   ],
+   [
+    -4,
+    0
+   ],
+   [
+    0,
+    4
+   ],
+   [
+    4,
+    8
+   ],
+   [
+    8,
+    200
+   ]
+  ],
+  "variants": {
+   "saved pressures (the check as it is)": [
+    1.112573637867528e-06,
+    1.2660117011460776e-06,
+    1.5444574400504078e-06,
+    1.5437371709210129e-06,
+    1.6413386538229118e-06,
+    3.6770046714852468e-06
+   ],
+   "fluid neighbours across the cut: equation of state of their saved density": [
+    1.112573637867528e-06,
+    1.2660117011460776e-06,
+    0.006569949694870469,
+    0.0052119306154085705,
+    1.6413386538229118e-06,
+    3.6770046714852468e-06
+   ],
+   "every fluid neighbour: equation of state of its saved density": [
+    0.00395033758291467,
+    0.00404990910905502,
+    0.00306080607976728,
+    0.0034685154027192092,
+    0.0023674438982445143,
+    0.0018255303621878233
+   ]
+  }
+ }
+}

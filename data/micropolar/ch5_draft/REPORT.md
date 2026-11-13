@@ -1,8 +1,8 @@
 # Chapter 5: what the solver has shown
 
-Written 2026-11-13 15:27 at commit `0c4e099` (branch `v9-micropolar`; solver tag `thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number below is read from the data files by `report.py`; the captions with all parameters and run names are in `captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6) and 16 (Stage 7).
+Written 2026-11-13 15:57 at commit `5310c11` (branch `v9-micropolar`; solver tag `thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number below is read from the data files by `report.py`; the captions with all parameters and run names are in `captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6) and 16 (Stage 7).
 
-**State.** Every item is final except the one row at g = 400 dx (m = 20, K = 3, l = 10 dx): its Newtonian control is done, the micropolar run is going; items 02 to 04 gain that row when it ends. Nothing else is pending and there is no further queue.
+**State.** Every run of the chapter is done.
 
 Marks: **[run]** measured in a particle run on the tag; **[host]** computed on the host without the particle solver; **[inferred]** my reading, not measured.
 
@@ -41,6 +41,7 @@ Thesis configuration with `numerics.delta_fluid_only: true`, Re = 10 on mu_inf, 
 | 3 | 10 | 100 | 5 | 0.03219 | 0.03121 | 1.0313 | 0.0061 | 0.9985 |
 | 3 | 10 | 200 | 10 | 0.03144 | 0.03121 | 1.0075 | 0.0004 | 0.9985 |
 | 3 | 20 | 200 | 5 | 0.01579 | 0.01530 | 1.0322 | 0.0007 | 0.9992 |
+| 3 | 20 | 400 | 10 | 0.01553 | 0.01530 | 1.0152 | 0.0007 | 0.9992 |
 | 1 | 1 | 100 | 50 | 0.18957 | 0.18950 | 1.0004 | 0.0012 | 1.4053 |
 | 1 | 2 | 100 | 25 | 0.11030 | 0.11020 | 1.0009 | 0.0019 | 1.0363 |
 | 1 | 5 | 100 | 10 | 0.04247 | 0.04221 | 1.0061 | 0.0046 | 0.9973 |
@@ -52,8 +53,9 @@ Thesis configuration with `numerics.delta_fluid_only: true`, Re = 10 on mu_inf, 
 | 0.5 | 10 | 200 | 10 | 0.01366 | 0.01358 | 1.0061 | 0.0008 | 0.9987 |
 | 0.5 | 20 | 200 | 5 | 0.00689 | 0.00673 | 1.0241 | 0.0017 | 0.9993 |
 
-- **Resolution of the layer decides the error:** run / exact is 1.0241 to 1.0322 at l = 5 dx; 1.0052 to 1.0075 at l = 10 dx; 1.0015 at l = 20 dx; 1.0009 to 1.0015 at l = 25 dx; 1.0004 to 1.0012 at l = 50 dx.
-- **Order in h / l** between successive resolutions of one row: 2.03 to 2.30.
+- **Resolution of the layer decides the error:** run / exact is 1.0241 to 1.0322 at l = 5 dx; 1.0052 to 1.0152 at l = 10 dx; 1.0015 at l = 20 dx; 1.0009 to 1.0015 at l = 25 dx; 1.0004 to 1.0012 at l = 50 dx.
+- **Order in h / l** between successive resolutions of one row: m = 5: 2.03, 2.30; m = 10: 2.06; m = 20: 1.09.
+- **The pair at g = 400 dx** (m = 20, K = 3, l = 10 dx; 625,000 steps each, every counter zero): run / exact 1.0152, against 1.0322 for the same m at l = 5 dx. The excess of the m = 20 row halves with the resolution of the layer. **It does not land on the other rows at l = 10 dx** (1.0052 to 1.0075, where one doubling took a factor of four): D is 1.2e-04 above them, about 10 times the lattice floor at g = 200 dx. What is known of the pair: its step is the only one set by the viscous limit; it has one lattice, so no floor of its own (the table carries that of g = 200 dx); and its control is in another state than the others: constant over nominal 1.000006 (0.999791 at g = 200 dx), hydrodynamic radii +0.005 and +0.007 dx from the nominal ones (-0.064 and -0.066), mean density +1.2e-06 rho0 (-5.4e-06), rms of the fit 9.4e-05 U (1.5e-05). The fitted constants are steady. **Not explained**, and not followed: nothing else was to run at g = 400 dx. I would quote the row as 'the excess at m = 20 halves', not as a point of the l / dx law.
 - **Noise floor** (spread of the control's constant over three lattices): 4.2e-04 at g = 50 dx, 1.8e-04 at g = 100 dx, 1.1e-05 at g = 200 dx.
 - **The wall rule in its slip form** over exact: m = 1: 1.3645 to 1.4873; m = 2: 1.0347 to 1.0392; m = 5: 0.9972 to 0.9974; m = 10: 0.9985 to 0.9987; m = 20: 0.9992 to 0.9993. Exact up to exponentially small terms for shear-driven flow once m is about 5 or more; it fails below m of about 2.
 
@@ -196,6 +198,6 @@ Noise floors shaded in the figure: 1.1e-05 (torque, g = 200 dx) and 3.6e-04 (cha
 - **3-D torque change:** three readings, 0.185 to 0.197 at g = 40 dx; there is no exact 3-D value. Say which reading is quoted.
 - **The cylinder cases carry `numerics.delta_fluid_only: true`** (the key), the cavity cases the default walls. With the key the level of the pressure wanders (recorded for every run; no reading follows it).
 - **Kinetic energy of the cavity** is quoted over the fluid mass (the particle masses sum to 1.134 rho0 L^2 at n = 500).
-- **Within one support of a slab cut** the card's acceleration differs from a host sum over the saved particles by 2e-3 to 4e-3 of its rms; 1e-6 elsewhere. Tested on the saved two-slab state (`rotor3d_cut_check.txt`): taking the neighbours' pressure from the host's equation of state of their single-precision density does not bring it to 1e-6, because the host's evaluation is neither card's (0.21 Pa rms from the saved pressure). It is the difference the two cards show against each other in every particle in the seam check (4e-3 m/s^2, there 4e-5 of a prescribed field of 109 m/s^2), seen here only where a card uses pressures of particles it does not own; [inferred] the cards' evaluation of the power in the Tait equation. No measured quantity of the pack moves by it (two slabs against one: 2e-5 U in the cavity).
+- **Within one support of a slab cut** the card's acceleration differs from a host sum over the saved particles by 2e-3 to 4e-3 of its rms; 1e-6 elsewhere. Tested on the saved two-slab state (`rotor3d_cut_check.txt`): taking the neighbours' pressure from the host's equation of state of their single-precision density does not bring it to 1e-6, because the host's evaluation is neither card's (0.21 Pa rms from the saved pressure). It is the difference the two cards show against each other in every particle in the seam check (4e-3 m/s^2, there 4e-5 of a prescribed field of 109 m/s^2), seen here only where a card uses pressures of particles it does not own. **[run] The cause is the two cards' own evaluation of the equation of state:** the same two slabs with both on the 5090 (2,000 steps at g = 20 dx) show 9.7e-07 and 1.0e-06 within one support of the cut, the value of the interior; on 5090 + XTX 2.1e-03 and 1.9e-03 (`rotor3d_cut_check_one_card.txt`, `rotor3d_cut_check_two_cards.txt`). No measured quantity of the pack moves by it (two slabs against one: 2e-5 U in the cavity).
 - **Not run:** g = 400 dx rows other than the one pair; g = 80 dx; displaced (rule) runs in 3-D; a particle cavity run at l = L / 40.
 

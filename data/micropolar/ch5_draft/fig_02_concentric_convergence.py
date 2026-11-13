@@ -13,7 +13,12 @@ import style
 
 SOURCE = sources.CONCENTRIC
 SERIES = {"m = 5": ["g050_k3_m5", "g100_k3_m5", "g200_k3_m5"],
-          "m = 10": ["g100_k3_m10", "g200_k3_m10", "g400_k3_m10"]}
+          "m = 10": ["g100_k3_m10", "g200_k3_m10", "g400_k3_m10"],
+          "m = 20": ["g200_k3_m20", "g400_k3_m20"]}
+# the series whose points enter the fitted power law (the pair at g = 400 dx is the only one at the viscous limit of
+# the step and has no lattices of its own: shown, not fitted)
+FITTED = ("m = 5", "m = 10")
+LINES = ("-", (0, (3, 2)), "-.")
 SUPPORT_IN_SPACINGS = 5.0
 
 
@@ -31,14 +36,14 @@ def main() -> int:
         deviation = np.array([abs(runs[name]["difference"]) / runs[name]["exact_hydrodynamic"] for name in present])
         floor = np.array([runs[name]["noise_floor_of_change"] / runs[name]["exact_hydrodynamic"] for name in present])
         filled = index == 0
-        line = {"color": style.SERIES[index][0], "linewidth": 0.6, "linestyle": "-" if filled else (0, (3, 2))}
+        line = {"color": style.SERIES[index][0], "linewidth": 0.6, "linestyle": LINES[index]}
         axes[0].plot(length, deviation, **{**style.run_markers(index, filled),
                                            "markerfacecolor": line["color"] if filled else "none",
                                            "markersize": style.MARKER_SIZE + (0.0 if filled else 2.0)},
                      label=rf"$m = {label[4:]}$", zorder=3)
         # the noise floor of D (spread of beta over the three lattices), as a short bar under each point
         axes[0].plot(length, floor, linestyle="none", marker="_", markersize=9.0, color=style.SERIES[index][0])
-        above = deviation > floor
+        above = (deviation > floor) & (label in FITTED)
         pooled_length += list(length[above])
         pooled_deviation += list(deviation[above])
         for axis, core, wall in ((axes[1], "velocity_error_core", "velocity_error_wall_layers"),
@@ -75,7 +80,10 @@ def main() -> int:
         style.panel_letter(axis, letter)
     handles, labels = axes[0].get_legend_handles_labels()
     handles.append(plt.Line2D([], [], color=style.MUTED, marker="_", markersize=9.0, linestyle="none"))
-    axes[0].legend(handles, labels + ["noise floor"], loc="lower left", handletextpad=0.2)
+    # room below the lowest floor bar for the legend, which has four entries with the third series
+    axes[0].set_ylim(bottom=5.0e-6)
+    axes[0].legend(handles, labels + ["noise floor"], loc="lower left", handletextpad=0.2, labelspacing=0.3,
+                   borderaxespad=0.3)
     handles = [plt.Line2D([], [], color=style.MUTED, marker="o", markersize=style.MARKER_SIZE, linestyle="none",
                           label="core"),
                plt.Line2D([], [], color=style.MUTED, marker="s", markersize=style.MARKER_SIZE, linestyle="none",
@@ -93,11 +101,21 @@ def main() -> int:
         "(l / dx = 5, 10, 20; h = 5 dx; Ma = 0.02, Re = 10 on mu_inf, 25 on mu). (a) Deviation of the relative "
         "torque change D (velocity fit, against the run's Newtonian control) from the exact value; horizontal bars: "
         "the noise floor of D (spread of the control's beta over three lattices); dotted: power law through the "
-        f"points above their floor, order {-order:.1f}. (b), (c) Rms deviation of the bin means of v_theta and of w "
+        f"points of m = 5 and m = 10 above their floor, order {-order:.1f}. (b), (c) Rms deviation of the bin means "
+        "of v_theta and of w "
         "from the exact profiles, relative to the rms of the profile, further than h from both walls (circles) and "
         "within h of a wall (squares). Filled symbols, solid lines: m = 5 (runs "
         + ", ".join(f"`{name}`" for name in SERIES["m = 5"] if name in used) + "); open symbols, dashed lines: "
-        "m = 10 (" + ", ".join(f"`{name}`" for name in SERIES["m = 10"] if name in used) + "). "
+        "m = 10 (" + ", ".join(f"`{name}`" for name in SERIES["m = 10"] if name in used) + ")"
+        + ("; open triangles, dash-dotted lines: m = 20 ("
+           + ", ".join(f"`{name}`" for name in SERIES["m = 20"] if name in used)
+           + "; l = 5 dx at g = 200 dx and l = 10 dx at g = 400 dx. The pair at g = 400 dx is the only one whose step "
+             "is set by the viscous limit; it has one lattice and carries the floor of g = 200 dx; it is not in the "
+             "fitted line)" if any(name in used for name in SERIES["m = 20"]) else "") + ". "
+        + "Order between successive resolutions: "
+        + "; ".join(f"{label}: " + ", ".join(f"{entry['orders']['deviation']:.2f}" for entry in series
+                                              if entry["orders"]["deviation"] == entry["orders"]["deviation"])
+                    for label, series in analysis["resolution_orders"].items()) + ". "
         f"Tag {data.tags(runs, used)}. Deviation of D: "
         + listing(lambda record: 100.0 * record["difference"] / record["exact_hydrodynamic"], "{:+.2f} %") + ".")
     missing = [name for names in SERIES.values() for name in names if name not in used]

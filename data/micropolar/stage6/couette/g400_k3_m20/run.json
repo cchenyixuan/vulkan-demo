@@ -1,0 +1,110 @@
+{
+ "case": "cases/couette_stage6/g400_k3_m20",
+ "couette": {
+  "title": "g400_k3_m20",
+  "spacing": 0.00025,
+  "smoothing_length": 0.00125,
+  "gap": 0.1,
+  "inner_radius": 0.4,
+  "outer_radius": 0.5,
+  "eccentricity": 0.0,
+  "rotation_rate": 2.5,
+  "wall_speed": 1.0,
+  "far_viscosity": 0.01,
+  "reynolds": 10.0,
+  "mach": 0.02,
+  "speed_of_sound": 50.0,
+  "micropolar": true,
+  "coupling_ratio": 3.0,
+  "micropolar_length": 0.0025,
+  "design_viscosity": 0.016,
+  "design_viscosity_transfer": -0.004,
+  "design_coupling": 0.012,
+  "design_viscosity_rotation": 9.375000000000002e-08,
+  "design_micro_inertia": 6.25e-06,
+  "rotor_micro_rotation": 0.0,
+  "viscous_form": "laplacian",
+  "wall_boundary": "adami",
+  "density_diffusion": true,
+  "delta_fluid_only": true,
+  "wall_density": "rho0",
+  "epsilon_squared_factor": "1.0e-6",
+  "timestep": 3.2031250000000004e-06,
+  "dt_acoustic": 3.75e-06,
+  "dt_viscous": 3.2031250000000004e-06,
+  "dt_angular": 3.4791666666666667e-06,
+  "governing": "viscous",
+  "step_number": 0.0328,
+  "step_number_angular": 0.0334,
+  "end_time": 2.0000000000000004,
+  "steps": 625000,
+  "fluid_count": 4523968,
+  "inner_count": 110220,
+  "outer_count": 138480,
+  "lattice_offset": [
+   0.0,
+   0.0
+  ],
+  "lattice_angle": 0.0,
+  "radii_in_spacings": {
+   "fluid_at_inner_wall_min": 1600.0003124999696,
+   "fluid_at_outer_wall_max": 1999.9992499998596,
+   "inner_wall_min": 1589.0003146632791,
+   "inner_wall_max": 1600.0,
+   "outer_wall_min": 2000.0,
+   "outer_wall_max": 2010.9987568370102
+  }
+ },
+ "revision": {
+  "commit": "5b63f422327bf7aec8df69a39488709ab82ed07c",
+  "describe": "thesis-ch5-rc2-36-g5b63f42",
+  "shaders_tree": "92a962153a107d7380b841e57e108b938e26c983",
+  "utils_tree": "7815b15418938e514c10e9a9e5f199368e3c404d",
+  "solver_modified": false
+ },
+ "state_steps": [
+  470000,
+  485000,
+  500000,
+  510000,
+  525000,
+  540000,
+  555000,
+  570000,
+  585000,
+  595000,
+  610000,
+  625000
+ ],
+ "slabs": 1,
+ "device_map": [
+  0
+ ],
+ "weights": [
+  1.0
+ ],
+ "steps": 625000,
+ "sample_steps": 5000,
+ "timestep": 3.2031249999999995e-06,
+ "particles": 4772668,
+ "counters": {
+  "overflow_inside_count": 0,
+  "overflow_incoming_count": 0,
+  "overflow_ghost_count": 0,
+  "overflow_install_tail": 0,
+  "overflow_install_inside": 0,
+  "stamp_error_count": 0,
+  "overflow_departed_count": 0,
+  "far_migration_count": 0,
+  "overflow_initialization_outside": 0,
+  "overflow_deep_wall_skip_count": 0
+ },
+ "elapsed_seconds": 6910.169955500052,
+ "failure": null,
+ "steps_per_second": 90.44640059866256,
+ "cuts_x": [],
+ "slab_particles": [
+  4772668
+ ],
+ "reduced": "sums of the samples over the eight windows of an eighth of the run"
+}

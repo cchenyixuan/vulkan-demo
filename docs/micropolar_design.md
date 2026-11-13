@@ -3738,12 +3738,19 @@ commands in its `README.md`); the plan of the stage is `logs/micropolar/stage7/p
   So evaluating the pressure again from the density in single precision moves the acceleration by the size seen at
   the cut, as the reading of the difference needs; but the test cannot reproduce a card's own evaluation and cannot
   close to 1e-6. The Newtonian state gives the same (3.7e-03 and 3.6e-03) and so do targets without a wall neighbour
-  (5.0e-03): not the walls, not the micropolar terms. [inferred] The two cards evaluate the power of the Tait
-  equation differently: on the XTX side the host's values for the 5090's particles fit better than the values the
-  5090 stored, on the 5090 side worse. [prediction, not run: this part had no card] the cut of a two-slab state from
-  one card shows no excess. **How it fits the per-particle seam checks of 15.4.5** (3e-5 with nothing extra near the
-  cut): it is the state and the comparison, not the dimension (both are the 3-D case at g = 20 dx, where host
-  against card read 2e-3). The state: after 20 steps the prescribed fields of the seam check have an rms
+  (5.0e-03): not the walls, not the micropolar terms. **Tested on the cards (15:50, when the 5090 was free):** 2,000
+  steps of the g = 20 dx case on two slabs with the same cut (weights 1.3 : 0.7), once with both slabs on the 5090
+  (`g20_two_slab_one_card`, `rotor3d_cut_check_one_card.txt`) and once on 5090 + XTX (`g20_two_slab_two_cards`,
+  `rotor3d_cut_check_two_cards.txt`); every counter zero. Host against card within one support of the cut: 9.7e-07
+  and 1.0e-06 with both slabs on one card, the value of the interior (9.3e-07 and 1.1e-06 in the next bins); 2.1e-03
+  and 1.9e-03 on the two cards (targets without a wall neighbour: 1.5e-06 and 1.5e-06 against 3.4e-03 and 3.3e-03).
+  **A two-slab state from one card has no excess at the cut: the cause is the two cards' own evaluation of the
+  equation of state**, and neither the packing of the replicas, the transport nor the single-precision density. The
+  control inside the test: on the one-card state the host's values for the neighbours across the cut make the
+  difference 3.5e-03 and 3.2e-03, as much as the second card does; a second evaluation of the pressure from the same
+  density is enough for the size seen. **How it fits the per-particle seam checks of 15.4.5** (3e-5 with nothing
+  extra near the cut): it is the state and the comparison, not the dimension (both are the 3-D case at g = 20 dx,
+  where host against card read 2e-3). The state: after 20 steps the prescribed fields of the seam check have an rms
   acceleration of 109 m/s^2 (pressure 3,851 Pa), the settled flow 2.4 m/s^2 (100 Pa). The two-card run of the seam
   check differs from the one-slab run by 3.7e-05 of that near the cut, 4.0e-3 m/s^2; host against card by 2e-3 of
   2.43 m/s^2, 4.9e-3 m/s^2: the same absolute size (1.1e-2 m/s^2 at g = 40 dx; it goes with 1 / h). The comparison:
@@ -3761,14 +3768,13 @@ commands in its `README.md`); the plan of the stage is `logs/micropolar/stage7/p
 | 2 | `g40_newtonian_k2`: its Newtonian control | 5090 + XTX | 51,000 | 7.4 | 115 min | 13 | every counter zero |
 | 3 | `g200_k1_m5`: concentric, K = 1, l = 20 dx, second run | 5090 | 267,000 | 271.0 | 16 min | 12 | every counter zero |
 | 4 | `g400_newtonian_k3`: control of the pair at g = 400 dx | 5090 | 625,000 | 116.7 | 89 min | 12 | every counter zero |
-| 4 | `g400_k3_m20`: K = 3, m = 20, l = 10 dx at g = 400 dx | 5090 | - | - | - | - | not finished when this was written |
+| 4 | `g400_k3_m20`: K = 3, m = 20, l = 10 dx at g = 400 dx | 5090 | 625,000 | 90.4 | 115 min | 12 | every counter zero |
 
 - One 3-D run at a time with nothing beside it; one job per call of the runner (`--one-job`), the analysis of a run
   in the pause before the next. Run 1 from its beginning to 1.5 g^2 / nu_inf with 13 wall-band states (step 39,000,
   the first sample of the averaging window, and every 1,000 steps to 51,000; 0.75 GB each with the housing band;
   none skipped for the disk). Run 2 on the same particles with the same dt (3.0e-5 s). Run 3 is the row whose states
-  I had removed in Stage 6. Run 4 (the machine was free at 12:24): the control finished; the micropolar run had not
-  when this was written.
+  I had removed in Stage 6. Run 4: both runs of the pair finished.
 
 ### 16.2 The 3-D case at g = 40 dx **[run]**
 
@@ -3891,12 +3897,24 @@ m = g / (2 l) is 2 here and 1 there: the two columns are two cases, not one case
 - **Host against card differs within one support of a cut** by 2e-3 to 4e-3 of the rms of the acceleration (16.0);
   elsewhere 1e-6. It is the difference two cards show against each other in every particle (4e-3 m/s^2 in the seam
   check), seen here only at the cut; the test with the host's equation of state does not close it, because the host
-  cannot reproduce a card's evaluation. The torque check had not shown it before because it had only seen one-slab
-  states.
+  cannot reproduce a card's evaluation. Two slabs on one card show no excess at the cut (1e-6): it is the two cards'
+  own evaluation of the equation of state. The torque check had not shown it before because it had only seen
+  one-slab states.
 - **Tractions of different grids do not extrapolate** with a window that ends on nodes (16.4); ratios on like grids
   do.
-- **Run 4:** the pair at g = 400 dx was started when runs 1 to 3 were done (12:24). Each run is 625,000 steps of 4.8
-  million particles (the viscous limit sets the step). The control is done; the micropolar run was going when this
-  was written. Items 02 to 04 change only when both are done.
+- **Run 4:** both runs of the pair at g = 400 dx finished (625,000 steps each of 4.8 million particles, 89 and 115
+  min on the 5090, every counter zero). D = 0.01553 against the exact 0.01530: run / exact 1.0152, where the same m
+  with l = 5 dx (g = 200 dx) gave 1.0322. The excess of the m = 20 row halves with the resolution of the layer. **It
+  does not land on the other rows at l = 10 dx** (1.0052 to 1.0075 for m = 5 and 10, where one doubling took a
+  factor of four; order 1.09 here): D is 1.2e-04 above them, 10 times the lattice floor at g = 200 dx. What is known
+  of the pair: its step is the only one set by the viscous limit (cfl 0.128 for 0.15; 2.3 times the steps of a run
+  at g = 200 dx); it has one lattice and so no floor of its own (the tables carry that of g = 200 dx, which the
+  analysis takes as an upper bound; not measured); and its control is in another state than the controls at g = 50
+  to 200 dx: constant over nominal 1.000006 (0.998998, 0.999612, 0.999791), hydrodynamic radii +0.005 and +0.007 dx
+  from the nominal ones (-0.04 to -0.10 in the nine others), rms of the fit 9.4e-05 U (5e-6 to 1.7e-5), mean density
+  +1.2e-06 rho0 (-5.4e-06 at g = 200 dx), a pressure level of the other sign. The fitted constants are steady
+  (1.4e-6 and 2.0e-6 between the last two eighths; 1e-5 over the last four). **Not explained and not followed**:
+  nothing else was to run at g = 400 dx. Items 03 and 04 carry the row, item 02 shows it as a third series outside
+  the fitted line. It supports 'the excess at m = 20 halves'; it is not a point of the l / dx law of the other rows.
 - **Not done, by the task:** no run at g = 80 dx, no displaced run, no particle cavity run at l = L / 40, no
   finite-difference case l = L / 160, no other row at g = 400 dx. There is no further queue.

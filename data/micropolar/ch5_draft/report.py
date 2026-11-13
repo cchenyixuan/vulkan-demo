@@ -97,7 +97,33 @@ def main() -> int:
         orders += [entry["orders"]["deviation"] for entry in series
                    if entry["orders"]["deviation"] == entry["orders"]["deviation"]]
     if orders:
-        say(f"- **Order in h / l** between successive resolutions of one row: {span(orders, '{:.2f}')}.")
+        say("- **Order in h / l** between successive resolutions of one row: "
+            + "; ".join(f"{label}: " + ", ".join(f"{entry['orders']['deviation']:.2f}" for entry in series
+                                                  if entry["orders"]["deviation"] == entry["orders"]["deviation"])
+                        for label, series in concentric["resolution_orders"].items()) + ".")
+    fine, coarse = (concentric["runs"].get(name) for name in ("g400_k3_m20", "g200_k3_m20"))
+    control, coarse_control = (concentric["runs"].get(name) for name in ("g400_newtonian_k3", "g200_newtonian"))
+    if fine and coarse and control and coarse_control:
+        others = [float(row["D_SPH/D_exact"]) for row in rows
+                  if float(row["l/dx"]) == 10.0 and row["run"] != "g400_k3_m20"]
+        expected = fine["exact_hydrodynamic"] * max(others)
+        say(f"- **The pair at g = 400 dx** (m = 20, K = 3, l = 10 dx; 625,000 steps each, every counter zero): run / "
+            f"exact {fine['sph_over_exact']:.4f}, against {coarse['sph_over_exact']:.4f} for the same m at l = 5 dx. "
+            "The excess of the m = 20 row halves with the resolution of the layer. **It does not land on the other "
+            f"rows at l = 10 dx** ({span(others)}, where one doubling took a factor of four): D is "
+            f"{fine['relative_torque_change'] - expected:.1e} above them, about "
+            f"{(fine['relative_torque_change'] - expected) / coarse['noise_floor_of_change']:.0f} times the lattice "
+            "floor at g = 200 dx. What is known of the pair: its step is the only one set by the viscous limit; it "
+            "has one lattice, so no floor of its own (the table carries that of g = 200 dx); and its control is in "
+            f"another state than the others: constant over nominal {control['beta_over_nominal']:.6f} "
+            f"({coarse_control['beta_over_nominal']:.6f} at g = 200 dx), hydrodynamic radii "
+            f"{control['inner_offset_in_spacings']:+.3f} and {control['outer_offset_in_spacings']:+.3f} dx from the "
+            f"nominal ones ({coarse_control['inner_offset_in_spacings']:+.3f} and "
+            f"{coarse_control['outer_offset_in_spacings']:+.3f}), mean density {control['density_level']:+.1e} rho0 "
+            f"({coarse_control['density_level']:+.1e}), rms of the fit "
+            f"{control['fit']['fit_rms_over_wall_speed']:.1e} U ({coarse_control['fit']['fit_rms_over_wall_speed']:.1e}). "
+            "The fitted constants are steady. **Not explained**, and not followed: nothing else was to run at "
+            "g = 400 dx. I would quote the row as 'the excess at m = 20 halves', not as a point of the l / dx law.")
     floors = concentric["noise_floors"]
     say("- **Noise floor** (spread of the control's constant over three lattices): "
         + ", ".join(f"{floors[key]['relative_spread']:.1e} at g = {key} dx" for key in sorted(floors, key=int)) + ".")
@@ -305,6 +331,15 @@ def main() -> int:
         say()
 
     # ---- cautions ------------------------------------------------------------------------------------------------
+    one_card_sentence = "[inferred] the cards' evaluation of the power in the Tait equation."
+    if (DATA / "rotor3d_cut_check_one_card.json").exists() and (DATA / "rotor3d_cut_check_two_cards.json").exists():
+        one, two = (next(iter(load(DATA / f"rotor3d_cut_check_{name}.json")["near_the_rotor"]["variants"].values()))
+                    for name in ("one_card", "two_cards"))
+        one_card_sentence = (
+            "**[run] The cause is the two cards' own evaluation of the equation of state:** the same two slabs with "
+            f"both on the 5090 (2,000 steps at g = 20 dx) show {one[2]:.1e} and {one[3]:.1e} within one support of "
+            f"the cut, the value of the interior; on 5090 + XTX {two[2]:.1e} and {two[3]:.1e} "
+            "(`rotor3d_cut_check_one_card.txt`, `rotor3d_cut_check_two_cards.txt`).")
     say("## 9. To be careful with in the text")
     say()
     for line in (
@@ -324,9 +359,8 @@ def main() -> int:
             "single-precision density does not bring it to 1e-6, because the host's evaluation is neither card's "
             "(0.21 Pa rms from the saved pressure). It is the difference the two cards show against each other in "
             "every particle in the seam check (4e-3 m/s^2, there 4e-5 of a prescribed field of 109 m/s^2), seen "
-            "here only where a card uses pressures of particles it does not own; [inferred] the cards' evaluation "
-            "of the power in the Tait equation. No measured quantity of the pack moves by it (two slabs against "
-            "one: 2e-5 U in the cavity).",
+            "here only where a card uses pressures of particles it does not own. " + one_card_sentence
+            + " No measured quantity of the pack moves by it (two slabs against one: 2e-5 U in the cavity).",
             "**Not run:** g = 400 dx rows other than the one pair; g = 80 dx; displaced (rule) runs in 3-D; a particle "
             "cavity run at l = L / 40."):
         say(f"- {line}")

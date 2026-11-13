@@ -87,7 +87,8 @@ def main() -> int:
         "against m = g / (2 l) for K = 3, 1 and 0.5 (Re = 10 on mu_inf; 25, 15 and 12.5 on mu; Ma = 0.02). "
         "(a) Exact solution (solid), the wall rule in its slip form (dashed; every wall displaced by "
         "delta = K l / (2 (1 + K)) into the fluid, the rotor's apparent speed reduced by 2 delta Omega) and the "
-        "runs (points; bars: noise floor of D from three lattices, smaller than the symbols). (b) The same as "
+        "runs (points; bars: noise floor of D from three lattices, smaller than the symbols; the row at g = 400 dx "
+        "has one lattice and carries the floor of g = 200 dx). (b) The same as "
         "ratios to the exact value; the rule leaves the frame below m of about 1.9 (1.36 to 1.49 at m = 1). "
         "Resolution of the rows (m, l / dx, g / dx): "
         + ", ".join(f"({m:g}, {length:g}, {gap})" for m, length, gap in lengths)
