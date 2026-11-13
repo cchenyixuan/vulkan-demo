@@ -1,11 +1,13 @@
 {
  "item": "15",
  "title": "3-D: fields in a plane through the axis and the mid-plane profiles",
- "status": "provisional (the g = 40 dx run on two slabs, stopped at step 38,000 of 51,000: azimuthal means near its end; no Newtonian control and no torque at g = 40 dx)",
- "caption": "The 3-D case at g = 40 dx: a rotor of radius 3 g and length 3 g turning at Omega about z in a coaxial housing of radius 4 g with end gaps g, micropolar fluid with K = 3, l = 10 dx, w = 0 on every wall, Ma = 0.02, Re = 10 on mu_inf (25 on mu), h = 4 dx; run `g40_k3_m2_k2` (15,604,476 particles, 2 slabs, thesis-ch5-rc2-30-g4ff9fbc). The run was stopped from outside at step 38,000 of 51,000 (the machine ran out of memory); its samples reach step 35,000, t = 1.05 g^2 / nu_inf, where the angular momentum of the fluid has changed by 3e-5 over the last 10,000 steps. No particle state was saved, so (a) to (d) show the azimuthal means on the (r, z) grid of one spacing over the samples of steps 26,000 to 35,000, mirrored about the axis: (a) azimuthal velocity, (b) axial and (c) radial component of the micro-rotation, (d) magnitude of w - curl v / 2 (curl from finite differences of the means): the wall layers on every face of the rotor and of the housing. (e), (f): bin means in the mid-plane (|z| < 2 dx, samples of steps 27,000 to 35,000) against the exact solution between infinite cylinders of the same radii. Mid-plane constant of v_theta over the 2-D one: 0.9989; rms deviation of the mid-plane profiles from the 2-D ones 5.9e-03 (v) and 6.5e-03 (w); the fitted constant of v_theta(r) is within 1 % of its mid-plane value further than 0.46 g from the rotor's ends and within 0.1 % further than 1.26 g. Decay length of the wall layer on the rotor's end face: 0.98 l for the tangential component and 0.98 of l sqrt(nu_inf / nu) for the normal one.",
+ "status": "final",
+ "caption": "The 3-D case at g = 40 dx: a rotor of radius 3 g and length 3 g turning at Omega about z in a coaxial housing of radius 4 g with end gaps g, micropolar fluid with K = 3, l = 10 dx, w = 0 on every wall, Ma = 0.02, Re = 10 on mu_inf (25 on mu), h = 4 dx; run `g40_k3_m2_k2` (15,604,476 particles, 2 slabs, thesis-ch5-rc2-33-g13e69a3). (a) to (d): the fluid particles within 1.5 dx of the plane y = 0 at the last step: (a) azimuthal velocity, (b) axial and (c) radial component of the micro-rotation (radial: along x, with the sign of x), (d) magnitude of w - curl v / 2 (curl by weighted least squares over the neighbours within 3 dx): the wall layers on every face of the rotor and of the housing. (e), (f): bin means in the mid-plane (|z| < 2 dx, last quarter of the run) against the exact solution between infinite cylinders of the same radii. Mid-plane constant of v_theta over the 2-D one: 0.9990; rms deviation of the mid-plane profiles from the 2-D ones 5.9e-03 (v) and 6.5e-03 (w); the fitted constant of v_theta(r) is within 1 % of its mid-plane value further than 0.46 g from the rotor's ends and within 0.1 % further than 1.36 g. Decay length of the wall layer on the rotor's end face: 0.99 l for the tangential component and 0.98 of l sqrt(nu_inf / nu) for the normal one.",
  "files": [
   "fig_15_three_dimensional.pdf",
-  "fig_15_three_dimensional.png"
+  "fig_15_three_dimensional.png",
+  "tab_15b_three_dimensional.csv",
+  "tab_15b_three_dimensional.tex"
  ],
  "sources": [
   "data/micropolar/stage6/rotor3d.json",
@@ -14,20 +16,20 @@
  ],
  "numbers": {
   "a": {
-   "min": 2.115693860105239e-05,
-   "max": 0.9895397424697876
+   "min": -0.00010190926695941016,
+   "max": 0.9899621605873108
   },
   "b": {
-   "min": -1.149449348449707,
-   "max": 0.4854370057582855
+   "min": -1.1441899538040161,
+   "max": 0.48548588156700134
   },
   "c": {
-   "min": -1.1446138620376587,
-   "max": 1.1446645259857178
+   "min": -1.1423267126083374,
+   "max": 1.1425199508666992
   },
   "d": {
-   "min": 0.0038069128058850765,
-   "max": 2.7128303050994873
+   "min": 0.0007521035731770098,
+   "max": 3.11997652053833
   }
  },
  "tag": "thesis-ch5-rc2"

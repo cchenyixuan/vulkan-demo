@@ -64,30 +64,17 @@
   "lattice_angle": 0.0
  },
  "revision": {
-  "commit": "4ff9fbcc413de80976fa42da41c48e24d997ca37",
-  "describe": "thesis-ch5-rc2-30-g4ff9fbc",
+  "commit": "13e69a39a17485d44e0bc12f203820888341e76a",
+  "describe": "thesis-ch5-rc2-33-g13e69a3",
   "shaders_tree": "92a962153a107d7380b841e57e108b938e26c983",
   "utils_tree": "7815b15418938e514c10e9a9e5f199368e3c404d",
   "solver_modified": false
  },
- "steps": 35000,
+ "steps": 51000,
  "slabs": 2,
- "cuts_x": null,
- "partial": {
-  "planned_steps": 51000,
-  "last_heartbeat_step": 38000,
-  "last_heartbeat_seconds": 5696.455125500099,
-  "samples_to_step": 35000,
-  "midplane_steps": [
-   27000,
-   35000
-  ],
-  "window_steps": [
-   26000,
-   35000
-  ],
-  "time_reached_over_diffusion_time": 1.0499999999999998
- },
- "gradient": "finite differences of the azimuthal means on the (r, z) grid of one spacing (central; one-sided in the cells next to a wall; w - curl v / 2 of the cell on the axis is that of its neighbour)",
- "cells": 17720
+ "cuts_x": [
+  0.11687500596046452
+ ],
+ "gradient": "weighted linear least squares over the fluid neighbours within 3 dx",
+ "particles_in_plane": 105251
 }

@@ -1,0 +1,27 @@
+quantity,g = 20 dx (g20_k3_m1)
+g / dx; l / dx; m = g / (2 l),20; 10; 1
+particles; slabs,"2,587,028; 1"
+Newtonian control,g20_newtonian
+"torque, Newtonian: flux form (N m)",41.540
+"torque, Newtonian: on the housing",41.484
+"torque, micropolar: flux form",55.265
+"torque, micropolar: on the housing",55.674
+"torque change D_T, flux form",0.3304
+D_T on the housing,0.3421
+"D_T, wall form",0.3297
+"D_T, wall form, lateral surface",0.3166
+"D_T, wall form, end faces",0.3610
+exact 2-D D for the radii (lateral gap),0.3034
+exact plane film between two discs (end faces),0.3998
+"mid-plane constant over the 2-D one, Newtonian",0.9945
+"mid-plane constant over the 2-D one, micropolar",0.9929
+micropolar effect in the mid-plane (change of the constant),0.3012
+the same over the exact 2-D D,0.9929
+"reach of the ends, 1 % (g)",0.78
+"reach of the ends, 0.1 % (g)",1.38
+"wall layer on the end face, normal component: length over l sqrt(nu_inf / nu)",0.983
+"wall layer on the end face, tangential component: length over l",1.217
+"mean density - rho0, over rho0 (Newtonian; micropolar)",-2.0e-04; -9.9e-05
+mean pressure in rho U^2 (Newtonian; micropolar),-0.502; -0.247
+its drift per eighth of the run (Newtonian; micropolar),-1.3e-02; -5.7e-03
+steps per second (Newtonian; micropolar),45.9; 36.8

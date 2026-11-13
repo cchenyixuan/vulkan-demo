@@ -143,6 +143,81 @@ def main() -> int:
         + (f" Decay length of the wall layer on the rotor's end face: {layers['tangential']['fitted_over_expected']:.2f} l "
            f"for the tangential component and {layers['normal']['fitted_over_expected']:.2f} of l sqrt(nu_inf / nu) "
            "for the normal one." if layers else ""))
+    # table 15b: the two resolutions side by side (each micropolar run with its Newtonian control)
+    pairs = analysis.get("pairs", {})
+    columns = [(run, label) for run, label in (("g20_k3_m1", "g = 20 dx"), ("g40_k3_m2_k2", "g = 40 dx"),
+                                               ("g40_k3_m2", "g = 40 dx, one slab"))
+               if run in analysis["runs"] and run in pairs and "torque" in analysis["runs"][run]
+               and "rotor_wall_change" in pairs[run]]
+    files_b = []
+    if columns:
+        runs_ = analysis["runs"]
+
+        def torque(run, key, sign=1.0):
+            return f"{sign * runs_[run]['torque'][key]['mean']:.3f}" if key in runs_[run]["torque"] else "-"
+
+        def change(run, key):
+            return f"{pairs[run][key]:.4f}" if key in pairs[run] else "-"
+        specification = [
+            ("g / dx; l / dx; m = g / (2 l)", r"$g/\Delta x$; $l/\Delta x$; $m$",
+             lambda run: f"{runs_[run]['gap_in_spacings']:g}; {runs_[run]['length_in_spacings']:g}; "
+                         f"{runs_[run]['gap_in_spacings'] / (2.0 * runs_[run]['length_in_spacings']):g}"),
+            ("particles; slabs", "particles; slabs",
+             lambda run: f"{runs_[run]['particles']:,}; {runs_[run]['slabs']}"),
+            ("Newtonian control", "Newtonian control", lambda run: pairs[run]["control"]),
+            ("torque, Newtonian: flux form (N m)", r"$T_N$, flux form",
+             lambda run: torque(pairs[run]["control"], "rotor_circle_with_advection")),
+            ("torque, Newtonian: on the housing", r"$T_N$, housing",
+             lambda run: torque(pairs[run]["control"], "housing_wall", -1.0)),
+            ("torque, micropolar: flux form", r"$T$, flux form",
+             lambda run: torque(run, "rotor_circle_with_advection")),
+            ("torque, micropolar: on the housing", r"$T$, housing", lambda run: torque(run, "housing_wall", -1.0)),
+            ("torque change D_T, flux form", r"$D_T$, flux form",
+             lambda run: change(run, "rotor_circle_with_advection_change")),
+            ("D_T on the housing", r"$D_T$, housing", lambda run: change(run, "housing_wall_change")),
+            ("D_T, wall form", r"$D_T$, wall form", lambda run: change(run, "rotor_wall_change")),
+            ("D_T, wall form, lateral surface", r"$D_T$, lateral surface",
+             lambda run: change(run, "rotor_wall_lateral_change")),
+            ("D_T, wall form, end faces", r"$D_T$, end faces", lambda run: change(run, "rotor_wall_end_change")),
+            ("exact 2-D D for the radii (lateral gap)", r"$D$, exact 2-D", lambda run: change(run, "two_dimensional_change")),
+            ("exact plane film between two discs (end faces)", "plane film, end faces",
+             lambda run: change(run, "end_faces_plane_film_change")),
+            ("mid-plane constant over the 2-D one, Newtonian", "mid-plane constant / 2-D, Newtonian",
+             lambda run: f"{runs_[pairs[run]['control']]['midplane_beta_over_two_dimensional']:.4f}"),
+            ("mid-plane constant over the 2-D one, micropolar", "mid-plane constant / 2-D, micropolar",
+             lambda run: f"{runs_[run]['midplane_fit']['potential_vortex_constant'] / runs_[run]['exact_two_dimensional']['potential_vortex_constant']:.4f}"),
+            ("micropolar effect in the mid-plane (change of the constant)", r"$D$, mid-plane",
+             lambda run: change(run, "midplane_change")),
+            ("the same over the exact 2-D D", r"$D$, mid-plane / exact",
+             lambda run: f"{pairs[run]['midplane_change'] / pairs[run]['two_dimensional_change']:.4f}"),
+            ("reach of the ends, 1 % (g)", r"reach of the ends, 1\,\% ($g$)",
+             lambda run: f"{runs_[run]['end_reach']['reach_in_gaps']['0.01']:.2f}"),
+            ("reach of the ends, 0.1 % (g)", r"reach of the ends, 0.1\,\% ($g$)",
+             lambda run: f"{runs_[run]['end_reach']['reach_in_gaps']['0.001']:.2f}"),
+            ("wall layer on the end face, normal component: length over l sqrt(nu_inf / nu)",
+             r"layer of $w_z$ / ($l\sqrt{\nu_\infty/\nu}$)",
+             lambda run: f"{runs_[run]['end_face_layers']['normal']['fitted_over_expected']:.3f}"),
+            ("wall layer on the end face, tangential component: length over l", r"layer of $w_r$ / $l$",
+             lambda run: f"{runs_[run]['end_face_layers']['tangential']['fitted_over_expected']:.3f}"),
+            ("mean density - rho0, over rho0 (Newtonian; micropolar)", r"$\bar\rho/\rho_0 - 1$ (N; M)",
+             lambda run: f"{runs_[pairs[run]['control']]['density_level']:+.1e}; {runs_[run]['density_level']:+.1e}"),
+            ("mean pressure in rho U^2 (Newtonian; micropolar)", r"$\bar p/(\rho U^2)$ (N; M)",
+             lambda run: f"{runs_[pairs[run]['control']]['pressure_level']:+.3f}; {runs_[run]['pressure_level']:+.3f}"),
+            ("its drift per eighth of the run (Newtonian; micropolar)", "drift per eighth (N; M)",
+             lambda run: f"{runs_[pairs[run]['control']]['pressure_drift']:+.1e}; {runs_[run]['pressure_drift']:+.1e}"),
+            ("steps per second (Newtonian; micropolar)", "steps/s (N; M)",
+             lambda run: f"{runs_[pairs[run]['control']]['steps_per_second']:.1f}; {runs_[run]['steps_per_second']:.1f}"),
+        ]
+        header_b = ["quantity"] + [f"{label} ({run})" for run, label in columns]
+        tex_header_b = ["quantity"] + [label.replace("g = ", "$g = ").replace(" dx", r"\,\Delta x$")
+                                       for _run, label in columns]
+        plain_b = [[plain] + [function(run) for run, _label in columns] for plain, _tex, function in specification]
+        tex_b = [[tex] + [style.tex_escape(function(run)) for run, _label in columns]
+                 for _plain, tex, function in specification]
+        style.write_table("tab_15b_three_dimensional", header_b, plain_b, tex_header_b, "l" + "r" * len(columns),
+                          tex_b, note="Torques in N m for the case's units ($g = 0.1$ m, $U = 1$ m/s, "
+                                      "$\\mu_\\infty = 10$ Pa s); N: Newtonian control, M: micropolar run.")
+        files_b = ["tab_15b_three_dimensional.csv", "tab_15b_three_dimensional.tex"]
     final = name.startswith("g40") and not partial
     status = ("final" if final else
               "provisional (the g = 40 dx run on two slabs, stopped at step "
@@ -150,7 +225,7 @@ def main() -> int:
               "no Newtonian control and no torque at g = 40 dx)" if partial else
               "provisional (the g = 20 dx run; the g = 40 dx run replaces it)")
     style.record("15", "3-D: fields in a plane through the axis and the mid-plane profiles", status, caption,
-                 ["fig_15_three_dimensional.pdf", "fig_15_three_dimensional.png"],
+                 ["fig_15_three_dimensional.pdf", "fig_15_three_dimensional.png"] + files_b,
                  [ANALYSIS, MAPS.format(run=name) + ".npz", name], numbers, TAG)
     return 0
 

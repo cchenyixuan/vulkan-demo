@@ -4,6 +4,7 @@ g20_k3_m1          20   10  1   2,587,028  34,000 acoustic    36.8     485   3.2
 g20_newtonian      20    -  1   2,587,028  34,000 acoustic    45.9     389   1.3e-05   3.0e-05    2.4e-05   3.1e-03  -2.01e-04  -5.4e-06   -0.502  -1.3e-02  thesis-ch5-rc2-2-g7a21ef4
 g20s_k3_m1         20   10  1   2,592,584  34,000 acoustic    19.9     485   3.2e-05   4.9e-05    2.6e-03   2.2e-03  -3.94e-05  +1.8e-06   -0.098  +4.6e-03  thesis-ch5-rc2-13-g23d02d8
 g20s_newtonian     20    -  1   2,592,584  34,000 acoustic    23.1     389   2.0e-05   3.5e-05    5.1e-06   3.1e-03  -9.67e-05  +1.8e-06   -0.242  +4.6e-03  thesis-ch5-rc2-12-g4e3a64c
+g40_k3_m2_k2       40   10  2  15,604,476  51,000 acoustic     6.6     552   3.2e-05   5.6e-05    1.0e-05   2.3e-03  -3.31e-05  -6.7e-09   -0.083  -1.7e-05  thesis-ch5-rc2-33-g13e69a3
 
 mid-plane against the 2-D solution between infinite cylinders of the same radii; how far the ends reach (distance from the rotor's end, in g, beyond which the fitted constant of v_theta(r) is within 1 % and 0.1 % of its mid-plane value)
 run               C2 mid-plane         2-D    ratio  v rms vs 2-D  w rms vs 2-D  reach 1 %   0.1 %
@@ -11,11 +12,13 @@ g20_k3_m1             0.887374    0.893749   0.9929      1.45e-02      1.62e-02 
 g20_newtonian         0.681955    0.685714   0.9945      1.57e-02             -       0.78    1.43
 g20s_k3_m1            0.890102    0.893749   0.9959      1.01e-02      1.12e-02       0.28    1.38
 g20s_newtonian        0.681607    0.685714   0.9940      1.15e-02             -       0.83    1.43
+g40_k3_m2_k2          0.799343    0.800179   0.9990      5.90e-03      6.53e-03       0.46    1.36
 
 wall layers of w above the rotor's end face (between 0.4 R1 and 0.6 R1): fitted decay length of the tangential component w_r (expected l) and of the normal component w_z (expected l sqrt(nu_inf / nu))
 run               w_r: fitted / dx  expected   ratio  w_z: fitted / dx  expected   ratio
 g20_k3_m1                    12.17     10.00   1.217              7.77      7.91   0.983
 g20s_k3_m1                   11.40     10.00   1.140              7.60      7.91   0.961
+g40_k3_m2_k2                  9.95     10.00   0.995              7.73      7.91   0.978
 
 torque of the rotor on the fluid about its axis (N m; rho0 dx^3 per particle): wall form (pair sums over the rotor's wall particles, by lateral surface and end faces), circle form (flux across the closed surface at distance h, without and with the advective term), wall form of the housing; references: 2-D Newtonian value times the rotor length, and two plane discs for the end faces
 run              states       wall    lateral      ends     circle     + adv. circle/wall    housing (R + H) / R lat / 2-D ends / discs  a check alpha check
@@ -28,8 +31,6 @@ micropolar run over its Newtonian control: the change of the mid-plane constant 
 run               D mid-plane  D 2-D exact   ratio  D_T wall  lateral     ends   circle   + adv.  housing  ends, film
 g20_k3_m1             0.30122      0.30338  0.9929    0.3297   0.3166   0.3610   0.3327   0.3304   0.3421      0.3998
 g20s_k3_m1            0.30589      0.30338  1.0082    0.3327   0.3236   0.3555   0.3318   0.3295   0.3414      0.3998
-
-run stopped before its end: g40_k3_m2_k2 (15,604,476 particles, slabs of [10162312, 5442164]): last heartbeat at step 38,000 of 51,000 after 5696 s, samples to step 35,000 (t = 1.050 g^2 / nu_inf). Angular momentum of the fluid over its last value: -3.2e-05 ten samples earlier, +8.6e-06 five samples earlier, +2.5e-06 one sample earlier; between the last two eighths of the part 8.6e-09 (kinetic energy 1.3e-05). Mid-plane (samples of steps 27,000 to 35,000): constant of v_theta 0.9989 of the 2-D exact one, rms deviation of the profiles from the 2-D ones 5.9e-03 (v), 6.5e-03 (w). Reach of the ends ((r, z) sums of steps 26,000 to 35,000): 0.46 g (1 %), 1.26 g (0.1 %). Wall layers on the rotor's end face: normal component 0.979 of l sqrt(nu_inf / nu), tangential 0.981 of l. Levels: density -3.3e-05, pressure -0.082 rho U^2 (drift -9.3e-06 per eighth of the part); rms v_z / U 2.3e-03. 552 bytes per particle on the cards.
 
 for scale, the second lattice against the first, sample by sample (g20s_k3_m1 over g20_k3_m1): angular momentum differs by at most 2.8e-03, kinetic energy by at most 2.0e-03; mid-plane profile of v_theta at most 7.7e-03, of w_z at most 1.2e-02
 
