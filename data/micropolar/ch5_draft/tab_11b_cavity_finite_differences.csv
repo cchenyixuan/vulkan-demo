@@ -1,11 +1,11 @@
-case,fluid,grids,u_min (finest grid),u_min (extrapolated),order,v_max (finest grid),v_max (extrapolated),order,v_min (finest grid),v_min (extrapolated),order,kinetic energy (extrapolated),place of u_min between the bounds,of v_max,of v_min,particle run,u_min particle / finite differences,v_max,v_min,kinetic energy,rms difference of u on the centre line,of v
+case,fluid,grids,u_min (finest grid),u_min (extrapolated),order,v_max (finest grid),v_max (extrapolated),order,v_min (finest grid),v_min (extrapolated),order,kinetic energy (extrapolated),u_min over that of the Newtonian fluid of viscosity mu_inf,v_max,v_min,particle run,u_min particle / finite differences,v_max,v_min,kinetic energy,rms difference of u on the centre line,of v
 newtonian_far,"Newtonian, mu_inf (Re 400)",128 192 256,-0.32777,-0.32871,1.97,0.30279,0.30381,1.97,-0.45270,-0.45406,1.97,0.04081,-,-,-,newtonian_re400_n500,1.0073,1.0092,1.0071,1.0084,2.8e-03,2.5e-03
 newtonian_wall,"Newtonian, mu + kappa (Re 250)",128 192 256,-0.28719,-0.28773,1.96,0.25279,0.25340,1.96,-0.39078,-0.39162,1.95,0.03846,-,-,-,newtonian_re250_n500,1.0043,1.0057,1.0037,1.0040,2.1e-03,1.5e-03
-micropolar,"micropolar, l = L / 20",128 192 256,-0.35601,-0.35675,1.95,0.32051,0.32134,1.95,-0.46033,-0.46135,1.96,0.04634,-0.68,-0.35,-0.12,mp_n500,1.0034,1.0047,1.0030,1.0038,2.1e-03,1.6e-03
-micropolar_l40,"micropolar, l = L / 40",128 192 256,-0.35597,-0.35685,1.93,0.32282,0.32378,1.92,-0.46802,-0.46922,1.93,0.04579,-0.69,-0.40,-0.24,-,-,-,-,-,-,-
-micropolar_l80,"micropolar, l = L / 80",192 256 384,-0.34836,-0.34879,1.88,0.32073,0.32120,1.88,-0.47147,-0.47208,1.90,0.04462,-0.49,-0.34,-0.29,-,-,-,-,-,-,-
-micropolar_l10,"micropolar, l = L / 10",128 192 256,-0.34253,-0.34316,1.96,0.31249,0.31321,1.96,-0.45068,-0.45157,1.97,0.04582,-0.35,-0.19,+0.04,-,-,-,-,-,-,-
-micropolar_no_inertia,"micropolar, l = L / 20, Theta -> 0",128 192 256,-0.36105,-0.36181,1.95,0.32086,0.32170,1.95,-0.46059,-0.46163,1.97,0.04708,-0.81,-0.35,-0.12,-,-,-,-,-,-,-
-micropolar_free_spin,"micropolar, l = L / 20, walls do not hold w",128 192 256,-0.31659,-0.31741,1.84,0.29159,0.29249,1.85,-0.42731,-0.42851,1.86,0.04018,+0.28,+0.22,+0.41,-,-,-,-,-,-,-
-micropolar_lid_spin,"micropolar, l = L / 20, only the lid holds w",128 192 256,-0.36496,-0.36593,1.88,0.33977,0.34082,1.89,-0.49100,-0.49233,1.90,0.04924,-0.91,-0.73,-0.61,-,-,-,-,-,-,-
-micropolar_rest_spin,"micropolar, l = L / 20, only the walls at rest hold w",128 192 256,-0.31405,-0.31466,1.93,0.27904,0.27973,1.94,-0.40657,-0.40745,1.92,0.03865,+0.34,+0.48,+0.75,-,-,-,-,-,-,-
+micropolar,"micropolar, l = L / 20",128 192 256,-0.35601,-0.35675,1.95,0.32051,0.32134,1.95,-0.46033,-0.46135,1.96,0.04634,1.0853,1.0577,1.0161,mp_n500,1.0034,1.0047,1.0030,1.0038,2.1e-03,1.6e-03
+micropolar_l40,"micropolar, l = L / 40",128 192 256,-0.35597,-0.35685,1.93,0.32282,0.32378,1.92,-0.46802,-0.46922,1.93,0.04579,1.0856,1.0657,1.0334,-,-,-,-,-,-,-
+micropolar_l80,"micropolar, l = L / 80",192 256 384,-0.34836,-0.34879,1.88,0.32073,0.32120,1.88,-0.47147,-0.47208,1.90,0.04462,1.0611,1.0572,1.0397,-,-,-,-,-,-,-
+micropolar_l10,"micropolar, l = L / 10",128 192 256,-0.34253,-0.34316,1.96,0.31249,0.31321,1.96,-0.45068,-0.45157,1.97,0.04582,1.0440,1.0309,0.9945,-,-,-,-,-,-,-
+micropolar_no_inertia,"micropolar, l = L / 20, Theta -> 0",128 192 256,-0.36105,-0.36181,1.95,0.32086,0.32170,1.95,-0.46059,-0.46163,1.97,0.04708,1.1007,1.0589,1.0167,-,-,-,-,-,-,-
+micropolar_free_spin,"micropolar, l = L / 20, walls do not hold w",128 192 256,-0.31659,-0.31741,1.84,0.29159,0.29249,1.85,-0.42731,-0.42851,1.86,0.04018,0.9656,0.9627,0.9437,-,-,-,-,-,-,-
+micropolar_lid_spin,"micropolar, l = L / 20, only the lid holds w",128 192 256,-0.36496,-0.36593,1.88,0.33977,0.34082,1.89,-0.49100,-0.49233,1.90,0.04924,1.1132,1.1218,1.0843,-,-,-,-,-,-,-
+micropolar_rest_spin,"micropolar, l = L / 20, only the walls at rest hold w",128 192 256,-0.31405,-0.31466,1.93,0.27904,0.27973,1.94,-0.40657,-0.40745,1.92,0.03865,0.9573,0.9207,0.8974,-,-,-,-,-,-,-

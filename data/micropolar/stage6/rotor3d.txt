@@ -5,6 +5,7 @@ g20_newtonian      20    -  1   2,587,028  34,000 acoustic    45.9     389   1.3
 g20s_k3_m1         20   10  1   2,592,584  34,000 acoustic    19.9     485   3.2e-05   4.9e-05    2.6e-03   2.2e-03  -3.94e-05  +1.8e-06   -0.098  +4.6e-03  thesis-ch5-rc2-13-g23d02d8
 g20s_newtonian     20    -  1   2,592,584  34,000 acoustic    23.1     389   2.0e-05   3.5e-05    5.1e-06   3.1e-03  -9.67e-05  +1.8e-06   -0.242  +4.6e-03  thesis-ch5-rc2-12-g4e3a64c
 g40_k3_m2_k2       40   10  2  15,604,476  51,000 acoustic     6.6     552   3.2e-05   5.6e-05    1.0e-05   2.3e-03  -3.31e-05  -6.7e-09   -0.083  -1.7e-05  thesis-ch5-rc2-33-g13e69a3
+g40_newtonian_k2   40    -  2  15,604,476  51,000 acoustic     7.4     441   1.0e-05   2.0e-05    3.6e-06   2.9e-03  -5.64e-05  -7.0e-08   -0.141  -1.7e-04  thesis-ch5-rc2-33-g13e69a3
 
 mid-plane against the 2-D solution between infinite cylinders of the same radii; how far the ends reach (distance from the rotor's end, in g, beyond which the fitted constant of v_theta(r) is within 1 % and 0.1 % of its mid-plane value)
 run               C2 mid-plane         2-D    ratio  v rms vs 2-D  w rms vs 2-D  reach 1 %   0.1 %
@@ -13,6 +14,7 @@ g20_newtonian         0.681955    0.685714   0.9945      1.57e-02             - 
 g20s_k3_m1            0.890102    0.893749   0.9959      1.01e-02      1.12e-02       0.28    1.38
 g20s_newtonian        0.681607    0.685714   0.9940      1.15e-02             -       0.83    1.43
 g40_k3_m2_k2          0.799343    0.800179   0.9990      5.90e-03      6.53e-03       0.46    1.36
+g40_newtonian_k2      0.684265    0.685714   0.9979      7.43e-03             -       0.46    1.31
 
 wall layers of w above the rotor's end face (between 0.4 R1 and 0.6 R1): fitted decay length of the tangential component w_r (expected l) and of the normal component w_z (expected l sqrt(nu_inf / nu))
 run               w_r: fitted / dx  expected   ratio  w_z: fitted / dx  expected   ratio
@@ -26,11 +28,14 @@ g20_k3_m1             4   55.95981   39.12028  16.83952   55.15172   55.26495   
 g20_newtonian         4   42.08514   29.71205  12.37309   41.38363   41.54050      0.9833  -41.48405     +0.0143    1.1494       1.4587  1.4e-06           -
 g20s_k3_m1            2   55.86646   39.61448  16.25198   55.12994   55.24446      0.9868  -55.70460     +0.0029    1.5324       1.9160  2.2e-06     2.0e-05
 g20s_newtonian        2   41.91878   29.92928  11.98950   41.39535   41.55302      0.9875  -41.52641     +0.0094    1.1578       1.4135  1.6e-06           -
+g40_k3_m2_k2         13   50.09299   35.22308  14.86991   49.46572   49.51440      0.9875  -49.99706     +0.0019    1.3626       1.7531  6.3e-04     1.1e-05
+g40_newtonian_k2     13   42.01176   29.69061  12.32115   41.72653   41.78999      0.9932  -41.76708     +0.0058    1.1485       1.4526  5.5e-04           -
 
 micropolar run over its Newtonian control: the change of the mid-plane constant against the 2-D exact D for the radii, and the change of the torque by reading and by surface; for the end faces the exact plane film between two discs, 1 / (1 - 2 (delta / g) tanh(g / (2 l))) - 1
 run               D mid-plane  D 2-D exact   ratio  D_T wall  lateral     ends   circle   + adv.  housing  ends, film
 g20_k3_m1             0.30122      0.30338  0.9929    0.3297   0.3166   0.3610   0.3327   0.3304   0.3421      0.3998
 g20s_k3_m1            0.30589      0.30338  1.0082    0.3327   0.3236   0.3555   0.3318   0.3295   0.3414      0.3998
+g40_k3_m2_k2          0.16818      0.16693  1.0075    0.1924   0.1863   0.2069   0.1855   0.1848   0.1970      0.2206
 
 for scale, the second lattice against the first, sample by sample (g20s_k3_m1 over g20_k3_m1): angular momentum differs by at most 2.8e-03, kinetic energy by at most 2.0e-03; mid-plane profile of v_theta at most 7.7e-03, of w_z at most 1.2e-02
 

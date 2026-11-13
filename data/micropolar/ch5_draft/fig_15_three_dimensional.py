@@ -124,9 +124,11 @@ def main() -> int:
            ("(a) to (d): the fluid particles within 1.5 dx of the plane y = 0 at "
             "the last step: (a) azimuthal velocity, (b) axial and (c) radial component of the micro-rotation (radial: "
             "along x, with the sign of x), (d) magnitude of w - curl v / 2 (curl by weighted least squares over the "
-            "neighbours within 3 dx): the wall layers on every face of the rotor and of the housing. (e), (f): bin "
-            "means in the mid-plane (|z| < 2 dx, last quarter of the run) against the exact solution between "
-            "infinite cylinders of the same radii. "))
+            "neighbours within 3 dx): the wall layers on every face of the rotor and of the housing"
+            + ("; dashed line: the cut between the two slabs (5090 on the left, XTX on the right)"
+               if summary.get("cuts_x") else "")
+            + ". (e), (f): bin means in the mid-plane (|z| < 2 dx, last quarter of the run) against the exact "
+            "solution between infinite cylinders of the same radii. "))
         +
         f"Mid-plane constant of v_theta over the 2-D one: "
         f"{record['midplane_fit']['potential_vortex_constant'] / exact['potential_vortex_constant']:.4f}; rms "
@@ -140,6 +142,9 @@ def main() -> int:
               f"{pair['rotor_wall_lateral_change']:.4f}, end faces {pair['rotor_wall_end_change']:.4f}) and "
               f"{pair['rotor_circle_change']:.4f} by the flux across the surface at distance h."
               if "rotor_wall_change" in pair else ".") if pair else "")
+        + (f" On the housing the torque changes by {pair['housing_wall_change']:.4f}; with the advective term the "
+           f"flux form gives {pair['rotor_circle_with_advection_change']:.4f}. Table 15b sets this run beside the "
+           "one at g = 20 dx." if pair and "housing_wall_change" in pair else "")
         + (f" Decay length of the wall layer on the rotor's end face: {layers['tangential']['fitted_over_expected']:.2f} l "
            f"for the tangential component and {layers['normal']['fitted_over_expected']:.2f} of l sqrt(nu_inf / nu) "
            "for the normal one." if layers else ""))

@@ -56,8 +56,8 @@
   }
  },
  "revision": {
-  "commit": "23d02d8782358049e91bdef24fe2fa25a54d92cb",
-  "describe": "thesis-ch5-rc2-13-g23d02d8",
+  "commit": "8e4a1e63f0dc8ca281d0b9b42b1af683c4d291dd",
+  "describe": "thesis-ch5-rc2-34-g8e4a1e6",
   "shaders_tree": "92a962153a107d7380b841e57e108b938e26c983",
   "utils_tree": "7815b15418938e514c10e9a9e5f199368e3c404d",
   "solver_modified": false
@@ -78,7 +78,7 @@
  ],
  "slabs": 1,
  "device_map": [
-  1
+  0
  ],
  "weights": [
   1.0
@@ -99,9 +99,9 @@
   "overflow_initialization_outside": 0,
   "overflow_deep_wall_skip_count": 0
  },
- "elapsed_seconds": 1640.5763324999716,
+ "elapsed_seconds": 985.362582199974,
  "failure": null,
- "steps_per_second": 162.74768489018453,
+ "steps_per_second": 270.9662461546706,
  "cuts_x": [],
  "slab_particles": [
   1255304

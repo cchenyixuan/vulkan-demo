@@ -1,19 +1,22 @@
 {
  "item": "11",
- "title": "Micropolar cavity: centre lines with the two Newtonian bounds, fields, the slab cut",
+ "title": "Micropolar cavity: centre lines against the finite-difference solution, fields, the slab cut",
  "status": "final",
- "caption": "Lid-driven cavity filled with the micropolar fluid: K = 3, Reynolds number 400 on mu_inf (1,000 on mu), l = L / 20 (25 dx at n = 500, 12.5 dx at n = 250), Theta = l^2, w = 0 on the four walls, Ma = 0.01, thesis configuration with the default walls. (a) u on the vertical centre line and (b) v on the horizontal centre line, time means over the last 20 L / U (MLS samples at 1,001 points, every 25th shown): the micropolar run (circles; crosses: n = 250) and two Newtonian runs on the same particles, one with the viscosity mu_inf that the micropolar fluid has far from walls (solid) and one with mu + kappa that it has inside a wall layer (dashed). (c) Micro-rotation and (d) micro-rotation minus half the curl of the velocity at the last step of run `mp_n500_k2` (two slabs, 5090 + XTX; dashed line: the cut); the second vanishes in the core and marks the wall layers of thickness l. Colour scales end at the 99.5th percentile of the magnitude. Runs: `newtonian_re400_n500`, `newtonian_re250_n500`, `mp_n500`, `mp_n250`, `mp_n500_k2`; tag `thesis-ch5-rc2`. The micropolar extrema are not between the two Newtonian ones where the ordering of the viscosities would put them: u_min is beyond the Reynolds-400 value by 0.64 of the distance between the two bounds, v_max beyond the Reynolds-400 value by 0.31 of the distance between the two bounds, v_min beyond the Reynolds-400 value by 0.08 of the distance between the two bounds; the kinetic energy is beyond the Reynolds-400 value by 2.10 of the distance between the two bounds. Along the centre lines the micropolar profile leaves the band of the two bounds at 54 % (u) and 65 % (v) of the points, by at most 5.3e-02 and 4.5e-02 U. The positions of the three extrema do lie between those of the two bounds. The run at n = 250 minus the run at n = 500: rms difference of the centre lines 3.0e-03 (u) and 3.5e-03 (v) U, extrema -5.3e-03, +5.0e-03, -6.1e-03 U (standard error of the time means 2e-05). Two slabs minus one slab: rms difference of the centre lines 2.1e-05 (u) and 1.6e-05 (v) U, extrema -5.2e-06, +1.4e-05, -2.1e-06 U (standard error of the time means 1e-05). Dotted line in (a) and (b), and table 11b: the same equations solved by finite differences on the host (stream function, vorticity and micro-rotation on a uniform grid, second order, steady state; grids of 128, 192, 256 intervals, extrema extrapolated to zero spacing). Its extrema (u_min, v_max, v_min) are -0.3287, 0.3038, -0.4541 U for the Newtonian fluid of viscosity mu_inf, -0.2877, 0.2534, -0.3916 for mu + kappa and -0.3567, 0.3213, -0.4614 for the micropolar fluid: there too the micropolar extrema lie beyond the Reynolds-400 values, by 0.68, 0.35 and 0.12 of the distance between the bounds (+8.5, +5.8 and +1.6 %). The particle runs at n = 500 are stronger than the finite-difference values by +0.7, +0.9, +0.7 % (mu_inf), +0.4, +0.6, +0.4 % (mu + kappa) and +0.3, +0.5, +0.3 % (micropolar). Variants of the finite-difference solution (table 11b; place of u_min, v_max, v_min on the way from the Reynolds-400 to the Reynolds-250 value): walls that do not hold w +0.28, +0.22, +0.41 (between the bounds); only the lid holds w -0.91, -0.73, -0.61; only the three walls at rest hold w +0.34, +0.48, +0.75. The overshoot belongs to the condition w = 0 on the driving wall.",
+ "caption": "Lid-driven cavity filled with the micropolar fluid: K = 3, Reynolds number 400 on mu_inf (1,000 on mu), l = L / 20 (25 dx at n = 500, 12.5 dx at n = 250), Theta = l^2, w = 0 on the four walls, Ma = 0.01, thesis configuration with the default walls. (a) u on the vertical centre line and (b) v on the horizontal centre line, time means over the last 20 L / U (MLS samples at 1,001 points, every 25th shown): the micropolar run (circles; crosses: n = 250) and the same fluid by finite differences (dotted); solid and dashed: Newtonian runs on the same particles with the viscosities mu_inf (Reynolds number 400) and mu + kappa (Reynolds number 250). (c) Micro-rotation and (d) micro-rotation minus half the curl of the velocity at the last step of run `mp_n500_k2` (two slabs, 5090 + XTX; dashed line: the cut); the second vanishes in the core and marks the wall layers of thickness l. Colour scales end at the 99.5th percentile of the magnitude. Runs: `newtonian_re400_n500`, `newtonian_re250_n500`, `mp_n500`, `mp_n250`, `mp_n500_k2`; tag `thesis-ch5-rc2`. The check of the case is the dotted line and table 11b: the same equations solved by finite differences on the host (stream function, vorticity and micro-rotation on a uniform grid, second order, steady state; grids of 128, 192, 256 intervals, extrema extrapolated to zero spacing). Extrema (u_min, v_max, v_min) of the micropolar fluid: particle run -0.3580, 0.3228, -0.4627 U, finite differences -0.3567, 0.3213, -0.4614 U; the particle run is stronger by +0.3, +0.5, +0.3 %, and its centre lines differ from the finite-difference ones by 2.1e-03 (u) and 1.6e-03 (v) U rms. The two Newtonian runs against their finite-difference solutions: +0.7, +0.9, +0.7 % (mu_inf), +0.4, +0.6, +0.4 % (mu + kappa). Table 11b also lists finite-difference variants of the micropolar case (other lengths l, no spin inertia, walls that do not hold w, w held on the lid only or on the walls at rest only). Table 11c: the traction of the lid on the micropolar fluid over that on the Newtonian fluid of viscosity mu_inf, minus one, is 0.296, 0.232, 0.144, 0.077 at l = L / 10, 20, 40, 80, against delta / lambda = 0.597, 0.299, 0.149, 0.075, where lambda = mu_inf U / traction = 0.063 L is the shear length of the lid in that Newtonian fluid (finite differences; both tractions on the same grid, 256 intervals, 384 for l = L / 80): the first-order rule with the shear length in the place of the gap, within 3 % from l = L / 40 down. The run at n = 250 minus the run at n = 500: rms difference of the centre lines 3.0e-03 (u) and 3.5e-03 (v) U, extrema -5.3e-03, +5.0e-03, -6.1e-03 U (standard error of the time means 2e-05). Two slabs minus one slab: rms difference of the centre lines 2.1e-05 (u) and 1.6e-05 (v) U, extrema -5.2e-06, +1.4e-05, -2.1e-06 U (standard error of the time means 1e-05).",
  "files": [
   "fig_11_micropolar_cavity.pdf",
   "fig_11_micropolar_cavity.png",
   "tab_11_micropolar_cavity.csv",
   "tab_11_micropolar_cavity.tex",
   "tab_11b_cavity_finite_differences.csv",
-  "tab_11b_cavity_finite_differences.tex"
+  "tab_11b_cavity_finite_differences.tex",
+  "tab_11c_lid_traction.csv",
+  "tab_11c_lid_traction.tex"
  ],
  "sources": [
   "data/micropolar/stage6/cavity.json",
   "data/micropolar/stage6/cavity_reference.json",
+  "data/micropolar/stage6/cavity_reference_lid.json",
   "newtonian_re400_n500",
   "newtonian_re250_n500",
   "mp_n500",
@@ -54,7 +57,7 @@
      "x_at_v_min": 0.8621829897350779,
      "kinetic_energy": 0.04081352161858219
     },
-    "against_bounds": null,
+    "over_newtonian_far": null,
     "particle": {
      "run": "newtonian_re400_n500",
      "over_finite_differences": {
@@ -79,7 +82,7 @@
      "x_at_v_min": 0.8360398471700777,
      "kinetic_energy": 0.03846098855526235
     },
-    "against_bounds": null,
+    "over_newtonian_far": null,
     "particle": {
      "run": "newtonian_re250_n500",
      "over_finite_differences": {
@@ -104,19 +107,11 @@
      "x_at_v_min": 0.8455290090554728,
      "kinetic_energy": 0.046338070875001774
     },
-    "against_bounds": {
-     "fraction": {
-      "u_min": -0.6841771173091374,
-      "v_max": -0.3477392375535517,
-      "v_min": -0.11681866768627512,
-      "kinetic_energy": -2.348340749193752
-     },
-     "over_far": {
-      "u_min": 1.0853007512208064,
-      "v_max": 1.057696479653481,
-      "v_min": 1.0160638774429636,
-      "kinetic_energy": 1.1353607588202896
-     }
+    "over_newtonian_far": {
+     "u_min": 1.0853007512208064,
+     "v_max": 1.057696479653481,
+     "v_min": 1.0160638774429636,
+     "kinetic_energy": 1.1353607588202896
     },
     "particle": {
      "run": "mp_n500",
@@ -142,19 +137,11 @@
      "x_at_v_min": 0.8485260237534348,
      "kinetic_energy": 0.04578801672193511
     },
-    "against_bounds": {
-     "fraction": {
-      "u_min": -0.6865278688665376,
-      "v_max": -0.396175480203914,
-      "v_min": -0.24279398873189634,
-      "kinetic_energy": -2.114527179623579
-     },
-     "over_far": {
-      "u_min": 1.0855938345010079,
-      "v_max": 1.065732963279052,
-      "v_min": 1.033386897455052,
-      "kinetic_energy": 1.1218835059086902
-     }
+    "over_newtonian_far": {
+     "u_min": 1.0855938345010079,
+     "v_max": 1.065732963279052,
+     "v_min": 1.033386897455052,
+     "kinetic_energy": 1.1218835059086902
     },
     "particle": null
    },
@@ -168,19 +155,11 @@
      "x_at_v_min": 0.8558174947869629,
      "kinetic_energy": 0.04461926550486849
     },
-    "against_bounds": {
-     "fraction": {
-      "u_min": -0.49002146483703196,
-      "v_max": -0.34489538224772925,
-      "v_min": -0.2885666957748567,
-      "kinetic_energy": -1.6177217424165444
-     },
-     "over_far": {
-      "u_min": 1.0610941202320747,
-      "v_max": 1.0572246305721285,
-      "v_min": 1.0396811582160586,
-      "kinetic_energy": 1.093247133189153
-     }
+    "over_newtonian_far": {
+     "u_min": 1.0610941202320747,
+     "v_max": 1.0572246305721285,
+     "v_min": 1.0396811582160586,
+     "kinetic_energy": 1.093247133189153
     },
     "particle": null
    },
@@ -194,19 +173,11 @@
      "x_at_v_min": 0.8436066635733573,
      "kinetic_energy": 0.0458197071603397
     },
-    "against_bounds": {
-     "fraction": {
-      "u_min": -0.35269577653889245,
-      "v_max": -0.18639240043896876,
-      "v_min": 0.039793397200442344,
-      "kinetic_energy": -2.127997952425331
-     },
-     "over_far": {
-      "u_min": 1.0439728455249981,
-      "v_max": 1.0309260048280697,
-      "v_min": 0.9945279614266463,
-      "kinetic_energy": 1.1226599750088269
-     }
+    "over_newtonian_far": {
+     "u_min": 1.0439728455249981,
+     "v_max": 1.0309260048280697,
+     "v_min": 0.9945279614266463,
+     "kinetic_energy": 1.1226599750088269
     },
     "particle": null
    },
@@ -220,19 +191,11 @@
      "x_at_v_min": 0.8397250512655642,
      "kinetic_energy": 0.047082757804016176
     },
-    "against_bounds": {
-     "fraction": {
-      "u_min": -0.8077010474068287,
-      "v_max": -0.3549260037017482,
-      "v_min": -0.12119369562047873,
-      "kinetic_energy": -2.66488759847098
-     },
-     "over_far": {
-      "u_min": 1.1007012721743865,
-      "v_max": 1.058888899323349,
-      "v_min": 1.0166654928691328,
-      "kinetic_energy": 1.1536068424583001
-     }
+    "over_newtonian_far": {
+     "u_min": 1.1007012721743865,
+     "v_max": 1.058888899323349,
+     "v_min": 1.0166654928691328,
+     "kinetic_energy": 1.1536068424583001
     },
     "particle": null
    },
@@ -246,19 +209,11 @@
      "x_at_v_min": 0.8518935836211257,
      "kinetic_energy": 0.04017823390051893
     },
-    "against_bounds": {
-     "fraction": {
-      "u_min": 0.27579317804044634,
-      "v_max": 0.22463381321539003,
-      "v_min": 0.4091091666802957,
-      "kinetic_energy": 0.27004411881325774
-     },
-     "over_far": {
-      "u_min": 0.965615094873461,
-      "v_max": 0.9627290255628123,
-      "v_min": 0.9437428996194813,
-      "kinetic_energy": 0.9844343812327624
-     }
+    "over_newtonian_far": {
+     "u_min": 0.965615094873461,
+     "v_max": 0.9627290255628123,
+     "v_min": 0.9437428996194813,
+     "kinetic_energy": 0.9844343812327624
     },
     "particle": null
    },
@@ -272,19 +227,11 @@
      "x_at_v_min": 0.8573545321159391,
      "kinetic_energy": 0.04924145226381829
     },
-    "against_bounds": {
-     "fraction": {
-      "u_min": -0.9081776184005771,
-      "v_max": -0.7341641646329107,
-      "v_min": -0.6128933645321128,
-      "kinetic_energy": -3.5824919005996043
-     },
-     "over_far": {
-      "u_min": 1.1132283309856577,
-      "v_max": 1.121811642784586,
-      "v_min": 1.0842797139228646,
-      "kinetic_energy": 1.2064984914558048
-     }
+    "over_newtonian_far": {
+     "u_min": 1.1132283309856577,
+     "v_max": 1.121811642784586,
+     "v_min": 1.0842797139228646,
+     "kinetic_energy": 1.2064984914558048
     },
     "particle": null
    },
@@ -298,21 +245,78 @@
      "x_at_v_min": 0.8412016192838253,
      "kinetic_energy": 0.03864838569614624
     },
-    "against_bounds": {
-     "fraction": {
-      "u_min": 0.34282053596200884,
-      "v_max": 0.47776173985271814,
-      "v_min": 0.7464232991173,
-      "kinetic_energy": 0.920342398665617
-     },
-     "over_far": {
-      "u_min": 0.9572583640819636,
-      "v_max": 0.9207303418028029,
-      "v_min": 0.8973584219450775,
-      "kinetic_energy": 0.9469505243220625
-     }
+    "over_newtonian_far": {
+     "u_min": 0.9572583640819636,
+     "v_max": 0.9207303418028029,
+     "v_min": 0.8973584219450775,
+     "kinetic_energy": 0.9469505243220625
     },
     "particle": null
+   },
+   "lid": {
+    "shear_length": 0.0627958612950711,
+    "rows": [
+     {
+      "case": "micropolar_l10",
+      "length": 0.1,
+      "displacement": 0.037500000000000006,
+      "displacement_over_shear_length": 0.5971731134284707,
+      "excess": 0.2955127742067012,
+      "excess_grid": 256,
+      "excess_spread_over_like_grids": 0.0042916948127997845,
+      "excess_like_grids": {
+       "128": 0.2916110948510513,
+       "192": 0.2959027896638511,
+       "256": 0.2955127742067012
+      },
+      "excess_over_first_order": 0.49485277813348455
+     },
+     {
+      "case": "micropolar",
+      "length": 0.05,
+      "displacement": 0.018750000000000003,
+      "displacement_over_shear_length": 0.29858655671423534,
+      "excess": 0.23190880324395313,
+      "excess_grid": 256,
+      "excess_spread_over_like_grids": 0.004094697524145374,
+      "excess_like_grids": {
+       "128": 0.22882000430466998,
+       "192": 0.23291470182881535,
+       "256": 0.23190880324395313
+      },
+      "excess_over_first_order": 0.7766886955527047
+     },
+     {
+      "case": "micropolar_l40",
+      "length": 0.025,
+      "displacement": 0.009375000000000001,
+      "displacement_over_shear_length": 0.14929327835711767,
+      "excess": 0.1441085773019155,
+      "excess_grid": 256,
+      "excess_spread_over_like_grids": 0.0035910718974341282,
+      "excess_like_grids": {
+       "128": 0.1418010441317772,
+       "192": 0.14539211602921132,
+       "256": 0.1441085773019155
+      },
+      "excess_over_first_order": 0.9652717047126524
+     },
+     {
+      "case": "micropolar_l80",
+      "length": 0.0125,
+      "displacement": 0.004687500000000001,
+      "displacement_over_shear_length": 0.07464663917855884,
+      "excess": 0.07662420714535934,
+      "excess_grid": 384,
+      "excess_spread_over_like_grids": 0.0014208095016767786,
+      "excess_like_grids": {
+       "192": 0.07612362852358956,
+       "256": 0.07520339764368256,
+       "384": 0.07662420714535934
+      },
+      "excess_over_first_order": 1.0264923911988864
+     }
+    ]
    }
   }
  },

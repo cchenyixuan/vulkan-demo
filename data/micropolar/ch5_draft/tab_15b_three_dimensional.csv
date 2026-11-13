@@ -1,27 +1,27 @@
-quantity,g = 20 dx (g20_k3_m1)
-g / dx; l / dx; m = g / (2 l),20; 10; 1
-particles; slabs,"2,587,028; 1"
-Newtonian control,g20_newtonian
-"torque, Newtonian: flux form (N m)",41.540
-"torque, Newtonian: on the housing",41.484
-"torque, micropolar: flux form",55.265
-"torque, micropolar: on the housing",55.674
-"torque change D_T, flux form",0.3304
-D_T on the housing,0.3421
-"D_T, wall form",0.3297
-"D_T, wall form, lateral surface",0.3166
-"D_T, wall form, end faces",0.3610
-exact 2-D D for the radii (lateral gap),0.3034
-exact plane film between two discs (end faces),0.3998
-"mid-plane constant over the 2-D one, Newtonian",0.9945
-"mid-plane constant over the 2-D one, micropolar",0.9929
-micropolar effect in the mid-plane (change of the constant),0.3012
-the same over the exact 2-D D,0.9929
-"reach of the ends, 1 % (g)",0.78
-"reach of the ends, 0.1 % (g)",1.38
-"wall layer on the end face, normal component: length over l sqrt(nu_inf / nu)",0.983
-"wall layer on the end face, tangential component: length over l",1.217
-"mean density - rho0, over rho0 (Newtonian; micropolar)",-2.0e-04; -9.9e-05
-mean pressure in rho U^2 (Newtonian; micropolar),-0.502; -0.247
-its drift per eighth of the run (Newtonian; micropolar),-1.3e-02; -5.7e-03
-steps per second (Newtonian; micropolar),45.9; 36.8
+quantity,g = 20 dx (g20_k3_m1),g = 40 dx (g40_k3_m2_k2)
+g / dx; l / dx; m = g / (2 l),20; 10; 1,40; 10; 2
+particles; slabs,"2,587,028; 1","15,604,476; 2"
+Newtonian control,g20_newtonian,g40_newtonian_k2
+"torque, Newtonian: flux form (N m)",41.540,41.790
+"torque, Newtonian: on the housing",41.484,41.767
+"torque, micropolar: flux form",55.265,49.514
+"torque, micropolar: on the housing",55.674,49.997
+"torque change D_T, flux form",0.3304,0.1848
+D_T on the housing,0.3421,0.1970
+"D_T, wall form",0.3297,0.1924
+"D_T, wall form, lateral surface",0.3166,0.1863
+"D_T, wall form, end faces",0.3610,0.2069
+exact 2-D D for the radii (lateral gap),0.3034,0.1669
+exact plane film between two discs (end faces),0.3998,0.2206
+"mid-plane constant over the 2-D one, Newtonian",0.9945,0.9979
+"mid-plane constant over the 2-D one, micropolar",0.9929,0.9990
+micropolar effect in the mid-plane (change of the constant),0.3012,0.1682
+the same over the exact 2-D D,0.9929,1.0075
+"reach of the ends, 1 % (g)",0.78,0.46
+"reach of the ends, 0.1 % (g)",1.38,1.36
+"wall layer on the end face, normal component: length over l sqrt(nu_inf / nu)",0.983,0.978
+"wall layer on the end face, tangential component: length over l",1.217,0.995
+"mean density - rho0, over rho0 (Newtonian; micropolar)",-2.0e-04; -9.9e-05,-5.6e-05; -3.3e-05
+mean pressure in rho U^2 (Newtonian; micropolar),-0.502; -0.247,-0.141; -0.083
+its drift per eighth of the run (Newtonian; micropolar),-1.3e-02; -5.7e-03,-1.7e-04; -1.7e-05
+steps per second (Newtonian; micropolar),45.9; 36.8,7.4; 6.6

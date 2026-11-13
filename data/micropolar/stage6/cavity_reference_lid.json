@@ -252,60 +252,74 @@
    }
   }
  },
- "shear_length": 0.06264201227204956,
+ "shear_length": 0.0627958612950711,
  "displacement_over_length": 0.375,
  "rows": [
   {
    "case": "micropolar_l10",
    "length": 0.1,
    "displacement": 0.037500000000000006,
-   "displacement_over_shear_length": 0.5986397728913995,
-   "excess": 0.2697260627081557,
+   "displacement_over_shear_length": 0.5971731134284707,
+   "excess": 0.2955127742067012,
+   "excess_grid": 256,
+   "excess_spread_over_like_grids": 0.0042916948127997845,
    "excess_like_grids": {
     "128": 0.2916110948510513,
     "192": 0.2959027896638511,
     "256": 0.2955127742067012
    },
-   "excess_over_first_order": 0.4505648888068239
+   "excess_over_first_order": 0.49485277813348455
   },
   {
    "case": "micropolar",
    "length": 0.05,
    "displacement": 0.018750000000000003,
-   "displacement_over_shear_length": 0.29931988644569973,
-   "excess": 0.206567245458666,
+   "displacement_over_shear_length": 0.29858655671423534,
+   "excess": 0.23190880324395313,
+   "excess_grid": 256,
+   "excess_spread_over_like_grids": 0.004094697524145374,
    "excess_like_grids": {
     "128": 0.22882000430466998,
     "192": 0.23291470182881535,
     "256": 0.23190880324395313
    },
-   "excess_over_first_order": 0.6901220226680121
+   "excess_over_first_order": 0.7766886955527047
   },
   {
    "case": "micropolar_l40",
    "length": 0.025,
    "displacement": 0.009375000000000001,
-   "displacement_over_shear_length": 0.14965994322284987,
-   "excess": 0.12012159796590027,
+   "displacement_over_shear_length": 0.14929327835711767,
+   "excess": 0.1441085773019155,
+   "excess_grid": 256,
+   "excess_spread_over_like_grids": 0.0035910718974341282,
    "excess_like_grids": {
     "128": 0.1418010441317772,
     "192": 0.14539211602921132,
     "256": 0.1441085773019155
    },
-   "excess_over_first_order": 0.8026302521512668
+   "excess_over_first_order": 0.9652717047126524
   },
   {
    "case": "micropolar_l80",
    "length": 0.0125,
    "displacement": 0.004687500000000001,
-   "displacement_over_shear_length": 0.07482997161142493,
-   "excess": 0.0777545890108926,
+   "displacement_over_shear_length": 0.07464663917855884,
+   "excess": 0.07662420714535934,
+   "excess_grid": 384,
+   "excess_spread_over_like_grids": 0.0014208095016767786,
    "excess_like_grids": {
     "192": 0.07612362852358956,
     "256": 0.07520339764368256,
     "384": 0.07662420714535934
    },
-   "excess_over_first_order": 1.0390835027260807
+   "excess_over_first_order": 1.0264923911988864
   }
- ]
+ ],
+ "shear_length_by_grid": {
+  "128": 0.0620637381063488,
+  "192": 0.06230687807103836,
+  "256": 0.06298923856022172,
+  "384": 0.0627958612950711
+ }
 }

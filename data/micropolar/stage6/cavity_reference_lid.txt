@@ -1,31 +1,15 @@
-  newtonian_far, n = 128: solved, steady True at t = 75 (13 s)
-  newtonian_far, n = 192: solved, steady True at t = 60 (25 s)
-  newtonian_far, n = 256: the stored fields of the finest grid of `run`
-  newtonian_far, n = 384: solved, steady True at t = 50 (797 s)
-  micropolar_l10, n = 128: solved, steady True at t = 70 (17 s)
-  micropolar_l10, n = 192: solved, steady True at t = 50 (40 s)
-  micropolar_l10, n = 256: the stored fields of the finest grid of `run`
-  micropolar, n = 128: solved, steady True at t = 70 (17 s)
-  micropolar, n = 192: solved, steady True at t = 50 (41 s)
-  micropolar, n = 256: the stored fields of the finest grid of `run`
-  micropolar_l40, n = 128: solved, steady True at t = 75 (18 s)
-  micropolar_l40, n = 192: solved, steady True at t = 55 (47 s)
-  micropolar_l40, n = 256: the stored fields of the finest grid of `run`
-  micropolar_l80, n = 192: solved, steady True at t = 70 (61 s)
-  micropolar_l80, n = 256: solved, steady True at t = 50 (211 s)
-  micropolar_l80, n = 384: the stored fields of the finest grid of `run`
 
-Traction of the lid on the fluid (-nu omega + c w at the lid over rho U^2, mean over 0.1 < x < 0.9) on every grid and extrapolated to zero spacing with the second order of the scheme from the two finest grids ('order': what the three finest grids show)
-case              grids                 traction per grid                                 -> 0  order
-newtonian_far     128 192 256 384       0.04028 0.04012 0.03969 0.03981                0.03991      -
-micropolar_l10    128 192 256           0.05203 0.05200 0.05142                        0.05067      -
-micropolar        128 192 256           0.04950 0.04947 0.04889                        0.04815      -
-micropolar_l40    128 192 256           0.04599 0.04596 0.04541                        0.04470      -
-micropolar_l80    192 256 384           0.04318 0.04267 0.04286                        0.04301      -
+Traction of the lid on the fluid (-nu omega + c w at the lid over rho U^2, mean over the nodes with 0.1 <= x <= 0.9) on every grid
+case              grids                 traction per grid
+newtonian_far     128 192 256 384       0.04028 0.04012 0.03969 0.03981
+micropolar_l10    128 192 256           0.05203 0.05200 0.05142
+micropolar        128 192 256           0.04950 0.04947 0.04889
+micropolar_l40    128 192 256           0.04599 0.04596 0.04541
+micropolar_l80    192 256 384           0.04318 0.04267 0.04286
 
-The lid's shear length in the Newtonian fluid of viscosity mu_inf: lambda = mu_inf U / traction = 0.0626 L. delta = K l / (2 (1 + K)) = 0.375 l. Excess of the traction over that on the Newtonian fluid, extrapolated values and the values of like grids, against delta / lambda
-   l / L  delta / L  delta / lambda  excess (-> 0)                like grids  excess / (delta / lambda)
-    1/10    0.03750          0.5986         0.2697    0.2916, 0.2959, 0.2955                      0.451
-    1/20    0.01875          0.2993         0.2066    0.2288, 0.2329, 0.2319                      0.690
-    1/40    0.00938          0.1497         0.1201    0.1418, 0.1454, 0.1441                      0.803
-    1/80    0.00469          0.0748         0.0778    0.0761, 0.0752, 0.0766                      1.039
+The lid's shear length in the Newtonian fluid of viscosity mu_inf: lambda = mu_inf U / traction = 0.0628 L on the grid of 384 intervals (0.0621 on 128, 0.0623 on 192, 0.0630 on 256, 0.0628 on 384). delta = K l / (2 (1 + K)) = 0.375 l. Excess of the traction over that on the Newtonian fluid on like grids (the finest common grid, and the spread over the common grids), against delta / lambda
+   l / L  delta / L  delta / lambda   excess  grid   spread              all like grids  excess / (delta / lambda)
+    1/10    0.03750          0.5972   0.2955   256   0.0043      0.2916, 0.2959, 0.2955                      0.495
+    1/20    0.01875          0.2986   0.2319   256   0.0041      0.2288, 0.2329, 0.2319                      0.777
+    1/40    0.00938          0.1493   0.1441   256   0.0036      0.1418, 0.1454, 0.1441                      0.965
+    1/80    0.00469          0.0746   0.0766   384   0.0014      0.0761, 0.0752, 0.0766                      1.026

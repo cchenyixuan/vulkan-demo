@@ -178,8 +178,8 @@
    },
    "e30_g200_k1_m5": {
     "narrowest_gap_over_length": 6.999999999999999,
-    "over_film": 0.9624861297269337,
-    "over_rule": 0.9567770960503175
+    "over_film": 0.9604778444619956,
+    "over_rule": 0.9547807230279101
    },
    "e30_g200_k1_m10": {
     "narrowest_gap_over_length": 13.999999999999998,
@@ -198,8 +198,8 @@
    },
    "e60_g200_k1_m5": {
     "narrowest_gap_over_length": 4.0,
-    "over_film": 0.9700441020337908,
-    "over_rule": 0.868584181335543
+    "over_film": 0.9687953876245622,
+    "over_rule": 0.8674660738385872
    },
    "e60_g200_k1_m10": {
     "narrowest_gap_over_length": 8.0,

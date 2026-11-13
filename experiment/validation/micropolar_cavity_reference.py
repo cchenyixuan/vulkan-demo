@@ -423,6 +423,9 @@ def command_lid(arguments) -> int:
 
     target = _REPO_ROOT / arguments.out
     stored_fields = _REPO_ROOT / "data/micropolar/stage6"
+    if arguments.table_only:
+        # the table again from the stored tractions per grid, without solving anything
+        return _lid_table(json.loads(target.with_suffix(".json").read_text(encoding="utf-8")), target, say, lines)
     result = {"cases": {}}
     for case, resolutions in LID_GRIDS.items():
         parameters = case_parameters(case)
@@ -450,47 +453,58 @@ def command_lid(arguments) -> int:
             "traction": extrapolate(tractions, resolutions),
             "stream_min": extrapolate([grid["stream_min"] for grid in grids], resolutions)}
         target.with_suffix(".json").write_text(json.dumps(result, indent=1), encoding="utf-8")
+    return _lid_table(result, target, say, lines)
+
+
+def _lid_table(result: dict, target: pathlib.Path, say, lines: list) -> int:
+    """The table of the `lid` command from the tractions per grid. Ratios are taken on like grids: the mean of the
+    traction runs over the nodes with 0.1 <= x <= 0.9, a window that ends on other nodes on another grid, where the
+    traction is steep; the tractions of different grids therefore do not extrapolate, the ratio of two cases on
+    one grid does not see the window."""
     cases = result["cases"]
     far = cases["newtonian_far"]
-    far_traction = far["traction"]["extrapolated"]
-    shear_length = cavity.FAR_VISCOSITY * LID_SPEED / far_traction
+    far_by_grid = {resolution: grid["lid_traction_mean"] for resolution, grid in zip(far["resolutions"], far["grids"])}
+    finest = max(far_by_grid)
+    shear_length = cavity.FAR_VISCOSITY * LID_SPEED / far_by_grid[finest]
+    shear_lengths = {str(resolution): cavity.FAR_VISCOSITY * LID_SPEED / traction
+                     for resolution, traction in far_by_grid.items()}
     ratio = cavity.COUPLING_RATIO / (2.0 * (1.0 + cavity.COUPLING_RATIO))
     result["shear_length"] = shear_length
+    result["shear_length_by_grid"] = shear_lengths
     result["displacement_over_length"] = ratio
     say()
-    say("Traction of the lid on the fluid (-nu omega + c w at the lid over rho U^2, mean over 0.1 < x < 0.9) on every "
-        "grid and extrapolated to zero spacing with the second order of the scheme from the two finest grids "
-        "('order': what the three finest grids show)")
-    say(f"{'case':<18}{'grids':<22}{'traction per grid':<44}{'-> 0':>10}{'order':>7}")
+    say("Traction of the lid on the fluid (-nu omega + c w at the lid over rho U^2, mean over the nodes with "
+        "0.1 <= x <= 0.9) on every grid")
+    say(f"{'case':<18}{'grids':<22}{'traction per grid'}")
     for case, entry in cases.items():
-        order = entry["traction"]["order"]
         per_grid = " ".join(f"{grid['lid_traction_mean']:.5f}" for grid in entry["grids"])
-        say(f"{case:<18}{' '.join(str(value) for value in entry['resolutions']):<22}{per_grid:<44}"
-            f"{entry['traction']['extrapolated']:>10.5f}" + (f"{order:>7.2f}" if order is not None else f"{'-':>7}"))
+        say(f"{case:<18}{' '.join(str(value) for value in entry['resolutions']):<22}{per_grid}")
     say()
     say(f"The lid's shear length in the Newtonian fluid of viscosity mu_inf: lambda = mu_inf U / traction = "
-        f"{shear_length:.4f} L. delta = K l / (2 (1 + K)) = {ratio:g} l. Excess of the traction over that on the "
-        "Newtonian fluid, extrapolated values and the values of like grids, against delta / lambda")
-    say(f"{'l / L':>8}{'delta / L':>11}{'delta / lambda':>16}{'excess (-> 0)':>15}{'like grids':>26}"
-        f"{'excess / (delta / lambda)':>27}")
+        f"{shear_length:.4f} L on the grid of {finest} intervals ("
+        + ", ".join(f"{value:.4f} on {grid}" for grid, value in shear_lengths.items())
+        + f"). delta = K l / (2 (1 + K)) = {ratio:g} l. Excess of the traction over that on the Newtonian fluid on "
+        "like grids (the finest common grid, and the spread over the common grids), against delta / lambda")
+    say(f"{'l / L':>8}{'delta / L':>11}{'delta / lambda':>16}{'excess':>9}{'grid':>6}{'spread':>9}"
+        f"{'all like grids':>28}{'excess / (delta / lambda)':>27}")
     rows = []
     for case, entry in cases.items():
         if case == "newtonian_far":
             continue
         displacement = ratio * entry["length"]
-        excess = entry["traction"]["extrapolated"] / far_traction - 1.0
-        like = {}
-        for resolution, grid in zip(entry["resolutions"], entry["grids"]):
-            if resolution in far["resolutions"]:
-                like[str(resolution)] = (grid["lid_traction_mean"]
-                                         / far["grids"][far["resolutions"].index(resolution)]["lid_traction_mean"] - 1.0)
+        like = {str(resolution): grid["lid_traction_mean"] / far_by_grid[resolution] - 1.0
+                for resolution, grid in zip(entry["resolutions"], entry["grids"]) if resolution in far_by_grid}
+        grid_used = max(int(resolution) for resolution in like)
+        excess = like[str(grid_used)]
+        spread = max(like.values()) - min(like.values())
         row = {"case": case, "length": entry["length"], "displacement": displacement,
                "displacement_over_shear_length": displacement / shear_length, "excess": excess,
-               "excess_like_grids": like, "excess_over_first_order": excess / (displacement / shear_length)}
+               "excess_grid": grid_used, "excess_spread_over_like_grids": spread, "excess_like_grids": like,
+               "excess_over_first_order": excess / (displacement / shear_length)}
         rows.append(row)
         say(f"{'1/' + format(1.0 / entry['length'], '.0f'):>8}{displacement:>11.5f}"
-            f"{row['displacement_over_shear_length']:>16.4f}{excess:>15.4f}"
-            f"{', '.join(f'{value:.4f}' for value in like.values()):>26}{row['excess_over_first_order']:>27.3f}")
+            f"{row['displacement_over_shear_length']:>16.4f}{excess:>9.4f}{grid_used:>6}{spread:>9.4f}"
+            f"{', '.join(f'{value:.4f}' for value in like.values()):>28}{row['excess_over_first_order']:>27.3f}")
     result["rows"] = rows
     target.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
     target.with_suffix(".json").write_text(json.dumps(result, indent=1), encoding="utf-8")
@@ -513,6 +527,7 @@ def main() -> int:
     lid.add_argument("--end-time", type=float, default=400.0)
     lid.add_argument("--tolerance", type=float, default=1e-7)
     lid.add_argument("--out", default="data/micropolar/stage6/cavity_reference_lid.txt")
+    lid.add_argument("--table-only", action="store_true", help="the table again from the stored tractions per grid")
     lid.set_defaults(handler=command_lid)
     arguments = parser.parse_args()
     return arguments.handler(arguments)

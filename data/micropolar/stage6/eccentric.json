@@ -14774,12 +14774,22 @@
     "rotor_torque_circle": 0.053194907464311214,
     "stator_torque_circle": 0.05536282125945613
    },
-   "reading_errors": null,
-   "corrected": null,
+   "reading_errors": {
+    "rotor_torque_wall": 0.0007500498883890039,
+    "stator_torque_wall": 0.001832248531532077,
+    "rotor_torque_circle": -0.002019572056121799,
+    "stator_torque_circle": -0.00010002521991592239
+   },
+   "corrected": {
+    "rotor_torque_wall": 0.05568059018715665,
+    "stator_torque_wall": 0.0549324577783501,
+    "rotor_torque_circle": 0.05521447952043301,
+    "stator_torque_circle": 0.05546284647937205
+   },
    "mean_change": 0.055438268777298794,
-   "corrected_mean": null,
-   "torque_change": 0.055438268777298794,
-   "spread_of_readings": 0.0035697988455709595,
+   "corrected_mean": 0.055322593491327954,
+   "torque_change": 0.055322593491327954,
+   "spread_of_readings": 0.0007481324088065566,
    "load_change": 0.13343188173632337,
    "turn_degrees": 0.4993831057785769,
    "predictions": {
@@ -14794,10 +14804,10 @@
    },
    "load_over_film": 0.9919690347774691,
    "load_over_rule": 0.7955497925493851,
-   "torque_over_film": 0.9624861297269337,
-   "torque_over_film_slip": 1.0332518289278552,
-   "torque_over_film_plane": 0.8276702214565848,
-   "torque_over_rule": 0.9567770960503175
+   "torque_over_film": 0.9604778444619956,
+   "torque_over_film_slip": 1.0310958867704394,
+   "torque_over_film_plane": 0.825943237702075,
+   "torque_over_rule": 0.9547807230279101
   },
   "e30_g200_k1_m10": {
    "control": "e30_g200_newtonian",
@@ -14964,12 +14974,22 @@
     "rotor_torque_circle": 0.08764275702487989,
     "stator_torque_circle": 0.09016560871695978
    },
-   "reading_errors": null,
-   "corrected": null,
+   "reading_errors": {
+    "rotor_torque_wall": 0.0007500498883890039,
+    "stator_torque_wall": 0.001832248531532077,
+    "rotor_torque_circle": -0.002019572056121799,
+    "stator_torque_circle": -0.00010002521991592239
+   },
+   "corrected": {
+    "rotor_torque_wall": 0.09036454122610538,
+    "stator_torque_wall": 0.08868688346063625,
+    "rotor_torque_circle": 0.08966232908100169,
+    "stator_torque_circle": 0.0902656339368757
+   },
    "mean_change": 0.0898605222121256,
-   "corrected_mean": null,
-   "torque_change": 0.0898605222121256,
-   "spread_of_readings": 0.0034718340896144895,
+   "corrected_mean": 0.08974484692615475,
+   "torque_change": 0.08974484692615475,
+   "spread_of_readings": 0.0016776577654691316,
    "load_change": 0.13269041368951995,
    "turn_degrees": 0.34605958739231824,
    "predictions": {
@@ -14984,10 +15004,10 @@
    },
    "load_over_film": 0.9855261778108818,
    "load_over_rule": 0.7192368354161036,
-   "torque_over_film": 0.9700441020337908,
-   "torque_over_film_slip": 1.0362202235019302,
-   "torque_over_film_plane": 0.8960305501730282,
-   "torque_over_rule": 0.868584181335543
+   "torque_over_film": 0.9687953876245622,
+   "torque_over_film_slip": 1.0348863221653746,
+   "torque_over_film_plane": 0.8948771116265083,
+   "torque_over_rule": 0.8674660738385872
   },
   "e60_g200_k1_m10": {
    "control": "e60_g200_newtonian",
@@ -15409,7 +15429,7 @@
    "coupling_ratio": 1,
    "eccentricity_ratio": 0.3,
    "torque_change_coarse": 0.05563637173190711,
-   "torque_change_fine": 0.055438268777298794,
+   "torque_change_fine": 0.055322593491327954,
    "load_change_coarse": 0.13435190348611115,
    "load_change_fine": 0.13343188173632337,
    "turn_degrees_coarse": 0.4875810218117351,
@@ -15441,7 +15461,7 @@
    "coupling_ratio": 1,
    "eccentricity_ratio": 0.6,
    "torque_change_coarse": 0.0902657159849099,
-   "torque_change_fine": 0.0898605222121256,
+   "torque_change_fine": 0.08974484692615475,
    "load_change_coarse": 0.13341685812923898,
    "load_change_fine": 0.13269041368951995,
    "turn_degrees_coarse": 0.3578532896550115,

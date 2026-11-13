@@ -1,0 +1,5 @@
+case,l / L,delta / L,delta / lambda,"traction of the lid over that on the Newtonian fluid of viscosity mu_inf, minus one (finest common grid)",grid (intervals),spread over the common grids,on every common grid,excess over delta / lambda
+micropolar_l10,1/10,0.03750,0.5972,0.2955,256,0.0043,"0.2916 (n = 128), 0.2959 (n = 192), 0.2955 (n = 256)",0.495
+micropolar,1/20,0.01875,0.2986,0.2319,256,0.0041,"0.2288 (n = 128), 0.2329 (n = 192), 0.2319 (n = 256)",0.777
+micropolar_l40,1/40,0.00938,0.1493,0.1441,256,0.0036,"0.1418 (n = 128), 0.1454 (n = 192), 0.1441 (n = 256)",0.965
+micropolar_l80,1/80,0.00469,0.0746,0.0766,384,0.0014,"0.0761 (n = 192), 0.0752 (n = 256), 0.0766 (n = 384)",1.026
