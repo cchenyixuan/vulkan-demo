@@ -1,0 +1,64 @@
+{
+ "initial": {
+  "extremum_vorticity_for_energy_2": 299.5283853752255,
+  "at_extremum": {
+   "energy": 2.0,
+   "enstrophy": 799.9999999999999,
+   "palinstrophy": 441836.4692935938
+  },
+  "at_320": {
+   "energy": 2.2827270305135556,
+   "enstrophy": 913.090812205422,
+   "palinstrophy": 504296.0257615797
+  },
+  "peak_initial_speed": 11.019033502682255
+ },
+ "pressure": {
+  "one_monopole": {
+   "250": {
+    "largest_difference": 0.011208536838061889,
+    "depth": 56.05085870028445
+   },
+   "1000": {
+    "largest_difference": 0.0007008986090468738,
+    "depth": 56.07188171386574
+   }
+  },
+  "dipole_range": [
+   -67.38096098246525,
+   6.6261867015518305
+  ]
+ },
+ "lattice": {
+  "250": {
+   "energy": 2.0000000000000058,
+   "energy_grid": 1.9968039343508783,
+   "enstrophy": 796.6272502566228,
+   "palinstrophy": 438203.078240345
+  },
+  "500": {
+   "energy": 2.0000000000000067,
+   "energy_grid": 1.9992002460937517,
+   "enstrophy": 799.155030344125,
+   "palinstrophy": 440938.2870042456
+  },
+  "1000": {
+   "energy": 2.0000000000000053,
+   "energy_grid": 1.9998000153839428,
+   "enstrophy": 799.788645939687,
+   "palinstrophy": 441625.6330773445
+  }
+ },
+ "boundary_layer": {
+  "500": {
+   "enstrophy_over_exact": 0.9834255501506954,
+   "grid_wall_vorticity_over_exact": 0.9523300996377939,
+   "fit_wall_vorticity_over_exact": 0.970340822957072
+  },
+  "1000": {
+   "enstrophy_over_exact": 0.995380088330721,
+   "grid_wall_vorticity_over_exact": 0.9760734961489331,
+   "fit_wall_vorticity_over_exact": 0.9915703579497367
+  }
+ }
+}

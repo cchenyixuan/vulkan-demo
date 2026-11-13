@@ -439,6 +439,105 @@ def command_analyse(arguments) -> int:
     return 0
 
 
+def command_checks(arguments) -> int:
+    """Host checks of the set-up and of the estimators (no card): omega_e for E(0) = 2 and the reference values of
+    the paper at t = 0, the largest initial speed, the Poisson pressure against the exact pressure of one monopole,
+    the grid estimator on the initial lattice, and on a boundary layer of thickness 0.01 W (the wall vorticity of
+    the grid and of the particle fit) -> data/micropolar/stage8/host_checks.{txt,json}."""
+    from scipy.optimize import brentq
+    lines, result = [], {}
+
+    def say(text: str = "") -> None:
+        lines.append(text)
+        print(text, flush=True)
+
+    def integrals(resolution: int, extremum: float) -> dict:
+        spacing = 2.0 / resolution
+        axis = -1.0 + spacing * (np.arange(resolution) + 0.5)
+        x, y = np.meshgrid(axis, axis, indexing="ij")
+        saved = dipole.EXTREMUM_VORTICITY
+        dipole.EXTREMUM_VORTICITY = extremum
+        fields = dipole.analytic_fields(x, y)
+        dipole.EXTREMUM_VORTICITY = saved
+        gradient_x, gradient_y = np.gradient(fields["vorticity"], spacing)
+        return {"energy": 0.5 * float((fields["u"] ** 2 + fields["v"] ** 2).sum()) * spacing ** 2,
+                "enstrophy": 0.5 * float((fields["vorticity"] ** 2).sum()) * spacing ** 2,
+                "palinstrophy": 0.5 * float((gradient_x ** 2 + gradient_y ** 2).sum()) * spacing ** 2}
+    extremum = brentq(lambda value: integrals(4000, value)["energy"] - 2.0, 250.0, 350.0, xtol=1e-12)
+    at_extremum, at_320 = integrals(4000, extremum), integrals(4000, 320.0)
+    result["initial"] = {"extremum_vorticity_for_energy_2": extremum, "at_extremum": at_extremum,
+                         "at_320": at_320, "peak_initial_speed": dipole.peak_initial_speed()}
+    say(f"1. omega_e giving E(0) = 2 on [-1, 1]^2 (grid of 4000^2 cells): {extremum:.9f}; there Omega(0) = "
+        f"{at_extremum['enstrophy']:.4f}, P(0) = {at_extremum['palinstrophy']:.5e} (paper: E = 2, Omega = 800, "
+        f"P = 4.42e5). With omega_e = 320 (the paper's 'about 320'): E {at_320['energy']:.4f}, Omega "
+        f"{at_320['enstrophy']:.2f}, P {at_320['palinstrophy']:.4e}. Largest initial speed "
+        f"{result['initial']['peak_initial_speed']:.4f} m/s (at the centre of the dipole).")
+    saved = dipole.MONOPOLES
+    dipole.MONOPOLES = ((0.0, 0.0, +1.0),)
+    pressure_rows = {}
+    for resolution in (250, 1000):
+        axis, pressure = dipole.incompressible_pressure(0.0, 1.0 / resolution)
+        x, y = np.meshgrid(axis, axis, indexing="ij")
+        exact = -dipole.EXTREMUM_VORTICITY ** 2 * dipole.MONOPOLE_RADIUS ** 2 / 16.0 * np.exp(
+            -2.0 * (x ** 2 + y ** 2) / dipole.MONOPOLE_RADIUS ** 2)
+        pressure_rows[resolution] = {"largest_difference": float(np.abs(pressure - exact).max()),
+                                     "depth": float(-exact.min())}
+    dipole.MONOPOLES = saved
+    axis, pressure = dipole.incompressible_pressure(0.0, 1.0 / 1000)
+    result["pressure"] = {"one_monopole": pressure_rows, "dipole_range": [float(pressure.min()), float(pressure.max())]}
+    say("2. Pressure / rho of the incompressible flow (cosine transform on the grid of dx / 2): one monopole against "
+        "-omega_e^2 r0^2 / 16 exp(-2 r^2 / r0^2): largest difference " + ", ".join(
+            f"{row['largest_difference']:.1e} at n = {resolution}" for resolution, row in pressure_rows.items())
+        + f" (depth {pressure_rows[1000]['depth']:.2f} m^2/s^2); the dipole: {pressure.min():.3f} to "
+        f"{pressure.max():.3f} m^2/s^2.")
+    lattice = {}
+    for resolution in (250, 500, 1000):
+        spacing = 1.0 / resolution
+        coordinate = -1.0 + spacing * (np.arange(2 * resolution) + 0.5)
+        x, y = np.meshgrid(coordinate, coordinate, indexing="ij")
+        position = np.column_stack([x.ravel(), y.ravel()])
+        fields = dipole.analytic_fields(position[:, 0], position[:, 1])
+        values = dipole.diagnostics(dipole.Grid(resolution), position, np.column_stack([fields["u"], fields["v"]]),
+                                    np.zeros(position.shape[0]), None, spacing ** 2, 600.0, False)
+        lattice[resolution] = {key: float(values[key]) for key in ("energy", "energy_grid", "enstrophy", "palinstrophy")}
+    result["lattice"] = lattice
+    say("3. The grid estimator on the initial lattice (E of the particles; E, Omega, P of the grid): " + "; ".join(
+        f"n = {resolution}: E {row['energy']:.6f} / {row['energy_grid']:.6f}, Omega {row['enstrophy']:.3f}, P "
+        f"{row['palinstrophy']:.4e}" for resolution, row in lattice.items()) + ".")
+    layer = {}
+    thickness, speed = 0.01, 5.0
+    for resolution in (500, 1000):
+        spacing = 1.0 / resolution
+        coordinate = -1.0 + spacing * (np.arange(2 * resolution) + 0.5)
+        x, y = np.meshgrid(coordinate, coordinate, indexing="ij")
+        position = np.column_stack([x.ravel(), y.ravel()])
+        distance = 1.0 - position[:, 0]
+        envelope = 0.5 * (1.0 + np.tanh((position[:, 0] - 0.5) / 0.05))
+        v = speed * (1.0 - np.exp(-distance / thickness)) * np.sin(np.pi * position[:, 1]) \
+            * (position[:, 1] > 0.0) * envelope
+        values = dipole.diagnostics(dipole.Grid(resolution), position, np.column_stack([np.zeros_like(v), v]),
+                                    np.zeros(v.size), None, spacing ** 2, 600.0, False)
+        fine = np.linspace(0.0, 1.0, 200001)
+        smooth = 0.5 * (1.0 + np.tanh((1.0 - fine - 0.5) / 0.05))
+        derivative = np.gradient(speed * (1.0 - np.exp(-fine / thickness)) * smooth, fine)
+        exact = 0.5 * np.trapezoid(derivative ** 2, fine) * 0.5
+        middle_grid = values["wall_vorticity"][np.argmin(np.abs(coordinate - 0.5))]
+        middle_fit = values["wall_fit_vorticity"][np.argmin(np.abs(values["wall_fit_y"] - 0.5))]
+        layer[resolution] = {"enstrophy_over_exact": float(values["enstrophy"] / exact),
+                             "grid_wall_vorticity_over_exact": float(middle_grid / (-speed / thickness)),
+                             "fit_wall_vorticity_over_exact": float(middle_fit / (-speed / thickness))}
+    result["boundary_layer"] = layer
+    say("4. A boundary layer v = 5 (1 - exp(-s / 0.01)) sin(pi y) next to x = 1: enstrophy over exact, wall vorticity "
+        "of the grid and of the particle fit over exact: " + "; ".join(
+            f"n = {resolution}: {row['enstrophy_over_exact']:.4f}, {row['grid_wall_vorticity_over_exact']:.4f}, "
+            f"{row['fit_wall_vorticity_over_exact']:.4f}" for resolution, row in layer.items()) + ".")
+    out_dir = _REPO_ROOT / dipole.DATA_DIRECTORY
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "host_checks.txt").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    (out_dir / "host_checks.json").write_text(json.dumps(result, indent=1, default=str), encoding="utf-8")
+    return 0
+
+
 FIELD_WINDOW = ((0.4, 1.0), (0.0, 0.6))     # x, y of the cropped fields (the window of Fig. 7 of the paper)
 
 
@@ -472,6 +571,7 @@ def main() -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     analyse = commands.add_parser("analyse")
     analyse.add_argument("--partial", action="store_true", help="include unfinished runs (samples_partial.npz)")
+    commands.add_parser("checks")
     fields = commands.add_parser("fields")
     fields.add_argument("--runs", nargs="+", required=True)
     fields.add_argument("--times", type=float, nargs="+", required=True)
@@ -480,6 +580,8 @@ def main() -> int:
         return command_analyse(arguments)
     if arguments.command == "fields":
         return command_fields(arguments)
+    if arguments.command == "checks":
+        return command_checks(arguments)
     return 1
 
 
