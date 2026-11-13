@@ -304,6 +304,27 @@ def main() -> int:
             f"two discs, {pair['end_faces_plane_film_change']:.4f}. The rims belong to both.")
     say("- **The rule in 3-D** [host, run]: the argument for the normal component is right; that component has its own "
         "layer length l sqrt(nu_inf / nu), and the run shows both lengths (table).")
+    rule = rotor.get("rules", {}).get("g40_slip_newtonian_k2")
+    if rule and pair:
+        say("- **The rule in 3-D, run** [run] (the Newtonian fluid in the slip-form geometry at g = 40 dx: lateral "
+            "surface of the rotor at R1 + delta turning at Omega (R1 - delta) / (R1 + delta), its end faces out by "
+            "delta at Omega, the housing in by delta; rows 'the wall rule' of the table). **Mid-plane:** change of "
+            f"the constant {rule['midplane_change']:.4f} against {pair['midplane_change']:.4f} in the micropolar run "
+            f"({100.0 * (rule['midplane_change'] / pair['midplane_change'] - 1.0):+.1f} %). **Torque:** "
+            f"{rule['rotor_circle_with_advection_change']:.4f} (flux form), {rule['housing_wall_change']:.4f} "
+            f"(housing), {rule['rotor_wall_change']:.4f} (wall form) against "
+            f"{pair['rotor_circle_with_advection_change']:.4f}, {pair['housing_wall_change']:.4f}, "
+            f"{pair['rotor_wall_change']:.4f}: the rule in this plainest reading overstates the change of the torque "
+            f"by {100.0 * (rule['housing_wall_change'] / pair['housing_wall_change'] - 1.0):.0f} to "
+            f"{100.0 * (rule['rotor_circle_with_advection_change'] / pair['rotor_circle_with_advection_change'] - 1.0):.0f} "
+            "%. The excess arrives on both kinds of faces of the housing (end faces "
+            f"{rule['housing_wall_end_change']:.3f} against {pair['housing_wall_end_change']:.3f}, lateral face "
+            f"{rule['housing_wall_lateral_change']:.3f} against {pair['housing_wall_lateral_change']:.3f}); the "
+            "mid-plane being right, [inferred] it comes from the end regions: "
+            "the displaced rotor is a larger body (end faces to R1 + delta at the full rate, end gap g - 2 delta); "
+            "the wall layer at a convex rim does not act as one. At the rim the two rates meet without blending: "
+            "each wall particle of the rotor takes the rate of the surface it is nearer to (jump 2 delta Omega = "
+            "0.0625 U).")
     say("- **Chain:** per-particle seam checks pass on three slabs (one card) and two slabs (XTX + 5090); the cavity on "
         "two slabs equals the one-slab run to 2e-5 U.")
     say()
@@ -349,6 +370,9 @@ def main() -> int:
             "finite-difference solution" + marchi_sentence + ".",
             "**3-D torque change:** three readings, 0.185 to 0.197 at g = 40 dx; there is no exact 3-D value. Say "
             "which reading is quoted.",
+            "**The slip-form rule in 3-D** is good for the mid-plane and a quarter too large for the torque of this "
+            "short rotor (one run, one reading of the rule at the rims). Do not quote the 2-D accuracy of the rule "
+            "for the 3-D torque.",
             "**The cylinder cases carry `numerics.delta_fluid_only: true`** (the key), the cavity cases the default "
             "walls. With the key the level of the pressure wanders (recorded for every run; no reading follows it).",
             "**Kinetic energy of the cavity** is quoted over the fluid mass (the particle masses sum to 1.134 rho0 L^2 "
@@ -361,7 +385,8 @@ def main() -> int:
             "every particle in the seam check (4e-3 m/s^2, there 4e-5 of a prescribed field of 109 m/s^2), seen "
             "here only where a card uses pressures of particles it does not own. " + one_card_sentence
             + " No measured quantity of the pack moves by it (two slabs against one: 2e-5 U in the cavity).",
-            "**Not run:** g = 400 dx rows other than the one pair; g = 80 dx; displaced (rule) runs in 3-D; a particle "
+            "**Not run:** g = 400 dx rows other than the one pair; g = 80 dx; displaced (rule) runs in 3-D other than "
+            "the one above; a particle "
             "cavity run at l = L / 40."):
         say(f"- {line}")
     say()

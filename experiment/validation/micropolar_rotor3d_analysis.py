@@ -435,7 +435,7 @@ def command_analyse(arguments) -> int:
                  "two_dimensional_change": item["exact_two_dimensional"]["torque_change"]}
         if "torque" in item and "torque" in base:
             for key in ("rotor_wall", "rotor_wall_lateral", "rotor_wall_end", "rotor_circle",
-                        "rotor_circle_with_advection", "housing_wall"):
+                        "rotor_circle_with_advection", "housing_wall", "housing_wall_lateral", "housing_wall_end"):
                 if key in item["torque"] and key in base["torque"]:
                     entry[f"{key}_change"] = item["torque"][key]["mean"] / base["torque"][key]["mean"] - 1.0
             # the plane film between the two discs of an end gap (shear-driven, both walls displaced): exact
@@ -469,7 +469,7 @@ def command_analyse(arguments) -> int:
                  / base["midplane_fit"]["potential_vortex_constant"] - 1.0}
         if "torque" in item and "torque" in base:
             for key in ("rotor_wall", "rotor_wall_lateral", "rotor_wall_end", "rotor_circle",
-                        "rotor_circle_with_advection", "housing_wall"):
+                        "rotor_circle_with_advection", "housing_wall", "housing_wall_lateral", "housing_wall_end"):
                 if key in item["torque"] and key in base["torque"]:
                     entry[f"{key}_change"] = item["torque"][key]["mean"] / base["torque"][key]["mean"] - 1.0
         rules[name] = entry
@@ -479,7 +479,8 @@ def command_analyse(arguments) -> int:
             + ", ".join(f"{label} {entry[key]:.4f}" for label, key in (
                 ("flux form", "rotor_circle_with_advection_change"), ("on the housing", "housing_wall_change"),
                 ("wall form", "rotor_wall_change"), ("lateral surface", "rotor_wall_lateral_change"),
-                ("end faces", "rotor_wall_end_change")) if key in entry))
+                ("end faces", "rotor_wall_end_change"), ("housing, lateral face", "housing_wall_lateral_change"),
+                ("housing, end faces", "housing_wall_end_change")) if key in entry))
     chains = {}
     for name, single in CHAINS:
         if name not in records or single not in records:

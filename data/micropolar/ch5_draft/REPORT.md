@@ -1,6 +1,6 @@
 # Chapter 5: what the solver has shown
 
-Written 2026-11-13 15:57 at commit `5310c11` (branch `v9-micropolar`; solver tag `thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number below is read from the data files by `report.py`; the captions with all parameters and run names are in `captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6) and 16 (Stage 7).
+Written 2026-11-13 17:56 at commit `d677698` (branch `v9-micropolar`; solver tag `thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number below is read from the data files by `report.py`; the captions with all parameters and run names are in `captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6) and 16 (Stage 7).
 
 **State.** Every run of the chapter is done.
 
@@ -158,7 +158,17 @@ Rotor of radius 3 g and length 3 g in a housing of radius 4 g with end gaps g, K
 | D_T, wall form | 0.3297 | 0.1924 |
 | D_T, wall form, lateral surface | 0.3166 | 0.1863 |
 | D_T, wall form, end faces | 0.3610 | 0.2069 |
+| D_T on the housing, lateral face | 0.3153 | 0.1815 |
+| D_T on the housing, end faces | 0.4124 | 0.2378 |
 | exact 2-D D for the radii (lateral gap) | 0.3034 | 0.1669 |
+| the wall rule (Newtonian run in the slip-form geometry over the control): D_T, flux form | - | 0.2429 |
+| the wall rule: D_T on the housing | - | 0.2429 |
+| the wall rule: D_T, wall form | - | 0.2410 |
+| the wall rule: D_T, wall form, lateral surface | - | 0.1593 |
+| the wall rule: D_T, wall form, end faces | - | 0.4380 |
+| the wall rule: D_T on the housing, lateral face | - | 0.2106 |
+| the wall rule: D_T on the housing, end faces | - | 0.3277 |
+| the wall rule: change of the mid-plane constant | - | 0.1724 |
 | exact plane film between two discs (end faces) | 0.3998 | 0.2206 |
 | mid-plane constant over the 2-D one, Newtonian | 0.9945 | 0.9979 |
 | mid-plane constant over the 2-D one, micropolar | 0.9929 | 0.9990 |
@@ -177,6 +187,7 @@ Rotor of radius 3 g and length 3 g in a housing of radius 4 g with end gaps g, K
 - **Mid-plane:** the micropolar effect is 0.1682 against the exact 2-D D of 0.1669 (1.0075 of it).
 - **Lateral surface and end faces:** D_T 0.1863 against the exact 2-D 0.1669; 0.2069 against the plane film between two discs, 0.2206. The rims belong to both.
 - **The rule in 3-D** [host, run]: the argument for the normal component is right; that component has its own layer length l sqrt(nu_inf / nu), and the run shows both lengths (table).
+- **The rule in 3-D, run** [run] (the Newtonian fluid in the slip-form geometry at g = 40 dx: lateral surface of the rotor at R1 + delta turning at Omega (R1 - delta) / (R1 + delta), its end faces out by delta at Omega, the housing in by delta; rows 'the wall rule' of the table). **Mid-plane:** change of the constant 0.1724 against 0.1682 in the micropolar run (+2.5 %). **Torque:** 0.2429 (flux form), 0.2429 (housing), 0.2410 (wall form) against 0.1848, 0.1970, 0.1924: the rule in this plainest reading overstates the change of the torque by 23 to 31 %. The excess arrives on both kinds of faces of the housing (end faces 0.328 against 0.238, lateral face 0.211 against 0.182); the mid-plane being right, [inferred] it comes from the end regions: the displaced rotor is a larger body (end faces to R1 + delta at the full rate, end gap g - 2 delta); the wall layer at a convex rim does not act as one. At the rim the two rates meet without blending: each wall particle of the rotor takes the rate of the surface it is nearer to (jump 2 delta Omega = 0.0625 U).
 - **Chain:** per-particle seam checks pass on three slabs (one card) and two slabs (XTX + 5090); the cavity on two slabs equals the one-slab run to 2e-5 U.
 
 ## 8. The map of the effect (item 16) [host]
@@ -196,8 +207,9 @@ Noise floors shaded in the figure: 1.1e-05 (torque, g = 200 dx) and 3.6e-04 (cha
 - **The film function** is that of micropolar lubrication theory; ours is that the runs reproduce it at a clearance ratio of 0.25. Its match with the published form has not been checked against the original.
 - **The cavity is not 'between two Newtonian fluids'**, and the pack no longer says so; its check is the finite-difference solution, which in turn agrees with the reference of Marchi et al. at Reynolds number 400 (your transcription from the appendix of paper 1, `reference/marchi_re400.csv`, 28 + 28 points) to 3.0e-05 (u) and 1.9e-05 (v) U rms once extrapolated to zero spacing.
 - **3-D torque change:** three readings, 0.185 to 0.197 at g = 40 dx; there is no exact 3-D value. Say which reading is quoted.
+- **The slip-form rule in 3-D** is good for the mid-plane and a quarter too large for the torque of this short rotor (one run, one reading of the rule at the rims). Do not quote the 2-D accuracy of the rule for the 3-D torque.
 - **The cylinder cases carry `numerics.delta_fluid_only: true`** (the key), the cavity cases the default walls. With the key the level of the pressure wanders (recorded for every run; no reading follows it).
 - **Kinetic energy of the cavity** is quoted over the fluid mass (the particle masses sum to 1.134 rho0 L^2 at n = 500).
 - **Within one support of a slab cut** the card's acceleration differs from a host sum over the saved particles by 2e-3 to 4e-3 of its rms; 1e-6 elsewhere. Tested on the saved two-slab state (`rotor3d_cut_check.txt`): taking the neighbours' pressure from the host's equation of state of their single-precision density does not bring it to 1e-6, because the host's evaluation is neither card's (0.21 Pa rms from the saved pressure). It is the difference the two cards show against each other in every particle in the seam check (4e-3 m/s^2, there 4e-5 of a prescribed field of 109 m/s^2), seen here only where a card uses pressures of particles it does not own. **[run] The cause is the two cards' own evaluation of the equation of state:** the same two slabs with both on the 5090 (2,000 steps at g = 20 dx) show 9.7e-07 and 1.0e-06 within one support of the cut, the value of the interior; on 5090 + XTX 2.1e-03 and 1.9e-03 (`rotor3d_cut_check_one_card.txt`, `rotor3d_cut_check_two_cards.txt`). No measured quantity of the pack moves by it (two slabs against one: 2e-5 U in the cavity).
-- **Not run:** g = 400 dx rows other than the one pair; g = 80 dx; displaced (rule) runs in 3-D; a particle cavity run at l = L / 40.
+- **Not run:** g = 400 dx rows other than the one pair; g = 80 dx; displaced (rule) runs in 3-D other than the one above; a particle cavity run at l = L / 40.
 

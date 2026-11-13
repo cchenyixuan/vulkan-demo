@@ -3692,6 +3692,7 @@ commands in its `README.md`); the plan of the stage is `logs/micropolar/stage7/p
 | g = 20 dx, micropolar, two slabs (2,000 steps) | 2.59 | 0.56 | 1.28 | 2.01 | 2.73 | 17.1 | 17.5 |
 | g = 40 dx, micropolar, two slabs (run 1) | 15.60 | 1.45 | 5.08 | 9.51 | 13.13 | 15.4 | 9.9 |
 | g = 40 dx, Newtonian, two slabs (run 2) | 15.60 | 1.49 | 4.82 | 7.89 | 11.21 | 15.5 | 11.5 |
+| g = 40 dx, Newtonian in the slip-form geometry, two slabs (16.5) | 13.47 | 1.35 | 4.16 | 6.95 | 9.75 | 14.0 | 8.9 |
 
 - **The rule** (start a 3-D run only with twice the peak of the two-slab run free): the peak of the working set is
   4.5 to 5.1 GB (first sample of run 1: 4.5 GB), twice that is 9 to 10 GB, and 18.0 GB (run 1) and 17.7 GB (run 2)
@@ -3769,6 +3770,7 @@ commands in its `README.md`); the plan of the stage is `logs/micropolar/stage7/p
 | 3 | `g200_k1_m5`: concentric, K = 1, l = 20 dx, second run | 5090 | 267,000 | 271.0 | 16 min | 12 | every counter zero |
 | 4 | `g400_newtonian_k3`: control of the pair at g = 400 dx | 5090 | 625,000 | 116.7 | 89 min | 12 | every counter zero |
 | 4 | `g400_k3_m20`: K = 3, m = 20, l = 10 dx at g = 400 dx | 5090 | 625,000 | 90.4 | 115 min | 12 | every counter zero |
+| optional | `g40_slip_newtonian_k2`: 3-D, g = 40 dx, Newtonian in the slip-form geometry of the rule | 5090 + XTX | 51,000 | 8.7 | 97 min | 13 | every counter zero |
 
 - One 3-D run at a time with nothing beside it; one job per call of the runner (`--one-job`), the analysis of a run
   in the pause before the next. Run 1 from its beginning to 1.5 g^2 / nu_inf with 13 wall-band states (step 39,000,
@@ -3795,7 +3797,17 @@ m = g / (2 l) is 2 here and 1 there: the two columns are two cases, not one case
 | D_T, wall form | 0.3297 | 0.1924 |
 | D_T, wall form, lateral surface | 0.3166 | 0.1863 |
 | D_T, wall form, end faces | 0.3610 | 0.2069 |
+| D_T on the housing, lateral face | 0.3153 | 0.1815 |
+| D_T on the housing, end faces | 0.4124 | 0.2378 |
 | exact 2-D D for the radii (lateral gap) | 0.3034 | 0.1669 |
+| the wall rule (Newtonian run in the slip-form geometry over the control): D_T, flux form | - | 0.2429 |
+| the wall rule: D_T on the housing | - | 0.2429 |
+| the wall rule: D_T, wall form | - | 0.2410 |
+| the wall rule: D_T, wall form, lateral surface | - | 0.1593 |
+| the wall rule: D_T, wall form, end faces | - | 0.4380 |
+| the wall rule: D_T on the housing, lateral face | - | 0.2106 |
+| the wall rule: D_T on the housing, end faces | - | 0.3277 |
+| the wall rule: change of the mid-plane constant | - | 0.1724 |
 | exact plane film between two discs (end faces) | 0.3998 | 0.2206 |
 | mid-plane constant over the 2-D one, Newtonian | 0.9945 | 0.9979 |
 | mid-plane constant over the 2-D one, micropolar | 0.9929 | 0.9990 |
@@ -3888,7 +3900,69 @@ m = g / (2 l) is 2 here and 1 there: the two columns are two cases, not one case
   `concentric.json`, which is the form with (R1 / R2)^2 of Stage 4; the slip form is in items 03 and 04 and in
   15.2.1.
 
-### 16.5 Unexpected, and what is left
+### 16.5 The wall rule in 3-D: the Newtonian run in the slip-form geometry **[run]**
+
+- **The case** (`cases/rotor3d/g40_slip_newtonian`, particles in `geometry_g040_slip`; the optional item of the
+  task). The Newtonian fluid of viscosity mu_inf in the geometry the rule prescribes for K = 3 and l = 10 dx, delta
+  = K l / (2 (1 + K)) = 3.75 dx: the lateral surface of the rotor at R1 + delta = 0.309375 m turning at Omega (R1 -
+  delta) / (R1 + delta) = 3.1313 rad/s (Omega = 3.3333); its end faces moved out by delta (half-length 0.159375 m),
+  turning at Omega; every face of the housing moved in by delta (radius 0.390625 m, half-height 0.240625 m), at
+  rest. 13,473,140 particles (8,572,480 of fluid; the control has 10,646,800), the same spacing, dt (3.0e-05 s) and
+  end time (51,000 steps) as the pair, two slabs on 5090 + XTX with the same weights and the same cut; 8.7 steps/s,
+  97 min, every counter zero, 13 states. Before it, 2,000 steps of the same construction at g = 20 dx on one card
+  (`smoke_g20_slip_newtonian`): every counter zero, host against card 2.4e-6 of the rms acceleration, the wall pass
+  9e-7 of the largest speed at the rims and elsewhere.
+- **How the wall velocity is set at the rim, where the two rates meet.** The rotor is two bodies of wall particles,
+  each with its own rigid rotation about z, as in every case of this geometry; a wall particle of the rotor belongs
+  to the surface it is nearer to. So the two rates meet on the cone that leaves the rim edge at 45 degrees into the
+  rotor, with no blending: on the rim the wall velocity is 0.96875 U on the lateral side and 1.03125 U on the side
+  of the end face, a jump of 2 delta Omega = 0.0625 U. The wall pass takes the velocity of each wall particle from
+  its own body, so a fluid particle within h of the rim sees both. The rule gives no prescription for a rim; this is
+  the plainest reading of it (each face with the speed the rule gives that face).
+
+| reading (change against the Newtonian control `g40_newtonian_k2`) | micropolar run | Newtonian run in the slip-form geometry | ratio | exact, unbounded (2-D cylinders or plane film) | the rule there | ratio |
+|---|---|---|---|---|---|---|
+| D_T, flux form | 0.1848 | 0.2429 | 1.314 | - | - | - |
+| D_T on the housing | 0.1970 | 0.2429 | 1.233 | - | - | - |
+| D_T, wall form | 0.1924 | 0.2410 | 1.253 | - | - | - |
+| D_T, wall form, lateral surface | 0.1863 | 0.1593 | 0.855 | 0.1669 | 0.1726 | 1.034 |
+| D_T, wall form, end faces | 0.2069 | 0.4380 | 2.117 | 0.2206 | 0.2308 | 1.046 |
+| change of the mid-plane constant | 0.1682 | 0.1724 | 1.025 | 0.1669 | 0.1726 | 1.034 |
+
+- **Torque of the run (N m):** flux form 51.939 (from 51.936 to 51.941 through the 13 states, +8.9e-05), on the
+  housing 51.911, wall form 52.136 (lateral surface 34.419, end faces 17.717). The flux form and the housing agree
+  to 5.3e-04, as in the control: a Newtonian run is at rest in every reading.
+- **In the mid-plane the rule is as good as between infinite cylinders:** the constant of v_theta changes by 0.1724
+  (the rule's own 2-D value 0.1726; the micropolar run 0.1682, the exact 2-D D 0.1669), 2.5 % above the micropolar
+  run.
+- **The torque is not.** The run in the slip-form geometry gains 0.2429 by the flux form, 0.2429 on the housing and
+  0.2410 by the wall form, against 0.1848, 0.1970 and 0.1924 in the micropolar run: read in this plainest way the
+  rule overstates the change of the torque by 23 % (housing) to 31 % (flux form), where its two unbounded building
+  blocks are 3.4 % (cylinders) and 4.6 % (plane film) too large.
+- **Where the excess arrives.** On the housing, by its faces: lateral face 0.2106 with the rule and 0.1815 in the
+  micropolar run, end faces 0.3277 and 0.2378. In torque: the rule's run exceeds the micropolar run by 1.91 N m, of
+  which 0.88 arrive on the lateral face and 1.04 on the end faces of the housing. (The faces of the housing are
+  moved too, so these are changes of the torque that arrives on each face.) So the excess is not confined to the end
+  faces; since the mid-plane is right, [inferred] the part on the lateral face comes from the stretches of the
+  lateral gap next to the rims. On the rotor the split of the wall form gives 0.4380 for the end faces (0.2069) and
+  0.1593 for the lateral surface (0.1863); that split is by the body a wall particle belongs to, and with two rates
+  meeting at the rim it moves torque from the lateral body to the end body (the lateral value lies below the rule's
+  own 2-D value although the surface is longer). The totals and the housing are the readings to use for this run.
+- **[inferred; host arithmetic, not tested by a run]** The displaced rotor is a larger body. Its end faces reach to
+  R1 + delta, turn at Omega (rim speed 1.031 U against 0.969 U on the lateral side) and face an end gap of g - 2
+  delta. The torque of a disc goes with R^4 / gap: (1 + delta / R1)^4 g / (g - 2 delta) - 1 = 0.392, against 0.231
+  for the film of the nominal radius; the lateral surface is longer by 2 delta as well (6.2 %). The micropolar wall
+  layer at a convex rim does not act as that larger body: in the micropolar run the end faces gain less than the
+  plane film (0.2069 against 0.2206). A reading of the rule that gives the added ring of the end faces (R1 < r < R1
+  + delta) the rate of the lateral surface would be the next thing to try. Not run: there is no further queue.
+- **For the text:** the slip-form rule carries over to 3-D where the flow is locally the 2-D one (the mid-plane, 2.5
+  % of D); for the torque of a short rotor it needs a prescription at the rims that the rule does not have, and its
+  plainest reading is a quarter too large here (L = R1 = 3 g, m = 2).
+- **The wall form of this run** carries the wall term 2 mu Omega_lateral V of the rotating lateral surface with the
+  displaced radius, length and rate; the rim is the one place where the two bodies of the rotor differ, and the wall
+  form splits there as the particles do. The flux form and the housing do not depend on that split.
+
+### 16.6 Unexpected, and what is left
 
 - **Commit** (16.0): a 3-D run on two cards needs the memory of its device buffers as commit on the host, 8 GB here.
   That, not the saved state, is what the machine could not give last night.
@@ -3902,6 +3976,10 @@ m = g / (2 l) is 2 here and 1 there: the two columns are two cases, not one case
   one-slab states.
 - **Tractions of different grids do not extrapolate** with a window that ends on nodes (16.4); ratios on like grids
   do.
+- **The rule in 3-D overstates the torque** (16.5): the Newtonian run in the slip-form geometry reproduces the
+  micropolar mid-plane (2.5 % of D) but gains 0.243 in torque where the micropolar run gains 0.185 to 0.197; the
+  excess arrives on both kinds of faces of the housing, and [inferred] comes from the end regions, where the
+  displaced rotor is a larger body.
 - **Run 4:** both runs of the pair at g = 400 dx finished (625,000 steps each of 4.8 million particles, 89 and 115
   min on the 5090, every counter zero). D = 0.01553 against the exact 0.01530: run / exact 1.0152, where the same m
   with l = 5 dx (g = 200 dx) gave 1.0322. The excess of the m = 20 row halves with the resolution of the layer. **It
@@ -3916,5 +3994,5 @@ m = g / (2 l) is 2 here and 1 there: the two columns are two cases, not one case
   (1.4e-6 and 2.0e-6 between the last two eighths; 1e-5 over the last four). **Not explained and not followed**:
   nothing else was to run at g = 400 dx. Items 03 and 04 carry the row, item 02 shows it as a third series outside
   the fitted line. It supports 'the excess at m = 20 halves'; it is not a point of the l / dx law of the other rows.
-- **Not done, by the task:** no run at g = 80 dx, no displaced run, no particle cavity run at l = L / 40, no
-  finite-difference case l = L / 160, no other row at g = 400 dx. There is no further queue.
+- **Not done, by the task:** no run at g = 80 dx, no displaced run other than the one of 16.5, no particle cavity
+  run at l = L / 40, no finite-difference case l = L / 160, no other row at g = 400 dx. There is no further queue.

@@ -52,3 +52,13 @@ names a floor of free physical memory and is not started below it. After a 3-D r
 stopped in Stage 6 left stays in `rotor3d_stopped/` and is no longer read (a run with a `run.json` takes its
 place). A 3-D run leaves `start.json` (parameters, the plan of its states, memory at the start), a `heartbeat.json`
 with the memory of the machine and of the process at every sample, and in `run.json` the peaks.
+
+The wall rule in 3-D (design note 16.5): `cases/rotor3d/g40_slip_newtonian` is the Newtonian fluid in the slip-form
+geometry of the rule (job `r3d_g40_slip_newtonian_k2` of the plan, run `g40_slip_newtonian_k2`); it was generated with
+`micropolar_rotor3d generate --out cases/rotor3d/g40_slip_newtonian --geometry cases/rotor3d/geometry_g040_slip
+--title g40_slip_newtonian --gap-in-spacings 40 --rotor-lateral-displacement 3.75 --rotor-end-displacement 3.75
+--housing-lateral-displacement 3.75 --housing-end-displacement 3.75 --lateral-rate-factor 0.9393939393939394
+--end-rate-factor 1.0 --frame-margin 2.0 --step-from-coupling-ratio 3 --step-from-gap-over-two-lengths 2
+--end-time-factor 1.5` (its `rotor3d.json` records the displacements and the two rates; the check at g = 20 dx is
+`cases/rotor3d/smoke_g20_slip_newtonian`). `micropolar_rotor3d_analysis analyse` reports it under `rules` in `rotor3d.json` (changes
+against the control `g40_newtonian_k2`), and table 15b of the pack carries its rows.

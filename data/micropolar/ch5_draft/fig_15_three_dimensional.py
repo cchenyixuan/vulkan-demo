@@ -21,6 +21,21 @@ RUNS = ["g40_k3_m2", "g40_k3_m2_k2", "g20_k3_m1"]
 TAG = "thesis-ch5-rc2"
 
 
+def rule_sentence(analysis, pair) -> str:
+    """The rows 'the wall rule' of table 15b: the Newtonian run in the slip-form geometry over the same control."""
+    rule = next((entry for entry in analysis.get("rules", {}).values()
+                 if pair and entry["control"] == pair["control"]), None)
+    if not rule or "housing_wall_change" not in rule:
+        return ""
+    return (" Its rows 'the wall rule' are the Newtonian fluid of viscosity mu_inf in the slip-form geometry of the "
+            "rule (lateral surface of the rotor at R1 + delta turning at Omega (R1 - delta) / (R1 + delta), its end "
+            "faces moved out by delta and turning at Omega, every face of the housing moved in by delta, delta = "
+            "3.75 dx; at the rim each wall particle of the rotor takes the rate of the surface it is nearer to) "
+            f"over the same control: mid-plane {rule['midplane_change']:.4f}, torque "
+            f"{rule['rotor_circle_with_advection_change']:.4f} (flux form), {rule['housing_wall_change']:.4f} "
+            f"(housing), {rule['rotor_wall_change']:.4f} (wall form).")
+
+
 def main() -> int:
     style.setup()
     if not style.exists(ANALYSIS):
@@ -145,6 +160,7 @@ def main() -> int:
         + (f" On the housing the torque changes by {pair['housing_wall_change']:.4f}; with the advective term the "
            f"flux form gives {pair['rotor_circle_with_advection_change']:.4f}. Table 15b sets this run beside the "
            "one at g = 20 dx." if pair and "housing_wall_change" in pair else "")
+        + rule_sentence(analysis, pair)
         + (f" Decay length of the wall layer on the rotor's end face: {layers['tangential']['fitted_over_expected']:.2f} l "
            f"for the tangential component and {layers['normal']['fitted_over_expected']:.2f} of l sqrt(nu_inf / nu) "
            "for the normal one." if layers else ""))
@@ -190,6 +206,10 @@ def main() -> int:
             ("D_T, wall form, lateral surface", r"$D_T$, lateral surface",
              lambda run: change(run, "rotor_wall_lateral_change")),
             ("D_T, wall form, end faces", r"$D_T$, end faces", lambda run: change(run, "rotor_wall_end_change")),
+            ("D_T on the housing, lateral face", r"$D_T$, housing, lateral face",
+             lambda run: change(run, "housing_wall_lateral_change")),
+            ("D_T on the housing, end faces", r"$D_T$, housing, end faces",
+             lambda run: change(run, "housing_wall_end_change")),
             ("exact 2-D D for the radii (lateral gap)", r"$D$, exact 2-D", lambda run: change(run, "two_dimensional_change")),
             ("the wall rule (Newtonian run in the slip-form geometry over the control): D_T, flux form",
              r"rule: $D_T$, flux form", lambda run: rule(run, "rotor_circle_with_advection_change")),
@@ -199,6 +219,10 @@ def main() -> int:
              lambda run: rule(run, "rotor_wall_lateral_change")),
             ("the wall rule: D_T, wall form, end faces", r"rule: $D_T$, end faces",
              lambda run: rule(run, "rotor_wall_end_change")),
+            ("the wall rule: D_T on the housing, lateral face", r"rule: $D_T$, housing, lateral face",
+             lambda run: rule(run, "housing_wall_lateral_change")),
+            ("the wall rule: D_T on the housing, end faces", r"rule: $D_T$, housing, end faces",
+             lambda run: rule(run, "housing_wall_end_change")),
             ("the wall rule: change of the mid-plane constant", r"rule: $D$, mid-plane",
              lambda run: rule(run, "midplane_change")),
             ("exact plane film between two discs (end faces)", "plane film, end faces",
