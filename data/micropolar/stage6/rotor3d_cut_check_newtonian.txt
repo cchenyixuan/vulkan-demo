@@ -1,0 +1,18 @@
+g40_newtonian_k2, state_00051000.npz: 6,214,347 saved rows; slabs on devices [0, 1], cut at x = 0.116875 m; support 0.01 m = 4 dx
+1. Fluid rows: rms of the saved pressure 156.5 Pa. One unit in the last place of the density is 6.10e-05 kg/m^3, that is 0.153 Pa. The equation of state of the saved density, evaluated on the host in single precision, differs from the saved pressure by 0.21 Pa rms (at most 0.51 Pa); 3 % of the rows agree to the bit.
+
+2. Targets of the check (fluid within one support of the rotor, a wedge of 12 degrees about the x axis)
+   near the rotor: 26,156 targets (22,334 with a wall neighbour); rms of the card's acceleration 2.586 m/s^2
+   rms of |host - card| over the rms acceleration, by the distance of the target from the cut in dx (negative: the slab of lower x)
+   pressure of the neighbours in the host sum                                     -200 to -8     -8 to -4      -4 to 0       0 to 4       4 to 8     8 to 200
+   saved pressures (the check as it is)                                              1.0e-06      1.1e-06      3.7e-03      3.6e-03      1.2e-06      2.7e-06
+   fluid neighbours across the cut: equation of state of their saved density         1.0e-06      1.1e-06      7.9e-03      4.0e-03      1.2e-06      2.7e-06
+   every fluid neighbour: equation of state of its saved density                     8.3e-03      8.4e-03      7.9e-03      5.4e-03      5.5e-03      4.0e-03
+
+3. Targets whose whole neighbourhood is saved and holds no wall particle (between h and h + 0.9 dx from the rotor, more than h from the housing; a wedge of 40 degrees)
+   one shell: 17,314 targets (0 with a wall neighbour); rms of the card's acceleration 2.037 m/s^2
+   rms of |host - card| over the rms acceleration, by the distance of the target from the cut in dx (negative: the slab of lower x)
+   pressure of the neighbours in the host sum                                     -200 to -8     -8 to -4      -4 to 0       0 to 4       4 to 8     8 to 200
+   saved pressures (the check as it is)                                              1.3e-06      1.4e-06      4.6e-03      4.7e-03      1.6e-06      3.3e-06
+   fluid neighbours across the cut: equation of state of their saved density         1.3e-06      1.4e-06      9.9e-03      5.6e-03      1.6e-06      3.3e-06
+   every fluid neighbour: equation of state of its saved density                     6.0e-03      5.4e-03      6.5e-03      5.6e-03      5.0e-03      4.1e-03

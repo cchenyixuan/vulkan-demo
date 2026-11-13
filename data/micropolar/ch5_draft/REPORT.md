@@ -1,6 +1,6 @@
 # Chapter 5: what the solver has shown
 
-Written 2026-11-13 14:10 at commit `5b63f42` (branch `v9-micropolar`; solver tag `thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number below is read from the data files by `report.py`; the captions with all parameters and run names are in `captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6) and 16 (Stage 7).
+Written 2026-11-13 14:38 at commit `181ee07` (branch `v9-micropolar`; solver tag `thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number below is read from the data files by `report.py`; the captions with all parameters and run names are in `captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6) and 16 (Stage 7).
 
 **State.** Every item is final except the one row at g = 400 dx (m = 20, K = 3, l = 10 dx): its Newtonian control is done, the micropolar run is going; items 02 to 04 gain that row when it ends. Nothing else is pending and there is no further queue.
 
@@ -182,6 +182,6 @@ Rotor of radius 3 g and length 3 g in a housing of radius 4 g with end gaps g, K
 - **3-D torque change:** three readings, 0.185 to 0.197 at g = 40 dx; there is no exact 3-D value. Say which reading is quoted.
 - **The cylinder cases carry `numerics.delta_fluid_only: true`** (the key), the cavity cases the default walls. With the key the level of the pressure wanders (recorded for every run; no reading follows it).
 - **Kinetic energy of the cavity** is quoted over the fluid mass (the particle masses sum to 1.134 rho0 L^2 at n = 500).
-- **Within one support of a slab cut** the card's acceleration differs from a host sum over the saved particles by 2e-3 of its rms (the tagged chain's packed copies of the neighbour slab); 1e-6 elsewhere. No measured quantity of the pack moves by it (two slabs against one: 2e-5 U in the cavity).
+- **Within one support of a slab cut** the card's acceleration differs from a host sum over the saved particles by 2e-3 to 4e-3 of its rms; 1e-6 elsewhere. Tested on the saved two-slab state (`rotor3d_cut_check.txt`): taking the neighbours' pressure from the host's equation of state of their single-precision density does not bring it to 1e-6, because the host's evaluation is neither card's (0.21 Pa rms from the saved pressure). It is the difference the two cards show against each other in every particle in the seam check (4e-3 m/s^2, there 4e-5 of a prescribed field of 109 m/s^2), seen here only where a card uses pressures of particles it does not own; [inferred] the cards' evaluation of the power in the Tait equation. No measured quantity of the pack moves by it (two slabs against one: 2e-5 U in the cavity).
 - **Not run:** g = 400 dx rows other than the one pair; g = 80 dx; displaced (rule) runs in 3-D; a particle cavity run at l = L / 40.
 

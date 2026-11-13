@@ -18,6 +18,51 @@ SOURCE = "data/micropolar/stage6/cavity.json"
 FIELD = "data/micropolar/stage6/fields/cavity_{run}"
 REFERENCE = "data/micropolar/stage6/cavity_reference.json"
 LID = "data/micropolar/stage6/cavity_reference_lid.json"
+# the reference of Marchi et al. (2021) at Reynolds number 400, transcribed from the appendix of paper 1
+MARCHI = "data/micropolar/ch5_draft/reference/marchi_re400_from_paper1.csv"
+
+
+def read_reference_points(file_path) -> dict | None:
+    """{'u': (y, u), 'v': (x, v)} from a transcribed table, sorted by the coordinate; None if its columns are not
+    understood. Understood: the layout of docs/validation/data/marchi2021_re*.csv (columns group, coordinate and Tc
+    or value, with groups that begin with u and v), a column line (or profile, quantity) with u / v beside columns
+    coordinate and value, or plain columns y, u and x, v. Lines that begin with # are comments."""
+    import csv
+    with open(file_path, encoding="utf-8-sig", newline="") as handle:
+        lines = [line for line in handle if line.strip() and not line.lstrip().startswith("#")]
+    rows = [{(key or "").strip().lower(): (value or "").strip() for key, value in row.items()}
+            for row in csv.DictReader(lines)]
+    if not rows:
+        return None
+
+    def number(cell):
+        try:
+            return float(cell)
+        except ValueError:
+            return None
+    points = {"u": [], "v": []}
+    keys = set(rows[0])
+    value_key = next((key for key in ("tc", "value", "reference") if key in keys), None)
+    label_key = next((key for key in ("group", "line", "profile", "quantity") if key in keys), None)
+    if label_key and "coordinate" in keys and value_key:
+        for row in rows:
+            label = row[label_key].lower()
+            coordinate, value = number(row["coordinate"]), number(row[value_key])
+            if coordinate is None or value is None or not label or label[0] not in points:
+                continue
+            if "min" in label or "max" in label:
+                continue                                  # an extremum or its position, not a profile point
+            points[label[0]].append((coordinate, value))
+    else:
+        for line, coordinate_key in (("u", "y"), ("v", "x")):
+            if line in keys and coordinate_key in keys:
+                for row in rows:
+                    coordinate, value = number(row[coordinate_key]), number(row[line])
+                    if coordinate is not None and value is not None:
+                        points[line].append((coordinate, value))
+    if not points["u"] or not points["v"]:
+        return None
+    return {line: tuple(np.array(column) for column in zip(*sorted(values))) for line, values in points.items()}
 # finite-difference case -> what the table calls it
 REFERENCE_CASES = {"newtonian_far": "Newtonian, mu_inf (Re 400)", "newtonian_wall": "Newtonian, mu + kappa (Re 250)",
                    "micropolar": "micropolar, l = L / 20", "micropolar_l40": "micropolar, l = L / 40",
@@ -47,6 +92,9 @@ def main() -> int:
     main_run = runs[RUNS["micropolar"]]
     coordinate = np.asarray(main_run["coordinate"])
     reference = style.load_json(REFERENCE)["cases"] if style.exists(REFERENCE) else {}
+    marchi = read_reference_points(style.REPO_ROOT / MARCHI) if style.exists(MARCHI) else None
+    if style.exists(MARCHI) and marchi is None:
+        print(f"[pack] item 11: the columns of {MARCHI} are not understood; the reference is left out")
     field_run = next((RUNS[key] for key in ("chain", "micropolar") if style.exists(FIELD.format(run=RUNS[key]) + ".npz")),
                      None)
     figure = plt.figure(figsize=(style.WIDE, 0.92 * style.WIDE))
@@ -63,6 +111,10 @@ def main() -> int:
             if RUNS[key] in runs:
                 axis.plot(coordinate, runs[RUNS[key]][f"{name}_mean"], label=text, **look)
                 used.append(RUNS[key])
+        if marchi:
+            axis.plot(marchi[name][0], marchi[name][1], linestyle="none", marker="s", markersize=2.6,
+                      markerfacecolor=style.INK, markeredgecolor=style.INK, markeredgewidth=0.0, zorder=5,
+                      label=r"Marchi et al., $\mathit{Re} = 400$")
         if "micropolar" in reference:
             finest = reference["micropolar"]["grids"][-1]
             axis.plot(finest["coordinate"], finest[name], color=style.INK, linewidth=0.8, linestyle=(0, (1, 1.5)),
@@ -148,6 +200,33 @@ def main() -> int:
                       note="$E_k$: kinetic energy of the fluid over its mass, in $U^2$ (the kinetic energy per unit "
                            "depth in $\\rho U^2 L^2$ of a fluid that fills the square).")
 
+    # the Newtonian run at Reynolds number 400 and its finite-difference solution against Marchi et al.
+    marchi_numbers, marchi_text = {}, ""
+    if marchi and RUNS["far"] in runs:
+        from scipy.interpolate import CubicSpline
+        sources_of_lines = {"particle run": (coordinate, runs[RUNS["far"]])}
+        if "newtonian_far" in reference:
+            finest_far = reference["newtonian_far"]["grids"][-1]
+            sources_of_lines["finite-difference solution"] = (np.asarray(finest_far["coordinate"]),
+                                                      {"u_mean": finest_far["u"], "v_mean": finest_far["v"]})
+        for label, (grid, record) in sources_of_lines.items():
+            entry = {}
+            for line in ("u", "v"):
+                at_points = CubicSpline(grid, np.asarray(record[f"{line}_mean"]))(marchi[line][0])
+                difference = at_points - marchi[line][1]
+                entry[line] = {"points": int(difference.size), "rms": float(np.sqrt((difference ** 2).mean())),
+                               "largest": float(np.abs(difference).max()),
+                               "at": float(marchi[line][0][int(np.argmax(np.abs(difference)))])}
+            marchi_numbers[label] = entry
+        marchi_text = (
+            " Squares: the reference of Marchi et al. (2021) at Reynolds number 400 as transcribed from the appendix "
+            f"of paper 1 (`{MARCHI.split('/', 3)[-1]}`; {marchi['u'][0].size} points of u and {marchi['v'][0].size} of "
+            "v). Against it "
+            + "; ".join(f"the {label} of the Newtonian fluid of viscosity mu_inf differs by {entry['u']['rms']:.1e} (u) "
+                        f"and {entry['v']['rms']:.1e} (v) U rms, at most {entry['u']['largest']:.1e} and "
+                        f"{entry['v']['largest']:.1e}" for label, entry in marchi_numbers.items())
+            + " (the finite-difference lines on their finest grid, not extrapolated).")
+
     # the same cases by finite differences: the check of the case
     reference_numbers, check_text = {}, ""
     if reference:
@@ -156,7 +235,10 @@ def main() -> int:
                     "v_min (extrapolated)", "order", "kinetic energy (extrapolated)",
                     "u_min over that of the Newtonian fluid of viscosity mu_inf", "v_max", "v_min", "particle run",
                     "u_min particle / finite differences", "v_max", "v_min", "kinetic energy",
-                    "rms difference of u on the centre line", "of v"]
+                    "rms difference of u on the centre line", "of v",
+                    "particle run against Marchi et al. at Re = 400: rms difference of u", "of v", "largest of u",
+                    "of v", "finite differences (finest grid) against Marchi et al.: rms difference of u", "of v",
+                    "largest of u", "of v"]
         tex_header_b = ["fluid", r"$u_{\min}/U$", r"$v_{\max}/U$", r"$v_{\min}/U$", r"$E_k$",
                         r"ratio $u_{\min}$", r"ratio $v_{\max}$", r"ratio $v_{\min}$", r"ratio $E_k$"]
         plain_b, tex_b = [], []
@@ -180,7 +262,10 @@ def main() -> int:
                 + ([f"{over_far[key]:.4f}" for key in ("u_min", "v_max", "v_min")] if over_far else ["-"] * 3)
                 + ([particle["run"]] + [f"{ratios[key]:.4f}" for key in ("u_min", "v_max", "v_min", "kinetic_energy")]
                    + [f"{particle['u_difference_rms']:.1e}", f"{particle['v_difference_rms']:.1e}"]
-                   if particle else ["-"] * 7))
+                   if particle else ["-"] * 7)
+                + ([f"{marchi_numbers[label][line][key]:.1e}" for label in ("particle run", "finite-difference solution")
+                    for key in ("rms", "largest") for line in ("u", "v")]
+                   if case == "newtonian_far" and len(marchi_numbers) == 2 else ["-"] * 8))
             tex_b.append(
                 [style.tex_escape(label).replace("mu\\_inf", r"$\mu_\infty$").replace("mu + kappa", r"$\mu + \kappa$")
                  .replace("Theta -> 0", r"$\Theta \to 0$").replace("hold w", "hold $w$").replace("holds w", "holds $w$")
@@ -197,7 +282,12 @@ def main() -> int:
                           "l" + "r" * (len(tex_header_b) - 1), tex_b,
                           note="Finite differences, extrapolated to zero spacing; ratio: the particle run at "
                                "$n = 500$ over the finite-difference value. $E_k$: half the mean square speed, in "
-                               "$U^2$.")
+                               "$U^2$."
+                               + (" Against Marchi et al. at $\\mathit{Re} = 400$ (transcribed from the appendix of "
+                                  "paper 1), rms difference of $u$ and $v$ at its points: "
+                                  + "; ".join(f"{label} {entry['u']['rms']:.1e}, {entry['v']['rms']:.1e}"
+                                              for label, entry in marchi_numbers.items()) + "."
+                                  if marchi_numbers else ""))
         if all(case in reference and "particle" in reference[case]
                for case in ("newtonian_far", "newtonian_wall", "micropolar")):
             far, wall, polar = (reference[case] for case in ("newtonian_far", "newtonian_wall", "micropolar"))
@@ -283,7 +373,7 @@ def main() -> int:
         + (" (two slabs, 5090 + XTX; dashed line: the cut)" if field_run == RUNS["chain"] else "")
         + "; the second vanishes in the core and marks the wall layers of thickness l. Colour scales end at the "
         "99.5th percentile of the magnitude. Runs: " + ", ".join(f"`{name}`" for name in dict.fromkeys(used))
-        + f"; tag `{TAG}`." + check_text + text)
+        + f"; tag `{TAG}`." + check_text + marchi_text + text)
     style.record("11", "Micropolar cavity: centre lines against the finite-difference solution, fields, the slab cut",
                  "final" if all(RUNS[key] in runs for key in RUNS) and field_run == RUNS["chain"]
                  else "final (rc2 runs), incomplete: " + ", ".join(
@@ -294,8 +384,9 @@ def main() -> int:
                  + (["tab_11b_cavity_finite_differences.csv", "tab_11b_cavity_finite_differences.tex"]
                     if reference else []) + files_c,
                  [SOURCE] + ([REFERENCE] if reference else []) + ([LID] if files_c else [])
-                 + list(dict.fromkeys(used)),
-                 {"fields": numbers, "parameters": parameters, "finite_differences": reference_numbers}, TAG)
+                 + ([MARCHI] if marchi_numbers else []) + list(dict.fromkeys(used)),
+                 {"fields": numbers, "parameters": parameters, "finite_differences": reference_numbers,
+                  "marchi_reynolds_400": marchi_numbers}, TAG)
     return 0
 
 

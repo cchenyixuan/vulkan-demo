@@ -3724,10 +3724,34 @@ commands in its `README.md`); the plan of the stage is `logs/micropolar/stage7/p
   Host against card, by the distance of the particle from the cut: 8e-7 to 3e-6 of the rms of the acceleration
   further than one support (4 dx) from the cut on both sides, 2e-3 (at most 4.5e-3) within one support of it; the
   angular acceleration 4e-6 everywhere; the same 2,000 steps on one slab give 2.5e-6 everywhere. So the rows of the
-  two slabs are in step, and what differs sits at the cut. [inferred] It is the tagged chain, not the tool: within
-  one support of a cut the card sums over the packed copies of the neighbour slab's particles, whose pressure comes
-  from the equation of state of a single-precision density. The states of the long runs show the same (6e-4 of the
-  rms over a wedge of which the cut crosses a part).
+  two slabs are in step, and what differs sits at the cut (the states of the long runs show the same: 6e-4 of the
+  rms over a wedge of which the cut crosses a part). What it is: the next paragraph.
+- **The 2e-3 near a cut, tested on the saved state without a card** (`micropolar_rotor3d_cut.py`,
+  `rotor3d_cut_check.txt`; the last state of run 1, slabs on the 5090 and the XTX). The test of the task: take the
+  pressure of the fluid neighbours across the cut from the equation of state of their single-precision density and
+  see whether host against card falls to the 1e-6 of the interior. **It does not fall:** within one support of the
+  cut the difference is 4.2e-03 (5090 side) and 4.0e-03 (XTX side) of the rms acceleration with the saved pressures
+  and 7.9e-03 and 2.5e-03 with the substituted ones. The first line of the test says why: the host cannot say what a
+  card computes. The saved pressure differs from the host's single-precision equation of state of the saved density
+  by 0.21 Pa rms (one unit in the last place of the density is 0.153 Pa; 6 % of the rows agree to the bit), and with
+  the host's value for every fluid neighbour the difference is 4.1e-03 to 8.5e-03 everywhere, the interior included.
+  So evaluating the pressure again from the density in single precision moves the acceleration by the size seen at
+  the cut, as the reading of the difference needs; but the test cannot reproduce a card's own evaluation and cannot
+  close to 1e-6. The Newtonian state gives the same (3.7e-03 and 3.6e-03) and so do targets without a wall neighbour
+  (5.0e-03): not the walls, not the micropolar terms. [inferred] The two cards evaluate the power of the Tait
+  equation differently: on the XTX side the host's values for the 5090's particles fit better than the values the
+  5090 stored, on the 5090 side worse. [prediction, not run: this part had no card] the cut of a two-slab state from
+  one card shows no excess. **How it fits the per-particle seam checks of 15.4.5** (3e-5 with nothing extra near the
+  cut): it is the state and the comparison, not the dimension (both are the 3-D case at g = 20 dx, where host
+  against card read 2e-3). The state: after 20 steps the prescribed fields of the seam check have an rms
+  acceleration of 109 m/s^2 (pressure 3,851 Pa), the settled flow 2.4 m/s^2 (100 Pa). The two-card run of the seam
+  check differs from the one-slab run by 3.7e-05 of that near the cut, 4.0e-3 m/s^2; host against card by 2e-3 of
+  2.43 m/s^2, 4.9e-3 m/s^2: the same absolute size (1.1e-2 m/s^2 at g = 40 dx; it goes with 1 / h). The comparison:
+  run against run on two cards carries each card's evaluation in every particle, so the difference is the same near
+  the cut (3.7e-05) and elsewhere (3.9e-05), and the one-slab run on the other card differs as much (5.0e-05;
+  pressure 0.154 Pa rms, one unit of the density), while two slabs on one card equal the repeat of one slab (1.3e-05
+  against 1.3e-05). Host against card on one state shows only the particles for which a card used pressures of
+  particles it does not own: those within one support of the cut.
 
 ### 16.1 The runs **[run]**
 
@@ -3736,15 +3760,15 @@ commands in its `README.md`); the plan of the stage is `logs/micropolar/stage7/p
 | 1 | `g40_k3_m2_k2`: 3-D, g = 40 dx, micropolar | 5090 + XTX | 51,000 | 6.6 | 129 min | 13 | every counter zero |
 | 2 | `g40_newtonian_k2`: its Newtonian control | 5090 + XTX | 51,000 | 7.4 | 115 min | 13 | every counter zero |
 | 3 | `g200_k1_m5`: concentric, K = 1, l = 20 dx, second run | 5090 | 267,000 | 271.0 | 16 min | 12 | every counter zero |
-| 4 | `g400_newtonian_k3`: control of the pair at g = 400 dx | 5090 | - | - | - | - | not finished when this was written |
+| 4 | `g400_newtonian_k3`: control of the pair at g = 400 dx | 5090 | 625,000 | 116.7 | 89 min | 12 | every counter zero |
 | 4 | `g400_k3_m20`: K = 3, m = 20, l = 10 dx at g = 400 dx | 5090 | - | - | - | - | not finished when this was written |
 
 - One 3-D run at a time with nothing beside it; one job per call of the runner (`--one-job`), the analysis of a run
   in the pause before the next. Run 1 from its beginning to 1.5 g^2 / nu_inf with 13 wall-band states (step 39,000,
   the first sample of the averaging window, and every 1,000 steps to 51,000; 0.75 GB each with the housing band;
   none skipped for the disk). Run 2 on the same particles with the same dt (3.0e-5 s). Run 3 is the row whose states
-  I had removed in Stage 6. Run 4 (the machine was free at 12:24): started at 12:24; not finished when this was
-  written (16.5).
+  I had removed in Stage 6. Run 4 (the machine was free at 12:24): the control finished; the micropolar run had not
+  when this was written.
 
 ### 16.2 The 3-D case at g = 40 dx **[run]**
 
@@ -3841,8 +3865,13 @@ m = g / (2 l) is 2 here and 1 there: the two columns are two cases, not one case
   +0.5, +0.3 %, centre lines 2e-3 U rms); no sentence about bounds; the two Newtonian runs are named as what they
   are. Table 11b gives the ratios to the Newtonian fluid of viscosity mu_inf in place of the place between two
   bounds.
-- **Marchi et al. at Reynolds number 400:** no file was in `data/micropolar/ch5_draft/reference/` when the host work
-  was done; skipped.
+- **Marchi et al. at Reynolds number 400:** the file `marchi_re400_from_paper1.csv` was announced for
+  `data/micropolar/ch5_draft/reference/`, but that directory did not exist in the worktree, on any branch of the
+  remote or elsewhere under the home directory when I looked (14:28 and 14:37). Nothing was transcribed by me. Item
+  11 is prepared for it: with the file in place, `make_all.py 11` adds its points to panels (a) and (b), the
+  differences of the particle run and of the finite-difference solution to table 11b, and the sentence on the
+  transcription to the caption (the reader takes the layout of `docs/validation/data/marchi2021_re1000.csv` or plain
+  columns y, u, x, v; tested with a stand-in table outside the repository).
 - **The old ranges of the rule:** no caption carries them. Item 03 quotes the slip form (m = 5: 0.997, m = 10:
   0.999, m = 2: 1.035 to 1.039). The ranges of my morning message came from the column `rule_over_exact` of
   `concentric.json`, which is the form with (R1 / R2)^2 of Stage 4; the slip form is in items 03 and 04 and in
@@ -3854,13 +3883,15 @@ m = g / (2 l) is 2 here and 1 there: the two columns are two cases, not one case
   That, not the saved state, is what the machine could not give last night.
 - **The flux form of the micropolar torque settles last** (16.2) and reads 1 % below the housing at the end of the
   run; the three readings of D_T at g = 40 dx span 0.185 to 0.197.
-- **Host against card differs within one support of a cut** by 2e-3 of the rms of the acceleration (16.0); elsewhere
-  1e-6. A property of the tagged chain that the torque check had not shown before, because it had only seen one-slab
+- **Host against card differs within one support of a cut** by 2e-3 to 4e-3 of the rms of the acceleration (16.0);
+  elsewhere 1e-6. It is the difference two cards show against each other in every particle (4e-3 m/s^2 in the seam
+  check), seen here only at the cut; the test with the host's equation of state does not close it, because the host
+  cannot reproduce a card's evaluation. The torque check had not shown it before because it had only seen one-slab
   states.
 - **Tractions of different grids do not extrapolate** with a window that ends on nodes (16.4); ratios on like grids
   do.
 - **Run 4:** the pair at g = 400 dx was started when runs 1 to 3 were done (12:24). Each run is 625,000 steps of 4.8
-  million particles (the viscous limit sets the step). The control was going when this was written. Items 02 to 04
-  change only when both are done.
+  million particles (the viscous limit sets the step). The control is done; the micropolar run was going when this
+  was written. Items 02 to 04 change only when both are done.
 - **Not done, by the task:** no run at g = 80 dx, no displaced run, no particle cavity run at l = L / 40, no
   finite-difference case l = L / 160, no other row at g = 400 dx. There is no further queue.

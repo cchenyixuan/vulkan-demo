@@ -284,8 +284,14 @@ def main() -> int:
             "**Kinetic energy of the cavity** is quoted over the fluid mass (the particle masses sum to 1.134 rho0 L^2 "
             "at n = 500).",
             "**Within one support of a slab cut** the card's acceleration differs from a host sum over the saved "
-            "particles by 2e-3 of its rms (the tagged chain's packed copies of the neighbour slab); 1e-6 elsewhere. "
-            "No measured quantity of the pack moves by it (two slabs against one: 2e-5 U in the cavity).",
+            "particles by 2e-3 to 4e-3 of its rms; 1e-6 elsewhere. Tested on the saved two-slab state "
+            "(`rotor3d_cut_check.txt`): taking the neighbours' pressure from the host's equation of state of their "
+            "single-precision density does not bring it to 1e-6, because the host's evaluation is neither card's "
+            "(0.21 Pa rms from the saved pressure). It is the difference the two cards show against each other in "
+            "every particle in the seam check (4e-3 m/s^2, there 4e-5 of a prescribed field of 109 m/s^2), seen "
+            "here only where a card uses pressures of particles it does not own; [inferred] the cards' evaluation "
+            "of the power in the Tait equation. No measured quantity of the pack moves by it (two slabs against "
+            "one: 2e-5 U in the cavity).",
             "**Not run:** g = 400 dx rows other than the one pair; g = 80 dx; displaced (rule) runs in 3-D; a particle "
             "cavity run at l = L / 40."):
         say(f"- {line}")
