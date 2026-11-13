@@ -22,29 +22,31 @@ repository. Commands are run from the repository root with `python -m experiment
 | `rotor3d/<run>.npz`, `.json` | azimuthal means on the (r, z) grid over the last quarter and the fluid within 1.5 dx of the plane y = 0 at the last step with w - curl v / 2 | `micropolar_rotor3d_analysis maps <run>` |
 | `rotor3d/g40_k3_m2_k2.npz`, `.json` | the run at g = 40 dx on two slabs was stopped at step 38,000 of 51,000 before any particle state was saved: azimuthal means on the (r, z) grid of one spacing over its samples of steps 26,000 to 35,000, with w - curl v / 2 from finite differences of the means; `rotor3d.json` carries its analysis under `partial_runs`; what the run left (`samples_partial.npz`, `heartbeat.json`, its log) is kept in `rotor3d_stopped/g40_k3_m2_k2/` | `micropolar_rotor3d_analysis analyse` and `maps g40_k3_m2_k2` (they read `rotor3d_stopped/` as long as the run has no `run.json`) |
 | `cavity_reference_l160_incomplete.log` | log of the finite-difference case l = L / 160, stopped on its finest grid (grids of 256 and 384 intervals steady, 512 at t = 25) | `micropolar_cavity_reference run --cases micropolar_l160 --resolutions 256 384 512 --verbose` |
+| `cavity_reference_lid.json`, `.txt` | Stage 7, table 11c of the pack: the traction of the lid for l = L / 10, 20, 40, 80 on every grid, its excess over that on the Newtonian fluid of viscosity mu_inf on like grids, against delta / lambda | `micropolar_cavity_reference lid` (solves; about 20 min of one core), `lid --table-only` (the table again from the stored tractions) |
 | `seam3d_k3.json`, `seam3d_k2.json` | per-particle seam check of the 3-D micropolar case with the key: three slabs on one card, two slabs on XTX + 5090 | `micropolar_tests seam --case cases/rotor3d/seam_g20_k3_m1/case.yaml --walls adami --steps 0 20 --device-map 0,0,0 (1,0) --pressure --json ...` |
 
 The run table of the cylinder cases: `micropolar_stage6 list`. The queue: `micropolar_stage6 runner` with the plan
 `logs/micropolar/stage6/plan.json` (`micropolar_stage6 status` prints it with the state of every job).
 
-## To take the queue up again
+## Stage 7 (2026-11-13): the last runs
 
-The queue ended at 02:50 on 2026-11-13, when the machine ran out of memory and every background job of the
-session was stopped (design note 15.6). Nothing was started again. `logs/micropolar/stage6/plan.json` (not in the
-repository) still lists, in this order: the micropolar 3-D run at g = 40 dx on two slabs (from its beginning),
-its Newtonian control on two slabs, the micropolar run on one slab, the cavity run with l = L / 40, and the
-second run of `g200_k1_m5`; `plan_held_g400.json` beside it holds two of the g = 400 dx jobs.
+The queue that ended at 02:50 was taken up by the task of Stage 7, for four runs only
+(`logs/micropolar/stage7/plan.json`, not in the repository): the micropolar 3-D case at g = 40 dx on two slabs
+from its beginning, its Newtonian control on two slabs, the second run of `g200_k1_m5`, and the pair
+`g400_newtonian_k3` / `g400_k3_m20`. Design note, Section 16.
 
 ```
 set OPENBLAS_NUM_THREADS=1 & set OMP_NUM_THREADS=1 & set MKL_NUM_THREADS=1
 set VK_LOADER_LAYERS_DISABLE=VK_LAYER_KHRONOS_validation
-python -u -m experiment.validation.micropolar_stage6 runner --disk-reserve 2
-python -m experiment.validation.micropolar_stage6 status
+python -u -m experiment.validation.micropolar_stage6 runner --plan logs/micropolar/stage7/plan.json --one-job --disk-reserve 6
+python -m experiment.validation.micropolar_stage6 status --plan logs/micropolar/stage7/plan.json
 ```
 
-A file `STOP` beside the plan ends the runner after the running jobs, `KILL` at once. After the runs, per run
-of the 3-D case: `micropolar_rotor3d_torque sums <run>`, then `micropolar_rotor3d_analysis analyse`,
-`maps <run>`, `sizing`, and `data/micropolar/ch5_draft/make_all.py 15` (a finished run of the same name takes the place of the stopped one in every table); after the cavity run
-`micropolar_stage6_cavity analyse`, `micropolar_cavity_reference run --cases newtonian_far` (the comparison
-table) and `make_all.py 11`; after `g200_k1_m5`: `micropolar_stage6 concentric`, then
-`micropolar_stage6 eccentric --json data/micropolar/stage6/eccentric.json` and `make_all.py 03 04 08 09`.
+`--one-job` ends the runner when one job has finished; the next call takes the next job. A 3-D job of the plan
+names a floor of free physical memory and is not started below it. After a 3-D run:
+`micropolar_rotor3d_torque sums <run>` (13 states at g = 40 dx: about 20 min and 7 GB of memory), then
+`micropolar_rotor3d_analysis analyse`, `maps <run>` and `data/micropolar/ch5_draft/make_all.py 15`. The files
+`rotor3d.json`, `rotor3d.txt` and `rotor3d/g40_k3_m2_k2.*` now come from the full run; what the run that was
+stopped in Stage 6 left stays in `rotor3d_stopped/` and is no longer read (a run with a `run.json` takes its
+place). A 3-D run leaves `start.json` (parameters, the plan of its states, memory at the start), a `heartbeat.json`
+with the memory of the machine and of the process at every sample, and in `run.json` the peaks.

@@ -3663,3 +3663,204 @@ nu s'' - c w_x' = 0,      xi w_x'' + c (s' - 2 w_x) = 0        the same pair wit
   other five runs carry 50 to 61 snapshots from t = 40 on, so the n = 250 difference compares different windows; the
   slopes are reproduced from the stored arrays); and the ratios of check B for K = 3 on two cards (2.02, 1.97, 1.20)
   are in the data but not in the note. Item 14 of the pack is built from the data files.
+
+## 16. Stage 7 (2026-11-13): the last runs of the chapter
+
+Decisions carried in from the task: the 3-D case of the chapter is g = 40 dx on the two cards (no run at g = 80 dx,
+no displaced run; the sizing of 15.4.7 stays as it is); g = 400 dx is dropped except one pair; the check of the
+cavity is the finite-difference solution (no particle run at l = L / 40, no l = L / 160); the runner is started
+for exactly four runs. Nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed; the tag is
+`thesis-ch5-rc2` as before. Tools changed (all under `experiment/validation`): `micropolar_rotor3d.py` (a
+wall-band state every N steps through the averaging window, a check of the free disk before each state, the
+memory of the machine and of the process in every heartbeat and in `run.json`, a floor of free memory at which
+a run ends itself with what it has, `start.json` for a run that is stopped, the particle files of a geometry
+written again), `micropolar_stage6.py` (the runner refuses a job below a floor of free physical memory and can
+end after one job), `micropolar_rotor3d_torque.py` (chosen states; reads `start.json`),
+`micropolar_cavity_reference.py` (command `lid`). Data in the files of Stage 6 (`data/micropolar/stage6/`,
+commands in its `README.md`); the plan of the stage is `logs/micropolar/stage7/plan.json`.
+
+### 16.0 The machine and the checks before the runs **[run]**
+
+- **The machine at 07:12, before any run:** 31.9 GB of physical memory, 18.5 GB free; commit limit 44.7 GB, 20.2 GB
+  free; page file 12.8 GB allocated, 0.1 GB in use; 25 GB free on the disk; the 5090 idle.
+- **What the two-slab run held last night was not measured.** The one reading was 1.43 GB of working set between two
+  samples. The run tool now records the memory, and the four 3-D runs of this stage give:
+
+| run | million particles | working set after start-up (GB) | its peak | commit after start-up | its peak | least free physical memory seen at a sample | least free commit |
+|---|---|---|---|---|---|---|---|
+| g = 20 dx, micropolar, one slab (the check) | 2.59 | 0.41 | 1.20 | 1.58 | 2.36 | 17.2 | 18.0 |
+| g = 20 dx, micropolar, two slabs (2,000 steps) | 2.59 | 0.56 | 1.28 | 2.01 | 2.73 | 17.1 | 17.5 |
+| g = 40 dx, micropolar, two slabs (run 1) | 15.60 | 1.45 | 5.08 | 9.51 | 13.13 | 15.4 | 9.9 |
+| g = 40 dx, Newtonian, two slabs (run 2) | 15.60 | 1.49 | 4.82 | 7.89 | 11.21 | 15.5 | 11.5 |
+
+- **The rule** (start a 3-D run only with twice the peak of the two-slab run free): the peak of the working set is
+  4.5 to 5.1 GB (first sample of run 1: 4.5 GB), twice that is 9 to 10 GB, and 18.0 GB (run 1) and 17.7 GB (run 2)
+  of physical memory were free at the start. Before the first measured sample the runner's floor was set from an
+  upper estimate (the whole peak of the two-slab smoke at g = 20 dx times the particle ratio: 7.7 GB, floor 15.5
+  GB).
+- **The scarce resource is commit, not physical memory.** The two-slab run at g = 40 dx commits 9.5 GB from its
+  start (Newtonian: 7.9 GB) and 13.1 GB (11.2 GB) at its peak, with a working set of 1.5 GB. [inferred: the sums
+  match] The difference is the memory of the device buffers on the two cards (5.06 + 2.96 GB for the micropolar
+  run), which Windows charges against the system commit. Last night the other programs held about 38 GB of a commit
+  limit of 47.7 GB: the run did not fit, with or without its first saved state. 15.6 named the state as the trigger;
+  the larger part was the run's own commit. Today 20 GB of commit were free and the least seen at a sample was 9.9
+  GB.
+- **The new state path on a card, against last night** (`g20_k3_m1` again on the 5090, a state every 1,000 steps
+  through the last quarter with the housing band; 34,000 steps, 36.4 steps/s, every counter zero; the four states of
+  last night's run compared):
+
+| torque of the rotor (N m) | last night (old state path) | new state path | relative difference | largest in one of the four states | scatter over the states of one run |
+|---|---|---|---|---|---|
+| wall form | 55.95981 | 55.96120 | +2.5e-05 | 4.9e-05 | 5.8e-05 |
+| wall form, lateral surface | 39.12028 | 39.12052 | +6.0e-06 | 3.8e-05 | 1.1e-04 |
+| wall form, end faces | 16.83952 | 16.84069 | +6.9e-05 | 1.9e-04 | 8.3e-05 |
+| flux form | 55.26495 | 55.26429 | -1.2e-05 | 1.5e-04 | 3.5e-04 |
+| on the housing | -55.67409 | -55.67633 | +4.0e-05 | 6.4e-05 | 1.1e-05 |
+
+- The two runs are not the same to the bit (a pipelined run is not), so the comparison is one of two runs of one
+  case: the means agree within the scatter of the states of one run. Host against card on the last state:
+  acceleration 2.1e-06 of its rms (last night 2.0e-06), angular acceleration 4.1e-06 (4.1e-06). **Pass.**
+- **The same path on two slabs** (2,000 steps of the g = 20 dx case on 5090 + XTX, one state): every counter zero.
+  Host against card, by the distance of the particle from the cut: 8e-7 to 3e-6 of the rms of the acceleration
+  further than one support (4 dx) from the cut on both sides, 2e-3 (at most 4.5e-3) within one support of it; the
+  angular acceleration 4e-6 everywhere; the same 2,000 steps on one slab give 2.5e-6 everywhere. So the rows of the
+  two slabs are in step, and what differs sits at the cut. [inferred] It is the tagged chain, not the tool: within
+  one support of a cut the card sums over the packed copies of the neighbour slab's particles, whose pressure comes
+  from the equation of state of a single-precision density. The states of the long runs show the same (6e-4 of the
+  rms over a wedge of which the cut crosses a part).
+
+### 16.1 The runs **[run]**
+
+| run | what | cards | steps | steps/s | time | saved states |  |
+|---|---|---|---|---|---|---|---|
+| 1 | `g40_k3_m2_k2`: 3-D, g = 40 dx, micropolar | 5090 + XTX | 51,000 | 6.6 | 129 min | 13 | every counter zero |
+| 2 | `g40_newtonian_k2`: its Newtonian control | 5090 + XTX | 51,000 | 7.4 | 115 min | 13 | every counter zero |
+| 3 | `g200_k1_m5`: concentric, K = 1, l = 20 dx, second run | 5090 | 267,000 | 271.0 | 16 min | 12 | every counter zero |
+| 4 | `g400_newtonian_k3`: control of the pair at g = 400 dx | 5090 | - | - | - | - | not finished when this was written |
+| 4 | `g400_k3_m20`: K = 3, m = 20, l = 10 dx at g = 400 dx | 5090 | - | - | - | - | not finished when this was written |
+
+- One 3-D run at a time with nothing beside it; one job per call of the runner (`--one-job`), the analysis of a run
+  in the pause before the next. Run 1 from its beginning to 1.5 g^2 / nu_inf with 13 wall-band states (step 39,000,
+  the first sample of the averaging window, and every 1,000 steps to 51,000; 0.75 GB each with the housing band;
+  none skipped for the disk). Run 2 on the same particles with the same dt (3.0e-5 s). Run 3 is the row whose states
+  I had removed in Stage 6. Run 4 (the machine was free at 12:24): started at 12:24; not finished when this was
+  written (16.5).
+
+### 16.2 The 3-D case at g = 40 dx **[run]**
+
+`rotor3d.json`, `rotor3d.txt`; pack item 15 and table 15b. The micropolar run has l = 10 dx as at g = 20 dx, so
+m = g / (2 l) is 2 here and 1 there: the two columns are two cases, not one case at two resolutions.
+
+| quantity | g = 20 dx (g20_k3_m1) | g = 40 dx (g40_k3_m2_k2) |
+|---|---|---|
+| g / dx; l / dx; m = g / (2 l) | 20; 10; 1 | 40; 10; 2 |
+| particles; slabs | 2,587,028; 1 | 15,604,476; 2 |
+| Newtonian control | g20_newtonian | g40_newtonian_k2 |
+| torque, Newtonian: flux form (N m) | 41.540 | 41.790 |
+| torque, Newtonian: on the housing | 41.484 | 41.767 |
+| torque, micropolar: flux form | 55.265 | 49.514 |
+| torque, micropolar: on the housing | 55.674 | 49.997 |
+| torque change D_T, flux form | 0.3304 | 0.1848 |
+| D_T on the housing | 0.3421 | 0.1970 |
+| D_T, wall form | 0.3297 | 0.1924 |
+| D_T, wall form, lateral surface | 0.3166 | 0.1863 |
+| D_T, wall form, end faces | 0.3610 | 0.2069 |
+| exact 2-D D for the radii (lateral gap) | 0.3034 | 0.1669 |
+| exact plane film between two discs (end faces) | 0.3998 | 0.2206 |
+| mid-plane constant over the 2-D one, Newtonian | 0.9945 | 0.9979 |
+| mid-plane constant over the 2-D one, micropolar | 0.9929 | 0.9990 |
+| micropolar effect in the mid-plane (change of the constant) | 0.3012 | 0.1682 |
+| the same over the exact 2-D D | 0.9929 | 1.0075 |
+| reach of the ends, 1 % (g) | 0.78 | 0.46 |
+| reach of the ends, 0.1 % (g) | 1.38 | 1.36 |
+| wall layer on the end face, normal component: length over l sqrt(nu_inf / nu) | 0.983 | 0.978 |
+| wall layer on the end face, tangential component: length over l | 1.217 | 0.995 |
+| mean density - rho0, over rho0 (Newtonian; micropolar) | -2.0e-04; -9.9e-05 | -5.6e-05; -3.3e-05 |
+| mean pressure in rho U^2 (Newtonian; micropolar) | -0.502; -0.247 | -0.141; -0.083 |
+| its drift per eighth of the run (Newtonian; micropolar) | -1.3e-02; -5.7e-03 | -1.7e-04; -1.7e-05 |
+| steps per second (Newtonian; micropolar) | 45.9; 36.8 | 7.4; 6.6 |
+
+- **Torque (N m).** Newtonian: flux form 41.790 (+- 0.002 over the 13 states), on the housing 41.767 (+- 0.0007),
+  wall form 42.012 (lateral surface 29.691, end faces 12.321). Micropolar: flux form 49.514 (+- 0.020 over the 13
+  states), on the housing 49.997 (+- 0.0002), wall form 50.093 (lateral surface 35.223, end faces 14.870).
+- **The flux form of the micropolar run is not yet at rest:** it rises through the 13 states from 49.478 to 49.538
+  (+1.2e-03; +0.0007 over the last 1,000 steps), while the torque on the housing is the same in every state to 1e-5,
+  the angular momentum of the fluid is steady to 3e-5 and the flux form of the Newtonian run moves by -1.2e-04. At g
+  = 20 dx it did the same (55.24 to 55.28 in four states). So the flux form at distance h from the rotor is the
+  reading that settles last; with its last state alone the change of the torque is 0.1854 instead of 0.1848.
+- **The change of the torque** D_T = T / T_control - 1: 0.1848 by the flux form, 0.1970 on the housing, 0.1924 by
+  the wall form (at g = 20 dx, m = 1: 0.3304, 0.3421, 0.3297). The readings differ by 0.012: in the Newtonian run
+  the flux form and the housing agree to 5.5e-04, in the micropolar run the flux form is 1.0 % below the housing and
+  still rising, while the rotor's wall form and the housing agree to 0.2 % (0.6 % in the Newtonian run). There is no
+  exact value in 3-D to decide between the readings; the housing is the one that is at rest and that agrees with the
+  flux form where the flux form is at rest (the Newtonian run). I would quote the housing for the change and give
+  the flux form as the lower reading.
+- **Lateral surface and end faces** (wall form): D_T 0.1863 on the lateral surface against the exact 2-D D for the
+  radii, 0.1669; 0.2069 on the end faces against the exact plane film between two discs at distance g, 0.2206 (g =
+  20 dx: 0.3166 against 0.3034, 0.3610 against 0.3998). As at g = 20 dx the lateral surface gains more than the 2-D
+  value and the end faces less than the plane film; the rims belong to both.
+- **Mid-plane.** Constant of v_theta over the 2-D one: 0.9979 (Newtonian), 0.9990 (micropolar); at g = 20 dx 0.9945
+  and 0.9929. The micropolar effect in the mid-plane, the change of the constant, is 0.1682 against the exact 2-D D
+  of 0.1669 (1.0075 of it; g = 20 dx: 0.9929). The profiles deviate from the 2-D ones by 5.9e-03 (v) and 6.5e-03 (w)
+  rms.
+- **Reach of the ends:** 0.46 g at the 1 % level and 1.36 g at the 0.1 % level (Newtonian 0.46 and 1.31).
+- **The two wall-layer lengths on the rotor's end face, from the full run:** the tangential component decays over
+  0.995 l and the normal one over 0.978 of `l sqrt(nu_inf / nu)`. The normal component has its own, shorter length
+  (15.4.6).
+- **Levels:** mean density -5.6e-05 (Newtonian) and -3.3e-05 (micropolar) of rho0; mean pressure -0.141 and -0.083
+  rho U^2, moving by -1.7e-04 and -1.7e-05 per eighth of the run: a third of the level at g = 20 dx and nearly at
+  rest.
+- **Against the run that was stopped last night** (15.4.4, samples to step 35,000): mid-plane constant 0.9989 then,
+  0.9990 now; reach 0.46 g / 1.26 g then, 0.46 g / 1.36 g now; layers 0.981 l and 0.979 then, 0.995 l and 0.978 now.
+  The full run replaces it in the tables; what the stopped run left stays in `rotor3d_stopped/`.
+
+### 16.3 The two eccentric rows without the concentric correction **[run]**
+
+- `g200_k1_m5` ran again (267,000 steps on the 5090, every counter zero); its D is 0.04226 (first run 0.04227), and
+  its wall sums give the reading errors of the two rows: `e30_g200_k1_m5`: D_T 0.0553 (uncorrected mean 0.0554),
+  spread of the four readings 0.0007, over the film function 0.960; `e60_g200_k1_m5`: D_T 0.0897 (uncorrected mean
+  0.0899), spread of the four readings 0.0017, over the film function 0.969. No row of items 08 and 09 is without
+  its correction now.
+
+### 16.4 Host **[host]**
+
+- **Table 11c: the traction of the lid against delta / lambda.** `micropolar_cavity_reference.py lid`
+  (`cavity_reference_lid.txt`). lambda = mu_inf U / (traction of the lid on the Newtonian fluid of viscosity mu_inf)
+  = 0.0628 L. Excess of the traction over that Newtonian one at l = L / 10, 20, 40, 80: 0.296, 0.232, 0.144, 0.077
+  against delta / lambda = 0.597, 0.299, 0.149, 0.075; the ratio is 0.49, 0.78, 0.97, 1.03. **The hand numbers of
+  the task are right** (0.30, 0.23, 0.14, 0.08 against 0.60, 0.30, 0.15, 0.074), and the first-order rule with the
+  shear length in the place of the gap holds within 4 % at l = L / 40 and L / 80, better than the ten per cent of
+  the task; at L / 20 it is 22 % too large and at L / 10 twice too large.
+- **How the ratio is taken.** The mean of the traction runs over the nodes with 0.1 <= x <= 0.9; on another grid
+  that window ends on other nodes, where the traction is steep, so the tractions of different grids do not form a
+  sequence (Newtonian: 0.04028, 0.04012, 0.03969, 0.03981 on 128, 192, 256, 384 intervals) and are not extrapolated.
+  The ratio of two cases on one grid uses the same nodes: it is the same on every common grid to 0.004 (0.001 for l
+  = L / 80). The table takes the finest common grid (256 intervals; 384 for l = L / 80, for which the Newtonian case
+  was solved on 384 intervals too).
+- **Caption of item 11:** the check is the second method (particle run against finite differences: extrema +0.3,
+  +0.5, +0.3 %, centre lines 2e-3 U rms); no sentence about bounds; the two Newtonian runs are named as what they
+  are. Table 11b gives the ratios to the Newtonian fluid of viscosity mu_inf in place of the place between two
+  bounds.
+- **Marchi et al. at Reynolds number 400:** no file was in `data/micropolar/ch5_draft/reference/` when the host work
+  was done; skipped.
+- **The old ranges of the rule:** no caption carries them. Item 03 quotes the slip form (m = 5: 0.997, m = 10:
+  0.999, m = 2: 1.035 to 1.039). The ranges of my morning message came from the column `rule_over_exact` of
+  `concentric.json`, which is the form with (R1 / R2)^2 of Stage 4; the slip form is in items 03 and 04 and in
+  15.2.1.
+
+### 16.5 Unexpected, and what is left
+
+- **Commit** (16.0): a 3-D run on two cards needs the memory of its device buffers as commit on the host, 8 GB here.
+  That, not the saved state, is what the machine could not give last night.
+- **The flux form of the micropolar torque settles last** (16.2) and reads 1 % below the housing at the end of the
+  run; the three readings of D_T at g = 40 dx span 0.185 to 0.197.
+- **Host against card differs within one support of a cut** by 2e-3 of the rms of the acceleration (16.0); elsewhere
+  1e-6. A property of the tagged chain that the torque check had not shown before, because it had only seen one-slab
+  states.
+- **Tractions of different grids do not extrapolate** with a window that ends on nodes (16.4); ratios on like grids
+  do.
+- **Run 4:** the pair at g = 400 dx was started when runs 1 to 3 were done (12:24). Each run is 625,000 steps of 4.8
+  million particles (the viscous limit sets the step). The control was going when this was written. Items 02 to 04
+  change only when both are done.
+- **Not done, by the task:** no run at g = 80 dx, no displaced run, no particle cavity run at l = L / 40, no
+  finite-difference case l = L / 160, no other row at g = 400 dx. There is no further queue.
