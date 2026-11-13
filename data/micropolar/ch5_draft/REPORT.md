@@ -1,6 +1,6 @@
 # Chapter 5: what the solver has shown
 
-Written 2026-11-13 14:54 at commit `de60599` (branch `v9-micropolar`; solver tag `thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number below is read from the data files by `report.py`; the captions with all parameters and run names are in `captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6) and 16 (Stage 7).
+Written 2026-11-13 15:27 at commit `0c4e099` (branch `v9-micropolar`; solver tag `thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number below is read from the data files by `report.py`; the captions with all parameters and run names are in `captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6) and 16 (Stage 7).
 
 **State.** Every item is final except the one row at g = 400 dx (m = 20, K = 3, l = 10 dx): its Newtonian control is done, the micropolar run is going; items 02 to 04 gain that row when it ends. Nothing else is pending and there is no further queue.
 
@@ -120,6 +120,7 @@ K = 3, Re = 400 on mu_inf (1,000 on mu), l = L / 20, Theta = l^2, w = 0 on the f
 
 - [run] Two slabs (5090 + XTX) against one slab: centre lines differ by 2.1e-05 (u) and 1.6e-05 (v) U rms. n = 250 against n = 500: 3.0e-03 and 3.5e-03 U rms, extrema 1.3 to 1.5 % stronger at n = 250.
 - [host] The micropolar extrema are stronger than those of the Newtonian fluid of viscosity mu_inf (finite differences: +8.5, +5.8, +1.6 %). With walls that do not hold w the finite-difference solution is weaker than that Newtonian fluid; with w held on the lid alone it is strongest (table 11b). [inferred] The condition w = 0 on the driving wall makes the lid take hold of the fluid as of the more viscous one.
+- [run, host] **Against Marchi et al. at Reynolds number 400** (transcribed table; its coordinates, printed to four decimals, taken as multiples of 1 / 128): the Newtonian particle run of viscosity mu_inf differs by 3.0e-03 (u) and 2.1e-03 (v) U rms (largest 8.8e-03 at y = 0.977, next to the lid); the finite-difference solution, extrapolated to zero spacing at the points, by 3.0e-05 and 1.9e-05 (largest 6.9e-05).
 - [host] **Table 11c**, the traction of the lid over that on the Newtonian fluid of viscosity mu_inf, minus one, against delta / lambda (lambda = mu_inf U / traction = 0.063 L, the shear length of the lid):
 
 | l / L | delta / L | delta / lambda | excess traction | excess / (delta / lambda) |
@@ -186,12 +187,12 @@ Contours D = 1 %, 5 %, 20 % in the plane of N = sqrt(K / (2 + K)) and m = g / (2
 | 1 | 20.3 / 4.3 / - | 20.2 / 4.2 / 1.2 | 80.9 / 15.6 / 2.8 |
 | 0.5 | 13.5 / 2.8 / - | 13.5 / 2.8 / - | 53.4 / 9.8 / - |
 
-Noise floors shaded in the figure: 1.1e-05 (torque, g = 200 dx) and 3.6e-04 (change of the load, measured at g = 100 dx). The load feels the micro-structure at about four times the m at which the torque does.
+Noise floors shaded in the figure: 1.1e-05 (torque, g = 200 dx) and 3.6e-04 (change of the load, measured at g = 100 dx). The load reaches a given D at three to four times the m at which the torque does.
 
 ## 9. To be careful with in the text
 
 - **The film function** is that of micropolar lubrication theory; ours is that the runs reproduce it at a clearance ratio of 0.25. Its match with the published form has not been checked against the original.
-- **The cavity is not 'between two Newtonian fluids'**, and the pack no longer says so; its check is the finite-difference solution. The Reynolds-400 values of that solution (-0.3287, 0.3038, -0.4541) are the ones I remember from the literature; no table for Reynolds number 400 was in the repository to compare.
+- **The cavity is not 'between two Newtonian fluids'**, and the pack no longer says so; its check is the finite-difference solution, which in turn agrees with the reference of Marchi et al. at Reynolds number 400 (your transcription from the appendix of paper 1, `reference/marchi_re400.csv`, 28 + 28 points) to 3.0e-05 (u) and 1.9e-05 (v) U rms once extrapolated to zero spacing.
 - **3-D torque change:** three readings, 0.185 to 0.197 at g = 40 dx; there is no exact 3-D value. Say which reading is quoted.
 - **The cylinder cases carry `numerics.delta_fluid_only: true`** (the key), the cavity cases the default walls. With the key the level of the pressure wanders (recorded for every run; no reading follows it).
 - **Kinetic energy of the cavity** is quoted over the fluid mass (the particle masses sum to 1.134 rho0 L^2 at n = 500).

@@ -203,6 +203,20 @@ def main() -> int:
         + " %). With walls that do not hold w the finite-difference solution is weaker than that Newtonian fluid; "
           "with w held on the lid alone it is strongest (table 11b). [inferred] The condition w = 0 on the driving "
           "wall makes the lid take hold of the fluid as of the more viscous one.")
+    marchi = items["11"]["numbers"].get("marchi_reynolds_400") or {}
+    marchi_sentence = ""
+    if "finite-difference solution" in marchi:
+        solution, particles = marchi["finite-difference solution"], marchi["particle run"]
+        marchi_sentence = (
+            ", which in turn agrees with the reference of Marchi et al. at Reynolds number 400 (your transcription "
+            "from the appendix of paper 1, `reference/marchi_re400.csv`, 28 + 28 points) to "
+            f"{solution['u']['rms']:.1e} (u) and {solution['v']['rms']:.1e} (v) U rms once extrapolated to zero spacing")
+        say("- [run, host] **Against Marchi et al. at Reynolds number 400** (transcribed table; its coordinates, "
+            "printed to four decimals, taken as multiples of 1 / 128): the Newtonian particle run of viscosity mu_inf "
+            f"differs by {particles['u']['rms']:.1e} (u) and {particles['v']['rms']:.1e} (v) U rms (largest "
+            f"{particles['u']['largest']:.1e} at y = {particles['u']['at']:.3f}, next to the lid); the finite-difference "
+            f"solution, extrapolated to zero spacing at the points, by {solution['u']['rms']:.1e} and "
+            f"{solution['v']['rms']:.1e} (largest {solution['u']['largest']:.1e}).")
     say("- [host] **Table 11c**, the traction of the lid over that on the Newtonian fluid of viscosity mu_inf, minus "
         f"one, against delta / lambda (lambda = mu_inf U / traction = {lid['shear_length']:.3f} L, the shear length "
         "of the lid):")
@@ -287,7 +301,7 @@ def main() -> int:
         say()
         say(f"Noise floors shaded in the figure: {items['16']['numbers']['torque_noise_floor']:.1e} (torque, g = 200 "
             f"dx) and {items['16']['numbers']['load_noise_floor']:.1e} (change of the load, measured at g = 100 dx). "
-            "The load feels the micro-structure at about four times the m at which the torque does.")
+            "The load reaches a given D at three to four times the m at which the torque does.")
         say()
 
     # ---- cautions ------------------------------------------------------------------------------------------------
@@ -297,8 +311,7 @@ def main() -> int:
             "**The film function** is that of micropolar lubrication theory; ours is that the runs reproduce it at a "
             "clearance ratio of 0.25. Its match with the published form has not been checked against the original.",
             "**The cavity is not 'between two Newtonian fluids'**, and the pack no longer says so; its check is the "
-            "finite-difference solution. The Reynolds-400 values of that solution (-0.3287, 0.3038, -0.4541) are the "
-            "ones I remember from the literature; no table for Reynolds number 400 was in the repository to compare.",
+            "finite-difference solution" + marchi_sentence + ".",
             "**3-D torque change:** three readings, 0.185 to 0.197 at g = 40 dx; there is no exact 3-D value. Say "
             "which reading is quoted.",
             "**The cylinder cases carry `numerics.delta_fluid_only: true`** (the key), the cavity cases the default "

@@ -3865,13 +3865,18 @@ m = g / (2 l) is 2 here and 1 there: the two columns are two cases, not one case
   +0.5, +0.3 %, centre lines 2e-3 U rms); no sentence about bounds; the two Newtonian runs are named as what they
   are. Table 11b gives the ratios to the Newtonian fluid of viscosity mu_inf in place of the place between two
   bounds.
-- **Marchi et al. at Reynolds number 400:** the file `marchi_re400_from_paper1.csv` was announced for
-  `data/micropolar/ch5_draft/reference/`, but that directory did not exist in the worktree, on any branch of the
-  remote or elsewhere under the home directory when I looked (14:28 and 14:37). Nothing was transcribed by me. Item
-  11 is prepared for it: with the file in place, `make_all.py 11` adds its points to panels (a) and (b), the
-  differences of the particle run and of the finite-difference solution to table 11b, and the sentence on the
-  transcription to the caption (the reader takes the layout of `docs/validation/data/marchi2021_re1000.csv` or plain
-  columns y, u, x, v; tested with a stand-in table outside the repository).
+- **Marchi et al. at Reynolds number 400:** the directory `data/micropolar/ch5_draft/reference/` holds
+  marchi_re400.csv. It came from the user's download folder at 15:25 (`marchi_re400.csv`: plain columns y, u, x, v,
+  28 points each, a transcription from the appendix of paper 1) and was copied into the pack unchanged. Its
+  coordinates are printed to four decimals; every one is within 5e-5 of a multiple of 1 / 128 and is taken as that
+  multiple. Item 11 shows its points, table 11b the differences, the caption says what it is. **The
+  finite-difference solution of the Newtonian fluid of viscosity mu_inf agrees with it to 3.0e-05 (u) and 1.9e-05
+  (v) U rms** (largest 6.9e-05) once extrapolated to zero spacing at the points, and to 7.9e-04 and 9.1e-04 on its
+  finest grid; with the coordinates as printed the extrapolated solution is 1.3e-4 and 7e-5 away, which is the
+  rounding of the coordinates. The Newtonian particle run differs from the table by 3.0e-03 (u) and 2.1e-03 (v) U
+  rms, at most 8.8e-03 at y = 0.977 L next to the lid. So the second method is itself checked at the Newtonian end,
+  and the sentence of 15.2.3 about values remembered from the literature is settled: they are the values of this
+  table.
 - **The old ranges of the rule:** no caption carries them. Item 03 quotes the slip form (m = 5: 0.997, m = 10:
   0.999, m = 2: 1.035 to 1.039). The ranges of my morning message came from the column `rule_over_exact` of
   `concentric.json`, which is the form with (R1 / R2)^2 of Stage 4; the slip form is in items 03 and 04 and in

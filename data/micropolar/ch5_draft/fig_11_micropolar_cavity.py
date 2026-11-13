@@ -133,7 +133,9 @@ def main() -> int:
     used += [RUNS["micropolar"]] + ([RUNS["coarse"]] if RUNS["coarse"] in runs else [])
     # the lines in the legend of (a), the markers in the one of (b): together they do not fit into one panel
     handles, labels_ = upper[0].get_legend_handles_labels()
-    lines_ = [(handle, label) for handle, label in zip(handles, labels_) if handle.get_marker() in ("None", "", None)]
+    # (the reference points go with the lines: the panel of the markers has no room for a third entry)
+    lines_ = [(handle, label) for handle, label in zip(handles, labels_)
+              if handle.get_marker() in ("None", "", None) or label.startswith("Marchi")]
     markers_ = [(handle, label) for handle, label in zip(handles, labels_) if (handle, label) not in lines_]
     upper[0].legend(*zip(*lines_), loc="upper left", handletextpad=0.4, handlelength=1.7,
                     fontsize=style.FONT_SIZE - 1.0, borderaxespad=0.3)
@@ -206,28 +208,47 @@ def main() -> int:
     marchi_numbers, marchi_text = {}, ""
     if marchi and RUNS["far"] in runs:
         from scipy.interpolate import CubicSpline
-        sources_of_lines = {"particle run": (coordinate, runs[RUNS["far"]])}
-        if "newtonian_far" in reference:
-            finest_far = reference["newtonian_far"]["grids"][-1]
-            sources_of_lines["finite-difference solution"] = (np.asarray(finest_far["coordinate"]),
-                                                      {"u_mean": finest_far["u"], "v_mean": finest_far["v"]})
-        for label, (grid, record) in sources_of_lines.items():
+        # the table prints its coordinates to four decimals; the points of this benchmark are multiples of 1 / 128
+        snapped = {line: np.round(marchi[line][0] * 128.0) / 128.0 for line in ("u", "v")}
+        dyadic = all(np.abs(snapped[line] - marchi[line][0]).max() < 6e-5 for line in ("u", "v"))
+        places = snapped if dyadic else {line: marchi[line][0] for line in ("u", "v")}
+        lines_at_points = {"particle run": {
+            line: CubicSpline(coordinate, np.asarray(runs[RUNS["far"]][f"{line}_mean"]))(places[line])
+            for line in ("u", "v")}}
+        if "newtonian_far" in reference and len(reference["newtonian_far"]["grids"]) >= 2:
+            fine, finer = reference["newtonian_far"]["grids"][-2:]
+            factor = (finer["resolution"] / fine["resolution"]) ** 2 - 1.0
+            on_grids = {line: [CubicSpline(grid["coordinate"], grid[line])(places[line]) for grid in (fine, finer)]
+                        for line in ("u", "v")}
+            lines_at_points["finite-difference solution"] = {
+                line: values[1] + (values[1] - values[0]) / factor for line, values in on_grids.items()}
+            lines_at_points["finite-difference solution, finest grid"] = {
+                line: values[1] for line, values in on_grids.items()}
+        for label, at_points in lines_at_points.items():
             entry = {}
             for line in ("u", "v"):
-                at_points = CubicSpline(grid, np.asarray(record[f"{line}_mean"]))(marchi[line][0])
-                difference = at_points - marchi[line][1]
+                difference = at_points[line] - marchi[line][1]
                 entry[line] = {"points": int(difference.size), "rms": float(np.sqrt((difference ** 2).mean())),
                                "largest": float(np.abs(difference).max()),
-                               "at": float(marchi[line][0][int(np.argmax(np.abs(difference)))])}
+                               "at": float(places[line][int(np.argmax(np.abs(difference)))])}
             marchi_numbers[label] = entry
+        marchi_numbers["coordinates_taken_as_multiples_of_1_over_128"] = bool(dyadic)
+
+        def against(label):
+            entry = marchi_numbers[label]
+            return (f"{entry['u']['rms']:.1e} (u) and {entry['v']['rms']:.1e} (v) U rms, at most "
+                    f"{entry['u']['largest']:.1e} and {entry['v']['largest']:.1e}")
         marchi_text = (
-            " Squares: the reference of Marchi et al. (2021) at Reynolds number 400 as transcribed from the appendix "
-            f"of paper 1 (`{MARCHI.split('/', 3)[-1]}`; {marchi['u'][0].size} points of u and {marchi['v'][0].size} of "
-            "v). Against it "
-            + "; ".join(f"the {label} of the Newtonian fluid of viscosity mu_inf differs by {entry['u']['rms']:.1e} (u) "
-                        f"and {entry['v']['rms']:.1e} (v) U rms, at most {entry['u']['largest']:.1e} and "
-                        f"{entry['v']['largest']:.1e}" for label, entry in marchi_numbers.items())
-            + " (the finite-difference lines on their finest grid, not extrapolated).")
+            " Squares: the reference of Marchi et al. at Reynolds number 400, a transcription from the appendix of "
+            f"paper 1 (`{MARCHI.split('/', 3)[-1]}`; {marchi['u'][0].size} points of u and {marchi['v'][0].size} of v"
+            + ("; its coordinates are printed to four decimals and taken as the multiples of 1 / 128 they round to"
+               if dyadic else "") + "). Against it the Newtonian particle run of viscosity mu_inf differs by "
+            + against("particle run")
+            + ("; the finite-difference solution of that fluid, extrapolated to zero spacing at the points, by "
+               + against("finite-difference solution") + " (on its finest grid "
+               f"{marchi_numbers['finite-difference solution, finest grid']['u']['rms']:.1e} and "
+               f"{marchi_numbers['finite-difference solution, finest grid']['v']['rms']:.1e} rms)"
+               if "finite-difference solution" in marchi_numbers else "") + ".")
 
     # the same cases by finite differences: the check of the case
     reference_numbers, check_text = {}, ""
@@ -239,8 +260,8 @@ def main() -> int:
                     "u_min particle / finite differences", "v_max", "v_min", "kinetic energy",
                     "rms difference of u on the centre line", "of v",
                     "particle run against Marchi et al. at Re = 400: rms difference of u", "of v", "largest of u",
-                    "of v", "finite differences (finest grid) against Marchi et al.: rms difference of u", "of v",
-                    "largest of u", "of v"]
+                    "of v", "finite differences (extrapolated at the points) against Marchi et al.: rms difference "
+                    "of u", "of v", "largest of u", "of v"]
         tex_header_b = ["fluid", r"$u_{\min}/U$", r"$v_{\max}/U$", r"$v_{\min}/U$", r"$E_k$",
                         r"ratio $u_{\min}$", r"ratio $v_{\max}$", r"ratio $v_{\min}$", r"ratio $E_k$"]
         plain_b, tex_b = [], []
@@ -267,7 +288,7 @@ def main() -> int:
                    if particle else ["-"] * 7)
                 + ([f"{marchi_numbers[label][line][key]:.1e}" for label in ("particle run", "finite-difference solution")
                     for key in ("rms", "largest") for line in ("u", "v")]
-                   if case == "newtonian_far" and len(marchi_numbers) == 2 else ["-"] * 8))
+                   if case == "newtonian_far" and "finite-difference solution" in marchi_numbers else ["-"] * 8))
             tex_b.append(
                 [style.tex_escape(label).replace("mu\\_inf", r"$\mu_\infty$").replace("mu + kappa", r"$\mu + \kappa$")
                  .replace("Theta -> 0", r"$\Theta \to 0$").replace("hold w", "hold $w$").replace("holds w", "holds $w$")
@@ -288,7 +309,8 @@ def main() -> int:
                                + (" Against Marchi et al. at $\\mathit{Re} = 400$ (transcribed from the appendix of "
                                   "paper 1), rms difference of $u$ and $v$ at its points: "
                                   + "; ".join(f"{label} {entry['u']['rms']:.1e}, {entry['v']['rms']:.1e}"
-                                              for label, entry in marchi_numbers.items()) + "."
+                                              for label, entry in marchi_numbers.items()
+                                              if isinstance(entry, dict)) + "."
                                   if marchi_numbers else ""))
         if all(case in reference and "particle" in reference[case]
                for case in ("newtonian_far", "newtonian_wall", "micropolar")):
