@@ -21,24 +21,41 @@ ROWS = (
      "{:.4f}", "absolute"),
     ("enstrophy_peak_second_value", "second enstrophy peak", lambda c: c["enstrophy_peaks"][1][1], "{:.1f}",
      "relative"),
-    ("closest_approach_distance", "closest approach of the primary core to the wall (W - x)",
+    ("enstrophy_at_base_second_peak", "enstrophy at the time of the control's second peak",
+     lambda c: c["enstrophy_at_base_second_peak"], "{:.1f}", "relative"),
+    ("energy_0.75", "kinetic energy at t = 0.75", lambda c: c["global"]["0.75"][0], "{:.4f}", "relative"),
+    ("closest_approach_distance", "first approach of the primary core to the wall (smallest W - x, t < 0.5)",
      lambda c: c["closest_approach"][1], "{:.4f}", "absolute"),
-    ("rebound_distance", "rebound of the primary core (largest W - x before the second collision)",
+    ("rebound_distance", "rebound of the primary core (largest W - x between the two approaches)",
      lambda c: c["rebound"][1], "{:.4f}", "absolute"),
-    ("wall_vorticity_peak", "wall vorticity at the first collision, peak", lambda c: c["wall"]["vorticity_peak"],
-     "{:.1f}", "relative"),
+    ("second_approach_distance", "second approach of the primary core (smallest W - x, 0.55 < t < 0.85)",
+     lambda c: c["second_approach"][1], "{:.4f}", "absolute"),
+    ("wall_vorticity_peak", "wall vorticity at the first collision, peak",
+     lambda c: c["wall_common"]["vorticity_peak"], "{:.1f}", "relative"),
     ("wall_vorticity_integral_upper", "wall vorticity at the first collision, integral over 0 < y < W",
-     lambda c: c["wall"]["vorticity_integral_upper"], "{:.3f}", "relative"),
-    ("wall_flux_integral_upper", "wall vorticity flux at the first collision, integral over 0 < y < W",
-     lambda c: c["wall"]["flux_integral_upper"], "{:.1f}", "relative"),
+     lambda c: c["wall_common"]["vorticity_integral_upper"], "{:.3f}", "relative"),
+    ("wall_traction_peak", "wall shear traction (mu + kappa) omega_w, peak (control: mu_inf omega_w)",
+     lambda c: dipole_far_viscosity() * c["wall_common"]["vorticity_peak"], "{:.3f}", "relative"),
+    ("wall_traction_integral", "wall shear traction, integral over 0 < y < W",
+     lambda c: dipole_far_viscosity() * c["wall_common"]["vorticity_integral_upper"], "{:.4f}", "relative"),
+    ("wall_flux_integral_upper", "wall vorticity flux d omega / ds at the first collision, integral over 0 < y < W",
+     lambda c: c["wall_common"]["flux_integral_upper"], "{:.1f}", "relative"),
+    ("wall_momentum_balance", "momentum balance at the wall: (mu + kappa) d omega / dn - kappa d w / dn, integral "
+     "(control: mu_inf d omega / dn)", lambda c: dipole_far_viscosity() * c["wall_common"]["flux_integral_upper"],
+     "{:.2f}", "relative"),
     ("wall_pressure_difference_along_wall", "pressure difference along the wall, p(W, 0) - p(W, W), over rho",
-     lambda c: c["wall"]["pressure_difference_along_wall"], "{:.2f}", "relative"),
+     lambda c: c["wall_common"]["pressure_difference_along_wall"], "{:.2f}", "relative"),
 )
 
 
-def change(value, kind):
+def dipole_far_viscosity() -> float:
+    from experiment.validation import micropolar_dipole
+    return micropolar_dipole.FAR_VISCOSITY
+
+
+def change(value, kind, missing="-"):
     if value is None or value != value:
-        return "-"
+        return missing
     return f"{value:+.4f}" if kind == "absolute" else f"{100.0 * value:+.2f} %"
 
 
@@ -62,7 +79,8 @@ def main() -> int:
             value = form.format(control_value(control))
         except (KeyError, IndexError, TypeError):
             value = "-"
-        rows.append([label, value] + [change(comparisons[name].get(key), kind) for name, _label in present]
+        missing = "no maximum" if key.startswith("enstrophy_peak_second") else "-"
+        rows.append([label, value] + [change(comparisons[name].get(key), kind, missing) for name, _label in present]
                     + [change(floors[name].get(key), kind) for name, _label in floor_present])
     shear = runs.get("_shear_length")
     if shear:
@@ -81,7 +99,11 @@ def main() -> int:
         "the wall) and of the control at half the Mach number. A micropolar change below the floor is not "
         "established. Wall vorticity and its flux on x = W at the time of the control's first enstrophy peak "
         "(vorticity from a fit of the tangential velocity of the particles within 4 dx of the wall; flux from the "
-        "grid of one spacing). Lambda = U_ref / |omega_w| of the control, U_ref the largest tangential speed at "
+        "grid of one spacing; the absolute flux reads about 1.4 times the pressure difference along the wall in every "
+        "run, a bias of the reading common to all). Traction and momentum balance in kinematic units (over rho); "
+        "w = 0 on the wall, so the traction of the micropolar fluid is (mu + kappa) omega_w and the tangential "
+        "momentum balance at the wall reads dp/ds = (mu + kappa) d omega / dn - kappa d w / dn (dw/dn from the same "
+        "particle fit). Lambda = U_ref / |omega_w| of the control, U_ref the largest tangential speed at "
         "0.03 W from the wall; delta* = kappa l / (2 (mu + kappa)) = 0.375 l.")
     style.record("22", "Dipole-wall collision: numbers against the control with the noise floor", SOURCE["status"],
                  caption, ["tab_22_dipole_numbers.csv", "tab_22_dipole_numbers.tex"],

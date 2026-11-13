@@ -14,8 +14,8 @@ import style
 
 SOURCE = sources.DIPOLE
 RUNS = (("control_n1000", "control"),
-        ("mp_l100_n1000", r"micropolar, $\ell = W/100$"),
-        ("mp_l50_n1000", r"micropolar, $\ell = W/50$"))
+        ("mp_l100_n1000", r"micropolar $\ell = W/100$"),
+        ("mp_l50_n1000", r"micropolar $\ell = W/50$"))
 
 
 def main() -> int:
@@ -75,7 +75,8 @@ def main() -> int:
     enstrophy_axis.set_xlim(0.0, 1.0)
     enstrophy_axis.set_xlabel(r"$t\,U\,/\,W$")
     enstrophy_axis.set_ylabel(r"$\Omega\,/\,U^2$")
-    enstrophy_axis.legend(loc="upper right", handletextpad=0.4)
+    # lower left: before t = 0.3 every curve is above 450
+    enstrophy_axis.legend(loc="lower left", handlelength=1.4, handletextpad=0.3, fontsize=style.FONT_SIZE - 1.5)
     style.panel_letter(enstrophy_axis, "b")
     figure.tight_layout(pad=0.4, w_pad=1.2)
     style.save(figure, "fig_21_dipole_tracks")

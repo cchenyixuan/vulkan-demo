@@ -3996,3 +3996,214 @@ m = g / (2 l) is 2 here and 1 there: the two columns are two cases, not one case
   the fitted line. It supports 'the excess at m = 20 halves'; it is not a point of the l / dx law of the other rows.
 - **Not done, by the task:** no run at g = 80 dx, no displaced run other than the one of 16.5, no particle cavity
   run at l = L / 40, no finite-difference case l = L / 160, no other row at g = 400 dx. There is no further queue.
+
+## 17. Stage 8 (2026-11-13/14): the dipole-wall collision, Newtonian against micropolar
+
+The task: one showcase for Chapter 5 in which the micro-rotation layer of a no-spin wall changes a flow that is
+decided by the vorticity the wall produces, with a Newtonian control validated against the benchmark of Clercx and
+Bruneau (Computers & Fluids 35 (2006) 245-279, normal collision). Branch `v10-showcase` from `v9-micropolar`
+(0824b92). Nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed: every `run.json` records `git
+describe` and the two tree hashes (92a962153a10, 7815b1541893),
+those of `thesis-ch5-rc2`. Tools: `experiment/validation/micropolar_dipole.py` (cases, run) and
+`micropolar_dipole_analysis.py` (checks, analyse, fields); data `data/micropolar/stage8/` (commands in its
+`README.md`), raw runs `logs/micropolar/stage8/`; pack items 20 to 22.
+
+### 17.0 The benchmark and the set-up **[host]**
+
+- **The paper.** A copy is on the second author's page (math.u-bordeaux.fr); the set-up of the task matches it: box
+  [-1, 1]^2 with no-slip walls, two shielded monopoles omega = +-omega_e (1 - r^2 / r0^2) exp(-r^2 / r0^2), r0 =
+  0.1, at (0, +-0.1) (the positive one above), E(0) = 2 (rms velocity 1, half-width 1), Re = 625, 1250, 2500, 5000
+  on these scales. The dipole moves in +x and meets x = 1. Its reference values at Re = 625 (spectral SM, finite
+  differences FD): enstrophy peaks 933.6 at t = 0.3711 and 305.2 at 0.6479 (Table 2), palinstrophy peaks 1.386e7 at
+  0.3624 and 6.777e5 at 0.6521 (Table 3), the positive primary core at (0.818, 0.165) at t = 0.6 and (0.805, 0.254)
+  at t = 1.0 (SM; FD (0.832, 0.166) at 0.625), E, Omega, P at t = 0.25, 0.5, 0.75 (Table 5).
+- **omega_e (a reading).** The text says omega_e of about 320. E(0) = 2 needs 299.528385, and with it Omega(0) =
+  800.000 and P(0) = 4.4184e+05, the paper's 800 and 4.42e5; 320 gives E = 2.283 and Omega = 913.1. The runs use
+  299.528385375226 (a later paper on this benchmark quotes 299.5286).
+- **Mach number.** The largest initial speed is 11.019 U at the centre of the dipole; c0 = 600 m/s gives Ma = 0.0184
+  there (0.0017 on U). While the dipole forms the largest speed rises to 12.18 (Ma 0.0203). The half-Mach control
+  has c0 = 1200 m/s.
+- **Configuration.** The thesis configuration of the cavity cases (laplacian viscous form, epsilon_squared_factor
+  1e-6, adami walls at the reference density, KGC regularization 1e-3, density diffusion on every pair, particle
+  shifting), h = 5 dx, 11 wall layers. The fluid sits on the cell centres of [-1, 1]^2, so the wall planes are at
+  +-W exactly. dt = 0.15 h / c0 = 1.25e-6 s at dx = W / 1000 (the diffusive limits 3.2e-4 and 3.5e-4 s), 800,000
+  steps to t = 1; every run of a resolution has the same dt.
+- **The control (as the task asks).** The Newtonian fluid of viscosity nu_inf = 1 / 625 on the micropolar path: nu =
+  nu_inf, nu_t = -nu (c = 0 exactly in float32, test T2), xi = 0, Theta = (W / 50)^2; its w is a passive constant.
+  The micropolar runs: K = 3, nu = 0.00256, nu_t = -0.00064, c = 0.00192; l = W / 50 (20 dx; xi = 9.600e-07) and l =
+  W / 100 (10 dx; xi = 2.400e-07), Theta = l^2, w = 0 on every wall. Re = 625 on mu_inf is 1562.5 on mu. Both at dx
+  = W / 1000: l = W / 100 is the 10 dx of Section 5.4.3 (D within +0.6 % there), not 20 dx; a run at dx = W / 2000
+  was not made.
+- **Initial state (a reading).** The analytic velocity at the particles; w = omega / 2 from the analytic vorticity;
+  the density from the pressure of the incompressible flow (Poisson problem by the cosine transform, zero normal
+  derivative on the walls), written into the simulator's initial payload by the run tool before the bootstrap (no
+  change of the solver). The finite-difference run of the paper started from p = 0; `control_n500_zero_pressure`
+  starts from the rest density.
+
+### 17.1 Checks on the host **[host]**
+
+- **Pressure.** One monopole against -omega_e^2 r0^2 / 16 exp(-2 r^2 / r0^2): largest difference 7.0e-04 of 56.1
+  m^2/s^2 at n = 1000. The dipole: p / rho from -67.38 to 6.63.
+- **The estimator.** Every sample deposits the particle velocities (and w, p) on the cell centres of a grid of one
+  spacing (quadratic B-spline, Shepard normalisation, the fluid within 1.5 dx of a wall mirrored with velocity and w
+  reversed) and takes the vorticity by central differences. On the initial lattice: n = 250: Omega 796.63, P
+  4.3820e+05, E of the grid 1.99680; n = 500: Omega 799.16, P 4.4094e+05, E of the grid 1.99920; n = 1000: Omega
+  799.79, P 4.4163e+05, E of the grid 1.99980 (exact 800, 4.4184e5, 2). On a boundary layer of thickness 0.01 W next
+  to x = W (the paper's estimate at Re = 625): enstrophy 0.9834 (n = 500), 0.9954 (n = 1000) of exact; wall
+  vorticity from the grid 0.9523, 0.9761, from a least-squares fit v = a s + b s^2 over the particles within 4 dx of
+  the wall 0.9703, 0.9916. The fit is the reading of the wall vorticity.
+- **Palinstrophy** on this grid carries the grid-scale noise of the particle velocities: at t = 0.25 4.756e+05
+  (n250), 5.439e+05 (n500), 5.759e+05 (n1000) against the benchmark's 3.99e5, growing with resolution. It is quoted,
+  not used for the verdict.
+
+### 17.2 The runs **[run]**
+
+| run | particles (fluid) | card | steps | dt (s) | steps/s | wall time |  | revision |
+|---|---|---|---|---|---|---|---|---|
+| `control_n250` | 272,484 (250,000) | XTX | 200,000 | 5.000e-06 | 784.3 | 4 min | every counter zero | thesis-ch5-rc2-44-g85b6bb7 |
+| `control_n500` | 1,044,484 (1,000,000) | XTX | 400,000 | 2.500e-06 | 239.9 | 28 min | every counter zero | thesis-ch5-rc2-43-g0824b92 |
+| `control_n500_zero_pressure` | 1,044,484 (1,000,000) | XTX | 400,000 | 2.500e-06 | 238.5 | 28 min | every counter zero | thesis-ch5-rc2-44-g85b6bb7 |
+| `control_n1000` | 4,088,484 (4,000,000) | 5090 | 800,000 | 1.250e-06 | 116.3 | 115 min | every counter zero | thesis-ch5-rc2-43-g0824b92 |
+| `control_n1000_half_mach` | 4,088,484 (4,000,000) | XTX | 1,600,000 | 6.250e-07 | 69.3 | 385 min | every counter zero | thesis-ch5-rc2-44-g85b6bb7 |
+| `control_n1000_shifted` | 4,088,484 (4,000,000) | 5090 | 800,000 | 1.250e-06 | 116.3 | 115 min | every counter zero | thesis-ch5-rc2-46-g89e421b |
+| `mp_l100_n1000` | 4,088,484 (4,000,000) | 5090 | 800,000 | 1.250e-06 | 113.6 | 117 min | every counter zero | thesis-ch5-rc2-46-g89e421b |
+| `mp_l50_n1000` | 4,088,484 (4,000,000) | 5090 | 800,000 | 1.250e-06 | 113.7 | 117 min | every counter zero | thesis-ch5-rc2-44-g85b6bb7 |
+
+- Two queues of `micropolar_stage6 runner` (`logs/micropolar/stage8/queue0`, `queue1`), one per card, no detached
+  waits; the micropolar runs were queued only after the validation of 17.3. Samples every 0.01, every 0.0025 in 0.30
+  <= t <= 0.44 and 0.58 <= t <= 0.72, the vorticity field every 0.025; full fluid states of the control at t = 0.375
+  and 1.0.
+
+### 17.3 Validation of the control against the benchmark **[run]**
+
+| quantity | SM | FD | `control_n250` | `control_n500` | `control_n1000` |
+|---|---|---|---|---|---|
+| time of the first enstrophy peak | 0.3711 | 0.371 | 0.3791 (+0.0080) | 0.3747 (+0.0036) | 0.3724 (+0.0013) |
+| first enstrophy peak | 933.6 | 932.8 | 845.63 (-9.4 %) | 899.42 (-3.7 %) | 918.77 (-1.6 %) |
+| time of the first palinstrophy peak | 0.3624 | 0.363 | 0.3733 (+0.0109) | 0.3667 (+0.0043) | 0.3632 (+0.0008) |
+| first palinstrophy peak | 1.386e+07 | 1.296e+07 | 1.0875e+07 (-21.5 %) | 1.4154e+07 (+2.1 %) | 1.4811e+07 (+6.9 %) |
+| time of the second enstrophy peak | 0.6479 | 0.647 | 0.6583 (+0.0104) | 0.6525 (+0.0046) | 0.6492 (+0.0013) |
+| second enstrophy peak | 305.2 | 305.2 | 287.27 (-5.9 %) | 295.94 (-3.0 %) | 301.2 (-1.3 %) |
+| time of the second palinstrophy peak | 0.6521 | 0.653 | 0.6726 (+0.0205) | 0.6568 (+0.0047) | 0.6521 (-0.0000) |
+| second palinstrophy peak | 6.777e+05 | 6.561e+05 | 6.8279e+05 (+0.8 %) | 7.2838e+05 (+7.5 %) | 7.5892e+05 (+12.0 %) |
+| E(0.25) | 1.5022 | 1.502 | 1.4896 (-0.8 %) | 1.4966 (-0.4 %) | 1.4988 (-0.2 %) |
+| Omega(0.25) | 472.6 | 472.7 | 464.09 (-1.8 %) | 469.65 (-0.6 %) | 471.59 (-0.2 %) |
+| P(0.25) | 3.99e+05 | 3.91e+05 | 4.7565e+05 (+19.2 %) | 5.4386e+05 (+36.3 %) | 5.7594e+05 (+44.3 %) |
+| E(0.5) | 1.013 | 1.013 | 0.99662 (-1.6 %) | 1.0055 (-0.7 %) | 1.0071 (-0.6 %) |
+| Omega(0.5) | 380.6 | 380.4 | 378.87 (-0.5 %) | 380.48 (-0.0 %) | 379.78 (-0.2 %) |
+| P(0.5) | 5.53e+05 | 5.49e+05 | 6.5478e+05 (+18.4 %) | 6.6744e+05 (+20.7 %) | 6.646e+05 (+20.2 %) |
+| E(0.75) | 0.7673 | 0.767 | 0.75445 (-1.7 %) | 0.76222 (-0.7 %) | 0.76252 (-0.6 %) |
+| Omega(0.75) | 255.2 | 255 | 248.21 (-2.7 %) | 251.12 (-1.6 %) | 252.73 (-1.0 %) |
+| P(0.75) | 4.87e+05 | 4.73e+05 | 5.0031e+05 (+2.7 %) | 5.2174e+05 (+7.1 %) | 5.386e+05 (+10.6 %) |
+| primary core x at t = 0.6 (SM) | 0.818 | - | - | 0.8102 (-0.0078) | 0.8161 (-0.0019) |
+| primary core y at t = 0.6 (SM) | 0.165 | - | - | 0.1710 (+0.0060) | 0.1679 (+0.0029) |
+| primary core omega_max at t = 0.6 (SM) | 158.9 | - | - | 163.64 (+3.0 %) | 161.94 (+1.9 %) |
+| primary core x at t = 1 (SM) | 0.805 | - | - | 0.8029 (-0.0021) | 0.8057 (+0.0007) |
+| primary core y at t = 1 (SM) | 0.254 | - | - | 0.2486 (-0.0054) | 0.2532 (-0.0008) |
+| primary core omega_max at t = 1 (SM) | 102.6 | - | - | 101.96 (-0.6 %) | 102.74 (+0.1 %) |
+| primary core x at t = 0.625 (FD) | 0.832 | 0.832 | - | 0.8213 (-0.0107) | 0.8329 (+0.0009) |
+| primary core y at t = 0.625 (FD) | 0.166 | 0.166 | - | 0.1659 (-0.0001) | 0.1606 (-0.0054) |
+| primary core omega_max at t = 0.625 (FD) | 154.2 | - | - | 157.25 (+2.0 %) | 155.93 (+1.1 %) |
+| primary core x at t = 1 (FD) | 0.805 | 0.805 | - | 0.8029 (-0.0021) | 0.8057 (+0.0007) |
+| primary core y at t = 1 (FD) | 0.254 | 0.254 | - | 0.2486 (-0.0054) | 0.2532 (-0.0008) |
+| primary core omega_max at t = 1 (FD) | 102.6 | - | - | 101.96 (-0.6 %) | 102.74 (+0.1 %) |
+
+- **Verdict: the control passes** at dx = W / 1000. The enstrophy peaks are -1.6 % and -1.3 % of the spectral
+  values, at times +0.0013 and +0.0013; the primary core is within 0.0054 of the benchmark positions at t = 0.6,
+  0.625 and 1.0 (tolerances of the task: 5 % and 0.02). No refinement was needed.
+- **Where the run sits.** The first peak converges from below: -9.4 % at n = 250, -3.7 % at n = 500, -1.6 % at n =
+  1000; the second peak likewise. E, Omega at t = 0.25, 0.5, 0.75 are within 1 %. The energy budget: -dE/dt over 2
+  nu_inf Omega is 1.0102 before the collision, 1.0169 during it, 1.0035 after (the numerical dissipation of the
+  control is 1 to 2 % of the physical one). Between n = 250, 500 and 1000 the error of the first peak falls by
+  factors 2.57 and 2.30 (an order of about 1.2 to 1.4). The paper finds grid convergence of its finite differences
+  at N_FD = 1024 for Re = 625 (spectral N_SM = 256); the SPH run has 2000 particles across the box.
+- **Initial pressure.** From the rest density instead (`control_n500_zero_pressure`): enstrophy peaks 899.69 and
+  296.42 against 899.42 and 295.94: it does not matter at Ma 0.02.
+- **Walls.** No fluid particle crossed a wall plane in any run; the mean density moved by -6.4e-07. The regression
+  of the outward normal velocity of the fluid within one spacing of a wall on p / (rho c0), over all samples: k_w =
+  1.02 at n = 1000 (1.58 at n = 500, 3.70 at n = 250). [inferred] This is not the seepage coefficient of eq. (5.13)
+  alone: an acoustic wave travelling to the wall has v_n = p / (rho c0) and gives 1 by itself; the run's walls hold
+  the fluid.
+- **Symmetry.** The negative primary of the lower half, mirrored, stays within 0.013 of the positive one (largest
+  over the run; the smoothed track scatters by 0.0027).
+
+### 17.4 The micropolar runs against the control **[run]**
+
+| quantity | control | `mp_l100_n1000` | `mp_l50_n1000` | `control_n1000_shifted` | `control_n1000_half_mach` |
+|---|---|---|---|---|---|
+| first enstrophy peak | 918.8 | -13.49 % | -15.68 % | +0.04 % | +0.01 % |
+| time of the first peak | 0.3724 | -0.0009 | -0.0009 | -0.0003 | +0.0008 |
+| second enstrophy peak | 301.2 | no maximum | no maximum | +0.09 % | +0.06 % |
+| enstrophy at the control's second peak | 301.2 | -5.16 % | -11.12 % | +0.08 % | +0.06 % |
+| E(0.75) | 0.7625 | -2.22 % | -3.77 % | -0.01 % | +0.10 % |
+| first approach W - x | 0.0955 | +0.0040 | +0.0016 | -0.0009 | -0.0026 |
+| rebound W - x | 0.2087 | -0.0064 | -0.0090 | -0.0011 | -0.0013 |
+| second approach W - x | 0.1376 | +0.0044 | +0.0099 | -0.0066 | +0.0013 |
+| wall vorticity, peak | -1304.7 | -26.12 % | -25.67 % | -0.40 % | +0.44 % |
+| wall vorticity, integral over the upper half | -118.03 | -26.63 % | -23.00 % | -0.43 % | +0.46 % |
+| wall vorticity flux, integral | 12531 | -52.46 % | -37.52 % | -0.25 % | +1.13 % |
+| pressure difference along the wall | 14.47 | +1.44 % | -0.41 % | -0.22 % | +3.89 % |
+
+- Changes against `control_n1000`: relative, or absolute for times and distances (W / U, W). The wall x = W is read
+  at the control's first enstrophy peak (t = 0.3725) for every run. The last columns are the noise floor (the dipole
+  moved by dx / 2 along x; the control at half the Mach number).
+- **The shear length of the wall** at the first collision, from the control: U_ref = 6.87 U (the largest tangential
+  speed 0.03 W from the wall, at y = 0.135), wall vorticity -1305 U / W (y = 0.085): Lambda = U_ref / |omega_w| =
+  0.0053 W. delta* / Lambda = 0.71 (l = W / 100) and 1.42 (l = W / 50); Lambda / l = 0.53 and 0.26. Both runs are
+  far outside the range of the first-order rule of 5.5.3 (Lambda >= 2.5 l): the layer of the wall is thicker than
+  the boundary layer of the collision.
+- **The showcase (item 20).** The three runs collide alike to the eye: the dipole reaches the wall at the same time
+  and the primary cores follow the same path within a few thousandths of W. What differs is the layer on the wall:
+  in both micropolar runs the negative vorticity of the wall layer of the first collision is weaker, so is the
+  secondary vortex it rolls up into, and at the second collision the wall layer stays weak. The last row (w - omega
+  / 2 of l = W / 50) shows the micro-rotation held at zero on the wall and lagging behind omega / 2 in a layer that
+  is shed with the secondary vortex and wraps around it.
+- **Enstrophy.** First peak -13.5 % (l = W / 100) and -15.7 % (l = W / 50); floor 0.04 %, at the same time
+  (-0.0009). **Neither micropolar run has a second maximum:** its enstrophy falls through the second collision,
+  where the control's has a shoulder with a maximum; at the time of the control's second peak -5.2 % (l = W / 100)
+  and -11.1 % (l = W / 50); floor 0.08 %. E(0.75) -2.2 % (l = W / 100) and -3.8 % (l = W / 50); floor 0.10 %: the
+  micropolar fluid also loses its energy faster (the couple terms dissipate).
+- **The wall at the first collision** (t = 0.3725). Wall vorticity -26.1 % (l = W / 100) and -25.7 % (l = W / 50);
+  floor 0.44 % (peak; the integral over the upper half -26.6 % and -23.0 %). With w = 0 on the wall the shear
+  traction of the micropolar fluid is (mu + kappa) omega_w: over mu_inf omega_w of the control +18.2 % and +18.9 %
+  (peak), +17.4 % and +23.2 % (integral). **The first-order rule of 5.5.3 would give the excess delta* / Lambda =
+  0.71 and 1.42; the measured excess is a quarter and an eighth of that and nearly the same for both lengths: it
+  saturates once the layer is thicker than the boundary layer (Lambda / l = 0.53 and 0.26 here; the rule holds from
+  Lambda >= 2.5 l), as the lid of the cavity began to show at l = L / 10 (ratio 0.49 there).** [inferred] A thick
+  layer pins w = 0 across the whole boundary layer, where the fluid then has the viscosity mu + kappa: a layer of
+  thickness sqrt(nu t) then carries sqrt((mu + kappa) / (mu + kappa / 2)) - 1 = 0.26 more traction; measured 0.18 to
+  0.23.
+- **Vorticity flux and the momentum balance at the wall.** The flux d omega / dn into the fluid, integrated over the
+  upper half, changes by -52.5 % (l = W / 100) and -37.5 % (l = W / 50); floor 1.13 %, while the pressure difference
+  along the wall (p(W, 0) - p(W, W)) changes by +1.4 % (l = W / 100) and -0.4 % (l = W / 50); floor 3.89 %: the
+  outer flow sets the tangential pressure gradient alike in all runs. At a wall with w = 0 the tangential momentum
+  balance reads dp/ds = (mu + kappa) d omega / dn - kappa d w / dn; with dw/dn from the particle fit, (mu + kappa) d
+  omega / dn = 15.25 and 20.04, kappa dw/dn = -5.93 and -1.77, their difference 1.056 and 1.088 of the control's
+  mu_inf d omega / dn: the balance closes within 6 to 9 %. **The no-spin wall passes a part of the vorticity it
+  would produce to the micro-rotation**: the couple term is 0.39 of the vorticity term at l = W / 100 and 0.09 at l
+  = W / 50 (the gradient of w at the wall is steeper for the shorter layer). [inferred] This is the mechanism of the
+  collision: less vorticity leaves the wall, the secondary vortex is weaker, the second collision has no enstrophy
+  maximum.
+- **Cores.** First approach W - x +0.0040 (l = W / 100) and +0.0016 (l = W / 50); floor 0.0026; rebound -0.0064 (l =
+  W / 100) and -0.0090 (l = W / 50); floor 0.0013; second approach +0.0044 (l = W / 100) and +0.0099 (l = W / 50);
+  floor 0.0066 (the control: 0.0955, 0.2087, 0.1376; the smoothed track scatters by 0.0027). The primary core stays
+  a little further from the wall and rebounds a little less far; [inferred] the weaker secondary vortex pulls it
+  away less.
+- **Micro-rotation.** The integral of (w - omega / 2)^2 peaks at 127.7 at t = 0.367 (`mp_l100_n1000`) and 177.3 at t
+  = 0.372 (`mp_l50_n1000`); it starts at zero (w = omega / 2 at t = 0) and comes from the walls only.
+- **Not established** (below the floor): first approach of `mp_l50_n1000`, second approach of `mp_l100_n1000`,
+  pressure difference along the wall of `mp_l100_n1000`, pressure difference along the wall of `mp_l50_n1000`.
+
+### 17.5 Unexpected, and what is open
+
+- **The second enstrophy maximum disappears** in both micropolar runs. The task expected a change of the peaks; the
+  micropolar collision has one peak, not two (17.4).
+- **The flux of vorticity** at the wall is read from the grid (a quadratic through the four nodes next to the wall);
+  in the control it is 1.39 times the pressure difference along the wall, where the identity nu d omega / dn = dp /
+  ds would give 1. The bias is common to all runs (the ratios are quoted); the absolute value is not.
+- **l = W / 100 at 10 dx** (dx = W / 1000): Section 5.4.3 puts D within +0.6 % at l = 10 dx between cylinders; here
+  no run at dx = W / 2000 checks it.
+- **Palinstrophy** is quoted but not usable for the verdict (grid-scale noise, 17.1).
+- **Leakage:** the regression coefficient k_w (17.3) is not the seepage coefficient of eq. (5.13); the runs show no
+  fluid beyond the wall planes and a mean density constant to 1e-6.
+- **Not done:** Re = 1250 and 2500, the oblique collision, a run at dx = W / 2000.

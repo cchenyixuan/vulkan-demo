@@ -1,0 +1,91 @@
+{
+ "item": "20",
+ "title": "Dipole-wall collision: vorticity of the control and of the two micropolar runs at four times",
+ "status": "final",
+ "caption": "Normal collision of a dipole with the no-slip wall x = W (thick line; Clercx & Bruneau 2006, box [-W, W]^2, Re = U W / nu_inf = 625; the upper half 0.4 <= x / W <= 1, 0 <= y / W <= 0.6 is shown, the flow being symmetric). Vorticity omega W / U on one colour scale (saturated at +-300; contours at +-10, +-30, +-50 as in the paper's figures) at t U / W = 0.35, 0.45, 0.6, 0.7 (columns): before and after the first and the second collision (enstrophy peaks of the control at t = 0.372 and 0.649). Rows: (a-d) the Newtonian control of viscosity mu_inf; (e-h) the micropolar fluid, K = 3, l = W / 100 (10 dx); (i-l) the micropolar fluid, l = W / 50 (20 dx); (m-p) w - omega / 2 of l = W / 50 (saturated at +-60): the micro-rotation layer on the wall and where it is shed. w = 0 on every wall, w = omega / 2 at t = 0. dx = W / 1000 (4 million fluid particles), h = 5 dx; the fields are the particle velocities on a grid of one spacing (quadratic B-spline, no-slip reflection at the wall), the vorticity by central differences.",
+ "files": [
+  "fig_20_dipole_showcase.pdf",
+  "fig_20_dipole_showcase.png"
+ ],
+ "sources": [
+  "data/micropolar/stage8/fields",
+  "control_n1000",
+  "mp_l100_n1000",
+  "mp_l50_n1000"
+ ],
+ "numbers": {
+  "control_n1000": {
+   "0.350": {
+    "min": -1165.0,
+    "max": 212.75
+   },
+   "0.450": {
+    "min": -338.75,
+    "max": 193.0
+   },
+   "0.600": {
+    "min": -203.125,
+    "max": 163.375
+   },
+   "0.700": {
+    "min": -316.25,
+    "max": 144.125
+   }
+  },
+  "mp_l100_n1000": {
+   "0.350": {
+    "min": -897.5,
+    "max": 210.125
+   },
+   "0.450": {
+    "min": -247.625,
+    "max": 189.875
+   },
+   "0.600": {
+    "min": -171.75,
+    "max": 161.125
+   },
+   "0.700": {
+    "min": -206.5,
+    "max": 142.5
+   }
+  },
+  "mp_l50_n1000": {
+   "0.350": {
+    "min": -890.5,
+    "max": 210.0
+   },
+   "0.450": {
+    "min": -272.5,
+    "max": 188.125
+   },
+   "0.600": {
+    "min": -177.375,
+    "max": 159.0
+   },
+   "0.700": {
+    "min": -172.625,
+    "max": 140.5
+   }
+  },
+  "spin_departure": {
+   "0.350": {
+    "min": -7.91015625,
+    "max": 442.5
+   },
+   "0.450": {
+    "min": -6.76171875,
+    "max": 134.625
+   },
+   "0.600": {
+    "min": -11.0546875,
+    "max": 87.625
+   },
+   "0.700": {
+    "min": -22.890625,
+    "max": 85.125
+   }
+  }
+ },
+ "tag": "thesis-ch5-rc2 solver trees (runs on branch v10-showcase)"
+}

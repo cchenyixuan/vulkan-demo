@@ -35,7 +35,7 @@ Design note: `docs/micropolar_design.md`, Section 15. Run data of Stage 6: `data
 - Reynolds numbers: on `mu_inf` (the far viscosity `mu + kappa / 2`, the one the cases are set by) and on `mu`
   (`Re_g (1 + K / 2)`, the one the thesis quotes).
 
-## Index (written 2026-11-13 17:56)
+## Index (written 2026-11-14 03:52)
 
 | no. | item | files | status | data |
 |---|---|---|---|---|
@@ -55,3 +55,6 @@ Design note: `docs/micropolar_design.md`, Section 15. Run data of Stage 6: `data
 | 14 | Solver checks: operator checks, passive label, chain against one slab, step limits, cost | `tab_14a_operator_checks.csv`, `tab_14a_operator_checks.tex`, `tab_14b_passive_label.csv`, `tab_14b_passive_label.tex`, `tab_14c_chain_against_one_slab.csv`, `tab_14c_chain_against_one_slab.tex`, `tab_14d_step_limits.csv`, `tab_14d_step_limits.tex`, `tab_14e_cost.csv`, `tab_14e_cost.tex` | final (existing data) | Stages 1 to 3, `micropolar-base-9-g278a557` to `thesis-ch5-rc1` |
 | 15 | 3-D: fields in a plane through the axis and the mid-plane profiles | `fig_15_three_dimensional.pdf`, `fig_15_three_dimensional.png`, `tab_15b_three_dimensional.csv`, `tab_15b_three_dimensional.tex` | final | thesis-ch5-rc2 |
 | 16 | The map of the effect: contours of D in the plane (N, m) for the torque and the load | `fig_16_effect_map.pdf`, `fig_16_effect_map.png` | final (host only) | host |
+| 20 | Dipole-wall collision: vorticity of the control and of the two micropolar runs at four times | `fig_20_dipole_showcase.pdf`, `fig_20_dipole_showcase.png` | final | thesis-ch5-rc2 solver trees (runs on branch v10-showcase) |
+| 21 | Dipole-wall collision: core trajectories and enstrophy against the benchmark | `fig_21_dipole_tracks.pdf`, `fig_21_dipole_tracks.png` | final | thesis-ch5-rc2 solver trees (runs on branch v10-showcase) |
+| 22 | Dipole-wall collision: numbers against the control with the noise floor | `tab_22_dipole_numbers.csv`, `tab_22_dipole_numbers.tex` | final | thesis-ch5-rc2 solver trees (runs on branch v10-showcase) |

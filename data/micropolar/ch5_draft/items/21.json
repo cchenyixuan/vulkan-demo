@@ -1,0 +1,55 @@
+{
+ "item": "21",
+ "title": "Dipole-wall collision: core trajectories and enstrophy against the benchmark",
+ "status": "final",
+ "caption": "Normal collision of a dipole with the no-slip wall x = W (Clercx & Bruneau 2006; box [-W, W]^2, Re = U W / nu_inf = 625, U the rms velocity), the Newtonian control (viscosity mu_inf) and the micropolar fluid (K = 3, l = W / 100 and W / 50, Theta = l^2, w = 0 on every wall, w = omega / 2 at t = 0), dx = W / 1000. (a) Trajectories of the cores of the upper half: the primary (positive) vortex (solid) and the secondary (negative) vortex once detached from the wall (dashed); open symbols: the runs at t = 0.6, 0.625 and 1.0; black: the primary positions of the benchmark (spectral SM at t = 0.6 and 1.0, finite differences FD at t = 0.625 and 1.0). The primary core is the local maximum of the vorticity on a grid of one spacing at every sample, smoothed in time by a local quadratic fit over +-0.0125 W / U (the maximum of a flat core moves by about 0.005 W between nodes); the secondary core is the minimum of the vorticity field saved every 0.025 W / U (Gaussian of two spacings, more than 0.02 W from the wall) from t = 0.45 on. (b) Enstrophy Omega = 1/2 int omega^2 against time; black squares: the two peaks of the benchmark (its Table 2), open circles: its values at t = 0, 0.25, 0.5 and 0.75 (Table 5). Control: peaks 918.8 at t = 0.3724 and 301.2 at t = 0.6492 (benchmark 933.6 at 0.3711 and 305.2 at 0.6479).",
+ "files": [
+  "fig_21_dipole_tracks.pdf",
+  "fig_21_dipole_tracks.png"
+ ],
+ "sources": [
+  "data/micropolar/stage8/dipole.json",
+  "control_n1000",
+  "mp_l100_n1000",
+  "mp_l50_n1000"
+ ],
+ "numbers": {
+  "control_n1000": {
+   "enstrophy_peaks": [
+    [
+     0.37238301787994504,
+     918.7654013227676
+    ],
+    [
+     0.6491724539633689,
+     301.19567870048223
+    ]
+   ]
+  },
+  "mp_l100_n1000": {
+   "enstrophy_peaks": [
+    [
+     0.37151444030310854,
+     794.8112884315237
+    ],
+    [
+     NaN,
+     NaN
+    ]
+   ]
+  },
+  "mp_l50_n1000": {
+   "enstrophy_peaks": [
+    [
+     0.371501664915692,
+     774.7083039922437
+    ],
+    [
+     NaN,
+     NaN
+    ]
+   ]
+  }
+ },
+ "tag": "thesis-ch5-rc2 solver trees (runs on branch v10-showcase)"
+}

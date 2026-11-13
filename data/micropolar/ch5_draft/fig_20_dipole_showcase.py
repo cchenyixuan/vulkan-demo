@@ -23,6 +23,11 @@ SPIN_LIMIT = 60.0
 LEVELS = (-50.0, -30.0, -10.0, 10.0, 30.0, 50.0)   # the contour levels of the paper's figures
 
 
+def inside_letter(axis, letter: str) -> None:
+    axis.text(0.04, 0.96, f"({letter})", transform=axis.transAxes, ha="left", va="top", fontsize=style.FONT_SIZE,
+              bbox={"facecolor": "white", "edgecolor": "none", "pad": 0.8, "alpha": 0.85})
+
+
 def field(run: str, time: float):
     path = style.REPO_ROOT / SOURCE["fields"] / f"{run}_t{time:.3f}.npz"
     if not path.exists():
@@ -40,7 +45,7 @@ def main() -> int:
     spin = field(SPIN_ROW, TIMES[0]) is not None and "spin_departure" in field(SPIN_ROW, TIMES[0])
     row_count = len(rows) + (1 if spin else 0)
     panel = 0.205 * style.WIDE
-    figure, axes = plt.subplots(row_count, len(TIMES), figsize=(style.WIDE, panel * row_count + 0.35),
+    figure, axes = plt.subplots(row_count, len(TIMES), figsize=(style.WIDE, panel * row_count + 0.45),
                                 squeeze=False, sharex=True, sharey=True)
     norm = TwoSlopeNorm(vcenter=0.0, vmin=-VORTICITY_LIMIT, vmax=VORTICITY_LIMIT)
     letters = iter("abcdefghijklmnopqrstuvwxyz")
@@ -56,7 +61,7 @@ def main() -> int:
                                 interpolation="bilinear", rasterized=True)
             axis.contour(data["x"], data["y"], vorticity.T, levels=LEVELS, colors=style.INK, linewidths=0.25)
             numbers.setdefault(run, {})[f"{time:.3f}"] = {"min": float(vorticity.min()), "max": float(vorticity.max())}
-            style.panel_letter(axis, next(letters), x=0.03, y=0.97, va="top")
+            inside_letter(axis, next(letters))
     if spin:
         for column, time in enumerate(TIMES):
             axis = axes[len(rows), column]
@@ -67,19 +72,19 @@ def main() -> int:
                                      vmin=-SPIN_LIMIT, vmax=SPIN_LIMIT, interpolation="bilinear", rasterized=True)
             numbers.setdefault("spin_departure", {})[f"{time:.3f}"] = {"min": float(departure.min()),
                                                                        "max": float(departure.max())}
-            style.panel_letter(axis, next(letters), x=0.03, y=0.97, va="top")
+            inside_letter(axis, next(letters))
     for axis in axes.ravel():
         axis.axvline(1.0, color=style.INK, linewidth=1.0)
         axis.set_xlim(0.4, 1.0)
         axis.set_ylim(0.0, 0.6)
         axis.set_aspect("equal")
-        axis.set_xticks([0.4, 0.6, 0.8, 1.0])
-        axis.set_yticks([0.0, 0.2, 0.4, 0.6])
+        axis.set_xticks([0.5, 0.7, 0.9])
+        axis.set_yticks([0.1, 0.3, 0.5])
     for axis in axes[-1, :]:
         axis.set_xlabel(r"$x\,/\,W$")
     for row_index, axis in enumerate(axes[:, 0]):
         axis.set_ylabel(r"$y\,/\,W$")
-    figure.subplots_adjust(left=0.08, right=0.86, bottom=0.07, top=0.98, wspace=0.06, hspace=0.08)
+    figure.subplots_adjust(left=0.08, right=0.86, bottom=0.09, top=0.985, wspace=0.06, hspace=0.06)
     top = axes[0, -1].get_position()
     bottom = axes[len(rows) - 1, -1].get_position()
     bar_axis = figure.add_axes([0.88, bottom.y0, 0.015, top.y1 - bottom.y0])

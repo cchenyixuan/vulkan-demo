@@ -1,6 +1,6 @@
 # Chapter 5: what the solver has shown
 
-Written 2026-11-13 17:56 at commit `d677698` (branch `v9-micropolar`; solver tag `thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number below is read from the data files by `report.py`; the captions with all parameters and run names are in `captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6) and 16 (Stage 7).
+Written 2026-11-14 03:52 at commit `89e421b` (branch `v10-showcase`; solver tag `thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number below is read from the data files by `report.py`; the captions with all parameters and run names are in `captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6), 16 (Stage 7) and 17 (Stage 8, the dipole-wall collision).
 
 **State.** Every run of the chapter is done.
 
@@ -26,6 +26,9 @@ Marks: **[run]** measured in a particle run on the tag; **[host]** computed on t
 | 14 | Solver checks: operator checks, passive label, chain against one slab, step limits, cost | `tab_14a_operator_checks.csv`, `tab_14a_operator_checks.tex`, `tab_14b_passive_label.csv`, `tab_14b_passive_label.tex`, `tab_14c_chain_against_one_slab.csv`, `tab_14c_chain_against_one_slab.tex`, `tab_14d_step_limits.csv`, `tab_14d_step_limits.tex`, `tab_14e_cost.csv`, `tab_14e_cost.tex` | final (existing data) |
 | 15 | 3-D: fields in a plane through the axis and the mid-plane profiles | `fig_15_three_dimensional.pdf`, `tab_15b_three_dimensional.csv`, `tab_15b_three_dimensional.tex` | final |
 | 16 | The map of the effect: contours of D in the plane (N, m) for the torque and the load | `fig_16_effect_map.pdf` | final (host only) |
+| 20 | Dipole-wall collision: vorticity of the control and of the two micropolar runs at four times | `fig_20_dipole_showcase.pdf` | final |
+| 21 | Dipole-wall collision: core trajectories and enstrophy against the benchmark | `fig_21_dipole_tracks.pdf` | final |
+| 22 | Dipole-wall collision: numbers against the control with the noise floor | `tab_22_dipole_numbers.csv`, `tab_22_dipole_numbers.tex` | final |
 
 ## 2. Concentric cylinders (items 01 to 04) [run]
 
@@ -202,11 +205,33 @@ Contours D = 1 %, 5 %, 20 % in the plane of N = sqrt(K / (2 + K)) and m = g / (2
 
 Noise floors shaded in the figure: 1.1e-05 (torque, g = 200 dx) and 3.6e-04 (change of the load, measured at g = 100 dx). The load reaches a given D at three to four times the m at which the torque does.
 
-## 9. To be careful with in the text
+## 9. The dipole-wall collision (items 20 to 22) [run]
+
+Normal collision of a dipole with a no-slip wall (Clercx & Bruneau 2006), box [-W, W]^2, Re = 625 on nu_inf, dx = W / 1000 (4 million fluid particles, h = 5 dx); the Newtonian control (viscosity mu_inf) and the micropolar fluid with K = 3, l = W / 100 and W / 50, w = 0 on every wall, w = omega / 2 at t = 0.
+
+- **The control validates** against the benchmark: enstrophy peaks 918.8 at t = 0.3724 and 301.2 at 0.6492 (spectral 933.6 at 0.3711 and 305.2 at 0.6479: -1.6 % and -1.3 %); the primary core within 0.0054 W of the benchmark at t = 0.6, 0.625, 1.0; E and Omega at t = 0.25, 0.5, 0.75 within 1 %. The first peak converges from below (-9.4, -3.7, -1.6 % at n = 250, 500, 1000); halving the Mach number moves it by 0.01 %.
+
+| against the control | l = W / 100 | l = W / 50 | noise floor |
+|---|---|---|---|
+| first enstrophy peak | -13.5 % | -15.7 % | 0.04 % |
+| enstrophy at the control's second peak | -5.2 % | -11.1 % | 0.08 % |
+| kinetic energy at t = 0.75 | -2.2 % | -3.8 % | 0.10 % |
+| wall vorticity at the first collision | -26.1 % | -25.7 % | 0.44 % |
+| wall shear traction (mu + kappa) omega_w | +18.2 % | +18.9 % | 0.44 % |
+| vorticity flux into the fluid at the wall | -52.5 % | -37.5 % | 1.13 % |
+| pressure difference along the wall | +1.4 % | -0.4 % | 3.89 % |
+| rebound of the primary core (W) | -0.0064 | -0.0090 | 0.0013 |
+
+- **Outside the first-order rule.** The shear length of the wall at the first collision is Lambda = 0.0053 W, so delta* / Lambda = 0.71 and 1.42 (Lambda / l = 0.53 and 0.26); the measured excess of the wall traction is +18 to +23 %, nearly independent of l: it saturates once the layer is thicker than the boundary layer. [inferred] Pinned at w = 0 across the boundary layer, the fluid has the viscosity mu + kappa there: sqrt((mu + kappa) / (mu + kappa / 2)) - 1 = 0.26 for a layer growing as sqrt(nu t).
+- **The mechanism.** The pressure along the wall is the same in all runs (set by the outer flow). At a no-spin wall dp/ds = (mu + kappa) d omega / dn - kappa d w / dn: with the measured d w / dn the balance closes to 1.056 and 1.088 of the control, the couple term taking 0.39 (l = W / 100) and 0.09 (W / 50) of the vorticity term. The no-spin wall passes part of the vorticity it would produce to the micro-rotation, and less vorticity leaves the wall; the secondary vortex is weaker and **neither micropolar run has a second enstrophy maximum** (the control has one at t = 0.649) ([inferred] the second because of the first).
+- **Figures:** item 20 (vorticity of the three runs at t = 0.35, 0.45, 0.6, 0.7, and w - omega / 2 of l = W / 50), item 21 (core trajectories, enstrophy with the benchmark points), table 22.
+
+## 10. To be careful with in the text
 
 - **The film function** is that of micropolar lubrication theory; ours is that the runs reproduce it at a clearance ratio of 0.25. Its match with the published form has not been checked against the original.
 - **The cavity is not 'between two Newtonian fluids'**, and the pack no longer says so; its check is the finite-difference solution, which in turn agrees with the reference of Marchi et al. at Reynolds number 400 (your transcription from the appendix of paper 1, `reference/marchi_re400.csv`, 28 + 28 points) to 3.0e-05 (u) and 1.9e-05 (v) U rms once extrapolated to zero spacing.
 - **3-D torque change:** three readings, 0.185 to 0.197 at g = 40 dx; there is no exact 3-D value. Say which reading is quoted.
+- **The dipole collision** uses omega_e = 299.528 (E(0) = 2), not the 'about 320' of the paper's text; the palinstrophy of the runs is dominated by grid-scale particle noise and is not a validation number; the wall vorticity flux is read from the grid with a bias common to all runs (only its ratios are quoted).
 - **The slip-form rule in 3-D** is good for the mid-plane and a quarter too large for the torque of this short rotor (one run, one reading of the rule at the rims). Do not quote the 2-D accuracy of the rule for the 3-D torque.
 - **The cylinder cases carry `numerics.delta_fluid_only: true`** (the key), the cavity cases the default walls. With the key the level of the pressure wanders (recorded for every run; no reading follows it).
 - **Kinetic energy of the cavity** is quoted over the fluid mass (the particle masses sum to 1.134 rho0 L^2 at n = 500).

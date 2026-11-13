@@ -1,0 +1,17 @@
+{
+ "item": "22",
+ "title": "Dipole-wall collision: numbers against the control with the noise floor",
+ "status": "final",
+ "caption": "The dipole-wall collision at Re = 625 on nu_inf (dx = W / 1000): numbers of the Newtonian control and the change of each micropolar run (K = 3, w = 0 on every wall) against it; times and distances as absolute differences (units W / U and W), the rest relative. Noise floor: the same numbers of the control with the dipole moved by half a spacing along x (lattice shifted against the flow; the dipole is then dx / 2 nearer the wall) and of the control at half the Mach number. A micropolar change below the floor is not established. Wall vorticity and its flux on x = W at the time of the control's first enstrophy peak (vorticity from a fit of the tangential velocity of the particles within 4 dx of the wall; flux from the grid of one spacing; the absolute flux reads about 1.4 times the pressure difference along the wall in every run, a bias of the reading common to all). Traction and momentum balance in kinematic units (over rho); w = 0 on the wall, so the traction of the micropolar fluid is (mu + kappa) omega_w and the tangential momentum balance at the wall reads dp/ds = (mu + kappa) d omega / dn - kappa d w / dn (dw/dn from the same particle fit). Lambda = U_ref / |omega_w| of the control, U_ref the largest tangential speed at 0.03 W from the wall; delta* = kappa l / (2 (mu + kappa)) = 0.375 l.",
+ "files": [
+  "tab_22_dipole_numbers.csv",
+  "tab_22_dipole_numbers.tex"
+ ],
+ "sources": [
+  "data/micropolar/stage8/dipole.json"
+ ],
+ "numbers": {
+  "rows": 17
+ },
+ "tag": "thesis-ch5-rc2 solver trees (runs on branch v10-showcase)"
+}

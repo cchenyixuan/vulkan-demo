@@ -224,11 +224,18 @@ def summary(entry: dict) -> dict:
             index = np.flatnonzero(first_window)[np.argmin(distance[first_window])]
             result["closest_approach"] = [float(primary["time"][index]), float(distance[index]),
                                           float(primary["y"][index])]
-            later = np.flatnonzero((primary["time"] > primary["time"][index]) & (primary["time"] <= second[0]))
-            if later.size:
-                rebound = later[np.argmax(distance[later])]
-                result["rebound"] = [float(primary["time"][rebound]), float(distance[rebound]),
-                                     float(primary["y"][rebound])]
+            # the second approach: the closest point in 0.55 <= t <= 0.85; the rebound: the largest distance
+            # between the two approaches (a micropolar run need not have a second enstrophy maximum)
+            second_window = (primary["time"] >= 0.55) & (primary["time"] <= 0.85)
+            if second_window.any():
+                second_index = np.flatnonzero(second_window)[np.argmin(distance[second_window])]
+                result["second_approach"] = [float(primary["time"][second_index]), float(distance[second_index]),
+                                             float(primary["y"][second_index])]
+                later = np.arange(index + 1, second_index)
+                if later.size:
+                    rebound = later[np.argmax(distance[later])]
+                    result["rebound"] = [float(primary["time"][rebound]), float(distance[rebound]),
+                                         float(primary["y"][rebound])]
     result["tracks"] = {name: {key: (values.tolist() if isinstance(values, np.ndarray)
                                      else values if isinstance(values, str) else float(values))
                                for key, values in path.items()}
@@ -242,6 +249,16 @@ def summary(entry: dict) -> dict:
     for name in ("spin_departure", "max_speed", "density_mean"):
         if name in result["series"]:
             result["series"][name] = [None] + result["series"][name]
+    # the energy budget: -dE/dt over 2 nu_inf Omega (1 for the incompressible Newtonian fluid; the excess of the
+    # control is its numerical dissipation; a micropolar run adds kappa (omega - 2 w)^2 and xi |grad w|^2)
+    rate = -np.diff(samples["energy"]) / np.diff(times)
+    middle_enstrophy = 0.5 * (samples["enstrophy"][1:] + samples["enstrophy"][:-1])
+    middle_time = 0.5 * (times[1:] + times[:-1])
+    budget = rate / (2.0 * dipole.FAR_VISCOSITY * middle_enstrophy)
+    result["energy_budget"] = {label: float(np.mean(budget[(middle_time >= low) & (middle_time <= high)]))
+                               for label, (low, high) in (("0.05-0.30", (0.05, 0.30)), ("0.30-0.45", (0.30, 0.45)),
+                                                          ("0.45-1.00", (0.45, 1.00)))}
+    result["max_speed_peak"] = float(samples["max_speed"].max())
     result["wall"] = wall_at(samples, spacing, first[0])
     if "spin_departure" in samples:
         result["spin_departure_peak"] = list(peak(times, samples["spin_departure"], (0.0, dipole.END_TIME)))
@@ -284,7 +301,12 @@ def wall_at(samples: dict, spacing: float, time: float) -> dict:
     edge_row = band.shape[0] - 1 - int(round(EDGE_DISTANCE / spacing - 0.5))
     edge_velocity = np.abs(tangential[edge_row, :])
     pressure = samples["wall_pressure"][index]
-    return {"time": float(samples["time"][index]),
+    extra = {}
+    if "wall_fit_spin_gradient" in samples:
+        # dw/ds at the wall (particle fit, s = W - x) integrated over the upper half: the couple term of the
+        # tangential momentum balance at the wall, dp/dy = (mu + kappa) d omega / dx - kappa d w / dx
+        extra["spin_flux_integral_upper"] = float(np.nansum(samples["wall_fit_spin_gradient"][index][upper]) * width)
+    return {**extra, "time": float(samples["time"][index]),
             "vorticity_peak": float(wall_vorticity[peak_index]), "vorticity_peak_y": float(fit_y[peak_index]),
             "vorticity_integral_upper": float(np.nansum(wall_vorticity[upper]) * width),
             "grid_vorticity_peak": float(samples["wall_vorticity"][index][node_upper][
@@ -305,14 +327,21 @@ def compare(run: dict, base: dict) -> dict:
         out[f"enstrophy_peak_{label}_time"] = run["enstrophy_peaks"][index][0] - base["enstrophy_peaks"][index][0]
         out[f"enstrophy_peak_{label}_value"] = relative(run["enstrophy_peaks"][index][1],
                                                         base["enstrophy_peaks"][index][1])
-    for key in ("closest_approach", "rebound"):
+    # the enstrophy at the times of the base's two peaks (a run without a second maximum has a value there)
+    for label in ("first", "second"):
+        key = f"enstrophy_at_base_{label}_peak"
+        if key in run and key in base:
+            out[key] = relative(run[key], base[key])
+    for key in ("closest_approach", "rebound", "second_approach"):
         if key in run and key in base:
             out[f"{key}_time"] = run[key][0] - base[key][0]
             out[f"{key}_distance"] = run[key][1] - base[key][1]
             out[f"{key}_distance_relative"] = relative(run[key][1], base[key][1])
+    # the wall at the time of the base's first enstrophy peak (wall_common, set by command_analyse)
+    wall, base_wall = run.get("wall_common", run["wall"]), base.get("wall_common", base["wall"])
     for key in ("vorticity_peak", "vorticity_integral_upper", "flux_integral_upper", "flux_peak",
                 "pressure_difference_along_wall"):
-        out[f"wall_{key}"] = relative(run["wall"][key], base["wall"][key])
+        out[f"wall_{key}"] = relative(wall[key], base_wall[key])
     for time in ("0.25", "0.50", "0.75"):
         if time in run["global"] and time in base["global"]:
             out[f"energy_{time}"] = relative(run["global"][time][0], base["global"][time][0])
@@ -327,11 +356,22 @@ def command_analyse(arguments) -> int:
         lines.append(text)
         print(text, flush=True)
 
-    results = {}
+    results, entries = {}, {}
     for run in dipole.RUNS:
         entry = load(run, partial=arguments.partial)
         if entry is not None:
+            entries[run] = entry
             results[run] = summary(entry)
+    if CONTROL in results:
+        # every run read at the control's peak times: the wall at its first peak, the enstrophy at both
+        first_time, second_time = (results[CONTROL]["enstrophy_peaks"][index][0] for index in (0, 1))
+        for run, entry in entries.items():
+            samples = entry["samples"]
+            results[run]["wall_common"] = wall_at(samples, entry["record"]["dipole"]["spacing"], first_time)
+            for label, time in (("first", first_time), ("second", second_time)):
+                if samples["time"][-1] >= time:
+                    results[run][f"enstrophy_at_base_{label}_peak"] = value_at(samples["time"], samples["enstrophy"],
+                                                                               time)
     benchmark = dipole.BENCHMARK
     say("Stage 8: normal dipole-wall collision (Clercx & Bruneau 2006), Re = 625 on nu_inf")
     say()
@@ -424,6 +464,43 @@ def command_analyse(arguments) -> int:
             say(f"  {run}: l = {values['micropolar_length']:g}, delta* = {values['displacement']:.5f}, delta* / Lambda = "
                 f"{values['displacement_over_shear_length']:.3f}, Lambda / l = {values['shear_length_over_length']:.3f}")
         results["_shear_length"] = {"value": shear_length, "wall": wall, "rules": rules}
+        # the wall shear traction (mu + kappa) omega_w (w = 0 on the wall) over mu_inf omega_w of the control, and
+        # the tangential momentum balance at the wall: (mu + kappa) d omega / dn - kappa d w / dn against
+        # mu_inf d omega / dn of the control (both kinematic, over rho)
+        base_wall = base["wall_common"]
+        for run, values in floors.items():
+            # a control has the viscosity of the control: traction and balance change as the vorticity and its flux
+            values["wall_traction_peak"] = values.get("wall_vorticity_peak")
+            values["wall_traction_integral"] = values.get("wall_vorticity_integral_upper")
+            values["wall_momentum_balance"] = values.get("wall_flux_integral_upper")
+        say()
+        say("the wall x = W at the control's first enstrophy peak: shear traction and momentum balance")
+        for run in MICROPOLAR:
+            if run not in results:
+                continue
+            design = json.loads((_REPO_ROOT / f"cases/dipole/{run}/dipole.json").read_text(encoding="utf-8"))["design"]
+            wall_run = results[run]["wall_common"]
+            traction = (design["viscosity"] * wall_run["vorticity_peak"]) / (dipole.FAR_VISCOSITY * base_wall["vorticity_peak"])
+            traction_integral = ((design["viscosity"] * wall_run["vorticity_integral_upper"])
+                                 / (dipole.FAR_VISCOSITY * base_wall["vorticity_integral_upper"]))
+            vorticity_term = design["viscosity"] * wall_run["flux_integral_upper"]
+            spin_term = design["coupling"] * wall_run.get("spin_flux_integral_upper", float("nan"))
+            control_term = dipole.FAR_VISCOSITY * base_wall["flux_integral_upper"]
+            balance = {"traction_peak_change": traction - 1.0, "traction_integral_change": traction_integral - 1.0,
+                       "vorticity_term": vorticity_term, "spin_term": spin_term, "control_term": control_term,
+                       "balance_over_control": (vorticity_term - spin_term) / control_term,
+                       "spin_term_share": -spin_term / vorticity_term,
+                       "pressure_difference_over_control": wall_run["pressure_difference_along_wall"]
+                       / base_wall["pressure_difference_along_wall"]}
+            results[run]["wall_balance"] = balance
+            comparisons[run]["wall_traction_peak"] = balance["traction_peak_change"]
+            comparisons[run]["wall_traction_integral"] = balance["traction_integral_change"]
+            comparisons[run]["wall_momentum_balance"] = balance["balance_over_control"] - 1.0
+            say(f"  {run}: (mu + kappa) omega_w over mu_inf omega_w of the control {traction:.4f} (peak), "
+                f"{traction_integral:.4f} (integral); (mu + kappa) d omega/dn = {vorticity_term:.3f}, kappa dw/dn = "
+                f"{spin_term:.3f}, their difference over mu_inf d omega/dn of the control {balance['balance_over_control']:.4f} "
+                f"(the pressure difference along the wall {balance['pressure_difference_over_control']:.4f}); the couple "
+                f"term is {balance['spin_term_share']:.3f} of the vorticity term")
     out_dir = _REPO_ROOT / dipole.DATA_DIRECTORY
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "dipole.txt").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")

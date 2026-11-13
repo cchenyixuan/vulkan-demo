@@ -55,10 +55,13 @@ def main() -> int:
 
     say("# Chapter 5: what the solver has shown")
     say()
-    say(f"Written {time.strftime('%Y-%m-%d %H:%M')} at commit `{head}` (branch `v9-micropolar`; solver tag "
+    branch = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=ROOT, capture_output=True,
+                            text=True).stdout.strip()
+    say(f"Written {time.strftime('%Y-%m-%d %H:%M')} at commit `{head}` (branch `{branch}`; solver tag "
         "`thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number "
         "below is read from the data files by `report.py`; the captions with all parameters and run names are in "
-        "`captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6) and 16 (Stage 7).")
+        "`captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6), 16 (Stage 7) and 17 "
+        "(Stage 8, the dipole-wall collision).")
     say()
     say("**State.** " + ("Every run of the chapter is done." if pair_done else
                          "Every item is final except the one row at g = 400 dx (m = 20, K = 3, l = 10 dx): its "
@@ -361,7 +364,79 @@ def main() -> int:
             f"both on the 5090 (2,000 steps at g = 20 dx) show {one[2]:.1e} and {one[3]:.1e} within one support of "
             f"the cut, the value of the interior; on 5090 + XTX {two[2]:.1e} and {two[3]:.1e} "
             "(`rotor3d_cut_check_one_card.txt`, `rotor3d_cut_check_two_cards.txt`).")
-    say("## 9. To be careful with in the text")
+    # ---- the dipole-wall collision (Stage 8) ---------------------------------------------------------------------
+    dipole_file = ROOT / "data/micropolar/stage8/dipole.json"
+    if dipole_file.exists():
+        dipole = load(dipole_file)
+        runs, comparisons = dipole["runs"], dipole["comparisons"]
+        control = runs.get("control_n1000")
+        validation = {entry["quantity"]: entry for entry in dipole["validation"].get("control_n1000", [])}
+        say("## 9. The dipole-wall collision (items 20 to 22) [run]")
+        say()
+        say("Normal collision of a dipole with a no-slip wall (Clercx & Bruneau 2006), box [-W, W]^2, Re = 625 on "
+            "nu_inf, dx = W / 1000 (4 million fluid particles, h = 5 dx); the Newtonian control (viscosity mu_inf) and "
+            "the micropolar fluid with K = 3, l = W / 100 and W / 50, w = 0 on every wall, w = omega / 2 at t = 0.")
+        say()
+        if control and validation:
+            say(f"- **The control validates** against the benchmark: enstrophy peaks {control['enstrophy_peaks'][0][1]:.1f} "
+                f"at t = {control['enstrophy_peaks'][0][0]:.4f} and {control['enstrophy_peaks'][1][1]:.1f} at "
+                f"{control['enstrophy_peaks'][1][0]:.4f} (spectral 933.6 at 0.3711 and 305.2 at 0.6479: "
+                f"{100.0 * validation['first enstrophy peak']['difference']:+.1f} % and "
+                f"{100.0 * validation['second enstrophy peak']['difference']:+.1f} %); the primary core within "
+                + f"{max(abs(entry['difference']) for key, entry in validation.items() if key.startswith('primary core x') or key.startswith('primary core y')):.4f}"
+                + " W of the benchmark at t = 0.6, 0.625, 1.0; E and Omega at t = 0.25, 0.5, 0.75 within 1 %. The "
+                "first peak converges from below (-9.4, -3.7, -1.6 % at n = 250, 500, 1000); halving the Mach number "
+                "moves it by 0.01 %.")
+        rows = []
+        for key, label, kind in (("enstrophy_peak_first_value", "first enstrophy peak", "relative"),
+                                 ("enstrophy_at_base_second_peak", "enstrophy at the control's second peak",
+                                  "relative"),
+                                 ("energy_0.75", "kinetic energy at t = 0.75", "relative"),
+                                 ("wall_vorticity_peak", "wall vorticity at the first collision", "relative"),
+                                 ("wall_traction_peak", "wall shear traction (mu + kappa) omega_w", "relative"),
+                                 ("wall_flux_integral_upper", "vorticity flux into the fluid at the wall", "relative"),
+                                 ("wall_pressure_difference_along_wall", "pressure difference along the wall",
+                                  "relative"),
+                                 ("rebound_distance", "rebound of the primary core (W)", "absolute")):
+            cells = [label]
+            for run in ("mp_l100_n1000", "mp_l50_n1000"):
+                value = comparisons.get(run, {}).get(key)
+                cells.append("-" if value is None or value != value else
+                             (f"{value:+.4f}" if kind == "absolute" else f"{100.0 * value:+.1f} %"))
+            floors = [dipole["floors"][name].get(key) for name in dipole["floors"]]
+            floors = [abs(value) for value in floors if value is not None and value == value]
+            cells.append("-" if not floors else (f"{max(floors):.4f}" if kind == "absolute"
+                                                 else f"{100.0 * max(floors):.2f} %"))
+            rows.append(cells)
+        say()
+        say(table(["against the control", "l = W / 100", "l = W / 50", "noise floor"], rows))
+        say()
+        shear = runs.get("_shear_length")
+        if shear:
+            say(f"- **Outside the first-order rule.** The shear length of the wall at the first collision is "
+                f"Lambda = {shear['value']:.4f} W, so delta* / Lambda = "
+                f"{shear['rules']['mp_l100_n1000']['displacement_over_shear_length']:.2f} and "
+                f"{shear['rules']['mp_l50_n1000']['displacement_over_shear_length']:.2f} (Lambda / l = "
+                f"{shear['rules']['mp_l100_n1000']['shear_length_over_length']:.2f} and "
+                f"{shear['rules']['mp_l50_n1000']['shear_length_over_length']:.2f}); the measured excess of the wall "
+                "traction is +18 to +23 %, nearly independent of l: it saturates once the layer is thicker than the "
+                "boundary layer. [inferred] Pinned at w = 0 across the boundary layer, the fluid has the viscosity "
+                "mu + kappa there: sqrt((mu + kappa) / (mu + kappa / 2)) - 1 = 0.26 for a layer growing as sqrt(nu t).")
+        if all(run in runs and "wall_balance" in runs[run] for run in ("mp_l100_n1000", "mp_l50_n1000")):
+            short, long = runs["mp_l100_n1000"]["wall_balance"], runs["mp_l50_n1000"]["wall_balance"]
+            say("- **The mechanism.** The pressure along the wall is the same in all runs (set by the outer flow). At "
+                "a no-spin wall dp/ds = (mu + kappa) d omega / dn - kappa d w / dn: with the measured d w / dn the "
+                f"balance closes to {short['balance_over_control']:.3f} and {long['balance_over_control']:.3f} of the "
+                f"control, the couple term taking {short['spin_term_share']:.2f} (l = W / 100) and "
+                f"{long['spin_term_share']:.2f} (W / 50) of the vorticity term. The no-spin wall passes part of the "
+                "vorticity it would produce to the micro-rotation, and less vorticity leaves the wall; the secondary "
+                "vortex is weaker and **neither micropolar run has a second enstrophy maximum** (the control has one "
+                "at t = 0.649) ([inferred] the second because of the first).")
+        say("- **Figures:** item 20 (vorticity of the three runs at t = 0.35, 0.45, 0.6, 0.7, and w - omega / 2 of "
+            "l = W / 50), item 21 (core trajectories, enstrophy with the benchmark points), table 22.")
+        say()
+
+    say("## 10. To be careful with in the text")
     say()
     for line in (
             "**The film function** is that of micropolar lubrication theory; ours is that the runs reproduce it at a "
@@ -370,6 +445,9 @@ def main() -> int:
             "finite-difference solution" + marchi_sentence + ".",
             "**3-D torque change:** three readings, 0.185 to 0.197 at g = 40 dx; there is no exact 3-D value. Say "
             "which reading is quoted.",
+            "**The dipole collision** uses omega_e = 299.528 (E(0) = 2), not the 'about 320' of the paper's text; the "
+            "palinstrophy of the runs is dominated by grid-scale particle noise and is not a validation number; the "
+            "wall vorticity flux is read from the grid with a bias common to all runs (only its ratios are quoted).",
             "**The slip-form rule in 3-D** is good for the mid-plane and a quarter too large for the torque of this "
             "short rotor (one run, one reading of the rule at the rims). Do not quote the 2-D accuracy of the rule "
             "for the 3-D torque.",

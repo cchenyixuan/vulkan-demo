@@ -5,6 +5,10 @@ control_n250                  0.0040  1.000  2.00000   796.63  0.3791   845.63  
 control_n500                  0.0020  1.000  2.00000   799.16  0.3747   899.42  0.6525   295.94   1.577    0
 control_n500_zero_pressure    0.0020  1.000  2.00000   799.16  0.3744   899.69  0.6519   296.42   1.579    0
 control_n1000                 0.0010  1.000  2.00000   799.79  0.3724   918.77  0.6492   301.20   1.020    0
+control_n1000_half_mach       0.0010  1.000  2.00000   799.79  0.3732   918.82  0.6485   301.37   1.204    0
+control_n1000_shifted         0.0010  1.000  2.00000   799.79  0.3720   919.10  0.6482   301.45   1.019    0
+mp_l50_n1000                  0.0010  1.000  2.00000   799.79  0.3715   774.71     nan      nan   0.931    0
+mp_l100_n1000                 0.0010  1.000  2.00000   799.79  0.3715   794.81     nan      nan   0.926    0
 
 control_n250 against the benchmark (SM: spectral, FD: finite differences; difference relative to SM, absolute for times and positions)
   quantity                                              SM          FD         run  difference
@@ -90,6 +94,103 @@ control_n1000 against the benchmark (SM: spectral, FD: finite differences; diffe
   primary core y at t = 1 (FD)                       0.254       0.254     0.25316     -0.0008
   primary core omega_max at t = 1 (FD)               102.6         nan      102.74     +0.0013
 
+control_n1000_shifted against the benchmark (SM: spectral, FD: finite differences; difference relative to SM, absolute for times and positions)
+  quantity                                              SM          FD         run  difference
+  time of the first enstrophy peak                  0.3711       0.371     0.37205     +0.0009
+  first enstrophy peak                               933.6       932.8       919.1     -0.0155
+  time of the first palinstrophy peak               0.3624       0.363     0.36322     +0.0008
+  first palinstrophy peak                        1.386e+07   1.296e+07  1.4864e+07     +0.0724
+  time of the second enstrophy peak                 0.6479       0.647      0.6482     +0.0003
+  second enstrophy peak                              305.2       305.2      301.45     -0.0123
+  time of the second palinstrophy peak              0.6521       0.653     0.65434     +0.0022
+  second palinstrophy peak                       6.777e+05   6.561e+05  7.5877e+05     +0.1196
+  E(0.25)                                           1.5022       1.502      1.4988     -0.0023
+  Omega(0.25)                                        472.6       472.7      471.66     -0.0020
+  P(0.25)                                         3.99e+05    3.91e+05  5.7297e+05     +0.4360
+  E(0.5)                                             1.013       1.013      1.0071     -0.0059
+  Omega(0.5)                                         380.6       380.4       379.5     -0.0029
+  P(0.5)                                          5.53e+05    5.49e+05  6.6618e+05     +0.2047
+  E(0.75)                                           0.7673       0.767     0.76243     -0.0063
+  Omega(0.75)                                        255.2         255      252.53     -0.0105
+  P(0.75)                                         4.87e+05    4.73e+05  5.4005e+05     +0.1089
+  primary core x at t = 0.6 (SM)                     0.818         nan     0.81022     -0.0078
+  primary core y at t = 0.6 (SM)                     0.165         nan     0.17157     +0.0066
+  primary core omega_max at t = 0.6 (SM)             158.9         nan      162.02     +0.0197
+  primary core x at t = 1 (SM)                       0.805         nan     0.80534     +0.0003
+  primary core y at t = 1 (SM)                       0.254         nan     0.25427     +0.0003
+  primary core omega_max at t = 1 (SM)               102.6         nan      102.31     -0.0028
+  primary core x at t = 0.625 (FD)                   0.832       0.832     0.82365     -0.0084
+  primary core y at t = 0.625 (FD)                   0.166       0.166     0.16837     +0.0024
+  primary core omega_max at t = 0.625 (FD)           154.2         nan      156.26     +0.0134
+  primary core x at t = 1 (FD)                       0.805       0.805     0.80534     +0.0003
+  primary core y at t = 1 (FD)                       0.254       0.254     0.25427     +0.0003
+  primary core omega_max at t = 1 (FD)               102.6         nan      102.31     -0.0028
+
+control_n1000_half_mach against the benchmark (SM: spectral, FD: finite differences; difference relative to SM, absolute for times and positions)
+  quantity                                              SM          FD         run  difference
+  time of the first enstrophy peak                  0.3711       0.371     0.37322     +0.0021
+  first enstrophy peak                               933.6       932.8      918.82     -0.0158
+  time of the first palinstrophy peak               0.3624       0.363     0.36484     +0.0024
+  first palinstrophy peak                        1.386e+07   1.296e+07  1.4864e+07     +0.0725
+  time of the second enstrophy peak                 0.6479       0.647     0.64852     +0.0006
+  second enstrophy peak                              305.2       305.2      301.37     -0.0125
+  time of the second palinstrophy peak              0.6521       0.653     0.65092     -0.0012
+  second palinstrophy peak                       6.777e+05   6.561e+05  7.7657e+05     +0.1459
+  E(0.25)                                           1.5022       1.502      1.4986     -0.0024
+  Omega(0.25)                                        472.6       472.7      471.77     -0.0018
+  P(0.25)                                         3.99e+05    3.91e+05  6.5879e+05     +0.6511
+  E(0.5)                                             1.013       1.013      1.0082     -0.0047
+  Omega(0.5)                                         380.6       380.4      381.14     +0.0014
+  P(0.5)                                          5.53e+05    5.49e+05  7.1278e+05     +0.2889
+  E(0.75)                                           0.7673       0.767     0.76329     -0.0052
+  Omega(0.75)                                        255.2         255       252.4     -0.0110
+  P(0.75)                                         4.87e+05    4.73e+05  5.5655e+05     +0.1428
+  primary core x at t = 0.6 (SM)                     0.818         nan     0.81013     -0.0079
+  primary core y at t = 0.6 (SM)                     0.165         nan     0.17131     +0.0063
+  primary core omega_max at t = 0.6 (SM)             158.9         nan      161.85     +0.0185
+  primary core x at t = 1 (SM)                       0.805         nan     0.79974     -0.0053
+  primary core y at t = 1 (SM)                       0.254         nan     0.25317     -0.0008
+  primary core omega_max at t = 1 (SM)               102.6         nan      102.79     +0.0019
+  primary core x at t = 0.625 (FD)                   0.832       0.832     0.82389     -0.0081
+  primary core y at t = 0.625 (FD)                   0.166       0.166     0.16508     -0.0009
+  primary core omega_max at t = 0.625 (FD)           154.2         nan       156.1     +0.0123
+  primary core x at t = 1 (FD)                       0.805       0.805     0.79974     -0.0053
+  primary core y at t = 1 (FD)                       0.254       0.254     0.25317     -0.0008
+  primary core omega_max at t = 1 (FD)               102.6         nan      102.79     +0.0019
+
+against the control control_n1000 (relative changes; absolute for times and distances)
+  quantity                                     control_n1000_shifted   control_n1000_half_mach             mp_l100_n1000              mp_l50_n1000
+  closest_approach_distance                                  -0.0009                   -0.0026                   +0.0040                   +0.0016
+  closest_approach_distance_relative                         -0.0091                   -0.0272                   +0.0422                   +0.0165
+  closest_approach_time                                      +0.0000                   -0.0050                   +0.0000                   -0.0025
+  energy_0.25                                                -0.0000                   -0.0001                   -0.0018                   -0.0044
+  energy_0.50                                                -0.0001                   +0.0010                   -0.0183                   -0.0352
+  energy_0.75                                                -0.0001                   +0.0010                   -0.0222                   -0.0377
+  enstrophy_0.25                                             +0.0001                   +0.0004                   -0.0082                   -0.0142
+  enstrophy_0.50                                             -0.0007                   +0.0036                   -0.0468                   -0.0853
+  enstrophy_0.75                                             -0.0008                   -0.0013                   -0.0912                   -0.1747
+  enstrophy_at_base_first_peak                               +0.0003                   -0.0001                   -0.1350                   -0.1569
+  enstrophy_at_base_second_peak                              +0.0008                   +0.0006                   -0.0516                   -0.1112
+  enstrophy_peak_first_time                                  -0.0003                   +0.0008                   -0.0009                   -0.0009
+  enstrophy_peak_first_value                                 +0.0004                   +0.0001                   -0.1349                   -0.1568
+  enstrophy_peak_second_time                                 -0.0010                   -0.0006                      +nan                      +nan
+  enstrophy_peak_second_value                                +0.0009                   +0.0006                      +nan                      +nan
+  rebound_distance                                           -0.0011                   -0.0013                   -0.0064                   -0.0090
+  rebound_distance_relative                                  -0.0054                   -0.0063                   -0.0306                   -0.0433
+  rebound_time                                               -0.0100                   +0.0100                   -0.0100                   -0.0200
+  second_approach_distance                                   -0.0066                   +0.0013                   +0.0044                   +0.0099
+  second_approach_distance_relative                          -0.0481                   +0.0092                   +0.0318                   +0.0720
+  second_approach_time                                       -0.0400                   -0.0375                   -0.0500                   -0.0275
+  wall_flux_integral_upper                                   -0.0025                   +0.0113                   -0.5246                   -0.3752
+  wall_flux_peak                                             +0.0673                   +0.0286                   -0.3881                   -0.2525
+  wall_pressure_difference_along_wall                        -0.0022                   +0.0389                   +0.0144                   -0.0041
+  wall_vorticity_integral_upper                              -0.0043                   +0.0046                   -0.2663                   -0.2300
+  wall_vorticity_peak                                        -0.0040                   +0.0044                   -0.2612                   -0.2567
+
 shear length of the wall x = W at the first collision (control, t = 0.3725): reference velocity 6.867 m/s (largest |v| at 0.03 m from the wall, y = 0.135), wall vorticity -1304.7 1/s at y = 0.085: Lambda = 0.00526 m
   mp_l100_n1000: l = 0.01, delta* = 0.00375, delta* / Lambda = 0.712, Lambda / l = 0.526
   mp_l50_n1000: l = 0.02, delta* = 0.00750, delta* / Lambda = 1.425, Lambda / l = 0.263
+
+the wall x = W at the control's first enstrophy peak: shear traction and momentum balance
+  mp_l100_n1000: (mu + kappa) omega_w over mu_inf omega_w of the control 1.1820 (peak), 1.1739 (integral); (mu + kappa) d omega/dn = 15.249, kappa dw/dn = -5.928, their difference over mu_inf d omega/dn of the control 1.0563 (the pressure difference along the wall 1.0144); the couple term is 0.389 of the vorticity term
+  mp_l50_n1000: (mu + kappa) omega_w over mu_inf omega_w of the control 1.1892 (peak), 1.2321 (integral); (mu + kappa) d omega/dn = 20.044, kappa dw/dn = -1.774, their difference over mu_inf d omega/dn of the control 1.0882 (the pressure difference along the wall 0.9959); the couple term is 0.088 of the vorticity term
