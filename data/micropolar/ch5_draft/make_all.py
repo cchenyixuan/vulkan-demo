@@ -39,6 +39,10 @@ ITEMS = [
     ("15", "fig_15_three_dimensional", "3-D: fields in a plane through the axis and the mid-plane profiles"),
     ("16", "fig_16_effect_map", "The map of the effect: contours of D in the plane (N, m) for the torque and the "
                                 "load"),
+    ("20", "fig_20_dipole_showcase", "Dipole-wall collision: vorticity of the control and of the two micropolar runs "
+                                     "at four times"),
+    ("21", "fig_21_dipole_tracks", "Dipole-wall collision: core trajectories and enstrophy against the benchmark"),
+    ("22", "tab_22_dipole_numbers", "Dipole-wall collision: numbers against the control with the noise floor"),
 ]
 
 

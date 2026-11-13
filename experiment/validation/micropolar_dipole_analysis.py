@@ -24,7 +24,8 @@ CONTROL = "control_n1000"
 FLOOR_RUNS = ("control_n1000_shifted", "control_n1000_half_mach")
 MICROPOLAR = ("mp_l100_n1000", "mp_l50_n1000")
 CONVERGENCE = ("control_n250", "control_n500", "control_n1000", "control_n2000")
-DETACHED = 0.015                       # a negative extremum this far from x = W counts as detached (secondary)
+DETACHED = 0.05                        # a negative extremum this far from x = W counts as detached (secondary)
+SECONDARY_START = 0.45                 # the wall layer of the first collision has rolled up by then (item 20)
 EDGE_DISTANCE = 0.03                   # where the reference velocity of the shear length is read (about 3 delta)
 
 
@@ -49,13 +50,16 @@ def load(run: str, partial: bool = False):
 
 
 def peak(times: np.ndarray, values: np.ndarray, window: tuple) -> tuple:
-    """Largest value inside the window, refined by the parabola through it and its two neighbours."""
+    """The largest local maximum inside the window (a sample above its left and not below its right neighbour; the
+    edges of the window do not count: the second peak sits on the flank of the first), refined by the parabola
+    through it and its two neighbours."""
     inside = np.flatnonzero((times >= window[0]) & (times <= window[1]))
-    if inside.size < 3:
+    inside = inside[(inside > 0) & (inside < times.size - 1)]
+    local = [index for index in inside if values[index] > values[index - 1] and values[index] >= values[index + 1]
+             and index != inside[0] and index != inside[-1]]
+    if not local:
         return float("nan"), float("nan")
-    index = inside[np.argmax(values[inside])]
-    if index == 0 or index == times.size - 1:
-        return float(times[index]), float(values[index])
+    index = max(local, key=lambda candidate: values[candidate])
     left, middle, right = values[index - 1:index + 2]
     step_left, step_right = times[index] - times[index - 1], times[index + 1] - times[index]
     if abs(step_left - step_right) > 1e-9 * step_left:
@@ -95,8 +99,85 @@ def track(times: np.ndarray, table: np.ndarray, start_time: float, start_choice,
         track_value.append(chosen[0])
         track_x.append(chosen[1])
         track_y.append(chosen[2])
-    return {"time": np.asarray(track_time), "x": np.asarray(track_x), "y": np.asarray(track_y),
+    path = {"time": np.asarray(track_time), "x": np.asarray(track_x), "y": np.asarray(track_y),
             "value": np.asarray(track_value)}
+    return smoothed(path)
+
+
+def smoothed(path: dict, half_width: float = 0.0125) -> dict:
+    """The extremum of a flat core hops between grid nodes (about 0.005 W): every quantity of the track is replaced
+    by a local quadratic fit in time over +-half_width (at least three samples); the raw values and the rms of the
+    residual of the positions stay in the track."""
+    times = path["time"]
+    if times.size < 3:
+        return {**path, "raw_x": path["x"], "raw_y": path["y"], "position_noise": float("nan")}
+    out = {"time": times, "raw_x": path["x"], "raw_y": path["y"], "raw_value": path["value"]}
+    for key in ("x", "y", "value"):
+        values = np.empty_like(path[key])
+        for index, time in enumerate(times):
+            chosen = np.flatnonzero(np.abs(times - time) <= half_width + 1e-9)
+            if chosen.size < 3:
+                order = np.argsort(np.abs(times - time))[:3]
+                chosen = np.sort(order)
+            offset = times[chosen] - time
+            degree = 2 if chosen.size >= 4 else 1
+            coefficients = np.polyfit(offset, path[key][chosen], degree)
+            values[index] = coefficients[-1]
+        out[key] = values
+    out["position_noise"] = float(np.sqrt(np.mean((out["x"] - path["x"]) ** 2 + (out["y"] - path["y"]) ** 2)))
+    return out
+
+
+def field_track(run: str, start_time: float, sign: float, start_region: tuple, wall_band: float = 0.02,
+                reach: float = 0.06) -> dict:
+    """A core followed through the vorticity fields saved every 0.025 (all runs have them): the field smoothed by a
+    Gaussian of two nodes, the upper half without the band next to x = W; at start_time the extremum of sign inside
+    start_region ((x0, x1), (y0, y1)), later the extremum within `reach` of the previous position, refined by a
+    parabola on each axis. (The extrema kept at every sample are the six strongest of the upper half, and from
+    the first collision on the wall layer fills them: a detached secondary of |omega| = 100 drops out.)"""
+    from scipy.ndimage import gaussian_filter
+    directory = _REPO_ROOT / dipole.RUNS_DIRECTORY / run / "fields"
+    paths = sorted(directory.glob("fields_*.npz"))
+    track_time, track_x, track_y, track_value = [], [], [], []
+    previous = None
+    axis = None
+    for path in paths:
+        with np.load(path) as archive:
+            time = float(archive["time"])
+            if time < start_time - 1e-9:
+                continue
+            field = sign * gaussian_filter(np.array(archive["vorticity"], dtype=np.float32), 2.0)
+        if axis is None:
+            axis = -dipole.HALF_WIDTH + (2.0 * dipole.HALF_WIDTH / field.shape[0]) * (np.arange(field.shape[0]) + 0.5)
+        x, y = np.meshgrid(axis, axis, indexing="ij")
+        allowed = (y > 0.0) & (x < dipole.HALF_WIDTH - wall_band)
+        if previous is None:
+            allowed &= ((x >= start_region[0][0]) & (x <= start_region[0][1]) & (y >= start_region[1][0])
+                        & (y <= start_region[1][1]))
+        else:
+            allowed &= np.hypot(x - previous[0], y - previous[1]) < reach
+        if not allowed.any():
+            break
+        masked = np.where(allowed, field, -np.inf)
+        column, row = np.unravel_index(np.argmax(masked), masked.shape)
+        position = []
+        for axis_index, index in ((0, column), (1, row)):
+            if 0 < index < field.shape[axis_index] - 1:
+                left = field[index - 1, row] if axis_index == 0 else field[column, index - 1]
+                right = field[index + 1, row] if axis_index == 0 else field[column, index + 1]
+                middle = field[column, row]
+                curvature = left - 2.0 * middle + right
+                shift = float(np.clip(0.5 * (left - right) / curvature, -0.5, 0.5)) if curvature < 0.0 else 0.0
+            else:
+                shift = 0.0
+            position.append(axis[index] + shift * (axis[1] - axis[0]))
+        previous = position
+        track_time.append(time)
+        track_x.append(position[0])
+        track_y.append(position[1])
+        track_value.append(sign * float(field[column, row]))
+    return {"time": np.asarray(track_time), "x": np.asarray(track_x), "y": np.asarray(track_y),
+            "value": np.asarray(track_value), "source": "fields every 0.025, Gaussian of two nodes"}
 
 
 def summary(entry: dict) -> dict:
@@ -110,8 +191,8 @@ def summary(entry: dict) -> dict:
     primary = track(times, samples["positive_extrema"], 0.0, lambda rows: rows[0])
     # the secondary vortex: the strongest negative extremum of the upper half detached from the wall after the
     # first collision
-    secondary = track(times, samples["negative_extrema"], first[0],
-                      lambda rows: next((row for row in rows if dipole.HALF_WIDTH - row[1] > DETACHED), None))
+    # the secondary from the saved fields (see field_track): at t = 0.45 the negative core above the primary
+    secondary = field_track(entry["run"], SECONDARY_START, -1.0, ((0.6, dipole.HALF_WIDTH - DETACHED), (0.2, 0.5)))
     lower = track(times, samples["lower_negative_extrema"], 0.0, lambda rows: rows[0])
     result = {
         "run": entry["run"], "partial": bool(record.get("partial")), "spacing": spacing,
@@ -148,8 +229,19 @@ def summary(entry: dict) -> dict:
                 rebound = later[np.argmax(distance[later])]
                 result["rebound"] = [float(primary["time"][rebound]), float(distance[rebound]),
                                      float(primary["y"][rebound])]
-    result["tracks"] = {name: {key: values.tolist() for key, values in path.items()}
+    result["tracks"] = {name: {key: (values.tolist() if isinstance(values, np.ndarray)
+                                     else values if isinstance(values, str) else float(values))
+                               for key, values in path.items()}
                         for name, path in (("primary", primary), ("secondary", secondary), ("lower", lower))}
+    result["series"] = {name: samples[name].tolist() for name in ("time", "energy", "enstrophy", "palinstrophy",
+                                                                  "spin_departure", "max_speed", "density_mean")
+                        if name in samples}
+    result["series"]["time"] = [0.0] + result["series"]["time"]
+    for name, key in (("energy", "energy"), ("enstrophy", "enstrophy"), ("palinstrophy", "palinstrophy")):
+        result["series"][name] = [initial.get(key)] + result["series"][name]
+    for name in ("spin_departure", "max_speed", "density_mean"):
+        if name in result["series"]:
+            result["series"][name] = [None] + result["series"][name]
     result["wall"] = wall_at(samples, spacing, first[0])
     if "spin_departure" in samples:
         result["spin_departure_peak"] = list(peak(times, samples["spin_departure"], (0.0, dipole.END_TIME)))
@@ -347,14 +439,47 @@ def command_analyse(arguments) -> int:
     return 0
 
 
+FIELD_WINDOW = ((0.4, 1.0), (0.0, 0.6))     # x, y of the cropped fields (the window of Fig. 7 of the paper)
+
+
+def command_fields(arguments) -> int:
+    """The vorticity (and w - omega / 2) of the runs at the times, cropped to FIELD_WINDOW, as float16 files of
+    data/micropolar/stage8/fields/ for the pack."""
+    out_dir = _REPO_ROOT / dipole.DATA_DIRECTORY / "fields"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for run in arguments.runs:
+        directory = _REPO_ROOT / dipole.RUNS_DIRECTORY / run
+        record = json.loads((directory / "run.json").read_text(encoding="utf-8"))
+        timestep, resolution = record["timestep"], record["dipole"]["resolution"]
+        grid = dipole.Grid(resolution)
+        columns = np.flatnonzero((grid.axis >= FIELD_WINDOW[0][0]) & (grid.axis <= FIELD_WINDOW[0][1]))
+        rows = np.flatnonzero((grid.axis >= FIELD_WINDOW[1][0]) & (grid.axis <= FIELD_WINDOW[1][1]))
+        for time in arguments.times:
+            step = int(round(time / timestep / 1000.0)) * 1000
+            source = directory / "fields" / f"fields_{step:08d}.npz"
+            with np.load(source) as archive:
+                arrays = {name: np.array(archive[name])[np.ix_(columns, rows)]
+                          for name in ("vorticity", "spin_departure") if name in archive.files}
+            target = out_dir / f"{run}_t{time:.3f}.npz"
+            np.savez_compressed(target, x=grid.axis[columns], y=grid.axis[rows], time=step * timestep, run=run,
+                                **arrays)
+            print(f"[dipole] {target.relative_to(_REPO_ROOT)}", flush=True)
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(dest="command", required=True)
     analyse = commands.add_parser("analyse")
     analyse.add_argument("--partial", action="store_true", help="include unfinished runs (samples_partial.npz)")
+    fields = commands.add_parser("fields")
+    fields.add_argument("--runs", nargs="+", required=True)
+    fields.add_argument("--times", type=float, nargs="+", required=True)
     arguments = parser.parse_args()
     if arguments.command == "analyse":
         return command_analyse(arguments)
+    if arguments.command == "fields":
+        return command_fields(arguments)
     return 1
 
 

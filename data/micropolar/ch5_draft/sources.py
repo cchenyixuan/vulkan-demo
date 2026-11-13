@@ -37,3 +37,9 @@ ECCENTRIC_FIELD_STAGE6 = {
     "fields": "data/micropolar/stage6/fields/e60_k3_m5", "status": "final", "tag": "thesis-ch5-rc2",
     "note": "Stage 6 run on thesis-ch5-rc2 (numerics.delta_fluid_only: true)"}
 ECCENTRIC_FIELD = ECCENTRIC_FIELD_STAGE6
+
+# the dipole-wall collision of Stage 8 (micropolar_dipole_analysis.py analyse / fields)
+DIPOLE = {
+    "analysis": "data/micropolar/stage8/dipole.json", "fields": "data/micropolar/stage8/fields",
+    "status": "final", "tag": "thesis-ch5-rc2 solver trees (runs on branch v10-showcase)",
+    "note": "Stage 8 runs: the solver directories identical to thesis-ch5-rc2"}
