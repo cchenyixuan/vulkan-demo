@@ -1,0 +1,9 @@
+{
+ "resolution": 500,
+ "spacing": 0.002,
+ "wall_layers": 11,
+ "counts": {
+  "fluid": 1000000,
+  "wall": 44484
+ }
+}
