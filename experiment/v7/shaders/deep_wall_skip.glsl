@@ -134,7 +134,7 @@ void deep_wall_check(uint self_particle_id, vec3 self_position, ivec3 self_voxel
         for (int delta_z = -neighbor_z_range; delta_z <= neighbor_z_range; delta_z++) {
             for (int delta_y = -1; delta_y <= 1; delta_y++) {
                 ivec3 neighbor_coord = self_voxel_coord + ivec3(delta_x, delta_y, delta_z);
-                if (!in_own_grid(neighbor_coord)) continue;
+                if (!wrap_neighbor_coord(neighbor_coord)) continue;   // Stage 8b: periodic wrap
 
                 uint neighbor_voxel_id = own_voxel_id_of(neighbor_coord);
                 uint neighbor_voxel_particle_count = inside_particle_count[neighbor_voxel_id];
@@ -146,7 +146,7 @@ void deep_wall_check(uint self_particle_id, vec3 self_position, ivec3 self_voxel
                     if (material_parameters[material[neighbor_particle_id]].kind == MATERIAL_BOUNDARY) continue;
 
                     vec3  neighbor_position = position_voxel_id[neighbor_particle_id].xyz;
-                    float distance = length(self_position - neighbor_position);
+                    float distance = length(minimum_image(self_position - neighbor_position));
                     if (distance >= SMOOTHING_LENGTH || distance < 1e-12) continue;
                     active_neighbor_count++;
                 }

@@ -1,0 +1,131 @@
+{
+ "reference": [
+  "C:/Users/cchen/PycharmProjects/vulkan-demo-v10-periodic/logs/micropolar/stage8b/t1/newtonian_base_1.npz",
+  "C:/Users/cchen/PycharmProjects/vulkan-demo-v10-periodic/logs/micropolar/stage8b/t1/newtonian_base_2.npz",
+  "C:/Users/cchen/PycharmProjects/vulkan-demo-v10-periodic/logs/micropolar/stage8b/t1/newtonian_base_3.npz",
+  "C:/Users/cchen/PycharmProjects/vulkan-demo-v10-periodic/logs/micropolar/stage8b/t1/newtonian_base_4.npz",
+  "C:/Users/cchen/PycharmProjects/vulkan-demo-v10-periodic/logs/micropolar/stage8b/t1/newtonian_base_5.npz"
+ ],
+ "floor": {
+  "u": {
+   "pair_rms_max": 5.9409797075426326e-05,
+   "pair_rms_median": 2.981167202391671e-05,
+   "pair_rms_min": 2.2015997758236636e-05,
+   "pairs": 10
+  },
+  "v": {
+   "pair_rms_max": 6.345178096778638e-05,
+   "pair_rms_median": 3.9531039007700713e-05,
+   "pair_rms_min": 2.9208065017991102e-05,
+   "pairs": 10
+  },
+  "rho": {
+   "pair_rms_max": 0.000275947500351518,
+   "pair_rms_median": 0.0001084208373677528,
+   "pair_rms_min": 4.179745876731026e-05,
+   "pairs": 10
+  }
+ },
+ "tests": {
+  "C:/Users/cchen/PycharmProjects/vulkan-demo-v10-periodic/logs/micropolar/stage8b/t1/newtonian_new_1.npz": {
+   "u": {
+    "rms_min": 2.682958105090604e-05,
+    "rms_median": 3.3174457998363035e-05,
+    "rms_max": 5.8777522468037526e-05,
+    "ratio_to_floor_max": 0.9893574016658218
+   },
+   "v": {
+    "rms_min": 3.19851747687563e-05,
+    "rms_median": 4.364298395276861e-05,
+    "rms_max": 6.21221814217773e-05,
+    "ratio_to_floor_max": 0.9790455125808981
+   },
+   "rho": {
+    "rms_min": 7.572354255963553e-05,
+    "rms_median": 0.0001453034289404568,
+    "rms_max": 0.00016882976122650108,
+    "ratio_to_floor_max": 0.6118184111522514
+   }
+  },
+  "C:/Users/cchen/PycharmProjects/vulkan-demo-v10-periodic/logs/micropolar/stage8b/t1/newtonian_new_2.npz": {
+   "u": {
+    "rms_min": 2.1789387820918938e-05,
+    "rms_median": 2.414832296087083e-05,
+    "rms_max": 5.664943900714041e-05,
+    "ratio_to_floor_max": 0.9535369887767605
+   },
+   "v": {
+    "rms_min": 2.781193671702636e-05,
+    "rms_median": 3.804942331053524e-05,
+    "rms_max": 5.776064919317125e-05,
+    "ratio_to_floor_max": 0.9103077693358292
+   },
+   "rho": {
+    "rms_min": 4.042796961358887e-05,
+    "rms_median": 6.386712773582631e-05,
+    "rms_max": 0.00021421759113512205,
+    "ratio_to_floor_max": 0.7762983569781905
+   }
+  },
+  "C:/Users/cchen/PycharmProjects/vulkan-demo-v10-periodic/logs/micropolar/stage8b/t1/newtonian_new_3.npz": {
+   "u": {
+    "rms_min": 2.2121003937878856e-05,
+    "rms_median": 2.4985505657157268e-05,
+    "rms_max": 5.7282437062848266e-05,
+    "ratio_to_floor_max": 0.9641917643671266
+   },
+   "v": {
+    "rms_min": 2.7907247519832954e-05,
+    "rms_median": 3.411845037390941e-05,
+    "rms_max": 6.008489000835761e-05,
+    "ratio_to_floor_max": 0.9469378020904079
+   },
+   "rho": {
+    "rms_min": 4.468725297508371e-05,
+    "rms_median": 7.279933143573523e-05,
+    "rms_max": 0.0002534882903321474,
+    "ratio_to_floor_max": 0.9186105690728825
+   }
+  },
+  "C:/Users/cchen/PycharmProjects/vulkan-demo-v10-periodic/logs/micropolar/stage8b/t1/newtonian_new_4.npz": {
+   "u": {
+    "rms_min": 2.2756410420853306e-05,
+    "rms_median": 2.8100382930707853e-05,
+    "rms_max": 5.244389633619989e-05,
+    "ratio_to_floor_max": 0.8827482825705907
+   },
+   "v": {
+    "rms_min": 2.5076193599280377e-05,
+    "rms_median": 4.026871694588247e-05,
+    "rms_max": 5.376535004370143e-05,
+    "ratio_to_floor_max": 0.8473418590251607
+   },
+   "rho": {
+    "rms_min": 4.651312012460584e-05,
+    "rms_median": 7.035321171854583e-05,
+    "rms_max": 0.00020269220368614077,
+    "ratio_to_floor_max": 0.7345317621211993
+   }
+  },
+  "C:/Users/cchen/PycharmProjects/vulkan-demo-v10-periodic/logs/micropolar/stage8b/t1/newtonian_new_5.npz": {
+   "u": {
+    "rms_min": 2.6301739382382476e-05,
+    "rms_median": 2.6635027573871346e-05,
+    "rms_max": 5.4961024690369084e-05,
+    "ratio_to_floor_max": 0.925117192718078
+   },
+   "v": {
+    "rms_min": 3.6275154923978906e-05,
+    "rms_median": 4.351237513907767e-05,
+    "rms_max": 5.551822485611827e-05,
+    "ratio_to_floor_max": 0.8749671641888842
+   },
+   "rho": {
+    "rms_min": 5.301168188128487e-05,
+    "rms_median": 9.640484965412368e-05,
+    "rms_max": 0.00018446970112298062,
+    "ratio_to_floor_max": 0.6684956409751579
+   }
+  }
+ }
+}

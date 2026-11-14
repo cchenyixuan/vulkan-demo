@@ -1,0 +1,33 @@
+reference: cases/viscous_cavity_n250_laplacian_eps1em6/case.yaml, K = 1, 3000 steps, tree vulkan-demo-v9-micropolar, 5 repeats (10 pairs); rms over 2401 sample points
+
+test newtonian_new_1.npz (cases/viscous_cavity_n250_laplacian_eps1em6/case.yaml, K = 1, tree vulkan-demo-v10-periodic)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.202e-05   2.981e-05   5.941e-05   2.683e-05   3.317e-05   5.878e-05       0.99
+v            2.921e-05   3.953e-05   6.345e-05   3.199e-05   4.364e-05   6.212e-05       0.98
+rho          4.180e-05   1.084e-04   2.759e-04   7.572e-05   1.453e-04   1.688e-04       0.61
+
+test newtonian_new_2.npz (cases/viscous_cavity_n250_laplacian_eps1em6/case.yaml, K = 1, tree vulkan-demo-v10-periodic)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.202e-05   2.981e-05   5.941e-05   2.179e-05   2.415e-05   5.665e-05       0.95
+v            2.921e-05   3.953e-05   6.345e-05   2.781e-05   3.805e-05   5.776e-05       0.91
+rho          4.180e-05   1.084e-04   2.759e-04   4.043e-05   6.387e-05   2.142e-04       0.78
+
+test newtonian_new_3.npz (cases/viscous_cavity_n250_laplacian_eps1em6/case.yaml, K = 1, tree vulkan-demo-v10-periodic)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.202e-05   2.981e-05   5.941e-05   2.212e-05   2.499e-05   5.728e-05       0.96
+v            2.921e-05   3.953e-05   6.345e-05   2.791e-05   3.412e-05   6.008e-05       0.95
+rho          4.180e-05   1.084e-04   2.759e-04   4.469e-05   7.280e-05   2.535e-04       0.92
+
+test newtonian_new_4.npz (cases/viscous_cavity_n250_laplacian_eps1em6/case.yaml, K = 1, tree vulkan-demo-v10-periodic)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.202e-05   2.981e-05   5.941e-05   2.276e-05   2.810e-05   5.244e-05       0.88
+v            2.921e-05   3.953e-05   6.345e-05   2.508e-05   4.027e-05   5.377e-05       0.85
+rho          4.180e-05   1.084e-04   2.759e-04   4.651e-05   7.035e-05   2.027e-04       0.73
+
+test newtonian_new_5.npz (cases/viscous_cavity_n250_laplacian_eps1em6/case.yaml, K = 1, tree vulkan-demo-v10-periodic)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            2.202e-05   2.981e-05   5.941e-05   2.630e-05   2.664e-05   5.496e-05       0.93
+v            2.921e-05   3.953e-05   6.345e-05   3.628e-05   4.351e-05   5.552e-05       0.87
+rho          4.180e-05   1.084e-04   2.759e-04   5.301e-05   9.640e-05   1.845e-04       0.67
+
+PASS: limit = 2.0 x the largest reference-pair rms

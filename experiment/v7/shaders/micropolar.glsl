@@ -40,7 +40,7 @@
 // Shepard average of the fluid neighbours' w, the sums of the dummy velocity)
 // into wall_dummy_angular_velocity and fluid particles read that.
 //
-// Spec constant ids: 21 MICROPOLAR_THETA (common.glsl), 116
+// Spec constant ids: 21 MICROPOLAR_THETA (common.glsl), 120
 // MICROPOLAR_REPLICA_LAYERS (here). Set 0 bindings 12, 13, 14 (binding 11 stays
 // reserved for the global id buffer).
 // ============================================================================
@@ -53,7 +53,7 @@
 // force, directly (the inner layer) or through the adami wall pass on the
 // inner ghost column (the outer layer of the three-layer ghost). The host
 // passes GHOST_LAYERS - 1 on a slab with a peer, 0 otherwise.
-layout(constant_id = 116) const uint MICROPOLAR_REPLICA_LAYERS = 0u;
+layout(constant_id = 120) const uint MICROPOLAR_REPLICA_LAYERS = 0u;   // Stage 8b: was 116 (periodic.glsl)
 
 layout(std430, set = 0, binding = 12) buffer AngularVelocityBuffer {
     // (w_x, w_y, w_z, reserved). Fluid: w^{n+1/2} between steps (predict's

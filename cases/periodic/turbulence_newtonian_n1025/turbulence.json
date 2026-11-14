@@ -1,0 +1,30 @@
+{
+ "run": "turbulence_newtonian_n1025",
+ "side": 1025,
+ "micropolar": false,
+ "shift": 0.0,
+ "spacing": 0.0061299368850532545,
+ "smoothing_length": 0.030649684425266274,
+ "speed_of_sound": 221.49090021736313,
+ "peak_initial_speed": 4.429818004347263,
+ "timestep": 2.0756846711436755e-05,
+ "governing": "acoustic",
+ "steps": 196000,
+ "dt_acoustic": 2.0756846711436755e-05,
+ "dt_viscous": 0.019257764685052407,
+ "dt_angular": 0.02091737692620326,
+ "design": {
+  "viscosity": 0.001,
+  "viscosity_transfer": -0.001,
+  "coupling": 0.0,
+  "viscosity_rotation": 0.0,
+  "micro_inertia": 0.02040816326530612,
+  "length": null
+ },
+ "far_viscosity": 0.001,
+ "peak_wavenumber": 10.0,
+ "seed": 20261113,
+ "reynolds": 100.0,
+ "reynolds_box": 6283.185307179586,
+ "reynolds_on_mu": 250.0
+}

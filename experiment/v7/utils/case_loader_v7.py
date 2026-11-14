@@ -449,6 +449,15 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
     if unknown_micropolar_keys:
         raise ValueError(f"physics.micropolar: unknown keys {sorted(unknown_micropolar_keys)}")
     micropolar_enabled = bool(micropolar_block.get("enabled", False))
+    # Stage 8b: physics.periodic: [x, y] (absent = [false, false]); a third entry for z must be false.
+    raw_periodic = list(phys.get("periodic", [False, False]))
+    if len(raw_periodic) == 3:
+        if raw_periodic[2]:
+            raise ValueError("physics.periodic: z cannot be periodic")
+        raw_periodic = raw_periodic[:2]
+    if len(raw_periodic) != 2:
+        raise ValueError(f"physics.periodic must be [x, y] booleans, got {raw_periodic!r}")
+    periodic = (bool(raw_periodic[0]), bool(raw_periodic[1]))
     micro_inertia = float(micropolar_block.get("micro_inertia", 0.0)) if micropolar_enabled else 0.0
     if micropolar_enabled and "micro_inertia" not in micropolar_block:
         raise ValueError("physics.micropolar.enabled needs physics.micropolar.micro_inertia (Theta, m^2)")
@@ -472,6 +481,7 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
         calibrate_volume=calibrate_volume,
         micropolar_enabled=micropolar_enabled,
         micro_inertia=micro_inertia,
+        periodic=periodic,
     )
 
     # --- Numerics ---------------------------------------------------------
@@ -612,6 +622,27 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
     bbox_min = frame_verts.min(axis=0)
     bbox_max = frame_verts.max(axis=0)
     origin_tuple, dim_tuple = _compute_grid(bbox_min, bbox_max, h, dimension)
+    if periodic[0] or periodic[1]:
+        # Stage 8b: on a periodic axis the bbox is the box: origin = bbox min, dimension = span / h (an integer >= 3,
+        # so the three neighbour columns of the sweep are distinct voxels), DOMAIN_LENGTH = span
+        origin_list, dim_list, lengths = list(origin_tuple), list(dim_tuple), [1.0, 1.0]
+        for axis in (0, 1):
+            if not periodic[axis]:
+                continue
+            span = float(bbox_max[axis]) - float(bbox_min[axis])
+            count = int(round(span / h))
+            if count < 3 or abs(span / h - count) > 1e-6 * count:
+                raise ValueError(f"periodic axis {'xy'[axis]}: span {span!r} / h {h!r} = {span / h!r} must be an "
+                                 "integer >= 3")
+            origin_list[axis], dim_list[axis], lengths[axis] = float(bbox_min[axis]), count, span
+            outside = int(((positions[:, axis] < float(bbox_min[axis]))
+                           | (positions[:, axis] >= float(bbox_min[axis]) + span)).sum())
+            if outside:
+                raise ValueError(f"{outside} initial particles outside the periodic box on axis {'xy'[axis]}")
+        origin_tuple, dim_tuple = tuple(origin_list), tuple(dim_list)
+        import dataclasses as _dataclasses
+        physics = _dataclasses.replace(physics, domain_length=(lengths[0], lengths[1]))
+        print(f"[case_loader_v7] periodic {periodic}: grid dim={dim_tuple} origin={origin_tuple} lengths={lengths}")
 
     # Degenerate slab: owns the whole domain, no ghost columns, no peer.
     # partition_v7 is responsible for synthesizing per-slab ghost / transport.

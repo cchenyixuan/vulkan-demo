@@ -1,0 +1,88 @@
+Stage 8b T0: experiment/v7/_test_seam_layout.py, base tree (thesis-ch5-rc2 solver, worktree vulkan-demo-v9-micropolar) against the new tree (v10-periodic)
+base: 858 failures; new: 904 failures; only in the new tree: 64; only in the base: 18
+
+only in the base tree:
+  - keep=0 K=2 slab 0: partition differs from v5 in ['numerics']
+  - keep=0 K=2 slab 1: partition differs from v5 in ['numerics']
+  - keep=0 K=3 slab 0: partition differs from v5 in ['numerics']
+  - keep=0 K=3 slab 1: partition differs from v5 in ['numerics']
+  - keep=0 K=3 slab 2: partition differs from v5 in ['numerics']
+  - keep=0 K=4 slab 0: partition differs from v5 in ['numerics']
+  - keep=0 K=4 slab 1: partition differs from v5 in ['numerics']
+  - keep=0 K=4 slab 2: partition differs from v5 in ['numerics']
+  - keep=0 K=4 slab 3: partition differs from v5 in ['numerics']
+  - keep=1 K=2 slab 0: partition differs from v5 in ['numerics']
+  - keep=1 K=2 slab 1: partition differs from v5 in ['numerics']
+  - keep=1 K=3 slab 0: partition differs from v5 in ['numerics']
+  - keep=1 K=3 slab 1: partition differs from v5 in ['numerics']
+  - keep=1 K=3 slab 2: partition differs from v5 in ['numerics']
+  - keep=1 K=4 slab 0: partition differs from v5 in ['numerics']
+  - keep=1 K=4 slab 1: partition differs from v5 in ['numerics']
+  - keep=1 K=4 slab 2: partition differs from v5 in ['numerics']
+  - keep=1 K=4 slab 3: partition differs from v5 in ['numerics']
+
+only in the new tree:
+  - correction.comp.spv: differs from 3d6e1c9 (switch 0 must run the B6 SPIR-V)
+  - correction.comp.spv: differs from bf91694 (switch 0 must run the B4 SPIR-V)
+  - correction.comp.spv: differs from f646bf6 (switch 0 must run the B1 SPIR-V)
+  - correction_deep_wall_skip.comp.spv: differs from bf91694 (switch 0 must run the B4 SPIR-V)
+  - correction_deep_wall_skip.comp.spv: differs from f646bf6 (switch 0 must run the B1 SPIR-V)
+  - correction_density.comp.spv: differs from f646bf6 (switch 0 must run the B1 SPIR-V)
+  - correction_density_deep_wall_skip.comp.spv: differs from f646bf6 (switch 0 must run the B1 SPIR-V)
+  - deep_wall_marker.comp.spv: differs from bf91694 (switch 0 must run the B4 SPIR-V)
+  - deep_wall_marker.comp.spv: differs from f646bf6 (switch 0 must run the B1 SPIR-V)
+  - deep_wall_marker.comp: 'if (!in_own_grid(neighbor_coord)) continue' missing
+  - deep_wall_skip.glsl deep_wall_check: 'if (!in_own_grid(neighbor_coord)) continue' missing (density's test)
+  - density.comp.spv: differs from 3d6e1c9 (switch 0 must run the B6 SPIR-V)
+  - density.comp.spv: differs from bf91694 (switch 0 must run the B4 SPIR-V)
+  - density.comp.spv: differs from f646bf6 (switch 0 must run the B1 SPIR-V)
+  - density_deep_wall_skip.comp.spv: differs from bf91694 (switch 0 must run the B4 SPIR-V)
+  - density_deep_wall_skip.comp.spv: differs from f646bf6 (switch 0 must run the B1 SPIR-V)
+  - force.comp.spv: differs from 3d6e1c9 (switch 0 must run the B6 SPIR-V)
+  - force.comp.spv: differs from bf91694 (switch 0 must run the B4 SPIR-V)
+  - force.comp.spv: differs from f646bf6 (switch 0 must run the B1 SPIR-V)
+  - initialize_voxelization.comp.spv: differs from 3d6e1c9 (switch 0 must run the B6 SPIR-V)
+  - initialize_voxelization.comp.spv: differs from bf91694 (switch 0 must run the B4 SPIR-V)
+  - initialize_voxelization.comp.spv: differs from f646bf6 (switch 0 must run the B1 SPIR-V)
+  - keep=0 K=2 slab 0: partition differs from v5 in ['physics', 'numerics']
+  - keep=0 K=2 slab 1: partition differs from v5 in ['physics', 'numerics']
+  - keep=0 K=3 slab 0: partition differs from v5 in ['physics', 'numerics']
+  - keep=0 K=3 slab 1: partition differs from v5 in ['physics', 'numerics']
+  - keep=0 K=3 slab 2: partition differs from v5 in ['physics', 'numerics']
+  - keep=0 K=4 slab 0: partition differs from v5 in ['physics', 'numerics']
+  - keep=0 K=4 slab 1: partition differs from v5 in ['physics', 'numerics']
+  - keep=0 K=4 slab 2: partition differs from v5 in ['physics', 'numerics']
+  - keep=0 K=4 slab 3: partition differs from v5 in ['physics', 'numerics']
+  - keep=1 K=2 slab 0: partition differs from v5 in ['physics', 'numerics']
+  - keep=1 K=2 slab 1: partition differs from v5 in ['physics', 'numerics']
+  - keep=1 K=3 slab 0: partition differs from v5 in ['physics', 'numerics']
+  - keep=1 K=3 slab 1: partition differs from v5 in ['physics', 'numerics']
+  - keep=1 K=3 slab 2: partition differs from v5 in ['physics', 'numerics']
+  - keep=1 K=4 slab 0: partition differs from v5 in ['physics', 'numerics']
+  - keep=1 K=4 slab 1: partition differs from v5 in ['physics', 'numerics']
+  - keep=1 K=4 slab 2: partition differs from v5 in ['physics', 'numerics']
+  - keep=1 K=4 slab 3: partition differs from v5 in ['physics', 'numerics']
+  - micropolar adami K=1: extra spec entries [(21, 'f', 0.0016), (120, 'I', 0)]
+  - micropolar adami K=2 slab 0: extra spec entries [(21, 'f', 0.0016), (120, 'I', 2)]
+  - micropolar adami K=2 slab 1: extra spec entries [(21, 'f', 0.0016), (120, 'I', 2)]
+  - micropolar simple K=1: extra spec entries [(21, 'f', 0.0016), (120, 'I', 0)]
+  - micropolar simple K=2 slab 0: extra spec entries [(21, 'f', 0.0016), (120, 'I', 1)]
+  - micropolar simple K=2 slab 1: extra spec entries [(21, 'f', 0.0016), (120, 'I', 1)]
+  - micropolar.glsl: layout\(constant_id = 116\) const uint MICROPOLAR_REPLICA_LAYERS = 0u; not found
+  - micropolar: correction.comp without its MICROPOLAR blocks differs from micropolar-base's
+  - micropolar: correction_density.comp without its MICROPOLAR blocks differs from micropolar-base's
+  - micropolar: deep_wall_marker.comp without its MICROPOLAR blocks differs from micropolar-base's
+  - micropolar: deep_wall_skip.glsl without its MICROPOLAR blocks differs from micropolar-base's
+  - micropolar: density.comp without its MICROPOLAR blocks differs from micropolar-base's
+  - micropolar: force.comp without its MICROPOLAR blocks differs from micropolar-base's
+  - micropolar: initialize_voxelization.comp without its MICROPOLAR blocks differs from micropolar-base's
+  - micropolar: predict.comp without its MICROPOLAR blocks differs from micropolar-base's
+  - micropolar: wall_extrapolate.comp without its MICROPOLAR blocks differs from micropolar-base's
+  - micropolar: wall_extrapolate_band.comp without its MICROPOLAR blocks differs from micropolar-base's
+  - predict.comp.spv: differs from 3d6e1c9 (switch 0 must run the B6 SPIR-V)
+  - predict.comp.spv: differs from bf91694 (switch 0 must run the B4 SPIR-V)
+  - predict.comp.spv: differs from f646bf6 (switch 0 must run the B1 SPIR-V)
+  - wall_extrapolate.comp differs from v7-rc2's (the K = 1 kernel must stay rc2's)
+  - wall_extrapolate.comp.spv: differs from 3d6e1c9 (switch 0 must run the B6 SPIR-V)
+  - wall_extrapolate.comp.spv: differs from bf91694 (switch 0 must run the B4 SPIR-V)
+  - wall_extrapolate.comp.spv: differs from f646bf6 (switch 0 must run the B1 SPIR-V)

@@ -1,0 +1,43 @@
+reference: cases/stage6_cavity_mp_n250/case.yaml, K = 1, 3000 steps, tree vulkan-demo-v9-micropolar, 5 repeats (10 pairs); rms over 2401 sample points
+
+test micropolar_new_1.npz (cases/stage6_cavity_mp_n250/case.yaml, K = 1, tree vulkan-demo-v10-periodic)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            3.679e-05   5.438e-05   7.806e-05   4.995e-05   5.585e-05   6.703e-05       0.86
+v            3.491e-05   5.109e-05   7.098e-05   4.098e-05   5.842e-05   6.672e-05       0.94
+rho          1.065e-04   2.084e-04   3.367e-04   7.632e-05   1.874e-04   2.452e-04       0.73
+w_z          2.048e-04   2.880e-04   3.616e-04   3.039e-04   3.146e-04   3.670e-04       1.01
+max |w| over all particles of the test dump: 1.897e+00
+
+test micropolar_new_2.npz (cases/stage6_cavity_mp_n250/case.yaml, K = 1, tree vulkan-demo-v10-periodic)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            3.679e-05   5.438e-05   7.806e-05   3.084e-05   4.865e-05   8.096e-05       1.04
+v            3.491e-05   5.109e-05   7.098e-05   3.256e-05   4.925e-05   7.240e-05       1.02
+rho          1.065e-04   2.084e-04   3.367e-04   8.957e-05   1.238e-04   2.999e-04       0.89
+w_z          2.048e-04   2.880e-04   3.616e-04   1.953e-04   2.618e-04   2.727e-04       0.75
+max |w| over all particles of the test dump: 1.897e+00
+
+test micropolar_new_3.npz (cases/stage6_cavity_mp_n250/case.yaml, K = 1, tree vulkan-demo-v10-periodic)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            3.679e-05   5.438e-05   7.806e-05   1.492e-04   1.522e-04   2.007e-04       2.57
+v            3.491e-05   5.109e-05   7.098e-05   1.546e-04   1.631e-04   2.104e-04       2.96
+rho          1.065e-04   2.084e-04   3.367e-04   5.540e-04   6.594e-04   8.628e-04       2.56
+w_z          2.048e-04   2.880e-04   3.616e-04   2.231e-04   3.129e-04   3.329e-04       0.92
+max |w| over all particles of the test dump: 1.894e+00
+
+test micropolar_new_4.npz (cases/stage6_cavity_mp_n250/case.yaml, K = 1, tree vulkan-demo-v10-periodic)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            3.679e-05   5.438e-05   7.806e-05   4.268e-05   5.177e-05   7.510e-05       0.96
+v            3.491e-05   5.109e-05   7.098e-05   4.157e-05   5.121e-05   7.755e-05       1.09
+rho          1.065e-04   2.084e-04   3.367e-04   6.159e-05   1.095e-04   3.143e-04       0.93
+w_z          2.048e-04   2.880e-04   3.616e-04   2.224e-04   2.972e-04   3.406e-04       0.94
+max |w| over all particles of the test dump: 1.896e+00
+
+test micropolar_new_5.npz (cases/stage6_cavity_mp_n250/case.yaml, K = 1, tree vulkan-demo-v10-periodic)
+quantity     floor min   floor med   floor max    test min    test med    test max  max ratio
+u            3.679e-05   5.438e-05   7.806e-05   3.405e-05   4.323e-05   6.955e-05       0.89
+v            3.491e-05   5.109e-05   7.098e-05   3.402e-05   4.003e-05   7.225e-05       1.02
+rho          1.065e-04   2.084e-04   3.367e-04   5.167e-05   1.379e-04   3.300e-04       0.98
+w_z          2.048e-04   2.880e-04   3.616e-04   2.320e-04   2.875e-04   3.467e-04       0.96
+max |w| over all particles of the test dump: 1.892e+00
+
+FAIL: limit = 2.0 x the largest reference-pair rms

@@ -1,4 +1,5 @@
-SPIR-V manifest of experiment/v7/shaders/spv (branch v9-micropolar: the tag micropolar-base = v7-rc4 + the bootstrap fix + the v7-adami-multi tooling, + the micropolar terms, numerics.viscous_form: laplacian, numerics.delta_fluid_only: true and numerics.wall_density: eos)
+SPIR-V manifest of experiment/v7/shaders/spv (branch v10-periodic: thesis-ch5-rc2's solver + the periodic domain of
+Stage 8b, ported from experiment/v8 of origin/v8-tgv; docs/micropolar_design.md Section 18)
 
 compiler: C:\VulkanSDK\1.4.350.0/Bin/glslc.exe; glslc --version:
   shaderc v2026.2 v2026.2
@@ -6,63 +7,57 @@ compiler: C:\VulkanSDK\1.4.350.0/Bin/glslc.exe; glslc --version:
   glslang 11.1.0-1412-g5ed4003a
   
   Target: SPIR-V 1.0
-  ('Target: SPIR-V 1.0' is glslc's default; with --target-env=vulkan1.2 every file below is SPIR-V 1.5)
 flags: glslc --target-env=vulkan1.2 -O [-D<macro>] -I experiment/v7/shaders experiment/v7/shaders/<source> -o experiment/v7/shaders/spv/<name>.comp.spv
-  (experiment/v7/compile_shaders_v7.py: every *.comp whose name does not start with '_', plus the -D variants of
-  SHADER_VARIANTS; glslc output is deterministic, _test_seam_layout.py check_spirv_current compares every file
-  with a fresh build)
-sources: experiment/v7/shaders/*.comp, *.glsl at the commit that adds this manifest;
-  last change to a shader source before it: the micropolar terms (2026-11-10): #ifdef MICROPOLAR blocks in bootstrap_half_kick.comp, defrag.comp, expand_ghost_lists.comp, force.comp, ghost_send.comp, ghost_send_lanes.comp, install_migrations.comp, predict.comp, wall_extrapolate.comp, wall_extrapolate_band.comp, new micropolar.glsl;
-  after it: #ifdef VISCOUS_LAPLACIAN in force.comp (2026-11-11), #ifdef DELTA_FLUID_ONLY in density.comp and correction_density.comp, #ifdef WALL_DENSITY_EOS in wall_extrapolate.comp and wall_extrapolate_band.comp (2026-11-12)
+  (experiment/v7/compile_shaders_v7.py; glslc output is deterministic, _test_seam_layout.py check_spirv_current
+  compares every file with a fresh build)
+sources: experiment/v7/shaders/*.comp, *.glsl; Stage 8b adds periodic.glsl (spec constants 116 - 119, the wrap of the
+  neighbour sweep, the minimum image, the position wrap and the voxel clamp), included by correction, correction_density,
+  density, force, wall_extrapolate, wall_extrapolate_band, deep_wall_marker, predict, initialize_voxelization (and
+  deep_wall_skip.glsl uses it); micropolar.glsl moves MICROPOLAR_REPLICA_LAYERS from spec id 116 to 120.
 check: every file below byte-identical to a fresh build with the compiler above (43 of 43);
-  every file of micropolar-base (23 of 23) byte-identical to that tag's (the Newtonian solver: a case without physics.micropolar
-  loads only these); new against micropolar-base (each loaded only by a case that asks for it - physics.micropolar.enabled,
-  numerics.viscous_form: laplacian, numerics.delta_fluid_only: true, numerics.wall_density: eos - instead of the plain module of the same kernel):
-  bootstrap_half_kick_micropolar, correction_density_deep_wall_skip_delta_fluid_only, correction_density_delta_fluid_only, defrag_micropolar, density_deep_wall_skip_delta_fluid_only, density_delta_fluid_only, expand_ghost_lists_micropolar, force_laplacian, force_micropolar, force_micropolar_laplacian, ghost_send_lanes_micropolar, ghost_send_micropolar, install_migrations_micropolar, predict_micropolar, wall_extrapolate_band_micropolar, wall_extrapolate_band_micropolar_wall_density_eos, wall_extrapolate_band_wall_density_eos, wall_extrapolate_micropolar, wall_extrapolate_micropolar_wall_density_eos, wall_extrapolate_wall_density_eos
-scope: the tracked compute SPIR-V only (spv/render/*.spv from shaders/render are not tracked). Nothing checks this
-  manifest automatically; regenerate it with any shader change.
-
-sha256                                                             bytes  file  (source)
+  byte-identical to thesis-ch5-rc2 (13): the modules that include neither periodic.glsl nor the moved id
 7823e926e76ae19ac340ee12864e1e8e4ff6e0a08fe68b3298edd54a0b08d870     3720  append_departed.comp.spv  (append_departed.comp)
 e22c63cb3b498b7ac784a62cd0ad10af0a33f85db222dba9165448e2d9a8f25a    10936  band_compact.comp.spv  (band_compact.comp)
 ec24be0f2d0b48f85b35d4177190b1ca5d6da008114f43798c1db18d98a0aabe     2676  bootstrap_half_kick.comp.spv  (bootstrap_half_kick.comp)
 0d334dbfb45eb7cc8add25afb0892804b01ce2785f4de3199099703ce2cdc9c4     3280  bootstrap_half_kick_micropolar.comp.spv  (bootstrap_half_kick.comp -DMICROPOLAR)
-ee9ff135900b69f881c6fc9ad0dfc5c87ed14de015497e8060dceae90ebdabc7    37504  correction.comp.spv  (correction.comp)
-e3de58bdc5e00f892dfa2f100789015c8f0aab4dae92eec6d8257866ab4515d5    53920  correction_deep_wall_skip.comp.spv  (correction.comp -DDEEP_WALL_SKIP)
-7871141dcdec3681b4fe0ab9b90cd703418183926f5ce453fea5ad63ca3ed143    57868  correction_density.comp.spv  (correction_density.comp)
-f5faeac0e14610d9944a6d92b5d974f259e8ff45f32c60c2fdcd409053e34a87    89468  correction_density_deep_wall_skip.comp.spv  (correction_density.comp -DDEEP_WALL_SKIP)
-c19438225d92920403eb4f81068a886944fbe2ae3722f47ad866a04854bbee96    90348  correction_density_deep_wall_skip_delta_fluid_only.comp.spv  (correction_density.comp -DDEEP_WALL_SKIP -DDELTA_FLUID_ONLY)
-1061a1a83214d83d636de4bf40c94055a87a048d5e24b4b32c0807c5921a6102    58748  correction_density_delta_fluid_only.comp.spv  (correction_density.comp -DDELTA_FLUID_ONLY)
-4c9b4096d57aab44946b91a35b74a4ca8a1821761befdd99a58acf8366ea3a8e     4980  deep_wall_marker.comp.spv  (deep_wall_marker.comp)
 52d7d9b3a09cf4ce33e8f2981c6e699b0ff213beabf1935e46e1ff8ad7969c42     5968  defrag.comp.spv  (defrag.comp)
 2f4c9fa7d450c11f58978b7a9ac1de6dc5ab8154854c19fc46fbc4f594413312     6736  defrag_micropolar.comp.spv  (defrag.comp -DMICROPOLAR)
-949bc2d1a5d85ca789fbaea61da51f9e75b2226dd701f4115dd1b55bacec6e7e    38844  density.comp.spv  (density.comp)
-8c99cc51d910658432fcc351b58f480aa4f90e9509d0e6daac5f14a722379695    55972  density_deep_wall_skip.comp.spv  (density.comp -DDEEP_WALL_SKIP)
-3ea39eec4b410ef2cd6e36e78ac007bdac072cdafe78b416e9dfc5b755c1a751    57108  density_deep_wall_skip_delta_fluid_only.comp.spv  (density.comp -DDEEP_WALL_SKIP -DDELTA_FLUID_ONLY)
-f62000db8fba4dfd58d6353bd245c1babdb7b84c6225ae6be284dfc456c3164f    39980  density_delta_fluid_only.comp.spv  (density.comp -DDELTA_FLUID_ONLY)
 50e9e5f6fb22a5996b208b8c53a60bf709c005ace3a804d32382f68cfe7a098b     1888  density_scratch_copy.comp.spv  (density_scratch_copy.comp)
 4087617c2a4a14b5b49548572a4de96161c07af09ed9e5eeeaa042f117364a01     5068  expand_ghost_lists.comp.spv  (expand_ghost_lists.comp)
-746ac3c4ee33aa401a3c1cf6981589a8c5e91336432f45ae4eceac13d9972b68     5764  expand_ghost_lists_micropolar.comp.spv  (expand_ghost_lists.comp -DMICROPOLAR)
-3a635216025f245f7f11a3f5edc9d7120640e6df51c9b63021072cedd580f715    46776  force.comp.spv  (force.comp)
-937319ebad7f8c9abb616217a1e72a2c5f1eb3894d078c7c17158e4643c4a57e    46616  force_laplacian.comp.spv  (force.comp -DVISCOUS_LAPLACIAN)
-dc4af9bb8204a788717ad4a096090ba16a6b011c81207c48bcbaa055a7d9fa4a    54092  force_micropolar.comp.spv  (force.comp -DMICROPOLAR)
-732ce5119d721d557e3654f0792e09c8d830e55274e3eafd5d1ba23dc69a7710    53756  force_micropolar_laplacian.comp.spv  (force.comp -DMICROPOLAR -DVISCOUS_LAPLACIAN)
-faa772d587f1235af0fc03d5442a4fbf3f4cf0cb673d168043722a3ddfce750e    46828  force_segment.comp.spv  (force.comp -DFORCE_SEGMENT)
 0a73e65d75e2a6c6a140ca12812e748e04965fafcde81d4f20b1b543242a89be    19140  ghost_send.comp.spv  (ghost_send.comp)
 60e3eb2eba09588073f7a61d062537c6a7a303929fb73287d21acdf64a602c03    21668  ghost_send_lanes.comp.spv  (ghost_send_lanes.comp)
-13f52aa944aaf4b35f21511d8ebda578b3cbab2fc447f8af09128564177b0204    22592  ghost_send_lanes_micropolar.comp.spv  (ghost_send_lanes.comp -DMICROPOLAR)
-4583f1f04e06eb6ab3d95a9f543cf82dbc924b55f2c9cafc733623ff282a5419    20064  ghost_send_micropolar.comp.spv  (ghost_send.comp -DMICROPOLAR)
-62f42d33a26a70871521e30aa448dd3f620342e912120cc2e3d3bc4a6e3bdafa     6704  initialize_voxelization.comp.spv  (initialize_voxelization.comp)
 88b442d4059c5d3745df14a4db94bbba9eb06621bdb931e4cb8f6235088cd24b     7600  install_migrations.comp.spv  (install_migrations.comp)
 527a07513146c580a80eb59edbfbdec10c217483bcae845c13d26df30ba92d55     7816  install_migrations_micropolar.comp.spv  (install_migrations.comp -DMICROPOLAR)
-099b129f66ea93c40d2a3751a1aa809d74c4f5b6c0f0759a9f7fb9f5c725442b     6392  predict.comp.spv  (predict.comp)
-9dd391475f3042545201c8e9fd49590ef3007013d49dc7ca42ca22e3ce2bfcb8     6976  predict_micropolar.comp.spv  (predict.comp -DMICROPOLAR)
 024e04287997e22a6e37212b18f161b19a093571918d15337a2a69f4f2ba25ee     4916  update_voxel.comp.spv  (update_voxel.comp)
-23c0d0a2410d2131914cf23368dc0b3f80cb973515fbaa6511ff45149a75820c     8216  wall_extrapolate.comp.spv  (wall_extrapolate.comp)
-d9563e603d1abf063fcec454179264fd3cc9430fef8e2154d7a5be0f0f235d4a    24704  wall_extrapolate_band.comp.spv  (wall_extrapolate_band.comp)
-006a57d6bef8e78678bde9a09803c036fb6b2b9befeafe98e8f88a7f95b055ff    26976  wall_extrapolate_band_micropolar.comp.spv  (wall_extrapolate_band.comp -DMICROPOLAR)
-94a1ac53aa0837f83500dc7893b131beb2f88b22861e103faf5b54d2cbb30420    27556  wall_extrapolate_band_micropolar_wall_density_eos.comp.spv  (wall_extrapolate_band.comp -DMICROPOLAR -DWALL_DENSITY_EOS)
-badc05bc360de1382a7af790019b693ae398d8da1435955c11d3cabce91c1b64    25284  wall_extrapolate_band_wall_density_eos.comp.spv  (wall_extrapolate_band.comp -DWALL_DENSITY_EOS)
-2c13c6686868e3fa803e1a98524f569e7ae7dfdd98adcfdafca6a7a368b9f2ca     9160  wall_extrapolate_micropolar.comp.spv  (wall_extrapolate.comp -DMICROPOLAR)
-b7ac959b7e07d76af314f08ee33b0709f50eca9ea9ea22f31828083cbdd21509     9396  wall_extrapolate_micropolar_wall_density_eos.comp.spv  (wall_extrapolate.comp -DMICROPOLAR -DWALL_DENSITY_EOS)
-a501cd22cf820d2c58af6ef866573a1b0de2ec59424e402b8422ac4097abd1d9     8452  wall_extrapolate_wall_density_eos.comp.spv  (wall_extrapolate.comp -DWALL_DENSITY_EOS)
+  changed against thesis-ch5-rc2 (30): the modules that include periodic.glsl or read the moved id; with
+  physics.periodic absent (the default) the periodic branches specialize away (T1 of Section 18)
+89ba26978707b77784800637a7bd69eff472af89b3ebd15d27d05d9c7bd34966    42664  correction.comp.spv  (correction.comp)
+5107a9112a251bf55b5c5399d424b4a01059dfabf447120cf8747fa0d49b2891    63976  correction_deep_wall_skip.comp.spv  (correction.comp -DDEEP_WALL_SKIP)
+0d8d34f8392da7d3375cc3b28afd484db61bf9a7b6795d18f51723a327a76952    63028  correction_density.comp.spv  (correction_density.comp)
+4f459ff0e421927ba0b10952c544824434439ccda13341aab7e94a22fbc4b6a6   104420  correction_density_deep_wall_skip.comp.spv  (correction_density.comp -DDEEP_WALL_SKIP)
+3a7682ea07cb04c68c8e13a9ef929cbd2e246e09457b364c792cfb090d85df28   105300  correction_density_deep_wall_skip_delta_fluid_only.comp.spv  (correction_density.comp -DDEEP_WALL_SKIP -DDELTA_FLUID_ONLY)
+0352a26b27a2fcbff89d14845456b413ef1ddb725d09b46752f2e8ab3cfe0dbb    63908  correction_density_delta_fluid_only.comp.spv  (correction_density.comp -DDELTA_FLUID_ONLY)
+06173a56770cb155f61aaa1f3e38f3832cbbb337840605b688a66c14b75f686c     5988  deep_wall_marker.comp.spv  (deep_wall_marker.comp)
+0edbda48ba8ab556c3e79a1532bdf024dcca422729ac0fc8f4d7f3d299df6e24    44004  density.comp.spv  (density.comp)
+c357d92920a458ac77d7cb7d4fe8bdca63d59539d4de90ca05a51e13cb5a7282    66028  density_deep_wall_skip.comp.spv  (density.comp -DDEEP_WALL_SKIP)
+dfbc8ff045654641c13cf4ddea59422400666b11e6dcf8e64116101d69a54c12    67164  density_deep_wall_skip_delta_fluid_only.comp.spv  (density.comp -DDEEP_WALL_SKIP -DDELTA_FLUID_ONLY)
+e5d68dcbe88d95163ea927ecb0e8fc3ff22028d2778409c485c47c52d9f7de27    45140  density_delta_fluid_only.comp.spv  (density.comp -DDELTA_FLUID_ONLY)
+5c3c40db91a097eb3fa7945cb9dd457ea77a6bfa117fb2a7c133095299719b97     5764  expand_ghost_lists_micropolar.comp.spv  (expand_ghost_lists.comp -DMICROPOLAR)
+4352d2ea316af28c2afacf90e219d1c84291bfe4f98f2484e35f63c6869440db    51936  force.comp.spv  (force.comp)
+8abf81928583ead0717ad6ad1cae33e4547a752df50581b9df4f2bb967baeb92    51776  force_laplacian.comp.spv  (force.comp -DVISCOUS_LAPLACIAN)
+0b242b377204033c113cbcee61f62450ef44702e8d2ceda7b79f6372d185e190    59252  force_micropolar.comp.spv  (force.comp -DMICROPOLAR)
+487f4e3ba6591835c6d893adbb7d722ee492a5107f53173a75d5e558e09c5802    58916  force_micropolar_laplacian.comp.spv  (force.comp -DMICROPOLAR -DVISCOUS_LAPLACIAN)
+3b4c7147dc1bd497fa922215da0ccaf98c33d7fd23151a47bde8493d82294445    51988  force_segment.comp.spv  (force.comp -DFORCE_SEGMENT)
+c3965595cede3bb00231898590da4c97ac9a3221fcead22705c3d45bd7b1db51    22592  ghost_send_lanes_micropolar.comp.spv  (ghost_send_lanes.comp -DMICROPOLAR)
+378292ec7989cf532edfcfb51576525a70df1b83ea11e80897ab9b8e4a2458cd    20064  ghost_send_micropolar.comp.spv  (ghost_send.comp -DMICROPOLAR)
+d422c0090768673091ca41c89601219c8164ae0cb37e4f3aa6e5ae72589d4c25     7168  initialize_voxelization.comp.spv  (initialize_voxelization.comp)
+ceff7f70d44aca25dc7030f128cf912b057bf6ab32571b524c46c153bd508f6c     7680  predict.comp.spv  (predict.comp)
+b33bd532799c174c547610356cb35976602ca6cd74c8a4a741c7e8f9841a8338     8264  predict_micropolar.comp.spv  (predict.comp -DMICROPOLAR)
+4b0fb5d5287bcaade9be57dbcd5acf72d78276d4d2c777dcf7b42237f5ac7c9f     9704  wall_extrapolate.comp.spv  (wall_extrapolate.comp)
+249eed1dc325ec681fad8039279964fa762e90f58a119033c90e28e227a703fd    28640  wall_extrapolate_band.comp.spv  (wall_extrapolate_band.comp)
+5c56b01da3d68fbe2dfec702b70f219167fc2172472edb983991c501143e985c    30912  wall_extrapolate_band_micropolar.comp.spv  (wall_extrapolate_band.comp -DMICROPOLAR)
+42357d5f36e9e657bf1e744563d42caa070cbe1e4f63ee08ac531e72504c2b42    31492  wall_extrapolate_band_micropolar_wall_density_eos.comp.spv  (wall_extrapolate_band.comp -DMICROPOLAR -DWALL_DENSITY_EOS)
+d845961544e4ee9f63190e943561712ea0124f31f0414b37a1f43682df0678b3    29220  wall_extrapolate_band_wall_density_eos.comp.spv  (wall_extrapolate_band.comp -DWALL_DENSITY_EOS)
+861fb9e83718fd77c5a35ae646151a7d312559b50658d1d1d1895ab46df9d192    10648  wall_extrapolate_micropolar.comp.spv  (wall_extrapolate.comp -DMICROPOLAR)
+a6d743c27c6642cc1a29986ee7950a490d7e1e9b7ad1488a85a5ce0f19c5a0bb    10884  wall_extrapolate_micropolar_wall_density_eos.comp.spv  (wall_extrapolate.comp -DMICROPOLAR -DWALL_DENSITY_EOS)
+3ec4c046751cf70f8dda67c11ca6c70ff27972c1f629f7203427b3fcf077b98d     9940  wall_extrapolate_wall_density_eos.comp.spv  (wall_extrapolate.comp -DWALL_DENSITY_EOS)

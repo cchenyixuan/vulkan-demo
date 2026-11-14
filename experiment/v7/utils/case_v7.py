@@ -65,6 +65,12 @@ class PhysicsConstants:
     # modules and micro_inertia = Theta [m^2] as spec const 21 MICROPOLAR_THETA.
     micropolar_enabled: bool = False
     micro_inertia: float = 0.0
+    # Stage 8b (docs/micropolar_design.md): the periodic domain, physics.periodic [x, y] (z never), one slab only.
+    # On a periodic axis the frame's bounding box is the box (origin = bbox min, grid dimension = span / h, an
+    # integer >= 3) and domain_length is its span; spec constants 116 - 119 (periodic.glsl), passed only when an
+    # axis is periodic. Default off = the kernels of thesis-ch5-rc2.
+    periodic: tuple = (False, False)
+    domain_length: tuple = (1.0, 1.0)
 
 
 WALL_BOUNDARY_CHOICES = ("simple", "adami")     # case.yaml numerics.wall_boundary (E37)

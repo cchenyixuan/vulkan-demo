@@ -1,0 +1,26 @@
+{
+ "run": "check_n400_ma0p1",
+ "kind": "v8",
+ "side": 400,
+ "mach": 0.1,
+ "end_time": 2.0,
+ "length_times_modulus": null,
+ "theta_factor": 1.0,
+ "initial_spin": "none",
+ "repeat": 0,
+ "length": 1.0,
+ "spacing": 0.0025,
+ "smoothing_length": 0.0125,
+ "wavenumber": 6.283185307179586,
+ "far_viscosity": 0.01,
+ "rest_density": 1.0,
+ "design": {
+  "viscosity": 0.01,
+  "micropolar": false
+ },
+ "timestep": 0.0001875,
+ "governing": "acoustic",
+ "speed_of_sound": 10.0,
+ "cfl": 0.15,
+ "steps": 10667
+}

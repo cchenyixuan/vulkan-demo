@@ -2,6 +2,7 @@
 #extension GL_GOOGLE_include_directive : enable
 #include "common.glsl"
 #include "helpers.glsl"
+#include "periodic.glsl"                // Stage 8b: periodic domain (spec 116 - 119)
 #include "wall_boundary.glsl"
 #ifdef DEEP_WALL_SKIP
 #include "deep_wall_skip.glsl"
@@ -150,7 +151,7 @@ void process_particle(uint self_particle_id) {
         for (int delta_z = -neighbor_z_range; delta_z <= neighbor_z_range; delta_z++) {
             for (int delta_y = -1; delta_y <= 1; delta_y++) {
                 ivec3 neighbor_coord = self_voxel_coord + ivec3(delta_x, delta_y, delta_z);
-                if (!in_own_grid(neighbor_coord)) continue;
+                if (!wrap_neighbor_coord(neighbor_coord)) continue;   // Stage 8b: periodic wrap
 
                 uint neighbor_voxel_id = own_voxel_id_of(neighbor_coord);
                 uint neighbor_voxel_particle_count = inside_particle_count[neighbor_voxel_id];
@@ -176,7 +177,7 @@ void process_particle(uint self_particle_id) {
                     // --- Distance check (Wendland C4 support = h) -----------
                     // Neighbor is guaranteed non-inlet / non-dead by InsideParticleIndexBuffer invariants.
                     vec3  neighbor_position = position_voxel_id[neighbor_particle_id].xyz;
-                    vec3  position_difference_neighbor_to_self = self_position - neighbor_position; // x_ij
+                    vec3  position_difference_neighbor_to_self = minimum_image(self_position - neighbor_position); // x_ij
                     float distance = length(position_difference_neighbor_to_self);
                     if (distance >= SMOOTHING_LENGTH || distance < 1e-12) continue;
 

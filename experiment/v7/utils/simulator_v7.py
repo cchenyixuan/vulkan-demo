@@ -2075,8 +2075,16 @@ class SphSimulatorV7:
         ]
         if self._micropolar:
             # Micropolar terms: Theta (id 21, common.glsl) and the replica layers that carry angular_velocity
-            # (id 116, micropolar.glsl). Only on a micropolar case: a Newtonian pipeline keeps its blob.
-            entries += [(21, 'f', p.micro_inertia), (116, 'I', self._micropolar_replica_layers())]
+            # (id 120, micropolar.glsl; 116 before Stage 8b). Only on a micropolar case: a Newtonian pipeline keeps
+            # its blob.
+            entries += [(21, 'f', p.micro_inertia), (120, 'I', self._micropolar_replica_layers())]
+        if p.periodic[0] or p.periodic[1]:
+            if gh.leading_ghost_voxel_count or gh.trailing_ghost_voxel_count:
+                raise ValueError("periodic domain (physics.periodic): one slab only, this slab has ghost columns")
+            # Stage 8b: the periodic domain (ids 116 - 119, periodic.glsl). Only on a periodic case: every other
+            # pipeline keeps its blob. One slab: no ghost columns, no transport.
+            entries += [(116, 'B', int(p.periodic[0])), (117, 'B', int(p.periodic[1])),
+                        (118, 'f', float(p.domain_length[0])), (119, 'f', float(p.domain_length[1]))]
         return entries
 
     # ----- Per-pipeline mode entries (kernel-specific spec const overrides) ---

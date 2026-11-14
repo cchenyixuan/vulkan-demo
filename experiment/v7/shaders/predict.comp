@@ -2,6 +2,7 @@
 #extension GL_GOOGLE_include_directive : enable
 #include "common.glsl"
 #include "helpers.glsl"
+#include "periodic.glsl"                // Stage 8b: periodic domain (spec 116 - 119)
 #ifdef MICROPOLAR
 #include "micropolar.glsl"
 #endif
@@ -102,13 +103,14 @@ void main() {
     //     x_{n+1} = x_n + v_{n+1/2} · dt + shift_n
     // ========================================================================
     vec3 new_position = self_position + new_velocity * TIMESTEP + self_shift;
+    new_position = wrap_position(new_position);          // Stage 8b: periodic axes fold back into the box
 
     // ========================================================================
     // Determine new voxel_id.
     // Spatial coord is 0-based; convert via OWN_ORIGIN + SMOOTHING_LENGTH lattice.
     // ========================================================================
     vec3  own_origin = vec3(OWN_ORIGIN_X, OWN_ORIGIN_Y, OWN_ORIGIN_Z);
-    ivec3 new_voxel_coord  = ivec3(floor((new_position - own_origin) / SMOOTHING_LENGTH));
+    ivec3 new_voxel_coord  = clamp_periodic_coord(ivec3(floor((new_position - own_origin) / SMOOTHING_LENGTH)));
 
     // Case C: drifted out of domain → kill (open boundary).
     if (!in_own_grid(new_voxel_coord)) {

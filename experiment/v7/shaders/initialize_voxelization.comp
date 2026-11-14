@@ -2,6 +2,7 @@
 #extension GL_GOOGLE_include_directive : enable
 #include "common.glsl"
 #include "helpers.glsl"
+#include "periodic.glsl"                // Stage 8b: periodic domain (spec 116 - 119)
 
 // ============================================================================
 // initialize_voxelization.comp — one-time GPU bucket sort at simulation startup.
@@ -66,7 +67,7 @@ void main() {
     // --- Compute target voxel (same formula as predict.comp) ----------------
     vec3 self_position = position_voxel_id[self_particle_id].xyz;
     vec3 own_origin    = vec3(OWN_ORIGIN_X, OWN_ORIGIN_Y, OWN_ORIGIN_Z);
-    ivec3 voxel_coord  = ivec3(floor((self_position - own_origin) / SMOOTHING_LENGTH));
+    ivec3 voxel_coord  = clamp_periodic_coord(ivec3(floor((self_position - own_origin) / SMOOTHING_LENGTH)));
 
     // V7_INIT_SEAM_CLAMP: one column into a ghost column = within float32
     // rounding of the seam (see common.glsl) -> the adjacent own column. The
