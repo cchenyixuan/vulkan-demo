@@ -43,6 +43,7 @@ ITEMS = [
                                      "at four times"),
     ("21", "fig_21_dipole_tracks", "Dipole-wall collision: core trajectories and enstrophy against the benchmark"),
     ("22", "tab_22_dipole_numbers", "Dipole-wall collision: numbers against the control with the noise floor"),
+    ("26", "tab_26_dipole_checks", "Dipole-wall collision: the checks of micro-inertia, saturation and resolution"),
 ]
 
 

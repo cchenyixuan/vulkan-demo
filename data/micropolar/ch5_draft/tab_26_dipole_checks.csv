@@ -1,0 +1,21 @@
+quantity,"l = W/50, j = l^2/100, against the control",the same against l = W/50 with j = l^2,"l = W/25, j = l^2/100, against the control","l = W/50 at 10 dx (W/dx = 500), against control_n500","reference: l = W/50 at 20 dx, j = l^2 (table 22)",noise floor: lattice shifted,noise floor: half Mach
+first enstrophy peak,-20.81 %,-6.09 %,-29.63 %,-15.26 %,-15.68 %,+0.04 %,+0.01 %
+time of the first enstrophy peak,+0.0052,+0.0061,+0.0140,-0.0014,-0.0009,-0.0003,+0.0008
+second enstrophy peak,no maximum,no maximum,no maximum,no maximum,no maximum,+0.09 %,+0.06 %
+enstrophy at the time of the control's second peak,-15.63 %,-5.07 %,-28.74 %,-10.73 %,-11.12 %,+0.08 %,+0.06 %
+kinetic energy at t = 0.75,-4.01 %,-0.25 %,-8.67 %,-3.84 %,-3.77 %,-0.01 %,+0.10 %
+kinetic energy at t = 0.25 (before the collision),-1.76 %,-1.32 %,-4.68 %,-0.45 %,-0.44 %,-0.00 %,-0.01 %
+enstrophy at t = 0.25 (before the collision),-5.09 %,-3.72 %,-11.06 %,-1.45 %,-1.42 %,+0.01 %,+0.04 %
+vorticity maximum of the primary core at t = 0.25 (before the collision),-3.10 %,-2.45 %,-7.94 %,-1.58 %,-0.67 %,-0.13 %,+2.25 %
+first approach of the primary core to the wall (W - x),+0.0022,-0.0019,+0.0088,+0.0050,+0.0041,-0.0009,-0.0026
+rebound of the primary core (largest W - x between the approaches),-0.0084,+0.0020,-0.0063,-0.0127,-0.0104,-0.0011,-0.0013
+second approach of the primary core (W - x),+0.0106,+0.0010,+0.0251,+0.0104,+0.0097,-0.0066,+0.0013
+"wall vorticity at the first collision, peak",-28.14 %,-3.32 %,-33.03 %,-24.17 %,-25.67 %,-0.40 %,+0.44 %
+"wall vorticity at the first collision, integral over 0 < y < W",-25.79 %,-3.63 %,-27.48 %,-23.85 %,-23.00 %,-0.43 %,+0.46 %
+"wall shear traction, peak",+14.98 %,-3.32 %,+7.15 %,+21.32 %,+18.92 %,-0.40 %,+0.44 %
+"wall shear traction, integral over 0 < y < W",+18.73 %,-3.63 %,+16.03 %,+21.84 %,+23.21 %,-0.43 %,+0.46 %
+"wall vorticity flux, integral over 0 < y < W",-42.65 %,-8.21 %,-38.94 %,-44.22 %,-37.52 %,-0.25 %,+1.13 %
+"momentum balance at the wall, integral",+3.60 %,-4.80 %,+0.95 %,-2.79 %,+8.82 %,-0.25 %,+1.13 %
+pressure difference along the wall,+1.96 %,+2.38 %,-1.04 %,+0.32 %,-0.41 %,-0.22 %,+3.89 %
+delta* / Lambda (Lambda of the run's control),1.42,-,2.85,1.43,1.42,,
+Lambda / l,0.263,-,0.132,0.262,0.263,,
