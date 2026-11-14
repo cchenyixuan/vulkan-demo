@@ -9,6 +9,9 @@ control_n1000_half_mach       0.0010  1.000  2.00000   799.79  0.3732   918.82  
 control_n1000_shifted         0.0010  1.000  2.00000   799.79  0.3720   919.10  0.6482   301.45   1.019    0
 mp_l50_n1000                  0.0010  1.000  2.00000   799.79  0.3715   774.71     nan      nan   0.931    0
 mp_l100_n1000                 0.0010  1.000  2.00000   799.79  0.3715   794.81     nan      nan   0.926    0
+mp_l50_j001_n1000             0.0010  1.000  2.00000   799.79  0.3776   727.56     nan      nan   0.925    0
+mp_l25_j001_n1000             0.0010  1.000  2.00000   799.79  0.3864   646.52     nan      nan   0.924    0
+mp_l50_n500                   0.0020  1.000  2.00000   799.16  0.3734   762.14     nan      nan   1.362    0
 
 control_n250 against the benchmark (SM: spectral, FD: finite differences; difference relative to SM, absolute for times and positions)
   quantity                                              SM          FD         run  difference
@@ -194,3 +197,13 @@ shear length of the wall x = W at the first collision (control, t = 0.3725): ref
 the wall x = W at the control's first enstrophy peak: shear traction and momentum balance
   mp_l100_n1000: (mu + kappa) omega_w over mu_inf omega_w of the control 1.1820 (peak), 1.1739 (integral); (mu + kappa) d omega/dn = 15.249, kappa dw/dn = -5.928, their difference over mu_inf d omega/dn of the control 1.0563 (the pressure difference along the wall 1.0144); the couple term is 0.389 of the vorticity term
   mp_l50_n1000: (mu + kappa) omega_w over mu_inf omega_w of the control 1.1892 (peak), 1.2321 (integral); (mu + kappa) d omega/dn = 20.044, kappa dw/dn = -1.774, their difference over mu_inf d omega/dn of the control 1.0882 (the pressure difference along the wall 0.9959); the couple term is 0.088 of the vorticity term
+
+check mp_l50_j001_n1000 against control_n1000 (times of control_n1000): first enstrophy peak -0.2081, wall vorticity -0.2814, traction +0.1498, flux -0.4265, primary core at t = 0.25 -0.0310; delta* / Lambda 1.425
+
+check mp_l50_j001_n1000 against mp_l50_n1000 (times of control_n1000): first enstrophy peak -0.0609, wall vorticity -0.0332, traction -0.0332, flux -0.0821, primary core at t = 0.25 -0.0245; delta* / Lambda 1.425
+
+check mp_l25_j001_n1000 against control_n1000 (times of control_n1000): first enstrophy peak -0.2963, wall vorticity -0.3303, traction +0.0715, flux -0.3894, primary core at t = 0.25 -0.0794; delta* / Lambda 2.850
+
+check mp_l50_n500 against control_n500 (times of control_n500): first enstrophy peak -0.1526, wall vorticity -0.2417, traction +0.2132, flux -0.4422, primary core at t = 0.25 -0.0158; delta* / Lambda 1.433
+
+check mp_l50_n1000 against control_n1000 (times of control_n1000): first enstrophy peak -0.1568, wall vorticity -0.2567, traction +0.1892, flux -0.3752, primary core at t = 0.25 -0.0067; delta* / Lambda 1.425

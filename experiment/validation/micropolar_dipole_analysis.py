@@ -75,7 +75,8 @@ def value_at(times: np.ndarray, values: np.ndarray, time: float) -> float:
     return float(np.interp(time, times, values))
 
 
-def track(times: np.ndarray, table: np.ndarray, start_time: float, start_choice, reach: float = 0.06):
+def track(times: np.ndarray, table: np.ndarray, start_time: float, start_choice, reach: float = 0.06,
+          strongest: bool = False):
     """Follow one extremum through the samples: table (samples, kept, 3) rows (value, x, y). The first sample at or
     after start_time takes the row chosen by start_choice(rows); later samples the row nearest the previous
     position within `reach` (a gap ends the track)."""
@@ -93,7 +94,14 @@ def track(times: np.ndarray, table: np.ndarray, start_time: float, start_choice,
             distance = np.hypot(valid[:, 1] - previous[0], valid[:, 2] - previous[1])
             if distance.min() > reach:
                 break
-            chosen = valid[np.argmin(distance)]
+            if strongest:
+                # the strongest extremum within reach (the nearest one can be a weak extremum of the wake: the
+                # n = 500 run's primary jumped to one at t = 0.09 with the nearest rule); used by the checks only,
+                # table 22 keeps the nearest rule
+                near = valid[distance <= reach]
+                chosen = near[np.argmax(np.abs(near[:, 0]))]
+            else:
+                chosen = valid[np.argmin(distance)]
         previous = (chosen[1], chosen[2])
         track_time.append(time)
         track_value.append(chosen[0])
@@ -180,7 +188,7 @@ def field_track(run: str, start_time: float, sign: float, start_region: tuple, w
             "value": np.asarray(track_value), "source": "fields every 0.025, Gaussian of two nodes"}
 
 
-def summary(entry: dict) -> dict:
+def summary(entry: dict, strongest: bool = False) -> dict:
     samples, record = entry["samples"], entry["record"]
     times = samples["time"]
     initial = record.get("initial", {})
@@ -188,12 +196,12 @@ def summary(entry: dict) -> dict:
     first, second = (peak(times, samples["enstrophy"], window) for window in dipole.WINDOWS)
     palinstrophy_first, palinstrophy_second = (peak(times, samples["palinstrophy"], window)
                                                for window in dipole.WINDOWS)
-    primary = track(times, samples["positive_extrema"], 0.0, lambda rows: rows[0])
+    primary = track(times, samples["positive_extrema"], 0.0, lambda rows: rows[0], strongest=strongest)
     # the secondary vortex: the strongest negative extremum of the upper half detached from the wall after the
     # first collision
     # the secondary from the saved fields (see field_track): at t = 0.45 the negative core above the primary
     secondary = field_track(entry["run"], SECONDARY_START, -1.0, ((0.6, dipole.HALF_WIDTH - DETACHED), (0.2, 0.5)))
-    lower = track(times, samples["lower_negative_extrema"], 0.0, lambda rows: rows[0])
+    lower = track(times, samples["lower_negative_extrema"], 0.0, lambda rows: rows[0], strongest=strongest)
     result = {
         "run": entry["run"], "partial": bool(record.get("partial")), "spacing": spacing,
         "end_time": float(times[-1]), "samples": int(times.size),
@@ -211,6 +219,9 @@ def summary(entry: dict) -> dict:
         if primary["time"].size and primary["time"][-1] >= time - 1e-9:
             primary_rows[f"{time:g}"] = [value_at(primary["time"], primary[key], time) for key in ("x", "y", "value")]
     result["primary"] = primary_rows
+    if primary["time"].size and primary["time"][-1] >= 0.25:
+        # the strength of the primary core before the collision (Stage 8 checks: the bulk decay of the cores)
+        result["primary_value_at_0.25"] = value_at(primary["time"], primary["value"], 0.25)
     # the symmetry of the collision: the negative primary of the lower half against the positive one
     if lower["time"].size and primary["time"].size:
         common = min(lower["time"].size, primary["time"].size)
@@ -347,6 +358,69 @@ def compare(run: dict, base: dict) -> dict:
             out[f"energy_{time}"] = relative(run["global"][time][0], base["global"][time][0])
             out[f"enstrophy_{time}"] = relative(run["global"][time][1], base["global"][time][1])
     return out
+
+
+# Stage 8 checks (13 Nov task, Part 0): (run, the run it is compared with, the control whose peak times are used)
+CHECK_PAIRS = (("mp_l50_j001_n1000", "control_n1000", "control_n1000"),
+               ("mp_l50_j001_n1000", "mp_l50_n1000", "control_n1000"),
+               ("mp_l25_j001_n1000", "control_n1000", "control_n1000"),
+               ("mp_l50_n500", "control_n500", "control_n500"),
+               ("mp_l50_n1000", "control_n1000", "control_n1000"))
+
+
+def check_pairs(results: dict, entries: dict, say) -> dict:
+    """The rows of table 22 for the check runs: each against its base at the peak times of its family's control
+    (the wall at the control's first enstrophy peak, the enstrophy at both), with the wall traction and the
+    momentum balance at the wall for micropolar runs, and the strength of the primary core at t = 0.25."""
+    checks, results_strongest = {}, {}
+    for run, base, control in CHECK_PAIRS:
+        if not all(name in results for name in (run, base, control)):
+            continue
+        first_time, second_time = (results[control]["enstrophy_peaks"][index][0] for index in (0, 1))
+        pair = {}
+        for name in (run, base):
+            samples = entries[name]["samples"]
+            item = summary(entries[name], strongest=True)
+            results_strongest[name] = item
+            item["wall_common"] = wall_at(samples, entries[name]["record"]["dipole"]["spacing"], first_time)
+            for label, time in (("first", first_time), ("second", second_time)):
+                item[f"enstrophy_at_base_{label}_peak"] = value_at(samples["time"], samples["enstrophy"], time)
+            pair[name] = item
+        values = compare(pair[run], pair[base])
+        designs = {name: json.loads((_REPO_ROOT / f"cases/dipole/{name}/dipole.json").read_text(encoding="utf-8"))
+                   ["design"] for name in (run, base)}
+        wall_run, wall_base = pair[run]["wall_common"], pair[base]["wall_common"]
+        values["wall_traction_peak"] = ((designs[run]["viscosity"] * wall_run["vorticity_peak"])
+                                        / (designs[base]["viscosity"] * wall_base["vorticity_peak"]) - 1.0)
+        values["wall_traction_integral"] = ((designs[run]["viscosity"] * wall_run["vorticity_integral_upper"])
+                                            / (designs[base]["viscosity"] * wall_base["vorticity_integral_upper"]) - 1.0)
+        def balance(name, wall):
+            spin = designs[name]["coupling"] * wall.get("spin_flux_integral_upper", 0.0) if designs[name]["coupling"] else 0.0
+            return designs[name]["viscosity"] * wall["flux_integral_upper"] - spin
+        values["wall_momentum_balance"] = balance(run, wall_run) / balance(base, wall_base) - 1.0
+        values["primary_value_at_0.25"] = (pair[run].get("primary_value_at_0.25", float("nan"))
+                                           / pair[base].get("primary_value_at_0.25", float("nan")) - 1.0)
+        # the shear length of the family's control and delta* / Lambda of the run
+        control_wall = pair[base]["wall_common"] if base == control else wall_at(
+            entries[control]["samples"], entries[control]["record"]["dipole"]["spacing"], first_time)
+        shear_length = control_wall["edge_velocity_max"] / abs(control_wall["vorticity_peak"])
+        length = dipole.RUNS[run][1] * dipole.HALF_WIDTH
+        displacement = dipole.COUPLING_RATIO * length / (2.0 * (1.0 + dipole.COUPLING_RATIO))
+        key = f"{run}__against__{base}"
+        checks[key] = {"run": run, "base": base, "control": control, "changes": values,
+                       "base_values": {"enstrophy_peak_first_value": pair[base]["enstrophy_peaks"][0][1],
+                                       "wall_vorticity_peak": wall_base["vorticity_peak"],
+                                       "primary_value_at_0.25": pair[base].get("primary_value_at_0.25")},
+                       "run_values": {"primary_value_at_0.25": pair[run].get("primary_value_at_0.25"),
+                                      "enstrophy_peaks": results[run]["enstrophy_peaks"]},
+                       "shear_length": shear_length, "displacement_over_shear_length": displacement / shear_length,
+                       "shear_length_over_length": shear_length / length}
+        say()
+        say(f"check {run} against {base} (times of {control}): first enstrophy peak "
+            f"{values['enstrophy_peak_first_value']:+.4f}, wall vorticity {values['wall_vorticity_peak']:+.4f}, traction "
+            f"{values['wall_traction_peak']:+.4f}, flux {values['wall_flux_integral_upper']:+.4f}, primary core at t = 0.25 "
+            f"{values['primary_value_at_0.25']:+.4f}; delta* / Lambda {displacement / shear_length:.3f}")
+    return checks
 
 
 def command_analyse(arguments) -> int:
@@ -501,6 +575,7 @@ def command_analyse(arguments) -> int:
                 f"{spin_term:.3f}, their difference over mu_inf d omega/dn of the control {balance['balance_over_control']:.4f} "
                 f"(the pressure difference along the wall {balance['pressure_difference_over_control']:.4f}); the couple "
                 f"term is {balance['spin_term_share']:.3f} of the vorticity term")
+    checks = check_pairs(results, entries, say)
     out_dir = _REPO_ROOT / dipole.DATA_DIRECTORY
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "dipole.txt").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
@@ -512,7 +587,7 @@ def command_analyse(arguments) -> int:
         return value
     (out_dir / "dipole.json").write_text(json.dumps(
         plain({"benchmark": benchmark, "runs": results, "validation": validation, "floors": floors,
-               "comparisons": comparisons}), indent=1, default=float), encoding="utf-8")
+               "comparisons": comparisons, "checks": checks}), indent=1, default=float), encoding="utf-8")
     return 0
 
 

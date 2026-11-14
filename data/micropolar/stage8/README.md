@@ -20,6 +20,12 @@ Branch `v10-showcase`; the solver directories `experiment/v7/shaders` and `exper
 | `control_n1000_shifted` | W / 1000 | 4 M | the dipole moved by dx / 2 along x (lattice shifted against the flow): noise floor |
 | `control_n1000_half_mach` | W / 1000 | 4 M | speed of sound 1200 m/s instead of 600 (Ma 0.009 on the largest initial speed) |
 | `mp_l100_n1000`, `mp_l50_n1000` | W / 1000 | 4 M | micropolar, K = 3, l = W / 100 (10 dx) and W / 50 (20 dx), Theta = l^2 |
+| `mp_l50_j001_n1000` | W / 1000 | 4 M | check 1 (micro-inertia): l = W / 50, Theta = l^2 / 100 |
+| `mp_l25_j001_n1000` | W / 1000 | 4 M | check 2 (saturation): l = W / 25 (40 dx), Theta = l^2 / 100 |
+| `mp_l50_n500` | W / 500 | 1 M | check 3 (resolution of l): l = W / 50 at 10 dx, against `control_n500` |
+
+The checks are compared in `dipole.json` under `checks` (each run against its control, and check 1 also against
+`mp_l50_n1000`; the core tracked as the strongest extremum within reach) and in pack item 26; design note 17.6.
 
 ## Commands
 
@@ -31,7 +37,7 @@ python -u -m experiment.validation.micropolar_dipole run control_n1000 --device-
 python -m experiment.validation.micropolar_dipole_analysis checks
 python -m experiment.validation.micropolar_dipole_analysis analyse
 python -m experiment.validation.micropolar_dipole_analysis fields --runs control_n1000 mp_l100_n1000 mp_l50_n1000 --times 0.35 0.45 0.6 0.7
-python data/micropolar/ch5_draft/make_all.py 20 21 22
+python data/micropolar/ch5_draft/make_all.py 20 21 22 26
 ```
 
 The runs were queued with `micropolar_stage6 runner` on `logs/micropolar/stage8/queue0/plan.json` (5090) and

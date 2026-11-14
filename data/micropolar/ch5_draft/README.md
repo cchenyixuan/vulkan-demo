@@ -35,7 +35,7 @@ Design note: `docs/micropolar_design.md`, Section 15. Run data of Stage 6: `data
 - Reynolds numbers: on `mu_inf` (the far viscosity `mu + kappa / 2`, the one the cases are set by) and on `mu`
   (`Re_g (1 + K / 2)`, the one the thesis quotes).
 
-## Index (written 2026-11-14 09:46)
+## Index (written 2026-11-14 13:39)
 
 | no. | item | files | status | data |
 |---|---|---|---|---|
@@ -58,3 +58,4 @@ Design note: `docs/micropolar_design.md`, Section 15. Run data of Stage 6: `data
 | 20 | Dipole-wall collision: vorticity of the control and of the two micropolar runs at four times | `fig_20_dipole_showcase.pdf`, `fig_20_dipole_showcase.png` | final | thesis-ch5-rc2 solver trees (runs on branch v10-showcase) |
 | 21 | Dipole-wall collision: core trajectories and enstrophy against the benchmark | `fig_21_dipole_tracks.pdf`, `fig_21_dipole_tracks.png` | final | thesis-ch5-rc2 solver trees (runs on branch v10-showcase) |
 | 22 | Dipole-wall collision: numbers against the control with the noise floor | `tab_22_dipole_numbers.csv`, `tab_22_dipole_numbers.tex` | final | thesis-ch5-rc2 solver trees (runs on branch v10-showcase) |
+| 26 | Dipole-wall collision: the checks of micro-inertia, saturation and resolution | `tab_26_dipole_checks.csv`, `tab_26_dipole_checks.tex` | final | thesis-ch5-rc2 solver trees (runs on branch v10-showcase) |

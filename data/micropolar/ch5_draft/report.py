@@ -435,6 +435,94 @@ def main() -> int:
         say("- **Figures:** item 20 (vorticity of the three runs at t = 0.35, 0.45, 0.6, 0.7, and w - omega / 2 of "
             "l = W / 50), item 21 (core trajectories, enstrophy with the benchmark points), table 22.")
         say()
+        checks = dipole.get("checks", {})
+        reference = checks.get("mp_l50_n1000__against__control_n1000")
+        if reference and len(checks) > 1:
+            say("### 9.1 Three checks (table 26) [run]")
+            say()
+            say("Each run against its control with the definitions and floors of table 22 (the core positions from the "
+                "strongest extremum within reach, for the reference too).")
+            say()
+            keys = (("enstrophy_peak_first_value", "first enstrophy peak"),
+                    ("enstrophy_at_base_second_peak", "enstrophy at the control's second peak"),
+                    ("energy_0.25", "kinetic energy at t = 0.25 (before the collision)"),
+                    ("enstrophy_0.25", "enstrophy at t = 0.25"),
+                    ("primary_value_at_0.25", "primary core, vorticity maximum at t = 0.25"),
+                    ("wall_vorticity_peak", "wall vorticity at the first collision"),
+                    ("wall_traction_peak", "wall shear traction, peak"),
+                    ("wall_traction_integral", "wall shear traction, integral"),
+                    ("wall_flux_integral_upper", "vorticity flux into the fluid at the wall"))
+            columns = [("mp_l50_j001_n1000__against__control_n1000", "l = W/50, j = l^2/100"),
+                       ("mp_l50_j001_n1000__against__mp_l50_n1000", "the same against j = l^2"),
+                       ("mp_l25_j001_n1000__against__control_n1000", "l = W/25, j = l^2/100"),
+                       ("mp_l50_n500__against__control_n500", "l = W/50 at 10 dx"),
+                       ("mp_l50_n1000__against__control_n1000", "reference: l = W/50, 20 dx, j = l^2")]
+            columns = [(key, label) for key, label in columns if key in checks]
+            say(table(["against the control"] + [label for _key, label in columns],
+                      [[label] + [f"{100.0 * checks[key]['changes'][quantity]:+.1f} %" for key, _label in columns]
+                       for quantity, label in keys]))
+            say()
+            effect = reference["changes"]
+            inertia = checks.get("mp_l50_j001_n1000__against__mp_l50_n1000")
+            if inertia:
+                moved = {quantity: inertia["changes"][quantity] / effect[quantity]
+                         for quantity in ("enstrophy_peak_first_value", "wall_vorticity_peak")}
+                say(f"- **The micro-inertia matters** (j = l^2 / 100 against j = l^2, l = W / 50): the first enstrophy "
+                    f"peak moves by {100.0 * inertia['changes']['enstrophy_peak_first_value']:+.1f} %, "
+                    f"{abs(moved['enstrophy_peak_first_value']):.2f} of the micropolar effect "
+                    f"({100.0 * effect['enstrophy_peak_first_value']:+.1f} %), more than the quarter set in the task; "
+                    f"the wall vorticity by {100.0 * inertia['changes']['wall_vorticity_peak']:+.1f} % "
+                    f"({abs(moved['wall_vorticity_peak']):.2f} of the effect). Most of the difference is there "
+                    "before the collision: at t = 0.25 the kinetic energy is "
+                    f"{100.0 * checks['mp_l50_j001_n1000__against__control_n1000']['changes']['energy_0.25']:+.2f} % and the "
+                    "enstrophy "
+                    f"{100.0 * checks['mp_l50_j001_n1000__against__control_n1000']['changes']['enstrophy_0.25']:+.1f} % "
+                    f"off the control (j = l^2: {100.0 * effect['energy_0.25']:+.2f} % and "
+                    f"{100.0 * effect['enstrophy_0.25']:+.1f} %; floor 0.01 % and 0.04 %). With j = l^2 the "
+                    "micro-rotation lags the vorticity of a decaying flow and the bulk effect is held back (here to a "
+                    "quarter to a third of that with j = l^2 / 100; the exact Taylor-Green solution of Stage 8b gives "
+                    "a third of the quasi-steady mu_eff excess at small |k| l, and j = l^2 / 100 recovers it). The dt "
+                    "did not change (the angular-diffusion limit 3.5e-6 lies above 1.25e-6).")
+            saturation = checks.get("mp_l25_j001_n1000__against__control_n1000")
+            if saturation:
+                changes = saturation["changes"]
+                strength = saturation["run_values"]["primary_value_at_0.25"]
+                base_strength = saturation["base_values"]["primary_value_at_0.25"]
+                say(f"- **Saturation: the reading does not hold here** (l = W / 25 = 40 dx, j = l^2 / 100, Lambda / l = "
+                    f"{saturation['shear_length_over_length']:.2f}). The wall traction excess is "
+                    f"{100.0 * changes['wall_traction_peak']:+.1f} % (peak) and "
+                    f"{100.0 * changes['wall_traction_integral']:+.1f} % (integral), not the +26.5 % (sqrt(1.6) - 1) "
+                    "of a layer pinned at w = 0 across the boundary layer of the control's flow: the dipole itself "
+                    "(core radius r0 = 2.5 l) is in the micropolar range and arrives weaker. **The vorticity maximum "
+                    f"of the primary core at t = 0.25 is {strength:.1f} against {base_strength:.1f} of the control "
+                    f"({100.0 * changes['primary_value_at_0.25']:+.1f} %; floor -0.13 % shifted lattice, +2.3 % half "
+                    f"Mach)**, E and the enstrophy at t = 0.25 {100.0 * changes['energy_0.25']:+.1f} % and "
+                    f"{100.0 * changes['enstrophy_0.25']:+.1f} %; the wall vorticity of the first collision "
+                    f"{100.0 * changes['wall_vorticity_peak']:+.1f} %, the first enstrophy peak "
+                    f"{100.0 * changes['enstrophy_peak_first_value']:+.1f} %. At the wall (mu + kappa) d omega / dn - "
+                    f"kappa d w / dn is {100.0 * changes['wall_momentum_balance']:+.1f} % off the control's mu_inf "
+                    "d omega / dn and the pressure difference along the wall "
+                    f"{100.0 * changes['wall_pressure_difference_along_wall']:+.1f} %: the balance closes.")
+            resolution = checks.get("mp_l50_n500__against__control_n500")
+            if resolution:
+                changes = resolution["changes"]
+                parts = []
+                for quantity, label in keys:
+                    if quantity == "primary_value_at_0.25":       # the reference effect (-0.7 %) is below its floor
+                        continue
+                    gap = changes[quantity] - effect[quantity]
+                    share = abs(gap / effect[quantity]) if effect[quantity] else float("nan")
+                    if share > 0.1:
+                        parts.append(f"{label} {100.0 * changes[quantity]:+.1f} % against {100.0 * effect[quantity]:+.1f} "
+                                     f"% ({share:.2f} of the effect)")
+                say("- **Resolution of l** (l = W / 50 at 10 dx, W / dx = 500, against `control_n500`): the first "
+                    f"enstrophy peak {100.0 * changes['enstrophy_peak_first_value']:+.1f} % and the wall vorticity "
+                    f"{100.0 * changes['wall_vorticity_peak']:+.1f} % (20 dx: "
+                    f"{100.0 * effect['enstrophy_peak_first_value']:+.1f} % and {100.0 * effect['wall_vorticity_peak']:+.1f} %)"
+                    + ("; differing by more than a tenth of the effect: " + "; ".join(parts) if parts else "")
+                    + ". [inferred] The quantities read at the wall (traction, flux) are those that resolve the layer "
+                    "w = 0 to omega / 2; the global ones agree.")
+            say()
 
     say("## 10. To be careful with in the text")
     say()

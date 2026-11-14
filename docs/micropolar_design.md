@@ -4207,3 +4207,77 @@ those of `thesis-ch5-rc2`. Tools: `experiment/validation/micropolar_dipole.py` (
 - **Leakage:** the regression coefficient k_w (17.3) is not the seepage coefficient of eq. (5.13); the runs show no
   fluid beyond the wall planes and a mean density constant to 1e-6.
 - **Not done:** Re = 1250 and 2500, the oblique collision, a run at dx = W / 2000.
+
+### 17.6 Three checks, and the pack style (2026-11-14) **[run]**
+
+The task: the micro-inertia (l = W / 50 with j = l^2 / 100), the saturation of the wall excess (l = W / 25, j = l^2
+/ 100) and the resolution of l (l = W / 50 at W / dx = 500, i.e. 10 dx), each with the definitions and floors of
+table 22, the runner, numerics and controls unchanged. The runs were added to `micropolar_dipole.py` (382619d:
+a micro-inertia factor per run); `micropolar_dipole_analysis.py` gained the check pairs (`checks` in
+`dipole.json`), the strongest-extremum track for them and the core strength at t = 0.25; table 22 and its inputs
+are unchanged (rebuilt byte-identical). Pack item 26 (`tab_26_dipole_checks`), REPORT.md 9.1.
+
+| run | particles (fluid) | card | steps | dt (s) | steps/s | wall time |  | revision |
+|---|---|---|---|---|---|---|---|---|
+| `mp_l50_j001_n1000` | 4,088,484 (4,000,000) | 5090 | 800,000 | 1.250e-06 | 113.1 | 118 min | every counter zero | thesis-ch5-rc2-47-g39ae48d |
+| `mp_l25_j001_n1000` | 4,088,484 (4,000,000) | 5090 | 800,000 | 1.250e-06 | 113.4 | 118 min | every counter zero | thesis-ch5-rc2-49-g382619d |
+| `mp_l50_n500` | 1,044,484 (1,000,000) | XTX | 400,000 | 2.500e-06 | 232.8 | 29 min | every counter zero | thesis-ch5-rc2-47-g39ae48d |
+
+- **dt.** j = l^2 / 100 raises the angular-diffusion rate xi / Theta a hundredfold; its limit 0.0334 h^2 Theta /
+  xi is 3.48e-6 at l = W / 50 and the same at W / 25 (xi and Theta both scale as l^2), above the acoustic step
+  1.25e-6: **dt unchanged**, 800,000 steps. The loader's warning "angular step number 0.3" counts in dx^2 (0.012
+  in h^2, the limit 0.0334).
+- **Revision.** `mp_l50_j001_n1000` and `mp_l50_n500` started at 09:41 on 39ae48d; 382619d (the run table only)
+  followed at 09:46; every `solver_modified` is false: the solver trees of thesis-ch5-rc2.
+
+| against the control | l = W/50, j = l^2/100 | the same against j = l^2 | l = W/25, j = l^2/100 | l = W/50 at 10 dx | reference (table 22 run) | floor |
+|---|---|---|---|---|---|---|
+| first enstrophy peak | -20.8 % | -6.1 % | -29.6 % | -15.3 % | -15.7 % | 0.04 % |
+| time of the first peak | +0.0052 | +0.0061 | +0.0140 | -0.0014 | -0.0009 | 0.0008 |
+| enstrophy at the control's second peak | -15.6 % | -5.1 % | -28.7 % | -10.7 % | -11.1 % | 0.08 % |
+| E(0.25), before the collision | -1.76 % | -1.32 % | -4.68 % | -0.45 % | -0.44 % | 0.01 % |
+| enstrophy at t = 0.25 | -5.1 % | -3.7 % | -11.1 % | -1.4 % | -1.4 % | 0.04 % |
+| primary core, vorticity maximum at t = 0.25 | -3.1 % | -2.4 % | -7.9 % | -1.6 % | -0.7 % | 2.3 % (half Mach) |
+| E(0.75) | -4.0 % | -0.3 % | -8.7 % | -3.8 % | -3.8 % | 0.10 % |
+| wall vorticity at the first collision | -28.1 % | -3.3 % | -33.0 % | -24.2 % | -25.7 % | 0.44 % |
+| wall shear traction, peak | +15.0 % | -3.3 % | +7.2 % | +21.3 % | +18.9 % | 0.44 % |
+| wall shear traction, integral | +18.7 % | -3.6 % | +16.0 % | +21.8 % | +23.2 % | 0.46 % |
+| vorticity flux into the fluid at the wall | -42.6 % | -8.2 % | -38.9 % | -44.2 % | -37.5 % | 1.13 % |
+| delta* / Lambda; Lambda / l | 1.42; 0.26 | - | 2.85; 0.13 | 1.43; 0.26 | 1.42; 0.26 | |
+
+- Changes against each run's control (check 1 also against `mp_l50_n1000`), the wall read at the control's first
+  enstrophy peak; the floor is the larger of table 22's two (shifted lattice, half Mach). The primary core is
+  tracked as the strongest extremum within reach in every column, the reference too: its core rows differ from
+  table 22 (nearest extremum) by up to 0.0025 W. Full rows in item 26.
+- **1. The micro-inertia moves the result (flagged).** Against `mp_l50_n1000` (j = l^2), j = l^2 / 100 moves the
+  first enstrophy peak by -6.1 %, 0.39 of the micropolar effect (-15.7 %): more than the quarter the task set.
+  The wall vorticity moves by -3.3 % (0.13 of the effect: below it); the time of the first peak by +0.0061
+  (floor 0.0008). Most of the change is in the bulk before the collision: at t = 0.25 E is -1.76 % and the
+  enstrophy -5.1 % off the control (j = l^2: -0.44 % and -1.4 %). [inferred] The relaxation time of w, rho j / (2
+  kappa) = Theta / (2 c), is 0.10 W / U for j = l^2, a quarter of the time to the collision: the micro-rotation of
+  the decaying dipole carries spin from its earlier vorticity and the couple draws less. Section 18.2 makes this
+  exact for the Taylor-Green vortex: with j = l^2 the excess over mu + kappa / 2 is a third of the quasi-steady one
+  at small |k| l, whatever l is, and j = l^2 / 100 recovers mu_eff. At the wall the peak traction excess falls from
+  +18.9 % to +15.0 % (the wall vorticity of the weaker dipole is smaller).
+- **2. Saturation: the reading does not hold here.** l = W / 25 (40 dx, Lambda / l = 0.13): the peak traction
+  excess is +7.2 % (the integral +16.0 %), not sqrt(1.6) - 1 = +26.5 %. That reading assumes the outer flow of the
+  control; here the dipole itself (core radius r0 = 2.5 l) is in the micropolar range and arrives weaker. **The
+  vorticity maximum of the primary core at t = 0.25 is 221.5 against 240.5 of the control (-7.9 %; floor -0.13 %
+  shifted lattice, +2.3 % half Mach)**; E and the enstrophy at t = 0.25 -4.7 % and -11.1 %; the wall vorticity of
+  the first collision -33.0 % (0.67 times the control's), so (mu + kappa) omega_w = 1.6 x 0.67 = 1.07 of the
+  control's. The first enstrophy peak -29.6 %, 0.014 later; the momentum balance at the wall closes (+0.95 % of the
+  control's mu_inf d omega / dn; pressure difference along the wall -1.0 %).
+- **3. The resolution of l (flagged at the wall).** l = W / 50 at 10 dx against `control_n500`: the first
+  enstrophy peak -15.3 % (20 dx: -15.7 %), the enstrophy at the control's second peak -10.7 % (-11.1 %), E and the
+  enstrophy at t = 0.25 -0.45 % and -1.45 % (-0.44 % and -1.42 %), the wall vorticity -24.2 % (-25.7 %): within a
+  tenth of the effect. Beyond a tenth: the peak traction +21.3 % against +18.9 % (0.13 of the effect; the integral
+  +21.8 % against +23.2 %, 0.06) and the flux of vorticity -44.2 % against -37.5 % (0.18). [inferred] These read
+  the wall, where the layer of w from 0 to omega / 2 (about l, 10 dx here) meets a boundary layer of Lambda =
+  0.0053 W (2.6 dx at n500, 5.3 dx at n1000): the resolution of the wall layer limits them, not that of l alone.
+  The core maximum at t = 0.25 (-1.6 % against -0.7 %) lies below its floor. The n500 pair has no floor run of its
+  own; the floors are those of n1000.
+- **Pack style.** CMU Serif (cm-unicode, OFL, the 33 OpenType files installed for the user account, no
+  administrator) with the matplotlib cache cleared, and `axes.unicode_minus: True`; every item rebuilt (0c85e2b).
+  The numbers of items/<nn>.json are unchanged except item 08, which had not been rebuilt since the g = 400 dx row
+  arrived and now carries it (`torque.g400_k3_m20`); item 16's caption counts 19 rows (was 18) and the tag lists
+  of captions 01, 03 and 04 are sorted deterministically.

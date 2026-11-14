@@ -1,6 +1,6 @@
 # Chapter 5: what the solver has shown
 
-Written 2026-11-14 03:52 at commit `89e421b` (branch `v10-showcase`; solver tag `thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number below is read from the data files by `report.py`; the captions with all parameters and run names are in `captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6), 16 (Stage 7) and 17 (Stage 8, the dipole-wall collision).
+Written 2026-11-14 13:39 at commit `382619d` (branch `v10-showcase`; solver tag `thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number below is read from the data files by `report.py`; the captions with all parameters and run names are in `captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6), 16 (Stage 7) and 17 (Stage 8, the dipole-wall collision).
 
 **State.** Every run of the chapter is done.
 
@@ -29,6 +29,7 @@ Marks: **[run]** measured in a particle run on the tag; **[host]** computed on t
 | 20 | Dipole-wall collision: vorticity of the control and of the two micropolar runs at four times | `fig_20_dipole_showcase.pdf` | final |
 | 21 | Dipole-wall collision: core trajectories and enstrophy against the benchmark | `fig_21_dipole_tracks.pdf` | final |
 | 22 | Dipole-wall collision: numbers against the control with the noise floor | `tab_22_dipole_numbers.csv`, `tab_22_dipole_numbers.tex` | final |
+| 26 | Dipole-wall collision: the checks of micro-inertia, saturation and resolution | `tab_26_dipole_checks.csv`, `tab_26_dipole_checks.tex` | final |
 
 ## 2. Concentric cylinders (items 01 to 04) [run]
 
@@ -225,6 +226,26 @@ Normal collision of a dipole with a no-slip wall (Clercx & Bruneau 2006), box [-
 - **Outside the first-order rule.** The shear length of the wall at the first collision is Lambda = 0.0053 W, so delta* / Lambda = 0.71 and 1.42 (Lambda / l = 0.53 and 0.26); the measured excess of the wall traction is +18 to +23 %, nearly independent of l: it saturates once the layer is thicker than the boundary layer. [inferred] Pinned at w = 0 across the boundary layer, the fluid has the viscosity mu + kappa there: sqrt((mu + kappa) / (mu + kappa / 2)) - 1 = 0.26 for a layer growing as sqrt(nu t).
 - **The mechanism.** The pressure along the wall is the same in all runs (set by the outer flow). At a no-spin wall dp/ds = (mu + kappa) d omega / dn - kappa d w / dn: with the measured d w / dn the balance closes to 1.056 and 1.088 of the control, the couple term taking 0.39 (l = W / 100) and 0.09 (W / 50) of the vorticity term. The no-spin wall passes part of the vorticity it would produce to the micro-rotation, and less vorticity leaves the wall; the secondary vortex is weaker and **neither micropolar run has a second enstrophy maximum** (the control has one at t = 0.649) ([inferred] the second because of the first).
 - **Figures:** item 20 (vorticity of the three runs at t = 0.35, 0.45, 0.6, 0.7, and w - omega / 2 of l = W / 50), item 21 (core trajectories, enstrophy with the benchmark points), table 22.
+
+### 9.1 Three checks (table 26) [run]
+
+Each run against its control with the definitions and floors of table 22 (the core positions from the strongest extremum within reach, for the reference too).
+
+| against the control | l = W/50, j = l^2/100 | the same against j = l^2 | l = W/25, j = l^2/100 | l = W/50 at 10 dx | reference: l = W/50, 20 dx, j = l^2 |
+|---|---|---|---|---|---|
+| first enstrophy peak | -20.8 % | -6.1 % | -29.6 % | -15.3 % | -15.7 % |
+| enstrophy at the control's second peak | -15.6 % | -5.1 % | -28.7 % | -10.7 % | -11.1 % |
+| kinetic energy at t = 0.25 (before the collision) | -1.8 % | -1.3 % | -4.7 % | -0.4 % | -0.4 % |
+| enstrophy at t = 0.25 | -5.1 % | -3.7 % | -11.1 % | -1.4 % | -1.4 % |
+| primary core, vorticity maximum at t = 0.25 | -3.1 % | -2.4 % | -7.9 % | -1.6 % | -0.7 % |
+| wall vorticity at the first collision | -28.1 % | -3.3 % | -33.0 % | -24.2 % | -25.7 % |
+| wall shear traction, peak | +15.0 % | -3.3 % | +7.2 % | +21.3 % | +18.9 % |
+| wall shear traction, integral | +18.7 % | -3.6 % | +16.0 % | +21.8 % | +23.2 % |
+| vorticity flux into the fluid at the wall | -42.6 % | -8.2 % | -38.9 % | -44.2 % | -37.5 % |
+
+- **The micro-inertia matters** (j = l^2 / 100 against j = l^2, l = W / 50): the first enstrophy peak moves by -6.1 %, 0.39 of the micropolar effect (-15.7 %), more than the quarter set in the task; the wall vorticity by -3.3 % (0.13 of the effect). Most of the difference is there before the collision: at t = 0.25 the kinetic energy is -1.76 % and the enstrophy -5.1 % off the control (j = l^2: -0.44 % and -1.4 %; floor 0.01 % and 0.04 %). With j = l^2 the micro-rotation lags the vorticity of a decaying flow and the bulk effect is held back (here to a quarter to a third of that with j = l^2 / 100; the exact Taylor-Green solution of Stage 8b gives a third of the quasi-steady mu_eff excess at small |k| l, and j = l^2 / 100 recovers it). The dt did not change (the angular-diffusion limit 3.5e-6 lies above 1.25e-6).
+- **Saturation: the reading does not hold here** (l = W / 25 = 40 dx, j = l^2 / 100, Lambda / l = 0.13). The wall traction excess is +7.2 % (peak) and +16.0 % (integral), not the +26.5 % (sqrt(1.6) - 1) of a layer pinned at w = 0 across the boundary layer of the control's flow: the dipole itself (core radius r0 = 2.5 l) is in the micropolar range and arrives weaker. **The vorticity maximum of the primary core at t = 0.25 is 221.5 against 240.5 of the control (-7.9 %; floor -0.13 % shifted lattice, +2.3 % half Mach)**, E and the enstrophy at t = 0.25 -4.7 % and -11.1 %; the wall vorticity of the first collision -33.0 %, the first enstrophy peak -29.6 %. At the wall (mu + kappa) d omega / dn - kappa d w / dn is +1.0 % off the control's mu_inf d omega / dn and the pressure difference along the wall -1.0 %: the balance closes.
+- **Resolution of l** (l = W / 50 at 10 dx, W / dx = 500, against `control_n500`): the first enstrophy peak -15.3 % and the wall vorticity -24.2 % (20 dx: -15.7 % and -25.7 %); differing by more than a tenth of the effect: wall shear traction, peak +21.3 % against +18.9 % (0.13 of the effect); vorticity flux into the fluid at the wall -44.2 % against -37.5 % (0.18 of the effect). [inferred] The quantities read at the wall (traction, flux) are those that resolve the layer w = 0 to omega / 2; the global ones agree.
 
 ## 10. To be careful with in the text
 
