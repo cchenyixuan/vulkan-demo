@@ -1,0 +1,72 @@
+{
+ "item": "23",
+ "title": "Micropolar Taylor-Green vortex: mu_eff against |k| l, and the two-mode solution",
+ "status": "final",
+ "caption": "The micropolar Taylor-Green vortex in the doubly periodic box [0, 2 pi)^2 (k = 1, |k| = sqrt 2, U0 = 1, Re = U0 / (k nu_inf) = 20, 50 on mu; K = 3; Ma 0.02; 400^2 particles, h = 5 dx; thesis numerics of Chapter 5). The field v = U(t) (sin kx cos ky, -cos kx sin ky), w = W(t) sin kx sin ky is an exact solution; U and W obey a linear 2 x 2 system (Section 18). (a) Decay rate of U of the micropolar run over that of its Newtonian control (viscosity mu + kappa / 2, the same particles and dt), fitted over 5 <= t <= 20, against |k| l: the quasi-steady mu_eff / (mu + kappa / 2) = 1 + 0.6 s / (1 + s), s = 0.625 (|k| l)^2 (solid; it tends to 1.6, dotted), the slow eigenvalue of the two-mode system with j = l^2 (dashed) and with j = l^2 / 100 (dash-dotted), the runs at 400^2 with j = l^2 (filled circles; bars: the largest floor of table 25), with j = l^2 / 100 (triangles) and with j = 1.5 l^2 (diamond), |k| l = 0.5 at 800^2 (open circle), and the exact two-mode solution fitted over the same window (crosses; at |k| l = 2 the fast mode, only 2.1 times faster, still enters the window). In a decaying flow the micro-rotation keeps spin from the earlier, larger vorticity: with j = l^2 the excess over mu + kappa / 2 is a third of the quasi-steady one at small |k| l, and with j = 1.5 l^2 (rho j (mu + kappa / 2) = gamma) w = omega / 2 is exact and the ratio is 1 at every |k| l. (b) The run |k| l = 1 with j = 0.755 l^2 (fast rate five times the slow one), started from W(0) = 0: U(t) and W(t) from the particles (projections on the two shapes; markers) against the exact two-mode solution (lines).",
+ "files": [
+  "fig_23_taylor_green.pdf",
+  "fig_23_taylor_green.png"
+ ],
+ "sources": [
+  "data/micropolar/stage8b/taylor_green.json"
+ ],
+ "numbers": {
+  "tgv_kl1_j150_n400": {
+   "over_control": 1.0004111829948439,
+   "exact_over_control": 1.0000000000000002,
+   "rate_over_exact": 0.999404082591488,
+   "spin_ratio_over_exact": 0.9994658387498847
+  },
+  "tgv_kl025_n400": {
+   "over_control": 1.0083269893951856,
+   "exact_over_control": 1.0075963976014057,
+   "mu_effective_ratio": 1.0225563909774436,
+   "rate_over_exact": 0.9997176673661565,
+   "spin_ratio_over_exact": 0.9989167778773058
+  },
+  "tgv_kl05_n400": {
+   "over_control": 1.0287445653239327,
+   "exact_over_control": 1.0281085659887237,
+   "mu_effective_ratio": 1.0810810810810811,
+   "rate_over_exact": 0.9996113018468719,
+   "spin_ratio_over_exact": 0.9990321267324256
+  },
+  "tgv_kl1_n400": {
+   "over_control": 1.0859247407641253,
+   "exact_over_control": 1.0855501955394833,
+   "mu_effective_ratio": 1.2307692307692306,
+   "rate_over_exact": 0.9993379942048192,
+   "spin_ratio_over_exact": 0.9993781354572064
+  },
+  "tgv_kl2_n400": {
+   "over_control": 1.1611833898723962,
+   "exact_over_control": 1.1611926330025262,
+   "mu_effective_ratio": 1.4285714285714284,
+   "rate_over_exact": 0.9989853615105919,
+   "spin_ratio_over_exact": 1.0000830445853697
+  },
+  "tgv_kl05_j001_n400": {
+   "over_control": 1.0806958025676927,
+   "exact_over_control": 1.080575425738175,
+   "mu_effective_ratio": 1.0810810810810811,
+   "rate_over_exact": 1.0010417873211153,
+   "spin_ratio_over_exact": 0.999596443949389
+  },
+  "tgv_kl1_j001_n400": {
+   "over_control": 1.2285490319535668,
+   "exact_over_control": 1.2296014291999315,
+   "mu_effective_ratio": 1.2307692307692306,
+   "rate_over_exact": 1.0000736019395284,
+   "spin_ratio_over_exact": 1.0000951310375144
+  },
+  "tgv_kl1_inertia_n400": {
+   "rate_over_exact": 0.9993187674339971,
+   "rms_error_U": 0.0002374779971433387,
+   "rms_error_W": 0.00010629980702892666,
+   "exact_slow_rate": 0.11276708290225623,
+   "exact_fast_rate": 0.5638576356035062,
+   "spin_ratio_over_exact": 0.9992826414459232
+  }
+ },
+ "tag": "v10-periodic (thesis-ch5-rc2 + the periodic domain of Stage 8b)"
+}

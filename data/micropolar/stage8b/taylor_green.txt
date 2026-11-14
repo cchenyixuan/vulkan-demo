@@ -1,0 +1,32 @@
+Stage 8b: the periodic domain. 1. The port check against v8-tgv (set v3: eps^2 = 1e-4 h^2, delta density; Re 100, nu_eff / nu = slope of ln E over t in [0.1, 2] against -2 (2 nu k^2))
+run                     nu_eff/nu   v8-tgv  difference  steps/s  counters
+check_n400_ma0p1           0.9948   0.9949     -0.0001     1296  zero
+check_n400_ma0p05          0.9973   0.9971     +0.0002     1303  zero
+check_n400_ma0p02          0.9990   0.9990     -0.0000     1328  zero
+check_n400_ma0p01          1.0006   1.0000     +0.0006     1361  zero
+check_n800_ma0p1           0.9962   0.9961     +0.0001      435  zero
+
+2. The micropolar Taylor-Green vortex (box [0, 2 pi), k = 1, Re = 20 on nu_inf, K = 3); rates fitted to ln U over t in (5.0, 20.0) for the run and for the exact two-mode solution sampled at the same times
+  tgv_control_n400             control: rate 0.099899, exact 2 k^2 nu_inf 0.100000, ratio 0.9990
+  tgv_control_n800             control: rate 0.099928, exact 2 k^2 nu_inf 0.100000, ratio 0.9993
+  tgv_kl025_n400               |k|l 0.25, Theta 1 l^2: rate 0.100731, exact 0.100760 (slow eigenvalue 0.100760, fast 4.049240): 0.9997; W/U 0.98627, exact 0.98734 (0.9989); rms U 1.03e-04, W 4.28e-04; over the control 1.0083 (exact 1.0076, quasi-steady mu_eff 1.0226)
+  tgv_kl05_n400                |k|l 0.5, Theta 1 l^2: rate 0.102771, exact 0.102811 (slow eigenvalue 0.102811, fast 1.167189): 0.9996; W/U 0.95224, exact 0.95316 (0.9990); rms U 1.50e-04, W 2.71e-04; over the control 1.0287 (exact 1.0281, quasi-steady mu_eff 1.0811)
+  tgv_kl1_n400                 |k|l 1, Theta 1 l^2: rate 0.108483, exact 0.108555 (slow eigenvalue 0.108792, fast 0.441208): 0.9993; W/U 0.85819, exact 0.85872 (0.9994); rms U 2.36e-04, W 6.17e-05; over the control 1.0859 (exact 1.0856, quasi-steady mu_eff 1.2308)
+  tgv_kl2_n400                 |k|l 2, Theta 1 l^2: rate 0.116001, exact 0.116119 (slow eigenvalue 0.120000, fast 0.250000): 0.9990; W/U 0.73497, exact 0.73491 (1.0001); rms U 3.13e-04, W 2.77e-04; over the control 1.1612 (exact 1.1612, quasi-steady mu_eff 1.4286)
+  tgv_kl05_n800                |k|l 0.5, Theta 1 l^2: rate 0.102774, exact 0.102811 (slow eigenvalue 0.102811, fast 1.167189): 0.9996; W/U 0.95255, exact 0.95316 (0.9994); rms U 1.11e-04, W 1.92e-04; over the control 1.0285 (exact 1.0281, quasi-steady mu_eff 1.0811)
+  tgv_control_n400_repeat      control: rate 0.099899, exact 2 k^2 nu_inf 0.100000, ratio 0.9990
+  tgv_kl1_n400_repeat          |k|l 1, Theta 1 l^2: rate 0.108484, exact 0.108555 (slow eigenvalue 0.108792, fast 0.441208): 0.9993; W/U 0.85820, exact 0.85872 (0.9994); rms U 2.35e-04, W 6.25e-05; over the control 1.0859 (exact 1.0856, quasi-steady mu_eff 1.2308)
+  tgv_control_n400_stored_density control: rate 0.099879, exact 2 k^2 nu_inf 0.100000, ratio 0.9988
+  tgv_control_n400_ma0p01      control: rate 0.099916, exact 2 k^2 nu_inf 0.100000, ratio 0.9992
+  tgv_kl1_n400_ma0p01          |k|l 1, Theta 1 l^2: rate 0.108493, exact 0.108553 (slow eigenvalue 0.108792, fast 0.441208): 0.9994; W/U 0.85836, exact 0.85883 (0.9994); rms U 1.83e-04, W 4.31e-05; over the control 1.0858 (exact 1.0855, quasi-steady mu_eff 1.2308)
+  tgv_kl1_inertia_n400         |k|l 1, Theta 0.7549 l^2: rate 0.113193, exact 0.113270 (slow eigenvalue 0.112767, fast 0.563858): 0.9993; W/U 0.77360, exact 0.77416 (0.9993); rms U 2.37e-04, W 1.06e-04; over the control 1.1331 (exact 1.1327, quasi-steady mu_eff 1.2308)
+  tgv_control_n400_small_dt    control: rate 0.100093, exact 2 k^2 nu_inf 0.100000, ratio 1.0009
+  tgv_kl05_j001_n400           |k|l 0.5, Theta 0.01 l^2: rate 0.108170, exact 0.108058 (slow eigenvalue 0.108058, fast 111.051942): 1.0010; W/U 0.86536, exact 0.86571 (0.9996); rms U 5.85e-04, W 6.94e-04; over the control 1.0807 (exact 1.0806, quasi-steady mu_eff 1.0811)
+  tgv_kl1_j001_n400            |k|l 1, Theta 0.01 l^2: rate 0.122969, exact 0.122960 (slow eigenvalue 0.122960, fast 39.037040): 1.0001; W/U 0.61739, exact 0.61733 (1.0001); rms U 3.61e-04, W 2.33e-04; over the control 1.2285 (exact 1.2296, quasi-steady mu_eff 1.2308)
+  tgv_kl1_j150_n400            |k|l 1, Theta 1.5 l^2: rate 0.099940, exact 0.100000 (slow eigenvalue 0.100000, fast 0.320000): 0.9994; W/U 0.99947, exact 1.00000 (0.9995); rms U 2.31e-04, W 7.74e-05; over the control 1.0004 (exact 1.0000, quasi-steady mu_eff 1.2308)
+  repeat of the control: rate +1.25e-06
+  repeat of |k|l = 1: rate +3.57e-06, over control +2.52e-06
+  control at Ma 0.01: rate +1.65e-04
+  |k|l = 1 at Ma 0.01: rate +9.03e-05, over control -8.06e-05
+  |k|l = 0.5 at 800^2: rate +2.61e-05, over control -2.69e-04
+  control at dt / 8.6: rate +1.94e-03

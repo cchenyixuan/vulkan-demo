@@ -1,0 +1,17 @@
+{
+ "item": "25",
+ "title": "Table of the Taylor-Green rates and ratios with their noise floors",
+ "status": "final",
+ "caption": "The micropolar Taylor-Green vortex (box [0, 2 pi)^2, k = 1, Re = 20 on nu_inf, 50 on mu, K = 3, Ma 0.02 unless named): decay rate of U fitted over 5 <= t <= 20 (run) and the same fit of the exact two-mode solution at the same times (exact rate), W / U over the same window against its exact value, the rate over that of the Newtonian control (viscosity mu + kappa / 2, the same particles and dt) against the exact ratio with the run's j and against the quasi-steady mu_eff / (mu + kappa / 2) (j -> 0). Controls: their rate over 2 k^2 nu_inf (nu_eff / nu). The two runs with j = l^2 / 100 take the dt of their angular diffusion (2.75e-5, 8.6 times below the acoustic dt of the others) and their own control at that dt (control_n400_small_dt). Floor rows: the relative change of the rate and the change of the ratio over the control between repeated runs, at half the Mach number, between 400^2 and 800^2, and of the control between the two dt.",
+ "files": [
+  "tab_25_taylor_green.csv",
+  "tab_25_taylor_green.tex"
+ ],
+ "sources": [
+  "data/micropolar/stage8b/taylor_green.json"
+ ],
+ "numbers": {
+  "rows": 23
+ },
+ "tag": "v10-periodic (thesis-ch5-rc2 + the periodic domain of Stage 8b)"
+}

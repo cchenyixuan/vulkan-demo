@@ -43,3 +43,10 @@ DIPOLE = {
     "analysis": "data/micropolar/stage8/dipole.json", "fields": "data/micropolar/stage8/fields",
     "status": "final", "tag": "thesis-ch5-rc2 solver trees (runs on branch v10-showcase)",
     "note": "Stage 8 runs: the solver directories identical to thesis-ch5-rc2"}
+
+# Stage 8b: periodic boundaries (micropolar_periodic.py / micropolar_turbulence.py analyse)
+PERIODIC = {
+    "analysis": "data/micropolar/stage8b/taylor_green.json", "turbulence": "data/micropolar/stage8b/turbulence.json",
+    "fields": "data/micropolar/stage8b/fields", "status": "final",
+    "tag": "v10-periodic (thesis-ch5-rc2 + the periodic domain of Stage 8b)",
+    "note": "Stage 8b runs on branch v10-periodic"}

@@ -43,6 +43,9 @@ ITEMS = [
                                      "at four times"),
     ("21", "fig_21_dipole_tracks", "Dipole-wall collision: core trajectories and enstrophy against the benchmark"),
     ("22", "tab_22_dipole_numbers", "Dipole-wall collision: numbers against the control with the noise floor"),
+    ("23", "fig_23_taylor_green", "Micropolar Taylor-Green vortex: mu_eff against |k| l, and the two-mode solution"),
+    ("24", "fig_24_turbulence", "Decaying 2-D turbulence: vorticity of the Newtonian and the micropolar run, spectra"),
+    ("25", "tab_25_taylor_green", "Table of the Taylor-Green rates and ratios with their noise floors"),
 ]
 
 

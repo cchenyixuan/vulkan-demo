@@ -72,6 +72,18 @@ RUNS["tgv_kl1_n400_ma0p01"] = {"kind": "tgv", "side": 400, "mach": 0.01, "length
 INERTIA_FACTOR = 0.7549
 RUNS["tgv_kl1_inertia_n400"] = {"kind": "tgv", "side": 400, "mach": 0.02, "length_times_modulus": 1.0,
                                 "theta_factor": INERTIA_FACTOR, "initial_spin": "zero"}
+# j = l^2 / 100: the approach to the quasi-steady mu_eff (j -> 0). The angular diffusion xi / Theta is 100 times that
+# of j = l^2, so these two runs take their own (smaller) dt and do not shrink the dt of the family above; their
+# control runs at their dt (the control of every other run takes the acoustic dt, 8.6 times larger)
+RUNS["tgv_control_n400_small_dt"] = {"kind": "tgv", "side": 400, "mach": 0.02, "length_times_modulus": None,
+                                     "own_timestep": True}
+for value, label in ((0.5, "05"), (1.0, "1")):
+    RUNS[f"tgv_kl{label}_j001_n400"] = {"kind": "tgv", "side": 400, "mach": 0.02, "length_times_modulus": value,
+                                        "theta_factor": 0.01, "own_timestep": True}
+# j = xi / (nu - c / 2) = 2 l^2 kappa / (mu + kappa) = 1.5 l^2 (K = 3): w = omega / 2 is then an exact solution and U
+# decays at the rate of the Newtonian fluid mu + kappa / 2 at every |k| l (Section 18); one run checks it
+RUNS["tgv_kl1_j150_n400"] = {"kind": "tgv", "side": 400, "mach": 0.02, "length_times_modulus": 1.0,
+                             "theta_factor": 1.5}
 for entry in RUNS.values():
     entry.setdefault("theta_factor", 1.0)
     entry.setdefault("initial_spin", "curl")
@@ -209,7 +221,8 @@ def timestep_of(run: str) -> dict:
                 "cfl": timestep * speed_of_sound / support, "steps": int(round(entry["end_time"] / timestep))}
     # the thesis rule over every tgv run of the same side and Mach number: one dt for a control and its runs
     family = [name for name, other in RUNS.items() if other["kind"] == "tgv" and other["side"] == side
-              and other["mach"] == entry["mach"]]
+              and other["mach"] == entry["mach"]
+              and other.get("own_timestep", False) == entry.get("own_timestep", False)]
     designs = [design(name) for name in family]
     dt_acoustic = 0.15 * support / speed_of_sound
     dt_viscous = STEP_NUMBER * support ** 2 / max(item["viscosity"] for item in designs)
@@ -411,7 +424,10 @@ def command_run(arguments) -> int:
             shape_u, shape_v = sine_x * cosine_y, -cosine_x * sine_y
             amplitude = 2.0 * float(np.mean(velocity[:, 0] * shape_u + velocity[:, 1] * shape_v))
             residual = velocity - amplitude * np.column_stack([shape_u, shape_v])
-            density = rows["density_pressure"][fluid, 0].astype(np.float64) + sim.stored_density_offset()
+            # readback_buffers_batch returns rho (it adds the offset of the delta storage itself). The Stage 8b runs
+            # were made before this line lost a second "+ sim.stored_density_offset()": their density_* samples
+            # after t = 0 carry rho0 twice with V7_DELTA_DENSITY=1 (a diagnostic only; no rate uses it)
+            density = rows["density_pressure"][fluid, 0].astype(np.float64)
             samples["step"].append(step)
             samples["time"].append(step * timestep)
             samples["kinetic_energy"].append(float(0.5 * (mass * (velocity ** 2).sum(axis=1)).sum()))
@@ -485,7 +501,9 @@ TGV_FIT_WINDOW = (5.0, 20.0)
 CONTROL_OF = {"tgv_kl025_n400": "tgv_control_n400", "tgv_kl05_n400": "tgv_control_n400",
               "tgv_kl1_n400": "tgv_control_n400", "tgv_kl2_n400": "tgv_control_n400",
               "tgv_kl05_n800": "tgv_control_n800", "tgv_kl1_n400_repeat": "tgv_control_n400_repeat",
-              "tgv_kl1_n400_ma0p01": "tgv_control_n400_ma0p01", "tgv_kl1_inertia_n400": "tgv_control_n400"}
+              "tgv_kl1_n400_ma0p01": "tgv_control_n400_ma0p01", "tgv_kl1_inertia_n400": "tgv_control_n400",
+              "tgv_kl05_j001_n400": "tgv_control_n400_small_dt", "tgv_kl1_j001_n400": "tgv_control_n400_small_dt",
+              "tgv_kl1_j150_n400": "tgv_control_n400"}
 
 
 def load_run(run: str):
@@ -578,6 +596,9 @@ def command_analyse(arguments) -> int:
                 "rms_error_U": error_u, "rms_error_W": error_w, "mu_effective_ratio": mu_effective_ratio(
                     entry["length_times_modulus"]), "steps_per_second": record["steps_per_second"],
                 "counters": record["counters"]}
+        item["series"] = {"time": times.tolist(), "U": samples["velocity_amplitude"].tolist(),
+                          "W": samples["spin_amplitude"].tolist(), "exact_U": exact["U"].tolist(),
+                          "exact_W": exact["W"].tolist()}
         control = CONTROL_OF.get(run)
         if control and control in result["tgv"]:
             base = result["tgv"][control]
@@ -598,7 +619,8 @@ def command_analyse(arguments) -> int:
                                  ("tgv_kl1_n400", "tgv_kl1_n400_repeat", "repeat of |k|l = 1"),
                                  ("tgv_control_n400", "tgv_control_n400_ma0p01", "control at Ma 0.01"),
                                  ("tgv_kl1_n400", "tgv_kl1_n400_ma0p01", "|k|l = 1 at Ma 0.01"),
-                                 ("tgv_kl05_n400", "tgv_kl05_n800", "|k|l = 0.5 at 800^2")):
+                                 ("tgv_kl05_n400", "tgv_kl05_n800", "|k|l = 0.5 at 800^2"),
+                                 ("tgv_control_n400", "tgv_control_n400_small_dt", "control at dt / 8.6")):
         if first in result["tgv"] and second in result["tgv"]:
             a, b = result["tgv"][first], result["tgv"][second]
             entry = {"rate_difference": b["rate"] / a["rate"] - 1.0}
