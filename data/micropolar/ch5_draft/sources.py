@@ -50,3 +50,11 @@ PERIODIC = {
     "fields": "data/micropolar/stage8b/fields", "status": "final",
     "tag": "v10-periodic (thesis-ch5-rc2 + the periodic domain of Stage 8b)",
     "note": "Stage 8b runs on branch v10-periodic"}
+
+# Stage 8c: plane flows in the channel periodic in x and the start-up of Couette flow (micropolar_channel.py analyse,
+# micropolar_startup.py solve)
+CHANNEL = {
+    "analysis": "data/micropolar/stage8c/channel.json", "host": "data/micropolar/stage8c/startup_host.json",
+    "dipole": "data/micropolar/stage8/dipole.json", "status": "final",
+    "tag": "v10-periodic (thesis-ch5-rc2 + the periodic domain of Stage 8b)",
+    "note": "Stage 8c runs on branch v10-periodic"}

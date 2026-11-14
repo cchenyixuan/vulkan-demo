@@ -1,0 +1,17 @@
+{
+ "item": "28",
+ "title": "Table of the steady plane Couette and Poiseuille flows against their exact solutions",
+ "status": "final",
+ "caption": "Steady plane flows between two no-spin walls in a channel periodic in x (length 100 dx, h = 5 dx, Ma 0.02, Re = 10 on nu_inf; K = 3, j = l^2; m = H / (2 l)). Couette (the lower wall slides at U): the wall stress over eq. 5.5 in three readings - the fit u = a s + b s^2 to the fluid within 4 dx of the wall (the reading of the dipole runs), the wall form (the force of the wall on the fluid from the solver's pair terms, the reading of the rotor torque, on the states saved at the end; the minimum image across the periodic seam) and the profile (the amplitude of the exact profile fitted to the whole binned profile, the reading of items 01 to 03). Poiseuille (a uniform body force): the flow rate over eq. 2.26 times the Newtonian rate. The rms of u - u_exact and w - w_exact over the rms of the exact profile (bins of dx, the last twelfth of the run). Micropolar over control: the ratio of the two runs' values against the exact ratio (eq. 5.5 over (mu + kappa / 2) U / H; Q / Q_N of eq. 2.26). Floors: the change of the profile ratio (Couette) or of Q (Poiseuille) in a repeated run and at half the Mach number.",
+ "files": [
+  "tab_28_plane_flows.csv",
+  "tab_28_plane_flows.tex"
+ ],
+ "sources": [
+  "data/micropolar/stage8c/channel.json"
+ ],
+ "numbers": {
+  "rows": 24
+ },
+ "tag": "v10-periodic (thesis-ch5-rc2 + the periodic domain of Stage 8b)"
+}

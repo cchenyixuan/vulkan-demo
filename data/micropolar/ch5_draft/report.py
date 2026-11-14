@@ -562,7 +562,7 @@ def main() -> int:
                 "mu_eff excess**, as the exact solution predicts: a decaying flow keeps spin from its earlier "
                 "vorticity, and with j scaling as l^2 that memory stays of the size of the effect at every |k| l. "
                 "With j = l^2 / 100 the runs reach mu_eff (1.0807 and 1.2285 against 1.0811 and 1.2308); with j = "
-                "1.5 l^2 (rho j (mu + kappa / 2) = gamma) w = omega / 2 is exact and the micropolar vortex decays "
+                "1.5 l^2 (j (mu + kappa / 2) = gamma) w = omega / 2 is exact and the micropolar vortex decays "
                 "exactly as the Newtonian fluid mu + kappa / 2 (1.0004).")
             floors = periodic.get("floors", {})
             if floors:

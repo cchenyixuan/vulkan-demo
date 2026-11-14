@@ -144,7 +144,7 @@ def main() -> int:
         "circle), and the exact two-mode solution fitted over the same window (crosses; at |k| l = 2 the fast mode, "
         "only 2.1 times faster, still enters the window). In a decaying flow the micro-rotation keeps spin from the "
         "earlier, larger vorticity: with j = l^2 the excess over mu + kappa / 2 is a third of the quasi-steady one "
-        "at small |k| l, and with j = 1.5 l^2 (rho j (mu + kappa / 2) = gamma) w = omega / 2 is exact and the ratio "
+        "at small |k| l, and with j = 1.5 l^2 (j (mu + kappa / 2) = gamma) w = omega / 2 is exact and the ratio "
         "is 1 at every |k| l. (b) The run |k| l = 1 with j = 0.755 l^2 (fast rate five times the slow one), "
         "started from W(0) = 0: U(t) and W(t) from the particles (projections on the two shapes; markers) against "
         "the exact two-mode solution (lines).")

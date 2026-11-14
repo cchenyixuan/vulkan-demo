@@ -1,0 +1,83 @@
+Stage 8c: steady plane flows in the channel periodic in x (L = 100 dx, h = 5 dx, Re = 10, Ma 0.02)
+
+run                               u rms    w rms   fit lo   fit up pairs lo pairs up  profile   steady  over control (exact)
+couette_m1_l10                 1.45e-03 6.71e-03   0.9832   0.9831   1.0075   1.0074   1.0005  6.3e-04  fit 1.3867 pairs 1.4085 profile 1.4002 (1.3998)
+couette_m1_l10_repeat          1.45e-03 6.71e-03   0.9832   0.9831   1.0074   1.0074   1.0005  6.4e-04  fit 1.3867 pairs 1.4083 profile 1.4002 (1.3998)
+couette_m1_l10_ma0p01          1.45e-03 6.71e-03   0.9832   0.9831   1.0074   1.0074   1.0005  6.8e-05  fit 1.3867 pairs 1.4082 profile 1.4002 (1.3998)
+couette_m1_l10_control         1.22e-03        -   0.9925   0.9924   1.0013   1.0014   1.0002  3.2e-04  
+couette_m1_l10_control_repeat  1.22e-03        -   0.9925   0.9924   1.0013   1.0014   1.0002  3.2e-04  
+couette_m1_l10_control_ma0p01  1.21e-03        -   0.9925   0.9924   1.0013   1.0013   1.0002  3.0e-04  
+couette_m2_l10                 7.68e-04 2.29e-03   0.9765   0.9766   1.0068   1.0069   1.0004  9.9e-06  fit 1.2023 pairs 1.2287 profile 1.2208 (1.2206)
+couette_m2_l10_repeat          7.69e-04 2.29e-03   0.9764   0.9766   1.0068   1.0068   1.0004  2.1e-04  fit 1.2022 pairs 1.2288 profile 1.2208 (1.2206)
+couette_m2_l10_ma0p01          7.96e-03 9.47e-03   0.9756   0.9757   1.0065   1.0068   0.9993  2.6e-04  fit 1.2023 pairs 1.2286 profile 1.2191 (1.2206)
+couette_m2_l10_control         5.78e-04        -   0.9914   0.9914   1.0001   1.0002   1.0002  1.1e-04  
+couette_m2_l10_control_repeat  5.78e-04        -   0.9914   0.9914   1.0002   1.0002   1.0002  2.0e-04  
+couette_m2_l10_control_ma0p01  5.68e-03        -   0.9905   0.9911   0.9999   1.0001   1.0006  2.0e-04  
+couette_m5_l10                 1.81e-03 4.86e-03   0.9728   0.9728   1.0050   1.0050   1.0004  3.8e-04  fit 1.0623 pairs 1.0872 profile 1.0810 (1.0811)
+couette_m5_l10_repeat          1.90e-03 4.99e-03   0.9726   0.9728   1.0053   1.0054   1.0000  1.4e-04  fit 1.0623 pairs 1.0874 profile 1.0810 (1.0811)
+couette_m5_l10_ma0p01          1.12e-03 4.51e-03   0.9739   0.9733   1.0055   1.0052   1.0003  4.9e-04  fit 1.0621 pairs 1.0877 profile 1.0810 (1.0811)
+couette_m5_l10_control         1.89e-03        -   0.9900   0.9910   0.9994   0.9992   1.0005  5.6e-05  
+couette_m5_l10_control_repeat  2.06e-03        -   0.9898   0.9908   0.9994   0.9992   1.0001  1.2e-05  
+couette_m5_l10_control_ma0p01  1.30e-03        -   0.9913   0.9909   0.9994   0.9993   1.0003  1.2e-03  
+couette_m10_l10                5.95e-04 2.95e-03   0.9731   0.9733   1.0045   1.0047   1.0001  5.0e-04  fit 1.0209 pairs 1.0445 profile 1.0389 (1.0390)
+couette_m10_l10_repeat         5.93e-04 3.28e-03   0.9725   0.9731   1.0046   1.0045   1.0001  4.6e-04  fit 1.0209 pairs 1.0445 profile 1.0390 (1.0390)
+couette_m10_l10_ma0p01         4.17e-04 2.73e-03   0.9736   0.9736   1.0047   1.0047   1.0001  6.6e-04  fit 1.0197 pairs 1.0446 profile 1.0390 (1.0390)
+couette_m10_l10_control        5.48e-04        -   0.9903   0.9907   0.9991   0.9991   1.0001  1.4e-04  
+couette_m10_l10_control_repeat 5.70e-04        -   0.9897   0.9908   0.9993   0.9992   1.0001  6.4e-05  
+couette_m10_l10_control_ma0p01 4.26e-04        -   0.9920   0.9911   0.9993   0.9990   1.0002  7.0e-04  
+couette_m2_l20                 2.18e-03 4.53e-03   0.9805   0.9814   1.0024   1.0026   1.0006  2.7e-04  fit 1.2091 pairs 1.2244 profile 1.2209 (1.2206)
+couette_m2_l20_repeat          2.19e-03 4.94e-03   0.9806   0.9811   1.0025   1.0025   1.0005  6.0e-04  fit 1.2090 pairs 1.2246 profile 1.2208 (1.2206)
+couette_m2_l20_ma0p01          2.20e-03 5.38e-03   0.9812   0.9819   1.0027   1.0026   1.0005  9.8e-05  fit 1.2096 pairs 1.2244 profile 1.2208 (1.2206)
+couette_m2_l20_control         3.18e-03        -   0.9899   0.9903   0.9993   0.9995   1.0004  1.3e-04  
+couette_m2_l20_control_repeat  2.45e-03        -   0.9900   0.9906   0.9992   0.9994   1.0004  1.0e-04  
+couette_m2_l20_control_ma0p01  2.16e-03        -   0.9901   0.9917   0.9996   0.9995   1.0004  7.7e-05  
+couette_m5_l20                 4.25e-04 2.05e-03   0.9808   0.9812   1.0025   1.0024   1.0000  1.1e-04  fit 1.0712 pairs 1.0846 profile 1.0810 (1.0811)
+couette_m5_l20_repeat          4.60e-04 2.31e-03   0.9807   0.9808   1.0024   1.0023   1.0001  1.1e-04  fit 1.0703 pairs 1.0847 profile 1.0811 (1.0811)
+couette_m5_l20_ma0p01          3.97e-04 2.26e-03   0.9828   0.9811   1.0025   1.0021   1.0001  5.9e-04  fit 1.0706 pairs 1.0847 profile 1.0811 (1.0811)
+couette_m5_l20_control         5.66e-04        -   0.9898   0.9908   0.9992   0.9991   1.0001  2.4e-04  
+couette_m5_l20_control_repeat  5.83e-04        -   0.9905   0.9911   0.9991   0.9991   1.0001  1.9e-04  
+couette_m5_l20_control_ma0p01  4.26e-04        -   0.9924   0.9914   0.9991   0.9991   1.0001  6.6e-04  
+
+run                               u rms    w rms  Q/exact   steady  over control (exact)
+poiseuille_m1_l10              6.13e-03 3.58e-02   1.0063  1.9e-05  0.6462 (0.6478)
+poiseuille_m1_l10_repeat       6.14e-03 3.58e-02   1.0064  5.3e-06  0.6462 (0.6478)
+poiseuille_m1_l10_ma0p01       6.15e-03 3.58e-02   1.0064  2.2e-05  0.6462 (0.6478)
+poiseuille_m1_l10_control      8.04e-03        -   1.0089  1.2e-05  
+poiseuille_m1_l10_control_repeat 8.04e-03        -   1.0089  9.6e-07  
+poiseuille_m1_l10_control_ma0p01 8.06e-03        -   1.0090  7.2e-06  
+poiseuille_m2_l10              2.01e-03 8.12e-03   0.9986  1.9e-05  0.6960 (0.6978)
+poiseuille_m2_l10_repeat       2.00e-03 8.12e-03   0.9987  1.8e-05  0.6960 (0.6978)
+poiseuille_m2_l10_ma0p01       1.99e-03 8.12e-03   0.9987  9.3e-06  0.6963 (0.6978)
+poiseuille_m2_l10_control      1.53e-03        -   1.0011  3.6e-05  
+poiseuille_m2_l10_control_repeat 1.50e-03        -   1.0011  4.2e-05  
+poiseuille_m2_l10_control_ma0p01 4.65e-03        -   1.0008  8.1e-05  
+poiseuille_m5_l10              5.11e-03 5.83e-03   0.9978  1.1e-05  0.8183 (0.8200)
+poiseuille_m5_l10_repeat       5.32e-03 6.14e-03   0.9980  4.2e-05  0.8186 (0.8200)
+poiseuille_m5_l10_ma0p01       5.77e-03 7.76e-03   0.9983  9.7e-05  0.8185 (0.8200)
+poiseuille_m5_l10_control      3.48e-03        -   0.9999  1.1e-04  
+poiseuille_m5_l10_control_repeat 3.26e-03        -   0.9997  2.8e-06  
+poiseuille_m5_l10_control_ma0p01 5.13e-03        -   1.0001  8.2e-05  
+poiseuille_m10_l10             2.34e-03 5.48e-03   0.9992  1.1e-04  0.8977 (0.8987)
+poiseuille_m10_l10_repeat      3.30e-03 5.48e-03   0.9989  1.5e-04  0.8976 (0.8987)
+poiseuille_m10_l10_ma0p01      1.68e-03 6.00e-03   0.9991  5.7e-05  0.8976 (0.8987)
+poiseuille_m10_l10_control     2.72e-03        -   1.0003  4.8e-05  
+poiseuille_m10_l10_control_repeat 2.82e-03        -   1.0002  5.0e-05  
+poiseuille_m10_l10_control_ma0p01 1.89e-03        -   1.0004  2.0e-06  
+poiseuille_m2_l20              4.23e-03 3.98e-03   0.9990  3.9e-05  0.6974 (0.6978)
+poiseuille_m2_l20_repeat       4.46e-03 7.91e-03   0.9991  8.3e-05  0.6974 (0.6978)
+poiseuille_m2_l20_ma0p01       6.28e-03 9.51e-03   0.9995  4.1e-05  0.6974 (0.6978)
+poiseuille_m2_l20_control      2.29e-03        -   0.9996  5.2e-05  
+poiseuille_m2_l20_control_repeat 2.32e-03        -   0.9996  1.1e-05  
+poiseuille_m2_l20_control_ma0p01 6.42e-03        -   1.0000  1.5e-06  
+poiseuille_m5_l20              2.64e-03 4.28e-03   0.9996  5.4e-05  0.8195 (0.8200)
+poiseuille_m5_l20_repeat       2.79e-03 5.43e-03   0.9997  8.2e-05  0.8194 (0.8200)
+poiseuille_m5_l20_ma0p01       1.29e-03 4.22e-03   0.9998  1.5e-05  0.8194 (0.8200)
+poiseuille_m5_l20_control      2.60e-03        -   1.0002  7.2e-06  
+poiseuille_m5_l20_control_repeat 2.53e-03        -   1.0004  3.7e-05  
+poiseuille_m5_l20_control_ma0p01 1.86e-03        -   1.0004  4.5e-05  
+
+floors (repeat, half Mach): largest |change| over the runs of each flow
+  couette: fit_lower (ma0p01) 2.5e-03; fit_lower (repeat) 7.1e-04; fit_lower_over_control (ma0p01) 1.2e-03; fit_lower_over_control (repeat) 9.4e-04; pairs_lower (ma0p01) 4.8e-04; pairs_lower (repeat) 2.4e-04; pairs_lower_over_control (ma0p01) 5.2e-04; pairs_lower_over_control (repeat) 2.7e-04; profile (ma0p01) 1.1e-03; profile (repeat) 4.4e-04; profile_over_control (ma0p01) 1.8e-03; profile_over_control (repeat) 1.6e-04; u_rms_error (ma0p01) 7.2e-03; u_rms_error (repeat) 7.3e-04
+  poiseuille: flow_rate (ma0p01) 5.3e-04; flow_rate (repeat) 3.0e-04; flow_rate_over_control (ma0p01) 2.7e-04; flow_rate_over_control (repeat) 3.2e-04; u_rms_error (ma0p01) 4.1e-03; u_rms_error (repeat) 9.5e-04
+
+Stage 8c: the start-up of plane Couette flow (H = 20 l, impulsive start) against the host solution

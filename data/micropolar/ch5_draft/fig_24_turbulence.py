@@ -160,11 +160,12 @@ def main() -> int:
     axis = figure.add_subplot(grid[1, 2])
     for time in [time for time in RATIO_TIMES if time in spectra]:
         entry = spectra[time]
-        colour = style.SERIES[0][0]
+        colour = style.SERIES[1][0]           # the colour of j = l^2 in (d) and (e)
         centres, newtonian = binned(shells, np.asarray(entry["newtonian"]))
         if SHIFTED in entry:
             floor = np.abs(binned(shells, np.asarray(entry[SHIFTED]))[1] / newtonian - 1.0)
-            axis.fill_between(centres, 1.0 - floor, 1.0 + floor, color=colour, alpha=0.15, linewidth=0.0)
+            axis.fill_between(centres, 1.0 - floor, 1.0 + floor, color=style.MUTED, alpha=0.25, linewidth=0.0,
+                              label="floor")
         if MICROPOLAR in entry:
             axis.plot(centres, binned(shells, np.asarray(entry[MICROPOLAR]))[1] / newtonian, color=colour,
                       linewidth=1.1, label=r"$j = \ell^2$")
@@ -209,7 +210,7 @@ def main() -> int:
         "repeats on one card and the Newtonian run on the other card lie on the shifted-lattice floor (Section 18.5). "
         "(e) Energy spectra at t = 1 and 4 (paler = later) with the 1025^2 run at t = 4. (f) The ratio of the spectra "
         "micropolar / Newtonian at t = 2 in bins of about 8 % in k (solid: j = l^2, dash-dotted: j = l^2 / 100) with the "
-        "floor |ratio - 1| of the shifted-lattice run (shaded), and the linear estimates for a single Fourier mode "
+        "floor |ratio - 1| of the shifted-lattice run (grey band), and the linear estimates for a single Fourier mode "
         "decaying alone at the slow rate of the two-mode system with j = l^2 (dashed) and at the quasi-steady mu_eff "
         "(j -> 0, dotted).")
     style.record("24", "Decaying 2-D turbulence: vorticity, E(t) and the enstrophy Z(t), spectra and their ratio",

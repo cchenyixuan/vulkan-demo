@@ -4363,11 +4363,11 @@ dt = 0.15 h / c0, nu_eff / nu from the slope of ln E over 0.1 <= t <= 2 with E f
   - Theta lambda): a decaying flow keeps spin from its earlier, larger vorticity, W / U lies above its
   quasi-steady value and the coupling term draws less. Theta lambda / (2 c) and s both scale as (|k| l)^2 when j
   scales as l^2, so the correction stays of the order of the effect at every |k| l. Long-wave form: mu_eff,decay
-  = mu + kappa / 2 + (|k|^2 / 4) [gamma - rho j (mu + kappa / 2)]. With j = l^2 (K = 3) the excess is a third of
+  = mu + kappa / 2 + (|k|^2 / 4) [gamma - j (mu + kappa / 2)]. With j = l^2 (K = 3) the excess is a third of
   the quasi-steady one at small |k| l (0.208 against 0.625 (|k| l)^2) and 0.0076 / 0.028 / 0.088 / 0.200 at |k| l
   = 0.25 / 0.5 / 1 / 2 (quasi-steady 0.023 / 0.081 / 0.231 / 0.429).
 - **An exact neutral case.** w = omega / 2 (W = k U) solves the system exactly when Theta = xi / (nu - c / 2), i.e.
-  rho j (mu + kappa / 2) = gamma (j = 2 l^2 kappa / (mu + kappa) = 1.5 l^2 for K = 3): the coupling term vanishes
+  j (mu + kappa / 2) = gamma (j = 2 l^2 kappa / (mu + kappa) = 1.5 l^2 for K = 3): the coupling term vanishes
   and U decays at the rate of the Newtonian fluid mu + kappa / 2 at every |k| l. The slow rate falls monotonically
   with j: below this j the micropolar vortex decays faster than its Newtonian control, above it slower. Checked on
   the host (ratio 1.00000 at |k| l = 0.05 to 2) and by one run (18.3).
@@ -4547,9 +4547,11 @@ dt = 0.15 h / c0, nu_eff / nu from the slope of ln E over 0.1 <= t <= 2 with E f
 - **The micro-inertia j = l^2 is not small in a decaying flow.** The exact solution (18.2), the Taylor-Green runs
   (18.3), the dipole check (17.6) and the turbulence (18.5) agree: with j = l^2 the micro-rotation keeps spin from
   the earlier vorticity and the bulk effect is a third of the quasi-steady mu_eff (Taylor-Green), a quarter to a
-  third of that with j = l^2 / 100 (dipole), a seventh in E and a fifth in Z (turbulence). In a steady flow
-  Theta dw/dt = 0 and j does not enter: the cylinder,
-  bearing and cavity results of the chapter (steady states) are untouched. The task's expectation that the runs
+  third of that with j = l^2 / 100 (dipole), a seventh in E and a fifth in Z (turbulence). In a steady parallel
+  flow (concentric cylinders, plane Couette and Poiseuille) D w / Dt = 0 and j does not enter. In the steady
+  cavity v . grad w is not zero, so j enters through the convective term; the number to quote there is the
+  thesis's check without micro-inertia (extrema within 1.5 %). [corrected 2026-11-14; the first version said
+  that j does not enter any steady flow] The task's expectation that the runs
   meet mu_eff holds only for j well below l^2 (to 0.2 % at j = l^2 / 100); with j = 1.5 l^2 (K = 3) the micropolar
   vortex decays exactly as the Newtonian fluid mu + kappa / 2.
 - **dt enters the Newtonian decay rate.** The control at dt / 8.6 decays 0.19 % faster (1.0009 of 2 k^2 nu_inf
