@@ -1,0 +1,509 @@
+{
+ "item": "24",
+ "title": "Decaying 2-D turbulence: vorticity, E(t) and the enstrophy Z(t), spectra and their ratio",
+ "status": "final",
+ "caption": "Decaying two-dimensional turbulence in the doubly periodic box [0, 2 pi)^2: 2050^2 particles (h = 5 dx), initial energy spectrum E(k) ~ k^4 exp(-2 (k / k0)^2) with k0 = 10 and random phases (fixed seed), u' = 1, Ma 0.02 on the initial peak speed; the Newtonian fluid of viscosity mu + kappa / 2 = 1e-3 (Re = u' / (k0 nu) = 100) and the micropolar fluid K = 3, j = l^2, l = 1/7 (|k| l = 1 at k = 7) with the same far-field viscosity, both from the same field (w = omega / 2). Z is the enstrophy (1/2) <omega^2> = sum k^2 E(k). (a, b) Vorticity of the Newtonian and the micropolar run at t = 2 and (c) their difference (the repeats of the two runs on one card, which carry the snapshots at t >= 2; deposit on a 1024^2 grid, shown at 512^2; the difference low-passed with exp(-(k / 100)^2) against the grid-scale noise of the deposit). (d) E and Z of the micropolar runs (j = l^2, and j = l^2 / 100 with the same dt) against the Newtonian run (thick: E, thin: Z), with the shifted-lattice floor and the Newtonian run at 1025^2 (resolution); the repeats on one card and the Newtonian run on the other card lie on the shifted-lattice floor (Section 18.5). (e) Energy spectra at t = 1 and 4 (paler = later) with the 1025^2 run at t = 4. (f) The ratio of the spectra micropolar / Newtonian at t = 2 in bins of about 8 % in k (solid: j = l^2, dash-dotted: j = l^2 / 100) with the floor |ratio - 1| of the shifted-lattice run (shaded), and the linear estimates for a single Fourier mode decaying alone at the slow rate of the two-mode system with j = l^2 (dashed) and at the quasi-steady mu_eff (j -> 0, dotted).",
+ "files": [
+  "fig_24_turbulence.pdf",
+  "fig_24_turbulence.png"
+ ],
+ "sources": [
+  "data/micropolar/stage8b/turbulence.json",
+  "data/micropolar/stage8b/fields"
+ ],
+ "numbers": {
+  "fields": {
+   "time": 1.992657284345631,
+   "runs": [
+    "turbulence_newtonian_n2050_repeat",
+    "turbulence_micropolar_n2050_repeat"
+   ],
+   "vorticity_99_5_percentile": 29.098203659057617,
+   "difference_99_5_percentile": 3.945598630751484,
+   "difference_rms_over_vorticity_rms": 0.1024084485932234
+  },
+  "turbulence_newtonian_n2050": {
+   "particles": 4202500,
+   "steps": 388000,
+   "timestep": 1.0378423355966828e-05,
+   "elapsed_seconds": 6801.997407899937
+  },
+  "turbulence_micropolar_n2050": {
+   "particles": 4202500,
+   "steps": 388000,
+   "timestep": 1.0378423355966828e-05,
+   "elapsed_seconds": 3972.7113998000277
+  },
+  "turbulence_newtonian_n2050_shifted": {
+   "particles": 4202500,
+   "steps": 388000,
+   "timestep": 1.0378423355966828e-05,
+   "elapsed_seconds": 6789.330785400001
+  },
+  "turbulence_newtonian_n1025": {
+   "particles": 1050625,
+   "steps": 196000,
+   "timestep": 2.075684671125643e-05,
+   "elapsed_seconds": 895.2403295999393
+  },
+  "turbulence_micropolar_j001_n2050": {
+   "particles": 4202500,
+   "steps": 388000,
+   "timestep": 1.0378423355966828e-05,
+   "elapsed_seconds": 6759.527434399934
+  },
+  "turbulence_micropolar_n2050_repeat": {
+   "particles": 4202500,
+   "steps": 388000,
+   "timestep": 1.0378423355966828e-05,
+   "elapsed_seconds": 3974.954676400055
+  },
+  "turbulence_newtonian_n2050_repeat": {
+   "particles": 4202500,
+   "steps": 388000,
+   "timestep": 1.0378423355966828e-05,
+   "elapsed_seconds": 3963.0751632999163
+  },
+  "bands_t0.5": [
+   {
+    "band": [
+     3,
+     7
+    ],
+    "ratio": 0.999437474751713,
+    "floor": 5.943635372201994e-05,
+    "resolution": 0.9968076042759451,
+    "ratio_j001": 0.9787703338102659,
+    "repeat_floor": 0.00014031689821683568,
+    "card_floor": 0.00020082583893779593,
+    "linear_quasi_steady": 0.9968675185738913,
+    "linear_inertial": 0.9988605594336444
+   },
+   {
+    "band": [
+     7,
+     15
+    ],
+    "ratio": 0.9984402010166227,
+    "floor": 0.0003215281282910043,
+    "resolution": 0.9988498137191713,
+    "ratio_j001": 0.9540192196897949,
+    "repeat_floor": 0.00022768136844796005,
+    "card_floor": 0.0004333260358224261,
+    "linear_quasi_steady": 0.9587954439827695,
+    "linear_inertial": 0.9816110787497698
+   },
+   {
+    "band": [
+     15,
+     30
+    ],
+    "ratio": 0.9920126610549409,
+    "floor": 0.001166340690319186,
+    "resolution": 1.0028879585366217,
+    "ratio_j001": 0.8755080407092394,
+    "repeat_floor": 0.0011036745705458614,
+    "card_floor": 0.0007491075480722772,
+    "linear_quasi_steady": 0.7752686124165168,
+    "linear_inertial": 0.8661577149558278
+   },
+   {
+    "band": [
+     30,
+     60
+    ],
+    "ratio": 0.963238358622569,
+    "floor": 0.0020347271828651627,
+    "resolution": 1.0297992878205688,
+    "ratio_j001": 0.7091409393584451,
+    "repeat_floor": 0.002226837155414089,
+    "card_floor": 0.0024374442103555364,
+    "linear_quasi_steady": 0.3386123043745606,
+    "linear_inertial": 0.4720768703495679
+   },
+   {
+    "band": [
+     60,
+     120
+    ],
+    "ratio": 0.8407551415850069,
+    "floor": 0.010823399660515404,
+    "resolution": 1.192883286967092,
+    "ratio_j001": 0.42151519459245695,
+    "repeat_floor": 0.008583004254909977,
+    "card_floor": 0.009965671327304804,
+    "linear_quasi_steady": 0.025055475645450874,
+    "linear_inertial": 0.054590860499562875
+   },
+   {
+    "band": [
+     120,
+     200
+    ],
+    "ratio": 0.6038817702050929,
+    "floor": 0.03307507813726095,
+    "resolution": 3.8450077813985004,
+    "ratio_j001": 0.29207070785924544,
+    "repeat_floor": 0.03094015197629053,
+    "card_floor": 0.035271102881071256,
+    "linear_quasi_steady": 1.705670814894634e-05,
+    "linear_inertial": 0.00012417001995035305
+   }
+  ],
+  "bands_t1": [
+   {
+    "band": [
+     3,
+     7
+    ],
+    "ratio": 0.998557271205022,
+    "floor": 0.0010973614604359583,
+    "resolution": 0.9978689699873013,
+    "ratio_j001": 0.9698743673213628,
+    "repeat_floor": 0.00038366214826579537,
+    "card_floor": 0.0011802449319326946,
+    "linear_quasi_steady": 0.9937504106503492,
+    "linear_inertial": 0.9977231939017543
+   },
+   {
+    "band": [
+     7,
+     15
+    ],
+    "ratio": 0.9923494708154361,
+    "floor": 0.0012306946636011923,
+    "resolution": 0.9971729450198685,
+    "ratio_j001": 0.9015219612367432,
+    "repeat_floor": 0.0010113554081765258,
+    "card_floor": 0.0008536468390383245,
+    "linear_quasi_steady": 0.9198119607932711,
+    "linear_inertial": 0.9636872609036367
+   },
+   {
+    "band": [
+     15,
+     30
+    ],
+    "ratio": 0.9786570274588737,
+    "floor": 0.0020443873124743753,
+    "resolution": 1.0065058437529328,
+    "ratio_j001": 0.8113453768448269,
+    "repeat_floor": 0.0015137148853347677,
+    "card_floor": 0.001803592235617398,
+    "linear_quasi_steady": 0.6083211615907088,
+    "linear_inertial": 0.7539207756539162
+   },
+   {
+    "band": [
+     30,
+     60
+    ],
+    "ratio": 0.9205028590595391,
+    "floor": 0.003773988719156781,
+    "resolution": 1.0296318729930634,
+    "ratio_j001": 0.5942571855259894,
+    "repeat_floor": 0.0029109086364338473,
+    "card_floor": 0.003939522905433324,
+    "linear_quasi_steady": 0.1358065067101187,
+    "linear_inertial": 0.2468685867017463
+   },
+   {
+    "band": [
+     60,
+     120
+    ],
+    "ratio": 0.7493675557053706,
+    "floor": 0.010065854779874773,
+    "resolution": 1.2509234770963358,
+    "ratio_j001": 0.3126812687024905,
+    "repeat_floor": 0.009460113157344676,
+    "card_floor": 0.011800864321397262,
+    "linear_quasi_steady": 0.0016936653122427924,
+    "linear_inertial": 0.0067372411352103635
+   },
+   {
+    "band": [
+     120,
+     200
+    ],
+    "ratio": 0.5267912018348347,
+    "floor": 0.042057546614905725,
+    "resolution": 4.553046383101637,
+    "ratio_j001": 0.2781660985272224,
+    "repeat_floor": 0.04464341576863046,
+    "card_floor": 0.040636241450540775,
+    "linear_quasi_steady": 1.791145817673868e-09,
+    "linear_inertial": 7.938997544387567e-08
+   }
+  ],
+  "bands_t2": [
+   {
+    "band": [
+     3,
+     7
+    ],
+    "ratio": 0.9930250365388666,
+    "floor": 0.005194387327485034,
+    "resolution": 0.9939745772668771,
+    "ratio_j001": 0.9401098368385327,
+    "repeat_floor": 0.002207505349711786,
+    "card_floor": 0.005091123687538446,
+    "linear_quasi_steady": 0.9875619570701077,
+    "linear_inertial": 0.9954546699273721
+   },
+   {
+    "band": [
+     7,
+     15
+    ],
+    "ratio": 0.9707692447045833,
+    "floor": 0.009953091597189337,
+    "resolution": 1.0013823974946046,
+    "ratio_j001": 0.8496300130357606,
+    "repeat_floor": 0.0049776637718720596,
+    "card_floor": 0.010091153749970772,
+    "linear_quasi_steady": 0.8479630542321752,
+    "linear_inertial": 0.9291800066026398
+   },
+   {
+    "band": [
+     15,
+     30
+    ],
+    "ratio": 0.9564982272472357,
+    "floor": 0.01086349047769608,
+    "resolution": 0.9935732859510555,
+    "ratio_j001": 0.7009763478949568,
+    "repeat_floor": 0.005819219157081864,
+    "card_floor": 0.016323323900205234,
+    "linear_quasi_steady": 0.38737017037819577,
+    "linear_inertial": 0.5793004278879226
+   },
+   {
+    "band": [
+     30,
+     60
+    ],
+    "ratio": 0.8678380433329579,
+    "floor": 0.012239479494838713,
+    "resolution": 1.0466771537477009,
+    "ratio_j001": 0.5109546659799872,
+    "repeat_floor": 0.013253190893103091,
+    "card_floor": 0.015749425775037264,
+    "linear_quasi_steady": 0.02971424447737881,
+    "linear_inertial": 0.08366424819805636
+   },
+   {
+    "band": [
+     60,
+     120
+    ],
+    "ratio": 0.650252698007042,
+    "floor": 0.02269694040502131,
+    "resolution": 1.3904472178818474,
+    "ratio_j001": 0.2211592777101936,
+    "repeat_floor": 0.020166196975952146,
+    "card_floor": 0.023344157622710925,
+    "linear_quasi_steady": 1.4022433139102302e-05,
+    "linear_inertial": 0.00018160894353499537
+   },
+   {
+    "band": [
+     120,
+     200
+    ],
+    "ratio": 0.5082840135226153,
+    "floor": 0.05498886250850743,
+    "resolution": 5.594123782210646,
+    "ratio_j001": 0.3223868493581403,
+    "repeat_floor": 0.04753849747475266,
+    "card_floor": 0.04381791152618867,
+    "linear_quasi_steady": 3.7931940861878064e-17,
+    "linear_inertial": 6.198604764832326e-14
+   }
+  ],
+  "bands_t3": [
+   {
+    "band": [
+     3,
+     7
+    ],
+    "ratio": 0.9842861251998347,
+    "floor": 0.01021804616361377,
+    "resolution": 0.999209101129734,
+    "ratio_j001": 0.8930425526956208,
+    "repeat_floor": 0.01446377171125332,
+    "card_floor": 0.01237210095716873,
+    "linear_quasi_steady": 0.9814339283841144,
+    "linear_inertial": 0.9931943921538999
+   },
+   {
+    "band": [
+     7,
+     15
+    ],
+    "ratio": 0.9663819209582949,
+    "floor": 0.029215748558505658,
+    "resolution": 0.9956144563184326,
+    "ratio_j001": 0.8199210965963567,
+    "repeat_floor": 0.020906488783032154,
+    "card_floor": 0.026191659278267526,
+    "linear_quasi_steady": 0.7834527595828302,
+    "linear_inertial": 0.8963727738558804
+   },
+   {
+    "band": [
+     15,
+     30
+    ],
+    "ratio": 0.9148896982248513,
+    "floor": 0.031384958566868675,
+    "resolution": 1.058997840704263,
+    "ratio_j001": 0.6796460525796487,
+    "repeat_floor": 0.02440832341936257,
+    "card_floor": 0.03534949701775607,
+    "linear_quasi_steady": 0.25673032799600676,
+    "linear_inertial": 0.4530076923143794
+   },
+   {
+    "band": [
+     30,
+     60
+    ],
+    "ratio": 0.8366905519144052,
+    "floor": 0.040886188910153984,
+    "resolution": 1.0474921001802793,
+    "ratio_j001": 0.4132421072048425,
+    "repeat_floor": 0.03354076406465293,
+    "card_floor": 0.046088774677304614,
+    "linear_quasi_steady": 0.007977807995703766,
+    "linear_inertial": 0.03351043168069239
+   },
+   {
+    "band": [
+     60,
+     120
+    ],
+    "ratio": 0.6236346370587513,
+    "floor": 0.05647836994494953,
+    "resolution": 1.7812005834719165,
+    "ratio_j001": 0.22817810024053317,
+    "repeat_floor": 0.0699129469484128,
+    "card_floor": 0.06521024550017346,
+    "linear_quasi_steady": 1.5046727064369437e-07,
+    "linear_inertial": 6.304805608114036e-06
+   },
+   {
+    "band": [
+     120,
+     200
+    ],
+    "ratio": 0.5337185680774417,
+    "floor": 0.04961871956640157,
+    "resolution": 7.0145350490193525,
+    "ratio_j001": 0.42319645780562637,
+    "repeat_floor": 0.05334453244305084,
+    "card_floor": 0.05827157663310847,
+    "linear_quasi_steady": 1.0547540597782763e-24,
+    "linear_inertial": 6.356127338566342e-20
+   }
+  ],
+  "bands_t4": [
+   {
+    "band": [
+     3,
+     7
+    ],
+    "ratio": 1.007186150425933,
+    "floor": 0.031043142489335818,
+    "resolution": 1.1136838014444237,
+    "ratio_j001": 1.003569557803586,
+    "repeat_floor": 0.025068377276803666,
+    "card_floor": 0.025257058043585634,
+    "linear_quasi_steady": 0.9753656226063158,
+    "linear_inertial": 0.9909423248258875
+   },
+   {
+    "band": [
+     7,
+     15
+    ],
+    "ratio": 0.9152335535362196,
+    "floor": 0.043925333150667864,
+    "resolution": 0.9150293547457575,
+    "ratio_j001": 0.6921890010233235,
+    "repeat_floor": 0.06529616959490787,
+    "card_floor": 0.044604216432813315,
+    "linear_quasi_steady": 0.7254104016283313,
+    "linear_inertial": 0.8651668003780849
+   },
+   {
+    "band": [
+     15,
+     30
+    ],
+    "ratio": 0.928790720794376,
+    "floor": 0.0625950759979208,
+    "resolution": 1.1066692855769096,
+    "ratio_j001": 0.6581038802417642,
+    "repeat_floor": 0.04643471497735448,
+    "card_floor": 0.07538754066855315,
+    "linear_quasi_steady": 0.17595569273663647,
+    "linear_inertial": 0.3599283138011362
+   },
+   {
+    "band": [
+     30,
+     60
+    ],
+    "ratio": 0.8534199886450952,
+    "floor": 0.08716501399795998,
+    "resolution": 1.058976269945696,
+    "ratio_j001": 0.4683369858187788,
+    "repeat_floor": 0.08388151322677881,
+    "card_floor": 0.10649952181760564,
+    "linear_quasi_steady": 0.0023601285678472093,
+    "linear_inertial": 0.014657045599639195
+   },
+   {
+    "band": [
+     60,
+     120
+    ],
+    "ratio": 0.627345030367448,
+    "floor": 0.0953493655427723,
+    "resolution": 1.7446083921745645,
+    "ratio_j001": 0.2543129774846163,
+    "repeat_floor": 0.05854655467017383,
+    "card_floor": 0.06973429192345953,
+    "linear_quasi_steady": 1.7996243738394286e-09,
+    "linear_inertial": 2.4356317272688176e-07
+   },
+   {
+    "band": [
+     120,
+     200
+    ],
+    "ratio": 0.531653052664275,
+    "floor": 0.04664063862501526,
+    "resolution": 6.6818646400915584,
+    "ratio_j001": 0.41179370799264065,
+    "repeat_floor": 0.05667877160625523,
+    "card_floor": 0.04860038182555593,
+    "linear_quasi_steady": 3.270487375653637e-32,
+    "linear_inertial": 7.279100940579103e-26
+   }
+  ],
+  "turbulence_newtonian_n2050_end": {
+   "time": 4.026828262115129,
+   "energy": 0.6533289783377275,
+   "enstrophy": 14.66444906381133
+  },
+  "turbulence_micropolar_n2050_end": {
+   "time": 4.026828262115129,
+   "energy": 0.6448810640856708,
+   "enstrophy": 14.087859578856385
+  }
+ },
+ "tag": "v10-periodic (thesis-ch5-rc2 + the periodic domain of Stage 8b)"
+}

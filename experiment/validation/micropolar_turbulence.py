@@ -59,6 +59,9 @@ RUNS = {
     "turbulence_micropolar_n2050": {"side": 2050, "micropolar": True, "shift": 0.0},
     "turbulence_newtonian_n2050_shifted": {"side": 2050, "micropolar": False, "shift": 0.5},
     "turbulence_newtonian_n1025": {"side": 1025, "micropolar": False, "shift": 0.0},
+    # beyond the task: j = l^2 / 100 (the quasi-steady limit; Section 18.6), the same dt (the angular-diffusion limit
+    # 5.2e-5 stays above the acoustic step)
+    "turbulence_micropolar_j001_n2050": {"side": 2050, "micropolar": True, "shift": 0.0, "theta_factor": 0.01},
 }
 
 CASE_TEMPLATE = """schema_version: 2
@@ -212,6 +215,7 @@ def design(run: str) -> dict:
         return {"viscosity": FAR_VISCOSITY, "viscosity_transfer": -FAR_VISCOSITY, "coupling": 0.0,
                 "viscosity_rotation": 0.0, "micro_inertia": MICROPOLAR_LENGTH ** 2, "length": None}
     parameters = design_parameters(FAR_VISCOSITY, COUPLING_RATIO, MICROPOLAR_LENGTH)
+    parameters["micro_inertia"] *= RUNS[run].get("theta_factor", 1.0)
     return {**parameters, "length": MICROPOLAR_LENGTH}
 
 
@@ -241,7 +245,7 @@ def make_case(run: str, speed: float) -> pathlib.Path:
     steps = int(math.ceil(END_TIME / timestep / SAMPLE_STEPS - 1e-9)) * SAMPLE_STEPS
     if entry["micropolar"]:
         description = (f"Micropolar: K = {COUPLING_RATIO:g}, l = 1 / 7 = {MICROPOLAR_LENGTH:.6f} ({MICROPOLAR_LENGTH / spacing:.1f} "
-                       f"dx), Theta = l^2; nu = {parameters['viscosity']:.6g}, nu_t = {parameters['viscosity_transfer']:.6g}, "
+                       f"dx), Theta = {entry.get('theta_factor', 1.0):g} l^2; nu = {parameters['viscosity']:.6g}, nu_t = {parameters['viscosity_transfer']:.6g}, "
                        f"c = {parameters['coupling']:.6g}, xi = {parameters['viscosity_rotation']:.6g}; nu_inf = "
                        f"{FAR_VISCOSITY:g}.")
     else:
@@ -363,11 +367,12 @@ def command_run(arguments) -> int:
                                                          np.float32(power)) - np.float32(1.0))).astype(np.float32)
     grid = SpectralGrid()
     chain = compute_chain_partition(case, [1.0], pool_safety=arguments.pool_safety)
-    out_dir = (_REPO_ROOT / RUNS_DIRECTORY / run).resolve()
+    out_dir = (_REPO_ROOT / RUNS_DIRECTORY / (run + (f"_{arguments.label}" if arguments.label else ""))).resolve()
     (out_dir / "fields").mkdir(parents=True, exist_ok=True)
     samples = {name: [] for name in ("step", "time", "energy", "energy_grid", "enstrophy", "energy_spectrum",
                                      "max_speed", "density_mean", "outside_box")}
-    snapshot_steps = {int(round(value / timestep / 1000.0)) * 1000 for value in SNAPSHOT_TIMES if value > 0}
+    # the sample nearest each snapshot time (the first runs rounded to 1000 steps, which only t = 0.5 and 1 met)
+    snapshot_steps = {SAMPLE_STEPS * int(round(value / timestep / SAMPLE_STEPS)) for value in SNAPSHOT_TIMES if value > 0}
     contexts, sims, statuses = [], [], []
     started = time.perf_counter()
     failure, bootstrap_seconds = None, None
@@ -422,7 +427,8 @@ def command_run(arguments) -> int:
                         + 0.5 * timestep * rows["acceleration"][fluid, :2].astype(np.float64))
             if not np.isfinite(velocity).all():
                 raise RuntimeError(f"step {step}: non-finite velocity")
-            density = rows["density_pressure"][fluid, 0].astype(np.float64) + sim.stored_density_offset()
+            # the readback returns rho (the first runs added rho0 once more here: see load_run)
+            density = rows["density_pressure"][fluid, 0].astype(np.float64)
             record_sample(step, point, velocity, float(density.mean()))
             if len(samples["step"]) % 10 == 0:
                 # what a run that is stopped early leaves behind, and the resolution check during a run
@@ -463,7 +469,7 @@ def command_run(arguments) -> int:
                 counters[name] = counters.get(name, 0) + int(value)
     elapsed = time.perf_counter() - started
     np.savez_compressed(out_dir / "samples.npz", **{name: np.asarray(values) for name, values in samples.items()})
-    record = {"run": run, "case": f"cases/periodic/{run}", "turbulence": meta, "revision": solver_revision(),
+    record = {"run": run, "label": arguments.label, "case": f"cases/periodic/{run}", "turbulence": meta, "revision": solver_revision(),
               "device": int(arguments.device), "steps": steps, "timestep": timestep,
               "particles": int(case.initial.positions.shape[0]), "counters": counters, "elapsed_seconds": elapsed,
               "bootstrap_seconds": bootstrap_seconds, "failure": failure,
@@ -517,7 +523,10 @@ def command_analyse(arguments) -> int:
         lines.append(text)
         print(text, flush=True)
 
-    runs = {name: load_run(name) for name in RUNS}
+    # the repeats (5090, after the first runs; they also carry the vorticity at t = 2, 3, 4): floors of the same
+    # card (micropolar) and of the other card (the Newtonian first run was on the XTX)
+    repeats = {f"{name}_repeat": name for name in ("turbulence_micropolar_n2050", "turbulence_newtonian_n2050")}
+    runs = {name: load_run(name) for name in list(RUNS) + list(repeats)}
     runs = {name: value for name, value in runs.items() if value is not None}
     base = runs.get("turbulence_newtonian_n2050")
     if base is None:
@@ -552,7 +561,8 @@ def command_analyse(arguments) -> int:
     for time in report_times:
         index, actual = at(base, time)
         entry = {"time": float(actual), "newtonian": base["samples"]["energy_spectrum"][index].tolist()}
-        for name in ("turbulence_micropolar_n2050", "turbulence_newtonian_n2050_shifted", "turbulence_newtonian_n1025"):
+        for name in ("turbulence_micropolar_n2050", "turbulence_newtonian_n2050_shifted", "turbulence_newtonian_n1025",
+                     "turbulence_micropolar_j001_n2050", *repeats):
             if name in runs:
                 other_index, _other_time = at(runs[name], time)
                 entry[name] = runs[name]["samples"]["energy_spectrum"][other_index].tolist()
@@ -567,13 +577,22 @@ def command_analyse(arguments) -> int:
     for time in report_times:
         index, actual = at(base, time)
         cells = []
-        for name in ("turbulence_micropolar_n2050", "turbulence_newtonian_n2050_shifted", "turbulence_newtonian_n1025"):
+        for name in ("turbulence_micropolar_n2050", "turbulence_newtonian_n2050_shifted", "turbulence_newtonian_n1025",
+                     "turbulence_micropolar_j001_n2050"):
             if name not in runs:
                 continue
             other_index, _ = at(runs[name], time)
             other = runs[name]["samples"]
             cells.append(f"{name.split('turbulence_')[1]}: E {other['energy'][other_index] / base['samples']['energy'][index] - 1.0:+.4f}, "
                          f"Z {other['enstrophy'][other_index] / base['samples']['enstrophy'][index] - 1.0:+.4f}")
+        for name, original in repeats.items():
+            if name in runs and original in runs:
+                first_index, _ = at(runs[original], time)
+                other_index, _ = at(runs[name], time)
+                first, other = runs[original]["samples"], runs[name]["samples"]
+                cells.append(f"{name.split('turbulence_')[1]} / first run: E "
+                             f"{other['energy'][other_index] / first['energy'][first_index] - 1.0:+.4f}, Z "
+                             f"{other['enstrophy'][other_index] / first['enstrophy'][first_index] - 1.0:+.4f}")
         say(f"  t = {actual:.3f}: Newtonian E {base['samples']['energy'][index]:.5f}, Z {base['samples']['enstrophy'][index]:.3f}; "
             + "; ".join(cells))
     # the spectrum ratio by band of wavenumbers
@@ -590,27 +609,36 @@ def command_analyse(arguments) -> int:
             chosen = (shells >= low) & (shells < high) & (newtonian > 0)
             row = {"band": [low, high]}
             for name, label in (("turbulence_micropolar_n2050", "ratio"), ("turbulence_newtonian_n2050_shifted", "floor"),
-                                ("turbulence_newtonian_n1025", "resolution")):
+                                ("turbulence_newtonian_n1025", "resolution"),
+                                ("turbulence_micropolar_j001_n2050", "ratio_j001")):
                 if name in entry:
                     ratio = np.asarray(entry[name])[chosen] / newtonian[chosen]
                     row[label] = float(np.mean(np.abs(ratio - 1.0))) if label == "floor" else float(np.mean(ratio))
+            for name, original, label in (("turbulence_micropolar_n2050_repeat", "turbulence_micropolar_n2050",
+                                           "repeat_floor"),
+                                          ("turbulence_newtonian_n2050_repeat", "newtonian", "card_floor")):
+                if name in entry and (original in entry):
+                    reference = np.asarray(entry[original])[chosen]
+                    row[label] = float(np.mean(np.abs(np.asarray(entry[name])[chosen] / reference - 1.0)))
             row["linear_quasi_steady"] = float(np.mean(np.asarray(entry["linear_quasi_steady"])[chosen]))
             row["linear_inertial"] = float(np.mean(np.asarray(entry["linear_inertial"])[chosen]))
             rows.append(row)
         table[f"{time:g}"] = rows
         say(f"  t = {entry['time']:.3f}: " + "; ".join(
             f"k {row['band'][0]}-{row['band'][1]}: " + ", ".join(f"{key} {row[key]:.3f}" for key in
-                                                                 ("ratio", "floor", "resolution", "linear_quasi_steady",
+                                                                 ("ratio", "ratio_j001", "floor", "repeat_floor", "card_floor",
+                                                                  "resolution", "linear_quasi_steady",
                                                                   "linear_inertial") if key in row) for row in rows))
     result["bands"] = table
     out_dir = _REPO_ROOT / DATA_DIRECTORY
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "turbulence.txt").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
     (out_dir / "turbulence.json").write_text(json.dumps(result, indent=1, default=float), encoding="utf-8")
-    # the vorticity fields of the two 2050 runs at the snapshot times, at half resolution, for the pack (float16)
+    # the vorticity fields of the two repeats (the first runs wrote t = 0, 0.5, 1 only) at the snapshot times, at
+    # half resolution, for the pack (float16)
     fields_dir = out_dir / "fields"
     fields_dir.mkdir(exist_ok=True)
-    for name in ("turbulence_newtonian_n2050", "turbulence_micropolar_n2050"):
+    for name in repeats:
         for path in sorted((_REPO_ROOT / RUNS_DIRECTORY / name / "fields").glob("vorticity_*.npz")):
             with np.load(path) as archive:
                 vorticity = np.array(archive["vorticity"], dtype=np.float32)
@@ -631,6 +659,7 @@ def main() -> int:
     run.add_argument("--device", default="0")
     run.add_argument("--steps", type=int, default=None)
     run.add_argument("--pool-safety", type=float, default=1.2)
+    run.add_argument("--label", default=None, help="a repeat of the same case into logs/.../<run>_<label>")
     commands.add_parser("analyse")
     arguments = parser.parse_args()
     if arguments.command == "analyse":

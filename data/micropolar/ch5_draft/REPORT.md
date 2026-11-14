@@ -1,8 +1,8 @@
 # Chapter 5: what the solver has shown
 
-Written 2026-11-14 13:39 at commit `382619d` (branch `v10-showcase`; solver tag `thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number below is read from the data files by `report.py`; the captions with all parameters and run names are in `captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6), 16 (Stage 7) and 17 (Stage 8, the dipole-wall collision).
+Written 2026-11-14 17:30 at commit `36d6f76` (branch `v10-periodic`; solver tag `thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number below is read from the data files by `report.py`; the captions with all parameters and run names are in `captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6), 16 (Stage 7) and 17 (Stage 8, the dipole-wall collision).
 
-**State.** Every run of the chapter is done.
+**State.** Every item is final except the one row at g = 400 dx (m = 20, K = 3, l = 10 dx): its Newtonian control is done, the micropolar run is going; items 02 to 04 gain that row when it ends. Nothing else is pending and there is no further queue.
 
 Marks: **[run]** measured in a particle run on the tag; **[host]** computed on the host without the particle solver; **[inferred]** my reading, not measured.
 
@@ -29,6 +29,9 @@ Marks: **[run]** measured in a particle run on the tag; **[host]** computed on t
 | 20 | Dipole-wall collision: vorticity of the control and of the two micropolar runs at four times | `fig_20_dipole_showcase.pdf` | final |
 | 21 | Dipole-wall collision: core trajectories and enstrophy against the benchmark | `fig_21_dipole_tracks.pdf` | final |
 | 22 | Dipole-wall collision: numbers against the control with the noise floor | `tab_22_dipole_numbers.csv`, `tab_22_dipole_numbers.tex` | final |
+| 23 | Micropolar Taylor-Green vortex: mu_eff against |k| l, and the two-mode solution | `fig_23_taylor_green.pdf` | final |
+| 24 | Decaying 2-D turbulence: vorticity, E(t) and the enstrophy Z(t), spectra and their ratio | `fig_24_turbulence.pdf` | final |
+| 25 | Table of the Taylor-Green rates and ratios with their noise floors | `tab_25_taylor_green.csv`, `tab_25_taylor_green.tex` | final |
 | 26 | Dipole-wall collision: the checks of micro-inertia, saturation and resolution | `tab_26_dipole_checks.csv`, `tab_26_dipole_checks.tex` | final |
 
 ## 2. Concentric cylinders (items 01 to 04) [run]
@@ -247,7 +250,35 @@ Each run against its control with the definitions and floors of table 22 (the co
 - **Saturation: the reading does not hold here** (l = W / 25 = 40 dx, j = l^2 / 100, Lambda / l = 0.13). The wall traction excess is +7.2 % (peak) and +16.0 % (integral), not the +26.5 % (sqrt(1.6) - 1) of a layer pinned at w = 0 across the boundary layer of the control's flow: the dipole itself (core radius r0 = 2.5 l) is in the micropolar range and arrives weaker. **The vorticity maximum of the primary core at t = 0.25 is 221.5 against 240.5 of the control (-7.9 %; floor -0.13 % shifted lattice, +2.3 % half Mach)**, E and the enstrophy at t = 0.25 -4.7 % and -11.1 %; the wall vorticity of the first collision -33.0 %, the first enstrophy peak -29.6 %. At the wall (mu + kappa) d omega / dn - kappa d w / dn is +1.0 % off the control's mu_inf d omega / dn and the pressure difference along the wall -1.0 %: the balance closes.
 - **Resolution of l** (l = W / 50 at 10 dx, W / dx = 500, against `control_n500`): the first enstrophy peak -15.3 % and the wall vorticity -24.2 % (20 dx: -15.7 % and -25.7 %); differing by more than a tenth of the effect: wall shear traction, peak +21.3 % against +18.9 % (0.13 of the effect); vorticity flux into the fluid at the wall -44.2 % against -37.5 % (0.18 of the effect). [inferred] The quantities read at the wall (traction, flux) are those that resolve the layer w = 0 to omega / 2; the global ones agree.
 
-## 10. To be careful with in the text
+## 10. The periodic box: Taylor-Green and decaying turbulence (items 23 to 25) [run]
+
+The periodic domain of v8-tgv ported into the solver of the chapter (one card, one slab, 2-D; nothing changes with the switch off). Design note Section 18.
+
+- **Port check.** v8's Newtonian Taylor-Green (Re 100, Ma 0.1 to 0.01, 400^2 and 800^2): nu_eff / nu 0.9948 to 1.0006, within 6e-04 of v8's.
+
+Micropolar Taylor-Green vortex (k = 1, Re = 20 on nu_inf, K = 3, Ma 0.02, 400^2 unless named; j = l^2 unless named), rates fitted over 5 <= t <= 20:
+
+| \|k\| l | rate / exact | (W/U) / exact | rate over control | exact | quasi-steady mu_eff |
+|---|---|---|---|---|---|
+| 0.25 | 0.9997 | 0.9989 | 1.0083 | 1.0076 | 1.0226 |
+| 0.5 | 0.9996 | 0.9990 | 1.0287 | 1.0281 | 1.0811 |
+| 1 | 0.9993 | 0.9994 | 1.0859 | 1.0856 | 1.2308 |
+| 2 | 0.9990 | 1.0001 | 1.1612 | 1.1612 | 1.4286 |
+| 0.5 (800^2) | 0.9996 | 0.9994 | 1.0285 | 1.0281 | 1.0811 |
+| 0.5, j = l^2/100 | 1.0010 | 0.9996 | 1.0807 | 1.0806 | 1.0811 |
+| 1, j = l^2/100 | 1.0001 | 1.0001 | 1.2285 | 1.2296 | 1.2308 |
+| 1, j = 1.5 l^2 | 0.9994 | 0.9995 | 1.0004 | 1.0000 | 1.2308 |
+| 1, j = 0.755 l^2, W(0) = 0 | 0.9993 | 0.9993 | 1.1331 | 1.1327 | 1.2308 |
+
+- **Every run follows the exact two-mode solution** to 0.1 % (the Newtonian control misses its exact rate by -0.1 % as well). **With j = l^2 the runs reach only a third of the quasi-steady mu_eff excess**, as the exact solution predicts: a decaying flow keeps spin from its earlier vorticity, and with j scaling as l^2 that memory stays of the size of the effect at every |k| l. With j = l^2 / 100 the runs reach mu_eff (1.0807 and 1.2285 against 1.0811 and 1.2308); with j = 1.5 l^2 (rho j (mu + kappa / 2) = gamma) w = omega / 2 is exact and the micropolar vortex decays exactly as the Newtonian fluid mu + kappa / 2 (1.0004).
+- **Floors:** repeat of the control +1.2e-06; repeat of |k|l = 1 +3.6e-06; control at Ma 0.01 +1.6e-04; |k|l = 1 at Ma 0.01 +9.0e-05; |k|l = 0.5 at 800^2 +2.6e-05; control at dt / 8.6 +1.9e-03 (relative change of the rate).
+- **Decaying turbulence** (box 2 pi, k0 = 10, u' = 1, Re = 100 on nu_inf and 250 on mu; micropolar K = 3, l = 1/7; Z is the enstrophy): runs `turbulence_newtonian_n2050` (4,202,500 particles, 388,000 steps, 113 min), `turbulence_micropolar_n2050` (4,202,500 particles, 388,000 steps, 66 min), `turbulence_newtonian_n2050_shifted` (4,202,500 particles, 388,000 steps, 113 min), `turbulence_newtonian_n1025` (1,050,625 particles, 196,000 steps, 15 min), `turbulence_micropolar_j001_n2050` (4,202,500 particles, 388,000 steps, 113 min), `turbulence_micropolar_n2050_repeat` (4,202,500 particles, 388,000 steps, 66 min), `turbulence_newtonian_n2050_repeat` (4,202,500 particles, 388,000 steps, 66 min).
+- **Micropolar (j = l^2) against Newtonian:** t = 1.0: E -0.4%, Z -1.7%; t = 2.0: E -0.8%, Z -2.6%; t = 4.0: E -1.3%, Z -3.9%.
+- **Micropolar (j = l^2 / 100 (beyond the task)) against Newtonian:** t = 1.0: E -5.8%, Z -13.3%; t = 2.0: E -7.7%, Z -15.8%; t = 4.0: E -9.1%, Z -19.6%.
+- **Floors:** the shifted lattice moves E by 2e-05 and Z by 4e-04 at t = 4 (a repeat and the other card alike); the spectra by 1 to 2 % per band at t = 2 and up to 10 % at t = 4 (chaotic divergence of the small scales). **With j = l^2 the effect is small and sits in the dissipation range** (spectrum ratio 0.87 at k 30 - 60 and 0.65 at 60 - 120 at t = 2): the spin relaxes on Theta / (2 c) = 8.5, longer than the run, and advection keeps w = omega / 2. **With j = l^2 / 100 it is seven times larger in E** and the energy-containing band follows the linear quasi-steady estimate; at higher k the cascade keeps both far above the single-mode estimates. Item 24, design note 18.5.
+- **Figures:** item 23 (rate over the control against |k| l, the micro-inertia run), item 24 (turbulence), table 25.
+
+## 11. To be careful with in the text
 
 - **The film function** is that of micropolar lubrication theory; ours is that the runs reproduce it at a clearance ratio of 0.25. Its match with the published form has not been checked against the original.
 - **The cavity is not 'between two Newtonian fluids'**, and the pack no longer says so; its check is the finite-difference solution, which in turn agrees with the reference of Marchi et al. at Reynolds number 400 (your transcription from the appendix of paper 1, `reference/marchi_re400.csv`, 28 + 28 points) to 3.0e-05 (u) and 1.9e-05 (v) U rms once extrapolated to zero spacing.

@@ -524,7 +524,92 @@ def main() -> int:
                     "w = 0 to omega / 2; the global ones agree.")
             say()
 
-    say("## 10. To be careful with in the text")
+    # ---- the periodic box (Stage 8b) -----------------------------------------------------------------------------
+    periodic_file = ROOT / "data/micropolar/stage8b/taylor_green.json"
+    if periodic_file.exists():
+        periodic = load(periodic_file)
+        tgv, check = periodic["tgv"], periodic["check"]
+        say("## 10. The periodic box: Taylor-Green and decaying turbulence (items 23 to 25) [run]")
+        say()
+        say("The periodic domain of v8-tgv ported into the solver of the chapter (one card, one slab, 2-D; nothing "
+            "changes with the switch off). Design note Section 18.")
+        say()
+        if check:
+            worst = max(abs(entry["difference"]) for entry in check.values())
+            say(f"- **Port check.** v8's Newtonian Taylor-Green (Re 100, Ma 0.1 to 0.01, 400^2 and 800^2): nu_eff / nu "
+                f"{min(entry['nu_eff_over_nu'] for entry in check.values()):.4f} to "
+                f"{max(entry['nu_eff_over_nu'] for entry in check.values()):.4f}, within {worst:.0e} of v8's.")
+        rows = []
+        for run, label in (("tgv_kl025_n400", "0.25"), ("tgv_kl05_n400", "0.5"), ("tgv_kl1_n400", "1"),
+                           ("tgv_kl2_n400", "2"), ("tgv_kl05_n800", "0.5 (800^2)"),
+                           ("tgv_kl05_j001_n400", "0.5, j = l^2/100"), ("tgv_kl1_j001_n400", "1, j = l^2/100"),
+                           ("tgv_kl1_j150_n400", "1, j = 1.5 l^2"), ("tgv_kl1_inertia_n400", "1, j = 0.755 l^2, W(0) = 0")):
+            if run in tgv and "over_control" in tgv[run]:
+                item = tgv[run]
+                rows.append([label, f"{item['rate_over_exact']:.4f}", f"{item['spin_ratio_over_exact']:.4f}",
+                             f"{item['over_control']:.4f}", f"{item['exact_over_control']:.4f}",
+                             f"{item['mu_effective_ratio']:.4f}"])
+        if rows:
+            say()
+            say("Micropolar Taylor-Green vortex (k = 1, Re = 20 on nu_inf, K = 3, Ma 0.02, 400^2 unless named; j = l^2 "
+                "unless named), rates fitted over 5 <= t <= 20:")
+            say()
+            say(table(["\\|k\\| l", "rate / exact", "(W/U) / exact", "rate over control", "exact", "quasi-steady mu_eff"],
+                      rows))
+            say()
+            say("- **Every run follows the exact two-mode solution** to 0.1 % (the Newtonian control misses its "
+                "exact rate by -0.1 % as well). **With j = l^2 the runs reach only a third of the quasi-steady "
+                "mu_eff excess**, as the exact solution predicts: a decaying flow keeps spin from its earlier "
+                "vorticity, and with j scaling as l^2 that memory stays of the size of the effect at every |k| l. "
+                "With j = l^2 / 100 the runs reach mu_eff (1.0807 and 1.2285 against 1.0811 and 1.2308); with j = "
+                "1.5 l^2 (rho j (mu + kappa / 2) = gamma) w = omega / 2 is exact and the micropolar vortex decays "
+                "exactly as the Newtonian fluid mu + kappa / 2 (1.0004).")
+            floors = periodic.get("floors", {})
+            if floors:
+                say("- **Floors:** " + "; ".join(
+                    f"{label} {entry['rate_difference']:+.1e}" for label, entry in floors.items()) + " (relative "
+                    "change of the rate).")
+        turbulence_file = ROOT / "data/micropolar/stage8b/turbulence.json"
+        if turbulence_file.exists():
+            turbulence = load(turbulence_file)
+            runs = turbulence.get("runs", {})
+            say("- **Decaying turbulence** (box 2 pi, k0 = 10, u' = 1, Re = 100 on nu_inf and 250 on mu; micropolar "
+                "K = 3, l = 1/7; Z is the enstrophy): runs "
+                + ", ".join(f"`{name}` ({record['particles']:,} particles, {record['steps']:,} steps, "
+                            f"{record['elapsed_seconds'] / 60.0:.0f} min)" for name, record in runs.items()) + ".")
+            series = turbulence.get("series", {})
+            base = series.get("turbulence_newtonian_n2050")
+            shifted = series.get("turbulence_newtonian_n2050_shifted")
+
+            def nearest(item, time_value):
+                return min(range(len(item["time"])), key=lambda position: abs(item["time"][position] - time_value))
+            for run, label in (("turbulence_micropolar_n2050", "j = l^2"),
+                               ("turbulence_micropolar_j001_n2050", "j = l^2 / 100 (beyond the task)")):
+                micro = series.get(run)
+                if not (base and micro):
+                    continue
+                cells = []
+                for time_value in (1.0, 2.0, 4.0):
+                    index, other = nearest(base, time_value), nearest(micro, time_value)
+                    cells.append(f"t = {base['time'][index]:.1f}: E {micro['energy'][other] / base['energy'][index] - 1.0:+.1%}, "
+                                 f"Z {micro['enstrophy'][other] / base['enstrophy'][index] - 1.0:+.1%}")
+                say(f"- **Micropolar ({label}) against Newtonian:** " + "; ".join(cells) + ".")
+            if base and shifted:
+                index, floor_index = nearest(base, 4.0), nearest(shifted, 4.0)
+                say(f"- **Floors:** the shifted lattice moves E by {abs(shifted['energy'][floor_index] / base['energy'][index] - 1.0):.0e} "
+                    f"and Z by {abs(shifted['enstrophy'][floor_index] / base['enstrophy'][index] - 1.0):.0e} at t = 4 (a repeat "
+                    "and the other card alike); the spectra by 1 to 2 % per band at t = 2 and up to 10 % at t = 4 "
+                    "(chaotic divergence of the small scales). **With j = l^2 the effect is small and sits in the "
+                    "dissipation range** (spectrum ratio 0.87 at k 30 - 60 and 0.65 at 60 - 120 at t = 2): the spin "
+                    "relaxes on Theta / (2 c) = 8.5, longer than the run, and advection keeps w = omega / 2. **With j = "
+                    "l^2 / 100 it is seven times larger in E** and the energy-containing band follows the linear "
+                    "quasi-steady estimate; at higher k the cascade keeps both far above the single-mode estimates. "
+                    "Item 24, design note 18.5.")
+        say("- **Figures:** item 23 (rate over the control against |k| l, the micro-inertia run), item 24 "
+            "(turbulence), table 25.")
+        say()
+
+    say("## 11. To be careful with in the text")
     say()
     for line in (
             "**The film function** is that of micropolar lubrication theory; ours is that the runs reproduce it at a "

@@ -12,7 +12,7 @@ micropolar. Design note: `docs/micropolar_design.md`, Section 18. Branch `v10-pe
 | `t1/compare_newtonian.*`, `t1/compare_micropolar.txt`, `t1/compare_micropolar_15.*` | T1: dumps after 3000 steps with the periodic switch off, new tree against the spread of the base tree's own repeats (Newtonian cavity 5 against 5; micropolar cavity 5 against 5, then 15 against 15) | `micropolar_tests dump` / `compare` |
 | `taylor_green.txt`, `.json` | the port check (v8's set, nu_eff / nu against Section 12.1) and every micropolar Taylor-Green run against the exact two-mode solution and against its control, with the noise floors | `micropolar_periodic analyse` |
 | `turbulence.txt`, `.json` | the turbulence runs: E(t), Z(t), spectra at t = 1, 2, 3, 4 (and 0.5), the spectrum ratio micropolar / Newtonian by band with the shifted-lattice floor, the 1025^2 resolution check and the linear estimates | `micropolar_turbulence analyse` |
-| `fields/<run>_t<time>.npz` | vorticity of the two 2050^2 runs at t = 0, 0.5, 1, 2, 3, 4 on a 512^2 grid (2 x 2 means of the 1024^2 deposit), float16 | `micropolar_turbulence analyse` |
+| `fields/<run>_t<time>.npz` | vorticity of the 2050^2 runs on a 512^2 grid (2 x 2 means of the 1024^2 deposit), float16, from the two repeats at t = 0, 0.5, 1, 2, 3, 4 (the snapshot rule of the first runs missed the samples after t = 1; their snapshots stay in `logs/`) | `micropolar_turbulence analyse` |
 
 ## Runs
 
@@ -30,6 +30,8 @@ micropolar. Design note: `docs/micropolar_design.md`, Section 18. Branch `v10-pe
 | `turbulence_newtonian_n2050`, `turbulence_micropolar_n2050` | 4,202,500 | decaying turbulence, nu_inf = 1e-3, k0 = 10, u' = 1; micropolar K = 3, l = 1/7, j = l^2 |
 | `turbulence_newtonian_n2050_shifted` | 4,202,500 | the lattice shifted by half a spacing (floor) |
 | `turbulence_newtonian_n1025` | 1,050,625 | resolution |
+| `turbulence_micropolar_n2050_repeat`, `turbulence_newtonian_n2050_repeat` | 4,202,500 | repeats on the 5090 (`run ... --label repeat`): the vorticity at t = 2, 3, 4 that the first runs did not write, and the repeat floors (same card for the micropolar run; the Newtonian first run was on the XTX) |
+| `turbulence_micropolar_j001_n2050` | 4,202,500 | beyond the task: j = l^2 / 100, the same dt |
 
 ## Commands
 
@@ -48,7 +50,8 @@ python data/micropolar/ch5_draft/make_all.py 23 24 25
 
 Every run except `tgv_control_n400_stored_density` ran with `V7_DELTA_DENSITY=1` (the density stored as an offset
 from rho0, as v8-tgv's set). The runs were queued with `micropolar_stage6 runner` on
-`logs/micropolar/stage8b/queue_check`, `queue_tgv` (XTX) and `queue_turbulence0` (5090).
+`logs/micropolar/stage8b/queue_check`, `queue_tgv`, `queue_turbulence_j001` (XTX), `queue_turbulence0` and
+`queue_turbulence_repeat` (5090).
 
 ## Readings taken in this stage
 
@@ -57,7 +60,8 @@ from rho0, as v8-tgv's set). The runs were queued with `micropolar_stage6 runner
 - Taylor-Green at Re = 20 on nu_inf (50 on mu), Ma 0.02; fit window 5 <= t <= 20 for the run and for the exact
   solution sampled at the same times.
 - The micro-inertia run needs j = 0.7549 l^2 for fast / slow = 5 (j = l^2 gives 4.06).
-- Four runs beyond the task, to test the exact analysis: j = 1.5 l^2 (neutral), j = l^2 / 100 at |k| l = 0.5
-  and 1, and their control at their dt.
+- Runs beyond the task: four Taylor-Green runs to test the exact analysis (j = 1.5 l^2, the neutral case; j = l^2
+  / 100 at |k| l = 0.5 and 1, and their control at their dt), the two turbulence repeats (for the snapshots at
+  t >= 2) and the micropolar turbulence with j = l^2 / 100.
 - The density samples of the run tools carry rho0 twice under the delta storage (a diagnostic; the turbulence
   analysis subtracts it, the Taylor-Green analysis does not use it).

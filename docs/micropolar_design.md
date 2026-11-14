@@ -4281,3 +4281,286 @@ are unchanged (rebuilt byte-identical). Pack item 26 (`tab_26_dipole_checks`), R
   The numbers of items/<nn>.json are unchanged except item 08, which had not been rebuilt since the g = 400 dx row
   arrived and now carries it (`torque.g400_k3_m20`); item 16's caption counts 19 rows (was 18) and the tag lists
   of captions 01, 03 and 04 are sorted deterministically.
+
+## 18. Stage 8b (2026-11-14): periodic boundaries, Taylor-Green and decaying turbulence
+
+The task: bring the periodic domain of `origin/v8-tgv` (`experiment/v8`) into the tree of the micropolar kernels
+(`experiment/v7`; one card, one slab, 2-D), check that nothing changes with the switch off, reproduce v8's
+Newtonian Taylor-Green numbers, then (1) the micropolar Taylor-Green vortex against its exact 2 x 2 solution and
+(2) decaying 2-D turbulence, Newtonian against micropolar. Branch `v10-periodic` from `v10-showcase` (382619d; Part 0
+of the task merged in at 36d6f76); the port is commit 78fb290 (`git describe` thesis-ch5-rc2-50-g78fb290). Tools:
+`experiment/validation/micropolar_periodic.py` (port check and Taylor-Green: cases, run, analyse),
+`micropolar_turbulence.py` (cases, run, analyse); data `data/micropolar/stage8b/` (commands in its `README.md`),
+raw runs `logs/micropolar/stage8b/`; pack items 23 to 25.
+
+### 18.0 The port **[run]**
+
+- **What moved.** `experiment/v7/shaders/periodic.glsl` (new; the helpers of `experiment/v8/shaders/common.glsl`):
+  spec constants 116 `PERIODIC_X`, 117 `PERIODIC_Y` (bool), 118 `DOMAIN_LENGTH_X`, 119 `DOMAIN_LENGTH_Y` (float),
+  `wrap_neighbor_coord` (the neighbour sweep wraps the voxel coordinate), `minimum_image` (every particle
+  difference), `wrap_position` (predict puts a particle that left the box back in) and `clamp_periodic_coord`
+  (binning). Included by the nine kernels with a neighbour sweep or binning: correction, correction_density,
+  density, force, wall_extrapolate, wall_extrapolate_band, deep_wall_marker, predict, initialize_voxelization
+  (and `deep_wall_skip.glsl`, whose distance test now uses the minimum image). `MICROPOLAR_REPLICA_LAYERS` moved
+  from spec id 116 to 120 (the collision 12.1 foresaw). Host: `physics.periodic: [x, y]` in the case file; the
+  loader then makes the frame's box the periodic box (origin at the box's lower corner, as many voxels of one
+  smoothing length as tile the box, checks that every particle lies inside), the simulator passes 116 - 119 only
+  for a periodic case and refuses a periodic case on a slab with ghost columns (one slab only: the chain across
+  a periodic seam is not ported).
+- **Box sizes.** The voxel is the smoothing length h = 5 dx, and it must tile the box: the number of particles
+  across must be a multiple of 5. The Taylor-Green runs use 400 and 800; the turbulence runs **2050 and 1025**
+  instead of the task's 2048 and 1024 (+0.1 % particles).
+- **T0 (the code).** `experiment/v7/shaders/spv/MANIFEST.txt`: 43 modules, every one byte-identical to a fresh
+  build; 13 byte-identical to thesis-ch5-rc2 (those that include neither `periodic.glsl` nor the moved id), 30
+  changed. `_test_seam_layout.py` (its pins of rc2) reports 904 failures against 858 of the base tree; of the 64
+  only in the new tree, 26 pin the hashes of touched SPIR-V modules (the switch pins of B1, B4 and B6), 18 are
+  the 18 partition lines of the base printed differently (they leave the base list as they enter the new one),
+  10 pin the text of a touched kernel outside its MICROPOLAR blocks, 7 the moved id (six spec lists with 120 in
+  place of 116, the `constant_id = 116` line), 2 the `in_own_grid` test that the wrap now precedes, 1 the K = 1
+  `wall_extrapolate.comp` of rc2. Every one names a touched file or the moved id. List:
+  `data/micropolar/stage8b/t0_seam_layout.txt`.
+- **T1 (periodic off).** The protocol of Section 15 (dumps after 3000 steps on the XTX, every rms difference
+  against the spread of the base tree's own repeats, limit 2 x the largest base pair). Newtonian cavity
+  (`viscous_cavity_n250_laplacian_eps1em6`): 5 new dumps against 5 base dumps, largest ratio 0.93: PASS.
+  Micropolar cavity (`stage6_cavity_mp_n250`): 5 against 5 failed on one new dump (ratios 2.6 to 3.4 of a floor of
+  5 base dumps); 10 more of each tree, 15 against 15: largest ratio 1.10 (u 0.98, v 1.01, rho 0.99, w_z 1.10),
+  PASS; the base tree's own largest pair reaches 2.05e-4 in rho, so one in ten dumps of either tree lies in the
+  tail. `data/micropolar/stage8b/t1/`.
+- **Provenance.** The T1 dumps and the port check (`check_*`) ran from the working tree before 78fb290 was
+  committed: their records name the parent 382619d with `solver_modified` true (and the parent's tree hashes);
+  no file under `experiment/v7` changed between their start and 78fb290. Every Taylor-Green and turbulence run
+  records 78fb290 with the solver trees f29dddf16c68 (shaders) and 522fee1eec02 (utils), unmodified.
+
+### 18.1 The port check: v8's Newtonian Taylor-Green **[run]**
+
+v8's set (`check_*`): box [0, 1)^2, k = 2 pi, Re 100, eps^2 = 1e-4 h^2, delta density (`V7_DELTA_DENSITY=1`),
+dt = 0.15 h / c0, nu_eff / nu from the slope of ln E over 0.1 <= t <= 2 with E from the particles (v^n = v^(n-1/2)
++ dt / 2 a).
+
+| run | nu_eff / nu | v8-tgv (12.1) | difference | steps/s | counters |
+|---|---|---|---|---|---|
+| `check_n400_ma0p1` | 0.9948 | 0.9949 | -0.0001 | 1296 | zero |
+| `check_n400_ma0p05` | 0.9973 | 0.9971 | +0.0002 | 1303 | zero |
+| `check_n400_ma0p02` | 0.9990 | 0.9990 | -0.0000 | 1328 | zero |
+| `check_n400_ma0p01` | 1.0006 | 1.0000 | +0.0006 | 1361 | zero |
+| `check_n800_ma0p1` | 0.9962 | 0.9961 | +0.0001 | 435 | zero |
+
+- **Verdict: the port reproduces v8.** The new tree misses the exact rate by -0.52 % to +0.06 %, as v8 did
+  (-0.51 % to 0.00 %); the largest difference from v8 is 6e-4 (Ma 0.01, where the fit is shortest in steps).
+
+### 18.2 The micropolar Taylor-Green vortex: the exact solution **[host]**
+
+- **The two-mode solution.** In the periodic box [0, 2 pi)^2 take v = U(t) (sin kx cos ky, -cos kx sin ky) and w =
+  W(t) sin kx sin ky. Then omega = 2 k U sin kx sin ky, curl (w e_z) = k W (sin kx cos ky, -cos kx sin ky), lap v =
+  -2 k^2 v, v . grad w = 0 and the convective term is a gradient (taken by the pressure). With the code's nu = (mu
+  + kappa) / rho, c = kappa / rho, xi = gamma / rho and Theta = j the equations of Chapter 5 reduce exactly to
+  dU/dt = -2 k^2 nu U + c k W, Theta dW/dt = 2 c k U - (2 k^2 xi + 2 c) W: a linear 2 x 2 system with a slow and
+  a fast decay rate. The runs are compared with it (`two_mode` in `micropolar_periodic.py`), not with mu_eff
+  alone.
+- **The quasi-steady limit** (Theta -> 0): W = 2 c k U / (2 k^2 xi + 2 c) and U decays at |k|^2 mu_eff / rho with
+  mu_eff / (mu + kappa / 2) = 1 + 0.6 s / (1 + s), s = k^2 xi / c = 0.625 (|k| l)^2 for K = 3 (|k| = sqrt 2 k).
+- **The micro-inertia does not drop out as l -> 0.** On the slow mode (rate lambda) W / U = 2 c k / (2 k^2 xi + 2 c
+  - Theta lambda): a decaying flow keeps spin from its earlier, larger vorticity, W / U lies above its
+  quasi-steady value and the coupling term draws less. Theta lambda / (2 c) and s both scale as (|k| l)^2 when j
+  scales as l^2, so the correction stays of the order of the effect at every |k| l. Long-wave form: mu_eff,decay
+  = mu + kappa / 2 + (|k|^2 / 4) [gamma - rho j (mu + kappa / 2)]. With j = l^2 (K = 3) the excess is a third of
+  the quasi-steady one at small |k| l (0.208 against 0.625 (|k| l)^2) and 0.0076 / 0.028 / 0.088 / 0.200 at |k| l
+  = 0.25 / 0.5 / 1 / 2 (quasi-steady 0.023 / 0.081 / 0.231 / 0.429).
+- **An exact neutral case.** w = omega / 2 (W = k U) solves the system exactly when Theta = xi / (nu - c / 2), i.e.
+  rho j (mu + kappa / 2) = gamma (j = 2 l^2 kappa / (mu + kappa) = 1.5 l^2 for K = 3): the coupling term vanishes
+  and U decays at the rate of the Newtonian fluid mu + kappa / 2 at every |k| l. The slow rate falls monotonically
+  with j: below this j the micropolar vortex decays faster than its Newtonian control, above it slower. Checked on
+  the host (ratio 1.00000 at |k| l = 0.05 to 2) and by one run (18.3).
+- **Set-up.** k = 1, U0 = 1, Re = U0 / (k nu_inf) = 20 on the far-field viscosity nu_inf = (mu + kappa / 2) / rho =
+  0.05 (50 on mu), K = 3, rho0 = 1000, Ma 0.02 (c0 = 50; one pair at 0.01), 400^2 particles (h = 5 dx = 0.0785; l
+  = 45.0 |k| l dx: 11 dx at |k| l = 0.25, 90 dx at 2), |k| l = 0.25, 0.5, 1, 2 with j = l^2, 0.5 also at 800^2.
+  Thesis numerics of Chapter 5 (laplacian viscous form, eps^2 1e-6 h^2, KGC 1e-3, density diffusion 0.1, particle
+  shifting), the stored density as an offset from rho0 (`V7_DELTA_DENSITY=1`; the control without it:
+  0.9988 against 0.9990). The initial state: the analytic velocity, W(0) = k U(0) (w = omega / 2), the density from
+  the pressure of the incompressible vortex. The control: the Newtonian fluid nu_inf on the micropolar path (nu_t =
+  -nu, xi = 0), the same particles and dt. dt = 0.15 h / c0 for every run of a resolution and Mach number
+  (2.356e-4 at 400^2, Ma 0.02; 85,000 steps to t = 20 in 85 s on the XTX); the two runs with j = l^2 / 100 take
+  their own dt (the angular-diffusion limit 2.75e-5, 729,000 steps). U and W are the projections of the particle
+  fields on the two shapes; rates are the slope of ln U over 5 <= t <= 20 for the run and for the exact solution
+  sampled at the same times.
+- **The task's micro-inertia run.** j = l^2 gives fast / slow = 4.06 at |k| l = 1; five needs j = 0.7549 l^2 (the
+  task said "raised", the ratio needs it lowered). Started from W(0) = 0.
+
+### 18.3 The micropolar Taylor-Green vortex: runs **[run]**
+
+| run | \|k\| l | j / l^2 | rate | exact | rate / exact | (W/U) / exact | over control | exact | mu_eff / (mu + kappa/2) |
+|---|---|---|---|---|---|---|---|---|---|
+| `tgv_kl025_n400` | 0.25 | 1 | 0.10073 | 0.10076 | 0.9997 | 0.9989 | 1.0083 | 1.0076 | 1.0226 |
+| `tgv_kl05_n400` | 0.5 | 1 | 0.10277 | 0.10281 | 0.9996 | 0.9990 | 1.0287 | 1.0281 | 1.0811 |
+| `tgv_kl1_n400` | 1 | 1 | 0.10848 | 0.10856 | 0.9993 | 0.9994 | 1.0859 | 1.0856 | 1.2308 |
+| `tgv_kl2_n400` | 2 | 1 | 0.11600 | 0.11612 | 0.9990 | 1.0001 | 1.1612 | 1.1612 | 1.4286 |
+| `tgv_kl05_n800` | 0.5 | 1 | 0.10277 | 0.10281 | 0.9996 | 0.9994 | 1.0285 | 1.0281 | 1.0811 |
+| `tgv_kl1_n400_repeat` | 1 | 1 | 0.10848 | 0.10856 | 0.9993 | 0.9994 | 1.0859 | 1.0856 | 1.2308 |
+| `tgv_kl1_n400_ma0p01` | 1 | 1 | 0.10849 | 0.10855 | 0.9994 | 0.9994 | 1.0858 | 1.0855 | 1.2308 |
+| `tgv_kl1_inertia_n400` | 1 | 0.7549 | 0.11319 | 0.11327 | 0.9993 | 0.9993 | 1.1331 | 1.1327 | 1.2308 |
+| `tgv_kl1_j150_n400` | 1 | 1.5 | 0.09994 | 0.10000 | 0.9994 | 0.9995 | 1.0004 | 1.0000 | 1.2308 |
+| `tgv_kl05_j001_n400` | 0.5 | 0.01 | 0.10817 | 0.10806 | 1.0010 | 0.9996 | 1.0807 | 1.0806 | 1.0811 |
+| `tgv_kl1_j001_n400` | 1 | 0.01 | 0.12297 | 0.12296 | 1.0001 | 1.0001 | 1.2285 | 1.2296 | 1.2308 |
+| `tgv_control_n400` | - | - | 0.09990 | 0.10000 | 0.9990 | - | - | - | - |
+| `tgv_control_n800` | - | - | 0.09993 | 0.10000 | 0.9993 | - | - | - | - |
+| `tgv_control_n400_repeat` | - | - | 0.09990 | 0.10000 | 0.9990 | - | - | - | - |
+| `tgv_control_n400_ma0p01` | - | - | 0.09992 | 0.10000 | 0.9992 | - | - | - | - |
+| `tgv_control_n400_stored_density` | - | - | 0.09988 | 0.10000 | 0.9988 | - | - | - | - |
+| `tgv_control_n400_small_dt` | - | - | 0.10009 | 0.10000 | 1.0009 | - | - | - | - |
+
+- **Against the exact solution: every run within 0.1 %.** rate / exact 0.9997, 0.9996, 0.9993, 0.9990 at |k| l =
+  0.25, 0.5, 1, 2 (j = l^2, 400^2), W / U within 0.11 % of its exact value; the Newtonian control misses its exact
+  rate by -0.10 % (v8: -0.10 % at Ma 0.02), so the micropolar runs carry no error beyond that of the Newtonian
+  solver. The rms error of U(t) over the run 1.0e-4 to 3.1e-4 of U0.
+- **Against the control.** The ratio follows the exact two-mode value to 7e-4 or better: 1.0083, 1.0287, 1.0859,
+  1.1612 against 1.0076, 1.0281, 1.0856, 1.1612. The difference is the control's own -0.10 % (it divides the
+  run's rate, while the exact ratio divides by the exact control); within it the runs agree.
+- **Against mu_eff: they miss it, by a pattern, and the pattern is the micro-inertia.** The quasi-steady ratios
+  are 1.0226, 1.0811, 1.2308, 1.4286: the runs reach 37, 35, 37 and 38 % of that excess at |k| l = 0.25, 0.5, 1, 2,
+  the fraction the exact solution with j = l^2 predicts (34, 35, 37, 38 %). Nothing was tuned. The resolution
+  does not enter (|k| l = 0.5: 1.0287 at 400^2, 1.0285 at 800^2; exact 1.0281). With j = l^2 / 100 (their own dt
+  2.75e-5, and a control at that dt): 1.0807 and 1.2285 against the quasi-steady 1.0811 and 1.2308 (exact
+  two-mode 1.0806 and 1.2296): the solver reaches mu_eff when the micro-rotation can follow.
+  With j = 1.5 l^2: 1.0004
+  (exact 1) and W / U = 0.9995 k (exact k): w = omega / 2 holds, as 18.2 says.
+- **Noise floors.** Repeated runs agree to 1e-6 in the rate (4e-6 for |k| l = 1); halving the Mach
+  number moves the control's rate by 1.7e-4 and the ratio of |k| l = 1 by 8e-5; 800^2 against 400^2 moves the
+  ratio of |k| l = 0.5 by 2.7e-4. The largest, 2.7e-4, is the bar of item 23. The control at the dt of the j =
+  l^2 / 100 runs (8.6 times smaller) decays 0.19 % faster than at the acoustic dt (1.0009 against 0.9990 of 2 k^2
+  nu_inf): the rate / exact of those two runs (1.0010, 1.0001) carries it, their ratio over their own control not.
+- **The micro-inertia run** (|k| l = 1, j = 0.7549 l^2, W(0) = 0): exact slow and fast rates 0.1128 and 0.5639
+  (ratio 5.00). W rises from 0 to 0.38 k U0 at t = 3.5 and then decays with U; the run follows the exact U(t) and
+  W(t) to 2.4e-4 and 1.1e-4 (rms), rate / exact 0.9993, ratio over the control 1.1331 (exact 1.1327). Item 23 (b).
+
+### 18.4 Decaying 2-D turbulence: set-up **[run]**
+
+- **The field.** Box [0, 2 pi)^2; a random solenoidal velocity with E(k) ~ k^4 exp(-2 (k / k0)^2), k0 = 10, random
+  phases (numpy default_rng, seed 20261113), stream-function coefficients drawn once on |k_x|, |k_y| <= 128 and
+  evaluated on any lattice by zero padding and a phase shift, so every run starts from the same continuous field;
+  u' = sqrt(<u^2 + v^2> / 2) = 1 (E = 1 per unit mass), the largest speed 4.43, Z(0) = 1/2 <omega^2> = 122.6 on the
+  particles (121.4 from the deposit at 1025^2). Pressure of the incompressible field from the spectral Poisson
+  problem gives the initial density; the micropolar run starts from w = omega / 2.
+- **The fluids.** Newtonian nu_inf = 1e-3 (on the micropolar path, nu_t = -nu, xi = 0, passive w): Re = u' / (k0
+  nu_inf) = 100, u' L / nu_inf = 6283 (L = 2 pi). Micropolar: K = 3 with the same far-field viscosity, mu = 4e-4
+  rho (Re on mu: 250 and 15708), kappa = 1.2e-3 rho, l = 1/7 (|k| l = 1 at k = 7, the energy-containing range at
+  late times; 46.6 dx at 2050^2), j = l^2.
+- **Particles and steps.** 2050^2 = 4,202,500 (the task's 2048^2: the voxel of h = 5 dx must tile the box, 2050 =
+  410 voxels) and 1025^2 = 1,050,625 for the resolution check; h = 5 dx. c0 = 221.5 (Ma 0.02 on the largest
+  initial speed), dt = 0.15 h / c0 = 1.0378e-5 at 2050^2 (acoustic; viscous and angular-diffusion limits 4.8e-3
+  and 5.2e-3), 388,000 steps to t = 4.03; 1025^2: 2.0757e-5, 196,000 steps. Thesis numerics as in 18.2, delta
+  density storage.
+- **Runs.** `turbulence_newtonian_n2050`, `turbulence_micropolar_n2050`, `turbulence_newtonian_n2050_shifted`
+  (the lattice shifted by half a spacing in x and y, the same continuous field: the noise floor),
+  `turbulence_newtonian_n1025` (resolution).
+- **Diagnostics** every 4000 steps (dt 0.0415 at 2050^2): E from the particles (v^n = v^(n-1/2) + dt / 2 a); the
+  velocity deposited on a 1024^2 grid (quadratic B-spline, periodic, Shepard; the spline window divided out of the
+  spectrum up to k = 256), its energy spectrum E(k) in unit shells, Z = sum k^2 E(k) over those shells, the
+  vorticity field at t = 0, 0.5, 1, 2, 3, 4. Z is the enstrophy in every figure and caption.
+- **The linear estimate** of the micropolar over Newtonian spectrum: a single Fourier mode q decays at nu_inf q^2
+  (Newtonian), at mu_eff(q) q^2 / rho (quasi-steady) or at the slow eigenvalue of the 2 x 2 system of 18.2 with
+  j = l^2; the energy ratio after a time t is exp(-2 (rate - nu_inf q^2) t). This ignores the nonlinear transfer
+  between shells (and the micro-rotation's own memory of the initial w = omega / 2); it is an estimate of the
+  size, not a prediction of the curve.
+- **Diagnostic density.** The run tools added the offset of the delta storage (rho0) to a readback that already
+  returns rho: the mean density in the samples after t = 0 of the Taylor-Green runs and of the first four
+  turbulence runs carries rho0 twice (no rate uses it; the turbulence analysis subtracts it). Fixed in both tools
+  before the turbulence repeats and the run with j = l^2 / 100.
+
+### 18.5 Decaying 2-D turbulence: runs **[run]**
+
+| run | particles | card | steps | dt | steps/s | wall time |  | revision |
+|---|---|---|---|---|---|---|---|---|
+| `turbulence_newtonian_n2050` | 4,202,500 | XTX | 388,000 | 1.0378e-05 | 57.1 | 113 min | every counter zero | thesis-ch5-rc2-50-g78fb290 |
+| `turbulence_micropolar_n2050` | 4,202,500 | 5090 | 388,000 | 1.0378e-05 | 97.8 | 66 min | every counter zero | thesis-ch5-rc2-53-g36d6f76 |
+| `turbulence_newtonian_n2050_shifted` | 4,202,500 | XTX | 388,000 | 1.0378e-05 | 57.2 | 113 min | every counter zero | thesis-ch5-rc2-53-g36d6f76 |
+| `turbulence_newtonian_n1025` | 1,050,625 | XTX | 196,000 | 2.0757e-05 | 219.4 | 15 min | every counter zero | thesis-ch5-rc2-50-g78fb290 |
+| `turbulence_micropolar_n2050_repeat` | 4,202,500 | 5090 | 388,000 | 1.0378e-05 | 97.7 | 66 min | every counter zero | thesis-ch5-rc2-53-g36d6f76 |
+| `turbulence_newtonian_n2050_repeat` | 4,202,500 | 5090 | 388,000 | 1.0378e-05 | 98.0 | 66 min | every counter zero | thesis-ch5-rc2-53-g36d6f76 |
+| `turbulence_micropolar_j001_n2050` | 4,202,500 | XTX | 388,000 | 1.0378e-05 | 57.4 | 113 min | every counter zero | thesis-ch5-rc2-53-g36d6f76 |
+
+- A run records `git describe` when it ends; every record has the solver trees of 78fb290 (f29dddf16c68,
+  522fee1eec02) with `solver_modified` false (the merge 36d6f76 changed no solver file). The repeats (`run ...
+  --label repeat`) were made because the first runs wrote no vorticity snapshot after t = 1 (18.6); the last run,
+  j = l^2 / 100 at the same dt (its angular-diffusion limit 5.2e-5 stays above the acoustic step), is beyond the
+  task.
+- **The Newtonian run.** E falls from 1 to 0.653 by t = 4.03 and Z from 121.4 to 14.8; the peak of the spectrum
+  moves from k = 9 to k = 4 (the inverse cascade) and a range close to k^-3 forms between k ~ 10 and the
+  dissipative fall-off near k ~ 60 to 100 (item 24 (e)). Energy budget: E lost 0.3467, 2 nu_inf times the time
+  integral of Z is 0.3418: the run dissipates 1.4 % more than nu_inf alone (the dipole control: 1 to 2 %).
+- **Resolution (1025^2 against 2050^2).** E -0.13, -0.24, -0.35, -0.40, -0.43 % and Z +0.8, +0.7, +0.4, +0.4, +0.2 %
+  at t = 0.5, 1, 2, 3, 4; band ratios of the spectra within 6 % up to k = 60 until t = 2 (by t = 4 the large scales
+  have drifted apart: k 3 - 7 1.11, k 7 - 15 0.92); k 60 - 120 1.2 to 1.8, the grid-scale noise of the coarser
+  deposit. At t = 2 to 4 the resolution change of E is a third of the micropolar change with j = l^2 and a twentieth
+  of that with j = l^2 / 100; that of Z is of the other sign.
+- **Noise floors.** E and Z of the shifted-lattice run, of the micropolar repeat (same card) and of the Newtonian
+  repeat (the other card) stay within 4e-5 (E) and 3e-3 (Z) of their first runs at every time: the integrals depend
+  neither on the lattice, nor on the card, nor on the repetition. The spectra do at the small scales, and
+  increasingly: the mean |ratio - 1| over the shells of a band is 0.1 to 1 % up to t = 1, 1 to 2 % at t = 2 and 2.5
+  to 10 % at t = 4 for all three (chaotic divergence of the small scales from rounding differences).
+
+| band of k | t = 0.5 | t = 1 | t = 2 | t = 3 | t = 4 |
+|---|---|---|---|---|---|
+| 3 - 7 | 0.999 / 0.979 (0.000) | 0.999 / 0.970 (0.001) | 0.993 / 0.940 (0.005) | 0.984 / 0.893 (0.010) | 1.007 / 1.004 (0.031) |
+| 7 - 15 | 0.998 / 0.954 (0.000) | 0.992 / 0.902 (0.001) | 0.971 / 0.850 (0.010) | 0.966 / 0.820 (0.029) | 0.915 / 0.692 (0.044) |
+| 15 - 30 | 0.992 / 0.876 (0.001) | 0.979 / 0.811 (0.002) | 0.956 / 0.701 (0.011) | 0.915 / 0.680 (0.031) | 0.929 / 0.658 (0.063) |
+| 30 - 60 | 0.963 / 0.709 (0.002) | 0.921 / 0.594 (0.004) | 0.868 / 0.511 (0.012) | 0.837 / 0.413 (0.041) | 0.853 / 0.468 (0.087) |
+| 60 - 120 | 0.841 / 0.422 (0.011) | 0.749 / 0.313 (0.010) | 0.650 / 0.221 (0.023) | 0.624 / 0.228 (0.056) | 0.627 / 0.254 (0.095) |
+| one mode, j = l^2, 7 - 15 / 15 - 30 | 0.982 / 0.866 | 0.964 / 0.754 | 0.929 / 0.579 | 0.896 / 0.453 | 0.865 / 0.360 |
+| one mode, j -> 0, 7 - 15 / 15 - 30 | 0.959 / 0.775 | 0.920 / 0.608 | 0.848 / 0.387 | 0.783 / 0.257 | 0.725 / 0.176 |
+
+  Spectrum ratio micropolar / Newtonian, mean over the shells of the band: j = l^2 / j = l^2 / 100; in brackets
+  the shifted-lattice floor of the band. Last two rows: the linear estimate for a single Fourier mode.
+
+| | t = 0.5 | t = 1 | t = 2 | t = 3 | t = 4 |
+|---|---|---|---|---|---|
+| E, j = l^2 | -0.14 % | -0.38 % | -0.77 % | -1.06 % | -1.29 % |
+| Z, j = l^2 | -0.83 % | -1.72 % | -2.58 % | -3.07 % | -3.89 % |
+| E, j = l^2 / 100 | -3.67 % | -5.77 % | -7.68 % | -8.61 % | -9.14 % |
+| Z, j = l^2 / 100 | -9.0 % | -13.3 % | -15.8 % | -16.0 % | -19.6 % |
+
+- **Micropolar against Newtonian, j = l^2: a small, dissipation-range effect.** E -1.29 % and Z -3.89 % at t = 4
+  (floors 4e-5 and 3e-3); the energy loss is 1.056 times 2 nu_inf times the run's own integral of Z (the couple
+  terms dissipate the other 5.6 %). The spectrum is unchanged at k < 7 and falls with k above: at t = 2, 0.97 (k 7
+  - 15), 0.96 (15 - 30), 0.87 (30 - 60), 0.65 (60 - 120), each beyond its floor; at t = 4 the bands below k = 30
+  sink into the growing floor and the drop stays established from k = 30 up. The ratio stops deepening after t ~ 2.
+- **j = l^2 / 100: seven times the effect in E, five in Z.** E -9.14 % and Z -19.6 % at t = 4; the energy loss is
+  1.34 times 2 nu_inf times the run's integral of Z. Most of it comes early (E -3.7 % at t = 0.5, -5.8 % at t = 1).
+  In the energy-containing band k 7 - 15 the run follows the linear quasi-steady estimate (0.954, 0.902, 0.850,
+  0.820, 0.692 against 0.959, 0.920, 0.848, 0.783, 0.725); above k = 15 it stays far above it (k 15 - 30: 0.70
+  against 0.39 at t = 2).
+- **Why the two differ, and why both stay above the linear estimates at high k.** [inferred] (1) The relaxation
+  time of w, Theta / (2 c), is 8.5 for j = l^2 (longer than the run) and 0.085 for j = l^2 / 100. In 2-D the
+  vorticity is carried with the fluid apart from diffusion, and so is w: started from w = omega / 2, advection keeps
+  them equal, and with j = l^2 the micro-rotation has no time to relax to its quasi-steady value w = (omega / 2) / (1
+  + s) at the small scales; the couple term c (omega - 2 w) is then fed only by the different diffusion of omega (by
+  nu) and of w (by xi / Theta). With j = l^2 / 100, w relaxes within 0.1 and the quasi-steady mu_eff acts, as in
+  the Taylor-Green runs of 18.3. (2) The cascade refills the small scales: their spectrum is a balance of transfer
+  and dissipation, which a larger dissipation shifts to lower k but does not empty; the ratio settles into a fixed
+  shape instead of decaying as a lone mode would.
+- **The fields** (item 24 (a) to (c), the repeats at t = 2, j = l^2): the two vorticity fields agree to the eye;
+  their difference (low-passed at k ~ 100) has 10 % of the rms of the vorticity (99.5th percentile 3.9 against 29),
+  concentrated in the filaments and the rims of the vortices, where the gradients are steepest; it contains the
+  chaotic divergence of the two runs as well (the floors above).
+
+### 18.6 Unexpected, and what is open
+
+- **The micro-inertia j = l^2 is not small in a decaying flow.** The exact solution (18.2), the Taylor-Green runs
+  (18.3), the dipole check (17.6) and the turbulence (18.5) agree: with j = l^2 the micro-rotation keeps spin from
+  the earlier vorticity and the bulk effect is a third of the quasi-steady mu_eff (Taylor-Green), a quarter to a
+  third of that with j = l^2 / 100 (dipole), a seventh in E and a fifth in Z (turbulence). In a steady flow
+  Theta dw/dt = 0 and j does not enter: the cylinder,
+  bearing and cavity results of the chapter (steady states) are untouched. The task's expectation that the runs
+  meet mu_eff holds only for j well below l^2 (to 0.2 % at j = l^2 / 100); with j = 1.5 l^2 (K = 3) the micropolar
+  vortex decays exactly as the Newtonian fluid mu + kappa / 2.
+- **dt enters the Newtonian decay rate.** The control at dt / 8.6 decays 0.19 % faster (1.0009 of 2 k^2 nu_inf
+  against 0.9990). Every comparison here holds dt fixed between a run and its control; the size of this effect in
+  the other stages (one dt per resolution there as well) is not measured.
+- **Snapshots.** The first turbulence runs rounded the snapshot steps to 1000 and missed the samples (every 4000)
+  at t = 2, 3, 4; the repeats on the 5090, with the rule fixed, carry them; their E and Z agree with the first
+  runs to 4e-5 and 3e-3 (18.5).
+- **The diagnostic density** of the run tools carried rho0 twice under the delta storage (18.4); no rate used it.
+- **Box sizes** 2050 and 1025 for the task's 2048 and 1024 (the voxel of h must tile the box).
+- **The task's "raised" j** for fast / slow = 5: the ratio needs j lowered to 0.7549 l^2 (j = l^2 gives 4.06).
+- **Not done:** the micropolar turbulence at 1025^2 (the resolution of the effect itself; l = 23.3 dx there), the
+  chain across a periodic seam (one slab only; the simulator refuses ghost columns on a periodic case), 3-D
+  periodic boxes, a second seed of the turbulence.
