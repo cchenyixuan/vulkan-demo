@@ -397,24 +397,45 @@ def startup_analysis(items: dict, host: dict, say) -> dict:
                     profiles[label][f"{key}_rms_error"] = float(np.sqrt(np.mean((measured - exact) ** 2)) / scale)
         entry["profiles"] = profiles
         out[name] = entry
-    # floors of l = 20 dx: E of the repeat pair and of the half-Mach pair against E of the base pair, by Lambda / l
+    # floors of l = 20 dx: E of the repeat pair and of the half-Mach pair against E of the base pair, by Lambda / l,
+    # for both readings (fit, wall form); the runs at l = 40 and 80 dx are held against the same floor at their
+    # Lambda / l
     base = out.get("startup_l20")
+    newtonian = host["curves"]["newtonian"]
+
+    def layer_of(times, meta):
+        time_unit = (meta["length"] * channel.SPACING) ** 2 / meta["far_viscosity"]
+        return 1.0 / np.interp(np.log(np.asarray(times) / time_unit), np.log(np.asarray(newtonian["times"])),
+                               np.asarray(newtonian["stress"]))
     for variant in ("repeat", "ma0p01"):
         name = f"startup_l20_{variant}"
         control = f"startup_l20_control_{variant}"
         if base and name in items and control in items:
-            run_series, control_series = startup_series(items[name], False), startup_series(items[control], False)
+            run_series, control_series = startup_series(items[name]), startup_series(items[control])
             meta = items[name]["meta"]
-            time_unit = (meta["length"] * channel.SPACING) ** 2 / meta["far_viscosity"]
-            newtonian = host["curves"]["newtonian"]
-            layer = 1.0 / np.interp(np.log(run_series["time"] / time_unit), np.log(np.asarray(newtonian["times"])),
-                                    np.asarray(newtonian["stress"]))
+            layer = layer_of(run_series["time"], meta)
             excess = run_series["fit"] / control_series["fit"] - 1.0
             base_on = np.interp(np.log(layer), np.log(np.asarray(base["layer_over_length"])),
                                 np.asarray(base["excess_fit"]))
-            out.setdefault("floors", {})[variant] = {"layer_over_length": layer.tolist(),
-                                                     "excess_change": (excess - base_on).tolist()}
+            floor_entry = {"layer_over_length": layer.tolist(), "excess_change": (excess - base_on).tolist()}
+            common = np.intersect1d(run_series["pairs_step"], control_series["pairs_step"])
+            if common.size and "excess_pairs" in base:
+                run_pairs = run_series["pairs"][np.searchsorted(run_series["pairs_step"], common)]
+                control_pairs = control_series["pairs"][np.searchsorted(control_series["pairs_step"], common)]
+                pair_layer = layer_of(common * items[name]["record"]["timestep"], meta)
+                base_pairs = np.interp(np.log(pair_layer), np.log(np.asarray(base["pairs_layer_over_length"])),
+                                       np.asarray(base["excess_pairs"]))
+                floor_entry["pairs_layer_over_length"] = pair_layer.tolist()
+                floor_entry["pairs_excess_change"] = (run_pairs / control_pairs - 1.0 - base_pairs).tolist()
+            out.setdefault("floors", {})[variant] = floor_entry
     floors = out.get("floors", {})
+
+    def smallest_within(layer, miss, floor):
+        within = miss <= np.maximum(floor, 1e-12)
+        for index in range(len(layer)):
+            if within[index:].all():
+                return float(layer[index])
+        return None
     for name, entry in out.items():
         if name == "floors":
             continue
@@ -425,16 +446,31 @@ def startup_analysis(items: dict, host: dict, say) -> dict:
             floor = np.maximum(floor, np.abs(np.interp(np.log(layer), np.log(np.asarray(variant["layer_over_length"])),
                                                        np.asarray(variant["excess_change"]))))
         entry["floor"] = floor.tolist()
-        within = miss <= np.maximum(floor, 1e-12)
-        # the smallest Lambda / l from which every later sample lies within the floor
-        resolved = None
-        for index in range(len(layer)):
-            if within[index:].all():
-                resolved = float(layer[index])
-                break
-        entry["smallest_resolved_layer_over_length"] = resolved
+        entry["smallest_resolved_layer_over_length"] = smallest_within(layer, miss, floor)
+        text_pairs = "-"
+        if "excess_pairs" in entry:
+            pair_layer = np.asarray(entry["pairs_layer_over_length"])
+            host_on_pairs = np.interp(np.log(pair_layer), np.log(layer), np.asarray(entry["host_excess"]))
+            pair_miss = np.abs(np.asarray(entry["excess_pairs"]) - host_on_pairs)
+            pair_floor = np.zeros_like(pair_layer)
+            for variant in floors.values():
+                if "pairs_layer_over_length" in variant:
+                    pair_floor = np.maximum(pair_floor, np.abs(np.interp(
+                        np.log(pair_layer), np.log(np.asarray(variant["pairs_layer_over_length"])),
+                        np.asarray(variant["pairs_excess_change"]))))
+            entry["pairs_floor"] = pair_floor.tolist()
+            entry["pairs_miss"] = (np.asarray(entry["excess_pairs"]) - host_on_pairs).tolist()
+            resolved_pairs = smallest_within(pair_layer, pair_miss, pair_floor)
+            entry["smallest_resolved_layer_over_length_pairs"] = resolved_pairs
+            # the smallest Lambda / l from which the wall form stays within 0.005 of the host curve (a tolerance
+            # beside the floor: the floor of a repeat is near zero where the run is deterministic)
+            entry["smallest_layer_within_0p005_pairs"] = smallest_within(pair_layer, pair_miss,
+                                                                       np.full_like(pair_floor, 0.005))
+            text_pairs = (f"{'-' if resolved_pairs is None else f'{resolved_pairs:.3g}'} (wall form), "
+                          f"within 0.005 from {entry['smallest_layer_within_0p005_pairs'] or float('nan'):.3g}")
+        resolved = entry["smallest_resolved_layer_over_length"]
         say(f"  {name:<22} l = {entry['length_in_spacings']} dx, j = {entry['theta']:g} l^2: "
             f"{entry['steps']:,} steps; E within the floor from Lambda / l = "
-            f"{'-' if resolved is None else f'{resolved:.3g}'}; largest |E - E_host| beyond Lambda = l: "
-            f"{float(miss[layer >= 1.0].max()) if (layer >= 1.0).any() else float('nan'):.4f}")
+            f"{'-' if resolved is None else f'{resolved:.3g}'} (fit), {text_pairs}; largest |E_fit - E_host| beyond "
+            f"Lambda = l: {float(miss[layer >= 1.0].max()) if (layer >= 1.0).any() else float('nan'):.4f}")
     return out

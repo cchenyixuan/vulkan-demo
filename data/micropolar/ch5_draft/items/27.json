@@ -1,0 +1,85 @@
+{
+ "item": "27",
+ "title": "Start-up of plane Couette flow: the wall-stress excess against Lambda / l, and the profiles",
+ "status": "final",
+ "caption": "The start-up of plane Couette flow (gap H = 20 l, the lower wall set impulsively in motion at U, w = 0 on both walls, K = 3) as a test of the saturation of the wall-stress excess. (a) E = tau_mp / tau_N - 1 on the sliding wall against Lambda / l, Lambda = (mu + kappa / 2) U / tau_N of the Newtonian fluid mu + kappa / 2 (for the Rayleigh layer sqrt(pi nu_inf t)): the host solution (implicit, stretched grid, converged to 3e-5 in E) for j = l^2, l^2 / 100 and l^2 / 10^4 (the quasi-steady limit), the runs (l = 20, 40, 80 dx, j = l^2; l = 40 dx with j = l^2 / 100, drawn to Lambda = 4 l, beyond which that pair at its 21 times smaller dt drifts, its control as well; lines: the wall form, open markers: the 4 dx fit; both from Lambda = 2 dx) with the floor of l = 20 dx (repeat, half Mach; grey), the early limit sqrt(1.6) - 1 (a layer thinner than l is a Newtonian layer of viscosity mu + kappa) and the steady value of eq. 5.5 (star). Crosses: the peak wall-stress excess of the dipole-wall collision runs (tables 22, 26, 29) at their Lambda / l - another flow, whose outer flow changes with l. (b, c) u and w across the gap at Lambda = 0.25 l, l and 4 l: the run at l = 40 dx (markers) against the host solution (lines).",
+ "files": [
+  "fig_27_startup.pdf",
+  "fig_27_startup.png"
+ ],
+ "sources": [
+  "data/micropolar/stage8c/startup_host.json",
+  "data/micropolar/stage8c/channel.json",
+  "data/micropolar/stage8/dipole.json"
+ ],
+ "numbers": {
+  "early_limit": 0.26491106406735176,
+  "steady_excess_eq_5_5": 0.03896103879417212,
+  "convergence": {
+   "theta_1": {
+    "max_abs_difference_of_excess": 2.8251492768777142e-05,
+    "nodes": {
+     "coarse": 1300,
+     "fine": 2596
+    }
+   },
+   "theta_0.01": {
+    "max_abs_difference_of_excess": 2.7275758540279416e-05,
+    "nodes": {
+     "coarse": 1300,
+     "fine": 2596
+    }
+   },
+   "theta_0.0001": {
+    "max_abs_difference_of_excess": 2.724681230220627e-05,
+    "nodes": {
+     "coarse": 1300,
+     "fine": 2596
+    }
+   }
+  },
+  "startup_l20": {
+   "smallest_resolved_layer_over_length": null
+  },
+  "startup_l40": {
+   "smallest_resolved_layer_over_length": null
+  },
+  "startup_l80": {
+   "smallest_resolved_layer_over_length": null
+  },
+  "startup_l40_j001": {
+   "smallest_resolved_layer_over_length": null
+  },
+  "dipole": {
+   "$\\ell = W/50$": [
+    0.2631890228470384,
+    0.18922379160790626
+   ],
+   "$\\ell = W/50$, $W/\\Delta x = 500$": [
+    0.26169439576235903,
+    0.2132272552687322
+   ],
+   "$\\ell = W/50$, $j = \\ell^2/100$": [
+    0.2631890228470384,
+    0.14976179489357921
+   ],
+   "$\\ell = W/25$, $j = \\ell^2/100$": [
+    0.1315945114235192,
+    0.07150493919186185
+   ]
+  },
+  "profile_0.25": {
+   "u": 0.0014549116033442551,
+   "w": 0.011938631570774356
+  },
+  "profile_1": {
+   "u": 0.00040244593878463046,
+   "w": 0.0005548009464099663
+  },
+  "profile_4": {
+   "u": 0.0004475787275207568,
+   "w": 0.0013742666843682408
+  }
+ },
+ "tag": "v10-periodic (thesis-ch5-rc2 + the periodic domain of Stage 8b)"
+}

@@ -47,6 +47,8 @@ ITEMS = [
     ("24", "fig_24_turbulence", "Decaying 2-D turbulence: vorticity, E(t) and the enstrophy Z(t), spectra and their ratio"),
     ("25", "tab_25_taylor_green", "Table of the Taylor-Green rates and ratios with their noise floors"),
     ("26", "tab_26_dipole_checks", "Dipole-wall collision: the checks of micro-inertia, saturation and resolution"),
+    ("27", "fig_27_startup", "Start-up of plane Couette flow: the wall-stress excess against Lambda / l, and the profiles"),
+    ("28", "tab_28_plane_flows", "Table of the steady plane Couette and Poiseuille flows against their exact solutions"),
 ]
 
 

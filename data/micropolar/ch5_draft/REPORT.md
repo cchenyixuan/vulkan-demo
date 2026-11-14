@@ -1,6 +1,6 @@
 # Chapter 5: what the solver has shown
 
-Written 2026-11-14 17:30 at commit `36d6f76` (branch `v10-periodic`; solver tag `thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number below is read from the data files by `report.py`; the captions with all parameters and run names are in `captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6), 16 (Stage 7) and 17 (Stage 8, the dipole-wall collision).
+Written 2026-11-15 04:10 at commit `b36341c` (branch `v10-periodic`; solver tag `thesis-ch5-rc2`, nothing under `experiment/v7/shaders` or `experiment/v7/utils` changed since). Every number below is read from the data files by `report.py`; the captions with all parameters and run names are in `captions.md`, the full account in `docs/micropolar_design.md`, Sections 15 (Stage 6), 16 (Stage 7) and 17 (Stage 8, the dipole-wall collision).
 
 **State.** Every item is final except the one row at g = 400 dx (m = 20, K = 3, l = 10 dx): its Newtonian control is done, the micropolar run is going; items 02 to 04 gain that row when it ends. Nothing else is pending and there is no further queue.
 
@@ -33,6 +33,8 @@ Marks: **[run]** measured in a particle run on the tag; **[host]** computed on t
 | 24 | Decaying 2-D turbulence: vorticity, E(t) and the enstrophy Z(t), spectra and their ratio | `fig_24_turbulence.pdf` | final |
 | 25 | Table of the Taylor-Green rates and ratios with their noise floors | `tab_25_taylor_green.csv`, `tab_25_taylor_green.tex` | final |
 | 26 | Dipole-wall collision: the checks of micro-inertia, saturation and resolution | `tab_26_dipole_checks.csv`, `tab_26_dipole_checks.tex` | final |
+| 27 | Start-up of plane Couette flow: the wall-stress excess against Lambda / l, and the profiles | `fig_27_startup.pdf` | final |
+| 28 | Table of the steady plane Couette and Poiseuille flows against their exact solutions | `tab_28_plane_flows.csv`, `tab_28_plane_flows.tex` | final |
 
 ## 2. Concentric cylinders (items 01 to 04) [run]
 
@@ -270,7 +272,7 @@ Micropolar Taylor-Green vortex (k = 1, Re = 20 on nu_inf, K = 3, Ma 0.02, 400^2 
 | 1, j = 1.5 l^2 | 0.9994 | 0.9995 | 1.0004 | 1.0000 | 1.2308 |
 | 1, j = 0.755 l^2, W(0) = 0 | 0.9993 | 0.9993 | 1.1331 | 1.1327 | 1.2308 |
 
-- **Every run follows the exact two-mode solution** to 0.1 % (the Newtonian control misses its exact rate by -0.1 % as well). **With j = l^2 the runs reach only a third of the quasi-steady mu_eff excess**, as the exact solution predicts: a decaying flow keeps spin from its earlier vorticity, and with j scaling as l^2 that memory stays of the size of the effect at every |k| l. With j = l^2 / 100 the runs reach mu_eff (1.0807 and 1.2285 against 1.0811 and 1.2308); with j = 1.5 l^2 (rho j (mu + kappa / 2) = gamma) w = omega / 2 is exact and the micropolar vortex decays exactly as the Newtonian fluid mu + kappa / 2 (1.0004).
+- **Every run follows the exact two-mode solution** to 0.1 % (the Newtonian control misses its exact rate by -0.1 % as well). **With j = l^2 the runs reach only a third of the quasi-steady mu_eff excess**, as the exact solution predicts: a decaying flow keeps spin from its earlier vorticity, and with j scaling as l^2 that memory stays of the size of the effect at every |k| l. With j = l^2 / 100 the runs reach mu_eff (1.0807 and 1.2285 against 1.0811 and 1.2308); with j = 1.5 l^2 (j (mu + kappa / 2) = gamma) w = omega / 2 is exact and the micropolar vortex decays exactly as the Newtonian fluid mu + kappa / 2 (1.0004).
 - **Floors:** repeat of the control +1.2e-06; repeat of |k|l = 1 +3.6e-06; control at Ma 0.01 +1.6e-04; |k|l = 1 at Ma 0.01 +9.0e-05; |k|l = 0.5 at 800^2 +2.6e-05; control at dt / 8.6 +1.9e-03 (relative change of the rate).
 - **Decaying turbulence** (box 2 pi, k0 = 10, u' = 1, Re = 100 on nu_inf and 250 on mu; micropolar K = 3, l = 1/7; Z is the enstrophy): runs `turbulence_newtonian_n2050` (4,202,500 particles, 388,000 steps, 113 min), `turbulence_micropolar_n2050` (4,202,500 particles, 388,000 steps, 66 min), `turbulence_newtonian_n2050_shifted` (4,202,500 particles, 388,000 steps, 113 min), `turbulence_newtonian_n1025` (1,050,625 particles, 196,000 steps, 15 min), `turbulence_micropolar_j001_n2050` (4,202,500 particles, 388,000 steps, 113 min), `turbulence_micropolar_n2050_repeat` (4,202,500 particles, 388,000 steps, 66 min), `turbulence_newtonian_n2050_repeat` (4,202,500 particles, 388,000 steps, 66 min).
 - **Micropolar (j = l^2) against Newtonian:** t = 1.0: E -0.4%, Z -1.7%; t = 2.0: E -0.8%, Z -2.6%; t = 4.0: E -1.3%, Z -3.9%.
@@ -278,7 +280,43 @@ Micropolar Taylor-Green vortex (k = 1, Re = 20 on nu_inf, K = 3, Ma 0.02, 400^2 
 - **Floors:** the shifted lattice moves E by 2e-05 and Z by 4e-04 at t = 4 (a repeat and the other card alike); the spectra by 1 to 2 % per band at t = 2 and up to 10 % at t = 4 (chaotic divergence of the small scales). **With j = l^2 the effect is small and sits in the dissipation range** (spectrum ratio 0.87 at k 30 - 60 and 0.65 at 60 - 120 at t = 2): the spin relaxes on Theta / (2 c) = 8.5, longer than the run, and advection keeps w = omega / 2. **With j = l^2 / 100 it is seven times larger in E** and the energy-containing band follows the linear quasi-steady estimate; at higher k the cascade keeps both far above the single-mode estimates. Item 24, design note 18.5.
 - **Figures:** item 23 (rate over the control against |k| l, the micro-inertia run), item 24 (turbulence), table 25.
 
-## 11. To be careful with in the text
+## 11. Plane flows in the channel periodic in x, and the start-up of Couette flow (items 27, 28) [run, host]
+
+Two no-spin walls in a channel periodic in x (length 100 dx; walls work across the periodic seam without a solver change), K = 3, j = l^2, Ma 0.02, Re = 10; every micropolar run with its Newtonian control. Design note Section 19.
+
+Micropolar over control: Couette wall stress (exact: eq. 5.5 over (mu + kappa / 2) U / H) in three readings, Poiseuille flow rate (exact: eq. 2.26):
+
+| run | exact | profile / Q | wall form | 4 dx fit |
+|---|---|---|---|---|
+| Couette, m = 1, l = 10 dx | 1.3998 | 1.4002 | 1.4085 | 1.3867 |
+| Couette, m = 2, l = 10 dx | 1.2206 | 1.2208 | 1.2287 | 1.2023 |
+| Couette, m = 5, l = 10 dx | 1.0811 | 1.0810 | 1.0872 | 1.0623 |
+| Couette, m = 10, l = 10 dx | 1.0390 | 1.0389 | 1.0445 | 1.0209 |
+| Couette, m = 2, l = 20 dx | 1.2206 | 1.2209 | 1.2244 | 1.2091 |
+| Couette, m = 5, l = 20 dx | 1.0811 | 1.0810 | 1.0846 | 1.0712 |
+| Poiseuille, m = 1, l = 10 dx | 0.6478 | 0.6462 | - | - |
+| Poiseuille, m = 2, l = 10 dx | 0.6978 | 0.6960 | - | - |
+| Poiseuille, m = 5, l = 10 dx | 0.8200 | 0.8183 | - | - |
+| Poiseuille, m = 10, l = 10 dx | 0.8987 | 0.8977 | - | - |
+| Poiseuille, m = 2, l = 20 dx | 0.6978 | 0.6974 | - | - |
+| Poiseuille, m = 5, l = 20 dx | 0.8200 | 0.8195 | - | - |
+
+- **The solver reproduces eq. 5.5 and eq. 2.26**: the profile reading (as items 01 to 03) within 3e-4 of the exact ratio at every m and l (floors 2e-4 repeat, 2e-3 half Mach); Poiseuille within 0.26 % at l = 10 dx and 0.06 % at l = 20 dx. The Newtonian controls: profile 1.0001 to 1.0006, wall form 0.999 to 1.001, Q within 0.1 % from H = 40 dx.
+- **The readings at the wall carry a bias of order dx / l at a no-spin wall**: the wall form +0.5 to +0.7 % at l = 10 dx and +0.3 % at l = 20 dx, the 4 dx fit -0.9 to -1.7 % (the Newtonian fit itself reads -1 %). Reported before the start-up runs; the user chose to run them as planned.
+- **The start-up on the host** (H = 20 l, impulsive): E = tau_mp / tau_N - 1 on the sliding wall is 0.2649 at Lambda = 0.01 l (sqrt(1.6) - 1 = 0.2649) for every j, falls through Lambda ~ l (0.19 for j = l^2, 0.16 quasi-steady), nearly to zero at Lambda ~ 10 l, and rises to the steady 0.0390 of eq. 5.5 (host 0.0390); converged to 3e-5.
+- **The start-up runs follow the host curve** (E from the wall form minus the host's; the floors, a repeat and half the Mach number at l = 20 dx, are below 3e-4 from Lambda = 0.2 l on):
+
+| run | Lambda = 0.25 l | l | 4 l | within 0.005 from Lambda / l |
+|---|---|---|---|---|
+| l = 20 dx, j = 1 l^2 | -0.0104 | +0.0015 | +0.0022 | 0.33 (6.7 dx) |
+| l = 40 dx, j = 1 l^2 | -0.0022 | +0.0009 | +0.0019 | 0.18 (7.1 dx) |
+| l = 80 dx, j = 1 l^2 | -0.0004 | +0.0004 | +0.0005 | 0.089 (7.1 dx) |
+| l = 40 dx, j = 0.01 l^2 | -0.0019 | +0.0013 | +0.0033 | - |
+
+  The plateau of the difference (+0.002 to +0.003 at l = 20 dx, +0.001 at 40 dx, +0.0005 at 80 dx) is the steady bias of the wall form at that resolution; every resolution follows the curve from a layer of about 7 dx. The pair with j = l^2 / 100 (dt 21 times smaller, 9.15 million steps) drifts beyond Lambda ~ 4 l, its Newtonian control as well (1.10 of the host stress at Lambda = 10 l). **The runs approach the early limit as the host does**: E = 0.257 (40 dx) and 0.259 (80 dx) at Lambda = 0.25 l against the host's 0.259 (the host reaches sqrt(1.6) - 1 = 0.265 as Lambda / l -> 0); the dipole runs' peak excess (+7 to +21 % at Lambda / l = 0.13 to 0.53) lies below the start-up curve (0.25 to 0.26 there): the dipole's outer flow changes with l.
+- **Figures:** item 27 (E against Lambda / l with the dipole points; profiles), table 28.
+
+## 12. To be careful with in the text
 
 - **The film function** is that of micropolar lubrication theory; ours is that the runs reproduce it at a clearance ratio of 0.25. Its match with the published form has not been checked against the original.
 - **The cavity is not 'between two Newtonian fluids'**, and the pack no longer says so; its check is the finite-difference solution, which in turn agrees with the reference of Marchi et al. at Reynolds number 400 (your transcription from the appendix of paper 1, `reference/marchi_re400.csv`, 28 + 28 points) to 3.0e-05 (u) and 1.9e-05 (v) U rms once extrapolated to zero spacing.

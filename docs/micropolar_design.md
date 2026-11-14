@@ -4566,3 +4566,205 @@ dt = 0.15 h / c0, nu_eff / nu from the slope of ln E over 0.1 <= t <= 2 with E f
 - **Not done:** the micropolar turbulence at 1025^2 (the resolution of the effect itself; l = 23.3 dx there), the
   chain across a periodic seam (one slab only; the simulator refuses ghost columns on a periodic case), 3-D
   periodic boxes, a second seed of the turbulence.
+
+## 19. Stage 8c (2026-11-14/15): plane flows and the start-up of Couette flow
+
+The task: steady plane Couette and Poiseuille flows between two no-spin walls in a channel periodic in x, for
+Section 5.4 (which had no plane flow without periodic boundaries), and the start-up of plane Couette flow as a test
+of the reading of Section 5.6.4 that a shear layer much thinner than l is a Newtonian layer of viscosity mu + kappa
+(the wall-stress excess then tends to sqrt((mu + kappa) / (mu + kappa / 2)) - 1 = sqrt(1.6) - 1 = 0.265 for K = 3).
+Branch `v10-periodic` (from 3344060). Tools: `experiment/validation/micropolar_channel.py` (cases, run),
+`micropolar_channel_analysis.py` (analyse, via `micropolar_channel analyse`), `micropolar_startup.py` (the host
+solution); data `data/micropolar/stage8c/` (commands in its `README.md`), raw runs `logs/micropolar/stage8c/`; pack
+items 27 and 28.
+
+### 19.0 Walls in the channel periodic in x (Step A0) **[run]**
+
+- **No solver change.** A case with `physics.periodic: [true, false]` and walls of 11 layers below y = 0 and above
+  y = H works with the tree of Stage 8b as it is: the loader makes the frame's x-extent the periodic box and grids y
+  as before, the wall particles span the periodic length, the neighbour sweep wraps across the seam for fluid and
+  wall particles alike, and the wall kernels (`wall_extrapolate`, `wall_extrapolate_band`, `deep_wall_marker`,
+  `deep_wall_skip`) already take the minimum image (18.0). The sliding wall is a wall material with
+  `initial_velocity: [U, 0, 0]` (stationary particles carrying U, as the lid of the cavity); w = 0 on both walls.
+  No T0/T1 was needed.
+- **The start is impulsive.** The run loop of the solver cannot change a wall's velocity during a run without a
+  solver change, so the ramp r(t) of the task is the step r = 1 for t > 0, in the runs and in the host solution
+  alike (its time is zero against any time reported).
+- **Smoke:** the Newtonian Couette flow at H = 40 dx (`couette_m2_l10_control`, 6,200 particles, 40,000 steps, XTX,
+  3,094 steps/s): u within 6e-4 rms of the linear profile, no particle outside the channel, every counter zero.
+
+### 19.1 The three readings of the wall stress **[run]**
+
+- **fit** - u = a s + b s^2 fitted to the fluid within 4 dx of the wall (s the distance), tau = rho nu a with the
+  solver's nu ((mu + kappa) / rho at a no-spin wall): the reading of the dipole runs (17.1).
+- **wall form** - the force of the wall on the fluid within h, from the solver's pair terms on the saved
+  wall-band states, per unit length, in the lattice mass rho0 dx^2 and with the pressure in its flux form: the
+  reading of the rotor torque (13.3; the minimum image across the periodic seam here). The host reproduces the
+  GPU's acceleration of that fluid exactly (check 0.0) on every state except those saved at a defrag step: there
+  the step returns after the defrag has reordered the particles while the acceleration, the dummy values and M^-1
+  keep the old order (those states are skipped; the sample steps of later runs avoid multiples of 1000).
+- **profile** - the amplitude s of the exact profile shape fitted to the whole binned profile (u - U = s (u_exact -
+  U)), tau = s tau_exact: the reading of items 01 to 03 (a fit of the whole profile).
+
+### 19.2 Steady plane flows (Step A1) **[run]**
+
+Thesis numerics of Chapter 5, h = 5 dx, periodic length 100 dx, Ma 0.02 (on U; on the Newtonian centreline speed
+for Poiseuille), Re = 10 (U H / nu_inf; on the centreline speed for Poiseuille), j = l^2, K = 3, the delta
+density storage; end time 1.5 H^2 / nu_inf (the last twelfth of the run read; the change of the reading over that
+twelfth is 1e-5 to 1e-3, "steady" in `channel.txt`). Every run with its Newtonian control (nu_inf on the micropolar
+path) on the same particles and dt; floors: a repeat and half the Mach number of every run. 72 runs, every counter
+zero, no particle outside the channel. Item 28 (`tab_28_plane_flows`).
+
+| flow | m | l/dx | H/dx | fluid | fit (lower/upper) | wall form (lower/upper) | profile | Q/exact | u rms | w rms | mp/control: fit | wall form | profile or Q | exact |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| couette | 1 | 10 | 20 | control | 0.9925/0.9924 | 1.0013/1.0014 | 1.0002 | - | 1.2e-03 | - | - | - | - | - |
+| couette | 1 | 10 | 20 | micropolar | 0.9832/0.9831 | 1.0075/1.0074 | 1.0005 | - | 1.4e-03 | 6.7e-03 | 1.3867 | 1.4085 | 1.4002 | 1.3998 |
+| couette | 2 | 10 | 40 | control | 0.9914/0.9914 | 1.0001/1.0002 | 1.0002 | - | 5.8e-04 | - | - | - | - | - |
+| couette | 2 | 10 | 40 | micropolar | 0.9765/0.9766 | 1.0068/1.0069 | 1.0004 | - | 7.7e-04 | 2.3e-03 | 1.2023 | 1.2287 | 1.2208 | 1.2206 |
+| couette | 5 | 10 | 100 | control | 0.9900/0.9910 | 0.9994/0.9992 | 1.0005 | - | 1.9e-03 | - | - | - | - | - |
+| couette | 5 | 10 | 100 | micropolar | 0.9728/0.9728 | 1.0050/1.0050 | 1.0004 | - | 1.8e-03 | 4.9e-03 | 1.0623 | 1.0872 | 1.0810 | 1.0811 |
+| couette | 10 | 10 | 200 | control | 0.9903/0.9907 | 0.9991/0.9991 | 1.0001 | - | 5.5e-04 | - | - | - | - | - |
+| couette | 10 | 10 | 200 | micropolar | 0.9731/0.9733 | 1.0045/1.0047 | 1.0001 | - | 5.9e-04 | 2.9e-03 | 1.0209 | 1.0445 | 1.0389 | 1.0390 |
+| couette | 2 | 20 | 80 | control | 0.9899/0.9903 | 0.9993/0.9995 | 1.0004 | - | 3.2e-03 | - | - | - | - | - |
+| couette | 2 | 20 | 80 | micropolar | 0.9805/0.9814 | 1.0024/1.0026 | 1.0006 | - | 2.2e-03 | 4.5e-03 | 1.2091 | 1.2244 | 1.2209 | 1.2206 |
+| couette | 5 | 20 | 200 | control | 0.9898/0.9908 | 0.9992/0.9991 | 1.0001 | - | 5.7e-04 | - | - | - | - | - |
+| couette | 5 | 20 | 200 | micropolar | 0.9808/0.9812 | 1.0025/1.0024 | 1.0000 | - | 4.3e-04 | 2.1e-03 | 1.0712 | 1.0846 | 1.0810 | 1.0811 |
+| poiseuille | 1 | 10 | 20 | control | - | - | - | 1.0089 | 8.0e-03 | - | - | - | - | - |
+| poiseuille | 1 | 10 | 20 | micropolar | - | - | - | 1.0063 | 6.1e-03 | 3.6e-02 | - | - | 0.6462 | 0.6478 |
+| poiseuille | 2 | 10 | 40 | control | - | - | - | 1.0011 | 1.5e-03 | - | - | - | - | - |
+| poiseuille | 2 | 10 | 40 | micropolar | - | - | - | 0.9986 | 2.0e-03 | 8.1e-03 | - | - | 0.6960 | 0.6978 |
+| poiseuille | 5 | 10 | 100 | control | - | - | - | 0.9999 | 3.5e-03 | - | - | - | - | - |
+| poiseuille | 5 | 10 | 100 | micropolar | - | - | - | 0.9978 | 5.1e-03 | 5.8e-03 | - | - | 0.8183 | 0.8200 |
+| poiseuille | 10 | 10 | 200 | control | - | - | - | 1.0003 | 2.7e-03 | - | - | - | - | - |
+| poiseuille | 10 | 10 | 200 | micropolar | - | - | - | 0.9992 | 2.3e-03 | 5.5e-03 | - | - | 0.8977 | 0.8987 |
+| poiseuille | 2 | 20 | 80 | control | - | - | - | 0.9996 | 2.3e-03 | - | - | - | - | - |
+| poiseuille | 2 | 20 | 80 | micropolar | - | - | - | 0.9990 | 4.2e-03 | 4.0e-03 | - | - | 0.6974 | 0.6978 |
+| poiseuille | 5 | 20 | 200 | control | - | - | - | 1.0002 | 2.6e-03 | - | - | - | - | - |
+| poiseuille | 5 | 20 | 200 | micropolar | - | - | - | 0.9996 | 2.6e-03 | 4.3e-03 | - | - | 0.8195 | 0.8200 |
+
+  Over the exact value; micropolar over control against the exact ratio; floors in item 28 (`tab_28_plane_flows`).
+
+- **The Newtonian controls pass** (the stop rule of the task: no worse than the concentric cylinders of items 01 to
+  03, where the profile fit gives -0.10, -0.04, -0.02 % at g = 50, 100, 200 dx): the profile reading 1.0001 to
+  1.0006 for every H from 20 to 200 dx; the wall form 0.9991 to 1.0014; Poiseuille Q within 0.11 % from H = 40 dx
+  (+0.9 % at H = 20 dx, coarser than any cylinder gap). The 4 dx fit reads -0.8 to -1.0 % at every H: a bias of
+  that reading (the lowest rows of fluid sit below the line of the fit), not of the flow.
+- **The micropolar Couette stress (eq. 5.5), the stop rule at l = 20 dx: flagged in two of the three readings,
+  reported before Step A3 (the user chose to run A3 as planned).** Micropolar over control against the exact
+  ratio: the profile reading +0.03, +0.02, -0.01, -0.01 % at m = 1, 2, 5, 10 (l = 10 dx) and +0.03, -0.01 % at m =
+  2, 5 (l = 20 dx), within the floors (repeat 2e-4, half Mach 2e-3); the wall form +0.62, +0.66, +0.57, +0.53 %
+  (l = 10 dx) and +0.31, +0.32 % (l = 20 dx), beyond its floor (5e-4); the fit -0.94, -1.50, -1.74, -1.74 % and
+  -0.94, -0.92 %, beyond its floor (1e-3). **Pattern:** the solver gives the stress of eq. 5.5 (the profile reading,
+  which sees the outer flow); the two readings at the wall carry a bias that halves when l / dx doubles (the wall
+  form) and does not depend on m (the wall form) or grows with m towards a plateau (the fit at l = 10 dx).
+  [inferred] At a no-spin wall w rises from 0 over a layer of width about l (delta* = 0.375 l = 3.75 dx at l = 10
+  dx) in which the velocity profile bends; the near-wall readings resolve that layer with l / dx points.
+- **Poiseuille (eq. 2.26).** Q over the control against Q / Q_N: -0.25, -0.26, -0.21, -0.11 % at m = 1, 2, 5, 10
+  (l = 10 dx) and -0.06, -0.06 % (l = 20 dx; floors 3e-4): a quarter at twice the resolution.
+- **Profiles.** u within 0.04 to 0.8 % rms of the exact profile, w within 0.2 to 3.6 % (the largest at m = 1, H =
+  20 dx).
+
+### 19.3 The start-up on the host (Step A2) **[host]**
+
+- **Equations** (1-D, w scalar, the signs of the solver: a rigid rotation has curl v = 2 Omega and w = Omega, and
+  for u(y) omega = -du/dy): rho du/dt = (mu + kappa) u'' + kappa w', rho j dw/dt = gamma w'' - kappa (u' + 2 w);
+  u(0) = U for t > 0, u(H) = 0, w = 0 on both walls, u = w = 0 at t = 0. The signs agree with the solver's: the
+  same coupling gave the two-mode Taylor-Green solution that the runs of 18.3 follow to 0.1 %. Wall stress
+  T_yx = (mu + kappa) u' + kappa w = (mu + kappa) u' at the no-spin wall.
+- **Method:** second-order finite differences on a grid stretched geometrically from the sliding wall (first
+  spacing 2e-5 l, ratio 1.02, up to 0.02 l; the fine grid halves all three), TR-BDF2 (L-stable) with steps growing
+  by 0.4 % (fine: 0.2 %) from 1e-12 to t = 1200 l^2 / nu_inf (the steady state: the slowest mode has decayed by
+  e^-30). Units: rho = l = U = 1, nu_inf = 1, K = 3: mu = 0.4, kappa = 1.2, gamma = 1.5; H = 20 l. E(Lambda / l)
+  depends on K, H / l and j / l^2 only (the problem is linear).
+- **Checks:** the Newtonian stress follows the Rayleigh layer 1 / sqrt(pi nu t) to 1.2e-5 while Lambda is far above
+  the first spacing and below 0.2 l; its steady value tau H = 1.000000. Coarse and fine grids give E within 2.8e-5
+  over the whole range (Lambda = 0.01 l to the steady state) for every j.
+- **The two limits.** Early (Lambda = 0.01 l): E = 0.26490 (j = l^2), 0.26488 (l^2 / 100), 0.26487 (l^2 / 10^4),
+  against sqrt(1.6) - 1 = 0.26491. Late (steady): E = 0.038954 for every j, against eq. 5.5's H / (H - 2 delta*
+  tanh(H / 2 l)) - 1 = 0.038961 (the difference is the 1e-13 of the residual mode and the grid).
+- **The middle, measured (not predicted):**
+
+| Lambda / l | 0.01 | 0.1 | 0.25 | 0.5 | 1 | 2 | 4 | 10 | steady (20) |
+|---|---|---|---|---|---|---|---|---|---|
+| E, j = l^2 | 0.2649 | 0.2640 | 0.2592 | 0.2429 | 0.1907 | 0.0918 | 0.0270 | 0.0046 | 0.0390 |
+| E, j = l^2 / 100 | 0.2649 | 0.2619 | 0.2488 | 0.2179 | 0.1578 | 0.0843 | 0.0321 | 0.0063 | 0.0390 |
+| E, j = l^2 / 10^4 | 0.2649 | 0.2616 | 0.2483 | 0.2175 | 0.1576 | 0.0843 | 0.0322 | 0.0063 | 0.0390 |
+
+  The excess stays near its early limit while the layer is thinner than about l / 4, halves by Lambda = l, falls
+  close to zero once the layer is several l thick (0.005 at Lambda = 10 l) and rises again to the steady 0.039 when
+  the layer reaches the far wall and the two no-spin layers of eq. 5.5 act together. Below Lambda ~ 2 l the micro-
+  inertia j = l^2 holds w back and keeps E higher than the quasi-steady limit (0.191 against 0.158 at Lambda = l);
+  j = l^2 / 100 is already the quasi-steady limit to 5e-4.
+
+### 19.4 The start-up runs (Step A3) **[run]**
+
+| run (and its control) | particles | steps | dt (s) | steps/s | wall time (each) |
+|---|---|---|---|---|---|
+| `startup_l20` (to the steady state) | 42,200 | 4,000,000 | 1.500e-05 | 2,498 | 27 min |
+| `startup_l40` (to Lambda = H / 2) | 82,200 | 425,000 | 1.500e-05 | 1,849 | 4 min |
+| `startup_l80` (to Lambda = H / 2) | 162,200 | 849,000 | 1.500e-05 | 1,150 | 12 min |
+| `startup_l40_j001` (to Lambda = H / 2) | 82,200 | 9,150,000 | 6.958e-07 | 2,079 | 73 min |
+| `startup_l20_repeat`, `_ma0p01` (floors, to H / 2) | 42,200 | 213,000 / 425,000 | 1.5e-05 / 7.5e-06 | 2,300 / 2,440 | 2 / 3 min |
+
+- H = 20 l, periodic length 100 dx, Re = U H / nu_inf = 100, Ma 0.02, the impulsive start of 19.0, j = l^2 (and
+  l^2 / 100 at l = 40 dx, its dt set by the angular diffusion: 21 times below the acoustic step), every run with its
+  Newtonian control at the same dt; XTX; every counter zero. Samples about 40 per decade of t from the 10th step,
+  each with a wall-band state (the wall form at every sample). E = tau_run / tau_control - 1 on the sliding wall at
+  the same steps; Lambda / l from the host's Newtonian stress at the run's time. The first set of the queue was
+  stopped by Claude Code for low host memory while a W/2000 dipole run shared the machine (19.5); every run here
+  is from the restart, one card at a time.
+- **Floors** (l = 20 dx): the repeat moves E by below 1e-6 up to Lambda = 0.5 l and by up to 3e-4 later; half the
+  Mach number by about 1e-4 from Lambda = 0.2 l on (by 0.004 at 0.1 l and 0.12 at 0.05 l, where the layer is 1 to 2
+  dx thick).
+- **E against the host (wall form; the runs minus the host):**
+
+| run | Lambda = 0.1 l | 0.25 l | 0.5 l | l | 2 l | 4 l | 10 l | within 0.005 from |
+|---|---|---|---|---|---|---|---|---|
+| l = 20 dx | -0.063 | -0.0104 | -0.0013 | +0.0015 | +0.0025 | +0.0022 | +0.0028 | 0.33 l (6.7 dx) |
+| l = 40 dx | -0.019 | -0.0022 | -0.0001 | +0.0009 | +0.0006 | +0.0019 | +0.0012 | 0.18 l (7.1 dx) |
+| l = 80 dx | -0.0039 | -0.0004 | +0.0001 | +0.0004 | +0.0005 | +0.0005 | +0.0009 | 0.089 l (7.1 dx) |
+| l = 40 dx, j = l^2 / 100 | -0.020 | -0.0019 | +0.0003 | +0.0013 | +0.0008 | +0.0033 | (+0.021) | - |
+
+- **The runs follow the host curve, from a layer of about 7 dx.** The floors are far below the resolution offsets,
+  so no run stays within its floor; the measure given is the smallest Lambda from which the run stays within 0.005
+  of the host: 6.7, 7.1 and 7.1 dx at l = 20, 40, 80 dx. Thinner layers are under-resolved (the run reads low).
+  Beyond the layer of a few dx the difference settles on a plateau of +0.002 to +0.003 (20 dx), +0.001 (40 dx) and
+  +0.0005 (80 dx): the steady bias of the wall form at that resolution (+0.31 % of the stress at l = 20 dx, 19.2).
+- **The early limit is approached as the host approaches it:** at Lambda = 0.25 l the wall form gives E = 0.249,
+  0.257, 0.259 at l = 20, 40, 80 dx against the host's 0.259 (the host reaches 0.265 = sqrt(1.6) - 1 only as
+  Lambda / l -> 0; Lambda = 0.01 l would need l of several hundred dx). The late limit: at the end of
+  `startup_l20` E = 0.043 (wall form) and 0.029 (fit) against eq. 5.5's 0.039: the steady biases of the two
+  readings at l = 20 dx (19.2; the profile reading holds eq. 5.5 to 3e-4).
+- **The 4 dx fit** reads E 0.006 to 0.012 below the host at l = 20 dx and 0.002 to 0.004 at 80 dx over the whole
+  range: its steady bias (-0.9 % of the micropolar stress against -1.0 % of the Newtonian one at l = 20 dx).
+- **The micro-inertia shows as the host says:** below Lambda ~ 2 l the run with j = l^2 / 100 lies on the
+  quasi-steady curve (E = 0.159 at Lambda = l, host 0.158), the runs with j = l^2 on theirs (0.192, host 0.191).
+- **The pair with j = l^2 / 100 drifts beyond Lambda ~ 4 l, its control as well:** the control's stress over the
+  host's Newtonian stress is 0.993 at Lambda = 2 l, 1.009 at 7 l and 1.098 at 10 l (the control of `startup_l40`,
+  at the acoustic dt: 0.990 to 0.991 throughout); E then misses by +0.008 to +0.021. [inferred] At its dt (21 times
+  smaller, 9.15 million steps) the velocity increment a dt of a step near the sliding wall approaches the float32
+  spacing of u (6e-8 U), and the rounding accumulates. Not checked further; item 27 draws that pair to Lambda = 4 l.
+- **Profiles** (`startup_l40`; item 27 (b, c)): u within 0.15, 0.04, 0.04 % rms of the host at Lambda = 0.25 l, l,
+  4 l, w within 1.2, 0.06, 0.14 %; at l = 80 dx u within 0.08, 0.05, 0.02 % and w 0.25, 0.08, 0.09 %; at l = 20 dx
+  w is 5.1 % off at Lambda = 0.25 l (a layer of 5 dx).
+- **The dipole points (item 27 (a))**: the peak wall-stress excess of the dipole runs (+18.2 % at Lambda / l = 0.53,
+  +18.9 % at 0.26, +21.3 % at 0.26 with W / dx = 500, +15.0 % at 0.26 with j = l^2 / 100, +7.2 % at 0.13 with
+  l = W / 25) lies below the start-up curve at the same Lambda / l (0.24 to 0.26). [inferred] The start-up curve is
+  the excess of a layer under a fixed outer flow; in the collision the outer flow weakens with l (the bulk effect of
+  17.6), so the dipole cannot test the saturation by itself, as the task anticipated.
+
+### 19.5 Unexpected, and what is open
+
+- **The wall readings carry a bias of order dx / l at a no-spin wall** (19.2): the wall form +0.5 to +0.7 % at
+  l = 10 dx, +0.3 % at 20 dx; the 4 dx fit -0.9 to -1.7 %. The dipole tables (22, 26, 29) read the fit at
+  l = 10 to 40 dx: their wall-stress excesses carry that bias in their difference to the control (about -0.9 % of
+  the micropolar stress against -1.0 % of the Newtonian one at l = 20 dx; more at 10 dx).
+- **States saved at a defrag step** do not match the particles' order (19.1); the wall form skips them, and so must
+  any later tool that reads auxiliary buffers after an orchestrator step that ended with a defrag.
+- **Host memory:** the first start-up queue (and the W/2000 dipole control beside it) was stopped by Claude Code for
+  low memory; the W/2000 dipole run commits 11 GB (17 GB at bootstrap). Restarted one card at a time (the user's
+  choice).
+- **The impulsive start** replaces the ramp of the task (19.0).
+- **Not done:** a run of the start-up with j = l^2 / 100 at the acoustic dt (impossible: its angular diffusion sets
+  the dt), the check of the float32 drift of the small-dt pair (e.g. the same pair with the velocity in the stored-
+  offset form), the gap 20 l at l = 160 dx.

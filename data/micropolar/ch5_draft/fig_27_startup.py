@@ -28,6 +28,10 @@ DIPOLE_CHECKS = (("mp_l100_n1000__against__control_n1000", r"$\ell = W/100$"),
                  ("mp_l100_re1250_n1000__against__control_re1250_n1000", r"$\ell = W/100$, Re 1250"),
                  ("mp_l50_re1250_n1000__against__control_re1250_n1000", r"$\ell = W/50$, Re 1250"))
 PROFILE_RUN = "startup_l40"
+# the j = l^2 / 100 pair (dt 21 times smaller, 9.15 million steps) drifts, run and control alike, beyond Lambda ~ 4 l
+# (the control's stress 1.10 of the host at Lambda = 10 l; design note 19.4): drawn to Lambda = 4 l
+LAYER_LIMIT = {"startup_l40_j001": 4.0}
+MINIMUM_LAYER_IN_SPACINGS = 2.0
 
 
 def main() -> int:
@@ -39,8 +43,8 @@ def main() -> int:
     analysis = style.load_json(SOURCE["analysis"]) if style.exists(SOURCE["analysis"]) else {}
     startup = analysis.get("startup", {})
     dipole = style.load_json(SOURCE["dipole"]) if style.exists(SOURCE["dipole"]) else {}
-    figure = plt.figure(figsize=(style.WIDE, 0.78 * style.WIDE))
-    grid = figure.add_gridspec(2, 2, height_ratios=(1.25, 1.0), hspace=0.42, wspace=0.30)
+    figure = plt.figure(figsize=(style.WIDE, 0.92 * style.WIDE))
+    grid = figure.add_gridspec(2, 2, height_ratios=(1.25, 1.0), hspace=1.10, wspace=0.30)
     axis = figure.add_subplot(grid[0, :])
     numbers = {"early_limit": host["early_limit"], "steady_excess_eq_5_5": host["steady_excess_eq_5_5"],
                "convergence": host["convergence"]}
@@ -62,16 +66,24 @@ def main() -> int:
         colour, marker = style.SERIES[series_index]
         layer = np.asarray(entry["layer_over_length"])
         excess = np.asarray(entry["excess_fit"])
-        every = max(1, layer.size // 45)
-        axis.plot(layer[::every], excess[::every], linestyle="none", marker=marker, markersize=style.MARKER_SIZE,
-                  markerfacecolor="none", markeredgewidth=0.8, color=colour, label=label + " (fit)")
+        # a layer thinner than two spacings is not resolved by any reading: drawn from Lambda = 2 dx
+        upper = LAYER_LIMIT.get(name, float("inf"))
+        shown = (layer >= MINIMUM_LAYER_IN_SPACINGS / entry["length_in_spacings"]) & (layer <= upper)
         if "excess_pairs" in entry:
-            axis.plot(entry["pairs_layer_over_length"], entry["excess_pairs"], linestyle="none", marker=marker,
-                      markersize=style.MARKER_SIZE - 1.0, color=colour, alpha=0.8)
+            pair_layer = np.asarray(entry["pairs_layer_over_length"])
+            pair_shown = (pair_layer >= MINIMUM_LAYER_IN_SPACINGS / entry["length_in_spacings"]) & (pair_layer <= upper)
+            axis.plot(pair_layer[pair_shown], np.asarray(entry["excess_pairs"])[pair_shown], color=colour,
+                      linewidth=1.3, alpha=0.85, label=label + ", wall form")
+        layer_shown, excess_shown = layer[shown], excess[shown]
+        every = max(1, layer_shown.size // 30)
+        axis.plot(layer_shown[::every], excess_shown[::every], linestyle="none", marker=marker,
+                  markersize=style.MARKER_SIZE - 0.5, markerfacecolor="none", markeredgewidth=0.7, color=colour,
+                  label=label + ", 4 dx fit")
         floor = np.asarray(entry.get("floor", []))
-        if floor.size == layer.size and name == "startup_l20":
-            axis.fill_between(layer, excess - floor, excess + floor, color=style.MUTED, alpha=0.2, linewidth=0.0,
-                              label=r"floor ($\ell = 20\,\Delta x$)")
+        if floor.size == layer.size and name == "startup_l20" and "excess_pairs" in entry:
+            pairs = np.interp(np.log(layer), np.log(pair_layer), np.asarray(entry["excess_pairs"]))
+            axis.fill_between(layer[shown], (pairs - floor)[shown], (pairs + floor)[shown], color=style.MUTED,
+                              alpha=0.3, linewidth=0.0, label=r"floor ($\ell = 20\,\Delta x$)")
         numbers[name] = {"smallest_resolved_layer_over_length": entry.get("smallest_resolved_layer_over_length")}
     checks = dipole.get("checks", {})
     dipole_points = []
@@ -81,7 +93,7 @@ def main() -> int:
             dipole_points.append((check["shear_length_over_length"], check["changes"]["wall_traction_peak"], label))
     if dipole_points:
         axis.plot([point[0] for point in dipole_points], [point[1] for point in dipole_points], linestyle="none",
-                  marker="X", markersize=style.MARKER_SIZE + 2.0, color=style.SERIES[1][0],
+                  marker="X", markersize=style.MARKER_SIZE + 2.0, color=style.INK,
                   label="dipole-wall collision, peak wall stress")
         numbers["dipole"] = {label: [layer, excess] for layer, excess, label in dipole_points}
     axis.set_xscale("log")
@@ -89,7 +101,8 @@ def main() -> int:
     axis.set_ylim(-0.02, 0.32)
     axis.set_xlabel(r"$\Lambda / \ell$,  $\Lambda = (\mu + \kappa/2)\,U / \tau_N$")
     axis.set_ylabel(r"$E = \tau_\mathrm{mp} / \tau_N - 1$")
-    axis.legend(loc="upper right", fontsize=style.FONT_SIZE - 2.5, ncol=2, frameon=False, handletextpad=0.4)
+    axis.legend(loc="upper center", bbox_to_anchor=(0.5, -0.27), fontsize=style.FONT_SIZE - 3.0, ncol=3,
+                frameon=False, handletextpad=0.4, columnspacing=1.2)
     style.panel_letter(axis, "a")
     # (b) u and (c) w at three layer thicknesses
     entry = startup.get(PROFILE_RUN, {})
@@ -121,7 +134,8 @@ def main() -> int:
         "the sliding wall against Lambda / l, Lambda = (mu + kappa / 2) U / tau_N of the Newtonian fluid mu + kappa "
         "/ 2 (for the Rayleigh layer sqrt(pi nu_inf t)): the host solution (implicit, stretched grid, converged to "
         "3e-5 in E) for j = l^2, l^2 / 100 and l^2 / 10^4 (the quasi-steady limit), the runs (l = 20, 40, 80 dx, "
-        "j = l^2; l = 40 dx with j = l^2 / 100; open markers: the 4 dx fit, filled: the wall form) with the floor "
+        "j = l^2; l = 40 dx with j = l^2 / 100, drawn to Lambda = 4 l, beyond which that pair at its 21 times smaller dt "
+        "drifts, its control as well; lines: the wall form, open markers: the 4 dx fit; both from Lambda = 2 dx) with the floor "
         "of l = 20 dx (repeat, half Mach; grey), the early limit sqrt(1.6) - 1 (a layer thinner than l is a "
         "Newtonian layer of viscosity mu + kappa) and the steady value of eq. 5.5 (star). Crosses: the peak "
         "wall-stress excess of the dipole-wall collision runs (tables 22, 26, 29) at their Lambda / l - another flow, "

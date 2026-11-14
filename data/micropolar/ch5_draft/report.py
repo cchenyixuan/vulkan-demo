@@ -609,7 +609,86 @@ def main() -> int:
             "(turbulence), table 25.")
         say()
 
-    say("## 11. To be careful with in the text")
+    # ---- plane flows and the start-up of Couette flow (Stage 8c) ---------------------------------------------------
+    channel_file = ROOT / "data/micropolar/stage8c/channel.json"
+    host_file = ROOT / "data/micropolar/stage8c/startup_host.json"
+    if channel_file.exists():
+        channel = load(channel_file)
+        steady = channel.get("steady", {})
+        say("## 11. Plane flows in the channel periodic in x, and the start-up of Couette flow (items 27, 28) [run, host]")
+        say()
+        say("Two no-spin walls in a channel periodic in x (length 100 dx; walls work across the periodic seam without "
+            "a solver change), K = 3, j = l^2, Ma 0.02, Re = 10; every micropolar run with its Newtonian control. "
+            "Design note Section 19.")
+        say()
+        rows = []
+        for flow in ("couette", "poiseuille"):
+            for m, length in ((1, 10), (2, 10), (5, 10), (10, 10), (2, 20), (5, 20)):
+                name = f"{flow}_m{m}_l{length}"
+                if name not in steady:
+                    continue
+                entry = steady[name]
+                if flow == "couette":
+                    rows.append([f"Couette, m = {m}, l = {length} dx", f"{entry['exact_ratio']:.4f}",
+                                 f"{entry.get('profile_over_control', float('nan')):.4f}",
+                                 f"{entry.get('pairs_lower_over_control', float('nan')):.4f}",
+                                 f"{entry.get('fit_lower_over_control', float('nan')):.4f}"])
+                else:
+                    rows.append([f"Poiseuille, m = {m}, l = {length} dx", f"{entry['exact_ratio']:.4f}",
+                                 f"{entry.get('flow_rate_over_control', float('nan')):.4f}", "-", "-"])
+        if rows:
+            say("Micropolar over control: Couette wall stress (exact: eq. 5.5 over (mu + kappa / 2) U / H) in three "
+                "readings, Poiseuille flow rate (exact: eq. 2.26):")
+            say()
+            say(table(["run", "exact", "profile / Q", "wall form", "4 dx fit"], rows))
+            say()
+            say("- **The solver reproduces eq. 5.5 and eq. 2.26**: the profile reading (as items 01 to 03) within 3e-4 "
+                "of the exact ratio at every m and l (floors 2e-4 repeat, 2e-3 half Mach); Poiseuille within 0.26 % "
+                "at l = 10 dx and 0.06 % at l = 20 dx. The Newtonian controls: profile 1.0001 to 1.0006, wall form "
+                "0.999 to 1.001, Q within 0.1 % from H = 40 dx.")
+            say("- **The readings at the wall carry a bias of order dx / l at a no-spin wall**: the wall form +0.5 to "
+                "+0.7 % at l = 10 dx and +0.3 % at l = 20 dx, the 4 dx fit -0.9 to -1.7 % (the Newtonian fit itself "
+                "reads -1 %). Reported before the start-up runs; the user chose to run them as planned.")
+        if host_file.exists():
+            host = load(host_file)
+            curve = host["curves"].get("theta_1", {})
+            say(f"- **The start-up on the host** (H = 20 l, impulsive): E = tau_mp / tau_N - 1 on the sliding wall is "
+                f"{curve.get('excess_at_layer_0p01', float('nan')):.4f} at Lambda = 0.01 l (sqrt(1.6) - 1 = "
+                f"{host['early_limit']:.4f}) for every j, falls through Lambda ~ l (0.19 for j = l^2, 0.16 "
+                "quasi-steady), nearly to zero at Lambda ~ 10 l, and rises to the steady "
+                f"{host['steady_excess_eq_5_5']:.4f} of eq. 5.5 (host {curve.get('excess_at_end', float('nan')):.4f}); "
+                "converged to 3e-5.")
+        startup = channel.get("startup", {})
+        rows = []
+        for name in ("startup_l20", "startup_l40", "startup_l80", "startup_l40_j001"):
+            entry = startup.get(name)
+            if not entry or "pairs_miss" not in entry:
+                continue
+            layer, miss = entry["pairs_layer_over_length"], entry["pairs_miss"]
+
+            def at(value):
+                index = min(range(len(layer)), key=lambda position: abs(layer[position] / value - 1.0))
+                return f"{miss[index]:+.4f}"
+            within = entry.get("smallest_layer_within_0p005_pairs")
+            rows.append([f"l = {entry['length_in_spacings']} dx, j = {entry['theta']:g} l^2", at(0.25), at(1.0),
+                         at(4.0), "-" if within is None else f"{within:.2g} ({within * entry['length_in_spacings']:.1f} dx)"])
+        if rows:
+            say("- **The start-up runs follow the host curve** (E from the wall form minus the host's; the floors, a "
+                "repeat and half the Mach number at l = 20 dx, are below 3e-4 from Lambda = 0.2 l on):")
+            say()
+            say(table(["run", "Lambda = 0.25 l", "l", "4 l", "within 0.005 from Lambda / l"], rows))
+            say()
+            say("  The plateau of the difference (+0.002 to +0.003 at l = 20 dx, +0.001 at 40 dx, +0.0005 at 80 dx) is the "
+                "steady bias of the wall form at that resolution; every resolution follows the curve from a layer of "
+                "about 7 dx. The pair with j = l^2 / 100 (dt 21 times smaller, 9.15 million steps) drifts beyond "
+                "Lambda ~ 4 l, its Newtonian control as well (1.10 of the host stress at Lambda = 10 l). **The runs "
+                "approach the early limit as the host does**: E = 0.257 (40 dx) and 0.259 (80 dx) at Lambda = 0.25 l "
+                "against the host's 0.259 (the host reaches sqrt(1.6) - 1 = 0.265 as Lambda / l -> 0); the dipole runs' peak excess (+7 to +21 % at Lambda / l = 0.13 to 0.53) lies below the "
+                "start-up curve (0.25 to 0.26 there): the dipole's outer flow changes with l.")
+        say("- **Figures:** item 27 (E against Lambda / l with the dipole points; profiles), table 28.")
+        say()
+
+    say("## 12. To be careful with in the text")
     say()
     for line in (
             "**The film function** is that of micropolar lubrication theory; ours is that the runs reproduce it at a "

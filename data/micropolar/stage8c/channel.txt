@@ -81,3 +81,9 @@ floors (repeat, half Mach): largest |change| over the runs of each flow
   poiseuille: flow_rate (ma0p01) 5.3e-04; flow_rate (repeat) 3.0e-04; flow_rate_over_control (ma0p01) 2.7e-04; flow_rate_over_control (repeat) 3.2e-04; u_rms_error (ma0p01) 4.1e-03; u_rms_error (repeat) 9.5e-04
 
 Stage 8c: the start-up of plane Couette flow (H = 20 l, impulsive start) against the host solution
+  startup_l20            l = 20 dx, j = 1 l^2: 4,000,000 steps; E within the floor from Lambda / l = - (fit), - (wall form), within 0.005 from 0.334; largest |E_fit - E_host| beyond Lambda = l: 0.0118
+  startup_l40            l = 40 dx, j = 1 l^2: 425,000 steps; E within the floor from Lambda / l = - (fit), - (wall form), within 0.005 from 0.178; largest |E_fit - E_host| beyond Lambda = l: 0.0063
+  startup_l80            l = 80 dx, j = 1 l^2: 849,000 steps; E within the floor from Lambda / l = - (fit), - (wall form), within 0.005 from 0.0888; largest |E_fit - E_host| beyond Lambda = l: 0.0041
+  startup_l40_j001       l = 40 dx, j = 0.01 l^2: 9,150,000 steps; E within the floor from Lambda / l = - (fit), - (wall form), within 0.005 from nan; largest |E_fit - E_host| beyond Lambda = l: 0.0162
+  startup_l20_repeat     l = 20 dx, j = 1 l^2: 213,000 steps; E within the floor from Lambda / l = - (fit), - (wall form), within 0.005 from 0.335; largest |E_fit - E_host| beyond Lambda = l: 0.0108
+  startup_l20_ma0p01     l = 20 dx, j = 1 l^2: 425,000 steps; E within the floor from Lambda / l = - (fit), - (wall form), within 0.005 from 0.334; largest |E_fit - E_host| beyond Lambda = l: 0.0112
