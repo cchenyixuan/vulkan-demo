@@ -40,7 +40,8 @@
   "g100_k05_m2",
   "g100_k05_m5",
   "g200_k05_m10",
-  "g200_k05_m20"
+  "g200_k05_m20",
+  "g400_k3_m20"
  ],
  "numbers": {
   "load": {
@@ -265,6 +266,10 @@
    "g200_k05_m20": {
     "narrowest_gap_over_length": 40.0,
     "over_rule": 1.0247686721889393
+   },
+   "g400_k3_m20": {
+    "narrowest_gap_over_length": 40.0,
+    "over_rule": 1.0159243296488707
    }
   }
  },

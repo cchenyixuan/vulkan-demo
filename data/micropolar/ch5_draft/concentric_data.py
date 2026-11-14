@@ -45,7 +45,8 @@ def slip_rule_change(coupling_ratio: float, gap_over_two_lengths: float) -> floa
 
 def tags(runs: dict, names) -> str:
     """The git describe of the named runs, shortest first."""
-    found = sorted({runs[name]["revision"]["describe"] for name in names if runs[name].get("revision")}, key=len)
+    found = sorted({runs[name]["revision"]["describe"] for name in names if runs[name].get("revision")},
+                   key=lambda tag: (len(tag), tag))
     return ", ".join(f"`{tag}`" for tag in found)
 
 

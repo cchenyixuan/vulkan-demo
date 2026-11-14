@@ -93,7 +93,7 @@ def setup() -> None:
         "xtick.direction": "in", "ytick.direction": "in", "xtick.major.width": 0.6, "ytick.major.width": 0.6,
         "xtick.minor.width": 0.4, "ytick.minor.width": 0.4, "xtick.top": True, "ytick.right": True,
         "axes.grid": False, "legend.frameon": False, "legend.handlelength": 2.4, "lines.linewidth": 1.0,
-        "savefig.dpi": RASTER_DPI, "figure.dpi": 100, "pdf.fonttype": 42, "axes.unicode_minus": False,
+        "savefig.dpi": RASTER_DPI, "figure.dpi": 100, "pdf.fonttype": 42, "axes.unicode_minus": True,
     })
 
 
