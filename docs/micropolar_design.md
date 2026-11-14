@@ -4249,16 +4249,18 @@ are unchanged (rebuilt byte-identical). Pack item 26 (`tab_26_dipole_checks`), R
   enstrophy peak; the floor is the larger of table 22's two (shifted lattice, half Mach). The primary core is
   tracked as the strongest extremum within reach in every column, the reference too: its core rows differ from
   table 22 (nearest extremum) by up to 0.0025 W. Full rows in item 26.
-- **1. The micro-inertia moves the result (flagged).** Against `mp_l50_n1000` (j = l^2), j = l^2 / 100 moves the
-  first enstrophy peak by -6.1 %, 0.39 of the micropolar effect (-15.7 %): more than the quarter the task set.
-  The wall vorticity moves by -3.3 % (0.13 of the effect: below it); the time of the first peak by +0.0061
-  (floor 0.0008). Most of the change is in the bulk before the collision: at t = 0.25 E is -1.76 % and the
-  enstrophy -5.1 % off the control (j = l^2: -0.44 % and -1.4 %). [inferred] The relaxation time of w, rho j / (2
-  kappa) = Theta / (2 c), is 0.10 W / U for j = l^2, a quarter of the time to the collision: the micro-rotation of
-  the decaying dipole carries spin from its earlier vorticity and the couple draws less. Section 18.2 makes this
-  exact for the Taylor-Green vortex: with j = l^2 the excess over mu + kappa / 2 is a third of the quasi-steady one
-  at small |k| l, whatever l is, and j = l^2 / 100 recovers mu_eff. At the wall the peak traction excess falls from
-  +18.9 % to +15.0 % (the wall vorticity of the weaker dipole is smaller).
+- **1. The micro-inertia moves the result (flagged).** Fractions of the micropolar effect, every change against
+  the control [corrected 2026-11-14: the first version took the micropolar run with j = l^2 as the base of these two
+  fractions (0.39 and 0.13)]: j = l^2 / 100 moves the first enstrophy peak by 0.33 of the effect (-20.8 % against
+  -15.7 %), more than the quarter the task set; the wall vorticity by 0.10 (-28.1 % against -25.7 %); the peak
+  wall stress loses 0.21 of its excess (+15.0 % against +18.9 %). The time of the first peak moves by +0.0061 (floor
+  0.0008). The difference starts before the collision: at t = 0.25 the enstrophy of the two j differs by 17.3 U^2,
+  37 % of the 47.1 by which their first peaks differ (E at t = 0.25: -1.76 % against -0.44 %, floor 0.01 %).
+  [inferred] The relaxation time of w, rho j / (2 kappa) = Theta / (2 c), is 0.10 W / U for j = l^2, a quarter of
+  the time to the collision: the micro-rotation of the decaying dipole carries spin from its earlier vorticity and
+  the couple draws less. The exact Taylor-Green solution of Section 18 makes this quantitative: with j = l^2 the
+  excess over mu + kappa / 2 is a third of the quasi-steady one at small |k| l, whatever l is. The flux of vorticity
+  is -42.6 % against -37.5 %.
 - **2. Saturation: the reading does not hold here.** l = W / 25 (40 dx, Lambda / l = 0.13): the peak traction
   excess is +7.2 % (the integral +16.0 %), not sqrt(1.6) - 1 = +26.5 %. That reading assumes the outer flow of the
   control; here the dipole itself (core radius r0 = 2.5 l) is in the micropolar range and arrives weaker. **The
