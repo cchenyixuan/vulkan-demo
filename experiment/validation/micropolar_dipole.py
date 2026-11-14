@@ -84,7 +84,14 @@ RUNS = {
     "mp_l100_n1000": (1000, 1.0 / 100.0, 600.0, 0.0, "incompressible", 1),
     "control_n2000": (2000, None, 600.0, 0.0, "incompressible", 2),
     "mp_l100_n2000": (2000, 1.0 / 100.0, 600.0, 0.0, "incompressible", 2),
+    # Stage 8 checks (13 Nov task, Part 0): the micro-inertia (j = l^2 / 100), the saturation (l = W / 25), the
+    # resolution of l (l = W / 50 at 10 dx)
+    "mp_l50_j001_n1000": (1000, 1.0 / 50.0, 600.0, 0.0, "incompressible", 1),
+    "mp_l25_j001_n1000": (1000, 1.0 / 25.0, 600.0, 0.0, "incompressible", 1),
+    "mp_l50_n500": (500, 1.0 / 50.0, 600.0, 0.0, "incompressible", 1),
 }
+# run -> Theta / l^2 (absent: 1, the thesis convention j = l^2)
+MICRO_INERTIA_FACTOR = {"mp_l50_j001_n1000": 0.01, "mp_l25_j001_n1000": 0.01}
 RUNS_DIRECTORY = "logs/micropolar/stage8"
 DATA_DIRECTORY = "data/micropolar/stage8"
 SNAPSHOT_INTERVAL = 0.025
@@ -247,6 +254,7 @@ def design(run: str) -> dict:
         return {"viscosity": FAR_VISCOSITY, "viscosity_transfer": -FAR_VISCOSITY, "coupling": 0.0,
                 "viscosity_rotation": 0.0, "micro_inertia": CONTROL_MICRO_INERTIA_LENGTH ** 2, "length": None}
     parameters = design_parameters(FAR_VISCOSITY, COUPLING_RATIO, length * HALF_WIDTH)
+    parameters["micro_inertia"] *= MICRO_INERTIA_FACTOR.get(run, 1.0)
     return {**parameters, "length": length * HALF_WIDTH}
 
 
@@ -319,7 +327,8 @@ def make_case(run: str) -> pathlib.Path:
                 f"(c = 0 exactly), xi = 0, Theta = {parameters['micro_inertia']:.3e} (passive w).")
     else:
         text = (f"Micropolar: K = kappa / mu = {COUPLING_RATIO:g}, l = W / {1.0 / length:g} = {length:g} m "
-                f"({length / spacing:g} dx), Theta = l^2; nu = {parameters['viscosity']:.6e}, nu_t = "
+                f"({length / spacing:g} dx), Theta = {MICRO_INERTIA_FACTOR.get(run, 1.0):g} l^2 = "
+                f"{parameters['micro_inertia']:.6e}; nu = {parameters['viscosity']:.6e}, nu_t = "
                 f"{parameters['viscosity_transfer']:.6e}, c = {parameters['coupling']:.6e}, xi = "
                 f"{parameters['viscosity_rotation']:.6e}; w = 0 on every wall.")
     case_dir = _REPO_ROOT / f"cases/dipole/{run}"
