@@ -126,8 +126,9 @@ MICRO_INERTIA_FACTOR = {"mp_l50_j001_n1000": 0.01, "mp_l25_j001_n1000": 0.01}
 RUNS_DIRECTORY = "logs/micropolar/stage8"
 DATA_DIRECTORY = "data/micropolar/stage8"
 SNAPSHOT_INTERVAL = 0.025
-# the Re = 1250 runs (14 Nov task, Part B2): fields every 0.05 (the disk; 0.35, 0.45, 0.6, 0.7 stay on it)
-SNAPSHOT_INTERVAL_OF = {name: 0.05 for name in RUNS if "_re1250_" in name}
+# the Re = 1250 and oblique runs (14 Nov task, Part B2, B3): fields every 0.05 (the disk; 0.35, 0.45, 0.6, 0.7
+# stay on it)
+SNAPSHOT_INTERVAL_OF = {name: 0.05 for name in RUNS if "_re1250_" in name or name.startswith("oblique_")}
 SAMPLE_INTERVAL = 0.01
 WINDOW_INTERVAL = 0.0025
 WINDOWS = ((0.30, 0.44), (0.58, 0.72))   # around the first and second collision
