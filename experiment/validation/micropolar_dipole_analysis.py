@@ -24,6 +24,9 @@ CONTROL = "control_n1000"
 FLOOR_RUNS = ("control_n1000_shifted", "control_n1000_half_mach")
 MICROPOLAR = ("mp_l100_n1000", "mp_l50_n1000")
 CONVERGENCE = ("control_n250", "control_n500", "control_n1000", "control_n2000")
+# Stage 8 open runs (14 Nov task, Part B2): Re = 1250, validated against the paper's values for Re = 1250
+RE1250_CONTROLS = ("control_re1250_n500", "control_re1250_n1000", "control_re1250_n1000_shifted",
+                   "control_re1250_n1000_half_mach")
 DETACHED = 0.05                        # a negative extremum this far from x = W counts as detached (secondary)
 SECONDARY_START = 0.45                 # the wall layer of the first collision has rolled up by then (item 20)
 EDGE_DISTANCE = 0.03                   # where the reference velocity of the shear length is read (about 3 delta)
@@ -265,7 +268,7 @@ def summary(entry: dict, strongest: bool = False) -> dict:
     rate = -np.diff(samples["energy"]) / np.diff(times)
     middle_enstrophy = 0.5 * (samples["enstrophy"][1:] + samples["enstrophy"][:-1])
     middle_time = 0.5 * (times[1:] + times[:-1])
-    budget = rate / (2.0 * dipole.FAR_VISCOSITY * middle_enstrophy)
+    budget = rate / (2.0 * record["dipole"]["far_viscosity"] * middle_enstrophy)
     result["energy_budget"] = {label: float(np.mean(budget[(middle_time >= low) & (middle_time <= high)]))
                                for label, (low, high) in (("0.05-0.30", (0.05, 0.30)), ("0.30-0.45", (0.30, 0.45)),
                                                           ("0.45-1.00", (0.45, 1.00)))}
@@ -365,7 +368,17 @@ CHECK_PAIRS = (("mp_l50_j001_n1000", "control_n1000", "control_n1000"),
                ("mp_l50_j001_n1000", "mp_l50_n1000", "control_n1000"),
                ("mp_l25_j001_n1000", "control_n1000", "control_n1000"),
                ("mp_l50_n500", "control_n500", "control_n500"),
-               ("mp_l50_n1000", "control_n1000", "control_n1000"))
+               ("mp_l50_n1000", "control_n1000", "control_n1000"),
+               # Stage 8 open runs (14 Nov task, Part B): W / 2000 (to t = 0.45) and Re = 1250 with its floors
+               ("mp_l100_n2000", "control_n2000", "control_n2000"),
+               ("mp_l100_re1250_n1000", "control_re1250_n1000", "control_re1250_n1000"),
+               ("mp_l50_re1250_n1000", "control_re1250_n1000", "control_re1250_n1000"),
+               ("control_re1250_n1000_shifted", "control_re1250_n1000", "control_re1250_n1000"),
+               ("control_re1250_n1000_half_mach", "control_re1250_n1000", "control_re1250_n1000"),
+               # Part B3: the oblique collision (30 degrees), Re = 625
+               ("oblique_mp_l50_n1000", "oblique_control_n1000", "oblique_control_n1000"),
+               ("oblique_control_n1000_shifted", "oblique_control_n1000", "oblique_control_n1000"),
+               ("oblique_control_n1000_half_mach", "oblique_control_n1000", "oblique_control_n1000"))
 
 
 def check_pairs(results: dict, entries: dict, say) -> dict:
@@ -384,7 +397,8 @@ def check_pairs(results: dict, entries: dict, say) -> dict:
             results_strongest[name] = item
             item["wall_common"] = wall_at(samples, entries[name]["record"]["dipole"]["spacing"], first_time)
             for label, time in (("first", first_time), ("second", second_time)):
-                item[f"enstrophy_at_base_{label}_peak"] = value_at(samples["time"], samples["enstrophy"], time)
+                if np.isfinite(time) and samples["time"][-1] >= time:
+                    item[f"enstrophy_at_base_{label}_peak"] = value_at(samples["time"], samples["enstrophy"], time)
             pair[name] = item
         values = compare(pair[run], pair[base])
         designs = {name: json.loads((_REPO_ROOT / f"cases/dipole/{name}/dipole.json").read_text(encoding="utf-8"))
@@ -404,7 +418,7 @@ def check_pairs(results: dict, entries: dict, say) -> dict:
         control_wall = pair[base]["wall_common"] if base == control else wall_at(
             entries[control]["samples"], entries[control]["record"]["dipole"]["spacing"], first_time)
         shear_length = control_wall["edge_velocity_max"] / abs(control_wall["vorticity_peak"])
-        length = dipole.RUNS[run][1] * dipole.HALF_WIDTH
+        length = (dipole.RUNS[run][1] or float("nan")) * dipole.HALF_WIDTH
         displacement = dipole.COUPLING_RATIO * length / (2.0 * (1.0 + dipole.COUPLING_RATIO))
         key = f"{run}__against__{base}"
         checks[key] = {"run": run, "base": base, "control": control, "changes": values,
@@ -447,7 +461,7 @@ def command_analyse(arguments) -> int:
                     results[run][f"enstrophy_at_base_{label}_peak"] = value_at(samples["time"], samples["enstrophy"],
                                                                                time)
     benchmark = dipole.BENCHMARK
-    say("Stage 8: normal dipole-wall collision (Clercx & Bruneau 2006), Re = 625 on nu_inf")
+    say("Stage 8: normal dipole-wall collision (Clercx & Bruneau 2006), Re = 625 on nu_inf (and 1250 where named)")
     say()
     say(f"{'run':<28}{'dx':>8}{'end t':>7}{'E(0)':>9}{'Om(0)':>9}{'t1':>8}{'Omega1':>9}{'t2':>8}{'Omega2':>9}"
         f"{'k_w':>8}{'out':>5}")
@@ -457,15 +471,18 @@ def command_analyse(arguments) -> int:
             f"{item['enstrophy_peaks'][1][0]:>8.4f}{item['enstrophy_peaks'][1][1]:>9.2f}"
             f"{item['leak']['coefficient']:>8.3f}{item['outside_box_max']:>5}" + ("  (partial)" if item["partial"] else ""))
     validation = {}
-    for run in [name for name in CONVERGENCE + FLOOR_RUNS if name in results]:
+    for run in [name for name in CONVERGENCE + FLOOR_RUNS + RE1250_CONTROLS if name in results]:
         item = results[run]
         rows = []
+        benchmark = dipole.BENCHMARKS[dipole.reynolds_of(run)]
 
         def row(label, reference_sm, reference_fd, value, kind="relative"):
             difference = (value / reference_sm - 1.0) if kind == "relative" else (value - reference_sm)
             rows.append({"quantity": label, "SM": reference_sm, "FD": reference_fd, "run": value,
                          "difference": difference, "kind": kind})
         for index, label in ((0, "first"), (1, "second")):
+            if item["end_time"] < (0.44 if index == 0 else 0.72):
+                continue
             (time_sm, value_sm), (time_fd, value_fd) = (benchmark["enstrophy_peaks"][method][index]
                                                         for method in ("SM", "FD"))
             row(f"time of the {label} enstrophy peak", time_sm, time_fd, item["enstrophy_peaks"][index][0], "absolute")
@@ -495,12 +512,13 @@ def command_analyse(arguments) -> int:
                 row(f"primary core omega_max at t = {time:g} ({method})", strength, float("nan"), value_strength)
         validation[run] = rows
         say()
-        say(f"{run} against the benchmark (SM: spectral, FD: finite differences; difference relative to SM, "
+        say(f"{run} (Re = {dipole.reynolds_of(run):g}) against the benchmark (SM: spectral, FD: finite differences; difference relative to SM, "
             "absolute for times and positions)")
         say(f"  {'quantity':<44}{'SM':>12}{'FD':>12}{'run':>12}{'difference':>12}")
         for entry in rows:
             say(f"  {entry['quantity']:<44}{entry['SM']:>12.5g}{entry['FD']:>12.5g}{entry['run']:>12.5g}"
                 f"{entry['difference']:>+12.4f}")
+    benchmark = dipole.BENCHMARK
     comparisons, floors = {}, {}
     if CONTROL in results:
         base = results[CONTROL]

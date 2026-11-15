@@ -49,6 +49,7 @@ ITEMS = [
     ("26", "tab_26_dipole_checks", "Dipole-wall collision: the checks of micro-inertia, saturation and resolution"),
     ("27", "fig_27_startup", "Start-up of plane Couette flow: the wall-stress excess against Lambda / l, and the profiles"),
     ("28", "tab_28_plane_flows", "Table of the steady plane Couette and Poiseuille flows against their exact solutions"),
+    ("29", "tab_29_dipole_open_runs", "Dipole-wall collision: the open runs (resolution of l = W/100, Re = 1250, oblique collision)"),
 ]
 
 

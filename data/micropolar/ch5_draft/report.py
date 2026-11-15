@@ -463,26 +463,35 @@ def main() -> int:
                        for quantity, label in keys]))
             say()
             effect = reference["changes"]
-            inertia = checks.get("mp_l50_j001_n1000__against__mp_l50_n1000")
-            if inertia:
-                moved = {quantity: inertia["changes"][quantity] / effect[quantity]
-                         for quantity in ("enstrophy_peak_first_value", "wall_vorticity_peak")}
-                say(f"- **The micro-inertia matters** (j = l^2 / 100 against j = l^2, l = W / 50): the first enstrophy "
-                    f"peak moves by {100.0 * inertia['changes']['enstrophy_peak_first_value']:+.1f} %, "
-                    f"{abs(moved['enstrophy_peak_first_value']):.2f} of the micropolar effect "
-                    f"({100.0 * effect['enstrophy_peak_first_value']:+.1f} %), more than the quarter set in the task; "
-                    f"the wall vorticity by {100.0 * inertia['changes']['wall_vorticity_peak']:+.1f} % "
-                    f"({abs(moved['wall_vorticity_peak']):.2f} of the effect). Most of the difference is there "
-                    "before the collision: at t = 0.25 the kinetic energy is "
-                    f"{100.0 * checks['mp_l50_j001_n1000__against__control_n1000']['changes']['energy_0.25']:+.2f} % and the "
-                    "enstrophy "
-                    f"{100.0 * checks['mp_l50_j001_n1000__against__control_n1000']['changes']['enstrophy_0.25']:+.1f} % "
-                    f"off the control (j = l^2: {100.0 * effect['energy_0.25']:+.2f} % and "
-                    f"{100.0 * effect['enstrophy_0.25']:+.1f} %; floor 0.01 % and 0.04 %). With j = l^2 the "
-                    "micro-rotation lags the vorticity of a decaying flow and the bulk effect is held back (here to a "
-                    "quarter to a third of that with j = l^2 / 100; the exact Taylor-Green solution of Stage 8b gives "
-                    "a third of the quasi-steady mu_eff excess at small |k| l, and j = l^2 / 100 recovers it). The dt "
-                    "did not change (the angular-diffusion limit 3.5e-6 lies above 1.25e-6).")
+            inertia = checks.get("mp_l50_j001_n1000__against__control_n1000")
+            if inertia and "mp_l50_j001_n1000" in runs:
+                # fractions of the micropolar effect with the control as the base of every number (14 Nov task, Part
+                # C2): (change of j = l^2 / 100 - change of j = l^2) / change of j = l^2, both against the control
+                moved = {quantity: (inertia["changes"][quantity] - effect[quantity]) / effect[quantity]
+                         for quantity in ("enstrophy_peak_first_value", "wall_vorticity_peak", "wall_traction_peak")}
+                peak_small = runs["mp_l50_j001_n1000"]["enstrophy_peaks"][0][1]
+                peak_reference = runs["mp_l50_n1000"]["enstrophy_peaks"][0][1]
+                early_small = runs["mp_l50_j001_n1000"]["global"]["0.25"][1]
+                early_reference = runs["mp_l50_n1000"]["global"]["0.25"][1]
+                say(f"- **The micro-inertia matters** (j = l^2 / 100 against j = l^2, l = W / 50; fractions of the "
+                    "micropolar effect, every change against the control): the first enstrophy peak moves by "
+                    f"{abs(moved['enstrophy_peak_first_value']):.2f} of the effect "
+                    f"({100.0 * inertia['changes']['enstrophy_peak_first_value']:+.1f} % against "
+                    f"{100.0 * effect['enstrophy_peak_first_value']:+.1f} %), more than the quarter set in the task; "
+                    f"the wall vorticity by {abs(moved['wall_vorticity_peak']):.2f} "
+                    f"({100.0 * inertia['changes']['wall_vorticity_peak']:+.1f} % against "
+                    f"{100.0 * effect['wall_vorticity_peak']:+.1f} %); the peak wall stress loses "
+                    f"{abs(moved['wall_traction_peak']):.2f} of its excess "
+                    f"({100.0 * inertia['changes']['wall_traction_peak']:+.1f} % against "
+                    f"{100.0 * effect['wall_traction_peak']:+.1f} %). The difference starts before the collision: at "
+                    f"t = 0.25 the enstrophy of the two j differs by {early_reference - early_small:.1f} U^2, "
+                    f"{100.0 * (early_reference - early_small) / (peak_reference - peak_small):.0f} % of the "
+                    f"{peak_reference - peak_small:.1f} by which their first peaks differ (E at t = 0.25 "
+                    f"{100.0 * inertia['changes']['energy_0.25']:+.2f} % against "
+                    f"{100.0 * effect['energy_0.25']:+.2f} %; floor 0.01 %). With j = l^2 the micro-rotation lags the "
+                    "vorticity of a decaying flow and the bulk effect is held back (the exact Taylor-Green solution "
+                    "of Stage 8b gives a third of the quasi-steady mu_eff excess at small |k| l, and j = l^2 / 100 "
+                    "recovers it). The dt did not change (the angular-diffusion limit 3.5e-6 lies above 1.25e-6).")
             saturation = checks.get("mp_l25_j001_n1000__against__control_n1000")
             if saturation:
                 changes = saturation["changes"]

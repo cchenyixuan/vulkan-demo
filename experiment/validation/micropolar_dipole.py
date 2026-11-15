@@ -51,6 +51,7 @@ FAR_VISCOSITY = RMS_VELOCITY * HALF_WIDTH / REYNOLDS
 MONOPOLE_RADIUS = 0.1                 # r0
 EXTREMUM_VORTICITY = 299.528385375226  # omega_e: E(0) = 2 on [-1, 1]^2 (host check of Stage 8)
 MONOPOLES = ((0.0, 0.1, +1.0), (0.0, -0.1, -1.0))   # (x, y, sign of the core vorticity)
+NORMAL_MONOPOLES = MONOPOLES
 END_TIME = 1.0
 DENSITY = 1000.0
 SUPPORT_OVER_SPACING = 5              # h / dx of the 2-D thesis cases
@@ -71,6 +72,18 @@ BENCHMARK = {
                 "FD": [(0.625, 0.832, 0.166, 154.2), (1.0, 0.805, 0.254, 102.6)]},
 }
 
+# Clercx & Bruneau (2006), Re = 1250 (Tables 2, 3, 4, 5 of the paper): normal collision
+BENCHMARK_1250 = {
+    "enstrophy_peaks": {"SM": [(0.3414, 1899.0), (0.6162, 725.3)], "FD": [(0.341, 1891.0), (0.616, 724.9)]},
+    "palinstrophy_peaks": {"SM": [(0.3326, 8.710e7), (0.6234, 7.159e6)], "FD": [(0.333, 7.744e7), (0.623, 6.739e6)]},
+    "global": {"SM": {0.25: (1.7209, 615.0, 1.13e6), 0.50: (1.3132, 611.9, 1.32e6), 0.75: (1.0613, 484.7, 1.66e6)},
+               "FD": {0.25: (1.721, 615.0, 1.04e6), 0.50: (1.313, 611.3, 1.29e6), 0.75: (1.061, 484.4, 1.60e6)}},
+    "initial": {"energy": 2.0, "enstrophy": 800.0, "palinstrophy": 4.42e5},
+    "primary": {"SM": [(0.6, 0.874, 0.151, 219.4), (1.0, 0.848, 0.257, 170.3)],
+                "FD": [(0.625, 0.885, 0.174, 216.1), (1.0, 0.848, 0.258, 170.3)]},
+}
+BENCHMARKS = {625.0: BENCHMARK, 1250.0: BENCHMARK_1250}
+
 # run -> resolution N (dx = W / N), micropolar length l / W (None: the control), speed of sound c0 (m/s),
 # shift of the dipole along x in spacings, initial pressure, slabs
 RUNS = {
@@ -82,19 +95,39 @@ RUNS = {
     "control_n1000_shifted": (1000, None, 600.0, 0.5, "incompressible", 1),
     "mp_l50_n1000": (1000, 1.0 / 50.0, 600.0, 0.0, "incompressible", 1),
     "mp_l100_n1000": (1000, 1.0 / 100.0, 600.0, 0.0, "incompressible", 1),
-    "control_n2000": (2000, None, 600.0, 0.0, "incompressible", 2),
-    "mp_l100_n2000": (2000, 1.0 / 100.0, 600.0, 0.0, "incompressible", 2),
+    # Stage 8 open runs (14 Nov task, Part B1): one card (the 5090), to t = 0.45 (--end-time)
+    "control_n2000": (2000, None, 600.0, 0.0, "incompressible", 1),
+    "mp_l100_n2000": (2000, 1.0 / 100.0, 600.0, 0.0, "incompressible", 1),
     # Stage 8 checks (13 Nov task, Part 0): the micro-inertia (j = l^2 / 100), the saturation (l = W / 25), the
     # resolution of l (l = W / 50 at 10 dx)
     "mp_l50_j001_n1000": (1000, 1.0 / 50.0, 600.0, 0.0, "incompressible", 1),
     "mp_l25_j001_n1000": (1000, 1.0 / 25.0, 600.0, 0.0, "incompressible", 1),
     "mp_l50_n500": (500, 1.0 / 50.0, 600.0, 0.0, "incompressible", 1),
+    # Stage 8 open runs (14 Nov task, Part B2): Re = 1250, normal collision, with the floors of the control
+    "control_re1250_n1000": (1000, None, 600.0, 0.0, "incompressible", 1),
+    "control_re1250_n1000_shifted": (1000, None, 600.0, 0.5, "incompressible", 1),
+    "control_re1250_n1000_half_mach": (1000, None, 1200.0, 0.0, "incompressible", 1),
+    "mp_l100_re1250_n1000": (1000, 1.0 / 100.0, 600.0, 0.0, "incompressible", 1),
+    "mp_l50_re1250_n1000": (1000, 1.0 / 50.0, 600.0, 0.0, "incompressible", 1),
+    "control_re1250_n500": (500, None, 600.0, 0.0, "incompressible", 1),
+    # Stage 8 open runs (14 Nov task, Part B3): the oblique collision of the paper (30 degrees), Re = 625
+    "oblique_control_n1000": (1000, None, 600.0, 0.0, "incompressible", 1),
+    "oblique_control_n1000_shifted": (1000, None, 600.0, 0.5, "incompressible", 1),
+    "oblique_control_n1000_half_mach": (1000, None, 1200.0, 0.0, "incompressible", 1),
+    "oblique_mp_l50_n1000": (1000, 1.0 / 50.0, 600.0, 0.0, "incompressible", 1),
 }
+# the oblique collision: the monopoles of the paper (section 3), the dipole moving at 30 degrees to +x
+OBLIQUE_MONOPOLES = ((0.0839746, 0.08660254, +1.0), (0.1839746, -0.08660254, -1.0))
+MONOPOLES_OF = {name: OBLIQUE_MONOPOLES for name in RUNS if name.startswith("oblique_")}
+# run -> Reynolds number U W / nu_inf (absent: REYNOLDS = 625)
+RUN_REYNOLDS = {name: 1250.0 for name in RUNS if "_re1250_" in name}
 # run -> Theta / l^2 (absent: 1, the thesis convention j = l^2)
 MICRO_INERTIA_FACTOR = {"mp_l50_j001_n1000": 0.01, "mp_l25_j001_n1000": 0.01}
 RUNS_DIRECTORY = "logs/micropolar/stage8"
 DATA_DIRECTORY = "data/micropolar/stage8"
 SNAPSHOT_INTERVAL = 0.025
+# the Re = 1250 runs (14 Nov task, Part B2): fields every 0.05 (the disk; 0.35, 0.45, 0.6, 0.7 stay on it)
+SNAPSHOT_INTERVAL_OF = {name: 0.05 for name in RUNS if "_re1250_" in name}
 SAMPLE_INTERVAL = 0.01
 WINDOW_INTERVAL = 0.0025
 WINDOWS = ((0.30, 0.44), (0.58, 0.72))   # around the first and second collision
@@ -246,14 +279,23 @@ def peak_initial_speed(shift_x: float = 0.0) -> float:
 
 
 # ---- cases ------------------------------------------------------------------------------------------------------
+def reynolds_of(run: str) -> float:
+    return RUN_REYNOLDS.get(run, REYNOLDS)
+
+
+def far_viscosity(run: str) -> float:
+    return RMS_VELOCITY * HALF_WIDTH / reynolds_of(run)
+
+
 def design(run: str) -> dict:
     from experiment.validation.micropolar_couette import design_parameters
     length = RUNS[run][1]
     if length is None:
         # the control: nu = nu_inf, nu_t = -nu (c = 0 exactly), xi = 0, a positive Theta for the passive w
-        return {"viscosity": FAR_VISCOSITY, "viscosity_transfer": -FAR_VISCOSITY, "coupling": 0.0,
+        far = far_viscosity(run)
+        return {"viscosity": far, "viscosity_transfer": -far, "coupling": 0.0,
                 "viscosity_rotation": 0.0, "micro_inertia": CONTROL_MICRO_INERTIA_LENGTH ** 2, "length": None}
-    parameters = design_parameters(FAR_VISCOSITY, COUPLING_RATIO, length * HALF_WIDTH)
+    parameters = design_parameters(far_viscosity(run), COUPLING_RATIO, length * HALF_WIDTH)
     parameters["micro_inertia"] *= MICRO_INERTIA_FACTOR.get(run, 1.0)
     return {**parameters, "length": length * HALF_WIDTH}
 
@@ -307,7 +349,14 @@ def write_geometry(directory: pathlib.Path, resolution: int) -> dict:
     return {"fluid": int(fluid.shape[0]), "wall": int(wall.shape[0])}
 
 
+def use_monopoles(run: str) -> None:
+    """The monopoles of a run for analytic_fields (the normal collision unless named in MONOPOLES_OF)."""
+    global MONOPOLES
+    MONOPOLES = MONOPOLES_OF.get(run, NORMAL_MONOPOLES)
+
+
 def make_case(run: str) -> pathlib.Path:
+    use_monopoles(run)
     resolution, length, speed_of_sound, shift, initial_pressure, slabs = RUNS[run]
     spacing = HALF_WIDTH / resolution
     support = SUPPORT_OVER_SPACING * spacing
@@ -323,7 +372,7 @@ def make_case(run: str) -> pathlib.Path:
     step = timestep_of(run)
     peak = peak_initial_speed(shift * spacing)
     if length is None:
-        text = (f"Control: Newtonian fluid of viscosity nu_inf = {FAR_VISCOSITY:.6e} on the micropolar path, nu_t = -nu "
+        text = (f"Control: Newtonian fluid of viscosity nu_inf = {far_viscosity(run):.6e} on the micropolar path, nu_t = -nu "
                 f"(c = 0 exactly), xi = 0, Theta = {parameters['micro_inertia']:.3e} (passive w).")
     else:
         text = (f"Micropolar: K = kappa / mu = {COUPLING_RATIO:g}, l = W / {1.0 / length:g} = {length:g} m "
@@ -338,7 +387,7 @@ def make_case(run: str) -> pathlib.Path:
     relative_geometry = pathlib.Path("..") / geometry_dir.name
     (case_dir / "case.yaml").write_text(CASE_TEMPLATE.format(
         title=run, wall_layers=WALL_LAYERS, spacing=spacing, smoothing_length=support, support=SUPPORT_OVER_SPACING,
-        fluid_count=counts["fluid"], wall_count=counts["wall"], parameters=text, reynolds=REYNOLDS,
+        fluid_count=counts["fluid"], wall_count=counts["wall"], parameters=text, reynolds=reynolds_of(run),
         speed_of_sound=speed_of_sound, mach_peak=peak / speed_of_sound, peak_speed=peak,
         mach_rms=RMS_VELOCITY / speed_of_sound, dt_acoustic=step["dt_acoustic"], dt_viscous=step["dt_viscous"],
         dt_angular=step["dt_angular"], cfl_nominal=CFL, step_number=STEP_NUMBER,
@@ -354,8 +403,8 @@ def make_case(run: str) -> pathlib.Path:
         "run": run, "resolution": resolution, "spacing": spacing, "smoothing_length": support,
         "micropolar_length": parameters["length"], "coupling_ratio": None if length is None else COUPLING_RATIO,
         "design": {key: value for key, value in parameters.items() if key != "length"},
-        "far_viscosity": FAR_VISCOSITY, "reynolds": REYNOLDS,
-        "reynolds_on_mu": REYNOLDS * (1.0 + 0.5 * (0.0 if length is None else COUPLING_RATIO)),
+        "far_viscosity": far_viscosity(run), "reynolds": reynolds_of(run),
+        "reynolds_on_mu": reynolds_of(run) * (1.0 + 0.5 * (0.0 if length is None else COUPLING_RATIO)),
         "speed_of_sound": speed_of_sound, "peak_initial_speed": peak, "mach_peak": peak / speed_of_sound,
         "shift_in_spacings": shift, "initial_pressure": initial_pressure, "slabs": slabs,
         "extremum_vorticity": EXTREMUM_VORTICITY, "monopole_radius": MONOPOLE_RADIUS, "counts": counts,
@@ -600,6 +649,7 @@ def command_run(arguments) -> int:
     from experiment.v7.utils.case_v7 import KIND_FLUID
     run = arguments.run
     resolution, length, speed_of_sound, shift, initial_pressure, slab_count = RUNS[run]
+    use_monopoles(run)
     case_dir = make_case(run)
     meta = json.loads((case_dir / "dipole.json").read_text(encoding="utf-8"))
     case = load_case(case_dir / "case.yaml")
@@ -663,8 +713,9 @@ def command_run(arguments) -> int:
     (out_dir / "fields").mkdir(exist_ok=True)
     revision = solver_revision()
     planned = sample_times(timestep, steps, cadence)
+    interval = SNAPSHOT_INTERVAL_OF.get(run, SNAPSHOT_INTERVAL)
     snapshot_steps = {int(round(time / timestep / cadence)) * cadence
-                      for time in np.round(np.arange(SNAPSHOT_INTERVAL, END_TIME + 1e-9, SNAPSHOT_INTERVAL), 6)}
+                      for time in np.round(np.arange(interval, END_TIME + 1e-9, interval), 6)}
     state_steps = {int(round(time / timestep / cadence)) * cadence for time in arguments.particle_states}
     samples: dict = {}
     memory = {"peak_working_set": 0, "peak_commit": 0, "least_free_physical": None, "least_free_commit": None}
