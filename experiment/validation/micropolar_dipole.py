@@ -83,6 +83,16 @@ BENCHMARK_1250 = {
                 "FD": [(0.625, 0.885, 0.174, 216.1), (1.0, 0.848, 0.258, 170.3)]},
 }
 BENCHMARKS = {625.0: BENCHMARK, 1250.0: BENCHMARK_1250}
+# Clercx & Bruneau (2006), the oblique collision (30 degrees), Re = 625 (Tables 6 to 9 of the paper): no global
+# quantities at fixed times; the positive and the negative primary vortex at t = 0.6 (t, x, y, omega_max)
+BENCHMARK_OBLIQUE = {
+    "enstrophy_peaks": {"SM": [(0.3597, 768.0), (0.6441, 304.5)], "FD": [(0.360, 766.6), (0.6435, 304.5)]},
+    "palinstrophy_peaks": {"SM": [(0.3525, 9.722e6), (0.6471, 1.290e6)], "FD": [(0.353, 8.887e6), (0.6475, 1.214e6)]},
+    "global": {"SM": {}, "FD": {}},
+    "initial": {"energy": 2.0, "enstrophy": 800.0, "palinstrophy": 4.42e5},
+    "primary": {"SM": [(0.6, 0.740, 0.659, 161.5)], "FD": [(0.6, 0.740, 0.659, 161.4)]},
+    "negative_primary": {"SM": [(0.6, 0.898, 0.364, -151.9)], "FD": [(0.6, 0.898, 0.365, -151.8)]},
+}
 
 # run -> resolution N (dx = W / N), micropolar length l / W (None: the control), speed of sound c0 (m/s),
 # shift of the dipole along x in spacings, initial pressure, slabs
@@ -286,6 +296,15 @@ def reynolds_of(run: str) -> float:
 
 def far_viscosity(run: str) -> float:
     return RMS_VELOCITY * HALF_WIDTH / reynolds_of(run)
+
+
+def is_oblique(run: str) -> bool:
+    return run in MONOPOLES_OF
+
+
+def benchmark_of(run: str) -> dict:
+    """The paper's values for the run: the oblique collision (Re = 625) or the normal one at the run's Re."""
+    return BENCHMARK_OBLIQUE if is_oblique(run) else BENCHMARKS[reynolds_of(run)]
 
 
 def design(run: str) -> dict:

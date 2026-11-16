@@ -1,0 +1,529 @@
+{
+ "item": "29",
+ "title": "Dipole-wall collision: the open runs (resolution of l = W/100, Re = 1250, oblique collision)",
+ "status": "final",
+ "caption": "The open runs of the dipole-wall collision (K = 3, j = l^2, w = 0 on every wall, w = omega / 2 at t = 0), with the definitions of tables 22 and 26 and each change against the run's own control. (B1) l = W / 100 at W / dx = 2000 (l = 20 dx; the runs end at t = 0.45, past the first enstrophy peak) beside the same l at W / dx = 1000 (l = 10 dx, table 22); no floor runs were made at W / dx = 2000: the floors beside the rows are those of W / dx = 1000 at Re = 625. (B2) Re = 1250 at W / dx = 1000 with l = W / 100 and W / 50 and the floors of its control (the lattice shifted by dx / 2 along x, half the Mach number); the runs end at t = 0.75, the floors at 0.40. (B3) the oblique collision of Clercx & Bruneau (2006), 30 degrees to the wall normal, Re = 625, l = W / 50, with the floors of its control (same end times); the wall rows read the wall x = W, where both cores of the oblique dipole arrive above y = 0: their wall layers have opposite signs, so the signed integrals over 0 < y < W, the vorticity flux, the momentum balance and the pressure difference along the wall are left out for B3 and the integrals of each sign over the whole wall given instead. The primary core is tracked as the strongest extremum within reach; Lambda = U_ref / |omega_w| of the run's control at its first enstrophy peak. Second table: the controls of B1 to B3 and their floors against the spectral (SM) and finite-difference (FD) values of the paper (Tables 2 to 9), with the difference to SM.",
+ "files": [
+  "tab_29_dipole_open_runs.csv",
+  "tab_29_dipole_open_runs.tex",
+  "tab_29_dipole_open_validation.csv",
+  "tab_29_dipole_open_validation.tex"
+ ],
+ "sources": [
+  "data/micropolar/stage8/dipole.json"
+ ],
+ "numbers": {
+  "mp_l100_n2000__against__control_n2000": {
+   "enstrophy_peak_first_time": -0.0006256892860632135,
+   "enstrophy_peak_first_value": -0.13562442245152184,
+   "enstrophy_peak_second_time": NaN,
+   "enstrophy_peak_second_value": NaN,
+   "enstrophy_at_base_first_peak": -0.13567400925857287,
+   "closest_approach_time": -0.0025000000000000022,
+   "closest_approach_distance": 0.0005173943414308324,
+   "closest_approach_distance_relative": 0.00529789970966088,
+   "wall_vorticity_peak": -0.2566184940946097,
+   "wall_vorticity_integral_upper": -0.26460692793362395,
+   "wall_flux_integral_upper": -0.4957910984773737,
+   "wall_flux_peak": -0.3014317118119638,
+   "wall_pressure_difference_along_wall": -0.0006980464117980478,
+   "wall_vorticity_integral_positive": -0.25389748755288133,
+   "wall_vorticity_integral_negative": -0.25446717887696435,
+   "wall_flux_integral_positive": -0.40907819295831827,
+   "wall_flux_integral_negative": -0.41274995077392884,
+   "energy_0.25": -0.001787060141906549,
+   "enstrophy_0.25": -0.008106767351119593,
+   "wall_traction_peak": 0.18941040944862464,
+   "wall_traction_integral": 0.17662891530620173,
+   "wall_momentum_balance": 0.06901344159286449,
+   "wall_traction_integral_positive": 0.19376401991539005,
+   "wall_traction_integral_negative": 0.19285251379685708,
+   "primary_value_at_0.25": -0.005907144724040303
+  },
+  "mp_l100_n1000__against__control_n1000": {
+   "enstrophy_peak_first_time": -0.0008685775768365045,
+   "enstrophy_peak_first_value": -0.13491377963600315,
+   "enstrophy_peak_second_time": NaN,
+   "enstrophy_peak_second_value": NaN,
+   "enstrophy_at_base_first_peak": -0.13502658522537714,
+   "enstrophy_at_base_second_peak": -0.05162213893067191,
+   "closest_approach_time": -0.0050000000000000044,
+   "closest_approach_distance": 0.0019417146699572951,
+   "closest_approach_distance_relative": 0.020126618806576957,
+   "rebound_time": -0.015000000000000013,
+   "rebound_distance": -0.005233345192750427,
+   "rebound_distance_relative": -0.02486980338903355,
+   "second_approach_time": -0.020000000000000018,
+   "second_approach_distance": 0.006091225139871592,
+   "second_approach_distance_relative": 0.043858464069630454,
+   "wall_vorticity_peak": -0.2612289555490581,
+   "wall_vorticity_integral_upper": -0.2663006608179539,
+   "wall_flux_integral_upper": -0.5246359637420157,
+   "wall_flux_peak": -0.3881497247239404,
+   "wall_pressure_difference_along_wall": 0.01438503609499353,
+   "wall_vorticity_integral_positive": -0.2513421154687394,
+   "wall_vorticity_integral_negative": -0.2562167199980657,
+   "wall_flux_integral_positive": -0.4359147118651786,
+   "wall_flux_integral_negative": -0.44609812719602926,
+   "energy_0.25": -0.0018051923809330184,
+   "enstrophy_0.25": -0.008198753054291963,
+   "energy_0.50": -0.01832822241757981,
+   "enstrophy_0.50": -0.046780965693091536,
+   "energy_0.75": -0.02219152293286053,
+   "enstrophy_0.75": -0.0911895965905628,
+   "wall_traction_peak": 0.18203367112150715,
+   "wall_traction_integral": 0.17391894269127395,
+   "wall_momentum_balance": 0.05627778937397965,
+   "wall_traction_integral_positive": 0.19785261525001685,
+   "wall_traction_integral_negative": 0.19005324800309475,
+   "primary_value_at_0.25": -0.005438416190474915
+  },
+  "mp_l100_re1250_n1000__against__control_re1250_n1000": {
+   "enstrophy_peak_first_time": -0.0006125262936096942,
+   "enstrophy_peak_first_value": -0.16448793336084122,
+   "enstrophy_peak_second_time": -0.022362792410998922,
+   "enstrophy_peak_second_value": -0.0927978553979022,
+   "enstrophy_at_base_first_peak": -0.16459019610384262,
+   "enstrophy_at_base_second_peak": -0.11006583401257719,
+   "closest_approach_time": -0.0050000000000000044,
+   "closest_approach_distance": 0.0050108244485260744,
+   "closest_approach_distance_relative": 0.05987328077061216,
+   "rebound_time": -0.0050000000000000044,
+   "rebound_distance": -0.014325609461860234,
+   "rebound_distance_relative": -0.06502722607991474,
+   "second_approach_time": -0.02749999999999997,
+   "second_approach_distance": 0.00040005119799513267,
+   "second_approach_distance_relative": 0.003509312695629818,
+   "wall_vorticity_peak": -0.2343755052271056,
+   "wall_vorticity_integral_upper": -0.23509096040288324,
+   "wall_flux_integral_upper": -0.46372543027626345,
+   "wall_flux_peak": -0.45344363971781276,
+   "wall_pressure_difference_along_wall": -0.006828212474140005,
+   "wall_vorticity_integral_positive": -0.2482437937998936,
+   "wall_vorticity_integral_negative": -0.24659703645108955,
+   "wall_flux_integral_positive": -0.43467509492255696,
+   "wall_flux_integral_negative": -0.44052599212579235,
+   "energy_0.25": -0.0009831900252029735,
+   "enstrophy_0.25": -0.010333438733666211,
+   "energy_0.50": -0.017907581990372567,
+   "enstrophy_0.50": -0.04673463757729113,
+   "energy_0.75": -0.027468762052142437,
+   "enstrophy_0.75": -0.04449368537403131,
+   "wall_traction_peak": 0.22499919163663096,
+   "wall_traction_integral": 0.22385446335538672,
+   "wall_momentum_balance": -0.019437357950502054,
+   "wall_traction_integral_positive": 0.20280992992017022,
+   "wall_traction_integral_negative": 0.20544474167825655,
+   "primary_value_at_0.25": -0.010795164230859688
+  },
+  "mp_l50_re1250_n1000__against__control_re1250_n1000": {
+   "enstrophy_peak_first_time": -0.0005696576316076563,
+   "enstrophy_peak_first_value": -0.17489478458399288,
+   "enstrophy_peak_second_time": -0.03250012399928981,
+   "enstrophy_peak_second_value": -0.14338744432502304,
+   "enstrophy_at_base_first_peak": -0.17496428218183036,
+   "enstrophy_at_base_second_peak": -0.16616983650521444,
+   "closest_approach_time": 0.007500000000000007,
+   "closest_approach_distance": 0.003195351407899949,
+   "closest_approach_distance_relative": 0.03818057766167393,
+   "rebound_time": -0.010000000000000009,
+   "rebound_distance": -0.013219439636099395,
+   "rebound_distance_relative": -0.06000606760606153,
+   "second_approach_time": -0.030000000000000027,
+   "second_approach_distance": 0.003978698480411547,
+   "second_approach_distance_relative": 0.034901775471151586,
+   "wall_vorticity_peak": -0.2392099874967849,
+   "wall_vorticity_integral_upper": -0.2173193301719637,
+   "wall_flux_integral_upper": -0.4162435939081873,
+   "wall_flux_peak": -0.41620671193411307,
+   "wall_pressure_difference_along_wall": -0.01301031521795204,
+   "wall_vorticity_integral_positive": -0.24887525512529374,
+   "wall_vorticity_integral_negative": -0.2462546339218823,
+   "wall_flux_integral_positive": -0.4253333687714148,
+   "wall_flux_integral_negative": -0.43292276010960906,
+   "energy_0.25": -0.001860474293356007,
+   "enstrophy_0.25": -0.012583442807844292,
+   "energy_0.50": -0.030668821370001154,
+   "enstrophy_0.50": -0.07692115775734754,
+   "energy_0.75": -0.046780535273898805,
+   "enstrophy_0.75": -0.1348417488869187,
+   "wall_traction_peak": 0.2172640200051441,
+   "wall_traction_integral": 0.25228907172485826,
+   "wall_momentum_balance": -0.03341305138902906,
+   "wall_traction_integral_positive": 0.2017995917995301,
+   "wall_traction_integral_negative": 0.20599258572498824,
+   "primary_value_at_0.25": -0.007895575496950968
+  },
+  "control_re1250_n1000_shifted__against__control_re1250_n1000": {
+   "enstrophy_peak_first_time": -0.00012966036007044934,
+   "enstrophy_peak_first_value": 0.00012150772088515005,
+   "enstrophy_peak_second_time": NaN,
+   "enstrophy_peak_second_value": NaN,
+   "enstrophy_at_base_first_peak": 0.0001311033881543633,
+   "closest_approach_time": 0.007500000000000007,
+   "closest_approach_distance": 0.0022151924667984657,
+   "closest_approach_distance_relative": 0.026468865929753838,
+   "wall_vorticity_peak": -0.011944407210510377,
+   "wall_vorticity_integral_upper": 0.004036108412076578,
+   "wall_flux_integral_upper": -0.0012920589954102946,
+   "wall_flux_peak": -0.003535645514784136,
+   "wall_pressure_difference_along_wall": -0.023115945177170194,
+   "wall_vorticity_integral_positive": -0.0005648980080714683,
+   "wall_vorticity_integral_negative": 0.0023679764619310983,
+   "wall_flux_integral_positive": 0.001167032646226307,
+   "wall_flux_integral_negative": -0.01041074326370528,
+   "energy_0.25": -4.87384999692253e-06,
+   "enstrophy_0.25": 0.00014687144710801014,
+   "wall_traction_peak": -0.011944407210510377,
+   "wall_traction_integral": 0.004036108412076578,
+   "wall_momentum_balance": -0.0012920589954102946,
+   "wall_traction_integral_positive": -0.0005648980080714683,
+   "wall_traction_integral_negative": 0.0023679764619310983,
+   "primary_value_at_0.25": 0.008525592537355298
+  },
+  "control_re1250_n1000_half_mach__against__control_re1250_n1000": {
+   "enstrophy_peak_first_time": 0.0005859805154947995,
+   "enstrophy_peak_first_value": 0.003147275656053772,
+   "enstrophy_peak_second_time": NaN,
+   "enstrophy_peak_second_value": NaN,
+   "enstrophy_at_base_first_peak": 0.0030193555886466328,
+   "closest_approach_time": -0.010000000000000009,
+   "closest_approach_distance": 0.004256666302104084,
+   "closest_approach_distance_relative": 0.05086200470017421,
+   "wall_vorticity_peak": 0.006701588261503133,
+   "wall_vorticity_integral_upper": 0.010211662703975666,
+   "wall_flux_integral_upper": 0.0015370677995474313,
+   "wall_flux_peak": -0.09253474522734595,
+   "wall_pressure_difference_along_wall": 0.044678984202640715,
+   "wall_vorticity_integral_positive": 0.0020239033499196424,
+   "wall_vorticity_integral_negative": 0.0031035316492205034,
+   "wall_flux_integral_positive": 0.014557764826666153,
+   "wall_flux_integral_negative": -0.0013970861743541896,
+   "energy_0.25": -5.975856270679092e-05,
+   "enstrophy_0.25": 0.0006678733280200966,
+   "wall_traction_peak": 0.006701588261503133,
+   "wall_traction_integral": 0.010211662703975666,
+   "wall_momentum_balance": 0.0015370677995474313,
+   "wall_traction_integral_positive": 0.0020239033499196424,
+   "wall_traction_integral_negative": 0.0031035316492205034,
+   "primary_value_at_0.25": 0.020057771307294914
+  },
+  "oblique_mp_l50_n1000__against__oblique_control_n1000": {
+   "enstrophy_peak_first_time": -0.0019151624434101677,
+   "enstrophy_peak_first_value": -0.137440717116879,
+   "enstrophy_peak_second_time": NaN,
+   "enstrophy_peak_second_value": NaN,
+   "enstrophy_at_base_first_peak": -0.13778542096129942,
+   "enstrophy_at_base_second_peak": -0.12454836109074685,
+   "closest_approach_time": -0.03500000000000003,
+   "closest_approach_distance": -0.008191212679584448,
+   "closest_approach_distance_relative": -0.06089868939683063,
+   "rebound_time": -0.012500000000000067,
+   "rebound_distance": -0.008888243354207681,
+   "rebound_distance_relative": -0.033838860217352495,
+   "wall_vorticity_peak": -0.2577888158206243,
+   "wall_vorticity_integral_upper": NaN,
+   "wall_flux_integral_upper": NaN,
+   "wall_flux_peak": -0.3356905472981344,
+   "wall_pressure_difference_along_wall": NaN,
+   "wall_vorticity_integral_positive": -0.23173153012467707,
+   "wall_vorticity_integral_negative": -0.24625747288701672,
+   "wall_flux_integral_positive": -0.4244959013343369,
+   "wall_flux_integral_negative": -0.38398301173016813,
+   "energy_0.25": -0.004511664708615526,
+   "enstrophy_0.25": -0.016663200902518938,
+   "energy_0.50": -0.030216005687380365,
+   "enstrophy_0.50": -0.07627950945482098,
+   "energy_0.75": -0.03494107718766193,
+   "enstrophy_0.75": -0.13389576664455682,
+   "wall_traction_peak": 0.18753789468700122,
+   "wall_traction_integral": NaN,
+   "wall_momentum_balance": NaN,
+   "wall_traction_integral_positive": 0.22922955180051674,
+   "wall_traction_integral_negative": 0.20598804338077326,
+   "negative_primary_value_at_0.6": -0.024675629352030604,
+   "primary_value_at_0.25": -0.013306788755046095
+  },
+  "oblique_control_n1000_shifted__against__oblique_control_n1000": {
+   "enstrophy_peak_first_time": -0.00040399582807371104,
+   "enstrophy_peak_first_value": 0.0021240541369176302,
+   "enstrophy_peak_second_time": NaN,
+   "enstrophy_peak_second_value": NaN,
+   "enstrophy_at_base_first_peak": 0.002104391257982563,
+   "wall_vorticity_peak": 0.002936300420419702,
+   "wall_vorticity_integral_upper": NaN,
+   "wall_flux_integral_upper": NaN,
+   "wall_flux_peak": 0.061613006078902854,
+   "wall_pressure_difference_along_wall": NaN,
+   "wall_vorticity_integral_positive": -0.0024791068926941495,
+   "wall_vorticity_integral_negative": 0.0013268952138132395,
+   "wall_flux_integral_positive": 0.02779654488836547,
+   "wall_flux_integral_negative": 0.022800845200940723,
+   "energy_0.25": 1.459231104861125e-05,
+   "enstrophy_0.25": 0.00024232232118204244,
+   "wall_traction_peak": 0.002936300420419702,
+   "wall_traction_integral": NaN,
+   "wall_momentum_balance": NaN,
+   "wall_traction_integral_positive": -0.0024791068926942605,
+   "wall_traction_integral_negative": 0.0013268952138132395,
+   "primary_value_at_0.25": -0.011933555894242942
+  },
+  "oblique_control_n1000_half_mach__against__oblique_control_n1000": {
+   "enstrophy_peak_first_time": -0.00015327739489318093,
+   "enstrophy_peak_first_value": 0.008076949372679776,
+   "enstrophy_peak_second_time": NaN,
+   "enstrophy_peak_second_value": NaN,
+   "enstrophy_at_base_first_peak": 0.008068577234857877,
+   "wall_vorticity_peak": -0.005493581773772349,
+   "wall_vorticity_integral_upper": NaN,
+   "wall_flux_integral_upper": NaN,
+   "wall_flux_peak": 0.11443645559828175,
+   "wall_pressure_difference_along_wall": NaN,
+   "wall_vorticity_integral_positive": 0.011050748297912305,
+   "wall_vorticity_integral_negative": 0.006510053279435102,
+   "wall_flux_integral_positive": 0.021859671145979087,
+   "wall_flux_integral_negative": 0.02083485323999268,
+   "energy_0.25": -2.1473155515372433e-05,
+   "enstrophy_0.25": 0.0005132376655054838,
+   "wall_traction_peak": -0.005493581773772349,
+   "wall_traction_integral": NaN,
+   "wall_momentum_balance": NaN,
+   "wall_traction_integral_positive": 0.011050748297912305,
+   "wall_traction_integral_negative": 0.006510053279435102,
+   "primary_value_at_0.25": 0.0020806840169287355
+  },
+  "validation": {
+   "control_n2000": {
+    "time of the first enstrophy peak": [
+     0.37135884122290735,
+     0.0002588412229073689
+    ],
+    "first enstrophy peak": [
+     924.894429200833,
+     -0.009324733075371738
+    ],
+    "time of the first palinstrophy peak": [
+     0.3627747179147036,
+     0.00037471791470361504
+    ],
+    "first palinstrophy peak": [
+     14941859.807840077,
+     0.07805626319192482
+    ],
+    "E(0.25)": [
+     1.4999397493906443,
+     -0.001504626953372168
+    ],
+    "Omega(0.25)": [
+     472.0517671335557,
+     -0.0011600356886253271
+    ],
+    "P(0.25)": [
+     599255.3797366073,
+     0.5018931822972614
+    ]
+   },
+   "control_re1250_n1000": {
+    "time of the first enstrophy peak": [
+     0.342719660770964,
+     0.0013196607709640151
+    ],
+    "first enstrophy peak": [
+     1845.3724769433563,
+     -0.028239875227300537
+    ],
+    "time of the first palinstrophy peak": [
+     0.33400265904278487,
+     0.0014026590427848595
+    ],
+    "first palinstrophy peak": [
+     91852884.47582094,
+     0.05456813405075711
+    ],
+    "time of the second enstrophy peak": [
+     0.61753797367439,
+     0.0013379736743900361
+    ],
+    "second enstrophy peak": [
+     713.656065139606,
+     -0.016053956790836876
+    ],
+    "time of the second palinstrophy peak": [
+     0.6250186458734457,
+     0.0016186458734457343
+    ],
+    "second palinstrophy peak": [
+     7901837.78967235,
+     0.1037627866562858
+    ],
+    "E(0.25)": [
+     1.715946362020968,
+     -0.0028785158806624578
+    ],
+    "Omega(0.25)": [
+     612.7446362436477,
+     -0.0036672581404102456
+    ],
+    "P(0.25)": [
+     1729851.1224529569,
+     0.5308417012858024
+    ],
+    "E(0.5)": [
+     1.3023728870821816,
+     -0.008244831646221695
+    ],
+    "Omega(0.5)": [
+     607.0294251454432,
+     -0.007959756258468453
+    ],
+    "P(0.5)": [
+     1845985.5756518773,
+     0.39847392094839185
+    ],
+    "E(0.75)": [
+     1.0503184490877904,
+     -0.0103472636504377
+    ],
+    "Omega(0.75)": [
+     481.2411358413404,
+     -0.007136092755641865
+    ],
+    "P(0.75)": [
+     2081928.9990049503,
+     0.2541740957861147
+    ],
+    "primary core x at t = 0.6 (SM)": [
+     0.8716703235640761,
+     -0.0023296764359238553
+    ],
+    "primary core y at t = 0.6 (SM)": [
+     0.14193575895946817,
+     -0.009064241040531829
+    ],
+    "primary core omega_max at t = 0.6 (SM)": [
+     222.94187285665177,
+     0.01614344966568715
+    ],
+    "primary core x at t = 0.625 (FD)": [
+     0.8835727291682755,
+     -0.0014272708317245586
+    ],
+    "primary core y at t = 0.625 (FD)": [
+     0.16496031312940532,
+     -0.009039686870594671
+    ],
+    "primary core omega_max at t = 0.625 (FD)": [
+     218.35188452591785,
+     0.010420566987125568
+    ],
+    "primary core x at t = 0.6 (SM; fields)": [
+     0.8729784824550151,
+     -0.0010215175449849179
+    ],
+    "primary core y at t = 0.6 (SM; fields)": [
+     0.1443311468362809,
+     -0.006668853163719096
+    ],
+    "primary core omega_max at t = 0.6 (SM; fields)": [
+     220.82264709472656,
+     0.006484262054359924
+    ]
+   },
+   "oblique_control_n1000": {
+    "time of the first enstrophy peak": [
+     0.3607792577231079,
+     0.001079257723107907
+    ],
+    "first enstrophy peak": [
+     757.3973097337773,
+     -0.013805586284144078
+    ],
+    "time of the first palinstrophy peak": [
+     0.35378518132426623,
+     0.001285181324266249
+    ],
+    "first palinstrophy peak": [
+     10428484.093838802,
+     0.07266859636276513
+    ],
+    "time of the second enstrophy peak": [
+     0.6453619800059058,
+     0.0012619800059058273
+    ],
+    "second enstrophy peak": [
+     300.48892490499037,
+     -0.01317266041054066
+    ],
+    "time of the second palinstrophy peak": [
+     0.6458437357484584,
+     -0.0012562642515415723
+    ],
+    "second palinstrophy peak": [
+     1386957.0799972152,
+     0.07516052712962407
+    ],
+    "primary core x at t = 0.6 (SM)": [
+     0.7361475123091534,
+     -0.003852487690846562
+    ],
+    "primary core y at t = 0.6 (SM)": [
+     0.6620812415672818,
+     0.003081241567281734
+    ],
+    "primary core omega_max at t = 0.6 (SM)": [
+     165.2174499184921,
+     0.02301826574917709
+    ],
+    "primary core x at t = 0.6 (FD)": [
+     0.7361475123091534,
+     -0.003852487690846562
+    ],
+    "primary core y at t = 0.6 (FD)": [
+     0.6620812415672818,
+     0.003081241567281734
+    ],
+    "primary core omega_max at t = 0.6 (FD)": [
+     165.2174499184921,
+     0.023652106062528322
+    ],
+    "primary core x at t = 0.6 (SM; fields)": [
+     0.7394659585356713,
+     -0.0005340414643286717
+    ],
+    "primary core y at t = 0.6 (SM; fields)": [
+     0.6664350277110935,
+     0.0074350277110935
+    ],
+    "primary core omega_max at t = 0.6 (SM; fields)": [
+     162.28157043457034,
+     0.00483944541529624
+    ],
+    "negative primary core x at t = 0.6 (SM)": [
+     0.8936078787893056,
+     -0.004392121210694433
+    ],
+    "negative primary core y at t = 0.6 (SM)": [
+     0.36262548118829724,
+     -0.0013745188117027518
+    ],
+    "negative primary core omega_min at t = 0.6 (SM)": [
+     -151.80670166015628,
+     -0.0006142089522299665
+    ],
+    "negative primary core x at t = 0.6 (FD)": [
+     0.8936078787893056,
+     -0.004392121210694433
+    ],
+    "negative primary core y at t = 0.6 (FD)": [
+     0.36262548118829724,
+     -0.0023745188117027527
+    ],
+    "negative primary core omega_min at t = 0.6 (FD)": [
+     -151.80670166015628,
+     4.414795886864553e-05
+    ]
+   }
+  }
+ },
+ "tag": "thesis-ch5-rc2 solver trees (runs on branch v10-showcase)"
+}

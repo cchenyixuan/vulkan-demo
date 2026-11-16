@@ -27,9 +27,36 @@ CONVERGENCE = ("control_n250", "control_n500", "control_n1000", "control_n2000")
 # Stage 8 open runs (14 Nov task, Part B2): Re = 1250, validated against the paper's values for Re = 1250
 RE1250_CONTROLS = ("control_re1250_n500", "control_re1250_n1000", "control_re1250_n1000_shifted",
                    "control_re1250_n1000_half_mach")
+# Part B3: the oblique collision, validated against Tables 6 to 9 of the paper
+OBLIQUE_CONTROLS = ("oblique_control_n1000", "oblique_control_n1000_shifted", "oblique_control_n1000_half_mach")
+# in the oblique collision both cores meet the wall x = W above y = 0, their wall layers have opposite signs and
+# cancel in the signed integrals over 0 < y < W (and the pressure difference along the wall is near zero): those
+# rows are left out for the oblique pairs, the integrals of each sign over the whole wall replace them
+OBLIQUE_CANCELLING = ("wall_vorticity_integral_upper", "wall_traction_integral", "wall_flux_integral_upper",
+                      "wall_momentum_balance", "wall_pressure_difference_along_wall")
+# the tracks of the Re = 1250 and oblique runs (both runs of every pair): extrema within 0.02 of x = W dropped, gaps
+# of up to 0.15 bridged with the reach grown at 3 U (the speed of the dipole before the collision); the Re = 625
+# normal runs keep the tracks of tables 22 and 26
+ROBUST_TRACK = {"wall_band": 0.02, "max_gap": 0.15, "speed": 3.0}
+
+
+def track_options(run: str) -> dict:
+    return ROBUST_TRACK if dipole.is_oblique(run) or dipole.reynolds_of(run) != dipole.REYNOLDS else {}
+
+
+def field_cores(run: str) -> dict:
+    """Cores read from the saved fields: name -> (sign, start time, region ((x0, x1), (y0, y1)) at the start)."""
+    if dipole.is_oblique(run):
+        return {"primary": (+1.0, 0.35, ((0.70, 0.98), (0.35, 0.65))),
+                "negative_primary": (-1.0, 0.35, ((0.80, 0.98), (0.20, 0.45)))}
+    if dipole.reynolds_of(run) != dipole.REYNOLDS:
+        return {"primary": (+1.0, 0.35, ((0.75, 0.98), (0.00, 0.30)))}
+    return {}
 DETACHED = 0.05                        # a negative extremum this far from x = W counts as detached (secondary)
 SECONDARY_START = 0.45                 # the wall layer of the first collision has rolled up by then (item 20)
 EDGE_DISTANCE = 0.03                   # where the reference velocity of the shear length is read (about 3 delta)
+# a control whose wall band ends before EDGE_DISTANCE -> the run its reference velocity is read from
+EDGE_REFERENCE = {"control_n2000": "control_n1000"}
 
 
 def load(run: str, partial: bool = False):
@@ -79,15 +106,23 @@ def value_at(times: np.ndarray, values: np.ndarray, time: float) -> float:
 
 
 def track(times: np.ndarray, table: np.ndarray, start_time: float, start_choice, reach: float = 0.06,
-          strongest: bool = False):
+          strongest: bool = False, wall_band: float = 0.0, max_gap: float = 0.0, speed: float = 0.0):
     """Follow one extremum through the samples: table (samples, kept, 3) rows (value, x, y). The first sample at or
     after start_time takes the row chosen by start_choice(rows); later samples the row nearest the previous
-    position within `reach` (a gap ends the track)."""
+    position within `reach` (a gap ends the track). With wall_band > 0 the rows within wall_band of x = W are
+    dropped, and a gap of up to max_gap in time is bridged with the reach grown by speed times the gap (the Re = 1250
+    and oblique runs: there the wall layer fills the six extrema kept per sample, and the core drops out of them)."""
     track_time, track_x, track_y, track_value = [], [], [], []
-    previous = None
+    previous, previous_time = None, None
     for time, rows in zip(times, table):
         valid = rows[np.isfinite(rows[:, 0])]
-        if time < start_time - 1e-9 or valid.size == 0:
+        if wall_band > 0.0:
+            valid = valid[valid[:, 1] < dipole.HALF_WIDTH - wall_band]
+        if time < start_time - 1e-9:
+            continue
+        if valid.size == 0:
+            if max_gap > 0.0 and previous is not None and time - previous_time > max_gap:
+                break
             continue
         if previous is None:
             chosen = start_choice(valid)
@@ -95,17 +130,21 @@ def track(times: np.ndarray, table: np.ndarray, start_time: float, start_choice,
                 continue
         else:
             distance = np.hypot(valid[:, 1] - previous[0], valid[:, 2] - previous[1])
-            if distance.min() > reach:
-                break
+            # with max_gap = 0 (the default): reach as it is, and a sample without an extremum within it ends the track
+            allowed = reach + speed * max(0.0, time - previous_time - dipole.SAMPLE_INTERVAL)
+            if distance.min() > allowed:
+                if time - previous_time > max_gap:
+                    break
+                continue
             if strongest:
                 # the strongest extremum within reach (the nearest one can be a weak extremum of the wake: the
                 # n = 500 run's primary jumped to one at t = 0.09 with the nearest rule); used by the checks only,
                 # table 22 keeps the nearest rule
-                near = valid[distance <= reach]
+                near = valid[distance <= allowed]
                 chosen = near[np.argmax(np.abs(near[:, 0]))]
             else:
                 chosen = valid[np.argmin(distance)]
-        previous = (chosen[1], chosen[2])
+        previous, previous_time = (chosen[1], chosen[2]), time
         track_time.append(time)
         track_value.append(chosen[0])
         track_x.append(chosen[1])
@@ -199,12 +238,13 @@ def summary(entry: dict, strongest: bool = False) -> dict:
     first, second = (peak(times, samples["enstrophy"], window) for window in dipole.WINDOWS)
     palinstrophy_first, palinstrophy_second = (peak(times, samples["palinstrophy"], window)
                                                for window in dipole.WINDOWS)
-    primary = track(times, samples["positive_extrema"], 0.0, lambda rows: rows[0], strongest=strongest)
+    options = track_options(entry["run"])
+    primary = track(times, samples["positive_extrema"], 0.0, lambda rows: rows[0], strongest=strongest, **options)
     # the secondary vortex: the strongest negative extremum of the upper half detached from the wall after the
     # first collision
     # the secondary from the saved fields (see field_track): at t = 0.45 the negative core above the primary
     secondary = field_track(entry["run"], SECONDARY_START, -1.0, ((0.6, dipole.HALF_WIDTH - DETACHED), (0.2, 0.5)))
-    lower = track(times, samples["lower_negative_extrema"], 0.0, lambda rows: rows[0], strongest=strongest)
+    lower = track(times, samples["lower_negative_extrema"], 0.0, lambda rows: rows[0], strongest=strongest, **options)
     result = {
         "run": entry["run"], "partial": bool(record.get("partial")), "spacing": spacing,
         "end_time": float(times[-1]), "samples": int(times.size),
@@ -222,6 +262,21 @@ def summary(entry: dict, strongest: bool = False) -> dict:
         if primary["time"].size and primary["time"][-1] >= time - 1e-9:
             primary_rows[f"{time:g}"] = [value_at(primary["time"], primary[key], time) for key in ("x", "y", "value")]
     result["primary"] = primary_rows
+    # the cores from the saved fields (every 0.05 for the Re = 1250 and oblique runs; Gaussian of two nodes, the band
+    # of 0.02 next to x = W left out): a check of the sample track, and the negative primary of the oblique
+    # collision (Table 9 of the paper), whose |omega| at t = 0.6 is below that of the wall layer, so it is not among
+    # the extrema kept per sample
+    negative = None
+    result["field_cores"] = {}
+    for name, (sign, start_time, region) in field_cores(entry["run"]).items():
+        path = field_track(entry["run"], start_time, sign, region)
+        result["field_cores"][name] = {f"{time:g}": [value_at(path["time"], path[key], time)
+                                                     for key in ("x", "y", "value")]
+                                       for time in (0.6,) if path["time"].size and path["time"][-1] >= time - 1e-9
+                                       and path["time"][0] <= time + 1e-9}
+        if name == "negative_primary":
+            negative = path
+            result["negative_primary"] = result["field_cores"][name]
     if primary["time"].size and primary["time"][-1] >= 0.25:
         # the strength of the primary core before the collision (Stage 8 checks: the bulk decay of the cores)
         result["primary_value_at_0.25"] = value_at(primary["time"], primary["value"], 0.25)
@@ -243,8 +298,12 @@ def summary(entry: dict, strongest: bool = False) -> dict:
             second_window = (primary["time"] >= 0.55) & (primary["time"] <= 0.85)
             if second_window.any():
                 second_index = np.flatnonzero(second_window)[np.argmin(distance[second_window])]
-                result["second_approach"] = [float(primary["time"][second_index]), float(distance[second_index]),
-                                             float(primary["y"][second_index])]
+                # a run ending inside the window (t = 0.75) whose distance still falls at its end has not reached
+                # its second approach: none is given (the oblique runs)
+                truncated = second_index == primary["time"].size - 1 and primary["time"][-1] < 0.85 - 1e-9
+                if not truncated:
+                    result["second_approach"] = [float(primary["time"][second_index]), float(distance[second_index]),
+                                                 float(primary["y"][second_index])]
                 later = np.arange(index + 1, second_index)
                 if later.size:
                     rebound = later[np.argmax(distance[later])]
@@ -253,7 +312,8 @@ def summary(entry: dict, strongest: bool = False) -> dict:
     result["tracks"] = {name: {key: (values.tolist() if isinstance(values, np.ndarray)
                                      else values if isinstance(values, str) else float(values))
                                for key, values in path.items()}
-                        for name, path in (("primary", primary), ("secondary", secondary), ("lower", lower))}
+                        for name, path in (("primary", primary), ("secondary", secondary), ("lower", lower),
+                                           ("negative_primary", negative)) if path is not None}
     result["series"] = {name: samples[name].tolist() for name in ("time", "energy", "enstrophy", "palinstrophy",
                                                                   "spin_departure", "max_speed", "density_mean")
                         if name in samples}
@@ -313,7 +373,12 @@ def wall_at(samples: dict, spacing: float, time: float) -> dict:
     node_upper = nodes_y > 0.0
     tangential = samples["band_tangential_velocity"][index]
     edge_row = band.shape[0] - 1 - int(round(EDGE_DISTANCE / spacing - 0.5))
-    edge_velocity = np.abs(tangential[edge_row, :])
+    if edge_row < 0:
+        # the band of WALL_BAND_NODES nodes ends before EDGE_DISTANCE (W / dx = 2000: 0.024 W); a negative row would
+        # wrap round to a node 0.006 W from the wall (the first B1 analysis did): no reference velocity here
+        edge_velocity = np.full(tangential.shape[1], np.nan)
+    else:
+        edge_velocity = np.abs(tangential[edge_row, :])
     pressure = samples["wall_pressure"][index]
     extra = {}
     if "wall_fit_spin_gradient" in samples:
@@ -323,13 +388,19 @@ def wall_at(samples: dict, spacing: float, time: float) -> dict:
     return {**extra, "time": float(samples["time"][index]),
             "vorticity_peak": float(wall_vorticity[peak_index]), "vorticity_peak_y": float(fit_y[peak_index]),
             "vorticity_integral_upper": float(np.nansum(wall_vorticity[upper]) * width),
+            # the parts of each sign over the whole wall (the oblique collision: two layers of opposite sign)
+            "vorticity_integral_positive": float(np.nansum(np.maximum(wall_vorticity, 0.0)) * width),
+            "vorticity_integral_negative": float(np.nansum(np.minimum(wall_vorticity, 0.0)) * width),
+            "flux_integral_positive": float(np.maximum(flux, 0.0).sum() * spacing),
+            "flux_integral_negative": float(np.minimum(flux, 0.0).sum() * spacing),
             "grid_vorticity_peak": float(samples["wall_vorticity"][index][node_upper][
                 np.argmax(np.abs(samples["wall_vorticity"][index][node_upper]))]),
             "flux_integral_upper": float(flux[node_upper].sum() * spacing),
             "flux_peak": float(flux[node_upper][np.argmax(np.abs(flux[node_upper]))]),
             "pressure_difference_along_wall": float(pressure[np.argmin(np.abs(nodes_y))] - pressure[-1]),
-            "edge_velocity_max": float(edge_velocity[node_upper].max()),
-            "edge_velocity_y": float(nodes_y[node_upper][np.argmax(edge_velocity[node_upper])])}
+            "edge_velocity_max": float(np.max(edge_velocity[node_upper])),
+            "edge_velocity_y": (float(nodes_y[node_upper][np.argmax(edge_velocity[node_upper])])
+                                if np.isfinite(edge_velocity).any() else float("nan"))}
 
 
 def compare(run: dict, base: dict) -> dict:
@@ -346,16 +417,21 @@ def compare(run: dict, base: dict) -> dict:
         key = f"enstrophy_at_base_{label}_peak"
         if key in run and key in base:
             out[key] = relative(run[key], base[key])
+    # an approach (or rebound) is compared only where both runs reach past it: the floors of Re = 1250 and of the
+    # oblique collision end at t = 0.40, before the oblique control's first approach (t = 0.42)
+    common_end = min(run.get("end_time", float("inf")), base.get("end_time", float("inf")))
     for key in ("closest_approach", "rebound", "second_approach"):
-        if key in run and key in base:
+        if key in run and key in base and max(run[key][0], base[key][0]) < common_end - 0.005:
             out[f"{key}_time"] = run[key][0] - base[key][0]
             out[f"{key}_distance"] = run[key][1] - base[key][1]
             out[f"{key}_distance_relative"] = relative(run[key][1], base[key][1])
     # the wall at the time of the base's first enstrophy peak (wall_common, set by command_analyse)
     wall, base_wall = run.get("wall_common", run["wall"]), base.get("wall_common", base["wall"])
     for key in ("vorticity_peak", "vorticity_integral_upper", "flux_integral_upper", "flux_peak",
-                "pressure_difference_along_wall"):
-        out[f"wall_{key}"] = relative(wall[key], base_wall[key])
+                "pressure_difference_along_wall", "vorticity_integral_positive", "vorticity_integral_negative",
+                "flux_integral_positive", "flux_integral_negative"):
+        if key in wall and key in base_wall:
+            out[f"wall_{key}"] = relative(wall[key], base_wall[key])
     for time in ("0.25", "0.50", "0.75"):
         if time in run["global"] and time in base["global"]:
             out[f"energy_{time}"] = relative(run["global"][time][0], base["global"][time][0])
@@ -369,8 +445,10 @@ CHECK_PAIRS = (("mp_l50_j001_n1000", "control_n1000", "control_n1000"),
                ("mp_l25_j001_n1000", "control_n1000", "control_n1000"),
                ("mp_l50_n500", "control_n500", "control_n500"),
                ("mp_l50_n1000", "control_n1000", "control_n1000"),
-               # Stage 8 open runs (14 Nov task, Part B): W / 2000 (to t = 0.45) and Re = 1250 with its floors
+               # Stage 8 open runs (14 Nov task, Part B): W / 2000 (to t = 0.45) beside the same l at W / 1000 (the
+               # pair of table 22 with the strongest-extremum track), and Re = 1250 with its floors
                ("mp_l100_n2000", "control_n2000", "control_n2000"),
+               ("mp_l100_n1000", "control_n1000", "control_n1000"),
                ("mp_l100_re1250_n1000", "control_re1250_n1000", "control_re1250_n1000"),
                ("mp_l50_re1250_n1000", "control_re1250_n1000", "control_re1250_n1000"),
                ("control_re1250_n1000_shifted", "control_re1250_n1000", "control_re1250_n1000"),
@@ -412,12 +490,31 @@ def check_pairs(results: dict, entries: dict, say) -> dict:
             spin = designs[name]["coupling"] * wall.get("spin_flux_integral_upper", 0.0) if designs[name]["coupling"] else 0.0
             return designs[name]["viscosity"] * wall["flux_integral_upper"] - spin
         values["wall_momentum_balance"] = balance(run, wall_run) / balance(base, wall_base) - 1.0
+        for sign in ("positive", "negative"):
+            values[f"wall_traction_integral_{sign}"] = (
+                (designs[run]["viscosity"] * wall_run[f"vorticity_integral_{sign}"])
+                / (designs[base]["viscosity"] * wall_base[f"vorticity_integral_{sign}"]) - 1.0)
+        if dipole.is_oblique(run):
+            for key in OBLIQUE_CANCELLING:
+                values[key] = float("nan")
+            # the negative primary at t = 0.6 (Table 9 of the paper): its strength against the base's
+            if "0.6" in pair[run].get("negative_primary", {}) and "0.6" in pair[base].get("negative_primary", {}):
+                values["negative_primary_value_at_0.6"] = (pair[run]["negative_primary"]["0.6"][2]
+                                                           / pair[base]["negative_primary"]["0.6"][2] - 1.0)
         values["primary_value_at_0.25"] = (pair[run].get("primary_value_at_0.25", float("nan"))
                                            / pair[base].get("primary_value_at_0.25", float("nan")) - 1.0)
         # the shear length of the family's control and delta* / Lambda of the run
         control_wall = pair[base]["wall_common"] if base == control else wall_at(
             entries[control]["samples"], entries[control]["record"]["dipole"]["spacing"], first_time)
-        shear_length = control_wall["edge_velocity_max"] / abs(control_wall["vorticity_peak"])
+        edge_velocity, edge_source = control_wall["edge_velocity_max"], control
+        if not np.isfinite(edge_velocity) and EDGE_REFERENCE.get(control) in entries:
+            # U_ref is a velocity of the outer flow (0.03 W from the wall), read from the same flow at W / dx = 1000
+            # at the same time; the wall vorticity stays the run's control's
+            reference = EDGE_REFERENCE[control]
+            edge_velocity = wall_at(entries[reference]["samples"], entries[reference]["record"]["dipole"]["spacing"],
+                                    first_time)["edge_velocity_max"]
+            edge_source = reference
+        shear_length = edge_velocity / abs(control_wall["vorticity_peak"])
         length = (dipole.RUNS[run][1] or float("nan")) * dipole.HALF_WIDTH
         displacement = dipole.COUPLING_RATIO * length / (2.0 * (1.0 + dipole.COUPLING_RATIO))
         key = f"{run}__against__{base}"
@@ -427,7 +524,10 @@ def check_pairs(results: dict, entries: dict, say) -> dict:
                                        "primary_value_at_0.25": pair[base].get("primary_value_at_0.25")},
                        "run_values": {"primary_value_at_0.25": pair[run].get("primary_value_at_0.25"),
                                       "enstrophy_peaks": results[run]["enstrophy_peaks"]},
-                       "shear_length": shear_length, "displacement_over_shear_length": displacement / shear_length,
+                       "shear_length": shear_length, "reference_velocity": edge_velocity,
+                       "reference_velocity_source": edge_source,
+                       "control_wall_vorticity_peak": control_wall["vorticity_peak"],
+                       "displacement_over_shear_length": displacement / shear_length,
                        "shear_length_over_length": shear_length / length}
         say()
         say(f"check {run} against {base} (times of {control}): first enstrophy peak "
@@ -471,17 +571,18 @@ def command_analyse(arguments) -> int:
             f"{item['enstrophy_peaks'][1][0]:>8.4f}{item['enstrophy_peaks'][1][1]:>9.2f}"
             f"{item['leak']['coefficient']:>8.3f}{item['outside_box_max']:>5}" + ("  (partial)" if item["partial"] else ""))
     validation = {}
-    for run in [name for name in CONVERGENCE + FLOOR_RUNS + RE1250_CONTROLS if name in results]:
+    for run in [name for name in CONVERGENCE + FLOOR_RUNS + RE1250_CONTROLS + OBLIQUE_CONTROLS if name in results]:
         item = results[run]
         rows = []
-        benchmark = dipole.BENCHMARKS[dipole.reynolds_of(run)]
+        benchmark = dipole.benchmark_of(run)
 
         def row(label, reference_sm, reference_fd, value, kind="relative"):
             difference = (value / reference_sm - 1.0) if kind == "relative" else (value - reference_sm)
             rows.append({"quantity": label, "SM": reference_sm, "FD": reference_fd, "run": value,
                          "difference": difference, "kind": kind})
         for index, label in ((0, "first"), (1, "second")):
-            if item["end_time"] < (0.44 if index == 0 else 0.72):
+            # the first peaks lie at t = 0.34 to 0.37: the floors of Re = 1250 and of the oblique collision end at 0.40
+            if item["end_time"] < (0.40 if index == 0 else 0.72):
                 continue
             (time_sm, value_sm), (time_fd, value_fd) = (benchmark["enstrophy_peaks"][method][index]
                                                         for method in ("SM", "FD"))
@@ -510,9 +611,29 @@ def command_analyse(arguments) -> int:
                 row(f"primary core y at t = {time:g} ({method})", y, y if method == "FD" else float("nan"), value_y,
                     "absolute")
                 row(f"primary core omega_max at t = {time:g} ({method})", strength, float("nan"), value_strength)
+        # the same core from the saved fields (the check of the sample track; Re = 1250 and the oblique runs)
+        for time, x, y, strength in benchmark["primary"]["SM"]:
+            key = f"{time:g}"
+            if key not in item.get("field_cores", {}).get("primary", {}):
+                continue
+            value_x, value_y, value_strength = item["field_cores"]["primary"][key]
+            row(f"primary core x at t = {time:g} (SM; fields)", x, float("nan"), value_x, "absolute")
+            row(f"primary core y at t = {time:g} (SM; fields)", y, float("nan"), value_y, "absolute")
+            row(f"primary core omega_max at t = {time:g} (SM; fields)", strength, float("nan"), value_strength)
+        for method in ("SM", "FD"):
+            for time, x, y, strength in benchmark.get("negative_primary", {}).get(method, []):
+                key = f"{time:g}"
+                if key not in item.get("negative_primary", {}):
+                    continue
+                value_x, value_y, value_strength = item["negative_primary"][key]
+                row(f"negative primary core x at t = {time:g} ({method})", x, float("nan"), value_x, "absolute")
+                row(f"negative primary core y at t = {time:g} ({method})", y, float("nan"), value_y, "absolute")
+                row(f"negative primary core omega_min at t = {time:g} ({method})", strength, float("nan"),
+                    value_strength)
         validation[run] = rows
         say()
-        say(f"{run} (Re = {dipole.reynolds_of(run):g}) against the benchmark (SM: spectral, FD: finite differences; difference relative to SM, "
+        geometry = "oblique collision, " if dipole.is_oblique(run) else ""
+        say(f"{run} ({geometry}Re = {dipole.reynolds_of(run):g}) against the benchmark (SM: spectral, FD: finite differences; difference relative to SM, "
             "absolute for times and positions)")
         say(f"  {'quantity':<44}{'SM':>12}{'FD':>12}{'run':>12}{'difference':>12}")
         for entry in rows:

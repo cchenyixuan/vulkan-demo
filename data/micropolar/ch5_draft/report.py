@@ -37,6 +37,219 @@ def span(values, form="{:.4f}"):
     return low if low == high else f"{low} to {high}"
 
 
+def percent(value, digits=1):
+    return "-" if value is None or value != value else f"{100.0 * value:+.{digits}f} %"
+
+
+def host_startup_excess(root, layer_over_length):
+    """E of the start-up of Couette flow (host, j = l^2; Stage 8c, item 27) at Lambda / l, interpolated in log
+    Lambda; None where the host solution is not in the tree (it lives on the branch v10-periodic)."""
+    import math
+    path = root / "data/micropolar/stage8c/startup_host.json"
+    if not path.exists() or layer_over_length != layer_over_length:
+        return None
+    curve = load(path)["curves"]["theta_1"]
+    layers, excess = curve["layer_over_length"], curve["excess"]
+    target = math.log(layer_over_length)
+    for index in range(1, len(layers)):
+        low, high = math.log(layers[index - 1]), math.log(layers[index])
+        if min(low, high) <= target <= max(low, high) and high != low:
+            weight = (target - low) / (high - low)
+            return excess[index - 1] + weight * (excess[index] - excess[index - 1])
+    return None
+
+
+OPEN_COLUMNS = (("mp_l100_n2000__against__control_n2000", "l = W/100, W/dx = 2000"),
+                ("mp_l100_n1000__against__control_n1000", "l = W/100, W/dx = 1000 (table 22)"),
+                ("mp_l100_re1250_n1000__against__control_re1250_n1000", "Re 1250, l = W/100"),
+                ("mp_l50_re1250_n1000__against__control_re1250_n1000", "Re 1250, l = W/50"),
+                ("oblique_mp_l50_n1000__against__oblique_control_n1000", "oblique, l = W/50"))
+OPEN_FLOORS = {"Re 1250": ("control_re1250_n1000_shifted__against__control_re1250_n1000",
+                           "control_re1250_n1000_half_mach__against__control_re1250_n1000"),
+               "oblique": ("oblique_control_n1000_shifted__against__oblique_control_n1000",
+                           "oblique_control_n1000_half_mach__against__oblique_control_n1000")}
+OPEN_QUANTITIES = (("enstrophy_peak_first_value", "first enstrophy peak"),
+                   ("enstrophy_peak_second_value", "second enstrophy peak"),
+                   ("enstrophy_at_base_second_peak", "enstrophy at the control's second peak"),
+                   ("energy_0.75", "E(0.75)"),
+                   ("primary_value_at_0.25", "primary core, vorticity maximum at t = 0.25"),
+                   ("wall_vorticity_peak", "wall vorticity at the first collision, peak"),
+                   ("wall_traction_peak", "wall shear traction, peak"),
+                   ("wall_traction_integral", "wall shear traction, integral over 0 < y < W"),
+                   ("wall_traction_integral_negative", "wall shear traction, integral of the negative part"),
+                   ("wall_traction_integral_positive", "wall shear traction, integral of the positive part"),
+                   ("wall_flux_integral_upper", "vorticity flux into the fluid at the wall"))
+
+
+def open_runs_section(say, dipole, root):
+    """REPORT 9.2: the open runs of the dipole-wall collision (14 Nov task, Part B; item 29)."""
+    checks = dipole.get("checks", {})
+    present = [(key, label) for key, label in OPEN_COLUMNS if key in checks]
+    if not any(key in checks for key, _label in OPEN_COLUMNS if "n1000__against__control_n1000" not in key):
+        return
+    validation = {name: {entry["quantity"]: entry for entry in rows}
+                  for name, rows in dipole.get("validation", {}).items()}
+    runs = dipole["runs"]
+
+    def change(key, quantity):
+        return checks.get(key, {}).get("changes", {}).get(quantity, float("nan"))
+
+    def floor(family, quantity):
+        values = [abs(change(key, quantity)) for key in OPEN_FLOORS[family]]
+        values = [value for value in values if value == value]
+        return max(values) if values else float("nan")
+
+    def difference(run, quantity):
+        entry = validation.get(run, {}).get(quantity)
+        return entry["difference"] if entry else float("nan")
+
+    def value(run, quantity):
+        entry = validation.get(run, {}).get(quantity)
+        return entry["run"] if entry else float("nan")
+
+    say("### 9.2 The open runs (table 29) [run]")
+    say()
+    say("The runs of the 14 Nov task, Part B, each against its own control with the definitions of tables 22 and 26: "
+        "(B1) l = W / 100 at W / dx = 2000 (l = 20 dx; to t = 0.45, one card); (B2) Re = 1250 with l = W / 100 and "
+        "W / 50; (B3) the oblique collision of the paper (30 degrees, Re = 625) with l = W / 50. The B2 and B3 runs "
+        "end at t = 0.75 and their floors (lattice shifted by dx / 2, half the Mach number) at 0.40, set by the "
+        "user's limit of 8 hours for the queue; `control_re1250_n500` was not run.")
+    say()
+    header = ["against the run's control"] + [label for _key, label in present] + ["floor Re 1250", "floor oblique"]
+    rows = []
+    for quantity, label in OPEN_QUANTITIES:
+        cells = [label]
+        for key, _label in present:
+            number = change(key, quantity)
+            missing = number != number
+            if missing and quantity == "enstrophy_peak_second_value" and key.startswith("mp_l100_n2000"):
+                cells.append("(t <= 0.45)")
+            elif missing and quantity == "enstrophy_peak_second_value":
+                cells.append("no maximum")
+            else:
+                cells.append(percent(number))
+        cells += [percent(floor(family, quantity), 2).lstrip("+") for family in ("Re 1250", "oblique")]
+        rows.append(cells)
+    rows.append(["delta* / Lambda; Lambda / l"] + [
+        f"{checks[key]['displacement_over_shear_length']:.2f}; {checks[key]['shear_length_over_length']:.2f}"
+        for key, _label in present] + ["", ""])
+    say(table(header, rows))
+    say()
+    say("- Each change relative to the run's own control; the wall read at that control's first enstrophy peak. The "
+        "floors are the larger of the two floor runs of the family (none at W / dx = 2000: table 22's floors at "
+        "W / dx = 1000 apply). For the oblique collision the signed integrals over 0 < y < W are not given: both "
+        "cores arrive above y = 0 and their wall layers of opposite sign cancel there (the control's integral is "
+        "-12.7 of the parts -127.5 and +114.8); the parts of each sign over the whole wall replace them.")
+    # B1
+    fine, coarse = "mp_l100_n2000__against__control_n2000", "mp_l100_n1000__against__control_n1000"
+    if fine in checks and "control_n2000" in validation:
+        shares = {quantity: abs(change(fine, quantity) - change(coarse, quantity)) / abs(change(coarse, quantity))
+                  for quantity in ("enstrophy_peak_first_value", "wall_vorticity_peak", "wall_traction_peak",
+                                   "wall_flux_integral_upper")}
+        say(f"- **B1, the resolution of l = W / 100.** The control at W / dx = 2000 has its first enstrophy peak "
+            f"{value('control_n2000', 'first enstrophy peak'):.1f} at t = "
+            f"{value('control_n2000', 'time of the first enstrophy peak'):.4f} "
+            f"({percent(difference('control_n2000', 'first enstrophy peak'), 2)} of the spectral value; -9.4, -3.7, "
+            "-1.6 % at W / dx = 250, 500, 1000: the error falls by 1.7 from n = 1000, the factors 2.6 and 2.3 "
+            "before). l = W / 100 at 20 dx against its control: first enstrophy peak "
+            f"{percent(change(fine, 'enstrophy_peak_first_value'))} (10 dx: "
+            f"{percent(change(coarse, 'enstrophy_peak_first_value'))}), wall vorticity "
+            f"{percent(change(fine, 'wall_vorticity_peak'))} ({percent(change(coarse, 'wall_vorticity_peak'))}), "
+            f"peak traction {percent(change(fine, 'wall_traction_peak'))} "
+            f"({percent(change(coarse, 'wall_traction_peak'))}), flux "
+            f"{percent(change(fine, 'wall_flux_integral_upper'))} ({percent(change(coarse, 'wall_flux_integral_upper'))}); "
+            "the first three move by " + ", ".join(f"{shares[quantity]:.3f}" for quantity in
+                                                   ("enstrophy_peak_first_value", "wall_vorticity_peak",
+                                                    "wall_traction_peak"))
+            + f" of the effect, the flux by {shares['wall_flux_integral_upper']:.2f}. Lambda = "
+            f"{checks[fine]['shear_length']:.5f} W (the finer control's wall vorticity "
+            f"{checks[fine]['control_wall_vorticity_peak']:.1f} U / W with U_ref = {checks[fine]['reference_velocity']:.3f} U "
+            f"of `{checks[fine]['reference_velocity_source']}`: the wall band of the W / 2000 runs ends at 0.024 W, before "
+            f"the 0.03 W of U_ref), delta* / Lambda = {checks[fine]['displacement_over_shear_length']:.2f} and Lambda / l = "
+            f"{checks[fine]['shear_length_over_length']:.2f} (W / 1000: {checks[coarse]['shear_length']:.5f} W, "
+            f"{checks[coarse]['displacement_over_shear_length']:.2f}, {checks[coarse]['shear_length_over_length']:.2f}). "
+            "**l = 10 dx resolves the effect of l = W / 100 to a tenth.**")
+    # B2
+    control = "control_re1250_n1000"
+    if control in validation:
+        cores = [abs(entry["difference"]) for name, entry in validation[control].items()
+                 if name.startswith("primary core x") or name.startswith("primary core y")]
+        globals_ = [abs(entry["difference"]) for name, entry in validation[control].items()
+                    if name[:2] in ("E(", "Om")]
+        say(f"- **B2, Re = 1250: the control validates** against Tables 2 to 5 of the paper: enstrophy peaks "
+            f"{value(control, 'first enstrophy peak'):.1f} at t = {value(control, 'time of the first enstrophy peak'):.4f} "
+            f"and {value(control, 'second enstrophy peak'):.1f} at {value(control, 'time of the second enstrophy peak'):.4f} "
+            f"(spectral 1899 at 0.3414 and 725.3 at 0.6162: {percent(difference(control, 'first enstrophy peak'))} and "
+            f"{percent(difference(control, 'second enstrophy peak'))}; at Re = 625 and the same dx -1.6 % and -1.3 %); "
+            f"E and Omega at t = 0.25, 0.5, 0.75 within {100.0 * max(globals_):.1f} %; the primary core within "
+            f"{max(cores):.4f} W of the paper at t = 0.6 (spectral) and 0.625 (finite differences). Floors: first peak "
+            f"{100.0 * floor('Re 1250', 'enstrophy_peak_first_value'):.2f} %, wall vorticity "
+            f"{100.0 * floor('Re 1250', 'wall_vorticity_peak'):.2f} %. The paper converges its finite differences "
+            "at N = 1536 here (1024 at Re = 625); the SPH run has 2000 particles across.")
+        pair = [key for key in ("mp_l100_re1250_n1000__against__control_re1250_n1000",
+                                "mp_l50_re1250_n1000__against__control_re1250_n1000") if key in checks]
+        if len(pair) == 2:
+            short, long = (checks[key] for key in pair)
+            seconds = [runs[name]["enstrophy_peaks"][1] for name in ("mp_l100_re1250_n1000", "mp_l50_re1250_n1000")]
+            host = [host_startup_excess(root, check["shear_length_over_length"]) for check in (short, long)]
+            host_text = ("" if None in host else
+                         f" The start-up of Couette flow (item 27, host, j = l^2) gives E = {host[0]:.3f} and "
+                         f"{host[1]:.3f} at these Lambda / l;")
+            say(f"- **B2, the micropolar runs.** Lambda = {short['shear_length']:.5f} W (Re = 625: 0.00526), so "
+                f"delta* / Lambda = {short['displacement_over_shear_length']:.2f} and "
+                f"{long['displacement_over_shear_length']:.2f}, Lambda / l = {short['shear_length_over_length']:.3f} and "
+                f"{long['shear_length_over_length']:.3f}. First enstrophy peak "
+                f"{percent(change(pair[0], 'enstrophy_peak_first_value'))} (l = W / 100) and "
+                f"{percent(change(pair[1], 'enstrophy_peak_first_value'))} (W / 50); Re = 625: -13.5 % and -15.7 %. "
+                f"Wall vorticity {percent(change(pair[0], 'wall_vorticity_peak'))} and "
+                f"{percent(change(pair[1], 'wall_vorticity_peak'))}, **peak traction "
+                f"{percent(change(pair[0], 'wall_traction_peak'))} and {percent(change(pair[1], 'wall_traction_peak'))}** "
+                f"(Re = 625: +18.2 % and +18.9 %), flux {percent(change(pair[0], 'wall_flux_integral_upper'))} and "
+                f"{percent(change(pair[1], 'wall_flux_integral_upper'))}." + host_text
+                + " **Both micropolar runs keep a second enstrophy maximum at Re = 1250** "
+                f"({seconds[0][1]:.1f} at t = {seconds[0][0]:.3f} and {seconds[1][1]:.1f} at {seconds[1][0]:.3f}; the "
+                f"control's {value(control, 'second enstrophy peak'):.1f} at "
+                f"{value(control, 'time of the second enstrophy peak'):.3f}): "
+                f"{percent(change(pair[0], 'enstrophy_peak_second_value'))} and "
+                f"{percent(change(pair[1], 'enstrophy_peak_second_value'))}, earlier by "
+                f"{-change(pair[0], 'enstrophy_peak_second_time'):.3f} and {-change(pair[1], 'enstrophy_peak_second_time'):.3f}. "
+                "At Re = 625 neither has one (17.4).")
+    # B3
+    control = "oblique_control_n1000"
+    if control in validation:
+        say(f"- **B3, the oblique collision: the control validates** against Tables 6 to 9 of the paper: enstrophy "
+            f"peaks {value(control, 'first enstrophy peak'):.1f} at t = "
+            f"{value(control, 'time of the first enstrophy peak'):.4f} and {value(control, 'second enstrophy peak'):.1f} "
+            f"at {value(control, 'time of the second enstrophy peak'):.4f} (spectral 768.0 at 0.3597 and 304.5 at "
+            f"0.6441: {percent(difference(control, 'first enstrophy peak'))} and "
+            f"{percent(difference(control, 'second enstrophy peak'))}); at t = 0.6 the positive primary at ("
+            f"{value(control, 'primary core x at t = 0.6 (SM)'):.3f}, {value(control, 'primary core y at t = 0.6 (SM)'):.3f}) "
+            f"against (0.740, 0.659), its maximum {percent(difference(control, 'primary core omega_max at t = 0.6 (SM)'))}; "
+            f"the negative primary at ({value(control, 'negative primary core x at t = 0.6 (SM)'):.3f}, "
+            f"{value(control, 'negative primary core y at t = 0.6 (SM)'):.3f}) against (0.898, 0.364), its minimum "
+            f"{percent(difference(control, 'negative primary core omega_min at t = 0.6 (SM)'))} (from the saved fields: "
+            "below the wall layer in |omega|, it is not among the extrema kept per sample). Floors: first peak "
+            f"{100.0 * floor('oblique', 'enstrophy_peak_first_value'):.2f} %, wall vorticity "
+            f"{100.0 * floor('oblique', 'wall_vorticity_peak'):.2f} %.")
+        key = "oblique_mp_l50_n1000__against__oblique_control_n1000"
+        if key in checks:
+            check = checks[key]
+            host = host_startup_excess(root, check["shear_length_over_length"])
+            say(f"- **B3, l = W / 50.** Lambda = {check['shear_length']:.5f} W at the first collision (the wall layer "
+                "of the negative core, y = 0.35), delta* / Lambda = "
+                f"{check['displacement_over_shear_length']:.2f}, Lambda / l = {check['shear_length_over_length']:.3f}. "
+                f"First enstrophy peak {percent(change(key, 'enstrophy_peak_first_value'))} (normal collision: "
+                f"-15.7 %), **no second maximum** (as at Re = 625 in the normal collision), the enstrophy at the "
+                f"control's second peak {percent(change(key, 'enstrophy_at_base_second_peak'))}, E(0.75) "
+                f"{percent(change(key, 'energy_0.75'))}. Wall vorticity {percent(change(key, 'wall_vorticity_peak'))}, "
+                f"**peak traction {percent(change(key, 'wall_traction_peak'))}** (normal: +18.9 %); the traction "
+                f"integrals of the two layers {percent(change(key, 'wall_traction_integral_positive'))} (positive, the "
+                f"negative core's) and {percent(change(key, 'wall_traction_integral_negative'))} (negative, the positive "
+                f"core's); the negative primary at t = 0.6 {percent(change(key, 'negative_primary_value_at_0.6'))}."
+                + ("" if host is None else f" The start-up of Couette flow gives E = {host:.3f} at this Lambda / l."))
+    say()
+
+
 def main() -> int:
     items = {path.stem: load(path) for path in sorted((HERE / "items").glob("*.json"))}
     concentric = load(DATA / "concentric.json")
@@ -532,6 +745,7 @@ def main() -> int:
                     + ". [inferred] The quantities read at the wall (traction, flux) are those that resolve the layer "
                     "w = 0 to omega / 2; the global ones agree.")
             say()
+        open_runs_section(say, dipole, ROOT)
 
     say("## 10. To be careful with in the text")
     say()
