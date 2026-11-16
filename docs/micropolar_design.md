@@ -4479,7 +4479,7 @@ times); `BENCHMARK_OBLIQUE` carries them.
   start-up curve is the excess of a layer under a fixed outer flow; the dipole's layer grows under an outer flow that
   itself changes (and arrives a little weaker in the micropolar fluid); at the higher Reynolds number the layer is
   thinner against the core and the collision nearer to the start-up. The task's question "does the saturation
-  hold in the collision" therefore has the answer: the excess saturates (it is the same for both l within 1 %),
+  hold in the collision" therefore has the answer: the excess saturates (it is the same for both l within 0.8 points),
   at 70 to 90 % of the start-up value at the same Lambda / l, nearer to it at the higher Re.
 
 #### Unexpected, and what is open
