@@ -26,7 +26,8 @@ DIPOLE_CHECKS = (("mp_l100_n1000__against__control_n1000", r"$\ell = W/100$"),
                  ("mp_l25_j001_n1000__against__control_n1000", r"$\ell = W/25$, $j = \ell^2/100$"),
                  ("mp_l100_n2000__against__control_n2000", r"$\ell = W/100$, $W/\Delta x = 2000$"),
                  ("mp_l100_re1250_n1000__against__control_re1250_n1000", r"$\ell = W/100$, Re 1250"),
-                 ("mp_l50_re1250_n1000__against__control_re1250_n1000", r"$\ell = W/50$, Re 1250"))
+                 ("mp_l50_re1250_n1000__against__control_re1250_n1000", r"$\ell = W/50$, Re 1250"),
+                 ("oblique_mp_l50_n1000__against__oblique_control_n1000", r"$\ell = W/50$, oblique"))
 PROFILE_RUN = "startup_l40"
 # the j = l^2 / 100 pair (dt 21 times smaller, 9.15 million steps) drifts, run and control alike, beyond Lambda ~ 4 l
 # (the control's stress 1.10 of the host at Lambda = 10 l; design note 19.4): drawn to Lambda = 4 l
@@ -138,8 +139,9 @@ def main() -> int:
         "drifts, its control as well; lines: the wall form, open markers: the 4 dx fit; both from Lambda = 2 dx) with the floor "
         "of l = 20 dx (repeat, half Mach; grey), the early limit sqrt(1.6) - 1 (a layer thinner than l is a "
         "Newtonian layer of viscosity mu + kappa) and the steady value of eq. 5.5 (star). Crosses: the peak "
-        "wall-stress excess of the dipole-wall collision runs (tables 22, 26, 29) at their Lambda / l - another flow, "
-        "whose outer flow changes with l. (b, c) u and w across the gap at Lambda = 0.25 l, l and 4 l: the run at "
+        "wall-stress excess of the dipole-wall collision runs (tables 22, 26, 29: Re = 625 and 1250, W / dx = 500 to "
+        "2000, the normal and the oblique collision) at their Lambda / l - another flow, whose outer flow changes "
+        "with l. (b, c) u and w across the gap at Lambda = 0.25 l, l and 4 l: the run at "
         "l = 40 dx (markers) against the host solution (lines).")
     style.record("27", "Start-up of plane Couette flow: the wall-stress excess against Lambda / l, and the profiles",
                  SOURCE["status"], caption, ["fig_27_startup.pdf", "fig_27_startup.png"],

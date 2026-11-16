@@ -4206,7 +4206,8 @@ those of `thesis-ch5-rc2`. Tools: `experiment/validation/micropolar_dipole.py` (
 - **Palinstrophy** is quoted but not usable for the verdict (grid-scale noise, 17.1).
 - **Leakage:** the regression coefficient k_w (17.3) is not the seepage coefficient of eq. (5.13); the runs show no
   fluid beyond the wall planes and a mean density constant to 1e-6.
-- **Not done:** Re = 1250 and 2500, the oblique collision, a run at dx = W / 2000.
+- **Not done:** Re = 1250 and 2500, the oblique collision, a run at dx = W / 2000. [2026-11-16: Re = 1250, the
+  oblique collision and W / 2000 done, 17.7; Re = 2500 not scheduled.]
 
 ### 17.6 Three checks, and the pack style (2026-11-14) **[run]**
 
@@ -4283,6 +4284,219 @@ are unchanged (rebuilt byte-identical). Pack item 26 (`tab_26_dipole_checks`), R
   The numbers of items/<nn>.json are unchanged except item 08, which had not been rebuilt since the g = 400 dx row
   arrived and now carries it (`torque.g400_k3_m20`); item 16's caption counts 19 rows (was 18) and the tag lists
   of captions 01, 03 and 04 are sorted deterministically.
+
+### 17.7 The open runs (2026-11-15/16): l = W / 100 at 20 dx, Re = 1250, the oblique collision **[run]**
+
+The 14 Nov task, Part B: (B1) `control_n2000` and `mp_l100_n2000` to t = 0.45; (B2) Re = 1250 with its control,
+the two floors, l = W / 100 and W / 50; (B3) the oblique collision of the paper at Re = 625 with its control, the two
+floors and l = W / 50. Runner, numerics and solver unchanged (every `solver_modified` false: the solver trees of
+thesis-ch5-rc2). Pack item 29 (`tab_29_dipole_open_runs`, `tab_29_dipole_open_validation`), REPORT.md 9.2.
+
+| run | particles (fluid) | card | steps | dt (s) | steps/s | wall time | to t | revision |
+|---|---|---|---|---|---|---|---|---|
+| `control_n2000` | 16,176,484 (16,000,000) | 5090 | 720,000 | 6.250e-07 | 31.5 | 381 min | 0.45 | thesis-ch5-rc2-52-g60c2a48 |
+| `mp_l100_n2000` | 16,176,484 (16,000,000) | 5090 | 720,000 | 6.250e-07 | 31.1 | 386 min | 0.45 | thesis-ch5-rc2-52-g60c2a48 |
+| `control_re1250_n1000` | 4,088,484 (4,000,000) | XTX | 600,000 | 1.250e-06 | 66.3 | 151 min | 0.75 | thesis-ch5-rc2-53-gaeb861f |
+| `control_re1250_n1000_shifted` | 4,088,484 (4,000,000) | 5090 | 320,000 | 1.250e-06 | 118.0 | 45 min | 0.40 | thesis-ch5-rc2-53-gaeb861f |
+| `control_re1250_n1000_half_mach` | 4,088,484 (4,000,000) | 5090 | 640,000 | 6.250e-07 | 125.3 | 85 min | 0.40 | thesis-ch5-rc2-53-gaeb861f |
+| `mp_l100_re1250_n1000` | 4,088,484 (4,000,000) | XTX | 600,000 | 1.250e-06 | 65.2 | 153 min | 0.75 | thesis-ch5-rc2-53-gaeb861f |
+| `mp_l50_re1250_n1000` | 4,088,484 (4,000,000) | XTX | 600,000 | 1.250e-06 | 65.2 | 153 min | 0.75 | thesis-ch5-rc2-53-gaeb861f |
+| `oblique_control_n1000` | 4,088,484 (4,000,000) | 5090 | 600,000 | 1.250e-06 | 114.5 | 87 min | 0.75 | thesis-ch5-rc2-53-gaeb861f |
+| `oblique_mp_l50_n1000` | 4,088,484 (4,000,000) | 5090 | 600,000 | 1.250e-06 | 111.4 | 90 min | 0.75 | thesis-ch5-rc2-53-gaeb861f |
+| `oblique_control_n1000_shifted` | 4,088,484 (4,000,000) | 5090 | 320,000 | 1.250e-06 | 117.7 | 45 min | 0.40 | thesis-ch5-rc2-53-gaeb861f |
+| `oblique_control_n1000_half_mach` | 4,088,484 (4,000,000) | 5090 | 640,000 | 6.250e-07 | 125.3 | 85 min | 0.40 | thesis-ch5-rc2-53-gaeb861f |
+
+- Every counter zero in every run, no fluid particle beyond a wall plane. The W / 2000 runs alone on the 5090
+  (peak commit 16.0 and 17.1 GiB; the first attempt, beside a second queue, was stopped by Claude Code for low host
+  memory on 11-15 and restarted alone, the user's choice). B2 and B3
+  in two queues, one per card, run one after the other on each card; the user limited the batch to 8 hours, so the
+  runs end at t = 0.75 (the paper's t = 1 rows of Tables 4 and 8 to 9 are not reached) and the floors at t = 0.40
+  (they cover the first collision); `control_re1250_n500` was dropped. The batch ran 21:42 to 05:21. Peak commit
+  4.4 to 4.9 GiB per W / 1000 run. Fields every 0.05 (disk).
+- **Tool changes** (`micropolar_dipole.py`: `BENCHMARK_OBLIQUE` from Tables 6 to 9 of the paper, `benchmark_of`;
+  `micropolar_dipole_analysis.py`): (a) the Re = 1250 and oblique runs fill the six extrema kept per sample with
+  nodes of the wall layer at x = W (|omega| 500 to 900 against 220 to 260 in the core), and the core track of the
+  table 22 rules ended at t = 0.35 (Re = 1250 control) and 0.27 (oblique control) while those of the micropolar runs
+  went on: for these two families (both runs of every pair) the extrema within 0.02 of x = W are dropped and gaps
+  of up to 0.15 bridged (reach 0.06 + 3 U times the gap); the Re = 625 tracks are unchanged (tables 22 and 26 rebuilt
+  byte-identical). (b) The cores are also read from the saved fields (Gaussian of two nodes, the band of 0.02 next
+  to x = W left out): sample track and fields agree within 0.004 in x and 0.007 in y at t = 0.6. The negative primary
+  of the oblique collision comes from the fields only: at t = 0.6 its |omega| (152) is below the wall layer's, so it
+  is not among the kept extrema. (c) For the oblique collision both cores meet the wall above y = 0, their wall
+  layers have opposite signs and cancel in the signed integrals over 0 < y < W (the control's wall vorticity
+  integral -12.7 of the parts -127.5 and +114.8; the flux and the pressure difference along the wall likewise): those
+  rows are left out for B3, and the integrals of each sign over the whole wall are given for every pair. (d) An
+  approach of the primary core is compared only where both runs reach past it (the oblique floors end before the
+  control's first approach at t = 0.42); a second approach at the end of a run is not one. (e) The first-peak
+  validation needs t >= 0.40 (was 0.44).
+
+#### B1: l = W / 100 at W / dx = 2000
+
+| against the run's control | `mp_l100_n2000` (l = 20 dx) | `mp_l100_n1000` (l = 10 dx) | moved by (of the effect) |
+|---|---|---|---|
+| first enstrophy peak | -13.56 % | -13.49 % | 0.005 |
+| wall vorticity at the first collision, peak | -25.66 % | -26.12 % | 0.018 |
+| wall shear traction, peak | +18.94 % | +18.20 % | 0.041 |
+| wall shear traction, integral over 0 < y < W | +17.66 % | +17.39 % | 0.016 |
+| vorticity flux into the fluid at the wall | -49.58 % | -52.46 % | 0.055 |
+| momentum balance at the wall | +6.90 % | +5.63 % | - |
+| E(0.25); enstrophy at t = 0.25 | -0.18 %; -0.81 % | -0.18 %; -0.82 % | |
+| primary core, vorticity maximum at t = 0.25 | -0.59 % | -0.54 % | (floor 2.3 %) |
+| first approach W - x | +0.0005 | +0.0019 | (floor 0.0026) |
+| delta* / Lambda; Lambda / l | 0.69; 0.54 | 0.71; 0.53 | |
+
+- **The finer control** (`control_n2000`, 16 million fluid particles): first enstrophy peak 924.89 at t = 0.3714,
+  -0.93 % of the spectral value (+0.0003 in time); the error was -9.4, -3.7, -1.6 % at W / dx = 250, 500, 1000 and
+  falls by 1.7 from 1000 to 2000 (2.6 and 2.3 before). E and Omega at t = 0.25 -0.15 % and -0.12 % (n1000: -0.2 %).
+  The energy budget 1.0068 before the collision, 1.0139 during it (n1000: 1.0102, 1.0169). Its wall vorticity at the
+  first collision -1270.4 U / W (n1000: -1304.7, 2.6 % stronger), at y = 0.0825.
+- **l = 10 dx resolves the effect of l = W / 100 to a tenth.** Every row of the micropolar effect moves by at most
+  0.055 of itself from W / dx = 1000 to 2000 (the flux, read from the grid, the most; the first enstrophy peak by
+  0.005). The micropolar run and its control converge alike; the effect is a resolved number at W / dx = 1000. No
+  floor runs at W / dx = 2000 (the floors of W / 1000 beside the rows).
+- **Lambda at W / dx = 2000 (corrected in this analysis).** The reference velocity of the shear length is read
+  0.03 W from the wall; the band of 48 nodes kept per sample ends at 0.024 W at W / dx = 2000, and the first B1
+  analysis (11-15) read a node 0.006 W from the wall through a wrapped negative index: Lambda = 0.0040 W, delta* /
+  Lambda = 0.94 and Lambda / l = 0.40, **all three wrong** (reported to the user on 11-15). The read is now guarded;
+  U_ref (an outer-flow velocity, 6.867 U) comes from `control_n1000` at the same time and the wall vorticity from
+  `control_n2000`: Lambda = 0.00541 W, delta* / Lambda = 0.69, Lambda / l = 0.54.
+
+#### B2: Re = 1250
+
+| quantity | SM | FD | `control_re1250_n1000` | lattice shifted | half Mach |
+|---|---|---|---|---|---|
+| time of the first enstrophy peak | 0.3414 | 0.341 | 0.3427 (+0.0013) | 0.3426 (+0.0012) | 0.3433 (+0.0019) |
+| first enstrophy peak | 1899 | 1891 | 1845.4 (-2.8 %) | 1845.6 (-2.8 %) | 1851.2 (-2.5 %) |
+| time of the second enstrophy peak | 0.6162 | 0.616 | 0.6175 (+0.0013) | - | - |
+| second enstrophy peak | 725.3 | 724.9 | 713.66 (-1.6 %) | - | - |
+| first palinstrophy peak | 8.71e7 | 7.744e7 | 9.185e7 (+5.5 %) | 9.241e7 (+6.1 %) | 9.228e7 (+6.0 %) |
+| E(0.25), E(0.5), E(0.75) | 1.7209, 1.3132, 1.0613 | | -0.3, -0.8, -1.0 % | -0.3 % | -0.3 % |
+| Omega(0.25), Omega(0.5), Omega(0.75) | 615.0, 611.9, 484.7 | | -0.4, -0.8, -0.7 % | -0.4 % | -0.3 % |
+| primary core at t = 0.6 (SM: x, y, omega_max) | 0.874, 0.151, 219.4 | | -0.0023, -0.0091, +1.6 % | - | - |
+| primary core at t = 0.625 (FD) | | 0.885, 0.174, 216.1 | -0.0014, -0.0090, +1.0 % | - | - |
+| the same at t = 0.6 from the saved fields | | | -0.0010, -0.0067, +0.6 % | - | - |
+
+- **The control validates** against Tables 2 to 5 of the paper: the enstrophy peaks -2.8 % and -1.6 % of the
+  spectral values (Re = 625 at the same dx: -1.6 % and -1.3 %) at times +0.0013, E and Omega within 1.0 %, the
+  primary core within 0.0091 of the paper's positions at t = 0.6 and 0.625 (tolerances of the task: 5 % and 0.02).
+  The paper converges its finite differences at N_FD = 1536 for Re = 1250 (1024 at Re = 625); the SPH control has
+  2000 particles across the box, and the first peak is the furthest from the paper. Energy budget -dE/dt over 2
+  nu_inf Omega: 1.026 before the collision, 1.030 during it, 1.012 after (Re = 625: 1.010, 1.017, 1.004). Floors:
+  first peak 0.31 % (half Mach), wall vorticity 1.19 % (shifted), the primary core at t = 0.25 2.0 % (half Mach).
+
+| against `control_re1250_n1000` | l = W / 100 | l = W / 50 | floor | Re = 625 (table 22): W / 100, W / 50 |
+|---|---|---|---|---|
+| first enstrophy peak | -16.45 % | -17.49 % | 0.31 % | -13.49 %, -15.68 % |
+| second enstrophy peak | -9.28 % (0.022 earlier) | -14.34 % (0.033 earlier) | (floors end at 0.40) | no maximum, no maximum |
+| enstrophy at the control's second peak | -11.01 % | -16.62 % | | -5.16 %, -11.12 % |
+| E(0.75) | -2.75 % | -4.68 % | | -2.22 %, -3.77 % |
+| primary core, vorticity maximum at t = 0.25 | -1.08 % | -0.79 % | 2.01 % | -0.7 % (W / 50) |
+| wall vorticity at the first collision, peak | -23.44 % | -23.92 % | 1.19 % | -26.12 %, -25.67 % |
+| wall shear traction, peak | **+22.50 %** | **+21.73 %** | 1.19 % | +18.20 %, +18.92 % |
+| wall shear traction, integral over 0 < y < W | +22.39 % | +25.23 % | 1.02 % | +17.39 %, +23.21 % |
+| wall vorticity flux, integral | -46.37 % | -41.62 % | 0.15 % | -52.46 %, -37.52 % |
+| momentum balance at the wall | -1.94 % | -3.34 % | 0.15 % | +5.63 %, +8.82 % |
+| pressure difference along the wall | -0.68 % | -1.30 % | 4.47 % | +1.44 %, -0.41 % |
+| delta* / Lambda; Lambda / l | 1.21; 0.311 | 2.41; 0.155 | | 0.71, 1.42; 0.53, 0.26 |
+
+- **Shear length.** U_ref = 8.39 U (y = 0.135), wall vorticity -2696 U / W (y = 0.083): Lambda = 0.00311 W = 3.1
+  dx (Re = 625: 0.00526 W). delta* / Lambda = 1.21 (l = W / 100) and 2.41 (W / 50); Lambda / l = 0.311 and 0.155.
+- **The wall at the first collision** (t = 0.3427): the peak traction excess **+22.5 % and +21.7 %**, a little
+  higher than at Re = 625 (+18.2 %, +18.9 %) and again nearly independent of l; the wall vorticity -23.4 % and
+  -23.9 %, so (mu + kappa) omega_w = 1.6 x 0.766 = 1.225 of the control's. The momentum balance at the wall closes
+  within 2 to 3 % (Re = 625: 6 to 9 %); the pressure difference along the wall is below its floor (4.5 %).
+- **Enstrophy.** First peak -16.5 % and -17.5 % (Re = 625: -13.5 % and -15.7 %). **Both micropolar runs keep a
+  second enstrophy maximum at Re = 1250** (647.4 at t = 0.595, 611.3 at 0.585; the control 713.7 at 0.6175): the
+  second collision is weakened (-9.3 % and -14.3 %) and comes 0.022 and 0.033 earlier, but it is a maximum, where
+  at Re = 625 neither run has one (17.4). [inferred] At twice the Reynolds number the secondary vortex rolled up
+  from the first collision is strong enough in both fluids to drive a second collision; the micropolar wall still
+  sheds less vorticity (flux -46 % and -42 %).
+- **Cores.** First approach W - x +0.0050 and +0.0032 (floor 0.0043); rebound -0.0143 and -0.0132 (the floors end
+  before it; Re = 625: -0.0064 and -0.0090); second approach +0.0004 and +0.0040. The core maximum at t = 0.25
+  (-1.1 % and -0.8 %) is below its floor (2.0 %, half Mach).
+
+#### B3: the oblique collision (30 degrees, Re = 625)
+
+The paper's set-up (its Section 5): the monopoles at (0.0839746, 0.08660254) (positive) and (0.1839746,
+-0.08660254) (negative), the dipole moving at 30 degrees to +x and meeting the wall x = W near y = 0.5. Its Tables 6
+to 9 give the two enstrophy and palinstrophy maxima and both primary cores at t = 0.6 (no global quantities at fixed
+times); `BENCHMARK_OBLIQUE` carries them.
+
+| quantity | SM | FD | `oblique_control_n1000` | lattice shifted | half Mach |
+|---|---|---|---|---|---|
+| time of the first enstrophy peak | 0.3597 | 0.360 | 0.3608 (+0.0011) | 0.3604 (+0.0007) | 0.3606 (+0.0009) |
+| first enstrophy peak | 768.0 | 766.6 | 757.40 (-1.4 %) | 759.01 (-1.2 %) | 763.51 (-0.6 %) |
+| time of the second enstrophy peak | 0.6441 | 0.6435 | 0.6454 (+0.0013) | - | - |
+| second enstrophy peak | 304.5 | 304.5 | 300.49 (-1.3 %) | - | - |
+| first palinstrophy peak | 9.722e6 | 8.887e6 | 1.043e7 (+7.3 %) | 1.043e7 (+7.2 %) | 1.065e7 (+9.5 %) |
+| positive primary at t = 0.6 (x, y, omega_max) | 0.740, 0.659, 161.5 | 0.740, 0.659, 161.4 | -0.0039, +0.0031, +2.3 % | - | - |
+| the same from the saved fields | | | -0.0005, +0.0074, +0.5 % | - | - |
+| negative primary at t = 0.6 (x, y, omega_min; fields) | 0.898, 0.364, -151.9 | 0.898, 0.365, -151.8 | -0.0044, -0.0014, -0.1 % | - | - |
+
+- **The control validates** against Tables 6 to 9 of the paper as the normal collision does at the same dx:
+  enstrophy peaks -1.4 % and -1.3 % at times +0.0011 and +0.0013; both cores within 0.0074 of the paper at t =
+  0.6, their extrema within 2.3 %. Energy budget 1.011, 1.015, 1.005. Floors: first peak 0.81 % (half Mach), wall
+  vorticity 0.55 %, the integrals of each sign 0.13 to 1.11 %; the core maximum at t = 0.25 1.19 % (shifted).
+- **The wall at the first collision** (t = 0.3608): the strongest wall vorticity is that of the negative core's
+  layer, +1355 U / W at y = 0.349 (the positive core's layer: down to -880 near y = 0.5); U_ref = 5.88 U (y = 0.54), Lambda
+  = 0.00434 W = 4.3 dx.
+
+| against `oblique_control_n1000` | l = W / 50 | floor | normal collision, l = W / 50 (table 22) |
+|---|---|---|---|
+| first enstrophy peak | -13.74 % (-0.0019 in time) | 0.81 % | -15.68 % |
+| second enstrophy peak | no maximum | (floors end at 0.40) | no maximum |
+| enstrophy at the control's second peak | -12.45 % | | -11.12 % |
+| E(0.75) | -3.49 % | | -3.77 % |
+| primary core, vorticity maximum at t = 0.25 | -1.33 % | 1.19 % | -0.7 % |
+| wall vorticity at the first collision, peak | -25.78 % | 0.55 % | -25.67 % |
+| wall shear traction, peak | **+18.75 %** | 0.55 % | +18.92 % |
+| wall shear traction, integral of the positive part (the negative core's layer) | +22.92 % | 1.11 % | - |
+| wall shear traction, integral of the negative part (the positive core's layer) | +20.60 % | 0.65 % | - |
+| negative primary core, omega_min at t = 0.6 | -2.47 % | - | - |
+| delta* / Lambda; Lambda / l | 1.73; 0.217 | | 1.42; 0.26 |
+
+- **The micropolar collision is the normal one's, tilted.** Peak traction excess +18.8 % (normal: +18.9 %), wall
+  vorticity -25.8 % (-25.7 %), first enstrophy peak -13.7 % (-15.7 %), no second maximum, E(0.75) -3.5 % (-3.8 %);
+  both wall layers carry +21 to +23 % more traction. The negative primary, which the paper finds the more strongly
+  affected by the wall, is 2.5 % weaker at t = 0.6 (no floor: the floors end at 0.40).
+- **Cores** (approach to x = W of the positive core; it then turns along the top wall): first approach -0.0082
+  at t = 0.38 against the control's 0.135 at 0.42, rebound -0.0089; no second approach within t <= 0.75.
+
+#### Against the start-up of Couette flow (item 27, Section 19.4)
+
+| dipole run (its control) | Lambda / l | peak traction excess | start-up host E at that Lambda / l | below by |
+|---|---|---|---|---|
+| Re 625, l = W / 100 (table 22) | 0.53 | +18.2 % | 0.241 | 0.059 |
+| Re 625, l = W / 100 at W / dx = 2000 | 0.54 | +18.9 % | 0.239 | 0.050 |
+| Re 625, l = W / 50 (table 22) | 0.26 | +18.9 % | 0.259 | 0.069 |
+| Re 625 oblique, l = W / 50 | 0.217 | +18.8 % | 0.261 | 0.073 |
+| Re 1250, l = W / 100 | 0.311 | +22.5 % | 0.256 | 0.031 |
+| Re 1250, l = W / 50 | 0.155 | +21.7 % | 0.263 | 0.045 |
+
+- The host curve is that of j = l^2 (item 27, Section 19.3 on the branch v10-periodic; j = l^2 / 100 lies 0.003 to
+  0.014 lower here). Every dipole point lies below the start-up curve; **at Re = 1250 the gap is half that of Re =
+  625** (0.03 to 0.05 against 0.06 to 0.07), the normal and oblique collisions at Re = 625 alike. [inferred] The
+  start-up curve is the excess of a layer under a fixed outer flow; the dipole's layer grows under an outer flow that
+  itself changes (and arrives a little weaker in the micropolar fluid); at the higher Reynolds number the layer is
+  thinner against the core and the collision nearer to the start-up. The task's question "does the saturation
+  hold in the collision" therefore has the answer: the excess saturates (it is the same for both l within 0.8 points),
+  at 70 to 90 % of the start-up value at the same Lambda / l, nearer to it at the higher Re.
+
+#### Unexpected, and what is open
+
+- **At Re = 1250 the micropolar runs keep a second enstrophy maximum** (B2): the absence at Re = 625 (17.4, 17.5)
+  is not a property of the micropolar collision at every Re.
+- **The tracks of tables 22 and 26 fail at Re = 1250 and in the oblique collision** (the wall layer fills the six
+  extrema kept per sample); the analysis bridged them for those families (tool change (a)). A run saving more
+  extrema, or extrema away from the wall, would not need it.
+- **The shear length at W / dx = 2000** was wrong in the first B1 analysis (tool change, B1); the W / 1000 values
+  of tables 22, 26 and 29 are unaffected (their band reaches 0.048 W).
+- **The first enstrophy peak at Re = 1250 is -2.8 %** at W / dx = 1000 (Re = 625: -1.6 %); `control_re1250_n500`,
+  which would give its trend, was not run.
+- **Not done:** the t = 1 rows of the paper (runs to t = 0.75); floors past t = 0.40 (the second-collision rows of B2
+  and B3 have no floor of their own; at Re = 625 the floors of those rows were 0.08 to 0.10 %); floor runs at
+  W / dx = 2000; Re = 2500 (not scheduled: Lambda ~ 2.7 dx at W / 1000). Palinstrophy is listed but, as at Re = 625,
+  not used for any verdict (+5 to +10 % against the paper in every control).
 
 ## 18. Stage 8b (2026-11-14): periodic boundaries, Taylor-Green and decaying turbulence
 
@@ -4753,7 +4967,9 @@ zero, no particle outside the channel. Item 28 (`tab_28_plane_flows`).
   +18.9 % at 0.26, +21.3 % at 0.26 with W / dx = 500, +15.0 % at 0.26 with j = l^2 / 100, +7.2 % at 0.13 with
   l = W / 25) lies below the start-up curve at the same Lambda / l (0.24 to 0.26). [inferred] The start-up curve is
   the excess of a layer under a fixed outer flow; in the collision the outer flow weakens with l (the bulk effect of
-  17.6), so the dipole cannot test the saturation by itself, as the task anticipated.
+  17.6), so the dipole cannot test the saturation by itself, as the task anticipated. [2026-11-16, 17.7: the points
+  of W / dx = 2000, Re = 1250 and the oblique collision lie below the curve as well; for j = l^2 the gap is 0.05 to
+  0.07 at Re = 625 and 0.03 to 0.05 at Re = 1250.]
 
 ### 19.5 Unexpected, and what is open
 

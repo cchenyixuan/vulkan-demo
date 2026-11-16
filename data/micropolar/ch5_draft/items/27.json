@@ -2,7 +2,7 @@
  "item": "27",
  "title": "Start-up of plane Couette flow: the wall-stress excess against Lambda / l, and the profiles",
  "status": "final",
- "caption": "The start-up of plane Couette flow (gap H = 20 l, the lower wall set impulsively in motion at U, w = 0 on both walls, K = 3) as a test of the saturation of the wall-stress excess. (a) E = tau_mp / tau_N - 1 on the sliding wall against Lambda / l, Lambda = (mu + kappa / 2) U / tau_N of the Newtonian fluid mu + kappa / 2 (for the Rayleigh layer sqrt(pi nu_inf t)): the host solution (implicit, stretched grid, converged to 3e-5 in E) for j = l^2, l^2 / 100 and l^2 / 10^4 (the quasi-steady limit), the runs (l = 20, 40, 80 dx, j = l^2; l = 40 dx with j = l^2 / 100, drawn to Lambda = 4 l, beyond which that pair at its 21 times smaller dt drifts, its control as well; lines: the wall form, open markers: the 4 dx fit; both from Lambda = 2 dx) with the floor of l = 20 dx (repeat, half Mach; grey), the early limit sqrt(1.6) - 1 (a layer thinner than l is a Newtonian layer of viscosity mu + kappa) and the steady value of eq. 5.5 (star). Crosses: the peak wall-stress excess of the dipole-wall collision runs (tables 22, 26, 29) at their Lambda / l - another flow, whose outer flow changes with l. (b, c) u and w across the gap at Lambda = 0.25 l, l and 4 l: the run at l = 40 dx (markers) against the host solution (lines).",
+ "caption": "The start-up of plane Couette flow (gap H = 20 l, the lower wall set impulsively in motion at U, w = 0 on both walls, K = 3) as a test of the saturation of the wall-stress excess. (a) E = tau_mp / tau_N - 1 on the sliding wall against Lambda / l, Lambda = (mu + kappa / 2) U / tau_N of the Newtonian fluid mu + kappa / 2 (for the Rayleigh layer sqrt(pi nu_inf t)): the host solution (implicit, stretched grid, converged to 3e-5 in E) for j = l^2, l^2 / 100 and l^2 / 10^4 (the quasi-steady limit), the runs (l = 20, 40, 80 dx, j = l^2; l = 40 dx with j = l^2 / 100, drawn to Lambda = 4 l, beyond which that pair at its 21 times smaller dt drifts, its control as well; lines: the wall form, open markers: the 4 dx fit; both from Lambda = 2 dx) with the floor of l = 20 dx (repeat, half Mach; grey), the early limit sqrt(1.6) - 1 (a layer thinner than l is a Newtonian layer of viscosity mu + kappa) and the steady value of eq. 5.5 (star). Crosses: the peak wall-stress excess of the dipole-wall collision runs (tables 22, 26, 29: Re = 625 and 1250, W / dx = 500 to 2000, the normal and the oblique collision) at their Lambda / l - another flow, whose outer flow changes with l. (b, c) u and w across the gap at Lambda = 0.25 l, l and 4 l: the run at l = 40 dx (markers) against the host solution (lines).",
  "files": [
   "fig_27_startup.pdf",
   "fig_27_startup.png"
@@ -51,6 +51,10 @@
    "smallest_resolved_layer_over_length": null
   },
   "dipole": {
+   "$\\ell = W/100$": [
+    0.5263780456940768,
+    0.18203367112150715
+   ],
    "$\\ell = W/50$": [
     0.2631890228470384,
     0.18922379160790626
@@ -66,6 +70,22 @@
    "$\\ell = W/25$, $j = \\ell^2/100$": [
     0.1315945114235192,
     0.07150493919186185
+   ],
+   "$\\ell = W/100$, $W/\\Delta x = 2000$": [
+    0.5405841521074377,
+    0.18941040944862464
+   ],
+   "$\\ell = W/100$, Re 1250": [
+    0.3109989634197123,
+    0.22499919163663096
+   ],
+   "$\\ell = W/50$, Re 1250": [
+    0.15549948170985614,
+    0.2172640200051441
+   ],
+   "$\\ell = W/50$, oblique": [
+    0.2170140809520925,
+    0.18753789468700122
    ]
   },
   "profile_0.25": {
