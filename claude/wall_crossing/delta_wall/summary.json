@@ -50,6 +50,29 @@
    "alive_last": 74529,
    "time_last": 5.01
   },
+  "dw_n250_crossing_body_force": {
+   "samples": 168,
+   "samples_in_fit": 134,
+   "fit_window": [
+    1.02,
+    5.01
+   ],
+   "drift_rate": -0.02027327163086181,
+   "fit_residual_root_mean_square": 0.00129159325011358,
+   "time_at_reading": 5.01,
+   "density_mean_minus_rest": -0.10650222833294265,
+   "pressure_mean": -1063.8236101825976,
+   "pressure_mean_over_dynamic": -1.0638236101825975,
+   "pressure_negative_fraction": 0.9999682544721512,
+   "kinetic_energy": 21.75226006242431,
+   "density_deviation_maximum": 0.18603515625,
+   "speed_maximum": 0.9772007490205433,
+   "wall_distance_minimum_over_spacing": 0.29338049888610884,
+   "outside_box_count_maximum": 0,
+   "gradient_fallbacks": 0,
+   "alive_last": 74529,
+   "time_last": 5.01
+  },
   "dw_n250_simple": {
    "samples": 168,
    "samples_in_fit": 134,
@@ -148,9 +171,154 @@
  "run_ids": {
   "dw_n250_crossing_extension": "wc-20261117-224501-32f5",
   "dw_n250_crossing_rest_density": "wc-20261117-224550-a5c0",
+  "dw_n250_crossing_body_force": "wc-20261118-013702-5995",
   "dw_n250_simple": "wc-20261117-224639-a58b",
   "dw_n250_adami": "wc-20261117-224722-a4ce",
   "dw_n250_crossing_wall_velocity_rest_density": "wc-20261117-224827-978a"
+ },
+ "hydrostatic_2d": {
+  "gy": {
+   "2d_n250_gy_crossing": {
+    "run_id": "wc-20261117-174907-dc68",
+    "time": 10.02,
+    "speed_root_mean_square_over_scale_last_fifth": 0.00018241045554453754,
+    "speed_maximum_over_scale_last_fifth": 0.005851388497359957,
+    "pressure_error_root_mean_square_over_scale": 0.00042670454741214586,
+    "pressure_error_maximum_over_scale": 0.010419822811262044,
+    "pressure_raw_error_root_mean_square_over_scale": 0.0006819013316429277,
+    "pressure_level_over_scale": 0.0005318953424445394,
+    "fitted_gradient_error_over_rho_g": 0.0010775624524962666,
+    "density_deviation_maximum": 0.5435791015625
+   },
+   "2d_n250_gy_crossing_history": {
+    "run_id": "wc-20261118-014250-db8f",
+    "time": 10.02,
+    "speed_root_mean_square_over_scale_last_fifth": 0.00020337082891047387,
+    "speed_maximum_over_scale_last_fifth": 0.004894517376694464,
+    "pressure_error_root_mean_square_over_scale": 0.0004203729295149322,
+    "pressure_error_maximum_over_scale": 0.009474070181012454,
+    "pressure_raw_error_root_mean_square_over_scale": 0.001783550012034905,
+    "pressure_level_over_scale": 0.0017333024103025829,
+    "fitted_gradient_error_over_rho_g": 0.0010909003871245077,
+    "density_deviation_maximum": 0.54290771484375,
+    "pressure_level_over_scale_at_times": {
+     "2.5": -0.0038959952072874235,
+     "5.0": -0.0031388625769676434,
+     "7.5": -0.0008047117324765947,
+     "10.0": 0.0017333024103025829
+    },
+    "pressure_level_rate_over_scale": 0.0009636508223731708,
+    "density_mean_drift_rate": 0.0009673965645307946,
+    "density_mean_minus_rest_last": 0.0013824291897890362
+   },
+   "2d_n250_gy_crossing_delta_wall_body_force": {
+    "run_id": "wc-20261118-013826-9f27",
+    "time": 10.02,
+    "speed_root_mean_square_over_scale_last_fifth": 0.00020909168976939642,
+    "speed_maximum_over_scale_last_fifth": 0.004444976450192834,
+    "pressure_error_root_mean_square_over_scale": 0.0004384292200262152,
+    "pressure_error_maximum_over_scale": 0.009019029702369483,
+    "pressure_raw_error_root_mean_square_over_scale": 0.06153916942033018,
+    "pressure_level_over_scale": 0.06153760762950676,
+    "fitted_gradient_error_over_rho_g": 0.0011566752611512565,
+    "density_deviation_maximum": 0.568359375
+   },
+   "2d_n250_gy_crossing_delta_wall_body_force_history": {
+    "run_id": "wc-20261118-014420-5d89",
+    "time": 10.02,
+    "speed_root_mean_square_over_scale_last_fifth": 0.0002544631859764978,
+    "speed_maximum_over_scale_last_fifth": 0.005927593811358316,
+    "pressure_error_root_mean_square_over_scale": 0.00047917041233376106,
+    "pressure_error_maximum_over_scale": 0.009791283461901291,
+    "pressure_raw_error_root_mean_square_over_scale": 0.06661845998733552,
+    "pressure_level_over_scale": 0.06661673668681294,
+    "fitted_gradient_error_over_rho_g": 0.0012772803503339545,
+    "density_deviation_maximum": 0.57098388671875,
+    "pressure_level_over_scale_at_times": {
+     "2.5": 0.0481498637008337,
+     "5.0": 0.05527332470824834,
+     "7.5": 0.06193789695578972,
+     "10.0": 0.06661673668681294
+    },
+    "pressure_level_rate_over_scale": 0.0024596699636422388,
+    "density_mean_drift_rate": 0.0024691461803793197,
+    "density_mean_minus_rest_last": 0.06650151467863452
+   }
+  },
+  "g30": {
+   "2d_n250_g30_crossing": {
+    "run_id": "wc-20261117-175922-f0ee",
+    "time": 10.02,
+    "speed_root_mean_square_over_scale_last_fifth": 0.00032832126473013464,
+    "speed_maximum_over_scale_last_fifth": 0.003877613777193345,
+    "pressure_error_root_mean_square_over_scale": 0.00034252306832057897,
+    "pressure_error_maximum_over_scale": 0.008386505183354787,
+    "pressure_raw_error_root_mean_square_over_scale": 0.012953756972479734,
+    "pressure_level_over_scale": -0.012949227685454277,
+    "fitted_gradient_error_over_rho_g": 0.0010606124083240827,
+    "density_deviation_maximum": 0.75604248046875
+   },
+   "2d_n250_g30_crossing_history": {
+    "run_id": "wc-20261118-014549-c5ff",
+    "time": 10.02,
+    "speed_root_mean_square_over_scale_last_fifth": 0.00027792467987779255,
+    "speed_maximum_over_scale_last_fifth": 0.00520731026963362,
+    "pressure_error_root_mean_square_over_scale": 0.00033915596100611936,
+    "pressure_error_maximum_over_scale": 0.0063679696827477015,
+    "pressure_raw_error_root_mean_square_over_scale": 0.009860439908871546,
+    "pressure_level_over_scale": -0.009854605442663889,
+    "fitted_gradient_error_over_rho_g": 0.0010685652633206169,
+    "density_deviation_maximum": 0.75286865234375,
+    "pressure_level_over_scale_at_times": {
+     "2.5": -0.002888183638463529,
+     "5.0": -0.006216025712947402,
+     "7.5": -0.007774937640878122,
+     "10.0": -0.009854605442663889
+    },
+    "pressure_level_rate_over_scale": -0.0007792322406433219,
+    "density_mean_drift_rate": -0.0010701464213436868,
+    "density_mean_minus_rest_last": -0.013865486099348345
+   },
+   "2d_n250_g30_crossing_delta_wall_body_force": {
+    "run_id": "wc-20261118-013956-820e",
+    "time": 10.02,
+    "speed_root_mean_square_over_scale_last_fifth": 0.00035508308016572726,
+    "speed_maximum_over_scale_last_fifth": 0.004338846406364196,
+    "pressure_error_root_mean_square_over_scale": 0.0003685863699006726,
+    "pressure_error_maximum_over_scale": 0.007201388486883508,
+    "pressure_raw_error_root_mean_square_over_scale": 0.02815075640832166,
+    "pressure_level_over_scale": 0.028148343298471164,
+    "fitted_gradient_error_over_rho_g": 0.0011535354846114133,
+    "density_deviation_maximum": 0.74713134765625
+   },
+   "2d_n250_g30_crossing_delta_wall_body_force_history": {
+    "run_id": "wc-20261118-014719-f185",
+    "time": 10.02,
+    "speed_root_mean_square_over_scale_last_fifth": 0.00038878890023831997,
+    "speed_maximum_over_scale_last_fifth": 0.005880772169315924,
+    "pressure_error_root_mean_square_over_scale": 0.0003416006342474582,
+    "pressure_error_maximum_over_scale": 0.007664619847029689,
+    "pressure_raw_error_root_mean_square_over_scale": 0.0032503026804972996,
+    "pressure_level_over_scale": -0.0032323020467663077,
+    "fitted_gradient_error_over_rho_g": 0.0010705062554479782,
+    "density_deviation_maximum": 0.75030517578125,
+    "pressure_level_over_scale_at_times": {
+     "2.5": -0.007148623705557104,
+     "5.0": -0.007216076487986747,
+     "7.5": -0.007051684182944038,
+     "10.0": -0.0032323020467663077
+    },
+    "pressure_level_rate_over_scale": 0.00047029395337222464,
+    "density_mean_drift_rate": 0.0006441215368274646,
+    "density_mean_minus_rest_last": -0.004784617211612385
+   }
+  }
+ },
+ "without_density_diffusion": {
+  "run": "diag_n250_crossing_no_diffusion",
+  "run_id": "wc-20261117-175202-5ece",
+  "drift_rate": -0.03428057126291161,
+  "samples_in_fit": 19
  },
  "stopped_runs": [
   "wc-20261117-223709-94f6",

@@ -19,6 +19,8 @@ This script reads their series.csv / summary.json and writes
                                                          1 <= t <= 5), mean pressure and share of fluid particles
                                                          with negative pressure at the last sample (t = 5.01)
     claude/wall_crossing/tables/delta_wall_side_run.md   the wall_velocity run
+    claude/wall_crossing/tables/delta_wall_parts.md      the drift rate against the parts of the delta term that act
+                                                         (with the stage-1 run without any density diffusion)
     claude/wall_crossing/tables/delta_wall_hydrostatic.md   extension against body_force in the hydrostatic boxes
     claude/wall_crossing/tables/stopped_runs.md          the runs stopped at the user's request (runs.jsonl)
     claude/wall_crossing/delta_wall/summary.json
@@ -61,11 +63,25 @@ RUNS = (("dw_n250_crossing_rest_density", "crossing，delta_wall = rest_density�
 TABLE_ORDER = ("dw_n250_crossing_extension", "dw_n250_crossing_rest_density", "dw_n250_crossing_body_force",
                "dw_n250_simple", "dw_n250_adami")
 SIDE_RUN = "dw_n250_crossing_wall_velocity_rest_density"
-# the 2-D hydrostatic boxes: direction -> (its text, the extension run, the body_force run)
+CONTEXT_RUN = "diag_n250_crossing_no_diffusion"     # stage 1: crossing without any density diffusion, to t = 6
+# the 2-D hydrostatic boxes: direction -> (its text, the runs: (name, column text, form index))
+# form 0 = extension, 1 = body_force. The "_history" runs carry the mean density and the pressure level at every
+# sample (hydrostatic.py as of 21b700a); the other two are the main series' extension run and the first
+# body_force run, so each form has two runs and their difference shows what one run is worth.
 HYDROSTATIC_RUNS = {
-    "gy": ("重力沿 −y", "2d_n250_gy_crossing", "2d_n250_gy_crossing_delta_wall_body_force"),
-    "g30": ("重力偏离 −y 30°", "2d_n250_g30_crossing", "2d_n250_g30_crossing_delta_wall_body_force")}
+    "gy": ("重力沿 −y", (
+        ("2d_n250_gy_crossing", "extension，此前的运行", 0),
+        ("2d_n250_gy_crossing_history", "extension，重复（带历史）", 0),
+        ("2d_n250_gy_crossing_delta_wall_body_force", "body_force，第 1 次", 1),
+        ("2d_n250_gy_crossing_delta_wall_body_force_history", "body_force，第 2 次（带历史）", 1))),
+    "g30": ("重力偏离 −y 30°", (
+        ("2d_n250_g30_crossing", "extension，此前的运行", 0),
+        ("2d_n250_g30_crossing_history", "extension，重复（带历史）", 0),
+        ("2d_n250_g30_crossing_delta_wall_body_force", "body_force，第 1 次", 1),
+        ("2d_n250_g30_crossing_delta_wall_body_force_history", "body_force，第 2 次（带历史）", 1)))}
 HYDROSTATIC_FORMS = (("extension（现状）", "#2a78d6", "solid"), ("body_force（诊断）", "#008300", (0, (7, 2, 1.5, 2))))
+HYDROSTATIC_LEVEL_TIMES = (2.5, 5.0, 7.5, 10.0)
+HYDROSTATIC_DRIFT_WINDOW = (3.0, 10.03)     # after the settling (the level-free pressure error is flat from t = 2)
 
 
 def load_hydrostatic(name: str) -> tuple:
@@ -78,115 +94,169 @@ def load_hydrostatic(name: str) -> tuple:
 
 
 def hydrostatic_comparison(records: dict) -> dict:
-    """The table and the figure of extension against body_force in the two 2-D hydrostatic boxes. Both runs of a
-    direction are read at the same time (the last sample both reached). records: runs.jsonl by run id."""
-    columns = ["量"]
-    table_rows: dict = {}
+    """The tables (one per gravity direction) and the figure of extension against body_force in the two 2-D
+    hydrostatic boxes, two runs of each form. records: runs.jsonl by run id."""
     summary_out = {}
-    order = []
-
-    def put(label: str, value: str) -> None:
-        if label not in table_rows:
-            table_rows[label] = []
-            order.append(label)
-        table_rows[label].append(value)
-
     loaded = {}
-    for direction, (direction_text, extension_name, body_force_name) in HYDROSTATIC_RUNS.items():
-        pair = [load_hydrostatic(extension_name), load_hydrostatic(body_force_name)]
-        loaded[direction] = pair
-        common_time = min(float(series["time"][-1]) for _, series in pair)
+    texts = ["2-D 静水盒（250² 方腔的几何，盖静止，|g| = 10，c0 = 100，从均匀密度、零速度开始，到 t = 10.02）。速度以 "
+             "√(|g| H) 为单位，压力以 ρ0 |g| H 为单位（H = 盒沿重力方向的尺寸）。“去电平” = 减去全场平均偏差后的误差；"
+             "“电平” = 压力减去 ρ0 g·(r − r_中心) 之后对全部流体粒子的平均。每种写法各有两次运行：两次之间的差别"
+             "就是单次运行的可重复程度。带历史的两次在每个样本都记了平均密度和电平（工具在 21b700a 加的列）。"]
+    for direction, (direction_text, runs) in HYDROSTATIC_RUNS.items():
+        columns = ["量"]
+        order = []
+        table_rows: dict = {}
+
+        def put(label: str, value: str) -> None:
+            if label not in table_rows:
+                table_rows[label] = []
+                order.append(label)
+            table_rows[label].append(value)
+
+        loaded[direction] = []
         summary_out[direction] = {}
-        for (form_text, _, _), name, (summary, series) in zip(HYDROSTATIC_FORMS, (extension_name, body_force_name), pair):
-            columns.append(f"{direction_text}，{form_text}")
+        for name, column_text, form in runs:
+            summary, series = load_hydrostatic(name)
+            loaded[direction].append((name, form, summary, series))
+            columns.append(column_text)
             final = summary["final"]
             scale = summary["scales"]["velocity_sqrt_g_extent"]
             pressure_scale = summary["scales"]["pressure_rho_g_extent"]
             layers = {tuple(layer["wall_distance_over_spacing"]): layer for layer in final["layers"]}
-            at_common = int(np.argmin(np.abs(series["time"] - common_time)))
-            tail = series["time"] >= 0.8 * common_time
-            tail &= series["time"] <= common_time + 1e-9
-            rest_density = REST_DENSITY
-            put("到达的时刻", f"t = {summary['time']:.2f}（{summary['steps']:,} 步）"
-                + ("，失败" if summary.get("failed") else "，粒子数守恒"))
-            put("比较的时刻", f"t = {series['time'][at_common]:.2f}")
-            put("速度 rms / √(gH)，该时刻", f"{series['speed_root_mean_square'][at_common] / scale:.2e}")
+            time = series["time"]
+            tail = time >= 0.8 * time[-1]
+            has_history = "pressure_level_at_centre" in series
+            put("到达的时刻", f"t = {summary['time']:.2f}" + ("，失败" if summary.get("failed") else "，粒子数守恒"))
             put("速度 rms / √(gH)，末 1/5 段平均", f"{series['speed_root_mean_square'][tail].mean() / scale:.2e}")
-            put("速度最大 / √(gH)，该时刻", f"{series['speed_maximum'][at_common] / scale:.2e}")
             put("速度最大 / √(gH)，末 1/5 段的最大", f"{series['speed_maximum'][tail].max() / scale:.2e}")
-            put("动能，该时刻（求解器单位）", f"{series['kinetic_energy'][at_common]:.3e}")
-            put("压力 rms 误差（去电平）/ ρ0 g H，末态", f"{100 * final['pressure_error_root_mean_square_over_scale']:.4f} %")
-            put("压力最大误差（去电平）/ ρ0 g H，末态", f"{100 * final['pressure_error_maximum_over_scale']:.3f} %")
-            put("压力 rms 误差（不去电平）/ ρ0 g H，末态",
-                f"{100 * final['pressure_raw_error_root_mean_square_over_scale']:.4f} %")
-            put("盒中心的压力电平 / ρ0 g H，末态", f"{100 * final['pressure_level_over_scale']:+.4f} %")
-            put("拟合压力梯度的误差 / ρ0 g，末态", f"{100 * final['fitted_gradient_error_over_rho_g']:.4f} %")
             for key, layer_text in (((0.0, 1.0), "近壁第 1 层（φ < dx）"), ((1.0, 2.0), "第 2 层"),
                                     ((2.0, 3.0), "第 3 层"), ((5.0, None), "内部（φ ≥ 5 dx）")):
                 layer = layers.get(key)
                 put(f"速度 rms / √(gH)，{layer_text}，末态",
                     "—" if layer is None else f"{layer['speed_root_mean_square'] / scale:.2e}")
-                put(f"压力 rms 误差 / ρ0 g H，{layer_text}，末态",
-                    "—" if layer is None else f"{100 * layer['pressure_error_root_mean_square'] / pressure_scale:.4f} %")
-            put("密度范围 − ρ0，该时刻（kg/m³）",
-                f"{series['density_minimum'][at_common] - rest_density:+.3f} … "
-                f"{series['density_maximum'][at_common] - rest_density:+.3f}")
-            put("φ 的最小值（整个运行）", f"{summary['whole_run']['wall_distance_minimum_over_spacing']:.3f} dx")
-            put("A_f 回退（累计）", str(summary["whole_run"]["gradient_fallbacks"]))
-            put("步 / 秒；GPU", f"{summary['steps_per_second'] or 0:.0f}；{(summary.get('device_uuid') or '?')[:8]}")
-            record = records.get(summary["run_id"], {})
-            put("记录（提交）", f"{summary['run_id']}（{record.get('commit', '?')}）")
-            summary_out[direction][name] = {
-                "run_id": summary["run_id"], "time": summary["time"], "time_compared": float(series["time"][at_common]),
-                "speed_root_mean_square_over_scale": float(series["speed_root_mean_square"][at_common] / scale),
+            put("压力 rms 误差（去电平），末态", f"{100 * final['pressure_error_root_mean_square_over_scale']:.4f} %")
+            put("压力最大误差（去电平），末态", f"{100 * final['pressure_error_maximum_over_scale']:.3f} %")
+            put("拟合压力梯度的误差 / ρ0 g，末态", f"{100 * final['fitted_gradient_error_over_rho_g']:.4f} %")
+            put("盒中心的压力电平，末态", f"{100 * final['pressure_level_over_scale']:+.3f} %")
+            put("压力 rms 误差（不去电平），末态", f"{100 * final['pressure_raw_error_root_mean_square_over_scale']:.3f} %")
+            entry = {
+                "run_id": summary["run_id"], "time": summary["time"],
                 "speed_root_mean_square_over_scale_last_fifth": float(series["speed_root_mean_square"][tail].mean() / scale),
-                "speed_maximum_over_scale": float(series["speed_maximum"][at_common] / scale),
                 "speed_maximum_over_scale_last_fifth": float(series["speed_maximum"][tail].max() / scale),
-                "kinetic_energy": float(series["kinetic_energy"][at_common]),
                 "pressure_error_root_mean_square_over_scale": final["pressure_error_root_mean_square_over_scale"],
                 "pressure_error_maximum_over_scale": final["pressure_error_maximum_over_scale"],
                 "pressure_raw_error_root_mean_square_over_scale": final["pressure_raw_error_root_mean_square_over_scale"],
                 "pressure_level_over_scale": final["pressure_level_over_scale"],
                 "fitted_gradient_error_over_rho_g": final["fitted_gradient_error_over_rho_g"],
-                "density_minimum_minus_rest": float(series["density_minimum"][at_common] - rest_density),
-                "density_maximum_minus_rest": float(series["density_maximum"][at_common] - rest_density)}
-    text = ("2-D 静水盒（250² 方腔的几何，盖静止，|g| = 10，c0 = 100，从均匀密度、零速度开始）。速度以 √(|g| H) 为单位，"
-            "压力以 ρ0 |g| H 为单位（H = 盒沿重力方向的尺寸）。“去电平” = 减去全场平均偏差后的误差；"
-            "“该时刻” = 两次运行都到达的最后一个样本。\n\n"
-            + markdown_table(columns, [[label] + table_rows[label] for label in order]))
-    (REPORT_ROOT / "tables" / "delta_wall_hydrostatic.md").write_text(text, encoding="utf-8", newline="\n")
+                "density_deviation_maximum": summary["whole_run"]["density_deviation_maximum"]}
+            if has_history:
+                level = series["pressure_level_at_centre"] / pressure_scale
+                at_times = [float(level[int(np.argmin(np.abs(time - instant)))]) for instant in HYDROSTATIC_LEVEL_TIMES]
+                inside = (time >= HYDROSTATIC_DRIFT_WINDOW[0]) & (time <= HYDROSTATIC_DRIFT_WINDOW[1])
+                density_slope = float(np.polyfit(time[inside], series["density_mean"][inside], 1)[0])
+                level_slope = float(np.polyfit(time[inside], level[inside], 1)[0])
+                put("电平在 t = " + "、".join(f"{instant:g}" for instant in HYDROSTATIC_LEVEL_TIMES),
+                    " / ".join(f"{100 * value:+.3f} %" for value in at_times))
+                put(f"电平的变化率，t ∈ [{HYDROSTATIC_DRIFT_WINDOW[0]:g}, 10]（每时间单位）", f"{100 * level_slope:+.4f} %")
+                put(f"平均密度的漂移率，t ∈ [{HYDROSTATIC_DRIFT_WINDOW[0]:g}, 10]（kg/m³ 每时间单位）", f"{density_slope:+.5f}")
+                put("平均密度 − ρ0，末态（kg/m³）", f"{series['density_mean'][-1] - REST_DENSITY:+.5f}")
+                entry.update({"pressure_level_over_scale_at_times": dict(zip(map(str, HYDROSTATIC_LEVEL_TIMES), at_times)),
+                              "pressure_level_rate_over_scale": level_slope, "density_mean_drift_rate": density_slope,
+                              "density_mean_minus_rest_last": float(series["density_mean"][-1] - REST_DENSITY)})
+            else:
+                for label in ("电平在 t = " + "、".join(f"{instant:g}" for instant in HYDROSTATIC_LEVEL_TIMES),
+                              f"电平的变化率，t ∈ [{HYDROSTATIC_DRIFT_WINDOW[0]:g}, 10]（每时间单位）",
+                              f"平均密度的漂移率，t ∈ [{HYDROSTATIC_DRIFT_WINDOW[0]:g}, 10]（kg/m³ 每时间单位）",
+                              "平均密度 − ρ0，末态（kg/m³）"):
+                    put(label, "—（没有记）")
+            # every run has the density range: the midpoint of the range, as a pressure through c0^2, is a rough
+            # stand-in for the level (the extremes are single particles; it sits up to ~0.3 points off the level)
+            midpoint_level = ((0.5 * (series["density_minimum"] + series["density_maximum"]) - REST_DENSITY)
+                              * summary["scales"]["speed_of_sound"] ** 2 / pressure_scale)
+            put("由密度范围的中点估计的电平（粗略），t = " + "、".join(f"{instant:g}" for instant in HYDROSTATIC_LEVEL_TIMES),
+                " / ".join(f"{100 * midpoint_level[int(np.argmin(np.abs(time - instant)))]:+.2f} %"
+                           for instant in HYDROSTATIC_LEVEL_TIMES))
+            put("密度范围 − ρ0，末态（kg/m³）",
+                f"{final['density_minimum'] - REST_DENSITY:+.3f} … {final['density_maximum'] - REST_DENSITY:+.3f}")
+            put("φ 的最小值（整个运行）", f"{summary['whole_run']['wall_distance_minimum_over_spacing']:.3f} dx")
+            put("A_f 回退（累计）", str(summary["whole_run"]["gradient_fallbacks"]))
+            record = records.get(summary["run_id"], {})
+            put("记录（提交）", f"{summary['run_id']}（{record.get('commit', '?')}）")
+            summary_out[direction][name] = entry
+        texts.append(f"**{direction_text}**\n\n"
+                     + markdown_table(columns, [[label] + table_rows[label] for label in order]))
+    text = "\n\n".join(texts)
+    (REPORT_ROOT / "tables" / "delta_wall_hydrostatic.md").write_text(text + "\n", encoding="utf-8", newline="\n")
 
-    # ---- figure: rms and largest speed against time, one panel per direction and quantity (one axis each)
+    # ---- figure: one row per direction; the pressure level, the rms speed and the level-free pressure error
+    # against time (one axis each). The level and the pressure error exist for the history runs only; the rms
+    # speed is drawn for both runs of each form (the other run thinner), and the other run's final level is a
+    # marker on the level panel.
+    from matplotlib.lines import Line2D
+
     setup_style()
-    figure, axes = plt.subplots(2, 2, figsize=(11.6, 7.4), sharex=True)
-    handles = []
-    for column, (direction, (direction_text, _, _)) in enumerate(HYDROSTATIC_RUNS.items()):
-        for row, (key, quantity_text) in enumerate((("speed_root_mean_square", "速度 rms / √(gH)"),
-                                                    ("speed_maximum", "速度最大 / √(gH)"))):
-            axis = axes[row][column]
-            for (form_text, colour, style), (summary, series) in zip(HYDROSTATIC_FORMS, loaded[direction]):
-                scale = summary["scales"]["velocity_sqrt_g_extent"]
-                positive = series["time"] > 0.0
-                line, = axis.plot(series["time"][positive], series[key][positive] / scale, color=colour,
-                                  linestyle=style, zorder=3)
-                if row == 0 and column == 0:
-                    handles.append((line, form_text))
-            axis.set_yscale("log")
-            axis.set_title(f"{direction_text}：{quantity_text}")
-            if row == 1:
-                axis.set_xlabel("时间（模拟单位）")
+    figure, axes = plt.subplots(2, 3, figsize=(13.6, 7.8), sharex=True)
+    handles = {}
+    for row, (direction, (direction_text, _)) in enumerate(HYDROSTATIC_RUNS.items()):
+        level_ends = {}         # form -> [(value, x)] of the line's end and of the other run's marker
+        for name, form, summary, series in loaded[direction]:
+            form_text, colour, style = HYDROSTATIC_FORMS[form]
+            scale = summary["scales"]["velocity_sqrt_g_extent"]
+            pressure_scale = summary["scales"]["pressure_rho_g_extent"]
+            positive = series["time"] > 0.0
+            has_history = "pressure_level_at_centre" in series
+            line, = axes[row][1].plot(series["time"][positive], series["speed_root_mean_square"][positive] / scale,
+                                      color=colour, linestyle=style, linewidth=2.0 if has_history else 1.0,
+                                      alpha=1.0 if has_history else 0.55, zorder=3 if has_history else 2)
+            if has_history:
+                handles[form_text] = line
+                axes[row][0].plot(series["time"], 100.0 * series["pressure_level_at_centre"] / pressure_scale,
+                                  color=colour, linestyle=style, zorder=3)
+                axes[row][2].plot(series["time"][positive],
+                                  100.0 * series["pressure_error_root_mean_square"][positive] / pressure_scale,
+                                  color=colour, linestyle=style, zorder=3)
+                level_ends.setdefault(form, []).append(
+                    (100.0 * float(series["pressure_level_at_centre"][-1]) / pressure_scale, float(series["time"][-1])))
+            else:
+                # the other run of this form has no level column: its final level (summary.json) as a marker
+                final_level = 100.0 * summary["final"]["pressure_level_over_scale"]
+                axes[row][0].plot([summary["time"]], [final_level], marker="o", markersize=7, color=colour,
+                                  markeredgecolor=SURFACE, markeredgewidth=1.5, linestyle="none", zorder=4,
+                                  clip_on=False)
+                level_ends.setdefault(form, []).append((final_level, float(summary["time"])))
+        # the values at the right edge, spread so that two that end together do not overlap
+        low, high = axes[row][0].get_ylim()
+        gap = 0.06 * (high - low)
+        placed = []
+        for value, instant in sorted(entry for ends in level_ends.values() for entry in ends):
+            position = value if not placed or value - placed[-1] >= gap else placed[-1] + gap
+            placed.append(position)
+            axes[row][0].annotate(f"{value:+.2f}", (instant, value), xytext=(instant + 0.35, position),
+                                  textcoords="data", fontsize=8, color=INK_SECONDARY, va="center",
+                                  annotation_clip=False)
+        axes[row][0].axhline(0.0, color=INK_SECONDARY, linewidth=0.7, zorder=2)
+        axes[row][0].set_title(f"{direction_text}：盒中心的压力电平（%）")
+        axes[row][1].set_title(f"{direction_text}：速度 rms / √(gH)")
+        axes[row][2].set_title(f"{direction_text}：压力 rms 误差，去电平（%）")
+        axes[row][1].set_yscale("log")
+        axes[row][2].set_yscale("log")
+    for axis in axes[1]:
+        axis.set_xlabel("时间（模拟单位）")
     height = figure.get_figheight()
-    figure.suptitle("2-D 静水盒：壁邻居 δ 项的两种写法，残余速度随时间", x=0.01, y=1.0 - 0.05 / height, ha="left",
-                    va="top", fontsize=12, fontweight="bold", color=INK_PRIMARY)
-    figure.legend([line for line, _ in handles], [text_form for _, text_form in handles], loc="upper left",
-                  bbox_to_anchor=(0.01, 1.0 - 0.40 / height), ncol=2, handlelength=2.8, columnspacing=1.6,
-                  labelcolor=INK_PRIMARY, borderaxespad=0.0)
-    figure.tight_layout(rect=(0, 0, 1.0, 1.0 - 0.60 / height), w_pad=2.4)
+    figure.suptitle("2-D 静水盒：壁邻居 δ 项的两种写法（压力以 ρ0 g H 为单位）", x=0.01, y=1.0 - 0.05 / height,
+                    ha="left", va="top", fontsize=12, fontweight="bold", color=INK_PRIMARY)
+    legend_handles = list(handles.values()) + [
+        Line2D([], [], color=INK_SECONDARY, linewidth=1.0, alpha=0.55),
+        Line2D([], [], color=INK_SECONDARY, marker="o", markersize=7, markeredgecolor=SURFACE, markeredgewidth=1.5,
+               linestyle="none")]
+    legend_labels = list(handles.keys()) + ["细线：同一写法的另一次运行（只有速度）", "圆点：另一次运行的末态电平"]
+    figure.legend(legend_handles, legend_labels, loc="upper left", bbox_to_anchor=(0.01, 1.0 - 0.40 / height),
+                  ncol=4, handlelength=3.0, columnspacing=1.6, labelcolor=INK_PRIMARY, borderaxespad=0.0)
+    figure.tight_layout(rect=(0, 0, 0.985, 1.0 - 0.66 / height), w_pad=3.6)
     figure.savefig(REPORT_ROOT / "figures" / "delta_wall_hydrostatic.png")
     plt.close(figure)
     print(text)
     return summary_out
-
 
 def load_series(name: str) -> dict:
     with open(LOG_ROOT / "box_run" / name / "series.csv", encoding="utf-8", newline="") as handle:
@@ -253,6 +323,27 @@ def main() -> int:
     (REPORT_ROOT / "tables").mkdir(parents=True, exist_ok=True)
     (REPORT_ROOT / "tables" / "delta_wall.md").write_text(table, encoding="utf-8", newline="\n")
 
+    # ---- which parts of the delta term act, against the drift rate. The run without any density diffusion is a
+    # diagnostic run of stage 1 (existing data: sampled every 0.21 time units to t = 6, no pressure columns); its
+    # drift rate is fitted over the same window here.
+    context_series = load_series(CONTEXT_RUN)
+    context_inside = (context_series["time"] >= FIT_WINDOW[0]) & (context_series["time"] <= FIT_WINDOW[1])
+    context_rate = float(np.polyfit(context_series["time"][context_inside],
+                                    context_series["density_mean"][context_inside], 1)[0])
+    context_rows = [
+        ["无（`use_density_diffusion: false`）", "无", f"{context_rate:+.5f}",
+         f"阶段 1 的诊断运行，已有数据；窗口内 {int(context_inside.sum())} 个样本（每 0.21 个时间单位一个）",
+         f"{records[CONTEXT_RUN]['run_id']}（{records[CONTEXT_RUN]['commit']}）"],
+        ["有", "无（`body_force`，方腔没有重力）", f"{measured['dw_n250_crossing_body_force']['drift_rate']:+.5f}", "本节",
+         f"{records['dw_n250_crossing_body_force']['run_id']}（{records['dw_n250_crossing_body_force']['commit']}）"],
+        ["有", "延拓 G_i·(r_j − r_i)（`extension`，现状）", f"{measured['dw_n250_crossing_extension']['drift_rate']:+.5f}",
+         "第 6 节", f"{records['dw_n250_crossing_extension']['run_id']}（{records['dw_n250_crossing_extension']['commit']}）"],
+        ["有", "ρ0 − ρ_i（`rest_density`）", f"{measured['dw_n250_crossing_rest_density']['drift_rate']:+.5f}", "第 6 节",
+         f"{records['dw_n250_crossing_rest_density']['run_id']}（{records['dw_n250_crossing_rest_density']['commit']}）"]]
+    (REPORT_ROOT / "tables" / "delta_wall_parts.md").write_text(
+        markdown_table(["流体邻居的 δ 项", "壁邻居的 δ 项", "漂移率，t ∈ [1, 5]（kg/m³ 每时间单位）", "来源", "记录（提交）"],
+                       context_rows), encoding="utf-8", newline="\n")
+
     side_series = load_series(SIDE_RUN)
     side = measure(side_series, FIT_WINDOW)
     side_long = measure(side_series, (1.0, float(side_series["time"][-1]) + 1e-9))
@@ -301,6 +392,8 @@ def main() -> int:
     summary = {"fit_window": list(FIT_WINDOW), "runs": measured, "side_run": {"to_t5": side, "whole_run": side_long},
                "run_ids": {name: records[name]["run_id"] for name in (*TABLE_ORDER, SIDE_RUN)},
                "hydrostatic_2d": hydrostatic,
+               "without_density_diffusion": {"run": CONTEXT_RUN, "run_id": records[CONTEXT_RUN]["run_id"],
+                                             "drift_rate": context_rate, "samples_in_fit": int(context_inside.sum())},
                "stopped_runs": [record["run_id"] for record in stopped]}
     (REPORT_ROOT / "delta_wall").mkdir(parents=True, exist_ok=True)
     (REPORT_ROOT / "delta_wall" / "summary.json").write_text(json.dumps(summary, indent=1), encoding="utf-8",
@@ -308,7 +401,7 @@ def main() -> int:
 
     # ---- figure: three quantities, one axis each
     setup_style()
-    figure, axes = plt.subplots(1, 3, figsize=(13.6, 4.7))
+    figure, axes = plt.subplots(1, 3, figsize=(13.6, 5.0))
     panels = (("density_mean", lambda values: values - REST_DENSITY, "流体平均密度 − ρ0（kg/m³）", "{:+.4f}"),
               ("pressure_mean", lambda values: values / DYNAMIC_PRESSURE, "流体平均压力 / (ρ0 U²)", "{:+.3f}"),
               ("kinetic_energy", lambda values: values, "流体动能（求解器单位）", "{:.2f}"))
@@ -340,9 +433,9 @@ def main() -> int:
     height = figure.get_figheight()
     figure.suptitle("250² 方腔 t = 0–5：壁邻居 δ 项的三种写法对密度水平的影响", x=0.01, y=1.0 - 0.05 / height,
                     ha="left", va="top", fontsize=12, fontweight="bold", color=INK_PRIMARY)
-    figure.legend(handles, labels, loc="upper left", bbox_to_anchor=(0.01, 1.0 - 0.40 / height), ncol=5,
+    figure.legend(handles, labels, loc="upper left", bbox_to_anchor=(0.01, 1.0 - 0.40 / height), ncol=3,
                   handlelength=3.0, columnspacing=1.4, labelcolor=INK_PRIMARY, borderaxespad=0.0)
-    figure.tight_layout(rect=(0, 0, 0.985, 1.0 - 0.60 / height), w_pad=3.2)
+    figure.tight_layout(rect=(0, 0, 0.985, 1.0 - 0.80 / height), w_pad=3.2)
     (REPORT_ROOT / "figures").mkdir(parents=True, exist_ok=True)
     figure.savefig(REPORT_ROOT / "figures" / "delta_wall.png")
     plt.close(figure)
