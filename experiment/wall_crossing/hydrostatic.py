@@ -220,10 +220,23 @@ def run_case(arguments) -> int:
                 raise RuntimeError(f"step {step}: alive {state['alive']} of {expected_alive}, or a "
                                    "non-finite velocity")
 
-        outcome = run_chain(case, [arguments.device], total_steps, sample_steps, on_sample,
-                            expected_uuids=[arguments.uuid] if arguments.uuid else None,
-                            application_name="wall_crossing_hydrostatic")
-        uuid = outcome["device_uuids"][0]
+        # A run that loses a particle (or produces a non-finite velocity) stops at that sample; what it did until
+        # then is still written (series, the state of that sample, the summary with "failed").
+        failure = None
+        try:
+            outcome = run_chain(case, [arguments.device], total_steps, sample_steps, on_sample,
+                                expected_uuids=[arguments.uuid] if arguments.uuid else None,
+                                application_name="wall_crossing_hydrostatic")
+        except RuntimeError as error:
+            if "state" not in latest:
+                raise
+            failure = str(error)
+            reached = series[-1]["step"]
+            outcome = {"device_uuids": [arguments.uuid.replace("-", "").lower()] if arguments.uuid else [],
+                       "elapsed_seconds": float("nan")}
+            total_steps = reached
+            run.extra["status"] = f"failed: {failure}"
+        uuid = outcome["device_uuids"][0] if outcome["device_uuids"] else None
         run.record["gpu_uuids"] = outcome["device_uuids"]
         state = latest["state"]
         elapsed = outcome["elapsed_seconds"]
@@ -252,12 +265,13 @@ def run_case(arguments) -> int:
         tail = [row for row in series if row["time"] >= 0.8 * series[-1]["time"]]
         summary = {
             "name": arguments.name, "run_id": run.run_id, "case": str(arguments.case).replace("\\", "/"),
+            "failed": failure, "alive_at_last_sample": series[-1]["alive"], "particles": expected_alive,
             "wall_boundary": case.numerics.wall_boundary,
             "continuity": case.numerics.wall_crossing.continuity if case.numerics.wall_crossing else None,
             "dimension": dimension, "gravity": gravity.tolist(), "box_lower": lower.tolist(),
             "box_upper": upper.tolist(), "spacing": spacing, "fluid_particles": int(len(speed)),
             "steps": total_steps, "time": total_steps * timestep, "timestep": timestep,
-            "steps_per_second": total_steps / elapsed, "device_uuid": uuid,
+            "steps_per_second": None if failure else total_steps / elapsed, "device_uuid": uuid,
             "scales": {"velocity_sqrt_g_extent": velocity_scale, "pressure_rho_g_extent": pressure_scale,
                        "speed_of_sound": float(case.physics.speed_of_sound)},
             "final": {
@@ -304,8 +318,11 @@ def run_case(arguments) -> int:
                                 ("speed_maximum_over_scale", "speed_root_mean_square_over_scale",
                                  "pressure_error_root_mean_square_over_scale", "pressure_level_over_scale")}
         final = summary["final"]
+        if failure:
+            print(f"[hydrostatic] {arguments.name} ({run.run_id}): FAILED at step {total_steps:,} "
+                  f"(t = {summary['time']:.2f}): {failure}", flush=True)
         print(f"[hydrostatic] {arguments.name} ({run.run_id}): {total_steps:,} steps to t = {summary['time']:.2f} at "
-              f"{summary['steps_per_second']:.0f} steps/s; |v| max {final['speed_maximum_over_scale']:.2e}, rms "
+              f"{summary['steps_per_second'] or 0:.0f} steps/s; |v| max {final['speed_maximum_over_scale']:.2e}, rms "
               f"{final['speed_root_mean_square_over_scale']:.2e} sqrt(gH); pressure error rms "
               f"{100 * final['pressure_error_root_mean_square_over_scale']:.3f} %, max "
               f"{100 * final['pressure_error_maximum_over_scale']:.3f} % of rho g H (level "
@@ -333,7 +350,10 @@ def table(arguments) -> int:
 
         wall = summary["wall_boundary"] + (f" ({summary['continuity']})" if summary["continuity"] else "")
         lines.append(
-            f"| {summary['name']} | {wall} | {summary['time']:.1f} | "
+            f"| {summary['name']}"
+            + (f"（失败：t = {summary['time']:.2f} 时粒子数 {summary['alive_at_last_sample']:,} / "
+               f"{summary['particles']:,}，以下为该时刻的值）" if summary.get("failed") else "")
+            + f" | {wall} | {summary['time']:.1f} | "
             f"{summary['last_fifth']['speed_maximum_over_scale']:.2e} | "
             f"{summary['last_fifth']['speed_root_mean_square_over_scale']:.2e} | "
             f"{final['speed_maximum_over_scale']:.2e} | "

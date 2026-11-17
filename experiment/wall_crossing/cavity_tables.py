@@ -34,6 +34,7 @@ import pathlib
 import sys
 
 import numpy as np
+import yaml
 
 REPOSITORY_ROOT = pathlib.Path(__file__).resolve().parents[2]
 if str(REPOSITORY_ROOT) not in sys.path:
@@ -56,14 +57,73 @@ def deviation_percent(value: float, reference: float) -> float:
     return 100.0 * (abs(value) / abs(reference) - 1.0)
 
 
+def run_diagnostics(run: dict) -> dict:
+    """What the samples and the crossing status file say about the density and the walls over the whole run:
+    the fluid's density range at the first and last sample, the rate of its mid-range over the second half of
+    the run (the secular drift of the level), the largest deviation from rho0 and the largest speed at a sample;
+    for a crossing run (wall_crossing_status.jsonl, written by cavity_runner_entry): the cumulative A_f fallback
+    count, the smallest fluid wall distance and how many fluid particles were below the floor or outside the box
+    at any position readback."""
+    rows = run["rows"]
+    times = np.array([row["time"] for row in rows])
+    low = np.array([row["density_min"] for row in rows])
+    high = np.array([row["density_max"] for row in rows])
+    middle = 0.5 * (low + high)
+    half = times >= 0.5 * times.max()
+    rate = float(np.polyfit(times[half], middle[half], 1)[0]) if half.sum() >= 3 else float("nan")
+    case_copy = yaml.safe_load((run["dir"] / "case.yaml").read_text(encoding="utf-8"))
+    speed_of_sound = float(case_copy["physics"]["speed_of_sound"])
+    rest_density = 1000.0           # stick_water / stick_wall of materials/standard.yaml (the cavity series)
+    diagnostics = {
+        "density_range_first": [float(low[0]), float(high[0])], "density_range_last": [float(low[-1]), float(high[-1])],
+        "density_mid_range_rate_per_time": rate,
+        "density_deviation_maximum": float(max(np.abs(low - rest_density).max(), np.abs(high - rest_density).max())),
+        # c0^2 (rho_mid - rho0) / (rho0 U^2) with U = 1 (the lid speed the runner checks through Re = 1000)
+        "pressure_level_last_over_rho_u2": float((middle[-1] - rest_density) * speed_of_sound ** 2 / rest_density),
+        "speed_maximum": float(max(row["max_speed"] for row in rows)),
+        "samples": len(rows), "t_last": float(times.max())}
+    status_path = run["dir"] / "wall_crossing_status.jsonl"
+    if status_path.exists():
+        records = [json.loads(line) for line in status_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        with_distance = [record for record in records if "wall_distance_minimum" in record]
+        spacing = float(run["spacing"])
+        # the counter restarts with every segment (a resumed run starts a new process): sum the segments' maxima
+        segment_totals, previous = [], -1
+        for record in records:
+            if record["frame_stamp"] < previous:
+                segment_totals.append(0)
+            if not segment_totals:
+                segment_totals.append(0)
+            segment_totals[-1] = max(segment_totals[-1], record["gradient_fallbacks"])
+            previous = record["frame_stamp"]
+        diagnostics["crossing"] = {
+            "status_records": len(records), "position_readbacks": len(with_distance),
+            "gradient_fallbacks": int(sum(segment_totals)),
+            "correction_fallbacks": int(max((record["correction_fallbacks"] for record in records), default=0)),
+            "wall_distance_minimum_over_spacing": (min(record["wall_distance_minimum"] for record in with_distance)
+                                                   / spacing) if with_distance else None,
+            "below_floor_maximum": max((record["below_floor_count"] for record in with_distance), default=None),
+            "outside_box_maximum": max((record["outside_box_count"] for record in with_distance), default=None)}
+    return diagnostics
+
+
 def analyse(name: str, root: pathlib.Path, cache_directory: pathlib.Path, with_stream_function: bool):
     """The numbers of one run (None when it has no samples yet). Cached per run by its sample count."""
     run = cavity_analysis.load_run(name, root)
     if run is None:
         return None
     complete = bool(run["result"])
+    diagnostics = run_diagnostics(run)
+    last_segment = run["segments"][-1] if run["segments"] else {}
+    if not complete and last_segment.get("status") == "error":
+        # the run ended in an error (an invariant violation: particles lost): no steady state to analyse
+        return {"name": name, "case": run["case"], "resolution": int(run["resolution"]), "failed": True,
+                "complete": False, "error": last_segment.get("error"), "t_last": float(run["times"].max()),
+                "git": run["meta"].get("git"), "diagnostics": diagnostics,
+                "device_uuids": sorted({uuid for segment in run["segments"]
+                                        for uuid in (segment.get("device_uuids") or [])})}
     cache_path = cache_directory / f"{name}.json"
-    signature = {"samples": len(run["rows"]), "t_last": float(run["times"].max()), "complete": complete,
+    signature = {"version": 2, "samples": len(run["rows"]), "t_last": float(run["times"].max()), "complete": complete,
                  "stream": with_stream_function}
     if cache_path.exists():
         cached = json.loads(cache_path.read_text(encoding="utf-8"))
@@ -87,6 +147,7 @@ def analyse(name: str, root: pathlib.Path, cache_directory: pathlib.Path, with_s
         "wall_hours": sum(float(segment.get("wall_s", 0.0)) for segment in run["segments"]) / 3600.0,
         "device_uuids": sorted({uuid for segment in run["segments"] for uuid in (segment.get("device_uuids") or [])}),
         "kinetic_energy": float(analysis["kinetic_energy_window"]["mean"][0]),
+        "failed": False, "diagnostics": diagnostics,
         "extrema": {}, "errors": {},
     }
     for key, position_key in (("u_min", "y_at_u_min"), ("v_max", "x_at_v_max"), ("v_min", "x_at_v_min")):
@@ -141,8 +202,12 @@ def main() -> int:
     records = {}
     for name in names:
         record = analyse(name, root, out / "analysis", not arguments.no_stream_function)
-        if record is not None:
-            records[name] = record
+        if record is None:
+            continue
+        records[name] = record
+        if record["failed"]:
+            print(f"[cavity_tables] {name}: FAILED at t = {record['t_last']:.2f}: {record['error']}", flush=True)
+        else:
             print(f"[cavity_tables] {name}: window {record['window'][0]:.2f}-{record['window'][1]:.2f}, "
                   f"{'complete' if record['complete'] else 'IN PROGRESS'}", flush=True)
     if not records:
@@ -152,11 +217,16 @@ def main() -> int:
 
     def label(record: dict) -> str:
         mode = record["name"].split("_", 1)[1]
-        return f"{record['resolution']}² {MODE_TEXT.get(mode, mode)}" + ("" if record["complete"] else " (运行中)")
+        state = "（失败）" if record["failed"] else ("" if record["complete"] else "（运行中）")
+        return f"{record['resolution']}² {MODE_TEXT.get(mode, mode)}{state}"
 
-    ordered = sorted(records.values(), key=lambda record: (MODES.index(record["name"].split("_", 1)[1])
-                                                           if record["name"].split("_", 1)[1] in MODES else 99,
-                                                           record["resolution"]))
+    def sort_key(record: dict) -> tuple:
+        mode = record["name"].split("_", 1)[1]
+        return (MODES.index(mode) if mode in MODES else 99, record["resolution"])
+
+    everything = sorted(records.values(), key=sort_key)
+    ordered = [record for record in everything if not record["failed"]]
+    failed = [record for record in everything if record["failed"]]
     sections = []
     rows = []
     for record in ordered:
@@ -207,7 +277,7 @@ def main() -> int:
     rows = []
     for mode in MODES:
         series = [records.get(f"n{resolution}_{mode}") for resolution in RESOLUTIONS]
-        series = [record for record in series if record is not None and record["complete"]]
+        series = [record for record in series if record is not None and record["complete"] and not record["failed"]]
         if len(series) < 2:
             continue
         spacings = [record["spacing"] for record in series]
@@ -236,6 +306,39 @@ def main() -> int:
     if rows:
         sections.append("### 观测收敛阶（p = ln(e₁/e₂)/ln(dx₁/dx₂)；三点时另给最小二乘拟合）\n\n"
                         + markdown_table(["壁面", "量", "误差（分辨率由低到高）", "相邻两档的阶", "拟合阶"], rows))
+
+    # ---- density and wall diagnostics of every run (failed ones included)
+    rows = []
+    for record in everything:
+        diagnostics = record["diagnostics"]
+        crossing = diagnostics.get("crossing")
+        rows.append([
+            label(record), f"{diagnostics['t_last']:.1f}",
+            f"{diagnostics['density_range_first'][0]:.3f} … {diagnostics['density_range_first'][1]:.3f}",
+            f"{diagnostics['density_range_last'][0]:.3f} … {diagnostics['density_range_last'][1]:.3f}",
+            f"{diagnostics['density_mid_range_rate_per_time']:+.5f}",
+            f"{diagnostics['density_deviation_maximum']:.3f}",
+            f"{diagnostics['pressure_level_last_over_rho_u2']:+.2f}",
+            f"{diagnostics['speed_maximum']:.3f}",
+            "—" if not crossing else str(crossing["gradient_fallbacks"]),
+            "—" if not crossing or crossing["wall_distance_minimum_over_spacing"] is None
+            else f"{crossing['wall_distance_minimum_over_spacing']:.3f}",
+            "—" if not crossing or crossing["below_floor_maximum"] is None
+            else f"{crossing['below_floor_maximum']} / {crossing['outside_box_maximum']}"])
+    sections.append(
+        "### 密度与壁面诊断（整个运行）\n\n"
+        "密度范围取自采样时刻的流体粒子；“中值漂移率” = 运行后半段 (ρ_min + ρ_max) / 2 对时间的线性拟合斜率；"
+        "“压力电平” = 末样本的 c₀² (ρ_mid − ρ₀) / (ρ₀ U²)；A_f 回退 = 整个运行的累计次数，φ_min 与越界计数来自每 "
+        "20 000 步一次的位置回读（只有 crossing 运行有这两项；n250_crossing 在加入该记录之前启动，没有）。\n\n"
+        + markdown_table(["运行", "末时刻 t", "ρ 范围（首样本）", "ρ 范围（末样本）", "中值漂移率 kg/m³ 每时间单位",
+                          "max |ρ − ρ₀|", "压力电平 / ρU²", "最大速度", "A_f 回退", "φ_min / dx",
+                          "低于下限 / 越出盒（最大粒子数）"], rows))
+    if failed:
+        rows = [[label(record), record["name"], f"{record['t_last']:.2f}", record["error"],
+                 (record.get("git") or {}).get("head", "?"), ", ".join(record["device_uuids"]) or "?"]
+                for record in failed]
+        sections.append("### 失败的运行（不变量被破坏，runner 退出码 3）\n\n"
+                        + markdown_table(["运行", "run 目录", "最后样本 t", "错误", "提交", "GPU UUID"], rows))
 
     rows = [[label(record), record["name"], (record.get("git") or {}).get("head", "?"),
              ", ".join(record["device_uuids"]) or "?", f"{record['wall_hours']:.2f}",
