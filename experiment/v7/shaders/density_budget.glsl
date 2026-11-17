@@ -15,8 +15,13 @@
 //         with the wall's stored rho0)
 // each contracted with the stored L_i exactly as the pass contracts the sum,
 // and adds TIMESTEP x the four terms to
-//     density_budget[particle_id * DENSITY_BUDGET_REGIONS + region]
-// every time the pass runs, region = where the particle is at that step. The
+//     density_budget[(particle_id * DENSITY_BUDGET_REGIONS + region) * 2]
+// every time the pass runs, region = where the particle is at that step, and
+// to the .x of the next entry what the stored density actually changed by in
+// that step: the float32 the pass stored minus rho_n (an exact difference). The
+// stored density is a float32 near rho0, so rho_n + TIMESTEP x rate is rounded
+// to its grid (6.1e-5 kg/m^3 at 1000 kg/m^3): applied - TIMESTEP x (sum of the
+// four terms) is that rounding, accumulated. The
 // pass's results are not touched (the state a budget build computes is the
 // state the build without it computes): the WALL_CROSSING build takes the four
 // sums beside the pass's own in its loop; the plain build (simple / adami)
@@ -48,8 +53,10 @@ layout(constant_id = 126) const float WALL_CROSSING_BOX_UPPER_Y = 1.0;
 const uint DENSITY_BUDGET_REGIONS = 9u;
 
 layout(std430, set = 0, binding = 13) buffer DensityBudgetBuffer {
-    // [pid * DENSITY_BUDGET_REGIONS + region] = accumulated TIMESTEP x (drift fluid, drift wall, diffusion fluid,
-    // diffusion wall); zeroed by the host at start-up; exists only with V7_DENSITY_BUDGET=1
+    // [(pid * DENSITY_BUDGET_REGIONS + region) * 2]     = accumulated TIMESTEP x (drift fluid, drift wall,
+    //                                                     diffusion fluid, diffusion wall)
+    // [(pid * DENSITY_BUDGET_REGIONS + region) * 2 + 1] = (accumulated change of the stored density, 0, 0, 0)
+    // zeroed by the host at start-up; exists only with V7_DENSITY_BUDGET=1
     vec4 density_budget[];
 };
 
@@ -59,6 +66,11 @@ uint density_budget_region(vec3 position) {
     uint vertical   = (position.y - WALL_CROSSING_BOX_LOWER_Y < SMOOTHING_LENGTH) ? 1u
                     : ((WALL_CROSSING_BOX_UPPER_Y - position.y < SMOOTHING_LENGTH) ? 2u : 0u);
     return horizontal + 3u * vertical;
+}
+
+// the entry of a particle's four terms in its present region (the applied change is the next entry)
+uint density_budget_slot(uint particle_id, vec3 position) {
+    return (particle_id * DENSITY_BUDGET_REGIONS + density_budget_region(position)) * 2u;
 }
 
 // S += q (x) grad W, symmetric part (correction_density.comp's statement, on one of the budget's sums)
@@ -95,7 +107,7 @@ float density_budget_contract(vec3 rate_diagonal, vec3 rate_off_diagonal, vec3 i
 // the six stored entries of L_i, into the region the particle is in. Called after the pass has stored its results.
 void density_budget_plain_pass(uint self_particle_id, vec3 self_position, ivec3 self_voxel_coord,
                                vec3 self_velocity, float self_density, float self_stored_density,
-                               vec3 inverse_diagonal, vec3 inverse_off_diagonal) {
+                               vec3 inverse_diagonal, vec3 inverse_off_diagonal, float applied_change) {
     float diffusion_coefficient = 2.0 * DELTA_COEFFICIENT * SMOOTHING_LENGTH * SPEED_OF_SOUND;
     vec3 drift_fluid_diagonal         = vec3(0.0);
     vec3 drift_fluid_off_diagonal     = vec3(0.0);
@@ -161,7 +173,8 @@ void density_budget_plain_pass(uint self_particle_id, vec3 self_position, ivec3 
                                 inverse_diagonal, inverse_off_diagonal),
         density_budget_contract(diffusion_wall_diagonal, diffusion_wall_off_diagonal,
                                 inverse_diagonal, inverse_off_diagonal));
-    density_budget[self_particle_id * DENSITY_BUDGET_REGIONS + density_budget_region(self_position)]
-        += TIMESTEP * budget_terms;
+    uint budget_slot = density_budget_slot(self_particle_id, self_position);
+    density_budget[budget_slot]         += TIMESTEP * budget_terms;
+    density_budget[budget_slot + 1u].x  += applied_change;
 }
 #endif

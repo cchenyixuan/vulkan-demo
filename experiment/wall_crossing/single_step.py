@@ -207,7 +207,9 @@ def gpu_single_evaluation(case_path: pathlib.Path, device_index: int, configurat
         if simulator._wall_crossing:
             result["wall_crossing_fluid_inverse"] = table("wall_crossing_fluid_inverse", 8)
         if simulator._density_budget_active():
-            result["density_budget"] = table("density_budget", 36).reshape(particle_count, 9, 4)
+            budget_entries = table("density_budget", 72).reshape(particle_count, 9, 2, 4)
+            result["density_budget"] = budget_entries[:, :, 0, :].copy()          # dt x the four terms
+            result["density_budget_applied"] = budget_entries[:, :, 1, 0].copy()  # the stored density's change
             result["density_budget_box"] = simulator.density_budget_box()
         return result
     finally:
@@ -412,11 +414,15 @@ def compare_budget_with_reference(gpu: dict, tolerance: float) -> dict:
     region_problems = int(((written.sum(axis=1) > 1) | (written & (np.arange(9)[None, :] != region_host[:, None]))
                            .any(axis=1)).sum())
     wall_rows_written = int(np.abs(gpu["density_budget"][gpu["is_wall"]]).sum() > 0.0)
+    # the applied change: exactly the float32 the pass stored minus the float32 it started from
+    applied_gpu = gpu["density_budget_applied"][fluid].astype(np.float64).sum(axis=1)
+    applied_expected = gpu["scratch"][fluid, 0].astype(np.float64) - gpu["densities_float32"][fluid].astype(np.float64)
+    applied_mismatches = int((applied_gpu != applied_expected).sum())
     worst = max(10.0 * comparisons[name]["error_over_pair_term_sum_maximum"] for name in names)
     closure_worst = float((closure / np.maximum(np.abs(rate_gpu), rate_floor)).max())
     return {
         "passed": bool(worst < tolerance and closure_worst < tolerance and region_problems == 0
-                       and wall_rows_written == 0),
+                       and wall_rows_written == 0 and applied_mismatches == 0),
         "tolerance": tolerance,
         "worst_term_error_over_pair_terms_times_10": worst,
         "comparisons": comparisons,
@@ -425,6 +431,9 @@ def compare_budget_with_reference(gpu: dict, tolerance: float) -> dict:
             (rate_reference_error / np.maximum(np.abs(reference.density_rate), rate_floor)).max()),
         "region_problems": region_problems,
         "wall_rows_written": wall_rows_written,
+        "applied_change_mismatches": applied_mismatches,
+        "applied_change_field_mean_per_second": float(applied_gpu.mean() / timestep),
+        "terms_sum_field_mean_per_second": float(terms_gpu.sum(axis=1).mean()),
         "region_counts": {str(region): int((region_host == region).sum()) for region in range(9)},
         "terms_maximum": {name: float(np.abs(terms_reference[:, column]).max())
                           for column, name in enumerate(names)},
@@ -587,7 +596,10 @@ def _print_outcome(outcome: dict) -> None:
         print(f"  sum of the four terms vs the stored rate (beyond one ulp): "
               f"{budget['sum_of_terms_against_stored_rate_beyond_one_ulp']:.3e}; stored rate vs reference: "
               f"{budget['stored_rate_against_reference_beyond_one_ulp']:.3e}; region mismatches "
-              f"{budget['region_problems']}; wall rows written {budget['wall_rows_written']}; regions "
+              f"{budget['region_problems']}; wall rows written {budget['wall_rows_written']}; applied change != "
+              f"stored - initial on {budget['applied_change_mismatches']} rows (field mean "
+              f"{budget['applied_change_field_mean_per_second']:+.6e} per second against the terms' "
+              f"{budget['terms_sum_field_mean_per_second']:+.6e}); regions "
               f"{budget['region_counts']}")
         print(f"  -> budget {'PASS' if budget['passed'] else 'FAIL'} (worst 10 x term error / summed pair terms "
               f"{budget['worst_term_error_over_pair_terms_times_10']:.3e}, tolerance {budget['tolerance']:.0e})")

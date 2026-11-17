@@ -275,7 +275,8 @@ def _parse_density_budget(text: str) -> bool:
 _DENSITY_BUDGET = _parse_density_budget(os.environ.get("V7_DENSITY_BUDGET", "0"))
 DENSITY_BUDGET_REGION_NAMES = ("interior", "left", "right", "bottom", "bottom_left", "bottom_right",
                                "top", "top_left", "top_right")          # region = horizontal + 3 x vertical
-DENSITY_BUDGET_TERM_NAMES = ("drift_fluid", "drift_wall", "diffusion_fluid", "diffusion_wall")
+# the four terms of the rate (x dt, accumulated) and the change the stored float32 density actually took
+DENSITY_BUDGET_TERM_NAMES = ("drift_fluid", "drift_wall", "diffusion_fluid", "diffusion_wall", "applied")
 # Test hook, not a switch (experiment/seam_audit/canonical_dump.py sets it before
 # building the simulators): record every skip decision (frame_stamp + 1 per
 # skipped particle and kernel, deep_wall_skip_record) so a dump can name the
@@ -1047,16 +1048,18 @@ class SphSimulatorV7:
         return tuple(settings.box_lower), tuple(settings.box_upper)
 
     def readback_density_budget(self) -> np.ndarray:
-        """(9, 4) float64: density_budget summed over every slot, per region (DENSITY_BUDGET_REGION_NAMES)
-        and term (DENSITY_BUDGET_TERM_NAMES), in kg/m^3 (the accumulated TIMESTEP x rate of all fluid
-        particles since start-up; divide by the fluid particle count for the field mean)."""
+        """(9, 5) float64: density_budget summed over every slot, per region (DENSITY_BUDGET_REGION_NAMES)
+        and column (DENSITY_BUDGET_TERM_NAMES: the four terms, accumulated TIMESTEP x rate, and the
+        accumulated change the stored density actually took), in kg/m^3 summed over all fluid particles
+        since start-up (divide by the fluid particle count for the field mean)."""
         if not self._density_budget_active():
             raise RuntimeError("readback_density_budget needs V7_DENSITY_BUDGET=1")
         raw = self.readback_buffers_batch(["density_budget"])["density_budget"]
         regions = len(DENSITY_BUDGET_REGION_NAMES)
         capacity = self.case.capacities.total_pool_capacity()
-        values = np.frombuffer(raw, dtype=np.float32)[:capacity * regions * 4].reshape(capacity, regions, 4)
-        return values.sum(axis=0, dtype=np.float64)
+        values = np.frombuffer(raw, dtype=np.float32)[:capacity * regions * 8].reshape(capacity, regions, 2, 4)
+        sums = values.sum(axis=0, dtype=np.float64)                         # (regions, 2, 4)
+        return np.concatenate([sums[:, 0, :], sums[:, 1, 0:1]], axis=1)
 
     def _check_wall_crossing_supported(self) -> None:
         """wall_boundary crossing lives in the fused correction + density pass and in force (their WALL_CROSSING
@@ -1355,7 +1358,7 @@ class SphSimulatorV7:
         # per slot and region the accumulated four terms of the density rate (density_budget.glsl). Not in
         # DEFRAG_SET0_BINDINGS / the transport / the restart state: only its sum over the slots is read.
         density_budget_specs = [
-            _BufferSpec("density_budget", 0, 13, 16 * len(DENSITY_BUDGET_REGION_NAMES) * pool_capacity,
+            _BufferSpec("density_budget", 0, 13, 2 * 16 * len(DENSITY_BUDGET_REGION_NAMES) * pool_capacity,
                         BSU | TRANSFER),
         ] if self._density_budget_active() else []
 

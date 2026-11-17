@@ -518,18 +518,26 @@ void process_particle(uint self_particle_id) {
             density_budget_contract(budget_diffusion_wall_diagonal, budget_diffusion_wall_off_diagonal,
                                     budget_inverse_diagonal, budget_inverse_off_diagonal)
                 + (density_rate - budget_rate_of_pairs));
-        density_budget[self_particle_id * DENSITY_BUDGET_REGIONS + density_budget_region(self_position)]
-            += TIMESTEP * budget_terms;
+        density_budget[density_budget_slot(self_particle_id, self_position)] += TIMESTEP * budget_terms;
     }
 #endif
     store_density(self_particle_id, self_stored_density, density_rate, self_params);
+#if defined(DENSITY_BUDGET) && defined(WALL_CROSSING)
+    // DIAGNOSTIC: what the stored density changed by in this step: the float32 the pass just stored minus
+    // rho_n (an exact difference), i.e. dt x rate as the float32 density took it
+    if (!self_is_boundary) {
+        density_budget[density_budget_slot(self_particle_id, self_position) + 1u].x
+            += density_pressure_scratch[self_particle_id].x - self_stored_density;
+    }
+#endif
 #if defined(DENSITY_BUDGET) && !defined(WALL_CROSSING)
     // DIAGNOSTIC (simple / adami): the four terms of a fluid particle's rate, in a traversal of their own
     if (!self_is_boundary) {
         density_budget_plain_pass(self_particle_id, self_position, self_voxel_coord, self_velocity,
                                   self_density, self_stored_density,
                                   vec3(inverse_xx, inverse_yy, inverse_zz),
-                                  vec3(inverse_xy, inverse_xz, inverse_yz));
+                                  vec3(inverse_xy, inverse_xz, inverse_yz),
+                                  density_pressure_scratch[self_particle_id].x - self_stored_density);
     }
 #endif
 }
