@@ -11,7 +11,12 @@ Tables (claude/wall_crossing/tables/*.md), every row with the runs.jsonl record(
   registers.md              the driver's register counts (logs/wall_crossing/statistics/*.json)
   timing_<set>.md           per-kernel times (logs/wall_crossing/timing/<set>/summary.json)
   bitwise.md                base against branch, bit for bit (the bitwise_compare records of runs.jsonl)
-  box_runs.md               the box_run runs: density diagnostics at 250^2 and the 3-D cavity
+  box_runs_diagnostics.md   the box_run runs of the density diagnostics at 250^2
+  box_runs_cavity3d.md      the box_run runs of the 3-D cavity; cavity3d_modes.md / cavity3d_differences.md: their
+                            centre-line profiles at the latest common time, per mode and pair by pair
+  seam_all.md               every seam audit (logs/wall_crossing/seam_audit/*/summary.json) in one table
+  bitwise_classes.md, seam_*.md, k2_*.md   copies of summaries the run tools wrote under logs/
+  (and claude/wall_crossing/runs.jsonl, runs_<machine>.jsonl: copies of the run records the report cites)
   hydrostatic_other.md      hydrostatic runs that a later run of the same name replaced
   throughput.md             K = 2 throughput (logs/wall_crossing/throughput/*.json), when measured
 
@@ -227,8 +232,11 @@ def box_run_table(records: list) -> None:
     for record in records:
         if record["kind"] == "box_run" and record.get("name"):
             latest[record["name"]] = record
-    rows = []
+    rows = {"diag_": [], "cavity3d_": []}
     for name, record in sorted(latest.items()):
+        group = next((prefix for prefix in rows if name.startswith(prefix)), None)
+        if group is None:
+            continue
         directory = LOG_ROOT / "box_run" / name
         rate = "—"
         duration = "—"
@@ -242,7 +250,7 @@ def box_run_table(records: list) -> None:
                 rate = f"{float(np.polyfit(time[half], mean[half], 1)[0]):+.5f}"
                 duration = f"{time[-1]:.2f}"
         summary = record.get("summary") or {}
-        rows.append([
+        rows[group].append([
             name, duration, str(record.get("status")), rate,
             "—" if "density_deviation_maximum" not in summary else f"{summary['density_deviation_maximum']:.3f}",
             "—" if "wall_distance_minimum_over_spacing" not in summary
@@ -252,10 +260,141 @@ def box_run_table(records: list) -> None:
             str(summary.get("gradient_fallbacks", "—")), str(summary.get("overflow", "—")),
             "—" if "steps_per_second" not in summary else f"{summary['steps_per_second']:.0f}",
             record["commit"], record["run_id"]])
+    header = ["运行", "到达的 t", "状态", "平均密度漂移率（后半段，kg/m³ 每时间单位）", "最大密度偏差（kg/m³）", "φ_min / dx",
+              "低于下限 / 越出盒（最大粒子数）", "A_f 回退", "体素表溢出", "步 / 秒（与别的作业共用 GPU）", "提交", "记录"]
+    if rows["diag_"]:
+        write("box_runs_diagnostics.md", markdown_table(header, rows["diag_"]))
+    if rows["cavity3d_"]:
+        write("box_runs_cavity3d.md", markdown_table(header, rows["cavity3d_"]))
+
+
+def cavity3d_profile_tables(records: list) -> None:
+    """The 3-D cavity runs at their latest common profile time: per mode the kinetic energy and the extrema of
+    the two centre-line profiles; per pair of modes the rms and the largest difference of the profiles."""
+    latest = {}
+    for record in records:
+        if record["kind"] == "box_run" and str(record.get("name", "")).startswith("cavity3d_1m_"):
+            latest[record["name"]] = record
+    runs = {}
+    for name, record in latest.items():
+        directory = LOG_ROOT / "box_run" / name
+        if not (directory / "profiles.json").exists() or not (directory / "series.csv").exists():
+            continue
+        profiles = json.loads((directory / "profiles.json").read_text(encoding="utf-8"))
+        with open(directory / "series.csv", encoding="utf-8", newline="") as handle:
+            series = list(csv.DictReader(handle))
+        if profiles and series:
+            runs[name.replace("cavity3d_1m_", "")] = (profiles, series, record)
+    if len(runs) < 2:
+        return
+    common_time = min(profiles[-1]["time"] for profiles, _, _ in runs.values())
+    chosen = {}
+    rows = []
+    order = [mode for mode in ("simple", "adami", "crossing", "crossing_wall_velocity") if mode in runs]
+    for mode in order:
+        profiles, series, record = runs[mode]
+        profile = min(profiles, key=lambda entry: abs(entry["time"] - common_time))
+        sample = min(series, key=lambda row: abs(float(row["time"]) - common_time))
+        chosen[mode] = profile
+        coordinate_u = np.array(profile["u_along_y"]["coordinate"])
+        velocity_u = np.array(profile["u_along_y"]["velocity"], dtype=float)
+        coordinate_v = np.array(profile["v_along_x"]["coordinate"])
+        velocity_v = np.array(profile["v_along_x"]["velocity"], dtype=float)
+        index_u, index_max, index_min = np.nanargmin(velocity_u), np.nanargmax(velocity_v), np.nanargmin(velocity_v)
+        rows.append([mode, f"{profile['time']:.2f}", f"{float(sample['kinetic_energy']):.4f}",
+                     f"{velocity_u[index_u]:.4f}（y = {coordinate_u[index_u]:.2f}）",
+                     f"{velocity_v[index_max]:.4f}（x = {coordinate_v[index_max]:.2f}）",
+                     f"{velocity_v[index_min]:.4f}（x = {coordinate_v[index_min]:.2f}）",
+                     f"{float(series[-1]['time']):.2f}", str(record.get("status")), record["run_id"]])
+    write("cavity3d_modes.md", markdown_table(
+        ["壁面", "剖面时刻 t", "该时刻动能", "u 最小值（竖直中线）", "v 最大值（水平中线）", "v 最小值（水平中线）",
+         "运行到达的 t", "状态", "记录"], rows))
+    rows = []
+    for first_index, first in enumerate(order):
+        for second in order[first_index + 1:]:
+            cells = [f"{first} − {second}"]
+            for line in ("u_along_y", "v_along_x"):
+                difference = (np.array(chosen[first][line]["velocity"], dtype=float)
+                              - np.array(chosen[second][line]["velocity"], dtype=float))
+                difference = difference[np.isfinite(difference)]
+                cells += [f"{float(np.sqrt((difference ** 2).mean())):.4f}", f"{float(np.abs(difference).max()):.4f}"]
+            rows.append(cells)
+    write("cavity3d_differences.md", markdown_table(
+        ["两种壁面", "u(y) 差的均方根", "u(y) 差的最大值", "v(x) 差的均方根", "v(x) 差的最大值"], rows))
+
+
+def seam_audit_table() -> None:
+    """Every seam audit of logs/wall_crossing/seam_audit in one table: per case and horizon, the rms ratios at the
+    cut (d = 0) of the three pairings the audit makes, for the acceleration and the density."""
+    rows = []
+    for path in sorted((LOG_ROOT / "seam_audit").glob("*/summary.json")):
+        summary = json.loads(path.read_text(encoding="utf-8"))
+        for horizon, row in summary["horizons"].items():
+            first = row["d0_rms_ratio"]
+            second = row.get("second_pair_d0_rms_ratio") or {}
+            noise = row.get("test_noise_d0_rms_ratio") or {}
+            far = row["far_bin_worst_rms_ratio"]
+
+            def cell(value) -> str:
+                return "—" if value is None else f"{value:.2f}"
+
+            invariants = row["invariants"]
+            clean = row["all_runs_valid"] and all(
+                (values.get("drift") or 0) == 0 and (values.get("overflow_total") or 0) == 0
+                and (values.get("missing_ids") or 0) == 0 and (values.get("duplicate_ids") or 0) == 0
+                and (values.get("stamp_errors_gpu") or 0) == 0 and (values.get("stamp_errors_host") or 0) == 0
+                for values in invariants.values())
+            rows.append([
+                summary["label"], horizon, f"{row['triplets']:,}",
+                f"{cell(row['seam_excess'])} / {cell(second.get('acceleration'))} / {cell(noise.get('acceleration'))}",
+                f"{cell(first['density']['all'])} / {cell(second.get('density'))} / {cell(noise.get('density'))}",
+                f"{cell(first['shift']['all'])} / {cell(second.get('shift'))} / {cell(noise.get('shift'))}",
+                f"{cell(far['acceleration']['value'])} / {cell(far['density']['value'])} / {cell(far['shift']['value'])}",
+                "全部为 0" if clean else json.dumps(invariants),
+                f"{summary['run_ids'][0]} … {summary['run_ids'][-1][-4:]}" if summary.get("run_ids") else "?"])
     if rows:
-        write("box_runs.md", markdown_table(
-            ["运行", "到达的 t", "状态", "平均密度漂移率（后半段，kg/m³ 每时间单位）", "最大密度偏差（kg/m³）", "φ_min / dx",
-             "低于下限 / 越出盒（最大粒子数）", "A_f 回退", "体素表溢出", "步 / 秒（与别的作业共用 GPU）", "提交", "记录"], rows))
+        write("seam_all.md", markdown_table(
+            ["算例", "步数 N", "配对粒子", "加速度 d = 0：(B1, A1) / (B2, A2) / 链自身 (B1, B2)", "密度 d = 0：同左",
+             "位移修正 d = 0：同左", "远区最坏（加速度 / 密度 / 位移修正）", "四个运行的不变量（漂移、编号、戳、溢出）", "记录"],
+            rows))
+
+
+def commits_table() -> None:
+    """The branch's commits since the base, oldest first."""
+    import subprocess
+    completed = subprocess.run(["git", "log", "--reverse", "--format=%h%x09%s", "eda5b90..HEAD"], cwd=REPOSITORY_ROOT,
+                               capture_output=True, text=True, encoding="utf-8", errors="replace")
+    rows = [line.split("\t", 1) for line in completed.stdout.splitlines() if "\t" in line]
+    if rows:
+        write("commits.md", markdown_table(["提交", "标题"], [[f"`{commit}`", title.replace("|", "/")]
+                                                         for commit, title in rows])
+              + "\n（加入本报告的那个提交排在这些之后。）\n")
+
+
+def copies() -> None:
+    """Summaries the run tools wrote under logs/ (not tracked), copied beside the report; and the run records."""
+    for source, target in (("bitwise/classes/classes_k1.md", "bitwise_classes.md"),
+                           ("seam_audit/n250_crossing/summary.md", "seam_n250_crossing.md"),
+                           ("seam_audit/n250_simple/summary.md", "seam_n250_simple.md"),
+                           ("seam_audit/cavity3d_1m_crossing/summary.md", "seam_cavity3d_1m_crossing.md"),
+                           ("seam_audit/cavity3d_1m_simple/summary.md", "seam_cavity3d_1m_simple.md"),
+                           ("k2_equivalence/n250_simple/summary.md", "k2_n250_simple.md"),
+                           ("k2_equivalence/hydrostatic_g30_crossing/summary.md", "k2_hydrostatic_g30_crossing.md"),
+                           ("k2_equivalence/n250_crossing_700/summary.md", "k2_n250_crossing_700.md"),
+                           ("k2_equivalence/n250_crossing/summary.md", "k2_n250_crossing_999.md")):
+        path = LOG_ROOT / source
+        if path.exists():
+            write(target, path.read_text(encoding="utf-8"))
+    for source, target in (("runs.jsonl", "runs.jsonl"),
+                           ("remote/runs_DESKTOP-9IN3NPD.jsonl", "runs_DESKTOP-9IN3NPD.jsonl"),
+                           ("tests/failures_base.txt", "tests/seam_layout_failures_base_eda5b90.txt"),
+                           ("tests/failures_head.txt", "tests/seam_layout_failures_branch.txt")):
+        path = LOG_ROOT / source
+        if path.exists():
+            (REPORT_ROOT / target).parent.mkdir(parents=True, exist_ok=True)
+            (REPORT_ROOT / target).write_text(path.read_text(encoding="utf-8", errors="replace"), encoding="utf-8",
+                                              newline="\n")
+            print(f"[report_tables] copied {source} -> claude/wall_crossing/{target}")
 
 
 def hydrostatic_other_table(records: list) -> None:
@@ -309,7 +448,14 @@ def build_report() -> None:
         if not path.exists():
             output.append(f"（未生成：{match.group(1)}）")
             continue
-        included = [text for text in path.read_text(encoding="utf-8").splitlines() if not text.startswith("# ")]
+        # the file's own title line is dropped; its other headings become bold lines (they would otherwise
+        # break the report's outline)
+        included = []
+        for text in path.read_text(encoding="utf-8").splitlines():
+            if text.startswith("# "):
+                continue
+            heading = re.fullmatch(r"#{2,6} (.*)", text)
+            included.append(f"**{heading.group(1)}**" if heading else text)
         while included and not included[0].strip():
             included.pop(0)
         while included and not included[-1].strip():
@@ -330,8 +476,12 @@ def main() -> int:
     timing_tables()
     bitwise_table(records)
     box_run_table(records)
+    cavity3d_profile_tables(records)
     hydrostatic_other_table(records)
     throughput_table()
+    seam_audit_table()
+    commits_table()
+    copies()
     if not arguments.no_build:
         build_report()
     return 0
