@@ -15,7 +15,7 @@ What lives here:
     outside it;
   - the diagnostics the report asks for (smallest phi of the fluid, fallback count).
 
-No Vulkan import: the CPU reference (experiment/seam_audit/wall_crossing_single_step.py)
+No Vulkan import: the CPU reference (experiment/wall_crossing/reference.py)
 and the case loader use it without a device.
 """
 

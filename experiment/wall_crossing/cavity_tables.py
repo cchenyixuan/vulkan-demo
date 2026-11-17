@@ -202,6 +202,26 @@ def analyse(name: str, root: pathlib.Path, cache_directory: pathlib.Path, with_s
     return record
 
 
+def run_record_ids(name: str) -> str:
+    """The runs.jsonl record(s) of the cavity run `name` (this machine's file and the copies fetched from the
+    second machine under logs/wall_crossing/remote): matched by the record's name or by its --run-dir."""
+    from experiment.wall_crossing.run_log import LOG_ROOT
+    found = []
+    for path in [LOG_ROOT / "runs.jsonl", *sorted((LOG_ROOT / "remote").glob("*.jsonl"))]:
+        if not path.exists():
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            if record.get("kind") != "cavity":
+                continue
+            command = record.get("command", "").replace("\\", "/")
+            if record.get("name") == name or command.split("--run-dir ")[-1].split(" ")[0].rstrip("/").endswith("/" + name):
+                found.append(record["run_id"])
+    return ", ".join(found) if found else "?"
+
+
 def markdown_table(header: list, rows: list) -> str:
     lines = ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
     lines += ["| " + " | ".join(str(cell) for cell in row) + " |" for row in rows]
@@ -357,16 +377,18 @@ def main() -> int:
                           "低于下限 / 越出盒（最大粒子数）"], rows))
     if failed:
         rows = [[label(record), record["name"], f"{record['t_last']:.2f}", record["error"],
-                 (record.get("git") or {}).get("head", "?"), ", ".join(record["device_uuids"]) or "?"]
+                 (record.get("git") or {}).get("head", "?"), ", ".join(record["device_uuids"]) or "?",
+                 run_record_ids(record["name"])]
                 for record in failed]
         sections.append("### 失败的运行（不变量被破坏，runner 退出码 3）\n\n"
-                        + markdown_table(["运行", "run 目录", "最后样本 t", "错误", "提交", "GPU UUID"], rows))
+                        + markdown_table(["运行", "run 目录", "最后样本 t", "错误", "提交", "GPU UUID", "记录"], rows))
 
     rows = [[label(record), record["name"], (record.get("git") or {}).get("head", "?"),
              ", ".join(record["device_uuids"]) or "?", f"{record['wall_hours']:.2f}",
-             record["samples_in_window"], f"{record['kinetic_energy']:.4f}"] for record in ordered]
+             record["samples_in_window"], f"{record['kinetic_energy']:.4f}", run_record_ids(record["name"])]
+            for record in ordered]
     sections.append("### 运行信息\n\n" + markdown_table(["运行", "run 目录", "提交", "GPU UUID", "墙钟 h",
-                                                       "窗口内样本数", "窗口平均动能"], rows))
+                                                       "窗口内样本数", "窗口平均动能", "记录"], rows))
 
     text = ("# Re = 1000 方腔：各壁面模式对 Marchi 2021（K = 1）\n\n"
             f"数据：`{arguments.root}/<run 目录>`；分析 = experiment/validation/cavity_analysis.analyse_run，"
