@@ -107,6 +107,19 @@ def run_diagnostics(run: dict) -> dict:
     return diagnostics
 
 
+def run_history(run: dict, points: int = 400) -> dict:
+    """The run's sample series thinned to at most `points` rows (for the figures): time, kinetic energy, the
+    fluid's density range and the largest speed."""
+    rows = run["rows"]
+    stride = max(1, len(rows) // points)
+    chosen = rows[::stride] + ([rows[-1]] if (len(rows) - 1) % stride else [])
+    return {"time": [float(row["time"]) for row in chosen],
+            "kinetic_energy": [float(row["kinetic_energy"]) for row in chosen],
+            "density_min": [float(row["density_min"]) for row in chosen],
+            "density_max": [float(row["density_max"]) for row in chosen],
+            "max_speed": [float(row["max_speed"]) for row in chosen]}
+
+
 def analyse(name: str, root: pathlib.Path, cache_directory: pathlib.Path, with_stream_function: bool):
     """The numbers of one run (None when it has no samples yet). Cached per run by its sample count."""
     run = cavity_analysis.load_run(name, root)
@@ -119,11 +132,11 @@ def analyse(name: str, root: pathlib.Path, cache_directory: pathlib.Path, with_s
         # the run ended in an error (an invariant violation: particles lost): no steady state to analyse
         return {"name": name, "case": run["case"], "resolution": int(run["resolution"]), "failed": True,
                 "complete": False, "error": last_segment.get("error"), "t_last": float(run["times"].max()),
-                "git": run["meta"].get("git"), "diagnostics": diagnostics,
+                "git": run["meta"].get("git"), "diagnostics": diagnostics, "history": run_history(run),
                 "device_uuids": sorted({uuid for segment in run["segments"]
                                         for uuid in (segment.get("device_uuids") or [])})}
     cache_path = cache_directory / f"{name}.json"
-    signature = {"version": 2, "samples": len(run["rows"]), "t_last": float(run["times"].max()), "complete": complete,
+    signature = {"version": 3, "samples": len(run["rows"]), "t_last": float(run["times"].max()), "complete": complete,
                  "stream": with_stream_function}
     if cache_path.exists():
         cached = json.loads(cache_path.read_text(encoding="utf-8"))
@@ -147,8 +160,17 @@ def analyse(name: str, root: pathlib.Path, cache_directory: pathlib.Path, with_s
         "wall_hours": sum(float(segment.get("wall_s", 0.0)) for segment in run["segments"]) / 3600.0,
         "device_uuids": sorted({uuid for segment in run["segments"] for uuid in (segment.get("device_uuids") or [])}),
         "kinetic_energy": float(analysis["kinetic_energy_window"]["mean"][0]),
-        "failed": False, "diagnostics": diagnostics,
+        "failed": False, "diagnostics": diagnostics, "history": run_history(run),
         "extrema": {}, "errors": {},
+        # the 28-point centre-line errors behind the norms (for the figures): position in the unit square,
+        # value minus reference, in the wall frame (MLS samples) and the mid frame (dense lines)
+        "profiles": {line: {"position": [float(value) for value in cavity_reference.marchi2021()[line][0]],
+                            "reference": [float(value) for value in cavity_reference.marchi2021()[line][1]],
+                            "error_wall": [float(value) for value in
+                                           analysis["errors"][("wall", "mls", line)]["pointwise"]],
+                            "error_mid": [float(value) for value in
+                                          analysis["errors"][("mid", "dense", line)]["pointwise"]]}
+                     for line in ("u", "v")},
     }
     for key, position_key in (("u_min", "y_at_u_min"), ("v_max", "x_at_v_max"), ("v_min", "x_at_v_min")):
         entry = analysis["extrema"][key]
@@ -331,7 +353,7 @@ def main() -> int:
         "“压力电平” = 末样本的 c₀² (ρ_mid − ρ₀) / (ρ₀ U²)；A_f 回退 = 整个运行的累计次数，φ_min 与越界计数来自每 "
         "20 000 步一次的位置回读（只有 crossing 运行有这两项；n250_crossing 在加入该记录之前启动，没有）。\n\n"
         + markdown_table(["运行", "末时刻 t", "ρ 范围（首样本）", "ρ 范围（末样本）", "中值漂移率 kg/m³ 每时间单位",
-                          "max |ρ − ρ₀|", "压力电平 / ρU²", "最大速度", "A_f 回退", "φ_min / dx",
+                          "最大密度偏差（kg/m³）", "压力电平 / ρU²", "最大速度", "A_f 回退", "φ_min / dx",
                           "低于下限 / 越出盒（最大粒子数）"], rows))
     if failed:
         rows = [[label(record), record["name"], f"{record['t_last']:.2f}", record["error"],

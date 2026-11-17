@@ -46,6 +46,76 @@ def parse_entry(text: str) -> tuple:
     return label, parts[0], int(parts[1]), parts[2] == "canonical"
 
 
+def outcome_classes(arguments, builds: dict, commits: dict, out: pathlib.Path, slabs: int, environment: dict,
+                    harness: str) -> int:
+    """--repeats N (N > 2), for windows no build reproduces every time: run each build N times and sort the 2 N
+    dumps into classes of bit-identical outcomes (canonical_dump --compare against one member of each class).
+    The voxel lists are appended in thread arrival order, so one build can end in several outcomes; if the two
+    builds share an outcome class, both computed bit-identical states at least once, i.e. their arithmetic over
+    the window is the same and the remaining differences are the arrival orders'."""
+    summary = {"commits": commits, "device_map": arguments.device_map, "repeats": arguments.repeats, "entries": {}}
+    lines = ["| 算例 | K | 步数 | 体素表 | 每个版本的运行次数 | 结果类（base 次数 / 本分支次数） | 两个版本共有的结果类 | 记录 |",
+             "|---|---|---|---|---|---|---|---|"]
+    for label, case, steps, canonical in arguments.entry:
+        classes = []                 # each: {"member": path, "base": count, "this": count}
+        run_ids = []
+        for repeat in range(1, arguments.repeats + 1):
+            for build in ("base", "this"):
+                dump_path = out / f"{label}_k{slabs}_classes_{build}{repeat}.npz"
+                command = [sys.executable, harness, "--solver", "v7", "--repo", str(builds[build]), "--case", case,
+                           "--device-map", arguments.device_map, "--steps", str(steps), "--out", str(dump_path)]
+                if canonical:
+                    command.append("--canonical-lists")
+                if slabs > 1:
+                    command.append("--transport-extension")
+                with LoggedRun(kind="bitwise_dump", case=case, gpu_uuids=arguments.uuid,
+                               command=" ".join(command[1:]), commit=commits[build]) as run:
+                    run.extra["label"] = f"{label} K={slabs} classes {build}{repeat} ({steps} steps)"
+                    with open(dump_path.with_suffix(".log"), "w", encoding="utf-8", newline="\n") as log:
+                        exit_code = subprocess.call(command, cwd=REPOSITORY_ROOT, env=environment, stdout=log,
+                                                    stderr=subprocess.STDOUT)
+                    run.extra["exit_code"] = exit_code
+                    run.extra["status"] = "ok" if exit_code == 0 else f"failed: exit code {exit_code}"
+                    run_ids.append(run.run_id)
+                if exit_code != 0:
+                    print(f"[bitwise_check] {label} {build}{repeat}: dump failed", flush=True)
+                    continue
+                for entry in classes:
+                    completed = subprocess.run(
+                        [sys.executable, "-m", "experiment.seam_audit.canonical_dump", "--compare",
+                         str(entry["member"]), str(dump_path)], cwd=REPOSITORY_ROOT, env=environment,
+                        capture_output=True, text=True, encoding="utf-8", errors="replace")
+                    text = completed.stdout + completed.stderr
+                    if completed.returncode == 0 and "BIT-IDENTICAL" in text and "NOT bit-identical" not in text:
+                        entry[build] += 1
+                        break
+                else:
+                    classes.append({"member": dump_path, "base": 0, "this": 0})
+                    classes[-1][build] = 1
+                print(f"[bitwise_check] {label} K={slabs} {build}{repeat}: {len(classes)} class(es) so far",
+                      flush=True)
+        shared = [entry for entry in classes if entry["base"] and entry["this"]]
+        with LoggedRun(kind="bitwise_classes", case=case, gpu_uuids=arguments.uuid,
+                       command=f"outcome classes of {label}: {arguments.repeats} runs per build, {steps} steps") as run:
+            run.extra["label"] = f"{label} K={slabs} outcome classes"
+            run.extra["classes"] = [{"base": entry["base"], "this": entry["this"]} for entry in classes]
+            run.extra["shared_classes"] = len(shared)
+            run.extra["status"] = "ok" if shared else "failed: the builds share no outcome"
+            run_ids.append(run.run_id)
+        summary["entries"][label] = {"case": case, "steps": steps, "canonical_lists": canonical,
+                                     "classes": [{"base": entry["base"], "this": entry["this"],
+                                                  "member": entry["member"].name} for entry in classes],
+                                     "shared_classes": len(shared), "run_ids": run_ids}
+        lines.append(f"| {label} | {slabs} | {steps} | {'canonical' if canonical else 'plain'} | {arguments.repeats} | "
+                     + "，".join(f"{entry['base']} / {entry['this']}" for entry in classes)
+                     + f" | {len(shared)}（共 {len(classes)} 类） | {run_ids[0]} … {run_ids[-1]} |")
+    (out / f"classes_k{slabs}.json").write_text(json.dumps(summary, indent=1), encoding="utf-8", newline="\n")
+    table = "\n".join(lines) + "\n"
+    (out / f"classes_k{slabs}.md").write_text(table, encoding="utf-8", newline="\n")
+    print("\n" + table)
+    return 0 if all(entry["shared_classes"] for entry in summary["entries"].values()) else 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--base", required=True, help="checkout of the base commit")
@@ -53,6 +123,9 @@ def main() -> int:
     parser.add_argument("--uuid", action="append", required=True, help="deviceUUID of each device (repeat)")
     parser.add_argument("--out", required=True)
     parser.add_argument("--entry", action="append", type=parse_entry, required=True)
+    parser.add_argument("--repeats", type=int, default=2,
+                        help="runs per build; more than 2 sorts the dumps into classes of identical outcomes "
+                             "instead of the three pair comparisons (for windows beyond the reproducible one)")
     arguments = parser.parse_args()
 
     base = pathlib.Path(arguments.base).resolve()
@@ -65,6 +138,8 @@ def main() -> int:
     harness = str(REPOSITORY_ROOT / "experiment" / "seam_audit" / "canonical_dump.py")
     builds = {"base": base, "this": REPOSITORY_ROOT}
     commits = {name: git_commit(path) for name, path in builds.items()}
+    if arguments.repeats > 2:
+        return outcome_classes(arguments, builds, commits, out, slabs, environment, harness)
 
     summary = {"base": str(base).replace("\\", "/"), "commits": commits, "device_map": arguments.device_map,
                "uuids": arguments.uuid, "slabs": slabs, "entries": {}}
