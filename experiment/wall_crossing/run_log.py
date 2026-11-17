@@ -24,7 +24,12 @@ import sys
 from typing import Optional
 
 REPOSITORY_ROOT = pathlib.Path(__file__).resolve().parents[2]
-RUN_LOG_PATH = REPOSITORY_ROOT / "logs" / "wall_crossing" / "runs.jsonl"
+# WALL_CROSSING_LOG_ROOT: the logs/wall_crossing directory to write to when the code runs from another checkout
+# (a frozen worktree for the long runs, so that later edits of the development tree cannot reach a run that
+# restarts a segment); default: this checkout's logs/wall_crossing.
+LOG_ROOT = (pathlib.Path(os.environ["WALL_CROSSING_LOG_ROOT"]).resolve()
+            if os.environ.get("WALL_CROSSING_LOG_ROOT") else REPOSITORY_ROOT / "logs" / "wall_crossing")
+RUN_LOG_PATH = LOG_ROOT / "runs.jsonl"
 
 
 def git_commit(repository_root: pathlib.Path = REPOSITORY_ROOT) -> str:
