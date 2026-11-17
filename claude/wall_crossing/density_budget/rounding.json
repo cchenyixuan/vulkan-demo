@@ -1,0 +1,34 @@
+{
+ "budget_n250_crossing": {
+  "name": "budget_n250_crossing",
+  "fluid_particles": 63001,
+  "timestep": 2.9999999242136255e-05,
+  "grid_step": 6.103515625e-05,
+  "rate_of_half_a_grid_step": 1.0172526298646296,
+  "rate_root_mean_square": 0.7536048036699208,
+  "rate_median_absolute": 0.603300357698547,
+  "below_half_grid_step_fraction": 0.8475738480341581,
+  "below_one_grid_step_fraction": 0.9943016777511469,
+  "above_two_grid_steps_fraction": 0.00014285487531943937,
+  "mean_rate": -0.03788315411349905,
+  "mean_applied_rate": 0.04259475940989655,
+  "mean_rounding_rate": 0.08047791352339562,
+  "mean_rounding_rate_standard_error": 0.0025014025061810513
+ },
+ "budget_n250_simple": {
+  "name": "budget_n250_simple",
+  "fluid_particles": 63001,
+  "timestep": 2.9999999242136255e-05,
+  "grid_step": 6.103515625e-05,
+  "rate_of_half_a_grid_step": 1.0172526298646296,
+  "rate_root_mean_square": 0.5933841042724373,
+  "rate_median_absolute": 0.3325606861652864,
+  "below_half_grid_step_fraction": 0.9805558641926319,
+  "below_one_grid_step_fraction": 0.9995079443183441,
+  "above_two_grid_steps_fraction": 0.00023809145886573228,
+  "mean_rate": 0.03433194960009668,
+  "mean_applied_rate": -0.01001089872408486,
+  "mean_rounding_rate": -0.04434284832418154,
+  "mean_rounding_rate_standard_error": 0.0018955317941957326
+ }
+}
