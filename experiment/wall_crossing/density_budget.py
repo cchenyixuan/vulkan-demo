@@ -11,6 +11,7 @@ defrag boundary = 0.03 time units holds the buffer's sums):
     budget_n250_crossing                    wall_boundary crossing as specified
     budget_n250_simple                      wall_boundary simple
     budget_n250_crossing_continuity_normal  crossing with the diagnostic continuity_wall_component normal
+    budget_n250_crossing_repeat, budget_n250_simple_repeat   the first two a second time (what one run is worth)
 What is computed from a run's series.csv, over the samples with 1 <= t <= 5:
   - per region and column the cumulative sum per fluid particle C(t) = buffer sum / fluid particle count (kg/m^3);
     the time mean of that column's field-mean rate over the window is (C(t_last) - C(t_first)) / (t_last - t_first):
@@ -28,7 +29,8 @@ the lid band (top wall within h, no side wall), the static-wall bands (left, rig
 wall only), the four corner squares h x h (two walls within h), given also as the two lid corners and the two
 bottom corners.
 
-Output: claude/wall_crossing/tables/density_<run>.md, density_budget_checks.md,
+Output: claude/wall_crossing/tables/density_<run>.md, density_budget_checks.md, density_budget_repeats.md,
+density_budget_classes.md (the outcome classes of budget_bitwise.py),
 claude/wall_crossing/density_budget/summary.json, claude/wall_crossing/figures/density_budget.png (the cumulative
 columns against time) and density_budget_regions.png (the contributions by region).
 """
@@ -94,6 +96,8 @@ RUNS = {
 # the default-pipeline run each budget run is compared with (the earlier tables' run of the same case)
 DEFAULT_PIPELINE_RUNS = {"budget_n250_crossing": "dw_n250_crossing_extension", "budget_n250_simple": "dw_n250_simple",
                          "budget_n250_crossing_continuity_normal": "dw_n250_crossing_continuity_normal"}
+# the second run of a budget run: name of the first -> name of the second
+REPEAT_RUNS = {"budget_n250_crossing": "budget_n250_crossing_repeat", "budget_n250_simple": "budget_n250_simple_repeat"}
 TERM_COLOURS = ("#2a78d6", "#eb6834", "#1baf7a", "#eda100")       # the palette's first four slots, in order
 ROUNDING_COLOUR = "#6250d6"
 MEASURED_COLOUR = "#e34948"
@@ -326,10 +330,14 @@ def region_figure(results: dict, names: tuple, out: pathlib.Path) -> None:
             errors = [result["groups"][key]["standard_error"][index] for key in region_keys]
             bars = axis.bar(positions + (offset - 1) * (width + 0.02), values, width=width, color=colour, zorder=3,
                             label=text, yerr=errors, error_kw={"ecolor": INK_PRIMARY, "elinewidth": 0.9, "capsize": 2})
+            # the value of every bar; in a region the three labels are staggered so that neighbours of the
+            # same sign and height do not run into each other
             for bar, value in zip(bars, values):
+                lift = 5 + 10 * offset
                 axis.annotate(f"{value:+.4f}", (bar.get_x() + bar.get_width() / 2, value),
-                              xytext=(0, 5 if value >= 0 else -5), textcoords="offset points", ha="center",
-                              va="bottom" if value >= 0 else "top", fontsize=7.5, color=INK_SECONDARY)
+                              xytext=(0, lift if value >= 0 else -lift), textcoords="offset points",
+                              ha="center", va="bottom" if value >= 0 else "top", fontsize=7.5,
+                              color=INK_SECONDARY)
         axis.axhline(0.0, color=INK_SECONDARY, linewidth=0.8, zorder=2)
         axis.set_xticks(positions)
         axis.set_xticklabels(region_texts)
@@ -337,13 +345,63 @@ def region_figure(results: dict, names: tuple, out: pathlib.Path) -> None:
         axis.legend(loc="best", handlelength=1.4, labelcolor=INK_PRIMARY, fontsize=8.5)
         axis.grid(axis="x", visible=False)
         low, high = axis.get_ylim()
-        axis.set_ylim(low - 0.08 * (high - low), high + 0.08 * (high - low))
+        axis.set_ylim(low - 0.14 * (high - low), high + 0.14 * (high - low))
     height = figure.get_figheight()
     figure.suptitle("250² 方腔 t ∈ [1, 5]：对平均密度变化率的贡献，按区域", x=0.01, y=1.0 - 0.05 / height,
                     ha="left", va="top", fontsize=12, fontweight="bold", color=INK_PRIMARY)
     figure.tight_layout(rect=(0, 0, 1.0, 1.0 - 0.32 / height), w_pad=3.0)
     figure.savefig(out / "density_budget_regions.png")
     plt.close(figure)
+
+
+def repeats_table(records: dict) -> dict:
+    """The main numbers of the first and the second run of the two main budget runs, side by side."""
+    columns = ["量（kg/m³ 每时间单位，t ∈ [1, 5]）"]
+    results = []
+    for first, second in REPEAT_RUNS.items():
+        for name, ordinal in ((first, "第 1 次"), (second, "第 2 次")):
+            if not (LOG_ROOT / "box_run" / name / "series.csv").exists():
+                return {}
+            columns.append(f"{RUNS[first][0].split('（')[0]}，{ordinal}")
+            results.append((name, analyse(name)))
+    rows = []
+    for label, group, index in (("连续性项，流体邻居（全场）", "all", 0), ("连续性项，壁邻居（全场）", "all", 1),
+                                ("δ 项，流体邻居（全场）", "all", 2), ("δ 项，壁邻居（全场）", "all", 3),
+                                ("四项之和（全场）", "all", ROW_SUM), ("float32 存储舍入（全场）", "all", ROW_ROUNDING),
+                                ("实际写入的密度变化（全场）", "all", ROW_APPLIED),
+                                ("连续性两项之和：盖带", "lid", ROW_DRIFT), ("连续性两项之和：静止壁带", "static", ROW_DRIFT),
+                                ("连续性两项之和：四个角", "corners", ROW_DRIFT),
+                                ("连续性两项之和：内部", "interior", ROW_DRIFT),
+                                ("δ 两项之和：内部", "interior", ROW_DIFFUSION),
+                                ("float32 存储舍入：内部", "interior", ROW_ROUNDING)):
+        rows.append([label] + [value_text(result["groups"][group]["rate"][index],
+                                          result["groups"][group]["standard_error"][index]) for _, result in results])
+    rows.append(["平均密度的线性拟合斜率（之前各表的“漂移率”）"]
+                + [f"{result['closure']['density_mean_fit_slope']:+.5f}" for _, result in results])
+    rows.append(["记录（提交）"] + [f"{records.get(name, {}).get('run_id', '?')}（{records.get(name, {}).get('commit', '?')}）"
+                                for name, _ in results])
+    (REPORT_ROOT / "tables" / "density_budget_repeats.md").write_text(
+        markdown_table(columns, rows) + "\n", encoding="utf-8", newline="\n")
+    return {name: {key: value for key, value in result.items() if key != "series"} for name, result in results}
+
+
+def classes_table() -> list:
+    """The outcome classes of budget_bitwise.py (logs/wall_crossing/budget_bitwise/*/classes.json), one row per check."""
+    rows = []
+    summaries = []
+    for path in sorted((LOG_ROOT / "budget_bitwise").glob("*/classes.json")):
+        summary = json.loads(path.read_text(encoding="utf-8"))
+        summaries.append(summary)
+        members = [f"{sum(1 for member in group if not member['budget'])} / {sum(1 for member in group if member['budget'])}"
+                   for group in summary["classes"]]
+        rows.append([pathlib.Path(summary["case"]).parent.name.replace("lid_driven_cavity_2d_", ""), str(summary["steps"]),
+                     f"{summary['repeats']} + {summary['repeats']}", str(len(summary["classes"])), "；".join(members),
+                     "是" if summary["every_class_shared"] else "否", summary["run_id"]])
+    if rows:
+        (REPORT_ROOT / "tables" / "density_budget_classes.md").write_text(
+            markdown_table(["算例", "步数", "运行次数（不开 + 开）", "结果类的个数", "各类里的运行（不开 / 开）",
+                            "每一类都两种运行都有", "记录"], rows) + "\n", encoding="utf-8", newline="\n")
+    return summaries
 
 
 def main() -> int:
@@ -385,6 +443,8 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
     summary = {name: {key: value for key, value in result.items() if key != "series"} for name, result in results.items()}
     summary["comparison_with_default_pipeline"] = comparison
+    summary["repeats"] = repeats_table(records)
+    summary["outcome_classes"] = classes_table()
     (out / "summary.json").write_text(json.dumps(summary, indent=1), encoding="utf-8", newline="\n")
     main_names = tuple(name for name in ("budget_n250_crossing", "budget_n250_simple") if name in results)
     if main_names:

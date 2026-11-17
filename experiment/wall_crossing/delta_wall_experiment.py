@@ -10,6 +10,10 @@ units, the fluid's mean density and mean pressure as float64 means over the aliv
     dw_n250_crossing_rest_density   the diagnostic: the wall neighbours' diffusion takes rho0 - rho_i pair by pair
     dw_n250_crossing_body_force     the second diagnostic: the pair term rho_i g . (r_j - r_i) / c^2, which is
                                     zero in the cavity (no gravity): the walls contribute nothing to the diffusion
+    dw_n250_crossing_continuity_normal   a control: the wall term of the continuity equation with the normal
+                                    component of the velocity difference only (continuity_wall_component)
+    dw_n250_crossing_no_pst         a control: no particle shifting (fails before the fit window; the table
+                                    says what it reached)
     dw_n250_simple, dw_n250_adami   the two existing wall modes over the same window
     dw_n250_crossing_wall_velocity_rest_density   the diagnostic with continuity wall_velocity, to t = 15
 and the 2-D hydrostatic boxes (hydrostatic.py, gravity along -y and 30 degrees off) with delta_wall extension
@@ -61,7 +65,13 @@ RUNS = (("dw_n250_crossing_rest_density", "crossing，delta_wall = rest_density�
         ("dw_n250_adami", "adami", "#eda100", "solid"),
         ("dw_n250_simple", "simple", "#1baf7a", "solid"))
 TABLE_ORDER = ("dw_n250_crossing_extension", "dw_n250_crossing_rest_density", "dw_n250_crossing_body_force",
-               "dw_n250_simple", "dw_n250_adami")
+               "dw_n250_crossing_continuity_normal", "dw_n250_simple", "dw_n250_adami")
+# runs of the table that are not lines of the figure: name -> text
+TABLE_ONLY_TEXT = {"dw_n250_crossing_continuity_normal": "crossing，连续性的壁项只取法向分量（诊断）"}
+# a run that failed before the fit window: reported with what it reached (after the row of INSERT_AFTER)
+FAILED_RUN = "dw_n250_crossing_no_pst"
+FAILED_RUN_TEXT = "crossing，关掉粒子位移修正（`use_pst: false`）"
+FAILED_RUN_AFTER = "dw_n250_crossing_continuity_normal"
 SIDE_RUN = "dw_n250_crossing_wall_velocity_rest_density"
 CONTEXT_RUN = "diag_n250_crossing_no_diffusion"     # stage 1: crossing without any density diffusion, to t = 6
 # the 2-D hydrostatic boxes: direction -> (its text, the runs: (name, column text, form index))
@@ -296,12 +306,14 @@ def main() -> int:
         if record.get("kind") == "box_run" and record.get("name"):
             records[record["name"]] = record
     measured = {name: measure(load_series(name), FIT_WINDOW) for name in TABLE_ORDER}
-    text = {name: label for name, label, _, _ in RUNS}
+    text = {**{name: label for name, label, _, _ in RUNS}, **TABLE_ONLY_TEXT}
     notes = {
         "dw_n250_crossing_extension": "基准；任务文件第 5 节的写法",
         "dw_n250_crossing_rest_density": "壁邻居的 δ 项逐对取 ρ0 − ρ_i，去掉循环后的 G_i·(L_i × 壁向量) 一项；其余不变",
         "dw_n250_crossing_body_force": "壁邻居的 δ 项逐对取 ρ_i (g − a_wall)·(r_j − r_i) / c²，去掉循环后的一项；"
                                        "方腔没有重力，所以壁邻居对 δ 项的贡献为零；其余不变",
+        "dw_n250_crossing_continuity_normal": "壁邻居的速度差先投影到壁面法向（壁粒子到盒面最近点的方向），再乘 "
+                                              "(1 + d_j/φ_i)，只用在连续性方程里；其余不变",
         "dw_n250_simple": "对照", "dw_n250_adami": "对照"}
     rows = []
     for name in TABLE_ORDER:
@@ -312,6 +324,26 @@ def main() -> int:
             f"{100.0 * entry['pressure_negative_fraction']:.2f} %",
             f"{entry['density_mean_minus_rest']:+.5f}", f"{entry['kinetic_energy']:.3f}", notes[name],
             f"{records[name]['run_id']}（{records[name]['commit']}）"])
+        if name == FAILED_RUN_AFTER and (LOG_ROOT / "box_run" / FAILED_RUN / "series.csv").exists():
+            failed = load_series(FAILED_RUN)
+            expected = int(failed["alive"][0])
+            intact = failed["alive"] == expected
+            last_intact = int(np.flatnonzero(intact)[-1])
+            first_after_start = 1 if len(failed["time"]) > 1 else 0
+            failed_note = (
+                f"不稳定，没有跑到拟合窗口。粒子数守恒的最后一个样本是 t = {failed['time'][last_intact]:.2f}"
+                f"（{int(failed['step'][last_intact]):,} 步）：平均密度 − ρ0 = "
+                f"{failed['density_mean'][last_intact] - REST_DENSITY:+.4f}，平均压力 "
+                f"{failed['pressure_mean'][last_intact]:+.1f} Pa，A_f 回退累计 "
+                f"{int(failed['gradient_fallbacks'][last_intact]):,} 次，越出盒的流体粒子 "
+                f"{int(failed['outside_box_count'][last_intact])} 个。t = {failed['time'][first_after_start]:.2f} 时"
+                f"最小密度已经是 {failed['density_minimum'][first_after_start]:.0f} kg/m³、最大速度 "
+                f"{failed['speed_maximum'][first_after_start]:.2f}。下一个样本 t = {failed['time'][-1]:.2f} 时存活粒子 "
+                f"{int(failed['alive'][-1]):,} / {expected:,}（壁粒子 {expected - 63001:,} 个都在，流体只剩 "
+                f"{int(failed['alive'][-1]) - (expected - 63001):,} 个）")
+            rows.append([FAILED_RUN_TEXT, "—", "—", "—", "—", "—", failed_note,
+                         f"{records[FAILED_RUN]['run_id']}（{records[FAILED_RUN]['commit']}），状态 "
+                         f"{records[FAILED_RUN]['status'].split(':')[0]}"])
     table = ("250² 方腔，从静止开始到 t = 5.01（167 000 步）；每个 defrag 边界采样一次（每 1000 步 = 0.03 个时间单位，"
              "共 168 个样本，含 t = 0）。平均密度和平均压力是对存活的流体粒子（不含壁）在主机端用 float64 求的平均；"
              "密度按存储值加存储偏移换算成真实密度（本配置下偏移为 0，存的就是 ρ）。漂移率 = 平均密度对 "
