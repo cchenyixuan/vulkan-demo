@@ -44,8 +44,10 @@ from experiment.validation import cavity_analysis, cavity_reference      # noqa:
 from experiment.validation.cavity_tables import fit_order, order          # noqa: E402
 
 RESOLUTIONS = (250, 500, 1000)
-MODES = ("simple", "adami", "crossing", "crossing_wall_velocity", "crossing_floor0p5")
+# crossing_r2 = a second run of the crossing case (the run-to-run scatter of every number in the tables)
+MODES = ("simple", "adami", "crossing", "crossing_r2", "crossing_wall_velocity", "crossing_floor0p5")
 MODE_TEXT = {"simple": "simple", "adami": "adami", "crossing": "crossing (extrapolate)",
+             "crossing_r2": "crossing (extrapolate)，第二次运行",
              "crossing_wall_velocity": "crossing (wall_velocity)", "crossing_floor0p5": "crossing (floor 0.5)"}
 AVERAGE_SPAN = 20.0
 STEADY_TOLERANCE = 1.0e-3
@@ -330,11 +332,11 @@ def main() -> int:
                     quantities[f"{line} {norm} ({frame})"] = [record["errors"][f"{frame}_{line}"][norm]
                                                                for record in series]
         for key in ("u_min", "v_max", "v_min"):
-            quantities[f"|{key} 偏差|"] = [abs(record["extrema"][key]["value"] - reference[key][0])
+            quantities[f"{key} 偏差（绝对值）"] = [abs(record["extrema"][key]["value"] - reference[key][0])
                                          for record in series]
         if all(record["extrema"].get("psi_min") for record in series):
             for frame in ("wall", "mid"):
-                quantities[f"|ψ_min 偏差| ({frame})"] = [
+                quantities[f"ψ_min 偏差（绝对值，{frame} 帧）"] = [
                     abs(record["extrema"]["psi_min"][f"value_{frame}"] - reference["psi_min"][0])
                     for record in series]
         convergence[mode] = {"resolutions": [record["resolution"] for record in series], "quantities": {}}
