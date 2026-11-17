@@ -995,7 +995,8 @@ class SphSimulatorV7:
         variants). Every path that would run something else raises ValueError with the reason:
           - the separate correction.comp + density.comp kernels (V7_FUSED_CORRECTION_DENSITY=0, or a fallback of
             the fusion: V7_BAND_WIDTHS c != d, V7_BAND_COMPACT_DISPATCH, a V7_DIAG_GHOST_SELF naming one kernel);
-          - a slab with a peer (K > 1): not supported yet;
+          - a slab with a peer (K > 1) without the release seam (two ghost layers, band-voxel dispatch, the inner
+            ghost column recomputed as self by both band kernels);
           - numerics.use_kcg_correction false, or settings the loader did not resolve (a case built by hand)."""
         if not self._wall_crossing:
             return
@@ -1014,8 +1015,23 @@ class SphSimulatorV7:
                              "not implement the mode")
         transport = self.case.transport
         if transport.has_leading_peer or transport.has_trailing_peer:
-            raise ValueError("wall_boundary crossing on a slab with a peer (K > 1) is not supported yet: the mode "
-                             "is validated on one GPU only")
+            # A crossing slab with a peer runs the same two kernels through the split pipelines: the interior in
+            # phase B, the band and the inner ghost column as self in phase C. Nothing new travels: a fluid
+            # particle continues its OWN fields across the wall, so a wall replica is read for its position,
+            # prescribed velocity, rho0 and material only (all in the replica record), and A_f^-1 is written and
+            # read by the same slab for its own particles in the same step. What the mode does need is the seam of
+            # the release set, in which the receiver recomputes the inner ghost column as self (so a band particle
+            # reads this step's pressure of its ghost fluid neighbours, as on one slab):
+            if self.case.ghost_grid.ghost_layers < 2:
+                raise ValueError("wall_boundary crossing on a slab with a peer needs the two-layer seam "
+                                 "(V7_KEEP_DEPARTED=1, V7_BAND_VOXEL_DISPATCH=1, V7_GHOST_LAYERS unset or 2); this "
+                                 f"slab has ghost_layers = {self.case.ghost_grid.ghost_layers}")
+            if _BAND_COMPACT or not _BAND_VOXEL_DISPATCH:
+                raise ValueError("wall_boundary crossing on a slab with a peer needs V7_BAND_VOXEL_DISPATCH=1 and "
+                                 "V7_BAND_COMPACT_DISPATCH=0 (the fused band pass is a band-voxel dispatch)")
+            if not {"correction", "density"} <= set(_DIAG_GHOST_SELF_KERNELS):
+                raise ValueError("wall_boundary crossing on a slab with a peer needs V7_DIAG_GHOST_SELF="
+                                 "correction,density (the inner ghost column recomputed as self)")
 
     def wall_band_width(self) -> int:
         """E40: the wall pass band of a split adami slab = the density band + 1 (a wall in column c reads the

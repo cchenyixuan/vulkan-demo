@@ -10,9 +10,9 @@ does the pressure settle on the hydrostatic solution?
     # the table of every finished run
     .venv/Scripts/python.exe -m experiment.wall_crossing.hydrostatic table
 
-The run: the single-GPU step of the v7 solver (bootstrap, then one command buffer per step, a defrag every
-defrag cadence), from uniform density and zero velocity. At every sample (a multiple of the defrag cadence) the
-alive fluid particles are read back: kinetic energy, largest and rms speed, density range. At the end:
+The run: the solver's production K = 1 path (chain_runner.run_chain: a one-slab chain, pipelined at depth 2, a
+defrag every defrag cadence), from uniform density and zero velocity. At every sample (a multiple of the defrag
+cadence) the alive fluid particles are read back: kinetic energy, largest and rms speed, density range. At the end:
   - the pressure against the hydrostatic solution p = p_level + rho0 g . (r - r_centre) (a closed box fixes the
     level through the mass, so the level is fitted; both the raw error with the level of the box centre taken
     from the fit and the level-free rms are reported, in units of rho0 |g| H, H = the box extent along g);
@@ -158,12 +158,19 @@ def read_fluid_state(simulator, case) -> dict:
             "pressures": density[fluid, 1].astype(np.float64)}
 
 
+def read_fluid_state_of_chain(simulators: list, slab_cases: list) -> dict:
+    """read_fluid_state over every slab of a chain (own rows only), concatenated."""
+    parts = [read_fluid_state(simulator, slab) for simulator, slab in zip(simulators, slab_cases)]
+    merged = {"alive": sum(part["alive"] for part in parts)}
+    for key in ("positions", "velocities", "masses", "densities", "pressures"):
+        merged[key] = np.concatenate([part[key] for part in parts])
+    return merged
+
+
 def run_case(arguments) -> int:
     from experiment.v7.utils.case_loader_v7 import load_case_v7
-    from experiment.v7.utils.simulator_v7 import SphSimulatorV7
-    from experiment.v7.utils.vulkan_context_v7 import VulkanContextV7
     from experiment.v7.utils.wall_crossing_v7 import box_distance_to_wall
-    from experiment.wall_crossing.run_log import vulkan_device_uuid
+    from experiment.wall_crossing.chain_runner import run_chain
 
     case_path = (REPOSITORY_ROOT / arguments.case).resolve()
     out = LOG_ROOT / "hydrostatic" / arguments.name
@@ -188,44 +195,38 @@ def run_case(arguments) -> int:
 
     with LoggedRun(kind="hydrostatic", case=str(arguments.case).replace("\\", "/")) as run:
         run.extra["name"] = arguments.name
-        context = VulkanContextV7.create(device_index=arguments.device, enable_validation=False,
-                                         application_name="wall_crossing_hydrostatic")
-        simulator = SphSimulatorV7(context, case)
-        try:
-            uuid = vulkan_device_uuid(context)
-            run.record["gpu_uuids"] = [uuid]
-            if arguments.uuid and uuid != arguments.uuid.replace("-", "").lower():
-                raise RuntimeError(f"device {arguments.device} has uuid {uuid}, expected {arguments.uuid}")
-            simulator.bootstrap()
-            simulator.prepare_step_single_cmd_buffer()
-            series = []
-            started = time.perf_counter()
-            for step in range(1, total_steps + 1):
-                simulator.submit_step_single_and_wait()
-                if step % cadence == 0:
-                    simulator.submit_defrag_and_wait()
-                if step % sample_steps == 0 or step == total_steps:
-                    state = read_fluid_state(simulator, case)
-                    speed = np.sqrt((state["velocities"] ** 2).sum(axis=1))
-                    status = simulator.readback_global_status()
-                    distance = box_distance_to_wall(state["positions"], lower, upper, dimension)
-                    series.append({
-                        "step": step, "time": step * timestep,
-                        "kinetic_energy": float(0.5 * (state["masses"] * speed ** 2).sum()),
-                        "speed_maximum": float(speed.max()), "speed_root_mean_square": float(np.sqrt((speed ** 2).mean())),
-                        "density_minimum": float(state["densities"].min()),
-                        "density_maximum": float(state["densities"].max()),
-                        "wall_distance_minimum": float(distance.min()), "alive": state["alive"],
-                        "correction_fallbacks": int(status["correction_fallback_count"]),
-                        "gradient_fallbacks": int(status.get("wall_crossing_gradient_fallback_count", 0)),
-                        "overflow": int(sum(value for key, value in status.items() if key.startswith("overflow_")))})
-                    if state["alive"] != expected_alive or not np.isfinite(speed).all():
-                        raise RuntimeError(f"step {step}: alive {state['alive']} of {expected_alive}, or a "
-                                           "non-finite velocity")
-            elapsed = time.perf_counter() - started
-        finally:
-            simulator.destroy()
-            context.destroy()
+        series = []
+        latest = {}
+
+        def on_sample(step: int, simulators: list, slab_cases: list) -> None:
+            state = read_fluid_state_of_chain(simulators, slab_cases)
+            speed = np.sqrt((state["velocities"] ** 2).sum(axis=1))
+            statuses = [simulator.readback_global_status() for simulator in simulators]
+            distance = box_distance_to_wall(state["positions"], lower, upper, dimension)
+            series.append({
+                "step": step, "time": step * timestep,
+                "kinetic_energy": float(0.5 * (state["masses"] * speed ** 2).sum()),
+                "speed_maximum": float(speed.max()), "speed_root_mean_square": float(np.sqrt((speed ** 2).mean())),
+                "density_minimum": float(state["densities"].min()),
+                "density_maximum": float(state["densities"].max()),
+                "wall_distance_minimum": float(distance.min()), "alive": state["alive"],
+                "correction_fallbacks": int(sum(status["correction_fallback_count"] for status in statuses)),
+                "gradient_fallbacks": int(sum(status.get("wall_crossing_gradient_fallback_count", 0)
+                                              for status in statuses)),
+                "overflow": int(sum(value for status in statuses for key, value in status.items()
+                                    if key.startswith("overflow_")))})
+            latest["state"] = state
+            if state["alive"] != expected_alive or not np.isfinite(speed).all():
+                raise RuntimeError(f"step {step}: alive {state['alive']} of {expected_alive}, or a "
+                                   "non-finite velocity")
+
+        outcome = run_chain(case, [arguments.device], total_steps, sample_steps, on_sample,
+                            expected_uuids=[arguments.uuid] if arguments.uuid else None,
+                            application_name="wall_crossing_hydrostatic")
+        uuid = outcome["device_uuids"][0]
+        run.record["gpu_uuids"] = outcome["device_uuids"]
+        state = latest["state"]
+        elapsed = outcome["elapsed_seconds"]
 
         # ---- the final state against the hydrostatic solution
         centre = 0.5 * (lower + upper)
