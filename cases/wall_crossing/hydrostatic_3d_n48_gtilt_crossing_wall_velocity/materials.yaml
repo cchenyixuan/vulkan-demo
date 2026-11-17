@@ -1,0 +1,15 @@
+schema_version: 1
+# material library of a wall_boundary test box (experiment/wall_crossing/box_case.py)
+box_fluid:
+  kind: fluid
+  rest_density: 1000.0
+  viscosity: 0.001
+box_wall:
+  kind: boundary
+  rest_density: 1000.0
+  viscosity: 0.001
+box_lid:
+  kind: boundary
+  rest_density: 1000.0
+  viscosity: 0.001
+  initial_velocity: [0.0, 0.0, 0.0]

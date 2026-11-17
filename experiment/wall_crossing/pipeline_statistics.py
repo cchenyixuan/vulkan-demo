@@ -21,15 +21,53 @@ import pathlib
 import sys
 
 
+def compare_reports(first_path: str, second_path: str) -> int:
+    """Are two reports' simulators made of the same pipelines: the same pipeline names, each with the same
+    SPIR-V module (sha256) and specialization entries, the same buffer specs, and the same driver statistics
+    for the pipelines both list. Exit code 0 = identical."""
+    first = json.loads(pathlib.Path(first_path).read_text(encoding="utf-8"))
+    second = json.loads(pathlib.Path(second_path).read_text(encoding="utf-8"))
+    problems = []
+    names_first, names_second = set(first["recipes"]), set(second["recipes"])
+    if names_first != names_second:
+        problems.append(f"pipeline sets differ: only first {sorted(names_first - names_second)}, "
+                        f"only second {sorted(names_second - names_first)}")
+    for name in sorted(names_first & names_second):
+        if first["recipes"][name]["module_sha256"] != second["recipes"][name]["module_sha256"]:
+            problems.append(f"{name}: SPIR-V module differs")
+        if first["recipes"][name]["entries"] != second["recipes"][name]["entries"]:
+            problems.append(f"{name}: specialization entries differ")
+    if first["buffer_specs"] != second["buffer_specs"]:
+        problems.append("buffer specs differ")
+    for name in sorted(set(first["pipelines"]) & set(second["pipelines"])):
+        if first["pipelines"][name] != second["pipelines"][name]:
+            problems.append(f"{name}: driver statistics differ")
+    print(f"[pipeline_statistics] {first_path} vs {second_path}: {len(names_first & names_second)} pipelines, "
+          f"{len(first['buffer_specs'])} buffers")
+    for problem in problems:
+        print(f"  DIFFERENT: {problem}")
+    print("  -> " + ("IDENTICAL (modules, specialization entries, buffer specs, driver statistics)"
+                     if not problems else f"{len(problems)} difference(s)"))
+    return 0 if not problems else 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--case", required=True)
-    parser.add_argument("--device", type=int, required=True)
+    parser.add_argument("--case", required=False)
+    parser.add_argument("--device", type=int, required=False)
     parser.add_argument("--filter", default="correction_density_all,correction_density_interior,force_all,"
                                             "force_deep_interior_scratch,wall_extrapolate")
     parser.add_argument("--out", default=None)
     parser.add_argument("--repo", default=str(pathlib.Path(__file__).resolve().parents[2]))
+    parser.add_argument("--compare", nargs=2, metavar=("FIRST", "SECOND"), default=None,
+                        help="compare two reports written with --out: the pipelines' modules and specialization "
+                             "entries, the buffer specs and the register counts (no GPU)")
+    arguments, _ = parser.parse_known_args()
+    if arguments.compare:
+        return compare_reports(*arguments.compare)
     arguments = parser.parse_args()
+    if not arguments.case or arguments.device is None:
+        parser.error("--case and --device are required (or --compare FIRST SECOND)")
 
     out_path = pathlib.Path(arguments.out).resolve() if arguments.out else None
     repository = pathlib.Path(arguments.repo).resolve()
@@ -63,6 +101,32 @@ def main() -> int:
         keywords["flags"] = keywords.get("flags", 0) | vk.VK_PIPELINE_CREATE_CAPTURE_STATISTICS_BIT_KHR
         return original_create_info(*positional, **keywords)
     simulator_module.VkComputePipelineCreateInfo = create_info_with_statistics
+
+    # what each pipeline is made of: the sha256 of its SPIR-V module and its specialization entries, recorded as
+    # the simulator creates them (two builds whose every pipeline has the same module and entries, and the same
+    # buffer specs, hand the driver the same input)
+    import hashlib
+    module_hashes: dict = {}
+    original_create_module = simulator_module.vkCreateShaderModule
+
+    def create_module_recording(device, create_info, allocator):
+        module = original_create_module(device, create_info, allocator)
+        code = bytes(ffi.buffer(create_info.pCode, create_info.codeSize)) if not isinstance(
+            create_info.pCode, (bytes, bytearray)) else bytes(create_info.pCode)
+        module_hashes[id(module)] = hashlib.sha256(code).hexdigest()
+        return module
+    simulator_module.vkCreateShaderModule = create_module_recording
+
+    pipeline_recipes: list = []
+    original_create_pipeline = simulator_module.SphSimulatorV7._create_pipeline
+
+    def create_pipeline_recording(self, shader, entries):
+        pipeline = original_create_pipeline(self, shader, entries)
+        pipeline_recipes.append((pipeline, module_hashes.get(id(shader)),
+                                 [[int(constant), kind, (float(value) if kind == "f" else int(value))]
+                                  for constant, kind, value in entries]))
+        return pipeline
+    simulator_module.SphSimulatorV7._create_pipeline = create_pipeline_recording
 
     case = load_case_v7(arguments.case)
     chain = compute_chain_partition(case, [1.0])
@@ -116,6 +180,20 @@ def main() -> int:
             print(f"  {name} [{row['executable']}]: "
                   + ", ".join(f"{key} = {value}" for key, value in row["statistics"].items()))
         report["pipelines"][name] = rows
+    # every pipeline of the simulator (not only the filtered ones): module hash + specialization entries, and
+    # the buffer specs; compare two reports with --compare
+    recipes = {}
+    for name, pipeline in simulator.pipelines.items():
+        for recorded, module_hash, entries in pipeline_recipes:
+            if recorded is pipeline:
+                recipes[name] = {"module_sha256": module_hash, "entries": entries}
+                break
+    report["recipes"] = recipes
+    report["buffer_specs"] = [[spec.name, int(spec.set_index), int(spec.binding), int(spec.size), int(spec.usage)]
+                              for spec in simulator._buffer_specs]
+    missing = sorted(set(simulator.pipelines) - set(recipes))
+    print(f"[pipeline_statistics] recipes of {len(recipes)} pipelines recorded"
+          + (f" (not created through _create_pipeline: {missing})" if missing else ""))
     if out_path is not None:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(json.dumps(report, indent=1), encoding="utf-8", newline="\n")
