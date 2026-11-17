@@ -40,7 +40,7 @@ numerics:
 capacities:
   pool_size: 224384
   max_per_voxel: 128
-  max_incoming: 32
+  max_incoming: 64
   workgroup: 128
 
 material_library: materials.yaml

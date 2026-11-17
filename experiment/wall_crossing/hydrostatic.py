@@ -120,7 +120,11 @@ def make_cases(force: bool = False) -> list:
                 lid_velocity=(0.0, 0.0, 0.0), wall_boundary=wall_boundary,
                 continuity=continuity or "extrapolate", pst_anti=0.0005,
                 gravity=tuple(float(round(GRAVITY_MAGNITUDE * float(component), 9)) for component in unit),
-                max_per_voxel=128, comment=f"hydrostatic box, gravity direction {direction}")
+                # The lattice starts in uniform free fall, so a whole plane of particles (16 per voxel face at
+                # h / dx = 4) enters a voxel in the same step; with gravity off two axes three faces do so at
+                # once (48 arrivals): 32 incoming slots overflow there and predict kills the excess.
+                max_per_voxel=128, max_incoming=64 if direction == "gtilt" else 32,
+                comment=f"hydrostatic box, gravity direction {direction}")
             written.append(write_box_case(directory, specification))
     return written
 
@@ -217,8 +221,12 @@ def run_case(arguments) -> int:
                                     if key.startswith("overflow_")))})
             latest["state"] = state
             if state["alive"] != expected_alive or not np.isfinite(speed).all():
-                raise RuntimeError(f"step {step}: alive {state['alive']} of {expected_alive}, or a "
-                                   "non-finite velocity")
+                overflow = series[-1]["overflow"]
+                raise RuntimeError(
+                    f"step {step}: alive {state['alive']} of {expected_alive}"
+                    + (f" with {overflow} voxel-list overflow(s) (a capacity of the case, not the walls)"
+                       if overflow else " with no voxel-list overflow (particles left through a wall)")
+                    + ("" if np.isfinite(speed).all() else "; non-finite velocity"))
 
         # A run that loses a particle (or produces a non-finite velocity) stops at that sample; what it did until
         # then is still written (series, the state of that sample, the summary with "failed").
