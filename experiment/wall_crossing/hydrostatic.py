@@ -12,7 +12,8 @@ does the pressure settle on the hydrostatic solution?
 
 The run: the solver's production K = 1 path (chain_runner.run_chain: a one-slab chain, pipelined at depth 2, a
 defrag every defrag cadence), from uniform density and zero velocity. At every sample (a multiple of the defrag
-cadence) the alive fluid particles are read back: kinetic energy, largest and rms speed, density range. At the end:
+cadence) the alive fluid particles are read back: kinetic energy, largest and rms speed, density range, the
+mean density, and the pressure against the hydrostatic solution (level and level-free rms, as below). At the end:
   - the pressure against the hydrostatic solution p = p_level + rho0 g . (r - r_centre) (a closed box fixes the
     level through the mass, so the level is fitted; both the raw error with the level of the box centre taken
     from the fit and the level-free rms are reported, in units of rho0 |g| H, H = the box extent along g);
@@ -220,6 +221,10 @@ def run_case(arguments) -> int:
             speed = np.sqrt((state["velocities"] ** 2).sum(axis=1))
             statuses = [simulator.readback_global_status() for simulator in simulators]
             distance = box_distance_to_wall(state["positions"], lower, upper, dimension)
+            # the pressure minus rho0 g . (r - r_centre): its mean is the level at the box centre, its
+            # standard deviation the level-free rms error (the definitions of the final summary)
+            pressure_difference = state["pressures"] - rest_density * (
+                (state["positions"] - 0.5 * (lower + upper)) * gravity).sum(axis=1)
             series.append({
                 "step": step, "time": step * timestep,
                 "kinetic_energy": float(0.5 * (state["masses"] * speed ** 2).sum()),
@@ -231,7 +236,10 @@ def run_case(arguments) -> int:
                 "gradient_fallbacks": int(sum(status.get("wall_crossing_gradient_fallback_count", 0)
                                               for status in statuses)),
                 "overflow": int(sum(value for status in statuses for key, value in status.items()
-                                    if key.startswith("overflow_")))})
+                                    if key.startswith("overflow_"))),
+                "density_mean": float(state["densities"].mean()),
+                "pressure_level_at_centre": float(pressure_difference.mean()),
+                "pressure_error_root_mean_square": float(pressure_difference.std())})
             latest["state"] = state
             if state["alive"] != expected_alive or not np.isfinite(speed).all():
                 overflow = series[-1]["overflow"]
