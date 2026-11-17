@@ -255,7 +255,7 @@ def compare_with_reference(gpu: dict, tolerance: float) -> dict:
         "density_rate": _error_statistics(rate_gpu, reference.density_rate, reference.density_rate_scale),
         "acceleration": _error_statistics(gpu["acceleration"][fluid], reference.acceleration,
                                           reference.acceleration_scale),
-        "shift": _error_statistics(gpu["shift"][fluid], reference.shift),
+        "shift": _error_statistics(gpu["shift"][fluid], reference.shift, reference.shift_scale),
         "correction_inverse": _error_statistics(stored_gpu.reshape(-1), reference.correction_inverse.reshape(-1)),
         "kernel_sum": _error_statistics(gpu["density_gradient_kernel_sum"][fluid, 3], reference.kernel_sum),
         "fluid_density_gradient_sum": _error_statistics(gpu["density_gradient_kernel_sum"][fluid, 0:3],
@@ -299,10 +299,18 @@ def compare_with_reference(gpu: dict, tolerance: float) -> dict:
         fallback_problems.append(f"fallback count {fallback_gpu} (GPU) != "
                                  f"{int((~reference.fluid_inverse_valid).sum())} (reference)")
 
-    compared = ("acceleration", "shift", "correction_inverse", "kernel_sum",
-                "fluid_density_gradient_sum", "fluid_inverse")
+    # The pass criterion per quantity (all against the same tolerance, 1e-4 by default):
+    #   L, A_f^-1, kernel sum, g_f: the per-particle relative error (reference floored at 1 % of its maximum);
+    #   density rate: the same beyond one ulp of the stored density (see above);
+    #   acceleration and shift: sums in which the pair terms largely cancel, so a particle's result can be
+    #     orders below its terms and a relative error says little there; their error is taken against a tenth of
+    #     the summed absolute pair terms (i.e. it must stay below tolerance / 10 of that rounding scale), and
+    #     the plain relative errors are reported beside it.
+    compared = ("correction_inverse", "kernel_sum", "fluid_density_gradient_sum", "fluid_inverse")
     worst = max([comparisons[name]["relative_error_maximum"] for name in compared]
-                + [comparisons["density_rate"]["relative_error_beyond_one_ulp_maximum"]])
+                + [comparisons["density_rate"]["relative_error_beyond_one_ulp_maximum"]]
+                + [10.0 * comparisons[name]["error_over_pair_term_sum_maximum"]
+                   for name in ("acceleration", "shift")])
     # what the L A = I step of the derivation is worth (reference only): the stored formulas against the wall
     # neighbours' values written out pair by pair
     scale_pressure = np.sqrt((reference.acceleration_pressure ** 2).sum(axis=1)).max()
@@ -462,8 +470,10 @@ def _print_outcome(outcome: dict) -> None:
         for problem in reference["wall_problems"] + reference["fallback_problems"]:
             print(f"  PROBLEM: {problem}")
         if outcome["configuration"] == "smooth":
-            print(f"  -> {'PASS' if reference['passed'] else 'FAIL'} (worst relative error "
-                  f"{reference['worst_relative_error']:.3e}, tolerance {reference['tolerance']:.0e})")
+            print(f"  -> {'PASS' if reference['passed'] else 'FAIL'} (worst criterion value "
+                  f"{reference['worst_relative_error']:.3e}, tolerance {reference['tolerance']:.0e}; criterion: "
+                  "relative error of L, A_f^-1, kernel sum, g_f; density rate beyond one ulp; 10 x error / summed "
+                  "pair terms of acceleration and shift)")
     residuals = outcome.get("residuals")
     if residuals is not None:
         for name, groups in residuals.items():

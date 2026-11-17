@@ -135,6 +135,7 @@ class ReferenceResult:
     acceleration_viscosity: np.ndarray
     acceleration_scale: np.ndarray          # sum of |pair terms| (norms; rounding scale of the acceleration)
     shift: np.ndarray                       # (F, 3)
+    shift_scale: np.ndarray                 # sum of |pair terms| (norms; rounding scale of the shift)
     # the same sums with the wall neighbours' values written out pair by pair (no L A = I step):
     density_rate_diffusion_wall_pairwise: np.ndarray
     acceleration_pressure_pairwise: np.ndarray
@@ -387,6 +388,14 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
             fluid_count)
         blend = np.clip(kernel_sum, 0.0, 1.0) ** 4
         shift = blend[:, None] * shift_main + (1.0 - blend)[:, None] * shift_anti
+        gradient_norm = np.sqrt((corrected_gradient ** 2).sum(axis=1))
+        shift_scale = (blend * _sum_by_particle(
+            self_of_pair, np.abs(base_factor * main_scalar * constants.particle_volume) * gradient_norm, fluid_count)
+            + (1.0 - blend) * _sum_by_particle(
+                self_of_pair, np.abs(base_factor * anti_scalar * constants.particle_volume) * gradient_norm,
+                fluid_count))
+    else:
+        shift_scale = np.ones(fluid_count)
 
     return ReferenceResult(
         fluid_index=fluid_index,
@@ -411,6 +420,7 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
         acceleration_viscosity=acceleration_viscosity,
         acceleration_scale=acceleration_scale,
         shift=shift,
+        shift_scale=shift_scale,
         density_rate_diffusion_wall_pairwise=diffusion_wall_pairwise,
         acceleration_pressure_pairwise=acceleration_pressure_pairwise,
         wall_neighbour_count=np.bincount(self_of_pair[neighbour_is_wall], minlength=fluid_count),
