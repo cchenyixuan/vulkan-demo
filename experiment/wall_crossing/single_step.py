@@ -207,7 +207,7 @@ def gpu_single_evaluation(case_path: pathlib.Path, device_index: int, configurat
         if simulator._wall_crossing:
             result["wall_crossing_fluid_inverse"] = table("wall_crossing_fluid_inverse", 8)
         if simulator._density_budget_active():
-            budget_entries = table("density_budget", 72).reshape(particle_count, 9, 2, 4)
+            budget_entries = table("density_budget", 96).reshape(particle_count, 12, 2, 4)
             result["density_budget"] = budget_entries[:, :, 0, :].copy()          # dt x the four terms
             result["density_budget_applied"] = budget_entries[:, :, 1, 0].copy()  # the stored density's change
             result["density_budget_box"] = simulator.density_budget_box()
@@ -401,18 +401,14 @@ def compare_budget_with_reference(gpu: dict, tolerance: float) -> dict:
     closure = np.maximum(np.abs(terms_gpu.sum(axis=1) - rate_gpu) - rate_resolution, 0.0)
     rate_floor = max(0.01 * float(np.abs(rate_gpu).max()), 1e-300)
     rate_reference_error = np.maximum(np.abs(rate_gpu - reference.density_rate) - rate_resolution, 0.0)
-    # the region: exactly one region of a fluid particle is written; the host's in float32 as the shader's
+    # the region: exactly one region of a fluid particle is written; the host's by the shader's rule
+    from experiment.v7.utils.simulator_v7 import density_budget_region_index
     lower, upper = gpu["density_budget_box"]
-    positions = gpu["positions"][fluid]
-    support = np.float32(constants.smoothing_length)
-    horizontal = np.where(positions[:, 0] - np.float32(lower[0]) < support, 1,
-                          np.where(np.float32(upper[0]) - positions[:, 0] < support, 2, 0))
-    vertical = np.where(positions[:, 1] - np.float32(lower[1]) < support, 1,
-                        np.where(np.float32(upper[1]) - positions[:, 1] < support, 2, 0))
-    region_host = horizontal + 3 * vertical
-    written = np.abs(budget).sum(axis=2) > 0.0                                       # (F, 9)
-    region_problems = int(((written.sum(axis=1) > 1) | (written & (np.arange(9)[None, :] != region_host[:, None]))
-                           .any(axis=1)).sum())
+    region_host = density_budget_region_index(gpu["positions"][fluid], lower, upper, constants.smoothing_length)
+    region_total = budget.shape[1]
+    written = np.abs(budget).sum(axis=2) > 0.0                                       # (F, regions)
+    region_problems = int(((written.sum(axis=1) > 1)
+                           | (written & (np.arange(region_total)[None, :] != region_host[:, None])).any(axis=1)).sum())
     wall_rows_written = int(np.abs(gpu["density_budget"][gpu["is_wall"]]).sum() > 0.0)
     # the applied change: exactly the float32 the pass stored minus the float32 it started from
     applied_gpu = gpu["density_budget_applied"][fluid].astype(np.float64).sum(axis=1)
@@ -434,7 +430,7 @@ def compare_budget_with_reference(gpu: dict, tolerance: float) -> dict:
         "applied_change_mismatches": applied_mismatches,
         "applied_change_field_mean_per_second": float(applied_gpu.mean() / timestep),
         "terms_sum_field_mean_per_second": float(terms_gpu.sum(axis=1).mean()),
-        "region_counts": {str(region): int((region_host == region).sum()) for region in range(9)},
+        "region_counts": {str(region): int((region_host == region).sum()) for region in range(region_total)},
         "terms_maximum": {name: float(np.abs(terms_reference[:, column]).max())
                           for column, name in enumerate(names)},
         "terms_field_mean_reference": {name: float(terms_reference[:, column].mean())

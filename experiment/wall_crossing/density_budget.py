@@ -58,7 +58,9 @@ REPORT_ROOT = REPOSITORY_ROOT / "claude" / "wall_crossing"
 REST_DENSITY = 1000.0
 WINDOW = (1.0, 5.011)
 BATCHES = 8
-REGION_NAMES = ("interior", "left", "right", "bottom", "bottom_left", "bottom_right", "top", "top_left", "top_right")
+REGION_NAMES = ("interior_beyond_8h", "left", "right", "bottom", "bottom_left", "bottom_right", "top", "top_left",
+                "top_right", "interior_1h_2h", "interior_2h_4h", "interior_4h_8h")
+INTERIOR_REGIONS = ("interior_1h_2h", "interior_2h_4h", "interior_4h_8h", "interior_beyond_8h")
 TERM_NAMES = ("drift_fluid", "drift_wall", "diffusion_fluid", "diffusion_wall")
 APPLIED_NAME = "applied"
 # the rows of a group's result: the four terms, their sum, the two partial sums, the applied change, the rounding
@@ -68,8 +70,16 @@ REGION_GROUPS = (
     ("lid", "盖带", ("top",)),
     ("static", "静止壁带（左、右、底）", ("left", "right", "bottom")),
     ("corners", "四个角", ("bottom_left", "bottom_right", "top_left", "top_right")),
-    ("interior", "内部", ("interior",)),
+    ("interior", "内部", INTERIOR_REGIONS),
 )
+# the interior by its distance to the nearest wall plane (h = the support radius = 5 dx)
+SHELL_GROUPS = (("shell_1h_2h", "h 到 2h", ("interior_1h_2h",)),
+                ("shell_2h_4h", "2h 到 4h", ("interior_2h_4h",)),
+                ("shell_4h_8h", "4h 到 8h", ("interior_4h_8h",)),
+                ("shell_beyond_8h", "8h 以外（中心部分）", ("interior_beyond_8h",)))
+# the two lid corners apart (the lid moves in +x: left = where the lid leaves the side wall)
+LID_CORNER_GROUPS = (("lid_corner_left", "盖的左角（上游）", ("top_left",)),
+                     ("lid_corner_right", "盖的右角（下游）", ("top_right",)))
 CORNER_GROUPS = (("lid_corners", "其中：盖的两个角", ("top_left", "top_right")),
                  ("bottom_corners", "其中：底的两个角", ("bottom_left", "bottom_right")))
 ALL_REGIONS = ("all", "全场", REGION_NAMES)
@@ -131,7 +141,7 @@ def analyse(name: str) -> dict:
     fluid_particles = float(series["fluid_particles"][0])
 
     groups = {}
-    for key, _, members in (*REGION_GROUPS, *CORNER_GROUPS, ALL_REGIONS):
+    for key, _, members in (*REGION_GROUPS, *CORNER_GROUPS, *SHELL_GROUPS, *LID_CORNER_GROUPS, ALL_REGIONS):
         columns = [region_index[member] for member in members]
         rows = with_derived_rows(cumulative[:, columns, :].sum(axis=1))
         rate, error, batch_rates = mean_rate(window_time, rows)
@@ -211,6 +221,32 @@ def budget_table(result: dict, title: str, term_texts: tuple, record: dict) -> s
         f"{groups['all']['rate_first_half'][ROW_APPLIED]:+.5f}、{groups['all']['rate_second_half'][ROW_APPLIED]:+.5f}。",
         f"- 记录：{record.get('run_id', '?')}（{record.get('commit', '?')}）。",
     ]
+    # the interior by its distance to the nearest wall plane, and the two lid corners apart
+    shell_keys = ["interior"] + [key for key, _, _ in SHELL_GROUPS]
+    shell_columns = ["项（内部，按到最近壁面的距离）", "内部合计"] + [text for _, text, _ in SHELL_GROUPS]
+    shell_rows = []
+    for index, text in ((0, term_texts[0]), (2, term_texts[2]), (ROW_SUM, "**四项之和**"),
+                        (ROW_ROUNDING, "float32 存储舍入"), (ROW_APPLIED, "**实际写入的密度变化**")):
+        shell_rows.append([text] + [value_text(groups[key]["rate"][index], groups[key]["standard_error"][index])
+                                    for key in shell_keys])
+    shell_rows.append(["该层的流体粒子（窗口平均）"]
+                      + [f"{groups[key]['particles_mean']:,.0f}（{100 * groups[key]['particle_fraction']:.2f} %）"
+                         for key in shell_keys])
+    shell_rows.append([f"{term_texts[0]}：该层每个粒子的平均（kg/m³ 每时间单位）"]
+                      + [f"{groups[key]['rate'][0] / groups[key]['particle_fraction']:+.4f} ± "
+                         f"{groups[key]['standard_error'][0] / groups[key]['particle_fraction']:.4f}" for key in shell_keys])
+    shell_rows.append(["四项之和：该层每个粒子的平均"]
+                      + [f"{groups[key]['rate'][ROW_SUM] / groups[key]['particle_fraction']:+.4f} ± "
+                         f"{groups[key]['standard_error'][ROW_SUM] / groups[key]['particle_fraction']:.4f}"
+                         for key in shell_keys])
+    corner_keys = [key for key, _, _ in LID_CORNER_GROUPS]
+    corner_columns = ["项（盖的两个角分开）"] + [text for _, text, _ in LID_CORNER_GROUPS]
+    corner_rows = []
+    for index, text in ((0, term_texts[0]), (1, term_texts[1]), (ROW_DRIFT, "连续性两项之和"), (2, term_texts[2]),
+                        (3, term_texts[3]), (ROW_SUM, "**四项之和**")):
+        corner_rows.append([text] + [value_text(groups[key]["rate"][index], groups[key]["standard_error"][index])
+                                     for key in corner_keys])
+    lines += ["", markdown_table(shell_columns, shell_rows), "", markdown_table(corner_columns, corner_rows)]
     return "\n".join(lines) + "\n"
 
 

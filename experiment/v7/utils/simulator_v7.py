@@ -269,12 +269,36 @@ def _parse_density_budget(text: str) -> bool:
 # V7_DENSITY_BUDGET=1 (DIAGNOSTIC; one slab without a peer, the fused correction + density pass, no deep-wall
 # skip): the fused pass runs its DENSITY_BUDGET build (shaders/density_budget.glsl), which adds, every step and
 # for every fluid particle, TIMESTEP x (drift fluid, drift wall, diffusion fluid, diffusion wall) of its
-# density rate to density_budget[pid * 9 + region] (set 0 binding 13; region = which walls of the box lie
-# within the support radius). The pass's results are the plain build's. readback_density_budget() sums the
+# density rate, and the change its stored density took, to density_budget (set 0 binding 13; two entries per
+# slot and region; region = which walls of the box lie within the support radius, the interior by its
+# distance to the nearest wall). The pass's results are the plain build's. readback_density_budget() sums the
 # buffer. Read once at import; default 0 = nothing of it exists (no buffer, no binding, the plain modules).
 _DENSITY_BUDGET = _parse_density_budget(os.environ.get("V7_DENSITY_BUDGET", "0"))
-DENSITY_BUDGET_REGION_NAMES = ("interior", "left", "right", "bottom", "bottom_left", "bottom_right",
-                               "top", "top_left", "top_right")          # region = horizontal + 3 x vertical
+# regions 1 - 8 = horizontal + 3 x vertical (a wall plane within the support radius h); the interior by its
+# distance g to the nearest wall plane: 9 for h <= g < 2h, 10 for 2h <= g < 4h, 11 for 4h <= g < 8h, 0 beyond
+DENSITY_BUDGET_REGION_NAMES = ("interior_beyond_8h", "left", "right", "bottom", "bottom_left", "bottom_right",
+                               "top", "top_left", "top_right", "interior_1h_2h", "interior_2h_4h",
+                               "interior_4h_8h")
+
+
+def density_budget_region_index(positions: np.ndarray, box_lower: tuple, box_upper: tuple,
+                                smoothing_length: float) -> np.ndarray:
+    """density_budget.glsl's density_budget_region for an (N, >= 2) array of positions, in float32 as the
+    shader computes it (the index into DENSITY_BUDGET_REGION_NAMES of every row)."""
+    positions = np.asarray(positions, dtype=np.float32)
+    support = np.float32(smoothing_length)
+    lower_x, lower_y = np.float32(box_lower[0]), np.float32(box_lower[1])
+    upper_x, upper_y = np.float32(box_upper[0]), np.float32(box_upper[1])
+    gap_left, gap_right = positions[:, 0] - lower_x, upper_x - positions[:, 0]
+    gap_bottom, gap_top = positions[:, 1] - lower_y, upper_y - positions[:, 1]
+    horizontal = np.where(gap_left < support, 1, np.where(gap_right < support, 2, 0))
+    vertical = np.where(gap_bottom < support, 1, np.where(gap_top < support, 2, 0))
+    near_wall = horizontal + 3 * vertical
+    gap = np.minimum(np.minimum(gap_left, gap_right), np.minimum(gap_bottom, gap_top))
+    interior = np.where(gap >= np.float32(8.0) * support, 0,
+                        np.where(gap >= np.float32(4.0) * support, 11,
+                                 np.where(gap >= np.float32(2.0) * support, 10, 9)))
+    return np.where(near_wall != 0, near_wall, interior)
 # the four terms of the rate (x dt, accumulated) and the change the stored float32 density actually took
 DENSITY_BUDGET_TERM_NAMES = ("drift_fluid", "drift_wall", "diffusion_fluid", "diffusion_wall", "applied")
 # Test hook, not a switch (experiment/seam_audit/canonical_dump.py sets it before
@@ -1048,7 +1072,7 @@ class SphSimulatorV7:
         return tuple(settings.box_lower), tuple(settings.box_upper)
 
     def readback_density_budget(self) -> np.ndarray:
-        """(9, 5) float64: density_budget summed over every slot, per region (DENSITY_BUDGET_REGION_NAMES)
+        """(12, 5) float64: density_budget summed over every slot, per region (DENSITY_BUDGET_REGION_NAMES)
         and column (DENSITY_BUDGET_TERM_NAMES: the four terms, accumulated TIMESTEP x rate, and the
         accumulated change the stored density actually took), in kg/m^3 summed over all fluid particles
         since start-up (divide by the fluid particle count for the field mean)."""

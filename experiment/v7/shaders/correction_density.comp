@@ -85,16 +85,12 @@
 //   - A_f^-1 goes to wall_crossing_fluid_inverse for force of the same step.
 //
 // DIAGNOSTIC builds (DENSITY_BUDGET variants, V7_DENSITY_BUDGET=1; density_budget.glsl):
-// a fluid self also gets its density rate split into drift / diffusion x fluid /
-// wall neighbours, and TIMESTEP x the four terms is added to density_budget.
-//   - WALL_CROSSING + DENSITY_BUDGET: the four sums are taken in the pass's loop
-//     (the drift part of q_j is noted before the diffusion is added to it);
-//   - DENSITY_BUDGET alone (simple / adami): in a second neighbour traversal after
-//     the pass has stored its results (density_budget_plain_pass). Taken inside
-//     the loop they change how the driver contracts the loop's multiply-adds, and
-//     the pass's results lose their bits after a few hundred steps.
-// Either way the pass's results are those of the build without the budget; the
-// builds without DENSITY_BUDGET hold none of it.
+// after the pass has stored its results, a fluid self's density rate is taken a second
+// time, split into drift / diffusion x fluid / wall neighbours, in a neighbour
+// traversal of its own (density_budget_pass), and TIMESTEP x the four terms and the
+// change the stored density took are added to density_budget. Nothing of it sits in
+// the pass's loop (there it changes how the driver contracts the loop's multiply-adds
+// and the results lose their bits); the builds without DENSITY_BUDGET hold none of it.
 // ============================================================================
 
 layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
@@ -192,17 +188,6 @@ void process_particle(uint self_particle_id) {
         }
     }
 #endif
-#if defined(DENSITY_BUDGET) && defined(WALL_CROSSING)
-    // DIAGNOSTIC: the symmetric part of S split by the term (drift, diffusion) and the neighbour (fluid, wall)
-    vec3  budget_drift_fluid_diagonal         = vec3(0.0);
-    vec3  budget_drift_fluid_off_diagonal     = vec3(0.0);
-    vec3  budget_drift_wall_diagonal          = vec3(0.0);
-    vec3  budget_drift_wall_off_diagonal      = vec3(0.0);
-    vec3  budget_diffusion_fluid_diagonal     = vec3(0.0);
-    vec3  budget_diffusion_fluid_off_diagonal = vec3(0.0);
-    vec3  budget_diffusion_wall_diagonal      = vec3(0.0);
-    vec3  budget_diffusion_wall_off_diagonal  = vec3(0.0);
-#endif
     vec3  density_rate_diagonal     = vec3(0.0);   // (S_xx, S_yy, S_zz)
     vec3  density_rate_off_diagonal = vec3(0.0);   // (S_xy + S_yx, S_xz + S_zx, S_yz + S_zy)
 
@@ -289,11 +274,6 @@ void process_particle(uint self_particle_id) {
                     // q_j = -ρ_i V_j (v_j - v_i) + 2 δ h c₀ ψ_ij V_j / (r² + ε²) (r_j - r_i),  ψ_ij = ρ_j - ρ_i
                     vec3 rate_vector = (-self_density * neighbor_volume)
                                      * (neighbor_velocity_mass.xyz - self_velocity);
-#if defined(DENSITY_BUDGET) && defined(WALL_CROSSING)
-                    // DIAGNOSTIC: the drift part of q_j (a wall neighbour of wall_boundary crossing takes it
-                    // again below, once the wall rule has been applied)
-                    vec3 budget_drift_vector = rate_vector;
-#endif
 #ifdef WALL_CROSSING
                     // wall_boundary crossing, a wall neighbour: the drift takes the wall's stored velocity,
                     // v_j - v_i -> (v_w - v_i) (1 + d_j / φ_i) with continuity extrapolate (as it is with
@@ -317,9 +297,6 @@ void process_particle(uint self_particle_id) {
                         if (WALL_CROSSING_CONTINUITY == WALL_CROSSING_CONTINUITY_EXTRAPOLATE) {
                             rate_vector *= wall_crossing_extrapolation_factor(self_wall_distance, neighbor_position);
                         }
-#if defined(DENSITY_BUDGET) && defined(WALL_CROSSING)
-                        budget_drift_vector = rate_vector;
-#endif
                         if (WALL_CROSSING_DELTA_WALL == WALL_CROSSING_DELTA_WALL_REST_DENSITY) {
                             wall_neighbor_diffuses_as_pair = true;
                         } else if (WALL_CROSSING_DELTA_WALL == WALL_CROSSING_DELTA_WALL_BODY_FORCE) {
@@ -344,20 +321,6 @@ void process_particle(uint self_particle_id) {
                                         / (distance * distance + EPS_H_SQUARED))
                                      * position_difference_self_to_neighbor;
                     }
-#if defined(DENSITY_BUDGET) && defined(WALL_CROSSING)
-                    // DIAGNOSTIC: what the diffusion added to q_j is q_j minus its drift part
-                    if (material_parameters[material[neighbor_particle_id]].kind == MATERIAL_BOUNDARY) {
-                        density_budget_add(budget_drift_vector, kernel_gradient_value,
-                                           budget_drift_wall_diagonal, budget_drift_wall_off_diagonal);
-                        density_budget_add(rate_vector - budget_drift_vector, kernel_gradient_value,
-                                           budget_diffusion_wall_diagonal, budget_diffusion_wall_off_diagonal);
-                    } else {
-                        density_budget_add(budget_drift_vector, kernel_gradient_value,
-                                           budget_drift_fluid_diagonal, budget_drift_fluid_off_diagonal);
-                        density_budget_add(rate_vector - budget_drift_vector, kernel_gradient_value,
-                                           budget_diffusion_fluid_diagonal, budget_diffusion_fluid_off_diagonal);
-                    }
-#endif
                     // S += q_j ⊗ ∇W_ij, symmetric part
                     if (DIMENSION == 2u) {
                         density_rate_diagonal.xy    += rate_vector.xy * kernel_gradient_value.xy;
@@ -453,9 +416,6 @@ void process_particle(uint self_particle_id) {
                       + inverse_xz * density_rate_off_diagonal.y
                       + inverse_yz * density_rate_off_diagonal.z;
     }
-#if defined(DENSITY_BUDGET) && defined(WALL_CROSSING)
-    float budget_rate_of_pairs = density_rate;      // DIAGNOSTIC: before the walls' continuation term
-#endif
 #ifdef WALL_CROSSING
     // ========================================================================
     // wall_boundary crossing: A_f^-1 by the correction matrix's regularisation
@@ -501,43 +461,16 @@ void process_particle(uint self_particle_id) {
         }
     }
 #endif
-#if defined(DENSITY_BUDGET) && defined(WALL_CROSSING)
-    // DIAGNOSTIC: the four terms of a fluid particle's rate, each contracted with the stored L_i as the sum
-    // is, into the region the particle is in at this step. density_rate - budget_rate_of_pairs is what the
-    // walls' continuation added after the loop (wall_boundary crossing, delta_wall extension; else zero).
-    if (!self_is_boundary) {
-        vec3 budget_inverse_diagonal     = vec3(inverse_xx, inverse_yy, inverse_zz);
-        vec3 budget_inverse_off_diagonal = vec3(inverse_xy, inverse_xz, inverse_yz);
-        vec4 budget_terms = vec4(
-            density_budget_contract(budget_drift_fluid_diagonal, budget_drift_fluid_off_diagonal,
-                                    budget_inverse_diagonal, budget_inverse_off_diagonal),
-            density_budget_contract(budget_drift_wall_diagonal, budget_drift_wall_off_diagonal,
-                                    budget_inverse_diagonal, budget_inverse_off_diagonal),
-            density_budget_contract(budget_diffusion_fluid_diagonal, budget_diffusion_fluid_off_diagonal,
-                                    budget_inverse_diagonal, budget_inverse_off_diagonal),
-            density_budget_contract(budget_diffusion_wall_diagonal, budget_diffusion_wall_off_diagonal,
-                                    budget_inverse_diagonal, budget_inverse_off_diagonal)
-                + (density_rate - budget_rate_of_pairs));
-        density_budget[density_budget_slot(self_particle_id, self_position)] += TIMESTEP * budget_terms;
-    }
-#endif
     store_density(self_particle_id, self_stored_density, density_rate, self_params);
-#if defined(DENSITY_BUDGET) && defined(WALL_CROSSING)
-    // DIAGNOSTIC: what the stored density changed by in this step: the float32 the pass just stored minus
-    // rho_n (an exact difference), i.e. dt x rate as the float32 density took it
+#ifdef DENSITY_BUDGET
+    // DIAGNOSTIC: the four terms of a fluid particle's rate and the change its stored density took, in a
+    // traversal of their own (density_budget.glsl); nothing above this line belongs to it
     if (!self_is_boundary) {
-        density_budget[density_budget_slot(self_particle_id, self_position) + 1u].x
-            += density_pressure_scratch[self_particle_id].x - self_stored_density;
-    }
-#endif
-#if defined(DENSITY_BUDGET) && !defined(WALL_CROSSING)
-    // DIAGNOSTIC (simple / adami): the four terms of a fluid particle's rate, in a traversal of their own
-    if (!self_is_boundary) {
-        density_budget_plain_pass(self_particle_id, self_position, self_voxel_coord, self_velocity,
-                                  self_density, self_stored_density,
-                                  vec3(inverse_xx, inverse_yy, inverse_zz),
-                                  vec3(inverse_xy, inverse_xz, inverse_yz),
-                                  density_pressure_scratch[self_particle_id].x - self_stored_density);
+        density_budget_pass(self_particle_id, self_position, self_voxel_coord, self_velocity,
+                            self_density, self_stored_density,
+                            vec3(inverse_xx, inverse_yy, inverse_zz),
+                            vec3(inverse_xy, inverse_xz, inverse_yz),
+                            density_pressure_scratch[self_particle_id].x - self_stored_density);
     }
 #endif
 }

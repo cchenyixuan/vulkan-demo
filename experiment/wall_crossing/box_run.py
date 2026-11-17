@@ -179,15 +179,12 @@ def main() -> int:
                     for region_index, region_name in enumerate(DENSITY_BUDGET_REGION_NAMES):
                         for term_index, term_name in enumerate(DENSITY_BUDGET_TERM_NAMES):
                             row[f"budget_{region_name}_{term_name}"] = float(budget[region_index, term_index])
-                    # the region of every fluid particle now, the shader's rule in float32 (x and y only)
+                    # the region of every fluid particle now (the shader's rule)
+                    from experiment.v7.utils.simulator_v7 import density_budget_region_index
                     budget_lower, budget_upper = simulators[0].density_budget_box()
-                    positions32 = state["positions"].astype(np.float32)
-                    support32 = np.float32(support)
-                    horizontal = np.where(positions32[:, 0] - np.float32(budget_lower[0]) < support32, 1,
-                                          np.where(np.float32(budget_upper[0]) - positions32[:, 0] < support32, 2, 0))
-                    vertical = np.where(positions32[:, 1] - np.float32(budget_lower[1]) < support32, 1,
-                                        np.where(np.float32(budget_upper[1]) - positions32[:, 1] < support32, 2, 0))
-                    counts = np.bincount(horizontal + 3 * vertical, minlength=len(DENSITY_BUDGET_REGION_NAMES))
+                    counts = np.bincount(
+                        density_budget_region_index(state["positions"], budget_lower, budget_upper, support),
+                        minlength=len(DENSITY_BUDGET_REGION_NAMES))
                     for region_index, region_name in enumerate(DENSITY_BUDGET_REGION_NAMES):
                         row[f"region_count_{region_name}"] = int(counts[region_index])
                     row["fluid_particles"] = int(len(state["positions"]))
