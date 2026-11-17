@@ -26,6 +26,12 @@ Configurations (--configurations, comma list):
   hydrostatic_negative    the same with P < 0 (the other TIC branch): the acceleration is ~ 0 everywhere.
 With --compare-modes the three property configurations also run with wall_boundary simple and adami (GPU only),
 for the size of the same residuals without the mode.
+
+--density-budget (diagnostic; sets V7_DENSITY_BUDGET=1 before the simulator is imported): the smooth
+configuration with wall_boundary crossing and with wall_boundary simple, the fused pass in its DENSITY_BUDGET
+build. After the bootstrap density_budget holds dt x the four terms of every fluid particle's density rate in
+the particle's region; they are compared with the reference's four terms particle by particle, their sum with
+the rate the pass stored, and the region with the host's.
 """
 
 from __future__ import annotations
@@ -172,6 +178,8 @@ def gpu_single_evaluation(case_path: pathlib.Path, device_index: int, configurat
             names.append("wall_crossing_fluid_inverse")
         if simulator._wall_adami:
             names.append("wall_dummy_velocity")
+        if simulator._density_budget_active():
+            names.append("density_budget")
         raw = simulator.readback_buffers_batch(names, density="absolute")
         status = simulator.readback_global_status()
 
@@ -198,6 +206,9 @@ def gpu_single_evaluation(case_path: pathlib.Path, device_index: int, configurat
         }
         if simulator._wall_crossing:
             result["wall_crossing_fluid_inverse"] = table("wall_crossing_fluid_inverse", 8)
+        if simulator._density_budget_active():
+            result["density_budget"] = table("density_budget", 36).reshape(particle_count, 9, 4)
+            result["density_budget_box"] = simulator.density_budget_box()
         return result
     finally:
         simulator.destroy()
@@ -357,6 +368,72 @@ def compare_with_reference(gpu: dict, tolerance: float) -> dict:
     }
 
 
+def compare_budget_with_reference(gpu: dict, tolerance: float) -> dict:
+    """V7_DENSITY_BUDGET=1: the four terms the fused pass accumulated for every fluid particle (one evaluation:
+    density_budget = dt x term, in the particle's region) against the reference's drift fluid, drift wall,
+    diffusion fluid, diffusion wall. Any wall mode (simple / adami: the reference under which the terms are that
+    mode's, see reference.py). Criterion per term: 10 x |error| / the summed absolute pair terms of the whole
+    density rate below the tolerance (each term is a sum of cancelling pairs, as the acceleration is; a term's
+    own pair sum is no scale: it vanishes where a float32 distance puts a pair on the other side of the support
+    radius); beside it the sum of the four terms against the rate the pass stored (beyond one ulp of the stored
+    density) and the region."""
+    case = gpu["case"]
+    constants = ReferenceConstants.from_case(case)
+    reference = evaluate_reference(gpu["positions"], gpu["velocities"], gpu["densities"], gpu["pressures"],
+                                   gpu["masses"], gpu["is_wall"], constants)
+    fluid = reference.fluid_index
+    timestep = constants.timestep
+    budget = gpu["density_budget"][fluid].astype(np.float64)                      # (F, 9, 4), dt x term
+    terms_gpu = budget.sum(axis=1) / timestep
+    terms_reference = np.stack([reference.density_rate_drift_fluid, reference.density_rate_drift_wall,
+                                reference.density_rate_diffusion_fluid, reference.density_rate_diffusion_wall],
+                               axis=1)
+    names = ("drift_fluid", "drift_wall", "diffusion_fluid", "diffusion_wall")
+    comparisons = {name: _error_statistics(terms_gpu[:, column], terms_reference[:, column],
+                                           reference.density_rate_scale)
+                   for column, name in enumerate(names)}
+    # the sum of the four terms against the rate the pass stored (rho_1 - rho_0) / dt
+    rate_gpu = (gpu["scratch"][fluid, 0].astype(np.float64) - gpu["densities_float32"][fluid].astype(np.float64)) \
+        / timestep
+    rate_resolution = np.spacing(np.abs(gpu["densities_float32"][fluid])).astype(np.float64) / timestep
+    closure = np.maximum(np.abs(terms_gpu.sum(axis=1) - rate_gpu) - rate_resolution, 0.0)
+    rate_floor = max(0.01 * float(np.abs(rate_gpu).max()), 1e-300)
+    rate_reference_error = np.maximum(np.abs(rate_gpu - reference.density_rate) - rate_resolution, 0.0)
+    # the region: exactly one region of a fluid particle is written; the host's in float32 as the shader's
+    lower, upper = gpu["density_budget_box"]
+    positions = gpu["positions"][fluid]
+    support = np.float32(constants.smoothing_length)
+    horizontal = np.where(positions[:, 0] - np.float32(lower[0]) < support, 1,
+                          np.where(np.float32(upper[0]) - positions[:, 0] < support, 2, 0))
+    vertical = np.where(positions[:, 1] - np.float32(lower[1]) < support, 1,
+                        np.where(np.float32(upper[1]) - positions[:, 1] < support, 2, 0))
+    region_host = horizontal + 3 * vertical
+    written = np.abs(budget).sum(axis=2) > 0.0                                       # (F, 9)
+    region_problems = int(((written.sum(axis=1) > 1) | (written & (np.arange(9)[None, :] != region_host[:, None]))
+                           .any(axis=1)).sum())
+    wall_rows_written = int(np.abs(gpu["density_budget"][gpu["is_wall"]]).sum() > 0.0)
+    worst = max(10.0 * comparisons[name]["error_over_pair_term_sum_maximum"] for name in names)
+    closure_worst = float((closure / np.maximum(np.abs(rate_gpu), rate_floor)).max())
+    return {
+        "passed": bool(worst < tolerance and closure_worst < tolerance and region_problems == 0
+                       and wall_rows_written == 0),
+        "tolerance": tolerance,
+        "worst_term_error_over_pair_terms_times_10": worst,
+        "comparisons": comparisons,
+        "sum_of_terms_against_stored_rate_beyond_one_ulp": closure_worst,
+        "stored_rate_against_reference_beyond_one_ulp": float(
+            (rate_reference_error / np.maximum(np.abs(reference.density_rate), rate_floor)).max()),
+        "region_problems": region_problems,
+        "wall_rows_written": wall_rows_written,
+        "region_counts": {str(region): int((region_host == region).sum()) for region in range(9)},
+        "terms_maximum": {name: float(np.abs(terms_reference[:, column]).max())
+                          for column, name in enumerate(names)},
+        "terms_field_mean_reference": {name: float(terms_reference[:, column].mean())
+                                       for column, name in enumerate(names)},
+        "terms_field_mean_gpu": {name: float(terms_gpu[:, column].mean()) for column, name in enumerate(names)},
+    }
+
+
 def property_residuals(gpu: dict, configuration: str, specification: BoxCaseSpecification) -> dict:
     """Residuals of the exact-solution configurations on the GPU result alone (any wall mode)."""
     case = gpu["case"]
@@ -414,13 +491,19 @@ def property_residuals(gpu: dict, configuration: str, specification: BoxCaseSpec
 
 def run_configuration(out_root: pathlib.Path, dimension: int, device_index: int, configuration: str,
                       wall_boundary: str, continuity: str, distance_floor_factor: float, tolerance: float,
-                      delta_wall: str = "extension") -> dict:
+                      delta_wall: str = "extension", continuity_wall_component: str = "full",
+                      density_budget: bool = False) -> dict:
     label = f"{dimension}d_{configuration}_{wall_boundary}" + (f"_{continuity}" if wall_boundary == "crossing" else "")
     if wall_boundary == "crossing" and delta_wall != "extension":
         label += f"_delta_wall_{delta_wall}"
+    if wall_boundary == "crossing" and continuity_wall_component != "full":
+        label += f"_wall_component_{continuity_wall_component}"
+    if density_budget:
+        label += "_budget"
     directory = out_root / label
     specification = box_specification(dimension, configuration, wall_boundary, continuity, distance_floor_factor)
     specification.delta_wall = delta_wall
+    specification.continuity_wall_component = continuity_wall_component
     if wall_boundary == "crossing" and delta_wall == "body_force" and configuration == "smooth":
         specification.gravity = BODY_FORCE_SMOOTH_GRAVITY[dimension]
     case_path = write_box_case(directory / "case", specification)
@@ -433,9 +516,16 @@ def run_configuration(out_root: pathlib.Path, dimension: int, device_index: int,
                    "status": {key: int(value) for key, value in gpu["status"].items()
                               if key.startswith("overflow_") or key.endswith("fallback_count")
                               or key == "alive_particle_count"}}
-        if configuration == "smooth":
+        if configuration == "smooth" and wall_boundary != "crossing":
+            # simple / adami: only the budget is compared (the reference's force is the crossing mode's)
+            outcome["budget"] = compare_budget_with_reference(gpu, tolerance)
+            outcome["passed"] = outcome["budget"]["passed"]
+        elif configuration == "smooth":
             outcome["reference"] = compare_with_reference(gpu, tolerance)
             outcome["passed"] = outcome["reference"]["passed"]
+            if density_budget:
+                outcome["budget"] = compare_budget_with_reference(gpu, tolerance)
+                outcome["passed"] = outcome["passed"] and outcome["budget"]["passed"]
         else:
             outcome["residuals"] = property_residuals(gpu, configuration, specification)
             outcome["passed"] = True
@@ -486,6 +576,21 @@ def _print_outcome(outcome: dict) -> None:
                   f"{reference['worst_relative_error']:.3e}, tolerance {reference['tolerance']:.0e}; criterion: "
                   "relative error of L, A_f^-1, kernel sum, g_f; density rate beyond one ulp; 10 x error / summed "
                   "pair terms of acceleration and shift)")
+    budget = outcome.get("budget")
+    if budget is not None:
+        print(f"  density budget (V7_DENSITY_BUDGET=1): {'term':18s} {'max |ref|':>12s} {'err / sum|pairs|':>17s} "
+              f"{'max rel err':>12s} {'field mean ref':>15s} {'field mean GPU':>15s}")
+        for name, statistics in budget["comparisons"].items():
+            print(f"  {'':38s} {name:18s} {budget['terms_maximum'][name]:12.4e} "
+                  f"{statistics['error_over_pair_term_sum_maximum']:17.3e} {statistics['relative_error_maximum']:12.3e} "
+                  f"{budget['terms_field_mean_reference'][name]:15.6e} {budget['terms_field_mean_gpu'][name]:15.6e}")
+        print(f"  sum of the four terms vs the stored rate (beyond one ulp): "
+              f"{budget['sum_of_terms_against_stored_rate_beyond_one_ulp']:.3e}; stored rate vs reference: "
+              f"{budget['stored_rate_against_reference_beyond_one_ulp']:.3e}; region mismatches "
+              f"{budget['region_problems']}; wall rows written {budget['wall_rows_written']}; regions "
+              f"{budget['region_counts']}")
+        print(f"  -> budget {'PASS' if budget['passed'] else 'FAIL'} (worst 10 x term error / summed pair terms "
+              f"{budget['worst_term_error_over_pair_terms_times_10']:.3e}, tolerance {budget['tolerance']:.0e})")
     residuals = outcome.get("residuals")
     if residuals is not None:
         for name, groups in residuals.items():
@@ -515,7 +620,15 @@ def main() -> int:
                         choices=("extension", "rest_density", "body_force"),
                         help="the diagnostic numerics.wall_crossing.delta_wall of the crossing runs (default: the "
                              "mode); another value adds its name to the labels and to the summary file name")
+    parser.add_argument("--continuity-wall-component", default="full", choices=("full", "normal"),
+                        help="the diagnostic numerics.wall_crossing.continuity_wall_component of the crossing runs")
+    parser.add_argument("--density-budget", action="store_true",
+                        help="diagnostic: run with V7_DENSITY_BUDGET=1 and compare the four budget terms with the "
+                             "reference (crossing and, in the smooth configuration, simple)")
     arguments = parser.parse_args()
+    if arguments.density_budget:
+        import os
+        os.environ["V7_DENSITY_BUDGET"] = "1"       # read once when simulator_v7 is imported (first GPU run below)
 
     out_root = (REPOSITORY_ROOT / arguments.out).resolve()
     configurations = [name.strip() for name in arguments.configurations.split(",") if name.strip()]
@@ -531,7 +644,13 @@ def main() -> int:
         for continuity in rules:
             outcomes.append(run_configuration(out_root, arguments.dimension, arguments.device, configuration,
                                               "crossing", continuity, arguments.distance_floor_factor,
-                                              arguments.tolerance, arguments.delta_wall))
+                                              arguments.tolerance, arguments.delta_wall,
+                                              arguments.continuity_wall_component, arguments.density_budget))
+            _print_outcome(outcomes[-1])
+        if arguments.density_budget and configuration == "smooth":
+            outcomes.append(run_configuration(out_root, arguments.dimension, arguments.device, configuration,
+                                              "simple", "extrapolate", arguments.distance_floor_factor,
+                                              arguments.tolerance, density_budget=True))
             _print_outcome(outcomes[-1])
         if arguments.compare_modes and configuration in PROPERTY_CONFIGURATIONS:
             for wall_boundary in ("simple", "adami"):
@@ -542,6 +661,9 @@ def main() -> int:
 
     summary_path = out_root / (f"summary_{arguments.dimension}d"
                                + ("" if arguments.delta_wall == "extension" else f"_delta_wall_{arguments.delta_wall}")
+                               + ("" if arguments.continuity_wall_component == "full"
+                                  else f"_wall_component_{arguments.continuity_wall_component}")
+                               + ("_budget" if arguments.density_budget else "")
                                + ".json")
     summary_path.write_text(json.dumps(outcomes, indent=2), encoding="utf-8", newline="\n")
     failed = [outcome["label"] for outcome in outcomes if not outcome["passed"]]

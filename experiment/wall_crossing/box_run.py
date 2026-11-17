@@ -18,6 +18,15 @@ by a Shepard average over the fluid particles within the support radius h of eac
 (sum_j V_j v_j W / sum_j V_j W, Wendland C4, V_j = m_j / rho_j). Fluid particles only, so the value near a wall
 is one-sided in every wall mode alike. In 2-D the lines lie in the plane.
 
+--density-budget (DIAGNOSTIC; sets V7_DENSITY_BUDGET=1 before the solver is imported, one slab): the fused pass
+runs its DENSITY_BUDGET build, which adds dt x (drift fluid, drift wall, diffusion fluid, diffusion wall) of
+every fluid particle's density rate, every step, to a buffer binned by the particle's region (which walls of
+the box lie within the support radius; shaders/density_budget.glsl). Every sample then also has
+  budget_<region>_<term>   the buffer summed over all slots (float64): the cumulative sum over the fluid
+                           particles and the steps so far of dt x term, kg/m^3 x particles;
+  region_count_<region>    the fluid particles in the region at the sample.
+The state the budget build computes is the state of the build without it (checked bit for bit over 700 steps).
+
 Output: logs/wall_crossing/box_run/<name>/series.csv, profiles.json, final.npz (the fluid: positions,
 velocities, densities, pressures), summary.json; one runs.jsonl record.
 """
@@ -89,7 +98,12 @@ def main() -> int:
     parser.add_argument("--time", type=float, required=True, help="simulated time")
     parser.add_argument("--sample-time", type=float, default=0.1)
     parser.add_argument("--profile-time", type=float, default=0.0, help="interval of the centre-line profiles (0: none)")
+    parser.add_argument("--density-budget", action="store_true",
+                        help="DIAGNOSTIC: run with V7_DENSITY_BUDGET=1 and record the budget sums at every sample")
     arguments = parser.parse_args()
+    if arguments.density_budget:
+        import os
+        os.environ["V7_DENSITY_BUDGET"] = "1"       # read once when simulator_v7 is imported (below)
 
     from experiment.v7.utils.case_loader_v7 import load_case_v7
     from experiment.v7.utils.wall_crossing_v7 import box_distance_to_wall
@@ -158,6 +172,25 @@ def main() -> int:
                        "overflow": int(sum(value for status in statuses for key, value in status.items()
                                            if key.startswith("overflow_"))),
                        "steps_per_second": step / max(time.perf_counter() - clock["started"], 1e-9)}
+                if arguments.density_budget:
+                    from experiment.v7.utils.simulator_v7 import (DENSITY_BUDGET_REGION_NAMES,
+                                                                  DENSITY_BUDGET_TERM_NAMES)
+                    budget = sum(simulator.readback_density_budget() for simulator in simulators)
+                    for region_index, region_name in enumerate(DENSITY_BUDGET_REGION_NAMES):
+                        for term_index, term_name in enumerate(DENSITY_BUDGET_TERM_NAMES):
+                            row[f"budget_{region_name}_{term_name}"] = float(budget[region_index, term_index])
+                    # the region of every fluid particle now, the shader's rule in float32 (x and y only)
+                    budget_lower, budget_upper = simulators[0].density_budget_box()
+                    positions32 = state["positions"].astype(np.float32)
+                    support32 = np.float32(support)
+                    horizontal = np.where(positions32[:, 0] - np.float32(budget_lower[0]) < support32, 1,
+                                          np.where(np.float32(budget_upper[0]) - positions32[:, 0] < support32, 2, 0))
+                    vertical = np.where(positions32[:, 1] - np.float32(budget_lower[1]) < support32, 1,
+                                        np.where(np.float32(budget_upper[1]) - positions32[:, 1] < support32, 2, 0))
+                    counts = np.bincount(horizontal + 3 * vertical, minlength=len(DENSITY_BUDGET_REGION_NAMES))
+                    for region_index, region_name in enumerate(DENSITY_BUDGET_REGION_NAMES):
+                        row[f"region_count_{region_name}"] = int(counts[region_index])
+                    row["fluid_particles"] = int(len(state["positions"]))
                 series.append(row)
                 if writer["csv"] is None:
                     writer["csv"] = csv.DictWriter(series_file, fieldnames=list(row.keys()))
@@ -202,6 +235,7 @@ def main() -> int:
             "fluid_particles": int(len(state["positions"])), "particles": expected_alive, "steps": total_steps,
             "time": total_steps * timestep, "timestep": timestep, "steps_per_second": total_steps / elapsed,
             "device_uuid": uuid, "samples": len(series), "profiles": len(profiles),
+            "density_budget": bool(arguments.density_budget),
             "final": {key: series[-1][key] for key in ("kinetic_energy", "speed_maximum", "density_minimum",
                                                        "density_maximum")},
             "whole_run": {

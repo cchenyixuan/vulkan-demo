@@ -255,6 +255,27 @@ _DEEP_WALL_SKIP = _parse_deep_wall_skip(os.environ.get("V7_DEEP_WALL_SKIP", "aut
 # on it), and the decisions are recorded as with _DEEP_WALL_RECORD_DECISIONS.
 # Outputs are those of 0. Read once at import.
 _DEEP_WALL_CHECK = _parse_deep_wall_check(os.environ.get("V7_DEEP_WALL_CHECK", "0"))
+
+
+def _parse_density_budget(text: str) -> bool:
+    """V7_DENSITY_BUDGET (diagnostic): 0 or 1."""
+    value = text.strip()
+    if value not in ("0", "1"):
+        raise ValueError(f"V7_DENSITY_BUDGET={text!r}: accepted values are 0, 1 (1 = the fused pass also "
+                         "accumulates the density rate's terms into density_budget)")
+    return value == "1"
+
+
+# V7_DENSITY_BUDGET=1 (DIAGNOSTIC; one slab without a peer, the fused correction + density pass, no deep-wall
+# skip): the fused pass runs its DENSITY_BUDGET build (shaders/density_budget.glsl), which adds, every step and
+# for every fluid particle, TIMESTEP x (drift fluid, drift wall, diffusion fluid, diffusion wall) of its
+# density rate to density_budget[pid * 9 + region] (set 0 binding 13; region = which walls of the box lie
+# within the support radius). The pass's results are the plain build's. readback_density_budget() sums the
+# buffer. Read once at import; default 0 = nothing of it exists (no buffer, no binding, the plain modules).
+_DENSITY_BUDGET = _parse_density_budget(os.environ.get("V7_DENSITY_BUDGET", "0"))
+DENSITY_BUDGET_REGION_NAMES = ("interior", "left", "right", "bottom", "bottom_left", "bottom_right",
+                               "top", "top_left", "top_right")          # region = horizontal + 3 x vertical
+DENSITY_BUDGET_TERM_NAMES = ("drift_fluid", "drift_wall", "diffusion_fluid", "diffusion_wall")
 # Test hook, not a switch (experiment/seam_audit/canonical_dump.py sets it before
 # building the simulators): record every skip decision (frame_stamp + 1 per
 # skipped particle and kernel, deep_wall_skip_record) so a dump can name the
@@ -866,6 +887,7 @@ class SphSimulatorV7:
                   f"{'on' if self._band_overlap_active() else 'off'} ({self.band_overlap_resolution[1]})")
         # wall_boundary crossing: the paths the mode does not run are refused here, before anything is built.
         self._check_wall_crossing_supported()
+        self._check_density_budget_supported()
 
         # Buffer allocation
         self._buffer_specs = self._build_buffer_specs()
@@ -989,6 +1011,52 @@ class SphSimulatorV7:
         """case.yaml numerics.wall_boundary == crossing (the crossing-fraction walls, shaders/wall_boundary.glsl).
         Read from the case, as _wall_adami."""
         return self.case.numerics.wall_boundary == "crossing"
+
+    def _density_budget_active(self) -> bool:
+        """V7_DENSITY_BUDGET=1 (diagnostic): the fused pass runs its DENSITY_BUDGET build on this slab."""
+        return _DENSITY_BUDGET
+
+    def _check_density_budget_supported(self) -> None:
+        """The budget lives in the fused pass's DENSITY_BUDGET builds (plain and WALL_CROSSING). Refused: a
+        slab that runs the separate kernels, one that skips deep walls (no budget build of that variant), one
+        with a peer (the band kernels would add a particle's terms twice)."""
+        if not self._density_budget_active():
+            return
+        transport = self.case.transport
+        if not self._fused_correction_density_active():
+            raise ValueError("V7_DENSITY_BUDGET=1 needs the fused correction + density pass "
+                             f"({self.fused_correction_density_resolution[1]})")
+        if self._deep_wall_skip_active():
+            raise ValueError("V7_DENSITY_BUDGET=1 has no deep-wall-skip build: set V7_DEEP_WALL_SKIP=0")
+        if transport.has_leading_peer or transport.has_trailing_peer:
+            raise ValueError("V7_DENSITY_BUDGET=1 is a one-slab diagnostic (K = 1)")
+
+    def density_budget_box(self) -> tuple:
+        """(lower, upper) of the box the budget's regions refer to: wall_boundary crossing's box, or for
+        another wall mode the box crossing would take (the initial fluid bounding box widened by one
+        particle radius)."""
+        if self._wall_crossing:
+            settings = self.case.numerics.wall_crossing
+        else:
+            from experiment.v7.utils.wall_crossing_v7 import WallCrossingSettings, resolve_wall_crossing_box
+            kinds = np.asarray([material.kind for material in self.case.materials])
+            is_wall = kinds[np.asarray(self.case.initial.material_group)] == 1      # case_v7.KIND_BOUNDARY
+            settings = resolve_wall_crossing_box(
+                WallCrossingSettings(), np.asarray(self.case.initial.positions), is_wall,
+                self.wall_crossing_particle_radius(), int(self.case.physics.dimension))
+        return tuple(settings.box_lower), tuple(settings.box_upper)
+
+    def readback_density_budget(self) -> np.ndarray:
+        """(9, 4) float64: density_budget summed over every slot, per region (DENSITY_BUDGET_REGION_NAMES)
+        and term (DENSITY_BUDGET_TERM_NAMES), in kg/m^3 (the accumulated TIMESTEP x rate of all fluid
+        particles since start-up; divide by the fluid particle count for the field mean)."""
+        if not self._density_budget_active():
+            raise RuntimeError("readback_density_budget needs V7_DENSITY_BUDGET=1")
+        raw = self.readback_buffers_batch(["density_budget"])["density_budget"]
+        regions = len(DENSITY_BUDGET_REGION_NAMES)
+        capacity = self.case.capacities.total_pool_capacity()
+        values = np.frombuffer(raw, dtype=np.float32)[:capacity * regions * 4].reshape(capacity, regions, 4)
+        return values.sum(axis=0, dtype=np.float64)
 
     def _check_wall_crossing_supported(self) -> None:
         """wall_boundary crossing lives in the fused correction + density pass and in force (their WALL_CROSSING
@@ -1283,6 +1351,13 @@ class SphSimulatorV7:
         wall_crossing_specs = [
             _BufferSpec("wall_crossing_fluid_inverse",  0, 12, 32 * pool_capacity, BSU | TRANSFER),
         ] if self._wall_crossing else []
+        # V7_DENSITY_BUDGET=1 (diagnostic; only then, so every other run keeps its layouts): set 0 binding 13 =
+        # per slot and region the accumulated four terms of the density rate (density_budget.glsl). Not in
+        # DEFRAG_SET0_BINDINGS / the transport / the restart state: only its sum over the slots is read.
+        density_budget_specs = [
+            _BufferSpec("density_budget", 0, 13, 16 * len(DENSITY_BUDGET_REGION_NAMES) * pool_capacity,
+                        BSU | TRANSFER),
+        ] if self._density_budget_active() else []
 
         return [
             # Set 0: particle SoA
@@ -1332,7 +1407,7 @@ class SphSimulatorV7:
             # V7_BAND_COMPACT_DISPATCH: indirect dispatch sizes + list column starts
             _BufferSpec("band_compact_meta",            3, 9, 128,
                         BSU | TRANSFER | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT),
-        ] + deep_wall_specs + wall_crossing_specs
+        ] + deep_wall_specs + wall_crossing_specs + density_budget_specs
 
     def _allocate_buffer(
         self,
@@ -1851,6 +1926,8 @@ class SphSimulatorV7:
             # wall_boundary crossing: the WALL_CROSSING variants of the fused pass and of force only on a crossing
             # slab (simple / adami need no such file, e.g. in a V7_SPV_DIR A/B against an earlier build)
             *(("correction_density_wall_crossing", "force_wall_crossing") if self._wall_crossing else ()),
+            # V7_DENSITY_BUDGET=1 (diagnostic): the DENSITY_BUDGET build of this slab's fused pass
+            *((self._density_budget_module_name(),) if self._density_budget_active() else ()),
         ):
             spv_path = shader_dir / f"{shader_name}.comp.spv"
             if not spv_path.exists():
@@ -1917,12 +1994,21 @@ class SphSimulatorV7:
             particle_radius = self.wall_crossing_particle_radius()
             wall_crossing_entries = [
                 (116, 'I', settings.delta_wall_code()),        # diagnostic, 0 = the mode (wall_boundary.glsl)
+                (117, 'I', settings.continuity_wall_component_code()),     # diagnostic, 0 = the mode
                 (120, 'I', settings.continuity_code()),
                 (121, 'f', settings.distance_floor(particle_radius)),
                 (122, 'f', settings.box_lower[0]), (123, 'f', settings.box_lower[1]),
                 (124, 'f', settings.box_lower[2]),
                 (125, 'f', settings.box_upper[0]), (126, 'f', settings.box_upper[1]),
                 (127, 'f', settings.box_upper[2]),
+            ]
+        elif self._density_budget_active():
+            # V7_DENSITY_BUDGET=1 on a simple / adami slab: the box of the budget's regions (density_budget.glsl
+            # declares ids 122, 123, 125, 126 itself there)
+            budget_lower, budget_upper = self.density_budget_box()
+            wall_crossing_entries = [
+                (122, 'f', budget_lower[0]), (123, 'f', budget_lower[1]),
+                (125, 'f', budget_upper[0]), (126, 'f', budget_upper[1]),
             ]
         return [
             (0,  'f', p.smoothing_length),
@@ -2004,8 +2090,14 @@ class SphSimulatorV7:
         """correction_density.comp's module of this slab's pipelines that do not skip deep walls: the
         WALL_CROSSING variant with wall_boundary crossing (which never skips deep walls: a wall returns before
         the neighbour loop anyway), else the plain build."""
+        if self._density_budget_active():
+            return self.shader_modules[self._density_budget_module_name()]
         return self.shader_modules["correction_density_wall_crossing" if self._wall_crossing
                                    else "correction_density"]
+
+    def _density_budget_module_name(self) -> str:
+        """The DENSITY_BUDGET build of the fused pass (V7_DENSITY_BUDGET=1, diagnostic)."""
+        return "correction_density_wall_crossing_budget" if self._wall_crossing else "correction_density_budget"
 
     # ----- Per-pipeline mode entries (kernel-specific spec const overrides) ---
 

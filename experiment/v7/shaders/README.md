@@ -260,6 +260,7 @@ compiled only into the `WALL_CROSSING` variants):
 | 122 - 124 | `WALL_CROSSING_BOX_LOWER_X/Y/Z` | the fluid box, lower corner (world coordinates) |
 | 125 - 127 | `WALL_CROSSING_BOX_UPPER_X/Y/Z` | the fluid box, upper corner |
 | 116 | `WALL_CROSSING_DELTA_WALL` | **diagnostic**, not part of the mode (`numerics.wall_crossing.delta_wall`): a wall neighbour's density diffusion, 0 extension (the mode: the density continued across the wall, applied after the loop), 1 rest_density (simple's pair term rho0 - rho_i, nothing after the loop), 2 body_force (pair term rho_i g . (r_j - r_i) / c^2 with c^2 = dp/drho of the Tait EOS at rho_i and a_wall = 0, nothing after the loop; no wall contribution without gravity) |
+| 117 | `WALL_CROSSING_CONTINUITY_WALL_COMPONENT` | **diagnostic**, not part of the mode (`numerics.wall_crossing.continuity_wall_component`): which part of a wall neighbour's velocity difference enters the continuity equation, 0 full (the mode), 1 normal (its component along the wall's inward normal, the unit vector from the wall particle to the nearest point of the box, before the continuity rule) |
 
 Free: 117-119. `_test_seam_layout.py` (`check_packed_shader_layout`) fails when one id names two constants.
 
@@ -313,3 +314,7 @@ Free: 117-119. `_test_seam_layout.py` (`check_packed_shader_layout`) fails when 
 - Python pipeline glue (buffer allocation, descriptor set build, dispatch
   scheduling) — next step.
 - Numerical validation against legacy OpenGL — gated on Python pipeline.
+
+## Diagnostic: density budget (`V7_DENSITY_BUDGET=1`)
+
+`density_budget.glsl`, included by `correction_density.comp` in its `DENSITY_BUDGET` compile variants only (`correction_density_budget.comp.spv`, `correction_density_wall_crossing_budget.comp.spv`; no other SPIR-V file changes, no production path loads them). With `V7_DENSITY_BUDGET=1` (one slab, the fused pass, no deep-wall skip) the fused pass also adds, every step and for every fluid particle, `TIMESTEP` x (drift fluid, drift wall, diffusion fluid, diffusion wall) of its density rate to `density_budget[pid * 9 + region]` (set 0 binding 13, which exists only then; region = which walls of the fluid box lie within the support radius, x and y only). The pass's results are those of the build without the budget: the `WALL_CROSSING` build takes the four sums beside its own in its loop, the plain build (simple / adami) in a second neighbour traversal after the pass has stored its results. The buffer is not permuted by defrag: only its sum over all slots is read (`SphSimulatorV7.readback_density_budget`).

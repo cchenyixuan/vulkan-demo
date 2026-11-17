@@ -65,6 +65,11 @@ SHADER_VARIANTS = (
     # correction_density_* and force_* pipelines from these, simple / adami keep the plain modules
     ("correction_density_wall_crossing", "correction_density.comp", ("WALL_CROSSING",)),
     ("force_wall_crossing", "force.comp", ("WALL_CROSSING",)),
+    # DIAGNOSTIC (V7_DENSITY_BUDGET=1, shaders/density_budget.glsl): the fused pass also accumulates a fluid
+    # particle's density rate split into drift / diffusion x fluid / wall neighbours; no production path
+    # loads these two files
+    ("correction_density_budget", "correction_density.comp", ("DENSITY_BUDGET",)),
+    ("correction_density_wall_crossing_budget", "correction_density.comp", ("WALL_CROSSING", "DENSITY_BUDGET")),
 )
 
 

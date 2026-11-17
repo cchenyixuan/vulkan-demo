@@ -1601,7 +1601,11 @@ E40_ADDED_SPIRV = frozenset({"wall_extrapolate_band.comp.spv"})
 # wall_boundary crossing: the WALL_CROSSING variants of the fused pass and of force are new modules (compile_shaders_v7
 # SHADER_VARIANTS); every earlier module keeps its bytes (the plain builds of correction_density.comp / force.comp are
 # what simple and adami run), so the switch-0 pins below hold unchanged and only list these two as added.
-WALL_CROSSING_ADDED_SPIRV = frozenset({"correction_density_wall_crossing.comp.spv", "force_wall_crossing.comp.spv"})
+# The two DENSITY_BUDGET builds of the fused pass (diagnostic, V7_DENSITY_BUDGET=1; shaders/density_budget.glsl) are
+# new modules in the same way: no earlier module changes, no production path loads them.
+WALL_CROSSING_ADDED_SPIRV = frozenset({"correction_density_wall_crossing.comp.spv", "force_wall_crossing.comp.spv",
+                                       "correction_density_budget.comp.spv",
+                                       "correction_density_wall_crossing_budget.comp.spv"})
 
 
 def _without_bootstrap_density_copy(source: str, origin: str) -> str:

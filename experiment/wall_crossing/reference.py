@@ -17,6 +17,8 @@ Density rate of a fluid particle i (pass 1; rho, v of step n):
     sum_{j fluid} [ -rho_i V_j (v_j - v_i) . L grad W + 2 delta h c0 (rho_j - rho_i) V_j / (r^2 + eps^2) (r_j - r_i) . L grad W ]
   + sum_{j wall}  [ -rho_i V_j c_ij (v_w,j - v_i) . L grad W ],   c_ij = 1 + d_j / phi_i (extrapolate) or 1 (wall_velocity)
   + 2 delta h c0 G_i . (L sum_{j wall} V_j r^2 / (r^2 + eps^2) grad W),   G_i = A_f^-1 g_f(rho)  (0 on a fallback)
+With the diagnostic continuity_wall_component normal, (v_w,j - v_i) of a wall neighbour is replaced by its
+component along n_j, the unit vector from the wall particle to the nearest point of the box, before c_ij.
 The last line is the mode (delta_wall extension). The diagnostic values replace it by a sum over the wall
 neighbours of 2 delta h c0 psi_ij V_j / (r^2 + eps^2) (r_j - r_i) . L grad W with
     rest_density:  psi_ij = rho_j - rho_i (a wall stores rho0),
@@ -29,6 +31,11 @@ Acceleration of a fluid particle i (pass 2; V_j = m_i / rho_j as force.comp take
           the last term is dropped on a fallback of A_f
     a_v = sum_j 2 (d + 2) nu V_j c'_ij (v_i - v_j) . (r_i - r_j) / (r^2 + eps^2) L grad W,  c'_ij = 1 + d_j / phi_i for a wall j
     a   = a_p + a_v + g
+
+A case with wall_boundary simple or adami: from_case takes continuity wall_velocity and delta_wall rest_density,
+with which the four terms of the density rate above are those of simple's (and adami's) fluid particles (a wall
+neighbour enters with its stored velocity and its stored rho0, pair by pair); the force part is then not that
+mode's and must not be used.
 
 Nothing here imports Vulkan. The inputs are the float32 values the GPU holds (positions, velocities, densities,
 pressures, masses) and the float32 specialization constants, promoted to float64.
@@ -84,13 +91,23 @@ class ReferenceConstants:
     power_parameter: float = 7.0    # the EOS gamma (spec const 4)
     eos_constant: float = 0.0       # the fluid material's B = c0^2 rho0 / gamma (delta_wall body_force only)
     rest_density: float = 0.0       # the fluid material's rho0 (delta_wall body_force only)
+    continuity_wall_component: str = "full"     # diagnostic (spec const 117): "full" | "normal"
 
     @classmethod
     def from_case(cls, case) -> "ReferenceConstants":
-        """From a loaded CaseV7 (case_loader_v7.load_case_v7) with wall_boundary crossing."""
+        """From a loaded CaseV7 (case_loader_v7.load_case_v7). wall_boundary crossing: its settings. simple or
+        adami: the settings under which the density rate's terms are that mode's (see the module docstring),
+        with the box crossing would take."""
         physics, numerics = case.physics, case.numerics
-        settings: WallCrossingSettings = numerics.wall_crossing
         fluid = next(material for material in case.materials if material.kind == 0)
+        settings: WallCrossingSettings = numerics.wall_crossing
+        if numerics.wall_boundary != "crossing":
+            from experiment.v7.utils.wall_crossing_v7 import resolve_wall_crossing_box
+            kinds = np.asarray([material.kind for material in case.materials])
+            settings = resolve_wall_crossing_box(
+                WallCrossingSettings(continuity="wall_velocity", delta_wall="rest_density"),
+                np.asarray(case.initial.positions), kinds[np.asarray(case.initial.material_group)] == 1,
+                float(fluid.radius), int(physics.dimension))
         return cls(
             dimension=int(physics.dimension),
             smoothing_length=float32_value(physics.smoothing_length),
@@ -120,6 +137,7 @@ class ReferenceConstants:
             power_parameter=float32_value(physics.power_parameter),
             eos_constant=float32_value(fluid.eos_constant),
             rest_density=float32_value(fluid.rest_density),
+            continuity_wall_component=settings.continuity_wall_component,
         )
 
 
@@ -155,6 +173,9 @@ class ReferenceResult:
     wall_neighbour_count: np.ndarray
     fluid_neighbour_count: np.ndarray
     notes: dict = field(default_factory=dict)
+    # (F, 4): the sum of the absolute pair terms of drift fluid, drift wall, diffusion fluid, diffusion wall
+    # (the rounding scale of each term)
+    density_rate_term_scales: np.ndarray | None = None
 
 
 def kernel_value(distance: np.ndarray, constants: ReferenceConstants) -> np.ndarray:
@@ -292,7 +313,19 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
     velocity_difference = velocities[neighbour_of_pair] - velocities[self_row]              # v_j - v_i
     diffusion_coefficient = 2.0 * constants.delta_coefficient * support * constants.speed_of_sound
 
-    drift_pair = -self_density * volume * (velocity_difference * corrected_gradient).sum(axis=1)
+    drift_velocity_difference = velocity_difference
+    if constants.continuity_wall_component == "normal":
+        # the diagnostic: a wall neighbour's velocity difference keeps its component along the wall's inward
+        # normal only (the unit vector from the wall particle to the nearest point of the box)
+        to_box = np.clip(positions, np.asarray(constants.box_lower), np.asarray(constants.box_upper)) - positions
+        to_box[:, dimension:] = 0.0
+        to_box_length = np.sqrt((to_box * to_box).sum(axis=1))
+        inward_normal = np.divide(to_box, to_box_length[:, None], out=np.zeros_like(to_box),
+                                  where=to_box_length[:, None] > 0.0)
+        normal_of_pair = inward_normal[neighbour_of_pair]
+        projected = (velocity_difference * normal_of_pair).sum(axis=1)[:, None] * normal_of_pair
+        drift_velocity_difference = np.where(neighbour_is_wall[:, None], projected, velocity_difference)
+    drift_pair = -self_density * volume * (drift_velocity_difference * corrected_gradient).sum(axis=1)
     continuity_factor = extrapolation if constants.continuity == "extrapolate" else np.ones_like(extrapolation)
     drift_pair = drift_pair * np.where(neighbour_is_wall, continuity_factor, 1.0)
     drift_fluid = _sum_by_particle(self_of_pair[neighbour_is_fluid], drift_pair[neighbour_is_fluid], fluid_count)
@@ -364,6 +397,19 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
                _sum_by_particle(self_of_pair[neighbour_is_wall], np.abs(diffusion_pair[neighbour_is_wall]),
                                 fluid_count))
     density_rate = drift_fluid + drift_wall + diffusion_fluid + diffusion_wall
+    wall_diffusion_scale = np.zeros(fluid_count)
+    fluid_diffusion_scale = np.zeros(fluid_count)
+    if constants.use_density_diffusion:
+        fluid_diffusion_scale = _sum_by_particle(self_of_pair[neighbour_is_fluid],
+                                                 np.abs(diffusion_pair[neighbour_is_fluid]), fluid_count)
+        wall_diffusion_scale = _sum_by_particle(
+            self_of_pair[neighbour_is_wall],
+            np.abs(pairwise if constants.delta_wall == "extension" else diffusion_pair)[neighbour_is_wall],
+            fluid_count)
+    term_scales = np.stack([
+        _sum_by_particle(self_of_pair[neighbour_is_fluid], np.abs(drift_pair[neighbour_is_fluid]), fluid_count),
+        _sum_by_particle(self_of_pair[neighbour_is_wall], np.abs(drift_pair[neighbour_is_wall]), fluid_count),
+        fluid_diffusion_scale, wall_diffusion_scale], axis=1)
     density_rate_scale = _sum_by_particle(self_of_pair, np.abs(drift_pair), fluid_count) + diffusion_scale
 
     # ---- pass 2: force ------------------------------------------------------------------------------------
@@ -474,4 +520,5 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
         wall_neighbour_count=np.bincount(self_of_pair[neighbour_is_wall], minlength=fluid_count),
         fluid_neighbour_count=np.bincount(self_of_pair[neighbour_is_fluid], minlength=fluid_count),
         notes={"pair_count": int(self_of_pair.size), **body_force_notes},
+        density_rate_term_scales=term_scales,
     )

@@ -104,6 +104,16 @@ layout(constant_id = 116) const uint  WALL_CROSSING_DELTA_WALL = 0u;
 const uint WALL_CROSSING_DELTA_WALL_EXTENSION    = 0u;
 const uint WALL_CROSSING_DELTA_WALL_REST_DENSITY = 1u;
 const uint WALL_CROSSING_DELTA_WALL_BODY_FORCE   = 2u;
+// DIAGNOSTIC, not part of the mode (numerics.wall_crossing.continuity_wall_component, default full = 0, which is
+// the mode as specified): which part of a wall neighbour's velocity difference enters the continuity equation.
+//   0 = full:   the whole vector (then the continuity rule above);
+//   1 = normal: its component along the wall's inward normal only, n_j (n_j . (v_w - v_i)), n_j = the unit
+//               vector from the wall particle to the nearest point of the box (then the continuity rule).
+// The viscous term is not touched. It exists to test whether the tangential part of the extrapolated
+// velocity difference is behind the drift of the mean density.
+layout(constant_id = 117) const uint  WALL_CROSSING_CONTINUITY_WALL_COMPONENT = 0u;
+const uint WALL_CROSSING_CONTINUITY_WALL_COMPONENT_FULL   = 0u;
+const uint WALL_CROSSING_CONTINUITY_WALL_COMPONENT_NORMAL = 1u;
 // lower bound of phi_i = numerics.wall_crossing.distance_floor_factor (default 0.25) x the particle spacing
 layout(constant_id = 121) const float WALL_CROSSING_DISTANCE_FLOOR = 0.001;
 // the fluid box [lower, upper] in world coordinates (2-D: x and y only)
@@ -147,6 +157,19 @@ float wall_crossing_depth_behind_wall(vec3 position) {
         outside.z = 0.0;
     }
     return length(outside);
+}
+
+// n(r): the unit vector from a point outside the box to the nearest point of the box (the inward normal of the
+// wall a wall particle belongs to; towards the edge or corner in an edge or corner block); zero inside the box
+vec3 wall_crossing_inward_normal(vec3 position) {
+    vec3 lower  = vec3(WALL_CROSSING_BOX_LOWER_X, WALL_CROSSING_BOX_LOWER_Y, WALL_CROSSING_BOX_LOWER_Z);
+    vec3 upper  = vec3(WALL_CROSSING_BOX_UPPER_X, WALL_CROSSING_BOX_UPPER_Y, WALL_CROSSING_BOX_UPPER_Z);
+    vec3 to_box = clamp(position, lower, upper) - position;
+    if (DIMENSION == 2u) {
+        to_box.z = 0.0;
+    }
+    float depth = length(to_box);
+    return (depth > 0.0) ? to_box / depth : vec3(0.0);
 }
 
 // phi_i of a fluid particle with the floor

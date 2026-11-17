@@ -35,6 +35,12 @@ WALL_CROSSING_DEFAULT_DISTANCE_FLOOR_FACTOR = 0.25
 # of the Tait EOS at rho_i, wall acceleration 0), which is zero without gravity. See shaders/wall_boundary.glsl.
 WALL_CROSSING_DELTA_WALL_CHOICES = ("extension", "rest_density", "body_force")
 WALL_CROSSING_DEFAULT_DELTA_WALL = "extension"
+# DIAGNOSTIC (spec const 117: 0, 1), not part of the mode: which part of a wall neighbour's velocity difference
+# enters the continuity equation. "full" is the mode as specified; "normal" keeps only its component along
+# the wall's inward normal (the unit vector from the wall particle to the nearest point of the box) before the
+# continuity rule is applied. See shaders/wall_boundary.glsl.
+WALL_CROSSING_CONTINUITY_WALL_COMPONENT_CHOICES = ("full", "normal")
+WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT = "full"
 
 KIND_BOUNDARY = 1       # case_v7.KIND_BOUNDARY (not imported: case_v7 imports this module)
 
@@ -59,6 +65,10 @@ class WallCrossingSettings:
     box_upper: Optional[tuple[float, float, float]] = None
     box_from_case: bool = False
     delta_wall: str = WALL_CROSSING_DEFAULT_DELTA_WALL
+    continuity_wall_component: str = WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT     # DIAGNOSTIC
+
+    def continuity_wall_component_code(self) -> int:
+        return WALL_CROSSING_CONTINUITY_WALL_COMPONENT_CHOICES.index(self.continuity_wall_component)
 
     def continuity_code(self) -> int:
         return WALL_CROSSING_CONTINUITY_CHOICES.index(self.continuity)
@@ -97,14 +107,21 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
         distance_floor_factor: <float > 0>                 (default 0.25)
         box: {lower: [x, y, z], upper: [x, y, z]}          (default: from the fluid particles)
         delta_wall: extension | rest_density | body_force  (DIAGNOSTIC; default extension = the mode)
+        continuity_wall_component: full | normal           (DIAGNOSTIC; default full = the mode)
     A 2-D case may give two components per corner."""
     mapping = numerics_mapping.get("wall_crossing") or {}
     if not isinstance(mapping, dict):
         raise ValueError(f"numerics.wall_crossing: expected a mapping, got {mapping!r}")
-    unknown = sorted(set(mapping) - {"continuity", "distance_floor_factor", "box", "delta_wall"})
+    unknown = sorted(set(mapping) - {"continuity", "distance_floor_factor", "box", "delta_wall",
+                                     "continuity_wall_component"})
     if unknown:
         raise ValueError(f"numerics.wall_crossing: unknown keys {unknown} (known: continuity, "
-                         "distance_floor_factor, box, delta_wall)")
+                         "distance_floor_factor, box, delta_wall, continuity_wall_component)")
+    continuity_wall_component = str(mapping.get("continuity_wall_component",
+                                                WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT))
+    if continuity_wall_component not in WALL_CROSSING_CONTINUITY_WALL_COMPONENT_CHOICES:
+        raise ValueError(f"numerics.wall_crossing.continuity_wall_component: {continuity_wall_component!r}, "
+                         f"expected one of {', '.join(WALL_CROSSING_CONTINUITY_WALL_COMPONENT_CHOICES)}")
     delta_wall = str(mapping.get("delta_wall", WALL_CROSSING_DEFAULT_DELTA_WALL))
     if delta_wall not in WALL_CROSSING_DELTA_WALL_CHOICES:
         raise ValueError(f"numerics.wall_crossing.delta_wall: {delta_wall!r}, expected one of "
@@ -130,7 +147,7 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
         box_lower, box_upper = corners
     return WallCrossingSettings(continuity=continuity, distance_floor_factor=distance_floor_factor,
                                 box_lower=box_lower, box_upper=box_upper, box_from_case=box is not None,
-                                delta_wall=delta_wall)
+                                delta_wall=delta_wall, continuity_wall_component=continuity_wall_component)
 
 
 def resolve_wall_crossing_box(settings: WallCrossingSettings, positions: np.ndarray, is_wall: np.ndarray,
@@ -184,7 +201,8 @@ def resolve_wall_crossing_box(settings: WallCrossingSettings, positions: np.ndar
         continuity=settings.continuity, distance_floor_factor=settings.distance_floor_factor,
         box_lower=tuple(float(component) for component in lower),
         box_upper=tuple(float(component) for component in upper),
-        box_from_case=settings.box_from_case, delta_wall=settings.delta_wall)
+        box_from_case=settings.box_from_case, delta_wall=settings.delta_wall,
+        continuity_wall_component=settings.continuity_wall_component)
 
 
 def describe_wall_crossing(settings: WallCrossingSettings, particle_radius: float, dimension: int,
@@ -199,6 +217,8 @@ def describe_wall_crossing(settings: WallCrossingSettings, particle_radius: floa
             f"(= {settings.distance_floor_factor:g} x spacing), continuity {settings.continuity}")
     if settings.delta_wall != WALL_CROSSING_DEFAULT_DELTA_WALL:
         text += f", DIAGNOSTIC delta_wall {settings.delta_wall}"
+    if settings.continuity_wall_component != WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT:
+        text += f", DIAGNOSTIC continuity_wall_component {settings.continuity_wall_component}"
     if positions is not None and is_wall is not None:
         is_wall = np.asarray(is_wall, dtype=bool)
         fluid_distance = box_distance_to_wall(np.asarray(positions)[~is_wall], settings.box_lower,
