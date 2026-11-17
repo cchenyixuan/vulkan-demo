@@ -23,6 +23,10 @@
 //       the inner ghost column's walls as self from a three-layer ghost); the
 //       transport still carries no wall_dummy_velocity. See
 //       wall_extrapolate.comp and partition_v7 (GHOST_LAYERS = 3).
+//   2 = crossing: the crossing-fraction walls (first order, axis-aligned box),
+//       in the WALL_CROSSING compile variants only: see the section at the end
+//       of this file. No wall pass, no wall state: a wall particle keeps rho0
+//       and its prescribed velocity and never enters a neighbour loop as self.
 // ============================================================================
 
 layout(constant_id = 100) const uint WALL_BOUNDARY = 0u;
@@ -38,3 +42,143 @@ layout(std430, set = 0, binding = 10) buffer WallDummyVelocityBuffer {
     // it (it is recomputed before every read); not part of the restart state. simple: a 16-byte stub, never read.
     vec4 wall_dummy_velocity[];
 };
+
+#ifdef WALL_CROSSING
+// ============================================================================
+// WALL_BOUNDARY = 2 = crossing (case.yaml numerics.wall_boundary: crossing),
+// first order, axis-aligned box. Compiled only into the WALL_CROSSING variants
+// (compile_shaders_v7.py: correction_density_wall_crossing.comp.spv,
+// force_wall_crossing.comp.spv), so every other module, and the plain builds of
+// correction_density.comp / force.comp that simple and adami run, keep their
+// bytes. Inside a variant every statement of the mode sits behind
+// WALL_CROSSING_ACTIVE (spec const 100 == 2): with 0 or 1 the variant computes
+// what the plain build computes.
+//
+// A wall particle carries no physical state, it is a quadrature point. When a
+// fluid particle i meets a wall particle j in its neighbour loop, the value of
+// j is the linear continuation of the field along the segment i -> j. The only
+// geometry is the share of that segment on the fluid side,
+//     t_ij = phi_i / (phi_i + d_j),
+// phi_i = distance of i to the wall (floored at WALL_CROSSING_DISTANCE_FLOOR),
+// d_j = depth of j behind the wall.
+//   - a field with a prescribed wall value theta_b (the velocity: no slip,
+//     theta_b = the wall particle's stored velocity):
+//         theta_j - theta_i = (theta_b - theta_i) / t_ij
+//                           = (theta_b - theta_i) (1 + d_j / phi_i);
+//   - a field without one (pressure, density):
+//         theta_j - theta_i = G_i . (r_j - r_i),
+//     G_i = A_f^-1 g_f the one-sided gradient from the fluid neighbours only,
+//     A_f = sum_{j fluid} V_j (r_j - r_i) (x) grad W_ij,
+//     g_f = sum_{j fluid} V_j (theta_j - theta_i) grad W_ij.
+// Both rules are exact for a linear field. The correction matrix L_i (every
+// neighbour, real displacements) is unchanged.
+//
+// The two functions of the geometry are the box's; another geometry replaces
+// wall_crossing_distance_to_wall / wall_crossing_depth_behind_wall only.
+// ============================================================================
+const uint WALL_BOUNDARY_CROSSING = 2u;
+const bool WALL_CROSSING_ACTIVE = (WALL_BOUNDARY == WALL_BOUNDARY_CROSSING);
+
+// numerics.wall_crossing.continuity: the velocity difference of a wall neighbour in the continuity equation,
+// 0 = extrapolate ((v_w - v_i) (1 + d_j / phi_i), the rule above), 1 = wall_velocity (v_w - v_i, the stored
+// wall velocity as it is). The viscous term always extrapolates.
+layout(constant_id = 120) const uint  WALL_CROSSING_CONTINUITY = 0u;
+const uint WALL_CROSSING_CONTINUITY_EXTRAPOLATE   = 0u;
+const uint WALL_CROSSING_CONTINUITY_WALL_VELOCITY = 1u;
+// lower bound of phi_i = numerics.wall_crossing.distance_floor_factor (default 0.25) x the particle spacing
+layout(constant_id = 121) const float WALL_CROSSING_DISTANCE_FLOOR = 0.001;
+// the fluid box [lower, upper] in world coordinates (2-D: x and y only)
+layout(constant_id = 122) const float WALL_CROSSING_BOX_LOWER_X = 0.0;
+layout(constant_id = 123) const float WALL_CROSSING_BOX_LOWER_Y = 0.0;
+layout(constant_id = 124) const float WALL_CROSSING_BOX_LOWER_Z = 0.0;
+layout(constant_id = 125) const float WALL_CROSSING_BOX_UPPER_X = 1.0;
+layout(constant_id = 126) const float WALL_CROSSING_BOX_UPPER_Y = 1.0;
+layout(constant_id = 127) const float WALL_CROSSING_BOX_UPPER_Z = 1.0;
+
+layout(std430, set = 0, binding = 12) buffer WallCrossingFluidInverseBuffer {
+    // crossing: per fluid particle A_f^-1 (symmetric, the packing of correction_inverse) and a validity flag:
+    //   [pid * 2]     = (m00, m11, m22, m01)
+    //   [pid * 2 + 1] = (m02, m12, 0, valid)     valid = 1, or 0 when the inversion fell back (then G = 0)
+    // Written by the fused correction + density pass, read by force of the same step for the particle itself
+    // only. Transient like wall_dummy_velocity: defrag does not permute it, the transport does not carry it,
+    // it is not part of the restart state. Wall slots are never written. Exists only with wall_boundary
+    // crossing (the plain builds do not declare the binding).
+    vec4 wall_crossing_fluid_inverse[];
+};
+
+// phi(r): distance of a point of the box to its nearest wall plane (negative outside the box)
+float wall_crossing_distance_to_wall(vec3 position) {
+    vec3 lower_gap = position - vec3(WALL_CROSSING_BOX_LOWER_X, WALL_CROSSING_BOX_LOWER_Y, WALL_CROSSING_BOX_LOWER_Z);
+    vec3 upper_gap = vec3(WALL_CROSSING_BOX_UPPER_X, WALL_CROSSING_BOX_UPPER_Y, WALL_CROSSING_BOX_UPPER_Z) - position;
+    vec3 axis_gap  = min(lower_gap, upper_gap);
+    float nearest  = min(axis_gap.x, axis_gap.y);
+    if (DIMENSION != 2u) {
+        nearest = min(nearest, axis_gap.z);
+    }
+    return nearest;
+}
+
+// d(r): depth of a point outside the box = its distance to the box (in an edge or corner block the distance to
+// the edge or corner)
+float wall_crossing_depth_behind_wall(vec3 position) {
+    vec3 below_lower = vec3(WALL_CROSSING_BOX_LOWER_X, WALL_CROSSING_BOX_LOWER_Y, WALL_CROSSING_BOX_LOWER_Z) - position;
+    vec3 above_upper = position - vec3(WALL_CROSSING_BOX_UPPER_X, WALL_CROSSING_BOX_UPPER_Y, WALL_CROSSING_BOX_UPPER_Z);
+    vec3 outside     = max(max(below_lower, above_upper), vec3(0.0));
+    if (DIMENSION == 2u) {
+        outside.z = 0.0;
+    }
+    return length(outside);
+}
+
+// phi_i of a fluid particle with the floor
+float wall_crossing_floored_distance(vec3 fluid_position) {
+    return max(wall_crossing_distance_to_wall(fluid_position), WALL_CROSSING_DISTANCE_FLOOR);
+}
+
+// 1 / t_ij = 1 + d_j / phi_i
+float wall_crossing_extrapolation_factor(float fluid_wall_distance, vec3 wall_position) {
+    return 1.0 + wall_crossing_depth_behind_wall(wall_position) / fluid_wall_distance;
+}
+
+// A_f^-1: the correction matrix's epilogue (correction.comp: xi on the diagonal, the 2-D block, the determinant
+// threshold, the Frobenius cap) on the fluid-only matrix. false = fallback (too few fluid neighbours): the
+// identity is returned and the caller takes G = 0.
+bool wall_crossing_invert_fluid_matrix(mat3 fluid_correction_matrix, out mat3 fluid_correction_inverse) {
+    fluid_correction_matrix[0][0] += REGULARIZATION_XI;
+    fluid_correction_matrix[1][1] += REGULARIZATION_XI;
+    if (DIMENSION == 2u) {
+        fluid_correction_matrix[0][2] = 0.0;
+        fluid_correction_matrix[1][2] = 0.0;
+        fluid_correction_matrix[2][0] = 0.0;
+        fluid_correction_matrix[2][1] = 0.0;
+        fluid_correction_matrix[2][2] = 1.0;
+    } else {
+        fluid_correction_matrix[2][2] += REGULARIZATION_XI;
+    }
+    if (abs(determinant(fluid_correction_matrix)) <= REGULARIZATION_DETERMINANT_THRESHOLD) {
+        fluid_correction_inverse = mat3(1.0);
+        return false;
+    }
+    fluid_correction_inverse = inverse(fluid_correction_matrix);
+    float frobenius_squared = 0.0;
+    for (int row_index = 0; row_index < 3; row_index++) {
+        for (int column_index = 0; column_index < 3; column_index++) {
+            float element = fluid_correction_inverse[row_index][column_index];
+            frobenius_squared += element * element;
+        }
+    }
+    float frobenius = sqrt(frobenius_squared);
+    if (frobenius > REGULARIZATION_MAX_FROBENIUS_NORM) {
+        fluid_correction_inverse *= (REGULARIZATION_MAX_FROBENIUS_NORM / frobenius);
+    }
+    return true;
+}
+
+// the symmetric matrix of the six stored entries (helpers.glsl unpack_correction_inverse's convention)
+mat3 wall_crossing_symmetric_matrix(vec4 diagonal_and_xy, vec4 xz_and_yz) {
+    return mat3(
+        vec3(diagonal_and_xy.x, diagonal_and_xy.w, xz_and_yz.x),
+        vec3(diagonal_and_xy.w, diagonal_and_xy.y, xz_and_yz.y),
+        vec3(xz_and_yz.x,       xz_and_yz.y,       diagonal_and_xy.z));
+}
+#endif  // WALL_CROSSING

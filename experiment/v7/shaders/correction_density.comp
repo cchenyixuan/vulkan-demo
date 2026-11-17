@@ -64,6 +64,20 @@
 // pairs are all wall-wall); the decision is recorded per kernel as by the two
 // separate variants (V7_DEEP_WALL_CHECK, canonical_dump's mask). Band
 // pipelines never skip.
+//
+// wall_boundary crossing (WALL_CROSSING variant, compile_shaders_v7.py:
+// correction_density_wall_crossing.comp.spv; wall_boundary.glsl has the rules;
+// every statement behind WALL_CROSSING_ACTIVE, the plain build is unchanged):
+//   - a wall self writes fixed outputs and (rho0, 0) and returns before the
+//     loop;
+//   - a fluid self keeps L_i and the kernel sum over every neighbour, and
+//     accumulates A_f (fluid neighbours only) and g_f (the density gradient
+//     accumulator, fluid neighbours only);
+//   - a wall neighbour's drift takes (v_w - v_i) (1 + d_j / phi_i) (continuity
+//     extrapolate) or v_w - v_i (wall_velocity); its diffusion is applied after
+//     the loop as 2 delta h c0 G_i . (L_i sum_wall V_j r^2 / (r^2 + eps^2) grad W_ij),
+//     G_i = A_f^-1 g_f;
+//   - A_f^-1 goes to wall_crossing_fluid_inverse for force of the same step.
 // ============================================================================
 
 layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
@@ -100,6 +114,20 @@ void process_particle(uint self_particle_id) {
     bool self_is_boundary = (self_params.kind == MATERIAL_BOUNDARY);
     bool density_active = (self_params.kind != MATERIAL_INLET) && !(WALL_ADAMI && self_is_boundary);
 
+#ifdef WALL_CROSSING
+    // wall_boundary crossing: a wall particle is a quadrature point. It never enters the neighbour loop: fixed
+    // correction outputs (identity, zero gradient, zero kernel sum; nothing reads them) and (rho0, 0) to scratch,
+    // so the scratch -> primary copy keeps the stored rho0 that a fluid neighbour's V_j = m_j / rho_j reads.
+    // Before the deep-wall decision: every wall takes this return, the DEEP_WALL_SKIP block below never sees one.
+    if (WALL_CROSSING_ACTIVE && self_is_boundary) {
+        correction_inverse[self_particle_id * 2u]      = vec4(1.0, 1.0, 1.0, 0.0);
+        correction_inverse[self_particle_id * 2u + 1u] = vec4(0.0);
+        density_gradient_kernel_sum[self_particle_id]  = vec4(0.0);
+        density_pressure_scratch[self_particle_id] = vec2(stored_rest_density(self_params.rest_density), 0.0);
+        return;
+    }
+#endif
+
 #ifdef DEEP_WALL_SKIP
     // E39 B4: correction_deep_wall_skip's and density_deep_wall_skip's decision
     // (one band width 111 for both). No correction output; density's loop would
@@ -123,6 +151,19 @@ void process_particle(uint self_particle_id) {
     mat3  correction_matrix = mat3(0.0);
     vec3  density_gradient  = vec3(0.0);
     float kernel_sum        = 0.0;
+#ifdef WALL_CROSSING
+    // wall_boundary crossing (a fluid self; walls returned above): phi_i with the floor, A_f = the correction
+    // matrix over the fluid neighbours only, and sum_{j wall} V_j r^2 / (r^2 + eps^2) grad W_ij for the wall
+    // neighbours' share of the density diffusion (applied after the loop with the one-sided gradient G_i).
+    // (Placed here, not after the accumulators below: _test_seam_layout compares correction.comp's statements
+    // from the loop head on as text, and a preprocessor line joins the statement that follows it.)
+    float self_wall_distance      = 1.0;
+    mat3  fluid_correction_matrix = mat3(0.0);
+    vec3  wall_diffusion_vector   = vec3(0.0);
+    if (WALL_CROSSING_ACTIVE) {
+        self_wall_distance = wall_crossing_floored_distance(self_position);
+    }
+#endif
     vec3  density_rate_diagonal     = vec3(0.0);   // (S_xx, S_yy, S_zz)
     vec3  density_rate_off_diagonal = vec3(0.0);   // (S_xy + S_yx, S_xz + S_zx, S_yz + S_zy)
 
@@ -170,6 +211,22 @@ void process_particle(uint self_particle_id) {
                     vec3 position_difference_self_to_neighbor = -position_difference_neighbor_to_self; // = r_j - r_i
                     correction_matrix += neighbor_volume * outerProduct(position_difference_self_to_neighbor, kernel_gradient_value);
 
+#ifdef WALL_CROSSING
+                    // wall_boundary crossing: A_f and the density gradient take the fluid neighbours only
+                    // (the gradient accumulator then holds g_f = Σ_fluid V_j (ρ_j - ρ_i) ∇W_ij). The braces of
+                    // the gradient block below are unconditional (a plain nested block without the variant).
+                    bool neighbor_is_wall = false;
+                    if (WALL_CROSSING_ACTIVE) {
+                        neighbor_is_wall =
+                            material_parameters[material[neighbor_particle_id]].kind == MATERIAL_BOUNDARY;
+                        if (!neighbor_is_wall) {
+                            fluid_correction_matrix += neighbor_volume
+                                * outerProduct(position_difference_self_to_neighbor, kernel_gradient_value);
+                        }
+                    }
+                    if (!neighbor_is_wall)
+#endif
+                    {
                     // ---- Density gradient: ∇ρ_i = Σ V_j · (ρ_j - ρ_i) · ∇W_ij (2-D: xy)
                     if (DIMENSION == 2u) {
                         density_gradient.xy += neighbor_volume
@@ -179,6 +236,7 @@ void process_particle(uint self_particle_id) {
                         density_gradient += neighbor_volume
                                           * (neighbor_stored_density - self_stored_density)
                                           * kernel_gradient_value;
+                    }
                     }
 
                     // ---- Kernel sum: Σ V_j · W_ij
@@ -192,6 +250,22 @@ void process_particle(uint self_particle_id) {
                     // q_j = -ρ_i V_j (v_j - v_i) + 2 δ h c₀ ψ_ij V_j / (r² + ε²) (r_j - r_i),  ψ_ij = ρ_j - ρ_i
                     vec3 rate_vector = (-self_density * neighbor_volume)
                                      * (neighbor_velocity_mass.xyz - self_velocity);
+#ifdef WALL_CROSSING
+                    // wall_boundary crossing, a wall neighbour: the drift takes the wall's stored velocity,
+                    // v_j - v_i -> (v_w - v_i) (1 + d_j / φ_i) with continuity extrapolate (as it is with
+                    // wall_velocity); the diffusion is not a pair term (ψ_ij = G_i · (r_j - r_i) after the loop):
+                    // only Σ_wall V_j r² / (r² + ε²) ∇W_ij is accumulated.
+                    if (neighbor_is_wall) {
+                        if (WALL_CROSSING_CONTINUITY == WALL_CROSSING_CONTINUITY_EXTRAPOLATE) {
+                            rate_vector *= wall_crossing_extrapolation_factor(self_wall_distance, neighbor_position);
+                        }
+                        if (USE_DENSITY_DIFFUSION) {
+                            wall_diffusion_vector += (neighbor_volume * distance * distance
+                                                      / (distance * distance + EPS_H_SQUARED))
+                                                   * kernel_gradient_value;
+                        }
+                    } else
+#endif
                     if (USE_DENSITY_DIFFUSION) {
                         float psi_ij = neighbor_stored_density - self_stored_density;
                         rate_vector += (diffusion_coefficient * psi_ij * neighbor_volume
@@ -293,6 +367,48 @@ void process_particle(uint self_particle_id) {
                       + inverse_xz * density_rate_off_diagonal.y
                       + inverse_yz * density_rate_off_diagonal.z;
     }
+#ifdef WALL_CROSSING
+    // ========================================================================
+    // wall_boundary crossing: A_f^-1 by the correction matrix's regularisation
+    // and inversion, stored for force of this step (the same six entries and
+    // the validity flag it reads back); the wall neighbours' density diffusion
+    //     2 δ h c₀ G_i · (L_i Σ_wall V_j r² / (r² + ε²) ∇W_ij),  G_i = A_f^-1 g_f,
+    // with the stored (symmetric) A_f^-1 and L_i. A fallback (too few fluid
+    // neighbours) takes G_i = 0 and is counted.
+    // ========================================================================
+    if (WALL_CROSSING_ACTIVE) {
+        mat3 fluid_correction_inverse;
+        bool fluid_inverse_valid =
+            wall_crossing_invert_fluid_matrix(fluid_correction_matrix, fluid_correction_inverse);
+        if (!fluid_inverse_valid) {
+            atomicAdd(wall_crossing_gradient_fallback_count, 1u);
+        }
+        vec4 fluid_inverse_diagonal_and_xy = vec4(
+            fluid_correction_inverse[0][0],
+            fluid_correction_inverse[1][1],
+            fluid_correction_inverse[2][2],
+            fluid_correction_inverse[0][1]);
+        vec4 fluid_inverse_xz_and_yz = vec4(
+            fluid_correction_inverse[0][2],
+            fluid_correction_inverse[1][2],
+            0.0,
+            fluid_inverse_valid ? 1.0 : 0.0);
+        wall_crossing_fluid_inverse[self_particle_id * 2u]      = fluid_inverse_diagonal_and_xy;
+        wall_crossing_fluid_inverse[self_particle_id * 2u + 1u] = fluid_inverse_xz_and_yz;
+
+        if (USE_DENSITY_DIFFUSION && fluid_inverse_valid) {
+            vec3 fluid_density_gradient =
+                wall_crossing_symmetric_matrix(fluid_inverse_diagonal_and_xy, fluid_inverse_xz_and_yz)
+                * density_gradient;
+            mat3 stored_correction_inverse = mat3(
+                vec3(inverse_xx, inverse_xy, inverse_xz),
+                vec3(inverse_xy, inverse_yy, inverse_yz),
+                vec3(inverse_xz, inverse_yz, inverse_zz));
+            density_rate += diffusion_coefficient
+                          * dot(fluid_density_gradient, stored_correction_inverse * wall_diffusion_vector);
+        }
+    }
+#endif
     store_density(self_particle_id, self_stored_density, density_rate, self_params);
 }
 

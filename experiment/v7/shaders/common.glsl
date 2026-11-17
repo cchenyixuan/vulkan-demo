@@ -56,7 +56,10 @@
 //   100      : WALL_BOUNDARY (case.yaml numerics.wall_boundary; declared in wall_boundary.glsl)
 //   101 - 108: density_scratch_copy.comp regions (local), 109 - 110: ghost_send_lanes.comp (local)
 //   111 - 114: V7_DEEP_WALL_SKIP (E39 B4; declared in deep_wall_skip.glsl / deep_wall_marker.comp)
-//   115 - 127: reserved
+//   115      : FORCE_SEGMENT_FIRST_THREAD (E39 B3; local to force.comp's FORCE_SEGMENT variant)
+//   116 - 119: reserved
+//   120 - 127: wall_boundary crossing (declared in wall_boundary.glsl, WALL_CROSSING variants only):
+//              120 continuity rule, 121 distance floor, 122 - 124 box lower, 125 - 127 box upper
 //
 // Per-material parameters (rest_density, viscosity, eos_constant, radius,
 // volume, rotor_angular_velocity) are NOT spec constants — they live in
@@ -532,6 +535,7 @@ layout(std430, set = 0, binding = 9) buffer ExtensionFieldsBuffer {
 
 // binding 10: WallDummyVelocityBuffer (wall_boundary.glsl, wall_boundary adami)
 // binding 11 reserved for GlobalIdBuffer (FTLE / Lagrangian tracking; was binding 10)
+// binding 12: WallCrossingFluidInverseBuffer (wall_boundary.glsl, wall_boundary crossing, WALL_CROSSING variants)
 
 // ============================================================================
 // Descriptor set 1 — Voxel cell structures (own + ghost merged in V1)
@@ -755,7 +759,10 @@ layout(std430, set = 3, binding = 0) buffer GlobalStatusBuffer {
     uint  replica_third_send_trailing_count;
     uint  replica_third_recv_leading_count;
     uint  replica_third_recv_trailing_count;
-    uint  status_reserved_7;              // total 40 uint = 160 B
+    // wall_boundary crossing (field [39], was status_reserved_7, never written before; cumulative, diagnostic):
+    //   fluid particles whose one-sided gradient matrix A_f fell back in the fused correction + density pass
+    //   (too few fluid neighbours; that particle then takes G = 0), summed over the steps. 0 with simple / adami.
+    uint  wall_crossing_gradient_fallback_count;   // total 40 uint = 160 B
 };
 
 // ----------------------------------------------------------------------------

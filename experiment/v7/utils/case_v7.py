@@ -23,6 +23,8 @@ from typing import Optional
 
 import numpy as np
 
+from experiment.v7.utils.wall_crossing_v7 import WallCrossingSettings
+
 
 # ============================================================================
 # Material kinds (mirror common.glsl)
@@ -62,7 +64,9 @@ class PhysicsConstants:
     calibrate_volume: bool = True    # CPU-only; True → partition-of-unity calibrated V; False → (2·r)^dim
 
 
-WALL_BOUNDARY_CHOICES = ("simple", "adami")     # case.yaml numerics.wall_boundary (E37)
+# case.yaml numerics.wall_boundary (E37: simple, adami; crossing: the crossing-fraction walls of an axis-aligned
+# box, experiment/v7/utils/wall_crossing_v7.py). The tuple index is the value of spec const 100 WALL_BOUNDARY.
+WALL_BOUNDARY_CHOICES = ("simple", "adami", "crossing")
 
 
 @dataclass
@@ -87,7 +91,11 @@ class NumericsConstants:
     defrag_cadence: int = 1000
     # E37: "simple" (the v6 walls) or "adami" (Adami et al. 2012 wall pressure + no-slip, walls store rho0;
     # one GPU only). Spec const 100 WALL_BOUNDARY, shaders/wall_boundary.glsl.
+    # "crossing": the crossing-fraction walls (first order, axis-aligned box): no wall state, a wall neighbour's
+    # value is the linear continuation of the fluid's field; needs use_kcg_correction and the fused correction +
+    # density pass. Its settings (case.yaml numerics.wall_crossing) are in wall_crossing, None for the other modes.
     wall_boundary: str = "simple"
+    wall_crossing: Optional[WallCrossingSettings] = None
 
 
 @dataclass

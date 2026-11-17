@@ -665,7 +665,13 @@ _GLOBAL_STATUS_FIELD_NAMES = (
     # E40 (GHOST_LAYERS = 3): fields [35]-[38], were status_reserved_3..6 (never written before)
     "replica_third_send_leading_count", "replica_third_send_trailing_count",
     "replica_third_recv_leading_count", "replica_third_recv_trailing_count",
+    # wall_boundary crossing: field [39], was status_reserved_7 (never written before; 0 with simple / adami):
+    # cumulative count of fluid particles whose one-sided gradient matrix A_f fell back (G = 0 for that step)
+    "wall_crossing_gradient_fallback_count",
 )
+# wall_boundary crossing: pipeline keys of the separate correction / density kernels (plain modules without the
+# mode; _bind_pipeline_and_sets refuses them on a crossing slab, except correction_density_* and the copy pass)
+_WALL_CROSSING_UNSUPPORTED_PIPELINE_PREFIXES = ("correction_", "density_")
 # Replicas of the two-layer ghost (V7_GHOST_LAYERS = 2) carry only what the
 # neighbour sweeps read (correction / density / force, incl. the inner layer
 # recomputed as self): position_voxel_id, velocity_mass, density_pressure,
@@ -858,6 +864,8 @@ class SphSimulatorV7:
         if _BAND_OVERLAP != "0":
             print(f"[SimV7] V7_BAND_OVERLAP={_BAND_OVERLAP}: "
                   f"{'on' if self._band_overlap_active() else 'off'} ({self.band_overlap_resolution[1]})")
+        # wall_boundary crossing: the paths the mode does not run are refused here, before anything is built.
+        self._check_wall_crossing_supported()
 
         # Buffer allocation
         self._buffer_specs = self._build_buffer_specs()
@@ -975,6 +983,39 @@ class SphSimulatorV7:
         inner ghost column as self in phase C). Read from the case, as _wall_adami."""
         transport = self.case.transport
         return self._wall_adami and (transport.has_leading_peer or transport.has_trailing_peer)
+
+    @property
+    def _wall_crossing(self) -> bool:
+        """case.yaml numerics.wall_boundary == crossing (the crossing-fraction walls, shaders/wall_boundary.glsl).
+        Read from the case, as _wall_adami."""
+        return self.case.numerics.wall_boundary == "crossing"
+
+    def _check_wall_crossing_supported(self) -> None:
+        """wall_boundary crossing lives in the fused correction + density pass and in force (their WALL_CROSSING
+        variants). Every path that would run something else raises ValueError with the reason:
+          - the separate correction.comp + density.comp kernels (V7_FUSED_CORRECTION_DENSITY=0, or a fallback of
+            the fusion: V7_BAND_WIDTHS c != d, V7_BAND_COMPACT_DISPATCH, a V7_DIAG_GHOST_SELF naming one kernel);
+          - a slab with a peer (K > 1): not supported yet;
+          - numerics.use_kcg_correction false, or settings the loader did not resolve (a case built by hand)."""
+        if not self._wall_crossing:
+            return
+        numerics = self.case.numerics
+        if not numerics.use_kcg_correction:
+            raise ValueError("wall_boundary crossing needs numerics.use_kcg_correction true (the one-sided "
+                             "gradient and the wall pressure term are built on the correction matrix)")
+        settings = numerics.wall_crossing
+        if settings is None or settings.box_lower is None or settings.box_upper is None:
+            raise ValueError("wall_boundary crossing without resolved settings: numerics.wall_crossing must carry "
+                             "the fluid box (case_loader_v7.load_case_v7 resolves it)")
+        if not self._fused_correction_density_active():
+            raise ValueError("wall_boundary crossing needs the fused correction + density pass "
+                             "(correction_density.comp); this slab would run the separate correction.comp + "
+                             f"density.comp kernels ({self.fused_correction_density_resolution[1]}), which do "
+                             "not implement the mode")
+        transport = self.case.transport
+        if transport.has_leading_peer or transport.has_trailing_peer:
+            raise ValueError("wall_boundary crossing on a slab with a peer (K > 1) is not supported yet: the mode "
+                             "is validated on one GPU only")
 
     def wall_band_width(self) -> int:
         """E40: the wall pass band of a split adami slab = the density band + 1 (a wall in column c reads the
@@ -1219,6 +1260,13 @@ class SphSimulatorV7:
             _BufferSpec("deep_wall_skip_record",        3, 10,
                         8 * pool_capacity if self._deep_wall_record() else 16, BSU | TRANSFER),
         ] if self._deep_wall_skip_active() else []
+        # wall_boundary crossing (only on a crossing slab, so simple / adami keep their layouts): set 0 binding 12 =
+        # per fluid particle A_f^-1 (six floats) + a validity flag, the packing of correction_inverse. Transient:
+        # written by the fused pass, read by force of the same step for the particle itself; not in
+        # DEFRAG_SET0_BINDINGS / the transport / the restart state (as wall_dummy_velocity).
+        wall_crossing_specs = [
+            _BufferSpec("wall_crossing_fluid_inverse",  0, 12, 32 * pool_capacity, BSU | TRANSFER),
+        ] if self._wall_crossing else []
 
         return [
             # Set 0: particle SoA
@@ -1268,7 +1316,7 @@ class SphSimulatorV7:
             # V7_BAND_COMPACT_DISPATCH: indirect dispatch sizes + list column starts
             _BufferSpec("band_compact_meta",            3, 9, 128,
                         BSU | TRANSFER | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT),
-        ] + deep_wall_specs
+        ] + deep_wall_specs + wall_crossing_specs
 
     def _allocate_buffer(
         self,
@@ -1784,6 +1832,9 @@ class SphSimulatorV7:
             # E39 B3: force.comp's FORCE_SEGMENT variant only on a slab whose V7_BAND_OVERLAP plan has a force_deep
             # segment that does not start at workgroup 0 (likewise for a pre-B3 V7_SPV_DIR)
             *(("force_segment",) if self._force_deep_segment_first_groups() else ()),
+            # wall_boundary crossing: the WALL_CROSSING variants of the fused pass and of force only on a crossing
+            # slab (simple / adami need no such file, e.g. in a V7_SPV_DIR A/B against an earlier build)
+            *(("correction_density_wall_crossing", "force_wall_crossing") if self._wall_crossing else ()),
         ):
             spv_path = shader_dir / f"{shader_name}.comp.spv"
             if not spv_path.exists():
@@ -1841,6 +1892,21 @@ class SphSimulatorV7:
         cap = self.case.capacities
         g = self.case.grid
         gh = self.case.ghost_grid
+        # wall_boundary crossing: WALL_BOUNDARY = 2 and the mode's own constants (wall_boundary.glsl, ids 120-127:
+        # continuity rule, distance floor in metres, the fluid box). Appended on a crossing slab only, so the
+        # entries of simple / adami are the ones they always had.
+        wall_crossing_entries: list[tuple[int, str, Any]] = []
+        if self._wall_crossing:
+            settings = n.wall_crossing
+            particle_radius = self.wall_crossing_particle_radius()
+            wall_crossing_entries = [
+                (120, 'I', settings.continuity_code()),
+                (121, 'f', settings.distance_floor(particle_radius)),
+                (122, 'f', settings.box_lower[0]), (123, 'f', settings.box_lower[1]),
+                (124, 'f', settings.box_lower[2]),
+                (125, 'f', settings.box_upper[0]), (126, 'f', settings.box_upper[1]),
+                (127, 'f', settings.box_upper[2]),
+            ]
         return [
             (0,  'f', p.smoothing_length),
             (1,  'f', p.speed_of_sound),
@@ -1893,7 +1959,8 @@ class SphSimulatorV7:
             (98, 'B', int(configured_packed_replicas())),
             (99, 'I', configured_diagnostic_poison_inner_replica()),   # V7_DIAG_POISON_G1
             (97, 'B', int(configured_init_seam_clamp())),
-            (100, 'I', 1 if self._wall_adami else 0),                    # E37 WALL_BOUNDARY (case.yaml)
+            # E37 WALL_BOUNDARY (case.yaml): 0 simple, 1 adami, 2 crossing
+            (100, 'I', 2 if self._wall_crossing else (1 if self._wall_adami else 0)),
             # NEIGHBOR_X_RANGE (id=82) is NOT global anymore — Path A+ needs
             # different widths per kernel (correction / density / force =
             # self.band_widths, V7_BAND_WIDTHS, default 2/2/3, for the
@@ -1902,7 +1969,26 @@ class SphSimulatorV7:
             # below. Non-split kernels (predict / update_voxel / ghost_send /
             # install_migrations / defrag) don't use in_boundary_band at all,
             # so they rely on the GLSL default (NEIGHBOR_X_RANGE = 0u).
-        ]
+        ] + wall_crossing_entries
+
+    def wall_crossing_particle_radius(self) -> float:
+        """The particle radius behind wall_boundary crossing's distance floor (floor = factor x 2 x radius): the
+        first fluid material's (every material shares the case's physics.particle_radius)."""
+        fluids = [material for material in self.case.materials if material.kind == KIND_FLUID]
+        chosen = fluids[0] if fluids else self.case.materials[0]
+        return float(chosen.radius)
+
+    def _force_shader_module(self):
+        """force.comp's module of this slab: the WALL_CROSSING variant with wall_boundary crossing, else the
+        plain build."""
+        return self.shader_modules["force_wall_crossing" if self._wall_crossing else "force"]
+
+    def _fused_shader_module(self):
+        """correction_density.comp's module of this slab's pipelines that do not skip deep walls: the
+        WALL_CROSSING variant with wall_boundary crossing (which never skips deep walls: a wall returns before
+        the neighbour loop anyway), else the plain build."""
+        return self.shader_modules["correction_density_wall_crossing" if self._wall_crossing
+                                   else "correction_density"]
 
     # ----- Per-pipeline mode entries (kernel-specific spec const overrides) ---
 
@@ -2065,6 +2151,10 @@ class SphSimulatorV7:
         equal results: the marker is rebuilt every step, so any slab may run either way."""
         if _DEEP_WALL_SKIP == "0":
             return False, "V7_DEEP_WALL_SKIP=0"
+        if self._wall_crossing:
+            # every wall (deep or not) returns before the neighbour loop of the fused pass, so the marker passes
+            # and the DEEP_WALL_SKIP variant would decide nothing: off also when forced
+            return False, "wall_boundary crossing: a wall never enters the neighbour loop, nothing left to skip"
         if _DEEP_WALL_SKIP == "1":
             return True, "forced (V7_DEEP_WALL_SKIP=1)"
         dimension = int(self.case.physics.dimension)
@@ -2246,6 +2336,8 @@ class SphSimulatorV7:
             return None, f"{dimension}-D slab: band kernels throughput-bound"
         if self._wall_adami:
             return None, "wall_boundary adami"
+        if self._wall_crossing:
+            return None, "wall_boundary crossing (force.comp's FORCE_SEGMENT variant has no crossing build)"
         if not _CASCADE_FORCE:
             return None, "fallback: V7_CASCADE_FORCE=0 (no force_deep_interior to move)"
         if not self._fused_correction_density_active():
@@ -2427,12 +2519,12 @@ class SphSimulatorV7:
         # force × 3 modes (Path A+ — boundary band = band_widths[2] voxels)
         for mode, mode_name in ((0, "all"), (1, "deep_interior"), (2, "boundary")):
             pipelines[f"force_{mode_name}"] = self._create_pipeline(
-                shader=self.shader_modules["force"],
+                shader=self._force_shader_module(),
                 entries=self._global_entries() + self._force_mode_entries(mode),
             )
         # V3.3: Phase B variant of force_deep_interior reading rho/P from scratch.
         pipelines["force_deep_interior_scratch"] = self._create_pipeline(
-            shader=self.shader_modules["force"],
+            shader=self._force_shader_module(),
             entries=self._global_entries() + self._force_mode_entries(1, density_source=1),
         )
         # E39 B3: on a slab that resolves V7_BAND_OVERLAP on, every force_deep segment that does not start at
@@ -2476,7 +2568,7 @@ class SphSimulatorV7:
             entries=self._global_entries() + self._density_mode_entries(2, band_dispatch=1),
         )
         pipelines["force_boundary_band"] = self._create_pipeline(
-            shader=self.shader_modules["force"],
+            shader=self._force_shader_module(),
             entries=self._global_entries() + self._force_mode_entries(2, band_dispatch=1),
         )
 
@@ -2490,7 +2582,7 @@ class SphSimulatorV7:
                 shader=self.shader_modules["density"],
                 entries=self._global_entries() + self._density_mode_entries(2, band_dispatch=2))
             pipelines["force_boundary_compact"] = self._create_pipeline(
-                shader=self.shader_modules["force"],
+                shader=self._force_shader_module(),
                 entries=self._global_entries() + self._force_mode_entries(2, band_dispatch=2))
             list_self_layer = 1 if self.ghost_layers() >= 2 else 0
             compact_entries = self._global_entries() + [
@@ -2518,7 +2610,7 @@ class SphSimulatorV7:
                         shader=self.shader_modules["correction_density_deep_wall_skip"],
                         entries=entries + self._deep_wall_skip_entries())
                     continue
-                pipelines[key] = self._create_pipeline(shader=self.shader_modules["correction_density"],
+                pipelines[key] = self._create_pipeline(shader=self._fused_shader_module(),
                                                        entries=entries)
 
         cascade_note = (" (V7_CASCADE_FORCE=1: force_deep_interior in Phase B)"
@@ -3079,6 +3171,12 @@ class SphSimulatorV7:
     # ----- Pipeline binding -------------------------------------------------
 
     def _bind_pipeline_and_sets(self, cmd, pipeline_key: str) -> None:
+        # wall_boundary crossing exists in the fused pass and force only: a recording that binds a separate
+        # correction / density kernel (built from the plain modules, which would run the simple walls) is a bug.
+        if self._wall_crossing and pipeline_key.startswith(_WALL_CROSSING_UNSUPPORTED_PIPELINE_PREFIXES) \
+                and not pipeline_key.startswith(("correction_density_", "density_scratch_copy")):
+            raise RuntimeError(f"wall_boundary crossing: the recording binds {pipeline_key}, a separate "
+                               "correction / density kernel without the mode")
         vkCmdBindPipeline(
             cmd, VK_PIPELINE_BIND_POINT_COMPUTE, self.pipelines[pipeline_key])
         vkCmdBindDescriptorSets(

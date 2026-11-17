@@ -56,6 +56,8 @@ Multi-GPU ghost handling and inlet/outlet kernels are deferred (V0+ work). `defr
 | `force.comp` | Stage 5 — pressure + viscosity + gravity + PST shift. |
 | `wall_extrapolate.comp` | E37 (`numerics.wall_boundary: adami`): the Adami wall pass between density and force (wall pressure + dummy velocity from the fluid neighbours); every slab without a peer (K = 1), the kernel of v7-rc2 byte for byte. |
 | `wall_extrapolate_band.comp` | E40: the same computation with the interior / boundary-band modes and the band-voxel dispatch, for an adami slab with a peer (three-layer ghost, `partition_v7.chain_ghost_layers`): the interior pass in phase B, the band pass + the inner ghost column as self in phase C. |
+| `wall_boundary.glsl` | The wall option (`numerics.wall_boundary`, spec const 100): simple, adami, crossing. Its last section (behind `#ifdef WALL_CROSSING`) is the crossing mode: the rules, spec consts 120-127, the transient `wall_crossing_fluid_inverse` buffer (set 0 binding 12) and the two functions of the geometry (`wall_crossing_distance_to_wall`, `wall_crossing_depth_behind_wall`: an axis-aligned box). |
+| `correction_density_wall_crossing` / `force_wall_crossing` (variants) | `numerics.wall_boundary: crossing`: `correction_density.comp` / `force.comp` compiled with `-DWALL_CROSSING` (`compile_shaders_v7.py` `SHADER_VARIANTS`). A crossing slab builds its `correction_density_*` and `force_*` pipelines from them; the plain builds (what simple and adami run) keep their bytes. No wall pass: a wall particle keeps rho0 and its prescribed velocity, a fluid particle continues its own fields across the wall. |
 | `_test_common.comp` | Smoke test: empty kernel including `common.glsl`, used to detect regressions in bindings/spec constants. |
 
 Compiled `.spv` artifacts coexist alongside source. Build via
@@ -244,6 +246,21 @@ edits.
 80 - 88  : multi-GPU ghost grid (V1)
 89 - 127 : reserved
 ```
+
+The plan above is the V0 one; `common.glsl`'s header has the current table. Ids in use in this tree
+(`grep -rhoE "constant_id *= *[0-9]+" *.glsl *.comp`): 0-21, 30-33, 40-62, 80-109, 110 (`local_size_x_id` of
+`ghost_send_lanes.comp`), 111-115, and for `numerics.wall_boundary: crossing` (declared in `wall_boundary.glsl`,
+compiled only into the `WALL_CROSSING` variants):
+
+| id | name | meaning |
+|---|---|---|
+| 100 | `WALL_BOUNDARY` | 0 simple, 1 adami, **2 crossing** |
+| 120 | `WALL_CROSSING_CONTINUITY` | wall neighbour's velocity difference in the continuity equation: 0 extrapolate, 1 wall_velocity |
+| 121 | `WALL_CROSSING_DISTANCE_FLOOR` | lower bound of phi_i in metres (`distance_floor_factor` x particle spacing) |
+| 122 - 124 | `WALL_CROSSING_BOX_LOWER_X/Y/Z` | the fluid box, lower corner (world coordinates) |
+| 125 - 127 | `WALL_CROSSING_BOX_UPPER_X/Y/Z` | the fluid box, upper corner |
+
+Free: 116-119. `_test_seam_layout.py` (`check_packed_shader_layout`) fails when one id names two constants.
 
 ---
 

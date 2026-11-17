@@ -42,6 +42,11 @@ from experiment.v7.utils.case_v7 import (
     TransportConfig,
     WALL_BOUNDARY_CHOICES,
 )
+from experiment.v7.utils.wall_crossing_v7 import (
+    describe_wall_crossing,
+    parse_wall_crossing_settings,
+    resolve_wall_crossing_box,
+)
 
 
 _KIND_NAME_TO_ID = {
@@ -388,13 +393,26 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
         use_pst=bool(nm.get("use_pst", True)),
         use_prefix_sum_defrag=_defrag_order_is_prefix(nm, case_path),
         defrag_cadence=int(nm.get("defrag_cadence", 1000)),
-        # E37 wall boundary option: simple (the v6 walls, default) or adami (Adami et al. 2012 wall pressure +
-        # no-slip, walls store rho0; one GPU only). Optional key.
+        # E37 wall boundary option: simple (the v6 walls, default), adami (Adami et al. 2012 wall pressure +
+        # no-slip, walls store rho0) or crossing (the crossing-fraction walls of an axis-aligned box, settings in
+        # numerics.wall_crossing, resolved below). Optional key.
         wall_boundary=str(nm.get("wall_boundary", "simple")),
     )
     if numerics.wall_boundary not in WALL_BOUNDARY_CHOICES:
         raise ValueError(f"numerics.wall_boundary: {numerics.wall_boundary!r}, expected one of "
                          f"{', '.join(WALL_BOUNDARY_CHOICES)}")
+    # wall_boundary crossing: its settings (numerics.wall_crossing; the box is resolved below, once the particles
+    # are loaded). The one-sided gradient G_i = A_f^-1 g_f and the pressure term (A_f^-1 - L_i) g_f are built on
+    # the correction matrix, so the mode has no meaning without it.
+    if numerics.wall_boundary == "crossing":
+        if not numerics.use_kcg_correction:
+            raise ValueError("numerics.wall_boundary crossing needs numerics.use_kcg_correction true: the wall "
+                             "neighbours' values are continued with the one-sided gradient A_f^-1 g_f and the "
+                             "pressure term is (A_f^-1 - L_i) g_f, both defined through the correction matrix")
+        numerics.wall_crossing = parse_wall_crossing_settings(nm)
+    elif "wall_crossing" in nm:
+        print(f"[case_loader_v7] {case_path.parent.name}: numerics.wall_crossing is ignored "
+              f"(numerics.wall_boundary is {numerics.wall_boundary}, not crossing)", flush=True)
 
     # --- Capacities -------------------------------------------------------
     caps = case_data["capacities"]
@@ -462,6 +480,22 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
         raise ValueError(
             f"loaded {total_loaded} particles > pool_size {own_pool_size}; "
             f"increase capacities.pool_size in case.yaml")
+
+    # wall_boundary crossing: the fluid box (case.yaml's, or the fluid particles' bounding box widened by one
+    # particle radius) and its check: every non-wall particle inside, every wall particle outside. The mode knows
+    # fluid and walls only.
+    if numerics.wall_boundary == "crossing":
+        other_kinds = sorted({name for name, material in zip(used_material_names, materials)
+                              if material.kind not in (KIND_FLUID, KIND_BOUNDARY)})
+        if other_kinds:
+            raise ValueError(f"numerics.wall_boundary crossing handles fluid and boundary materials only; "
+                             f"this case also has {other_kinds} (inlet / rotor)")
+        material_kinds = np.asarray([material.kind for material in materials], dtype=np.int64)
+        is_wall = material_kinds[material_group] == KIND_BOUNDARY
+        numerics.wall_crossing = resolve_wall_crossing_box(
+            numerics.wall_crossing, positions, is_wall, particle_radius, dimension)
+        print("[case_loader_v7] " + describe_wall_crossing(
+            numerics.wall_crossing, particle_radius, dimension, positions, is_wall), flush=True)
 
     # --- Grid: bbox from frame.obj (single-GPU = full domain) -------------
     frame_obj = (case_dir / geometry["frame"]).resolve()

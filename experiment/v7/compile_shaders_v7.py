@@ -60,6 +60,11 @@ SHADER_VARIANTS = (
     ("correction_density_deep_wall_skip", "correction_density.comp", ("DEEP_WALL_SKIP",)),
     # E39 B3: a workgroup segment of force_deep_interior_scratch (spec constant 115 = its first thread)
     ("force_segment", "force.comp", ("FORCE_SEGMENT",)),
+    # wall_boundary crossing (case.yaml numerics.wall_boundary: crossing): the fused correction + density pass
+    # and force with the crossing-fraction wall rules (shaders/wall_boundary.glsl); a crossing slab builds its
+    # correction_density_* and force_* pipelines from these, simple / adami keep the plain modules
+    ("correction_density_wall_crossing", "correction_density.comp", ("WALL_CROSSING",)),
+    ("force_wall_crossing", "force.comp", ("WALL_CROSSING",)),
 )
 
 

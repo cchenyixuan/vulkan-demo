@@ -158,6 +158,7 @@ def _comparable(value):
 
 V7_ONLY_FIELDS = {"departed_pool_size", "replica_region_size", "ghost_layers",
                   "wall_boundary",          # E37 numerics option (v6 only)
+                  "wall_crossing",          # settings of wall_boundary crossing (v7 only)
                   "chain_own_particle_counts"}      # E39 B3 chain metadata of a slab case (v7 only)
 
 
@@ -1597,6 +1598,10 @@ B6_COMMIT = "3d6e1c9"    # E39 B6: the build V7_DEEP_WALL_SKIP=0 must reproduce 
 E40_CHANGED_SPIRV = frozenset({"expand_ghost_lists.comp.spv", "ghost_send.comp.spv", "ghost_send_lanes.comp.spv",
                                "install_migrations.comp.spv"})
 E40_ADDED_SPIRV = frozenset({"wall_extrapolate_band.comp.spv"})
+# wall_boundary crossing: the WALL_CROSSING variants of the fused pass and of force are new modules (compile_shaders_v7
+# SHADER_VARIANTS); every earlier module keeps its bytes (the plain builds of correction_density.comp / force.comp are
+# what simple and adami run), so the switch-0 pins below hold unchanged and only list these two as added.
+WALL_CROSSING_ADDED_SPIRV = frozenset({"correction_density_wall_crossing.comp.spv", "force_wall_crossing.comp.spv"})
 
 
 def _without_bootstrap_density_copy(source: str, origin: str) -> str:
@@ -2311,7 +2316,8 @@ def check_fused_correction_density(failures: list) -> None:
             failures.append(f"{pathlib.Path(path).name}: differs from {B4_COMMIT} (switch 0 must run the B4 SPIR-V)")
     new_spv = sorted(path.name for path in spv_directory.glob("*.spv")
                      if f"experiment/v7/shaders/spv/{path.name}" not in committed_spv
-                     and path.name not in LATER_ITEM_SPIRV_AFTER_B1 and path.name not in E40_ADDED_SPIRV)
+                     and path.name not in LATER_ITEM_SPIRV_AFTER_B1 and path.name not in E40_ADDED_SPIRV
+                     and path.name not in WALL_CROSSING_ADDED_SPIRV)
     if new_spv != ["correction_density.comp.spv", "correction_density_deep_wall_skip.comp.spv"]:
         failures.append(f"SPIR-V files beside {B4_COMMIT}'s: {new_spv}")
     if ("correction_density_deep_wall_skip", "correction_density.comp", ("DEEP_WALL_SKIP",)) \
@@ -2940,7 +2946,7 @@ def check_band_overlap(failures: list) -> None:
             failures.append(f"{pathlib.Path(path).name}: differs from {B1_COMMIT} (switch 0 must run the B1 SPIR-V)")
     new_spv = sorted(path.name for path in spv_directory.glob("*.spv")
                      if f"experiment/v7/shaders/spv/{path.name}" not in committed_spv
-                     and path.name not in E40_ADDED_SPIRV)
+                     and path.name not in E40_ADDED_SPIRV and path.name not in WALL_CROSSING_ADDED_SPIRV)
     if new_spv != ["force_segment.comp.spv"]:
         failures.append(f"SPIR-V files beside {B1_COMMIT}'s: {new_spv}")
     if ("force_segment", "force.comp", ("FORCE_SEGMENT",)) not in compile_shaders_v7.SHADER_VARIANTS:
