@@ -44,7 +44,7 @@ class BoxCaseSpecification:
     wall_boundary: str = "crossing"             # simple | adami | crossing
     continuity: str = "extrapolate"             # crossing only
     distance_floor_factor: float = 0.25         # crossing only
-    delta_wall: str = "extension"               # crossing only, diagnostic: extension | rest_density
+    delta_wall: str = "extension"               # crossing only, diagnostic: extension | rest_density | body_force
     explicit_box: bool = False
     jitter_fraction: float = 0.0
     near_wall_count: int = 0

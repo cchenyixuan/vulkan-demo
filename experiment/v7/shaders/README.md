@@ -259,7 +259,7 @@ compiled only into the `WALL_CROSSING` variants):
 | 121 | `WALL_CROSSING_DISTANCE_FLOOR` | lower bound of phi_i in metres (`distance_floor_factor` x particle spacing) |
 | 122 - 124 | `WALL_CROSSING_BOX_LOWER_X/Y/Z` | the fluid box, lower corner (world coordinates) |
 | 125 - 127 | `WALL_CROSSING_BOX_UPPER_X/Y/Z` | the fluid box, upper corner |
-| 116 | `WALL_CROSSING_DELTA_WALL` | **diagnostic**, not part of the mode (`numerics.wall_crossing.delta_wall`): a wall neighbour's density diffusion, 0 extension (the mode: the density continued across the wall, applied after the loop), 1 rest_density (simple's pair term rho0 - rho_i, nothing after the loop) |
+| 116 | `WALL_CROSSING_DELTA_WALL` | **diagnostic**, not part of the mode (`numerics.wall_crossing.delta_wall`): a wall neighbour's density diffusion, 0 extension (the mode: the density continued across the wall, applied after the loop), 1 rest_density (simple's pair term rho0 - rho_i, nothing after the loop), 2 body_force (pair term rho_i g . (r_j - r_i) / c^2 with c^2 = dp/drho of the Tait EOS at rho_i and a_wall = 0, nothing after the loop; no wall contribution without gravity) |
 
 Free: 117-119. `_test_seam_layout.py` (`check_packed_shader_layout`) fails when one id names two constants.
 

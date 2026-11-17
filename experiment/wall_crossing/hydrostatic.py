@@ -43,6 +43,8 @@ from experiment.wall_crossing.run_log import LOG_ROOT, LoggedRun                
 CASE_ROOT = REPOSITORY_ROOT / "cases" / "wall_crossing"
 MODES = {"simple": ("simple", None), "adami": ("adami", None), "crossing": ("crossing", "extrapolate"),
          "crossing_wall_velocity": ("crossing", "wall_velocity")}
+# 2-D only, DIAGNOSTIC (numerics.wall_crossing.delta_wall, not part of the mode): mode name -> the value
+DIAGNOSTIC_DELTA_WALL_2D = {"crossing_delta_wall_body_force": "body_force"}
 # |g| H / c0^2 = 1e-3 with c0 = 100 and H = 1: |g| = 10
 GRAVITY_MAGNITUDE = 10.0
 DIRECTIONS_2D = {
@@ -83,7 +85,10 @@ def make_cases(force: bool = False) -> list:
             raise ValueError(f"{base}: expected exactly one {old!r}")
     for direction, unit in DIRECTIONS_2D.items():
         gravity = [float(round(GRAVITY_MAGNITUDE * float(component), 9)) for component in unit]
-        for mode, (wall_boundary, continuity) in MODES.items():
+        modes_2d = [(mode, wall_boundary, continuity, None) for mode, (wall_boundary, continuity) in MODES.items()]
+        modes_2d += [(mode, "crossing", "extrapolate", delta_wall)
+                     for mode, delta_wall in DIAGNOSTIC_DELTA_WALL_2D.items()]
+        for mode, wall_boundary, continuity, delta_wall in modes_2d:
             directory = CASE_ROOT / f"hydrostatic_2d_n250_{direction}_{mode}"
             target = directory / "case.yaml"
             if target.exists() and not force:
@@ -91,6 +96,8 @@ def make_cases(force: bool = False) -> list:
             option = f"  use_prefix_sum_defrag: false\n  wall_boundary: {wall_boundary}\n"
             if continuity is not None:
                 option += f"  wall_crossing:\n    continuity: {continuity}\n"
+            if delta_wall is not None:
+                option += f"    delta_wall: {delta_wall}   # DIAGNOSTIC, not part of the mode\n"
             text = base_text
             for old, new in replacements:
                 if old.startswith("  gravity"):
@@ -102,7 +109,8 @@ def make_cases(force: bool = False) -> list:
                       f"# HYDROSTATIC BOX (experiment/wall_crossing/hydrostatic.py): the n250 cavity geometry of\n"
                       f"# cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025 with the lid at rest (stick_wall),\n"
                       f"# gravity {gravity} (|g| H / c0^2 = 1e-3, direction {direction}) and wall_boundary "
-                      f"{wall_boundary}" + (f" (continuity {continuity})" if continuity else "") + ".\n")
+                      f"{wall_boundary}" + (f" (continuity {continuity})" if continuity else "")
+                      + (f", DIAGNOSTIC delta_wall {delta_wall}" if delta_wall else "") + ".\n")
             if not text.startswith("schema_version: 2\n"):
                 raise ValueError(f"{base} does not start with the schema line")
             directory.mkdir(parents=True, exist_ok=True)
@@ -281,6 +289,7 @@ def run_case(arguments) -> int:
             "failed": failure, "alive_at_last_sample": series[-1]["alive"], "particles": expected_alive,
             "wall_boundary": case.numerics.wall_boundary,
             "continuity": case.numerics.wall_crossing.continuity if case.numerics.wall_crossing else None,
+            "delta_wall": case.numerics.wall_crossing.delta_wall if case.numerics.wall_crossing else None,
             "dimension": dimension, "gravity": gravity.tolist(), "box_lower": lower.tolist(),
             "box_upper": upper.tolist(), "spacing": spacing, "fluid_particles": int(len(speed)),
             "steps": total_steps, "time": total_steps * timestep, "timestep": timestep,
@@ -362,6 +371,8 @@ def table(arguments) -> int:
             return "—" if key not in layers else f"{layers[key]['speed_root_mean_square'] / scale:.2e}"
 
         wall = summary["wall_boundary"] + (f" ({summary['continuity']})" if summary["continuity"] else "")
+        if summary.get("delta_wall") not in (None, "extension"):
+            wall += f"，诊断 delta_wall = {summary['delta_wall']}"
         lines.append(
             f"| {summary['name']}"
             + (f"（失败：t = {summary['time']:.2f} 时粒子数 {summary['alive_at_last_sample']:,} / "

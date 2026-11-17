@@ -29,10 +29,11 @@ import numpy as np
 WALL_CROSSING_CONTINUITY_CHOICES = ("extrapolate", "wall_velocity")     # spec const 120: 0, 1
 WALL_CROSSING_DEFAULT_CONTINUITY = "extrapolate"
 WALL_CROSSING_DEFAULT_DISTANCE_FLOOR_FACTOR = 0.25
-# DIAGNOSTIC (spec const 116: 0, 1), not part of the mode: how a wall neighbour enters the density diffusion.
+# DIAGNOSTIC (spec const 116: 0, 1, 2), not part of the mode: how a wall neighbour enters the density diffusion.
 # "extension" is the mode as specified (the density continued across the wall); "rest_density" takes simple's
-# pair term rho0 - rho_i instead. See shaders/wall_boundary.glsl.
-WALL_CROSSING_DELTA_WALL_CHOICES = ("extension", "rest_density")
+# pair term rho0 - rho_i instead; "body_force" takes the pair term rho_i g . (r_j - r_i) / c^2 (c^2 = dp/drho
+# of the Tait EOS at rho_i, wall acceleration 0), which is zero without gravity. See shaders/wall_boundary.glsl.
+WALL_CROSSING_DELTA_WALL_CHOICES = ("extension", "rest_density", "body_force")
 WALL_CROSSING_DEFAULT_DELTA_WALL = "extension"
 
 KIND_BOUNDARY = 1       # case_v7.KIND_BOUNDARY (not imported: case_v7 imports this module)
@@ -49,7 +50,8 @@ class WallCrossingSettings:
     box_from_case: True when case.yaml gave the box, False when the loader derived it from the fluid
         particles' bounding box widened by one particle radius.
     delta_wall: DIAGNOSTIC, default "extension" (the mode as specified); "rest_density" lets a wall neighbour
-        enter the density diffusion with simple's pair term rho0 - rho_i.
+        enter the density diffusion with simple's pair term rho0 - rho_i, "body_force" with the pair term
+        rho_i g . (r_j - r_i) / c^2 (nothing without gravity).
     """
     continuity: str = WALL_CROSSING_DEFAULT_CONTINUITY
     distance_floor_factor: float = WALL_CROSSING_DEFAULT_DISTANCE_FLOOR_FACTOR
@@ -94,7 +96,7 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
         continuity: extrapolate | wall_velocity            (default extrapolate)
         distance_floor_factor: <float > 0>                 (default 0.25)
         box: {lower: [x, y, z], upper: [x, y, z]}          (default: from the fluid particles)
-        delta_wall: extension | rest_density               (DIAGNOSTIC; default extension = the mode)
+        delta_wall: extension | rest_density | body_force  (DIAGNOSTIC; default extension = the mode)
     A 2-D case may give two components per corner."""
     mapping = numerics_mapping.get("wall_crossing") or {}
     if not isinstance(mapping, dict):

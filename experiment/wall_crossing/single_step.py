@@ -48,6 +48,11 @@ from experiment.wall_crossing.run_log import LoggedRun, vulkan_device_uuid      
 PROPERTY_CONFIGURATIONS = ("couette", "hydrostatic_positive", "hydrostatic_negative")
 ALL_CONFIGURATIONS = ("smooth",) + PROPERTY_CONFIGURATIONS
 HYDROSTATIC_GRAVITY = {2: (0.35, -0.80, 0.0), 3: (0.35, -0.80, 0.45)}        # oblique to every wall
+# The smooth configuration has no gravity, so the diagnostic delta_wall body_force (a wall neighbour's density
+# difference rho_i g . (r_j - r_i) / c^2) would be zero on it and the comparison would say nothing about the
+# term. With that value only, the smooth configuration takes this gravity (oblique to every wall, large
+# enough for the walls' diffusion to be of the size of the fluid's).
+BODY_FORCE_SMOOTH_GRAVITY = {2: (3.5, -8.0, 0.0), 3: (3.5, -8.0, 4.5)}
 LID_SPEED = 1.0
 
 
@@ -348,6 +353,7 @@ def compare_with_reference(gpu: dict, tolerance: float) -> dict:
             "diffusion_fluid": float(np.abs(reference.density_rate_diffusion_fluid).max()),
             "diffusion_wall": float(np.abs(reference.density_rate_diffusion_wall).max()),
         },
+        "reference_notes": {key: value for key, value in reference.notes.items() if key != "pair_count"},
     }
 
 
@@ -415,6 +421,8 @@ def run_configuration(out_root: pathlib.Path, dimension: int, device_index: int,
     directory = out_root / label
     specification = box_specification(dimension, configuration, wall_boundary, continuity, distance_floor_factor)
     specification.delta_wall = delta_wall
+    if wall_boundary == "crossing" and delta_wall == "body_force" and configuration == "smooth":
+        specification.gravity = BODY_FORCE_SMOOTH_GRAVITY[dimension]
     case_path = write_box_case(directory / "case", specification)
     with LoggedRun(kind="single_step", case=str(case_path.relative_to(REPOSITORY_ROOT)).replace("\\", "/")) as run:
         gpu = gpu_single_evaluation(case_path, device_index, configuration, specification)
@@ -503,7 +511,8 @@ def main() -> int:
                         help="largest per-particle relative error allowed in the smooth configuration")
     parser.add_argument("--compare-modes", action="store_true",
                         help="also run the property configurations with wall_boundary simple and adami")
-    parser.add_argument("--delta-wall", default="extension", choices=("extension", "rest_density"),
+    parser.add_argument("--delta-wall", default="extension",
+                        choices=("extension", "rest_density", "body_force"),
                         help="the diagnostic numerics.wall_crossing.delta_wall of the crossing runs (default: the "
                              "mode); another value adds its name to the labels and to the summary file name")
     arguments = parser.parse_args()

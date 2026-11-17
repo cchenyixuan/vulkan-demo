@@ -90,12 +90,20 @@ const uint WALL_CROSSING_CONTINUITY_WALL_VELOCITY = 1u;
 //   0 = extension:    psi_ij = G_i . (r_j - r_i), the continuation of the density, applied after the loop
 //                     through sum_wall V_j r^2 / (r^2 + eps^2) grad W_ij;
 //   1 = rest_density: psi_ij = rho0 - rho_i pair by pair, the expression simple uses (a wall particle stores
-//                     rho0), and no term after the loop.
-// The drift of the continuity equation, the pressure continuation and the viscous term are the same in both.
-// It exists to test whether the mean density drifts because the delta term has no rho0 reference.
+//                     rho0), and no term after the loop;
+//   2 = body_force:   psi_ij = rho_i (g - a_wall) . (r_j - r_i) / c^2 pair by pair, the density difference of a
+//                     fluid at rest against the wall, and no term after the loop. g = (GRAVITY_X, GRAVITY_Y,
+//                     GRAVITY_Z); a_wall = 0 (no wall of this solver accelerates: a wall is at rest or moves at
+//                     a constant velocity); c^2 = dp/drho of the particle's Tait EOS at rho_i,
+//                     gamma B / rho0 (rho_i / rho0)^(gamma - 1) (= c0^2 at rho0). Without gravity a wall
+//                     neighbour contributes nothing to the density diffusion.
+// The drift of the continuity equation, the pressure continuation and the viscous term are the same in all three.
+// 1 exists to test whether the mean density drifts because the delta term has no rho0 reference, 2 to test
+// whether the drift comes from the continuation term itself (neither 0 nor 2 refers to rho0).
 layout(constant_id = 116) const uint  WALL_CROSSING_DELTA_WALL = 0u;
 const uint WALL_CROSSING_DELTA_WALL_EXTENSION    = 0u;
 const uint WALL_CROSSING_DELTA_WALL_REST_DENSITY = 1u;
+const uint WALL_CROSSING_DELTA_WALL_BODY_FORCE   = 2u;
 // lower bound of phi_i = numerics.wall_crossing.distance_floor_factor (default 0.25) x the particle spacing
 layout(constant_id = 121) const float WALL_CROSSING_DISTANCE_FLOOR = 0.001;
 // the fluid box [lower, upper] in world coordinates (2-D: x and y only)

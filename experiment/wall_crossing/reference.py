@@ -17,6 +17,11 @@ Density rate of a fluid particle i (pass 1; rho, v of step n):
     sum_{j fluid} [ -rho_i V_j (v_j - v_i) . L grad W + 2 delta h c0 (rho_j - rho_i) V_j / (r^2 + eps^2) (r_j - r_i) . L grad W ]
   + sum_{j wall}  [ -rho_i V_j c_ij (v_w,j - v_i) . L grad W ],   c_ij = 1 + d_j / phi_i (extrapolate) or 1 (wall_velocity)
   + 2 delta h c0 G_i . (L sum_{j wall} V_j r^2 / (r^2 + eps^2) grad W),   G_i = A_f^-1 g_f(rho)  (0 on a fallback)
+The last line is the mode (delta_wall extension). The diagnostic values replace it by a sum over the wall
+neighbours of 2 delta h c0 psi_ij V_j / (r^2 + eps^2) (r_j - r_i) . L grad W with
+    rest_density:  psi_ij = rho_j - rho_i (a wall stores rho0),
+    body_force:    psi_ij = rho_i g . (r_j - r_i) / c_i^2,  c_i^2 = dp/drho of the Tait EOS at rho_i
+                   = gamma B / rho0 (rho_i / rho0)^(gamma - 1)  (wall acceleration 0).
 
 Acceleration of a fluid particle i (pass 2; V_j = m_i / rho_j as force.comp takes it):
     a_p = -(1 / rho_i) [ sum_{j fluid} V_j F_ij L grad W + s p_i L sum_{j wall} V_j grad W + (A_f^-1 - L) g_f(p) ]
@@ -75,7 +80,10 @@ class ReferenceConstants:
     box_lower: tuple                # spec consts 122-124
     box_upper: tuple                # spec consts 125-127
     continuity: str                 # "extrapolate" | "wall_velocity"
-    delta_wall: str = "extension"   # diagnostic (spec const 116): "extension" | "rest_density"
+    delta_wall: str = "extension"   # diagnostic (spec const 116): "extension" | "rest_density" | "body_force"
+    power_parameter: float = 7.0    # the EOS gamma (spec const 4)
+    eos_constant: float = 0.0       # the fluid material's B = c0^2 rho0 / gamma (delta_wall body_force only)
+    rest_density: float = 0.0       # the fluid material's rho0 (delta_wall body_force only)
 
     @classmethod
     def from_case(cls, case) -> "ReferenceConstants":
@@ -109,6 +117,9 @@ class ReferenceConstants:
             box_upper=tuple(float32_value(component) for component in settings.box_upper),
             continuity=settings.continuity,
             delta_wall=settings.delta_wall,
+            power_parameter=float32_value(physics.power_parameter),
+            eos_constant=float32_value(fluid.eos_constant),
+            rest_density=float32_value(fluid.rest_density),
         )
 
 
@@ -297,6 +308,7 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
     diffusion_wall = np.zeros(fluid_count)
     diffusion_wall_pairwise = np.zeros(fluid_count)
     diffusion_scale = np.zeros(fluid_count)
+    body_force_notes = {}
     if constants.use_density_diffusion:
         diffusion_pair = (diffusion_coefficient * density_difference * volume / softened
                           * (displacement * corrected_gradient).sum(axis=1))
@@ -320,6 +332,32 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
             diffusion_wall = _sum_by_particle(self_of_pair[neighbour_is_wall], diffusion_pair[neighbour_is_wall],
                                               fluid_count)
             diffusion_wall_pairwise = diffusion_wall.copy()
+        elif constants.delta_wall == "body_force":
+            # the diagnostic: a wall neighbour takes the pair term with the density difference of a fluid at
+            # rest against the wall, rho_i g . (r_j - r_i) / c_i^2 (wall acceleration 0), c_i^2 = dp/drho of
+            # the Tait EOS at rho_i; there is no term after the loop
+            gravity_vector = np.asarray(constants.gravity, dtype=np.float64)
+            sound_speed_squared_rest = constants.power_parameter * constants.eos_constant / constants.rest_density
+            sound_speed_squared = sound_speed_squared_rest * (
+                self_density / constants.rest_density) ** (constants.power_parameter - 1.0)
+            geometry_pair = volume / softened * (displacement * corrected_gradient).sum(axis=1)
+            body_force_difference = self_density * (displacement @ gravity_vector) / sound_speed_squared
+            diffusion_pair = np.where(neighbour_is_wall,
+                                      diffusion_coefficient * body_force_difference * geometry_pair,
+                                      diffusion_pair)
+            diffusion_wall = _sum_by_particle(self_of_pair[neighbour_is_wall], diffusion_pair[neighbour_is_wall],
+                                              fluid_count)
+            diffusion_wall_pairwise = diffusion_wall.copy()
+            # what the other choice of c^2 (c0^2 for every particle) would give: how far the two are apart on
+            # this state, i.e. whether a comparison on it tells them apart
+            with_rest_sound_speed = _sum_by_particle(
+                self_of_pair[neighbour_is_wall],
+                (diffusion_coefficient * self_density * (displacement @ gravity_vector) / sound_speed_squared_rest
+                 * geometry_pair)[neighbour_is_wall], fluid_count)
+            body_force_notes = {
+                "wall_diffusion_maximum": float(np.abs(diffusion_wall).max()),
+                "wall_diffusion_difference_with_rest_sound_speed_maximum":
+                    float(np.abs(diffusion_wall - with_rest_sound_speed).max())}
         diffusion_scale = _sum_by_particle(self_of_pair[neighbour_is_fluid],
                                            np.abs(diffusion_pair[neighbour_is_fluid]), fluid_count) \
             + (np.abs(diffusion_wall) if constants.delta_wall == "extension" else
@@ -435,5 +473,5 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
         acceleration_pressure_pairwise=acceleration_pressure_pairwise,
         wall_neighbour_count=np.bincount(self_of_pair[neighbour_is_wall], minlength=fluid_count),
         fluid_neighbour_count=np.bincount(self_of_pair[neighbour_is_fluid], minlength=fluid_count),
-        notes={"pair_count": int(self_of_pair.size)},
+        notes={"pair_count": int(self_of_pair.size), **body_force_notes},
     )
