@@ -407,10 +407,14 @@ def property_residuals(gpu: dict, configuration: str, specification: BoxCaseSpec
 
 
 def run_configuration(out_root: pathlib.Path, dimension: int, device_index: int, configuration: str,
-                      wall_boundary: str, continuity: str, distance_floor_factor: float, tolerance: float) -> dict:
+                      wall_boundary: str, continuity: str, distance_floor_factor: float, tolerance: float,
+                      delta_wall: str = "extension") -> dict:
     label = f"{dimension}d_{configuration}_{wall_boundary}" + (f"_{continuity}" if wall_boundary == "crossing" else "")
+    if wall_boundary == "crossing" and delta_wall != "extension":
+        label += f"_delta_wall_{delta_wall}"
     directory = out_root / label
     specification = box_specification(dimension, configuration, wall_boundary, continuity, distance_floor_factor)
+    specification.delta_wall = delta_wall
     case_path = write_box_case(directory / "case", specification)
     with LoggedRun(kind="single_step", case=str(case_path.relative_to(REPOSITORY_ROOT)).replace("\\", "/")) as run:
         gpu = gpu_single_evaluation(case_path, device_index, configuration, specification)
@@ -499,6 +503,9 @@ def main() -> int:
                         help="largest per-particle relative error allowed in the smooth configuration")
     parser.add_argument("--compare-modes", action="store_true",
                         help="also run the property configurations with wall_boundary simple and adami")
+    parser.add_argument("--delta-wall", default="extension", choices=("extension", "rest_density"),
+                        help="the diagnostic numerics.wall_crossing.delta_wall of the crossing runs (default: the "
+                             "mode); another value adds its name to the labels and to the summary file name")
     arguments = parser.parse_args()
 
     out_root = (REPOSITORY_ROOT / arguments.out).resolve()
@@ -515,7 +522,7 @@ def main() -> int:
         for continuity in rules:
             outcomes.append(run_configuration(out_root, arguments.dimension, arguments.device, configuration,
                                               "crossing", continuity, arguments.distance_floor_factor,
-                                              arguments.tolerance))
+                                              arguments.tolerance, arguments.delta_wall))
             _print_outcome(outcomes[-1])
         if arguments.compare_modes and configuration in PROPERTY_CONFIGURATIONS:
             for wall_boundary in ("simple", "adami"):
@@ -524,7 +531,9 @@ def main() -> int:
                                                   arguments.tolerance))
                 _print_outcome(outcomes[-1])
 
-    summary_path = out_root / f"summary_{arguments.dimension}d.json"
+    summary_path = out_root / (f"summary_{arguments.dimension}d"
+                               + ("" if arguments.delta_wall == "extension" else f"_delta_wall_{arguments.delta_wall}")
+                               + ".json")
     summary_path.write_text(json.dumps(outcomes, indent=2), encoding="utf-8", newline="\n")
     failed = [outcome["label"] for outcome in outcomes if not outcome["passed"]]
     print(f"\n[single_step] {len(outcomes)} run(s), summary {summary_path}")

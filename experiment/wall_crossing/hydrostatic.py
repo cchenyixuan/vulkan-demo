@@ -142,10 +142,14 @@ def initial_box(case) -> tuple:
 
 
 def read_fluid_state(simulator, case) -> dict:
-    """Alive fluid particles: positions, velocities, masses, density, pressure (float64 of the float32 values)."""
+    """Alive fluid particles: positions, velocities, masses, density, pressure (float64 of the float32 values).
+    The density is read as stored and the storage offset is added in float64 (0 with the default storage, where
+    density_pressure.x is rho itself; rho_ref with V7_DELTA_DENSITY, where it is rho - rho_ref), so the value is
+    the true density in either storage and no float32 addition rounds it."""
     from experiment.v7.utils.case_v7 import KIND_FLUID
     raw = simulator.readback_buffers_batch(["position_voxel_id", "velocity_mass", "density_pressure", "material"],
-                                           density="absolute")
+                                           density="stored")
+    density_offset = float(simulator.stored_density_offset())
     capacity = case.capacities.total_pool_capacity()
     first = simulator.own_first_pid()
     rows = slice(first, first + case.capacities.own_pool_size)
@@ -158,7 +162,8 @@ def read_fluid_state(simulator, case) -> dict:
     fluid = alive & (kinds[np.minimum(material, kinds.size - 1)] == KIND_FLUID)
     return {"alive": int(alive.sum()),
             "positions": position[fluid, 0:3].astype(np.float64), "velocities": velocity[fluid, 0:3].astype(np.float64),
-            "masses": velocity[fluid, 3].astype(np.float64), "densities": density[fluid, 0].astype(np.float64),
+            "masses": velocity[fluid, 3].astype(np.float64),
+            "densities": density[fluid, 0].astype(np.float64) + density_offset,
             "pressures": density[fluid, 1].astype(np.float64)}
 
 

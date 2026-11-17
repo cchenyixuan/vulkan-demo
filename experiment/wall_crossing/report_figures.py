@@ -252,7 +252,7 @@ def cavity_density_figure(records: dict, out: pathlib.Path) -> None:
             history = record["history"]
             time = np.array(history["time"])
             level = 0.5 * (np.array(history["density_min"]) + np.array(history["density_max"])) - 1000.0
-            line, = axis.plot(time, level, color=MODE_COLOUR[mode], zorder=3)
+            line, = axis.plot(time, level, color=MODE_COLOUR[mode], zorder=5 if mode.startswith("crossing") else 3)
             handles[mode] = line
             if mode == "crossing_wall_velocity":
                 # its level falls far below the others' range: the panel keeps their range and says so

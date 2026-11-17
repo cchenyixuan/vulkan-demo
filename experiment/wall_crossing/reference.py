@@ -75,6 +75,7 @@ class ReferenceConstants:
     box_lower: tuple                # spec consts 122-124
     box_upper: tuple                # spec consts 125-127
     continuity: str                 # "extrapolate" | "wall_velocity"
+    delta_wall: str = "extension"   # diagnostic (spec const 116): "extension" | "rest_density"
 
     @classmethod
     def from_case(cls, case) -> "ReferenceConstants":
@@ -107,6 +108,7 @@ class ReferenceConstants:
             box_lower=tuple(float32_value(component) for component in settings.box_lower),
             box_upper=tuple(float32_value(component) for component in settings.box_upper),
             continuity=settings.continuity,
+            delta_wall=settings.delta_wall,
         )
 
 
@@ -312,9 +314,17 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
                     * (displacement * corrected_gradient).sum(axis=1))
         diffusion_wall_pairwise = _sum_by_particle(self_of_pair[neighbour_is_wall], pairwise[neighbour_is_wall],
                                                    fluid_count)
+        if constants.delta_wall == "rest_density":
+            # the diagnostic: a wall neighbour takes the pair term with its stored density (rho0), as in simple,
+            # and there is no term after the loop
+            diffusion_wall = _sum_by_particle(self_of_pair[neighbour_is_wall], diffusion_pair[neighbour_is_wall],
+                                              fluid_count)
+            diffusion_wall_pairwise = diffusion_wall.copy()
         diffusion_scale = _sum_by_particle(self_of_pair[neighbour_is_fluid],
                                            np.abs(diffusion_pair[neighbour_is_fluid]), fluid_count) \
-            + np.abs(diffusion_wall)
+            + (np.abs(diffusion_wall) if constants.delta_wall == "extension" else
+               _sum_by_particle(self_of_pair[neighbour_is_wall], np.abs(diffusion_pair[neighbour_is_wall]),
+                                fluid_count))
     density_rate = drift_fluid + drift_wall + diffusion_fluid + diffusion_wall
     density_rate_scale = _sum_by_particle(self_of_pair, np.abs(drift_pair), fluid_count) + diffusion_scale
 

@@ -85,6 +85,17 @@ const bool WALL_CROSSING_ACTIVE = (WALL_BOUNDARY == WALL_BOUNDARY_CROSSING);
 layout(constant_id = 120) const uint  WALL_CROSSING_CONTINUITY = 0u;
 const uint WALL_CROSSING_CONTINUITY_EXTRAPOLATE   = 0u;
 const uint WALL_CROSSING_CONTINUITY_WALL_VELOCITY = 1u;
+// DIAGNOSTIC, not part of the mode (numerics.wall_crossing.delta_wall, default extension = 0, which is the mode
+// as specified): how a wall neighbour enters the density diffusion (delta term) of the fused pass.
+//   0 = extension:    psi_ij = G_i . (r_j - r_i), the continuation of the density, applied after the loop
+//                     through sum_wall V_j r^2 / (r^2 + eps^2) grad W_ij;
+//   1 = rest_density: psi_ij = rho0 - rho_i pair by pair, the expression simple uses (a wall particle stores
+//                     rho0), and no term after the loop.
+// The drift of the continuity equation, the pressure continuation and the viscous term are the same in both.
+// It exists to test whether the mean density drifts because the delta term has no rho0 reference.
+layout(constant_id = 116) const uint  WALL_CROSSING_DELTA_WALL = 0u;
+const uint WALL_CROSSING_DELTA_WALL_EXTENSION    = 0u;
+const uint WALL_CROSSING_DELTA_WALL_REST_DENSITY = 1u;
 // lower bound of phi_i = numerics.wall_crossing.distance_floor_factor (default 0.25) x the particle spacing
 layout(constant_id = 121) const float WALL_CROSSING_DISTANCE_FLOOR = 0.001;
 // the fluid box [lower, upper] in world coordinates (2-D: x and y only)

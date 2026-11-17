@@ -57,7 +57,8 @@
 //   101 - 108: density_scratch_copy.comp regions (local), 109 - 110: ghost_send_lanes.comp (local)
 //   111 - 114: V7_DEEP_WALL_SKIP (E39 B4; declared in deep_wall_skip.glsl / deep_wall_marker.comp)
 //   115      : FORCE_SEGMENT_FIRST_THREAD (E39 B3; local to force.comp's FORCE_SEGMENT variant)
-//   116 - 119: reserved
+//   116      : wall_boundary crossing, DIAGNOSTIC: WALL_CROSSING_DELTA_WALL (wall_boundary.glsl; 0 = the mode)
+//   117 - 119: reserved
 //   120 - 127: wall_boundary crossing (declared in wall_boundary.glsl, WALL_CROSSING variants only):
 //              120 continuity rule, 121 distance floor, 122 - 124 box lower, 125 - 127 box upper
 //

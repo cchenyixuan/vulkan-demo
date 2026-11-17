@@ -44,6 +44,7 @@ class BoxCaseSpecification:
     wall_boundary: str = "crossing"             # simple | adami | crossing
     continuity: str = "extrapolate"             # crossing only
     distance_floor_factor: float = 0.25         # crossing only
+    delta_wall: str = "extension"               # crossing only, diagnostic: extension | rest_density
     explicit_box: bool = False
     jitter_fraction: float = 0.0
     near_wall_count: int = 0
@@ -200,6 +201,8 @@ def write_box_case(directory: pathlib.Path, specification: BoxCaseSpecification)
         numerics_lines += ["  wall_crossing:",
                            f"    continuity: {specification.continuity}",
                            f"    distance_floor_factor: {specification.distance_floor_factor!r}"]
+        if specification.delta_wall != "extension":
+            numerics_lines += [f"    delta_wall: {specification.delta_wall}"]
         if specification.explicit_box:
             box_lower = [float(component) for component in particles["box_lower"][:dimension]]
             box_upper = [float(component) for component in particles["box_upper"][:dimension]]

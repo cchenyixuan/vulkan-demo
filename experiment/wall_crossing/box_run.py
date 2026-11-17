@@ -130,10 +130,10 @@ def main() -> int:
             state = read_fluid_state_of_chain(simulators, slab_cases)
             latest["state"] = state
             speed = np.sqrt((state["velocities"] ** 2).sum(axis=1))
-            if state["alive"] != expected_alive or not np.isfinite(speed).all():
-                raise RuntimeError(f"step {step}: alive {state['alive']} of {expected_alive}, or a "
-                                   "non-finite velocity")
-            if take_sample:
+            # a run that loses a particle (or produces a non-finite velocity) stops at this sample; the sample's
+            # row is still written first, so the series ends with the state that failed
+            lost = state["alive"] != expected_alive or not np.isfinite(speed).all()
+            if take_sample or lost:
                 statuses = [simulator.readback_global_status() for simulator in simulators]
                 distance = box_distance_to_wall(state["positions"], lower, upper, dimension)
                 row = {"step": step, "time": step * timestep,
@@ -142,7 +142,12 @@ def main() -> int:
                        "speed_root_mean_square": float(np.sqrt((speed ** 2).mean())),
                        "density_minimum": float(state["densities"].min()),
                        "density_maximum": float(state["densities"].max()),
+                       # means over the alive fluid particles (no wall), float64 sums of the true density
+                       # (read_fluid_state adds the storage offset) and of the stored pressure
                        "density_mean": float(state["densities"].mean()),
+                       "pressure_mean": float(state["pressures"].mean()),
+                       "pressure_negative_fraction": float((state["pressures"] < 0.0).mean()),
+                       "alive": int(state["alive"]),
                        "density_deviation_maximum": float(np.abs(state["densities"] - rest_density).max()),
                        "wall_distance_minimum_over_spacing": float(distance.min() / spacing),
                        "below_floor_count": int((distance < floor).sum()) if floor is not None else 0,
@@ -159,6 +164,10 @@ def main() -> int:
                     writer["csv"].writeheader()
                 writer["csv"].writerow(row)
                 series_file.flush()
+            if lost:
+                raise RuntimeError(f"step {step} (t = {step * timestep:.3f}): alive {state['alive']} of "
+                                   f"{expected_alive}"
+                                   + ("" if np.isfinite(speed).all() else ", non-finite velocity"))
             if take_profile:
                 profiles.append({"step": step, "time": step * timestep,
                                  **centre_line_profiles(state, lower, upper, dimension, support)})
@@ -166,6 +175,7 @@ def main() -> int:
 
         def on_ready(simulators: list, slab_cases: list) -> None:
             clock["started"] = time.perf_counter()
+            on_sample(0, simulators, slab_cases)        # the state after the bootstrap, t = 0
 
         try:
             # the callback is asked at every defrag boundary and decides itself (samples and profiles may have

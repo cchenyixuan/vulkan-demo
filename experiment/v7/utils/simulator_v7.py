@@ -1916,6 +1916,7 @@ class SphSimulatorV7:
             settings = n.wall_crossing
             particle_radius = self.wall_crossing_particle_radius()
             wall_crossing_entries = [
+                (116, 'I', settings.delta_wall_code()),        # diagnostic, 0 = the mode (wall_boundary.glsl)
                 (120, 'I', settings.continuity_code()),
                 (121, 'f', settings.distance_floor(particle_radius)),
                 (122, 'f', settings.box_lower[0]), (123, 'f', settings.box_lower[1]),
