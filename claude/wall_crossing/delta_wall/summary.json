@@ -73,6 +73,29 @@
    "alive_last": 74529,
    "time_last": 5.01
   },
+  "dw_n250_crossing_continuity_normal": {
+   "samples": 168,
+   "samples_in_fit": 134,
+   "fit_window": [
+    1.02,
+    5.01
+   ],
+   "drift_rate": 0.003384834036582856,
+   "fit_residual_root_mean_square": 0.000979872445981153,
+   "time_at_reading": 5.01,
+   "density_mean_minus_rest": 0.022295710204161878,
+   "pressure_mean": 224.2084593350629,
+   "pressure_mean_over_dynamic": 0.22420845933506292,
+   "pressure_negative_fraction": 1.5872763924382153e-05,
+   "kinetic_energy": 21.146054303089215,
+   "density_deviation_maximum": 0.14556884765625,
+   "speed_maximum": 0.9770176425732222,
+   "wall_distance_minimum_over_spacing": 0.2927099466323857,
+   "outside_box_count_maximum": 0,
+   "gradient_fallbacks": 0,
+   "alive_last": 74529,
+   "time_last": 5.01
+  },
   "dw_n250_simple": {
    "samples": 168,
    "samples_in_fit": 134,
@@ -172,6 +195,7 @@
   "dw_n250_crossing_extension": "wc-20261117-224501-32f5",
   "dw_n250_crossing_rest_density": "wc-20261117-224550-a5c0",
   "dw_n250_crossing_body_force": "wc-20261118-013702-5995",
+  "dw_n250_crossing_continuity_normal": "wc-20261118-022650-256e",
   "dw_n250_simple": "wc-20261117-224639-a58b",
   "dw_n250_adami": "wc-20261117-224722-a4ce",
   "dw_n250_crossing_wall_velocity_rest_density": "wc-20261117-224827-978a"
