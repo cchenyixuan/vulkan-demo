@@ -1,0 +1,164 @@
+{
+ "fit_window": [
+  1.0,
+  5.011
+ ],
+ "runs": {
+  "dw_n250_crossing_extension": {
+   "samples": 168,
+   "samples_in_fit": 134,
+   "fit_window": [
+    1.02,
+    5.01
+   ],
+   "drift_rate": -0.013590580802800397,
+   "fit_residual_root_mean_square": 0.0011598520173206354,
+   "time_at_reading": 5.01,
+   "density_mean_minus_rest": -0.07428076945359408,
+   "pressure_mean": -741.7690583160023,
+   "pressure_mean_over_dynamic": -0.7417690583160023,
+   "pressure_negative_fraction": 0.9999206361803781,
+   "kinetic_energy": 21.75402288445096,
+   "density_deviation_maximum": 0.15081787109375,
+   "speed_maximum": 0.9764716663653538,
+   "wall_distance_minimum_over_spacing": 0.2970610857009892,
+   "outside_box_count_maximum": 0,
+   "gradient_fallbacks": 0,
+   "alive_last": 74529,
+   "time_last": 5.01
+  },
+  "dw_n250_crossing_rest_density": {
+   "samples": 168,
+   "samples_in_fit": 134,
+   "fit_window": [
+    1.02,
+    5.01
+   ],
+   "drift_rate": -0.00027968209131771956,
+   "fit_residual_root_mean_square": 0.00011219711273300458,
+   "time_at_reading": 5.01,
+   "density_mean_minus_rest": -0.002211209514825896,
+   "pressure_mean": -21.192065559145597,
+   "pressure_mean_over_dynamic": -0.021192065559145597,
+   "pressure_negative_fraction": 0.9872700433326456,
+   "kinetic_energy": 21.68512499196149,
+   "density_deviation_maximum": 0.16912841796875,
+   "speed_maximum": 0.9770513811270809,
+   "wall_distance_minimum_over_spacing": 0.2952431440353398,
+   "outside_box_count_maximum": 0,
+   "gradient_fallbacks": 0,
+   "alive_last": 74529,
+   "time_last": 5.01
+  },
+  "dw_n250_simple": {
+   "samples": 168,
+   "samples_in_fit": 134,
+   "fit_window": [
+    1.02,
+    5.01
+   ],
+   "drift_rate": -0.00021613041161918481,
+   "fit_residual_root_mean_square": 6.691512908920617e-05,
+   "time_at_reading": 5.01,
+   "density_mean_minus_rest": -0.0016297009655090733,
+   "pressure_mean": -15.314362655016009,
+   "pressure_mean_over_dynamic": -0.015314362655016008,
+   "pressure_negative_fraction": 0.9855240393009634,
+   "kinetic_energy": 18.589302585803456,
+   "density_deviation_maximum": 1.375,
+   "speed_maximum": 0.9361881053384363,
+   "wall_distance_minimum_over_spacing": 0.30974197387695357,
+   "outside_box_count_maximum": 0,
+   "gradient_fallbacks": 0,
+   "alive_last": 74529,
+   "time_last": 5.01
+  },
+  "dw_n250_adami": {
+   "samples": 168,
+   "samples_in_fit": 134,
+   "fit_window": [
+    1.02,
+    5.01
+   ],
+   "drift_rate": -0.000332063959735758,
+   "fit_residual_root_mean_square": 0.0004361701089974385,
+   "time_at_reading": 5.01,
+   "density_mean_minus_rest": -0.004839787272999274,
+   "pressure_mean": -47.51361962524445,
+   "pressure_mean_over_dynamic": -0.04751361962524445,
+   "pressure_negative_fraction": 0.9799526991635054,
+   "kinetic_energy": 23.40339257693069,
+   "density_deviation_maximum": 0.5054931640625,
+   "speed_maximum": 0.9808817874416237,
+   "wall_distance_minimum_over_spacing": 0.2411519289016728,
+   "outside_box_count_maximum": 0,
+   "gradient_fallbacks": 0,
+   "alive_last": 74529,
+   "time_last": 5.01
+  }
+ },
+ "side_run": {
+  "to_t5": {
+   "samples": 501,
+   "samples_in_fit": 134,
+   "fit_window": [
+    1.02,
+    5.01
+   ],
+   "drift_rate": -0.00023010730103633723,
+   "fit_residual_root_mean_square": 0.000516595169211203,
+   "time_at_reading": 5.01,
+   "density_mean_minus_rest": -0.004571708652179041,
+   "pressure_mean": -44.69405429938114,
+   "pressure_mean_over_dynamic": -0.04469405429938114,
+   "pressure_negative_fraction": 0.989285884351042,
+   "kinetic_energy": 23.340913097386284,
+   "density_deviation_maximum": 0.42388916015625,
+   "speed_maximum": 1.3150064828254464,
+   "wall_distance_minimum_over_spacing": 0.21149861812591597,
+   "outside_box_count_maximum": 0,
+   "gradient_fallbacks": 0,
+   "alive_last": 74529,
+   "time_last": 15.0
+  },
+  "whole_run": {
+   "samples": 501,
+   "samples_in_fit": 467,
+   "fit_window": [
+    1.02,
+    15.0
+   ],
+   "drift_rate": -0.0002093236473649013,
+   "fit_residual_root_mean_square": 0.0005281558232996535,
+   "time_at_reading": 15.0,
+   "density_mean_minus_rest": -0.006225803916777295,
+   "pressure_mean": -61.28221171875514,
+   "pressure_mean_over_dynamic": -0.06128221171875514,
+   "pressure_negative_fraction": 0.973000428564626,
+   "kinetic_energy": 43.75647916613254,
+   "density_deviation_maximum": 0.42388916015625,
+   "speed_maximum": 1.3150064828254464,
+   "wall_distance_minimum_over_spacing": 0.21149861812591597,
+   "outside_box_count_maximum": 0,
+   "gradient_fallbacks": 0,
+   "alive_last": 74529,
+   "time_last": 15.0
+  }
+ },
+ "run_ids": {
+  "dw_n250_crossing_extension": "wc-20261117-224501-32f5",
+  "dw_n250_crossing_rest_density": "wc-20261117-224550-a5c0",
+  "dw_n250_simple": "wc-20261117-224639-a58b",
+  "dw_n250_adami": "wc-20261117-224722-a4ce",
+  "dw_n250_crossing_wall_velocity_rest_density": "wc-20261117-224827-978a"
+ },
+ "stopped_runs": [
+  "wc-20261117-223709-94f6",
+  "wc-20261117-223709-a251",
+  "wc-20261117-223709-99d2",
+  "wc-20261117-223709-adb7",
+  "wc-20261117-223709-00bf",
+  "wc-20261117-223709-65e7",
+  "wc-20261117-223709-1b8b"
+ ]
+}

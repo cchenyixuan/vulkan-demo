@@ -446,7 +446,8 @@ def build_report() -> None:
             continue
         path = REPORT_ROOT / match.group(1)
         if not path.exists():
-            output.append(f"（未生成：{match.group(1)}）")
+            output.append(f"（**未完成**：这一部分（`{match.group(1)}`）在长运行按用户要求停止时还没有写或没有数据，"
+                          "之后没有继续；见第 6 节。）")
             continue
         # the file's own title line is dropped; its other headings become bold lines (they would otherwise
         # break the report's outline)

@@ -1,0 +1,1946 @@
+[
+ {
+  "name": "2d_n250_g30_adami",
+  "run_id": "wc-20261117-182852-7025",
+  "case": "cases/wall_crossing/hydrostatic_2d_n250_g30_adami/case.yaml",
+  "failed": null,
+  "alive_at_last_sample": 74529,
+  "particles": 74529,
+  "wall_boundary": "adami",
+  "continuity": null,
+  "dimension": 2,
+  "gravity": [
+   -5.0,
+   -8.660254038,
+   0.0
+  ],
+  "box_lower": [
+   -0.502,
+   -0.502,
+   0.0
+  ],
+  "box_upper": [
+   0.502,
+   0.502,
+   0.0
+  ],
+  "spacing": 0.004,
+  "fluid_particles": 63001,
+  "steps": 334000,
+  "time": 10.02,
+  "timestep": 3e-05,
+  "steps_per_second": 1449.1832147408302,
+  "device_uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8",
+  "scales": {
+   "velocity_sqrt_g_extent": 3.7033626684611916,
+   "pressure_rho_g_extent": 13714.895054151997,
+   "speed_of_sound": 100.0
+  },
+  "final": {
+   "kinetic_energy": 6.255523255531903,
+   "speed_maximum": 1.1056409818692268,
+   "speed_root_mean_square": 0.1048350695166271,
+   "speed_maximum_over_scale": 0.298550555495187,
+   "speed_root_mean_square_over_scale": 0.0283080753633529,
+   "pressure_level_at_centre": -693.5164636279469,
+   "pressure_level_over_scale": -0.0505666620772278,
+   "pressure_error_root_mean_square_over_scale": 0.008998034562236426,
+   "pressure_error_maximum_over_scale": 0.49408422910546695,
+   "pressure_raw_error_root_mean_square_over_scale": 0.051360996287219254,
+   "fitted_pressure_gradient": [
+    -4856.170486312141,
+    -8486.041917195913,
+    0.0
+   ],
+   "fitted_gradient_error_over_rho_g": 0.022591324007540565,
+   "density_minimum": 999.2365112304688,
+   "density_maximum": 1000.607666015625,
+   "wall_distance_minimum_over_spacing": -12.122371315956116,
+   "layers": [
+    {
+     "wall_distance_over_spacing": [
+      0.0,
+      1.0
+     ],
+     "count": 962,
+     "speed_maximum": 0.617988242228248,
+     "speed_root_mean_square": 0.060664975061199194,
+     "pressure_error_root_mean_square": 167.9767500527725
+    },
+    {
+     "wall_distance_over_spacing": [
+      1.0,
+      2.0
+     ],
+     "count": 963,
+     "speed_maximum": 0.33256703108517544,
+     "speed_root_mean_square": 0.040969284771305965,
+     "pressure_error_root_mean_square": 241.81663241693454
+    },
+    {
+     "wall_distance_over_spacing": [
+      2.0,
+      3.0
+     ],
+     "count": 1025,
+     "speed_maximum": 0.3198131631916688,
+     "speed_root_mean_square": 0.05101765564750517,
+     "pressure_error_root_mean_square": 169.84415597662417
+    },
+    {
+     "wall_distance_over_spacing": [
+      3.0,
+      5.0
+     ],
+     "count": 1955,
+     "speed_maximum": 0.23617618621219147,
+     "speed_root_mean_square": 0.054155647252339116,
+     "pressure_error_root_mean_square": 165.08968080451834
+    },
+    {
+     "wall_distance_over_spacing": [
+      5.0,
+      null
+     ],
+     "count": 58084,
+     "speed_maximum": 0.2163290348916388,
+     "speed_root_mean_square": 0.10792058094012466,
+     "pressure_error_root_mean_square": 80.55804502265707
+    }
+   ]
+  },
+  "last_fifth": {
+   "speed_maximum_over_scale": 0.29983275549676563,
+   "speed_root_mean_square_over_scale": 0.027665393452451396,
+   "kinetic_energy_mean": 5.975880670923999
+  },
+  "whole_run": {
+   "wall_distance_minimum_over_spacing": -12.492322444915771,
+   "gradient_fallbacks": 0,
+   "correction_fallbacks": 0,
+   "overflow": 0,
+   "density_deviation_maximum": 0.7750244140625
+  }
+ },
+ {
+  "name": "2d_n250_g30_crossing",
+  "run_id": "wc-20261117-175922-f0ee",
+  "case": "cases/wall_crossing/hydrostatic_2d_n250_g30_crossing/case.yaml",
+  "wall_boundary": "crossing",
+  "continuity": "extrapolate",
+  "dimension": 2,
+  "gravity": [
+   -5.0,
+   -8.660254038,
+   0.0
+  ],
+  "box_lower": [
+   -0.502,
+   -0.502,
+   0.0
+  ],
+  "box_upper": [
+   0.502,
+   0.502,
+   0.0
+  ],
+  "spacing": 0.004,
+  "fluid_particles": 63001,
+  "steps": 334000,
+  "time": 10.02,
+  "timestep": 3e-05,
+  "steps_per_second": 1761.0270060635617,
+  "device_uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8",
+  "scales": {
+   "velocity_sqrt_g_extent": 3.7033626684611916,
+   "pressure_rho_g_extent": 13714.895054151997,
+   "speed_of_sound": 100.0
+  },
+  "final": {
+   "kinetic_energy": 0.0006326032537099353,
+   "speed_maximum": 0.01391970132372397,
+   "speed_root_mean_square": 0.0010542423946781887,
+   "speed_maximum_over_scale": 0.0037586654534992755,
+   "speed_root_mean_square_over_scale": 0.0002846716589915413,
+   "pressure_level_at_centre": -177.59729873832498,
+   "pressure_level_over_scale": -0.012949227685454277,
+   "pressure_error_root_mean_square_over_scale": 0.00034252306832057897,
+   "pressure_error_maximum_over_scale": 0.008386505183354787,
+   "pressure_raw_error_root_mean_square_over_scale": 0.012953756972479734,
+   "fitted_pressure_gradient": [
+    -5005.3615339829685,
+    -8669.405203030836,
+    0.0
+   ],
+   "fitted_gradient_error_over_rho_g": 0.0010606124083240827,
+   "density_minimum": 999.2970581054688,
+   "density_maximum": 1000.6666259765625,
+   "wall_distance_minimum_over_spacing": 0.39609420299530074,
+   "layers": [
+    {
+     "wall_distance_over_spacing": [
+      0.0,
+      1.0
+     ],
+     "count": 998,
+     "speed_maximum": 0.01391970132372397,
+     "speed_root_mean_square": 0.0009269041602329556,
+     "pressure_error_root_mean_square": 3.148566736996776
+    },
+    {
+     "wall_distance_over_spacing": [
+      1.0,
+      2.0
+     ],
+     "count": 966,
+     "speed_maximum": 0.010859236351481416,
+     "speed_root_mean_square": 0.0010962571531123355,
+     "pressure_error_root_mean_square": 6.03027444233039
+    },
+    {
+     "wall_distance_over_spacing": [
+      2.0,
+      3.0
+     ],
+     "count": 953,
+     "speed_maximum": 0.007867779459363712,
+     "speed_root_mean_square": 0.0010414939218771951,
+     "pressure_error_root_mean_square": 9.16611434230595
+    },
+    {
+     "wall_distance_over_spacing": [
+      3.0,
+      5.0
+     ],
+     "count": 1893,
+     "speed_maximum": 0.011484577553846248,
+     "speed_root_mean_square": 0.0010133845820221588,
+     "pressure_error_root_mean_square": 7.22024429135268
+    },
+    {
+     "wall_distance_over_spacing": [
+      5.0,
+      null
+     ],
+     "count": 58191,
+     "speed_maximum": 0.00872106762744446,
+     "speed_root_mean_square": 0.0010570900976697743,
+     "pressure_error_root_mean_square": 4.477349924207527
+    }
+   ]
+  },
+  "last_fifth": {
+   "speed_maximum_over_scale": 0.003877613777193345,
+   "speed_root_mean_square_over_scale": 0.00032832126473013464,
+   "kinetic_energy_mean": 0.0008477361898369914
+  },
+  "whole_run": {
+   "wall_distance_minimum_over_spacing": 0.38290667533874556,
+   "gradient_fallbacks": 0,
+   "correction_fallbacks": 0,
+   "overflow": 0,
+   "density_deviation_maximum": 0.75604248046875
+  }
+ },
+ {
+  "name": "2d_n250_g30_crossing_wall_velocity",
+  "run_id": "wc-20261117-180233-27aa",
+  "case": "cases/wall_crossing/hydrostatic_2d_n250_g30_crossing_wall_velocity/case.yaml",
+  "wall_boundary": "crossing",
+  "continuity": "wall_velocity",
+  "dimension": 2,
+  "gravity": [
+   -5.0,
+   -8.660254038,
+   0.0
+  ],
+  "box_lower": [
+   -0.502,
+   -0.502,
+   0.0
+  ],
+  "box_upper": [
+   0.502,
+   0.502,
+   0.0
+  ],
+  "spacing": 0.004,
+  "fluid_particles": 63001,
+  "steps": 334000,
+  "time": 10.02,
+  "timestep": 3e-05,
+  "steps_per_second": 1807.7625694946528,
+  "device_uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8",
+  "scales": {
+   "velocity_sqrt_g_extent": 3.7033626684611916,
+   "pressure_rho_g_extent": 13714.895054151997,
+   "speed_of_sound": 100.0
+  },
+  "final": {
+   "kinetic_energy": 0.0005213346269390669,
+   "speed_maximum": 0.014711381869958682,
+   "speed_root_mean_square": 0.0009570465275479957,
+   "speed_maximum_over_scale": 0.003972438885136655,
+   "speed_root_mean_square_over_scale": 0.0002584263582118098,
+   "pressure_level_at_centre": -2476.8892153908387,
+   "pressure_level_over_scale": -0.18059848111203697,
+   "pressure_error_root_mean_square_over_scale": 0.0001953611331551309,
+   "pressure_error_maximum_over_scale": 0.004908566621699142,
+   "pressure_raw_error_root_mean_square_over_scale": 0.18059858677727,
+   "fitted_pressure_gradient": [
+    -5003.226140208275,
+    -8666.00184654624,
+    0.0
+   ],
+   "fitted_gradient_error_over_rho_g": 0.0006591303643932352,
+   "density_minimum": 999.0663452148438,
+   "density_maximum": 1000.4351806640625,
+   "wall_distance_minimum_over_spacing": 0.38658726215362593,
+   "layers": [
+    {
+     "wall_distance_over_spacing": [
+      0.0,
+      1.0
+     ],
+     "count": 997,
+     "speed_maximum": 0.014711381869958682,
+     "speed_root_mean_square": 0.0010759283163682362,
+     "pressure_error_root_mean_square": 2.811441141529942
+    },
+    {
+     "wall_distance_over_spacing": [
+      1.0,
+      2.0
+     ],
+     "count": 977,
+     "speed_maximum": 0.008244209778902745,
+     "speed_root_mean_square": 0.0008602535895101734,
+     "pressure_error_root_mean_square": 3.695207951582218
+    },
+    {
+     "wall_distance_over_spacing": [
+      2.0,
+      3.0
+     ],
+     "count": 957,
+     "speed_maximum": 0.004288776013610118,
+     "speed_root_mean_square": 0.000560207591348205,
+     "pressure_error_root_mean_square": 4.269994030952368
+    },
+    {
+     "wall_distance_over_spacing": [
+      3.0,
+      5.0
+     ],
+     "count": 1882,
+     "speed_maximum": 0.0058189422955334785,
+     "speed_root_mean_square": 0.000560486312924885,
+     "pressure_error_root_mean_square": 3.904690011977336
+    },
+    {
+     "wall_distance_over_spacing": [
+      5.0,
+      null
+     ],
+     "count": 58188,
+     "speed_maximum": 0.006167594269978202,
+     "speed_root_mean_square": 0.0009716569272354641,
+     "pressure_error_root_mean_square": 2.5719771391855564
+    }
+   ]
+  },
+  "last_fifth": {
+   "speed_maximum_over_scale": 0.004198125708479614,
+   "speed_root_mean_square_over_scale": 0.0002843657754210366,
+   "kinetic_energy_mean": 0.0006335548420571052
+  },
+  "whole_run": {
+   "wall_distance_minimum_over_spacing": 0.3783916234970097,
+   "gradient_fallbacks": 0,
+   "correction_fallbacks": 0,
+   "overflow": 0,
+   "density_deviation_maximum": 0.958251953125
+  }
+ },
+ {
+  "name": "2d_n250_g30_simple",
+  "run_id": "wc-20261117-182848-f4fd",
+  "case": "cases/wall_crossing/hydrostatic_2d_n250_g30_simple/case.yaml",
+  "failed": "step 6000: alive 74528 of 74529 with no voxel-list overflow (particles left through a wall)",
+  "alive_at_last_sample": 74528,
+  "particles": 74529,
+  "wall_boundary": "simple",
+  "continuity": null,
+  "dimension": 2,
+  "gravity": [
+   -5.0,
+   -8.660254038,
+   0.0
+  ],
+  "box_lower": [
+   -0.502,
+   -0.502,
+   0.0
+  ],
+  "box_upper": [
+   0.502,
+   0.502,
+   0.0
+  ],
+  "spacing": 0.004,
+  "fluid_particles": 63000,
+  "steps": 6000,
+  "time": 0.18,
+  "timestep": 3e-05,
+  "steps_per_second": null,
+  "device_uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8",
+  "scales": {
+   "velocity_sqrt_g_extent": 3.7033626684611916,
+   "pressure_rho_g_extent": 13714.895054151997,
+   "speed_of_sound": 100.0
+  },
+  "final": {
+   "kinetic_energy": 17.956127829947818,
+   "speed_maximum": 1.4537265664730294,
+   "speed_root_mean_square": 0.17761701087697152,
+   "speed_maximum_over_scale": 0.3925423180541691,
+   "speed_root_mean_square_over_scale": 0.04796100916326791,
+   "pressure_level_at_centre": 3.6154080546946292,
+   "pressure_level_over_scale": 0.0002636117914442308,
+   "pressure_error_root_mean_square_over_scale": 0.0246172639915193,
+   "pressure_error_maximum_over_scale": 0.549278869565873,
+   "pressure_raw_error_root_mean_square_over_scale": 0.024618675382821493,
+   "fitted_pressure_gradient": [
+    -4626.475005534063,
+    -8192.867317235059,
+    0.0
+   ],
+   "fitted_gradient_error_over_rho_g": 0.05983070016542795,
+   "density_minimum": 998.7516479492188,
+   "density_maximum": 1000.896240234375,
+   "wall_distance_minimum_over_spacing": -13.496347784996033,
+   "layers": [
+    {
+     "wall_distance_over_spacing": [
+      0.0,
+      1.0
+     ],
+     "count": 973,
+     "speed_maximum": 1.1559158200950481,
+     "speed_root_mean_square": 0.2636881783830006,
+     "pressure_error_root_mean_square": 885.72100399467
+    },
+    {
+     "wall_distance_over_spacing": [
+      1.0,
+      2.0
+     ],
+     "count": 997,
+     "speed_maximum": 1.153773982297605,
+     "speed_root_mean_square": 0.12244046558802214,
+     "pressure_error_root_mean_square": 1329.7275709665823
+    },
+    {
+     "wall_distance_over_spacing": [
+      2.0,
+      3.0
+     ],
+     "count": 924,
+     "speed_maximum": 0.5430553848166413,
+     "speed_root_mean_square": 0.16615173984871656,
+     "pressure_error_root_mean_square": 534.6733603123874
+    },
+    {
+     "wall_distance_over_spacing": [
+      3.0,
+      5.0
+     ],
+     "count": 1968,
+     "speed_maximum": 0.6311895869753602,
+     "speed_root_mean_square": 0.16888364615165188,
+     "pressure_error_root_mean_square": 477.48694759023135
+    },
+    {
+     "wall_distance_over_spacing": [
+      5.0,
+      null
+     ],
+     "count": 58095,
+     "speed_maximum": 0.4322575221076374,
+     "speed_root_mean_square": 0.176428854167681,
+     "pressure_error_root_mean_square": 193.03968877617893
+    }
+   ]
+  },
+  "last_fifth": {
+   "speed_maximum_over_scale": 0.3925423180541691,
+   "speed_root_mean_square_over_scale": 0.04796100916326791,
+   "kinetic_energy_mean": 17.956127829947818
+  },
+  "whole_run": {
+   "wall_distance_minimum_over_spacing": -13.496347784996033,
+   "gradient_fallbacks": 0,
+   "correction_fallbacks": 0,
+   "overflow": 0,
+   "density_deviation_maximum": 1.24835205078125
+  }
+ },
+ {
+  "name": "2d_n250_gy_adami",
+  "run_id": "wc-20261117-175522-2dd0",
+  "case": "cases/wall_crossing/hydrostatic_2d_n250_gy_adami/case.yaml",
+  "wall_boundary": "adami",
+  "continuity": null,
+  "dimension": 2,
+  "gravity": [
+   0.0,
+   -10.0,
+   0.0
+  ],
+  "box_lower": [
+   -0.502,
+   -0.502,
+   0.0
+  ],
+  "box_upper": [
+   0.502,
+   0.502,
+   0.0
+  ],
+  "spacing": 0.004,
+  "fluid_particles": 63001,
+  "steps": 334000,
+  "time": 10.02,
+  "timestep": 3e-05,
+  "steps_per_second": 1443.5574878595405,
+  "device_uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8",
+  "scales": {
+   "velocity_sqrt_g_extent": 3.1685959035509716,
+   "pressure_rho_g_extent": 10040.0,
+   "speed_of_sound": 100.0
+  },
+  "final": {
+   "kinetic_energy": 3.9399540401061013,
+   "speed_maximum": 0.18452934881029873,
+   "speed_root_mean_square": 0.08319942865350173,
+   "speed_maximum_over_scale": 0.05823694608817141,
+   "speed_root_mean_square_over_scale": 0.026257506853512646,
+   "pressure_level_at_centre": -491.8013188641161,
+   "pressure_level_over_scale": -0.048984195105987664,
+   "pressure_error_root_mean_square_over_scale": 0.006130860516470823,
+   "pressure_error_maximum_over_scale": 0.048567026760544016,
+   "pressure_raw_error_root_mean_square_over_scale": 0.04936637338162372,
+   "fitted_pressure_gradient": [
+    1.651061115635457,
+    -9832.655987758659,
+    0.0
+   ],
+   "fitted_gradient_error_over_rho_g": 0.016735215695006064,
+   "density_minimum": 999.4389038085938,
+   "density_maximum": 1000.4462890625,
+   "wall_distance_minimum_over_spacing": 0.20293045043945357,
+   "layers": [
+    {
+     "wall_distance_over_spacing": [
+      0.0,
+      1.0
+     ],
+     "count": 947,
+     "speed_maximum": 0.18452934881029873,
+     "speed_root_mean_square": 0.04401086443440899,
+     "pressure_error_root_mean_square": 147.91654649767037
+    },
+    {
+     "wall_distance_over_spacing": [
+      1.0,
+      2.0
+     ],
+     "count": 933,
+     "speed_maximum": 0.09448140150599128,
+     "speed_root_mean_square": 0.032926093689308995,
+     "pressure_error_root_mean_square": 110.92786995563439
+    },
+    {
+     "wall_distance_over_spacing": [
+      2.0,
+      3.0
+     ],
+     "count": 1002,
+     "speed_maximum": 0.10420063955299061,
+     "speed_root_mean_square": 0.04209291367479199,
+     "pressure_error_root_mean_square": 108.92979974142543
+    },
+    {
+     "wall_distance_over_spacing": [
+      3.0,
+      5.0
+     ],
+     "count": 1999,
+     "speed_maximum": 0.09110978340248657,
+     "speed_root_mean_square": 0.050111861795508264,
+     "pressure_error_root_mean_square": 101.1945790327752
+    },
+    {
+     "wall_distance_over_spacing": [
+      5.0,
+      null
+     ],
+     "count": 58120,
+     "speed_maximum": 0.1801033993462726,
+     "speed_root_mean_square": 0.08565976295873148,
+     "pressure_error_root_mean_square": 54.738128221955414
+    }
+   ]
+  },
+  "last_fifth": {
+   "speed_maximum_over_scale": 0.0641750509937016,
+   "speed_root_mean_square_over_scale": 0.025646778335531827,
+   "kinetic_energy_mean": 3.7596382161631916
+  },
+  "whole_run": {
+   "wall_distance_minimum_over_spacing": 0.18613684177398726,
+   "gradient_fallbacks": 0,
+   "correction_fallbacks": 0,
+   "overflow": 0,
+   "density_deviation_maximum": 0.56829833984375
+  }
+ },
+ {
+  "name": "2d_n250_gy_crossing",
+  "run_id": "wc-20261117-174907-dc68",
+  "case": "cases/wall_crossing/hydrostatic_2d_n250_gy_crossing/case.yaml",
+  "wall_boundary": "crossing",
+  "continuity": "extrapolate",
+  "dimension": 2,
+  "gravity": [
+   0.0,
+   -10.0,
+   0.0
+  ],
+  "box_lower": [
+   -0.502,
+   -0.502,
+   0.0
+  ],
+  "box_upper": [
+   0.502,
+   0.502,
+   0.0
+  ],
+  "spacing": 0.004,
+  "fluid_particles": 63001,
+  "steps": 334000,
+  "time": 10.02,
+  "timestep": 3e-05,
+  "steps_per_second": 1783.698901453007,
+  "device_uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8",
+  "scales": {
+   "velocity_sqrt_g_extent": 3.1685959035509716,
+   "pressure_rho_g_extent": 10040.0,
+   "speed_of_sound": 100.0
+  },
+  "final": {
+   "kinetic_energy": 0.00019213066927532986,
+   "speed_maximum": 0.018535177621041808,
+   "speed_root_mean_square": 0.0005809959617753848,
+   "speed_maximum_over_scale": 0.005849650187412622,
+   "speed_root_mean_square_over_scale": 0.00018336069964752403,
+   "pressure_level_at_centre": 5.340229238143175,
+   "pressure_level_over_scale": 0.0005318953424445394,
+   "pressure_error_root_mean_square_over_scale": 0.00042670454741214586,
+   "pressure_error_maximum_over_scale": 0.010419822811262044,
+   "pressure_raw_error_root_mean_square_over_scale": 0.0006819013316429277,
+   "fitted_pressure_gradient": [
+    -0.1096507016236501,
+    -10010.775066618198,
+    0.0
+   ],
+   "fitted_gradient_error_over_rho_g": 0.0010775624524962666,
+   "density_minimum": 999.4988403320312,
+   "density_maximum": 1000.501708984375,
+   "wall_distance_minimum_over_spacing": 0.34878301620483443,
+   "layers": [
+    {
+     "wall_distance_over_spacing": [
+      0.0,
+      1.0
+     ],
+     "count": 995,
+     "speed_maximum": 0.018535177621041808,
+     "speed_root_mean_square": 0.0016382694820515431,
+     "pressure_error_root_mean_square": 3.5911880364975612
+    },
+    {
+     "wall_distance_over_spacing": [
+      1.0,
+      2.0
+     ],
+     "count": 981,
+     "speed_maximum": 0.012500654557602181,
+     "speed_root_mean_square": 0.0015616477099321647,
+     "pressure_error_root_mean_square": 6.929059784249501
+    },
+    {
+     "wall_distance_over_spacing": [
+      2.0,
+      3.0
+     ],
+     "count": 960,
+     "speed_maximum": 0.007661012701115257,
+     "speed_root_mean_square": 0.001210993413763305,
+     "pressure_error_root_mean_square": 8.806794753753584
+    },
+    {
+     "wall_distance_over_spacing": [
+      3.0,
+      5.0
+     ],
+     "count": 1907,
+     "speed_maximum": 0.0068501190280692865,
+     "speed_root_mean_square": 0.0011934854838041892,
+     "pressure_error_root_mean_square": 8.588814995732276
+    },
+    {
+     "wall_distance_over_spacing": [
+      5.0,
+      null
+     ],
+     "count": 58158,
+     "speed_maximum": 0.007239399628730666,
+     "speed_root_mean_square": 0.00045573857946084207,
+     "pressure_error_root_mean_square": 3.8926075543545813
+    }
+   ]
+  },
+  "last_fifth": {
+   "speed_maximum_over_scale": 0.005851388497359957,
+   "speed_root_mean_square_over_scale": 0.00018241045554453754,
+   "kinetic_energy_mean": 0.00019015656628044712
+  },
+  "whole_run": {
+   "wall_distance_minimum_over_spacing": 0.34851479530334517,
+   "gradient_fallbacks": 0,
+   "correction_fallbacks": 0,
+   "overflow": 0,
+   "density_deviation_maximum": 0.5435791015625
+  }
+ },
+ {
+  "name": "2d_n250_gy_crossing_wall_velocity",
+  "run_id": "wc-20261117-175216-7233",
+  "case": "cases/wall_crossing/hydrostatic_2d_n250_gy_crossing_wall_velocity/case.yaml",
+  "wall_boundary": "crossing",
+  "continuity": "wall_velocity",
+  "dimension": 2,
+  "gravity": [
+   0.0,
+   -10.0,
+   0.0
+  ],
+  "box_lower": [
+   -0.502,
+   -0.502,
+   0.0
+  ],
+  "box_upper": [
+   0.502,
+   0.502,
+   0.0
+  ],
+  "spacing": 0.004,
+  "fluid_particles": 63001,
+  "steps": 334000,
+  "time": 10.02,
+  "timestep": 3e-05,
+  "steps_per_second": 1814.205477773887,
+  "device_uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8",
+  "scales": {
+   "velocity_sqrt_g_extent": 3.1685959035509716,
+   "pressure_rho_g_extent": 10040.0,
+   "speed_of_sound": 100.0
+  },
+  "final": {
+   "kinetic_energy": 0.0008838504654082685,
+   "speed_maximum": 0.016077254417609845,
+   "speed_root_mean_square": 0.0012461323296587348,
+   "speed_maximum_over_scale": 0.005073936502787383,
+   "speed_root_mean_square_over_scale": 0.00039327587599991004,
+   "pressure_level_at_centre": -1971.1630662724606,
+   "pressure_level_over_scale": -0.1963309826964602,
+   "pressure_error_root_mean_square_over_scale": 0.00025297000214761367,
+   "pressure_error_maximum_over_scale": 0.005898752856512149,
+   "pressure_raw_error_root_mean_square_over_scale": 0.19633114567072577,
+   "fitted_pressure_gradient": [
+    -0.3006625075922784,
+    -10006.79772428371,
+    0.0
+   ],
+   "fitted_gradient_error_over_rho_g": 0.0006804370167826486,
+   "density_minimum": 999.3005981445312,
+   "density_maximum": 1000.3042602539062,
+   "wall_distance_minimum_over_spacing": 0.3894929885864262,
+   "layers": [
+    {
+     "wall_distance_over_spacing": [
+      0.0,
+      1.0
+     ],
+     "count": 999,
+     "speed_maximum": 0.016077254417609845,
+     "speed_root_mean_square": 0.001195807906295472,
+     "pressure_error_root_mean_square": 3.019686220792119
+    },
+    {
+     "wall_distance_over_spacing": [
+      1.0,
+      2.0
+     ],
+     "count": 976,
+     "speed_maximum": 0.007756974602264721,
+     "speed_root_mean_square": 0.0008959082967095128,
+     "pressure_error_root_mean_square": 3.9429144648782737
+    },
+    {
+     "wall_distance_over_spacing": [
+      2.0,
+      3.0
+     ],
+     "count": 957,
+     "speed_maximum": 0.005561948721976782,
+     "speed_root_mean_square": 0.0006521613993224955,
+     "pressure_error_root_mean_square": 4.192392998488913
+    },
+    {
+     "wall_distance_over_spacing": [
+      3.0,
+      5.0
+     ],
+     "count": 1893,
+     "speed_maximum": 0.004368619291622553,
+     "speed_root_mean_square": 0.0007148610038214229,
+     "pressure_error_root_mean_square": 4.1505010722727285
+    },
+    {
+     "wall_distance_over_spacing": [
+      5.0,
+      null
+     ],
+     "count": 58176,
+     "speed_maximum": 0.005234705484057445,
+     "speed_root_mean_square": 0.00127278818079175,
+     "pressure_error_root_mean_square": 2.391361968134412
+    }
+   ]
+  },
+  "last_fifth": {
+   "speed_maximum_over_scale": 0.007771756985515029,
+   "speed_root_mean_square_over_scale": 0.00042477673528582455,
+   "kinetic_energy_mean": 0.0010332624485857214
+  },
+  "whole_run": {
+   "wall_distance_minimum_over_spacing": 0.38853931427002,
+   "gradient_fallbacks": 0,
+   "correction_fallbacks": 0,
+   "overflow": 0,
+   "density_deviation_maximum": 0.70977783203125
+  }
+ },
+ {
+  "name": "2d_n250_gy_simple",
+  "run_id": "wc-20261117-182842-9f65",
+  "case": "cases/wall_crossing/hydrostatic_2d_n250_gy_simple/case.yaml",
+  "failed": "step 10000: alive 74521 of 74529 with no voxel-list overflow (particles left through a wall)",
+  "alive_at_last_sample": 74521,
+  "particles": 74529,
+  "wall_boundary": "simple",
+  "continuity": null,
+  "dimension": 2,
+  "gravity": [
+   0.0,
+   -10.0,
+   0.0
+  ],
+  "box_lower": [
+   -0.502,
+   -0.502,
+   0.0
+  ],
+  "box_upper": [
+   0.502,
+   0.502,
+   0.0
+  ],
+  "spacing": 0.004,
+  "fluid_particles": 62993,
+  "steps": 10000,
+  "time": 0.3,
+  "timestep": 3e-05,
+  "steps_per_second": null,
+  "device_uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8",
+  "scales": {
+   "velocity_sqrt_g_extent": 3.1685959035509716,
+   "pressure_rho_g_extent": 10040.0,
+   "speed_of_sound": 100.0
+  },
+  "final": {
+   "kinetic_energy": 18.51834752445124,
+   "speed_maximum": 1.1900656095215434,
+   "speed_root_mean_square": 0.18038626095568577,
+   "speed_maximum_over_scale": 0.37558137602458697,
+   "speed_root_mean_square_over_scale": 0.056929399155484325,
+   "pressure_level_at_centre": -61.934948808299666,
+   "pressure_level_over_scale": -0.006168819602420285,
+   "pressure_error_root_mean_square_over_scale": 0.031601256582346256,
+   "pressure_error_maximum_over_scale": 0.5672504128800339,
+   "pressure_raw_error_root_mean_square_over_scale": 0.0321977290017555,
+   "fitted_pressure_gradient": [
+    7.51091520351838,
+    -9460.986972693452,
+    0.0
+   ],
+   "fitted_gradient_error_over_rho_g": 0.05390653554564268,
+   "density_minimum": 998.9749145507812,
+   "density_maximum": 1000.68212890625,
+   "wall_distance_minimum_over_spacing": -13.90572738647461,
+   "layers": [
+    {
+     "wall_distance_over_spacing": [
+      0.0,
+      1.0
+     ],
+     "count": 968,
+     "speed_maximum": 0.7876434714252729,
+     "speed_root_mean_square": 0.2728777812699513,
+     "pressure_error_root_mean_square": 923.0131214715989
+    },
+    {
+     "wall_distance_over_spacing": [
+      1.0,
+      2.0
+     ],
+     "count": 939,
+     "speed_maximum": 0.6780132610579688,
+     "speed_root_mean_square": 0.10785805391590254,
+     "pressure_error_root_mean_square": 1288.0895284692483
+    },
+    {
+     "wall_distance_over_spacing": [
+      2.0,
+      3.0
+     ],
+     "count": 1086,
+     "speed_maximum": 0.43724786448012704,
+     "speed_root_mean_square": 0.15944836962040743,
+     "pressure_error_root_mean_square": 527.8637005194048
+    },
+    {
+     "wall_distance_over_spacing": [
+      3.0,
+      5.0
+     ],
+     "count": 1910,
+     "speed_maximum": 0.35493377083384253,
+     "speed_root_mean_square": 0.1626999828400313,
+     "pressure_error_root_mean_square": 443.2180265119834
+    },
+    {
+     "wall_distance_over_spacing": [
+      5.0,
+      null
+     ],
+     "count": 58018,
+     "speed_maximum": 0.3212043026719237,
+     "speed_root_mean_square": 0.17970173193329583,
+     "pressure_error_root_mean_square": 171.39820227992283
+    }
+   ]
+  },
+  "last_fifth": {
+   "speed_maximum_over_scale": 0.37558137602458697,
+   "speed_root_mean_square_over_scale": 0.056315422004436934,
+   "kinetic_energy_mean": 18.12434454085554
+  },
+  "whole_run": {
+   "wall_distance_minimum_over_spacing": -13.90572738647461,
+   "gradient_fallbacks": 0,
+   "correction_fallbacks": 0,
+   "overflow": 0,
+   "density_deviation_maximum": 1.02508544921875
+  }
+ },
+ {
+  "name": "3d_n48_gtilt_adami",
+  "run_id": "wc-20261117-184428-d0a7",
+  "case": "cases/wall_crossing/hydrostatic_3d_n48_gtilt_adami/case.yaml",
+  "failed": null,
+  "alive_at_last_sample": 195112,
+  "particles": 195112,
+  "wall_boundary": "adami",
+  "continuity": null,
+  "dimension": 3,
+  "gravity": [
+   -3.995009356,
+   -7.990018711,
+   4.494385525
+  ],
+  "box_lower": [
+   -0.5000000099341074,
+   -0.5000000099341074,
+   -0.5000000099341074
+  ],
+  "box_upper": [
+   0.5000000099341074,
+   0.5000000099341074,
+   0.5000000099341074
+  ],
+  "spacing": 0.020833333333333332,
+  "fluid_particles": 110592,
+  "steps": 80000,
+  "time": 10.0,
+  "timestep": 0.000125,
+  "steps_per_second": 233.62815676452573,
+  "device_uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8",
+  "scales": {
+   "velocity_sqrt_g_extent": 4.05948444010031,
+   "pressure_rho_g_extent": 16479.413919416533,
+   "speed_of_sound": 100.0
+  },
+  "final": {
+   "kinetic_energy": 3.414594958649151,
+   "speed_maximum": 0.9494256692614117,
+   "speed_root_mean_square": 0.07940952902180995,
+   "speed_maximum_over_scale": 0.23387838610312578,
+   "speed_root_mean_square_over_scale": 0.019561481314570018,
+   "pressure_level_at_centre": -146.99018565158298,
+   "pressure_level_over_scale": -0.008919624591648542,
+   "pressure_error_root_mean_square_over_scale": 0.0025684637181155223,
+   "pressure_error_maximum_over_scale": 0.06301208921320028,
+   "pressure_raw_error_root_mean_square_over_scale": 0.009282063818312026,
+   "fitted_pressure_gradient": [
+    -3956.9333837321647,
+    -7932.700725331635,
+    4452.515538544791
+   ],
+   "fitted_gradient_error_over_rho_g": 0.00805495307914372,
+   "density_minimum": 999.178955078125,
+   "density_maximum": 1000.76708984375,
+   "wall_distance_minimum_over_spacing": 0.06944322586059393,
+   "layers": [
+    {
+     "wall_distance_over_spacing": [
+      0.0,
+      1.0
+     ],
+     "count": 12246,
+     "speed_maximum": 0.9494256692614117,
+     "speed_root_mean_square": 0.04799228142220372,
+     "pressure_error_root_mean_square": 73.40554531090443
+    },
+    {
+     "wall_distance_over_spacing": [
+      1.0,
+      2.0
+     ],
+     "count": 11869,
+     "speed_maximum": 0.36245445514719393,
+     "speed_root_mean_square": 0.052283645659674687,
+     "pressure_error_root_mean_square": 54.76365721756207
+    },
+    {
+     "wall_distance_over_spacing": [
+      2.0,
+      3.0
+     ],
+     "count": 11721,
+     "speed_maximum": 0.25112547055328277,
+     "speed_root_mean_square": 0.06191770326098076,
+     "pressure_error_root_mean_square": 54.44536594619573
+    },
+    {
+     "wall_distance_over_spacing": [
+      3.0,
+      5.0
+     ],
+     "count": 19807,
+     "speed_maximum": 0.24219083126971075,
+     "speed_root_mean_square": 0.07235578335599718,
+     "pressure_error_root_mean_square": 38.994706832628886
+    },
+    {
+     "wall_distance_over_spacing": [
+      5.0,
+      null
+     ],
+     "count": 54949,
+     "speed_maximum": 0.2171673459227905,
+     "speed_root_mean_square": 0.09424810918495266,
+     "pressure_error_root_mean_square": 24.013828907253952
+    }
+   ]
+  },
+  "last_fifth": {
+   "speed_maximum_over_scale": 0.24348978148354086,
+   "speed_root_mean_square_over_scale": 0.019365628690560403,
+   "kinetic_energy_mean": 3.346662801993138
+  },
+  "whole_run": {
+   "wall_distance_minimum_over_spacing": -0.0665011405944842,
+   "gradient_fallbacks": 0,
+   "correction_fallbacks": 0,
+   "overflow": 0,
+   "density_deviation_maximum": 0.83392333984375
+  }
+ },
+ {
+  "name": "3d_n48_gtilt_crossing",
+  "run_id": "wc-20261117-183244-5118",
+  "case": "cases/wall_crossing/hydrostatic_3d_n48_gtilt_crossing/case.yaml",
+  "failed": null,
+  "alive_at_last_sample": 195112,
+  "particles": 195112,
+  "wall_boundary": "crossing",
+  "continuity": "extrapolate",
+  "dimension": 3,
+  "gravity": [
+   -3.995009356,
+   -7.990018711,
+   4.494385525
+  ],
+  "box_lower": [
+   -0.5000000099341074,
+   -0.5000000099341074,
+   -0.5000000099341074
+  ],
+  "box_upper": [
+   0.5000000099341074,
+   0.5000000099341074,
+   0.5000000099341074
+  ],
+  "spacing": 0.020833333333333332,
+  "fluid_particles": 110592,
+  "steps": 80000,
+  "time": 10.0,
+  "timestep": 0.000125,
+  "steps_per_second": 228.58991816492633,
+  "device_uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8",
+  "scales": {
+   "velocity_sqrt_g_extent": 4.05948444010031,
+   "pressure_rho_g_extent": 16479.413919416533,
+   "speed_of_sound": 100.0
+  },
+  "final": {
+   "kinetic_energy": 0.0031094366336872686,
+   "speed_maximum": 0.05297557540044398,
+   "speed_root_mean_square": 0.0023963148454621565,
+   "speed_maximum_over_scale": 0.013049828415929327,
+   "speed_root_mean_square_over_scale": 0.0005903002907933165,
+   "pressure_level_at_centre": -3453.7745169325663,
+   "pressure_level_over_scale": -0.20958114978004327,
+   "pressure_error_root_mean_square_over_scale": 0.0002590171642074377,
+   "pressure_error_maximum_over_scale": 0.007577773844050852,
+   "pressure_raw_error_root_mean_square_over_scale": 0.20958130983705647,
+   "fitted_pressure_gradient": [
+    -3997.2959826048123,
+    -7994.524117182202,
+    4496.885507418822
+   ],
+   "fitted_gradient_error_over_rho_g": 0.0005637132089068124,
+   "density_minimum": 998.8429565429688,
+   "density_maximum": 1000.4636840820312,
+   "wall_distance_minimum_over_spacing": 0.3147816658020002,
+   "layers": [
+    {
+     "wall_distance_over_spacing": [
+      0.0,
+      1.0
+     ],
+     "count": 12534,
+     "speed_maximum": 0.05297557540044398,
+     "speed_root_mean_square": 0.0035691474112101228,
+     "pressure_error_root_mean_square": 1.9088115428220556
+    },
+    {
+     "wall_distance_over_spacing": [
+      1.0,
+      2.0
+     ],
+     "count": 11375,
+     "speed_maximum": 0.03194794856518571,
+     "speed_root_mean_square": 0.003360700424020318,
+     "pressure_error_root_mean_square": 4.646615504669845
+    },
+    {
+     "wall_distance_over_spacing": [
+      2.0,
+      3.0
+     ],
+     "count": 10559,
+     "speed_maximum": 0.028694910061529178,
+     "speed_root_mean_square": 0.0028888042912877973,
+     "pressure_error_root_mean_square": 7.6777115413577395
+    },
+    {
+     "wall_distance_over_spacing": [
+      3.0,
+      5.0
+     ],
+     "count": 20220,
+     "speed_maximum": 0.018182856544169172,
+     "speed_root_mean_square": 0.0021272822086312424,
+     "pressure_error_root_mean_square": 5.9193734076084334
+    },
+    {
+     "wall_distance_over_spacing": [
+      5.0,
+      null
+     ],
+     "count": 55904,
+     "speed_maximum": 0.014259847643519613,
+     "speed_root_mean_square": 0.0017298968456955933,
+     "pressure_error_root_mean_square": 2.65062667610657
+    }
+   ]
+  },
+  "last_fifth": {
+   "speed_maximum_over_scale": 0.01423342939207721,
+   "speed_root_mean_square_over_scale": 0.0006165187472904825,
+   "kinetic_energy_mean": 0.003393993568013953
+  },
+  "whole_run": {
+   "wall_distance_minimum_over_spacing": 0.3010702133178693,
+   "gradient_fallbacks": 0,
+   "correction_fallbacks": 0,
+   "overflow": 0,
+   "density_deviation_maximum": 1.15704345703125
+  }
+ },
+ {
+  "name": "3d_n48_gtilt_crossing_wall_velocity",
+  "run_id": "wc-20261117-183836-ae5e",
+  "case": "cases/wall_crossing/hydrostatic_3d_n48_gtilt_crossing_wall_velocity/case.yaml",
+  "failed": null,
+  "alive_at_last_sample": 195112,
+  "particles": 195112,
+  "wall_boundary": "crossing",
+  "continuity": "wall_velocity",
+  "dimension": 3,
+  "gravity": [
+   -3.995009356,
+   -7.990018711,
+   4.494385525
+  ],
+  "box_lower": [
+   -0.5000000099341074,
+   -0.5000000099341074,
+   -0.5000000099341074
+  ],
+  "box_upper": [
+   0.5000000099341074,
+   0.5000000099341074,
+   0.5000000099341074
+  ],
+  "spacing": 0.020833333333333332,
+  "fluid_particles": 110592,
+  "steps": 80000,
+  "time": 10.0,
+  "timestep": 0.000125,
+  "steps_per_second": 228.57786930801385,
+  "device_uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8",
+  "scales": {
+   "velocity_sqrt_g_extent": 4.05948444010031,
+   "pressure_rho_g_extent": 16479.413919416533,
+   "speed_of_sound": 100.0
+  },
+  "final": {
+   "kinetic_energy": 0.001156890540037786,
+   "speed_maximum": 0.09880019277249692,
+   "speed_root_mean_square": 0.0014616694088523104,
+   "speed_maximum_over_scale": 0.024338113430496498,
+   "speed_root_mean_square_over_scale": 0.0003600628184243496,
+   "pressure_level_at_centre": -5465.31510272026,
+   "pressure_level_over_scale": -0.33164499231862027,
+   "pressure_error_root_mean_square_over_scale": 0.00010052671019051938,
+   "pressure_error_maximum_over_scale": 0.003714073365060818,
+   "pressure_raw_error_root_mean_square_over_scale": 0.3316450075542178,
+   "fitted_pressure_gradient": [
+    -3996.419064261425,
+    -7993.022600768721,
+    4496.105558045557
+   ],
+   "fitted_gradient_error_over_rho_g": 0.0003737531913201341,
+   "density_minimum": 998.6403198242188,
+   "density_maximum": 1000.2625122070312,
+   "wall_distance_minimum_over_spacing": 0.30516290664672674,
+   "layers": [
+    {
+     "wall_distance_over_spacing": [
+      0.0,
+      1.0
+     ],
+     "count": 12564,
+     "speed_maximum": 0.09880019277249692,
+     "speed_root_mean_square": 0.003205464724265859,
+     "pressure_error_root_mean_square": 1.9557533102382663
+    },
+    {
+     "wall_distance_over_spacing": [
+      1.0,
+      2.0
+     ],
+     "count": 11459,
+     "speed_maximum": 0.08564678971411133,
+     "speed_root_mean_square": 0.0025978004939608374,
+     "pressure_error_root_mean_square": 2.827347736415441
+    },
+    {
+     "wall_distance_over_spacing": [
+      2.0,
+      3.0
+     ],
+     "count": 10569,
+     "speed_maximum": 0.011466940606913934,
+     "speed_root_mean_square": 0.0009746204952517736,
+     "pressure_error_root_mean_square": 2.2972427688198116
+    },
+    {
+     "wall_distance_over_spacing": [
+      3.0,
+      5.0
+     ],
+     "count": 19651,
+     "speed_maximum": 0.010002319718221759,
+     "speed_root_mean_square": 0.000651712666771899,
+     "pressure_error_root_mean_square": 1.627329654287816
+    },
+    {
+     "wall_distance_over_spacing": [
+      5.0,
+      null
+     ],
+     "count": 56349,
+     "speed_maximum": 0.005406222098723448,
+     "speed_root_mean_square": 0.00045106283302552384,
+     "pressure_error_root_mean_square": 0.9971937773823155
+    }
+   ]
+  },
+  "last_fifth": {
+   "speed_maximum_over_scale": 0.02604448059284257,
+   "speed_root_mean_square_over_scale": 0.00034977754330677,
+   "kinetic_energy_mean": 0.00109209706472951
+  },
+  "whole_run": {
+   "wall_distance_minimum_over_spacing": 0.3001089096069318,
+   "gradient_fallbacks": 0,
+   "correction_fallbacks": 0,
+   "overflow": 0,
+   "density_deviation_maximum": 1.4530029296875
+  }
+ },
+ {
+  "name": "3d_n48_gtilt_simple",
+  "run_id": "wc-20261117-185013-3fec",
+  "case": "cases/wall_crossing/hydrostatic_3d_n48_gtilt_simple/case.yaml",
+  "failed": "step 1000: alive 195111 of 195112 with no voxel-list overflow (particles left through a wall)",
+  "alive_at_last_sample": 195111,
+  "particles": 195112,
+  "wall_boundary": "simple",
+  "continuity": null,
+  "dimension": 3,
+  "gravity": [
+   -3.995009356,
+   -7.990018711,
+   4.494385525
+  ],
+  "box_lower": [
+   -0.5000000099341074,
+   -0.5000000099341074,
+   -0.5000000099341074
+  ],
+  "box_upper": [
+   0.5000000099341074,
+   0.5000000099341074,
+   0.5000000099341074
+  ],
+  "spacing": 0.020833333333333332,
+  "fluid_particles": 110591,
+  "steps": 1000,
+  "time": 0.125,
+  "timestep": 0.000125,
+  "steps_per_second": null,
+  "device_uuid": "fb83f0dafd9e1d38dc05e7ae643e22a8",
+  "scales": {
+   "velocity_sqrt_g_extent": 4.05948444010031,
+   "pressure_rho_g_extent": 16479.413919416533,
+   "speed_of_sound": 100.0
+  },
+  "final": {
+   "kinetic_energy": 35.88186757460238,
+   "speed_maximum": 3.1712514848650657,
+   "speed_root_mean_square": 0.2574201303386,
+   "speed_maximum_over_scale": 0.781195625123939,
+   "speed_root_mean_square_over_scale": 0.06341202537833576,
+   "pressure_level_at_centre": 37.52742964573802,
+   "pressure_level_over_scale": 0.0022772308426285775,
+   "pressure_error_root_mean_square_over_scale": 0.027779097654314043,
+   "pressure_error_maximum_over_scale": 0.7273253247383126,
+   "pressure_raw_error_root_mean_square_over_scale": 0.027872280975882378,
+   "fitted_pressure_gradient": [
+    -3816.9363807571244,
+    -7685.554928533711,
+    4296.728061524458
+   ],
+   "fitted_gradient_error_over_rho_g": 0.04043224606753837,
+   "density_minimum": 998.3478393554688,
+   "density_maximum": 1001.0012817382812,
+   "wall_distance_minimum_over_spacing": -4.817604541778566,
+   "layers": [
+    {
+     "wall_distance_over_spacing": [
+      0.0,
+      1.0
+     ],
+     "count": 13237,
+     "speed_maximum": 2.3346585962503266,
+     "speed_root_mean_square": 0.3248379798942389,
+     "pressure_error_root_mean_square": 549.3197432748348
+    },
+    {
+     "wall_distance_over_spacing": [
+      1.0,
+      2.0
+     ],
+     "count": 12159,
+     "speed_maximum": 0.8423009384713054,
+     "speed_root_mean_square": 0.24290671413162626,
+     "pressure_error_root_mean_square": 905.7526500108318
+    },
+    {
+     "wall_distance_over_spacing": [
+      2.0,
+      3.0
+     ],
+     "count": 11089,
+     "speed_maximum": 0.7293822487065367,
+     "speed_root_mean_square": 0.2983074543018283,
+     "pressure_error_root_mean_square": 449.2831361404248
+    },
+    {
+     "wall_distance_over_spacing": [
+      3.0,
+      5.0
+     ],
+     "count": 19217,
+     "speed_maximum": 0.628478160163842,
+     "speed_root_mean_square": 0.24676845165329375,
+     "pressure_error_root_mean_square": 485.242259244181
+    },
+    {
+     "wall_distance_over_spacing": [
+      5.0,
+      null
+     ],
+     "count": 54871,
+     "speed_maximum": 0.45161815198417654,
+     "speed_root_mean_square": 0.23217030495223384,
+     "pressure_error_root_mean_square": 176.41120931888906
+    }
+   ]
+  },
+  "last_fifth": {
+   "speed_maximum_over_scale": 0.781195625123939,
+   "speed_root_mean_square_over_scale": 0.06341202537833576,
+   "kinetic_energy_mean": 35.88186757460238
+  },
+  "whole_run": {
+   "wall_distance_minimum_over_spacing": -4.817604541778566,
+   "gradient_fallbacks": 0,
+   "correction_fallbacks": 0,
+   "overflow": 0,
+   "density_deviation_maximum": 1.65216064453125
+  }
+ },
+ {
+  "name": "3d_n48_gy_adami",
+  "run_id": "wc-20261117-181912-de87",
+  "case": "cases/wall_crossing/hydrostatic_3d_n48_gy_adami/case.yaml",
+  "wall_boundary": "adami",
+  "continuity": null,
+  "dimension": 3,
+  "gravity": [
+   0.0,
+   -10.0,
+   0.0
+  ],
+  "box_lower": [
+   -0.5000000099341074,
+   -0.5000000099341074,
+   -0.5000000099341074
+  ],
+  "box_upper": [
+   0.5000000099341074,
+   0.5000000099341074,
+   0.5000000099341074
+  ],
+  "spacing": 0.020833333333333332,
+  "fluid_particles": 110592,
+  "steps": 80000,
+  "time": 10.0,
+  "timestep": 0.000125,
+  "steps_per_second": 248.92833070887463,
+  "device_uuid": "ae137c668a40f5acaab90a83f7cda175",
+  "scales": {
+   "velocity_sqrt_g_extent": 3.1622776915827853,
+   "pressure_rho_g_extent": 10000.000198682148,
+   "speed_of_sound": 100.0
+  },
+  "final": {
+   "kinetic_energy": 2.8669216840324543,
+   "speed_maximum": 0.255345387817799,
+   "speed_root_mean_square": 0.07276305712219093,
+   "speed_maximum_over_scale": 0.08074730075017332,
+   "speed_root_mean_square_over_scale": 0.023009698773725187,
+   "pressure_level_at_centre": -96.63097742248443,
+   "pressure_level_over_scale": -0.009663097550259946,
+   "pressure_error_root_mean_square_over_scale": 0.0033491664331988646,
+   "pressure_error_maximum_over_scale": 0.03169057217750916,
+   "pressure_raw_error_root_mean_square_over_scale": 0.010227041119654588,
+   "fitted_pressure_gradient": [
+    0.0575739179384982,
+    -9941.31215325017,
+    -0.30908556518884145
+   ],
+   "fitted_gradient_error_over_rho_g": 0.005868868889977152,
+   "density_minimum": 999.4942016601562,
+   "density_maximum": 1000.4976196289062,
+   "wall_distance_minimum_over_spacing": 0.27569723129272283,
+   "layers": [
+    {
+     "wall_distance_over_spacing": [
+      0.0,
+      1.0
+     ],
+     "count": 12207,
+     "speed_maximum": 0.255345387817799,
+     "speed_root_mean_square": 0.04372881454932715,
+     "pressure_error_root_mean_square": 60.13610289119983
+    },
+    {
+     "wall_distance_over_spacing": [
+      1.0,
+      2.0
+     ],
+     "count": 11820,
+     "speed_maximum": 0.16539851896330537,
+     "speed_root_mean_square": 0.05311644130395978,
+     "pressure_error_root_mean_square": 37.649134585299876
+    },
+    {
+     "wall_distance_over_spacing": [
+      2.0,
+      3.0
+     ],
+     "count": 11829,
+     "speed_maximum": 0.14822501464983429,
+     "speed_root_mean_square": 0.06646023930156982,
+     "pressure_error_root_mean_square": 45.68734892496855
+    },
+    {
+     "wall_distance_over_spacing": [
+      3.0,
+      5.0
+     ],
+     "count": 19840,
+     "speed_maximum": 0.15474366730899364,
+     "speed_root_mean_square": 0.07862236019798118,
+     "pressure_error_root_mean_square": 29.748351647955165
+    },
+    {
+     "wall_distance_over_spacing": [
+      5.0,
+      null
+     ],
+     "count": 54896,
+     "speed_maximum": 0.15496642542592753,
+     "speed_root_mean_square": 0.08029674933377494,
+     "pressure_error_root_mean_square": 19.51307815779038
+    }
+   ]
+  },
+  "last_fifth": {
+   "speed_maximum_over_scale": 0.08524003828321312,
+   "speed_root_mean_square_over_scale": 0.02293341496497021,
+   "kinetic_energy_mean": 2.84795573935004
+  },
+  "whole_run": {
+   "wall_distance_minimum_over_spacing": 0.25708198547363104,
+   "gradient_fallbacks": 0,
+   "correction_fallbacks": 0,
+   "overflow": 0,
+   "density_deviation_maximum": 0.5233154296875
+  }
+ },
+ {
+  "name": "3d_n48_gy_crossing",
+  "run_id": "wc-20261117-180509-4674",
+  "case": "cases/wall_crossing/hydrostatic_3d_n48_gy_crossing/case.yaml",
+  "wall_boundary": "crossing",
+  "continuity": "extrapolate",
+  "dimension": 3,
+  "gravity": [
+   0.0,
+   -10.0,
+   0.0
+  ],
+  "box_lower": [
+   -0.5000000099341074,
+   -0.5000000099341074,
+   -0.5000000099341074
+  ],
+  "box_upper": [
+   0.5000000099341074,
+   0.5000000099341074,
+   0.5000000099341074
+  ],
+  "spacing": 0.020833333333333332,
+  "fluid_particles": 110592,
+  "steps": 80000,
+  "time": 10.0,
+  "timestep": 0.000125,
+  "steps_per_second": 155.88958562247421,
+  "device_uuid": "ae137c668a40f5acaab90a83f7cda175",
+  "scales": {
+   "velocity_sqrt_g_extent": 3.1622776915827853,
+   "pressure_rho_g_extent": 10000.000198682148,
+   "speed_of_sound": 100.0
+  },
+  "final": {
+   "kinetic_energy": 0.0010902113213112406,
+   "speed_maximum": 0.0171262384122774,
+   "speed_root_mean_square": 0.0014189214912246678,
+   "speed_maximum_over_scale": 0.0054157920595851805,
+   "speed_root_mean_square_over_scale": 0.0004487023688657995,
+   "pressure_level_at_centre": -3790.3694489998734,
+   "pressure_level_over_scale": -0.3790369373692,
+   "pressure_error_root_mean_square_over_scale": 0.0002255110600662772,
+   "pressure_error_maximum_over_scale": 0.0037143795567190327,
+   "pressure_raw_error_root_mean_square_over_scale": 0.3790370044539993,
+   "fitted_pressure_gradient": [
+    -0.0034506938827689737,
+    -10005.385633666938,
+    -0.013547270261607644
+   ],
+   "fitted_gradient_error_over_rho_g": 0.000538565181108783,
+   "density_minimum": 999.1249389648438,
+   "density_maximum": 1000.1143188476562,
+   "wall_distance_minimum_over_spacing": 0.3096733093261701,
+   "layers": [
+    {
+     "wall_distance_over_spacing": [
+      0.0,
+      1.0
+     ],
+     "count": 12551,
+     "speed_maximum": 0.0171262384122774,
+     "speed_root_mean_square": 0.0021793587862062257,
+     "pressure_error_root_mean_square": 1.7086757400145454
+    },
+    {
+     "wall_distance_over_spacing": [
+      1.0,
+      2.0
+     ],
+     "count": 11432,
+     "speed_maximum": 0.01309844893831955,
+     "speed_root_mean_square": 0.0020100102915241074,
+     "pressure_error_root_mean_square": 3.2063614161533684
+    },
+    {
+     "wall_distance_over_spacing": [
+      2.0,
+      3.0
+     ],
+     "count": 10526,
+     "speed_maximum": 0.008407074288002199,
+     "speed_root_mean_square": 0.0016067204200626273,
+     "pressure_error_root_mean_square": 3.854929231242467
+    },
+    {
+     "wall_distance_over_spacing": [
+      3.0,
+      5.0
+     ],
+     "count": 19854,
+     "speed_maximum": 0.009546265897503459,
+     "speed_root_mean_square": 0.0012791865570628324,
+     "pressure_error_root_mean_square": 2.716470531091951
+    },
+    {
+     "wall_distance_over_spacing": [
+      5.0,
+      null
+     ],
+     "count": 56229,
+     "speed_maximum": 0.008364383437196712,
+     "speed_root_mean_square": 0.0010085890005317262,
+     "pressure_error_root_mean_square": 1.3685755091808507
+    }
+   ]
+  },
+  "last_fifth": {
+   "speed_maximum_over_scale": 0.005795961809769073,
+   "speed_root_mean_square_over_scale": 0.00048407729555672327,
+   "kinetic_energy_mean": 0.001271737964419129
+  },
+  "whole_run": {
+   "wall_distance_minimum_over_spacing": 0.2996654510498029,
+   "gradient_fallbacks": 0,
+   "correction_fallbacks": 0,
+   "overflow": 0,
+   "density_deviation_maximum": 0.87506103515625
+  }
+ },
+ {
+  "name": "3d_n48_gy_crossing_wall_velocity",
+  "run_id": "wc-20261117-181345-ef11",
+  "case": "cases/wall_crossing/hydrostatic_3d_n48_gy_crossing_wall_velocity/case.yaml",
+  "wall_boundary": "crossing",
+  "continuity": "wall_velocity",
+  "dimension": 3,
+  "gravity": [
+   0.0,
+   -10.0,
+   0.0
+  ],
+  "box_lower": [
+   -0.5000000099341074,
+   -0.5000000099341074,
+   -0.5000000099341074
+  ],
+  "box_upper": [
+   0.5000000099341074,
+   0.5000000099341074,
+   0.5000000099341074
+  ],
+  "spacing": 0.020833333333333332,
+  "fluid_particles": 110592,
+  "steps": 80000,
+  "time": 10.0,
+  "timestep": 0.000125,
+  "steps_per_second": 245.68478596999742,
+  "device_uuid": "ae137c668a40f5acaab90a83f7cda175",
+  "scales": {
+   "velocity_sqrt_g_extent": 3.1622776915827853,
+   "pressure_rho_g_extent": 10000.000198682148,
+   "speed_of_sound": 100.0
+  },
+  "final": {
+   "kinetic_energy": 12.805171797832848,
+   "speed_maximum": 1.7311643403024815,
+   "speed_root_mean_square": 0.15377853796030808,
+   "speed_maximum_over_scale": 0.5474422265035168,
+   "speed_root_mean_square_over_scale": 0.0486290430374376,
+   "pressure_level_at_centre": 38832.73076454072,
+   "pressure_level_over_scale": 3.88327299930037,
+   "pressure_error_root_mean_square_over_scale": 0.029419458927930856,
+   "pressure_error_maximum_over_scale": 0.2194102565239506,
+   "pressure_raw_error_root_mean_square_over_scale": 3.883384437788629,
+   "fitted_pressure_gradient": [
+    25.98790766892853,
+    -10189.512965280679,
+    -75.91130566268157
+   ],
+   "fitted_gradient_error_over_rho_g": 0.020579859494636425,
+   "density_minimum": 1003.2160034179688,
+   "density_maximum": 1004.4901733398438,
+   "wall_distance_minimum_over_spacing": 0.22033929824828924,
+   "layers": [
+    {
+     "wall_distance_over_spacing": [
+      0.0,
+      1.0
+     ],
+     "count": 12132,
+     "speed_maximum": 1.7311643403024815,
+     "speed_root_mean_square": 0.37244191756506406,
+     "pressure_error_root_mean_square": 402.6441859201034
+    },
+    {
+     "wall_distance_over_spacing": [
+      1.0,
+      2.0
+     ],
+     "count": 11808,
+     "speed_maximum": 1.2013358207766165,
+     "speed_root_mean_square": 0.2418545111354034,
+     "pressure_error_root_mean_square": 434.0463807893021
+    },
+    {
+     "wall_distance_over_spacing": [
+      2.0,
+      3.0
+     ],
+     "count": 10873,
+     "speed_maximum": 0.8460898748446688,
+     "speed_root_mean_square": 0.09501064669682457,
+     "pressure_error_root_mean_square": 342.7677523365854
+    },
+    {
+     "wall_distance_over_spacing": [
+      3.0,
+      5.0
+     ],
+     "count": 20687,
+     "speed_maximum": 0.37242735403221017,
+     "speed_root_mean_square": 0.048017718171307185,
+     "pressure_error_root_mean_square": 260.6800808496126
+    },
+    {
+     "wall_distance_over_spacing": [
+      5.0,
+      null
+     ],
+     "count": 55092,
+     "speed_maximum": 0.17676774592340713,
+     "speed_root_mean_square": 0.041712101641781414,
+     "pressure_error_root_mean_square": 221.26088121947512
+    }
+   ]
+  },
+  "last_fifth": {
+   "speed_maximum_over_scale": 0.5728665005639899,
+   "speed_root_mean_square_over_scale": 0.02745980490891338,
+   "kinetic_energy_mean": 5.207477959835457
+  },
+  "whole_run": {
+   "wall_distance_minimum_over_spacing": 0.19861698150634588,
+   "gradient_fallbacks": 0,
+   "correction_fallbacks": 0,
+   "overflow": 0,
+   "density_deviation_maximum": 4.49017333984375
+  }
+ },
+ {
+  "name": "3d_n48_gy_simple",
+  "run_id": "wc-20261117-182436-15b7",
+  "case": "cases/wall_crossing/hydrostatic_3d_n48_gy_simple/case.yaml",
+  "failed": "step 2000: alive 195108 of 195112, or a non-finite velocity",
+  "alive_at_last_sample": 195108,
+  "particles": 195112,
+  "wall_boundary": "simple",
+  "continuity": null,
+  "dimension": 3,
+  "gravity": [
+   0.0,
+   -10.0,
+   0.0
+  ],
+  "box_lower": [
+   -0.5000000099341074,
+   -0.5000000099341074,
+   -0.5000000099341074
+  ],
+  "box_upper": [
+   0.5000000099341074,
+   0.5000000099341074,
+   0.5000000099341074
+  ],
+  "spacing": 0.020833333333333332,
+  "fluid_particles": 110588,
+  "steps": 2000,
+  "time": 0.25,
+  "timestep": 0.000125,
+  "steps_per_second": null,
+  "device_uuid": "ae137c668a40f5acaab90a83f7cda175",
+  "scales": {
+   "velocity_sqrt_g_extent": 3.1622776915827853,
+   "pressure_rho_g_extent": 10000.000198682148,
+   "speed_of_sound": 100.0
+  },
+  "final": {
+   "kinetic_energy": 41.75077309246782,
+   "speed_maximum": 2.6258597054107953,
+   "speed_root_mean_square": 0.27767906466951253,
+   "speed_maximum_over_scale": 0.8303697402667057,
+   "speed_root_mean_square_over_scale": 0.08780982941777274,
+   "pressure_level_at_centre": -45.040667999609774,
+   "pressure_level_over_scale": -0.0045040667104732125,
+   "pressure_error_root_mean_square_over_scale": 0.041514134918982905,
+   "pressure_error_maximum_over_scale": 0.6342940110556656,
+   "pressure_raw_error_root_mean_square_over_scale": 0.04175775395066057,
+   "fitted_pressure_gradient": [
+    2.259268853251342,
+    -9723.595787525079,
+    0.4834903105760381
+   ],
+   "fitted_gradient_error_over_rho_g": 0.02764138685603765,
+   "density_minimum": 999.0228271484375,
+   "density_maximum": 1000.7920532226562,
+   "wall_distance_minimum_over_spacing": -5.671159267425539,
+   "layers": [
+    {
+     "wall_distance_over_spacing": [
+      0.0,
+      1.0
+     ],
+     "count": 13149,
+     "speed_maximum": 2.1373169619096477,
+     "speed_root_mean_square": 0.3532865203457033,
+     "pressure_error_root_mean_square": 583.0044317775336
+    },
+    {
+     "wall_distance_over_spacing": [
+      1.0,
+      2.0
+     ],
+     "count": 11980,
+     "speed_maximum": 0.8240121907244786,
+     "speed_root_mean_square": 0.272404089469006,
+     "pressure_error_root_mean_square": 814.9164970578103
+    },
+    {
+     "wall_distance_over_spacing": [
+      2.0,
+      3.0
+     ],
+     "count": 10982,
+     "speed_maximum": 0.5428417759128294,
+     "speed_root_mean_square": 0.3168702964872223,
+     "pressure_error_root_mean_square": 468.1158089424887
+    },
+    {
+     "wall_distance_over_spacing": [
+      3.0,
+      5.0
+     ],
+     "count": 19038,
+     "speed_maximum": 0.42898599652787583,
+     "speed_root_mean_square": 0.2663132423813165,
+     "pressure_error_root_mean_square": 378.6604474022162
+    },
+    {
+     "wall_distance_over_spacing": [
+      5.0,
+      null
+     ],
+     "count": 55382,
+     "speed_maximum": 0.33971956186187213,
+     "speed_root_mean_square": 0.24646476329790992,
+     "pressure_error_root_mean_square": 123.62101765190435
+    }
+   ]
+  },
+  "last_fifth": {
+   "speed_maximum_over_scale": 0.8303697402667057,
+   "speed_root_mean_square_over_scale": 0.08780982941777274,
+   "kinetic_energy_mean": 41.75077309246782
+  },
+  "whole_run": {
+   "wall_distance_minimum_over_spacing": -5.671159267425539,
+   "gradient_fallbacks": 0,
+   "correction_fallbacks": 0,
+   "overflow": 0,
+   "density_deviation_maximum": 0.9771728515625
+  }
+ }
+]
