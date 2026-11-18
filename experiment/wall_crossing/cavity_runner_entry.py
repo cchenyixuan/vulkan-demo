@@ -15,10 +15,10 @@ shifted fluid density.
    <run-dir>/wall_crossing_status.jsonl:
        {"unix", "frame_stamp" (steps of this segment), "gradient_fallbacks" (cumulative count of fluid
         particles whose A_f fell back), "correction_fallbacks"}
-   with a quadratic extension also "extension_valid" / "extension_fallback": the fluid particles that hold a
-   solved velocity gradient / fell back to the first-order rule in the last step before the read
    and, every POSITION_CHECK_INTERVAL-th read, the fluid's smallest wall distance from a position readback:
-       "wall_distance_minimum", "below_floor_count", "outside_box_count", "fluid_count".
+       "wall_distance_minimum", "below_floor_count", "outside_box_count", "fluid_count",
+   and with a quadratic extension "extension_valid" / "extension_fallback": the fluid particles that hold a
+   solved velocity gradient / fell back to the first-order rule in the last step before the read.
    The runner's own results are untouched (the hook returns the status it was asked for).
 
 3. Field history (any wall mode). The runner reads every alive particle at each sample (every 0.2 time units)
@@ -102,13 +102,15 @@ def install_wall_crossing_diagnostics(run_directory: pathlib.Path) -> None:
             record = {"unix": time.time(), "frame_stamp": int(status.get("frame_stamp", 0)),
                       "gradient_fallbacks": int(status.get("wall_crossing_gradient_fallback_count", 0)),
                       "correction_fallbacks": int(status.get("correction_fallback_count", 0))}
-            # a quadratic extension: fluid particles with a solved gradient / fallen back to the first-order
-            # rule in the last step before this read
-            extension_states = self.readback_wall_crossing_extension_states()
-            if extension_states is not None:
-                record["extension_valid"] = extension_states["valid"]
-                record["extension_fallback"] = extension_states["fallback"]
             if counters["reads"] % POSITION_CHECK_INTERVAL == 0:
+                # a quadratic extension: fluid particles with a solved gradient / fallen back to the first-order
+                # rule in the last step before this read. With the position readback and not at every read: one
+                # readback of the state buffer costs 20 ms at 250^2 and 75 ms at 500^2 (measured), which at every
+                # 1000 steps is 7 % and 12 % of the run time.
+                extension_states = self.readback_wall_crossing_extension_states()
+                if extension_states is not None:
+                    record["extension_valid"] = extension_states["valid"]
+                    record["extension_fallback"] = extension_states["fallback"]
                 case = self.case
                 raw = self.readback_buffers_batch(["position_voxel_id", "material"])
                 capacity = case.capacities.total_pool_capacity()

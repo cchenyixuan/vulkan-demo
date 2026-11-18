@@ -1,0 +1,803 @@
+{
+ "run_id": "wc-20261118-134312-fc1a",
+ "spacing": 1.0,
+ "support": 5.0,
+ "jitter_fraction": 0.05,
+ "seed": 20261118,
+ "gamma": 1.3,
+ "kappa": 0.7,
+ "strain": 0.9,
+ "lattice": {
+  "worst_second_order_error": 1.1102230246251564e-14,
+  "particles": {
+   "a_1": {
+    "second": {
+     "gradient_error": 3.486747955111983e-16,
+     "wall_velocity_error": 1.878838964750265e-15,
+     "viscous_error_over_pair_terms": 2.019119396293681e-16,
+     "viscous_ratio": null,
+     "divergence_whole": -3.5006177644125724e-17,
+     "divergence_normal": -4.5672016515951874e-18
+    },
+    "first": {
+     "gradient_error": 1.5869267453275697e-17,
+     "wall_velocity_error": 8.540177112501203e-17,
+     "viscous_error_over_pair_terms": 6.300417553553799e-19,
+     "viscous_ratio": null,
+     "divergence_whole": -1.6805133673525319e-18,
+     "divergence_normal": -4.5672016515951874e-18
+    },
+    "truth": {
+     "gradient_error": 1.3383719538907213e-17,
+     "wall_velocity_error": 0.0,
+     "viscous_error_over_pair_terms": 0.0,
+     "viscous_ratio": null,
+     "divergence_whole": -3.415236843329339e-18,
+     "divergence_normal": -4.5672016515951874e-18
+    },
+    "system_determinant": 3.6229837965094114
+   },
+   "a_2": {
+    "second": {
+     "gradient_error": 3.4163043407768455e-16,
+     "wall_velocity_error": 2.562053133750361e-16,
+     "viscous_error_over_pair_terms": 4.454592098411083e-18,
+     "viscous_ratio": null,
+     "divergence_whole": 2.3310346708438345e-18,
+     "divergence_normal": 2.2497195079074217e-18
+    },
+    "first": {
+     "gradient_error": 1.4131295873151888e-17,
+     "wall_velocity_error": 1.7080354225002407e-16,
+     "viscous_error_over_pair_terms": 0.0,
+     "viscous_ratio": null,
+     "divergence_whole": -4.621411760219463e-18,
+     "divergence_normal": 2.2497195079074217e-18
+    },
+    "truth": {
+     "gradient_error": 1.4131295873151888e-17,
+     "wall_velocity_error": 0.0,
+     "viscous_error_over_pair_terms": 0.0,
+     "viscous_ratio": null,
+     "divergence_whole": -4.621411760219463e-18,
+     "divergence_normal": 2.2497195079074217e-18
+    },
+    "system_determinant": 1.2199070993834542
+   },
+   "a_3": {
+    "second": {
+     "gradient_error": 1.7165526188494966e-16,
+     "wall_velocity_error": 1.7080354225002407e-16,
+     "viscous_error_over_pair_terms": 2.5201670214215192e-18,
+     "viscous_ratio": null,
+     "divergence_whole": -6.938893903907228e-18,
+     "divergence_normal": -6.938893903907228e-18
+    },
+    "first": {
+     "gradient_error": 1.717012768258987e-16,
+     "wall_velocity_error": 0.0,
+     "viscous_error_over_pair_terms": 0.0,
+     "viscous_ratio": null,
+     "divergence_whole": -6.938893903907228e-18,
+     "divergence_normal": -6.938893903907228e-18
+    },
+    "truth": {
+     "gradient_error": 1.717012768258987e-16,
+     "wall_velocity_error": 0.0,
+     "viscous_error_over_pair_terms": 0.0,
+     "viscous_ratio": null,
+     "divergence_whole": -6.938893903907228e-18,
+     "divergence_normal": -6.938893903907228e-18
+    },
+    "system_determinant": 1.022575652664397
+   },
+   "b_1": {
+    "second": {
+     "gradient_error": 4.0400937230553715e-16,
+     "wall_velocity_error": 1.1102230246251564e-14,
+     "viscous_error_over_pair_terms": 2.5445395682708913e-16,
+     "viscous_ratio": 0.9999999999999987,
+     "divergence_whole": -1.7340458496190037e-17,
+     "divergence_normal": -8.592302216947623e-18
+    },
+    "first": {
+     "gradient_error": 0.1439464760192913,
+     "wall_velocity_error": 2.578947368421052,
+     "viscous_error_over_pair_terms": 0.05956183774514258,
+     "viscous_ratio": 0.6898463323246588,
+     "divergence_whole": -1.71168417981149e-17,
+     "divergence_normal": -8.592302216947623e-18
+    },
+    "truth": {
+     "gradient_error": 1.3458245869192427e-16,
+     "wall_velocity_error": 0.0,
+     "viscous_error_over_pair_terms": 0.0,
+     "viscous_ratio": 1.0,
+     "divergence_whole": -1.0001765041178778e-17,
+     "divergence_normal": -8.592302216947623e-18
+    },
+    "system_determinant": 3.6229837965094114
+   },
+   "b_2": {
+    "second": {
+     "gradient_error": 1.890369195653769e-16,
+     "wall_velocity_error": 4.554761126667308e-16,
+     "viscous_error_over_pair_terms": 3.703170955679228e-19,
+     "viscous_ratio": 1.0,
+     "divergence_whole": 1.0245710529988017e-17,
+     "divergence_normal": 9.351243737687476e-18
+    },
+    "first": {
+     "gradient_error": 0.03911144863266827,
+     "wall_velocity_error": 0.8974358974358976,
+     "viscous_error_over_pair_terms": 0.00891014706898188,
+     "viscous_ratio": 0.9339188454021065,
+     "divergence_whole": 1.4135285823779764e-17,
+     "divergence_normal": 9.351243737687476e-18
+    },
+    "truth": {
+     "gradient_error": 1.194332214853145e-17,
+     "wall_velocity_error": 0.0,
+     "viscous_error_over_pair_terms": 0.0,
+     "viscous_ratio": 1.0,
+     "divergence_whole": 3.3068166260807885e-18,
+     "divergence_normal": 9.351243737687476e-18
+    },
+    "system_determinant": 1.2199070993834542
+   },
+   "b_3": {
+    "second": {
+     "gradient_error": 2.9124965837560214e-16,
+     "wall_velocity_error": 2.6914497566670457e-16,
+     "viscous_error_over_pair_terms": 0.0,
+     "viscous_ratio": 1.0,
+     "divergence_whole": 2.7755575615628914e-17,
+     "divergence_normal": 2.7755575615628914e-17
+    },
+    "first": {
+     "gradient_error": 0.005813535793809225,
+     "wall_velocity_error": 0.31818181818181823,
+     "viscous_error_over_pair_terms": 0.000625324446709663,
+     "viscous_ratio": 0.9939809197356344,
+     "divergence_whole": 2.7755575615628914e-17,
+     "divergence_normal": 2.7755575615628914e-17
+    },
+    "truth": {
+     "gradient_error": 4.368341209988273e-16,
+     "wall_velocity_error": 0.0,
+     "viscous_error_over_pair_terms": 0.0,
+     "viscous_ratio": 1.0,
+     "divergence_whole": 2.7647155398380363e-17,
+     "divergence_normal": 2.7755575615628914e-17
+    },
+    "system_determinant": 1.022575652664397
+   },
+   "c_1": {
+    "second": {
+     "gradient_error": 4.5503354458069315e-17,
+     "wall_velocity_error": 5.320725386966936e-16,
+     "viscous_error_over_pair_terms": 5.756116996237829e-17,
+     "viscous_ratio": 0.9999999999999983,
+     "divergence_whole": -1.5126788710517758e-15,
+     "divergence_normal": 0.4832818998882127
+    },
+    "first": {
+     "gradient_error": 0.021093852703008384,
+     "wall_velocity_error": 0.11097837434700185,
+     "viscous_error_over_pair_terms": 0.009841964837383893,
+     "viscous_ratio": 0.5717129713704441,
+     "divergence_whole": -0.12746243407935196,
+     "divergence_normal": -0.12746243407935257
+    },
+    "truth": {
+     "gradient_error": 1.9246822502532184e-16,
+     "wall_velocity_error": 0.0,
+     "viscous_error_over_pair_terms": 0.0,
+     "viscous_ratio": 1.0,
+     "divergence_whole": 2.0816681711721685e-16,
+     "divergence_normal": 0.4832818998882131
+    },
+    "system_determinant": 3.6229837965094114
+   },
+   "c_2": {
+    "second": {
+     "gradient_error": 3.8476091983709504e-16,
+     "wall_velocity_error": 7.265747642779484e-16,
+     "viscous_error_over_pair_terms": 1.1405005043918424e-17,
+     "viscous_ratio": 0.9999999999999998,
+     "divergence_whole": -2.7755575615628914e-16,
+     "divergence_normal": 0.10302309188739844
+    },
+    "first": {
+     "gradient_error": 0.006949960802987583,
+     "wall_velocity_error": 0.08125517383399056,
+     "viscous_error_over_pair_terms": 0.004797746295712658,
+     "viscous_ratio": 0.7783486900214738,
+     "divergence_whole": -0.13332180485001188,
+     "divergence_normal": -0.13332180485001194
+    },
+    "truth": {
+     "gradient_error": 3.8345083171124874e-16,
+     "wall_velocity_error": 0.0,
+     "viscous_error_over_pair_terms": 0.0,
+     "viscous_ratio": 1.0,
+     "divergence_whole": 1.6653345369377348e-16,
+     "divergence_normal": 0.10302309188739825
+    },
+    "system_determinant": 1.2199070993834542
+   },
+   "c_3": {
+    "second": {
+     "gradient_error": 2.0266430014224924e-16,
+     "wall_velocity_error": 5.576176312678462e-16,
+     "viscous_error_over_pair_terms": 1.1938031376567977e-18,
+     "viscous_ratio": 1.0,
+     "divergence_whole": -9.71445146547012e-16,
+     "divergence_normal": 0.010194393046823125
+    },
+    "first": {
+     "gradient_error": 0.0012477179944477687,
+     "wall_velocity_error": 0.049899608719296745,
+     "viscous_error_over_pair_terms": 0.000919147580602571,
+     "viscous_ratio": 0.9546438644941284,
+     "divergence_whole": -0.035400337678906435,
+     "divergence_normal": -0.035400337678906435
+    },
+    "truth": {
+     "gradient_error": 7.501814873417219e-17,
+     "wall_velocity_error": 0.0,
+     "viscous_error_over_pair_terms": 0.0,
+     "viscous_ratio": 1.0,
+     "divergence_whole": -9.43689570931383e-16,
+     "divergence_normal": 0.01019439304682307
+    },
+    "system_determinant": 1.022575652664397
+   }
+  }
+ },
+ "jitter": {
+  "particles_per_layer": 2000,
+  "statistics": {
+   "a_1": {
+    "gradient_error_first": [
+     1.7348962432036463e-16,
+     8.545751670283877e-16
+    ],
+    "gradient_error_second": [
+     1.7708700405137507e-16,
+     1.026041758010979e-15
+    ],
+    "gradient_error_truth": [
+     1.7351821361484689e-16,
+     8.559430111644051e-16
+    ],
+    "wall_velocity_error_first": [
+     1.3701375052032067e-16,
+     3.413266441013249e-16
+    ],
+    "wall_velocity_error_second": [
+     1.7856255664832476e-15,
+     8.951493648072751e-15
+    ],
+    "viscous_error_over_pair_terms_first": [
+     1.2677650214128627e-17,
+     1.6304505530116738e-16
+    ],
+    "viscous_error_over_pair_terms_second": [
+     1.1479419186833752e-16,
+     5.396617564519358e-16
+    ],
+    "viscous_ratio_first": [
+     1.0,
+     0.9999999999999518,
+     1.0000000000000466
+    ],
+    "viscous_ratio_second": [
+     1.0000000000000002,
+     0.9999999999997533,
+     1.0000000000001938
+    ]
+   },
+   "a_2": {
+    "gradient_error_first": [
+     1.7157586969574653e-16,
+     6.88169969745845e-16
+    ],
+    "gradient_error_second": [
+     1.7176528418875866e-16,
+     6.86580107508349e-16
+    ],
+    "gradient_error_truth": [
+     1.7163389200380245e-16,
+     6.88169969745845e-16
+    ],
+    "wall_velocity_error_first": [
+     8.540173379780211e-17,
+     3.393522349064999e-16
+    ],
+    "wall_velocity_error_second": [
+     5.081214337472378e-16,
+     2.067783358283459e-15
+    ],
+    "viscous_error_over_pair_terms_first": [
+     0.0,
+     5.973504197679712e-17
+    ],
+    "viscous_error_over_pair_terms_second": [
+     1.950872359162247e-17,
+     7.990432685277191e-17
+    ],
+    "viscous_ratio_first": [
+     1.0,
+     0.9999999999999284,
+     1.0000000000000289
+    ],
+    "viscous_ratio_second": [
+     1.0,
+     0.9999999999998589,
+     1.0000000000000293
+    ]
+   },
+   "a_3": {
+    "gradient_error_first": [
+     1.730418975878887e-16,
+     1.0250951225295463e-15
+    ],
+    "gradient_error_second": [
+     1.7366969466948708e-16,
+     1.1957106216984626e-15
+    ],
+    "gradient_error_truth": [
+     1.731853840451279e-16,
+     1.0250952460007199e-15
+    ],
+    "wall_velocity_error_first": [
+     8.538043628274945e-17,
+     2.7601537884951943e-16
+    ],
+    "wall_velocity_error_second": [
+     3.3780502401315904e-16,
+     1.5079326126611323e-15
+    ],
+    "viscous_error_over_pair_terms_first": [
+     0.0,
+     7.425974741172e-18
+    ],
+    "viscous_error_over_pair_terms_second": [
+     2.336047953035358e-18,
+     7.821112926230685e-18
+    ],
+    "viscous_ratio_first": [
+     1.0,
+     0.9999999999999978,
+     1.000000000000002
+    ],
+    "viscous_ratio_second": [
+     1.0,
+     0.9999999999999962,
+     1.0000000000000164
+    ]
+   },
+   "b_1": {
+    "gradient_error_first": [
+     0.14377834555062285,
+     0.15425708861771792
+    ],
+    "gradient_error_second": [
+     0.0009358905343480077,
+     0.0028575260149292362
+    ],
+    "gradient_error_truth": [
+     0.001822500036545394,
+     0.006463644598645288
+    ],
+    "wall_velocity_error_first": [
+     2.5766989756904612,
+     4.287398215041762
+    ],
+    "wall_velocity_error_second": [
+     0.024462891531233263,
+     0.10886348651984623
+    ],
+    "viscous_error_over_pair_terms_first": [
+     0.057682520035124,
+     0.06329053287329324
+    ],
+    "viscous_error_over_pair_terms_second": [
+     0.0005064803091075101,
+     0.0016277002877804272
+    ],
+    "viscous_ratio_first": [
+     0.6916611423811021,
+     0.6262141765763941,
+     0.7379379980826545
+    ],
+    "viscous_ratio_second": [
+     1.0001339781715877,
+     0.9932946717456219,
+     1.008165800308466
+    ]
+   },
+   "b_2": {
+    "gradient_error_first": [
+     0.039073820990110975,
+     0.04558030603301083
+    ],
+    "gradient_error_second": [
+     0.0012840187920994035,
+     0.004384174538753884
+    ],
+    "gradient_error_truth": [
+     0.0014378552675126687,
+     0.005123446289151475
+    ],
+    "wall_velocity_error_first": [
+     0.8971714124571113,
+     1.6027179844248451
+    ],
+    "wall_velocity_error_second": [
+     0.005971851596490328,
+     0.0285458457924806
+    ],
+    "viscous_error_over_pair_terms_first": [
+     0.008633586545703408,
+     0.009792471423523047
+    ],
+    "viscous_error_over_pair_terms_second": [
+     4.9744320880719866e-05,
+     0.00016484264022694706
+    ],
+    "viscous_ratio_first": [
+     0.9343381197725515,
+     0.9115064984311712,
+     0.9484903394423794
+    ],
+    "viscous_ratio_second": [
+     1.0000179270988534,
+     0.9986462700721875,
+     1.00139308485701
+    ]
+   },
+   "b_3": {
+    "gradient_error_first": [
+     0.005942204904203198,
+     0.009938605098667593
+    ],
+    "gradient_error_second": [
+     0.0011969957577072855,
+     0.004059736124808061
+    ],
+    "gradient_error_truth": [
+     0.0012151397395529298,
+     0.004139682127328471
+    ],
+    "wall_velocity_error_first": [
+     0.31818262271893927,
+     0.6716649659934183
+    ],
+    "wall_velocity_error_second": [
+     0.0016018725721221126,
+     0.009419256545984033
+    ],
+    "viscous_error_over_pair_terms_first": [
+     0.0006057630076883288,
+     0.0007172501925553518
+    ],
+    "viscous_error_over_pair_terms_second": [
+     2.5029125644433756e-06,
+     9.308151355856266e-06
+    ],
+    "viscous_ratio_first": [
+     0.9940333275287877,
+     0.9903305440917048,
+     0.9960027491496228
+    ],
+    "viscous_ratio_second": [
+     1.0000025630267313,
+     0.999903293130333,
+     1.0001058268058969
+    ]
+   },
+   "c_1": {
+    "gradient_error_first": [
+     0.00865784697813321,
+     0.5695841890015046
+    ],
+    "gradient_error_second": [
+     9.280385884330561e-05,
+     0.008630154829835136
+    ],
+    "gradient_error_truth": [
+     0.00017491329162007174,
+     0.015144809980514278
+    ],
+    "wall_velocity_error_first": [
+     0.052106427384410875,
+     1.1630129459970147
+    ],
+    "wall_velocity_error_second": [
+     0.0005617456376990849,
+     0.015121212767339628
+    ],
+    "viscous_error_over_pair_terms_first": [
+     0.00406824507736135,
+     0.10203584142461625
+    ],
+    "viscous_error_over_pair_terms_second": [
+     6.196985317793332e-05,
+     0.004854070288332336
+    ],
+    "viscous_ratio_first": [
+     0.7477034483618249,
+     -4.293516790447585,
+     5.321983908755275
+    ],
+    "viscous_ratio_second": [
+     0.9999968368172456,
+     0.9060133516498644,
+     1.0734533887122928
+    ],
+    "divergence_normal_first_0_100": [
+     0.16341477905323476,
+     1.3752792002407792
+    ],
+    "divergence_whole_first_0_100": [
+     0.1405857034371515,
+     0.18122686502550517
+    ],
+    "divergence_whole_second_0_100": [
+     0.005758499155152022,
+     0.02621803865182015
+    ],
+    "divergence_normal_second_0_100": [
+     0.5364622763532926,
+     1.923917475954089
+    ],
+    "divergence_whole_truth_0_100": [
+     0.009989685480985666,
+     0.04618543584503515
+    ],
+    "divergence_normal_first_0_10": [
+     0.13768749156532156,
+     0.2277513430889895
+    ],
+    "divergence_whole_first_0_10": [
+     0.14028647533026978,
+     0.1752686886381839
+    ],
+    "divergence_whole_second_0_10": [
+     0.0057140065529526565,
+     0.025638736252150403
+    ],
+    "divergence_normal_second_0_10": [
+     0.5347270285870016,
+     0.6814372460342742
+    ],
+    "divergence_whole_truth_0_10": [
+     0.009401750441429824,
+     0.045086557571466276
+    ],
+    "divergence_normal_first_50_100": [
+     0.23162770024712281,
+     1.3752792002407792
+    ],
+    "divergence_whole_first_50_100": [
+     0.1401091286266397,
+     0.18122686502550517
+    ],
+    "divergence_whole_second_50_100": [
+     0.0058203529354943564,
+     0.023491413851807707
+    ],
+    "divergence_normal_second_50_100": [
+     0.5334156702385362,
+     1.923917475954089
+    ],
+    "divergence_whole_truth_50_100": [
+     0.01022385586580966,
+     0.04577823731124888
+    ]
+   },
+   "c_2": {
+    "gradient_error_first": [
+     0.0028793262714410686,
+     0.07337625325081984
+    ],
+    "gradient_error_second": [
+     0.00017688064555947515,
+     0.009147093301349085
+    ],
+    "gradient_error_truth": [
+     0.0001958267954178567,
+     0.010026708903632197
+    ],
+    "wall_velocity_error_first": [
+     0.036970266722979386,
+     1.2391746634560048
+    ],
+    "wall_velocity_error_second": [
+     0.0002829210964584302,
+     0.02130376423581404
+    ],
+    "viscous_error_over_pair_terms_first": [
+     0.0020859860728688717,
+     0.030014672344699896
+    ],
+    "viscous_error_over_pair_terms_second": [
+     1.4799272958132136e-05,
+     0.0007398367881335854
+    ],
+    "viscous_ratio_first": [
+     0.8906803679455639,
+     -1.0365269363917518,
+     3.0452483569241644
+    ],
+    "viscous_ratio_second": [
+     1.0000242975891467,
+     0.9556827280504927,
+     1.021665478018029
+    ],
+    "divergence_normal_first_0_100": [
+     0.05267422153648459,
+     0.3345167219126389
+    ],
+    "divergence_whole_first_0_100": [
+     0.04943973423873453,
+     0.07115614975284514
+    ],
+    "divergence_whole_second_0_100": [
+     0.0035817142632979812,
+     0.017315441156156325
+    ],
+    "divergence_normal_second_0_100": [
+     0.043051189086771996,
+     0.34636723471531644
+    ],
+    "divergence_whole_truth_0_100": [
+     0.0038153448005380534,
+     0.019124809023567384
+    ],
+    "divergence_normal_first_0_10": [
+     0.048767653904802935,
+     0.07235012057140967
+    ],
+    "divergence_whole_first_0_10": [
+     0.04884678637499243,
+     0.06372471157111914
+    ],
+    "divergence_whole_second_0_10": [
+     0.003068684467884059,
+     0.01630266028078702
+    ],
+    "divergence_normal_second_0_10": [
+     0.03838464172330325,
+     0.05946550446827302
+    ],
+    "divergence_whole_truth_0_10": [
+     0.003392060192059165,
+     0.01763007341470586
+    ],
+    "divergence_normal_first_50_100": [
+     0.0647704281668447,
+     0.3345167219126389
+    ],
+    "divergence_whole_first_50_100": [
+     0.0494988651930592,
+     0.06850193001100566
+    ],
+    "divergence_whole_second_50_100": [
+     0.0037282663791159253,
+     0.016199761649821103
+    ],
+    "divergence_normal_second_50_100": [
+     0.06046754041040974,
+     0.34636723471531644
+    ],
+    "divergence_whole_truth_50_100": [
+     0.0040260506045046935,
+     0.018054744305912352
+    ]
+   },
+   "c_3": {
+    "gradient_error_first": [
+     0.0005630009931195605,
+     0.01119154488348314
+    ],
+    "gradient_error_second": [
+     0.0002118272782282912,
+     0.005675035865982625
+    ],
+    "gradient_error_truth": [
+     0.00021316636593319148,
+     0.005762579499773925
+    ],
+    "wall_velocity_error_first": [
+     0.023813614549685596,
+     1.1803921033599447
+    ],
+    "wall_velocity_error_second": [
+     0.00013586274599294878,
+     0.010664142774762813
+    ],
+    "viscous_error_over_pair_terms_first": [
+     0.00041229776916727214,
+     0.004049631362981157
+    ],
+    "viscous_error_over_pair_terms_second": [
+     1.6444345836209726e-06,
+     4.767363311226323e-05
+    ],
+    "viscous_ratio_first": [
+     0.9782104113185854,
+     0.6538261067090912,
+     1.6215987453511114
+    ],
+    "viscous_ratio_second": [
+     1.0000053117309147,
+     0.998245933598384,
+     1.002086207228507
+    ],
+    "divergence_normal_first_0_100": [
+     0.009342230347980558,
+     0.05740015197664058
+    ],
+    "divergence_whole_first_0_100": [
+     0.008069276892284365,
+     0.021294902232825808
+    ],
+    "divergence_whole_second_0_100": [
+     0.0024634482742364305,
+     0.013976428250328608
+    ],
+    "divergence_normal_second_0_100": [
+     0.006005605796662968,
+     0.055360330978301536
+    ],
+    "divergence_whole_truth_0_100": [
+     0.002492227282702676,
+     0.014066565238522497
+    ],
+    "divergence_normal_first_0_10": [
+     0.007975382941061909,
+     0.020476600622991586
+    ],
+    "divergence_whole_first_0_10": [
+     0.007611596895588657,
+     0.016961179376935916
+    ],
+    "divergence_whole_second_0_10": [
+     0.002479634531288742,
+     0.009668865399567498
+    ],
+    "divergence_normal_second_0_10": [
+     0.0030644371105809417,
+     0.009889947292466797
+    ],
+    "divergence_whole_truth_0_10": [
+     0.002501291115287782,
+     0.009753642007156548
+    ],
+    "divergence_normal_first_50_100": [
+     0.011047741507250287,
+     0.05740015197664058
+    ],
+    "divergence_whole_first_50_100": [
+     0.007887879991122,
+     0.021294902232825808
+    ],
+    "divergence_whole_second_50_100": [
+     0.002341998911032272,
+     0.013976428250328608
+    ],
+    "divergence_normal_second_50_100": [
+     0.009529042760791848,
+     0.055360330978301536
+    ],
+    "divergence_whole_truth_50_100": [
+     0.0023941809704142777,
+     0.014066565238522497
+    ]
+   }
+  }
+ }
+}
