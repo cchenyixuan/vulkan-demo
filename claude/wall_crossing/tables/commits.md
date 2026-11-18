@@ -41,5 +41,6 @@
 | `282f598` | wall_boundary crossing: report rebuilt (commit table) |
 | `bd9fec1` | wall_boundary crossing: pairwise geometry and reflection of pressure and density at the wall (switches, defaults unchanged) |
 | `8748bcd` | wall_crossing tools: the three cases that locate a failed screening of the reflection configuration (pairwise geometry alone, with the pressure reflection only, with the density reflection only); numpy check of the pairwise geometry |
+| `89441e9` | wall_boundary crossing: section 12 of the report (pairwise geometry and reflection of pressure and density at the wall: regression, numpy check, single step, hydrostatic boxes, the cavity screening and the three locating runs; the screening fails on the interior continuity term with the pairwise geometry alone, no run to t = 100) |
 
 （加入本报告的那个提交排在这些之后。）
