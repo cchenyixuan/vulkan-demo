@@ -39,6 +39,8 @@ numerics:
   wall_crossing:
     continuity: extrapolate
     distance_floor_factor: 0.25
+  volume_constraint:
+    enabled: true
 
 capacities:
   pool_size: 224384

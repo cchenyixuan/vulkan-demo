@@ -46,6 +46,11 @@ MODES = {"simple": ("simple", None), "adami": ("adami", None), "crossing": ("cro
          "crossing_wall_velocity": ("crossing", "wall_velocity")}
 # 2-D only, DIAGNOSTIC (numerics.wall_crossing.delta_wall, not part of the mode): mode name -> the value
 DIAGNOSTIC_DELTA_WALL_2D = {"crossing_delta_wall_body_force": "body_force"}
+# the modes whose cases carry numerics.volume_constraint enabled (since 2026-11-19: the default crossing mode, a
+# closed box; its switches are the solver's defaults, the complete scheme). The diagnostic modes have none.
+VOLUME_CONSTRAINT_MODES = ("crossing",)
+VOLUME_CONSTRAINT_LINES_2D = ("  volume_constraint:        # the fluid's total volume is held (closed container; "
+                              "since 2026-11-19)\n    enabled: true\n")
 # |g| H / c0^2 = 1e-3 with c0 = 100 and H = 1: |g| = 10
 GRAVITY_MAGNITUDE = 10.0
 DIRECTIONS_2D = {
@@ -95,6 +100,8 @@ def make_cases(force: bool = False) -> list:
             if target.exists() and not force:
                 continue
             option = f"  use_prefix_sum_defrag: false\n  wall_boundary: {wall_boundary}\n"
+            if mode in VOLUME_CONSTRAINT_MODES:
+                option += VOLUME_CONSTRAINT_LINES_2D
             if continuity is not None:
                 option += f"  wall_crossing:\n    continuity: {continuity}\n"
             if delta_wall is not None:
@@ -133,6 +140,7 @@ def make_cases(force: bool = False) -> list:
                 # h / dx = 4) enters a voxel in the same step; with gravity off two axes three faces do so at
                 # once (48 arrivals): 32 incoming slots overflow there and predict kills the excess.
                 max_per_voxel=128, max_incoming=64 if direction == "gtilt" else 32,
+                volume_constraint=mode in VOLUME_CONSTRAINT_MODES,
                 comment=f"hydrostatic box, gravity direction {direction}")
             written.append(write_box_case(directory, specification))
     return written

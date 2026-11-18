@@ -47,6 +47,13 @@ REPOSITORY_ROOT = pathlib.Path(__file__).resolve().parents[2]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
+from experiment.v7.utils.wall_crossing_v7 import (                                                 # noqa: E402
+    WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT,
+    WALL_CROSSING_DEFAULT_DELTA_WALL,
+    WALL_CROSSING_DEFAULT_GEOMETRY,
+    WALL_CROSSING_DEFAULT_PRESSURE_WALL,
+    WALL_CROSSING_NEAREST_WALL_REQUIREMENTS,
+)
 from experiment.wall_crossing.box_case import BoxCaseSpecification, box_particles, write_box_case   # noqa: E402
 from experiment.wall_crossing.reference import ReferenceConstants, evaluate_reference                # noqa: E402
 from experiment.wall_crossing.run_log import LoggedRun, vulkan_device_uuid                           # noqa: E402
@@ -607,23 +614,28 @@ def volume_constraint_suffix(volume_constraint: bool) -> str:
 
 def geometry_suffix(geometry: str, pressure_wall: str) -> str:
     """The part of a label / file name that names the pairwise geometry and the pressure reflection: nothing with
-    the defaults (delta_wall reflection is named by the delta_wall part of the label)."""
+    nearest_wall and extension (the defaults until 2026-11-19; the labels name values, not defaults, so the logs
+    written before the defaults changed keep their meaning; delta_wall reflection is named by the delta_wall part
+    of the label)."""
     return ("" if geometry == "nearest_wall" else f"_geometry_{geometry}") \
         + ("" if pressure_wall == "extension" else f"_pressure_{pressure_wall}")
 
 
 def run_configuration(out_root: pathlib.Path, dimension: int, device_index: int, configuration: str,
                       wall_boundary: str, continuity: str, distance_floor_factor: float, tolerance: float,
-                      delta_wall: str = "extension", continuity_wall_component: str = "normal",
+                      delta_wall: str = WALL_CROSSING_DEFAULT_DELTA_WALL,
+                      continuity_wall_component: str = WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT,
                       density_budget: bool = False, viscous_extension: str = "linear",
                       continuity_extension: str = "linear", determinant_threshold: float | None = None,
-                      geometry: str = "nearest_wall", pressure_wall: str = "extension",
+                      geometry: str = WALL_CROSSING_DEFAULT_GEOMETRY,
+                      pressure_wall: str = WALL_CROSSING_DEFAULT_PRESSURE_WALL,
                       volume_constraint: bool = False) -> dict:
     label = f"{dimension}d_{configuration}_{wall_boundary}" + (f"_{continuity}" if wall_boundary == "crossing" else "")
     if wall_boundary == "crossing" and delta_wall != "extension":
         label += f"_delta_wall_{delta_wall}"
-    # the label names the value normal (the solver's default since 2026-11-18) and leaves full unnamed: the
-    # logs written before that date keep their meaning
+    # the label names values, not defaults: normal is named and full is not, delta_wall is named unless it is
+    # extension, the geometry suffix names pairwise and reflection (so the logs written under the defaults of
+    # 2026-11-17, -18 and -19 keep their meaning)
     if wall_boundary == "crossing" and continuity_wall_component != "full":
         label += f"_wall_component_{continuity_wall_component}"
     if wall_boundary == "crossing":
@@ -791,22 +803,27 @@ def main() -> int:
                         help="largest per-particle relative error allowed in the smooth configuration")
     parser.add_argument("--compare-modes", action="store_true",
                         help="also run the property configurations with wall_boundary simple and adami")
-    parser.add_argument("--geometry", default="nearest_wall", choices=("nearest_wall", "pairwise"),
-                        help="numerics.wall_crossing.geometry of the crossing runs")
-    parser.add_argument("--pressure-wall", default="extension", choices=("extension", "reflection"),
-                        help="numerics.wall_crossing.pressure_wall of the crossing runs (reflection: with "
-                             "--geometry pairwise; the smooth configuration then has a gravity)")
+    parser.add_argument("--geometry", default=WALL_CROSSING_DEFAULT_GEOMETRY, choices=("nearest_wall", "pairwise"),
+                        help="numerics.wall_crossing.geometry of the crossing runs (default: the solver's, "
+                             f"{WALL_CROSSING_DEFAULT_GEOMETRY})")
+    parser.add_argument("--pressure-wall", default=WALL_CROSSING_DEFAULT_PRESSURE_WALL,
+                        choices=("extension", "reflection"),
+                        help="numerics.wall_crossing.pressure_wall of the crossing runs (default: the solver's, "
+                             f"{WALL_CROSSING_DEFAULT_PRESSURE_WALL}; reflection needs --geometry pairwise; the "
+                             "smooth configuration then has a gravity)")
     parser.add_argument("--volume-constraint", action="store_true",
                         help="numerics.volume_constraint.enabled in the crossing runs, with the rate "
                              f"{VOLUME_CONSTRAINT_TEST_RATE:g} written to the GPU and given to the reference")
-    parser.add_argument("--delta-wall", default="extension",
+    parser.add_argument("--delta-wall", default=WALL_CROSSING_DEFAULT_DELTA_WALL,
                         choices=("extension", "rest_density", "body_force", "reflection"),
-                        help="the diagnostic numerics.wall_crossing.delta_wall of the crossing runs (default: the "
-                             "mode); another value adds its name to the labels and to the summary file name")
-    parser.add_argument("--continuity-wall-component", default="normal", choices=("full", "normal"),
+                        help="numerics.wall_crossing.delta_wall of the crossing runs (default: the solver's, "
+                             f"{WALL_CROSSING_DEFAULT_DELTA_WALL}; rest_density and body_force are diagnostics); a "
+                             "value other than extension adds its name to the labels and to the summary file name")
+    parser.add_argument("--continuity-wall-component", default=WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT,
+                        choices=("full", "normal"),
                         help="numerics.wall_crossing.continuity_wall_component of the crossing runs (default: the "
-                             "solver's, normal; the labels and the summary file name carry "
-                             "_wall_component_normal, those of full carry nothing, as before 2026-11-18)")
+                             f"solver's, {WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT}; the labels and the summary "
+                             "file name carry _wall_component_normal for normal, nothing for full)")
     parser.add_argument("--viscous-extension", default="linear", choices=("linear", "quadratic"),
                         help="numerics.wall_crossing.viscous_extension of the crossing runs")
     parser.add_argument("--continuity-extension", default="linear", choices=("linear", "quadratic"),
@@ -830,6 +847,16 @@ def main() -> int:
     if unknown:
         parser.error(f"unknown configurations {unknown}; known: {', '.join(ALL_CONFIGURATIONS)}")
     continuities = ("extrapolate", "wall_velocity") if arguments.continuity == "both" else (arguments.continuity,)
+    if "quadratic" in (arguments.viscous_extension, arguments.continuity_extension):
+        # the second-order continuation is offered with the nearest-wall geometry and without reflections only
+        # (the solver's loader refuses the rest; the defaults since 2026-11-19 are pairwise / reflection)
+        wanted = {"geometry": arguments.geometry, "pressure_wall": arguments.pressure_wall,
+                  "delta_wall": arguments.delta_wall}
+        if wanted["geometry"] != "nearest_wall" or "reflection" in (wanted["pressure_wall"], wanted["delta_wall"]):
+            parser.error("a quadratic extension needs "
+                         + " ".join(f"--{key.replace('_', '-')} {value}"
+                                    for key, value in WALL_CROSSING_NEAREST_WALL_REQUIREMENTS)
+                         + f" (now {', '.join(f'{key} {value}' for key, value in wanted.items())})")
     if arguments.continuity_extension == "quadratic":
         # the second-order continuation in the continuity equation exists with continuity extrapolate only
         continuities = tuple(rule for rule in continuities if rule == "extrapolate")
@@ -861,6 +888,7 @@ def main() -> int:
                                                   arguments.tolerance))
                 _print_outcome(outcomes[-1])
 
+    # named by values, like the labels (see run_configuration)
     summary_path = out_root / (f"summary_{arguments.dimension}d"
                                + ("" if arguments.delta_wall == "extension" else f"_delta_wall_{arguments.delta_wall}")
                                + ("" if arguments.continuity_wall_component == "full"

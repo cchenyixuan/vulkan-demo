@@ -74,9 +74,11 @@ CONFIGURATIONS = {
     "reflection_full_volume": ("pairwise", "reflection", "reflection"),
     "reflection_full_volume_tau5": ("pairwise", "reflection", "reflection"),
 }
-# configurations that also set numerics.wall_crossing.continuity_wall_component (the others take the default)
+# numerics.wall_crossing.continuity_wall_component of the configurations whose name says full; the others were
+# made under the default of 2026-11-18 (normal) and write it out since the defaults changed on 2026-11-19
 CONTINUITY_WALL_COMPONENT = {"pairwise_full": "full", "reflection_full": "full", "reflection_full_volume": "full",
                              "reflection_full_volume_tau5": "full"}
+CONTINUITY_WALL_COMPONENT_OTHERWISE = "normal"
 # configurations with numerics.volume_constraint enabled: the keys written beside "enabled: true"
 VOLUME_CONSTRAINT = {"reflection_full_volume": {}, "reflection_full_volume_tau5": {"relaxation_time": 5.0}}
 # (source case, configuration) made by make-cases beside the main configuration of SOURCE_CASES
@@ -110,29 +112,26 @@ REPORT_ROOT = REPOSITORY_ROOT / "claude" / "wall_crossing"
 
 # ===================================================================================================== cases
 def variant_text(source_text: str, source_name: str, configuration: str) -> str:
-    """The source case with the configuration's keys in numerics.wall_crossing."""
+    """The source case with the configuration's keys in numerics.wall_crossing: all four switches of the complete
+    scheme written out (whatever the solver's defaults are), the source's numerics.volume_constraint replaced by
+    the configuration's (none, or VOLUME_CONSTRAINT)."""
     geometry, pressure_wall, delta_wall = CONFIGURATIONS[configuration]
-    lines = source_text.split("\n")
+    continuity_wall_component = CONTINUITY_WALL_COMPONENT.get(configuration, CONTINUITY_WALL_COMPONENT_OTHERWISE)
+    lines = without_volume_constraint(source_text.split("\n"))
     mapping_rows = [index for index, line in enumerate(lines) if line.startswith("  wall_crossing:")]
     if len(mapping_rows) != 1:
         raise ValueError(f"{source_name}: expected exactly one numerics.wall_crossing mapping")
     # (the case's own top-level "geometry:" section, the particle files, is not indented)
     if any(line.startswith(("    geometry:", "    pressure_wall:", "    delta_wall:")) for line in lines):
         raise ValueError(f"{source_name}: the source already sets geometry, pressure_wall or delta_wall")
-    added = [f"    geometry: {geometry}             # nearest_wall | pairwise"]
-    if pressure_wall != "extension":
-        added.append(f"    pressure_wall: {pressure_wall}      # extension | reflection")
-    if delta_wall != "extension":
-        added.append(f"    delta_wall: {delta_wall}         # extension | reflection")
-    if configuration in CONTINUITY_WALL_COMPONENT:
-        if any(line.startswith("    continuity_wall_component:") for line in lines):
-            raise ValueError(f"{source_name}: the source already sets continuity_wall_component")
-        added.append(f"    continuity_wall_component: {CONTINUITY_WALL_COMPONENT[configuration]}"
-                     "   # normal (the default) | full")
+    if any(line.startswith("    continuity_wall_component:") for line in lines):
+        raise ValueError(f"{source_name}: the source already sets continuity_wall_component")
+    added = [f"    geometry: {geometry}             # pairwise | nearest_wall",
+             f"    pressure_wall: {pressure_wall}      # reflection | extension",
+             f"    delta_wall: {delta_wall}         # reflection | extension",
+             f"    continuity_wall_component: {continuity_wall_component}   # full | normal"]
     lines[mapping_rows[0] + 1:mapping_rows[0] + 1] = added
     if configuration in VOLUME_CONSTRAINT:
-        if any(line.startswith("  volume_constraint:") for line in lines):
-            raise ValueError(f"{source_name}: the source already has numerics.volume_constraint")
         constraint = ["  volume_constraint:        # the fluid's total volume is held (closed container)",
                       "    enabled: true"]
         constraint += [f"    {key}: {value!r}" for key, value in VOLUME_CONSTRAINT[configuration].items()]
@@ -142,13 +141,27 @@ def variant_text(source_text: str, source_name: str, configuration: str) -> str:
     header = [f"# VARIANT of cases/{source_name} (experiment/wall_crossing/pairwise_reflection.py): geometry "
               f"{geometry},",
               f"# pressure_wall {pressure_wall}, delta_wall {delta_wall}"
-              + (f", continuity_wall_component {CONTINUITY_WALL_COMPONENT[configuration]}"
-                 if configuration in CONTINUITY_WALL_COMPONENT else "")
+              + f", continuity_wall_component {continuity_wall_component}"
               + (", numerics.volume_constraint enabled" + "".join(
                   f", {key} {value!r}" for key, value in VOLUME_CONSTRAINT[configuration].items())
                  if configuration in VOLUME_CONSTRAINT else "") + "; everything else identical."]
     lines[2:2] = header + [""]
     return "\n".join(lines)
+
+
+def without_volume_constraint(lines: list) -> list:
+    """The lines of a case without its numerics.volume_constraint block (the default crossing cases carry one
+    since 2026-11-19; the variants made before had none unless they asked for it)."""
+    kept, inside = [], False
+    for line in lines:
+        if line.startswith("  volume_constraint:"):
+            inside = True
+            continue
+        if inside and line.startswith("    "):
+            continue
+        inside = False
+        kept.append(line)
+    return kept
 
 
 def variant_name(source_name: str, configuration: str) -> str:

@@ -50,6 +50,8 @@ numerics:
   defrag_cadence: 1000
   use_prefix_sum_defrag: false
   wall_boundary: crossing   # crossing-fraction walls (first order, axis-aligned box; one GPU)
+  volume_constraint:        # the fluid's total volume is held (closed container; since 2026-11-19)
+    enabled: true
   wall_crossing:
     continuity: extrapolate   # extrapolate | wall_velocity
 

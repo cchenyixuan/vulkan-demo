@@ -76,13 +76,17 @@ layout(std430, set = 0, binding = 10) buffer WallDummyVelocityBuffer {
 // The two functions of the geometry are the box's; another geometry replaces
 // wall_crossing_distance_to_wall / wall_crossing_depth_behind_wall only.
 //
-// numerics.wall_crossing.geometry pairwise (off by default; spec const 128
-// below) takes t_ij and the wall normal pair by pair from the face the segment
-// i -> j leaves the box through, and gives the pair a mirror point; the
-// geometry is then wall_crossing_pair_geometry alone. With it, pressure_wall
-// reflection (spec const 129) and delta_wall reflection (spec const 116 = 3)
-// take the pressure / the density of a wall particle from its mirror point
-// plus the body force, in place of the plain continuation.
+// numerics.wall_crossing.geometry pairwise (spec const 128 below; the default
+// since 2026-11-19, nearest_wall before) takes t_ij and the wall normal pair by
+// pair from the face the segment i -> j leaves the box through, and gives the
+// pair a mirror point; the geometry is then wall_crossing_pair_geometry alone.
+// With it, pressure_wall reflection (spec const 129) and delta_wall reflection
+// (spec const 116 = 3) take the pressure / the density of a wall particle from
+// its mirror point plus the body force, in place of the plain continuation.
+// The defaults since 2026-11-19 are this "complete scheme": geometry pairwise,
+// continuity_wall_component full, pressure_wall reflection, delta_wall
+// reflection (utils/wall_crossing_v7.py). The host passes every one of these
+// constants on a crossing slab; the defaults below only follow the host's.
 // ============================================================================
 const uint WALL_BOUNDARY_CROSSING = 2u;
 const bool WALL_CROSSING_ACTIVE = (WALL_BOUNDARY == WALL_BOUNDARY_CROSSING);
@@ -93,8 +97,9 @@ const bool WALL_CROSSING_ACTIVE = (WALL_BOUNDARY == WALL_BOUNDARY_CROSSING);
 layout(constant_id = 120) const uint  WALL_CROSSING_CONTINUITY = 0u;
 const uint WALL_CROSSING_CONTINUITY_EXTRAPOLATE   = 0u;
 const uint WALL_CROSSING_CONTINUITY_WALL_VELOCITY = 1u;
-// DIAGNOSTIC, not part of the mode (numerics.wall_crossing.delta_wall, default extension = 0, which is the mode
-// as specified): how a wall neighbour enters the density diffusion (delta term) of the fused pass.
+// numerics.wall_crossing.delta_wall (default reflection = 3 since 2026-11-19, extension = 0 before; 1 and 2 are
+// DIAGNOSTICS, not part of the mode): how a wall neighbour enters the density diffusion (delta term) of the fused
+// pass.
 //   0 = extension:    psi_ij = G_i . (r_j - r_i), the continuation of the density, applied after the loop
 //                     through sum_wall V_j r^2 / (r^2 + eps^2) grad W_ij;
 //   1 = rest_density: psi_ij = rho0 - rho_i pair by pair, the expression simple uses (a wall particle stores
@@ -105,7 +110,7 @@ const uint WALL_CROSSING_CONTINUITY_WALL_VELOCITY = 1u;
 //                     a constant velocity); c^2 = dp/drho of the particle's Tait EOS at rho_i,
 //                     gamma B / rho0 (rho_i / rho0)^(gamma - 1) (= c0^2 at rho0). Without gravity a wall
 //                     neighbour contributes nothing to the density diffusion.
-//   3 = reflection:   NOT a diagnostic, a variant of the mode (needs geometry pairwise, spec const 128): the
+//   3 = reflection:   NOT a diagnostic, the default (needs geometry pairwise, spec const 128): the
 //                     density of the wall particle is the continued density at its mirror point r_j' plus the
 //                     density difference of a fluid at rest between r_j' and r_j,
 //                         psi_ij = G_i . (r_j' - r_i) + rho_i g . (r_j - r_j') / c^2
@@ -118,22 +123,23 @@ const uint WALL_CROSSING_CONTINUITY_WALL_VELOCITY = 1u;
 // The drift of the continuity equation, the pressure continuation and the viscous term are the same in all four.
 // 1 exists to test whether the mean density drifts because the delta term has no rho0 reference, 2 to test
 // whether the drift comes from the continuation term itself (neither 0 nor 2 refers to rho0).
-layout(constant_id = 116) const uint  WALL_CROSSING_DELTA_WALL = 0u;
+layout(constant_id = 116) const uint  WALL_CROSSING_DELTA_WALL = 3u;
 const uint WALL_CROSSING_DELTA_WALL_EXTENSION    = 0u;
 const uint WALL_CROSSING_DELTA_WALL_REST_DENSITY = 1u;
 const uint WALL_CROSSING_DELTA_WALL_BODY_FORCE   = 2u;
 const uint WALL_CROSSING_DELTA_WALL_REFLECTION   = 3u;
 // numerics.wall_crossing.continuity_wall_component: which part of a wall neighbour's velocity difference enters
 // the continuity equation.
-//   1 = normal (the default since 2026-11-18): its component along the wall's inward normal only,
-//               n_j (n_j . (v_w - v_i)), n_j = the unit vector from the wall particle to the nearest point of
-//               the box (then the continuity rule above);
-//   0 = full:   the whole vector (then the continuity rule); the mode as first specified and the default
-//               until 2026-11-18, kept as a switch.
+//   0 = full:   the whole vector (then the continuity rule); the mode as first specified, the default until
+//               2026-11-18 and again since 2026-11-19 (the complete scheme);
+//   1 = normal (the default from 2026-11-18 to 2026-11-19): its component along the wall's inward normal
+//               only, n_j (n_j . (v_w - v_i)), n_j = the unit vector from the wall particle to the nearest
+//               point of the box (then the continuity rule above).
 // The viscous term takes the whole velocity difference with either value. What the choice rests on: in the
 // density budget of the 250^2 cavity (claude/wall_crossing_report.md, section 8) the continuity term over
-// the fluid neighbours of the interior was a net sink with full and was not one with normal.
-layout(constant_id = 117) const uint  WALL_CROSSING_CONTINUITY_WALL_COMPONENT = 1u;
+// the fluid neighbours of the interior was a net sink with full and was not one with normal; the complete scheme
+// (sections 12 to 17) went back to full.
+layout(constant_id = 117) const uint  WALL_CROSSING_CONTINUITY_WALL_COMPONENT = 0u;
 const uint WALL_CROSSING_CONTINUITY_WALL_COMPONENT_FULL   = 0u;
 const uint WALL_CROSSING_CONTINUITY_WALL_COMPONENT_NORMAL = 1u;
 // numerics.wall_crossing.viscous_extension / continuity_extension (both default 0 = linear, the first-order rule
@@ -161,20 +167,23 @@ layout(constant_id = 119) const uint  WALL_CROSSING_CONTINUITY_EXTENSION = 0u;
 const uint WALL_CROSSING_EXTENSION_LINEAR    = 0u;
 const uint WALL_CROSSING_EXTENSION_QUADRATIC = 1u;
 // numerics.wall_crossing.geometry: where the pair's crossing fraction and wall normal come from.
-//   0 = nearest_wall (the default, everything above): phi_i = the distance of i to ITS nearest wall plane, d_j =
+//   0 = nearest_wall (the default until 2026-11-19, everything above): phi_i = the distance of i to ITS nearest
+//       wall plane, d_j =
 //       the distance of j to the box, n_j = the unit vector from j to the nearest point of the box. Near an edge
 //       or corner of the box the two distances belong to different faces and t_ij is not the pair's.
-//   1 = pairwise: from the face the segment i -> j leaves the box through (wall_crossing_pair_geometry below):
+//   1 = pairwise (the default since 2026-11-19): from the face the segment i -> j leaves the box through
+//       (wall_crossing_pair_geometry below):
 //       phi_ij = the distance of i to that face (floored), d_ij = the depth of j behind that face, n_ij = that
 //       face's inward normal, 1 / t_ij = 1 + d_ij / phi_ij; the velocity rules above with these (the viscous
 //       term: the whole vector; the continuity equation: the component along n_ij with
 //       WALL_CROSSING_CONTINUITY_WALL_COMPONENT normal). Not offered with a quadratic extension.
-layout(constant_id = 128) const uint  WALL_CROSSING_GEOMETRY = 0u;
+layout(constant_id = 128) const uint  WALL_CROSSING_GEOMETRY = 1u;
 const uint WALL_CROSSING_GEOMETRY_NEAREST_WALL = 0u;
 const uint WALL_CROSSING_GEOMETRY_PAIRWISE     = 1u;
 // numerics.wall_crossing.pressure_wall: the pressure of a wall neighbour in force.
-//   0 = extension (the default, the rule above): P_j - P_i = G_i . (r_j - r_i);
-//   1 = reflection (needs geometry pairwise): the continued pressure at the mirror point r_j' plus the body
+//   0 = extension (the default until 2026-11-19, the rule above): P_j - P_i = G_i . (r_j - r_i);
+//   1 = reflection (the default since 2026-11-19; needs geometry pairwise): the continued pressure at the mirror
+//       point r_j' plus the body
 //       force between r_j' and r_j,
 //           P_j - P_i = G_i . (r_j' - r_i) + rho_i g . (r_j - r_j')
 //                     = G_i . (r_j - r_i) - (G_i - rho_i g) . (r_j - r_j'),
@@ -183,7 +192,7 @@ const uint WALL_CROSSING_GEOMETRY_PAIRWISE     = 1u;
 //           (1 / rho_i) L_i M_d (G_i - rho_i g)
 //       to the pressure acceleration after the loop (the same on both TIC branches). Zero for a fluid at rest
 //       (G_i = rho_i g) and when A_f fell back (G_i = 0 there, as with 0).
-layout(constant_id = 129) const uint  WALL_CROSSING_PRESSURE_WALL = 0u;
+layout(constant_id = 129) const uint  WALL_CROSSING_PRESSURE_WALL = 1u;
 const uint WALL_CROSSING_PRESSURE_WALL_EXTENSION  = 0u;
 const uint WALL_CROSSING_PRESSURE_WALL_REFLECTION = 1u;
 // lower bound of phi_i = numerics.wall_crossing.distance_floor_factor (default 0.25) x the particle spacing

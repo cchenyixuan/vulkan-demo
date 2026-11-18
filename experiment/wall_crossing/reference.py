@@ -17,10 +17,11 @@ Density rate of a fluid particle i (pass 1; rho, v of step n):
     sum_{j fluid} [ -rho_i V_j (v_j - v_i) . L grad W + 2 delta h c0 (rho_j - rho_i) V_j / (r^2 + eps^2) (r_j - r_i) . L grad W ]
   + sum_{j wall}  [ -rho_i V_j c_ij (v_w,j - v_i) . L grad W ],   c_ij = 1 + d_j / phi_i (extrapolate) or 1 (wall_velocity)
   + 2 delta h c0 G_i . (L sum_{j wall} V_j r^2 / (r^2 + eps^2) grad W),   G_i = A_f^-1 g_f(rho)  (0 on a fallback)
-With continuity_wall_component normal (the default), (v_w,j - v_i) of a wall neighbour is replaced by its
-component along n_j, the unit vector from the wall particle to the nearest point of the box, before c_ij;
-with full it is taken whole.
-The last line is the mode (delta_wall extension). The diagnostic values replace it by a sum over the wall
+With continuity_wall_component normal (the default from 2026-11-18 to 2026-11-19), (v_w,j - v_i) of a wall
+neighbour is replaced by its component along n_j, the unit vector from the wall particle to the nearest point of
+the box, before c_ij; with full (the default) it is taken whole.
+The last line is delta_wall extension (the default until 2026-11-19; reflection, the default since then, adds a
+term below). The diagnostic values replace it by a sum over the wall
 neighbours of 2 delta h c0 psi_ij V_j / (r^2 + eps^2) (r_j - r_i) . L grad W with
     rest_density:  psi_ij = rho_j - rho_i (a wall stores rho0),
     body_force:    psi_ij = rho_i g . (r_j - r_i) / c_i^2,  c_i^2 = dp/drho of the Tait EOS at rho_i
@@ -47,7 +48,8 @@ State of a particle: 0 no wall neighbour (nothing solved), 1 solved, 2 fallback 
 terms (L itself fell back, det(I - K_raw L) < 0.5, or a solution that is not finite).
 
 Pairwise geometry and the two reflections (geometry pairwise, pressure_wall reflection, delta_wall reflection;
-all off by default). With geometry pairwise the pair's own quantities replace phi_i, d_j and n_j everywhere above
+with continuity_wall_component full the defaults since 2026-11-19, the "complete scheme"; geometry nearest_wall,
+pressure_wall extension and delta_wall extension are everything above). With geometry pairwise the pair's own quantities replace phi_i, d_j and n_j everywhere above
 (wall_crossing_v7.box_pair_geometry): the face the segment i -> j leaves the box through gives n_ij, phi_ij
 (floored) and d_ij, so c_ij = c'_ij = 1 + d_ij / phi_ij, and the wall particle has a mirror point r_j' (r_j
 reflected in every face it lies outside of).
@@ -59,7 +61,8 @@ reflected in every face it lies outside of).
       (0 on a fallback of A_f; c_i^2 as with delta_wall body_force)
 
 A case with wall_boundary simple or adami: from_case takes continuity wall_velocity, continuity_wall_component
-full and delta_wall rest_density,
+full, delta_wall rest_density, geometry nearest_wall and pressure_wall extension (written out: they do not follow
+the defaults of wall_boundary crossing),
 with which the four terms of the density rate above are those of simple's (and adami's) fluid particles (a wall
 neighbour enters with its stored velocity and its stored rho0, pair by pair); the force part is then not that
 mode's and must not be used.
@@ -76,6 +79,10 @@ import numpy as np
 from scipy.spatial import cKDTree
 
 from experiment.v7.utils.wall_crossing_v7 import (
+    WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT,
+    WALL_CROSSING_DEFAULT_DELTA_WALL,
+    WALL_CROSSING_DEFAULT_GEOMETRY,
+    WALL_CROSSING_DEFAULT_PRESSURE_WALL,
     WallCrossingSettings,
     box_depth_behind_wall,
     box_distance_to_wall,
@@ -115,15 +122,16 @@ class ReferenceConstants:
     box_lower: tuple                # spec consts 122-124
     box_upper: tuple                # spec consts 125-127
     continuity: str                 # "extrapolate" | "wall_velocity"
-    delta_wall: str = "extension"   # diagnostic (spec const 116): "extension" | "rest_density" | "body_force"
+    # spec const 116: "reflection" (the default) | "extension" | the diagnostics "rest_density" | "body_force"
+    delta_wall: str = WALL_CROSSING_DEFAULT_DELTA_WALL
     power_parameter: float = 7.0    # the EOS gamma (spec const 4)
     eos_constant: float = 0.0       # the fluid material's B = c0^2 rho0 / gamma (delta_wall body_force only)
     rest_density: float = 0.0       # the fluid material's rho0 (delta_wall body_force only)
-    continuity_wall_component: str = "normal"   # spec const 117: "normal" (the default) | "full"
+    continuity_wall_component: str = WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT   # 117: "full" | "normal"
     viscous_extension: str = "linear"           # spec const 118: "linear" (the default) | "quadratic"
     continuity_extension: str = "linear"        # spec const 119: "linear" (the default) | "quadratic"
-    geometry: str = "nearest_wall"              # spec const 128: "nearest_wall" (the default) | "pairwise"
-    pressure_wall: str = "extension"            # spec const 129: "extension" (the default) | "reflection"
+    geometry: str = WALL_CROSSING_DEFAULT_GEOMETRY              # spec const 128: "pairwise" | "nearest_wall"
+    pressure_wall: str = WALL_CROSSING_DEFAULT_PRESSURE_WALL    # spec const 129: "reflection" | "extension"
     # numerics.volume_constraint: the rate the fused pass adds as rho_i * rate (0 = off, or before the first
     # update); a test sets it to the value it wrote to the GPU's volume_constraint_state
     volume_constraint_rate: float = 0.0
@@ -140,10 +148,12 @@ class ReferenceConstants:
             from experiment.v7.utils.wall_crossing_v7 import resolve_wall_crossing_box
             kinds = np.asarray([material.kind for material in case.materials])
             settings = resolve_wall_crossing_box(
-                # simple and adami take a wall neighbour's whole velocity difference: full, whatever the default
-                # of wall_boundary crossing is
+                # simple and adami take a wall neighbour's whole velocity difference and its stored rho0, pair by
+                # pair: every switch written out, whatever the defaults of wall_boundary crossing are
                 WallCrossingSettings(continuity="wall_velocity", delta_wall="rest_density",
-                                     continuity_wall_component="full"),
+                                     continuity_wall_component="full", geometry="nearest_wall",
+                                     pressure_wall="extension", viscous_extension="linear",
+                                     continuity_extension="linear"),
                 np.asarray(case.initial.positions), kinds[np.asarray(case.initial.material_group)] == 1,
                 float(fluid.radius), int(physics.dimension))
         return cls(

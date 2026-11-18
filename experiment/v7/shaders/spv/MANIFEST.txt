@@ -12,12 +12,12 @@ flags: glslc --target-env=vulkan1.2 -O [-D<macro>] -I experiment/v7/shaders expe
   SHADER_VARIANTS; glslc output is deterministic, _test_seam_layout.py check_spirv_current compares every file
   with a fresh build)
 sources: experiment/v7/shaders/*.comp, *.glsl at the commit that adds this manifest;
-  last change to a shader source before it: the volume constraint (2026-11-18: spec const 130 WALL_CROSSING_VOLUME_CONSTRAINT_ENABLED, default 0 = off, and set 0 binding 15 volume_constraint_state; one statement of the fused pass behind it), before it the pairwise geometry and the two reflections (2026-11-18: spec consts 128 WALL_CROSSING_GEOMETRY and 129 WALL_CROSSING_PRESSURE_WALL, both default 0 = the mode as it was, and the value 3 = reflection of spec const 116; wall_crossing_pair_geometry; behind #ifdef WALL_CROSSING), before it the second-order continuation of the velocity (2026-11-18: spec consts 118
+  last change to a shader source before it: the defaults of the complete scheme (2026-11-19: spec consts 116 WALL_CROSSING_DELTA_WALL 3 = reflection, 117 WALL_CROSSING_CONTINUITY_WALL_COMPONENT 0 = full, 128 WALL_CROSSING_GEOMETRY 1 = pairwise, 129 WALL_CROSSING_PRESSURE_WALL 1 = reflection; the host passes all four on every crossing slab; comments), before it the volume constraint (2026-11-18: spec const 130 WALL_CROSSING_VOLUME_CONSTRAINT_ENABLED, default 0 = off, and set 0 binding 15 volume_constraint_state; one statement of the fused pass behind it), before it the pairwise geometry and the two reflections (2026-11-18: spec consts 128 WALL_CROSSING_GEOMETRY and 129 WALL_CROSSING_PRESSURE_WALL, both default 0 = the mode as it was, and the value 3 = reflection of spec const 116; wall_crossing_pair_geometry; behind #ifdef WALL_CROSSING), before it the second-order continuation of the velocity (2026-11-18: spec consts 118
   WALL_CROSSING_VISCOUS_EXTENSION and 119 WALL_CROSSING_CONTINUITY_EXTENSION, both default 0 = linear = the mode as it was;
   set 0 binding 14 wall_crossing_velocity_gradient; behind #ifdef WALL_CROSSING like everything below).
   wall_boundary crossing (2026-11-17, default of spec const 117 on 2026-11-18): wall_boundary.glsl (the mode's section, behind
-  #ifdef WALL_CROSSING, with the spec consts 116 WALL_CROSSING_DELTA_WALL (diagnostic, default 0 = the mode) and 117
-  WALL_CROSSING_CONTINUITY_WALL_COMPONENT (default 1 = normal since 2026-11-18)), density_budget.glsl (DENSITY_BUDGET builds only),
+  #ifdef WALL_CROSSING, with the spec consts 116 WALL_CROSSING_DELTA_WALL (default 0 = extension until 2026-11-19) and 117
+  WALL_CROSSING_CONTINUITY_WALL_COMPONENT (default 1 = normal from 2026-11-18 to 2026-11-19)), density_budget.glsl (DENSITY_BUDGET builds only),
   correction_density.comp and force.comp (the mode's statements, behind #ifdef WALL_CROSSING), common.glsl
   (the reserved status field [39] named wall_crossing_gradient_fallback_count; comments)
 check: every file below byte-identical to a fresh build with the compiler above (27 of 27; _test_seam_layout check_spirv_current)
@@ -39,8 +39,8 @@ e3de58bdc5e00f892dfa2f100789015c8f0aab4dae92eec6d8257866ab4515d5    53920  corre
 7871141dcdec3681b4fe0ab9b90cd703418183926f5ce453fea5ad63ca3ed143    57868  correction_density.comp.spv  (correction_density.comp)
 7299afa91a19927c92adf622a9fd89dcc4a05c23d1f0ddf10dd2fa6e4071672a   103776  correction_density_budget.comp.spv  (correction_density.comp -DDENSITY_BUDGET)
 f5faeac0e14610d9944a6d92b5d974f259e8ff45f32c60c2fdcd409053e34a87    89468  correction_density_deep_wall_skip.comp.spv  (correction_density.comp -DDEEP_WALL_SKIP)
-4ddc438f909416b1de2f0d0e6b03f13ca9ca8e16a32046994693ee62ddfb7eb6   120588  correction_density_wall_crossing.comp.spv  (correction_density.comp -DWALL_CROSSING)
-bdf6e2b11089cce674feb913e2d6b421a042b68fe79c431ba511f4ad79f71535   211808  correction_density_wall_crossing_budget.comp.spv  (correction_density.comp -DWALL_CROSSING -DDENSITY_BUDGET)
+035f4d8f9c893bdf25f7451ec8785dd136f921482de802f2a5dde8254e2c7d7e   120588  correction_density_wall_crossing.comp.spv  (correction_density.comp -DWALL_CROSSING)
+f377c3e6dc221d6387ce498972e229ffcfc28d6465c0ba34abba03c435d10de5   211808  correction_density_wall_crossing_budget.comp.spv  (correction_density.comp -DWALL_CROSSING -DDENSITY_BUDGET)
 4c9b4096d57aab44946b91a35b74a4ca8a1821761befdd99a58acf8366ea3a8e     4980  deep_wall_marker.comp.spv  (deep_wall_marker.comp)
 52d7d9b3a09cf4ce33e8f2981c6e699b0ff213beabf1935e46e1ff8ad7969c42     5968  defrag.comp.spv  (defrag.comp)
 949bc2d1a5d85ca789fbaea61da51f9e75b2226dd701f4115dd1b55bacec6e7e    38844  density.comp.spv  (density.comp)
@@ -49,7 +49,7 @@ bdf6e2b11089cce674feb913e2d6b421a042b68fe79c431ba511f4ad79f71535   211808  corre
 4087617c2a4a14b5b49548572a4de96161c07af09ed9e5eeeaa042f117364a01     5068  expand_ghost_lists.comp.spv  (expand_ghost_lists.comp)
 3a635216025f245f7f11a3f5edc9d7120640e6df51c9b63021072cedd580f715    46776  force.comp.spv  (force.comp)
 faa772d587f1235af0fc03d5442a4fbf3f4cf0cb673d168043722a3ddfce750e    46828  force_segment.comp.spv  (force.comp -DFORCE_SEGMENT)
-a3b4110f226fbd80088cebb60fbf60d09cec89dbe40b5d99be82aa869fd5f843    70880  force_wall_crossing.comp.spv  (force.comp -DWALL_CROSSING)
+0c8623e84f2a0e1452a25c4934e55052f90ffeb029e7cb7ccacbd324ffad2ade    70880  force_wall_crossing.comp.spv  (force.comp -DWALL_CROSSING)
 0a73e65d75e2a6c6a140ca12812e748e04965fafcde81d4f20b1b543242a89be    19140  ghost_send.comp.spv  (ghost_send.comp)
 60e3eb2eba09588073f7a61d062537c6a7a303929fb73287d21acdf64a602c03    21668  ghost_send_lanes.comp.spv  (ghost_send_lanes.comp)
 62f42d33a26a70871521e30aa448dd3f620342e912120cc2e3d3bc4a6e3bdafa     6704  initialize_voxelization.comp.spv  (initialize_voxelization.comp)

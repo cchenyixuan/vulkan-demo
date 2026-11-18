@@ -1337,7 +1337,9 @@ class SphSimulatorV7:
             raise ValueError("numerics.volume_constraint.enabled needs numerics.wall_boundary crossing")
         if self._density_budget_active():
             raise ValueError("numerics.volume_constraint and V7_DENSITY_BUDGET=1 together are not supported: the "
-                             "budget's four terms do not contain the constraint's term")
+                             "budget's four terms do not contain the constraint's term. The default crossing cases "
+                             "carry the constraint since 2026-11-19; for the budget take a case without it (the "
+                             "250^2 cavity: cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_constraint_off)")
         settings = self.case.numerics.volume_constraint
         self._volume_constraint_update_steps_checked = settings.update_steps(
             float(self.case.physics.timestep), int(self.case.numerics.defrag_cadence))
@@ -2183,8 +2185,8 @@ class SphSimulatorV7:
             settings = n.wall_crossing
             particle_radius = self.wall_crossing_particle_radius()
             wall_crossing_entries = [
-                (116, 'I', settings.delta_wall_code()),        # diagnostic, 0 = the mode (wall_boundary.glsl)
-                (117, 'I', settings.continuity_wall_component_code()),     # 1 = normal (default), 0 = full
+                (116, 'I', settings.delta_wall_code()),        # 3 = reflection (default since 2026-11-19), 0 = extension
+                (117, 'I', settings.continuity_wall_component_code()),     # 0 = full (default), 1 = normal
                 (118, 'I', settings.viscous_extension_code()),             # 0 = linear (default), 1 = quadratic
                 (119, 'I', settings.continuity_extension_code()),          # 0 = linear (default), 1 = quadratic
                 (120, 'I', settings.continuity_code()),
@@ -2193,8 +2195,8 @@ class SphSimulatorV7:
                 (124, 'f', settings.box_lower[2]),
                 (125, 'f', settings.box_upper[0]), (126, 'f', settings.box_upper[1]),
                 (127, 'f', settings.box_upper[2]),
-                (128, 'I', settings.geometry_code()),          # 0 = nearest_wall (default), 1 = pairwise
-                (129, 'I', settings.pressure_wall_code()),     # 0 = extension (default), 1 = reflection
+                (128, 'I', settings.geometry_code()),          # 1 = pairwise (default), 0 = nearest_wall
+                (129, 'I', settings.pressure_wall_code()),     # 1 = reflection (default), 0 = extension
                 (130, 'I', 1 if n.volume_constraint.enabled else 0),       # numerics.volume_constraint.enabled
             ]
         elif self._density_budget_active():

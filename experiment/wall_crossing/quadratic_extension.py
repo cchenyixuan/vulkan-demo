@@ -54,15 +54,24 @@ SECOND_FLOOR_FACTOR = 0.5
 def variant_text(source_text: str, source_name: str, configuration: str, floor_factor: float | None) -> str:
     """The source case with the configuration's keys (and the floor factor) in numerics.wall_crossing."""
     viscous_extension, continuity_extension = CONFIGURATIONS[configuration]
-    lines = source_text.split("\n")
+    # the source's volume constraint (the default crossing cases carry one since 2026-11-19) is dropped: the
+    # variants were made without it
+    lines = without_volume_constraint(source_text.split("\n"))
     mapping_rows = [index for index, line in enumerate(lines) if line.startswith("  wall_crossing:")]
     if len(mapping_rows) != 1:
         raise ValueError(f"{source_name}: expected exactly one numerics.wall_crossing mapping")
-    if any(line.strip().startswith(("viscous_extension", "continuity_extension", "distance_floor_factor"))
-           for line in lines):
-        raise ValueError(f"{source_name}: the source already sets an extension or the floor factor")
+    if any(line.strip().startswith(("viscous_extension", "continuity_extension", "distance_floor_factor",
+                                     "geometry:", "pressure_wall", "delta_wall", "continuity_wall_component"))
+           and line.startswith("    ") for line in lines):
+        raise ValueError(f"{source_name}: the source already sets a switch of numerics.wall_crossing")
     added = [f"    viscous_extension: {viscous_extension}       # linear | quadratic (second-order continuation)",
-             f"    continuity_extension: {continuity_extension}    # linear | quadratic"]
+             f"    continuity_extension: {continuity_extension}    # linear | quadratic",
+             # what a quadratic extension needs (the defaults since 2026-11-19 are pairwise / reflection), and
+             # the component of the default under which these variants were made (2026-11-18)
+             "    geometry: nearest_wall          # the second-order continuation needs it",
+             "    pressure_wall: extension",
+             "    delta_wall: extension",
+             "    continuity_wall_component: normal   # the default when these variants were made (2026-11-18)"]
     if floor_factor is not None:
         added.append(f"    distance_floor_factor: {floor_factor!r}   # default 0.25")
     lines[mapping_rows[0] + 1:mapping_rows[0] + 1] = added
@@ -75,6 +84,20 @@ def variant_text(source_text: str, source_name: str, configuration: str, floor_f
               + "; everything else identical."]
     lines[2:2] = header + [""]
     return "\n".join(lines)
+
+
+def without_volume_constraint(lines: list) -> list:
+    """The lines of a case without its numerics.volume_constraint block."""
+    kept, inside = [], False
+    for line in lines:
+        if line.startswith("  volume_constraint:"):
+            inside = True
+            continue
+        if inside and line.startswith("    "):
+            continue
+        inside = False
+        kept.append(line)
+    return kept
 
 
 def variant_name(source_name: str, configuration: str, floor_factor: float | None) -> str:

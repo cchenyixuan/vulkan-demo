@@ -25,6 +25,13 @@ from typing import Optional
 
 import numpy as np
 
+from experiment.v7.utils.wall_crossing_v7 import (
+    WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT,
+    WALL_CROSSING_DEFAULT_DELTA_WALL,
+    WALL_CROSSING_DEFAULT_GEOMETRY,
+    WALL_CROSSING_DEFAULT_PRESSURE_WALL,
+)
+
 
 @dataclass
 class BoxCaseSpecification:
@@ -44,12 +51,13 @@ class BoxCaseSpecification:
     wall_boundary: str = "crossing"             # simple | adami | crossing
     continuity: str = "extrapolate"             # crossing only
     distance_floor_factor: float = 0.25         # crossing only
-    delta_wall: str = "extension"               # crossing only, diagnostic: extension | rest_density | body_force
-    continuity_wall_component: str = "normal"   # crossing only: normal (the solver's default) | full
+    # crossing only, the four switches of the complete scheme: the solver's defaults unless a test sets them
+    delta_wall: str = WALL_CROSSING_DEFAULT_DELTA_WALL       # reflection | extension | rest_density | body_force
+    continuity_wall_component: str = WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT     # full | normal
     viscous_extension: str = "linear"           # crossing only: linear (the solver's default) | quadratic
     continuity_extension: str = "linear"        # crossing only: linear (the solver's default) | quadratic
-    geometry: str = "nearest_wall"              # crossing only: nearest_wall (the solver's default) | pairwise
-    pressure_wall: str = "extension"            # crossing only: extension (the solver's default) | reflection
+    geometry: str = WALL_CROSSING_DEFAULT_GEOMETRY                # crossing only: pairwise | nearest_wall
+    pressure_wall: str = WALL_CROSSING_DEFAULT_PRESSURE_WALL      # crossing only: reflection | extension
     volume_constraint: bool = False             # numerics.volume_constraint.enabled (crossing only)
     # its relaxation time (simulated time); None = the solver's default 1.0. The updates happen at defrags, so
     # it has to be at least 5 defrag cadences long
@@ -213,16 +221,14 @@ def write_box_case(directory: pathlib.Path, specification: BoxCaseSpecification)
         numerics_lines += ["  wall_crossing:",
                            f"    continuity: {specification.continuity}",
                            f"    distance_floor_factor: {specification.distance_floor_factor!r}"]
-        if specification.delta_wall != "extension":
-            numerics_lines += [f"    delta_wall: {specification.delta_wall}"]
-        # written only when it is not the solver's default, so that a default case exercises the default
-        from experiment.v7.utils.wall_crossing_v7 import WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT
-        if specification.continuity_wall_component != WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT:
-            numerics_lines += [f"    continuity_wall_component: {specification.continuity_wall_component}"]
-        for key in ("viscous_extension", "continuity_extension"):
-            if getattr(specification, key) != "linear":
-                numerics_lines += [f"    {key}: {getattr(specification, key)}"]
-        for key, default in (("geometry", "nearest_wall"), ("pressure_wall", "extension")):
+        # a switch is written only when it is not the solver's default, so that a default case exercises the
+        # defaults (the solver's, imported: since 2026-11-19 geometry pairwise, continuity_wall_component full,
+        # pressure_wall reflection, delta_wall reflection)
+        for key, default in (("delta_wall", WALL_CROSSING_DEFAULT_DELTA_WALL),
+                             ("continuity_wall_component", WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT),
+                             ("viscous_extension", "linear"), ("continuity_extension", "linear"),
+                             ("geometry", WALL_CROSSING_DEFAULT_GEOMETRY),
+                             ("pressure_wall", WALL_CROSSING_DEFAULT_PRESSURE_WALL)):
             if getattr(specification, key) != default:
                 numerics_lines += [f"    {key}: {getattr(specification, key)}"]
         if specification.explicit_box:
