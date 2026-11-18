@@ -52,12 +52,14 @@ RESOLUTIONS = (250, 500, 1000)
 # (the runner hook read the state buffer every 1000 steps); crossing_normal_rho_minus = crossing_normal started
 # with the fluid density lowered by 0.1 kg/m3 (a control experiment)
 MODES = ("simple", "adami", "crossing_normal", "quadratic_viscous", "crossing_quadratic_viscous",
-         "crossing_normal_rho_minus", "crossing", "crossing_r2", "crossing_wall_velocity", "crossing_floor0p5")
+         "crossing_normal_rho_minus", "crossing_normal_rho_minus_0p45", "crossing", "crossing_r2",
+         "crossing_wall_velocity", "crossing_floor0p5")
 MODE_TEXT = {"simple": "simple", "adami": "adami",
              "crossing_normal": "crossing（连续性壁项 normal，新缺省）",
              "quadratic_viscous": "crossing，二阶粘性（viscous_extension quadratic）",
              "crossing_quadratic_viscous": "crossing，二阶粘性，第一次运行（诊断读回每 1000 步一次）",
              "crossing_normal_rho_minus": "crossing（normal），初始密度调低 0.1 kg/m³（对照）",
+             "crossing_normal_rho_minus_0p45": "crossing（normal），初始密度调低 0.45 kg/m³（对照）",
              "crossing": "crossing (extrapolate；连续性壁项 full，旧缺省)",
              "crossing_r2": "crossing (extrapolate；full)，第二次运行",
              "crossing_wall_velocity": "crossing (wall_velocity)", "crossing_floor0p5": "crossing (floor 0.5)"}
