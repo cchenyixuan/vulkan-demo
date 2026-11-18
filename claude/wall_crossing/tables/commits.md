@@ -64,5 +64,12 @@
 | `8a7f02d` | wall_boundary crossing: the refusals of the new defaults name only the keys still missing; default_change.py (checks 5 and 6 of the default change and the tables of its report section) |
 | `380ea90` | default_change.py: the single-step table of the default change (criterion, reflection terms relative to their quantities) |
 | `4038e64` | wall_boundary crossing: section 18 of the report (the complete scheme as the default of crossing, from 3cba19f: change list, decisions, checks 1-6, the case files, the defaults by period and the runs.jsonl records under each); default_change.py tables (both commits of checks 1-3, single step, refusals, tests, cases grouped by change) |
+| `d6fd7e5` | wall_boundary crossing: report rebuilt (commit table) |
+| `f2c318a` | wall_boundary crossing: the 34 diagnostic cases written out with the defaults in force when each was made (their meaning before 3cba19f); outcome_classes.py --reference-repo (reference runs from another checkout) |
+| `0a1eb0a` | wall_crossing tools: box_run.py checkpoints, resume, heartbeat and stop conditions; chain_runner.py restart; box_run_supervised.py (watchdog + resume, for the 3-D long runs) |
+| `acd0c43` | wall_crossing tools: cavity_run.py writes launcher.pid and does not resume a run cavity_watch stopped; cavity_watch.py --follow-launcher (watches every resumed segment) |
+| `f6ee476` | volume constraint: the target is taken when the simulation starts (bootstrap_init / restart_init), not in the constructor |
+| `08e6b83` | box_run.py: a resumed segment is numbered after every segment that left a trace (a killed segment writes no segments.jsonl line; found by the kill test of the 3-D trial) |
+| `9308a18` | box_run.py --depth (frames in flight of the pipelined chain; default 2 as before) |
 
 （加入本报告的那个提交排在这些之后。）
