@@ -85,6 +85,7 @@
 | `3cba19f` | wall_boundary crossing: the complete scheme is the default (geometry pairwise, continuity_wall_component full, pressure_wall reflection, delta_wall reflection) |
 | `8a7f02d` | wall_boundary crossing: the refusals of the new defaults name only the keys still missing; default_change.py (checks 5 and 6 of the default change and the tables of its report section) |
 | `380ea90` | default_change.py: the single-step table of the default change (criterion, reflection terms relative to their quantities) |
+| `4038e64` | wall_boundary crossing: section 18 of the report (the complete scheme as the default of crossing, from 3cba19f: change list, decisions, checks 1-6, the case files, the defaults by period and the runs.jsonl records under each); default_change.py tables (both commits of checks 1-3, single step, refusals, tests, cases grouped by change) |
 
 （加入本报告的那个提交排在这些之后。）
 
