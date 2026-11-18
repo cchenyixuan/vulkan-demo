@@ -33,7 +33,8 @@ Acceleration of a fluid particle i (pass 2; V_j = m_i / rho_j as force.comp take
     a_v = sum_j 2 (d + 2) nu V_j c'_ij (v_i - v_j) . (r_i - r_j) / (r^2 + eps^2) L grad W,  c'_ij = 1 + d_j / phi_i for a wall j
     a   = a_p + a_v + g
 
-A case with wall_boundary simple or adami: from_case takes continuity wall_velocity and delta_wall rest_density,
+A case with wall_boundary simple or adami: from_case takes continuity wall_velocity, continuity_wall_component
+full and delta_wall rest_density,
 with which the four terms of the density rate above are those of simple's (and adami's) fluid particles (a wall
 neighbour enters with its stored velocity and its stored rho0, pair by pair); the force part is then not that
 mode's and must not be used.
@@ -106,7 +107,10 @@ class ReferenceConstants:
             from experiment.v7.utils.wall_crossing_v7 import resolve_wall_crossing_box
             kinds = np.asarray([material.kind for material in case.materials])
             settings = resolve_wall_crossing_box(
-                WallCrossingSettings(continuity="wall_velocity", delta_wall="rest_density"),
+                # simple and adami take a wall neighbour's whole velocity difference: full, whatever the default
+                # of wall_boundary crossing is
+                WallCrossingSettings(continuity="wall_velocity", delta_wall="rest_density",
+                                     continuity_wall_component="full"),
                 np.asarray(case.initial.positions), kinds[np.asarray(case.initial.material_group)] == 1,
                 float(fluid.radius), int(physics.dimension))
         return cls(
