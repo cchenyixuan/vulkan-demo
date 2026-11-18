@@ -21,6 +21,8 @@ Configurations (the names used in case directories, run names and tables):
     pairwise                      geometry pairwise only                                the screening)
     pairwise_full                 geometry pairwise with continuity_wall_component full: the default until
                                   2026-11-18 (the whole vector in the continuity equation) on the pairwise geometry
+    reflection_full               the reflection configuration with continuity_wall_component full ("完整方案":
+                                  pairwise geometry, whole vector, both reflections)
 make-cases derives, from an existing crossing case, the same case with the keys added: the cavity at 250^2 and the
 two 2-D hydrostatic boxes. Existing case files are left alone.
 
@@ -58,15 +60,17 @@ CONFIGURATIONS = {
     "pairwise_pressure_reflection": ("pairwise", "reflection", "extension"),
     "pairwise": ("pairwise", "extension", "extension"),
     "pairwise_full": ("pairwise", "extension", "extension"),
+    "reflection_full": ("pairwise", "reflection", "reflection"),
 }
 # configurations that also set numerics.wall_crossing.continuity_wall_component (the others take the default)
-CONTINUITY_WALL_COMPONENT = {"pairwise_full": "full"}
+CONTINUITY_WALL_COMPONENT = {"pairwise_full": "full", "reflection_full": "full"}
 CONFIGURATION_TEXT = {
     "reflection": "反射版（逐对几何 + 压力反射 + 密度反射）",
     "pairwise_delta_reflection": "逐对几何 + 只有密度反射",
     "pairwise_pressure_reflection": "逐对几何 + 只有压力反射",
     "pairwise": "只有逐对几何",
     "pairwise_full": "逐对几何 + 连续性取完整向量（旧缺省换成逐对几何）",
+    "reflection_full": "完整方案（逐对几何 + 完整向量 + 压力反射 + 密度反射）",
 }
 MAIN_CONFIGURATION = "reflection"
 SOURCE_CASES = (
