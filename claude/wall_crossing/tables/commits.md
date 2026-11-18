@@ -52,5 +52,6 @@
 | `b0a2791` | volume constraint for closed domains (numerics.volume_constraint, off by default, wall_boundary crossing only) |
 | `5f27286` | volume constraint: the log path's environment variable is SPH_VOLUME_CONSTRAINT_LOG (the cavity runner refuses any V7_* variable outside the release set of switches) |
 | `e09cd4e` | wall_boundary crossing: section 15 of the report, first version (the volume constraint: regression, single step, short run, the 250^2 cavity to t = 100, hydrostatic boxes; the 500^2 run is still going) |
+| `501a56e` | wall_boundary crossing: section 15 of the report completed (the 500^2 cavity with the complete scheme and the volume constraint: metrics beside the old default and adami, two-point order, histories, time per step) |
 
 （加入本报告的那个提交排在这些之后。）
