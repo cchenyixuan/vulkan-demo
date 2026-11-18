@@ -75,5 +75,6 @@
 | `afbaad0` | cavity_tables.py: label of the 1000^2 long run of section 19 (complete_volume) |
 | `2e77e0e` | long_validation.py: the 3-D step rate between samples (box_run stores the average since the segment start) |
 | `1ce7ea7` | report section 19, second update: the 3-D cavity crossing run (t = 45) - stable, 15.3 ms per step, centre-line profiles and histories |
+| `055343a` | report section 19, third update: the remote 1000^2 adami run (t = 100, window 80-100) - psi_min +0.24 % mid frame / +0.14 % wall frame, stable |
 
 （加入本报告的那个提交排在这些之后。）
