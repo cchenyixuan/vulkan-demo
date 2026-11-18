@@ -1,0 +1,1074 @@
+{
+ "regression": {
+  "manifest_same_as_base": 23,
+  "manifest_base": 23,
+  "changed_since_b18597b": [
+   "correction_density_wall_crossing.comp.spv",
+   "correction_density_wall_crossing_budget.comp.spv",
+   "force_wall_crossing.comp.spv"
+  ],
+  "crossing_defaults": {
+   "classes": 1,
+   "identical": true,
+   "run_id": "wc-20261118-164940-939a"
+  },
+  "seam_failures": {
+   "count": 858,
+   "same_as_base": true
+  }
+ },
+ "single_step": {
+  "2d_smooth_crossing_extrapolate_delta_wall_reflection_wall_component_normal_geometry_pairwise_pressure_reflection": {
+   "passed": true,
+   "worst": 8.84371046810939e-06,
+   "run_id": "wc-20261118-165138-9b50",
+   "reflection_terms": {
+    "pressure_reflection_acceleration_maximum": 12.542307978439514,
+    "pressure_acceleration_maximum": 15.996823070805592,
+    "density_reflection_rate_maximum": 1563.879353864451,
+    "density_rate_maximum": 76652.57088643823,
+    "extrapolation_factor_maximum": 19.000007078051727
+   },
+   "derivation_step": {
+    "pressure_pairwise_difference_of_field": 3.1137002409182124e-15,
+    "density_diffusion_pairwise_difference_of_field": 0.002187123949172411
+   }
+  },
+  "2d_smooth_crossing_extrapolate_delta_wall_reflection_wall_component_normal_geometry_pairwise_pressure_reflection_budget": {
+   "passed": true,
+   "worst": 8.982604269604233e-06,
+   "run_id": "wc-20261118-165151-bf2e",
+   "reflection_terms": {
+    "pressure_reflection_acceleration_maximum": 12.542307978439514,
+    "pressure_acceleration_maximum": 15.996823070805592,
+    "density_reflection_rate_maximum": 1563.879353864451,
+    "density_rate_maximum": 76652.57088643823,
+    "extrapolation_factor_maximum": 19.000007078051727
+   },
+   "derivation_step": {
+    "pressure_pairwise_difference_of_field": 3.1137002409182124e-15,
+    "density_diffusion_pairwise_difference_of_field": 0.002187123949172411
+   }
+  },
+  "2d_smooth_crossing_extrapolate_delta_wall_reflection_wall_component_normal_geometry_pairwise_pressure_reflection_det_threshold_1p27": {
+   "passed": true,
+   "worst": 8.919157037771703e-06,
+   "run_id": "wc-20261118-170537-fe75",
+   "reflection_terms": {
+    "pressure_reflection_acceleration_maximum": 0.42981398180153685,
+    "pressure_acceleration_maximum": 17.06038416115938,
+    "density_reflection_rate_maximum": 9.487041611269937,
+    "density_rate_maximum": 84110.3344689972,
+    "extrapolation_factor_maximum": 19.000007078051727
+   },
+   "derivation_step": {
+    "pressure_pairwise_difference_of_field": 2.5010899595436706e-15,
+    "density_diffusion_pairwise_difference_of_field": 1.8797696593001875e-05
+   }
+  },
+  "3d_smooth_crossing_extrapolate_delta_wall_reflection_wall_component_normal_geometry_pairwise_pressure_reflection": {
+   "passed": true,
+   "worst": 1.1797278529549721e-05,
+   "run_id": "wc-20261118-165151-e463",
+   "reflection_terms": {
+    "pressure_reflection_acceleration_maximum": 19.10990941299068,
+    "pressure_acceleration_maximum": 22.022442519402308,
+    "density_reflection_rate_maximum": 1542.3796315185903,
+    "density_rate_maximum": 68128.6044059723,
+    "extrapolation_factor_maximum": 15.00000551342956
+   },
+   "derivation_step": {
+    "pressure_pairwise_difference_of_field": 0.005803793701664477,
+    "density_diffusion_pairwise_difference_of_field": 0.0020264920815266057
+   }
+  }
+ },
+ "hydrostatic": {
+  "runs": {
+   "gy": {
+    "2d_n250_gy_crossing_normal_r1": {
+     "run_id": "wc-20261118-102533-f4f7",
+     "time": 10.02,
+     "speed_root_mean_square_over_scale_last_fifth": 0.00029899898666359016,
+     "speed_maximum_over_scale_last_fifth": 0.006270119354753244,
+     "pressure_error_root_mean_square_over_scale": 0.0004556440621470913,
+     "pressure_error_maximum_over_scale": 0.009187621851988306,
+     "pressure_raw_error_root_mean_square_over_scale": 0.022635029002509372,
+     "pressure_level_over_scale": 0.022630442470996246,
+     "fitted_gradient_error_over_rho_g": 0.0011421681770287441,
+     "density_deviation_maximum": 0.542724609375,
+     "pressure_level_over_scale_at_times": {
+      "2.5": 0.0019781818403685507,
+      "5.0": 0.005355142122169718,
+      "7.5": 0.014664325605351986,
+      "10.0": 0.022630442470996246
+     },
+     "pressure_level_rate_over_scale": 0.0032441389493871376,
+     "density_mean_drift_rate": 0.0032573273469712997,
+     "density_mean_minus_rest_last": 0.02235647894133308
+    },
+    "2d_n250_gy_crossing_normal_r2": {
+     "run_id": "wc-20261118-102844-835c",
+     "time": 10.02,
+     "speed_root_mean_square_over_scale_last_fifth": 0.00023164536465596105,
+     "speed_maximum_over_scale_last_fifth": 0.005578455713720579,
+     "pressure_error_root_mean_square_over_scale": 0.0004280534907790202,
+     "pressure_error_maximum_over_scale": 0.009729012218114346,
+     "pressure_raw_error_root_mean_square_over_scale": 0.008392764333781838,
+     "pressure_level_over_scale": -0.008381841287654665,
+     "fitted_gradient_error_over_rho_g": 0.00105290887730445,
+     "density_deviation_maximum": 0.5477294921875,
+     "pressure_level_over_scale_at_times": {
+      "2.5": -0.0120756770608552,
+      "5.0": -0.012881878403415365,
+      "7.5": -0.010362778890070819,
+      "10.0": -0.008381841287654665
+     },
+     "pressure_level_rate_over_scale": 0.0007563521176127154,
+     "density_mean_drift_rate": 0.0007592038549080906,
+     "density_mean_minus_rest_last": -0.008780115663171273
+    },
+    "2d_n250_gy_crossing_reflection": {
+     "run_id": "wc-20261118-165725-99d1",
+     "time": 10.02,
+     "speed_root_mean_square_over_scale_last_fifth": 0.00016971614021228299,
+     "speed_maximum_over_scale_last_fifth": 0.003535177248740853,
+     "pressure_error_root_mean_square_over_scale": 0.00039568484157138033,
+     "pressure_error_maximum_over_scale": 0.008770476954458808,
+     "pressure_raw_error_root_mean_square_over_scale": 0.05253255413328394,
+     "pressure_level_over_scale": -0.05253106392671444,
+     "fitted_gradient_error_over_rho_g": 0.0009692996581627862,
+     "density_deviation_maximum": 0.5545654296875,
+     "pressure_level_over_scale_at_times": {
+      "2.5": -0.021485171981263766,
+      "5.0": -0.02942010310159391,
+      "7.5": -0.039386502843460576,
+      "10.0": -0.05253106392671444
+     },
+     "pressure_level_rate_over_scale": -0.004286263046576648,
+     "density_mean_drift_rate": -0.004303167664755542,
+     "density_mean_minus_rest_last": -0.05310006860008798
+    }
+   },
+   "g30": {
+    "2d_n250_g30_crossing_normal_r1": {
+     "run_id": "wc-20261118-102708-5148",
+     "time": 10.02,
+     "speed_root_mean_square_over_scale_last_fifth": 0.0004468922594236192,
+     "speed_maximum_over_scale_last_fifth": 0.006848645004739924,
+     "pressure_error_root_mean_square_over_scale": 0.000342012173885851,
+     "pressure_error_maximum_over_scale": 0.008391738787311928,
+     "pressure_raw_error_root_mean_square_over_scale": 0.0034818045471565846,
+     "pressure_level_over_scale": 0.0034649661726363426,
+     "fitted_gradient_error_over_rho_g": 0.0011023045736544283,
+     "density_deviation_maximum": 0.7557373046875,
+     "pressure_level_over_scale_at_times": {
+      "2.5": -0.008242300326358544,
+      "5.0": -0.005723113509617739,
+      "7.5": -0.0016148328216177394,
+      "10.0": 0.0034649661726363426
+     },
+     "pressure_level_rate_over_scale": 0.00169286470975177,
+     "density_mean_drift_rate": 0.0023214205613051554,
+     "density_mean_minus_rest_last": 0.004395310162522037
+    },
+    "2d_n250_g30_crossing_normal_r2": {
+     "run_id": "wc-20261118-103018-490a",
+     "time": 10.02,
+     "speed_root_mean_square_over_scale_last_fifth": 0.0003751469863033267,
+     "speed_maximum_over_scale_last_fifth": 0.005459722140517752,
+     "pressure_error_root_mean_square_over_scale": 0.00034247265433233096,
+     "pressure_error_maximum_over_scale": 0.006847758639601397,
+     "pressure_raw_error_root_mean_square_over_scale": 0.005705025391978539,
+     "pressure_level_over_scale": -0.005694736798496875,
+     "fitted_gradient_error_over_rho_g": 0.0010818995009025097,
+     "density_deviation_maximum": 0.7586669921875,
+     "pressure_level_over_scale_at_times": {
+      "2.5": -0.015881138361398105,
+      "5.0": -0.01628105512966618,
+      "7.5": -0.013217923698196885,
+      "10.0": -0.005694736798496875
+     },
+     "pressure_level_rate_over_scale": 0.001498055313185654,
+     "density_mean_drift_rate": 0.0020534384421986365,
+     "density_mean_minus_rest_last": -0.008171790823212177
+    },
+    "2d_n250_g30_crossing_reflection": {
+     "run_id": "wc-20261118-165859-42c7",
+     "time": 10.02,
+     "speed_root_mean_square_over_scale_last_fifth": 0.00041710736354715533,
+     "speed_maximum_over_scale_last_fifth": 0.0031667971721955368,
+     "pressure_error_root_mean_square_over_scale": 0.00034912127739908025,
+     "pressure_error_maximum_over_scale": 0.007538210828430311,
+     "pressure_raw_error_root_mean_square_over_scale": 0.023134043053047348,
+     "pressure_level_over_scale": -0.023131408567441707,
+     "fitted_gradient_error_over_rho_g": 0.0010035495137286625,
+     "density_deviation_maximum": 0.7529296875,
+     "pressure_level_over_scale_at_times": {
+      "2.5": -0.015353742225050801,
+      "5.0": -0.016523367603732957,
+      "7.5": -0.018794936612355657,
+      "10.0": -0.023131408567441707
+     },
+     "pressure_level_rate_over_scale": -0.001066130613495155,
+     "density_mean_drift_rate": -0.0014639274061283571,
+     "density_mean_minus_rest_last": -0.032077969442298127
+    }
+   }
+  },
+  "ratios": {
+   "gy": {
+    "first_order": [
+     0.00029899898666359016,
+     0.00023164536465596105
+    ],
+    "reflection": 0.00016971614021228299,
+    "ratio_to_first_order_mean": 0.6396605929762582
+   },
+   "g30": {
+    "first_order": [
+     0.0004468922594236192,
+     0.0003751469863033267
+    ],
+    "reflection": 0.00041710736354715533,
+    "ratio_to_first_order_mean": 1.0148113139739428
+   }
+  }
+ },
+ "screening": {
+  "budget_n250_crossing_reflection": {
+   "interior_continuity": -0.020582018019224487,
+   "interior_continuity_error": 0.006047910320123453,
+   "density_mean_fit_slope": 0.005914329113840091,
+   "terms_all": [
+    0.07519784639405175,
+    -0.08596392900113853,
+    0.0026623896991687488,
+    0.0008711770942339425,
+    -0.007232515813684079,
+    -0.010766082607086771,
+    0.0035335667934026918,
+    0.009854471808913955,
+    0.017086987622598034
+   ],
+   "terms_all_error": [
+    0.004641877374000238,
+    0.004552036563725983,
+    0.00013310432327869433,
+    0.0005435464901020047,
+    0.006274245782852749,
+    0.006938821771024808,
+    0.0006730851027488514,
+    0.00628831485779573,
+    0.00040150874539119654
+   ],
+   "checks": {
+    "conserved": true,
+    "inside": true,
+    "speed": true,
+    "interior": false
+   },
+   "passed": false,
+   "speed_maximum": 0.9784345134361965,
+   "below_floor_maximum": 0,
+   "outside_maximum": 0,
+   "wall_distance_minimum_over_spacing": 0.3121559619903569,
+   "density_mean_minus_rest_at_1": 0.0797384965501351,
+   "density_mean_minus_rest_last": 0.1205491651965076,
+   "density_deviation_maximum": 0.86102294921875,
+   "density_deviation_maximum_time": 1.26,
+   "density_deviation_maximum_after_1": 0.86102294921875,
+   "pressure_mean_last": 1207.1502062920658,
+   "pressure_negative_fraction_last": 0.0,
+   "kinetic_energy_last": 21.04579145571926,
+   "pressure_mean_fluctuation": 0.004397664685856005,
+   "gradient_fallbacks": 0,
+   "window": [
+    1.02,
+    5.01
+   ],
+   "run_id": "wc-20261118-165529-a2b4",
+   "diagnostics": {
+    "静止壁带（左、右、下）": {
+     "extrapolation_factor_maximum": 14.748690789520364,
+     "diffusion_maximum": 0.014914306811988354
+    },
+    "盖带": {
+     "extrapolation_factor_maximum": 15.583252823293586,
+     "diffusion_maximum": 0.015855319797992706
+    },
+    "下面两个角": {
+     "extrapolation_factor_maximum": 13.512015188096829,
+     "diffusion_maximum": 0.017372742295265198
+    },
+    "盖的左角（上游）": {
+     "extrapolation_factor_maximum": 15.528529337598968,
+     "diffusion_maximum": 0.017741575837135315
+    },
+    "盖的右角（下游）": {
+     "extrapolation_factor_maximum": 16.9302634232335,
+     "diffusion_maximum": 0.01999000646173954
+    }
+   }
+  },
+  "budget_n250_crossing_pairwise_delta_reflection": {
+   "interior_continuity": -0.012413321707482152,
+   "interior_continuity_error": 0.004363762190590524,
+   "density_mean_fit_slope": 0.014371089641180987,
+   "terms_all": [
+    0.05571274884541722,
+    -0.06058755796883513,
+    0.001907628535026327,
+    -0.0002155408286856155,
+    -0.0031827214170771978,
+    -0.00487480912341791,
+    0.0016920877063407115,
+    0.01342666510517979,
+    0.016609386522256988
+   ],
+   "terms_all_error": [
+    0.005039231792593144,
+    0.0037683325330114476,
+    0.00019831165282129177,
+    0.00019957587190262143,
+    0.004383009984218421,
+    0.004718215236972225,
+    0.00039156648826835623,
+    0.004373108381401149,
+    0.0003838447014687744
+   ],
+   "checks": {
+    "conserved": true,
+    "inside": true,
+    "speed": true,
+    "interior": false
+   },
+   "passed": false,
+   "speed_maximum": 0.978357139609308,
+   "below_floor_maximum": 0,
+   "outside_maximum": 0,
+   "wall_distance_minimum_over_spacing": 0.2974038124084477,
+   "density_mean_minus_rest_at_1": 0.04640495537773859,
+   "density_mean_minus_rest_last": 0.09960469764985191,
+   "density_deviation_maximum": 0.68255615234375,
+   "density_deviation_maximum_time": 2.25,
+   "density_deviation_maximum_after_1": 0.68255615234375,
+   "pressure_mean_last": 997.5422587053895,
+   "pressure_negative_fraction_last": 0.0,
+   "kinetic_energy_last": 21.044322782813236,
+   "pressure_mean_fluctuation": 0.004710820668943623,
+   "gradient_fallbacks": 0,
+   "window": [
+    1.02,
+    5.01
+   ],
+   "run_id": "wc-20261118-170235-70e5",
+   "diagnostics": {
+    "静止壁带（左、右、下）": {
+     "extrapolation_factor_maximum": 15.002410694956868,
+     "diffusion_maximum": 0.015205483883619308
+    },
+    "盖带": {
+     "extrapolation_factor_maximum": 15.001112833069044,
+     "diffusion_maximum": 0.015316646546125412
+    },
+    "下面两个角": {
+     "extrapolation_factor_maximum": 13.334681697060267,
+     "diffusion_maximum": 0.01735413819551468
+    },
+    "盖的左角（上游）": {
+     "extrapolation_factor_maximum": 15.031037327140227,
+     "diffusion_maximum": 0.017526885494589806
+    },
+    "盖的右角（下游）": {
+     "extrapolation_factor_maximum": 16.56248433814118,
+     "diffusion_maximum": 0.019900618121027946
+    }
+   }
+  },
+  "budget_n250_crossing_pairwise_pressure_reflection": {
+   "interior_continuity": -0.02045796473354991,
+   "interior_continuity_error": 0.006298114206914941,
+   "density_mean_fit_slope": 0.004405569399257415,
+   "terms_all": [
+    0.06737350688437657,
+    -0.077780728615733,
+    0.002857659099369451,
+    -0.0016579764033965848,
+    -0.009207539035383561,
+    -0.010407221731356428,
+    0.001199682695972866,
+    0.006787339388200406,
+    0.015994878423583967
+   ],
+   "terms_all_error": [
+    0.009232307217682019,
+    0.003732752305738859,
+    0.000147558668924526,
+    0.0006738650810702152,
+    0.006923579166168156,
+    0.006517301184224664,
+    0.0005354849337072193,
+    0.006710872350718786,
+    0.00047063687952597904
+   ],
+   "checks": {
+    "conserved": true,
+    "inside": true,
+    "speed": true,
+    "interior": false
+   },
+   "passed": false,
+   "speed_maximum": 0.9774998522723689,
+   "below_floor_maximum": 0,
+   "outside_maximum": 0,
+   "wall_distance_minimum_over_spacing": 0.29747831821441695,
+   "density_mean_minus_rest_at_1": 0.09100670283521595,
+   "density_mean_minus_rest_last": 0.1192537358813297,
+   "density_deviation_maximum": 1.3248291015625,
+   "density_deviation_maximum_time": 3.21,
+   "density_deviation_maximum_after_1": 1.3248291015625,
+   "pressure_mean_last": 1194.200212399166,
+   "pressure_negative_fraction_last": 0.0,
+   "kinetic_energy_last": 21.054431727595194,
+   "pressure_mean_fluctuation": 0.004491962233636094,
+   "gradient_fallbacks": 0,
+   "window": [
+    1.02,
+    5.01
+   ],
+   "run_id": "wc-20261118-170046-7f12",
+   "diagnostics": {
+    "静止壁带（左、右、下）": {
+     "extrapolation_factor_maximum": 14.912742624283602,
+     "diffusion_maximum": 0.01511967834085226
+    },
+    "盖带": {
+     "extrapolation_factor_maximum": 15.067639245794487,
+     "diffusion_maximum": 0.015311363153159618
+    },
+    "下面两个角": {
+     "extrapolation_factor_maximum": 11.779582990897985,
+     "diffusion_maximum": 0.01614632084965706
+    },
+    "盖的左角（上游）": {
+     "extrapolation_factor_maximum": 14.986846751786162,
+     "diffusion_maximum": 0.017426716163754463
+    },
+    "盖的右角（下游）": {
+     "extrapolation_factor_maximum": 17.016441024395164,
+     "diffusion_maximum": 0.02009708806872368
+    }
+   }
+  },
+  "budget_n250_crossing_pairwise": {
+   "interior_continuity": -0.014022458269734313,
+   "interior_continuity_error": 0.004238740099619537,
+   "density_mean_fit_slope": 0.009100574699205928,
+   "terms_all": [
+    0.05110672041047062,
+    -0.062379180252020064,
+    0.0019760321704512013,
+    0.004939578440565333,
+    -0.004356849230532913,
+    -0.011272459841549448,
+    0.006915610611016534,
+    0.011794093706968994,
+    0.01615094293750191
+   ],
+   "terms_all_error": [
+    0.006192406590813671,
+    0.0021259097952183656,
+    0.00014563409252869432,
+    0.00027375185372670264,
+    0.004532964036646442,
+    0.004450657102805565,
+    0.00014510250099338646,
+    0.004549423710163677,
+    0.0007575020117564654
+   ],
+   "checks": {
+    "conserved": true,
+    "inside": true,
+    "speed": true,
+    "interior": false
+   },
+   "passed": false,
+   "speed_maximum": 0.976821504622699,
+   "below_floor_maximum": 0,
+   "outside_maximum": 0,
+   "wall_distance_minimum_over_spacing": 0.30109930038452193,
+   "density_mean_minus_rest_at_1": 0.051066731437572344,
+   "density_mean_minus_rest_last": 0.09903899501750857,
+   "density_deviation_maximum": 0.7564697265625,
+   "density_deviation_maximum_time": 1.23,
+   "density_deviation_maximum_after_1": 0.7564697265625,
+   "pressure_mean_last": 991.9115923175838,
+   "pressure_negative_fraction_last": 0.0,
+   "kinetic_energy_last": 21.054275322885598,
+   "pressure_mean_fluctuation": 0.004456594044160346,
+   "gradient_fallbacks": 0,
+   "window": [
+    1.02,
+    5.01
+   ],
+   "run_id": "wc-20261118-165901-fd2d",
+   "diagnostics": {
+    "静止壁带（左、右、下）": {
+     "extrapolation_factor_maximum": 14.868657146226463,
+     "diffusion_maximum": 0.015049807727336884
+    },
+    "盖带": {
+     "extrapolation_factor_maximum": 15.205946030343997,
+     "diffusion_maximum": 0.015557839535176754
+    },
+    "下面两个角": {
+     "extrapolation_factor_maximum": 13.626584022206659,
+     "diffusion_maximum": 0.017136286944150925
+    },
+    "盖的左角（上游）": {
+     "extrapolation_factor_maximum": 15.222003189577764,
+     "diffusion_maximum": 0.017468826845288277
+    },
+    "盖的右角（下游）": {
+     "extrapolation_factor_maximum": 16.859985001128596,
+     "diffusion_maximum": 0.019888082519173622
+    }
+   }
+  },
+  "budget_n250_crossing_normal_r1": {
+   "interior_continuity": 0.0004963910669032798,
+   "interior_continuity_error": 0.0011340541578411993,
+   "density_mean_fit_slope": 0.0036769444478186087,
+   "terms_all": [
+    0.0355318358401164,
+    -0.03511356097936473,
+    0.0004789272382066183,
+    0.00719024414292448,
+    0.00808744624188277,
+    0.0004182748607516716,
+    0.007669171381131099,
+    0.004070816408973935,
+    -0.004016629832908834
+   ],
+   "terms_all_error": [
+    0.0012062089160622689,
+    0.0007083142958063373,
+    4.971068820331673e-05,
+    9.155079697587427e-05,
+    0.0012595554982660483,
+    0.00123090287334432,
+    4.805950176724941e-05,
+    0.0007677776078793764,
+    0.0005247007911852017
+   ],
+   "checks": {
+    "conserved": true,
+    "inside": true,
+    "speed": true,
+    "interior": true
+   },
+   "passed": null,
+   "speed_maximum": 0.97664476088382,
+   "below_floor_maximum": 0,
+   "outside_maximum": 0,
+   "wall_distance_minimum_over_spacing": 0.30010092258453414,
+   "density_mean_minus_rest_at_1": 0.009872359261862584,
+   "density_mean_minus_rest_last": 0.026280344570409397,
+   "density_deviation_maximum": 0.14251708984375,
+   "density_deviation_maximum_time": 5.01,
+   "density_deviation_maximum_after_1": 0.14251708984375,
+   "pressure_mean_last": 264.0222795447123,
+   "pressure_negative_fraction_last": 1.5872763924382153e-05,
+   "kinetic_energy_last": 21.139854132011394,
+   "pressure_mean_fluctuation": 0.0008058347196442888,
+   "gradient_fallbacks": 0,
+   "window": [
+    1.02,
+    5.01
+   ],
+   "run_id": "wc-20261118-102117-7b54"
+  },
+  "budget_n250_crossing_normal_r2": {
+   "interior_continuity": -6.721018699648128e-05,
+   "interior_continuity_error": 0.0013853850363537944,
+   "density_mean_fit_slope": 0.0033488384722918075,
+   "terms_all": [
+    0.038340684515491316,
+    -0.03826923661920932,
+    0.0004448745720465252,
+    0.007171660094170318,
+    0.007687982562498834,
+    7.144789628199193e-05,
+    0.0076165346662168424,
+    0.0033900614729813297,
+    -0.004297921089517504
+   ],
+   "terms_all_error": [
+    0.0010686111448376086,
+    0.0007940458012040004,
+    4.631176201158851e-05,
+    8.579688881195939e-05,
+    0.0014587479354371622,
+    0.0014285880103225685,
+    4.2893257337130254e-05,
+    0.0006823129184579581,
+    0.0007975284002365703
+   ],
+   "checks": {
+    "conserved": true,
+    "inside": true,
+    "speed": true,
+    "interior": true
+   },
+   "passed": null,
+   "speed_maximum": 0.9770296711729735,
+   "below_floor_maximum": 0,
+   "outside_maximum": 0,
+   "wall_distance_minimum_over_spacing": 0.27421760559082076,
+   "density_mean_minus_rest_at_1": 0.009809408148839793,
+   "density_mean_minus_rest_last": 0.02349369311070859,
+   "density_deviation_maximum": 0.1502685546875,
+   "density_deviation_maximum_time": 3.9,
+   "density_deviation_maximum_after_1": 0.1502685546875,
+   "pressure_mean_last": 236.20412083824533,
+   "pressure_negative_fraction_last": 0.0,
+   "kinetic_energy_last": 21.145782286819166,
+   "pressure_mean_fluctuation": 0.0007059210920626356,
+   "gradient_fallbacks": 0,
+   "window": [
+    1.02,
+    5.01
+   ],
+   "run_id": "wc-20261118-102354-4dd5"
+  },
+  "budget_n250_crossing": {
+   "interior_continuity": -0.026428023756491115,
+   "interior_continuity_error": 0.0010993944985629508,
+   "density_mean_fit_slope": -0.013938176580735998,
+   "terms_all": [
+    -0.03999382550102757,
+    0.010668131303768532,
+    -1.2613281335736252e-05,
+    0.008286237697388869,
+    -0.02105206978120591,
+    -0.029325694197259042,
+    0.008273624416053131,
+    -0.014430257312707152,
+    0.006621812468498757
+   ],
+   "terms_all_error": [
+    0.002262240569049205,
+    0.001454472153100505,
+    1.7879523753763408e-06,
+    2.6103739561343837e-05,
+    0.0012142497483163862,
+    0.001198876126181578,
+    2.5830023361630567e-05,
+    0.001056583493411502,
+    0.0014028189003581573
+   ],
+   "checks": {
+    "conserved": true,
+    "inside": true,
+    "speed": true,
+    "interior": false
+   },
+   "passed": null,
+   "speed_maximum": 0.9766604902555406,
+   "below_floor_maximum": 0,
+   "outside_maximum": 0,
+   "wall_distance_minimum_over_spacing": 0.293171882629395,
+   "density_mean_minus_rest_at_1": -0.016339883426667257,
+   "density_mean_minus_rest_last": -0.0743475166348162,
+   "density_deviation_maximum": 0.15557861328125,
+   "density_deviation_maximum_time": 4.95,
+   "density_deviation_maximum_after_1": 0.15557861328125,
+   "pressure_mean_last": -742.3513225142789,
+   "pressure_negative_fraction_last": 0.9999047634164537,
+   "kinetic_energy_last": 21.752963854425232,
+   "pressure_mean_fluctuation": 0.003301534905988725,
+   "gradient_fallbacks": 0,
+   "window": [
+    1.02,
+    5.01
+   ],
+   "run_id": "wc-20261118-025805-ba45"
+  }
+ },
+ "cavity_configuration": null,
+ "long_runs": {
+  "n250_reflection": {
+   "t_last": 18.06,
+   "at_times": {
+    "0.2": {
+     "time": 0.21,
+     "density_mean_minus_rest": 0.020101752050891264,
+     "pressure_mean": 202.26596721987545,
+     "pressure_negative_fraction": 0.00011110934747067507
+    },
+    "1": {
+     "time": 1.05,
+     "density_mean_minus_rest": 0.08407732231717091,
+     "pressure_mean": 842.2103189446676,
+     "pressure_negative_fraction": 0.0
+    },
+    "5": {
+     "time": 5.04,
+     "density_mean_minus_rest": 0.13670359802074472,
+     "pressure_mean": 1368.7767787652458,
+     "pressure_negative_fraction": 0.0
+    },
+    "10": {
+     "time": 10.08,
+     "density_mean_minus_rest": 0.10943612912956269,
+     "pressure_mean": 1095.9551477960094,
+     "pressure_negative_fraction": 0.0
+    },
+    "18": {
+     "time": 18.06,
+     "density_mean_minus_rest": 0.11227154012340179,
+     "pressure_mean": 1124.3434045145286,
+     "pressure_negative_fraction": 0.0
+    }
+   },
+   "alive_constant": true,
+   "speed_maximum": 0.976635515953041,
+   "density_mean_rate_1_to_5": 0.0113195165636656,
+   "density_mean_rate_last_20": null,
+   "pressure_negative_fraction_maximum_after_5": 0.0,
+   "crossing_status": {}
+  },
+  "n250_crossing_normal": {
+   "t_last": 99.99000000000001,
+   "at_times": {
+    "0.2": {
+     "time": 0.21,
+     "density_mean_minus_rest": 0.002107974546333935,
+     "pressure_mean": 22.306044060504334,
+     "pressure_negative_fraction": 0.012444246916715607
+    },
+    "1": {
+     "time": 1.05,
+     "density_mean_minus_rest": 0.01128859557877604,
+     "pressure_mean": 114.16001313320143,
+     "pressure_negative_fraction": 6.349105569752861e-05
+    },
+    "5": {
+     "time": 5.04,
+     "density_mean_minus_rest": 0.025995011681629876,
+     "pressure_mean": 261.2010438168583,
+     "pressure_negative_fraction": 0.0
+    },
+    "10": {
+     "time": 10.08,
+     "density_mean_minus_rest": 0.026281424778630935,
+     "pressure_mean": 264.09558225006145,
+     "pressure_negative_fraction": 0.0
+    },
+    "18": {
+     "time": 18.06,
+     "density_mean_minus_rest": 0.02325966284729475,
+     "pressure_mean": 233.86074496725604,
+     "pressure_negative_fraction": 0.0
+    },
+    "20": {
+     "time": 19.95,
+     "density_mean_minus_rest": 0.022781530710744846,
+     "pressure_mean": 229.08131258255455,
+     "pressure_negative_fraction": 0.0
+    },
+    "40": {
+     "time": 39.9,
+     "density_mean_minus_rest": 0.022059732659613474,
+     "pressure_mean": 221.8198304333533,
+     "pressure_negative_fraction": 0.0
+    },
+    "60": {
+     "time": 60.06,
+     "density_mean_minus_rest": 0.021426056349469036,
+     "pressure_mean": 215.4679249425182,
+     "pressure_negative_fraction": 0.0
+    },
+    "80": {
+     "time": 80.01,
+     "density_mean_minus_rest": 0.021915797575957185,
+     "pressure_mean": 220.38199065497213,
+     "pressure_negative_fraction": 3.1745527848764306e-05
+    },
+    "90": {
+     "time": 90.09,
+     "density_mean_minus_rest": 0.02112287725810802,
+     "pressure_mean": 212.4407893053526,
+     "pressure_negative_fraction": 0.0
+    },
+    "100": {
+     "time": 99.99000000000001,
+     "density_mean_minus_rest": 0.02182322033922901,
+     "pressure_mean": 219.4445161149626,
+     "pressure_negative_fraction": 0.0
+    }
+   },
+   "alive_constant": true,
+   "speed_maximum": 0.9781010164587226,
+   "density_mean_rate_1_to_5": 0.0038914811706952843,
+   "density_mean_rate_last_20": -4.210307509514636e-05,
+   "pressure_negative_fraction_maximum_after_5": 3.1745527848764306e-05,
+   "crossing_status": {
+    "status_records": 6670,
+    "position_readbacks": 334,
+    "gradient_fallbacks": 0,
+    "correction_fallbacks": 0,
+    "wall_distance_minimum_over_spacing": 0.29513883590698287,
+    "below_floor_maximum": 0,
+    "outside_box_maximum": 0
+   }
+  }
+ },
+ "wall_layer": {
+  "n250_crossing_normal": {
+   "text": "一阶（现缺省）",
+   "snapshots": 11,
+   "times": [
+    90.09,
+    99.99000000000001
+   ],
+   "walls": {
+    "左壁": {
+     "count_per_snapshot": 228.27272727272728,
+     "count_over_lattice": 0.9471897397208601,
+     "mean": 0.4832112960775554,
+     "standard_deviation": 0.034298973825031324,
+     "percentiles_5_50_95": [
+      0.436267733573914,
+      0.4845325946807866,
+      0.5218674540519719
+     ],
+     "minimum": 0.3719394207000737,
+     "second_layer_mean": 1.4378875131507833
+    },
+    "右壁": {
+     "count_per_snapshot": 245.0909090909091,
+     "count_over_lattice": 1.016974726518295,
+     "mean": 0.5067042623500092,
+     "standard_deviation": 0.052183326876770464,
+     "percentiles_5_50_95": [
+      0.4384507536888127,
+      0.4998360872268681,
+      0.6046471297740941
+     ],
+     "minimum": 0.37752735614776656,
+     "second_layer_mean": 1.5156897921256487
+    },
+    "底壁": {
+     "count_per_snapshot": 238.1818181818182,
+     "count_over_lattice": 0.988306299509619,
+     "mean": 0.4959465542822397,
+     "standard_deviation": 0.03008679895968243,
+     "percentiles_5_50_95": [
+      0.4494366347789769,
+      0.49849498271942183,
+      0.5340219587087635
+     ],
+     "minimum": 0.3899251222610478,
+     "second_layer_mean": 1.4768061673896822
+    },
+    "盖（上壁）": {
+     "count_per_snapshot": 217.45454545454547,
+     "count_over_lattice": 0.9023010184835911,
+     "mean": 0.4621328477277409,
+     "standard_deviation": 0.0450219221523551,
+     "percentiles_5_50_95": [
+      0.4131947755813603,
+      0.4587833881378178,
+      0.5148322433233264
+     ],
+     "minimum": 0.33924627304077193,
+     "second_layer_mean": 1.3727291037261535
+    }
+   }
+  }
+ },
+ "fluctuations": {
+  "n250_reflection": {
+   "density_mean": {
+    "mean": 0.1175567301997944,
+    "fluctuation": 0.0011821078884060963
+   },
+   "pressure_mean": {
+    "mean": 1.1772130036180883,
+    "fluctuation": 0.011828745489989924
+   },
+   "pressure_minimum": {
+    "mean": 0.8424663444397941,
+    "fluctuation": 0.1178964094541845
+   },
+   "pressure_maximum": {
+    "mean": 2.786375108506945,
+    "fluctuation": 0.881583340678075
+   },
+   "density_maximum": {
+    "mean": 0.27827380952385283,
+    "fluctuation": 0.08794624118452561
+   },
+   "speed_maximum": {
+    "mean": 0.9728404931601328,
+    "fluctuation": 0.0012002616326088052
+   }
+  },
+  "n250_crossing_normal": {
+   "density_mean": {
+    "mean": 0.025642480844567217,
+    "fluctuation": 0.0001378566017864881
+   },
+   "pressure_mean": {
+    "mean": 0.2576710182095368,
+    "fluctuation": 0.001371476979600815
+   },
+   "pressure_minimum": {
+    "mean": 0.04990841342532446,
+    "fluctuation": 0.04559654467038321
+   },
+   "pressure_maximum": {
+    "mean": 1.2749230298239087,
+    "fluctuation": 0.06858474641962042
+   },
+   "density_maximum": {
+    "mean": 0.12732805524558444,
+    "fluctuation": 0.006849514434712408
+   },
+   "speed_maximum": {
+    "mean": 0.9728398150456702,
+    "fluctuation": 0.0011578950054420974
+   }
+  }
+ },
+ "wall_layer_at_5": {
+  "budget_n250_crossing_reflection": {
+   "左壁": {
+    "mean": 0.4632046038653996,
+    "count": 217
+   },
+   "右壁": {
+    "mean": 0.5063898307936534,
+    "count": 245
+   },
+   "底壁": {
+    "mean": 0.49920648212234203,
+    "count": 240
+   },
+   "盖（上壁）": {
+    "mean": 0.4575233736703565,
+    "count": 215
+   }
+  },
+  "budget_n250_crossing_pairwise_delta_reflection": {
+   "左壁": {
+    "mean": 0.4656343678815652,
+    "count": 218
+   },
+   "右壁": {
+    "mean": 0.5042156488807116,
+    "count": 243
+   },
+   "底壁": {
+    "mean": 0.4965044881115443,
+    "count": 238
+   },
+   "盖（上壁）": {
+    "mean": 0.45820581219917145,
+    "count": 215
+   }
+  },
+  "budget_n250_crossing_pairwise_pressure_reflection": {
+   "左壁": {
+    "mean": 0.46659983325442067,
+    "count": 218
+   },
+   "右壁": {
+    "mean": 0.5018141703841129,
+    "count": 243
+   },
+   "底壁": {
+    "mean": 0.49596175401150705,
+    "count": 238
+   },
+   "盖（上壁）": {
+    "mean": 0.4582022083578289,
+    "count": 216
+   }
+  },
+  "budget_n250_crossing_pairwise": {
+   "左壁": {
+    "mean": 0.45793750352948653,
+    "count": 214
+   },
+   "右壁": {
+    "mean": 0.5053268903103033,
+    "count": 244
+   },
+   "底壁": {
+    "mean": 0.4969958261465929,
+    "count": 239
+   },
+   "盖（上壁）": {
+    "mean": 0.46152978151216445,
+    "count": 218
+   }
+  },
+  "budget_n250_crossing_normal_r1": {
+   "左壁": {
+    "mean": 0.46314208079043645,
+    "count": 217
+   },
+   "右壁": {
+    "mean": 0.5099849845716348,
+    "count": 247
+   },
+   "底壁": {
+    "mean": 0.495779418995612,
+    "count": 237
+   },
+   "盖（上壁）": {
+    "mean": 0.46053084113081505,
+    "count": 217
+   }
+  },
+  "budget_n250_crossing_normal_r2": {
+   "左壁": {
+    "mean": 0.46656206769680786,
+    "count": 218
+   },
+   "右壁": {
+    "mean": 0.5029902583287088,
+    "count": 243
+   },
+   "底壁": {
+    "mean": 0.49943602209289895,
+    "count": 240
+   },
+   "盖（上壁）": {
+    "mean": 0.4552608725610476,
+    "count": 213
+   }
+  },
+  "budget_n250_crossing": {
+   "左壁": {
+    "mean": 0.4629743227131293,
+    "count": 219
+   },
+   "右壁": {
+    "mean": 0.5044765982253495,
+    "count": 242
+   },
+   "底壁": {
+    "mean": 0.49810991187890397,
+    "count": 240
+   },
+   "盖（上壁）": {
+    "mean": 0.45737612523414495,
+    "count": 216
+   }
+  }
+ }
+}

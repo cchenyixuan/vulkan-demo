@@ -1,0 +1,287 @@
+{
+ "run_id": "wc-20261118-165533-18b4",
+ "examples": [
+  {
+   "text": "任务书的例子：i 离盖 0.5、离侧壁 3；j 在侧壁里深 0.5，与 i 同高",
+   "fluid": [
+    3.0,
+    29.5,
+    0.0
+   ],
+   "wall": [
+    -0.5,
+    29.5,
+    0.0
+   ],
+   "pairwise_factor": 1.1666666666666667,
+   "normal": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "mirror_point": [
+    0.5,
+    29.5,
+    0.0
+   ],
+   "nearest_wall_factor": 2.0
+  },
+  {
+   "text": "同一个 i；j 在盖里深 0.5，正上方",
+   "fluid": [
+    3.0,
+    29.5,
+    0.0
+   ],
+   "wall": [
+    3.0,
+    30.5,
+    0.0
+   ],
+   "pairwise_factor": 2.0,
+   "normal": [
+    0.0,
+    -1.0,
+    0.0
+   ],
+   "mirror_point": [
+    3.0,
+    29.5,
+    0.0
+   ],
+   "nearest_wall_factor": 2.0
+  },
+  {
+   "text": "同一个 i；j 在左上角块里（两个轴各出界 0.5）",
+   "fluid": [
+    3.0,
+    29.5,
+    0.0
+   ],
+   "wall": [
+    -0.5,
+    30.5,
+    0.0
+   ],
+   "pairwise_factor": 2.0,
+   "normal": [
+    0.0,
+    -1.0,
+    0.0
+   ],
+   "mirror_point": [
+    0.5,
+    29.5,
+    0.0
+   ],
+   "nearest_wall_factor": 2.414213562373095
+  },
+  {
+   "text": "同一个 i；j 在左上角块里（x 出界 0.5，y 出界 2.5）",
+   "fluid": [
+    3.0,
+    29.5,
+    0.0
+   ],
+   "wall": [
+    -0.5,
+    32.5,
+    0.0
+   ],
+   "pairwise_factor": 6.0,
+   "normal": [
+    0.0,
+    -1.0,
+    0.0
+   ],
+   "mirror_point": [
+    0.5,
+    27.5,
+    0.0
+   ],
+   "nearest_wall_factor": 6.0990195135927845
+  }
+ ],
+ "example_error": 0.0,
+ "example_passed": true,
+ "equality": {
+  "2d": {
+   "fluid": 2000,
+   "one_wall_or_none": 1900,
+   "within_h_of_exactly_one_wall": 700,
+   "within_h_of_two_or_more_walls": 100,
+   "rate_difference_maximum_one_wall": 0.0,
+   "acceleration_difference_maximum_one_wall": 0.0,
+   "rate_difference_maximum_corner_over_field": 0.16509077375924383,
+   "acceleration_difference_maximum_corner_over_field": 0.08582741620838191,
+   "kernel_sum_range": [
+    0.8601260453883828,
+    0.9124026609164927
+   ],
+   "passed": true
+  },
+  "3d": {
+   "fluid": 7680,
+   "one_wall_or_none": 4864,
+   "within_h_of_exactly_one_wall": 3328,
+   "within_h_of_two_or_more_walls": 2816,
+   "rate_difference_maximum_one_wall": 0.0,
+   "acceleration_difference_maximum_one_wall": 0.0,
+   "rate_difference_maximum_corner_over_field": 0.2524483087750611,
+   "acceleration_difference_maximum_corner_over_field": 0.0737877051980849,
+   "kernel_sum_range": [
+    0.8999307385881384,
+    0.9480894348284189
+   ],
+   "passed": true
+  }
+ },
+ "hydrostatic": {
+  "2d|重力沿 −y|p > 0|reflection": {
+   "residual_maximum": 1.6203534417225366e-13,
+   "residual_maximum_corner": 5.891433718511379e-14,
+   "fluid_inverse_fallbacks": 0,
+   "fluid_inverse_capped": 0,
+   "correction_capped": 0,
+   "density_rate_maximum": 382.44921811764385,
+   "passed": true
+  },
+  "2d|重力沿 −y|p > 0|nearest_wall": {
+   "residual_maximum": 1.6203534417225366e-13,
+   "residual_maximum_corner": 6.175757986025715e-14,
+   "fluid_inverse_fallbacks": 0,
+   "fluid_inverse_capped": 0,
+   "correction_capped": 0,
+   "density_rate_maximum": 0.0,
+   "passed": true
+  },
+  "2d|重力沿 −y|p < 0|reflection": {
+   "residual_maximum": 2.8975186339619435e-15,
+   "residual_maximum_corner": 2.5425016831406086e-15,
+   "fluid_inverse_fallbacks": 0,
+   "fluid_inverse_capped": 0,
+   "correction_capped": 0,
+   "density_rate_maximum": 382.44921811764385,
+   "passed": true
+  },
+  "2d|重力沿 −y|p < 0|nearest_wall": {
+   "residual_maximum": 3.803907360597596e-15,
+   "residual_maximum_corner": 3.8026155798979635e-15,
+   "fluid_inverse_fallbacks": 0,
+   "fluid_inverse_capped": 0,
+   "correction_capped": 0,
+   "density_rate_maximum": 0.0,
+   "passed": true
+  },
+  "2d|重力偏离 −y 30°|p > 0|reflection": {
+   "residual_maximum": 2.4491160817464237e-13,
+   "residual_maximum_corner": 1.3340199407551085e-13,
+   "fluid_inverse_fallbacks": 0,
+   "fluid_inverse_capped": 0,
+   "correction_capped": 0,
+   "density_rate_maximum": 522.4353476061963,
+   "passed": true
+  },
+  "2d|重力偏离 −y 30°|p > 0|nearest_wall": {
+   "residual_maximum": 2.4491160817464237e-13,
+   "residual_maximum_corner": 1.3340199407551085e-13,
+   "fluid_inverse_fallbacks": 0,
+   "fluid_inverse_capped": 0,
+   "correction_capped": 0,
+   "density_rate_maximum": 0.0,
+   "passed": true
+  },
+  "2d|重力偏离 −y 30°|p < 0|reflection": {
+   "residual_maximum": 3.5495078678593214e-15,
+   "residual_maximum_corner": 2.7640071719633145e-15,
+   "fluid_inverse_fallbacks": 0,
+   "fluid_inverse_capped": 0,
+   "correction_capped": 0,
+   "density_rate_maximum": 522.4353476061963,
+   "passed": true
+  },
+  "2d|重力偏离 −y 30°|p < 0|nearest_wall": {
+   "residual_maximum": 9.234882651316286e-15,
+   "residual_maximum_corner": 7.83455127581499e-15,
+   "fluid_inverse_fallbacks": 0,
+   "fluid_inverse_capped": 0,
+   "correction_capped": 0,
+   "density_rate_maximum": 0.0,
+   "passed": true
+  },
+  "3d|重力沿 −y|p > 0|reflection": {
+   "residual_maximum": 1.0107772321974369e-13,
+   "residual_maximum_corner": 1.0107772321974369e-13,
+   "fluid_inverse_fallbacks": 0,
+   "fluid_inverse_capped": 0,
+   "correction_capped": 0,
+   "density_rate_maximum": 341.5780594937089,
+   "passed": true
+  },
+  "3d|重力沿 −y|p > 0|nearest_wall": {
+   "residual_maximum": 1.0107772321974369e-13,
+   "residual_maximum_corner": 1.0107772321974369e-13,
+   "fluid_inverse_fallbacks": 0,
+   "fluid_inverse_capped": 0,
+   "correction_capped": 0,
+   "density_rate_maximum": 0.0,
+   "passed": true
+  },
+  "3d|重力沿 −y|p < 0|reflection": {
+   "residual_maximum": 3.8028426507252965e-15,
+   "residual_maximum_corner": 2.7163004551695837e-15,
+   "fluid_inverse_fallbacks": 0,
+   "fluid_inverse_capped": 0,
+   "correction_capped": 0,
+   "density_rate_maximum": 341.5780594937089,
+   "passed": true
+  },
+  "3d|重力沿 −y|p < 0|nearest_wall": {
+   "residual_maximum": 3.8028426507252965e-15,
+   "residual_maximum_corner": 2.7163004551695837e-15,
+   "fluid_inverse_fallbacks": 0,
+   "fluid_inverse_capped": 0,
+   "correction_capped": 0,
+   "density_rate_maximum": 0.0,
+   "passed": true
+  },
+  "3d|重力偏离 −y 30°|p > 0|reflection": {
+   "residual_maximum": 1.423168183486027e-13,
+   "residual_maximum_corner": 1.4081936352087763e-13,
+   "fluid_inverse_fallbacks": 0,
+   "fluid_inverse_capped": 0,
+   "correction_capped": 0,
+   "density_rate_maximum": 466.6043066437974,
+   "passed": true
+  },
+  "3d|重力偏离 −y 30°|p > 0|nearest_wall": {
+   "residual_maximum": 1.423168183486027e-13,
+   "residual_maximum_corner": 1.4081936352087763e-13,
+   "fluid_inverse_fallbacks": 0,
+   "fluid_inverse_capped": 0,
+   "correction_capped": 0,
+   "density_rate_maximum": 0.0,
+   "passed": true
+  },
+  "3d|重力偏离 −y 30°|p < 0|reflection": {
+   "residual_maximum": 3.260645461589352e-15,
+   "residual_maximum_corner": 2.7176644152322628e-15,
+   "fluid_inverse_fallbacks": 0,
+   "fluid_inverse_capped": 0,
+   "correction_capped": 0,
+   "density_rate_maximum": 466.6043066437974,
+   "passed": true
+  },
+  "3d|重力偏离 −y 30°|p < 0|nearest_wall": {
+   "residual_maximum": 5.7175355678421856e-15,
+   "residual_maximum_corner": 5.7175355678421856e-15,
+   "fluid_inverse_fallbacks": 0,
+   "fluid_inverse_capped": 0,
+   "correction_capped": 0,
+   "density_rate_maximum": 0.0,
+   "passed": true
+  }
+ },
+ "passed": true,
+ "passed_three_dimensions": true
+}

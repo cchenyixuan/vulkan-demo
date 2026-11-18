@@ -38,5 +38,8 @@
 | `a70b805` | wall_boundary crossing: section 10 of the report (second-order continuation of the velocity: regression, numpy exactness, single step, screening, hydrostatic boxes, cavity at 250^2 and 500^2, pressure-branch controls, wall-layer distances, cost, K = 2) |
 | `b18597b` | wall_boundary crossing: report rebuilt (commit table) |
 | `1edf4ee` | wall_boundary crossing: section 11 of the report (old default minus first order: time-mean velocity and pressure fields of the stored 250^2 snapshots, shares by region, the dropped tangential term; no new run) |
+| `282f598` | wall_boundary crossing: report rebuilt (commit table) |
+| `bd9fec1` | wall_boundary crossing: pairwise geometry and reflection of pressure and density at the wall (switches, defaults unchanged) |
+| `8748bcd` | wall_crossing tools: the three cases that locate a failed screening of the reflection configuration (pairwise geometry alone, with the pressure reflection only, with the density reflection only); numpy check of the pairwise geometry |
 
 （加入本报告的那个提交排在这些之后。）

@@ -51,10 +51,17 @@ RESOLUTIONS = (250, 500, 1000)
 # the viscous term; the continuity equation as crossing_normal); crossing_quadratic_viscous = its first 250^2 run
 # (the runner hook read the state buffer every 1000 steps); crossing_normal_rho_minus = crossing_normal started
 # with the fluid density lowered by 0.1 kg/m3 (a control experiment)
-MODES = ("simple", "adami", "crossing_normal", "quadratic_viscous", "crossing_quadratic_viscous",
+# reflection / pairwise*: crossing with the pair-by-pair geometry and the reflections of pressure and density at the
+# wall (experiment/wall_crossing/pairwise_reflection.py: CONFIGURATIONS)
+MODES = ("simple", "adami", "crossing_normal", "reflection", "pairwise_pressure_reflection",
+         "pairwise_delta_reflection", "pairwise", "quadratic_viscous", "crossing_quadratic_viscous",
          "crossing_normal_rho_minus", "crossing_normal_rho_minus_0p45", "crossing", "crossing_r2",
          "crossing_wall_velocity", "crossing_floor0p5")
 MODE_TEXT = {"simple": "simple", "adami": "adami",
+             "reflection": "crossing，反射版（逐对几何 + 压力反射 + 密度反射）",
+             "pairwise_pressure_reflection": "crossing，逐对几何 + 压力反射",
+             "pairwise_delta_reflection": "crossing，逐对几何 + 密度反射",
+             "pairwise": "crossing，只有逐对几何",
              "crossing_normal": "crossing（连续性壁项 normal，新缺省）",
              "quadratic_viscous": "crossing，二阶粘性（viscous_extension quadratic）",
              "crossing_quadratic_viscous": "crossing，二阶粘性，第一次运行（诊断读回每 1000 步一次）",
