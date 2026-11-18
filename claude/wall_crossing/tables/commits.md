@@ -44,5 +44,6 @@
 | `89441e9` | wall_boundary crossing: section 12 of the report (pairwise geometry and reflection of pressure and density at the wall: regression, numpy check, single step, hydrostatic boxes, the cavity screening and the three locating runs; the screening fails on the interior continuity term with the pairwise geometry alone, no run to t = 100) |
 | `8075b88` | wall_boundary crossing: report rebuilt (commit table) |
 | `a414a93` | wall_crossing tools: the case of the pairwise geometry with the whole vector in the continuity equation (pairwise_full); cavity_watch.py (stops a cavity run when the fluid leaves the box or exceeds a speed limit) |
+| `2b2e3e2` | wall_boundary crossing: section 13 of the report (the reflection configuration and pairwise geometry + whole vector run to t = 100 at 250^2: cavity metrics beside the existing rows, histories of density, pressure and pressure noise, the interior continuity term, kinetic energy and the centre-line estimate of psi_min at t = 18, first-layer distances; section 12's sample-interval note corrected) |
 
 （加入本报告的那个提交排在这些之后。）
