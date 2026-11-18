@@ -75,6 +75,14 @@ layout(std430, set = 0, binding = 10) buffer WallDummyVelocityBuffer {
 //
 // The two functions of the geometry are the box's; another geometry replaces
 // wall_crossing_distance_to_wall / wall_crossing_depth_behind_wall only.
+//
+// numerics.wall_crossing.geometry pairwise (off by default; spec const 128
+// below) takes t_ij and the wall normal pair by pair from the face the segment
+// i -> j leaves the box through, and gives the pair a mirror point; the
+// geometry is then wall_crossing_pair_geometry alone. With it, pressure_wall
+// reflection (spec const 129) and delta_wall reflection (spec const 116 = 3)
+// take the pressure / the density of a wall particle from its mirror point
+// plus the body force, in place of the plain continuation.
 // ============================================================================
 const uint WALL_BOUNDARY_CROSSING = 2u;
 const bool WALL_CROSSING_ACTIVE = (WALL_BOUNDARY == WALL_BOUNDARY_CROSSING);
@@ -97,13 +105,24 @@ const uint WALL_CROSSING_CONTINUITY_WALL_VELOCITY = 1u;
 //                     a constant velocity); c^2 = dp/drho of the particle's Tait EOS at rho_i,
 //                     gamma B / rho0 (rho_i / rho0)^(gamma - 1) (= c0^2 at rho0). Without gravity a wall
 //                     neighbour contributes nothing to the density diffusion.
-// The drift of the continuity equation, the pressure continuation and the viscous term are the same in all three.
+//   3 = reflection:   NOT a diagnostic, a variant of the mode (needs geometry pairwise, spec const 128): the
+//                     density of the wall particle is the continued density at its mirror point r_j' plus the
+//                     density difference of a fluid at rest between r_j' and r_j,
+//                         psi_ij = G_i . (r_j' - r_i) + rho_i g . (r_j - r_j') / c^2
+//                                = G_i . (r_j - r_i) - (G_i - rho_i g / c^2) . (r_j - r_j'),
+//                     i.e. value 0's term after the loop and, also after the loop,
+//                         - 2 delta h c0 (G_i - rho_i g / c^2) . sum_wall V_j |grad W_ij| r / (r^2 + eps^2) (r_j - r_j')
+//                     (the pair's r_ij . grad W_ij = |grad W_ij| r without the correction matrix). No diffusive
+//                     flux through the wall: the normal density gradient at the wall is the body force's.
+//                     c^2 as with 2. Zero when A_f fell back (G_i = 0 there, as with 0).
+// The drift of the continuity equation, the pressure continuation and the viscous term are the same in all four.
 // 1 exists to test whether the mean density drifts because the delta term has no rho0 reference, 2 to test
 // whether the drift comes from the continuation term itself (neither 0 nor 2 refers to rho0).
 layout(constant_id = 116) const uint  WALL_CROSSING_DELTA_WALL = 0u;
 const uint WALL_CROSSING_DELTA_WALL_EXTENSION    = 0u;
 const uint WALL_CROSSING_DELTA_WALL_REST_DENSITY = 1u;
 const uint WALL_CROSSING_DELTA_WALL_BODY_FORCE   = 2u;
+const uint WALL_CROSSING_DELTA_WALL_REFLECTION   = 3u;
 // numerics.wall_crossing.continuity_wall_component: which part of a wall neighbour's velocity difference enters
 // the continuity equation.
 //   1 = normal (the default since 2026-11-18): its component along the wall's inward normal only,
@@ -141,6 +160,32 @@ layout(constant_id = 118) const uint  WALL_CROSSING_VISCOUS_EXTENSION = 0u;
 layout(constant_id = 119) const uint  WALL_CROSSING_CONTINUITY_EXTENSION = 0u;
 const uint WALL_CROSSING_EXTENSION_LINEAR    = 0u;
 const uint WALL_CROSSING_EXTENSION_QUADRATIC = 1u;
+// numerics.wall_crossing.geometry: where the pair's crossing fraction and wall normal come from.
+//   0 = nearest_wall (the default, everything above): phi_i = the distance of i to ITS nearest wall plane, d_j =
+//       the distance of j to the box, n_j = the unit vector from j to the nearest point of the box. Near an edge
+//       or corner of the box the two distances belong to different faces and t_ij is not the pair's.
+//   1 = pairwise: from the face the segment i -> j leaves the box through (wall_crossing_pair_geometry below):
+//       phi_ij = the distance of i to that face (floored), d_ij = the depth of j behind that face, n_ij = that
+//       face's inward normal, 1 / t_ij = 1 + d_ij / phi_ij; the velocity rules above with these (the viscous
+//       term: the whole vector; the continuity equation: the component along n_ij with
+//       WALL_CROSSING_CONTINUITY_WALL_COMPONENT normal). Not offered with a quadratic extension.
+layout(constant_id = 128) const uint  WALL_CROSSING_GEOMETRY = 0u;
+const uint WALL_CROSSING_GEOMETRY_NEAREST_WALL = 0u;
+const uint WALL_CROSSING_GEOMETRY_PAIRWISE     = 1u;
+// numerics.wall_crossing.pressure_wall: the pressure of a wall neighbour in force.
+//   0 = extension (the default, the rule above): P_j - P_i = G_i . (r_j - r_i);
+//   1 = reflection (needs geometry pairwise): the continued pressure at the mirror point r_j' plus the body
+//       force between r_j' and r_j,
+//           P_j - P_i = G_i . (r_j' - r_i) + rho_i g . (r_j - r_j')
+//                     = G_i . (r_j - r_i) - (G_i - rho_i g) . (r_j - r_j'),
+//       g = (GRAVITY_X, GRAVITY_Y, GRAVITY_Z): the wall carries the condition "normal pressure gradient = the body
+//       force's" and so pushes on the fluid itself. With M_d = sum_wall V_j grad W_ij (x) (r_j - r_j') force adds
+//           (1 / rho_i) L_i M_d (G_i - rho_i g)
+//       to the pressure acceleration after the loop (the same on both TIC branches). Zero for a fluid at rest
+//       (G_i = rho_i g) and when A_f fell back (G_i = 0 there, as with 0).
+layout(constant_id = 129) const uint  WALL_CROSSING_PRESSURE_WALL = 0u;
+const uint WALL_CROSSING_PRESSURE_WALL_EXTENSION  = 0u;
+const uint WALL_CROSSING_PRESSURE_WALL_REFLECTION = 1u;
 // lower bound of phi_i = numerics.wall_crossing.distance_floor_factor (default 0.25) x the particle spacing
 layout(constant_id = 121) const float WALL_CROSSING_DISTANCE_FLOOR = 0.001;
 // the fluid box [lower, upper] in world coordinates (2-D: x and y only)
@@ -171,6 +216,15 @@ const bool WALL_CROSSING_CONTINUITY_QUADRATIC =
     WALL_CROSSING_ACTIVE && (WALL_CROSSING_CONTINUITY_EXTENSION == WALL_CROSSING_EXTENSION_QUADRATIC);
 const bool WALL_CROSSING_VELOCITY_GRADIENT_ACTIVE =
     WALL_CROSSING_VISCOUS_QUADRATIC || WALL_CROSSING_CONTINUITY_QUADRATIC;
+// the pairwise geometry and the two reflections (spec consts 128, 129, 116 = 3 above). All three are false with
+// wall_boundary simple / adami and with the defaults: every statement behind them is then removed at pipeline
+// creation.
+const bool WALL_CROSSING_PAIRWISE =
+    WALL_CROSSING_ACTIVE && (WALL_CROSSING_GEOMETRY == WALL_CROSSING_GEOMETRY_PAIRWISE);
+const bool WALL_CROSSING_PRESSURE_REFLECTION =
+    WALL_CROSSING_ACTIVE && (WALL_CROSSING_PRESSURE_WALL == WALL_CROSSING_PRESSURE_WALL_REFLECTION);
+const bool WALL_CROSSING_DELTA_REFLECTION =
+    WALL_CROSSING_ACTIVE && (WALL_CROSSING_DELTA_WALL == WALL_CROSSING_DELTA_WALL_REFLECTION);
 // state of a particle's second-order continuation in a step (wall_crossing_velocity_gradient[pid * 3].w)
 const float WALL_CROSSING_EXTENSION_STATE_NONE     = 0.0;   // no wall neighbour (or a wall particle): nothing solved
 const float WALL_CROSSING_EXTENSION_STATE_VALID    = 1.0;   // grad v_i solved and stored
@@ -231,6 +285,51 @@ float wall_crossing_floored_distance(vec3 fluid_position) {
 // 1 / t_ij = 1 + d_j / phi_i
 float wall_crossing_extrapolation_factor(float fluid_wall_distance, vec3 wall_position) {
     return 1.0 + wall_crossing_depth_behind_wall(wall_position) / fluid_wall_distance;
+}
+
+// geometry pairwise: the geometry of one pair, a fluid particle i (inside the box) and a wall particle j (outside
+// it). THE function of the pairwise geometry: another geometry than the axis-aligned box replaces it alone.
+//   - j lies outside the box on one axis (a face block), two (an edge block; a corner block in 2-D) or three (a
+//     corner block). Each such axis a names a face of the box, at face_a.
+//   - The segment i -> j leaves the box through the face it reaches first: the axis a* with the smallest
+//         s_a = (face_a - r_i,a) / (r_j,a - r_i,a) = phi_a / (phi_a + d_a),
+//     phi_a = the distance of i to face a (0 for a particle that has left the box there), d_a = the depth of j
+//     behind it. Equal s_a: the first axis in the order x, y, z.
+//   crossed_wall_normal  n_ij: the inward unit normal of face a*
+//   depth_ratio          d_ij / phi_ij, phi_ij = max(phi_a*, WALL_CROSSING_DISTANCE_FLOOR), d_ij = d_a*
+//                        (1 / t_ij = 1 + depth_ratio)
+//   mirror_displacement  r_j - r_j', r_j' = r_j reflected in every face it lies outside of (twice the vector from
+//                        the nearest point of the box to j)
+// A point that is not outside the box gets zero for all three.
+void wall_crossing_pair_geometry(vec3 fluid_position, vec3 wall_position, out vec3 crossed_wall_normal,
+                                 out float depth_ratio, out vec3 mirror_displacement) {
+    vec3 lower = vec3(WALL_CROSSING_BOX_LOWER_X, WALL_CROSSING_BOX_LOWER_Y, WALL_CROSSING_BOX_LOWER_Z);
+    vec3 upper = vec3(WALL_CROSSING_BOX_UPPER_X, WALL_CROSSING_BOX_UPPER_Y, WALL_CROSSING_BOX_UPPER_Z);
+    vec3 nearest_box_point = clamp(wall_position, lower, upper);    // face_a on the axes j is outside on
+    vec3 outside = wall_position - nearest_box_point;               // signed depth on those axes, 0 on the others
+    if (DIMENSION == 2u) {
+        outside.z = 0.0;
+    }
+    mirror_displacement = 2.0 * outside;
+    crossed_wall_normal = vec3(0.0);
+    depth_ratio = 0.0;
+    float smallest_crossing = 2.0;                                  // every s_a is in [0, 1)
+    for (int axis_index = 0; axis_index < 3; axis_index++) {
+        float depth = abs(outside[axis_index]);
+        if (depth > 0.0) {
+            float outward_sign = sign(outside[axis_index]);
+            // distance of i to this face, positive inside the box
+            float inward_distance = outward_sign * (nearest_box_point[axis_index] - fluid_position[axis_index]);
+            float clamped_distance = max(inward_distance, 0.0);
+            float crossing = clamped_distance / (clamped_distance + depth);
+            if (crossing < smallest_crossing) {
+                smallest_crossing = crossing;
+                depth_ratio = depth / max(inward_distance, WALL_CROSSING_DISTANCE_FLOOR);
+                crossed_wall_normal = vec3(0.0);
+                crossed_wall_normal[axis_index] = -outward_sign;
+            }
+        }
+    }
 }
 
 // A_f^-1: the correction matrix's epilogue (correction.comp: xi on the diagonal, the 2-D block, the determinant

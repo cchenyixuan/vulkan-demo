@@ -250,6 +250,8 @@ def main() -> int:
                                   if case.numerics.wall_crossing else None),
             "continuity_extension": (case.numerics.wall_crossing.continuity_extension
                                      if case.numerics.wall_crossing else None),
+            "geometry": case.numerics.wall_crossing.geometry if case.numerics.wall_crossing else None,
+            "pressure_wall": case.numerics.wall_crossing.pressure_wall if case.numerics.wall_crossing else None,
             "distance_floor_factor": (case.numerics.wall_crossing.distance_floor_factor
                                       if case.numerics.wall_crossing else None),
             "delta_density_storage": os.environ.get("V7_DELTA_DENSITY", "0") == "1",

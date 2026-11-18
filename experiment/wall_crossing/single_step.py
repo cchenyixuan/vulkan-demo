@@ -378,7 +378,17 @@ def compare_with_reference(gpu: dict, tolerance: float) -> dict:
             / max(np.abs(reference.density_rate).max(), 1e-300)),
     }
     near_wall = reference.wall_neighbour_count > 0
+    # what the two reflections add on this state (reference; zero without them), against the whole terms
+    reflection = {
+        "pressure_reflection_acceleration_maximum": float(
+            np.sqrt((reference.acceleration_pressure_reflection ** 2).sum(axis=1)).max()),
+        "pressure_acceleration_maximum": float(scale_pressure),
+        "density_reflection_rate_maximum": float(np.abs(reference.density_rate_diffusion_reflection).max()),
+        "density_rate_maximum": float(np.abs(reference.density_rate).max()),
+        "extrapolation_factor_maximum": float(reference.extrapolation_factor_maximum.max()),
+    }
     return {
+        "reflection_terms": reflection,
         "passed": bool(worst < tolerance and not wall_problems and not fallback_problems
                        and not extension_problems),
         "tolerance": tolerance,
@@ -581,11 +591,19 @@ def extension_suffix(viscous_extension: str, continuity_extension: str) -> str:
     return ""
 
 
+def geometry_suffix(geometry: str, pressure_wall: str) -> str:
+    """The part of a label / file name that names the pairwise geometry and the pressure reflection: nothing with
+    the defaults (delta_wall reflection is named by the delta_wall part of the label)."""
+    return ("" if geometry == "nearest_wall" else f"_geometry_{geometry}") \
+        + ("" if pressure_wall == "extension" else f"_pressure_{pressure_wall}")
+
+
 def run_configuration(out_root: pathlib.Path, dimension: int, device_index: int, configuration: str,
                       wall_boundary: str, continuity: str, distance_floor_factor: float, tolerance: float,
                       delta_wall: str = "extension", continuity_wall_component: str = "normal",
                       density_budget: bool = False, viscous_extension: str = "linear",
-                      continuity_extension: str = "linear", determinant_threshold: float | None = None) -> dict:
+                      continuity_extension: str = "linear", determinant_threshold: float | None = None,
+                      geometry: str = "nearest_wall", pressure_wall: str = "extension") -> dict:
     label = f"{dimension}d_{configuration}_{wall_boundary}" + (f"_{continuity}" if wall_boundary == "crossing" else "")
     if wall_boundary == "crossing" and delta_wall != "extension":
         label += f"_delta_wall_{delta_wall}"
@@ -595,6 +613,7 @@ def run_configuration(out_root: pathlib.Path, dimension: int, device_index: int,
         label += f"_wall_component_{continuity_wall_component}"
     if wall_boundary == "crossing":
         label += extension_suffix(viscous_extension, continuity_extension)
+        label += geometry_suffix(geometry, pressure_wall)
     if determinant_threshold is not None:
         label += "_det_threshold_" + repr(determinant_threshold).replace(".", "p")
     if density_budget:
@@ -605,9 +624,14 @@ def run_configuration(out_root: pathlib.Path, dimension: int, device_index: int,
     specification.continuity_wall_component = continuity_wall_component
     specification.viscous_extension = viscous_extension
     specification.continuity_extension = continuity_extension
+    specification.geometry = geometry
+    specification.pressure_wall = pressure_wall
     if determinant_threshold is not None:
         specification.regularization_determinant_threshold = determinant_threshold
-    if wall_boundary == "crossing" and delta_wall == "body_force" and configuration == "smooth":
+    # the terms that carry the gravity vector (delta_wall body_force / reflection, pressure_wall reflection) are
+    # only exercised by the smooth configuration when it has a gravity
+    if wall_boundary == "crossing" and configuration == "smooth" \
+            and (delta_wall in ("body_force", "reflection") or pressure_wall == "reflection"):
         specification.gravity = BODY_FORCE_SMOOTH_GRAVITY[dimension]
     case_path = write_box_case(directory / "case", specification)
     with LoggedRun(kind="single_step", case=str(case_path.relative_to(REPOSITORY_ROOT)).replace("\\", "/")) as run:
@@ -679,6 +703,12 @@ def _print_outcome(outcome: dict) -> None:
                   f"{second_order['system_determinant_minimum']:.4f}; (1 + a)^2 max "
                   f"{second_order['quadratic_factor_maximum']:.2f}; wall viscous diffusion number max "
                   f"{second_order['wall_viscous_diffusion_number_maximum']:.3e}")
+        terms = reference["reflection_terms"]
+        if terms["pressure_reflection_acceleration_maximum"] > 0.0 or terms["density_reflection_rate_maximum"] > 0.0:
+            print(f"  reflection terms (reference): pressure part max {terms['pressure_reflection_acceleration_maximum']:.3e} "
+                  f"of the pressure acceleration's {terms['pressure_acceleration_maximum']:.3e}; density part max "
+                  f"{terms['density_reflection_rate_maximum']:.3e} of the rate's {terms['density_rate_maximum']:.3e}; "
+                  f"largest 1 / t_ij {terms['extrapolation_factor_maximum']:.2f}")
         for problem in reference["wall_problems"] + reference["fallback_problems"]:
             print(f"  PROBLEM: {problem}")
         if outcome["configuration"] == "smooth":
@@ -737,8 +767,13 @@ def main() -> int:
                         help="largest per-particle relative error allowed in the smooth configuration")
     parser.add_argument("--compare-modes", action="store_true",
                         help="also run the property configurations with wall_boundary simple and adami")
+    parser.add_argument("--geometry", default="nearest_wall", choices=("nearest_wall", "pairwise"),
+                        help="numerics.wall_crossing.geometry of the crossing runs")
+    parser.add_argument("--pressure-wall", default="extension", choices=("extension", "reflection"),
+                        help="numerics.wall_crossing.pressure_wall of the crossing runs (reflection: with "
+                             "--geometry pairwise; the smooth configuration then has a gravity)")
     parser.add_argument("--delta-wall", default="extension",
-                        choices=("extension", "rest_density", "body_force"),
+                        choices=("extension", "rest_density", "body_force", "reflection"),
                         help="the diagnostic numerics.wall_crossing.delta_wall of the crossing runs (default: the "
                              "mode); another value adds its name to the labels and to the summary file name")
     parser.add_argument("--continuity-wall-component", default="normal", choices=("full", "normal"),
@@ -784,7 +819,8 @@ def main() -> int:
                                               arguments.tolerance, arguments.delta_wall,
                                               arguments.continuity_wall_component, arguments.density_budget,
                                               arguments.viscous_extension, arguments.continuity_extension,
-                                              arguments.determinant_threshold))
+                                              arguments.determinant_threshold, arguments.geometry,
+                                              arguments.pressure_wall))
             _print_outcome(outcomes[-1])
         if arguments.density_budget and configuration == "smooth":
             outcomes.append(run_configuration(out_root, arguments.dimension, arguments.device, configuration,
@@ -803,6 +839,7 @@ def main() -> int:
                                + ("" if arguments.continuity_wall_component == "full"
                                   else f"_wall_component_{arguments.continuity_wall_component}")
                                + extension_suffix(arguments.viscous_extension, arguments.continuity_extension)
+                               + geometry_suffix(arguments.geometry, arguments.pressure_wall)
                                + ("" if arguments.determinant_threshold is None else
                                   "_det_threshold_" + repr(arguments.determinant_threshold).replace(".", "p"))
                                + ("_budget" if arguments.density_budget else "")

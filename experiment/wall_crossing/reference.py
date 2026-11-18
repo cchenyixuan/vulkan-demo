@@ -46,6 +46,18 @@ grad v_i ((grad v)_ab = d v_a / d x_b) solved per particle from the sums of pass
 State of a particle: 0 no wall neighbour (nothing solved), 1 solved, 2 fallback to the first-order rule in both
 terms (L itself fell back, det(I - K_raw L) < 0.5, or a solution that is not finite).
 
+Pairwise geometry and the two reflections (geometry pairwise, pressure_wall reflection, delta_wall reflection;
+all off by default). With geometry pairwise the pair's own quantities replace phi_i, d_j and n_j everywhere above
+(wall_crossing_v7.box_pair_geometry): the face the segment i -> j leaves the box through gives n_ij, phi_ij
+(floored) and d_ij, so c_ij = c'_ij = 1 + d_ij / phi_ij, and the wall particle has a mirror point r_j' (r_j
+reflected in every face it lies outside of).
+  pressure_wall reflection: p_j - p_i = G_i . (r_j - r_i) - (G_i - rho_i g) . (r_j - r_j'), i.e. a_p gains
+      (1 / rho_i) L M_d (G_i - rho_i g),  M_d = sum_{j wall} V_j grad W (x) (r_j - r_j')   (0 on a fallback of A_f)
+  delta_wall reflection:    rho_j - rho_i = G_i . (r_j - r_i) - (G_i - rho_i g / c_i^2) . (r_j - r_j'), i.e. the
+      density rate gains, beside the term of delta_wall extension,
+      -2 delta h c0 (G_i - rho_i g / c_i^2) . sum_{j wall} V_j |grad W| r / (r^2 + eps^2) (r_j - r_j')
+      (0 on a fallback of A_f; c_i^2 as with delta_wall body_force)
+
 A case with wall_boundary simple or adami: from_case takes continuity wall_velocity, continuity_wall_component
 full and delta_wall rest_density,
 with which the four terms of the density rate above are those of simple's (and adami's) fluid particles (a wall
@@ -67,6 +79,7 @@ from experiment.v7.utils.wall_crossing_v7 import (
     WallCrossingSettings,
     box_depth_behind_wall,
     box_distance_to_wall,
+    box_pair_geometry,
 )
 
 
@@ -109,6 +122,8 @@ class ReferenceConstants:
     continuity_wall_component: str = "normal"   # spec const 117: "normal" (the default) | "full"
     viscous_extension: str = "linear"           # spec const 118: "linear" (the default) | "quadratic"
     continuity_extension: str = "linear"        # spec const 119: "linear" (the default) | "quadratic"
+    geometry: str = "nearest_wall"              # spec const 128: "nearest_wall" (the default) | "pairwise"
+    pressure_wall: str = "extension"            # spec const 129: "extension" (the default) | "reflection"
 
     @classmethod
     def from_case(cls, case) -> "ReferenceConstants":
@@ -160,6 +175,8 @@ class ReferenceConstants:
             continuity_wall_component=settings.continuity_wall_component,
             viscous_extension=settings.viscous_extension,
             continuity_extension=settings.continuity_extension,
+            geometry=settings.geometry,
+            pressure_wall=settings.pressure_wall,
         )
 
 
@@ -204,6 +221,11 @@ class ReferenceResult:
     system_determinant: np.ndarray | None = None        # (F,): det(I - K_raw L) (1 without a wall neighbour)
     quadratic_factor_maximum: np.ndarray | None = None  # (F,): the largest (1 + a_j)^2 over the wall neighbours
     wall_viscous_diffusion_number: np.ndarray | None = None   # (F,): density_budget.glsl's number (pass 1 volumes)
+    # the two reflections' own parts (zero without them): what pressure_wall reflection adds to the pressure
+    # acceleration, what delta_wall reflection adds to the density rate
+    acceleration_pressure_reflection: np.ndarray | None = None    # (F, 3)
+    density_rate_diffusion_reflection: np.ndarray | None = None   # (F,)
+    extrapolation_factor_maximum: np.ndarray | None = None        # (F,): the largest 1 / t_ij over the wall neighbours
 
 
 def kernel_value(distance: np.ndarray, constants: ReferenceConstants) -> np.ndarray:
@@ -321,8 +343,18 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
                                              dimension)
     wall_distance = np.maximum(wall_distance_raw, constants.distance_floor)
     wall_depth = box_depth_behind_wall(positions, constants.box_lower, constants.box_upper, dimension)
-    extrapolation = np.where(neighbour_is_wall,
-                             1.0 + wall_depth[neighbour_of_pair] / wall_distance[self_of_pair], 1.0)
+    depth_ratio = np.where(neighbour_is_wall, wall_depth[neighbour_of_pair] / wall_distance[self_of_pair], 0.0)
+    pair_normal = None
+    mirror_displacement = np.zeros_like(displacement)           # r_j - r_j' of a wall neighbour
+    if constants.geometry == "pairwise":
+        # the pair's own geometry: the face the segment i -> j leaves the box through
+        pair_normal, pair_depth_ratio, pair_mirror = box_pair_geometry(
+            positions[self_row], positions[neighbour_of_pair], constants.box_lower, constants.box_upper,
+            dimension, constants.distance_floor)
+        depth_ratio = np.where(neighbour_is_wall, pair_depth_ratio, 0.0)
+        mirror_displacement = np.where(neighbour_is_wall[:, None], pair_mirror, 0.0)
+    extrapolation = 1.0 + depth_ratio
+    gravity = np.asarray(constants.gravity, dtype=np.float64)
 
     # ---- pass 1: correction, A_f, g_f, density rate ---------------------------------------------------------
     volume = masses[neighbour_of_pair] / densities[neighbour_of_pair]           # V_j = m_j / rho_j
@@ -350,7 +382,7 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
         to_box_length = np.sqrt((to_box * to_box).sum(axis=1))
         inward_normal = np.divide(to_box, to_box_length[:, None], out=np.zeros_like(to_box),
                                   where=to_box_length[:, None] > 0.0)
-        normal_of_pair = inward_normal[neighbour_of_pair]
+        normal_of_pair = inward_normal[neighbour_of_pair] if pair_normal is None else pair_normal
         projected = (velocity_difference * normal_of_pair).sum(axis=1)[:, None] * normal_of_pair
         drift_velocity_difference = np.where(neighbour_is_wall[:, None], projected, velocity_difference)
     drift_pair = -self_density * volume * (drift_velocity_difference * corrected_gradient).sum(axis=1)
@@ -360,7 +392,6 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
     drift_wall = _sum_by_particle(self_of_pair[neighbour_is_wall], drift_pair[neighbour_is_wall], fluid_count)
 
     # ---- the second-order continuation of the velocity: grad v_i = M_0 L (I - K_raw L)^-1 ------------------------
-    depth_ratio = np.where(neighbour_is_wall, wall_depth[neighbour_of_pair] / wall_distance[self_of_pair], 0.0)
     quadratic_factor = (1.0 + depth_ratio) ** 2
     velocity_outer = volume[:, None, None] * velocity_difference[:, :, None] * gradient[:, None, :]
     fluid_velocity_matrix = _sum_by_particle(self_of_pair[neighbour_is_fluid], velocity_outer[neighbour_is_fluid],
@@ -412,6 +443,7 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
     diffusion_fluid = np.zeros(fluid_count)
     diffusion_wall = np.zeros(fluid_count)
     diffusion_wall_pairwise = np.zeros(fluid_count)
+    diffusion_reflection = np.zeros(fluid_count)
     diffusion_scale = np.zeros(fluid_count)
     body_force_notes = {}
     if constants.use_density_diffusion:
@@ -463,9 +495,36 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
                 "wall_diffusion_maximum": float(np.abs(diffusion_wall).max()),
                 "wall_diffusion_difference_with_rest_sound_speed_maximum":
                     float(np.abs(diffusion_wall - with_rest_sound_speed).max())}
+        elif constants.delta_wall == "reflection":
+            # the density of a wall particle = the continued density at its mirror point + the density difference
+            # of a fluid at rest between the mirror point and the particle:
+            #     psi_ij = G_i . (r_j - r_i) - (G_i - rho_i g / c_i^2) . (r_j - r_j')
+            # The first part is delta_wall extension's term (above). The second, as the pass applies it: the
+            # pair's (r_j - r_i) . grad W = |grad W| r, without the correction matrix. Nothing on a fallback of A_f.
+            sound_speed_squared_rest = constants.power_parameter * constants.eos_constant / constants.rest_density
+            fluid_density_of_particle = densities[fluid_index]
+            sound_speed_squared = sound_speed_squared_rest * (
+                fluid_density_of_particle / constants.rest_density) ** (constants.power_parameter - 1.0)
+            density_gradient_excess = one_sided_density_gradient \
+                - (fluid_density_of_particle / sound_speed_squared)[:, None] * gravity[None, :]
+            density_gradient_excess[~fluid_valid] = 0.0
+            gradient_norm = np.sqrt((gradient * gradient).sum(axis=1))
+            reflection_vector = _sum_by_particle(
+                self_of_pair[neighbour_is_wall],
+                (volume * gradient_norm * distance / softened)[neighbour_is_wall, None]
+                * mirror_displacement[neighbour_is_wall], fluid_count)
+            diffusion_reflection = -diffusion_coefficient * (density_gradient_excess * reflection_vector).sum(axis=1)
+            diffusion_wall = diffusion_wall + diffusion_reflection
+            # pair by pair with the corrected gradient (what the two sums after the loop stand for)
+            continued_difference = continued_difference \
+                - (density_gradient_excess[self_of_pair] * mirror_displacement).sum(axis=1)
+            pairwise = (diffusion_coefficient * continued_difference * volume / softened
+                        * (displacement * corrected_gradient).sum(axis=1))
+            diffusion_wall_pairwise = _sum_by_particle(self_of_pair[neighbour_is_wall], pairwise[neighbour_is_wall],
+                                                       fluid_count)
         diffusion_scale = _sum_by_particle(self_of_pair[neighbour_is_fluid],
                                            np.abs(diffusion_pair[neighbour_is_fluid]), fluid_count) \
-            + (np.abs(diffusion_wall) if constants.delta_wall == "extension" else
+            + (np.abs(diffusion_wall) if constants.delta_wall in ("extension", "reflection") else
                _sum_by_particle(self_of_pair[neighbour_is_wall], np.abs(diffusion_pair[neighbour_is_wall]),
                                 fluid_count))
     density_rate = drift_fluid + drift_wall + diffusion_fluid + diffusion_wall
@@ -476,7 +535,8 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
                                                  np.abs(diffusion_pair[neighbour_is_fluid]), fluid_count)
         wall_diffusion_scale = _sum_by_particle(
             self_of_pair[neighbour_is_wall],
-            np.abs(pairwise if constants.delta_wall == "extension" else diffusion_pair)[neighbour_is_wall],
+            np.abs(pairwise if constants.delta_wall in ("extension", "reflection")
+                   else diffusion_pair)[neighbour_is_wall],
             fluid_count)
     term_scales = np.stack([
         _sum_by_particle(self_of_pair[neighbour_is_fluid], np.abs(drift_pair[neighbour_is_fluid]), fluid_count),
@@ -508,12 +568,28 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
         "fab,fb->fa", correction, wall_kernel_gradient_sum)
     gradient_part = np.einsum("fab,fb->fa", fluid_inverse - correction, fluid_pressure_gradient_sum)
     gradient_part[~fluid_valid] = 0.0
-    acceleration_pressure = pressure_fluid - (wall_pressure_sum + gradient_part) / fluid_density[:, None]
-
-    # the wall neighbours' pressure written pair by pair: p_j = p_i + G_i . (r_j - r_i), G_i = A_f^-1 g_f(p)
     one_sided_pressure_gradient = np.einsum("fab,fb->fa", fluid_inverse, fluid_pressure_gradient_sum)
     one_sided_pressure_gradient[~fluid_valid] = 0.0
-    continued_pressure = self_pressure + (one_sided_pressure_gradient[self_of_pair] * displacement).sum(axis=1)
+    # pressure_wall reflection: every wall neighbour's pressure is lowered by (G_i - rho_i g) . (r_j - r_j'), the
+    # pair sum by L M_d (G_i - rho_i g), M_d = sum_wall V_j grad W (x) (r_j - r_j'); nothing on a fallback of A_f
+    reflection_part = np.zeros((fluid_count, 3))
+    pressure_gradient_excess = np.zeros((fluid_count, 3))
+    if constants.pressure_wall == "reflection":
+        pressure_gradient_excess = one_sided_pressure_gradient - fluid_density[:, None] * gravity[None, :]
+        pressure_gradient_excess[~fluid_valid] = 0.0
+        mirror_matrix = _sum_by_particle(
+            self_of_pair[neighbour_is_wall],
+            force_volume[neighbour_is_wall, None, None] * gradient[neighbour_is_wall, :, None]
+            * mirror_displacement[neighbour_is_wall, None, :], fluid_count)
+        reflection_part = -np.einsum("fab,fb->fa", correction,
+                                     np.einsum("fab,fb->fa", mirror_matrix, pressure_gradient_excess))
+    acceleration_pressure = pressure_fluid \
+        - (wall_pressure_sum + gradient_part + reflection_part) / fluid_density[:, None]
+
+    # the wall neighbours' pressure written pair by pair: p_j = p_i + G_i . (r_j - r_i), G_i = A_f^-1 g_f(p)
+    # (pressure_wall reflection: - (G_i - rho_i g) . (r_j - r_j'))
+    continued_pressure = self_pressure + (one_sided_pressure_gradient[self_of_pair] * displacement).sum(axis=1) \
+        - (pressure_gradient_excess[self_of_pair] * mirror_displacement).sum(axis=1)
     pairwise_combined = np.where(plus_branch, continued_pressure + self_pressure, continued_pressure - self_pressure)
     pairwise_pair = -(force_volume * pairwise_combined / self_density)[:, None] * corrected_gradient
     acceleration_pressure_pairwise = pressure_fluid + _sum_by_particle(
@@ -533,13 +609,13 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
                       * (viscous_velocity_difference * (-displacement)).sum(axis=1) / softened)
     viscous_pair = viscous_scalar[:, None] * corrected_gradient
     acceleration_viscosity = _sum_by_particle(self_of_pair, viscous_pair, fluid_count)
-    gravity = np.asarray(constants.gravity, dtype=np.float64)
     acceleration = acceleration_pressure + acceleration_viscosity + gravity[None, :]
     acceleration_scale = (
         _sum_by_particle(self_of_pair[neighbour_is_fluid],
                          np.sqrt((pressure_pair[neighbour_is_fluid] ** 2).sum(axis=1)), fluid_count)
         + np.sqrt((wall_pressure_sum ** 2).sum(axis=1)) / fluid_density
         + np.sqrt((gradient_part ** 2).sum(axis=1)) / fluid_density
+        + np.sqrt((reflection_part ** 2).sum(axis=1)) / fluid_density
         + _sum_by_particle(self_of_pair, np.sqrt((viscous_pair ** 2).sum(axis=1)), fluid_count)
         + np.sqrt((gravity ** 2).sum()))
 
@@ -607,4 +683,7 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
         system_determinant=np.where(wall_neighbour_count > 0, system_determinant, 1.0),
         quadratic_factor_maximum=quadratic_factor_maximum,
         wall_viscous_diffusion_number=constants.timestep * wall_viscous_rate,
+        acceleration_pressure_reflection=-reflection_part / fluid_density[:, None],
+        density_rate_diffusion_reflection=diffusion_reflection,
+        extrapolation_factor_maximum=np.sqrt(quadratic_factor_maximum),
     )

@@ -11,6 +11,9 @@ What lives here:
         phi(r) = min over the active axes of min(r_a - lower_a, upper_a - r_a)
         d(r)   = | max(lower - r, r - upper, 0) |
     (2-D: x and y only). Another geometry replaces these two and the shader's two;
+  - the pair's geometry of numerics.wall_crossing.geometry pairwise (box_pair_geometry, the shader's
+    wall_crossing_pair_geometry): the face the segment i -> j leaves the box through, its normal, the pair's
+    d_ij / phi_ij and the mirror point of the wall particle;
   - the load-time check: every non-wall particle inside the box, every wall particle
     outside it;
   - the diagnostics the report asks for (smallest phi of the fluid, fallback count).
@@ -33,8 +36,22 @@ WALL_CROSSING_DEFAULT_DISTANCE_FLOOR_FACTOR = 0.25
 # "extension" is the mode as specified (the density continued across the wall); "rest_density" takes simple's
 # pair term rho0 - rho_i instead; "body_force" takes the pair term rho_i g . (r_j - r_i) / c^2 (c^2 = dp/drho
 # of the Tait EOS at rho_i, wall acceleration 0), which is zero without gravity. See shaders/wall_boundary.glsl.
-WALL_CROSSING_DELTA_WALL_CHOICES = ("extension", "rest_density", "body_force")
+# "reflection" (3) is not a diagnostic but a variant of the mode (needs geometry pairwise): the density of a wall
+# particle is the continued density at its mirror point plus rho_i g . (r_j - r_j') / c^2.
+WALL_CROSSING_DELTA_WALL_CHOICES = ("extension", "rest_density", "body_force", "reflection")
 WALL_CROSSING_DEFAULT_DELTA_WALL = "extension"
+# Spec const 128 (0, 1): where a pair's crossing fraction and wall normal come from. "nearest_wall" (the default,
+# the mode as it was): phi_i = the distance of the fluid particle to its nearest wall plane, d_j = the distance of
+# the wall particle to the box, n_j = the unit vector from the wall particle to the nearest point of the box.
+# "pairwise": from the face the segment i -> j leaves the box through (box_pair_geometry below). Not offered
+# together with a quadratic extension.
+WALL_CROSSING_GEOMETRY_CHOICES = ("nearest_wall", "pairwise")
+WALL_CROSSING_DEFAULT_GEOMETRY = "nearest_wall"
+# Spec const 129 (0, 1): the pressure of a wall neighbour in force. "extension" (the default): the continuation
+# P_i + G_i . (r_j - r_i). "reflection" (needs geometry pairwise): the continued pressure at the mirror point
+# plus the body force, P_i + G_i . (r_j' - r_i) + rho_i g . (r_j - r_j').
+WALL_CROSSING_PRESSURE_WALL_CHOICES = ("extension", "reflection")
+WALL_CROSSING_DEFAULT_PRESSURE_WALL = "extension"
 # Spec const 117 (0, 1): which part of a wall neighbour's velocity difference enters the continuity equation.
 # "normal" (the default since 2026-11-18, the user's decision after the density budget of the 250^2 cavity)
 # keeps only its component along the wall's inward normal (the unit vector from the wall particle to the
@@ -77,6 +94,11 @@ class WallCrossingSettings:
         until 2026-11-18).
     viscous_extension / continuity_extension: "linear" (default) or "quadratic": the first-order or the
         second-order continuation of the velocity in force's viscous term / in the continuity equation.
+    geometry: "nearest_wall" (default) or "pairwise": the crossing fraction and the wall normal from the fluid
+        particle's nearest wall and the wall particle's own wall, or pair by pair from the face the segment
+        leaves the box through.
+    pressure_wall: "extension" (default) or "reflection" (with geometry pairwise): the pressure of a wall
+        neighbour continued to it, or taken at its mirror point plus the body force.
     """
     continuity: str = WALL_CROSSING_DEFAULT_CONTINUITY
     distance_floor_factor: float = WALL_CROSSING_DEFAULT_DISTANCE_FLOOR_FACTOR
@@ -87,6 +109,14 @@ class WallCrossingSettings:
     continuity_wall_component: str = WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT
     viscous_extension: str = WALL_CROSSING_DEFAULT_VISCOUS_EXTENSION
     continuity_extension: str = WALL_CROSSING_DEFAULT_CONTINUITY_EXTENSION
+    geometry: str = WALL_CROSSING_DEFAULT_GEOMETRY
+    pressure_wall: str = WALL_CROSSING_DEFAULT_PRESSURE_WALL
+
+    def geometry_code(self) -> int:
+        return WALL_CROSSING_GEOMETRY_CHOICES.index(self.geometry)
+
+    def pressure_wall_code(self) -> int:
+        return WALL_CROSSING_PRESSURE_WALL_CHOICES.index(self.pressure_wall)
 
     def viscous_extension_code(self) -> int:
         return WALL_CROSSING_EXTENSION_CHOICES.index(self.viscous_extension)
@@ -132,12 +162,57 @@ def box_depth_behind_wall(positions: np.ndarray, box_lower, box_upper, dimension
     return np.sqrt((outside * outside).sum(axis=1))
 
 
+def box_pair_geometry(fluid_positions: np.ndarray, wall_positions: np.ndarray, box_lower, box_upper,
+                      dimension: int, distance_floor: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """numerics.wall_crossing.geometry pairwise: the geometry of P pairs (fluid particle i inside the box, wall
+    particle j outside it), the shader's wall_crossing_pair_geometry row by row. float64.
+
+    The wall particle lies outside the box on one, two or three axes; each names a face. The segment i -> j
+    leaves the box through the face with the smallest s_a = phi_a / (phi_a + d_a), phi_a = the distance of i to
+    the face (0 for a particle that has left the box there), d_a = the depth of j behind it; equal s_a: the first
+    axis in the order x, y, z. Returns
+        normal (P, 3)               the inward unit normal of that face
+        depth_ratio (P,)            d_ij / max(phi_ij, distance_floor)        (1 / t_ij = 1 + depth_ratio)
+        mirror_displacement (P, 3)  r_j - r_j', r_j' = r_j reflected in every face it lies outside of
+    A wall position that is not outside the box gets zeros."""
+    fluid_positions = np.asarray(fluid_positions, dtype=np.float64)
+    wall_positions = np.asarray(wall_positions, dtype=np.float64)
+    lower = np.asarray(box_lower, dtype=np.float64)
+    upper = np.asarray(box_upper, dtype=np.float64)
+    nearest_box_point = np.clip(wall_positions, lower, upper)
+    outside = wall_positions - nearest_box_point
+    outside[:, int(dimension):] = 0.0
+    pair_count = wall_positions.shape[0]
+    normal = np.zeros((pair_count, 3))
+    depth_ratio = np.zeros(pair_count)
+    smallest_crossing = np.full(pair_count, 2.0)
+    for axis in range(3):
+        depth = np.abs(outside[:, axis])
+        outward_sign = np.sign(outside[:, axis])
+        inward_distance = outward_sign * (nearest_box_point[:, axis] - fluid_positions[:, axis])
+        clamped_distance = np.maximum(inward_distance, 0.0)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            crossing = clamped_distance / (clamped_distance + depth)
+        chosen = (depth > 0.0) & (crossing < smallest_crossing)
+        smallest_crossing[chosen] = crossing[chosen]
+        depth_ratio[chosen] = depth[chosen] / np.maximum(inward_distance[chosen], float(distance_floor))
+        normal[chosen] = 0.0
+        normal[chosen, axis] = -outward_sign[chosen]
+    return normal, depth_ratio, 2.0 * outside
+
+
 def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings:
     """numerics.wall_crossing of case.yaml (optional mapping; every key optional):
         continuity: extrapolate | wall_velocity            (default extrapolate)
         distance_floor_factor: <float > 0>                 (default 0.25)
         box: {lower: [x, y, z], upper: [x, y, z]}          (default: from the fluid particles)
-        delta_wall: extension | rest_density | body_force  (DIAGNOSTIC; default extension = the mode)
+        delta_wall: extension | rest_density | body_force | reflection
+                                                           (default extension = the mode; rest_density and
+                                                            body_force are DIAGNOSTICS; reflection needs
+                                                            geometry pairwise)
+        geometry: nearest_wall | pairwise                  (default nearest_wall; pairwise not with a quadratic
+                                                            extension)
+        pressure_wall: extension | reflection              (default extension; reflection needs geometry pairwise)
         continuity_wall_component: normal | full           (default normal; full = the default until 2026-11-18)
         viscous_extension: linear | quadratic              (default linear)
         continuity_extension: linear | quadratic           (default linear; quadratic needs viscous_extension
@@ -147,11 +222,20 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
     if not isinstance(mapping, dict):
         raise ValueError(f"numerics.wall_crossing: expected a mapping, got {mapping!r}")
     unknown = sorted(set(mapping) - {"continuity", "distance_floor_factor", "box", "delta_wall",
-                                     "continuity_wall_component", "viscous_extension", "continuity_extension"})
+                                     "continuity_wall_component", "viscous_extension", "continuity_extension",
+                                     "geometry", "pressure_wall"})
     if unknown:
         raise ValueError(f"numerics.wall_crossing: unknown keys {unknown} (known: continuity, "
                          "distance_floor_factor, box, delta_wall, continuity_wall_component, viscous_extension, "
-                         "continuity_extension)")
+                         "continuity_extension, geometry, pressure_wall)")
+    geometry = str(mapping.get("geometry", WALL_CROSSING_DEFAULT_GEOMETRY))
+    if geometry not in WALL_CROSSING_GEOMETRY_CHOICES:
+        raise ValueError(f"numerics.wall_crossing.geometry: {geometry!r}, expected one of "
+                         f"{', '.join(WALL_CROSSING_GEOMETRY_CHOICES)}")
+    pressure_wall = str(mapping.get("pressure_wall", WALL_CROSSING_DEFAULT_PRESSURE_WALL))
+    if pressure_wall not in WALL_CROSSING_PRESSURE_WALL_CHOICES:
+        raise ValueError(f"numerics.wall_crossing.pressure_wall: {pressure_wall!r}, expected one of "
+                         f"{', '.join(WALL_CROSSING_PRESSURE_WALL_CHOICES)}")
     extensions = {}
     for key, default in (("viscous_extension", WALL_CROSSING_DEFAULT_VISCOUS_EXTENSION),
                          ("continuity_extension", WALL_CROSSING_DEFAULT_CONTINUITY_EXTENSION)):
@@ -175,6 +259,14 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
     if delta_wall not in WALL_CROSSING_DELTA_WALL_CHOICES:
         raise ValueError(f"numerics.wall_crossing.delta_wall: {delta_wall!r}, expected one of "
                          f"{', '.join(WALL_CROSSING_DELTA_WALL_CHOICES)}")
+    if geometry != "pairwise":
+        # a reflection needs the wall particle's mirror point, which is the pairwise geometry's
+        for key, value in (("pressure_wall", pressure_wall), ("delta_wall", delta_wall)):
+            if value == "reflection":
+                raise ValueError(f"numerics.wall_crossing.{key}: reflection needs geometry: pairwise")
+    elif "quadratic" in extensions.values():
+        raise ValueError("numerics.wall_crossing: geometry pairwise is not offered together with a quadratic "
+                         "extension (viscous_extension / continuity_extension)")
     continuity = str(mapping.get("continuity", WALL_CROSSING_DEFAULT_CONTINUITY))
     if continuity not in WALL_CROSSING_CONTINUITY_CHOICES:
         raise ValueError(f"numerics.wall_crossing.continuity: {continuity!r}, expected one of "
@@ -198,7 +290,8 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
                                 box_lower=box_lower, box_upper=box_upper, box_from_case=box is not None,
                                 delta_wall=delta_wall, continuity_wall_component=continuity_wall_component,
                                 viscous_extension=extensions["viscous_extension"],
-                                continuity_extension=extensions["continuity_extension"])
+                                continuity_extension=extensions["continuity_extension"],
+                                geometry=geometry, pressure_wall=pressure_wall)
 
 
 def resolve_wall_crossing_box(settings: WallCrossingSettings, positions: np.ndarray, is_wall: np.ndarray,
@@ -264,7 +357,13 @@ def describe_wall_crossing(settings: WallCrossingSettings, particle_radius: floa
             f"distance floor {settings.distance_floor(particle_radius):.6g} m "
             f"(= {settings.distance_floor_factor:g} x spacing), continuity {settings.continuity}, "
             f"continuity_wall_component {settings.continuity_wall_component}")
-    if settings.delta_wall != WALL_CROSSING_DEFAULT_DELTA_WALL:
+    if settings.geometry != WALL_CROSSING_DEFAULT_GEOMETRY:
+        text += f", geometry {settings.geometry}"
+    if settings.pressure_wall != WALL_CROSSING_DEFAULT_PRESSURE_WALL:
+        text += f", pressure_wall {settings.pressure_wall}"
+    if settings.delta_wall == "reflection":
+        text += ", delta_wall reflection"
+    elif settings.delta_wall != WALL_CROSSING_DEFAULT_DELTA_WALL:
         text += f", DIAGNOSTIC delta_wall {settings.delta_wall}"
     if settings.velocity_gradient_active():
         text += (f", viscous_extension {settings.viscous_extension}, "

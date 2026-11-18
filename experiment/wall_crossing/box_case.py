@@ -48,6 +48,8 @@ class BoxCaseSpecification:
     continuity_wall_component: str = "normal"   # crossing only: normal (the solver's default) | full
     viscous_extension: str = "linear"           # crossing only: linear (the solver's default) | quadratic
     continuity_extension: str = "linear"        # crossing only: linear (the solver's default) | quadratic
+    geometry: str = "nearest_wall"              # crossing only: nearest_wall (the solver's default) | pairwise
+    pressure_wall: str = "extension"            # crossing only: extension (the solver's default) | reflection
     explicit_box: bool = False
     jitter_fraction: float = 0.0
     near_wall_count: int = 0
@@ -215,6 +217,9 @@ def write_box_case(directory: pathlib.Path, specification: BoxCaseSpecification)
             numerics_lines += [f"    continuity_wall_component: {specification.continuity_wall_component}"]
         for key in ("viscous_extension", "continuity_extension"):
             if getattr(specification, key) != "linear":
+                numerics_lines += [f"    {key}: {getattr(specification, key)}"]
+        for key, default in (("geometry", "nearest_wall"), ("pressure_wall", "extension")):
+            if getattr(specification, key) != default:
                 numerics_lines += [f"    {key}: {getattr(specification, key)}"]
         if specification.explicit_box:
             box_lower = [float(component) for component in particles["box_lower"][:dimension]]

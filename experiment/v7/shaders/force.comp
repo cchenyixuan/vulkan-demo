@@ -200,6 +200,9 @@ void process_particle(uint self_particle_id) {
                                           wall_crossing_velocity_gradient[self_particle_id * 3u + 2u].xyz);
         }
     }
+    // pressure_wall reflection (WALL_CROSSING_PRESSURE_REFLECTION, off by default; wall_boundary.glsl):
+    //   wall_mirror_matrix = M_d = Σ_wall V_j ∇W_ij ⊗ (r_j - r_j'),   M_d x = Σ_wall V_j ∇W_ij ((r_j - r_j') · x)
+    mat3 wall_mirror_matrix = mat3(0.0);
 #endif
 
     int neighbor_z_range = int(NEIGHBOR_Z_RANGE);
@@ -249,10 +252,23 @@ void process_particle(uint self_particle_id) {
                     // wall_boundary crossing: a wall neighbour has no pair pressure term (its pressure is
                     // P_i + G_i · (r_j - r_i), summed after the loop); a fluid neighbour keeps the pair term
                     // below and adds to g_f of the pressure.
+                    // geometry pairwise (WALL_CROSSING_PAIRWISE, off by default): the pair's own crossing
+                    // fraction (the viscous term below) and mirror point (pressure_wall reflection: M_d).
                     bool neighbor_is_wall = WALL_CROSSING_ACTIVE
                         && material_parameters[material[neighbor_particle_id]].kind == MATERIAL_BOUNDARY;
+                    vec3  pair_wall_normal         = vec3(0.0);
+                    float pair_depth_ratio         = 0.0;
+                    vec3  pair_mirror_displacement = vec3(0.0);
+                    if (WALL_CROSSING_PAIRWISE && neighbor_is_wall) {
+                        wall_crossing_pair_geometry(self_position, neighbor_position, pair_wall_normal,
+                                                    pair_depth_ratio, pair_mirror_displacement);
+                    }
                     if (neighbor_is_wall) {
                         wall_kernel_gradient_sum += neighbor_volume_dynamic * kernel_gradient_raw;
+                        if (WALL_CROSSING_PRESSURE_REFLECTION) {
+                            wall_mirror_matrix += neighbor_volume_dynamic
+                                                * outerProduct(kernel_gradient_raw, pair_mirror_displacement);
+                        }
                     } else {
                     if (WALL_CROSSING_ACTIVE) {
                         fluid_pressure_gradient_sum += neighbor_volume_dynamic
@@ -295,6 +311,8 @@ void process_particle(uint self_particle_id) {
                             viscous_velocity_difference =
                                 viscous_velocity_difference * ((1.0 + depth_ratio) * (1.0 + depth_ratio))
                                 + depth_ratio * (self_velocity_gradient * (neighbor_position - self_position));
+                        } else if (WALL_CROSSING_PAIRWISE) {
+                            viscous_velocity_difference *= 1.0 + pair_depth_ratio;
                         } else {
                             viscous_velocity_difference *=
                                 wall_crossing_extrapolation_factor(self_wall_distance, neighbor_position);
@@ -368,6 +386,10 @@ void process_particle(uint self_particle_id) {
     // (A_f^-1 - L_i) g_f. A_f^-1 is the one the fused pass stored for this
     // particle in this step; a fallback there (flag 0) means G_i = 0, which
     // leaves the first part only.
+    // pressure_wall reflection: P_j = P_i + G_i · (r_j' - r_i) + ρ_i g · (r_j - r_j')
+    // lowers every wall neighbour's pressure by (G_i - ρ_i g) · (r_j - r_j'),
+    // i.e. the pair sum by L_i M_d (G_i - ρ_i g) on either branch; nothing on a
+    // fallback of A_f.
     // ========================================================================
     if (WALL_CROSSING_ACTIVE) {
         float pressure_branch_factor = (self_pressure > 0.0 || near_surface) ? 2.0 : 0.0;
@@ -379,6 +401,11 @@ void process_particle(uint self_particle_id) {
             mat3 fluid_correction_inverse =
                 wall_crossing_symmetric_matrix(fluid_inverse_diagonal_and_xy, fluid_inverse_xz_and_yz);
             wall_pressure_sum += (fluid_correction_inverse - self_correction_matrix) * fluid_pressure_gradient_sum;
+            if (WALL_CROSSING_PRESSURE_REFLECTION) {
+                vec3 pressure_gradient_excess = fluid_correction_inverse * fluid_pressure_gradient_sum
+                                              - self_density * vec3(GRAVITY_X, GRAVITY_Y, GRAVITY_Z);
+                wall_pressure_sum -= self_correction_matrix * (wall_mirror_matrix * pressure_gradient_excess);
+            }
         }
         a_pressure -= wall_pressure_sum / self_density;
     }

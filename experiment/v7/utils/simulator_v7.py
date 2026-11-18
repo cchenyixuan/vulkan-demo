@@ -2074,6 +2074,8 @@ class SphSimulatorV7:
                 (124, 'f', settings.box_lower[2]),
                 (125, 'f', settings.box_upper[0]), (126, 'f', settings.box_upper[1]),
                 (127, 'f', settings.box_upper[2]),
+                (128, 'I', settings.geometry_code()),          # 0 = nearest_wall (default), 1 = pairwise
+                (129, 'I', settings.pressure_wall_code()),     # 0 = extension (default), 1 = reflection
             ]
         elif self._density_budget_active():
             # V7_DENSITY_BUDGET=1 on a simple / adami slab: the box of the budget's regions (density_budget.glsl
