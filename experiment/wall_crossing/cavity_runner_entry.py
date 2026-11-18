@@ -1,6 +1,7 @@
 """
-cavity_runner_entry.py - experiment/validation/cavity_runner.py with two additions that need no change of the
-runner: it starts on a machine without git, and a wall_boundary crossing run records the mode's diagnostics.
+cavity_runner_entry.py - experiment/validation/cavity_runner.py with three additions that need no change of the
+runner: it starts on a machine without git, a wall_boundary crossing run records the mode's diagnostics, and
+every run records the history of the fluid's mean density and pressure.
 
     python -m experiment.wall_crossing.cavity_runner_entry <cavity_runner arguments>
 
@@ -16,6 +17,16 @@ runner: it starts on a machine without git, and a wall_boundary crossing run rec
    and, every POSITION_CHECK_INTERVAL-th read, the fluid's smallest wall distance from a position readback:
        "wall_distance_minimum", "below_floor_count", "outside_box_count", "fluid_count".
    The runner's own results are untouched (the hook returns the status it was asked for).
+
+3. Field history (any wall mode). The runner reads every alive particle at each sample (every 0.2 time units)
+   and at each snapshot (CachedStateReader.read: position, velocity, density, pressure, material in one staging
+   copy) but keeps only the kinetic energy, the largest speed and the density range. Here that read also appends
+   one line to <run-dir>/field_history.jsonl, over the alive fluid particles (no wall), float64 means:
+       {"unix", "step", "time", "segment" (the heartbeat the runner wrote just before the read), "alive" (all
+        particles), "fluid_particles", "density_mean", "density_minimum", "density_maximum" (the stored value
+        plus the storage offset), "pressure_mean", "pressure_minimum", "pressure_maximum",
+        "pressure_negative_fraction", "speed_maximum"}
+   A step that is both a sample and a snapshot has two lines. The state the runner gets is the one it asked for.
 """
 
 from __future__ import annotations
@@ -109,7 +120,52 @@ def install_wall_crossing_diagnostics(run_directory: pathlib.Path) -> None:
     simulator_v7.SphSimulatorV7.readback_global_status = readback_global_status_recording
 
 
+def install_field_history(run_directory: pathlib.Path) -> None:
+    """Wrap cavity_runner.CachedStateReader.read (see the module docstring, item 3)."""
+    import numpy as np
+
+    from experiment.v7.utils.case_v7 import KIND_FLUID
+
+    original = cavity_runner.CachedStateReader.read
+    path = run_directory / "field_history.jsonl"
+    heartbeat_path = run_directory / "heartbeat.json"
+
+    def read_recording(self):
+        state = original(self)
+        try:
+            # the staging copy the runner's read just filled
+            count = self.count
+            position = np.frombuffer(self.view, np.float32, 4 * count, self.offsets["position_voxel_id"]).reshape(count, 4)
+            velocity = np.frombuffer(self.view, np.float32, 4 * count, self.offsets["velocity_mass"]).reshape(count, 4)
+            density = np.frombuffer(self.view, np.float32, 2 * count, self.offsets["density_pressure"]).reshape(count, 2)
+            material = np.frombuffer(self.view, np.uint32, count, self.offsets["material"])
+            alive = (velocity[:, 3] > 0) & (position[:, 3] > 0.5)
+            kinds = np.asarray([entry.kind for entry in self.sim.case.materials])
+            fluid = alive & (kinds[np.minimum(material, kinds.size - 1)] == KIND_FLUID)
+            true_density = density[fluid, 0].astype(np.float64) + float(self.sim.stored_density_offset())
+            pressure = density[fluid, 1].astype(np.float64)
+            speed_squared = (velocity[fluid, 0:3].astype(np.float64) ** 2).sum(axis=1)
+            heartbeat = json.loads(heartbeat_path.read_text(encoding="utf-8")) if heartbeat_path.exists() else {}
+            record = {"unix": time.time(), "step": heartbeat.get("step"), "time": heartbeat.get("time"),
+                      "segment": heartbeat.get("segment"), "alive": int(alive.sum()),
+                      "fluid_particles": int(fluid.sum()),
+                      "density_mean": float(true_density.mean()), "density_minimum": float(true_density.min()),
+                      "density_maximum": float(true_density.max()),
+                      "pressure_mean": float(pressure.mean()), "pressure_minimum": float(pressure.min()),
+                      "pressure_maximum": float(pressure.max()),
+                      "pressure_negative_fraction": float((pressure < 0.0).mean()),
+                      "speed_maximum": float(np.sqrt(speed_squared.max()))}
+            with open(path, "a", encoding="utf-8", newline="\n") as handle:
+                handle.write(json.dumps(record) + "\n")
+        except Exception as error:          # a diagnostic must never end a run
+            print(f"[cavity_runner_entry] field history skipped: {error!r}", flush=True)
+        return state
+
+    cavity_runner.CachedStateReader.read = read_recording
+
+
 if __name__ == "__main__":
     if _argument("--solver") == "v7" and _argument("--run-dir"):
         install_wall_crossing_diagnostics(pathlib.Path(_argument("--run-dir")).resolve())
+        install_field_history(pathlib.Path(_argument("--run-dir")).resolve())
     sys.exit(cavity_runner.main())

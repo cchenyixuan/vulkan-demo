@@ -35,12 +35,14 @@ WALL_CROSSING_DEFAULT_DISTANCE_FLOOR_FACTOR = 0.25
 # of the Tait EOS at rho_i, wall acceleration 0), which is zero without gravity. See shaders/wall_boundary.glsl.
 WALL_CROSSING_DELTA_WALL_CHOICES = ("extension", "rest_density", "body_force")
 WALL_CROSSING_DEFAULT_DELTA_WALL = "extension"
-# DIAGNOSTIC (spec const 117: 0, 1), not part of the mode: which part of a wall neighbour's velocity difference
-# enters the continuity equation. "full" is the mode as specified; "normal" keeps only its component along
-# the wall's inward normal (the unit vector from the wall particle to the nearest point of the box) before the
-# continuity rule is applied. See shaders/wall_boundary.glsl.
+# Spec const 117 (0, 1): which part of a wall neighbour's velocity difference enters the continuity equation.
+# "normal" (the default since 2026-11-18, the user's decision after the density budget of the 250^2 cavity)
+# keeps only its component along the wall's inward normal (the unit vector from the wall particle to the
+# nearest point of the box) before the continuity rule is applied; "full" takes the whole vector (the mode as
+# first specified and the default until then; kept as a switch). The viscous term takes the whole velocity
+# difference with either value. See shaders/wall_boundary.glsl.
 WALL_CROSSING_CONTINUITY_WALL_COMPONENT_CHOICES = ("full", "normal")
-WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT = "full"
+WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT = "normal"
 
 KIND_BOUNDARY = 1       # case_v7.KIND_BOUNDARY (not imported: case_v7 imports this module)
 
@@ -58,6 +60,9 @@ class WallCrossingSettings:
     delta_wall: DIAGNOSTIC, default "extension" (the mode as specified); "rest_density" lets a wall neighbour
         enter the density diffusion with simple's pair term rho0 - rho_i, "body_force" with the pair term
         rho_i g . (r_j - r_i) / c^2 (nothing without gravity).
+    continuity_wall_component: "normal" (default) or "full": a wall neighbour's velocity difference enters the
+        continuity equation with its component along the wall's inward normal only, or whole (the default
+        until 2026-11-18).
     """
     continuity: str = WALL_CROSSING_DEFAULT_CONTINUITY
     distance_floor_factor: float = WALL_CROSSING_DEFAULT_DISTANCE_FLOOR_FACTOR
@@ -65,7 +70,7 @@ class WallCrossingSettings:
     box_upper: Optional[tuple[float, float, float]] = None
     box_from_case: bool = False
     delta_wall: str = WALL_CROSSING_DEFAULT_DELTA_WALL
-    continuity_wall_component: str = WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT     # DIAGNOSTIC
+    continuity_wall_component: str = WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT
 
     def continuity_wall_component_code(self) -> int:
         return WALL_CROSSING_CONTINUITY_WALL_COMPONENT_CHOICES.index(self.continuity_wall_component)
@@ -107,7 +112,7 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
         distance_floor_factor: <float > 0>                 (default 0.25)
         box: {lower: [x, y, z], upper: [x, y, z]}          (default: from the fluid particles)
         delta_wall: extension | rest_density | body_force  (DIAGNOSTIC; default extension = the mode)
-        continuity_wall_component: full | normal           (DIAGNOSTIC; default full = the mode)
+        continuity_wall_component: normal | full           (default normal; full = the default until 2026-11-18)
     A 2-D case may give two components per corner."""
     mapping = numerics_mapping.get("wall_crossing") or {}
     if not isinstance(mapping, dict):
@@ -214,11 +219,10 @@ def describe_wall_crossing(settings: WallCrossingSettings, particle_radius: floa
             f"{list(settings.box_upper[:active])} "
             f"({'case.yaml' if settings.box_from_case else 'fluid bounding box + one particle radius'}), "
             f"distance floor {settings.distance_floor(particle_radius):.6g} m "
-            f"(= {settings.distance_floor_factor:g} x spacing), continuity {settings.continuity}")
+            f"(= {settings.distance_floor_factor:g} x spacing), continuity {settings.continuity}, "
+            f"continuity_wall_component {settings.continuity_wall_component}")
     if settings.delta_wall != WALL_CROSSING_DEFAULT_DELTA_WALL:
         text += f", DIAGNOSTIC delta_wall {settings.delta_wall}"
-    if settings.continuity_wall_component != WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT:
-        text += f", DIAGNOSTIC continuity_wall_component {settings.continuity_wall_component}"
     if positions is not None and is_wall is not None:
         is_wall = np.asarray(is_wall, dtype=bool)
         fluid_distance = box_distance_to_wall(np.asarray(positions)[~is_wall], settings.box_lower,

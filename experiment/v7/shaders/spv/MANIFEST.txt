@@ -12,9 +12,9 @@ flags: glslc --target-env=vulkan1.2 -O [-D<macro>] -I experiment/v7/shaders expe
   SHADER_VARIANTS; glslc output is deterministic, _test_seam_layout.py check_spirv_current compares every file
   with a fresh build)
 sources: experiment/v7/shaders/*.comp, *.glsl at the commit that adds this manifest;
-  last change to a shader source before it: wall_boundary crossing (2026-11-17): wall_boundary.glsl (the mode's section, behind
-  #ifdef WALL_CROSSING, with the diagnostic spec consts 116 WALL_CROSSING_DELTA_WALL and 117
-  WALL_CROSSING_CONTINUITY_WALL_COMPONENT, default 0 = the mode), density_budget.glsl (DENSITY_BUDGET builds only),
+  last change to a shader source before it: wall_boundary crossing (2026-11-17, default of spec const 117 on 2026-11-18): wall_boundary.glsl (the mode's section, behind
+  #ifdef WALL_CROSSING, with the spec consts 116 WALL_CROSSING_DELTA_WALL (diagnostic, default 0 = the mode) and 117
+  WALL_CROSSING_CONTINUITY_WALL_COMPONENT (default 1 = normal since 2026-11-18)), density_budget.glsl (DENSITY_BUDGET builds only),
   correction_density.comp and force.comp (the mode's statements, behind #ifdef WALL_CROSSING), common.glsl
   (the reserved status field [39] named wall_crossing_gradient_fallback_count; comments)
 check: every file below byte-identical to a fresh build with the compiler above (27 of 27; _test_seam_layout check_spirv_current)
@@ -36,8 +36,8 @@ e3de58bdc5e00f892dfa2f100789015c8f0aab4dae92eec6d8257866ab4515d5    53920  corre
 7871141dcdec3681b4fe0ab9b90cd703418183926f5ce453fea5ad63ca3ed143    57868  correction_density.comp.spv  (correction_density.comp)
 ad3e77e9f325264e6a7d630a2776986cffa978c128a24a6dd66d287e326dcb53   103168  correction_density_budget.comp.spv  (correction_density.comp -DDENSITY_BUDGET)
 f5faeac0e14610d9944a6d92b5d974f259e8ff45f32c60c2fdcd409053e34a87    89468  correction_density_deep_wall_skip.comp.spv  (correction_density.comp -DDEEP_WALL_SKIP)
-f7a5833b0e558173a9c30f4e9737cb1a75392b1408493dbad11265fb10370d16    82544  correction_density_wall_crossing.comp.spv  (correction_density.comp -DWALL_CROSSING)
-8f9f15825314092ef668e77fae0557fe456020b28af56772346330f7e08783df   149268  correction_density_wall_crossing_budget.comp.spv  (correction_density.comp -DWALL_CROSSING -DDENSITY_BUDGET)
+11d9a5b5a3fa7d43f93296baff20ac576a3ea468fb842fae00d22cecca20262e    82544  correction_density_wall_crossing.comp.spv  (correction_density.comp -DWALL_CROSSING)
+bc9ab2dcd457f61112a4e6e7164a7056b8dac82821c4e19b7d98340cb7e55cea   149268  correction_density_wall_crossing_budget.comp.spv  (correction_density.comp -DWALL_CROSSING -DDENSITY_BUDGET)
 4c9b4096d57aab44946b91a35b74a4ca8a1821761befdd99a58acf8366ea3a8e     4980  deep_wall_marker.comp.spv  (deep_wall_marker.comp)
 52d7d9b3a09cf4ce33e8f2981c6e699b0ff213beabf1935e46e1ff8ad7969c42     5968  defrag.comp.spv  (defrag.comp)
 949bc2d1a5d85ca789fbaea61da51f9e75b2226dd701f4115dd1b55bacec6e7e    38844  density.comp.spv  (density.comp)

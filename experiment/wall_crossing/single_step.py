@@ -496,11 +496,13 @@ def property_residuals(gpu: dict, configuration: str, specification: BoxCaseSpec
 
 def run_configuration(out_root: pathlib.Path, dimension: int, device_index: int, configuration: str,
                       wall_boundary: str, continuity: str, distance_floor_factor: float, tolerance: float,
-                      delta_wall: str = "extension", continuity_wall_component: str = "full",
+                      delta_wall: str = "extension", continuity_wall_component: str = "normal",
                       density_budget: bool = False) -> dict:
     label = f"{dimension}d_{configuration}_{wall_boundary}" + (f"_{continuity}" if wall_boundary == "crossing" else "")
     if wall_boundary == "crossing" and delta_wall != "extension":
         label += f"_delta_wall_{delta_wall}"
+    # the label names the value normal (the solver's default since 2026-11-18) and leaves full unnamed: the
+    # logs written before that date keep their meaning
     if wall_boundary == "crossing" and continuity_wall_component != "full":
         label += f"_wall_component_{continuity_wall_component}"
     if density_budget:
@@ -628,8 +630,10 @@ def main() -> int:
                         choices=("extension", "rest_density", "body_force"),
                         help="the diagnostic numerics.wall_crossing.delta_wall of the crossing runs (default: the "
                              "mode); another value adds its name to the labels and to the summary file name")
-    parser.add_argument("--continuity-wall-component", default="full", choices=("full", "normal"),
-                        help="the diagnostic numerics.wall_crossing.continuity_wall_component of the crossing runs")
+    parser.add_argument("--continuity-wall-component", default="normal", choices=("full", "normal"),
+                        help="numerics.wall_crossing.continuity_wall_component of the crossing runs (default: the "
+                             "solver's, normal; the labels and the summary file name carry "
+                             "_wall_component_normal, those of full carry nothing, as before 2026-11-18)")
     parser.add_argument("--density-budget", action="store_true",
                         help="diagnostic: run with V7_DENSITY_BUDGET=1 and compare the four budget terms with the "
                              "reference (crossing and, in the smooth configuration, simple)")

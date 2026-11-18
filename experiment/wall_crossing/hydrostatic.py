@@ -298,6 +298,9 @@ def run_case(arguments) -> int:
             "wall_boundary": case.numerics.wall_boundary,
             "continuity": case.numerics.wall_crossing.continuity if case.numerics.wall_crossing else None,
             "delta_wall": case.numerics.wall_crossing.delta_wall if case.numerics.wall_crossing else None,
+            # a summary without this key is a crossing run from before 2026-11-18: full, the default then
+            "continuity_wall_component": (case.numerics.wall_crossing.continuity_wall_component
+                                          if case.numerics.wall_crossing else None),
             "dimension": dimension, "gravity": gravity.tolist(), "box_lower": lower.tolist(),
             "box_upper": upper.tolist(), "spacing": spacing, "fluid_particles": int(len(speed)),
             "steps": total_steps, "time": total_steps * timestep, "timestep": timestep,
@@ -379,6 +382,9 @@ def table(arguments) -> int:
             return "—" if key not in layers else f"{layers[key]['speed_root_mean_square'] / scale:.2e}"
 
         wall = summary["wall_boundary"] + (f" ({summary['continuity']})" if summary["continuity"] else "")
+        if summary["wall_boundary"] == "crossing":
+            # no key: a run from before 2026-11-18, when the default was full
+            wall += f"，连续性壁项 {summary.get('continuity_wall_component') or 'full'}"
         if summary.get("delta_wall") not in (None, "extension"):
             wall += f"，诊断 delta_wall = {summary['delta_wall']}"
         lines.append(

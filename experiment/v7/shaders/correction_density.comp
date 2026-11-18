@@ -285,8 +285,8 @@ void process_particle(uint self_particle_id) {
                     // DIAGNOSTIC (WALL_CROSSING_DELTA_WALL = body_force, off by default): the wall neighbour's
                     // pair diffusion is added here with ψ_ij = ρ_i (g - a_wall) · (r_j - r_i) / c² (after the
                     // drift took its factor), and nothing is accumulated for the term after the loop.
-                    // DIAGNOSTIC (WALL_CROSSING_CONTINUITY_WALL_COMPONENT = normal, off by default): the wall
-                    // neighbour's velocity difference is first projected on the wall's inward normal.
+                    // WALL_CROSSING_CONTINUITY_WALL_COMPONENT = normal (the default): the wall neighbour's
+                    // velocity difference is first projected on the wall's inward normal; full: it is not.
                     bool wall_neighbor_diffuses_as_pair = false;
                     if (neighbor_is_wall) {
                         if (WALL_CROSSING_CONTINUITY_WALL_COMPONENT

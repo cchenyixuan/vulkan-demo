@@ -104,14 +104,17 @@ layout(constant_id = 116) const uint  WALL_CROSSING_DELTA_WALL = 0u;
 const uint WALL_CROSSING_DELTA_WALL_EXTENSION    = 0u;
 const uint WALL_CROSSING_DELTA_WALL_REST_DENSITY = 1u;
 const uint WALL_CROSSING_DELTA_WALL_BODY_FORCE   = 2u;
-// DIAGNOSTIC, not part of the mode (numerics.wall_crossing.continuity_wall_component, default full = 0, which is
-// the mode as specified): which part of a wall neighbour's velocity difference enters the continuity equation.
-//   0 = full:   the whole vector (then the continuity rule above);
-//   1 = normal: its component along the wall's inward normal only, n_j (n_j . (v_w - v_i)), n_j = the unit
-//               vector from the wall particle to the nearest point of the box (then the continuity rule).
-// The viscous term is not touched. It exists to test whether the tangential part of the extrapolated
-// velocity difference is behind the drift of the mean density.
-layout(constant_id = 117) const uint  WALL_CROSSING_CONTINUITY_WALL_COMPONENT = 0u;
+// numerics.wall_crossing.continuity_wall_component: which part of a wall neighbour's velocity difference enters
+// the continuity equation.
+//   1 = normal (the default since 2026-11-18): its component along the wall's inward normal only,
+//               n_j (n_j . (v_w - v_i)), n_j = the unit vector from the wall particle to the nearest point of
+//               the box (then the continuity rule above);
+//   0 = full:   the whole vector (then the continuity rule); the mode as first specified and the default
+//               until 2026-11-18, kept as a switch.
+// The viscous term takes the whole velocity difference with either value. What the choice rests on: in the
+// density budget of the 250^2 cavity (claude/wall_crossing_report.md, section 8) the continuity term over
+// the fluid neighbours of the interior was a net sink with full and was not one with normal.
+layout(constant_id = 117) const uint  WALL_CROSSING_CONTINUITY_WALL_COMPONENT = 1u;
 const uint WALL_CROSSING_CONTINUITY_WALL_COMPONENT_FULL   = 0u;
 const uint WALL_CROSSING_CONTINUITY_WALL_COMPONENT_NORMAL = 1u;
 // lower bound of phi_i = numerics.wall_crossing.distance_floor_factor (default 0.25) x the particle spacing

@@ -17,8 +17,9 @@ Density rate of a fluid particle i (pass 1; rho, v of step n):
     sum_{j fluid} [ -rho_i V_j (v_j - v_i) . L grad W + 2 delta h c0 (rho_j - rho_i) V_j / (r^2 + eps^2) (r_j - r_i) . L grad W ]
   + sum_{j wall}  [ -rho_i V_j c_ij (v_w,j - v_i) . L grad W ],   c_ij = 1 + d_j / phi_i (extrapolate) or 1 (wall_velocity)
   + 2 delta h c0 G_i . (L sum_{j wall} V_j r^2 / (r^2 + eps^2) grad W),   G_i = A_f^-1 g_f(rho)  (0 on a fallback)
-With the diagnostic continuity_wall_component normal, (v_w,j - v_i) of a wall neighbour is replaced by its
-component along n_j, the unit vector from the wall particle to the nearest point of the box, before c_ij.
+With continuity_wall_component normal (the default), (v_w,j - v_i) of a wall neighbour is replaced by its
+component along n_j, the unit vector from the wall particle to the nearest point of the box, before c_ij;
+with full it is taken whole.
 The last line is the mode (delta_wall extension). The diagnostic values replace it by a sum over the wall
 neighbours of 2 delta h c0 psi_ij V_j / (r^2 + eps^2) (r_j - r_i) . L grad W with
     rest_density:  psi_ij = rho_j - rho_i (a wall stores rho0),
@@ -91,7 +92,7 @@ class ReferenceConstants:
     power_parameter: float = 7.0    # the EOS gamma (spec const 4)
     eos_constant: float = 0.0       # the fluid material's B = c0^2 rho0 / gamma (delta_wall body_force only)
     rest_density: float = 0.0       # the fluid material's rho0 (delta_wall body_force only)
-    continuity_wall_component: str = "full"     # diagnostic (spec const 117): "full" | "normal"
+    continuity_wall_component: str = "normal"   # spec const 117: "normal" (the default) | "full"
 
     @classmethod
     def from_case(cls, case) -> "ReferenceConstants":
@@ -315,7 +316,7 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
 
     drift_velocity_difference = velocity_difference
     if constants.continuity_wall_component == "normal":
-        # the diagnostic: a wall neighbour's velocity difference keeps its component along the wall's inward
+        # the default: a wall neighbour's velocity difference keeps its component along the wall's inward
         # normal only (the unit vector from the wall particle to the nearest point of the box)
         to_box = np.clip(positions, np.asarray(constants.box_lower), np.asarray(constants.box_upper)) - positions
         to_box[:, dimension:] = 0.0

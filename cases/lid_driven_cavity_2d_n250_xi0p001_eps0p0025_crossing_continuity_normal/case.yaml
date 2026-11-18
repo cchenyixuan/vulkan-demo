@@ -1,9 +1,11 @@
 schema_version: 2
 
-# DIAGNOSTIC VARIANT of cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing: numerics.wall_crossing.continuity_wall_component normal
-# (a wall neighbour's velocity difference enters the continuity equation with its component along the
-# wall's inward normal only, then times 1 + d_j / phi_i); everything else identical. Not a production
-# case: a control of the density-drift diagnosis (claude/wall_crossing_report.md).
+# cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing with numerics.wall_crossing.continuity_wall_component
+# normal written out (a wall neighbour's velocity difference enters the continuity equation with its
+# component along the wall's inward normal only, then times 1 + d_j / phi_i); everything else identical.
+# Written on 2026-11-18 as a control of the density-drift diagnosis, when the default was full
+# (claude/wall_crossing_report.md, section 8); normal became the default the same day, so this case now runs
+# what the main crossing case runs. Kept because the runs of section 8 name it.
 # The fluid box is not given: the loader takes the fluid particles' bounding box widened by one particle radius and prints it.
 
 # VARIANT of cases/lid_driven_cavity_2d_n250 (2026-10-04, user decision): KCG regularization xi 0.1 -> 0.001, epsilon_squared_factor 0.01 -> 0.0025;
@@ -55,7 +57,7 @@ numerics:
   wall_boundary: crossing   # crossing-fraction walls (first order, axis-aligned box; one GPU)
   wall_crossing:
     continuity: extrapolate   # extrapolate | wall_velocity
-    continuity_wall_component: normal   # DIAGNOSTIC: full (default, the mode) | normal
+    continuity_wall_component: normal   # normal (the default since 2026-11-18) | full
 
 capacities:
   pool_size: 85760

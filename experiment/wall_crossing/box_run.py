@@ -36,6 +36,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import pathlib
 import sys
 import time
@@ -102,7 +103,6 @@ def main() -> int:
                         help="DIAGNOSTIC: run with V7_DENSITY_BUDGET=1 and record the budget sums at every sample")
     arguments = parser.parse_args()
     if arguments.density_budget:
-        import os
         os.environ["V7_DENSITY_BUDGET"] = "1"       # read once when simulator_v7 is imported (below)
 
     from experiment.v7.utils.case_loader_v7 import load_case_v7
@@ -228,6 +228,10 @@ def main() -> int:
             "name": arguments.name, "run_id": run.run_id, "case": str(arguments.case).replace("\\", "/"),
             "wall_boundary": case.numerics.wall_boundary,
             "continuity": case.numerics.wall_crossing.continuity if case.numerics.wall_crossing else None,
+            "continuity_wall_component": (case.numerics.wall_crossing.continuity_wall_component
+                                          if case.numerics.wall_crossing else None),
+            "delta_wall": case.numerics.wall_crossing.delta_wall if case.numerics.wall_crossing else None,
+            "delta_density_storage": os.environ.get("V7_DELTA_DENSITY", "0") == "1",
             "dimension": dimension, "box_lower": lower.tolist(), "box_upper": upper.tolist(), "spacing": spacing,
             "fluid_particles": int(len(state["positions"])), "particles": expected_alive, "steps": total_steps,
             "time": total_steps * timestep, "timestep": timestep, "steps_per_second": total_steps / elapsed,
