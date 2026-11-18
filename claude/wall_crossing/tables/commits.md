@@ -22,5 +22,9 @@
 | `0dd6338` | wall_boundary crossing: the density budget in a neighbour traversal of its own for both builds, twelve regions |
 | `f25c696` | wall_boundary crossing: density budget tables (repeats, outcome classes), density_rounding.py, the two controls in the drift table |
 | `2ed2d09` | wall_boundary crossing: regenerated drift table with the two controls (interim, before the report section) |
+| `2351a4d` | wall_boundary crossing: density budget of the 250^2 cavity (tables, figures, section 8 of the report) |
+| `44e4e6f` | wall_boundary crossing: continuity_wall_component defaults to normal (was full) |
+| `6c8a55a` | wall_crossing reference: simple / adami keep the whole wall velocity difference in the budget comparison |
+| `bb7e173` | wall_boundary crossing: analysis of the default change (normal_default.py), earlier tables relabelled |
 
 （加入本报告的那个提交排在这些之后。）

@@ -4,7 +4,7 @@
   "samples": 512,
   "t_last": 99.84,
   "complete": true,
-  "stream": true
+  "stream": false
  },
  "name": "n500_simple",
  "case": "lid_driven_cavity_2d_n500_xi0p001_eps0p0025",
@@ -2642,21 +2642,6 @@
    "position_wall": 0.9092208508707548,
    "position_mid": 0.9100376589563252,
    "position_reference": 0.90924699426
-  },
-  "psi_min": {
-   "snapshots": 20,
-   "value_wall": -0.11228441930354166,
-   "deviation_wall_percent": -5.59305676575319,
-   "value_mid": -0.11250853990095391,
-   "deviation_mid_percent": -5.404619753309592,
-   "value_fluid": -0.11272043827549003,
-   "deviation_fluid_percent": -5.226458990308435,
-   "x_wall": 0.5321323331400248,
-   "y_wall": 0.5649025129448242,
-   "x_mid": 0.532196469533518,
-   "y_mid": 0.5650320588788458,
-   "x_reference": 0.5307901107,
-   "y_reference": 0.56524055787
   }
  },
  "errors": {

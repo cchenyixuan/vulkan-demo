@@ -4,7 +4,7 @@
   "samples": 479,
   "t_last": 100.59,
   "complete": true,
-  "stream": true
+  "stream": false
  },
  "name": "n250_adami",
  "case": "lid_driven_cavity_2d_n250_xi0p001_eps0p0025_adami",
@@ -2477,21 +2477,6 @@
    "position_wall": 0.9102399481834991,
    "position_mid": 0.9118743702878158,
    "position_reference": 0.90924699426
-  },
-  "psi_min": {
-   "snapshots": 20,
-   "value_wall": -0.12336428744769229,
-   "deviation_wall_percent": 3.7227190953664335,
-   "value_mid": -0.12385577863274286,
-   "deviation_mid_percent": 4.1359570200491635,
-   "value_fluid": -0.12431739303481917,
-   "deviation_fluid_percent": 4.524075023626484,
-   "x_wall": 0.5299587190908358,
-   "y_wall": 0.5646030915395882,
-   "x_mid": 0.5300780765374129,
-   "y_mid": 0.5648604743744073,
-   "x_reference": 0.5307901107,
-   "y_reference": 0.56524055787
   }
  },
  "errors": {

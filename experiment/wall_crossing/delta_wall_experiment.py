@@ -276,7 +276,7 @@ def hydrostatic_comparison(records: dict, runs_by_direction: dict = None, forms:
         Line2D([], [], color=INK_SECONDARY, linewidth=1.0, alpha=0.55),
         Line2D([], [], color=INK_SECONDARY, marker="o", markersize=7, markeredgecolor=SURFACE, markeredgewidth=1.5,
                linestyle="none")]
-    legend_labels = list(handles.keys()) + ["细线：同一写法的另一次运行（只有速度）", "圆点：另一次运行的末态电平"]
+    legend_labels = list(handles.keys()) + ["细线：同一种设置的另一次运行（只有速度）", "圆点：另一次运行的末态电平"]
     figure.legend(legend_handles, legend_labels, loc="upper left", bbox_to_anchor=(0.01, 1.0 - 0.40 / height),
                   ncol=4, handlelength=3.0, columnspacing=1.6, labelcolor=INK_PRIMARY, borderaxespad=0.0)
     figure.tight_layout(rect=(0, 0, 0.985, 1.0 - 0.66 / height), w_pad=3.6)

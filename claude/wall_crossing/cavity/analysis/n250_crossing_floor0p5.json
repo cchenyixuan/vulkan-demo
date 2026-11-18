@@ -4,7 +4,7 @@
   "samples": 476,
   "t_last": 99.96000000000001,
   "complete": true,
-  "stream": true
+  "stream": false
  },
  "name": "n250_crossing_floor0p5",
  "case": "lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_floor0p5",
@@ -2470,21 +2470,6 @@
    "position_wall": 0.9087233760163114,
    "position_mid": 0.9103517560004402,
    "position_reference": 0.90924699426
-  },
-  "psi_min": {
-   "snapshots": 20,
-   "value_wall": -0.11690102046180088,
-   "deviation_wall_percent": -1.7114923760873313,
-   "value_mid": -0.11736676157917858,
-   "deviation_mid_percent": -1.3199046963107919,
-   "value_fluid": -0.11780298191781619,
-   "deviation_fluid_percent": -0.95313761497553,
-   "x_wall": 0.5307709780587672,
-   "y_wall": 0.5639855603848275,
-   "x_mid": 0.5308935715968499,
-   "y_mid": 0.5642404829361615,
-   "x_reference": 0.5307901107,
-   "y_reference": 0.56524055787
   }
  },
  "errors": {

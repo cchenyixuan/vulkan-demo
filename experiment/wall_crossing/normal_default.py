@@ -334,9 +334,11 @@ def budget(records: dict) -> dict:
                 bars = axis.bar(positions + (offset - 0.5) * (width + 0.03), values, width=width, color=colour,
                                 zorder=3, label=text, yerr=[spread for _, spread in statistics],
                                 error_kw={"ecolor": INK_PRIMARY, "elinewidth": 0.9, "capsize": 2})
-                for bar, value in zip(bars, values):
-                    axis.annotate(f"{value:+.4f}", (bar.get_x() + bar.get_width() / 2, value),
-                                  xytext=(0, 6 if value >= 0 else -6), textcoords="offset points", ha="center",
+                # the value beyond the whisker's end, so that the two do not overlap
+                for bar, (value, spread) in zip(bars, statistics):
+                    anchor = value + spread if value >= 0 else value - spread
+                    axis.annotate(f"{value:+.4f}", (bar.get_x() + bar.get_width() / 2, anchor),
+                                  xytext=(0, 4 if value >= 0 else -4), textcoords="offset points", ha="center",
                                   va="bottom" if value >= 0 else "top", fontsize=8, color=INK_SECONDARY)
             axis.axhline(0.0, color=INK_SECONDARY, linewidth=0.8, zorder=2)
             axis.set_xticks(positions)
@@ -527,6 +529,7 @@ def cavity() -> dict:
     figure, axes = plt.subplots(1, 4, figsize=(13.6, 4.3), sharey=True)
     handles = {}
     for axis, (key, title) in zip(axes, (("psi_min", "ψ_min"), ("u_min", "u_min"), ("v_max", "v_max"), ("v_min", "v_min"))):
+        labelled = {}       # resolution -> [(value, mode)] of the two crossing settings, whose values are written
         for mode, text, colour, marker in CAVITY_MODES:
             points = []
             for resolution in (250, 500):
@@ -543,12 +546,16 @@ def cavity() -> dict:
             line, = axis.plot([point[0] for point in points], [point[1] for point in points], color=colour,
                               marker=marker, markersize=7, markeredgecolor=SURFACE, markeredgewidth=1.5, zorder=3)
             handles[text] = line
-            for resolution, value in points:
-                if mode in ("crossing_normal", "crossing"):
-                    axis.annotate(f"{value:+.2f}", (resolution, value),
-                                  xytext=(0, 9 if mode == "crossing_normal" else -9), textcoords="offset points",
-                                  ha="center", va="bottom" if mode == "crossing_normal" else "top", fontsize=8,
-                                  color=INK_SECONDARY)
+            if mode in ("crossing_normal", "crossing"):
+                for resolution, value in points:
+                    labelled.setdefault(resolution, []).append(value)
+        # the values of the two crossing settings: the upper one above its marker, the lower one below
+        for resolution, values in labelled.items():
+            for value in values:
+                above = value == max(values) and len(values) > 1
+                axis.annotate(f"{value:+.2f}", (resolution, value), xytext=(0, 9 if above else -9),
+                              textcoords="offset points", ha="center", va="bottom" if above else "top",
+                              fontsize=8, color=INK_SECONDARY)
         axis.axhline(0.0, color=INK_SECONDARY, linewidth=0.8, zorder=2)
         axis.set_xscale("log")
         axis.set_xticks([250, 500])
@@ -671,12 +678,21 @@ def long_runs(records_by_name: dict) -> dict:
                 + markdown_table(["运行", "t", "平均密度 − ρ0（kg/m³）", "平均压力", "压力范围（Pa）", "负压粒子比例",
                                   "流体最大速度", "粒子数（含壁）"], rows))
 
+    # what the runner and the crossing status file say about the walls and the invariants (cavity_tables.py)
+    tables_path = REPORT_ROOT / "cavity" / "tables.json"
+    analysed = json.loads(tables_path.read_text(encoding="utf-8"))["runs"] if tables_path.exists() else {}
     rows = []
     for name, text, _, _ in LONG_RUNS:
         entry = summary["runs"].get(name)
         if not entry:
             continue
         record = records_by_name.get(name, {})
+        crossing = (analysed.get(name, {}).get("diagnostics") or {}).get("crossing") or {}
+        result_path = LOG_ROOT / "cavity" / name / "result.json"
+        result = json.loads(result_path.read_text(encoding="utf-8")) if result_path.exists() else {}
+        entry["crossing_status"] = crossing
+        entry["result"] = {key: result.get(key) for key in ("status", "segments_with_invariant_violation",
+                                                           "steady", "stop_step")} if result else None
         rows.append([text, f"{entry['samples']}，到 t = {entry['t_last']:.2f}",
                      f"{entry['alive']:,}，" + ("每个样本都相同" if entry["alive_constant"] else "**有变化**"),
                      f"{entry['speed_maximum']:.3f}",
@@ -686,11 +702,20 @@ def long_runs(records_by_name: dict) -> dict:
                      f"{entry['density_mean_rate_last_20']:+.6f}",
                      f"{entry['pressure_mean_rate_last_20']:+.3f}",
                      f"{100.0 * entry['pressure_negative_fraction_maximum_after_5']:.3f} %",
+                     "—" if not crossing else str(crossing["gradient_fallbacks"]),
+                     "—" if not crossing or crossing.get("wall_distance_minimum_over_spacing") is None
+                     else f"{crossing['wall_distance_minimum_over_spacing']:.3f}",
+                     "—" if not crossing or crossing.get("below_floor_maximum") is None
+                     else f"{crossing['below_floor_maximum']} / {crossing['outside_box_maximum']}",
+                     "运行中" if not result else
+                     (f"{result['status']}；不变量违反的段：{len(result['segments_with_invariant_violation'])}；"
+                      f"定常 t_s = {(result.get('steady') or {}).get('steady_time', float('nan')):.2f}"),
                      record_text(record)])
     write_table("normal_default_long_runs_summary.md", markdown_table(
         ["运行", "样本数", "粒子数（含壁）", "流体最大速度（整个运行）", "密度范围 − ρ0（整个运行，kg/m³）",
          "平均密度变化率，t ∈ [1, 5]（kg/m³ 每时间单位）", "同，t ∈ [20, 末]", "同，最后 20 个时间单位",
-         "平均压力变化率，最后 20 个时间单位（Pa 每时间单位）", "负压粒子比例的最大值（t ≥ 5）", "记录（提交）"], rows))
+         "平均压力变化率，最后 20 个时间单位（Pa 每时间单位）", "负压粒子比例的最大值（t ≥ 5）", "A_f 回退（累计）",
+         "φ_min / dx", "低于下限 / 越出盒（最大粒子数）", "运行器的结论", "记录（提交）"], rows))
 
     # ---- the earlier runs: what their last checkpoints hold, beside the new runs at the same times
     rows = []

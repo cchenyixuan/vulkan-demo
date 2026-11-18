@@ -27,6 +27,52 @@
    "alive_last": 74529,
    "time_last": 5.01
   },
+  "nd_n250_crossing_r1": {
+   "samples": 168,
+   "samples_in_fit": 134,
+   "fit_window": [
+    1.02,
+    5.01
+   ],
+   "drift_rate": 0.003298946622134777,
+   "fit_residual_root_mean_square": 0.0008030598009766811,
+   "time_at_reading": 5.01,
+   "density_mean_minus_rest": 0.024865121614766394,
+   "pressure_mean": 249.89920342946226,
+   "pressure_mean_over_dynamic": 0.24989920342946226,
+   "pressure_negative_fraction": 0.0,
+   "kinetic_energy": 21.144389203431036,
+   "density_deviation_maximum": 0.149169921875,
+   "speed_maximum": 0.9782373955611713,
+   "wall_distance_minimum_over_spacing": 0.3015910387039189,
+   "outside_box_count_maximum": 0,
+   "gradient_fallbacks": 0,
+   "alive_last": 74529,
+   "time_last": 5.01
+  },
+  "nd_n250_crossing_r2": {
+   "samples": 168,
+   "samples_in_fit": 134,
+   "fit_window": [
+    1.02,
+    5.01
+   ],
+   "drift_rate": 0.0037724053779702293,
+   "fit_residual_root_mean_square": 0.0012836851351009247,
+   "time_at_reading": 5.01,
+   "density_mean_minus_rest": 0.02425441159755337,
+   "pressure_mean": 243.71298306860342,
+   "pressure_mean_over_dynamic": 0.24371298306860342,
+   "pressure_negative_fraction": 1.5872763924382153e-05,
+   "kinetic_energy": 21.147496602797442,
+   "density_deviation_maximum": 0.141357421875,
+   "speed_maximum": 0.9767804327421733,
+   "wall_distance_minimum_over_spacing": 0.2970014810562138,
+   "outside_box_count_maximum": 0,
+   "gradient_fallbacks": 0,
+   "alive_last": 74529,
+   "time_last": 5.01
+  },
   "dw_n250_crossing_rest_density": {
    "samples": 168,
    "samples_in_fit": 134,
@@ -193,6 +239,8 @@
  },
  "run_ids": {
   "dw_n250_crossing_extension": "wc-20261117-224501-32f5",
+  "nd_n250_crossing_r1": "wc-20261118-102022-0e74",
+  "nd_n250_crossing_r2": "wc-20261118-102303-1f2b",
   "dw_n250_crossing_rest_density": "wc-20261117-224550-a5c0",
   "dw_n250_crossing_body_force": "wc-20261118-013702-5995",
   "dw_n250_crossing_continuity_normal": "wc-20261118-022650-256e",

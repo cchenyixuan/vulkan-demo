@@ -4,7 +4,7 @@
   "samples": 479,
   "t_last": 100.59,
   "complete": true,
-  "stream": true
+  "stream": false
  },
  "name": "n250_crossing_r2",
  "case": "lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing",
@@ -2485,21 +2485,6 @@
    "position_wall": 0.9087283673785383,
    "position_mid": 0.9103567672485724,
    "position_reference": 0.90924699426
-  },
-  "psi_min": {
-   "snapshots": 20,
-   "value_wall": -0.11702584619608505,
-   "deviation_wall_percent": -1.6065408958745642,
-   "value_mid": -0.11749208462714515,
-   "deviation_mid_percent": -1.2145350827107104,
-   "value_fluid": -0.1179288256355052,
-   "deviation_fluid_percent": -0.8473302306033714,
-   "x_wall": 0.5306658655368184,
-   "y_wall": 0.56394575324009,
-   "x_mid": 0.5307880402999133,
-   "y_mid": 0.5642005171972219,
-   "x_reference": 0.5307901107,
-   "y_reference": 0.56524055787
   }
  },
  "errors": {
