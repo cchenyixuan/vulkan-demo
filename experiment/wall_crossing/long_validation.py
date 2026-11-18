@@ -591,6 +591,11 @@ def long_tables() -> int:
             directory = LOG_ROOT / "box_run" / name
             if not (directory / "series.csv").exists():
                 continue
+            # only runs that ended (completed, or stopped by a stop condition): a mode still running is left out
+            segments = read_jsonl(directory / "segments.jsonl")
+            if not (directory / "watch_stop.json").exists() and not any(
+                    entry.get("status") == "complete" for entry in segments):
+                continue
             runs[name] = {"text": text, "series": read_series(directory / "series.csv"),
                           "profiles": json.loads((directory / "profiles.json").read_text(encoding="utf-8"))
                           if (directory / "profiles.json").exists() else [],

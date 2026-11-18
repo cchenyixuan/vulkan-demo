@@ -71,5 +71,8 @@
 | `f6ee476` | volume constraint: the target is taken when the simulation starts (bootstrap_init / restart_init), not in the constructor |
 | `08e6b83` | box_run.py: a resumed segment is numbered after every segment that left a trace (a killed segment writes no segments.jsonl line; found by the kill test of the 3-D trial) |
 | `9308a18` | box_run.py --depth (frames in flight of the pipelined chain; default 2 as before) |
+| `9ca97df` | wall_boundary crossing: section 19 of the report, first update (the long validation: the short checks of its section 2 done, the long runs started at 03:02 with their estimated ends); long_validation.py tables (restored cases, K = 1 / K = 2 and its locating replicates, seam audits, 3-D K = 2 canonical dumps, 3-D hydrostatic boxes, 3-D trial) and the analysis of the long runs |
+| `afbaad0` | cavity_tables.py: label of the 1000^2 long run of section 19 (complete_volume) |
+| `2e77e0e` | long_validation.py: the 3-D step rate between samples (box_run stores the average since the segment start) |
 
 （加入本报告的那个提交排在这些之后。）
