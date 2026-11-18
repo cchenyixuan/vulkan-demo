@@ -48,5 +48,8 @@
 | `8f2902d` | wall_boundary crossing: report rebuilt (commit table) |
 | `3176d57` | wall_crossing tools: the case of the complete scheme (pairwise geometry, whole vector in the continuity equation, pressure and density reflection: reflection_full) and its table modes |
 | `c9b17ff` | wall_boundary crossing: section 14 of the report (the complete scheme, pairwise geometry + whole vector + both reflections, run to t = 100 at 250^2 from rho0 and from rho0 + 0.3: cavity metrics beside the existing rows, mean density at fixed instants and its rate, mean pressure, negative share, fluctuation; the old default's pressure fluctuation from its snapshots) |
+| `2186032` | wall_boundary crossing: report rebuilt (commit table) |
+| `b0a2791` | volume constraint for closed domains (numerics.volume_constraint, off by default, wall_boundary crossing only) |
+| `5f27286` | volume constraint: the log path's environment variable is SPH_VOLUME_CONSTRAINT_LOG (the cavity runner refuses any V7_* variable outside the release set of switches) |
 
 （加入本报告的那个提交排在这些之后。）

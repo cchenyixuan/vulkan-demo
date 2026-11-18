@@ -18,6 +18,9 @@ reflections) run to t = 100 from rho0 (n250_reflection_full) and from rho0 + 0.3
 (n250_reflection_full_rho_plus_0p3): the cavity metrics, the mean density at fixed instants and its rate over
 t in [60, 100], the mean pressure, the share of negative pressures and the fluctuation of the mean pressure;
 and, for the runs without a field history (the old default), the same fluctuation from the stored snapshots.
+volume-constraint = section 15: the complete scheme with numerics.volume_constraint (reflection_full_volume) at
+250^2 and 500^2: the regression, the single step, the short run, the cavity metrics and the two-point order, the
+histories of density, theta, pressure, the time per step against the first order, the hydrostatic boxes.
 
 Configurations (the names used in case directories, run names and tables):
     reflection                    geometry pairwise, pressure_wall reflection, delta_wall reflection ("反射版")
@@ -419,7 +422,8 @@ def numpy_check() -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("action", choices=("make-cases", "numpy-check", "tables", "long-runs", "full-scheme"))
+    parser.add_argument("action", choices=("make-cases", "numpy-check", "tables", "long-runs", "full-scheme",
+                                           "volume-constraint"))
     parser.add_argument("--all", action="store_true",
                         help="make-cases: also the three variants that locate a failure of the screening")
     parser.add_argument("--tau5", action="store_true",
@@ -438,6 +442,8 @@ def main() -> int:
         return long_run_tables()
     if arguments.action == "full-scheme":
         return full_scheme_tables()
+    if arguments.action == "volume-constraint":
+        return volume_constraint_tables()
     return tables()
 
 
@@ -1650,6 +1656,516 @@ def full_scheme_tables() -> int:
     (out / "full_scheme.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False, default=float),
                                           encoding="utf-8", newline="\n")
     print("[pairwise_reflection] full-scheme tables written; runs: "
+          + "; ".join(f"{name} t = {entry['t_last']:.2f}" + (" complete" if entry["complete"] else "")
+                      for name, entry in summary["runs"].items()))
+    return 0
+
+
+# ====================================================================================== the volume constraint
+VOLUME_RUNS = (("n250_reflection_full_volume", "250² 完整方案 + 体积约束"),
+               ("n500_reflection_full_volume", "500² 完整方案 + 体积约束"))
+VOLUME_CONTEXT = (("n250_reflection_full", "250² 完整方案，没有约束（C1）"),
+                  ("n250_crossing_normal", "250² 一阶（现缺省）"), ("n500_crossing_normal", "500² 一阶（现缺省）"))
+VOLUME_SHORT_RUN = "short_n250_reflection_full_volume"
+TIMING_WINDOW = (20.0, 80.0)
+TIMING_PAIRS = (("n250_reflection_full_volume", "n250_crossing_normal", "250²"),
+                ("n500_reflection_full_volume", "n500_crossing_normal", "500²"),
+                ("n250_reflection_full_volume", "n250_reflection_full_rho_plus_0p3",
+                 "250²，对没有约束的完整方案（C2，同一张卡）"))
+
+
+def constraint_log(directory: pathlib.Path) -> dict:
+    """volume_constraint.jsonl of a run directory as arrays (empty dict without the file)."""
+    path = directory / "volume_constraint.jsonl"
+    if not path.exists():
+        return {}
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    if not rows:
+        return {}
+    return {key: np.array([row[key] for row in rows], dtype=float)
+            for key in ("unix", "step", "time", "volume", "target_volume", "theta", "rate")}
+
+
+def volume_constraint_tables() -> int:
+    import csv
+
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    from experiment.wall_crossing import delta_wall_experiment, normal_default
+    from experiment.wall_crossing.report_figures import INK_PRIMARY, INK_SECONDARY, setup_style
+    from experiment.wall_crossing.report_tables import markdown_table, run_records
+    from experiment.wall_crossing.run_log import LOG_ROOT
+
+    write_text = normal_default.write_table
+    record_text = normal_default.record_text
+    records = run_records()
+    records_by_id = {record["run_id"]: record for record in records}
+    records_by_name = {}
+    for record in records:
+        if record.get("name") and str(record.get("status", "")).startswith("ok"):
+            records_by_name[record["name"]] = record              # the newest successful record of a name
+    first_colour, old_colour = normal_default.NEW_COLOUR, normal_default.OLD_COLOUR
+    summary = {}
+    tables_path = REPORT_ROOT / "cavity" / "tables.json"
+    analysed = json.loads(tables_path.read_text(encoding="utf-8"))["runs"] if tables_path.exists() else {}
+
+    # ---------------------------------------------------------------- 3.1 regression
+    rows = []
+    manifest_now = normal_default.manifest_rows((REPOSITORY_ROOT / normal_default.MANIFEST).read_text(encoding="utf-8"))
+    manifest_base = normal_default.manifest_rows(normal_default.git_show(normal_default.BASE_COMMIT,
+                                                                         normal_default.MANIFEST))
+    manifest_before = normal_default.manifest_rows(normal_default.git_show("2186032", normal_default.MANIFEST))
+    same_as_base = sorted(name for name in manifest_base if manifest_now.get(name) == manifest_base[name])
+    changed_since = sorted(name for name in manifest_now if manifest_before.get(name) != manifest_now[name])
+    rows.append(["simple、adami 用的 SPIR-V", f"基点（{normal_default.BASE_COMMIT}）清单里的 {len(manifest_base)} 个文件",
+                 f"{len(same_as_base)} 个逐字节相同", "通过" if len(same_as_base) == len(manifest_base) else "**不通过**",
+                 "MANIFEST.txt"])
+    rows.append(["相对 2186032 变了的 SPIR-V", f"全部 {len(manifest_now)} 个文件",
+                 "、".join(name.replace(".comp.spv", "") for name in changed_since) or "无", "—", "MANIFEST.txt"])
+    summary["regression"] = {"manifest_same_as_base": len(same_as_base), "manifest_base": len(manifest_base),
+                             "changed_since_2186032": changed_since}
+    classes_path = LOG_ROOT / "outcome_classes" / "volume_constraint_off_against_2186032_s700" / "classes.json"
+    if classes_path.exists():
+        classes = json.loads(classes_path.read_text(encoding="utf-8"))
+        members = "；".join(f"类 {index}：参照 {group['reference_runs']} 次，本次 {group['case_runs']} 次"
+                           for index, group in enumerate(classes["classes"]))
+        rows.append(["完整方案，约束关闭，250²，700 步",
+                     "2186032 的求解器（冻结检出 3176d57，求解器文件相同）的 24 个转储",
+                     f"{len(classes['classes'])} 个结果类。{members}",
+                     "逐位相同" if classes["case_within_reference_classes"] else "**不同**", classes["run_id"]])
+        summary["regression"]["constraint_off"] = {"classes": len(classes["classes"]),
+                                                   "identical": classes["case_within_reference_classes"],
+                                                   "run_id": classes["run_id"]}
+    failures = LOG_ROOT / "tests" / "failures_volume_constraint.txt"
+    base_failures = LOG_ROOT / "tests" / "failures_base.txt"
+    if failures.exists() and base_failures.exists():
+        now = sorted(line.strip() for line in failures.read_text(encoding="utf-8").splitlines() if line.strip())
+        base = sorted(line.strip() for line in base_failures.read_text(encoding="utf-8").splitlines() if line.strip())
+        seam = [record for record in records if record.get("kind") == "seam_layout_test"]
+        rows.append(["`_test_seam_layout.py` 的失败清单", "基点的清单（858 条，基点自身就有）",
+                     f"{len(now)} 条，" + ("与基点的清单逐行相同" if now == base else "**与基点不同**"),
+                     "通过" if now == base else "**不通过**", seam[-1]["run_id"] if seam else "?"])
+    write_text("volume_regression.md", markdown_table(["检查", "参照", "结果", "结论", "记录"], rows))
+
+    # ---------------------------------------------------------------- 3.2 single step
+    rows = []
+    summary["single_step"] = {}
+    path = LOG_ROOT / "single_step" / ("summary_2d_delta_wall_reflection_geometry_pairwise_pressure_reflection"
+                                       "_volume_constraint.json")
+    if path.exists():
+        for outcome in json.loads(path.read_text(encoding="utf-8")):
+            if outcome["configuration"] != "smooth" or outcome["wall_boundary"] != "crossing":
+                continue
+            reference = outcome["reference"]
+            comparisons = reference["comparisons"]
+            terms = reference["reflection_terms"]
+            rows.append([
+                "2-D", f"{outcome['particles']['fluid']:,} / {reference['counts']['fluid_with_wall_neighbours']:,}",
+                f"{terms['volume_constraint_rate_maximum']:.0f} / {terms['density_rate_maximum']:.0f}",
+                f"{comparisons['density_rate']['relative_error_beyond_one_ulp_maximum']:.1e}",
+                f"{comparisons['density_rate']['new_density_error_ulp_maximum']:.2f}",
+                f"{comparisons['acceleration']['error_over_pair_term_sum_maximum']:.1e}",
+                f"{reference['worst_relative_error']:.1e}", "通过" if outcome["passed"] else "**不通过**",
+                outcome["run_id"]])
+            summary["single_step"][outcome["label"]] = {"passed": outcome["passed"],
+                                                        "worst": reference["worst_relative_error"],
+                                                        "run_id": outcome["run_id"], "terms": terms}
+    if rows:
+        write_text("volume_single_step.md", markdown_table(
+            ["维数", "流体粒子 / 其中有壁邻居的", "约束项 ρ_i·rate 的最大值 / 密度变化率的最大值",
+             "密度变化率的相对误差（超出 1 ulp 的部分，最大）", "新密度与参考解之差（ulp，最大）",
+             "加速度误差 ÷ 逐对项绝对值之和（最大）", "判据值（容差 1e-4）", "结论", "记录"], rows))
+
+    # ---------------------------------------------------------------- 3.3 short run
+    short_directory = LOG_ROOT / "box_run" / VOLUME_SHORT_RUN
+    if (short_directory / "series.csv").exists():
+        with open(short_directory / "series.csv", encoding="utf-8", newline="") as handle:
+            series_rows = list(csv.DictReader(handle))
+        series = {key: np.array([float(row[key]) if row[key] != "" else np.nan for row in series_rows])
+                  for key in series_rows[0]}
+        log = constraint_log(short_directory)
+        unconstrained = normal_default.load_field_history("n250_reflection_full")
+        rows = []
+        for instant in (0.18, 0.36, 0.54, 1.08, 1.98, 3.06, 3.96, 4.86):
+            index = int(np.argmin(np.abs(log["time"] - instant)))
+            sample = int(np.argmin(np.abs(series["time"] - log["time"][index])))
+            other = int(np.argmin(np.abs(unconstrained["time"] - log["time"][index]))) if unconstrained else None
+            rows.append([f"{log['time'][index]:.2f}", f"{log['theta'][index]:+.2e}", f"{log['rate'][index]:+.2e}",
+                         f"{series['density_mean'][sample] - normal_default.REST_DENSITY:+.5f}",
+                         "—" if other is None else
+                         f"{unconstrained['density_mean'][other] - normal_default.REST_DENSITY:+.5f}",
+                         f"{series['pressure_mean'][sample] / normal_default.DYNAMIC_PRESSURE:+.4f}",
+                         f"{100 * series['pressure_negative_fraction'][sample]:.1f} %"])
+        late = log["time"] >= 2.0
+        late_series = series["time"] >= 2.0
+        entry = {
+            "updates": int(log["time"].size), "update_interval": float(np.diff(log["time"]).mean()),
+            "theta_maximum": float(np.abs(log["theta"]).max()),
+            "theta_late_mean": float(log["theta"][late].mean()), "theta_late_std": float(log["theta"][late].std()),
+            "theta_late_range": [float(log["theta"][late].min()), float(log["theta"][late].max())],
+            "density_late_mean": float(series["density_mean"][late_series].mean() - normal_default.REST_DENSITY),
+            "density_late_range": [float(series["density_mean"][late_series].min() - normal_default.REST_DENSITY),
+                                   float(series["density_mean"][late_series].max() - normal_default.REST_DENSITY)],
+            "alive_constant": bool(series["alive"].min() == series["alive"].max()),
+            "outside_maximum": int(series["outside_box_count"].max()),
+            "speed_maximum": float(series["speed_maximum"].max()),
+            "below_floor_maximum": int(series["below_floor_count"].max()),
+            "kinetic_energy_last": float(series["kinetic_energy"][-1]),
+            "run_id": records_by_name.get(VOLUME_SHORT_RUN, {}).get("run_id")}
+        summary["short_run"] = entry
+        write_text("volume_short_run.md",
+                   f"250² 方腔短跑，完整方案 + 体积约束，t = 0 到 5.01（记录 {entry['run_id']}）。θ 和 rate 是约束在那一刻"
+                   "更新出的值；“没有约束”一列是 C1（第 14 节）在同一时刻的平均密度。\n\n"
+                   + markdown_table(["t", "θ", "rate（每时间单位）", "平均密度 − ρ0（kg/m³）", "同，没有约束（C1）",
+                                     "平均压力（ρ0U²）", "负压粒子比例"], rows))
+
+    # ---------------------------------------------------------------- 3.4 cavity metrics
+    if analysed.get("n250_reflection_full_volume", {}).get("complete"):
+        cavity = normal_default.cavity(
+            modes=(("reflection_full_volume", "crossing，完整方案 + 体积约束", INK_PRIMARY, "P"),
+                   ("crossing", "crossing，旧缺省（一阶，完整向量）", old_colour, "s"),
+                   ("adami", "adami", normal_default.ADAMI_COLOUR, "D"),
+                   ("crossing_normal", "crossing，一阶（现缺省）", first_colour, "o"),
+                   ("simple", "simple", normal_default.SIMPLE_COLOUR, "^")),
+            extra_runs=(("n250_reflection_full", "crossing，完整方案，没有约束（C1）", "reflection_full_volume"),
+                        ("n250_reflection_full_rho_plus_0p3", "crossing，完整方案，没有约束，初始密度 ρ0 + 0.3（C2）",
+                         "reflection_full_volume"),
+                        ("n250_pairwise_full", "crossing，逐对几何 + 完整向量（B）", "reflection_full_volume"),
+                        ("n250_reflection", "crossing，反射版，只取法向（A）", "reflection_full_volume"),
+                        ("n250_quadratic_viscous", "crossing，二阶粘性", "crossing_normal"),
+                        ("n500_quadratic_viscous", "crossing，二阶粘性", "crossing_normal")),
+            prefix="volume", required_mode="reflection_full_volume", labelled_modes=("reflection_full_volume",),
+            labels_beside=True,
+            figure_title="Re = 1000 方腔：四个极值相对 Marchi 2021 的偏差（ψ_min 用 wall 帧；数字 = 完整方案 + 体积约束）")
+        if cavity:
+            summary["cavity"] = cavity
+
+    # ---------------------------------------------------------------- how the runs went
+    rows = []
+    summary["runs"] = {}
+    for name, text in VOLUME_RUNS:
+        directory = LOG_ROOT / "cavity" / name
+        history = normal_default.load_field_history(name)
+        if not history:
+            continue
+        result_path = directory / "result.json"
+        result = json.loads(result_path.read_text(encoding="utf-8")) if result_path.exists() else {}
+        crossing = (analysed.get(name, {}).get("diagnostics") or {}).get("crossing") or {}
+        stop_path = directory / "watch_stop.json"
+        entry = {"t_last": float(history["time"][-1]), "complete": bool(result),
+                 "alive_constant": bool((history["alive"] == history["alive"][0]).all()),
+                 "speed_maximum": float(history["speed_maximum"].max()),
+                 "watch_stop": json.loads(stop_path.read_text(encoding="utf-8")) if stop_path.exists() else None,
+                 "crossing_status": crossing}
+        summary["runs"][name] = entry
+        rows.append([
+            text, f"t = {entry['t_last']:.2f}" + ("" if entry["complete"] else "（运行中）"),
+            f"{int(history['alive'][0]):,}，" + ("每个样本都相同" if entry["alive_constant"] else "**有变化**"),
+            "—" if not crossing or crossing.get("outside_box_maximum") is None else str(crossing["outside_box_maximum"]),
+            f"{entry['speed_maximum']:.3f}",
+            "没有触发" if entry["watch_stop"] is None else f"**停止：{entry['watch_stop']['reason']}**",
+            "—" if not crossing else str(crossing["gradient_fallbacks"]),
+            "—" if not crossing or crossing.get("wall_distance_minimum_over_spacing") is None
+            else f"{crossing['wall_distance_minimum_over_spacing']:.3f}；{crossing['below_floor_maximum']}",
+            record_text(records_by_name.get(name, {}))])
+    if rows:
+        write_text("volume_runs.md", markdown_table(
+            ["运行", "到达", "粒子数（含壁）", "越出盒的流体粒子（各次位置读回的最大值）", "流体最大速度（线 1.05）",
+             "停止条件", "A_f 回退（累计）", "φ_min / dx；低于距离下限的粒子（最大）", "记录（提交）"], rows))
+
+    # ---------------------------------------------------------------- density, theta, pressure, noise
+    history_runs = VOLUME_RUNS + VOLUME_CONTEXT
+    histories = {name: normal_default.load_field_history(name) for name, _ in history_runs}
+    histories = {name: history for name, history in histories.items() if history and len(history["time"]) > 5}
+    logs = {name: constraint_log(LOG_ROOT / "cavity" / name) for name, _ in VOLUME_RUNS}
+    edges = np.arange(0.0, 100.0 + 1e-9, NOISE_BIN)
+    density_rows, pressure_rows, negative_rows, noise_rows, theta_rows = [], [], [], [], []
+    summary["histories"], summary["theta"] = {}, {}
+    for name, text in history_runs:
+        history = histories.get(name)
+        if not history:
+            continue
+        time = history["time"]
+        entry = {"instants": {}}
+        density_cells, pressure_cells, negative_cells = [text], [text], [text]
+        for instant in DENSITY_INSTANTS:
+            if instant > time[-1] + 0.3:
+                density_cells.append("—")
+                pressure_cells.append("—")
+                negative_cells.append("—")
+                continue
+            index = int(np.argmin(np.abs(time - instant)))
+            entry["instants"][f"{instant:g}"] = {
+                "time": float(time[index]),
+                "density_mean_minus_rest": float(history["density_mean"][index] - normal_default.REST_DENSITY),
+                "pressure_mean": float(history["pressure_mean"][index]),
+                "pressure_negative_fraction": float(history["pressure_negative_fraction"][index])}
+            density_cells.append(f"{history['density_mean'][index] - normal_default.REST_DENSITY:+.5f}")
+            pressure_cells.append(f"{history['pressure_mean'][index] / normal_default.DYNAMIC_PRESSURE:+.4f}")
+            negative_cells.append(f"{100.0 * history['pressure_negative_fraction'][index]:.1f} %")
+        inside = (time >= RATE_WINDOW[0]) & (time <= RATE_WINDOW[1] + 0.3)
+        if inside.sum() >= 5 and time[-1] >= RATE_WINDOW[1] - 1.0:
+            slope, intercept = np.polyfit(time[inside], history["density_mean"][inside], 1)
+            mean_level = float(history["density_mean"][inside].mean() - normal_default.REST_DENSITY)
+            spread = float(history["density_mean"][inside].std())
+            pressure_window = history["pressure_mean"][inside] / normal_default.DYNAMIC_PRESSURE
+            negative_window = history["pressure_negative_fraction"][inside]
+            entry.update({"density_rate_60_100": float(slope), "density_mean_60_100": mean_level,
+                          "density_std_60_100": spread, "pressure_mean_60_100": float(pressure_window.mean()),
+                          "pressure_std_60_100": float(pressure_window.std()),
+                          "negative_mean_60_100": float(negative_window.mean()),
+                          "negative_range_60_100": [float(negative_window.min()), float(negative_window.max())]})
+            density_cells += [f"{slope:+.6f}", f"{mean_level:+.5f} ± {spread:.5f}"]
+            pressure_cells.append(f"{pressure_window.mean():+.4f} ± {pressure_window.std():.4f}")
+            negative_cells.append(f"{100 * negative_window.mean():.1f} %（{100 * negative_window.min():.1f} 到 "
+                                  f"{100 * negative_window.max():.1f}）")
+        else:
+            density_cells += ["—", "—"]
+            pressure_cells.append("—")
+            negative_cells.append("—")
+        pressure = history["pressure_mean"] / normal_default.DYNAMIC_PRESSURE
+        high_pass = pressure[1:-1] - 0.5 * (pressure[:-2] + pressure[2:])
+        centre_time = time[1:-1]
+        cells, bins = [text], []
+        for low, high in zip(edges[:-1], edges[1:]):
+            chosen = (centre_time >= low) & (centre_time < high)
+            value = float(np.sqrt((high_pass[chosen] ** 2).mean())) if chosen.sum() >= 5 else None
+            bins.append(value)
+            cells.append("—" if value is None else f"{value:.4f}")
+        late = centre_time >= 80.0
+        entry.update({"noise_bins": bins,
+                      "noise_late": float(np.sqrt((high_pass[late] ** 2).mean())) if late.sum() >= 5 else None})
+        cells.append("—" if entry["noise_late"] is None else f"{entry['noise_late']:.4f}")
+        summary["histories"][name] = entry
+        density_rows.append(density_cells)
+        pressure_rows.append(pressure_cells)
+        negative_rows.append(negative_cells)
+        noise_rows.append(cells)
+    for name, text in VOLUME_RUNS:
+        log = logs.get(name)
+        if not log:
+            continue
+        cells = [text]
+        for instant in DENSITY_INSTANTS:
+            if instant > log["time"][-1] + 0.3:
+                cells.append("—")
+                continue
+            index = int(np.argmin(np.abs(log["time"] - instant)))
+            cells.append(f"{log['theta'][index]:+.2e}")
+        entry = {"updates": int(log["time"].size), "update_interval": float(np.diff(log["time"]).mean()),
+                 "theta_maximum": float(np.abs(log["theta"]).max()),
+                 "theta_maximum_time": float(log["time"][int(np.argmax(np.abs(log["theta"])))])}
+        inside = (log["time"] >= RATE_WINDOW[0]) & (log["time"] <= RATE_WINDOW[1] + 0.3)
+        if inside.sum() >= 5 and log["time"][-1] >= RATE_WINDOW[1] - 1.0:
+            entry.update({"theta_mean_60_100": float(log["theta"][inside].mean()),
+                          "theta_std_60_100": float(log["theta"][inside].std()),
+                          "theta_range_60_100": [float(log["theta"][inside].min()), float(log["theta"][inside].max())]})
+            cells += [f"{entry['theta_mean_60_100']:+.2e} ± {entry['theta_std_60_100']:.1e}",
+                      f"{-normal_default.REST_DENSITY * entry['theta_mean_60_100']:+.5f}"]
+        else:
+            cells += ["—", "—"]
+        cells.append(f"{entry['updates']}（间隔 {entry['update_interval']:.3f}）")
+        summary["theta"][name] = entry
+        theta_rows.append(cells)
+    instant_header = [f"t = {instant:g}" for instant in DENSITY_INSTANTS]
+    if density_rows:
+        write_text("volume_density.md",
+                   "流体平均密度 − ρ0（kg/m³），各时刻最近的那个样本（样本间隔 0.21）。变化率 = t ∈ [60, 100] 的线性拟合斜率，"
+                   "kg/m³ 每时间单位；最后一列是这一段的平均值 ± 标准差。\n\n"
+                   + markdown_table(["运行"] + instant_header + ["变化率，t ∈ [60, 100]", "t ∈ [60, 100] 的平均 ± 标准差"],
+                                    density_rows))
+        write_text("volume_pressure.md",
+                   "流体平均压力（ρ0U²），同样的时刻；最后一列是 t ∈ [60, 100] 的平均 ± 标准差。\n\n"
+                   + markdown_table(["运行"] + instant_header + ["t ∈ [60, 100]"], pressure_rows))
+        write_text("volume_negative.md",
+                   "压力为负的流体粒子比例，同样的时刻；最后一列是 t ∈ [60, 100] 的平均（最小到最大）。\n\n"
+                   + markdown_table(["运行"] + instant_header + ["t ∈ [60, 100]"], negative_rows))
+        write_text("volume_noise.md",
+                   "平均压力的逐样本涨落（ρ0U²）：一个样本减去前后两个样本平均值之后的 rms，样本间隔 0.21 个时间单位，"
+                   f"按每 {NOISE_BIN:g} 个时间单位一段给出；最后一列是 t ≥ 80。\n\n"
+                   + markdown_table(["运行"] + [f"t {low:g}–{high:g}" for low, high in zip(edges[:-1], edges[1:])]
+                                    + ["t ≥ 80"], noise_rows))
+    if theta_rows:
+        write_text("volume_theta.md",
+                   "θ = (V_now − V_target) / V_target，各时刻最近的那次更新。θ > 0 表示密度整体偏低；−ρ0·θ 是它对应的平均"
+                   "密度偏差。\n\n"
+                   + markdown_table(["运行"] + instant_header + ["t ∈ [60, 100] 的平均 ± 标准差", "对应的密度偏差 −ρ0·θ（kg/m³）",
+                                                               "更新次数"], theta_rows))
+    if density_rows:
+        setup_style()
+        styles = {"n250_reflection_full_volume": (INK_PRIMARY, "solid"),
+                  "n500_reflection_full_volume": (INK_PRIMARY, (0, (4, 2))),
+                  "n250_reflection_full": (INK_SECONDARY, (0, (1, 1.5))),
+                  "n250_crossing_normal": (first_colour, "solid"), "n500_crossing_normal": (first_colour, (0, (4, 2)))}
+        figure, axes = plt.subplots(1, 5, figsize=(20.0, 4.4))
+        panels = (("density_mean", "流体平均密度 − ρ0（kg/m³）"), ("theta", "θ（×10⁻⁶）"),
+                  ("pressure_mean", "流体平均压力 / (ρ0 U²)"),
+                  ("noise", f"平均压力的逐样本涨落 / (ρ0 U²)，每 {NOISE_BIN:g} 个时间单位一段"),
+                  ("pressure_negative_fraction", "负压粒子比例（%），t ≥ 1"))
+        handles, labels = [], []
+        for axis, (key, title) in zip(axes, panels):
+            for name, text in history_runs:
+                history = histories.get(name)
+                if not history:
+                    continue
+                colour, style = styles[name]
+                if key == "theta":
+                    log = logs.get(name)
+                    if log:
+                        axis.plot(log["time"], 1.0e6 * log["theta"], color=colour, linestyle=style, zorder=3,
+                                  linewidth=1.2)
+                    continue
+                if key == "noise":
+                    values = summary["histories"][name]["noise_bins"]
+                    centres = 0.5 * (edges[:-1] + edges[1:])
+                    known = [index for index, value in enumerate(values) if value is not None]
+                    axis.plot(centres[known], [values[index] for index in known], color=colour, linestyle=style,
+                              marker="o", markersize=4, zorder=3, linewidth=1.6)
+                    continue
+                shown = history["time"] >= (1.0 if key == "pressure_negative_fraction" else 0.0)
+                values = history[key][shown]
+                values = {"density_mean": values - normal_default.REST_DENSITY,
+                          "pressure_mean": values / normal_default.DYNAMIC_PRESSURE,
+                          "pressure_negative_fraction": 100.0 * values}[key]
+                line, = axis.plot(history["time"][shown], values, color=colour, linestyle=style, zorder=3,
+                                  linewidth=1.4)
+                if axis is axes[0]:
+                    handles.append(line)
+                    labels.append(text)
+            if key in ("density_mean", "pressure_mean", "theta"):
+                axis.axhline(0.0, color=INK_SECONDARY, linewidth=0.7, zorder=2)
+            if key == "density_mean":
+                axis.set_ylim(-0.05, 0.05)          # the unconstrained run leaves the panel (see the table)
+            if key == "pressure_mean":
+                axis.set_ylim(-0.5, 0.5)
+            if key == "noise":
+                axis.set_ylim(bottom=0.0)
+            axis.set_xlim(0, 100)
+            axis.set_title(title)
+            axis.set_xlabel("时间（模拟单位）")
+        height = figure.get_figheight()
+        figure.suptitle("Re = 1000 方腔：完整方案 + 体积约束（黑），没有约束的完整方案（灰，画到出框为止），一阶（红）", x=0.01,
+                        y=1.0 - 0.05 / height, ha="left", va="top", fontsize=12, fontweight="bold", color=INK_PRIMARY)
+        figure.legend(handles, labels, loc="upper left", bbox_to_anchor=(0.01, 1.0 - 0.40 / height),
+                      ncol=len(handles), handlelength=3.0, columnspacing=1.6, labelcolor=INK_PRIMARY,
+                      borderaxespad=0.0)
+        figure.tight_layout(rect=(0, 0, 1.0, 1.0 - 0.66 / height), w_pad=1.8)
+        figure.savefig(REPORT_ROOT / "figures" / "volume_history.png")
+        plt.close(figure)
+
+    # ---------------------------------------------------------------- time per step from the run logs
+    def clock_history(name: str) -> dict:
+        path = LOG_ROOT / "cavity" / name / "field_history.jsonl"
+        if not path.exists():
+            return {}
+        by_step = {}
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                row = json.loads(line)
+                if row.get("step") is not None:
+                    by_step[int(row["step"])] = row
+        steps = sorted(by_step)
+        return {key: np.array([by_step[step][key] for step in steps], dtype=float) for key in ("step", "time", "unix")}
+
+    def step_rate(name: str):
+        history = clock_history(name)
+        if not history:
+            return None
+        inside = (history["time"] >= TIMING_WINDOW[0]) & (history["time"] <= TIMING_WINDOW[1])
+        if inside.sum() < 3 or history["time"][-1] < TIMING_WINDOW[1] - 1.0:
+            return None
+        return float((history["step"][inside][-1] - history["step"][inside][0])
+                     / (history["unix"][inside][-1] - history["unix"][inside][0]))
+
+    def device_of(name: str) -> str:
+        uuids = analysed.get(name, {}).get("device_uuids") or []
+        return {"fb83f0dafd9e1d38dc05e7ae643e22a8": "显示卡", "ae137c668a40f5acaab90a83f7cda175": "无头卡"} \
+            .get(uuids[0] if uuids else "", "?")
+
+    rows = []
+    summary["timing"] = {}
+    for name, reference_name, text in TIMING_PAIRS:
+        rate, reference_rate = step_rate(name), step_rate(reference_name)
+        if rate is None or reference_rate is None:
+            continue
+        ratio = reference_rate / rate
+        summary["timing"][f"{name}|{reference_name}"] = {"steps_per_second": rate,
+                                                        "reference_steps_per_second": reference_rate,
+                                                        "time_per_step_ratio": ratio}
+        rows.append([text, f"{rate:.0f}（{device_of(name)}）", f"{reference_rate:.0f}（{device_of(reference_name)}）",
+                     f"**{ratio:.3f}**"])
+    if rows:
+        write_text("volume_timing.md",
+                   f"每秒步数取自运行日志（field_history.jsonl 的墙钟时间），t ∈ [{TIMING_WINDOW[0]:g}, "
+                   f"{TIMING_WINDOW[1]:g}]，含运行器的采样。每步时间之比 = 参照的每秒步数 ÷ 本次的每秒步数。括号里是跑这次运行"
+                   "的卡。\n\n"
+                   + markdown_table(["对比", "本次：每秒步数", "参照：每秒步数", "每步时间之比"], rows))
+
+    # ---------------------------------------------------------------- 3.5 hydrostatic boxes
+    hydrostatic_runs = {}
+    for direction, direction_text in HYDROSTATIC_DIRECTIONS.items():
+        entries = ((f"2d_n250_{direction}_crossing_normal_r1", "一阶（现缺省），第 1 次", 0),
+                   (f"2d_n250_{direction}_crossing_normal_r2", "一阶（现缺省），第 2 次", 0),
+                   (f"2d_n250_{direction}_crossing_reflection_full_volume", "完整方案 + 体积约束", 1))
+        present = tuple(entry for entry in entries if (LOG_ROOT / "hydrostatic" / entry[0] / "summary.json").exists())
+        if any(form == 1 for _, _, form in present):
+            hydrostatic_runs[direction] = (direction_text, present)
+    if len(hydrostatic_runs) == len(HYDROSTATIC_DIRECTIONS):
+        introduction = (
+            "2-D 静水盒（250² 方腔的几何，盖静止，|g| = 10，c0 = 100，从均匀密度、零速度开始，到 t = 10.02）。速度以 "
+            "√(|g| H) 为单位，压力以 ρ0 |g| H 为单位。“去电平” = 减去全场平均偏差后的误差；“电平” = 压力减去 "
+            "ρ0 g·(r − r_中心) 之后对全部流体粒子的平均。一阶的两次是第 9 节的运行，完整方案 + 体积约束每个方向一次。")
+        hydrostatic = delta_wall_experiment.hydrostatic_comparison(
+            records_by_id, runs_by_direction=hydrostatic_runs,
+            forms=(("一阶（现缺省）", first_colour, "solid"), ("完整方案 + 体积约束", INK_PRIMARY, "solid")),
+            introduction=introduction, table_name="volume_hydrostatic.md", figure_name="volume_hydrostatic.png",
+            figure_title="2-D 静水盒：一阶（现缺省）与完整方案 + 体积约束（压力以 ρ0 g H 为单位）")
+        ratio_rows, theta_rows = [], []
+        summary["hydrostatic"] = {"runs": hydrostatic, "ratios": {}, "theta": {}}
+        for direction, direction_text in HYDROSTATIC_DIRECTIONS.items():
+            entries = hydrostatic.get(direction, {})
+            first = [entries[name]["speed_root_mean_square_over_scale_last_fifth"] for name in entries
+                     if "normal_r" in name]
+            second = [entries[name]["speed_root_mean_square_over_scale_last_fifth"] for name in entries
+                      if name.endswith("_reflection_full_volume")]
+            if not first or not second:
+                continue
+            ratio = second[0] / (sum(first) / len(first))
+            summary["hydrostatic"]["ratios"][direction] = {"first_order": first, "constrained": second[0],
+                                                          "ratio_to_first_order_mean": ratio}
+            ratio_rows.append([direction_text, " / ".join(f"{value:.2e}" for value in first), f"{second[0]:.2e}",
+                               f"{ratio:.2f}", "通过" if ratio <= 2.0 else "**不通过**"])
+            log = constraint_log(LOG_ROOT / "hydrostatic" / f"2d_n250_{direction}_crossing_reflection_full_volume")
+            if log:
+                late = log["time"] >= 3.0
+                entry = {"theta_maximum": float(np.abs(log["theta"]).max()),
+                         "theta_late_mean": float(log["theta"][late].mean()),
+                         "theta_late_std": float(log["theta"][late].std()),
+                         "theta_last": float(log["theta"][-1]), "updates": int(log["time"].size)}
+                summary["hydrostatic"]["theta"][direction] = entry
+                cells = [direction_text]
+                for instant in (0.18, 1.08, 2.52, 5.04, 7.56, 9.9):
+                    index = int(np.argmin(np.abs(log["time"] - instant)))
+                    cells.append(f"{log['theta'][index]:+.2e}")
+                cells += [f"{entry['theta_late_mean']:+.2e} ± {entry['theta_late_std']:.1e}",
+                          f"{-normal_default.REST_DENSITY * entry['theta_late_mean']:+.5f}"]
+                theta_rows.append(cells)
+        write_text("volume_hydrostatic_ratio.md", markdown_table(
+            ["方向", "一阶的残余速度 rms / √(gH)（末 1/5 段；两次）", "完整方案 + 体积约束", "÷ 一阶两次的平均", "不超过 2 倍"],
+            ratio_rows))
+        if theta_rows:
+            write_text("volume_hydrostatic_theta.md",
+                       "静水盒里约束的 θ（各时刻最近的那次更新）；最后两列是 t ≥ 3 的平均 ± 标准差和它对应的密度偏差。\n\n"
+                       + markdown_table(["方向", "t = 0.18", "t = 1.08", "t = 2.52", "t = 5.04", "t = 7.56", "t = 9.9",
+                                         "t ≥ 3 的平均 ± 标准差", "−ρ0·θ（kg/m³）"], theta_rows))
+
+    out = REPORT_ROOT / "pairwise_reflection"
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "volume_constraint.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False, default=float),
+                                                encoding="utf-8", newline="\n")
+    print("[pairwise_reflection] volume-constraint tables written; runs: "
           + "; ".join(f"{name} t = {entry['t_last']:.2f}" + (" complete" if entry["complete"] else "")
                       for name, entry in summary["runs"].items()))
     return 0
