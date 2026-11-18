@@ -121,12 +121,17 @@ def mean_grids(name: str, analytic_wall: str | None) -> dict:
     (cavity_analysis.stream_function_minimum's grid, points and interpolation); with analytic_wall the particles
     carry the analytic field instead, and the two centre lines are sampled as the runner samples them."""
     run = cavity_analysis.load_run(name, LOG_ROOT / "cavity")
-    spacing = run["spacing"]
-    support = float(run["meta"]["support_radius"])
     window = analysis_window(name)
     selected = snapshot_files(run, window)
     if not selected:
         raise RuntimeError(f"{name}: no snapshot in the window {window}")
+    return grids_of_files(run, selected, analytic_wall)
+
+
+def grids_of_files(run: dict, selected: list, analytic_wall: str | None = None) -> dict:
+    """mean_grids for an explicit list of snapshot files of a run (cavity_analysis.load_run's dict)."""
+    spacing = run["spacing"]
+    support = float(run["meta"]["support_radius"])
     half = 0.5 + spacing
     axis = np.linspace(-half, half, cavity_analysis.GRID_POINTS)
     grid_x, grid_y = np.meshgrid(axis, axis)
