@@ -15,7 +15,9 @@ runner.pid, with its children). Start cavity_run.py with --retries 0, or the lau
 last checkpoint. Nothing else stops a run here: no density, pressure or budget criterion.
 
 It exits 0 when the run has finished (result.json) or its runner process has gone, 2 after a stop, 3 when no
-runner appeared within --start-timeout seconds. Rows written before the watcher started are ignored (a resumed
+runner appeared within --start-timeout seconds. With --follow-launcher it keeps watching while the launcher
+(<run directory>/launcher.pid, written by cavity_run.py) lives, so a segment the launcher resumes after a failure is
+watched as well (each new runner writes runner.pid again). Rows written before the watcher started are ignored (a resumed
 run's files hold the rows of its earlier segments).
 """
 
@@ -65,7 +67,10 @@ def new_rows(path: pathlib.Path, offsets: dict) -> list:
 
 
 def runner_process_id(run_directory: pathlib.Path) -> int | None:
-    path = run_directory / "runner.pid"
+    return runner_process_id_file(run_directory / "runner.pid")
+
+
+def runner_process_id_file(path: pathlib.Path) -> int | None:
     try:
         return int(path.read_text(encoding="utf-8").split()[0])
     except (OSError, ValueError, IndexError):
@@ -79,6 +84,8 @@ def main() -> int:
     parser.add_argument("--speed-limit", type=float, default=1.05, help="in units of the lid speed")
     parser.add_argument("--poll", type=float, default=5.0, help="seconds between two looks")
     parser.add_argument("--start-timeout", type=float, default=300.0)
+    parser.add_argument("--follow-launcher", action="store_true",
+                        help="watch every segment while the launcher of launcher.pid lives")
     arguments = parser.parse_args()
 
     run_directory = LOG_ROOT / "cavity" / arguments.name
@@ -118,6 +125,11 @@ def main() -> int:
             if running:
                 subprocess.run(["taskkill", "/PID", str(process_id), "/T", "/F"], check=False)
             return 2
+        if seen_alive and not running and arguments.follow_launcher:
+            launcher = runner_process_id_file(run_directory / "launcher.pid")
+            if launcher is not None and process_alive(launcher) and not (run_directory / "result.json").exists():
+                time.sleep(arguments.poll)          # between two segments: the launcher may resume the run
+                continue
         if seen_alive and not running:
             finished = (run_directory / "result.json").exists()
             print(f"[cavity_watch] {arguments.name}: the runner has ended "

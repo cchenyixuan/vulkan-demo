@@ -17,6 +17,9 @@ snapshots/, checkpoints/, result.json); the runner's output goes to logs/wall_cr
 With WALL_CROSSING_LOG_ROOT set (the code running from a frozen checkout) both and runs.jsonl go under that
 directory instead of this checkout's logs/wall_crossing.
 A directory that already holds a run is resumed (the runner refuses a changed case or changed settings).
+The launcher writes its process id to <run directory>/launcher.pid (cavity_watch.py --follow-launcher watches every
+segment while it lives) and does not resume a run that cavity_watch stopped (watch_stop.json written after the
+launcher started).
 """
 
 from __future__ import annotations
@@ -136,7 +139,15 @@ def main() -> int:
                                       else str(run_directory).replace("\\", "/"))
         attempts = []
         exit_code = None
+        run_directory.mkdir(parents=True, exist_ok=True)
+        launcher_started = time.time()
+        (run_directory / "launcher.pid").write_text(f"{os.getpid()}\n", encoding="utf-8")
+        watch_stop = run_directory / "watch_stop.json"
         for attempt in range(arguments.retries + 1):
+            if watch_stop.exists() and watch_stop.stat().st_mtime >= launcher_started:
+                print(f"[cavity_run] {arguments.name}: stopped by cavity_watch (watch_stop.json); not resumed",
+                      flush=True)
+                break
             holds_run = (run_directory / "samples.jsonl").exists() \
                 or (run_directory / "checkpoints" / "manifest.jsonl").exists()
             command = base_command + (["--resume"] if holds_run else [])
@@ -147,6 +158,9 @@ def main() -> int:
             if exit_code == 0 or exit_code == INVARIANT_EXIT_CODE:
                 break
             time.sleep(30)
+        stopped = watch_stop.exists() and watch_stop.stat().st_mtime >= launcher_started
+        run.extra["watch_stop"] = (json.loads(watch_stop.read_text(encoding="utf-8")).get("reason")
+                                   if stopped else None)
         run.extra["segments"] = attempts
         result_path = run_directory / "result.json"
         if result_path.exists():
@@ -154,7 +168,9 @@ def main() -> int:
             run.extra["result"] = {key: result.get(key) for key in
                                    ("steps", "time", "t_steady", "wall_s", "complete", "invariants_ok")
                                    if key in result}
-        if exit_code == 0:
+        if stopped:
+            run.extra["status"] = f"stopped by cavity_watch: {run.extra['watch_stop']}"
+        elif exit_code == 0:
             run.extra["status"] = "ok" if arguments.max_steps is None else f"ok (stopped at --max-steps {arguments.max_steps})"
         elif exit_code == INVARIANT_EXIT_CODE:
             run.extra["status"] = "failed: invariant violation (runner exit code 3)"
