@@ -555,7 +555,8 @@ def cavity() -> dict:
                 above = value == max(values) and len(values) > 1
                 axis.annotate(f"{value:+.2f}", (resolution, value), xytext=(0, 9 if above else -9),
                               textcoords="offset points", ha="center", va="bottom" if above else "top",
-                              fontsize=8, color=INK_SECONDARY)
+                              fontsize=8, color=INK_SECONDARY, zorder=4,
+                              bbox={"facecolor": SURFACE, "edgecolor": "none", "pad": 0.8})
         axis.axhline(0.0, color=INK_SECONDARY, linewidth=0.8, zorder=2)
         axis.set_xscale("log")
         axis.set_xticks([250, 500])

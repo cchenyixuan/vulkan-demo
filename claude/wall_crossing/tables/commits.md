@@ -26,5 +26,6 @@
 | `44e4e6f` | wall_boundary crossing: continuity_wall_component defaults to normal (was full) |
 | `6c8a55a` | wall_crossing reference: simple / adami keep the whole wall velocity difference in the budget comparison |
 | `bb7e173` | wall_boundary crossing: analysis of the default change (normal_default.py), earlier tables relabelled |
+| `048be28` | wall_boundary crossing: section 9 of the report, first half (default change, regression checks, short runs) |
 
 （加入本报告的那个提交排在这些之后。）
