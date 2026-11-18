@@ -942,10 +942,13 @@ class SphSimulatorV7:
         self.pipelines["defrag"] = self._build_defrag_pipeline()
 
         # numerics.volume_constraint (off by default): this slab's share of the target volume, and its place in
-        # the process's group (utils/volume_constraint_v7.py)
+        # the process's group (utils/volume_constraint_v7.py), are taken when the simulation starts
+        # (bootstrap_init / restart_init: _start_volume_constraint), not here: a caller may still attach things to
+        # the sim between construction and start (the seam audit's global ids, which its wrapper of
+        # _build_initial_data needs; the constructor-time call broke the audit until 2026-11-19)
         self._volume_constraint_defrag_calls = 0
         self._volume_constraint_update_steps = 0
-        self._init_volume_constraint()
+        self._volume_constraint_started = False
 
         # Frame sync scheme: owns the timeline semaphore(s) and decides every
         # submit site's wait/signal (semaphore, value) pairs. "aggregated" =
@@ -1379,6 +1382,12 @@ class SphSimulatorV7:
               f"particles), relaxation time {case.numerics.volume_constraint.relaxation_time:g}, an update every "
               f"{self._volume_constraint_update_steps:,} steps "
               f"(= {self._volume_constraint_update_steps * float(case.physics.timestep):g})", flush=True)
+
+    def _start_volume_constraint(self) -> None:
+        """_init_volume_constraint once, when the simulation starts (bootstrap_init or restart_init)."""
+        if not self._volume_constraint_started:
+            self._volume_constraint_started = True
+            self._init_volume_constraint()
 
     def readback_fluid_volume(self) -> tuple:
         """(sum of m_i / rho_i over this slab's own alive fluid particles, their number), from a readback of
@@ -4006,6 +4015,7 @@ class SphSimulatorV7:
         sender_staging_view(<dir>) holds the boundary replicas ready for
         host memcpy. Orchestrator calls this on both sims, then bridges via
         memcpy, then calls bootstrap_compute on both sims."""
+        self._start_volume_constraint()
         self._upload_initial_state()
         cmd = self._record_bootstrap_init_cmd()
         self.ctx.submit_and_wait(cmd)
@@ -4074,6 +4084,7 @@ class SphSimulatorV7:
         transport fill them before any kernel reads them, as in every step.
         Callers then record the step cmd buffers (ChainOrchestratorV7.
         restart_all, which also runs the bootstrap defrag)."""
+        self._start_volume_constraint()
         layout = self.RESTART_FIELD_LAYOUT
         missing = [name for name in layout if name not in state]
         if missing:
