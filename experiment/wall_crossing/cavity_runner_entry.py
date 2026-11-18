@@ -236,7 +236,7 @@ if __name__ == "__main__":
         # numerics.volume_constraint: every update's time, theta and rate go to the run directory (the solver
         # appends; a case without the constraint writes nothing)
         pathlib.Path(_argument("--run-dir")).resolve().mkdir(parents=True, exist_ok=True)
-        os.environ.setdefault("V7_VOLUME_CONSTRAINT_LOG",
+        os.environ.setdefault("SPH_VOLUME_CONSTRAINT_LOG",
                               str(pathlib.Path(_argument("--run-dir")).resolve() / "volume_constraint.jsonl"))
         install_wall_crossing_diagnostics(pathlib.Path(_argument("--run-dir")).resolve())
         install_field_history(pathlib.Path(_argument("--run-dir")).resolve())

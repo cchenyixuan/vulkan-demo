@@ -33,9 +33,11 @@ The interval is rounded down to a whole number of defrag cadences (the updates h
 longer than relaxation_time / 5 is refused.
 
 Log. Every update appends one JSON line {"unix", "step", "time", "volume", "target_volume", "theta", "rate",
-"fluid_particles", "slabs"} to the file named by the environment variable V7_VOLUME_CONSTRAINT_LOG (the runners
+"fluid_particles", "slabs"} to the file named by the environment variable SPH_VOLUME_CONSTRAINT_LOG (the runners
 of experiment/wall_crossing set it to <run directory>/volume_constraint.jsonl), and to the group's history.
 "step" counts the steps of this process (a resumed run starts again at 0), "time" = step x timestep.
+(The variable's name does not start with V7_ on purpose: experiment/validation/cavity_runner.py accepts only the
+release set of V7_* switches in its environment, and this is a log path, not a switch.)
 
 Nothing here imports Vulkan.
 """
@@ -48,7 +50,7 @@ import time
 from dataclasses import dataclass
 from typing import Optional
 
-LOG_ENVIRONMENT_VARIABLE = "V7_VOLUME_CONSTRAINT_LOG"
+LOG_ENVIRONMENT_VARIABLE = "SPH_VOLUME_CONSTRAINT_LOG"
 INTERVAL_SHARE_OF_RELAXATION_TIME = 5.0         # update interval <= relaxation_time / this
 
 

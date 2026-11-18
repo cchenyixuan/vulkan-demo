@@ -118,7 +118,7 @@ def main() -> int:
         # earlier run of the same name goes the way of its series.csv
         constraint_log = out / "volume_constraint.jsonl"
         constraint_log.unlink(missing_ok=True)
-        os.environ["V7_VOLUME_CONSTRAINT_LOG"] = str(constraint_log)
+        os.environ["SPH_VOLUME_CONSTRAINT_LOG"] = str(constraint_log)
     lower, upper, radius, dimension = initial_box(case)
     spacing = 2.0 * radius
     support = float(case.physics.smoothing_length)

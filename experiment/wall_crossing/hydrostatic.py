@@ -199,7 +199,7 @@ def run_case(arguments) -> int:
         import os
         constraint_log = out / "volume_constraint.jsonl"
         constraint_log.unlink(missing_ok=True)
-        os.environ["V7_VOLUME_CONSTRAINT_LOG"] = str(constraint_log)
+        os.environ["SPH_VOLUME_CONSTRAINT_LOG"] = str(constraint_log)
     lower, upper, radius, dimension = initial_box(case)
     spacing = 2.0 * radius
     gravity = np.asarray(case.physics.gravity, dtype=np.float64)
