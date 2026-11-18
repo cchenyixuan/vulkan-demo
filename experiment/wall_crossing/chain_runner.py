@@ -9,6 +9,12 @@ bootstrap_all, run_pipelined at depth 2. on_sample(step, simulators, slab_cases)
 of sample_steps (itself a multiple of the defrag cadence): run_pipelined drains every frame before its defrag
 callback, so the buffers can be read there, before that boundary's defrag.
 
+restart (a dict {"state", "stored_offset", "step"}: the merged restart state of every slab as
+experiment/validation/cavity_runner.read_restart_state reads it, the stored density offset, the step it was taken
+at): the chain starts from that state the way the cavity runner resumes (partition_v7.restart_slab_rows splits it,
+ChainOrchestratorV7.restart_all uploads it) and steps from restart["step"] to total_steps; on_sample gets the
+absolute step.
+
 Why not the single-command-buffer step of _run_v7_single_bench.py: it waits on a fence after every step, and
 on a card shared with another (pipelined) job that wait costs a scheduling slice per step (measured: 170
 steps/s against ~1900 for the pipelined path on the same shared card). The kernels and pipelines are the same.
@@ -28,7 +34,8 @@ if str(REPOSITORY_ROOT) not in sys.path:
 
 def run_chain(case, device_map: list, total_steps: int, sample_steps: int, on_sample: Callable,
               expected_uuids: Optional[list] = None, pool_safety: float = 1.2,
-              application_name: str = "wall_crossing", depth: int = 2, on_ready: Optional[Callable] = None) -> dict:
+              application_name: str = "wall_crossing", depth: int = 2, on_ready: Optional[Callable] = None,
+              restart: Optional[dict] = None) -> dict:
     """Run ``case`` for total_steps steps on the devices of device_map (one v7 device index per slab).
 
     total_steps and sample_steps must be multiples of the case's defrag cadence. Returns
@@ -42,6 +49,9 @@ def run_chain(case, device_map: list, total_steps: int, sample_steps: int, on_sa
     from experiment.wall_crossing.run_log import vulkan_device_uuid
 
     cadence = int(case.numerics.defrag_cadence)
+    start_step = int(restart["step"]) if restart is not None else 0
+    if start_step % cadence or start_step >= total_steps:
+        raise ValueError(f"restart step {start_step} must be a multiple of the defrag cadence below {total_steps}")
     if total_steps % cadence or sample_steps % cadence:
         raise ValueError(f"total_steps {total_steps} and sample_steps {sample_steps} must be multiples of the "
                          f"defrag cadence {cadence}")
@@ -61,18 +71,29 @@ def run_chain(case, device_map: list, total_steps: int, sample_steps: int, on_sa
         for context, slab in zip(contexts, chain.slabs):
             simulators.append(SphSimulatorV7(context, slab, sync_scheme="per-direction"))
         orchestrator = ChainOrchestratorV7(simulators, defrag_cadence=cadence)
-        orchestrator.bootstrap_all()
+        if restart is None:
+            orchestrator.bootstrap_all()
+        else:
+            import numpy as np
+
+            from experiment.v7.utils.partition_v7 import restart_slab_rows
+            state = restart["state"]
+            rows_per_slab = restart_slab_rows(case, chain, state["position_voxel_id"][:, 0])
+            orchestrator.restart_all([{name: np.ascontiguousarray(values[rows]) for name, values in state.items()}
+                                      for rows in rows_per_slab], float(restart["stored_offset"]))
         if on_ready is not None:
             on_ready(simulators, chain.slabs)
 
         def on_defrag(frame: int, report: list) -> None:
-            if frame % sample_steps == 0 or frame == total_steps:
-                on_sample(frame, simulators, chain.slabs)
+            step = start_step + frame
+            if step % sample_steps == 0 or step == total_steps:
+                on_sample(step, simulators, chain.slabs)
 
         started = time.perf_counter()
-        orchestrator.run_pipelined(total_steps, depth=depth, on_defrag=on_defrag)
+        orchestrator.run_pipelined(total_steps - start_step, depth=depth, on_defrag=on_defrag)
         elapsed = time.perf_counter() - started
-        return {"device_uuids": uuids, "steps_per_second": total_steps / elapsed, "elapsed_seconds": elapsed,
+        return {"device_uuids": uuids, "steps_per_second": (total_steps - start_step) / elapsed,
+                "elapsed_seconds": elapsed, "start_step": start_step,
                 "cuts": [int(cut) for cut in getattr(chain, "cuts", [])]}
     finally:
         if orchestrator is not None:

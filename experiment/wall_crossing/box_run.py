@@ -27,8 +27,24 @@ the box lie within the support radius; shaders/density_budget.glsl). Every sampl
   region_count_<region>    the fluid particles in the region at the sample.
 The state the budget build computes is the state of the build without it (checked bit for bit over 700 steps).
 
+Long runs (2026-11-19; box_run_supervised.py restarts a run that stops or stalls):
+  --checkpoint-time T   every T (a multiple of the defrag cadence) the restart state of every slab
+                        (cavity_runner.read_restart_state, merged) goes to checkpoints/c<step>.npz with the stored
+                        density offset; the two newest are kept (manifest.jsonl lists them);
+  --resume              start from the newest readable checkpoint instead of the case's initial state (none: from
+                        the start): series.csv and profiles.json keep their rows up to that step, the volume
+                        constraint's log its records before it (the log's steps restart at 0 with every segment;
+                        a line {"segment", "segment_start_step"} marks each start); the constraint's target is
+                        taken again from the case's initial particles, as the cavity runner does;
+  heartbeat.json        written at every defrag boundary (at most every 2 s): step, time, unix time, segment;
+  --stop-speed F        stop when the fluid's largest speed exceeds F x the lid speed (the largest initial
+                        velocity of a boundary material);
+  --stop-outside        stop when a fluid particle is outside the box (outside_box_count > 0).
+  A particle loss or a non-finite velocity stops the run as well. A stop writes watch_stop.json (reason, step,
+  time), keeps everything written so far and exits with code 3; segments.jsonl gets one line per segment.
+
 Output: logs/wall_crossing/box_run/<name>/series.csv, profiles.json, final.npz (the fluid: positions,
-velocities, densities, pressures), summary.json; one runs.jsonl record.
+velocities, densities, pressures), summary.json; one runs.jsonl record per segment.
 """
 
 from __future__ import annotations
@@ -53,6 +69,66 @@ from experiment.wall_crossing.hydrostatic import initial_box, read_fluid_state_o
 from experiment.wall_crossing.run_log import LOG_ROOT, LoggedRun                    # noqa: E402
 
 PROFILE_POINTS = 101
+STOP_EXIT_CODE = 3
+
+
+class StopCondition(Exception):
+    """A stop condition of the run (particle loss, speed, a fluid particle outside the box)."""
+
+
+def typed(value: str):
+    """A csv cell back as int or float (an empty cell as None)."""
+    if value == "":
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return float(value)
+
+
+def latest_checkpoint(directory: pathlib.Path, expected_rows: int) -> dict | None:
+    """The newest readable checkpoint of directory (manifest.jsonl): {"state", "stored_offset", "step"}."""
+    manifest = directory / "manifest.jsonl"
+    if not manifest.exists():
+        return None
+    entries = [json.loads(line) for line in manifest.read_text(encoding="utf-8").splitlines() if line.strip()]
+    for entry in reversed(entries):
+        checkpoint = directory / entry["file"]
+        if not checkpoint.exists():
+            continue
+        try:
+            with np.load(checkpoint) as archive:
+                state = {name: archive[name] for name in archive.files if not name.startswith("_")}
+                offset = float(archive["_stored_density_offset"])
+        except Exception as error:          # a partly written file: take an older one
+            print(f"[box_run] checkpoint {checkpoint.name} unreadable ({error!r}); trying an older one", flush=True)
+            continue
+        if state["position_voxel_id"].shape[0] != expected_rows:
+            print(f"[box_run] checkpoint {checkpoint.name} holds {state['position_voxel_id'].shape[0]} rows, "
+                  f"expected {expected_rows}; trying an older one", flush=True)
+            continue
+        return {"state": state, "stored_offset": offset, "step": int(entry["step"])}
+    return None
+
+
+def truncate_constraint_log(path: pathlib.Path, start_step: int, segment: int) -> None:
+    """Keep the records of the volume constraint's log before start_step (absolute: the log's steps restart at 0
+    with every segment, whose start a marker line gives) and mark the new segment's start."""
+    kept, offset = [], 0
+    if path.exists():
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            if "segment_start_step" in record:
+                offset = int(record["segment_start_step"])
+                if offset < start_step:
+                    kept.append(line)
+                continue
+            if offset + int(record["step"]) < start_step:
+                kept.append(line)
+    kept.append(json.dumps({"segment": segment, "segment_start_step": start_step}))
+    path.write_text("\n".join(kept) + "\n", encoding="utf-8", newline="\n")
 
 
 def wendland_c4(distance: np.ndarray, support: float) -> np.ndarray:
@@ -102,6 +178,13 @@ def main() -> int:
     parser.add_argument("--profile-time", type=float, default=0.0, help="interval of the centre-line profiles (0: none)")
     parser.add_argument("--density-budget", action="store_true",
                         help="DIAGNOSTIC: run with V7_DENSITY_BUDGET=1 and record the budget sums at every sample")
+    parser.add_argument("--checkpoint-time", type=float, default=0.0,
+                        help="interval of the restart checkpoints (0: none)")
+    parser.add_argument("--resume", action="store_true", help="start from the newest checkpoint of the run")
+    parser.add_argument("--stop-speed", type=float, default=0.0,
+                        help="stop when the fluid's largest speed exceeds this x the lid speed (0: off)")
+    parser.add_argument("--stop-outside", action="store_true",
+                        help="stop when a fluid particle is outside the box")
     arguments = parser.parse_args()
     if arguments.density_budget:
         os.environ["V7_DENSITY_BUDGET"] = "1"       # read once when simulator_v7 is imported (below)
@@ -113,11 +196,25 @@ def main() -> int:
     case = load_case_v7((REPOSITORY_ROOT / arguments.case).resolve())
     out = LOG_ROOT / "box_run" / arguments.name
     out.mkdir(parents=True, exist_ok=True)
+    expected_alive = int(case.initial.positions.shape[0])
+    segments_path = out / "segments.jsonl"
+    restart = latest_checkpoint(out / "checkpoints", expected_alive) if arguments.resume else None
+    if arguments.resume and restart is None:
+        print("[box_run] --resume: no usable checkpoint; starting from the initial state", flush=True)
+    start_step = restart["step"] if restart is not None else 0
+    segment = (sum(1 for line in segments_path.read_text(encoding="utf-8").splitlines() if line.strip())
+               if restart is not None and segments_path.exists() else 0)
+    if restart is None:
+        segments_path.unlink(missing_ok=True)
+        (out / "watch_stop.json").unlink(missing_ok=True)
     if case.numerics.volume_constraint.enabled:
         # every update of the volume constraint (time, theta, rate) goes to this run's directory; the file of an
         # earlier run of the same name goes the way of its series.csv
         constraint_log = out / "volume_constraint.jsonl"
-        constraint_log.unlink(missing_ok=True)
+        if restart is None:
+            constraint_log.unlink(missing_ok=True)
+        else:
+            truncate_constraint_log(constraint_log, start_step, segment)
         os.environ["SPH_VOLUME_CONSTRAINT_LOG"] = str(constraint_log)
     lower, upper, radius, dimension = initial_box(case)
     spacing = 2.0 * radius
@@ -129,21 +226,81 @@ def main() -> int:
     sample_steps = cadence * max(1, int(round(arguments.sample_time / timestep / cadence)))
     profile_steps = cadence * max(1, int(round(arguments.profile_time / timestep / cadence))) \
         if arguments.profile_time > 0 else 0
-    expected_alive = int(case.initial.positions.shape[0])
     floor = case.numerics.wall_crossing.distance_floor(radius) if case.numerics.wall_crossing else None
+    checkpoint_steps = cadence * max(1, int(round(arguments.checkpoint_time / timestep / cadence))) \
+        if arguments.checkpoint_time > 0 else 0
+    lid_speed = max((float(np.linalg.norm(material.initial_velocity)) for material in case.materials
+                     if material.kind != 0), default=0.0)
+    if arguments.stop_speed > 0.0 and lid_speed <= 0.0:
+        parser.error("--stop-speed needs a moving boundary material (the lid)")
+    if start_step >= total_steps:
+        print(f"[box_run] the newest checkpoint (step {start_step}) is at or past the end ({total_steps})", flush=True)
+        return 0
 
     device_map = [int(item) for item in str(arguments.device).split(",")]
     with LoggedRun(kind="box_run", case=str(arguments.case).replace("\\", "/")) as run:
         run.extra["name"] = arguments.name
         run.extra["slabs"] = len(device_map)
+        run.extra["segment"] = segment
+        run.extra["start_step"] = start_step
         series = []
         profiles = []
         latest = {}
-        series_file = open(out / "series.csv", "w", newline="", encoding="utf-8")
         writer = {"csv": None}
-        clock = {"started": None}
+        if restart is not None and (out / "series.csv").exists():
+            # the rows up to the checkpoint stay; the file is written again with them and continued
+            import csv as csv_module
+            with open(out / "series.csv", newline="", encoding="utf-8") as handle:
+                reader = csv_module.DictReader(handle)
+                fieldnames = reader.fieldnames
+                series = [{key: typed(value) for key, value in row.items()} for row in reader
+                          if int(row["step"]) <= start_step]
+            series_file = open(out / "series.csv", "w", newline="", encoding="utf-8")
+            writer["csv"] = csv.DictWriter(series_file, fieldnames=fieldnames, extrasaction="ignore")
+            writer["csv"].writeheader()
+            for row in series:
+                writer["csv"].writerow({key: ("" if value is None else value) for key, value in row.items()})
+            series_file.flush()
+        else:
+            series_file = open(out / "series.csv", "w", newline="", encoding="utf-8")
+        if restart is not None and (out / "profiles.json").exists():
+            profiles = [entry for entry in json.loads((out / "profiles.json").read_text(encoding="utf-8"))
+                        if entry["step"] <= start_step]
+        clock = {"started": None, "heartbeat": 0.0}
+        checkpoint_directory = out / "checkpoints"
+        if checkpoint_steps:
+            checkpoint_directory.mkdir(exist_ok=True)
+            if restart is None:
+                for old in checkpoint_directory.glob("c*.npz"):
+                    old.unlink()
+                (checkpoint_directory / "manifest.jsonl").unlink(missing_ok=True)
+
+        def save_checkpoint(step: int, simulators: list) -> None:
+            from experiment.validation.cavity_runner import read_restart_state
+            parts = [read_restart_state(simulator) for simulator in simulators]
+            merged = {name: np.concatenate([part[name] for part in parts]) for name in parts[0]}
+            if merged["position_voxel_id"].shape[0] != expected_alive:
+                raise StopCondition(f"particle loss at the checkpoint of step {step}: "
+                                    f"{merged['position_voxel_id'].shape[0]} rows of {expected_alive}")
+            name = f"c{step:010d}.npz"
+            temporary = checkpoint_directory / f"c{step:010d}.partial.npz"
+            np.savez(temporary, _stored_density_offset=np.float64(simulators[0].stored_density_offset()), **merged)
+            os.replace(temporary, checkpoint_directory / name)
+            with open(checkpoint_directory / "manifest.jsonl", "a", encoding="utf-8", newline="\n") as handle:
+                handle.write(json.dumps({"step": step, "time": step * timestep, "file": name}) + "\n")
+            for old in sorted(checkpoint_directory.glob("c*.npz"))[:-2]:
+                old.unlink()
 
         def on_sample(step: int, simulators: list, slab_cases: list) -> None:
+            now = time.time()
+            if now - clock["heartbeat"] >= 2.0 or step == total_steps:
+                (out / "heartbeat.json").write_text(json.dumps({
+                    "step": step, "time": step * timestep, "unix": now, "segment": segment}), encoding="utf-8")
+                clock["heartbeat"] = now
+            if checkpoint_steps and step > start_step and step % checkpoint_steps == 0 and step < total_steps:
+                save_checkpoint(step, simulators)
+            if step == start_step and restart is not None:
+                return                              # the checkpoint's own state: its row is already in series.csv
             take_sample = step % sample_steps == 0 or step == total_steps
             take_profile = profile_steps and (step % profile_steps == 0 or step == total_steps)
             if not (take_sample or take_profile):
@@ -178,7 +335,8 @@ def main() -> int:
                                                      for status in statuses)),
                        "overflow": int(sum(value for status in statuses for key, value in status.items()
                                            if key.startswith("overflow_"))),
-                       "steps_per_second": step / max(time.perf_counter() - clock["started"], 1e-9)}
+                       "steps_per_second": (step - start_step) / max(time.perf_counter() - clock["started"], 1e-9),
+                       "segment": segment}
                 # the second-order continuation (a quadratic extension only): how many fluid particles hold a
                 # solved gradient / fell back to the first-order rule in the step before this sample
                 extension_states = [simulator.readback_wall_crossing_extension_states() for simulator in simulators]
@@ -212,14 +370,20 @@ def main() -> int:
                     row["fluid_particles"] = int(len(state["positions"]))
                 series.append(row)
                 if writer["csv"] is None:
-                    writer["csv"] = csv.DictWriter(series_file, fieldnames=list(row.keys()))
+                    writer["csv"] = csv.DictWriter(series_file, fieldnames=list(row.keys()), extrasaction="ignore")
                     writer["csv"].writeheader()
                 writer["csv"].writerow(row)
                 series_file.flush()
             if lost:
-                raise RuntimeError(f"step {step} (t = {step * timestep:.3f}): alive {state['alive']} of "
-                                   f"{expected_alive}"
-                                   + ("" if np.isfinite(speed).all() else ", non-finite velocity"))
+                raise StopCondition(f"step {step} (t = {step * timestep:.3f}): alive {state['alive']} of "
+                                    f"{expected_alive}"
+                                    + ("" if np.isfinite(speed).all() else ", non-finite velocity"))
+            if take_sample and arguments.stop_speed > 0.0 and row["speed_maximum"] > arguments.stop_speed * lid_speed:
+                raise StopCondition(f"step {step} (t = {step * timestep:.3f}): fluid speed {row['speed_maximum']:.4f} "
+                                    f"> {arguments.stop_speed:g} x the lid speed {lid_speed:g}")
+            if take_sample and arguments.stop_outside and row["outside_box_count"] > 0:
+                raise StopCondition(f"step {step} (t = {step * timestep:.3f}): {row['outside_box_count']} fluid "
+                                    "particle(s) outside the box")
             if take_profile:
                 profiles.append({"step": step, "time": step * timestep,
                                  **centre_line_profiles(state, lower, upper, dimension, support)})
@@ -227,16 +391,35 @@ def main() -> int:
 
         def on_ready(simulators: list, slab_cases: list) -> None:
             clock["started"] = time.perf_counter()
-            on_sample(0, simulators, slab_cases)        # the state after the bootstrap, t = 0
+            on_sample(start_step, simulators, slab_cases)     # the state after the bootstrap (t = 0) or restart
+
+        def segment_line(status: str, end_step: int) -> None:
+            with open(segments_path, "a", encoding="utf-8", newline="\n") as handle:
+                handle.write(json.dumps({"segment": segment, "start_step": start_step, "end_step": end_step,
+                                         "status": status, "run_id": run.run_id, "unix": time.time()}) + "\n")
 
         try:
             # the callback is asked at every defrag boundary and decides itself (samples and profiles may have
             # different intervals)
             outcome = run_chain(case, device_map, total_steps, cadence, on_sample,
                                 expected_uuids=arguments.uuid or None,
-                                application_name="wall_crossing_box_run", on_ready=on_ready)
-        finally:
+                                application_name="wall_crossing_box_run", on_ready=on_ready, restart=restart)
+        except StopCondition as stop:
             series_file.close()
+            last_step = series[-1]["step"] if series else start_step
+            (out / "watch_stop.json").write_text(json.dumps({"reason": str(stop), "step": last_step,
+                                                             "time": last_step * timestep, "segment": segment,
+                                                             "unix": time.time()}, indent=1), encoding="utf-8")
+            if profiles:
+                (out / "profiles.json").write_text(json.dumps(profiles), encoding="utf-8", newline="\n")
+            segment_line(f"stopped: {stop}", last_step)
+            run.extra["status"] = f"stopped: {stop}"
+            print(f"[box_run] {arguments.name}: STOPPED ({stop})", flush=True)
+            return STOP_EXIT_CODE
+        finally:
+            if not series_file.closed:
+                series_file.close()
+        segment_line("complete", total_steps)
         uuid = ",".join(outcome["device_uuids"])
         run.record["gpu_uuids"] = outcome["device_uuids"]
         state = latest["state"]
@@ -266,7 +449,8 @@ def main() -> int:
             "delta_density_storage": os.environ.get("V7_DELTA_DENSITY", "0") == "1",
             "dimension": dimension, "box_lower": lower.tolist(), "box_upper": upper.tolist(), "spacing": spacing,
             "fluid_particles": int(len(state["positions"])), "particles": expected_alive, "steps": total_steps,
-            "time": total_steps * timestep, "timestep": timestep, "steps_per_second": total_steps / elapsed,
+            "time": total_steps * timestep, "timestep": timestep,
+            "steps_per_second": (total_steps - start_step) / elapsed, "segments": segment + 1,
             "device_uuid": uuid, "samples": len(series), "profiles": len(profiles),
             "density_budget": bool(arguments.density_budget),
             "final": {key: series[-1][key] for key in ("kinetic_energy", "speed_maximum", "density_minimum",
