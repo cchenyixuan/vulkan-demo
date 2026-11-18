@@ -37,6 +37,10 @@ numerics:
   defrag_cadence: 1000
   wall_boundary: crossing
   wall_crossing:
+    geometry: nearest_wall   # written out 2026-11-19: the default when this case was made (5ee25b1, before 3cba19f)
+    continuity_wall_component: full   # written out 2026-11-19: the default when this case was made (5ee25b1, before 3cba19f)
+    pressure_wall: extension   # written out 2026-11-19: the default when this case was made (5ee25b1, before 3cba19f)
+    delta_wall: extension   # written out 2026-11-19: the default when this case was made (5ee25b1, before 3cba19f)
     continuity: wall_velocity
     distance_floor_factor: 0.25
 

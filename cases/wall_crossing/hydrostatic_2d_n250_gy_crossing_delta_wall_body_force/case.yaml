@@ -52,6 +52,9 @@ numerics:
   use_prefix_sum_defrag: false
   wall_boundary: crossing
   wall_crossing:
+    geometry: nearest_wall   # written out 2026-11-19: the default when this case was made (d62e005, before 3cba19f)
+    continuity_wall_component: full   # written out 2026-11-19: the default when this case was made (d62e005, before 3cba19f)
+    pressure_wall: extension   # written out 2026-11-19: the default when this case was made (d62e005, before 3cba19f)
     continuity: extrapolate
     delta_wall: body_force   # DIAGNOSTIC, not part of the mode
 

@@ -6,6 +6,10 @@ outcome_classes.py - does a case compute the states a reference computes, bit fo
         --case cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_continuity_full/case.yaml \
         --reference-dumps logs/wall_crossing/budget_bitwise/before_default_change_s700 --reference-pattern "plain_*.npz" \
         --device 1 --uuid ae137c668a40f5acaab90a83f7cda175 --steps 700 --repeats 6
+    # against a case of ANOTHER checkout (an older commit: its own canonical_dump.py, solver and case file)
+    .venv/Scripts/python.exe -m experiment.wall_crossing.outcome_classes --name restored_against_db3d609 \
+        --case cases/.../case.yaml --reference-case cases/.../case.yaml --reference-repo C:/.../old-checkout \
+        --device 1 --uuid ... --steps 700 --repeats 6
     # against another case, dumped now (alternating with the case)
     .venv/Scripts/python.exe -m experiment.wall_crossing.outcome_classes --name default_against_explicit_normal \
         --case cases/.../case.yaml --reference-case cases/.../case.yaml --device 1 --uuid ... --steps 700 --repeats 4
@@ -17,6 +21,10 @@ from there its results fall into a few classes from run to run (budget_bitwise.p
 the classes: the case computes what the reference computes when every class that holds a run of the case also
 holds a reference run. (Whether every reference class is reached by the case depends on the number of runs; it
 is reported, not required.)
+
+--reference-repo (with --reference-case): the reference runs are made by that checkout's own
+experiment/seam_audit/canonical_dump.py, from that checkout (its solver, its case file at that path); the case
+runs by this one. The records name the reference checkout's commit.
 
 Output: logs/wall_crossing/outcome_classes/<name>_s<steps>/ (the dumps made here, their logs, classes.md,
 classes.json); one runs.jsonl record per dump and one for the classification.
@@ -46,6 +54,9 @@ def main() -> int:
     parser.add_argument("--reference-dumps", default=None, help="directory of existing canonical dumps")
     parser.add_argument("--reference-pattern", default="*.npz")
     parser.add_argument("--reference-case", default=None, help="a case to dump now as the reference")
+    parser.add_argument("--reference-repo", default=None,
+                        help="with --reference-case: make the reference runs from this checkout (its own harness, "
+                             "solver and case file)")
     parser.add_argument("--device", type=int, required=True)
     parser.add_argument("--uuid", required=True)
     parser.add_argument("--steps", type=int, required=True)
@@ -53,6 +64,14 @@ def main() -> int:
     arguments = parser.parse_args()
     if (arguments.reference_dumps is None) == (arguments.reference_case is None):
         parser.error("give exactly one of --reference-dumps and --reference-case")
+    if arguments.reference_repo is not None and arguments.reference_case is None:
+        parser.error("--reference-repo needs --reference-case")
+    reference_repository = (pathlib.Path(arguments.reference_repo).resolve() if arguments.reference_repo
+                            else REPOSITORY_ROOT)
+    reference_commit = None
+    if arguments.reference_repo is not None:
+        reference_commit = subprocess.run(["git", "-C", str(reference_repository), "rev-parse", "--short", "HEAD"],
+                                          capture_output=True, text=True, check=True).stdout.strip()
 
     out = LOG_ROOT / "outcome_classes" / f"{arguments.name}_s{arguments.steps}"
     out.mkdir(parents=True, exist_ok=True)
@@ -74,21 +93,26 @@ def main() -> int:
         reference_text = f"{len(reference_paths)} existing dumps {arguments.reference_dumps}/{arguments.reference_pattern}"
         kinds = (("case", arguments.case, False),)
     else:
-        reference_text = f"{arguments.repeats} runs of {arguments.reference_case}"
+        reference_text = f"{arguments.repeats} runs of {arguments.reference_case}" + (
+            f" in {reference_repository} at {reference_commit}" if reference_commit else "")
         kinds = (("reference", arguments.reference_case, True), ("case", arguments.case, False))
 
     for repeat in range(arguments.repeats):
         for kind, case, is_reference in kinds:
             label = f"{kind}_{repeat}"
             dump_path = out / f"{label}.npz"
-            command = [sys.executable, str(harness), "--solver", "v7", "--case", case, "--device-map",
+            repository = reference_repository if is_reference else REPOSITORY_ROOT
+            command = [sys.executable, str(repository / "experiment" / "seam_audit" / "canonical_dump.py"),
+                       "--solver", "v7", "--case", case, "--device-map",
                        str(arguments.device), "--steps", str(arguments.steps), "--canonical-lists",
                        "--transport-extension", "--out", str(dump_path)]
             with LoggedRun(kind="bitwise_dump", case=case, gpu_uuids=[arguments.uuid],
                            command=" ".join(command)) as run:
-                run.extra["label"] = f"{arguments.name}: {kind} K=1 {arguments.steps} steps canonical, repeat {repeat}"
+                run.extra["label"] = (f"{arguments.name}: {kind} K=1 {arguments.steps} steps canonical, repeat {repeat}"
+                                      + (f" (checkout {repository}, commit {reference_commit})"
+                                         if is_reference and reference_commit else ""))
                 with open(out / f"{label}.log", "w", encoding="utf-8", newline="\n") as log:
-                    exit_code = subprocess.call(command, cwd=REPOSITORY_ROOT, env=environment, stdout=log,
+                    exit_code = subprocess.call(command, cwd=repository, env=environment, stdout=log,
                                                 stderr=subprocess.STDOUT)
                 run.extra["exit_code"] = exit_code
                 run.extra["status"] = "ok" if exit_code == 0 else f"failed: exit code {exit_code}"

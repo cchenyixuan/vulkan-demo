@@ -54,6 +54,9 @@ numerics:
   use_prefix_sum_defrag: false
   wall_boundary: crossing   # crossing-fraction walls (first order, axis-aligned box; one GPU)
   wall_crossing:
+    geometry: nearest_wall   # written out 2026-11-19: the default when this case was made (81ae0d9, before 3cba19f)
+    continuity_wall_component: full   # written out 2026-11-19: the default when this case was made (81ae0d9, before 3cba19f)
+    pressure_wall: extension   # written out 2026-11-19: the default when this case was made (81ae0d9, before 3cba19f)
     continuity: wall_velocity   # extrapolate | wall_velocity
     delta_wall: rest_density   # DIAGNOSTIC: extension (default, the mode) | rest_density
 
