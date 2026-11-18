@@ -95,11 +95,16 @@ def main() -> int:
     parser.add_argument("--root", default=None,
                         help="directory of the run directories (default: <logs/wall_crossing>/cavity, i.e. "
                              "under WALL_CROSSING_LOG_ROOT when that is set)")
+    parser.add_argument("--initial-density-offset", type=float, default=0.0,
+                        help="control experiment: start every fluid particle at rho0 + this (kg/m3), pressure by "
+                             "the EOS (cavity_runner_entry.py, item 4); 0 = the normal start")
     arguments = parser.parse_args()
 
     from experiment.validation import cavity_campaign
     environment = cavity_campaign.environment("release", "v7")
     environment["OPENBLAS_NUM_THREADS"] = "1"
+    if arguments.initial_density_offset != 0.0:
+        environment["WALL_CROSSING_INITIAL_DENSITY_OFFSET"] = repr(arguments.initial_density_offset)
 
     root = (REPOSITORY_ROOT / arguments.root).resolve() if arguments.root else LOG_ROOT / "cavity"
     run_directory = root / arguments.name
@@ -117,6 +122,8 @@ def main() -> int:
 
     with LoggedRun(kind="cavity", case=arguments.case, gpu_uuids=[arguments.uuid]) as run:
         run.extra["name"] = arguments.name
+        if arguments.initial_density_offset != 0.0:
+            run.extra["initial_density_offset"] = arguments.initial_density_offset
         run.extra["run_directory"] = (f"cavity/{arguments.name}" if arguments.root is None
                                       else str(run_directory).replace("\\", "/"))
         attempts = []

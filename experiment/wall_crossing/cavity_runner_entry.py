@@ -1,7 +1,8 @@
 """
-cavity_runner_entry.py - experiment/validation/cavity_runner.py with three additions that need no change of the
-runner: it starts on a machine without git, a wall_boundary crossing run records the mode's diagnostics, and
-every run records the history of the fluid's mean density and pressure.
+cavity_runner_entry.py - experiment/validation/cavity_runner.py with four additions that need no change of the
+runner: it starts on a machine without git, a wall_boundary crossing run records the mode's diagnostics,
+every run records the history of the fluid's mean density and pressure, and a run can start from a uniformly
+shifted fluid density.
 
     python -m experiment.wall_crossing.cavity_runner_entry <cavity_runner arguments>
 
@@ -27,6 +28,13 @@ every run records the history of the fluid's mean density and pressure.
         plus the storage offset), "pressure_mean", "pressure_minimum", "pressure_maximum",
         "pressure_negative_fraction", "speed_maximum"}
    A step that is both a sample and a snapshot has two lines. The state the runner gets is the one it asked for.
+
+4. Shifted initial density (a control experiment, off unless asked for). With the environment variable
+   WALL_CROSSING_INITIAL_DENSITY_OFFSET=<kg/m3> (cavity_run.py --initial-density-offset) the state a run starts
+   from (SphSimulatorV7._build_initial_data, the bootstrap only: a resumed run starts from its checkpoint) has
+   every FLUID particle's density at rho0 + offset and its pressure at the Tait value of that density; masses,
+   walls and rho0 itself are untouched. A negative offset puts the whole fluid on the minus branch of the
+   pressure term (p < 0). The offset is written to <run-dir>/initial_density_offset.json.
 """
 
 from __future__ import annotations
@@ -164,8 +172,57 @@ def install_field_history(run_directory: pathlib.Path) -> None:
     cavity_runner.CachedStateReader.read = read_recording
 
 
+INITIAL_DENSITY_OFFSET_VARIABLE = "WALL_CROSSING_INITIAL_DENSITY_OFFSET"
+
+
+def install_initial_density_offset(run_directory: pathlib.Path, offset: float) -> None:
+    """Wrap SphSimulatorV7._build_initial_data (see the module docstring, item 4)."""
+    import numpy as np
+
+    from experiment.v7.utils import simulator_v7
+    from experiment.v7.utils.case_v7 import KIND_FLUID
+
+    original = simulator_v7.SphSimulatorV7._build_initial_data
+
+    def build_initial_data_with_offset(self):
+        data = original(self)
+        case = self.case
+        capacity = case.capacities.total_pool_capacity()
+        first = self.own_first_pid()
+        count = case.initial.positions.shape[0]
+        density_pressure = np.frombuffer(data["density_pressure"], dtype=np.float32).reshape(capacity, 2).copy()
+        group = np.asarray(case.initial.material_group[:count], dtype=np.int64)
+        power = float(case.physics.power_parameter)
+        stored_offset = float(self.stored_density_offset())
+        shifted = 0
+        for group_index, material in enumerate(case.materials):
+            if material.kind != KIND_FLUID:
+                continue
+            rows = first + np.flatnonzero(group == group_index)
+            density = float(material.rest_density) + offset
+            density_pressure[rows, 0] = np.float32(density - stored_offset)
+            # the pressure of the density the buffer holds (float32), by the Tait EOS
+            held = float(np.float32(density - stored_offset)) + stored_offset
+            density_pressure[rows, 1] = np.float32(
+                float(material.eos_constant) * ((held / float(material.rest_density)) ** power - 1.0))
+            shifted += int(rows.size)
+        data["density_pressure"] = density_pressure.tobytes()
+        record = {"unix": time.time(), "initial_density_offset": offset, "fluid_particles_shifted": shifted}
+        (run_directory / "initial_density_offset.json").write_text(json.dumps(record), encoding="utf-8")
+        print(f"[cavity_runner_entry] initial fluid density shifted by {offset:+g} kg/m3 "
+              f"({shifted:,} particles; pressure by the Tait EOS)", flush=True)
+        return data
+
+    simulator_v7.SphSimulatorV7._build_initial_data = build_initial_data_with_offset
+
+
 if __name__ == "__main__":
+    import os
     if _argument("--solver") == "v7" and _argument("--run-dir"):
+        if float(os.environ.get(INITIAL_DENSITY_OFFSET_VARIABLE, "0") or 0.0) != 0.0:
+            pathlib.Path(_argument("--run-dir")).resolve().mkdir(parents=True, exist_ok=True)
+            install_initial_density_offset(pathlib.Path(_argument("--run-dir")).resolve(),
+                                           float(os.environ[INITIAL_DENSITY_OFFSET_VARIABLE]))
         install_wall_crossing_diagnostics(pathlib.Path(_argument("--run-dir")).resolve())
         install_field_history(pathlib.Path(_argument("--run-dir")).resolve())
     sys.exit(cavity_runner.main())
