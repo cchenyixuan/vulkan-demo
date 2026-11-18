@@ -698,7 +698,7 @@
  },
  "cavity_configuration": null,
  "long_runs": {
-  "n250_reflection": {
+  "n250_reflection_stopped_t18": {
    "t_last": 18.06,
    "at_times": {
     "0.2": {
@@ -890,7 +890,7 @@
   }
  },
  "fluctuations": {
-  "n250_reflection": {
+  "n250_reflection_stopped_t18": {
    "density_mean": {
     "mean": 0.1175567301997944,
     "fluctuation": 0.0011821078884060963

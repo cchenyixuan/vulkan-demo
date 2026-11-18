@@ -7,6 +7,12 @@ claude/wall_crossing_report.md.
     .venv/Scripts/python.exe -m experiment.wall_crossing.pairwise_reflection make-cases [--all]
     .venv/Scripts/python.exe -m experiment.wall_crossing.pairwise_reflection numpy-check
     .venv/Scripts/python.exe -m experiment.wall_crossing.pairwise_reflection tables
+    .venv/Scripts/python.exe -m experiment.wall_crossing.pairwise_reflection long-runs
+
+tables = section 12 (the screening; the long run of the reflection configuration as it was when it was stopped at
+t = 18.06: its directory was copied to cavity/n250_reflection_stopped_t18 before the run was resumed).
+long-runs = section 13: the two runs to t = 100 (n250_reflection resumed from its checkpoint at t = 10.08, and
+n250_pairwise_full) beside the existing ones, their histories, and the state of the runs at t = 18.
 
 Configurations (the names used in case directories, run names and tables):
     reflection                    geometry pairwise, pressure_wall reflection, delta_wall reflection ("反射版")
@@ -371,7 +377,7 @@ def numpy_check() -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("action", choices=("make-cases", "numpy-check", "tables"))
+    parser.add_argument("action", choices=("make-cases", "numpy-check", "tables", "long-runs"))
     parser.add_argument("--all", action="store_true",
                         help="make-cases: also the three variants that locate a failure of the screening")
     arguments = parser.parse_args()
@@ -383,6 +389,8 @@ def main() -> int:
         return 0
     if arguments.action == "numpy-check":
         return numpy_check()
+    if arguments.action == "long-runs":
+        return long_run_tables()
     return tables()
 
 
@@ -402,6 +410,9 @@ HYDROSTATIC_DIRECTIONS = {"gy": "重力沿 −y", "g30": "重力偏离 −y 30°
 LONG_RUN_INSTANTS = (0.2, 1.0, 5.0, 10.0, 18.0, 20.0, 40.0, 60.0, 80.0, 90.0, 100.0)
 WALLS = (("左壁", 0, -1), ("右壁", 0, +1), ("底壁", 1, -1), ("盖（上壁）", 1, +1))
 HALF_BOX = 0.502
+# the reflection run as it was when it was stopped at t = 18.06 (a copy made before the run was resumed)
+STOPPED_RUN = "n250_reflection_stopped_t18"
+STOPPED_RECORD = "wc-20261118-165529-7df1"          # the launcher's record of that first attempt
 
 
 def tables() -> int:
@@ -666,9 +677,9 @@ def tables() -> int:
     # ---------------------------------------------------------------- 4.6 cavity against Marchi 2021
     tables_path = REPORT_ROOT / "cavity" / "tables.json"
     analysed = json.loads(tables_path.read_text(encoding="utf-8"))["runs"] if tables_path.exists() else {}
-    cavity_configuration = next((configuration for configuration in CONFIGURATIONS
-                                 if f"n250_{configuration}" in analysed
-                                 and analysed[f"n250_{configuration}"].get("complete")), None)
+    # no configuration passed the screening, so section 12 has no run to t = 100 (the two runs made afterwards
+    # at the user's request are section 13's: long_run_tables below)
+    cavity_configuration = None
     summary["cavity_configuration"] = cavity_configuration
     if cavity_configuration:
         cavity = normal_default.cavity(
@@ -686,10 +697,7 @@ def tables() -> int:
             summary["cavity"] = cavity
 
     # ---------------------------------------------------------------- 4.6 histories of the long runs
-    long_runs = [(f"n250_{configuration}", f"250² {CONFIGURATION_TEXT[configuration]}"
-                  + ("" if analysed.get(f"n250_{configuration}", {}).get("complete") else "（停在中途）"),
-                  new_colour, "solid" if configuration == cavity_configuration else (0, (1, 1.5)))
-                 for configuration in CONFIGURATIONS]
+    long_runs = [(STOPPED_RUN, f"250² {CONFIGURATION_TEXT['reflection']}（停在中途）", new_colour, (0, (1, 1.5)))]
     long_runs.append(("n250_crossing_normal", "250² 一阶（现缺省）", first_colour, "solid"))
     histories = {name: normal_default.load_field_history(name) for name, _, _, _ in long_runs}
     histories = {name: history for name, history in histories.items() if history and len(history["time"]) > 5}
@@ -740,7 +748,8 @@ def tables() -> int:
             else f"{crossing['wall_distance_minimum_over_spacing']:.3f}",
             "—" if not crossing or crossing.get("below_floor_maximum") is None
             else f"{crossing['below_floor_maximum']} / {crossing['outside_box_maximum']}",
-            record_text(records_by_name.get(name, {}))])
+            record_text(records_by_id.get(STOPPED_RECORD, {}) if name == STOPPED_RUN
+                        else records_by_name.get(name, {}))])
     if rows:
         write_text("pairwise_long_runs.md", markdown_table(
             ["运行", "t", "平均密度 − ρ0（kg/m³）", "平均压力", "负压粒子比例", "流体最大速度", "粒子数（含壁）"], rows))
@@ -849,8 +858,8 @@ def tables() -> int:
     # every 1000 steps (0.03 time units)
     fluctuation_rows = []
     summary["fluctuations"] = {}
-    stopped, reference_run = histories.get("n250_reflection"), histories.get("n250_crossing_normal")
-    if stopped and reference_run and not analysed.get("n250_reflection", {}).get("complete"):
+    stopped, reference_run = histories.get(STOPPED_RUN), histories.get("n250_crossing_normal")
+    if stopped and reference_run:
         window_end = float(stopped["time"][-1])
         quantities = (("density_mean", "平均密度（kg/m³）", 1.0), ("pressure_mean", "平均压力（ρ0U²）",
                                                                    normal_default.DYNAMIC_PRESSURE),
@@ -859,7 +868,7 @@ def tables() -> int:
                       ("density_maximum", "最大密度（kg/m³）", 1.0), ("speed_maximum", "最大速度（盖速）", 1.0))
         for key, key_text, scale in quantities:
             cells = [key_text]
-            for name, history in (("n250_reflection", stopped), ("n250_crossing_normal", reference_run)):
+            for name, history in ((STOPPED_RUN, stopped), ("n250_crossing_normal", reference_run)):
                 inside = (history["time"] >= 5.0) & (history["time"] <= window_end)
                 values = history[key][inside] / scale
                 high_pass = values[1:-1] - 0.5 * (values[:-2] + values[2:])
@@ -869,10 +878,10 @@ def tables() -> int:
                 summary["fluctuations"].setdefault(name, {})[key] = entry
                 cells += [f"{entry['mean']:+.4f}", f"{entry['fluctuation']:.4f}"]
             first_order = summary["fluctuations"]["n250_crossing_normal"][key]["fluctuation"]
-            cells.append(f"{summary['fluctuations']['n250_reflection'][key]['fluctuation'] / first_order:.1f}")
+            cells.append(f"{summary['fluctuations'][STOPPED_RUN][key]['fluctuation'] / first_order:.1f}")
             fluctuation_rows.append(cells)
         write_text("pairwise_fluctuations.md",
-                   f"250² 方腔的两次统计运行，t 从 5 到 {window_end:.2f}（反射版停下的时刻），每 1000 步（0.03 个时间单位）一个样本。"
+                   f"250² 方腔的两次统计运行，t 从 5 到 {window_end:.2f}（反射版停下的时刻），每 7000 步（0.21 个时间单位）一个样本。"
                    "“涨落” = 一个样本减去前后两个样本平均值之后的 rms；密度的平均值已减去 ρ0。\n\n"
                    + markdown_table(["量", "反射版：平均", "反射版：涨落", "一阶（现缺省）：平均", "一阶：涨落", "涨落之比"],
                                     fluctuation_rows))
@@ -913,6 +922,387 @@ def tables() -> int:
                       f"({'PASS' if entry['passed'] else 'FAIL' if entry['passed'] is not None else 'reference'})"
                       for name, entry in summary["screening"].items())
           + f"; cavity configuration {cavity_configuration}")
+    return 0
+
+
+# ============================================================================================ runs to t = 100
+T100_RUNS = (("n250_reflection", "反射版（从 t = 10.08 的检查点续跑）"),
+             ("n250_pairwise_full", "逐对几何 + 完整向量"))
+EARLY_INSTANT = 18.06               # the instant the first reflection run was stopped at
+EARLY_SPAN = 2.0                    # the samples of (EARLY_INSTANT - EARLY_SPAN, EARLY_INSTANT] are averaged
+HISTORY_INSTANTS = (1.05, 5.04, 10.08, 18.06, 30.03, 39.9, 60.06, 80.01, 90.09, 99.96)
+NOISE_BIN = 10.0
+
+
+def run_samples(name: str) -> list:
+    """The rows of samples.jsonl of a cavity run (one per step; a resumed run's superseded rows are gone)."""
+    from experiment.wall_crossing.run_log import LOG_ROOT
+    path = LOG_ROOT / "cavity" / name / "samples.jsonl"
+    if not path.exists():
+        return []
+    by_step = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            row = json.loads(line)
+            by_step[int(row["step"])] = row
+    return [by_step[step] for step in sorted(by_step)]
+
+
+def centre_line_state(name: str, first: float, last: float) -> dict | None:
+    """What the stored samples of a run say about the flow over first < t <= last: the fluid's kinetic energy
+    (0.5 sum m |v|^2, as the runner records it) and the centre-line profiles (MLS, 1001 points), averaged over
+    the samples of the window. From the u profile on the vertical centre line the stream function on that line,
+    psi(y) = integral of u from the bottom, and its minimum, divided by 1 + 2 dx (the "wall frame" of the
+    tables). That is an ESTIMATE of psi_min: the vortex centre lies beside the line. None without samples."""
+    from experiment.wall_crossing.run_log import LOG_ROOT
+    directory = LOG_ROOT / "cavity" / name
+    rows = [row for row in run_samples(name) if first < row["time"] <= last + 1e-9]
+    if not rows:
+        return None
+    meta = json.loads((directory / "meta.json").read_text(encoding="utf-8"))
+    points = np.load(directory / "points.npz")
+    height, width = points["u_dense"][:, 1], points["v_dense"][:, 0]
+    u_profiles, v_profiles = [], []
+    for row in rows:
+        with np.load(directory / "samples" / f"s{row['step']:010d}.npz") as archive:
+            u_profiles.append(archive["u_dense_mls"])
+            v_profiles.append(archive["v_dense_mls"])
+    u_profile, v_profile = np.mean(u_profiles, axis=0), np.mean(v_profiles, axis=0)
+    stream = np.concatenate([[0.0], np.cumsum(0.5 * (u_profile[1:] + u_profile[:-1]) * np.diff(height))])
+    length = 1.0 + 2.0 * float(meta["spacing"])
+    energies = np.array([row["kinetic_energy"] for row in rows])
+    return {"samples": len(rows), "times": [float(rows[0]["time"]), float(rows[-1]["time"])],
+            "kinetic_energy_mean": float(energies.mean()), "kinetic_energy_last": float(energies[-1]),
+            "psi_centre_line_wall": float(stream.min() / length),
+            "y_at_psi": float(height[int(np.argmin(stream))] + 0.5),
+            "u_min": float(u_profile.min()), "v_max": float(v_profile.max()), "v_min": float(v_profile.min())}
+
+
+def long_run_tables() -> int:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    from experiment.validation import cavity_reference
+    from experiment.wall_crossing import normal_default
+    from experiment.wall_crossing.report_figures import INK_PRIMARY, INK_SECONDARY, setup_style
+    from experiment.wall_crossing.report_tables import markdown_table, run_records
+    from experiment.wall_crossing.run_log import LOG_ROOT
+
+    write_text = normal_default.write_table
+    record_text = normal_default.record_text
+    records = run_records()
+    records_by_name = {}
+    for record in records:
+        if record.get("name"):
+            records_by_name[record["name"]] = record          # the newest record of a name (a resumed run)
+    first_colour, old_colour = normal_default.NEW_COLOUR, normal_default.OLD_COLOUR
+    colours = {"n250_reflection": (INK_PRIMARY, "solid"), "n250_pairwise_full": (INK_PRIMARY, (0, (4, 2))),
+               "n250_crossing_normal": (first_colour, "solid"), "n250_crossing": (old_colour, "solid")}
+    summary = {}
+    tables_path = REPORT_ROOT / "cavity" / "tables.json"
+    analysed = json.loads(tables_path.read_text(encoding="utf-8"))["runs"] if tables_path.exists() else {}
+    reference_psi = float(cavity_reference.marchi2021()["extrema"]["psi_min"][0])
+
+    # ---------------------------------------------------------------- the cavity metrics beside the existing rows
+    if all(analysed.get(name, {}).get("complete") for name, _ in T100_RUNS):
+        cavity = normal_default.cavity(
+            modes=(("reflection", "crossing，反射版", INK_PRIMARY, "P"),
+                   ("pairwise_full", "crossing，逐对几何 + 完整向量", INK_SECONDARY, "X"),
+                   ("crossing_normal", "crossing，一阶（现缺省）", first_colour, "o"),
+                   ("crossing", "crossing，旧缺省（一阶，完整向量）", old_colour, "s"),
+                   ("simple", "simple", normal_default.SIMPLE_COLOUR, "^"),
+                   ("adami", "adami", normal_default.ADAMI_COLOUR, "D")),
+            extra_runs=(("n250_quadratic_viscous", "crossing，二阶粘性", "crossing_normal"),
+                        ("n500_quadratic_viscous", "crossing，二阶粘性", "crossing_normal"),
+                        ("n250_crossing_r2", "crossing，旧缺省，第二次运行", "crossing")),
+            prefix="pairwise_t100", required_mode="reflection", labelled_modes=("reflection", "pairwise_full"),
+            labels_beside=True,
+            figure_title="Re = 1000 方腔：四个极值相对 Marchi 2021 的偏差（ψ_min 用 wall 帧；数字 = 反射版和逐对几何 + 完整向量）")
+        if cavity:
+            summary["cavity"] = cavity
+
+    # ---------------------------------------------------------------- the interior continuity term (reported only)
+    # from the budget short runs (250^2, t <= 5): the two configurations of the runs to t = 100 beside the
+    # first order and the old default
+    from experiment.wall_crossing import density_budget
+    rows = []
+    summary["continuity"] = {}
+    for name, text in (("budget_n250_crossing_reflection", "反射版"),
+                       ("budget_n250_crossing_pairwise_full", "逐对几何 + 完整向量"),
+                       ("budget_n250_crossing_pairwise", "只有逐对几何（第 12 节）"),
+                       ("budget_n250_crossing_normal_r1", "一阶（现缺省），第 1 次"),
+                       ("budget_n250_crossing_normal_r2", "一阶（现缺省），第 2 次"),
+                       ("budget_n250_crossing", "旧缺省（完整向量）")):
+        if not (LOG_ROOT / "box_run" / name / "summary.json").exists():
+            continue
+        result = density_budget.analyse(name)
+        groups = result["groups"]
+        entry = {"interior_continuity": groups["interior"]["rate"][density_budget.ROW_DRIFT],
+                 "interior_continuity_error": groups["interior"]["standard_error"][density_budget.ROW_DRIFT],
+                 "terms_all": [float(value) for value in groups["all"]["rate"]],
+                 "density_mean_fit_slope": result["closure"]["density_mean_fit_slope"]}
+        summary["continuity"][name] = entry
+        everything = groups["all"]["rate"]
+        rows.append([text, f"{entry['interior_continuity']:+.5f} ± {entry['interior_continuity_error']:.5f}",
+                     f"{everything[0]:+.5f} / {everything[1]:+.5f}",
+                     f"{everything[density_budget.ROW_DIFFUSION]:+.5f}",
+                     f"{everything[density_budget.ROW_SUM]:+.5f}", f"{everything[density_budget.ROW_ROUNDING]:+.5f}",
+                     f"{everything[density_budget.ROW_APPLIED]:+.5f}",
+                     record_text(records_by_name.get(name, {}))])
+    if rows:
+        write_text("pairwise_t100_continuity.md",
+                   "收支短跑（250²，t = 0 到 5.01，收支构建），t ∈ [1, 5] 的时间平均，kg/m³ 每时间单位。\n\n"
+                   + markdown_table(["配置", "内部的连续性项", "连续性项全场：流体邻居 / 壁邻居", "δ 项全场合计", "四项之和",
+                                     "float32 存储舍入", "实际写入", "记录（提交）"], rows))
+
+    # ---------------------------------------------------------------- how the runs went (the stop conditions)
+    rows = []
+    summary["runs"] = {}
+    for name, text in T100_RUNS + (("n250_crossing_normal", "一阶（现缺省）"),):
+        directory = LOG_ROOT / "cavity" / name
+        history = normal_default.load_field_history(name)
+        if not history:
+            continue
+        result_path = directory / "result.json"
+        result = json.loads(result_path.read_text(encoding="utf-8")) if result_path.exists() else {}
+        crossing = (analysed.get(name, {}).get("diagnostics") or {}).get("crossing") or {}
+        stop_path = directory / "watch_stop.json"
+        entry = {
+            "t_last": float(history["time"][-1]), "complete": bool(result),
+            "alive_constant": bool((history["alive"] == history["alive"][0]).all()),
+            "speed_maximum": float(history["speed_maximum"].max()),
+            "watch_stop": json.loads(stop_path.read_text(encoding="utf-8")) if stop_path.exists() else None,
+            "crossing_status": crossing,
+            "invariant_segments": len(result.get("segments_with_invariant_violation", [])) if result else None}
+        summary["runs"][name] = entry
+        rows.append([
+            text, f"t = {entry['t_last']:.2f}" + ("" if entry["complete"] else "（没有跑完）"),
+            f"{int(history['alive'][0]):,}，" + ("每个样本都相同" if entry["alive_constant"] else "**有变化**"),
+            "—" if not crossing or crossing.get("outside_box_maximum") is None else str(crossing["outside_box_maximum"]),
+            f"{entry['speed_maximum']:.3f}",
+            "没有触发" if entry["watch_stop"] is None else f"**停止：{entry['watch_stop']['reason']}**",
+            "—" if not crossing else str(crossing["gradient_fallbacks"]),
+            "—" if not crossing or crossing.get("wall_distance_minimum_over_spacing") is None
+            else f"{crossing['wall_distance_minimum_over_spacing']:.3f}；{crossing['below_floor_maximum']}",
+            record_text(records_by_name.get(name, {}))])
+    if rows:
+        write_text("pairwise_t100_runs.md", markdown_table(
+            ["运行", "到达", "粒子数（含壁）", "越出盒的流体粒子（各次位置读回的最大值）", "流体最大速度（整个运行；线 1.05）",
+             "停止条件", "A_f 回退（累计）", "φ_min / dx；低于距离下限的粒子（最大）", "记录（提交）"], rows))
+
+    # ---------------------------------------------------------------- histories: density, pressure, noise
+    history_runs = T100_RUNS + (("n250_crossing_normal", "一阶（现缺省）"),)
+    histories = {name: normal_default.load_field_history(name) for name, _ in history_runs}
+    histories = {name: history for name, history in histories.items() if history and len(history["time"]) > 5}
+    rows, noise_rows = [], []
+    summary["histories"], summary["noise"] = {}, {}
+    edges = np.arange(0.0, 100.0 + 1e-9, NOISE_BIN)
+    for name, text in history_runs:
+        history = histories.get(name)
+        if not history:
+            continue
+        time = history["time"]
+        summary["histories"][name] = {}
+        for instant in HISTORY_INSTANTS:
+            if instant > time[-1] + 0.3:
+                continue
+            index = int(np.argmin(np.abs(time - instant)))
+            summary["histories"][name][f"{instant:g}"] = {
+                "time": float(time[index]),
+                "density_mean_minus_rest": float(history["density_mean"][index] - normal_default.REST_DENSITY),
+                "pressure_mean": float(history["pressure_mean"][index]),
+                "pressure_negative_fraction": float(history["pressure_negative_fraction"][index])}
+            rows.append([text, f"{time[index]:.2f}",
+                         f"{history['density_mean'][index] - normal_default.REST_DENSITY:+.5f}",
+                         f"{history['pressure_mean'][index] / normal_default.DYNAMIC_PRESSURE:+.3f} ρ0U²",
+                         f"{100.0 * history['pressure_negative_fraction'][index]:.3f} %",
+                         f"{history['speed_maximum'][index]:.3f}"])
+        # the noise of the mean pressure: per bin of NOISE_BIN time units, the rms of (a sample minus the mean of
+        # its two neighbours), samples every 0.21 time units
+        pressure = history["pressure_mean"] / normal_default.DYNAMIC_PRESSURE
+        high_pass = pressure[1:-1] - 0.5 * (pressure[:-2] + pressure[2:])
+        centre_time = time[1:-1]
+        cells, values = [text], []
+        for low, high in zip(edges[:-1], edges[1:]):
+            inside = (centre_time >= low) & (centre_time < high)
+            value = float(np.sqrt((high_pass[inside] ** 2).mean())) if inside.sum() >= 5 else None
+            values.append(value)
+            cells.append("—" if value is None else f"{value:.4f}")
+        late = (centre_time >= 80.0)
+        cells.append(f"{100.0 * history['pressure_negative_fraction'][time >= 5.0].max():.3f} %")
+        summary["noise"][name] = {"bins": values, "edges": edges.tolist(),
+                                  "late": float(np.sqrt((high_pass[late] ** 2).mean())) if late.sum() >= 5 else None,
+                                  "density_mean_rate_last_20": float(np.polyfit(
+                                      time[time >= time[-1] - 20.0],
+                                      history["density_mean"][time >= time[-1] - 20.0], 1)[0])}
+        noise_rows.append(cells)
+    if rows:
+        write_text("pairwise_t100_history.md", markdown_table(
+            ["运行", "t", "平均密度 − ρ0（kg/m³）", "平均压力", "负压粒子比例", "流体最大速度"], rows))
+        write_text("pairwise_t100_noise.md",
+                   "平均压力的逐样本涨落（ρ0U²）：一个样本减去前后两个样本平均值之后的 rms，样本间隔 0.21 个时间单位，"
+                   f"按每 {NOISE_BIN:g} 个时间单位一段给出。最后一列是 t ≥ 5 里负压粒子比例的最大值。\n\n"
+                   + markdown_table(["运行"] + [f"t {low:g}–{high:g}" for low, high in zip(edges[:-1], edges[1:])]
+                                    + ["负压粒子比例的最大值（t ≥ 5）"], noise_rows))
+        setup_style()
+        figure, axes = plt.subplots(1, 4, figsize=(16.0, 4.2))
+        panels = (("density_mean", "流体平均密度 − ρ0（kg/m³）"), ("pressure_mean", "流体平均压力 / (ρ0 U²)"),
+                  ("noise", f"平均压力的逐样本涨落 / (ρ0 U²)，每 {NOISE_BIN:g} 个时间单位一段"),
+                  ("pressure_negative_fraction", "负压粒子比例（%），t ≥ 1"))
+        handles, labels = [], []
+        for axis, (key, title) in zip(axes, panels):
+            for name, text in history_runs:
+                history = histories.get(name)
+                if not history:
+                    continue
+                colour, style = colours[name]
+                if key == "noise":
+                    values = summary["noise"][name]["bins"]
+                    centres = 0.5 * (edges[:-1] + edges[1:])
+                    known = [index for index, value in enumerate(values) if value is not None]
+                    axis.plot(centres[known], [values[index] for index in known], color=colour, linestyle=style,
+                              marker="o", markersize=4, zorder=3, linewidth=1.6)
+                    continue
+                shown = history["time"] >= (1.0 if key == "pressure_negative_fraction" else 0.0)
+                values = history[key][shown]
+                values = {"density_mean": values - normal_default.REST_DENSITY,
+                          "pressure_mean": values / normal_default.DYNAMIC_PRESSURE,
+                          "pressure_negative_fraction": 100.0 * values}[key]
+                line, = axis.plot(history["time"][shown], values, color=colour, linestyle=style, zorder=3,
+                                  linewidth=1.6)
+                if axis is axes[0]:
+                    handles.append(line)
+                    labels.append(text)
+            if key in ("density_mean", "pressure_mean"):
+                axis.axhline(0.0, color=INK_SECONDARY, linewidth=0.7, zorder=2)
+            if key == "noise":
+                axis.set_ylim(bottom=0.0)
+            axis.set_xlim(0, 100)
+            axis.set_title(title)
+            axis.set_xlabel("时间（模拟单位）")
+        height = figure.get_figheight()
+        figure.suptitle("Re = 1000 方腔 250²：两次到 t = 100 的运行与一阶，密度、压力和压力噪声的历史", x=0.01,
+                        y=1.0 - 0.05 / height, ha="left", va="top", fontsize=12, fontweight="bold", color=INK_PRIMARY)
+        figure.legend(handles, labels, loc="upper left", bbox_to_anchor=(0.01, 1.0 - 0.40 / height),
+                      ncol=len(handles), handlelength=3.0, columnspacing=1.6, labelcolor=INK_PRIMARY,
+                      borderaxespad=0.0)
+        figure.tight_layout(rect=(0, 0, 1.0, 1.0 - 0.66 / height), w_pad=2.0)
+        figure.savefig(REPORT_ROOT / "figures" / "pairwise_t100_history.png")
+        plt.close(figure)
+
+    # ---------------------------------------------------------------- kinetic energy over the run, every mode
+    energy_runs = T100_RUNS + (("n250_crossing_normal", "一阶（现缺省）"), ("n250_crossing", "旧缺省（完整向量）"),
+                               ("n250_quadratic_viscous", "二阶粘性"), ("n250_simple", "simple"),
+                               ("n250_adami", "adami"))
+    energy_instants = (5.04, 10.08, 18.06, 30.03, 39.9, 60.06, 80.01, 99.96)
+    rows = []
+    summary["kinetic_energy"] = {}
+    for name, text in energy_runs:
+        samples = run_samples(name)
+        if not samples:
+            continue
+        times = np.array([row["time"] for row in samples])
+        energies = np.array([row["kinetic_energy"] for row in samples])
+        cells, entry = [text], {}
+        for instant in energy_instants:
+            if instant > times[-1] + 0.3:
+                cells.append("—")
+                continue
+            index = int(np.argmin(np.abs(times - instant)))
+            entry[f"{instant:g}"] = float(energies[index])
+            cells.append(f"{energies[index]:.3f}")
+        summary["kinetic_energy"][name] = entry
+        rows.append(cells)
+    if rows:
+        write_text("pairwise_t100_kinetic_energy.md",
+                   "流体的动能 ½ Σ m |v|²（运行器在每个样本记录的值），250²，各时刻最近的那个样本。\n\n"
+                   + markdown_table(["运行"] + [f"t = {instant:g}" for instant in energy_instants], rows))
+
+    # ---------------------------------------------------------------- the runs at t = 18
+    early_runs = (("n250_crossing_normal", "一阶（现缺省）"), ("n250_crossing", "旧缺省（完整向量）"),
+                  (STOPPED_RUN, "反射版，第一次（停在 t = 18.06 的那次）"),
+                  ("n250_reflection", "反射版，续跑（从 t = 10.08 的检查点）"),
+                  ("n250_pairwise_full", "逐对几何 + 完整向量"), ("n250_quadratic_viscous", "二阶粘性"),
+                  ("n250_simple", "simple"), ("n250_adami", "adami"))
+    rows, check_rows = [], []
+    summary["at_18"], summary["estimate_check"] = {}, {}
+    for name, text in early_runs:
+        state = centre_line_state(name, EARLY_INSTANT - EARLY_SPAN, EARLY_INSTANT)
+        if state is None or state["times"][1] < EARLY_INSTANT - 0.3:
+            continue
+        summary["at_18"][name] = state
+        deviation = 100.0 * (abs(state["psi_centre_line_wall"]) / abs(reference_psi) - 1.0)
+        rows.append([text, f"{state['kinetic_energy_last']:.3f}", f"{state['kinetic_energy_mean']:.3f}",
+                     f"{state['psi_centre_line_wall']:.5f}（{deviation:+.2f} %）", f"{state['y_at_psi']:.3f}",
+                     f"{state['u_min']:.4f}", f"{state['v_max']:.4f}", f"{state['v_min']:.4f}"])
+        late = centre_line_state(name, 80.0, 100.0)
+        true = (analysed.get(name, {}).get("extrema") or {}).get("psi_min")
+        if late and true and analysed[name].get("complete"):
+            ratio = late["psi_centre_line_wall"] / true["value_wall"]
+            summary["estimate_check"][name] = {"estimate": late["psi_centre_line_wall"], "true": true["value_wall"],
+                                               "ratio": ratio}
+            check_rows.append([text, f"{late['psi_centre_line_wall']:.5f}", f"{true['value_wall']:.5f}",
+                               f"{ratio:.4f}"])
+    if rows:
+        write_text("pairwise_t100_at_18.md",
+                   f"250²，t = {EARLY_INSTANT:g}。动能是运行器记录的流体动能；“窗口平均”和剖面量是 t ∈ "
+                   f"({EARLY_INSTANT - EARLY_SPAN:g}, {EARLY_INSTANT:g}] 的 {int(EARLY_SPAN / 0.21) + 1} 个样本的平均。"
+                   "ψ 的估计 = 竖直中心线上 u 剖面从底向上积分的最小值，除以 1 + 2 dx（wall 帧）；括号内是相对 Marchi 2021 "
+                   f"定常值 {reference_psi:.5f} 的偏差（流动在 t = 18 还没有定常）。\n\n"
+                   + markdown_table(["运行", f"动能，t = {EARLY_INSTANT:g}", "动能，窗口平均", "ψ_min 的中心线估计（wall 帧）",
+                                     "估计的最小值所在高度 y", "中心线上的 u_min", "v_max", "v_min"], rows))
+    if check_rows:
+        write_text("pairwise_t100_estimate_check.md",
+                   "中心线估计与真正的 ψ_min 的关系，在两者都有的地方（t = 80 到 100 的窗口；真值由粒子快照在整个腔上求）。\n\n"
+                   + markdown_table(["运行", "中心线估计（wall 帧）", "ψ_min（wall 帧，快照）", "估计 ÷ 真值"], check_rows))
+
+    # ---------------------------------------------------------------- the first fluid layer, t = 90 to 100
+    layer_runs = T100_RUNS + (("n250_crossing_normal", "一阶（现缺省）"), ("n250_crossing", "旧缺省（完整向量）"))
+    rows = []
+    summary["wall_layer"] = {}
+    for wall_text, axis_index, side in WALLS:
+        for name, text in layer_runs:
+            directory = LOG_ROOT / "cavity" / name
+            if not (directory / "meta.json").exists() or not (directory / "snapshots").is_dir():
+                continue
+            meta = json.loads((directory / "meta.json").read_text(encoding="utf-8"))
+            spacing, support, timestep = float(meta["spacing"]), float(meta["support_radius"]), float(meta["dt"])
+            snapshots = [path for path in sorted((directory / "snapshots").glob("t*.npz"))
+                         if 89.5 <= int(path.stem[1:]) * timestep <= 100.5]
+            if not snapshots:
+                continue
+            first, second, counts = [], [], []
+            for path in snapshots:
+                data = np.load(path)
+                positions = data["positions"][np.isin(data["material"], meta["fluid_groups"])].astype(np.float64)
+                distance = (HALF_BOX - side * positions[:, axis_index]) / spacing
+                selected = distance[np.abs(positions[:, 1 - axis_index]) <= HALF_BOX - support]
+                first.append(selected[selected < 1.0])
+                second.append(selected[(selected >= 1.0) & (selected < 2.0)])
+                counts.append(int((selected < 1.0).sum()))
+            first, second = np.concatenate(first), np.concatenate(second)
+            entry = {"mean": float(np.abs(first).mean()), "standard_deviation": float(first.std()),
+                     "count_per_snapshot": float(np.mean(counts)), "minimum": float(first.min()),
+                     "second_layer_mean": float(second.mean()), "snapshots": len(snapshots)}
+            summary["wall_layer"].setdefault(name, {})[wall_text] = entry
+            rows.append([wall_text, text, f"{entry['count_per_snapshot']:.1f}", f"{entry['mean']:.3f}",
+                         f"{entry['standard_deviation']:.3f}", f"{entry['minimum']:.3f}",
+                         f"{entry['second_layer_mean']:.3f}"])
+    if rows:
+        write_text("pairwise_t100_wall_layer.md",
+                   "250² 方腔，t ≈ 90 到 100 的 11 个快照合在一起：流体粒子到各壁面（盒面，±0.502）的距离，单位 dx；只取离"
+                   "另外两面壁超过核半径 h 的那一段（点阵上是 241 个粒子）。第一层 = 距离小于 1 dx 的粒子。\n\n"
+                   + markdown_table(["壁", "运行", "第一层的粒子数（每个快照）", "第一层到壁面距离的平均（绝对值，dx）", "标准差",
+                                     "最小", "第二层（1 到 2 dx）的平均"], rows))
+
+    out = REPORT_ROOT / "pairwise_reflection"
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "long_runs.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False, default=float),
+                                        encoding="utf-8", newline="\n")
+    print("[pairwise_reflection] long-run tables written; runs: "
+          + "; ".join(f"{name} t = {entry['t_last']:.2f}" + (" complete" if entry["complete"] else "")
+                      for name, entry in summary["runs"].items()))
     return 0
 
 
