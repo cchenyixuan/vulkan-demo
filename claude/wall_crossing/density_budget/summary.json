@@ -12983,6 +12983,80 @@
  },
  "outcome_classes": [
   {
+   "name": "before_default_change",
+   "case": "cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing/case.yaml",
+   "steps": 700,
+   "repeats": 6,
+   "run_id": "wc-20261118-095351-4541",
+   "classes": [
+    [
+     {
+      "label": "budget_0",
+      "budget": true,
+      "run_id": "wc-20261118-095338-eae6"
+     },
+     {
+      "label": "plain_1",
+      "budget": false,
+      "run_id": "wc-20261118-095339-1dba"
+     },
+     {
+      "label": "budget_1",
+      "budget": true,
+      "run_id": "wc-20261118-095340-4441"
+     },
+     {
+      "label": "budget_2",
+      "budget": true,
+      "run_id": "wc-20261118-095342-a5ab"
+     },
+     {
+      "label": "plain_3",
+      "budget": false,
+      "run_id": "wc-20261118-095344-ff28"
+     },
+     {
+      "label": "budget_3",
+      "budget": true,
+      "run_id": "wc-20261118-095345-1cf7"
+     },
+     {
+      "label": "plain_4",
+      "budget": false,
+      "run_id": "wc-20261118-095346-0ed6"
+     },
+     {
+      "label": "budget_4",
+      "budget": true,
+      "run_id": "wc-20261118-095347-286c"
+     },
+     {
+      "label": "plain_5",
+      "budget": false,
+      "run_id": "wc-20261118-095348-040e"
+     },
+     {
+      "label": "budget_5",
+      "budget": true,
+      "run_id": "wc-20261118-095350-e5a8"
+     }
+    ],
+    [
+     {
+      "label": "plain_0",
+      "budget": false,
+      "run_id": "wc-20261118-095336-a8c2"
+     },
+     {
+      "label": "plain_2",
+      "budget": false,
+      "run_id": "wc-20261118-095341-37a5"
+     }
+    ]
+   ],
+   "every_class_shared": false
+  },
+  {
    "name": "n250_crossing_r12",
    "case": "cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing/case.yaml",
    "steps": 999,

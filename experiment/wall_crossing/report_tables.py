@@ -6,7 +6,8 @@ the report's assembly.
     .venv/Scripts/python.exe -m experiment.wall_crossing.report_tables --no-build  # tables only
 
 Tables (claude/wall_crossing/tables/*.md), every row with the runs.jsonl record(s) it comes from:
-  single_step_reference.md  GPU against the numpy reference (logs/wall_crossing/single_step/summary_<d>d.json)
+  single_step_reference.md  GPU against the numpy reference (logs/wall_crossing/single_step/summary_<d>d.json:
+                            continuity wall component full; ..._normal.md: normal, the default since 2026-11-18)
   single_step_physics.md    the one-step Couette and hydrostatic residuals of every wall mode (same files)
   registers.md              the driver's register counts (logs/wall_crossing/statistics/*.json)
   timing_<set>.md           per-kernel times (logs/wall_crossing/timing/<set>/summary.json)
@@ -77,10 +78,13 @@ def scientific(value: float) -> str:
 # One-step comparison
 # =============================================================================
 
-def single_step_tables() -> None:
+def single_step_tables(summary_suffix: str = "", table_suffix: str = "") -> None:
+    """summary_suffix: of the summary files (single_step.py names them by the settings; "" = continuity wall
+    component full, "_wall_component_normal" = normal, the default since 2026-11-18); table_suffix: of the two
+    tables written."""
     entries = []
     for dimension in (2, 3):
-        path = LOG_ROOT / "single_step" / f"summary_{dimension}d.json"
+        path = LOG_ROOT / "single_step" / f"summary_{dimension}d{summary_suffix}.json"
         if path.exists():
             entries += json.loads(path.read_text(encoding="utf-8"))
     if not entries:
@@ -114,7 +118,7 @@ def single_step_tables() -> None:
             f"{scientific(reference['derivation_step']['density_diffusion_pairwise_difference_of_field'])}",
             f"{scientific(reference['worst_relative_error'])}（容差 {reference['tolerance']:.0e}）",
             "通过" if reference["passed"] else "未通过", entry["run_id"]])
-    write("single_step_reference.md", markdown_table(
+    write(f"single_step_reference{table_suffix}.md", markdown_table(
         ["配置", "流体 / 壁粒子", "A_f 回退（GPU = 参考）", "新密度误差（ulp，最大）", "密度变化率：超出 1 ulp 的相对误差",
          "加速度：最大相对误差 / 误差 ÷ 对项绝对值之和", "位移修正：同左", "L", "A_f⁻¹", "核和", "g_f",
          "推导恒等式（仅参考解）：压力 / 壁面密度扩散", "判据值", "结论", "记录"], rows))
@@ -136,7 +140,7 @@ def single_step_tables() -> None:
             rows.append([f"{entry['dimension']}-D", f"静水（{sign}）：加速度大小 ÷ 重力大小", mode,
                          scientific(value["all"]["maximum"]), scientific(value["within_h_of_a_wall"]["root_mean_square"]),
                          scientific(value["interior"]["maximum"]), entry["run_id"]])
-    write("single_step_physics.md", markdown_table(
+    write(f"single_step_physics{table_suffix}.md", markdown_table(
         ["维度", "配置与量", "壁面", "全部流体：最大", "近壁（h 内）：均方根", "内部：最大", "记录"], rows))
 
 
@@ -473,6 +477,7 @@ def main() -> int:
     arguments = parser.parse_args()
     records = run_records()
     single_step_tables()
+    single_step_tables("_wall_component_normal", "_normal")
     register_table(records)
     timing_tables()
     bitwise_table(records)

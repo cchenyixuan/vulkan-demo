@@ -45,9 +45,14 @@ from experiment.validation.cavity_tables import fit_order, order          # noqa
 
 RESOLUTIONS = (250, 500, 1000)
 # crossing_r2 = a second run of the crossing case (the run-to-run scatter of every number in the tables)
-MODES = ("simple", "adami", "crossing", "crossing_r2", "crossing_wall_velocity", "crossing_floor0p5")
-MODE_TEXT = {"simple": "simple", "adami": "adami", "crossing": "crossing (extrapolate)",
-             "crossing_r2": "crossing (extrapolate)，第二次运行",
+# crossing_normal = the default since 2026-11-18 (continuity_wall_component normal); every other crossing run of
+# this list was made with full, the default until then
+MODES = ("simple", "adami", "crossing_normal", "crossing", "crossing_r2", "crossing_wall_velocity",
+         "crossing_floor0p5")
+MODE_TEXT = {"simple": "simple", "adami": "adami",
+             "crossing_normal": "crossing（连续性壁项 normal，新缺省）",
+             "crossing": "crossing (extrapolate；连续性壁项 full，旧缺省)",
+             "crossing_r2": "crossing (extrapolate；full)，第二次运行",
              "crossing_wall_velocity": "crossing (wall_velocity)", "crossing_floor0p5": "crossing (floor 0.5)"}
 AVERAGE_SPAN = 20.0
 STEADY_TOLERANCE = 1.0e-3

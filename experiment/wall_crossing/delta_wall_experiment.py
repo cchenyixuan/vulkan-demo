@@ -7,6 +7,9 @@ crossing drift because the walls' share of the density diffusion (delta term) ha
 The runs (box_run.py, 250^2 cavity, from rest, a sample at every defrag boundary = every 1000 steps = 0.03 time
 units, the fluid's mean density and mean pressure as float64 means over the alive fluid particles):
     dw_n250_crossing_extension      crossing as specified (numerics.wall_crossing.delta_wall extension)
+    nd_n250_crossing_r1, _r2        crossing with the default of 2026-11-18 (continuity_wall_component
+                                    normal), two runs; every other crossing run of this list was made
+                                    with full, the default until then
     dw_n250_crossing_rest_density   the diagnostic: the wall neighbours' diffusion takes rho0 - rho_i pair by pair
     dw_n250_crossing_body_force     the second diagnostic: the pair term rho_i g . (r_j - r_i) / c^2, which is
                                     zero in the cavity (no gravity): the walls contribute nothing to the diffusion
@@ -60,14 +63,18 @@ FIT_WINDOW = (1.0, 5.011)
 # red, blue, green, yellow, aqua is the order of this set that passes every palette check (validate_palette of the
 # dataviz skill, light surface); the two diagnostic variants are dashed, so a line they cover still shows
 RUNS = (("dw_n250_crossing_rest_density", "crossing，delta_wall = rest_density（诊断）", "#e34948", (0, (5, 2))),
-        ("dw_n250_crossing_extension", "crossing，delta_wall = extension（现状）", "#2a78d6", "solid"),
+        ("dw_n250_crossing_extension", "crossing，delta_wall = extension（连续性壁项 full，旧缺省）", "#2a78d6", "solid"),
         ("dw_n250_crossing_body_force", "crossing，delta_wall = body_force（诊断）", "#008300", (0, (7, 2, 1.5, 2))),
         ("dw_n250_adami", "adami", "#eda100", "solid"),
         ("dw_n250_simple", "simple", "#1baf7a", "solid"))
-TABLE_ORDER = ("dw_n250_crossing_extension", "dw_n250_crossing_rest_density", "dw_n250_crossing_body_force",
-               "dw_n250_crossing_continuity_normal", "dw_n250_simple", "dw_n250_adami")
+# the runs of the new default (continuity_wall_component normal, 2026-11-18): rows of the table when they exist
+NEW_DEFAULT_RUNS = ("nd_n250_crossing_r1", "nd_n250_crossing_r2")
+TABLE_ORDER = ("dw_n250_crossing_extension", *NEW_DEFAULT_RUNS, "dw_n250_crossing_rest_density",
+               "dw_n250_crossing_body_force", "dw_n250_crossing_continuity_normal", "dw_n250_simple", "dw_n250_adami")
 # runs of the table that are not lines of the figure: name -> text
-TABLE_ONLY_TEXT = {"dw_n250_crossing_continuity_normal": "crossing，连续性的壁项只取法向分量（诊断）"}
+TABLE_ONLY_TEXT = {"dw_n250_crossing_continuity_normal": "crossing，连续性的壁项只取法向分量（改缺省之前用开关跑的）",
+                   "nd_n250_crossing_r1": "**crossing，新缺省（连续性壁项 normal），第 1 次**",
+                   "nd_n250_crossing_r2": "**crossing，新缺省（连续性壁项 normal），第 2 次**"}
 # a run that failed before the fit window: reported with what it reached (after the row of INSERT_AFTER)
 FAILED_RUN = "dw_n250_crossing_no_pst"
 FAILED_RUN_TEXT = "crossing，关掉粒子位移修正（`use_pst: false`）"
@@ -89,7 +96,13 @@ HYDROSTATIC_RUNS = {
         ("2d_n250_g30_crossing_history", "extension，重复（带历史）", 0),
         ("2d_n250_g30_crossing_delta_wall_body_force", "body_force，第 1 次", 1),
         ("2d_n250_g30_crossing_delta_wall_body_force_history", "body_force，第 2 次（带历史）", 1)))}
-HYDROSTATIC_FORMS = (("extension（现状）", "#2a78d6", "solid"), ("body_force（诊断）", "#008300", (0, (7, 2, 1.5, 2))))
+HYDROSTATIC_FORMS = (("extension（连续性壁项 full）", "#2a78d6", "solid"), ("body_force（诊断）", "#008300", (0, (7, 2, 1.5, 2))))
+HYDROSTATIC_INTRODUCTION = (
+    "2-D 静水盒（250² 方腔的几何，盖静止，|g| = 10，c0 = 100，从均匀密度、零速度开始，到 t = 10.02）。速度以 "
+    "√(|g| H) 为单位，压力以 ρ0 |g| H 为单位（H = 盒沿重力方向的尺寸）。“去电平” = 减去全场平均偏差后的误差；"
+    "“电平” = 压力减去 ρ0 g·(r − r_中心) 之后对全部流体粒子的平均。每种写法各有两次运行：两次之间的差别"
+    "就是单次运行的可重复程度。带历史的两次在每个样本都记了平均密度和电平（工具在 21b700a 加的列）。"
+    "这张表的四次运行都是连续性壁项 full（2026-11-18 改缺省之前）。")
 HYDROSTATIC_LEVEL_TIMES = (2.5, 5.0, 7.5, 10.0)
 HYDROSTATIC_DRIFT_WINDOW = (3.0, 10.03)     # after the settling (the level-free pressure error is flat from t = 2)
 
@@ -103,16 +116,20 @@ def load_hydrostatic(name: str) -> tuple:
     return summary, {key: np.array([float(row[key]) for row in rows]) for key in rows[0]}
 
 
-def hydrostatic_comparison(records: dict) -> dict:
-    """The tables (one per gravity direction) and the figure of extension against body_force in the two 2-D
-    hydrostatic boxes, two runs of each form. records: runs.jsonl by run id."""
+def hydrostatic_comparison(records: dict, runs_by_direction: dict = None, forms: tuple = None,
+                           introduction: str = None, table_name: str = "delta_wall_hydrostatic.md",
+                           figure_name: str = "delta_wall_hydrostatic.png",
+                           figure_title: str = "2-D 静水盒：壁邻居 δ 项的两种写法（压力以 ρ0 g H 为单位）") -> dict:
+    """The tables (one per gravity direction) and the figure of two forms of the mode in the two 2-D
+    hydrostatic boxes, two runs of each form (default: extension against body_force). records: runs.jsonl by
+    run id. runs_by_direction: direction -> (its text, ((run name, column text, form index), ...)); forms:
+    ((text, colour, line style), ...)."""
+    runs_by_direction = HYDROSTATIC_RUNS if runs_by_direction is None else runs_by_direction
+    forms = HYDROSTATIC_FORMS if forms is None else forms
     summary_out = {}
     loaded = {}
-    texts = ["2-D 静水盒（250² 方腔的几何，盖静止，|g| = 10，c0 = 100，从均匀密度、零速度开始，到 t = 10.02）。速度以 "
-             "√(|g| H) 为单位，压力以 ρ0 |g| H 为单位（H = 盒沿重力方向的尺寸）。“去电平” = 减去全场平均偏差后的误差；"
-             "“电平” = 压力减去 ρ0 g·(r − r_中心) 之后对全部流体粒子的平均。每种写法各有两次运行：两次之间的差别"
-             "就是单次运行的可重复程度。带历史的两次在每个样本都记了平均密度和电平（工具在 21b700a 加的列）。"]
-    for direction, (direction_text, runs) in HYDROSTATIC_RUNS.items():
+    texts = [HYDROSTATIC_INTRODUCTION if introduction is None else introduction]
+    for direction, (direction_text, runs) in runs_by_direction.items():
         columns = ["量"]
         order = []
         table_rows: dict = {}
@@ -196,7 +213,7 @@ def hydrostatic_comparison(records: dict) -> dict:
         texts.append(f"**{direction_text}**\n\n"
                      + markdown_table(columns, [[label] + table_rows[label] for label in order]))
     text = "\n\n".join(texts)
-    (REPORT_ROOT / "tables" / "delta_wall_hydrostatic.md").write_text(text + "\n", encoding="utf-8", newline="\n")
+    (REPORT_ROOT / "tables" / table_name).write_text(text + "\n", encoding="utf-8", newline="\n")
 
     # ---- figure: one row per direction; the pressure level, the rms speed and the level-free pressure error
     # against time (one axis each). The level and the pressure error exist for the history runs only; the rms
@@ -207,10 +224,10 @@ def hydrostatic_comparison(records: dict) -> dict:
     setup_style()
     figure, axes = plt.subplots(2, 3, figsize=(13.6, 7.8), sharex=True)
     handles = {}
-    for row, (direction, (direction_text, _)) in enumerate(HYDROSTATIC_RUNS.items()):
+    for row, (direction, (direction_text, _)) in enumerate(runs_by_direction.items()):
         level_ends = {}         # form -> [(value, x)] of the line's end and of the other run's marker
         for name, form, summary, series in loaded[direction]:
-            form_text, colour, style = HYDROSTATIC_FORMS[form]
+            form_text, colour, style = forms[form]
             scale = summary["scales"]["velocity_sqrt_g_extent"]
             pressure_scale = summary["scales"]["pressure_rho_g_extent"]
             positive = series["time"] > 0.0
@@ -253,7 +270,7 @@ def hydrostatic_comparison(records: dict) -> dict:
     for axis in axes[1]:
         axis.set_xlabel("时间（模拟单位）")
     height = figure.get_figheight()
-    figure.suptitle("2-D 静水盒：壁邻居 δ 项的两种写法（压力以 ρ0 g H 为单位）", x=0.01, y=1.0 - 0.05 / height,
+    figure.suptitle(figure_title, x=0.01, y=1.0 - 0.05 / height,
                     ha="left", va="top", fontsize=12, fontweight="bold", color=INK_PRIMARY)
     legend_handles = list(handles.values()) + [
         Line2D([], [], color=INK_SECONDARY, linewidth=1.0, alpha=0.55),
@@ -263,7 +280,7 @@ def hydrostatic_comparison(records: dict) -> dict:
     figure.legend(legend_handles, legend_labels, loc="upper left", bbox_to_anchor=(0.01, 1.0 - 0.40 / height),
                   ncol=4, handlelength=3.0, columnspacing=1.6, labelcolor=INK_PRIMARY, borderaxespad=0.0)
     figure.tight_layout(rect=(0, 0, 0.985, 1.0 - 0.66 / height), w_pad=3.6)
-    figure.savefig(REPORT_ROOT / "figures" / "delta_wall_hydrostatic.png")
+    figure.savefig(REPORT_ROOT / "figures" / figure_name)
     plt.close(figure)
     print(text)
     return summary_out
@@ -305,18 +322,22 @@ def main() -> int:
         records_by_run_id[record["run_id"]] = record
         if record.get("kind") == "box_run" and record.get("name"):
             records[record["name"]] = record
-    measured = {name: measure(load_series(name), FIT_WINDOW) for name in TABLE_ORDER}
+    table_order = [name for name in TABLE_ORDER
+                   if name not in NEW_DEFAULT_RUNS or (LOG_ROOT / "box_run" / name / "series.csv").exists()]
+    measured = {name: measure(load_series(name), FIT_WINDOW) for name in table_order}
     text = {**{name: label for name, label, _, _ in RUNS}, **TABLE_ONLY_TEXT}
     notes = {
-        "dw_n250_crossing_extension": "基准；任务文件第 5 节的写法",
+        "dw_n250_crossing_extension": "任务文件第 5 节的写法；连续性壁项取完整的速度差（full），2026-11-18 之前的缺省",
+        "nd_n250_crossing_r1": "2026-11-18 起的缺省：连续性壁项只取法向分量，其余同上一行",
+        "nd_n250_crossing_r2": "同上，重复",
         "dw_n250_crossing_rest_density": "壁邻居的 δ 项逐对取 ρ0 − ρ_i，去掉循环后的 G_i·(L_i × 壁向量) 一项；其余不变",
         "dw_n250_crossing_body_force": "壁邻居的 δ 项逐对取 ρ_i (g − a_wall)·(r_j − r_i) / c²，去掉循环后的一项；"
                                        "方腔没有重力，所以壁邻居对 δ 项的贡献为零；其余不变",
         "dw_n250_crossing_continuity_normal": "壁邻居的速度差先投影到壁面法向（壁粒子到盒面最近点的方向），再乘 "
-                                              "(1 + d_j/φ_i)，只用在连续性方程里；其余不变",
+                                              "(1 + d_j/φ_i)，只用在连续性方程里；其余不变。与新缺省是同一种设置",
         "dw_n250_simple": "对照", "dw_n250_adami": "对照"}
     rows = []
-    for name in TABLE_ORDER:
+    for name in table_order:
         entry = measured[name]
         rows.append([
             text[name], f"{entry['drift_rate']:+.5f}",
@@ -349,7 +370,8 @@ def main() -> int:
              "密度按存储值加存储偏移换算成真实密度（本配置下偏移为 0，存的就是 ρ）。漂移率 = 平均密度对 "
              f"t ∈ [{measured[TABLE_ORDER[0]]['fit_window'][0]:.2f}, {measured[TABLE_ORDER[0]]['fit_window'][1]:.2f}] "
              f"的线性拟合斜率（{measured[TABLE_ORDER[0]]['samples_in_fit']} 个样本）。压力、负压比例、动能取最后一个样本"
-             f"（t = {measured[TABLE_ORDER[0]]['time_at_reading']:.2f}）。\n\n"
+             f"（t = {measured[TABLE_ORDER[0]]['time_at_reading']:.2f}）。除标明“新缺省”的行以外，crossing 各行的连续性"
+             "壁项都是 full（2026-11-18 改缺省之前的缺省值）。\n\n"
              + markdown_table(["运行", "漂移率（kg/m³ 每时间单位）", "t = 5 的平均压力", "负压粒子比例",
                                "t = 5 的平均密度 − ρ0（kg/m³）", "t = 5 的动能", "备注", "记录（提交）"], rows))
     (REPORT_ROOT / "tables").mkdir(parents=True, exist_ok=True)
@@ -368,7 +390,7 @@ def main() -> int:
          f"{records[CONTEXT_RUN]['run_id']}（{records[CONTEXT_RUN]['commit']}）"],
         ["有", "无（`body_force`，方腔没有重力）", f"{measured['dw_n250_crossing_body_force']['drift_rate']:+.5f}", "本节",
          f"{records['dw_n250_crossing_body_force']['run_id']}（{records['dw_n250_crossing_body_force']['commit']}）"],
-        ["有", "延拓 G_i·(r_j − r_i)（`extension`，现状）", f"{measured['dw_n250_crossing_extension']['drift_rate']:+.5f}",
+        ["有", "延拓 G_i·(r_j − r_i)（`extension`）", f"{measured['dw_n250_crossing_extension']['drift_rate']:+.5f}",
          "第 6 节", f"{records['dw_n250_crossing_extension']['run_id']}（{records['dw_n250_crossing_extension']['commit']}）"],
         ["有", "ρ0 − ρ_i（`rest_density`）", f"{measured['dw_n250_crossing_rest_density']['drift_rate']:+.5f}", "第 6 节",
          f"{records['dw_n250_crossing_rest_density']['run_id']}（{records['dw_n250_crossing_rest_density']['commit']}）"]]
@@ -422,7 +444,7 @@ def main() -> int:
 
     hydrostatic = hydrostatic_comparison(records_by_run_id)
     summary = {"fit_window": list(FIT_WINDOW), "runs": measured, "side_run": {"to_t5": side, "whole_run": side_long},
-               "run_ids": {name: records[name]["run_id"] for name in (*TABLE_ORDER, SIDE_RUN)},
+               "run_ids": {name: records[name]["run_id"] for name in (*table_order, SIDE_RUN)},
                "hydrostatic_2d": hydrostatic,
                "without_density_diffusion": {"run": CONTEXT_RUN, "run_id": records[CONTEXT_RUN]["run_id"],
                                              "drift_rate": context_rate, "samples_in_fit": int(context_inside.sum())},
@@ -463,7 +485,7 @@ def main() -> int:
         axis.set_title(title)
         axis.set_xlabel("时间（模拟单位）")
     height = figure.get_figheight()
-    figure.suptitle("250² 方腔 t = 0–5：壁邻居 δ 项的三种写法对密度水平的影响", x=0.01, y=1.0 - 0.05 / height,
+    figure.suptitle("250² 方腔 t = 0–5：壁邻居 δ 项的三种写法对密度水平的影响（连续性壁项 full）", x=0.01, y=1.0 - 0.05 / height,
                     ha="left", va="top", fontsize=12, fontweight="bold", color=INK_PRIMARY)
     figure.legend(handles, labels, loc="upper left", bbox_to_anchor=(0.01, 1.0 - 0.40 / height), ncol=3,
                   handlelength=3.0, columnspacing=1.4, labelcolor=INK_PRIMARY, borderaxespad=0.0)

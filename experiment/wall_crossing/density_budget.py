@@ -12,6 +12,11 @@ defrag boundary = 0.03 time units holds the buffer's sums):
     budget_n250_simple                      wall_boundary simple
     budget_n250_crossing_continuity_normal  crossing with the diagnostic continuity_wall_component normal
     budget_n250_crossing_repeat, budget_n250_simple_repeat   the first two a second time (what one run is worth)
+    budget_n250_crossing_normal_r1, _r2     crossing with the default of 2026-11-18 (continuity_wall_component
+                                            normal), two runs; "crossing as specified" above is full, the
+                                            default until then
+    budget_n250_crossing_normal_delta_density   the same with V7_DELTA_DENSITY=1 (the density stored as
+                                            rho - rho_ref)
 What is computed from a run's series.csv, over the samples with 1 <= t <= 5:
   - per region and column the cumulative sum per fluid particle C(t) = buffer sum / fluid particle count (kg/m^3);
     the time mean of that column's field-mean rate over the window is (C(t_last) - C(t_first)) / (t_last - t_first):
@@ -86,16 +91,25 @@ CORNER_GROUPS = (("lid_corners", "其中：盖的两个角", ("top_left", "top_r
                  ("bottom_corners", "其中：底的两个角", ("bottom_left", "bottom_right")))
 ALL_REGIONS = ("all", "全场", REGION_NAMES)
 RUNS = {
-    "budget_n250_crossing": ("crossing（`delta_wall: extension`，缺省）",
+    "budget_n250_crossing": ("crossing，连续性壁项 `full`（2026-11-18 之前的缺省）",
                              ("连续性项，流体邻居", "连续性项，壁邻居", "δ 项，流体邻居", "δ 项，壁延拓")),
     "budget_n250_simple": ("simple",
                            ("连续性项，流体邻居", "连续性项，壁邻居", "δ 项，流体邻居", "δ 项，壁邻居（ρ0）")),
-    "budget_n250_crossing_continuity_normal": ("crossing，连续性的壁项只取法向分量（诊断）",
+    "budget_n250_crossing_continuity_normal": ("crossing，连续性的壁项只取法向分量（改缺省之前用开关跑的）",
                                                ("连续性项，流体邻居", "连续性项，壁邻居", "δ 项，流体邻居", "δ 项，壁延拓")),
+    "budget_n250_crossing_normal_r1": ("crossing，新缺省（连续性壁项 `normal`），第 1 次",
+                                       ("连续性项，流体邻居", "连续性项，壁邻居", "δ 项，流体邻居", "δ 项，壁延拓")),
+    "budget_n250_crossing_normal_r2": ("crossing，新缺省（连续性壁项 `normal`），第 2 次",
+                                       ("连续性项，流体邻居", "连续性项，壁邻居", "δ 项，流体邻居", "δ 项，壁延拓")),
+    "budget_n250_crossing_normal_delta_density": (
+        "crossing，新缺省，密度按差值存储（`V7_DELTA_DENSITY=1`）",
+        ("连续性项，流体邻居", "连续性项，壁邻居", "δ 项，流体邻居", "δ 项，壁延拓")),
 }
 # the default-pipeline run each budget run is compared with (the earlier tables' run of the same case)
 DEFAULT_PIPELINE_RUNS = {"budget_n250_crossing": "dw_n250_crossing_extension", "budget_n250_simple": "dw_n250_simple",
-                         "budget_n250_crossing_continuity_normal": "dw_n250_crossing_continuity_normal"}
+                         "budget_n250_crossing_continuity_normal": "dw_n250_crossing_continuity_normal",
+                         "budget_n250_crossing_normal_r1": "nd_n250_crossing_r1",
+                         "budget_n250_crossing_normal_r2": "nd_n250_crossing_r2"}
 # the second run of a budget run: name of the first -> name of the second
 REPEAT_RUNS = {"budget_n250_crossing": "budget_n250_crossing_repeat", "budget_n250_simple": "budget_n250_simple_repeat"}
 TERM_COLOURS = ("#2a78d6", "#eb6834", "#1baf7a", "#eda100")       # the palette's first four slots, in order
@@ -423,8 +437,8 @@ def main() -> int:
     rows = []
     comparison = {}
     for name in available:
-        default_name = DEFAULT_PIPELINE_RUNS[name]
-        if not (LOG_ROOT / "box_run" / default_name / "series.csv").exists():
+        default_name = DEFAULT_PIPELINE_RUNS.get(name)
+        if default_name is None or not (LOG_ROOT / "box_run" / default_name / "series.csv").exists():
             continue
         budget_measure = measure(load_plain(name), FIT_WINDOW)
         default_measure = measure(load_plain(default_name), FIT_WINDOW)
