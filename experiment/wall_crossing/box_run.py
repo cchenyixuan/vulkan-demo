@@ -183,6 +183,8 @@ def main() -> int:
     parser.add_argument("--resume", action="store_true", help="start from the newest checkpoint of the run")
     parser.add_argument("--stop-speed", type=float, default=0.0,
                         help="stop when the fluid's largest speed exceeds this x the lid speed (0: off)")
+    parser.add_argument("--depth", type=int, default=2,
+                        help="frames in flight of the pipelined chain (default 2, the production path)")
     parser.add_argument("--stop-outside", action="store_true",
                         help="stop when a fluid particle is outside the box")
     arguments = parser.parse_args()
@@ -255,6 +257,7 @@ def main() -> int:
     with LoggedRun(kind="box_run", case=str(arguments.case).replace("\\", "/")) as run:
         run.extra["name"] = arguments.name
         run.extra["slabs"] = len(device_map)
+        run.extra["depth"] = arguments.depth
         run.extra["segment"] = segment
         run.extra["start_step"] = start_step
         series = []
@@ -417,7 +420,8 @@ def main() -> int:
             # different intervals)
             outcome = run_chain(case, device_map, total_steps, cadence, on_sample,
                                 expected_uuids=arguments.uuid or None,
-                                application_name="wall_crossing_box_run", on_ready=on_ready, restart=restart)
+                                application_name="wall_crossing_box_run", on_ready=on_ready, restart=restart,
+                                depth=arguments.depth)
         except StopCondition as stop:
             series_file.close()
             last_step = series[-1]["step"] if series else start_step
