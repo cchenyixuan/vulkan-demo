@@ -74,5 +74,6 @@
 | `9ca97df` | wall_boundary crossing: section 19 of the report, first update (the long validation: the short checks of its section 2 done, the long runs started at 03:02 with their estimated ends); long_validation.py tables (restored cases, K = 1 / K = 2 and its locating replicates, seam audits, 3-D K = 2 canonical dumps, 3-D hydrostatic boxes, 3-D trial) and the analysis of the long runs |
 | `afbaad0` | cavity_tables.py: label of the 1000^2 long run of section 19 (complete_volume) |
 | `2e77e0e` | long_validation.py: the 3-D step rate between samples (box_run stores the average since the segment start) |
+| `1ce7ea7` | report section 19, second update: the 3-D cavity crossing run (t = 45) - stable, 15.3 ms per step, centre-line profiles and histories |
 
 （加入本报告的那个提交排在这些之后。）
