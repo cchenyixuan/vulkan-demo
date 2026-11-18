@@ -6,8 +6,9 @@
 - 每个数字后面的 `wc-…` 是 `logs/wall_crossing/runs.jsonl` 里的记录号。`logs/` 不入库，所以记录文件另存了一份在 `claude/wall_crossing/runs.jsonl`（本机）和 `claude/wall_crossing/runs_DESKTOP-9IN3NPD.jsonl`（第二台机器）。
 
 > **本报告的状态（2026-11-17 22:35 之后）**：这是一份没有收尾的草稿。用户在 22:35 要求停掉所有长运行，只做第 6 节的机理确认实验，并且不继续原任务里没做完的项目；11-18 又先后要求做第 7 节和第 8 节的诊断，再要求改一个缺省值并重新验证（第 9 节），最后给了一份新的任务书：速度的二阶延拓（第 10 节）；都不继续原任务。因此：
-> - 第 6 到 17 节是完整的。第 17 节（2026-11-19，250² 完整方案 + 约束续跑到 t = 200）是最新的内容，它之前是第 16 节（2026-11-18，ψ_min、速度极值和涡心的后处理检验，没有新运行）、第 15 节（2026-11-18，封闭域的流体总体积约束；完整方案 + 约束的 250² 和 500²）、第 14 节（完整方案：逐对几何 + 完整向量 + 两个反射）、第 13 节（反射版和“逐对几何 + 完整向量”跑到 t = 100）、第 12 节（逐对几何和压力、密度在壁面处的反射）、第 10 节（速度的二阶延拓）和第 11 节（旧缺省与一阶的场之差）；第 7 节更正了第 6 节结论里的一句话。第 10 节起“一阶”指第 9 节改过之后的现缺省（`normal`），“旧缺省”指 `full`。
+> - 第 6 到 18 节是完整的。第 18 节（2026-11-19，完整方案设为 crossing 的缺省）是最新的内容，它之前是第 17 节（2026-11-19，250² 完整方案 + 约束续跑到 t = 200）、第 16 节（2026-11-18，ψ_min、速度极值和涡心的后处理检验，没有新运行）、第 15 节（2026-11-18，封闭域的流体总体积约束；完整方案 + 约束的 250² 和 500²）、第 14 节（完整方案：逐对几何 + 完整向量 + 两个反射）、第 13 节（反射版和“逐对几何 + 完整向量”跑到 t = 100）、第 12 节（逐对几何和压力、密度在壁面处的反射）、第 10 节（速度的二阶延拓）和第 11 节（旧缺省与一阶的场之差）；第 7 节更正了第 6 节结论里的一句话。第 10 节起“一阶”指第 9 节改过之后的现缺省（`normal`），“旧缺省”指 `full`。
 > - **第 9 节改了一个缺省值**：`numerics.wall_crossing.continuity_wall_component` 从 `full` 改成 `normal`。第 1 到 8 节里 crossing 的全部结果都是改之前（`full`）的；各表里标着"旧缺省"或 `full` 的就是它。
+> - **第 18 节改了四个缺省值**（从提交 `3cba19f` 起）：`geometry` → `pairwise`、`continuity_wall_component` → `full`、`pressure_wall` → `reflection`、`delta_wall` → `reflection`（完整方案）；约束仍默认关闭。第 1 到 17 节里 crossing 的结果都是改之前的缺省；第 9 到 17 节说的“现缺省”“一阶”指 2026-11-18 的缺省（nearest_wall + normal + extension + extension）。
 > - 第 1–4 节是停止之前写的。其中标着"**未完成**"的地方没有再补：结论摘要、6.4 的文字结论和 1000² 一档、3-D 方腔的互比、3-D 计时、K = 2 吞吐、各阶段的"未验证"清单、下一步建议。
 > - 6.4 的表停在 250² 和 500² 两档（500² 的 wall_velocity 在 t = 34.9 失败，表里还没有这一行；1000² 的各次运行都没有跑完）。
 
@@ -80,6 +81,10 @@
 | `088e967` | wall_boundary crossing: report rebuilt (commit table) |
 | `faebf7a` | wall_crossing tools: snapshots in extra time windows (cavity_run.py --extra-snapshot-windows, cavity_runner_entry.py item 5: written from the runner's own sample reads to <run>/snapshots_extra), the record names t_end; table mode of the 250^2 complete scheme + constraint continued to t = 200 |
 | `4758ceb` | wall_boundary crossing: section 17 of the report (the 250^2 complete scheme + volume constraint continued to t = 200 from its t = 90.72 checkpoint in a copy of the run directory: psi_min (box-face normalisation), velocity extrema and vortex centre in the windows 80-100, 130-150, 180-200, kinetic energy from t = 80 to 200, the constraint's target and the mean density across the restart) and its tool continuation_check.py; stream_function_check.py: the grid of a list of snapshot files as a function of its own |
+| `48d370f` | wall_boundary crossing: report rebuilt (commit table) |
+| `3cba19f` | wall_boundary crossing: the complete scheme is the default (geometry pairwise, continuity_wall_component full, pressure_wall reflection, delta_wall reflection) |
+| `8a7f02d` | wall_boundary crossing: the refusals of the new defaults name only the keys still missing; default_change.py (checks 5 and 6 of the default change and the tables of its report section) |
+| `380ea90` | default_change.py: the single-step table of the default change (criterion, reflection terms relative to their quantities) |
 
 （加入本报告的那个提交排在这些之后。）
 
@@ -4348,6 +4353,196 @@ Re = 1000 方腔对 Marchi 2021，K = 1，最后 20 个时间单位平均。括�
 - **窗口间 0.03 到 0.05 个百分点的变化是趋势还是统计起伏**，三个窗口不足以分开；动能的走势说明 80–100 时流动还在极缓慢地变强。
 - 约束的多卡路径仍未验证（同第 15 节）。
 
+## 18. 追加（十三）：完整方案设为 crossing 模式的缺省（2026-11-19）
+
+用户的指令：把 crossing 模式的缺省配置改成第 15 节用的完整方案，只改四项缺省值，总体积约束仍默认关闭；做完六项检查，写进报告后停下。工具是 `experiment/wall_crossing/default_change.py`。
+
+**先说结果**
+
+- **缺省值从提交 `3cba19f` 起改变**（2026-11-19 01:36）。新缺省是 `geometry: pairwise`、`continuity_wall_component: full`、`pressure_wall: reflection`、`delta_wall: reflection`。总体积约束仍默认关闭；所有原有取值都保留。
+- **新缺省等于显式写出的完整方案，逐位相同**：250²、700 步，约束关闭和打开各一次。两者都落在同样的两个结果类里；这两个类从 `2186032`（加约束之前）起就没有变过。
+- **旧缺省仍可复现，逐位相同**：显式写出原来四项缺省的运行，与改动之前的提交 `48d370f` 上的缺省运行落在同一个结果类里。
+- **simple / adami 不受影响**：它们用的 23 个 SPIR-V 文件与基点逐字节相同；999 步和 200 步的运行与基点的转储逐位相同。
+- **单步对照通过**：新缺省下 2-D 判据值 9.1e-6，3-D 1.2e-5（容差 1e-4）。收支构建、非零的约束速率也都通过。
+- **组合检查**：16 条路径（拒绝或载入）全部符合预期。只打开二阶开关时，报错信息写明要同时写 `geometry: nearest_wall`、`pressure_wall: extension`、`delta_wall: extension`。
+- **现有测试**：四个测试脚本通过（`_test_seam_layout.py` 的失败清单与基点逐行相同，标准同前）；`_test_partition_chain.py` 在这个检出里跑不起来，因为它要的 1M / 8M 算例的 `.obj` 文件不在这里，改动之前也一样。
+- **算例**：本系列的 8 个缺省封闭域算例加上了约束；新建 2 个回归算例。诊断算例按指示没有动：其中 24 个的含义随缺省改变，10 个二阶算例现在载入时报错。
+- **此前 `runs.jsonl` 里的 crossing 运行用的是当时的缺省**：801 条记录，没有写出的开关取的都是那时的值（18.5）。
+
+### 18.1 改动清单
+
+提交：`3cba19f`（改缺省、着色器、工具、算例）、`8a7f02d`（两条报错信息的措辞，以及检查工具）、`380ea90` 及之后（检查工具的表和本节）。都在本地分支 `v7-wall-crossing` 上，没有 push。
+
+**缺省值**
+
+| 开关 | 规格常量 | 原缺省 | 新缺省 |
+|---|---|---|---|
+| `wall_crossing.geometry` | 128 | `nearest_wall`（0） | `pairwise`（1） |
+| `wall_crossing.continuity_wall_component` | 117 | `normal`（1） | `full`（0） |
+| `wall_crossing.pressure_wall` | 129 | `extension`（0） | `reflection`（1） |
+| `wall_crossing.delta_wall` | 116 | `extension`（0） | `reflection`（3） |
+
+其余开关的缺省不变：`continuity: extrapolate`、`distance_floor_factor: 0.25`、两个延拓阶数 `linear`、`numerics.volume_constraint.enabled: false`。
+
+**求解器**
+
+- `wall_crossing_v7.py`：
+  - 四个缺省值。
+  - 两个常量：`WALL_CROSSING_FIRST_ORDER_SETTINGS`（2026-11-18 到 11-19 的四项缺省，供工具引用）和 `WALL_CROSSING_NEAREST_WALL_REQUIREMENTS`（二阶延拓要求的三项）。
+  - 组合检查集中到 `check_wall_crossing_combination`：每种不支持的组合抛一条 `ValueError`，写明算例需要写哪些键，以及出问题的值是算例写的还是缺省（18.3 有原文）。
+  - 日志行总是写出四项的值。
+  - 配置说明（`parse_wall_crossing_settings` 的文档）按新缺省重写，并注明各项缺省的日期。
+- `wall_boundary.glsl`：规格常量 116、117、128、129 的缺省跟着主机端改（主机在 crossing 片上总是显式传这四个常量，这只是让两边一致，与 `44e4e6f` 的做法相同）。注释同步更新。
+- 重新编译：变的只有 crossing 的三个构建（融合遍、它的收支构建、force），只差缺省字面量，文件大小不变；simple 和 adami 用的 23 个文件与基点逐字节相同。`MANIFEST.txt`、`shaders/README.md` 已更新。
+- `simulator_v7.py`：规格常量旁的注释；"约束与收支构建不能同用"的报错信息加上了该用哪个算例（缺省算例现在带约束）。
+
+**工具和参考解**
+
+- `reference.py`：参数缺省跟随求解器的缺省（从 `wall_crossing_v7` 导入）。simple / adami 的参考解把所有开关都显式写出，不随 crossing 的缺省走（第 9 节出过这类错）。
+- `single_step.py`：命令行缺省跟随求解器。只给二阶开关而没给三个 nearest-wall 参数时，工具自己先报错。标签和汇总文件名按取值命名、不按缺省，所以此前的日志含义不变。
+- `box_case.py`：测试盒的缺省跟随求解器，只写与缺省不同的开关（缺省盒检验的就是缺省）。
+- 分项统计构建：着色器缺省跟着改（上面的三个构建之一）。新缺省下的收支对照见 18.3。
+- `cavity_watch.py`：只读运行目录里的速度、出盒计数和粒子数，不依赖 crossing 的缺省，没有改。
+- 算例生成器：
+  - `pairwise_reflection.py` 和 `quadratic_extension.py` 现在把四项开关全部显式写出（取各变体当初的含义）。源算例的约束块先去掉，变体需要约束时再加。已有的变体文件没有重写（生成器跳过已存在的文件）。
+  - `hydrostatic.py` 给缺省 crossing 模式的算例写上约束。
+- `cavity_tables.py`：一阶那一行的标签写明了它是哪两天的缺省。
+
+### 18.2 我做的决定
+
+- **着色器里的缺省也改**，按 `44e4e6f` 的惯例：主机端总是显式传这几个常量，着色器的缺省只是跟着一致。代价是 crossing 的三个 SPIR-V 文件变了（只差字面量）；simple / adami 的不变。
+- **新建两个回归算例**，都从改动前（`48d370f`）的 250² 缺省算例派生，其余内容与它逐字相同：
+  - `..._crossing_constraint_off`：不写开关、不写约束，即新缺省、约束关闭。检查 1 用。
+  - `..._crossing_first_order`：原来四项缺省显式写出、没有约束。检查 2 用。
+- **加约束的算例**是本系列建的、写法为"只写 `continuity: extrapolate`"的 8 个封闭域缺省算例：250²、500²、1000² 方腔，3-D 方腔 `cavity3d_1m_crossing`，2-D 静水盒 gy / g30，3-D 静水盒 gy / gtilt。
+  - 3-D 算例和 1000² 也算在内，因为它们同样是封闭域。
+  - 8 个都载入检查过：约束的更新间隔在 1,000 到 26,000 步之间，都不超过 τ/5。
+  - 这些算例在新缺省加约束下都没有跑过（不跑长时间运行）。
+- **诊断算例没有动**（按指示）。它们只写了部分开关，其余开关现在取新缺省，所以有 24 个的含义变了，10 个二阶算例载入时报错，名单见 18.4。
+  - 要复现第 10 节的二阶运行，算例里需要写 `geometry: nearest_wall`、`pressure_wall: extension`、`delta_wall: extension`，再加 `continuity_wall_component: normal`（当时的缺省）。报错信息里提到了这一点。
+- **算例生成器改成显式写出**：用新的源算例重新生成全部 22 个已有变体（只在内存里），每一个的含义都与它当初生成时相同，其余文本也相同。`hydrostatic.py` 重新生成的 2-D 文件与树里的 10 个逐字节相同。3-D 的 8 个文件只差 `det_threshold: 0.0001` 与 `1.0e-4` 的写法，这是早已有的差别，与本次无关。
+- **检查 1、2 的参照**：
+  - 检查 1 的两个算例在同一提交上交替运行，每边 16 次。完整方案在 700 步时有两个结果类（第 15 节），次数取得多一些，两个类都碰到了。
+  - 检查 2 的参照是在 `48d370f` 的冻结检出上、改任何代码之前做的 6 个转储（记录 wc-20261119-012513-198d）。
+- **检查 1"约束打开"一项的范围**：canonical 转储要在第一次 defrag 之前结束，而约束只在 defrag 时更新，所以 700 步内速率一直是 0。这一项证明的是两种写法得到相同的管线和相同的计算，不是约束本身的效果。
+  - 实际上它与约束关闭的运行落在同一对结果类里。
+  - 非零速率的效果由单步对照检验：速率 2.0，约束项是密度变化率最大值的 2.8 % 到 11 %。
+- **检查 1 到 3 跑了两遍**：先在 `3cba19f` 上，然后在 `8a7f02d` 上又跑了一遍（这个提交只改了两条报错信息的措辞）。两遍结果相同。检查 4 到 6 在 `8a7f02d` / `380ea90` 上运行，求解器与 `8a7f02d` 相同。
+- **检查 3 的步数沿用此前**：simple 999 步，adami 200 步。参照是第 2 节起一直用的基点转储，每种各跑 2 次。
+- **检查 5 的收支构建路径第一次没有触发**：`canonical_dump.py` 会把环境里的 `V7_` 变量全部换成发布配置，我设的 `V7_DENSITY_BUDGET=1` 被丢掉了，运行照常结束。改用它自己的 `--env` 选项传开关（同时要 `V7_DEEP_WALL_SKIP=0`，收支构建不支持深壁跳过）之后，求解器按预期拒绝。
+- **`_test_partition_chain.py` 没有运行**：它读 `cases/lid_driven_cavity_2d` 和 `_8m` 的 `.obj` 文件，这些文件被 git 忽略，不在本检出里。主仓库里虽有，但对应的 `case.yaml` 与本检出的不同，盘上也只剩 26 GB，所以没有拷过来。在 `48d370f` 上同样跑不起来；本次没有改分区代码。
+
+### 18.3 检查结果
+
+**检查 1 到 3：逐位回归**
+
+| 检查 | 参照 | 结果 | 结论 | 记录 |
+|---|---|---|---|---|
+| 1. 新缺省、约束关闭（`..._crossing_constraint_off`：不写开关，不写约束），250²，700 步；3cba19f | 同一提交上显式写出完整方案的 `..._crossing_reflection_full`，交替运行 | 2 个结果类。类 0：参照 14 次，本算例 13 次；类 1：参照 2 次，本算例 3 次 | 逐位相同 | wc-20261119-013713-1f46 |
+| 1. 新缺省、约束关闭（`..._crossing_constraint_off`：不写开关，不写约束），250²，700 步；8a7f02d | 同一提交上显式写出完整方案的 `..._crossing_reflection_full`，交替运行 | 2 个结果类。类 0：参照 11 次，本算例 12 次；类 1：参照 5 次，本算例 4 次 | 逐位相同 | wc-20261119-014034-3af9 |
+| 1. 新缺省、约束打开（`..._crossing`：不写开关，约束打开），250²，700 步；3cba19f | 同一提交上显式写出完整方案并打开约束的 `..._crossing_reflection_full_volume`，交替运行 | 2 个结果类。类 0：参照 11 次，本算例 11 次；类 1：参照 5 次，本算例 5 次 | 逐位相同 | wc-20261119-013714-691d |
+| 1. 新缺省、约束打开（`..._crossing`：不写开关，约束打开），250²，700 步；8a7f02d | 同一提交上显式写出完整方案并打开约束的 `..._crossing_reflection_full_volume`，交替运行 | 2 个结果类。类 0：参照 15 次，本算例 13 次；类 1：参照 1 次，本算例 3 次 | 逐位相同 | wc-20261119-014042-ffc9 |
+| 2. 显式写出原来四项缺省（`..._crossing_first_order`），250²，700 步；3cba19f | 改动之前的提交（48d370f，冻结检出）上缺省运行（`..._crossing`，当时不写开关、没有约束）的 6 个转储 | 1 个结果类。类 0：参照 6 次，本算例 6 次 | 逐位相同 | wc-20261119-013832-dfc0 |
+| 2. 显式写出原来四项缺省（`..._crossing_first_order`），250²，700 步；8a7f02d | 改动之前的提交（48d370f，冻结检出）上缺省运行（`..._crossing`，当时不写开关、没有约束）的 6 个转储 | 1 个结果类。类 0：参照 6 次，本算例 6 次 | 逐位相同 | wc-20261119-014003-4b73 |
+| 3. simple，250²，999 步；3cba19f | 基点构建的 2 个转储（2026-11-17，第 2 节起一直用的那 2 个） | 1 个结果类。类 0：参照 2 次，本算例 2 次 | 逐位相同 | wc-20261119-013848-9d89 |
+| 3. simple，250²，999 步；8a7f02d | 基点构建的 2 个转储（2026-11-17，第 2 节起一直用的那 2 个） | 1 个结果类。类 0：参照 2 次，本算例 2 次 | 逐位相同 | wc-20261119-014037-2906 |
+| 3. adami，250²，200 步；3cba19f | 基点构建的 2 个转储（同上） | 1 个结果类。类 0：参照 2 次，本算例 2 次 | 逐位相同 | wc-20261119-013850-2e07 |
+| 3. adami，250²，200 步；8a7f02d | 基点构建的 2 个转储（同上） | 1 个结果类。类 0：参照 2 次，本算例 2 次 | 逐位相同 | wc-20261119-014039-c618 |
+| 3. simple、adami 用的 SPIR-V | 基点（eda5b90）清单里的 23 个文件 | 23 个逐字节相同 | 通过 | MANIFEST.txt |
+| 相对 48d370f 变了的 SPIR-V | 全部 27 个文件 | correction_density_wall_crossing、correction_density_wall_crossing_budget、force_wall_crossing | —（只差缺省字面量，大小不变） | MANIFEST.txt |
+
+- 完整方案两个结果类的摘要（`f7703fe322ff`、`9b7c0f9318cb`）与 `2186032` 上的 24 个转储、第 15 节的回归完全相同。所以从加约束之前到现在，这个配置 700 步的状态没有变过。
+- 约束打开与关闭落在同一对结果类里，原因见 18.2：700 步内速率为 0。
+- 显式写出的一阶落在 `48d370f` 缺省运行的唯一结果类（`ce57192b008e`）里。
+
+**检查 4：单步对照**（容差 1e-4；只列光滑场一项，三个性质检验只报告残差）
+
+| 维数 | 运行组 | 壁面，连续性规则 | 流体粒子 / 其中有壁邻居的 | 反射项的最大值 ÷ 该量的最大值（压力加速度 / 密度变化率） | 新密度与参考解之差（ulp，最大） | 加速度误差 ÷ 逐对项绝对值之和（最大） | 判据值（容差 1e-4） | 收支四项 | 结论 | 记录 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 2-D | 新缺省 | crossing，extrapolate | 2,000 / 731 | 78 % / 2.1 % | 1.10 | 3.5e-07 | 9.1e-06 | — | 通过 | wc-20261119-014051-badf |
+| 2-D | 新缺省 | crossing，wall_velocity | 2,000 / 731 | 78 % / 9.1 % | 1.01 | 3.5e-07 | 8.9e-06 | — | 通过 | wc-20261119-014053-8613 |
+| 2-D | 新缺省，收支构建 | crossing，extrapolate | 2,000 / 731 | 78 % / 2.1 % | 1.10 | 3.5e-07 | 8.8e-06 | 通过 | 通过 | wc-20261119-014100-73e6 |
+| 2-D | 新缺省，收支构建 | crossing，wall_velocity | 2,000 / 731 | 78 % / 9.1 % | 1.01 | 3.5e-07 | 8.8e-06 | 通过 | 通过 | wc-20261119-014102-e0e9 |
+| 2-D | 新缺省，收支构建 | simple | 2,000 | — | — | — | — | 通过 | 通过 | wc-20261119-014104-1b34 |
+| 2-D | 新缺省 + 约束（rate = 2.0） | crossing，extrapolate | 2,000 / 731 | 78 % / 2.1 %；约束项 2.8 % | 1.28 | 3.7e-07 | 8.8e-06 | — | 通过 | wc-20261119-014105-a03f |
+| 2-D | 新缺省 + 约束（rate = 2.0） | crossing，wall_velocity | 2,000 / 731 | 78 % / 8.4 %；约束项 11.1 % | 1.01 | 3.5e-07 | 8.8e-06 | — | 通过 | wc-20261119-014106-a6f6 |
+| 3-D | 新缺省 | crossing，extrapolate | 7,680 / 5,702 | 87 % / 2.6 % | 1.48 | 5.4e-07 | 1.1e-05 | — | 通过 | wc-20261119-014052-9d07 |
+| 3-D | 新缺省 | crossing，wall_velocity | 7,680 / 5,702 | 87 % / 6.1 % | 1.21 | 4.8e-07 | 1.2e-05 | — | 通过 | wc-20261119-014056-6247 |
+
+- 新缺省下两个反射项都不小（压力反射项是压力加速度最大值的 78 % 到 87 %），所以对照确实检验到了它们。
+- 光滑场在新缺省下带重力，这是工具在打开反射时的做法，第 12 节起一直如此。
+
+**检查 5：组合检查**（每条拒绝路径触发一次，另有应当载入的几种）
+
+| 路径 | 组合 | 应当 | 实际 | 信息（原文） | 结论 |
+|---|---|---|---|---|---|
+| parse_wall_crossing_settings | 二阶粘性开关单独打开（新缺省是逐对几何和两个反射） | 拒绝 | 拒绝 | `numerics.wall_crossing: viscous_extension quadratic needs geometry: nearest_wall, pressure_wall: extension, delta_wall: extension written in the case as well (the second-order continuation is not offered with the pairwise geometry, and a reflection needs it; the defaults are geometry pairwise, pressure_wall reflection and delta_wall reflection since 2026-11-19; the second-order runs of 2026-11-18 also had continuity_wall_component: normal); now geometry: pairwise (the default); pressure_wall: reflection (the default); delta_wall: reflection (the default)` | 通过 |
+| parse_wall_crossing_settings | 连续性二阶开关单独打开（还缺粘性二阶） | 拒绝 | 拒绝 | `numerics.wall_crossing: continuity_extension quadratic is offered together with viscous_extension quadratic only (viscous_extension: linear (the default)) / continuity_extension quadratic needs geometry: nearest_wall, pressure_wall: extension, delta_wall: extension written in the case as well (the second-order continuation is not offered with the pairwise geometry, and a reflection needs it; the defaults are geometry pairwise, pressure_wall reflection and delta_wall reflection since 2026-11-19; the second-order runs of 2026-11-18 also had continuity_wall_component: normal); now geometry: pairwise (the default); pressure_wall: reflection (the default); delta_wall: reflection (the default)` | 通过 |
+| parse_wall_crossing_settings | 两个二阶开关都打开（第 10 节的全二阶算例就是这样写的） | 拒绝 | 拒绝 | `numerics.wall_crossing: viscous_extension quadratic and continuity_extension quadratic need geometry: nearest_wall, pressure_wall: extension, delta_wall: extension written in the case as well (the second-order continuation is not offered with the pairwise geometry, and a reflection needs it; the defaults are geometry pairwise, pressure_wall reflection and delta_wall reflection since 2026-11-19; the second-order runs of 2026-11-18 also had continuity_wall_component: normal); now geometry: pairwise (the default); pressure_wall: reflection (the default); delta_wall: reflection (the default)` | 通过 |
+| parse_wall_crossing_settings | 二阶 + 只写了 geometry: nearest_wall（两个反射仍是缺省） | 拒绝 | 拒绝 | `numerics.wall_crossing: viscous_extension quadratic needs geometry: nearest_wall, pressure_wall: extension, delta_wall: extension written in the case as well (the second-order continuation is not offered with the pairwise geometry, and a reflection needs it; the defaults are geometry pairwise, pressure_wall reflection and delta_wall reflection since 2026-11-19; the second-order runs of 2026-11-18 also had continuity_wall_component: normal); now pressure_wall: reflection (the default); delta_wall: reflection (the default)` | 通过 |
+| parse_wall_crossing_settings | 只写 geometry: nearest_wall（两个反射仍是缺省） | 拒绝 | 拒绝 | `numerics.wall_crossing: a reflection needs geometry: pairwise; with geometry: nearest_wall (written in the case) write pressure_wall: extension and delta_wall: extension as well (delta_wall may also be a diagnostic value; the defaults of pressure_wall and delta_wall are reflection since 2026-11-19); now pressure_wall: reflection (the default); delta_wall: reflection (the default)` | 通过 |
+| parse_wall_crossing_settings | nearest_wall + 压力 extension，密度反射仍是缺省 | 拒绝 | 拒绝 | `numerics.wall_crossing: a reflection needs geometry: pairwise; with geometry: nearest_wall (written in the case) write delta_wall: extension as well (delta_wall may also be a diagnostic value; the defaults of pressure_wall and delta_wall are reflection since 2026-11-19); now delta_wall: reflection (the default)` | 通过 |
+| parse_wall_crossing_settings | nearest_wall + 密度 extension，压力反射仍是缺省 | 拒绝 | 拒绝 | `numerics.wall_crossing: a reflection needs geometry: pairwise; with geometry: nearest_wall (written in the case) write pressure_wall: extension as well (delta_wall may also be a diagnostic value; the defaults of pressure_wall and delta_wall are reflection since 2026-11-19); now pressure_wall: reflection (the default)` | 通过 |
+| parse_wall_crossing_settings | 改动之前就有的拒绝（连续性二阶不能与 wall_velocity 同用），检查它仍在 | 拒绝 | 拒绝 | `numerics.wall_crossing: continuity_extension quadratic continues the velocity across the wall; it cannot be combined with continuity wall_velocity` | 通过 |
+| parse_wall_crossing_settings | 不写任何开关：完整方案 | 载入 | 载入 | `pairwise / full / reflection / reflection / linear / linear` | 通过 |
+| parse_wall_crossing_settings | 原来的四项缺省显式写出（一阶） | 载入 | 载入 | `nearest_wall / normal / extension / extension / linear / linear` | 通过 |
+| parse_wall_crossing_settings | 二阶 + 报错信息要求的三项：可以载入 | 载入 | 载入 | `nearest_wall / full / extension / extension / quadratic / quadratic` | 通过 |
+| parse_wall_crossing_settings | nearest_wall 配诊断值 rest_density（不是反射）：可以载入 | 载入 | 载入 | `nearest_wall / full / extension / rest_density / linear / linear` | 通过 |
+| load_case_v7 | 第 10 节的二阶算例文件（没有改） | 拒绝 | 拒绝 | `numerics.wall_crossing: viscous_extension quadratic needs geometry: nearest_wall, pressure_wall: extension, delta_wall: extension written in the case as well (the second-order continuation is not offered with the pairwise geometry, and a reflection needs it; the defaults are geometry pairwise, pressure_wall reflection and delta_wall reflection since 2026-11-19; the second-order runs of 2026-11-18 also had continuity_wall_component: normal); now geometry: pairwise (the default); pressure_wall: reflection (the default); delta_wall: reflection (the default)` | 通过 |
+| load_case_v7 | 第 10 节的二阶算例文件（没有改） | 拒绝 | 拒绝 | `numerics.wall_crossing: viscous_extension quadratic and continuity_extension quadratic need geometry: nearest_wall, pressure_wall: extension, delta_wall: extension written in the case as well (the second-order continuation is not offered with the pairwise geometry, and a reflection needs it; the defaults are geometry pairwise, pressure_wall reflection and delta_wall reflection since 2026-11-19; the second-order runs of 2026-11-18 also had continuity_wall_component: normal); now geometry: pairwise (the default); pressure_wall: reflection (the default); delta_wall: reflection (the default)` | 通过 |
+| single_step.py | 单步工具：只给二阶开关 | 拒绝 | 拒绝 | `single_step.py: error: a quadratic extension needs --geometry nearest_wall --pressure-wall extension --delta-wall extension (now geometry pairwise, pressure_wall reflection, delta_wall reflection)` | 通过 |
+| SphSimulatorV7 (V7_DENSITY_BUDGET=1) | 缺省方腔算例（现在带约束）用收支构建 | 拒绝 | 拒绝 | `ValueError: numerics.volume_constraint and V7_DENSITY_BUDGET=1 together are not supported: the budget's four terms do not contain the constraint's term. The default crossing cases carry the constraint since 2026-11-19; for the budget take a case without it (the 250^2 cavity: cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_constraint_off)` | 通过 |
+
+**检查 6：现有测试**
+
+| 测试 | 结果 | 结论 | 记录 |
+|---|---|---|---|
+| `_test_chain_cuts.py` | ALL PASS | 通过 | wc-20261119-014152-f1bc |
+| `_test_partition_chain.py` | 没有跑起来：输入文件不在本检出里（'C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-wall-crossing\\cases\\lid_driven_cavity_2d\\domain.obj'） | 没有运行（改动前同样） | wc-20261119-014152-e2ad |
+| `_test_transport_relay.py` | ALL PASS | 通过 | wc-20261119-014152-2030 |
+| `_test_weight_calibration.py` | ALL PASS | 通过 | wc-20261119-014210-5bc7 |
+| `_test_seam_layout.py` | 858 条失败，与基点的清单逐行相同；其中 SPIR-V 新鲜度一段通过（没有一条过期、编译失败或多余的文件） | 通过（标准同前：失败清单与基点相同） | wc-20261119-014210-05d4 |
+
+### 18.4 算例
+
+| 类别 | 算例（`cases/` 下） | 说明 |
+|---|---|---|
+| 加上约束（缺省算例） | `cavity3d_1m_crossing`<br>`lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_crossing`<br>`lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing`<br>`lid_driven_cavity_2d_n500_xi0p001_eps0p0025_crossing`<br>`wall_crossing/hydrostatic_2d_n250_g30_crossing`<br>`wall_crossing/hydrostatic_2d_n250_gy_crossing`<br>`wall_crossing/hydrostatic_3d_n48_gtilt_crossing`<br>`wall_crossing/hydrostatic_3d_n48_gy_crossing` | 开关不写（取新缺省），约束打开 |
+| 新建（回归检查用） | `lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_constraint_off`<br>`lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_first_order` | `_constraint_off`：不写开关、没有约束；`_first_order`：原来四项缺省显式写出、没有约束 |
+| 没动，含义不变 | `lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_reflection_full`<br>`lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_reflection_full_volume`<br>`lid_driven_cavity_2d_n500_xi0p001_eps0p0025_crossing_reflection_full_volume`<br>`wall_crossing/hydrostatic_2d_n250_g30_crossing_reflection_full_volume`<br>`wall_crossing/hydrostatic_2d_n250_gy_crossing_reflection_full_volume` | 四项都显式写着 |
+| 没动，含义变了（10 个） | `cavity3d_1m_crossing_wall_velocity`<br>`lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_crossing_wall_velocity`<br>`lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_floor0p5`<br>`lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_no_pst`<br>`lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_wall_velocity`<br>`lid_driven_cavity_2d_n500_xi0p001_eps0p0025_crossing_wall_velocity`<br>`wall_crossing/hydrostatic_2d_n250_g30_crossing_wall_velocity`<br>`wall_crossing/hydrostatic_2d_n250_gy_crossing_wall_velocity`<br>`wall_crossing/hydrostatic_3d_n48_gtilt_crossing_wall_velocity`<br>`wall_crossing/hydrostatic_3d_n48_gy_crossing_wall_velocity` | 只写了一部分开关的诊断算例，其余取缺省：geometry nearest_wall → pairwise, continuity_wall_component normal → full, pressure_wall extension → reflection, delta_wall extension → reflection |
+| 没动，含义变了（5 个） | `lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_delta_wall_body_force`<br>`lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_delta_wall_rest_density`<br>`lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_wall_velocity_delta_wall_rest_density`<br>`wall_crossing/hydrostatic_2d_n250_g30_crossing_delta_wall_body_force`<br>`wall_crossing/hydrostatic_2d_n250_gy_crossing_delta_wall_body_force` | 只写了一部分开关的诊断算例，其余取缺省：geometry nearest_wall → pairwise, continuity_wall_component normal → full, pressure_wall extension → reflection |
+| 没动，含义变了（3 个） | `lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_reflection`<br>`wall_crossing/hydrostatic_2d_n250_g30_crossing_reflection`<br>`wall_crossing/hydrostatic_2d_n250_gy_crossing_reflection` | 只写了一部分开关的诊断算例，其余取缺省：continuity_wall_component normal → full |
+| 没动，含义变了（2 个） | `lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_continuity_full`<br>`lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_continuity_normal` | 只写了一部分开关的诊断算例，其余取缺省：geometry nearest_wall → pairwise, pressure_wall extension → reflection, delta_wall extension → reflection |
+| 没动，含义变了（1 个） | `lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_pairwise` | 只写了一部分开关的诊断算例，其余取缺省：continuity_wall_component normal → full, pressure_wall extension → reflection, delta_wall extension → reflection |
+| 没动，含义变了（1 个） | `lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_pairwise_delta_reflection` | 只写了一部分开关的诊断算例，其余取缺省：continuity_wall_component normal → full, pressure_wall extension → reflection |
+| 没动，含义变了（1 个） | `lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_pairwise_full` | 只写了一部分开关的诊断算例，其余取缺省：pressure_wall extension → reflection, delta_wall extension → reflection |
+| 没动，含义变了（1 个） | `lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_pairwise_pressure_reflection` | 只写了一部分开关的诊断算例，其余取缺省：continuity_wall_component normal → full, delta_wall extension → reflection |
+| 没动，现在载入时报错 | `lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_quadratic_full`<br>`lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_quadratic_full_floor0p5`<br>`lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_quadratic_viscous`<br>`lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_quadratic_viscous_floor0p5`<br>`lid_driven_cavity_2d_n500_xi0p001_eps0p0025_crossing_quadratic_full`<br>`lid_driven_cavity_2d_n500_xi0p001_eps0p0025_crossing_quadratic_viscous`<br>`wall_crossing/hydrostatic_2d_n250_g30_crossing_quadratic_full`<br>`wall_crossing/hydrostatic_2d_n250_g30_crossing_quadratic_viscous`<br>`wall_crossing/hydrostatic_2d_n250_gy_crossing_quadratic_full`<br>`wall_crossing/hydrostatic_2d_n250_gy_crossing_quadratic_viscous` | 二阶算例：报错信息要求同时写 geometry: nearest_wall、pressure_wall: extension、delta_wall: extension |
+
+- "含义不变"的 5 个是显式写全了完整方案的算例，它们正好等于新缺省（或新缺省加约束）。
+- 含义变了的诊断算例里，`..._crossing_continuity_full` 现在等于完整方案。`..._crossing_continuity_normal` 现在等于第 12 节的反射版（逐对几何 + 法向分量 + 两个反射）。
+
+### 18.5 缺省值从哪个提交起改变
+
+| 时期 | 提交 | `geometry` | `continuity_wall_component` | `pressure_wall` | `delta_wall` | `runs.jsonl` 里用 crossing 算例的记录 |
+|---|---|---|---|---|---|---|
+| 2026-11-17 起 | 第 2 节的提交到 `44e4e6f` 之前 | nearest_wall | full | extension | extension | 511 条 |
+| 2026-11-18 09:58 起 | `44e4e6f` 到 `48d370f` | nearest_wall | normal | extension | extension | 290 条 |
+| 2026-11-19 01:36 起 | `3cba19f` 起 | pairwise | full | reflection | reflection | 163 条（都是本节的检查） |
+
+- **此前 `runs.jsonl` 里 crossing 的运行用的是当时的缺省**：一条记录没有写出的开关，取的是它所在时期的值。记录里的算例路径同理，例如 2026-11-19 之前的 `cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing` 指一阶（11-18 起，各节叫"现缺省"）或一阶加完整向量（11-17，各节叫"旧缺省"）；现在它指完整方案加约束。
+- 记录的时期以 `started` 时间与上面两个提交的时间比较得出；记录里的 `commit` 字段也能直接看出。
+- 已有的方腔运行目录不能用新代码续跑：运行器比较物理代码的哈希，改了缺省之后对不上，会拒绝。这是预期的行为。
+
+### 18.6 没做或没验证的
+
+- **没有任何长时间运行**（按指示）。1000² 方腔、3-D 方腔、3-D 静水盒在新缺省加约束下一步都没有跑过。3-D 的着色器路径只由一步的单步对照覆盖。
+- **多卡**：缺省算例现在带约束，约束的多卡求和仍未验证（同第 15 节）。`k2_equivalence.py` 等工具的示例命令用的就是这些算例。
+- **约束在 700 步的逐位窗口里不更新**（18.2），非零速率只在单步里验证过。
+- 诊断算例变了的含义只列在表里，没有逐个评估它们现在是否还有意义。
+- 没有改 `simple` / `adami` 的任何数值或缺省，没有改 2.1 以外的缺省，没有改 SoA 布局、ghost 记录格式或 ghost 层数。
+
 ## 附录 A：工具与验收的对应
 
 | 工具（`experiment/wall_crossing/`） | 用途 | 验收项 |
@@ -4372,6 +4567,7 @@ Re = 1000 方腔对 Marchi 2021，K = 1，最后 20 个时间单位平均。括�
 | `cavity_watch.py` | 第 13 节：看着一次方腔运行，只在流体越出盒或最大速度超过线时停掉它 | — |
 | `stream_function_check.py` | 第 16 节：后处理的检验（解析场、四条积分路径、涡心），只用已有的快照 | — |
 | `continuation_check.py` | 第 17 节：续跑到 t = 200 的三个窗口、动能、约束的目标值和平均密度 | — |
+| `default_change.py` | 第 18 节：缺省改为完整方案之后的组合检查、现有测试和本节的表（检查 1 到 3 用 `outcome_classes.py`，检查 4 用 `single_step.py`） | — |
 | `report_figures.py`、`report_tables.py` | 本报告的图、表和拼装 | — |
 
 ## 附录 B：结果文件的位置
@@ -4395,4 +4591,5 @@ Re = 1000 方腔对 Marchi 2021，K = 1，最后 20 个时间单位平均。括�
 - 第 15 节：`logs/wall_crossing/cavity/n250_reflection_full_volume/`、`n500_reflection_full_volume/`（各有 `volume_constraint.jsonl`：每次更新的时间、θ、rate），短跑 `logs/wall_crossing/box_run/short_n250_reflection_full_volume/`，静水盒 `logs/wall_crossing/hydrostatic/2d_n250_*_crossing_reflection_full_volume/`；汇总 `claude/wall_crossing/pairwise_reflection/volume_constraint.json`。
 - 第 16 节：只用已有的快照；时间平均的速度网格缓存在 `logs/wall_crossing/stream_function_check/`，汇总 `claude/wall_crossing/stream_function_check/summary.json`。
 - 第 17 节：`logs/wall_crossing/cavity/n250_reflection_full_volume_to200/`（原运行目录的副本，从 t = 90.72 续跑；130–150 的快照在 `snapshots_extra/`）；汇总 `claude/wall_crossing/continuation/summary.json`。
+- 第 18 节：`logs/wall_crossing/outcome_classes/`（`default_*`、`first_order_explicit_*`、`old_default_at_48d370f_s700`、`simple_against_base_at_*`、`adami_against_base_at_*`），`logs/wall_crossing/single_step_default_complete_scheme/`，`logs/wall_crossing/default_change/`，`logs/wall_crossing/tests/default_complete_scheme_*.log`。
 - 图：`claude/wall_crossing/figures/`；表：`claude/wall_crossing/tables/`。

@@ -43,6 +43,8 @@ from experiment.wall_crossing.run_log import LOG_ROOT, LoggedRun     # noqa: E40
 
 DEFAULT_COMMIT = "3cba19f"          # the commit that changes the defaults
 BEFORE_COMMIT = "48d370f"           # the last commit with the defaults of 2026-11-18
+CHECK_COMMIT = "8a7f02d"            # 3cba19f + the wording of two refusals: checks 1 to 3 repeated, 4 to 6 run here
+                                    # (4 and 6 on 380ea90, which adds only this tool's tables)
 REPORT_ROOT = REPOSITORY_ROOT / "claude" / "wall_crossing"
 OUT = LOG_ROOT / "default_change"
 SINGLE_STEP_OUT = "logs/wall_crossing/single_step_default_complete_scheme"
@@ -131,10 +133,13 @@ def combinations(gpu_device: int | None) -> int:
             # the volume constraint of the default 250^2 case with the density budget build: refused by the
             # simulator at construction (canonical_dump of one step)
             dump = OUT / "budget_with_constraint_unused.npz"
+            # canonical_dump replaces every V7_ variable of the environment by the release set: the budget build
+            # is asked for with its own --env (and without the deep-wall skip, which the budget build refuses)
             command = [sys.executable, str(REPOSITORY_ROOT / "experiment" / "seam_audit" / "canonical_dump.py"),
                        "--solver", "v7", "--case", f"{CAVITY}_crossing/case.yaml", "--device-map", str(gpu_device),
-                       "--steps", "1", "--canonical-lists", "--out", str(dump)]
-            environment = dict(os.environ, V7_DENSITY_BUDGET="1", PYTHONIOENCODING="utf-8",
+                       "--steps", "1", "--canonical-lists", "--env", "V7_DENSITY_BUDGET=1",
+                       "--env", "V7_DEEP_WALL_SKIP=0", "--out", str(dump)]
+            environment = dict(os.environ, PYTHONIOENCODING="utf-8",
                                VK_LOADER_LAYERS_DISABLE="VK_LAYER_KHRONOS_validation")
             completed = subprocess.run(command, cwd=REPOSITORY_ROOT, capture_output=True, text=True,
                                        encoding="utf-8", env=environment)
@@ -196,7 +201,9 @@ def tests() -> int:
                 base = sorted(line.rstrip("\r") for line in
                               (directory / "failures_base.txt").read_text(encoding="utf-8").splitlines() if line.strip())
                 entry.update({"failures": len(failures), "failures_base": len(base), "same_as_base": failures == base,
-                              "spirv_current": "check_spirv_current" not in "\n".join(failures)})
+                              # check_spirv_current adds a failure for a stale, uncompilable or stray file
+                              "spirv_current": not any(("stale" in line) or ("glslc failed" in line)
+                                                       or ("without a source" in line) for line in failures)})
             if "FileNotFoundError" in text:
                 entry["missing_input"] = next(line for line in text.splitlines() if "FileNotFoundError" in line)[:300]
             summary[script] = entry
@@ -254,22 +261,26 @@ def tables() -> int:
     summary = {}
     # ---------------------------------------------------------------- regression (checks 1 to 3) and the manifest
     rows = []
+    # every check was run on the commit that changes the defaults and again on CHECK_COMMIT (the same code apart
+    # from the wording of two refusals); the runs of 3cba19f carry no commit in their names
     for name, check_text, reference_text in (
-            ("default_against_explicit_complete_scheme_s700",
+            ("default_against_explicit_complete_scheme{at}_s700",
              "1. 新缺省、约束关闭（`..._crossing_constraint_off`：不写开关，不写约束），250²，700 步",
-             f"同一提交（{DEFAULT_COMMIT}）上显式写出完整方案的 `..._crossing_reflection_full`，交替运行"),
-            ("default_volume_against_explicit_complete_scheme_volume_s700",
+             "同一提交上显式写出完整方案的 `..._crossing_reflection_full`，交替运行"),
+            ("default_volume_against_explicit_complete_scheme_volume{at}_s700",
              "1. 新缺省、约束打开（`..._crossing`：不写开关，约束打开），250²，700 步",
-             f"同一提交上显式写出完整方案并打开约束的 `..._crossing_reflection_full_volume`，交替运行"),
-            ("first_order_explicit_against_48d370f_s700",
-             f"2. 显式写出原来四项缺省（`..._crossing_first_order`），{DEFAULT_COMMIT}，250²，700 步",
+             "同一提交上显式写出完整方案并打开约束的 `..._crossing_reflection_full_volume`，交替运行"),
+            ("first_order_explicit_against_48d370f{at}_s700",
+             "2. 显式写出原来四项缺省（`..._crossing_first_order`），250²，700 步",
              f"改动之前的提交（{BEFORE_COMMIT}，冻结检出）上缺省运行（`..._crossing`，当时不写开关、没有约束）的 6 个转储"),
-            ("simple_against_base_at_3cba19f_s999", "3. simple，250²，999 步",
+            ("simple_against_base{at3}_s999", "3. simple，250²，999 步",
              "基点构建的 2 个转储（2026-11-17，第 2 节起一直用的那 2 个）"),
-            ("adami_against_base_at_3cba19f_s200", "3. adami，250²，200 步", "基点构建的 2 个转储（同上）")):
-        row = classes_row(name, check_text, reference_text)
-        if row is not None:
-            rows.append(row)
+            ("adami_against_base{at3}_s200", "3. adami，250²，200 步", "基点构建的 2 个转储（同上）")):
+        for commit, at, at3 in ((DEFAULT_COMMIT, "", f"_at_{DEFAULT_COMMIT}"),
+                                (CHECK_COMMIT, f"_at_{CHECK_COMMIT}", f"_at_{CHECK_COMMIT}")):
+            row = classes_row(name.format(at=at, at3=at3), f"{check_text}；{commit}", reference_text)
+            if row is not None:
+                rows.append(row)
     manifest_now = manifest_rows((REPOSITORY_ROOT / "experiment/v7/shaders/spv/MANIFEST.txt").read_text(encoding="utf-8"))
     manifest_base = manifest_rows(git_show("eda5b90", "experiment/v7/shaders/spv/MANIFEST.txt"))
     manifest_before = manifest_rows(git_show(BEFORE_COMMIT, "experiment/v7/shaders/spv/MANIFEST.txt"))
@@ -344,7 +355,9 @@ def tables() -> int:
         for script, entry in results.items():
             if script == "_test_seam_layout":
                 result = (f"{entry['failures']} 条失败，" + ("与基点的清单逐行相同" if entry["same_as_base"]
-                                                       else "**与基点的清单不同**"))
+                                                       else "**与基点的清单不同**")
+                          + "；其中 SPIR-V 新鲜度一段" + ("通过（没有一条过期、编译失败或多余的文件）"
+                                                        if entry.get("spirv_current") else "**不通过**"))
                 verdict = "通过（标准同前：失败清单与基点相同）" if entry["same_as_base"] else "**不通过**"
             elif entry.get("missing_input"):
                 result = "没有跑起来：输入文件不在本检出里（" + entry["missing_input"].split("such file or directory:")[-1].strip()[:120] + "）"
@@ -391,11 +404,15 @@ def tables() -> int:
              "开关不写（取新缺省），约束打开"],
             ["新建（回归检查用）", "<br>".join(f"`{name}`" for name in groups["new"]),
              "`_constraint_off`：不写开关、没有约束；`_first_order`：原来四项缺省显式写出、没有约束"],
-            ["没动，含义不变", "<br>".join(f"`{name}`" for name in groups["same"]), "四项都显式写着"],
-            ["没动，含义变了（诊断算例）", "<br>".join(f"`{name}`：{change}" for name, change in groups["changed"]),
-             "它们只写了一部分开关，其余取缺省"],
-            ["没动，现在载入时报错", "<br>".join(f"`{name}`" for name in groups["refused"]),
-             "二阶算例：报错信息要求同时写 geometry: nearest_wall、pressure_wall: extension、delta_wall: extension"]]
+            ["没动，含义不变", "<br>".join(f"`{name}`" for name in groups["same"]), "四项都显式写着"]]
+    by_change: dict = {}
+    for name, change in groups["changed"]:
+        by_change.setdefault(change, []).append(name)
+    for change, names in sorted(by_change.items(), key=lambda item: -len(item[1])):
+        rows.append([f"没动，含义变了（{len(names)} 个）", "<br>".join(f"`{name}`" for name in names),
+                     f"只写了一部分开关的诊断算例，其余取缺省：{change}"])
+    rows.append(["没动，现在载入时报错", "<br>".join(f"`{name}`" for name in groups["refused"]),
+                 "二阶算例：报错信息要求同时写 geometry: nearest_wall、pressure_wall: extension、delta_wall: extension"])
     summary["cases"] = {key: len(value) for key, value in groups.items()}
     write_table("default_change_cases.md", markdown_table(["类别", "算例（`cases/` 下）", "说明"], rows))
     OUT.mkdir(parents=True, exist_ok=True)
