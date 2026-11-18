@@ -585,7 +585,7 @@ def run_configuration(out_root: pathlib.Path, dimension: int, device_index: int,
                       wall_boundary: str, continuity: str, distance_floor_factor: float, tolerance: float,
                       delta_wall: str = "extension", continuity_wall_component: str = "normal",
                       density_budget: bool = False, viscous_extension: str = "linear",
-                      continuity_extension: str = "linear") -> dict:
+                      continuity_extension: str = "linear", determinant_threshold: float | None = None) -> dict:
     label = f"{dimension}d_{configuration}_{wall_boundary}" + (f"_{continuity}" if wall_boundary == "crossing" else "")
     if wall_boundary == "crossing" and delta_wall != "extension":
         label += f"_delta_wall_{delta_wall}"
@@ -595,6 +595,8 @@ def run_configuration(out_root: pathlib.Path, dimension: int, device_index: int,
         label += f"_wall_component_{continuity_wall_component}"
     if wall_boundary == "crossing":
         label += extension_suffix(viscous_extension, continuity_extension)
+    if determinant_threshold is not None:
+        label += "_det_threshold_" + repr(determinant_threshold).replace(".", "p")
     if density_budget:
         label += "_budget"
     directory = out_root / label
@@ -603,6 +605,8 @@ def run_configuration(out_root: pathlib.Path, dimension: int, device_index: int,
     specification.continuity_wall_component = continuity_wall_component
     specification.viscous_extension = viscous_extension
     specification.continuity_extension = continuity_extension
+    if determinant_threshold is not None:
+        specification.regularization_determinant_threshold = determinant_threshold
     if wall_boundary == "crossing" and delta_wall == "body_force" and configuration == "smooth":
         specification.gravity = BODY_FORCE_SMOOTH_GRAVITY[dimension]
     case_path = write_box_case(directory / "case", specification)
@@ -746,6 +750,10 @@ def main() -> int:
     parser.add_argument("--continuity-extension", default="linear", choices=("linear", "quadratic"),
                         help="numerics.wall_crossing.continuity_extension of the crossing runs (quadratic: with "
                              "--viscous-extension quadratic, continuity extrapolate only)")
+    parser.add_argument("--determinant-threshold", type=float, default=None,
+                        help="test of the fallback paths: numerics.regularization.det_threshold of the cases "
+                             "(default: the cases' 1e-4). About 1 puts a part of the particles on the identity "
+                             "fallback of L (and of A_f), and with a quadratic extension on the first-order rule")
     parser.add_argument("--density-budget", action="store_true",
                         help="diagnostic: run with V7_DENSITY_BUDGET=1 and compare the four budget terms with the "
                              "reference (crossing and, in the smooth configuration, simple)")
@@ -775,7 +783,8 @@ def main() -> int:
                                               "crossing", continuity, arguments.distance_floor_factor,
                                               arguments.tolerance, arguments.delta_wall,
                                               arguments.continuity_wall_component, arguments.density_budget,
-                                              arguments.viscous_extension, arguments.continuity_extension))
+                                              arguments.viscous_extension, arguments.continuity_extension,
+                                              arguments.determinant_threshold))
             _print_outcome(outcomes[-1])
         if arguments.density_budget and configuration == "smooth":
             outcomes.append(run_configuration(out_root, arguments.dimension, arguments.device, configuration,
@@ -794,6 +803,8 @@ def main() -> int:
                                + ("" if arguments.continuity_wall_component == "full"
                                   else f"_wall_component_{arguments.continuity_wall_component}")
                                + extension_suffix(arguments.viscous_extension, arguments.continuity_extension)
+                               + ("" if arguments.determinant_threshold is None else
+                                  "_det_threshold_" + repr(arguments.determinant_threshold).replace(".", "p"))
                                + ("_budget" if arguments.density_budget else "")
                                + ".json")
     summary_path.write_text(json.dumps(outcomes, indent=2), encoding="utf-8", newline="\n")

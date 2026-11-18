@@ -55,6 +55,9 @@ class BoxCaseSpecification:
     seed: int = 20261117
     delta_coefficient: float = 0.1
     regularization_xi: float = 0.001
+    # |det| of the regularised correction matrix at or below this -> the identity (the solver's fallback); the
+    # cases' value. A larger value (about 1) forces a part of the particles onto the fallback: a test of that path.
+    regularization_determinant_threshold: float = 1.0e-4
     epsilon_squared_factor: float = 0.0025
     use_density_diffusion: bool = True
     use_pst: bool = True
@@ -191,7 +194,7 @@ def write_box_case(directory: pathlib.Path, specification: BoxCaseSpecification)
         "  use_kcg_correction: true",
         "  regularization:",
         f"    xi: {specification.regularization_xi!r}",
-        "    det_threshold: 1.0e-4",
+        f"    det_threshold: {specification.regularization_determinant_threshold!r}",
         "    frobenius_max: 10.0",
         f"  epsilon_squared_factor: {specification.epsilon_squared_factor!r}",
         f"  use_pst: {'true' if specification.use_pst else 'false'}",

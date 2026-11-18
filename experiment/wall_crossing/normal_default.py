@@ -550,8 +550,10 @@ def cavity(modes: tuple = CAVITY_MODES, extra_runs: tuple = CAVITY_EXTRA_RUNS, p
                                else entry["deviation_percent"]))
             if not points:
                 continue
+            # the first mode of the list is drawn on top (two modes whose values nearly coincide stay visible)
             line, = axis.plot([point[0] for point in points], [point[1] for point in points], color=colour,
-                              marker=marker, markersize=7, markeredgecolor=SURFACE, markeredgewidth=1.5, zorder=3)
+                              marker=marker, markersize=7, markeredgecolor=SURFACE, markeredgewidth=1.5,
+                              zorder=3 + 0.1 * (len(modes) - [entry[0] for entry in modes].index(mode)))
             handles[text] = line
             if mode in labelled_modes:
                 for resolution, value in points:

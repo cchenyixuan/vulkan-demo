@@ -126,10 +126,16 @@ DIAGNOSTIC_REGION_GROUPS = (("静止壁带（左、右、下）", ("left", "righ
                             ("盖的右角（下游）", ("top_right",)))
 DIFFUSION_NUMBER_FLAG = 0.1
 HYDROSTATIC_DIRECTIONS = {"gy": "重力沿 −y", "g30": "重力偏离 −y 30°"}
-LONG_RUN_INSTANTS = (1.0, 5.0, 10.0, 20.0, 40.0, 60.0, 80.0, 100.0)
+LONG_RUN_INSTANTS = (0.2, 1.0, 5.0, 10.0, 20.0, 40.0, 60.0, 80.0, 100.0)
 RATE_WINDOWS = ((1.0, 5.0), (20.0, 60.0))
+# the last four: the fallback test (single_step.py --determinant-threshold: the determinant threshold of L at the
+# median of the box's determinants, 1.27 in 2-D and 1.26 in 3-D, so about half of the particles fall back)
 SINGLE_STEP_SUFFIXES = (("二阶粘性", "_extension_quadratic_viscous"), ("全二阶", "_extension_quadratic_full"),
-                        ("一阶（两个开关都是 linear）", ""))
+                        ("一阶（两个开关都是 linear）", ""),
+                        ("二阶粘性，回退测试", "_extension_quadratic_viscous_det_threshold_1p27"),
+                        ("全二阶，回退测试", "_extension_quadratic_full_det_threshold_1p27"),
+                        ("二阶粘性，回退测试", "_extension_quadratic_viscous_det_threshold_1p26"),
+                        ("全二阶，回退测试", "_extension_quadratic_full_det_threshold_1p26"))
 
 
 def tables() -> int:
@@ -227,7 +233,8 @@ def tables() -> int:
                         f"{comparisons['acceleration']['error_over_pair_term_sum_maximum']:.1e}",
                         f"{comparisons['density_rate']['relative_error_beyond_one_ulp_maximum']:.1e}",
                         "—" if not budget else f"{budget['worst_term_error_over_pair_terms_times_10']:.1e}",
-                        "—" if not second_order else str(second_order["second_order_fallbacks"]),
+                        "—" if not second_order else
+                        f"{second_order['second_order_fallbacks']}（解出 {second_order['second_order_solved']}）",
                         f"{reference['worst_relative_error']:.1e}",
                         "通过" if outcome["passed"] else "**不通过**", outcome["run_id"]])
                     summary["single_step"][outcome["label"]] = {
@@ -472,15 +479,18 @@ def tables() -> int:
         figure, axes = plt.subplots(1, 3, figsize=(13.6, 4.2))
         panels = (("density_mean", lambda values: values - normal_default.REST_DENSITY, "流体平均密度 − ρ0（kg/m³）"),
                   ("pressure_mean", lambda values: values / normal_default.DYNAMIC_PRESSURE, "流体平均压力 / (ρ0 U²)"),
-                  ("pressure_negative_fraction", lambda values: 100.0 * values, "负压粒子比例（%）"))
+                  ("pressure_negative_fraction", lambda values: 100.0 * values, "负压粒子比例（%），t ≥ 1"))
         handles, labels = [], []
         for axis, (key, transform, title) in zip(axes, panels):
             for name, text, colour, style in long_runs:
                 history = histories.get(name)
                 if not history or name == "n250_crossing_quadratic_viscous":
                     continue
-                line, = axis.plot(history["time"], transform(history[key]), color=colour, linestyle=style, zorder=3,
-                                  linewidth=1.6)
+                # the share of negative pressures from t = 1 on: the first samples (the start from rest; the
+                # table has t = 0.2) are tens of times larger than everything after them
+                shown = history["time"] >= (1.0 if key == "pressure_negative_fraction" else 0.0)
+                line, = axis.plot(history["time"][shown], transform(history[key][shown]), color=colour,
+                                  linestyle=style, zorder=3, linewidth=1.6)
                 if axis is axes[0]:
                     handles.append(line)
                     labels.append(text)
@@ -506,6 +516,9 @@ def tables() -> int:
                 ("n250_crossing_normal_rho_minus_0p45", "一阶，初始密度 ρ0 − 0.45", -0.45),
                 ("n250_crossing", "旧缺省（一阶，完整向量），正常起步", None))
     control_histories = {name: normal_default.load_field_history(name) for name, _, _ in controls}
+    # a run that has not reached t = 99 yet (still running) is left out
+    control_histories = {name: history for name, history in control_histories.items()
+                         if history and history["time"][-1] >= 99.0}
     if control_histories.get("n250_crossing_normal_rho_minus"):
         summary["control"] = {}
         rows, history_rows = [], []
