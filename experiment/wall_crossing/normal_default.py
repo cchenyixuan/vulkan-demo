@@ -429,11 +429,14 @@ def hydrostatic(records_by_id: dict) -> dict:
 
 def cavity(modes: tuple = CAVITY_MODES, extra_runs: tuple = CAVITY_EXTRA_RUNS, prefix: str = "normal_default",
            required_mode: str = "crossing_normal", labelled_modes: tuple = ("crossing_normal", "crossing"),
-           figure_title: str = "Re = 1000 方腔：四个极值相对 Marchi 2021 的偏差（ψ_min 用 wall 帧）") -> dict:
+           figure_title: str = "Re = 1000 方腔：四个极值相对 Marchi 2021 的偏差（ψ_min 用 wall 帧）",
+           labels_beside: bool = False) -> dict:
     """The metric tables (<prefix>_cavity.md, _cavity_positions.md, _cavity_order.md) and the figure
     (<prefix>_cavity.png) of the cavity runs of modes ((mode key of cavity_tables.py, text, colour, marker), ...),
     from claude/wall_crossing/cavity/tables.json. Nothing is written unless a run of required_mode exists.
-    labelled_modes: the modes whose values are written beside their markers in the figure."""
+    labelled_modes: the modes whose values are written beside their markers in the figure. labels_beside: the
+    values go outside the pair of resolutions (left of 250^2, right of 500^2) instead of above and below the
+    markers, for labelled modes that lie close to a third one."""
     path = REPORT_ROOT / "cavity" / "tables.json"
     if not path.exists():
         return {}
@@ -562,8 +565,12 @@ def cavity(modes: tuple = CAVITY_MODES, extra_runs: tuple = CAVITY_EXTRA_RUNS, p
         for resolution, values in labelled.items():
             for value in values:
                 above = value == max(values) and len(values) > 1
-                axis.annotate(f"{value:+.2f}", (resolution, value), xytext=(0, 9 if above else -9),
-                              textcoords="offset points", ha="center", va="bottom" if above else "top",
+                sideways = (-11 if resolution == 250 else 11) if labels_beside else 0
+                axis.annotate(f"{value:+.2f}", (resolution, value),
+                              xytext=(sideways, (1 if above else -1) * (2 if labels_beside else 9)),
+                              textcoords="offset points",
+                              ha="center" if not labels_beside else ("right" if resolution == 250 else "left"),
+                              va="bottom" if above else "top",
                               fontsize=8, color=INK_SECONDARY, zorder=4,
                               bbox={"facecolor": SURFACE, "edgecolor": "none", "pad": 0.8})
         axis.axhline(0.0, color=INK_SECONDARY, linewidth=0.8, zorder=2)

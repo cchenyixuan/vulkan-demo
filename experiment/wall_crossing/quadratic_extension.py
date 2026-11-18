@@ -390,6 +390,7 @@ def tables() -> int:
                      "crossing_normal"),
                     ("n250_crossing_r2", "crossing，旧缺省，第二次运行", "crossing")),
         prefix="quadratic", required_mode="quadratic_viscous", labelled_modes=("quadratic_viscous", "crossing_normal"),
+        labels_beside=True,
         figure_title="Re = 1000 方腔：四个极值相对 Marchi 2021 的偏差（ψ_min 用 wall 帧；数字 = 二阶粘性和一阶）")
     if cavity:
         summary["cavity"] = cavity
@@ -479,7 +480,7 @@ def tables() -> int:
         figure, axes = plt.subplots(1, 3, figsize=(13.6, 4.2))
         panels = (("density_mean", lambda values: values - normal_default.REST_DENSITY, "流体平均密度 − ρ0（kg/m³）"),
                   ("pressure_mean", lambda values: values / normal_default.DYNAMIC_PRESSURE, "流体平均压力 / (ρ0 U²)"),
-                  ("pressure_negative_fraction", lambda values: 100.0 * values, "负压粒子比例（%），t ≥ 1"))
+                  ("pressure_negative_fraction", lambda values: 100.0 * values, "负压粒子比例（%），t ≥ 1，5 个时间单位的滑动平均"))
         handles, labels = [], []
         for axis, (key, transform, title) in zip(axes, panels):
             for name, text, colour, style in long_runs:
@@ -489,8 +490,15 @@ def tables() -> int:
                 # the share of negative pressures from t = 1 on: the first samples (the start from rest; the
                 # table has t = 0.2) are tens of times larger than everything after them
                 shown = history["time"] >= (1.0 if key == "pressure_negative_fraction" else 0.0)
-                line, = axis.plot(history["time"][shown], transform(history[key][shown]), color=colour,
-                                  linestyle=style, zorder=3, linewidth=1.6)
+                values = transform(history[key][shown])
+                instants = history["time"][shown]
+                if key == "pressure_negative_fraction":
+                    # a few particles out of 63,001 or 251,001: the samples jump between 0 and one or two
+                    # particles, so the running mean over 25 samples (5 time units) is drawn, where the window
+                    # is complete
+                    values = np.convolve(values, np.ones(25) / 25.0, mode="valid")
+                    instants = instants[12:len(instants) - 12]
+                line, = axis.plot(instants, values, color=colour, linestyle=style, zorder=3, linewidth=1.6)
                 if axis is axes[0]:
                     handles.append(line)
                     labels.append(text)

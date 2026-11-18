@@ -28,5 +28,12 @@
 | `bb7e173` | wall_boundary crossing: analysis of the default change (normal_default.py), earlier tables relabelled |
 | `048be28` | wall_boundary crossing: section 9 of the report, first half (default change, regression checks, short runs) |
 | `19a0b90` | wall_boundary crossing: section 9 of the report complete (cavity statistics at 250^2 and 500^2, long-run histories) |
+| `398f70a` | wall_boundary crossing: report rebuilt (commit table) |
+| `b10c5ea` | wall_crossing tools: cavity_run --initial-density-offset (a run can start from a uniformly shifted fluid density; control experiment for the pressure branch) |
+| `db3d609` | wall_boundary crossing: second-order continuation of the velocity (switches, both linear by default) |
+| `263381b` | wall_crossing tools: numpy exactness study of the second-order continuation (quadratic_accuracy.py); the cavity runner hook reads the second-order states every 20,000 steps (a readback costs 20 / 75 ms at 250^2 / 500^2); single_step: floored criterion for the budget build's diagnostics |
+| `a352556` | wall_crossing tools: section-10 tables (quadratic_extension.py tables), cavity table modes of the second-order runs and the control, normal_default.cavity parameterised |
+| `449bd10` | wall_crossing tools: single_step --determinant-threshold (a test that puts half of the particles on the fallback of the second-order continuation); wall-layer distance statistics, figure fixes |
+| `6296d80` | wall_crossing tools: cavity table label of the second pressure-branch control |
 
 （加入本报告的那个提交排在这些之后。）
