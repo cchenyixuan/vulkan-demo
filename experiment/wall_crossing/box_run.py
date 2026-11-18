@@ -202,8 +202,22 @@ def main() -> int:
     if arguments.resume and restart is None:
         print("[box_run] --resume: no usable checkpoint; starting from the initial state", flush=True)
     start_step = restart["step"] if restart is not None else 0
-    segment = (sum(1 for line in segments_path.read_text(encoding="utf-8").splitlines() if line.strip())
-               if restart is not None and segments_path.exists() else 0)
+    # the segment number: one more than any segment that left a trace (segments.jsonl is written at a segment's
+    # end only, so a killed segment shows in the series rows and the constraint log's markers instead)
+    segment = 0
+    if restart is not None:
+        traces = [-1]
+        traces += [int(json.loads(line)["segment"]) for line in
+                   (segments_path.read_text(encoding="utf-8").splitlines() if segments_path.exists() else [])
+                   if line.strip()]
+        if (out / "series.csv").exists():
+            with open(out / "series.csv", newline="", encoding="utf-8") as handle:
+                traces += [int(float(row["segment"])) for row in csv.DictReader(handle) if row.get("segment")]
+        traces += [int(record["segment"]) for record in
+                   ([json.loads(line) for line in (out / "volume_constraint.jsonl").read_text(encoding="utf-8")
+                     .splitlines() if line.strip()] if (out / "volume_constraint.jsonl").exists() else [])
+                   if "segment_start_step" in record]
+        segment = max(traces) + 1
     if restart is None:
         segments_path.unlink(missing_ok=True)
         (out / "watch_stop.json").unlink(missing_ok=True)
