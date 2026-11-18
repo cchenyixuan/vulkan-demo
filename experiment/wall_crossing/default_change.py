@@ -287,27 +287,42 @@ def tables() -> int:
     # ---------------------------------------------------------------- single step (check 4)
     rows = []
     single_step_root = REPOSITORY_ROOT / SINGLE_STEP_OUT
+    groups = {"": "新缺省", "_budget": "新缺省，收支构建", "_volume_constraint": "新缺省 + 约束（rate = 2.0）"}
+    summary["single_step"] = {}
     for path in sorted(single_step_root.glob("summary_*.json")):
+        stem = path.stem.replace("summary_", "")
+        dimension = stem[:2].upper().replace("D", "-D")
+        group = next((text for suffix, text in sorted(groups.items(), key=lambda item: -len(item[0]))
+                      if stem.endswith("pressure_reflection" + suffix)), stem)
         for outcome in json.loads(path.read_text(encoding="utf-8")):
-            reference = outcome.get("reference")
-            budget = outcome.get("budget")
-            if outcome["configuration"] == "smooth":
-                criterion = (reference or {}).get("criterion_value") if reference else None
-                text = []
-                if reference is not None:
-                    text.append(f"判据值 {reference.get('worst_relative_error', reference.get('criterion', float('nan'))):.1e}"
-                                if isinstance(reference.get('worst_relative_error', reference.get('criterion')), float)
-                                else "参考解对照")
-                if budget is not None:
-                    text.append("收支四项" + ("通过" if budget["passed"] else "**不通过**"))
-                rows.append([path.stem.replace("summary_", ""), outcome["label"], outcome["wall_boundary"],
-                             "；".join(text), "通过" if outcome["passed"] else "**不通过**", outcome["run_id"]])
+            if outcome["configuration"] != "smooth":
+                continue                    # the property configurations: residuals, reported by single_step only
+            reference, budget = outcome.get("reference"), outcome.get("budget")
+            cells = [dimension, group, outcome["wall_boundary"]
+                     + (f"，{outcome['continuity']}" if outcome.get("continuity") else "")]
+            if reference is not None:
+                comparisons, terms = reference["comparisons"], reference["reflection_terms"]
+                cells += [f"{outcome['particles']['fluid']:,} / {reference['counts']['fluid_with_wall_neighbours']:,}",
+                          f"{100 * terms['pressure_reflection_acceleration_maximum'] / terms['pressure_acceleration_maximum']:.0f} % / "
+                          f"{100 * terms['density_reflection_rate_maximum'] / terms['density_rate_maximum']:.1f} %"
+                          + (f"；约束项 {100 * terms['volume_constraint_rate_maximum'] / terms['density_rate_maximum']:.1f} %"
+                             if terms.get("volume_constraint_rate_maximum") else ""),
+                          f"{comparisons['density_rate']['new_density_error_ulp_maximum']:.2f}",
+                          f"{comparisons['acceleration']['error_over_pair_term_sum_maximum']:.1e}",
+                          f"{reference['worst_relative_error']:.1e}"]
             else:
-                rows.append([path.stem.replace("summary_", ""), outcome["label"], outcome["wall_boundary"],
-                             "性质检验（残差，只报告）", "—", outcome["run_id"]])
+                cells += [f"{outcome['particles']['fluid']:,}", "—", "—", "—", "—"]
+            cells.append("—" if budget is None else ("通过" if budget["passed"] else "**不通过**"))
+            cells += ["通过" if outcome["passed"] else "**不通过**", outcome["run_id"]]
+            rows.append(cells)
+            summary["single_step"][outcome["label"]] = {"passed": outcome["passed"], "run_id": outcome["run_id"],
+                                                        "worst": reference["worst_relative_error"] if reference else None}
     if rows:
-        write_table("default_change_single_step.md",
-                    markdown_table(["运行组", "标签", "壁面", "比较", "结论", "记录"], rows))
+        write_table("default_change_single_step.md", markdown_table(
+            ["维数", "运行组", "壁面，连续性规则", "流体粒子 / 其中有壁邻居的",
+             "反射项的最大值 ÷ 该量的最大值（压力加速度 / 密度变化率）",
+             "新密度与参考解之差（ulp，最大）", "加速度误差 ÷ 逐对项绝对值之和（最大）", "判据值（容差 1e-4）",
+             "收支四项", "结论", "记录"], rows))
 
     # ---------------------------------------------------------------- combinations (check 5)
     path = OUT / "combinations.json"
