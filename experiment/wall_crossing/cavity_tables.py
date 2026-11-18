@@ -54,7 +54,7 @@ RESOLUTIONS = (250, 500, 1000)
 # reflection / pairwise*: crossing with the pair-by-pair geometry and the reflections of pressure and density at the
 # wall (experiment/wall_crossing/pairwise_reflection.py: CONFIGURATIONS)
 MODES = ("simple", "adami", "crossing_normal", "reflection", "pairwise_pressure_reflection",
-         "pairwise_delta_reflection", "pairwise", "quadratic_viscous", "crossing_quadratic_viscous",
+         "pairwise_delta_reflection", "pairwise", "pairwise_full", "quadratic_viscous", "crossing_quadratic_viscous",
          "crossing_normal_rho_minus", "crossing_normal_rho_minus_0p45", "crossing", "crossing_r2",
          "crossing_wall_velocity", "crossing_floor0p5")
 MODE_TEXT = {"simple": "simple", "adami": "adami",
@@ -62,6 +62,7 @@ MODE_TEXT = {"simple": "simple", "adami": "adami",
              "pairwise_pressure_reflection": "crossing，逐对几何 + 压力反射",
              "pairwise_delta_reflection": "crossing，逐对几何 + 密度反射",
              "pairwise": "crossing，只有逐对几何",
+             "pairwise_full": "crossing，逐对几何 + 连续性取完整向量（旧缺省换成逐对几何）",
              "crossing_normal": "crossing（连续性壁项 normal，新缺省）",
              "quadratic_viscous": "crossing，二阶粘性（viscous_extension quadratic）",
              "crossing_quadratic_viscous": "crossing，二阶粘性，第一次运行（诊断读回每 1000 步一次）",

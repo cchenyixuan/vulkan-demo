@@ -13,6 +13,8 @@ Configurations (the names used in case directories, run names and tables):
     pairwise_delta_reflection     geometry pairwise, delta_wall reflection only        (--all: the three variants
     pairwise_pressure_reflection  geometry pairwise, pressure_wall reflection only      that locate a failure of
     pairwise                      geometry pairwise only                                the screening)
+    pairwise_full                 geometry pairwise with continuity_wall_component full: the default until
+                                  2026-11-18 (the whole vector in the continuity equation) on the pairwise geometry
 make-cases derives, from an existing crossing case, the same case with the keys added: the cavity at 250^2 and the
 two 2-D hydrostatic boxes. Existing case files are left alone.
 
@@ -49,12 +51,16 @@ CONFIGURATIONS = {
     "pairwise_delta_reflection": ("pairwise", "extension", "reflection"),
     "pairwise_pressure_reflection": ("pairwise", "reflection", "extension"),
     "pairwise": ("pairwise", "extension", "extension"),
+    "pairwise_full": ("pairwise", "extension", "extension"),
 }
+# configurations that also set numerics.wall_crossing.continuity_wall_component (the others take the default)
+CONTINUITY_WALL_COMPONENT = {"pairwise_full": "full"}
 CONFIGURATION_TEXT = {
     "reflection": "反射版（逐对几何 + 压力反射 + 密度反射）",
     "pairwise_delta_reflection": "逐对几何 + 只有密度反射",
     "pairwise_pressure_reflection": "逐对几何 + 只有压力反射",
     "pairwise": "只有逐对几何",
+    "pairwise_full": "逐对几何 + 连续性取完整向量（旧缺省换成逐对几何）",
 }
 MAIN_CONFIGURATION = "reflection"
 SOURCE_CASES = (
@@ -82,12 +88,19 @@ def variant_text(source_text: str, source_name: str, configuration: str) -> str:
         added.append(f"    pressure_wall: {pressure_wall}      # extension | reflection")
     if delta_wall != "extension":
         added.append(f"    delta_wall: {delta_wall}         # extension | reflection")
+    if configuration in CONTINUITY_WALL_COMPONENT:
+        if any(line.startswith("    continuity_wall_component:") for line in lines):
+            raise ValueError(f"{source_name}: the source already sets continuity_wall_component")
+        added.append(f"    continuity_wall_component: {CONTINUITY_WALL_COMPONENT[configuration]}"
+                     "   # normal (the default) | full")
     lines[mapping_rows[0] + 1:mapping_rows[0] + 1] = added
     if lines[0] != "schema_version: 2":
         raise ValueError(f"{source_name}: does not start with the schema line")
     header = [f"# VARIANT of cases/{source_name} (experiment/wall_crossing/pairwise_reflection.py): geometry "
               f"{geometry},",
-              f"# pressure_wall {pressure_wall}, delta_wall {delta_wall}; everything else identical."]
+              f"# pressure_wall {pressure_wall}, delta_wall {delta_wall}"
+              + (f", continuity_wall_component {CONTINUITY_WALL_COMPONENT[configuration]}"
+                 if configuration in CONTINUITY_WALL_COMPONENT else "") + "; everything else identical."]
     lines[2:2] = header + [""]
     return "\n".join(lines)
 
