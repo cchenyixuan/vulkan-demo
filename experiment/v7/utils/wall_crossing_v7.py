@@ -337,26 +337,29 @@ def check_wall_crossing_combination(mapping: dict, geometry: str, pressure_wall:
         if delta_wall == "reflection":
             offending.append(_value_text(mapping, "delta_wall", delta_wall))
         if offending:
-            requested = " and ".join(f"{key} quadratic" for key, value in
-                                     (("viscous_extension", viscous_extension),
-                                      ("continuity_extension", continuity_extension)) if value == "quadratic")
+            requested = [f"{key} quadratic" for key, value in
+                         (("viscous_extension", viscous_extension), ("continuity_extension", continuity_extension))
+                         if value == "quadratic"]
             needed = ", ".join(f"{key}: {value}" for key, value in WALL_CROSSING_NEAREST_WALL_REQUIREMENTS)
-            problems.append(f"{requested} needs {needed} written in the case as well (the second-order "
-                            "continuation is not offered with the pairwise geometry, and a reflection needs it; "
-                            "the defaults are geometry pairwise, pressure_wall reflection and delta_wall reflection "
-                            f"since 2026-11-19); now {'; '.join(offending)}")
+            problems.append(f"{' and '.join(requested)} {'need' if len(requested) > 1 else 'needs'} {needed} written "
+                            "in the case as well (the second-order continuation is not offered with the pairwise "
+                            "geometry, and a reflection needs it; the defaults are geometry pairwise, pressure_wall "
+                            "reflection and delta_wall reflection since 2026-11-19; the second-order runs of "
+                            "2026-11-18 also had continuity_wall_component: normal); now " + "; ".join(offending))
         if problems:
             raise ValueError("numerics.wall_crossing: " + " | ".join(problems))
         return
     if geometry != "pairwise":
         # a reflection needs the wall particle's mirror point, which is the pairwise geometry's
-        offending = [_value_text(mapping, key, value) for key, value in
-                     (("pressure_wall", pressure_wall), ("delta_wall", delta_wall)) if value == "reflection"]
-        if offending:
+        reflected = [(key, value) for key, value in (("pressure_wall", pressure_wall), ("delta_wall", delta_wall))
+                     if value == "reflection"]
+        if reflected:
+            needed = " and ".join(f"{key}: extension" for key, _ in reflected)
             raise ValueError("numerics.wall_crossing: a reflection needs geometry: pairwise; with "
-                             f"{_value_text(mapping, 'geometry', geometry)} write pressure_wall: extension and "
-                             "delta_wall: extension as well (or another delta_wall than reflection; the defaults "
-                             "are reflection since 2026-11-19); now " + "; ".join(offending))
+                             f"{_value_text(mapping, 'geometry', geometry)} write {needed} as well (delta_wall may "
+                             "also be a diagnostic value; the defaults of pressure_wall and delta_wall are reflection "
+                             "since 2026-11-19); now "
+                             + "; ".join(_value_text(mapping, key, value) for key, value in reflected))
 
 
 def resolve_wall_crossing_box(settings: WallCrossingSettings, positions: np.ndarray, is_wall: np.ndarray,
