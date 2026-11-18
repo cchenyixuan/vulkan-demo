@@ -862,6 +862,87 @@
     "t_steady_online": 70.56,
     "complete": true
    },
+   "n500_reflection_full_volume": {
+    "extrema": {
+     "u_min": {
+      "value": -0.3873205022405843,
+      "sem": 2.3020296873481283e-05,
+      "deviation_percent": -0.3215102098385825,
+      "position_wall": 0.16991489341093607,
+      "position_mid": 0.16925604090277427,
+      "position_reference": 0.1716967913
+     },
+     "v_max": {
+      "value": 0.37581320974415094,
+      "sem": 1.9807453277026182e-05,
+      "deviation_percent": -0.300176320381762,
+      "position_wall": 0.15708232808791575,
+      "position_mid": 0.15639786167691358,
+      "position_reference": 0.157836525
+     },
+     "v_min": {
+      "value": -0.5255973809080657,
+      "sem": 2.7468178921695587e-05,
+      "deviation_percent": -0.28077374243282716,
+      "position_wall": 0.9096025435188863,
+      "position_mid": 0.9104201134660297,
+      "position_reference": 0.90924699426
+     },
+     "psi_min": {
+      "snapshots": 20,
+      "value_wall": -0.11803040249507245,
+      "deviation_wall_percent": -0.7619260322777488,
+      "value_mid": -0.11826599212081113,
+      "deviation_mid_percent": -0.5638460443182169,
+      "value_fluid": -0.1184936543572183,
+      "deviation_fluid_percent": -0.3724312784728179,
+      "x_wall": 0.530497865211042,
+      "y_wall": 0.5641913015959028,
+      "x_mid": 0.5305587391934992,
+      "y_mid": 0.5643194279463937,
+      "x_reference": 0.5307901107,
+      "y_reference": 0.56524055787
+     }
+    },
+    "errors": {
+     "wall_u": {
+      "L2": 0.002106325439680239,
+      "Linf": 0.006588984074280879,
+      "L2_relative": 0.00663892504641
+     },
+     "wall_v": {
+      "L2": 0.0019761891501323273,
+      "Linf": 0.004172673534258264,
+      "L2_relative": 0.00621968207519636
+     },
+     "mid_u": {
+      "L2": 0.002882360590106659,
+      "Linf": 0.00530633210128284,
+      "L2_relative": 0.009084909460785513
+     },
+     "mid_v": {
+      "L2": 0.0026986797944696063,
+      "Linf": 0.005198628449929188,
+      "L2_relative": 0.008493584909740687
+     },
+     "fluid_u": {
+      "L2": 0.005718606829227909,
+      "Linf": 0.016379140217990917,
+      "L2_relative": 0.018024471144827442
+     },
+     "fluid_v": {
+      "L2": 0.0052588940639321045,
+      "Linf": 0.011708208086047611,
+      "L2_relative": 0.016551375733747375
+     }
+    },
+    "window": [
+     79.95,
+     99.84
+    ],
+    "t_steady_online": 79.56,
+    "complete": true
+   },
    "n500_crossing": {
     "extrema": {
      "u_min": {
@@ -1269,6 +1350,99 @@
    }
   },
   "order": {
+   "reflection_full_volume": {
+    "ψ_min 偏差（绝对值，wall 帧）": {
+     "values": [
+      0.0016932308642058358,
+      0.0009062090049275495
+     ],
+     "order": 0.9018629594662105
+    },
+    "ψ_min 偏差（绝对值，mid 帧）": {
+     "values": [
+      0.0012261257620711924,
+      0.000670619379188872
+     ],
+     "order": 0.8705408828568793
+    },
+    "u_min 偏差（绝对值）": {
+     "values": [
+      0.0029881461170950807,
+      0.0012492915594157217
+     ],
+     "order": 1.2581404839476171
+    },
+    "v_max 偏差（绝对值）": {
+     "values": [
+      0.0030466532507195665,
+      0.0011314987558490586
+     ],
+     "order": 1.428990313388358
+    },
+    "v_min 偏差（绝对值）": {
+     "values": [
+      0.0041251959655590476,
+      0.0014798945919343165
+     ],
+     "order": 1.4789682345077793
+    },
+    "u L2 (wall)": {
+     "values": [
+      0.0048190613192748795,
+      0.002106325439680239
+     ],
+     "order": 1.1940238000446903
+    },
+    "u Linf (wall)": {
+     "values": [
+      0.017615316242852064,
+      0.006588984074280879
+     ],
+     "order": 1.4187024305111844
+    },
+    "v L2 (wall)": {
+     "values": [
+      0.005175679629804809,
+      0.0019761891501323273
+     ],
+     "order": 1.3890272779959254
+    },
+    "v Linf (wall)": {
+     "values": [
+      0.01211603664773464,
+      0.004172673534258264
+     ],
+     "order": 1.537873891881136
+    },
+    "u L2 (mid)": {
+     "values": [
+      0.003444931280601067,
+      0.002882360590106659
+     ],
+     "order": 0.25722437301899465
+    },
+    "u Linf (mid)": {
+     "values": [
+      0.006111929167813446,
+      0.00530633210128284
+     ],
+     "order": 0.20391285315071045
+    },
+    "v L2 (mid)": {
+     "values": [
+      0.0034407783226265607,
+      0.0026986797944696063
+     ],
+     "order": 0.3504811398897035
+    },
+    "v Linf (mid)": {
+     "values": [
+      0.007189517581456417,
+      0.005198628449929188
+     ],
+     "order": 0.4677639203383358
+    }
+   },
    "crossing": {
     "ψ_min 偏差（绝对值，wall 帧）": {
      "values": [
@@ -1661,12 +1835,20 @@
    }
   },
   "n500_reflection_full_volume": {
-   "t_last": 27.69,
-   "complete": false,
+   "t_last": 99.84,
+   "complete": true,
    "alive_constant": true,
-   "speed_maximum": 0.9885306955016873,
+   "speed_maximum": 0.9888681770730707,
    "watch_stop": null,
-   "crossing_status": {}
+   "crossing_status": {
+    "status_records": 13849,
+    "position_readbacks": 693,
+    "gradient_fallbacks": 0,
+    "correction_fallbacks": 0,
+    "wall_distance_minimum_over_spacing": 0.284857034683228,
+    "below_floor_maximum": 0,
+    "outside_box_maximum": 0
+   }
   }
  },
  "histories": {
@@ -1770,21 +1952,55 @@
      "density_mean_minus_rest": 0.002491748624493084,
      "pressure_mean": 26.08746003575441,
      "pressure_negative_fraction": 0.2698276102485647
+    },
+    "40": {
+     "time": 39.975,
+     "density_mean_minus_rest": 0.002820787840846606,
+     "pressure_mean": 29.34002203722015,
+     "pressure_negative_fraction": 0.288688092876124
+    },
+    "60": {
+     "time": 60.06,
+     "density_mean_minus_rest": 0.0024015426704409037,
+     "pressure_mean": 25.16029408795721,
+     "pressure_negative_fraction": 0.3041023740941271
+    },
+    "80": {
+     "time": 79.95,
+     "density_mean_minus_rest": 0.003303965015902577,
+     "pressure_mean": 34.187889618881975,
+     "pressure_negative_fraction": 0.25079581356249575
+    },
+    "100": {
+     "time": 99.84,
+     "density_mean_minus_rest": 0.0026476514889282043,
+     "pressure_mean": 27.638799846016315,
+     "pressure_negative_fraction": 0.27890327130170794
     }
    },
+   "density_rate_60_100": 4.332365318475654e-06,
+   "density_mean_60_100": 0.0026918756300347013,
+   "density_std_60_100": 0.0004288674433882287,
+   "pressure_mean_60_100": 0.02806575035357332,
+   "pressure_std_60_100": 0.004291840469827383,
+   "negative_mean_60_100": 0.28158665204521094,
+   "negative_range_60_100": [
+    0.21748518930203464,
+    0.38715383604049386
+   ],
    "noise_bins": [
     0.00364573841672609,
     0.002704403750735733,
-    0.0024543112927888217,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null
+    0.0030581988348073012,
+    0.0020809327026473597,
+    0.0023326951274625996,
+    0.002006060027943172,
+    0.0023323963156432095,
+    0.0025282173756077126,
+    0.0021661427777673156,
+    0.0018734240957431372
    ],
-   "noise_late": null
+   "noise_late": 0.002027510787604331
   },
   "n250_reflection_full": {
    "instants": {
@@ -2026,10 +2242,16 @@
    ]
   },
   "n500_reflection_full_volume": {
-   "updates": 143,
+   "updates": 513,
    "update_interval": 0.195,
-   "theta_maximum": 3.2191092139513324e-06,
-   "theta_maximum_time": 23.01
+   "theta_maximum": 3.805398558801675e-06,
+   "theta_maximum_time": 92.235,
+   "theta_mean_60_100": -2.6892005366695963e-06,
+   "theta_std_60_100": 4.33875408257259e-07,
+   "theta_range_60_100": [
+    -3.805398558801675e-06,
+    -1.2895478659868563e-06
+   ]
   }
  },
  "timing": {
@@ -2037,6 +2259,11 @@
    "steps_per_second": 3223.9192397368224,
    "reference_steps_per_second": 3345.820468189538,
    "time_per_step_ratio": 1.0378115018981267
+  },
+  "n500_reflection_full_volume|n500_crossing_normal": {
+   "steps_per_second": 1459.2373468214118,
+   "reference_steps_per_second": 1527.5957722699266,
+   "time_per_step_ratio": 1.0468453097074417
   },
   "n250_reflection_full_volume|n250_reflection_full_rho_plus_0p3": {
    "steps_per_second": 3223.9192397368224,
