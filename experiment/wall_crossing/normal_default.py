@@ -101,7 +101,8 @@ CAVITY_MODES = (("crossing_normal", "crossing，normal（新缺省）", NEW_COLO
                 ("crossing", "crossing，full（旧缺省）", OLD_COLOUR, "s"),
                 ("simple", "simple", SIMPLE_COLOUR, "^"),
                 ("adami", "adami", ADAMI_COLOUR, "D"))
-CAVITY_EXTRA_RUNS = (("n250_crossing_r2", "crossing，full（旧缺省），第二次运行"),)
+# further runs of a mode, listed after that mode's row: (run, text, mode key)
+CAVITY_EXTRA_RUNS = (("n250_crossing_r2", "crossing，full（旧缺省），第二次运行", "crossing"),)
 LONG_RUNS = (("n250_crossing_normal", "250²", NEW_COLOUR, "solid"), ("n500_crossing_normal", "500²", NEW_COLOUR, (0, (5, 2))))
 # the earlier cavity runs whose pressure exists only in their checkpoints: (run, text)
 CHECKPOINT_RUNS = (("n250_crossing", "250² crossing，full（旧缺省）"), ("n250_crossing_r2", "250² crossing，full，第二次运行"),
@@ -426,24 +427,30 @@ def hydrostatic(records_by_id: dict) -> dict:
 # Re = 1000 cavity against Marchi 2021
 # =============================================================================
 
-def cavity() -> dict:
+def cavity(modes: tuple = CAVITY_MODES, extra_runs: tuple = CAVITY_EXTRA_RUNS, prefix: str = "normal_default",
+           required_mode: str = "crossing_normal", labelled_modes: tuple = ("crossing_normal", "crossing"),
+           figure_title: str = "Re = 1000 方腔：四个极值相对 Marchi 2021 的偏差（ψ_min 用 wall 帧）") -> dict:
+    """The metric tables (<prefix>_cavity.md, _cavity_positions.md, _cavity_order.md) and the figure
+    (<prefix>_cavity.png) of the cavity runs of modes ((mode key of cavity_tables.py, text, colour, marker), ...),
+    from claude/wall_crossing/cavity/tables.json. Nothing is written unless a run of required_mode exists.
+    labelled_modes: the modes whose values are written beside their markers in the figure."""
     path = REPORT_ROOT / "cavity" / "tables.json"
     if not path.exists():
         return {}
     tables = json.loads(path.read_text(encoding="utf-8"))
     runs, convergence = tables["runs"], tables.get("convergence", {})
-    if not any(name.endswith("_crossing_normal") for name in runs):
+    if not any(name.endswith(f"_{required_mode}") for name in runs):
         return {}
     ordered = []
     for resolution in (250, 500):
-        for mode, text, _, _ in CAVITY_MODES:
+        for mode, text, _, _ in modes:
             name = f"n{resolution}_{mode}"
             if name in runs and not runs[name]["failed"]:
                 ordered.append((name, f"{resolution}² {text}" + ("" if runs[name]["complete"] else "（运行中）")))
-            if mode == "crossing":
-                for extra, extra_text in CAVITY_EXTRA_RUNS:
-                    if extra.startswith(f"n{resolution}_") and extra in runs and not runs[extra]["failed"]:
-                        ordered.append((extra, f"{resolution}² {extra_text}"))
+            for extra, extra_text, extra_mode in extra_runs:
+                if extra_mode == mode and extra.startswith(f"n{resolution}_") and extra in runs \
+                        and not runs[extra]["failed"]:
+                    ordered.append((extra, f"{resolution}² {extra_text}"))
 
     def percent(value: float) -> str:
         return f"{value:+.2f} %"
@@ -477,7 +484,7 @@ def cavity() -> dict:
     text = header + "\n\n" + markdown_table(
         ["运行", "ψ_min（wall 帧）", "ψ_min 偏差（mid 帧）", "u_min", "v_max", "v_min", "u 剖面 L2 / L∞（wall 帧）",
          "v 剖面 L2 / L∞（wall 帧）", "u 剖面 L2 / L∞（mid 帧）", "v 剖面 L2 / L∞（mid 帧）"], rows)
-    write_table("normal_default_cavity.md", text)
+    write_table(f"{prefix}_cavity.md", text)
 
     rows = []
     for name, text in ordered:
@@ -499,7 +506,7 @@ def cavity() -> dict:
         position_header += (f"参考位置：y(u_min) {reference['y_at_u_min'][0]:.4f}，x(v_max) {reference['x_at_v_max'][0]:.4f}，"
                             f"x(v_min) {reference['x_at_v_min'][0]:.4f}，ψ_min ({reference['x_at_psi_min'][0]:.4f}, "
                             f"{reference['y_at_psi_min'][0]:.4f})。")
-    write_table("normal_default_cavity_positions.md", position_header + "\n\n" + markdown_table(
+    write_table(f"{prefix}_cavity_positions.md", position_header + "\n\n" + markdown_table(
         ["运行", "y(u_min)", "x(v_max)", "x(v_min)", "ψ_min 的位置", "平均窗口 t", "定常 t_s", "窗口平均动能", "提交"], rows))
 
     # ---- observed order 250^2 -> 500^2, every mode
@@ -510,7 +517,7 @@ def cavity() -> dict:
     order_summary = {}
     for quantity in quantities:
         cells = [quantity.replace("Linf", "L∞")]
-        for mode, _, _, _ in CAVITY_MODES:
+        for mode, _, _, _ in modes:
             entry = convergence.get(mode, {}).get("quantities", {}).get(quantity)
             if not entry or len(entry["values"]) < 2:
                 cells.append("—")
@@ -519,10 +526,10 @@ def cavity() -> dict:
             cells.append(f"{values[0]:.5f} → {values[1]:.5f}，p = {pairwise[0]:.2f}")
             order_summary.setdefault(mode, {})[quantity] = {"values": values[:2], "order": pairwise[0]}
         rows.append(cells)
-    write_table("normal_default_cavity_order.md",
+    write_table(f"{prefix}_cavity_order.md",
                 "观测收敛阶 p = ln(e₂₅₀ / e₅₀₀) / ln 2，e = 该量相对 Marchi 2021 的误差（绝对值），250² → 500²。只有两档"
                 "分辨率，所以每个 p 只是一对数的比值；误差本身已经很小的量（接近运行间的散布）p 没有意义。\n\n"
-                + markdown_table(["量"] + [text for _, text, _, _ in CAVITY_MODES], rows))
+                + markdown_table(["量"] + [text for _, text, _, _ in modes], rows))
 
     # ---- figure: the deviations of the four extrema at the two resolutions, one panel per quantity
     setup_style()
@@ -530,7 +537,7 @@ def cavity() -> dict:
     handles = {}
     for axis, (key, title) in zip(axes, (("psi_min", "ψ_min"), ("u_min", "u_min"), ("v_max", "v_max"), ("v_min", "v_min"))):
         labelled = {}       # resolution -> [(value, mode)] of the two crossing settings, whose values are written
-        for mode, text, colour, marker in CAVITY_MODES:
+        for mode, text, colour, marker in modes:
             points = []
             for resolution in (250, 500):
                 record = runs.get(f"n{resolution}_{mode}")
@@ -546,7 +553,7 @@ def cavity() -> dict:
             line, = axis.plot([point[0] for point in points], [point[1] for point in points], color=colour,
                               marker=marker, markersize=7, markeredgecolor=SURFACE, markeredgewidth=1.5, zorder=3)
             handles[text] = line
-            if mode in ("crossing_normal", "crossing"):
+            if mode in labelled_modes:
                 for resolution, value in points:
                     labelled.setdefault(resolution, []).append(value)
         # the values of the two crossing settings: the upper one above its marker, the lower one below
@@ -565,13 +572,13 @@ def cavity() -> dict:
         axis.set_xlim(210, 600)
         axis.set_title(f"{title}：相对 Marchi 2021 的偏差（%）")
     height = figure.get_figheight()
-    figure.suptitle("Re = 1000 方腔：四个极值相对 Marchi 2021 的偏差（ψ_min 用 wall 帧）", x=0.01, y=1.0 - 0.05 / height,
+    figure.suptitle(figure_title, x=0.01, y=1.0 - 0.05 / height,
                     ha="left", va="top", fontsize=12, fontweight="bold", color=INK_PRIMARY)
     figure.legend(list(handles.values()), list(handles.keys()), loc="upper left",
                   bbox_to_anchor=(0.01, 1.0 - 0.40 / height), ncol=len(handles), handlelength=2.2, columnspacing=1.6,
                   labelcolor=INK_PRIMARY, borderaxespad=0.0)
     figure.tight_layout(rect=(0, 0, 1.0, 1.0 - 0.66 / height), w_pad=1.6)
-    figure.savefig(REPORT_ROOT / "figures" / "normal_default_cavity.png")
+    figure.savefig(REPORT_ROOT / "figures" / f"{prefix}_cavity.png")
     plt.close(figure)
     return {"runs": {name: {"extrema": runs[name]["extrema"], "errors": runs[name]["errors"],
                             "window": runs[name]["window"], "t_steady_online": runs[name]["t_steady_online"],
