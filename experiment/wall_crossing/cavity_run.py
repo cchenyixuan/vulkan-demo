@@ -98,6 +98,9 @@ def main() -> int:
     parser.add_argument("--initial-density-offset", type=float, default=0.0,
                         help="control experiment: start every fluid particle at rho0 + this (kg/m3), pressure by "
                              "the EOS (cavity_runner_entry.py, item 4); 0 = the normal start")
+    parser.add_argument("--extra-snapshot-windows", default=None,
+                        help="t0:t1[,t0:t1...]: also save particle snapshots in these windows (every 35000 steps, "
+                             "<run>/snapshots_extra; cavity_runner_entry.py item 5)")
     arguments = parser.parse_args()
 
     from experiment.validation import cavity_campaign
@@ -105,6 +108,8 @@ def main() -> int:
     environment["OPENBLAS_NUM_THREADS"] = "1"
     if arguments.initial_density_offset != 0.0:
         environment["WALL_CROSSING_INITIAL_DENSITY_OFFSET"] = repr(arguments.initial_density_offset)
+    if arguments.extra_snapshot_windows:
+        environment["SPH_EXTRA_SNAPSHOT_WINDOWS"] = arguments.extra_snapshot_windows
 
     root = (REPOSITORY_ROOT / arguments.root).resolve() if arguments.root else LOG_ROOT / "cavity"
     run_directory = root / arguments.name
@@ -124,6 +129,9 @@ def main() -> int:
         run.extra["name"] = arguments.name
         if arguments.initial_density_offset != 0.0:
             run.extra["initial_density_offset"] = arguments.initial_density_offset
+        if arguments.extra_snapshot_windows:
+            run.extra["extra_snapshot_windows"] = arguments.extra_snapshot_windows
+        run.extra["t_end"] = arguments.t_end
         run.extra["run_directory"] = (f"cavity/{arguments.name}" if arguments.root is None
                                       else str(run_directory).replace("\\", "/"))
         attempts = []

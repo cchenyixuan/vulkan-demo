@@ -31,6 +31,14 @@ shifted fluid density.
         "pressure_negative_fraction", "speed_maximum"}
    A step that is both a sample and a snapshot has two lines. The state the runner gets is the one it asked for.
 
+5. Snapshots in extra windows (off unless asked for). The runner saves particle snapshots only in its last
+   average_span time units. With SPH_EXTRA_SNAPSHOT_WINDOWS="t0:t1[,t0:t1...]" (cavity_run.py
+   --extra-snapshot-windows) the state read of every sample whose step is a multiple of SPH_EXTRA_SNAPSHOT_STEPS
+   (default 35000 = 5 samples of 7000 steps) and whose time lies in a window is also written to
+   <run-dir>/snapshots_extra/t<step>.npz, in the runner's own snapshot format (positions, velocities,
+   volumes = m / rho, material; float32 / uint8, alive particles). The runner's snapshots/ is not touched (a resume
+   deletes snapshots after its checkpoint there, not here).
+
 4. Shifted initial density (a control experiment, off unless asked for). With the environment variable
    WALL_CROSSING_INITIAL_DENSITY_OFFSET=<kg/m3> (cavity_run.py --initial-density-offset) the state a run starts
    from (SphSimulatorV7._build_initial_data, the bootstrap only: a resumed run starts from its checkpoint) has
@@ -182,6 +190,41 @@ def install_field_history(run_directory: pathlib.Path) -> None:
     cavity_runner.CachedStateReader.read = read_recording
 
 
+def install_extra_snapshots(run_directory: pathlib.Path, windows: list, steps: int) -> None:
+    """Wrap cavity_runner.CachedStateReader.read once more (see the module docstring, item 5)."""
+    import os
+
+    import numpy as np
+
+    original = cavity_runner.CachedStateReader.read
+    heartbeat_path = run_directory / "heartbeat.json"
+    directory = run_directory / "snapshots_extra"
+    directory.mkdir(parents=True, exist_ok=True)
+
+    def read_saving(self):
+        state = original(self)
+        try:
+            heartbeat = json.loads(heartbeat_path.read_text(encoding="utf-8")) if heartbeat_path.exists() else {}
+            step, instant = heartbeat.get("step"), heartbeat.get("time")
+            if step is None or instant is None or int(step) % steps != 0 \
+                    or not any(first <= float(instant) <= last for first, last in windows):
+                return state
+            path = directory / f"t{int(step):010d}.npz"
+            if path.exists():
+                return state
+            temporary = directory / f"t{int(step):010d}.partial.npz"
+            np.savez(temporary, positions=state["positions"].astype(np.float32),
+                     velocities=state["velocities"].astype(np.float32),
+                     volumes=(state["mass"] / state["density"]).astype(np.float32),
+                     material=state["material"].astype(np.uint8))
+            os.replace(temporary, path)
+        except Exception as error:          # a diagnostic must never end a run
+            print(f"[cavity_runner_entry] extra snapshot skipped: {error!r}", flush=True)
+        return state
+
+    cavity_runner.CachedStateReader.read = read_saving
+
+
 INITIAL_DENSITY_OFFSET_VARIABLE = "WALL_CROSSING_INITIAL_DENSITY_OFFSET"
 
 
@@ -240,4 +283,9 @@ if __name__ == "__main__":
                               str(pathlib.Path(_argument("--run-dir")).resolve() / "volume_constraint.jsonl"))
         install_wall_crossing_diagnostics(pathlib.Path(_argument("--run-dir")).resolve())
         install_field_history(pathlib.Path(_argument("--run-dir")).resolve())
+        if os.environ.get("SPH_EXTRA_SNAPSHOT_WINDOWS"):
+            extra_windows = [tuple(float(value) for value in item.split(":"))
+                             for item in os.environ["SPH_EXTRA_SNAPSHOT_WINDOWS"].split(",") if item.strip()]
+            install_extra_snapshots(pathlib.Path(_argument("--run-dir")).resolve(), extra_windows,
+                                    int(os.environ.get("SPH_EXTRA_SNAPSHOT_STEPS", "35000")))
     sys.exit(cavity_runner.main())

@@ -55,7 +55,7 @@ RESOLUTIONS = (250, 500, 1000)
 # wall (experiment/wall_crossing/pairwise_reflection.py: CONFIGURATIONS)
 MODES = ("simple", "adami", "crossing_normal", "reflection", "pairwise_pressure_reflection",
          "pairwise_delta_reflection", "pairwise", "pairwise_full", "reflection_full",
-         "reflection_full_rho_plus_0p3", "reflection_full_volume", "quadratic_viscous", "crossing_quadratic_viscous",
+         "reflection_full_rho_plus_0p3", "reflection_full_volume", "reflection_full_volume_to200", "quadratic_viscous", "crossing_quadratic_viscous",
          "crossing_normal_rho_minus", "crossing_normal_rho_minus_0p45", "crossing", "crossing_r2",
          "crossing_wall_velocity", "crossing_floor0p5")
 MODE_TEXT = {"simple": "simple", "adami": "adami",
@@ -67,6 +67,7 @@ MODE_TEXT = {"simple": "simple", "adami": "adami",
              "reflection_full": "crossing，完整方案（逐对几何 + 完整向量 + 两个反射）",
              "reflection_full_rho_plus_0p3": "crossing，完整方案，初始密度 ρ0 + 0.3",
              "reflection_full_volume": "crossing，完整方案 + 体积约束",
+             "reflection_full_volume_to200": "crossing，完整方案 + 体积约束，续跑到 t = 200（从 t = 90.72 的检查点）",
              "crossing_normal": "crossing（连续性壁项 normal，新缺省）",
              "quadratic_viscous": "crossing，二阶粘性（viscous_extension quadratic）",
              "crossing_quadratic_viscous": "crossing，二阶粘性，第一次运行（诊断读回每 1000 步一次）",
