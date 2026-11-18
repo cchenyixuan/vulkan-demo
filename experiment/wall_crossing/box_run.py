@@ -172,10 +172,25 @@ def main() -> int:
                        "overflow": int(sum(value for status in statuses for key, value in status.items()
                                            if key.startswith("overflow_"))),
                        "steps_per_second": step / max(time.perf_counter() - clock["started"], 1e-9)}
+                # the second-order continuation (a quadratic extension only): how many fluid particles hold a
+                # solved gradient / fell back to the first-order rule in the step before this sample
+                extension_states = [simulator.readback_wall_crossing_extension_states() for simulator in simulators]
+                if all(states is not None for states in extension_states):
+                    row["extension_valid"] = int(sum(states["valid"] for states in extension_states))
+                    row["extension_fallback"] = int(sum(states["fallback"] for states in extension_states))
                 if arguments.density_budget:
                     from experiment.v7.utils.simulator_v7 import (DENSITY_BUDGET_REGION_NAMES,
                                                                   DENSITY_BUDGET_TERM_NAMES)
-                    budget = sum(simulator.readback_density_budget() for simulator in simulators)
+                    readbacks = [simulator.readback_density_budget_and_extension() for simulator in simulators]
+                    budget = sum(readback[0] for readback in readbacks)
+                    if readbacks[0][1] is not None:
+                        # wall_boundary crossing (one slab: the budget is a K = 1 diagnostic): the second-order
+                        # continuation's diagnostics per region, all since start-up (density_budget.glsl)
+                        extension = readbacks[0][1]
+                        for region_index, region_name in enumerate(DENSITY_BUDGET_REGION_NAMES):
+                            for key in ("fallbacks", "wall_steps", "determinant_minimum", "factor_maximum",
+                                        "diffusion_maximum"):
+                                row[f"extension_{region_name}_{key}"] = float(extension[key][region_index])
                     for region_index, region_name in enumerate(DENSITY_BUDGET_REGION_NAMES):
                         for term_index, term_name in enumerate(DENSITY_BUDGET_TERM_NAMES):
                             row[f"budget_{region_name}_{term_name}"] = float(budget[region_index, term_index])
@@ -231,6 +246,12 @@ def main() -> int:
             "continuity_wall_component": (case.numerics.wall_crossing.continuity_wall_component
                                           if case.numerics.wall_crossing else None),
             "delta_wall": case.numerics.wall_crossing.delta_wall if case.numerics.wall_crossing else None,
+            "viscous_extension": (case.numerics.wall_crossing.viscous_extension
+                                  if case.numerics.wall_crossing else None),
+            "continuity_extension": (case.numerics.wall_crossing.continuity_extension
+                                     if case.numerics.wall_crossing else None),
+            "distance_floor_factor": (case.numerics.wall_crossing.distance_floor_factor
+                                      if case.numerics.wall_crossing else None),
             "delta_density_storage": os.environ.get("V7_DELTA_DENSITY", "0") == "1",
             "dimension": dimension, "box_lower": lower.tolist(), "box_upper": upper.tolist(), "spacing": spacing,
             "fluid_particles": int(len(state["positions"])), "particles": expected_alive, "steps": total_steps,

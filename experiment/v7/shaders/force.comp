@@ -186,6 +186,20 @@ void process_particle(uint self_particle_id) {
     if (WALL_CROSSING_ACTIVE) {
         self_wall_distance = wall_crossing_floored_distance(self_position);
     }
+    // viscous_extension quadratic (off by default; wall_boundary.glsl): grad v_i the fused pass solved for this
+    // particle in this step. Without it (state 0: no wall neighbour; state 2: fallback) a wall neighbour keeps
+    // the first-order rule.
+    mat3 self_velocity_gradient       = mat3(0.0);
+    bool self_velocity_gradient_valid = false;
+    if (WALL_CROSSING_VISCOUS_QUADRATIC) {
+        vec4 velocity_gradient_column_x = wall_crossing_velocity_gradient[self_particle_id * 3u];
+        if (velocity_gradient_column_x.w == WALL_CROSSING_EXTENSION_STATE_VALID) {
+            self_velocity_gradient_valid = true;
+            self_velocity_gradient = mat3(velocity_gradient_column_x.xyz,
+                                          wall_crossing_velocity_gradient[self_particle_id * 3u + 1u].xyz,
+                                          wall_crossing_velocity_gradient[self_particle_id * 3u + 2u].xyz);
+        }
+    }
 #endif
 
     int neighbor_z_range = int(NEIGHBOR_Z_RANGE);
@@ -272,10 +286,19 @@ void process_particle(uint self_particle_id) {
                     // wall_boundary crossing: a wall neighbour's velocity difference is the no-slip
                     // continuation (v_i - v_w) (1 + d_j / φ_i), v_w its stored velocity (whatever the
                     // continuity rule). Without a wall neighbour this is the expression of the plain build.
+                    // viscous_extension quadratic, a particle with a solved grad v_i: the second-order
+                    // continuation (v_i - v_w) (1 + a_j)^2 + a_j grad v_i (r_j - r_i), a_j = d_j / phi_i.
                     vec3 viscous_velocity_difference = self_velocity - viscous_neighbor_velocity;
                     if (neighbor_is_wall) {
-                        viscous_velocity_difference *=
-                            wall_crossing_extrapolation_factor(self_wall_distance, neighbor_position);
+                        if (WALL_CROSSING_VISCOUS_QUADRATIC && self_velocity_gradient_valid) {
+                            float depth_ratio = wall_crossing_depth_ratio(self_wall_distance, neighbor_position);
+                            viscous_velocity_difference =
+                                viscous_velocity_difference * ((1.0 + depth_ratio) * (1.0 + depth_ratio))
+                                + depth_ratio * (self_velocity_gradient * (neighbor_position - self_position));
+                        } else {
+                            viscous_velocity_difference *=
+                                wall_crossing_extrapolation_factor(self_wall_distance, neighbor_position);
+                        }
                     }
                     a_viscosity +=
                         morris_coefficient * viscosity_uniform * neighbor_volume_dynamic

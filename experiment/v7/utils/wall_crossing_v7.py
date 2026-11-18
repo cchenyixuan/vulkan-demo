@@ -21,7 +21,7 @@ and the case loader use it without a device.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Optional
 
 import numpy as np
@@ -43,6 +43,18 @@ WALL_CROSSING_DEFAULT_DELTA_WALL = "extension"
 # difference with either value. See shaders/wall_boundary.glsl.
 WALL_CROSSING_CONTINUITY_WALL_COMPONENT_CHOICES = ("full", "normal")
 WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT = "normal"
+# Spec consts 118 (viscous_extension) and 119 (continuity_extension), 0 = linear, 1 = quadratic: the order of the
+# velocity's continuation across the wall in force's viscous term and in the continuity equation. "linear" (the
+# default of both) is the first-order rule (v_w - v_i) (1 + a_j), a_j = d_j / phi_i. "quadratic" is the
+# second-order rule (v_w - v_i) (1 + a_j)^2 - a_j grad v_i (r_j - r_i), grad v_i solved per particle in the fused
+# pass (shaders/wall_boundary.glsl). continuity_extension quadratic takes the whole velocity difference
+# (continuity_wall_component then only names the first-order rule a particle falls back to), needs
+# continuity extrapolate and is offered together with viscous_extension quadratic only.
+WALL_CROSSING_EXTENSION_CHOICES = ("linear", "quadratic")
+WALL_CROSSING_DEFAULT_VISCOUS_EXTENSION = "linear"
+WALL_CROSSING_DEFAULT_CONTINUITY_EXTENSION = "linear"
+# state of a fluid particle's second-order continuation in a step (wall_crossing_velocity_gradient[pid * 3].w)
+WALL_CROSSING_EXTENSION_STATE_NAMES = ("no_wall_neighbour", "valid", "fallback")
 
 KIND_BOUNDARY = 1       # case_v7.KIND_BOUNDARY (not imported: case_v7 imports this module)
 
@@ -63,6 +75,8 @@ class WallCrossingSettings:
     continuity_wall_component: "normal" (default) or "full": a wall neighbour's velocity difference enters the
         continuity equation with its component along the wall's inward normal only, or whole (the default
         until 2026-11-18).
+    viscous_extension / continuity_extension: "linear" (default) or "quadratic": the first-order or the
+        second-order continuation of the velocity in force's viscous term / in the continuity equation.
     """
     continuity: str = WALL_CROSSING_DEFAULT_CONTINUITY
     distance_floor_factor: float = WALL_CROSSING_DEFAULT_DISTANCE_FLOOR_FACTOR
@@ -71,6 +85,18 @@ class WallCrossingSettings:
     box_from_case: bool = False
     delta_wall: str = WALL_CROSSING_DEFAULT_DELTA_WALL
     continuity_wall_component: str = WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT
+    viscous_extension: str = WALL_CROSSING_DEFAULT_VISCOUS_EXTENSION
+    continuity_extension: str = WALL_CROSSING_DEFAULT_CONTINUITY_EXTENSION
+
+    def viscous_extension_code(self) -> int:
+        return WALL_CROSSING_EXTENSION_CHOICES.index(self.viscous_extension)
+
+    def continuity_extension_code(self) -> int:
+        return WALL_CROSSING_EXTENSION_CHOICES.index(self.continuity_extension)
+
+    def velocity_gradient_active(self) -> bool:
+        """The fused pass solves and stores grad v_i (either extension quadratic)."""
+        return "quadratic" in (self.viscous_extension, self.continuity_extension)
 
     def continuity_wall_component_code(self) -> int:
         return WALL_CROSSING_CONTINUITY_WALL_COMPONENT_CHOICES.index(self.continuity_wall_component)
@@ -113,15 +139,33 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
         box: {lower: [x, y, z], upper: [x, y, z]}          (default: from the fluid particles)
         delta_wall: extension | rest_density | body_force  (DIAGNOSTIC; default extension = the mode)
         continuity_wall_component: normal | full           (default normal; full = the default until 2026-11-18)
+        viscous_extension: linear | quadratic              (default linear)
+        continuity_extension: linear | quadratic           (default linear; quadratic needs viscous_extension
+                                                            quadratic and continuity extrapolate)
     A 2-D case may give two components per corner."""
     mapping = numerics_mapping.get("wall_crossing") or {}
     if not isinstance(mapping, dict):
         raise ValueError(f"numerics.wall_crossing: expected a mapping, got {mapping!r}")
     unknown = sorted(set(mapping) - {"continuity", "distance_floor_factor", "box", "delta_wall",
-                                     "continuity_wall_component"})
+                                     "continuity_wall_component", "viscous_extension", "continuity_extension"})
     if unknown:
         raise ValueError(f"numerics.wall_crossing: unknown keys {unknown} (known: continuity, "
-                         "distance_floor_factor, box, delta_wall, continuity_wall_component)")
+                         "distance_floor_factor, box, delta_wall, continuity_wall_component, viscous_extension, "
+                         "continuity_extension)")
+    extensions = {}
+    for key, default in (("viscous_extension", WALL_CROSSING_DEFAULT_VISCOUS_EXTENSION),
+                         ("continuity_extension", WALL_CROSSING_DEFAULT_CONTINUITY_EXTENSION)):
+        extensions[key] = str(mapping.get(key, default))
+        if extensions[key] not in WALL_CROSSING_EXTENSION_CHOICES:
+            raise ValueError(f"numerics.wall_crossing.{key}: {extensions[key]!r}, expected one of "
+                             f"{', '.join(WALL_CROSSING_EXTENSION_CHOICES)}")
+    if extensions["continuity_extension"] == "quadratic":
+        if str(mapping.get("continuity", WALL_CROSSING_DEFAULT_CONTINUITY)) == "wall_velocity":
+            raise ValueError("numerics.wall_crossing: continuity_extension quadratic continues the velocity "
+                             "across the wall; it cannot be combined with continuity wall_velocity")
+        if extensions["viscous_extension"] != "quadratic":
+            raise ValueError("numerics.wall_crossing: continuity_extension quadratic is offered together with "
+                             "viscous_extension quadratic only")
     continuity_wall_component = str(mapping.get("continuity_wall_component",
                                                 WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT))
     if continuity_wall_component not in WALL_CROSSING_CONTINUITY_WALL_COMPONENT_CHOICES:
@@ -152,7 +196,9 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
         box_lower, box_upper = corners
     return WallCrossingSettings(continuity=continuity, distance_floor_factor=distance_floor_factor,
                                 box_lower=box_lower, box_upper=box_upper, box_from_case=box is not None,
-                                delta_wall=delta_wall, continuity_wall_component=continuity_wall_component)
+                                delta_wall=delta_wall, continuity_wall_component=continuity_wall_component,
+                                viscous_extension=extensions["viscous_extension"],
+                                continuity_extension=extensions["continuity_extension"])
 
 
 def resolve_wall_crossing_box(settings: WallCrossingSettings, positions: np.ndarray, is_wall: np.ndarray,
@@ -202,12 +248,9 @@ def resolve_wall_crossing_box(settings: WallCrossingSettings, positions: np.ndar
                          + "; ".join(details) + ". The mode handles an axis-aligned box whose walls lie "
                          "outside and whose fluid lies inside; give numerics.wall_crossing.box if the default "
                          "is wrong.")
-    return WallCrossingSettings(
-        continuity=settings.continuity, distance_floor_factor=settings.distance_floor_factor,
-        box_lower=tuple(float(component) for component in lower),
-        box_upper=tuple(float(component) for component in upper),
-        box_from_case=settings.box_from_case, delta_wall=settings.delta_wall,
-        continuity_wall_component=settings.continuity_wall_component)
+    return replace(settings,
+                   box_lower=tuple(float(component) for component in lower),
+                   box_upper=tuple(float(component) for component in upper))
 
 
 def describe_wall_crossing(settings: WallCrossingSettings, particle_radius: float, dimension: int,
@@ -223,6 +266,13 @@ def describe_wall_crossing(settings: WallCrossingSettings, particle_radius: floa
             f"continuity_wall_component {settings.continuity_wall_component}")
     if settings.delta_wall != WALL_CROSSING_DEFAULT_DELTA_WALL:
         text += f", DIAGNOSTIC delta_wall {settings.delta_wall}"
+    if settings.velocity_gradient_active():
+        text += (f", viscous_extension {settings.viscous_extension}, "
+                 f"continuity_extension {settings.continuity_extension}")
+        if settings.continuity_extension == "quadratic":
+            text += (" (the whole velocity difference of a wall neighbour: continuity_wall_component "
+                     f"{settings.continuity_wall_component} only names the first-order rule a particle falls "
+                     "back to)")
     if positions is not None and is_wall is not None:
         is_wall = np.asarray(is_wall, dtype=bool)
         fluid_distance = box_distance_to_wall(np.asarray(positions)[~is_wall], settings.box_lower,

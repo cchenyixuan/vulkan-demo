@@ -176,6 +176,8 @@ def gpu_single_evaluation(case_path: pathlib.Path, device_index: int, configurat
                  "density_gradient_kernel_sum"]
         if simulator._wall_crossing:
             names.append("wall_crossing_fluid_inverse")
+            if case.numerics.wall_crossing.velocity_gradient_active():
+                names.append("wall_crossing_velocity_gradient")
         if simulator._wall_adami:
             names.append("wall_dummy_velocity")
         if simulator._density_budget_active():
@@ -206,10 +208,16 @@ def gpu_single_evaluation(case_path: pathlib.Path, device_index: int, configurat
         }
         if simulator._wall_crossing:
             result["wall_crossing_fluid_inverse"] = table("wall_crossing_fluid_inverse", 8)
+            if case.numerics.wall_crossing.velocity_gradient_active():
+                # three vec4 per particle: column b of grad v in .xyz, the state in the first .w
+                result["wall_crossing_velocity_gradient"] = table("wall_crossing_velocity_gradient", 12) \
+                    .reshape(particle_count, 3, 4)
         if simulator._density_budget_active():
-            budget_entries = table("density_budget", 96).reshape(particle_count, 12, 2, 4)
+            budget_entries = table("density_budget", 144).reshape(particle_count, 12, 3, 4)
             result["density_budget"] = budget_entries[:, :, 0, :].copy()          # dt x the four terms
             result["density_budget_applied"] = budget_entries[:, :, 1, 0].copy()  # the stored density's change
+            result["density_budget_fallbacks"] = budget_entries[:, :, 1, 1].copy()
+            result["density_budget_extremes"] = budget_entries[:, :, 2, :].copy()  # det, (1 + a)^2, number, steps
             result["density_budget_box"] = simulator.density_budget_box()
         return result
     finally:
@@ -281,6 +289,34 @@ def compare_with_reference(gpu: dict, tolerance: float) -> dict:
         "fluid_inverse": _error_statistics(fluid_inverse_gpu[:, 0:6].reshape(-1),
                                            reference.fluid_inverse.reshape(-1)),
     }
+    extension_problems = []
+    extension_counts = {}
+    if "wall_crossing_velocity_gradient" in gpu:
+        # the second-order continuation: grad v_i ([a, b] = d v_a / d x_b; the buffer holds column b in entry b)
+        # and the state of every fluid particle
+        stored = gpu["wall_crossing_velocity_gradient"][fluid]                     # (F, 3 columns, 4)
+        gradient_gpu = np.transpose(stored[:, :, 0:3], (0, 2, 1)).astype(np.float64)
+        state_gpu = stored[:, 0, 3].astype(np.int64)
+        if not np.array_equal(state_gpu, reference.extension_state):
+            extension_problems.append(
+                f"second-order state differs on {int((state_gpu != reference.extension_state).sum())} rows")
+        solved = reference.extension_state == 1
+        # per particle: the Frobenius norm of the difference over the Frobenius norm of the reference
+        difference = np.sqrt(((gradient_gpu - reference.velocity_gradient) ** 2).sum(axis=(1, 2)))
+        magnitude = np.sqrt((reference.velocity_gradient ** 2).sum(axis=(1, 2)))
+        comparisons["velocity_gradient"] = _error_statistics(difference[solved] + magnitude[solved],
+                                                             magnitude[solved]) if solved.any() else \
+            _error_statistics(np.zeros(1), np.zeros(1))
+        if np.any(gradient_gpu[~solved] != 0.0):
+            extension_problems.append("a particle without a solved gradient stores a non-zero gradient")
+        if np.any(gpu["wall_crossing_velocity_gradient"][gpu["is_wall"]][:, 0, 3] != 0.0):
+            extension_problems.append("a wall row holds a second-order state")
+        extension_counts = {"second_order_solved": int(solved.sum()),
+                            "second_order_fallbacks": int((reference.extension_state == 2).sum()),
+                            "system_determinant_minimum": float(reference.system_determinant.min()),
+                            "quadratic_factor_maximum": float(reference.quadratic_factor_maximum.max()),
+                            "wall_viscous_diffusion_number_maximum":
+                                float(reference.wall_viscous_diffusion_number.max())}
     rate_floor = max(0.01 * float(np.abs(reference.density_rate).max()), 1e-300)
     comparisons["density_rate"]["resolution_of_rate_maximum"] = float(
         (rate_resolution / np.maximum(np.abs(reference.density_rate), rate_floor)).max())
@@ -324,7 +360,8 @@ def compare_with_reference(gpu: dict, tolerance: float) -> dict:
     #     orders below its terms and a relative error says little there; their error is taken against a tenth of
     #     the summed absolute pair terms (i.e. it must stay below tolerance / 10 of that rounding scale), and
     #     the plain relative errors are reported beside it.
-    compared = ("correction_inverse", "kernel_sum", "fluid_density_gradient_sum", "fluid_inverse")
+    compared = ("correction_inverse", "kernel_sum", "fluid_density_gradient_sum", "fluid_inverse") \
+        + (("velocity_gradient",) if "velocity_gradient" in comparisons else ())
     worst = max([comparisons[name]["relative_error_maximum"] for name in compared]
                 + [comparisons["density_rate"]["relative_error_beyond_one_ulp_maximum"]]
                 + [10.0 * comparisons[name]["error_over_pair_term_sum_maximum"]
@@ -342,12 +379,14 @@ def compare_with_reference(gpu: dict, tolerance: float) -> dict:
     }
     near_wall = reference.wall_neighbour_count > 0
     return {
-        "passed": bool(worst < tolerance and not wall_problems and not fallback_problems),
+        "passed": bool(worst < tolerance and not wall_problems and not fallback_problems
+                       and not extension_problems),
         "tolerance": tolerance,
         "worst_relative_error": worst,
         "comparisons": comparisons,
         "wall_problems": wall_problems,
-        "fallback_problems": fallback_problems,
+        "fallback_problems": fallback_problems + extension_problems,
+        "second_order": extension_counts,
         "derivation_step": derivation,
         "counts": {
             "fluid": int(fluid.size), "wall": int(wall.size),
@@ -416,9 +455,47 @@ def compare_budget_with_reference(gpu: dict, tolerance: float) -> dict:
     applied_mismatches = int((applied_gpu != applied_expected).sum())
     worst = max(10.0 * comparisons[name]["error_over_pair_term_sum_maximum"] for name in names)
     closure_worst = float((closure / np.maximum(np.abs(rate_gpu), rate_floor)).max())
+    # the second-order continuation's diagnostics (wall_boundary crossing): per fluid particle with a wall
+    # neighbour the entry of its region holds (det(I - K_raw L), the largest (1 + a_j)^2, the wall viscous
+    # diffusion number, 1 step) after one evaluation, and the fallback count beside the applied change
+    extension = None
+    extension_passed = True
+    if case.numerics.wall_boundary == "crossing":
+        extremes = gpu["density_budget_extremes"][fluid].astype(np.float64).sum(axis=1)   # one region is written
+        near_wall = reference.wall_neighbour_count > 0
+        fallbacks_gpu = gpu["density_budget_fallbacks"][fluid].astype(np.float64).sum(axis=1)
+        expected_fallbacks = (reference.extension_state == 2).astype(np.float64) \
+            if case.numerics.wall_crossing.velocity_gradient_active() else np.zeros(fluid.size)
+
+        def relative(values_gpu, values_reference):
+            # the reference floored at 1 % of its largest value, as in _error_statistics (a particle whose only
+            # wall neighbours sit at the edge of the support has a diffusion number of rounding size)
+            if not near_wall.any():
+                return 0.0
+            floor = 0.01 * float(np.abs(values_reference[near_wall]).max())
+            return float((np.abs(values_gpu - values_reference)[near_wall]
+                          / np.maximum(np.abs(values_reference[near_wall]), max(floor, 1e-300))).max())
+
+        extension = {
+            "steps_counted_mismatches": int((extremes[:, 3] != near_wall.astype(np.float64)).sum()),
+            "fallback_mismatches": int((fallbacks_gpu != expected_fallbacks).sum()),
+            "determinant_relative_error_maximum": relative(extremes[:, 0], reference.system_determinant),
+            "factor_relative_error_maximum": relative(extremes[:, 1], reference.quadratic_factor_maximum),
+            "diffusion_number_relative_error_maximum": relative(extremes[:, 2],
+                                                                reference.wall_viscous_diffusion_number),
+            "determinant_minimum": float(reference.system_determinant[near_wall].min()) if near_wall.any() else None,
+            "factor_maximum": float(reference.quadratic_factor_maximum.max()),
+            "diffusion_number_maximum": float(reference.wall_viscous_diffusion_number.max()),
+            "fallbacks": int(expected_fallbacks.sum()),
+        }
+        extension_passed = (extension["steps_counted_mismatches"] == 0 and extension["fallback_mismatches"] == 0
+                            and max(extension["determinant_relative_error_maximum"],
+                                    extension["factor_relative_error_maximum"],
+                                    extension["diffusion_number_relative_error_maximum"]) < tolerance)
     return {
         "passed": bool(worst < tolerance and closure_worst < tolerance and region_problems == 0
-                       and wall_rows_written == 0 and applied_mismatches == 0),
+                       and wall_rows_written == 0 and applied_mismatches == 0 and extension_passed),
+        "second_order_diagnostics": extension,
         "tolerance": tolerance,
         "worst_term_error_over_pair_terms_times_10": worst,
         "comparisons": comparisons,
@@ -494,10 +571,21 @@ def property_residuals(gpu: dict, configuration: str, specification: BoxCaseSpec
     }
 
 
+def extension_suffix(viscous_extension: str, continuity_extension: str) -> str:
+    """The part of a label / file name that names the second-order continuation: nothing when both extensions
+    are linear (the logs written before the switches existed keep their meaning)."""
+    if continuity_extension == "quadratic":
+        return "_extension_quadratic_full"
+    if viscous_extension == "quadratic":
+        return "_extension_quadratic_viscous"
+    return ""
+
+
 def run_configuration(out_root: pathlib.Path, dimension: int, device_index: int, configuration: str,
                       wall_boundary: str, continuity: str, distance_floor_factor: float, tolerance: float,
                       delta_wall: str = "extension", continuity_wall_component: str = "normal",
-                      density_budget: bool = False) -> dict:
+                      density_budget: bool = False, viscous_extension: str = "linear",
+                      continuity_extension: str = "linear") -> dict:
     label = f"{dimension}d_{configuration}_{wall_boundary}" + (f"_{continuity}" if wall_boundary == "crossing" else "")
     if wall_boundary == "crossing" and delta_wall != "extension":
         label += f"_delta_wall_{delta_wall}"
@@ -505,12 +593,16 @@ def run_configuration(out_root: pathlib.Path, dimension: int, device_index: int,
     # logs written before that date keep their meaning
     if wall_boundary == "crossing" and continuity_wall_component != "full":
         label += f"_wall_component_{continuity_wall_component}"
+    if wall_boundary == "crossing":
+        label += extension_suffix(viscous_extension, continuity_extension)
     if density_budget:
         label += "_budget"
     directory = out_root / label
     specification = box_specification(dimension, configuration, wall_boundary, continuity, distance_floor_factor)
     specification.delta_wall = delta_wall
     specification.continuity_wall_component = continuity_wall_component
+    specification.viscous_extension = viscous_extension
+    specification.continuity_extension = continuity_extension
     if wall_boundary == "crossing" and delta_wall == "body_force" and configuration == "smooth":
         specification.gravity = BODY_FORCE_SMOOTH_GRAVITY[dimension]
     case_path = write_box_case(directory / "case", specification)
@@ -576,6 +668,13 @@ def _print_outcome(outcome: dict) -> None:
               f"{rate['relative_error_beyond_one_ulp_maximum']:.3e}")
         print(f"  derivation step L A = I (reference only): pressure {reference['derivation_step']['pressure_pairwise_difference_of_field']:.2e}, "
               f"wall density diffusion {reference['derivation_step']['density_diffusion_pairwise_difference_of_field']:.2e} of the field")
+        if reference.get("second_order"):
+            second_order = reference["second_order"]
+            print(f"  second-order continuation: solved {second_order['second_order_solved']:,}, fallbacks "
+                  f"{second_order['second_order_fallbacks']}; det(I - K L) min "
+                  f"{second_order['system_determinant_minimum']:.4f}; (1 + a)^2 max "
+                  f"{second_order['quadratic_factor_maximum']:.2f}; wall viscous diffusion number max "
+                  f"{second_order['wall_viscous_diffusion_number_maximum']:.3e}")
         for problem in reference["wall_problems"] + reference["fallback_problems"]:
             print(f"  PROBLEM: {problem}")
         if outcome["configuration"] == "smooth":
@@ -599,6 +698,14 @@ def _print_outcome(outcome: dict) -> None:
               f"{budget['applied_change_field_mean_per_second']:+.6e} per second against the terms' "
               f"{budget['terms_sum_field_mean_per_second']:+.6e}); regions "
               f"{budget['region_counts']}")
+        if budget.get("second_order_diagnostics"):
+            diagnostics = budget["second_order_diagnostics"]
+            print(f"  second-order diagnostics of the budget build vs reference: det rel err "
+                  f"{diagnostics['determinant_relative_error_maximum']:.2e}, (1 + a)^2 "
+                  f"{diagnostics['factor_relative_error_maximum']:.2e}, diffusion number "
+                  f"{diagnostics['diffusion_number_relative_error_maximum']:.2e}; step-count mismatches "
+                  f"{diagnostics['steps_counted_mismatches']}, fallback mismatches "
+                  f"{diagnostics['fallback_mismatches']}")
         print(f"  -> budget {'PASS' if budget['passed'] else 'FAIL'} (worst 10 x term error / summed pair terms "
               f"{budget['worst_term_error_over_pair_terms_times_10']:.3e}, tolerance {budget['tolerance']:.0e})")
     residuals = outcome.get("residuals")
@@ -634,6 +741,11 @@ def main() -> int:
                         help="numerics.wall_crossing.continuity_wall_component of the crossing runs (default: the "
                              "solver's, normal; the labels and the summary file name carry "
                              "_wall_component_normal, those of full carry nothing, as before 2026-11-18)")
+    parser.add_argument("--viscous-extension", default="linear", choices=("linear", "quadratic"),
+                        help="numerics.wall_crossing.viscous_extension of the crossing runs")
+    parser.add_argument("--continuity-extension", default="linear", choices=("linear", "quadratic"),
+                        help="numerics.wall_crossing.continuity_extension of the crossing runs (quadratic: with "
+                             "--viscous-extension quadratic, continuity extrapolate only)")
     parser.add_argument("--density-budget", action="store_true",
                         help="diagnostic: run with V7_DENSITY_BUDGET=1 and compare the four budget terms with the "
                              "reference (crossing and, in the smooth configuration, simple)")
@@ -648,6 +760,11 @@ def main() -> int:
     if unknown:
         parser.error(f"unknown configurations {unknown}; known: {', '.join(ALL_CONFIGURATIONS)}")
     continuities = ("extrapolate", "wall_velocity") if arguments.continuity == "both" else (arguments.continuity,)
+    if arguments.continuity_extension == "quadratic":
+        # the second-order continuation in the continuity equation exists with continuity extrapolate only
+        continuities = tuple(rule for rule in continuities if rule == "extrapolate")
+        if not continuities:
+            parser.error("--continuity-extension quadratic needs continuity extrapolate")
 
     outcomes = []
     for configuration in configurations:
@@ -657,7 +774,8 @@ def main() -> int:
             outcomes.append(run_configuration(out_root, arguments.dimension, arguments.device, configuration,
                                               "crossing", continuity, arguments.distance_floor_factor,
                                               arguments.tolerance, arguments.delta_wall,
-                                              arguments.continuity_wall_component, arguments.density_budget))
+                                              arguments.continuity_wall_component, arguments.density_budget,
+                                              arguments.viscous_extension, arguments.continuity_extension))
             _print_outcome(outcomes[-1])
         if arguments.density_budget and configuration == "smooth":
             outcomes.append(run_configuration(out_root, arguments.dimension, arguments.device, configuration,
@@ -675,6 +793,7 @@ def main() -> int:
                                + ("" if arguments.delta_wall == "extension" else f"_delta_wall_{arguments.delta_wall}")
                                + ("" if arguments.continuity_wall_component == "full"
                                   else f"_wall_component_{arguments.continuity_wall_component}")
+                               + extension_suffix(arguments.viscous_extension, arguments.continuity_extension)
                                + ("_budget" if arguments.density_budget else "")
                                + ".json")
     summary_path.write_text(json.dumps(outcomes, indent=2), encoding="utf-8", newline="\n")

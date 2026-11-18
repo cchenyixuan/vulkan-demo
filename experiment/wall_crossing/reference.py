@@ -33,6 +33,19 @@ Acceleration of a fluid particle i (pass 2; V_j = m_i / rho_j as force.comp take
     a_v = sum_j 2 (d + 2) nu V_j c'_ij (v_i - v_j) . (r_i - r_j) / (r^2 + eps^2) L grad W,  c'_ij = 1 + d_j / phi_i for a wall j
     a   = a_p + a_v + g
 
+Second-order continuation of the velocity (viscous_extension / continuity_extension quadratic; both linear by
+default, which is everything above). With a_j = d_j / phi_i a wall neighbour's velocity difference is
+    v_j - v_i = (v_w - v_i) (1 + a_j)^2 - a_j grad v_i (r_j - r_i),
+grad v_i ((grad v)_ab = d v_a / d x_b) solved per particle from the sums of pass 1 (V_j = m_j / rho_j):
+    M_0   = sum_fluid V_j (v_j - v_i) (x) grad W + sum_wall V_j (v_w - v_i) (1 + a_j)^2 (x) grad W
+    K_raw = sum_wall V_j (-a_j) (r_j - r_i) (x) grad W
+    grad v_i = M_0 L (I - K_raw L)^-1
+  viscous_extension quadratic:    a_v's wall pairs take (v_i - v_w) (1 + a_j)^2 + a_j grad v_i (r_j - r_i);
+  continuity_extension quadratic: the wall neighbours' drift is -rho_i tr[(M_w + grad v_i K_raw) L], M_w the
+                                  wall part of M_0 (the whole vector, whatever continuity_wall_component).
+State of a particle: 0 no wall neighbour (nothing solved), 1 solved, 2 fallback to the first-order rule in both
+terms (L itself fell back, det(I - K_raw L) < 0.5, or a solution that is not finite).
+
 A case with wall_boundary simple or adami: from_case takes continuity wall_velocity, continuity_wall_component
 full and delta_wall rest_density,
 with which the four terms of the density rate above are those of simple's (and adami's) fluid particles (a wall
@@ -94,6 +107,8 @@ class ReferenceConstants:
     eos_constant: float = 0.0       # the fluid material's B = c0^2 rho0 / gamma (delta_wall body_force only)
     rest_density: float = 0.0       # the fluid material's rho0 (delta_wall body_force only)
     continuity_wall_component: str = "normal"   # spec const 117: "normal" (the default) | "full"
+    viscous_extension: str = "linear"           # spec const 118: "linear" (the default) | "quadratic"
+    continuity_extension: str = "linear"        # spec const 119: "linear" (the default) | "quadratic"
 
     @classmethod
     def from_case(cls, case) -> "ReferenceConstants":
@@ -143,6 +158,8 @@ class ReferenceConstants:
             eos_constant=float32_value(fluid.eos_constant),
             rest_density=float32_value(fluid.rest_density),
             continuity_wall_component=settings.continuity_wall_component,
+            viscous_extension=settings.viscous_extension,
+            continuity_extension=settings.continuity_extension,
         )
 
 
@@ -181,6 +198,12 @@ class ReferenceResult:
     # (F, 4): the sum of the absolute pair terms of drift fluid, drift wall, diffusion fluid, diffusion wall
     # (the rounding scale of each term)
     density_rate_term_scales: np.ndarray | None = None
+    # the second-order continuation of the velocity (computed for every case, used by the quadratic extensions)
+    velocity_gradient: np.ndarray | None = None         # (F, 3, 3): [a, b] = d v_a / d x_b; zero unless state 1
+    extension_state: np.ndarray | None = None           # (F,): 0 no wall neighbour, 1 solved, 2 fallback
+    system_determinant: np.ndarray | None = None        # (F,): det(I - K_raw L) (1 without a wall neighbour)
+    quadratic_factor_maximum: np.ndarray | None = None  # (F,): the largest (1 + a_j)^2 over the wall neighbours
+    wall_viscous_diffusion_number: np.ndarray | None = None   # (F,): density_budget.glsl's number (pass 1 volumes)
 
 
 def kernel_value(distance: np.ndarray, constants: ReferenceConstants) -> np.ndarray:
@@ -336,6 +359,50 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
     drift_fluid = _sum_by_particle(self_of_pair[neighbour_is_fluid], drift_pair[neighbour_is_fluid], fluid_count)
     drift_wall = _sum_by_particle(self_of_pair[neighbour_is_wall], drift_pair[neighbour_is_wall], fluid_count)
 
+    # ---- the second-order continuation of the velocity: grad v_i = M_0 L (I - K_raw L)^-1 ------------------------
+    depth_ratio = np.where(neighbour_is_wall, wall_depth[neighbour_of_pair] / wall_distance[self_of_pair], 0.0)
+    quadratic_factor = (1.0 + depth_ratio) ** 2
+    velocity_outer = volume[:, None, None] * velocity_difference[:, :, None] * gradient[:, None, :]
+    fluid_velocity_matrix = _sum_by_particle(self_of_pair[neighbour_is_fluid], velocity_outer[neighbour_is_fluid],
+                                             fluid_count)
+    wall_velocity_matrix = _sum_by_particle(
+        self_of_pair[neighbour_is_wall],
+        quadratic_factor[neighbour_is_wall, None, None] * velocity_outer[neighbour_is_wall], fluid_count)
+    wall_displacement_matrix = _sum_by_particle(
+        self_of_pair[neighbour_is_wall], -depth_ratio[neighbour_is_wall, None, None] * outer[neighbour_is_wall],
+        fluid_count)
+    wall_neighbour_count = np.bincount(self_of_pair[neighbour_is_wall], minlength=fluid_count)
+    system_matrix = np.eye(3)[None, :, :] - np.einsum("fab,fbc->fac", wall_displacement_matrix, correction)
+    system_determinant = np.linalg.det(system_matrix)
+    solvable = (wall_neighbour_count > 0) & correction_valid & (system_determinant >= 0.5)
+    velocity_gradient = np.zeros((fluid_count, 3, 3))
+    if solvable.any():
+        velocity_gradient[solvable] = np.einsum(
+            "fab,fbc,fcd->fad", (fluid_velocity_matrix + wall_velocity_matrix)[solvable], correction[solvable],
+            np.linalg.inv(system_matrix[solvable]))
+        solvable &= np.isfinite(velocity_gradient).all(axis=(1, 2))
+        velocity_gradient[~solvable] = 0.0
+    extension_state = np.where(wall_neighbour_count == 0, 0, np.where(solvable, 1, 2))
+    second_order_of_pair = neighbour_is_wall & solvable[self_of_pair]
+    # grad v_i (r_j - r_i) of every pair
+    gradient_displacement = np.einsum("pab,pb->pa", velocity_gradient[self_of_pair], displacement)
+    if constants.continuity_extension == "quadratic":
+        quadratic_drift = -densities[fluid_index] * np.einsum(
+            "fab,fba->f",
+            wall_velocity_matrix + np.einsum("fab,fbc->fac", velocity_gradient, wall_displacement_matrix),
+            correction)
+        drift_wall = np.where(solvable, quadratic_drift, drift_wall)
+    # the diagnostics of the DENSITY_BUDGET builds (density_budget.glsl): the largest (1 + a_j)^2 and the wall
+    # viscous diffusion number, with pass 1's V_j
+    quadratic_factor_maximum = np.zeros(fluid_count)
+    np.maximum.at(quadratic_factor_maximum, self_of_pair[neighbour_is_wall], quadratic_factor[neighbour_is_wall])
+    viscous_factor = quadratic_factor if constants.viscous_extension == "quadratic" else 1.0 + depth_ratio
+    wall_viscous_rate = _sum_by_particle(
+        self_of_pair[neighbour_is_wall],
+        (2.0 * (dimension + 2.0) * constants.viscosity * volume
+         * np.abs((displacement * corrected_gradient).sum(axis=1)) / softened * viscous_factor)[neighbour_is_wall],
+        fluid_count)
+
     fluid_density_gradient_sum = _sum_by_particle(
         self_of_pair[neighbour_is_fluid],
         (volume * density_difference)[neighbour_is_fluid, None] * gradient[neighbour_is_fluid], fluid_count)
@@ -453,8 +520,17 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
         self_of_pair[neighbour_is_wall], pairwise_pair[neighbour_is_wall], fluid_count)
 
     morris_coefficient = 2.0 * (dimension + 2.0)
-    viscous_scalar = (morris_coefficient * constants.viscosity * force_volume * extrapolation
-                      * ((-velocity_difference) * (-displacement)).sum(axis=1) / softened)
+    # v_i - v_j of a pair: a wall neighbour's first-order continuation (v_i - v_w) (1 + a_j), or with
+    # viscous_extension quadratic and a solved grad v_i the second-order one
+    # (v_i - v_w) (1 + a_j)^2 + a_j grad v_i (r_j - r_i)
+    viscous_velocity_difference = (-velocity_difference) * extrapolation[:, None]
+    if constants.viscous_extension == "quadratic":
+        viscous_velocity_difference = np.where(
+            second_order_of_pair[:, None],
+            (-velocity_difference) * quadratic_factor[:, None] + depth_ratio[:, None] * gradient_displacement,
+            viscous_velocity_difference)
+    viscous_scalar = (morris_coefficient * constants.viscosity * force_volume
+                      * (viscous_velocity_difference * (-displacement)).sum(axis=1) / softened)
     viscous_pair = viscous_scalar[:, None] * corrected_gradient
     acceleration_viscosity = _sum_by_particle(self_of_pair, viscous_pair, fluid_count)
     gravity = np.asarray(constants.gravity, dtype=np.float64)
@@ -522,8 +598,13 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
         shift_scale=shift_scale,
         density_rate_diffusion_wall_pairwise=diffusion_wall_pairwise,
         acceleration_pressure_pairwise=acceleration_pressure_pairwise,
-        wall_neighbour_count=np.bincount(self_of_pair[neighbour_is_wall], minlength=fluid_count),
+        wall_neighbour_count=wall_neighbour_count,
         fluid_neighbour_count=np.bincount(self_of_pair[neighbour_is_fluid], minlength=fluid_count),
         notes={"pair_count": int(self_of_pair.size), **body_force_notes},
         density_rate_term_scales=term_scales,
+        velocity_gradient=velocity_gradient,
+        extension_state=extension_state,
+        system_determinant=np.where(wall_neighbour_count > 0, system_determinant, 1.0),
+        quadratic_factor_maximum=quadratic_factor_maximum,
+        wall_viscous_diffusion_number=constants.timestep * wall_viscous_rate,
     )

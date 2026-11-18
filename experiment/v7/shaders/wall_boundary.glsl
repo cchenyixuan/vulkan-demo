@@ -117,6 +117,30 @@ const uint WALL_CROSSING_DELTA_WALL_BODY_FORCE   = 2u;
 layout(constant_id = 117) const uint  WALL_CROSSING_CONTINUITY_WALL_COMPONENT = 1u;
 const uint WALL_CROSSING_CONTINUITY_WALL_COMPONENT_FULL   = 0u;
 const uint WALL_CROSSING_CONTINUITY_WALL_COMPONENT_NORMAL = 1u;
+// numerics.wall_crossing.viscous_extension / continuity_extension (both default 0 = linear, the first-order rule
+// above): the SECOND-ORDER continuation of the velocity. Along the segment i -> j the velocity is a parabola
+// with the value v_i and the slope grad v_i (r_j - r_i) at i and the wall value v_w at the crossing point, which
+// gives a wall neighbour the velocity difference (a_j = d_j / phi_i, so 1 / t_ij = 1 + a_j)
+//     v_j - v_i = (v_w - v_i) (1 + a_j)^2 - a_j grad v_i (r_j - r_i).
+// grad v_i ((grad v)_ab = d v_a / d x_b) is the corrected gradient over EVERY neighbour, the wall neighbours
+// entering with this same rule, i.e. the solution of a small linear system per particle: with
+//     M_0   = sum_fluid V_j (v_j - v_i) (x) grad W_ij + sum_wall V_j (v_w - v_i) (1 + a_j)^2 (x) grad W_ij
+//     K_raw = sum_wall V_j (-a_j) (r_j - r_i) (x) grad W_ij
+// the raw sum over all neighbours is M_0 + grad v_i K_raw, and grad v_i = (M_0 + grad v_i K_raw) L_i, so
+//     grad v_i = M_0 L_i (I - K_raw L_i)^-1.
+// The fused pass accumulates M_0 and K_raw beside the correction matrix (the same V_j and grad W_ij), solves and
+// stores grad v_i for force of the same step (wall_crossing_velocity_gradient below).
+//   viscous_extension quadratic:    force's viscous term takes the rule above for a wall neighbour;
+//   continuity_extension quadratic: the wall neighbours' share of the velocity divergence in the continuity
+//       equation is tr[(M_w + grad v_i K_raw) L_i], M_w = the wall part of M_0 (the whole vector:
+//       WALL_CROSSING_CONTINUITY_WALL_COMPONENT does not apply), in place of the pair terms.
+// A particle falls back to the first-order rule in both terms for the step (state 2 below) when
+// det(I - K_raw L_i) < 0.5, when the solution is not finite or when L_i itself fell back. Exact for a quadratic
+// velocity field on a lattice (L_i without regularisation).
+layout(constant_id = 118) const uint  WALL_CROSSING_VISCOUS_EXTENSION = 0u;
+layout(constant_id = 119) const uint  WALL_CROSSING_CONTINUITY_EXTENSION = 0u;
+const uint WALL_CROSSING_EXTENSION_LINEAR    = 0u;
+const uint WALL_CROSSING_EXTENSION_QUADRATIC = 1u;
 // lower bound of phi_i = numerics.wall_crossing.distance_floor_factor (default 0.25) x the particle spacing
 layout(constant_id = 121) const float WALL_CROSSING_DISTANCE_FLOOR = 0.001;
 // the fluid box [lower, upper] in world coordinates (2-D: x and y only)
@@ -136,6 +160,30 @@ layout(std430, set = 0, binding = 12) buffer WallCrossingFluidInverseBuffer {
     // it is not part of the restart state. Wall slots are never written. Exists only with wall_boundary
     // crossing (the plain builds do not declare the binding).
     vec4 wall_crossing_fluid_inverse[];
+};
+
+// the second-order continuation of the velocity (spec consts 118, 119 above): which terms take it, and whether
+// the fused pass solves and stores grad v_i at all. All three are false with wall_boundary simple / adami and
+// with both switches linear: every statement behind them is then removed at pipeline creation.
+const bool WALL_CROSSING_VISCOUS_QUADRATIC =
+    WALL_CROSSING_ACTIVE && (WALL_CROSSING_VISCOUS_EXTENSION == WALL_CROSSING_EXTENSION_QUADRATIC);
+const bool WALL_CROSSING_CONTINUITY_QUADRATIC =
+    WALL_CROSSING_ACTIVE && (WALL_CROSSING_CONTINUITY_EXTENSION == WALL_CROSSING_EXTENSION_QUADRATIC);
+const bool WALL_CROSSING_VELOCITY_GRADIENT_ACTIVE =
+    WALL_CROSSING_VISCOUS_QUADRATIC || WALL_CROSSING_CONTINUITY_QUADRATIC;
+// state of a particle's second-order continuation in a step (wall_crossing_velocity_gradient[pid * 3].w)
+const float WALL_CROSSING_EXTENSION_STATE_NONE     = 0.0;   // no wall neighbour (or a wall particle): nothing solved
+const float WALL_CROSSING_EXTENSION_STATE_VALID    = 1.0;   // grad v_i solved and stored
+const float WALL_CROSSING_EXTENSION_STATE_FALLBACK = 2.0;   // fell back to the first-order rule for this step
+
+layout(std430, set = 0, binding = 14) buffer WallCrossingVelocityGradientBuffer {
+    // crossing with a quadratic extension: per fluid particle grad v_i, column by column, and the state:
+    //   [pid * 3 + b] = (d v_x / d x_b, d v_y / d x_b, d v_z / d x_b, b == 0 ? state : 0)     b = 0, 1, 2
+    // (2-D: every z entry is 0). Written by the fused correction + density pass (a wall particle writes state 0
+    // to [pid * 3]), read by force of the same step for the particle itself only. Transient like
+    // wall_crossing_fluid_inverse: defrag does not permute it, the transport does not carry it, it is not part
+    // of the restart state. A 48-byte stub that nothing reads or writes when both extensions are linear.
+    vec4 wall_crossing_velocity_gradient[];
 };
 
 // phi(r): distance of a point of the box to its nearest wall plane (negative outside the box)
@@ -225,5 +273,44 @@ mat3 wall_crossing_symmetric_matrix(vec4 diagonal_and_xy, vec4 xz_and_yz) {
         vec3(diagonal_and_xy.x, diagonal_and_xy.w, xz_and_yz.x),
         vec3(diagonal_and_xy.w, diagonal_and_xy.y, xz_and_yz.y),
         vec3(xz_and_yz.x,       xz_and_yz.y,       diagonal_and_xy.z));
+}
+
+// a_j = d_j / phi_i (the extrapolation factor above is 1 + a_j)
+float wall_crossing_depth_ratio(float fluid_wall_distance, vec3 wall_position) {
+    return wall_crossing_depth_behind_wall(wall_position) / fluid_wall_distance;
+}
+
+// The second-order continuation's system of one particle: grad v_i = M_0 L_i (I - K_raw L_i)^-1.
+//   velocity_matrix          = M_0   (rows: velocity component, columns: direction; GLSL m[column][row])
+//   wall_displacement_matrix = K_raw
+//   correction_inverse       = L_i as force reads it back (the symmetric matrix of the six stored entries)
+// system_determinant = det(I - K_raw L_i). false = fall back to the first-order rule (the determinant below
+// 0.5, a NaN included, or a solution that is not finite); velocity_gradient is then zero.
+bool wall_crossing_solve_velocity_gradient(mat3 velocity_matrix, mat3 wall_displacement_matrix,
+                                           mat3 correction_inverse, out mat3 velocity_gradient,
+                                           out float system_determinant) {
+    mat3 system_matrix = mat3(1.0) - wall_displacement_matrix * correction_inverse;
+    system_determinant = determinant(system_matrix);
+    velocity_gradient = mat3(0.0);
+    if (!(system_determinant >= 0.5)) {
+        return false;
+    }
+    mat3 solution = velocity_matrix * correction_inverse * inverse(system_matrix);
+    bool finite = true;
+    for (int column_index = 0; column_index < 3; column_index++) {
+        if (any(isnan(solution[column_index])) || any(isinf(solution[column_index]))) {
+            finite = false;
+        }
+    }
+    if (!finite) {
+        return false;
+    }
+    velocity_gradient = solution;
+    return true;
+}
+
+// trace of a matrix product's diagonal: tr(matrix)
+float wall_crossing_trace(mat3 matrix) {
+    return matrix[0][0] + matrix[1][1] + matrix[2][2];
 }
 #endif  // WALL_CROSSING

@@ -82,7 +82,12 @@
 //     G_i = A_f^-1 g_f (a diagnostic switch, WALL_CROSSING_DELTA_WALL, off by
 //     default, takes a pair term instead: rest_density simple's psi_ij =
 //     rho0 - rho_i, body_force psi_ij = rho_i g . (r_j - r_i) / c^2);
-//   - A_f^-1 goes to wall_crossing_fluid_inverse for force of the same step.
+//   - A_f^-1 goes to wall_crossing_fluid_inverse for force of the same step;
+//   - with a quadratic extension (WALL_CROSSING_VELOCITY_GRADIENT_ACTIVE, off by default; wall_boundary.glsl has
+//     the rule): M_0 and K_raw are accumulated beside the correction matrix, grad v_i = M_0 L_i (I - K_raw L_i)^-1
+//     and its state go to wall_crossing_velocity_gradient for force of the same step, and with
+//     continuity_extension quadratic the wall neighbours' drift is -rho_i tr[(M_w + grad v_i K_raw) L_i] after
+//     the loop (their first-order pair terms, summed aside, on a fallback).
 //
 // DIAGNOSTIC builds (DENSITY_BUDGET variants, V7_DENSITY_BUDGET=1; density_budget.glsl):
 // after the pass has stored its results, a fluid self's density rate is taken a second
@@ -137,6 +142,10 @@ void process_particle(uint self_particle_id) {
         correction_inverse[self_particle_id * 2u + 1u] = vec4(0.0);
         density_gradient_kernel_sum[self_particle_id]  = vec4(0.0);
         density_pressure_scratch[self_particle_id] = vec2(stored_rest_density(self_params.rest_density), 0.0);
+        if (WALL_CROSSING_VELOCITY_GRADIENT_ACTIVE) {
+            // a wall has no second-order state: every alive slot then holds this step's state
+            wall_crossing_velocity_gradient[self_particle_id * 3u] = vec4(0.0);
+        }
         return;
     }
 #endif
@@ -177,6 +186,15 @@ void process_particle(uint self_particle_id) {
     mat3  fluid_correction_matrix = mat3(0.0);
     vec3  wall_diffusion_vector   = vec3(0.0);
     vec3  wall_body_force_density_gradient = vec3(0.0);
+    // Second-order continuation of the velocity (WALL_CROSSING_VELOCITY_GRADIENT_ACTIVE; wall_boundary.glsl):
+    // M_0 in its fluid and wall parts (M_w), K_raw, whether the particle met a wall neighbour, and (continuity
+    // quadratic only) the wall neighbours' first-order drift summed aside for a particle that falls back.
+    mat3  fluid_velocity_matrix          = mat3(0.0);
+    mat3  wall_velocity_matrix           = mat3(0.0);
+    mat3  wall_displacement_matrix       = mat3(0.0);
+    bool  has_wall_neighbor              = false;
+    vec3  wall_linear_drift_diagonal     = vec3(0.0);
+    vec3  wall_linear_drift_off_diagonal = vec3(0.0);
     if (WALL_CROSSING_ACTIVE) {
         self_wall_distance = wall_crossing_floored_distance(self_position);
         if (WALL_CROSSING_DELTA_WALL == WALL_CROSSING_DELTA_WALL_BODY_FORCE) {
@@ -247,6 +265,22 @@ void process_particle(uint self_particle_id) {
                             fluid_correction_matrix += neighbor_volume
                                 * outerProduct(position_difference_self_to_neighbor, kernel_gradient_value);
                         }
+                        if (WALL_CROSSING_VELOCITY_GRADIENT_ACTIVE) {
+                            // M_0 += V_j (v_j - v_i) (x) grad W_ij, a wall neighbour with (v_w - v_i) (1 + a_j)^2;
+                            // K_raw += V_j (-a_j) (r_j - r_i) (x) grad W_ij over the wall neighbours
+                            vec3 pair_velocity_difference = neighbor_velocity_mass.xyz - self_velocity;
+                            if (neighbor_is_wall) {
+                                float depth_ratio = wall_crossing_depth_ratio(self_wall_distance, neighbor_position);
+                                wall_velocity_matrix += (neighbor_volume * (1.0 + depth_ratio) * (1.0 + depth_ratio))
+                                    * outerProduct(pair_velocity_difference, kernel_gradient_value);
+                                wall_displacement_matrix -= (neighbor_volume * depth_ratio)
+                                    * outerProduct(position_difference_self_to_neighbor, kernel_gradient_value);
+                                has_wall_neighbor = true;
+                            } else {
+                                fluid_velocity_matrix += neighbor_volume
+                                    * outerProduct(pair_velocity_difference, kernel_gradient_value);
+                            }
+                        }
                     }
                     if (!neighbor_is_wall)
 #endif
@@ -296,6 +330,21 @@ void process_particle(uint self_particle_id) {
                         }
                         if (WALL_CROSSING_CONTINUITY == WALL_CROSSING_CONTINUITY_EXTRAPOLATE) {
                             rate_vector *= wall_crossing_extrapolation_factor(self_wall_distance, neighbor_position);
+                        }
+                        if (WALL_CROSSING_CONTINUITY_QUADRATIC) {
+                            // continuity_extension quadratic: the wall neighbours' drift is one term after the
+                            // loop; the first-order pair term above is summed aside (a fallback takes it) and
+                            // leaves the pair's rate vector (which keeps a diagnostic delta_wall's diffusion)
+                            if (DIMENSION == 2u) {
+                                wall_linear_drift_diagonal.xy    += rate_vector.xy * kernel_gradient_value.xy;
+                                wall_linear_drift_off_diagonal.x += rate_vector.x * kernel_gradient_value.y
+                                                                  + rate_vector.y * kernel_gradient_value.x;
+                            } else {
+                                wall_linear_drift_diagonal     += rate_vector * kernel_gradient_value;
+                                wall_linear_drift_off_diagonal += rate_vector.xxy * kernel_gradient_value.yzz
+                                                                + rate_vector.yzz * kernel_gradient_value.xxy;
+                            }
+                            rate_vector = vec3(0.0);
                         }
                         if (WALL_CROSSING_DELTA_WALL == WALL_CROSSING_DELTA_WALL_REST_DENSITY) {
                             wall_neighbor_diffuses_as_pair = true;
@@ -458,6 +507,55 @@ void process_particle(uint self_particle_id) {
                 vec3(inverse_xz, inverse_yz, inverse_zz));
             density_rate += diffusion_coefficient
                           * dot(fluid_density_gradient, stored_correction_inverse * wall_diffusion_vector);
+        }
+    }
+    // ========================================================================
+    // wall_boundary crossing, second-order continuation of the velocity
+    // (wall_boundary.glsl): grad v_i = M_0 L_i (I - K_raw L_i)^-1 with the
+    // stored (symmetric) L_i, and its state, for force of this step. A particle
+    // without a wall neighbour solves nothing (state 0; force meets no wall
+    // neighbour either). Fallback to the first-order rule (state 2): L_i itself
+    // fell back, det(I - K_raw L_i) < 0.5, or a solution that is not finite.
+    // continuity_extension quadratic: the wall neighbours' drift
+    //     -rho_i tr[(M_w + grad v_i K_raw) L_i]
+    // or, on a fallback, their first-order pair terms summed aside in the loop.
+    // ========================================================================
+    if (WALL_CROSSING_VELOCITY_GRADIENT_ACTIVE) {
+        mat3  symmetric_correction_inverse = mat3(
+            vec3(inverse_xx, inverse_xy, inverse_xz),
+            vec3(inverse_xy, inverse_yy, inverse_yz),
+            vec3(inverse_xz, inverse_yz, inverse_zz));
+        mat3  velocity_gradient = mat3(0.0);
+        float extension_state   = WALL_CROSSING_EXTENSION_STATE_NONE;
+        if (has_wall_neighbor) {
+            float system_determinant;
+            bool correction_fell_back =
+                !(abs(correction_matrix_determinant) > REGULARIZATION_DETERMINANT_THRESHOLD);
+            bool solved = !correction_fell_back
+                && wall_crossing_solve_velocity_gradient(fluid_velocity_matrix + wall_velocity_matrix,
+                                                         wall_displacement_matrix, symmetric_correction_inverse,
+                                                         velocity_gradient, system_determinant);
+            extension_state = solved ? WALL_CROSSING_EXTENSION_STATE_VALID
+                                     : WALL_CROSSING_EXTENSION_STATE_FALLBACK;
+        }
+        wall_crossing_velocity_gradient[self_particle_id * 3u]      = vec4(velocity_gradient[0], extension_state);
+        wall_crossing_velocity_gradient[self_particle_id * 3u + 1u] = vec4(velocity_gradient[1], 0.0);
+        wall_crossing_velocity_gradient[self_particle_id * 3u + 2u] = vec4(velocity_gradient[2], 0.0);
+        if (WALL_CROSSING_CONTINUITY_QUADRATIC) {
+            if (extension_state == WALL_CROSSING_EXTENSION_STATE_VALID) {
+                density_rate -= self_density * wall_crossing_trace(
+                    (wall_velocity_matrix + velocity_gradient * wall_displacement_matrix)
+                    * symmetric_correction_inverse);
+            } else {
+                density_rate += inverse_xx * wall_linear_drift_diagonal.x
+                              + inverse_yy * wall_linear_drift_diagonal.y
+                              + inverse_xy * wall_linear_drift_off_diagonal.x;
+                if (DIMENSION != 2u) {
+                    density_rate += inverse_zz * wall_linear_drift_diagonal.z
+                                  + inverse_xz * wall_linear_drift_off_diagonal.y
+                                  + inverse_yz * wall_linear_drift_off_diagonal.z;
+                }
+            }
         }
     }
 #endif

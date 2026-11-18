@@ -15,7 +15,7 @@
 //         with the wall's stored rho0)
 // each contracted with the stored L_i as the pass contracts the sum. It adds
 // TIMESTEP x the four terms to
-//     density_budget[(particle_id * DENSITY_BUDGET_REGIONS + region) * 2]
+//     density_budget[(particle_id * DENSITY_BUDGET_REGIONS + region) * 3]
 // every time the pass runs, region = where the particle is at that step, and
 // to the .x of the next entry what the stored density actually changed by in
 // that step: the float32 the pass stored minus rho_n (an exact difference). The
@@ -35,6 +35,26 @@
 // The buffer is not permuted by defrag and not carried by the transport: only
 // its sum over all slots means anything (per region and term), which a defrag
 // does not change. The host reads it at a sample and sums in float64.
+//
+// wall_boundary crossing, the second-order continuation of the velocity
+// (wall_boundary.glsl; numerics.wall_crossing.viscous_extension /
+// continuity_extension): with continuity_extension quadratic the .y term is the
+// pass's -rho_i tr[(M_w + grad v_i K_raw) L_i], taken from this traversal's own
+// M_w and K_raw and the grad v_i the pass stored (the first-order pair terms
+// where the pass fell back). And for every fluid particle with a wall
+// neighbour, in every step (any extension, the linear ones included), into
+// the same slot:
+//     [slot + 1].y  += 1 where the pass fell back to the first-order rule
+//     [slot + 2]     = (the smallest det(I - K_raw L_i) so far,
+//                       the largest (1 + a_j)^2 so far,
+//                       the largest wall viscous diffusion number so far,
+//                       the number of steps counted)
+// The diffusion number of a particle is TIMESTEP x the sum over its wall
+// neighbours of the pair's viscous rate 2 (d + 2) nu V_j |(r_i - r_j) . L_i grad W_ij|
+// / (r^2 + eps^2) times the factor its velocity difference takes: (1 + a_j)^2
+// with viscous_extension quadratic, 1 + a_j with linear. (V_j = m_j / rho_j of
+// this pass; force takes m_i / rho_j of the new density.) These extremes are
+// per slot: only their minimum / maximum over all slots means anything.
 //
 // Regions (2-D box, the fluid box of wall_boundary crossing: the fluid
 // particles' bounding box widened by one particle radius): which wall planes
@@ -59,10 +79,16 @@ layout(constant_id = 126) const float WALL_CROSSING_BOX_UPPER_Y = 1.0;
 
 const uint DENSITY_BUDGET_REGIONS = 12u;
 
+const uint DENSITY_BUDGET_ENTRIES = 3u;
+
 layout(std430, set = 0, binding = 13) buffer DensityBudgetBuffer {
-    // [(pid * DENSITY_BUDGET_REGIONS + region) * 2]     = accumulated TIMESTEP x (drift fluid, drift wall,
+    // [(pid * DENSITY_BUDGET_REGIONS + region) * 3]     = accumulated TIMESTEP x (drift fluid, drift wall,
     //                                                     diffusion fluid, diffusion wall)
-    // [(pid * DENSITY_BUDGET_REGIONS + region) * 2 + 1] = (accumulated change of the stored density, 0, 0, 0)
+    // [(pid * DENSITY_BUDGET_REGIONS + region) * 3 + 1] = (accumulated change of the stored density,
+    //                                                     second-order fallbacks counted, 0, 0)
+    // [(pid * DENSITY_BUDGET_REGIONS + region) * 3 + 2] = (smallest det(I - K_raw L_i), largest (1 + a_j)^2,
+    //                                                     largest wall viscous diffusion number, steps counted)
+    //                                                     of wall_boundary crossing; zero otherwise
     // zeroed by the host at start-up; exists only with V7_DENSITY_BUDGET=1
     vec4 density_budget[];
 };
@@ -138,6 +164,17 @@ void density_budget_pass(uint self_particle_id, vec3 self_position, ivec3 self_v
     mat3  fluid_correction_matrix = mat3(0.0);         // A_f: fluid neighbours only
     vec3  fluid_density_gradient_sum = vec3(0.0);      // g_f: fluid neighbours only
     vec3  wall_body_force_density_gradient = vec3(0.0);
+    // the second-order continuation: M_w and K_raw of this traversal, and the diagnostics of the walls
+    mat3  wall_velocity_matrix     = mat3(0.0);
+    mat3  wall_displacement_matrix = mat3(0.0);
+    bool  has_wall_neighbor        = false;
+    float quadratic_factor_maximum = 0.0;
+    float wall_viscous_rate        = 0.0;
+    float morris_viscosity = 2.0 * (float(DIMENSION) + 2.0) * material_parameters[material[self_particle_id]].viscosity;
+    mat3  budget_correction_inverse = mat3(
+        vec3(inverse_diagonal.x, inverse_off_diagonal.x, inverse_off_diagonal.y),
+        vec3(inverse_off_diagonal.x, inverse_diagonal.y, inverse_off_diagonal.z),
+        vec3(inverse_off_diagonal.y, inverse_off_diagonal.z, inverse_diagonal.z));
     if (WALL_CROSSING_ACTIVE) {
         self_wall_distance = wall_crossing_floored_distance(self_position);
         if (WALL_CROSSING_DELTA_WALL == WALL_CROSSING_DELTA_WALL_BODY_FORCE) {
@@ -191,6 +228,20 @@ void density_budget_pass(uint self_particle_id, vec3 self_position, ivec3 self_v
                         }
                     }
                     if (WALL_CROSSING_ACTIVE && neighbor_is_wall) {
+                        // the second-order continuation's sums (the pass's expressions) and the diagnostics
+                        float depth_ratio = wall_crossing_depth_ratio(self_wall_distance, neighbor_position);
+                        float quadratic_factor = (1.0 + depth_ratio) * (1.0 + depth_ratio);
+                        has_wall_neighbor = true;
+                        wall_velocity_matrix += (neighbor_volume * quadratic_factor)
+                            * outerProduct(neighbor_velocity_mass.xyz - self_velocity, kernel_gradient_value);
+                        wall_displacement_matrix -= (neighbor_volume * depth_ratio)
+                            * outerProduct(position_difference_self_to_neighbor, kernel_gradient_value);
+                        quadratic_factor_maximum = max(quadratic_factor_maximum, quadratic_factor);
+                        wall_viscous_rate += morris_viscosity * neighbor_volume
+                            * abs(dot(position_difference_neighbor_to_self,
+                                      budget_correction_inverse * kernel_gradient_value))
+                            / (distance * distance + EPS_H_SQUARED)
+                            * (WALL_CROSSING_VISCOUS_QUADRATIC ? quadratic_factor : 1.0 + depth_ratio);
                         if (WALL_CROSSING_CONTINUITY_WALL_COMPONENT
                                 == WALL_CROSSING_CONTINUITY_WALL_COMPONENT_NORMAL) {
                             vec3 wall_inward_normal = wall_crossing_inward_normal(neighbor_position);
@@ -262,7 +313,47 @@ void density_budget_pass(uint self_particle_id, vec3 self_position, ivec3 self_v
         }
     }
 #endif
-    uint budget_slot = (self_particle_id * DENSITY_BUDGET_REGIONS + density_budget_region(self_position)) * 2u;
-    density_budget[budget_slot]        += TIMESTEP * budget_terms;
-    density_budget[budget_slot + 1u].x += applied_change;
+    float extension_fallback = 0.0;
+#ifdef WALL_CROSSING
+    // wall_boundary crossing, the second-order continuation: det(I - K_raw L_i) of this traversal's K_raw, the
+    // pass's state of the particle, and with continuity_extension quadratic the walls' drift
+    // -rho_i tr[(M_w + grad v_i K_raw) L_i] with the grad v_i the pass stored (a fallback keeps the first-order
+    // pair terms summed above, as the pass does)
+    float system_determinant = 1.0;
+    if (WALL_CROSSING_ACTIVE && has_wall_neighbor) {
+        system_determinant = determinant(mat3(1.0) - wall_displacement_matrix * budget_correction_inverse);
+        if (isnan(system_determinant)) {
+            system_determinant = -1.0e30;
+        }
+        if (WALL_CROSSING_VELOCITY_GRADIENT_ACTIVE) {
+            vec4 velocity_gradient_column_x = wall_crossing_velocity_gradient[self_particle_id * 3u];
+            if (velocity_gradient_column_x.w == WALL_CROSSING_EXTENSION_STATE_FALLBACK) {
+                extension_fallback = 1.0;
+            }
+            if (WALL_CROSSING_CONTINUITY_QUADRATIC
+                    && velocity_gradient_column_x.w == WALL_CROSSING_EXTENSION_STATE_VALID) {
+                mat3 velocity_gradient = mat3(velocity_gradient_column_x.xyz,
+                                              wall_crossing_velocity_gradient[self_particle_id * 3u + 1u].xyz,
+                                              wall_crossing_velocity_gradient[self_particle_id * 3u + 2u].xyz);
+                budget_terms.y = -self_density * wall_crossing_trace(
+                    (wall_velocity_matrix + velocity_gradient * wall_displacement_matrix)
+                    * budget_correction_inverse);
+            }
+        }
+    }
+#endif
+    uint budget_slot = (self_particle_id * DENSITY_BUDGET_REGIONS + density_budget_region(self_position))
+                     * DENSITY_BUDGET_ENTRIES;
+    density_budget[budget_slot]         += TIMESTEP * budget_terms;
+    density_budget[budget_slot + 1u].xy += vec2(applied_change, extension_fallback);
+#ifdef WALL_CROSSING
+    if (WALL_CROSSING_ACTIVE && has_wall_neighbor) {
+        vec4 extremes = density_budget[budget_slot + 2u];
+        density_budget[budget_slot + 2u] = vec4(
+            (extremes.w == 0.0) ? system_determinant : min(extremes.x, system_determinant),
+            max(extremes.y, quadratic_factor_maximum),
+            max(extremes.z, TIMESTEP * wall_viscous_rate),
+            extremes.w + 1.0);
+    }
+#endif
 }

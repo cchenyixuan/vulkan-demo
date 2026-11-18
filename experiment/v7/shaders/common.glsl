@@ -58,7 +58,9 @@
 //   111 - 114: V7_DEEP_WALL_SKIP (E39 B4; declared in deep_wall_skip.glsl / deep_wall_marker.comp)
 //   115      : FORCE_SEGMENT_FIRST_THREAD (E39 B3; local to force.comp's FORCE_SEGMENT variant)
 //   116      : wall_boundary crossing, DIAGNOSTIC: WALL_CROSSING_DELTA_WALL (wall_boundary.glsl; 0 = the mode)
-//   117      : wall_boundary crossing: WALL_CROSSING_CONTINUITY_WALL_COMPONENT (default 1 = normal); 118 - 119: reserved
+//   117      : wall_boundary crossing: WALL_CROSSING_CONTINUITY_WALL_COMPONENT (default 1 = normal)
+//   118 - 119: wall_boundary crossing: WALL_CROSSING_VISCOUS_EXTENSION, WALL_CROSSING_CONTINUITY_EXTENSION
+//              (0 = linear, the default; 1 = quadratic: the second-order continuation of the velocity)
 //   120 - 127: wall_boundary crossing (declared in wall_boundary.glsl, WALL_CROSSING variants only):
 //              120 continuity rule, 121 distance floor, 122 - 124 box lower, 125 - 127 box upper
 //
@@ -537,6 +539,8 @@ layout(std430, set = 0, binding = 9) buffer ExtensionFieldsBuffer {
 // binding 10: WallDummyVelocityBuffer (wall_boundary.glsl, wall_boundary adami)
 // binding 11 reserved for GlobalIdBuffer (FTLE / Lagrangian tracking; was binding 10)
 // binding 12: WallCrossingFluidInverseBuffer (wall_boundary.glsl, wall_boundary crossing, WALL_CROSSING variants)
+// binding 13: DensityBudgetBuffer (density_budget.glsl, DENSITY_BUDGET variants, diagnostic)
+// binding 14: WallCrossingVelocityGradientBuffer (wall_boundary.glsl, WALL_CROSSING variants)
 
 // ============================================================================
 // Descriptor set 1 — Voxel cell structures (own + ghost merged in V1)

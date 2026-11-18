@@ -46,6 +46,8 @@ class BoxCaseSpecification:
     distance_floor_factor: float = 0.25         # crossing only
     delta_wall: str = "extension"               # crossing only, diagnostic: extension | rest_density | body_force
     continuity_wall_component: str = "normal"   # crossing only: normal (the solver's default) | full
+    viscous_extension: str = "linear"           # crossing only: linear (the solver's default) | quadratic
+    continuity_extension: str = "linear"        # crossing only: linear (the solver's default) | quadratic
     explicit_box: bool = False
     jitter_fraction: float = 0.0
     near_wall_count: int = 0
@@ -208,6 +210,9 @@ def write_box_case(directory: pathlib.Path, specification: BoxCaseSpecification)
         from experiment.v7.utils.wall_crossing_v7 import WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT
         if specification.continuity_wall_component != WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT:
             numerics_lines += [f"    continuity_wall_component: {specification.continuity_wall_component}"]
+        for key in ("viscous_extension", "continuity_extension"):
+            if getattr(specification, key) != "linear":
+                numerics_lines += [f"    {key}: {getattr(specification, key)}"]
         if specification.explicit_box:
             box_lower = [float(component) for component in particles["box_lower"][:dimension]]
             box_upper = [float(component) for component in particles["box_upper"][:dimension]]

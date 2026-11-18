@@ -301,6 +301,7 @@ def density_budget_region_index(positions: np.ndarray, box_lower: tuple, box_upp
     return np.where(near_wall != 0, near_wall, interior)
 # the four terms of the rate (x dt, accumulated) and the change the stored float32 density actually took
 DENSITY_BUDGET_TERM_NAMES = ("drift_fluid", "drift_wall", "diffusion_fluid", "diffusion_wall", "applied")
+DENSITY_BUDGET_ENTRIES = 3      # vec4 per (slot, region): density_budget.glsl DENSITY_BUDGET_ENTRIES
 # Test hook, not a switch (experiment/seam_audit/canonical_dump.py sets it before
 # building the simulators): record every skip decision (frame_stamp + 1 per
 # skipped particle and kernel, deep_wall_skip_record) so a dump can name the
@@ -1078,12 +1079,48 @@ class SphSimulatorV7:
         since start-up (divide by the fluid particle count for the field mean)."""
         if not self._density_budget_active():
             raise RuntimeError("readback_density_budget needs V7_DENSITY_BUDGET=1")
+        return self.readback_density_budget_and_extension()[0]
+
+    def readback_density_budget_and_extension(self) -> tuple:
+        """One readback of density_budget: (the (12, 5) array of readback_density_budget, the second-order
+        continuation's diagnostics of wall_boundary crossing or None for another wall mode). The diagnostics
+        are a dict of (12,) arrays per region (DENSITY_BUDGET_REGION_NAMES), all since start-up:
+            "fallbacks"            particle-steps in which the pass fell back to the first-order rule (float64)
+            "wall_steps"           particle-steps with a wall neighbour (float64; float32 counters per slot)
+            "determinant_minimum"  the smallest det(I - K_raw L_i) (NaN where no step was counted)
+            "factor_maximum"       the largest (1 + a_j)^2
+            "diffusion_maximum"    the largest wall viscous diffusion number (density_budget.glsl)"""
+        if not self._density_budget_active():
+            raise RuntimeError("readback_density_budget needs V7_DENSITY_BUDGET=1")
         raw = self.readback_buffers_batch(["density_budget"])["density_budget"]
         regions = len(DENSITY_BUDGET_REGION_NAMES)
         capacity = self.case.capacities.total_pool_capacity()
-        values = np.frombuffer(raw, dtype=np.float32)[:capacity * regions * 8].reshape(capacity, regions, 2, 4)
-        sums = values.sum(axis=0, dtype=np.float64)                         # (regions, 2, 4)
-        return np.concatenate([sums[:, 0, :], sums[:, 1, 0:1]], axis=1)
+        values = np.frombuffer(raw, dtype=np.float32)[:capacity * regions * DENSITY_BUDGET_ENTRIES * 4] \
+            .reshape(capacity, regions, DENSITY_BUDGET_ENTRIES, 4)
+        sums = values.sum(axis=0, dtype=np.float64)                         # (regions, entries, 4)
+        budget = np.concatenate([sums[:, 0, :], sums[:, 1, 0:1]], axis=1)
+        if not self._wall_crossing:
+            return budget, None
+        counted = values[:, :, 2, 3] > 0.0
+        determinant = np.where(counted, values[:, :, 2, 0], np.inf).min(axis=0).astype(np.float64)
+        determinant[~counted.any(axis=0)] = np.nan
+        extension = {"fallbacks": sums[:, 1, 1], "wall_steps": sums[:, 2, 3],
+                     "determinant_minimum": determinant,
+                     "factor_maximum": values[:, :, 2, 1].max(axis=0).astype(np.float64),
+                     "diffusion_maximum": values[:, :, 2, 2].max(axis=0).astype(np.float64)}
+        return budget, extension
+
+    def readback_wall_crossing_extension_states(self) -> Optional[dict]:
+        """wall_boundary crossing with a quadratic extension: how many particles hold each state of the
+        second-order continuation after the last fused pass (WALL_CROSSING_EXTENSION_STATE_NAMES:
+        no_wall_neighbour, valid, fallback), over every slot (a wall and an empty slot hold 0, so
+        "no_wall_neighbour" is not a particle count; "valid" and "fallback" are). None without the extension."""
+        if not (self._wall_crossing and self.case.numerics.wall_crossing.velocity_gradient_active()):
+            return None
+        raw = self.readback_buffers_batch(["wall_crossing_velocity_gradient"])["wall_crossing_velocity_gradient"]
+        capacity = self.case.capacities.total_pool_capacity()
+        state = np.frombuffer(raw, dtype=np.float32)[:capacity * 12].reshape(capacity, 12)[:, 3]
+        return {"valid": int((state == 1.0).sum()), "fallback": int((state == 2.0).sum())}
 
     def _check_wall_crossing_supported(self) -> None:
         """wall_boundary crossing lives in the fused correction + density pass and in force (their WALL_CROSSING
@@ -1375,14 +1412,21 @@ class SphSimulatorV7:
         # per fluid particle A_f^-1 (six floats) + a validity flag, the packing of correction_inverse. Transient:
         # written by the fused pass, read by force of the same step for the particle itself; not in
         # DEFRAG_SET0_BINDINGS / the transport / the restart state (as wall_dummy_velocity).
+        # Set 0 binding 14 = grad v_i (three vec4 per particle, the state in the first) of the second-order
+        # continuation (numerics.wall_crossing.viscous_extension / continuity_extension quadratic), written and
+        # read like A_f^-1; a 48-byte stub that nothing touches when both extensions are linear.
         wall_crossing_specs = [
             _BufferSpec("wall_crossing_fluid_inverse",  0, 12, 32 * pool_capacity, BSU | TRANSFER),
+            _BufferSpec("wall_crossing_velocity_gradient", 0, 14,
+                        48 * pool_capacity if self.case.numerics.wall_crossing.velocity_gradient_active() else 48,
+                        BSU | TRANSFER),
         ] if self._wall_crossing else []
         # V7_DENSITY_BUDGET=1 (diagnostic; only then, so every other run keeps its layouts): set 0 binding 13 =
         # per slot and region the accumulated four terms of the density rate (density_budget.glsl). Not in
         # DEFRAG_SET0_BINDINGS / the transport / the restart state: only its sum over the slots is read.
         density_budget_specs = [
-            _BufferSpec("density_budget", 0, 13, 2 * 16 * len(DENSITY_BUDGET_REGION_NAMES) * pool_capacity,
+            _BufferSpec("density_budget", 0, 13,
+                        DENSITY_BUDGET_ENTRIES * 16 * len(DENSITY_BUDGET_REGION_NAMES) * pool_capacity,
                         BSU | TRANSFER),
         ] if self._density_budget_active() else []
 
@@ -2022,6 +2066,8 @@ class SphSimulatorV7:
             wall_crossing_entries = [
                 (116, 'I', settings.delta_wall_code()),        # diagnostic, 0 = the mode (wall_boundary.glsl)
                 (117, 'I', settings.continuity_wall_component_code()),     # 1 = normal (default), 0 = full
+                (118, 'I', settings.viscous_extension_code()),             # 0 = linear (default), 1 = quadratic
+                (119, 'I', settings.continuity_extension_code()),          # 0 = linear (default), 1 = quadratic
                 (120, 'I', settings.continuity_code()),
                 (121, 'f', settings.distance_floor(particle_radius)),
                 (122, 'f', settings.box_lower[0]), (123, 'f', settings.box_lower[1]),
