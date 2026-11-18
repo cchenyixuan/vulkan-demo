@@ -36,5 +36,6 @@
 | `449bd10` | wall_crossing tools: single_step --determinant-threshold (a test that puts half of the particles on the fallback of the second-order continuation); wall-layer distance statistics, figure fixes |
 | `6296d80` | wall_crossing tools: cavity table label of the second pressure-branch control |
 | `a70b805` | wall_boundary crossing: section 10 of the report (second-order continuation of the velocity: regression, numpy exactness, single step, screening, hydrostatic boxes, cavity at 250^2 and 500^2, pressure-branch controls, wall-layer distances, cost, K = 2) |
+| `b18597b` | wall_boundary crossing: report rebuilt (commit table) |
 
 （加入本报告的那个提交排在这些之后。）
