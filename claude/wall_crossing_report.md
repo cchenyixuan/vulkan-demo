@@ -76,6 +76,7 @@
 | `501a56e` | wall_boundary crossing: section 15 of the report completed (the 500^2 cavity with the complete scheme and the volume constraint: metrics beside the old default and adami, two-point order, histories, time per step) |
 | `9435f56` | wall_boundary crossing: report rebuilt (commit table) |
 | `cfb8cbf` | wall_boundary crossing: section 15, the range of the 500^2 mean density corrected (rho0 + 0.001 to + 0.004) |
+| `e4e86af` | wall_boundary crossing: section 16 of the report (the post-processing behind psi_min, the velocity extrema and the vortex centre: how it works, a test on an analytic divergence-free field at 250^2 and 500^2, psi_min of eight runs by four integration paths, the vortex centres; stored snapshots only) and its tool stream_function_check.py |
 
 （加入本报告的那个提交排在这些之后。）
 
