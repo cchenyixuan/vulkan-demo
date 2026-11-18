@@ -216,6 +216,21 @@ const bool WALL_CROSSING_CONTINUITY_QUADRATIC =
     WALL_CROSSING_ACTIVE && (WALL_CROSSING_CONTINUITY_EXTENSION == WALL_CROSSING_EXTENSION_QUADRATIC);
 const bool WALL_CROSSING_VELOCITY_GRADIENT_ACTIVE =
     WALL_CROSSING_VISCOUS_QUADRATIC || WALL_CROSSING_CONTINUITY_QUADRATIC;
+// numerics.volume_constraint.enabled (off by default; utils/volume_constraint_v7.py): the constraint on the
+// fluid's total volume in a closed container. The host takes theta = (V_now - V_target) / V_target, V = the sum of
+// m_i / rho_i over the fluid particles, every update interval and writes rate = theta / relaxation_time to
+// volume_constraint_state.x; the fused pass adds rho_i * rate to every fluid particle's density rate. One relative
+// rate for all of them: it moves the level of the pressure and makes no gradient.
+layout(constant_id = 130) const uint  WALL_CROSSING_VOLUME_CONSTRAINT_ENABLED = 0u;
+const bool WALL_CROSSING_VOLUME_CONSTRAINT = WALL_CROSSING_ACTIVE && (WALL_CROSSING_VOLUME_CONSTRAINT_ENABLED != 0u);
+
+layout(std430, set = 0, binding = 15) buffer VolumeConstraintStateBuffer {
+    // (rate in 1 / time, theta, 0, 0): written by the host at an update of the volume constraint, zero until the
+    // first one. Read by the fused pass only with WALL_CROSSING_VOLUME_CONSTRAINT; not permuted by defrag, not
+    // carried by the transport (every slab's host writes the same value).
+    vec4 volume_constraint_state;
+};
+
 // the pairwise geometry and the two reflections (spec consts 128, 129, 116 = 3 above). All three are false with
 // wall_boundary simple / adami and with the defaults: every statement behind them is then removed at pipeline
 // creation.

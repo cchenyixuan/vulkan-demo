@@ -914,6 +914,7 @@ class SphSimulatorV7:
         # wall_boundary crossing: the paths the mode does not run are refused here, before anything is built.
         self._check_wall_crossing_supported()
         self._check_density_budget_supported()
+        self._check_volume_constraint_supported()
 
         # Buffer allocation
         self._buffer_specs = self._build_buffer_specs()
@@ -939,6 +940,12 @@ class SphSimulatorV7:
         self._wire_defrag_set4()
         self.defrag_pipeline_layout = self._build_defrag_pipeline_layout()
         self.pipelines["defrag"] = self._build_defrag_pipeline()
+
+        # numerics.volume_constraint (off by default): this slab's share of the target volume, and its place in
+        # the process's group (utils/volume_constraint_v7.py)
+        self._volume_constraint_defrag_calls = 0
+        self._volume_constraint_update_steps = 0
+        self._init_volume_constraint()
 
         # Frame sync scheme: owns the timeline semaphore(s) and decides every
         # submit site's wait/signal (semaphore, value) pairs. "aggregated" =
@@ -1175,6 +1182,9 @@ class SphSimulatorV7:
     def destroy(self) -> None:
         if self._destroyed:
             return
+        if self.case.numerics.volume_constraint.enabled:
+            from experiment.v7.utils.volume_constraint_v7 import PROCESS_GROUP
+            PROCESS_GROUP.unregister(self)
         device = self.ctx.device
         vkDeviceWaitIdle(device)
 
@@ -1307,6 +1317,111 @@ class SphSimulatorV7:
         self.ctx.submit_and_wait(self.defrag_cmd)
         if os.environ.get("V7_DEFRAG_AUDIT") == "1":          # diagnostic: the pid order after this defrag
             audit_pid_order(self, own_total=self._defrag_prefix_records[-1]["total"] if self._defrag_prefix_records else None)
+        if self._volume_constraint_active():
+            self._volume_constraint_on_defrag()
+
+    # ========================================================================
+    # numerics.volume_constraint (utils/volume_constraint_v7.py)
+    # ========================================================================
+
+    def _volume_constraint_active(self) -> bool:
+        return bool(self.case.numerics.volume_constraint.enabled)
+
+    def _check_volume_constraint_supported(self) -> None:
+        """The constraint's term is a statement of the crossing variant of the fused pass. Refused: another wall
+        mode (also by the loader), the density budget build (its four terms would not add up to the applied
+        change), a defrag cadence longer than the update interval."""
+        if not self._volume_constraint_active():
+            return
+        if not self._wall_crossing:
+            raise ValueError("numerics.volume_constraint.enabled needs numerics.wall_boundary crossing")
+        if self._density_budget_active():
+            raise ValueError("numerics.volume_constraint and V7_DENSITY_BUDGET=1 together are not supported: the "
+                             "budget's four terms do not contain the constraint's term")
+        settings = self.case.numerics.volume_constraint
+        self._volume_constraint_update_steps_checked = settings.update_steps(
+            float(self.case.physics.timestep), int(self.case.numerics.defrag_cadence))
+
+    def _fluid_volume_of_payload(self, velocity_mass: np.ndarray, density: np.ndarray, material: np.ndarray,
+                                 alive: np.ndarray) -> tuple:
+        """(sum of m / rho over the alive fluid rows in float64, their number)."""
+        from experiment.v7.utils.case_v7 import KIND_FLUID
+        kinds = np.asarray([entry.kind for entry in self.case.materials])
+        fluid = alive & (velocity_mass[:, 3] > 0.0) & (kinds[np.minimum(material, kinds.size - 1)] == KIND_FLUID)
+        volume = (velocity_mass[fluid, 3].astype(np.float64) / density[fluid].astype(np.float64)).sum()
+        return float(volume), int(fluid.sum())
+
+    def _init_volume_constraint(self) -> None:
+        """The target: sum of m_i / rho_i over the fluid particles of the state the run starts from, taken from
+        the initial payload (the float32 values the GPU gets), so a run resumed from a checkpoint keeps the
+        target of its start."""
+        if not self._volume_constraint_active():
+            return
+        from experiment.v7.utils.volume_constraint_v7 import PROCESS_GROUP
+        case = self.case
+        pool_capacity = case.capacities.total_pool_capacity()
+        own_first = self.own_first_pid()
+        count = int(case.initial.positions.shape[0])
+        rows = slice(own_first, own_first + count)
+        initial = self._build_initial_data()
+        velocity_mass = np.frombuffer(initial["velocity_mass"], dtype=np.float32).reshape(pool_capacity, 4)[rows]
+        density = np.frombuffer(initial["density_pressure"], dtype=np.float32).reshape(pool_capacity, 2)[rows, 0] \
+            .astype(np.float64) + float(self.stored_density_offset())
+        material = np.frombuffer(initial["material"], dtype=np.uint32)[rows]
+        target, fluid_count = self._fluid_volume_of_payload(velocity_mass, density, material,
+                                                            np.ones(count, dtype=bool))
+        self._volume_constraint_update_steps = self.case.numerics.volume_constraint.update_steps(
+            float(case.physics.timestep), int(case.numerics.defrag_cadence))
+        PROCESS_GROUP.register(self, target)
+        print(f"[SimV7] volume constraint: target volume of this slab {target:.9g} ({fluid_count:,} fluid "
+              f"particles), relaxation time {case.numerics.volume_constraint.relaxation_time:g}, an update every "
+              f"{self._volume_constraint_update_steps:,} steps "
+              f"(= {self._volume_constraint_update_steps * float(case.physics.timestep):g})", flush=True)
+
+    def readback_fluid_volume(self) -> tuple:
+        """(sum of m_i / rho_i over this slab's own alive fluid particles, their number), from a readback of
+        position, mass, density and material. The queue must be drained."""
+        case = self.case
+        raw = self.readback_buffers_batch(["position_voxel_id", "velocity_mass", "density_pressure", "material"])
+        capacity = case.capacities.total_pool_capacity()
+        first = self.own_first_pid()
+        rows = slice(first, first + case.capacities.own_pool_size)
+        position = np.frombuffer(raw["position_voxel_id"], dtype=np.float32)[:capacity * 4].reshape(capacity, 4)[rows]
+        velocity_mass = np.frombuffer(raw["velocity_mass"], dtype=np.float32)[:capacity * 4].reshape(capacity, 4)[rows]
+        density = np.frombuffer(raw["density_pressure"], dtype=np.float32)[:capacity * 2].reshape(capacity, 2)[rows, 0]
+        material = np.frombuffer(raw["material"], dtype=np.uint32)[:capacity][rows]
+        return self._fluid_volume_of_payload(velocity_mass, density, material, position[:, 3] > 0.5)
+
+    def set_volume_constraint_rate(self, rate: float, theta: float = 0.0) -> None:
+        """Write the rate the fused pass applies (d rho_i / dt += rho_i * rate) into volume_constraint_state.
+        The queue must be drained. Also a test hook (experiment/wall_crossing/single_step.py)."""
+        if not self._volume_constraint_active():
+            raise RuntimeError("set_volume_constraint_rate needs numerics.volume_constraint.enabled")
+        self._staging_upload(self.buffers["volume_constraint_state"],
+                             struct.pack("<4f", float(rate), float(theta), 0.0, 0.0))
+
+    def _volume_constraint_on_defrag(self) -> None:
+        """Called after every defrag (drained): every update_steps steps take this slab's fluid volume and report
+        it to the group; when the group has every slab's, each slab gets the new rate."""
+        from experiment.v7.utils.volume_constraint_v7 import PROCESS_GROUP
+        cadences = self._volume_constraint_update_steps // int(self.case.numerics.defrag_cadence)
+        due = self._volume_constraint_defrag_calls % cadences == 0
+        self._volume_constraint_defrag_calls += 1
+        if not due:
+            return
+        step = int(self.readback_global_status()["frame_stamp"])
+        volume, fluid_count = self.readback_fluid_volume()
+        record = PROCESS_GROUP.report(self, step, volume, fluid_count,
+                                      float(self.case.numerics.volume_constraint.relaxation_time),
+                                      float(self.case.physics.timestep))
+        if record is None:
+            return
+        for member in PROCESS_GROUP.members:
+            member.set_volume_constraint_rate(PROCESS_GROUP.rate, PROCESS_GROUP.theta)
+        updates = len(PROCESS_GROUP.history)
+        if updates <= 3 or updates % 100 == 0:
+            print(f"[SimV7] volume constraint update {updates}: step {record['step']:,} (t = {record['time']:.3f}), "
+                  f"theta {record['theta']:+.3e}, rate {record['rate']:+.3e}", flush=True)
 
     # ========================================================================
     # Worker-facing accessors
@@ -1420,6 +1535,10 @@ class SphSimulatorV7:
             _BufferSpec("wall_crossing_velocity_gradient", 0, 14,
                         48 * pool_capacity if self.case.numerics.wall_crossing.velocity_gradient_active() else 48,
                         BSU | TRANSFER),
+            # numerics.volume_constraint: (rate, theta, 0, 0), written by the host at an update, read by the
+            # fused pass when spec const 130 is on. Zero (no term) until the first update; 16 bytes that
+            # nothing reads with the constraint off.
+            _BufferSpec("volume_constraint_state", 0, 15, 16, BSU | TRANSFER),
         ] if self._wall_crossing else []
         # V7_DENSITY_BUDGET=1 (diagnostic; only then, so every other run keeps its layouts): set 0 binding 13 =
         # per slot and region the accumulated four terms of the density rate (density_budget.glsl). Not in
@@ -2076,6 +2195,7 @@ class SphSimulatorV7:
                 (127, 'f', settings.box_upper[2]),
                 (128, 'I', settings.geometry_code()),          # 0 = nearest_wall (default), 1 = pairwise
                 (129, 'I', settings.pressure_wall_code()),     # 0 = extension (default), 1 = reflection
+                (130, 'I', 1 if n.volume_constraint.enabled else 0),       # numerics.volume_constraint.enabled
             ]
         elif self._density_budget_active():
             # V7_DENSITY_BUDGET=1 on a simple / adami slab: the box of the budget's regions (density_budget.glsl

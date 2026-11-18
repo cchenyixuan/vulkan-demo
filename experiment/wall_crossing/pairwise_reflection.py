@@ -28,6 +28,8 @@ Configurations (the names used in case directories, run names and tables):
                                   2026-11-18 (the whole vector in the continuity equation) on the pairwise geometry
     reflection_full               the reflection configuration with continuity_wall_component full ("完整方案":
                                   pairwise geometry, whole vector, both reflections)
+    reflection_full_volume        the complete scheme with numerics.volume_constraint enabled (relaxation time 1,
+                                  the default); reflection_full_volume_tau5: the same with relaxation time 5
 make-cases derives, from an existing crossing case, the same case with the keys added: the cavity at 250^2 and the
 two 2-D hydrostatic boxes. Existing case files are left alone.
 
@@ -66,9 +68,23 @@ CONFIGURATIONS = {
     "pairwise": ("pairwise", "extension", "extension"),
     "pairwise_full": ("pairwise", "extension", "extension"),
     "reflection_full": ("pairwise", "reflection", "reflection"),
+    "reflection_full_volume": ("pairwise", "reflection", "reflection"),
+    "reflection_full_volume_tau5": ("pairwise", "reflection", "reflection"),
 }
 # configurations that also set numerics.wall_crossing.continuity_wall_component (the others take the default)
-CONTINUITY_WALL_COMPONENT = {"pairwise_full": "full", "reflection_full": "full"}
+CONTINUITY_WALL_COMPONENT = {"pairwise_full": "full", "reflection_full": "full", "reflection_full_volume": "full",
+                             "reflection_full_volume_tau5": "full"}
+# configurations with numerics.volume_constraint enabled: the keys written beside "enabled: true"
+VOLUME_CONSTRAINT = {"reflection_full_volume": {}, "reflection_full_volume_tau5": {"relaxation_time": 5.0}}
+# (source case, configuration) made by make-cases beside the main configuration of SOURCE_CASES
+EXTRA_CASES = (
+    ("lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing", "reflection_full_volume"),
+    ("lid_driven_cavity_2d_n500_xi0p001_eps0p0025_crossing", "reflection_full_volume"),
+    ("wall_crossing/hydrostatic_2d_n250_gy_crossing", "reflection_full_volume"),
+    ("wall_crossing/hydrostatic_2d_n250_g30_crossing", "reflection_full_volume"),
+)
+# made only with --tau5 (the fallback of the task when the constraint oscillates with relaxation time 1)
+TAU5_CASES = (("lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing", "reflection_full_volume_tau5"),)
 CONFIGURATION_TEXT = {
     "reflection": "反射版（逐对几何 + 压力反射 + 密度反射）",
     "pairwise_delta_reflection": "逐对几何 + 只有密度反射",
@@ -76,6 +92,8 @@ CONFIGURATION_TEXT = {
     "pairwise": "只有逐对几何",
     "pairwise_full": "逐对几何 + 连续性取完整向量（旧缺省换成逐对几何）",
     "reflection_full": "完整方案（逐对几何 + 完整向量 + 压力反射 + 密度反射）",
+    "reflection_full_volume": "完整方案 + 体积约束",
+    "reflection_full_volume_tau5": "完整方案 + 体积约束（松弛时间 5）",
 }
 MAIN_CONFIGURATION = "reflection"
 SOURCE_CASES = (
@@ -109,13 +127,23 @@ def variant_text(source_text: str, source_name: str, configuration: str) -> str:
         added.append(f"    continuity_wall_component: {CONTINUITY_WALL_COMPONENT[configuration]}"
                      "   # normal (the default) | full")
     lines[mapping_rows[0] + 1:mapping_rows[0] + 1] = added
+    if configuration in VOLUME_CONSTRAINT:
+        if any(line.startswith("  volume_constraint:") for line in lines):
+            raise ValueError(f"{source_name}: the source already has numerics.volume_constraint")
+        constraint = ["  volume_constraint:        # the fluid's total volume is held (closed container)",
+                      "    enabled: true"]
+        constraint += [f"    {key}: {value!r}" for key, value in VOLUME_CONSTRAINT[configuration].items()]
+        lines[mapping_rows[0]:mapping_rows[0]] = constraint
     if lines[0] != "schema_version: 2":
         raise ValueError(f"{source_name}: does not start with the schema line")
     header = [f"# VARIANT of cases/{source_name} (experiment/wall_crossing/pairwise_reflection.py): geometry "
               f"{geometry},",
               f"# pressure_wall {pressure_wall}, delta_wall {delta_wall}"
               + (f", continuity_wall_component {CONTINUITY_WALL_COMPONENT[configuration]}"
-                 if configuration in CONTINUITY_WALL_COMPONENT else "") + "; everything else identical."]
+                 if configuration in CONTINUITY_WALL_COMPONENT else "")
+              + (", numerics.volume_constraint enabled" + "".join(
+                  f", {key} {value!r}" for key, value in VOLUME_CONSTRAINT[configuration].items())
+                 if configuration in VOLUME_CONSTRAINT else "") + "; everything else identical."]
     lines[2:2] = header + [""]
     return "\n".join(lines)
 
@@ -124,13 +152,18 @@ def variant_name(source_name: str, configuration: str) -> str:
     return f"{source_name}_{configuration}"
 
 
-def make_cases(every_configuration: bool) -> list:
+def make_cases(every_configuration: bool, relaxation_time_five: bool = False) -> list:
     written = []
+    wanted = {}
     for source_name in SOURCE_CASES:
-        source_text = (REPOSITORY_ROOT / "cases" / source_name / "case.yaml").read_text(encoding="utf-8")
-        configurations = [MAIN_CONFIGURATION]
+        wanted[source_name] = [MAIN_CONFIGURATION]
         if every_configuration and source_name in LOCATING_SOURCES:
-            configurations = list(CONFIGURATIONS)
+            wanted[source_name] = [configuration for configuration in CONFIGURATIONS
+                                   if configuration not in VOLUME_CONSTRAINT]
+    for source_name, configuration in EXTRA_CASES + (TAU5_CASES if relaxation_time_five else ()):
+        wanted.setdefault(source_name, []).append(configuration)
+    for source_name, configurations in wanted.items():
+        source_text = (REPOSITORY_ROOT / "cases" / source_name / "case.yaml").read_text(encoding="utf-8")
         for configuration in configurations:
             target = REPOSITORY_ROOT / "cases" / variant_name(source_name, configuration) / "case.yaml"
             if target.exists():
@@ -389,9 +422,12 @@ def main() -> int:
     parser.add_argument("action", choices=("make-cases", "numpy-check", "tables", "long-runs", "full-scheme"))
     parser.add_argument("--all", action="store_true",
                         help="make-cases: also the three variants that locate a failure of the screening")
+    parser.add_argument("--tau5", action="store_true",
+                        help="make-cases: also the 250^2 complete scheme with the volume constraint at "
+                             "relaxation time 5")
     arguments = parser.parse_args()
     if arguments.action == "make-cases":
-        written = make_cases(arguments.all)
+        written = make_cases(arguments.all, arguments.tau5)
         for path in written:
             print(f"[pairwise_reflection] wrote {path.relative_to(REPOSITORY_ROOT)}")
         print(f"[pairwise_reflection] {len(written)} case file(s) written")

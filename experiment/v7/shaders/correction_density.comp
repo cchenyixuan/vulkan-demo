@@ -91,7 +91,9 @@
 //   - geometry pairwise (WALL_CROSSING_PAIRWISE, off by default): a wall neighbour's drift takes the pair's own
 //     crossing fraction and wall normal (wall_crossing_pair_geometry); delta_wall reflection
 //     (WALL_CROSSING_DELTA_REFLECTION, off by default) adds, after the loop,
-//     -2 delta h c0 (G_i - rho_i g / c^2) . sum_wall V_j |grad W_ij| r / (r^2 + eps^2) (r_j - r_j').
+//     -2 delta h c0 (G_i - rho_i g / c^2) . sum_wall V_j |grad W_ij| r / (r^2 + eps^2) (r_j - r_j');
+//   - numerics.volume_constraint (WALL_CROSSING_VOLUME_CONSTRAINT, off by default): a fluid self's density rate
+//     takes rho_i * rate, the rate the host wrote to volume_constraint_state (wall_boundary.glsl).
 //
 // DIAGNOSTIC builds (DENSITY_BUDGET variants, V7_DENSITY_BUDGET=1; density_budget.glsl):
 // after the pass has stored its results, a fluid self's density rate is taken a second
@@ -596,6 +598,11 @@ void process_particle(uint self_particle_id) {
                 }
             }
         }
+    }
+    // numerics.volume_constraint (off by default): one relative rate for every fluid particle, set by the host
+    // from the fluid's total volume (wall_boundary.glsl). A wall self returned before the loop.
+    if (WALL_CROSSING_VOLUME_CONSTRAINT) {
+        density_rate += self_density * volume_constraint_state.x;
     }
 #endif
     store_density(self_particle_id, self_stored_density, density_rate, self_params);

@@ -50,6 +50,10 @@ class BoxCaseSpecification:
     continuity_extension: str = "linear"        # crossing only: linear (the solver's default) | quadratic
     geometry: str = "nearest_wall"              # crossing only: nearest_wall (the solver's default) | pairwise
     pressure_wall: str = "extension"            # crossing only: extension (the solver's default) | reflection
+    volume_constraint: bool = False             # numerics.volume_constraint.enabled (crossing only)
+    # its relaxation time (simulated time); None = the solver's default 1.0. The updates happen at defrags, so
+    # it has to be at least 5 defrag cadences long
+    volume_constraint_relaxation_time: Optional[float] = None
     explicit_box: bool = False
     jitter_fraction: float = 0.0
     near_wall_count: int = 0
@@ -225,6 +229,10 @@ def write_box_case(directory: pathlib.Path, specification: BoxCaseSpecification)
             box_lower = [float(component) for component in particles["box_lower"][:dimension]]
             box_upper = [float(component) for component in particles["box_upper"][:dimension]]
             numerics_lines += [f"    box: {{lower: {box_lower!r}, upper: {box_upper!r}}}"]
+    if specification.volume_constraint:
+        numerics_lines += ["  volume_constraint:", "    enabled: true"]
+        if specification.volume_constraint_relaxation_time is not None:
+            numerics_lines += [f"    relaxation_time: {specification.volume_constraint_relaxation_time!r}"]
     for key, value in specification.extra_numerics.items():
         numerics_lines.append(f"  {key}: {value}")
     counts_text = " x ".join(str(count) for count in specification.active_counts())

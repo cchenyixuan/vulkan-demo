@@ -60,6 +60,9 @@ HYDROSTATIC_GRAVITY = {2: (0.35, -0.80, 0.0), 3: (0.35, -0.80, 0.45)}        # o
 # enough for the walls' diffusion to be of the size of the fluid's).
 BODY_FORCE_SMOOTH_GRAVITY = {2: (3.5, -8.0, 0.0), 3: (3.5, -8.0, 4.5)}
 LID_SPEED = 1.0
+# --volume-constraint: the rate written to the GPU and given to the reference (1 / time). The smooth
+# configuration's density rates are of the order 1e4..1e5 kg/m3/s, rho x this rate is 2e3: a term that shows.
+VOLUME_CONSTRAINT_TEST_RATE = 2.0
 
 
 def box_specification(dimension: int, configuration: str, wall_boundary: str, continuity: str,
@@ -167,6 +170,10 @@ def gpu_single_evaluation(case_path: pathlib.Path, device_index: int, configurat
         initial["density_pressure"] = density_pressure.tobytes()
 
         simulator._upload_initial_state(initial)
+        if specification.volume_constraint:
+            # numerics.volume_constraint: the bootstrap makes no update, so the rate the fused pass reads is the
+            # one written here (after the upload, which zeroes the state buffer)
+            simulator.set_volume_constraint_rate(VOLUME_CONSTRAINT_TEST_RATE)
         command = simulator._record_bootstrap_init_cmd()
         context.submit_and_wait(command)
         vkFreeCommandBuffers(context.device, context.command_pool, 1, [command])
@@ -262,6 +269,8 @@ def compare_with_reference(gpu: dict, tolerance: float) -> dict:
     the wall rows hold exactly what the mode writes and the fallback sets agree."""
     case = gpu["case"]
     constants = ReferenceConstants.from_case(case)
+    if case.numerics.volume_constraint.enabled:
+        constants.volume_constraint_rate = float(np.float32(VOLUME_CONSTRAINT_TEST_RATE))
     reference = evaluate_reference(gpu["positions"], gpu["velocities"], gpu["densities"], gpu["pressures"],
                                    gpu["masses"], gpu["is_wall"], constants)
     fluid = reference.fluid_index
@@ -384,6 +393,7 @@ def compare_with_reference(gpu: dict, tolerance: float) -> dict:
             np.sqrt((reference.acceleration_pressure_reflection ** 2).sum(axis=1)).max()),
         "pressure_acceleration_maximum": float(scale_pressure),
         "density_reflection_rate_maximum": float(np.abs(reference.density_rate_diffusion_reflection).max()),
+        "volume_constraint_rate_maximum": float(np.abs(reference.density_rate_volume_constraint).max()),
         "density_rate_maximum": float(np.abs(reference.density_rate).max()),
         "extrapolation_factor_maximum": float(reference.extrapolation_factor_maximum.max()),
     }
@@ -591,6 +601,10 @@ def extension_suffix(viscous_extension: str, continuity_extension: str) -> str:
     return ""
 
 
+def volume_constraint_suffix(volume_constraint: bool) -> str:
+    return "_volume_constraint" if volume_constraint else ""
+
+
 def geometry_suffix(geometry: str, pressure_wall: str) -> str:
     """The part of a label / file name that names the pairwise geometry and the pressure reflection: nothing with
     the defaults (delta_wall reflection is named by the delta_wall part of the label)."""
@@ -603,7 +617,8 @@ def run_configuration(out_root: pathlib.Path, dimension: int, device_index: int,
                       delta_wall: str = "extension", continuity_wall_component: str = "normal",
                       density_budget: bool = False, viscous_extension: str = "linear",
                       continuity_extension: str = "linear", determinant_threshold: float | None = None,
-                      geometry: str = "nearest_wall", pressure_wall: str = "extension") -> dict:
+                      geometry: str = "nearest_wall", pressure_wall: str = "extension",
+                      volume_constraint: bool = False) -> dict:
     label = f"{dimension}d_{configuration}_{wall_boundary}" + (f"_{continuity}" if wall_boundary == "crossing" else "")
     if wall_boundary == "crossing" and delta_wall != "extension":
         label += f"_delta_wall_{delta_wall}"
@@ -614,6 +629,7 @@ def run_configuration(out_root: pathlib.Path, dimension: int, device_index: int,
     if wall_boundary == "crossing":
         label += extension_suffix(viscous_extension, continuity_extension)
         label += geometry_suffix(geometry, pressure_wall)
+        label += volume_constraint_suffix(volume_constraint)
     if determinant_threshold is not None:
         label += "_det_threshold_" + repr(determinant_threshold).replace(".", "p")
     if density_budget:
@@ -626,6 +642,11 @@ def run_configuration(out_root: pathlib.Path, dimension: int, device_index: int,
     specification.continuity_extension = continuity_extension
     specification.geometry = geometry
     specification.pressure_wall = pressure_wall
+    specification.volume_constraint = volume_constraint and wall_boundary == "crossing"
+    if specification.volume_constraint:
+        # the box's defrag cadence (1000 steps of its long timestep) must fit five times into the relaxation
+        # time; no update happens in the bootstrap, the test writes the rate itself
+        specification.volume_constraint_relaxation_time = 100.0
     if determinant_threshold is not None:
         specification.regularization_determinant_threshold = determinant_threshold
     # the terms that carry the gravity vector (delta_wall body_force / reflection, pressure_wall reflection) are
@@ -704,6 +725,9 @@ def _print_outcome(outcome: dict) -> None:
                   f"{second_order['quadratic_factor_maximum']:.2f}; wall viscous diffusion number max "
                   f"{second_order['wall_viscous_diffusion_number_maximum']:.3e}")
         terms = reference["reflection_terms"]
+        if terms.get("volume_constraint_rate_maximum", 0.0) > 0.0:
+            print(f"  volume constraint term (reference): max {terms['volume_constraint_rate_maximum']:.3e} of the "
+                  f"density rate's {terms['density_rate_maximum']:.3e}")
         if terms["pressure_reflection_acceleration_maximum"] > 0.0 or terms["density_reflection_rate_maximum"] > 0.0:
             print(f"  reflection terms (reference): pressure part max {terms['pressure_reflection_acceleration_maximum']:.3e} "
                   f"of the pressure acceleration's {terms['pressure_acceleration_maximum']:.3e}; density part max "
@@ -772,6 +796,9 @@ def main() -> int:
     parser.add_argument("--pressure-wall", default="extension", choices=("extension", "reflection"),
                         help="numerics.wall_crossing.pressure_wall of the crossing runs (reflection: with "
                              "--geometry pairwise; the smooth configuration then has a gravity)")
+    parser.add_argument("--volume-constraint", action="store_true",
+                        help="numerics.volume_constraint.enabled in the crossing runs, with the rate "
+                             f"{VOLUME_CONSTRAINT_TEST_RATE:g} written to the GPU and given to the reference")
     parser.add_argument("--delta-wall", default="extension",
                         choices=("extension", "rest_density", "body_force", "reflection"),
                         help="the diagnostic numerics.wall_crossing.delta_wall of the crossing runs (default: the "
@@ -820,7 +847,7 @@ def main() -> int:
                                               arguments.continuity_wall_component, arguments.density_budget,
                                               arguments.viscous_extension, arguments.continuity_extension,
                                               arguments.determinant_threshold, arguments.geometry,
-                                              arguments.pressure_wall))
+                                              arguments.pressure_wall, arguments.volume_constraint))
             _print_outcome(outcomes[-1])
         if arguments.density_budget and configuration == "smooth":
             outcomes.append(run_configuration(out_root, arguments.dimension, arguments.device, configuration,
@@ -840,6 +867,7 @@ def main() -> int:
                                   else f"_wall_component_{arguments.continuity_wall_component}")
                                + extension_suffix(arguments.viscous_extension, arguments.continuity_extension)
                                + geometry_suffix(arguments.geometry, arguments.pressure_wall)
+                               + volume_constraint_suffix(arguments.volume_constraint)
                                + ("" if arguments.determinant_threshold is None else
                                   "_det_threshold_" + repr(arguments.determinant_threshold).replace(".", "p"))
                                + ("_budget" if arguments.density_budget else "")

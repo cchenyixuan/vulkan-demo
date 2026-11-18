@@ -42,6 +42,7 @@ from experiment.v7.utils.case_v7 import (
     TransportConfig,
     WALL_BOUNDARY_CHOICES,
 )
+from experiment.v7.utils.volume_constraint_v7 import parse_volume_constraint_settings
 from experiment.v7.utils.wall_crossing_v7 import (
     describe_wall_crossing,
     parse_wall_crossing_settings,
@@ -413,6 +414,17 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
     elif "wall_crossing" in nm:
         print(f"[case_loader_v7] {case_path.parent.name}: numerics.wall_crossing is ignored "
               f"(numerics.wall_boundary is {numerics.wall_boundary}, not crossing)", flush=True)
+    # numerics.volume_constraint: the constraint on the fluid's total volume (closed containers; off by default).
+    # Implemented in the crossing variant of the fused pass only: simple / adami refuse it.
+    numerics.volume_constraint = parse_volume_constraint_settings(nm)
+    if numerics.volume_constraint.enabled:
+        if numerics.wall_boundary != "crossing":
+            raise ValueError("numerics.volume_constraint.enabled needs numerics.wall_boundary crossing "
+                             f"(this case has {numerics.wall_boundary}): the term lives in the crossing variant "
+                             "of the fused correction + density pass")
+        print(f"[case_loader_v7] volume constraint: relaxation time "
+              f"{numerics.volume_constraint.relaxation_time:g}, update interval "
+              f"{numerics.volume_constraint.update_interval_value():g} (simulated time)", flush=True)
 
     # --- Capacities -------------------------------------------------------
     caps = case_data["capacities"]

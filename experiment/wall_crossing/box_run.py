@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import dataclasses
 import json
 import os
 import pathlib
@@ -112,6 +113,12 @@ def main() -> int:
     case = load_case_v7((REPOSITORY_ROOT / arguments.case).resolve())
     out = LOG_ROOT / "box_run" / arguments.name
     out.mkdir(parents=True, exist_ok=True)
+    if case.numerics.volume_constraint.enabled:
+        # every update of the volume constraint (time, theta, rate) goes to this run's directory; the file of an
+        # earlier run of the same name goes the way of its series.csv
+        constraint_log = out / "volume_constraint.jsonl"
+        constraint_log.unlink(missing_ok=True)
+        os.environ["V7_VOLUME_CONSTRAINT_LOG"] = str(constraint_log)
     lower, upper, radius, dimension = initial_box(case)
     spacing = 2.0 * radius
     support = float(case.physics.smoothing_length)
@@ -250,6 +257,8 @@ def main() -> int:
                                   if case.numerics.wall_crossing else None),
             "continuity_extension": (case.numerics.wall_crossing.continuity_extension
                                      if case.numerics.wall_crossing else None),
+            "volume_constraint": (dataclasses.asdict(case.numerics.volume_constraint)
+                                  if case.numerics.volume_constraint.enabled else None),
             "geometry": case.numerics.wall_crossing.geometry if case.numerics.wall_crossing else None,
             "pressure_wall": case.numerics.wall_crossing.pressure_wall if case.numerics.wall_crossing else None,
             "distance_floor_factor": (case.numerics.wall_crossing.distance_floor_factor

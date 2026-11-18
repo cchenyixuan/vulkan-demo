@@ -194,6 +194,12 @@ def run_case(arguments) -> int:
     out = LOG_ROOT / "hydrostatic" / arguments.name
     out.mkdir(parents=True, exist_ok=True)
     case = load_case_v7(case_path)
+    if case.numerics.volume_constraint.enabled:
+        # every update of the volume constraint (time, theta, rate) goes to this run's directory
+        import os
+        constraint_log = out / "volume_constraint.jsonl"
+        constraint_log.unlink(missing_ok=True)
+        os.environ["V7_VOLUME_CONSTRAINT_LOG"] = str(constraint_log)
     lower, upper, radius, dimension = initial_box(case)
     spacing = 2.0 * radius
     gravity = np.asarray(case.physics.gravity, dtype=np.float64)

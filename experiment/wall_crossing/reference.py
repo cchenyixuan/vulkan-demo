@@ -124,6 +124,9 @@ class ReferenceConstants:
     continuity_extension: str = "linear"        # spec const 119: "linear" (the default) | "quadratic"
     geometry: str = "nearest_wall"              # spec const 128: "nearest_wall" (the default) | "pairwise"
     pressure_wall: str = "extension"            # spec const 129: "extension" (the default) | "reflection"
+    # numerics.volume_constraint: the rate the fused pass adds as rho_i * rate (0 = off, or before the first
+    # update); a test sets it to the value it wrote to the GPU's volume_constraint_state
+    volume_constraint_rate: float = 0.0
 
     @classmethod
     def from_case(cls, case) -> "ReferenceConstants":
@@ -226,6 +229,7 @@ class ReferenceResult:
     acceleration_pressure_reflection: np.ndarray | None = None    # (F, 3)
     density_rate_diffusion_reflection: np.ndarray | None = None   # (F,)
     extrapolation_factor_maximum: np.ndarray | None = None        # (F,): the largest 1 / t_ij over the wall neighbours
+    density_rate_volume_constraint: np.ndarray | None = None      # (F,): rho_i * rate (zero with the constraint off)
 
 
 def kernel_value(distance: np.ndarray, constants: ReferenceConstants) -> np.ndarray:
@@ -528,6 +532,9 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
                _sum_by_particle(self_of_pair[neighbour_is_wall], np.abs(diffusion_pair[neighbour_is_wall]),
                                 fluid_count))
     density_rate = drift_fluid + drift_wall + diffusion_fluid + diffusion_wall
+    # numerics.volume_constraint: rho_i * rate for every fluid particle
+    volume_constraint_term = densities[fluid_index] * constants.volume_constraint_rate
+    density_rate = density_rate + volume_constraint_term
     wall_diffusion_scale = np.zeros(fluid_count)
     fluid_diffusion_scale = np.zeros(fluid_count)
     if constants.use_density_diffusion:
@@ -542,7 +549,8 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
         _sum_by_particle(self_of_pair[neighbour_is_fluid], np.abs(drift_pair[neighbour_is_fluid]), fluid_count),
         _sum_by_particle(self_of_pair[neighbour_is_wall], np.abs(drift_pair[neighbour_is_wall]), fluid_count),
         fluid_diffusion_scale, wall_diffusion_scale], axis=1)
-    density_rate_scale = _sum_by_particle(self_of_pair, np.abs(drift_pair), fluid_count) + diffusion_scale
+    density_rate_scale = _sum_by_particle(self_of_pair, np.abs(drift_pair), fluid_count) + diffusion_scale \
+        + np.abs(volume_constraint_term)
 
     # ---- pass 2: force ------------------------------------------------------------------------------------
     force_volume = masses[self_row] / densities[neighbour_of_pair]             # V_j = m_i / rho_j (force.comp)
@@ -684,6 +692,7 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
         quadratic_factor_maximum=quadratic_factor_maximum,
         wall_viscous_diffusion_number=constants.timestep * wall_viscous_rate,
         acceleration_pressure_reflection=-reflection_part / fluid_density[:, None],
+        density_rate_volume_constraint=volume_constraint_term,
         density_rate_diffusion_reflection=diffusion_reflection,
         extrapolation_factor_maximum=np.sqrt(quadratic_factor_maximum),
     )

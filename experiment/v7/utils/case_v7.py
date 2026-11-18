@@ -23,6 +23,7 @@ from typing import Optional
 
 import numpy as np
 
+from experiment.v7.utils.volume_constraint_v7 import VolumeConstraintSettings
 from experiment.v7.utils.wall_crossing_v7 import WallCrossingSettings
 
 
@@ -96,6 +97,9 @@ class NumericsConstants:
     # density pass. Its settings (case.yaml numerics.wall_crossing) are in wall_crossing, None for the other modes.
     wall_boundary: str = "simple"
     wall_crossing: Optional[WallCrossingSettings] = None
+    # case.yaml numerics.volume_constraint: the constraint on the fluid's total volume in a closed container
+    # (utils/volume_constraint_v7.py). Off by default; wall_boundary crossing only. Spec const 130.
+    volume_constraint: VolumeConstraintSettings = VolumeConstraintSettings()
 
 
 @dataclass
