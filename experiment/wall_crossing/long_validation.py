@@ -441,6 +441,26 @@ def convergence(errors: list, spacings: list) -> dict:
     return result
 
 
+def steady_step_rate(data: dict, from_time: float = 10.0) -> float:
+    """The step rate of a box_run run over its rows with t >= from_time: box_run's steps_per_second is the average
+    since the start of the segment, so the elapsed time of row i is (step_i - start) / rate_i; the rate between the
+    first and the last of these rows of the last segment is the ratio of the step and elapsed differences."""
+    segment = data["segment"]
+    last = np.nanmax(segment)
+    rows = np.flatnonzero((segment == last) & (data["time"] >= from_time) & (data["steps_per_second"] > 0))
+    if rows.size < 2:
+        rows = np.flatnonzero((segment == last) & (data["steps_per_second"] > 0))
+        if rows.size < 2:
+            return float("nan")
+    # the segment's start step: 0 for the first segment; for a resumed one the checkpoint it started from, which is
+    # the last row kept of the segments before it
+    first_row = np.flatnonzero(segment == last)[0]
+    earlier = np.flatnonzero((segment < last) & (data["step"] < data["step"][first_row]))
+    start = data["step"][earlier[-1]] if earlier.size else 0.0
+    elapsed = (data["step"][rows] - start) / data["steps_per_second"][rows]
+    return float((data["step"][rows[-1]] - data["step"][rows[0]]) / (elapsed[-1] - elapsed[0]))
+
+
 def window_mean_profiles(profiles: list, window: tuple) -> dict:
     chosen = [entry for entry in profiles if window[0] - 1e-9 <= entry["time"] <= window[1] + 1e-9]
     result = {"count": len(chosen)}
@@ -592,8 +612,8 @@ def long_tables() -> int:
                          f"{slope:+.4f}" if np.isfinite(slope) else "—",
                          f"{data['density_mean'][-1] - REST_DENSITY:+.4f}",
                          f"{run['log'][-1]['theta']:+.2e}" if run["log"] else "—",
-                         f"{np.nanmedian(data['steps_per_second'][1:]):.1f}",
-                         f"{1e3 / np.nanmedian(data['steps_per_second'][1:]):.1f}",
+                         f"{steady_step_rate(data):.1f}",
+                         f"{1e3 / steady_step_rate(data):.1f}",
                          f"{len({int(value) for value in data['segment'] if np.isfinite(value)})}",
                          run["stop"]["reason"] if run["stop"] else "没有"])
             if run["profiles"] and any(WINDOW_3D[0] - 1e-9 <= entry["time"] for entry in run["profiles"]):
@@ -602,7 +622,7 @@ def long_tables() -> int:
             write_table("long_cavity3d_runs.md", markdown_table(
                 ["模式", "到达的 t", "粒子数（始 → 末）", "越出盒（最大）", "最大速度（最大）",
                  f"动能（窗口 {WINDOW_3D[0]:g}–{WINDOW_3D[1]:g} 平均 ± 标准差）", "窗口内动能斜率（每时间单位）",
-                 "平均密度 − ρ0（末）", "θ（末）", "步 / 秒（中位数）", "每步毫秒", "段数", "停止条件"], rows))
+                 "平均密度 − ρ0（末）", "θ（末）", "步 / 秒（t ≥ 10，含采样）", "每步毫秒", "段数", "停止条件"], rows))
         if means:
             rows = []
             for name, profile in means.items():
