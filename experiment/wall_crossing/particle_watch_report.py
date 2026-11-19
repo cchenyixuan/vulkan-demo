@@ -653,17 +653,19 @@ def draw_figures(out, event, state, ring, steps_log, primary, centre, particles,
 
     # history of the primary particle and of the chain
     steps = ring["steps"]
-    figure, axes = plt.subplots(2, 2, figsize=(10.5, 6.6))
+    figure, axes = plt.subplots(2, 2, figsize=(11.5, 7.0))
+    figure.suptitle(f"particle {primary} (event at step {event_step}) and the chain", x=0.01, ha="left",
+                    fontsize=10.5, fontweight="bold")
     margins = np.array([box_margin(row, lower, upper, dimension) if np.isfinite(row).all() else np.nan
                         for row in path])
     axes[0, 0].plot(steps, margins / support, color="#2a78d6")
     axes[0, 0].axhline(0.0, color=INK_PRIMARY, linewidth=0.8)
-    axes[0, 0].set_title(f"particle {primary}: distance to the nearest box face / h")
+    axes[0, 0].set_title(f"particle {primary}: (distance to the nearest face) / h")
     axes[0, 0].set_xlabel("step")
     for x in cut_x:
         axes[0, 1].plot(steps, (path[:, 0] - x) / support, color="#2a78d6")
     axes[0, 1].axhline(0.0, color=INK_SECONDARY, linewidth=0.8, linestyle=(0, (5, 3)))
-    axes[0, 1].set_title(f"particle {primary}: x - x_cut / h")
+    axes[0, 1].set_title("(x - x_cut) / h")
     axes[0, 1].set_xlabel("step")
     displacement = np.r_[np.nan, np.linalg.norm(np.diff(path, axis=0), axis=1)]
     speed_step = np.linalg.norm(ring["velocity"][:, primary_ring].astype(np.float64), axis=1) * float(event["timestep"])
@@ -673,7 +675,7 @@ def draw_figures(out, event, state, ring, steps_log, primary, centre, particles,
     if unlisted.any():
         axes[1, 0].scatter(steps[unlisted], np.zeros(int(unlisted.sum())), marker="|", color="#eda100", s=30,
                            label="in no voxel list")
-    axes[1, 0].set_title(f"particle {primary}: per step / Δx (lattice spacing)")
+    axes[1, 0].set_title("per step, in lattice spacings Δx")
     axes[1, 0].set_xlabel("step")
     axes[1, 0].legend()
     log_steps = [record["step"] for record in steps_log]

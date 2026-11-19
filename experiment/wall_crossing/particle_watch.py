@@ -28,7 +28,9 @@ global id (position, velocity, density, pressure, slab, row, whether a voxel lis
 buffers of the last raw_history steps. At the first event observe() raises WatchEvent; the caller then calls save_event(), which writes
 the bundle read by particle_watch_report.py:
 
-  watch_steps.jsonl      one line per checked step (counts, counter deltas, box margin, largest speed)
+  watch_steps.jsonl      one line per checked step (counts, counter deltas, box margin, largest speed; the largest
+                         fluid displacement since the previous step, shift and acceleration, each with the
+                         particle's id, position and x - x_cut)
   event.json             what happened, the box, the cuts, the slabs' grids and pools, the event particles
   raw_step<n>.npz        for each of the last raw_history steps: every slab's buffers (all rows) and voxel lists
   ring.npz               the ring, for the fluid particles within ring_radius_factor * h of one of the first
@@ -192,6 +194,7 @@ class ParticleWatch:
         all_ids = []
         maximum_speed = 0.0
         smallest_margin = np.inf
+        largest = {"shift": (0.0, -1, None), "acceleration": (0.0, -1, None)}
         for slab_index, slab in enumerate(slabs):
             own = self._own_rows(slab_index, slab)
             rows, global_id, fluid = own["rows"], own["global_id"], own["fluid"]
@@ -216,6 +219,13 @@ class ParticleWatch:
                 speed = speed[np.isfinite(speed)]
                 if speed.size:
                     maximum_speed = max(maximum_speed, float(speed.max()))
+                for name in ("shift", "acceleration"):
+                    magnitude = np.linalg.norm(slab[name][fluid_rows, :3].astype(np.float64), axis=1)
+                    magnitude[~np.isfinite(magnitude)] = -1.0
+                    best = int(np.argmax(magnitude))
+                    if magnitude[best] > largest[name][0]:
+                        largest[name] = (float(magnitude[best]), int(fluid_ids[best]),
+                                         fluid_position[best].tolist())
             valid = (fluid_ids >= 0) & (fluid_ids < self.global_count)
             ordinal = np.full(fluid_ids.size, -1, dtype=np.int64)
             ordinal[valid] = self.fluid_ordinal[fluid_ids[valid]]
@@ -252,6 +262,23 @@ class ParticleWatch:
         present = slab_ring >= 0
         vanished = (np.flatnonzero(self.previous_present & ~present) if self.previous_present is not None
                     else np.zeros(0, np.int64))
+        displacement_record = None
+        if self.ring:
+            moved = np.linalg.norm(position_ring.astype(np.float64) - self.ring[-1]["position"].astype(np.float64), axis=1)
+            moved[~np.isfinite(moved)] = -1.0
+            best = int(np.argmax(moved))
+            displacement_record = {"value": float(moved[best]), "global_id": int(self.fluid_global_ids[best]),
+                                   "position": position_ring[best].astype(float).tolist(),
+                                   "median": float(np.median(moved[moved >= 0])) if (moved >= 0).any() else None}
+        for name, (value, gid, where) in largest.items():
+            record[f"largest_fluid_{name}"] = {"value": value, "global_id": gid, "position": where}
+        record["largest_fluid_displacement_since_previous_check"] = displacement_record
+        if self.cut_world_x:
+            for key in ("largest_fluid_shift", "largest_fluid_acceleration",
+                        "largest_fluid_displacement_since_previous_check"):
+                item = record.get(key)
+                if item and item.get("position"):
+                    item["x_minus_cut"] = [item["position"][0] - x for x in self.cut_world_x]
         record.update({"fluid_total": fluid_count, "fluid_unique_ids": int(unique_ids.size),
                        "fluid_duplicate_rows": int(ids.size - unique_ids.size),
                        "fluid_missing_ids": int((~present).sum()),
