@@ -628,26 +628,52 @@ def long_tables() -> int:
                 ["模式", "到达的 t", "粒子数（始 → 末）", "越出盒（最大）", "最大速度（最大）",
                  f"动能（窗口 {WINDOW_3D[0]:g}–{WINDOW_3D[1]:g} 平均 ± 标准差）", "窗口内动能斜率（每时间单位）",
                  "平均密度 − ρ0（末）", "θ（末）", "步 / 秒（t ≥ 10，含采样）", "每步毫秒", "段数", "停止条件"], rows))
-        if means:
-            rows = []
-            for name, profile in means.items():
+        def profile_rows(window_means: dict) -> list:
+            """Extrema of the window-mean centre-line profiles per mode, then the differences between modes."""
+            table_rows = []
+            for name, profile in window_means.items():
                 u, v = profile["u_along_y"], profile["v_along_x"]
-                rows.append([runs[name]["text"], profile["count"],
-                             f"{np.nanmin(u['velocity']):+.4f}（y = {u['coordinate'][np.nanargmin(u['velocity'])]:.3f}）",
-                             f"{np.nanmax(v['velocity']):+.4f}（x = {v['coordinate'][np.nanargmax(v['velocity'])]:.3f}）",
-                             f"{np.nanmin(v['velocity']):+.4f}（x = {v['coordinate'][np.nanargmin(v['velocity'])]:.3f}）"])
-            names = list(means)
+                table_rows.append([runs[name]["text"], profile["count"],
+                                   f"{np.nanmin(u['velocity']):+.4f}（y = {u['coordinate'][np.nanargmin(u['velocity'])]:.3f}）",
+                                   f"{np.nanmax(v['velocity']):+.4f}（x = {v['coordinate'][np.nanargmax(v['velocity'])]:.3f}）",
+                                   f"{np.nanmin(v['velocity']):+.4f}（x = {v['coordinate'][np.nanargmin(v['velocity'])]:.3f}）"])
+            names = list(window_means)
             for first in range(len(names)):
                 for second in range(first + 1, len(names)):
-                    a, b = means[names[first]], means[names[second]]
+                    a, b = window_means[names[first]], window_means[names[second]]
                     du = a["u_along_y"]["velocity"] - b["u_along_y"]["velocity"]
                     dv = a["v_along_x"]["velocity"] - b["v_along_x"]["velocity"]
-                    rows.append([f"{runs[names[first]]['text']} − {runs[names[second]]['text']}", "",
-                                 f"rms {np.sqrt(np.nanmean(du ** 2)):.4f}，最大 {np.nanmax(np.abs(du)):.4f}（u 线）",
-                                 f"rms {np.sqrt(np.nanmean(dv ** 2)):.4f}，最大 {np.nanmax(np.abs(dv)):.4f}（v 线）", ""])
-            write_table("long_cavity3d_profiles.md", markdown_table(
-                ["模式 / 差", "窗口内剖面个数", "u 沿 y（过中心的竖线）的最小值", "v 沿 x（过中心的横线）的最大值",
-                 "v 沿 x 的最小值"], rows))
+                    table_rows.append([f"{runs[names[first]]['text']} − {runs[names[second]]['text']}", "",
+                                       f"rms {np.sqrt(np.nanmean(du ** 2)):.4f}，最大 {np.nanmax(np.abs(du)):.4f}（u 线）",
+                                       f"rms {np.sqrt(np.nanmean(dv ** 2)):.4f}，最大 {np.nanmax(np.abs(dv)):.4f}（v 线）",
+                                       ""])
+            return table_rows
+
+        profile_header = ["模式 / 差", "窗口内剖面个数", "u 沿 y（过中心的竖线）的最小值", "v 沿 x（过中心的横线）的最大值",
+                          "v 沿 x 的最小值"]
+        # a mode that stopped early: every mode compared over a window that all of them reached, besides the
+        # requested window (the spin-up is not the steady state; it is only what the three modes share)
+        if any(run["stop"] for run in runs.values()):
+            # the last profile every mode has, and the one before it (profiles every 0.48)
+            reached = min(float(run["profiles"][-1]["time"]) for run in runs.values() if run["profiles"])
+            early_window = (reached - 0.5, reached)
+            early = {name: window_mean_profiles(run["profiles"], early_window) for name, run in runs.items()
+                     if any(early_window[0] - 1e-9 <= entry["time"] <= early_window[1] + 1e-9
+                            for entry in run["profiles"])}
+            if len(early) > 1:
+                rows = profile_rows(early)
+                for name in early:
+                    data = runs[name]["series"]
+                    chosen = (data["time"] >= early_window[0] - 1e-9) & (data["time"] <= early_window[1] + 1e-9)
+                    rows[list(early).index(name)].append(f"{data['kinetic_energy'][chosen].mean():.3f}")
+                for row in rows[len(early):]:
+                    row.append("")
+                write_table("long_cavity3d_early.md",
+                            f"窗口 t = {early_window[0]:.2f}–{early_window[1]:.2f}（每种模式都有的最后两条剖面）\n\n"
+                            + markdown_table(profile_header + ["动能（窗口平均）"], rows))
+                summary["early_window_3d"] = list(early_window)
+        if means:
+            write_table("long_cavity3d_profiles.md", markdown_table(profile_header, profile_rows(means)))
             figure, axes = plt.subplots(1, 2, figsize=(12.0, 4.4))
             styles = {"cavity3d_1m_crossing_long": (INK_PRIMARY, 1.4, "solid"),
                       "cavity3d_1m_simple_long": (INK_SECONDARY, 2.2, "solid"),
@@ -699,6 +725,43 @@ def long_tables() -> int:
             figure.tight_layout(rect=(0, 0, 1.0, 1.0 - 0.66 / height), w_pad=2.0)
             figure.savefig(REPORT_ROOT / "figures" / "long_cavity3d_history.png")
             plt.close(figure)
+
+        # ------------------------------------------------------------------ 3.2 locating adami's speed excess
+        # a rerun of the stopped adami run from its t = 4.98 checkpoint with a sample at every defrag (0.06), the
+        # position of the fastest fluid particle in every row and the fluid state of the sample that stopped it
+        directory = LOG_ROOT / "box_run" / "cavity3d_1m_adami_locate"
+        if (directory / "series.csv").exists() and (directory / "stop_state.npz").exists():
+            data = read_series(directory / "series.csv")
+
+            def place(x: float, y: float) -> str:
+                # the lid is the +y face and moves in +x: +x is the downstream wall
+                if y > 0.47 and x > 0.48:
+                    return "下游顶边（盖与 x = +0.5 壁的交线）"
+                if y > 0.47 and x < -0.48:
+                    return "上游顶边（盖与 x = −0.5 壁的交线）"
+                return "其他"
+
+            rows = [[f"{time_value:.2f}", f"{speed:.4f}", f"({x:+.4f}, {y:+.4f}, {z:+.4f})", place(x, y)]
+                    for time_value, speed, x, y, z in zip(data["time"], data["speed_maximum"], data["fastest_x"],
+                                                          data["fastest_y"], data["fastest_z"])
+                    if np.isfinite(x)]
+            stopped = np.load(directory / "stop_state.npz")
+            speed = np.sqrt((stopped["velocities"].astype(np.float64) ** 2).sum(axis=1))
+            order = np.argsort(-speed)[:5]
+            stop_rows = [[f"{speed[index]:.4f}",
+                          "(" + ", ".join(f"{value:+.4f}" for value in stopped["positions"][index]) + ")",
+                          "(" + ", ".join(f"{value:+.3f}" for value in stopped["velocities"][index]) + ")",
+                          place(float(stopped["positions"][index][0]), float(stopped["positions"][index][1]))]
+                         for index in order]
+            write_table("long_cavity3d_adami_locate.md",
+                        markdown_table(["t", "流体最大速度", "最快粒子的位置 (x, y, z)", "位置"], rows)
+                        + f"\n停下的那个样本（t = {json.loads((directory / 'watch_stop.json').read_text(encoding='utf-8'))['time']:.2f}）"
+                        f"里最快的 5 个流体粒子；速度超过 1.0 的有 "
+                        f"{int((speed > 1.0).sum())} 个，超过 0.95 的有 {int((speed > 0.95).sum())} 个：\n\n"
+                        + markdown_table(["速度", "位置 (x, y, z)", "速度向量", "位置"], stop_rows))
+            summary["adami_locate"] = {"samples": len(rows),
+                                       "downstream_edge": sum(row[3].startswith("下游") for row in rows),
+                                       "above_one_at_stop": int((speed > 1.0).sum())}
 
         OUT.mkdir(parents=True, exist_ok=True)
         (OUT / "summary_long.json").write_text(json.dumps(summary, indent=1, ensure_ascii=False, default=float),

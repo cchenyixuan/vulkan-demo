@@ -334,6 +334,9 @@ def main() -> int:
                 row = {"step": step, "time": step * timestep,
                        "kinetic_energy": float(0.5 * (state["masses"] * speed ** 2).sum()),
                        "speed_maximum": float(speed.max()),
+                       # where the fastest fluid particle is (to locate a speed excess)
+                       **{f"fastest_{axis_name}": float(state["positions"][int(np.argmax(speed)), axis_index])
+                          for axis_index, axis_name in enumerate("xyz"[:dimension])},
                        "speed_root_mean_square": float(np.sqrt((speed ** 2).mean())),
                        "density_minimum": float(state["densities"].min()),
                        "density_maximum": float(state["densities"].max()),
@@ -430,6 +433,14 @@ def main() -> int:
                                                              "unix": time.time()}, indent=1), encoding="utf-8")
             if profiles:
                 (out / "profiles.json").write_text(json.dumps(profiles), encoding="utf-8", newline="\n")
+            if "state" in latest:
+                # the fluid state of the sample that stopped the run, to locate what triggered it
+                stopped_state = latest["state"]
+                np.savez_compressed(out / "stop_state.npz", step=last_step,
+                                    positions=stopped_state["positions"].astype(np.float32),
+                                    velocities=stopped_state["velocities"].astype(np.float32),
+                                    densities=stopped_state["densities"].astype(np.float32),
+                                    pressures=stopped_state["pressures"].astype(np.float32))
             segment_line(f"stopped: {stop}", last_step)
             run.extra["status"] = f"stopped: {stop}"
             print(f"[box_run] {arguments.name}: STOPPED ({stop})", flush=True)

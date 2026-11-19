@@ -1,3 +1,12 @@
 {
- "run_id": "wc-20261119-083631-d685"
+ "run_id": "wc-20261119-090450-ee34",
+ "early_window_3d": [
+  5.74,
+  6.24
+ ],
+ "adami_locate": {
+  "samples": 15,
+  "downstream_edge": 14,
+  "above_one_at_stop": 1
+ }
 }
