@@ -441,6 +441,75 @@ def convergence(errors: list, spacings: list) -> dict:
     return result
 
 
+def group_fits(quantities: dict, spacings: list, psi_key: str) -> dict:
+    """The two readings of the task, each over a whole set of quantities (signed errors, %, at h, h/2, h/4):
+    (a) e_q = c_q + C_q h^p, one exponent p shared by every quantity, its own constant c_q and coefficient C_q;
+    (b) e_q = C_q h^p_g, no constant, one exponent for psi_min and one shared by the velocity extrema.
+    For a given exponent both are linear (least squares in the units of the errors), so the exponents are scanned.
+    Returned: the exponents, the constants of (a), the rms residual (%) and the degrees of freedom left."""
+    spacing_array = np.asarray(spacings, dtype=float)
+    grid = np.linspace(0.2, 4.0, 3801)
+    velocity_keys = [key for key in quantities if key != psi_key]
+
+    def constant_fit(errors: np.ndarray, exponent: float) -> tuple:
+        design = np.column_stack([np.ones_like(spacing_array), spacing_array ** exponent])
+        solution = np.linalg.lstsq(design, errors, rcond=None)[0]
+        return float(np.sum((errors - design @ solution) ** 2)), solution
+
+    def power_fit(errors: np.ndarray, exponent: float) -> tuple:
+        basis = spacing_array ** exponent
+        coefficient = float(basis @ errors / (basis @ basis))
+        return float(np.sum((errors - coefficient * basis) ** 2)), coefficient
+
+    arrays = {key: np.asarray(quantities[key], dtype=float) for key in [psi_key, *velocity_keys]}
+    point_count = 3 * len(arrays)
+    totals = [sum(constant_fit(errors, exponent)[0] for errors in arrays.values()) for exponent in grid]
+    exponent_a = float(grid[int(np.argmin(totals))])
+    result = {"a": {"p": exponent_a, "rms": float(np.sqrt(min(totals) / point_count)),
+                    "degrees_of_freedom": point_count - (2 * len(arrays) + 1),
+                    "c": {key: float(constant_fit(errors, exponent_a)[1][0]) for key, errors in arrays.items()}}}
+    psi_totals = [power_fit(arrays[psi_key], exponent)[0] for exponent in grid]
+    velocity_totals = [sum(power_fit(arrays[key], exponent)[0] for key in velocity_keys) for exponent in grid]
+    result["b"] = {"p_psi": float(grid[int(np.argmin(psi_totals))]),
+                   "p_velocity": float(grid[int(np.argmin(velocity_totals))]),
+                   "rms": float(np.sqrt((min(psi_totals) + min(velocity_totals)) / point_count)),
+                   "degrees_of_freedom": point_count - (len(arrays) + 2)}
+    return result
+
+
+def shared_limit_fit(series: list, spacings: list) -> dict:
+    """Reading (a) across two series of the same quantities (each an array quantities x 3 resolutions, signed %):
+    e_qs = c_q + C_qs h^p_s, the limit c_q shared by both series, an exponent per series. Linear for given
+    exponents, so the two exponents are scanned on a grid. Returned: the limits, the exponents, the rms residual,
+    the residuals and the degrees of freedom left."""
+    spacing_array = np.asarray(spacings, dtype=float)
+    first, second = (np.asarray(item, dtype=float) for item in series)
+    quantity_count = first.shape[0]
+    target = np.concatenate([first.ravel(), second.ravel()])
+    grid = np.arange(0.2, 4.0001, 0.02)
+    best = None
+    for exponent_first in grid:
+        for exponent_second in grid:
+            design = np.zeros((target.size, 3 * quantity_count))
+            for series_index, exponent in enumerate((exponent_first, exponent_second)):
+                for quantity_index in range(quantity_count):
+                    rows = slice((series_index * quantity_count + quantity_index) * 3,
+                                 (series_index * quantity_count + quantity_index + 1) * 3)
+                    design[rows, quantity_index] = 1.0
+                    design[rows, quantity_count * (1 + series_index) + quantity_index] = spacing_array ** exponent
+            solution = np.linalg.lstsq(design, target, rcond=None)[0]
+            residual = target - design @ solution
+            cost = float(residual @ residual)
+            if best is None or cost < best[0]:
+                best = (cost, exponent_first, exponent_second, solution, residual)
+    cost, exponent_first, exponent_second, solution, residual = best
+    return {"c": [float(value) for value in solution[:quantity_count]],
+            "p": [float(exponent_first), float(exponent_second)],
+            "rms": float(np.sqrt(cost / target.size)), "maximum_residual": float(np.abs(residual).max()),
+            "residuals": [float(value) for value in residual],
+            "degrees_of_freedom": int(target.size - (3 * quantity_count + 2))}
+
+
 def steady_step_rate(data: dict, from_time: float = 10.0) -> float:
     """The step rate of a box_run run over its rows with t >= from_time: box_run's steps_per_second is the average
     since the start of the segment, so the elapsed time of row i is (step_i - start) / rate_i; the rate between the
@@ -498,6 +567,8 @@ def long_tables() -> int:
                     *[f"{entry['extrema'][key]['deviation_percent']:+.2f} %" for key in EXTREMA],
                     f"{errors['wall_u']['L2']:.4f} / {errors['wall_u']['Linf']:.4f}",
                     f"{errors['wall_v']['L2']:.4f} / {errors['wall_v']['Linf']:.4f}",
+                    f"{errors['mid_u']['L2']:.4f} / {errors['mid_u']['Linf']:.4f}",
+                    f"{errors['mid_v']['L2']:.4f} / {errors['mid_v']['Linf']:.4f}",
                     f"({psi['x_mid']:.4f}, {psi['y_mid']:.4f})",
                     f"({psi['x_mid'] - psi['x_reference']:+.4f}, {psi['y_mid'] - psi['y_reference']:+.4f})"]
 
@@ -511,10 +582,12 @@ def long_tables() -> int:
                 rows.append(row)
         rows.append([f"1000²，simple（{SIMPLE_1000_DOCUMENT['commit']}，docs/validation/cavity_re1000.md）", "80.0–99.8",
                      "—", f"{SIMPLE_1000_DOCUMENT['psi_wall_percent']:+.1f} %", SIMPLE_1000_DOCUMENT["extrema_percent"] + " %",
-                     "", "", f"{SIMPLE_1000_DOCUMENT['u_l2']:.4f} / —", f"{SIMPLE_1000_DOCUMENT['v_l2']:.4f} / —", "—", "—"])
+                     "", "", f"{SIMPLE_1000_DOCUMENT['u_l2']:.4f} / —", f"{SIMPLE_1000_DOCUMENT['v_l2']:.4f} / —", "—", "—", "—",
+                     "—"])
         write_table("long_n1000_metrics.md", markdown_table(
             ["运行", "统计窗口", "ψ_min（mid 帧：壁在盒面）", "ψ_min（wall 帧）", "u_min", "v_max", "v_min",
-             "u 剖面 L2 / L∞（wall 帧）", "v 剖面 L2 / L∞", "涡心（mid 帧）", "涡心偏差"], rows))
+             "u 剖面 L2 / L∞（wall 帧）", "v 剖面 L2 / L∞（wall 帧）", "u 剖面 L2 / L∞（mid 帧）",
+             "v 剖面 L2 / L∞（mid 帧）", "涡心（mid 帧）", "涡心偏差"], rows))
 
         # ------------------------------------------------------------------ 3.1 three-point orders
         present = [name for name, _ in SERIES_2D if name in tables]
@@ -538,6 +611,43 @@ def long_tables() -> int:
             write_table("long_convergence.md", markdown_table(
                 ["量（相对 Marchi 2021 的偏差，%）", "250² / 500² / 1000²", "两点阶（250→500 / 500→1000）",
                  "(a) 偏差 = c + C·Δx^p（三点精确解）", "(b) 偏差 = C·Δx^p（对数最小二乘）"], rows))
+
+            # the two readings over all four quantities at once, for this series and for adami's
+            rows = []
+            summary["convergence_models"] = {}
+            for series_text, names in (("完整方案 + 约束", present),
+                                       ("adami", ["n250_adami", "n500_adami", "n1000_adami"])):
+                if not all(name in tables for name in names):
+                    continue
+                for frame in ("mid", "wall"):
+                    group = {"psi": [tables[name]["extrema"]["psi_min"][f"deviation_{frame}_percent"] for name in names]}
+                    for key in EXTREMA:
+                        group[key] = [tables[name]["extrema"][key]["deviation_percent"] for name in names]
+                    fit = group_fits(group, spacings, "psi")
+                    summary["convergence_models"][f"{series_text} {frame}"] = fit
+                    constants = fit["a"]["c"]
+                    rows.append([series_text, f"{frame} 帧",
+                                 f"p = {fit['a']['p']:.2f}；c：ψ {constants['psi']:+.2f} %，速度 "
+                                 + " / ".join(f"{constants[key]:+.2f}" for key in EXTREMA) + " %",
+                                 f"{fit['a']['rms']:.3f} %（{fit['a']['degrees_of_freedom']}）",
+                                 f"p_ψ = {fit['b']['p_psi']:.2f}，p_速度 = {fit['b']['p_velocity']:.2f}",
+                                 f"{fit['b']['rms']:.3f} %（{fit['b']['degrees_of_freedom']}）"])
+            # (a) with the limit shared by the two series (one exponent per series), mid frame
+            adami_names = ["n250_adami", "n500_adami", "n1000_adami"]
+            if all(name in tables for name in adami_names):
+                def quantity_matrix(names: list) -> list:
+                    return [[tables[name]["extrema"]["psi_min"]["deviation_mid_percent"] for name in names],
+                            *[[tables[name]["extrema"][key]["deviation_percent"] for name in names] for key in EXTREMA]]
+                shared = shared_limit_fit([quantity_matrix(present), quantity_matrix(adami_names)], spacings)
+                summary["convergence_shared_limit"] = shared
+                rows.append(["两个系列共用极限（mid 帧）", "mid 帧",
+                             f"p = {shared['p'][0]:.2f}（完整方案）/ {shared['p'][1]:.2f}（adami）；共用的 c：ψ "
+                             f"{shared['c'][0]:+.2f} %，速度 " + " / ".join(f"{value:+.2f}" for value in shared["c"][1:]) + " %",
+                             f"{shared['rms']:.3f} %（{shared['degrees_of_freedom']}），最大 {shared['maximum_residual']:.3f} %",
+                             "—", "—"])
+            write_table("long_convergence_models.md", markdown_table(
+                ["系列", "ψ_min 的归一化", "(a) 常数 + C·Δx^p，四个量共用 p", "(a) 残差 rms（剩余自由度）",
+                 "(b) C·Δx^p，ψ_min 与三个速度极值各一个 p", "(b) 残差 rms（剩余自由度）"], rows))
 
         # ------------------------------------------------------------------ 3.1 histories of the 1000^2 run
         directory = LOG_ROOT / "cavity" / "n1000_complete_volume"

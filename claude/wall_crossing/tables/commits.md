@@ -77,5 +77,6 @@
 | `1ce7ea7` | report section 19, second update: the 3-D cavity crossing run (t = 45) - stable, 15.3 ms per step, centre-line profiles and histories |
 | `055343a` | report section 19, third update: the remote 1000^2 adami run (t = 100, window 80-100) - psi_min +0.24 % mid frame / +0.14 % wall frame, stable |
 | `c93e27a` | report section 19, fourth update: the 3-D cavity simple run (t = 45) - stable, 10.8 ms per step; crossing's main vortex about 15 % stronger than simple's |
+| `7e444b8` | report section 19, fifth update: the 3-D adami run stopped at t = 6.72 (one fluid particle at 1.065 x the lid speed) - located on the edge where the lid meets the downstream wall |
 
 （加入本报告的那个提交排在这些之后。）
