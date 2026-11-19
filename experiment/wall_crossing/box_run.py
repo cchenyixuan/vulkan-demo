@@ -362,6 +362,11 @@ def main() -> int:
                                                      for status in statuses)),
                        "overflow": int(sum(value for status in statuses for key, value in status.items()
                                            if key.startswith("overflow_"))),
+                       # report section 22: each overflow counter, and the alive fluid particles
+                       **{key: int(sum(status.get(key, 0) for status in statuses))
+                          for key in sorted({key for status in statuses for key in status
+                                             if key.startswith("overflow_")})},
+                       "fluid_alive": int(len(state["positions"])),
                        "steps_per_second": (step - start_step) / max(time.perf_counter() - clock["started"], 1e-9),
                        "segment": segment}
                 # the second-order continuation (a quadratic extension only): how many fluid particles hold a
@@ -371,28 +376,31 @@ def main() -> int:
                     row["extension_valid"] = int(sum(states["valid"] for states in extension_states))
                     row["extension_fallback"] = int(sum(states["fallback"] for states in extension_states))
                 if arguments.density_budget:
-                    from experiment.v7.utils.simulator_v7 import (DENSITY_BUDGET_REGION_NAMES,
-                                                                  DENSITY_BUDGET_TERM_NAMES)
+                    from experiment.v7.utils.simulator_v7 import (DENSITY_BUDGET_TERM_NAMES,
+                                                                  density_budget_region_names)
+                    # report section 22: a 3-D box has its own regions (faces, edges, corners; density_budget.glsl)
+                    region_names = density_budget_region_names(dimension)
                     readbacks = [simulator.readback_density_budget_and_extension() for simulator in simulators]
                     budget = sum(readback[0] for readback in readbacks)
                     if readbacks[0][1] is not None:
                         # wall_boundary crossing (one slab: the budget is a K = 1 diagnostic): the second-order
                         # continuation's diagnostics per region, all since start-up (density_budget.glsl)
                         extension = readbacks[0][1]
-                        for region_index, region_name in enumerate(DENSITY_BUDGET_REGION_NAMES):
+                        for region_index, region_name in enumerate(region_names):
                             for key in ("fallbacks", "wall_steps", "determinant_minimum", "factor_maximum",
                                         "diffusion_maximum"):
                                 row[f"extension_{region_name}_{key}"] = float(extension[key][region_index])
-                    for region_index, region_name in enumerate(DENSITY_BUDGET_REGION_NAMES):
+                    for region_index, region_name in enumerate(region_names):
                         for term_index, term_name in enumerate(DENSITY_BUDGET_TERM_NAMES):
                             row[f"budget_{region_name}_{term_name}"] = float(budget[region_index, term_index])
                     # the region of every fluid particle now (the shader's rule)
                     from experiment.v7.utils.simulator_v7 import density_budget_region_index
                     budget_lower, budget_upper = simulators[0].density_budget_box()
                     counts = np.bincount(
-                        density_budget_region_index(state["positions"], budget_lower, budget_upper, support),
-                        minlength=len(DENSITY_BUDGET_REGION_NAMES))
-                    for region_index, region_name in enumerate(DENSITY_BUDGET_REGION_NAMES):
+                        density_budget_region_index(state["positions"], budget_lower, budget_upper, support,
+                                                    dimension),
+                        minlength=len(region_names))
+                    for region_index, region_name in enumerate(region_names):
                         row[f"region_count_{region_name}"] = int(counts[region_index])
                     row["fluid_particles"] = int(len(state["positions"]))
                 series.append(row)

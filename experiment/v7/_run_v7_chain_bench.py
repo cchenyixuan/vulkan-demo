@@ -402,7 +402,16 @@ def main() -> int:
                             "readback_leading_dma_us", "readback_trailing_dma_us",
                             "upload_leading_dma_us", "upload_trailing_dma_us",
                             "upload_leading_to_c_gap_us",
-                            "upload_trailing_to_c_gap_us")
+                            "upload_trailing_to_c_gap_us",
+                            # numerics.wall_crossing.split_dispatch (report section 22), when split
+                            "correction_density_interior_split_interior_us",
+                            "correction_density_interior_split_near_wall_us",
+                            "force_deep_interior_split_interior_us",
+                            "force_deep_interior_split_near_wall_us",
+                            "correction_density_boundary_split_interior_us",
+                            "correction_density_boundary_split_near_wall_us",
+                            "force_boundary_split_interior_us",
+                            "force_boundary_split_near_wall_us")
                     parts = " ".join(
                         f"{key.replace('_us', '')}={durations[key]:.0f}"
                         for key in keys if key in durations)

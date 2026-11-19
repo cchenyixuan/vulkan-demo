@@ -290,14 +290,42 @@ _DENSITY_BUDGET = _parse_density_budget(os.environ.get("V7_DENSITY_BUDGET", "0")
 DENSITY_BUDGET_REGION_NAMES = ("interior_beyond_8h", "left", "right", "bottom", "bottom_left", "bottom_right",
                                "top", "top_left", "top_right", "interior_1h_2h", "interior_2h_4h",
                                "interior_4h_8h")
+# 3-D (report section 22; the lid = the upper y plane): the same slots, binned by the planes within h
+DENSITY_BUDGET_REGION_NAMES_3D = ("interior_beyond_8h", "lid_middle", "bottom_middle", "side_middle",
+                                  "lid_edge", "bottom_edge", "vertical_edge", "lid_corner", "bottom_corner",
+                                  "interior_1h_2h", "interior_2h_4h", "interior_4h_8h")
+
+
+def density_budget_region_names(dimension: int) -> tuple:
+    """The names of the budget's twelve regions for a case of this dimension."""
+    return DENSITY_BUDGET_REGION_NAMES_3D if int(dimension) == 3 else DENSITY_BUDGET_REGION_NAMES
 
 
 def density_budget_region_index(positions: np.ndarray, box_lower: tuple, box_upper: tuple,
-                                smoothing_length: float) -> np.ndarray:
+                                smoothing_length: float, dimension: int = 2) -> np.ndarray:
     """density_budget.glsl's density_budget_region for an (N, >= 2) array of positions, in float32 as the
-    shader computes it (the index into DENSITY_BUDGET_REGION_NAMES of every row)."""
+    shader computes it (the index into density_budget_region_names(dimension) of every row)."""
     positions = np.asarray(positions, dtype=np.float32)
     support = np.float32(smoothing_length)
+    if int(dimension) == 3:
+        lower = [np.float32(value) for value in box_lower]
+        upper = [np.float32(value) for value in box_upper]
+        lower_gaps = [positions[:, axis] - lower[axis] for axis in range(3)]
+        upper_gaps = [upper[axis] - positions[:, axis] for axis in range(3)]
+        lid_plane = upper_gaps[1] < support
+        bottom_plane = lower_gaps[1] < support
+        side_planes = (((lower_gaps[0] < support) | (upper_gaps[0] < support)).astype(np.int64)
+                       + ((lower_gaps[2] < support) | (upper_gaps[2] < support)).astype(np.int64))
+
+        def by_sides(none, one, two):
+            return np.where(side_planes == 0, none, np.where(side_planes == 1, one, two))
+        gap = np.minimum.reduce([*lower_gaps, *upper_gaps])
+        interior = np.where(gap >= np.float32(8.0) * support, 0,
+                            np.where(gap >= np.float32(4.0) * support, 11,
+                                     np.where(gap >= np.float32(2.0) * support, 10, 9)))
+        return np.where(lid_plane, by_sides(1, 4, 7),
+                        np.where(bottom_plane, by_sides(2, 5, 8),
+                                 np.where(side_planes > 0, by_sides(0, 3, 6), interior)))
     lower_x, lower_y = np.float32(box_lower[0]), np.float32(box_lower[1])
     upper_x, upper_y = np.float32(box_upper[0]), np.float32(box_upper[1])
     gap_left, gap_right = positions[:, 0] - lower_x, upper_x - positions[:, 0]
@@ -2378,7 +2406,9 @@ class SphSimulatorV7:
             budget_lower, budget_upper = self.density_budget_box()
             wall_crossing_entries = [
                 (122, 'f', budget_lower[0]), (123, 'f', budget_lower[1]),
+                (124, 'f', budget_lower[2]),
                 (125, 'f', budget_upper[0]), (126, 'f', budget_upper[1]),
+                (127, 'f', budget_upper[2]),
             ]
         return [
             (0,  'f', p.smoothing_length),

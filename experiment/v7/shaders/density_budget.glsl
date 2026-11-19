@@ -68,16 +68,24 @@
 // i.e. 1 left, 2 right, 3 bottom, 4 bottom-left, 5 bottom-right, 6 top,
 // 7 top-left, 8 top-right; and the interior (no wall plane within h) by the
 // distance g to the nearest wall plane: 9 for h <= g < 2h, 10 for 2h <= g < 4h,
-// 11 for 4h <= g < 8h, 0 for g >= 8h (the core). z is ignored (a 3-D box is
-// binned by x and y).
+// 11 for 4h <= g < 8h, 0 for g >= 8h (the core).
+// 3-D box (report section 22; the lid is the upper y plane): by the planes within h,
+//     1 lid middle (upper y only)       5 bottom edge (lower y + one x / z plane)
+//     2 bottom middle (lower y only)    6 vertical edge (one x and one z plane, no y plane)
+//     3 side middle (one x / z plane)   7 lid corner (upper y + an x and a z plane)
+//     4 lid edge (upper y + one x / z)  8 bottom corner (lower y + an x and a z plane)
+// and the interior as in 2-D (0, 9, 10, 11), g over the six planes. (A box narrower than 2h in an axis is not
+// handled: a lower and an upper plane of the same axis count once.)
 // ============================================================================
 
 #ifndef WALL_CROSSING
-// the box in x and y, the ids wall_boundary crossing uses (wall_boundary.glsl declares them in its variants)
+// the box, the ids wall_boundary crossing uses (wall_boundary.glsl declares them in its variants)
 layout(constant_id = 122) const float WALL_CROSSING_BOX_LOWER_X = 0.0;
 layout(constant_id = 123) const float WALL_CROSSING_BOX_LOWER_Y = 0.0;
+layout(constant_id = 124) const float WALL_CROSSING_BOX_LOWER_Z = 0.0;
 layout(constant_id = 125) const float WALL_CROSSING_BOX_UPPER_X = 1.0;
 layout(constant_id = 126) const float WALL_CROSSING_BOX_UPPER_Y = 1.0;
+layout(constant_id = 127) const float WALL_CROSSING_BOX_UPPER_Z = 1.0;
 #endif
 
 const uint DENSITY_BUDGET_REGIONS = 12u;
@@ -97,6 +105,32 @@ layout(std430, set = 0, binding = 13) buffer DensityBudgetBuffer {
 };
 
 uint density_budget_region(vec3 position) {
+    if (DIMENSION == 3u) {
+        // report section 22: the 3-D regions (header)
+        uint lid_plane    = (WALL_CROSSING_BOX_UPPER_Y - position.y < SMOOTHING_LENGTH) ? 1u : 0u;
+        uint bottom_plane = (position.y - WALL_CROSSING_BOX_LOWER_Y < SMOOTHING_LENGTH) ? 1u : 0u;
+        uint x_plane = (position.x - WALL_CROSSING_BOX_LOWER_X < SMOOTHING_LENGTH
+                        || WALL_CROSSING_BOX_UPPER_X - position.x < SMOOTHING_LENGTH) ? 1u : 0u;
+        uint z_plane = (position.z - WALL_CROSSING_BOX_LOWER_Z < SMOOTHING_LENGTH
+                        || WALL_CROSSING_BOX_UPPER_Z - position.z < SMOOTHING_LENGTH) ? 1u : 0u;
+        uint side_planes = x_plane + z_plane;
+        if (lid_plane != 0u) {
+            return (side_planes == 0u) ? 1u : ((side_planes == 1u) ? 4u : 7u);
+        }
+        if (bottom_plane != 0u) {
+            return (side_planes == 0u) ? 2u : ((side_planes == 1u) ? 5u : 8u);
+        }
+        if (side_planes != 0u) {
+            return (side_planes == 1u) ? 3u : 6u;
+        }
+        float gap_3d = min(min(min(position.x - WALL_CROSSING_BOX_LOWER_X, WALL_CROSSING_BOX_UPPER_X - position.x),
+                               min(position.y - WALL_CROSSING_BOX_LOWER_Y, WALL_CROSSING_BOX_UPPER_Y - position.y)),
+                           min(position.z - WALL_CROSSING_BOX_LOWER_Z, WALL_CROSSING_BOX_UPPER_Z - position.z));
+        if (gap_3d >= 8.0 * SMOOTHING_LENGTH) return 0u;
+        if (gap_3d >= 4.0 * SMOOTHING_LENGTH) return 11u;
+        if (gap_3d >= 2.0 * SMOOTHING_LENGTH) return 10u;
+        return 9u;
+    }
     uint horizontal = (position.x - WALL_CROSSING_BOX_LOWER_X < SMOOTHING_LENGTH) ? 1u
                     : ((WALL_CROSSING_BOX_UPPER_X - position.x < SMOOTHING_LENGTH) ? 2u : 0u);
     uint vertical   = (position.y - WALL_CROSSING_BOX_LOWER_Y < SMOOTHING_LENGTH) ? 1u

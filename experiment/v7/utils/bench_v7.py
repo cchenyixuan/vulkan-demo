@@ -549,6 +549,12 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
     if (v := diff_us("b_correction_density_interior_end", correction_interior_start)) is not None:
         out["correction_density_interior_us"] = v
         density_interior_end = last_b_label = "b_correction_density_interior_end"
+    # numerics.wall_crossing.split_dispatch (report section 22): the interior build's dispatch, then what the
+    # near-wall build's dispatch adds (no barrier between them)
+    if (v := diff_us("b_correction_density_interior_end_interior", correction_interior_start)) is not None:
+        out["correction_density_interior_split_interior_us"] = v
+        out["correction_density_interior_split_near_wall_us"] = diff_us(
+            "b_correction_density_interior_end", "b_correction_density_interior_end_interior")
     # E37 wall_boundary adami: the wall pass between density_deep_interior and force_deep_interior_scratch.
     force_deep_interior_start = density_interior_end
     if (v := diff_us("b_wall_extrapolate_end", density_interior_end)) is not None:
@@ -558,6 +564,10 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
     if (v := diff_us("b_force_deep_interior_end", force_deep_interior_start)) is not None:
         out["force_deep_interior_us"] = v
         last_b_label = "b_force_deep_interior_end"
+    if (v := diff_us("b_force_deep_interior_end_interior", force_deep_interior_start)) is not None:
+        out["force_deep_interior_split_interior_us"] = v          # report section 22 (split_dispatch)
+        out["force_deep_interior_split_near_wall_us"] = diff_us("b_force_deep_interior_end",
+                                                                "b_force_deep_interior_end_interior")
     if (v := diff_us(last_b_label, "b_start")) is not None and last_b_label != "b_start":
         out["phase_b_us"] = v
 
@@ -609,6 +619,11 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
     if (v := diff_us("c_correction_density_boundary_end", last_c_label)) is not None:
         out["correction_density_boundary_us"] = v
         out["density_copy_us"] = diff_us("c_density_end", "c_correction_density_boundary_end")
+    # report section 22: phase C's band split in two (V7_WALL_CROSSING_SPLIT_BAND_MODE=2 only)
+    if (v := diff_us("c_correction_density_boundary_end_interior", last_c_label)) is not None:
+        out["correction_density_boundary_split_interior_us"] = v
+        out["correction_density_boundary_split_near_wall_us"] = diff_us(
+            "c_correction_density_boundary_end", "c_correction_density_boundary_end_interior")
     # E37 wall_boundary adami without cascading force: the wall pass between density and force_all. E40: on a slab
     # with a peer the phase C tick closes the wall BAND pass (own band + inner ghost column); with cascading force
     # phase B's tick already gave wall_extrapolate_us (the interior pass), so the band pass gets its own key.
@@ -618,6 +633,9 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
         force_start = "c_wall_extrapolate_end"
     if (v := diff_us("c_force_end", force_start)) is not None:
         out["force_us"] = v
+    if (v := diff_us("c_force_end_interior", force_start)) is not None:
+        out["force_boundary_split_interior_us"] = v                # report section 22 (band mode 2)
+        out["force_boundary_split_near_wall_us"] = diff_us("c_force_end", "c_force_end_interior")
     if (v := diff_us("c_force_end", "c_start")) is not None:
         out["phase_c_us"] = v
 
