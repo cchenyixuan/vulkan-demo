@@ -100,6 +100,7 @@
 | `055343a` | report section 19, third update: the remote 1000^2 adami run (t = 100, window 80-100) - psi_min +0.24 % mid frame / +0.14 % wall frame, stable |
 | `c93e27a` | report section 19, fourth update: the 3-D cavity simple run (t = 45) - stable, 10.8 ms per step; crossing's main vortex about 15 % stronger than simple's |
 | `7e444b8` | report section 19, fifth update: the 3-D adami run stopped at t = 6.72 (one fluid particle at 1.065 x the lid speed) - located on the edge where the lid meets the downstream wall |
+| `6fa853a` | Long validation, sixth update: the 1000^2 complete-scheme run, convergence readings, summary |
 
 （加入本报告的那个提交排在这些之后。）
 
@@ -4619,7 +4620,7 @@ Re = 1000 方腔对 Marchi 2021，K = 1，最后 20 个时间单位平均。括�
 | `acd0c43` | `cavity_run.py` 写 `launcher.pid`，被 `cavity_watch` 停下的运行不再续跑；`cavity_watch.py --follow-launcher`（续跑的每一段都看） |
 | `f6ee476` | **求解器**：约束的目标值改在 `bootstrap_init` / `restart_init` 时取（原来在构造函数里），见下 |
 | `7e444b8` | `box_run.py`：每行记下最快流体粒子的坐标，停止条件触发时写出那个样本的流体状态（`stop_state.npz`），用来定位 adami 的超速（19.5） |
-| 第六次更新的提交 | `long_validation.py`：三点数据的两种解释，四个量一起拟合（`group_fits`），以及两个系列共用极限的拟合（`shared_limit_fit`）；1000² 的表加上 mid 帧的剖面误差 |
+| `6fa853a` | `long_validation.py`：三点数据的两种解释，四个量一起拟合（`group_fits`），以及两个系列共用极限的拟合（`shared_limit_fit`）；1000² 的表加上 mid 帧的剖面误差 |
 
 没有改任何缺省值、`simple` / `adami` 的数值、SoA 布局、ghost 记录格式或层数；没有改着色器。
 
