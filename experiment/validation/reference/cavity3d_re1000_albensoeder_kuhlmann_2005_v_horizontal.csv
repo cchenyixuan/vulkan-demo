@@ -1,0 +1,33 @@
+# Cubic lid-driven cavity, Re = 1000, steady flow: velocity v (lid normal) on the HORIZONTAL centre line.
+# Source (original): S. Albensoeder, H. C. Kuhlmann, "Accurate three-dimensional lid-driven cavity flow",
+#   J. Comput. Phys. 206 (2005) 536-558, doi:10.1016/j.jcp.2004.12.024, Table 6 (p. 549). Chebyshev collocation.
+# Transcribed from (the original was not accessible): arXiv:1807.04896 ("Mixing in 3-D cavity by moving cavity walls"),
+#   Appendix Table A-4, column "Value of velocity v, Albensoeder [17], Table 6, p. 549, 2005" (the reference number 17
+#   there is a slip: year, table and page are those of Albensoeder & Kuhlmann 2005, reference 18 of that paper;
+#   entered here by hand from the arXiv PDF's text layer, report section 24, 2026-11-20).
+# Cross-check: Sailfish paper, arXiv:1311.2404, Figure 12 (blue dots "Albensoeder et al, u_x" = data of Tables 5 and 6,
+#   plotted in Albensoeder's centred frame with the opposite sign convention for this component): read off the
+#   figure |v| = 0.43 (the largest) near x = 0.906 and 0.24 near x = 0.094 agree with the rows below.
+# Coordinates: origin at a cavity corner, every coordinate in [0, 1] (divided by the edge length L). The line is
+#   y = 0.5, z = 0.5, 0 <= x <= 1. The lid is the wall y = 1 and moves in +x (towards x = 1), so v < 0 near x = 1.
+#   z is the spanwise direction with no-slip end walls at z = 0 and z = 1 (a cube).
+# Velocity: v = y-component divided by the lid speed U; Re = U L / nu = 1000.
+# The x values are Ghia et al.'s grid points (as in the table); x = 0 and x = 1 are the boundary values.
+x,v
+1.0000,0.0
+0.9688,-0.188642
+0.9609,-0.240947
+0.9531,-0.290317
+0.9453,-0.335112
+0.9063,-0.434231
+0.8594,-0.311172
+0.8047,-0.152230
+0.5000,0.0367355
+0.2344,0.169866
+0.2266,0.175803
+0.1563,0.229236
+0.0938,0.244074
+0.0781,0.235027
+0.0703,0.227462
+0.0625,0.217384
+0.0000,0.0
