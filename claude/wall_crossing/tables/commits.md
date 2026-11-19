@@ -89,5 +89,8 @@
 | `b8eaed5` | wall_boundary crossing: numerics.wall_crossing.split_dispatch (off by default) - the interior particles in a build without the mode's code, the near-wall particles in the mode's build |
 | `606d2f5` | wall_boundary crossing: numerics.volume_constraint.gpu_mean_volume (off by default) |
 | `d050f8a` | wall_boundary crossing: 3-D density budget regions, the 3-D density drop without the volume constraint, timing tools |
+| `b0d479f` | report section 22: grid threshold 0.05 dx, split dispatch, GPU mean-volume constraint, 3-D density drop, timing |
+| `ad3a760` | wall_boundary crossing: diagnostics for the split dispatch's timing and the density drop (report section 23) |
+| `79f2ee5` | wall_boundary crossing: split_dispatch band mode 1 read a stale A_f^-1 in the force band's outer column (fix) |
 
 （加入本报告的那个提交排在这些之后。）
