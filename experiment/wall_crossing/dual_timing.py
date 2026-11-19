@@ -105,6 +105,9 @@ def main() -> int:
     parser.add_argument("--rounds", type=int, default=3)
     parser.add_argument("--max-steps", type=int, default=6000)
     parser.add_argument("--warmup", type=int, default=2000)
+    parser.add_argument("--no-anatomy", action="store_true",
+                        help="report section 23: no bench at all (no timestamps in any recording): the steady rate "
+                             "only")
     arguments = parser.parse_args()
     slab_count = len(arguments.device_map.split(","))
 
@@ -121,7 +124,9 @@ def main() -> int:
             log_path = out_directory / f"{label}_r{round_index}.log"
             command = [sys.executable, "experiment/v7/_run_v7_chain_bench.py", "--case", case,
                        "--weights", ",".join(["1"] * slab_count), "--device-map", arguments.device_map,
-                       "--max-steps", str(arguments.max_steps), "--warmup", str(arguments.warmup), "--anatomy"]
+                       "--max-steps", str(arguments.max_steps), "--warmup", str(arguments.warmup)]
+            if not arguments.no_anatomy:
+                command.append("--anatomy")
             environment = dict(base_environment, **settings)
             with LoggedRun(kind="dual_timing", case=case, gpu_uuids=arguments.uuid,
                            command=" ".join(command[1:]), commit=git_commit(checkout)) as run:

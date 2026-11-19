@@ -51,6 +51,13 @@ both sides' provenance.
 use the V7_ prefix, and the dump's meta records the solver. Dumps of the two solvers compare directly (--compare
 strips the V6_ / V7_ prefixes).
 
+--digest-steps FILE (debug switch, off by default; report section 23; v7, needs --transport-extension and
+--canonical-lists): after the bootstrap and after every step (the loop at depth 1, as --watch) a sha256 per dumped
+field of the canonical state (every slab's own alive rows, sorted by global id) goes to FILE, one JSON line per
+step, so two builds can be compared step by step (the first step that differs, and in which field). The dump at
+the end is written as usual. --digest-every N / --digest-from S restrict the digests to every N-th step and to the
+steps from S on (step 0 always); a digest reads every slab's whole pools, ~4 s per step for the 1M 3-D cavity.
+
 --watch DIRECTORY (debug switch, off by default; v7, needs --transport-extension): the read-only monitor of
 experiment/wall_crossing/particle_watch.py checks the bootstrap state and every step (a fluid particle beyond a face
 of the fluid box, fewer own fluid particles than at the start, a non-finite position or velocity). The run loop is
@@ -351,11 +358,22 @@ def main() -> int:
     parser.add_argument("--watch", default=None, metavar="DIRECTORY",
                         help="debug: read-only check of every step (particle_watch.py); stops at the first event "
                              "and writes its bundle here (exit code 4)")
+    parser.add_argument("--digest-steps", default=None, metavar="FILE",
+                        help="debug (report section 23): a sha256 per field of the canonical state after every "
+                             "step, one JSON line per step")
+    parser.add_argument("--digest-every", type=int, default=1,
+                        help="with --digest-steps: only every N-th step (and step 0)")
+    parser.add_argument("--digest-from", type=int, default=0,
+                        help="with --digest-steps: only steps from this one on (and step 0)")
     parser.add_argument("--watch-ring", type=int, default=128,
                         help="with --watch: steps of every fluid particle kept in memory for the trajectories")
     arguments = parser.parse_args()
     if arguments.watch and (arguments.solver != "v7" or not arguments.transport_extension or arguments.monitor):
         parser.error("--watch: --solver v7 with --transport-extension (the global ids), without --monitor")
+    if arguments.digest_steps and (arguments.solver != "v7" or not arguments.transport_extension
+                                   or not arguments.canonical_lists or arguments.monitor or arguments.watch):
+        parser.error("--digest-steps: --solver v7 with --transport-extension and --canonical-lists, without "
+                     "--monitor / --watch")
     if arguments.compare:
         return compare(*arguments.compare, ignore=tuple(arguments.ignore), no_mask=arguments.no_mask)
     if not arguments.case or not arguments.out:
@@ -609,6 +627,46 @@ def main() -> int:
             for context in contexts:
                 context.destroy()
             return 4
+    elif arguments.digest_steps:
+        # debug switch (report section 23): per-step digests of the canonical state, depth 1
+        digest_path = pathlib.Path(arguments.digest_steps).resolve()
+        digest_path.parent.mkdir(parents=True, exist_ok=True)
+        digest_path.write_text("", encoding="utf-8")
+        digested = {"step": -1}
+
+        def digest_state(step: int) -> None:
+            if step <= digested["step"]:
+                return                      # the hook runs once per slab and frame
+            digested["step"] = step
+            if step and (step < arguments.digest_from or step % arguments.digest_every):
+                return
+            rows_of_step: dict = {}
+            for sim in sims:
+                raw = sim.readback_buffers_batch([name for name, _, _ in DUMPED_FIELDS], density="stored")
+                capacity = sim.case.capacities.total_pool_capacity()
+                first, stop = sim.own_first_pid(), sim.own_first_pid() + sim.case.capacities.own_pool_size
+                part = {}
+                for name, components, dtype in DUMPED_FIELDS:
+                    flat = np.frombuffer(raw[name], dtype=dtype)[:capacity * components]
+                    part[name] = (flat.reshape(capacity, components) if components > 1 else flat)[first:stop]
+                alive = (part["velocity_mass"][:, 3] > 0) & (part["position_voxel_id"][:, 3] > 0.5)
+                for name, values in part.items():
+                    rows_of_step.setdefault(name, []).append(values[alive])
+            merged = {name: np.concatenate(parts) for name, parts in rows_of_step.items()}
+            extension_of_step = merged["extension_fields"].astype(np.float64)
+            identities = (np.rint(extension_of_step[:, 2]).astype(np.int64) * GLOBAL_ID_LOW_BASE
+                          + np.rint(extension_of_step[:, 3]).astype(np.int64))
+            order_of_step = np.argsort(identities, kind="stable")
+            record = {"step": step, "alive": int(identities.size),
+                      "unique_ids": int(np.unique(identities).size),
+                      "digests": {name: hashlib.sha256(np.ascontiguousarray(values[order_of_step]).tobytes())
+                                  .hexdigest()[:16] for name, values in merged.items()}}
+            with open(digest_path, "a", encoding="utf-8") as handle:
+                handle.write(json.dumps(record) + "\n")
+
+        orchestrator.on_frame_done = lambda frame, _sim_index: digest_state(frame + 1)
+        digest_state(0)
+        result = orchestrator.run_pipelined(arguments.steps, depth=1, on_defrag=on_defrag)
     else:
         result = orchestrator.run_pipelined(arguments.steps, depth=arguments.depth, on_defrag=on_defrag)
 

@@ -26,6 +26,7 @@ if str(REPOSITORY_ROOT) not in sys.path:
 from experiment.wall_crossing.run_log import LOG_ROOT, LoggedRun     # noqa: E402
 
 SPLIT_CASES = ("cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing",
+               "cases/lid_driven_cavity_2d_n500_xi0p001_eps0p0025_crossing",     # report section 23
                "cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_crossing",
                "cases/cavity3d_1m_crossing")
 

@@ -9,7 +9,8 @@ rounds, on one GPU that runs nothing else.
         --entry base_simple=@C:/.../vulkan-demo-wall-crossing-base:cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025/case.yaml
 
 An entry is LABEL=CASE (this checkout) or LABEL=@CHECKOUT:CASE (the bench of another checkout, e.g. the base
-commit's worktree, run from there). Every round runs every entry once, in the given order, so slow drifts of the
+commit's worktree, run from there), optionally followed by ;NAME=VALUE environment settings for that entry only
+(report section 23: e.g. ;V7_BENCH_TICK_DETAIL=step for the whole step's GPU time without the kernel ticks). Every round runs every entry once, in the given order, so slow drifts of the
 card (temperature, clocks) hit all entries alike. Each run: --max-steps steps, the first --warmup discarded
 (they hold the first defrags, after which the particle order is the voxel order); the per-frame CSV is kept.
 
@@ -42,15 +43,22 @@ KERNEL_COLUMNS = ("predict_us", "update_voxel_us", "correction_density_us", "den
 
 
 def parse_entry(text: str) -> tuple:
-    label, _, target = text.partition("=")
+    head, *settings = text.split(";")
+    label, _, target = head.partition("=")
     if not label or not target:
         raise argparse.ArgumentTypeError(f"entry {text!r}: expected LABEL=CASE or LABEL=@CHECKOUT:CASE")
+    environment = {}
+    for setting in settings:
+        name, separator, value = setting.partition("=")
+        if not separator or not name:
+            raise argparse.ArgumentTypeError(f"entry {text!r}: setting {setting!r} is not NAME=VALUE")
+        environment[name] = value
     if target.startswith("@"):
         checkout, separator, case = target[1:].rpartition(":")
         if not separator or not checkout:
             raise argparse.ArgumentTypeError(f"entry {text!r}: expected LABEL=@CHECKOUT:CASE")
-        return label, pathlib.Path(checkout).resolve(), case
-    return label, REPOSITORY_ROOT, target
+        return label, pathlib.Path(checkout).resolve(), case, environment
+    return label, REPOSITORY_ROOT, target, environment
 
 
 def column_means(csv_path: pathlib.Path) -> dict:
@@ -85,9 +93,9 @@ def main() -> int:
     environment["OPENBLAS_NUM_THREADS"] = "1"
     environment["PYTHONIOENCODING"] = "utf-8"
 
-    runs: dict = {label: [] for label, _, _ in arguments.entry}
+    runs: dict = {label: [] for label, _, _, _ in arguments.entry}
     for round_index in range(arguments.rounds):
-        for label, checkout, case in arguments.entry:
+        for label, checkout, case, settings in arguments.entry:
             csv_path = out_directory / f"{label}_r{round_index}.csv"
             log_path = out_directory / f"{label}_r{round_index}.log"
             command = [sys.executable, "experiment/v7/_run_v7_single_bench.py", "--case", case,
@@ -97,10 +105,11 @@ def main() -> int:
             with LoggedRun(kind="kernel_timing", case=case, gpu_uuids=[arguments.uuid],
                            command=" ".join(command[1:]), commit=git_commit(checkout)) as run:
                 run.extra["label"] = f"{label} round {round_index}"
+                run.extra["environment"] = settings
                 if checkout != REPOSITORY_ROOT:
                     run.extra["checkout"] = str(checkout).replace("\\", "/")
                 with open(log_path, "w", encoding="utf-8", newline="\n") as log:
-                    exit_code = subprocess.call(command, cwd=checkout, env=environment, stdout=log,
+                    exit_code = subprocess.call(command, cwd=checkout, env=dict(environment, **settings), stdout=log,
                                                 stderr=subprocess.STDOUT)
                 run.extra["exit_code"] = exit_code
                 if exit_code != 0:
@@ -123,9 +132,10 @@ def main() -> int:
                "warmup": arguments.warmup, "rounds": arguments.rounds, "labels": {}}
     lines = ["| label | " + " | ".join(name[:-3] for name in KERNEL_COLUMNS) + " | runs |",
              "|---|" + "---|" * (len(KERNEL_COLUMNS) + 1)]
-    for label, _, case in arguments.entry:
+    for label, _, case, settings in arguments.entry:
         entries = runs[label]
-        row = {"case": case, "run_ids": [entry["run_id"] for entry in entries], "kernels": {}}
+        row = {"case": case, "environment": settings, "run_ids": [entry["run_id"] for entry in entries],
+               "kernels": {}}
         cells = []
         for name in KERNEL_COLUMNS:
             values = [entry["means_us"][name] for entry in entries if name in entry["means_us"]]

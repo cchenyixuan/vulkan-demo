@@ -121,6 +121,27 @@ if _WALL_CROSSING_SPLIT_BAND_MODE not in ("1", "2"):
 # (spec const 131 = 0), so the near-wall build's results for the interior particles can be compared with the
 # interior build's. Never a production setting.
 _WALL_CROSSING_SPLIT_NEAR_WALL_EVERYWHERE = os.environ.get("V7_WALL_CROSSING_SPLIT_NEAR_WALL_EVERYWHERE", "0") == "1"
+# DIAGNOSTIC (report section 23): the order of a split pass's two dispatches. "interior_first" (default) or
+# "near_wall_first"; no barrier between them either way and they write different particles' outputs, so the
+# results are the same.
+_WALL_CROSSING_SPLIT_ORDER = os.environ.get("V7_WALL_CROSSING_SPLIT_ORDER", "interior_first")
+if _WALL_CROSSING_SPLIT_ORDER not in ("interior_first", "near_wall_first"):
+    raise ValueError(f"V7_WALL_CROSSING_SPLIT_ORDER={_WALL_CROSSING_SPLIT_ORDER!r}: expected interior_first or "
+                     "near_wall_first")
+# DIAGNOSTIC, TIMING ONLY (report section 23): "interior" / "near_wall" leaves that dispatch of every split pass
+# out (its particles keep stale results: the state is WRONG), to time each dispatch alone in the whole step.
+# "none" (default) dispatches both.
+_WALL_CROSSING_SPLIT_TIMING_SKIP = os.environ.get("V7_WALL_CROSSING_SPLIT_TIMING_SKIP", "none")
+if _WALL_CROSSING_SPLIT_TIMING_SKIP not in ("none", "interior", "near_wall"):
+    raise ValueError(f"V7_WALL_CROSSING_SPLIT_TIMING_SKIP={_WALL_CROSSING_SPLIT_TIMING_SKIP!r}: expected none, "
+                     "interior or near_wall")
+# DIAGNOSTIC (report section 23): which bench timestamps a recording gets. "kernel" (default): every tick as
+# before (a split pass also gets one between its two dispatches); "pass": no tick between the two dispatches of a
+# split pass; "step": only the step's first and last tick (step_start, force_end) and the defrag's, so nothing
+# but the step's own barriers separates its dispatches.
+_BENCH_TICK_DETAIL = os.environ.get("V7_BENCH_TICK_DETAIL", "kernel")
+if _BENCH_TICK_DETAIL not in ("kernel", "pass", "step"):
+    raise ValueError(f"V7_BENCH_TICK_DETAIL={_BENCH_TICK_DETAIL!r}: expected kernel, pass or step")
 # Diagnostic (2026-09-16): V7_FAKE_BAND_TEST=<column> places the boundary band
 # at own columns [column, column + range) of a SINGLE-GPU run (spec const 59)
 # and runs the boundary pipelines on it (no ghosts: all neighbours local) to
@@ -3221,7 +3242,10 @@ class SphSimulatorV7:
                 pipelines[every_key] = self._create_pipeline(shader=near_wall_module, entries=entries + [(131, 'I', 0)])
                 self._wall_crossing_split_dispatches[base] = (every_key,)
             else:
-                self._wall_crossing_split_dispatches[base] = (interior_key, near_wall_key)
+                order = ((near_wall_key, interior_key) if _WALL_CROSSING_SPLIT_ORDER == "near_wall_first"
+                         else (interior_key, near_wall_key))
+                skipped = {"interior": interior_key, "near_wall": near_wall_key}.get(_WALL_CROSSING_SPLIT_TIMING_SKIP)
+                self._wall_crossing_split_dispatches[base] = tuple(key for key in order if key != skipped)
         for key, marker_pass in (("wall_crossing_near_wall_marker_holds_wall", 0),
                                  ("wall_crossing_near_wall_marker_near_wall", 1)):
             pipelines[key] = self._create_pipeline(shader=self.shader_modules["wall_crossing_near_wall_marker"],
@@ -3241,7 +3265,7 @@ class SphSimulatorV7:
         for index, key in enumerate(split):
             self._bind_pipeline_and_sets(cmd, key)
             vkCmdDispatch(cmd, group_count, 1, 1)
-            if tick and index < len(split) - 1:
+            if tick and index < len(split) - 1 and _BENCH_TICK_DETAIL == "kernel":
                 self._bench_tick(cmd, f"{tick}_{key[len(pipeline_key) + len('_split_'):]}")
 
     def _record_wall_crossing_near_wall_marker(self, cmd) -> None:
@@ -3499,8 +3523,11 @@ class SphSimulatorV7:
             self.bench_transfer.tick(cmd, label)
 
     def _bench_tick(self, cmd, label: str) -> None:
-        """Insert vkCmdWriteTimestamp into ``cmd`` if a BenchTimer is attached."""
+        """Insert vkCmdWriteTimestamp into ``cmd`` if a BenchTimer is attached (V7_BENCH_TICK_DETAIL=step: only
+        force_end and the defrag's ticks; step_start is written by _bench_reset_step)."""
         if self.bench is not None:
+            if _BENCH_TICK_DETAIL == "step" and label != "force_end" and not label.startswith("defrag"):
+                return
             self.bench.tick(cmd, label)
 
     # ----- V3.5 fast submit: cached cffi batches + raw entry points ----------
