@@ -112,13 +112,15 @@ def _compute_grid(bbox_min: np.ndarray, bbox_max: np.ndarray,
             tuple(int(d) for d in dims))
 
 
-# Grid origin off the particle layers (2026-11-19, report section 21). A layer of particles lying on a voxel boundary
-# is binned by float32 rounding, so the layer splits between two voxel columns; on a slab cut that sends a whole
-# layer across the cut in the first step (section 20). Per axis, when the smallest distance of an initial particle to
-# a voxel boundary is below GRID_BOUNDARY_CLEARANCE_MINIMUM particle spacings, the origin moves in the negative
-# direction by the shift in (0, GRID_ORIGIN_SHIFT_MAXIMUM] spacings that makes that distance largest (the first of
-# GRID_ORIGIN_SHIFT_CANDIDATES evenly spaced candidates, so the smallest shift on a tie). Other axes keep the origin.
-GRID_BOUNDARY_CLEARANCE_MINIMUM = 0.25       # particle spacings
+# Grid origin off the particle layers (2026-11-19, report sections 21-22). A layer of particles lying on a voxel
+# boundary is binned by float32 rounding, so the layer splits between two voxel columns; on a slab cut that sends a
+# whole layer across the cut in the first step (section 20). Per axis, when the smallest distance of an initial
+# particle to a voxel boundary is below numerics.grid_boundary_clearance_minimum particle spacings (default
+# GRID_BOUNDARY_CLEARANCE_MINIMUM; float32 binning errs by ~1e-4 dx, section 22 lowered the default from 0.25 so
+# that the 2-D cavities, 0.1 dx clear, keep their grid), the origin moves in the negative direction by the shift in
+# (0, GRID_ORIGIN_SHIFT_MAXIMUM] spacings that makes that distance largest (the first of GRID_ORIGIN_SHIFT_CANDIDATES
+# evenly spaced candidates, so the smallest shift on a tie). Other axes keep the origin.
+GRID_BOUNDARY_CLEARANCE_MINIMUM = 0.05       # particle spacings (case.yaml numerics.grid_boundary_clearance_minimum)
 GRID_ORIGIN_SHIFT_MAXIMUM = 0.5              # particle spacings
 GRID_ORIGIN_SHIFT_CANDIDATES = 200
 # The report of the most recent load_case_v7 call (per axis: clearance before / after in spacings, shift in spacings,
@@ -133,8 +135,9 @@ def _grid_boundary_clearance(coordinates: np.ndarray, origin_coordinate: float, 
 
 
 def _place_grid_origin(bbox_min: np.ndarray, bbox_max: np.ndarray, positions: np.ndarray, h: float,
-                       particle_spacing: float, dimension: int) -> tuple[tuple[float, float, float],
-                                                                         tuple[int, int, int], dict]:
+                       particle_spacing: float, dimension: int,
+                       clearance_minimum: float = GRID_BOUNDARY_CLEARANCE_MINIMUM
+                       ) -> tuple[tuple[float, float, float], tuple[int, int, int], dict]:
     """_compute_grid, then per active axis the origin moved off the particle layers (see the constants above).
     The clearance is measured on every initial particle (fluid and walls). After a shift the grid must still hold
     every particle and the frame bounding box: [origin, origin + dims h) on that axis, else one voxel is added. An
@@ -143,13 +146,14 @@ def _place_grid_origin(bbox_min: np.ndarray, bbox_max: np.ndarray, positions: np
     origin = list(origin_tuple)
     dims = list(dims_tuple)
     report = {"particle_spacing": float(particle_spacing), "smoothing_length": float(h),
+              "clearance_minimum": float(clearance_minimum),
               "origin_before": list(origin_tuple), "dims_before": list(dims_tuple), "axes": {}}
     for axis in range(3 if dimension == 3 else 2):
         coordinates = np.unique(np.asarray(positions[:, axis], dtype=np.float64))
         before = _grid_boundary_clearance(coordinates, origin[axis], h)
         shift = 0.0
         after = before
-        if before < GRID_BOUNDARY_CLEARANCE_MINIMUM * particle_spacing:
+        if before < clearance_minimum * particle_spacing:
             candidates = (np.arange(1, GRID_ORIGIN_SHIFT_CANDIDATES + 1) / GRID_ORIGIN_SHIFT_CANDIDATES
                           * GRID_ORIGIN_SHIFT_MAXIMUM * particle_spacing)
             clearances = np.array([_grid_boundary_clearance(coordinates, origin[axis] - candidate, h)
@@ -179,7 +183,8 @@ def describe_grid_placement(report: dict) -> list[str]:
             + "  ".join(f"{axis} {item['clearance_before']:.4f}" for axis, item in axes.items()),
             "[case_loader_v7] grid boundary clearance after  (particle spacings): "
             + "  ".join(f"{axis} {item['clearance_after']:.4f}" for axis, item in axes.items()),
-            "[case_loader_v7] grid origin shift delta (particle spacings, negative direction): "
+            f"[case_loader_v7] grid origin shift delta (particle spacings, negative direction; moved below "
+            f"{report['clearance_minimum']:g}): "
             + "  ".join(f"{axis} {item['shift']:.4f}" + (f" (+{item['voxels_added']} voxel)" if item["voxels_added"]
                                                         else "") for axis, item in axes.items())]
 
@@ -470,7 +475,12 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
         # no-slip, walls store rho0) or crossing (the crossing-fraction walls of an axis-aligned box, settings in
         # numerics.wall_crossing, resolved below). Optional key.
         wall_boundary=str(nm.get("wall_boundary", "simple")),
+        grid_boundary_clearance_minimum=float(nm.get("grid_boundary_clearance_minimum",
+                                                     GRID_BOUNDARY_CLEARANCE_MINIMUM)),
     )
+    if not 0.0 <= numerics.grid_boundary_clearance_minimum <= GRID_ORIGIN_SHIFT_MAXIMUM:
+        raise ValueError(f"numerics.grid_boundary_clearance_minimum: {numerics.grid_boundary_clearance_minimum}, "
+                         f"expected 0 .. {GRID_ORIGIN_SHIFT_MAXIMUM} particle spacings")
     if numerics.wall_boundary not in WALL_BOUNDARY_CHOICES:
         raise ValueError(f"numerics.wall_boundary: {numerics.wall_boundary!r}, expected one of "
                          f"{', '.join(WALL_BOUNDARY_CHOICES)}")
@@ -590,7 +600,8 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
     bbox_max = frame_verts.max(axis=0)
     # the origin from the case's initial particles only (a restart reloads the case, so it gets the same grid)
     origin_tuple, dim_tuple, placement = _place_grid_origin(bbox_min, bbox_max, positions, h,
-                                                            2.0 * particle_radius, dimension)
+                                                            2.0 * particle_radius, dimension,
+                                                            numerics.grid_boundary_clearance_minimum)
     LAST_GRID_PLACEMENT.clear()
     LAST_GRID_PLACEMENT.update(placement)
     for line in describe_grid_placement(placement):

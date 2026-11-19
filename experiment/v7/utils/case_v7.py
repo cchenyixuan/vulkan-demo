@@ -100,6 +100,10 @@ class NumericsConstants:
     # case.yaml numerics.volume_constraint: the constraint on the fluid's total volume in a closed container
     # (utils/volume_constraint_v7.py). Off by default; wall_boundary crossing only. Spec const 130.
     volume_constraint: VolumeConstraintSettings = VolumeConstraintSettings()
+    # case.yaml numerics.grid_boundary_clearance_minimum (particle spacings, default 0.05; report sections 21-22):
+    # an axis whose initial particles come closer than this to a voxel boundary gets its grid origin moved
+    # (case_loader_v7._place_grid_origin); the loader reads it, nothing on the GPU does.
+    grid_boundary_clearance_minimum: float = 0.05
 
 
 @dataclass

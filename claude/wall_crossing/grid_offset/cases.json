@@ -2,6 +2,7 @@
  {
   "particle_spacing": 0.004,
   "smoothing_length": 0.02,
+  "clearance_minimum": 0.05,
   "origin_before": [
    -0.5564000105857849,
    -0.5564000105857849,
@@ -15,20 +16,20 @@
   "axes": {
    "x": {
     "clearance_before": 0.09999901056289673,
-    "clearance_after": 0.4999919891357507,
-    "shift": 0.4,
+    "clearance_after": 0.09999901056289673,
+    "shift": 0.0,
     "voxels_added": 0
    },
    "y": {
     "clearance_before": 0.09999901056289673,
-    "clearance_after": 0.4999919891357507,
-    "shift": 0.4,
+    "clearance_after": 0.09999901056289673,
+    "shift": 0.0,
     "voxels_added": 0
    }
   },
   "origin_after": [
-   -0.558000010585785,
-   -0.558000010585785,
+   -0.5564000105857849,
+   -0.5564000105857849,
    -0.01
   ],
   "dims_after": [
@@ -42,6 +43,7 @@
  {
   "particle_spacing": 0.002,
   "smoothing_length": 0.01,
+  "clearance_minimum": 0.05,
   "origin_before": [
    -0.5281999754905701,
    -0.5281999754905701,
@@ -55,20 +57,20 @@
   "axes": {
    "x": {
     "clearance_before": 0.09997487068169164,
-    "clearance_after": 0.49997487068175417,
-    "shift": 0.4,
+    "clearance_after": 0.09997487068169164,
+    "shift": 0.0,
     "voxels_added": 0
    },
    "y": {
     "clearance_before": 0.09997487068169164,
-    "clearance_after": 0.49997487068175417,
-    "shift": 0.4,
+    "clearance_after": 0.09997487068169164,
+    "shift": 0.0,
     "voxels_added": 0
    }
   },
   "origin_after": [
-   -0.5289999754905701,
-   -0.5289999754905701,
+   -0.5281999754905701,
+   -0.5281999754905701,
    -0.005
   ],
   "dims_after": [
@@ -82,6 +84,7 @@
  {
   "particle_spacing": 0.001,
   "smoothing_length": 0.005,
+  "clearance_minimum": 0.05,
   "origin_before": [
    -0.5141000175476074,
    -0.5141000175476074,
@@ -95,20 +98,20 @@
   "axes": {
    "x": {
     "clearance_before": 0.09999513626084422,
-    "clearance_after": 0.4999681472779116,
-    "shift": 0.4,
+    "clearance_after": 0.09999513626084422,
+    "shift": 0.0,
     "voxels_added": 0
    },
    "y": {
     "clearance_before": 0.09999513626084422,
-    "clearance_after": 0.4999681472779116,
-    "shift": 0.4,
+    "clearance_after": 0.09999513626084422,
+    "shift": 0.0,
     "voxels_added": 0
    }
   },
   "origin_after": [
-   -0.5145000175476073,
-   -0.5145000175476073,
+   -0.5141000175476074,
+   -0.5141000175476074,
    -0.0025
   ],
   "dims_after": [
@@ -122,6 +125,7 @@
  {
   "particle_spacing": 0.01,
   "smoothing_length": 0.04,
+  "clearance_minimum": 0.05,
   "origin_before": [
    -0.6160000157356262,
    -0.6160000157356262,
@@ -168,6 +172,7 @@
  {
   "particle_spacing": 0.020833333333333332,
   "smoothing_length": 0.08333333333333333,
+  "clearance_minimum": 0.05,
   "origin_before": [
    -0.6354166666666666,
    -0.6354166666666666,

@@ -482,19 +482,34 @@ def find_vortex_centres(stream_function: np.ndarray, vorticity: np.ndarray, vali
 # data loading and the main per-job computation
 # ----------------------------------------------------------------------------------------------------------
 
+_LOADED_GRID_ORIGIN_X: dict = {}
+
+
+def loaded_grid_origin_x(case_path: pathlib.Path, solver: str) -> float:
+    """The global grid's origin x as the job's solver loads the case (report section 22: the v7 loader may move the
+    origin off the particle layers, case_loader_v7._place_grid_origin, so the origin is no longer a formula of
+    frame.obj alone); one load per case and solver."""
+    key = (str(case_path), solver)
+    if key not in _LOADED_GRID_ORIGIN_X:
+        import importlib
+        module = importlib.import_module(f"experiment.{solver}.utils.case_loader_{solver}")
+        loaded = getattr(module, f"load_case_{solver}")(str(case_path))
+        _LOADED_GRID_ORIGIN_X[key] = float(loaded.grid.origin_x)
+    return _LOADED_GRID_ORIGIN_X[key]
+
+
 def read_case_information(meta: dict) -> dict:
-    """Grid origin and speed of sound of the job's case (read-only): the solver anchors voxel (0, 0) at the
-    frame.obj bounding-box minimum, origin = bbox_min - h/2 (case_loader_v5._compute_grid), and a particle's
-    global voxel-x column is floor((x - origin_x) / h) (partition_v5)."""
+    """Grid origin and speed of sound of the job's case (read-only). The origin comes from the job's solver's case
+    loader (meta 'solver'; v6 for the runs before E39, which have none); a particle's global voxel-x column is
+    floor((x - origin_x) / h) (partition_v5 / v7)."""
     case_path = REPOSITORY_ROOT / meta["case"]
     case = yaml.safe_load(case_path.read_text(encoding="utf-8"))
     frame_path = (case_path.parent / case["geometry"]["frame"]).resolve()
     vertices = np.array([line.split()[1:4] for line in frame_path.read_text().splitlines() if line.startswith("v ")],
                         dtype=float)
-    smoothing_length = float(case["physics"]["h"])
     return {"case_path": str(case_path.relative_to(REPOSITORY_ROOT)).replace("\\", "/"),
             "frame_bounding_box_minimum_x": float(vertices[:, 0].min()),
-            "grid_origin_x": float(vertices[:, 0].min() - 0.5 * smoothing_length),
+            "grid_origin_x": loaded_grid_origin_x(case_path, str(meta.get("solver", "v6"))),
             "speed_of_sound": float(meta.get("speed_of_sound", case["physics"]["speed_of_sound"]))}
 
 
