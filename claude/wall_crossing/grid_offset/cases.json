@@ -1,0 +1,214 @@
+[
+ {
+  "particle_spacing": 0.004,
+  "smoothing_length": 0.02,
+  "origin_before": [
+   -0.5564000105857849,
+   -0.5564000105857849,
+   -0.01
+  ],
+  "dims_before": [
+   56,
+   56,
+   1
+  ],
+  "axes": {
+   "x": {
+    "clearance_before": 0.09999901056289673,
+    "clearance_after": 0.4999919891357507,
+    "shift": 0.4,
+    "voxels_added": 0
+   },
+   "y": {
+    "clearance_before": 0.09999901056289673,
+    "clearance_after": 0.4999919891357507,
+    "shift": 0.4,
+    "voxels_added": 0
+   }
+  },
+  "origin_after": [
+   -0.558000010585785,
+   -0.558000010585785,
+   -0.01
+  ],
+  "dims_after": [
+   56,
+   56,
+   1
+  ],
+  "case": "cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing/case.yaml",
+  "particles": 74529
+ },
+ {
+  "particle_spacing": 0.002,
+  "smoothing_length": 0.01,
+  "origin_before": [
+   -0.5281999754905701,
+   -0.5281999754905701,
+   -0.005
+  ],
+  "dims_before": [
+   106,
+   106,
+   1
+  ],
+  "axes": {
+   "x": {
+    "clearance_before": 0.09997487068169164,
+    "clearance_after": 0.49997487068175417,
+    "shift": 0.4,
+    "voxels_added": 0
+   },
+   "y": {
+    "clearance_before": 0.09997487068169164,
+    "clearance_after": 0.49997487068175417,
+    "shift": 0.4,
+    "voxels_added": 0
+   }
+  },
+  "origin_after": [
+   -0.5289999754905701,
+   -0.5289999754905701,
+   -0.005
+  ],
+  "dims_after": [
+   106,
+   106,
+   1
+  ],
+  "case": "cases/lid_driven_cavity_2d_n500_xi0p001_eps0p0025_crossing/case.yaml",
+  "particles": 273529
+ },
+ {
+  "particle_spacing": 0.001,
+  "smoothing_length": 0.005,
+  "origin_before": [
+   -0.5141000175476074,
+   -0.5141000175476074,
+   -0.0025
+  ],
+  "dims_before": [
+   206,
+   206,
+   1
+  ],
+  "axes": {
+   "x": {
+    "clearance_before": 0.09999513626084422,
+    "clearance_after": 0.4999681472779116,
+    "shift": 0.4,
+    "voxels_added": 0
+   },
+   "y": {
+    "clearance_before": 0.09999513626084422,
+    "clearance_after": 0.4999681472779116,
+    "shift": 0.4,
+    "voxels_added": 0
+   }
+  },
+  "origin_after": [
+   -0.5145000175476073,
+   -0.5145000175476073,
+   -0.0025
+  ],
+  "dims_after": [
+   206,
+   206,
+   1
+  ],
+  "case": "cases/lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_crossing/case.yaml",
+  "particles": 1046529
+ },
+ {
+  "particle_spacing": 0.01,
+  "smoothing_length": 0.04,
+  "origin_before": [
+   -0.6160000157356262,
+   -0.6160000157356262,
+   -0.6160000157356262
+  ],
+  "dims_before": [
+   31,
+   31,
+   31
+  ],
+  "axes": {
+   "x": {
+    "clearance_before": 0.399996280670166,
+    "clearance_after": 0.399996280670166,
+    "shift": 0.0,
+    "voxels_added": 0
+   },
+   "y": {
+    "clearance_before": 0.399996280670166,
+    "clearance_after": 0.399996280670166,
+    "shift": 0.0,
+    "voxels_added": 0
+   },
+   "z": {
+    "clearance_before": 0.399996280670166,
+    "clearance_after": 0.399996280670166,
+    "shift": 0.0,
+    "voxels_added": 0
+   }
+  },
+  "origin_after": [
+   -0.6160000157356262,
+   -0.6160000157356262,
+   -0.6160000157356262
+  ],
+  "dims_after": [
+   31,
+   31,
+   31
+  ],
+  "case": "cases/cavity3d_1m_crossing/case.yaml",
+  "particles": 1685159
+ },
+ {
+  "particle_spacing": 0.020833333333333332,
+  "smoothing_length": 0.08333333333333333,
+  "origin_before": [
+   -0.6354166666666666,
+   -0.6354166666666666,
+   -0.6354166666666666
+  ],
+  "dims_before": [
+   15,
+   15,
+   15
+  ],
+  "axes": {
+   "x": {
+    "clearance_before": 0.0,
+    "clearance_after": 0.49999904632568354,
+    "shift": 0.5,
+    "voxels_added": 0
+   },
+   "y": {
+    "clearance_before": 0.0,
+    "clearance_after": 0.49999904632568354,
+    "shift": 0.5,
+    "voxels_added": 0
+   },
+   "z": {
+    "clearance_before": 0.0,
+    "clearance_after": 0.49999904632568354,
+    "shift": 0.5,
+    "voxels_added": 0
+   }
+  },
+  "origin_after": [
+   -0.6458333333333333,
+   -0.6458333333333333,
+   -0.6458333333333333
+  ],
+  "dims_after": [
+   15,
+   15,
+   15
+  ],
+  "case": "cases/wall_crossing/hydrostatic_3d_n48_gtilt_crossing/case.yaml",
+  "particles": 195112
+ }
+]

@@ -82,5 +82,7 @@
 | `d94c26c` | Report section 19: commit hash of the sixth update in the change table |
 | `2c49ec0` | particle watch: a read-only per-step monitor of a chain run (canonical_dump.py --watch, off by default) and its report tool |
 | `1c0cbeb` | particle watch: per-step log of the largest fluid displacement since the previous step, shift and acceleration (id, position, x - x_cut); history figure titles |
+| `94eccdd` | Report section 20: push + tag crossing-boundary (A); the particle watch on 3-D K = 2 (B): runs, switch check, findings |
+| `3792010` | case_loader_v7: grid origin moved off the particle layers (per axis, when an initial particle lies within 0.25 dx of a voxel boundary) |
 
 （加入本报告的那个提交排在这些之后。）
