@@ -79,6 +79,10 @@ _KERNEL_KEYS = [
     "wall_extrapolate_us",     # E37 wall_boundary adami only (last: the earlier columns keep their places)
     "correction_density_us",   # E39 B1 V7_FUSED_CORRECTION_DENSITY: the fused kernel (no correction / density then)
     "density_copy_us",         # E39 B1: the density copy after it
+    # report section 22 (numerics.wall_crossing.split_dispatch): the interior build's dispatch and the time the
+    # near-wall build's dispatch adds, of the fused pass and of force (empty without the switch)
+    "correction_density_split_interior_us", "correction_density_split_near_wall_us",
+    "force_split_interior_us", "force_split_near_wall_us",
 ]
 
 

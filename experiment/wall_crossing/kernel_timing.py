@@ -35,7 +35,10 @@ if str(REPOSITORY_ROOT) not in sys.path:
 from experiment.wall_crossing.run_log import LoggedRun, git_commit     # noqa: E402
 
 KERNEL_COLUMNS = ("predict_us", "update_voxel_us", "correction_density_us", "density_copy_us",
-                  "wall_extrapolate_us", "force_us", "step_total_us", "frame_total_us")
+                  "wall_extrapolate_us", "force_us", "step_total_us", "frame_total_us",
+                  # report section 22: numerics.wall_crossing.split_dispatch's two dispatches per pass
+                  "correction_density_split_interior_us", "correction_density_split_near_wall_us",
+                  "force_split_interior_us", "force_split_near_wall_us")
 
 
 def parse_entry(text: str) -> tuple:

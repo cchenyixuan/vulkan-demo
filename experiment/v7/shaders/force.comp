@@ -3,6 +3,9 @@
 #include "common.glsl"
 #include "helpers.glsl"
 #include "wall_boundary.glsl"
+#if defined(WALL_CROSSING_NEAR_WALL) || defined(WALL_CROSSING_INTERIOR)
+#include "wall_crossing_split.glsl"
+#endif
 
 // ============================================================================
 // force.comp - δ-plus WCSPH acceleration + particle shifting (stage 5).
@@ -32,6 +35,12 @@
 // reduce to self's values, so the neighbor loop does NOT read neighbor
 // MaterialParameters. When multi-phase is enabled (V0+), add back the per-
 // neighbor material / material_parameters reads and restore the harmonic means.
+//
+// numerics.wall_crossing.split_dispatch (report section 22, off by default; wall_crossing_split.glsl): the
+// WALL_CROSSING_INTERIOR build (force_wall_crossing_interior.comp.spv) is the plain code for the particles of the
+// voxels with no wall particle in their 3^d neighbourhood, the WALL_CROSSING + WALL_CROSSING_NEAR_WALL build
+// (force_wall_crossing_near_wall.comp.spv) the crossing code for the others (spec const 131 = 1; 0 = every
+// particle of the dispatch), telling a wall neighbour by its position outside the fluid box.
 //
 // Boundary particles early-return (static). Rotor computes the full
 // kernel but predict overrides its motion. Micropolar / curl output omitted.
@@ -115,6 +124,14 @@ void process_particle(uint self_particle_id) {
     bool self_in_boundary_band = in_boundary_band(self_voxel_coord);
     if (FORCE_MODE == PIPELINE_MODE_INTERIOR &&  self_in_boundary_band) return;
     if (FORCE_MODE == PIPELINE_MODE_BOUNDARY && !self_in_boundary_band) return;
+#ifdef WALL_CROSSING_NEAR_WALL
+    if (WALL_CROSSING_SPLIT_SELECTION == WALL_CROSSING_SPLIT_SELECTION_OWN_CLASS
+            && !wall_crossing_voxel_is_near_wall(self_voxel_id)) return;
+#endif
+#ifdef WALL_CROSSING_INTERIOR
+    if (WALL_CROSSING_SPLIT_SELECTION == WALL_CROSSING_SPLIT_SELECTION_OWN_CLASS
+            && wall_crossing_voxel_is_near_wall(self_voxel_id)) return;
+#endif
 
     // --- Self velocity + mass + density + pressure ---------------------------
     // density_pressure: canonical ρ_{n+1}, P_{n+1} for OWN particles.
@@ -254,8 +271,12 @@ void process_particle(uint self_particle_id) {
                     // below and adds to g_f of the pressure.
                     // geometry pairwise (WALL_CROSSING_PAIRWISE, off by default): the pair's own crossing
                     // fraction (the viscous term below) and mirror point (pressure_wall reflection: M_d).
+#ifdef WALL_CROSSING_NEAR_WALL
+                    bool neighbor_is_wall = WALL_CROSSING_ACTIVE && wall_crossing_position_outside_box(neighbor_position);
+#else
                     bool neighbor_is_wall = WALL_CROSSING_ACTIVE
                         && material_parameters[material[neighbor_particle_id]].kind == MATERIAL_BOUNDARY;
+#endif
                     vec3  pair_wall_normal         = vec3(0.0);
                     float pair_depth_ratio         = 0.0;
                     vec3  pair_mirror_displacement = vec3(0.0);

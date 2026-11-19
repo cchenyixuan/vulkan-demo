@@ -478,6 +478,15 @@ def compute_durations(ticks: dict[str, float]) -> dict[str, float]:
         if (v := diff_us("force_deep_interior_end", force_start)) is not None:
             out["force_deep_interior_us"] = v
             out["force_boundary_us"] = diff_us("force_end", "force_deep_interior_end")
+        # numerics.wall_crossing.split_dispatch (report section 22): the interior build's dispatch, then the
+        # near-wall build's, no barrier between them (the second number is the time the near-wall dispatch ADDS)
+        if (v := diff_us("correction_density_end_interior", correction_start)) is not None:
+            out["correction_density_split_interior_us"] = v
+            out["correction_density_split_near_wall_us"] = diff_us("correction_density_end",
+                                                                   "correction_density_end_interior")
+        if (v := diff_us("force_end_interior", force_start)) is not None:
+            out["force_split_interior_us"] = v
+            out["force_split_near_wall_us"] = diff_us("force_end", "force_end_interior")
         if (v := diff_us("defrag_end", "defrag_start")) is not None:
             out["defrag_us"] = v
         return out

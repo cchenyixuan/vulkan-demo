@@ -1,0 +1,60 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "common.glsl"
+#include "helpers.glsl"
+#include "wall_crossing_split.glsl"
+
+// ============================================================================
+// wall_crossing_near_wall_marker.comp - numerics.wall_crossing.split_dispatch (report section 22): the per-voxel
+// near-wall flags of wall_crossing_split.glsl, in two dispatches with a compute barrier between them, one thread
+// per voxel of the extended grid (own AND ghost columns: a ghost voxel is judged by its list, the replicas of the
+// peer's particles; padding threads return). The deep_wall_marker.comp pattern, but run once (the walls do not
+// move), when the lists hold every wall particle a neighbour loop can meet:
+//
+//   pass 0 (WALL_CROSSING_NEAR_WALL_MARKER_PASS = 0): flag[v] = 1 iff voxel v's inside list (count, stop at an
+//          empty slot) holds a particle whose kind is MATERIAL_BOUNDARY;
+//   pass 1 (WALL_CROSSING_NEAR_WALL_MARKER_PASS = 1): near[v] = 1 iff a voxel of v's 3^d neighbourhood
+//          (in_own_grid) has flag 1. The outer ghost column's flags lack the voxels beyond the grid; no pass takes
+//          a particle of that column as self.
+// Both passes write every voxel: nothing stale after a restart. Defrag reorders pids, not voxel membership.
+// ============================================================================
+
+layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
+
+layout(constant_id = 132) const uint WALL_CROSSING_NEAR_WALL_MARKER_PASS = 0u;
+
+void main() {
+    uint voxel_id = gl_GlobalInvocationID.x + 1u;
+    if (voxel_id > extended_voxel_count()) return;          // padding threads
+
+    if (WALL_CROSSING_NEAR_WALL_MARKER_PASS == 0u) {
+        uint holds_wall = 0u;
+        uint particle_count = inside_particle_count[voxel_id];
+        for (uint slot_index = 0u; slot_index < particle_count; slot_index++) {
+            uint particle_id = inside_particle_index[voxel_id * MAX_PARTICLES_PER_VOXEL + slot_index];
+            if (particle_id == INSIDE_SLOT_EMPTY) break;
+            if (material_parameters[material[particle_id]].kind == MATERIAL_BOUNDARY) {
+                holds_wall = 1u;
+                break;
+            }
+        }
+        wall_crossing_near_wall_voxel_flag[voxel_id] = holds_wall;
+        return;
+    }
+
+    ivec3 voxel_coord = own_coord_of(voxel_id);
+    uint near_wall = 0u;
+    int neighbor_z_range = int(NEIGHBOR_Z_RANGE);
+    for (int delta_x = -1; delta_x <= 1; delta_x++) {
+        for (int delta_z = -neighbor_z_range; delta_z <= neighbor_z_range; delta_z++) {
+            for (int delta_y = -1; delta_y <= 1; delta_y++) {
+                ivec3 neighbor_coord = voxel_coord + ivec3(delta_x, delta_y, delta_z);
+                if (!in_own_grid(neighbor_coord)) continue;
+                if (wall_crossing_near_wall_voxel_flag[own_voxel_id_of(neighbor_coord)] != 0u) {
+                    near_wall = 1u;
+                }
+            }
+        }
+    }
+    wall_crossing_near_wall_voxel_flag[wall_crossing_near_wall_flag_index(voxel_id)] = near_wall;
+}

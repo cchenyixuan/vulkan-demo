@@ -104,6 +104,10 @@ class ParticleWatch:
         self.raw_history = int(raw_history)
         self.ring_radius_factor = float(ring_radius_factor)
         self.lower, self.upper, self.box_source = fluid_box(global_case)
+        # the box as the GPU compares it (float32 spec constants, wall_crossing_split.glsl), for the per-step count of
+        # particles whose position test (outside the box) disagrees with their material (report section 22)
+        self.lower_float32 = self.lower.astype(np.float32)
+        self.upper_float32 = self.upper.astype(np.float32)
         self.spacing = 2.0 * min(float(material.radius) for material in global_case.materials
                                  if float(material.radius) > 0)
         self.fluid_groups = np.array([index for index, material in enumerate(global_case.materials)
@@ -201,6 +205,9 @@ class ParticleWatch:
             all_ids.append(global_id[fluid])
             position = slab["position"][rows, :3]
             velocity = slab["velocity"][rows, :3]
+            outside_float32 = ((position[:, :self.dimension] < self.lower_float32[:self.dimension])
+                               | (position[:, :self.dimension] > self.upper_float32[:self.dimension])).any(axis=1)
+            box_classification_mismatch = int((outside_float32 == fluid).sum())   # fluid outside or wall inside
             finite = np.isfinite(position).all(axis=1) & np.isfinite(velocity).all(axis=1)
             for row, gid in zip(rows[~finite], global_id[~finite]):
                 non_finite_rows.append((slab_index, int(row), int(gid)))
@@ -250,6 +257,7 @@ class ParticleWatch:
                 "own_alive": int(rows.size), "own_fluid": int(fluid.sum()), "own_wall": int((~fluid).sum()),
                 "own_alive_unlisted": int((~listed[rows]).sum()),
                 "own_in_ghost_column": int(in_ghost.sum()),
+                "box_classification_mismatch": box_classification_mismatch,
                 "own_fluid_unlisted": int((~listed[fluid_rows]).sum()),
                 "fluid_ids_not_fluid": int((~keep).sum()),
                 "delta": {key: int(status.get(key, 0)) - (int(previous.get(key, 0)) if previous else 0)

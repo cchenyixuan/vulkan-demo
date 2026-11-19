@@ -3,6 +3,9 @@
 #include "common.glsl"
 #include "helpers.glsl"
 #include "wall_boundary.glsl"
+#if defined(WALL_CROSSING_NEAR_WALL) || defined(WALL_CROSSING_INTERIOR)
+#include "wall_crossing_split.glsl"
+#endif
 #ifdef DEEP_WALL_SKIP
 #include "deep_wall_skip.glsl"
 #endif
@@ -95,6 +98,15 @@
 //   - numerics.volume_constraint (WALL_CROSSING_VOLUME_CONSTRAINT, off by default): a fluid self's density rate
 //     takes rho_i * rate, the rate the host wrote to volume_constraint_state (wall_boundary.glsl).
 //
+// numerics.wall_crossing.split_dispatch (report section 22, off by default; wall_crossing_split.glsl): two more
+// builds for a crossing slab that splits its passes:
+//   - WALL_CROSSING_INTERIOR (correction_density_wall_crossing_interior.comp.spv): the plain code for the particles
+//     of the voxels with no wall particle in their 3^d neighbourhood (the others return), plus the volume
+//     constraint's rho_i * rate; no A_f^-1 is written (force's interior build reads none);
+//   - WALL_CROSSING + WALL_CROSSING_NEAR_WALL (correction_density_wall_crossing_near_wall.comp.spv): the crossing
+//     code for the particles of the near-wall voxels (spec const 131 = 1; 0 = every particle of the dispatch),
+//     which tells a wall neighbour by its position outside the fluid box instead of by its material.
+//
 // DIAGNOSTIC builds (DENSITY_BUDGET variants, V7_DENSITY_BUDGET=1; density_budget.glsl):
 // after the pass has stored its results, a fluid self's density rate is taken a second
 // time, split into drift / diffusion x fluid / wall neighbours, in a neighbour
@@ -132,6 +144,14 @@ void process_particle(uint self_particle_id) {
     bool self_in_boundary_band = in_boundary_band(self_voxel_coord);
     if (CORRECTION_MODE == CORRECTION_MODE_INTERIOR &&  self_in_boundary_band) return;
     if (CORRECTION_MODE == CORRECTION_MODE_BOUNDARY && !self_in_boundary_band) return;
+#ifdef WALL_CROSSING_NEAR_WALL
+    if (WALL_CROSSING_SPLIT_SELECTION == WALL_CROSSING_SPLIT_SELECTION_OWN_CLASS
+            && !wall_crossing_voxel_is_near_wall(self_voxel_id)) return;
+#endif
+#ifdef WALL_CROSSING_INTERIOR
+    if (WALL_CROSSING_SPLIT_SELECTION == WALL_CROSSING_SPLIT_SELECTION_OWN_CLASS
+            && wall_crossing_voxel_is_near_wall(self_voxel_id)) return;
+#endif
 
     // --- density.comp's self returns: such a particle runs correction only ----
     MaterialParameters self_params = material_parameters[material[self_particle_id]];
@@ -269,8 +289,12 @@ void process_particle(uint self_particle_id) {
                     // the gradient block below are unconditional (a plain nested block without the variant).
                     bool neighbor_is_wall = false;
                     if (WALL_CROSSING_ACTIVE) {
+#ifdef WALL_CROSSING_NEAR_WALL
+                        neighbor_is_wall = wall_crossing_position_outside_box(neighbor_position);
+#else
                         neighbor_is_wall =
                             material_parameters[material[neighbor_particle_id]].kind == MATERIAL_BOUNDARY;
+#endif
                         if (!neighbor_is_wall) {
                             fluid_correction_matrix += neighbor_volume
                                 * outerProduct(position_difference_self_to_neighbor, kernel_gradient_value);
@@ -499,6 +523,12 @@ void process_particle(uint self_particle_id) {
                       + inverse_xz * density_rate_off_diagonal.y
                       + inverse_yz * density_rate_off_diagonal.z;
     }
+#ifdef WALL_CROSSING_INTERIOR
+    // numerics.volume_constraint (spec const 130): the WALL_CROSSING build's last term of a fluid self's rate
+    if (WALL_CROSSING_VOLUME_CONSTRAINT_ENABLED != 0u) {
+        density_rate += self_density * volume_constraint_state.x;
+    }
+#endif
 #ifdef WALL_CROSSING
     // ========================================================================
     // wall_boundary crossing: A_f^-1 by the correction matrix's regularisation

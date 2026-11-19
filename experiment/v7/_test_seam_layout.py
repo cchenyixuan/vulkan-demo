@@ -1605,7 +1605,15 @@ E40_ADDED_SPIRV = frozenset({"wall_extrapolate_band.comp.spv"})
 # new modules in the same way: no earlier module changes, no production path loads them.
 WALL_CROSSING_ADDED_SPIRV = frozenset({"correction_density_wall_crossing.comp.spv", "force_wall_crossing.comp.spv",
                                        "correction_density_budget.comp.spv",
-                                       "correction_density_wall_crossing_budget.comp.spv"})
+                                       "correction_density_wall_crossing_budget.comp.spv",
+                                       # numerics.wall_crossing.split_dispatch (report section 22, off by default):
+                                       # four more builds of the fused pass / force and the near-wall marker, new
+                                       # modules loaded only by a crossing slab that splits its passes
+                                       "correction_density_wall_crossing_interior.comp.spv",
+                                       "correction_density_wall_crossing_near_wall.comp.spv",
+                                       "force_wall_crossing_interior.comp.spv",
+                                       "force_wall_crossing_near_wall.comp.spv",
+                                       "wall_crossing_near_wall_marker.comp.spv"})
 
 
 def _without_bootstrap_density_copy(source: str, origin: str) -> str:

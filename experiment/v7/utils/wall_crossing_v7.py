@@ -114,6 +114,10 @@ class WallCrossingSettings:
     pressure_wall: "reflection" (default since 2026-11-19; with geometry pairwise) or "extension" (the default
         until then): the pressure of a wall neighbour taken at its mirror point plus the body force, or
         continued to it.
+    split_dispatch: False (default) or True (report section 22): the fused pass and force run as two dispatches
+        each, a build without the mode's code for the particles of the voxels with no wall particle in their
+        3^d neighbourhood and the mode's build for the others (shaders/wall_crossing_split.glsl). The same
+        equations; the interior particles have no wall neighbour.
     """
     continuity: str = WALL_CROSSING_DEFAULT_CONTINUITY
     distance_floor_factor: float = WALL_CROSSING_DEFAULT_DISTANCE_FLOOR_FACTOR
@@ -126,6 +130,7 @@ class WallCrossingSettings:
     continuity_extension: str = WALL_CROSSING_DEFAULT_CONTINUITY_EXTENSION
     geometry: str = WALL_CROSSING_DEFAULT_GEOMETRY
     pressure_wall: str = WALL_CROSSING_DEFAULT_PRESSURE_WALL
+    split_dispatch: bool = False
 
     def geometry_code(self) -> int:
         return WALL_CROSSING_GEOMETRY_CHOICES.index(self.geometry)
@@ -230,6 +235,8 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
                                                            (default reflection since 2026-11-19, extension
                                                             before; reflection needs geometry pairwise;
                                                             rest_density and body_force are DIAGNOSTICS)
+        split_dispatch: false | true                       (default false; report section 22: the interior
+                                                            particles in a build without the mode's code)
         viscous_extension: linear | quadratic              (default linear; quadratic needs geometry
                                                             nearest_wall, pressure_wall extension and delta_wall
                                                             extension, i.e. these three written in the case)
@@ -244,11 +251,14 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
         raise ValueError(f"numerics.wall_crossing: expected a mapping, got {mapping!r}")
     unknown = sorted(set(mapping) - {"continuity", "distance_floor_factor", "box", "delta_wall",
                                      "continuity_wall_component", "viscous_extension", "continuity_extension",
-                                     "geometry", "pressure_wall"})
+                                     "geometry", "pressure_wall", "split_dispatch"})
     if unknown:
         raise ValueError(f"numerics.wall_crossing: unknown keys {unknown} (known: continuity, "
                          "distance_floor_factor, box, delta_wall, continuity_wall_component, viscous_extension, "
-                         "continuity_extension, geometry, pressure_wall)")
+                         "continuity_extension, geometry, pressure_wall, split_dispatch)")
+    split_dispatch = mapping.get("split_dispatch", False)
+    if not isinstance(split_dispatch, bool):
+        raise ValueError(f"numerics.wall_crossing.split_dispatch: {split_dispatch!r}, expected true or false")
     geometry = str(mapping.get("geometry", WALL_CROSSING_DEFAULT_GEOMETRY))
     if geometry not in WALL_CROSSING_GEOMETRY_CHOICES:
         raise ValueError(f"numerics.wall_crossing.geometry: {geometry!r}, expected one of "
@@ -299,7 +309,7 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
                                 delta_wall=delta_wall, continuity_wall_component=continuity_wall_component,
                                 viscous_extension=extensions["viscous_extension"],
                                 continuity_extension=extensions["continuity_extension"],
-                                geometry=geometry, pressure_wall=pressure_wall)
+                                geometry=geometry, pressure_wall=pressure_wall, split_dispatch=split_dispatch)
 
 
 def _value_text(mapping: dict, key: str, value: str) -> str:

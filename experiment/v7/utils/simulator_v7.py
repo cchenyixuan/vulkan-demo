@@ -110,6 +110,17 @@ _BAND_SLOT_LANES = int(os.environ.get("V7_BAND_SLOT_LANES", "64"))
 # a compacted pid list, one thread per particle, indirect dispatch (needs
 # V7_BAND_VOXEL_DISPATCH=1 for the band definition). Bit-identical results.
 _BAND_COMPACT = os.environ.get("V7_BAND_COMPACT_DISPATCH", "0") == "1"
+# numerics.wall_crossing.split_dispatch (report section 22, a case switch, off by default): how phase C runs the
+# band of a crossing slab that splits its passes. DIAGNOSTIC choice for the timing comparison:
+#   "1" (default): the near-wall build alone over the whole band (spec const 131 = 0, every particle);
+#   "2": the band split like phase B, the interior build for its particles and the near-wall build for the others.
+_WALL_CROSSING_SPLIT_BAND_MODE = os.environ.get("V7_WALL_CROSSING_SPLIT_BAND_MODE", "1")
+if _WALL_CROSSING_SPLIT_BAND_MODE not in ("1", "2"):
+    raise ValueError(f"V7_WALL_CROSSING_SPLIT_BAND_MODE={_WALL_CROSSING_SPLIT_BAND_MODE!r}: expected 1 or 2")
+# DIAGNOSTIC (report section 22, check 3.5): every split pass is the near-wall build alone over every particle
+# (spec const 131 = 0), so the near-wall build's results for the interior particles can be compared with the
+# interior build's. Never a production setting.
+_WALL_CROSSING_SPLIT_NEAR_WALL_EVERYWHERE = os.environ.get("V7_WALL_CROSSING_SPLIT_NEAR_WALL_EVERYWHERE", "0") == "1"
 # Diagnostic (2026-09-16): V7_FAKE_BAND_TEST=<column> places the boundary band
 # at own columns [column, column + range) of a SINGLE-GPU run (spec const 59)
 # and runs the boundary pipelines on it (no ghosts: all neighbours local) to
@@ -1048,6 +1059,17 @@ class SphSimulatorV7:
         Read from the case, as _wall_adami."""
         return self.case.numerics.wall_boundary == "crossing"
 
+    @property
+    def _wall_crossing_split(self) -> bool:
+        """numerics.wall_crossing.split_dispatch on a crossing slab (report section 22, off by default): the fused
+        pass and force run as the interior build (no mode code) for the particles away from the walls and the
+        near-wall build for the others (shaders/wall_crossing_split.glsl)."""
+        return self._wall_crossing and bool(getattr(self.case.numerics.wall_crossing, "split_dispatch", False))
+
+    def wall_crossing_split_active(self) -> bool:
+        """Public: does this slab split its passes (numerics.wall_crossing.split_dispatch)."""
+        return self._wall_crossing_split
+
     def _density_budget_active(self) -> bool:
         """V7_DENSITY_BUDGET=1 (diagnostic): the fused pass runs its DENSITY_BUDGET build on this slab."""
         return _DENSITY_BUDGET
@@ -1174,6 +1196,31 @@ class SphSimulatorV7:
             if not {"correction", "density"} <= set(_DIAG_GHOST_SELF_KERNELS):
                 raise ValueError("wall_boundary crossing on a slab with a peer needs V7_DIAG_GHOST_SELF="
                                  "correction,density (the inner ghost column recomputed as self)")
+        if self._wall_crossing_split:
+            self._check_wall_crossing_split_supported()
+
+    def _check_wall_crossing_split_supported(self) -> None:
+        """numerics.wall_crossing.split_dispatch (report section 22). The near-wall flags are filled once (the walls
+        do not move) and the split covers the pipelines of the default recordings. Refused (ValueError): a material
+        that is neither fluid nor a static wall (an inlet or rotor: moving boundaries), the quadratic extension (the
+        interior build writes no grad v_i), V7_DENSITY_BUDGET=1 (no budget build of the split), the compact band
+        dispatch, V7_BAND_OVERLAP (force_deep segments) and the diagnostic fake band."""
+        from experiment.v7.utils.case_v7 import KIND_BOUNDARY
+        others = sorted({material.kind for material in self.case.materials} - {KIND_FLUID, KIND_BOUNDARY})
+        if others:
+            raise ValueError(f"numerics.wall_crossing.split_dispatch: material kinds {others} (inlet / rotor: moving "
+                             "boundaries) are not supported; the near-wall flags assume walls that do not move")
+        if self.case.numerics.wall_crossing.velocity_gradient_active():
+            raise ValueError("numerics.wall_crossing.split_dispatch with a quadratic extension is not supported (the "
+                             "interior build writes no grad v_i)")
+        if self._density_budget_active():
+            raise ValueError("numerics.wall_crossing.split_dispatch with V7_DENSITY_BUDGET=1 is not supported")
+        if _BAND_COMPACT:
+            raise ValueError("numerics.wall_crossing.split_dispatch with V7_BAND_COMPACT_DISPATCH=1 is not supported")
+        if _BAND_OVERLAP != "0":
+            raise ValueError("numerics.wall_crossing.split_dispatch with V7_BAND_OVERLAP is not supported")
+        if _FAKE_BAND_COLUMN > 0:
+            raise ValueError("numerics.wall_crossing.split_dispatch with V7_FAKE_BAND_TEST is not supported")
 
     def wall_band_width(self) -> int:
         """E40: the wall pass band of a split adami slab = the density band + 1 (a wall in column c reads the
@@ -1559,6 +1606,12 @@ class SphSimulatorV7:
                         DENSITY_BUDGET_ENTRIES * 16 * len(DENSITY_BUDGET_REGION_NAMES) * pool_capacity,
                         BSU | TRANSFER),
         ] if self._density_budget_active() else []
+        # numerics.wall_crossing.split_dispatch (report section 22; only then, so every other slab keeps its layouts):
+        # set 1 binding 9 = per voxel of the extended grid 'holds a wall particle' and 'near a wall'
+        # (wall_crossing_split.glsl). Per voxel, so not in DEFRAG_SET0_BINDINGS / the transport / the restart state.
+        wall_crossing_split_specs = [
+            _BufferSpec("wall_crossing_near_wall_voxel_flag", 1, 9, 4 * 2 * voxel_capacity, BSU | TRANSFER),
+        ] if self._wall_crossing_split else []
 
         return [
             # Set 0: particle SoA
@@ -1608,7 +1661,7 @@ class SphSimulatorV7:
             # V7_BAND_COMPACT_DISPATCH: indirect dispatch sizes + list column starts
             _BufferSpec("band_compact_meta",            3, 9, 128,
                         BSU | TRANSFER | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT),
-        ] + deep_wall_specs + wall_crossing_specs + density_budget_specs
+        ] + deep_wall_specs + wall_crossing_specs + density_budget_specs + wall_crossing_split_specs
 
     def _allocate_buffer(
         self,
@@ -2127,6 +2180,11 @@ class SphSimulatorV7:
             # wall_boundary crossing: the WALL_CROSSING variants of the fused pass and of force only on a crossing
             # slab (simple / adami need no such file, e.g. in a V7_SPV_DIR A/B against an earlier build)
             *(("correction_density_wall_crossing", "force_wall_crossing") if self._wall_crossing else ()),
+            # numerics.wall_crossing.split_dispatch (report section 22): the interior and near-wall builds and the
+            # near-wall marker, only on a crossing slab that splits its passes
+            *(("correction_density_wall_crossing_interior", "correction_density_wall_crossing_near_wall",
+               "force_wall_crossing_interior", "force_wall_crossing_near_wall", "wall_crossing_near_wall_marker")
+              if self._wall_crossing_split else ()),
             # V7_DENSITY_BUDGET=1 (diagnostic): the DENSITY_BUDGET build of this slab's fused pass
             *((self._density_budget_module_name(),) if self._density_budget_active() else ()),
         ):
@@ -2928,6 +2986,12 @@ class SphSimulatorV7:
                 pipelines[key] = self._create_pipeline(shader=self._fused_shader_module(),
                                                        entries=entries)
 
+        # numerics.wall_crossing.split_dispatch (report section 22): the split builds of the pipelines the
+        # recordings dispatch (_record_pass_dispatch) and the marker's two passes
+        self._wall_crossing_split_dispatches = {}
+        if self._wall_crossing_split:
+            self._build_wall_crossing_split_pipelines(pipelines)
+
         cascade_note = (" (V7_CASCADE_FORCE=1: force_deep_interior in Phase B)"
                         if _CASCADE_FORCE else "")
         ghost_self = self._ghost_self_layer(2, 1)          # E40: 2 with the three-layer ghost
@@ -2975,8 +3039,112 @@ class SphSimulatorV7:
             cascade_note += (f" (V7_BAND_OVERLAP: force_deep_interior_scratch {plan.phase_b_groups:,} of "
                              f"{plan.group_count:,} workgroups in phase B, {len(plan.segments)} phase C segment(s), "
                              f"{len(self._force_deep_segment_first_groups())} force_segment pipeline(s))")
+        if self._wall_crossing_split:
+            cascade_note += (f" (numerics.wall_crossing.split_dispatch: {len(self._wall_crossing_split_dispatches)} "
+                             f"passes split, phase C band mode {_WALL_CROSSING_SPLIT_BAND_MODE}"
+                             + ("; DIAGNOSTIC: the near-wall build everywhere" if _WALL_CROSSING_SPLIT_NEAR_WALL_EVERYWHERE
+                                else "") + ")")
         print(f"[SimV7] compute pipelines: {len(pipelines)}{cascade_note}")
         return pipelines
+
+    # numerics.wall_crossing.split_dispatch: (the pipeline a recording dispatches, the kernel, its mode entries, is
+    # it a band pass of phase C)
+    def _wall_crossing_split_bases(self) -> dict:
+        return {
+            "correction_density_all":           ("fused", self._correction_mode_entries(0, 0), False),
+            "correction_density_interior":      ("fused", self._correction_mode_entries(1, 0), False),
+            "correction_density_boundary_band": ("fused", self._correction_mode_entries(2, 1), True),
+            "force_all":                        ("force", self._force_mode_entries(0), False),
+            "force_deep_interior":              ("force", self._force_mode_entries(1), False),
+            "force_deep_interior_scratch":      ("force", self._force_mode_entries(1, density_source=1), False),
+            "force_boundary_band":              ("force", self._force_mode_entries(2, band_dispatch=1), True),
+        }
+
+    def _build_wall_crossing_split_pipelines(self, pipelines: dict) -> None:
+        """numerics.wall_crossing.split_dispatch (report section 22): for every pipeline of
+        _wall_crossing_split_bases, <key>_split_interior (the interior build) and <key>_split_near_wall (the
+        near-wall build), both with the key's spec constants + 131 = 1 (own class); a band pass of phase C with
+        V7_WALL_CROSSING_SPLIT_BAND_MODE=1 (default) is <key>_split_near_wall_every_particle (131 = 0) alone. The key's
+        own pipeline stays built (the bootstrap runs it). The dispatch list per key goes to
+        _wall_crossing_split_dispatches."""
+        modules = {"fused": ("correction_density_wall_crossing_interior", "correction_density_wall_crossing_near_wall"),
+                   "force": ("force_wall_crossing_interior", "force_wall_crossing_near_wall")}
+        for base, (kernel, mode_entries, band) in self._wall_crossing_split_bases().items():
+            interior_module, near_wall_module = (self.shader_modules[name] for name in modules[kernel])
+            entries = self._global_entries() + mode_entries
+            interior_key, near_wall_key = f"{base}_split_interior", f"{base}_split_near_wall"
+            pipelines[interior_key] = self._create_pipeline(shader=interior_module, entries=entries + [(131, 'I', 1)])
+            pipelines[near_wall_key] = self._create_pipeline(shader=near_wall_module,
+                                                             entries=entries + [(131, 'I', 1)])
+            if _WALL_CROSSING_SPLIT_NEAR_WALL_EVERYWHERE or (band and _WALL_CROSSING_SPLIT_BAND_MODE == "1"):
+                every_key = f"{base}_split_near_wall_every_particle"
+                pipelines[every_key] = self._create_pipeline(shader=near_wall_module, entries=entries + [(131, 'I', 0)])
+                self._wall_crossing_split_dispatches[base] = (every_key,)
+            else:
+                self._wall_crossing_split_dispatches[base] = (interior_key, near_wall_key)
+        for key, marker_pass in (("wall_crossing_near_wall_marker_holds_wall", 0),
+                                 ("wall_crossing_near_wall_marker_near_wall", 1)):
+            pipelines[key] = self._create_pipeline(shader=self.shader_modules["wall_crossing_near_wall_marker"],
+                                                   entries=self._global_entries() + [(132, 'I', marker_pass)])
+
+    def _record_pass_dispatch(self, cmd, pipeline_key: str, group_count: int, tick: Optional[str] = None) -> None:
+        """Bind pipeline_key and dispatch group_count workgroups; on a slab that splits its passes
+        (numerics.wall_crossing.split_dispatch) the split pipelines that replace it instead, back to back with no
+        barrier between them (they write different particles' outputs and read only what earlier passes wrote).
+        With a bench attached each split dispatch but the last gets the tick <tick>_<split key suffix> (the caller
+        ticks after the last; without a barrier the second dispatch's time is the time it ADDS)."""
+        split = self.__dict__.get("_wall_crossing_split_dispatches", {}).get(pipeline_key)
+        if not split:
+            self._bind_pipeline_and_sets(cmd, pipeline_key)
+            vkCmdDispatch(cmd, group_count, 1, 1)
+            return
+        for index, key in enumerate(split):
+            self._bind_pipeline_and_sets(cmd, key)
+            vkCmdDispatch(cmd, group_count, 1, 1)
+            if tick and index < len(split) - 1:
+                self._bench_tick(cmd, f"{tick}_{key[len(pipeline_key) + len('_split_'):]}")
+
+    def _record_wall_crossing_near_wall_marker(self, cmd) -> None:
+        """numerics.wall_crossing.split_dispatch: wall_crossing_near_wall_marker.comp's two passes over the extended
+        voxels, each between compute barriers (the caller has the lists ready: the initial registration, the
+        replica exchange, a restart). Records nothing on another slab."""
+        if not self._wall_crossing_split:
+            return
+        self._record_compute_barrier(cmd)
+        for pipeline_key in ("wall_crossing_near_wall_marker_holds_wall", "wall_crossing_near_wall_marker_near_wall"):
+            self._bind_pipeline_and_sets(cmd, pipeline_key)
+            vkCmdDispatch(cmd, self._per_extended_voxel_dispatch_count(), 1, 1)
+            self._record_compute_barrier(cmd)
+
+    def readback_wall_crossing_near_wall(self) -> dict:
+        """numerics.wall_crossing.split_dispatch: the near-wall flags and this slab's own alive particles against them
+        (the queue must be drained): voxels holding a wall / near a wall (own and ghost columns), own fluid particles
+        in near-wall voxels, own fluid particles, own wall particles outside a near-wall voxel (must be 0)."""
+        from experiment.v7.utils.case_v7 import KIND_BOUNDARY
+        raw = self.readback_buffers_batch(["wall_crossing_near_wall_voxel_flag", "position_voxel_id", "velocity_mass",
+                                           "material"])
+        total = self.case.grid.total_voxel_count()
+        flags = np.frombuffer(raw["wall_crossing_near_wall_voxel_flag"], dtype=np.uint32)
+        holds_wall = flags[1:total + 1]
+        near_wall = flags[total + 2:2 * total + 2]
+        capacity = self.case.capacities.total_pool_capacity()
+        first = self.own_first_pid()
+        rows = slice(first, first + self.case.capacities.own_pool_size)
+        position = np.frombuffer(raw["position_voxel_id"], dtype=np.float32)[:capacity * 4].reshape(capacity, 4)[rows]
+        mass = np.frombuffer(raw["velocity_mass"], dtype=np.float32)[:capacity * 4].reshape(capacity, 4)[rows, 3]
+        material = np.frombuffer(raw["material"], dtype=np.uint32)[:capacity][rows]
+        kinds = np.asarray([entry.kind for entry in self.case.materials])[np.minimum(material, len(self.case.materials) - 1)]
+        alive = (position[:, 3] > 0.5) & (mass > 0.0)
+        voxel = np.rint(position[:, 3]).astype(np.int64)
+        particle_near = np.zeros(voxel.size, dtype=bool)
+        inside = alive & (voxel >= 1) & (voxel <= total)
+        particle_near[inside] = near_wall[voxel[inside] - 1] != 0
+        fluid = alive & (kinds == KIND_FLUID)
+        wall = alive & (kinds == KIND_BOUNDARY)
+        return {"voxels": int(total), "voxels_holding_wall": int((holds_wall != 0).sum()),
+                "voxels_near_wall": int((near_wall != 0).sum()), "fluid": int(fluid.sum()),
+                "fluid_near_wall": int((fluid & particle_near).sum()), "wall": int(wall.sum()),
+                "wall_not_near_wall": int((wall & ~particle_near).sum())}
 
     def _create_pipeline(
         self,
@@ -3573,8 +3741,9 @@ class SphSimulatorV7:
         first_group * workgroup size + t (spec constant 115), so the segments of a plan run exactly the threads of
         the one dispatch. Phase B's whole dispatch (B1, a slab without the B3 layout) is the segment (0, all).
         Every call adds group_count to the current phase recording's count (_check_force_deep_recorded_once)."""
-        self._bind_pipeline_and_sets(cmd, self._force_deep_segment_pipeline_key(first_group))
-        vkCmdDispatch(cmd, group_count, 1, 1)
+        # numerics.wall_crossing.split_dispatch: the whole dispatch (V7_BAND_OVERLAP is refused with it) as the split
+        self._record_pass_dispatch(cmd, self._force_deep_segment_pipeline_key(first_group), group_count,
+                                   tick="b_force_deep_interior_end")
         self._force_deep_recorded_groups = self.__dict__.get("_force_deep_recorded_groups", 0) + group_count
 
     def _check_force_deep_recorded_once(self) -> None:
@@ -3946,6 +4115,9 @@ class SphSimulatorV7:
             vkCmdDispatch(cmd, per_ghost_pid, 1, 1)
             self._record_compute_barrier(cmd)
         self._record_expand_ghost_lists(cmd)
+        # numerics.wall_crossing.split_dispatch: the near-wall flags of the initial lists (own after the registration,
+        # ghost after the replica round just installed); the bootstrap's own passes below stay the crossing build
+        self._record_wall_crossing_near_wall_marker(cmd)
 
         # E37 wall_boundary adami: the wall pass once before step 0, on the initial state (the bootstrap correction
         # and density read its (rho0, p_w) as every step's do), and again before force below, on the same primary.
@@ -4130,6 +4302,9 @@ class SphSimulatorV7:
         # E37 wall_boundary adami: the wall pass once before the first step, from the restored fluid state (the
         # dummy velocity is not part of the state).
         self._record_wall_extrapolate(cmd)
+        # numerics.wall_crossing.split_dispatch: the near-wall flags of the restored own lists (a slab with a peer is
+        # marked again after ChainOrchestratorV7.restart_all's replica round, restart_replica_round_*)
+        self._record_wall_crossing_near_wall_marker(cmd)
         vkEndCommandBuffer(cmd)
         self.ctx.submit_and_wait(cmd)
         vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
@@ -4153,6 +4328,45 @@ class SphSimulatorV7:
                 f"outside the own voxels")
         print(f"[SimV7] restart state loaded: {row_count:,} own particles, voxel lists "
               f"rebuilt (no bootstrap correction/density/force/half kick)")
+
+    def restart_replica_round_send(self) -> None:
+        """numerics.wall_crossing.split_dispatch on a slab with a peer, after restart_init: the replicas of the
+        restored own lists to the sender staging (bootstrap_init's ghost_send + readback, no voxelization), so that
+        restart_replica_round_mark can mark the near-wall voxels with the peer's walls in the ghost lists. Every
+        restored particle sits in an own voxel (restart_init checks it), so no migrant leaves. The first frame's
+        phase A and C rebuild the replicas and the ghost lists before any kernel reads them."""
+        cmd = self._allocate_oneshot_cmd()
+        vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT))
+        self._record_compute_barrier(cmd)
+        for direction in ("leading", "trailing"):
+            if direction not in self._transport_segments:
+                continue
+            self._record_compute_barrier(cmd)
+            self._record_reset_ghost_send_count(cmd, direction)
+            self._record_transfer_to_compute_barrier(cmd)
+            self._record_ghost_send_dispatch(cmd, direction)
+            self._record_compute_to_transfer_barrier(cmd)
+            self._record_readback_for_direction(cmd, direction)
+            self._record_compute_to_host_barrier(cmd)
+        vkEndCommandBuffer(cmd)
+        self.ctx.submit_and_wait(cmd)
+        vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
+
+    def restart_replica_round_mark(self) -> None:
+        """The receiving half (the host has bridged the staging): upload, ghost lists, then the near-wall marker
+        again, now with the peer's walls in the ghost voxels. No install_migrations: the round carries no migrant."""
+        cmd = self._allocate_oneshot_cmd()
+        vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT))
+        for direction in ("leading", "trailing"):
+            if direction not in self._transport_segments:
+                continue
+            self._record_upload_for_direction(cmd, direction)
+            self._record_transfer_to_compute_barrier(cmd)
+        self._record_expand_ghost_lists(cmd)
+        self._record_wall_crossing_near_wall_marker(cmd)
+        vkEndCommandBuffer(cmd)
+        self.ctx.submit_and_wait(cmd)
+        vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
 
     # ========================================================================
     # Section 9: Readback (Phase 3)
@@ -4412,8 +4626,8 @@ class SphSimulatorV7:
             # E39 B1: correction_interior + density_deep_interior in one traversal (one band width, so the same
             # particles; a particle's density reads only its own L, computed in the same invocation). Exit
             # barrier: phase C's band pass and force read L / scratch.
-            self._bind_pipeline_and_sets(cmd, "correction_density_interior")
-            vkCmdDispatch(cmd, per_p, 1, 1)
+            self._record_pass_dispatch(cmd, "correction_density_interior", per_p,
+                                       tick="b_correction_density_interior_end")
             self._record_compute_barrier(cmd)
             self._bench_tick(cmd, "b_correction_density_interior_end")
         else:
@@ -4543,8 +4757,8 @@ class SphSimulatorV7:
                     correction_band, self._ghost_self_layer(2, 1, "correction"))
                 if per_band_fused > 0:
                     def record_band() -> None:
-                        self._bind_pipeline_and_sets(cmd, "correction_density_boundary_band")
-                        vkCmdDispatch(cmd, per_band_fused, 1, 1)
+                        self._record_pass_dispatch(cmd, "correction_density_boundary_band", per_band_fused,
+                                                   tick="c_correction_density_boundary_end")
                     # E39 B3: + the force_deep segment of V7_BAND_OVERLAP's plan, no barrier between them
                     self._record_band_overlap_pair(cmd, "correction_density", record_band)
             else:
@@ -4624,15 +4838,13 @@ class SphSimulatorV7:
             per_band_force = self._per_band_dispatch_count(force_band)
             if per_band_force > 0:
                 def record_band() -> None:
-                    self._bind_pipeline_and_sets(cmd, "force_boundary_band")
-                    vkCmdDispatch(cmd, per_band_force, 1, 1)
+                    self._record_pass_dispatch(cmd, "force_boundary_band", per_band_force, tick="c_force_end")
                 # E39 B3: + the force_deep segment of V7_BAND_OVERLAP's plan, no barrier between them (the end of
                 # phase C closes the pair)
                 self._record_band_overlap_pair(cmd, "force", record_band)
         else:
-            self._bind_pipeline_and_sets(
-                cmd, "force_boundary" if _CASCADE_FORCE else "force_all")
-            vkCmdDispatch(cmd, per_p, 1, 1)
+            self._record_pass_dispatch(cmd, "force_boundary" if _CASCADE_FORCE else "force_all", per_p,
+                                       tick="c_force_end")
         self._bench_tick(cmd, "c_force_end")
         # E39 B3: phase B + this recording dispatch force_deep's workgroups exactly once (raises otherwise)
         self._check_force_deep_recorded_once()
@@ -4807,14 +5019,13 @@ class SphSimulatorV7:
             # E39 B1: correction + density in one traversal (the split path: interior, then the boundary pass);
             # the density copy below opens with a barrier.
             if use_split:
-                self._bind_pipeline_and_sets(cmd, "correction_density_interior")
-                vkCmdDispatch(cmd, per_p, 1, 1)
+                self._record_pass_dispatch(cmd, "correction_density_interior", per_p,
+                                           tick="correction_density_interior_end")
                 self._bench_tick(cmd, "correction_density_interior_end")
                 self._record_compute_barrier(cmd)
                 dispatch_boundary("correction_density_boundary", correction_band)
             else:
-                self._bind_pipeline_and_sets(cmd, "correction_density_all")
-                vkCmdDispatch(cmd, per_p, 1, 1)
+                self._record_pass_dispatch(cmd, "correction_density_all", per_p, tick="correction_density_end")
             self._bench_tick(cmd, "correction_density_end")
         else:
             if use_split:
@@ -4855,14 +5066,12 @@ class SphSimulatorV7:
         self._record_wall_extrapolate(cmd, "primary", tick="wall_extrapolate_end")
 
         if use_split:
-            self._bind_pipeline_and_sets(cmd, "force_deep_interior")
-            vkCmdDispatch(cmd, per_p, 1, 1)
+            self._record_pass_dispatch(cmd, "force_deep_interior", per_p, tick="force_deep_interior_end")
             self._bench_tick(cmd, "force_deep_interior_end")
             self._record_compute_barrier(cmd)
             dispatch_boundary("force_boundary", force_band)
         else:
-            self._bind_pipeline_and_sets(cmd, "force_all")
-            vkCmdDispatch(cmd, per_p, 1, 1)
+            self._record_pass_dispatch(cmd, "force_all", per_p, tick="force_end")
         self._bench_tick(cmd, "force_end")
 
         vkEndCommandBuffer(cmd)
