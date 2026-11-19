@@ -30,6 +30,18 @@ case.yaml (every key optional):
         relaxation_time: 1.0      # tau, in simulated time
         update_interval: null     # in simulated time; default relaxation_time / 5 (the largest allowed)
         gpu_mean_volume: false    # default; true: the measure below (report section 22)
+        integral: false           # default; true: the integral term below (report section 24)
+        integral_time: null       # T_I in simulated time; default 4 x relaxation_time
+
+integral (report section 24, off by default). The proportional rate theta / tau leaves a steady offset when the
+scheme has a steady density sink (a falling mean density; 3-D cavity: theta stays at sink x tau). With the switch
+    rate = theta / tau + I,        at every update  I <- I + theta * Delta / (tau * T_I)
+(Delta = the update interval actually used, update_steps x timestep; I is updated first, so the rate of an update
+takes that update's theta in both terms). The continuous model d theta/dt = -rate + sink gives
+s^2 + s / tau + 1 / (tau T_I) = 0: T_I = 4 tau (the default) is critically damped, and theta -> 0 in steady
+state with I -> the sink. I goes into the runners' checkpoints (_volume_constraint_integral) and a resumed run
+continues with it; a checkpoint without it starts again from I = 0, with a warning. Every log record then also
+has "integral".
 
 gpu_mean_volume (report section 22, off by default). The measure is the mean volume per fluid particle,
     v_ref = the mean of m_i / rho_i over the fluid particles of the initial state (float64, on the host),
@@ -75,6 +87,21 @@ class VolumeConstraintSettings:
     relaxation_time: float = 1.0
     update_interval: Optional[float] = None
     gpu_mean_volume: bool = False
+    integral: bool = False
+    integral_time: Optional[float] = None
+
+    def integral_time_value(self) -> float:
+        """T_I of the integral term (report section 24): the given one, or 4 x relaxation_time."""
+        if self.integral_time is not None:
+            return float(self.integral_time)
+        return 4.0 * float(self.relaxation_time)
+
+    def integral_increment_factor(self, timestep: float, defrag_cadence: int) -> Optional[float]:
+        """Delta / (tau T_I) of the integral term's update (None without the switch)."""
+        if not self.integral:
+            return None
+        interval = self.update_steps(timestep, defrag_cadence) * float(timestep)
+        return interval / (float(self.relaxation_time) * self.integral_time_value())
 
     def update_interval_value(self) -> float:
         """The update interval in simulated time: the given one, or relaxation_time / 5."""
@@ -100,10 +127,19 @@ def parse_volume_constraint_settings(numerics_mapping: dict) -> VolumeConstraint
     mapping = numerics_mapping.get("volume_constraint") or {}
     if not isinstance(mapping, dict):
         raise ValueError(f"numerics.volume_constraint: expected a mapping, got {mapping!r}")
-    unknown = sorted(set(mapping) - {"enabled", "relaxation_time", "update_interval", "gpu_mean_volume"})
+    unknown = sorted(set(mapping) - {"enabled", "relaxation_time", "update_interval", "gpu_mean_volume",
+                                     "integral", "integral_time"})
     if unknown:
         raise ValueError(f"numerics.volume_constraint: unknown keys {unknown} (known: enabled, relaxation_time, "
-                         "update_interval, gpu_mean_volume)")
+                         "update_interval, gpu_mean_volume, integral, integral_time)")
+    integral = mapping.get("integral", False)
+    if not isinstance(integral, bool):
+        raise ValueError(f"numerics.volume_constraint.integral: {integral!r}, expected true or false")
+    integral_time = mapping.get("integral_time")
+    if integral_time is not None:
+        integral_time = float(integral_time)
+        if not integral_time > 0.0:
+            raise ValueError(f"numerics.volume_constraint.integral_time: {integral_time!r}, expected > 0")
     gpu_mean_volume = mapping.get("gpu_mean_volume", False)
     if not isinstance(gpu_mean_volume, bool):
         raise ValueError(f"numerics.volume_constraint.gpu_mean_volume: {gpu_mean_volume!r}, expected true or false")
@@ -121,7 +157,8 @@ def parse_volume_constraint_settings(numerics_mapping: dict) -> VolumeConstraint
             raise ValueError(f"numerics.volume_constraint.update_interval: {update_interval!r}, expected > 0 and "
                              f"not above relaxation_time / {INTERVAL_SHARE_OF_RELAXATION_TIME:g} = {largest:g}")
     return VolumeConstraintSettings(enabled=enabled, relaxation_time=relaxation_time,
-                                    update_interval=update_interval, gpu_mean_volume=gpu_mean_volume)
+                                    update_interval=update_interval, gpu_mean_volume=gpu_mean_volume,
+                                    integral=integral, integral_time=integral_time)
 
 
 class VolumeConstraintGroup:
@@ -135,6 +172,7 @@ class VolumeConstraintGroup:
         self.pending: dict = {}             # step -> {id(member): (volume, fluid particle count)}
         self.theta = 0.0
         self.rate = 0.0
+        self.integral = 0.0                 # report section 24: I of the integral term (0 without the switch)
         self.history: list = []
 
     def register(self, member, target_volume: float) -> None:
@@ -142,6 +180,7 @@ class VolumeConstraintGroup:
             self.pending.clear()
             self.history.clear()
             self.theta = self.rate = 0.0
+            self.integral = 0.0
             self.fluid_count_parts.clear()
             self.reference_override = None
         self.members.append(member)
@@ -165,8 +204,23 @@ class VolumeConstraintGroup:
         self.rate = float(rate)
         self.theta = float(theta)
 
+    def restore_integral(self, integral: float) -> None:
+        """integral (report section 24), a resumed run: I of its checkpoint."""
+        self.integral = float(integral)
+
+    def _set_rate(self, relaxation_time: float, integral_increment_factor: Optional[float], record: dict) -> None:
+        """rate from self.theta: theta / tau, or with the integral term (factor = Delta / (tau T_I)) I is advanced
+        first and rate = theta / tau + I; the record gets "integral" then."""
+        if integral_increment_factor is None:
+            self.rate = self.theta / float(relaxation_time)
+            return
+        self.integral += self.theta * float(integral_increment_factor)
+        self.rate = self.theta / float(relaxation_time) + self.integral
+        record["integral"] = self.integral
+
     def report_mean(self, member, step: int, deviation_sum: float, fluid_particles: int, reference_float32: float,
-                    relaxation_time: float, timestep: float) -> Optional[dict]:
+                    relaxation_time: float, timestep: float,
+                    integral_increment_factor: Optional[float] = None) -> Optional[dict]:
         """gpu_mean_volume: one slab's GPU partial sums at an update (sum of delta_i = (m_i / rho_i) / v32 - 1 and the
         fluid count). Returns the update's record once every slab has reported for this step (theta and rate are
         then set), None before."""
@@ -182,11 +236,13 @@ class VolumeConstraintGroup:
         reference = self.reference_mean_volume()
         ratio = (float(reference_float32) / reference) * (1.0 + deviation / count)
         self.theta = ratio - 1.0
-        self.rate = self.theta / float(relaxation_time)
+        extra: dict = {}
+        self._set_rate(relaxation_time, integral_increment_factor, extra)
         record = {"unix": time.time(), "step": int(step), "time": int(step) * float(timestep),
                   "method": "gpu_mean_volume", "mean_volume": ratio * reference, "reference_mean_volume": reference,
                   "reference_float32": float(reference_float32), "deviation_sum": deviation,
-                  "theta": self.theta, "rate": self.rate, "fluid_particles": int(count), "slabs": len(reports)}
+                  "theta": self.theta, "rate": self.rate, "fluid_particles": int(count), "slabs": len(reports),
+                  **extra}
         self.history.append(record)
         path = os.environ.get(LOG_ENVIRONMENT_VARIABLE)
         if path:
@@ -204,7 +260,7 @@ class VolumeConstraintGroup:
         return float(sum(self.target_parts.values()))
 
     def report(self, member, step: int, volume: float, fluid_particles: int, relaxation_time: float,
-               timestep: float) -> Optional[dict]:
+               timestep: float, integral_increment_factor: Optional[float] = None) -> Optional[dict]:
         """One slab's fluid volume at an update. Returns the update's record once every slab has reported for
         this step (theta and rate are then set), None before."""
         reports = self.pending.setdefault(int(step), {})
@@ -217,10 +273,12 @@ class VolumeConstraintGroup:
         volume_now = sum(value for value, _ in reports.values())
         target = self.target_volume()
         self.theta = (volume_now - target) / target
-        self.rate = self.theta / float(relaxation_time)
+        extra: dict = {}
+        self._set_rate(relaxation_time, integral_increment_factor, extra)
         record = {"unix": time.time(), "step": int(step), "time": int(step) * float(timestep),
                   "volume": volume_now, "target_volume": target, "theta": self.theta, "rate": self.rate,
-                  "fluid_particles": int(sum(count for _, count in reports.values())), "slabs": len(reports)}
+                  "fluid_particles": int(sum(count for _, count in reports.values())), "slabs": len(reports),
+                  **extra}
         self.history.append(record)
         path = os.environ.get(LOG_ENVIRONMENT_VARIABLE)
         if path:

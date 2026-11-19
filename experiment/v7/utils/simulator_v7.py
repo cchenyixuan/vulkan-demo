@@ -121,11 +121,13 @@ if _WALL_CROSSING_SPLIT_BAND_MODE not in ("1", "2"):
 # (spec const 131 = 0), so the near-wall build's results for the interior particles can be compared with the
 # interior build's. Never a production setting.
 _WALL_CROSSING_SPLIT_NEAR_WALL_EVERYWHERE = os.environ.get("V7_WALL_CROSSING_SPLIT_NEAR_WALL_EVERYWHERE", "0") == "1"
-# DIAGNOSTIC (report section 23): the order of a split pass's two dispatches. "interior_first" (default) or
+# DIAGNOSTIC (report section 23): the order of a split pass's two dispatches. "interior_first" or
 # "near_wall_first"; no barrier between them either way and they write different particles' outputs, so the
-# results are the same.
-_WALL_CROSSING_SPLIT_ORDER = os.environ.get("V7_WALL_CROSSING_SPLIT_ORDER", "interior_first")
-if _WALL_CROSSING_SPLIT_ORDER not in ("interior_first", "near_wall_first"):
+# results are the same. Unset (default): the case's numerics.wall_crossing.split_order (report section 24,
+# default interior_first); set: it overrides the case.
+_WALL_CROSSING_SPLIT_ORDER = os.environ.get("V7_WALL_CROSSING_SPLIT_ORDER")
+if _WALL_CROSSING_SPLIT_ORDER is not None and _WALL_CROSSING_SPLIT_ORDER not in ("interior_first",
+                                                                               "near_wall_first"):
     raise ValueError(f"V7_WALL_CROSSING_SPLIT_ORDER={_WALL_CROSSING_SPLIT_ORDER!r}: expected interior_first or "
                      "near_wall_first")
 # DIAGNOSTIC, TIMING ONLY (report section 23): "interior" / "near_wall" leaves that dispatch of every split pass
@@ -1494,7 +1496,7 @@ class SphSimulatorV7:
             # and theta of its checkpoint (restart_init's volume_constraint), else it recomputes v_ref and warns
             PROCESS_GROUP.register_fluid_count(self, fluid_count)
             restored = self.__dict__.get("_volume_constraint_restart")
-            if restored:
+            if restored and "_volume_constraint_reference_mean_volume" in restored:
                 PROCESS_GROUP.restore(float(restored["_volume_constraint_reference_mean_volume"]),
                                       float(restored["_volume_constraint_rate"]),
                                       float(restored["_volume_constraint_theta"]))
@@ -1503,6 +1505,18 @@ class SphSimulatorV7:
             elif self.__dict__.get("_volume_constraint_restarting"):
                 print("[SimV7] WARNING volume constraint (gpu_mean_volume): the checkpoint holds no v_ref / rate; v_ref "
                       "recomputed from the case's initial particles, rate 0 until the next update", flush=True)
+        settings = case.numerics.volume_constraint
+        if getattr(settings, "integral", False):
+            # report section 24: I of a resumed run's checkpoint, else 0 (with a warning on a resumed run)
+            restored = self.__dict__.get("_volume_constraint_restart") or {}
+            if "_volume_constraint_integral" in restored:
+                PROCESS_GROUP.restore_integral(float(restored["_volume_constraint_integral"]))
+                print(f"[SimV7] volume constraint (integral): I {PROCESS_GROUP.integral:+.6e} from the checkpoint",
+                      flush=True)
+            elif self.__dict__.get("_volume_constraint_restarting"):
+                print("[SimV7] WARNING volume constraint (integral): the checkpoint holds no I; it starts again "
+                      "from 0", flush=True)
+            print(f"[SimV7] volume constraint: integral term on, T_I {settings.integral_time_value():g}", flush=True)
         print(f"[SimV7] volume constraint: target volume of this slab {target:.9g} ({fluid_count:,} fluid "
               f"particles), relaxation time {case.numerics.volume_constraint.relaxation_time:g}, an update every "
               f"{self._volume_constraint_update_steps:,} steps "
@@ -1589,12 +1603,16 @@ class SphSimulatorV7:
     def volume_constraint_checkpoint_entries(self) -> dict:
         """gpu_mean_volume (report section 22): the archive entries a runner's checkpoint carries (v_ref, the rate in
         force, theta), for restart_init(volume_constraint=...). Empty without the switch."""
-        if not self._volume_constraint_gpu_mean():
-            return {}
         from experiment.v7.utils.volume_constraint_v7 import PROCESS_GROUP
-        return {"_volume_constraint_reference_mean_volume": np.float64(PROCESS_GROUP.reference_mean_volume()),
-                "_volume_constraint_rate": np.float64(PROCESS_GROUP.rate),
-                "_volume_constraint_theta": np.float64(PROCESS_GROUP.theta)}
+        entries = {}
+        if self._volume_constraint_gpu_mean():
+            entries.update({"_volume_constraint_reference_mean_volume": np.float64(PROCESS_GROUP.reference_mean_volume()),
+                            "_volume_constraint_rate": np.float64(PROCESS_GROUP.rate),
+                            "_volume_constraint_theta": np.float64(PROCESS_GROUP.theta)})
+        settings = self.case.numerics.volume_constraint
+        if settings.enabled and getattr(settings, "integral", False):
+            entries["_volume_constraint_integral"] = np.float64(PROCESS_GROUP.integral)   # report section 24
+        return entries
 
     def _volume_constraint_on_defrag(self, reduction: Optional[tuple] = None) -> None:
         """Called after every defrag (drained): every update_steps steps take this slab's fluid volume and report
@@ -1612,12 +1630,14 @@ class SphSimulatorV7:
             record = PROCESS_GROUP.report_mean(self, step, deviation_sum, fluid_count,
                                                self._volume_constraint_reference_float32,
                                                float(self.case.numerics.volume_constraint.relaxation_time),
-                                               float(self.case.physics.timestep))
+                                               float(self.case.physics.timestep),
+                                               integral_increment_factor=self._volume_constraint_integral_factor())
         else:
             volume, fluid_count = self.readback_fluid_volume()
             record = PROCESS_GROUP.report(self, step, volume, fluid_count,
                                           float(self.case.numerics.volume_constraint.relaxation_time),
-                                          float(self.case.physics.timestep))
+                                          float(self.case.physics.timestep),
+                                          integral_increment_factor=self._volume_constraint_integral_factor())
         if record is None:
             return
         for member in PROCESS_GROUP.members:
@@ -1625,7 +1645,16 @@ class SphSimulatorV7:
         updates = len(PROCESS_GROUP.history)
         if updates <= 3 or updates % 100 == 0:
             print(f"[SimV7] volume constraint update {updates}: step {record['step']:,} (t = {record['time']:.3f}), "
-                  f"theta {record['theta']:+.3e}, rate {record['rate']:+.3e}", flush=True)
+                  f"theta {record['theta']:+.3e}, rate {record['rate']:+.3e}"
+                  + (f", I {record['integral']:+.3e}" if "integral" in record else ""), flush=True)
+
+    def _volume_constraint_integral_factor(self) -> Optional[float]:
+        """numerics.volume_constraint.integral (report section 24): Delta / (tau T_I), None without the switch."""
+        settings = self.case.numerics.volume_constraint
+        if not getattr(settings, "integral", False):
+            return None
+        return settings.integral_increment_factor(float(self.case.physics.timestep),
+                                                  int(self.case.numerics.defrag_cadence))
 
     # ========================================================================
     # Worker-facing accessors
@@ -3242,7 +3271,9 @@ class SphSimulatorV7:
                 pipelines[every_key] = self._create_pipeline(shader=near_wall_module, entries=entries + [(131, 'I', 0)])
                 self._wall_crossing_split_dispatches[base] = (every_key,)
             else:
-                order = ((near_wall_key, interior_key) if _WALL_CROSSING_SPLIT_ORDER == "near_wall_first"
+                order_setting = (_WALL_CROSSING_SPLIT_ORDER
+                                 or getattr(self.case.numerics.wall_crossing, "split_order", "interior_first"))
+                order = ((near_wall_key, interior_key) if order_setting == "near_wall_first"
                          else (interior_key, near_wall_key))
                 skipped = {"interior": interior_key, "near_wall": near_wall_key}.get(_WALL_CROSSING_SPLIT_TIMING_SKIP)
                 self._wall_crossing_split_dispatches[base] = tuple(key for key in order if key != skipped)
