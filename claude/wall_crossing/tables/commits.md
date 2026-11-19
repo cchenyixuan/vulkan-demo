@@ -92,5 +92,8 @@
 | `b0d479f` | report section 22: grid threshold 0.05 dx, split dispatch, GPU mean-volume constraint, 3-D density drop, timing |
 | `ad3a760` | wall_boundary crossing: diagnostics for the split dispatch's timing and the density drop (report section 23) |
 | `79f2ee5` | wall_boundary crossing: split_dispatch band mode 1 read a stale A_f^-1 in the force band's outer column (fix) |
+| `61c490d` | report section 23: why the split dispatch fell short, the band mode 1 difference, the 3-D density drop |
+| `2f16c8c` | volume constraint: integral term (numerics.volume_constraint.integral, off by default); split_order as a case key |
+| `f71642b` | 3-D cavity benchmark data (Albensoeder & Kuhlmann 2005, Tables 5 and 6) and the comparison tools (report section 24) |
 
 （加入本报告的那个提交排在这些之后。）
