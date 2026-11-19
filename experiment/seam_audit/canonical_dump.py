@@ -51,6 +51,13 @@ both sides' provenance.
 use the V7_ prefix, and the dump's meta records the solver. Dumps of the two solvers compare directly (--compare
 strips the V6_ / V7_ prefixes).
 
+--watch DIRECTORY (debug switch, off by default; v7, needs --transport-extension): the read-only monitor of
+experiment/wall_crossing/particle_watch.py checks the bootstrap state and every step (a fluid particle beyond a face
+of the fluid box, fewer own fluid particles than at the start, a non-finite position or velocity). The run loop is
+then the legacy loop at depth 1 (each step is read before the next is submitted). The first event stops the run:
+the monitor writes its bundle to DIRECTORY (no dump) and the exit code is 4. A run without an event dumps as usual,
+with meta['watch'] = the monitor's summary. Without --watch nothing of this runs.
+
 E39 B4 (v7 V7_DEEP_WALL_SKIP): a skipped deep wall keeps its previous correction_inverse and
 density_gradient_kernel_sum (nothing reads them). The harness sets simulator_v7._DEEP_WALL_RECORD_DECISIONS (unless
 --no-deep-wall-record) so every slab that skips records its GPU decisions, and the dump carries per particle
@@ -341,7 +348,14 @@ def main() -> int:
     parser.add_argument("--no-mask", action="store_true",
                         help="with --compare: compare the deep-wall rows of correction_inverse / "
                              "density_gradient_kernel_sum too")
+    parser.add_argument("--watch", default=None, metavar="DIRECTORY",
+                        help="debug: read-only check of every step (particle_watch.py); stops at the first event "
+                             "and writes its bundle here (exit code 4)")
+    parser.add_argument("--watch-ring", type=int, default=128,
+                        help="with --watch: steps of every fluid particle kept in memory for the trajectories")
     arguments = parser.parse_args()
+    if arguments.watch and (arguments.solver != "v7" or not arguments.transport_extension or arguments.monitor):
+        parser.error("--watch: --solver v7 with --transport-extension (the global ids), without --monitor")
     if arguments.compare:
         return compare(*arguments.compare, ignore=tuple(arguments.ignore), no_mask=arguments.no_mask)
     if not arguments.case or not arguments.out:
@@ -568,7 +582,35 @@ def main() -> int:
         if record["alive"] != total or overflow:
             raise RuntimeError(f"invariant violation at step {frame}: {record}")
 
-    result = orchestrator.run_pipelined(arguments.steps, depth=arguments.depth, on_defrag=on_defrag)
+    watch = None
+    if arguments.watch:
+        # debug switch (particle_watch.py): read-only checks after the bootstrap and after every step, depth 1
+        from experiment.wall_crossing.particle_watch import ParticleWatch, WatchEvent
+        watch = ParticleWatch(sims, global_case, list(chain.cuts), pathlib.Path(arguments.watch).resolve(),
+                              ring_length=arguments.watch_ring)
+        orchestrator.on_frame_done = lambda frame, _sim_index: watch.observe(frame + 1)
+        try:
+            watch.observe(0)
+            result = orchestrator.run_pipelined(arguments.steps, depth=1, on_defrag=on_defrag)
+        except WatchEvent as event:
+            head = subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
+                                  cwd=repo).stdout.strip()
+            bundle = watch.save_event(event, {
+                "repo": str(repo), "repo_head": head, "solver": solver, "case": arguments.case,
+                "case_sha256": case_sha256, "device_map": device_map, "steps_requested": arguments.steps,
+                "canonical_lists": arguments.canonical_lists, "wall_boundary": wall_boundary,
+                "environment": environment, "device_names": [context.device_name for context in contexts],
+                "code_sha256": {key: value[:16] for key, value in code.items()}})
+            print(f"[canonical_dump] WATCH EVENT at step {event.step} (t = {bundle['event_time']:.6f}): {event} "
+                  f"-> {watch.out}", flush=True)
+            orchestrator.destroy()
+            for sim in sims:
+                sim.destroy()
+            for context in contexts:
+                context.destroy()
+            return 4
+    else:
+        result = orchestrator.run_pipelined(arguments.steps, depth=arguments.depth, on_defrag=on_defrag)
 
     status = [sim.readback_global_status() for sim in sims]
     pool_health = [sim.readback_pool_health() for sim in sims]
@@ -673,6 +715,8 @@ def main() -> int:
             "fps": result.get("fps"),
             "elapsed_s": result.get("elapsed_s"), "dt": float(global_case.physics.timestep),
             "device_names": [context.device_name for context in contexts]}
+    if watch is not None:
+        meta["watch"] = watch.summary()
     np.savez(out, meta=json.dumps(meta), **state)
     problems = _invariant_problems(meta)
     if deep_wall and deep_wall.get("cpu_check"):
