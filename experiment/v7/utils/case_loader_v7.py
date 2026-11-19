@@ -112,6 +112,78 @@ def _compute_grid(bbox_min: np.ndarray, bbox_max: np.ndarray,
             tuple(int(d) for d in dims))
 
 
+# Grid origin off the particle layers (2026-11-19, report section 21). A layer of particles lying on a voxel boundary
+# is binned by float32 rounding, so the layer splits between two voxel columns; on a slab cut that sends a whole
+# layer across the cut in the first step (section 20). Per axis, when the smallest distance of an initial particle to
+# a voxel boundary is below GRID_BOUNDARY_CLEARANCE_MINIMUM particle spacings, the origin moves in the negative
+# direction by the shift in (0, GRID_ORIGIN_SHIFT_MAXIMUM] spacings that makes that distance largest (the first of
+# GRID_ORIGIN_SHIFT_CANDIDATES evenly spaced candidates, so the smallest shift on a tie). Other axes keep the origin.
+GRID_BOUNDARY_CLEARANCE_MINIMUM = 0.25       # particle spacings
+GRID_ORIGIN_SHIFT_MAXIMUM = 0.5              # particle spacings
+GRID_ORIGIN_SHIFT_CANDIDATES = 200
+# The report of the most recent load_case_v7 call (per axis: clearance before / after in spacings, shift in spacings,
+# voxels added); diagnostics only, nothing in the solver reads it.
+LAST_GRID_PLACEMENT: dict = {}
+
+
+def _grid_boundary_clearance(coordinates: np.ndarray, origin_coordinate: float, h: float) -> float:
+    """Smallest distance of the given coordinates (one axis, float64) to a voxel boundary origin + k h."""
+    relative = (coordinates - origin_coordinate) / h
+    return float(np.min(np.abs(relative - np.round(relative)))) * h
+
+
+def _place_grid_origin(bbox_min: np.ndarray, bbox_max: np.ndarray, positions: np.ndarray, h: float,
+                       particle_spacing: float, dimension: int) -> tuple[tuple[float, float, float],
+                                                                         tuple[int, int, int], dict]:
+    """_compute_grid, then per active axis the origin moved off the particle layers (see the constants above).
+    The clearance is measured on every initial particle (fluid and walls). After a shift the grid must still hold
+    every particle and the frame bounding box: [origin, origin + dims h) on that axis, else one voxel is added. An
+    axis without a shift keeps _compute_grid's origin and voxel count exactly."""
+    origin_tuple, dims_tuple = _compute_grid(bbox_min, bbox_max, h, dimension)
+    origin = list(origin_tuple)
+    dims = list(dims_tuple)
+    report = {"particle_spacing": float(particle_spacing), "smoothing_length": float(h),
+              "origin_before": list(origin_tuple), "dims_before": list(dims_tuple), "axes": {}}
+    for axis in range(3 if dimension == 3 else 2):
+        coordinates = np.unique(np.asarray(positions[:, axis], dtype=np.float64))
+        before = _grid_boundary_clearance(coordinates, origin[axis], h)
+        shift = 0.0
+        after = before
+        if before < GRID_BOUNDARY_CLEARANCE_MINIMUM * particle_spacing:
+            candidates = (np.arange(1, GRID_ORIGIN_SHIFT_CANDIDATES + 1) / GRID_ORIGIN_SHIFT_CANDIDATES
+                          * GRID_ORIGIN_SHIFT_MAXIMUM * particle_spacing)
+            clearances = np.array([_grid_boundary_clearance(coordinates, origin[axis] - candidate, h)
+                                   for candidate in candidates])
+            best = int(np.argmax(clearances))
+            shift = float(candidates[best])
+            after = float(clearances[best])
+            origin[axis] -= shift
+        added = 0
+        if shift > 0.0:          # an axis that keeps its origin keeps its voxel count too
+            highest = max(float(coordinates.max()), float(np.asarray(bbox_max, dtype=np.float64)[axis]))
+            while highest >= origin[axis] + dims[axis] * h:
+                dims[axis] += 1
+                added += 1
+        report["axes"]["xyz"[axis]] = {"clearance_before": before / particle_spacing,
+                                       "clearance_after": after / particle_spacing,
+                                       "shift": shift / particle_spacing, "voxels_added": added}
+    report["origin_after"] = [float(value) for value in origin]
+    report["dims_after"] = [int(value) for value in dims]
+    return (tuple(float(value) for value in origin), tuple(int(value) for value in dims), report)
+
+
+def describe_grid_placement(report: dict) -> list[str]:
+    """The three lines load_case_v7 prints: the clearance before and after (in particle spacings) and the shift."""
+    axes = report["axes"]
+    return ["[case_loader_v7] grid boundary clearance before (particle spacings): "
+            + "  ".join(f"{axis} {item['clearance_before']:.4f}" for axis, item in axes.items()),
+            "[case_loader_v7] grid boundary clearance after  (particle spacings): "
+            + "  ".join(f"{axis} {item['clearance_after']:.4f}" for axis, item in axes.items()),
+            "[case_loader_v7] grid origin shift delta (particle spacings, negative direction): "
+            + "  ".join(f"{axis} {item['shift']:.4f}" + (f" (+{item['voxels_added']} voxel)" if item["voxels_added"]
+                                                        else "") for axis, item in axes.items())]
+
+
 # ============================================================================
 # Particle volume calibration (ported from utils/sph/case.py:74-193)
 # ============================================================================
@@ -516,7 +588,13 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
         raise ValueError(f"frame OBJ {frame_obj} contains no vertices")
     bbox_min = frame_verts.min(axis=0)
     bbox_max = frame_verts.max(axis=0)
-    origin_tuple, dim_tuple = _compute_grid(bbox_min, bbox_max, h, dimension)
+    # the origin from the case's initial particles only (a restart reloads the case, so it gets the same grid)
+    origin_tuple, dim_tuple, placement = _place_grid_origin(bbox_min, bbox_max, positions, h,
+                                                            2.0 * particle_radius, dimension)
+    LAST_GRID_PLACEMENT.clear()
+    LAST_GRID_PLACEMENT.update(placement)
+    for line in describe_grid_placement(placement):
+        print(line, flush=True)
 
     # Degenerate slab: owns the whole domain, no ghost columns, no peer.
     # partition_v7 is responsible for synthesizing per-slab ghost / transport.
