@@ -1,0 +1,821 @@
+[
+ {
+  "case": "2-D 250\u00b2 crossing K=1 700 steps",
+  "comparison": "reference vs reference",
+  "first": "n250_k1_reference_r1",
+  "second": "n250_k1_reference_r2",
+  "verdict": "BIT-IDENTICAL (10 fields)",
+  "problems": [],
+  "particles": 74529,
+  "code_a": {
+   "experiment/v7/utils": "3ea5389a9bbdb0ce",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "86ebce165d8020e2",
+   "harness": "85f240913dc0fd1a"
+  },
+  "code_b": {
+   "experiment/v7/utils": "3ea5389a9bbdb0ce",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "86ebce165d8020e2",
+   "harness": "85f240913dc0fd1a"
+  },
+  "head_a": "d94c26c",
+  "head_b": "d94c26c",
+  "watch_a": false,
+  "watch_b": false,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 74529,
+   "max_abs_difference": 0.0
+  },
+  "velocity_mass": {
+   "identical_rows": 74529,
+   "max_abs_difference": 0.0
+  },
+  "density_pressure": {
+   "identical_rows": 74529,
+   "max_abs_difference": 0.0
+  }
+ },
+ {
+  "case": "2-D 250\u00b2 crossing K=1 700 steps",
+  "comparison": "switch off vs reference",
+  "first": "n250_k1_off_r1",
+  "second": "n250_k1_reference_r1",
+  "verdict": "BIT-IDENTICAL (10 fields)",
+  "problems": [],
+  "particles": 74529,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "code_b": {
+   "experiment/v7/utils": "3ea5389a9bbdb0ce",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "86ebce165d8020e2",
+   "harness": "85f240913dc0fd1a"
+  },
+  "head_a": "2c49ec0",
+  "head_b": "d94c26c",
+  "watch_a": false,
+  "watch_b": false,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 74529,
+   "max_abs_difference": 0.0
+  },
+  "velocity_mass": {
+   "identical_rows": 74529,
+   "max_abs_difference": 0.0
+  },
+  "density_pressure": {
+   "identical_rows": 74529,
+   "max_abs_difference": 0.0
+  }
+ },
+ {
+  "case": "2-D 250\u00b2 crossing K=1 700 steps",
+  "comparison": "switch on vs reference",
+  "first": "n250_k1_on_r1",
+  "second": "n250_k1_reference_r1",
+  "verdict": "BIT-IDENTICAL (10 fields)",
+  "problems": [],
+  "particles": 74529,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "code_b": {
+   "experiment/v7/utils": "3ea5389a9bbdb0ce",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "86ebce165d8020e2",
+   "harness": "85f240913dc0fd1a"
+  },
+  "head_a": "2c49ec0",
+  "head_b": "d94c26c",
+  "watch_a": true,
+  "watch_b": false,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 74529,
+   "max_abs_difference": 0.0
+  },
+  "velocity_mass": {
+   "identical_rows": 74529,
+   "max_abs_difference": 0.0
+  },
+  "density_pressure": {
+   "identical_rows": 74529,
+   "max_abs_difference": 0.0
+  }
+ },
+ {
+  "case": "2-D 250\u00b2 crossing K=2 700 steps",
+  "comparison": "reference vs reference",
+  "first": "n250_k2_reference_r1",
+  "second": "n250_k2_reference_r2",
+  "verdict": "BIT-IDENTICAL (10 fields)",
+  "problems": [],
+  "particles": 74529,
+  "code_a": {
+   "experiment/v7/utils": "3ea5389a9bbdb0ce",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "86ebce165d8020e2",
+   "harness": "85f240913dc0fd1a"
+  },
+  "code_b": {
+   "experiment/v7/utils": "3ea5389a9bbdb0ce",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "86ebce165d8020e2",
+   "harness": "85f240913dc0fd1a"
+  },
+  "head_a": "d94c26c",
+  "head_b": "d94c26c",
+  "watch_a": false,
+  "watch_b": false,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 74529,
+   "max_abs_difference": 0.0
+  },
+  "velocity_mass": {
+   "identical_rows": 74529,
+   "max_abs_difference": 0.0
+  },
+  "density_pressure": {
+   "identical_rows": 74529,
+   "max_abs_difference": 0.0
+  }
+ },
+ {
+  "case": "2-D 250\u00b2 crossing K=2 700 steps",
+  "comparison": "switch off vs reference",
+  "first": "n250_k2_off_r1",
+  "second": "n250_k2_reference_r1",
+  "verdict": "BIT-IDENTICAL (10 fields)",
+  "problems": [],
+  "particles": 74529,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "code_b": {
+   "experiment/v7/utils": "3ea5389a9bbdb0ce",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "86ebce165d8020e2",
+   "harness": "85f240913dc0fd1a"
+  },
+  "head_a": "2c49ec0",
+  "head_b": "d94c26c",
+  "watch_a": false,
+  "watch_b": false,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 74529,
+   "max_abs_difference": 0.0
+  },
+  "velocity_mass": {
+   "identical_rows": 74529,
+   "max_abs_difference": 0.0
+  },
+  "density_pressure": {
+   "identical_rows": 74529,
+   "max_abs_difference": 0.0
+  }
+ },
+ {
+  "case": "2-D 250\u00b2 crossing K=2 700 steps",
+  "comparison": "switch on vs reference",
+  "first": "n250_k2_on_r1",
+  "second": "n250_k2_reference_r1",
+  "verdict": "BIT-IDENTICAL (10 fields)",
+  "problems": [],
+  "particles": 74529,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "code_b": {
+   "experiment/v7/utils": "3ea5389a9bbdb0ce",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "86ebce165d8020e2",
+   "harness": "85f240913dc0fd1a"
+  },
+  "head_a": "2c49ec0",
+  "head_b": "d94c26c",
+  "watch_a": true,
+  "watch_b": false,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 74529,
+   "max_abs_difference": 0.0
+  },
+  "velocity_mass": {
+   "identical_rows": 74529,
+   "max_abs_difference": 0.0
+  },
+  "density_pressure": {
+   "identical_rows": 74529,
+   "max_abs_difference": 0.0
+  }
+ },
+ {
+  "case": "3-D small case K=1 1 steps",
+  "comparison": "reference vs reference",
+  "first": "reference_s1_r1",
+  "second": "reference_s1_r2",
+  "verdict": "NOT bit-identical",
+  "problems": [],
+  "particles": 195112,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "17c0ab9634a9582b"
+  },
+  "code_b": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "17c0ab9634a9582b"
+  },
+  "head_a": "d94c26c",
+  "head_b": "d94c26c",
+  "watch_a": false,
+  "watch_b": false,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 195112,
+   "max_abs_difference": 0.0
+  },
+  "velocity_mass": {
+   "identical_rows": 195112,
+   "max_abs_difference": 0.0
+  },
+  "density_pressure": {
+   "identical_rows": 195112,
+   "max_abs_difference": 0.0
+  }
+ },
+ {
+  "case": "3-D small case K=1 1 steps",
+  "comparison": "switch off vs switch off",
+  "first": "off_s1_r1",
+  "second": "off_s1_r2",
+  "verdict": "NOT bit-identical",
+  "problems": [],
+  "particles": 195112,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "code_b": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "head_a": "2c49ec0",
+  "head_b": "2c49ec0",
+  "watch_a": false,
+  "watch_b": false,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 195112,
+   "max_abs_difference": 0.0
+  },
+  "velocity_mass": {
+   "identical_rows": 195112,
+   "max_abs_difference": 0.0
+  },
+  "density_pressure": {
+   "identical_rows": 195112,
+   "max_abs_difference": 0.0
+  }
+ },
+ {
+  "case": "3-D small case K=1 1 steps",
+  "comparison": "switch on vs switch on",
+  "first": "on_s1_r1",
+  "second": "on_s1_r2",
+  "verdict": "NOT bit-identical",
+  "problems": [],
+  "particles": 195112,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "code_b": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "head_a": "2c49ec0",
+  "head_b": "2c49ec0",
+  "watch_a": true,
+  "watch_b": true,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 195112,
+   "max_abs_difference": 0.0
+  },
+  "velocity_mass": {
+   "identical_rows": 195112,
+   "max_abs_difference": 0.0
+  },
+  "density_pressure": {
+   "identical_rows": 195112,
+   "max_abs_difference": 0.0
+  }
+ },
+ {
+  "case": "3-D small case K=1 1 steps",
+  "comparison": "switch off vs reference",
+  "first": "off_s1_r1",
+  "second": "reference_s1_r1",
+  "verdict": "NOT bit-identical",
+  "problems": [],
+  "particles": 195112,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "code_b": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "17c0ab9634a9582b"
+  },
+  "head_a": "2c49ec0",
+  "head_b": "d94c26c",
+  "watch_a": false,
+  "watch_b": false,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 195112,
+   "max_abs_difference": 0.0
+  },
+  "velocity_mass": {
+   "identical_rows": 195112,
+   "max_abs_difference": 0.0
+  },
+  "density_pressure": {
+   "identical_rows": 195112,
+   "max_abs_difference": 0.0
+  }
+ },
+ {
+  "case": "3-D small case K=1 1 steps",
+  "comparison": "switch on vs switch off",
+  "first": "on_s1_r1",
+  "second": "off_s1_r1",
+  "verdict": "NOT bit-identical",
+  "problems": [],
+  "particles": 195112,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "code_b": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "head_a": "2c49ec0",
+  "head_b": "2c49ec0",
+  "watch_a": true,
+  "watch_b": false,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 195112,
+   "max_abs_difference": 0.0
+  },
+  "velocity_mass": {
+   "identical_rows": 195112,
+   "max_abs_difference": 0.0
+  },
+  "density_pressure": {
+   "identical_rows": 195112,
+   "max_abs_difference": 0.0
+  }
+ },
+ {
+  "case": "3-D small case K=1 50 steps",
+  "comparison": "reference vs reference",
+  "first": "reference_s50_r1",
+  "second": "reference_s50_r2",
+  "verdict": "NOT bit-identical",
+  "problems": [],
+  "particles": 195112,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "17c0ab9634a9582b"
+  },
+  "code_b": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "17c0ab9634a9582b"
+  },
+  "head_a": "d94c26c",
+  "head_b": "d94c26c",
+  "watch_a": false,
+  "watch_b": false,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 91421,
+   "max_abs_difference": 1.4901161193847656e-07
+  },
+  "velocity_mass": {
+   "identical_rows": 84520,
+   "max_abs_difference": 8.449540473520756e-06
+  },
+  "density_pressure": {
+   "identical_rows": 188877,
+   "max_abs_difference": 0.0001220703125
+  }
+ },
+ {
+  "case": "3-D small case K=1 50 steps",
+  "comparison": "switch off vs switch off",
+  "first": "off_s50_r1",
+  "second": "off_s50_r2",
+  "verdict": "NOT bit-identical",
+  "problems": [],
+  "particles": 195112,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "code_b": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "head_a": "2c49ec0",
+  "head_b": "2c49ec0",
+  "watch_a": false,
+  "watch_b": false,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 91574,
+   "max_abs_difference": 1.4901161193847656e-07
+  },
+  "velocity_mass": {
+   "identical_rows": 84522,
+   "max_abs_difference": 9.662180673331022e-06
+  },
+  "density_pressure": {
+   "identical_rows": 188954,
+   "max_abs_difference": 0.0001220703125
+  }
+ },
+ {
+  "case": "3-D small case K=1 50 steps",
+  "comparison": "switch on vs switch on",
+  "first": "on_s50_r1",
+  "second": "on_s50_r2",
+  "verdict": "NOT bit-identical",
+  "problems": [],
+  "particles": 195112,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "code_b": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "head_a": "2c49ec0",
+  "head_b": "2c49ec0",
+  "watch_a": true,
+  "watch_b": true,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 91275,
+   "max_abs_difference": 1.4901161193847656e-07
+  },
+  "velocity_mass": {
+   "identical_rows": 84522,
+   "max_abs_difference": 9.181327186524868e-06
+  },
+  "density_pressure": {
+   "identical_rows": 189249,
+   "max_abs_difference": 0.0001220703125
+  }
+ },
+ {
+  "case": "3-D small case K=1 50 steps",
+  "comparison": "switch off vs reference",
+  "first": "off_s50_r1",
+  "second": "reference_s50_r1",
+  "verdict": "NOT bit-identical",
+  "problems": [],
+  "particles": 195112,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "code_b": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "17c0ab9634a9582b"
+  },
+  "head_a": "2c49ec0",
+  "head_b": "d94c26c",
+  "watch_a": false,
+  "watch_b": false,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 91455,
+   "max_abs_difference": 1.4901161193847656e-07
+  },
+  "velocity_mass": {
+   "identical_rows": 84520,
+   "max_abs_difference": 8.496514055877924e-06
+  },
+  "density_pressure": {
+   "identical_rows": 188726,
+   "max_abs_difference": 0.0001220703125
+  }
+ },
+ {
+  "case": "3-D small case K=1 50 steps",
+  "comparison": "switch on vs switch off",
+  "first": "on_s50_r1",
+  "second": "off_s50_r1",
+  "verdict": "NOT bit-identical",
+  "problems": [],
+  "particles": 195112,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "code_b": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "head_a": "2c49ec0",
+  "head_b": "2c49ec0",
+  "watch_a": true,
+  "watch_b": false,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 91570,
+   "max_abs_difference": 1.4901161193847656e-07
+  },
+  "velocity_mass": {
+   "identical_rows": 84521,
+   "max_abs_difference": 9.264287655241787e-06
+  },
+  "density_pressure": {
+   "identical_rows": 189043,
+   "max_abs_difference": 0.0001220703125
+  }
+ },
+ {
+  "case": "3-D small case K=1 700 steps",
+  "comparison": "reference vs reference",
+  "first": "reference_s700_r1",
+  "second": "reference_s700_r2",
+  "verdict": "NOT bit-identical",
+  "problems": [],
+  "particles": 195112,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "17c0ab9634a9582b"
+  },
+  "code_b": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "17c0ab9634a9582b"
+  },
+  "head_a": "d94c26c",
+  "head_b": "d94c26c",
+  "watch_a": false,
+  "watch_b": false,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 84520,
+   "max_abs_difference": 0.0011216998100280762
+  },
+  "velocity_mass": {
+   "identical_rows": 84520,
+   "max_abs_difference": 0.00016769254580140114
+  },
+  "density_pressure": {
+   "identical_rows": 109917,
+   "max_abs_difference": 0.00091552734375
+  }
+ },
+ {
+  "case": "3-D small case K=1 700 steps",
+  "comparison": "switch off vs switch off",
+  "first": "off_s700_r1",
+  "second": "off_s700_r2",
+  "verdict": "NOT bit-identical",
+  "problems": [],
+  "particles": 195112,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "code_b": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "head_a": "2c49ec0",
+  "head_b": "2c49ec0",
+  "watch_a": false,
+  "watch_b": false,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 84520,
+   "max_abs_difference": 0.0009933114051818848
+  },
+  "velocity_mass": {
+   "identical_rows": 84520,
+   "max_abs_difference": 0.00016183871775865555
+  },
+  "density_pressure": {
+   "identical_rows": 109711,
+   "max_abs_difference": 0.00079345703125
+  }
+ },
+ {
+  "case": "3-D small case K=1 700 steps",
+  "comparison": "switch on vs switch on",
+  "first": "on_s700_r1",
+  "second": "on_s700_r2",
+  "verdict": "NOT bit-identical",
+  "problems": [],
+  "particles": 195112,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "code_b": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "head_a": "2c49ec0",
+  "head_b": "2c49ec0",
+  "watch_a": true,
+  "watch_b": true,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 84520,
+   "max_abs_difference": 0.0009792745113372803
+  },
+  "velocity_mass": {
+   "identical_rows": 84520,
+   "max_abs_difference": 0.00015550106763839722
+  },
+  "density_pressure": {
+   "identical_rows": 109939,
+   "max_abs_difference": 0.00079345703125
+  }
+ },
+ {
+  "case": "3-D small case K=1 700 steps",
+  "comparison": "switch off vs reference",
+  "first": "off_s700_r1",
+  "second": "reference_s700_r1",
+  "verdict": "NOT bit-identical",
+  "problems": [],
+  "particles": 195112,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "code_b": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "17c0ab9634a9582b"
+  },
+  "head_a": "2c49ec0",
+  "head_b": "d94c26c",
+  "watch_a": false,
+  "watch_b": false,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 84520,
+   "max_abs_difference": 0.0010654628276824951
+  },
+  "velocity_mass": {
+   "identical_rows": 84520,
+   "max_abs_difference": 0.00014716945588588715
+  },
+  "density_pressure": {
+   "identical_rows": 110408,
+   "max_abs_difference": 0.00079345703125
+  }
+ },
+ {
+  "case": "3-D small case K=1 700 steps",
+  "comparison": "switch on vs switch off",
+  "first": "on_s700_r1",
+  "second": "off_s700_r1",
+  "verdict": "NOT bit-identical",
+  "problems": [],
+  "particles": 195112,
+  "code_a": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "code_b": {
+   "experiment/v7/utils": "21bb36fe844ee53e",
+   "spv": "48c8ed53f29545ba",
+   "cavity_runner": "69066dff1e6aff30",
+   "harness": "d70ff25f6bd2174e"
+  },
+  "head_a": "2c49ec0",
+  "head_b": "2c49ec0",
+  "watch_a": true,
+  "watch_b": false,
+  "depth_a": 2,
+  "depth_b": 2,
+  "position_voxel_id": {
+   "identical_rows": 84520,
+   "max_abs_difference": 0.0012015700340270996
+  },
+  "velocity_mass": {
+   "identical_rows": 84520,
+   "max_abs_difference": 0.00014364742673933506
+  },
+  "density_pressure": {
+   "identical_rows": 109478,
+   "max_abs_difference": 0.000732421875
+  }
+ }
+]

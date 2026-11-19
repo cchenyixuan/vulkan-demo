@@ -503,10 +503,18 @@ def main() -> int:
                   lines=[list(range(int(valid.sum())))])
         vtp_files.append("primary_path.vtp")
 
+    # ---- replica coverage of every ghost column at the event step
+    coverage = replica_coverage(state, event)
+    np.savez_compressed(out / "replica_coverage.npz", **{f"slab{item['slab']}_column{item['column']}_{key}": item[key]
+                                                         for item in coverage for key in ("expected", "present")})
+    coverage_summary = [{key: value for key, value in item.items() if key not in ("expected", "present")}
+                        for item in coverage]
+
     # ---- figures
     figure_files = []
     if centre is not None:
         figure_files = draw_figures(out, event, state, ring, steps_log, primary, centre, particles, neighbours)
+        figure_files.append(draw_coverage(out, event, coverage, particles))
         if arguments.figures:
             target = pathlib.Path(arguments.figures).resolve()
             target.mkdir(parents=True, exist_ok=True)
@@ -529,12 +537,92 @@ def main() -> int:
                "events": {name: value["summary"] for name, value in events.items()},
                "primary_global_id": primary, "primary": particles[0] if particles else None,
                "event_particle_count": len(particles), "vanished_count": len(vanished),
-               "neighbours": neighbour_summary, "vtp": vtp_files, "figures": figure_files,
-               "steps_log_last": steps_log[-1]}
+               "neighbours": neighbour_summary, "replica_coverage": coverage_summary, "vtp": vtp_files,
+               "figures": figure_files, "steps_log_last": steps_log[-1]}
     (out / "summary.json").write_text(json.dumps(summary, indent=1), encoding="utf-8")
     print(json.dumps({key: summary[key] for key in ("event_step", "events", "primary_global_id", "neighbours",
                                                     "figures")}, indent=1))
     return 0
+
+
+def replica_coverage(state: dict, event: dict) -> list:
+    """Per slab and ghost column: the other slab's own particles that lie in that column (by the receiver's float32
+    binning) against the replicas the receiver holds of them, per (y, z) voxel."""
+    support = float(event["support_radius"])
+    coverage = []
+    for slab, geometry in enumerate(event["slabs"]):
+        grid_x, grid_y, grid_z = geometry["grid_dimension"]
+        origin = [np.float32(value) for value in geometry["origin_float32"]]
+        position = state["position"].astype(np.float32)
+        column = np.floor((position[:, 0] - origin[0]) / np.float32(support)).astype(np.int64)
+        y_index = np.clip(np.floor((position[:, 1] - origin[1]) / np.float32(support)).astype(np.int64), 0, grid_y - 1)
+        z_index = np.clip(np.floor((position[:, 2] - origin[2]) / np.float32(support)).astype(np.int64), 0, grid_z - 1)
+        others = (state["slab"] != slab) & (state["kind"] == 0)
+        replica_ids = np.unique(state["global_id"][(state["slab"] == slab) & (state["kind"] > 0)])
+        for ghost_column in range(grid_x):
+            role = column_role(ghost_column, geometry)
+            if "ghost" not in role:
+                continue
+            chosen = others & (column == ghost_column)
+            present = chosen & np.isin(state["global_id"], replica_ids)
+            expected_map = np.zeros((grid_z, grid_y), dtype=np.int64)
+            present_map = np.zeros((grid_z, grid_y), dtype=np.int64)
+            np.add.at(expected_map, (z_index[chosen], y_index[chosen]), 1)
+            np.add.at(present_map, (z_index[present], y_index[present]), 1)
+            expected_total, present_total = int(chosen.sum()), int(present.sum())
+            upper = z_index[chosen] >= (3 * grid_z) // 4
+            coverage.append({"slab": slab, "column": ghost_column, "role": role, "expected_particles": expected_total,
+                             "replicas_present": present_total, "missing": expected_total - present_total,
+                             "missing_fraction": (expected_total - present_total) / expected_total if expected_total else 0.0,
+                             "missing_fraction_top_quarter_z": float(1 - present[chosen][upper].mean()) if upper.any() else None,
+                             "missing_fraction_rest_z": float(1 - present[chosen][~upper].mean()) if (~upper).any() else None,
+                             "voxels_with_none": int(((expected_map > 0) & (present_map == 0)).sum()),
+                             "voxels_occupied": int((expected_map > 0).sum()),
+                             "replica_region_slots_per_layer": geometry["replica_region_size"],
+                             "expected": expected_map, "present": present_map})
+    return coverage
+
+
+def draw_coverage(out, event, coverage, particles) -> str:
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import LinearSegmentedColormap
+    from experiment.wall_crossing.report_figures import INK_PRIMARY, setup_style
+    setup_style()
+    sequential = LinearSegmentedColormap.from_list("blue_ramp", ["#f4f8fd", "#86b6ef", "#2a78d6", "#184f95", "#0d366b"])
+    support = float(event["support_radius"])
+    columns = 2
+    rows = max(1, (len(coverage) + columns - 1) // columns)
+    figure, axes = plt.subplots(rows, columns, figsize=(9.0, 4.2 * rows), squeeze=False)
+    image = None
+    for axis in axes.flat[len(coverage):]:
+        axis.set_visible(False)
+    for axis, item in zip(axes.flat, coverage):
+        geometry = event["slabs"][item["slab"]]
+        with np.errstate(invalid="ignore", divide="ignore"):
+            missing = np.where(item["expected"] > 0, 1.0 - item["present"] / item["expected"], np.nan)
+        origin = geometry["origin"]
+        grid_y, grid_z = geometry["grid_dimension"][1], geometry["grid_dimension"][2]
+        extent = (origin[1], origin[1] + grid_y * support, origin[2], origin[2] + grid_z * support)
+        image = axis.imshow(missing, origin="lower", extent=extent, cmap=sequential, vmin=0.0, vmax=1.0,
+                            interpolation="nearest")
+        for particle in particles:
+            axis.scatter([particle["position"][1]], [particle["position"][2]], marker="*", s=90, color="#eb6834",
+                         edgecolors=INK_PRIMARY, linewidths=0.5, zorder=5)
+        layer = "inner" if "inner" in item["role"] else "outer"
+        axis.set_title(f"slab {item['slab']}, column {item['column']} ({layer} ghost): "
+                       f"{100 * item['missing_fraction']:.0f} % missing", fontsize=9)
+        axis.set_xlabel("y (m)")
+        axis.set_ylabel("z (m)")
+        axis.grid(False)
+    colourbar = figure.colorbar(image, ax=list(axes.flat), shrink=0.8)
+    colourbar.set_label("share of the voxel's particles with no replica")
+    figure.suptitle(f"step {event['event_step']}: replicas per ghost voxel (star: the event particles' y, z)",
+                    x=0.01, ha="left", fontsize=10, fontweight="bold")
+    figure.savefig(out / "replica_coverage.png", bbox_inches="tight")
+    plt.close(figure)
+    return "replica_coverage.png"
 
 
 def draw_figures(out, event, state, ring, steps_log, primary, centre, particles, neighbours) -> list:

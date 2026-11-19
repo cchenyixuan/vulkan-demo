@@ -1,0 +1,304 @@
+{
+ "bundle": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-wall-crossing\\logs\\wall_crossing\\particle_watch\\run3_control_simple_k2",
+ "event_step": 8,
+ "event_time": 0.00048,
+ "events": {
+  "wall_layer": "2 fluid particle(s) beyond the box face, deepest 1.588e-04 beyond"
+ },
+ "primary_global_id": 509544,
+ "primary": {
+  "global_id": 509544,
+  "slab": 1,
+  "row": 100416,
+  "position": [
+   -0.015653176233172417,
+   0.44999051094055176,
+   0.5051588416099548
+  ],
+  "velocity": [
+   -0.00016846953076310456,
+   -0.000629921501968056,
+   0.0008798057679086924
+  ],
+  "speed": 0.0010950987492836597,
+  "density": 1000.0008544921875,
+  "pressure": 10.388237953186035,
+  "material": 0,
+  "shift": [
+   -0.0008729546098038554,
+   0.00010177715739700943,
+   0.00027089184732176363
+  ],
+  "acceleration": [
+   -0.763485312461853,
+   4.844847202301025,
+   3.2985074520111084
+  ],
+  "box_margin": -0.00015884160995482954,
+  "beyond": [
+   "z+"
+  ],
+  "beyond_kind": "face",
+  "distance_to_cut": [
+   0.000346839502453844
+  ],
+  "stored_column": 2,
+  "stored_column_role": "own column",
+  "computed_column_from_position": 2,
+  "listed": true,
+  "history": {
+   "ring_first_step": 0,
+   "ring_last_step": 8,
+   "first_step_beyond_box": 8,
+   "first_step_in_no_voxel_list": null,
+   "steps_in_no_voxel_list": 0,
+   "slab_changes": [],
+   "mean_displacement_per_step": 0.0010187747749369927,
+   "mean_speed_times_timestep": 1.9970163552199058e-08,
+   "last_displacement_per_step": 0.0016512269340745445,
+   "last_speed_times_timestep": 6.570592495701959e-08,
+   "box_margin_first": 0.0050000000000000044,
+   "box_margin_last": -0.00015884160995482954
+  }
+ },
+ "event_particle_count": 2,
+ "vanished_count": 0,
+ "neighbours": {
+  "6": {
+   "in_lists_within_h": 197,
+   "true_within_h": 269,
+   "missing_within_h": 72,
+   "missing_by_reason": {
+    "wall no replica of it on this slab (it sits in a ghost column)": 57,
+    "fluid no replica of it on this slab (it sits in a ghost column)": 15
+   },
+   "primary_listed": true,
+   "stored_column_role": "own column"
+  },
+  "7": {
+   "in_lists_within_h": 202,
+   "true_within_h": 266,
+   "missing_within_h": 64,
+   "missing_by_reason": {
+    "wall no replica of it on this slab (it sits in a ghost column)": 61,
+    "fluid no replica of it on this slab (it sits in a ghost column)": 3
+   },
+   "primary_listed": true,
+   "stored_column_role": "own column"
+  },
+  "8": {
+   "in_lists_within_h": 145,
+   "true_within_h": 269,
+   "missing_within_h": 124,
+   "missing_by_reason": {
+    "wall no replica of it on this slab (it sits in a ghost column)": 67,
+    "fluid no replica of it on this slab (it sits in a ghost column)": 57
+   },
+   "primary_listed": true,
+   "stored_column_role": "own column"
+  }
+ },
+ "replica_coverage": [
+  {
+   "slab": 0,
+   "column": 15,
+   "role": "trailing ghost column (inner)",
+   "expected_particles": 56640,
+   "replicas_present": 45153,
+   "missing": 11487,
+   "missing_fraction": 0.20280720338983052,
+   "missing_fraction_top_quarter_z": 0.6651590312226436,
+   "missing_fraction_rest_z": 0.055180285102021776,
+   "voxels_with_none": 145,
+   "voxels_occupied": 961,
+   "replica_region_slots_per_layer": 44591
+  },
+  {
+   "slab": 0,
+   "column": 16,
+   "role": "trailing ghost column (outer)",
+   "expected_particles": 56644,
+   "replicas_present": 44544,
+   "missing": 12100,
+   "missing_fraction": 0.21361485770778899,
+   "missing_fraction_top_quarter_z": 0.054187192118226646,
+   "missing_fraction_rest_z": 0.26498599439775905,
+   "voxels_with_none": 220,
+   "voxels_occupied": 961,
+   "replica_region_slots_per_layer": 44591
+  },
+  {
+   "slab": 1,
+   "column": 0,
+   "role": "leading ghost column (outer)",
+   "expected_particles": 56644,
+   "replicas_present": 44564,
+   "missing": 12080,
+   "missing_fraction": 0.21326177529835463,
+   "missing_fraction_top_quarter_z": 0.10315850478122279,
+   "missing_fraction_rest_z": 0.24873949579831933,
+   "voxels_with_none": 208,
+   "voxels_occupied": 961,
+   "replica_region_slots_per_layer": 44591
+  },
+  {
+   "slab": 1,
+   "column": 1,
+   "role": "leading ghost column (inner)",
+   "expected_particles": 56648,
+   "replicas_present": 45328,
+   "missing": 11320,
+   "missing_fraction": 0.19983053241067647,
+   "missing_fraction_top_quarter_z": 0.6320143884892087,
+   "missing_fraction_rest_z": 0.05930101993075698,
+   "voxels_with_none": 142,
+   "voxels_occupied": 961,
+   "replica_region_slots_per_layer": 44591
+  }
+ ],
+ "vtp": [
+  "region_step000006.vtp",
+  "region_step000007.vtp",
+  "region_step000008.vtp",
+  "region_step000000_fluid_and_walls.vtp",
+  "region_step000003_fluid_and_walls.vtp",
+  "primary_path.vtp"
+ ],
+ "figures": [
+  "slice_xz.png",
+  "slice_zy.png",
+  "slice_xy.png",
+  "history.png",
+  "replica_coverage.png"
+ ],
+ "steps_log_last": {
+  "step": 8,
+  "t": 0.00048,
+  "slabs": [
+   {
+    "own_alive": 821342,
+    "own_fluid": 499853,
+    "own_wall": 321489,
+    "own_alive_unlisted": 0,
+    "own_in_ghost_column": 0,
+    "own_fluid_unlisted": 0,
+    "fluid_ids_not_fluid": 0,
+    "delta": {
+     "overflow_ghost_count": 23109,
+     "overflow_inside_count": 0,
+     "overflow_incoming_count": 0,
+     "overflow_install_tail": 0,
+     "overflow_install_inside": 0,
+     "overflow_departed_count": 0,
+     "far_migration_count": 0,
+     "stamp_error_count": 0,
+     "migration_install_count": 1060,
+     "correction_fallback_count": 0,
+     "wall_crossing_gradient_fallback_count": 0
+    },
+    "level": {
+     "departed_count": 562,
+     "ghost_send_leading_count": 0,
+     "ghost_send_trailing_count": 562,
+     "ghost_recv_leading_count": 0,
+     "ghost_recv_trailing_count": 1060,
+     "replica_inner_send_leading_count": 0,
+     "replica_inner_send_trailing_count": 55588,
+     "replica_outer_send_leading_count": 0,
+     "replica_outer_send_trailing_count": 56644,
+     "replica_inner_recv_leading_count": 0,
+     "replica_inner_recv_trailing_count": 56078,
+     "replica_outer_recv_leading_count": 0,
+     "replica_outer_recv_trailing_count": 56644,
+     "frame_stamp": 8
+    }
+   },
+   {
+    "own_alive": 863817,
+    "own_fluid": 530448,
+    "own_wall": 333369,
+    "own_alive_unlisted": 0,
+    "own_in_ghost_column": 0,
+    "own_fluid_unlisted": 0,
+    "fluid_ids_not_fluid": 0,
+    "delta": {
+     "overflow_ghost_count": 23587,
+     "overflow_inside_count": 0,
+     "overflow_incoming_count": 0,
+     "overflow_install_tail": 0,
+     "overflow_install_inside": 0,
+     "overflow_departed_count": 291,
+     "far_migration_count": 0,
+     "stamp_error_count": 0,
+     "migration_install_count": 562,
+     "correction_fallback_count": 0,
+     "wall_crossing_gradient_fallback_count": 0
+    },
+    "level": {
+     "departed_count": 1060,
+     "ghost_send_leading_count": 1060,
+     "ghost_send_trailing_count": 0,
+     "ghost_recv_leading_count": 562,
+     "ghost_recv_trailing_count": 0,
+     "replica_inner_send_leading_count": 56078,
+     "replica_inner_send_trailing_count": 0,
+     "replica_outer_send_leading_count": 56644,
+     "replica_outer_send_trailing_count": 0,
+     "replica_inner_recv_leading_count": 55588,
+     "replica_inner_recv_trailing_count": 0,
+     "replica_outer_recv_leading_count": 56644,
+     "replica_outer_recv_trailing_count": 0,
+     "frame_stamp": 8
+    }
+   }
+  ],
+  "largest_fluid_shift": {
+   "value": 0.00627082087607485,
+   "global_id": 502569,
+   "position": [
+    -0.016449809074401855,
+    -0.2402162253856659,
+    0.4396834671497345
+   ],
+   "x_minus_cut": [
+    -0.0004497933387755948
+   ]
+  },
+  "largest_fluid_acceleration": {
+   "value": 1847.1214358801922,
+   "global_id": 510033,
+   "position": [
+    -0.015999197959899902,
+    0.5032641887664795,
+    0.3416064381599426
+   ],
+   "x_minus_cut": [
+    8.177757263583274e-07
+   ]
+  },
+  "largest_fluid_displacement_since_previous_check": {
+   "value": 0.0056616386745462766,
+   "global_id": 507615,
+   "position": [
+    -0.01137305423617363,
+    0.26015642285346985,
+    0.3993813991546631
+   ],
+   "median": 0.0,
+   "x_minus_cut": [
+    0.004626961499452631
+   ]
+  },
+  "fluid_total": 1030301,
+  "fluid_unique_ids": 1030301,
+  "fluid_duplicate_rows": 0,
+  "fluid_missing_ids": 0,
+  "fluid_vanished_since_previous_step": 0,
+  "fluid_outside_box": 2,
+  "non_finite": 0,
+  "smallest_box_margin": -0.00015884160995482954,
+  "largest_fluid_speed": 0.3785470532669779,
+  "read_seconds_total": 9.722,
+  "wall_seconds": 15.472
+ }
+}

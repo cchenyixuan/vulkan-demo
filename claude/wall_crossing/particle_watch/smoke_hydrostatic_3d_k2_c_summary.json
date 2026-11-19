@@ -1,0 +1,302 @@
+{
+ "bundle": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-wall-crossing\\logs\\wall_crossing\\particle_watch\\smoke\\hydrostatic_3d_k2_c",
+ "event_step": 13,
+ "event_time": 0.0016250000000000001,
+ "events": {
+  "wall_layer": "1 fluid particle(s) beyond the box face, deepest 2.234e-05 beyond"
+ },
+ "primary_global_id": 59856,
+ "primary": {
+  "global_id": 59856,
+  "slab": 1,
+  "row": 28033,
+  "position": [
+   0.006310857832431793,
+   0.4896548092365265,
+   -0.5000223517417908
+  ],
+  "velocity": [
+   -0.0031451634131371975,
+   -0.004858675878494978,
+   0.004488365724682808
+  ],
+  "speed": 0.00732422085044636,
+  "density": 999.9954833984375,
+  "pressure": -44.19258499145508,
+  "material": 0,
+  "shift": [
+   -0.0019181910902261734,
+   5.807344678032678e-06,
+   -0.0008032984915189445
+  ],
+  "acceleration": [
+   -2.012904167175293,
+   -3.1095528602600098,
+   2.872554063796997
+  ],
+  "box_margin": -2.2341807683345927e-05,
+  "beyond": [
+   "z-"
+  ],
+  "beyond_kind": "face",
+  "distance_to_cut": [
+   -0.024939142167568207
+  ],
+  "stored_column": 1,
+  "stored_column_role": "leading ghost column (inner)",
+  "computed_column_from_position": 1,
+  "listed": false,
+  "history": {
+   "ring_first_step": 0,
+   "ring_last_step": 13,
+   "first_step_beyond_box": 13,
+   "first_step_in_no_voxel_list": 1,
+   "steps_in_no_voxel_list": 13,
+   "slab_changes": [],
+   "mean_displacement_per_step": 0.002079683108631298,
+   "mean_speed_times_timestep": 4.760743739135749e-07,
+   "last_displacement_per_step": 0.0020797501041109594,
+   "last_speed_times_timestep": 9.15527606305795e-07,
+   "box_margin_first": 0.01041666666666663,
+   "box_margin_last": -2.2341807683345927e-05
+  }
+ },
+ "event_particle_count": 1,
+ "vanished_count": 0,
+ "neighbours": {
+  "11": {
+   "in_lists_within_h": 262,
+   "true_within_h": 269,
+   "missing_within_h": 7,
+   "missing_by_reason": {
+    "fluid own particle of this slab in no voxel list": 7
+   },
+   "primary_listed": false,
+   "stored_column_role": "leading ghost column (inner)"
+  },
+  "12": {
+   "in_lists_within_h": 257,
+   "true_within_h": 264,
+   "missing_within_h": 7,
+   "missing_by_reason": {
+    "fluid own particle of this slab in no voxel list": 7
+   },
+   "primary_listed": false,
+   "stored_column_role": "leading ghost column (inner)"
+  },
+  "13": {
+   "in_lists_within_h": 258,
+   "true_within_h": 265,
+   "missing_within_h": 7,
+   "missing_by_reason": {
+    "fluid own particle of this slab in no voxel list": 7
+   },
+   "primary_listed": false,
+   "stored_column_role": "leading ghost column (inner)"
+  }
+ },
+ "replica_coverage": [
+  {
+   "slab": 0,
+   "column": 8,
+   "role": "trailing ghost column (inner)",
+   "expected_particles": 13638,
+   "replicas_present": 12547,
+   "missing": 1091,
+   "missing_fraction": 0.07999706701862443,
+   "missing_fraction_top_quarter_z": 0.206353591160221,
+   "missing_fraction_rest_z": 0.03433819125573967,
+   "voxels_with_none": 16,
+   "voxels_occupied": 225,
+   "replica_region_slots_per_layer": 12528
+  },
+  {
+   "slab": 0,
+   "column": 9,
+   "role": "trailing ghost column (outer)",
+   "expected_particles": 13456,
+   "replicas_present": 12480,
+   "missing": 976,
+   "missing_fraction": 0.07253269916765755,
+   "missing_fraction_top_quarter_z": 0.1311659192825112,
+   "missing_fraction_rest_z": 0.051375404530744295,
+   "voxels_with_none": 19,
+   "voxels_occupied": 225,
+   "replica_region_slots_per_layer": 12528
+  },
+  {
+   "slab": 1,
+   "column": 0,
+   "role": "leading ghost column (outer)",
+   "expected_particles": 13456,
+   "replicas_present": 12502,
+   "missing": 954,
+   "missing_fraction": 0.07089774078478002,
+   "missing_fraction_top_quarter_z": 0.1686274509803921,
+   "missing_fraction_rest_z": 0.03560590734371838,
+   "voxels_with_none": 16,
+   "voxels_occupied": 225,
+   "replica_region_slots_per_layer": 12528
+  },
+  {
+   "slab": 1,
+   "column": 1,
+   "role": "leading ghost column (inner)",
+   "expected_particles": 13988,
+   "replicas_present": 12502,
+   "missing": 1486,
+   "missing_fraction": 0.10623391478410066,
+   "missing_fraction_top_quarter_z": 0.05200433369447455,
+   "missing_fraction_rest_z": 0.1256798756798757,
+   "voxels_with_none": 21,
+   "voxels_occupied": 225,
+   "replica_region_slots_per_layer": 12528
+  }
+ ],
+ "vtp": [
+  "region_step000011.vtp",
+  "region_step000012.vtp",
+  "region_step000013.vtp",
+  "region_step000000_fluid_and_walls.vtp",
+  "region_step000003_fluid_and_walls.vtp",
+  "region_step000008_fluid_and_walls.vtp",
+  "primary_path.vtp"
+ ],
+ "figures": [
+  "slice_xz.png",
+  "slice_zy.png",
+  "slice_xy.png",
+  "history.png",
+  "replica_coverage.png"
+ ],
+ "steps_log_last": {
+  "step": 13,
+  "t": 0.0016250000000000001,
+  "slabs": [
+   {
+    "own_alive": 101452,
+    "own_fluid": 58132,
+    "own_wall": 43320,
+    "own_alive_unlisted": 0,
+    "own_in_ghost_column": 0,
+    "own_fluid_unlisted": 0,
+    "fluid_ids_not_fluid": 0,
+    "delta": {
+     "overflow_ghost_count": 2440,
+     "overflow_inside_count": 0,
+     "overflow_incoming_count": 0,
+     "overflow_install_tail": 0,
+     "overflow_install_inside": 0,
+     "overflow_departed_count": 0,
+     "far_migration_count": 0,
+     "stamp_error_count": 0,
+     "migration_install_count": 10,
+     "correction_fallback_count": 0,
+     "wall_crossing_gradient_fallback_count": 0
+    },
+    "level": {
+     "departed_count": 28,
+     "ghost_send_leading_count": 0,
+     "ghost_send_trailing_count": 28,
+     "ghost_recv_leading_count": 0,
+     "ghost_recv_trailing_count": 10,
+     "replica_inner_send_leading_count": 0,
+     "replica_inner_send_trailing_count": 13978,
+     "replica_outer_send_leading_count": 0,
+     "replica_outer_send_trailing_count": 13456,
+     "replica_inner_recv_leading_count": 0,
+     "replica_inner_recv_trailing_count": 13610,
+     "replica_outer_recv_leading_count": 0,
+     "replica_outer_recv_trailing_count": 13456,
+     "frame_stamp": 13
+    }
+   },
+   {
+    "own_alive": 93660,
+    "own_fluid": 52460,
+    "own_wall": 41200,
+    "own_alive_unlisted": 1590,
+    "own_in_ghost_column": 1590,
+    "own_fluid_unlisted": 1590,
+    "fluid_ids_not_fluid": 0,
+    "delta": {
+     "overflow_ghost_count": 2067,
+     "overflow_inside_count": 0,
+     "overflow_incoming_count": 0,
+     "overflow_install_tail": 0,
+     "overflow_install_inside": 0,
+     "overflow_departed_count": 0,
+     "far_migration_count": 0,
+     "stamp_error_count": 0,
+     "migration_install_count": 28,
+     "correction_fallback_count": 0,
+     "wall_crossing_gradient_fallback_count": 0
+    },
+    "level": {
+     "departed_count": 10,
+     "ghost_send_leading_count": 10,
+     "ghost_send_trailing_count": 0,
+     "ghost_recv_leading_count": 28,
+     "ghost_recv_trailing_count": 0,
+     "replica_inner_send_leading_count": 13610,
+     "replica_inner_send_trailing_count": 0,
+     "replica_outer_send_leading_count": 13456,
+     "replica_outer_send_trailing_count": 0,
+     "replica_inner_recv_leading_count": 13978,
+     "replica_inner_recv_trailing_count": 0,
+     "replica_outer_recv_leading_count": 13456,
+     "replica_outer_recv_trailing_count": 0,
+     "frame_stamp": 13
+    }
+   }
+  ],
+  "largest_fluid_shift": {
+   "value": 0.0031224896764743674,
+   "global_id": 59670,
+   "position": [
+    0.036654021590948105,
+    0.4051949977874756,
+    -0.36261460185050964
+   ],
+   "x_minus_cut": [
+    0.005404021590948105
+   ]
+  },
+  "largest_fluid_acceleration": {
+   "value": 95.61795312440371,
+   "global_id": 59766,
+   "position": [
+    0.03182357922196388,
+    0.45013219118118286,
+    -0.3619161546230316
+   ],
+   "x_minus_cut": [
+    0.0005735792219638824
+   ]
+  },
+  "largest_fluid_displacement_since_previous_check": {
+   "value": 0.004881998111287538,
+   "global_id": 59718,
+   "position": [
+    0.0350797213613987,
+    0.4280681908130646,
+    -0.3622700273990631
+   ],
+   "median": 2.5293892141478885e-06,
+   "x_minus_cut": [
+    0.003829721361398697
+   ]
+  },
+  "fluid_total": 110592,
+  "fluid_unique_ids": 110592,
+  "fluid_duplicate_rows": 0,
+  "fluid_missing_ids": 0,
+  "fluid_vanished_since_previous_step": 0,
+  "fluid_outside_box": 1,
+  "non_finite": 0,
+  "smallest_box_margin": -2.2341807683345927e-05,
+  "largest_fluid_speed": 0.029110200222193603,
+  "read_seconds_total": 1.899,
+  "wall_seconds": 2.673
+ }
+}

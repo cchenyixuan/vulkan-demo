@@ -79,5 +79,8 @@
 | `c93e27a` | report section 19, fourth update: the 3-D cavity simple run (t = 45) - stable, 10.8 ms per step; crossing's main vortex about 15 % stronger than simple's |
 | `7e444b8` | report section 19, fifth update: the 3-D adami run stopped at t = 6.72 (one fluid particle at 1.065 x the lid speed) - located on the edge where the lid meets the downstream wall |
 | `6fa853a` | Long validation, sixth update: the 1000^2 complete-scheme run, convergence readings, summary |
+| `d94c26c` | Report section 19: commit hash of the sixth update in the change table |
+| `2c49ec0` | particle watch: a read-only per-step monitor of a chain run (canonical_dump.py --watch, off by default) and its report tool |
+| `1c0cbeb` | particle watch: per-step log of the largest fluid displacement since the previous step, shift and acceleration (id, position, x - x_cut); history figure titles |
 
 （加入本报告的那个提交排在这些之后。）

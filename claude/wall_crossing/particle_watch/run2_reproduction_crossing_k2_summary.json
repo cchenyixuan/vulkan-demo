@@ -1,0 +1,273 @@
+{
+ "bundle": "C:\\Users\\cchen\\PycharmProjects\\vulkan-demo-wall-crossing\\logs\\wall_crossing\\particle_watch\\run2_reproduction_crossing_k2",
+ "event_step": 8,
+ "event_time": 0.00048,
+ "events": {
+  "wall_layer": "3 fluid particle(s) beyond the box face, deepest 4.812e-04 beyond"
+ },
+ "primary_global_id": 509847,
+ "primary": {
+  "global_id": 509847,
+  "slab": 0,
+  "row": 984540,
+  "position": [
+   -0.016048487275838852,
+   0.48005104064941406,
+   0.5054811835289001
+  ],
+  "velocity": [
+   -0.03689385950565338,
+   0.007852506823837757,
+   0.026635002344846725
+  ],
+  "speed": 0.046176206887869206,
+  "density": 1001.0700073242188,
+  "pressure": 10735.13671875,
+  "material": 0,
+  "shift": [
+   0.0010248199105262756,
+   -7.16761633157148e-07,
+   0.00018453913799021393
+  ],
+  "acceleration": [
+   969.460693359375,
+   148.0708770751953,
+   199.2218780517578
+  ],
+  "box_margin": -0.00048118352890014204,
+  "beyond": [
+   "z+"
+  ],
+  "beyond_kind": "face",
+  "distance_to_cut": [
+   -4.847154021259126e-05
+  ],
+  "stored_column": 14,
+  "stored_column_role": "own column",
+  "computed_column_from_position": 14,
+  "listed": true,
+  "history": {
+   "ring_first_step": 0,
+   "ring_last_step": 8,
+   "first_step_beyond_box": 8,
+   "first_step_in_no_voxel_list": null,
+   "steps_in_no_voxel_list": 0,
+   "slab_changes": [
+    [
+     8,
+     1,
+     0
+    ]
+   ],
+   "mean_displacement_per_step": 0.0010829357083656736,
+   "mean_speed_times_timestep": 9.999588548202813e-07,
+   "last_displacement_per_step": 0.0015406988194001225,
+   "last_speed_times_timestep": 2.7705724132721525e-06,
+   "box_margin_first": 0.0050000000000000044,
+   "box_margin_last": -0.00048118352890014204
+  }
+ },
+ "event_particle_count": 3,
+ "vanished_count": 0,
+ "neighbours": {
+  "6": {
+   "in_lists_within_h": 173,
+   "true_within_h": 264,
+   "missing_within_h": 91,
+   "missing_by_reason": {
+    "wall no replica of it on this slab (it sits in a ghost column)": 59,
+    "fluid no replica of it on this slab (it sits in a ghost column)": 32
+   },
+   "primary_listed": true,
+   "stored_column_role": "own column"
+  },
+  "7": {
+   "in_lists_within_h": 188,
+   "true_within_h": 270,
+   "missing_within_h": 82,
+   "missing_by_reason": {
+    "wall no replica of it on this slab (it sits in a ghost column)": 73,
+    "fluid no replica of it on this slab (it sits in a ghost column)": 9
+   },
+   "primary_listed": true,
+   "stored_column_role": "own column"
+  },
+  "8": {
+   "in_lists_within_h": 142,
+   "true_within_h": 265,
+   "missing_within_h": 123,
+   "missing_by_reason": {
+    "wall no replica of it on this slab (it sits in a ghost column)": 69,
+    "fluid no replica of it on this slab (it sits in a ghost column)": 54
+   },
+   "primary_listed": true,
+   "stored_column_role": "own column"
+  }
+ },
+ "replica_coverage": [
+  {
+   "slab": 0,
+   "column": 15,
+   "role": "trailing ghost column (inner)",
+   "expected_particles": 56855,
+   "replicas_present": 45312,
+   "missing": 11543,
+   "missing_fraction": 0.20302523964471023,
+   "missing_fraction_top_quarter_z": 0.6822599361763853,
+   "missing_fraction_rest_z": 0.04959713934102672,
+   "voxels_with_none": 126,
+   "voxels_occupied": 961,
+   "replica_region_slots_per_layer": 44591
+  },
+  {
+   "slab": 0,
+   "column": 16,
+   "role": "trailing ghost column (outer)",
+   "expected_particles": 56644,
+   "replicas_present": 44540,
+   "missing": 12104,
+   "missing_fraction": 0.21368547418967587,
+   "missing_fraction_top_quarter_z": 0.05099971022891914,
+   "missing_fraction_rest_z": 0.26610644257703087,
+   "voxels_with_none": 215,
+   "voxels_occupied": 961,
+   "replica_region_slots_per_layer": 44591
+  },
+  {
+   "slab": 1,
+   "column": 0,
+   "role": "leading ghost column (outer)",
+   "expected_particles": 56644,
+   "replicas_present": 44536,
+   "missing": 12108,
+   "missing_fraction": 0.21375609067156273,
+   "missing_fraction_top_quarter_z": 0.4158215010141988,
+   "missing_fraction_rest_z": 0.14864612511671338,
+   "voxels_with_none": 212,
+   "voxels_occupied": 961,
+   "replica_region_slots_per_layer": 44591
+  },
+  {
+   "slab": 1,
+   "column": 1,
+   "role": "leading ghost column (inner)",
+   "expected_particles": 56433,
+   "replicas_present": 45329,
+   "missing": 11104,
+   "missing_fraction": 0.1967643045735651,
+   "missing_fraction_top_quarter_z": 0.6188133140376266,
+   "missing_fraction_rest_z": 0.05988782765822631,
+   "voxels_with_none": 134,
+   "voxels_occupied": 961,
+   "replica_region_slots_per_layer": 44591
+  }
+ ],
+ "vtp": [
+  "region_step000006.vtp",
+  "region_step000007.vtp",
+  "region_step000008.vtp",
+  "region_step000000_fluid_and_walls.vtp",
+  "region_step000003_fluid_and_walls.vtp",
+  "primary_path.vtp"
+ ],
+ "figures": [
+  "slice_xz.png",
+  "slice_zy.png",
+  "slice_xy.png",
+  "history.png",
+  "replica_coverage.png"
+ ],
+ "steps_log_last": {
+  "step": 8,
+  "t": 0.00048,
+  "slabs": [
+   {
+    "own_alive": 821127,
+    "own_fluid": 499638,
+    "own_wall": 321489,
+    "own_alive_unlisted": 0,
+    "own_in_ghost_column": 0,
+    "own_fluid_unlisted": 0,
+    "fluid_ids_not_fluid": 0,
+    "delta": {
+     "overflow_ghost_count": 22965,
+     "overflow_inside_count": 0,
+     "overflow_incoming_count": 0,
+     "overflow_install_tail": 0,
+     "overflow_install_inside": 0,
+     "overflow_departed_count": 0,
+     "far_migration_count": 0,
+     "stamp_error_count": 0,
+     "migration_install_count": 1016,
+     "correction_fallback_count": 0,
+     "wall_crossing_gradient_fallback_count": 0
+    },
+    "level": {
+     "departed_count": 746,
+     "ghost_send_leading_count": 0,
+     "ghost_send_trailing_count": 746,
+     "ghost_recv_leading_count": 0,
+     "ghost_recv_trailing_count": 1016,
+     "replica_inner_send_leading_count": 0,
+     "replica_inner_send_trailing_count": 55417,
+     "replica_outer_send_leading_count": 0,
+     "replica_outer_send_trailing_count": 56644,
+     "replica_inner_recv_leading_count": 0,
+     "replica_inner_recv_trailing_count": 56109,
+     "replica_outer_recv_leading_count": 0,
+     "replica_outer_recv_trailing_count": 56644,
+     "frame_stamp": 8
+    }
+   },
+   {
+    "own_alive": 864032,
+    "own_fluid": 530663,
+    "own_wall": 333369,
+    "own_alive_unlisted": 0,
+    "own_in_ghost_column": 0,
+    "own_fluid_unlisted": 0,
+    "fluid_ids_not_fluid": 0,
+    "delta": {
+     "overflow_ghost_count": 23647,
+     "overflow_inside_count": 0,
+     "overflow_incoming_count": 0,
+     "overflow_install_tail": 0,
+     "overflow_install_inside": 0,
+     "overflow_departed_count": 247,
+     "far_migration_count": 0,
+     "stamp_error_count": 0,
+     "migration_install_count": 746,
+     "correction_fallback_count": 0,
+     "wall_crossing_gradient_fallback_count": 0
+    },
+    "level": {
+     "departed_count": 1016,
+     "ghost_send_leading_count": 1016,
+     "ghost_send_trailing_count": 0,
+     "ghost_recv_leading_count": 746,
+     "ghost_recv_trailing_count": 0,
+     "replica_inner_send_leading_count": 56109,
+     "replica_inner_send_trailing_count": 0,
+     "replica_outer_send_leading_count": 56644,
+     "replica_outer_send_trailing_count": 0,
+     "replica_inner_recv_leading_count": 55417,
+     "replica_inner_recv_trailing_count": 0,
+     "replica_outer_recv_leading_count": 56644,
+     "replica_outer_recv_trailing_count": 0,
+     "frame_stamp": 8
+    }
+   }
+  ],
+  "fluid_total": 1030301,
+  "fluid_unique_ids": 1030301,
+  "fluid_duplicate_rows": 0,
+  "fluid_missing_ids": 0,
+  "fluid_vanished_since_previous_step": 0,
+  "fluid_outside_box": 3,
+  "non_finite": 0,
+  "smallest_box_margin": -0.00048118352890014204,
+  "largest_fluid_speed": 0.5881774827767984,
+  "read_seconds_total": 10.09,
+  "wall_seconds": 16.108
+ }
+}
