@@ -84,5 +84,10 @@
 | `1c0cbeb` | particle watch: per-step log of the largest fluid displacement since the previous step, shift and acceleration (id, position, x - x_cut); history figure titles |
 | `94eccdd` | Report section 20: push + tag crossing-boundary (A); the particle watch on 3-D K = 2 (B): runs, switch check, findings |
 | `3792010` | case_loader_v7: grid origin moved off the particle layers (per axis, when an initial particle lies within 0.25 dx of a voxel boundary) |
+| `a120aef` | Report section 21: grid origin off the particle layers - clearances and shifts, the 48^3 K = 2 watch run (no event; old grid: event at step 657), 2-D substitute check |
+| `73e3137` | grid origin: clearance threshold 0.25 -> 0.05 particle spacings, as case.yaml numerics.grid_boundary_clearance_minimum (default 0.05); cavity_fields.py takes the origin from the job's case loader |
+| `b8eaed5` | wall_boundary crossing: numerics.wall_crossing.split_dispatch (off by default) - the interior particles in a build without the mode's code, the near-wall particles in the mode's build |
+| `606d2f5` | wall_boundary crossing: numerics.volume_constraint.gpu_mean_volume (off by default) |
+| `d050f8a` | wall_boundary crossing: 3-D density budget regions, the 3-D density drop without the volume constraint, timing tools |
 
 （加入本报告的那个提交排在这些之后。）

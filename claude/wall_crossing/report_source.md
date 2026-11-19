@@ -1,6 +1,6 @@
 # `wall_boundary: crossing`（穿壁比例壁面）实现与验收报告
 
-- 分支 `v7-wall-crossing`，基点 `origin/bootstrap-density-fix`（eda5b90）。2026-11-19 按用户的任务书推送到 `origin/v7-wall-crossing`（到 `d94c26c`），并打了带说明的标签 `crossing-boundary`（指向 `d94c26c`，第 20 节）；之后的提交（第 20 节的监视、第 21 节的网格原点）只在本地。没有合并。
+- 分支 `v7-wall-crossing`，基点 `origin/bootstrap-density-fix`（eda5b90）。2026-11-19 按用户的任务书推送到 `origin/v7-wall-crossing`（到 `d94c26c`），并打了带说明的标签 `crossing-boundary`（指向 `d94c26c`，第 20 节）；之后的提交（第 20 节的监视、第 21 节的网格原点、第 22 节）只在本地。没有合并。
 - 工作树 `C:\Users\cchen\PycharmProjects\vulkan-demo-wall-crossing`。
 - 本文由 `experiment/wall_crossing/report_tables.py` 从 `claude/wall_crossing/report_source.md` 和各工具写出的表格拼成；表里的数字都是工具从结果文件读出来的，没有手抄。
 - 每个数字后面的 `wc-…` 是 `logs/wall_crossing/runs.jsonl` 里的记录号。`logs/` 不入库，所以记录文件另存了一份在 `claude/wall_crossing/runs.jsonl`（本机）和 `claude/wall_crossing/runs_DESKTOP-9IN3NPD.jsonl`（第二台机器）。
@@ -9,6 +9,7 @@
 > - 第 6 到 18 节是完整的；第 19 节（2026-11-19，长时间验证）完成：第 2 节（短检查）、第 3 节的全部长运行（1000² 完整方案、3-D 三种模式，其中 adami 触发停止条件、远端 adami）和总结都已写入。最新的是第 19 节，它之前是第 18 节（2026-11-19，完整方案设为 crossing 的缺省）、第 17 节（2026-11-19，250² 完整方案 + 约束续跑到 t = 200）、第 16 节（2026-11-18，ψ_min、速度极值和涡心的后处理检验，没有新运行）、第 15 节（2026-11-18，封闭域的流体总体积约束；完整方案 + 约束的 250² 和 500²）、第 14 节（完整方案：逐对几何 + 完整向量 + 两个反射）、第 13 节（反射版和“逐对几何 + 完整向量”跑到 t = 100）、第 12 节（逐对几何和压力、密度在壁面处的反射）、第 10 节（速度的二阶延拓）和第 11 节（旧缺省与一阶的场之差）；第 7 节更正了第 6 节结论里的一句话。第 10 节起“一阶”指第 9 节改过之后的现缺省（`normal`），“旧缺省”指 `full`。
 > - **第 20 节（2026-11-19）**：按用户的任务书把分支推送到 GitHub 并打标签 `crossing-boundary`（A），然后加了一个逐步只读的监视，查 3-D 双卡丢粒子（B）：三次运行和两个我加的对照都已做完，按要求停在这里等用户看，没有修。
 > - **第 21 节（2026-11-19）改了网格原点的取法**（从 `3792010` 起，`case_loader_v7.py`）：某个方向上有初始粒子离体素边界不到 0.25 dx 时，原点在这个方向上往负方向挪 δ（≤ 0.5 dx）。2-D 方腔 250² / 500² / 1000² 的 x、y 都挪了 0.4 dx，48³ 静水盒三个方向挪 0.5 dx，1M 3-D 方腔没挪。**第 1 到 20 节的结果都是旧网格上的。**
+> - **第 22 节（2026-11-19）把网格偏移的门槛降到 0.05 dx**（`73e3137`，`numerics.grid_boundary_clearance_minimum`）：2-D 方腔回到原来的网格（与第 21 节以前逐位相同），48³ 静水盒仍挪 0.5 dx。另加了两个缺省关闭的开关（`numerics.wall_crossing.split_dispatch`、`numerics.volume_constraint.gpu_mean_volume`）。
 > - **第 9 节改了一个缺省值**：`numerics.wall_crossing.continuity_wall_component` 从 `full` 改成 `normal`。第 1 到 8 节里 crossing 的全部结果都是改之前（`full`）的；各表里标着"旧缺省"或 `full` 的就是它。
 > - **第 18 节改了四个缺省值**（从提交 `3cba19f` 起）：`geometry` → `pairwise`、`continuity_wall_component` → `full`、`pressure_wall` → `reflection`、`delta_wall` → `reflection`（完整方案）；约束仍默认关闭。第 1 到 17 节里 crossing 的结果都是改之前的缺省；第 9 到 17 节说的“现缺省”“一阶”指 2026-11-18 的缺省（nearest_wall + normal + extension + extension）。
 > - 第 1–4 节是停止之前写的。其中标着"**未完成**"的地方没有再补：结论摘要、6.4 的文字结论和 1000² 一档、3-D 方腔的互比、3-D 计时、K = 2 吞吐、各阶段的"未验证"清单、下一步建议。
@@ -2842,6 +2843,258 @@ float64，ξ = 0，粒子在点阵上，盒含四个角。记录 wc-20261118-165
 5. 生产路径（`box_run.py` / `chain_runner.py`）上没有跑新网格；本节的运行都是 canonical 工具。
 6. 缓冲区和溢出处理没动：这个改动去掉的是“一整层粒子压在分界上、第 1 步一起过界”这个触发条件。如果别的原因让一大批粒子在一步里同时过分界、超过迁移区，没发出去的粒子仍会留在 ghost 列里、不被计算（第 20 节的机理），**未验证**有没有这样的情形。
 
+## 22. 追加（十七）：网格偏移门槛下调；近壁和内部分开计算；总体积修正改为按平均体积在 GPU 上规约；3-D 密度下降复测（2026-11-19）
+
+用户的任务书：接着第 21 节做四件事。先把网格偏移的门槛从 0.25 dx 降到 0.05 dx，让 2-D 方腔回到原来的网格；A：离壁面远的粒子用不含 crossing 代码的版本计算，只有近壁粒子跑 crossing；B：总体积修正改成按平均每个粒子的体积算，在 GPU 上规约，目标值存进检查点；C：3-D 方腔关掉总体积修正，复测密度下降，按区域拆开。每个运行只跑几分钟，写进报告后停下。
+
+> **本节的状态**：做完了，停在这里等用户看。改动都在本地提交（`73e3137`、`b8eaed5`、`606d2f5` 和加入本节的提交），没有推送。除第 22.1 节的门槛外没有改任何缺省值；A、B 的新功能都在新开关后面，缺省关闭。simple、adami 用的 SPIR-V 与基点逐字节相同；开关关闭时 crossing 与 `73e3137` 逐位相同（22.6）。
+
+**先说结果**
+
+- **网格门槛**：0.05 dx（配置项 `numerics.grid_boundary_clearance_minimum`）。2-D 方腔 250² / 500² / 1000² 和 1M 3-D 方腔 δ = 0；48³ 静水盒仍挪 0.5 dx。2-D 250² crossing 单卡、双卡 700 步，与 `3792010` 之前的 `94eccdd` 逐位相同（按结果类）。
+- **A，近壁和内部分开**（`numerics.wall_crossing.split_dispatch`，缺省 false）：
+  - 正确性：单卡第 1 步和第 700 步，内部粒子在两个版本下逐位相同（最大差 0），近壁粒子与开关关闭逐位相同；位置判断与查材料 700 步里不一致 0 次。双卡方式 2 逐位相同；方式 1 从第 60 步起有舍入级差别（原因是推测）。
+  - 寄存器：内部版本回到 simple 的数（2-D 56 / 63，3-D 64 / 64），近壁版本与 crossing 相同（72 / 80，80 / 96）。
+  - 近壁体素里的流体占比：250² 8.6 %，1000² 2.2 %，3-D 1M 24.4 %。
+- **A 的计时**（相对基线 simple 的每步时间）：
+
+  | 算例 | 开关关 | 开关开 |
+  |---|---|---|
+  | 2-D 1000² 单卡 | 1.418 | 1.144 |
+  | 3-D 1M 单卡 | 1.367 | 1.171 |
+  | 2-D 250² 单卡 | 1.315 | 1.888（更慢：问题太小，两次调度各占一个延迟） |
+  | 3-D 1M 双卡 | 1.386 | 方式 1 1.282，方式 2 1.433 |
+
+  双卡负载较重的那张卡上，传输都藏住了（B → C 空等 6–9 µs）。
+- **B，平均体积在 GPU 上规约**（`numerics.volume_constraint.gpu_mean_volume`，缺省 false）：
+  - 同一状态下 GPU 规约与主机双精度的 θ 最大差 6.5e-13（2-D 250²、48³，单卡、双卡）。
+  - 同一检查点在双卡与单卡上续跑，第一次更新的 θ 差 1.3e-15。
+  - 续跑后 v_ref 逐位相同；旧检查点打印警告并重算出同一个 v_ref。
+- **C，3-D 密度下降**（1M 3-D 方腔，crossing 缺省，总体积修正关，到 t = 1.02）：
+  - 粒子数全程不变，overflow 全为 0。平均密度降 0.0068 %，窗口 t = 0.24 – 0.96 内平均每秒降 0.055 kg/m³。
+  - 四项之和 −0.088，其中 80 % 来自内部（支撑半径内没有壁面）的连续性项。每个该区域粒子的下降速率各区域相近（−0.05 到 −0.09 kg/m³/s），不集中在棱和角上。
+  - 实际存储的变化比四项之和少，差额是 float32 存储的舍入，后半段更大。
+- **开关关闭时**与 `73e3137` 逐位相同（按结果类）；simple / adami 的 SPIR-V 与基点逐字节相同。
+
+### 22.1 先做：网格偏移门槛下调
+
+**改动**（`73e3137`）：`case_loader_v7.py` 的门槛做成配置项 `numerics.grid_boundary_clearance_minimum`（单位 dx，缺省 0.05，只接受 0 到 0.5），由 `_place_grid_origin` 读；其余规则（候选 δ、最多 0.5 dx、必要时加一个体素、打印三行）不变。`cavity_fields.py` 画分界线时改为用这次运行的求解器对应的载入器载入算例，取它给出的原点（`loaded_grid_origin_x`），不再自己按 `frame.obj` 算。
+
+**检查 1：各算例的打印**
+
+<!-- include: tables/grid_offset_cases.md -->
+
+2-D 250²、500²、1000²：离体素边界最近 0.1 dx，不小于 0.05 dx，δ = 0，原点和体素数回到第 21 节以前。1M 3-D 方腔：0.4 dx，δ = 0。48³ 静水盒：0 dx，仍挪 0.5 dx（与第 21 节相同）。
+
+**检查 2：2-D 250² crossing，单卡和双卡各 700 步，与 `3792010` 之前那个提交（`94eccdd`）逐位比较**。700 步 crossing 的结果每次运行会落进少数几个结果类（粒子开始换体素后原子操作的次序不同，第 14 节），所以按结果类比：两边各跑 4 次，比全部字段的字节。
+
+<!-- include: tables/section22_threshold_classes.md -->
+
+单卡两个结果类、双卡一个结果类，每一类里两个提交都有运行：门槛下调后的结果就是 `94eccdd` 的结果。
+
+**检查 3**：48³ 静水盒的 δ 与第 21 节相同（三个方向 0.5 dx），第 21 节测试 3 的结论照旧适用，没有重跑。
+
+### 22.2 A：近壁和内部分开计算（`numerics.wall_crossing.split_dispatch`，缺省 false）
+
+**近壁体素的标记**（新着色器 `wall_crossing_near_wall_marker.comp`，照 `deep_wall_marker.comp` 的做法；新缓冲区 set 1 binding 9 `wall_crossing_near_wall_voxel_flag`，2 × 体素容量个 uint，只在开关打开时有）：
+
+1. 第一遍：每个扩展体素（自有列和 ghost 列）记它的粒子表里有没有壁面粒子。ghost 体素用它自己的表，也就是交换来的副本。
+2. 第二遍：3^d 个相邻体素（`in_own_grid`）里任一个有壁面，这个体素就是近壁体素。
+
+壁面不动，所以只在三处记录这两遍：单卡初始登记之后（`_record_bootstrap_compute_cmd`，ghost 表展开之后）；多卡也在同一处，那时第一次交换的副本已经装进 ghost 表；续跑之后（`restart_init`，壁面外推之后）。多卡续跑时 ghost 表在第一步之前是空的，所以我在 `ChainOrchestratorV7.restart_all` 里加了一轮只交换副本、不装迁移粒子的交换（`restart_replica_round_send` / `restart_replica_round_mark`），之后再标记。有会动的边界（材料种类 inlet / rotor）时报 ValueError。
+
+近壁体素里的流体粒子占比（初始状态；`split_dispatch.py near-wall`）：
+
+<!-- include: tables/split_near_wall.md -->
+
+每个算例都检查了“不在近壁体素里的壁面粒子”为 0，也就是壁面粒子全部由近壁版本处理。
+
+**两个版本**（`compile_shaders_v7.py` 多编四个模块，照 `DEEP_WALL_SKIP` 变体的做法；原有模块逐字节不变）：
+
+- 内部版本 `correction_density_wall_crossing_interior`、`force_wall_crossing_interior`（`-DWALL_CROSSING_INTERIOR`，不定义 `WALL_CROSSING`）：crossing 的代码全部编译掉，数学上与 simple 相同。只多两样：总体积修正打开时密度变化率加 ρ_i × rate（spec const 130 和 set 0 binding 15，与 crossing 相同）；不写只含流体邻居的逆矩阵。
+- 近壁版本 `correction_density_wall_crossing_near_wall`、`force_wall_crossing_near_wall`（`-DWALL_CROSSING -DWALL_CROSSING_NEAR_WALL`）：现在的 crossing，只有一处不同：邻居是不是壁面粒子改用位置判断（在 crossing 的流体盒外就是壁面；3-D 也判断 z），不再每对读材料。
+- 两个版本开头都读自己所在体素的标记：内部版本跳过近壁体素里的粒子，近壁版本跳过其余粒子，直接返回（新 spec const 131 `WALL_CROSSING_SPLIT_SELECTION`：1 = 只算自己那一类，0 = 每个粒子都算，后者只给 phase C 的方式 1 和诊断用）。
+
+**寄存器数**（`VK_KHR_pipeline_executable_properties`，`pipeline_statistics.py`；基点 simple 在 `eda5b90` 的工作树里量）：
+
+<!-- include: tables/section22_registers.md -->
+
+内部版本的寄存器数正好回到 simple 的数（2-D 56 / 63，3-D 64 / 64），近壁版本与现在的 crossing 相同（2-D 72 / 80，3-D 80 / 96）。（第 6 节记的 crossing force 是 78（2-D）/ 72（3-D），是当时的代码；之后的完整方案把它们提高到了 80 / 96，本节量的是现在的数。）分界带管线在单卡时只有 256 字节、16 个寄存器：单卡不调度它们，编译器把主体去掉了。
+
+**调度**：
+
+- 单卡：fused pass 和 force 各调度两次，内部版本在前、近壁版本在后，两次都覆盖原来的粒子范围，中间不加同步屏障（两次写的是不同粒子的输出，只读前面各遍写的东西）。
+- 多卡 phase B（`correction_density_interior`、`force_deep_interior_scratch`）同样拆成两次。
+- phase C（分界带）：方式 1 只调度近壁版本（131 = 0，每个粒子都算）覆盖整个分界带；方式 2 也拆两次。环境变量 `V7_WALL_CROSSING_SPLIT_BAND_MODE=1|2` 选择，缺省方式 1。
+- 不支持而报 ValueError 的组合：`V7_BAND_COMPACT_DISPATCH=1`；`V7_BAND_OVERLAP`；`V7_FAKE_BAND_TEST`；`V7_DENSITY_BUDGET=1`；二阶延拓（`viscous_extension` / `continuity_extension` 为 quadratic：内部版本不写 ∇v_i，近壁粒子要读邻居的）。
+- 计时：开关打开时每次拆开的调度之间加一个时间戳（`<tick>_interior`），`bench_v7.compute_durations` 的单卡和双卡两种模式都能分开报两个版本的时间。
+
+**正确性（3.5）**，2-D 250² crossing，canonical 转储（`split_dispatch.py compare`），粒子按全局网格上的体素分成内部流体和近壁流体：
+
+<!-- include: tables/split_equivalence_n250.md -->
+
+<!-- include: tables/split_equivalence_classes_n250.md -->
+
+- **内部粒子**：第一种比较是“内部版本”与“近壁版本（131 = 0，处处）”两次运行里内部粒子的结果。第 1 步和第 700 步（同一结果类内）全部字段逐位相同，最大差 0，没有单精度舍入的差别。
+- **近壁粒子**：开关打开与关闭，第 1 步和第 700 步（同一结果类内）逐位相同。
+- **盒体位置判断与查材料完全一致**：（a）近壁版本处处运行（每一对都用位置判断）与开关关闭（每一对都查材料）700 步逐位相同；（b）700 步里每一步对全部自有粒子用 float32 重做着色器的盒体判断，与材料比较（`particle_watch.py` 的 `box_classification_mismatch`），701 次检查里不一致 0 次。
+- 700 步的结果类：开关关闭、打开、近壁版本处处一共 12 次运行，落进 2 个类，每个类里都有关闭的运行，也都有打开的运行。
+
+**双卡**（2-D 250² crossing，K = 2）：
+
+<!-- include: tables/split_equivalence_n250_k2.md -->
+
+<!-- include: tables/split_equivalence_classes_n250_k2.md -->
+
+- 方式 2 与开关关闭在 700 步时同一个结果类，逐位相同。
+- 方式 1 到第 40 步逐位相同，第 60 步开始有单精度舍入级的差别：只在分界带里离分界较近的内部粒子上，只有加速度（相对 ≤ 8.3e-7）和速度。之后差别像通常的混沌放大那样长大，700 步时是另一个结果类。
+- 原因我没有查清，只是**推测**：方式 1 用近壁版本算分界带里的内部粒子，这一版本在分界带的特化下对内部粒子算出的 (A_f⁻¹ − L)·g_f 不是严格的 0，于是多了舍入级的一项。任务书没有要求方式 1 逐位相同，这里照实报告。
+
+### 22.3 B：总体积修正改为平均体积，在 GPU 上规约（`numerics.volume_constraint.gpu_mean_volume`，缺省 false）
+
+**定义**（`volume_constraint_v7.py`）：v_ref = 初始时刻流体粒子 m_i / ρ_i 的平均值（主机双精度，所有卡合起来）；θ = 当前平均 / v_ref − 1；rate = θ / relaxation_time。何时更新、怎样写回 rate、日志都没变。
+
+**GPU 规约**（新着色器 `volume_constraint_reduction.comp`，只在开关打开时编译成管线、只在这时调度；新缓冲区 set 3 binding 11 `volume_constraint_partial_sums`，每个工作组一对 (float, uint)）：
+
+1. 每次更新的那个 defrag 之前（`submit_defrag_and_wait`，defrag 只换行的次序），主机先把 v_ref 的 float32 值 v32 写进 `volume_constraint_state.z`，再调度一次，一个线程对应一个自有槽位。
+2. 活着的流体粒子算 δ_i = fma(−ρ_i, v32, m_i) / (ρ_i v32)，即 (m_i / ρ_i) / v32 − 1。分子 m_i − ρ_i v32 很小，fma 只舍入一次，δ_i 保住相对精度。
+3. 每个工作组在共享内存里做树形求和，写一对（δ 的和，流体粒子数）。
+4. 主机读回这个小缓冲区（不再读回全部粒子），用双精度把各工作组、各卡的部分和相加，再按 θ = (v32 / v_ref)(1 + Σδ / N) − 1 改正 v32 的舍入。多卡时由进程内的 `PROCESS_GROUP` 把各卡的部分和合起来（与原来合并各卡体积的方式相同）。
+
+求和的是偏差而不是体积，所以 float32 的部分和够用。工作组大小必须是 2 的幂、不超过 1024，否则报 ValueError。
+
+**检查点**：box_run 和 cavity_runner 的检查点多存 `_volume_constraint_reference_mean_volume`、`_volume_constraint_rate`、`_volume_constraint_theta`（float64）。续跑时 `restart_init(volume_constraint=…)` 用存下的值，并把存下的 rate 写进状态缓冲区；旧检查点里没有时按现在的方式从算例的初始粒子重算 v_ref，rate 从 0 开始，并打印警告。开关关闭时检查点、缓冲区、模块、调用都与原来相同。
+
+注意（不是改动，是现有流程）：续跑后的第一个 defrag 本身就是一次更新，它从载入的状态重新量 θ，在第一步之前就换掉了存下的 rate。存下的 rate 只在这一次更新之前有效，所以在现在的流程里它实际上不参与计算；v_ref 才是续跑时真正要用到的那个值。
+
+**检查（4.4）**：
+
+（a）**GPU 规约与主机双精度，同一状态**（`volume_constraint_check.py theta`：每次采样时在排空的 defrag 边界上，用 GPU 部分和算一个 θ，再读回全部粒子用双精度算一个 θ）：
+
+<!-- include: tables/volume_constraint_theta_k1.md -->
+
+<!-- include: tables/volume_constraint_theta_k2.md -->
+
+12 次比较的绝对差最大 6.5e-13，远小于 1e-9（2-D 250² 和 48³ 静水盒，单卡和双卡）。两边数的流体粒子数也相同。
+
+（b）**双卡与单卡**：
+
+- 按任务书字面，第一次更新是第 0 步（启动时的 defrag）：单卡和双卡的 θ 都是 −6.661338147750939e-16，差 0。不过这个比较很弱：初始状态的 θ 按定义接近 0。
+- 所以我另做了一次同一状态的比较：把单卡运行在第 18,000 步的检查点分别在单卡和双卡上续跑，比较续跑后第一次更新的 θ（量的就是检查点的状态）。单卡 6.794727062331418e-06，双卡 6.794727063663686e-06，差 1.3e-15。
+- 两次独立运行到第 6,000 步再比 θ 没有意义：单卡和双卡（甚至两次单卡）到那时已经是不同的轨迹（3.47e-6 对 3.33e-6），差别来自轨迹，不来自规约。
+
+<!-- include: tables/volume_constraint_logs_n250_same_state.md -->
+
+（c）**续跑**（2-D 250²，单卡，每 0.18 存一次检查点，跑到 0.36，再续跑到 0.72；`volume_constraint_check.py logs`）：
+
+<!-- include: tables/volume_constraint_logs_n250.md -->
+
+- 续跑后的 v_ref（1.8068954348564144e-05）与原运行逐位相同，打印的“from the checkpoint”行确认取自检查点。
+- 去掉检查点里的三项再续跑（模拟旧检查点）：打印了警告，重算的 v_ref 也与原值逐位相同。从第 18,000 步的检查点续跑后第一次更新的 θ = 6.794727062331418e-06，与原运行在第 18,000 步的 θ 逐位相同。
+
+### 22.4 C：3-D 密度下降复测（关掉总体积修正）
+
+**设置**：1M 3-D 方腔，crossing 缺省配置（完整方案），单卡（无显示器的 5090），关掉总体积修正（新算例 `cases/cavity3d_1m_crossing_no_volume_constraint`：只把 `numerics.volume_constraint.enabled` 改成 false），`box_run --density-budget`（V7_DENSITY_BUDGET=1），跑到 t = 1：17,000 步（dt = 6e-5，到 t = 1.02，整数个 defrag 间隔），每 1,000 步（0.06）采样一次，35 步/秒，记录 `wc-20261119-184309-3f21`。
+
+**为此做的改动（诊断工具，不影响求解）**：
+
+- 原来的收支区域只按 x、y 分（3-D 时忽略 z），分不出棱和角。我在 `density_budget.glsl` 里加了 3-D 的分法（`DIMENSION == 3` 时），按支撑半径 h 内有哪几面壁划分：盖子中部、底面中部、侧面中部、盖子的边、底面的边、竖棱、盖子的角、底面的角，内部仍按离最近壁面的距离分成四档。槽位数还是 12，缓冲区布局不变；主机端照着写了 `density_budget_region_index(…, dimension=3)` 和 `DENSITY_BUDGET_REGION_NAMES_3D`。2-D 的分法一字未改。
+- 这改变了两个**诊断**模块的字节（`correction_density_budget`、`correction_density_wall_crossing_budget`，只在 V7_DENSITY_BUDGET=1 时载入；plain 的收支版本另声明了 spec const 124 / 127）。没有重新核对 3-D 收支版本算出的状态与不开收支时逐位相同（第 8 节在 2-D 核对过 700 步；收支的遍历放在 pass 存完结果之后）。
+- `box_run` 每个采样点多记每个 overflow 计数（`overflow_*`）和活着的流体粒子数（`fluid_alive`）。
+- 分析脚本 `density_drop_3d.py`。窗口取 t ≥ 0.2 的第一个采样点到 t ≤ 1 的最后一个采样点，即 **t = 0.24 – 0.96**（第 4,000 – 16,000 步）。
+
+<!-- include: tables/density_drop_3d_s22_cavity3d_1m_density_budget.md -->
+
+**先确认**：粒子数全程不变（全部粒子 1,685,159，活着的流体粒子 1,030,301，18 个采样点都一样），八个 overflow 计数全程为 0（`overflow_ghost_count` 是副本区和迁移区共用的计数，这里也是 0），盒外流体 0，A_f 回退 0。所以下面的密度变化不是丢粒子造成的。
+
+**分项**（窗口内，kg/m³/s，按全部流体粒子平均）：
+
+- 平均密度每单位时间降 0.0551（相对 ρ0 是 −5.5e-5 /s），到 t = 1.02 共降 0.0068 %。`density_mean` 两端之差与收支里“存储密度实际变化”一项完全相等（都是 −5.506925e-02），说明密度只在 fused pass 里变。
+- 四项：连续性项·流体邻居 −0.248，连续性项·壁面粒子 +0.164，δ 项·流体邻居 +1.1e-5（几乎为 0），δ 项·壁面粒子 −0.0045；四项之和 −0.0883。
+- 存储密度实际变化（−0.0551）比四项之和少降 0.0332：这是 float32 存储的舍入，累计（第 8 节的做法）。分时段看，前半段两者相差 1–2 %，后半段舍入吃掉一半以上：四项之和从 −0.112 慢慢降到 −0.073，实际变化从 −0.111 降到 −0.0195。为什么后半段舍入变大，我没有查。
+
+**按区域**（每格 = 该区域的贡献 / 全部流体粒子数；最后一张小表把四项之和除以该区域自己的粒子数）：
+
+- **内部占了大头**：支撑半径内没有壁面的粒子占 78 %，贡献 −0.0709，是四项之和 −0.0883 的 80 %。内部只有流体邻居，主要是连续性项（−0.0758），δ 项 +0.0049。
+- **按每个该区域粒子算，各区域下降的快慢差不多**：内部 −0.091，其余五个面的中部 −0.084，其余八条棱 −0.085，八个角 −0.084，盖子中部 −0.063，盖子的四条边 −0.052（kg/m³/s）。下降不是集中在近壁、棱或角上，盖子附近反而略慢；内部四档（h–2h 到 ≥ 8h）每粒子的速率也相近（−0.086 到 −0.10）。
+- **近壁各区域**：连续性项的流体部分和壁面部分大小相近、符号相反，几乎抵消。例如其余五个面的中部 +1.640 对 −1.656，盖子中部 −1.145 对 +1.138，净剩的只有百分之一的量级。δ 项在各区域都很小。
+
+**我的理解（推测，没有验证）**：内部的连续性项在 KCG 修正下不是逐对反对称的（Σ_i ρ_i Σ_j V_j (v_j − v_i)·L_i ∇W_ij，L_i、ρ_i、V_j 都随粒子变），所以对全部粒子求和不为零。这次的下降主要来自这一项，与壁面的处理关系不大。任务书说只报告不修，所以没有再查。
+
+### 22.5 计时
+
+同一张空闲的卡（无显示器的 5090；双卡时两张 5090），基线是基点 `eda5b90` 工作树里的 simple。单卡用现有的分核计时工具 `kernel_timing.py`：每次运行一个命令缓冲区一步，每个核之后打时间戳，三轮交替，取每轮平均值的中位数。2-D 每次 8,000 步，前 3,000 步不算；3-D 每次 3,000 步，前 1,000 步不算。双卡用 `dual_timing.py`：chain bench `--anatomy`，等权重，流水线深度 2，三轮交替，每次 6,000 步，前 2,000 步不算。双卡的 phase 时间取每个 defrag 时那一帧的时间戳（4 帧 × 3 轮），稳态步速取流水线运行。全部 12 次双卡运行粒子数守恒（drift 0），overflow 全为 0。
+
+**单卡**（µs / 步；fused pass 和 force 在开关打开时给出两次调度各自的时间，第二次是它在第一次之后**多出来**的时间）：
+
+<!-- include: tables/section22_timing_k1.md -->
+
+- **2-D 1000²**：开关关 1.418 倍于 simple，开关开 1.144 倍，每步少 366 µs（−19 %）。内部版本那一次调度（579.6 / 658.9 µs）与 simple 的整遍（607.0 / 669.9）相当；近壁那一次多 111.7 / 122.5 µs。
+- **3-D 1M**：开关关 1.367 倍，开关开 1.171 倍，每步少 1,796 µs（−14 %）。这里近壁那一次调度贵得多（fused 2,131、force 2,459 µs），因为 3-D 的近壁体素里有 24 % 的流体粒子，壁面粒子（654,858 个）也都由近壁版本处理。
+- **2-D 250²**：开关打开反而更慢（1.888 倍，开关关 1.315 倍）。两次调度各用 88–98 µs，近壁那一次只算 8.6 % 的流体粒子和壁面粒子，却与内部那一次一样长。我的理解：250² 只有约 7.5 万个粒子，填不满 GPU，一次调度的时间由最慢的工作组的延迟决定，而不是由工作量决定，所以两次调度接近两倍的延迟。两次之间没有屏障，但实际上没怎么重叠。所以这个开关只对填得满 GPU 的问题有用。
+- predict、update_voxel 在三种代码里是同一个核，时间却差到 10 µs（1000²：simple 27.7、开关关 34.2、开关开 24.6），没有分析原因。
+
+**双卡，3-D 1M**（每步时间相对 simple = simple 的稳态步速 / 这一行的稳态步速）：
+
+<!-- include: tables/section22_timing_k2.md -->
+
+<!-- include: tables/section22_timing_k2_kernels.md -->
+
+- **稳态步速**：simple 150.8，开关关 108.8（1.386 倍），开关开方式 1 117.6（1.282 倍），方式 2 105.2（1.433 倍，比开关关还慢）。
+- **phase B**：拆开后从 6,225 / 6,262 µs 降到 5,511 / 5,768（方式 1，卡 0 / 卡 1），−11 % / −8 %。simple 是 4,428 / 4,499。
+- **phase C**：方式 1（分界带只调度近壁版本）2,680 / 2,702 µs，比开关关（2,881 / 2,984）略快。方式 2 把分界带也拆成两次调度，3,776 / 3,816 µs，多出 1,100 µs：分界带只有 184,512 个线程，与 250² 一样每次调度受延迟限制，两次（986 + 882 µs）比一次（1,280 µs）慢。所以方式 1 做缺省是对的。
+- **传输有没有露出来**：
+  - 卡 1 在四种代码下 B → C 的空等都只有 6–9 µs，它的上传在 phase C 开始前 3.4–5.2 ms 就到了，传输完全藏住了。
+  - 卡 0 空等 93–381 µs，它的上传只比 phase C 开始早 49–76 µs，也就是卡 0 的 phase C 在等卡 1 那边来的数据。卡 0 的 phase B 比卡 1 短 70–260 µs（卡 1 的粒子多约 5 %），所以这段空等与两卡负载不均同一量级。具体是哪一段在等，我没有拆开查。
+  - 稳态步速与卡 1 自己的 A + B + 空等 + C 之和相符（例如方式 1：8,542 µs，即 117.1 fps，实测 117.6）。所以吞吐由负载较重的卡 1 决定，卡 0 的空等没有拖慢整体，传输没有露在关键路径上。
+
+### 22.6 开关关闭时与 `73e3137` 逐位相同；SPIR-V 与种种检查
+
+<!-- include: tables/section22_switch_off_classes.md -->
+
+- **开关关闭**（本节最后的代码 `d050f8a`，A、B、C 的改动都在）：2-D 250² crossing 700 步，单卡和双卡各 4 次，与 `73e3137`（第 22.1 节完成后的提交）各 4 次按结果类比较。
+  - 双卡：8 次都在同一个类里。
+  - 单卡：开关关闭的 4 次都落在 `b65a33c0554d`，这个类里也有 `73e3137` 的 2 次。`73e3137` 另外 2 次落在 `1d3f1d0702b5`，这 4 次开关关闭的运行没有碰到这一类。
+  - 判据是“开关关闭的运行所在的每一类都有参照的运行”，满足。两个类的散列与 22.1 检查 2 里 `94eccdd` 和门槛下调后的类完全相同。所以 `94eccdd`、`73e3137`、`d050f8a` 三个提交算出的是同一组结果。
+- **SPIR-V**：改了着色器后都重跑了 `compile_shaders_v7.py`。基点（`eda5b90`）清单里的 23 个文件逐字节不变，simple 和 adami 用的 SPIR-V 与基点相同。与本节之前（`a120aef`）相比，只有两个诊断用的收支模块变了（C 的 3-D 区域），crossing 开关关闭时载入的 `correction_density_wall_crossing` 和 `force_wall_crossing` 字节不变。新增 6 个模块（A 的 4 个版本和标记、B 的规约核）。`spv/MANIFEST.txt` 已重写。
+- `_test_seam_layout.py`：858 项不通过，与本分支在本节之前记录的 858 项逐条相同（都是本分支早就有的“switch 0 does not record the f646bf6 stream”一类，与本节无关）。A 刚做完时多出的 2 项（SPIR-V 白名单）已经补上，本节没有新增不通过项。
+- 每个运行都记在 `logs/wall_crossing/runs.jsonl`。
+
+### 22.7 改动清单
+
+| 提交 | 内容 |
+|---|---|
+| `73e3137` | 网格偏移门槛 0.25 → 0.05 dx，做成 `numerics.grid_boundary_clearance_minimum`（缺省 0.05）；`cavity_fields.py` 从载入器取原点 |
+| `b8eaed5` | A：`numerics.wall_crossing.split_dispatch`（缺省 false）：近壁标记着色器和缓冲区，内部版本与近壁版本（4 个新模块），单卡、phase B、phase C 的拆分调度，多卡续跑前的副本交换，单卡计时列，`split_dispatch.py`，`particle_watch.py` 的位置判断核对 |
+| `606d2f5` | B：`numerics.volume_constraint.gpu_mean_volume`（缺省 false）：规约核、部分和缓冲区、主机双精度合并、检查点读写（box_run、cavity_runner、chain_runner、restart_init），`volume_constraint_check.py` |
+| `d050f8a` | C：收支的 3-D 区域（只动诊断模块），box_run 逐个记录 overflow 计数和活着的流体粒子数，`density_drop_3d.py`；双卡计时：拆分调度的时间戳在双卡模式下分开报，`dual_timing.py`；SPIR-V 清单；本节的表 |
+| 加入本节的提交 | 报告第 22 节、计时表、开关关闭的逐位核对表 |
+
+新算例：`*_crossing_split`（250²、1000²、1M 3-D，开关打开）、`*_gpu_mean`（250²、48³，B 的开关打开）、`cavity3d_1m_crossing_no_volume_constraint`（C）。除第 22.1 节的门槛外没有改任何缺省值；没有改传输和 defrag 搬运的数据布局、ghost 记录格式或 ghost 层数（新缓冲区都不随传输和 defrag 搬运）。
+
+### 22.8 我自己做的决定
+
+1. 门槛的配置项叫 `numerics.grid_boundary_clearance_minimum`，单位 dx，只接受 0 到 0.5。
+2. 近壁标记用 3^d 个相邻体素（`in_own_grid`，与邻居搜索的范围相同），ghost 体素用它自己的表（副本）。
+3. 多卡续跑时，ghost 表在第一步之前是空的，所以在 `restart_all` 里加了一轮只交换副本的交换，再做标记（任务书只说“续跑之后”）。
+4. 近壁版本对 phase C 方式 1 用 spec const 131 = 0（每个粒子都算），不另编模块。
+5. 拒绝的组合：二阶延拓（内部版本不写 ∇v_i）、`V7_DENSITY_BUDGET`、`V7_BAND_COMPACT_DISPATCH`、`V7_BAND_OVERLAP`、`V7_FAKE_BAND_TEST`、inlet / rotor 材料，一律报 ValueError。
+6. 内部 / 近壁的逐位比较里，粒子按位置在全局网格上的体素分类（双卡时不能用各卡自己的体素编号）。
+7. B 的 δ_i 用 fma 形式，部分和存 float32 的偏差而不是体积；θ 按 v32 / v_ref 改正 float32 的舍入。工作组大小要求是 2 的幂。
+8. B 的检查点多存 θ（任务书要的是 v_ref 和 rate）：状态缓冲区里 rate 旁边也存着 θ，续跑时一起写回。
+9. 4.4（b）除了字面的“第一次更新”（第 0 步），另做了同一检查点在单卡和双卡上续跑的比较，因为两次独立运行到第 6,000 步已经是不同的轨迹。
+10. C 的窗口取采样点上的 t = 0.24 – 0.96（采样只在 defrag 边界上，每 0.06 一次）。收支的 3-D 区域分得比任务书的六类细（盖子 / 底面 / 侧面分开，棱分成底面的边和竖棱，角分成盖子的角和底面的角），表里先按任务书的六类合并，再列细分。
+11. 双卡计时我多加了一组“crossing 开关关”，便于看开关的作用；双卡的 phase 时间取每个 defrag 时那一帧的时间戳（流水线在那里排空过，这一帧不与别的帧重叠），稳态步速取流水线运行。
+
+### 22.9 没做或没验证的
+
+- 方式 1 在双卡上第 60 步起与开关关闭有舍入级的差别，原因只是推测（22.2），没有查。
+- 3-D 收支版本算出的状态与不开收支时是否逐位相同，没有重新核对（只在 2-D 核对过）。C 里后半段 float32 存储舍入变大的原因没有查。内部连续性项不为零的解释是推测。
+- B 的续跑检查只在 2-D 250² 做了（单卡续跑、单卡和双卡续跑同一检查点、旧检查点）；cavity_runner 的检查点读写改了，但没有用 cavity_runner 实际跑一次续跑。
+- B 存下的 rate 在现在的流程里会被续跑后第一次更新换掉（22.3），没有改这个流程（任务书说其余流程不变）。
+- 寄存器数是在显示用的那张 5090 上量的（同型号、同驱动，编译结果与卡无关）；计时在无显示器的那张卡上（双卡用两张）。
+- 2-D 500² 没有计时（任务书没要求）。
+
 ## 附录 A：工具与验收的对应
 
 | 工具（`experiment/wall_crossing/`） | 用途 | 验收项 |
@@ -2873,6 +3126,10 @@ float64，ξ = 0，粒子在点阵上，盒含四个角。记录 wc-20261118-165
 | `particle_watch_report.py` | 第 20 节：事件现场的整理（合并状态、邻居清单、轨迹、`.vtp`、切片图） | — |
 | `particle_watch_tables.py` | 第 20 节：开关核对、各次运行和逐步记录的表 | — |
 | `grid_offset_check.py` | 第 21 节：各算例的粒子层离体素边界最近的距离和网格原点的挪动；`--tables`：测试 3 和 2-D 替代检查的表 | — |
+| `split_dispatch.py` | 第 22 节 A：`make-cases`（开关打开的算例）、`near-wall`（近壁体素里的流体占比）、`compare` / `classes`（内部 / 近壁粒子分开的逐位比较和结果类） | — |
+| `volume_constraint_check.py` | 第 22 节 B：`make-cases`、`theta`（同一状态下 GPU 规约与主机双精度的 θ）、`logs`（box_run 的约束日志并列） | — |
+| `density_drop_3d.py` | 第 22 节 C：3-D 收支按项、按区域（面、棱、角、内部）拆开 | — |
+| `dual_timing.py` | 第 22 节：双卡的 phase 时间（chain bench `--anatomy`）和稳态步速，多轮交替 | — |
 | `report_figures.py`、`report_tables.py` | 本报告的图、表和拼装 | — |
 
 ## 附录 B：结果文件的位置
@@ -2900,4 +3157,5 @@ float64，ξ = 0，粒子在点阵上，盒含四个角。记录 wc-20261118-165
 - 第 19 节：`logs/wall_crossing/box_run/`（`k1_*`、`k2_*`、`k2d1_*`、`cavity3d_1m_*`），`logs/wall_crossing/cavity/n1000_complete_volume/`、`n1000_adami/`（远端取回），`logs/wall_crossing/hydrostatic/3d_n48_*_default_volume/`，`logs/wall_crossing/seam_audit/`，`logs/wall_crossing/k2_equivalence/`，`logs/wall_crossing/outcome_classes/restored_*`；汇总 `claude/wall_crossing/long_validation/`。
 - 第 20 节：`logs/wall_crossing/particle_watch/`（各次运行的现场目录、`switch_check/`、`smoke/`）；汇总 `claude/wall_crossing/particle_watch/`。
 - 第 21 节：`logs/wall_crossing/grid_offset/`（测试 3 的两次运行和 2-D 替代检查的转储）；汇总 `claude/wall_crossing/grid_offset/`。
+- 第 22 节：`logs/wall_crossing/section22/classes/`（门槛下调和开关关闭的逐位转储）、`logs/wall_crossing/split_dispatch/`（A 的转储和监视）、`logs/wall_crossing/volume_constraint/` 与 `logs/wall_crossing/box_run/s22_gpu_mean_*`（B）、`logs/wall_crossing/box_run/s22_cavity3d_1m_density_budget/` 与 `logs/wall_crossing/density_drop_3d/`（C）、`logs/wall_crossing/timing/s22_*` 与 `logs/wall_crossing/statistics/s22_*`（计时和寄存器）。
 - 图：`claude/wall_crossing/figures/`；表：`claude/wall_crossing/tables/`。
