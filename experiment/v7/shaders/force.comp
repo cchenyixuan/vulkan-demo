@@ -418,6 +418,18 @@ void process_particle(uint self_particle_id) {
                                * (self_correction_matrix * wall_kernel_gradient_sum);
         vec4 fluid_inverse_diagonal_and_xy = wall_crossing_fluid_inverse[self_particle_id * 2u];
         vec4 fluid_inverse_xz_and_yz       = wall_crossing_fluid_inverse[self_particle_id * 2u + 1u];
+#ifdef WALL_CROSSING_NEAR_WALL
+        // split_dispatch, every particle of the dispatch (spec const 131 = 0: phase C band mode 1; report section 23):
+        // the force band is one column wider than the fused band, and the fused pass of a particle there that is
+        // not in a near-wall voxel ran the interior build in phase B, which writes no A_f^-1: its slot holds an
+        // older step's. Such a particle has no wall neighbour, so with this step's A_f^-1 the term is exactly 0
+        // (A_f = A, M_d = 0; the interior build leaves it out and matches the plain crossing build bit for bit):
+        // leave it out here too instead of reading the stale slot.
+        if (WALL_CROSSING_SPLIT_SELECTION == WALL_CROSSING_SPLIT_SELECTION_EVERY_PARTICLE
+                && !wall_crossing_voxel_is_near_wall(self_voxel_id)) {
+            fluid_inverse_xz_and_yz.w = 0.0;
+        }
+#endif
         if (fluid_inverse_xz_and_yz.w != 0.0) {
             mat3 fluid_correction_inverse =
                 wall_crossing_symmetric_matrix(fluid_inverse_diagonal_and_xy, fluid_inverse_xz_and_yz);
