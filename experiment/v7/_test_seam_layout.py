@@ -1613,7 +1613,10 @@ WALL_CROSSING_ADDED_SPIRV = frozenset({"correction_density_wall_crossing.comp.sp
                                        "correction_density_wall_crossing_near_wall.comp.spv",
                                        "force_wall_crossing_interior.comp.spv",
                                        "force_wall_crossing_near_wall.comp.spv",
-                                       "wall_crossing_near_wall_marker.comp.spv"})
+                                       "wall_crossing_near_wall_marker.comp.spv",
+                                       # numerics.volume_constraint.gpu_mean_volume (report section 22, off by
+                                       # default): the reduction kernel, loaded only with that switch
+                                       "volume_constraint_reduction.comp.spv"})
 
 
 def _without_bootstrap_density_copy(source: str, origin: str) -> str:

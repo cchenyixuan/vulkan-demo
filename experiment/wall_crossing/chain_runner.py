@@ -80,7 +80,8 @@ def run_chain(case, device_map: list, total_steps: int, sample_steps: int, on_sa
             state = restart["state"]
             rows_per_slab = restart_slab_rows(case, chain, state["position_voxel_id"][:, 0])
             orchestrator.restart_all([{name: np.ascontiguousarray(values[rows]) for name, values in state.items()}
-                                      for rows in rows_per_slab], float(restart["stored_offset"]))
+                                      for rows in rows_per_slab], float(restart["stored_offset"]),
+                                     volume_constraint=restart.get("volume_constraint"))
         if on_ready is not None:
             on_ready(simulators, chain.slabs)
 

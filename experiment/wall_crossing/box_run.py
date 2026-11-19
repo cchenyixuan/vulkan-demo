@@ -35,7 +35,9 @@ Long runs (2026-11-19; box_run_supervised.py restarts a run that stops or stalls
                         the start): series.csv and profiles.json keep their rows up to that step, the volume
                         constraint's log its records before it (the log's steps restart at 0 with every segment;
                         a line {"segment", "segment_start_step"} marks each start); the constraint's target is
-                        taken again from the case's initial particles, as the cavity runner does;
+                        taken again from the case's initial particles, as the cavity runner does; with
+                        numerics.volume_constraint.gpu_mean_volume (report section 22) the checkpoints also hold
+                        v_ref, the rate and theta (_volume_constraint_*), and a resumed run takes them from there;
   heartbeat.json        written at every defrag boundary (at most every 2 s): step, time, unix time, segment;
   --stop-speed F        stop when the fluid's largest speed exceeds F x the lid speed (the largest initial
                         velocity of a boundary material);
@@ -100,6 +102,9 @@ def latest_checkpoint(directory: pathlib.Path, expected_rows: int) -> dict | Non
             with np.load(checkpoint) as archive:
                 state = {name: archive[name] for name in archive.files if not name.startswith("_")}
                 offset = float(archive["_stored_density_offset"])
+                # numerics.volume_constraint.gpu_mean_volume (report section 22): v_ref, rate and theta when written
+                volume_constraint = {name: float(archive[name]) for name in archive.files
+                                     if name.startswith("_volume_constraint_")} or None
         except Exception as error:          # a partly written file: take an older one
             print(f"[box_run] checkpoint {checkpoint.name} unreadable ({error!r}); trying an older one", flush=True)
             continue
@@ -107,7 +112,8 @@ def latest_checkpoint(directory: pathlib.Path, expected_rows: int) -> dict | Non
             print(f"[box_run] checkpoint {checkpoint.name} holds {state['position_voxel_id'].shape[0]} rows, "
                   f"expected {expected_rows}; trying an older one", flush=True)
             continue
-        return {"state": state, "stored_offset": offset, "step": int(entry["step"])}
+        return {"state": state, "stored_offset": offset, "step": int(entry["step"]),
+                "volume_constraint": volume_constraint}
     return None
 
 
@@ -301,7 +307,8 @@ def main() -> int:
                                     f"{merged['position_voxel_id'].shape[0]} rows of {expected_alive}")
             name = f"c{step:010d}.npz"
             temporary = checkpoint_directory / f"c{step:010d}.partial.npz"
-            np.savez(temporary, _stored_density_offset=np.float64(simulators[0].stored_density_offset()), **merged)
+            np.savez(temporary, _stored_density_offset=np.float64(simulators[0].stored_density_offset()),
+                     **simulators[0].volume_constraint_checkpoint_entries(), **merged)
             os.replace(temporary, checkpoint_directory / name)
             with open(checkpoint_directory / "manifest.jsonl", "a", encoding="utf-8", newline="\n") as handle:
                 handle.write(json.dumps({"step": step, "time": step * timestep, "file": name}) + "\n")

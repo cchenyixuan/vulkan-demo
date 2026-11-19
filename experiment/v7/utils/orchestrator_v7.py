@@ -558,7 +558,8 @@ class ChainOrchestratorV7:
         print(f"[ChainOrchV7] all {len(self.sims)} sims bootstrapped "
               f"+ step cmds ready")
 
-    def restart_all(self, states: list, stored_density_offset: float = 0.0) -> None:
+    def restart_all(self, states: list, stored_density_offset: float = 0.0,
+                    volume_constraint: Optional[dict] = None) -> None:
         """Start the chain from a saved step-boundary state instead of the
         case's initial condition: SphSimulatorV7.restart_init on every sim
         (full-state upload + voxel lists; no bootstrap correction / density /
@@ -570,7 +571,10 @@ class ChainOrchestratorV7:
         if len(states) != len(self.sims):
             raise ValueError(f"{len(states)} restart states for {len(self.sims)} sims")
         for sim, state in zip(self.sims, states):
-            sim.restart_init(state, stored_density_offset)
+            if volume_constraint is None:
+                sim.restart_init(state, stored_density_offset)
+            else:      # numerics.volume_constraint.gpu_mean_volume (report section 22): the checkpoint's values
+                sim.restart_init(state, stored_density_offset, volume_constraint=volume_constraint)
         # numerics.wall_crossing.split_dispatch (report section 22): the near-wall flags need the peer's walls in the
         # ghost lists, which a restart leaves empty: one replica round, as the bootstrap's, then the marker again
         if len(self.sims) > 1 and any(getattr(sim, "wall_crossing_split_active", lambda: False)()

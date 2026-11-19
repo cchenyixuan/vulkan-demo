@@ -445,6 +445,7 @@ def main() -> int:
     # ---- resume bookkeeping ------------------------------------------------------------------------------
     start_step = 0
     state = None
+    restart_constraint = None          # report section 22: the checkpoint's volume constraint entries, if any
     stored_offset = 0.0
     manifest_path = run_dir / "checkpoints" / "manifest.jsonl"
     if arguments.resume and manifest_path.exists():
@@ -457,6 +458,9 @@ def main() -> int:
                 with np.load(path) as archive:
                     candidate = {name: archive[name] for name in archive.files if not name.startswith("_")}
                     candidate_offset = float(archive["_stored_density_offset"])
+                    # numerics.volume_constraint.gpu_mean_volume (report section 22): v_ref, rate, theta when written
+                    candidate_constraint = {name: float(archive[name]) for name in archive.files
+                                            if name.startswith("_volume_constraint_")} or None
             except Exception as error:
                 print(f"[cavity] checkpoint {path.name} unreadable ({error!r}); trying an older one", flush=True)
                 continue
@@ -465,6 +469,7 @@ def main() -> int:
                       f"expected {expected_total}; trying an older one", flush=True)
                 continue
             state, stored_offset, start_step = candidate, candidate_offset, int(entry["step"])
+            restart_constraint = candidate_constraint
             break
         if state is None:
             sys.exit(f"[cavity] --resume: no usable checkpoint in {manifest_path.parent}")
@@ -554,7 +559,10 @@ def main() -> int:
             rows_per_slab = restart_slab_rows(global_case, chain, state["position_voxel_id"][:, 0])
             states = [{name: np.ascontiguousarray(values[rows]) for name, values in state.items()}
                       for rows in rows_per_slab]
-            orchestrator.restart_all(states, stored_offset)
+            if restart_constraint is None:
+                orchestrator.restart_all(states, stored_offset)
+            else:
+                orchestrator.restart_all(states, stored_offset, volume_constraint=restart_constraint)
             del states
         state = None
         readers = [CachedStateReader(sim) for sim in sims]
@@ -664,7 +672,7 @@ def main() -> int:
                                              f"{merged['position_voxel_id'].shape[0]} rows != {expected_total}")
                 name = f"c{step:010d}.npz"
                 atomic_savez(run_dir / "checkpoints" / name, _stored_density_offset=np.float64(sims[0].stored_density_offset()),
-                             **merged)
+                             **sims[0].volume_constraint_checkpoint_entries(), **merged)
                 with open(manifest_path, "a", encoding="utf-8") as handle:
                     handle.write(json.dumps({"step": step, "time": step * dt, "file": name}) + "\n")
                 checkpoints = sorted(path for path in (run_dir / "checkpoints").glob("c*.npz")

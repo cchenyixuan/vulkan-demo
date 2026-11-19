@@ -1362,13 +1362,18 @@ class SphSimulatorV7:
         defrag_scratch_counter - then the recorded command; atomic order: the command alone."""
         if self.defrag_cmd is None:
             self.defrag_cmd = self._record_defrag_cmd()
+        # numerics.volume_constraint.gpu_mean_volume (report section 22): this slab's partial sums before the defrag
+        # of an update (the defrag permutes rows only)
+        reduction = None
+        if self._volume_constraint_gpu_mean() and self._volume_constraint_update_due():
+            reduction = self._volume_constraint_reduce()
         if self.case.numerics.use_prefix_sum_defrag:
             self._defrag_prefix_records.append(upload_defrag_prefix(self, verbose=len(self._defrag_prefix_records) < 2))
         self.ctx.submit_and_wait(self.defrag_cmd)
         if os.environ.get("V7_DEFRAG_AUDIT") == "1":          # diagnostic: the pid order after this defrag
             audit_pid_order(self, own_total=self._defrag_prefix_records[-1]["total"] if self._defrag_prefix_records else None)
         if self._volume_constraint_active():
-            self._volume_constraint_on_defrag()
+            self._volume_constraint_on_defrag(reduction)
 
     # ========================================================================
     # numerics.volume_constraint (utils/volume_constraint_v7.py)
@@ -1376,6 +1381,11 @@ class SphSimulatorV7:
 
     def _volume_constraint_active(self) -> bool:
         return bool(self.case.numerics.volume_constraint.enabled)
+
+    def _volume_constraint_gpu_mean(self) -> bool:
+        """numerics.volume_constraint.gpu_mean_volume with the constraint on (report section 22)."""
+        settings = self.case.numerics.volume_constraint
+        return bool(settings.enabled and getattr(settings, "gpu_mean_volume", False))
 
     def _check_volume_constraint_supported(self) -> None:
         """The constraint's term is a statement of the crossing variant of the fused pass. Refused: another wall
@@ -1391,6 +1401,11 @@ class SphSimulatorV7:
                              "carry the constraint since 2026-11-19; for the budget take a case without it (the "
                              "250^2 cavity: cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_constraint_off)")
         settings = self.case.numerics.volume_constraint
+        if self._volume_constraint_gpu_mean():
+            workgroup = int(self.case.capacities.workgroup_size)
+            if workgroup > 1024 or workgroup & (workgroup - 1):
+                raise ValueError(f"numerics.volume_constraint.gpu_mean_volume: the reduction needs a power-of-two "
+                                 f"workgroup size up to 1024 (capacities.workgroup = {workgroup})")
         self._volume_constraint_update_steps_checked = settings.update_steps(
             float(self.case.physics.timestep), int(self.case.numerics.defrag_cadence))
 
@@ -1425,6 +1440,20 @@ class SphSimulatorV7:
         self._volume_constraint_update_steps = self.case.numerics.volume_constraint.update_steps(
             float(case.physics.timestep), int(case.numerics.defrag_cadence))
         PROCESS_GROUP.register(self, target)
+        if self._volume_constraint_gpu_mean():
+            # report section 22: v_ref from every slab's initial volume and count; a resumed run takes v_ref, the rate
+            # and theta of its checkpoint (restart_init's volume_constraint), else it recomputes v_ref and warns
+            PROCESS_GROUP.register_fluid_count(self, fluid_count)
+            restored = self.__dict__.get("_volume_constraint_restart")
+            if restored:
+                PROCESS_GROUP.restore(float(restored["_volume_constraint_reference_mean_volume"]),
+                                      float(restored["_volume_constraint_rate"]),
+                                      float(restored["_volume_constraint_theta"]))
+                print(f"[SimV7] volume constraint (gpu_mean_volume): v_ref {PROCESS_GROUP.reference_mean_volume():.17g}, "
+                      f"rate {PROCESS_GROUP.rate:+.6e} from the checkpoint", flush=True)
+            elif self.__dict__.get("_volume_constraint_restarting"):
+                print("[SimV7] WARNING volume constraint (gpu_mean_volume): the checkpoint holds no v_ref / rate; v_ref "
+                      "recomputed from the case's initial particles, rate 0 until the next update", flush=True)
         print(f"[SimV7] volume constraint: target volume of this slab {target:.9g} ({fluid_count:,} fluid "
               f"particles), relaxation time {case.numerics.volume_constraint.relaxation_time:g}, an update every "
               f"{self._volume_constraint_update_steps:,} steps "
@@ -1455,12 +1484,73 @@ class SphSimulatorV7:
         The queue must be drained. Also a test hook (experiment/wall_crossing/single_step.py)."""
         if not self._volume_constraint_active():
             raise RuntimeError("set_volume_constraint_rate needs numerics.volume_constraint.enabled")
+        if self._volume_constraint_gpu_mean():
+            self._upload_volume_constraint_state(rate, theta)
+            return
         self._staging_upload(self.buffers["volume_constraint_state"],
                              struct.pack("<4f", float(rate), float(theta), 0.0, 0.0))
 
-    def _volume_constraint_on_defrag(self) -> None:
+    def _volume_constraint_update_due(self) -> bool:
+        """Is the next defrag an update of the constraint (the count _volume_constraint_on_defrag advances)."""
+        cadences = self._volume_constraint_update_steps // int(self.case.numerics.defrag_cadence)
+        return self._volume_constraint_defrag_calls % cadences == 0
+
+    def _upload_volume_constraint_state(self, rate: float, theta: float) -> None:
+        """(rate, theta, v32, 0) to volume_constraint_state: v32 = float32 of the group's v_ref with gpu_mean_volume,
+        0 otherwise (the fused pass reads only the rate). The queue must be drained."""
+        reference = 0.0
+        if self._volume_constraint_gpu_mean():
+            from experiment.v7.utils.volume_constraint_v7 import PROCESS_GROUP
+            reference = PROCESS_GROUP.reference_mean_volume()
+        self._volume_constraint_reference_float32 = float(np.float32(reference))
+        self._staging_upload(self.buffers["volume_constraint_state"],
+                             struct.pack("<4f", float(rate), float(theta), float(reference), 0.0))
+
+    def _volume_constraint_reduce(self) -> tuple:
+        """gpu_mean_volume (report section 22): (sum of delta_i in float64, fluid count) over this slab's own alive
+        fluid particles, from volume_constraint_reduction.comp's partial sums. Uploads the state first, so the kernel
+        reads v32 of the group's v_ref (the rate is the one in force: unchanged). The queue must be drained."""
+        from experiment.v7.utils.volume_constraint_v7 import PROCESS_GROUP
+        self._upload_volume_constraint_state(PROCESS_GROUP.rate, PROCESS_GROUP.theta)
+        groups = self._per_own_particle_dispatch_count()
+        cmd = self._allocate_oneshot_cmd()
+        vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT))
+        self._record_compute_barrier(cmd)
+        self._bind_pipeline_and_sets(cmd, "volume_constraint_reduction")
+        vkCmdDispatch(cmd, groups, 1, 1)
+        self._record_compute_barrier(cmd)
+        vkEndCommandBuffer(cmd)
+        self.ctx.submit_and_wait(cmd)
+        vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
+        raw = self.readback_buffers_batch(["volume_constraint_partial_sums"])["volume_constraint_partial_sums"]
+        partial = np.frombuffer(raw, dtype=[("deviation_sum", "<f4"), ("fluid_count", "<u4")])[:groups]
+        return (float(partial["deviation_sum"].astype(np.float64).sum()),
+                int(partial["fluid_count"].astype(np.int64).sum()))
+
+    def volume_constraint_measure(self) -> dict:
+        """Report section 22, check 4.4 (drained, gpu_mean_volume): this slab's GPU partial sums and the host's float64
+        sums of the same state (readback_fluid_volume), for theta both ways."""
+        from experiment.v7.utils.volume_constraint_v7 import PROCESS_GROUP
+        deviation_sum, fluid_count = self._volume_constraint_reduce()
+        volume, host_fluid_count = self.readback_fluid_volume()
+        return {"deviation_sum": deviation_sum, "fluid_count": fluid_count, "host_volume": volume,
+                "host_fluid_count": host_fluid_count, "reference_mean_volume": PROCESS_GROUP.reference_mean_volume(),
+                "reference_float32": self._volume_constraint_reference_float32}
+
+    def volume_constraint_checkpoint_entries(self) -> dict:
+        """gpu_mean_volume (report section 22): the archive entries a runner's checkpoint carries (v_ref, the rate in
+        force, theta), for restart_init(volume_constraint=...). Empty without the switch."""
+        if not self._volume_constraint_gpu_mean():
+            return {}
+        from experiment.v7.utils.volume_constraint_v7 import PROCESS_GROUP
+        return {"_volume_constraint_reference_mean_volume": np.float64(PROCESS_GROUP.reference_mean_volume()),
+                "_volume_constraint_rate": np.float64(PROCESS_GROUP.rate),
+                "_volume_constraint_theta": np.float64(PROCESS_GROUP.theta)}
+
+    def _volume_constraint_on_defrag(self, reduction: Optional[tuple] = None) -> None:
         """Called after every defrag (drained): every update_steps steps take this slab's fluid volume and report
-        it to the group; when the group has every slab's, each slab gets the new rate."""
+        it to the group; when the group has every slab's, each slab gets the new rate. gpu_mean_volume: the partial
+        sums submit_defrag_and_wait took before the defrag (reduction) instead of the readback."""
         from experiment.v7.utils.volume_constraint_v7 import PROCESS_GROUP
         cadences = self._volume_constraint_update_steps // int(self.case.numerics.defrag_cadence)
         due = self._volume_constraint_defrag_calls % cadences == 0
@@ -1468,10 +1558,17 @@ class SphSimulatorV7:
         if not due:
             return
         step = int(self.readback_global_status()["frame_stamp"])
-        volume, fluid_count = self.readback_fluid_volume()
-        record = PROCESS_GROUP.report(self, step, volume, fluid_count,
-                                      float(self.case.numerics.volume_constraint.relaxation_time),
-                                      float(self.case.physics.timestep))
+        if self._volume_constraint_gpu_mean():
+            deviation_sum, fluid_count = reduction
+            record = PROCESS_GROUP.report_mean(self, step, deviation_sum, fluid_count,
+                                               self._volume_constraint_reference_float32,
+                                               float(self.case.numerics.volume_constraint.relaxation_time),
+                                               float(self.case.physics.timestep))
+        else:
+            volume, fluid_count = self.readback_fluid_volume()
+            record = PROCESS_GROUP.report(self, step, volume, fluid_count,
+                                          float(self.case.numerics.volume_constraint.relaxation_time),
+                                          float(self.case.physics.timestep))
         if record is None:
             return
         for member in PROCESS_GROUP.members:
@@ -1612,6 +1709,12 @@ class SphSimulatorV7:
         wall_crossing_split_specs = [
             _BufferSpec("wall_crossing_near_wall_voxel_flag", 1, 9, 4 * 2 * voxel_capacity, BSU | TRANSFER),
         ] if self._wall_crossing_split else []
+        # numerics.volume_constraint.gpu_mean_volume (report section 22; only then): set 3 binding 11 = one (sum of
+        # delta_i, fluid count) pair per workgroup of the per-own-particle dispatch (volume_constraint_reduction.comp)
+        volume_constraint_specs = [
+            _BufferSpec("volume_constraint_partial_sums", 3, 11, 8 * self._per_own_particle_dispatch_count(),
+                        BSU | TRANSFER),
+        ] if self._volume_constraint_gpu_mean() else []
 
         return [
             # Set 0: particle SoA
@@ -1661,7 +1764,8 @@ class SphSimulatorV7:
             # V7_BAND_COMPACT_DISPATCH: indirect dispatch sizes + list column starts
             _BufferSpec("band_compact_meta",            3, 9, 128,
                         BSU | TRANSFER | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT),
-        ] + deep_wall_specs + wall_crossing_specs + density_budget_specs + wall_crossing_split_specs
+        ] + (deep_wall_specs + wall_crossing_specs + density_budget_specs + wall_crossing_split_specs
+             + volume_constraint_specs)
 
     def _allocate_buffer(
         self,
@@ -2185,6 +2289,8 @@ class SphSimulatorV7:
             *(("correction_density_wall_crossing_interior", "correction_density_wall_crossing_near_wall",
                "force_wall_crossing_interior", "force_wall_crossing_near_wall", "wall_crossing_near_wall_marker")
               if self._wall_crossing_split else ()),
+            # numerics.volume_constraint.gpu_mean_volume (report section 22): the reduction kernel, only then
+            *(("volume_constraint_reduction",) if self._volume_constraint_gpu_mean() else ()),
             # V7_DENSITY_BUDGET=1 (diagnostic): the DENSITY_BUDGET build of this slab's fused pass
             *((self._density_budget_module_name(),) if self._density_budget_active() else ()),
         ):
@@ -2991,6 +3097,10 @@ class SphSimulatorV7:
         self._wall_crossing_split_dispatches = {}
         if self._wall_crossing_split:
             self._build_wall_crossing_split_pipelines(pipelines)
+        # numerics.volume_constraint.gpu_mean_volume (report section 22)
+        if self._volume_constraint_gpu_mean():
+            pipelines["volume_constraint_reduction"] = self._create_pipeline(
+                shader=self.shader_modules["volume_constraint_reduction"], entries=self._global_entries())
 
         cascade_note = (" (V7_CASCADE_FORCE=1: force_deep_interior in Phase B)"
                         if _CASCADE_FORCE else "")
@@ -4241,7 +4351,8 @@ class SphSimulatorV7:
         "extension_fields":            (4, np.float32),
     }
 
-    def restart_init(self, state: dict, stored_density_offset: float = 0.0) -> None:
+    def restart_init(self, state: dict, stored_density_offset: float = 0.0,
+                     volume_constraint: Optional[dict] = None) -> None:
         """Restart instead of bootstrap, from a saved step-boundary state.
 
         ``state[name]`` holds this slab's own particles, one row each, for
@@ -4255,7 +4366,12 @@ class SphSimulatorV7:
         Ghost slots stay empty; the frame's own phase A (ghost_send) and the
         transport fill them before any kernel reads them, as in every step.
         Callers then record the step cmd buffers (ChainOrchestratorV7.
-        restart_all, which also runs the bootstrap defrag)."""
+        restart_all, which also runs the bootstrap defrag).
+        volume_constraint (numerics.volume_constraint.gpu_mean_volume, report section 22): the checkpoint's
+        _volume_constraint_* entries (volume_constraint_checkpoint_entries), or None (an older checkpoint: v_ref
+        recomputed, rate 0 until the next update, with a warning)."""
+        self._volume_constraint_restarting = True
+        self._volume_constraint_restart = volume_constraint
         self._start_volume_constraint()
         layout = self.RESTART_FIELD_LAYOUT
         missing = [name for name in layout if name not in state]
@@ -4291,6 +4407,10 @@ class SphSimulatorV7:
                              "(initialize_voxelization would skip them)")
         payload["material_parameters"] = self._material_parameters_payload()
         self._upload_initial_state(payload)
+        if self._volume_constraint_gpu_mean():
+            # report section 22: the rate in force when the checkpoint was written (0 without it)
+            from experiment.v7.utils.volume_constraint_v7 import PROCESS_GROUP
+            self._upload_volume_constraint_state(PROCESS_GROUP.rate, PROCESS_GROUP.theta)
 
         cmd = self._allocate_oneshot_cmd()
         vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(

@@ -1,0 +1,73 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#include "common.glsl"
+#include "helpers.glsl"
+
+// ============================================================================
+// volume_constraint_reduction.comp - numerics.volume_constraint.gpu_mean_volume (report section 22, off by
+// default; utils/volume_constraint_v7.py): this slab's share of the constraint's measure, taken on the GPU.
+//
+// One thread per own pool slot (the per-own-particle dispatch). An alive fluid particle i contributes
+//     delta_i = (m_i / rho_i) / v_ref - 1,
+// v_ref = the mean of m / rho over the fluid particles of the initial state, which the host keeps in float64 and
+// writes as float32 (v32) to volume_constraint_state.z. delta_i is formed as fma(-rho_i, v32, m_i) / (rho_i v32): the
+// numerator m_i - rho_i v32 is small and the fma rounds it once, so delta_i keeps its relative accuracy although it
+// is ~1e-3 of the volume. Each workgroup sums its deltas and its fluid count in shared memory (a tree over the
+// workgroup size, a power of two the host checks) and writes one (sum, count) pair to
+// volume_constraint_partial_sums[workgroup]; the host adds the pairs in float64 and takes
+//     theta = (v32 / v_ref) (1 + sum / count) - 1
+// over every slab. Deviations, not volumes, are summed, so float32 holds them. Recorded only with the switch, before
+// the defrag of an update; nothing else reads or writes the two buffers.
+// ============================================================================
+
+layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, set = 0, binding = 15) buffer VolumeConstraintStateBuffer {
+    // (rate, theta, v32, 0): see wall_boundary.glsl; .z is written by the host only with gpu_mean_volume
+    vec4 volume_constraint_state;
+};
+
+struct VolumeConstraintPartialSum {
+    float deviation_sum;     // sum of delta_i over the workgroup's alive fluid particles
+    uint  fluid_count;       // their number
+};
+
+layout(std430, set = 3, binding = 11) buffer VolumeConstraintPartialSumBuffer {
+    VolumeConstraintPartialSum volume_constraint_partial_sums[];
+};
+
+const uint VOLUME_CONSTRAINT_REDUCTION_MAXIMUM_WORKGROUP = 1024u;
+shared float shared_deviation_sum[VOLUME_CONSTRAINT_REDUCTION_MAXIMUM_WORKGROUP];
+shared uint  shared_fluid_count[VOLUME_CONSTRAINT_REDUCTION_MAXIMUM_WORKGROUP];
+
+void main() {
+    uint local_index = gl_LocalInvocationID.x;
+    uint particle_id = gl_GlobalInvocationID.x + own_first_pid();
+    float deviation = 0.0;
+    uint  counted   = 0u;
+    if (particle_id <= own_last_pid()) {
+        vec4 particle_velocity_mass = velocity_mass[particle_id];
+        uint voxel_id = uint(round(position_voxel_id[particle_id].w));
+        if (voxel_id != VOXEL_ID_DEAD && particle_velocity_mass.w > 0.0
+                && material_parameters[material[particle_id]].kind == MATERIAL_FLUID) {
+            float reference_volume = volume_constraint_state.z;
+            float density = density_from_stored(density_pressure[particle_id].x);
+            deviation = fma(-density, reference_volume, particle_velocity_mass.w) / (density * reference_volume);
+            counted = 1u;
+        }
+    }
+    shared_deviation_sum[local_index] = deviation;
+    shared_fluid_count[local_index] = counted;
+    barrier();
+    for (uint stride = gl_WorkGroupSize.x / 2u; stride > 0u; stride >>= 1u) {
+        if (local_index < stride) {
+            shared_deviation_sum[local_index] += shared_deviation_sum[local_index + stride];
+            shared_fluid_count[local_index] += shared_fluid_count[local_index + stride];
+        }
+        barrier();
+    }
+    if (local_index == 0u) {
+        volume_constraint_partial_sums[gl_WorkGroupID.x] =
+            VolumeConstraintPartialSum(shared_deviation_sum[0], shared_fluid_count[0]);
+    }
+}

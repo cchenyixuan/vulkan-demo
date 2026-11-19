@@ -29,6 +29,20 @@ case.yaml (every key optional):
         enabled: false            # default
         relaxation_time: 1.0      # tau, in simulated time
         update_interval: null     # in simulated time; default relaxation_time / 5 (the largest allowed)
+        gpu_mean_volume: false    # default; true: the measure below (report section 22)
+
+gpu_mean_volume (report section 22, off by default). The measure is the mean volume per fluid particle,
+    v_ref = the mean of m_i / rho_i over the fluid particles of the initial state (float64, on the host),
+    theta = (the mean of m_i / rho_i now) / v_ref - 1,         rate = theta / relaxation_time,
+which equals the total-volume theta in a closed domain whose particle count does not change, and does not
+mistake a lost particle for a volume change. Each slab sums delta_i = (m_i / rho_i) / v_ref - 1 and its fluid
+count on the GPU (shaders/volume_constraint_reduction.comp, one partial sum per workgroup, before the defrag of
+an update) and reads back only those partial sums; the group adds them in float64 over the slabs. v_ref is
+written to the GPU as float32 (v32, volume_constraint_state.z); the host corrects for its rounding:
+    theta = (v32 / v_ref) (1 + sum delta / count) - 1.
+v_ref, the rate and theta go into the runners' checkpoints (SphSimulatorV7.volume_constraint_checkpoint_entries)
+and a resumed run takes them from there; a checkpoint without them recomputes v_ref from the case's initial
+particles (as the total-volume target is taken) and starts with rate 0, with a warning.
 The interval is rounded down to a whole number of defrag cadences (the updates happen at defrags); a cadence
 longer than relaxation_time / 5 is refused.
 
@@ -60,6 +74,7 @@ class VolumeConstraintSettings:
     enabled: bool = False
     relaxation_time: float = 1.0
     update_interval: Optional[float] = None
+    gpu_mean_volume: bool = False
 
     def update_interval_value(self) -> float:
         """The update interval in simulated time: the given one, or relaxation_time / 5."""
@@ -85,10 +100,13 @@ def parse_volume_constraint_settings(numerics_mapping: dict) -> VolumeConstraint
     mapping = numerics_mapping.get("volume_constraint") or {}
     if not isinstance(mapping, dict):
         raise ValueError(f"numerics.volume_constraint: expected a mapping, got {mapping!r}")
-    unknown = sorted(set(mapping) - {"enabled", "relaxation_time", "update_interval"})
+    unknown = sorted(set(mapping) - {"enabled", "relaxation_time", "update_interval", "gpu_mean_volume"})
     if unknown:
         raise ValueError(f"numerics.volume_constraint: unknown keys {unknown} (known: enabled, relaxation_time, "
-                         "update_interval)")
+                         "update_interval, gpu_mean_volume)")
+    gpu_mean_volume = mapping.get("gpu_mean_volume", False)
+    if not isinstance(gpu_mean_volume, bool):
+        raise ValueError(f"numerics.volume_constraint.gpu_mean_volume: {gpu_mean_volume!r}, expected true or false")
     enabled = mapping.get("enabled", False)
     if not isinstance(enabled, bool):
         raise ValueError(f"numerics.volume_constraint.enabled: {enabled!r}, expected true or false")
@@ -103,7 +121,7 @@ def parse_volume_constraint_settings(numerics_mapping: dict) -> VolumeConstraint
             raise ValueError(f"numerics.volume_constraint.update_interval: {update_interval!r}, expected > 0 and "
                              f"not above relaxation_time / {INTERVAL_SHARE_OF_RELAXATION_TIME:g} = {largest:g}")
     return VolumeConstraintSettings(enabled=enabled, relaxation_time=relaxation_time,
-                                    update_interval=update_interval)
+                                    update_interval=update_interval, gpu_mean_volume=gpu_mean_volume)
 
 
 class VolumeConstraintGroup:
@@ -112,6 +130,8 @@ class VolumeConstraintGroup:
     def __init__(self) -> None:
         self.members: list = []
         self.target_parts: dict = {}
+        self.fluid_count_parts: dict = {}        # gpu_mean_volume: the initial fluid count per slab
+        self.reference_override: Optional[float] = None   # gpu_mean_volume: v_ref of a resumed run's checkpoint
         self.pending: dict = {}             # step -> {id(member): (volume, fluid particle count)}
         self.theta = 0.0
         self.rate = 0.0
@@ -122,13 +142,63 @@ class VolumeConstraintGroup:
             self.pending.clear()
             self.history.clear()
             self.theta = self.rate = 0.0
+            self.fluid_count_parts.clear()
+            self.reference_override = None
         self.members.append(member)
         self.target_parts[id(member)] = float(target_volume)
+
+    def register_fluid_count(self, member, fluid_count: int) -> None:
+        """gpu_mean_volume: the slab's initial fluid count (its target volume is registered with register)."""
+        self.fluid_count_parts[id(member)] = int(fluid_count)
+
+    def reference_mean_volume(self) -> float:
+        """gpu_mean_volume: v_ref = the initial fluid volume / the initial fluid count over every registered slab, or
+        the value a resumed run took from its checkpoint."""
+        if self.reference_override is not None:
+            return float(self.reference_override)
+        count = sum(self.fluid_count_parts.values())
+        return self.target_volume() / count if count else 0.0
+
+    def restore(self, reference_mean_volume: float, rate: float, theta: float) -> None:
+        """gpu_mean_volume, a resumed run: v_ref, the rate and theta of its checkpoint."""
+        self.reference_override = float(reference_mean_volume)
+        self.rate = float(rate)
+        self.theta = float(theta)
+
+    def report_mean(self, member, step: int, deviation_sum: float, fluid_particles: int, reference_float32: float,
+                    relaxation_time: float, timestep: float) -> Optional[dict]:
+        """gpu_mean_volume: one slab's GPU partial sums at an update (sum of delta_i = (m_i / rho_i) / v32 - 1 and the
+        fluid count). Returns the update's record once every slab has reported for this step (theta and rate are
+        then set), None before."""
+        reports = self.pending.setdefault(int(step), {})
+        reports[id(member)] = (float(deviation_sum), int(fluid_particles))
+        if len(reports) < len(self.members):
+            return None
+        del self.pending[int(step)]
+        for older in [key for key in self.pending if key < int(step)]:
+            del self.pending[older]
+        deviation = sum(value for value, _ in reports.values())
+        count = sum(number for _, number in reports.values())
+        reference = self.reference_mean_volume()
+        ratio = (float(reference_float32) / reference) * (1.0 + deviation / count)
+        self.theta = ratio - 1.0
+        self.rate = self.theta / float(relaxation_time)
+        record = {"unix": time.time(), "step": int(step), "time": int(step) * float(timestep),
+                  "method": "gpu_mean_volume", "mean_volume": ratio * reference, "reference_mean_volume": reference,
+                  "reference_float32": float(reference_float32), "deviation_sum": deviation,
+                  "theta": self.theta, "rate": self.rate, "fluid_particles": int(count), "slabs": len(reports)}
+        self.history.append(record)
+        path = os.environ.get(LOG_ENVIRONMENT_VARIABLE)
+        if path:
+            with open(path, "a", encoding="utf-8", newline="\n") as handle:
+                handle.write(json.dumps(record) + "\n")
+        return record
 
     def unregister(self, member) -> None:
         if member in self.members:
             self.members.remove(member)
             self.target_parts.pop(id(member), None)
+            self.fluid_count_parts.pop(id(member), None)
 
     def target_volume(self) -> float:
         return float(sum(self.target_parts.values()))
