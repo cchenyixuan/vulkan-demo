@@ -98,5 +98,7 @@
 | `0088ce0` | report section 24: integral term of the volume constraint; the 3-D cavity against Albensoeder & Kuhlmann (2005) |
 | `75f22e6` | wall_boundary crossing: new defaults (report section 25) - split dispatch on, near-wall first; integral term and GPU mean volume on |
 | `39d6800` | report section 25 tools: resume check of the integral term, the 3-D resolution comparison |
+| `6beb49c` | report section 25: new crossing defaults checked bit for bit; 3-D cavity at 50 / 70 / 100 spacings; 3-D adami 1M on the second machine; resume of the integral term |
+| `5f84926` | wall_boundary crossing: near-wall marker distance rule (report section 26 B1), by-material diagnostic builds, efficiency tools |
 
 （加入本报告的那个提交排在这些之后。）
