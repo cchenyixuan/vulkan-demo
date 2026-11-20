@@ -1531,7 +1531,7 @@ class SphSimulatorV7:
             restored = self.__dict__.get("_volume_constraint_restart") or {}
             if "_volume_constraint_integral" in restored:
                 PROCESS_GROUP.restore_integral(float(restored["_volume_constraint_integral"]))
-                print(f"[SimV7] volume constraint (integral): I {PROCESS_GROUP.integral:+.6e} from the checkpoint",
+                print(f"[SimV7] volume constraint (integral): I {PROCESS_GROUP.integral!r} from the checkpoint",
                       flush=True)
             elif self.__dict__.get("_volume_constraint_restarting"):
                 print("[SimV7] WARNING volume constraint (integral): the checkpoint holds no I; it starts again "
