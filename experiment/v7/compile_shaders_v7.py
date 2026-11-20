@@ -85,6 +85,22 @@ SHADER_VARIANTS = (
      ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL", "WALL_CROSSING_NEAR_WALL_BY_MATERIAL")),
     ("force_wall_crossing_near_wall_by_material", "force.comp",
      ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL", "WALL_CROSSING_NEAR_WALL_BY_MATERIAL")),
+    # report section 27 (wall_boundary.glsl): accumulators that only wall pairs update in shared memory (bit-identical;
+    # V7_WALL_CROSSING_REGISTER_TRIM, default mirror), and numerics.wall_crossing.pressure_wall_evaluation pairwise
+    # (off by default: the wall neighbours' pressure per pair from the stored G_p)
+    ("force_wall_crossing_near_wall_mirror_shared", "force.comp",
+     ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL", "WALL_CROSSING_MIRROR_SHARED")),
+    ("correction_density_wall_crossing_near_wall_delta_shared", "correction_density.comp",
+     ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL", "WALL_CROSSING_DELTA_SHARED")),
+    ("correction_density_wall_crossing_pressure_pairwise", "correction_density.comp",
+     ("WALL_CROSSING", "WALL_CROSSING_PRESSURE_PAIRWISE")),
+    ("force_wall_crossing_pressure_pairwise", "force.comp", ("WALL_CROSSING", "WALL_CROSSING_PRESSURE_PAIRWISE")),
+    ("correction_density_wall_crossing_near_wall_pressure_pairwise", "correction_density.comp",
+     ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL", "WALL_CROSSING_PRESSURE_PAIRWISE")),
+    ("correction_density_wall_crossing_near_wall_pressure_pairwise_delta_shared", "correction_density.comp",
+     ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL", "WALL_CROSSING_PRESSURE_PAIRWISE", "WALL_CROSSING_DELTA_SHARED")),
+    ("force_wall_crossing_near_wall_pressure_pairwise", "force.comp",
+     ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL", "WALL_CROSSING_PRESSURE_PAIRWISE")),
 )
 
 

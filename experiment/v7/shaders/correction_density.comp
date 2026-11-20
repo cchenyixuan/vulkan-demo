@@ -118,6 +118,11 @@
 // ============================================================================
 
 layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
+#ifdef WALL_CROSSING_DELTA_SHARED
+// report section 27: the delta term's two wall sums of each thread, component x thread:
+// [component * WORKGROUP_SIZE + local index], wall_diffusion_vector in 0..2, wall_reflection_diffusion_vector in 3..5
+shared float wall_crossing_delta_wall_shared[6u * WORKGROUP_SIZE];
+#endif
 
 // density.comp's epilogue: forward integration, Tait EOS, a wall stores rho0.
 void store_density(uint self_particle_id, float self_stored_density, float density_rate,
@@ -226,6 +231,11 @@ void process_particle(uint self_particle_id) {
     // sum_wall V_j |grad W_ij| r / (r^2 + eps^2) (r_j - r_j'), applied after the loop with G_i - rho_i g / c^2
     // (rho_i g / c^2 is the body-force density gradient computed below, as for delta_wall body_force).
     vec3  wall_reflection_diffusion_vector = vec3(0.0);
+#ifdef WALL_CROSSING_DELTA_SHARED
+    for (uint component_index = 0u; component_index < 6u; component_index++) {
+        wall_crossing_delta_wall_shared[component_index * WORKGROUP_SIZE + gl_LocalInvocationIndex] = 0.0;
+    }
+#endif
     if (WALL_CROSSING_ACTIVE) {
         self_wall_distance = wall_crossing_floored_distance(self_position);
         if (WALL_CROSSING_DELTA_WALL == WALL_CROSSING_DELTA_WALL_BODY_FORCE || WALL_CROSSING_DELTA_REFLECTION) {
@@ -410,6 +420,26 @@ void process_particle(uint self_particle_id) {
                                              * position_difference_self_to_neighbor;
                             }
                         } else if (USE_DENSITY_DIFFUSION) {
+#ifdef WALL_CROSSING_DELTA_SHARED
+                            vec3 wall_diffusion_increment = (neighbor_volume * distance * distance
+                                                             / (distance * distance + EPS_H_SQUARED))
+                                                          * kernel_gradient_value;
+                            for (uint component_index = 0u; component_index < 3u; component_index++) {
+                                wall_crossing_delta_wall_shared[component_index * WORKGROUP_SIZE + gl_LocalInvocationIndex]
+                                    += wall_diffusion_increment[component_index];
+                            }
+                            if (WALL_CROSSING_DELTA_REFLECTION) {
+                                vec3 wall_reflection_increment =
+                                    (neighbor_volume * length(kernel_gradient_value) * distance
+                                     / (distance * distance + EPS_H_SQUARED))
+                                    * pair_mirror_displacement;
+                                for (uint component_index = 0u; component_index < 3u; component_index++) {
+                                    wall_crossing_delta_wall_shared[(component_index + 3u) * WORKGROUP_SIZE
+                                                                    + gl_LocalInvocationIndex]
+                                        += wall_reflection_increment[component_index];
+                                }
+                            }
+#else
                             wall_diffusion_vector += (neighbor_volume * distance * distance
                                                       / (distance * distance + EPS_H_SQUARED))
                                                    * kernel_gradient_value;
@@ -419,6 +449,7 @@ void process_particle(uint self_particle_id) {
                                      / (distance * distance + EPS_H_SQUARED))
                                     * pair_mirror_displacement;
                             }
+#endif
                         }
                     }
                     if (!neighbor_is_wall || wall_neighbor_diffuses_as_pair)
@@ -540,6 +571,14 @@ void process_particle(uint self_particle_id) {
     // neighbours) takes G_i = 0 and is counted.
     // ========================================================================
     if (WALL_CROSSING_ACTIVE) {
+#ifdef WALL_CROSSING_DELTA_SHARED
+        for (uint component_index = 0u; component_index < 3u; component_index++) {
+            wall_diffusion_vector[component_index] =
+                wall_crossing_delta_wall_shared[component_index * WORKGROUP_SIZE + gl_LocalInvocationIndex];
+            wall_reflection_diffusion_vector[component_index] =
+                wall_crossing_delta_wall_shared[(component_index + 3u) * WORKGROUP_SIZE + gl_LocalInvocationIndex];
+        }
+#endif
         mat3 fluid_correction_inverse;
         bool fluid_inverse_valid =
             wall_crossing_invert_fluid_matrix(fluid_correction_matrix, fluid_correction_inverse);
@@ -556,8 +595,23 @@ void process_particle(uint self_particle_id) {
             fluid_correction_inverse[1][2],
             0.0,
             fluid_inverse_valid ? 1.0 : 0.0);
+#ifdef WALL_CROSSING_PRESSURE_PAIRWISE
+        // report section 27: G_p = c^2(rho_i) A_f^-1 g_f(rho) for force's wall neighbours, c^2 = dp/drho of the Tait
+        // EOS at this step's rho_i (before the update); 0 on a fallback
+        vec3 pressure_gradient_estimate = vec3(0.0);
+        if (fluid_inverse_valid) {
+            float sound_speed_squared = (POWER_PARAMETER * self_params.eos_constant / self_params.rest_density)
+                                      * pow(self_density / self_params.rest_density, POWER_PARAMETER - 1.0);
+            pressure_gradient_estimate = sound_speed_squared
+                * (wall_crossing_symmetric_matrix(fluid_inverse_diagonal_and_xy, fluid_inverse_xz_and_yz)
+                   * density_gradient);
+        }
+        wall_crossing_fluid_inverse[self_particle_id * 2u] =
+            vec4(pressure_gradient_estimate, fluid_inverse_valid ? 1.0 : 0.0);
+#else
         wall_crossing_fluid_inverse[self_particle_id * 2u]      = fluid_inverse_diagonal_and_xy;
         wall_crossing_fluid_inverse[self_particle_id * 2u + 1u] = fluid_inverse_xz_and_yz;
+#endif
 
         // (not with the diagnostic WALL_CROSSING_DELTA_WALL = rest_density or body_force: the walls' diffusion was
         // a pair term). delta_wall reflection: the same term, and the mirror point's

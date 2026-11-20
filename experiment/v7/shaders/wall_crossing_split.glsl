@@ -36,7 +36,8 @@ bool wall_crossing_voxel_is_near_wall(uint voxel_id) {
 }
 
 // which particles a split build processes (per pipeline):
-//   0 = every particle of its dispatch: the near-wall build over a whole band (phase C, the default band mode);
+//   0 = every particle of its dispatch: the near-wall build over a whole band (phase C band mode 1, the default of
+//       sections 22-26; mode 2, the default since section 27, splits the band like phase B);
 //   1 = its own class only: the interior build skips the particles of near-wall voxels, the near-wall build the
 //       others.
 layout(constant_id = 131) const uint WALL_CROSSING_SPLIT_SELECTION = 1u;

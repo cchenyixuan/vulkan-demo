@@ -111,10 +111,12 @@ _BAND_SLOT_LANES = int(os.environ.get("V7_BAND_SLOT_LANES", "64"))
 # V7_BAND_VOXEL_DISPATCH=1 for the band definition). Bit-identical results.
 _BAND_COMPACT = os.environ.get("V7_BAND_COMPACT_DISPATCH", "0") == "1"
 # numerics.wall_crossing.split_dispatch (report section 22, a case switch, on by default since section 25): how phase C runs the
-# band of a crossing slab that splits its passes. DIAGNOSTIC choice for the timing comparison:
-#   "1" (default): the near-wall build alone over the whole band (spec const 131 = 0, every particle);
-#   "2": the band split like phase B, the interior build for its particles and the near-wall build for the others.
-_WALL_CROSSING_SPLIT_BAND_MODE = os.environ.get("V7_WALL_CROSSING_SPLIT_BAND_MODE", "1")
+# band of a crossing slab that splits its passes:
+#   "2" (default since report section 27; 3-D 1M two slabs 2.8 % faster per step, section 26): the band split like
+#       phase B, the interior build for its particles and the near-wall build for the others;
+#   "1" (the default of sections 22-26): the near-wall build alone over the whole band (spec const 131 = 0, every
+#       particle). Bit-identical results (section 23 after its fix, section 27).
+_WALL_CROSSING_SPLIT_BAND_MODE = os.environ.get("V7_WALL_CROSSING_SPLIT_BAND_MODE", "2")
 if _WALL_CROSSING_SPLIT_BAND_MODE not in ("1", "2"):
     raise ValueError(f"V7_WALL_CROSSING_SPLIT_BAND_MODE={_WALL_CROSSING_SPLIT_BAND_MODE!r}: expected 1 or 2")
 # DIAGNOSTIC (report section 22, check 3.5): every split pass is the near-wall build alone over every particle
@@ -154,6 +156,15 @@ _WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST = os.environ.get("V7_WALL_CROSSING_NEAR_W
 if _WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST not in ("position", "material"):
     raise ValueError(f"V7_WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST={_WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST!r}: expected "
                      "position or material")
+# report section 27: which accumulators that only wall pairs update the near-wall builds keep in shared memory instead
+# of registers (compile-time variants *_mirror_shared / *_delta_shared; bit-identical results). Comma list of
+# "mirror" (force's M_d) and "delta" (the fused pass's two wall sums of the delta term), or "none" (the builds of
+# 2f71864). Default "mirror" (section 27's timing: the delta variant is slower in 2-D and neutral in 3-D).
+_WALL_CROSSING_REGISTER_TRIM_TEXT = os.environ.get("V7_WALL_CROSSING_REGISTER_TRIM", "mirror")
+_WALL_CROSSING_REGISTER_TRIM = {item for item in _WALL_CROSSING_REGISTER_TRIM_TEXT.split(",") if item and item != "none"}
+if not _WALL_CROSSING_REGISTER_TRIM <= {"mirror", "delta"}:
+    raise ValueError(f"V7_WALL_CROSSING_REGISTER_TRIM={_WALL_CROSSING_REGISTER_TRIM_TEXT!r}: expected a comma list of "
+                     "mirror, delta, or none")
 # DIAGNOSTIC (report section 23): which bench timestamps a recording gets. "kernel" (default): every tick as
 # before (a split pass also gets one between its two dispatches); "pass": no tick between the two dispatches of a
 # split pass; "step": only the step's first and last tick (step_start, force_end) and the defrag's, so nothing
@@ -2398,16 +2409,14 @@ class SphSimulatorV7:
             *(("force_segment",) if self._force_deep_segment_first_groups() else ()),
             # wall_boundary crossing: the WALL_CROSSING variants of the fused pass and of force only on a crossing
             # slab (simple / adami need no such file, e.g. in a V7_SPV_DIR A/B against an earlier build)
-            *(("correction_density_wall_crossing", "force_wall_crossing") if self._wall_crossing else ()),
+            *((f"correction_density_wall_crossing{self._wall_crossing_pairwise_suffix()}",
+               f"force_wall_crossing{self._wall_crossing_pairwise_suffix()}") if self._wall_crossing else ()),
             # numerics.wall_crossing.split_dispatch (report section 22): the interior and near-wall builds and the
             # near-wall marker, only on a crossing slab that splits its passes
-            *(("correction_density_wall_crossing_interior", "correction_density_wall_crossing_near_wall",
-               "force_wall_crossing_interior", "force_wall_crossing_near_wall", "wall_crossing_near_wall_marker")
+            # (the near-wall pair per _wall_crossing_near_wall_module_names: reports 26 / 27's variants)
+            *(("correction_density_wall_crossing_interior", "force_wall_crossing_interior",
+               "wall_crossing_near_wall_marker", *self._wall_crossing_near_wall_module_names())
               if self._wall_crossing_split else ()),
-            # V7_WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST=material (diagnostic, report section 26): the near-wall builds
-            # that read the neighbour's material instead of testing its position
-            *(("correction_density_wall_crossing_near_wall_by_material", "force_wall_crossing_near_wall_by_material")
-              if self._wall_crossing_split and _WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST == "material" else ()),
             # numerics.volume_constraint.gpu_mean_volume (report section 22): the reduction kernel, only then
             *(("volume_constraint_reduction",) if self._volume_constraint_gpu_mean() else ()),
             # V7_DENSITY_BUDGET=1 (diagnostic): the DENSITY_BUDGET build of this slab's fused pass
@@ -2573,18 +2582,45 @@ class SphSimulatorV7:
         return float(chosen.radius)
 
     def _force_shader_module(self):
-        """force.comp's module of this slab: the WALL_CROSSING variant with wall_boundary crossing, else the
-        plain build."""
-        return self.shader_modules["force_wall_crossing" if self._wall_crossing else "force"]
+        """force.comp's module of this slab: the WALL_CROSSING variant with wall_boundary crossing (its
+        WALL_CROSSING_PRESSURE_PAIRWISE build with pressure_wall_evaluation pairwise), else the plain build."""
+        if not self._wall_crossing:
+            return self.shader_modules["force"]
+        return self.shader_modules["force_wall_crossing" + self._wall_crossing_pairwise_suffix()]
+
+    def _wall_crossing_pairwise_suffix(self) -> str:
+        """report section 27: '_pressure_pairwise' with numerics.wall_crossing.pressure_wall_evaluation pairwise."""
+        settings = self.case.numerics.wall_crossing
+        return "_pressure_pairwise" if getattr(settings, "pressure_wall_evaluation", "summed") == "pairwise" else ""
+
+    def _wall_crossing_near_wall_module_names(self) -> tuple:
+        """The near-wall builds this slab's split passes load (fused, force): the WALL_CROSSING_NEAR_WALL builds,
+        their DIAGNOSTIC by-material variants (V7_WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST=material, report section 26),
+        report section 27's pairwise wall pressure and shared-memory accumulators (V7_WALL_CROSSING_REGISTER_TRIM)."""
+        pairwise = self._wall_crossing_pairwise_suffix()
+        if _WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST == "material":
+            if pairwise:
+                raise ValueError("V7_WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST=material has no pressure_wall_evaluation "
+                                 "pairwise build")
+            return ("correction_density_wall_crossing_near_wall_by_material",
+                    "force_wall_crossing_near_wall_by_material")
+        fused = "correction_density_wall_crossing_near_wall" + pairwise + (
+            "_delta_shared" if "delta" in _WALL_CROSSING_REGISTER_TRIM else "")
+        force = "force_wall_crossing_near_wall" + (pairwise or (
+            "_mirror_shared" if "mirror" in _WALL_CROSSING_REGISTER_TRIM else ""))
+        return fused, force
 
     def _fused_shader_module(self):
         """correction_density.comp's module of this slab's pipelines that do not skip deep walls: the
         WALL_CROSSING variant with wall_boundary crossing (which never skips deep walls: a wall returns before
         the neighbour loop anyway), else the plain build."""
         if self._density_budget_active():
+            if self._wall_crossing and self._wall_crossing_pairwise_suffix():
+                raise ValueError("V7_DENSITY_BUDGET=1 has no pressure_wall_evaluation pairwise build (its fused pass "
+                                 "stores A_f^-1, the pairwise force reads G_p)")
             return self.shader_modules[self._density_budget_module_name()]
-        return self.shader_modules["correction_density_wall_crossing" if self._wall_crossing
-                                   else "correction_density"]
+        return self.shader_modules["correction_density_wall_crossing" + self._wall_crossing_pairwise_suffix()
+                                   if self._wall_crossing else "correction_density"]
 
     def _density_budget_module_name(self) -> str:
         """The DENSITY_BUDGET build of the fused pass (V7_DENSITY_BUDGET=1, diagnostic)."""
@@ -3295,13 +3331,13 @@ class SphSimulatorV7:
         """numerics.wall_crossing.split_dispatch (report section 22): for every pipeline of
         _wall_crossing_split_bases, <key>_split_interior (the interior build) and <key>_split_near_wall (the
         near-wall build), both with the key's spec constants + 131 = 1 (own class); a band pass of phase C with
-        V7_WALL_CROSSING_SPLIT_BAND_MODE=1 (default) is <key>_split_near_wall_every_particle (131 = 0) alone. The key's
+        V7_WALL_CROSSING_SPLIT_BAND_MODE=1 (not the default since report section 27) is
+        <key>_split_near_wall_every_particle (131 = 0) alone. The key's
         own pipeline stays built (the bootstrap runs it). The dispatch list per key goes to
         _wall_crossing_split_dispatches."""
-        by_material = "_by_material" if _WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST == "material" else ""
-        modules = {"fused": ("correction_density_wall_crossing_interior",
-                             f"correction_density_wall_crossing_near_wall{by_material}"),
-                   "force": ("force_wall_crossing_interior", f"force_wall_crossing_near_wall{by_material}")}
+        fused_near_wall, force_near_wall = self._wall_crossing_near_wall_module_names()
+        modules = {"fused": ("correction_density_wall_crossing_interior", fused_near_wall),
+                   "force": ("force_wall_crossing_interior", force_near_wall)}
         for base, (kernel, mode_entries, band) in self._wall_crossing_split_bases().items():
             interior_module, near_wall_module = (self.shader_modules[name] for name in modules[kernel])
             entries = self._global_entries() + mode_entries

@@ -1,0 +1,105 @@
+"""
+section27_cases.py - report section 27: the case variants of this round.
+
+    .venv/Scripts/python.exe -m experiment.wall_crossing.section27_cases
+
+  - *_pressure_pairwise: numerics.wall_crossing.pressure_wall_evaluation pairwise (3.3), for the 2-D cavities 250^2 /
+    500^2 / 1000^2, the 3-D cavity 1M and the 2-D hydrostatic boxes (gravity along -y and tilted 30 degrees);
+  - cavity3d_1m_crossing_no_split: split_dispatch false (the reference of 3.1's check: band mode 2 against the
+    unsplit passes);
+  - cavity3d_1m_crossing_frame_shift_3 / cavity3d_1m_frame_shift_3: the 3-D cavity with the frame's lower x face moved
+    out by three particle spacings (0.03): the grid origin moves by three spacings, so the two-slab cut at equal
+    weights falls at column 16 with 510,050 / 520,251 fluid particles instead of 499,849 / 530,452 (2.3). The frame
+    (frame.obj, git-ignored like every particle file) is written next to the case.yaml.
+Every variant copies its base case.yaml and changes only the named keys (a header comment says which).
+"""
+from __future__ import annotations
+
+import pathlib
+import sys
+
+REPOSITORY_ROOT = pathlib.Path(__file__).resolve().parents[2]
+CASES = REPOSITORY_ROOT / "cases"
+FRAME_SHIFT = 0.03
+
+
+def variant(base: str, name: str, comment: str, edit) -> None:
+    source = (CASES / base / "case.yaml").read_text(encoding="utf-8")
+    text = edit(source)
+    if text == source:
+        raise ValueError(f"{name}: the edit changed nothing")
+    target = CASES / name
+    target.mkdir(parents=True, exist_ok=True)
+    (target / "case.yaml").write_text(f"# VARIANT of cases/{base}/case.yaml (report section 27, 2026-11-20): {comment}\n"
+                                      + text, encoding="utf-8", newline="\n")
+    print("wrote", target.relative_to(REPOSITORY_ROOT))
+
+
+def add_wall_crossing_key(key_line: str):
+    def edit(text: str) -> str:
+        anchor = "  wall_crossing:\n"
+        if text.count(anchor) != 1:
+            raise ValueError("no unique numerics.wall_crossing mapping")
+        return text.replace(anchor, anchor + key_line)
+    return edit
+
+
+def relocated(base: str, edit):
+    """Particle / frame paths of a case in cases/<base> stay valid from a sibling directory: ../<base>/... already;
+    a path without ../ (a file next to the base case.yaml) gets ../<base>/."""
+    def apply(text: str) -> str:
+        lines = []
+        for line in text.splitlines(keepends=True):
+            stripped = line.strip()
+            if (stripped.startswith("frame:") or "file:" in stripped) and "../" not in line and ".obj" in line:
+                line = line.replace(": ", f": ../{base}/", 1) if stripped.startswith("frame:") else \
+                    line.replace("file: ", f"file: ../{base}/", 1)
+            lines.append(line)
+        return edit("".join(lines))
+    return apply
+
+
+def main() -> int:
+    pairwise_line = ("    pressure_wall_evaluation: pairwise   # report section 27: p_j per wall pair from the stored G_p\n")
+    for base in ("lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing",
+                 "lid_driven_cavity_2d_n500_xi0p001_eps0p0025_crossing",
+                 "lid_driven_cavity_2d_n1000_xi0p001_eps0p0025_crossing", "cavity3d_1m_crossing"):
+        variant(base, f"{base}_pressure_pairwise", "numerics.wall_crossing.pressure_wall_evaluation pairwise",
+                add_wall_crossing_key(pairwise_line))
+    for gravity in ("gy", "g30"):
+        base = f"wall_crossing/hydrostatic_2d_n250_{gravity}_crossing"
+        variant(base, f"{base}_pressure_pairwise", "numerics.wall_crossing.pressure_wall_evaluation pairwise",
+                add_wall_crossing_key(pairwise_line))
+    variant("cavity3d_1m_crossing", "cavity3d_1m_crossing_no_split", "numerics.wall_crossing.split_dispatch false",
+            add_wall_crossing_key("    split_dispatch: false   # report section 27: the unsplit reference\n"))
+    frame = (CASES / "cavity3d_1m" / "frame.obj").read_text(encoding="utf-8")
+    lower = "v -0.596000"
+    if frame.count(lower) != 4:
+        raise ValueError("unexpected frame.obj")
+    for base in ("cavity3d_1m_crossing", "cavity3d_1m"):
+        name = f"{base}_frame_shift_3"
+        def edit(text: str, base=base) -> str:
+            old = "frame: ../cavity3d_1m/frame.obj" if base != "cavity3d_1m" else "frame: frame.obj"
+            if text.count(old) != 1:
+                raise ValueError(f"{base}: no unique frame line")
+            text = text.replace(old, "frame: frame.obj")
+            if base == "cavity3d_1m":
+                text = text.replace("file: domain.obj", "file: ../cavity3d_1m/domain.obj") \
+                           .replace("file: wall.obj", "file: ../cavity3d_1m/wall.obj") \
+                           .replace("file: wall_top.obj", "file: ../cavity3d_1m/wall_top.obj")
+            return text
+        variant(base, name, f"the frame's lower x face moved out by {FRAME_SHIFT} (three particle spacings; frame.obj "
+                            "next to this file, generated by experiment/wall_crossing/section27_cases.py)", edit)
+        shifted = frame.replace(lower, f"v {-0.596 - FRAME_SHIFT:.6f}", 1)
+        # only the x coordinate of the four lower-x vertices: "v -0.596000 y z" -> the first number of those lines
+        lines = []
+        for line in frame.splitlines(keepends=True):
+            if line.startswith("v -0.596000 "):
+                line = line.replace("v -0.596000 ", f"v {-0.596 - FRAME_SHIFT:.6f} ", 1)
+            lines.append(line)
+        (CASES / name / "frame.obj").write_text("".join(lines), encoding="utf-8", newline="\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

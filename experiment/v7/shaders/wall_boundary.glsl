@@ -209,6 +209,9 @@ layout(std430, set = 0, binding = 12) buffer WallCrossingFluidInverseBuffer {
     // crossing: per fluid particle A_f^-1 (symmetric, the packing of correction_inverse) and a validity flag:
     //   [pid * 2]     = (m00, m11, m22, m01)
     //   [pid * 2 + 1] = (m02, m12, 0, valid)     valid = 1, or 0 when the inversion fell back (then G = 0)
+    // With WALL_CROSSING_PRESSURE_PAIRWISE (report section 27) instead
+    //   [pid * 2]     = (G_p, valid)             G_p = c^2(rho_i) A_f^-1 g_f(rho), 0 when the inversion fell back
+    // and [pid * 2 + 1] is not written.
     // Written by the fused correction + density pass, read by force of the same step for the particle itself
     // only. Transient like wall_dummy_velocity: defrag does not permute it, the transport does not carry it,
     // it is not part of the restart state. Wall slots are never written. Exists only with wall_boundary
@@ -232,6 +235,20 @@ const bool WALL_CROSSING_VELOCITY_GRADIENT_ACTIVE =
 // rate for all of them: it moves the level of the pressure and makes no gradient.
 layout(constant_id = 130) const uint  WALL_CROSSING_VOLUME_CONSTRAINT_ENABLED = 0u;
 const bool WALL_CROSSING_VOLUME_CONSTRAINT = WALL_CROSSING_ACTIVE && (WALL_CROSSING_VOLUME_CONSTRAINT_ENABLED != 0u);
+
+// report section 27: three compile-time variants of the WALL_CROSSING builds (compile_shaders_v7.py; macros, not spec
+// constants: a spec-constant branch, even folded at pipeline creation, changed the driver's code of the default path
+// - 15 more registers in the 2-D near-wall force, 4 % slower in 3-D -, so the default builds keep their bytes):
+//   WALL_CROSSING_MIRROR_SHARED (near-wall force; host default on, V7_WALL_CROSSING_REGISTER_TRIM): M_d lives in
+//     shared memory, one private slot per thread laid out component x thread (consecutive threads, consecutive
+//     words: no bank conflicts); the same arithmetic, the same results bit for bit;
+//   WALL_CROSSING_DELTA_SHARED (near-wall fused pass): likewise the two wall sums of the delta term;
+//   WALL_CROSSING_PRESSURE_PAIRWISE (numerics.wall_crossing.pressure_wall_evaluation pairwise, off by default): the
+//     fused pass stores G_p = c^2(rho_i) A_f^-1 g_f(rho) (3 floats and the validity flag instead of A_f^-1; c^2 =
+//     dp/drho of the Tait EOS at rho_i), and force gives every wall neighbour
+//         p_j = p_i + G_p . (r_j' - r_i) + rho_i g . (r_j - r_j')      (pressure_wall extension: r_j' = r_j)
+//     and the fluid neighbours' pair pressure term on either TIC branch; no wall sums in the loop and no wall term
+//     after it. The numbers change slightly: G comes from the density before this step's update.
 
 layout(std430, set = 0, binding = 15) buffer VolumeConstraintStateBuffer {
     // (rate in 1 / time, theta, 0, 0): written by the host at an update of the volume constraint, zero until the

@@ -93,6 +93,9 @@ def main() -> int:
     parser.add_argument("--uuid", required=True, help="Vulkan deviceUUID the device must have (hex, no dashes)")
     parser.add_argument("--t-end", type=float, default=100.0)
     parser.add_argument("--average-span", type=float, default=20.0)
+    parser.add_argument("--t-max", type=float, default=None,
+                        help="latest stop time (default max(200, t_end + 2 average_span)); report section 27: "
+                             "t_end = t_max for a short comparison that stops at t_end steady or not")
     parser.add_argument("--retries", type=int, default=3)
     parser.add_argument("--max-steps", type=int, default=None, help="stop after this many steps (a pilot run)")
     parser.add_argument("--root", default=None,
@@ -118,7 +121,8 @@ def main() -> int:
     run_directory = root / arguments.name
     root.mkdir(parents=True, exist_ok=True)
     output_path = root / f"{arguments.name}.out"
-    t_max = max(200.0, arguments.t_end + 2.0 * arguments.average_span)
+    t_max = (arguments.t_max if arguments.t_max is not None
+             else max(200.0, arguments.t_end + 2.0 * arguments.average_span))
     # the runner through cavity_runner_entry: the same main(), with a git_state that works without git
     base_command = [sys.executable, "-m", "experiment.wall_crossing.cavity_runner_entry", "--solver", "v7",
                     "--expect", "release", "--slabs", "1", "--device-map", str(arguments.device),

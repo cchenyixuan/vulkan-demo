@@ -53,6 +53,10 @@ WALL_CROSSING_DEFAULT_GEOMETRY = "pairwise"
 # continued pressure at the mirror point plus the body force, P_i + G_i . (r_j' - r_i) + rho_i g . (r_j - r_j').
 WALL_CROSSING_PRESSURE_WALL_CHOICES = ("extension", "reflection")
 WALL_CROSSING_DEFAULT_PRESSURE_WALL = "reflection"
+# report section 27: how force evaluates the wall neighbours' pressure (spec const 135). "summed" (default): the
+# sums of the loop and the term after it; "pairwise": p_j per wall pair from G_p the fused pass stored.
+WALL_CROSSING_PRESSURE_EVALUATION_CHOICES = ("summed", "pairwise")
+WALL_CROSSING_DEFAULT_PRESSURE_EVALUATION = "summed"
 # Spec const 117 (0, 1): which part of a wall neighbour's velocity difference enters the continuity equation.
 # "full" takes the whole vector (the mode as first specified, the default until 2026-11-18 and again since
 # 2026-11-19, as part of the complete scheme); "normal" (the default from 2026-11-18 to 2026-11-19, the user's
@@ -137,6 +141,7 @@ class WallCrossingSettings:
     continuity_extension: str = WALL_CROSSING_DEFAULT_CONTINUITY_EXTENSION
     geometry: str = WALL_CROSSING_DEFAULT_GEOMETRY
     pressure_wall: str = WALL_CROSSING_DEFAULT_PRESSURE_WALL
+    pressure_wall_evaluation: str = WALL_CROSSING_DEFAULT_PRESSURE_EVALUATION
     split_dispatch: bool = True
     split_dispatch_explicit: bool = False
     split_order: str = "near_wall_first"
@@ -146,6 +151,9 @@ class WallCrossingSettings:
 
     def pressure_wall_code(self) -> int:
         return WALL_CROSSING_PRESSURE_WALL_CHOICES.index(self.pressure_wall)
+
+    def pressure_wall_evaluation_code(self) -> int:
+        return WALL_CROSSING_PRESSURE_EVALUATION_CHOICES.index(self.pressure_wall_evaluation)
 
     def viscous_extension_code(self) -> int:
         return WALL_CROSSING_EXTENSION_CHOICES.index(self.viscous_extension)
@@ -240,6 +248,9 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
         continuity_wall_component: full | normal           (default full; normal from 2026-11-18 to 11-19)
         pressure_wall: reflection | extension              (default reflection since 2026-11-19, extension
                                                             before; reflection needs geometry pairwise)
+        pressure_wall_evaluation: summed | pairwise         (default summed; report section 27: pairwise gives
+                                                            every wall neighbour p_j from G_p the fused pass
+                                                            stored; the numbers change slightly)
         delta_wall: reflection | extension | rest_density | body_force
                                                            (default reflection since 2026-11-19, extension
                                                             before; reflection needs geometry pairwise;
@@ -263,11 +274,13 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
         raise ValueError(f"numerics.wall_crossing: expected a mapping, got {mapping!r}")
     unknown = sorted(set(mapping) - {"continuity", "distance_floor_factor", "box", "delta_wall",
                                      "continuity_wall_component", "viscous_extension", "continuity_extension",
-                                     "geometry", "pressure_wall", "split_dispatch", "split_order"})
+                                     "geometry", "pressure_wall", "pressure_wall_evaluation", "split_dispatch",
+                                     "split_order"})
     if unknown:
         raise ValueError(f"numerics.wall_crossing: unknown keys {unknown} (known: continuity, "
                          "distance_floor_factor, box, delta_wall, continuity_wall_component, viscous_extension, "
-                         "continuity_extension, geometry, pressure_wall, split_dispatch, split_order)")
+                         "continuity_extension, geometry, pressure_wall, pressure_wall_evaluation, split_dispatch, "
+                         "split_order)")
     split_order = str(mapping.get("split_order", "near_wall_first"))
     if split_order not in ("interior_first", "near_wall_first"):
         raise ValueError(f"numerics.wall_crossing.split_order: {split_order!r}, expected interior_first or "
@@ -284,6 +297,10 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
     if pressure_wall not in WALL_CROSSING_PRESSURE_WALL_CHOICES:
         raise ValueError(f"numerics.wall_crossing.pressure_wall: {pressure_wall!r}, expected one of "
                          f"{', '.join(WALL_CROSSING_PRESSURE_WALL_CHOICES)}")
+    pressure_wall_evaluation = str(mapping.get("pressure_wall_evaluation", WALL_CROSSING_DEFAULT_PRESSURE_EVALUATION))
+    if pressure_wall_evaluation not in WALL_CROSSING_PRESSURE_EVALUATION_CHOICES:
+        raise ValueError(f"numerics.wall_crossing.pressure_wall_evaluation: {pressure_wall_evaluation!r}, expected "
+                         f"one of {', '.join(WALL_CROSSING_PRESSURE_EVALUATION_CHOICES)}")
     extensions = {}
     for key, default in (("viscous_extension", WALL_CROSSING_DEFAULT_VISCOUS_EXTENSION),
                          ("continuity_extension", WALL_CROSSING_DEFAULT_CONTINUITY_EXTENSION)):
@@ -326,7 +343,8 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
                                 delta_wall=delta_wall, continuity_wall_component=continuity_wall_component,
                                 viscous_extension=extensions["viscous_extension"],
                                 continuity_extension=extensions["continuity_extension"],
-                                geometry=geometry, pressure_wall=pressure_wall, split_dispatch=split_dispatch,
+                                geometry=geometry, pressure_wall=pressure_wall,
+                                pressure_wall_evaluation=pressure_wall_evaluation, split_dispatch=split_dispatch,
                                 split_dispatch_explicit=split_dispatch_explicit, split_order=split_order)
 
 
@@ -453,7 +471,9 @@ def describe_wall_crossing(settings: WallCrossingSettings, particle_radius: floa
             f"distance floor {settings.distance_floor(particle_radius):.6g} m "
             f"(= {settings.distance_floor_factor:g} x spacing), continuity {settings.continuity}, "
             f"continuity_wall_component {settings.continuity_wall_component}, geometry {settings.geometry}, "
-            f"pressure_wall {settings.pressure_wall}, "
+            f"pressure_wall {settings.pressure_wall}"
+            + (f" (evaluated {settings.pressure_wall_evaluation})"
+               if settings.pressure_wall_evaluation != WALL_CROSSING_DEFAULT_PRESSURE_EVALUATION else "") + ", "
             + ("DIAGNOSTIC " if settings.delta_wall in ("rest_density", "body_force") else "")
             + f"delta_wall {settings.delta_wall}")
     if settings.velocity_gradient_active():

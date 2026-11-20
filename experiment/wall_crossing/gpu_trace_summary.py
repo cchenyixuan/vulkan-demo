@@ -46,6 +46,13 @@ LABELS = (("c3d_simple", "3-D 1M", "simple（整步）"), ("c3d_crossing", "3-D 
           ("n1000_simple", "2-D 1000²", "simple（整步）"), ("n1000_crossing", "2-D 1000²", "crossing（整步）"),
           ("n1000_near_wall_only", "2-D 1000²", "crossing 只调度近壁版本"),
           ("n1000_interior_only", "2-D 1000²", "crossing 只调度内部版本"))
+# report section 27: the same plus the near-wall-only runs with the register trims off and with the pairwise wall
+# pressure (this round's code; --section 27)
+LABELS_SECTION27 = (LABELS[:3] + (("c3d_near_wall_only_trim_none", "3-D 1M", "只调度近壁版本，寄存器精简关（= 2f71864）"),
+                                  ("c3d_near_wall_only_pairwise", "3-D 1M", "只调度近壁版本，壁面压力逐对计算")) + LABELS[3:4]
+                    + LABELS[4:7] + (("n1000_near_wall_only_trim_none", "2-D 1000²", "只调度近壁版本，寄存器精简关（= 2f71864）"),
+                                     ("n1000_near_wall_only_pairwise", "2-D 1000²", "只调度近壁版本，壁面压力逐对计算"))
+                    + LABELS[7:8])
 
 
 def read_frame(path: pathlib.Path) -> dict:
@@ -88,10 +95,13 @@ def main() -> int:
     from experiment.wall_crossing.report_tables import markdown_table, write
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--dir", required=True)
+    parser.add_argument("--section", type=int, default=26, help="26: section 26's runs; 27: with the extra rows")
     arguments = parser.parse_args()
     directory = pathlib.Path(arguments.dir)
+    labels = LABELS_SECTION27 if arguments.section == 27 else LABELS
+    suffix = "" if arguments.section == 26 else f"_section{arguments.section}"
     summary, rows, state_rows = {}, [], []
-    for label, case, text in LABELS:
+    for label, case, text in labels:
         path = directory / label / "BASE" / "GPUTRACE_FRAME.xls"
         if not path.exists():
             rows.append([case, text, "没有导出"] + [""] * 5)
@@ -104,10 +114,10 @@ def main() -> int:
                      f"{result['sm_throughput_active_pct']:.1f} %", f"{100 * result['compute_active_fraction']:.1f} %"])
         state_rows.append([case, text] + [f"{100 * result['states'].get(key, 0.0):.1f}" for key, _ in STATES[:9]])
     (directory / "summary.json").write_text(json.dumps(summary, indent=1), encoding="utf-8")
-    write("gpu_trace_summary.md", markdown_table(
+    write(f"gpu_trace_summary{suffix}.md", markdown_table(
         ["算例", "运行", "实际占用率（计算忙时）", "每条指令的活动线程（/32）", "显存流量 MB / 步",
          "计算忙时的显存带宽 GB/s", "计算忙时 SM 吞吐（峰值的 %）", "trace 期间计算忙的比例"], rows))
-    write("gpu_trace_states.md", markdown_table(
+    write(f"gpu_trace_states{suffix}.md", markdown_table(
         ["算例", "运行"] + [f"{text} %" for _, text in STATES[:9]], state_rows))
     return 0
 
