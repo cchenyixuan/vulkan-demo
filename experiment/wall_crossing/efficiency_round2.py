@@ -50,7 +50,7 @@ def main() -> int:
                      change("trim_mirror", "pairwise"), change("base_2f71864", "pairwise")])
     write("efficiency_round2_single.md", markdown_table(
         ["算例", "simple 每步 µs（三轮范围）", "2f71864 / simple", "本轮代码、精简关 / simple", "+3.2（M_d 共享）/ simple",
-         "+3.2 +3.3 / simple", "本轮代码精简关对 2f71864", "M_d 共享（= 3.2）", "只开 δ 项", "两项都开", "3.3（在 3.2 之上）",
+         "+3.2 +3.3 / simple", "本轮代码精简关对 2f71864", "M_d 共享（= 3.2；对精简关）", "只开 δ 项（对精简关）", "两项都开（对精简关）", "3.3（对 3.2）",
          "+3.2 +3.3 对 2f71864"], rows))
 
     path = TIMING / "c3d_k2_steady" / "summary.json"

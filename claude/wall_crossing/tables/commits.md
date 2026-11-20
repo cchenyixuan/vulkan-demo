@@ -101,5 +101,7 @@
 | `6beb49c` | report section 25: new crossing defaults checked bit for bit; 3-D cavity at 50 / 70 / 100 spacings; 3-D adami 1M on the second machine; resume of the integral term |
 | `5f84926` | wall_boundary crossing: near-wall marker distance rule (report section 26 B1), by-material diagnostic builds, efficiency tools |
 | `2f71864` | report section 26: efficiency round 1 - near-wall cost, the dual-GPU excess, the two bit-identical optimisations |
+| `4f76509` | report section 26: GPU Trace on the second machine - occupancy, active threads, stall reasons per build |
+| `659c153` | wall_boundary crossing: band mode 2 default, shared-memory accumulators, pairwise wall pressure (report section 27) |
 
 （加入本报告的那个提交排在这些之后。）
