@@ -95,5 +95,8 @@
 | `61c490d` | report section 23: why the split dispatch fell short, the band mode 1 difference, the 3-D density drop |
 | `2f16c8c` | volume constraint: integral term (numerics.volume_constraint.integral, off by default); split_order as a case key |
 | `f71642b` | 3-D cavity benchmark data (Albensoeder & Kuhlmann 2005, Tables 5 and 6) and the comparison tools (report section 24) |
+| `0088ce0` | report section 24: integral term of the volume constraint; the 3-D cavity against Albensoeder & Kuhlmann (2005) |
+| `75f22e6` | wall_boundary crossing: new defaults (report section 25) - split dispatch on, near-wall first; integral term and GPU mean volume on |
+| `39d6800` | report section 25 tools: resume check of the integral term, the 3-D resolution comparison |
 
 （加入本报告的那个提交排在这些之后。）

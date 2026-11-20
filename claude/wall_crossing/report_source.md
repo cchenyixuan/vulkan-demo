@@ -1,6 +1,6 @@
 # `wall_boundary: crossing`（穿壁比例壁面）实现与验收报告
 
-- 分支 `v7-wall-crossing`，基点 `origin/bootstrap-density-fix`（eda5b90）。2026-11-19 按用户的任务书推送到 `origin/v7-wall-crossing`（到 `d94c26c`），并打了带说明的标签 `crossing-boundary`（指向 `d94c26c`，第 20 节）；之后的提交（第 20 节的监视、第 21 节的网格原点、第 22–24 节）只在本地。没有合并。
+- 分支 `v7-wall-crossing`，基点 `origin/bootstrap-density-fix`（eda5b90）。2026-11-19 按用户的任务书推送到 `origin/v7-wall-crossing`（到 `d94c26c`），并打了带说明的标签 `crossing-boundary`（指向 `d94c26c`，第 20 节）；之后的提交（第 20 节的监视、第 21 节的网格原点、第 22–25 节）只在本地。没有合并。
 - 工作树 `C:\Users\cchen\PycharmProjects\vulkan-demo-wall-crossing`。
 - 本文由 `experiment/wall_crossing/report_tables.py` 从 `claude/wall_crossing/report_source.md` 和各工具写出的表格拼成；表里的数字都是工具从结果文件读出来的，没有手抄。
 - 每个数字后面的 `wc-…` 是 `logs/wall_crossing/runs.jsonl` 里的记录号。`logs/` 不入库，所以记录文件另存了一份在 `claude/wall_crossing/runs.jsonl`（本机）和 `claude/wall_crossing/runs_DESKTOP-9IN3NPD.jsonl`（第二台机器）。
@@ -12,6 +12,7 @@
 > - **第 22 节（2026-11-19）把网格偏移的门槛降到 0.05 dx**（`73e3137`，`numerics.grid_boundary_clearance_minimum`）：2-D 方腔回到原来的网格（与第 21 节以前逐位相同），48³ 静水盒仍挪 0.5 dx。另加了两个缺省关闭的开关（`numerics.wall_crossing.split_dispatch`、`numerics.volume_constraint.gpu_mean_volume`）。
 > - **第 23 节（2026-11-19）**：查分开计算的效率和 3-D 平均密度下降。第 22 节的分核计时偏慢（两次调度之间的时间戳），第 22 节对方式 1 / 方式 2 的比较也受它影响；双卡分界带方式 1 的舍入差别是近壁 force 版本读了没更新的 A_f⁻¹，已修（只改 `force_wall_crossing_near_wall`）；3-D 密度下降来自连续性壁面项里的切向速度差，float32 存储把它掩盖了约四成。第 22 节里与此相反的推测作废。
 > - **第 24 节（2026-11-20）**：总体积修正加了积分项（缺省关闭），3-D 的密度偏移归零；3-D 方腔对 Albensoeder & Kuhlmann (2005) 基准：完整速度差（极值偏差 ≤ 2.6 %）比只取法向（弱 4–7 %）更近，simple 弱约 15 %。
+> - **第 25 节（2026-11-20）**：分开计算（近壁先）、积分项、GPU 平均体积改为缺省，逐位检查通过；3-D 方腔三个分辨率：crossing 收敛阶 1.4–2.0，simple 0.75–1.0；adami 的粗分辨率在 t = 0.6 停下，1M（远端）跑完、涡偏强 4–8 %；积分项的续跑通过。
 > - **第 9 节改了一个缺省值**：`numerics.wall_crossing.continuity_wall_component` 从 `full` 改成 `normal`。第 1 到 8 节里 crossing 的全部结果都是改之前（`full`）的；各表里标着"旧缺省"或 `full` 的就是它。
 > - **第 18 节改了四个缺省值**（从提交 `3cba19f` 起）：`geometry` → `pairwise`、`continuity_wall_component` → `full`、`pressure_wall` → `reflection`、`delta_wall` → `reflection`（完整方案）；约束仍默认关闭。第 1 到 17 节里 crossing 的结果都是改之前的缺省；第 9 到 17 节说的“现缺省”“一阶”指 2026-11-18 的缺省（nearest_wall + normal + extension + extension）。
 > - 第 1–4 节是停止之前写的。其中标着"**未完成**"的地方没有再补：结论摘要、6.4 的文字结论和 1000² 一档、3-D 方腔的互比、3-D 计时、K = 2 吞吐、各阶段的"未验证"清单、下一步建议。
@@ -3659,6 +3660,264 @@ B0、B1、B3、B4 的粒子数全程不变，各 overflow 计数全程为 0，�
 - 3-D 只比了 1M 一种分辨率，没有做网格收敛。完整速度差与基准差 2.6 % 以内，里面有多少是分辨率误差、多少是方法误差，没有分开。
 - 2-D 的积分项只跑到 t = 10，没有跑到第 17 节那样的 t = 100。
 
+## 25. 追加（二十）：改缺省值；3-D 方腔的分辨率；3-D adami 1M；积分项的续跑（2026-11-20）
+
+用户的任务书：接着第 24 节（`0088ce0`）做四件事。
+
+- A：把已经验证过的几个开关改成缺省。
+- B：3-D 方腔再跑每边 50、70 两个低分辨率，和 1M 一起看收敛。
+- C：3-D 方腔 1M 的 adami，优先在远端机器上跑。
+- D：带积分项的续跑检查。
+
+写进报告后停下。
+
+> **本节的状态**：做完了，停在这里等用户看。
+> - 改动只在本地提交（`75f22e6`、`39d6800` 和加入本节的提交），没有推送。
+> - 只改了任务书第 2 节列出的缺省值。
+> - 着色器只改了注释，SPIR-V 全部逐字节不变。
+> - simple、adami 与 `0088ce0` 逐位相同（25.1）。
+
+**先说结论**
+
+- **A：缺省值改了，逐位检查全部通过**。
+  - 现在的缺省：`split_dispatch` 开、`split_order` 近壁先、`integral` 开、`gpu_mean_volume` 开。双卡分界带本来就是方式 1，不用改。总体积修正本身仍缺省关。
+  - 逐位检查：simple、adami（2-D 250²，200 步）与 `0088ce0` 逐位相同。crossing 关修正（2-D 700 步，3-D 1M 单卡、双卡各 200 步）和开修正（2-D 700 步，单卡、双卡）的新缺省，与 `0088ce0` 上把同样设置显式写出来的结果落在同一组结果类里。
+  - 局限：开修正的检查在第一次修正更新之前就结束了。
+- **B：crossing 收敛，阶在 1.4 到 2.0 之间；simple 只有 0.75–1.0**（误差 ∝ dx^p，三个分辨率每边 50 / 70 / 100 个间距）：
+
+  | 方法 | 每边间距数 | u_min | v_max | v_min | L2：u(y) / v(x) |
+  |---|---|---|---|---|---|
+  | crossing（新缺省 + 总体积修正） | 50 / 70 / 100 | −3.5 / −0.9 / +0.6 % | −4.0 / −2.2 / −1.0 % | −8.1 / −4.7 / −2.6 % | 0.020 / 0.018 → 0.010 / 0.010 → 0.006 / 0.006 |
+  | simple | 50 / 70 / 100 | −24.9 / −19.0 / −14.0 % | −27.2 / −20.9 / −15.7 % | −25.7 / −20.1 / −15.1 % | 0.064 / 0.059 → 0.049 / 0.045 → 0.038 / 0.034 |
+  | adami | 100 | +8.3 % | +7.2 % | +4.3 % | 0.008 / 0.015 |
+
+  （百分数是极值大小相对基准，正 = 比基准强。）
+  - crossing 的 u_min 偏差穿过零，不给阶。
+  - **adami 的 50、70 都在 t = 0.6 超过 1.2 倍盖速停下**（下游盖角的单个粒子），没有重跑，所以 adami 没有收敛阶。
+  - 七个跑完的运行在窗口 35–45 已大体定常（动能每单位时间变 −0.02 % 到 −0.04 %）。
+- **C：远端机器能用**（RTX 5090，驱动 610.88，Vulkan 1.4.341，密码登录）。
+  - 1M adami 用 2 小时 33 分钟跑到 t = 45，没有停下：最大速度 1.109 倍盖速，在 t = 13.68 的上游盖角。
+  - adami 的涡偏强 4–8 %，剖面误差在 crossing 和 simple 之间。
+- **D：续跑没问题**。
+  - 续跑时读回的 I 和 v_ref 与存检查点时逐位相同。
+  - 续跑后的 θ、平均密度对连续运行的差，不大于两次连续运行之间的差；I 的差是两次连续运行之间的两倍（1.7e-6 对 0.9e-6）。
+  - 用没有 I 的旧检查点续跑：打印警告，I 从 0 开始。
+
+### 25.1 A：改默认值
+
+**默认值改动**（`75f22e6`；都只影响 crossing，总体积修正本身仍默认关）：
+
+| 键 | 以前的默认 | 现在的默认 | 说明 |
+|---|---|---|---|
+| `numerics.wall_crossing.split_dispatch` | false | **true** | 算例没写这个键时取默认；在不支持分开计算的配置上（二阶延拓、`V7_DENSITY_BUDGET=1`、inlet / rotor 材料、`V7_BAND_COMPACT_DISPATCH`、`V7_BAND_OVERLAP`、`V7_FAKE_BAND_TEST`）默认自动退回 false，并打印原因。算例里显式写了 true 的，在这些配置上照旧报 ValueError |
+| `numerics.wall_crossing.split_order` | interior_first | **near_wall_first** | 调试用的环境变量 `V7_WALL_CROSSING_SPLIT_ORDER` 设了时仍然优先 |
+| 双卡分界带（第 23 节，环境变量 `V7_WALL_CROSSING_SPLIT_BAND_MODE`） | 1 | 1（不变） | 第 22 节起缺省就是方式 1（分界带只跑近壁版本），不用改 |
+| `numerics.volume_constraint.integral` | false | **true** | 只在 `enabled: true` 时起作用 |
+| `numerics.volume_constraint.gpu_mean_volume` | false | **true** | 同上；规约要求工作组大小是不超过 1024 的 2 的幂，现有算例全是 128 |
+
+- **改了的地方**：`wall_crossing_v7.py`（数据类缺省、解析缺省、新字段 `split_dispatch_explicit`、文档）；`volume_constraint_v7.py`（数据类缺省、解析缺省、文档）；`simulator_v7.py`（分开计算的判定：默认在不支持的配置上退回关；拒绝的条件抽成 `_wall_crossing_split_unsupported_reason`）。
+- **注释**：写着旧默认值的注释一起改了，包括 `compile_shaders_v7.py`、四个着色器源文件的注释、`_test_seam_layout.py`、`split_dispatch.py`、`volume_constraint_check.py`。着色器只改了注释，重编后 33 个 SPIR-V 文件逐字节不变，清单不用改。
+- `CLAUDE.md` 里没有写这几个键的默认值，没有改。
+- **算例**：现在打开总体积修正的主要封闭域算例如下，都已经打开，没有需要补的：
+  - 2-D 方腔：`lid_driven_cavity_2d_n{250,500,1000}_xi0p001_eps0p0025_crossing`；
+  - 3-D 方腔：`cavity3d_1m_crossing`；
+  - 静水盒：`wall_crossing/hydrostatic_2d_n250_{g30,gy}_crossing`、`hydrostatic_3d_n48_{gtilt,gy}_crossing`。
+- **没有打开修正的 crossing 算例都是以前各节的实验变体**（`_wall_velocity`、`_quadratic_*`、`_reflection*`、`_pairwise*`、`_delta_wall_*`、`_no_volume_constraint`、`_constraint_off` 等，共 41 个，不算本节为逐位核对加的两个）。它们记录的是当时的设置，我没有改。
+- 显式写了旧值的算例照样能用：写 `split_dispatch: false` 的就不拆开，写 `split_order: interior_first` 的照旧内部先。
+- 二阶延拓的算例没有写这个键，现在会打印一行“默认开，在此关”，照旧不拆开运行。
+
+**检查**（canonical 转储，按结果类比较；两张卡空闲；新代码 `75f22e6` 用新默认、算例里不写这些键；`0088ce0` 用同一算例的一个变体，把同样的设置显式写出来；3-D 用 3-D 的缓冲区系数，第 20 节的做法）：
+
+<!-- include: tables/section25_checks.md -->
+
+- **全部通过**：每一个有新代码运行的结果类里都有 `0088ce0` 的运行。
+- 2-D 700 步的两个类 `b65a33c0554d`、`1d3f1d0702b5` 和双卡的 `40240f4c3f14`、`fbaa61fc0140`，都是第 22–24 节里见过的类。
+- **检查 3 的局限**：canonical 转储在第一次 defrag（第 1,000 步）之前结束，而总体积修正只在 defrag 时更新，所以这 700 步里修正一次都没更新。这一项只说明到第一次更新为止两边相同。积分项和 GPU 平均体积在运行中的效果，看第 24 节和下面的 25.2（3-D 方腔）、25.4（续跑）。
+- `_test_seam_layout.py`：858 项不通过，与本分支早就记录的 858 项逐条相同，没有新增。
+
+### 25.2 B：3-D 方腔的分辨率
+
+**算例**：
+
+- 用生成器 `utils/geometry/_demo_cavity_case_3d.py --half 25 / 35 --border 9` 生成，与 1M（`--half 50 --border 9`）同一个定义，只改粒子间距。我核对过，用 `--half 50 --border 9` 重新生成得到的粒子文件与 1M 的逐字节相同，`case.yaml` 的物理和数值部分相同。
+- “每边 50 / 70 个”我理解为每边 50 / 70 个间距（51 / 71 个粒子），这样 1M（每边 100 个间距、101 个粒子）就是“100”。
+- h / dx = 4，壁 9 层，其余参数都不变。crossing 和 adami 的变体照 1M 的做法生成（引用同一组粒子文件），crossing 用新缺省并打开总体积修正。
+
+| 每边间距数 | dx | h | 流体粒子 | 全部粒子 | dt | 到 t = 45 的步数 | 有效边长（mid 帧，1 + dx） | 有效 Re |
+|---|---|---|---|---|---|---|---|---|
+| 50 | 0.02 | 0.08 | 132,651 | 328,509 | 1.2e-4 | 375,000 | 1.02 | 1020 |
+| 70 | 0.01429 | 0.05714 | 357,911 | 704,969 | 8.57e-5 | 525,000 | 1.0143 | 1014 |
+| 100 | 0.01 | 0.04 | 1,030,301 | 1,685,159 | 6e-5 | 750,000 | 1.01 | 1010 |
+
+有效边长和 Re 没有修正，三个分辨率的 Re 差 1 %。
+
+**运行**：
+
+- 两张卡上各三个，依次跑：GPU 0 为 70 crossing、70 adami、50 simple；GPU 1 为 70 simple、50 crossing、50 adami。
+- 用冻结检出 `75f22e6`、监督脚本启动，采样与第 19、24 节相同；停止条件同第 24 节，adami 的速度门槛 1.2 倍盖速。
+- **估时**：试跑几分钟时，70 的运行约 160–200 步/秒（同时还有 D 的 2-D 运行），估计每个 45–55 分钟；50 的估计 15–20 分钟。实际 10:03 开始，11:09 全部结束。
+- 每步时间见下表（两个运行同时各占一张卡；D 的运行和第二次连续运行也在这段时间里用过卡，计时只能大致参考）。
+
+<!-- include: tables/cavity3d_resolution_runs.md -->
+
+- crossing、simple 的六个运行都跑到 t = 45，粒子数不变，没有越出盒，最大速度都在门槛以下（simple 50 的最大是 1.027，门槛 1.05）。
+- **adami 的 50 和 70 都在 t = 0.6 停下**，没有重跑（任务书说停下就报告）：
+
+<!-- include: tables/cavity3d_resolution_stops.md -->
+
+  - 坐标是算例坐标：流体在 [−0.5, 0.5]³，盖子在 y = +0.5，往 +x 动。
+  - 两个运行最先变快的都是上游盖角（x ≈ −0.50、y ≈ +0.50）贴着盖子的粒子，最后超过门槛的是下游壁（x ≈ +0.50）上、盖子下面 1–1.5 dx 的粒子，即盖子把流体推进下游壁的那个角。
+  - 粒子数不变，没有粒子越出盒。
+  - 第 19 节的 1M adami 在 t = 6.72 达到 1.065 倍盖速。这里两个粗分辨率在 t = 0.6 就超过 1.2 倍，比 1M 早得多。原因没有查。
+
+**与基准对比**（窗口 t = 35–45；极值偏差 = (|ours| − |基准|) / |基准|，正 = 比基准强；L2 / L∞ 在 15 个内部点上，单位是盖速）：
+
+<!-- include: tables/cavity3d_resolution_errors.md -->
+
+**收敛阶**（误差 ∝ dx^p，dx = 1 / 间距数；误差变号或不单调时不给阶）：
+
+<!-- include: tables/cavity3d_resolution_orders.md -->
+
+![crossing 三个分辨率](wall_crossing/figures/cavity3d_resolution_crossing.png)
+
+![simple 三个分辨率](wall_crossing/figures/cavity3d_resolution_simple.png)
+
+![adami：只有 100](wall_crossing/figures/cavity3d_resolution_adami.png)
+
+- **crossing 收敛，阶在 1.4 到 2.0 之间**（最小二乘）：
+  - 剖面误差 L2 从 0.020 / 0.018（50）到 0.010 / 0.010（70），再到 0.006 / 0.006（100）。最小二乘的阶 1.6–1.8，L∞ 是 1.4–1.9，两两的阶在 1.2–2.6 之间。
+  - v_max、v_min 的偏差也单调变小，阶 1.95 和 1.65。
+  - u_min 的偏差从 −3.5 % 经 −0.9 % 到 +0.6 %，穿过了零，不给阶。
+- **simple 也收敛，但只有约一阶，而且误差大得多**：三个极值的偏差从 −25 %（50）到 −19 %（70），再到 −14 至 −16 %（100），阶 0.76–0.83；L2 的阶 0.75–0.82，L∞ 的 0.82–1.02。
+  - 按这个阶外推，要 simple 达到 crossing 在 100 上的误差（L2 ≈ 0.006），需要约 1/dx ≈ 1000（推测，只是外推）。
+- **adami 只有 100 一个分辨率**（50、70 在 t = 0.6 停下），给不出收敛阶。100 的结果见 25.3。
+- **离定常**：跑到 t = 45 的七个运行（crossing、simple 各三个，adami 的 100），窗口 35–45 内动能的斜率都在每单位时间 −0.018 % 到 −0.035 % 之间，窗口内变化不到 0.4 %。与第 24 节的判断一样，已经大体定常。动能和平均密度的历史见下图。
+- **每步时间**：50 约 2.5–2.9 ms，70 约 5.3–5.8 ms，100 约 10.7–12.2 ms，大致与粒子数成正比（见上表）。这些是运行日志里的步速，不是计时测量：本机两张卡同时各跑一个，D 的 2-D 运行有一段也在同一时间。
+
+![三个分辨率的动能与平均密度](wall_crossing/figures/cavity3d_resolution_history.png)
+
+![crossing 的平均压力、θ 与 I](wall_crossing/figures/cavity3d_resolution_crossing_constraint.png)
+
+- **crossing 的总体积修正**：
+  - 开始时平均密度先下降，谷底是 ρ0 − 0.097（50）、−0.077（70）、−0.050（100）kg/m³，分辨率越粗下降越深。三个分辨率都在 t ≈ 12–15 回到 ρ0。
+  - 窗口 35–45 的平均密度是 ρ0 − 0.00001、+0.0003、+0.0007 kg/m³；平均压力 0.9、4.0、7.6 Pa。
+  - I 在 t ≈ 12 以后基本走平，大小 1.08e-4、1.02e-4、0.95e-4，分辨率越粗越大。窗口内 I 的变化是 +0.04 %、−0.7 %、−1.6 %。100 的 I 还在慢慢往下走，与第 24 节一样，对应的 θ 平均是 −6e-7。
+- **simple 的平均密度**：没有修正，停在 ρ0 − 0.0004（50）、−0.0006（70）、−0.0009（100）kg/m³。
+
+### 25.3 C：3-D adami 1M（远端机器）
+
+**远端机器**：
+
+| 项 | 情况 |
+|---|---|
+| 机器 | `DESKTOP-9IN3NPD`，Windows 11 Pro 10.0.26200，AMD Ryzen 7 9800X3D，内存 61.6 GB |
+| GPU | 一张 NVIDIA GeForce RTX 5090（32 GB，PCIe 5.0 x16，功率上限 575 W），驱动 610.88；另有一个 AMD 核显 |
+| Vulkan | 能用：RTX 5090 的 API 1.4.341；我们的程序按“独立显卡在前”排序，5090 是设备 0 |
+| Python | 第 19 节的专用目录 `D:\vulkan-demo-wall-crossing` 里的 venv：Python 3.13.11，numpy 2.4.6，scipy 1.17.1 |
+| 登录 | 用户名加密码，用 paramiko 登录；没有配密钥（见 25.6） |
+| 代码 | 远端没有 git：`75f22e6` 的 `git archive` 打包后用 sftp 传过去解开，1M 的 `.obj` 另外打包传。远端目录里写了 `COMMIT`（`75f22e6`）。33 个 SPIR-V 的 SHA-256 与本机逐一相同 |
+| 系统级改动 | 没有。只在 `D:\vulkan-demo-wall-crossing` 里操作；运行用 WMI 起成独立进程，断开 ssh 不影响它 |
+
+**运行** `s25_cavity3d_1m_adami_remote`（记录 `wc-20261120-100438-7f1f`；远端的记录行也追加进了本机的 `logs/wall_crossing/runs.jsonl`，`machine` 字段是远端机器名）：
+
+- 与第 24 节的 1M 同一算例（`cases/cavity3d_1m_adami`），单卡，到 t = 45，采样、剖面、检查点同 B，停止条件：速度超过 1.2 倍盖速，或者有粒子越出盒。
+- **估时**：起跑一分半钟时（第 8,000 步）约 85 步/秒，估计 750,000 步约 2.5 小时，没有超过 6 小时，所以留在远端跑。
+- **实际**：10:04:38 起跑，12:37:29 结束，**用时 2 小时 33 分钟**，平均 82 步/秒（每步 12.2 ms；本机第 24 节 1M crossing 是 82.5 步/秒）。运行中 GPU 占用 100 %，功率 456–502 W，SM 频率 2640–2737 MHz，温度 81 °C。
+- **没有停下**：跑到 t = 45，粒子数不变，没有粒子越出盒，修正矩阵和梯度的回退次数都是 0。
+- 全程最大速度 1.109 倍盖速，出现在 t = 13.68，位置 (−0.502, +0.503, +0.496)，就是上游盖角在 z 方向的端点（上游壁、盖子、侧壁三面相交处）。
+  - 376 次采样里有 11 次超过 1.05，只有 1 次超过 1.1。第一次超过 1.05 是在 t = 1.08（1.070）。
+  - 第 19 节同一算例的运行在 t = 6.72 才第一次超过 1.05。单个粒子的最大速度本身起伏很大，两次运行第一次超过的时刻不同，不说明什么。
+  - 窗口 35–45 内的最大是 1.052。
+- 平均密度：没有总体积修正，停在 ρ0 − 0.0055 kg/m³（窗口平均），比 simple 的 −0.0009 低。
+
+**与 crossing、simple 的 1M 并列**（同一个表的 100 那几行；t = 35–45）：
+
+| 方法 | u_min 偏差 | v_max 偏差 | v_min 偏差 | u(y) L2 | v(x) L2 | u(y) L∞ | v(x) L∞ | 窗口内动能 |
+|---|---|---|---|---|---|---|---|---|
+| crossing（新缺省 + 总体积修正含积分项） | +0.6 % | −1.0 % | −2.6 % | 0.0058 | 0.0059 | 0.0118 | 0.0134 | 24.31 |
+| simple | −14.0 % | −15.7 % | −15.1 % | 0.0383 | 0.0335 | 0.0740 | 0.0686 | 19.11 |
+| adami | +8.3 % | +7.2 % | +4.3 % | 0.0084 | 0.0146 | 0.0155 | 0.0230 | 26.33 |
+
+![1M 三种方法](wall_crossing/figures/cavity3d_resolution_1m_methods.png)
+
+- **adami 的涡偏强**：三个极值都比基准大 4–8 %。这与 2-D 里 adami 偏强的方向一样（第 15 节 500² 的 ψ_min：+1.39 %），3-D 里更明显。
+- 剖面误差 L2 是 0.008 / 0.015：比 simple（0.038 / 0.034）小得多，但比 crossing（0.006 / 0.006）大，v(x) 上大约是 crossing 的 2.5 倍。
+- 动能 26.3，比 crossing（24.3）高 8 %，比 simple（19.1）高 38 %。基准没有给动能，所以不能说哪个对。
+- 粗分辨率的 adami 在 t = 0.6 就停下（25.2），所以 adami 只有这一个分辨率的结果，不知道它随分辨率怎么变。
+
+### 25.4 D：带积分量的续跑
+
+2-D 250² crossing，新默认 + 总体积修正（`lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing`，没有写这几个键），本机。
+
+| 运行 | 做法 | 记录 |
+|---|---|---|
+| `s25_resume_continuous` | 一次跑到 t = 10.02 | `wc-20261120-100506-bbe3` |
+| `s25_resume_continuous_b` | 同上再跑一次，用来看两次连续运行之间本来就有多大差别（我加的） | `wc-20261120-101050-c157` |
+| `s25_resume_segmented` | 跑到 t = 5.1，在第 167,000 步（t = 5.01）存检查点；再续跑到 t = 10.02 | `wc-20261120-100506-a3a3`、`-100707-5678` |
+| `s25_resume_old_checkpoint` | 第一段的检查点复制一份，删去 `_volume_constraint_integral`，续跑到 t = 7.02 | `wc-20261120-100904-d00c` |
+
+为了逐位比较，续跑时读回 I 的那行打印改成了完整精度（`repr`，`39d6800`）。
+
+**读回的 I 和 v_ref 与存检查点时逐位相同**：
+
+<!-- include: tables/resume_integral_restore.md -->
+
+检查点在第 167,000 步，不是更新的步（每 6,000 步更新一次），所以存下的 I 就是第 162,000 步那次更新后的值。三处的 I 和 v_ref 都逐位相同。
+
+**续跑后接得上**（不要求逐位相同：defrag 之后求解器本来就不逐位确定）：
+
+<!-- include: tables/resume_integral_continuity.md -->
+
+- θ 和平均密度：续跑对连续运行的最大差（2.4e-6、0.0026 kg/m³），不大于两次连续运行之间的最大差（2.8e-6、0.0043 kg/m³）。
+- I：最大差 1.7e-6，是两次连续运行之间（0.9e-6）的约两倍。
+  - 续跑后的第一个 defrag 本身就是一次更新（现有的做法，第 22 节写过）。它在第 167,000 步多加了一次 θ Δ / (τ T_I)，之后的更新时刻也比连续运行晚 5,000 步。I 是 θ 的累积，两段轨迹上 θ 的差会一直累积在 I 里。我认为这是差两倍的原因，但没有单独验证。
+  - 1.7e-6 相当于平均密度变化率 0.0017 kg/m³ 每单位时间，比 2-D 里 θ 自己的起伏（标准差 1e-6）还小。
+
+**没有 I 的旧检查点**：
+
+<!-- include: tables/resume_integral_old_checkpoint.md -->
+
+打印了警告，I 从 0 开始：第一次更新后 I = θ Δ / (τ T_I) = 4.4e-9，到 t = 7.02 积到 3.7e-7。v_ref 仍从检查点读回（这个检查点里有），所以只有关于 I 的那条警告。
+
+### 25.5 改动清单
+
+| 提交 | 内容 |
+|---|---|
+| `75f22e6` | **A** 默认值：`split_dispatch` 开、`split_order` 近壁先、`integral` 开、`gpu_mean_volume` 开。`wall_crossing_v7.py`、`volume_constraint_v7.py`、`simulator_v7.py`（缺省在不支持的配置上退回关，抽出 `_wall_crossing_split_unsupported_reason`）。改了写着旧默认值的注释，包括 4 个着色器源文件（只有注释，SPIR-V 逐字节不变）。新增逐位核对用的 3 个算例（把新缺省显式写出来，给 `0088ce0` 跑），以及 `cavity3d_n50{,_crossing,_adami}`、`cavity3d_n70{,_crossing,_adami}`（只有 `case.yaml`；`.obj` 被 git 忽略，用生成器重新生成） |
+| `39d6800` | 工具：`resume_integral_check.py`（D）、`cavity3d_resolution.py`（B、C）。续跑时读回 I 的打印改成完整精度 |
+| 本节的提交 | 报告第 25 节、表、图；`cavity3d_resolution.py` 加了停下运行的表和 1M 三种方法的图；远端运行的小文件（序列、剖面、摘要）取回到 `logs/wall_crossing/box_run/s25_cavity3d_1m_adami_remote/`（检查点和最终状态留在远端） |
+
+都只在本地提交，没有推送。
+
+### 25.6 我自己做的决定
+
+- **“每边 50 / 70 个”按间距数理解**（51 / 71 个粒子），这样 1M（每边 100 个间距）就是“100”，三个分辨率的 dx 是 0.02、1/70、0.01。
+- **分开计算的缺省开在不支持的配置上自动退回关**，而不是报错。
+  - 以前 `split_dispatch: true` 遇到二阶延拓等配置会报 ValueError。缺省改成开以后，如果照旧报错，所有没写这个键的二阶延拓算例就跑不起来了。
+  - 现在只有算例里显式写了 true 才报错；缺省开时打印一行原因后退回关。
+- **双卡分界带的键没有改**：它的缺省已经是方式 1。
+- **没有给实验变体算例补总体积修正**：41 个没开修正的 crossing 算例都是以前各节的对照或变体，改了会让它们不再是当时的设置。主要的封闭域算例（2-D 方腔、3-D 方腔、静水盒）都已经开了。
+- **逐位核对的旧代码一侧**：新代码用新默认、算例不写这些键；`0088ce0` 一侧用把同样设置显式写出来的变体算例。3-D 双卡用 3-D 的缓冲区系数（第 20 节的做法，否则双卡会丢粒子）。
+- **D 多跑了一次连续运行**（`s25_resume_continuous_b`），用来给续跑的差一个尺度：求解器在 defrag 之后本来就不逐位确定，单看续跑和一次连续运行的差，不知道它算大还是小。
+- **D 的“t = 5 存检查点”**：第一段跑到 t = 5.1，检查点在 t = 5.01（第 167,000 步，`--checkpoint-time 5` 之后的第一个 defrag），从这个检查点续跑。
+- **D 的旧检查点**：把这个检查点复制一份，删去 `_volume_constraint_integral` 这一项，其他不动，再从它续跑。
+- **B 里 adami 的 50、70 在 t = 0.6 停下，没有重跑**：照任务书对 C 的要求（“停下时报告……不重跑”）处理。
+- **B 的分配**：每张卡三个运行，大的（70）先跑。
+- **远端用密码登录**（paramiko，密码只通过本机的环境变量传给脚本），没有配置密钥：在 `C:\ProgramData\ssh\` 里放公钥、改权限，属于系统级改动。
+- **远端代码的传法**：远端没有 git，代码用 `git archive` 打包后 scp 过去；1M 的 `.obj` 被 git 忽略，另外打包传。传过去的 33 个 SPIR-V 的散列值与本机逐一相同。
+
+### 25.7 没做或没验证的
+
+- **检查 3（crossing、开修正）只覆盖到第一次修正更新为止**：canonical 转储的 700 步里修正一次都没更新（25.1）。之后的路径（积分项的更新、GPU 平均体积）没有逐位核对，它们在长运行里的效果见 25.2 和 25.4。
+- **adami 给不出收敛阶**：50、70 都在 t = 0.6 超过 1.2 倍盖速停下，按任务书没有重跑。粗分辨率为什么比 1M 早这么多出现快粒子，没有查。
+- **D 里 I 的差为什么是两次连续运行之间的两倍**：25.4 给的解释（续跑后的第一个 defrag 多做一次更新、之后更新时刻错开）没有单独验证。
+- **每步时间不是计时测量**：两张卡同时跑，D 的运行有一段也在同一时间。本轮按任务书没有做计时。
+- **有效边长和 Re 没有修正**：三个分辨率的 Re 是 1020、1014、1010，收敛阶里混着约 1 % 的 Re 差，没有单独估计。
+- **收敛阶只有三个点**。crossing 的 100 用的是第 24 节的运行（`2f16c8c`，算例 `cavity3d_1m_crossing_integral_split`）：积分项、分开计算、近壁先都显式打开，与新缺省相同；只差总体积的测量方式（它用主机读回，新缺省用 GPU 平均体积，第 22 节查过两者只差舍入）。50、70 和 adami 的 100 都在 `75f22e6` 上跑。
+- **远端的检查点和最终状态没有取回**（本机 C 盘只剩约 12 GB），只取回了序列、剖面和摘要。
+- **没有给 41 个实验变体算例补总体积修正**（25.6）。
+- `_test_seam_layout.py` 的 858 项不通过是本分支早就有的，本节没有新增，也没有处理。
+
 ## 附录 A：工具与验收的对应
 
 | 工具（`experiment/wall_crossing/`） | 用途 | 验收项 |
@@ -3695,6 +3954,8 @@ B0、B1、B3、B4 的粒子数全程不变，各 overflow 计数全程为 0，�
 | `density_drop_3d.py` | 第 22 节 C：3-D 收支按项、按区域（面、棱、角、内部）拆开 | — |
 | `dual_timing.py` | 第 22 节：双卡的 phase 时间（chain bench `--anatomy`）和稳态步速，多轮交替 | — |
 | `band_difference.py` | 第 23 节 2.5：两组逐步摘要里第一个不同的步；两份转储里不同的行（材料、近壁类、离分界几列） | — |
+| `resume_integral_check.py` | 第 25 节：带积分项的续跑（检查点里的 I、v_ref 逐位核对，续跑与连续运行之差，没有 I 的旧检查点） | — |
+| `cavity3d_resolution.py` | 第 25 节：3-D 方腔每边 50 / 70 / 100 个间距对基准，三种壁面方法；收敛阶、停下的运行、历史 | — |
 | `cavity3d_reference.py` | 第 24 节：3-D 方腔的剖面对 Albensoeder & Kuhlmann (2005) 基准：极值、L2 / L∞、历史、离定常的距离 | — |
 | `volume_integral_check.py` | 第 24 节：总体积修正只有比例项与加积分项的对比（平均密度、θ、I） | — |
 | `report_figures.py`、`report_tables.py` | 本报告的图、表和拼装 | — |
@@ -3727,4 +3988,5 @@ B0、B1、B3、B4 的粒子数全程不变，各 overflow 计数全程为 0，�
 - 第 22 节：`logs/wall_crossing/section22/classes/`（门槛下调和开关关闭的逐位转储）、`logs/wall_crossing/split_dispatch/`（A 的转储和监视）、`logs/wall_crossing/volume_constraint/` 与 `logs/wall_crossing/box_run/s22_gpu_mean_*`（B）、`logs/wall_crossing/box_run/s22_cavity3d_1m_density_budget/` 与 `logs/wall_crossing/density_drop_3d/`（C）、`logs/wall_crossing/timing/s22_*` 与 `logs/wall_crossing/statistics/s22_*`（计时和寄存器）。
 - 第 23 节：`logs/wall_crossing/timing/s23_*`（整步计时、稳态步速、修后计时）、`logs/wall_crossing/section23/`（2.5 的逐步摘要和转储、B2 的监视、位序核对）、`logs/wall_crossing/box_run/s23_b*`（B 的短跑）、`logs/wall_crossing/density_drop_3d/`；Nsight 的报告在本机临时目录，没有入库。
 - 第 24 节：`logs/wall_crossing/box_run/s24_*`（2-D 积分项检查和两个 3-D 长运行），`logs/wall_crossing/cavity3d_reference/summary.json`，`logs/wall_crossing/section22/classes/`（开关关闭的逐位转储，标签 `reference_61c490d`、`integral_off*`）；基准数据在 `experiment/validation/reference/`。
+- 第 25 节：`logs/wall_crossing/section25/checks/`（逐位检查的结果类），`logs/wall_crossing/box_run/s25_*`（B 的六个运行、D 的四个运行、远端 adami 1M 取回的序列和剖面），`logs/wall_crossing/cavity3d_resolution/summary.json`。
 - 图：`claude/wall_crossing/figures/`；表：`claude/wall_crossing/tables/`。

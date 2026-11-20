@@ -51,10 +51,10 @@ def order(values: dict) -> dict:
     """Pairwise and least-squares orders of |error| ~ dx^p over the available resolutions."""
     points = [(1.0 / spacings, values[spacings]) for spacings in SPACINGS if spacings in values]
     if len(points) < 2:
-        return {"status": "fewer than two resolutions"}
+        return {"status": "不到两个分辨率，不给阶"}
     signs = {math.copysign(1.0, value) for _, value in points if value != 0.0}
     if len(signs) > 1:
-        return {"status": "the error changes sign (crosses zero)"}
+        return {"status": "误差变号（穿过零），不给阶"}
     magnitudes = [(dx, abs(value)) for dx, value in points]
     # finer = smaller dx = later in SPACINGS order: the error must fall from coarse to fine
     decreasing = all(later < earlier for (_, earlier), (_, later) in zip(magnitudes, magnitudes[1:]))
@@ -62,7 +62,7 @@ def order(values: dict) -> dict:
                 for (dx_first, first), (dx_second, second) in zip(magnitudes, magnitudes[1:])
                 if first > 0 and second > 0]
     if not decreasing:
-        return {"status": "not monotonic in dx", "pairwise": pairwise}
+        return {"status": "误差随 dx 不单调，不给阶", "pairwise": pairwise}
     slope = float(np.polyfit(np.log([dx for dx, _ in magnitudes]), np.log([value for _, value in magnitudes]), 1)[0])
     return {"status": "ok", "pairwise": pairwise, "least_squares": slope}
 
@@ -135,10 +135,10 @@ def main() -> int:
             result = order(values)
             summary["methods"][method].setdefault("orders", {})[key] = result
             if result["status"] == "ok":
-                text = (f"p = {result['least_squares']:.2f}（两两：" +
+                text = (f"p = {result['least_squares']:.2f}（两两的阶：" +
                         "、".join(f"{value:.2f}" for value in result["pairwise"]) + "）")
             elif "pairwise" in result:
-                text = f"{result['status']}（两两：" + "、".join(f"{value:.2f}" for value in result["pairwise"]) + "）"
+                text = f"{result['status']}（两两的阶：" + "、".join(f"{value:.2f}" for value in result["pairwise"]) + "）"
             else:
                 text = result["status"]
             order_rows.append([METHOD_TEXT[method], QUANTITY_TEXT[key], text])
@@ -150,6 +150,25 @@ def main() -> int:
         ["方法", "每边间距数", "运行", "跑到 t", "停止", "全程最大速度", "窗口内动能平均", "窗口内动能斜率",
          "每步 ms（步 / 秒）"], run_rows))
     write("cavity3d_resolution_orders.md", markdown_table(["方法", "量", "收敛阶（误差 ∝ dx^p）"], order_rows))
+    # runs that stopped on the speed / outside watch: the stop and the fastest particle at every sample before it
+    stop_rows = []
+    for method, runs in RUNS.items():
+        for spacings in SPACINGS:
+            directory = LOG_ROOT / "box_run" / runs[spacings]
+            if not (directory / "watch_stop.json").exists():
+                continue
+            stop = json.loads((directory / "watch_stop.json").read_text(encoding="utf-8"))
+            series = read_series(directory / "series.csv")
+            history = "；".join(
+                f"t {time:.2f}：{speed:.3f}（{x:+.3f}, {y:+.3f}, {z:+.3f}）"
+                for time, speed, x, y, z in zip(series["time"], series["speed_maximum"], series["fastest_x"],
+                                                 series["fastest_y"], series["fastest_z"]) if time > 0)
+            stop_rows.append([METHOD_TEXT[method], str(spacings), f"`{runs[spacings]}`",
+                              f"第 {stop['step']:,} 步，t = {stop['time']:.3f}", stop["reason"].split(": ", 1)[-1],
+                              history])
+    write("cavity3d_resolution_stops.md", markdown_table(
+        ["方法", "每边间距数", "运行", "停下的时刻", "原因", "此前每次采样的最大速度（最快粒子的位置 x, y, z）"],
+        stop_rows if stop_rows else [["—", "—", "—", "没有运行停下", "—", "—"]]))
     out = LOG_ROOT / "cavity3d_resolution"
     out.mkdir(parents=True, exist_ok=True)
     (out / "summary.json").write_text(json.dumps(summary, indent=1, default=float), encoding="utf-8")
@@ -175,13 +194,44 @@ def main() -> int:
         axes[1].set_title("横线 y = z = 0.5")
         handles, labels = axes[0].get_legend_handles_labels()
         height = figure.get_figheight()
-        figure.suptitle(f"3-D 方腔 Re = 1000，{METHOD_TEXT[method]}：t = {window[0]:g}–{window[1]:g} 的平均剖面，三个分辨率",
+        resolution_text = ("三个分辨率" if len(means) == len(SPACINGS) else
+                           "只有每边 " + "、".join(str(value) for value in SPACINGS if value in means) +
+                           " 个间距（其余的运行没有到统计窗口）")
+        figure.suptitle(f"3-D 方腔 Re = 1000，{METHOD_TEXT[method]}：t = {window[0]:g}–{window[1]:g} 的平均剖面，{resolution_text}",
                         x=0.01, y=1.0 - 0.05 / height, ha="left", va="top", fontsize=12, fontweight="bold",
                         color=INK_PRIMARY)
         figure.legend(handles, labels, loc="upper left", bbox_to_anchor=(0.01, 1.0 - 0.40 / height), ncol=4,
                       handlelength=3.0, labelcolor=INK_PRIMARY, borderaxespad=0.0)
         figure.tight_layout(rect=(0, 0, 1.0, 1.0 - 0.70 / height), w_pad=2.0)
         save(figure, REPORT_ROOT / "figures" / f"cavity3d_resolution_{method}.png")
+
+    # the three methods at 100 spacings per side (1M) together (section 25 C)
+    finest = {method: means[SPACINGS[-1]] for method, means in loaded.items() if SPACINGS[-1] in means}
+    if finest:
+        method_colour = {"crossing": "#2a78d6", "simple": "#eb6834", "adami": "#1baf7a"}
+        figure, axes = plt.subplots(1, 2, figsize=(12.0, 4.8))
+        for method, mean in finest.items():
+            axes[0].plot(mean["u_along_y"]["velocity"], mean["u_along_y"]["coordinate"], color=method_colour[method],
+                         linewidth=1.6, label=METHOD_TEXT[method])
+            axes[1].plot(mean["v_along_x"]["coordinate"], mean["v_along_x"]["velocity"], color=method_colour[method],
+                         linewidth=1.6)
+        axes[0].plot(reference_u, reference_y, "o", color=INK_PRIMARY, markersize=4.5, label="Albensoeder & Kuhlmann 2005")
+        axes[1].plot(reference_x, reference_v, "o", color=INK_PRIMARY, markersize=4.5)
+        axes[0].set_xlabel("u / U")
+        axes[0].set_ylabel("y / L")
+        axes[0].set_title("竖线 x = z = 0.5")
+        axes[1].set_xlabel("x / L")
+        axes[1].set_ylabel("v / U")
+        axes[1].set_title("横线 y = z = 0.5")
+        handles, labels = axes[0].get_legend_handles_labels()
+        height = figure.get_figheight()
+        figure.suptitle(f"3-D 方腔 Re = 1000，每边 {SPACINGS[-1]} 个间距（1M）：三种壁面方法，t = {window[0]:g}–{window[1]:g} 的平均剖面",
+                        x=0.01, y=1.0 - 0.05 / height, ha="left", va="top", fontsize=12, fontweight="bold",
+                        color=INK_PRIMARY)
+        figure.legend(handles, labels, loc="upper left", bbox_to_anchor=(0.01, 1.0 - 0.40 / height), ncol=4,
+                      handlelength=3.0, labelcolor=INK_PRIMARY, borderaxespad=0.0)
+        figure.tight_layout(rect=(0, 0, 1.0, 1.0 - 0.70 / height), w_pad=2.0)
+        save(figure, REPORT_ROOT / "figures" / "cavity3d_resolution_1m_methods.png")
 
     # histories: kinetic energy of every run; crossing's mean density / pressure / theta / I; simple / adami density
     figure, axes = plt.subplots(2, 3, figsize=(15.0, 7.4))
