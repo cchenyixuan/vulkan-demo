@@ -290,7 +290,7 @@ void process_particle(uint self_particle_id) {
                     // the gradient block below are unconditional (a plain nested block without the variant).
                     bool neighbor_is_wall = false;
                     if (WALL_CROSSING_ACTIVE) {
-#ifdef WALL_CROSSING_NEAR_WALL
+#if defined(WALL_CROSSING_NEAR_WALL) && !defined(WALL_CROSSING_NEAR_WALL_BY_MATERIAL)
                         neighbor_is_wall = wall_crossing_position_outside_box(neighbor_position);
 #else
                         neighbor_is_wall =

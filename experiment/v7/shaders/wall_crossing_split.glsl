@@ -7,9 +7,11 @@
 //   - the NEAR-WALL build (-DWALL_CROSSING -DWALL_CROSSING_NEAR_WALL): the mode's code for the particles of the
 //     voxels near a wall, which tells a wall neighbour by its position (outside the fluid box) instead of reading
 //     its material pair by pair.
-// A voxel is near a wall when a voxel of its 3^d neighbourhood (in_own_grid, the neighbour loops' test) holds a
-// wall particle; the support radius is the voxel size, so a particle of any other voxel has no wall neighbour and
-// the plain code computes for it what the mode's code computes. Every wall particle lies in a near-wall voxel.
+// A voxel is near a wall when a wall particle lies closer than the support radius to its cube (report section 26;
+// the marker's rule 1, with a margin against rounding; sections 22-25: when a voxel of its 3^d neighbourhood holds
+// a wall particle, rule 0), so a particle of any other voxel has no wall neighbour and the plain code computes for
+// it what the mode's code computes. Every wall particle lies in a near-wall voxel. (The DIAGNOSTIC near-wall builds
+// with WALL_CROSSING_NEAR_WALL_BY_MATERIAL read the neighbour's material instead of testing its position.)
 // The marker (wall_crossing_near_wall_marker.comp) fills the flags once the lists hold every wall particle the
 // loops can meet (the walls do not move): a slab without peers after the initial registration, a slab with a peer
 // after the first replica exchange, and after a restart.

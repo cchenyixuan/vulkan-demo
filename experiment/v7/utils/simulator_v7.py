@@ -137,6 +137,23 @@ _WALL_CROSSING_SPLIT_TIMING_SKIP = os.environ.get("V7_WALL_CROSSING_SPLIT_TIMING
 if _WALL_CROSSING_SPLIT_TIMING_SKIP not in ("none", "interior", "near_wall"):
     raise ValueError(f"V7_WALL_CROSSING_SPLIT_TIMING_SKIP={_WALL_CROSSING_SPLIT_TIMING_SKIP!r}: expected none, "
                      "interior or near_wall")
+# DIAGNOSTIC (report section 26): which rule the near-wall marker (wall_crossing_near_wall_marker.comp, spec const
+# 133) uses for a voxel. "distance" (default): a wall particle lies closer than the support radius to the voxel's
+# cube (plus a margin of 1/256 voxel against rounding); "neighborhood": the rule of sections 22-25, a voxel of the
+# 3^d neighbourhood holds a wall particle. The first marks a subset of the second and both mark every voxel whose
+# particles can have a wall neighbour, so the results are bit-identical; only the split between the two builds moves.
+_WALL_CROSSING_NEAR_WALL_RULE = os.environ.get("V7_WALL_CROSSING_NEAR_WALL_RULE", "distance")
+if _WALL_CROSSING_NEAR_WALL_RULE not in ("distance", "neighborhood"):
+    raise ValueError(f"V7_WALL_CROSSING_NEAR_WALL_RULE={_WALL_CROSSING_NEAR_WALL_RULE!r}: expected distance or "
+                     "neighborhood")
+# DIAGNOSTIC, TIMING (report section 26): how the near-wall build tells a wall neighbour. "position" (default,
+# since section 22): the neighbour lies outside the fluid box; "material": material[j] and the material table's
+# kind, pair by pair (the *_near_wall_by_material builds, otherwise identical). Same answer for every particle in a
+# valid state, so the results are bit-identical.
+_WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST = os.environ.get("V7_WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST", "position")
+if _WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST not in ("position", "material"):
+    raise ValueError(f"V7_WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST={_WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST!r}: expected "
+                     "position or material")
 # DIAGNOSTIC (report section 23): which bench timestamps a recording gets. "kernel" (default): every tick as
 # before (a split pass also gets one between its two dispatches); "pass": no tick between the two dispatches of a
 # split pass; "step": only the step's first and last tick (step_start, force_end) and the defrag's, so nothing
@@ -2387,6 +2404,10 @@ class SphSimulatorV7:
             *(("correction_density_wall_crossing_interior", "correction_density_wall_crossing_near_wall",
                "force_wall_crossing_interior", "force_wall_crossing_near_wall", "wall_crossing_near_wall_marker")
               if self._wall_crossing_split else ()),
+            # V7_WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST=material (diagnostic, report section 26): the near-wall builds
+            # that read the neighbour's material instead of testing its position
+            *(("correction_density_wall_crossing_near_wall_by_material", "force_wall_crossing_near_wall_by_material")
+              if self._wall_crossing_split and _WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST == "material" else ()),
             # numerics.volume_constraint.gpu_mean_volume (report section 22): the reduction kernel, only then
             *(("volume_constraint_reduction",) if self._volume_constraint_gpu_mean() else ()),
             # V7_DENSITY_BUDGET=1 (diagnostic): the DENSITY_BUDGET build of this slab's fused pass
@@ -3277,8 +3298,10 @@ class SphSimulatorV7:
         V7_WALL_CROSSING_SPLIT_BAND_MODE=1 (default) is <key>_split_near_wall_every_particle (131 = 0) alone. The key's
         own pipeline stays built (the bootstrap runs it). The dispatch list per key goes to
         _wall_crossing_split_dispatches."""
-        modules = {"fused": ("correction_density_wall_crossing_interior", "correction_density_wall_crossing_near_wall"),
-                   "force": ("force_wall_crossing_interior", "force_wall_crossing_near_wall")}
+        by_material = "_by_material" if _WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST == "material" else ""
+        modules = {"fused": ("correction_density_wall_crossing_interior",
+                             f"correction_density_wall_crossing_near_wall{by_material}"),
+                   "force": ("force_wall_crossing_interior", f"force_wall_crossing_near_wall{by_material}")}
         for base, (kernel, mode_entries, band) in self._wall_crossing_split_bases().items():
             interior_module, near_wall_module = (self.shader_modules[name] for name in modules[kernel])
             entries = self._global_entries() + mode_entries
@@ -3297,10 +3320,12 @@ class SphSimulatorV7:
                          else (interior_key, near_wall_key))
                 skipped = {"interior": interior_key, "near_wall": near_wall_key}.get(_WALL_CROSSING_SPLIT_TIMING_SKIP)
                 self._wall_crossing_split_dispatches[base] = tuple(key for key in order if key != skipped)
+        marker_rule = 1 if _WALL_CROSSING_NEAR_WALL_RULE == "distance" else 0     # spec const 133 (report section 26)
         for key, marker_pass in (("wall_crossing_near_wall_marker_holds_wall", 0),
                                  ("wall_crossing_near_wall_marker_near_wall", 1)):
             pipelines[key] = self._create_pipeline(shader=self.shader_modules["wall_crossing_near_wall_marker"],
-                                                   entries=self._global_entries() + [(132, 'I', marker_pass)])
+                                                   entries=self._global_entries() + [(132, 'I', marker_pass),
+                                                                                     (133, 'I', marker_rule)])
 
     def _record_pass_dispatch(self, cmd, pipeline_key: str, group_count: int, tick: Optional[str] = None) -> None:
         """Bind pipeline_key and dispatch group_count workgroups; on a slab that splits its passes

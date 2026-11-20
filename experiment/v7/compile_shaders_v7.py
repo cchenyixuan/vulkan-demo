@@ -78,6 +78,13 @@ SHADER_VARIANTS = (
      ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL")),
     ("force_wall_crossing_interior", "force.comp", ("WALL_CROSSING_INTERIOR",)),
     ("force_wall_crossing_near_wall", "force.comp", ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL")),
+    # DIAGNOSTIC, TIMING (report section 26; V7_WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST=material): the near-wall builds
+    # telling a wall neighbour by material[j] and the material table, pair by pair, instead of by its position
+    # outside the fluid box; otherwise identical, loaded only with that switch
+    ("correction_density_wall_crossing_near_wall_by_material", "correction_density.comp",
+     ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL", "WALL_CROSSING_NEAR_WALL_BY_MATERIAL")),
+    ("force_wall_crossing_near_wall_by_material", "force.comp",
+     ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL", "WALL_CROSSING_NEAR_WALL_BY_MATERIAL")),
 )
 
 

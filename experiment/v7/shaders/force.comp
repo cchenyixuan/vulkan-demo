@@ -272,7 +272,7 @@ void process_particle(uint self_particle_id) {
                     // below and adds to g_f of the pressure.
                     // geometry pairwise (WALL_CROSSING_PAIRWISE, off by default): the pair's own crossing
                     // fraction (the viscous term below) and mirror point (pressure_wall reflection: M_d).
-#ifdef WALL_CROSSING_NEAR_WALL
+#if defined(WALL_CROSSING_NEAR_WALL) && !defined(WALL_CROSSING_NEAR_WALL_BY_MATERIAL)
                     bool neighbor_is_wall = WALL_CROSSING_ACTIVE && wall_crossing_position_outside_box(neighbor_position);
 #else
                     bool neighbor_is_wall = WALL_CROSSING_ACTIVE
