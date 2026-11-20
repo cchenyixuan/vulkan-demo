@@ -110,7 +110,7 @@ _BAND_SLOT_LANES = int(os.environ.get("V7_BAND_SLOT_LANES", "64"))
 # a compacted pid list, one thread per particle, indirect dispatch (needs
 # V7_BAND_VOXEL_DISPATCH=1 for the band definition). Bit-identical results.
 _BAND_COMPACT = os.environ.get("V7_BAND_COMPACT_DISPATCH", "0") == "1"
-# numerics.wall_crossing.split_dispatch (report section 22, a case switch, off by default): how phase C runs the
+# numerics.wall_crossing.split_dispatch (report section 22, a case switch, on by default since section 25): how phase C runs the
 # band of a crossing slab that splits its passes. DIAGNOSTIC choice for the timing comparison:
 #   "1" (default): the near-wall build alone over the whole band (spec const 131 = 0, every particle);
 #   "2": the band split like phase B, the interior build for its particles and the near-wall build for the others.
@@ -1112,10 +1112,23 @@ class SphSimulatorV7:
 
     @property
     def _wall_crossing_split(self) -> bool:
-        """numerics.wall_crossing.split_dispatch on a crossing slab (report section 22, off by default): the fused
-        pass and force run as the interior build (no mode code) for the particles away from the walls and the
-        near-wall build for the others (shaders/wall_crossing_split.glsl)."""
-        return self._wall_crossing and bool(getattr(self.case.numerics.wall_crossing, "split_dispatch", False))
+        """numerics.wall_crossing.split_dispatch on a crossing slab (report section 22; on by default since report
+        section 25): the fused pass and force run as the interior build (no mode code) for the particles away from
+        the walls and the near-wall build for the others (shaders/wall_crossing_split.glsl). Resolved once: the
+        default falls back to off (printed) where the split is not supported; a case that writes true is refused
+        there (_check_wall_crossing_split_supported)."""
+        resolved = self.__dict__.get("_wall_crossing_split_resolved")
+        if resolved is None:
+            settings = getattr(self.case.numerics, "wall_crossing", None)
+            resolved = bool(self._wall_crossing and getattr(settings, "split_dispatch", False))
+            if resolved and not getattr(settings, "split_dispatch_explicit", True):
+                reason = self._wall_crossing_split_unsupported_reason()
+                if reason is not None:
+                    print(f"[SimV7] numerics.wall_crossing.split_dispatch (default on): off on this slab: {reason}",
+                          flush=True)
+                    resolved = False
+            self.__dict__["_wall_crossing_split_resolved"] = resolved
+        return resolved
 
     def wall_crossing_split_active(self) -> bool:
         """Public: does this slab split its passes (numerics.wall_crossing.split_dispatch)."""
@@ -1250,28 +1263,35 @@ class SphSimulatorV7:
         if self._wall_crossing_split:
             self._check_wall_crossing_split_supported()
 
-    def _check_wall_crossing_split_supported(self) -> None:
-        """numerics.wall_crossing.split_dispatch (report section 22). The near-wall flags are filled once (the walls
-        do not move) and the split covers the pipelines of the default recordings. Refused (ValueError): a material
-        that is neither fluid nor a static wall (an inlet or rotor: moving boundaries), the quadratic extension (the
-        interior build writes no grad v_i), V7_DENSITY_BUDGET=1 (no budget build of the split), the compact band
-        dispatch, V7_BAND_OVERLAP (force_deep segments) and the diagnostic fake band."""
+    def _wall_crossing_split_unsupported_reason(self) -> Optional[str]:
+        """Why numerics.wall_crossing.split_dispatch cannot run on this slab, or None (report sections 22, 25)."""
         from experiment.v7.utils.case_v7 import KIND_BOUNDARY
         others = sorted({material.kind for material in self.case.materials} - {KIND_FLUID, KIND_BOUNDARY})
         if others:
-            raise ValueError(f"numerics.wall_crossing.split_dispatch: material kinds {others} (inlet / rotor: moving "
-                             "boundaries) are not supported; the near-wall flags assume walls that do not move")
+            return (f"material kinds {others} (inlet / rotor: moving boundaries) are not supported; the near-wall "
+                    "flags assume walls that do not move")
         if self.case.numerics.wall_crossing.velocity_gradient_active():
-            raise ValueError("numerics.wall_crossing.split_dispatch with a quadratic extension is not supported (the "
-                             "interior build writes no grad v_i)")
+            return "a quadratic extension is not supported (the interior build writes no grad v_i)"
         if self._density_budget_active():
-            raise ValueError("numerics.wall_crossing.split_dispatch with V7_DENSITY_BUDGET=1 is not supported")
+            return "V7_DENSITY_BUDGET=1 is not supported"
         if _BAND_COMPACT:
-            raise ValueError("numerics.wall_crossing.split_dispatch with V7_BAND_COMPACT_DISPATCH=1 is not supported")
+            return "V7_BAND_COMPACT_DISPATCH=1 is not supported"
         if _BAND_OVERLAP != "0":
-            raise ValueError("numerics.wall_crossing.split_dispatch with V7_BAND_OVERLAP is not supported")
+            return "V7_BAND_OVERLAP is not supported"
         if _FAKE_BAND_COLUMN > 0:
-            raise ValueError("numerics.wall_crossing.split_dispatch with V7_FAKE_BAND_TEST is not supported")
+            return "V7_FAKE_BAND_TEST is not supported"
+        return None
+
+    def _check_wall_crossing_split_supported(self) -> None:
+        """numerics.wall_crossing.split_dispatch (report section 22). The near-wall flags are filled once (the walls
+        do not move) and the split covers the pipelines of the default recordings. Refused (ValueError) when the
+        split is on (a case that wrote true; the default has already fallen back, _wall_crossing_split): a material
+        that is neither fluid nor a static wall (an inlet or rotor: moving boundaries), the quadratic extension (the
+        interior build writes no grad v_i), V7_DENSITY_BUDGET=1 (no budget build of the split), the compact band
+        dispatch, V7_BAND_OVERLAP (force_deep segments) and the diagnostic fake band."""
+        reason = self._wall_crossing_split_unsupported_reason()
+        if reason is not None:
+            raise ValueError(f"numerics.wall_crossing.split_dispatch: {reason}")
 
     def wall_band_width(self) -> int:
         """E40: the wall pass band of a split adami slab = the density band + 1 (a wall in column c reads the

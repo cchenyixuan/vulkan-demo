@@ -36,7 +36,8 @@
 // MaterialParameters. When multi-phase is enabled (V0+), add back the per-
 // neighbor material / material_parameters reads and restore the harmonic means.
 //
-// numerics.wall_crossing.split_dispatch (report section 22, off by default; wall_crossing_split.glsl): the
+// numerics.wall_crossing.split_dispatch (report section 22; on by default since section 25; wall_crossing_split.glsl):
+// the
 // WALL_CROSSING_INTERIOR build (force_wall_crossing_interior.comp.spv) is the plain code for the particles of the
 // voxels with no wall particle in their 3^d neighbourhood, the WALL_CROSSING + WALL_CROSSING_NEAR_WALL build
 // (force_wall_crossing_near_wall.comp.spv) the crossing code for the others (spec const 131 = 1; 0 = every

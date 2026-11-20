@@ -1,5 +1,5 @@
 // ============================================================================
-// wall_crossing_split.glsl - numerics.wall_crossing.split_dispatch (report section 22; off by default): the fused
+// wall_crossing_split.glsl - numerics.wall_crossing.split_dispatch (report section 22; on by default since section 25): the fused
 // correction + density pass and force run as two dispatches each on a crossing slab,
 //   - the INTERIOR build (correction_density.comp / force.comp -DWALL_CROSSING_INTERIOR): the plain code, none of
 //     the mode's statements (so none of its registers), for the particles of the voxels that are NOT near a wall;

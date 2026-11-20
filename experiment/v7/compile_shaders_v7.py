@@ -70,7 +70,7 @@ SHADER_VARIANTS = (
     # loads these two files
     ("correction_density_budget", "correction_density.comp", ("DENSITY_BUDGET",)),
     ("correction_density_wall_crossing_budget", "correction_density.comp", ("WALL_CROSSING", "DENSITY_BUDGET")),
-    # numerics.wall_crossing.split_dispatch (report section 22, off by default; shaders/wall_crossing_split.glsl):
+    # numerics.wall_crossing.split_dispatch (report section 22; on by default since section 25; shaders/wall_crossing_split.glsl):
     # the plain code for the particles away from the walls (+ the volume constraint's term in the fused pass) and
     # the crossing code for the particles near them, loaded only by a crossing slab that splits its passes
     ("correction_density_wall_crossing_interior", "correction_density.comp", ("WALL_CROSSING_INTERIOR",)),

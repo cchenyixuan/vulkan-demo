@@ -4,8 +4,8 @@
 #include "helpers.glsl"
 
 // ============================================================================
-// volume_constraint_reduction.comp - numerics.volume_constraint.gpu_mean_volume (report section 22, off by
-// default; utils/volume_constraint_v7.py): this slab's share of the constraint's measure, taken on the GPU.
+// volume_constraint_reduction.comp - numerics.volume_constraint.gpu_mean_volume (report section 22; on by
+// default since section 25, with the constraint on; utils/volume_constraint_v7.py): this slab's share of the constraint's measure, taken on the GPU.
 //
 // One thread per own pool slot (the per-own-particle dispatch). An alive fluid particle i contributes
 //     delta_i = (m_i / rho_i) / v_ref - 1,

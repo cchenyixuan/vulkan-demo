@@ -114,13 +114,17 @@ class WallCrossingSettings:
     pressure_wall: "reflection" (default since 2026-11-19; with geometry pairwise) or "extension" (the default
         until then): the pressure of a wall neighbour taken at its mirror point plus the body force, or
         continued to it.
-    split_dispatch: False (default) or True (report section 22): the fused pass and force run as two dispatches
-        each, a build without the mode's code for the particles of the voxels with no wall particle in their
-        3^d neighbourhood and the mode's build for the others (shaders/wall_crossing_split.glsl). The same
-        equations; the interior particles have no wall neighbour.
-    split_order: "interior_first" (default) or "near_wall_first" (report section 24): which of a split pass's two
-        dispatches comes first (the same results; report section 23 measured near_wall_first faster). The debug
-        environment variable V7_WALL_CROSSING_SPLIT_ORDER overrides it when set.
+    split_dispatch: True (default since report section 25, 2026-11-20; False until then) or False (report
+        section 22): the fused pass and force run as two dispatches each, a build without the mode's code for the
+        particles of the voxels with no wall particle in their 3^d neighbourhood and the mode's build for the
+        others (shaders/wall_crossing_split.glsl). The same equations; the interior particles have no wall
+        neighbour. A case that does not write the key gets the default, which falls back to False on a slab the
+        split does not support (a quadratic extension, V7_DENSITY_BUDGET=1, ...; the simulator prints why); a case
+        that writes true is refused there (ValueError). split_dispatch_explicit records whether the case wrote it.
+    split_order: "near_wall_first" (default since report section 25; "interior_first" until then) or
+        "interior_first" (report section 24): which of a split pass's two dispatches comes first (the same
+        results; report section 23 measured near_wall_first faster). The debug environment variable
+        V7_WALL_CROSSING_SPLIT_ORDER overrides it when set.
     """
     continuity: str = WALL_CROSSING_DEFAULT_CONTINUITY
     distance_floor_factor: float = WALL_CROSSING_DEFAULT_DISTANCE_FLOOR_FACTOR
@@ -133,8 +137,9 @@ class WallCrossingSettings:
     continuity_extension: str = WALL_CROSSING_DEFAULT_CONTINUITY_EXTENSION
     geometry: str = WALL_CROSSING_DEFAULT_GEOMETRY
     pressure_wall: str = WALL_CROSSING_DEFAULT_PRESSURE_WALL
-    split_dispatch: bool = False
-    split_order: str = "interior_first"
+    split_dispatch: bool = True
+    split_dispatch_explicit: bool = False
+    split_order: str = "near_wall_first"
 
     def geometry_code(self) -> int:
         return WALL_CROSSING_GEOMETRY_CHOICES.index(self.geometry)
@@ -239,9 +244,11 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
                                                            (default reflection since 2026-11-19, extension
                                                             before; reflection needs geometry pairwise;
                                                             rest_density and body_force are DIAGNOSTICS)
-        split_dispatch: false | true                       (default false; report section 22: the interior
-                                                            particles in a build without the mode's code)
-        split_order: interior_first | near_wall_first      (default interior_first; report section 24)
+        split_dispatch: true | false                       (default true since report section 25, false before;
+                                                            report section 22: the interior particles in a build
+                                                            without the mode's code)
+        split_order: near_wall_first | interior_first      (default near_wall_first since report section 25,
+                                                            interior_first before; report section 24)
         viscous_extension: linear | quadratic              (default linear; quadratic needs geometry
                                                             nearest_wall, pressure_wall extension and delta_wall
                                                             extension, i.e. these three written in the case)
@@ -261,11 +268,12 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
         raise ValueError(f"numerics.wall_crossing: unknown keys {unknown} (known: continuity, "
                          "distance_floor_factor, box, delta_wall, continuity_wall_component, viscous_extension, "
                          "continuity_extension, geometry, pressure_wall, split_dispatch, split_order)")
-    split_order = str(mapping.get("split_order", "interior_first"))
+    split_order = str(mapping.get("split_order", "near_wall_first"))
     if split_order not in ("interior_first", "near_wall_first"):
         raise ValueError(f"numerics.wall_crossing.split_order: {split_order!r}, expected interior_first or "
                          "near_wall_first")
-    split_dispatch = mapping.get("split_dispatch", False)
+    split_dispatch_explicit = "split_dispatch" in mapping
+    split_dispatch = mapping.get("split_dispatch", True)
     if not isinstance(split_dispatch, bool):
         raise ValueError(f"numerics.wall_crossing.split_dispatch: {split_dispatch!r}, expected true or false")
     geometry = str(mapping.get("geometry", WALL_CROSSING_DEFAULT_GEOMETRY))
@@ -319,7 +327,7 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
                                 viscous_extension=extensions["viscous_extension"],
                                 continuity_extension=extensions["continuity_extension"],
                                 geometry=geometry, pressure_wall=pressure_wall, split_dispatch=split_dispatch,
-                                split_order=split_order)
+                                split_dispatch_explicit=split_dispatch_explicit, split_order=split_order)
 
 
 def _value_text(mapping: dict, key: str, value: str) -> str:

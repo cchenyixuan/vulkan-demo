@@ -29,11 +29,12 @@ case.yaml (every key optional):
         enabled: false            # default
         relaxation_time: 1.0      # tau, in simulated time
         update_interval: null     # in simulated time; default relaxation_time / 5 (the largest allowed)
-        gpu_mean_volume: false    # default; true: the measure below (report section 22)
-        integral: false           # default; true: the integral term below (report section 24)
+        gpu_mean_volume: true     # default since report section 25 (false before): the measure below
+        integral: true            # default since report section 25 (false before): the integral term below
         integral_time: null       # T_I in simulated time; default 4 x relaxation_time
 
-integral (report section 24, off by default). The proportional rate theta / tau leaves a steady offset when the
+integral (report section 24; on by default since report section 25, 2026-11-20). The proportional rate theta / tau
+leaves a steady offset when the
 scheme has a steady density sink (a falling mean density; 3-D cavity: theta stays at sink x tau). With the switch
     rate = theta / tau + I,        at every update  I <- I + theta * Delta / (tau * T_I)
 (Delta = the update interval actually used, update_steps x timestep; I is updated first, so the rate of an update
@@ -43,7 +44,8 @@ state with I -> the sink. I goes into the runners' checkpoints (_volume_constrai
 continues with it; a checkpoint without it starts again from I = 0, with a warning. Every log record then also
 has "integral".
 
-gpu_mean_volume (report section 22, off by default). The measure is the mean volume per fluid particle,
+gpu_mean_volume (report section 22; on by default since report section 25, 2026-11-20). The measure is the mean
+volume per fluid particle,
     v_ref = the mean of m_i / rho_i over the fluid particles of the initial state (float64, on the host),
     theta = (the mean of m_i / rho_i now) / v_ref - 1,         rate = theta / relaxation_time,
 which equals the total-volume theta in a closed domain whose particle count does not change, and does not
@@ -86,8 +88,8 @@ class VolumeConstraintSettings:
     enabled: bool = False
     relaxation_time: float = 1.0
     update_interval: Optional[float] = None
-    gpu_mean_volume: bool = False
-    integral: bool = False
+    gpu_mean_volume: bool = True              # default since report section 25 (False before)
+    integral: bool = True                     # default since report section 25 (False before)
     integral_time: Optional[float] = None
 
     def integral_time_value(self) -> float:
@@ -132,7 +134,7 @@ def parse_volume_constraint_settings(numerics_mapping: dict) -> VolumeConstraint
     if unknown:
         raise ValueError(f"numerics.volume_constraint: unknown keys {unknown} (known: enabled, relaxation_time, "
                          "update_interval, gpu_mean_volume, integral, integral_time)")
-    integral = mapping.get("integral", False)
+    integral = mapping.get("integral", True)
     if not isinstance(integral, bool):
         raise ValueError(f"numerics.volume_constraint.integral: {integral!r}, expected true or false")
     integral_time = mapping.get("integral_time")
@@ -140,7 +142,7 @@ def parse_volume_constraint_settings(numerics_mapping: dict) -> VolumeConstraint
         integral_time = float(integral_time)
         if not integral_time > 0.0:
             raise ValueError(f"numerics.volume_constraint.integral_time: {integral_time!r}, expected > 0")
-    gpu_mean_volume = mapping.get("gpu_mean_volume", False)
+    gpu_mean_volume = mapping.get("gpu_mean_volume", True)
     if not isinstance(gpu_mean_volume, bool):
         raise ValueError(f"numerics.volume_constraint.gpu_mean_volume: {gpu_mean_volume!r}, expected true or false")
     enabled = mapping.get("enabled", False)

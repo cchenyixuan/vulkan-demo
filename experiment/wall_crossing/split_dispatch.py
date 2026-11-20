@@ -1,5 +1,5 @@
 """
-split_dispatch.py - report section 22 A: numerics.wall_crossing.split_dispatch (off by default). The fused pass and
+split_dispatch.py - report section 22 A: numerics.wall_crossing.split_dispatch (off by default then; on by default since report section 25). The fused pass and
 force of a crossing slab as two dispatches each: the plain code for the particles of the voxels with no wall particle
 in their 3^d neighbourhood, the crossing code for the others (shaders/wall_crossing_split.glsl).
 

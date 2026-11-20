@@ -1,5 +1,5 @@
 """
-volume_constraint_check.py - report section 22 B: numerics.volume_constraint.gpu_mean_volume (off by default), the
+volume_constraint_check.py - report section 22 B: numerics.volume_constraint.gpu_mean_volume (off by default then; on by default since report section 25), the
 mean-volume measure of the volume constraint reduced on the GPU (utils/volume_constraint_v7.py,
 shaders/volume_constraint_reduction.comp).
 

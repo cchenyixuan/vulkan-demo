@@ -98,7 +98,8 @@
 //   - numerics.volume_constraint (WALL_CROSSING_VOLUME_CONSTRAINT, off by default): a fluid self's density rate
 //     takes rho_i * rate, the rate the host wrote to volume_constraint_state (wall_boundary.glsl).
 //
-// numerics.wall_crossing.split_dispatch (report section 22, off by default; wall_crossing_split.glsl): two more
+// numerics.wall_crossing.split_dispatch (report section 22; on by default since section 25; wall_crossing_split.glsl):
+// two more
 // builds for a crossing slab that splits its passes:
 //   - WALL_CROSSING_INTERIOR (correction_density_wall_crossing_interior.comp.spv): the plain code for the particles
 //     of the voxels with no wall particle in their 3^d neighbourhood (the others return), plus the volume
