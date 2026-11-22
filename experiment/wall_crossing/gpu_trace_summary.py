@@ -106,6 +106,9 @@ def main() -> int:
     parser.add_argument("--section", default="26",
                         help="26: section 26's runs; 27: with the extra rows; wall_store: the wall store's runs "
                              "(tables to claude/wall_store/tables)")
+    parser.add_argument("--table-suffix", default=None,
+                        help="the tables' suffix instead of the section's (e.g. _wall_store_round2 for a second set of "
+                             "traces); configurations without an export are left out")
     arguments = parser.parse_args()
     directory = pathlib.Path(arguments.dir)
     labels = {"27": LABELS_SECTION27, "wall_store": LABELS_WALL_STORE}.get(arguments.section, LABELS)
@@ -113,10 +116,14 @@ def main() -> int:
     if arguments.section == "wall_store":
         from experiment.wall_crossing.wall_store_check import write_table as write
         suffix = "_wall_store"
+    if arguments.table_suffix is not None:
+        suffix = arguments.table_suffix
     summary, rows, state_rows = {}, [], []
     for label, case, text in labels:
         path = directory / label / "BASE" / "GPUTRACE_FRAME.xls"
         if not path.exists():
+            if arguments.table_suffix is not None:
+                continue
             rows.append([case, text, "没有导出"] + [""] * 5)
             continue
         result = summarise(read_frame(path))
