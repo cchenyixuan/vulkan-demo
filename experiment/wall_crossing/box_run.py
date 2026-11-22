@@ -18,14 +18,8 @@ by a Shepard average over the fluid particles within the support radius h of eac
 (sum_j V_j v_j W / sum_j V_j W, Wendland C4, V_j = m_j / rho_j). Fluid particles only, so the value near a wall
 is one-sided in every wall mode alike. In 2-D the lines lie in the plane.
 
---density-budget (DIAGNOSTIC; sets V7_DENSITY_BUDGET=1 before the solver is imported, one slab): the fused pass
-runs its DENSITY_BUDGET build, which adds dt x (drift fluid, drift wall, diffusion fluid, diffusion wall) of
-every fluid particle's density rate, every step, to a buffer binned by the particle's region (which walls of
-the box lie within the support radius; shaders/density_budget.glsl). Every sample then also has
-  budget_<region>_<term>   the buffer summed over all slots (float64): the cumulative sum over the fluid
-                           particles and the steps so far of dt x term, kg/m^3 x particles;
-  region_count_<region>    the fluid particles in the region at the sample.
-The state the budget build computes is the state of the build without it (checked bit for bit over 700 steps).
+--density-budget: removed with the wall store (branch v7-crossing-wall-store); the diagnostic lives in the
+particle-pool version (git tag crossing-pool). The option is refused.
 
 Long runs (2026-11-19; box_run_supervised.py restarts a run that stops or stalls):
   --checkpoint-time T   every T (a multiple of the defrag cadence) the restart state of every slab
@@ -88,8 +82,10 @@ def typed(value: str):
         return float(value)
 
 
-def latest_checkpoint(directory: pathlib.Path, expected_rows: int) -> dict | None:
-    """The newest readable checkpoint of directory (manifest.jsonl): {"state", "stored_offset", "step"}."""
+def latest_checkpoint(directory: pathlib.Path, expected_rows: int, wall_store: bool = False) -> dict | None:
+    """The newest readable checkpoint of directory (manifest.jsonl): {"state", "stored_offset", "step"}. wall_store (a
+    crossing case of the wall-store version): a checkpoint without the _wall_store mark is one of the particle-pool
+    version (git tag crossing-pool), whose walls are in the state; it cannot be resumed (SystemExit with the reason)."""
     manifest = directory / "manifest.jsonl"
     if not manifest.exists():
         return None
@@ -100,6 +96,11 @@ def latest_checkpoint(directory: pathlib.Path, expected_rows: int) -> dict | Non
             continue
         try:
             with np.load(checkpoint) as archive:
+                if wall_store and "_wall_store" not in archive.files:
+                    sys.exit(f"[box_run] checkpoint {checkpoint} is a wall_boundary crossing checkpoint of the "
+                             "particle-pool version (git tag crossing-pool): its walls are in the particle pool. The "
+                             "wall-store version cannot resume it; start the run anew or resume it with the "
+                             "crossing-pool tag.")
                 state = {name: archive[name] for name in archive.files if not name.startswith("_")}
                 offset = float(archive["_stored_density_offset"])
                 # numerics.volume_constraint.gpu_mean_volume (report section 22): v_ref, rate and theta when written
@@ -183,7 +184,7 @@ def main() -> int:
     parser.add_argument("--sample-time", type=float, default=0.1)
     parser.add_argument("--profile-time", type=float, default=0.0, help="interval of the centre-line profiles (0: none)")
     parser.add_argument("--density-budget", action="store_true",
-                        help="DIAGNOSTIC: run with V7_DENSITY_BUDGET=1 and record the budget sums at every sample")
+                        help="removed with the wall store (refused; the diagnostic is in the git tag crossing-pool)")
     parser.add_argument("--checkpoint-time", type=float, default=0.0,
                         help="interval of the restart checkpoints (0: none)")
     parser.add_argument("--resume", action="store_true", help="start from the newest checkpoint of the run")
@@ -195,7 +196,7 @@ def main() -> int:
                         help="stop when a fluid particle is outside the box")
     arguments = parser.parse_args()
     if arguments.density_budget:
-        os.environ["V7_DENSITY_BUDGET"] = "1"       # read once when simulator_v7 is imported (below)
+        sys.exit("[box_run] --density-budget was removed with the wall store; use the git tag crossing-pool")
 
     from experiment.v7.utils.case_loader_v7 import load_case_v7
     from experiment.v7.utils.wall_crossing_v7 import box_distance_to_wall
@@ -206,7 +207,8 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
     expected_alive = int(case.initial.positions.shape[0])
     segments_path = out / "segments.jsonl"
-    restart = latest_checkpoint(out / "checkpoints", expected_alive) if arguments.resume else None
+    restart = (latest_checkpoint(out / "checkpoints", expected_alive, wall_store=case.wall_source is not None)
+               if arguments.resume else None)
     if arguments.resume and restart is None:
         print("[box_run] --resume: no usable checkpoint; starting from the initial state", flush=True)
     start_step = restart["step"] if restart is not None else 0
@@ -307,8 +309,9 @@ def main() -> int:
                                     f"{merged['position_voxel_id'].shape[0]} rows of {expected_alive}")
             name = f"c{step:010d}.npz"
             temporary = checkpoint_directory / f"c{step:010d}.partial.npz"
+            marker = {"_wall_store": np.int64(1)} if case.wall_source is not None else {}
             np.savez(temporary, _stored_density_offset=np.float64(simulators[0].stored_density_offset()),
-                     **simulators[0].volume_constraint_checkpoint_entries(), **merged)
+                     **simulators[0].volume_constraint_checkpoint_entries(), **marker, **merged)
             os.replace(temporary, checkpoint_directory / name)
             with open(checkpoint_directory / "manifest.jsonl", "a", encoding="utf-8", newline="\n") as handle:
                 handle.write(json.dumps({"step": step, "time": step * timestep, "file": name}) + "\n")
@@ -369,40 +372,6 @@ def main() -> int:
                        "fluid_alive": int(len(state["positions"])),
                        "steps_per_second": (step - start_step) / max(time.perf_counter() - clock["started"], 1e-9),
                        "segment": segment}
-                # the second-order continuation (a quadratic extension only): how many fluid particles hold a
-                # solved gradient / fell back to the first-order rule in the step before this sample
-                extension_states = [simulator.readback_wall_crossing_extension_states() for simulator in simulators]
-                if all(states is not None for states in extension_states):
-                    row["extension_valid"] = int(sum(states["valid"] for states in extension_states))
-                    row["extension_fallback"] = int(sum(states["fallback"] for states in extension_states))
-                if arguments.density_budget:
-                    from experiment.v7.utils.simulator_v7 import (DENSITY_BUDGET_TERM_NAMES,
-                                                                  density_budget_region_names)
-                    # report section 22: a 3-D box has its own regions (faces, edges, corners; density_budget.glsl)
-                    region_names = density_budget_region_names(dimension)
-                    readbacks = [simulator.readback_density_budget_and_extension() for simulator in simulators]
-                    budget = sum(readback[0] for readback in readbacks)
-                    if readbacks[0][1] is not None:
-                        # wall_boundary crossing (one slab: the budget is a K = 1 diagnostic): the second-order
-                        # continuation's diagnostics per region, all since start-up (density_budget.glsl)
-                        extension = readbacks[0][1]
-                        for region_index, region_name in enumerate(region_names):
-                            for key in ("fallbacks", "wall_steps", "determinant_minimum", "factor_maximum",
-                                        "diffusion_maximum"):
-                                row[f"extension_{region_name}_{key}"] = float(extension[key][region_index])
-                    for region_index, region_name in enumerate(region_names):
-                        for term_index, term_name in enumerate(DENSITY_BUDGET_TERM_NAMES):
-                            row[f"budget_{region_name}_{term_name}"] = float(budget[region_index, term_index])
-                    # the region of every fluid particle now (the shader's rule)
-                    from experiment.v7.utils.simulator_v7 import density_budget_region_index
-                    budget_lower, budget_upper = simulators[0].density_budget_box()
-                    counts = np.bincount(
-                        density_budget_region_index(state["positions"], budget_lower, budget_upper, support,
-                                                    dimension),
-                        minlength=len(region_names))
-                    for region_index, region_name in enumerate(region_names):
-                        row[f"region_count_{region_name}"] = int(counts[region_index])
-                    row["fluid_particles"] = int(len(state["positions"]))
                 series.append(row)
                 if writer["csv"] is None:
                     writer["csv"] = csv.DictWriter(series_file, fieldnames=list(row.keys()), extrasaction="ignore")
@@ -476,18 +445,19 @@ def main() -> int:
         summary = {
             "name": arguments.name, "run_id": run.run_id, "case": str(arguments.case).replace("\\", "/"),
             "wall_boundary": case.numerics.wall_boundary,
-            "continuity": case.numerics.wall_crossing.continuity if case.numerics.wall_crossing else None,
-            "continuity_wall_component": (case.numerics.wall_crossing.continuity_wall_component
-                                          if case.numerics.wall_crossing else None),
-            "delta_wall": case.numerics.wall_crossing.delta_wall if case.numerics.wall_crossing else None,
-            "viscous_extension": (case.numerics.wall_crossing.viscous_extension
-                                  if case.numerics.wall_crossing else None),
-            "continuity_extension": (case.numerics.wall_crossing.continuity_extension
-                                     if case.numerics.wall_crossing else None),
+            # the wall store (branch v7-crossing-wall-store) has one scheme: the particle-pool version's names of it
+            "continuity": "extrapolate" if case.numerics.wall_crossing else None,
+            "continuity_wall_component": ((("normal" if case.numerics.wall_crossing.rule_set == "continuity_normal"
+                                            else "full")) if case.numerics.wall_crossing else None),
+            "delta_wall": "reflection" if case.numerics.wall_crossing else None,
+            "viscous_extension": "linear" if case.numerics.wall_crossing else None,
+            "continuity_extension": "linear" if case.numerics.wall_crossing else None,
+            "rule_set": case.numerics.wall_crossing.rule_set if case.numerics.wall_crossing else None,
+            "wall_store": case.wall_source is not None,
             "volume_constraint": (dataclasses.asdict(case.numerics.volume_constraint)
                                   if case.numerics.volume_constraint.enabled else None),
-            "geometry": case.numerics.wall_crossing.geometry if case.numerics.wall_crossing else None,
-            "pressure_wall": case.numerics.wall_crossing.pressure_wall if case.numerics.wall_crossing else None,
+            "geometry": "pairwise" if case.numerics.wall_crossing else None,
+            "pressure_wall": "reflection" if case.numerics.wall_crossing else None,
             "distance_floor_factor": (case.numerics.wall_crossing.distance_floor_factor
                                       if case.numerics.wall_crossing else None),
             "delta_density_storage": os.environ.get("V7_DELTA_DENSITY", "0") == "1",

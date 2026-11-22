@@ -48,6 +48,7 @@ from experiment.v7.utils.wall_crossing_v7 import (
     parse_wall_crossing_settings,
     resolve_wall_crossing_box,
 )
+from experiment.v7.utils.wall_store_v7 import build_wall_source, describe_wall_source
 
 
 _KIND_NAME_TO_ID = {
@@ -485,8 +486,8 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
         raise ValueError(f"numerics.wall_boundary: {numerics.wall_boundary!r}, expected one of "
                          f"{', '.join(WALL_BOUNDARY_CHOICES)}")
     # wall_boundary crossing: its settings (numerics.wall_crossing; the box is resolved below, once the particles
-    # are loaded). The one-sided gradient G_i = A_f^-1 g_f and the pressure term (A_f^-1 - L_i) g_f are built on
-    # the correction matrix, so the mode has no meaning without it.
+    # are loaded). The one-sided gradients A_f^-1 g_f are built on the correction matrix, so the mode has no meaning
+    # without it.
     if numerics.wall_boundary == "crossing":
         if not numerics.use_kcg_correction:
             raise ValueError("numerics.wall_boundary crossing needs numerics.use_kcg_correction true: the wall "
@@ -631,6 +632,27 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
     )
     transport = TransportConfig()
 
+    # wall_boundary crossing (plan C): the wall particles leave the particle pool for the static wall store. The grid
+    # above was placed with every particle (fluid and walls), as before, so the grid is the particle-pool version's.
+    # Only the walls closer than h to the fluid box are kept (a deeper one is in no fluid particle's support).
+    wall_source = None
+    if numerics.wall_boundary == "crossing":
+        settings = numerics.wall_crossing
+        wall_source = build_wall_source(positions[is_wall], velocities[is_wall], material_group[is_wall], materials,
+                                        settings.box_lower, settings.box_upper, h, dimension,
+                                        rule_set=settings.rule_set)
+        positions, velocities, material_group = positions[~is_wall], velocities[~is_wall], material_group[~is_wall]
+        # the pool no longer holds the walls: capacities.pool_size less the walls of the case files (the same headroom
+        # over the fluid as before), rounded up to the workgroup
+        workgroup = int(caps["workgroup"])
+        wall_count = int(is_wall.sum())
+        own_pool_size = max(positions.shape[0], own_pool_size - wall_count)
+        own_pool_size = ((own_pool_size + workgroup - 1) // workgroup) * workgroup
+        capacities.own_pool_size = own_pool_size
+        print("[case_loader_v7] " + describe_wall_source(wall_source)
+              + f"; particle pool: {positions.shape[0]:,} fluid particles, pool size {own_pool_size:,} "
+              f"(capacities.pool_size {int(caps['pool_size']):,} less the {wall_count:,} walls)", flush=True)
+
     initial = InitialParticles(
         positions=positions, velocities=velocities, material_group=material_group)
 
@@ -639,5 +661,5 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
     return CaseV7(
         physics=physics, numerics=numerics, capacities=capacities,
         grid=grid, ghost_grid=ghost_grid, transport=transport,
-        materials=materials, initial=initial,
+        materials=materials, initial=initial, wall_source=wall_source,
     )

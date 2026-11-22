@@ -440,13 +440,13 @@ class SphRendererV7:
             None,
         )
 
-        # Pool: 1 set × 5 SSBOs.
+        # Pool: 1 set × 5 SSBOs (+ 1 set for the static wall store of a crossing slab).
         pool_size = VkDescriptorPoolSize(
-            type=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, descriptorCount=5)
+            type=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, descriptorCount=10)
         self.descriptor_pool = vkCreateDescriptorPool(
             self.ctx.device,
             VkDescriptorPoolCreateInfo(
-                maxSets=1, poolSizeCount=1, pPoolSizes=[pool_size]),
+                maxSets=2, poolSizeCount=1, pPoolSizes=[pool_size]),
             None,
         )
 
@@ -482,6 +482,50 @@ class SphRendererV7:
                 pBufferInfo=[buffer_info],
             ))
             vkUpdateDescriptorSets(self.ctx.device, len(writes), writes, 0, None)
+        self._create_wall_store_descriptors()
+
+    def _create_wall_store_descriptors(self) -> None:
+        """wall_boundary crossing (plan C): the walls live in the simulator's static wall store, not in the particle
+        buffers drawn above. Their records are written once into buffers of the five drawn bindings' layout (slot
+        k + 1 = wall k: position and voxel id 1, rest density, wall velocity and mass, zero acceleration, kernel sum
+        1) and drawn with a second descriptor set. Nothing without a wall store."""
+        self.wall_draw_count = 0
+        self.wall_buffers = []
+        self.wall_descriptor_set = None
+        source = getattr(self.simulator.case, "wall_source", None)
+        if source is None or source.count == 0:
+            return
+        count = source.count
+        stored_offset = self.simulator.stored_density_offset()
+        position = np.zeros((count + 1, 4), dtype=np.float32)
+        position[1:, 0:3] = source.positions
+        position[1:, 3] = 1.0
+        density = np.zeros((count + 1, 2), dtype=np.float32)
+        density[1:, 0] = source.densities - stored_offset
+        velocity = np.zeros((count + 1, 4), dtype=np.float32)
+        velocity[1:, 0:3] = source.velocities
+        velocity[1:, 3] = source.masses
+        acceleration = np.zeros((count + 1, 4), dtype=np.float32)
+        kernel_sum = np.zeros((count + 1, 4), dtype=np.float32)
+        kernel_sum[1:, 3] = 1.0
+        usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT
+        pairs = []
+        for binding, array in ((0, position), (1, density), (3, velocity), (4, acceleration), (8, kernel_sum)):
+            payload = array.tobytes()
+            buffer = self.simulator._allocate_buffer(len(payload), usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+            self.simulator._staging_upload(buffer, payload)
+            self.wall_buffers.append(buffer)
+            pairs.append((binding, buffer))
+        self.wall_descriptor_set = vkAllocateDescriptorSets(self.ctx.device, VkDescriptorSetAllocateInfo(
+            descriptorPool=self.descriptor_pool, descriptorSetCount=1, pSetLayouts=[self.descriptor_layout]))[0]
+        writes = [VkWriteDescriptorSet(dstSet=self.wall_descriptor_set, dstBinding=binding, dstArrayElement=0,
+                                       descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, descriptorCount=1,
+                                       pBufferInfo=[VkDescriptorBufferInfo(buffer=buffer.handle, offset=0,
+                                                                           range=buffer.size)])
+                  for binding, buffer in pairs]
+        vkUpdateDescriptorSets(self.ctx.device, len(writes), writes, 0, None)
+        self.wall_draw_count = count
+        print(f"[RendererV7] wall store: {count:,} walls drawn from a static copy")
 
     def _create_pipeline(self) -> None:
         # Pipeline layout: 1 descriptor set + 1 push constant block.
@@ -874,6 +918,11 @@ class SphRendererV7:
             push_and_draw(1, cap.leading_ghost_pool_size, is_ghost=1)
             push_and_draw(self.simulator.own_last_pid() + 1,
                           cap.trailing_ghost_pool_size, is_ghost=1)
+        # wall_boundary crossing: the walls of the static wall store (slots 1 .. count of the wall descriptor set)
+        if draw_own and getattr(self, "wall_descriptor_set", None) is not None:
+            vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, self.pipeline_layout, 0,
+                                    1, [self.wall_descriptor_set], 0, None)
+            push_and_draw(1, self.wall_draw_count, is_ghost=0)
 
         vkCmdEndRenderPass(cmd)
         vkEndCommandBuffer(cmd)
@@ -1026,6 +1075,9 @@ class SphRendererV7:
             vkDestroyPipelineLayout(device, self.pipeline_layout, None)
         if self.descriptor_pool is not None:
             vkDestroyDescriptorPool(device, self.descriptor_pool, None)
+        for buffer in getattr(self, "wall_buffers", []):
+            vkDestroyBuffer(device, buffer.handle, None)
+            vkFreeMemory(device, buffer.memory, None)
         if self.descriptor_layout is not None:
             vkDestroyDescriptorSetLayout(device, self.descriptor_layout, None)
 

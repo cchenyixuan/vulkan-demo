@@ -3,9 +3,6 @@
 #include "common.glsl"
 #include "helpers.glsl"
 #include "wall_boundary.glsl"
-#if defined(WALL_CROSSING_NEAR_WALL) || defined(WALL_CROSSING_INTERIOR)
-#include "wall_crossing_split.glsl"
-#endif
 
 // ============================================================================
 // force.comp - δ-plus WCSPH acceleration + particle shifting (stage 5).
@@ -36,12 +33,12 @@
 // MaterialParameters. When multi-phase is enabled (V0+), add back the per-
 // neighbor material / material_parameters reads and restore the harmonic means.
 //
-// numerics.wall_crossing.split_dispatch (report section 22; on by default since section 25; wall_crossing_split.glsl):
-// the
-// WALL_CROSSING_INTERIOR build (force_wall_crossing_interior.comp.spv) is the plain code for the particles of the
-// voxels with no wall particle in their 3^d neighbourhood, the WALL_CROSSING + WALL_CROSSING_NEAR_WALL build
-// (force_wall_crossing_near_wall.comp.spv) the crossing code for the others (spec const 131 = 1; 0 = every
-// particle of the dispatch), telling a wall neighbour by its position outside the fluid box.
+// wall_boundary crossing (WALL_CROSSING variant, force_wall_crossing.comp.spv; plan C, the static wall store;
+// wall_boundary.glsl has the rules): the pool holds the fluid only, so the loop below is the fluid segment. A
+// particle near a wall (its voxel's flag; spec const 131 picks the dispatch class) also sums
+// g_f = Σ_fluid V_j (p_j - p_i) ∇W_ij there, takes G_p = A_f^-1 g_f with the A_f^-1 the fused pass stored this
+// step, and runs the wall segment: every wall record of the 3^d voxels within h gets p_j and v_j from its wall
+// material's rules and adds the pressure (TIC), viscous and shifting pair terms of a fluid neighbour.
 //
 // Boundary particles early-return (static). Rotor computes the full
 // kernel but predict overrides its motion. Micropolar / curl output omitted.
@@ -68,10 +65,6 @@
 // ============================================================================
 
 layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
-#ifdef WALL_CROSSING_MIRROR_SHARED
-// report section 27: M_d of each thread, component x thread: [(column * 3 + row) * WORKGROUP_SIZE + local index]
-shared float wall_crossing_mirror_matrix_shared[9u * WORKGROUP_SIZE];
-#endif
 
 // V3.3 cascading force: rho/P source is a specialization constant so the
 // Phase B pipeline (force_deep_interior_scratch) reads this frame's density
@@ -129,13 +122,15 @@ void process_particle(uint self_particle_id) {
     bool self_in_boundary_band = in_boundary_band(self_voxel_coord);
     if (FORCE_MODE == PIPELINE_MODE_INTERIOR &&  self_in_boundary_band) return;
     if (FORCE_MODE == PIPELINE_MODE_BOUNDARY && !self_in_boundary_band) return;
-#ifdef WALL_CROSSING_NEAR_WALL
-    if (WALL_CROSSING_SPLIT_SELECTION == WALL_CROSSING_SPLIT_SELECTION_OWN_CLASS
-            && !wall_crossing_voxel_is_near_wall(self_voxel_id)) return;
-#endif
-#ifdef WALL_CROSSING_INTERIOR
-    if (WALL_CROSSING_SPLIT_SELECTION == WALL_CROSSING_SPLIT_SELECTION_OWN_CLASS
-            && wall_crossing_voxel_is_near_wall(self_voxel_id)) return;
+#ifdef WALL_CROSSING
+    // wall_boundary crossing: the near-wall flag of the particle's voxel and the dispatch class (spec const 131)
+    bool self_near_wall = false;
+    if (WALL_CROSSING_ACTIVE) {
+        self_near_wall = wall_crossing_voxel_near_wall(self_voxel_id);
+        if (WALL_CROSSING_DISPATCH_CLASS == WALL_CROSSING_DISPATCH_INTERIOR && self_near_wall) return;
+        if (WALL_CROSSING_DISPATCH_CLASS == WALL_CROSSING_DISPATCH_NEAR_WALL && !self_near_wall) return;
+    }
+    bool self_wall_segment = WALL_CROSSING_WALL_SEGMENT_COMPILED && self_near_wall;
 #endif
 
     // --- Self velocity + mass + density + pressure ---------------------------
@@ -197,55 +192,8 @@ void process_particle(uint self_particle_id) {
     float kernel_value_at_delta_x = evaluate_kernel(delta_x_uniform);  // computed once
 
 #ifdef WALL_CROSSING
-    // wall_boundary crossing (WALL_CROSSING variant, force_wall_crossing.comp.spv; wall_boundary.glsl has the
-    // rules; every statement behind WALL_CROSSING_ACTIVE): phi_i with the floor, and the two sums of raw kernel
-    // gradients the wall neighbours' pressure needs after the loop,
-    //   wall_kernel_gradient_sum    = Σ_wall  V_j ∇W_ij,
-    //   fluid_pressure_gradient_sum = Σ_fluid V_j (P_j - P_i) ∇W_ij   (g_f of this step's pressure).
-    float self_wall_distance          = 1.0;
-    vec3  wall_kernel_gradient_sum    = vec3(0.0);
-    vec3  fluid_pressure_gradient_sum = vec3(0.0);
-    if (WALL_CROSSING_ACTIVE) {
-        self_wall_distance = wall_crossing_floored_distance(self_position);
-    }
-    // viscous_extension quadratic (off by default; wall_boundary.glsl): grad v_i the fused pass solved for this
-    // particle in this step. Without it (state 0: no wall neighbour; state 2: fallback) a wall neighbour keeps
-    // the first-order rule.
-    mat3 self_velocity_gradient       = mat3(0.0);
-    bool self_velocity_gradient_valid = false;
-    if (WALL_CROSSING_VISCOUS_QUADRATIC) {
-        vec4 velocity_gradient_column_x = wall_crossing_velocity_gradient[self_particle_id * 3u];
-        if (velocity_gradient_column_x.w == WALL_CROSSING_EXTENSION_STATE_VALID) {
-            self_velocity_gradient_valid = true;
-            self_velocity_gradient = mat3(velocity_gradient_column_x.xyz,
-                                          wall_crossing_velocity_gradient[self_particle_id * 3u + 1u].xyz,
-                                          wall_crossing_velocity_gradient[self_particle_id * 3u + 2u].xyz);
-        }
-    }
-    // pressure_wall reflection (WALL_CROSSING_PRESSURE_REFLECTION, off by default; wall_boundary.glsl):
-    //   wall_mirror_matrix = M_d = Σ_wall V_j ∇W_ij ⊗ (r_j - r_j'),   M_d x = Σ_wall V_j ∇W_ij ((r_j - r_j') · x)
-    mat3 wall_mirror_matrix = mat3(0.0);
-#ifdef WALL_CROSSING_MIRROR_SHARED
-    for (uint component_index = 0u; component_index < 9u; component_index++) {
-        wall_crossing_mirror_matrix_shared[component_index * WORKGROUP_SIZE + gl_LocalInvocationIndex] = 0.0;
-    }
-#endif
-#ifdef WALL_CROSSING_PRESSURE_PAIRWISE
-    // report section 27: G_p the fused pass stored for this particle in this step, 0 when its A_f fell back (and, as
-    // for A_f^-1 below, for a particle outside the near-wall voxels in a dispatch over every particle: its slot is an
-    // older step's, and it has no wall neighbour)
-    vec3 wall_pressure_gradient = vec3(0.0);
-    vec4 stored_pressure_gradient = wall_crossing_fluid_inverse[self_particle_id * 2u];
-    if (stored_pressure_gradient.w != 0.0) {
-        wall_pressure_gradient = stored_pressure_gradient.xyz;
-    }
-#ifdef WALL_CROSSING_NEAR_WALL
-    if (WALL_CROSSING_SPLIT_SELECTION == WALL_CROSSING_SPLIT_SELECTION_EVERY_PARTICLE
-            && !wall_crossing_voxel_is_near_wall(self_voxel_id)) {
-        wall_pressure_gradient = vec3(0.0);
-    }
-#endif
-#endif
+    // wall_boundary crossing, a particle near a wall: g_f of this step's pressure over the fluid segment
+    vec3 fluid_pressure_gradient_sum = vec3(0.0);
 #endif
 
     int neighbor_z_range = int(NEIGHBOR_Z_RANGE);
@@ -292,60 +240,8 @@ void process_particle(uint self_particle_id) {
                     float kernel_value              = evaluate_kernel(distance);
 
 #ifdef WALL_CROSSING
-                    // wall_boundary crossing: a wall neighbour has no pair pressure term (its pressure is
-                    // P_i + G_i · (r_j - r_i), summed after the loop); a fluid neighbour keeps the pair term
-                    // below and adds to g_f of the pressure.
-                    // geometry pairwise (WALL_CROSSING_PAIRWISE, off by default): the pair's own crossing
-                    // fraction (the viscous term below) and mirror point (pressure_wall reflection: M_d).
-#if defined(WALL_CROSSING_NEAR_WALL) && !defined(WALL_CROSSING_NEAR_WALL_BY_MATERIAL)
-                    bool neighbor_is_wall = WALL_CROSSING_ACTIVE && wall_crossing_position_outside_box(neighbor_position);
-#else
-                    bool neighbor_is_wall = WALL_CROSSING_ACTIVE
-                        && material_parameters[material[neighbor_particle_id]].kind == MATERIAL_BOUNDARY;
-#endif
-                    vec3  pair_wall_normal         = vec3(0.0);
-                    float pair_depth_ratio         = 0.0;
-                    vec3  pair_mirror_displacement = vec3(0.0);
-                    if (WALL_CROSSING_PAIRWISE && neighbor_is_wall) {
-                        wall_crossing_pair_geometry(self_position, neighbor_position, pair_wall_normal,
-                                                    pair_depth_ratio, pair_mirror_displacement);
-                    }
-                    if (neighbor_is_wall) {
-#ifdef WALL_CROSSING_PRESSURE_PAIRWISE
-                        // report section 27: p_j = p_i + G_p . (r_j' - r_i) + rho_i g . (r_j - r_j') and the pair term
-                        // of a fluid neighbour on either TIC branch (r_j - r_j' = the mirror displacement)
-                        vec3 pair_mirror_offset = WALL_CROSSING_PRESSURE_REFLECTION ? pair_mirror_displacement : vec3(0.0);
-                        float wall_pair_pressure = self_pressure
-                                                 + dot(wall_pressure_gradient,
-                                                       neighbor_position - pair_mirror_offset - self_position)
-                                                 + self_density * dot(vec3(GRAVITY_X, GRAVITY_Y, GRAVITY_Z),
-                                                                      pair_mirror_offset);
-                        float wall_pressure_combined = (self_pressure > 0.0 || near_surface)
-                                                     ? (wall_pair_pressure + self_pressure)
-                                                     : (wall_pair_pressure - self_pressure);
-                        a_pressure -= neighbor_volume_dynamic * wall_pressure_combined / self_density
-                                    * kernel_gradient_corrected;
-#else
-                        wall_kernel_gradient_sum += neighbor_volume_dynamic * kernel_gradient_raw;
-                        if (WALL_CROSSING_PRESSURE_REFLECTION) {
-#ifdef WALL_CROSSING_MIRROR_SHARED
-                            mat3 wall_mirror_increment = neighbor_volume_dynamic
-                                                       * outerProduct(kernel_gradient_raw, pair_mirror_displacement);
-                            for (uint column_index = 0u; column_index < 3u; column_index++) {
-                                for (uint row_index = 0u; row_index < 3u; row_index++) {
-                                    wall_crossing_mirror_matrix_shared[(column_index * 3u + row_index) * WORKGROUP_SIZE
-                                                                       + gl_LocalInvocationIndex]
-                                        += wall_mirror_increment[column_index][row_index];
-                                }
-                            }
-#else
-                            wall_mirror_matrix += neighbor_volume_dynamic
-                                                * outerProduct(kernel_gradient_raw, pair_mirror_displacement);
-#endif
-                        }
-#endif
-                    } else {
-                    if (WALL_CROSSING_ACTIVE) {
+                    // wall_boundary crossing, a particle near a wall: g_f += V_j (P_j - P_i) ∇W_ij
+                    if (self_wall_segment) {
                         fluid_pressure_gradient_sum += neighbor_volume_dynamic
                                                      * (neighbor_pressure - self_pressure)
                                                      * kernel_gradient_raw;
@@ -361,9 +257,6 @@ void process_particle(uint self_particle_id) {
                             : (neighbor_pressure - self_pressure);
                     a_pressure -= neighbor_volume_dynamic * pressure_combined / self_density
                                 * kernel_gradient_corrected;
-#ifdef WALL_CROSSING
-                    }
-#endif
 
                     // ==== Viscosity (Morris) ================================
                     // wall_boundary adami: a wall neighbour enters with its no-slip dummy velocity
@@ -373,40 +266,12 @@ void process_particle(uint self_particle_id) {
                             && material_parameters[material[neighbor_particle_id]].kind == MATERIAL_BOUNDARY) {
                         viscous_neighbor_velocity = wall_dummy_velocity[neighbor_particle_id].xyz;
                     }
-#ifdef WALL_CROSSING
-                    // wall_boundary crossing: a wall neighbour's velocity difference is the no-slip
-                    // continuation (v_i - v_w) (1 + d_j / φ_i), v_w its stored velocity (whatever the
-                    // continuity rule). Without a wall neighbour this is the expression of the plain build.
-                    // viscous_extension quadratic, a particle with a solved grad v_i: the second-order
-                    // continuation (v_i - v_w) (1 + a_j)^2 + a_j grad v_i (r_j - r_i), a_j = d_j / phi_i.
-                    vec3 viscous_velocity_difference = self_velocity - viscous_neighbor_velocity;
-                    if (neighbor_is_wall) {
-                        if (WALL_CROSSING_VISCOUS_QUADRATIC && self_velocity_gradient_valid) {
-                            float depth_ratio = wall_crossing_depth_ratio(self_wall_distance, neighbor_position);
-                            viscous_velocity_difference =
-                                viscous_velocity_difference * ((1.0 + depth_ratio) * (1.0 + depth_ratio))
-                                + depth_ratio * (self_velocity_gradient * (neighbor_position - self_position));
-                        } else if (WALL_CROSSING_PAIRWISE) {
-                            viscous_velocity_difference *= 1.0 + pair_depth_ratio;
-                        } else {
-                            viscous_velocity_difference *=
-                                wall_crossing_extrapolation_factor(self_wall_distance, neighbor_position);
-                        }
-                    }
-                    a_viscosity +=
-                        morris_coefficient * viscosity_uniform * neighbor_volume_dynamic
-                        * dot(viscous_velocity_difference,
-                              position_difference_neighbor_to_self)
-                        / (distance * distance + EPS_H_SQUARED)
-                        * kernel_gradient_corrected;
-#else
                     a_viscosity +=
                         morris_coefficient * viscosity_uniform * neighbor_volume_dynamic
                         * dot(self_velocity - viscous_neighbor_velocity,
                               position_difference_neighbor_to_self)
                         / (distance * distance + EPS_H_SQUARED)
                         * kernel_gradient_corrected;
-#endif
 
                     // ==== Particle shifting (PST) ===========================
                     // Gated by USE_PST spec const: glslc -O DCE-removes the entire
@@ -452,61 +317,107 @@ void process_particle(uint self_particle_id) {
 
 #ifdef WALL_CROSSING
     // ========================================================================
-    // wall_boundary crossing: the wall neighbours' pressure term. With
-    // P_j = P_i + G_i · (r_j - r_i), G_i = A_f^-1 g_f of THIS step's pressure
-    // (not the density pass's gradient of rho_n), the pair sum over the walls
-    //   Σ_wall V_j F_ji L_i ∇W_ij,  F_ji = P_j + P_i (TIC plus branch) or P_j - P_i,
-    // is s P_i L_i Σ_wall V_j ∇W_ij + L_i (A - A_f) G_i, s = 2 on the plus
-    // branch and 0 otherwise, and with L_i A = I the second part is
-    // (A_f^-1 - L_i) g_f. A_f^-1 is the one the fused pass stored for this
-    // particle in this step; a fallback there (flag 0) means G_i = 0, which
-    // leaves the first part only.
-    // pressure_wall reflection: P_j = P_i + G_i · (r_j' - r_i) + ρ_i g · (r_j - r_j')
-    // lowers every wall neighbour's pressure by (G_i - ρ_i g) · (r_j - r_j'),
-    // i.e. the pair sum by L_i M_d (G_i - ρ_i g) on either branch; nothing on a
-    // fallback of A_f.
+    // wall_boundary crossing, a particle near a wall: between the segments
+    // G_p = A_f^-1 g_f (A_f^-1 the fused pass stored this step; 0 on its
+    // fallback), then the wall segment: every wall record within h gets
+    //   p_j = p_i + (the pressure rule),  v_j = v_i + (the viscous velocity rule)
+    // and the pair terms of a fluid neighbour: pressure (TIC, the same two
+    // branches), viscosity (Morris), shifting (the wall's density in the
+    // disorder term is the rest density, as the particle-pool version's wall
+    // particles stored it). V_j = the record's volume.
     // ========================================================================
-#ifndef WALL_CROSSING_PRESSURE_PAIRWISE
-    if (WALL_CROSSING_ACTIVE) {
-        float pressure_branch_factor = (self_pressure > 0.0 || near_surface) ? 2.0 : 0.0;
-#ifdef WALL_CROSSING_MIRROR_SHARED
-        for (uint column_index = 0u; column_index < 3u; column_index++) {
-            for (uint row_index = 0u; row_index < 3u; row_index++) {
-                wall_mirror_matrix[column_index][row_index] =
-                    wall_crossing_mirror_matrix_shared[(column_index * 3u + row_index) * WORKGROUP_SIZE
-                                                       + gl_LocalInvocationIndex];
-            }
-        }
-#endif
-        vec3 wall_pressure_sum = pressure_branch_factor * self_pressure
-                               * (self_correction_matrix * wall_kernel_gradient_sum);
+    if (self_wall_segment) {
         vec4 fluid_inverse_diagonal_and_xy = wall_crossing_fluid_inverse[self_particle_id * 2u];
         vec4 fluid_inverse_xz_and_yz       = wall_crossing_fluid_inverse[self_particle_id * 2u + 1u];
-#ifdef WALL_CROSSING_NEAR_WALL
-        // split_dispatch, every particle of the dispatch (spec const 131 = 0: phase C band mode 1; report section 23):
-        // the force band is one column wider than the fused band, and the fused pass of a particle there that is
-        // not in a near-wall voxel ran the interior build in phase B, which writes no A_f^-1: its slot holds an
-        // older step's. Such a particle has no wall neighbour, so with this step's A_f^-1 the term is exactly 0
-        // (A_f = A, M_d = 0; the interior build leaves it out and matches the plain crossing build bit for bit):
-        // leave it out here too instead of reading the stale slot.
-        if (WALL_CROSSING_SPLIT_SELECTION == WALL_CROSSING_SPLIT_SELECTION_EVERY_PARTICLE
-                && !wall_crossing_voxel_is_near_wall(self_voxel_id)) {
-            fluid_inverse_xz_and_yz.w = 0.0;
-        }
-#endif
+        vec3 one_sided_pressure_gradient = vec3(0.0);
         if (fluid_inverse_xz_and_yz.w != 0.0) {
-            mat3 fluid_correction_inverse =
-                wall_crossing_symmetric_matrix(fluid_inverse_diagonal_and_xy, fluid_inverse_xz_and_yz);
-            wall_pressure_sum += (fluid_correction_inverse - self_correction_matrix) * fluid_pressure_gradient_sum;
-            if (WALL_CROSSING_PRESSURE_REFLECTION) {
-                vec3 pressure_gradient_excess = fluid_correction_inverse * fluid_pressure_gradient_sum
-                                              - self_density * vec3(GRAVITY_X, GRAVITY_Y, GRAVITY_Z);
-                wall_pressure_sum -= self_correction_matrix * (wall_mirror_matrix * pressure_gradient_excess);
+            one_sided_pressure_gradient =
+                wall_crossing_symmetric_matrix(fluid_inverse_diagonal_and_xy, fluid_inverse_xz_and_yz)
+                * fluid_pressure_gradient_sum;
+        }
+        vec3 gravity_body = vec3(GRAVITY_X, GRAVITY_Y, GRAVITY_Z);
+        float wall_density = self_params.rest_density;
+        for (int delta_x = -1; delta_x <= 1; delta_x++) {
+            for (int delta_z = -neighbor_z_range; delta_z <= neighbor_z_range; delta_z++) {
+                for (int delta_y = -1; delta_y <= 1; delta_y++) {
+                    ivec3 neighbor_coord = self_voxel_coord + ivec3(delta_x, delta_y, delta_z);
+                    if (!in_own_grid(neighbor_coord)) continue;
+                    uint neighbor_voxel_id = own_voxel_id_of(neighbor_coord);
+                    uint wall_end = wall_voxel_offset[neighbor_voxel_id + 1u];
+                    for (uint wall_index = wall_voxel_offset[neighbor_voxel_id]; wall_index < wall_end;
+                         wall_index++) {
+                        vec4 wall_position_volume = wall_particles[wall_index].position_volume;
+                        vec3 neighbor_position = wall_position_volume.xyz;
+                        vec3 position_difference_neighbor_to_self = self_position - neighbor_position;
+                        float distance = length(position_difference_neighbor_to_self);
+                        if (distance >= SMOOTHING_LENGTH || distance < 1e-12) continue;
+                        uvec4 wall_identity   = wall_particles[wall_index].identity;
+                        float neighbor_volume = wall_position_volume.w;
+
+                        vec3  kernel_gradient_raw       = evaluate_kernel_gradient(
+                                                              position_difference_neighbor_to_self, distance);
+                        vec3  kernel_gradient_corrected = self_correction_matrix * kernel_gradient_raw;
+                        float kernel_value              = evaluate_kernel(distance);
+
+                        vec3  crossed_wall_normal;
+                        float depth_ratio;
+                        vec3  mirror_displacement;
+                        wall_crossing_pair_geometry(self_position, neighbor_position, wall_identity.x,
+                                                    crossed_wall_normal, depth_ratio, mirror_displacement);
+                        float extrapolation_factor = 1.0 + depth_ratio;
+                        uint  rule_base = wall_identity.z * WALL_CROSSING_RULE_FIELDS;
+                        vec3  wall_velocity     = wall_crossing_body_velocity(wall_identity.y, neighbor_position);
+                        vec3  wall_acceleration = wall_crossing_body_acceleration(wall_identity.y, neighbor_position);
+
+                        // ==== Pressure (TIC), p_j by the pressure rule
+                        float neighbor_pressure = self_pressure + wall_crossing_rule_scalar_difference(
+                            wall_rules[rule_base + WALL_CROSSING_RULE_PRESSURE], extrapolation_factor, self_pressure,
+                            one_sided_pressure_gradient,
+                            -position_difference_neighbor_to_self - mirror_displacement,
+                            self_density * (gravity_body - wall_acceleration), mirror_displacement);
+                        float pressure_combined =
+                            (self_pressure > 0.0 || near_surface)
+                                ? (neighbor_pressure + self_pressure)
+                                : (neighbor_pressure - self_pressure);
+                        a_pressure -= neighbor_volume * pressure_combined / self_density
+                                    * kernel_gradient_corrected;
+
+                        // ==== Viscosity (Morris), v_i - v_j by the viscous velocity rule
+                        vec3 viscous_velocity_difference = -wall_crossing_rule_velocity_difference(
+                            wall_rules[rule_base + WALL_CROSSING_RULE_VISCOUS_VELOCITY], extrapolation_factor,
+                            wall_velocity, self_velocity, crossed_wall_normal);
+                        a_viscosity +=
+                            morris_coefficient * viscosity_uniform * neighbor_volume
+                            * dot(viscous_velocity_difference, position_difference_neighbor_to_self)
+                            / (distance * distance + EPS_H_SQUARED)
+                            * kernel_gradient_corrected;
+
+                        // ==== Particle shifting (PST): the fluid pair's expressions
+                        if (USE_PST) {
+                            float distance_ratio = (distance - delta_x_uniform) / delta_x_uniform;
+                            float disorder =
+                                (distance_ratio > 0.0)
+                                    ? 0.0
+                                    : distance_ratio * min(wall_density / self_density, 1.0);
+                            float crowding_ratio =
+                                (kernel_value_at_delta_x > 1e-12)
+                                    ? kernel_value / kernel_value_at_delta_x
+                                    : 0.0;
+                            float crowding_term = crowding_ratio * crowding_ratio;
+                            crowding_term *= crowding_term;
+                            float main_scalar =
+                                1.0 - disorder + 0.1 * self_kernel_sum + 0.2 * crowding_term;
+                            particle_shift_main +=
+                                -pst_base_factor * main_scalar * kernel_gradient_corrected * volume_ij_uniform;
+                            float anti_scalar = (distance / delta_x_uniform) * PST_ANTI_SHIFT_COEFFICIENT;
+                            particle_shift_anti +=
+                                pst_base_factor * anti_scalar * kernel_gradient_corrected * volume_ij_uniform;
+                        }
+                    }
+                }
             }
         }
-        a_pressure -= wall_pressure_sum / self_density;
     }
-#endif
 #endif
 
     // ========================================================================

@@ -25,6 +25,7 @@ import numpy as np
 
 from experiment.v7.utils.volume_constraint_v7 import VolumeConstraintSettings
 from experiment.v7.utils.wall_crossing_v7 import WallCrossingSettings
+from experiment.v7.utils.wall_store_v7 import WallSource
 
 
 # ============================================================================
@@ -283,5 +284,10 @@ class CaseV7:
     # V7_BAND_OVERLAP=auto decides from it once for the whole chain
     # (simulator_v7.band_overlap_chain_verdict).
     chain_own_particle_counts: tuple[int, ...] = ()
+    # wall_boundary crossing (plan C, branch v7-crossing-wall-store): the static wall store (utils/wall_store_v7.py).
+    # The loader takes the wall particles out of `initial` (which then holds the fluid only) and keeps the ones
+    # within h of the fluid box here; every slab case of a chain shares it and uploads the walls of its own
+    # extended grid. None for simple / adami (their walls stay in the particle pool).
+    wall_source: Optional[WallSource] = None
 
 

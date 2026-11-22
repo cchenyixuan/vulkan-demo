@@ -310,11 +310,14 @@ def run_case(arguments) -> int:
             "name": arguments.name, "run_id": run.run_id, "case": str(arguments.case).replace("\\", "/"),
             "failed": failure, "alive_at_last_sample": series[-1]["alive"], "particles": expected_alive,
             "wall_boundary": case.numerics.wall_boundary,
-            "continuity": case.numerics.wall_crossing.continuity if case.numerics.wall_crossing else None,
-            "delta_wall": case.numerics.wall_crossing.delta_wall if case.numerics.wall_crossing else None,
+            # the wall store (branch v7-crossing-wall-store) has one scheme: the particle-pool version's names of it
+            "continuity": "extrapolate" if case.numerics.wall_crossing else None,
+            "delta_wall": "reflection" if case.numerics.wall_crossing else None,
             # a summary without this key is a crossing run from before 2026-11-18: full, the default then
-            "continuity_wall_component": (case.numerics.wall_crossing.continuity_wall_component
-                                          if case.numerics.wall_crossing else None),
+            "continuity_wall_component": ((("normal" if case.numerics.wall_crossing.rule_set == "continuity_normal"
+                                            else "full")) if case.numerics.wall_crossing else None),
+            "rule_set": case.numerics.wall_crossing.rule_set if case.numerics.wall_crossing else None,
+            "wall_store": case.wall_source is not None,
             "dimension": dimension, "gravity": gravity.tolist(), "box_lower": lower.tolist(),
             "box_upper": upper.tolist(), "spacing": spacing, "fluid_particles": int(len(speed)),
             "steps": total_steps, "time": total_steps * timestep, "timestep": timestep,

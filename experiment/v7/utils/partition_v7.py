@@ -284,6 +284,36 @@ def transported_particle_fields() -> tuple[str, ...]:
     return fields
 
 
+def _face_voxel_count(global_case: CaseV7) -> int:
+    """The voxels of one x column that the ghost exchange sizes its regions by. Every (y, z) cell of the grid, except
+    for wall_boundary crossing with the static wall store (plan C): the transport carries fluid particles only, so
+    the cells whose cube overlaps the fluid box (the walls never travel)."""
+    grid = global_case.grid
+    if global_case.wall_source is None or global_case.numerics.wall_crossing is None:
+        return grid.grid_dimension_y * grid.grid_dimension_z
+    settings = global_case.numerics.wall_crossing
+    h = global_case.physics.smoothing_length
+    counts = []
+    for axis, origin, dimension in ((1, grid.origin_y, grid.grid_dimension_y), (2, grid.origin_z, grid.grid_dimension_z)):
+        if axis == 2 and int(global_case.physics.dimension) == 2:
+            counts.append(dimension)
+            continue
+        lower, upper = settings.box_lower[axis], settings.box_upper[axis]
+        cells = [index for index in range(dimension)
+                 if origin + (index + 1) * h > lower and origin + index * h < upper]
+        counts.append(len(cells))
+    return counts[0] * counts[1]
+
+
+def describe_face_sizing(global_case: CaseV7) -> Optional[str]:
+    """wall store only: the face voxel count the ghost regions are sized by, against the whole column's."""
+    if global_case.wall_source is None:
+        return None
+    whole = global_case.grid.grid_dimension_y * global_case.grid.grid_dimension_z
+    return (f"wall store: ghost regions sized by the {_face_voxel_count(global_case):,} face voxels over the fluid box "
+            f"(of {whole:,}; the transport carries fluid only)")
+
+
 def _departed_pool_size(global_case: CaseV7, peer_side_count: int) -> int:
     """Departed pool slots for one slab (0 when V7_KEEP_DEPARTED is off or the
     slab has no peer). Sized from the seam face, not from the worst case."""
@@ -292,8 +322,7 @@ def _departed_pool_size(global_case: CaseV7, peer_side_count: int) -> int:
     override = os.environ.get("V7_DEPARTED_CAPACITY")
     if override:
         return max(1, int(override))
-    face_voxel_count = (global_case.grid.grid_dimension_y
-                        * global_case.grid.grid_dimension_z)
+    face_voxel_count = _face_voxel_count(global_case)
     fraction = configured_departed_face_fraction(global_case)
     return max(DEPARTED_CAPACITY_FLOOR,
                int(math.ceil(fraction * face_voxel_count * peer_side_count)))
@@ -313,7 +342,7 @@ def _ghost_pool_layout(global_case: CaseV7, ghost_layers: int) -> tuple[int, int
     """
     if ghost_layers == 1:
         return _ghost_pool_size(global_case), 0
-    voxel_per_x = global_case.grid.grid_dimension_y * global_case.grid.grid_dimension_z
+    voxel_per_x = _face_voxel_count(global_case)
     factor = configured_ghost_pool_factor(global_case)
     # V7_MIGRANT_POOL_FACTOR: the migrant region's own scale. A frame's migrants
     # are a few per seam row (measured in docs/seam_audit/v6_opt.md), far below
@@ -393,7 +422,7 @@ def _ghost_pool_size(case: CaseV7) -> int:
     is cheap (~16 B / slot in set 0 SoA); the alternative — overflow — silently
     drops particles via ``overflow_inside_count`` / ``overflow_incoming_count``.
     """
-    voxel_per_x = case.grid.grid_dimension_y * case.grid.grid_dimension_z
+    voxel_per_x = _face_voxel_count(case)
     pool = voxel_per_x * (case.capacities.max_particles_per_voxel
                           + case.capacities.max_incoming_per_voxel)
     # 2026-09-15 experiment (N56 64M K=8 utilization): the worst-case pool is
@@ -631,6 +660,7 @@ def _build_slab_case(
         transport=transport,
         materials=list(global_case.materials),       # shallow copy ok; immutable per-run
         initial=initial,
+        wall_source=global_case.wall_source,
     )
 
 
@@ -1152,6 +1182,7 @@ def _build_chain_slab_case(
         transport=transport,
         materials=list(global_case.materials),
         initial=initial,
+        wall_source=global_case.wall_source,
         chain_own_particle_counts=tuple(chain_own_particle_counts),
     )
 
@@ -1267,6 +1298,8 @@ def compute_chain_partition(
     print(f"[partition_v7] chain N={slab_count}: columns {column_spans} "
           f"of {grid_nx}; particles "
           + ", ".join(f"{g.own_particle_count:,}" for g in geometry))
+    if slab_count > 1 and describe_face_sizing(global_case):
+        print(f"[partition_v7] {describe_face_sizing(global_case)}")
     if slab_count > 1:
         print(f"[partition_v7] seam: ghost_layers={ghost_layers} "
               f"keep_departed={int(configured_keep_departed())} ghost pool/direction="

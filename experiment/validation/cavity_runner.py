@@ -360,6 +360,17 @@ def main() -> int:
         sys.exit(f"[cavity] {arguments.case}: wall_boundary adami with K > 1 needs --solver v7 (E40, v7-rc3); "
                  "the v6 solver runs it with --slabs 1 only")
     expected_total = int(global_case.initial.positions.shape[0])
+    # wall_boundary crossing with the static wall store (v7, plan C): the walls are not in the particle pool. The
+    # samples and snapshots take them from the store (they do not move: read once, here), so their content is the
+    # particle-pool version's; a checkpoint holds the fluid and is marked _wall_store.
+    wall_store = getattr(global_case, "wall_source", None)
+    wall_particles = None
+    if wall_store is not None:
+        wall_particles = {"positions": wall_store.positions[:, :2].astype(np.float64),
+                          "velocities": wall_store.velocities[:, :2].astype(np.float64),
+                          "mass": wall_store.masses.astype(np.float64),
+                          "density": wall_store.densities.astype(np.float64),
+                          "material": wall_store.material_groups.astype(np.uint32)}
     dt = float(global_case.physics.timestep)
     support = float(global_case.physics.smoothing_length)
     radii = [float(material.radius) for material in global_case.materials if float(material.radius) > 0]
@@ -456,6 +467,7 @@ def main() -> int:
                 continue
             try:
                 with np.load(path) as archive:
+                    archive_files = set(archive.files)
                     candidate = {name: archive[name] for name in archive.files if not name.startswith("_")}
                     candidate_offset = float(archive["_stored_density_offset"])
                     # numerics.volume_constraint.gpu_mean_volume (report section 22): v_ref, rate, theta when written
@@ -464,6 +476,10 @@ def main() -> int:
             except Exception as error:
                 print(f"[cavity] checkpoint {path.name} unreadable ({error!r}); trying an older one", flush=True)
                 continue
+            if wall_store is not None and "_wall_store" not in archive_files:
+                sys.exit(f"[cavity] checkpoint {path.name} is a wall_boundary crossing checkpoint of the particle-pool "
+                         "version (git tag crossing-pool): its walls are in the particle pool. The wall-store version "
+                         "cannot resume it; start the run anew or resume it with the crossing-pool tag.")
             if candidate["position_voxel_id"].shape[0] != expected_total:
                 print(f"[cavity] checkpoint {path.name} holds {candidate['position_voxel_id'].shape[0]} rows, "
                       f"expected {expected_total}; trying an older one", flush=True)
@@ -573,6 +589,12 @@ def main() -> int:
             parts = [reader.read() for reader in readers]
             return {name: np.concatenate([part[name] for part in parts]) for name in parts[0]}
 
+        def with_walls(light: dict) -> dict:
+            """The light state and, with the wall store, its walls appended (the particle-pool version's content)."""
+            if wall_particles is None:
+                return light
+            return {name: np.concatenate([light[name], wall_particles[name]]) for name in light}
+
         def check_status(report_step: int) -> None:
             for index, sim in enumerate(sims):
                 status_values = sim.readback_global_status()
@@ -612,8 +634,9 @@ def main() -> int:
                 speed2 = (light["velocities"][fluid] ** 2).sum(axis=1)
                 kinetic_energy = 0.5 * float((light["mass"][fluid] * speed2).sum())
                 fluid_mass = float(light["mass"][fluid].sum())
-                particles = sampling.ParticleSet(light["positions"], light["velocities"],
-                                                 light["mass"] / light["density"])
+                sampled_state = with_walls(light)
+                particles = sampling.ParticleSet(sampled_state["positions"], sampled_state["velocities"],
+                                                 sampled_state["mass"] / sampled_state["density"])
                 sampled = sampling.sample_centerlines(particles, support, point_sets)
                 arrays = {}
                 for name, result in sampled.items():
@@ -658,7 +681,7 @@ def main() -> int:
                             steady_path.write_text(json.dumps(steady, indent=1), encoding="utf-8")
                             say(f"steady at t = {step * dt:.2f}; stop at t = {stop_step() * dt:.2f}")
             if step * dt >= arguments.t_end - arguments.average_span - 1e-9 and step % snapshot_steps == 0:
-                light = light_state()
+                light = with_walls(light_state())
                 atomic_savez(run_dir / "snapshots" / f"t{step:010d}.npz",
                              positions=light["positions"].astype(np.float32),
                              velocities=light["velocities"].astype(np.float32),
@@ -671,8 +694,9 @@ def main() -> int:
                     raise InvariantViolation(f"drift at checkpoint step {step}: "
                                              f"{merged['position_voxel_id'].shape[0]} rows != {expected_total}")
                 name = f"c{step:010d}.npz"
+                marker = {"_wall_store": np.int64(1)} if wall_store is not None else {}
                 atomic_savez(run_dir / "checkpoints" / name, _stored_density_offset=np.float64(sims[0].stored_density_offset()),
-                             **sims[0].volume_constraint_checkpoint_entries(), **merged)
+                             **sims[0].volume_constraint_checkpoint_entries(), **marker, **merged)
                 with open(manifest_path, "a", encoding="utf-8") as handle:
                     handle.write(json.dumps({"step": step, "time": step * dt, "file": name}) + "\n")
                 checkpoints = sorted(path for path in (run_dir / "checkpoints").glob("c*.npz")

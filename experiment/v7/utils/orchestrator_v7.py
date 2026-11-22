@@ -575,18 +575,6 @@ class ChainOrchestratorV7:
                 sim.restart_init(state, stored_density_offset)
             else:      # numerics.volume_constraint.gpu_mean_volume (report section 22): the checkpoint's values
                 sim.restart_init(state, stored_density_offset, volume_constraint=volume_constraint)
-        # numerics.wall_crossing.split_dispatch (report section 22): the near-wall flags need the peer's walls in the
-        # ghost lists, which a restart leaves empty: one replica round, as the bootstrap's, then the marker again
-        if len(self.sims) > 1 and any(getattr(sim, "wall_crossing_split_active", lambda: False)()
-                                      for sim in self.sims):
-            for sim in self.sims:
-                sim.restart_replica_round_send()
-            for index in range(len(self.sims) - 1):
-                left, right = self.sims[index], self.sims[index + 1]
-                right.receiver_staging_view("leading")[:] = left.sender_staging_view("trailing")
-                left.receiver_staging_view("trailing")[:] = right.sender_staging_view("leading")
-            for sim in self.sims:
-                sim.restart_replica_round_mark()
         for sim in self.sims:
             sim.prepare_step_cmd_buffers()
         for sim in self.sims:

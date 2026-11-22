@@ -110,61 +110,33 @@ _BAND_SLOT_LANES = int(os.environ.get("V7_BAND_SLOT_LANES", "64"))
 # a compacted pid list, one thread per particle, indirect dispatch (needs
 # V7_BAND_VOXEL_DISPATCH=1 for the band definition). Bit-identical results.
 _BAND_COMPACT = os.environ.get("V7_BAND_COMPACT_DISPATCH", "0") == "1"
-# numerics.wall_crossing.split_dispatch (report section 22, a case switch, on by default since section 25): how phase C runs the
-# band of a crossing slab that splits its passes:
-#   "2" (default since report section 27; 3-D 1M two slabs 2.8 % faster per step, section 26): the band split like
-#       phase B, the interior build for its particles and the near-wall build for the others;
-#   "1" (the default of sections 22-26): the near-wall build alone over the whole band (spec const 131 = 0, every
-#       particle). Bit-identical results (section 23 after its fix, section 27).
+# wall_boundary crossing with numerics.wall_crossing.split_dispatch true (organisation (B) of the wall store): how
+# phase C runs the band:
+#   "2" (default): the band split like phase B, the interior pipeline (dispatch class 1) and the near-wall pipeline
+#       (class 2);
+#   "1": the band pipeline with dispatch class 0 alone (every particle, the near-wall flag decides).
 _WALL_CROSSING_SPLIT_BAND_MODE = os.environ.get("V7_WALL_CROSSING_SPLIT_BAND_MODE", "2")
 if _WALL_CROSSING_SPLIT_BAND_MODE not in ("1", "2"):
     raise ValueError(f"V7_WALL_CROSSING_SPLIT_BAND_MODE={_WALL_CROSSING_SPLIT_BAND_MODE!r}: expected 1 or 2")
-# DIAGNOSTIC (report section 22, check 3.5): every split pass is the near-wall build alone over every particle
-# (spec const 131 = 0), so the near-wall build's results for the interior particles can be compared with the
-# interior build's. Never a production setting.
-_WALL_CROSSING_SPLIT_NEAR_WALL_EVERYWHERE = os.environ.get("V7_WALL_CROSSING_SPLIT_NEAR_WALL_EVERYWHERE", "0") == "1"
-# DIAGNOSTIC (report section 23): the order of a split pass's two dispatches. "interior_first" or
-# "near_wall_first"; no barrier between them either way and they write different particles' outputs, so the
-# results are the same. Unset (default): the case's numerics.wall_crossing.split_order (report section 24,
-# default interior_first); set: it overrides the case.
+# DIAGNOSTIC, TIMING: overrides the case's numerics.wall_crossing.split_dispatch when set ("0" = organisation (A), one
+# pipeline; "1" = (B), the interior and near-wall pipelines), to time both on one case file. Unset (default): the case.
+_WALL_CROSSING_SPLIT_DISPATCH_OVERRIDE = os.environ.get("V7_WALL_CROSSING_SPLIT_DISPATCH")
+if _WALL_CROSSING_SPLIT_DISPATCH_OVERRIDE not in (None, "0", "1"):
+    raise ValueError(f"V7_WALL_CROSSING_SPLIT_DISPATCH={_WALL_CROSSING_SPLIT_DISPATCH_OVERRIDE!r}: expected 0 or 1")
+# DIAGNOSTIC: the order of a split pass's two dispatches, "interior_first" or "near_wall_first"; no barrier between
+# them either way and they write different particles' outputs, so the results are the same. Unset (default): the
+# case's numerics.wall_crossing.split_order; set: it overrides the case.
 _WALL_CROSSING_SPLIT_ORDER = os.environ.get("V7_WALL_CROSSING_SPLIT_ORDER")
 if _WALL_CROSSING_SPLIT_ORDER is not None and _WALL_CROSSING_SPLIT_ORDER not in ("interior_first",
                                                                                "near_wall_first"):
     raise ValueError(f"V7_WALL_CROSSING_SPLIT_ORDER={_WALL_CROSSING_SPLIT_ORDER!r}: expected interior_first or "
                      "near_wall_first")
-# DIAGNOSTIC, TIMING ONLY (report section 23): "interior" / "near_wall" leaves that dispatch of every split pass
-# out (its particles keep stale results: the state is WRONG), to time each dispatch alone in the whole step.
-# "none" (default) dispatches both.
+# DIAGNOSTIC, TIMING ONLY: "interior" / "near_wall" leaves that dispatch of every split pass out (its particles keep
+# stale results: the state is WRONG), to time each dispatch alone in the whole step. "none" (default) dispatches both.
 _WALL_CROSSING_SPLIT_TIMING_SKIP = os.environ.get("V7_WALL_CROSSING_SPLIT_TIMING_SKIP", "none")
 if _WALL_CROSSING_SPLIT_TIMING_SKIP not in ("none", "interior", "near_wall"):
     raise ValueError(f"V7_WALL_CROSSING_SPLIT_TIMING_SKIP={_WALL_CROSSING_SPLIT_TIMING_SKIP!r}: expected none, "
                      "interior or near_wall")
-# DIAGNOSTIC (report section 26): which rule the near-wall marker (wall_crossing_near_wall_marker.comp, spec const
-# 133) uses for a voxel. "distance" (default): a wall particle lies closer than the support radius to the voxel's
-# cube (plus a margin of 1/256 voxel against rounding); "neighborhood": the rule of sections 22-25, a voxel of the
-# 3^d neighbourhood holds a wall particle. The first marks a subset of the second and both mark every voxel whose
-# particles can have a wall neighbour, so the results are bit-identical; only the split between the two builds moves.
-_WALL_CROSSING_NEAR_WALL_RULE = os.environ.get("V7_WALL_CROSSING_NEAR_WALL_RULE", "distance")
-if _WALL_CROSSING_NEAR_WALL_RULE not in ("distance", "neighborhood"):
-    raise ValueError(f"V7_WALL_CROSSING_NEAR_WALL_RULE={_WALL_CROSSING_NEAR_WALL_RULE!r}: expected distance or "
-                     "neighborhood")
-# DIAGNOSTIC, TIMING (report section 26): how the near-wall build tells a wall neighbour. "position" (default,
-# since section 22): the neighbour lies outside the fluid box; "material": material[j] and the material table's
-# kind, pair by pair (the *_near_wall_by_material builds, otherwise identical). Same answer for every particle in a
-# valid state, so the results are bit-identical.
-_WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST = os.environ.get("V7_WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST", "position")
-if _WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST not in ("position", "material"):
-    raise ValueError(f"V7_WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST={_WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST!r}: expected "
-                     "position or material")
-# report section 27: which accumulators that only wall pairs update the near-wall builds keep in shared memory instead
-# of registers (compile-time variants *_mirror_shared / *_delta_shared; bit-identical results). Comma list of
-# "mirror" (force's M_d) and "delta" (the fused pass's two wall sums of the delta term), or "none" (the builds of
-# 2f71864). Default "mirror" (section 27's timing: the delta variant is slower in 2-D and neutral in 3-D).
-_WALL_CROSSING_REGISTER_TRIM_TEXT = os.environ.get("V7_WALL_CROSSING_REGISTER_TRIM", "mirror")
-_WALL_CROSSING_REGISTER_TRIM = {item for item in _WALL_CROSSING_REGISTER_TRIM_TEXT.split(",") if item and item != "none"}
-if not _WALL_CROSSING_REGISTER_TRIM <= {"mirror", "delta"}:
-    raise ValueError(f"V7_WALL_CROSSING_REGISTER_TRIM={_WALL_CROSSING_REGISTER_TRIM_TEXT!r}: expected a comma list of "
-                     "mirror, delta, or none")
 # DIAGNOSTIC (report section 23): which bench timestamps a recording gets. "kernel" (default): every tick as
 # before (a split pass also gets one between its two dispatches); "pass": no tick between the two dispatches of a
 # split pass; "step": only the step's first and last tick (step_start, force_end) and the defrag's, so nothing
@@ -319,79 +291,6 @@ _DEEP_WALL_SKIP = _parse_deep_wall_skip(os.environ.get("V7_DEEP_WALL_SKIP", "aut
 _DEEP_WALL_CHECK = _parse_deep_wall_check(os.environ.get("V7_DEEP_WALL_CHECK", "0"))
 
 
-def _parse_density_budget(text: str) -> bool:
-    """V7_DENSITY_BUDGET (diagnostic): 0 or 1."""
-    value = text.strip()
-    if value not in ("0", "1"):
-        raise ValueError(f"V7_DENSITY_BUDGET={text!r}: accepted values are 0, 1 (1 = the fused pass also "
-                         "accumulates the density rate's terms into density_budget)")
-    return value == "1"
-
-
-# V7_DENSITY_BUDGET=1 (DIAGNOSTIC; one slab without a peer, the fused correction + density pass, no deep-wall
-# skip): the fused pass runs its DENSITY_BUDGET build (shaders/density_budget.glsl), which adds, every step and
-# for every fluid particle, TIMESTEP x (drift fluid, drift wall, diffusion fluid, diffusion wall) of its
-# density rate, and the change its stored density took, to density_budget (set 0 binding 13; two entries per
-# slot and region; region = which walls of the box lie within the support radius, the interior by its
-# distance to the nearest wall). The pass's results are the plain build's. readback_density_budget() sums the
-# buffer. Read once at import; default 0 = nothing of it exists (no buffer, no binding, the plain modules).
-_DENSITY_BUDGET = _parse_density_budget(os.environ.get("V7_DENSITY_BUDGET", "0"))
-# regions 1 - 8 = horizontal + 3 x vertical (a wall plane within the support radius h); the interior by its
-# distance g to the nearest wall plane: 9 for h <= g < 2h, 10 for 2h <= g < 4h, 11 for 4h <= g < 8h, 0 beyond
-DENSITY_BUDGET_REGION_NAMES = ("interior_beyond_8h", "left", "right", "bottom", "bottom_left", "bottom_right",
-                               "top", "top_left", "top_right", "interior_1h_2h", "interior_2h_4h",
-                               "interior_4h_8h")
-# 3-D (report section 22; the lid = the upper y plane): the same slots, binned by the planes within h
-DENSITY_BUDGET_REGION_NAMES_3D = ("interior_beyond_8h", "lid_middle", "bottom_middle", "side_middle",
-                                  "lid_edge", "bottom_edge", "vertical_edge", "lid_corner", "bottom_corner",
-                                  "interior_1h_2h", "interior_2h_4h", "interior_4h_8h")
-
-
-def density_budget_region_names(dimension: int) -> tuple:
-    """The names of the budget's twelve regions for a case of this dimension."""
-    return DENSITY_BUDGET_REGION_NAMES_3D if int(dimension) == 3 else DENSITY_BUDGET_REGION_NAMES
-
-
-def density_budget_region_index(positions: np.ndarray, box_lower: tuple, box_upper: tuple,
-                                smoothing_length: float, dimension: int = 2) -> np.ndarray:
-    """density_budget.glsl's density_budget_region for an (N, >= 2) array of positions, in float32 as the
-    shader computes it (the index into density_budget_region_names(dimension) of every row)."""
-    positions = np.asarray(positions, dtype=np.float32)
-    support = np.float32(smoothing_length)
-    if int(dimension) == 3:
-        lower = [np.float32(value) for value in box_lower]
-        upper = [np.float32(value) for value in box_upper]
-        lower_gaps = [positions[:, axis] - lower[axis] for axis in range(3)]
-        upper_gaps = [upper[axis] - positions[:, axis] for axis in range(3)]
-        lid_plane = upper_gaps[1] < support
-        bottom_plane = lower_gaps[1] < support
-        side_planes = (((lower_gaps[0] < support) | (upper_gaps[0] < support)).astype(np.int64)
-                       + ((lower_gaps[2] < support) | (upper_gaps[2] < support)).astype(np.int64))
-
-        def by_sides(none, one, two):
-            return np.where(side_planes == 0, none, np.where(side_planes == 1, one, two))
-        gap = np.minimum.reduce([*lower_gaps, *upper_gaps])
-        interior = np.where(gap >= np.float32(8.0) * support, 0,
-                            np.where(gap >= np.float32(4.0) * support, 11,
-                                     np.where(gap >= np.float32(2.0) * support, 10, 9)))
-        return np.where(lid_plane, by_sides(1, 4, 7),
-                        np.where(bottom_plane, by_sides(2, 5, 8),
-                                 np.where(side_planes > 0, by_sides(0, 3, 6), interior)))
-    lower_x, lower_y = np.float32(box_lower[0]), np.float32(box_lower[1])
-    upper_x, upper_y = np.float32(box_upper[0]), np.float32(box_upper[1])
-    gap_left, gap_right = positions[:, 0] - lower_x, upper_x - positions[:, 0]
-    gap_bottom, gap_top = positions[:, 1] - lower_y, upper_y - positions[:, 1]
-    horizontal = np.where(gap_left < support, 1, np.where(gap_right < support, 2, 0))
-    vertical = np.where(gap_bottom < support, 1, np.where(gap_top < support, 2, 0))
-    near_wall = horizontal + 3 * vertical
-    gap = np.minimum(np.minimum(gap_left, gap_right), np.minimum(gap_bottom, gap_top))
-    interior = np.where(gap >= np.float32(8.0) * support, 0,
-                        np.where(gap >= np.float32(4.0) * support, 11,
-                                 np.where(gap >= np.float32(2.0) * support, 10, 9)))
-    return np.where(near_wall != 0, near_wall, interior)
-# the four terms of the rate (x dt, accumulated) and the change the stored float32 density actually took
-DENSITY_BUDGET_TERM_NAMES = ("drift_fluid", "drift_wall", "diffusion_fluid", "diffusion_wall", "applied")
-DENSITY_BUDGET_ENTRIES = 3      # vec4 per (slot, region): density_budget.glsl DENSITY_BUDGET_ENTRIES
 # Test hook, not a switch (experiment/seam_audit/canonical_dump.py sets it before
 # building the simulators): record every skip decision (frame_stamp + 1 per
 # skipped particle and kernel, deep_wall_skip_record) so a dump can name the
@@ -1003,7 +902,6 @@ class SphSimulatorV7:
                   f"{'on' if self._band_overlap_active() else 'off'} ({self.band_overlap_resolution[1]})")
         # wall_boundary crossing: the paths the mode does not run are refused here, before anything is built.
         self._check_wall_crossing_supported()
-        self._check_density_budget_supported()
         self._check_volume_constraint_supported()
 
         # Buffer allocation
@@ -1140,16 +1038,22 @@ class SphSimulatorV7:
 
     @property
     def _wall_crossing_split(self) -> bool:
-        """numerics.wall_crossing.split_dispatch on a crossing slab (report section 22; on by default since report
-        section 25): the fused pass and force run as the interior build (no mode code) for the particles away from
-        the walls and the near-wall build for the others (shaders/wall_crossing_split.glsl). Resolved once: the
-        default falls back to off (printed) where the split is not supported; a case that writes true is refused
-        there (_check_wall_crossing_split_supported)."""
+        """numerics.wall_crossing.split_dispatch on a crossing slab: organisation (B), the fused pass and force as the
+        interior pipeline (dispatch class 1, no wall segment) and the near-wall pipeline (class 2); False =
+        organisation (A), one pipeline (class 0) for every particle. Resolved once: a case that does not write the key
+        gets the default, which falls back to (A) (printed) where (B) is not supported; a case that writes true is
+        refused there (_check_wall_crossing_split_supported)."""
         resolved = self.__dict__.get("_wall_crossing_split_resolved")
         if resolved is None:
             settings = getattr(self.case.numerics, "wall_crossing", None)
             resolved = bool(self._wall_crossing and getattr(settings, "split_dispatch", False))
-            if resolved and not getattr(settings, "split_dispatch_explicit", True):
+            if self._wall_crossing and _WALL_CROSSING_SPLIT_DISPATCH_OVERRIDE is not None:
+                resolved = _WALL_CROSSING_SPLIT_DISPATCH_OVERRIDE == "1"
+                print(f"[SimV7] V7_WALL_CROSSING_SPLIT_DISPATCH={_WALL_CROSSING_SPLIT_DISPATCH_OVERRIDE}: organisation "
+                      f"{'(B)' if resolved else '(A)'} (the case's split_dispatch is overridden)", flush=True)
+                if resolved:
+                    self._check_wall_crossing_split_supported()
+            elif resolved and not getattr(settings, "split_dispatch_explicit", True):
                 reason = self._wall_crossing_split_unsupported_reason()
                 if reason is not None:
                     print(f"[SimV7] numerics.wall_crossing.split_dispatch (default on): off on this slab: {reason}",
@@ -1159,92 +1063,44 @@ class SphSimulatorV7:
         return resolved
 
     def wall_crossing_split_active(self) -> bool:
-        """Public: does this slab split its passes (numerics.wall_crossing.split_dispatch)."""
+        """Public: does this slab run organisation (B) (numerics.wall_crossing.split_dispatch)."""
         return self._wall_crossing_split
 
-    def _density_budget_active(self) -> bool:
-        """V7_DENSITY_BUDGET=1 (diagnostic): the fused pass runs its DENSITY_BUDGET build on this slab."""
-        return _DENSITY_BUDGET
-
-    def _check_density_budget_supported(self) -> None:
-        """The budget lives in the fused pass's DENSITY_BUDGET builds (plain and WALL_CROSSING). Refused: a
-        slab that runs the separate kernels, one that skips deep walls (no budget build of that variant), one
-        with a peer (the band kernels would add a particle's terms twice)."""
-        if not self._density_budget_active():
-            return
-        transport = self.case.transport
-        if not self._fused_correction_density_active():
-            raise ValueError("V7_DENSITY_BUDGET=1 needs the fused correction + density pass "
-                             f"({self.fused_correction_density_resolution[1]})")
-        if self._deep_wall_skip_active():
-            raise ValueError("V7_DENSITY_BUDGET=1 has no deep-wall-skip build: set V7_DEEP_WALL_SKIP=0")
-        if transport.has_leading_peer or transport.has_trailing_peer:
-            raise ValueError("V7_DENSITY_BUDGET=1 is a one-slab diagnostic (K = 1)")
-
-    def density_budget_box(self) -> tuple:
-        """(lower, upper) of the box the budget's regions refer to: wall_boundary crossing's box, or for
-        another wall mode the box crossing would take (the initial fluid bounding box widened by one
-        particle radius)."""
-        if self._wall_crossing:
-            settings = self.case.numerics.wall_crossing
-        else:
-            from experiment.v7.utils.wall_crossing_v7 import WallCrossingSettings, resolve_wall_crossing_box
-            kinds = np.asarray([material.kind for material in self.case.materials])
-            is_wall = kinds[np.asarray(self.case.initial.material_group)] == 1      # case_v7.KIND_BOUNDARY
-            settings = resolve_wall_crossing_box(
-                WallCrossingSettings(), np.asarray(self.case.initial.positions), is_wall,
-                self.wall_crossing_particle_radius(), int(self.case.physics.dimension))
-        return tuple(settings.box_lower), tuple(settings.box_upper)
-
-    def readback_density_budget(self) -> np.ndarray:
-        """(12, 5) float64: density_budget summed over every slot, per region (DENSITY_BUDGET_REGION_NAMES)
-        and column (DENSITY_BUDGET_TERM_NAMES: the four terms, accumulated TIMESTEP x rate, and the
-        accumulated change the stored density actually took), in kg/m^3 summed over all fluid particles
-        since start-up (divide by the fluid particle count for the field mean)."""
-        if not self._density_budget_active():
-            raise RuntimeError("readback_density_budget needs V7_DENSITY_BUDGET=1")
-        return self.readback_density_budget_and_extension()[0]
-
-    def readback_density_budget_and_extension(self) -> tuple:
-        """One readback of density_budget: (the (12, 5) array of readback_density_budget, the second-order
-        continuation's diagnostics of wall_boundary crossing or None for another wall mode). The diagnostics
-        are a dict of (12,) arrays per region (DENSITY_BUDGET_REGION_NAMES), all since start-up:
-            "fallbacks"            particle-steps in which the pass fell back to the first-order rule (float64)
-            "wall_steps"           particle-steps with a wall neighbour (float64; float32 counters per slot)
-            "determinant_minimum"  the smallest det(I - K_raw L_i) (NaN where no step was counted)
-            "factor_maximum"       the largest (1 + a_j)^2
-            "diffusion_maximum"    the largest wall viscous diffusion number (density_budget.glsl)"""
-        if not self._density_budget_active():
-            raise RuntimeError("readback_density_budget needs V7_DENSITY_BUDGET=1")
-        raw = self.readback_buffers_batch(["density_budget"])["density_budget"]
-        regions = len(DENSITY_BUDGET_REGION_NAMES)
-        capacity = self.case.capacities.total_pool_capacity()
-        values = np.frombuffer(raw, dtype=np.float32)[:capacity * regions * DENSITY_BUDGET_ENTRIES * 4] \
-            .reshape(capacity, regions, DENSITY_BUDGET_ENTRIES, 4)
-        sums = values.sum(axis=0, dtype=np.float64)                         # (regions, entries, 4)
-        budget = np.concatenate([sums[:, 0, :], sums[:, 1, 0:1]], axis=1)
+    def wall_store_layout(self):
+        """wall_boundary crossing: this slab's share of the static wall store (utils/wall_store_v7.py; the walls of the
+        extended grid sorted by voxel, the voxel offsets and the near-wall flags), computed once. None otherwise."""
         if not self._wall_crossing:
-            return budget, None
-        counted = values[:, :, 2, 3] > 0.0
-        determinant = np.where(counted, values[:, :, 2, 0], np.inf).min(axis=0).astype(np.float64)
-        determinant[~counted.any(axis=0)] = np.nan
-        extension = {"fallbacks": sums[:, 1, 1], "wall_steps": sums[:, 2, 3],
-                     "determinant_minimum": determinant,
-                     "factor_maximum": values[:, :, 2, 1].max(axis=0).astype(np.float64),
-                     "diffusion_maximum": values[:, :, 2, 2].max(axis=0).astype(np.float64)}
-        return budget, extension
-
-    def readback_wall_crossing_extension_states(self) -> Optional[dict]:
-        """wall_boundary crossing with a quadratic extension: how many particles hold each state of the
-        second-order continuation after the last fused pass (WALL_CROSSING_EXTENSION_STATE_NAMES:
-        no_wall_neighbour, valid, fallback), over every slot (a wall and an empty slot hold 0, so
-        "no_wall_neighbour" is not a particle count; "valid" and "fallback" are). None without the extension."""
-        if not (self._wall_crossing and self.case.numerics.wall_crossing.velocity_gradient_active()):
             return None
-        raw = self.readback_buffers_batch(["wall_crossing_velocity_gradient"])["wall_crossing_velocity_gradient"]
-        capacity = self.case.capacities.total_pool_capacity()
-        state = np.frombuffer(raw, dtype=np.float32)[:capacity * 12].reshape(capacity, 12)[:, 3]
-        return {"valid": int((state == 1.0).sum()), "fallback": int((state == 2.0).sum())}
+        layout = self.__dict__.get("_wall_store_layout_cache")
+        if layout is None:
+            from experiment.v7.utils.wall_store_v7 import layout_for_grid
+            if self.case.wall_source is None:
+                raise ValueError("wall_boundary crossing without a wall store: the case must come from "
+                                 "case_loader_v7.load_case_v7 (which moves the walls into case.wall_source)")
+            layout = layout_for_grid(self.case.wall_source, self.case.grid)
+            self.__dict__["_wall_store_layout_cache"] = layout
+        return layout
+
+    def wall_store_statistics(self) -> dict:
+        """wall_boundary crossing: the slab's wall store (host data): walls uploaded, voxels, near-wall voxels, the
+        largest wall count of a voxel, and the case's kept / discarded walls."""
+        layout = self.wall_store_layout()
+        source = self.case.wall_source
+        return {**layout.statistics, "case_walls_kept": source.count, "case_walls_discarded": source.discarded_count,
+                "case_walls_loaded": source.loaded_count}
+
+    def _wall_store_payloads(self) -> dict:
+        """The upload payloads of the wall store's six buffers (set 1 bindings 9-14), or {} without crossing."""
+        layout = self.wall_store_layout()
+        if layout is None:
+            return {}
+        source = self.case.wall_source
+        return {"wall_store_near_wall_voxel_flag": layout.near_wall_flags.astype(np.uint32).tobytes(),
+                "wall_store_voxel_offset": layout.voxel_offsets.astype(np.uint32).tobytes(),
+                "wall_store_particles": layout.records if layout.records else b"\x00" * 32,
+                "wall_store_planes": source.planes.astype(np.float32).tobytes(),
+                "wall_store_bodies": source.bodies.astype(np.float32).tobytes(),
+                "wall_store_rules": source.rules.astype(np.float32).tobytes()}
 
     def _check_wall_crossing_supported(self) -> None:
         """wall_boundary crossing lives in the fused correction + density pass and in force (their WALL_CROSSING
@@ -1259,11 +1115,14 @@ class SphSimulatorV7:
         numerics = self.case.numerics
         if not numerics.use_kcg_correction:
             raise ValueError("wall_boundary crossing needs numerics.use_kcg_correction true (the one-sided "
-                             "gradient and the wall pressure term are built on the correction matrix)")
+                             "gradients are built on the correction matrix)")
         settings = numerics.wall_crossing
         if settings is None or settings.box_lower is None or settings.box_upper is None:
             raise ValueError("wall_boundary crossing without resolved settings: numerics.wall_crossing must carry "
                              "the fluid box (case_loader_v7.load_case_v7 resolves it)")
+        if self.case.wall_source is None:
+            raise ValueError("wall_boundary crossing without a wall store (case.wall_source): the case must come from "
+                             "case_loader_v7.load_case_v7")
         if not self._fused_correction_density_active():
             raise ValueError("wall_boundary crossing needs the fused correction + density pass "
                              "(correction_density.comp); this slab would run the separate correction.comp + "
@@ -1272,12 +1131,10 @@ class SphSimulatorV7:
         transport = self.case.transport
         if transport.has_leading_peer or transport.has_trailing_peer:
             # A crossing slab with a peer runs the same two kernels through the split pipelines: the interior in
-            # phase B, the band and the inner ghost column as self in phase C. Nothing new travels: a fluid
-            # particle continues its OWN fields across the wall, so a wall replica is read for its position,
-            # prescribed velocity, rho0 and material only (all in the replica record), and A_f^-1 is written and
-            # read by the same slab for its own particles in the same step. What the mode does need is the seam of
-            # the release set, in which the receiver recomputes the inner ghost column as self (so a band particle
-            # reads this step's pressure of its ghost fluid neighbours, as on one slab):
+            # phase B, the band and the inner ghost column as self in phase C. The transport carries fluid only
+            # (the walls are in every slab's own wall store, own and ghost columns); A_f^-1 is written and read by
+            # the same slab for its own particles in the same step. The receiver must recompute the inner ghost
+            # column as self (so a band particle reads this step's pressure of its ghost fluid neighbours):
             if self.case.ghost_grid.ghost_layers < 2:
                 raise ValueError("wall_boundary crossing on a slab with a peer needs the two-layer seam "
                                  "(V7_KEEP_DEPARTED=1, V7_BAND_VOXEL_DISPATCH=1, V7_GHOST_LAYERS unset or 2); this "
@@ -1292,16 +1149,7 @@ class SphSimulatorV7:
             self._check_wall_crossing_split_supported()
 
     def _wall_crossing_split_unsupported_reason(self) -> Optional[str]:
-        """Why numerics.wall_crossing.split_dispatch cannot run on this slab, or None (report sections 22, 25)."""
-        from experiment.v7.utils.case_v7 import KIND_BOUNDARY
-        others = sorted({material.kind for material in self.case.materials} - {KIND_FLUID, KIND_BOUNDARY})
-        if others:
-            return (f"material kinds {others} (inlet / rotor: moving boundaries) are not supported; the near-wall "
-                    "flags assume walls that do not move")
-        if self.case.numerics.wall_crossing.velocity_gradient_active():
-            return "a quadratic extension is not supported (the interior build writes no grad v_i)"
-        if self._density_budget_active():
-            return "V7_DENSITY_BUDGET=1 is not supported"
+        """Why organisation (B) (numerics.wall_crossing.split_dispatch) cannot run on this slab, or None."""
         if _BAND_COMPACT:
             return "V7_BAND_COMPACT_DISPATCH=1 is not supported"
         if _BAND_OVERLAP != "0":
@@ -1311,12 +1159,9 @@ class SphSimulatorV7:
         return None
 
     def _check_wall_crossing_split_supported(self) -> None:
-        """numerics.wall_crossing.split_dispatch (report section 22). The near-wall flags are filled once (the walls
-        do not move) and the split covers the pipelines of the default recordings. Refused (ValueError) when the
-        split is on (a case that wrote true; the default has already fallen back, _wall_crossing_split): a material
-        that is neither fluid nor a static wall (an inlet or rotor: moving boundaries), the quadratic extension (the
-        interior build writes no grad v_i), V7_DENSITY_BUDGET=1 (no budget build of the split), the compact band
-        dispatch, V7_BAND_OVERLAP (force_deep segments) and the diagnostic fake band."""
+        """Organisation (B) covers the pipelines of the default recordings. Refused (ValueError) when it is on (a case
+        that wrote true; the default has already fallen back, _wall_crossing_split): the compact band dispatch,
+        V7_BAND_OVERLAP (force_deep segments) and the diagnostic fake band."""
         reason = self._wall_crossing_split_unsupported_reason()
         if reason is not None:
             raise ValueError(f"numerics.wall_crossing.split_dispatch: {reason}")
@@ -1488,17 +1333,11 @@ class SphSimulatorV7:
 
     def _check_volume_constraint_supported(self) -> None:
         """The constraint's term is a statement of the crossing variant of the fused pass. Refused: another wall
-        mode (also by the loader), the density budget build (its four terms would not add up to the applied
-        change), a defrag cadence longer than the update interval."""
+        mode (also by the loader), a defrag cadence longer than the update interval."""
         if not self._volume_constraint_active():
             return
         if not self._wall_crossing:
             raise ValueError("numerics.volume_constraint.enabled needs numerics.wall_boundary crossing")
-        if self._density_budget_active():
-            raise ValueError("numerics.volume_constraint and V7_DENSITY_BUDGET=1 together are not supported: the "
-                             "budget's four terms do not contain the constraint's term. The default crossing cases "
-                             "carry the constraint since 2026-11-19; for the budget take a case without it (the "
-                             "250^2 cavity: cases/lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_constraint_off)")
         settings = self.case.numerics.volume_constraint
         if self._volume_constraint_gpu_mean():
             workgroup = int(self.case.capacities.workgroup_size)
@@ -1808,33 +1647,23 @@ class SphSimulatorV7:
         # per fluid particle A_f^-1 (six floats) + a validity flag, the packing of correction_inverse. Transient:
         # written by the fused pass, read by force of the same step for the particle itself; not in
         # DEFRAG_SET0_BINDINGS / the transport / the restart state (as wall_dummy_velocity).
-        # Set 0 binding 14 = grad v_i (three vec4 per particle, the state in the first) of the second-order
-        # continuation (numerics.wall_crossing.viscous_extension / continuity_extension quadratic), written and
-        # read like A_f^-1; a 48-byte stub that nothing touches when both extensions are linear.
-        wall_crossing_specs = [
-            _BufferSpec("wall_crossing_fluid_inverse",  0, 12, 32 * pool_capacity, BSU | TRANSFER),
-            _BufferSpec("wall_crossing_velocity_gradient", 0, 14,
-                        48 * pool_capacity if self.case.numerics.wall_crossing.velocity_gradient_active() else 48,
-                        BSU | TRANSFER),
-            # numerics.volume_constraint: (rate, theta, 0, 0), written by the host at an update, read by the
-            # fused pass when spec const 130 is on. Zero (no term) until the first update; 16 bytes that
-            # nothing reads with the constraint off.
-            _BufferSpec("volume_constraint_state", 0, 15, 16, BSU | TRANSFER),
-        ] if self._wall_crossing else []
-        # V7_DENSITY_BUDGET=1 (diagnostic; only then, so every other run keeps its layouts): set 0 binding 13 =
-        # per slot and region the accumulated four terms of the density rate (density_budget.glsl). Not in
-        # DEFRAG_SET0_BINDINGS / the transport / the restart state: only its sum over the slots is read.
-        density_budget_specs = [
-            _BufferSpec("density_budget", 0, 13,
-                        DENSITY_BUDGET_ENTRIES * 16 * len(DENSITY_BUDGET_REGION_NAMES) * pool_capacity,
-                        BSU | TRANSFER),
-        ] if self._density_budget_active() else []
-        # numerics.wall_crossing.split_dispatch (report section 22; only then, so every other slab keeps its layouts):
-        # set 1 binding 9 = per voxel of the extended grid 'holds a wall particle' and 'near a wall'
-        # (wall_crossing_split.glsl). Per voxel, so not in DEFRAG_SET0_BINDINGS / the transport / the restart state.
-        wall_crossing_split_specs = [
-            _BufferSpec("wall_crossing_near_wall_voxel_flag", 1, 9, 4 * 2 * voxel_capacity, BSU | TRANSFER),
-        ] if self._wall_crossing_split else []
+        # Set 1 bindings 9-14 = the static wall store of this slab (utils/wall_store_v7.py, wall_boundary.glsl):
+        # near-wall voxel flags, wall voxel offsets, wall records, planes, bodies, wall materials. Uploaded at the start
+        # and never written by a kernel; per voxel or per wall, so not in DEFRAG_SET0_BINDINGS / the transport / the
+        # restart state.
+        wall_crossing_specs = []
+        if self._wall_crossing:
+            wall_payloads = self._wall_store_payloads()
+            wall_crossing_specs = [
+                _BufferSpec("wall_crossing_fluid_inverse",  0, 12, 32 * pool_capacity, BSU | TRANSFER),
+                # numerics.volume_constraint: (rate, theta, 0, 0), written by the host at an update, read by the
+                # fused pass when spec const 130 is on. Zero (no term) until the first update; 16 bytes that
+                # nothing reads with the constraint off.
+                _BufferSpec("volume_constraint_state", 0, 15, 16, BSU | TRANSFER),
+            ] + [_BufferSpec(name, 1, binding, len(wall_payloads[name]), BSU | TRANSFER)
+                 for binding, name in ((9, "wall_store_near_wall_voxel_flag"), (10, "wall_store_voxel_offset"),
+                                       (11, "wall_store_particles"), (12, "wall_store_planes"),
+                                       (13, "wall_store_bodies"), (14, "wall_store_rules"))]
         # numerics.volume_constraint.gpu_mean_volume (report section 22; only then): set 3 binding 11 = one (sum of
         # delta_i, fluid count) pair per workgroup of the per-own-particle dispatch (volume_constraint_reduction.comp)
         volume_constraint_specs = [
@@ -1890,8 +1719,7 @@ class SphSimulatorV7:
             # V7_BAND_COMPACT_DISPATCH: indirect dispatch sizes + list column starts
             _BufferSpec("band_compact_meta",            3, 9, 128,
                         BSU | TRANSFER | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT),
-        ] + (deep_wall_specs + wall_crossing_specs + density_budget_specs + wall_crossing_split_specs
-             + volume_constraint_specs)
+        ] + (deep_wall_specs + wall_crossing_specs + volume_constraint_specs)
 
     def _allocate_buffer(
         self,
@@ -2408,19 +2236,11 @@ class SphSimulatorV7:
             # segment that does not start at workgroup 0 (likewise for a pre-B3 V7_SPV_DIR)
             *(("force_segment",) if self._force_deep_segment_first_groups() else ()),
             # wall_boundary crossing: the WALL_CROSSING variants of the fused pass and of force only on a crossing
-            # slab (simple / adami need no such file, e.g. in a V7_SPV_DIR A/B against an earlier build)
-            *((f"correction_density_wall_crossing{self._wall_crossing_pairwise_suffix()}",
-               f"force_wall_crossing{self._wall_crossing_pairwise_suffix()}") if self._wall_crossing else ()),
-            # numerics.wall_crossing.split_dispatch (report section 22): the interior and near-wall builds and the
-            # near-wall marker, only on a crossing slab that splits its passes
-            # (the near-wall pair per _wall_crossing_near_wall_module_names: reports 26 / 27's variants)
-            *(("correction_density_wall_crossing_interior", "force_wall_crossing_interior",
-               "wall_crossing_near_wall_marker", *self._wall_crossing_near_wall_module_names())
-              if self._wall_crossing_split else ()),
+            # slab (simple / adami need no such file, e.g. in a V7_SPV_DIR A/B against an earlier build); both
+            # organisations build every pipeline from them (spec const 131)
+            *(("correction_density_wall_crossing", "force_wall_crossing") if self._wall_crossing else ()),
             # numerics.volume_constraint.gpu_mean_volume (report section 22): the reduction kernel, only then
             *(("volume_constraint_reduction",) if self._volume_constraint_gpu_mean() else ()),
-            # V7_DENSITY_BUDGET=1 (diagnostic): the DENSITY_BUDGET build of this slab's fused pass
-            *((self._density_budget_module_name(),) if self._density_budget_active() else ()),
         ):
             spv_path = shader_dir / f"{shader_name}.comp.spv"
             if not spv_path.exists():
@@ -2478,37 +2298,17 @@ class SphSimulatorV7:
         cap = self.case.capacities
         g = self.case.grid
         gh = self.case.ghost_grid
-        # wall_boundary crossing: WALL_BOUNDARY = 2 and the mode's own constants (wall_boundary.glsl, ids 120-127:
-        # continuity rule, distance floor in metres, the fluid box). Appended on a crossing slab only, so the
-        # entries of simple / adami are the ones they always had.
+        # wall_boundary crossing: WALL_BOUNDARY = 2 and the mode's own constants (wall_boundary.glsl: 121 the distance
+        # floor in metres, 130 the volume constraint, 131 the dispatch class, 0 = every particle; organisation (B)'s
+        # split pipelines replace 131). Appended on a crossing slab only, so the entries of simple / adami are the
+        # ones they always had.
         wall_crossing_entries: list[tuple[int, str, Any]] = []
         if self._wall_crossing:
             settings = n.wall_crossing
-            particle_radius = self.wall_crossing_particle_radius()
             wall_crossing_entries = [
-                (116, 'I', settings.delta_wall_code()),        # 3 = reflection (default since 2026-11-19), 0 = extension
-                (117, 'I', settings.continuity_wall_component_code()),     # 0 = full (default), 1 = normal
-                (118, 'I', settings.viscous_extension_code()),             # 0 = linear (default), 1 = quadratic
-                (119, 'I', settings.continuity_extension_code()),          # 0 = linear (default), 1 = quadratic
-                (120, 'I', settings.continuity_code()),
-                (121, 'f', settings.distance_floor(particle_radius)),
-                (122, 'f', settings.box_lower[0]), (123, 'f', settings.box_lower[1]),
-                (124, 'f', settings.box_lower[2]),
-                (125, 'f', settings.box_upper[0]), (126, 'f', settings.box_upper[1]),
-                (127, 'f', settings.box_upper[2]),
-                (128, 'I', settings.geometry_code()),          # 1 = pairwise (default), 0 = nearest_wall
-                (129, 'I', settings.pressure_wall_code()),     # 1 = reflection (default), 0 = extension
+                (121, 'f', settings.distance_floor(self.wall_crossing_particle_radius())),
                 (130, 'I', 1 if n.volume_constraint.enabled else 0),       # numerics.volume_constraint.enabled
-            ]
-        elif self._density_budget_active():
-            # V7_DENSITY_BUDGET=1 on a simple / adami slab: the box of the budget's regions (density_budget.glsl
-            # declares ids 122, 123, 125, 126 itself there)
-            budget_lower, budget_upper = self.density_budget_box()
-            wall_crossing_entries = [
-                (122, 'f', budget_lower[0]), (123, 'f', budget_lower[1]),
-                (124, 'f', budget_lower[2]),
-                (125, 'f', budget_upper[0]), (126, 'f', budget_upper[1]),
-                (127, 'f', budget_upper[2]),
+                (131, 'I', 0),
             ]
         return [
             (0,  'f', p.smoothing_length),
@@ -2582,49 +2382,15 @@ class SphSimulatorV7:
         return float(chosen.radius)
 
     def _force_shader_module(self):
-        """force.comp's module of this slab: the WALL_CROSSING variant with wall_boundary crossing (its
-        WALL_CROSSING_PRESSURE_PAIRWISE build with pressure_wall_evaluation pairwise), else the plain build."""
-        if not self._wall_crossing:
-            return self.shader_modules["force"]
-        return self.shader_modules["force_wall_crossing" + self._wall_crossing_pairwise_suffix()]
-
-    def _wall_crossing_pairwise_suffix(self) -> str:
-        """report section 27: '_pressure_pairwise' with numerics.wall_crossing.pressure_wall_evaluation pairwise."""
-        settings = self.case.numerics.wall_crossing
-        return "_pressure_pairwise" if getattr(settings, "pressure_wall_evaluation", "summed") == "pairwise" else ""
-
-    def _wall_crossing_near_wall_module_names(self) -> tuple:
-        """The near-wall builds this slab's split passes load (fused, force): the WALL_CROSSING_NEAR_WALL builds,
-        their DIAGNOSTIC by-material variants (V7_WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST=material, report section 26),
-        report section 27's pairwise wall pressure and shared-memory accumulators (V7_WALL_CROSSING_REGISTER_TRIM)."""
-        pairwise = self._wall_crossing_pairwise_suffix()
-        if _WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST == "material":
-            if pairwise:
-                raise ValueError("V7_WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST=material has no pressure_wall_evaluation "
-                                 "pairwise build")
-            return ("correction_density_wall_crossing_near_wall_by_material",
-                    "force_wall_crossing_near_wall_by_material")
-        fused = "correction_density_wall_crossing_near_wall" + pairwise + (
-            "_delta_shared" if "delta" in _WALL_CROSSING_REGISTER_TRIM else "")
-        force = "force_wall_crossing_near_wall" + (pairwise or (
-            "_mirror_shared" if "mirror" in _WALL_CROSSING_REGISTER_TRIM else ""))
-        return fused, force
+        """force.comp's module of this slab: the WALL_CROSSING variant with wall_boundary crossing, else the plain
+        build."""
+        return self.shader_modules["force_wall_crossing" if self._wall_crossing else "force"]
 
     def _fused_shader_module(self):
         """correction_density.comp's module of this slab's pipelines that do not skip deep walls: the
-        WALL_CROSSING variant with wall_boundary crossing (which never skips deep walls: a wall returns before
-        the neighbour loop anyway), else the plain build."""
-        if self._density_budget_active():
-            if self._wall_crossing and self._wall_crossing_pairwise_suffix():
-                raise ValueError("V7_DENSITY_BUDGET=1 has no pressure_wall_evaluation pairwise build (its fused pass "
-                                 "stores A_f^-1, the pairwise force reads G_p)")
-            return self.shader_modules[self._density_budget_module_name()]
-        return self.shader_modules["correction_density_wall_crossing" + self._wall_crossing_pairwise_suffix()
-                                   if self._wall_crossing else "correction_density"]
-
-    def _density_budget_module_name(self) -> str:
-        """The DENSITY_BUDGET build of the fused pass (V7_DENSITY_BUDGET=1, diagnostic)."""
-        return "correction_density_wall_crossing_budget" if self._wall_crossing else "correction_density_budget"
+        WALL_CROSSING variant with wall_boundary crossing (no wall particle in the pool, so nothing to skip), else
+        the plain build."""
+        return self.shader_modules["correction_density_wall_crossing" if self._wall_crossing else "correction_density"]
 
     # ----- Per-pipeline mode entries (kernel-specific spec const overrides) ---
 
@@ -3306,11 +3072,13 @@ class SphSimulatorV7:
             cascade_note += (f" (V7_BAND_OVERLAP: force_deep_interior_scratch {plan.phase_b_groups:,} of "
                              f"{plan.group_count:,} workgroups in phase B, {len(plan.segments)} phase C segment(s), "
                              f"{len(self._force_deep_segment_first_groups())} force_segment pipeline(s))")
-        if self._wall_crossing_split:
-            cascade_note += (f" (numerics.wall_crossing.split_dispatch: {len(self._wall_crossing_split_dispatches)} "
-                             f"passes split, phase C band mode {_WALL_CROSSING_SPLIT_BAND_MODE}"
-                             + ("; DIAGNOSTIC: the near-wall build everywhere" if _WALL_CROSSING_SPLIT_NEAR_WALL_EVERYWHERE
-                                else "") + ")")
+        if self._wall_crossing:
+            statistics = self.wall_store_statistics()
+            cascade_note += (f" (wall store: {statistics['walls']:,} walls, {statistics['near_wall_voxels']:,} of "
+                             f"{statistics['voxels']:,} voxels near a wall; "
+                             + (f"organisation (B), {len(self._wall_crossing_split_dispatches)} passes split, phase C "
+                                f"band mode {_WALL_CROSSING_SPLIT_BAND_MODE}" if self._wall_crossing_split
+                                else "organisation (A), one pipeline per pass") + ")")
         print(f"[SimV7] compute pipelines: {len(pipelines)}{cascade_note}")
         return pipelines
 
@@ -3328,40 +3096,27 @@ class SphSimulatorV7:
         }
 
     def _build_wall_crossing_split_pipelines(self, pipelines: dict) -> None:
-        """numerics.wall_crossing.split_dispatch (report section 22): for every pipeline of
-        _wall_crossing_split_bases, <key>_split_interior (the interior build) and <key>_split_near_wall (the
-        near-wall build), both with the key's spec constants + 131 = 1 (own class); a band pass of phase C with
-        V7_WALL_CROSSING_SPLIT_BAND_MODE=1 (not the default since report section 27) is
-        <key>_split_near_wall_every_particle (131 = 0) alone. The key's
-        own pipeline stays built (the bootstrap runs it). The dispatch list per key goes to
+        """Organisation (B) (numerics.wall_crossing.split_dispatch): for every pipeline of
+        _wall_crossing_split_bases, <key>_split_interior (dispatch class 1) and <key>_split_near_wall (class 2), the
+        WALL_CROSSING modules with the key's spec constants; a band pass of phase C with
+        V7_WALL_CROSSING_SPLIT_BAND_MODE=1 keeps the key's own pipeline (class 0, every particle). The key's own
+        pipeline stays built (the bootstrap runs it). The dispatch list per key goes to
         _wall_crossing_split_dispatches."""
-        fused_near_wall, force_near_wall = self._wall_crossing_near_wall_module_names()
-        modules = {"fused": ("correction_density_wall_crossing_interior", fused_near_wall),
-                   "force": ("force_wall_crossing_interior", force_near_wall)}
+        modules = {"fused": self.shader_modules["correction_density_wall_crossing"],
+                   "force": self.shader_modules["force_wall_crossing"]}
         for base, (kernel, mode_entries, band) in self._wall_crossing_split_bases().items():
-            interior_module, near_wall_module = (self.shader_modules[name] for name in modules[kernel])
-            entries = self._global_entries() + mode_entries
+            if band and _WALL_CROSSING_SPLIT_BAND_MODE == "1":
+                continue
+            entries = [entry for entry in self._global_entries() + mode_entries if entry[0] != 131]
             interior_key, near_wall_key = f"{base}_split_interior", f"{base}_split_near_wall"
-            pipelines[interior_key] = self._create_pipeline(shader=interior_module, entries=entries + [(131, 'I', 1)])
-            pipelines[near_wall_key] = self._create_pipeline(shader=near_wall_module,
-                                                             entries=entries + [(131, 'I', 1)])
-            if _WALL_CROSSING_SPLIT_NEAR_WALL_EVERYWHERE or (band and _WALL_CROSSING_SPLIT_BAND_MODE == "1"):
-                every_key = f"{base}_split_near_wall_every_particle"
-                pipelines[every_key] = self._create_pipeline(shader=near_wall_module, entries=entries + [(131, 'I', 0)])
-                self._wall_crossing_split_dispatches[base] = (every_key,)
-            else:
-                order_setting = (_WALL_CROSSING_SPLIT_ORDER
-                                 or getattr(self.case.numerics.wall_crossing, "split_order", "interior_first"))
-                order = ((near_wall_key, interior_key) if order_setting == "near_wall_first"
-                         else (interior_key, near_wall_key))
-                skipped = {"interior": interior_key, "near_wall": near_wall_key}.get(_WALL_CROSSING_SPLIT_TIMING_SKIP)
-                self._wall_crossing_split_dispatches[base] = tuple(key for key in order if key != skipped)
-        marker_rule = 1 if _WALL_CROSSING_NEAR_WALL_RULE == "distance" else 0     # spec const 133 (report section 26)
-        for key, marker_pass in (("wall_crossing_near_wall_marker_holds_wall", 0),
-                                 ("wall_crossing_near_wall_marker_near_wall", 1)):
-            pipelines[key] = self._create_pipeline(shader=self.shader_modules["wall_crossing_near_wall_marker"],
-                                                   entries=self._global_entries() + [(132, 'I', marker_pass),
-                                                                                     (133, 'I', marker_rule)])
+            pipelines[interior_key] = self._create_pipeline(shader=modules[kernel], entries=entries + [(131, 'I', 1)])
+            pipelines[near_wall_key] = self._create_pipeline(shader=modules[kernel], entries=entries + [(131, 'I', 2)])
+            order_setting = (_WALL_CROSSING_SPLIT_ORDER
+                             or self.case.numerics.wall_crossing.resolved_split_order(self.case.physics.dimension))
+            order = ((near_wall_key, interior_key) if order_setting == "near_wall_first"
+                     else (interior_key, near_wall_key))
+            skipped = {"interior": interior_key, "near_wall": near_wall_key}.get(_WALL_CROSSING_SPLIT_TIMING_SKIP)
+            self._wall_crossing_split_dispatches[base] = tuple(key for key in order if key != skipped)
 
     def _record_pass_dispatch(self, cmd, pipeline_key: str, group_count: int, tick: Optional[str] = None) -> None:
         """Bind pipeline_key and dispatch group_count workgroups; on a slab that splits its passes
@@ -3379,48 +3134,6 @@ class SphSimulatorV7:
             vkCmdDispatch(cmd, group_count, 1, 1)
             if tick and index < len(split) - 1 and _BENCH_TICK_DETAIL == "kernel":
                 self._bench_tick(cmd, f"{tick}_{key[len(pipeline_key) + len('_split_'):]}")
-
-    def _record_wall_crossing_near_wall_marker(self, cmd) -> None:
-        """numerics.wall_crossing.split_dispatch: wall_crossing_near_wall_marker.comp's two passes over the extended
-        voxels, each between compute barriers (the caller has the lists ready: the initial registration, the
-        replica exchange, a restart). Records nothing on another slab."""
-        if not self._wall_crossing_split:
-            return
-        self._record_compute_barrier(cmd)
-        for pipeline_key in ("wall_crossing_near_wall_marker_holds_wall", "wall_crossing_near_wall_marker_near_wall"):
-            self._bind_pipeline_and_sets(cmd, pipeline_key)
-            vkCmdDispatch(cmd, self._per_extended_voxel_dispatch_count(), 1, 1)
-            self._record_compute_barrier(cmd)
-
-    def readback_wall_crossing_near_wall(self) -> dict:
-        """numerics.wall_crossing.split_dispatch: the near-wall flags and this slab's own alive particles against them
-        (the queue must be drained): voxels holding a wall / near a wall (own and ghost columns), own fluid particles
-        in near-wall voxels, own fluid particles, own wall particles outside a near-wall voxel (must be 0)."""
-        from experiment.v7.utils.case_v7 import KIND_BOUNDARY
-        raw = self.readback_buffers_batch(["wall_crossing_near_wall_voxel_flag", "position_voxel_id", "velocity_mass",
-                                           "material"])
-        total = self.case.grid.total_voxel_count()
-        flags = np.frombuffer(raw["wall_crossing_near_wall_voxel_flag"], dtype=np.uint32)
-        holds_wall = flags[1:total + 1]
-        near_wall = flags[total + 2:2 * total + 2]
-        capacity = self.case.capacities.total_pool_capacity()
-        first = self.own_first_pid()
-        rows = slice(first, first + self.case.capacities.own_pool_size)
-        position = np.frombuffer(raw["position_voxel_id"], dtype=np.float32)[:capacity * 4].reshape(capacity, 4)[rows]
-        mass = np.frombuffer(raw["velocity_mass"], dtype=np.float32)[:capacity * 4].reshape(capacity, 4)[rows, 3]
-        material = np.frombuffer(raw["material"], dtype=np.uint32)[:capacity][rows]
-        kinds = np.asarray([entry.kind for entry in self.case.materials])[np.minimum(material, len(self.case.materials) - 1)]
-        alive = (position[:, 3] > 0.5) & (mass > 0.0)
-        voxel = np.rint(position[:, 3]).astype(np.int64)
-        particle_near = np.zeros(voxel.size, dtype=bool)
-        inside = alive & (voxel >= 1) & (voxel <= total)
-        particle_near[inside] = near_wall[voxel[inside] - 1] != 0
-        fluid = alive & (kinds == KIND_FLUID)
-        wall = alive & (kinds == KIND_BOUNDARY)
-        return {"voxels": int(total), "voxels_holding_wall": int((holds_wall != 0).sum()),
-                "voxels_near_wall": int((near_wall != 0).sum()), "fluid": int(fluid.sum()),
-                "fluid_near_wall": int((fluid & particle_near).sum()), "wall": int(wall.sum()),
-                "wall_not_near_wall": int((wall & ~particle_near).sum())}
 
     def _create_pipeline(
         self,
@@ -4262,6 +3975,8 @@ class SphSimulatorV7:
         data["material"] = material_arr.tobytes()
 
         data["material_parameters"] = self._material_parameters_payload()
+        # wall_boundary crossing: the static wall store (set 1 bindings 9-14)
+        data.update(self._wall_store_payloads())
         return data
 
     def _material_parameters_payload(self) -> bytes:
@@ -4394,9 +4109,6 @@ class SphSimulatorV7:
             vkCmdDispatch(cmd, per_ghost_pid, 1, 1)
             self._record_compute_barrier(cmd)
         self._record_expand_ghost_lists(cmd)
-        # numerics.wall_crossing.split_dispatch: the near-wall flags of the initial lists (own after the registration,
-        # ghost after the replica round just installed); the bootstrap's own passes below stay the crossing build
-        self._record_wall_crossing_near_wall_marker(cmd)
 
         # E37 wall_boundary adami: the wall pass once before step 0, on the initial state (the bootstrap correction
         # and density read its (rho0, p_w) as every step's do), and again before force below, on the same primary.
@@ -4547,6 +4259,19 @@ class SphSimulatorV7:
         if missing:
             raise ValueError(f"restart state lacks {missing}")
         row_count = int(np.asarray(state["position_voxel_id"]).shape[0])
+        if self._wall_crossing:
+            # plan C: a crossing state holds the fluid only; the walls come from the case into the wall store. A state
+            # of the particle-pool version (git tag crossing-pool) holds the walls too and cannot be resumed.
+            from experiment.v7.utils.case_v7 import KIND_BOUNDARY
+            groups = np.asarray(state["material"]).astype(np.int64)
+            kinds = np.asarray([material.kind for material in self.case.materials])
+            wall_rows = int((kinds[np.clip(groups, 0, kinds.size - 1)] == KIND_BOUNDARY).sum())
+            if wall_rows:
+                raise ValueError(f"restart: the state holds {wall_rows:,} wall particles: it is a wall_boundary crossing "
+                                 "checkpoint of the particle-pool version (git tag crossing-pool), whose walls lived "
+                                 "in the particle pool. The wall-store version keeps its walls out of the pool and "
+                                 "cannot resume it; restart the run from its initial condition, or resume it with "
+                                 "the crossing-pool tag.")
         own_pool = self.case.capacities.own_pool_size
         if row_count > own_pool:
             raise ValueError(f"restart state has {row_count:,} particles for an own "
@@ -4575,6 +4300,8 @@ class SphSimulatorV7:
             raise ValueError("restart state has rows with mass <= 0 "
                              "(initialize_voxelization would skip them)")
         payload["material_parameters"] = self._material_parameters_payload()
+        if self._wall_crossing:
+            payload.update(self._wall_store_payloads())
         self._upload_initial_state(payload)
         if self._volume_constraint_gpu_mean():
             # report section 22: the rate in force when the checkpoint was written (0 without it)
@@ -4591,9 +4318,6 @@ class SphSimulatorV7:
         # E37 wall_boundary adami: the wall pass once before the first step, from the restored fluid state (the
         # dummy velocity is not part of the state).
         self._record_wall_extrapolate(cmd)
-        # numerics.wall_crossing.split_dispatch: the near-wall flags of the restored own lists (a slab with a peer is
-        # marked again after ChainOrchestratorV7.restart_all's replica round, restart_replica_round_*)
-        self._record_wall_crossing_near_wall_marker(cmd)
         vkEndCommandBuffer(cmd)
         self.ctx.submit_and_wait(cmd)
         vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
@@ -4617,45 +4341,6 @@ class SphSimulatorV7:
                 f"outside the own voxels")
         print(f"[SimV7] restart state loaded: {row_count:,} own particles, voxel lists "
               f"rebuilt (no bootstrap correction/density/force/half kick)")
-
-    def restart_replica_round_send(self) -> None:
-        """numerics.wall_crossing.split_dispatch on a slab with a peer, after restart_init: the replicas of the
-        restored own lists to the sender staging (bootstrap_init's ghost_send + readback, no voxelization), so that
-        restart_replica_round_mark can mark the near-wall voxels with the peer's walls in the ghost lists. Every
-        restored particle sits in an own voxel (restart_init checks it), so no migrant leaves. The first frame's
-        phase A and C rebuild the replicas and the ghost lists before any kernel reads them."""
-        cmd = self._allocate_oneshot_cmd()
-        vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT))
-        self._record_compute_barrier(cmd)
-        for direction in ("leading", "trailing"):
-            if direction not in self._transport_segments:
-                continue
-            self._record_compute_barrier(cmd)
-            self._record_reset_ghost_send_count(cmd, direction)
-            self._record_transfer_to_compute_barrier(cmd)
-            self._record_ghost_send_dispatch(cmd, direction)
-            self._record_compute_to_transfer_barrier(cmd)
-            self._record_readback_for_direction(cmd, direction)
-            self._record_compute_to_host_barrier(cmd)
-        vkEndCommandBuffer(cmd)
-        self.ctx.submit_and_wait(cmd)
-        vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
-
-    def restart_replica_round_mark(self) -> None:
-        """The receiving half (the host has bridged the staging): upload, ghost lists, then the near-wall marker
-        again, now with the peer's walls in the ghost voxels. No install_migrations: the round carries no migrant."""
-        cmd = self._allocate_oneshot_cmd()
-        vkBeginCommandBuffer(cmd, VkCommandBufferBeginInfo(flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT))
-        for direction in ("leading", "trailing"):
-            if direction not in self._transport_segments:
-                continue
-            self._record_upload_for_direction(cmd, direction)
-            self._record_transfer_to_compute_barrier(cmd)
-        self._record_expand_ghost_lists(cmd)
-        self._record_wall_crossing_near_wall_marker(cmd)
-        vkEndCommandBuffer(cmd)
-        self.ctx.submit_and_wait(cmd)
-        vkFreeCommandBuffers(self.ctx.device, self.ctx.command_pool, 1, [cmd])
 
     # ========================================================================
     # Section 9: Readback (Phase 3)

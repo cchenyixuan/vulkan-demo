@@ -54,6 +54,14 @@ LABELS_SECTION27 = (LABELS[:3] + (("c3d_near_wall_only_trim_none", "3-D 1M", "�
                                      ("n1000_near_wall_only_pairwise", "2-D 1000²", "只调度近壁版本，壁面压力逐对计算"))
                     + LABELS[7:8])
 
+# the wall store (claude/wall_store_report.md; --section wall_store): organisation (A) and (B) whole steps and (B)'s two
+# dispatches alone (V7_WALL_CROSSING_SPLIT_TIMING_SKIP)
+LABELS_WALL_STORE = tuple((f"{size}_{key}", case, text) for size, case in (("c3d", "3-D 1M"), ("n1000", "2-D 1000²"))
+                          for key, text in (("simple", "simple（整步）"), ("store_a", "壁面独立存储 (A)（整步）"),
+                                            ("store_b", "壁面独立存储 (B)（整步）"),
+                                            ("near_wall_only", "(B) 只调度近壁管线"),
+                                            ("interior_only", "(B) 只调度内部管线")))
+
 
 def read_frame(path: pathlib.Path) -> dict:
     values = {}
@@ -95,11 +103,16 @@ def main() -> int:
     from experiment.wall_crossing.report_tables import markdown_table, write
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--dir", required=True)
-    parser.add_argument("--section", type=int, default=26, help="26: section 26's runs; 27: with the extra rows")
+    parser.add_argument("--section", default="26",
+                        help="26: section 26's runs; 27: with the extra rows; wall_store: the wall store's runs "
+                             "(tables to claude/wall_store/tables)")
     arguments = parser.parse_args()
     directory = pathlib.Path(arguments.dir)
-    labels = LABELS_SECTION27 if arguments.section == 27 else LABELS
-    suffix = "" if arguments.section == 26 else f"_section{arguments.section}"
+    labels = {"27": LABELS_SECTION27, "wall_store": LABELS_WALL_STORE}.get(arguments.section, LABELS)
+    suffix = "" if arguments.section == "26" else f"_section{arguments.section}"
+    if arguments.section == "wall_store":
+        from experiment.wall_crossing.wall_store_check import write_table as write
+        suffix = "_wall_store"
     summary, rows, state_rows = {}, [], []
     for label, case, text in labels:
         path = directory / label / "BASE" / "GPUTRACE_FRAME.xls"

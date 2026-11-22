@@ -60,47 +60,13 @@ SHADER_VARIANTS = (
     ("correction_density_deep_wall_skip", "correction_density.comp", ("DEEP_WALL_SKIP",)),
     # E39 B3: a workgroup segment of force_deep_interior_scratch (spec constant 115 = its first thread)
     ("force_segment", "force.comp", ("FORCE_SEGMENT",)),
-    # wall_boundary crossing (case.yaml numerics.wall_boundary: crossing): the fused correction + density pass
-    # and force with the crossing-fraction wall rules (shaders/wall_boundary.glsl); a crossing slab builds its
-    # correction_density_* and force_* pipelines from these, simple / adami keep the plain modules
+    # wall_boundary crossing (case.yaml numerics.wall_boundary: crossing; plan C, the static wall store): the fused
+    # correction + density pass and force with a fluid segment (the pool's neighbours) and a wall segment (the wall
+    # store's), shaders/wall_boundary.glsl. A crossing slab builds every correction_density_* and force_* pipeline
+    # from these two modules; spec const 131 (the dispatch class) gives organisation (A) one pipeline or (B) the
+    # interior and near-wall pipelines. simple / adami keep the plain modules.
     ("correction_density_wall_crossing", "correction_density.comp", ("WALL_CROSSING",)),
     ("force_wall_crossing", "force.comp", ("WALL_CROSSING",)),
-    # DIAGNOSTIC (V7_DENSITY_BUDGET=1, shaders/density_budget.glsl): the fused pass also accumulates a fluid
-    # particle's density rate split into drift / diffusion x fluid / wall neighbours; no production path
-    # loads these two files
-    ("correction_density_budget", "correction_density.comp", ("DENSITY_BUDGET",)),
-    ("correction_density_wall_crossing_budget", "correction_density.comp", ("WALL_CROSSING", "DENSITY_BUDGET")),
-    # numerics.wall_crossing.split_dispatch (report section 22; on by default since section 25; shaders/wall_crossing_split.glsl):
-    # the plain code for the particles away from the walls (+ the volume constraint's term in the fused pass) and
-    # the crossing code for the particles near them, loaded only by a crossing slab that splits its passes
-    ("correction_density_wall_crossing_interior", "correction_density.comp", ("WALL_CROSSING_INTERIOR",)),
-    ("correction_density_wall_crossing_near_wall", "correction_density.comp",
-     ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL")),
-    ("force_wall_crossing_interior", "force.comp", ("WALL_CROSSING_INTERIOR",)),
-    ("force_wall_crossing_near_wall", "force.comp", ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL")),
-    # DIAGNOSTIC, TIMING (report section 26; V7_WALL_CROSSING_NEAR_WALL_NEIGHBOR_TEST=material): the near-wall builds
-    # telling a wall neighbour by material[j] and the material table, pair by pair, instead of by its position
-    # outside the fluid box; otherwise identical, loaded only with that switch
-    ("correction_density_wall_crossing_near_wall_by_material", "correction_density.comp",
-     ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL", "WALL_CROSSING_NEAR_WALL_BY_MATERIAL")),
-    ("force_wall_crossing_near_wall_by_material", "force.comp",
-     ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL", "WALL_CROSSING_NEAR_WALL_BY_MATERIAL")),
-    # report section 27 (wall_boundary.glsl): accumulators that only wall pairs update in shared memory (bit-identical;
-    # V7_WALL_CROSSING_REGISTER_TRIM, default mirror), and numerics.wall_crossing.pressure_wall_evaluation pairwise
-    # (off by default: the wall neighbours' pressure per pair from the stored G_p)
-    ("force_wall_crossing_near_wall_mirror_shared", "force.comp",
-     ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL", "WALL_CROSSING_MIRROR_SHARED")),
-    ("correction_density_wall_crossing_near_wall_delta_shared", "correction_density.comp",
-     ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL", "WALL_CROSSING_DELTA_SHARED")),
-    ("correction_density_wall_crossing_pressure_pairwise", "correction_density.comp",
-     ("WALL_CROSSING", "WALL_CROSSING_PRESSURE_PAIRWISE")),
-    ("force_wall_crossing_pressure_pairwise", "force.comp", ("WALL_CROSSING", "WALL_CROSSING_PRESSURE_PAIRWISE")),
-    ("correction_density_wall_crossing_near_wall_pressure_pairwise", "correction_density.comp",
-     ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL", "WALL_CROSSING_PRESSURE_PAIRWISE")),
-    ("correction_density_wall_crossing_near_wall_pressure_pairwise_delta_shared", "correction_density.comp",
-     ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL", "WALL_CROSSING_PRESSURE_PAIRWISE", "WALL_CROSSING_DELTA_SHARED")),
-    ("force_wall_crossing_near_wall_pressure_pairwise", "force.comp",
-     ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL", "WALL_CROSSING_PRESSURE_PAIRWISE")),
 )
 
 
