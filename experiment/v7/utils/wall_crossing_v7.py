@@ -42,13 +42,14 @@ WALL_CROSSING_RULE_SETS = ("default", "continuity_normal")
 WALL_CROSSING_DEFAULT_RULE_SET = "default"
 # numerics.wall_crossing.split_dispatch: the organisation of the two passes (claude/wall_store_report.md).
 #   true  = (B) the interior pipeline (no wall segment) and the near-wall pipeline, two dispatches per pass: the
-#           default (measured faster than (A) on every case: (A) gives every particle the near-wall registers);
+#           default (round 2, after the near-wall registers: (A) is 8-22 % slower on 2-D 500^2 / 1000^2 and 6 % on 3-D
+#           1M, faster only on 2-D 250^2; claude/wall_store_report.md section 8.4);
 #   false = (A) one pipeline for every particle, the near-wall flag decides whether the wall segment runs.
 WALL_CROSSING_DEFAULT_SPLIT_DISPATCH = True
 # numerics.wall_crossing.split_order, (B) only: which of a pass's two dispatches is recorded first (no barrier
-# between them). Not written: by dimension, the faster order measured on the single-GPU cases of the report:
-# near_wall_first in 2-D (the near-wall dispatch is the latency-bound long pole there), interior_first in 3-D.
-WALL_CROSSING_DEFAULT_SPLIT_ORDER = {2: "near_wall_first", 3: "interior_first"}
+# between them). Not written: near_wall_first in every dimension, the faster order on every case measured after the
+# near-wall registers of round 2 (claude/wall_store_report.md section 8.4; round 1's 3-D interior_first rule is gone).
+WALL_CROSSING_DEFAULT_SPLIT_ORDER = "near_wall_first"
 # keys of the particle-pool version and the values the wall store implements (a case writing one is accepted)
 WALL_CROSSING_LEGACY_KEYS = {
     "continuity": ("extrapolate",),
@@ -79,7 +80,7 @@ class WallCrossingSettings:
     split_dispatch: the organisation of the two passes: False = (A) one pipeline, True = (B) interior and near-wall
         pipelines; split_dispatch_explicit records whether the case wrote it.
     split_order: (B) only, "near_wall_first" or "interior_first": which dispatch comes first; None (not written) =
-        WALL_CROSSING_DEFAULT_SPLIT_ORDER of the case's dimension (resolved_split_order).
+        WALL_CROSSING_DEFAULT_SPLIT_ORDER (resolved_split_order).
     """
     distance_floor_factor: float = WALL_CROSSING_DEFAULT_DISTANCE_FLOOR_FACTOR
     box_lower: Optional[tuple[float, float, float]] = None
@@ -91,8 +92,8 @@ class WallCrossingSettings:
     split_order: Optional[str] = None
 
     def resolved_split_order(self, dimension: int) -> str:
-        """The order (B) records its two dispatches in: the case's, or the default of the dimension."""
-        return self.split_order or WALL_CROSSING_DEFAULT_SPLIT_ORDER[3 if int(dimension) == 3 else 2]
+        """The order (B) records its two dispatches in: the case's, or the default (the same in every dimension)."""
+        return self.split_order or WALL_CROSSING_DEFAULT_SPLIT_ORDER
 
     def distance_floor(self, particle_radius: float) -> float:
         """The floor of phi_ij in metres: the factor x the particle spacing."""
@@ -165,8 +166,7 @@ def parse_wall_crossing_settings(numerics_mapping: dict) -> WallCrossingSettings
         rule_set: default | continuity_normal              (default default; the wall material table's row)
         split_dispatch: true | false                       (default true = (B) the interior and the near-wall
                                                             pipelines; false = (A) one pipeline)
-        split_order: near_wall_first | interior_first      ((B) only; default by dimension: near_wall_first in
-                                                            2-D, interior_first in 3-D)
+        split_order: near_wall_first | interior_first      ((B) only; default near_wall_first)
     and the keys of the particle-pool version (WALL_CROSSING_LEGACY_KEYS) with a value the wall store implements;
     continuity_wall_component normal selects rule_set continuity_normal. Anything else raises ValueError. A 2-D
     case may give two components per corner."""
