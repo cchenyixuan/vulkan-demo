@@ -19,10 +19,13 @@ sources: experiment/v7/shaders/*.comp, *.glsl at the commit that adds this manif
   121, 130, 131 WALL_CROSSING_DISPATCH_CLASS; set 1 bindings 9-14); wall_crossing_split.glsl,
   wall_crossing_near_wall_marker.comp and density_budget.glsl are deleted, and with them every crossing variant but
   correction_density_wall_crossing and force_wall_crossing (the plain builds' code is unchanged).
-check: every file below byte-identical to a fresh build with the compiler above (26 of 26;
+  Then (wall store round 2, the hydrostatic check): the DIAGNOSTIC build
+  correction_density_wall_crossing_diffusion_summed (-DWALL_CROSSING_DIFFUSION_SUMMED, loaded only with
+  V7_WALL_CROSSING_DIFFUSION_SUMMED=1); every other file keeps its bytes.
+check: every file below byte-identical to a fresh build with the compiler above (27 of 27;
   _test_seam_layout check_spirv_current)
 against the manifest of the tag crossing-pool (9afd248): 24 files byte-identical (every module simple and
-  adami load), 2 changed (correction_density_wall_crossing.comp.spv, force_wall_crossing.comp.spv), 0 new, 16 removed
+  adami load), 2 changed (correction_density_wall_crossing.comp.spv, force_wall_crossing.comp.spv), 1 new, 16 removed
   (correction_density_budget, correction_density_wall_crossing_budget, correction_density_wall_crossing_interior, correction_density_wall_crossing_near_wall, correction_density_wall_crossing_near_wall_by_material, correction_density_wall_crossing_near_wall_delta_shared, correction_density_wall_crossing_near_wall_pressure_pairwise, correction_density_wall_crossing_near_wall_pressure_pairwise_delta_shared, correction_density_wall_crossing_pressure_pairwise, force_wall_crossing_interior, force_wall_crossing_near_wall, force_wall_crossing_near_wall_by_material, force_wall_crossing_near_wall_mirror_shared, force_wall_crossing_near_wall_pressure_pairwise, force_wall_crossing_pressure_pairwise, wall_crossing_near_wall_marker);
 scope: the tracked compute SPIR-V only (spv/render/*.spv from shaders/render are not tracked). Nothing checks this
   manifest automatically; regenerate it with any shader change.
@@ -36,6 +39,7 @@ e3de58bdc5e00f892dfa2f100789015c8f0aab4dae92eec6d8257866ab4515d5    53920  corre
 7871141dcdec3681b4fe0ab9b90cd703418183926f5ce453fea5ad63ca3ed143    57868  correction_density.comp.spv  (correction_density.comp)
 f5faeac0e14610d9944a6d92b5d974f259e8ff45f32c60c2fdcd409053e34a87    89468  correction_density_deep_wall_skip.comp.spv  (correction_density.comp -DDEEP_WALL_SKIP)
 c9a51b943df9657f3aebed48dcb97fbed9d4094be61fadc096ce6aa8c8fa9aa2   102144  correction_density_wall_crossing.comp.spv  (correction_density.comp -DWALL_CROSSING)
+0f03a9445ea017a7f4107dacc42b6282d0c132ac07336c0a0d5ffe226b48fd92   102512  correction_density_wall_crossing_diffusion_summed.comp.spv  (correction_density.comp -DWALL_CROSSING -DWALL_CROSSING_DIFFUSION_SUMMED)
 4c9b4096d57aab44946b91a35b74a4ca8a1821761befdd99a58acf8366ea3a8e     4980  deep_wall_marker.comp.spv  (deep_wall_marker.comp)
 52d7d9b3a09cf4ce33e8f2981c6e699b0ff213beabf1935e46e1ff8ad7969c42     5968  defrag.comp.spv  (defrag.comp)
 949bc2d1a5d85ca789fbaea61da51f9e75b2226dd701f4115dd1b55bacec6e7e    38844  density.comp.spv  (density.comp)

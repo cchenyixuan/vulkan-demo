@@ -1,0 +1,1486 @@
+path	bytes	category	decision
+logs/wall_crossing/bitwise/adami_n250_canonical_k1_base1.npz	12848958	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/adami_n250_canonical_k1_base2.npz	12848950	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/adami_n250_canonical_k1_this1.npz	12849922	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/adami_n250_canonical_k1_this2.npz	12849926	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/adami_n250_canonical_k2_base1.npz	12855958	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/adami_n250_canonical_k2_base2.npz	12855962	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/adami_n250_canonical_k2_this1.npz	12857106	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/adami_n250_canonical_k2_this2.npz	12857106	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/adami_n250_plain_k1_base1.npz	11059916	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/adami_n250_plain_k1_base2.npz	11059908	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/adami_n250_plain_k1_this1.npz	11060880	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/adami_n250_plain_k1_this2.npz	11060880	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_1000_k1_classes_base1.npz	12849482	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_1000_k1_classes_base2.npz	12849478	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_1000_k1_classes_base3.npz	12849478	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_1000_k1_classes_base4.npz	12849478	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_1000_k1_classes_base5.npz	12849478	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_1000_k1_classes_base6.npz	12849482	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_1000_k1_classes_this1.npz	12850470	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_1000_k1_classes_this2.npz	12850470	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_1000_k1_classes_this3.npz	12850470	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_1000_k1_classes_this4.npz	12850466	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_1000_k1_classes_this5.npz	12850466	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_1000_k1_classes_this6.npz	12850470	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_400_k1_classes_base1.npz	12849478	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_400_k1_classes_base2.npz	12849478	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_400_k1_classes_base3.npz	12849474	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_400_k1_classes_base4.npz	12849478	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_400_k1_classes_base5.npz	12849478	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_400_k1_classes_base6.npz	12849474	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_400_k1_classes_this1.npz	12850466	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_400_k1_classes_this2.npz	12850462	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_400_k1_classes_this3.npz	12850466	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_400_k1_classes_this4.npz	12850466	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_400_k1_classes_this5.npz	12850466	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/adami_n250_nodefrag_400_k1_classes_this6.npz	12850466	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_1500_k1_classes_base1.npz	11656704	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_1500_k1_classes_base2.npz	11656704	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_1500_k1_classes_base3.npz	11656700	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_1500_k1_classes_base4.npz	11656704	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_1500_k1_classes_base5.npz	11656704	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_1500_k1_classes_base6.npz	11656704	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_1500_k1_classes_this1.npz	11657692	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_1500_k1_classes_this2.npz	11657688	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_1500_k1_classes_this3.npz	11657692	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_1500_k1_classes_this4.npz	11657692	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_1500_k1_classes_this5.npz	11657692	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_1500_k1_classes_this6.npz	11657688	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_3000_k1_classes_base1.npz	11656704	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_3000_k1_classes_base2.npz	11656700	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_3000_k1_classes_base3.npz	11656704	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_3000_k1_classes_base4.npz	11656700	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_3000_k1_classes_base5.npz	11656700	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_3000_k1_classes_base6.npz	11656704	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_3000_k1_classes_this1.npz	11657692	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_3000_k1_classes_this2.npz	11657688	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_3000_k1_classes_this3.npz	11657692	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_3000_k1_classes_this4.npz	11657692	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_3000_k1_classes_this5.npz	11657684	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/classes/simple_n250_nodefrag_3000_k1_classes_this6.npz	11657688	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/long/adami_n250_nodefrag_3000_k1_base1.npz	12849482	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/long/adami_n250_nodefrag_3000_k1_base2.npz	12849478	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/long/adami_n250_nodefrag_3000_k1_this1.npz	12850466	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/long/adami_n250_nodefrag_3000_k1_this2.npz	12850458	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/long/simple_n250_nodefrag_3000_k1_base1.npz	11656700	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/long/simple_n250_nodefrag_3000_k1_base2.npz	11656704	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/long/simple_n250_nodefrag_3000_k1_this1.npz	11657692	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/long/simple_n250_nodefrag_3000_k1_this2.npz	11657692	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/long/simple_n250_nodefrag_8000_k1_base1.npz	11656700	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/long/simple_n250_nodefrag_8000_k1_base2.npz	11656704	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/long/simple_n250_nodefrag_8000_k1_this1.npz	11657692	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/long/simple_n250_nodefrag_8000_k1_this2.npz	11657692	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/simple_n250_canonical_k1_base1.npz	11656176	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/simple_n250_canonical_k1_base2.npz	11656176	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/simple_n250_canonical_k1_this1.npz	11657144	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/simple_n250_canonical_k1_this2.npz	11657140	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/simple_n250_canonical_k2_base1.npz	11663220	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/simple_n250_canonical_k2_base2.npz	11663216	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/simple_n250_canonical_k2_this1.npz	11664364	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/simple_n250_canonical_k2_this2.npz	11664364	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/simple_n250_plain_k1_base1.npz	11059864	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/simple_n250_plain_k1_base2.npz	11059868	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/simple_n250_plain_k1_this1.npz	11060836	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/bitwise/simple_n250_plain_k1_this2.npz	11060836	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/box_run/cavity3d_1m_crossing_long/checkpoints/c0000664000.npz	235924918	checkpoint, intermediate	delete
+logs/wall_crossing/box_run/cavity3d_1m_crossing_trial_t5/checkpoints/c0000051000.npz	235924918	checkpoint, intermediate	delete
+logs/wall_crossing/box_run/cavity3d_1m_simple_long/checkpoints/c0000664000.npz	235924918	checkpoint, intermediate	delete
+logs/wall_crossing/box_run/s22_gpu_mean_n250_restart/checkpoints/c0000012000.npz	10437612	checkpoint, intermediate	delete
+logs/wall_crossing/box_run/s22_gpu_mean_n250_restart_old_checkpoint/checkpoints/c0000018000.npz	10436718	checkpoint, intermediate	delete
+logs/wall_crossing/box_run/s22_gpu_mean_n250_same_state_k1/checkpoints/c0000012000.npz	10437612	checkpoint, intermediate	delete
+logs/wall_crossing/box_run/s22_gpu_mean_n250_same_state_k2/checkpoints/c0000012000.npz	10437612	checkpoint, intermediate	delete
+logs/wall_crossing/box_run/s24_cavity3d_full_integral/checkpoints/c0000664000.npz	235925212	checkpoint, intermediate	delete
+logs/wall_crossing/box_run/s24_cavity3d_normal_integral/checkpoints/c0000664000.npz	235925212	checkpoint, intermediate	delete
+logs/wall_crossing/box_run/s25_cavity3d_n50_crossing/checkpoints/c0000294000.npz	45995106	checkpoint, intermediate	delete
+logs/wall_crossing/box_run/s25_cavity3d_n50_simple/checkpoints/c0000294000.npz	45993918	checkpoint, intermediate	delete
+logs/wall_crossing/box_run/s25_cavity3d_n70_crossing/checkpoints/c0000464000.npz	98699506	checkpoint, intermediate	delete
+logs/wall_crossing/box_run/s25_cavity3d_n70_simple/checkpoints/c0000464000.npz	98698318	checkpoint, intermediate	delete
+logs/wall_crossing/box_run/test_box_run_resume/checkpoints/c0000012000.npz	10436718	checkpoint, intermediate	delete
+logs/wall_crossing/budget_bitwise/before_default_change_s700/budget_0.npz	11658352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/before_default_change_s700/budget_1.npz	11658356	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/before_default_change_s700/budget_2.npz	11658356	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/before_default_change_s700/budget_3.npz	11658360	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/before_default_change_s700/budget_4.npz	11658352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/before_default_change_s700/budget_5.npz	11658360	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/before_default_change_s700/plain_0.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/before_default_change_s700/plain_1.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/before_default_change_s700/plain_2.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/before_default_change_s700/plain_3.npz	11658256	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/before_default_change_s700/plain_4.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/before_default_change_s700/plain_5.npz	11658248	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/budget_0.npz	11658352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/budget_1.npz	11658352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/budget_10.npz	11658344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/budget_11.npz	11658356	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/budget_2.npz	11658352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/budget_3.npz	11658352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/budget_4.npz	11658348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/budget_5.npz	11658356	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/budget_6.npz	11658348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/budget_7.npz	11658352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/budget_8.npz	11658356	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/budget_9.npz	11658356	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/plain_0.npz	11658244	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/plain_1.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/plain_10.npz	11658244	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/plain_11.npz	11658248	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/plain_2.npz	11658248	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/plain_3.npz	11658248	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/plain_4.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/plain_5.npz	11658244	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/plain_6.npz	11658244	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/plain_7.npz	11658244	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/plain_8.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_r12_s999/plain_9.npz	11658244	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_s700/budget_0.npz	11658348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_s700/budget_1.npz	11658352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_s700/budget_2.npz	11658348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_s700/plain_0.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_s700/plain_1.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_s700/plain_2.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_s999/budget_0.npz	11658348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_s999/budget_1.npz	11658348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_s999/budget_2.npz	11658352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_s999/budget_3.npz	11658348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_s999/budget_4.npz	11658352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_s999/budget_5.npz	11658352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_s999/plain_0.npz	11658248	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_s999/plain_1.npz	11658244	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_s999/plain_2.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_s999/plain_3.npz	11658244	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_s999/plain_4.npz	11658244	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_crossing_s999/plain_5.npz	11658248	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_simple_s700/budget_0.npz	11658272	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_simple_s700/budget_1.npz	11658272	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_simple_s700/budget_2.npz	11658276	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_simple_s700/plain_0.npz	11658168	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_simple_s700/plain_1.npz	11658168	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_simple_s700/plain_2.npz	11658168	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_simple_s999/budget_0.npz	11658276	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_simple_s999/budget_1.npz	11658268	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_simple_s999/budget_2.npz	11658276	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_simple_s999/budget_3.npz	11658272	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_simple_s999/budget_4.npz	11658272	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_simple_s999/budget_5.npz	11658264	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_simple_s999/plain_0.npz	11658164	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_simple_s999/plain_1.npz	11658164	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_simple_s999/plain_2.npz	11658168	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_simple_s999/plain_3.npz	11658164	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_simple_s999/plain_4.npz	11658164	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/budget_bitwise/n250_simple_s999/plain_5.npz	11658164	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0010773000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0010906000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0011039000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0011172000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0011305000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0011438000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0011571000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0011704000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0011837000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0011970000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0012103000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0012236000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0012369000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0012502000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0012635000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0012768000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0012901000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0013034000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0013167000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_adami/snapshots/t0013300000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/checkpoints/c0011907000.npz	146516718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0010773000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0010906000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0011039000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0011172000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0011305000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0011438000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0011571000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0011704000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0011837000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0011970000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0012103000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0012236000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0012369000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0012502000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0012635000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0012768000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0012901000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0013034000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0013167000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_complete_volume/snapshots/t0013300000.npz	21978127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n1000_crossing/checkpoints/c0006615000.npz	146516718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n250_adami/checkpoints/c0002688000.npz	10436718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0002673000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0002706000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0002739000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0002772000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0002805000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0002838000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0002871000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0002904000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0002937000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0002970000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0003003000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0003036000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0003069000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0003102000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0003135000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0003168000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0003201000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0003234000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0003267000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0003300000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_adami/snapshots/t0003333000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/checkpoints/c0002688000.npz	10436718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0002673000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0002706000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0002739000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0002772000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0002805000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0002838000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0002871000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0002904000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0002937000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0002970000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0003003000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0003036000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0003069000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0003102000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0003135000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0003168000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0003201000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0003234000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0003267000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0003300000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing/snapshots/t0003333000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/checkpoints/c0002688000.npz	10436718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0002673000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0002706000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0002739000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0002772000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0002805000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0002838000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0002871000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0002904000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0002937000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0002970000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0003003000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0003036000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0003069000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0003102000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0003135000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0003168000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0003201000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0003234000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0003267000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0003300000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_floor0p5/snapshots/t0003333000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/checkpoints/c0002688000.npz	10436718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0002673000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0002706000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0002739000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0002772000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0002805000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0002838000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0002871000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0002904000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0002937000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0002970000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0003003000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0003036000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0003069000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0003102000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0003135000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0003168000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0003201000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0003234000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0003267000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0003300000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal/snapshots/t0003333000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/checkpoints/c0002688000.npz	10436718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0002673000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0002706000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0002739000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0002772000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0002805000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0002838000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0002871000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0002904000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0002937000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0002970000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0003003000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0003036000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0003069000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0003102000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0003135000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0003168000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0003201000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0003234000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0003267000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0003300000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus/snapshots/t0003333000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/checkpoints/c0002688000.npz	10436718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0002673000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0002706000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0002739000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0002772000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0002805000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0002838000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0002871000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0002904000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0002937000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0002970000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0003003000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0003036000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0003069000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0003102000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0003135000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0003168000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0003201000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0003234000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0003267000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0003300000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_normal_rho_minus_0p45/snapshots/t0003333000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/checkpoints/c0002688000.npz	10436718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0002673000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0002706000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0002739000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0002772000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0002805000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0002838000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0002871000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0002904000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0002937000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0002970000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0003003000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0003036000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0003069000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0003102000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0003135000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0003168000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0003201000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0003234000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0003267000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0003300000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_quadratic_viscous/snapshots/t0003333000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/checkpoints/c0002688000.npz	10436718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0002673000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0002706000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0002739000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0002772000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0002805000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0002838000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0002871000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0002904000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0002937000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0002970000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0003003000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0003036000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0003069000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0003102000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0003135000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0003168000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0003201000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0003234000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0003267000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0003300000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_crossing_r2/snapshots/t0003333000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/checkpoints/c0002688000.npz	10436718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0002673000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0002706000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0002739000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0002772000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0002805000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0002838000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0002871000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0002904000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0002937000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0002970000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0003003000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0003036000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0003069000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0003102000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0003135000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0003168000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0003201000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0003234000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0003267000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0003300000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_pairwise_full/snapshots/t0003333000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/checkpoints/c0002688000.npz	10436718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0002673000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0002706000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0002739000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0002772000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0002805000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0002838000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0002871000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0002904000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0002937000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0002970000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0003003000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0003036000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0003069000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0003102000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0003135000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0003168000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0003201000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0003234000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0003267000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0003300000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_quadratic_viscous/snapshots/t0003333000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/checkpoints/c0002688000.npz	10436718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0002673000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0002706000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0002739000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0002772000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0002805000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0002838000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0002871000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0002904000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0002937000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0002970000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0003003000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0003036000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0003069000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0003102000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0003135000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0003168000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0003201000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0003234000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0003267000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0003300000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection/snapshots/t0003333000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/checkpoints/c0002688000.npz	10436718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0002673000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0002706000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0002739000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0002772000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0002805000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0002838000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0002871000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0002904000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0002937000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0002970000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0003003000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0003036000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0003069000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0003102000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0003135000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0003168000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0003201000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0003234000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0003267000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0003300000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full/snapshots/t0003333000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/checkpoints/c0002688000.npz	10436718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0002673000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0002706000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0002739000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0002772000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0002805000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0002838000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0002871000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0002904000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0002937000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0002970000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0003003000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0003036000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0003069000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0003102000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0003135000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0003168000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0003201000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0003234000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0003267000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0003300000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_rho_plus_0p3/snapshots/t0003333000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/checkpoints/c0002688000.npz	10436718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0002673000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0002706000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0002739000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0002772000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0002805000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0002838000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0002871000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0002904000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0002937000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0002970000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0003003000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0003036000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0003069000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0003102000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0003135000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0003168000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0003201000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0003234000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0003267000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0003300000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume/snapshots/t0003333000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/checkpoints/c0006048000.npz	10436718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0002673000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0002706000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0002739000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0002772000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0002805000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0002838000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0002871000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0002904000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0002937000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0002970000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0003003000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006006000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006039000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006072000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006105000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006138000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006171000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006204000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006237000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006270000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006303000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006336000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006369000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006402000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006435000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006468000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006501000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006534000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006567000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006600000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006633000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_reflection_full_volume_to200/snapshots/t0006666000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/checkpoints/c0002688000.npz	10436718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0002673000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0002706000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0002739000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0002772000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0002805000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0002838000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0002871000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0002904000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0002937000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0002970000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0003003000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0003036000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0003069000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0003102000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0003135000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0003168000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0003201000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0003234000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0003267000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0003300000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n250_simple/snapshots/t0003333000.npz	1566127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/checkpoints/c0005967000.npz	38296718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0005360000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0005427000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0005494000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0005561000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0005628000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0005695000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0005762000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0005829000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0005896000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0005963000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0006030000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0006097000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0006164000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0006231000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0006298000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0006365000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0006432000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0006499000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0006566000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_adami/snapshots/t0006633000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/checkpoints/c0005967000.npz	38296718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0005360000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0005427000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0005494000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0005561000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0005628000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0005695000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0005762000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0005829000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0005896000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0005963000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0006030000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0006097000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0006164000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0006231000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0006298000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0006365000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0006432000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0006499000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0006566000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing/snapshots/t0006633000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/checkpoints/c0005967000.npz	38296718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0005360000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0005427000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0005494000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0005561000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0005628000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0005695000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0005762000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0005829000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0005896000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0005963000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0006030000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0006097000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0006164000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0006231000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0006298000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0006365000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0006432000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0006499000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0006566000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_normal/snapshots/t0006633000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_crossing_wall_velocity/checkpoints/c0001326000.npz	38296718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/checkpoints/c0005967000.npz	38296718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0005360000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0005427000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0005494000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0005561000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0005628000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0005695000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0005762000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0005829000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0005896000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0005963000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0006030000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0006097000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0006164000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0006231000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0006298000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0006365000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0006432000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0006499000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0006566000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_quadratic_viscous/snapshots/t0006633000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/checkpoints/c0005967000.npz	38296718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0005360000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0005427000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0005494000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0005561000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0005628000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0005695000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0005762000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0005829000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0005896000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0005963000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0006030000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0006097000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0006164000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0006231000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0006298000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0006365000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0006432000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0006499000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0006566000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_reflection_full_volume/snapshots/t0006633000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/checkpoints/c0005967000.npz	38296718	checkpoint, intermediate	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0005360000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0005427000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0005494000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0005561000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0005628000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0005695000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0005762000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0005829000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0005896000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0005963000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0006030000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0006097000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0006164000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0006231000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0006298000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0006365000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0006432000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0006499000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0006566000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/cavity/n500_simple/snapshots/t0006633000.npz	5745127	snapshot (frame)	delete
+logs/wall_crossing/delta_wall/crossing_s700_budget_build.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/crossing_s700_budget_final.npz	11658348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/crossing_s700_budget_on.npz	11658248	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/crossing_s700_budget_on2.npz	11658352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/crossing_s700_budget_pass.npz	11658352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/crossing_s700_budget_shells.npz	11658356	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/crossing_s999_budget_pass.npz	11658352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/crossing_s999_plain.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/crossing_s999_plain_repeat.npz	11658244	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/default_s700.npz	11657348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/default_s700_body_force_build.npz	11657344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/simple_s700_budget_build.npz	11658172	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/simple_s700_budget_final.npz	11658260	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/simple_s700_budget_on.npz	11658160	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/simple_s700_budget_on2.npz	11658276	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/simple_s700_budget_on3.npz	11658276	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/simple_s700_budget_pass.npz	11658268	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/simple_s700_budget_shells.npz	11658268	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/simple_s999_budget_pass.npz	11658276	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/delta_wall/simple_s999_plain.npz	11658168	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/grid_offset/n250_k1_new_r1.npz	11658256	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/grid_offset/n250_k1_new_r2.npz	11658256	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/grid_offset/n250_k2_new_r1.npz	11665352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/grid_offset/test3_new_grid.npz	30478136	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/grid_offset/test3_old_grid/raw_step000655.npz	7779027	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/grid_offset/test3_old_grid/raw_step000656.npz	7778731	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/grid_offset/test3_old_grid/raw_step000657.npz	7775696	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/bisect/k1_s512.npz	11657340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/bisect/k1_s518.npz	11657340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/bisect/k1_s519.npz	11657340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/bisect/k1_s520.npz	11657340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/bisect/k1_s521.npz	11657340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/bisect/k1_s525.npz	11657340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/bisect/k1_s550.npz	11657340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/bisect/k2_s512.npz	11664432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/bisect/k2_s518.npz	11664432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/bisect/k2_s519.npz	11664432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/bisect/k2_s520.npz	11664436	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/bisect/k2_s521.npz	11664440	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/bisect/k2_s525.npz	11664436	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/bisect/k2_s550.npz	11664436	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k1.npz	11657336	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k1_s1.npz	11657332	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k1_s100.npz	11657348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k1_s2.npz	11657336	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k1_s20.npz	11657324	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k1_s300.npz	11657344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k1_s500.npz	11657340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k1_s600.npz	11657340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k1_s650.npz	11657336	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k1_s680.npz	11657340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k1_s700.npz	11657340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k1_s700b.npz	11657340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k1_slab_order_s600.npz	11657340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k1_wg256_s520.npz	11657352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k1_wg32_s520.npz	11657344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k1_wg64_s520.npz	11657344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k1b.npz	11657340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k2.npz	11664436	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k2_s1.npz	11664320	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k2_s100.npz	11664352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k2_s2.npz	11664320	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k2_s20.npz	11664336	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k2_s300.npz	11664348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k2_s500.npz	11664428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k2_s600.npz	11664432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k2_s650.npz	11664436	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k2_s680.npz	11664436	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k2_s700.npz	11664436	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/crossing_k2_s700b.npz	11664432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/hydro_k1.npz	11657296	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/hydro_k2.npz	11664308	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/simple_k1.npz	11657260	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_dev/simple_k2.npz	11664356	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/cavity3d_1m_crossing_default_volume_700/chain_s700.npz	102332240	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/cavity3d_1m_crossing_default_volume_700/single_repeat2_s700.npz	262916356	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/cavity3d_1m_crossing_default_volume_700/single_s700.npz	262916356	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/cavity3d_1m_simple_700_f6ee476/chain_s700.npz	260215390	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/cavity3d_1m_simple_700_f6ee476/single_repeat2_s700.npz	266288728	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/cavity3d_1m_simple_700_f6ee476/single_s700.npz	266288728	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/hydrostatic_3d_gtilt_default_volume_700/chain_s700.npz	13417172	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/hydrostatic_3d_gtilt_default_volume_700/single_repeat2_s700.npz	30469240	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/hydrostatic_3d_gtilt_default_volume_700/single_s700.npz	30469240	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/hydrostatic_g30_crossing/chain_s999.npz	11664308	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/hydrostatic_g30_crossing/single_repeat2_s999.npz	11657304	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/hydrostatic_g30_crossing/single_s999.npz	11657304	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/chain_s499.npz	11664440	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/chain_s514.npz	11664448	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/chain_s518.npz	11664440	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/chain_s519.npz	11664444	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/chain_s520.npz	11664444	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/chain_s522.npz	11664444	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/chain_s530.npz	11664444	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/chain_s561.npz	11664436	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/chain_s624.npz	11664440	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/chain_s749.npz	11664444	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/chain_s999.npz	11664444	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/single_repeat2_s999.npz	11657344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/single_s499.npz	11657344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/single_s514.npz	11657344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/single_s518.npz	11657344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/single_s519.npz	11657348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/single_s520.npz	11657352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/single_s522.npz	11657344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/single_s530.npz	11657340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/single_s561.npz	11657344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/single_s624.npz	11657332	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/single_s749.npz	11657344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing/single_s999.npz	11657344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/chain_s350.npz	11664352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/chain_s437.npz	11664448	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/chain_s481.npz	11664444	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/chain_s503.npz	11664444	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/chain_s514.npz	11664436	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/chain_s519.npz	11664444	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/chain_s520.npz	11664444	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/chain_s522.npz	11664440	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/chain_s525.npz	11664444	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/chain_s700.npz	11664440	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/single_repeat2_s700.npz	11657344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/single_s350.npz	11657348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/single_s437.npz	11657348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/single_s481.npz	11657344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/single_s503.npz	11657340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/single_s514.npz	11657348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/single_s519.npz	11657348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/single_s520.npz	11657348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/single_s522.npz	11657348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/single_s525.npz	11657352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_700/single_s700.npz	11657348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_quadratic_viscous/chain_s700.npz	11665492	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_quadratic_viscous/single_repeat2_s700.npz	11658392	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_crossing_quadratic_viscous/single_s700.npz	11658400	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_simple/chain_s999.npz	11664360	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_simple/single_repeat2_s999.npz	11657268	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/k2_equivalence/n250_simple/single_s999.npz	11657264	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/adami_against_base_at_3cba19f_s200/case_0.npz	12851002	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/adami_against_base_at_3cba19f_s200/case_1.npz	12850998	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/adami_against_base_at_8a7f02d_s200/case_0.npz	12851002	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/adami_against_base_at_8a7f02d_s200/case_1.npz	12851002	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/adami_against_base_s200/case_0.npz	12850954	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/adami_against_base_s200/case_1.npz	12850954	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/adami_against_base_s200/case_2.npz	12850954	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/adami_against_base_s200/case_3.npz	12850950	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/case_0.npz	11658424	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/case_1.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/case_10.npz	11658424	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/case_11.npz	11658416	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/case_12.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/case_13.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/case_14.npz	11658416	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/case_15.npz	11658424	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/case_2.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/case_3.npz	11658416	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/case_4.npz	11658416	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/case_5.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/case_6.npz	11658424	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/case_7.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/case_8.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/case_9.npz	11658424	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/reference_0.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/reference_1.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/reference_10.npz	11658412	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/reference_11.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/reference_12.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/reference_13.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/reference_14.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/reference_15.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/reference_2.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/reference_3.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/reference_4.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/reference_5.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/reference_6.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/reference_7.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/reference_8.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_at_8a7f02d_s700/reference_9.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/case_0.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/case_1.npz	11658424	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/case_10.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/case_11.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/case_12.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/case_13.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/case_14.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/case_15.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/case_2.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/case_3.npz	11658424	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/case_4.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/case_5.npz	11658424	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/case_6.npz	11658412	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/case_7.npz	11658424	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/case_8.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/case_9.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/reference_0.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/reference_1.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/reference_10.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/reference_11.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/reference_12.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/reference_13.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/reference_14.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/reference_15.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/reference_2.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/reference_3.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/reference_4.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/reference_5.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/reference_6.npz	11658424	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/reference_7.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/reference_8.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_complete_scheme_s700/reference_9.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_normal_s700/case_0.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_normal_s700/case_1.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_normal_s700/case_2.npz	11658248	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_normal_s700/case_3.npz	11658256	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_normal_s700/reference_0.npz	11658392	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_normal_s700/reference_1.npz	11658400	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_normal_s700/reference_2.npz	11658396	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_against_explicit_normal_s700/reference_3.npz	11658396	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_after_start_fix_f6ee476_s700/case_0.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_after_start_fix_f6ee476_s700/case_1.npz	11658296	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_after_start_fix_f6ee476_s700/case_2.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_after_start_fix_f6ee476_s700/case_3.npz	11658304	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_after_start_fix_f6ee476_s700/case_4.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_after_start_fix_f6ee476_s700/case_5.npz	11658304	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/case_0.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/case_1.npz	11658304	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/case_10.npz	11658296	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/case_11.npz	11658292	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/case_12.npz	11658296	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/case_13.npz	11658304	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/case_14.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/case_15.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/case_2.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/case_3.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/case_4.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/case_5.npz	11658304	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/case_6.npz	11658304	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/case_7.npz	11658292	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/case_8.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/case_9.npz	11658304	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/reference_0.npz	11658488	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/reference_1.npz	11658480	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/reference_10.npz	11658484	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/reference_11.npz	11658488	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/reference_12.npz	11658488	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/reference_13.npz	11658476	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/reference_14.npz	11658488	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/reference_15.npz	11658488	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/reference_2.npz	11658488	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/reference_3.npz	11658484	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/reference_4.npz	11658484	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/reference_5.npz	11658484	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/reference_6.npz	11658488	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/reference_7.npz	11658484	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/reference_8.npz	11658488	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_at_8a7f02d_s700/reference_9.npz	11658484	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/case_0.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/case_1.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/case_10.npz	11658304	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/case_11.npz	11658296	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/case_12.npz	11658288	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/case_13.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/case_14.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/case_15.npz	11658304	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/case_2.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/case_3.npz	11658304	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/case_4.npz	11658304	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/case_5.npz	11658304	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/case_6.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/case_7.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/case_8.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/case_9.npz	11658304	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/reference_0.npz	11658484	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/reference_1.npz	11658488	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/reference_10.npz	11658488	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/reference_11.npz	11658488	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/reference_12.npz	11658484	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/reference_13.npz	11658484	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/reference_14.npz	11658488	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/reference_15.npz	11658488	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/reference_2.npz	11658484	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/reference_3.npz	11658484	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/reference_4.npz	11658488	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/reference_5.npz	11658488	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/reference_6.npz	11658484	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/reference_7.npz	11658484	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/reference_8.npz	11658488	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/default_volume_against_explicit_complete_scheme_volume_s700/reference_9.npz	11658484	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/defaults_against_b18597b_s700/case_0.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/defaults_against_b18597b_s700/case_1.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/defaults_against_b18597b_s700/case_2.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/defaults_against_b18597b_s700/case_3.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/defaults_against_b18597b_s700/case_4.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/defaults_against_b18597b_s700/case_5.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/explicit_full_against_old_default_s700/case_0.npz	11658376	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/explicit_full_against_old_default_s700/case_1.npz	11658380	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/explicit_full_against_old_default_s700/case_2.npz	11658384	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/explicit_full_against_old_default_s700/case_3.npz	11658384	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/explicit_full_against_old_default_s700/case_4.npz	11658384	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/explicit_full_against_old_default_s700/case_5.npz	11658376	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/first_order_explicit_against_48d370f_at_8a7f02d_s700/case_0.npz	11658392	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/first_order_explicit_against_48d370f_at_8a7f02d_s700/case_1.npz	11658392	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/first_order_explicit_against_48d370f_at_8a7f02d_s700/case_2.npz	11658400	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/first_order_explicit_against_48d370f_at_8a7f02d_s700/case_3.npz	11658396	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/first_order_explicit_against_48d370f_at_8a7f02d_s700/case_4.npz	11658400	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/first_order_explicit_against_48d370f_at_8a7f02d_s700/case_5.npz	11658396	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/first_order_explicit_against_48d370f_s700/case_0.npz	11658396	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/first_order_explicit_against_48d370f_s700/case_1.npz	11658400	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/first_order_explicit_against_48d370f_s700/case_2.npz	11658400	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/first_order_explicit_against_48d370f_s700/case_3.npz	11658396	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/first_order_explicit_against_48d370f_s700/case_4.npz	11658392	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/first_order_explicit_against_48d370f_s700/case_5.npz	11658396	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/linear_against_398f70a_s700/case_0.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/linear_against_398f70a_s700/case_1.npz	11658248	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/linear_against_398f70a_s700/case_2.npz	11658244	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/linear_against_398f70a_s700/case_3.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/linear_against_398f70a_s700/case_4.npz	11658244	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/linear_against_398f70a_s700/case_5.npz	11658248	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/old_default_at_48d370f_s700/case_0.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/old_default_at_48d370f_s700/case_1.npz	11658304	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/old_default_at_48d370f_s700/case_2.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/old_default_at_48d370f_s700/reference_0.npz	11658296	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/old_default_at_48d370f_s700/reference_1.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/old_default_at_48d370f_s700/reference_2.npz	11658300	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/case_0.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/case_1.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/case_10.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/case_11.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/case_2.npz	11658424	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/case_3.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/case_4.npz	11658424	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/case_5.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/case_6.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/case_7.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/case_8.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/case_9.npz	11658424	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/reference_0.npz	11658424	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/reference_1.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/reference_10.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/reference_11.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/reference_2.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/reference_3.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/reference_4.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/reference_5.npz	11658424	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/reference_6.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/reference_7.npz	11658424	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/reference_8.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_more_s700/reference_9.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_s700/case_0.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_s700/case_1.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_s700/case_2.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_s700/reference_0.npz	11658432	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_s700/reference_1.npz	11658424	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/reflection_full_at_2186032_s700/reference_2.npz	11658428	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_delta_wall_rest_density_against_81ae0d9_s700/case_0.npz	11658444	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_delta_wall_rest_density_against_81ae0d9_s700/case_1.npz	11658448	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_delta_wall_rest_density_against_81ae0d9_s700/case_2.npz	11658448	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_delta_wall_rest_density_against_81ae0d9_s700/case_3.npz	11658444	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_delta_wall_rest_density_against_81ae0d9_s700/case_4.npz	11658444	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_delta_wall_rest_density_against_81ae0d9_s700/case_5.npz	11658444	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_delta_wall_rest_density_against_81ae0d9_s700/reference_0.npz	11657580	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_delta_wall_rest_density_against_81ae0d9_s700/reference_1.npz	11657592	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_delta_wall_rest_density_against_81ae0d9_s700/reference_2.npz	11657588	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_delta_wall_rest_density_against_81ae0d9_s700/reference_3.npz	11657588	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_delta_wall_rest_density_against_81ae0d9_s700/reference_4.npz	11657592	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_delta_wall_rest_density_against_81ae0d9_s700/reference_5.npz	11657588	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_quadratic_full_against_db3d609_s700/case_0.npz	11658372	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_quadratic_full_against_db3d609_s700/case_1.npz	11658376	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_quadratic_full_against_db3d609_s700/case_2.npz	11658372	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_quadratic_full_against_db3d609_s700/case_3.npz	11658376	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_quadratic_full_against_db3d609_s700/case_4.npz	11658364	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_quadratic_full_against_db3d609_s700/case_5.npz	11658372	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_quadratic_full_against_db3d609_s700/reference_0.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_quadratic_full_against_db3d609_s700/reference_1.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_quadratic_full_against_db3d609_s700/reference_2.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_quadratic_full_against_db3d609_s700/reference_3.npz	11658424	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_quadratic_full_against_db3d609_s700/reference_4.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_quadratic_full_against_db3d609_s700/reference_5.npz	11658420	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_reflection_against_bd9fec1_s700/case_0.npz	11658340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_reflection_against_bd9fec1_s700/case_1.npz	11658340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_reflection_against_bd9fec1_s700/case_2.npz	11658340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_reflection_against_bd9fec1_s700/case_3.npz	11658340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_reflection_against_bd9fec1_s700/case_4.npz	11658340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_reflection_against_bd9fec1_s700/case_5.npz	11658344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_reflection_against_bd9fec1_s700/reference_0.npz	11658388	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_reflection_against_bd9fec1_s700/reference_1.npz	11658388	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_reflection_against_bd9fec1_s700/reference_2.npz	11658388	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_reflection_against_bd9fec1_s700/reference_3.npz	11658392	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_reflection_against_bd9fec1_s700/reference_4.npz	11658388	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/restored_crossing_reflection_against_bd9fec1_s700/reference_5.npz	11658388	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/simple_against_base_at_3cba19f_s999/case_0.npz	11658216	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/simple_against_base_at_3cba19f_s999/case_1.npz	11658220	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/simple_against_base_at_8a7f02d_s999/case_0.npz	11658220	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/simple_against_base_at_8a7f02d_s999/case_1.npz	11658220	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/simple_against_base_s999/case_0.npz	11658168	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/simple_against_base_s999/case_1.npz	11658172	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/simple_against_base_s999/case_2.npz	11658172	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/simple_against_base_s999/case_3.npz	11658172	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/volume_constraint_off_against_2186032_s700/case_0.npz	11658380	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/volume_constraint_off_against_2186032_s700/case_1.npz	11658380	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/volume_constraint_off_against_2186032_s700/case_10.npz	11658380	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/volume_constraint_off_against_2186032_s700/case_11.npz	11658376	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/volume_constraint_off_against_2186032_s700/case_2.npz	11658376	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/volume_constraint_off_against_2186032_s700/case_3.npz	11658376	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/volume_constraint_off_against_2186032_s700/case_4.npz	11658380	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/volume_constraint_off_against_2186032_s700/case_5.npz	11658376	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/volume_constraint_off_against_2186032_s700/case_6.npz	11658380	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/volume_constraint_off_against_2186032_s700/case_7.npz	11658372	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/volume_constraint_off_against_2186032_s700/case_8.npz	11658376	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/outcome_classes/volume_constraint_off_against_2186032_s700/case_9.npz	11658376	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/extra_a_crossing_k2_ghost_pool_0p5.npz	262925168	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/extra_b_small_crossing_k2_ghost_pool_0p5/raw_step000655.npz	7890125	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/extra_b_small_crossing_k2_ghost_pool_0p5/raw_step000656.npz	7885547	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/extra_b_small_crossing_k2_ghost_pool_0p5/raw_step000657.npz	7883537	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/run2_reproduction_crossing_k2/raw_step000006.npz	27136104	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/run2_reproduction_crossing_k2/raw_step000007.npz	27904696	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/run2_reproduction_crossing_k2/raw_step000008.npz	28517848	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/run2_reproduction_crossing_k2_b/raw_step000008.npz	28528662	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/run2_reproduction_crossing_k2_b/raw_step000009.npz	29065720	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/run2_reproduction_crossing_k2_b/raw_step000010.npz	29544884	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/run3_control_simple_k2/raw_step000006.npz	27121298	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/run3_control_simple_k2/raw_step000007.npz	27823018	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/run3_control_simple_k2/raw_step000008.npz	28412958	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/run4_control_crossing_k1.npz	262917944	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/smoke/hydrostatic_3d_k2/raw_step000012.npz	3634738	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/smoke/hydrostatic_3d_k2/raw_step000013.npz	3772287	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/smoke/hydrostatic_3d_k2/raw_step000014.npz	3883279	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/smoke/hydrostatic_3d_k2_b/raw_step000020.npz	6972028	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/smoke/hydrostatic_3d_k2_b/raw_step000021.npz	7037273	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/smoke/hydrostatic_3d_k2_b/raw_step000022.npz	7096739	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/smoke/hydrostatic_3d_k2_c/raw_step000011.npz	5879176	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/smoke/hydrostatic_3d_k2_c/raw_step000012.npz	6060682	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/smoke/hydrostatic_3d_k2_c/raw_step000013.npz	6233798	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/n250_k1_off_r1.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/n250_k1_on_r1.npz	11659884	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/n250_k1_reference_r1.npz	11658512	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/n250_k1_reference_r2.npz	11658508	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/n250_k2_off_r1.npz	11665356	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/n250_k2_on_r1.npz	11666980	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/n250_k2_reference_r1.npz	11665612	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/n250_k2_reference_r2.npz	11665616	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/off_s1_r1.npz	30469188	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/off_s1_r2.npz	30469188	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/off_s50_r1.npz	30469188	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/off_s50_r2.npz	30469192	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/off_s700_r1.npz	30469192	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/off_s700_r2.npz	30469188	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/on_s1_r1.npz	30471104	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/on_s1_r2.npz	30471108	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/on_s50_r1.npz	30471116	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/on_s50_r2.npz	30471116	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/on_s700_r1.npz	30471144	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/on_s700_r2.npz	30471144	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s100_r1.npz	30469200	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s100_r2.npz	30469192	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s10_r1.npz	30469192	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s10_r2.npz	30469196	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s1_r1.npz	30469192	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s1_r2.npz	30469188	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s200_r1.npz	30469200	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s200_r2.npz	30469196	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s20_r1.npz	30469192	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s20_r2.npz	30469196	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s2_r1.npz	30469188	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s2_r2.npz	30469184	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s400_r1.npz	30469188	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s400_r2.npz	30469192	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s50_r1.npz	30469184	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s50_r2.npz	30469188	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s5_r1.npz	30469184	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s5_r2.npz	30469184	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s700_r1.npz	30469196	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/particle_watch/switch_check/reference_s700_r2.npz	30469192	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/pilots/pilot2_n250_crossing_normal_rho_minus/points.npz	44608	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_crossing/A1_N1000.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_crossing/A1_N300.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_crossing/A2_N1000.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_crossing/A2_N300.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_crossing/B1_N1000.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_crossing/B1_N300.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_crossing/B2_N1000.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_crossing/B2_N300.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_crossing_default_volume/A1_N1000.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_crossing_default_volume/A1_N300.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_crossing_default_volume/A2_N1000.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_crossing_default_volume/A2_N300.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_crossing_default_volume/B1_N1000.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_crossing_default_volume/B1_N300.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_crossing_default_volume/B2_N1000.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_crossing_default_volume/B2_N300.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_simple/A1_N1000.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_simple/A1_N300.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_simple/A2_N1000.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_simple/A2_N300.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_simple/B1_N1000.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_simple/B1_N300.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_simple/B2_N1000.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/cavity3d_1m_simple/B2_N300.npz	116278981	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_crossing/A1_N2000.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_crossing/A1_N300.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_crossing/A2_N2000.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_crossing/A2_N300.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_crossing/B1_N2000.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_crossing/B1_N300.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_crossing/B2_N2000.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_crossing/B2_N300.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_crossing_default_volume_f6ee476/A1_N2000.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_crossing_default_volume_f6ee476/A1_N300.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_crossing_default_volume_f6ee476/A2_N2000.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_crossing_default_volume_f6ee476/A2_N300.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_crossing_default_volume_f6ee476/B1_N2000.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_crossing_default_volume_f6ee476/B1_N300.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_crossing_default_volume_f6ee476/B2_N2000.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_crossing_default_volume_f6ee476/B2_N300.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_simple/A1_N2000.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_simple/A1_N300.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_simple/A2_N2000.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_simple/A2_N300.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_simple/B1_N2000.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_simple/B1_N300.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_simple/B2_N2000.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/seam_audit/n250_simple/B2_N300.npz	3953047	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/bitwise/reference_94eccdd_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1.npz	11658504	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/bitwise/reference_94eccdd_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2.npz	11665612	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/bitwise/threshold_0p05_k1.npz	11658256	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/bitwise/threshold_0p05_k2.npz	11665348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/integral_off_2f16c8c_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r1.npz	11660988	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/integral_off_2f16c8c_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r2.npz	11660984	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/integral_off_2f16c8c_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r3.npz	11660984	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/integral_off_2f16c8c_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r4.npz	11660984	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/integral_off_2f16c8c_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r1.npz	11668080	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/integral_off_2f16c8c_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r2.npz	11668080	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/integral_off_2f16c8c_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r3.npz	11668084	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/integral_off_2f16c8c_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r4.npz	11668080	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/integral_off_idle_2f16c8c_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r1.npz	11660988	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/integral_off_idle_2f16c8c_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r2.npz	11660984	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/integral_off_idle_2f16c8c_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r3.npz	11660984	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/integral_off_idle_2f16c8c_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r4.npz	11660988	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/integral_off_idle_2f16c8c_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r1.npz	11668084	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/integral_off_idle_2f16c8c_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r2.npz	11668084	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/integral_off_idle_2f16c8c_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r3.npz	11668088	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/integral_off_idle_2f16c8c_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r4.npz	11668084	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_61c490d_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r1.npz	11661244	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_61c490d_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r2.npz	11661236	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_61c490d_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r3.npz	11661244	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_61c490d_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r4.npz	11661240	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_61c490d_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r1.npz	11668340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_61c490d_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r2.npz	11668344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_61c490d_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r3.npz	11668332	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_61c490d_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r4.npz	11668344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_73e3137_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r1.npz	11658516	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_73e3137_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r2.npz	11658516	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_73e3137_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r3.npz	11658512	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_73e3137_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r4.npz	11658512	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_73e3137_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r1.npz	11665616	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_73e3137_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r2.npz	11665612	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_73e3137_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r3.npz	11665608	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_73e3137_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r4.npz	11665616	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_94eccdd_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r1.npz	11658516	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_94eccdd_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r2.npz	11658508	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_94eccdd_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r3.npz	11658512	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_94eccdd_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r4.npz	11658516	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_94eccdd_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r1.npz	11665612	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_94eccdd_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r2.npz	11665612	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_94eccdd_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r3.npz	11665616	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_94eccdd_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r4.npz	11665608	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_b0d479f_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r1.npz	11661248	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_b0d479f_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r2.npz	11661244	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_b0d479f_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r3.npz	11661248	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_b0d479f_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r4.npz	11661244	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_b0d479f_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r1.npz	11668348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_b0d479f_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r2.npz	11668344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_b0d479f_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r3.npz	11668348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/reference_b0d479f_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r4.npz	11668344	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/switch_off_79f2ee5_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r1.npz	11660980	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/switch_off_79f2ee5_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r2.npz	11660984	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/switch_off_79f2ee5_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r3.npz	11660988	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/switch_off_79f2ee5_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r4.npz	11660988	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/switch_off_79f2ee5_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r1.npz	11668084	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/switch_off_79f2ee5_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r2.npz	11668084	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/switch_off_79f2ee5_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r3.npz	11668088	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/switch_off_79f2ee5_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r4.npz	11668084	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/switch_off_d050f8a_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r1.npz	11660984	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/switch_off_d050f8a_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r2.npz	11660980	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/switch_off_d050f8a_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r3.npz	11660984	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/switch_off_d050f8a_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r4.npz	11660988	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/switch_off_d050f8a_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r1.npz	11668088	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/switch_off_d050f8a_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r2.npz	11668084	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/switch_off_d050f8a_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r3.npz	11668084	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/switch_off_d050f8a_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r4.npz	11668088	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/threshold_0p05_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r1.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/threshold_0p05_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r2.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/threshold_0p05_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r3.npz	11658252	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/threshold_0p05_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k1_s700_r4.npz	11658248	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/threshold_0p05_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r1.npz	11665356	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/threshold_0p05_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r2.npz	11665352	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/threshold_0p05_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r3.npz	11665348	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section22/classes/threshold_0p05_lid_driven_cavity_2d_n250_xi0p001_eps0p0025_crossing_k2_s700_r4.npz	11665356	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/b2_watch/raw_step000279.npz	37532967	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/b2_watch/raw_step000280.npz	37539267	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/b2_watch/raw_step000281.npz	37543220	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/band/cavity3d_mode1_b0d479f_s34.npz	262926396	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/band/cavity3d_off_s34.npz	262926316	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/band/n250_mode1.npz	11668036	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/band/n250_mode1_fixed.npz	11668264	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/band/n250_mode1_s46.npz	11668032	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/band/n250_mode1_s47.npz	11668032	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/band/n250_off_a.npz	11667988	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/band/n250_off_b.npz	11667988	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/band/n250_off_s46.npz	11667984	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/band/n250_off_s47.npz	11667980	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/mode1_k2_s700_r1.npz	11668136	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/mode1_k2_s700_r2.npz	11668132	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/mode1_near_wall_first_k2_s700_r1.npz	11668340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/mode1_near_wall_first_k2_s700_r2.npz	11668340	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/mode2_k2_s700_r1.npz	11668296	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/mode2_k2_s700_r2.npz	11668296	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/off_k1_s1_r1.npz	11660984	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/off_k1_s1_r2.npz	11660976	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/off_k1_s1_r3.npz	11660972	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/off_k1_s700_r1.npz	11660984	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/off_k1_s700_r2.npz	11660984	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/off_k1_s700_r3.npz	11660984	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/off_k2_s700_r1.npz	11668084	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/off_k2_s700_r2.npz	11668084	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/split_k1_s1_r1.npz	11661032	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/split_k1_s1_r2.npz	11661024	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/split_k1_s1_r3.npz	11661028	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/split_k1_s700_r1.npz	11661036	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/split_k1_s700_r2.npz	11661032	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/split_k1_s700_r3.npz	11661032	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/split_near_wall_first_k1_s1_r1.npz	11661232	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/split_near_wall_first_k1_s1_r2.npz	11661232	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/split_near_wall_first_k1_s1_r3.npz	11661232	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/split_near_wall_first_k1_s700_r1.npz	11661240	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/split_near_wall_first_k1_s700_r2.npz	11661236	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section23/order/split_near_wall_first_k1_s700_r3.npz	11661240	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/adami_n250_s200_new_r1.npz	12853674	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/adami_n250_s200_new_r2.npz	12853678	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/adami_n250_s200_reference_r1.npz	12853942	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/adami_n250_s200_reference_r2.npz	12853946	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_off_n250_k1_s700_new_r1.npz	11661152	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_off_n250_k1_s700_new_r2.npz	11661144	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_off_n250_k1_s700_new_r3.npz	11661144	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_off_n250_k1_s700_new_r4.npz	11661148	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_off_n250_k1_s700_reference_r1.npz	11661552	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_off_n250_k1_s700_reference_r2.npz	11661560	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_off_n250_k1_s700_reference_r3.npz	11661560	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_off_n250_k1_s700_reference_r4.npz	11661560	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_on_n250_k1_s700_new_r1.npz	11660976	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_on_n250_k1_s700_new_r2.npz	11660984	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_on_n250_k1_s700_new_r3.npz	11660984	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_on_n250_k1_s700_new_r4.npz	11660980	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_on_n250_k1_s700_reference_r1.npz	11661388	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_on_n250_k1_s700_reference_r2.npz	11661388	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_on_n250_k1_s700_reference_r3.npz	11661388	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_on_n250_k1_s700_reference_r4.npz	11661388	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_on_n250_k2_s700_new_r1.npz	11668080	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_on_n250_k2_s700_new_r2.npz	11668084	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_on_n250_k2_s700_new_r3.npz	11668080	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_on_n250_k2_s700_new_r4.npz	11668076	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_on_n250_k2_s700_reference_r1.npz	11668492	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_on_n250_k2_s700_reference_r2.npz	11668492	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_on_n250_k2_s700_reference_r3.npz	11668492	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/crossing_on_n250_k2_s700_reference_r4.npz	11668488	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/simple_n250_s200_new_r1.npz	11660900	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/simple_n250_s200_new_r2.npz	11660904	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/simple_n250_s200_reference_r1.npz	11661164	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section25/checks/simple_n250_s200_reference_r2.npz	11661168	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/crossing_n250_k1_s700_material_new_r1.npz	11662236	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/crossing_n250_k1_s700_material_new_r2.npz	11662236	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/crossing_n250_k1_s700_material_new_r3.npz	11662216	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/crossing_n250_k1_s700_material_new_r4.npz	11662232	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/crossing_n250_k1_s700_material_reference_r1.npz	11661248	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/crossing_n250_k1_s700_material_reference_r2.npz	11661244	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/crossing_n250_k1_s700_material_reference_r3.npz	11661240	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/crossing_n250_k1_s700_material_reference_r4.npz	11661244	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/crossing_n250_k1_s700_new_r1.npz	11662008	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/crossing_n250_k1_s700_new_r2.npz	11662012	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/crossing_n250_k1_s700_new_r3.npz	11662008	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/crossing_n250_k1_s700_new_r4.npz	11662004	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/crossing_n250_k1_s700_reference_r1.npz	11661248	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/crossing_n250_k1_s700_reference_r2.npz	11661248	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/crossing_n250_k1_s700_reference_r3.npz	11661248	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/crossing_n250_k1_s700_reference_r4.npz	11661248	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/simple_n250_s200_new_r1.npz	11661928	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/simple_n250_s200_new_r2.npz	11661928	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/simple_n250_s200_reference_r1.npz	11661168	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section26/checks/simple_n250_s200_reference_r2.npz	11661168	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k1_s700_new_r1.npz	11662012	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k1_s700_new_r2.npz	11662012	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k1_s700_new_r3.npz	11662012	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k1_s700_new_r4.npz	11662008	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k1_s700_reference_r1.npz	11662276	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k1_s700_reference_r2.npz	11662272	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k1_s700_reference_r3.npz	11662276	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k1_s700_reference_r4.npz	11662272	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k1_s700_trim_none_new_r1.npz	11662172	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k1_s700_trim_none_new_r2.npz	11662180	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k1_s700_trim_none_new_r3.npz	11662172	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k1_s700_trim_none_new_r4.npz	11662180	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k1_s700_trim_none_reference_r1.npz	11662272	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k1_s700_trim_none_reference_r2.npz	11662268	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k1_s700_trim_none_reference_r3.npz	11662268	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k1_s700_trim_none_reference_r4.npz	11662272	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k2_s700_new_r1.npz	11669108	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k2_s700_new_r2.npz	11669108	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k2_s700_new_r3.npz	11669112	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k2_s700_new_r4.npz	11669112	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k2_s700_reference_r1.npz	11669368	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k2_s700_reference_r2.npz	11669372	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k2_s700_reference_r3.npz	11669372	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/crossing_n250_k2_s700_reference_r4.npz	11669372	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/simple_n250_s200_new_r1.npz	11661928	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/simple_n250_s200_new_r2.npz	11661932	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/simple_n250_s200_reference_r1.npz	11662184	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks/simple_n250_s200_reference_r2.npz	11662192	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k1_s700_new_r1.npz	11665740	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k1_s700_new_r2.npz	11665736	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k1_s700_new_r3.npz	11665740	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k1_s700_new_r4.npz	11665736	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k1_s700_reference_r1.npz	11662276	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k1_s700_reference_r2.npz	11662272	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k1_s700_reference_r3.npz	11662268	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k1_s700_reference_r4.npz	11662276	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k1_s700_trim_both_new_r1.npz	11665940	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k1_s700_trim_both_new_r2.npz	11665936	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k1_s700_trim_both_new_r3.npz	11665932	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k1_s700_trim_both_new_r4.npz	11665940	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k1_s700_trim_both_reference_r1.npz	11662272	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k1_s700_trim_both_reference_r2.npz	11662276	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k1_s700_trim_both_reference_r3.npz	11662268	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k1_s700_trim_both_reference_r4.npz	11662276	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k2_s700_new_r1.npz	11672840	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k2_s700_new_r2.npz	11672836	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k2_s700_new_r3.npz	11672836	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k2_s700_new_r4.npz	11672840	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k2_s700_reference_r1.npz	11669372	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k2_s700_reference_r2.npz	11669376	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k2_s700_reference_r3.npz	11669364	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/crossing_n250_k2_s700_reference_r4.npz	11669376	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/simple_n250_s200_new_r1.npz	11665656	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/simple_n250_s200_new_r2.npz	11665656	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/simple_n250_s200_reference_r1.npz	11662196	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/section27/checks_final/simple_n250_s200_reference_r2.npz	11662188	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_off_r1.npz	11667648	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_off_r2.npz	11667652	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_off_s1.npz	11667532	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_off_s100.npz	11667568	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_off_s2.npz	11667528	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_off_s20.npz	11667548	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_off_s300.npz	11667564	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_off_s40.npz	11667540	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_off_s5.npz	11667528	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_off_s60.npz	11667544	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_off_s80.npz	11667540	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_split_mode1_r1.npz	11667700	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_split_mode1_r2.npz	11667700	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_split_mode1_s1.npz	11667580	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_split_mode1_s100.npz	11667612	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_split_mode1_s2.npz	11667576	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_split_mode1_s20.npz	11667592	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_split_mode1_s300.npz	11667604	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_split_mode1_s40.npz	11667596	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_split_mode1_s5.npz	11667576	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_split_mode1_s60.npz	11667596	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_split_mode1_s80.npz	11667596	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_split_mode2_r1.npz	11667864	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/k2_split_mode2_r2.npz	11667860	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/near_s1.npz	11660800	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/near_s700.npz	11660804	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/near_s700_r2.npz	11660804	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/near_s700_r3.npz	11660804	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/near_s700_r4.npz	11660808	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/off_s1.npz	11660540	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/off_s700.npz	11660548	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/off_s700_r2.npz	11660544	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/off_s700_r3.npz	11660544	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/off_s700_r4.npz	11660552	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/split_s1.npz	11660592	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/split_s700.npz	11660600	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/split_s700_r2.npz	11660596	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/split_s700_r3.npz	11660600	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/split_s700_r4.npz	11660588	dump (bitwise / canonical / raw watch / cache)	delete
+logs/wall_crossing/split_dispatch/equivalence/watch_split_k1.npz	11662200	dump (bitwise / canonical / raw watch / cache)	delete

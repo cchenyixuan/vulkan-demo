@@ -67,6 +67,10 @@ SHADER_VARIANTS = (
     # interior and near-wall pipelines. simple / adami keep the plain modules.
     ("correction_density_wall_crossing", "correction_density.comp", ("WALL_CROSSING",)),
     ("force_wall_crossing", "force.comp", ("WALL_CROSSING",)),
+    # DIAGNOSTIC (V7_WALL_CROSSING_DIFFUSION_SUMMED=1): the density diffusion of the wall neighbours applied after the
+    # loop as the particle-pool version did, to measure the pair-by-pair form against it (claude/wall_store_report.md)
+    ("correction_density_wall_crossing_diffusion_summed", "correction_density.comp",
+     ("WALL_CROSSING", "WALL_CROSSING_DIFFUSION_SUMMED")),
 )
 
 

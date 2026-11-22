@@ -21,6 +21,7 @@ What is NOT replicated:
 from __future__ import annotations
 
 import math
+import os
 import pathlib
 
 import numpy as np
@@ -638,9 +639,14 @@ def load_case_v7(case_yaml_path: str | pathlib.Path) -> CaseV7:
     wall_source = None
     if numerics.wall_boundary == "crossing":
         settings = numerics.wall_crossing
+        # DIAGNOSTIC V7_WALL_STORE_KEEP_ALL_WALLS=1: keep every wall layer (the deeper ones are in no support; for the
+        # check that dropping them changes nothing)
+        keep_all_walls = os.environ.get("V7_WALL_STORE_KEEP_ALL_WALLS", "0") == "1"
         wall_source = build_wall_source(positions[is_wall], velocities[is_wall], material_group[is_wall], materials,
                                         settings.box_lower, settings.box_upper, h, dimension,
-                                        rule_set=settings.rule_set)
+                                        rule_set=settings.rule_set, keep_all_walls=keep_all_walls)
+        if keep_all_walls:
+            print("[case_loader_v7] DIAGNOSTIC V7_WALL_STORE_KEEP_ALL_WALLS=1: every wall layer kept", flush=True)
         positions, velocities, material_group = positions[~is_wall], velocities[~is_wall], material_group[~is_wall]
         # the pool no longer holds the walls: capacities.pool_size less the walls of the case files (the same headroom
         # over the fluid as before), rounded up to the workgroup

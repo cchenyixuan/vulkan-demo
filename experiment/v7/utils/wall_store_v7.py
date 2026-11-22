@@ -151,7 +151,7 @@ def plane_depths(positions: np.ndarray, planes: np.ndarray) -> np.ndarray:
 
 def build_wall_source(positions: np.ndarray, velocities: np.ndarray, material_groups: np.ndarray, materials: list,
                       box_lower, box_upper, smoothing_length: float, dimension: int,
-                      rule_set: str = WALL_STORE_DEFAULT_RULE_SET) -> WallSource:
+                      rule_set: str = WALL_STORE_DEFAULT_RULE_SET, keep_all_walls: bool = False) -> WallSource:
     """The wall store of a crossing case from its wall particles (the rows of positions / velocities /
     material_groups that belong to a boundary material). Keeps the walls closer than smoothing_length to the
     fluid box (a deeper one is never within the support of a fluid particle inside the box); the planes each kept
@@ -166,7 +166,8 @@ def build_wall_source(positions: np.ndarray, velocities: np.ndarray, material_gr
     material_groups = np.asarray(material_groups, dtype=np.uint32)
     loaded = int(positions.shape[0])
     depth = box_depth_behind_wall(positions, box_lower, box_upper, dimension)
-    kept = depth < float(smoothing_length)
+    # DIAGNOSTIC keep_all_walls (V7_WALL_STORE_KEEP_ALL_WALLS=1, case_loader_v7): every wall layer of the case files
+    kept = np.ones(depth.size, dtype=bool) if keep_all_walls else depth < float(smoothing_length)
     positions, velocities, material_groups = positions[kept], velocities[kept], material_groups[kept]
 
     planes = box_planes(box_lower, box_upper, dimension)

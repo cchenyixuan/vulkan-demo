@@ -123,6 +123,10 @@ if _WALL_CROSSING_SPLIT_BAND_MODE not in ("1", "2"):
 _WALL_CROSSING_SPLIT_DISPATCH_OVERRIDE = os.environ.get("V7_WALL_CROSSING_SPLIT_DISPATCH")
 if _WALL_CROSSING_SPLIT_DISPATCH_OVERRIDE not in (None, "0", "1"):
     raise ValueError(f"V7_WALL_CROSSING_SPLIT_DISPATCH={_WALL_CROSSING_SPLIT_DISPATCH_OVERRIDE!r}: expected 0 or 1")
+# DIAGNOSTIC (claude/wall_store_report.md, the hydrostatic regression): "1" loads the fused pass's build that applies
+# the density diffusion of the wall neighbours after the loop as the particle-pool version did
+# (WALL_CROSSING_DIFFUSION_SUMMED) instead of pair by pair with the density rule. Unset / "0" (default): pair by pair.
+_WALL_CROSSING_DIFFUSION_SUMMED = os.environ.get("V7_WALL_CROSSING_DIFFUSION_SUMMED", "0") == "1"
 # DIAGNOSTIC: the order of a split pass's two dispatches, "interior_first" or "near_wall_first"; no barrier between
 # them either way and they write different particles' outputs, so the results are the same. Unset (default): the
 # case's numerics.wall_crossing.split_order; set: it overrides the case.
@@ -2238,7 +2242,7 @@ class SphSimulatorV7:
             # wall_boundary crossing: the WALL_CROSSING variants of the fused pass and of force only on a crossing
             # slab (simple / adami need no such file, e.g. in a V7_SPV_DIR A/B against an earlier build); both
             # organisations build every pipeline from them (spec const 131)
-            *(("correction_density_wall_crossing", "force_wall_crossing") if self._wall_crossing else ()),
+            *(self._wall_crossing_module_names() if self._wall_crossing else ()),
             # numerics.volume_constraint.gpu_mean_volume (report section 22): the reduction kernel, only then
             *(("volume_constraint_reduction",) if self._volume_constraint_gpu_mean() else ()),
         ):
@@ -2384,13 +2388,25 @@ class SphSimulatorV7:
     def _force_shader_module(self):
         """force.comp's module of this slab: the WALL_CROSSING variant with wall_boundary crossing, else the plain
         build."""
-        return self.shader_modules["force_wall_crossing" if self._wall_crossing else "force"]
+        if self._wall_crossing:
+            return self.shader_modules[self._wall_crossing_module_names()[1]]
+        return self.shader_modules["force"]
+
+    @staticmethod
+    def _wall_crossing_module_names() -> tuple:
+        """(fused, force) modules of a crossing slab: the release builds, or the debug build that takes one register
+        item back, or the diagnostic summed density diffusion (fused only)."""
+        if _WALL_CROSSING_DIFFUSION_SUMMED:
+            return "correction_density_wall_crossing_diffusion_summed", "force_wall_crossing"
+        return "correction_density_wall_crossing", "force_wall_crossing"
 
     def _fused_shader_module(self):
         """correction_density.comp's module of this slab's pipelines that do not skip deep walls: the
         WALL_CROSSING variant with wall_boundary crossing (no wall particle in the pool, so nothing to skip), else
         the plain build."""
-        return self.shader_modules["correction_density_wall_crossing" if self._wall_crossing else "correction_density"]
+        if self._wall_crossing:
+            return self.shader_modules[self._wall_crossing_module_names()[0]]
+        return self.shader_modules["correction_density"]
 
     # ----- Per-pipeline mode entries (kernel-specific spec const overrides) ---
 
@@ -3102,8 +3118,7 @@ class SphSimulatorV7:
         V7_WALL_CROSSING_SPLIT_BAND_MODE=1 keeps the key's own pipeline (class 0, every particle). The key's own
         pipeline stays built (the bootstrap runs it). The dispatch list per key goes to
         _wall_crossing_split_dispatches."""
-        modules = {"fused": self.shader_modules["correction_density_wall_crossing"],
-                   "force": self.shader_modules["force_wall_crossing"]}
+        modules = {"fused": self._fused_shader_module(), "force": self._force_shader_module()}
         for base, (kernel, mode_entries, band) in self._wall_crossing_split_bases().items():
             if band and _WALL_CROSSING_SPLIT_BAND_MODE == "1":
                 continue

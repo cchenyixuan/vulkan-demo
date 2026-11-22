@@ -253,7 +253,11 @@ def run_case(arguments) -> int:
                                     if key.startswith("overflow_"))),
                 "density_mean": float(state["densities"].mean()),
                 "pressure_level_at_centre": float(pressure_difference.mean()),
-                "pressure_error_root_mean_square": float(pressure_difference.std())})
+                "pressure_error_root_mean_square": float(pressure_difference.std()),
+                # where the fastest fluid particle is (its wall distance in particle spacings)
+                "fastest_x": float(state["positions"][int(np.argmax(speed)), 0]),
+                "fastest_y": float(state["positions"][int(np.argmax(speed)), 1]),
+                "fastest_wall_distance_over_spacing": float(distance[int(np.argmax(speed))] / spacing)})
             latest["state"] = state
             if state["alive"] != expected_alive or not np.isfinite(speed).all():
                 overflow = series[-1]["overflow"]

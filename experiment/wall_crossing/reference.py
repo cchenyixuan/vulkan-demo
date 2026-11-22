@@ -82,12 +82,15 @@ from experiment.v7.utils.wall_crossing_v7 import (
     WALL_CROSSING_DEFAULT_CONTINUITY_WALL_COMPONENT,
     WALL_CROSSING_DEFAULT_DELTA_WALL,
     WALL_CROSSING_DEFAULT_GEOMETRY,
-    WALL_CROSSING_DEFAULT_PRESSURE_WALL,
     WallCrossingSettings,
     box_depth_behind_wall,
     box_distance_to_wall,
     box_pair_geometry,
 )
+
+# the wall store (branch v7-crossing-wall-store) implements one scheme; the particle-pool version's switches keep their
+# names here so the reference can still evaluate that version's variants
+WALL_CROSSING_DEFAULT_PRESSURE_WALL = "reflection"
 
 
 def float32_value(value: float) -> float:
@@ -144,18 +147,22 @@ class ReferenceConstants:
         physics, numerics = case.physics, case.numerics
         fluid = next(material for material in case.materials if material.kind == 0)
         settings: WallCrossingSettings = numerics.wall_crossing
+        # the scheme's switches: the wall store's single scheme for crossing (continuity_wall_component normal with rule
+        # set continuity_normal); simple and adami take a wall neighbour's whole velocity difference and its stored
+        # rho0, pair by pair
+        switches = {"continuity": "extrapolate", "delta_wall": "reflection", "geometry": "pairwise",
+                    "pressure_wall": "reflection", "viscous_extension": "linear", "continuity_extension": "linear",
+                    "continuity_wall_component": ("normal" if getattr(settings, "rule_set", "default")
+                                                  == "continuity_normal" else "full")}
         if numerics.wall_boundary != "crossing":
             from experiment.v7.utils.wall_crossing_v7 import resolve_wall_crossing_box
             kinds = np.asarray([material.kind for material in case.materials])
             settings = resolve_wall_crossing_box(
-                # simple and adami take a wall neighbour's whole velocity difference and its stored rho0, pair by
-                # pair: every switch written out, whatever the defaults of wall_boundary crossing are
-                WallCrossingSettings(continuity="wall_velocity", delta_wall="rest_density",
-                                     continuity_wall_component="full", geometry="nearest_wall",
-                                     pressure_wall="extension", viscous_extension="linear",
-                                     continuity_extension="linear"),
-                np.asarray(case.initial.positions), kinds[np.asarray(case.initial.material_group)] == 1,
-                float(fluid.radius), int(physics.dimension))
+                WallCrossingSettings(), np.asarray(case.initial.positions),
+                kinds[np.asarray(case.initial.material_group)] == 1, float(fluid.radius), int(physics.dimension))
+            switches = {"continuity": "wall_velocity", "delta_wall": "rest_density", "geometry": "nearest_wall",
+                        "pressure_wall": "extension", "viscous_extension": "linear", "continuity_extension": "linear",
+                        "continuity_wall_component": "full"}
         return cls(
             dimension=int(physics.dimension),
             smoothing_length=float32_value(physics.smoothing_length),
@@ -180,16 +187,16 @@ class ReferenceConstants:
             distance_floor=float32_value(settings.distance_floor(fluid.radius)),
             box_lower=tuple(float32_value(component) for component in settings.box_lower),
             box_upper=tuple(float32_value(component) for component in settings.box_upper),
-            continuity=settings.continuity,
-            delta_wall=settings.delta_wall,
+            continuity=switches["continuity"],
+            delta_wall=switches["delta_wall"],
             power_parameter=float32_value(physics.power_parameter),
             eos_constant=float32_value(fluid.eos_constant),
             rest_density=float32_value(fluid.rest_density),
-            continuity_wall_component=settings.continuity_wall_component,
-            viscous_extension=settings.viscous_extension,
-            continuity_extension=settings.continuity_extension,
-            geometry=settings.geometry,
-            pressure_wall=settings.pressure_wall,
+            continuity_wall_component=switches["continuity_wall_component"],
+            viscous_extension=switches["viscous_extension"],
+            continuity_extension=switches["continuity_extension"],
+            geometry=switches["geometry"],
+            pressure_wall=switches["pressure_wall"],
         )
 
 
@@ -240,6 +247,9 @@ class ReferenceResult:
     density_rate_diffusion_reflection: np.ndarray | None = None   # (F,)
     extrapolation_factor_maximum: np.ndarray | None = None        # (F,): the largest 1 / t_ij over the wall neighbours
     density_rate_volume_constraint: np.ndarray | None = None      # (F,): rho_i * rate (zero with the constraint off)
+    # the fluid neighbours' pressure term and the wall neighbours' viscous term on their own (the same in both forms)
+    acceleration_pressure_fluid: np.ndarray | None = None         # (F, 3)
+    acceleration_viscosity_wall: np.ndarray | None = None         # (F, 3)
 
 
 def kernel_value(distance: np.ndarray, constants: ReferenceConstants) -> np.ndarray:
@@ -705,4 +715,7 @@ def evaluate_reference(positions: np.ndarray, velocities: np.ndarray, densities:
         density_rate_volume_constraint=volume_constraint_term,
         density_rate_diffusion_reflection=diffusion_reflection,
         extrapolation_factor_maximum=np.sqrt(quadratic_factor_maximum),
+        acceleration_pressure_fluid=pressure_fluid,
+        acceleration_viscosity_wall=_sum_by_particle(self_of_pair[neighbour_is_wall], viscous_pair[neighbour_is_wall],
+                                                     fluid_count),
     )
