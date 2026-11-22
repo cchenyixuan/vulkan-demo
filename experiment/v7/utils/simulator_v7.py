@@ -127,6 +127,30 @@ if _WALL_CROSSING_SPLIT_DISPATCH_OVERRIDE not in (None, "0", "1"):
 # the density diffusion of the wall neighbours after the loop as the particle-pool version did
 # (WALL_CROSSING_DIFFUSION_SUMMED) instead of pair by pair with the density rule. Unset / "0" (default): pair by pair.
 _WALL_CROSSING_DIFFUSION_SUMMED = os.environ.get("V7_WALL_CROSSING_DIFFUSION_SUMMED", "0") == "1"
+# DEBUG (claude/wall_store_report.md, the registers of the near-wall pipelines): each register item taken back on its
+# own, to time it alone; the debug builds *_wall_crossing_revert_<item> (compile_shaders_v7.WALL_CROSSING_REVERT_ITEMS).
+# At most one at a time (and not with V7_WALL_CROSSING_DIFFUSION_SUMMED).
+#   V7_WALL_CROSSING_RULE_TYPES=table      the rule kinds read from the wall material table (default "constants":
+#                                          specialization constants 134-139)
+#   V7_WALL_CROSSING_BODY_MOTION=general   the body formula for every body (default "specialized": spec const 140)
+#   V7_WALL_CROSSING_MIRROR=geometry       the mirror displacement summed in the pair geometry (default "record": the
+#                                          wall record's, computed by the host)
+#   V7_WALL_CROSSING_WALL_RATE_LOOP=combined   the fused pass's wall pairs of S in the wall segment's loop (default
+#                                          "after_store": a loop of their own after the epilogue's store)
+WALL_CROSSING_REVERT_SWITCHES = {"rule_types": ("V7_WALL_CROSSING_RULE_TYPES", "constants", "table"),
+                                 "body_motion": ("V7_WALL_CROSSING_BODY_MOTION", "specialized", "general"),
+                                 "mirror": ("V7_WALL_CROSSING_MIRROR", "record", "geometry"),
+                                 "wall_rate_loop": ("V7_WALL_CROSSING_WALL_RATE_LOOP", "after_store", "combined")}
+_WALL_CROSSING_REVERTED = []
+for _item, (_variable, _default, _revert) in WALL_CROSSING_REVERT_SWITCHES.items():
+    _value = os.environ.get(_variable, _default)
+    if _value not in (_default, _revert):
+        raise ValueError(f"{_variable}={_value!r}: expected {_default} or {_revert}")
+    if _value == _revert:
+        _WALL_CROSSING_REVERTED.append(_item)
+if len(_WALL_CROSSING_REVERTED) + int(_WALL_CROSSING_DIFFUSION_SUMMED) > 1:
+    raise ValueError(f"take back one wall store item at a time: {_WALL_CROSSING_REVERTED}"
+                     + (" and V7_WALL_CROSSING_DIFFUSION_SUMMED" if _WALL_CROSSING_DIFFUSION_SUMMED else ""))
 # DIAGNOSTIC: the order of a split pass's two dispatches, "interior_first" or "near_wall_first"; no barrier between
 # them either way and they write different particles' outputs, so the results are the same. Unset (default): the
 # case's numerics.wall_crossing.split_order; set: it overrides the case.
@@ -2313,7 +2337,7 @@ class SphSimulatorV7:
                 (121, 'f', settings.distance_floor(self.wall_crossing_particle_radius())),
                 (130, 'I', 1 if n.volume_constraint.enabled else 0),       # numerics.volume_constraint.enabled
                 (131, 'I', 0),
-            ]
+            ] + self._wall_crossing_rule_entries()
         return [
             (0,  'f', p.smoothing_length),
             (1,  'f', p.speed_of_sound),
@@ -2378,6 +2402,27 @@ class SphSimulatorV7:
             # so they rely on the GLSL default (NEIGHBOR_X_RANGE = 0u).
         ] + wall_crossing_entries
 
+    def _wall_crossing_rule_entries(self) -> list:
+        """Spec consts 134-139 (the kind of rule of every field: 0 prescribed value, 1 prescribed normal derivative)
+        from the rule set's row of the wall material table, and 140 (0: every body at rest or translating at a
+        constant velocity; 1: a body rotates or accelerates)."""
+        from experiment.v7.utils.wall_store_v7 import WALL_STORE_RULE_SETS
+        source = self.case.wall_source
+        row = source.rules[WALL_STORE_RULE_SETS.index(source.rule_set)]
+
+        def kind(value: float, what: str) -> int:
+            if value not in (0.0, 1.0):
+                raise ValueError(f"wall store rule {what}: lambda {value} is neither a prescribed value (1) nor a "
+                                 "prescribed normal derivative (0); the specialization constants know these two only "
+                                 "(V7_WALL_CROSSING_RULE_TYPES=table reads any lambda from the table)")
+            return 0 if value == 1.0 else 1
+        bodies = source.bodies
+        general_motion = bool((bodies[:, 4:8] != 0.0).any() or (bodies[:, 12:20] != 0.0).any())
+        return [(134, 'I', kind(row[0][0], "continuity normal")), (135, 'I', kind(row[0][1], "continuity tangential")),
+                (136, 'I', kind(row[1][0], "viscous normal")), (137, 'I', kind(row[1][1], "viscous tangential")),
+                (138, 'I', kind(row[2][0], "pressure")), (139, 'I', kind(row[3][0], "density")),
+                (140, 'I', 1 if general_motion else 0)]
+
     def wall_crossing_particle_radius(self) -> float:
         """The particle radius behind wall_boundary crossing's distance floor (floor = factor x 2 x radius): the
         first fluid material's (every material shares the case's physics.particle_radius)."""
@@ -2395,10 +2440,11 @@ class SphSimulatorV7:
     @staticmethod
     def _wall_crossing_module_names() -> tuple:
         """(fused, force) modules of a crossing slab: the release builds, or the debug build that takes one register
-        item back, or the diagnostic summed density diffusion (fused only)."""
+        item back (WALL_CROSSING_REVERT_SWITCHES), or the diagnostic summed density diffusion (fused only)."""
         if _WALL_CROSSING_DIFFUSION_SUMMED:
             return "correction_density_wall_crossing_diffusion_summed", "force_wall_crossing"
-        return "correction_density_wall_crossing", "force_wall_crossing"
+        suffix = f"_revert_{_WALL_CROSSING_REVERTED[0]}" if _WALL_CROSSING_REVERTED else ""
+        return f"correction_density_wall_crossing{suffix}", f"force_wall_crossing{suffix}"
 
     def _fused_shader_module(self):
         """correction_density.comp's module of this slab's pipelines that do not skip deep walls: the

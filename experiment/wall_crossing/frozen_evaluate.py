@@ -3,7 +3,7 @@ frozen_evaluate.py - one evaluation of the fused correction + density pass and o
 advancing time, by the solver of a given checkout (claude/wall_store_report.md, the hydrostatic regression).
 
     .venv/Scripts/python.exe experiment/wall_crossing/frozen_evaluate.py --repo <checkout> --case <case.yaml> \
-        --state <checkpoint.npz> --device 1 --out <evaluation.npz> [--drop-walls]
+        --state <checkpoint.npz> --device 1 --out <evaluation.npz> [--drop-walls] [--sort-voxel-lists]
 
 The checkout goes first on sys.path (start the script by its path). K = 1: the state's rows go to the own pids in
 order (SphSimulatorV7.restart_init, voxel lists rebuilt), then one command buffer records correction_density_all and,
@@ -27,6 +27,9 @@ def main() -> int:
     parser.add_argument("--device", type=int, default=1)
     parser.add_argument("--out", required=True)
     parser.add_argument("--drop-walls", action="store_true")
+    parser.add_argument("--sort-voxel-lists", action="store_true",
+                        help="sort every voxel's particle list by pid after the rebuild (the atomic fill order varies "
+                             "from run to run, and with it the summation order): a bit-reproducible evaluation")
     arguments = parser.parse_args()
     repo = pathlib.Path(arguments.repo).resolve()
     sys.path.insert(0, str(repo))
@@ -54,6 +57,15 @@ def main() -> int:
                                      application_name="frozen_evaluate")
     simulator = SphSimulatorV7(context, slab, sync_scheme="per-direction")
     simulator.restart_init(state, stored_offset)
+    if arguments.sort_voxel_lists:
+        per_voxel = int(slab.capacities.max_particles_per_voxel)
+        raw = simulator.readback_buffers_batch(["inside_particle_index", "inside_particle_count"])
+        index = np.frombuffer(raw["inside_particle_index"], dtype=np.uint32).reshape(-1, per_voxel)
+        counts = np.frombuffer(raw["inside_particle_count"], dtype=np.uint32)[:index.shape[0]].astype(np.int64)
+        occupied = np.arange(per_voxel)[None, :] < counts[:, None]
+        ordered = np.sort(np.where(occupied, index, np.uint32(0xFFFFFFFF)), axis=1)
+        simulator._staging_upload(simulator.buffers["inside_particle_index"],
+                                  np.ascontiguousarray(np.where(occupied, ordered, index)).tobytes())
     command = simulator._allocate_oneshot_cmd()
     vkBeginCommandBuffer(command, VkCommandBufferBeginInfo(flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT))
     groups = simulator._per_own_particle_dispatch_count()

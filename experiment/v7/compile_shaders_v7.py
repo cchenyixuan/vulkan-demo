@@ -49,6 +49,9 @@ V7_SHADER_DIR = os.path.dirname(os.path.abspath(__file__)) + "/shaders"
 V7_SPV_DIR = V7_SHADER_DIR + "/spv"
 
 
+# the wall store's register items with a debug build that takes each back (simulator_v7.WALL_CROSSING_REVERT_SWITCHES)
+WALL_CROSSING_REVERT_ITEMS = ("rule_types", "body_motion", "mirror", "wall_rate_loop")
+
 # E39 B4: (output name, source, preprocessor macros): a source compiled a
 # second time with -D<macro> into spv/<output name>.comp.spv. The variant's code
 # sits in the source behind #ifdef, so the plain build of the source (no macro)
@@ -71,6 +74,11 @@ SHADER_VARIANTS = (
     # loop as the particle-pool version did, to measure the pair-by-pair form against it (claude/wall_store_report.md)
     ("correction_density_wall_crossing_diffusion_summed", "correction_density.comp",
      ("WALL_CROSSING", "WALL_CROSSING_DIFFUSION_SUMMED")),
+    # DEBUG: each register item of the wall store's near-wall pipelines taken back on its own (V7_WALL_CROSSING_*),
+    # to time it alone (claude/wall_store_report.md)
+    *((f"{kernel}_wall_crossing_revert_{item}", source, ("WALL_CROSSING", f"WALL_CROSSING_REVERT_{item.upper()}"))
+      for kernel, source in (("correction_density", "correction_density.comp"), ("force", "force.comp"))
+      for item in WALL_CROSSING_REVERT_ITEMS),
 )
 
 

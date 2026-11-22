@@ -19,13 +19,16 @@ sources: experiment/v7/shaders/*.comp, *.glsl at the commit that adds this manif
   121, 130, 131 WALL_CROSSING_DISPATCH_CLASS; set 1 bindings 9-14); wall_crossing_split.glsl,
   wall_crossing_near_wall_marker.comp and density_budget.glsl are deleted, and with them every crossing variant but
   correction_density_wall_crossing and force_wall_crossing (the plain builds' code is unchanged).
-  Then (wall store round 2, the hydrostatic check): the DIAGNOSTIC build
-  correction_density_wall_crossing_diffusion_summed (-DWALL_CROSSING_DIFFUSION_SUMMED, loaded only with
-  V7_WALL_CROSSING_DIFFUSION_SUMMED=1); every other file keeps its bytes.
-check: every file below byte-identical to a fresh build with the compiler above (27 of 27;
+  Then (wall store round 2, the near-wall registers): the rule kinds as spec consts 134-139, body motion spec
+  const 140, the mirror displacement in the wall record (the identity word packed in its w), the fused pass's wall
+  pairs of S after the epilogue's store change correction_density_wall_crossing and force_wall_crossing; new: the
+  DIAGNOSTIC build correction_density_wall_crossing_diffusion_summed (V7_WALL_CROSSING_DIFFUSION_SUMMED=1) and the
+  DEBUG builds {correction_density,force}_wall_crossing_revert_<item> (rule_types / body_motion / mirror /
+  wall_rate_loop: one V7_WALL_CROSSING_* switch each); every other file keeps its bytes.
+check: every file below byte-identical to a fresh build with the compiler above (35 of 35;
   _test_seam_layout check_spirv_current)
 against the manifest of the tag crossing-pool (9afd248): 24 files byte-identical (every module simple and
-  adami load), 2 changed (correction_density_wall_crossing.comp.spv, force_wall_crossing.comp.spv), 1 new, 16 removed
+  adami load), 2 changed (correction_density_wall_crossing.comp.spv, force_wall_crossing.comp.spv), 9 new, 16 removed
   (correction_density_budget, correction_density_wall_crossing_budget, correction_density_wall_crossing_interior, correction_density_wall_crossing_near_wall, correction_density_wall_crossing_near_wall_by_material, correction_density_wall_crossing_near_wall_delta_shared, correction_density_wall_crossing_near_wall_pressure_pairwise, correction_density_wall_crossing_near_wall_pressure_pairwise_delta_shared, correction_density_wall_crossing_pressure_pairwise, force_wall_crossing_interior, force_wall_crossing_near_wall, force_wall_crossing_near_wall_by_material, force_wall_crossing_near_wall_mirror_shared, force_wall_crossing_near_wall_pressure_pairwise, force_wall_crossing_pressure_pairwise, wall_crossing_near_wall_marker);
 scope: the tracked compute SPIR-V only (spv/render/*.spv from shaders/render are not tracked). Nothing checks this
   manifest automatically; regenerate it with any shader change.
@@ -38,8 +41,12 @@ ee9ff135900b69f881c6fc9ad0dfc5c87ed14de015497e8060dceae90ebdabc7    37504  corre
 e3de58bdc5e00f892dfa2f100789015c8f0aab4dae92eec6d8257866ab4515d5    53920  correction_deep_wall_skip.comp.spv  (correction.comp -DDEEP_WALL_SKIP)
 7871141dcdec3681b4fe0ab9b90cd703418183926f5ce453fea5ad63ca3ed143    57868  correction_density.comp.spv  (correction_density.comp)
 f5faeac0e14610d9944a6d92b5d974f259e8ff45f32c60c2fdcd409053e34a87    89468  correction_density_deep_wall_skip.comp.spv  (correction_density.comp -DDEEP_WALL_SKIP)
-c9a51b943df9657f3aebed48dcb97fbed9d4094be61fadc096ce6aa8c8fa9aa2   102144  correction_density_wall_crossing.comp.spv  (correction_density.comp -DWALL_CROSSING)
-0f03a9445ea017a7f4107dacc42b6282d0c132ac07336c0a0d5ffe226b48fd92   102512  correction_density_wall_crossing_diffusion_summed.comp.spv  (correction_density.comp -DWALL_CROSSING -DWALL_CROSSING_DIFFUSION_SUMMED)
+8167dc7171b35dc530ce3da326780898e346d5b97463457a7719e7bed6a6348e   117220  correction_density_wall_crossing.comp.spv  (correction_density.comp -DWALL_CROSSING)
+187ddb4111a1e303f37e9d96af27036fa53dedb8947dacf0b88998fab521b3f3   115460  correction_density_wall_crossing_diffusion_summed.comp.spv  (correction_density.comp -DWALL_CROSSING -DWALL_CROSSING_DIFFUSION_SUMMED)
+c4783693c83a7d663a15335638420bb5b92d924a77f1fca85d35ff3b075d9a82   115316  correction_density_wall_crossing_revert_body_motion.comp.spv  (correction_density.comp -DWALL_CROSSING -DWALL_CROSSING_REVERT_BODY_MOTION)
+5748b50ac82e13fe8d6208e2ab92b91bad60b6b8853ce4a7d4aae6272e59079e   117556  correction_density_wall_crossing_revert_mirror.comp.spv  (correction_density.comp -DWALL_CROSSING -DWALL_CROSSING_REVERT_MIRROR)
+5249d37c9168f21c6ee8f5fb4e60351ae7acd3fb22bc62a4fe5a8e87f48bf8d1   116344  correction_density_wall_crossing_revert_rule_types.comp.spv  (correction_density.comp -DWALL_CROSSING -DWALL_CROSSING_REVERT_RULE_TYPES)
+39defe6470c640a8dffd41b3324ff45dda035c4d3acff934461bb3dd50e674a1   104860  correction_density_wall_crossing_revert_wall_rate_loop.comp.spv  (correction_density.comp -DWALL_CROSSING -DWALL_CROSSING_REVERT_WALL_RATE_LOOP)
 4c9b4096d57aab44946b91a35b74a4ca8a1821761befdd99a58acf8366ea3a8e     4980  deep_wall_marker.comp.spv  (deep_wall_marker.comp)
 52d7d9b3a09cf4ce33e8f2981c6e699b0ff213beabf1935e46e1ff8ad7969c42     5968  defrag.comp.spv  (defrag.comp)
 949bc2d1a5d85ca789fbaea61da51f9e75b2226dd701f4115dd1b55bacec6e7e    38844  density.comp.spv  (density.comp)
@@ -48,7 +55,11 @@ c9a51b943df9657f3aebed48dcb97fbed9d4094be61fadc096ce6aa8c8fa9aa2   102144  corre
 4087617c2a4a14b5b49548572a4de96161c07af09ed9e5eeeaa042f117364a01     5068  expand_ghost_lists.comp.spv  (expand_ghost_lists.comp)
 3a635216025f245f7f11a3f5edc9d7120640e6df51c9b63021072cedd580f715    46776  force.comp.spv  (force.comp)
 faa772d587f1235af0fc03d5442a4fbf3f4cf0cb673d168043722a3ddfce750e    46828  force_segment.comp.spv  (force.comp -DFORCE_SEGMENT)
-a90cfc4eda3c61d601eca16f096ac4b4b62ffc949a55c447cb688ce0c93050df    85012  force_wall_crossing.comp.spv  (force.comp -DWALL_CROSSING)
+22acbcc8f10c54d2e6d88c556f93cb05a4cd71185d8321b5b2cb4e986373c6e9    87632  force_wall_crossing.comp.spv  (force.comp -DWALL_CROSSING)
+1a5a9ededf64654dbed041758e7d112db88079c104eb027f906b834d032738c6    85728  force_wall_crossing_revert_body_motion.comp.spv  (force.comp -DWALL_CROSSING -DWALL_CROSSING_REVERT_BODY_MOTION)
+3f6b14cf1d529df23e17b16e8c4adf8be573cc66c9d27d55c4dae4a8487ab194    87968  force_wall_crossing_revert_mirror.comp.spv  (force.comp -DWALL_CROSSING -DWALL_CROSSING_REVERT_MIRROR)
+d6497660e4d48f4bcb8dc74ea28850f1331e9fe5bce2d5b6a81b6f314b391916    86836  force_wall_crossing_revert_rule_types.comp.spv  (force.comp -DWALL_CROSSING -DWALL_CROSSING_REVERT_RULE_TYPES)
+22acbcc8f10c54d2e6d88c556f93cb05a4cd71185d8321b5b2cb4e986373c6e9    87632  force_wall_crossing_revert_wall_rate_loop.comp.spv  (force.comp -DWALL_CROSSING -DWALL_CROSSING_REVERT_WALL_RATE_LOOP)
 0a73e65d75e2a6c6a140ca12812e748e04965fafcde81d4f20b1b543242a89be    19140  ghost_send.comp.spv  (ghost_send.comp)
 60e3eb2eba09588073f7a61d062537c6a7a303929fb73287d21acdf64a602c03    21668  ghost_send_lanes.comp.spv  (ghost_send_lanes.comp)
 62f42d33a26a70871521e30aa448dd3f620342e912120cc2e3d3bc4a6e3bdafa     6704  initialize_voxelization.comp.spv  (initialize_voxelization.comp)

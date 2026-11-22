@@ -1616,7 +1616,14 @@ WALL_CROSSING_ADDED_SPIRV = frozenset({"correction_density_wall_crossing.comp.sp
                                        "wall_crossing_near_wall_marker.comp.spv",
                                        # numerics.volume_constraint.gpu_mean_volume (report section 22, on by
                                        # default since 25): the reduction kernel, loaded only with that switch
-                                       "volume_constraint_reduction.comp.spv"})
+                                       "volume_constraint_reduction.comp.spv",
+                                       # the static wall store, round 2 (claude/wall_store_report.md): the
+                                       # diagnostic summed density diffusion and the debug builds that take one
+                                       # register item back, loaded only with their V7_WALL_CROSSING_* switch
+                                       "correction_density_wall_crossing_diffusion_summed.comp.spv"}
+                                      | {f"{kernel}_wall_crossing_revert_{item}.comp.spv"
+                                         for kernel in ("correction_density", "force")
+                                         for item in ("rule_types", "body_motion", "mirror", "wall_rate_loop")})
 
 
 def _without_bootstrap_density_copy(source: str, origin: str) -> str:

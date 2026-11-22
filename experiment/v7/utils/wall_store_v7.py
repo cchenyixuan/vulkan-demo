@@ -8,12 +8,12 @@ buffers that nothing rewrites:
   wall records (32 B each, sorted by voxel of the slab's grid):
       position_volume  vec4   position, volume (the wall particle's m / rho as the particle pool had it:
                               float32(float32(rest_density x volume) / float32(rest_density)))
-      plane_ids        uint   up to three plane ids of WALL_STORE_PLANE_ID_BITS bits each, in ascending order;
-                              WALL_STORE_PLANE_ID_NONE fills the unused fields (a face particle has one plane, an
-                              edge particle two, a corner particle three: the planes it lies behind)
-      body_id          uint   row of the body table
-      wall_material_id uint   row of the wall material (rule) table
-      flags            uint   reserved, 0
+      mirror           vec3   r_j - r_j': the reflection of the wall particle in every plane it lies behind (fixed;
+                              computed here in float32 with the shader's operations, mirror_displacements)
+      identity         uint   bits 0-17: up to three plane ids of WALL_STORE_PLANE_ID_BITS (6) bits each, in
+                              ascending order, WALL_STORE_PLANE_ID_NONE (63) in the unused fields (a face particle has
+                              one plane, an edge particle two, a corner particle three: the planes it lies behind);
+                              bits 18-24: row of the body table; bits 25-31: row of the wall material (rule) table
   wall voxel offsets (uint, voxel count + 2): the walls of voxel id v are records [offset[v], offset[v + 1])
   near-wall voxel flags (uint, voxel count + 1): 1 iff a wall particle lies closer than the support radius h
       (with a margin of h / 256 against rounding) to the voxel's cube; a fluid particle elsewhere has no wall
@@ -44,8 +44,10 @@ from typing import Optional
 
 import numpy as np
 
-WALL_STORE_PLANE_ID_BITS = 10
+WALL_STORE_PLANE_ID_BITS = 6
 WALL_STORE_PLANE_ID_NONE = (1 << WALL_STORE_PLANE_ID_BITS) - 1
+WALL_STORE_BODY_ID_SHIFT = 18          # body id: 7 bits
+WALL_STORE_MATERIAL_ID_SHIFT = 25      # wall material id: 7 bits
 WALL_STORE_PLANES_PER_PARTICLE = 3
 WALL_STORE_RECORD_BYTES = 32
 WALL_STORE_PLANE_BYTES = 32
@@ -258,6 +260,28 @@ def near_wall_flags(source: WallSource, grid) -> np.ndarray:
     return flags
 
 
+def mirror_displacements(source: WallSource) -> np.ndarray:
+    """(N, 3) float32: r_j - r_j' of every wall particle, the reflection in every plane it lies behind, in float32 with
+    the shader's own operations (depth = n . (p - r), mirror -= (2 depth) n, plane by plane in id order). With the
+    box's axis normals every product with a 0 or +-1 component is exact, so the values are the ones the shader computed."""
+    positions = source.positions.astype(np.float32)
+    mirror = np.zeros_like(positions)
+    planes = source.planes.astype(np.float32)
+    plane_ids = unpack_plane_ids(source.plane_ids)
+    for slot in range(WALL_STORE_PLANES_PER_PARTICLE):
+        ids = plane_ids[:, slot]
+        used = ids != WALL_STORE_PLANE_ID_NONE
+        normal = planes[np.where(used, ids, 0), 0:3]
+        point = planes[np.where(used, ids, 0), 4:7]
+        difference = (point - positions).astype(np.float32)
+        depth = (normal[:, 0] * difference[:, 0] + normal[:, 1] * difference[:, 1]
+                 + normal[:, 2] * difference[:, 2]).astype(np.float32)
+        change = ((np.float32(2.0) * depth)[:, None] * normal).astype(np.float32)
+        apply = used & (depth > 0)
+        mirror[apply] = (mirror[apply] - change[apply]).astype(np.float32)
+    return mirror
+
+
 def layout_for_grid(source: WallSource, grid) -> WallStoreLayout:
     """The records of the walls inside the grid (a slab's extended grid: own and ghost columns), sorted by voxel id
     (stable: load order within a voxel), the voxel offsets and the near-wall flags of that grid."""
@@ -272,14 +296,18 @@ def layout_for_grid(source: WallSource, grid) -> WallStoreLayout:
     counts = np.bincount(sorted_ids, minlength=total + 1)[:total + 1]
     offsets = np.zeros(total + 2, dtype=np.uint32)
     offsets[1:] = np.cumsum(counts).astype(np.uint32)
-    record_dtype = np.dtype([("position_volume", np.float32, 4), ("plane_ids", np.uint32), ("body_id", np.uint32),
-                             ("wall_material_id", np.uint32), ("flags", np.uint32)])
+    if source.planes.shape[0] >= WALL_STORE_PLANE_ID_NONE:
+        raise ValueError(f"wall store: {source.planes.shape[0]} planes, at most {WALL_STORE_PLANE_ID_NONE - 1} fit the record")
+    if source.body_ids.size and (int(source.body_ids.max()) > 127 or int(source.wall_material_ids.max()) > 127):
+        raise ValueError("wall store: a body or wall material id above 127 does not fit the record")
+    record_dtype = np.dtype([("position_volume", np.float32, 4), ("mirror", np.float32, 3), ("identity", np.uint32)])
     records = np.zeros(rows.size, dtype=record_dtype)
     records["position_volume"][:, 0:3] = source.positions[rows]
     records["position_volume"][:, 3] = source.volumes[rows]
-    records["plane_ids"] = source.plane_ids[rows]
-    records["body_id"] = source.body_ids[rows]
-    records["wall_material_id"] = source.wall_material_ids[rows]
+    records["mirror"] = mirror_displacements(source)[rows]
+    records["identity"] = (source.plane_ids[rows].astype(np.uint32)
+                           | (source.body_ids[rows].astype(np.uint32) << np.uint32(WALL_STORE_BODY_ID_SHIFT))
+                           | (source.wall_material_ids[rows].astype(np.uint32) << np.uint32(WALL_STORE_MATERIAL_ID_SHIFT)))
     assert record_dtype.itemsize == WALL_STORE_RECORD_BYTES
     flags = near_wall_flags(source, grid)
     return WallStoreLayout(record_rows=rows, records=records.tobytes(), voxel_offsets=offsets,

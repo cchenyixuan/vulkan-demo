@@ -141,8 +141,11 @@ layout(std430, set = 1, binding = 10) buffer WallStoreVoxelOffsetBuffer {
     uint wall_voxel_offset[];
 };
 struct WallParticle {
-    vec4  position_volume;   // position, volume (m / rho of the particle-pool version)
-    uvec4 identity;          // plane ids (3 x 10 bits), body id, wall material id, flags (reserved)
+    vec4 position_volume;    // position, volume (m / rho of the particle-pool version)
+    // xyz: the mirror displacement r_j - r_j' (fixed per wall particle: computed by the host in float32 exactly as the
+    // shader did); w: the identity word's bits (floatBitsToUint): plane ids 3 x 6 bits (63 = none), body id 7 bits
+    // (bits 18-24), wall material id 7 bits (bits 25-31)
+    vec4 mirror_identity;
 };
 layout(std430, set = 1, binding = 11) buffer WallStoreParticleBuffer {
     WallParticle wall_particles[];
@@ -165,8 +168,63 @@ const uint WALL_CROSSING_RULE_CONTINUITY_VELOCITY = 0u;   // (lambda_normal, lam
 const uint WALL_CROSSING_RULE_VISCOUS_VELOCITY    = 1u;   // (lambda_normal, lambda_tangential, 0, 0)
 const uint WALL_CROSSING_RULE_PRESSURE            = 2u;   // (lambda, gamma, w, prescribed value)
 const uint WALL_CROSSING_RULE_DENSITY             = 3u;   // (lambda, gamma, w, prescribed value)
-const uint WALL_CROSSING_PLANE_ID_BITS = 10u;
-const uint WALL_CROSSING_PLANE_ID_NONE = 1023u;
+const uint WALL_CROSSING_PLANE_ID_BITS = 6u;
+const uint WALL_CROSSING_PLANE_ID_NONE = 63u;
+const uint WALL_CROSSING_PLANE_ID_FIELD = 0x3FFFFu;     // the three plane ids
+const uint WALL_CROSSING_BODY_ID_SHIFT = 18u;
+const uint WALL_CROSSING_MATERIAL_ID_SHIFT = 25u;
+
+uint wall_crossing_plane_ids(uint identity) { return identity & WALL_CROSSING_PLANE_ID_FIELD; }
+uint wall_crossing_body_id(uint identity) { return (identity >> WALL_CROSSING_BODY_ID_SHIFT) & 127u; }
+uint wall_crossing_material_id(uint identity) { return identity >> WALL_CROSSING_MATERIAL_ID_SHIFT; }
+
+// The kind of rule of every field and operator, fixed at pipeline creation (wall_store report, section on the
+// registers): 0 = prescribed value, 1 = prescribed normal derivative (gamma = w = 1: G_f and the body-force term q). The
+// host takes them from the rule set's row of the wall material table (every wall of a case has the same rule set), so
+// the compiler folds every lambda, gamma and w; only a prescribed value is still read from the table (wall_rules
+// [..].w), and only by a value rule. A new kind of rule is one more value of these constants.
+//   134 / 135 velocity in the continuity equation, normal / tangential component; 136 / 137 the viscous term's;
+//   138 pressure; 139 density.
+// WALL_CROSSING_REVERT_RULE_TYPES (debug build, V7_WALL_CROSSING_RULE_TYPES=table) reads lambda, gamma, w from the table.
+layout(constant_id = 134) const uint WALL_CROSSING_RULE_TYPE_CONTINUITY_NORMAL     = 0u;
+layout(constant_id = 135) const uint WALL_CROSSING_RULE_TYPE_CONTINUITY_TANGENTIAL = 0u;
+layout(constant_id = 136) const uint WALL_CROSSING_RULE_TYPE_VISCOUS_NORMAL        = 0u;
+layout(constant_id = 137) const uint WALL_CROSSING_RULE_TYPE_VISCOUS_TANGENTIAL    = 0u;
+layout(constant_id = 138) const uint WALL_CROSSING_RULE_TYPE_PRESSURE              = 1u;
+layout(constant_id = 139) const uint WALL_CROSSING_RULE_TYPE_DENSITY               = 1u;
+const uint WALL_CROSSING_RULE_TYPE_VALUE      = 0u;
+const uint WALL_CROSSING_RULE_TYPE_DERIVATIVE = 1u;
+// The motion of the wall bodies, fixed at pipeline creation: 0 = every body at rest or translating at a constant
+// velocity (v_w = V_b, a_w = 0: one read of the body table), 1 = general (the host passes 1 when a body rotates or
+// accelerates). WALL_CROSSING_REVERT_BODY_MOTION (debug build, V7_WALL_CROSSING_BODY_MOTION=general) ignores it.
+layout(constant_id = 140) const uint WALL_CROSSING_BODY_MOTION = 1u;
+const uint WALL_CROSSING_BODY_MOTION_TRANSLATION = 0u;
+
+float wall_crossing_rule_lambda(uint rule_type) {
+    return (rule_type == WALL_CROSSING_RULE_TYPE_VALUE) ? 1.0 : 0.0;
+}
+
+// The rule of one field (WALL_CROSSING_RULE_*) of a wall material, in the table's form (lambda, gamma, w, value)
+vec4 wall_crossing_rule(uint rule_base, uint field) {
+#ifdef WALL_CROSSING_REVERT_RULE_TYPES
+    return wall_rules[rule_base + field];
+#else
+    if (field == WALL_CROSSING_RULE_CONTINUITY_VELOCITY) {
+        return vec4(wall_crossing_rule_lambda(WALL_CROSSING_RULE_TYPE_CONTINUITY_NORMAL),
+                    wall_crossing_rule_lambda(WALL_CROSSING_RULE_TYPE_CONTINUITY_TANGENTIAL), 0.0, 0.0);
+    }
+    if (field == WALL_CROSSING_RULE_VISCOUS_VELOCITY) {
+        return vec4(wall_crossing_rule_lambda(WALL_CROSSING_RULE_TYPE_VISCOUS_NORMAL),
+                    wall_crossing_rule_lambda(WALL_CROSSING_RULE_TYPE_VISCOUS_TANGENTIAL), 0.0, 0.0);
+    }
+    uint rule_type = (field == WALL_CROSSING_RULE_PRESSURE) ? WALL_CROSSING_RULE_TYPE_PRESSURE
+                                                            : WALL_CROSSING_RULE_TYPE_DENSITY;
+    if (rule_type == WALL_CROSSING_RULE_TYPE_DERIVATIVE) {
+        return vec4(0.0, 1.0, 1.0, 0.0);
+    }
+    return vec4(1.0, 0.0, 0.0, wall_rules[rule_base + field].w);
+#endif
+}
 
 bool wall_crossing_voxel_near_wall(uint voxel_id) {
     return wall_store_near_wall_voxel_flag[voxel_id] != 0u;
@@ -181,10 +239,14 @@ bool wall_crossing_voxel_near_wall(uint voxel_id) {
 //   depth_ratio          d / max(phi, WALL_CROSSING_DISTANCE_FLOOR)       (1 / t_ij = 1 + depth_ratio)
 //   mirror_displacement  r_j - r_j', r_j' = r_j reflected in every plane it lies behind (r_j + 2 d_a n_a each)
 void wall_crossing_pair_geometry(vec3 fluid_position, vec3 wall_position, uint plane_ids,
-                                 out vec3 crossed_wall_normal, out float depth_ratio, out vec3 mirror_displacement) {
+                                 out vec3 crossed_wall_normal, out float depth_ratio, inout vec3 mirror_displacement) {
     crossed_wall_normal = vec3(0.0);
     depth_ratio = 0.0;
+#ifdef WALL_CROSSING_REVERT_MIRROR
+    // DEBUG (V7_WALL_CROSSING_MIRROR=geometry): the mirror displacement summed here, plane by plane, as before it was
+    // stored in the record
     mirror_displacement = vec3(0.0);
+#endif
     float smallest_crossing = 2.0;                                  // every s_a is in [0, 1)
     for (uint slot_index = 0u; slot_index < 3u; slot_index++) {
         uint plane_id = (plane_ids >> (WALL_CROSSING_PLANE_ID_BITS * slot_index)) & WALL_CROSSING_PLANE_ID_NONE;
@@ -193,7 +255,9 @@ void wall_crossing_pair_geometry(vec3 fluid_position, vec3 wall_position, uint p
         vec3 plane_point  = wall_planes[2u * plane_id + 1u].xyz;
         float depth = dot(plane_normal, plane_point - wall_position);
         if (depth > 0.0) {
+#ifdef WALL_CROSSING_REVERT_MIRROR
             mirror_displacement -= (2.0 * depth) * plane_normal;
+#endif
             float inward_distance  = dot(plane_normal, fluid_position - plane_point);
             float clamped_distance = max(inward_distance, 0.0);
             float crossing = clamped_distance / (clamped_distance + depth);
@@ -208,11 +272,21 @@ void wall_crossing_pair_geometry(vec3 fluid_position, vec3 wall_position, uint p
 
 // v_w and a_w of a wall body at a point
 vec3 wall_crossing_body_velocity(uint body_id, vec3 position) {
+#ifndef WALL_CROSSING_REVERT_BODY_MOTION
+    if (WALL_CROSSING_BODY_MOTION == WALL_CROSSING_BODY_MOTION_TRANSLATION) {
+        return wall_bodies[5u * body_id].xyz;
+    }
+#endif
     vec3 arm = position - wall_bodies[5u * body_id + 2u].xyz;
     return wall_bodies[5u * body_id].xyz + cross(wall_bodies[5u * body_id + 1u].xyz, arm);
 }
 
 vec3 wall_crossing_body_acceleration(uint body_id, vec3 position) {
+#ifndef WALL_CROSSING_REVERT_BODY_MOTION
+    if (WALL_CROSSING_BODY_MOTION == WALL_CROSSING_BODY_MOTION_TRANSLATION) {
+        return vec3(0.0);
+    }
+#endif
     vec3 arm = position - wall_bodies[5u * body_id + 2u].xyz;
     vec3 angular_velocity = wall_bodies[5u * body_id + 1u].xyz;
     return wall_bodies[5u * body_id + 3u].xyz + cross(wall_bodies[5u * body_id + 4u].xyz, arm)

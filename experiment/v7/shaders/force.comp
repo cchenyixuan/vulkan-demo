@@ -351,7 +351,8 @@ void process_particle(uint self_particle_id) {
                         vec3 position_difference_neighbor_to_self = self_position - neighbor_position;
                         float distance = length(position_difference_neighbor_to_self);
                         if (distance >= SMOOTHING_LENGTH || distance < 1e-12) continue;
-                        uvec4 wall_identity   = wall_particles[wall_index].identity;
+                        vec4  wall_mirror_identity = wall_particles[wall_index].mirror_identity;
+                        uint  wall_identity   = floatBitsToUint(wall_mirror_identity.w);
                         float neighbor_volume = wall_position_volume.w;
 
                         vec3  kernel_gradient_raw       = evaluate_kernel_gradient(
@@ -361,17 +362,19 @@ void process_particle(uint self_particle_id) {
 
                         vec3  crossed_wall_normal;
                         float depth_ratio;
-                        vec3  mirror_displacement;
-                        wall_crossing_pair_geometry(self_position, neighbor_position, wall_identity.x,
-                                                    crossed_wall_normal, depth_ratio, mirror_displacement);
+                        vec3  mirror_displacement = wall_mirror_identity.xyz;
+                        wall_crossing_pair_geometry(self_position, neighbor_position,
+                                                    wall_crossing_plane_ids(wall_identity), crossed_wall_normal,
+                                                    depth_ratio, mirror_displacement);
                         float extrapolation_factor = 1.0 + depth_ratio;
-                        uint  rule_base = wall_identity.z * WALL_CROSSING_RULE_FIELDS;
-                        vec3  wall_velocity     = wall_crossing_body_velocity(wall_identity.y, neighbor_position);
-                        vec3  wall_acceleration = wall_crossing_body_acceleration(wall_identity.y, neighbor_position);
+                        uint  rule_base = wall_crossing_material_id(wall_identity) * WALL_CROSSING_RULE_FIELDS;
+                        uint  wall_body_id = wall_crossing_body_id(wall_identity);
+                        vec3  wall_velocity     = wall_crossing_body_velocity(wall_body_id, neighbor_position);
+                        vec3  wall_acceleration = wall_crossing_body_acceleration(wall_body_id, neighbor_position);
 
                         // ==== Pressure (TIC), p_j by the pressure rule
                         float neighbor_pressure = self_pressure + wall_crossing_rule_scalar_difference(
-                            wall_rules[rule_base + WALL_CROSSING_RULE_PRESSURE], extrapolation_factor, self_pressure,
+                            wall_crossing_rule(rule_base, WALL_CROSSING_RULE_PRESSURE), extrapolation_factor, self_pressure,
                             one_sided_pressure_gradient,
                             -position_difference_neighbor_to_self - mirror_displacement,
                             self_density * (gravity_body - wall_acceleration), mirror_displacement);
@@ -384,7 +387,7 @@ void process_particle(uint self_particle_id) {
 
                         // ==== Viscosity (Morris), v_i - v_j by the viscous velocity rule
                         vec3 viscous_velocity_difference = -wall_crossing_rule_velocity_difference(
-                            wall_rules[rule_base + WALL_CROSSING_RULE_VISCOUS_VELOCITY], extrapolation_factor,
+                            wall_crossing_rule(rule_base, WALL_CROSSING_RULE_VISCOUS_VELOCITY), extrapolation_factor,
                             wall_velocity, self_velocity, crossed_wall_normal);
                         a_viscosity +=
                             morris_coefficient * viscosity_uniform * neighbor_volume
