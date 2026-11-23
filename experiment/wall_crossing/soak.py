@@ -156,7 +156,7 @@ def run(arguments) -> int:
             record["stalls"].append({"first": stall, "recovered": True})
             print(f"[soak] frame {frame} recovered after {now - waiting_since:.1f} s", flush=True)
         gap = now - last_completion[0]
-        if gap > largest_gap[0]:
+        if frame > 0 and gap > largest_gap[0]:      # frame 0's wait includes the start-up
             largest_gap[0], largest_gap[1] = gap, frame
         last_completion[0] = now
         recent.append((frame, submitted_at.pop(frame) - started, now - started))
@@ -175,6 +175,9 @@ def run(arguments) -> int:
             if alive != expected_total:
                 raise RuntimeError(f"drift at frame {frame}: alive {alive} != {expected_total}")
 
+    if arguments.test_diagnostics:
+        # check the stall diagnostics themselves once (frame 0 not yet submitted: the autopsy shows the bootstrap state)
+        print(f"[soak] diagnostics test: {json.dumps(diagnostics(0, 0.0, False))}", flush=True)
     depth = 2
     submitted = completed = 0
     try:
@@ -263,6 +266,8 @@ def main() -> int:
     run_parser.add_argument("--frames", type=int, required=True)
     run_parser.add_argument("--label", required=True)
     run_parser.add_argument("--env", action="append", default=[])
+    run_parser.add_argument("--test-diagnostics", action="store_true",
+                            help="run the stall diagnostics once before the first frame (to check them)")
     batch_parser = sub.choices["batch"]
     batch_parser.add_argument("--plan", required=True)
     batch_parser.add_argument("--hours", type=float, required=True)
