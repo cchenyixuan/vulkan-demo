@@ -89,7 +89,7 @@ def a1() -> int:
                  "theta_mean": float(np.mean([record["theta"] for record in chosen])),
                  "integral_mean": float(np.mean([record["integral"] for record in chosen])),
                  "speed_maximum": float(np.max(series["speed_maximum"])),
-                 "alive": [int(series["alive"][0]), int(series["alive"][-1])],
+                 "alive": [int(series["fluid_alive"][0]), int(series["fluid_alive"][-1])],
                  "outside_box_maximum": int(np.max(series["outside_box_count"])),
                  "steps_per_second": speed}
         summary[key] = entry
@@ -153,7 +153,7 @@ def a1() -> int:
         axis.set_xlabel("t")
         axis.axvspan(*window, color="#e9e8e4", zorder=0)
     axes[0, 0].legend(loc="lower right", fontsize=8)
-    axes[1, 1].legend(loc="upper right", fontsize=7)
+    axes[1, 1].legend(loc="center right", fontsize=7)
     figure.suptitle("3-D 1M 方腔：动能、平均密度、平均压力、总体积修正的 θ 与 I（灰底：统计窗口 t = 35–45）")
     FIGURES.mkdir(parents=True, exist_ok=True)
     save(figure, FIGURES / "round3_a1_history.png")

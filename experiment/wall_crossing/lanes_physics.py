@@ -26,7 +26,10 @@ if str(REPOSITORY_ROOT) not in sys.path:
 
 ROOT = REPOSITORY_ROOT / "logs" / "wall_store" / "round3"
 RUNS = (("lanes_default_r1", "缺省（k = 1），第 1 次"), ("lanes_default_r2", "缺省（k = 1），第 2 次"),
-        ("lanes_default_r3", "缺省（k = 1），第 3 次"), ("lanes_2", "k = 2"), ("lanes_4", "k = 4"), ("lanes_8", "k = 8"))
+        ("lanes_default_r3", "缺省（k = 1），第 3 次"), ("lanes_2", "k = 2"), ("lanes_4", "k = 4"), ("lanes_8", "k = 8"),
+        # section 9.9: the lean items worth a default, the same run (taken when present)
+        ("lean_zero_z", "(a) z 置 0（V7_FLUID_SEGMENT_ZERO_Z）"),
+        ("lean_factored", "(d) 近壁受力提出 M_i（V7_FLUID_SEGMENT_FORCE_FACTORED）"))
 KEYS = ("psi_min", "u_min", "v_max", "v_min", "l2_u", "l2_v")
 
 
@@ -36,11 +39,20 @@ def main() -> int:
     arguments = parser.parse_args()
     from experiment.validation.cavity_analysis import analyse_run, load_run
     entries = {}
+    # psi_min needs the particle snapshots; a run whose snapshots were deleted after an earlier call keeps that
+    # call's psi_min (the samples, and with them every other column, are recomputed)
+    cached_path = ROOT / "lanes_physics.json"
+    cached = json.loads(cached_path.read_text(encoding="utf-8"))["runs"] if cached_path.exists() else {}
+    global RUNS
+    RUNS = tuple((name, text) for name, text in RUNS if (ROOT / "cavity" / name / "samples.jsonl").exists())
     for name, _ in RUNS:
         run = load_run(name, root=ROOT / "cavity")
-        analysis = analyse_run(run, average_span=2.0, tolerance=1.0e-3, window=10.0, with_stream_function=True)
+        frames = any((ROOT / "cavity" / name / "snapshots").glob("t*.npz"))
+        analysis = analyse_run(run, average_span=2.0, tolerance=1.0e-3, window=10.0, with_stream_function=frames)
         extrema, errors = analysis["extrema"], analysis["errors"]
-        entries[name] = {"psi_min": (analysis["stream"] or {}).get("psi_min_wall"),
+        psi_min = ((analysis["stream"] or {}).get("psi_min_wall") if frames
+                   else cached.get(name, {}).get("psi_min"))
+        entries[name] = {"psi_min": psi_min,
                          "u_min": extrema["u_min"]["value"], "v_max": extrema["v_max"]["value"],
                          "v_min": extrema["v_min"]["value"], "l2_u": errors[("wall", "mls", "u")]["L2"],
                          "l2_v": errors[("wall", "mls", "v")]["L2"], "window": analysis["window"],

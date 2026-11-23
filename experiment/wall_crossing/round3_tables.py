@@ -344,6 +344,35 @@ def lanes(result: dict) -> None:
     (TABLES / "round3_lanes.md").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 
 
+def scope(result: dict) -> None:
+    """Section 9.7 diagnostic: the lean items on crossing's interior pipelines only (V7_FLUID_SEGMENT_SCOPE=interior)
+    against both pipelines; whole step (first and last timestamp) and, where measured, each pass with its two
+    dispatches together (a timestamp between passes)."""
+    rows_text = {"scope_base_step": "缺省", "scope_zero_z_both_step": "(a)，两条管线",
+                 "scope_all_both_step": "(a)+(b)+(e)，两条管线",
+                 "scope_all_interior_step": "(a)+(b)+(e)，只在内部管线",
+                 "scope_zero_z_kernel_range_interior_step": "(a)+(e)，只在内部管线",
+                 "scope_all_interior_factored_step": "(a)+(b)+(e) 只在内部管线 + (d)",
+                 "scope_all_both_factored_step": "(a)+(b)+(e)+(d)，两条管线"}
+    lines = ["| 算例 | 版本 | GPU 一步 µs（首尾计时） | 相对缺省 | 融合遍 / 受力一起 µs（遍间计时） |", "|---|---|---|---|---|"]
+    for case in ("n500", "n1000", "c3d"):
+        path = TIMING / f"{case}_scope" / "summary.json"
+        if not path.exists():
+            continue
+        labels = json.loads(path.read_text(encoding="utf-8"))["labels"]
+        base = kernel(labels, "scope_base_step", "step_total_us")
+        for label, text in rows_text.items():
+            step = kernel(labels, label, "step_total_us")
+            if step is None:
+                continue
+            pass_label = label[:-len("_step")] + "_pass"
+            fused, force = (kernel(labels, pass_label, "correction_density_us"), kernel(labels, pass_label, "force_us"))
+            result.setdefault("scope", {}).setdefault(case, {})[label] = {"step": step, "fused": fused, "force": force}
+            lines.append(f"| {CASES[case]} | {text} | {cell(step)} | {100 * (step / base - 1):+.1f} % | "
+                         + ("—" if fused is None else f"{cell(fused)} / {cell(force)}") + " |")
+    (TABLES / "round3_scope.md").write_text(chr(10).join(lines) + chr(10), encoding="utf-8", newline=chr(10))
+
+
 def main() -> int:
     registers = json.loads(REGISTERS.read_text(encoding="utf-8")) if REGISTERS.exists() else {}
     result = {}
@@ -359,6 +388,7 @@ def main() -> int:
     dual(result)
     ratios(result)
     lanes(result)
+    scope(result)
     (TIMING / "round3_tables.json").write_text(json.dumps(result, indent=1, default=float), encoding="utf-8")
     for path in sorted(TABLES.glob("round3_*.md")):
         if path.name.startswith(("round3_breakdown", "round3_variants", "round3_ratios", "round3_lanes.md", "round3_in_situ")):

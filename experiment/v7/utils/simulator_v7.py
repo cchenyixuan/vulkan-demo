@@ -191,6 +191,12 @@ if (_LEAN_SUFFIX or _LEAN_FORCE_FACTORED or _WALL_CROSSING_NEAR_WALL_LANES > 1) 
     raise ValueError("V7_FLUID_SEGMENT_* / V7_WALL_CROSSING_NEAR_WALL_LANES: not with a V7_WALL_CROSSING_* debug build")
 if _WALL_CROSSING_NEAR_WALL_LANES > 1 and (_LEAN_SUFFIX or _LEAN_FORCE_FACTORED):
     raise ValueError("V7_WALL_CROSSING_NEAR_WALL_LANES: not with the V7_FLUID_SEGMENT_* items (no such build)")
+# DIAGNOSTIC (section 9.7): on a crossing slab of organisation (B), "interior" puts the V7_FLUID_SEGMENT_ZERO_Z /
+# _DISTANCE_SQUARED / _KERNEL_RANGE items on the interior pipelines only (the near-wall pipelines keep the default
+# build, or V7_FLUID_SEGMENT_FORCE_FACTORED's factored force without the items); "both" (default) on both.
+_LEAN_SCOPE = os.environ.get("V7_FLUID_SEGMENT_SCOPE", "both")
+if _LEAN_SCOPE not in ("both", "interior"):
+    raise ValueError(f"V7_FLUID_SEGMENT_SCOPE={_LEAN_SCOPE!r}: expected both or interior")
 # DIAGNOSTIC: the order of a split pass's two dispatches, "interior_first" or "near_wall_first"; no barrier between
 # them either way and they write different particles' outputs, so the results are the same. Unset (default): the
 # case's numerics.wall_crossing.split_order; set: it overrides the case.
@@ -2509,9 +2515,12 @@ class SphSimulatorV7:
         fused, force = SphSimulatorV7._wall_crossing_module_names()
         if _WALL_CROSSING_NEAR_WALL_LANES > 1:
             return "correction_density_wall_crossing_near_wall_lanes", "force_wall_crossing_near_wall_lanes"
+        # DIAGNOSTIC V7_FLUID_SEGMENT_SCOPE=interior: the near-wall pipelines without the lean items
+        items_here = bool(_LEAN_SUFFIX) and _LEAN_SCOPE == "both"
+        if _LEAN_SUFFIX and not items_here:
+            fused, force = "correction_density_wall_crossing", "force_wall_crossing"
         if _LEAN_FORCE_FACTORED:
-            return fused, ("force_wall_crossing_lean_all_factored" if _LEAN_SUFFIX
-                           else "force_wall_crossing_lean_factored")
+            force = "force_wall_crossing_lean_all_factored" if items_here else "force_wall_crossing_lean_factored"
         return fused, force
 
     def _fused_shader_module(self):
