@@ -149,6 +149,33 @@ def main() -> int:
     for key, text in (("largest", "最大速度"), ("root_mean_square", "均方根速度")):
         test = tests[f"mann_whitney_{key}"]
         lines.append(f"| {text}，Mann–Whitney U | U = {test['U']:.0f} | {test['p_two_sided']:.3f} | {test['p_store_greater']:.3f} |")
+    # by machine: round 2 ran on this machine, round 3 on the remote 5090; the remote runs alone as a check
+    remote = {build: [run for run in result["runs"][build] if run["round"] == 3] for build in ("store", "tag")}
+    if remote["store"] and remote["tag"]:
+        first = [run["largest"] for run in remote["store"]]
+        second = [run["largest"] for run in remote["tag"]]
+        test = mannwhitneyu(first, second, alternative="two-sided")
+        tails = (sum(run["tail"] for run in remote["store"]), sum(run["tail"] for run in remote["tag"]))
+        tests["remote_only"] = {"fisher_tails": fisher((tails[0], len(first)), (tails[1], len(second))),
+                                "mann_whitney_largest_p_two_sided": float(test.pvalue), "tails": tails,
+                                "runs": (len(first), len(second))}
+        lines.append(f"| 只用远端的运行（第三轮：{len(first)} 对 {len(second)} 次）：尾部 Fisher / 最大速度 Mann–Whitney | "
+                     f"{tails[0]} / {tails[1]}；U = {test.statistic:.0f} | "
+                     f"{tests['remote_only']['fisher_tails'][1]:.3f} / {test.pvalue:.3f} | "
+                     f"{tests['remote_only']['fisher_tails'][0]:.3f} / — |")
+    by_round = ["| 版本 | 机器（轮次） | 运行次数 | 尾部 | 最大速度 / √(gH) 均值 ± 标准差 | 均方根速度 / √(gH) 均值 ± 标准差 |",
+                "|---|---|---|---|---|---|"]
+    for build in ("store", "tag"):
+        for round_number, machine in ((2, "本机（第二轮）"), (3, "远端（第三轮）")):
+            runs = [run for run in result["runs"][build] if run["round"] == round_number]
+            if not runs:
+                continue
+            largest = np.array([run["largest"] for run in runs])
+            rms = np.array([run["root_mean_square"] for run in runs])
+            by_round.append(f"| {LABELS[build]} | {machine} | {len(runs)} | {int(sum(run['tail'] for run in runs))} | "
+                            f"{largest.mean():.5f} ± {largest.std(ddof=1):.5f} | {rms.mean():.6f} ± {rms.std(ddof=1):.6f} |")
+    (TABLES / "round3_hydrostatic_by_machine.md").write_text(chr(10).join(by_round) + chr(10), encoding="utf-8",
+                                                           newline=chr(10))
     (TABLES / "round3_hydrostatic_tests.md").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
     (LOGS / "round3" / "hydrostatic_round3.json").write_text(json.dumps(result, indent=1), encoding="utf-8")
 
@@ -181,7 +208,8 @@ def main() -> int:
         axis.set_xticklabels([LABELS["store"], LABELS["tag"]])
         axis.set_xlim(-0.6, 1.6)
         axis.set_ylabel(text)
-    axes[0].legend(loc="upper right", fontsize=8)
+    figure.legend(*axes[0].get_legend_handles_labels(), loc="lower center", ncol=2, fontsize=8, frameon=False)
+    figure.subplots_adjust(bottom=0.24)
     figure.suptitle("倾斜 30° 静水盒（2-D 250²，t = 10），每个点一次运行；横线：中位数和四分位；虚线：尾部门槛 0.005")
     FIGURES.mkdir(parents=True, exist_ok=True)
     save(figure, FIGURES / "round3_hydrostatic.png")
