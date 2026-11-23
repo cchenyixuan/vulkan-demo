@@ -1,5 +1,9 @@
 #version 460
 #extension GL_GOOGLE_include_directive : enable
+#ifdef DISPATCH_TIMELINE
+#extension GL_EXT_shader_realtime_clock : enable
+#extension GL_NV_shader_sm_builtins : enable
+#endif
 #ifdef WALL_CROSSING_NEAR_WALL_LANES
 #extension GL_KHR_shader_subgroup_basic : enable
 #extension GL_KHR_shader_subgroup_shuffle : enable
@@ -69,10 +73,14 @@
 // ============================================================================
 
 // ============================================================================
-// EXPERIMENTAL COPY of force.comp (claude/wall_store_report.md section 9, the "lean" fluid segment; wall store
-// round 3). Built only as the variants of compile_shaders_v7.LEAN_VARIANTS and loaded only through the V7_FLUID_SEGMENT_*
-// switches (all off by default). Without a LEAN_* macro this file is force.comp: its plain build
-// force_lean.comp.spv is byte-identical to force.comp.spv (the check that the copy is faithful). Items:
+// COPY of force.comp with the fluid-segment items as macros (claude/wall_store_report.md sections 9-10, wall store
+// rounds 3-4). Built as the variants of compile_shaders_v7.LEAN_VARIANTS. Without a LEAN_* macro this file is
+// force.comp: its plain and WALL_CROSSING builds are byte-identical to force.comp.spv / force_wall_crossing.comp.spv
+// (compile_shaders_v7.check_lean_copies runs after every compile: edit both files together). Since round 4 two of
+// its builds are wall_boundary crossing's DEFAULTS (simulator_v7, by dimension): 2-D force_wall_crossing_lean_zero_z
+// (interior) and force_wall_crossing_lean_zero_z_factored (near-wall), 3-D force_wall_crossing_lean_factored
+// (near-wall), items (a) and (d); V7_WALL_CROSSING_ZERO_Z=0 / V7_WALL_CROSSING_FORCE_FACTORED=0 take them back. The
+// other items are EXPERIMENTAL (V7_FLUID_SEGMENT_*, off by default). Items:
 //   LEAN_ZERO_Z           (a) 2-D: the z of every position and velocity read in the loops is set to 0 right after
 //                             the read (the stored z is 0 already), so the compiler can drop the z arithmetic
 //   LEAN_DISTANCE_SQUARED (b) the support test on r^2 (r^2 >= h^2 or r^2 < 1e-24), the square root only for the
@@ -682,7 +690,11 @@ void process_particle(uint self_particle_id) {
 // slots lane, lane + L, ... so a warp stays full when a voxel holds far fewer
 // particles than MAX_PARTICLES_PER_VOXEL.
 // ---------------------------------------------------------------------------
+#ifdef DISPATCH_TIMELINE
+void dispatch_main() {
+#else
 void main() {
+#endif
 #ifdef FORCE_SEGMENT
     uint thread_id = gl_GlobalInvocationID.x + FORCE_SEGMENT_FIRST_THREAD;
 #else
@@ -721,3 +733,40 @@ void main() {
     if (self_particle_id > own_last_pid()) return;
     process_particle(self_particle_id);
 }
+
+#ifdef DISPATCH_TIMELINE
+#ifndef WALL_CROSSING
+#error DISPATCH_TIMELINE records the dispatches of wall_boundary crossing's split passes
+#endif
+// ============================================================================
+// DIAGNOSTIC (claude/wall_store_report.md section 10.4, V7_DISPATCH_TIMELINE=1; the *_timeline builds): per workgroup
+// of a split pass's dispatch, the SM it ran on (gl_SMIDNV) and the device's realtime clock (nanoseconds) when its
+// invocation 0 started and after the workgroup's barrier at the end. Nothing is written between the dispatches, so
+// they keep overlapping as in the step. Record [slot][workgroup] = 8 words (SM id, start low, start high, end low,
+// end high, 0, 0, 0), slot = 2 x pass (0 the fused pass, 1 force) + (1 for the near-wall class); the every-particle
+// class (the bootstrap's, organisation (A)) writes nothing. The step overwrites the records; the host reads them back
+// after a step (experiment/wall_crossing/dispatch_timeline.py).
+// ============================================================================
+layout(std430, set = 3, binding = 12) buffer DispatchTimelineBuffer {
+    uint dispatch_timeline_words[];
+};
+
+void main() {
+    uvec2 start_clock = clockRealtime2x32EXT();
+    dispatch_main();
+    barrier();
+    if (gl_LocalInvocationIndex == 0u && WALL_CROSSING_DISPATCH_CLASS != WALL_CROSSING_DISPATCH_EVERY_PARTICLE) {
+        uvec2 end_clock = clockRealtime2x32EXT();
+        uint slot = 1u * 2u + (WALL_CROSSING_DISPATCH_CLASS == WALL_CROSSING_DISPATCH_NEAR_WALL ? 1u : 0u);
+        uint group_capacity = uint(dispatch_timeline_words.length()) / 32u;
+        if (gl_WorkGroupID.x < group_capacity) {
+            uint base = (slot * group_capacity + gl_WorkGroupID.x) * 8u;
+            dispatch_timeline_words[base + 0u] = gl_SMIDNV;
+            dispatch_timeline_words[base + 1u] = start_clock.x;
+            dispatch_timeline_words[base + 2u] = start_clock.y;
+            dispatch_timeline_words[base + 3u] = end_clock.x;
+            dispatch_timeline_words[base + 4u] = end_clock.y;
+        }
+    }
+}
+#endif

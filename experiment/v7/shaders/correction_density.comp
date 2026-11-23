@@ -180,10 +180,8 @@ void wall_crossing_wall_rate_pair(uint wall_index, vec3 neighbor_position, vec3 
 }
 
 // wall_boundary crossing: between the segments and the wall segment of a particle near a wall (see the header).
-// correction_matrix holds A_f on entry and the full matrix on return; kernel_sum takes the wall pairs. The wall pairs
-// of S follow after the epilogue's store (wall_crossing_wall_rate_segment), so that the correction matrix and L_i are
-// not held through their pair work; DEBUG WALL_CROSSING_REVERT_WALL_RATE_LOOP: here, in this loop, as before. Either
-// way S takes the same pairs in the same order.
+// correction_matrix holds A_f on entry and the full matrix on return; kernel_sum takes the wall pairs; with spec const
+// 142 = 0 the wall pairs of S as well (with 1 they follow after the epilogue's store).
 void wall_crossing_wall_segment(uint self_particle_id, vec3 self_position, ivec3 self_voxel_coord,
                                 vec3 self_velocity, float self_density, MaterialParameters self_params,
                                 float diffusion_coefficient, vec3 fluid_density_gradient,
@@ -207,12 +205,15 @@ void wall_crossing_wall_segment(uint self_particle_id, vec3 self_position, ivec3
         fluid_inverse_valid ? 1.0 : 0.0);
     wall_crossing_fluid_inverse[self_particle_id * 2u]      = fluid_inverse_diagonal_and_xy;
     wall_crossing_fluid_inverse[self_particle_id * 2u + 1u] = fluid_inverse_xz_and_yz;
-#ifdef WALL_CROSSING_REVERT_WALL_RATE_LOOP
-    vec3  one_sided_density_gradient;
-    float density_over_sound_speed_squared;
-    wall_crossing_density_rule_inputs(fluid_inverse_diagonal_and_xy, fluid_inverse_xz_and_yz, fluid_density_gradient,
-                                      self_density, self_params, one_sided_density_gradient,
-                                      density_over_sound_speed_squared);
+#ifndef WALL_CROSSING_DIFFUSION_SUMMED
+    // spec const 142 = 0: the wall pairs of S in this loop need G and rho_i / c^2 now
+    vec3  one_sided_density_gradient = vec3(0.0);
+    float density_over_sound_speed_squared = 0.0;
+    if (!WALL_CROSSING_WALL_RATE_AFTER_STORE) {
+        wall_crossing_density_rule_inputs(fluid_inverse_diagonal_and_xy, fluid_inverse_xz_and_yz,
+                                          fluid_density_gradient, self_density, self_params,
+                                          one_sided_density_gradient, density_over_sound_speed_squared);
+    }
 #endif
 
     // ---- the wall segment: the wall records of the 3^d voxels, the neighbour order of the fluid segment
@@ -239,12 +240,15 @@ void wall_crossing_wall_segment(uint self_particle_id, vec3 self_position, ivec3
                     correction_matrix += neighbor_volume
                         * outerProduct(position_difference_self_to_neighbor, kernel_gradient_value);
                     kernel_sum += neighbor_volume * kernel_value;
-#ifdef WALL_CROSSING_REVERT_WALL_RATE_LOOP
-                    wall_crossing_wall_rate_pair(wall_index, neighbor_position, position_difference_neighbor_to_self,
-                                                 distance, neighbor_volume, kernel_gradient_value, self_position,
-                                                 self_velocity, self_density, diffusion_coefficient,
-                                                 one_sided_density_gradient, density_over_sound_speed_squared,
-                                                 density_rate_diagonal, density_rate_off_diagonal);
+#ifndef WALL_CROSSING_DIFFUSION_SUMMED
+                    if (!WALL_CROSSING_WALL_RATE_AFTER_STORE) {
+                        wall_crossing_wall_rate_pair(wall_index, neighbor_position,
+                                                     position_difference_neighbor_to_self, distance, neighbor_volume,
+                                                     kernel_gradient_value, self_position, self_velocity,
+                                                     self_density, diffusion_coefficient, one_sided_density_gradient,
+                                                     density_over_sound_speed_squared, density_rate_diagonal,
+                                                     density_rate_off_diagonal);
+                    }
 #endif
                 }
             }
@@ -252,9 +256,8 @@ void wall_crossing_wall_segment(uint self_particle_id, vec3 self_position, ivec3
     }
 }
 
-#ifndef WALL_CROSSING_REVERT_WALL_RATE_LOOP
 // wall_boundary crossing, the wall pairs of S of a particle near a wall, after the epilogue's store
-// (process_particle). G from A_f^-1 and g_f as this invocation stored them (the same values), the wall records in the
+// (process_particle; spec const 142 = 1). G from A_f^-1 and g_f as this invocation stored them (the same values), the wall records in the
 // order of the wall segment.
 void wall_crossing_wall_rate_segment(uint self_particle_id, vec3 self_position, ivec3 self_voxel_coord,
                                      vec3 self_velocity, float self_density, MaterialParameters self_params,
@@ -313,7 +316,6 @@ void wall_crossing_wall_rate_segment(uint self_particle_id, vec3 self_position, 
         }
     }
 }
-#endif
 #endif
 
 void process_particle(uint self_particle_id) {
@@ -545,10 +547,10 @@ void process_particle(uint self_particle_id) {
     float inverse_xy = correction_matrix_inverse[0][1];
     float inverse_xz = correction_matrix_inverse[0][2];
     float inverse_yz = correction_matrix_inverse[1][2];
-#if defined(WALL_CROSSING) && !defined(WALL_CROSSING_REVERT_WALL_RATE_LOOP)
-    // wall_boundary crossing, a particle near a wall: the wall pairs of S now, after the store, then L_i again from the
-    // store (the values just written)
-    if (WALL_CROSSING_WALL_SEGMENT_COMPILED && self_near_wall) {
+#if defined(WALL_CROSSING)
+    // wall_boundary crossing, a particle near a wall, spec const 142 = 1: the wall pairs of S now, after the store,
+    // then L_i again from the store (the values just written)
+    if (WALL_CROSSING_WALL_RATE_AFTER_STORE && WALL_CROSSING_WALL_SEGMENT_COMPILED && self_near_wall) {
         wall_crossing_wall_rate_segment(self_particle_id, self_position, self_voxel_coord, self_velocity, self_density,
                                         self_params, diffusion_coefficient, density_rate_diagonal,
                                         density_rate_off_diagonal

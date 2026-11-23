@@ -200,6 +200,20 @@ const uint WALL_CROSSING_RULE_TYPE_DERIVATIVE = 1u;
 layout(constant_id = 140) const uint WALL_CROSSING_BODY_MOTION = 1u;
 const uint WALL_CROSSING_BODY_MOTION_TRANSLATION = 0u;
 
+// spec const 142 (claude/wall_store_report.md section 10.5): where the fused pass takes the wall pairs of S of a
+// particle near a wall. 0 (the default since wall store round 4, 2-D and 3-D, simulator_v7
+// WALL_CROSSING_WALL_RATE_LOOP_BY_DIMENSION): in the wall segment's loop, beside the wall pairs of the correction
+// matrix; 1 (round 2's item S, the default until round 4; V7_WALL_CROSSING_WALL_RATE_LOOP=after_store): a loop of
+// their own after the epilogue's store (wall_crossing_wall_rate_segment), so that the correction matrix and L_i are not
+// held through the pair work. Either way S takes the same pairs in the same order. The DIAGNOSTIC summed density
+// diffusion sums after the store.
+#ifdef WALL_CROSSING_DIFFUSION_SUMMED
+const bool WALL_CROSSING_WALL_RATE_AFTER_STORE = true;
+#else
+layout(constant_id = 142) const uint WALL_CROSSING_WALL_RATE_LOOP = 0u;
+const bool WALL_CROSSING_WALL_RATE_AFTER_STORE = WALL_CROSSING_WALL_RATE_LOOP == 1u;
+#endif
+
 float wall_crossing_rule_lambda(uint rule_type) {
     return (rule_type == WALL_CROSSING_RULE_TYPE_VALUE) ? 1.0 : 0.0;
 }

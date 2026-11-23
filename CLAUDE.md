@@ -92,6 +92,16 @@ vulkan-demo/
 - **Sentinel-based state recovery:** `(out_count + outgoing_count) > 0` indicates compute ran last frame; otherwise fall back to initial counts.
 - **`vkCmdDrawIndirect`** lets compute atomically write `instanceCount` → render draws exactly the live particle count without CPU readback.
 
+### v7 `wall_boundary: crossing` — defaults since wall store round 4 (branch `v7-crossing-wall-store`, 2026-11-23)
+
+Details and measurements: `claude/wall_store_report.md` section 10 (tag `crossing-wall-store` = 262156d is the state before these defaults). Only crossing changed; simple / adami SPIR-V is byte-identical.
+
+- **Modules (organisation (B): interior + near-wall pipeline per split pass).** 2-D: the lean copies' builds `correction_density_wall_crossing_lean_zero_z_kernel_range`, `force_wall_crossing_lean_zero_z_kernel_range`, near-wall force `..._factored`, and with lanes the `..._near_wall_lanes` builds — items (a) z set to 0 after the reads, (e) no duplicate range tests in W / ∇W (bit-identical), (d) near-wall force with M_i factored out. 3-D: the plain crossing builds + near-wall force `force_wall_crossing_lean_factored` (64 registers instead of 72); no (a), no (e) (no gain in 3-D).
+- **Spec const 142** (fused pass): the near-wall wall pairs of S in the wall segment's loop (0, default in 2-D and 3-D, `WALL_CROSSING_WALL_RATE_LOOP_BY_DIMENSION`) or after the store (1, round 2's item S). Bit-identical results; the loop is 1–7 % faster.
+- **Near-wall lanes rule** (`V7_WALL_CROSSING_NEAR_WALL_LANES=auto`, spec const 141): k = 4 invocations per near-wall particle when 4 × (slab's fluid particles in near-wall voxels at init) ≤ warps/SM × 32 × SM count (`VK_NV_shader_sm_builtins`; no SM count → 1); else 1. On a 5090: every 2-D cavity 250²–1000² (also per slab on two cards) → 4, the 3-D 1M cavity → 1. With a peer the phase-C band pipelines keep k = 1.
+- **Revert one item at a time (debug):** `V7_WALL_CROSSING_ZERO_Z=0`, `V7_WALL_CROSSING_KERNEL_RANGE=0`, `V7_WALL_CROSSING_FORCE_FACTORED=0`, `V7_WALL_CROSSING_WALL_RATE_LOOP=after_store`, `V7_WALL_CROSSING_NEAR_WALL_LANES=1` (or an explicit k). All of them together = 262156d's modules (bit-identical on frozen states). simple's (a) is the experimental `V7_FLUID_SEGMENT_ZERO_Z=1` (off).
+- **Gotcha — the overlap of the two split dispatches is fragile in the machine code:** builds that differ only in a spec constant or an inlined helper can lose it (k = 2 +19 % / +32 % at 500² / 1000²; (a)+(e) with S after the store +22–24 %), while k = 4 and (e) with S in the loop gain. Instrumenting the shader changes the binary (the `*_timeline` builds, `V7_DISPATCH_TIMELINE=1`, do not show the loss). After any crossing shader change: whole-step timing (`V7_BENCH_TICK_DETAIL=step`) at 2-D 250² / 500² / 1000² and 3-D, not only per-dispatch ticks.
+
 ## Performance Benchmarks (current, measured 2026-05-22)
 
 | Configuration | fps | wall_time | vs single AMD | scaling efficiency |

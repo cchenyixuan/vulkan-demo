@@ -135,12 +135,9 @@ _WALL_CROSSING_DIFFUSION_SUMMED = os.environ.get("V7_WALL_CROSSING_DIFFUSION_SUM
 #   V7_WALL_CROSSING_BODY_MOTION=general   the body formula for every body (default "specialized": spec const 140)
 #   V7_WALL_CROSSING_MIRROR=geometry       the mirror displacement summed in the pair geometry (default "record": the
 #                                          wall record's, computed by the host)
-#   V7_WALL_CROSSING_WALL_RATE_LOOP=combined   the fused pass's wall pairs of S in the wall segment's loop (default
-#                                          "after_store": a loop of their own after the epilogue's store)
 WALL_CROSSING_REVERT_SWITCHES = {"rule_types": ("V7_WALL_CROSSING_RULE_TYPES", "constants", "table"),
                                  "body_motion": ("V7_WALL_CROSSING_BODY_MOTION", "specialized", "general"),
-                                 "mirror": ("V7_WALL_CROSSING_MIRROR", "record", "geometry"),
-                                 "wall_rate_loop": ("V7_WALL_CROSSING_WALL_RATE_LOOP", "after_store", "combined")}
+                                 "mirror": ("V7_WALL_CROSSING_MIRROR", "record", "geometry")}
 _WALL_CROSSING_REVERTED = []
 for _item, (_variable, _default, _revert) in WALL_CROSSING_REVERT_SWITCHES.items():
     _value = os.environ.get(_variable, _default)
@@ -151,18 +148,23 @@ for _item, (_variable, _default, _revert) in WALL_CROSSING_REVERT_SWITCHES.items
 if len(_WALL_CROSSING_REVERTED) + int(_WALL_CROSSING_DIFFUSION_SUMMED) > 1:
     raise ValueError(f"take back one wall store item at a time: {_WALL_CROSSING_REVERTED}"
                      + (" and V7_WALL_CROSSING_DIFFUSION_SUMMED" if _WALL_CROSSING_DIFFUSION_SUMMED else ""))
-# EXPERIMENTAL (claude/wall_store_report.md section 9, wall store round 3; all off by default): the lean copies of
-# the fluid segment (shaders/correction_density_lean.comp, force_lean.comp; compile_shaders_v7.LEAN_VARIANTS). "1"
-# turns an item on, for the fused pass and force of simple and of crossing (both of its pipelines); any combination
-# (each is compiled):
-#   V7_FLUID_SEGMENT_ZERO_Z=1            (a) 2-D: z of every position and velocity read set to 0 after the read
+# The copies of the fluid segment (shaders/correction_density_lean.comp, force_lean.comp; compile_shaders_v7.LEAN_VARIANTS;
+# claude/wall_store_report.md sections 9-10). EXPERIMENTAL items, "1" turns one on (off by default), for the fused pass
+# and force of simple and of crossing (both of crossing's pipelines); any combination (each is compiled):
+#   V7_FLUID_SEGMENT_ZERO_Z=1            (a) 2-D: z of every position and velocity read set to 0 after the read (for
+#                                        simple; crossing has it by default, below)
 #   V7_FLUID_SEGMENT_DISTANCE_SQUARED=1  (b) the support test on r^2, the square root only for the pairs kept
 #   V7_FLUID_SEGMENT_KERNEL_RANGE=1      (e) W and grad W without their own range tests (the caller's test covers them)
-# and, for crossing only:
-#   V7_FLUID_SEGMENT_FORCE_FACTORED=1    (d) the near-wall force pipeline with M_i out of the pair sums (applied once after
-#                               the loops); alone or with all three items above
-#   V7_WALL_CROSSING_NEAR_WALL_LANES=k   (section 9.4; k = 2, 4, 8, 16 or 32; default 1 = off) the near-wall
-#                               pipelines of a one-slab run with k invocations per near-wall particle (spec const 141)
+#   V7_WALL_CROSSING_NEAR_WALL_LANES=k   the near-wall pipelines of a crossing slab of organisation (B) run with k
+#                                        invocations per near-wall particle (spec const 141; with a peer the band
+#                                        pipelines of phase C keep k = 1). Default "auto" (since round 4, section 10.6):
+#                                        the rule of SphSimulatorV7._near_wall_lanes; k = 1 (off), 2, 4, 8, 16 or 32 sets
+#                                        it
+# DEFAULTS of wall_boundary crossing since wall store round 4 (report section 10); "0" takes one back on its own:
+#   V7_WALL_CROSSING_ZERO_Z=0            2-D: the fused pass and force (both pipelines) without item (a) (3-D builds
+#                                        never carry it: z is a real coordinate there)
+#   V7_WALL_CROSSING_FORCE_FACTORED=0    the near-wall force pipeline without item (d), M_i out of the pair sums (3-D:
+#                                        72 registers instead of 64)
 LEAN_ITEMS = ("zero_z", "distance_squared", "kernel_range")
 _LEAN_SELECTED = []
 for _item in LEAN_ITEMS:
@@ -171,32 +173,85 @@ for _item in LEAN_ITEMS:
         raise ValueError(f"V7_FLUID_SEGMENT_{_item.upper()}={_value!r}: expected 0 or 1")
     if _value == "1":
         _LEAN_SELECTED.append(_item)
-# every combination is compiled (compile_shaders_v7.LEAN_VARIANTS; compile_shaders_v7.lean_suffix names the files)
+# every combination is compiled (compile_shaders_v7.LEAN_VARIANTS; compile_shaders_v7.lean_suffix names the files);
+# this is the suffix of simple's modules (crossing composes its own, _wall_crossing_items)
 _LEAN_SUFFIX = ("" if not _LEAN_SELECTED else
                 "_lean_all" if len(_LEAN_SELECTED) == len(LEAN_ITEMS) else "_lean_" + "_".join(_LEAN_SELECTED))
-_LEAN_FORCE_FACTORED = os.environ.get("V7_FLUID_SEGMENT_FORCE_FACTORED", "0")
-if _LEAN_FORCE_FACTORED not in ("0", "1"):
-    raise ValueError(f"V7_FLUID_SEGMENT_FORCE_FACTORED={_LEAN_FORCE_FACTORED!r}: expected 0 or 1")
-_LEAN_FORCE_FACTORED = _LEAN_FORCE_FACTORED == "1"
-if _LEAN_FORCE_FACTORED and _LEAN_SUFFIX not in ("", "_lean_all"):
-    raise ValueError("V7_FLUID_SEGMENT_FORCE_FACTORED=1: alone or with all three V7_FLUID_SEGMENT_* items (compiled builds)")
-try:
-    _WALL_CROSSING_NEAR_WALL_LANES = int(os.environ.get("V7_WALL_CROSSING_NEAR_WALL_LANES", "1"))
-except ValueError:
-    raise ValueError("V7_WALL_CROSSING_NEAR_WALL_LANES: expected 1, 2, 4, 8, 16 or 32") from None
-if _WALL_CROSSING_NEAR_WALL_LANES not in (1, 2, 4, 8, 16, 32):
-    raise ValueError(f"V7_WALL_CROSSING_NEAR_WALL_LANES={_WALL_CROSSING_NEAR_WALL_LANES}: expected 1, 2, 4, 8, 16 or 32")
-if (_LEAN_SUFFIX or _LEAN_FORCE_FACTORED or _WALL_CROSSING_NEAR_WALL_LANES > 1) and (
-        _WALL_CROSSING_REVERTED or _WALL_CROSSING_DIFFUSION_SUMMED):
+if "V7_FLUID_SEGMENT_FORCE_FACTORED" in os.environ:
+    raise ValueError("V7_FLUID_SEGMENT_FORCE_FACTORED was removed: item (d) is wall_boundary crossing's default since "
+                     "wall store round 4; V7_WALL_CROSSING_FORCE_FACTORED=0 takes it back")
+
+
+def _default_switch(name: str) -> bool:
+    value = os.environ.get(name, "1")
+    if value not in ("0", "1"):
+        raise ValueError(f"{name}={value!r}: expected 0 or 1 (default 1)")
+    return value == "1"
+
+
+_WALL_CROSSING_ZERO_Z = _default_switch("V7_WALL_CROSSING_ZERO_Z")
+_WALL_CROSSING_FORCE_FACTORED = _default_switch("V7_WALL_CROSSING_FORCE_FACTORED")
+if _LEAN_SELECTED and "zero_z" in _LEAN_SELECTED and not _WALL_CROSSING_ZERO_Z:
+    raise ValueError("V7_FLUID_SEGMENT_ZERO_Z=1 with V7_WALL_CROSSING_ZERO_Z=0: one says on, the other off")
+# None = "auto" (the rule, SphSimulatorV7._near_wall_lanes); else the k asked for
+_WALL_CROSSING_NEAR_WALL_LANES_SETTING = os.environ.get("V7_WALL_CROSSING_NEAR_WALL_LANES", "auto")
+if _WALL_CROSSING_NEAR_WALL_LANES_SETTING == "auto":
+    _WALL_CROSSING_NEAR_WALL_LANES_EXPLICIT = None
+else:
+    try:
+        _WALL_CROSSING_NEAR_WALL_LANES_EXPLICIT = int(_WALL_CROSSING_NEAR_WALL_LANES_SETTING)
+    except ValueError:
+        raise ValueError("V7_WALL_CROSSING_NEAR_WALL_LANES: expected auto, 1, 2, 4, 8, 16 or 32") from None
+    if _WALL_CROSSING_NEAR_WALL_LANES_EXPLICIT not in (1, 2, 4, 8, 16, 32):
+        raise ValueError(f"V7_WALL_CROSSING_NEAR_WALL_LANES={_WALL_CROSSING_NEAR_WALL_LANES_SETTING}: expected auto, 1, "
+                         "2, 4, 8, 16 or 32")
+_EXPLICIT_LANES = _WALL_CROSSING_NEAR_WALL_LANES_EXPLICIT or 1
+# the round-2 debug builds and the diagnostic predate items (a) and (d)
+_WALL_CROSSING_OLD_BUILD = bool(_WALL_CROSSING_REVERTED or _WALL_CROSSING_DIFFUSION_SUMMED)
+# Where crossing's fused pass takes the wall pairs of S of a particle near a wall (spec const 142, report section
+# 10.5; round 2's fourth register item, then a debug module): "combined" in the wall segment's loop, "after_store" a
+# loop of their own after the epilogue's store (the default until wall store round 4). The default is per dimension
+# (measured in round 4: combined is faster in 2-D and in 3-D); V7_WALL_CROSSING_WALL_RATE_LOOP=combined / after_store
+# sets it for every dimension (the diagnostic V7_WALL_CROSSING_DIFFUSION_SUMMED always sums after the store).
+WALL_CROSSING_WALL_RATE_LOOP_BY_DIMENSION = {2: "combined", 3: "combined"}
+_WALL_RATE_LOOP = os.environ.get("V7_WALL_CROSSING_WALL_RATE_LOOP", "auto")
+if _WALL_RATE_LOOP not in ("auto", "combined", "after_store"):
+    raise ValueError(f"V7_WALL_CROSSING_WALL_RATE_LOOP={_WALL_RATE_LOOP!r}: expected auto (default), combined or "
+                     "after_store")
+if (_LEAN_SUFFIX or _EXPLICIT_LANES > 1) and (_WALL_CROSSING_REVERTED or _WALL_CROSSING_DIFFUSION_SUMMED):
     raise ValueError("V7_FLUID_SEGMENT_* / V7_WALL_CROSSING_NEAR_WALL_LANES: not with a V7_WALL_CROSSING_* debug build")
-if _WALL_CROSSING_NEAR_WALL_LANES > 1 and (_LEAN_SUFFIX or _LEAN_FORCE_FACTORED):
-    raise ValueError("V7_WALL_CROSSING_NEAR_WALL_LANES: not with the V7_FLUID_SEGMENT_* items (no such build)")
-# DIAGNOSTIC (section 9.7): on a crossing slab of organisation (B), "interior" puts the V7_FLUID_SEGMENT_ZERO_Z /
-# _DISTANCE_SQUARED / _KERNEL_RANGE items on the interior pipelines only (the near-wall pipelines keep the default
-# build, or V7_FLUID_SEGMENT_FORCE_FACTORED's factored force without the items); "both" (default) on both.
+if _EXPLICIT_LANES > 1 and set(_LEAN_SELECTED) - {"zero_z", "kernel_range"}:
+    raise ValueError("V7_WALL_CROSSING_NEAR_WALL_LANES: not with the V7_FLUID_SEGMENT_* item (b) (no such build)")
+if _WALL_CROSSING_OLD_BUILD:
+    # the round-2 debug and diagnostic builds predate items (a) and (d): with one of them both are off
+    if _WALL_CROSSING_ZERO_Z or _WALL_CROSSING_FORCE_FACTORED:
+        print("[SimV7] a V7_WALL_CROSSING_* debug / diagnostic build is on: crossing's items (a) and (d) are off with "
+              "it (those builds predate them)", flush=True)
+    _WALL_CROSSING_ZERO_Z = _WALL_CROSSING_FORCE_FACTORED = False
+# DIAGNOSTIC (section 9.7): on a crossing slab of organisation (B), "interior" puts the experimental items (b), (e)
+# on the interior pipelines only (the near-wall pipelines keep the defaults: (a) in 2-D, (d)); "both" (default) on both.
 _LEAN_SCOPE = os.environ.get("V7_FLUID_SEGMENT_SCOPE", "both")
 if _LEAN_SCOPE not in ("both", "interior"):
     raise ValueError(f"V7_FLUID_SEGMENT_SCOPE={_LEAN_SCOPE!r}: expected both or interior")
+# DIAGNOSTIC (report section 10.4): "1" loads crossing's *_timeline builds (compile_shaders_v7.TIMELINE_VARIANTS, 2-D,
+# one slab, organisation (B)), which record per workgroup of a split pass's dispatch its SM and the realtime clock at
+# start and end into set 3 binding 12 "dispatch_timeline" (experiment/wall_crossing/dispatch_timeline.py reads it);
+# the device then enables VK_KHR_shader_clock and VK_NV_shader_sm_builtins (vulkan_context_v7). Off by default.
+_DISPATCH_TIMELINE = os.environ.get("V7_DISPATCH_TIMELINE", "0") == "1"
+
+
+def _wall_crossing_lean_name(kernel: str, items=(), factored: bool = False, lanes: bool = False) -> str:
+    """compile_shaders_v7.wall_crossing_module_name: a crossing build of the copies."""
+    ordered = [item for item in LEAN_ITEMS if item in items]
+    name = f"{kernel}_wall_crossing" + ("" if not ordered else "_lean_all" if len(ordered) == len(LEAN_ITEMS)
+                                        else "_lean_" + "_".join(ordered))
+    if factored:
+        name += ("" if ordered else "_lean") + "_factored"
+    if lanes:
+        name += "_near_wall_lanes"
+    return name
+
+
 # DIAGNOSTIC: the order of a split pass's two dispatches, "interior_first" or "near_wall_first"; no barrier between
 # them either way and they write different particles' outputs, so the results are the same. Unset (default): the
 # case's numerics.wall_crossing.split_order; set: it overrides the case.
@@ -1793,7 +1848,11 @@ class SphSimulatorV7:
             # V7_BAND_COMPACT_DISPATCH: indirect dispatch sizes + list column starts
             _BufferSpec("band_compact_meta",            3, 9, 128,
                         BSU | TRANSFER | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT),
-        ] + (deep_wall_specs + wall_crossing_specs + volume_constraint_specs)
+        ] + (deep_wall_specs + wall_crossing_specs + volume_constraint_specs
+             # DIAGNOSTIC V7_DISPATCH_TIMELINE (report section 10.4): 4 slots x the near-wall dispatch's workgroups x 32 B
+             + ([_BufferSpec("dispatch_timeline", 3, 12,
+                             128 * self._per_own_particle_dispatch_count() * self._near_wall_lanes(),
+                             BSU | TRANSFER)] if _DISPATCH_TIMELINE and self._wall_crossing else []))
 
     def _allocate_buffer(
         self,
@@ -2284,10 +2343,10 @@ class SphSimulatorV7:
         # EXPERIMENTAL V7_FLUID_SEGMENT_* (section 9): simple's fused-pass and force modules come from the lean copy's build
         # of the chosen item(s), under their usual names; crossing names its lean builds itself
         # (_wall_crossing_module_names); the near-wall-only builds are refused off a crossing slab
-        if (_LEAN_SUFFIX or _LEAN_FORCE_FACTORED or _WALL_CROSSING_NEAR_WALL_LANES > 1) and self._wall_adami:
+        if (_LEAN_SUFFIX or _EXPLICIT_LANES > 1) and self._wall_adami:
             raise ValueError("V7_FLUID_SEGMENT_* / V7_WALL_CROSSING_NEAR_WALL_LANES: simple and crossing only, not adami")
-        if (_LEAN_FORCE_FACTORED or _WALL_CROSSING_NEAR_WALL_LANES > 1) and not self._wall_crossing:
-            raise ValueError("V7_FLUID_SEGMENT_FORCE_FACTORED / V7_WALL_CROSSING_NEAR_WALL_LANES: wall_boundary crossing only")
+        if _EXPLICIT_LANES > 1 and not self._wall_crossing:
+            raise ValueError("V7_WALL_CROSSING_NEAR_WALL_LANES: wall_boundary crossing only")
         lean_files = ({name: name + _LEAN_SUFFIX
                        for name in ("correction_density", "correction_density_deep_wall_skip", "force")}
                       if _LEAN_SUFFIX and not self._wall_crossing else {})
@@ -2323,9 +2382,10 @@ class SphSimulatorV7:
             # slab (simple / adami need no such file, e.g. in a V7_SPV_DIR A/B against an earlier build); both
             # organisations build every pipeline from them (spec const 131)
             *(self._wall_crossing_module_names() if self._wall_crossing else ()),
-            # EXPERIMENTAL (section 9): the near-wall pipelines' own builds (V7_FLUID_SEGMENT_FORCE_FACTORED,
-            # V7_WALL_CROSSING_NEAR_WALL_LANES) when they differ from the two above
-            *((name for name in self._wall_crossing_near_wall_module_names()
+            # the near-wall pipelines' own builds (item (d), V7_WALL_CROSSING_NEAR_WALL_LANES) when they differ from
+            # the two above; with lanes also the builds without them (the band pipelines', section 10.6)
+            *((name for name in dict.fromkeys(self._wall_crossing_near_wall_module_names()
+                                              + self._wall_crossing_near_wall_module_names(lanes_allowed=False))
                if name not in self._wall_crossing_module_names()) if self._wall_crossing else ()),
             # numerics.volume_constraint.gpu_mean_volume (report section 22): the reduction kernel, only then
             *(("volume_constraint_reduction",) if self._volume_constraint_gpu_mean() else ()),
@@ -2397,6 +2457,7 @@ class SphSimulatorV7:
                 (121, 'f', settings.distance_floor(self.wall_crossing_particle_radius())),
                 (130, 'I', 1 if n.volume_constraint.enabled else 0),       # numerics.volume_constraint.enabled
                 (131, 'I', 0),
+                (142, 'I', 1 if self._wall_crossing_wall_rate_loop() == "after_store" else 0),   # report section 10.5
             ] + self._wall_crossing_rule_entries()
         return [
             (0,  'f', p.smoothing_length),
@@ -2497,31 +2558,102 @@ class SphSimulatorV7:
             return self.shader_modules[self._wall_crossing_module_names()[1]]
         return self.shader_modules["force"]
 
-    @staticmethod
-    def _wall_crossing_module_names() -> tuple:
-        """(fused, force) modules of a crossing slab: the release builds, or the debug build that takes one register
-        item back (WALL_CROSSING_REVERT_SWITCHES), or the diagnostic summed density diffusion (fused only)."""
+    # The near-wall lanes rule (claude/wall_store_report.md section 10.6): k = NEAR_WALL_LANES_RULE_K invocations per
+    # near-wall particle when they fit in one wave of the device, i.e. NEAR_WALL_LANES_RULE_K x (the slab's fluid
+    # particles in near-wall voxels at the start) <= warps per SM x 32 x SM count; else 1. Measured on one RTX 5090
+    # (170 SMs x 48 warps): 2-D 250^2 / 500^2 / 1000^2 (1, 2, 4 near-wall warps per SM) and each slab of 1000^2 on two
+    # cards take k = 4, the 3-D 1M cavity (46 per SM) k = 1.
+    NEAR_WALL_LANES_RULE_K = 4
+
+    def _near_wall_lanes(self) -> int:
+        """k of the near-wall pipelines (spec const 141): V7_WALL_CROSSING_NEAR_WALL_LANES=k, or with auto (the
+        default) the rule above; 1 where no lanes build applies (not crossing, organisation (A), a debug /
+        diagnostic build, item (b)) or the device does not report its SM count (VK_NV_shader_sm_builtins). Resolved
+        once, printed."""
+        cached = self.__dict__.get("_near_wall_lanes_value")
+        if cached is not None:
+            return cached
+        note = ""
+        if _WALL_CROSSING_NEAR_WALL_LANES_EXPLICIT is not None:
+            lanes = _WALL_CROSSING_NEAR_WALL_LANES_EXPLICIT
+        elif not self._wall_crossing:
+            lanes = 1
+        elif _WALL_CROSSING_OLD_BUILD or _DISPATCH_TIMELINE or "distance_squared" in _LEAN_SELECTED:
+            lanes, note = 1, "1 (no lanes build for this build)"
+        elif not self._wall_crossing_split:
+            lanes, note = 1, "1 (organisation (A): no near-wall pipelines)"
+        elif self.ctx.streaming_multiprocessors() is None:
+            lanes, note = 1, "1 (the device does not report its SM count)"
+        else:
+            sm_count, warps_per_sm = self.ctx.streaming_multiprocessors()
+            near_wall = self.wall_crossing_near_wall_fluid_count()
+            wave = warps_per_sm * 32 * sm_count
+            k = self.NEAR_WALL_LANES_RULE_K
+            lanes = k if k * near_wall <= wave else 1
+            note = (f"{lanes} ({near_wall:,} fluid particles in near-wall voxels; {k} x that "
+                    f"{'<=' if lanes > 1 else '>'} one wave = {warps_per_sm} warps x 32 x {sm_count} SMs = {wave:,})")
+        self.__dict__["_near_wall_lanes_value"] = lanes
+        if note:
+            print(f"[SimV7] V7_WALL_CROSSING_NEAR_WALL_LANES=auto: {note}", flush=True)
+        return lanes
+
+    def wall_crossing_near_wall_fluid_count(self) -> int:
+        """The slab's initial fluid particles in the wall store's near-wall voxels (the near-wall dispatch's working
+        invocations at k = 1; experiment/wall_crossing/near_wall_count.py counts the same)."""
+        from experiment.v7.utils.wall_store_v7 import _voxel_coordinates, _voxel_ids
+        layout = self.wall_store_layout()
+        positions = np.asarray(self.case.initial.positions, dtype=np.float64)
+        coordinates = _voxel_coordinates(positions, self.case.grid, float(self.case.wall_source.smoothing_length))
+        return int((layout.near_wall_flags[_voxel_ids(coordinates, self.case.grid)] != 0).sum())
+
+    def _wall_crossing_wall_rate_loop(self) -> str:
+        """Spec const 142 of a crossing slab's fused pipelines: combined or after_store (module level
+        WALL_CROSSING_WALL_RATE_LOOP_BY_DIMENSION, V7_WALL_CROSSING_WALL_RATE_LOOP)."""
+        if _WALL_RATE_LOOP != "auto":
+            return _WALL_RATE_LOOP
+        return WALL_CROSSING_WALL_RATE_LOOP_BY_DIMENSION[int(self.case.physics.dimension)]
+
+    def _wall_crossing_items(self) -> tuple:
+        """The items of crossing's fused pass and force (both pipelines): the experimental V7_FLUID_SEGMENT_* items
+        and, in 2-D, the default (a) unless V7_WALL_CROSSING_ZERO_Z=0; a 3-D slab never takes (a) (its default builds
+        are the plain ones). Item (e) stays experimental (section 10.7: with the lanes rule it is slower at 250^2)."""
+        two_dimensional = int(self.case.physics.dimension) == 2
+        items = set(_LEAN_SELECTED)
+        if two_dimensional and _WALL_CROSSING_ZERO_Z:
+            items.add("zero_z")
+        if not two_dimensional:
+            items.discard("zero_z")
+        return tuple(item for item in LEAN_ITEMS if item in items)
+
+    def _wall_crossing_module_names(self) -> tuple:
+        """(fused, force) modules of a crossing slab's pipelines other than the near-wall ones of organisation (B):
+        the defaults (2-D: item (a), the copies' *_lean_zero_z builds; 3-D: the plain builds), the experimental items
+        on top, or the debug build that takes one register item back (WALL_CROSSING_REVERT_SWITCHES), or the
+        diagnostic summed density diffusion (fused only)."""
         if _WALL_CROSSING_DIFFUSION_SUMMED:
             return "correction_density_wall_crossing_diffusion_summed", "force_wall_crossing"
-        suffix = (f"_revert_{_WALL_CROSSING_REVERTED[0]}" if _WALL_CROSSING_REVERTED
-                  else _LEAN_SUFFIX)   # EXPERIMENTAL V7_FLUID_SEGMENT_* (section 9): the lean copy's build of the item(s)
-        return f"correction_density_wall_crossing{suffix}", f"force_wall_crossing{suffix}"
+        if _WALL_CROSSING_REVERTED:
+            suffix = f"_revert_{_WALL_CROSSING_REVERTED[0]}"
+            return f"correction_density_wall_crossing{suffix}", f"force_wall_crossing{suffix}"
+        items = self._wall_crossing_items()
+        timeline = "_timeline" if _DISPATCH_TIMELINE else ""   # DIAGNOSTIC V7_DISPATCH_TIMELINE
+        return (_wall_crossing_lean_name("correction_density", items) + timeline,
+                _wall_crossing_lean_name("force", items) + timeline)
 
-    @staticmethod
-    def _wall_crossing_near_wall_module_names() -> tuple:
-        """(fused, force) modules of organisation (B)'s near-wall pipelines: those of _wall_crossing_module_names,
-        or the EXPERIMENTAL builds of section 9: V7_WALL_CROSSING_NEAR_WALL_LANES > 1 (both passes, k invocations
-        per particle), V7_FLUID_SEGMENT_FORCE_FACTORED (force only, M_i out of the pair sums)."""
-        fused, force = SphSimulatorV7._wall_crossing_module_names()
-        if _WALL_CROSSING_NEAR_WALL_LANES > 1:
-            return "correction_density_wall_crossing_near_wall_lanes", "force_wall_crossing_near_wall_lanes"
-        # DIAGNOSTIC V7_FLUID_SEGMENT_SCOPE=interior: the near-wall pipelines without the lean items
-        items_here = bool(_LEAN_SUFFIX) and _LEAN_SCOPE == "both"
-        if _LEAN_SUFFIX and not items_here:
-            fused, force = "correction_density_wall_crossing", "force_wall_crossing"
-        if _LEAN_FORCE_FACTORED:
-            force = "force_wall_crossing_lean_all_factored" if items_here else "force_wall_crossing_lean_factored"
-        return fused, force
+    def _wall_crossing_near_wall_module_names(self, lanes_allowed: bool = True) -> tuple:
+        """(fused, force) modules of organisation (B)'s near-wall pipelines: the items of _wall_crossing_module_names
+        (with V7_FLUID_SEGMENT_SCOPE=interior only the default (a)), the near-wall force with item (d) by default
+        (V7_WALL_CROSSING_FORCE_FACTORED), and the EXPERIMENTAL lanes builds with V7_WALL_CROSSING_NEAR_WALL_LANES."""
+        items = self._wall_crossing_items()
+        if _WALL_CROSSING_OLD_BUILD:
+            return self._wall_crossing_module_names()
+        if _LEAN_SCOPE == "interior":
+            items = tuple(item for item in items if item == "zero_z")
+        lanes = self._near_wall_lanes() > 1 and lanes_allowed
+        timeline = "_timeline" if _DISPATCH_TIMELINE else ""   # DIAGNOSTIC V7_DISPATCH_TIMELINE
+        force = (_wall_crossing_lean_name("force", items, factored=_WALL_CROSSING_FORCE_FACTORED, lanes=lanes)
+                 + timeline)
+        return _wall_crossing_lean_name("correction_density", items, lanes=lanes) + timeline, force
 
     def _fused_shader_module(self):
         """correction_density.comp's module of this slab's pipelines that do not skip deep walls: the
@@ -3159,9 +3291,9 @@ class SphSimulatorV7:
         self._wall_crossing_split_dispatches = {}
         if self._wall_crossing_split:
             self._build_wall_crossing_split_pipelines(pipelines)
-        elif self._wall_crossing and (_LEAN_FORCE_FACTORED or _WALL_CROSSING_NEAR_WALL_LANES > 1):
-            raise ValueError("V7_FLUID_SEGMENT_FORCE_FACTORED / V7_WALL_CROSSING_NEAR_WALL_LANES act on the near-wall "
-                             "pipelines of organisation (B): this slab does not split its passes")
+        elif self._wall_crossing and _EXPLICIT_LANES > 1:
+            raise ValueError("V7_WALL_CROSSING_NEAR_WALL_LANES acts on the near-wall pipelines of organisation (B): this "
+                             "slab does not split its passes")
         # numerics.volume_constraint.gpu_mean_volume (report section 22)
         if self._volume_constraint_gpu_mean():
             pipelines["volume_constraint_reduction"] = self._create_pipeline(
@@ -3250,21 +3382,28 @@ class SphSimulatorV7:
         near_wall_fused, near_wall_force = self._wall_crossing_near_wall_module_names()
         near_wall_modules = {"fused": self.shader_modules[near_wall_fused],
                              "force": self.shader_modules[near_wall_force]}
+        band_near_wall_modules = near_wall_modules
         lane_entries = []
-        if _WALL_CROSSING_NEAR_WALL_LANES > 1:
-            transport = self.case.transport
-            if transport.has_leading_peer or transport.has_trailing_peer:
-                raise ValueError("V7_WALL_CROSSING_NEAR_WALL_LANES: one slab only (the band pipelines map one "
-                                 "invocation per particle)")
-            lane_entries = [(141, 'I', _WALL_CROSSING_NEAR_WALL_LANES)]
+        # the near-wall pipelines dispatched with k invocations per particle (_record_pass_dispatch)
+        self._wall_crossing_lane_keys = set()
+        if self._near_wall_lanes() > 1:
+            lane_entries = [(141, 'I', self._near_wall_lanes())]
+            # the band pipelines of a slab with a peer (phase C, band-voxel dispatch) map one invocation per particle
+            # themselves: their near-wall pipelines keep the builds without lanes (k = 1); the other passes' take k
+            # (report section 10.6)
+            band_fused, band_force = self._wall_crossing_near_wall_module_names(lanes_allowed=False)
+            band_near_wall_modules = {"fused": self.shader_modules[band_fused], "force": self.shader_modules[band_force]}
         for base, (kernel, mode_entries, band) in self._wall_crossing_split_bases().items():
             if band and _WALL_CROSSING_SPLIT_BAND_MODE == "1":
                 continue
             entries = [entry for entry in self._global_entries() + mode_entries if entry[0] != 131]
             interior_key, near_wall_key = f"{base}_split_interior", f"{base}_split_near_wall"
             pipelines[interior_key] = self._create_pipeline(shader=modules[kernel], entries=entries + [(131, 'I', 1)])
-            pipelines[near_wall_key] = self._create_pipeline(shader=near_wall_modules[kernel],
-                                                             entries=entries + [(131, 'I', 2)] + lane_entries)
+            pipelines[near_wall_key] = self._create_pipeline(
+                shader=(band_near_wall_modules if band else near_wall_modules)[kernel],
+                entries=entries + [(131, 'I', 2)] + ([] if band else lane_entries))
+            if lane_entries and not band:
+                self._wall_crossing_lane_keys.add(near_wall_key)
             order_setting = (_WALL_CROSSING_SPLIT_ORDER
                              or self.case.numerics.wall_crossing.resolved_split_order(self.case.physics.dimension))
             order = ((near_wall_key, interior_key) if order_setting == "near_wall_first"
@@ -3286,7 +3425,7 @@ class SphSimulatorV7:
         for index, key in enumerate(split):
             self._bind_pipeline_and_sets(cmd, key)
             # EXPERIMENTAL V7_WALL_CROSSING_NEAR_WALL_LANES (section 9.4): k invocations per particle
-            lanes = _WALL_CROSSING_NEAR_WALL_LANES if key.endswith("_split_near_wall") else 1
+            lanes = self._near_wall_lanes() if key in self.__dict__.get("_wall_crossing_lane_keys", ()) else 1
             vkCmdDispatch(cmd, group_count * lanes, 1, 1)
             if tick and index < len(split) - 1 and _BENCH_TICK_DETAIL == "kernel":
                 self._bench_tick(cmd, f"{tick}_{key[len(pipeline_key) + len('_split_'):]}")

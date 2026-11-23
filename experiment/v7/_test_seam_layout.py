@@ -1623,7 +1623,7 @@ WALL_CROSSING_ADDED_SPIRV = frozenset({"correction_density_wall_crossing.comp.sp
                                        "correction_density_wall_crossing_diffusion_summed.comp.spv"}
                                       | {f"{kernel}_wall_crossing_revert_{item}.comp.spv"
                                          for kernel in ("correction_density", "force")
-                                         for item in ("rule_types", "body_motion", "mirror", "wall_rate_loop")}
+                                         for item in ("rule_types", "body_motion", "mirror")}
                                       # wall store round 3 (EXPERIMENTAL, report section 9): the lean copies' plain
                                       # builds and the builds of compile_shaders_v7.LEAN_VARIANTS, loaded only with the
                                       # V7_FLUID_SEGMENT_* / V7_WALL_CROSSING_NEAR_WALL_LANES switches
@@ -1638,7 +1638,34 @@ WALL_CROSSING_ADDED_SPIRV = frozenset({"correction_density_wall_crossing.comp.sp
                                                         "force_wall_crossing")
                                          for items in ("zero_z", "distance_squared", "kernel_range", "all",
                                                        "zero_z_distance_squared", "zero_z_kernel_range",
-                                                       "distance_squared_kernel_range")})
+                                                       "distance_squared_kernel_range")}
+                                      # wall store round 4 (report section 10): the factored near-wall force with
+                                      # every set of items (2-D's default: _lean_zero_z_factored) and the lanes builds
+                                      # with item (a) / (d)
+                                      | {f"force_wall_crossing_lean_{items}_factored.comp.spv"
+                                         for items in ("zero_z", "distance_squared", "kernel_range",
+                                                       "zero_z_distance_squared", "zero_z_kernel_range",
+                                                       "distance_squared_kernel_range")}
+                                      | {"correction_density_wall_crossing_lean_zero_z_near_wall_lanes.comp.spv",
+                                         "force_wall_crossing_lean_zero_z_near_wall_lanes.comp.spv",
+                                         "force_wall_crossing_lean_factored_near_wall_lanes.comp.spv",
+                                         "force_wall_crossing_lean_zero_z_factored_near_wall_lanes.comp.spv"}
+                                      # section 10.7: the lanes builds with item (e)
+                                      | {f"{kernel}_lean_{items}{factored}_near_wall_lanes.comp.spv"
+                                         for kernel, factored in (("correction_density_wall_crossing", ""),
+                                                                  ("force_wall_crossing", ""),
+                                                                  ("force_wall_crossing", "_factored"))
+                                         for items in ("kernel_range", "zero_z_kernel_range")}
+                                      # DIAGNOSTIC (section 10.4): the dispatch timeline builds, V7_DISPATCH_TIMELINE=1
+                                      | {f"{name}_timeline.comp.spv" for name in (
+                                          "correction_density_wall_crossing", "force_wall_crossing",
+                                          "correction_density_wall_crossing_lean_zero_z", "force_wall_crossing_lean_zero_z",
+                                          "force_wall_crossing_lean_zero_z_factored",
+                                          "correction_density_wall_crossing_lean_zero_z_kernel_range",
+                                          "force_wall_crossing_lean_zero_z_kernel_range",
+                                          "force_wall_crossing_lean_zero_z_kernel_range_factored",
+                                          "correction_density_wall_crossing_lean_zero_z_near_wall_lanes",
+                                          "force_wall_crossing_lean_zero_z_factored_near_wall_lanes")})
 
 
 def _without_bootstrap_density_copy(source: str, origin: str) -> str:

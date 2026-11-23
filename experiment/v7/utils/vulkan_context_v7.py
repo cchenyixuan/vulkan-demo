@@ -395,9 +395,25 @@ class VulkanContextV7:
         #   VkDeviceCreateInfo.pNext ─→ Features2
         #     Features2.pNext        ─→ Vulkan12Features  (timelineSemaphore)
         #       Vulkan12Features.pNext ─→ Vulkan13Features (synchronization2)
+        # DIAGNOSTIC (claude/wall_store_report.md section 10, V7_DISPATCH_TIMELINE=1): the realtime shader clock and the
+        # SM id builtin, for the per-workgroup dispatch timeline of the *_timeline builds; off by default.
+        timeline_features = None
+        if os.environ.get("V7_DISPATCH_TIMELINE", "0") == "1":
+            from vulkan import (VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CLOCK_FEATURES_KHR,
+                                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SM_BUILTINS_FEATURES_NV,
+                                VkPhysicalDeviceShaderClockFeaturesKHR, VkPhysicalDeviceShaderSMBuiltinsFeaturesNV)
+            timeline_features = VkPhysicalDeviceShaderClockFeaturesKHR(
+                sType=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_CLOCK_FEATURES_KHR,
+                shaderSubgroupClock=VK_TRUE, shaderDeviceClock=VK_TRUE,
+                pNext=VkPhysicalDeviceShaderSMBuiltinsFeaturesNV(
+                    sType=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SM_BUILTINS_FEATURES_NV,
+                    shaderSMBuiltins=VK_TRUE))
+            extra_device_extensions = list(extra_device_extensions or []) + ["VK_KHR_shader_clock",
+                                                                             "VK_NV_shader_sm_builtins"]
         features_1_3 = VkPhysicalDeviceVulkan13Features(
             sType=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
             synchronization2=VK_TRUE,
+            pNext=timeline_features,
         )
         features_1_2 = VkPhysicalDeviceVulkan12Features(
             sType=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
@@ -535,6 +551,25 @@ class VulkanContextV7:
             vkDestroyFence(self.device, fence, None)
 
     # ------------------------------------------------------------------
+
+    def streaming_multiprocessors(self) -> Optional[tuple]:
+        """(SM count, warps per SM) of the device from VkPhysicalDeviceShaderSMBuiltinsPropertiesNV when it offers
+        VK_NV_shader_sm_builtins (a property query: the extension need not be enabled), None otherwise. Used by
+        wall_boundary crossing's near-wall lanes rule (claude/wall_store_report.md section 10.6)."""
+        cached = self.__dict__.get("_streaming_multiprocessors")
+        if cached is not None:
+            return cached or None
+        offered = {properties.extensionName
+                   for properties in vkEnumerateDeviceExtensionProperties(self.physical_device, None)}
+        result = ()
+        if "VK_NV_shader_sm_builtins" in offered:
+            builtins = VkPhysicalDeviceShaderSMBuiltinsPropertiesNV(
+                sType=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SM_BUILTINS_PROPERTIES_NV)
+            vkGetPhysicalDeviceProperties2(self.physical_device, VkPhysicalDeviceProperties2(
+                sType=VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2, pNext=builtins))
+            result = (int(builtins.shaderSMCount), int(builtins.shaderWarpsPerSM))
+        self.__dict__["_streaming_multiprocessors"] = result
+        return result or None
 
     def destroy(self) -> None:
         if self._destroyed:

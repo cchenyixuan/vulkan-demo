@@ -1,5 +1,9 @@
 #version 460
 #extension GL_GOOGLE_include_directive : enable
+#ifdef DISPATCH_TIMELINE
+#extension GL_EXT_shader_realtime_clock : enable
+#extension GL_NV_shader_sm_builtins : enable
+#endif
 #ifdef WALL_CROSSING_NEAR_WALL_LANES
 #extension GL_KHR_shader_subgroup_basic : enable
 #extension GL_KHR_shader_subgroup_shuffle : enable
@@ -85,10 +89,13 @@
 // ============================================================================
 
 // ============================================================================
-// EXPERIMENTAL COPY of correction_density.comp (claude/wall_store_report.md section 9, the "lean" fluid segment;
-// wall store round 3). Built only as the variants of compile_shaders_v7.LEAN_VARIANTS and loaded only through the
-// V7_FLUID_SEGMENT_* switches (all off by default). Without a LEAN_* macro this file is correction_density.comp: its plain
-// build correction_density_lean.comp.spv is byte-identical to correction_density.comp.spv. Items:
+// COPY of correction_density.comp with the fluid-segment items as macros (claude/wall_store_report.md sections 9-10,
+// wall store rounds 3-4). Built as the variants of compile_shaders_v7.LEAN_VARIANTS. Without a LEAN_* macro this file
+// is correction_density.comp: its plain and WALL_CROSSING builds are byte-identical to correction_density.comp.spv /
+// correction_density_wall_crossing.comp.spv (compile_shaders_v7.check_lean_copies runs after every compile: edit both
+// files together). Since round 4 its build correction_density_wall_crossing_lean_zero_z (item (a)) is wall_boundary
+// crossing's 2-D DEFAULT for both pipelines (simulator_v7; V7_WALL_CROSSING_ZERO_Z=0 takes it back). The other items
+// are EXPERIMENTAL (V7_FLUID_SEGMENT_*, off by default). Items:
 //   LEAN_ZERO_Z           (a) 2-D: the z of every position and velocity read in the loops is set to 0 right after
 //                             the read (the stored z is 0 already), so the compiler can drop the z arithmetic
 //   LEAN_DISTANCE_SQUARED (b) the support test on r^2 (r^2 >= h^2 or r^2 < 1e-24), the square root only for the
@@ -262,10 +269,8 @@ void wall_crossing_wall_rate_pair(uint wall_index, vec3 neighbor_position, vec3 
 }
 
 // wall_boundary crossing: between the segments and the wall segment of a particle near a wall (see the header).
-// correction_matrix holds A_f on entry and the full matrix on return; kernel_sum takes the wall pairs. The wall pairs
-// of S follow after the epilogue's store (wall_crossing_wall_rate_segment), so that the correction matrix and L_i are
-// not held through their pair work; DEBUG WALL_CROSSING_REVERT_WALL_RATE_LOOP: here, in this loop, as before. Either
-// way S takes the same pairs in the same order.
+// correction_matrix holds A_f on entry and the full matrix on return; kernel_sum takes the wall pairs; with spec const
+// 142 = 0 the wall pairs of S as well (with 1 they follow after the epilogue's store).
 void wall_crossing_wall_segment(uint self_particle_id, vec3 self_position, ivec3 self_voxel_coord,
                                 vec3 self_velocity, float self_density, MaterialParameters self_params,
                                 float diffusion_coefficient, vec3 fluid_density_gradient,
@@ -293,12 +298,15 @@ void wall_crossing_wall_segment(uint self_particle_id, vec3 self_position, ivec3
         fluid_inverse_valid ? 1.0 : 0.0);
     wall_crossing_fluid_inverse[self_particle_id * 2u]      = fluid_inverse_diagonal_and_xy;
     wall_crossing_fluid_inverse[self_particle_id * 2u + 1u] = fluid_inverse_xz_and_yz;
-#ifdef WALL_CROSSING_REVERT_WALL_RATE_LOOP
-    vec3  one_sided_density_gradient;
-    float density_over_sound_speed_squared;
-    wall_crossing_density_rule_inputs(fluid_inverse_diagonal_and_xy, fluid_inverse_xz_and_yz, fluid_density_gradient,
-                                      self_density, self_params, one_sided_density_gradient,
-                                      density_over_sound_speed_squared);
+#ifndef WALL_CROSSING_DIFFUSION_SUMMED
+    // spec const 142 = 0: the wall pairs of S in this loop need G and rho_i / c^2 now
+    vec3  one_sided_density_gradient = vec3(0.0);
+    float density_over_sound_speed_squared = 0.0;
+    if (!WALL_CROSSING_WALL_RATE_AFTER_STORE) {
+        wall_crossing_density_rule_inputs(fluid_inverse_diagonal_and_xy, fluid_inverse_xz_and_yz,
+                                          fluid_density_gradient, self_density, self_params,
+                                          one_sided_density_gradient, density_over_sound_speed_squared);
+    }
 #endif
 
     // ---- the wall segment: the wall records of the 3^d voxels, the neighbour order of the fluid segment
@@ -346,12 +354,15 @@ void wall_crossing_wall_segment(uint self_particle_id, vec3 self_position, ivec3
                     correction_matrix += neighbor_volume
                         * outerProduct(position_difference_self_to_neighbor, kernel_gradient_value);
                     kernel_sum += neighbor_volume * kernel_value;
-#ifdef WALL_CROSSING_REVERT_WALL_RATE_LOOP
-                    wall_crossing_wall_rate_pair(wall_index, neighbor_position, position_difference_neighbor_to_self,
-                                                 distance, neighbor_volume, kernel_gradient_value, self_position,
-                                                 self_velocity, self_density, diffusion_coefficient,
-                                                 one_sided_density_gradient, density_over_sound_speed_squared,
-                                                 density_rate_diagonal, density_rate_off_diagonal);
+#ifndef WALL_CROSSING_DIFFUSION_SUMMED
+                    if (!WALL_CROSSING_WALL_RATE_AFTER_STORE) {
+                        wall_crossing_wall_rate_pair(wall_index, neighbor_position,
+                                                     position_difference_neighbor_to_self, distance, neighbor_volume,
+                                                     kernel_gradient_value, self_position, self_velocity,
+                                                     self_density, diffusion_coefficient, one_sided_density_gradient,
+                                                     density_over_sound_speed_squared, density_rate_diagonal,
+                                                     density_rate_off_diagonal);
+                    }
 #endif
                 }
             }
@@ -364,9 +375,8 @@ void wall_crossing_wall_segment(uint self_particle_id, vec3 self_position, ivec3
 #endif
 }
 
-#ifndef WALL_CROSSING_REVERT_WALL_RATE_LOOP
 // wall_boundary crossing, the wall pairs of S of a particle near a wall, after the epilogue's store
-// (process_particle). G from A_f^-1 and g_f as this invocation stored them (the same values), the wall records in the
+// (process_particle; spec const 142 = 1). G from A_f^-1 and g_f as this invocation stored them (the same values), the wall records in the
 // order of the wall segment.
 void wall_crossing_wall_rate_segment(uint self_particle_id, vec3 self_position, ivec3 self_voxel_coord,
                                      vec3 self_velocity, float self_density, MaterialParameters self_params,
@@ -439,7 +449,6 @@ void wall_crossing_wall_rate_segment(uint self_particle_id, vec3 self_position, 
         }
     }
 }
-#endif
 #endif
 
 void process_particle(uint self_particle_id) {
@@ -704,10 +713,10 @@ void process_particle(uint self_particle_id) {
     float inverse_xy = correction_matrix_inverse[0][1];
     float inverse_xz = correction_matrix_inverse[0][2];
     float inverse_yz = correction_matrix_inverse[1][2];
-#if defined(WALL_CROSSING) && !defined(WALL_CROSSING_REVERT_WALL_RATE_LOOP)
-    // wall_boundary crossing, a particle near a wall: the wall pairs of S now, after the store, then L_i again from the
-    // store (the values just written)
-    if (WALL_CROSSING_WALL_SEGMENT_COMPILED && self_near_wall) {
+#if defined(WALL_CROSSING)
+    // wall_boundary crossing, a particle near a wall, spec const 142 = 1: the wall pairs of S now, after the store,
+    // then L_i again from the store (the values just written)
+    if (WALL_CROSSING_WALL_RATE_AFTER_STORE && WALL_CROSSING_WALL_SEGMENT_COMPILED && self_near_wall) {
         wall_crossing_wall_rate_segment(self_particle_id, self_position, self_voxel_coord, self_velocity, self_density,
                                         self_params, diffusion_coefficient, density_rate_diagonal,
                                         density_rate_off_diagonal
@@ -771,7 +780,11 @@ void process_particle(uint self_particle_id) {
 // Entry point: correction.comp's (the thread -> self pid mappings of
 // BAND_VOXEL_DISPATCH 0 / 1 / 2 at width NEIGHBOR_X_RANGE).
 // ---------------------------------------------------------------------------
+#ifdef DISPATCH_TIMELINE
+void dispatch_main() {
+#else
 void main() {
+#endif
     uint thread_id = gl_GlobalInvocationID.x;
     if (BAND_VOXEL_DISPATCH == 2u) {
         // V7_BAND_COMPACT_DISPATCH: thread = entry of the compacted band list
@@ -806,3 +819,40 @@ void main() {
     if (self_particle_id > own_last_pid()) return;
     process_particle(self_particle_id);
 }
+
+#ifdef DISPATCH_TIMELINE
+#ifndef WALL_CROSSING
+#error DISPATCH_TIMELINE records the dispatches of wall_boundary crossing's split passes
+#endif
+// ============================================================================
+// DIAGNOSTIC (claude/wall_store_report.md section 10.4, V7_DISPATCH_TIMELINE=1; the *_timeline builds): per workgroup
+// of a split pass's dispatch, the SM it ran on (gl_SMIDNV) and the device's realtime clock (nanoseconds) when its
+// invocation 0 started and after the workgroup's barrier at the end. Nothing is written between the dispatches, so
+// they keep overlapping as in the step. Record [slot][workgroup] = 8 words (SM id, start low, start high, end low,
+// end high, 0, 0, 0), slot = 2 x pass (0 the fused pass, 1 force) + (1 for the near-wall class); the every-particle
+// class (the bootstrap's, organisation (A)) writes nothing. The step overwrites the records; the host reads them back
+// after a step (experiment/wall_crossing/dispatch_timeline.py).
+// ============================================================================
+layout(std430, set = 3, binding = 12) buffer DispatchTimelineBuffer {
+    uint dispatch_timeline_words[];
+};
+
+void main() {
+    uvec2 start_clock = clockRealtime2x32EXT();
+    dispatch_main();
+    barrier();
+    if (gl_LocalInvocationIndex == 0u && WALL_CROSSING_DISPATCH_CLASS != WALL_CROSSING_DISPATCH_EVERY_PARTICLE) {
+        uvec2 end_clock = clockRealtime2x32EXT();
+        uint slot = 0u * 2u + (WALL_CROSSING_DISPATCH_CLASS == WALL_CROSSING_DISPATCH_NEAR_WALL ? 1u : 0u);
+        uint group_capacity = uint(dispatch_timeline_words.length()) / 32u;
+        if (gl_WorkGroupID.x < group_capacity) {
+            uint base = (slot * group_capacity + gl_WorkGroupID.x) * 8u;
+            dispatch_timeline_words[base + 0u] = gl_SMIDNV;
+            dispatch_timeline_words[base + 1u] = start_clock.x;
+            dispatch_timeline_words[base + 2u] = start_clock.y;
+            dispatch_timeline_words[base + 3u] = end_clock.x;
+            dispatch_timeline_words[base + 4u] = end_clock.y;
+        }
+    }
+}
+#endif
