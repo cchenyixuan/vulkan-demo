@@ -107,11 +107,20 @@ def main() -> int:
     parser.add_argument("--extra-snapshot-windows", default=None,
                         help="t0:t1[,t0:t1...]: also save particle snapshots in these windows (every 35000 steps, "
                              "<run>/snapshots_extra; cavity_runner_entry.py item 5)")
+    parser.add_argument("--extra-switch", action="append", default=[], metavar="NAME=VALUE",
+                        help="wall store round 3: an EXPERIMENTAL solver switch (e.g. "
+                             "V7_WALL_CROSSING_NEAR_WALL_LANES=4) set for the run beside the release set and passed "
+                             "to the runner, which accepts it and records it in meta.json")
     arguments = parser.parse_args()
 
     from experiment.validation import cavity_campaign
     environment = cavity_campaign.environment("release", "v7")
     environment["OPENBLAS_NUM_THREADS"] = "1"
+    for item in arguments.extra_switch:
+        name, separator, value = item.partition("=")
+        if not separator or not name.startswith("V7_"):
+            parser.error(f"--extra-switch {item!r}: expected V7_NAME=VALUE")
+        environment[name] = value
     if arguments.initial_density_offset != 0.0:
         environment["WALL_CROSSING_INITIAL_DENSITY_OFFSET"] = repr(arguments.initial_density_offset)
     if arguments.extra_snapshot_windows:
@@ -131,6 +140,8 @@ def main() -> int:
                     "--average-span", str(arguments.average_span)]
     if arguments.max_steps is not None:
         base_command += ["--max-steps", str(arguments.max_steps)]
+    for item in arguments.extra_switch:
+        base_command += ["--extra-switch", item]
 
     with LoggedRun(kind="cavity", case=arguments.case, gpu_uuids=[arguments.uuid]) as run:
         run.extra["name"] = arguments.name

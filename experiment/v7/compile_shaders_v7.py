@@ -52,6 +52,47 @@ V7_SPV_DIR = V7_SHADER_DIR + "/spv"
 # the wall store's register items with a debug build that takes each back (simulator_v7.WALL_CROSSING_REVERT_SWITCHES)
 WALL_CROSSING_REVERT_ITEMS = ("rule_types", "body_motion", "mirror", "wall_rate_loop")
 
+# EXPERIMENTAL (claude/wall_store_report.md section 9, wall store round 3): the lean copies of the fluid segment,
+# shaders/correction_density_lean.comp and force_lean.comp (their plain builds, compiled like every *.comp, are
+# byte-identical to correction_density.comp.spv and force.comp.spv: the check that the copies are faithful). Every
+# combination of the three items (alone, in pairs, all three), for simple's modules (the fused pass, its
+# deep-wall-skip build, force) and crossing's; loaded only through simulator_v7's V7_FLUID_SEGMENT_* switches (off by
+# default).
+LEAN_ITEM_MACROS = {"zero_z": "LEAN_ZERO_Z", "distance_squared": "LEAN_DISTANCE_SQUARED",
+                    "kernel_range": "LEAN_KERNEL_RANGE"}
+LEAN_ITEM_SETS = tuple(tuple(item for index, item in enumerate(LEAN_ITEM_MACROS) if mask >> index & 1)
+                       for mask in range(1, 2 ** len(LEAN_ITEM_MACROS)))
+
+
+def lean_suffix(items) -> str:
+    """The module-name suffix of a set of lean items (simulator_v7 names the same files)."""
+    ordered = [item for item in LEAN_ITEM_MACROS if item in items]
+    return "_lean_all" if len(ordered) == len(LEAN_ITEM_MACROS) else "_lean_" + "_".join(ordered)
+
+
+_lean_suffix = lean_suffix
+
+
+LEAN_VARIANTS = (
+    *((f"{kernel}{_lean_suffix(items)}", source, (*prefix, *(LEAN_ITEM_MACROS[item] for item in items)))
+      for items in LEAN_ITEM_SETS
+      for kernel, source, prefix in (("correction_density", "correction_density_lean.comp", ()),
+                                     ("correction_density_deep_wall_skip", "correction_density_lean.comp",
+                                      ("DEEP_WALL_SKIP",)),
+                                     ("force", "force_lean.comp", ()),
+                                     ("correction_density_wall_crossing", "correction_density_lean.comp",
+                                      ("WALL_CROSSING",)),
+                                     ("force_wall_crossing", "force_lean.comp", ("WALL_CROSSING",)))),
+    # (d) crossing's near-wall force with M_i out of the pair sums, alone and with the three items
+    ("force_wall_crossing_lean_factored", "force_lean.comp", ("WALL_CROSSING", "LEAN_FORCE_FACTORED")),
+    ("force_wall_crossing_lean_all_factored", "force_lean.comp",
+     ("WALL_CROSSING", "LEAN_FORCE_FACTORED", *LEAN_ITEM_MACROS.values())),
+    # section 9.4: crossing's near-wall pipelines with k invocations per particle (spec const 141 = k)
+    ("correction_density_wall_crossing_near_wall_lanes", "correction_density_lean.comp",
+     ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL_LANES")),
+    ("force_wall_crossing_near_wall_lanes", "force_lean.comp", ("WALL_CROSSING", "WALL_CROSSING_NEAR_WALL_LANES")),
+)
+
 # E39 B4: (output name, source, preprocessor macros): a source compiled a
 # second time with -D<macro> into spv/<output name>.comp.spv. The variant's code
 # sits in the source behind #ifdef, so the plain build of the source (no macro)
@@ -79,6 +120,8 @@ SHADER_VARIANTS = (
     *((f"{kernel}_wall_crossing_revert_{item}", source, ("WALL_CROSSING", f"WALL_CROSSING_REVERT_{item.upper()}"))
       for kernel, source in (("correction_density", "correction_density.comp"), ("force", "force.comp"))
       for item in WALL_CROSSING_REVERT_ITEMS),
+    # EXPERIMENTAL (section 9): the lean copies' builds (LEAN_VARIANTS above)
+    *LEAN_VARIANTS,
 )
 
 

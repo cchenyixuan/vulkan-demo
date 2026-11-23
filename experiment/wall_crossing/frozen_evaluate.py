@@ -30,6 +30,11 @@ def main() -> int:
     parser.add_argument("--sort-voxel-lists", action="store_true",
                         help="sort every voxel's particle list by pid after the rebuild (the atomic fill order varies "
                              "from run to run, and with it the summation order): a bit-reproducible evaluation")
+    parser.add_argument("--split", action="store_true",
+                        help="wall store round 3: record the two passes as the step does (SphSimulatorV7."
+                             "_record_pass_dispatch), so a crossing slab that splits its passes runs its interior and "
+                             "near-wall pipelines (and their EXPERIMENTAL builds, V7_FLUID_SEGMENT_FORCE_FACTORED / "
+                             "V7_WALL_CROSSING_NEAR_WALL_LANES) instead of the one-pipeline builds")
     arguments = parser.parse_args()
     repo = pathlib.Path(arguments.repo).resolve()
     sys.path.insert(0, str(repo))
@@ -70,11 +75,17 @@ def main() -> int:
     vkBeginCommandBuffer(command, VkCommandBufferBeginInfo(flags=VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT))
     groups = simulator._per_own_particle_dispatch_count()
     simulator._record_compute_barrier(command)
-    simulator._bind_pipeline_and_sets(command, "correction_density_all")
-    vkCmdDispatch(command, groups, 1, 1)
-    simulator._record_compute_barrier(command)
-    simulator._bind_pipeline_and_sets(command, "force_all")
-    vkCmdDispatch(command, groups, 1, 1)
+    if arguments.split:
+        # the step's recording of a pass: the split pipelines where the slab splits, else the key's own pipeline
+        simulator._record_pass_dispatch(command, "correction_density_all", groups)
+        simulator._record_compute_barrier(command)
+        simulator._record_pass_dispatch(command, "force_all", groups)
+    else:
+        simulator._bind_pipeline_and_sets(command, "correction_density_all")
+        vkCmdDispatch(command, groups, 1, 1)
+        simulator._record_compute_barrier(command)
+        simulator._bind_pipeline_and_sets(command, "force_all")
+        vkCmdDispatch(command, groups, 1, 1)
     simulator._record_compute_barrier(command)
     vkEndCommandBuffer(command)
     context.submit_and_wait(command)

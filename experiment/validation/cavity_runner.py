@@ -99,10 +99,11 @@ def expected_environments(solver: str) -> dict:
             for expect, environment in EXPECTED.items()}
 
 
-def check_environment(expect: str, solver: str = "v6") -> dict:
+def check_environment(expect: str, solver: str = "v6", extra_switches: dict | None = None) -> dict:
     """The solver's switch environment (V6_* or V7_*) must be exactly the expected set (read before any solver
-    import); the other solver's variables are not looked at (that solver is not imported)."""
-    wanted = expected_environments(solver)[expect]
+    import), plus the --extra-switch entries when given; the other solver's variables are not looked at (that solver
+    is not imported)."""
+    wanted = {**expected_environments(solver)[expect], **(extra_switches or {})}
     prefix = switch_prefix(solver)
     actual = {key: value for key, value in os.environ.items() if key.startswith(prefix)}
     if actual != wanted:
@@ -312,8 +313,12 @@ def main() -> int:
                         help="comma-separated Vulkan deviceUUIDs the slabs' GPUs must have (e.g. the headless 5090)")
     parser.add_argument("--solver", choices=SOLVERS, default="v6",
                         help="experiment/v6 (default) or experiment/v7 (E39: V7_* switches, the same release set)")
+    parser.add_argument("--extra-switch", action="append", default=[], metavar="NAME=VALUE",
+                        help="wall store round 3 (EXPERIMENTAL builds): a solver switch the environment must also hold "
+                             "beside the --expect set, with exactly this value; recorded in meta.json with the rest")
     arguments = parser.parse_args()
-    environment = check_environment(arguments.expect, arguments.solver)
+    extra_switches = dict(item.split("=", 1) for item in arguments.extra_switch)
+    environment = check_environment(arguments.expect, arguments.solver, extra_switches)
     if arguments.t_end + arguments.average_span > arguments.t_max:
         sys.exit(f"[cavity] --t-end {arguments.t_end} + --average-span {arguments.average_span} exceeds --t-max {arguments.t_max}")
 

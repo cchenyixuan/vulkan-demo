@@ -1,0 +1,723 @@
+#version 460
+#extension GL_GOOGLE_include_directive : enable
+#ifdef WALL_CROSSING_NEAR_WALL_LANES
+#extension GL_KHR_shader_subgroup_basic : enable
+#extension GL_KHR_shader_subgroup_shuffle : enable
+#endif
+#include "common.glsl"
+#include "helpers.glsl"
+#include "wall_boundary.glsl"
+
+// ============================================================================
+// force.comp - δ-plus WCSPH acceleration + particle shifting (stage 5).
+//
+// Reads:
+//   - Self and neighbor positions, velocities, densities (post-density stage),
+//   - Self correction matrix M_i (neighbor M not needed here),
+//   - Self kernel_sum for PST blend.
+//
+// Per-particle accumulators:
+//   a_pressure    = -Σ_j V_j · F_ji / ρ_i · ∇W̃_ij       (Tait + TIC)
+//   a_viscosity   =  Σ_j 2(DIM+2) · ν · V_j · dot(v_i - v_j, x_ij)
+//                        / (r² + ε_h²) · ∇W̃_ij          (Morris)
+//   shift_main    = -(CFL · PST_MAIN_SHIFT_COEFFICIENT · 2 · h²) · Σ ... · ∇W̃ · V
+//   shift_anti    = +(CFL · PST_MAIN_SHIFT_COEFFICIENT · 2 · h²) · Σ (r/Δx) · ∇W̃ · V · PST_ANTI_SHIFT_COEFFICIENT
+//
+// Where:
+//   F_ji = (P_i > 0) ? P_i + P_j : P_j - P_i                   (TIC)
+//   ∇W̃_ij = M_i · ∇W_ij
+//
+// Outputs:
+//   acceleration[pid] = a_pressure + a_viscosity + gravity
+//   shift[pid]        = k · shift_main + (1-k) · shift_anti   where k = kernel_sum^4
+//
+// V0 simplification: particles share globally uniform viscosity / radius /
+// mass / volume. All pair-averaged quantities (ν_ij, Δx, V_ij, volume_ij)
+// reduce to self's values, so the neighbor loop does NOT read neighbor
+// MaterialParameters. When multi-phase is enabled (V0+), add back the per-
+// neighbor material / material_parameters reads and restore the harmonic means.
+//
+// wall_boundary crossing (WALL_CROSSING variant, force_wall_crossing.comp.spv; plan C, the static wall store;
+// wall_boundary.glsl has the rules): the pool holds the fluid only, so the loop below is the fluid segment. A
+// particle near a wall (its voxel's flag; spec const 131 picks the dispatch class) also sums
+// g_f = Σ_fluid V_j (p_j - p_i) ∇W_ij there, takes G_p = A_f^-1 g_f with the A_f^-1 the fused pass stored this
+// step, and runs the wall segment: every wall record of the 3^d voxels within h gets p_j and v_j from its wall
+// material's rules and adds the pressure (TIC), viscous and shifting pair terms of a fluid neighbour.
+//
+// Boundary particles early-return (static). Rotor computes the full
+// kernel but predict overrides its motion. Micropolar / curl output omitted.
+//
+// V1 merged-buffer scheme: own + ghost share set 0 / set 1. Self dispatch
+// is bounded to the own pid range. Neighbor iteration uses in_own_grid
+// (extended) so ghost neighbors are visible automatically.
+//
+// V1 freshness summary at force.comp time (Option B single sync):
+//   self own (after correction.comp + density.comp this step):
+//     position = t, velocity = t, ρ/P = t (fresh from density.comp's
+//                  scratch+copy), correction_inverse = t, kernel_sum = t.
+//   neighbor own:  position = t, velocity = t, ρ/P = t (same).
+//   neighbor GHOST: position = t, velocity = t, but
+//                   **ρ/P = t-1** (peer's last density.comp; sync 1 was
+//                   before peer's density this step).
+//
+// The ρ/P mismatch flows live into a_pressure (via neighbor_pressure +
+// neighbor_volume_dynamic = self_mass/neighbor_density), a_viscosity (via
+// neighbor_volume_dynamic), and the PST disorder term. Affects only own
+// particles in the boundary band (those whose neighbour iteration reaches
+// ghost voxels). ~1e-4 relative bias at low Mach. Fixed by sync 2 between
+// density.comp and force.comp (Option D, V1.0a/V1.1).
+// ============================================================================
+
+// ============================================================================
+// EXPERIMENTAL COPY of force.comp (claude/wall_store_report.md section 9, the "lean" fluid segment; wall store
+// round 3). Built only as the variants of compile_shaders_v7.LEAN_VARIANTS and loaded only through the V7_FLUID_SEGMENT_*
+// switches (all off by default). Without a LEAN_* macro this file is force.comp: its plain build
+// force_lean.comp.spv is byte-identical to force.comp.spv (the check that the copy is faithful). Items:
+//   LEAN_ZERO_Z           (a) 2-D: the z of every position and velocity read in the loops is set to 0 right after
+//                             the read (the stored z is 0 already), so the compiler can drop the z arithmetic
+//   LEAN_DISTANCE_SQUARED (b) the support test on r^2 (r^2 >= h^2 or r^2 < 1e-24), the square root only for the
+//                             pairs kept
+//   LEAN_KERNEL_RANGE     (e) W and grad W without their own range tests (q >= 1, r < 1e-12): the caller's support
+//                             test already excludes those pairs
+//   LEAN_FORCE_FACTORED   (d) (wall_boundary crossing's near-wall pipeline) M_i taken out of the pair sums: the
+//                             pressure + viscous terms in one raw-gradient sum, the two shifting terms blended with
+//                             the kernel-sum weight inside the loop into a second one, M_i applied once after both
+//                             segments; M_i and three of the four vec3 accumulators are not live in the loops
+//                             (rounding-level differences: M_i applied to the sum instead of to every pair)
+// ============================================================================
+
+layout(local_size_x_id = 51, local_size_y = 1, local_size_z = 1) in;
+
+#ifdef LEAN_KERNEL_RANGE
+// (e) W and grad W for 0 < r < h, which the caller's support test guarantees (at q = 1 after rounding both give 0,
+// as the range-tested forms do, up to the sign of a zero)
+float lean_kernel_in_support(float distance) {
+    float normalized_distance = distance / SMOOTHING_LENGTH;
+    float one_minus_q    = 1.0 - normalized_distance;
+    float one_minus_q_sq = one_minus_q * one_minus_q;
+    float one_minus_q_6  = one_minus_q_sq * one_minus_q_sq * one_minus_q_sq;
+    float profile_polynomial =
+        normalized_distance * ((35.0 / 3.0) * normalized_distance + 6.0) + 1.0;
+    return KERNEL_COEFFICIENT * one_minus_q_6 * profile_polynomial;
+}
+
+vec3 lean_kernel_gradient_in_support(vec3 relative_position, float distance) {
+    float normalized_distance = distance / SMOOTHING_LENGTH;
+    float one_minus_q    = 1.0 - normalized_distance;
+    float one_minus_q_sq = one_minus_q * one_minus_q;
+    float one_minus_q_4  = one_minus_q_sq * one_minus_q_sq;
+    float one_minus_q_5  = one_minus_q_4 * one_minus_q;
+    float derivative_polynomial =
+        normalized_distance * ((-280.0 / 3.0) * normalized_distance + (-56.0 / 3.0));
+    float gradient_magnitude_scalar =
+        KERNEL_GRADIENT_COEFFICIENT * one_minus_q_5 * derivative_polynomial;
+    return gradient_magnitude_scalar * (relative_position / distance);
+}
+#define LEAN_KERNEL_VALUE(distance) lean_kernel_in_support(distance)
+#define LEAN_KERNEL_GRADIENT(relative_position, distance) lean_kernel_gradient_in_support(relative_position, distance)
+#else
+#define LEAN_KERNEL_VALUE(distance) evaluate_kernel(distance)
+#define LEAN_KERNEL_GRADIENT(relative_position, distance) evaluate_kernel_gradient(relative_position, distance)
+#endif
+#if defined(LEAN_FORCE_FACTORED) && !defined(WALL_CROSSING)
+#error LEAN_FORCE_FACTORED is an item of the wall_boundary crossing copy only
+#endif
+#ifdef WALL_CROSSING_NEAR_WALL_LANES
+#ifndef WALL_CROSSING
+#error WALL_CROSSING_NEAR_WALL_LANES is an item of the wall_boundary crossing copy only
+#endif
+// ============================================================================
+// (section 9.4, EXPERIMENTAL) k invocations per near-wall particle: k = spec const 141 (a power of two, at most the
+// subgroup size; 1 = one invocation per particle), the particle = invocation / k, its lane = invocation % k (the k
+// lanes of a particle are consecutive invocations of one subgroup). Every lane walks the slots lane, lane + k, ...
+// of each neighbour voxel (fluid segment) and the records lane, lane + k, ... of each voxel's wall records (wall
+// segment); the sums are added over the k lanes by an xor butterfly (subgroupShuffleXor), which gives every lane
+// the same bits, so every lane takes the same decisions after a reduction. Only the full-domain dispatch
+// (BAND_VOXEL_DISPATCH = 0, one slab) maps invocations this way; the simulator builds this module only for the
+// near-wall pipelines of a one-slab run. The summation order differs from the one-invocation build.
+// ============================================================================
+layout(constant_id = 141) const uint WALL_CROSSING_LANES = 1u;
+uint wall_crossing_lane = 0u;
+
+float lanes_sum(float value) {
+    for (uint offset = 1u; offset < WALL_CROSSING_LANES; offset <<= 1u) {
+        value += subgroupShuffleXor(value, offset);
+    }
+    return value;
+}
+
+vec3 lanes_sum(vec3 value) {
+    for (uint offset = 1u; offset < WALL_CROSSING_LANES; offset <<= 1u) {
+        value += subgroupShuffleXor(value, offset);
+    }
+    return value;
+}
+#endif
+
+// V3.3 cascading force: rho/P source is a specialization constant so the
+// Phase B pipeline (force_deep_interior_scratch) reads this frame's density
+// from scratch while the Phase C pipeline (force_boundary / force_all)
+// keeps reading primary after the scratch->primary copy. Branch is DCE'd.
+vec2 read_density_pressure(uint particle_id) {
+    if (FORCE_DENSITY_SOURCE == FORCE_DENSITY_SOURCE_SCRATCH) {
+        return density_pressure_scratch[particle_id];
+    }
+    return density_pressure[particle_id];
+}
+
+#ifdef FORCE_SEGMENT
+// E39 B3 (V7_BAND_OVERLAP; compile_shaders_v7.py variant force_segment): one
+// workgroup segment of force_deep_interior_scratch's per-own-particle dispatch
+// as a dispatch of its own, thread t here = thread FORCE_SEGMENT_FIRST_THREAD + t
+// of the full dispatch (the same particle, the same code). vkCmdDispatchBase
+// would need no variant, but in this build on the RTX 5090 (driver 576.88) the
+// base dispatch (146, 205) of this kernel was observed to run only workgroups
+// [146, 205), with or without a barrier around it; an isolated probe with a
+// simple kernel did not reproduce it and the cause is not located
+// (logs/e39/b3/diag); a base-0 dispatch runs them all.
+layout(constant_id = 115) const uint FORCE_SEGMENT_FIRST_THREAD = 0u;
+#endif
+
+void process_particle(uint self_particle_id) {
+    // 0-based → 1-based particle_id
+
+    // --- Self material group --------------------------------------------------
+    uint self_group_id = material[self_particle_id];
+    MaterialParameters self_params = material_parameters[self_group_id];
+
+    // Boundary particles are static by definition — no force-driven motion and
+    // no PST applies. They still participate in density.comp so fluid particles
+    // can read their pressure, but their own acceleration / shift are never used.
+    if (self_params.kind == MATERIAL_BOUNDARY) return;
+    // Inlet particles are emitter templates with no valid SPH state.
+    if (self_params.kind == MATERIAL_INLET)    return;
+
+    // --- Self position + voxel_id --------------------------------------------
+    vec4 self_position_voxel_id = position_voxel_id[self_particle_id];
+    vec3 self_position          = self_position_voxel_id.xyz;
+#ifdef LEAN_ZERO_Z
+    if (DIMENSION == 2u) self_position.z = 0.0;
+#endif
+    uint self_voxel_id          = uint(round(self_position_voxel_id.w));
+    if (self_voxel_id == VOXEL_ID_DEAD) return;
+
+    // --- V4 Path A+ interior/boundary early-return ---------------------------
+    // Force's deep-interior pipeline runs in Phase B concurrently with
+    // transfer DMA. To stay correct it must skip any particle whose neighbor
+    // reach touches an OWN voxel column that density_boundary owns (those
+    // columns' density / pressure are still pre-install_migrations). The
+    // boundary band for force must therefore be ≥ density's band + 1 voxels
+    // (simulator: NEIGHBOR_X_RANGE from V7_BAND_WIDTHS, default 3 = 2 + 1).
+    // Default FORCE_MODE = ALL preserves V1 single-pipeline behavior.
+    ivec3 self_voxel_coord = own_coord_of(self_voxel_id);
+    bool self_in_boundary_band = in_boundary_band(self_voxel_coord);
+    if (FORCE_MODE == PIPELINE_MODE_INTERIOR &&  self_in_boundary_band) return;
+    if (FORCE_MODE == PIPELINE_MODE_BOUNDARY && !self_in_boundary_band) return;
+#ifdef WALL_CROSSING
+    // wall_boundary crossing: the near-wall flag of the particle's voxel and the dispatch class (spec const 131)
+    bool self_near_wall = false;
+    if (WALL_CROSSING_ACTIVE) {
+        self_near_wall = wall_crossing_voxel_near_wall(self_voxel_id);
+        if (WALL_CROSSING_DISPATCH_CLASS == WALL_CROSSING_DISPATCH_INTERIOR && self_near_wall) return;
+        if (WALL_CROSSING_DISPATCH_CLASS == WALL_CROSSING_DISPATCH_NEAR_WALL && !self_near_wall) return;
+    }
+    bool self_wall_segment = WALL_CROSSING_WALL_SEGMENT_COMPILED && self_near_wall;
+#endif
+
+    // --- Self velocity + mass + density + pressure ---------------------------
+    // density_pressure: canonical ρ_{n+1}, P_{n+1} for OWN particles.
+    // density.comp wrote to scratch; the simulator already issued
+    // vkCmdCopyBuffer scratch → primary inside the same step cmd, so OWN
+    // slots in this binding hold step-t fresh ρ_{n+1}, P_{n+1}.
+    //
+    // Caveat: GHOST slots still hold the values that ghost_send packed at
+    // sync 1 time (= peer's step-t-1 density.comp output). force.comp's
+    // ghost-neighbor reads of density_pressure are therefore one density
+    // step stale until Option D sync 2 is added.
+    vec4  self_velocity_mass = velocity_mass[self_particle_id];
+    vec3  self_velocity      = self_velocity_mass.xyz;
+#ifdef LEAN_ZERO_Z
+    if (DIMENSION == 2u) self_velocity.z = 0.0;
+#endif
+    float self_mass          = self_velocity_mass.w;
+
+    vec2  self_density_pressure = read_density_pressure(self_particle_id);
+    float self_density  = density_from_stored(self_density_pressure.x);
+    float self_pressure = self_density_pressure.y;
+
+    // --- Self correction matrix (KCG) and kernel_sum --------------------------
+    // KCG ablation: USE_KCG_CORRECTION=false → identity M⁻¹ (spec-const DCE'd).
+    // kernel_sum is ALWAYS read because PST main/anti blend uses it regardless.
+#ifndef LEAN_FORCE_FACTORED
+    mat3 self_correction_matrix = USE_KCG_CORRECTION
+        ? unpack_correction_inverse(self_particle_id)
+        : mat3(1.0);
+#endif
+    float self_kernel_sum = density_gradient_kernel_sum[self_particle_id].w;
+    // Free-surface heuristic. In δ-plus WCSPH, fully-supported (interior)
+    // particles have kernel_sum ≈ 1; values below ~0.75 indicate the
+    // neighborhood is kernel-deficient (near a free surface). 0.75 is empirical.
+    // Equivalent to the legacy form (kernel_sum * 4 - 3 < 0).
+    bool near_surface = self_kernel_sum < 0.75;
+
+    // (self_voxel_coord already decoded above for boundary-band check)
+
+    // --- Accumulators --------------------------------------------------------
+    vec3 a_pressure          = vec3(0.0);
+    vec3 a_viscosity         = vec3(0.0);
+    vec3 particle_shift_main = vec3(0.0);
+    vec3 particle_shift_anti = vec3(0.0);
+#ifdef LEAN_FORCE_FACTORED
+    // (d) the raw-gradient sums (M_i applied after the loops) and the blend weight of the two shifts, known before
+    // the loop (kernel_sum^4, clamped)
+    vec3 acceleration_raw_sum = vec3(0.0);
+    vec3 shift_raw_sum        = vec3(0.0);
+    float shift_blend_weight  = clamp(self_kernel_sum, 0.0, 1.0);
+    shift_blend_weight *= shift_blend_weight;
+    shift_blend_weight *= shift_blend_weight;
+#endif
+
+    // ========================================================================
+    // Loop-invariant constants (all pair-averaged quantities uniform in V0).
+    //
+    // When multi-phase is enabled, move these inside the loop and compute
+    // per-pair harmonic means from neighbor_params:
+    //   ν_ij  = 2 · ν_i · ν_j  / (ν_i + ν_j + ε)
+    //   Δx_ij = R_i + R_j
+    //   V_ij  = 2 · V_i · V_j  / (V_i + V_j)
+    //   W_Δx  = evaluate_kernel(Δx_ij)     (per-pair)
+    // ========================================================================
+    float morris_coefficient  = 2.0 * (float(DIMENSION) + 2.0);  // 8 (2D), 10 (3D)
+    float pst_base_factor     = CFL_NUMBER * PST_MAIN_SHIFT_COEFFICIENT * 2.0 * (SMOOTHING_LENGTH * SMOOTHING_LENGTH);
+
+    // V0-uniform pair quantities
+    float viscosity_uniform       = self_params.viscosity;
+    float delta_x_uniform         = 2.0 * self_params.radius;
+    float volume_ij_uniform       = self_params.volume;
+    float kernel_value_at_delta_x = evaluate_kernel(delta_x_uniform);  // computed once
+
+#ifdef WALL_CROSSING
+    // wall_boundary crossing, a particle near a wall: g_f of this step's pressure over the fluid segment
+    vec3 fluid_pressure_gradient_sum = vec3(0.0);
+#endif
+
+    int neighbor_z_range = int(NEIGHBOR_Z_RANGE);
+
+    // ------------------------------------------------------------------------
+    // 27-voxel neighbor loop (9 in 2D).
+    // ------------------------------------------------------------------------
+    // Innermost loop follows the fastest-varying axis of the x-slowest
+    // voxel_id encoding (y), so consecutive neighbor voxels are adjacent
+    // in memory. Measured 2026-09-23 on RTX 5090: with dx innermost,
+    // density and force ran 5-7% slower than the x-fastest V0 layout.
+    for (int delta_x = -1; delta_x <= 1; delta_x++) {
+        for (int delta_z = -neighbor_z_range; delta_z <= neighbor_z_range; delta_z++) {
+            for (int delta_y = -1; delta_y <= 1; delta_y++) {
+                ivec3 neighbor_coord = self_voxel_coord + ivec3(delta_x, delta_y, delta_z);
+                if (!in_own_grid(neighbor_coord)) continue;
+
+                uint neighbor_voxel_id = own_voxel_id_of(neighbor_coord);
+                uint neighbor_voxel_particle_count = inside_particle_count[neighbor_voxel_id];
+
+#ifdef WALL_CROSSING_NEAR_WALL_LANES
+                for (uint slot_index = wall_crossing_lane; slot_index < neighbor_voxel_particle_count;
+                     slot_index += WALL_CROSSING_LANES) {
+#else
+                for (uint slot_index = 0u; slot_index < neighbor_voxel_particle_count; slot_index++) {
+#endif
+                    uint neighbor_particle_id = inside_particle_index[neighbor_voxel_id * MAX_PARTICLES_PER_VOXEL + slot_index];
+                    if (neighbor_particle_id == INSIDE_SLOT_EMPTY) break;
+                    if (neighbor_particle_id == self_particle_id) continue;
+
+                    // --- Distance check (Wendland C4 support radius = h) ----
+                    vec3 neighbor_position = position_voxel_id[neighbor_particle_id].xyz;
+#ifdef LEAN_ZERO_Z
+                    if (DIMENSION == 2u) neighbor_position.z = 0.0;
+#endif
+                    vec3 position_difference_neighbor_to_self = self_position - neighbor_position; // x_ij = r_i - r_j
+#ifdef LEAN_DISTANCE_SQUARED
+                    float distance_squared = dot(position_difference_neighbor_to_self,
+                                                 position_difference_neighbor_to_self);
+                    if (distance_squared >= SMOOTHING_LENGTH * SMOOTHING_LENGTH || distance_squared < 1e-24) continue;
+                    float distance = sqrt(distance_squared);
+#else
+                    float distance = length(position_difference_neighbor_to_self);
+                    if (distance >= SMOOTHING_LENGTH || distance < 1e-12) continue;
+#endif
+
+                    // --- Neighbor dynamic state (no material lookup in V0) --
+                    // V0 uniformity: self_mass used for neighbor mass; ν / R / V
+                    // also taken from self_params outside the loop.
+                    vec3  neighbor_velocity = velocity_mass[neighbor_particle_id].xyz;
+#ifdef LEAN_ZERO_Z
+                    if (DIMENSION == 2u) neighbor_velocity.z = 0.0;
+#endif
+                    vec2  neighbor_density_pressure = read_density_pressure(neighbor_particle_id);
+                    float neighbor_density  = density_from_stored(neighbor_density_pressure.x);
+                    float neighbor_pressure = neighbor_density_pressure.y;
+                    float neighbor_volume_dynamic = self_mass / neighbor_density;
+
+                    // --- Kernel gradient (raw + M_i-corrected) + kernel value ---
+                    vec3  kernel_gradient_raw       = LEAN_KERNEL_GRADIENT(position_difference_neighbor_to_self, distance);
+#ifndef LEAN_FORCE_FACTORED
+                    vec3  kernel_gradient_corrected = self_correction_matrix * kernel_gradient_raw;
+#endif
+                    float kernel_value              = LEAN_KERNEL_VALUE(distance);
+
+#ifdef WALL_CROSSING
+                    // wall_boundary crossing, a particle near a wall: g_f += V_j (P_j - P_i) ∇W_ij
+                    if (self_wall_segment) {
+                        fluid_pressure_gradient_sum += neighbor_volume_dynamic
+                                                     * (neighbor_pressure - self_pressure)
+                                                     * kernel_gradient_raw;
+                    }
+#endif
+                    // ==== Pressure force (TIC) ==============================
+                    // Symmetric (P_i + P_j) form when self is compressive (P_i > 0);
+                    // anti-symmetric (P_j - P_i) otherwise to suppress tensile
+                    // instability in the interior.
+                    float pressure_combined =
+                        (self_pressure > 0.0 || near_surface)
+                            ? (neighbor_pressure + self_pressure)
+                            : (neighbor_pressure - self_pressure);
+#ifndef LEAN_FORCE_FACTORED
+                    a_pressure -= neighbor_volume_dynamic * pressure_combined / self_density
+                                * kernel_gradient_corrected;
+#endif
+
+                    // ==== Viscosity (Morris) ================================
+                    // wall_boundary adami: a wall neighbour enters with its no-slip dummy velocity
+                    // 2 u_w - u~_w (wall_extrapolate.comp, this step), not its stored velocity.
+                    vec3 viscous_neighbor_velocity = neighbor_velocity;
+                    if (WALL_ADAMI
+                            && material_parameters[material[neighbor_particle_id]].kind == MATERIAL_BOUNDARY) {
+                        viscous_neighbor_velocity = wall_dummy_velocity[neighbor_particle_id].xyz;
+                    }
+#ifdef LEAN_FORCE_FACTORED
+                    acceleration_raw_sum +=
+                        (-neighbor_volume_dynamic * pressure_combined / self_density
+                         + morris_coefficient * viscosity_uniform * neighbor_volume_dynamic
+                           * dot(self_velocity - viscous_neighbor_velocity,
+                                 position_difference_neighbor_to_self)
+                           / (distance * distance + EPS_H_SQUARED))
+                        * kernel_gradient_raw;
+#else
+                    a_viscosity +=
+                        morris_coefficient * viscosity_uniform * neighbor_volume_dynamic
+                        * dot(self_velocity - viscous_neighbor_velocity,
+                              position_difference_neighbor_to_self)
+                        / (distance * distance + EPS_H_SQUARED)
+                        * kernel_gradient_corrected;
+#endif
+
+                    // ==== Particle shifting (PST) ===========================
+                    // Gated by USE_PST spec const: glslc -O DCE-removes the entire
+                    // block (including the kernel_value / kernel_value_at_delta_x
+                    // computations and pst_base_factor / volume_ij_uniform pre-loop
+                    // constants once their consumers are gone) when USE_PST = false.
+                    if (USE_PST) {
+                        // disorder ∈ [-1, 0]: negative if particles overlap (r < Δx).
+                        float distance_ratio = (distance - delta_x_uniform) / delta_x_uniform;
+                        float disorder =
+                            (distance_ratio > 0.0)
+                                ? 0.0
+                                : distance_ratio * min(neighbor_density / self_density, 1.0);
+
+                        // Crowding term: W(r) / W(Δx), raised to 4th power.
+                        // kernel_value_at_delta_x is a loop invariant (computed above).
+                        float crowding_ratio =
+                            (kernel_value_at_delta_x > 1e-12)
+                                ? kernel_value / kernel_value_at_delta_x
+                                : 0.0;
+                        float crowding_term = crowding_ratio * crowding_ratio;
+                        crowding_term *= crowding_term;  // (W/W_ref)^4
+
+                        // Main (repulsion + structure) shift.
+                        // The 0.1 and 0.2 weights mix kernel_sum (free-surface signal)
+                        // and crowding (local packing density) into the shift driver.
+                        // Both are δ-plus empirical constants — kept at legacy values
+                        // pending profile-driven retuning.
+                        float main_scalar =
+                            1.0 - disorder + 0.1 * self_kernel_sum + 0.2 * crowding_term;
+#ifdef LEAN_FORCE_FACTORED
+                        float anti_scalar = (distance / delta_x_uniform) * PST_ANTI_SHIFT_COEFFICIENT;
+                        shift_raw_sum += (pst_base_factor * volume_ij_uniform
+                                          * ((1.0 - shift_blend_weight) * anti_scalar
+                                             - shift_blend_weight * main_scalar))
+                                       * kernel_gradient_raw;
+#else
+                        particle_shift_main +=
+                            -pst_base_factor * main_scalar * kernel_gradient_corrected * volume_ij_uniform;
+
+                        // Anti (cohesion-like) shift.
+                        float anti_scalar = (distance / delta_x_uniform) * PST_ANTI_SHIFT_COEFFICIENT;
+                        particle_shift_anti +=
+                            pst_base_factor * anti_scalar * kernel_gradient_corrected * volume_ij_uniform;
+#endif
+                    }
+                }
+            }
+        }
+    }
+
+#ifdef WALL_CROSSING
+    // ========================================================================
+    // wall_boundary crossing, a particle near a wall: between the segments
+    // G_p = A_f^-1 g_f (A_f^-1 the fused pass stored this step; 0 on its
+    // fallback), then the wall segment: every wall record within h gets
+    //   p_j = p_i + (the pressure rule),  v_j = v_i + (the viscous velocity rule)
+    // and the pair terms of a fluid neighbour: pressure (TIC, the same two
+    // branches), viscosity (Morris), shifting (the wall's density in the
+    // disorder term is the rest density, as the particle-pool version's wall
+    // particles stored it). V_j = the record's volume.
+    // ========================================================================
+#ifdef WALL_CROSSING_NEAR_WALL_LANES
+    fluid_pressure_gradient_sum = lanes_sum(fluid_pressure_gradient_sum);
+#endif
+    if (self_wall_segment) {
+        vec4 fluid_inverse_diagonal_and_xy = wall_crossing_fluid_inverse[self_particle_id * 2u];
+        vec4 fluid_inverse_xz_and_yz       = wall_crossing_fluid_inverse[self_particle_id * 2u + 1u];
+        vec3 one_sided_pressure_gradient = vec3(0.0);
+        if (fluid_inverse_xz_and_yz.w != 0.0) {
+            one_sided_pressure_gradient =
+                wall_crossing_symmetric_matrix(fluid_inverse_diagonal_and_xy, fluid_inverse_xz_and_yz)
+                * fluid_pressure_gradient_sum;
+        }
+        vec3 gravity_body = vec3(GRAVITY_X, GRAVITY_Y, GRAVITY_Z);
+        float wall_density = self_params.rest_density;
+        for (int delta_x = -1; delta_x <= 1; delta_x++) {
+            for (int delta_z = -neighbor_z_range; delta_z <= neighbor_z_range; delta_z++) {
+                for (int delta_y = -1; delta_y <= 1; delta_y++) {
+                    ivec3 neighbor_coord = self_voxel_coord + ivec3(delta_x, delta_y, delta_z);
+                    if (!in_own_grid(neighbor_coord)) continue;
+                    uint neighbor_voxel_id = own_voxel_id_of(neighbor_coord);
+                    uint wall_end = wall_voxel_offset[neighbor_voxel_id + 1u];
+#ifdef WALL_CROSSING_NEAR_WALL_LANES
+                    for (uint wall_index = wall_voxel_offset[neighbor_voxel_id] + wall_crossing_lane;
+                         wall_index < wall_end; wall_index += WALL_CROSSING_LANES) {
+#else
+                    for (uint wall_index = wall_voxel_offset[neighbor_voxel_id]; wall_index < wall_end;
+                         wall_index++) {
+#endif
+                        vec4 wall_position_volume = wall_particles[wall_index].position_volume;
+                        vec3 neighbor_position = wall_position_volume.xyz;
+#ifdef LEAN_ZERO_Z
+                        if (DIMENSION == 2u) neighbor_position.z = 0.0;
+#endif
+                        vec3 position_difference_neighbor_to_self = self_position - neighbor_position;
+#ifdef LEAN_DISTANCE_SQUARED
+                        float distance_squared = dot(position_difference_neighbor_to_self,
+                                                     position_difference_neighbor_to_self);
+                        if (distance_squared >= SMOOTHING_LENGTH * SMOOTHING_LENGTH || distance_squared < 1e-24) {
+                            continue;
+                        }
+                        float distance = sqrt(distance_squared);
+#else
+                        float distance = length(position_difference_neighbor_to_self);
+                        if (distance >= SMOOTHING_LENGTH || distance < 1e-12) continue;
+#endif
+                        vec4  wall_mirror_identity = wall_particles[wall_index].mirror_identity;
+#ifdef LEAN_ZERO_Z
+                        if (DIMENSION == 2u) wall_mirror_identity.z = 0.0;
+#endif
+                        uint  wall_identity   = floatBitsToUint(wall_mirror_identity.w);
+                        float neighbor_volume = wall_position_volume.w;
+
+                        vec3  kernel_gradient_raw       = LEAN_KERNEL_GRADIENT(
+                                                              position_difference_neighbor_to_self, distance);
+#ifndef LEAN_FORCE_FACTORED
+                        vec3  kernel_gradient_corrected = self_correction_matrix * kernel_gradient_raw;
+#endif
+                        float kernel_value              = LEAN_KERNEL_VALUE(distance);
+
+                        vec3  crossed_wall_normal;
+                        float depth_ratio;
+                        vec3  mirror_displacement = wall_mirror_identity.xyz;
+                        wall_crossing_pair_geometry(self_position, neighbor_position,
+                                                    wall_crossing_plane_ids(wall_identity), crossed_wall_normal,
+                                                    depth_ratio, mirror_displacement);
+                        float extrapolation_factor = 1.0 + depth_ratio;
+                        uint  rule_base = wall_crossing_material_id(wall_identity) * WALL_CROSSING_RULE_FIELDS;
+                        uint  wall_body_id = wall_crossing_body_id(wall_identity);
+                        vec3  wall_velocity     = wall_crossing_body_velocity(wall_body_id, neighbor_position);
+                        vec3  wall_acceleration = wall_crossing_body_acceleration(wall_body_id, neighbor_position);
+
+                        // ==== Pressure (TIC), p_j by the pressure rule
+                        float neighbor_pressure = self_pressure + wall_crossing_rule_scalar_difference(
+                            wall_crossing_rule(rule_base, WALL_CROSSING_RULE_PRESSURE), extrapolation_factor, self_pressure,
+                            one_sided_pressure_gradient,
+                            -position_difference_neighbor_to_self - mirror_displacement,
+                            self_density * (gravity_body - wall_acceleration), mirror_displacement);
+                        float pressure_combined =
+                            (self_pressure > 0.0 || near_surface)
+                                ? (neighbor_pressure + self_pressure)
+                                : (neighbor_pressure - self_pressure);
+#ifndef LEAN_FORCE_FACTORED
+                        a_pressure -= neighbor_volume * pressure_combined / self_density
+                                    * kernel_gradient_corrected;
+#endif
+
+                        // ==== Viscosity (Morris), v_i - v_j by the viscous velocity rule
+                        vec3 viscous_velocity_difference = -wall_crossing_rule_velocity_difference(
+                            wall_crossing_rule(rule_base, WALL_CROSSING_RULE_VISCOUS_VELOCITY), extrapolation_factor,
+                            wall_velocity, self_velocity, crossed_wall_normal);
+#ifdef LEAN_FORCE_FACTORED
+                        acceleration_raw_sum +=
+                            (-neighbor_volume * pressure_combined / self_density
+                             + morris_coefficient * viscosity_uniform * neighbor_volume
+                               * dot(viscous_velocity_difference, position_difference_neighbor_to_self)
+                               / (distance * distance + EPS_H_SQUARED))
+                            * kernel_gradient_raw;
+#else
+                        a_viscosity +=
+                            morris_coefficient * viscosity_uniform * neighbor_volume
+                            * dot(viscous_velocity_difference, position_difference_neighbor_to_self)
+                            / (distance * distance + EPS_H_SQUARED)
+                            * kernel_gradient_corrected;
+#endif
+
+                        // ==== Particle shifting (PST): the fluid pair's expressions
+                        if (USE_PST) {
+                            float distance_ratio = (distance - delta_x_uniform) / delta_x_uniform;
+                            float disorder =
+                                (distance_ratio > 0.0)
+                                    ? 0.0
+                                    : distance_ratio * min(wall_density / self_density, 1.0);
+                            float crowding_ratio =
+                                (kernel_value_at_delta_x > 1e-12)
+                                    ? kernel_value / kernel_value_at_delta_x
+                                    : 0.0;
+                            float crowding_term = crowding_ratio * crowding_ratio;
+                            crowding_term *= crowding_term;
+                            float main_scalar =
+                                1.0 - disorder + 0.1 * self_kernel_sum + 0.2 * crowding_term;
+#ifdef LEAN_FORCE_FACTORED
+                            float anti_scalar = (distance / delta_x_uniform) * PST_ANTI_SHIFT_COEFFICIENT;
+                            shift_raw_sum += (pst_base_factor * volume_ij_uniform
+                                              * ((1.0 - shift_blend_weight) * anti_scalar
+                                                 - shift_blend_weight * main_scalar))
+                                           * kernel_gradient_raw;
+#else
+                            particle_shift_main +=
+                                -pst_base_factor * main_scalar * kernel_gradient_corrected * volume_ij_uniform;
+                            float anti_scalar = (distance / delta_x_uniform) * PST_ANTI_SHIFT_COEFFICIENT;
+                            particle_shift_anti +=
+                                pst_base_factor * anti_scalar * kernel_gradient_corrected * volume_ij_uniform;
+#endif
+                        }
+                    }
+                }
+            }
+        }
+    }
+#endif
+
+    // ========================================================================
+    // Total acceleration = pressure + viscosity + gravity
+    // ========================================================================
+#ifdef WALL_CROSSING_NEAR_WALL_LANES
+#ifdef LEAN_FORCE_FACTORED
+    acceleration_raw_sum = lanes_sum(acceleration_raw_sum);
+    shift_raw_sum        = lanes_sum(shift_raw_sum);
+#else
+    a_pressure          = lanes_sum(a_pressure);
+    a_viscosity         = lanes_sum(a_viscosity);
+    particle_shift_main = lanes_sum(particle_shift_main);
+    particle_shift_anti = lanes_sum(particle_shift_anti);
+#endif
+    if (wall_crossing_lane != 0u) return;
+#endif
+    vec3 gravity_vector = vec3(GRAVITY_X, GRAVITY_Y, GRAVITY_Z);
+#ifdef LEAN_FORCE_FACTORED
+    // (d) M_i once, on the raw-gradient sums of both segments
+    mat3 self_correction_matrix = USE_KCG_CORRECTION
+        ? unpack_correction_inverse(self_particle_id)
+        : mat3(1.0);
+    vec3 total_acceleration = self_correction_matrix * acceleration_raw_sum + gravity_vector;
+#else
+    vec3 total_acceleration = a_pressure + a_viscosity + gravity_vector;
+#endif
+
+    // ========================================================================
+    // Blend PST shift by kernel_sum: interior → main, surface → anti
+    //   blend_weight = clamp(kernel_sum, 0, 1)^4
+    //   shift = blend · main + (1 - blend) · anti
+    //
+    // Gated by USE_PST spec const: when false, glslc -O DCE-removes the blend
+    // (and earlier the loop-body PST accumulators) so shift = 0 and the kernel
+    // does no PST work at all.
+    // ========================================================================
+    vec3 particle_shift;
+#ifdef LEAN_FORCE_FACTORED
+    particle_shift = USE_PST ? self_correction_matrix * shift_raw_sum : vec3(0.0);
+    if (false) {
+#else
+    if (USE_PST) {
+#endif
+        float kernel_sum_clamped = clamp(self_kernel_sum, 0.0, 1.0);
+        float blend_weight = kernel_sum_clamped * kernel_sum_clamped;
+        blend_weight *= blend_weight;  // ^4
+        particle_shift = blend_weight * particle_shift_main
+                       + (1.0 - blend_weight) * particle_shift_anti;
+    }
+#ifndef LEAN_FORCE_FACTORED
+    else {
+        particle_shift = vec3(0.0);
+    }
+#endif
+
+    // ========================================================================
+    // Write outputs (shift.w and acceleration.w reserved, leave as 0)
+    // ========================================================================
+    acceleration[self_particle_id] = vec4(total_acceleration, 0.0);
+    shift[self_particle_id]        = vec4(particle_shift, 0.0);
+}
+
+
+// ---------------------------------------------------------------------------
+// Entry point (V3.4 / V3.8): derive the self pid(s) for this thread and run the
+// per-particle body above. BAND_VOXEL_DISPATCH = 0: one thread per own pool
+// slot. BAND_VOXEL_DISPATCH = 1, BAND_SLOT_LANES = 0: thread = (band voxel,
+// slot). BAND_SLOT_LANES = L > 0: thread = (band voxel, lane), looping over
+// slots lane, lane + L, ... so a warp stays full when a voxel holds far fewer
+// particles than MAX_PARTICLES_PER_VOXEL.
+// ---------------------------------------------------------------------------
+void main() {
+#ifdef FORCE_SEGMENT
+    uint thread_id = gl_GlobalInvocationID.x + FORCE_SEGMENT_FIRST_THREAD;
+#else
+    uint thread_id = gl_GlobalInvocationID.x;
+#endif
+    if (BAND_VOXEL_DISPATCH == 2u) {
+        // V7_BAND_COMPACT_DISPATCH: thread = entry of the compacted band list
+        uint self_particle_id;
+        if (compact_thread_particle(thread_id, NEIGHBOR_X_RANGE, self_particle_id)) {
+            process_particle(self_particle_id);
+        }
+        return;
+    }
+    if (BAND_VOXEL_DISPATCH == 1u) {
+        if (BAND_SLOT_LANES == 0u) {
+            uint self_particle_id;
+            if (band_thread_particle(thread_id, NEIGHBOR_X_RANGE, self_particle_id)) {
+                process_particle(self_particle_id);
+            }
+            return;
+        }
+        uint voxel_id;
+        if (!band_thread_voxel(thread_id / BAND_SLOT_LANES, NEIGHBOR_X_RANGE, voxel_id)) return;
+        uint count = inside_particle_count[voxel_id];
+        for (uint slot = thread_id % BAND_SLOT_LANES; slot < count; slot += BAND_SLOT_LANES) {
+            process_particle(inside_particle_index[voxel_id * MAX_PARTICLES_PER_VOXEL + slot]);
+        }
+        return;
+    }
+#ifdef WALL_CROSSING_NEAR_WALL_LANES
+    wall_crossing_lane = thread_id % WALL_CROSSING_LANES;
+    uint self_particle_id = thread_id / WALL_CROSSING_LANES + own_first_pid();
+#else
+    uint self_particle_id = thread_id + own_first_pid();
+#endif
+    if (self_particle_id > own_last_pid()) return;
+    process_particle(self_particle_id);
+}

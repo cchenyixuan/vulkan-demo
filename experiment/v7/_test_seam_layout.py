@@ -1623,7 +1623,22 @@ WALL_CROSSING_ADDED_SPIRV = frozenset({"correction_density_wall_crossing.comp.sp
                                        "correction_density_wall_crossing_diffusion_summed.comp.spv"}
                                       | {f"{kernel}_wall_crossing_revert_{item}.comp.spv"
                                          for kernel in ("correction_density", "force")
-                                         for item in ("rule_types", "body_motion", "mirror", "wall_rate_loop")})
+                                         for item in ("rule_types", "body_motion", "mirror", "wall_rate_loop")}
+                                      # wall store round 3 (EXPERIMENTAL, report section 9): the lean copies' plain
+                                      # builds and the builds of compile_shaders_v7.LEAN_VARIANTS, loaded only with the
+                                      # V7_FLUID_SEGMENT_* / V7_WALL_CROSSING_NEAR_WALL_LANES switches
+                                      | {"correction_density_lean.comp.spv", "force_lean.comp.spv",
+                                         "force_wall_crossing_lean_factored.comp.spv",
+                                         "force_wall_crossing_lean_all_factored.comp.spv",
+                                         "correction_density_wall_crossing_near_wall_lanes.comp.spv",
+                                         "force_wall_crossing_near_wall_lanes.comp.spv"}
+                                      | {f"{kernel}_lean_{items}.comp.spv"
+                                         for kernel in ("correction_density", "correction_density_deep_wall_skip",
+                                                        "force", "correction_density_wall_crossing",
+                                                        "force_wall_crossing")
+                                         for items in ("zero_z", "distance_squared", "kernel_range", "all",
+                                                       "zero_z_distance_squared", "zero_z_kernel_range",
+                                                       "distance_squared_kernel_range")})
 
 
 def _without_bootstrap_density_copy(source: str, origin: str) -> str:

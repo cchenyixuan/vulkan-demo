@@ -25,7 +25,21 @@ sources: experiment/v7/shaders/*.comp, *.glsl at the commit that adds this manif
   DIAGNOSTIC build correction_density_wall_crossing_diffusion_summed (V7_WALL_CROSSING_DIFFUSION_SUMMED=1) and the
   DEBUG builds {correction_density,force}_wall_crossing_revert_<item> (rule_types / body_motion / mirror /
   wall_rate_loop: one V7_WALL_CROSSING_* switch each); every other file keeps its bytes.
-check: every file below byte-identical to a fresh build with the compiler above (35 of 35;
+  Then (wall store round 3, EXPERIMENTAL, claude/wall_store_report.md section 9): the lean copies
+  correction_density_lean.comp and force_lean.comp (their plain builds correction_density_lean and force_lean
+  are byte-identical to correction_density and force) and their builds (compile_shaders_v7.LEAN_VARIANTS: items
+  zero_z / distance_squared / kernel_range alone and all, for simple's and crossing's fused pass and force;
+  crossing's near-wall force with M_i factored out; the near-wall lanes builds, spec const 141), loaded only by
+  the V7_LEAN_* / V7_WALL_CROSSING_NEAR_WALL_LANES switches (off by default). 41 new files; every file of
+  21877e3's manifest keeps its bytes (35 of 35).
+  Then (wall store round 3, EXPERIMENTAL, claude/wall_store_report.md section 9): the lean copies
+  correction_density_lean.comp and force_lean.comp (their plain builds correction_density_lean and force_lean
+  are byte-identical to correction_density and force) and their builds (compile_shaders_v7.LEAN_VARIANTS: items
+  zero_z / distance_squared / kernel_range alone and all, for simple's and crossing's fused pass and force;
+  crossing's near-wall force with M_i factored out; the near-wall lanes builds, spec const 141), loaded only by
+  the V7_FLUID_SEGMENT_* / V7_WALL_CROSSING_NEAR_WALL_LANES switches (off by default). 26 new files; every file of
+  21877e3's manifest keeps its bytes (35 of 35).
+check: every file below byte-identical to a fresh build with the compiler above (76 of 76;
   _test_seam_layout check_spirv_current)
 against the manifest of the tag crossing-pool (9afd248): 24 files byte-identical (every module simple and
   adami load), 2 changed (correction_density_wall_crossing.comp.spv, force_wall_crossing.comp.spv), 9 new, 16 removed
@@ -41,8 +55,31 @@ ee9ff135900b69f881c6fc9ad0dfc5c87ed14de015497e8060dceae90ebdabc7    37504  corre
 e3de58bdc5e00f892dfa2f100789015c8f0aab4dae92eec6d8257866ab4515d5    53920  correction_deep_wall_skip.comp.spv  (correction.comp -DDEEP_WALL_SKIP)
 7871141dcdec3681b4fe0ab9b90cd703418183926f5ce453fea5ad63ca3ed143    57868  correction_density.comp.spv  (correction_density.comp)
 f5faeac0e14610d9944a6d92b5d974f259e8ff45f32c60c2fdcd409053e34a87    89468  correction_density_deep_wall_skip.comp.spv  (correction_density.comp -DDEEP_WALL_SKIP)
+6e9a433be1640c253d018916643dcea8ce0c295e20a76b84e36be3e13df1c526    89660  correction_density_deep_wall_skip_lean_all.comp.spv  (correction_density_lean.comp -DDEEP_WALL_SKIP -DLEAN_ZERO_Z -DLEAN_DISTANCE_SQUARED -DLEAN_KERNEL_RANGE)
+4cce4fadc55988a98c3195195adfa807ea6b177908b4760a39f75388bd9f0b6a    89724  correction_density_deep_wall_skip_lean_distance_squared.comp.spv  (correction_density_lean.comp -DDEEP_WALL_SKIP -DLEAN_DISTANCE_SQUARED)
+7253b4b66eb204ab27fff5b21eeb60f716b17b789a5b0910d1156cf6ead5d13b    87900  correction_density_deep_wall_skip_lean_distance_squared_kernel_range.comp.spv  (correction_density_lean.comp -DDEEP_WALL_SKIP -DLEAN_DISTANCE_SQUARED -DLEAN_KERNEL_RANGE)
+6e8479fd363735db11ae0cecee3439fcf404e13aae63f0bc5487fcfe0f1359cc    87724  correction_density_deep_wall_skip_lean_kernel_range.comp.spv  (correction_density_lean.comp -DDEEP_WALL_SKIP -DLEAN_KERNEL_RANGE)
+042178e1ee649dd2f1f5ee48509107115e0f4178051d7db708d5fd7c748d649d    91228  correction_density_deep_wall_skip_lean_zero_z.comp.spv  (correction_density_lean.comp -DDEEP_WALL_SKIP -DLEAN_ZERO_Z)
+7cbedcbdf7f1f44a26ff74f167cea8f84409061f765969c57242fa83233f9c30    91484  correction_density_deep_wall_skip_lean_zero_z_distance_squared.comp.spv  (correction_density_lean.comp -DDEEP_WALL_SKIP -DLEAN_ZERO_Z -DLEAN_DISTANCE_SQUARED)
+d4eec8f5a959314c912909fe752ba154eb9c9e8235a14ea4b488363fba99326c    89484  correction_density_deep_wall_skip_lean_zero_z_kernel_range.comp.spv  (correction_density_lean.comp -DDEEP_WALL_SKIP -DLEAN_ZERO_Z -DLEAN_KERNEL_RANGE)
+7871141dcdec3681b4fe0ab9b90cd703418183926f5ce453fea5ad63ca3ed143    57868  correction_density_lean.comp.spv  (correction_density_lean.comp)
+09bd02b97f31d2edf15e229f0572dfba5db8cfccd8cc2f6774278d1853306229    58044  correction_density_lean_all.comp.spv  (correction_density_lean.comp -DLEAN_ZERO_Z -DLEAN_DISTANCE_SQUARED -DLEAN_KERNEL_RANGE)
+aab8b91b9d7ebbfe1eb061a2abf38cf1d553e331733efbdedaba3d7cb017bd46    58124  correction_density_lean_distance_squared.comp.spv  (correction_density_lean.comp -DLEAN_DISTANCE_SQUARED)
+3eb92aedcb76f0a5d45370e916c1844ef31f395c3ee44522e1db609ccbafaa53    56284  correction_density_lean_distance_squared_kernel_range.comp.spv  (correction_density_lean.comp -DLEAN_DISTANCE_SQUARED -DLEAN_KERNEL_RANGE)
+043feebae23d460e995c1d02bec9cf042db925d4f3b19bb0958c0522cc6e89b2    56124  correction_density_lean_kernel_range.comp.spv  (correction_density_lean.comp -DLEAN_KERNEL_RANGE)
+a897c3342929a8c22e2583367b2c1ad5eef944d46b49fea0c78561c3307d00ed    59628  correction_density_lean_zero_z.comp.spv  (correction_density_lean.comp -DLEAN_ZERO_Z)
+460462a7c107588e4a66c015b6fcbf29dc1770a2417458a291a720c90104c869    59884  correction_density_lean_zero_z_distance_squared.comp.spv  (correction_density_lean.comp -DLEAN_ZERO_Z -DLEAN_DISTANCE_SQUARED)
+ed0690379bb22a8098fa6dc5bf553eb37271031569bb56a85b70f3a94699eb90    57884  correction_density_lean_zero_z_kernel_range.comp.spv  (correction_density_lean.comp -DLEAN_ZERO_Z -DLEAN_KERNEL_RANGE)
 8167dc7171b35dc530ce3da326780898e346d5b97463457a7719e7bed6a6348e   117220  correction_density_wall_crossing.comp.spv  (correction_density.comp -DWALL_CROSSING)
 187ddb4111a1e303f37e9d96af27036fa53dedb8947dacf0b88998fab521b3f3   115460  correction_density_wall_crossing_diffusion_summed.comp.spv  (correction_density.comp -DWALL_CROSSING -DWALL_CROSSING_DIFFUSION_SUMMED)
+44edc7bcef322fdb0b6a72d37639e1a851bc426b1eef96881cc4f36ec6859c12   116460  correction_density_wall_crossing_lean_all.comp.spv  (correction_density_lean.comp -DWALL_CROSSING -DLEAN_ZERO_Z -DLEAN_DISTANCE_SQUARED -DLEAN_KERNEL_RANGE)
+713c8128892f463d176c2519173e11bf0f24e1c25f1837f9fd72d7cb24d8ef0a   117956  correction_density_wall_crossing_lean_distance_squared.comp.spv  (correction_density_lean.comp -DWALL_CROSSING -DLEAN_DISTANCE_SQUARED)
+add35df6b535e9fc099470c3d16c4624da5be8c925d322f8d33883dd0f996450   113380  correction_density_wall_crossing_lean_distance_squared_kernel_range.comp.spv  (correction_density_lean.comp -DWALL_CROSSING -DLEAN_DISTANCE_SQUARED -DLEAN_KERNEL_RANGE)
+79b2de02e035ee90750410fa33db7a11d2a90d60dc25894b889ede584cae9c87   112900  correction_density_wall_crossing_lean_kernel_range.comp.spv  (correction_density_lean.comp -DWALL_CROSSING -DLEAN_KERNEL_RANGE)
+8e754ad1bfbf4d0cd9cb7d9c17e2b61edd03fb16d4e36ae11d69e51d1a94868e   120300  correction_density_wall_crossing_lean_zero_z.comp.spv  (correction_density_lean.comp -DWALL_CROSSING -DLEAN_ZERO_Z)
+c9d5d31805e82d3b854ebd048c112b279fc44fbdb479849f1319643d16b5a7d5   121036  correction_density_wall_crossing_lean_zero_z_distance_squared.comp.spv  (correction_density_lean.comp -DWALL_CROSSING -DLEAN_ZERO_Z -DLEAN_DISTANCE_SQUARED)
+083192c90cbd8eb01defabaa00a5cef512cecc3732d792884ec1a3eabef5fc41   115980  correction_density_wall_crossing_lean_zero_z_kernel_range.comp.spv  (correction_density_lean.comp -DWALL_CROSSING -DLEAN_ZERO_Z -DLEAN_KERNEL_RANGE)
+d1b5f2af65196715bcbcc2c5707d9888ccd9d0ec180c97570b3ad25fbb7ff267   127804  correction_density_wall_crossing_near_wall_lanes.comp.spv  (correction_density_lean.comp -DWALL_CROSSING -DWALL_CROSSING_NEAR_WALL_LANES)
 c4783693c83a7d663a15335638420bb5b92d924a77f1fca85d35ff3b075d9a82   115316  correction_density_wall_crossing_revert_body_motion.comp.spv  (correction_density.comp -DWALL_CROSSING -DWALL_CROSSING_REVERT_BODY_MOTION)
 5748b50ac82e13fe8d6208e2ab92b91bad60b6b8853ce4a7d4aae6272e59079e   117556  correction_density_wall_crossing_revert_mirror.comp.spv  (correction_density.comp -DWALL_CROSSING -DWALL_CROSSING_REVERT_MIRROR)
 5249d37c9168f21c6ee8f5fb4e60351ae7acd3fb22bc62a4fe5a8e87f48bf8d1   116344  correction_density_wall_crossing_revert_rule_types.comp.spv  (correction_density.comp -DWALL_CROSSING -DWALL_CROSSING_REVERT_RULE_TYPES)
@@ -54,8 +91,26 @@ c4783693c83a7d663a15335638420bb5b92d924a77f1fca85d35ff3b075d9a82   115316  corre
 50e9e5f6fb22a5996b208b8c53a60bf709c005ace3a804d32382f68cfe7a098b     1888  density_scratch_copy.comp.spv  (density_scratch_copy.comp)
 4087617c2a4a14b5b49548572a4de96161c07af09ed9e5eeeaa042f117364a01     5068  expand_ghost_lists.comp.spv  (expand_ghost_lists.comp)
 3a635216025f245f7f11a3f5edc9d7120640e6df51c9b63021072cedd580f715    46776  force.comp.spv  (force.comp)
+3a635216025f245f7f11a3f5edc9d7120640e6df51c9b63021072cedd580f715    46776  force_lean.comp.spv  (force_lean.comp)
+b70bec75125182b5e333014385ae072b385fcca644bb08790cdcd82c56c5145f    46888  force_lean_all.comp.spv  (force_lean.comp -DLEAN_ZERO_Z -DLEAN_DISTANCE_SQUARED -DLEAN_KERNEL_RANGE)
+6ca8cc3ff5d950c6f1c8e93632ffd8e6c11bc163dd5976d3e7047bafadbe3bb4    46952  force_lean_distance_squared.comp.spv  (force_lean.comp -DLEAN_DISTANCE_SQUARED)
+e03f81f729be148d68ff27ba44fc8b2e84077990b8aefc426e233bcd6130be23    45128  force_lean_distance_squared_kernel_range.comp.spv  (force_lean.comp -DLEAN_DISTANCE_SQUARED -DLEAN_KERNEL_RANGE)
+3919512f9a3504b142312a75d983a383c67d2c418c6350f533ba8869dd967d4c    45032  force_lean_kernel_range.comp.spv  (force_lean.comp -DLEAN_KERNEL_RANGE)
+4acf40ed0d641c0489113041e501c5bf032c99d14ffc51b7275d6631deae6ca8    48536  force_lean_zero_z.comp.spv  (force_lean.comp -DLEAN_ZERO_Z)
+cfeb95e917998a12e6aabf43a103d039c7bfc66203b92944e5379ec10fe9d38c    48712  force_lean_zero_z_distance_squared.comp.spv  (force_lean.comp -DLEAN_ZERO_Z -DLEAN_DISTANCE_SQUARED)
+6185695537b11fd3d510ff4bf62018862296a6baa31b16060375bd5a9132e6dd    46792  force_lean_zero_z_kernel_range.comp.spv  (force_lean.comp -DLEAN_ZERO_Z -DLEAN_KERNEL_RANGE)
 faa772d587f1235af0fc03d5442a4fbf3f4cf0cb673d168043722a3ddfce750e    46828  force_segment.comp.spv  (force.comp -DFORCE_SEGMENT)
 22acbcc8f10c54d2e6d88c556f93cb05a4cd71185d8321b5b2cb4e986373c6e9    87632  force_wall_crossing.comp.spv  (force.comp -DWALL_CROSSING)
+b5068e732c10ca874d95b2bb0bad08c79b978fd9e1e59f3f9e1b0524ba4ded04    86960  force_wall_crossing_lean_all.comp.spv  (force_lean.comp -DWALL_CROSSING -DLEAN_ZERO_Z -DLEAN_DISTANCE_SQUARED -DLEAN_KERNEL_RANGE)
+d94d3425bff34a4d3f4b90467374d9a5493336d572654f94182264fc4ad948c2    83200  force_wall_crossing_lean_all_factored.comp.spv  (force_lean.comp -DWALL_CROSSING -DLEAN_FORCE_FACTORED -DLEAN_ZERO_Z -DLEAN_DISTANCE_SQUARED -DLEAN_KERNEL_RANGE)
+1d56166b7a3f598f1e6b6c3d51ed1f8032800ffd88f4d6ea1387b02e76f5fd94    87968  force_wall_crossing_lean_distance_squared.comp.spv  (force_lean.comp -DWALL_CROSSING -DLEAN_DISTANCE_SQUARED)
+c2e4bd19b8febae2525fcc3782ea14a08f1cc00717064993ea840b72a7c0f266    84320  force_wall_crossing_lean_distance_squared_kernel_range.comp.spv  (force_lean.comp -DWALL_CROSSING -DLEAN_DISTANCE_SQUARED -DLEAN_KERNEL_RANGE)
+6d4324051b403f99906514a060d1c4b9f7179b5ea477689d56283af1037728f7    83872  force_wall_crossing_lean_factored.comp.spv  (force_lean.comp -DWALL_CROSSING -DLEAN_FORCE_FACTORED)
+e9e1b5b584e00863b6f58a0137e413e734978a10a9acc2e4e3451add9999a963    84144  force_wall_crossing_lean_kernel_range.comp.spv  (force_lean.comp -DWALL_CROSSING -DLEAN_KERNEL_RANGE)
+2f2327a6904c81a2397eb68f8828b11835a481b595afaff31959fdd8eea9c570    90272  force_wall_crossing_lean_zero_z.comp.spv  (force_lean.comp -DWALL_CROSSING -DLEAN_ZERO_Z)
+20bc0d7ce0039b4b72ad0af2ec2bf8badf99fab452235f602656fb9ff70d7528    90608  force_wall_crossing_lean_zero_z_distance_squared.comp.spv  (force_lean.comp -DWALL_CROSSING -DLEAN_ZERO_Z -DLEAN_DISTANCE_SQUARED)
+c785b4162da725cfc208292680bacdefbfdb5e087bf9d16c1ffbf103390903ff    86784  force_wall_crossing_lean_zero_z_kernel_range.comp.spv  (force_lean.comp -DWALL_CROSSING -DLEAN_ZERO_Z -DLEAN_KERNEL_RANGE)
+feae4640b78d88f5f76cb796cd6b657ba128c55827c4d953521f5f02e38fdb66    92052  force_wall_crossing_near_wall_lanes.comp.spv  (force_lean.comp -DWALL_CROSSING -DWALL_CROSSING_NEAR_WALL_LANES)
 1a5a9ededf64654dbed041758e7d112db88079c104eb027f906b834d032738c6    85728  force_wall_crossing_revert_body_motion.comp.spv  (force.comp -DWALL_CROSSING -DWALL_CROSSING_REVERT_BODY_MOTION)
 3f6b14cf1d529df23e17b16e8c4adf8be573cc66c9d27d55c4dae4a8487ab194    87968  force_wall_crossing_revert_mirror.comp.spv  (force.comp -DWALL_CROSSING -DWALL_CROSSING_REVERT_MIRROR)
 d6497660e4d48f4bcb8dc74ea28850f1331e9fe5bce2d5b6a81b6f314b391916    86836  force_wall_crossing_revert_rule_types.comp.spv  (force.comp -DWALL_CROSSING -DWALL_CROSSING_REVERT_RULE_TYPES)
