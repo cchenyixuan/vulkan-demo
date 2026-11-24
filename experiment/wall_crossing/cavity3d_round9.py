@@ -178,6 +178,42 @@ def measurement_main() -> int:
           "；".join(f"{key} {value[0]:.1f} / {value[1]:.1f}" for key, value in curvatures.items())],
          ["粒子速度相对光滑场的散布（标准差，U）",
           " / ".join(f"{key} {value:.1e}" for key, value in scatter.items())]]))
+    # the profiles at the 15 table points on the analytic field: linear MLS with walls (round 8), quadratic MLS with
+    # walls and on the fluid alone (the wall particles carry the wall velocity: lid 1, the rest 0)
+    rows = []
+    for size in (100, 200):
+        lower, upper = extrema_methods.box_of(size)
+        support = 4.0 / size
+        positions = extrema_methods.lattice_tube(size, 1.5 * support)
+        walls = extrema_methods.boundary_particles(
+            REPOSITORY_ROOT / f"cases/cavity3d_re1000_n{size}_hdx4_crossing/case.yaml", 1.0)
+        near = (np.abs(walls[0]) <= 1.6 * support).sum(axis=1) >= 2
+        wall_positions, wall_velocities = walls[0][near], walls[2][near]
+        data_reference = reference()
+        for line, along, component, quantity in (("vertical", 1, 0, "u_min"), ("horizontal", 0, 1, "v_max")):
+            coordinate = data_reference[line]["coordinate"][inner(data_reference[line]["coordinate"])]
+            points = extrema_methods.line_points(lower, upper, along, coordinate)
+            field = extrema_methods.analytic_values(positions, lower, upper, quantity, curves, curvatures)
+            exact = curves[line](coordinate)
+            every = np.concatenate([positions, wall_positions])
+            values = np.concatenate([field, wall_velocities[:, component]])
+            variants = {"linear_walls": extrema_methods.moving_least_squares(every, np.ones(len(every)), values, points,
+                                                                             support, 1),
+                        "quadratic_walls": extrema_methods.moving_least_squares(every, np.ones(len(every)), values,
+                                                                                points, support, 2),
+                        "quadratic_fluid": extrema_methods.moving_least_squares(positions, np.ones(len(positions)),
+                                                                                field, points, support, 2)}
+            near_wall = np.abs(coordinate - 0.5) > 0.5 - 1.05 * support / float(upper[0] - lower[0])
+            cells = [str(size), "竖线 u" if line == "vertical" else "横线 v"]
+            for key, value in variants.items():
+                error = value - exact
+                near_text = f"{np.abs(error[near_wall]).max():.4f}" if near_wall.any() else "—"
+                cells.append(f"{np.sqrt(np.mean(error ** 2)):.5f}（近壁 {near_text}，"
+                             f"内部 {np.abs(error[~near_wall]).max():.4f}）")
+            rows.append(cells)
+    write("round9_analytic_profiles.md", markdown_table(
+        ["N", "线", "(i) 线性 MLS，含壁粒子：L2（近壁最大 / 内部最大）", "(ii) 二次 MLS，含壁粒子", "(ii) 二次 MLS，只用流体"],
+        rows))
     (ROUND / "measurement.json").write_text(json.dumps(results, indent=1), encoding="utf-8", newline="\n")
     print(f"-> {ROUND / 'measurement.json'}")
     return 0
@@ -390,6 +426,38 @@ def fit_limit(sizes: np.ndarray, values: np.ndarray, errors: np.ndarray, samples
             "limit_range": [float(low[0]), float(high[0])], "power_range": [float(low[2]), float(high[2])]}
 
 
+DRIFT_RUN = REPOSITORY_ROOT / "logs" / "wall_store" / "round8" / "comparison" / "box_run" / \
+    "0001_C_crossing_hdx4_n100_dual" / "lines.npz"
+DRIFT_SPAN = (30.0, 45.0)
+
+
+def drift_rates() -> dict:
+    """The slow drift after the level rule is met: the slope (deviation per unit time) of every sample's extrema
+    (round-8 method, the same case as the N = 100 level: h/dx = 4, Re = 1000) over DRIFT_SPAN, by least squares."""
+    from experiment.wall_crossing.cavity3d_benchmark import extrema_of_profiles
+    lines = load_lines(DRIFT_RUN)
+    fine = int(lines["fine_count"])
+    coordinate = lines["vertical_coordinate"][:fine]
+    data = reference()["extrema"]
+    times, values = [], {key: [] for key in QUANTITY_TEXT}
+    for index, time_value in enumerate(lines["time"]):
+        if not DRIFT_SPAN[0] <= time_value <= DRIFT_SPAN[1]:
+            continue
+        found = extrema_of_profiles({"vertical": (coordinate, lines["vertical_velocity"][index, :fine, 0]),
+                                     "horizontal": (coordinate, lines["horizontal_velocity"][index, :fine, 1]),
+                                     "spanwise": (coordinate, lines["spanwise_velocity"][index, :fine, 2])})
+        times.append(float(time_value))
+        for key in QUANTITY_TEXT:
+            values[key].append(deviation(found[key]["value"], data[key]["value"]))
+    out = {}
+    for key, series in values.items():
+        slope, intercept = np.polyfit(times, series, 1)
+        residual = np.asarray(series) - (slope * np.asarray(times) + intercept)
+        error = float(residual.std(ddof=2) / (np.std(times) * math.sqrt(len(times))))
+        out[key] = {"slope": float(slope), "slope_error": error, "samples": len(times)}
+    return out
+
+
 def level_tables(results: dict) -> None:
     data = reference()["extrema"]
     rows = []
@@ -482,6 +550,28 @@ def level_tables(results: dict) -> None:
         write("round9_extrapolation.md", markdown_table(
             [f"量", "方法", f"偏差（N = {' / '.join(str(size) for size in sizes)}）", "阶 p（16–84 % 区间）",
              "外推极限（± 半宽）"], rows))
+        # sensitivity: the levels moved to a common time (the latest level's window centre) by the slow drift's rate
+        rates = drift_rates()
+        centres = {size: float(results[size]["summary"]["time"]) - WINDOW / 2 for size in sizes}
+        common = max(centres.values())
+        rows = []
+        for quantity in ("u_min", "v_max", "v_min", "w_abs_max"):
+            entry = fits[f"{quantity}_{METHOD}"]
+            shifted = np.asarray(entry["values"]) + rates[quantity]["slope"] * np.array(
+                [common - centres[size] for size in sizes])
+            spread = np.sqrt(np.asarray(entry["errors"]) ** 2 + (rates[quantity]["slope_error"] * np.array(
+                [common - centres[size] for size in sizes])) ** 2)
+            fit = fit_limit(sizes, shifted, np.maximum(spread, 0.0005))
+            fits[f"{quantity}_{METHOD}_drift"] = {**fit, "values": shifted.tolist(), "rate": rates[quantity]}
+            rows.append([QUANTITY_TEXT[quantity],
+                         f"{100 * rates[quantity]['slope']:+.3f} ± {100 * rates[quantity]['slope_error']:.3f}",
+                         " / ".join(f"{centres[size]:.1f}" for size in sizes),
+                         " / ".join(percent(value) for value in shifted),
+                         f"{fit['power']:.2f}（{fit['power_range'][0]:.2f}–{fit['power_range'][1]:.2f}）",
+                         f"{percent(fit['limit'])} ± {100 * fit['limit_spread']:.2f}"])
+        write("round9_extrapolation_drift.md", markdown_table(
+            ["量（直接拟合）", "缓慢漂移（百分点 / 单位时间，第八轮同一算例 t = 30–45）",
+             "各级窗口中点的累计时间", f"移到 t = {common:.1f} 后的偏差", "阶 p", "外推极限"], rows))
     (ROUND / "extrapolation.json").write_text(json.dumps(fits, indent=1), encoding="utf-8", newline="\n")
 
 
