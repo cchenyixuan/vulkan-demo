@@ -289,7 +289,8 @@ def install(watchdog: Watchdog) -> None:
     original_run = ChainOrchestratorV7.run_pipelined
     test_fire_frame = int(os.environ.get("STRESS_TEST_FIRE_AT_FRAME", "-1"))
     # STRESS_CLEAR_WORKER_TIMESTAMPS=1: empty every transport worker's per-frame timestamp dict at each defrag boundary
-    # (cavity_runner.py does; box_run / chain_runner do not) - the control of the host-memory growth at K >= 2
+    # (cavity_runner.py does; chain_runner did not before round 7, report section 13, and does now) - the control of
+    # the host-memory growth at K >= 2 in report section 12.8; with today's chain_runner the switch changes nothing
     clear_worker_timestamps = os.environ.get("STRESS_CLEAR_WORKER_TIMESTAMPS", "0") == "1"
 
     def submit_frame(self, frame_n: int) -> None:

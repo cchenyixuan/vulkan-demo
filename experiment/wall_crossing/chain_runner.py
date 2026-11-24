@@ -15,6 +15,9 @@ at): the chain starts from that state the way the cavity runner resumes (partiti
 ChainOrchestratorV7.restart_all uploads it) and steps from restart["step"] to total_steps; on_sample gets the
 absolute step.
 
+Host memory: the transport workers' per-frame timing records (TransportWorker.timestamps) are dropped at every defrag
+boundary, as the cavity runner does; nothing here reads them (report section 13).
+
 Why not the single-command-buffer step of _run_v7_single_bench.py: it waits on a fence after every step, and
 on a card shared with another (pipelined) job that wait costs a scheduling slice per step (measured: 170
 steps/s against ~1900 for the pipelined path on the same shared card). The kernels and pipelines are the same.
@@ -86,6 +89,12 @@ def run_chain(case, device_map: list, total_steps: int, sample_steps: int, on_sa
             on_ready(simulators, chain.slabs)
 
         def on_defrag(frame: int, report: list) -> None:
+            # Every transport worker (2 (K - 1) of them) keeps one timing record per frame (TransportWorker.timestamps)
+            # and never drops one. Nothing on this path reads them (the callers get the simulators, not the
+            # orchestrator), so they are dropped at every defrag boundary, as experiment/validation/cavity_runner.py
+            # does; kept, they grew the process by ~1.24 KB per frame at K = 2 (claude/wall_store_report.md 12.8, 13).
+            for worker in orchestrator.workers:
+                worker.timestamps.clear()
             step = start_step + frame
             if step % sample_steps == 0 or step == total_steps:
                 on_sample(step, simulators, chain.slabs)
