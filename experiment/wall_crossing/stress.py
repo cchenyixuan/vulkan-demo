@@ -288,6 +288,9 @@ def install(watchdog: Watchdog) -> None:
     original_submit = ChainOrchestratorV7._submit_frame
     original_run = ChainOrchestratorV7.run_pipelined
     test_fire_frame = int(os.environ.get("STRESS_TEST_FIRE_AT_FRAME", "-1"))
+    # STRESS_CLEAR_WORKER_TIMESTAMPS=1: empty every transport worker's per-frame timestamp dict at each defrag boundary
+    # (cavity_runner.py does; box_run / chain_runner do not) - the control of the host-memory growth at K >= 2
+    clear_worker_timestamps = os.environ.get("STRESS_CLEAR_WORKER_TIMESTAMPS", "0") == "1"
 
     def submit_frame(self, frame_n: int) -> None:
         watchdog.on_submit(self, frame_n)
@@ -318,6 +321,9 @@ def install(watchdog: Watchdog) -> None:
 
         def wrapped(frame: int, report: list) -> None:
             watchdog.on_defrag(self, frame, report)
+            if clear_worker_timestamps:         # the cavity runner's practice (its on_defrag), for the control run
+                for worker in self.workers:
+                    worker.timestamps.clear()
             if on_defrag is not None:
                 on_defrag(frame, report)
             watchdog.last_progress = time.perf_counter()
