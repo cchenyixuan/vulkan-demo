@@ -111,8 +111,14 @@ def interpolated_restart(case, previous_path: pathlib.Path, support: float, inte
     rest_density, eos_constant = float(fluid.rest_density), float(fluid.eos_constant)
     power = float(case.physics.power_parameter)
     source_values = np.column_stack([previous["velocities"], previous["pressures"]])
+    # the neighbours within the support: about 4/3 pi (support / spacing)^3 of the previous lattice; twice that (and 20
+    # more) as the limit of the nearest-neighbour query (a compressed region has more), at most 400
+    previous_spacing = (np.prod(previous["positions"].max(axis=0) - previous["positions"].min(axis=0))
+                        / previous["positions"].shape[0]) ** (1.0 / 3.0)
+    expected = 4.0 / 3.0 * np.pi * (support / previous_spacing) ** 3
+    neighbour_limit = int(min(400, 2.0 * expected + 20))
     values, counts = linear_moving_least_squares(previous["positions"], previous["masses"] / previous["densities"],
-                                                 source_values, positions, support)
+                                                 source_values, positions, support, neighbour_limit=neighbour_limit)
     if not np.all(np.isfinite(values)):
         raise ValueError(f"interpolated_restart: {int((~np.isfinite(values)).any(axis=1).sum())} particles got no "
                          "value (no previous particle within the support)")
@@ -145,6 +151,7 @@ def interpolated_restart(case, previous_path: pathlib.Path, support: float, inte
         "previous_density_minimum": float(previous["densities"].min()),
         "previous_density_maximum": float(previous["densities"].max()),
         "pressure_mean": float(pressures.mean()), "previous_pressure_mean": float(previous["pressures"].mean()),
+        "neighbour_limit": neighbour_limit, "neighbours_maximum": int(counts.max()),
         "integral": integral,
     }
     volume_constraint = {"_volume_constraint_integral": float(integral)} if integral is not None else None

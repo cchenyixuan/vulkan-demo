@@ -166,6 +166,10 @@ def main() -> int:
         supports = [arguments.support_factor * previous_spacing, 4.0 * previous_spacing]
         directory = None
         for attempt, support in enumerate(supports):
+            if not (previous["directory"] / "final.npz").exists():
+                log({"event": "retry_impossible", "size": size, "attempt": attempt,
+                     "reason": "the previous level's final.npz is gone (the failed attempt ran past level time 1)"})
+                break
             code, directory = run_level(arguments, size, previous, support, attempt, cleanup)
             done = code == 0 and (directory / "summary.json").exists() and (directory / "final.npz").exists()
             log({"event": "level_end", "size": size, "attempt": attempt, "exit_code": code, "complete": done})
