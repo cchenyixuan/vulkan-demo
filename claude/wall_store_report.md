@@ -1,6 +1,8 @@
 # 方案 C：壁面粒子独立存储（第 0–2 步；第二轮；第三轮）
 
-分支 `v7-crossing-wall-store`（从标签 `crossing-pool` 开出，只在本地提交，没有推送）。日期 2026-11-22；第二轮 2026-11-22/23。
+分支 `v7-crossing-wall-store`（从标签 `crossing-pool` 开出；第一到三轮只在本地提交，第四轮起推送过，见第 10、11、13 节）。日期 2026-11-22；第二轮 2026-11-22/23。
+
+> **第七轮**（2026-11-24，修 `box_run` 双卡的进程内存增长：已修、检查都通过、已推送）见**第 13 节**。
 
 > **第六轮**（2026-11-24，一夜压力测试：通过，没有停住或异常退出）见**第 12 节**。
 
@@ -2444,7 +2446,7 @@ python -m experiment.wall_crossing.round5_tables summary
 - **发现一个运行器的问题（12.8）**：`box_run` 双卡时，进程内存每帧涨 1.27 KB。
   - 原因是传输线程的计时字典 `TransportWorker.timestamps` 从不清空；方腔运行器每次整理时清空，所以不受影响。对照证实：清空以后每帧 9 B。
   - 不影响结果。但双卡 2-D 1000² 连续跑 8 小时会超过本机 32 GB 内存。
-  - 按任务书没有改代码，建议的一行修改见 12.8。
+  - 按任务书没有改代码，建议的一行修改见 12.8。（第 13 节已按这个建议修改。）
 - **温度和降频（12.7）**：本机最高 72 °C，远端最高 85 °C，没有过热降速。L2 有 78–80 % 的忙采样带“软件功率上限”，但步速与频率无关（相关系数 −0.006）。
 - 我自己做的决定、没做的、文件和远端路径：12.9–12.11。
 
@@ -2888,6 +2890,7 @@ R1 是 12.2 表里的第三行：1,500,000 步，4 小时 13 分（100.8 步/秒
   - 方腔运行器（`cavity_runner`，2-D 方腔的长时间验证运行和 R2 用它）不受影响。
   - K 张卡的链有 2(K − 1) 个传输线程，K 越大涨得越快。
 - **建议**（没有改，按任务书不动代码）：`box_run` 的整理回调里也清空 `worker.timestamps`，和 `cavity_runner.py:621` 一样。测试工具里的同一个开关是 `STRESS_CLEAR_WORKER_TIMESTAMPS=1`。
+- **第 13 节**：已按这个建议在 `chain_runner.run_chain` 里修改（`3d9fd99`）并推送；修改前 simple 双卡也一样漏，影响范围是所有 K ≥ 2 的 `box_run` 运行。
 - **诊断数据**：`logs/wall_store/round6/L1/box_run/0001_L1_cavity3d_1m_dual/defrag.csv`、`L2/box_run/0001_L2_n1000_dual/defrag.csv`（`rss_mb` 一列），对照在 `logs/wall_store/round6/followup/memory_control/`。
 
 **2. 3-D 静水盒的最大速度检查，按原定义有 8 次未通过**：L3 1 次（12.5），L4 7 次（12.6）。
@@ -2953,7 +2956,7 @@ R1 是 12.2 表里的第三行：1,500,000 步，4 小时 13 分（100.8 步/秒
 - **没有一项因为卡住而跳过**。七段都跑完了预定的时间或步数。
 - **没有存帧**（任务书的规定）。所以 12.5 那个振荡的贴墙粒子只有每 0.125 一次的位置和速度，没有它和邻居的完整状态。要看清楚，需要在同一个组合上带快照重跑，等它再出现。重跑 20 次的结果见 12.5。
 - **L2 只到 t = 59**：2-D 1000² 要到 t ≈ 100 才时间收敛，2 小时不够。所以 L2 只看稳定性，不与基准比。R2 的 500² 到了 t = 100，与第 11 节比过了。
-- **进程内存增长没有修**：按任务书不改代码，只量了、找到原因、做了对照（12.8）。
+- **进程内存增长没有修**：按任务书不改代码，只量了、找到原因、做了对照（12.8）。第 13 节已修。
 - **L4 没有复现第四轮的停住**。这是结果，不是没做：125 次同卡并发运行，0 次停住。
 
 ### 12.11 工具、日志、远端文件、提交
@@ -2990,11 +2993,329 @@ R1 是 12.2 表里的第三行：1,500,000 步，4 小时 13 分（100.8 步/秒
 - 仓库和 `logs/` 里没有留下帧。
 - 只有粒子池版本那次 1,000 步冒烟测试的末态（2.9 MB）还在会话临时目录里：删除命令被权限拦下了，我没有再试。
 
-**提交**（本地，没有推送）：
+**提交**（本地，没有推送；第 13 节推送时一起推上去了）：
 - `02c2a8a`：测试工具 `stress.py`、`stress_plans.py`，开跑前提交，远端检出的就是它。
 - 本节、表和图、`stress_report.py`，以及 `stress.py` 的一处修改（`STRESS_CLEAR_WORKER_TIMESTAMPS` 开关，缺省关，只用于 12.8 的对照）：在它之后的一个提交里。
 
 任务书文件和远端密码没有进仓库，也没有写进任何日志或报告。
+
+## 13. 第七轮：修 box_run 双卡的内存泄漏（2026-11-24）
+
+**结果：修好了，已推送。`chain_runner.run_chain` 在每次整理时清空传输线程的计时字典（提交 `3d9fd99`），双卡 `box_run` 的进程内存增长从每帧约 1.24 KB 降到约 10 B（与单卡运行一样）。检查 A–D 都通过，`origin/v7-crossing-wall-store` 已从 `1be41b7` 推到本节所在的提交（`3d9fd99` 的下一个提交）。**
+
+- 本机两张 5090，16:20–19:14（D 结束），然后写报告。不用远端。
+- 只改了主机端的运行器代码。着色器、求解器的计算和缺省值都没有动；100 个 SPIR-V 文件与 MANIFEST 逐字节相同。
+
+**结论**
+
+- **修改**：`experiment/wall_crossing/chain_runner.py` 的整理回调里清空每个传输线程的 `timestamps`。
+  - `box_run` 走 `chain_runner.run_chain`，`hydrostatic`、`volume_constraint_check` 也走这里。
+  - 清空的时机与方腔运行器（`cavity_runner.py:621`）相同：每次整理时，在这一段的帧全部完成之后。
+  - 在 `run_chain` 的进程里，没有任何代码读这些记录，所以没有一项计时统计因此变少或变错（13.1）。
+- **simple 双卡修改前也漏**：每帧 1,245 B，crossing 1,237 B，同一个量级。这些记录与壁面方式无关（13.2）。
+- **其他分支**：传输线程存记录的写法每个分支都一样，没有一个分支在线程里清空。
+  - 有方腔运行器、浸泡测试的分支，这两个都清空。
+  - 主分支 `master` 什么地方都不清空。
+  - 论文用的标签 `v7-rc4` 所在的分支，有几个双卡长运行入口不清空。
+  - 只列出来，没有改（13.3）。
+- **检查 A–D 都通过**（13.4）：
+
+| 项 | 内容 | 结果 |
+|---|---|---|
+| A | 2-D 1000² 双卡，crossing、simple 各 10 分钟，修改前后 | 通过：每帧增长 1,237–1,249 B → 8–13 B（12.8 的对照是 9 B）；同一段帧的步速，修改前后差 −0.2 % 到 +0.5 %，在运行间散布以内 |
+| B | 传输计时 | 通过：`box_run` 本来就不输出传输计时；从外面读，修改前后每个整理间隔都是完整的 1,000 条记录，各段平均在间隔间标准差以内（合计 826–829 µs） |
+| C | 正确性 | 通过：100 个 SPIR-V 与 MANIFEST 逐字节相同；2-D 250² 和 3-D 每边 50 的双卡短运行粒子数守恒，各项计数和僵尸粒子都是 0；接缝测试仍是同样的 858 条 |
+| D | 2-D 1000² crossing 双卡，从 t = 0 连续 2 小时 | 通过：10 分钟以后的 1 小时 50 分钟只涨 72 MiB（每帧 10.3 B；L2 是 8,639 MiB、1,265 B）。到 t = 59.33（L2 59.13），动能与 L2 的相对差 ≤ 1.1e-4，在运行间散布以内。每步时间后半程是平的；首末 10 % 之差 −2.8 %，与 L2 的 −2.6 % 一样来自开头的流场发展（13.4 D） |
+
+- **推送**：四项都通过后推送了 `origin/v7-crossing-wall-store`：`1be41b7` → 本节所在的提交。一起推上去的还有第六轮的两个本地提交 `02c2a8a`、`fb3fb55`。没有合并，没有移动标签，也没有新加标签。推送前用 `git log -p origin/v7-crossing-wall-store..HEAD` 查过，里面没有密码。
+
+### 13.1 改动
+
+**代码**：提交 `3d9fd99`，只有这一处逻辑修改（`stress.py` 只改了注释）。`git show 3d9fd99` 的 diff：
+
+```diff
+diff --git a/experiment/wall_crossing/chain_runner.py b/experiment/wall_crossing/chain_runner.py
+index 3e22770..a4f7e0e 100644
+--- a/experiment/wall_crossing/chain_runner.py
++++ b/experiment/wall_crossing/chain_runner.py
+@@ -15,6 +15,9 @@ at): the chain starts from that state the way the cavity runner resumes (partiti
+ ChainOrchestratorV7.restart_all uploads it) and steps from restart["step"] to total_steps; on_sample gets the
+ absolute step.
+ 
++Host memory: the transport workers' per-frame timing records (TransportWorker.timestamps) are dropped at every defrag
++boundary, as the cavity runner does; nothing here reads them (report section 13).
++
+ Why not the single-command-buffer step of _run_v7_single_bench.py: it waits on a fence after every step, and
+ on a card shared with another (pipelined) job that wait costs a scheduling slice per step (measured: 170
+ steps/s against ~1900 for the pipelined path on the same shared card). The kernels and pipelines are the same.
+@@ -86,6 +89,12 @@ def run_chain(case, device_map: list, total_steps: int, sample_steps: int, on_sa
+             on_ready(simulators, chain.slabs)
+ 
+         def on_defrag(frame: int, report: list) -> None:
++            # Every transport worker (2 (K - 1) of them) keeps one timing record per frame (TransportWorker.timestamps)
++            # and never drops one. Nothing on this path reads them (the callers get the simulators, not the
++            # orchestrator), so they are dropped at every defrag boundary, as experiment/validation/cavity_runner.py
++            # does; kept, they grew the process by ~1.24 KB per frame at K = 2 (claude/wall_store_report.md 12.8, 13).
++            for worker in orchestrator.workers:
++                worker.timestamps.clear()
+             step = start_step + frame
+             if step % sample_steps == 0 or step == total_steps:
+                 on_sample(step, simulators, chain.slabs)
+diff --git a/experiment/wall_crossing/stress.py b/experiment/wall_crossing/stress.py
+index bd00c8f..14635e8 100644
+--- a/experiment/wall_crossing/stress.py
++++ b/experiment/wall_crossing/stress.py
+@@ -289,7 +289,8 @@ def install(watchdog: Watchdog) -> None:
+     original_run = ChainOrchestratorV7.run_pipelined
+     test_fire_frame = int(os.environ.get("STRESS_TEST_FIRE_AT_FRAME", "-1"))
+     # STRESS_CLEAR_WORKER_TIMESTAMPS=1: empty every transport worker's per-frame timestamp dict at each defrag boundary
+-    # (cavity_runner.py does; box_run / chain_runner do not) - the control of the host-memory growth at K >= 2
++    # (cavity_runner.py does; chain_runner did not before round 7, report section 13, and does now) - the control of
++    # the host-memory growth at K >= 2 in report section 12.8; with today's chain_runner the switch changes nothing
+     clear_worker_timestamps = os.environ.get("STRESS_CLEAR_WORKER_TIMESTAMPS", "0") == "1"
+ 
+     def submit_frame(self, frame_n: int) -> None:
+```
+
+**谁读 `TransportWorker.timestamps`**（本分支，全部找过）：
+
+| 位置 | 怎么读 | 和 `run_chain` 的关系 |
+|---|---|---|
+| `experiment/v7/utils/transport_v7.py:680` | 写：每帧一条 9 项的记录（线程信号发完以后） | — |
+| `transport_v7.py:518` `timestamps_for_frame` → `orchestrator_v7.py:247–248`（`DualGpuOrchestratorV7.step`）、`:691`（`ChainOrchestratorV7.step`） | 每帧的记录放进 `_records` | `step()` 的路径；`run_chain` 用 `run_pipelined`，不经过这里 |
+| `experiment/v7/utils/phase_trace_v7.py:680` | 帧完成的钩子里读刚完成的那一帧 | 只有链测速（`--phase-trace`）装这个钩子 |
+| `experiment/v7/_run_v7_chain_bench.py:508`、`weight_calibration.py`、`analysis/step_trace_model.py`、`_probe_copy_concurrency.py:43`、`seam_audit/opt_campaign.py:280`、`two_hop/_run_two_hop_bench.py:241, 565` | 测量完以后读全部记录，或逐帧读 | 都是自己建的编排器，不经过 `run_chain` |
+| `experiment/v7/_run_v7_soak.py:242, 258` | 先读，再清空 | 自己的编排器 |
+| `experiment/validation/cavity_runner.py:621` | 只清空，不读 | 方腔运行器，不经过 `run_chain` |
+| `experiment/wall_crossing/stress.py` | 不读记录，只读 `stamp_error_count`；12.8 的对照开关清空 | 包在 `run_pipelined` 外面 |
+
+`run_chain` 的调用者（`box_run`、`hydrostatic`、`volume_constraint_check`）拿到的是模拟器和各段的算例，拿不到编排器，所以读不到这些记录。`run_pipelined` 自己也不读。**在 `run_chain` 的进程里没有任何读者，清空不可能让任何计时统计变少或变错。**
+
+**清空的时机为什么安全**：
+- 整理回调在这一段的每一帧、每一段都等到帧完成以后才调用。
+- 接收方的帧完成排在它的上传之后，上传等传输线程的主机信号，线程发完信号就写这一帧的记录。所以回调时，这一段的记录已经都写好了。
+- 理论上最后一帧的记录可能在清空之后才写进去，那它就留到下一次整理再清掉，不会丢给谁，也不会多出什么。
+- 本机的 Python 3.13.9 是带 GIL 的普通版本，`clear()` 和线程那一次字典赋值各自是原子的。
+- 记录只在主机内存里，GPU 的工作、信号量和帧都不碰。
+- 检查 B 从外面在每次整理时、运行器回调之前读这些记录：修改前后每段都是完整的 1,000 条，一帧不缺，平均值不变。
+
+**为什么不改 `TransportWorker`**（例如改成有上限的队列）：
+- 任务书优先和方腔运行器一致。
+- 链测速在测量结束后读全部记录，有上限的队列会改变它看到的东西。
+- 改 `run_chain` 只影响走它的三个运行器，其他工具不变。
+
+### 13.2 simple 双卡在修改前也漏
+
+| 算例（2-D 1000²，双卡） | 代码 | 帧数 | 进程内存 MiB（开头 → 60 s → 结尾） | 每帧增长（全程拟合） | 每帧增长（60 s 以后） | 步 / 秒，中位（每步） | 步 / 秒，第 1,001–630,000 帧的中位 | 步 / 秒，首 10 % → 末 10 % |
+|---|---|---|---|---|---|---|---|---|
+| crossing | 修改前 | 672,000 | 369 → 440 → 1146 | 1239 B | 1237 B | 1141.3（0.8762 ms） | 1141.6 | 1163.0 → 1139.4（-2.0 %） |
+| simple | 修改前 | 635,000 | 360 → 443 → 1111 | 1249 B | 1245 B | 1075.4（0.9299 ms） | 1075.5 | 1096.1 → 1064.4（-2.9 %） |
+| crossing | 修改后 | 675,000 | 369 → 359 → 365 | 9 B | 11 B | 1146.3（0.8724 ms） | 1147.4 | 1173.8 → 1134.3（-3.4 %） |
+| simple | 修改后 | 633,000 | 359 → 348 → 354 | 8 B | 13 B | 1072.8（0.9321 ms） | 1072.9 | 1107.0 → 1063.0（-4.0 %） |
+| crossing | 修改前：第 12 节的 L2（同一算例，只取它的前 630,000 帧） | — | — | — | — | — | 1144.9 | — |
+
+- **修改前**：simple 每帧 1,245 B，crossing 1,237 B（60 s 以后的线性拟合），与第 12 节的 L1（3-D，1,269 B）、L2（1,264 B）同一个量级。
+  - 增长只取决于传输线程的个数（K = 2 是两个）和帧数，与壁面方式、维数无关。
+  - 所以第 12.8 节说的影响范围要改成：**所有用 `box_run`（以及 `volume_constraint_check`）跑 K ≥ 2 的运行**，不只 crossing。`hydrostatic` 只能单卡，不受影响。
+- **修改后**：crossing 每帧 9–11 B，simple 8–13 B，与 12.8 的对照运行（9 B）同一个量级。
+  - 开头 60 s 之后，10 分钟里进程内存只涨 6 MiB：crossing 359 → 365 MiB，simple 348 → 354 MiB。
+  - 修改前同样的时段涨了 668–706 MiB。
+- 剩下的每帧约 10 B 与计时字典无关：本机的单卡运行（没有传输线程）每帧也涨这么多（13.4 D）。来源这一轮没有查。
+
+### 13.3 其他分支里同样的问题（只读，没有改）
+
+做法：只用 `git grep` / `git show` 查已推送的分支和两个论文标签，没有检出，也没有修改。线程存记录的位置（`self.timestamps[frame_n] = {`）每个分支都有，线程和编排器本身从不清空：
+
+| 分支 | 线程存记录的位置 |
+|---|---|
+| `master` | `experiment/v2/utils/transport_v2.py:210`、`v3/…/transport_v3.py:210`、`v4/…/transport_v4.py:210`、`v5/utils/transport_v5.py:210` |
+| `exp/band-compact` | v2–v4 同上，`transport_v5.py:327` |
+| `v4-multigpu-orchestration` | v2–v4 同上，`transport_v5.py:327`、`transport_v6.py:375`、`two_hop/shared_host_v5.py:589` |
+| `v7-perf`、`e7-cluster`、`v8-tgv`、`v7-single`（= 标签 `v7-single-rc4.1`）、`v7-wall-bc` | 同上，加 `experiment/v7/utils/transport_v7.py:375` |
+| `v7-wake-fix`、`cross-vendor`、`v7-adami-multi`、**标签 `v7-rc4`**、`bootstrap-density-fix`、`e8-3d`、`v7-wall-crossing`、`v7-crossing-wall-store`、`v9-micropolar`、`v10-periodic`、`v10-showcase` | 同上，`transport_v7.py:680` |
+
+（`fsi/*` 两个分支没有这些传输文件。）
+
+**会跑很久的 K ≥ 2 入口、从不清空的**：
+- **有这些目录的每个分支都一样**（v2–v4 每个分支都有，v5 除 `master` 外都有，v6、v7 在 v6 / v7 那几组分支）：
+  - `experiment/v{5,6,7}/_run_vN_3d_longrun.py:275`：`run_pipelined`，`--weights` 缺省 `1.05,1`（K = 2），跑到 t = 30。
+  - `experiment/v{5,6,7}/_run_vN_snapshot_movie.py:332`：`run_pipelined`，缺省 K = 2，预算 30 分钟。
+  - `experiment/v{2..7}/_run_vN_dual_viewer.py:187`（v3 是 `:189`）：`step()`，K = 2，不按 ESC 不停；`_records` 也每帧加一条。
+  - `experiment/v{5,6,7}/_run_vN_dual_window_viewer.py:135`：同上。
+  - `experiment/v{2..7}/_run_vN_dual.py:142`（v3 `:144`，v5–v7 `:145`）：`step()`，K = 2，`--max-steps` 缺省 1,000 但可以任意大；`_records` 也涨。
+- **`v7-wall-crossing`、`v7-crossing-wall-store`（本分支，修改前）**：`experiment/wall_crossing/chain_runner.py:94`，由 `box_run.py` 调用（`:408`；`v7-wall-crossing` 上是 `:439`）。`volume_constraint_check.py:106` 也走它（缺省 K = 1、3,000 步）。
+- **`v9-micropolar`、`v10-periodic`、`v10-showcase`**：
+  - `experiment/validation/micropolar_couette.py:451`（`run`；试跑表里有 K = 2 和一张卡上 K = 3 的链）；
+  - `micropolar_rotor3d.py:694`；
+  - `micropolar_tests.py:1078`（`cavity`）。
+  - K 由 `--device-map` / `--slabs` 定。
+- **测速工具**：`_run_vN_chain_bench.py`（v5 `:301`、v6 `:500`、v7 `:508`）在测量结束后有意读全部记录。集群脚本 `docs/cluster_v6/scripts/run_chain_v6.py`（`e7-cluster` 及以后）在同一进程里调用它。
+  - 它们按设计只跑有限步。但 `--max-steps` 缺省 20,000，没有上限，跑很长时也会涨。
+  - K = 8 有 14 个线程，粗估每帧约 9 KB。E7 实际用的是 2-D 3,000 步、3-D 1,500 步。
+
+**清空的入口**：
+- `experiment/validation/cavity_runner.py` 的整理回调。行号：
+  - `v4-multigpu-orchestration` `:657`；
+  - `v7-perf`、`e7-cluster`、`v7-wake-fix`、`cross-vendor`、`v7-rc4`、`bootstrap-density-fix`、`e8-3d` `:586`；
+  - `v7-wall-bc` `:589`；
+  - `v7-wall-crossing` `:594`；
+  - 本分支 `:621`；
+  - `v8-tgv`、`v7-single` / `v7-single-rc4.1` `:624`；
+  - `v7-adami-multi` `:712`；
+  - `v9-micropolar`、`v10-*` `:743`。
+- 各分支的 `_run_v{5,6,7}_soak.py`（`:258` / `:261`）。
+- **`master` 什么地方都不清空。**
+
+**论文用的分支**：
+- **标签 `v7-rc4`（论文的多卡链）**：在 `bootstrap-density-fix`、`e8-3d`、`v7-wall-crossing`、`v7-crossing-wall-store`、`v9-micropolar`、`v10-periodic`、`v10-showcase` 里。
+  - 它的方腔运行器和浸泡测试清空。
+  - 上面第一组入口（3-D 长运行、录像、双卡窗口、`_run_v7_dual.py`）不清空。
+- **标签 `v7-single-rc4.1`**：只在 `v7-single` 里。论文的单卡路径（`experiment/v7_single`）是 K = 1，没有传输线程，不受影响；同一棵树里的多卡脚本同上。
+- **`master`**：很旧，最后一次合并是 `v4-multigpu-orchestration` 的 PR #1。只有 v2–v5 的双卡编排器，入口 `_run_v{2..5}_dual_viewer.py:187`、`_run_v{2..5}_dual.py:142` 都是 `step()`，不清空。
+
+（这一节的普查由一个只读的子任务做，我抽查了其中五处：3-D 长运行 `:275`、micropolar Couette `:451`、`master` 的 `_run_v5_dual.py:142`、`v7-rc4` 的 `transport_v7.py:680`、两个标签所在的分支，都对。没有逐行读 seam_audit 里每个工具，按它们的 `--steps` 算作短运行。）
+
+### 13.4 检查 A–D
+
+**A：进程内存和每步时间**（13.2 的表；2-D 1000²，双卡，每次 10 分钟，看门狗下运行，修改前后同样的命令）：
+- 修改后每帧增长 8–13 B，修改前 1,237–1,249 B。12.8 的对照是 9 B。**通过。**
+- 每步时间：比较同样的第 1,001–630,000 帧的中位（开头流场发展那段变慢在每次运行里都一样）。
+  - crossing：修改前 1,141.6（本轮）和 1,144.9（第 12 节 L2 的同一段），修改后 1,147.4，D 的同一段 1,147.2。
+  - simple：修改前 1,075.5，修改后 1,072.9（−0.2 %）。
+  - crossing 修改后的两次（A、D）都比修改前的两次高 0.2–0.5 %，simple 修改后低 0.2 %：方向不一致，大小与两次修改前的 crossing 之间的 0.3 % 相当，在运行间散布以内。**通过。**
+  - 表里“首 10 % → 末 10 %”的 −2 % 到 −4 % 是每次运行开头流场发展起来的变慢，修改前后都有（12.2）。
+
+**B：传输计时**。`box_run` 自己不输出传输计时统计：它的输出只有 `series.csv`、`summary.json` 里的步 / 秒，`stress.py` 的 `defrag.csv` 里有每段的步 / 秒，都不来自这些记录。所以我用了一个不提交的探针（`timing_probe.py`，在会话临时目录）：
+- 包住 `run_pipelined`，在每次整理时、运行器自己的回调（修改后在这里清空）之前，读出这一段还没读过的记录。
+- 每段写一行：条数和各分段的平均。
+- 修改前后各跑两次，每次 150 秒，2-D 1000² crossing 双卡。
+
+| 传输线程 | 段（主机时钟，µs；每个 1000 帧整理间隔的平均，再对间隔取平均 ± 间隔间标准差） | 修改前 1 | 修改前 2 | 修改后 1 | 修改后 2 |
+|---|---|---|---|---|---|
+| s0_to_s1 | 等发送方读回 | 730.62 ± 30.72 | 714.07 ± 53.70 | 723.11 ± 37.95 | 699.19 ± 65.04 |
+| s0_to_s1 | 等接收方读回（dest guard） | 24.54 ± 19.85 | 38.26 ± 43.93 | 29.13 ± 28.99 | 52.32 ± 56.65 |
+| s0_to_s1 | 等接收方上传槽 | 6.64 ± 2.28 | 6.30 ± 2.00 | 6.73 ± 2.32 | 6.43 ± 2.17 |
+| s0_to_s1 | 帧戳检查 | 1.02 ± 0.15 | 1.01 ± 0.15 | 1.06 ± 0.16 | 1.02 ± 0.16 |
+| s0_to_s1 | 计数字 + memcpy | 50.53 ± 5.97 | 52.07 ± 5.00 | 53.45 ± 5.67 | 53.41 ± 5.18 |
+| s0_to_s1 | 两个主机信号 | 14.75 ± 2.91 | 14.59 ± 2.74 | 15.17 ± 2.89 | 14.65 ± 2.70 |
+| s0_to_s1 | 合计（出队到信号完成） | 828.10 ± 9.03 | 826.31 ± 11.71 | 828.65 ± 9.53 | 827.03 ± 11.15 |
+| s0_to_s1 | 每帧复制字节 | 323579 | 323573 | 323575 | 323572 |
+| s1_to_s0 | 等发送方读回 | 482.97 ± 44.33 | 531.89 ± 76.72 | 483.05 ± 58.21 | 552.38 ± 76.17 |
+| s1_to_s0 | 等接收方读回（dest guard） | 269.57 ± 48.29 | 220.22 ± 82.21 | 269.57 ± 63.91 | 200.49 ± 80.90 |
+| s1_to_s0 | 等接收方上传槽 | 6.84 ± 2.15 | 6.46 ± 1.81 | 6.92 ± 2.14 | 6.53 ± 2.04 |
+| s1_to_s0 | 帧戳检查 | 1.07 ± 0.13 | 1.00 ± 0.14 | 1.09 ± 0.14 | 1.00 ± 0.15 |
+| s1_to_s0 | 计数字 + memcpy | 53.06 ± 5.24 | 52.03 ± 4.66 | 52.90 ± 5.11 | 51.79 ± 5.25 |
+| s1_to_s0 | 两个主机信号 | 14.66 ± 2.90 | 14.65 ± 2.79 | 15.08 ± 2.95 | 14.72 ± 2.70 |
+| s1_to_s0 | 合计（出队到信号完成） | 828.16 ± 9.08 | 826.26 ± 11.76 | 828.60 ± 9.52 | 826.91 ± 11.21 |
+| s1_to_s0 | 每帧复制字节 | 323575 | 323574 | 323571 | 323587 |
+
+| 运行 | 传输线程 | 最后一个整理边界（帧） | 读到的记录 | 缺的帧 | 每个间隔的记录数 | 运行器回调之后字典里还剩的记录 |
+|---|---|---|---|---|---|---|
+| before run1 | s0_to_s1 | 169,000 | 169,000 | 0 | 1000–1000 | 169,000 |
+| before run1 | s1_to_s0 | 169,000 | 169,000 | 0 | 1000–1000 | 169,000 |
+| before run2 | s0_to_s1 | 170,000 | 170,000 | 0 | 1000–1000 | 170,000 |
+| before run2 | s1_to_s0 | 170,000 | 170,000 | 0 | 1000–1000 | 170,000 |
+| after run1 | s0_to_s1 | 169,000 | 169,000 | 0 | 1000–1000 | 0 |
+| after run1 | s1_to_s0 | 169,000 | 169,000 | 0 | 1000–1000 | 0 |
+| after run2 | s0_to_s1 | 170,000 | 170,000 | 0 | 1000–1000 | 0 |
+| after run2 | s1_to_s0 | 170,000 | 170,000 | 0 | 1000–1000 | 0 |
+
+- 修改前后每个间隔都是完整的 1,000 条，一帧不缺。
+- 各分段的平均都在间隔间标准差以内。合计修改后 826.9–828.7 µs，修改前 826.3–828.2 µs；memcpy 50.5–53.5 µs。
+- 修改后，运行器回调之后字典是空的；修改前字典里留着整个运行的记录（169,000 条）。**通过。**
+
+**C：正确性**：
+- **SPIR-V**：`experiment/v7/shaders/spv` 的 100 个文件（crossing 53 个，simple、adami 和共用的 47 个）的 SHA-256 和大小与 `MANIFEST.txt` 全部相同。着色器目录与标签 `crossing-wall-store-tuned` 和 `HEAD` 都没有差别，也没有未跟踪的文件。所以 simple、adami、crossing 的 SPIR-V 逐字节不变，不需要重编。
+- **短运行**（双卡，因为修改只在 K ≥ 2 时起作用；看门狗下运行）：
+
+| 运行（双卡） | 退出码 | 帧数 | 活粒子：GPU 状态块 / 读回（全程不变） | 溢出 / 远距迁移 / 时间戳错误 | 跑出盒子的流体粒子（最大） | 无 NaN/Inf |
+|---|---|---|---|---|---|---|
+| C_c250_crossing_dual_s20k | 0 | 20,000 | 63,001 / 63,001 | 0 / 0 / 0 | 0 | 是 |
+| C_c3d50_crossing_dual_s10k | 0 | 10,000 | 132,651 / 132,651 | 0 / 0 / 0 | 0 | 是 |
+
+  粒子数守恒（GPU 状态块和读回都不变），溢出、远距迁移、时间戳错误都是 0。“僵尸粒子”按 12.9 的两项数：状态块与读回不一致的次数 0，跑出盒子的流体粒子 0。
+- **接缝测试 `_test_seam_layout.py`**：858 条失败，与第五轮（`logs/wall_store/round5/seam_layout_round5.log`）逐条相同，按集合比、按顺序比都一样。
+- **通过。**
+
+**D：重跑 L2**：
+- 做法与第 12 节的 L2 相同：同一个计划（只换了名字），`box_run --device 0,1`，每 0.2 采样，`--stop-speed 1.5 --stop-outside`。
+- 看门狗开着，2 小时由看门狗以 `StopCondition` 结束（退出码 3），nvidia-smi 每 30 秒记一次。
+
+| 运行（2-D 1000² crossing，双卡，从 t = 0 起 2 小时） | 帧数 | 跑到 t | 进程内存 MiB（开头 → 10 分钟 → 结尾） | 10 分钟以后的增长 MiB | 10 分钟以后每帧增长 | 本进程显存 MiB | 步 / 秒（中位） | 步 / 秒：首 10 % → 末 10 % | 后半程步 / 秒的线性变化 / 残差标准差 | 最大速度 / 盖速 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| D：修改后（本轮） | 7,926,000 | 59.33 | 368 → 381 → 453 | +72 | 10.3 B | 468–468 | 1117.1 | 1145.3 → 1113.5（-2.8 %） | -0.3 / 5.3 | 0.994 |
+| L2：修改前（第 12 节） | 7,900,000 | 59.13 | 408 → 1207 → 9846 | +8639 | 1265.4 B | 468–468 | 1114.1 | 1142.1 → 1111.8（-2.6 %） | +6.9 / 11.9 | 0.994 |
+
+**读法**：
+- **内存：通过。**
+  - 开头 10 分钟从 368 涨到 381 MiB：第一分钟（约 6 万帧）里跳了约 6 MiB，其余是下面同样的每帧约 10 B。
+  - 此后到 2 小时结束只涨 72 MiB（381 → 453），每帧 10.3 B。2 小时里斜率一直不变（每 50 万帧约 5 MiB），没有变快。
+  - L2 同样的时段涨了 8,639 MiB。
+  - **剩下的每帧约 10 B 与线程的计时字典无关**：第 12 节本机的单卡运行（K = 1，根本没有传输线程）每帧也涨 1.9–24.4 B（44 次 15 万帧以上的运行，中位 12.6 B）。所以双卡现在和单卡一样。来源没有查（13.6）；按这个速度 8 小时约涨 0.3 GB。
+  - 本进程显存一直是 468 MB。
+- **每步时间：通过（按第 12 节的读法）。**
+  - 首 10 % → 末 10 % 是 −2.8 %，L2 是 −2.6 %。
+    - 这是开头约 40 分钟流场发展起来的变慢（0.80 → 0.90 ms，见 12.2）。
+    - 两次运行的曲线重合：按每 50 万帧分段，D 的步速是 L2 的 0.9998–1.0068 倍。
+  - 后半程是平的：每步时间的线性变化 −0.3 步 / 秒，残差标准差 5.3 步 / 秒（0.06 倍）。
+  - **所以“末 10 % 对首 10 %”在 D 里不是 0，但它不是漂移，也不是内存造成的**：修改前后一样。
+    - 我按第 12 节的读法把这一项判为通过。
+    - 如果按字面要求首末 10 % 之差为 0，这一项不通过；但修改前的 L2 也同样不通过，修改没有让它变差。
+  - D 没有一个整理间隔比中位慢 10 % 以上（最慢 0.974 ms）。L2 有 6 个（最慢 1.30 ms），还有 t ≈ 29–30 一段 0.93 ms 的平台。只是一次对一次，不能断定那是内存增长造成的。
+- **和 L2 对得上：通过。**
+  - 到达的 t：59.33 对 59.13（步速高 0.3 %，在 A 的散布以内）。
+  - 动能：
+    - 293 个共同采样上，D 与 L2 的相对差最大 1.1e-4。t = 5–20、20–40、40–60 各段最大 1.0e-4、1.1e-4、6.2e-5，中位 1.6e-5–2.8e-5。
+    - 散布：本轮另外 6 次从 t = 0 起的 crossing 运行（A、B）在 t ≤ 5 上与 L2 的相对差最大 6.3e-5–1.7e-4；D 在同一段是 8.0e-5。
+    - 所以 D 与 L2 的差在运行间散布以内。
+  - 平均密度之差最大 0.0017 kg/m³，最大速度之差最大 0.00097。
+- **其他**：
+  - 粒子数守恒；溢出、远距迁移、时间戳错误都是 0；跑出盒子的流体粒子 0；最大速度 0.994 倍盖速（L2 也是 0.994）。
+  - 看门狗没有动作。2 小时到时由 `StopCondition` 结束（退出码 3，`watch_stop.json` 写的是“wall-clock deadline”）。
+- **温度和频率**（nvidia-smi 每 30 秒一次，每张卡 240 个采样）：
+  - 0 号卡：最高 68 °C，功耗中位 536 W，SM 中位 2,857 MHz（最低 2,835）。
+  - 1 号卡：最高 69 °C，530 W，2,835 MHz（最低 2,812）。
+  - 忙采样里分别有 70 % / 81 % 带“软件功率上限”，与 L2 一样（12.7）。
+
+![D：2-D 1000² 方腔，双卡，修改后对第 12 节的 L2](wall_store/figures/round7_d_history.png)
+
+### 13.5 我自己做的决定
+
+1. **修在 `chain_runner` 里，不改 `TransportWorker`**：13.1。这样 `hydrostatic`（K = 1，没有线程，不受影响）和 `volume_constraint_check` 也一起修了。
+2. **检查 B 用外面的探针**：`box_run` 没有传输计时输出（13.4 B），只能从外面读这些记录，看修改前后它们是否照常产生、平均值是否不变。探针不提交。
+3. **每步时间按同一段帧比**：每次运行开头 10 分钟都在流场发展的变慢里，整段中位会因运行长短不同而偏。所以 A 比第 1,001–630,000 帧的中位，并把第 12 节 L2 的同一段当作第二次修改前的 crossing 运行。
+4. **C 的两个短运行用 crossing 双卡**：修改只在 K ≥ 2 时起作用；simple 的双卡已经在 A 里跑了 10 分钟。adami 只查了 SPIR-V。
+5. **接缝测试和 C 的短运行同时跑**：接缝测试只用 CPU（45 秒）；C 的短运行只查正确性，不比时间。D 开跑前它已经结束，没有和 D 重叠。
+6. **`stress.py` 的那行注释一起放进代码提交**：它原来写着“chain_runner 不清空”，修改后不对了。开关本身留着，缺省关，现在打开也不改变什么。
+
+### 13.6 没有做的
+
+- **其他分支没有改**（任务书的规定），13.3 只列出位置。
+- **本分支里其他从不清空的入口也没有改**：13.3 第一组（`_run_v{5,6,7}_3d_longrun.py`、`_run_vN_snapshot_movie.py`、双卡窗口、`_run_vN_dual.py`）在本分支也存在，也是 K = 2 时每帧涨。`step()` 路径的 `_records` 也是每帧加一条。任务书只要求修 `box_run`。
+- **修改后剩下的每帧约 10 B 没有细分来源**（13.2）。
+- **D 只跑了一次**：它与 L2 是一次对一次。散布用的是本轮其他 6 次从 t = 0 起的 crossing 运行，但它们只到 t ≤ 5。
+
+### 13.7 工具、日志、提交
+
+- **日志**（`logs/` 不进仓库）：`logs/wall_store/round7/`
+  - `master.log`：各项的起止时刻和当时 `chain_runner.py` 的 blob；
+  - `smi_local.csv`；
+  - `plans/`；
+  - `A_before/`、`A_after/`、`C_short/`、`D_L2/`：`stress.py queue` 的输出，每个运行有 `defrag.csv`、`series.csv`、`stdout.log`、`wrapper.jsonl`；
+  - `B_before/run{1,2}/`、`B_after/run{1,2}/`：探针的 `timing_intervals.csv`、`timing_probe.json`；
+  - `spirv_check.json`、`seam_layout_round7.log`、`summary.json`。
+  - 帧都已删掉（`stress.py` 自动删除，探针运行的停止状态手动删了）。
+- **表和图**：`claude/wall_store/tables/round7_{a_memory,b_timing,c_runs,d_long}.md`，`claude/wall_store/figures/round7_d_history.png`。
+- **不提交的脚本**（会话临时目录 `round7/`）：
+  - `run_queue.sh`、`run_b.sh`、`run_c.sh`；
+  - `timing_probe.py`（检查 B）、`check_spirv.py`；
+  - `analyze_round7.py`（本节的表和图）；
+  - `branch_survey.md`（13.3 的原始清单）。
+- **提交**：
+  - `3d9fd99`：代码修改；
+  - 本节所在的提交（`3d9fd99` 的下一个）：本节和表、图，以及第 12 节里指向本节的说明。
+- **推送**：`git push origin v7-crossing-wall-store`，`1be41b7` 到本节所在的提交，共 4 个提交：`02c2a8a`、`fb3fb55`、`3d9fd99` 和本节。
+- 任务书文件和远端密码没有进仓库，也没有写进任何日志或报告。
 
 ## 附录 A：工具、日志、提交
 
