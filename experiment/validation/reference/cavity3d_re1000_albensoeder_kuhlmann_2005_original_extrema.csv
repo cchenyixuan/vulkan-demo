@@ -1,0 +1,10 @@
+# Cubic lid-driven cavity, Re = 1000 (aspect ratio 1, rigid end walls): the velocity extrema on the centre lines.
+# Source: S. Albensoeder, H. C. Kuhlmann, J. Comput. Phys. 206 (2005) 536-558, Table 10 (the original paper; the values
+#   as given in the round-8 brief of claude/wall_store_report.md section 14, 2026-11-24, already mapped to our
+#   coordinates: lid = the face y = 1 moving in +x, coordinates in [0, 1]). |w| is the largest magnitude of the
+#   spanwise velocity on the spanwise centre line, at two positions symmetric about z = 0.5.
+quantity,line,value,position,position_2
+u_min,vertical,-0.2803833,0.12419,
+v_min,horizontal,-0.4350186,0.90957,
+v_max,horizontal,0.2466511,0.10913,
+w_abs_max,spanwise,0.0303398,0.13508,0.86492

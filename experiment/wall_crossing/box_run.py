@@ -41,6 +41,18 @@ Long runs (2026-11-19; box_run_supervised.py restarts a run that stops or stalls
 
 Output: logs/wall_crossing/box_run/<name>/series.csv, profiles.json, final.npz (the fluid: positions,
 velocities, densities, pressures), summary.json; one runs.jsonl record per segment.
+
+3-D cavity benchmark (claude/wall_store_report.md section 14, 2026-11-24; all off by default, nothing else changes):
+  --lines-time T        every T (a multiple of the defrag cadence) and at the end, the three centre lines (vertical
+                        u, horizontal v, spanwise w; every dx / 8 and at the benchmark's table points) by linear MLS
+                        (cavity3d_lines.py) go to lines.npz;
+  --frame-time T, --frame-from T0
+                        every T from T0 on (and at the end), the fluid state (float32 positions, velocities,
+                        densities, pressures, masses) goes to frames/f<step>.npz;
+  --diagnostics         every sample row also holds the largest fluid acceleration (its value, position and how many
+                        box faces lie within h of it), the smallest fluid-fluid and fluid-to-wall-particle distances
+                        (over the spacing), and the GPU's alive count (to compare with the readback); final.npz
+                        also holds the masses and the accelerations.
 """
 
 from __future__ import annotations
@@ -194,6 +206,13 @@ def main() -> int:
                         help="frames in flight of the pipelined chain (default 2, the production path)")
     parser.add_argument("--stop-outside", action="store_true",
                         help="stop when a fluid particle is outside the box")
+    parser.add_argument("--lines-time", type=float, default=0.0,
+                        help="interval of the MLS centre-line samples to lines.npz (0: none; report section 14)")
+    parser.add_argument("--frame-time", type=float, default=0.0,
+                        help="interval of the saved fluid frames (0: none; report section 14)")
+    parser.add_argument("--frame-from", type=float, default=0.0, help="first time of the saved fluid frames")
+    parser.add_argument("--diagnostics", action="store_true",
+                        help="acceleration, pair distances and the GPU alive count in every sample row (section 14)")
     arguments = parser.parse_args()
     if arguments.density_budget:
         sys.exit("[box_run] --density-budget was removed with the wall store; use the git tag crossing-pool")
@@ -253,6 +272,28 @@ def main() -> int:
     floor = case.numerics.wall_crossing.distance_floor(radius) if case.numerics.wall_crossing else None
     checkpoint_steps = cadence * max(1, int(round(arguments.checkpoint_time / timestep / cadence))) \
         if arguments.checkpoint_time > 0 else 0
+    # report section 14: MLS centre lines, saved frames, diagnostics (all off by default)
+    lines_steps = cadence * max(1, int(round(arguments.lines_time / timestep / cadence))) \
+        if arguments.lines_time > 0 else 0
+    frame_steps = cadence * max(1, int(round(arguments.frame_time / timestep / cadence))) \
+        if arguments.frame_time > 0 else 0
+    frame_first_step = int(np.ceil(arguments.frame_from / timestep / cadence - 1e-9)) * cadence
+    recorder = None
+    wall_positions = None
+    if lines_steps or arguments.diagnostics:
+        from experiment.wall_crossing import cavity3d_lines
+        from experiment.wall_crossing.cavity3d_benchmark import reference_points
+        sampler = cavity3d_lines.sampler_of_case(case, lower, upper, reference_points(),
+                                                  (REPOSITORY_ROOT / arguments.case).resolve())
+        wall_positions = sampler.walls[0]
+        if lines_steps:
+            recorder = cavity3d_lines.LineRecorder(out / "lines.npz", sampler,
+                                                   existing_until_step=start_step if restart is not None else None)
+            if restart is None:
+                (out / "lines.npz").unlink(missing_ok=True)
+                recorder.rows = []
+    if frame_steps:
+        (out / "frames").mkdir(exist_ok=True)
     lid_speed = max((float(np.linalg.norm(material.initial_velocity)) for material in case.materials
                      if material.kind != 0), default=0.0)
     if arguments.stop_speed > 0.0 and lid_speed <= 0.0:
@@ -330,7 +371,10 @@ def main() -> int:
                 return                              # the checkpoint's own state: its row is already in series.csv
             take_sample = step % sample_steps == 0 or step == total_steps
             take_profile = profile_steps and (step % profile_steps == 0 or step == total_steps)
-            if not (take_sample or take_profile):
+            take_lines = bool(lines_steps) and (step % lines_steps == 0 or step == total_steps)
+            take_frame = bool(frame_steps) and step >= frame_first_step and (step % frame_steps == 0
+                                                                             or step == total_steps)
+            if not (take_sample or take_profile or take_lines or take_frame):
                 return
             state = read_fluid_state_of_chain(simulators, slab_cases)
             latest["state"] = state
@@ -372,6 +416,31 @@ def main() -> int:
                        "fluid_alive": int(len(state["positions"])),
                        "steps_per_second": (step - start_step) / max(time.perf_counter() - clock["started"], 1e-9),
                        "segment": segment}
+                if arguments.diagnostics:
+                    from experiment.wall_crossing import cavity3d_lines
+                    accelerated = cavity3d_lines.read_acceleration_of_chain(simulators, slab_cases)
+                    latest["accelerations"] = accelerated["accelerations"]
+                    latest["acceleration_positions"] = accelerated["positions"]
+                    magnitude = np.sqrt((accelerated["accelerations"] ** 2).sum(axis=1))
+                    largest = int(np.argmax(magnitude)) if magnitude.size else 0
+                    where = accelerated["positions"][largest] if magnitude.size else np.zeros(3)
+                    fluid_fluid, fluid_wall = cavity3d_lines.pair_distance_minima(state["positions"], wall_positions)
+                    row.update({
+                        "acceleration_maximum": float(magnitude.max()) if magnitude.size else float("nan"),
+                        **{f"acceleration_maximum_{axis_name}": float(where[axis_index])
+                           for axis_index, axis_name in enumerate("xyz"[:dimension])},
+                        "acceleration_maximum_faces_within_h": int(cavity3d_lines.wall_count_within(
+                            where[None, :dimension], lower[:dimension], upper[:dimension], support)[0]),
+                        "acceleration_99_9_percentile": float(np.percentile(magnitude, 99.9))
+                        if magnitude.size else float("nan"),
+                        "pair_distance_minimum_over_spacing": fluid_fluid / spacing,
+                        "wall_particle_distance_minimum_over_spacing": fluid_wall / spacing,
+                        # the GPU's alive count against the readback's (a zombie: counted, not readable, or the
+                        # other way round), far migrations and stamp errors (must all be 0 / equal)
+                        "alive_gpu": int(sum(status["alive_particle_count"] for status in statuses)),
+                        "alive_readback": int(state["alive"]),
+                        "far_migrations": int(sum(status["far_migration_count"] for status in statuses)),
+                        "stamp_errors": int(sum(status["stamp_error_count"] for status in statuses))})
                 series.append(row)
                 if writer["csv"] is None:
                     writer["csv"] = csv.DictWriter(series_file, fieldnames=list(row.keys()), extrasaction="ignore")
@@ -392,6 +461,17 @@ def main() -> int:
                 profiles.append({"step": step, "time": step * timestep,
                                  **centre_line_profiles(state, lower, upper, dimension, support)})
                 (out / "profiles.json").write_text(json.dumps(profiles), encoding="utf-8", newline="\n")
+            if take_lines:
+                recorder.add(step, step * timestep, state)
+            if take_frame:
+                temporary = out / "frames" / f"f{step:010d}.partial.npz"
+                np.savez_compressed(temporary, step=np.int64(step), time=np.float64(step * timestep),
+                                    positions=state["positions"].astype(np.float32),
+                                    velocities=state["velocities"].astype(np.float32),
+                                    densities=state["densities"].astype(np.float32),
+                                    pressures=state["pressures"].astype(np.float32),
+                                    masses=state["masses"].astype(np.float32))
+                os.replace(temporary, out / "frames" / f"f{step:010d}.npz")
 
         def on_ready(simulators: list, slab_cases: list) -> None:
             clock["started"] = time.perf_counter()
@@ -438,10 +518,16 @@ def main() -> int:
         state = latest["state"]
         elapsed = outcome["elapsed_seconds"]
 
+        extra_final = {}
+        if arguments.diagnostics:
+            extra_final = {"masses": state["masses"].astype(np.float32)}
+            if "accelerations" in latest:
+                extra_final["accelerations"] = latest["accelerations"].astype(np.float32)
+                extra_final["acceleration_positions"] = latest["acceleration_positions"].astype(np.float32)
         np.savez_compressed(out / "final.npz", positions=state["positions"].astype(np.float32),
                             velocities=state["velocities"].astype(np.float32),
                             densities=state["densities"].astype(np.float32),
-                            pressures=state["pressures"].astype(np.float32))
+                            pressures=state["pressures"].astype(np.float32), **extra_final)
         summary = {
             "name": arguments.name, "run_id": run.run_id, "case": str(arguments.case).replace("\\", "/"),
             "wall_boundary": case.numerics.wall_boundary,
