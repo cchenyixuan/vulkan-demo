@@ -59,7 +59,9 @@ def fluid_count(size: int) -> int:
 def timestep(size: int) -> float:
     import yaml
     data = yaml.safe_load((REPOSITORY_ROOT / case_path(size)).read_text(encoding="utf-8"))
-    return float(data["physics"]["timestep"])
+    physics = data["physics"]
+    # dt = cfl h / c0 (case_loader_v7); the case files give h, cfl and the speed of sound, not dt
+    return float(physics["cfl"]) * float(physics["h"]) / float(physics["speed_of_sound"])
 
 
 def log(entry: dict) -> None:

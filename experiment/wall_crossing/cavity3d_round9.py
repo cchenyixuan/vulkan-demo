@@ -299,7 +299,7 @@ def level_main() -> int:
         walls = tuple(array[(np.abs(walls[0]) <= tube).sum(axis=1) >= 2] for array in walls)   # near a centre line
         result = {"N": size, **entry, "summary": summary, "samples": len(window)}
         result["extrema"] = extrema_of(window, lower, upper, size, support)
-        result["halves"] = [extrema_of(half, lower, upper, size, support) for half in halves]
+        result["halves"] = [extrema_of(half, lower, upper, size, support) if half else None for half in halves]
         result["profiles"] = table_points_profile(window, lower, upper, support, walls, 2)
         result["fine_profiles"] = fine_profiles(window, lower, upper, size, support, walls)
         lines = load_lines(directory / "lines.npz")
@@ -321,6 +321,39 @@ def level_main() -> int:
                                                                data[quantity]["value"])
                                for quantity in extrema_methods.QUANTITIES}})
         result["history"] = history
+        # the start: the first records of the level (energy, speed, density) and the volume constraint's I
+        series = list(csv.DictReader(open(directory / "series.csv", newline="", encoding="utf-8")))
+        level_time_key = "level_time" if "level_time" in series[0] else "time"
+        start_rows = []
+        for target in (0.0, 0.1, 0.5, 1.0, 2.0):
+            row = min(series, key=lambda item: abs(float(item[level_time_key]) - target))
+            start_rows.append({"level_time": float(row[level_time_key]),
+                               "specific_energy": 0.5 * float(row["speed_root_mean_square"]) ** 2,
+                               "speed_maximum": float(row["speed_maximum"]),
+                               "density_minimum": float(row["density_minimum"]),
+                               "density_maximum": float(row["density_maximum"])})
+        result["start_rows"] = start_rows
+        first_unit = [row for row in series if 0.0 < float(row[level_time_key]) <= 1.0]
+        later = [row for row in series if float(row[level_time_key]) > 2.0]
+        result["density_range_first_unit"] = [min(float(row["density_minimum"]) for row in first_unit),
+                                              max(float(row["density_maximum"]) for row in first_unit)] if first_unit else None
+        result["density_range_later"] = [min(float(row["density_minimum"]) for row in later),
+                                         max(float(row["density_maximum"]) for row in later)] if later else None
+        result["initial_state"] = summary.get("initial_state")
+        constraint = [json.loads(line) for line in (directory / "volume_constraint.jsonl").read_text(
+            encoding="utf-8").splitlines() if line.strip() and "integral" in line]
+        result["integral"] = {"first": constraint[0]["integral"] if constraint else None,
+                              "last": constraint[-1]["integral"] if constraint else None,
+                              "theta_maximum_after_1": max((abs(record["theta"]) for record in constraint
+                                                            if record["time"] > 1.0), default=None),
+                              "theta_last": constraint[-1]["theta"] if constraint else None,
+                              "series": [[record["time"], record["integral"], record["theta"]] for record in constraint]}
+        if samples and samples[0]["level_time"] == 0.0:
+            first = extrema_methods.run_methods([samples[0]], lower, upper, size, support,
+                                                lambda quantity, item: item["velocities"][:, extrema_methods.QUANTITIES[
+                                                    quantity][2]])
+            result["start_extrema"] = {quantity: deviation(first[quantity][METHOD]["value"], data[quantity]["value"])
+                                       for quantity in extrema_methods.QUANTITIES}
         out_log = ROUND / ("remote" if entry.get("chain") == "remote" else "") / f"{pathlib.Path(entry['directory']).name}.out"
         result["wall_store"] = log_number(out_log, r"wall store: ([\d,]+) wall particles kept")
         result["wall_generated"] = log_number(out_log, r"kept of ([\d,]+)")
@@ -388,6 +421,9 @@ def level_tables(results: dict) -> None:
             new = deviation(result["extrema"][quantity][METHOD]["value"], data[quantity]["value"])
             quadratic = deviation(result["extrema"][quantity]["quadratic"]["value"], data[quantity]["value"])
             old = result["old"]["extrema"][quantity]["deviation"]
+            if None in result["halves"]:
+                cells.append(f"{percent(old)} / {percent(quadratic)} / {percent(new)}；半窗 —")
+                continue
             first, second = (deviation(half[quantity][METHOD]["value"], data[quantity]["value"])
                              for half in result["halves"])
             cells.append(f"{percent(old)} / {percent(quadratic)} / {percent(new)}；半窗 {100 * (second - first):+.2f}")
@@ -397,6 +433,28 @@ def level_tables(results: dict) -> None:
     write("round9_levels_methods.md", markdown_table(
         ["N", "窗口内记录", "u_min：(i) / (ii) / (iii)；后半窗减前半窗（百分点）", "v_max：同左", "v_min：同左",
          "|w|max：同左", "(i) 的速度 L2：u / v"], rows))
+    # the starts of the levels and the volume constraint's I
+    rows = []
+    for size, result in sorted(results.items()):
+        initial = result.get("initial_state") or {}
+        start = result["start_rows"]
+        extrema_start = result.get("start_extrema")
+        rows.append([
+            str(size), f"{initial['support']:.4f}" if initial else "从零",
+            f"{initial['previous_specific_energy']:.5f} → {initial['specific_energy']:.5f}" if initial else "—",
+            " / ".join(f"{row['specific_energy']:.5f}" for row in start),
+            " / ".join(f"{row['speed_maximum']:.3f}" for row in start),
+            (f"{result['density_range_first_unit'][0]:.2f}–{result['density_range_first_unit'][1]:.2f}"
+             f"（以后 {result['density_range_later'][0]:.2f}–{result['density_range_later'][1]:.2f}）")
+            if result["density_range_first_unit"] and result["density_range_later"] else "—",
+            " / ".join(percent(extrema_start[key]) for key in ("u_min", "v_max", "v_min")) if extrema_start and initial
+            else "—",
+            (f"{result['integral']['first']:.3e} → {result['integral']['last']:.3e}；|θ| ≤ "
+             f"{result['integral']['theta_maximum_after_1']:.1e}") if result["integral"]["first"] is not None else "—"])
+    write("round9_starts.md", markdown_table(
+        ["N", "插值支撑", "单位质量动能：插值前 → 插值后", "本级时间 0 / 0.1 / 0.5 / 1 / 2 的单位质量动能",
+         "同上的最大速度", "第一个单位内的密度范围（以后）", "起步时的平面极值（直接拟合）",
+         "体积修正的积分项 I：第一次更新 → 最后；t > 1 后的 |θ| 最大"], rows))
     # extrapolation
     sizes = np.array(sorted(results))
     rows, fits = [], {}
@@ -412,7 +470,8 @@ def level_tables(results: dict) -> None:
                     halves = np.array([abs(deviation(results[size]["halves"][1][quantity][METHOD]["value"],
                                                      data[quantity]["value"])
                                            - deviation(results[size]["halves"][0][quantity][METHOD]["value"],
-                                                       data[quantity]["value"])) for size in sizes])
+                                                       data[quantity]["value"]))
+                                       if None not in results[size]["halves"] else 0.0 for size in sizes])
                 # each level's uncertainty: half the difference of its two half-windows, at least 0.05 points
                 errors = np.maximum(0.5 * halves, 0.0005)
                 fit = fit_limit(sizes, values, errors)
@@ -466,7 +525,7 @@ def level_figures(results: dict) -> None:
     save(figure, FIGURES / "round9_history.png")
 
     # 2. deviation against N, both methods, log-log of |deviation|
-    fits = json.loads((ROUND / "extrapolation.json").read_text(encoding="utf-8"))
+    fits = json.loads((ROUND / "extrapolation.json").read_text(encoding="utf-8"))         if (ROUND / "extrapolation.json").exists() else {}
     sizes = np.array(sorted(results))
     figure, axes = plt.subplots(1, 4, figsize=(14.0, 4.6))
     for axis, quantity in zip(axes, ("u_min", "v_max", "v_min", "w_abs_max")):
