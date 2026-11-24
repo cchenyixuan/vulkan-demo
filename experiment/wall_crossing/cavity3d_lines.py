@@ -201,7 +201,8 @@ class LineRecorder:
                                       or key.endswith(("_velocity", "_pressure", "_fallback_velocity",
                                                        "_fallback_pressure"))})
 
-    def add(self, step: int, time_value: float, state: dict) -> None:
+    def add(self, step: int, time_value: float, state: dict) -> dict:
+        """Sample state, append the row, rewrite the file; returns the sample (LineSampler.sample)."""
         sampled = self.sampler.sample(state)
         row = {"step": np.int64(step), "time": np.float64(time_value),
                "centre_pressure": np.float64(sampled["centre_pressure"])}
@@ -212,6 +213,7 @@ class LineRecorder:
             row[f"{name}_fallback_pressure"] = np.int64(sampled[name]["fallback_pressure"].sum())
         self.rows.append(row)
         self.write()
+        return sampled
 
     def write(self) -> None:
         arrays = {key: np.stack([row[key] for row in self.rows]) for key in self.rows[0]}

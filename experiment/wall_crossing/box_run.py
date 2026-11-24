@@ -76,12 +76,21 @@ if str(REPOSITORY_ROOT) not in sys.path:
 from experiment.wall_crossing.hydrostatic import initial_box, read_fluid_state_of_chain      # noqa: E402
 from experiment.wall_crossing.run_log import LOG_ROOT, LoggedRun                    # noqa: E402
 
+
+def cavity3d_refine_last_integral(path: pathlib.Path):
+    from experiment.wall_crossing.cavity3d_refine import last_integral
+    return last_integral(path)
+
 PROFILE_POINTS = 101
 STOP_EXIT_CODE = 3
 
 
 class StopCondition(Exception):
     """A stop condition of the run (particle loss, speed, a fluid particle outside the box)."""
+
+
+class Converged(Exception):
+    """--converge: the level has converged (report section 15); the run ends like a complete one."""
 
 
 def typed(value: str):
@@ -213,9 +222,36 @@ def main() -> int:
     parser.add_argument("--frame-from", type=float, default=0.0, help="first time of the saved fluid frames")
     parser.add_argument("--diagnostics", action="store_true",
                         help="acceleration, pair distances and the GPU alive count in every sample row (section 14)")
+    # report section 15 (round 9, cavity3d_refine.py): all off by default
+    parser.add_argument("--initial-state", default="",
+                        help="start from this fluid state (a previous level's final.npz) interpolated onto the case")
+    parser.add_argument("--initial-support", type=float, default=0.0,
+                        help="support of the --initial-state interpolation (the previous level's h)")
+    parser.add_argument("--initial-integral", type=float, default=None,
+                        help="the volume constraint's integral term I to start with (the previous level's)")
+    parser.add_argument("--time-offset", type=float, default=0.0,
+                        help="added to every recorded time (the time of the previous levels)")
+    parser.add_argument("--tube-time", type=float, default=0.0,
+                        help="interval of the centre-line tube records to tubes/ (0: none)")
+    parser.add_argument("--tube-half-width", type=float, default=1.5, help="tube half-width in units of h")
+    parser.add_argument("--converge", action="store_true",
+                        help="stop when converged by the rule of cavity3d_refine.ConvergenceMonitor (needs --lines-time)")
+    parser.add_argument("--converge-minimum", type=float, default=6.0)
+    parser.add_argument("--converge-block", type=float, default=2.0)
+    parser.add_argument("--converge-tolerance", type=float, default=0.002)
+    parser.add_argument("--converge-sigmas", type=float, default=3.0)
+    parser.add_argument("--wall-deadline", type=float, default=0.0,
+                        help="unix time: at the first line record after it the run ends like a converged one, marked "
+                             "not converged (0: off)")
     arguments = parser.parse_args()
     if arguments.density_budget:
         sys.exit("[box_run] --density-budget was removed with the wall store; use the git tag crossing-pool")
+    if arguments.initial_state and arguments.resume:
+        sys.exit("[box_run] --initial-state and --resume exclude each other")
+    if arguments.initial_state and arguments.initial_support <= 0.0:
+        sys.exit("[box_run] --initial-state needs --initial-support (the previous level's h)")
+    if arguments.converge and arguments.lines_time <= 0.0:
+        sys.exit("[box_run] --converge needs --lines-time (the records are the line samples)")
 
     from experiment.v7.utils.case_loader_v7 import load_case_v7
     from experiment.v7.utils.wall_crossing_v7 import box_distance_to_wall
@@ -230,11 +266,25 @@ def main() -> int:
                if arguments.resume else None)
     if arguments.resume and restart is None:
         print("[box_run] --resume: no usable checkpoint; starting from the initial state", flush=True)
+    # resuming: a restart from this run's own checkpoint (the files continue); an --initial-state start goes through
+    # the same restart path at step 0 but is a new run (report section 15)
+    resuming = restart is not None
+    interpolation_report = None
+    if arguments.initial_state:
+        from experiment.wall_crossing import cavity3d_refine
+        started_interpolation = time.perf_counter()
+        restart = cavity3d_refine.interpolated_restart(case, pathlib.Path(arguments.initial_state).resolve(),
+                                                       arguments.initial_support, arguments.initial_integral)
+        interpolation_report = {**restart.pop("report"),
+                                "seconds": round(time.perf_counter() - started_interpolation, 1)}
+        (out / "initial_state.json").write_text(json.dumps(interpolation_report, indent=1), encoding="utf-8")
+        print(f"[box_run] initial state interpolated: {json.dumps(interpolation_report)}", flush=True)
     start_step = restart["step"] if restart is not None else 0
+    time_offset = float(arguments.time_offset)
     # the segment number: one more than any segment that left a trace (segments.jsonl is written at a segment's
     # end only, so a killed segment shows in the series rows and the constraint log's markers instead)
     segment = 0
-    if restart is not None:
+    if resuming:
         traces = [-1]
         traces += [int(json.loads(line)["segment"]) for line in
                    (segments_path.read_text(encoding="utf-8").splitlines() if segments_path.exists() else [])
@@ -247,14 +297,14 @@ def main() -> int:
                      .splitlines() if line.strip()] if (out / "volume_constraint.jsonl").exists() else [])
                    if "segment_start_step" in record]
         segment = max(traces) + 1
-    if restart is None:
+    if not resuming:
         segments_path.unlink(missing_ok=True)
         (out / "watch_stop.json").unlink(missing_ok=True)
     if case.numerics.volume_constraint.enabled:
         # every update of the volume constraint (time, theta, rate) goes to this run's directory; the file of an
         # earlier run of the same name goes the way of its series.csv
         constraint_log = out / "volume_constraint.jsonl"
-        if restart is None:
+        if not resuming:
             constraint_log.unlink(missing_ok=True)
         else:
             truncate_constraint_log(constraint_log, start_step, segment)
@@ -288,12 +338,30 @@ def main() -> int:
         wall_positions = sampler.walls[0]
         if lines_steps:
             recorder = cavity3d_lines.LineRecorder(out / "lines.npz", sampler,
-                                                   existing_until_step=start_step if restart is not None else None)
-            if restart is None:
+                                                   existing_until_step=start_step if resuming else None)
+            if not resuming:
                 (out / "lines.npz").unlink(missing_ok=True)
                 recorder.rows = []
     if frame_steps:
         (out / "frames").mkdir(exist_ok=True)
+    # report section 15: tubes around the centre lines and the convergence rule (cavity3d_refine.py)
+    tube_steps = cadence * max(1, int(round(arguments.tube_time / timestep / cadence))) \
+        if arguments.tube_time > 0 else 0
+    tube_half_width = arguments.tube_half_width * support
+    box_centre = 0.5 * (lower + upper)
+    if tube_steps:
+        (out / "tubes").mkdir(exist_ok=True)
+        if not resuming:
+            for old in (out / "tubes").glob("t*.npz"):
+                old.unlink()
+    monitor = None
+    if arguments.converge:
+        from experiment.wall_crossing import cavity3d_refine
+        from experiment.wall_crossing.cavity3d_benchmark import extrema_of_profiles
+        monitor = cavity3d_refine.ConvergenceMonitor(out / "convergence.jsonl", block=arguments.converge_block,
+                                                     minimum=arguments.converge_minimum,
+                                                     tolerance=arguments.converge_tolerance,
+                                                     sigmas=arguments.converge_sigmas)
     lid_speed = max((float(np.linalg.norm(material.initial_velocity)) for material in case.materials
                      if material.kind != 0), default=0.0)
     if arguments.stop_speed > 0.0 and lid_speed <= 0.0:
@@ -313,7 +381,7 @@ def main() -> int:
         profiles = []
         latest = {}
         writer = {"csv": None}
-        if restart is not None and (out / "series.csv").exists():
+        if resuming and (out / "series.csv").exists():
             # the rows up to the checkpoint stay; the file is written again with them and continued
             import csv as csv_module
             with open(out / "series.csv", newline="", encoding="utf-8") as handle:
@@ -329,14 +397,14 @@ def main() -> int:
             series_file.flush()
         else:
             series_file = open(out / "series.csv", "w", newline="", encoding="utf-8")
-        if restart is not None and (out / "profiles.json").exists():
+        if resuming and (out / "profiles.json").exists():
             profiles = [entry for entry in json.loads((out / "profiles.json").read_text(encoding="utf-8"))
                         if entry["step"] <= start_step]
         clock = {"started": None, "heartbeat": 0.0}
         checkpoint_directory = out / "checkpoints"
-        if checkpoint_steps:
+        if checkpoint_steps or arguments.converge:
             checkpoint_directory.mkdir(exist_ok=True)
-            if restart is None:
+            if not resuming:
                 for old in checkpoint_directory.glob("c*.npz"):
                     old.unlink()
                 (checkpoint_directory / "manifest.jsonl").unlink(missing_ok=True)
@@ -363,18 +431,20 @@ def main() -> int:
             now = time.time()
             if now - clock["heartbeat"] >= 2.0 or step == total_steps:
                 (out / "heartbeat.json").write_text(json.dumps({
-                    "step": step, "time": step * timestep, "unix": now, "segment": segment}), encoding="utf-8")
+                    "step": step, "time": time_offset + step * timestep, "level_time": step * timestep, "unix": now,
+                    "segment": segment}), encoding="utf-8")
                 clock["heartbeat"] = now
             if checkpoint_steps and step > start_step and step % checkpoint_steps == 0 and step < total_steps:
                 save_checkpoint(step, simulators)
-            if step == start_step and restart is not None:
+            if step == start_step and resuming:
                 return                              # the checkpoint's own state: its row is already in series.csv
             take_sample = step % sample_steps == 0 or step == total_steps
             take_profile = profile_steps and (step % profile_steps == 0 or step == total_steps)
             take_lines = bool(lines_steps) and (step % lines_steps == 0 or step == total_steps)
             take_frame = bool(frame_steps) and step >= frame_first_step and (step % frame_steps == 0
                                                                              or step == total_steps)
-            if not (take_sample or take_profile or take_lines or take_frame):
+            take_tube = bool(tube_steps) and (step % tube_steps == 0 or step == total_steps)
+            if not (take_sample or take_profile or take_lines or take_frame or take_tube):
                 return
             state = read_fluid_state_of_chain(simulators, slab_cases)
             latest["state"] = state
@@ -385,7 +455,9 @@ def main() -> int:
             if take_sample or lost:
                 statuses = [simulator.readback_global_status() for simulator in simulators]
                 distance = box_distance_to_wall(state["positions"], lower, upper, dimension)
-                row = {"step": step, "time": step * timestep,
+                row = {"step": step, "time": time_offset + step * timestep,
+                       **({"level_time": step * timestep} if (time_offset or arguments.initial_state
+                                                               or arguments.converge) else {}),
                        "kinetic_energy": float(0.5 * (state["masses"] * speed ** 2).sum()),
                        "speed_maximum": float(speed.max()),
                        # where the fastest fluid particle is (to locate a speed excess)
@@ -461,11 +533,38 @@ def main() -> int:
                 profiles.append({"step": step, "time": step * timestep,
                                  **centre_line_profiles(state, lower, upper, dimension, support)})
                 (out / "profiles.json").write_text(json.dumps(profiles), encoding="utf-8", newline="\n")
+            tubes = None
+            if take_tube or (take_lines and tube_half_width >= 1.05 * support):
+                # the tubes hold every particle the line sampler reads (its square tubes have half-width 1.05 h), so
+                # the lines come out the same from them, and faster
+                from experiment.wall_crossing import cavity3d_refine
+                tubes = cavity3d_refine.tube_state(state, box_centre, tube_half_width)
+            if take_tube:
+                cavity3d_refine.write_tubes(out / "tubes" / f"t{step:010d}.npz", step, time_offset + step * timestep,
+                                            step * timestep, tubes, tube_half_width)
             if take_lines:
-                recorder.add(step, step * timestep, state)
+                sampled = recorder.add(step, time_offset + step * timestep, tubes if tubes is not None else state)
+                if monitor is not None and step > start_step:
+                    from experiment.wall_crossing.cavity3d_lines import LINES
+                    fine = sampler.fine.size
+                    extrema = extrema_of_profiles({name: (sampler.fine, sampled[name]["velocity"][:fine, component])
+                                                   for name, _axis, component in LINES})
+                    kinetic_energy = float(0.5 * (state["masses"] * speed ** 2).sum())
+                    if monitor.add(step, time_offset + step * timestep, step * timestep, kinetic_energy, extrema):
+                        save_checkpoint(step, simulators)
+                        latest["converged_step"] = step
+                        latest["end_reason"] = "converged"
+                        raise Converged(f"converged at level time {step * timestep:.3f} (step {step})")
+            if take_lines and arguments.wall_deadline > 0.0 and time.time() > arguments.wall_deadline                     and step > start_step:
+                if checkpoint_steps or arguments.converge:
+                    save_checkpoint(step, simulators)
+                latest["converged_step"] = step
+                latest["end_reason"] = "wall_deadline"
+                raise Converged(f"wall-clock deadline passed at level time {step * timestep:.3f} (step {step}); "
+                                "not converged")
             if take_frame:
                 temporary = out / "frames" / f"f{step:010d}.partial.npz"
-                np.savez_compressed(temporary, step=np.int64(step), time=np.float64(step * timestep),
+                np.savez_compressed(temporary, step=np.int64(step), time=np.float64(time_offset + step * timestep),
                                     positions=state["positions"].astype(np.float32),
                                     velocities=state["velocities"].astype(np.float32),
                                     densities=state["densities"].astype(np.float32),
@@ -489,6 +588,11 @@ def main() -> int:
                                 expected_uuids=arguments.uuid or None,
                                 application_name="wall_crossing_box_run", on_ready=on_ready, restart=restart,
                                 depth=arguments.depth)
+        except Converged as converged:
+            # report section 15: a converged level ends here, its checkpoint written; the rest as a complete run
+            print(f"[box_run] {arguments.name}: {converged}", flush=True)
+            outcome = {"device_uuids": [uuid.replace("-", "").lower() for uuid in arguments.uuid],
+                       "elapsed_seconds": time.perf_counter() - clock["started"]}
         except StopCondition as stop:
             series_file.close()
             last_step = series[-1]["step"] if series else start_step
@@ -512,13 +616,16 @@ def main() -> int:
         finally:
             if not series_file.closed:
                 series_file.close()
-        segment_line("complete", total_steps)
+        end_step = latest.get("converged_step", total_steps)
+        segment_line(latest.get("end_reason", "complete"), end_step)
         uuid = ",".join(outcome["device_uuids"])
         run.record["gpu_uuids"] = outcome["device_uuids"]
         state = latest["state"]
         elapsed = outcome["elapsed_seconds"]
 
         extra_final = {}
+        if arguments.initial_state or arguments.converge or arguments.tube_time > 0:
+            extra_final = {"masses": state["masses"].astype(np.float32)}       # report section 15: for the next level
         if arguments.diagnostics:
             extra_final = {"masses": state["masses"].astype(np.float32)}
             if "accelerations" in latest:
@@ -548,9 +655,16 @@ def main() -> int:
                                       if case.numerics.wall_crossing else None),
             "delta_density_storage": os.environ.get("V7_DELTA_DENSITY", "0") == "1",
             "dimension": dimension, "box_lower": lower.tolist(), "box_upper": upper.tolist(), "spacing": spacing,
-            "fluid_particles": int(len(state["positions"])), "particles": expected_alive, "steps": total_steps,
-            "time": total_steps * timestep, "timestep": timestep,
-            "steps_per_second": (total_steps - start_step) / elapsed, "segments": segment + 1,
+            "fluid_particles": int(len(state["positions"])), "particles": expected_alive, "steps": end_step,
+            "time": time_offset + end_step * timestep, "timestep": timestep,
+            "level_time": end_step * timestep, "time_offset": time_offset,
+            "converged": (latest.get("end_reason") == "converged") if monitor is not None else None,
+            "end_reason": latest.get("end_reason", "complete"),
+            "converged_level_time": monitor.converged_at if monitor is not None else None,
+            "initial_state": interpolation_report,
+            "volume_constraint_integral_final": (cavity3d_refine_last_integral(out / "volume_constraint.jsonl")
+                                                 if case.numerics.volume_constraint.enabled else None),
+            "steps_per_second": (end_step - start_step) / elapsed, "segments": segment + 1,
             "device_uuid": uuid, "samples": len(series), "profiles": len(profiles),
             "density_budget": bool(arguments.density_budget),
             "final": {key: series[-1][key] for key in ("kinetic_energy", "speed_maximum", "density_minimum",
@@ -567,7 +681,7 @@ def main() -> int:
         (out / "summary.json").write_text(json.dumps(summary, indent=1), encoding="utf-8", newline="\n")
         run.extra["summary"] = {**summary["final"], **summary["whole_run"],
                                 "steps_per_second": summary["steps_per_second"]}
-        print(f"[box_run] {arguments.name} ({run.run_id}): {total_steps:,} steps to t = {summary['time']:.2f} at "
+        print(f"[box_run] {arguments.name} ({run.run_id}): {end_step:,} steps to t = {summary['time']:.2f} at "
               f"{summary['steps_per_second']:.0f} steps/s; KE {summary['final']['kinetic_energy']:.5g}, "
               f"max |rho - rho0| {summary['whole_run']['density_deviation_maximum']:.4g}, phi_min "
               f"{summary['whole_run']['wall_distance_minimum_over_spacing']:.3f} dx, A_f fallbacks "
