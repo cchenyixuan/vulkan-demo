@@ -153,8 +153,10 @@ def main() -> int:
             log({"event": "level_skipped", "size": size, "reason": f"N > the largest that fits ({arguments.maximum_size})"})
             break
         # the brief 3.5: the previous level's converged level time x this level's cost per unit time x 1.2
-        cost = previous["seconds_per_unit"] * (fluid_count(size) / fluid_count(previous["size"])) * \
-            (timestep(previous["size"]) / timestep(size))
+        case_exists = (REPOSITORY_ROOT / case_path(size)).exists()
+        # dt = cfl h / c0 with h = 4 / N in every case of the family: without the case file, dt scales as 1 / N
+        timestep_ratio = timestep(previous["size"]) / timestep(size) if case_exists else size / previous["size"]
+        cost = previous["seconds_per_unit"] * (fluid_count(size) / fluid_count(previous["size"])) * timestep_ratio
         estimate = previous["level_time"] * cost * SAFETY
         remaining = arguments.deadline - time.time()
         log({"event": "estimate", "size": size, "seconds_per_unit_estimate": cost,
@@ -163,6 +165,9 @@ def main() -> int:
         required = size in [int(item) for item in arguments.required.split(",") if item]
         if estimate > remaining and not required:
             log({"event": "level_skipped", "size": size, "reason": "estimate exceeds the remaining time"})
+            break
+        if not case_exists:
+            log({"event": "level_skipped", "size": size, "reason": f"no case file {case_path(size)}"})
             break
         previous_spacing = 1.0 / previous["size"]
         supports = [arguments.support_factor * previous_spacing, 4.0 * previous_spacing]

@@ -399,8 +399,15 @@ def level_main() -> int:
         print(f"[round9] level N = {size}: {len(window)} records in the window", flush=True)
     (ROUND / "levels_results.json").write_text(json.dumps(results, indent=1, default=float), encoding="utf-8",
                                                newline="\n")
-    level_tables(results)
-    level_figures(results)
+    continuations = continuation_analysis(results)
+    long = long_run_analysis(results, continuations)
+    if long is not None:
+        long["continuations"] = continuations
+        (ROUND / "long_run.json").write_text(json.dumps(long, indent=1, default=float), encoding="utf-8", newline="\n")
+        print(f"[round9] long N = 100 run: reached t = {long['reached']:.2f}, windows of N = {sorted(long['windows'])}",
+              flush=True)
+    level_tables(results, long)
+    level_figures(results, long)
     return 0
 
 
@@ -426,9 +433,23 @@ def fit_limit(sizes: np.ndarray, values: np.ndarray, errors: np.ndarray, samples
             "limit_range": [float(low[0]), float(high[0])], "power_range": [float(low[2]), float(high[2])]}
 
 
+def at_bound(fit: dict) -> bool:
+    return fit["power"] <= 0.1001 or fit["power"] >= 5.999
+
+
+def power_text(fit: dict) -> str:
+    """The order p with its 16-84 % range; a central fit at a bound of fit_limit (0.1 or 6) means the three levels
+    do not converge like N^-p (the differences do not shrink), so there is no limit to give."""
+    text = f"{fit['power']:.2f}（{fit['power_range'][0]:.2f}–{fit['power_range'][1]:.2f}）"
+    if at_bound(fit):
+        text += "；到边界，不像 N^−p 收敛"
+    return text
+
+
 DRIFT_RUN = REPOSITORY_ROOT / "logs" / "wall_store" / "round8" / "comparison" / "box_run" / \
     "0001_C_crossing_hdx4_n100_dual" / "lines.npz"
 DRIFT_SPAN = (30.0, 45.0)
+HISTORY_FROM = 20.0
 
 
 def drift_rates() -> dict:
@@ -458,14 +479,184 @@ def drift_rates() -> dict:
     return out
 
 
-def level_tables(results: dict) -> None:
+LONG_RUN = "L100_long"            # report 15.4: N = 100 from zero to t = 70 without the convergence stop
+LONG_FROM = 32.0                  # the long run's drift is fitted from the N = 100 level's convergence on
+PLATEAU_FROM = 44.0               # the long run levels off here (its 4-unit means, report 15.4)
+# report 15.4, plateau check: levels resumed from their last checkpoint without the convergence stop (box_run --resume
+# in a copy of the level's directory, until the round's deadline); relative to ROUND
+CONTINUATIONS = {170: "remote/box_run/L170_cont", 200: "box_run/L200_cont"}
+QUANTITIES_ALL = ("u_min", "v_max", "v_min", "w_abs_max")
+# an interpolated start jumps toward the paper about 4 units into the level and relaxes back over the next ~8 (report
+# 15.4, figure round9_history): delta(N) is taken from the windows that start at this level time or later
+RELAXED_FROM = 12.0
+
+
+def window_deviations(samples: list, lower, upper, size: int, support: float) -> dict:
+    data = reference()["extrema"]
+    values = extrema_of(samples, lower, upper, size, support)
+    return {quantity: deviation(values[quantity][METHOD]["value"], data[quantity]["value"]) for quantity in QUANTITIES_ALL}
+
+
+def continuation_analysis(results: dict) -> dict:
+    """The plateau check: every continued level's 4-unit windows after its result window (accumulated time
+    (end, end + 4], (end + 4, end + 8], ...; complete windows only), record by record values, and the drift rate over
+    the level's records from level time 6 on plus the continuation's."""
+    data = reference()["extrema"]
+    out = {}
+    for size, relative in sorted(CONTINUATIONS.items()):
+        directory = ROUND / relative
+        if size not in results or not (directory / "tubes").exists():
+            continue
+        summary = results[size]["summary"]
+        end_level = float(summary["time"])
+        lower, upper = np.asarray(summary["box_lower"]), np.asarray(summary["box_upper"])
+        support = 4.0 / size
+        samples, _ = extrema_methods.tube_samples(directory / "tubes")
+        later = [sample for sample in samples if sample["time"] > end_level + 1e-6]
+        if not later:
+            continue
+        reached = max(sample["time"] for sample in later)
+        windows = []
+        end = end_level + WINDOW
+        while end <= reached + 1e-6:
+            chunk = [sample for sample in later if end - WINDOW + 1e-9 < sample["time"] <= end + 1e-9]
+            windows.append({"end": end, "records": len(chunk),
+                            **window_deviations(chunk, lower, upper, size, support)})
+            end += WINDOW
+        series = []
+        for sample in later:
+            single = extrema_methods.run_methods([sample], lower, upper, size, support,
+                                                 lambda quantity, item: item["velocities"][:, extrema_methods.QUANTITIES[
+                                                     quantity][2]])
+            series.append({"time": sample["time"], "level_time": sample["level_time"],
+                           **{quantity: deviation(single[quantity][METHOD]["value"], data[quantity]["value"])
+                              for quantity in extrema_methods.QUANTITIES},
+                           **{f"{quantity}_linear": deviation(single[quantity]["linear"]["value"], data[quantity]["value"])
+                              for quantity in extrema_methods.QUANTITIES}})
+        rows = [row for row in results[size]["history"] if row["level_time"] >= 6.0] + series
+        times = np.array([row["time"] for row in rows])
+        rates = {}
+        for quantity in ("u_min", "v_max", "v_min"):
+            values = np.array([row[quantity] for row in rows])
+            slope, intercept = np.polyfit(times, values, 1)
+            residual = values - (slope * times + intercept)
+            rates[quantity] = {"slope": float(slope),
+                               "slope_error": float(residual.std(ddof=2) / (times.std() * math.sqrt(len(times)))),
+                               "span": [float(times.min()), float(times.max())]}
+        out[size] = {"reached": reached, "windows": windows, "series": series, "rates": rates,
+                     "directory": str(directory.relative_to(REPOSITORY_ROOT)).replace("\\", "/")}
+        print(f"[round9] continuation of N = {size}: reached t = {reached:.2f}, {len(windows)} complete windows",
+              flush=True)
+    return out
+
+
+def long_run_analysis(results: dict, continuations: dict | None = None) -> dict | None:
+    """The drift diagnostic: the long N = 100 run's extrema (chosen method) in the same accumulated-time window as every
+    level's result window (and every continuation window), its plateau (non-overlapping 4-unit windows from
+    PLATEAU_FROM: their mean and scatter), and record by record (its drift rate). deviation(N, t) = d_100(t) + delta(N):
+    delta is the refinement effect at equal time, independent of the drift when the drift is common to the levels."""
+    directory = ROUND / "box_run" / LONG_RUN
+    if not (directory / "tubes").exists():
+        return None
+    data = reference()["extrema"]
+    samples, _ = extrema_methods.tube_samples(directory / "tubes")
+    summary = json.loads((REPOSITORY_ROOT / level_entries()[100]["directory"] / "summary.json").read_text(encoding="utf-8"))
+    lower, upper = np.asarray(summary["box_lower"]), np.asarray(summary["box_upper"])
+    support = 4.0 / 100
+    reached = max(sample["time"] for sample in samples)
+    if reached < LONG_FROM + WINDOW:
+        print(f"[round9] long N = 100 run only at t = {reached:.2f}; not used yet", flush=True)
+        return None
+    out = {"reached": reached, "windows": {}, "series": [], "rates": {}, "continuation_windows": {}}
+    last = extrema_of([sample for sample in samples if sample["time"] >= reached - WINDOW - 1e-9], lower, upper, 100,
+                      support)
+    out["last_window"] = {"end": reached, **{quantity: deviation(last[quantity][METHOD]["value"], data[quantity]["value"])
+                                             for quantity in ("u_min", "v_max", "v_min", "w_abs_max")}}
+    # non-overlapping 4-unit windows from HISTORY_FROM (the approach to the plateau and the plateau itself)
+    evolution = []
+    start = HISTORY_FROM
+    while start + WINDOW <= reached + 1e-6:
+        chunk = [sample for sample in samples if start - 1e-9 <= sample["time"] < start + WINDOW - 1e-9]
+        evolution.append({"start": start, "records": len(chunk), "plateau": start >= PLATEAU_FROM - 1e-9,
+                          **window_deviations(chunk, lower, upper, 100, support)})
+        start += WINDOW
+    out["evolution"] = evolution
+    plateau = [row for row in evolution if row["plateau"]]
+    out["plateau"] = {"windows": plateau,
+                      "mean": {quantity: float(np.mean([row[quantity] for row in plateau])) for quantity in QUANTITIES_ALL},
+                      "scatter": {quantity: float(np.std([row[quantity] for row in plateau], ddof=1))
+                                  for quantity in QUANTITIES_ALL}}
+    for size, continuation in sorted((continuations or {}).items()):
+        out["continuation_windows"][size] = []
+        for window in continuation["windows"]:
+            end = window["end"]
+            if end > reached + 1e-6:
+                continue
+            chunk = [sample for sample in samples if end - WINDOW + 1e-9 < sample["time"] <= end + 1e-9]
+            out["continuation_windows"][size].append({"end": end, "records": len(chunk),
+                                                      **window_deviations(chunk, lower, upper, 100, support)})
+    for size, result in sorted(results.items()):
+        end = float(result["summary"]["time"])
+        if end > reached + 1e-6:
+            continue
+        window = [sample for sample in samples if end - WINDOW - 1e-9 <= sample["time"] <= end + 1e-9]
+        halves = [[sample for sample in window if sample["time"] <= end - WINDOW / 2 + 1e-9],
+                  [sample for sample in window if sample["time"] > end - WINDOW / 2 + 1e-9]]
+        values = extrema_of(window, lower, upper, 100, support)
+        half_values = [extrema_of(half, lower, upper, 100, support) for half in halves]
+        out["windows"][size] = {
+            "end": end, "records": len(window),
+            **{quantity: deviation(values[quantity][METHOD]["value"], data[quantity]["value"])
+               for quantity in ("u_min", "v_max", "v_min", "w_abs_max")},
+            "halves": {quantity: deviation(half_values[1][quantity][METHOD]["value"], data[quantity]["value"])
+                       - deviation(half_values[0][quantity][METHOD]["value"], data[quantity]["value"])
+                       for quantity in ("u_min", "v_max", "v_min", "w_abs_max")}}
+    for sample in samples:
+        if sample["time"] < HISTORY_FROM:
+            continue
+        single = extrema_of([sample], lower, upper, 100, support)
+        out["series"].append({"time": sample["time"], **{quantity: deviation(single[quantity][METHOD]["value"],
+                                                                             data[quantity]["value"])
+                                                         for quantity in ("u_min", "v_max", "v_min", "w_abs_max")}})
+    # the drift rate before the plateau (from the N = 100 level's stop) and on it
+    for span_key, (first, last_time) in (("approach", (LONG_FROM, PLATEAU_FROM)), ("plateau", (PLATEAU_FROM, reached))):
+        rows = [row for row in out["series"] if first - 1e-9 <= row["time"] <= last_time + 1e-9]
+        times = np.array([row["time"] for row in rows])
+        out["rates"][span_key] = {}
+        for quantity in ("u_min", "v_max", "v_min", "w_abs_max"):
+            values = np.array([row[quantity] for row in rows])
+            slope, intercept = np.polyfit(times, values, 1)
+            residual = values - (slope * times + intercept)
+            out["rates"][span_key][quantity] = {
+                "slope": float(slope), "intercept": float(intercept),
+                "slope_error": float(residual.std(ddof=2) / (times.std() * math.sqrt(len(times)))),
+                "span": [float(times.min()), float(times.max())], "records": len(rows)}
+    # each level's own drift after level time 6 (the earliest the rule may stop), same fit
+    for size, result in sorted(results.items()):
+        own = [row for row in result["history"] if row["level_time"] >= 6.0]
+        if size == 100 or len(own) < 5:
+            continue
+        own_times = np.array([row["time"] for row in own])
+        out.setdefault("level_rates", {})[size] = {}
+        for quantity in ("u_min", "v_max", "v_min"):
+            values = np.array([row[quantity] for row in own])
+            slope, intercept = np.polyfit(own_times, values, 1)
+            residual = values - (slope * own_times + intercept)
+            out["level_rates"][size][quantity] = {
+                "slope": float(slope), "slope_error": float(residual.std(ddof=2) / (own_times.std()
+                                                                                   * math.sqrt(len(own_times)))),
+                "span": [float(own_times.min()), float(own_times.max())]}
+    return out
+
+
+def level_tables(results: dict, long: dict | None = None) -> None:
     data = reference()["extrema"]
     rows = []
     for size, result in sorted(results.items()):
         summary = result["summary"]
         cells = [str(size), result.get("machine", ""), f"{summary['fluid_particles']:,}",
                  f"{int(result['wall_store']):,}（生成 {int(result['wall_generated']):,}）" if result["wall_store"] else "—",
-                 " / ".join(f"{value / 1024:.1f}" for value in result["memory"].values()) if result["memory"] else "—",
+                 " / ".join(f"{value:.0f}" for value in result["memory"].values()) if result["memory"] else "—",
                  f"{1.0 / (summary['steps_per_second'] * summary['timestep']):.0f}",
                  f"{summary['level_time']:.2f}（{'收敛' if summary.get('converged') else summary.get('end_reason', '')}）"]
         for quantity in ("u_min", "v_max", "v_min", "w_abs_max"):
@@ -478,7 +669,7 @@ def level_tables(results: dict) -> None:
     rows.append(["原文", "—", "—", "—", "—", "—", "—"] + [f"{data[key]['value']:+.4f}" for key in
                                                            ("u_min", "v_max", "v_min", "w_abs_max")] + ["—", "—"])
     write("round9_levels.md", markdown_table(
-        ["N", "机器", "流体粒子", "壁面存储里的壁粒子", "显存 GiB（每张卡，运行中中位）", "每单位模拟时间的墙钟秒",
+        ["N", "机器", "流体粒子", "壁面存储里的壁粒子", "显存 MiB（每张卡，运行中中位减空闲）", "每单位模拟时间的墙钟秒",
          "收敛所用本级时间", "u_min（偏差）", "v_max", "v_min", "|w|max（两侧平均）", "速度 L2：u / v",
          "压力 L2：竖线 / 横线"], rows))
     # old method beside, and the steadiness of the window
@@ -540,42 +731,166 @@ def level_tables(results: dict) -> None:
                                            - deviation(results[size]["halves"][0][quantity][METHOD]["value"],
                                                        data[quantity]["value"]))
                                        if None not in results[size]["halves"] else 0.0 for size in sizes])
-                # each level's uncertainty: half the difference of its two half-windows, at least 0.05 points
-                errors = np.maximum(0.5 * halves, 0.0005)
+                # each level's uncertainty: the scatter of 4-unit means on the long N = 100 run's plateau (one window
+                # of a level is one such mean); without the long run, half the difference of the two half-windows
+                if long is not None:
+                    errors = np.full(sizes.size, max(long["plateau"]["scatter"][quantity], 0.0005))
+                else:
+                    errors = np.maximum(0.5 * halves, 0.0005)
                 fit = fit_limit(sizes, values, errors)
                 fits[f"{quantity}_{method_key}"] = {**fit, "values": values.tolist(), "errors": errors.tolist()}
                 rows.append([QUANTITY_TEXT[quantity], label, " / ".join(percent(value) for value in values),
-                             f"{fit['power']:.2f}（{fit['power_range'][0]:.2f}–{fit['power_range'][1]:.2f}）",
+                             power_text(fit),
                              f"{percent(fit['limit'])} ± {100 * fit['limit_spread']:.2f}"])
         write("round9_extrapolation.md", markdown_table(
             [f"量", "方法", f"偏差（N = {' / '.join(str(size) for size in sizes)}）", "阶 p（16–84 % 区间）",
              "外推极限（± 半宽）"], rows))
-        # sensitivity: the levels moved to a common time (the latest level's window centre) by the slow drift's rate
-        rates = drift_rates()
-        centres = {size: float(results[size]["summary"]["time"]) - WINDOW / 2 for size in sizes}
-        common = max(centres.values())
-        rows = []
-        for quantity in ("u_min", "v_max", "v_min", "w_abs_max"):
-            entry = fits[f"{quantity}_{METHOD}"]
-            shifted = np.asarray(entry["values"]) + rates[quantity]["slope"] * np.array(
-                [common - centres[size] for size in sizes])
-            spread = np.sqrt(np.asarray(entry["errors"]) ** 2 + (rates[quantity]["slope_error"] * np.array(
-                [common - centres[size] for size in sizes])) ** 2)
-            fit = fit_limit(sizes, shifted, np.maximum(spread, 0.0005))
-            fits[f"{quantity}_{METHOD}_drift"] = {**fit, "values": shifted.tolist(), "rate": rates[quantity]}
-            rows.append([QUANTITY_TEXT[quantity],
-                         f"{100 * rates[quantity]['slope']:+.3f} ± {100 * rates[quantity]['slope_error']:.3f}",
-                         " / ".join(f"{centres[size]:.1f}" for size in sizes),
-                         " / ".join(percent(value) for value in shifted),
-                         f"{fit['power']:.2f}（{fit['power_range'][0]:.2f}–{fit['power_range'][1]:.2f}）",
-                         f"{percent(fit['limit'])} ± {100 * fit['limit_spread']:.2f}"])
-        write("round9_extrapolation_drift.md", markdown_table(
-            ["量（直接拟合）", "缓慢漂移（百分点 / 单位时间，第八轮同一算例 t = 30–45）",
-             "各级窗口中点的累计时间", f"移到 t = {common:.1f} 后的偏差", "阶 p", "外推极限"], rows))
+    if long is not None:
+        long_tables(results, long, fits)
     (ROUND / "extrapolation.json").write_text(json.dumps(fits, indent=1), encoding="utf-8", newline="\n")
 
 
-def level_figures(results: dict) -> None:
+def fixed_power_limit(sizes: np.ndarray, deltas: np.ndarray, errors: np.ndarray, power: float) -> dict:
+    """delta(N) = C (N^-p - 100^-p) for a given p (delta(100) = 0 exactly), weighted least squares over N > 100:
+    delta(infinity) = -C 100^-p with its standard error, and the chi-square per degree of freedom."""
+    mask = sizes > 100
+    basis = sizes[mask].astype(float) ** (-power) - 100.0 ** (-power)
+    weights = 1.0 / errors[mask] ** 2
+    coefficient = float(np.sum(weights * basis * deltas[mask]) / np.sum(weights * basis ** 2))
+    coefficient_error = float(1.0 / math.sqrt(np.sum(weights * basis ** 2)))
+    residual = deltas[mask] - coefficient * basis
+    degrees = max(int(mask.sum()) - 1, 1)
+    return {"power": power, "coefficient": coefficient, "limit": -coefficient * 100.0 ** (-power),
+            "limit_error": coefficient_error * 100.0 ** (-power),
+            "chi_square": float(np.sum(weights * residual ** 2) / degrees)}
+
+
+def long_tables(results: dict, long: dict, fits: dict) -> None:
+    """report 15.4: the levels (and their continuations) against the long N = 100 run at equal accumulated time, the
+    long run's approach to its plateau, the drift rates, and the extrapolation of the equal-time refinement effect
+    delta(N) (delta(100) = 0) from the N = 100 plateau."""
+    data = reference()["extrema"]
+    quantities = QUANTITIES_ALL
+    scatter = long["plateau"]["scatter"]
+    continuations = long.get("continuations") or {}
+    # 1. the long run's 4-unit means: approach and plateau
+    rows = []
+    for row in long["evolution"]:
+        rows.append([f"{row['start']:.0f}–{row['start'] + WINDOW:.0f}" + ("（平台）" if row["plateau"] else ""),
+                     str(row["records"])] + [percent(row[quantity]) for quantity in quantities])
+    rows.append([f"平台 t ≥ {PLATEAU_FROM:.0f} 的平均（{len(long['plateau']['windows'])} 个窗口）", "—"]
+                + [percent(long["plateau"]["mean"][quantity]) for quantity in quantities])
+    rows.append(["平台上 4 单位平均值的散布（标准差）", "—"]
+                + [f"{100 * scatter[quantity]:.2f} 个百分点" for quantity in quantities])
+    write("round9_long_run.md", markdown_table(
+        ["N = 100 长跑的窗口（累计时间 t）", "记录数", "u_min", "v_max", "v_min", "|w|max"], rows))
+    # 2. every window of a level or a continuation against the long run in the same window
+    rows = []
+    per_level = {}
+    for size, result in sorted(results.items()):
+        window = long["windows"].get(size)
+        if window is None:
+            rows.append([str(size), "—", "长跑没有覆盖这个窗口", "", ""])
+            continue
+        level = {quantity: deviation(result["extrema"][quantity][METHOD]["value"], data[quantity]["value"])
+                 for quantity in quantities}
+        label = "第 0 级" if size == 100 else "这一级的结果"
+        offset = float(result["summary"].get("time_offset") or 0.0)
+        entries = [(f"{size}（{label}）", window["end"], level, window)]
+        for continued, long_window in zip((continuations.get(size) or {}).get("windows", []),
+                                          long.get("continuation_windows", {}).get(size, [])):
+            entries.append((f"{size} 续跑", continued["end"], continued, long_window))
+        per_level[size] = []
+        every = [{quantity: values[quantity] - long_values[quantity] for quantity in quantities}
+                 for _, _, values, long_values in entries]
+        for text, end, values, long_values in entries:
+            delta = {quantity: values[quantity] - long_values[quantity] for quantity in quantities}
+            level_start = end - WINDOW - offset
+            used = size == 100 or level_start >= RELAXED_FROM - 0.05
+            if used:
+                per_level[size].append(delta)
+            rows.append([text, f"{end - WINDOW:.1f}–{end:.1f}", f"{level_start:.1f}–{level_start + WINDOW:.1f}",
+                         " / ".join(percent(values[quantity]) for quantity in quantities),
+                         " / ".join(percent(long_values[quantity]) for quantity in quantities),
+                         " / ".join(f"{100 * delta[quantity]:+.2f}" for quantity in quantities),
+                         "—" if size == 100 else ("是" if used else "否（本级时间 < 12，还在回落）")])
+        if not per_level[size]:              # no relaxed window (no continuation): every window, marked in the log
+            print(f"[round9] N = {size}: no window from level time {RELAXED_FROM:g}; delta from all windows", flush=True)
+            per_level[size] = every
+    write("round9_drift.md", markdown_table(
+        ["N", "窗口（累计时间 t）", "本级时间", "这一级：u_min / v_max / v_min / |w|max",
+         "同一窗口的 N = 100 长跑", "差 δ = 这一级 − N = 100（百分点）", "用于外推"], rows))
+    # 3. drift rates
+    rates_round8 = drift_rates()
+    rows = []
+    for quantity in quantities:
+        cells = [QUANTITY_TEXT[quantity]]
+        for span_key in ("approach", "plateau"):
+            rate = long["rates"][span_key][quantity]
+            cells.append(f"{100 * rate['slope']:+.4f} ± {100 * rate['slope_error']:.4f}")
+        cells.append(f"{100 * rates_round8[quantity]['slope']:+.4f} ± {100 * rates_round8[quantity]['slope_error']:.4f}")
+        for size in sorted(long.get("level_rates", {})):
+            entry = (continuations.get(size) or {}).get("rates", {}).get(quantity) \
+                or long["level_rates"][size].get(quantity)
+            cells.append(f"{100 * entry['slope']:+.4f} ± {100 * entry['slope_error']:.4f}（t {entry['span'][0]:.0f}–"
+                         f"{entry['span'][1]:.0f}）" if entry else "—")
+        rows.append(cells)
+    approach = long["rates"]["approach"]["u_min"]["span"]
+    plateau_span = long["rates"]["plateau"]["u_min"]["span"]
+    write("round9_drift_rates.md", markdown_table(
+        ["量（百分点 / 单位时间）", f"N = 100 长跑 t = {approach[0]:.0f}–{approach[1]:.0f}",
+         f"N = 100 长跑 t = {plateau_span[0]:.0f}–{plateau_span[1]:.0f}", "第八轮同一算例 t = 30–45，现在的方法"]
+        + [f"N = {size}：本级时间 ≥ 6" + ("，含续跑" if size in continuations else "")
+           for size in sorted(long.get("level_rates", {}))], rows))
+    # 4. delta(N): the mean over a level's windows (result window and continuation windows); one window's delta has
+    # the uncertainty sqrt(2) x the plateau scatter (the level's window and the long run's are one 4-unit mean each)
+    sizes = np.array(sorted(per_level))
+    if sizes.size < 3:
+        return
+    rows = []
+    for quantity in quantities:
+        deltas, errors, counts = [], [], []
+        for size in sizes:
+            if size == 100:
+                deltas.append(0.0)
+                errors.append(0.0005)
+                counts.append(1)
+                continue
+            values = [entry[quantity] for entry in per_level[size]]
+            deltas.append(float(np.mean(values)))
+            errors.append(max(math.sqrt(2.0) * scatter[quantity] / math.sqrt(len(values)), 0.0005))
+            counts.append(len(values))
+        deltas, errors = np.array(deltas), np.array(errors)
+        fit = fit_limit(sizes, deltas, errors)
+        fixed = {power: fixed_power_limit(sizes, deltas, errors, power) for power in (1.0, 2.0)}
+        base = long["plateau"]["mean"][quantity]
+        base_error = scatter[quantity] / math.sqrt(len(long["plateau"]["windows"]))
+        fits[f"{quantity}_matched"] = {**fit, "sizes": sizes.tolist(), "values": deltas.tolist(),
+                                       "errors": errors.tolist(), "windows": counts, "base": base,
+                                       "base_error": base_error,
+                                       "fixed": {str(key): value for key, value in fixed.items()}}
+        free_text = (f"{percent(base + fit['limit'])} ± {100 * math.hypot(fit['limit_spread'], base_error):.2f}"
+                     if not at_bound(fit) else "—")
+        delta_texts = []
+        for size, value, count in zip(sizes, deltas, counts):
+            delta_texts.append(f"{100 * value:+.2f}" + (f"（{count} 窗）" if size != 100 else ""))
+        fixed_texts = []
+        for power in (1.0, 2.0):
+            entry = fixed[power]
+            fixed_texts.append(f"{percent(base + entry['limit'])} ± {100 * math.hypot(entry['limit_error'], base_error):.2f}"
+                               f"（χ² {entry['chi_square']:.1f}）")
+        rows.append([QUANTITY_TEXT[quantity], " / ".join(delta_texts),
+                     " / ".join(f"{100 * error:.2f}" for size, error in zip(sizes, errors) if size != 100),
+                     power_text(fit), f"{100 * fit['limit']:+.2f} ± {100 * fit['limit_spread']:.2f}",
+                     f"{percent(base)} ± {100 * base_error:.2f}", free_text, " / ".join(fixed_texts)])
+    write("round9_extrapolation_matched.md", markdown_table(
+        ["量（直接拟合）", f"δ(N)，N = {' / '.join(str(size) for size in sizes)}（百分点）",
+         f"δ 的不确定度，N = {' / '.join(str(size) for size in sizes if size != 100)}",
+         "阶 p（16–84 %）", "δ(∞)（百分点）", f"N = 100 长跑的平台（t ≥ {PLATEAU_FROM:.0f}）",
+         "极限 = 平台 + δ(∞)（p 自由）", "p 取 1 / 2 时的极限（χ² / 自由度）"], rows))
+
+
+def level_figures(results: dict, long: dict | None = None) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -606,10 +921,24 @@ def level_figures(results: dict) -> None:
         for axis in axes:
             if start > 0:
                 axis.axvline(start, color=INK_SECONDARY, linewidth=0.8, linestyle="--")
+    if long is not None:
+        long_times = np.array([row["time"] for row in long["series"]])
+        for axis, quantity in zip(axes, ("u_min", "v_max", "v_min")):
+            axis.plot(long_times, [100 * row[quantity] for row in long["series"]], color=INK_SECONDARY, linewidth=1.2,
+                      label="N = 100 长跑（不按判据停，漂移诊断）", zorder=1)
+        for size, continuation in sorted((long.get("continuations") or {}).items()):
+            continued_times = np.array([row["time"] for row in continuation["series"]])
+            for axis, quantity in zip(axes, ("u_min", "v_max", "v_min")):
+                axis.plot(continued_times, [100 * row[quantity] for row in continuation["series"]],
+                          color=colours.get(size, "#666"), linewidth=1.5, linestyle="--", marker="o", markersize=2.5,
+                          markerfacecolor="none", label=f"N = {size} 续跑（不按判据停，平台检查）")
     for axis, quantity in zip(axes, ("u_min", "v_max", "v_min")):
         axis.axhline(0.0, color=INK_SECONDARY, linewidth=0.8)
         axis.set_ylabel(f"{QUANTITY_TEXT[quantity]} 偏差（%）")
-    axes[-1].set_xlabel("累计时间 t（L / U）；虚竖线 = 换级")
+        # the from-zero spin-up of N = 100 (deviations down to -90 %) would hide the levels' differences
+        axis.set_xlim(left=HISTORY_FROM)
+        axis.set_ylim(-4.0, 0.5)
+    axes[-1].set_xlabel(f"累计时间 t（L / U）；虚竖线 = 换级；N = 100 从零起步的 t < {HISTORY_FROM:g} 在图外")
     handles, labels = axes[0].get_legend_handles_labels()
     header(figure, "逐级加密：三个平面极值相对原文的偏差（实线 = 直接拟合，点线 = 现在的方法）", handles, labels)
     save(figure, FIGURES / "round9_history.png")
@@ -626,24 +955,52 @@ def level_figures(results: dict) -> None:
             values = np.abs(np.asarray(entry["values"]))
             axis.loglog(sizes, values * 100, marker=marker, linestyle=style, color=INK_PRIMARY if method_key == "old"
                         else "#2a78d6", markersize=6, linewidth=1.5, label=label)
+            if at_bound(entry):
+                continue                       # no N^-p convergence: no curve (table: at the bound)
             dense = np.linspace(sizes.min(), sizes.max() * 1.6, 100)
             model = entry["limit"] + entry["coefficient"] * dense ** (-entry["power"])
             axis.loglog(dense, np.abs(model) * 100, color="#2a78d6" if method_key != "old" else INK_SECONDARY,
                         linewidth=0.8, linestyle="--")
+        matched = fits.get(f"{quantity}_matched")
+        if matched is not None:
+            # equal time: the long N = 100 run's plateau plus each level's delta(N)
+            matched_sizes = np.asarray(matched["sizes"])
+            base = matched["base"]
+            axis.loglog(matched_sizes, np.abs(base + np.asarray(matched["values"])) * 100, marker="^", linestyle="-",
+                        color="#eb6834", markersize=6, linewidth=1.5,
+                        label=f"直接拟合，按 N = 100 长跑对齐到它的平台（t ≥ {PLATEAU_FROM:.0f}）")
+            if not at_bound(matched):
+                dense = np.linspace(sizes.min(), sizes.max() * 1.6, 100)
+                model = base + matched["limit"] + matched["coefficient"] * dense ** (-matched["power"])
+                axis.loglog(dense, np.abs(model) * 100, color="#eb6834", linewidth=0.8, linestyle="--")
+        # guide slopes N^-1 and N^-2 through the chosen method's N = 100 value
+        entry = fits.get(f"{quantity}_{METHOD}")
+        if entry is not None:
+            guide = np.array([sizes.min(), sizes.max() * 1.6])
+            start = abs(entry["values"][0]) * 100
+            for power, style in ((1, (0, (6, 3))), (2, (0, (2, 2)))):
+                axis.loglog(guide, start * (guide / guide[0]) ** (-power), color=INK_SECONDARY, linewidth=0.7,
+                            linestyle=style, label=f"N^−{power}（参考斜率）")
         axis.set_title(QUANTITY_TEXT[quantity])
         axis.set_xlabel("N")
         axis.set_xticks(sizes)
         axis.set_xticklabels([str(size) for size in sizes])
         axis.minorticks_off()
+        ticks = [value for value in (0.1, 0.2, 0.3, 0.5, 1, 2, 3, 5) ]
+        axis.set_yticks(ticks)
+        axis.set_yticklabels([f"{value:g}" for value in ticks])
+        axis.set_ylim(0.1, 5.0)
     axes[0].set_ylabel("|偏差|（%）")
     handles, labels = axes[0].get_legend_handles_labels()
-    header(figure, "偏差随 N（双对数；虚线 = 极限 + C N^−p 的拟合）", handles, labels)
+    header(figure, "偏差随 N（双对数；彩色虚线 = 极限 + C N^−p 的拟合，到边界的不画）", handles, labels)
     save(figure, FIGURES / "round9_convergence.png")
 
-    # 3. the largest level's centre-line velocity against the paper
+    # 3. the largest level's centre-line velocity against the paper (top), every level's difference from the paper at
+    # the 15 interior table points (bottom; quadratic MLS, the profile L2 of round9_levels)
     largest = max(results)
     profiles = results[largest]["fine_profiles"]
-    figure, axes = plt.subplots(1, 2, figsize=(12.0, 5.6))
+    figure, grid = plt.subplots(2, 2, figsize=(12.0, 9.6), gridspec_kw={"height_ratios": [1.5, 1.0]})
+    axes = grid[0]
     axes[0].plot(profiles["vertical"]["velocity"], profiles["vertical"]["coordinate"], color="#2a78d6", linewidth=1.5,
                  label=f"N = {largest}（二次 MLS，最后 {WINDOW:g} 个单位的平均）")
     axes[1].plot(profiles["horizontal"]["coordinate"], profiles["horizontal"]["velocity"], color="#2a78d6",
@@ -664,7 +1021,20 @@ def level_figures(results: dict) -> None:
     axes[0].set_xlabel("u / U"); axes[0].set_ylabel("y / L"); axes[0].set_title("竖线 (0.5, y, 0.5)")
     axes[1].set_xlabel("x / L"); axes[1].set_ylabel("v / U"); axes[1].set_title("横线 (x, 0.5, 0.5)")
     handles, labels = axes[0].get_legend_handles_labels()
-    header(figure, f"N = {largest} 的中心线速度（圆圈 = 原文表 5、6，菱形 = 表 10 的极值）", handles, labels, columns=2)
+    for axis, line in zip(grid[1], ("vertical", "horizontal")):
+        reference_velocity = data[line]["velocity"][inner(data[line]["coordinate"])]
+        for size, result in sorted(results.items()):
+            entry = result["profiles"][line]
+            axis.plot(entry["coordinate"], 1000.0 * (np.asarray(entry["velocity"]) - reference_velocity),
+                      color=colours.get(size, "#666"), marker="o", markersize=4, linewidth=1.2,
+                      label=f"N = {size}")
+        axis.axhline(0.0, color=INK_SECONDARY, linewidth=0.8)
+        axis.set_xlabel("y / L" if line == "vertical" else "x / L")
+        axis.set_ylabel(("u" if line == "vertical" else "v") + " − 原文（× 10⁻³ U）")
+        axis.set_title(("竖线" if line == "vertical" else "横线") + "：表格点上的差（各级）")
+    level_handles, level_labels = grid[1][0].get_legend_handles_labels()
+    header(figure, f"N = {largest} 的中心线速度（圆圈 = 原文表 5、6，菱形 = 表 10 的极值）；下排 = 各级在表格点上的差",
+           handles + level_handles, labels + level_labels, columns=3)
     save(figure, FIGURES / "round9_profiles.png")
 
 
