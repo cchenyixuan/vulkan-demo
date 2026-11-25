@@ -243,6 +243,10 @@ def main() -> int:
     parser.add_argument("--wall-deadline", type=float, default=0.0,
                         help="unix time: at the first line record after it the run ends like a converged one, marked "
                              "not converged (0: off)")
+    # report section 16 (round 10): an outside monitor (cavity3d_round10.py) decides when the level is steady
+    parser.add_argument("--stop-file", default="",
+                        help="at the first line record after this file exists the run ends like a converged one, its "
+                             "checkpoint written, end_reason stop_file (empty: off)")
     arguments = parser.parse_args()
     if arguments.density_budget:
         sys.exit("[box_run] --density-budget was removed with the wall store; use the git tag crossing-pool")
@@ -402,7 +406,7 @@ def main() -> int:
                         if entry["step"] <= start_step]
         clock = {"started": None, "heartbeat": 0.0}
         checkpoint_directory = out / "checkpoints"
-        if checkpoint_steps or arguments.converge:
+        if checkpoint_steps or arguments.converge or arguments.stop_file:
             checkpoint_directory.mkdir(exist_ok=True)
             if not resuming:
                 for old in checkpoint_directory.glob("c*.npz"):
@@ -562,6 +566,11 @@ def main() -> int:
                 latest["end_reason"] = "wall_deadline"
                 raise Converged(f"wall-clock deadline passed at level time {step * timestep:.3f} (step {step}); "
                                 "not converged")
+            if take_lines and arguments.stop_file and step > start_step and os.path.exists(arguments.stop_file):
+                save_checkpoint(step, simulators)
+                latest["converged_step"] = step
+                latest["end_reason"] = "stop_file"
+                raise Converged(f"stop file found at level time {step * timestep:.3f} (step {step})")
             if take_frame:
                 temporary = out / "frames" / f"f{step:010d}.partial.npz"
                 np.savez_compressed(temporary, step=np.int64(step), time=np.float64(time_offset + step * timestep),
