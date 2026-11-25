@@ -1,0 +1,19 @@
+# cavity3d_re1000_n280 (claude/wall_store_report.md section 14): Re = U L / nu = 1000 exactly on the
+# wall-to-wall length L = 1 + dx = 1.0035714285714286 (dx = 1/280, the crossing box), U = 1.
+# The standard materials with nu = 0.0010035714285714285 instead of 1e-3; nothing else changed.
+
+stick_water:
+  kind: fluid
+  rest_density: 1000.0
+  viscosity: 0.0010035714285714285
+
+stick_wall:
+  kind: boundary
+  rest_density: 1000.0
+  viscosity: 0.0010035714285714285
+
+stick_lid:
+  kind: boundary
+  rest_density: 1000.0
+  viscosity: 0.0010035714285714285
+  initial_velocity: [1.0, 0.0, 0.0]
