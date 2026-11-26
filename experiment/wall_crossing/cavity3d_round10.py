@@ -248,9 +248,159 @@ def monitor_main(arguments) -> int:
         time.sleep(arguments.poll)
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# the brief 3.1: the shape of u(y) under the lid (CPU only, the levels' tube records)
+# ---------------------------------------------------------------------------------------------------------------------
+
+LOGS = REPOSITORY_ROOT / "logs" / "wall_store"
+# the steady windows of every level (report 15.4: N = 100's plateau t >= 44, the other levels after level time 12)
+STEADY_RUNS = {100: ("round9/box_run/L100_long", lambda sample: sample["time"] >= 44.0 - 1e-9),
+               140: ("round9/remote/box_run/L140", lambda sample: sample["level_time"] >= 12.46 - 1e-9),
+               170: ("round9/remote/box_run/L170_cont", lambda sample: sample["level_time"] > 12.36),
+               200: ("round9/box_run/L200_cont", lambda sample: sample["level_time"] > 12.25),
+               280: ("round10/box_run/L280", None)}
+LID_FROM = 0.90                # normalised y: the fit range under the lid
+LID_DEGREE = 4
+
+
+def steady_samples(size: int, final_window: tuple | None = None) -> list:
+    relative, keep = STEADY_RUNS[size]
+    directory = LOGS / relative / "tubes"
+    out = []
+    for path in sorted(directory.glob("t*.npz")):
+        if path.name.endswith(".partial.npz"):
+            continue
+        sample = load_tube(path)
+        if sample["level_time"] <= 0.0:
+            continue
+        if keep is not None and not keep(sample):
+            continue
+        if keep is None and final_window is not None and not (final_window[0] - 1e-9 <= sample["level_time"]
+                                                              <= final_window[1] + 1e-9):
+            continue
+        out.append(sample)
+    return out
+
+
+def lid_profile(samples: list, size: int) -> dict:
+    """u(y) of the fluid particles within 1.5 dx of the vertical centre line, y >= LID_FROM (normalised by the
+    crossing box, lid at y = 1): binned means (bins of dx) and a least-squares fit, a degree-4 polynomial in y plus a,
+    b, a^2, b^2, a b (the transverse offsets), over the particles more than 2 dx below the lid."""
+    lower, upper = extrema_methods.box_of(size)
+    spacing = 1.0 / (size + 1)                       # dx / L
+    radius = extrema_methods.FIT_RADIUS_SPACINGS * spacing
+    pooled = []
+    for sample in samples:
+        unit = extrema_methods.normalised(sample["positions"], lower, upper)
+        first, second = unit[:, 0] - 0.5, unit[:, 2] - 0.5
+        keep = (first ** 2 + second ** 2 <= radius ** 2) & (unit[:, 1] >= LID_FROM)
+        pooled.append(np.column_stack([unit[keep, 1], first[keep], second[keep], sample["velocities"][keep, 0]]))
+    pooled = np.concatenate(pooled)
+    y, first, second, values = pooled.T
+    edges = np.arange(LID_FROM, 1.0 + 1e-12, spacing)
+    centres, means = [], []
+    for low, high in zip(edges[:-1], edges[1:]):
+        inside = (y >= low) & (y < high)
+        if inside.sum() >= 3:
+            centres.append(float(y[inside].mean()))
+            means.append(float(values[inside].mean()))
+    fit_rows = y <= 1.0 - 2.0 * spacing
+    s = (y[fit_rows] - 1.0) / (1.0 - LID_FROM)
+    design = np.column_stack([s ** power for power in range(LID_DEGREE + 1)]
+                             + [first[fit_rows] / radius, second[fit_rows] / radius, (first[fit_rows] / radius) ** 2,
+                                (second[fit_rows] / radius) ** 2, first[fit_rows] * second[fit_rows] / radius ** 2])
+    coefficients, *_ = np.linalg.lstsq(design, values[fit_rows], rcond=None)
+    polynomial = np.polynomial.Polynomial(coefficients[:LID_DEGREE + 1])
+    return {"polynomial": polynomial, "spacing": spacing, "bins": (np.asarray(centres), np.asarray(means)),
+            "samples": len(samples), "particles": int(fit_rows.sum()),
+            "residual": float((values[fit_rows] - design @ coefficients).std())}
+
+
+def lid_reference() -> dict:
+    """A&K table 5 under the lid (y >= 0.95 and the lid row u = 1): a cubic through the five rows."""
+    data = reference()["vertical"]
+    rows = data["coordinate"] >= 0.95 - 1e-9
+    y, u = data["coordinate"][rows], data["velocity"][rows]
+    polynomial = np.polynomial.Polynomial.fit(y, u, 3).convert()
+    points = data["coordinate"][(data["coordinate"] >= 0.95) & (data["coordinate"] < 1.0 - 1e-9)]
+    values = data["velocity"][(data["coordinate"] >= 0.95) & (data["coordinate"] < 1.0 - 1e-9)]
+    return {"polynomial": polynomial, "points": points, "values": values}
+
+
+def lid_analysis(sizes: list, final_window: tuple | None = None) -> dict:
+    ref = lid_reference()
+    derivative = ref["polynomial"].deriv()
+    out = {"points": ref["points"].tolist(), "reference": ref["values"].tolist(), "levels": {}}
+    for size in sizes:
+        samples = steady_samples(size, final_window if size == 280 else None)
+        if not samples:
+            continue
+        profile = lid_profile(samples, size)
+        polynomial = profile["polynomial"]
+        evaluate = lambda yy: polynomial((np.asarray(yy) - 1.0) / (1.0 - LID_FROM))      # noqa: E731
+        errors = evaluate(ref["points"]) - ref["values"]
+        # the simulated profile = the reference shifted up by e: u_sim(y) = u_ref(y - e) -> e = -error / u_ref'(y)
+        shifts = -errors / derivative(ref["points"])
+        # the binned means against the reference cubic: the layer next to the lid (within 2.5 dx) and the largest
+        # deficit further down (y >= 0.9531, the range of the reference cubic)
+        centres, means = profile["bins"]
+        difference = means - ref["polynomial"](centres)
+        near = centres >= 1.0 - 2.5 * profile["spacing"]
+        below = (centres >= 0.9531) & ~near
+        peak = int(np.argmin(np.where(below, difference, np.inf)))
+        out["levels"][size] = {"samples": profile["samples"], "particles": profile["particles"],
+                               "spacing": profile["spacing"], "errors": errors.tolist(), "shifts": shifts.tolist(),
+                               "shift_mean": float(shifts.mean()),
+                               "shift_spacings": float(shifts.mean() / profile["spacing"]),
+                               "wall_layer_difference": float(difference[near].mean()),
+                               "deficit_peak": float(difference[peak]), "deficit_peak_y": float(centres[peak]),
+                               "deficit_peak_spacings": float((1.0 - centres[peak]) / profile["spacing"]),
+                               "bins": [centres.tolist(), means.tolist()], "residual": profile["residual"]}
+        entry = out["levels"][size]
+        print(f"[round10] lid N = {size}: {profile['samples']} records, errors "
+              + " / ".join(f"{1000 * value:+.1f}" for value in errors) + " e-3, shift "
+              f"{shifts.mean():+.5f} L ({entry['shift_spacings']:+.3f} dx), wall layer "
+              f"{1000 * entry['wall_layer_difference']:+.1f} e-3, deficit {1000 * entry['deficit_peak']:+.1f} e-3 at "
+              f"y = {entry['deficit_peak_y']:.4f} ({entry['deficit_peak_spacings']:.1f} dx)", flush=True)
+    return out
+
+
+def lid_two_dimensional() -> dict | None:
+    """The 2-D 500^2 crossing cavity of round 5 (remote, t = 80 .. 100, its Marchi points): the errors of u at the
+    vertical line's points under the lid (wall-including MLS, as its report)."""
+    run = LOGS / "round5" / "remote" / "cavity" / "r5_n500"
+    analysis_path = LOGS / "round5" / "remote" / "r5_n500_analysis.json"
+    if not (run / "samples").exists() or not analysis_path.exists():
+        return None
+    window = json.loads(analysis_path.read_text(encoding="utf-8"))["window"]
+    points = np.load(run / "points.npz")
+    meta = json.loads((run / "meta.json").read_text(encoding="utf-8")) if (run / "meta.json").exists() else {}
+    timestep = json.loads((run / "result.json").read_text(encoding="utf-8"))["dt"]
+    values = []
+    for path in sorted((run / "samples").glob("s*.npz")):
+        step = int(path.stem[1:])
+        if window[0] - 1e-9 <= step * timestep <= window[1] + 1e-9:
+            with np.load(path) as archive:
+                values.append(archive["u_marchi_wall_mls"])
+    return {"window": window, "records": len(values), "points": points, "mean": np.mean(values, axis=0), "meta": meta}
+
+
+def lid_main(arguments) -> int:
+    sizes = [int(item) for item in arguments.sizes.split(",")]
+    final_window = tuple(float(item) for item in arguments.final_window.split(",")) if arguments.final_window else None
+    out = lid_analysis(sizes, final_window)
+    (LOGS / "round10").mkdir(parents=True, exist_ok=True)
+    (LOGS / "round10" / "lid.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="action", required=True)
+    sub.add_parser("analysis", help="section 16: tables, thesis figures (cavity3d_round10_analysis.py)")
+    lid = sub.add_parser("lid")
+    lid.add_argument("--sizes", default="100,140,170,200")
+    lid.add_argument("--final-window", default="", help="level-time window of N = 280 (first,last)")
     monitor = sub.add_parser("monitor")
     monitor.add_argument("--run", required=True, help="the box_run directory (relative to the repository)")
     monitor.add_argument("--stop-file", required=True)
@@ -260,6 +410,11 @@ def main() -> int:
     arguments = parser.parse_args()
     if arguments.action == "monitor":
         return monitor_main(arguments)
+    if arguments.action == "lid":
+        return lid_main(arguments)
+    if arguments.action == "analysis":
+        from experiment.wall_crossing.cavity3d_round10_analysis import analysis_main
+        return analysis_main(arguments)
     return 1
 
 
