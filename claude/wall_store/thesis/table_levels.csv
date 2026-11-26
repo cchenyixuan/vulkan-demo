@@ -1,0 +1,6 @@
+N,hardware,fluid particles,wall-store particles,memory MiB per card,wall seconds per unit time,u_min deviation %,v_max deviation %,v_min deviation %,w_abs_max deviation %,velocity L2 u (vertical line),velocity L2 v (horizontal line),pressure L2 vertical,pressure L2 horizontal
+100,2 x RTX 5090,1030301,260860,287 / 299,117,-1.940,-1.803,-1.451,1.414,0.00829,0.00425,0.000377,0.000311
+140,1 x RTX 5090,2803221,499420,1128,598,-1.370,-1.289,-0.982,1.191,0.00501,0.00254,0.000382,0.000193
+170,1 x RTX 5090,5000211,728740,1971,1249,-1.209,-1.120,-0.868,0.719,0.00457,0.00233,0.000368,0.000132
+200,2 x RTX 5090,8120601,1001260,1775 / 1761,1329,-0.977,-0.908,-0.766,0.283,0.00381,0.00178,0.000414,0.000157
+280,2 x RTX 5090,22188041,1939180,4643 / 4574,4797,-0.648,-0.696,-0.661,-0.701,0.00267,0.00156,0.000316,0.000183
